@@ -1,4 +1,4 @@
-# -m の直接投稿。REST の node_id でボードに追加し、フィールドを 3 つ設定する。スラッシュコマンドのフラグを 2 つとも消費する。
+# -m の直接投稿。REST の node_id でボードに追加し、status の欄を設定する。
 id: issue-create-ok-message
 command:
   path: [issue, create]
@@ -9,10 +9,6 @@ command:
     - 一覧に状態を出す
     - -r
     - acme/demo
-    - --priority
-    - high
-    - --size
-    - s
 setup:
   repo:
     files:
@@ -35,23 +31,6 @@ setup:
                   "active": "o4",
                   "in_review": "o5",
                   "archived": "o6"
-                }
-              },
-              "priority": {
-                "id": "PVTSSF_priority",
-                "options": {
-                  "high": "p1",
-                  "medium": "p2",
-                  "low": "p3"
-                }
-              },
-              "size": {
-                "id": "PVTSSF_size",
-                "options": {
-                  "xs": "s1",
-                  "s": "s2",
-                  "m": "s3",
-                  "l": "s4"
                 }
               }
             }
@@ -100,7 +79,6 @@ github:
             item: {id: PVTI_12}
   - match:
       operation: UpdateProjectItemField
-    times: 3
     respond:
       status: 200
       body:

@@ -73,16 +73,6 @@
         "number": 20
       },
       "auth": "token"
-    },
-    {
-      "type": "graphql",
-      "operation": "GetIssueProjectItems",
-      "variables": {
-        "owner": "acme",
-        "repo": "demo",
-        "number": 20
-      },
-      "auth": "token"
     }
   ],
   "files": {

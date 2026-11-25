@@ -22,7 +22,7 @@ mcp_guidance_gh_issue_create() {
 gh-issue-create-check: gh issue create is not allowed.
 
 Reason: using gh issue create directly skips the automatic registration on the project board,
-the status/priority/size field settings, and the template validation, which breaks the consistency
+the status field settings, and the template validation, which breaks the consistency
 and traceability of the workflow.
 
 Use one of these instead:

@@ -3,8 +3,6 @@ title: ""
 type: task
 template: task-implement
 repository: ""
-priority: ""
-size: ""
 labels: []
 parent_epic: ""
 blocked_by: []

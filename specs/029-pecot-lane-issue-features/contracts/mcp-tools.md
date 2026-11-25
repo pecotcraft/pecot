@@ -71,7 +71,9 @@ warning: this board uses the old field name pecot-workflow-pecotcraft
   run: pecot project init <owner> <name> --host <host>
 ```
 
-`<owner>`・`<host>` は設定の値で、`<name>` だけを利用者が埋める。MCP では、2 行目が `project_init` の呼び出しの形になる。Phase 2 で、`pecot-priority`・`pecot-size` と `--confirm-delete` を、この文に足す。
+`<owner>`・`<host>` は設定の値で、`<name>` だけを利用者が埋める。MCP では、2 行目が `project_init` の呼び出しの形になる。
+
+Phase 2 で、残った `pecot-priority`・`pecot-size` の名前を同じ警告に足す。2 行目には `confirm_delete` を付けない。承認の流れは `project_init` の `warnings` が案内する（FR-010）。
 
 ## B. Issue の機能
 

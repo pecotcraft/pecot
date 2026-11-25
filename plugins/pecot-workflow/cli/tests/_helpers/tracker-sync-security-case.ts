@@ -21,8 +21,8 @@ export function dependabotAlert(number: number, severity = 'medium', summary?: s
   }
 }
 
-export function codeScanningAlert(number: number): JsonObject {
-  return { number, rule: { id: 'js/xss', severity: 'error' } }
+export function codeScanningAlert(number: number, rule?: Readonly<JsonObject>): JsonObject {
+  return { number, rule: { id: 'js/xss', ...rule ?? { severity: 'error' } } }
 }
 
 export function secretScanningAlert(number: number): JsonObject {
@@ -83,7 +83,8 @@ export function vulnerabilityAlertsEnabled(): ResponseRule {
 // --- Tracker の Issue ---
 
 export function trackerEntry(kind: TrackerEntry['kind'], number: number, extra: Partial<TrackerEntry> = {}): TrackerEntry {
-  return { kind, number, priority: 'medium', package: undefined, ghsa: undefined, summary: undefined, ...extra }
+  // secret scanning は GitHub が重大度を持たない
+  return { kind, number, severity: kind === 'secret-scanning' ? undefined : 'medium', package: undefined, ghsa: undefined, summary: undefined, ...extra }
 }
 
 /**

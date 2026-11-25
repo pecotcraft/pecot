@@ -29,7 +29,7 @@ import {
   vulnerabilityAlertsEnabled,
 } from '../_helpers/tracker-sync-security-case.js'
 import type { AlertResponses } from '../_helpers/tracker-sync-security-case.js'
-import { boardRules, createdTracker, freezeClock, graphqlServerError, missingTokenStderr, PRIORITY_FIELD, prepareSync, WORKFLOW_FIELD } from '../_helpers/tracker-sync-case.js'
+import { boardRules, createdTracker, freezeClock, graphqlServerError, missingTokenStderr, prepareSync, WORKFLOW_FIELD } from '../_helpers/tracker-sync-case.js'
 import { verifies } from '../_helpers/verifies.js'
 import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 
@@ -46,22 +46,22 @@ const TRACKER_5 = '/repos/acme/demo/issues/5'
 
 const ONE_DEPENDABOT: AlertResponses = { dependabot: [dependabotAlert(1)] }
 const NO_ALERTS: AlertResponses = {}
-// startCreating の alert から作る本文。期待値は Python の render_tracker_body で出した（同じ GHSA の Dependabot の 2 件は 1 行にまとまる）
+// startCreating の alert から作る本文（同じ GHSA の Dependabot の 2 件は 1 行にまとまる）
 const CREATED_BODY = [
   '<!-- pecot-alert: tracker -->',
   '',
   '<!-- pecot-alert: list-begin -->',
   '## Dependabot',
   '',
-  '| title | alert | Priority |',
+  '| title | alert | Severity |',
   '|---|---|---|',
-  '| <!-- pecot-alert: dependabot/1 priority=low pkg=pkg ghsa=GHSA-aaaa-bbbb-cccc --> <!-- pecot-alert: dependabot/2 priority=high pkg=pkg ghsa=GHSA-aaaa-bbbb-cccc --> [GHSA-aaaa-bbbb-cccc](https://ghes.example.com/advisories/GHSA-aaaa-bbbb-cccc) | [#1](https://ghes.example.com/acme/demo/security/dependabot/1) [#2](https://ghes.example.com/acme/demo/security/dependabot/2) | high |',
+  '| <!-- pecot-alert: dependabot/1 severity=low pkg=pkg ghsa=GHSA-aaaa-bbbb-cccc --> <!-- pecot-alert: dependabot/2 severity=high pkg=pkg ghsa=GHSA-aaaa-bbbb-cccc --> [GHSA-aaaa-bbbb-cccc](https://ghes.example.com/advisories/GHSA-aaaa-bbbb-cccc) | [#1](https://ghes.example.com/acme/demo/security/dependabot/1) [#2](https://ghes.example.com/acme/demo/security/dependabot/2) | high |',
   '',
   '## code scanning',
   '',
-  '| title | alert | Priority |',
+  '| title | alert | Severity |',
   '|---|---|---|',
-  '| <!-- pecot-alert: code-scanning/10 priority=high --> masked | [#10](https://ghes.example.com/acme/demo/security/code-scanning/10) | high |',
+  '| <!-- pecot-alert: code-scanning/10 severity=error --> masked | [#10](https://ghes.example.com/acme/demo/security/code-scanning/10) | error |',
   '',
   '## secret scanning',
   '',
@@ -74,14 +74,14 @@ const BODY_WITH_ONE = trackerBody(dependabotEntry(1))
 // 古い形式の行を 1 行持つ本文。行の足し外しは無く、本文だけが変わる
 const OLD_FORMAT_BODY = trackerBody().replace(LIST_END, () => `${OLD_ROW}\n${LIST_END}`)
 
-// 既存の Tracker #5 を書き直す一連の応答。priority は行の最大の Priority（行が無ければ undefined）
-function existing(responses: Readonly<AlertResponses>, body: string, priority: string | undefined): ResponseRule[] {
-  return [...listings(responses, [trackerIssue(5, body)]), patchedTracker(5), ...boardRules(5, { onlyIfEmpty: true, priority })]
+// 既存の Tracker #5 を書き直す一連の応答
+function existing(responses: Readonly<AlertResponses>, body: string): ResponseRule[] {
+  return [...listings(responses, [trackerIssue(5, body)]), patchedTracker(5), ...boardRules(5, { onlyIfEmpty: true })]
 }
 
-// 新しい Tracker #12 を作る一連の応答（Priority は high）
+// 新しい Tracker #12 を作る一連の応答
 function creating(responses: Readonly<AlertResponses>): ResponseRule[] {
-  return [...listings(responses, []), createdTracker(12), ...boardRules(12, { onlyIfEmpty: false, priority: 'high' })]
+  return [...listings(responses, []), createdTracker(12), ...boardRules(12, { onlyIfEmpty: false })]
 }
 
 function fieldUpdates(requests: readonly RecordedRequest[]): unknown[] {
@@ -101,7 +101,7 @@ async function startCreating(): Promise<Awaited<ReturnType<typeof startGithub>>>
 
 // secret scanning が 500 で、Tracker には secret scanning の行 #1 がある。Dependabot の #1 は足される
 function failedSecret(body: string): ResponseRule[] {
-  return existing({ ...ONE_DEPENDABOT, secretScanningFailure: failure(500, 'boom') }, body, 'medium')
+  return existing({ ...ONE_DEPENDABOT, secretScanningFailure: failure(500, 'boom') }, body)
 }
 
 const SECRET_ROW_BODY = trackerBody(trackerEntry('secret-scanning', 1))
@@ -115,7 +115,7 @@ function secretNotFound(status: string, alerts: Readonly<AlertResponses>, extra:
 async function boardUpdates(filled: readonly string[]): Promise<unknown[]> {
   prepareSync()
   const issues = [trackerIssue(5, BODY_WITH_ONE)]
-  const github = await startGithub([...listings(ONE_DEPENDABOT, issues), ...boardRules(5, { onlyIfEmpty: true, priority: 'medium', filled })])
+  const github = await startGithub([...listings(ONE_DEPENDABOT, issues), ...boardRules(5, { onlyIfEmpty: true, filled })])
   const result = await sync()
   expect(result.code).toBe(0)
   return fieldUpdates(github.requests())
@@ -125,17 +125,17 @@ async function boardUpdates(filled: readonly string[]): Promise<unknown[]> {
 const SEVERAL_TRACKERS = [trackerIssue(9, trackerBody()), trackerIssue(5, trackerBody()), trackerIssue(3, 'マーカーの無い本文')]
 
 function severalTrackers(): ResponseRule[] {
-  return [...listings(ONE_DEPENDABOT, SEVERAL_TRACKERS), patchedTracker(5), ...boardRules(5, { onlyIfEmpty: true, priority: 'medium' })]
+  return [...listings(ONE_DEPENDABOT, SEVERAL_TRACKERS), patchedTracker(5), ...boardRules(5, { onlyIfEmpty: true })]
 }
 
 function sameBody(body: string): ResponseRule[] {
-  return [...listings(ONE_DEPENDABOT, [trackerIssue(5, body)]), ...boardRules(5, { onlyIfEmpty: true, priority: 'medium' })]
+  return [...listings(ONE_DEPENDABOT, [trackerIssue(5, body)]), ...boardRules(5, { onlyIfEmpty: true })]
 }
 
 const GONE_BODY = trackerBody(dependabotEntry(1), trackerEntry('code-scanning', 2), trackerEntry('secret-scanning', 3))
 
 function failingUpdate(): ResponseRule[] {
-  return [...listings(ONE_DEPENDABOT, [trackerIssue(5, trackerBody())]), patchedTracker(5, 422), ...boardRules(5, { onlyIfEmpty: true, priority: 'medium' })]
+  return [...listings(ONE_DEPENDABOT, [trackerIssue(5, trackerBody())]), patchedTracker(5, 422), ...boardRules(5, { onlyIfEmpty: true })]
 }
 
 async function withoutToken(): Promise<{ readonly result: CliResult, readonly root: string }> {
@@ -164,7 +164,7 @@ describe('tracker sync', () => {
       expect(result.stdout).toBe('')
       expect(createdBody(github.requests())).toEqual({ title: TODAY_TITLE, body: CREATED_BODY, labels: ['security-alert'] })
       const lines = result.stderr.split('\n')
-      expect(lines[0]).toBe(`created: Tracker "${TODAY_TITLE}" with priority high`)
+      expect(lines[0]).toBe(`created: Tracker "${TODAY_TITLE}"`)
       expect(lines.slice(1)).toEqual(['added: dependabot #1 to new Tracker', 'added: dependabot #2 to new Tracker', 'added: code-scanning #10 to new Tracker', ''])
     })
 
@@ -172,7 +172,7 @@ describe('tracker sync', () => {
       await verifies(context, 'PW-TRACKER-SYNC-48')
       const github = await startCreating()
       await sync()
-      expect(graphqlOperations(github.requests())).toEqual(['GetIssueNodeId', 'AddToProject', UPDATE_FIELD, UPDATE_FIELD])
+      expect(graphqlOperations(github.requests())).toEqual(['GetIssueNodeId', 'AddToProject', UPDATE_FIELD])
     })
 
     it('Tracker の Issue を作ると、Status を Backlog にする', async (context) => {
@@ -182,11 +182,12 @@ describe('tracker sync', () => {
       expect(fieldUpdates(github.requests())).toContainEqual({ projectId: 'PVT_1', itemId: 'PVTI_12', fieldId: 'PVTSSF_workflow', optionId: 'o1' })
     })
 
-    it('Tracker の Issue を作ると、Priority を行の最大にする', async (context) => {
+    it('Tracker の Issue を作ると、ボードの欄は Status だけを入れ、Priority を入れない', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-50')
       const github = await startCreating()
-      await sync()
-      expect(fieldUpdates(github.requests())).toContainEqual({ projectId: 'PVT_1', itemId: 'PVTI_12', fieldId: 'PVTSSF_priority', optionId: 'p1' })
+      const result = await sync()
+      expect(result.code).toBe(0)
+      expect(fieldUpdates(github.requests())).toEqual([{ projectId: 'PVT_1', itemId: 'PVTI_12', fieldId: 'PVTSSF_workflow', optionId: 'o1' }])
     })
 
     it('open の Tracker が無く、載せる alert も無いと、Tracker の Issue を作らない', async (context) => {
@@ -210,7 +211,7 @@ describe('tracker sync', () => {
       freezeClock()
       prepareSync()
       const closed = [trackerIssue(5, trackerBody(), 'closed')]
-      const github = await startGithub([...listings(ONE_DEPENDABOT, closed), createdTracker(12), ...boardRules(12, { onlyIfEmpty: false, priority: 'medium' })])
+      const github = await startGithub([...listings(ONE_DEPENDABOT, closed), createdTracker(12), ...boardRules(12, { onlyIfEmpty: false })])
       const result = await sync()
       expect(result.code).toBe(0)
       expect(restPaths(github.requests())).toEqual(['/repos/acme/demo/issues'])
@@ -227,42 +228,40 @@ describe('tracker sync', () => {
     it('CLI で、ボードへの追加が失敗すると、Tracker の error の行を標準エラーに出す', async () => {
       freezeClock()
       prepareSync()
-      const github = await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12), ...boardRules(12, { onlyIfEmpty: false, priority: 'medium', failsToAdd: true })])
+      const github = await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12), ...boardRules(12, { onlyIfEmpty: false, failsToAdd: true })])
       const result = await sync()
-      expect(result.stderr).toBe(`created: Tracker "${TODAY_TITLE}" with priority medium\nadded: dependabot #1 to new Tracker\nerror: Tracker: ${graphqlServerError(github.url, '502 Bad Gateway')}\n`)
+      expect(result.stderr).toBe(`created: Tracker "${TODAY_TITLE}"\nadded: dependabot #1 to new Tracker\nerror: Tracker: ${graphqlServerError(github.url, '502 Bad Gateway')}\n`)
     })
 
-    it('選択肢の ID が古くて Status と Priority を書けないと、欄ごとの失敗と ID を読み直す案内を 1 回だけ detail に入れて partial-failure の失敗を返す', async (context) => {
+    it('選択肢の ID が古くて Status を書けないと、書けなかった欄と ID を読み直す案内を detail に入れて partial-failure の失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-94')
       freezeClock()
       prepareSync()
-      const added = boardRules(12, { onlyIfEmpty: false, priority: 'medium' }).filter(rule => rule.match.operation !== UPDATE_FIELD)
-      await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12), ...added, staleOptionUpdate(2)])
+      const added = boardRules(12, { onlyIfEmpty: false }).filter(rule => rule.match.operation !== UPDATE_FIELD)
+      await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12), ...added, staleOptionUpdate()])
       const outcome = await syncOutcome()
       expect(outcome.isError).toBe(true)
       expect(outcome.structured).toMatchObject({ kind: 'partial-failure' })
       expect(outcome.structured['detail']).toBe([
         `could not set status backlog of Tracker #12: ${STALE_OPTION_TEXT}`,
         '  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again',
-        `could not set priority medium of Tracker #12: ${STALE_OPTION_TEXT}`,
       ].join('\n'))
     })
 
-    it('CLI で、選択肢の ID が古くて Status と Priority を書けないと、欄ごとの error の行と ID を読み直す案内を 1 回出し、終了コード 1 で終わる', async () => {
+    it('CLI で、選択肢の ID が古くて Status を書けないと、error の行と ID を読み直す案内を出し、終了コード 1 で終わる', async () => {
       freezeClock()
       prepareSync()
-      const added = boardRules(12, { onlyIfEmpty: false, priority: 'medium' }).filter(rule => rule.match.operation !== UPDATE_FIELD)
-      await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12), ...added, staleOptionUpdate(2)])
+      const added = boardRules(12, { onlyIfEmpty: false }).filter(rule => rule.match.operation !== UPDATE_FIELD)
+      await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12), ...added, staleOptionUpdate()])
       const result = await sync()
       expect(result).toEqual({
         code: 1,
         stdout: '',
         stderr: [
-          `created: Tracker "${TODAY_TITLE}" with priority medium`,
+          `created: Tracker "${TODAY_TITLE}"`,
           'added: dependabot #1 to new Tracker',
           `error: could not set status backlog of Tracker #12: ${STALE_OPTION_TEXT}`,
           '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
-          `error: could not set priority medium of Tracker #12: ${STALE_OPTION_TEXT}`,
           '',
         ].join('\n'),
       })
@@ -286,11 +285,11 @@ describe('tracker sync', () => {
       prepareSync()
       const outside = '\nこの文は残す\n'
       const responses: AlertResponses = { dependabot: [dependabotAlert(1), dependabotAlert(2)], codeScanning: [codeScanningAlert(3)], secretScanning: [secretScanningAlert(4)] }
-      const github = await startGithub(existing(responses, BODY_WITH_ONE + outside, 'high'))
+      const github = await startGithub(existing(responses, BODY_WITH_ONE + outside))
       const result = await sync()
       expect(result.code).toBe(0)
       const body = updatedBody(github.requests(), 5)
-      const headings = ['## Dependabot\n\n| title | alert | Priority |', '## code scanning\n\n| title | alert | Priority |', '## secret scanning\n\n| title | alert | Priority |']
+      const headings = ['## Dependabot\n\n| title | alert | Severity |', '## code scanning\n\n| title | alert | Severity |', '## secret scanning\n\n| title | alert | Severity |']
       const positions = headings.map(heading => body.indexOf(heading))
       expect(positions.every(position => position >= 0)).toBe(true)
       expect(positions).toEqual(positions.toSorted((a, b) => a - b))
@@ -300,7 +299,7 @@ describe('tracker sync', () => {
     it('表に alert を足すと、added の行を標準エラーに出す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-54')
       prepareSync()
-      await startGithub(existing({ dependabot: [dependabotAlert(1), dependabotAlert(2)] }, BODY_WITH_ONE, 'medium'))
+      await startGithub(existing({ dependabot: [dependabotAlert(1), dependabotAlert(2)] }, BODY_WITH_ONE))
       const result = await sync()
       expect(result).toEqual({ code: 0, stdout: '', stderr: 'added: dependabot #2 to Tracker #5\n' })
     })
@@ -309,7 +308,7 @@ describe('tracker sync', () => {
       await verifies(context, 'PW-TRACKER-SYNC-55')
       prepareSync()
       const body = trackerBody(dependabotEntry(1), trackerEntry('code-scanning', 9))
-      const github = await startGithub(existing(ONE_DEPENDABOT, body, 'medium'))
+      const github = await startGithub(existing(ONE_DEPENDABOT, body))
       const result = await sync()
       expect(result).toEqual({ code: 0, stdout: '', stderr: 'removed: code-scanning #9 from Tracker #5\n' })
       expect(updatedBody(github.requests(), 5)).not.toContain('pecot-alert: code-scanning/9')
@@ -318,7 +317,7 @@ describe('tracker sync', () => {
     it('行の足し外しが無く本文だけが変わると、本文を書き直す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-56')
       prepareSync()
-      const github = await startGithub(existing(ONE_DEPENDABOT, OLD_FORMAT_BODY, 'medium'))
+      const github = await startGithub(existing(ONE_DEPENDABOT, OLD_FORMAT_BODY))
       const result = await sync()
       expect(result.code).toBe(0)
       const body = updatedBody(github.requests(), 5)
@@ -329,7 +328,7 @@ describe('tracker sync', () => {
     it('行の足し外しが無く本文だけが変わると、updated の行を標準エラーに出す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-57')
       prepareSync()
-      await startGithub(existing(ONE_DEPENDABOT, OLD_FORMAT_BODY, 'medium'))
+      await startGithub(existing(ONE_DEPENDABOT, OLD_FORMAT_BODY))
       const result = await sync()
       expect(result).toEqual({ code: 0, stdout: '', stderr: 'updated: Tracker #5 body\n' })
     })
@@ -354,7 +353,7 @@ describe('tracker sync', () => {
     it('open の alert がすべて無くなると、各種類の見出しの下に none を書く', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-60')
       prepareSync()
-      const github = await startGithub(existing(NO_ALERTS, GONE_BODY, undefined))
+      const github = await startGithub(existing(NO_ALERTS, GONE_BODY))
       const result = await sync()
       expect(result.code).toBe(0)
       const body = updatedBody(github.requests(), 5)
@@ -364,7 +363,7 @@ describe('tracker sync', () => {
     it('open の alert がすべて無くなると、Tracker を閉じない', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-61')
       prepareSync()
-      const github = await startGithub(existing(NO_ALERTS, GONE_BODY, undefined))
+      const github = await startGithub(existing(NO_ALERTS, GONE_BODY))
       await sync()
       const writes = restWrites(github.requests())
       expect(writes).toHaveLength(1)
@@ -388,7 +387,7 @@ describe('tracker sync', () => {
     it('機能が無効の種類があると、その見出しの下に disabled を書き、行を足さない', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-63')
       prepareSync()
-      const github = await startGithub(secretNotFound('disabled', ONE_DEPENDABOT, [patchedTracker(5), ...boardRules(5, { onlyIfEmpty: true, priority: 'medium' })]))
+      const github = await startGithub(secretNotFound('disabled', ONE_DEPENDABOT, [patchedTracker(5), ...boardRules(5, { onlyIfEmpty: true })]))
       const result = await sync()
       expect(result.code).toBe(0)
       const body = updatedBody(github.requests(), 5)
@@ -399,7 +398,7 @@ describe('tracker sync', () => {
     it('機能が無効の種類があると、skipped の行を標準エラーに出す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-64')
       prepareSync()
-      await startGithub(secretNotFound('disabled', ONE_DEPENDABOT, [patchedTracker(5), ...boardRules(5, { onlyIfEmpty: true, priority: 'medium' })]))
+      await startGithub(secretNotFound('disabled', ONE_DEPENDABOT, [patchedTracker(5), ...boardRules(5, { onlyIfEmpty: true })]))
       const result = await sync()
       expect(result.stderr).toBe('skipped: secret scanning alerts (feature disabled)\nadded: dependabot #1 to Tracker #5\nremoved: secret-scanning #1 from Tracker #5\n')
     })
@@ -409,19 +408,64 @@ describe('tracker sync', () => {
       prepareSync()
       const responses: AlertResponses = { codeScanningFailure: failure(404, 'no analysis found') }
       const body = trackerBody(trackerEntry('code-scanning', 9))
-      const github = await startGithub(existing(responses, body, undefined))
+      const github = await startGithub(existing(responses, body))
       const result = await sync()
       expect(result).toEqual({ code: 0, stdout: '', stderr: 'removed: code-scanning #9 from Tracker #5\n' })
       expect(updatedBody(github.requests(), 5)).toContain('## code scanning\n\nnone')
     })
 
-    it('既存の Tracker の Status か Priority が空だと、空の欄だけに Backlog か行の最大の Priority を入れる', async (context) => {
+    it('既存の Tracker の Status が空だと、Status だけに Backlog を入れ、Priority を入れない', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-66')
       const workflow = { projectId: 'PVT_1', itemId: 'PVTI_5', fieldId: 'PVTSSF_workflow', optionId: 'o1' }
-      const priority = { projectId: 'PVT_1', itemId: 'PVTI_5', fieldId: 'PVTSSF_priority', optionId: 'p2' }
-      expect(await boardUpdates([])).toEqual([workflow, priority])
-      expect(await boardUpdates([WORKFLOW_FIELD])).toEqual([priority])
-      expect(await boardUpdates([WORKFLOW_FIELD, PRIORITY_FIELD])).toEqual([])
+      expect(await boardUpdates([])).toEqual([workflow])
+      expect(await boardUpdates([WORKFLOW_FIELD])).toEqual([])
+    })
+
+    it('表の 3 列目を Severity にし、GitHub の重大度の値をそのまま出す', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-97')
+      freezeClock()
+      prepareSync()
+      const codeScanning = [codeScanningAlert(10, { security_severity_level: 'medium', severity: 'error' }), codeScanningAlert(11, { severity: 'warning' }), codeScanningAlert(12, { severity: 'none' })]
+      const github = await startGithub(creating({ dependabot: [dependabotAlert(1, 'critical')], codeScanning }))
+      const { code } = await sync()
+      expect(code).toBe(0)
+      const rows = String(createdBody(github.requests())?.['body']).split('\n').filter(line => line.startsWith('| <!--'))
+      expect(rows.map(row => /\| (?<value>\S+) \|$/u.exec(row)?.groups?.['value'])).toEqual(['critical', 'medium', 'warning', 'none'])
+      expect(rows.map(row => /severity=(?<value>[a-z]+)/u.exec(row)?.groups?.['value'])).toEqual(['critical', 'medium', 'warning', 'none'])
+    })
+
+    it('secret scanning の alert と重大度の無い alert は、Severity の列に - を出す', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-98')
+      freezeClock()
+      prepareSync()
+      const dependabot = [{ ...dependabotAlert(1), security_vulnerability: {} }]
+      const github = await startGithub(creating({ dependabot, codeScanning: [codeScanningAlert(10, {})], secretScanning: [secretScanningAlert(11)] }))
+      const { code } = await sync()
+      expect(code).toBe(0)
+      const rows = String(createdBody(github.requests())?.['body']).split('\n').filter(line => line.startsWith('| <!--'))
+      expect(rows).toHaveLength(3)
+      for (const row of rows) {
+        expect(row).toMatch(/ \| - \|$/u)
+        expect(row).not.toContain('severity=')
+      }
+    })
+
+    it('旧い本文の priority= の印を重大度として読み、書き直しで severity= にする', async (context) => {
+      await verifies(context, 'PW-TRACKER-SYNC-99')
+      prepareSync()
+      const oldRows = [
+        '| <!-- pecot-alert: code-scanning/9 priority=high --> masked | [#9](u) | high |',
+        '| <!-- pecot-alert: secret-scanning/4 priority=high --> masked | [#4](u) | high |',
+      ].join('\n')
+      const body = trackerBody().replace(LIST_END, () => `${oldRows}\n${LIST_END}`)
+      const failed: AlertResponses = { codeScanningFailure: failure(500, 'boom'), secretScanningFailure: failure(500, 'boom') }
+      const github = await startGithub(existing(failed, body))
+      const { code } = await sync()
+      expect(code).toBe(1)
+      const rewritten = updatedBody(github.requests(), 5)
+      expect(rewritten).not.toContain('priority=')
+      expect(rewritten).toContain('| <!-- pecot-alert: code-scanning/9 severity=high --> masked | [#9](https://ghes.example.com/acme/demo/security/code-scanning/9) | high |')
+      expect(rewritten).toContain('| <!-- pecot-alert: secret-scanning/4 --> masked | [#4](https://ghes.example.com/acme/demo/security/secret-scanning/4) | - |')
     })
 
     it('open の Tracker が複数あると、番号が最小のものを使う', async (context) => {
@@ -489,7 +533,7 @@ describe('tracker sync', () => {
       prepareSync()
       await startGithub(listings(responses, []))
       const result = await sync('--dry-run')
-      const lines = [`dry-run: would create Tracker "${TODAY_TITLE}" with priority high`, 'dry-run: would add dependabot #1 to new Tracker', 'dry-run: would add code-scanning #10 to new Tracker', '']
+      const lines = [`dry-run: would create Tracker "${TODAY_TITLE}"`, 'dry-run: would add dependabot #1 to new Tracker', 'dry-run: would add code-scanning #10 to new Tracker', '']
       expect(result.stdout).toBe('')
       expect(result.stderr).toBe(lines.join('\n'))
     })
@@ -634,7 +678,7 @@ describe('tracker sync', () => {
     it('secret scanning の一覧を 404 で取れず、無効とも確かめられないと、その種類を取れなかったものとして扱う', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-82')
       prepareSync()
-      const github = await startGithub(secretNotFound('enabled', NO_ALERTS, boardRules(5, { onlyIfEmpty: true, priority: 'medium' })))
+      const github = await startGithub(secretNotFound('enabled', NO_ALERTS, boardRules(5, { onlyIfEmpty: true })))
       const result = await sync()
       expect(result.code).toBe(1)
       expect(result.stderr).toBe('error: could not list secret scanning alerts (leaving its rows untouched): acme/demo: cannot fetch the secret scanning list (permission may be missing; it cannot be confirmed as disabled)\nunchanged: Tracker #5\n')
@@ -732,7 +776,7 @@ describe('tracker sync', () => {
     it('行の足し外しが無く本文だけが変わると、added と removed を空にして成功を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-57')
       prepareSync()
-      await startGithub(existing(ONE_DEPENDABOT, OLD_FORMAT_BODY, 'medium'))
+      await startGithub(existing(ONE_DEPENDABOT, OLD_FORMAT_BODY))
       const outcome = await syncOutcome()
       expect(outcome.isError).toBe(false)
       expect(outcome.structured).toEqual({ source: 'security', tracker: 5, created: false, added: [], removed: [], closed: false })
@@ -751,7 +795,7 @@ describe('tracker sync', () => {
       await verifies(context, 'PW-TRACKER-SYNC-55')
       prepareSync()
       const body = trackerBody(dependabotEntry(1), trackerEntry('code-scanning', 9))
-      await startGithub(existing({ dependabot: [dependabotAlert(1), dependabotAlert(2)] }, body, 'medium'))
+      await startGithub(existing({ dependabot: [dependabotAlert(1), dependabotAlert(2)] }, body))
       const data = await syncTool()
       expect(data).toEqual({ source: 'security', tracker: 5, created: false, added: [{ kind: 'dependabot', number: 2 }], removed: [{ kind: 'code-scanning', number: 9 }], closed: false })
     })
@@ -759,7 +803,7 @@ describe('tracker sync', () => {
     it('本文が今と同じだと、added と removed を空にして成功を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-59')
       prepareSync()
-      await startGithub([...listings(ONE_DEPENDABOT, [trackerIssue(5, BODY_WITH_ONE)]), ...boardRules(5, { onlyIfEmpty: true, priority: 'medium' })])
+      await startGithub([...listings(ONE_DEPENDABOT, [trackerIssue(5, BODY_WITH_ONE)]), ...boardRules(5, { onlyIfEmpty: true })])
       const data = await syncTool()
       expect(data).toEqual({ source: 'security', tracker: 5, created: false, added: [], removed: [], closed: false })
     })
@@ -770,7 +814,7 @@ describe('tracker sync', () => {
       await verifies(context, 'PW-TRACKER-SYNC-90')
       freezeClock()
       prepareSync()
-      const github = await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12), ...boardRules(12, { onlyIfEmpty: false, priority: 'medium', failsToAdd: true })])
+      const github = await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12), ...boardRules(12, { onlyIfEmpty: false, failsToAdd: true })])
       const data = await syncTool()
       expect(data).toEqual({
         source: 'security',

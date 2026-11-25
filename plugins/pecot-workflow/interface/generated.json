@@ -1838,7 +1838,7 @@
           "freeform": {
             "type": "boolean",
             "default": false,
-            "description": "Create the Issue from a free-format message without the template check (title from the first 50 characters of the first line; priority medium and size s unless given)"
+            "description": "Create the Issue from a free-format message without the template check (title from the first 50 characters of the first line)"
           },
           "label": {
             "type": "array",
@@ -1859,10 +1859,6 @@
             "type": "string",
             "description": "Parent Epic reference: an integer (relative to aggregation_repo) or the primary form 'owner/repo/N'"
           },
-          "priority": {
-            "type": "string",
-            "description": "Priority (high/medium/low)"
-          },
           "project": {
             "type": "string",
             "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
@@ -1870,10 +1866,6 @@
           "repo": {
             "type": "string",
             "description": "Repository (owner/repo form; required with `message` unless epic)"
-          },
-          "size": {
-            "type": "string",
-            "description": "Size (xs/s/m/l)"
           },
           "status": {
             "type": "string",
@@ -1924,18 +1916,12 @@
           "parent_epic": [
             "--parent-epic"
           ],
-          "priority": [
-            "--priority"
-          ],
           "project": [
             "--project"
           ],
           "repo": [
             "--repo",
             "-r"
-          ],
-          "size": [
-            "--size"
           ],
           "status": [
             "--status"
@@ -4675,9 +4661,10 @@
                       "update",
                       "unchanged",
                       "skip",
-                      "rename"
+                      "rename",
+                      "delete"
                     ],
-                    "description": "create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found, pecot-lane was not created because no lanes were given, or pecot-lane is not a single select field; rename: the old pecot-workflow-<suffix> field was renamed to pecot-status"
+                    "description": "create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found, pecot-lane was not created because no lanes were given, or pecot-lane is not a single select field; rename: the old pecot-workflow-<suffix> field was renamed to pecot-status; delete: the field was deleted with confirm_delete"
                   },
                   "addedOptions": {
                     "type": "array",
@@ -4858,7 +4845,7 @@
     {
       "id": "PW-PROJECT-INIT",
       "name": "project init",
-      "description": "Add the pecot-status field and the other pecot-workflow fields to an existing project, rename the old suffixed workflow field to pecot-status, add the Blocked and Needs Attention options to the fields that already exist, and add the lanes to the pecot-lane field with a Lanes view",
+      "description": "Add the pecot-status field to an existing project, rename the old suffixed workflow field to pecot-status, add the Blocked and Needs Attention options to the fields that already exist, and add the lanes to the pecot-lane field with a Lanes view. The fields pecot does not use (pecot-priority, pecot-size, and the old suffixed workflow field when pecot-status also exists) are listed in migration.pending_delete, and deleted only with confirm_delete",
       "surfaces": {
         "cli": {
           "path": [
@@ -4875,6 +4862,11 @@
       "input": {
         "type": "object",
         "properties": {
+          "confirm_delete": {
+            "type": "boolean",
+            "default": false,
+            "description": "Delete the fields listed in migration.pending_delete. Their values on every item are deleted too and cannot be restored. Set it to true only after the user has approved deleting those fields"
+          },
           "host": {
             "type": "string",
             "default": "github.com",
@@ -4910,6 +4902,9 @@
           "name"
         ],
         "flags": {
+          "confirm_delete": [
+            "--confirm-delete"
+          ],
           "dry_run": [
             "--dry-run",
             "-n"
@@ -4951,9 +4946,10 @@
                       "update",
                       "unchanged",
                       "skip",
-                      "rename"
+                      "rename",
+                      "delete"
                     ],
-                    "description": "create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found, pecot-lane was not created because no lanes were given, or pecot-lane is not a single select field; rename: the old pecot-workflow-<suffix> field was renamed to pecot-status"
+                    "description": "create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found, pecot-lane was not created because no lanes were given, or pecot-lane is not a single select field; rename: the old pecot-workflow-<suffix> field was renamed to pecot-status; delete: the field was deleted with confirm_delete"
                   },
                   "addedOptions": {
                     "type": "array",
@@ -4970,7 +4966,7 @@
                 ],
                 "additionalProperties": false
               },
-              "description": "The workflow, priority, size and pecot-lane fields, plus the Status field when its options were looked at"
+              "description": "The pecot-status and pecot-lane fields, the Status field when its options were looked at, and the fields deleted with confirm_delete"
             },
             "migration": {
               "description": "What was moved from the old form (omitted when the command stopped before the project config)",
@@ -5008,11 +5004,27 @@
                     }
                   ],
                   "description": "The old project config file that was moved to the new name (null when none)"
+                },
+                "pending_delete": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Fields to delete that were left because confirm_delete was not given: pecot-priority, pecot-size, and the old pecot-workflow-<suffix> field when pecot-status also exists (empty when none)"
+                },
+                "deleted": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Fields deleted with confirm_delete (empty when none)"
                 }
               },
               "required": [
                 "renamed",
-                "config_moved"
+                "config_moved",
+                "pending_delete",
+                "deleted"
               ],
               "additionalProperties": false
             },

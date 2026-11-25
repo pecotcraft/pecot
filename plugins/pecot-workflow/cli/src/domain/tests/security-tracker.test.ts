@@ -6,7 +6,7 @@ import type { AlertKind } from '../security-alerts.js'
 import {
   buildTrackerTitle,
   entryKey,
-  maxPriority,
+  maxSeverity,
   normalizeAlerts,
   parseTrackerEntries,
   planTracker,
@@ -22,7 +22,8 @@ import { findTracker } from '../tracker-body.js'
 const HOST = 'github.com'
 const GHSA = 'GHSA-aaaa-bbbb-cccc'
 
-function dependabotRaw(number = 7, severity: string | null = 'high'): JsonValue {
+function dependabotRaw(severity: string | null = 'high'): JsonValue {
+  const number = 7
   return {
     number,
     html_url: `https://github.com/o/r/security/dependabot/${String(number)}`,
@@ -39,11 +40,11 @@ function only(alerts: readonly Alert[]): Alert {
 }
 
 function alertOf(kind: AlertKind, number: number, fields: Partial<Alert> = {}): Alert {
-  return { kind, number, priority: 'medium', url: 'u', package: undefined, ghsa: undefined, summary: undefined, ...fields }
+  return { kind, number, severity: 'medium', url: 'u', package: undefined, ghsa: undefined, summary: undefined, ...fields }
 }
 
 function entryOf(kind: AlertKind, number: number, fields: Partial<TrackerEntry> = {}): TrackerEntry {
-  return { kind, number, priority: 'medium', package: undefined, ghsa: undefined, summary: undefined, ...fields }
+  return { kind, number, severity: kind === 'secret-scanning' ? undefined : 'medium', package: undefined, ghsa: undefined, summary: undefined, ...fields }
 }
 
 function render(entries: readonly TrackerEntry[], existingBody?: string, failed: readonly AlertKind[] = []): string {
@@ -78,22 +79,15 @@ function trackerIssue(number: number, state = 'open'): JsonValue {
 }
 
 describe('normalizeAlerts', () => {
-  const dependabotPriorities = [
-    { severity: 'critical', expected: 'high' },
-    { severity: 'high', expected: 'high' },
-    { severity: 'medium', expected: 'medium' },
-    { severity: 'low', expected: 'low' },
-  ]
-
-  it.for(dependabotPriorities)('Dependabot の severity が $severity なら、Priority は $expected', ({ severity, expected }) => {
-    expect(normalizeOne('dependabot', dependabotRaw(7, severity)).priority).toBe(expected)
+  it.for(['critical', 'high', 'medium', 'low'])('Dependabot の severity が %s なら、重大度はその値のまま', (severity) => {
+    expect(normalizeOne('dependabot', dependabotRaw(severity)).severity).toBe(severity)
   })
 
-  it('Dependabot の alert から、番号・URL・パッケージ・GHSA・題を読む', () => {
+  it('Dependabot の alert から、番号・URL・重大度・パッケージ・GHSA・題を読む', () => {
     expect(normalizeOne('dependabot', dependabotRaw())).toEqual({
       kind: 'dependabot',
       number: 7,
-      priority: 'high',
+      severity: 'high',
       url: 'https://github.com/o/r/security/dependabot/7',
       package: 'left-pad',
       ghsa: GHSA,
@@ -103,12 +97,12 @@ describe('normalizeAlerts', () => {
 
   it('Dependabot の severity が vulnerability に無ければ、advisory の severity を使う', () => {
     const raw = { number: 1, security_vulnerability: {}, security_advisory: { severity: 'critical' } }
-    expect(normalizeOne('dependabot', raw).priority).toBe('high')
+    expect(normalizeOne('dependabot', raw).severity).toBe('critical')
   })
 
-  it('Dependabot の severity が無い、または未知の値なら、Priority は medium', () => {
-    expect(normalizeOne('dependabot', { number: 1 }).priority).toBe('medium')
-    expect(normalizeOne('dependabot', dependabotRaw(1, 'moderate')).priority).toBe('medium')
+  it('Dependabot の severity がどこにも無ければ、重大度を持たない', () => {
+    expect(normalizeOne('dependabot', { number: 1 }).severity).toBeUndefined()
+    expect(normalizeOne('dependabot', { number: 1, security_vulnerability: { severity: '' }, security_advisory: {} }).severity).toBeUndefined()
   })
 
   it.for(['not-a-ghsa', 'GHSA-AAAA-bbbb-cccc', 'GHSA-aaaa-bbbb'])('GHSA が %j なら、GHSA を捨てる', (ghsa) => {
@@ -126,24 +120,25 @@ describe('normalizeAlerts', () => {
   })
 
   const codeScanningRules = [
-    { name: 'security_severity_level が critical なら、severity が note でも high', rule: { security_severity_level: 'critical', severity: 'note' }, expected: 'high' },
+    { name: 'security_severity_level が critical なら、severity が note でも critical', rule: { security_severity_level: 'critical', severity: 'note' }, expected: 'critical' },
     { name: 'security_severity_level が medium なら、severity が error でも medium', rule: { security_severity_level: 'medium', severity: 'error' }, expected: 'medium' },
     // eslint-disable-next-line unicorn/no-null -- API の応答の null
-    { name: 'security_severity_level が null なら、severity の error で high', rule: { security_severity_level: null, severity: 'error' }, expected: 'high' },
-    { name: 'severity が warning なら medium', rule: { severity: 'warning' }, expected: 'medium' },
-    { name: 'severity が note なら low', rule: { severity: 'note' }, expected: 'low' },
-    { name: 'rule が空なら medium', rule: {}, expected: 'medium' },
+    { name: 'security_severity_level が null なら、severity の error', rule: { security_severity_level: null, severity: 'error' }, expected: 'error' },
+    { name: 'severity が warning なら warning', rule: { severity: 'warning' }, expected: 'warning' },
+    { name: 'severity が note なら note', rule: { severity: 'note' }, expected: 'note' },
+    { name: 'severity が none なら none', rule: { severity: 'none' }, expected: 'none' },
+    { name: 'rule が空なら重大度を持たない', rule: {}, expected: undefined },
   ]
 
   it.for(codeScanningRules)('code scanning は $name', ({ rule, expected }) => {
     const alert = normalizeOne('code-scanning', { number: 10, rule })
-    expect(alert.priority).toBe(expected)
+    expect(alert.severity).toBe(expected)
     expect(alert.url).toBe('https://github.com/o/r/security/code-scanning/10')
   })
 
-  it('secret scanning は常に high で、パッケージを持たない', () => {
+  it('secret scanning は重大度とパッケージを持たない', () => {
     const alert = normalizeOne('secret-scanning', { number: 2, secret_type: 'x', secret: 'v' })
-    expect(alert).toEqual({ kind: 'secret-scanning', number: 2, priority: 'high', url: 'https://github.com/o/r/security/secret-scanning/2', package: undefined, ghsa: undefined, summary: undefined })
+    expect(alert).toEqual({ kind: 'secret-scanning', number: 2, severity: undefined, url: 'https://github.com/o/r/security/secret-scanning/2', package: undefined, ghsa: undefined, summary: undefined })
   })
 
   it('code scanning と secret scanning も、番号の無い alert を除く', () => {
@@ -206,9 +201,14 @@ describe('planTracker', () => {
   })
 
   it('新しい値を使い、無い値だけ前の行から引き継ぐ', () => {
-    const old = [entryOf('dependabot', 1, { priority: 'low', package: 'old', ghsa: GHSA, summary: 'old summary' })]
-    const plan = planTracker(openMap({ dependabot: [alertOf('dependabot', 1, { priority: 'high', package: 'new', summary: '' })] }), old)
-    expect(plan.entries).toEqual([entryOf('dependabot', 1, { priority: 'high', package: 'new', ghsa: GHSA, summary: 'old summary' })])
+    const old = [entryOf('dependabot', 1, { severity: 'low', package: 'old', ghsa: GHSA, summary: 'old summary' })]
+    const plan = planTracker(openMap({ dependabot: [alertOf('dependabot', 1, { severity: 'high', package: 'new', summary: '' })] }), old)
+    expect(plan.entries).toEqual([entryOf('dependabot', 1, { severity: 'high', package: 'new', ghsa: GHSA, summary: 'old summary' })])
+  })
+
+  it('alert が重大度を持たなければ、前の行の重大度を引き継がない', () => {
+    const plan = planTracker(openMap({ 'code-scanning': [alertOf('code-scanning', 1, { severity: undefined })] }), [entryOf('code-scanning', 1, { severity: 'high' })])
+    expect(plan.entries).toEqual([entryOf('code-scanning', 1, { severity: undefined })])
   })
 
   it('一覧を取れなかった種類は、前の行をそのまま残し、足さない', () => {
@@ -256,16 +256,26 @@ describe('planTracker', () => {
   })
 })
 
-describe('maxPriority', () => {
-  it('全行の Priority の最大を返し、行が無ければ undefined を返す', () => {
-    const entries = [entryOf('dependabot', 1, { priority: 'low' }), entryOf('dependabot', 2, { priority: 'high' }), entryOf('dependabot', 3)]
-    expect(maxPriority(entries)).toBe('high')
-    expect(maxPriority([])).toBeUndefined()
+describe('maxSeverity', () => {
+  it('全行の重大度の最大を返し、行が無ければ undefined を返す', () => {
+    const entries = [entryOf('dependabot', 1, { severity: 'low' }), entryOf('dependabot', 2, { severity: 'critical' }), entryOf('dependabot', 3)]
+    expect(maxSeverity(entries)).toBe('critical')
+    expect(maxSeverity([])).toBeUndefined()
   })
 
-  it('未知の Priority は medium として比べ、同順位なら先の値を返す', () => {
-    expect(maxPriority([entryOf('dependabot', 1, { priority: 'weird' }), entryOf('dependabot', 2)])).toBe('weird')
-    expect(maxPriority([entryOf('dependabot', 1, { priority: 'weird' }), entryOf('dependabot', 2, { priority: 'low' })])).toBe('weird')
+  const orders = [
+    { name: 'high と error は同じ順位で、先の値', values: ['error', 'high'], expected: 'error' },
+    { name: 'medium と warning は同じ順位で、先の値', values: ['warning', 'medium'], expected: 'warning' },
+    { name: 'low と note は同じ順位で、先の値', values: ['note', 'low'], expected: 'note' },
+    { name: 'note は none より高い', values: ['none', 'note'], expected: 'note' },
+    { name: '未知の値は none と同じ順位', values: ['weird', 'none'], expected: 'weird' },
+    { name: '未知の値は low より低い', values: ['weird', 'low'], expected: 'low' },
+    { name: '重大度の無い行と none が並ぶと、値のある none', values: [undefined, 'none'], expected: 'none' },
+    { name: 'どの行も重大度を持たないと undefined', values: [undefined, undefined], expected: undefined },
+  ]
+
+  it.for(orders)('$name を返す', ({ values, expected }) => {
+    expect(maxSeverity(values.map((severity, index) => entryOf('code-scanning', index + 1, { severity })))).toBe(expected)
   })
 })
 
@@ -278,34 +288,35 @@ describe('sortedEntries', () => {
 
 describe('renderTrackerBody と parseTrackerEntries', () => {
   const entries = [
-    entryOf('dependabot', 1, { priority: 'high', package: '@scope/left-pad', ghsa: GHSA, summary: 'Pollution -- in | [x] <b>\nnext' }),
+    entryOf('dependabot', 1, { severity: 'high', package: '@scope/left-pad', ghsa: GHSA, summary: 'Pollution -- in | [x] <b>\nnext' }),
     entryOf('dependabot', 3, { package: 'a--b' }),
-    entryOf('code-scanning', 4, { priority: 'low' }),
-    entryOf('secret-scanning', 5, { priority: 'high' }),
+    entryOf('code-scanning', 4, { severity: 'note' }),
+    entryOf('code-scanning', 6, { severity: undefined }),
+    entryOf('secret-scanning', 5),
   ]
 
-  it('書いた行を読み戻すと、優先度・パッケージ・GHSA・題が同じになる', () => {
+  it('書いた行を読み戻すと、重大度・パッケージ・GHSA・題が同じになる', () => {
     expect(parseTrackerEntries(render(entries))).toEqual(entries)
   })
 
   it('新しい本文は、印と種類ごとの見出しと表だけにする', () => {
-    const body = render([entryOf('dependabot', 1, { priority: 'high', package: '日本語-pkg', ghsa: GHSA, summary: 'Pollution -- in | [x] <b>\nnext' }), entryOf('dependabot', 2, { priority: 'low' }), entryOf('code-scanning', 4, { priority: 'low' })])
+    const body = render([entryOf('dependabot', 1, { severity: 'high', package: '日本語-pkg', ghsa: GHSA, summary: 'Pollution -- in | [x] <b>\nnext' }), entryOf('dependabot', 2, { severity: 'low' }), entryOf('code-scanning', 4, { severity: 'low' })])
     expect(body).toBe([
       '<!-- pecot-alert: tracker -->',
       '',
       '<!-- pecot-alert: list-begin -->',
       '## Dependabot',
       '',
-      '| title | alert | Priority |',
+      '| title | alert | Severity |',
       '|---|---|---|',
-      '| <!-- pecot-alert: dependabot/1 priority=high pkg=%E6%97%A5%E6%9C%AC%E8%AA%9E%2Dpkg ghsa=GHSA-aaaa-bbbb-cccc sum=Pollution%20%2D%2D%20in%20%7C%20%5Bx%5D%20%3Cb%3E%0Anext --> [Pollution -- in \\| \\[x\\] &lt;b> next](https://github.com/advisories/GHSA-aaaa-bbbb-cccc) | [#1](https://github.com/o/r/security/dependabot/1) | high |',
-      '| <!-- pecot-alert: dependabot/2 priority=low --> 不明 | [#2](https://github.com/o/r/security/dependabot/2) | low |',
+      '| <!-- pecot-alert: dependabot/1 severity=high pkg=%E6%97%A5%E6%9C%AC%E8%AA%9E%2Dpkg ghsa=GHSA-aaaa-bbbb-cccc sum=Pollution%20%2D%2D%20in%20%7C%20%5Bx%5D%20%3Cb%3E%0Anext --> [Pollution -- in \\| \\[x\\] &lt;b> next](https://github.com/advisories/GHSA-aaaa-bbbb-cccc) | [#1](https://github.com/o/r/security/dependabot/1) | high |',
+      '| <!-- pecot-alert: dependabot/2 severity=low --> 不明 | [#2](https://github.com/o/r/security/dependabot/2) | low |',
       '',
       '## code scanning',
       '',
-      '| title | alert | Priority |',
+      '| title | alert | Severity |',
       '|---|---|---|',
-      '| <!-- pecot-alert: code-scanning/4 priority=low --> masked | [#4](https://github.com/o/r/security/code-scanning/4) | low |',
+      '| <!-- pecot-alert: code-scanning/4 severity=low --> masked | [#4](https://github.com/o/r/security/code-scanning/4) | low |',
       '',
       '## secret scanning',
       '',
@@ -317,15 +328,27 @@ describe('renderTrackerBody と parseTrackerEntries', () => {
 
   it('印の中に `--` を含めず、state も書かない', () => {
     const markers = matchesOf(render(entries), /<!-- pecot-alert: (.*?) -->/gu)
-    expect(markers.some(marker => marker.startsWith('dependabot/1 priority=high'))).toBe(true)
+    expect(markers.some(marker => marker.startsWith('dependabot/1 severity=high'))).toBe(true)
     expect(markers.filter(marker => marker.includes('--') || marker.includes('state='))).toEqual([])
   })
 
   it('code scanning と secret scanning の行は、題を masked に固定する', () => {
-    const body = render([entryOf('code-scanning', 4, { priority: 'low' }), entryOf('secret-scanning', 5, { priority: 'high' })])
-    expect(body).toContain('| <!-- pecot-alert: code-scanning/4 priority=low --> masked | [#4](')
-    expect(body).toContain('| <!-- pecot-alert: secret-scanning/5 priority=high --> masked | [#5](')
-    expect(parseTrackerEntries(body)).toEqual([entryOf('code-scanning', 4, { priority: 'low' }), entryOf('secret-scanning', 5, { priority: 'high' })])
+    const body = render([entryOf('code-scanning', 4, { severity: 'warning' }), entryOf('secret-scanning', 5)])
+    expect(body).toContain('| <!-- pecot-alert: code-scanning/4 severity=warning --> masked | [#4](')
+    expect(body).toContain('| <!-- pecot-alert: secret-scanning/5 --> masked | [#5](')
+    expect(parseTrackerEntries(body)).toEqual([entryOf('code-scanning', 4, { severity: 'warning' }), entryOf('secret-scanning', 5)])
+  })
+
+  it('重大度の無い行と secret scanning の行は、Severity の列を - にし、印に severity を書かない', () => {
+    const body = render([entryOf('dependabot', 1, { severity: undefined }), entryOf('code-scanning', 4, { severity: undefined }), entryOf('secret-scanning', 5)])
+    expect(body).toContain('| <!-- pecot-alert: dependabot/1 --> 不明 | [#1](https://github.com/o/r/security/dependabot/1) | - |')
+    expect(body).toContain('| <!-- pecot-alert: code-scanning/4 --> masked | [#4](https://github.com/o/r/security/code-scanning/4) | - |')
+    expect(body).toContain('| <!-- pecot-alert: secret-scanning/5 --> masked | [#5](https://github.com/o/r/security/secret-scanning/5) | - |')
+  })
+
+  it.for(['high-ish', 'High', 'a b', ''])('重大度が英小文字だけでない値 %j なら、印に severity を書かない', (severity) => {
+    const body = render([entryOf('code-scanning', 4, { severity })])
+    expect(body).toContain('<!-- pecot-alert: code-scanning/4 -->')
   })
 
   it('行が無い種類は none と書き、表を作らない', () => {
@@ -341,11 +364,11 @@ describe('renderTrackerBody と parseTrackerEntries', () => {
     expect(body).toContain('## Dependabot\n\n| title')
   })
 
-  it('同じ advisory の alert は 1 行にまとめ、Priority は束の最大にする', () => {
+  it('同じ advisory の alert は 1 行にまとめ、重大度は束の最大にする', () => {
     const grouped = [
       entryOf('dependabot', 13, { ghsa: GHSA, summary: 'minimatch DoS' }),
-      entryOf('dependabot', 9, { priority: 'high', ghsa: GHSA, summary: 'minimatch DoS' }),
-      entryOf('dependabot', 1, { priority: 'low', ghsa: 'GHSA-dddd-eeee-ffff', summary: 'Glob' }),
+      entryOf('dependabot', 9, { severity: 'high', ghsa: GHSA, summary: 'minimatch DoS' }),
+      entryOf('dependabot', 1, { severity: 'low', ghsa: 'GHSA-dddd-eeee-ffff', summary: 'Glob' }),
     ]
     const body = render(grouped)
     const rows = body.split('\n').filter(line => line.startsWith('| <!--'))
@@ -356,7 +379,7 @@ describe('renderTrackerBody と parseTrackerEntries', () => {
     expect(parseTrackerEntries(body)).toEqual(grouped.toSorted((a, b) => a.number - b.number))
   })
 
-  it('Priority が同じ行は、先頭の alert の番号の順に並べる', () => {
+  it('重大度が同じ行は、先頭の alert の番号の順に並べる', () => {
     const body = render([entryOf('dependabot', 5, { ghsa: GHSA }), entryOf('dependabot', 2, { ghsa: 'GHSA-dddd-eeee-ffff' })])
     expect(body.indexOf('dependabot/2 ')).toBeLessThan(body.indexOf('dependabot/5 '))
   })
@@ -417,16 +440,34 @@ describe('renderTrackerBody と parseTrackerEntries', () => {
     expect(body).toContain('pecot-alert: code-scanning/3')
   })
 
-  it('code scanning と secret scanning は、Priority の高い順、同じなら番号順に並べる', () => {
+  it('code scanning と secret scanning は、重大度の高い順、同じなら番号順に並べる', () => {
     const body = render([
-      entryOf('code-scanning', 1, { priority: 'low' }),
-      entryOf('code-scanning', 7, { priority: 'high' }),
-      entryOf('code-scanning', 3, { priority: 'high' }),
-      entryOf('secret-scanning', 2),
-      entryOf('secret-scanning', 1, { priority: 'high' }),
+      entryOf('code-scanning', 1, { severity: 'note' }),
+      entryOf('code-scanning', 2, { severity: undefined }),
+      entryOf('code-scanning', 4, { severity: 'none' }),
+      entryOf('code-scanning', 5, { severity: 'warning' }),
+      entryOf('code-scanning', 6, { severity: 'error' }),
+      entryOf('code-scanning', 7, { severity: 'high' }),
+      entryOf('code-scanning', 8, { severity: 'critical' }),
+      entryOf('code-scanning', 9, { severity: 'medium' }),
+      entryOf('code-scanning', 10, { severity: 'low' }),
+      entryOf('secret-scanning', 3),
+      entryOf('secret-scanning', 1),
     ])
-    expect(matchesOf(body, /code-scanning\/(\d+) /gu)).toEqual(['3', '7', '1'])
-    expect(matchesOf(body, /secret-scanning\/(\d+) /gu)).toEqual(['1', '2'])
+    expect(matchesOf(body, /code-scanning\/(\d+) /gu)).toEqual(['8', '6', '7', '5', '9', '1', '10', '2', '4'])
+    expect(matchesOf(body, /secret-scanning\/(\d+) /gu)).toEqual(['1', '3'])
+  })
+
+  it('Dependabot の束の重大度は、束の中で最も高いものにし、束どうしもその順に並べる', () => {
+    const body = render([
+      entryOf('dependabot', 1, { severity: 'low', ghsa: 'GHSA-dddd-eeee-ffff' }),
+      entryOf('dependabot', 2, { severity: 'medium', ghsa: GHSA }),
+      entryOf('dependabot', 3, { severity: 'critical', ghsa: GHSA }),
+      entryOf('dependabot', 4, { severity: undefined }),
+    ])
+    const rows = body.split('\n').filter(line => line.startsWith('| <!--'))
+    expect(rows.map(row => /\| (?<value>\S+) \|$/u.exec(row)?.groups?.['value'])).toEqual(['critical', 'low', '-'])
+    expect(rows[0]).toContain('dependabot/2 severity=medium')
   })
 
   it('表の外の文は残し、更新後の行だけを書き直す', () => {
@@ -453,7 +494,7 @@ describe('renderTrackerBody と parseTrackerEntries', () => {
   it('旧い書式の state=open の印を読む', () => {
     const row = '| <!-- pecot-alert: dependabot/7 state=open priority=high pkg=left%2Dpad ghsa=GHSA-aaaa-bbbb-cccc --> Dependabot | [#7](u) | high | left-pad | 要判断 |'
     const old = withListEnd(render([]), row)
-    expect(parseTrackerEntries(old)).toEqual([entryOf('dependabot', 7, { priority: 'high', package: 'left-pad', ghsa: GHSA })])
+    expect(parseTrackerEntries(old)).toEqual([entryOf('dependabot', 7, { severity: 'high', package: 'left-pad', ghsa: GHSA })])
   })
 
   const discarded = [
@@ -471,21 +512,31 @@ describe('renderTrackerBody と parseTrackerEntries', () => {
     expect(render([], old)).not.toContain('folded')
   })
 
-  it('priority が未知の値なら medium、番号の桁が全角でも読む', () => {
-    const row = '| <!-- pecot-alert: dependabot/１２ priority=urgent --> x | | |'
-    const old = withListEnd(render([]), row)
-    expect(parseTrackerEntries(old)).toEqual([entryOf('dependabot', 12)])
+  const oldPriorities = [
+    { name: 'priority= だけの印は、その値を重大度として読む', marker: 'code-scanning/2 priority=high', expected: entryOf('code-scanning', 2, { severity: 'high' }) },
+    { name: 'severity= と priority= があれば、severity= を読む', marker: 'code-scanning/2 priority=high severity=note', expected: entryOf('code-scanning', 2, { severity: 'note' }) },
+    { name: 'secret scanning の行の priority= は読み捨てる', marker: 'secret-scanning/2 priority=high', expected: entryOf('secret-scanning', 2) },
+    { name: '重大度の無い印は、重大度を持たない', marker: 'code-scanning/2', expected: entryOf('code-scanning', 2, { severity: undefined }) },
+    { name: '英小文字だけでない重大度は読み捨てる', marker: 'code-scanning/2 severity=High', expected: entryOf('code-scanning', 2, { severity: undefined }) },
+    { name: '番号の桁が全角でも読む', marker: 'dependabot/１２ priority=urgent', expected: entryOf('dependabot', 12, { severity: 'urgent' }) },
+  ]
+
+  it.for(oldPriorities)('$name（旧い本文の印の読み方）', ({ marker, expected }) => {
+    const old = withListEnd(render([]), `| <!-- pecot-alert: ${marker} --> x | | |`)
+    expect(parseTrackerEntries(old)).toEqual([expected])
   })
 
-  it('priority の無い印は medium として読む', () => {
-    const old = withListEnd(render([]), '| <!-- pecot-alert: code-scanning/2 --> x | | |')
-    expect(parseTrackerEntries(old)).toEqual([entryOf('code-scanning', 2)])
+  it('旧い priority= の印は、書き直しで severity= の印と Severity の列に変わる', () => {
+    const old = withListEnd(render([]), '| <!-- pecot-alert: code-scanning/2 priority=high --> masked | [#2](u) | high |')
+    const body = render(parseTrackerEntries(old), old)
+    expect(body).toContain('| <!-- pecot-alert: code-scanning/2 severity=high --> masked | [#2](https://github.com/o/r/security/code-scanning/2) | high |')
+    expect(body).not.toContain('priority=')
   })
 
   it('同じ種類と番号の印が重なると、先に現れた印を使う', () => {
-    const rows = '| <!-- pecot-alert: dependabot/1 priority=high --> a | | |\n| <!-- pecot-alert: dependabot/1 priority=low --> b | | |'
+    const rows = '| <!-- pecot-alert: dependabot/1 severity=high --> a | | |\n| <!-- pecot-alert: dependabot/1 severity=low --> b | | |'
     const old = withListEnd(render([]), rows)
-    expect(parseTrackerEntries(old)).toEqual([entryOf('dependabot', 1, { priority: 'high' })])
+    expect(parseTrackerEntries(old)).toEqual([entryOf('dependabot', 1, { severity: 'high' })])
   })
 
   it('本文が無いなら、印の組が無いとして SecurityAlertError にする', () => {

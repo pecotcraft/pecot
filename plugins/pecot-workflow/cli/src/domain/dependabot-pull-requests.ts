@@ -14,7 +14,6 @@ export const PR_LABEL = 'dependabot-pr'
 const TRACKER_MARKER = '<!-- pecot-dependabot-pr: tracker -->'
 export const LIST_BEGIN = '<!-- pecot-dependabot-pr: list-begin -->'
 export const LIST_END = '<!-- pecot-dependabot-pr: list-end -->'
-export const PRIORITY = 'medium'
 // security の Tracker の種類ごとの見出しと同じ形にする
 const SECTION_HEADING = '## dependabot PR'
 

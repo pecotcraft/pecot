@@ -2,8 +2,6 @@
 title: ""
 type: bug
 repository: ""
-priority: ""
-size: ""
 labels: []
 parent_epic: ""
 blocked_by: []

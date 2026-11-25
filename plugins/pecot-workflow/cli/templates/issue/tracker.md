@@ -3,8 +3,6 @@ title: ""
 type: tracker
 repository: ""
 status: backlog
-priority: ""
-size: ""
 labels: []
 parent_epic: ""
 ---

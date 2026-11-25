@@ -108,15 +108,15 @@ export async function itemHasFieldValue(
 
 export interface PutOnBoardOptions {
   /**
-  真なら、ボード項目のそのフィールドが空のときだけ入れる。人が動かした Status や Priority を戻さない
+  真なら、ボード項目の Status が空のときだけ入れる。人が動かした Status を戻さない
   */
   readonly onlyIfEmpty: boolean
 }
 
 /**
-ボードへの追加と、Status（Backlog）・Priority の設定（何度やっても同じ結果になる）。
+ボードへの追加と、Status（Backlog）の設定（何度やっても同じ結果になる）。ほかの欄は入れない。
 途中で失敗して空のままの項目は、次の onlyIfEmpty の実行で直る。追加と欄の読み込みの失敗は GitHubAPIError。
-欄の書き込みの失敗は error の行にして残りの欄を続け、書けなかった欄の数を返す
+Status の書き込みの失敗は error の行にし、書けなかった欄の数（0 か 1）を返す
 */
 export async function putOnBoard(
   out: Readonly<Output>,
@@ -125,27 +125,20 @@ export async function putOnBoard(
   owner: string,
   repository: string,
   issueNumber: number,
-  priority: string | undefined,
   options: Readonly<PutOnBoardOptions>,
 ): Promise<number> {
-  const hintState: FieldHintState = { hasHinted: false }
   const { itemId } = await addIssueToBoard(client, config, owner, repository, issueNumber, undefined)
-  // 3 つ目は error の行に出す欄の名前
-  const fields: (readonly [string, string, string])[] = [['workflow', BOARD_STATUS, 'status']]
-  if (priority !== undefined) fields.push(['priority', priority, 'priority'])
-  let failures = 0
-  for (const [fieldName, option, label] of fields) {
-    if (options.onlyIfEmpty && await itemHasFieldValue(client, config, owner, repository, issueNumber, itemId, fieldName)) continue
-    try {
-      await setIssueField(client, config, itemId, fieldName, option)
-    }
-    catch (error: unknown) {
-      if (!(error instanceof GitHubAPIError)) throw error
-      out.error(fieldWriteFailure(`could not set ${label} ${option} of Tracker #${String(issueNumber)}: ${error.message}`, error, config, hintState))
-      failures += 1
-    }
+  if (options.onlyIfEmpty && await itemHasFieldValue(client, config, owner, repository, issueNumber, itemId, 'workflow')) return 0
+  try {
+    await setIssueField(client, config, itemId, 'workflow', BOARD_STATUS)
   }
-  return failures
+  catch (error: unknown) {
+    if (!(error instanceof GitHubAPIError)) throw error
+    const hintState: FieldHintState = { hasHinted: false }
+    out.error(fieldWriteFailure(`could not set status ${BOARD_STATUS} of Tracker #${String(issueNumber)}: ${error.message}`, error, config, hintState))
+    return 1
+  }
+  return 0
 }
 
 /**

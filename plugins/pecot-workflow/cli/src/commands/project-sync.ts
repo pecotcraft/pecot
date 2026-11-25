@@ -1,5 +1,5 @@
 // project の各コマンドが共有する部分。失敗の行、フィールドの検証、設定ファイルの同期（Python の project.py の _sync_project_config まわり）。
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { parseProjectConfig, serializeProjectConfig, WORKFLOW_FIELD_NAME } from '../domain/config.js'
@@ -80,18 +80,10 @@ workflow フィールドに作る選択肢
 */
 export const WORKFLOW_FIELD_OPTIONS: readonly ProjectFieldOption[] = WORKFLOW_FIELD_SPECS.map(spec => spec.option)
 
-export const PRIORITY_FIELD_OPTIONS: readonly ProjectFieldOption[] = [
-  { name: 'High', color: 'RED', description: 'Priority: high' },
-  { name: 'Medium', color: 'YELLOW', description: 'Priority: medium' },
-  { name: 'Low', color: 'GREEN', description: 'Priority: low' },
-]
-
-export const SIZE_FIELD_OPTIONS: readonly ProjectFieldOption[] = [
-  { name: 'XS', color: 'GREEN', description: 'Size: extra small' },
-  { name: 'S', color: 'BLUE', description: 'Size: small' },
-  { name: 'M', color: 'YELLOW', description: 'Size: medium' },
-  { name: 'L', color: 'RED', description: 'Size: large' },
-]
+/**
+pecot が使わず、project init が confirm_delete で消すフィールド（消す順）
+*/
+export const UNUSED_FIELD_NAMES: readonly string[] = ['pecot-priority', 'pecot-size']
 
 /**
 `could not <action>` に API の失敗の文（と状態コード）を添えて、終了コード 1 で止める
@@ -234,8 +226,6 @@ function keyEntry(name: string, isOptional: boolean): KeyEntry {
 const WORKFLOW_KEY_ORDER = ['Backlog', 'Pending', 'Blocked', 'Ready', 'Active', 'In Review', 'Archived']
 const WORKFLOW_KEYS: readonly KeyEntry[] = WORKFLOW_KEY_ORDER.map(name => keyEntry(name, WORKFLOW_FIELD_SPECS.some(spec => spec.option.name === name && spec.isOptional === true)))
 const STATUS_KEYS: readonly KeyEntry[] = [keyEntry('Todo', true), keyEntry('In Progress', true), keyEntry(NEEDS_ATTENTION_SPEC.option.name, NEEDS_ATTENTION_SPEC.isOptional === true)]
-const PRIORITY_KEYS: readonly KeyEntry[] = ['High', 'Medium', 'Low'].map(name => keyEntry(name, false))
-const SIZE_KEYS: readonly KeyEntry[] = ['XS', 'S', 'M', 'L'].map(name => keyEntry(name, false))
 
 // isOptional のキーは、ボードに選択肢が無ければ書かない。それ以外は無ければ空文字列で書く
 function fieldOptionsConfig(field: JsonObject, keys: readonly KeyEntry[]): FieldOptions {
@@ -306,6 +296,11 @@ function loadExistingConfig(configPath: string): ProjectConfig | undefined {
   return existsSync(configPath) ? loadConfig(configPath) : undefined
 }
 
+function readConfigText(configPath: string): string {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- 設定ディレクトリ配下のパス
+  return readFileSync(configPath, 'utf8')
+}
+
 /**
 設定ファイルの置き場所。movedFrom は新しい名前に移す、同じボードの旧い名前のファイル
 */
@@ -371,8 +366,6 @@ export async function syncProjectConfig(
   const existing = loadExistingConfig(configPath) ?? (movedFrom === undefined ? undefined : loadConfig(movedFrom))
 
   const linked = await client.getLinkedRepositories(owner, number)
-  const priorityField = lastFieldNamed(fields, 'pecot-priority')
-  const sizeField = lastFieldNamed(fields, 'pecot-size')
   const statusField = lastFieldNamed(fields, STATUS_FIELD_NAME)
   const config: ProjectConfig = {
     host,
@@ -383,8 +376,6 @@ export async function syncProjectConfig(
       board_url: buildBoardUrl(typeof project['url'] === 'string' ? project['url'] : '', workflowField, viewNumber),
       fields: {
         workflow: fieldOptionsConfig(workflowField, WORKFLOW_KEYS),
-        priority: priorityField === undefined ? undefined : fieldOptionsConfig(priorityField, PRIORITY_KEYS),
-        size: sizeField === undefined ? undefined : fieldOptionsConfig(sizeField, SIZE_KEYS),
         status: statusField === undefined ? undefined : fieldOptionsConfig(statusField, STATUS_KEYS),
       },
     },
@@ -392,10 +383,10 @@ export async function syncProjectConfig(
     aggregation_repo: existing?.aggregation_repo,
   }
 
-  // 読み直して保存と同じ形にそろえてから比べる
+  // 読み直して保存と同じ形にそろえ、ファイルの生の文字列と比べる。読み捨てたキーが残るファイルは書き直す
   const normalized = parseProjectConfig(parseJsonText(serializeProjectConfig(config)))
   const activeProject = path.parse(configPath).name
-  if (skipIfUnchanged && movedFrom === undefined && existing !== undefined && serializeProjectConfig(existing) === serializeProjectConfig(normalized)) {
+  if (skipIfUnchanged && movedFrom === undefined && existing !== undefined && readConfigText(configPath) === serializeProjectConfig(normalized)) {
     out.planned({ verb: 'unchanged', target: `config file ${configPath}` })
     if (target.activateIfUnchanged !== true) return { configPath, change: 'unchanged', activeProject: undefined, movedFrom }
     if (target.isDryRun === true) out.planned({ verb: 'set', target: `active project to ${activeProject}` })

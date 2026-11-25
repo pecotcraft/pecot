@@ -11,6 +11,7 @@ import { JSON_NULL } from '../domain/json-null.js'
 import { mergeLaneOptions } from '../domain/lane-options.js'
 import { jsonField, parseJsonText } from '../domain/json.js'
 import type { JsonObject } from '../domain/json.js'
+import type { WorkflowFieldPlan } from '../domain/migration.js'
 import { compareStrings, pythonStrip, pythonStringRepr, splitCodePoints, truncateCodePoints } from '../domain/python-format.js'
 import type { JsonValue } from '../domain/python-format.js'
 import { splitOwnerRepository } from '../domain/repository-resolver.js'
@@ -23,7 +24,7 @@ import { resolveRealPath } from '../infra/paths.js'
 import { hasErrorCode } from '../infra/os-error.js'
 import { CommandExit, defineCommand } from './command-definition.js'
 import type { CommandDefinition } from './command-definition.js'
-import { commandHint, hinted, inputHint, inputNameHint, placeholder, RUN, RUN_COLON } from './command-hint.js'
+import { commandHint, hinted, inputHint, inputNameHint, placeholder, RUN, RUN_COLON, runAgain } from './command-hint.js'
 import { requireActiveConfig, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createAuthenticatedGitHubClient, createGitHubClient } from './github-client.js'
@@ -35,8 +36,7 @@ import {
   LANE_FIELD_NAME,
   LANES_VIEW_NAME,
   NEEDS_ATTENTION_SPEC,
-  PRIORITY_FIELD_OPTIONS,
-  SIZE_FIELD_OPTIONS,
+  UNUSED_FIELD_NAMES,
   STATUS_FIELD_NAME,
   WORKFLOW_FIELD_OPTIONS,
   buildRepository,
@@ -270,7 +270,7 @@ function optionInputsOf(field: Readonly<JsonObject>): readonly FieldOptionInput[
 
 interface FieldReport {
   readonly name: string
-  change: 'create' | 'update' | 'unchanged' | 'skip' | 'rename'
+  change: 'create' | 'update' | 'unchanged' | 'skip' | 'rename' | 'delete'
   addedOptions: string[]
 }
 
@@ -493,6 +493,15 @@ interface InitializedFields {
   Lanes のビュー。pecot-lane が無ければ undefined
   */
   readonly view: LanesView | undefined
+  /**
+  消す予定のフィールド（消す順）
+  */
+  readonly deletable: readonly DeletableField[]
+}
+
+interface DeletableField {
+  readonly id: string
+  readonly name: string
 }
 
 // フィールドを作り、既にあるフィールドには足りない選択肢を足す。進行の欄が旧い名前なら改名する。
@@ -520,17 +529,12 @@ async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubCl
     renameCount = 1
   }
   const created: readonly (readonly [string, readonly ProjectFieldOption[]])[] = plan.kind === 'create' ? [[WORKFLOW_FIELD_NAME, WORKFLOW_FIELD_OPTIONS]] : []
-  const wanted: readonly (readonly [string, readonly ProjectFieldOption[]])[] = [
-    ...created,
-    ['pecot-priority', PRIORITY_FIELD_OPTIONS],
-    ['pecot-size', SIZE_FIELD_OPTIONS],
-  ]
   if (plan.kind === 'current' || plan.kind === 'both') {
     skipped(out, `field ${WORKFLOW_FIELD_NAME} (already exists)`)
     mark(WORKFLOW_FIELD_NAME, 'unchanged')
   }
   let newFieldCount = 0
-  for (const [fieldName, options] of wanted) {
+  for (const [fieldName, options] of created) {
     if (fields.some(field => jsonField(field, 'name') === fieldName)) {
       skipped(out, `field ${fieldName} (already exists)`)
       mark(fieldName, 'unchanged')
@@ -542,8 +546,8 @@ async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubCl
       mark(fieldName, 'create')
       continue
     }
-    const created = await client.createProjectField(projectId, fieldName, options)
-    out.done({ verb: 'create', target: `field ${fieldName} (ID: ${requireString(created['id'], 'field.id')})` })
+    const createdField = await client.createProjectField(projectId, fieldName, options)
+    out.done({ verb: 'create', target: `field ${fieldName} (ID: ${requireString(createdField['id'], 'field.id')})` })
     mark(fieldName, 'create')
   }
   const lane = await prepareLaneField(out, client, { projectId, fields }, target, run)
@@ -551,14 +555,66 @@ async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubCl
   const workflowField = existingWorkflow === undefined ? undefined : { ...existingWorkflow, name: WORKFLOW_FIELD_NAME }
   const optionCount = await addMissingOptions(out, client, fields, workflowField, run)
   const view = lane.hasField ? await ensureLanesView(out, client, { owner, number: projectNumber }, isDryRun) : undefined
-  return { changeCount: renameCount + newFieldCount + lane.count + optionCount, projectNumber, renamed: renameCount > 0 && plan.kind === 'rename' ? plan.from : undefined, view }
+  return {
+    changeCount: renameCount + newFieldCount + lane.count + optionCount,
+    projectNumber,
+    renamed: renameCount > 0 && plan.kind === 'rename' ? plan.from : undefined,
+    view,
+    deletable: plannedDeletions(fields, plan),
+  }
 }
 
-const FIELD_CHANGES = z.enum(['create', 'update', 'unchanged', 'skip', 'rename'])
+/**
+消す予定のフィールド。pecot が使わないフィールド、続けて pecot-status と両方あるときの旧い進行の欄
+*/
+function plannedDeletions(fields: readonly JsonValue[], plan: WorkflowFieldPlan): readonly DeletableField[] {
+  const unused = UNUSED_FIELD_NAMES.map(name => fields.find(field => jsonField(field, 'name') === name))
+  const legacy = plan.kind === 'both' ? [lastFieldNamed(fields, plan.legacy)] : []
+  return [...unused, ...legacy]
+    .filter(field => field !== undefined)
+    .map(field => ({ id: requireString(jsonField(field, 'id'), 'field.id'), name: requireString(jsonField(field, 'name'), 'field.name') }))
+}
+
+interface Deletions {
+  readonly pending_delete: string[]
+  readonly deleted: string[]
+}
+
+// confirm_delete が無ければ消さずに承認を求め、あれば 1 つずつ消す。予行では消す予定の行を出す
+async function deleteUnusedFields(
+  out: Readonly<Output>,
+  client: Readonly<GitHubClient>,
+  deletable: readonly DeletableField[],
+  run: Readonly<{ isDryRun: boolean, isConfirmed: boolean, mark: MarkField, again: Readonly<{ owner: string, name: string, host: string }> }>,
+): Promise<Deletions> {
+  const names = deletable.map(field => field.name)
+  if (names.length === 0) return { pending_delete: [], deleted: [] }
+  if (!run.isConfirmed) {
+    const again = runAgain(commandHint(['project', 'init'], { ...run.again, confirm_delete: true }))
+    out.warning(hinted`these fields are not used by pecot and are left on the board: ${names.join(', ')}
+deleting them also deletes their values on every item, and the values cannot be restored
+show these names to the user and get their approval; only then, ${again}`)
+    return { pending_delete: names, deleted: [] }
+  }
+  const deleted: string[] = []
+  for (const field of deletable) {
+    const operation: Operation = { verb: 'delete', target: `field ${field.name}` }
+    if (run.isDryRun) out.planned(operation)
+    else {
+      await client.deleteProjectField(field.id)
+      out.done(operation)
+    }
+    run.mark(field.name, 'delete')
+    deleted.push(field.name)
+  }
+  return { pending_delete: [], deleted }
+}
+
+const FIELD_CHANGES = z.enum(['create', 'update', 'unchanged', 'skip', 'rename', 'delete'])
 
 const INIT_ROW = z.strictObject({
   name: z.string().describe('Name of the project field'),
-  change: FIELD_CHANGES.describe('create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found, pecot-lane was not created because no lanes were given, or pecot-lane is not a single select field; rename: the old pecot-workflow-<suffix> field was renamed to pecot-status'),
+  change: FIELD_CHANGES.describe('create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found, pecot-lane was not created because no lanes were given, or pecot-lane is not a single select field; rename: the old pecot-workflow-<suffix> field was renamed to pecot-status; delete: the field was deleted with confirm_delete'),
   addedOptions: z.array(z.string()).describe('Names of the options added to the field (empty when none)'),
 })
 
@@ -570,10 +626,12 @@ const CONFIG_MOVED = z.strictObject({
 const MIGRATION = z.strictObject({
   renamed: z.string().nullable().describe('Old name of the workflow field that was renamed to pecot-status (null when none)'),
   config_moved: CONFIG_MOVED,
+  pending_delete: z.array(z.string()).describe('Fields to delete that were left because confirm_delete was not given: pecot-priority, pecot-size, and the old pecot-workflow-<suffix> field when pecot-status also exists (empty when none)'),
+  deleted: z.array(z.string()).describe('Fields deleted with confirm_delete (empty when none)'),
 })
 
 const INIT_OUTPUT = z.strictObject({
-  fields: z.array(INIT_ROW).describe('The workflow, priority, size and pecot-lane fields, plus the Status field when its options were looked at'),
+  fields: z.array(INIT_ROW).describe('The pecot-status and pecot-lane fields, the Status field when its options were looked at, and the fields deleted with confirm_delete'),
   migration: MIGRATION.optional().describe('What was moved from the old form (omitted when the command stopped before the project config)'),
   view: VIEW.optional(),
 })
@@ -586,13 +644,14 @@ function configMovedOf(placement: Readonly<ConfigPlacement>): z.input<typeof CON
 const initCommand = defineCommand({
   path: INIT_PATH,
   title: 'Initialize project fields',
-  description: 'Add the pecot-status field and the other pecot-workflow fields to an existing project, rename the old suffixed workflow field to pecot-status, add the Blocked and Needs Attention options to the fields that already exist, and add the lanes to the pecot-lane field with a Lanes view',
+  description: 'Add the pecot-status field to an existing project, rename the old suffixed workflow field to pecot-status, add the Blocked and Needs Attention options to the fields that already exist, and add the lanes to the pecot-lane field with a Lanes view. The fields pecot does not use (pecot-priority, pecot-size, and the old suffixed workflow field when pecot-status also exists) are listed in migration.pending_delete, and deleted only with confirm_delete',
   input: z.strictObject({
     owner: z.string().describe('Project owner'),
     name: z.string().describe('Project title'),
     host: z.string().default(DEFAULT_HOST).describe('GitHub host'),
     lanes: lanesInput,
     dry_run: dryRunInput,
+    confirm_delete: z.boolean().default(false).describe('Delete the fields listed in migration.pending_delete. Their values on every item are deleted too and cannot be restored. Set it to true only after the user has approved deleting those fields'),
   }),
   output: INIT_OUTPUT,
   positional: ['owner', 'name'],
@@ -609,17 +668,18 @@ const initCommand = defineCommand({
     const initialized = await guarded(out, 'initialize project fields', async () => await initializeFields(out, client, { ...input, command: INIT_PATH }, { isDryRun: input.dry_run, mark }))
     if (initialized.view !== undefined) out.result({ view: initialized.view })
     const renamed = initialized.renamed ?? JSON_NULL
+    // 消すのは設定ファイルの同期の後。消すのに失敗しても、改名と設定の移しは済む
+    const removalRun = { isDryRun: input.dry_run, isConfirmed: input.confirm_delete, mark, again: { owner, name, host } }
+    const deleteFields = async (): Promise<Deletions> => await guarded(out, 'delete project fields', async () => await deleteUnusedFields(out, client, initialized.deletable, removalRun))
     // 設定ファイルは作るフィールドと選択肢の ID を書くので、予行では作る前の設定を出さない。移す予定は ID に依らないので出す
     if (initialized.changeCount > 0 && input.dry_run) {
       const placement = placeProjectConfig(out, { host, owner, number: initialized.projectNumber })
       reportConfigMove(out, placement, true)
-      out.result({ migration: { renamed, config_moved: configMovedOf(placement) } })
+      out.result({ migration: { renamed, config_moved: configMovedOf(placement), ...await deleteFields() } })
       return 0
     }
-    await guarded(out, 'sync project config', async () => {
-      const synced = await syncProjectConfig(out, client, { owner, name, host, skipIfUnchanged: true, isDryRun: input.dry_run })
-      out.result({ migration: { renamed, config_moved: configMovedOf(synced) } })
-    })
+    const synced = await guarded(out, 'sync project config', async () => await syncProjectConfig(out, client, { owner, name, host, skipIfUnchanged: true, isDryRun: input.dry_run }))
+    out.result({ migration: { renamed, config_moved: configMovedOf(synced), ...await deleteFields() } })
     return 0
   },
 })

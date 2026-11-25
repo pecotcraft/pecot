@@ -134,62 +134,53 @@ describe('itemHasFieldValue', () => {
 
 describe('putOnBoard', () => {
   const WORKFLOW = { operation: 'UpdateProjectItemField', variables: { projectId: 'PVT_1', itemId: 'ITEM', fieldId: 'F_workflow', optionId: 'O_workflow_backlog' } }
-  const PRIORITY = { operation: 'UpdateProjectItemField', variables: { projectId: 'PVT_1', itemId: 'ITEM', fieldId: 'F_priority', optionId: 'O_priority_high' } }
 
+  // 設定とボードに旧い priority の欄が残っていても、書くのは Status だけ
   it.each([
-    [[], [WORKFLOW, PRIORITY]],
-    [['F_workflow'], [PRIORITY]],
+    [[], [WORKFLOW]],
     [['F_priority'], [WORKFLOW]],
-    [['F_workflow', 'F_priority'], []],
-  ])('onlyIfEmpty は、値が入ったフィールド %j を除いた空のフィールドだけ設定する', async (filledFieldIds, expected) => {
+    [['F_workflow'], []],
+  ])('onlyIfEmpty は、値の入ったフィールドを %j とすると、空の Status だけを設定する', async (filledFieldIds, expected) => {
     const { client, server } = await startClient([
       ISSUE_NODE_ID,
       ADD_TO_PROJECT,
-      graphqlData('GetIssueProjectItems', projectItems(filledFieldIds), 2),
+      graphqlData('GetIssueProjectItems', projectItems(filledFieldIds)),
       ...expected.length === 0 ? [] : [updateRule(expected.length)],
     ])
-    await putOnBoard(createOutput(false, capture()), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: true })
+    const out = createOutput(false, capture())
+    expect(await putOnBoard(out, client, config(), 'o', 'r', 5, { onlyIfEmpty: true })).toBe(0)
     expect(graphqlRequests(server).filter(({ operation }) => operation === 'UpdateProjectItemField')).toEqual(expected)
   })
 
-  it('onlyIfEmpty でなければ、入っている値も上書きする', async () => {
-    const { client, server } = await startClient([ISSUE_NODE_ID, ADD_TO_PROJECT, updateRule(2)])
-    const failures = await putOnBoard(createOutput(false, capture()), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: false })
-    expect(failures).toBe(0)
-    expect(graphqlRequests(server).filter(({ operation }) => operation !== 'GetIssueNodeId' && operation !== 'AddToProject')).toEqual([WORKFLOW, PRIORITY])
-  })
-
-  it('priority が無ければ Status だけ設定する', async () => {
+  it('onlyIfEmpty でなければ、値を確かめずに Status だけを上書きする', async () => {
     const { client, server } = await startClient([ISSUE_NODE_ID, ADD_TO_PROJECT, updateRule(1)])
-    await putOnBoard(createOutput(false, capture()), client, config(), 'o', 'r', 5, undefined, { onlyIfEmpty: false })
-    expect(graphqlRequests(server).at(-1)).toEqual(WORKFLOW)
-    expect(graphqlRequests(server)).toHaveLength(3)
+    const failures = await putOnBoard(createOutput(false, capture()), client, config(), 'o', 'r', 5, { onlyIfEmpty: false })
+    expect(failures).toBe(0)
+    expect(graphqlRequests(server).filter(({ operation }) => operation !== 'GetIssueNodeId' && operation !== 'AddToProject')).toEqual([WORKFLOW])
   })
 
-  it('欄の書き込みが VALIDATION で落ちると、欄ごとに error を出し、案内を 1 回だけ添えて続け、書けなかった欄の数を返す', async () => {
-    const { client, server } = await startClient([ISSUE_NODE_ID, ADD_TO_PROJECT, STALE_UPDATES])
+  it('Status の書き込みが VALIDATION で落ちると、error と案内を 1 回ずつ出し、1 を返す', async () => {
+    const stale: ReturnType<typeof graphqlData> = { ...STALE_UPDATES, times: 1 }
+    const { client, server } = await startClient([ISSUE_NODE_ID, ADD_TO_PROJECT, stale])
     const io = capture()
-    expect(await putOnBoard(createOutput(false, io), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: false })).toBe(2)
+    expect(await putOnBoard(createOutput(false, io), client, config(), 'o', 'r', 5, { onlyIfEmpty: false })).toBe(1)
     const stderr = io.err.join('')
-    expect(stderr.split('\n').filter(line => line.startsWith('error: '))).toEqual([
-      `error: could not set status backlog of Tracker #5: ${STALE_OPTION_TEXT}`,
-      `error: could not set priority high of Tracker #5: ${STALE_OPTION_TEXT}`,
-    ])
+    expect(stderr.split('\n').filter(line => line.startsWith('error: '))).toEqual([`error: could not set status backlog of Tracker #5: ${STALE_OPTION_TEXT}`])
     expect(hintLines(stderr)).toHaveLength(1)
-    expect(graphqlRequests(server).filter(({ operation }) => operation === 'UpdateProjectItemField')).toEqual([WORKFLOW, PRIORITY])
+    expect(graphqlRequests(server).filter(({ operation }) => operation === 'UpdateProjectItemField')).toEqual([WORKFLOW])
   })
 
-  it('欄の書き込みが VALIDATION 以外で落ちると、error だけを出し、案内を添えずにほかの欄を続ける', async () => {
-    const { client } = await startClient([ISSUE_NODE_ID, ADD_TO_PROJECT, graphqlError('UpdateProjectItemField', 'boom'), updateRule(1)])
+  it('Status の書き込みが VALIDATION 以外で落ちると、error だけを出し、案内を添えずに 1 を返す', async () => {
+    const { client } = await startClient([ISSUE_NODE_ID, ADD_TO_PROJECT, graphqlError('UpdateProjectItemField', 'boom')])
     const io = capture()
-    expect(await putOnBoard(createOutput(false, io), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: false })).toBe(1)
+    expect(await putOnBoard(createOutput(false, io), client, config(), 'o', 'r', 5, { onlyIfEmpty: false })).toBe(1)
     expect(io.err.join('')).toBe('error: could not set status backlog of Tracker #5: GraphQL query error: {\'message\': \'boom\'}\n')
   })
 
   it('追加に失敗したら、欄を書かずに GitHubAPIError を伝える', async () => {
     const { client, server } = await startClient([ISSUE_NODE_ID, graphqlError('AddToProject', 'boom')])
     const io = capture()
-    const putting = putOnBoard(createOutput(false, io), client, config(), 'o', 'r', 5, 'high', { onlyIfEmpty: false })
+    const putting = putOnBoard(createOutput(false, io), client, config(), 'o', 'r', 5, { onlyIfEmpty: false })
     expect(await rejection(putting)).toBeInstanceOf(GitHubAPIError)
     expect(io.err).toEqual([])
     expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['GetIssueNodeId', 'AddToProject'])

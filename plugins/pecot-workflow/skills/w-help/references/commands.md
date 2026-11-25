@@ -50,7 +50,7 @@
 | `project activate` | Activate an initialized project |
 | `project create` | Create a new project with the pecot-workflow fields, and the pecot-lane field and the Lanes view from lanes (to add the fields to an existing project, use project init) |
 | `project get` | Show the value of a key of the project config (aggregation_repo: the Epic aggregation repository) |
-| `project init` | Add the pecot-status field and the other pecot-workflow fields to an existing project, rename the old suffixed workflow field to pecot-status, add the Blocked and Needs Attention options to the fields that already exist, and add the lanes to the pecot-lane field with a Lanes view |
+| `project init` | Add the pecot-status field to an existing project, rename the old suffixed workflow field to pecot-status, add the Blocked and Needs Attention options to the fields that already exist, and add the lanes to the pecot-lane field with a Lanes view. The fields pecot does not use (pecot-priority, pecot-size, and the old suffixed workflow field when pecot-status also exists) are listed in migration.pending_delete, and deleted only with confirm_delete |
 | `project link` | Add or update a repository in the project config |
 | `project list` | List available projects |
 | `project search` | Search projects through the GitHub API, and show which are initialized and which is active |

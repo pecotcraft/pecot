@@ -17,14 +17,6 @@ const WorkflowStatusSchema = z.enum(['backlog', 'pending', 'blocked', 'ready', '
 export type WorkflowStatus = z.infer<typeof WorkflowStatusSchema>
 export const WORKFLOW_STATUSES: readonly WorkflowStatus[] = WorkflowStatusSchema.options
 
-const PrioritySchema = z.enum(['high', 'medium', 'low'])
-export type Priority = z.infer<typeof PrioritySchema>
-export const PRIORITIES: readonly Priority[] = PrioritySchema.options
-
-const SizeSchema = z.enum(['xs', 's', 'm', 'l'])
-export type Size = z.infer<typeof SizeSchema>
-export const SIZES: readonly Size[] = SizeSchema.options
-
 const NAME_PATTERN = /^[\w.-]+$/u
 // zod が issue に入れる pattern（`/source/flags`）→ Python の文に出す正規表現の文字列
 const PYTHON_PATTERN_TEXTS: ReadonlyMap<string, string> = new Map([[String(NAME_PATTERN), '^[A-Za-z0-9_.-]+$']])
@@ -62,8 +54,6 @@ const FieldOptionsSchema = model('FieldOptions', {
 
 const ProjectFieldsSchema = model('ProjectFields', {
   workflow: FieldOptionsSchema,
-  priority: FieldOptionsSchema.nullish().transform(value => value ?? undefined),
-  size: FieldOptionsSchema.nullish().transform(value => value ?? undefined),
   status: FieldOptionsSchema.nullish().transform(value => value ?? undefined),
 }).readonly()
 
@@ -266,8 +256,6 @@ export function projectConfigFileName(host: string, owner: string, number: numbe
 function fieldOf(config: ProjectConfig, fieldName: string): FieldOptions | undefined {
   switch (fieldName) {
     case 'workflow': { return config.project.fields.workflow }
-    case 'priority': { return config.project.fields.priority }
-    case 'size': { return config.project.fields.size }
     case 'status': { return config.project.fields.status }
     default: { return undefined }
   }

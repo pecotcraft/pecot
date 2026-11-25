@@ -31,15 +31,16 @@ function hasFile(root: string, relative: string): boolean {
 }
 
 describe('issue create --freeform', () => {
-  it('メッセージとリポジトリで起票し、priority medium・size s と型の既定の status を付け、.pecot-quick-mode を作らない', async () => {
+  it('メッセージとリポジトリで起票し、型の既定の status だけを付け、.pecot-quick-mode を作らない', async () => {
     const project = setUpIssueProject()
-    const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
+    const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
 
     const result = await freeform('-m', MESSAGE, '--repo', 'acme/demo')
 
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
-    expect(result.stderr).toContain('priority medium, size s')
+    expect(result.stderr).toContain('set: Issue acme/demo/12 status ready\n')
+    expect(github.requests().filter(request => request.type === 'graphql' && request.operation === 'UpdateProjectItemField')).toHaveLength(1)
     const created = github.requests().find(request => request.type === 'rest' && request.method === 'POST')
     const body = created?.type === 'rest' ? JSON.stringify(created.body) : ''
     expect(body).toContain('<!-- issue create の freeform で起票（テンプレ検証スキップ）')
@@ -56,7 +57,7 @@ describe('issue create --freeform', () => {
     { name: '\\r\\n の改行でも、1 行目だけ', message: '短い題\r\n2 行目', expected: '短い題' },
   ])('タイトルは、メッセージの 1 行目から作る: $name', async ({ message, expected }) => {
     setUpIssueProject()
-    const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(3)])
+    const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
 
     const result = await freeform('-m', message, '--repo', 'acme/demo')
     expect(result.code).toBe(0)
@@ -66,14 +67,14 @@ describe('issue create --freeform', () => {
     expect(title).toBe(`[Task] ${expected}`)
   })
 
-  it('Backlog に置く型（epic）は size を付けない', async () => {
+  it('Backlog に置く型（epic）は、status backlog だけを付ける', async () => {
     setUpIssueProject()
-    await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(2)])
+    await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
 
     const result = await freeform('-m', MESSAGE, '--repo', 'acme/demo', '--type', 'epic')
 
     expect(result.code).toBe(0)
-    expect(result.stderr).not.toContain('size')
+    expect(result.stderr).toContain('set: Issue acme/demo/12 status backlog\n')
   })
 
   it.for([

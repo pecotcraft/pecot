@@ -26,23 +26,6 @@ setup:
                   "in_review": "o5",
                   "archived": "o6"
                 }
-              },
-              "priority": {
-                "id": "PVTSSF_priority",
-                "options": {
-                  "high": "p1",
-                  "medium": "p2",
-                  "low": "p3"
-                }
-              },
-              "size": {
-                "id": "PVTSSF_size",
-                "options": {
-                  "xs": "s1",
-                  "s": "s2",
-                  "m": "s3",
-                  "l": "s4"
-                }
               }
             }
           },
@@ -62,8 +45,6 @@ setup:
         type: task
         repository: acme/demo
         status: ready
-        priority: high
-        size: s
         parent_epic: acme/demo/3
         order: 2
         ---
@@ -81,8 +62,6 @@ setup:
         type: task
         repository: acme/demo
         status: ready
-        priority: high
-        size: s
         parent_epic: acme/demo/3
         order: 3
         ---
@@ -177,7 +156,7 @@ github:
             item: {id: PVTI_12}
   - match:
       operation: UpdateProjectItemField
-    times: 6
+    times: 2
     respond:
       status: 200
       body:
