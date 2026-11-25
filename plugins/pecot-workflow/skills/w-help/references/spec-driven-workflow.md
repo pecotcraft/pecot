@@ -202,13 +202,15 @@ PR は、親 PR とスタックとして並ぶ。親 PR が無いときは止ま
 
 マージは GitHub の画面で行う。スタックの PR も、画面で押す。
 
-- 子 PR を押すと、その下の未マージの PR も一緒に、下から順にマージされる。GitHub の stacks の仕様である（[Merging stacked pull requests](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/merging-stacked-pull-requests)）。
+- GitHub の文書では、子 PR を押すと、その下の未マージの PR も一緒に、下から順にマージされる。GitHub の stacks の仕様である（[Merging stacked pull requests](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/merging-stacked-pull-requests)）。
   > You cannot merge a mid-stack pull request in isolation, the pull requests below it will always merge with it.
 - マージ箱は、下の PR がすべて承認され、チェックが通っていることを求める
 - 承認を 0 件にした ruleset では、チェックが通っていれば、レビュー中の親 PR も一緒に入る
 - 子 PR を押す前に、親 PR の w-pr が待ち受け（Step 6）に入っていることを確かめる。入る前に押すと、親 PR の w-pr がその後に push する直しは、開発ブランチに入らない
-- merge queue では、スタックの PR が下から順にキューに入る。
-  > All pull requests in the stack are added to the queue in the correct order.
+- merge queue のあるブランチでは、子 PR を押すと、親 PR と子 PR が下から順にキューに入る。ただし、マージされるのは親 PR だけである
+  - 子 PR は、理由 `invalid_merge_commit` でキューから外れ、base が開発ブランチに変わる。子 PR の w-pr の待ち受けは `DEQUEUED` を受け、待ち直す
+  - 子 PR をもう一度押すと、マージされる
+  - pecot-sandbox で 2026-11-25 に画面のボタンで確かめた。文書の「一緒にマージされる」とは違う
 
 親 PR をマージすると、次のことが起きる。
 
