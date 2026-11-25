@@ -28,6 +28,10 @@ PR が閉じた Issue は、PR の closing issues と、head ブランチの名�
 
 認証には、[自動レビューのワークフロー](review-workflow.md) の secret・変数をそのまま使います。自動レビューを入れたリポでは、雛形を置くだけで動きます。
 
+Claude の GitHub App は要りません。自前の App を置かないときは、実行の `GITHUB_TOKEN` を claude-code-action に渡します。
+
+action は、`github_token` が空だと、OIDC の token を Claude の App の token に交換します。Anthropic の交換の窓口は、`pull_request_target` の token を拒みます（anthropics/claude-code-action#713）。
+
 ### 1. 雛形を置く
 
 pecot-workflow の MCP ツール `workflow_install`（`name: "handoff"`）で、雛形をリポに書き出します。
@@ -38,15 +42,14 @@ pecot-workflow の MCP ツール `workflow_install`（`name: "handoff"`）で、
 
 ### 2. 認証をそろえる
 
-自動レビューのワークフローの「導入」の 2・3 の手順と同じです。
+自動レビューのワークフローの「導入」の 3 の手順と同じです。
 
-- [Claude の GitHub App](https://github.com/apps/claude) をリポに入れる
 - secret `CLAUDE_CODE_OAUTH_TOKEN` を置く。API の利用で払うときは、Workload Identity Federation の 4 つの変数を置く
 - コメントを自前の App の名前で書きたいときは、自前の GitHub App を足す（「自前の GitHub App」の節）
 
 ### 3. 確かめる
 
-pecot-workflow の MCP ツール `workflow_doctor`（`name: "handoff"`）で、雛形と設定がそろっているかを確かめます。見る項目と読み方は、自動レビューと同じです。
+pecot-workflow の MCP ツール `workflow_doctor`（`name: "handoff"`）で、雛形と設定がそろっているかを確かめます。見る項目と読み方は、自動レビューと同じです。Claude の GitHub App は使わないので、その項目は出ません。
 
 ### 4. 既定のブランチへ入れる
 
@@ -73,7 +76,7 @@ merge queue がマージしたときも動きます。
 | 許すツール | `Read`・`pr_show`・`issue_show`・`issue_comment`・`gh pr diff`・`gh pr view` |
 | 拒むツール | `Edit`・`Write`・`NotebookEdit`・`AskUserQuestion`・`Agent`・`WebFetch`・`WebSearch`・`git clone`・`/proc` の `Read` |
 
-`id-token` は、Claude の App の token と、Workload Identity Federation が使います。
+`id-token` は、Workload Identity Federation だけが使います。
 
 w-handoff は、ファイルを書き換えず、Issue を閉じず、ブランチも消しません。コメントは `issue_comment` の `message` で投稿します。
 

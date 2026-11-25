@@ -28,6 +28,10 @@ export interface WorkflowTemplate {
   */
   readonly destination: string
   readonly requirements: readonly SettingRequirement[]
+  /**
+  Claude の GitHub App を使うか。使う雛形だけ、doctor の項目と install の案内に App を入れる
+  */
+  readonly claudeApp: boolean
 }
 
 const AGENT_ANTHROPIC_VARIABLES: readonly SettingName[] = ['FEDERATION_RULE_ID', 'ORGANIZATION_ID', 'SERVICE_ACCOUNT_ID', 'WORKSPACE_ID']
@@ -54,8 +58,8 @@ const AGENT_REQUIREMENTS: readonly SettingRequirement[] = [
 雛形の一覧。雛形を足すときは行を足す
 */
 export const WORKFLOW_TEMPLATES: readonly WorkflowTemplate[] = [
-  { name: 'review', templateFile: 'pecot-review.yml', destination: '.github/workflows/pecot-review.yml', requirements: AGENT_REQUIREMENTS },
-  { name: 'handoff', templateFile: 'pecot-handoff.yml', destination: '.github/workflows/pecot-handoff.yml', requirements: AGENT_REQUIREMENTS },
+  { name: 'review', templateFile: 'pecot-review.yml', destination: '.github/workflows/pecot-review.yml', requirements: AGENT_REQUIREMENTS, claudeApp: true },
+  { name: 'handoff', templateFile: 'pecot-handoff.yml', destination: '.github/workflows/pecot-handoff.yml', requirements: AGENT_REQUIREMENTS, claudeApp: false },
 ]
 
 export function findWorkflowTemplate(name: string): WorkflowTemplate | undefined {

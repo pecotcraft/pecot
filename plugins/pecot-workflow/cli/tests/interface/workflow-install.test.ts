@@ -113,7 +113,18 @@ describe('workflow install', () => {
     const result = await install({ name: 'handoff' })
     expect(result.isError).toBe(false)
     expect(result.read('.github/workflows/pecot-handoff.yml')).toBe(bundledHandoff)
-    expect(result.structured).toMatchObject({ written: true, path: '.github/workflows/pecot-handoff.yml', version: 1 })
+    expect(result.structured).toMatchObject({ written: true, path: '.github/workflows/pecot-handoff.yml', version: 2 })
+  })
+
+  it('CLI で handoff を書き出すと、次にすることに Claude の App の手順を入れない', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-INSTALL-13')
+    const result = await runCommand({ argv: ['workflow', 'install', 'handoff'], config: false, github: [] })
+    expect(result.stdout).toBe([
+      'next:',
+      '  1. set secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_* in Settings > Secrets and variables > Actions',
+      '  2. check the settings with: pecot workflow doctor handoff',
+      '',
+    ].join('\n'))
   })
 
   it('check と force を一緒に渡すと、何も書かずに invalid-input の失敗を返す', async (context) => {

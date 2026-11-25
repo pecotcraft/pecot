@@ -1,4 +1,4 @@
-# pecot-workflow-template: handoff 1
+# pecot-workflow-template: handoff 2
 #
 # Place this file at .github/workflows/pecot-handoff.yml in your repository.
 #
@@ -16,8 +16,8 @@
 # Secrets are passed to PRs from forks, so this workflow never checks out code from a PR.
 # The default branch must hold the pecot project config under .pecot/config/projects.
 #
-# Install the Claude GitHub App on the repository.
-# Then set one model credential in Settings > Secrets and variables > Actions.
+# The Claude GitHub App is not needed.
+# Set one model credential in Settings > Secrets and variables > Actions.
 #   Claude subscription (default).
 #     Set secret CLAUDE_CODE_OAUTH_TOKEN, made with `claude setup-token`.
 #   Claude Platform with Workload Identity Federation.
@@ -26,6 +26,7 @@
 #     Set variable PECOT_AGENT_ANTHROPIC_ORGANIZATION_ID.
 #     Set variable PECOT_AGENT_ANTHROPIC_SERVICE_ACCOUNT_ID.
 #     Set variable PECOT_AGENT_ANTHROPIC_WORKSPACE_ID.
+#     The id-token permission of the job is used only for this.
 # The pecot-review.yml workflow uses the same settings.
 #
 # By default, comments come from github-actions[bot].
@@ -108,8 +109,9 @@ jobs:
           anthropic_organization_id: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && vars.PECOT_AGENT_ANTHROPIC_ORGANIZATION_ID || '' }}
           anthropic_service_account_id: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && vars.PECOT_AGENT_ANTHROPIC_SERVICE_ACCOUNT_ID || '' }}
           anthropic_workspace_id: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && vars.PECOT_AGENT_ANTHROPIC_WORKSPACE_ID || '' }}
-          # Empty when no App token was made, so the action uses the Claude GitHub App.
-          github_token: ${{ steps.token.outputs.token }}
+          # Without an App token, the run token is passed. Then the action does not exchange
+          # an OIDC token for a Claude GitHub App token. The exchange rejects pull_request_target.
+          github_token: ${{ steps.token.outputs.token || github.token }}
           plugin_marketplaces: https://github.com/pecotcraft/pecot.git
           plugins: pecot-w@pecot
           prompt: /pecot-w:w-handoff ${{ github.repository }}/${{ github.event.pull_request.number }}${{ vars.PECOT_HANDOFF_PROJECT != '' && format(' project={0}', vars.PECOT_HANDOFF_PROJECT) || '' }}
