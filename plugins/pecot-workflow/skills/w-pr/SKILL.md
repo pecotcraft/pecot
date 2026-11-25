@@ -3,7 +3,7 @@ name: w-pr
 description: |
   PRを作成しタイトル・説明を自動生成し、CIとレビューの指摘に対応します。
   Use when the user wants to create a pull request for the current branch — auto-generates title/description from commits and diff, waits for CI, then addresses the review findings without asking which to adopt, replying with the reason on each one it declines. Triggers: "create PR", "submit for review", "address review comments".
-  Does not merge PRs itself — it then waits for the user to merge on GitHub and runs the post-merge cleanup (session finish, merge-diff, precede-notify).
+  Does not merge PRs itself — it then waits for the user to merge on GitHub and runs the post-merge cleanup (session finish).
 allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check mcp__plugin_pecot-w_pecot-workflow__pr_create mcp__plugin_pecot-w_pecot-workflow__pr_show mcp__plugin_pecot-w_pecot-workflow__issue_comment mcp__plugin_pecot-w_pecot-workflow__issue_show mcp__plugin_pecot-w_pecot-workflow__session_show mcp__plugin_pecot-w_pecot-workflow__session_finish Bash(node ${CLAUDE_SKILL_DIR}/scripts/wait-merge.cjs *) Bash(gh api:*) Bash(git push:*) Bash(git checkout:*) Bash(git branch:*) Bash(git worktree list:*) Bash(git fetch:*) Bash(git pull:*) Bash(mkdir:*) Bash(touch:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr checks:*) Bash(gh run view:*) Bash(git add:*) Bash(git commit:*)
 when_to_use: "PR を作りたい、レビューに出したい、プルリクエストの説明文を作ってほしい、PR のレビュー指摘に対応したい"
 ---
@@ -11,7 +11,7 @@ when_to_use: "PR を作りたい、レビューに出したい、プルリクエ
 # プルリクエスト作成
 
 現在のブランチの変更内容を分析し、変更内容に合ったタイトルと説明でプルリクエストを作成します。CI を待ち、PR に付いたレビューの指摘の採否を自分で決めて対応し、終わってから報告します。直さない指摘には、理由を返信します。
-その後も、利用者が GitHub の画面でマージするのを待ち受け、マージされたら後片付けと Epic・後続へのコメントまで済ませます。
+その後も、利用者が GitHub の画面でマージするのを待ち受け、マージされたら後片付けまで済ませます。
 
 ## 手順
 
@@ -261,7 +261,7 @@ URL だけを渡すと、60 秒おきに PR を読み、25 分で切り上げる
 
 | 出力 | 次の手順 |
 |---|---|
-| `MERGED` | [マージされた後の片付け](references/after-merge.md) に従って、片付けと Epic・後続へのコメントを済ませる |
+| `MERGED` | [マージされた後の片付け](references/after-merge.md) に従って片付ける |
 | `CLOSED` | マージされずに閉じられた旨を利用者に伝えて止まる。片付けない |
 | `CONFLICTING` | base とコンフリクトした。Step 4 に戻り、スタックし直すか base へ rebase してから CI とレビューの指摘に対応し、ここで待ち直す |
 | `DEQUEUED` | merge queue のチェックが落ちたか、コンフリクトで queue から外された。Step 4 に戻り、原因を直してから待ち直す |

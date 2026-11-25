@@ -9,9 +9,6 @@ import { z } from 'zod'
 import { isRepositoryInProject } from '../domain/config.js'
 import { FrontmatterError, setFrontmatterValue } from '../domain/frontmatter.js'
 import { jsonField } from '../domain/json.js'
-import { withMergeDiffMarker } from '../domain/merge-diff-marker.js'
-import { createIssueReference } from '../domain/reference-parser.js'
-import { createRepositoryReference } from '../domain/repository-resolver.js'
 import type { JsonObject } from '../domain/json.js'
 import { pythonStrip } from '../domain/python-format.js'
 import { OsError, toOsError } from '../infra/os-error.js'
@@ -36,7 +33,6 @@ import {
 import type { IssueTarget } from './issue-shared.js'
 import { createOutput } from './output.js'
 import type { Output } from './output.js'
-import { parseReference } from './pr-reference.js'
 
 const TEMPLATE_SCHEMA = z.enum(['plan', 'merge-diff', 'review-findings', 'review-resolution', 'precede-notify'])
 const TEMPLATE_CHOICES = TEMPLATE_SCHEMA.options.join(' / ')
@@ -144,7 +140,6 @@ async function postFromFile(output: CommentOutput, project: string | undefined, 
   if (frontmatter.template === undefined) {
     return stopWith(output, `specify template in the frontmatter (${TEMPLATE_CHOICES})`, 'content-invalid')
   }
-  const posted = markMergeDiff(output, { template: frontmatter.template, pullRequest: frontmatter.pr_ref, repository, where: 'the frontmatter' }, body)
   if (hasReportedTemplateViolations(output, body, templateFile('comment', frontmatter.template))) throw new CommandExit(COMMENT_VALIDATION_EXIT_CODE, 'content-invalid')
 
   // comment_url は、issue_ref と同じ Issue のコメントに限る
@@ -165,39 +160,18 @@ async function postFromFile(output: CommentOutput, project: string | undefined, 
   }
 
   if (hasCommentUrl) {
-    await updateComment(output, client, target, commentId, commentUrl, posted)
+    await updateComment(output, client, target, commentId, commentUrl, body)
     return
   }
-  const createdUrl = await createComment(output, client, target, posted)
+  const createdUrl = await createComment(output, client, target, body)
   if (createdUrl !== '') writeBackCommentUrl(output, file, createdUrl)
 }
 
-interface MergeDiffSource {
-  readonly template: string
-  readonly pullRequest: string | undefined
-  readonly repository: string | undefined
-  readonly where: string
-}
-
-// merge-diff は、session start が見分けられるよう、マージした PR の印を本文の先頭に付ける
-function markMergeDiff(output: CommentOutput, source: Readonly<MergeDiffSource>, body: string): string {
-  const { template, pullRequest, repository, where } = source
-  const hasPullRequest = pullRequest !== undefined && pullRequest !== ''
-  if (template !== 'merge-diff') {
-    return hasPullRequest ? stopWith(output, `pr_ref is only for the merge-diff template; remove it from ${where}`, 'invalid-input') : body
-  }
-  if (!hasPullRequest) return stopWith(output, `the merge-diff template needs pr_ref in ${where}: the merged PR (owner/repo/N)`, 'content-invalid')
-  const { owner, repository: name, number } = parseReference(pullRequest, repository, output)
-  return withMergeDiffMarker(body, createIssueReference(createRepositoryReference(owner, name), number))
-}
-
-async function postDirect(output: CommentOutput, project: string | undefined, repository: string | undefined, direct: Readonly<{ issueReference: string, message: string, template: string, pullRequest: string | undefined }>, isDryRun: boolean): Promise<void> {
-  const { issueReference, template } = direct
+async function postDirect(output: CommentOutput, project: string | undefined, repository: string | undefined, issueReference: string, message: string, template: string, isDryRun: boolean): Promise<void> {
   const target = parseIssueReferenceOrExit(output, repository, issueReference)
   const { config } = requireConfigFor(output, target, project, COMMENT_PATH)
 
-  const message = markMergeDiff(output, { template, pullRequest: direct.pullRequest, repository, where: 'the input' }, direct.message)
-  if (hasReportedTemplateViolations(output, direct.message, templateFile('comment', template))) throw new CommandExit(COMMENT_VALIDATION_EXIT_CODE, 'content-invalid')
+  if (hasReportedTemplateViolations(output, message, templateFile('comment', template))) throw new CommandExit(COMMENT_VALIDATION_EXIT_CODE, 'content-invalid')
 
   if (isDryRun) {
     output.result({ issue: issuePath(target.owner, target.repository, target.number), change: 'created' })
@@ -221,7 +195,6 @@ const ISSUE_COMMENT = defineCommand({
     template: TEMPLATE_SCHEMA.optional().describe(
       'Template type the message is checked against (required with `message`; plan/merge-diff/review-findings/review-resolution/precede-notify)',
     ),
-    pr_ref: z.string().optional().describe('Merged PR the merge-diff comment is about (owner/repo/N or N; required with `message` and template merge-diff, and only for it)'),
     project: PROJECT_INPUT,
     dry_run: z.boolean().default(false).describe('Show what would be posted or written without changing anything'),
   }),
@@ -237,7 +210,6 @@ const ISSUE_COMMENT = defineCommand({
         stopWith(output, hinted`specify a template with ${inputNameHint(COMMENT_PATH, 'template')} (${TEMPLATE_CHOICES})`, 'invalid-input')
       }
       if (file !== undefined) {
-        if (input.pr_ref !== undefined) stopWith(output, hinted`with ${inputNameHint(COMMENT_PATH, 'file')}, write pr_ref in the frontmatter of the file`, 'invalid-input')
         await postFromFile(output, input.project, input.repo, file, input.dry_run)
         return
       }
@@ -245,7 +217,7 @@ const ISSUE_COMMENT = defineCommand({
         if (issue === undefined || issue === '') {
           stopWith(output, hinted`${inputNameHint(COMMENT_PATH, 'issue_ref')} (Issue reference) is required with ${inputNameHint(COMMENT_PATH, 'message')}`, 'invalid-input')
         }
-        await postDirect(output, input.project, input.repo, { issueReference: issue, message, template, pullRequest: input.pr_ref }, input.dry_run)
+        await postDirect(output, input.project, input.repo, issue, message, template, input.dry_run)
         return
       }
       stopWith(

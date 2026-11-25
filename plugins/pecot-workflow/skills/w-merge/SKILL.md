@@ -52,6 +52,6 @@ while [ "$(gh api graphql -F n=<PR番号> -f query='query($n:Int!){repository(ow
 - `MERGED` なら 2.3 へ進む
 - `OPEN` なら、queue のチェックが落ちたかコンフリクトで外された。原因を読んで直し、2.1 からやり直す
 
-#### 2.3 片付けとコメント
+#### 2.3 片付け
 
-[マージされた後の片付け](references/after-merge.md) に従って、片付けと Epic・後続へのコメントを済ませる。
+[マージされた後の片付け](references/after-merge.md) に従って片付ける。

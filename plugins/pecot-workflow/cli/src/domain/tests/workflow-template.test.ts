@@ -20,7 +20,7 @@ function review(): NonNullable<ReturnType<typeof findWorkflowTemplate>> {
 
 describe('雛形の一覧', () => {
   it('review の行が、名前・雛形のファイル・置き先・要る変数と secret を持つ', () => {
-    expect(WORKFLOW_TEMPLATES.map(template => template.name)).toEqual(['review'])
+    expect(WORKFLOW_TEMPLATES.map(template => template.name)).toEqual(['review', 'handoff'])
     const template = review()
     expect(template.templateFile).toBe('pecot-review.yml')
     expect(template.destination).toBe('.github/workflows/pecot-review.yml')
@@ -28,6 +28,13 @@ describe('雛形の一覧', () => {
       'secret PECOT_AGENT_APP_PRIVATE_KEY',
       'secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*',
     ])
+  })
+
+  it('handoff の行は、引き継ぎの雛形と置き先を持ち、review と同じエージェント用の認証を要る', () => {
+    const template = findWorkflowTemplate('handoff')
+    expect(template?.templateFile).toBe('pecot-handoff.yml')
+    expect(template?.destination).toBe('.github/workflows/pecot-handoff.yml')
+    expect(template?.requirements).toBe(review().requirements)
   })
 
   it('一覧に無い名前は undefined', () => {

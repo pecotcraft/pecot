@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "error: unknown workflow template: deploy\n  available: review\n",
+  "stderr": "error: unknown workflow template: deploy\n  available: review, handoff\n",
   "exitCode": 2,
   "requests": [],
   "files": {}

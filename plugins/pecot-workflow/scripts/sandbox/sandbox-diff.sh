@@ -9,7 +9,7 @@ SANDBOX_REPO="pecotcraft/pecot-sandbox"
 SANDBOX_PROJECT=3
 WORKFLOWS=".github/workflows"
 # 有無と中身を比べる workflow。比べる相手は、このリポの main にある同じファイル（FR-032）。
-COPIED_WORKFLOWS=(pecot-board-sync.yml pecot-review.yml)
+COPIED_WORKFLOWS=(pecot-board-sync.yml pecot-handoff.yml pecot-review.yml)
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 items_file="$script_dir/sandbox-diff-items.json"

@@ -28,7 +28,6 @@ hooks は hook 入力の `cwd` の git toplevel を基準にする。
 
 | ファイル | 内容 | 書き手 | 読み手 | 消し手 |
 |----------|------|--------|--------|--------|
-| `.pecot-merged` | 片付けを終えた PR（1 行に 1 つの `<owner/repo#N>`） | `session_finish`（予行では書かない） | `session_start`（親 Epic に merge-diff があるかを確かめる） | `session_start`（merge-diff が要らないか、見つかった PR の行だけ） |
 | `.pecot-restack` | 衝突で止まったスタックし直しの途中の記録 | `pr_restack` | `pr_restack`（`--continue`・`--abort`） | `pr_restack`（続行か取りやめ） |
 
 ## hooks だけが使う状態ファイル

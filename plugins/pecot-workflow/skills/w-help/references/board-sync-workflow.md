@@ -16,8 +16,8 @@ pecot-workflow の MCP ツール `board_sync` を GitHub Actions で打つ雛形
 - 置くのは雛形をそのまま写したファイルだけとする。書き換えてよいのは次の箇所だけだ
   - `schedule` のコメントを外して、cron の間隔を選ぶ
   - 版を固定する
-  - 設定が 2 つ以上あるとき、実行の行へ `--project` を足す
-  - 試すとき、実行の行へ `--dry-run` を足す
+  - 設定が 2 つ以上あるとき、`board sync` と `session finish` の実行の行へ `--project` を足す
+  - 試すとき、`board sync` の実行の行へ `--dry-run` を足す
   - GHES のとき、token の環境変数の名前を替える
 
 ## 動く契機
@@ -41,6 +41,31 @@ PR を merge queue がマージしたときも、`pull_request_target` の `clos
 - 確かめた実行では、actor は PR を出して queue へ入れた人と同じだった。PR を出した人と queue へ入れた人が違う場合は、確かめていない
 - `Closes #N` で閉じた Issue の `issues` の実行も、別に起きる。同じ group の実行は順に動き、どちらも成功する
 
+## マージで閉じた PR の片付け
+
+PR がマージされると、`finish` の job が、`sync` の job の前に `session finish` を打ちます。PR を出したセッションが片付けずに終わっても、GitHub 側が片付きます。
+
+- PR が閉じる Issue を閉じ、head ブランチをリモートから消す。手元の片付けはしない（`--skip-local-cleanup`）
+- セッションが先に片付けていれば、閉じた Issue と消したブランチは `unchanged` と出て、そのまま成功する
+- 列は `finish` では動かない。続く `sync` が、閉じた Issue のカードを直す
+
+`finish` が動くのは、次の 3 つがそろうときだけです。
+
+- `pull_request_target` の `closed` で、PR がマージされた
+- head が同じリポのブランチ。fork の PR では、同じ名前のブランチや Issue に触れるので動かない
+- head ブランチの名前の末尾が `/<番号>`。pecot のタスクのブランチの形だ。2 ブランチのモードのリリースの PR は head が開発ブランチ（例: `develop`）なので、消さずに済む
+
+token の変数がそろっていないときは、`finish` も飛びます。
+
+### `finish` の権限
+
+`finish` は、実行の `GITHUB_TOKEN` を使います。job の権限は `contents: write`・`issues: write`・`pull-requests: read` で、ブランチの削除と Issue のクローズに要る分だけです。
+
+- ボードの GitHub App と PAT に、権限を足さなくてよい
+- workflow 全体の権限は `contents: read` のまま。`finish` の job だけが広げる
+- `finish` は concurrency の group の外で動く。group は待っている実行を 1 つだけ残すので、マージの直後に続く `issues` の実行に、片付けを取り消されないようにするためだ
+- `finish` が失敗しても、`sync` は動く
+
 ## ボードが複数のリポを持つとき
 
 契機は、雛形を置いたリポの PR と Issue だけを拾います。ほかのリポの変化は、そのリポに雛形が無ければ拾えません。
@@ -58,7 +83,7 @@ Actions の checkout には `.active` が入りません。`.pecot/config/projec
 2. ルートの `.gitignore` が `.pecot/` を丸ごと除外しているときは、その行を外す
 3. `.pecot/.gitignore` が設定の JSON を許可しているか確かめる。許可の一覧は `pecot-gitignore-ensure.sh` が作り、`!/config/projects/*.json` の行が JSON を戻す
 4. 設定の JSON を既定ブランチへ入れる
-5. 設定の JSON が 1 つなら、`board_sync` はそれを使う。2 つ以上あるときは `--project <設定名>` が要るので、雛形の実行の行に足す
+5. 設定の JSON が 1 つなら、`board_sync` はそれを使う。2 つ以上あるときは `--project <設定名>` が要るので、雛形の 2 つの実行の行（`board sync`・`session finish`）に足す
 
 ## token を用意する
 
@@ -127,7 +152,7 @@ github.com 以外のホストでは、token を渡す環境変数の名前が変
 
 ## 版を固定する
 
-雛形は `npx -y --prefix=/ @pecot/workflow-mcp@latest board sync` を打ち、npm の最新の正式版を取ります。major が上がると、互換の無い変更も次の実行から入ります。`@latest` を次のどれかに替えると、取る版を変えられます。
+雛形は `npx -y --prefix=/ @pecot/workflow-mcp@latest board sync` を打ち、npm の最新の正式版を取ります。`finish` の job の `session finish` の行も同じ版を取ります。major が上がると、互換の無い変更も次の実行から入ります。2 つの行の `@latest` を次のどれかに替えると、取る版を変えられます。
 
 - `@<major>`: その major の最新に留まる
 - `@<版>`: 版を固定する

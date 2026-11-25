@@ -102,7 +102,18 @@ describe('workflow install', () => {
     expect(result.isError).toBe(true)
     expect(result.structured).toMatchObject({ kind: 'invalid-input' })
     expect(result.structured['detail']).toContain('unknown workflow template: deploy')
-    expect(result.structured['detail']).toContain('available: review')
+    expect(result.structured['detail']).toContain('available: review, handoff')
+  })
+
+  it('name に handoff を渡すと、引き継ぎの雛形を .github/workflows/pecot-handoff.yml に書き出す', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-INSTALL-01')
+    const handoffFile = path.join(pluginRoot(), 'cli/templates/workflow/pecot-handoff.yml')
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同梱の雛形のパス
+    const bundledHandoff = readFileSync(handoffFile, 'utf8')
+    const result = await install({ name: 'handoff' })
+    expect(result.isError).toBe(false)
+    expect(result.read('.github/workflows/pecot-handoff.yml')).toBe(bundledHandoff)
+    expect(result.structured).toMatchObject({ written: true, path: '.github/workflows/pecot-handoff.yml', version: 1 })
   })
 
   it('check と force を一緒に渡すと、何も書かずに invalid-input の失敗を返す', async (context) => {

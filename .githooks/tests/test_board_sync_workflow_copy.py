@@ -62,8 +62,11 @@ def test_workflow_is_a_copy_of_the_template() -> None:
 )
 def test_npx_takes_the_expected_dist_tag(path: str, tag: str) -> None:
     text = (_REPO_ROOT / path).read_text(encoding="utf-8")
-    assert _NPX_TAG.findall(text) == ["@pecot/workflow-mcp"], f"{path} の npx の行が 1 つでない"
-    assert f"@pecot/workflow-mcp@{tag} board sync" in text, f"{path} は @{tag} を取る"
+    assert _NPX_TAG.findall(text) == ["@pecot/workflow-mcp"] * 2, f"{path} の npx の行が 2 つでない"
+    for command in ("board sync", "session finish"):
+        assert f"@pecot/workflow-mcp@{tag} {command}" in text, (
+            f"{path} の {command} は @{tag} を取る"
+        )
 
 
 @pytest.mark.parametrize("path", [_COPY, _TEMPLATE])

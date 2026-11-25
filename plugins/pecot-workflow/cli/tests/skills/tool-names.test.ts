@@ -12,7 +12,7 @@ import { pluginRoot, readDocuments, toolInputs } from './_helpers/documents.js'
 
 // 利用者が端末で打つコマンドの説明として、本文に残してよい `pecot <サブコマンド>`。
 // 書式は `<プラグインからの相対パス>:<行>`。載せるのは、w-help の、利用者が端末か `!` で打つ説明だけ。
-const TERMINAL_COMMANDS: readonly string[] = ['skills/w-help/SKILL.md:63', 'skills/w-help/SKILL.md:65']
+const TERMINAL_COMMANDS: readonly string[] = ['skills/w-help/SKILL.md:64', 'skills/w-help/SKILL.md:66']
 
 // ツール名に似るが、入力の値や概念を指す語。TOOL_LIKE に合う語だけを置く
 const NOT_TOOLS: ReadonlySet<string> = new Set(['release_type', 'release_branch', 'session_id', 'workflow_dispatch'])
@@ -124,9 +124,10 @@ describe('本文のツール名', () => {
     for (const tool of ['pr_create', 'pr_show', 'issue_comment']) expect(skill?.text).toContain(`mcp__plugin_pecot-w_pecot-workflow__${tool}`)
   })
 
-  it.for(['w-active', 'w-quick', 'w-breakdown'])('%s の allowed-tools は、取りこぼしの片付けに使う session_finish・pr_show・issue_show・issue_comment を許す', (skillName) => {
+  it.for(['w-active', 'w-quick', 'w-breakdown'])('%s の allowed-tools は、取りこぼしの片付けに使う session_finish だけを許す', (skillName) => {
     const skill = documents.find(({ file }) => file === `skills/${skillName}/SKILL.md`)
-    for (const tool of ['session_finish', 'pr_show', 'issue_show', 'issue_comment']) expect(skill?.text).toContain(`mcp__plugin_pecot-w_pecot-workflow__${tool}`)
+    const line = skill?.text.split('\n').find(candidate => candidate.startsWith('allowed-tools: '))
+    expect(line).toBe('allowed-tools: mcp__plugin_pecot-w_pecot-workflow__session_finish')
   })
 
   it('スキルの allowed-tools は、Agent Skills の仕様どおり空白で区切り、カンマを使わない', () => {
