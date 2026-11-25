@@ -29,7 +29,7 @@
 3. `project_init` を `lanes: ["gamma"]` で呼ぶ
    - 期待: 選択肢が alpha・beta・gamma になり、既存の Issue の値は消えない
 
-## A-3. 起票・同期・一覧（US2・US3）
+## A-3. 起票・一覧（US2・US3）
 
 1. w-quick で、分類（`pecot-lane` の値）を言って 1 件、言わずに 1 件起票する
    - 期待: 言った Issue にはその値が入る。言わなかった Issue には入らず、分類を尋ねられない。`pecot-priority`・`pecot-size` も聞かれない

@@ -1967,6 +1967,9 @@ entries:
       - id: PW-ISSUE-CHECK-05
         pattern: unwanted
         statement: 'もしフロントマターの `lane` がボードの `pecot-lane` の選択肢に無いなら、`error` の行に取りうる値を出し、`kind` が `invalid-input` の失敗を返します'
+      - id: PW-ISSUE-CHECK-06
+        pattern: state
+        statement: 'ボードに single select の `pecot-lane` が無い間、フロントマターの `lane` を error にせず、`warning` の行を 1 つ出して表を返します'
   PW-ISSUE-COMMENT:
     help:
       details:

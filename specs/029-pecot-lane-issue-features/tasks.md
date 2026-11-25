@@ -165,7 +165,7 @@ description: "Task list for 029-pecot-lane-issue-features"
 - [x] T041 [US2] `PW/interface/generated.json` を作り直し、T032〜T034 のテストのファイルと、変えたスキルの `PW/cli/tests/skills/` のテストを動かす
 - [x] T042 [US2] quickstart.md の A-3 を、検証用のボードで動かす
 
-**Checkpoint**: 起票・同期・一覧の全部が `pecot-lane` を扱い、`pecot-lane` の無いボードでは今と同じに動く
+**Checkpoint**: 起票・一覧の全部が `pecot-lane` を扱い、`pecot-lane` の無いボードでは今と同じに動く
 
 ---
 
@@ -344,7 +344,7 @@ description: "Task list for 029-pecot-lane-issue-features"
 |---|---|---|---|
 | 2 | 1 | スタックできる | Phase 2 の `confirm_delete` は、Phase 1 の `project_init` の移行の予定と `migration` の出力に削除を足す |
 | 3 | 1 | スタックできる | Phase 3 のビューの作成が、Phase 1 で作る `pecot-status` の ID を `vertical_group_by` に使う |
-| 4 | 3 | スタックできる | Phase 4 の起票・同期・一覧が、Phase 3 で作る `pecot-lane` のフィールドと、選択肢を引く関数を使う |
+| 4 | 3 | スタックできる | Phase 4 の起票・一覧が、Phase 3 で作る `pecot-lane` のフィールドと、選択肢を引く関数を使う |
 | 6 | 5 | スタックできる | Phase 6 の検証が、Phase 5 で作る定義の読み込み（`infra/github/attributes.ts`）を使う |
 | 7 | 6 | スタックできる | Phase 7 の網羅のテストが、Phase 6 で作る `ATTRIBUTE_HANDLERS` と照らす |
 | 8 | 7 | スタックできる | Phase 8 の差の確かめが、Phase 7 で作る `extract.ts` と写しを使う |

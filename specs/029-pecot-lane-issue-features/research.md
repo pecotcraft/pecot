@@ -40,7 +40,7 @@
   - `project_create`・`project_init` に入力 `lanes`（文字列の配列）を足す
   - フィールドが無ければ `createProjectV2Field`（`SINGLE_SELECT`）で作る。あれば、既存の選択肢を ID ごと読み、足りない値を足した全体を `updateProjectV2Field` に渡す。選択肢は消さない
   - `lanes` を渡さず、フィールドも無いときは作らず、値を決めるよう案内する（US1 の 4）
-  - 設定には `pecot-lane` の選択肢を写さない。起票・同期・一覧は、使うたびにボードの `pecot-lane` の選択肢を読む
+  - 設定には `pecot-lane` の選択肢を写さない。起票・一覧は、使うたびにボードの `pecot-lane` の選択肢を読む
 - **Rationale**:
   - 選択肢の更新は全部の置き換えなので、既存の ID を必ず付ける（R1 と同じ）
   - B は、`attributes` の値を書くたびにボードから読んだ定義で照らす（R7）。設定にも選択肢を写すと、同じ選択肢を 2 か所で持つ。
@@ -60,7 +60,7 @@
 - **Rationale**: Group by を指定できるのは REST の作成だけだった。GraphQL の `createProjectV2View` の構成は `visibleFieldIds` だけで、Group by を持たない。ボードのレイアウトで、列を `pecot-status`、横のレーンを `pecot-lane` にすると、Epic の言う「領域ごとのレーン」になる
 - **Alternatives considered**: GraphQL の `createProjectV2View` で作り、Group by は手で設定させる。手順が残り、FR-003 を満たさない
 
-## R6. 起票・同期・一覧での `pecot-lane`
+## R6. 起票・一覧での `pecot-lane`
 
 - **Decision**:
   - `issue_create` に入力 `lane` を足す。`attributes` の `pecot-lane` を短く書く入力として扱い、照らし合わせと書き込みは R7 の仕組みに任せる。無い値なら Issue を作る前に止める（US2 の 4）

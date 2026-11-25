@@ -220,7 +220,7 @@ describe('issue check', () => {
   })
 
   it('ボードに pecot-lane が無いとき、フロントマターの lane を error にせず、warning の行を出して表を出す', async (context) => {
-    await verifies(context, 'PW-ISSUE-CREATE-93')
+    await verifies(context, 'PW-ISSUE-CHECK-06')
     const project = setUpIssueProject()
     writeTree(project.root, { 'a.md': taskFile('先頭', 'lane: web') })
     await startGithub([linkedRepositories(), ...definitionRules()])
