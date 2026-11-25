@@ -130,7 +130,12 @@ const EXPECTED_TIMEOUTS = new Map([
   ['pecot-visual|PostToolUse|Edit', 80],
 ])
 
-function expectedTimeout(plugin: string, event: string, matcher: string | undefined): number {
+// setup の時間切れで session-title の出力が捨てられないよう、別エントリで長く取る。
+const LONG_TIMEOUT_SCRIPTS = new Map([['pecot-workflow|session-start-worktree-setup.sh', 600]])
+
+function expectedTimeout(plugin: string, event: string, matcher: string | undefined, file: string): number {
+  const long = LONG_TIMEOUT_SCRIPTS.get(`${plugin}|${file}`)
+  if (long !== undefined) return long
   // matcher で timeout が変わるのは PostToolUse だけなので、ほかのイベントは matcher を畳んで引く。
   const collapsed = event === 'PostToolUse' ? (matcher ?? '') : ''
   const found = EXPECTED_TIMEOUTS.get(`${plugin}|${event}|${collapsed}`)
@@ -156,7 +161,7 @@ describe('全定義共通', () => {
     for (const { event, matcher, hook } of allHooks(hooks)) {
       seen += 1
       expect(hook.hasTimeout, `timeout が無い: ${event} ${String(matcher)} ${hook.command}`).toBe(true)
-      expect(hook.timeout, `${event} ${String(matcher)} ${hook.command}`).toBe(expectedTimeout(row.plugin, event, matcher))
+      expect(hook.timeout, `${event} ${String(matcher)} ${hook.command}`).toBe(expectedTimeout(row.plugin, event, matcher, fileOf(hook)))
     }
     expect(seen).toBeGreaterThan(0)
   })
@@ -234,13 +239,17 @@ describe('撤廃したエントリ', () => {
 })
 
 // SessionStart
+// setup は時間切れで出力が捨てられても session-title を巻き込まないよう、別のエントリにする。
+const WORKTREE_SETUP_ENTRY = 'session-start-worktree-setup.sh'
+
 describe('SessionStart', () => {
-  it.for(CLAUDE_DEFINITIONS)('$label の Claude 定義は、SessionStart を 1 エントリにまとめる', (row) => {
+  it.for(CLAUDE_DEFINITIONS)('$label の Claude 定義は、SessionStart を 1 エントリにまとめ、pecot-workflow だけ setup のエントリを別に持つ', (row) => {
     const entries = entriesOf(load(row.plugin, row.name), 'SessionStart')
-    expect(entries).toHaveLength(1)
     const expected = row.plugin === WORKFLOW ? 'startup|clear|resume|fork|compact' : 'startup|clear|resume'
     expect(entries.at(0)?.matcher).toBe(expected)
-    expect(entries.at(0)?.hooks).toHaveLength(1)
+    expect(entries.at(0)?.hooks.map(hook => fileOf(hook))).toEqual(['session-start.sh'])
+    const rest = entries.slice(1).map(entry => ({ matcher: entry.matcher, files: entry.hooks.map(hook => fileOf(hook)) }))
+    expect(rest).toEqual(row.plugin === WORKFLOW ? [{ matcher: 'startup|clear|resume|fork', files: [WORKTREE_SETUP_ENTRY] }] : [])
   })
 
   // データ置き場は wrapper が決めるので、CLAUDE_ENV_FILE へ書く hook は無い（#1258）。
@@ -262,11 +271,11 @@ describe('SessionStart', () => {
     expect(copilot).not.toContain('user-prompt-submit-title.sh')
   })
 
-  it.for(COPILOT_DEFINITIONS)('$label の Copilot 定義は、matcher の無い SessionStart を 1 エントリだけ持つ', (row) => {
+  it.for(COPILOT_DEFINITIONS)('$label の Copilot 定義は、matcher の無い SessionStart を持ち、pecot-workflow だけ setup のエントリを別に持つ', (row) => {
     const entries = entriesOf(load(row.plugin, row.name), 'SessionStart')
-    expect(entries).toHaveLength(1)
-    expect(entries.at(0)?.hasMatcher).toBe(false)
-    expect(entries.at(0)?.hooks).toHaveLength(1)
+    expect(entries.every(entry => !entry.hasMatcher)).toBe(true)
+    const files = entries.map(entry => entry.hooks.map(hook => fileOf(hook)))
+    expect(files).toEqual(row.plugin === WORKFLOW ? [['session-start.sh'], [WORKTREE_SETUP_ENTRY]] : [['session-start.sh']])
   })
 })
 
@@ -299,8 +308,8 @@ describe('Copilot CLI の matcher', () => {
 
 // 残すフックの一覧（spec 025 の research.md R1）。#466 で exit-plan-remind を置き換えたら一覧も直す。
 const REGISTERED_SCRIPTS = new Map([
-  ['hooks.json', ['pre-tool-use-bash.sh', 'pre-tool-use-skill.sh', 'session-start.sh', 'user-prompt-submit-title.sh', 'user-prompt-submit.sh']],
-  [COPILOT_HOOKS, ['pre-tool-use-bash.sh', 'pre-tool-use-skill.sh', 'session-start.sh', 'user-prompt-submit.sh']],
+  ['hooks.json', ['pre-tool-use-bash.sh', 'pre-tool-use-skill.sh', 'session-start-worktree-setup.sh', 'session-start.sh', 'user-prompt-submit-title.sh', 'user-prompt-submit.sh']],
+  [COPILOT_HOOKS, ['pre-tool-use-bash.sh', 'pre-tool-use-skill.sh', 'session-start-worktree-setup.sh', 'session-start.sh', 'user-prompt-submit.sh']],
 ])
 const CONFIG_KEYS = [
   'claude-bash-guards',
@@ -315,6 +324,7 @@ const CONFIG_KEYS = [
   'session-start-common',
   'session-title',
   'tmp-path-warner',
+  'worktree-setup',
 ]
 
 describe('残すフックの一覧', () => {

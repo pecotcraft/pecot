@@ -273,6 +273,42 @@ describe('session finish', () => {
     expect(currentBranch(workspace, worktree)).toBe('wt1')
   })
 
+  it('カレントが Claude Code の作った .claude/worktrees/<name> だと、worktree-<name> のブランチに切り替え、head ブランチを消す', async (context) => {
+    await verifies(context, 'PW-SESSION-FINISH-06')
+    const workspace = await cleanupBranch({ branch: 'main', github: mergedRules() })
+    const worktree = path.join(workspace.directory, '.claude', 'worktrees', 'bold-oak')
+    workspace.git(['worktree', 'add', '-q', '-b', 'worktree-bold-oak', worktree])
+    workspace.git(['checkout', '-q', BRANCH], worktree)
+    const result = await workspace.run(CLEANUP, worktree)
+    expect(result.stderr).toContain('set: current branch to worktree-bold-oak\n')
+    expect(currentBranch(workspace, worktree)).toBe('worktree-bold-oak')
+    expect(hasBranch(workspace)).toBe(false)
+  })
+
+  it('.claude/worktrees のフォルダ名の + は、ブランチ名の / に戻して探す', async (context) => {
+    await verifies(context, 'PW-SESSION-FINISH-06')
+    const workspace = await cleanupBranch({ branch: 'main', github: mergedRules() })
+    const worktree = path.join(workspace.directory, '.claude', 'worktrees', 'team+task')
+    workspace.git(['worktree', 'add', '-q', '-b', 'worktree-team/task', worktree])
+    workspace.git(['checkout', '-q', BRANCH], worktree)
+    const result = await workspace.run(CLEANUP, worktree)
+    expect(result.stderr).toContain('set: current branch to worktree-team/task\n')
+    expect(currentBranch(workspace, worktree)).toBe('worktree-team/task')
+  })
+
+  it('worktree の中で戻り先のブランチが決まらないと、ブランチを切り替えずにローカルの片付けを飛ばす', async (context) => {
+    await verifies(context, 'PW-SESSION-FINISH-47')
+    const workspace = await cleanupBranch({ branch: 'main', github: mergedRules() })
+    const worktree = path.join(workspace.root, 'elsewhere', 'demo')
+    workspace.git(['worktree', 'add', '-q', worktree, BRANCH])
+    const result = await workspace.run(CLEANUP, worktree)
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain('warning: cannot determine the branch to return to in this worktree; skipped local cleanup\n')
+    expect(result.stderr).not.toContain('set: current branch')
+    expect(currentBranch(workspace, worktree)).toBe(BRANCH)
+    expect(hasBranch(workspace)).toBe(true)
+  })
+
   it('ブランチを切り替えると、origin の remote（無ければ最初の remote）から develop_branch を pull する', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-07')
     const workspace = await cleanupBranch({ github: mergedRules() })

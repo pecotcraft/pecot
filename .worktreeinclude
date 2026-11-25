@@ -1,0 +1,3 @@
+.pecot/config/hooks-config.json
+.pecot/config/hosts.json
+.pecot/config/.env

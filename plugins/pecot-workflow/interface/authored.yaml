@@ -6825,7 +6825,8 @@ entries:
         - When a waiting Issue of the stack kind has a branch or a PR, it is a layer stacked on this PR. Prints a warning that tells to restack its branch in its working directory, and never deletes that branch.
         - An Issue that is not on the board of the selected project, or that is outside the columns Ready, Blocked, Active and In Review, is neither moved nor listed.
         - With --delete-branch, deletes the remote head branch.
-        - Switches the local checkout to the wtN that pecot worktree add recorded inside a worktree (or, without a record, the name of the parent directory of the worktree when it is wtN or base), or to develop_branch otherwise, pulls it from the origin remote, or from the first remote when there is no origin, and deletes the local head branch with git branch -D.
+        - Switches the local checkout to the wtN that pecot worktree add recorded inside a worktree (or, without a record, the name of the parent directory of the worktree when it is wtN or base, or worktree-<name> for a worktree that Claude Code made under .claude/worktrees/<name>), or to develop_branch otherwise, pulls it from the origin remote, or from the first remote when there is no origin, and deletes the local head branch with git branch -D.
+        - Inside a worktree whose branch to return to cannot be determined, skips the local cleanup with a warning instead of checking out another branch.
         - Skips the local cleanup when the repository of the current directory differs from the one of the PR.
         - After the local cleanup, removes the flags .pecot-base and .pecot-session-title under .pecot/state/, but only when .pecot-session-title names an Issue of the PR (or names no Issue); when it names another Issue, the flags are kept and a skipped line says so. Leftover .pecot-quick-mode and .pecot-active from older versions are not touched.
         - With --skip-local-cleanup, does not clean up locally and leaves those flags in place.
@@ -6858,7 +6859,7 @@ entries:
       - '待っている Issue のうち、種類が `stack` でブランチか PR を持つものは、この PR の子ブランチの Issue です。その作業ディレクトリでブランチをスタックし直すよう `warnings` で知らせ、`restack` に入れます。そのブランチは削除しません。'
       - '選んだプロジェクトのボードに無い Issue と、`Ready`・`Blocked`・`Active`・`In Review` の外の列の Issue は、動かさず、一覧にも出しません。'
       - '`delete_branch` を付けると、リモートの head ブランチを削除します。'
-      - 'ローカルのチェックアウトを切り替える先は、worktree の中では、`worktree_add` が記録した `wtN` です。記録が無ければ、worktree の親ディレクトリの名前が `wtN` か `base` のときに、その名前を使います。worktree の外では、`develop_branch` です。切り替えた後、remote の `origin` から pull します。`origin` が無ければ、最初の remote を使います。その後、ローカルの head ブランチを `git branch -D` で削除します。'
+      - 'ローカルのチェックアウトを切り替える先は、worktree の中では、`worktree_add` が記録した `wtN` です。記録が無ければ、worktree の親ディレクトリの名前が `wtN` か `base` のときに、その名前を使います。Claude Code が `.claude/worktrees/<name>` に作った worktree では、`worktree-<name>` を使います。どれでも決まらなければ、ローカルの片付けを飛ばします。worktree の外では、`develop_branch` です。切り替えた後、remote の `origin` から pull します。`origin` が無ければ、最初の remote を使います。その後、ローカルの head ブランチを `git branch -D` で削除します。'
       - '今のディレクトリのリポジトリが PR のリポジトリと違うときは、ローカルの片付けを飛ばします。'
       - 'ローカルの片付けの後、`.pecot/state/` の下のフラグを消します。消すのは、`.pecot-base`・`.pecot-session-title` です。古い版の `.pecot-quick-mode`・`.pecot-active` が残っていても触れません。'
       - 'フラグを消すのは、`.pecot-session-title` の番号が PR の Issue のときと、番号が無いときだけです。ほかの Issue の番号なら、次の Issue の記録なので消さず、`skipped` の行で知らせます。'
@@ -6933,7 +6934,7 @@ entries:
         what: 'リモートの head ブランチを削除します。'
       - target: git
         kind: destructive
-        what: '開発ブランチか、記録した `wtN`（記録が無ければ親ディレクトリの名前）のブランチを checkout して pull します。ローカルの head ブランチを `git branch -D` で削除します。'
+        what: '開発ブランチか、記録した `wtN`（記録が無ければ親ディレクトリの名前か `worktree-<name>`）のブランチを checkout して pull します。ローカルの head ブランチを `git branch -D` で削除します。'
       - target: file
         kind: write
         what: '`.pecot/state/` の下のフラグを消します。'
@@ -6968,7 +6969,7 @@ entries:
         statement: '`delete_branch` を付けて呼ぶと、リモートの head ブランチを削除します'
       - id: PW-SESSION-FINISH-06
         pattern: event
-        statement: 'セッションのリポジトリが PR のリポジトリと同じだと、worktree の中なら worktree の `wtN` の、そうでなければ `develop_branch` のブランチに切り替えます。`wtN` は `worktree_add` の記録で決め、記録が無ければ置き場所の親ディレクトリの名前で決めます'
+        statement: 'セッションのリポジトリが PR のリポジトリと同じだと、worktree の中なら worktree の `wtN` の、そうでなければ `develop_branch` のブランチに切り替えます。`wtN` は `worktree_add` の記録で決め、記録が無ければ置き場所の親ディレクトリの名前で決めます。Claude Code が作った `.claude/worktrees/<name>` の worktree では、手元の `worktree-<name>` のブランチへ切り替えます'
       - id: PW-SESSION-FINISH-07
         pattern: event
         statement: 'ブランチを切り替えると、`origin` の remote（無ければ最初の remote）から `develop_branch` を pull します'
@@ -7077,6 +7078,9 @@ entries:
       - id: PW-SESSION-FINISH-46
         pattern: unwanted
         statement: 'もし `.pecot-session-title` の番号が PR の Issue でないなら、`.pecot-base` と `.pecot-session-title` を消さずに残します'
+      - id: PW-SESSION-FINISH-47
+        pattern: unwanted
+        statement: 'もし worktree の中で戻り先のブランチが決まらないなら、ブランチを切り替えず、`warnings` に入れてローカルの片付けを飛ばします'
   PW-SESSION-SHOW:
     help:
       details:

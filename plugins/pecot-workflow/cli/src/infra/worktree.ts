@@ -272,10 +272,21 @@ export function claimedSetNames(mainWorktree: string): ReadonlySet<string> {
   return names
 }
 
+// Claude Code が作る worktree（`.claude/worktrees/<name>`）のブランチ `worktree-<name>`。
+// 名前の `/` はフォルダ名で `+` になるので、両方の候補からローカルにあるものを返す
+function claudeWorktreeBranch(cwd: string, toplevel: string): string | undefined {
+  const parent = path.dirname(toplevel)
+  if (path.basename(parent) !== 'worktrees' || path.basename(path.dirname(parent)) !== '.claude') return undefined
+  const folder = path.basename(toplevel)
+  const candidates = [...new Set([`worktree-${folder}`, `worktree-${folder.replaceAll('+', '/')}`])]
+  return candidates.find(branch => runGit(['show-ref', '--verify', '--quiet', `refs/heads/${branch}`], { cwd }).exitCode === 0)
+}
+
 /**
-現在のサブワークツリー名を取得する。
+現在のサブワークツリーの戻り先のブランチ名を取得する。
 サブ WT でなければ undefined。記録（`pecot-worktree-name`）があればそれを返す。
-無ければ toplevel の親ディレクトリ名を、`wt\d+` か `base` のときだけ返し、それ以外は undefined。
+無ければ toplevel の親ディレクトリ名を、`wt\d+` か `base` のときだけ返す。
+Claude Code が作る worktree（`.claude/worktrees/<name>`）では、ローカルにある `worktree-<name>` を返す。それ以外は undefined。
 Git リポジトリ外なら WorktreeRuntimeError
 */
 export function getCurrentWorktreeName(cwd: string): string | undefined {
@@ -284,8 +295,9 @@ export function getCurrentWorktreeName(cwd: string): string | undefined {
   const recorded = recordPath === undefined ? '' : readRecord(recordPath)
   if (recorded !== '') return recorded
   const toplevel = gitToplevel({ cwd })
-  const parent = toplevel === undefined ? undefined : path.basename(path.dirname(toplevel))
-  return parent !== undefined && /^(?:wt\d+|base)$/u.test(parent) ? parent : undefined
+  if (toplevel === undefined) return undefined
+  const parent = path.basename(path.dirname(toplevel))
+  return /^(?:wt\d+|base)$/u.test(parent) ? parent : claudeWorktreeBranch(cwd, toplevel)
 }
 
 /**

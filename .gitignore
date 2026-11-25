@@ -48,6 +48,9 @@ plugins/pecot-visual/cli/tests/fixtures/*/index.html
 .claude/settings.local.json
 CLAUDE.local.md
 
+# Claude Code が作る worktree
+.claude/worktrees/
+
 # vitest の JUnit 出力
 plugins/pecot-tools/cli/test-results/
 plugins/pecot-visual/cli/test-results/

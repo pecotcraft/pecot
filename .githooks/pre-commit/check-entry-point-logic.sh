@@ -22,6 +22,7 @@ CLAUDE_ENTRY_POINTS=(
     "plugins/pecot-workflow/hooks/user-prompt-submit.sh"
     "plugins/pecot-workflow/hooks/user-prompt-submit-title.sh"
     "plugins/pecot-workflow/hooks/session-start.sh"
+    "plugins/pecot-workflow/hooks/session-start-worktree-setup.sh"
 )
 
 ALL_ENTRY_POINTS=("${CLAUDE_ENTRY_POINTS[@]}")
