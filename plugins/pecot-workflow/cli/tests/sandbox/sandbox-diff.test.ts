@@ -166,6 +166,8 @@ class Side {
   readonly files: Record<string, string> = { 'ci.yml': 'name: ci\n', 'pecot-board-sync.yml': BOARD_SYNC, 'pecot-handoff.yml': HANDOFF, 'pecot-review.yml': REVIEW }
   // undefined は、設定のディレクトリが無い（一覧が 404）
   configs: Record<string, ProjectConfig> | undefined
+  // 生の中身で置く設定ファイル。undefined は、応答に content が無い
+  readonly rawConfigs: Record<string, string | undefined> = {}
 
   constructor(readonly repository: string, readonly project: number, rulesetId: number, workflowField: string, config: [string, ProjectConfig]) {
     this.rulesets = [makeRuleset(rulesetId, repository)]
@@ -214,12 +216,15 @@ class Side {
       })
     }
     if (this.configs === undefined) return
-    const configs = Object.entries(this.configs)
-    const listing = [{ name: '.active', type: 'file' }, ...configs.map(([name]) => ({ name, type: 'file' }))]
+    const texts = [
+      ...Object.entries(this.configs).map(([name, config]): [string, string | undefined] => [name, JSON.stringify(config, undefined, 2)]),
+      ...Object.entries(this.rawConfigs),
+    ]
+    const listing = [{ name: '.active', type: 'file' }, ...texts.map(([name]) => ({ name, type: 'file' }))]
     writeFixture(sandbox, `repos/${repository}/contents/${CONFIG_DIR}?ref=main`, listing)
-    for (const [name, config] of configs) {
+    for (const [name, text] of texts) {
       // contents API と同じく、base64 を 60 文字ごとに改行する
-      const content = (Buffer.from(JSON.stringify(config, undefined, 2)).toString('base64').match(/.{1,60}/gu) ?? []).join('\n')
+      const content = text === undefined ? undefined : (Buffer.from(text).toString('base64').match(/.{1,60}/gu) ?? []).join('\n')
       writeFixture(sandbox, `repos/${repository}/contents/${CONFIG_DIR}/${name}?ref=main`, { name, encoding: 'base64', content })
     }
   }
@@ -434,6 +439,19 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     const [, config] = legacyConfig('pecot-sandbox', 'sandbox', 3)
     scene.sandbox.setConfigs(['renamed.json', config])
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', LEGACY_FORM, 'renamed.json')))
+  })
+
+  it('JSON として読めない設定ファイルは飛ばし、ずれは 0 件', () => {
+    scene.sandbox.rawConfigs['broken.json'] = '{'
+    const result = scene.run()
+    expect([result.status, result.stdout, result.stderr]).toStrictEqual([0, 'ずれは 0 件\n', ''])
+  })
+
+  it('設定ファイルの応答に content が無いと、error を出して終了コード 2 で止まる', () => {
+    scene.sandbox.rawConfigs['empty.json'] = undefined
+    const result = scene.run()
+    expect([result.status, result.stdout]).toStrictEqual([2, ''])
+    expect(splitLines(result.stderr)).toStrictEqual([`error: repos/${SANDBOX}/contents/${CONFIG_DIR}/empty.json の応答に content がありません（権限の不足とみられます）`])
   })
 
   it('検証用の設定のディレクトリが無いと、error を出して終了コード 2 で止まる', () => {
