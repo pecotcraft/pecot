@@ -44,7 +44,7 @@ claude --plugin-dir <作業ツリー>/plugins/pecot-workflow
 |---|---|
 | `plugin list --json` の `pecot-w@inline` の行 | `installPath` が作業ツリーを指す |
 | セッションで w-help を起動する | 本文に「試験 456」がある |
-| MCP ツール `board_show` を呼ぶ | `project` の `name` が `github.com_pecotcraft_pecot-sandbox_sandbox`、`number` が `3`（ボード `pecot sandbox`）。書き込む前に、毎回これを見る（FR-031） |
+| MCP ツール `board_show` を呼ぶ | `project` の `name` が `github.com_pecotcraft_3`、`number` が `3`（ボード `pecot sandbox`）。書き込む前に、毎回これを見る（FR-031） |
 | ふだんの起動のしかたで w-help を起動する | 「試験 456」が無い |
 
 GitHub Copilot CLI でも、同じことを確かめる。
