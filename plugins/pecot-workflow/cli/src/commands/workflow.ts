@@ -52,7 +52,7 @@ const INSTALL_PATH = ['workflow', 'install']
 
 function nextSteps(template: Readonly<WorkflowTemplate>): HintedText {
   const settings = template.requirements.filter(requirement => requirement.type === 'anyOf').map(requirement => `set ${requirement.missing} in Settings > Secrets and variables > Actions`)
-  const steps = ['install the Claude GitHub App on the repository', ...settings]
+  const steps = [...template.claudeApp ? ['install the Claude GitHub App on the repository'] : [], ...settings]
   return joinHinted([
     'next:',
     ...steps.map((step, index) => `  ${String(index + 1)}. ${step}`),
@@ -123,7 +123,7 @@ const workflowInstallCommand = defineCommand({
 })
 
 const DOCTOR_ITEM = z.strictObject({
-  name: z.string().describe('What was checked: the workflow file, the template version, a secret or variable, or the Claude GitHub App'),
+  name: z.string().describe('What was checked: the workflow file, the template version, a secret or variable, or the Claude GitHub App (only for a template that uses it)'),
   state: z.enum(['ok', 'missing', 'outdated', 'skipped']).describe('ok, missing, outdated, or skipped (not readable with the token; not counted as missing)'),
 })
 
@@ -133,7 +133,7 @@ const DOCTOR_OUTPUT = z.strictObject({
   ready: z.boolean().describe('Whether nothing is missing or outdated'),
 })
 
-// Claude の App が入っているかは、リポのトークンでは読めない
+// Claude の App が入っているかは、リポのトークンでは読めない。App を使う雛形だけ入れる
 const CLAUDE_APP_ITEM: z.input<typeof DOCTOR_ITEM> = { name: 'Claude GitHub App', state: 'skipped' }
 
 // 読めた一覧の名前を合わせる。読めなかった一覧があれば complete を false にする
@@ -188,7 +188,7 @@ const workflowDoctorCommand = defineCommand({
       if (!(error instanceof GitHubAPIError || error instanceof TransportFailure)) throw error
       return stopWith(out, `could not read the settings of ${owner}/${repository}: ${apiFailureMessage(error)}`, kindOfFailure(error) === 'other' ? 'github-api' : kindOfFailure(error))
     }
-    const items = [...fileItems, ...evaluateRequirements(template.requirements, names), CLAUDE_APP_ITEM]
+    const items = [...fileItems, ...evaluateRequirements(template.requirements, names), ...template.claudeApp ? [CLAUDE_APP_ITEM] : []]
 
     out.data(items.map(item => `${item.state}: ${item.name}`).join('\n'))
     const failing = items.filter(item => item.state === 'missing' || item.state === 'outdated')

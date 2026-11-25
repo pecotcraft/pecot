@@ -25,7 +25,8 @@ Settings > Secrets and variables > Actions に、リポか organization の単�
 | `CLAUDE_CODE_OAUTH_TOKEN` | secret | モデルの利用の認証。既定。`claude setup-token` で作る |
 | `PECOT_AGENT_ANTHROPIC_FEDERATION_RULE_ID`・`_ORGANIZATION_ID`・`_SERVICE_ACCOUNT_ID`・`_WORKSPACE_ID` | 変数 | Workload Identity Federation。`CLAUDE_CODE_OAUTH_TOKEN` が無いときに使う。4 つすべてが要る |
 
-- 自前の App を置かなければ、GitHub のトークンは Claude の GitHub App が出す。App をリポに入れるだけで、名前は何も登録しない
+- 自前の App を置かなければ、自動レビューの GitHub のトークンは Claude の GitHub App が出す。App をリポに入れるだけで、名前は何も登録しない
+- 引き継ぎのワークフローは、自前の App を置かなければ、実行の `GITHUB_TOKEN` を使う。Claude の GitHub App は要らない
 - 自前の App を置くときは、App にインストールで与える権限を、使う自動処理が要る権限の合計にする。ワークフローは、トークンを発行するときに、自分に要る権限だけに絞る
 - そろっているかは MCP ツール `workflow_doctor` で確かめる。一覧を読むには、手元のトークンに次の権限が要る。足りないときは、その項目を `skipped` で出す
   - classic のトークン: `repo` の scope

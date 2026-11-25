@@ -74,7 +74,7 @@ function tableRow(label: string): string {
 
 describe('handoff のワークフローの雛形', () => {
   it('1 行目に、雛形の名前と版の目印がある', () => {
-    expect(template.split('\n', 1)[0]).toBe('# pecot-workflow-template: handoff 1')
+    expect(template.split('\n', 1)[0]).toBe('# pecot-workflow-template: handoff 2')
   })
 
   it('契機は pull_request_target の closed だけになる', () => {
@@ -110,8 +110,8 @@ describe('handoff のワークフローの雛形', () => {
     expect(granted).toEqual({ 'permission-issues': 'write', 'permission-pull-requests': 'read', 'permission-contents': 'read' })
   })
 
-  it('発行したトークンが無いとき、github_token を空で渡して Claude の App を使い、PECOT_GITHUB_COM_TOKEN は GITHUB_TOKEN を使う', () => {
-    expect(inputs['github_token']).toBe('${{ steps.token.outputs.token }}')
+  it('発行したトークンが無いとき、github_token と PECOT_GITHUB_COM_TOKEN に GITHUB_TOKEN を渡し、OIDC の交換を避ける', () => {
+    expect(inputs['github_token']).toBe('${{ steps.token.outputs.token || github.token }}')
     expect(handoff.env).toEqual({ PECOT_GITHUB_COM_TOKEN: '${{ steps.token.outputs.token || github.token }}' })
   })
 

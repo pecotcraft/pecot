@@ -7722,7 +7722,7 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "What was checked: the workflow file, the template version, a secret or variable, or the Claude GitHub App"
+                    "description": "What was checked: the workflow file, the template version, a secret or variable, or the Claude GitHub App (only for a template that uses it)"
                   },
                   "state": {
                     "type": "string",

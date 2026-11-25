@@ -18,6 +18,9 @@ const TEMPLATE_FILE = path.join(pluginRoot(), 'cli/templates/workflow/pecot-revi
 // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同梱の雛形のパス
 const BUNDLED = readFileSync(TEMPLATE_FILE, 'utf8')
 const OLD = BUNDLED.replace(/^# pecot-workflow-template: review \d+/u, '# pecot-workflow-template: review 0')
+const HANDOFF_DESTINATION = '.github/workflows/pecot-handoff.yml'
+// eslint-disable-next-line security/detect-non-literal-fs-filename -- 同梱の雛形のパス
+const BUNDLED_HANDOFF = readFileSync(path.join(pluginRoot(), 'cli/templates/workflow/pecot-handoff.yml'), 'utf8')
 const REPO = '/repos/acme/demo'
 const TOKEN_MISSING = 'secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*'
 const KEY_MISSING = 'secret PECOT_AGENT_APP_PRIVATE_KEY'
@@ -118,7 +121,7 @@ describe('workflow doctor', () => {
     expect(itemsOf(result)).toContainEqual({ name: TOKEN_MISSING, state: 'missing' })
   })
 
-  it('Claude の App は確かめず、その項目を skipped で入れる', async (context) => {
+  it('review では、Claude の App は確かめず、その項目を skipped で入れる', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-07')
     const result = await doctor(READY)
     expect(itemsOf(result)).toContainEqual({ name: 'Claude GitHub App', state: 'skipped' })
@@ -176,19 +179,25 @@ describe('workflow doctor', () => {
     expect(result.structured['detail']).toContain('available: review, handoff')
   })
 
-  it('name に handoff を渡すと、引き継ぎの雛形と review と同じエージェント用の認証を確かめる', async (context) => {
+  it('name に handoff を渡すと、引き継ぎの雛形と review と同じエージェント用の認証を確かめ、Claude の App の項目を入れない', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-01')
-    const destination = '.github/workflows/pecot-handoff.yml'
-    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同梱の雛形のパス
-    const bundledHandoff = readFileSync(path.join(pluginRoot(), 'cli/templates/workflow/pecot-handoff.yml'), 'utf8')
-    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'handoff' }, files: { [destination]: bundledHandoff }, config: false, github: github(READY) })
+    await verifies(context, 'PW-WORKFLOW-DOCTOR-16')
+    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'handoff' }, files: { [HANDOFF_DESTINATION]: BUNDLED_HANDOFF }, config: false, github: github(READY) })
     expect(result.isError).toBe(false)
     expect(itemsOf(result)).toEqual([
-      { name: destination, state: 'ok' },
+      { name: HANDOFF_DESTINATION, state: 'ok' },
       { name: 'workflow template handoff', state: 'ok' },
       { name: TOKEN_MISSING, state: 'ok' },
-      { name: 'Claude GitHub App', state: 'skipped' },
     ])
+  })
+
+  it('もし handoff の 1 の版を置いているなら、その項目を outdated にして失敗を返す', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-DOCTOR-03')
+    const old = BUNDLED_HANDOFF.replace(/^# pecot-workflow-template: handoff \d+/u, '# pecot-workflow-template: handoff 1')
+    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'handoff' }, files: { [HANDOFF_DESTINATION]: old }, config: false, github: github(READY) })
+    expect(result.isError).toBe(true)
+    expect(itemsOf(result)).toContainEqual({ name: 'workflow template handoff', state: 'outdated' })
+    expect(result.structured).toMatchObject({ kind: 'repo-setting-missing', ready: false })
   })
 
   it('git remote からリポジトリを読めないと、GitHub を読まずに git-unresolved の失敗を返す', async (context) => {
