@@ -306,7 +306,11 @@ function sameRepositoryRemote(cwd: string, location: RepositoryReference, out: R
 // worktree では worktree 名、そうでなければ develop ブランチ
 function resolveCheckoutTarget(cwd: string, config: Readonly<ProjectConfig>, location: RepositoryReference, out: Readonly<Output>): string | undefined {
   try {
-    if (isWorktreeEnvironment(cwd)) return getCurrentWorktreeName(cwd) ?? 'main'
+    if (isWorktreeEnvironment(cwd)) {
+      const worktreeBranch = getCurrentWorktreeName(cwd)
+      if (worktreeBranch === undefined) out.warning('cannot determine the branch to return to in this worktree; skipped local cleanup')
+      return worktreeBranch
+    }
     const developBranch = getDevelopBranch(config, location.owner, location.repository)
     if (developBranch !== undefined && developBranch !== '') return developBranch
     out.warning('develop_branch is not set; skipped local cleanup')

@@ -32,6 +32,15 @@
             "timeout": 120
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/session-start-worktree-setup.sh",
+            "timeout": 600
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [

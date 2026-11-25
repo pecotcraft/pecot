@@ -1042,6 +1042,28 @@ describe('getCurrentWorktreeName', () => {
     expect(getCurrentWorktreeName(worktree)).toBeUndefined()
   })
 
+  it('Claude Code が作った .claude/worktrees/<name> では、worktree-<name> を返す', () => {
+    const { repository } = createProject()
+    const worktree = path.join(repository, '.claude', 'worktrees', 'bold-oak')
+    gitForTest(repository, ['worktree', 'add', '-q', '-b', 'worktree-bold-oak', worktree])
+    gitForTest(worktree, ['switch', '-q', '-c', 'feature/x'])
+    expect(getCurrentWorktreeName(worktree)).toBe('worktree-bold-oak')
+  })
+
+  it('.claude/worktrees のフォルダ名の + を / に戻したブランチがあれば、それを返す', () => {
+    const { repository } = createProject()
+    const worktree = path.join(repository, '.claude', 'worktrees', 'team+task')
+    gitForTest(repository, ['worktree', 'add', '-q', '-b', 'worktree-team/task', worktree])
+    expect(getCurrentWorktreeName(worktree)).toBe('worktree-team/task')
+  })
+
+  it('.claude/worktrees/<name> でも、worktree-<name> のブランチが無ければ undefined', () => {
+    const { repository } = createProject()
+    const worktree = path.join(repository, '.claude', 'worktrees', 'bold-oak')
+    gitForTest(repository, ['worktree', 'add', '-q', '-b', 'renamed', worktree])
+    expect(getCurrentWorktreeName(worktree)).toBeUndefined()
+  })
+
   it('メイン WT では undefined', () => {
     expect(getCurrentWorktreeName(createProject().repository)).toBeUndefined()
   })

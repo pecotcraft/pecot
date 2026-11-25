@@ -62,6 +62,20 @@ cp .pecot/config/.env.sample .pecot/config/.env
 
 hosts.json で定義された各ホストの `env_var` に対応するトークンを設定する。
 
+## Claude Code が作る worktree
+
+Claude Code が作る worktree（`claude --worktree`、claude.ai のフォルダの Worktree オプション）には、上の 3 つのファイルが無い。
+最初の SessionStart から main worktree と同じ設定で動かすには、リポのルートの `.worktreeinclude` に次の 3 行を書く。
+Claude Code が worktree を作るときに、main worktree からコピーする。
+
+```text
+.pecot/config/hooks-config.json
+.pecot/config/hosts.json
+.pecot/config/.env
+```
+
+依存の導入（`worktree-config.json` の `setup_command`）は、`worktree-setup` のフックが最初のセッション開始で流す。
+
 ## 設定キー一覧
 
 ### Bashガード
@@ -108,6 +122,7 @@ ExitPlanMode の後のフック。
 | `session-start-common` | SessionStartのディスパッチャ（エントリ `session-start.sh` 1 本）。以下のサブスクリプトを順次呼び出す（`flock` があるときは多重実行防止ロック付き。標準の macOS には無いため、その環境ではロックを掛けずに実行する。Claude Code は matcher が startup・clear・resume・fork・compact の 5 つ、Copilot CLI は matcher なし（`new` / `resume`）。compact では `.gitignore` の補完だけが動く | SessionStart | `true` |
 | `session-title` | Claude Code のセッション名を作業対象 Issue に合わせる。pecot-workflow が書く `.pecot/state/.pecot-session-title`（`#<番号> <Issue タイトル>`。種別接頭辞なし・全体 40 文字。作業中の Issue の番号は、ブランチ名の末尾の `/<番号>` から求める。題名ファイルが無ければ `#<番号>`）を `hookSpecificOutput.sessionTitle` で返す。SessionStart（`source` が startup / resume / fork のときだけ）と UserPromptSubmit（セッション途中の起票の次のプロンプト）の両方から同じ `lib/core/session-title.sh` を `merge-hook-outputs.sh` 経由で呼ぶ。`sessionTitle` は公式ドキュメント（hooks の「UserPromptSubmit decision control」「SessionStart decision control」）に記載があり、UserPromptSubmit は Claude Code 2.1.326 で適用も確認した。hook 入力に `transcript_path` が無いとき（Copilot CLI は SessionStart / UserPromptSubmit に送らない。1.0.103 で確認。Claude Code は `-p` でも対話でも送る。`session_title` は名前の無いセッションではキー自体が付かないため判別に使えない）、入力の `session_title` が題名と同じとき、ブランチ名の末尾が番号でないときは出さない。題名ファイルが別 Issue のもの・空のときは `#<番号>`。直前に出した `<session_id>:<題名>` を `.pecot/state/session-title-sent` に残し、同じ題名は再送しない（利用者の `/rename` は Issue が変わるまで上書きしない）。Copilot CLI の hook 出力に `sessionTitle` は無いため `com.github.copilot/hooks/hooks.json` には載せない | SessionStart（`session-start.sh` が `session-start-common` と別のスクリプトとして merge に渡す） / UserPromptSubmit（`user-prompt-submit-title.sh`） | `true` |
 | `git-sync` | 有効にしたときだけ、未コミット変更がない場合にカレントブランチを `git pull` で最新化する。compact では pull しない。pull は 1 回だけ（`GIT_TERMINAL_PROMPT=0` と、`GIT_SSH_COMMAND` への `-o BatchMode=yes` の追加で認証の入力待ちをしない。既存の `GIT_SSH_COMMAND` は残す）で、失敗時は git の出力を stderr に出す | SessionStart サブスクリプト | `false` |
+| `worktree-setup` | Claude Code が作る worktree（`.claude/worktrees/<name>`）で、main worktree の `worktree-config.json` の `setup_command` を流す。成功したら git の管理ディレクトリに印（`pecot-worktree-setup`）を置き、次からは流さない。失敗・時間切れでは印を置かず、次のセッション開始でもう一度流す。`setup_command_timeout` があれば `timeout` コマンドで打ち切る。setup の出力は `pecot-worktree-setup.log` に書き、結果の 1 行だけを返す。compact では流さない | SessionStart（`session-start-worktree-setup.sh`） | `true` |
 
 ### ワークフロー
 
@@ -129,6 +144,8 @@ ExitPlanMode の後のフック。
 SessionStart は matcher なし。
 Skill の matcher は `Skill|skill`。
 各エントリの `timeout`（秒）は SessionStart 120、PreToolUse 10 になる。
+`session-start-worktree-setup.sh` は 600 にしている。
+setup の時間切れで session-title の出力が捨てられないように、`session-start.sh` と別のエントリにしている。
 UserPromptSubmit は 10。
 pecot-visual の PostToolUse（Write / Edit）は 80 で、中の lint の打ち切り 10 + 30 + 30 秒より長くする。
 
@@ -142,6 +159,7 @@ PreToolUse (Bash)               → pre-tool-use-bash.sh              → claude
 
 SessionStart (startup|clear|resume|fork|compact) → session-start.sh      → session-title (Claude Code のみ。common と別に merge へ渡す),
                                                                        session-start-common → git-sync
+SessionStart (startup|clear|resume|fork) → session-start-worktree-setup.sh → worktree-setup
 
 UserPromptSubmit                → user-prompt-submit.sh             → pecot-dir-init-detect
 UserPromptSubmit                → user-prompt-submit-title.sh       → session-title（Claude Code のみ）

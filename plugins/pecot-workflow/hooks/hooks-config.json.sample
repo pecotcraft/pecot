@@ -10,5 +10,6 @@
   "reviewer-clone-allow": true,
   "session-start-common": true,
   "session-title": true,
-  "tmp-path-warner": true
+  "tmp-path-warner": true,
+  "worktree-setup": true
 }
