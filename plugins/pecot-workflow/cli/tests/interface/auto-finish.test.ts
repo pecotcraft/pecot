@@ -60,6 +60,18 @@ describe('auto finish', () => {
     expect(`${outcome.stdout}${outcome.stderr}${body}`).not.toContain(AUTO_TOKEN)
   })
 
+  it('PR を開いたブランチが Development のブランチから外れていても、目印のブランチに開いた PR の head を書く', async (context) => {
+    await verifies(context, 'PW-AUTO-FINISH-16')
+    prepareAuto()
+    const file = textFile('body.md', 'PR を作った。')
+    const github = await startGithub([prerequisitesRule({ number: 7, column: 'Active', pullRequests: [{ number: 11, head: BRANCH }] }), AUTO_POSTED, labelRemoved()])
+
+    const outcome = await finish(['--result', 'pr-created', '--body-file', file])
+
+    expect(outcome.code).toBe(0)
+    expect(postedBody(github.requests())).toContain(`<!-- pecot-auto: result=pr-created run=500 attempt=1 branch=${BRANCH} -->`)
+  })
+
   it.for([
     { result: 'pr-created', writes: [POST, DELETE], lines: REMOVED_LINE },
     { result: 'out-of-scope', writes: [POST, DELETE], lines: REMOVED_LINE },

@@ -166,6 +166,18 @@ describe('markerBranch', () => {
     expect(markerBranch(['feat/a/7', 'spike'], [spikePullRequest()], 7)).toBe('spike')
   })
 
+  it('PR を開いたブランチが Development のブランチに無くても、開いた PR の head を取る', () => {
+    expect(markerBranch([], [spikePullRequest()], 7)).toBe('spike')
+  })
+
+  it('開いた PR が複数あれば、head の末尾が Issue の番号のものを取る', () => {
+    expect(markerBranch([], [spikePullRequest(), { ...spikePullRequest(), number: 12, headRefName: 'feat/a/7' }], 7)).toBe('feat/a/7')
+  })
+
+  it('fork の開いた PR の head は取らない', () => {
+    expect(markerBranch(['feat/a/7'], [{ ...spikePullRequest(), isCrossRepository: true }], 7)).toBe('feat/a/7')
+  })
+
   it('開いた PR が無ければ、末尾が /Issue番号 のブランチを取る', () => {
     expect(markerBranch(['spike', 'feat/a/7', 'feat/b/17'], [spikePullRequest('closed')], 7)).toBe('feat/a/7')
   })

@@ -40,7 +40,7 @@ entries:
         - Pass either --result (from the skill) or --ensure (from the cleanup step of the workflow), not both. --ensure needs --job-status and --run-outcome, and --execution-file is optional. --body-file goes only with --result.
         - question, failed and limit set the Status (fields.status) to Needs Attention and remove the trigger label. pr-created, out-of-scope and setup-missing remove the trigger label. ci-passed and ci-fix-pushed only post the comment.
         - With --ensure, a succeeded job posts nothing, and a cancelled job is limit. A failed job is limit when the last result of --execution-file is error_max_turns, and failed otherwise.
-        - The comment starts with a hidden marker of the result, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT and the branch. With --ensure, when a comment by a bot already has the marker of this run and attempt, no comment is posted, and the Status and the label are written again.
+        - The comment starts with a hidden marker of the result, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT and the branch. The branch is the head of the open PR linked to the Issue, or else the Development branch ending with the Issue number. With --ensure, when a comment by a bot already has the marker of this run and attempt, no comment is posted, and the Status and the label are written again.
         - When the Issue is not on the board, or the board has no option Needs Attention for Status, the comment names the missing setting, the Status stays as it is and a warning is printed.
         - The trigger label is the value of PECOT_AUTO_LABEL, or pecot-auto. A label that is already removed is not an error.
         - The project config must have the Status field (fields.status). Without it, the command stops and tells to run pecot project init.
@@ -76,7 +76,7 @@ entries:
       - '結果が `ci-passed`・`ci-fix-pushed` のときは、コメントだけを書きます。'
       - '`ensure` の判定は、上から順に見て、最初に当たったもので決めます。job が `success` なら書きません。結果のコメントは、スキルが `result` で書いています。'
       - '`ensure` で job が `cancelled` なら `limit` にします。`failure` なら、`execution_file` の最後の `result` の行が `error_max_turns` のとき `limit` に、ほかは `failed` にします。'
-      - '本文の先頭に、結果・`GITHUB_RUN_ID`・`GITHUB_RUN_ATTEMPT`・ブランチを入れた、画面に出ない目印の行を付けます。'
+      - '本文の先頭に、結果・`GITHUB_RUN_ID`・`GITHUB_RUN_ATTEMPT`・ブランチを入れた、画面に出ない目印の行を付けます。ブランチは、Issue に紐づく開いた PR の head です。PR が無ければ、Development のブランチのうち、末尾が Issue の番号のものです。'
       - '`ensure` で、同じ目印を持つ bot のコメントがあれば、コメントを書きません。起動ラベルが残っていれば外し、結果が待ちの Status を書くものなら、Status も書き直します。'
       - 'Issue がボードに無いか、Status に Needs Attention の選択肢が無いときは、足りない設定をコメントに書き、Status を変えずに成功を返します。'
       - '外す起動ラベルの名前は、`PECOT_AUTO_LABEL` から読みます。無ければ `pecot-auto` です。ラベルが既に外れていても、失敗にしません。'
@@ -231,6 +231,9 @@ entries:
       - id: PW-AUTO-FINISH-15
         pattern: ubiquitous
         statement: '常に、トークンの値を、結果・標準出力・標準エラー・コメントに書きません'
+      - id: PW-AUTO-FINISH-16
+        pattern: event
+        statement: 'Issue に紐づく開いた PR があると、目印のブランチに、その PR の head を書きます'
   PW-AUTO-GATE:
     help:
       details:

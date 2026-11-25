@@ -120,11 +120,13 @@ export function hasResultOn(comments: readonly Readonly<IssueCommentReading>[], 
 }
 
 /**
-目印に書くブランチ。Development のブランチのうち、開いた PR を持つものを先に、無ければ末尾が `/<Issue番号>` のものを取る
+目印に書くブランチ。Issue に紐づく開いた PR の head を先に、無ければ Development のブランチのうち末尾が `/<Issue番号>` のものを取る
 */
 export function markerBranch(branches: readonly string[], pullRequests: readonly Readonly<IssuePullRequest>[], number: number): string {
-  const withOpenPullRequest = branches.find(branch => pullRequests.some(pullRequest => pullRequest.state === 'open' && pullRequest.headRefName === branch))
-  return withOpenPullRequest ?? branches.find(branch => branch.endsWith(`/${String(number)}`)) ?? NO_BRANCH
+  const suffix = `/${String(number)}`
+  // PR を開いたブランチは、GitHub が linkedBranches から外す
+  const heads = pullRequests.filter(pullRequest => pullRequest.state === 'open' && !pullRequest.isCrossRepository).map(pullRequest => pullRequest.headRefName)
+  return heads.find(head => head.endsWith(suffix)) ?? heads.at(0) ?? branches.find(branch => branch.endsWith(suffix)) ?? NO_BRANCH
 }
 
 export type AutoEnsureDecision = { readonly action: 'skip' } | { readonly action: 'write', readonly result: 'limit' | 'failed' }
