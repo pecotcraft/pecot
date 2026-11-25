@@ -86,7 +86,7 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
   - `spec/data-model.md` の「種類の決まり方」の表の 7 行を、1 行ずつ確かめる
   - 「対象外の条件」の表を、1 行ずつ確かめる。進行の欄は、Backlog・Pending・Blocked・Archived の 4 つを別々に確かめる
   - ボードに無い Issue は、`kind` が `start` で `proceed` が真になる
-  - ラベルを付けた人の `role_name` が `admin`・`maintain`・`write` でなければ、`proceed` は偽で、何も書かない
+  - ラベルを付けた人の `permission` が `admin`・`write` でなければ、`proceed` は偽で、何も書かない
   - CI を直した回数は、`result=ci-fix-pushed` の目印を持つコメントの数で数える
   - `workflow_run` で、Issue に同じブランチの `pr-created` の目印が無ければ、`proceed` は偽で、何も書かない
 - [ ] T009 [P] [US3] `p-w/cli/src/domain/tests/` に、結果の失敗するテストを書く
@@ -109,7 +109,7 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
   - 雛形の版は比べない
 - [ ] T014 [US3] `p-w/cli/src/commands/auto.ts` に `start` を足す
   - 出すものは `spec/contracts/cli-commands.md` の `pecot auto start` の表のとおり
-  - `answers` は、`author_association` が OWNER・MEMBER・COLLABORATOR で、書いた人の `role_name` が `admin`・`maintain`・`write` のコメントに限る。ほかの人のコメントは、数だけを出す
+  - `answers` は、書いた人の `permission` が `admin`・`write` のコメントに限る。ほかの人のコメントは、数だけを出す
   - 自動処理が書いた `Needs Attention` なら、PR が無ければ Todo に、あれば In Progress に戻す。それ以外の札は書かない
   - 設定に `in_progress` が無いときは、無い名前（In Progress）を出して止まる
   - Issue がボードに無ければ、進行の欄を Ready にして載せる。`board add` と同じ処理を使う

@@ -37,6 +37,7 @@ describe('auto start', () => {
       prerequisitesRule({ number: 7, column: 'Active', branch: BRANCH, pullRequests: [{ number: 11, head: BRANCH }] }),
       issueComments(comments),
       permissionOf('alice', 'write'),
+      permissionOf('mallory', 'read'),
     ])
 
     const outcome = await start()

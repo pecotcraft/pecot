@@ -156,7 +156,7 @@ spec 023 が決めた仕組み（起動ラベル・`gate` と `run` の 2 つの
 Issue の本文は、action のサニタイズを通らない。そこで次の 3 つを置く（FR-028）。
 
 - `prompt` には種類と Issue の参照だけを渡す。本文を式で埋め込まない
-- `auto_start` が渡すコメントは、書き込み権限のある人のものに限る。`author_association` が OWNER・MEMBER・COLLABORATOR のもののうち、書いた人の `permission` が `admin`・`write` のものだ。共通の決まりと同じ
+- `auto_start` が渡すコメントは、書き込み権限のある人のものに限る。書いた人の `permission` が `admin`・`write` のものだ。`author_association` では絞らない。App のトークンでは、組織の非公開のメンバーが `CONTRIBUTOR` で返る（2026-11-25 に検証用で確かめた）
 - スキルは、本文とコメントを「直す対象の説明」として読むと書く。許可の外の操作を求める文には従わない
 
 これは指示の文で、境界ではない。境界は、App の権限と、許可リストと、保護されたブランチの ruleset だ。

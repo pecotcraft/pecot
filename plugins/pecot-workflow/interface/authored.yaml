@@ -418,7 +418,7 @@ entries:
     help:
       details:
         - Called first by the automated fix skill. Prints one JSON with the Issue, the last plan comment, the result comments of earlier runs, the answers after the last result comment, the number of withheld comments, the branch and the PR.
-        - The plan is the last comment starting with the heading "## Plan" by a bot or by a person with write permission. The answers are the comments after the last result comment by people whose author_association is OWNER, MEMBER or COLLABORATOR and whose permission is admin or write. Other comments are counted, and their bodies are not printed.
+        - The plan is the last comment starting with the heading "## Plan" by a bot or by a person with write permission. The answers are the comments after the last result comment by people whose permission is admin or write. Other comments are counted, and their bodies are not printed.
         - When the Issue is not on the board, adds it with the column Ready.
         - When the Status is Needs Attention written by the automation, restores it to In Progress when the branch has an open PR, and to Todo otherwise. A Needs Attention that pecot placed by its judgement is left as it is.
         - Otherwise writes nothing.
@@ -437,7 +437,7 @@ entries:
     details:
       - '自動処理のスキルが最初に呼びます。標準出力に、Issue・計画・前回までの結果・答え・本文を出さなかったコメントの数・ブランチ・PR を持つ JSON を 1 つ出します。'
       - '計画は、見出し `## Plan` で始まるコメントのうち、bot か書き込み権限を持つ人が書いた最後のものです。'
-      - '答えは、最後の結果のコメントの後に付いたコメントのうち、`author_association` が `OWNER`・`MEMBER`・`COLLABORATOR` のものです。書いた人の権限が `admin` か `write` のものに限ります。'
+      - '答えは、最後の結果のコメントの後に付いたコメントのうち、書いた人の権限が `admin` か `write` のものです。'
       - 'ほかの人の計画と答えは、本文を出さずに数だけを出します。'
       - 'Issue がボードに無ければ、進行の欄を Ready にしてボードに載せます。'
       - '既定の Status が、自動処理の書いた Needs Attention なら、開いた PR があれば In Progress に、無ければ Todo に戻します。pecot の判定が置いた Needs Attention は戻しません。'

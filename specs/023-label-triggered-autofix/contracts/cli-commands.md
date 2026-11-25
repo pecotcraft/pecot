@@ -107,7 +107,7 @@ stdout に出すもの:
 | `issue` | タイトルと本文 |
 | `plan` | 前回の計画のコメント。本文が見出し `## Plan` で始まるもの。読むのは、bot のコメントと、`answers` と同じ条件の人のコメントだけ。複数あれば最後の 1 つ。無ければ空 |
 | `results` | 前回までの結果のコメント。質問を含む |
-| `answers` | 最後の結果のコメントの後に付いたコメント。`author_association` が OWNER・MEMBER・COLLABORATOR で、書いた人の `permission` が `admin`・`write` のものに限る |
+| `answers` | 最後の結果のコメントの後に付いたコメント。書いた人の `permission` が `admin`・`write` のものに限る。`author_association` では絞らない |
 | `branch` | 既にあるブランチ |
 | `pr` | 既にある PR |
 

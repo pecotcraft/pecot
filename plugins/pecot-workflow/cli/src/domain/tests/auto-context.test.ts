@@ -34,14 +34,18 @@ describe('autoContextOf', () => {
     expect(context.withheld).toBe(0)
   })
 
-  it.for([
-    { name: 'author_association が CONTRIBUTOR', fields: { authorAssociation: 'CONTRIBUTOR' } },
-    { name: '権限を読めなかった', fields: { login: 'carol' } },
-  ])('最後の結果の後のコメントで $name の人の本文を出さず、数だけ数える', ({ fields }) => {
-    const context = autoContextOf([comment(RESULT, BOT), comment('外の人の話', fields)], new Set(['alice']))
+  it('最後の結果の後のコメントで、書き込み権限を確かめられなかった人の本文を出さず、数だけ数える', () => {
+    const context = autoContextOf([comment(RESULT, BOT), comment('外の人の話', { login: 'carol' })], new Set(['alice']))
 
     expect(context.answers).toEqual([])
     expect(context.withheld).toBe(1)
+  })
+
+  it('App のトークンでは、組織の非公開のメンバーの author_association が CONTRIBUTOR で返る。関係では絞らず、権限で決める', () => {
+    const context = autoContextOf([comment(RESULT, BOT), comment('答え', { authorAssociation: 'CONTRIBUTOR' })], new Set(['alice']))
+
+    expect(context.answers).toEqual([{ author: 'alice', body: '答え' }])
+    expect(context.withheld).toBe(0)
   })
 
   it('最後の結果の後の bot のコメントは、答えと数のどちらにも入れない', () => {
@@ -78,17 +82,18 @@ describe('autoContextOf', () => {
 })
 
 describe('permissionCandidates', () => {
-  it('計画と最後の結果の後のコメントを書いた人のうち、関係が OWNER・MEMBER・COLLABORATOR の人を 1 度ずつ返す', () => {
+  it('計画と最後の結果の後のコメントを書いた人を、関係にかかわらず 1 度ずつ返す', () => {
     const comments = [
       comment(PLAN, { login: 'alice', authorAssociation: 'OWNER' }),
       comment('前の話', { login: 'dave' }),
       comment(RESULT, BOT),
       comment('答え', { login: 'alice', authorAssociation: 'OWNER' }),
-      comment('答え', { login: 'bob', authorAssociation: 'COLLABORATOR' }),
+      comment('答え', { login: 'bob', authorAssociation: 'CONTRIBUTOR' }),
       comment('通りがかり', { login: 'erin', authorAssociation: 'NONE' }),
+      comment('進み具合', BOT),
     ]
 
-    expect(permissionCandidates(comments, 'context')).toEqual(['alice', 'bob'])
+    expect(permissionCandidates(comments, 'context')).toEqual(['alice', 'bob', 'erin'])
   })
 
   it('plan を渡すと、計画を書いた人だけを返す', () => {

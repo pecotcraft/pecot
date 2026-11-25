@@ -156,7 +156,7 @@ Issue に残すコメント。テンプレートは `cli/templates/comment/auto-
 | 欄 | 決め |
 |---|---|
 | 見分け方 | 本文が見出し `## Plan` で始まるコメント |
-| 読むコメント | bot のコメントと、`answers` と同じ条件の人のコメントだけ。条件は、`author_association` が OWNER・MEMBER・COLLABORATOR で、書いた人の `permission` が `admin`・`write` のもの |
+| 読むコメント | bot のコメントと、`answers` と同じ条件の人のコメントだけ。条件は、書いた人の `permission` が `admin`・`write` のもの |
 | 複数あるとき | 最後の 1 つ |
 
 ## プロジェクトの設定に足すキー

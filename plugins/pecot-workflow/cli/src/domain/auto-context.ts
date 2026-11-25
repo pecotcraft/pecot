@@ -20,8 +20,6 @@ export interface AutoContext {
   readonly withheld: number
 }
 
-// author_association のうち、権限を読む人。ほかの人は権限を読まずに外す
-const MEMBER_ASSOCIATIONS: ReadonlySet<string> = new Set(['OWNER', 'MEMBER', 'COLLABORATOR'])
 const PLAN_HEADING = /^## Plan[ \t]*(?:\r?\n|$)/u
 
 function isBot(comment: Readonly<IssueCommentRecord>): boolean {
@@ -53,7 +51,8 @@ function humanCandidates(comments: readonly Readonly<IssueCommentRecord>[], scop
 書き込み権限を読む人。scope が plan なら計画を書いた人だけ、context なら答えを書いた人も
 */
 export function permissionCandidates(comments: readonly Readonly<IssueCommentRecord>[], scope: 'plan' | 'context'): readonly string[] {
-  const logins = humanCandidates(comments, scope).filter(comment => MEMBER_ASSOCIATIONS.has(comment.authorAssociation)).map(comment => comment.login)
+  // author_association では絞らない。App のトークンには、組織の非公開のメンバーが CONTRIBUTOR で返る
+  const logins = humanCandidates(comments, scope).map(comment => comment.login)
   return [...new Set(logins)]
 }
 
@@ -61,7 +60,7 @@ export function permissionCandidates(comments: readonly Readonly<IssueCommentRec
 comments は List issue comments の順（古い順）。writers は、書き込み権限（admin・write）を確かめた人
 */
 export function autoContextOf(comments: readonly Readonly<IssueCommentRecord>[], writers: ReadonlySet<string>): AutoContext {
-  const isTrusted = (comment: Readonly<IssueCommentRecord>): boolean => isBot(comment) || (MEMBER_ASSOCIATIONS.has(comment.authorAssociation) && writers.has(comment.login))
+  const isTrusted = (comment: Readonly<IssueCommentRecord>): boolean => isBot(comment) || writers.has(comment.login)
   const plans = comments.filter(comment => isPlan(comment) && isTrusted(comment))
   const answers = afterLastResult(comments).filter(comment => !isBot(comment) && !isPlan(comment) && isTrusted(comment))
   return {
