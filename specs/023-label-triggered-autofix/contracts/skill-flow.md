@@ -68,7 +68,7 @@ Step の順は、`cli/tests/skills/skill-flow-structure.test.ts` で固定する
 
 | Step | 中身 | 止まる条件と結果 |
 |---|---|---|
-| 1 | `auto_start`（`issue: <Issue>`）で文脈を読む | 失敗したら `setup-missing` |
+| 1 | `auto_start`（`issue_ref: <Issue>`）で文脈を読む | 失敗したら `setup-missing` |
 | 2 | 落ちたチェックとログを読む。`gh pr checks` と `gh run view --log-failed` | — |
 | 3 | 失敗が変更と関係するかを確かめる | 関係しなければ、理由を書いて `failed` |
 | 4 | ブランチの先頭が、自動処理のコミットかを確かめる | 人のコミットが載っていれば、上書きせずに `failed` |
