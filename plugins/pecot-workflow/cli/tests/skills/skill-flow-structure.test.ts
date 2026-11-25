@@ -11,7 +11,7 @@ const PARALLEL_SPAWN_NOTE = '1 メッセージ内の複数 `Agent` 呼び出し�
 const SERIAL_REASON_MARKER = '(直列の理由: ...)'
 const STEP_HEADING = /^### Step (\d+)[:：] ?(.+)$/u
 // マージされた後の片付けの手順を、同じ中身の references/after-merge.md で持つスキル
-const AFTER_MERGE_SKILLS = ['w-pr', 'w-merge', 'w-active', 'w-quick', 'w-breakdown']
+const AFTER_MERGE_SKILLS = ['w-pr', 'w-active', 'w-quick', 'w-breakdown']
 
 interface Heading {
   readonly number: number
@@ -327,7 +327,6 @@ describe('w-pr の手順', () => {
 
   it('Step 6 は、レビューの指摘に対応した後で、マージを待ち受けて片付ける', () => {
     expect(titleIndex(headings, 'レビューの指摘に対応')).toBeLessThan(titleIndex(headings, 'マージを待ち受けて片付ける'))
-    expect(text).not.toContain('`/pecot-w:w-merge`')
   })
 
   it('Step 6 は、待ち受けのスクリプトの出力ごとに次の手順を持ち、コンフリクトと queue からの外れで Step 4 に戻す', () => {
@@ -416,13 +415,9 @@ describe('マージされた後の片付け', () => {
     for (const word of ['merge-diff', 'precede-notify', 'issue_comment', 'mergeDiff', '`cleanup`', 'frontmatter の `pr_ref`']) expect(text).not.toContain(word)
   })
 
-  it('w-merge と w-pr は、片付けの手順を自分で持たず、Epic と後続へのコメントを書かせない', () => {
-    const merge = readSkill('w-merge')
-    expect(merge).not.toContain('session_finish')
-    for (const skill of ['w-merge', 'w-pr']) {
-      const body = readSkill(skill)
-      for (const word of ['merge-diff', 'precede-notify', 'Epic・後続へのコメント']) expect(body, `${skill} が ${word} を書かせる`).not.toContain(word)
-    }
+  it('w-pr は、Epic と後続へのコメントを書かせない', () => {
+    const body = readSkill('w-pr')
+    for (const word of ['merge-diff', 'precede-notify', 'Epic・後続へのコメント']) expect(body, `w-pr が ${word} を書かせる`).not.toContain(word)
   })
 
   it.for(['w-active', 'w-quick', 'w-breakdown'])('%s は、session_start の leftovers を、ブランチの切り替えの前に PR ごとの片付けの節で済ませる', (skill) => {

@@ -48,12 +48,13 @@ Issue乱立を防ぎ、Phase単位で作業を管理する。
 │  前提がそろう:                                           │
 │    → スタックできる前提は PR が出たら、                  │
 │      マージを待つ前提はマージされたら、Ready に移る      │
-│    → pecot の操作がその場で移す。画面での操作などで      │
+│    → pecot の操作と、w-pr の待ち受けの片付けが移す。     │
+│      待ち受けるセッションの無い画面でのマージなどで      │
 │      ずれたものは board_sync が直す                      │
 │                                                          │
 │  スタックして進める:                                     │
 │    → 前提の PR の上にスタックして着手し、PR を出す       │
-│    → 親 PR からマージし、子 PR をスタックし直す          │
+│    → 画面でマージし、各 PR の w-pr が片付ける            │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -112,7 +113,7 @@ Feature Xの基盤部分を実装する。
 
 1. `/pecot-w:w-active` で、`Ready` から 1 つ選ぶ。一覧の各 Issue には着手の判定が付く
 2. w-active がブランチを作り、Issue を `Active` に移す。base は判定で決まる。利用者とエージェントは base を選ばない
-3. 実装・テストの後、`/pecot-w:w-pr` で PR を出し、`/pecot-w:w-merge` でマージする
+3. 実装・テストの後、`/pecot-w:w-pr` で PR を出す。利用者が GitHub の画面でマージし、w-pr が待ち受けて片付ける
 4. 次のサブIssue へ進む
 
 着手の判定は 3 つある。
@@ -129,10 +130,10 @@ Feature Xの基盤部分を実装する。
 
 前の Phase の PR が出る（スタックできる前提）か、マージされる（マージを待つ前提）と、次の Phase の Issue が `Blocked` から `Ready` に移る。
 
-- pecot の操作（一括投稿・PR の作成・マージの後の片付け・前提の変更）が、その場で影響を受ける Issue の列を動かす
-- 画面でのマージ・blocked by の付け外し・カードの手での移動でずれた列は、pecot-workflow の MCP ツール `board_sync` が直す。手で呼ぶか、[board-sync-workflow.md](./board-sync-workflow.md) の雛形のワークフローを置いて自動にする
+- pecot の操作（一括投稿・PR の作成・前提の変更）と、w-pr の待ち受けがマージの後に行う片付けが、その場で影響を受ける Issue の列を動かす
+- 待ち受けるセッションの無い画面でのマージ・blocked by の付け外し・カードの手での移動でずれた列は、pecot-workflow の MCP ツール `board_sync` が直す。手で呼ぶか、[board-sync-workflow.md](./board-sync-workflow.md) の雛形のワークフローを置いて自動にする
 
-1. 前提がそろった Issue が `Ready` へ移る。マージの後は、w-merge が、着手できるようになった Issue を報告する
+1. 前提がそろった Issue が `Ready` へ移る。マージの後は、w-pr の待ち受けの片付けが、着手できるようになった Issue を報告する
 2. `Ready` から着手する
 3. 全サブIssue の完了後に、Epic本文の完了条件をチェックする
 
@@ -197,14 +198,22 @@ Issue の本文に、前後関係は書かない。マージを待つ前提の�
 `/pecot-w:w-pr` で PR を出す。スタックしたブランチの PR は、base が親ブランチになり、差分には自分のブランチの変更だけが出る。
 PR は、親 PR とスタックとして並ぶ。親 PR が無いときは止まる。
 
-### 親 PR からマージする
+### 画面でマージする
 
-`/pecot-w:w-merge` でマージする。スタックは親 PR から順にだけマージできる。子 PR を頼むと、先にマージする PR を示して止まる。
+マージは GitHub の画面で行う。スタックの PR も、画面で押す。
+
+- 子 PR を押すと、その下の未マージの PR も一緒に、下から順にマージされる。GitHub の stacks の仕様である（[Merging stacked pull requests](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/merging-stacked-pull-requests)）。
+  > You cannot merge a mid-stack pull request in isolation, the pull requests below it will always merge with it.
+- マージ箱は、下の PR がすべて承認され、チェックが通っていることを求める
+- 承認を 0 件にした ruleset では、チェックが通っていれば、レビュー中の親 PR も一緒に入る
+- 子 PR を押す前に、親 PR の w-pr が待ち受け（Step 6）に入っていることを確かめる。入る前に押すと、親 PR の w-pr がその後に push する直しは、開発ブランチに入らない
+- merge queue では、スタックの PR が下から順にキューに入る。
+  > All pull requests in the stack are added to the queue in the correct order.
 
 親 PR をマージすると、次のことが起きる。
 
 - GitHub が、子 PR の base を開発ブランチへ書き換え、子ブランチをスタックし直して force-push する
-- w-merge が、片付けの後に、着手できるようになった Issue と、スタックし直しが要る子 PR を報告する
+- 各 PR の w-pr の待ち受けが、片付けの後に、着手できるようになった Issue と、スタックし直しが要る子 PR を報告する
 
 ### 子ブランチをスタックし直す
 

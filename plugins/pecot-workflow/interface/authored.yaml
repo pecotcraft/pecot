@@ -7019,7 +7019,7 @@ entries:
         statement: 'もし checkout に失敗したなら、pull と `git branch -D` を飛ばします'
       - id: PW-SESSION-FINISH-24
         pattern: unwanted
-        statement: 'もし PR がマージされていないなら、`kind` が `pr-state` の失敗を返し、`pr_merge` を案内する文を `detail` に入れます'
+        statement: 'もし PR がマージされていないなら、`kind` が `pr-state` の失敗を返し、GitHub の画面でマージするよう案内する文を `detail` に入れます'
       - id: PW-SESSION-FINISH-25
         pattern: unwanted
         statement: 'もし PR がマージされていないなら、何も変えません'

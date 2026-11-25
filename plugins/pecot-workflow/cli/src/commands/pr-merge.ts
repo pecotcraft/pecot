@@ -69,7 +69,7 @@ function stopNotMergeable(out: Readonly<Output<PrMergeData>>, message: string): 
   return stopWith(out, message, 'pr-state', NOT_MERGEABLE_EXIT_CODE)
 }
 
-// 印は残す。w-merge は必須チェックを待って同じ PR に pr_merge を呼び直す
+// 印は残す。呼ぶ側は必須チェックを待って同じ PR に呼び直せる
 function stopRejected(out: Readonly<Output<PrMergeData>>, reason: string): never {
   return stopWith(out, `merge was rejected: ${reason}`, 'pr-state')
 }

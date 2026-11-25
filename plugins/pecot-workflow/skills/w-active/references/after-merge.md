@@ -5,7 +5,6 @@ PR がマージされた後に、GitHub 側と手元を片付ける手順。Epic
 次の場面で使う。どのスキルも、同じ中身の写しを自分の `references/after-merge.md` に持つ。
 
 - w-pr の Step 6 で、待ち受けが `MERGED` を受けたとき
-- w-merge でマージしたとき
 - w-active・w-quick・w-breakdown で、`session_start` の結果に `leftovers` があったとき。前の PR の手元の片付けが残っている
 
 ## 片付け

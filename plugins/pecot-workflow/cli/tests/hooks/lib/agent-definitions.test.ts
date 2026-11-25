@@ -38,7 +38,7 @@ const AGENT_ROWS: readonly AgentRow[] = [
   { label: 'pecot-workflow/w-plan-reviewer', plugin: 'pecot-workflow', agent: 'w-plan-reviewer', tools: ['Edit', 'Write', 'NotebookEdit', 'Agent', ...PLAN, ASK, 'Monitor'], window: 400_000, copilotTools: ['read', 'search', 'execute', 'web', 'todo', ...MCP] },
 ]
 
-const WORKFLOW_SKILLS = 'w-active w-backlog w-breakdown w-handoff w-help w-issueize w-merge w-onboarding w-pr w-quick w-ready w-release w-repo-add w-review w-worktree-add w-worktree-remove'.split(' ')
+const WORKFLOW_SKILLS = 'w-active w-backlog w-breakdown w-handoff w-help w-issueize w-onboarding w-pr w-quick w-ready w-release w-repo-add w-review w-worktree-add w-worktree-remove'.split(' ')
 const EXPECTED_SKILLS = [
   ...WORKFLOW_SKILLS.map(name => `pecot-workflow/${name}`),
   ...['v-drawio', 'v-evidence', 'v-slidev'].map(name => `pecot-visual/${name}`),

@@ -73,7 +73,7 @@ Bashコマンド実行前に危険な操作を検出・ブロックする。
 | `claude-bash-guards` | Bashガード統合エントリポイント（Claude Code / Copilot CLI 共通。Copilot も snake_case の `tool_input.command` を送るため入力形式の分岐は無い）。以下のコアガードを順次実行する。deny は `hookSpecificOutput.permissionDecision: "deny"` で返す（Copilot はトップレベルの `decision: "block"` を無視する） | PreToolUse (Bash) | `true` |
 | `gh-pr-create-check` | `gh pr create` を検出しブロック。MCP ツールの `pr_create` の使用を強制する | コアガード | `true` |
 | `gh-issue-create-check` | `gh issue create` を検出しブロック。MCP ツールの `issue_create`（自由形式の起票は `freeform: true`）の使用を強制する | コアガード | `true` |
-| `gh-stack-check` | gh stack（`view` と `--help` の付いたものを除く）を検出しブロック。MCP ツールの `pr_create`・`pr_merge` の使用を強制する | コアガード | `true` |
+| `gh-stack-check` | gh stack（`view` と `--help` の付いたものを除く）を検出しブロック。MCP ツールの `pr_create`・`pr_restack` と、GitHub の画面でのマージ（`w-pr` が待ち受けて片付ける）を案内する | コアガード | `true` |
 | `git-no-verify-check` | 有効にしたときだけ、git のフックを飛ばす形を止める。対象は `--no-verify`、commit の `-n`（まとめ書きを含む。push の `-n` は `--dry-run` なので止めない）、引用符で囲んだそれらのオプション、`git -c core.hooksPath=`、`git config` で `core.hooksPath` を書く・消す形、前に置いた `SKIP=`・`HUSKY=0`。抜け道が多く守り切れないので、守りは CI に任せ、初期値は無効にしている | コアガード | `false` |
 | `git-worktree-branch-check` | `wt*` ブランチへの直接commit/pushをブロック。featureブランチでの作業を強制する。判定するリポジトリは `git -C` / `cd` チェイン / ツールの cwd（Claude Code では hook 入力の `cwd`。Copilot CLI では未設定）の順に解決する | コアガード | `true` |
 | `reviewer-clone-allow` | w-plan-reviewer の定型 clone（`.pecot/work/<Issue番号>/reviewer/<名前>` 宛の単一 `git clone`）を自動許可し、確認プロンプトを抑制する。全 deny ガード通過後のみ判定 | コアガード | `true` |

@@ -3,7 +3,7 @@ name: w-help
 description: |
   pecot CLIやスキルの使い方に関するヘルプ・ガイド。
   Use when the user asks "how do I..." questions about pecot workflow, CLI commands, board status, skills, or needs troubleshooting help.
-  Do NOT use when a more specific pecot skill fits the task (w-pr, w-active, w-merge, w-release, etc.).
+  Do NOT use when a more specific pecot skill fits the task (w-pr, w-active, w-release, etc.).
 when_to_use: "pecot の使い方が分からない、どのスキルを使えばよいか知りたい"
 ---
 
@@ -21,7 +21,7 @@ pecot CLI とスキル群の使い方で迷ったとき、何から始めれば�
 | Ready のタスクに着手したい | `/pecot-w:w-active` |
 | PR を作りたい | `/pecot-w:w-pr` |
 | PR のレビュー指摘に対応したい | `/pecot-w:w-pr` |
-| PR をマージしたい | `/pecot-w:w-merge` |
+| PR をマージしたい | GitHub の画面でマージする。`/pecot-w:w-pr` が待ち受けて後片付けまで済ませる |
 | develop → main にリリースしたい | `/pecot-w:w-release` |
 | Epic をサブタスクに分解したい | `/pecot-w:w-breakdown` |
 | 実装計画ファイルから Issue を一括登録したい | `/pecot-w:w-issueize` |
