@@ -37,7 +37,10 @@ w-pr は、CI 待ちとマージの待ち受けが終わるたびに、自分を
 Claude Code の既定の権限では、呼び直しのときに、スキルを使うかの確認が出ます。
 `Yes, and don't ask again for pecot-w:w-pr` を選ぶと、そのリポの `.claude/settings.local.json` に規則が入ります。
 同じリポでは、worktree も含めて以後は出ません。
-チームで共有するなら、`.claude/settings.json` の `permissions.allow` に `Skill(pecot-w:w-pr)` を書いてください。
+チームで共有するなら、`.claude/settings.json` の `permissions.allow` に次の 2 つを書いてください。
+
+- `Skill(pecot-w:w-pr)`: 引数なしの起動に当たる
+- `Skill(pecot-w:w-pr *)`: 呼び直しのような引数つきの起動に当たる
 
 ## エージェント
 

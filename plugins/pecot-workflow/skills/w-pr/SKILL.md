@@ -121,7 +121,7 @@ body.md は画像と同じ `.playwright-mcp/` に置く。gh は本文の `./<�
 gh pr checks <PR番号> --watch --fail-fast > /dev/null 2>&1; gh pr checks <PR番号>
 ```
 
-待ちが終わった通知を受けたら、出力を読む前に、Skill ツールで `pecot-w:w-pr` を引数 `resume` で呼び直す。allowed-tools の許可は、スキルを呼んだターンの間だけ続き、通知で始まるターンでは切れているからだ。
+Claude Code では、待ちが終わった通知を受けたら、出力を読む前に、Skill ツールで `pecot-w:w-pr` を引数 `resume` で呼び直す。allowed-tools の許可は、スキルを呼んだターンの間だけ続き、通知で始まるターンでは切れているからだ。GitHub Copilot CLI では呼び直さず、そのまま出力を読む。
 
 - `no checks reported` が出たら、少しおいて打ち直す。2 回続いたら CI の無いリポとみなし、その旨を伝えて Step 5 へ進む
 - 落ちたら、PR の変更が原因のものだけ直して push し、待ち直す。関係ない失敗は利用者に伝えて止まる
@@ -266,7 +266,7 @@ node <このスキルの base directory>/scripts/wait-merge.cjs <PR の URL>
 URL だけを渡すと、60 秒おきに PR を読み、25 分で切り上げる。間隔と上限は、2 つ目と 3 つ目の引数に秒で渡せる。
 25 分は、Claude Code の background 実行の既定の上限（30 分）より短い。
 
-待ちが終わった通知を受けたら、Step 4 と同じく、Skill ツールで `pecot-w:w-pr` を引数 `resume` で呼び直してから、出力に合う行を実行する。待ち直したときも、待ちが終わるたびに呼び直す。
+Claude Code では、待ちが終わった通知を受けたら、Step 4 と同じく Skill ツールで `pecot-w:w-pr` を引数 `resume` で呼び直してから出力に合う行を実行する。待ち直したときも、待ちが終わるたびに呼び直す。GitHub Copilot CLI では呼び直さず、そのまま出力に合う行を実行する。
 
 | 出力 | 次の手順 |
 |---|---|
