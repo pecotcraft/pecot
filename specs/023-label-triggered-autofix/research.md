@@ -92,6 +92,13 @@ spec 023 が決めた仕組み（起動ラベル・`gate` と `run` の 2 つの
 
 実装で確かめること: リポに絞って発行したトークンが、`permission-organization-projects: write` で organization のボードを書けるか。検証用（`pecotcraft/pecot-sandbox`）で確かめる。
 
+結果（2026-11-25、`actions/create-github-app-token` v3.4.0、検証用の App `pecot-agent-sandbox`）: 書ける。表の権限の組で、権限の表を直す点は無い。
+
+- 発行は既定のとおり、ワークフローのリポだけに絞った
+- `gate` の組で、進行の欄・ブランチ・PR・CI の run・書いた人の権限を読み、結果のコメント・ラベルを外すこと・organization のボードの `Needs Attention` を書けた
+- `run` の組で、結果のコメント・ラベルを外すこと・organization のボードの `Needs Attention` と `Todo` を書けた。push と PR の作成は、スキルを動かす Phase 4 で確かめる
+- App のトークンで読むと、組織の非公開のメンバーの `author_association` が `CONTRIBUTOR` で返る。そのため、`auto start` の答えは `author_association` で絞らず、書いた人の `permission` だけで決める（R5）
+
 ## R3. CI の失敗を直す仕組み
 
 - Decision: CI の結果を `workflow_run`（completed）で受け、別の run で直す。同じ job の中で CI を待たない
