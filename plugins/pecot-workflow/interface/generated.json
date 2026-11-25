@@ -1204,6 +1204,13 @@
                           "null"
                         ]
                       },
+                      "lane": {
+                        "description": "Value of the pecot-lane field (null when the item has none or the board has no pecot-lane field)",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
                       "title": {
                         "description": "Title of the Issue or PR"
                       },
@@ -1326,6 +1333,40 @@
               "additionalProperties": false,
               "description": "Board status"
             },
+            "lanes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "description": "Value of the pecot-lane field (null for the Issues without a value)",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "Number of open Issues with this value"
+                  },
+                  "startable": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "Number of those Issues in Ready whose readiness is startable"
+                  }
+                },
+                "required": [
+                  "name",
+                  "count",
+                  "startable"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Open Issues of the board items counted per pecot-lane value, in the order of the field options (values without Issues count 0; Issues without a value come last). Empty when the board has no pecot-lane field"
+            },
             "mismatches": {
               "type": "integer",
               "minimum": -9007199254740991,
@@ -1359,6 +1400,7 @@
                 "project",
                 "repositories",
                 "board",
+                "lanes",
                 "mismatches"
               ]
             },
@@ -2398,6 +2440,11 @@
             },
             "description": "Label (can be given several times)"
           },
+          "lane": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Value of the board field pecot-lane, one of its options; when omitted with parent_epic, the value of the parent Epic; cannot be used with files (write lane in the front matter instead)"
+          },
           "message": {
             "type": "string",
             "description": "Issue body (direct posting mode)"
@@ -2456,6 +2503,9 @@
           "label": [
             "--label",
             "-l"
+          ],
+          "lane": [
+            "--lane"
           ],
           "message": [
             "--message",

@@ -102,6 +102,18 @@ describe('validateIssueFrontmatter', () => {
     expect(validateIssueFrontmatter({ title: 'T', type: 'task', repository: 'owner/repo' }).status).toBeUndefined()
   })
 
+  it.for([
+    { name: 'docs', lane: 'docs', expected: 'docs' },
+    { name: '空文字列', lane: '', expected: undefined },
+    { name: 'null', lane: JSON_NULL, expected: undefined },
+  ])('lane に $name を渡すと、$expected にして返す', ({ lane, expected }) => {
+    expect(validateIssueFrontmatter({ ...ISSUE_BASE, lane }).lane).toBe(expected)
+  })
+
+  it('lane が文字列でないと、検証の誤りにする', () => {
+    expect(() => validateIssueFrontmatter({ ...ISSUE_BASE, lane: ['docs'] })).toThrow(FrontmatterError)
+  })
+
   it('blocked_by を省くと、空の一覧にして返す', () => {
     expect(validateIssueFrontmatter({ ...ISSUE_BASE }).blocked_by).toEqual([])
     expect(validateIssueFrontmatter({ ...ISSUE_BASE, blocked_by: [] }).blocked_by).toEqual([])

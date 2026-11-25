@@ -61,7 +61,7 @@ const boardShowCommand = defineCommand({
       warnOldFieldName(out, config, read)
       const { items, progress, isLegacy } = read
       const statuses = await collectAlertStatuses(client, config)
-      const view = { config, projectName, statuses }
+      const view = { config, projectName, statuses, laneOptions: read.laneOptions }
       const readiness = isLegacy ? skipBoardReadiness(out) : await readBoardReadiness(out, client, config, items, input.repo, progress)
       if (readiness.mismatches > 0) out.warning(mismatchNote(readiness.mismatches))
       const json = readiness.json === undefined ? undefined : (item: BoardItem) => readinessOf(readiness, item)
@@ -69,7 +69,7 @@ const boardShowCommand = defineCommand({
       out.result(boardShowResult(view, data, readiness.mismatches))
       out.data(input.json
         ? boardShowJson(data)
-        : boardShowMarkdown(view, input.repo, formatBoardOutput(items, readiness.texts), formatStackableChains(readiness.chains)))
+        : boardShowMarkdown(view, input.repo, formatBoardOutput(items, readiness.texts), formatStackableChains(readiness.chains), data.lanes))
     }
     catch (error: unknown) {
       if (error instanceof GitHubAPIError) return failApi(out, 'read project board', error)

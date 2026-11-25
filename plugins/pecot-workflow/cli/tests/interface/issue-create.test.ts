@@ -25,6 +25,7 @@ import {
   ISSUE_URL_BASE,
   linkedRepositories,
   parentEpic,
+  parentLane,
   rawFrontmatterFile,
   setUpIssueProject,
   subIssueAdded,
@@ -113,6 +114,7 @@ describe('issue create', () => {
       const github = await startGithub([
         linkedRepositories(),
         parentEpic(3, [{ number: 9, state: 'OPEN', title: '#3-01: 先の子' }]),
+        parentLane(3),
         createdIssue(12),
         createdIssue(13),
         issueNodeId(12),
@@ -181,7 +183,7 @@ describe('issue create', () => {
     it('ボードへの追加に失敗しても、親 Epic へつなぎ、Issue の URL を 1 回だけ出して終了コード 0 で終わる', async () => {
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', PARENT) })
-      await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), createdIssue(12), issueNodeId(12), failedAddToProject(), issueNodeId(3), subIssueAdded()])
+      await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), parentLane(3), createdIssue(12), issueNodeId(12), failedAddToProject(), issueNodeId(3), subIssueAdded()])
 
       const result = await create(path.join(project.root, 'a.md'))
 
@@ -253,7 +255,7 @@ describe('issue create', () => {
     it('親 Epic へのつなぎに失敗したとき、Issue の URL を標準出力に、error の行を標準エラーに出して終了コード 1 で終わる', async () => {
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_WITH_PARENT) })
-      await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(1), issueNodeId(3), failedSubIssue()])
+      await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), parentLane(3), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(1), issueNodeId(3), failedSubIssue()])
 
       const result = await create(path.join(project.root, 'draft.md'))
 
@@ -391,7 +393,7 @@ describe('issue create', () => {
 
     it('--label・--parent-epic・--order を付けると、status を設定し、ラベルを付け、親 Epic のサブ Issue につなぐ', async () => {
       setUpIssueProject()
-      const github = await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
+      const github = await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), parentLane(3), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
 
       const result = await create('-t', '題', '-r', 'acme/demo', '-m', TASK_BODY, '-l', 'a', '--label', 'b', '--parent-epic', '3', '--order', '3')
 
@@ -590,6 +592,7 @@ describe('issue create', () => {
         linkedRepositories(),
         blockedBySupported(),
         parentEpic(3, [{ number: 9, state: 'OPEN', title: '#3-02: 先の子' }, { number: 10, state: 'OPEN', title: '#3-18a: 枝の子' }]),
+        parentLane(3),
         createdIssue(12),
         createdIssue(13),
         issueNodeId(12),
@@ -971,7 +974,7 @@ describe('issue create', () => {
 
     it('親 Epic を付けて作ると、つないだ親の参照を data.issues の parent に返す', async () => {
       setUpIssueProject()
-      await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
+      await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), parentLane(3), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
 
       const outcome = await createTool({ ...DIRECT, parent_epic: '3', order: 3 })
 
@@ -1086,6 +1089,7 @@ describe('issue create', () => {
       const github = await startGithub([
         linkedRepositories(),
         parentEpic(3, [{ number: 9, state: 'OPEN', title: '#3-01: 先の子' }]),
+        parentLane(3),
         createdIssue(12),
         createdIssue(13),
         issueNodeId(12),
@@ -1184,7 +1188,7 @@ describe('issue create', () => {
       await verifies(context, 'PW-ISSUE-CREATE-21')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', PARENT) })
-      await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), createdIssue(12), issueNodeId(12), failedAddToProject(), issueNodeId(3), subIssueAdded()])
+      await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), parentLane(3), createdIssue(12), issueNodeId(12), failedAddToProject(), issueNodeId(3), subIssueAdded()])
 
       const outcome = await createTool({ files: inRoot(project.root, 'a.md') })
 
@@ -1226,7 +1230,7 @@ describe('issue create', () => {
       await verifies(context, 'PW-ISSUE-CREATE-26')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_WITH_PARENT) })
-      await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(1), issueNodeId(3), failedSubIssue()])
+      await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), parentLane(3), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(1), issueNodeId(3), failedSubIssue()])
 
       const outcome = await createTool({ files: inRoot(project.root, 'draft.md') })
 
@@ -1375,7 +1379,7 @@ describe('issue create', () => {
       await verifies(context, 'PW-ISSUE-CREATE-19')
       await verifies(context, 'PW-ISSUE-CREATE-20')
       setUpIssueProject()
-      const github = await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
+      const github = await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), parentLane(3), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
 
       const outcome = await createTool({ title: '題', repo: 'acme/demo', message: TASK_BODY, label: ['a', 'b'], parent_epic: '3', order: 3 })
 
@@ -1541,6 +1545,7 @@ describe('issue create', () => {
           linkedRepositories(),
           blockedBySupported(),
           parentEpic(3, [{ number: 9, state: 'OPEN', title: '#3-02: 先の子' }, { number: 10, state: 'OPEN', title: '#3-18a: 枝の子' }]),
+          parentLane(3),
           createdIssue(12),
           createdIssue(13),
           issueNodeId(12),

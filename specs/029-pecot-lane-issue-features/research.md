@@ -63,15 +63,16 @@
 ## R6. 起票・同期・一覧での `pecot-lane`
 
 - **Decision**:
-  - `issue_create` に入力 `lane` を足す。値はボードの `pecot-lane` の選択肢と照らし、無い値なら Issue を作る前に止める（US2 の 4）
+  - `issue_create` に入力 `lane` を足す。`attributes` の `pecot-lane` を短く書く入力として扱い、照らし合わせと書き込みは R7 の仕組みに任せる。無い値なら Issue を作る前に止める（US2 の 4）
   - 名前から選択肢を引く関数は 1 つにし、B の single select の照らし合わせ（R7）と共有する
   - `parent_epic` があり `lane` が無ければ、CLI が親の値を読んで同じ値にする（US2 の 2）
-  - スキル（w-quick・w-ready・w-issueize・w-backlog）は、起票の内容から `lane` を決めて渡す。決められなければ利用者に確かめる
-  - `board_sync` の結果に `missing_lane`（`pecot-lane` の無い開いた Issue の一覧）を足し、警告も出す。同期は止めない
+  - スキル（w-quick・w-ready・w-issueize・w-backlog）は、利用者が分類を言ったときだけ `lane` を渡す。推し量らず、尋ねない
+  - `board_sync` は変えない。値の無い Issue を挙げない
   - `board_show` の各 Item に `lane` を足し、結果に `lanes`（値ごとの件数。着手できる件数を含む）を足す
-  - w-active は、`board_show` の `lanes` を使って候補を領域ごとに出す
-  - `pecot-lane` の無いボードでは、`lane` は null、`lanes` と `missing_lane` は空で、今の結果と同じにする
-- **Rationale**: 親の値の引き継ぎは決まった処理なので、エージェントに任せず CLI でする。値を決める判断は内容の読み取りが要るので、スキルに置く（spec の前提）
+  - w-active は、`board_show` の `items[].lane` と readiness で、候補を値ごとに出す
+  - `pecot-lane` の無いボードでは、`lane` は null、`lanes` は空で、Markdown は今と同じにする。起票で `lane` を渡されたら、書かずに警告を出す
+- **Rationale**: `pecot-lane` は、Issue を分類したい人が使う任意の欄にする（2026-11-25 の clarify）。入れることを求めたり、値の無い Issue を警告したりすると、使い道を pecot が決めることになる。親の値の引き継ぎは決まった処理なので、エージェントに任せず CLI でする
+- **Alternatives considered（2026-11-25 まで）**: 起票するスキルが内容から値を決め、`board_sync` が値の無い Issue を警告する形。全 Issue に値を入れる運用を前提にするので、採らない
 - **Alternatives considered**: `board_show` の結果を領域ごとの入れ子にする。今の `items` の形を変えると、ほかの利用（readiness など）を直す必要がある。集計の `lanes` を足すだけにする
 
 ## R7. Issue の機能を名前で扱う（B）

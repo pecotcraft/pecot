@@ -42,7 +42,7 @@ Phase 1 の `migration` は `renamed`・`config_moved` だけを持つ。`pendin
 | 入力 | 変更 | 内容 |
 |---|---|---|
 | `priority`・`size` | 削除 | 渡されたら、無い入力として止める |
-| `lane` | 追加 | `pecot-lane` の値。省略できる。そのときボードから読んだ選択肢と照らす。`parent_epic` があり省略したら、親の値。`attributes` にも `pecot-lane` を入れると、どちらを使うか決まらないので、Issue を作らずに止める（`ambiguous_attribute`） |
+| `lane` | 追加 | `pecot-lane` の値。省略できる。そのときボードから読んだ選択肢と照らす。`parent_epic` があり省略したら、親の値。`attributes` にも `pecot-lane` を入れると、どちらを使うか決まらないので、Issue を作らずに止める（`ambiguous_attribute`）。ボードに single select の `pecot-lane` が無ければ、書かずに起票し、警告を 1 行出す。`files` とは一緒に渡せない（frontmatter に書く） |
 | `attributes` | 追加 | B を参照 |
 
 frontmatter: `priority`・`size` は読み捨てる。`lane` と `attributes` を受ける。
@@ -56,11 +56,7 @@ frontmatter: `priority`・`size` は読み捨てる。`lane` と `attributes` �
 
 ### `board_sync`
 
-| 出力 | 変更 | 内容 |
-|---|---|---|
-| `missing_lane` | 追加 | `pecot-lane` の無い開いた Issue の参照の配列。`pecot-lane` が無いボードでは空 |
-
-`missing_lane` が空でなければ、警告を 1 行出す。終了コードは変えない。
+`pecot-lane` については変えない。`pecot-lane` は任意の欄なので、値の無い Issue を挙げない（spec の FR-005）。
 
 ### 旧い形のボードと設定での各操作
 

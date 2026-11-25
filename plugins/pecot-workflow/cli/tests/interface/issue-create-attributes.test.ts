@@ -9,8 +9,8 @@ import { writeTree } from '../../src/tests/_helpers/temporary.js'
 import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import type { RunningGithub } from '../_helpers/interface-case.js'
-import { definitionRules } from '../_helpers/attributes.js'
-import { addedToProject, ISSUE_URL_BASE, issueNodeId, linkedRepositories, rawFrontmatterFile, setUpIssueProject, TASK_BODY, updatedFields } from '../_helpers/issue-create-case.js'
+import { BOARD_FIELDS_WITH_LANE, definitionRules } from '../_helpers/attributes.js'
+import { addedToProject, ISSUE_URL_BASE, issueNodeId, linkedRepositories, parentLane, rawFrontmatterFile, setUpIssueProject, subIssueAdded, TASK_BODY, updatedFields } from '../_helpers/issue-create-case.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -58,6 +58,19 @@ function operations(github: Readonly<RunningGithub>): readonly string[] {
 
 function issuePosts(github: Readonly<RunningGithub>): readonly RecordedRequest[] {
   return github.requests().filter(request => request.type === 'rest' && request.method === 'POST' && request.path === '/repos/acme/demo/issues')
+}
+
+function laneDefinitions(): readonly ResponseRule[] {
+  return definitionRules({ fields: BOARD_FIELDS_WITH_LANE })
+}
+
+// ボードのフィールドへの書き込みの要求の variables
+function laneWrites(github: Readonly<RunningGithub>): readonly unknown[] {
+  return github.requests().filter(request => request.type === 'graphql' && request.operation === 'UpdateProjectItemFieldValue').map(request => request.type === 'graphql' ? request.variables : undefined)
+}
+
+function laneWrite(optionId: string): Record<string, unknown> {
+  return { projectId: 'PVT_1', itemId: 'PVTI_1', fieldId: 'F_lane', value: { singleSelectOptionId: optionId } }
 }
 
 describe('issue create', () => {
@@ -219,6 +232,134 @@ describe('issue create', () => {
       expect(operations(github)).not.toContain('UpdateProjectItemFieldValue')
       expect(issuePosts(github)).toMatchObject([{ body: { title: '[Task] 一覧に状態を出す' } }])
       expect(JSON.stringify(issuePosts(github))).not.toContain('milestone')
+    })
+  })
+
+  describe('lane', () => {
+    const PARENT = { parent_epic: 'acme/demo/3' }
+
+    it('lane を付けて呼ぶと、Issue を作り、ボードの pecot-lane にその値を書く', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-89')
+      setUpIssueProject()
+      const github = await startGithub([linkedRepositories(), ...laneDefinitions(), created(), addedToProject(), updatedFields(1), boardWritten()])
+
+      const outcome = await createTool({ ...DIRECT, lane: 'docs' })
+
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toStrictEqual({ issues: [{ owner: 'acme', repository: 'demo', number: 12, url: `${ISSUE_URL_BASE}/12`, status: 'ready' }] })
+      expect(laneWrites(github)).toMatchObject([laneWrite('O_lane_docs')])
+    })
+
+    it('lane が選択肢と大文字と小文字で違うと、Issue を作らずに、invalid_value と取りうる値を errors に入れて invalid-input の失敗を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-89')
+      await verifies(context, 'PW-ISSUE-CREATE-90')
+      setUpIssueProject()
+      const github = await startGithub([linkedRepositories(), ...laneDefinitions()])
+
+      const outcome = await createTool({ ...DIRECT, lane: 'Docs' })
+
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured).toMatchObject({ kind: 'invalid-input', issues: [], errors: [{ code: 'invalid_value', name: 'pecot-lane', source: 'project', value: 'Docs', expected: 'one of: cli, docs' }] })
+      expect(issuePosts(github)).toStrictEqual([])
+    })
+
+    it('lane と attributes の pecot-lane を両方渡すと、Issue を作らずに、ambiguous_attribute を 1 件だけ errors に入れて失敗を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-91')
+      setUpIssueProject()
+      const github = await startGithub([linkedRepositories(), ...laneDefinitions()])
+
+      const outcome = await createTool({ ...DIRECT, lane: 'docs', attributes: [{ name: 'pecot-lane', value: 'cli' }] })
+
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured['errors']).toStrictEqual([{ code: 'ambiguous_attribute', name: 'pecot-lane', source: 'project', hint: 'the lane is given both as lane and as the pecot-lane attribute; give it in one place' }])
+      expect(issuePosts(github)).toStrictEqual([])
+    })
+
+    it('parent_epic を付けて lane を省くと、親の Epic の pecot-lane の値を書く', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-92')
+      setUpIssueProject()
+      const github = await startGithub([linkedRepositories(), parentLane(3, 'cli'), ...laneDefinitions(), created(), addedToProject(), updatedFields(1), boardWritten(), issueNodeId(3), subIssueAdded()])
+
+      const outcome = await createTool({ ...DIRECT, ...PARENT })
+
+      expect(outcome.isError).toBe(false)
+      expect(github.requests().find(request => request.type === 'graphql' && request.operation === 'GetIssueLane')).toMatchObject({ variables: { owner: 'acme', repo: 'demo', number: 3, laneFieldName: 'pecot-lane' } })
+      expect(laneWrites(github)).toMatchObject([laneWrite('O_lane_cli')])
+    })
+
+    it('parent_epic と lane を付けると、親の値を読まずに lane の値を書く', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-92')
+      setUpIssueProject()
+      const github = await startGithub([linkedRepositories(), ...laneDefinitions(), created(), addedToProject(), updatedFields(1), boardWritten(), issueNodeId(3), subIssueAdded()])
+
+      const outcome = await createTool({ ...DIRECT, ...PARENT, lane: 'docs' })
+
+      expect(outcome.isError).toBe(false)
+      expect(operations(github)).not.toContain('GetIssueLane')
+      expect(laneWrites(github)).toMatchObject([laneWrite('O_lane_docs')])
+    })
+
+    it('親の Epic に pecot-lane の値が無いと、機能の定義を読まずに、pecot-lane を書かない', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-92')
+      setUpIssueProject()
+      const github = await startGithub([linkedRepositories(), parentLane(3), created(), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
+
+      const outcome = await createTool({ ...DIRECT, ...PARENT })
+
+      expect(outcome.isError).toBe(false)
+      expect(operations(github)).not.toContain('GetIssueAttributeDefinitions')
+      expect(laneWrites(github)).toStrictEqual([])
+    })
+
+    it('ボードに single select の pecot-lane が無いと、lane を書かずに Issue を作り、warnings に入れて成功を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-93')
+      setUpIssueProject()
+      const github = await startGithub([linkedRepositories(), ...definitionRules(), created(), addedToProject(), updatedFields(1)])
+
+      const outcome = await createTool({ ...DIRECT, lane: 'docs' })
+
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured['warnings']).toStrictEqual(['the board has no single select field pecot-lane; Issues will be created without a lane'])
+      expect(issuePosts(github)).toHaveLength(1)
+      expect(laneWrites(github)).toStrictEqual([])
+    })
+
+    it('フロントマターに lane があると、そのファイルから作る Issue に値を書き、set の行に出す', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-94')
+      const project = setUpIssueProject()
+      writeTree(project.root, { 'a.md': taskFile('先頭', 'lane: docs') })
+      const github = await startGithub([linkedRepositories(), ...laneDefinitions(), created(), issueNodeId(12), addedToProject(), updatedFields(1), boardWritten()])
+
+      const result = await runInProcess(['issue', 'create', path.join(project.root, 'a.md')], ISSUE_CREATE_COMMANDS)
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toBe('created: Issue acme/demo/12 from a.md\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status ready\nset: Issue acme/demo/12 pecot-lane\n')
+      expect(laneWrites(github)).toMatchObject([laneWrite('O_lane_docs')])
+    })
+
+    it('--lane をファイルと一緒に渡すと、使い方の誤りで終了コード 2 を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-95')
+      const project = setUpIssueProject()
+      writeTree(project.root, { 'a.md': taskFile('先頭') })
+      const github = await startGithub([])
+
+      const result = await runInProcess(['issue', 'create', path.join(project.root, 'a.md'), '--lane', 'docs'], ISSUE_CREATE_COMMANDS)
+
+      expect(result.code).toBe(2)
+      expect(result.stderr).toContain('cannot be used with')
+      expect(result.stderr).toContain('write lane in the front matter')
+      expect(github.requests()).toStrictEqual([])
+    })
+
+    it('lane を files と一緒に渡すと、invalid-input の失敗を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-CREATE-95')
+      const project = setUpIssueProject()
+      writeTree(project.root, { 'a.md': taskFile('先頭') })
+      await startGithub([])
+
+      const outcome = await createTool({ files: [path.join(project.root, 'a.md')], lane: 'docs' })
+
+      expect(outcome).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
     })
   })
 })

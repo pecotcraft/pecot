@@ -8,7 +8,8 @@
       "operation": "ListProjectItems",
       "variables": {
         "projectId": "PVT_1",
-        "cursor": null
+        "cursor": null,
+        "laneFieldName": "pecot-lane"
       },
       "auth": "token"
     },

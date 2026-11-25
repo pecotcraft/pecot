@@ -1320,9 +1320,10 @@ describe('board show', () => {
         dependabot_alerts: { enabled: true, open_count: 2, max_severity: 'high', alerts_url: `https://${DEFAULT_HOST}/acme/demo/security/dependabot` },
       }],
       board: { items: [
-        { id: 'PVTI_1', workflow: 'Ready', title: '課題1', updatedAt: '2026-01-02T03:04:05Z', content: { number: 1, state: 'OPEN', url: `https://${DEFAULT_HOST}/acme/demo/issues/1`, labels: [], repository: 'acme/demo' }, readiness: { kind: 'startable', stackOn: null, reason: null, text: 'startable' } },
-        { id: 'PVTI_2', workflow: 'Active', title: '課題2', updatedAt: '2026-01-02T03:04:05Z', content: { number: 2, state: 'OPEN', url: `https://${DEFAULT_HOST}/acme/demo/issues/2`, labels: [], repository: 'acme/demo' }, readiness: null },
+        { id: 'PVTI_1', workflow: 'Ready', lane: null, title: '課題1', updatedAt: '2026-01-02T03:04:05Z', content: { number: 1, state: 'OPEN', url: `https://${DEFAULT_HOST}/acme/demo/issues/1`, labels: [], repository: 'acme/demo' }, readiness: { kind: 'startable', stackOn: null, reason: null, text: 'startable' } },
+        { id: 'PVTI_2', workflow: 'Active', lane: null, title: '課題2', updatedAt: '2026-01-02T03:04:05Z', content: { number: 2, state: 'OPEN', url: `https://${DEFAULT_HOST}/acme/demo/issues/2`, labels: [], repository: 'acme/demo' }, readiness: null },
       ] },
+      lanes: [],
     })
   })
 

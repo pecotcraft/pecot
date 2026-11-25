@@ -16,6 +16,7 @@ import {
   issueNodeId,
   ISSUE_URL_BASE,
   linkedRepositories,
+  parentLane,
   setUpIssueProject,
   subIssueAdded,
   updatedFields,
@@ -97,7 +98,7 @@ describe('issue create', () => {
 
   it('Epic に --parent-epic を付けると、warning の行を出して親につなぎ、欄は status backlog だけにする', async () => {
     setUpIssueProject()
-    await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
+    await startGithub([linkedRepositories(), parentLane(3), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
 
     const result = await freeform('-m', MESSAGE, '-r', 'acme/demo', '--type', 'epic', '--parent-epic', '3')
 
@@ -138,7 +139,7 @@ describe('issue create', () => {
 
   it('親 Epic へのつなぎに失敗したとき、Issue の URL を標準出力に出して終了コード 1 で終わる', async () => {
     setUpIssueProject()
-    await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), failedSubIssue()])
+    await startGithub([linkedRepositories(), parentLane(3), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), failedSubIssue()])
 
     const result = await freeform('-m', MESSAGE, '-r', 'acme/demo', '--parent-epic', '3')
 
@@ -214,7 +215,7 @@ describe('issue create', () => {
       await verifies(context, 'PW-ISSUE-CREATE-62')
       await verifies(context, 'PW-ISSUE-CREATE-63')
       setUpIssueProject()
-      const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
+      const github = await startGithub([linkedRepositories(), parentLane(3), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
 
       const outcome = await freeformTool({ message: MESSAGE, repo: 'acme/demo', type: 'epic', parent_epic: '3' })
 
@@ -254,7 +255,7 @@ describe('issue create', () => {
     it('親 Epic へのつなぎに失敗したとき、作った Issue を issues に入れて失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-66')
       setUpIssueProject()
-      await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), failedSubIssue()])
+      await startGithub([linkedRepositories(), parentLane(3), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), failedSubIssue()])
 
       const outcome = await freeformTool({ message: MESSAGE, repo: 'acme/demo', parent_epic: '3' })
 

@@ -49,6 +49,7 @@ interface ItemExtra {
   進行の欄のほかに値を持つ単一選択のフィールドの名前
   */
   readonly others?: readonly string[]
+  readonly lane?: string
 }
 
 // 一覧の応答に載る、着手の判定の軽い入力
@@ -58,6 +59,7 @@ function item(id: string, number: number, workflow: string, extra: ItemExtra = {
   return {
     id,
     updatedAt: extra.updatedAt ?? '2026-01-02T03:04:05Z',
+    ...extra.lane !== undefined && { lane: { name: extra.lane } },
     fieldValues: { nodes: [{ field: { id: 'PVTSSF_workflow', name: extra.field ?? 'pecot-status' }, name: workflow }, ...(extra.others ?? []).map(name => ({ field: { id: `F_${name}`, name }, name: 'High' }))] },
     content: { id: `I_${String(number)}`, number, title: extra.title ?? `課題${String(number)}`, state: extra.state ?? 'OPEN', url: `https://${DEFAULT_HOST}/acme/${repository}/${extra.isPullRequest === true ? 'pull' : 'issues'}/${String(number)}`, labels: { nodes: [] }, repository: { owner: { login: 'acme' }, name: repository }, ...progress },
   }
@@ -72,6 +74,8 @@ const olderBacklog = (): Json => item('PVTI_r1', 11, 'Backlog', { updatedAt: '20
 
 const RESET = 1_800_000_000
 const board = (...nodes: Json[]): ResponseRule => graphqlRule('ListProjectItems', { node: { items: { nodes, pageInfo: { hasNextPage: false, endCursor: null } } } })
+// single select の pecot-lane（選択肢は options）を持つボード
+const laneBoard = (options: readonly string[], ...nodes: Json[]): ResponseRule => graphqlRule('ListProjectItems', { node: { laneField: { options: options.map(name => ({ name })) }, items: { nodes, pageInfo: { hasNextPage: false, endCursor: null } } } })
 const write = (itemId: string, optionId: string): ResponseRule => graphqlRule('UpdateProjectItemField', { updateProjectV2ItemFieldValue: { projectV2Item: { id: itemId } } }, { itemId, optionId })
 const failedWrite = (optionId: string): ResponseRule => ({ match: { operation: 'UpdateProjectItemField', variables: { itemId: 'PVTI_1', optionId } }, respond: { status: 500, body: { message: 'boom' } }, times: 1 })
 const rateLimit = (used: number, reset = RESET): ResponseRule => restRule('GET', '/rate_limit', 200, { resources: { graphql: { limit: 5000, used, remaining: 5000 - used, reset } } })
@@ -109,6 +113,16 @@ const syncBoardWith = async (config: Json, ...rules: ResponseRule[]): Promise<To
 const syncTool = async (arguments_: Json, run: Readonly<{ github?: ResponseRule[], config?: Json | false, files?: Record<string, string> }>): Promise<ToolResult> =>
   await runTool({ tool: 'board_sync', arguments: arguments_, github: run.github ?? [], config: run.config ?? boardConfig(), ...run.files !== undefined && { files: run.files } })
 const stableWarnings = (result: ToolResult): string[] => (Array.isArray(result.structured['warnings']) ? result.structured['warnings'].map(String) : []).map(warning => stable(warning))
+
+const noAlerts = (): ResponseRule => restRule('GET', '/repos/acme/demo/dependabot/alerts', 200, [])
+// pecot-lane の無いボード。Ready の #1 は着手できる
+const noLaneRules = (): ResponseRule[] => [board(item('PVTI_1', 1, 'Ready'), item('PVTI_3', 3, 'Active')), noAlerts(), prerequisitesRule({ number: 1 })]
+const showCommand = async (argv: readonly string[], rules: ResponseRule[]): Promise<CommandResult> => await runCommand({ argv: ['board', 'show', ...argv], github: rules, config: boardConfig() })
+
+function itemLanes(result: ToolResult): unknown[] {
+  const items = asJson(result.structured['board'])['items']
+  return Array.isArray(items) ? items.map(entry => asJson(entry)['lane']) : []
+}
 
 // board show の data を確かめる応答。Ready の #1 に済んでいない前提があり、列が判定と合わない
 const showRules = (): ResponseRule[] => [
@@ -768,8 +782,9 @@ describe('board show', () => {
         packages: [{ name: 'pkg', changelog: 'packages/pkg/CHANGELOG.md' }],
       }],
       board: { items: [
-        { id: 'PVTI_1', workflow: 'Ready', title: '課題1', updatedAt: '2026-01-02T03:04:05Z', content: { number: 1, state: 'OPEN', url: `https://${DEFAULT_HOST}/acme/demo/issues/1`, labels: [], repository: 'acme/demo' }, readiness: { kind: 'blocked', stackOn: null, reason: 'not-in-review', text: 'blocked by #9 (not in review: #9 (not started))' } },
+        { id: 'PVTI_1', workflow: 'Ready', lane: null, title: '課題1', updatedAt: '2026-01-02T03:04:05Z', content: { number: 1, state: 'OPEN', url: `https://${DEFAULT_HOST}/acme/demo/issues/1`, labels: [], repository: 'acme/demo' }, readiness: { kind: 'blocked', stackOn: null, reason: 'not-in-review', text: 'blocked by #9 (not in review: #9 (not started))' } },
       ] },
+      lanes: [],
       mismatches: 1,
       warnings: ['1 Ready or Blocked Issue may be in a column or Status that does not match its judgment; call board_sync to fix'],
     }
@@ -802,6 +817,110 @@ describe('board show', () => {
       expectClean(result)
       expect(stableWarnings(result)[0]).toBe(`this board still has fields pecot does not use: pecot-priority, pecot-size\n  call project_init with owner: "acme", name: <name>, host: "${DEFAULT_HOST}"`)
       expect(result.structured['board']).toEqual(expected.board)
+    })
+  })
+
+  describe('pecot-lane', () => {
+    const LANES = ['alpha', 'beta', 'gamma']
+    // Ready の #1 は着手でき、#6 は済んでいない前提がある。#5 は beta の値を持つ PR
+    const laneRules = (): ResponseRule[] => [
+      laneBoard(LANES,
+        item('PVTI_1', 1, 'Ready', { lane: 'alpha' }),
+        item('PVTI_2', 2, 'Backlog', { lane: 'alpha' }),
+        item('PVTI_3', 3, 'Active'),
+        item('PVTI_5', 5, 'Active', { lane: 'beta', isPullRequest: true }),
+        item('PVTI_6', 6, 'Ready', { lane: 'alpha' }),
+      ),
+      noAlerts(),
+      prerequisitesRule({ number: 1 }),
+      prerequisitesRule({ number: 6, blockedBy: [notStarted] }),
+    ]
+    const laneSummaries = [
+      { name: 'alpha', count: 3, startable: 1 },
+      { name: 'beta', count: 0, startable: 0 },
+      { name: 'gamma', count: 0, startable: 0 },
+      { name: null, count: 1, startable: 0 },
+    ]
+    it('ボードに pecot-lane があると、各 Item の lane に値を入れ、lanes に値ごとの Issue の数と着手できる数を選択肢の順で入れ、PR を数えない', async (context) => {
+      await verifies(context, 'PW-BOARD-SHOW-38')
+      await verifies(context, 'PW-BOARD-SHOW-39')
+      const result = await tool('board_show', {}, laneRules())
+      expectClean(result)
+      expect(itemLanes(result)).toEqual(['alpha', 'alpha', null, 'beta', 'alpha'])
+      expect(result.structured['lanes']).toEqual(laneSummaries)
+    })
+
+    it('値の無い Issue が無ければ、name が null の組を入れない', async (context) => {
+      await verifies(context, 'PW-BOARD-SHOW-39')
+      const result = await tool('board_show', {}, [laneBoard(LANES, item('PVTI_2', 2, 'Backlog', { lane: 'beta' })), noAlerts()])
+      expectClean(result)
+      expect(result.structured['lanes']).toEqual([
+        { name: 'alpha', count: 0, startable: 0 },
+        { name: 'beta', count: 1, startable: 0 },
+        { name: 'gamma', count: 0, startable: 0 },
+      ])
+    })
+
+    it('ボードに pecot-lane が無いと、各 Item の lane を null に、lanes を空にし、Markdown に Lanes の節を出さない', async (context) => {
+      await verifies(context, 'PW-BOARD-SHOW-40')
+      const result = await tool('board_show', {}, noLaneRules())
+      expectClean(result)
+      expect(itemLanes(result)).toEqual([null, null])
+      expect(result.structured['lanes']).toEqual([])
+      const markdown = await showCommand([], noLaneRules())
+      expect(markdown.code).toBe(0)
+      expect(markdown.stdout).toBe([
+        '# Project info', '', '## Overview', `- Project: ${ACTIVE_PROJECT}`, `- Host: ${DEFAULT_HOST}`, '- Owner: acme', '- Roadmap repo: none', '',
+        '## Registered repositories', '- acme/demo (develop: main)', '    release_type: single', '    dependabot_alerts: open 0', '',
+        '## Board status', '', '### Active (1)', '| Ref | Title |', '|-----|----------|', '| acme/demo#3 | 課題3 |', '',
+        '### Ready (1)', '| Ref | Title | Readiness |', '|-----|----------|-----------|', '| acme/demo#1 | 課題1 | startable |', '',
+      ].join('\n'))
+    })
+
+    it('lanes が空でないと、Markdown の Board status の後に Lanes の節を表で出し、値の無い組を (none) と書く', async (context) => {
+      await verifies(context, 'PW-BOARD-SHOW-41')
+      const result = await showCommand([], laneRules())
+      expect(result.code).toBe(0)
+      expectClean(result)
+      expect(result.stdout).toContain([
+        '| acme/demo#2 | 課題2 |',
+        '',
+        '## Lanes',
+        '',
+        '| Lane | Issues | Startable |',
+        '|------|--------|-----------|',
+        '| alpha | 3 | 1 |',
+        '| beta | 0 | 0 |',
+        '| gamma | 0 | 0 |',
+        '| (none) | 1 | 0 |',
+        '',
+      ].join('\n'))
+    })
+
+    it('--json を付けて打つと、lanes を JSON にも入れる', async () => {
+      const result = await showCommand(['--json'], laneRules())
+      expect(result.code).toBe(0)
+      expect(asJson(JSON.parse(result.stdout))['lanes']).toEqual(laneSummaries)
+    })
+
+    it('repo を付けると、そのリポの Item だけで lanes を数える', async (context) => {
+      await verifies(context, 'PW-BOARD-SHOW-42')
+      const result = await tool('board_show', { repo: 'acme/other' }, [
+        laneBoard(LANES,
+          item('PVTI_1', 1, 'Ready', { lane: 'alpha' }),
+          item('PVTI_7', 7, 'Ready', { lane: 'beta', repository: 'other' }),
+          item('PVTI_8', 8, 'Backlog', { repository: 'other' }),
+        ),
+        noAlerts(),
+        prerequisitesRule({ number: 7, repo: 'other' }),
+      ])
+      expectClean(result)
+      expect(result.structured['lanes']).toEqual([
+        { name: 'alpha', count: 0, startable: 0 },
+        { name: 'beta', count: 1, startable: 1 },
+        { name: 'gamma', count: 0, startable: 0 },
+        { name: null, count: 1, startable: 0 },
+      ])
     })
   })
 })

@@ -151,6 +151,14 @@ export function parentEpic(number: number, subIssues: readonly SubIssue[] = [], 
 }
 
 /**
+親 Epic の pecot-lane の読み取り。lane を省くと、値の無い親
+*/
+export function parentLane(number: number, lane?: string): ResponseRule {
+  const nodes = [{ project: { id: 'PVT_1' }, lane: lane === undefined ? JSON_NULL : { name: lane } }]
+  return { match: { operation: 'GetIssueLane', variables: { owner: 'acme', repo: 'demo', number } }, times: 1, respond: { status: 200, body: { data: { repository: { issue: { projectItems: { nodes } } } } } } }
+}
+
+/**
 親 Epic のサブ Issue の 2 ページ目以降
 */
 export function subIssuesPage(subIssues: readonly SubIssue[]): ResponseRule {

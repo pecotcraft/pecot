@@ -8,6 +8,7 @@ import { ATTRIBUTE_ERROR_CODES, ATTRIBUTE_SOURCES, formatAttributeValue, validat
 import type { AttributeError, AttributeInput, AttributeReading, AttributeValidation, AttributeValue, AttributeWrite, AttributeWriteTarget, BuiltinWrite } from '../domain/attributes.js'
 import type { ProjectConfig } from '../domain/config.js'
 import type { JsonObject } from '../domain/json.js'
+import { LANE_FIELD_NAME } from '../domain/lanes.js'
 import { readAttributeDefinitions } from '../infra/github/attributes.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
@@ -129,10 +130,9 @@ export interface CurrentAttributes {
 export type DefinitionsCache = Map<string, Awaited<ReturnType<typeof readAttributeDefinitions>>>
 
 /**
-定義を読み、担当にできるかを問い、値を照らす。current は issue_edit の今の値（issue_create では undefined）。
-定義の読み込みの警告は、読んだときに 1 回だけ warning の行にする
+リポの定義を読む。cache にあれば読まない。読み込みの警告は、読んだときに 1 回だけ warning の行にする
 */
-export async function checkAttributes(output: Output, client: GitHubClient, config: ProjectConfig, target: Readonly<AttributeCheckTarget>, inputs: readonly AttributeInput[], current: Readonly<CurrentAttributes> | undefined, cache: DefinitionsCache = new Map()): Promise<AttributeValidation> {
+export async function readDefinitions(output: Output, client: GitHubClient, config: ProjectConfig, target: Readonly<AttributeCheckTarget>, cache: DefinitionsCache): Promise<Awaited<ReturnType<typeof readAttributeDefinitions>>> {
   const key = `${target.owner}/${target.repository}`
   let read = cache.get(key)
   if (read === undefined) {
@@ -140,6 +140,14 @@ export async function checkAttributes(output: Output, client: GitHubClient, conf
     cache.set(key, read)
     for (const warning of read.warnings) output.warning(warning)
   }
+  return read
+}
+
+/**
+定義を読み、担当にできるかを問い、値を照らす。current は issue_edit の今の値（issue_create では undefined）
+*/
+export async function checkAttributes(output: Output, client: GitHubClient, config: ProjectConfig, target: Readonly<AttributeCheckTarget>, inputs: readonly AttributeInput[], current: Readonly<CurrentAttributes> | undefined, cache: DefinitionsCache = new Map()): Promise<AttributeValidation> {
+  const read = await readDefinitions(output, client, config, target, cache)
   const unassignable = new Set<string>()
   for (const login of assigneeLogins(inputs)) {
     if (!await client.isAssignable(target.owner, target.repository, login)) unassignable.add(login)
@@ -171,6 +179,26 @@ export function labelsConflict(inputs: readonly AttributeInput[], hasLabels: boo
     source: 'issue',
     hint: 'labels are given both as labels and as the labels attribute; give them in one place',
   }))
+}
+
+/**
+attributes のうち、ボードの pecot-lane を指すもの
+*/
+export function isLaneAttribute(input: Readonly<AttributeInput>): boolean {
+  return input.name === LANE_FIELD_NAME && (input.source === undefined || input.source === 'project')
+}
+
+/**
+`lane`・フロントマターの `lane` と、attributes の pecot-lane を両方渡したときの誤り
+*/
+export function laneConflict(inputs: readonly AttributeInput[], hasLane: boolean): readonly AttributeError[] {
+  if (!hasLane || inputs.every(input => !isLaneAttribute(input))) return []
+  return [{
+    code: 'ambiguous_attribute',
+    name: LANE_FIELD_NAME,
+    source: 'project',
+    hint: `the lane is given both as lane and as the ${LANE_FIELD_NAME} attribute; give it in one place`,
+  }]
 }
 
 type TargetedWrite<S extends AttributeWriteTarget['source']> = AttributeWrite & { readonly target: Extract<AttributeWriteTarget, { readonly source: S }> }

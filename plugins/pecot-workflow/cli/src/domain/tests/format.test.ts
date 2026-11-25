@@ -160,11 +160,12 @@ describe('transformItems', () => {
     expect(item.content.labels).toEqual(['bug', 'urgent'])
   })
 
-  it('出力の形（キーの順序を含む）は Python の辞書と同じ', () => {
+  it('出力のキーは id・workflow・lane・title・updatedAt・content の順に並ぶ', () => {
     const [item] = transformItems(SAMPLE_RAW_ITEMS, 'F_wf')
     expect(JSON.stringify(item)).toBe(JSON.stringify({
       id: 'item1',
       workflow: 'Active',
+      lane: JSON_NULL,
       title: 'Active Issue',
       updatedAt: '2026-01-14T10:00:00Z',
       content: {
@@ -177,9 +178,14 @@ describe('transformItems', () => {
     }))
   })
 
-  it('無い値は JSON にすると null で出る（Python の CLI と同じ）', () => {
+  it('無い値は JSON にすると null で出る', () => {
     const [item] = transformItems([{ id: 'x', content: { title: 't' } }], 'F_wf')
-    expect(JSON.stringify(item)).toBe('{"id":"x","workflow":null,"title":"t","updatedAt":"","content":{"number":null,"state":null,"url":null,"labels":[],"repository":""}}')
+    expect(JSON.stringify(item)).toBe('{"id":"x","workflow":null,"lane":null,"title":"t","updatedAt":"","content":{"number":null,"state":null,"url":null,"labels":[],"repository":""}}')
+  })
+
+  it('Item に lane の値があると、その名前を lane に入れる', () => {
+    const [item] = transformItems([{ id: 'x', lane: { name: 'alpha' }, content: { title: 't' } }], 'F_wf')
+    expect(item?.lane).toBe('alpha')
   })
 
   it('ラベルが空のとき、labels は空配列になる', () => {
@@ -243,7 +249,7 @@ describe('transformItems', () => {
 
   it('欠けたキーは既定値になる（id・title・updatedAt は空文字、他は null）', () => {
     const [item] = transformItems([{ content: { number: 1 } }], 'F_wf')
-    expect(item).toEqual({ id: '', workflow: JSON_NULL, title: '', updatedAt: '', content: { number: 1, state: JSON_NULL, url: JSON_NULL, labels: [], repository: '' } })
+    expect(item).toEqual({ id: '', workflow: JSON_NULL, lane: JSON_NULL, title: '', updatedAt: '', content: { number: 1, state: JSON_NULL, url: JSON_NULL, labels: [], repository: '' } })
   })
 })
 

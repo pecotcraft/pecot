@@ -32,8 +32,9 @@ import { DEPENDENCIES_UNSUPPORTED } from '../infra/github/issues.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { normalizePath, resolveRealPath } from '../infra/paths.js'
 import { readTextFile } from '../infra/text-file.js'
-import type { AttributeError, AttributeInput, AttributeWrite } from '../domain/attributes.js'
+import type { AttributeDefinition, AttributeError, AttributeInput, AttributeWrite } from '../domain/attributes.js'
 import type { JsonObject } from '../domain/json.js'
+import { LANE_FIELD_NAME } from '../domain/lanes.js'
 import {
   ATTRIBUTE_ERROR_JSON,
   ATTRIBUTE_FAILURE_JSON,
@@ -42,7 +43,10 @@ import {
   builtinOutcome,
   checkAttributes,
   createBuiltins,
+  isLaneAttribute,
   labelsConflict,
+  laneConflict,
+  readDefinitions,
   reportAttributeErrors,
   warnFailures,
   writeIssueFields,
@@ -225,18 +229,94 @@ type AttributeCheck
   = | { readonly ok: true, readonly writes: readonly AttributeWrite[] }
     | { readonly ok: false, readonly errors: readonly AttributeError[] }
 
-// 起票の前に attributes を照らす。attributes が無ければ定義を読まない。hasLabels は label かフロントマターの labels があるか
-async function checkCreateAttributes(output: Output, client: GitHubClient, config: ProjectConfig, owner: string, repository: string, inputs: readonly AttributeInput[], hasLabels: boolean, cache: DefinitionsCache): Promise<AttributeCheck> {
+/**
+起票する 1 件の attributes の照らし合わせに要るもの
+*/
+interface CreateAttributeRequest {
+  readonly owner: string
+  readonly repository: string
+  readonly inputs: readonly AttributeInput[]
+  /**
+  label かフロントマターの labels があるか
+  */
+  readonly hasLabels: boolean
+  /**
+  入力かフロントマターの lane
+  */
+  readonly lane: string | undefined
+  readonly parent: IssueReference | undefined
+}
+
+/**
+1 回の起票で使い回す読み取り。parentLanes は親 Epic ごとの pecot-lane の値
+*/
+interface CreateCheckCache {
+  readonly definitions: DefinitionsCache
+  readonly parentLanes: Map<string, string | undefined>
+  readonly noLaneField: { hasWarned: boolean }
+}
+
+function newCheckCache(): CreateCheckCache {
+  return { definitions: new Map(), parentLanes: new Map(), noLaneField: { hasWarned: false } }
+}
+
+const NO_LANE_SUFFIX = 'Issues will be created without a lane'
+
+function laneInput(value: string): AttributeInput {
+  return { name: LANE_FIELD_NAME, value, source: 'project' }
+}
+
+// 親 Epic の pecot-lane の値。読めなければ warning にして、値なしとして続ける
+async function parentLaneOf(output: Output, client: GitHubClient, config: ProjectConfig, parent: IssueReference, cache: CreateCheckCache): Promise<string | undefined> {
+  const key = issueReferenceKey(parent)
+  if (cache.parentLanes.has(key)) return cache.parentLanes.get(key)
+  let lane: string | undefined
+  try {
+    lane = await client.getIssueLane(config.project.id, parent.repository.owner, parent.repository.repository, parent.number)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof GitHubAPIError)) throw error
+    output.warning(`could not read ${LANE_FIELD_NAME} of the parent Epic ${issueReferenceToCliReference(parent)}: ${error.message}; ${NO_LANE_SUFFIX}`)
+  }
+  cache.parentLanes.set(key, lane)
+  return lane
+}
+
+// lane の入力か親 Epic の値を、attributes の pecot-lane の入力にする。attributes に pecot-lane があれば足さない
+async function laneOf(output: Output, client: GitHubClient, config: ProjectConfig, request: Readonly<CreateAttributeRequest>, cache: CreateCheckCache): Promise<string | undefined> {
+  if (request.inputs.some(input => isLaneAttribute(input))) return undefined
+  if (request.lane !== undefined) return request.lane
+  return request.parent === undefined ? undefined : await parentLaneOf(output, client, config, request.parent, cache)
+}
+
+function hasLaneField(definitions: readonly AttributeDefinition[]): boolean {
+  return definitions.some(definition => definition.name === LANE_FIELD_NAME && definition.source === 'project' && definition.kind === 'single_select')
+}
+
+// 起票の前に attributes と lane を照らす。どちらも無ければ定義を読まない
+async function checkCreateAttributes(output: Output, client: GitHubClient, config: ProjectConfig, request: Readonly<CreateAttributeRequest>, cache: CreateCheckCache): Promise<AttributeCheck> {
+  const { owner, repository } = request
+  const lane = await laneOf(output, client, config, request, cache)
+  let inputs = lane === undefined ? request.inputs : [...request.inputs, laneInput(lane)]
   if (inputs.length === 0) return { ok: true, writes: [] }
   let validation
   try {
-    validation = await checkAttributes(output, client, config, { owner, repository }, inputs, undefined, cache)
+    if (lane !== undefined) {
+      const read = await readDefinitions(output, client, config, { owner, repository }, cache.definitions)
+      // ボードのフィールドを読めなかったときは、照らし合わせが unreadable_attribute で止める
+      if (!hasLaneField(read.definitions) && !read.unreadable.has('project')) {
+        inputs = request.inputs
+        if (!cache.noLaneField.hasWarned) output.warning(`the board has no single select field ${LANE_FIELD_NAME}; ${NO_LANE_SUFFIX}`)
+        cache.noLaneField.hasWarned = true
+      }
+    }
+    validation = await checkAttributes(output, client, config, { owner, repository }, inputs, undefined, cache.definitions)
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
     return stopWith(output, `could not read the attributes of ${owner}/${repository}: ${error.message}`, kindOfFailure(error))
   }
-  const errors = [...labelsConflict(inputs, hasLabels), ...validation.ok ? [] : validation.errors]
+  const errors = [...labelsConflict(request.inputs, request.hasLabels), ...laneConflict(request.inputs, request.lane !== undefined), ...validation.ok ? [] : validation.errors]
   return validation.ok && errors.length === 0 ? validation : { ok: false, errors }
 }
 
@@ -546,11 +626,18 @@ function readLocalFile(output: Output, config: ProjectConfig, file: string): Loc
 
 // ファイルごとに、作成先のリポの定義で attributes を照らす。1 つでも合わなければ、すべての誤りを出して止める
 async function checkFileAttributes(output: Output, client: GitHubClient, config: ProjectConfig, locals: readonly LocalFile[], record: ((errors: readonly AttributeErrorJson[]) => void) | undefined): Promise<readonly (readonly AttributeWrite[])[]> {
-  const cache: DefinitionsCache = new Map()
+  const cache = newCheckCache()
   const writes: (readonly AttributeWrite[])[] = []
   const failed: FileAttributeErrors[] = []
   for (const local of locals) {
-    const check = await checkCreateAttributes(output, client, config, local.owner, local.repository, local.attributes, local.frontmatter.labels.length > 0, cache)
+    const check = await checkCreateAttributes(output, client, config, {
+      owner: local.owner,
+      repository: local.repository,
+      inputs: local.attributes,
+      hasLabels: local.frontmatter.labels.length > 0,
+      lane: local.frontmatter.lane,
+      parent: local.parentReference,
+    }, cache)
     if (check.ok) writes.push(check.writes)
     else failed.push({ file: local.name, errors: check.errors })
   }
@@ -878,6 +965,7 @@ interface DirectOptions {
   readonly order: number | undefined
   readonly project: string | undefined
   readonly attributes: readonly AttributeInput[]
+  readonly lane: string | undefined
 }
 
 // config は epic の作成先を決めるときに読み済みなら渡す。無ければ、status の確認の後に読む
@@ -902,7 +990,7 @@ async function createDirect(output: CreateOutput, options: Readonly<DirectOption
   validateIssueTemplate(output, issueType, options.message)
   const client = await clientForIssueCreate(output, config, owner, repository, options.repository, parentReference, options.order)
   const labels = options.labels !== undefined && options.labels.length > 0 ? options.labels : undefined
-  const attributes = await checkDirectAttributes(output, client, config, owner, repository, options.attributes, labels !== undefined)
+  const attributes = await checkDirectAttributes(output, client, config, { owner, repository, inputs: options.attributes, hasLabels: labels !== undefined, lane: options.lane, parent: parentReference })
 
   await postIssue(output, client, config, newSession(), {
     owner,
@@ -921,8 +1009,8 @@ async function createDirect(output: CreateOutput, options: Readonly<DirectOption
 }
 
 // 直接の起票と freeform の attributes を照らす。合わなければ止める
-async function checkDirectAttributes(output: CreateOutput, client: GitHubClient, config: ProjectConfig, owner: string, repository: string, inputs: readonly AttributeInput[], hasLabels: boolean): Promise<readonly AttributeWrite[]> {
-  const check = await checkCreateAttributes(output, client, config, owner, repository, inputs, hasLabels, new Map())
+async function checkDirectAttributes(output: CreateOutput, client: GitHubClient, config: ProjectConfig, request: Readonly<CreateAttributeRequest>): Promise<readonly AttributeWrite[]> {
+  const check = await checkCreateAttributes(output, client, config, request, newCheckCache())
   return check.ok ? check.writes : stopForAttributeErrors(output, [{ file: undefined, errors: check.errors }], recordCreateErrors(output))
 }
 
@@ -974,6 +1062,7 @@ interface FreeformInput {
   readonly label?: readonly string[] | undefined
   readonly project?: string | undefined
   readonly attributes?: RawAttributes
+  readonly lane?: string | undefined
 }
 
 // テンプレートを確かめずに、メッセージだけで Issue を作る。タイトルは 1 行目の先頭 50 文字の空白を 1 つにまとめたもの
@@ -999,7 +1088,7 @@ async function createFreeform(output: CreateOutput, input: Readonly<FreeformInpu
   const client = await clientForIssueCreate(output, config, owner, repository, repo, parentReference, input.order)
   if (parentReference !== undefined && issueType === 'epic') output.warning('giving a parent Epic to an Epic is not recommended')
   const labels = input.label !== undefined && input.label.length > 0 ? input.label : undefined
-  const attributes = await checkDirectAttributes(output, client, config, owner, repository, attributeInputs(input.attributes), labels !== undefined)
+  const attributes = await checkDirectAttributes(output, client, config, { owner, repository, inputs: attributeInputs(input.attributes), hasLabels: labels !== undefined, lane: input.lane, parent: parentReference })
 
   await postIssue(output, client, config, newSession(), {
     owner,
@@ -1027,6 +1116,7 @@ interface MessageInput {
   readonly order?: number | undefined
   readonly project?: string | undefined
   readonly attributes?: RawAttributes
+  readonly lane?: string | undefined
 }
 
 // -m の直接投稿。入力の確認から作成まで
@@ -1046,6 +1136,7 @@ async function createFromMessage(output: CreateOutput, input: Readonly<MessageIn
     order: input.order,
     project: input.project,
     attributes: attributeInputs(input.attributes),
+    lane: input.lane,
   }, target.config)
 }
 
@@ -1066,6 +1157,7 @@ const ISSUE_CREATE = defineCommand({
     order: z.int().optional().describe('Order number of the subtask (used with parent_epic)'),
     label: LABEL_SCHEMA,
     attributes: ATTRIBUTES_INPUT.describe('Attributes to write by name (the attributes that issue_attributes lists): name, value and, only when the same name is in several sources, source; null values are skipped; cannot be used with files (write attributes in the front matter instead)'),
+    lane: z.string().min(1).optional().describe(`Value of the board field ${LANE_FIELD_NAME}, one of its options; when omitted with parent_epic, the value of the parent Epic; cannot be used with files (write lane in the front matter instead)`),
     freeform: z.boolean().default(false).describe('Create the Issue from a free-format message without the template check (title from the first 50 characters of the first line)'),
     project: PROJECT_INPUT,
   }),
@@ -1083,6 +1175,9 @@ const ISSUE_CREATE = defineCommand({
       }
       if (hasFiles && input.attributes !== undefined) {
         stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'attributes')} cannot be used with ${inputNameHint(CREATE_PATH, 'files')}; write attributes in the front matter`, 'invalid-input', USAGE_EXIT_CODE)
+      }
+      if (hasFiles && input.lane !== undefined) {
+        stopWith(output, hinted`${inputNameHint(CREATE_PATH, 'lane')} cannot be used with ${inputNameHint(CREATE_PATH, 'files')}; write lane in the front matter`, 'invalid-input', USAGE_EXIT_CODE)
       }
       if (input.freeform) {
         await createFreeform(output, input)

@@ -77,6 +77,8 @@ pecot-workflow の MCP サーバの resource を読み、テンプレートの�
 
 `parent_epic` は full path `owner/repo/N` を推奨。詳細は [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)。
 
+利用者が分類（`pecot-lane`）の値を言ったときだけ、`lane` に書く。言っていなければ空のままにし、尋ねもしない。
+
 投稿の前に、pecot-workflow の MCP ツール `issue_check` を使って、番号と前提を確かめる。
 結果の番号と前提を、地の文でユーザーに示す。前提が Step 3 で決めたものと食い違えば、ファイルを直してもう一度確かめる。
 

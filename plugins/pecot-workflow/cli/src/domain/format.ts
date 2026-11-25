@@ -33,6 +33,10 @@ transformItems の出力。formatBoardOutput は、欠けたキーを既定値�
 export interface BoardItem {
   readonly id?: JsonValue | undefined
   readonly workflow?: string | null | undefined
+  /**
+  pecot-lane の値。値が無いか、ボードに pecot-lane が無ければ null
+  */
+  readonly lane?: string | null | undefined
   readonly title?: JsonValue | undefined
   readonly updatedAt?: JsonValue | undefined
   readonly content: {
@@ -171,6 +175,7 @@ export function transformItems(rawItems: readonly JsonObject[], workflowFieldId:
     transformed.push({
       id: memberOrEmpty(item, 'id'),
       workflow: extractFieldValueById(item, workflowFieldId) ?? JSON_NULL,
+      lane: valueName(member(item, 'lane')) ?? JSON_NULL,
       title: memberOrEmpty(content, 'title'),
       updatedAt: memberOrEmpty(item, 'updatedAt'),
       content: {

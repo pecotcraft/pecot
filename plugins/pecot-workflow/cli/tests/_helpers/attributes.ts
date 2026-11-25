@@ -76,6 +76,14 @@ export const BOARD_FIELDS: readonly unknown[] = [
   projectField('F_priority', 'Priority', 'SINGLE_SELECT', { isIssueField: true, options: [{ id: 'O_high', name: 'High' }] }),
 ]
 
+/**
+既定のボードのフィールドに、選択肢 cli・docs の pecot-lane を足したもの
+*/
+export const BOARD_FIELDS_WITH_LANE: readonly unknown[] = [
+  ...BOARD_FIELDS,
+  projectField('F_lane', 'pecot-lane', 'SINGLE_SELECT', { options: [{ id: 'O_lane_cli', name: 'cli' }, { id: 'O_lane_docs', name: 'docs' }] }),
+]
+
 export interface DefinitionsSpec {
   readonly fields?: readonly unknown[]
   readonly issueFields?: readonly unknown[] | null

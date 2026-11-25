@@ -162,6 +162,7 @@ const IssueFrontmatterSchema = z.object({
   })),
   order: z.preprocess(value => convertToInteger(emptyStringToUndefined(value)), IntegerSchema.nullish().transform(value => value ?? undefined)),
   attributes: z.preprocess(value => value === null ? undefined : value, z.array(AttributeEntrySchema, { error: listMessage }).readonly().optional()),
+  lane: z.preprocess(emptyStringToUndefined, z.string({ error: stringMessage }).nullish().transform(value => value ?? undefined)),
 }).readonly()
 
 const CommentFrontmatterSchema = z.object({
