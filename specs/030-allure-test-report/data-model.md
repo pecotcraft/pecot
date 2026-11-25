@@ -95,7 +95,7 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。�
 - 読めない行は、Allure（Node の readline と `JSON.parse`）が読めない行とする。後の SideCheck も同じ決まりで読む
   - UTF-8 でないファイルは、全体を読めないとする
   - 行の区切りは `\r\n`・`\n`・`\r`・U+2028・U+2029（Node の readline）。`JSON.stringify` は U+2028 をエスケープしないので、文字列に U+2028 を含む行は 2 つに切れて読めない
-    - Allure は自分で書いた行を次の回に読めない（テストの名前に U+2028 を含むと起きる）。`generate.py` は、Allure が書いた後で U+2028・U+2029 を ` `・` ` にエスケープする。値は変わらない（#698）
+    - Allure は自分で書いた行を次の回に読めない（テストの名前に U+2028 を含むと起きる）。`generate.py` は、Allure が書いた後で U+2028・U+2029 を `\u2028`・`\u2029` にエスケープする。値は変わらない（#698）
   - JS の `trim()` で空になる行は飛ばす。空白とするのは ECMAScript の WhiteSpace と LineTerminator で、Python の `str.strip()` とは違う（U+FEFF を含み、`\x1c`〜`\x1f`・U+0085 を含まない）
   - `null` の行は、`JSON.parse` は通るが、Allure がその後で落ちる
   - `NaN`・`Infinity` を含む行と、オブジェクトでない行（`null` など）は読めない

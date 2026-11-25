@@ -229,7 +229,7 @@ def test_report_check_needs_index_and_history(tmp_path: Path, missing: str, expe
         ('{"a":1}\nNaN\n{"b":2}\n', "`history.jsonl` の 2 行目を Allure が読めません"),
         ('{"a":1}\nnull\n', "`history.jsonl` の 2 行目を Allure が読めません"),
         # Node の readline は U+2028 でも切るので、文字列の途中で行が切れる。
-        ('{"a":"x y"}\n', "`history.jsonl` の 1, 2 行目を Allure が読めません"),
+        ('{"a":"x\u2028y"}\n', "`history.jsonl` の 1, 2 行目を Allure が読めません"),
     ],
     ids=["nan", "null", "u2028"],
 )
