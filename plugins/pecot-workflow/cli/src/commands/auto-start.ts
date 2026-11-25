@@ -130,7 +130,7 @@ async function start(out: StartOutput, input: Readonly<z.output<typeof InputSche
   if (read.kind === 'unreadable') return stopWith(out, `could not read ${display}: ${read.reason}`, 'github-api')
   const { snapshot, issue } = read
   const comments = await readOrStop(out, `the comments of ${display}`, async () => await client.listIssueCommentRecords(target.owner, target.repository, target.number))
-  const writers = await writersAmong(client, repository, permissionCandidates(comments, 'context'))
+  const writers = await writersAmong(out, client, repository, permissionCandidates(comments, 'context'))
   const context = autoContextOf(comments, writers)
   const found = markerBranch(snapshot.target.branches, snapshot.target.pullRequests, target.number)
   const branch = found === NO_BRANCH ? '' : found

@@ -70,13 +70,14 @@ export async function readOrStop<T>(out: Readonly<Output>, what: string, read: (
 /**
 書き込み権限（admin・write）を持つか。[bot] の名前と、読めないとき（404・API の失敗）は持たない側に倒す
 */
-export async function hasWritePermission(client: GitHubClient, repository: Readonly<RepositoryReference>, login: string): Promise<boolean> {
+export async function hasWritePermission(out: Readonly<Output>, client: GitHubClient, repository: Readonly<RepositoryReference>, login: string): Promise<boolean> {
   if (login.endsWith('[bot]')) return false
   try {
     return WRITE_PERMISSIONS.has(await client.getCollaboratorPermission(repository.owner, repository.repository, login))
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
+    out.warning(`could not read the permission of ${login}: ${error.message}`)
     return false
   }
 }
@@ -84,7 +85,7 @@ export async function hasWritePermission(client: GitHubClient, repository: Reado
 /**
 logins のうち、書き込み権限を持つ人
 */
-export async function writersAmong(client: GitHubClient, repository: Readonly<RepositoryReference>, logins: readonly string[]): Promise<ReadonlySet<string>> {
-  const checked = await Promise.all(logins.map(async login => await hasWritePermission(client, repository, login)))
+export async function writersAmong(out: Readonly<Output>, client: GitHubClient, repository: Readonly<RepositoryReference>, logins: readonly string[]): Promise<ReadonlySet<string>> {
+  const checked = await Promise.all(logins.map(async login => await hasWritePermission(out, client, repository, login)))
   return new Set(logins.filter((_login, index) => checked.at(index) === true))
 }

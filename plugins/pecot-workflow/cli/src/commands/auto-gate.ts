@@ -162,7 +162,7 @@ async function readIssueFacts(out: GateOutput, client: GitHubClient, config: Pro
     if (read.kind === 'unreadable') return stopWith(out, `could not read ${display}: ${read.reason}`, 'github-api')
     const { snapshot, issue } = read
     const comments = await client.listIssueCommentRecords(target.owner, target.repository, target.number)
-    const writers = await writersAmong(client, repository, permissionCandidates(comments, 'plan'))
+    const writers = await writersAmong(out, client, repository, permissionCandidates(comments, 'plan'))
     const { column } = snapshot.target
     return {
       title: snapshot.title,
