@@ -22,12 +22,13 @@ Epic と後続へのコメントは、このスキルだけが書く。Issue の
 
 pecot-workflow の MCP ツール `pr_show` を使って、引数の PR を読む。
 
-PR が閉じた Issue を、次の 2 つを合わせて求める。重なる Issue は 1 つに数える。
+PR が閉じた Issue を、次の 3 つを合わせて求める。重なる Issue は 1 つに数える。
 
 - `pr_show` の `closing_issues` の Issue
 - head ブランチ（`head_ref`）の名前の末尾が `/<番号>` なら、同じリポのその番号の Issue
+- PR の本文の閉じるキーワード（`Closes #N`・`Fixes #N`・`Resolves #N` など）が指す、同じリポの Issue。既定のブランチ以外へ向けた PR では、GitHub がキーワードを読まず、`closing_issues` が空になるためだ
 
-PR が閉じた Issue を、pecot-workflow の MCP ツール `issue_show` を使って 1 つずつ読む。入力に `comment_limit: 20` を渡す。結果の `parent` が、その Issue の親 Epic になる。
+PR が閉じた Issue を、pecot-workflow の MCP ツール `issue_show` を使って 1 つずつ読む。入力に `comment_limit: 20` を渡す。結果の `parent` が、その Issue の親 Epic になる。ただし、`parent` の `title` が `[Tracker]` で始まるものは Tracker なので、親 Epic に数えない。
 
 親 Epic を持つ Issue が 1 つも無ければ、何も投稿せずに終える。PR の閉じた Issue が無いときも同じ。
 
@@ -47,8 +48,8 @@ PR が閉じた Issue を、pecot-workflow の MCP ツール `issue_show` を使
 
 speckit 由来のタスクで、後続のタスクに影響する変更があるときだけ行う。speckit 由来とは、PR が閉じた Issue の本文か、親 Epic のほかのサブタスクが `specs/`・`.specify/` に触れているものを指す。どちらでもなければ、ここで終える。
 
-1. 親 Epic を `issue_show` で読み、`sub_issues` のうち OPEN のものを、`issue_show` で 1 つずつ読む
-2. 通知する Issue を選ぶ。`blockedBy` に、PR が閉じた Issue を持つものを選ぶ。無ければ、OPEN のサブタスクのすべてを選ぶ
+1. 親 Epic を `issue_show` で読み、`sub_issues` のうち OPEN のものを、`issue_show` で 1 つずつ読む。Step 1 で求めた PR が閉じた Issue は、まだ OPEN でも候補から除く。ボードの同期のワークフローが、並んで閉じている途中のことがあるためだ
+2. 通知する Issue を選ぶ。`blockedBy` に、PR が閉じた Issue を持つものを選ぶ。無ければ、1 で残った OPEN のサブタスクのすべてを選ぶ
 3. 選んだ Issue のうち、Step 2 で読んだ変更の影響を受けるものだけに絞る。影響を受けるものが無ければ、ここで終える
 4. pecot-workflow の MCP サーバの resource `pecot-template://comment/precede-notify` を読む。そのガイドに従って、Issue ごとに本文を書く
 5. 書いた本文を、`issue_comment` で投稿する。入力は、その Issue の `owner/repo/N` を入れた `issue_ref`、`template: "precede-notify"`、本文を入れた `message`
