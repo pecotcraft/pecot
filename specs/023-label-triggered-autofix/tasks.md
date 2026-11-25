@@ -82,49 +82,49 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
 **Independent Test**: 手元で、イベントの JSON の fixture を `pecot auto gate --dry-run` に渡す。`spec/data-model.md` の表のとおりの `kind` と `proceed` が出る。
 検証用の Issue に `pecot auto finish --result question` を打つと、結果のコメントが付き、札が `Needs Attention` になり、起動ラベルが外れる。`pecot auto start` を打つと、札が Todo に戻る
 
-- [ ] T008 [P] [US1] `p-w/cli/src/domain/tests/` に、判定の失敗するテストを書く。入力は Issue・コメント・イベントの値だ
+- [x] T008 [P] [US1] `p-w/cli/src/domain/tests/` に、判定の失敗するテストを書く。入力は Issue・コメント・イベントの値だ
   - `spec/data-model.md` の「種類の決まり方」の表の 7 行を、1 行ずつ確かめる
   - 「対象外の条件」の表を、1 行ずつ確かめる。進行の欄は、Backlog・Pending・Blocked・Archived の 4 つを別々に確かめる
   - ボードに無い Issue は、`kind` が `start` で `proceed` が真になる
-  - ラベルを付けた人の `role_name` が `admin`・`maintain`・`write` でなければ、`proceed` は偽で、何も書かない
+  - ラベルを付けた人の `permission` が `admin`・`write` でなければ、`proceed` は偽で、何も書かない
   - CI を直した回数は、`result=ci-fix-pushed` の目印を持つコメントの数で数える
   - `workflow_run` で、Issue に同じブランチの `pr-created` の目印が無ければ、`proceed` は偽で、何も書かない
-- [ ] T009 [P] [US3] `p-w/cli/src/domain/tests/` に、結果の失敗するテストを書く
+- [x] T009 [P] [US3] `p-w/cli/src/domain/tests/` に、結果の失敗するテストを書く
   - `spec/data-model.md` の「結果」の表の 8 行で、既定の Status を書くか、起動ラベルを外すかを確かめる
   - 目印の行の形は `<!-- pecot-auto: result=<結果> run=<run の ID> attempt=<試行> branch=<ブランチ> -->`
   - 同じ run・同じ試行の目印を持つコメントがあれば、`--ensure` は書かない。目印を探すのは、bot のコメントだけだ
   - `--ensure` は、job が `cancelled` なら `limit` にする。`execution_file` の最後の `result` が `error_max_turns` のときも `limit` にする。それ以外の失敗は `failed` にする
   - 外すラベルの名前は環境変数 `PECOT_AUTO_LABEL` から、目印の run と試行は `GITHUB_RUN_ID`・`GITHUB_RUN_ATTEMPT` から読む
-- [ ] T010 [US1] `p-w/cli/src/domain/` に判定と結果のモジュールを作り、T008・T009 のテストを通す。種類と結果の値は `spec/data-model.md` のとおりにする。`domain/review-finish.ts` の目印と結果の決め方を手本にする
-- [ ] T011 [P] [US3] 結果のコメントのテンプレート `p-w/cli/templates/comment/auto-result.md` を作る
+- [x] T010 [US1] `p-w/cli/src/domain/` に判定と結果のモジュールを作り、T008・T009 のテストを通す。種類と結果の値は `spec/data-model.md` のとおりにする。`domain/review-finish.ts` の目印と結果の決め方を手本にする
+- [x] T011 [P] [US3] 結果のコメントのテンプレート `p-w/cli/templates/comment/auto-result.md` を作る
   - 欄は `spec/data-model.md` の「結果のコメント」の表のとおり
   - CLI がテンプレートから本文を作る。`review-stopped.md` を扱う `p-w/cli/src/domain/review-finish.ts` と `p-w/cli/src/commands/review-finish.ts` を手本にする
   - `p-w/cli/tests/skills/template-rules.test.ts` が読むテンプレートの一覧に入ることを確かめる
-- [ ] T012 [US1] `p-w/cli/src/infra/github/` に、判定と結果が使う読み書きを足す。ラベルを付けた人の権限、結果のコメントの検索、既定の Status の値の書き込み、ラベルの付け外しだ。失敗するテストを先に書く
-- [ ] T013 [US1] `p-w/cli/src/commands/auto.ts` を作り、`gate` を足す。`p-w/cli/src/commands/registry.ts` に登録する
+- [x] T012 [US1] `p-w/cli/src/infra/github/` に、判定と結果が使う読み書きを足す。ラベルを付けた人の権限、結果のコメントの検索、既定の Status の値の書き込み、ラベルの付け外しだ。失敗するテストを先に書く
+- [x] T013 [US1] `p-w/cli/src/commands/auto.ts` を作り、`gate` を足す。`p-w/cli/src/commands/registry.ts` に登録する
   - 引数と出力は `spec/contracts/cli-commands.md` の `pecot auto gate` のとおり
   - stdout に JSON を出し、`GITHUB_OUTPUT` があれば同じ値を足す
   - `proceed` が偽で、Issue に知らせる理由があるときは、結果のコメントを書く
   - `proceed` が偽でも、終了は成功にする
   - 雛形の版は比べない
-- [ ] T014 [US3] `p-w/cli/src/commands/auto.ts` に `start` を足す
+- [x] T014 [US3] `p-w/cli/src/commands/auto.ts` に `start` を足す
   - 出すものは `spec/contracts/cli-commands.md` の `pecot auto start` の表のとおり
-  - `answers` は、`author_association` が OWNER・MEMBER・COLLABORATOR で、書いた人の `role_name` が `admin`・`maintain`・`write` のコメントに限る。ほかの人のコメントは、数だけを出す
+  - `answers` は、書いた人の `permission` が `admin`・`write` のコメントに限る。ほかの人のコメントは、数だけを出す
   - 自動処理が書いた `Needs Attention` なら、PR が無ければ Todo に、あれば In Progress に戻す。それ以外の札は書かない
   - 設定に `in_progress` が無いときは、無い名前（In Progress）を出して止まる
   - Issue がボードに無ければ、進行の欄を Ready にして載せる。`board add` と同じ処理を使う
-- [ ] T015 [US3] `p-w/cli/src/commands/auto.ts` に `finish` を足す
+- [x] T015 [US3] `p-w/cli/src/commands/auto.ts` に `finish` を足す
   - 振る舞いは `spec/contracts/cli-commands.md` の `pecot auto finish` の表のとおり
   - `--result` と `--ensure` は、どちらか 1 つを受ける
-  - `--ensure` は、job の終わり方・自動処理の step の `outcome`・`execution_file` から結果を決める
+  - `--ensure` は、job の終わり方と `execution_file` から結果を決める
   - 外すラベルの名前と、目印の run と試行は、環境変数から読む
   - 既定の Status に `Needs Attention` が無いときは、結果のコメントに足りない設定を足し、成功で終わる
   - 起動ラベルが既に外れていても、失敗にしない
   - 進行の欄は書かない
-- [ ] T016 [US1] 3 つのコマンドの振る舞いのテストを `p-w/cli/tests/interface/` に書く。`review-finish.test.ts` と同じ並びだ。HTTP だけをモックし、渡した値と出力の行を比べる。`--dry-run` で何も書かないことと、設定に `fields.status` が無いときに `pecot project init` を案内して止まることも確かめる
-- [ ] T017 [US1] 定義書・`commands.md` を、共通の完了条件のとおりに直す。対象は `auto gate`・`auto start`・`auto finish` の 3 つ。MCP ツールの `outputSchema` が定義書と一致することを確かめる
-- [ ] T018 [US3] 検証用の Issue で、`finish --result question`、`start`、`finish --ensure` を順に打つ。コメント・札・ラベルを画面で確かめ、出た行と画面を PR に貼る
-- [ ] T019 [US1] `spec/research.md` の R2 の「実装で確かめること」を確かめる。結果を R2 に書き、違えば `spec/contracts/workflow-template.md` の権限の表を直す
+- [x] T016 [US1] 3 つのコマンドの振る舞いのテストを `p-w/cli/tests/interface/` に書く。`review-finish.test.ts` と同じ並びだ。HTTP だけをモックし、渡した値と出力の行を比べる。`--dry-run` で何も書かないことと、設定に `fields.status` が無いときに `pecot project init` を案内して止まることも確かめる
+- [x] T017 [US1] 定義書・`commands.md` を、共通の完了条件のとおりに直す。対象は `auto gate`・`auto start`・`auto finish` の 3 つ。MCP ツールの `outputSchema` が定義書と一致することを確かめる
+- [x] T018 [US3] 検証用の Issue で、`finish --result question`、`start`、`finish --ensure` を順に打つ。コメント・札・ラベルを画面で確かめ、出た行と画面を PR に貼る
+- [x] T019 [US1] `spec/research.md` の R2 の「実装で確かめること」を確かめる。結果を R2 に書き、違えば `spec/contracts/workflow-template.md` の権限の表を直す
   - 先に、検証用の自前の App に、R2 の表の権限を足す。権限の更新の承認は、利用者に頼む
   - 検証用の一時のワークフローで、リポに絞って発行したトークンに `permission-organization-projects: write` を付ける
   - そのトークンで、T018 の `finish` がボードを書けるかを見る

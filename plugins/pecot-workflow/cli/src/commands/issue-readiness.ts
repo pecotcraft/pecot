@@ -6,7 +6,7 @@ import { isLabelWrittenByAutomation } from '../domain/auto-result.js'
 import { findRepository, workflowFieldId } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { JSON_NULL } from '../domain/json-null.js'
-import type { IssuePrerequisitesReadout, PullRequestReadout } from '../domain/issue-readout.js'
+import type { IssuePrerequisitesReadout, PullRequestReadout, TargetIssueReadout } from '../domain/issue-readout.js'
 import { readWaitsForMerge } from '../domain/prerequisites.js'
 import type { WaitsForMergeReadout } from '../domain/prerequisites.js'
 import { hasStarted, judgeReadiness, NEEDS_ATTENTION_LABEL, toIssueFacts } from '../domain/readiness.js'
@@ -122,6 +122,23 @@ shouldReadComments が真なら、札を自動処理が書いたかをコメン�
 DependenciesUnsupportedError は GitHubAPIError だが、対応しない GHES を呼ぶ側で見分けるため、そのまま投げる
 */
 export async function readIssueSnapshot(client: Readonly<GitHubClient>, config: ProjectConfig, reference: IssueReference, blockedByFirst?: number, shouldReadComments = false): Promise<IssueSnapshot | UnreadableIssue> {
+  const read = await readIssueSnapshotWithReadout(client, config, reference, blockedByFirst, shouldReadComments)
+  return read.kind === 'unreadable' ? read : read.snapshot
+}
+
+export interface SnapshotWithReadout {
+  readonly kind: 'read'
+  readonly snapshot: IssueSnapshot
+  /**
+  対象の Issue の読み取り結果。本文と sub-issue の数は snapshot が持たないので、ここから読む
+  */
+  readonly issue: TargetIssueReadout
+}
+
+/**
+readIssueSnapshot と同じ読み取りで、対象の Issue の読み取り結果も返す
+*/
+export async function readIssueSnapshotWithReadout(client: Readonly<GitHubClient>, config: ProjectConfig, reference: IssueReference, blockedByFirst?: number, shouldReadComments = false): Promise<SnapshotWithReadout | UnreadableIssue> {
   const { owner, repository } = reference.repository
   let readout: IssuePrerequisitesReadout
   try {
@@ -150,7 +167,7 @@ export async function readIssueSnapshot(client: Readonly<GitHubClient>, config: 
     }
   }
   const { parent } = readout.issue
-  return {
+  const snapshot: IssueSnapshot = {
     kind: 'snapshot',
     ref: reference,
     title: readout.issue.title,
@@ -163,6 +180,7 @@ export async function readIssueSnapshot(client: Readonly<GitHubClient>, config: 
     developmentBranch: findRepository(config, owner, repository)?.develop_branch,
     labelWrittenByAutomation: wasWrittenByAutomation,
   }
+  return { kind: 'read', snapshot, issue: readout.issue }
 }
 
 /**

@@ -5,7 +5,7 @@ import type { JsonObject } from '../../domain/json.js'
 import type { JsonValue } from '../../domain/python-format.js'
 import { GitHubClientBase } from './client.js'
 import { GitHubAPIError, GitHubNotFoundError, GitHubRateLimitError } from './errors.js'
-import { asArray, isTruthy, requireString } from './payload.js'
+import { asArray, isTruthy, requireNumber, requireString } from './payload.js'
 import { MUTATION_CREATE_LINKED_BRANCH, QUERY_GET_REPOSITORY_ID } from './queries.js'
 import { encodePath, encodePathSegment, repositoryPath } from './rest-path.js'
 
@@ -16,6 +16,11 @@ export interface CreateReleaseOptions {
   readonly targetCommitish?: string | undefined
   readonly draft?: boolean | undefined
   readonly prerelease?: boolean | undefined
+}
+
+export interface WorkflowRunConclusion {
+  readonly id: number
+  readonly conclusion: string
 }
 
 export interface GraphqlRateLimit {
@@ -119,6 +124,17 @@ export class ReposApi extends GitHubClientBase {
   async getBranchSha(owner: string, repository: string, branch: string): Promise<string> {
     const reference = jsonField(await this.restJson('GET', `${repositoryPath(owner, repository)}/git/ref/heads/${encodePath(branch)}`), 'object')
     return requireString(jsonField(reference, 'sha'), 'object.sha')
+  }
+
+  /**
+  head_sha の workflow の run の id と conclusion。終わっていない run の conclusion は空。先頭の 100 件だけ読む
+  */
+  async listWorkflowRunConclusions(owner: string, repository: string, headSha: string): Promise<readonly WorkflowRunConclusion[]> {
+    const runs = jsonField(await this.restJson('GET', `${repositoryPath(owner, repository)}/actions/runs`, { params: { head_sha: headSha, per_page: 100 } }), 'workflow_runs')
+    return asArray(runs).map((run, index) => {
+      const conclusion = jsonField(run, 'conclusion')
+      return { id: requireNumber(jsonField(run, 'id'), `workflow_runs[${String(index)}].id`), conclusion: typeof conclusion === 'string' ? conclusion : '' }
+    })
   }
 
   /**

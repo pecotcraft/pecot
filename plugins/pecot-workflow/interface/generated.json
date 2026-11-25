@@ -31,6 +31,10 @@
           "meaning": "PR の自動レビューの実行"
         },
         {
+          "word": "auto",
+          "meaning": "Issue のラベルを契機にした自動処理の実行"
+        },
+        {
           "word": "release",
           "meaning": "リリース"
         },
@@ -170,12 +174,566 @@
         {
           "word": "unblock",
           "meaning": "前提を外す"
+        },
+        {
+          "word": "gate",
+          "meaning": "先へ進めるかを決める"
         }
       ]
     ],
     "rest": false
   },
   "entries": [
+    {
+      "id": "PW-AUTO-FINISH",
+      "name": "auto finish",
+      "description": "Finish an automated fix run: post the result comment, set the waiting Status and remove the trigger label",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "auto",
+            "finish"
+          ]
+        },
+        "mcp": {
+          "tool": "auto_finish"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "body_file": {
+            "type": "string",
+            "description": "Path of a file with the text for the result, such as the question or the failed tests (only with result)"
+          },
+          "ensure": {
+            "type": "boolean",
+            "default": false,
+            "description": "Called from the cleanup step of the workflow: decide the result from the job and write only if this run has not"
+          },
+          "execution_file": {
+            "type": "string",
+            "description": "Path of the execution_file output of claude-code-action (only with ensure; may be empty)"
+          },
+          "issue_ref": {
+            "type": "string",
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
+          },
+          "job_status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "failure",
+              "cancelled"
+            ],
+            "description": "Status of the job (required with ensure)"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "pr-created",
+              "ci-passed",
+              "ci-fix-pushed",
+              "question",
+              "out-of-scope",
+              "failed",
+              "limit",
+              "setup-missing"
+            ],
+            "description": "Result of the run, passed by the skill (pr-created/ci-passed/ci-fix-pushed/question/out-of-scope/failed/limit/setup-missing)"
+          }
+        },
+        "required": [
+          "issue_ref"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "issue_ref"
+        ],
+        "flags": {
+          "body_file": [
+            "--body-file"
+          ],
+          "dry_run": [
+            "--dry-run"
+          ],
+          "ensure": [
+            "--ensure"
+          ],
+          "execution_file": [
+            "--execution-file"
+          ],
+          "job_status": [
+            "--job-status"
+          ],
+          "project": [
+            "--project"
+          ],
+          "result": [
+            "--result"
+          ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Read the Issue and print the comment that would be posted without writing the comment, the Status or the label"
+          }
+        }
+      },
+      "mcp": {
+        "title": "Finish automated fix",
+        "output": {
+          "type": "object",
+          "properties": {
+            "issue": {
+              "type": "string",
+              "description": "Issue (owner/repo/N)"
+            },
+            "result": {
+              "description": "Result of the run (absent when the job succeeded with ensure)",
+              "type": "string",
+              "enum": [
+                "pr-created",
+                "ci-passed",
+                "ci-fix-pushed",
+                "question",
+                "out-of-scope",
+                "failed",
+                "limit",
+                "setup-missing"
+              ]
+            },
+            "skipped": {
+              "description": "Why no comment was written (absent when written)",
+              "type": "string",
+              "enum": [
+                "job-succeeded",
+                "already-written"
+              ]
+            },
+            "commentUrl": {
+              "description": "URL of the comment written (absent when none was written, or when GitHub returned no URL)",
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "description": "Failure kind (failure only)"
+            },
+            "detail": {
+              "type": "string",
+              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+            },
+            "log": {
+              "type": "string",
+              "description": "Raw output of a child process (failure only; omitted when not captured)"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+            }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "issue"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-AUTO-GATE",
+      "name": "auto gate",
+      "description": "Decide from a GitHub Actions event whether the automated fix runs, and of what kind",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "auto",
+            "gate"
+          ]
+        },
+        "mcp": {
+          "tool": "auto_gate"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "event_name": {
+            "type": "string",
+            "enum": [
+              "issues",
+              "workflow_run"
+            ],
+            "description": "Name of the GitHub Actions event (issues or workflow_run)"
+          },
+          "event_path": {
+            "type": "string",
+            "description": "Path of the event JSON (GITHUB_EVENT_PATH)"
+          },
+          "max_ci_attempts": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 3,
+            "description": "Maximum number of CI fixes on one branch"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          }
+        },
+        "required": [
+          "event_name",
+          "event_path"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [],
+        "flags": {
+          "dry_run": [
+            "--dry-run"
+          ],
+          "event_name": [
+            "--event-name"
+          ],
+          "event_path": [
+            "--event-path"
+          ],
+          "max_ci_attempts": [
+            "--max-ci-attempts"
+          ],
+          "project": [
+            "--project"
+          ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Decide without writing the result comment; put the body that would be posted in the comment field of the JSON"
+          }
+        }
+      },
+      "mcp": {
+        "title": "Gate automated fix",
+        "output": {
+          "type": "object",
+          "properties": {
+            "run": {
+              "type": "object",
+              "properties": {
+                "issue": {
+                  "type": "string",
+                  "description": "Issue (owner/repo/N); empty when the branch of the workflow run does not end with an Issue number"
+                },
+                "number": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Issue number; 0 when unknown"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "start",
+                    "resume",
+                    "ci-fix",
+                    "ci-passed",
+                    ""
+                  ],
+                  "description": "Kind of the run (start/resume/ci-fix/ci-passed); empty when it is not decided"
+                },
+                "proceed": {
+                  "type": "boolean",
+                  "description": "Whether the agent runs"
+                },
+                "reason": {
+                  "type": "string",
+                  "description": "Why the agent does not run; empty when it runs"
+                },
+                "branch": {
+                  "type": "string",
+                  "description": "Existing branch of the Issue; empty when none"
+                },
+                "pr": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Existing PR number; 0 when none"
+                },
+                "ci_attempts": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Number of CI fixes so far on the branch"
+                }
+              },
+              "required": [
+                "issue",
+                "number",
+                "kind",
+                "proceed",
+                "reason",
+                "branch",
+                "pr",
+                "ci_attempts"
+              ],
+              "additionalProperties": false,
+              "description": "The run: the same fields as the JSON on stdout and GITHUB_OUTPUT"
+            },
+            "result": {
+              "description": "Result written in the comment (absent when no comment was written)",
+              "type": "string",
+              "enum": [
+                "pr-created",
+                "ci-passed",
+                "ci-fix-pushed",
+                "question",
+                "out-of-scope",
+                "failed",
+                "limit",
+                "setup-missing"
+              ]
+            },
+            "commentUrl": {
+              "description": "URL of the comment written (absent when none was written, or when GitHub returned no URL)",
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "description": "Failure kind (failure only)"
+            },
+            "detail": {
+              "type": "string",
+              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+            },
+            "log": {
+              "type": "string",
+              "description": "Raw output of a child process (failure only; omitted when not captured)"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+            }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "run"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "PW-AUTO-START",
+      "name": "auto start",
+      "description": "Start an automated fix run: restore the Status the automation wrote and print the context to continue",
+      "surfaces": {
+        "cli": {
+          "path": [
+            "auto",
+            "start"
+          ]
+        },
+        "mcp": {
+          "tool": "auto_start"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "issue_ref": {
+            "type": "string",
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          }
+        },
+        "required": [
+          "issue_ref"
+        ],
+        "additionalProperties": false
+      },
+      "cli": {
+        "positional": [
+          "issue_ref"
+        ],
+        "flags": {
+          "dry_run": [
+            "--dry-run"
+          ],
+          "project": [
+            "--project"
+          ]
+        },
+        "only": {
+          "dry_run": {
+            "type": "boolean",
+            "default": false,
+            "description": "Read the Issue and print the context without writing to the board"
+          }
+        }
+      },
+      "mcp": {
+        "title": "Start automated fix",
+        "output": {
+          "type": "object",
+          "properties": {
+            "issue": {
+              "type": "object",
+              "properties": {
+                "ref": {
+                  "type": "string",
+                  "description": "Issue (owner/repo/N)"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Title of the Issue"
+                },
+                "body": {
+                  "type": "string",
+                  "description": "Body of the Issue"
+                }
+              },
+              "required": [
+                "ref",
+                "title",
+                "body"
+              ],
+              "additionalProperties": false,
+              "description": "The Issue"
+            },
+            "plan": {
+              "type": "string",
+              "description": "Body of the last plan comment (starting with ## Plan) by the bot or by a person with write permission; empty when none"
+            },
+            "results": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Bodies of the result comments of earlier runs by the bot, oldest first"
+            },
+            "answers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "author": {
+                    "type": "string",
+                    "description": "Login of the person who wrote it"
+                  },
+                  "body": {
+                    "type": "string",
+                    "description": "Body of the comment"
+                  }
+                },
+                "required": [
+                  "author",
+                  "body"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Comments after the last result comment by people with write permission, oldest first"
+            },
+            "withheld": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Number of comments whose body is not shown because the writer has no write permission"
+            },
+            "branch": {
+              "type": "string",
+              "description": "Existing branch of the Issue; empty when none"
+            },
+            "pr": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Existing open PR of that branch; 0 when none"
+            },
+            "kind": {
+              "type": "string",
+              "description": "Failure kind (failure only)"
+            },
+            "detail": {
+              "type": "string",
+              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+            },
+            "log": {
+              "type": "string",
+              "description": "Raw output of a child process (failure only; omitted when not captured)"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+            }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "issue",
+                "plan",
+                "results",
+                "answers",
+                "withheld",
+                "branch",
+                "pr"
+              ]
+            },
+            {
+              "required": [
+                "kind",
+                "detail"
+              ]
+            }
+          ]
+        }
+      }
+    },
     {
       "id": "PW-BOARD-ADD",
       "name": "board add",

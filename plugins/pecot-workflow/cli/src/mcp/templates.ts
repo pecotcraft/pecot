@@ -1,5 +1,5 @@
 // MCP の resource として出すテンプレートの一覧。中身は cli/templates/ のファイルをそのまま返す。
-// comment/review-stopped（review finish が中で使う）と workflow/*（workflow install が置く）は出さない。
+// 中で使う comment/review-stopped・comment/auto-result と、workflow install が置く workflow/* は出さない。
 import { templateFile } from '../infra/template-store.js'
 import { readTextFile } from '../infra/text-file.js'
 

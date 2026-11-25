@@ -166,6 +166,16 @@ export interface IssueCommentReading {
 }
 
 /**
+コメント 1 つの、本文・書き手の種類に加えて、書いた人・書いた人とリポの関係・作った時刻・URL
+*/
+export interface IssueCommentRecord extends IssueCommentReading {
+  readonly login: string
+  readonly authorAssociation: string
+  readonly createdAt: string
+  readonly url: string
+}
+
+/**
 同じ実行の目印を持つコメントがあるか。人が目印を書き込んで記録を消せないよう、Bot のコメントだけを見る
 */
 export function hasStoppedMarker(comments: readonly Readonly<IssueCommentReading>[], run: Readonly<RunIdentity>): boolean {

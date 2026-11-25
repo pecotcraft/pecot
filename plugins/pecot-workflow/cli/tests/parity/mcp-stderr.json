@@ -1,4 +1,7 @@
 {
+  "auto-finish-usage-both": "error: specify exactly one of result and ensure\n",
+  "auto-gate-state-no-status": "error: the project config has no Status field (fields.status)\n  call project_init\n",
+  "auto-start-state-no-status": "error: the project config has no Status field (fields.status)\n  call project_init\n",
   "board-move-state-not-on-board": "error: Issue acme/demo/7 is not on the project board\n  hint: add it to the board first with board_add with issue_ref: \"acme/demo/7\"\n",
   "board-show-ok-python-state": "warning: this board uses the old field name pecot-workflow-acme\n  call project_init with owner: \"acme\", name: <name>, host: \"ghes.example.com\"\n",
   "board-show-state": "error: no active project\n  call project_activate with project: <PROJECT>\n",

@@ -1,5 +1,5 @@
 // 配布するテンプレートの形と、冒頭のコメントの「例:」を確かめる。
-// MCP の resource が配る 12 本と、CLI が描く review-stopped は、冒頭のコメントに「読者:」と本文の手本の「例:」を持つ。
+// MCP の resource が配る 12 本と、CLI が描く review-stopped・auto-result は、冒頭のコメントに「読者:」と本文の手本の「例:」を持つ。
 // 投稿時に弾く記法は、テンプレートに規則として書かない。
 //
 // 固定するもの
@@ -75,8 +75,8 @@ function planSection(heading: string): readonly string[] {
 }
 
 describe('テンプレートの一式', () => {
-  it('issue 5 種・comment 6 種・pr 2 種の 13 本がそろっている', () => {
-    expect(TEMPLATES).toHaveLength(13)
+  it('issue 5 種・comment 7 種・pr 2 種の 14 本がそろっている', () => {
+    expect(TEMPLATES).toHaveLength(14)
   })
 })
 

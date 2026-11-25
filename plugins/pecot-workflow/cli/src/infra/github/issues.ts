@@ -7,7 +7,7 @@ import type { JsonObject } from '../../domain/json.js'
 import type { BlockedByReference, BlockedByReferences, IssueBlockedByReferences, IssuePrerequisitesReadout, PrerequisiteFieldNames, TargetIssueReadout } from '../../domain/issue-readout.js'
 import { JSON_NULL } from '../../domain/json-null.js'
 import type { JsonValue } from '../../domain/python-format.js'
-import type { IssueCommentReading } from '../../domain/review-finish.js'
+import type { IssueCommentReading, IssueCommentRecord } from '../../domain/review-finish.js'
 import type { GraphqlOutcome } from './client.js'
 import { DependenciesUnsupportedError, GitHubAPIError, GitHubNotFoundError, isSchemaError } from './errors.js'
 import { asArray, asObject, isTruthy, numberOrNull, requireNumber, requireString, requireValue, stringOrNull, subIssuesTotal, truthyNodes } from './payload.js'
@@ -262,6 +262,10 @@ function formatParent(parent: JsonValue | undefined): IssueParent | null {
   }
 }
 
+function text(value: JsonValue | undefined): string {
+  return typeof value === 'string' ? value : ''
+}
+
 /**
 timelineItems からリンクされた PR を取り出す。
 ConnectedEvent は subject、CrossReferencedEvent は source に PR がある。PR 番号で重複を除く
@@ -405,15 +409,39 @@ export class IssuesApi extends ProjectsApi {
   }
 
   /**
+  Issue・PR のコメントを全件取り、本文・書き手・書いた人とリポの関係・作った時刻・URL を返す。順は REST と同じ ID の昇順
+  */
+  async listIssueCommentRecords(owner: string, repository: string, number: number): Promise<readonly IssueCommentRecord[]> {
+    const comments = await this.listIssueComments(owner, repository, number)
+    return comments.filter(comment => isJsonObject(comment)).map((comment) => {
+      const user = jsonField(comment, 'user')
+      return {
+        body: text(jsonField(comment, 'body')),
+        userType: text(jsonField(user, 'type')),
+        login: text(jsonField(user, 'login')),
+        authorAssociation: text(jsonField(comment, 'author_association')),
+        createdAt: text(jsonField(comment, 'created_at')),
+        url: text(jsonField(comment, 'html_url')),
+      }
+    })
+  }
+
+  /**
   Issue・PR のコメントを全件取り、本文と書き手の種類（`user.type`）だけを返す。順は REST と同じ ID の昇順
   */
   async listIssueCommentReadings(owner: string, repository: string, number: number): Promise<readonly IssueCommentReading[]> {
-    const comments = await this.listIssueComments(owner, repository, number)
-    return comments.filter(comment => isJsonObject(comment)).map((comment) => {
-      const body = jsonField(comment, 'body')
-      const userType = jsonField(jsonField(comment, 'user'), 'type')
-      return { body: typeof body === 'string' ? body : '', userType: typeof userType === 'string' ? userType : '' }
-    })
+    const records = await this.listIssueCommentRecords(owner, repository, number)
+    return records.map(({ body, userType }) => ({ body, userType }))
+  }
+
+  /**
+  Issue・PR からラベルを外す。付いていなければ（404）'absent'、ほかの失敗は GitHubAPIError
+  */
+  async removeIssueLabel(owner: string, repository: string, number: number, name: string): Promise<'removed' | 'absent'> {
+    const response = await this.restRequest('DELETE', `${repositoryPath(owner, repository)}/issues/${String(number)}/labels/${encodePathSegment(name)}`)
+    if (response.statusCode === 404) return 'absent'
+    if (!response.isSuccess) this.handleHttpError(response)
+    return 'removed'
   }
 
   /**

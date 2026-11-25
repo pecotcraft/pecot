@@ -1,5 +1,6 @@
 // コマンド定義の一覧。CLI と MCP の両方がこの一覧から作られる。
 // 各コマンドは defineCommand() で定義して、グループのファイルの一覧に足す。定義の型と defineCommand は command-definition.ts にあり、ここから再公開する。
+import { AUTO_COMMANDS } from './auto.js'
 import { BOARD_COMMANDS } from './board.js'
 import { BRANCH_COMMANDS } from './branch.js'
 import type { CommandDefinition } from './command-definition.js'
@@ -27,6 +28,7 @@ export const COMMANDS: readonly CommandDefinition[] = [
   ...PR_COMMANDS,
   ...PR_RESTACK_COMMANDS,
   ...REVIEW_COMMANDS,
+  ...AUTO_COMMANDS,
   ...RELEASE_COMMANDS,
   ...TRACKER_COMMANDS,
   ...WORKTREE_COMMANDS,

@@ -33,6 +33,532 @@ environment:
   - name: COLUMNS
     effect: '正の整数で `TERMINAL_WIDTH` が無いときに、ヘルプとエラーの出力の幅（桁数）になります。端末の幅より先に使います。どれも無いときの幅は 80 です。'
 entries:
+  PW-AUTO-FINISH:
+    help:
+      details:
+        - "Finishes an automated fix run of an Issue: posts the result comment, sets the waiting Status and removes the trigger label."
+        - Pass either --result (from the skill) or --ensure (from the cleanup step of the workflow), not both. --ensure needs --job-status, and --execution-file is optional. --body-file goes only with --result.
+        - question, failed and limit set the Status (fields.status) to Needs Attention and remove the trigger label. pr-created, out-of-scope and setup-missing remove the trigger label. ci-passed and ci-fix-pushed only post the comment.
+        - With --ensure, a succeeded job posts nothing, and a cancelled job is limit. A failed job is limit when the last result of --execution-file is error_max_turns, and failed otherwise.
+        - The comment starts with a hidden marker of the result, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT and the branch. The branch is the head of the open PR linked to the Issue, or else the Development branch ending with the Issue number. With --ensure, when a comment by a bot already has the marker of this run and attempt, no comment is posted, and the Status and the label are written again.
+        - When the Issue is not on the board, or the board has no option Needs Attention for Status, the comment names the missing setting, the Status stays as it is and a warning is printed.
+        - The trigger label is the value of PECOT_AUTO_LABEL, or pecot-auto. A label that is already removed is not an error.
+        - The project config must have the Status field (fields.status). Without it, the command stops and tells to run pecot project init.
+        - With --dry-run, reads the Issue, writes the body that would be posted to stdout, and writes nothing.
+      examples:
+        - run: pecot auto finish example-org/my-repo/123 --result question --body-file question.md
+          note: Post the question and set the Status to Needs Attention.
+        - run: pecot auto finish example-org/my-repo/123 --ensure --job-status failure --execution-file /tmp/execution.json
+          note: Post a result from the cleanup step when the job failed.
+      default_notes:
+        issue_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
+    summary: '自動処理の実行を終えます。結果のコメントを Issue に書き、待ちの Status を書き、起動ラベルを外します。'
+    arguments:
+      issue_ref: 'Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。'
+      result: 'スキルが渡す実行の結果です。`pr-created`・`ci-passed`・`ci-fix-pushed`・`question`・`out-of-scope`・`failed`・`limit`・`setup-missing` のどれかです。'
+      body_file: '`result` のときの、結果ごとの本文を書いたファイルのパスです。質問や落ちたテストを書きます。'
+      ensure: 'ワークフローの後始末から呼ぶかどうかです。job の終わり方から結果を決め、同じ実行のコメントがまだ無いときだけ書きます。'
+      job_status: '`ensure` のときの job の終わり方です。`success`・`failure`・`cancelled` のどれかです。'
+      execution_file: '`ensure` のときの、claude-code-action の出力 `execution_file` のパスです。省いても、空でもかまいません。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
+    constraints:
+      - conflicts: [result, ensure]
+      - requires: {ensure: [job_status]}
+      - requires: {body_file: [result]}
+      - requires: {job_status: [ensure]}
+      - requires: {execution_file: [ensure]}
+    details:
+      - '`result` か `ensure` のどちらか 1 つを渡します。`result` はスキルが、`ensure` はワークフローの後始末の step が使います。'
+      - '結果が `question`・`failed`・`limit` のときは、コメントを書き、既定の Status（`fields.status`）を Needs Attention にし、起動ラベルを外します。'
+      - '結果が `pr-created`・`out-of-scope`・`setup-missing` のときは、コメントを書き、起動ラベルを外します。Status は書きません。'
+      - '結果が `ci-passed`・`ci-fix-pushed` のときは、コメントだけを書きます。'
+      - '`ensure` の判定は、上から順に見て、最初に当たったもので決めます。job が `success` なら書きません。結果のコメントは、スキルが `result` で書いています。'
+      - '`ensure` で job が `cancelled` なら `limit` にします。`failure` なら、`execution_file` の最後の `result` の行が `error_max_turns` のとき `limit` に、ほかは `failed` にします。'
+      - '本文の先頭に、結果・`GITHUB_RUN_ID`・`GITHUB_RUN_ATTEMPT`・ブランチを入れた、画面に出ない目印の行を付けます。ブランチは、Issue に紐づく開いた PR の head です。PR が無ければ、Development のブランチのうち、末尾が Issue の番号のものです。'
+      - '`ensure` で、同じ目印を持つ bot のコメントがあれば、コメントを書きません。起動ラベルが残っていれば外し、結果が待ちの Status を書くものなら、Status も書き直します。'
+      - 'Issue がボードに無いか、Status に Needs Attention の選択肢が無いときは、足りない設定をコメントに書き、Status を変えずに成功を返します。'
+      - '外す起動ラベルの名前は、`PECOT_AUTO_LABEL` から読みます。無ければ `pecot-auto` です。ラベルが既に外れていても、失敗にしません。'
+      - 'プロジェクトの設定に `fields.status` が要ります。'
+      - '本文は、テンプレート `auto-result` を埋めて作ります。トークンの値と secret の値を書きません。'
+    stdin: none
+    output:
+      format: text
+      description: 'コメントを書いたときは、その URL です。`--dry-run` では、書くはずの本文です。書かなかったときは何も出しません。'
+    mcp_output:
+      fields:
+        issue: '対象の Issue です。`owner/repo/N` の形です。'
+        result: 'コメントに書いた結果です。`ensure` で同じ実行のコメントがあったときは、そのコメントの結果です。job が成功したときは入りません。'
+        skipped: '書かなかった理由です。`job-succeeded`・`already-written` のどれかです。書いたときは入りません。'
+        commentUrl: '書いたコメントの URL です。書かなかったとき、GitHub が URL を返さなかったときは入りません。'
+    diagnostics: '標準エラーに、書いたものを `created`・`set`・`removed` の行で出します。書かなかったときは、理由を添えた `skipped` の行を出します。起動ラベルが既に外れていたときは `unchanged` の行を、Status を書けないときは `warning` の行を出します。`--dry-run` のときは、代わりに `dry-run: would` の行を出します。本文がテンプレートに合わないときは、`error` の行を出します。'
+    environment:
+      - name: PECOT_AUTO_LABEL
+        effect: '外す起動ラベルの名前です。無いか空なら `pecot-auto` にします。'
+      - name: GITHUB_RUN_ID
+        effect: '目印に入れる実行の ID です。実行の記録の URL にも使います。無いか空なら、目印を付けず、既にあるコメントも読みません。'
+      - name: GITHUB_RUN_ATTEMPT
+        effect: '目印に入れる試行の番号です。無いか空なら `1` にします。'
+      - name: GITHUB_REPOSITORY
+        effect: '実行の記録の URL に入れるリポジトリです。無いか空なら、実行の記録を「分からない」と書きます。'
+      - name: GITHUB_SERVER_URL
+        effect: '実行の記録の URL のホストです。無いか空なら `https://github.com` にします。'
+    exit_status:
+      - kind: invalid-input
+        code: 1
+        when: '`result` と `ensure` の両方を渡したか、どちらも渡していません。`ensure` に要る引数が無いとき、`ensure` の無い補助の引数、`result` の無い `body_file`、無い `body_file` のファイルも同じです。'
+      - kind: invalid-input
+        code: 2
+        when: 'Issue の参照の形が誤っているか、ほかの引数の誤りがあります。'
+      - kind: not-initialized
+        code: 1
+        when: 'プロジェクトの設定に `fields.status` がありません。'
+      - kind: content-invalid
+        code: 3
+        when: '埋めた本文がテンプレートに合いません。何も書いていません。'
+      - kind: no-active-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`project` もありません。'
+      - kind: project-not-found
+        code: 1
+        when: '`project` の名前の設定がありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: 'リポジトリがプロジェクトにありません。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: 'コメントを書く前に止まったときは、Issue に何も残りません。コメントの後で Status かラベルの書き込みに失敗したときは、`ensure` で呼び直すと、同じ実行の目印を見て、コメントを重ねずに書き直します。'
+    effects:
+      - target: github
+        kind: write
+        what: 'Issue に結果のコメントを 1 つ書き、ボードの既定の Status を書き、起動ラベルを外します。'
+      - target: github
+        kind: read
+        what: 'Issue のブランチと PR、Issue のコメント、ボードの項目を読みます。'
+      - target: file
+        kind: read
+        what: '`body_file` と `execution_file` のファイル、テンプレート `auto-result`、プロジェクトの設定ファイルを読みます。'
+    prerequisites:
+      - '対象のリポを含み、`fields.status` を持つプロジェクトの設定が要ります。'
+      - 'ホストの GitHub トークンと、Issue とプロジェクトを編集する権限が要ります。'
+    idempotent: false
+    examples:
+      - arguments:
+          issue_ref: example-org/my-repo/123
+          result: question
+          body_file: question.md
+        note: '質問のコメントを書き、Status を Needs Attention にします。'
+      - arguments:
+          issue_ref: example-org/my-repo/123
+          ensure: true
+          job_status: failure
+          execution_file: /tmp/execution.json
+        note: 'ワークフローの後始末から、job が失敗したときに結果のコメントを書きます。'
+    cli_reference:
+      options:
+        dry_run: 'Issue を読み、書くはずのコメントを決めますが、コメント・Status・ラベルを書きません。書くはずの本文を標準出力に出します。'
+      examples:
+        - run: pecot auto finish example-org/my-repo/123 --result question --body-file question.md
+          note: '質問のコメントを書き、Status を Needs Attention にします。'
+        - run: pecot auto finish example-org/my-repo/123 --ensure --job-status failure --execution-file /tmp/execution.json
+          note: 'ワークフローの後始末から、job が失敗したときに結果のコメントを書きます。'
+    default_notes:
+      issue_ref: '短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+    behaviors:
+      - id: PW-AUTO-FINISH-01
+        pattern: event
+        statement: '`result` に `question`・`failed`・`limit` を渡すと、結果のコメントを書き、Status を Needs Attention にして、起動ラベルを外します。コメントの URL は `commentUrl` に入れます'
+      - id: PW-AUTO-FINISH-02
+        pattern: event
+        statement: '`result` に `pr-created`・`out-of-scope`・`setup-missing`・`ci-passed`・`ci-fix-pushed` を渡すと、Status を書きません。`ci-passed`・`ci-fix-pushed` では、起動ラベルを残します'
+      - id: PW-AUTO-FINISH-03
+        pattern: unwanted
+        statement: 'もし起動ラベルが既に外れているなら、`unchanged` の行を出して成功を返します'
+      - id: PW-AUTO-FINISH-04
+        pattern: state
+        statement: '`PECOT_AUTO_LABEL` がある間、その名前のラベルを起動ラベルとして外します'
+      - id: PW-AUTO-FINISH-05
+        pattern: unwanted
+        statement: 'もし Issue がボードに無いか、Status に Needs Attention の選択肢が無いなら、Status を書きません。足りない設定をコメントに書き、`warnings` に 1 つ入れて成功を返します'
+      - id: PW-AUTO-FINISH-06
+        pattern: event
+        statement: '`ensure` で job が `success` だと、Issue を読まずに、書かずに `skipped` を `job-succeeded` にします'
+      - id: PW-AUTO-FINISH-07
+        pattern: event
+        statement: '`ensure` で job が `cancelled` のときと、実行のファイルの最後の `result` が `error_max_turns` のときは `limit` を書きます。ほかの失敗では `failed` を書きます'
+      - id: PW-AUTO-FINISH-08
+        pattern: unwanted
+        statement: 'もし `ensure` で、同じ実行・同じ試行の目印を持つ bot のコメントがあるなら、コメントを書きません。Status と起動ラベルを書き直し、`skipped` を `already-written` にします'
+      - id: PW-AUTO-FINISH-09
+        pattern: state
+        statement: '`GITHUB_RUN_ID` が無い間、目印を付けず、Issue のコメントを読みません'
+      - id: PW-AUTO-FINISH-10
+        pattern: unwanted
+        statement: 'もし `result` と `ensure` の両方を渡したか、どちらも渡していないなら、何も読まずに失敗を返します。補助の引数の組み合わせの誤りと、無い `body_file` のファイルも同じです'
+      - id: PW-AUTO-FINISH-11
+        pattern: optional
+        statement: 'CLI で `--dry-run` が有効なら、Issue を読んでも何も書かず、書くはずの本文を標準出力に出します'
+      - id: PW-AUTO-FINISH-12
+        pattern: unwanted
+        statement: 'もしプロジェクトの設定に `fields.status` が無いなら、何も読まずに、`project_init` を案内して `kind` が `not-initialized` の失敗を返します'
+      - id: PW-AUTO-FINISH-13
+        pattern: event
+        statement: 'コメントを書くと、`issue`・`result`・`commentUrl` を結果に返します'
+      - id: PW-AUTO-FINISH-14
+        pattern: event
+        statement: '`ensure` で job が `success` だと、書かずに `issue` と `skipped` だけを結果に返します'
+      - id: PW-AUTO-FINISH-15
+        pattern: ubiquitous
+        statement: '常に、トークンの値を、結果・標準出力・標準エラー・コメントに書きません'
+      - id: PW-AUTO-FINISH-16
+        pattern: event
+        statement: 'Issue に紐づく開いた PR があると、目印のブランチに、その PR の head を書きます'
+  PW-AUTO-GATE:
+    help:
+      details:
+        - Called by the first job of the automated fix workflow. Reads the event and writes one JSON with issue, number, kind, proceed, reason, branch, pr and ci_attempts to stdout. When GITHUB_OUTPUT is set, appends the same values as key=value lines.
+        - For an issues event, reads the permission of the sender. When it is not admin or write, when the sender ends with [bot], or when it cannot be read, writes nothing and proceed is false.
+        - A closed Issue, a label on a PR, an Epic, a Tracker, an Issue with sub-issues, an Issue in Backlog, Pending, Archived or Blocked, and an Issue a person works on (Active or In Review without a result comment of the automation) get an out-of-scope result comment, the trigger label is removed and proceed is false.
+        - Other Issues proceed. kind is resume when the Issue has a plan comment, a branch or an open PR, and start otherwise. A plan comment starts with the heading "## Plan" and is written by a bot or by a person with write permission.
+        - For a workflow_run event, only a completed run of a branch that ends with an Issue number, not from a fork, for the head commit of a branch where the automation created a PR is handled. After a passed CI, a run of a push by a person (workflow_run.actor is not a bot) is skipped.
+        - A failed CI proceeds with kind ci-fix while the fixes on the branch are fewer than --max-ci-attempts. At the limit, a limit result comment is posted, the Status is set to Needs Attention and the trigger label is removed. A passed CI gets a ci-passed result comment, unless another run of the same commit failed or the CI of the same push already passed.
+        - Exits with 0 even when proceed is false.
+        - The project config must have the Status field (fields.status). Without it, the command stops and tells to run pecot project init.
+        - With --dry-run, posts nothing and puts the body that would be posted in the comment field of the JSON.
+      examples:
+        - run: pecot auto gate --event-name issues --event-path "$GITHUB_EVENT_PATH"
+          note: Decide whether the automated fix runs for a labeled Issue.
+        - run: pecot auto gate --event-name workflow_run --event-path "$GITHUB_EVENT_PATH" --max-ci-attempts 3
+          note: Decide whether the automated fix fixes the CI of its PR.
+      default_notes: {}
+    summary: 'GitHub Actions のイベントから、自動処理を進めるかと、その種類を決めます。進めないときに Issue へ知らせる理由があれば、結果のコメントを書きます。'
+    arguments:
+      event_name: 'GitHub Actions のイベントの名前です。`issues` か `workflow_run` です。'
+      event_path: 'イベントの JSON のパスです。`GITHUB_EVENT_PATH` の値を渡します。'
+      max_ci_attempts: '1 つのブランチで CI を直す回数の上限です。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、イベントのリポジトリを含む設定を使います。'
+    constraints: []
+    details:
+      - 'ワークフローの先の job が呼びます。標準出力に、`issue`・`number`・`kind`・`proceed`・`reason`・`branch`・`pr`・`ci_attempts` を持つ JSON を 1 つ出します。'
+      - '`GITHUB_OUTPUT` があれば、同じ値を `key=value` の行で足します。値の改行は空白にします。'
+      - '`issues` では、ラベルを付けた人（`sender`）の権限を読みます。`admin` か `write` でないとき、名前が `[bot]` で終わるとき、権限を読めないときは、何も書かずに `proceed` を偽にします。'
+      - '次の Issue には `out-of-scope` の結果のコメントを書き、起動ラベルを外し、`proceed` を偽にします。閉じた Issue、PR に付いたラベル、Epic、Tracker、sub-issue を持つ Issue が当たります。進行の欄が Backlog・Pending・Archived・Blocked の Issue も当たります。進行の欄が Active・In Review で、自動処理の結果のコメントが無い Issue も同じです。'
+      - 'ほかの Issue では、`proceed` を真にします。計画のコメント・ブランチ・開いた PR のどれかがあれば `kind` を `resume` に、無ければ `start` にします。計画のコメントは、見出し `## Plan` で始まり、bot か書き込み権限を持つ人が書いたコメントです。'
+      - '`workflow_run` で扱うのは、終わった CI の run のうち、ブランチの末尾が Issue 番号で、fork でないものです。自動処理が PR を作ったブランチの、先頭の commit の run に限ります。CI が通った後に、人が push した run（`workflow_run.actor` が bot でない）には、何も書きません。'
+      - 'CI が落ちて、直した回数が `max_ci_attempts` より少なければ、`kind` を `ci-fix` にして `proceed` を真にします。上限に達していれば、`limit` の結果のコメントを書き、Status を Needs Attention にして起動ラベルを外します。'
+      - 'CI が通ると、`ci-passed` の結果のコメントを書き、`proceed` を偽にします。同じ commit のほかの run が落ちているとき、同じ push の CI でもう書いたときは、書きません。'
+      - '`proceed` が偽でも、終了コードは成功です。'
+      - 'MCP の結果では、実行の欄を `run` の中に入れます。`kind` と `reason` が、MCP の結果の共通の項目と同じ名前だからです。'
+      - 'プロジェクトの設定に `fields.status` が要ります。結果のコメントは、`auto_finish` と同じ処理で書きます。'
+    stdin: none
+    output:
+      format: text
+      description: '実行の欄を持つ JSON を 1 行で出します。欄は `issue`・`number`・`kind`・`proceed`・`reason`・`branch`・`pr`・`ci_attempts` です。`--dry-run` で結果のコメントを書くはずのときは、書くはずの本文を欄 `comment` に入れます。'
+    mcp_output:
+      fields:
+        run: '実行の欄です。標準出力の JSON と同じ `issue`・`number`・`kind`・`proceed`・`reason`・`branch`・`pr`・`ci_attempts` を持ちます。`kind` は `start`・`resume`・`ci-fix`・`ci-passed` のどれかで、決まらないときは空です。'
+        result: '書いた結果のコメントの結果です。書かなかったときは入りません。'
+        commentUrl: '書いたコメントの URL です。書かなかったとき、GitHub が URL を返さなかったときは入りません。'
+    diagnostics: '標準エラーに、何も書かずに進めないときは理由を添えた `skipped` の行を出します。結果のコメントを書いたときは、`created`・`set`・`removed` の行を出します。`--dry-run` のときは、代わりに `dry-run: would` の行を出します。'
+    environment:
+      - name: GITHUB_OUTPUT
+        effect: 'あれば、そのファイルに実行の欄を `key=value` の行で足します。`--dry-run` のときも足します。'
+      - name: PECOT_AUTO_LABEL
+        effect: '外す起動ラベルの名前です。無いか空なら `pecot-auto` にします。'
+      - name: GITHUB_RUN_ID
+        effect: '結果のコメントの目印に入れる実行の ID です。実行の記録の URL にも使います。無いか空なら、目印を付けません。'
+      - name: GITHUB_RUN_ATTEMPT
+        effect: '目印に入れる試行の番号です。無いか空なら `1` にします。'
+      - name: GITHUB_REPOSITORY
+        effect: '実行の記録の URL に入れるリポジトリです。無いか空なら、実行の記録を「分からない」と書きます。'
+      - name: GITHUB_SERVER_URL
+        effect: '実行の記録の URL のホストです。無いか空なら `https://github.com` にします。'
+    exit_status:
+      - kind: invalid-input
+        code: 1
+        when: 'イベントのファイルが無いか、JSON として読めないか、要る欄がありません。'
+      - kind: invalid-input
+        code: 2
+        when: '`event_name` が `issues`・`workflow_run` のどちらでもないか、ほかの引数の誤りがあります。'
+      - kind: not-initialized
+        code: 1
+        when: 'プロジェクトの設定に `fields.status` がありません。'
+      - kind: content-invalid
+        code: 3
+        when: '埋めた本文がテンプレートに合いません。何も書いていません。'
+      - kind: no-active-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`project` もありません。'
+      - kind: project-not-found
+        code: 1
+        when: '`project` の名前の設定がありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: 'リポジトリがプロジェクトにありません。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: '判定の前に止まったときは、何も書きません。結果のコメントの後で Status かラベルの書き込みに失敗したときは、ワークフローの後始末の `auto_finish` が書き直します。'
+    effects:
+      - target: github
+        kind: read
+        what: 'ラベルを付けた人の権限、Issue の進行の欄とブランチと PR、Issue のコメント、計画を書いた人の権限、ブランチの先頭の commit を読みます。'
+      - target: github
+        kind: write
+        what: '進めない理由を知らせるときと CI の結果を知らせるときに、Issue に結果のコメントを書き、Status と起動ラベルを書きます。'
+      - target: file
+        kind: read
+        what: 'イベントの JSON、テンプレート `auto-result`、プロジェクトの設定ファイルを読みます。'
+      - target: file
+        kind: write
+        what: '`GITHUB_OUTPUT` のファイルに、実行の欄を足します。'
+    prerequisites:
+      - '対象のリポを含み、`fields.status` を持つプロジェクトの設定が要ります。'
+      - 'ホストの GitHub トークンと、Issue とプロジェクトを編集する権限が要ります。'
+    idempotent: false
+    examples:
+      - arguments:
+          event_name: issues
+          event_path: /home/runner/work/_temp/_github_workflow/event.json
+        note: 'ラベルを付けた Issue で、自動処理を進めるかを決めます。'
+      - arguments:
+          event_name: workflow_run
+          event_path: /home/runner/work/_temp/_github_workflow/event.json
+          max_ci_attempts: 3
+        note: '自動処理が作った PR の CI を、直すかを決めます。'
+    cli_reference:
+      options:
+        dry_run: '判定しますが、結果のコメント・Status・ラベルを書きません。書くはずの本文を、JSON の欄 `comment` に入れます。'
+      examples:
+        - run: pecot auto gate --event-name issues --event-path "$GITHUB_EVENT_PATH"
+          note: 'ラベルを付けた Issue で、自動処理を進めるかを決めます。'
+        - run: pecot auto gate --event-name workflow_run --event-path "$GITHUB_EVENT_PATH" --max-ci-attempts 3
+          note: '自動処理が作った PR の CI を、直すかを決めます。'
+    default_notes: {}
+    behaviors:
+      - id: PW-AUTO-GATE-01
+        pattern: event
+        statement: '書き込み権限を持つ人が、計画のコメントとブランチの無い Ready の Issue にラベルを付けると、`kind` を `start` に、`proceed` を真にします。何も書きません'
+      - id: PW-AUTO-GATE-02
+        pattern: state
+        statement: '`GITHUB_OUTPUT` がある間、標準出力と同じ実行の欄を、そのファイルに `key=value` の行で足します'
+      - id: PW-AUTO-GATE-03
+        pattern: unwanted
+        statement: 'もしラベルを付けた人の権限が `admin`・`write` のどちらでもないか、名前が `[bot]` で終わるなら、Issue を読まず、何も書かずに `proceed` を偽にします'
+      - id: PW-AUTO-GATE-04
+        pattern: unwanted
+        statement: 'もし Issue が自動処理の対象外なら、`out-of-scope` の結果のコメントを書いて起動ラベルを外し、`proceed` を偽にして成功を返します'
+      - id: PW-AUTO-GATE-05
+        pattern: event
+        statement: '自動処理が PR を作ったブランチの CI が落ち、直した回数が上限より少ないと、`kind` を `ci-fix` に、`proceed` を真にします'
+      - id: PW-AUTO-GATE-06
+        pattern: event
+        statement: '自動処理が PR を作ったブランチの CI が通ると、`ci-passed` の結果のコメントを書き、Status と起動ラベルを書きません'
+      - id: PW-AUTO-GATE-07
+        pattern: unwanted
+        statement: 'もし CI を直した回数が上限に達しているなら、`limit` の結果のコメントを書き、Status を Needs Attention にして起動ラベルを外します'
+      - id: PW-AUTO-GATE-08
+        pattern: unwanted
+        statement: 'もし CI の run が fork のブランチか、末尾が Issue 番号でないブランチのものなら、何も読まずに `proceed` を偽にします'
+      - id: PW-AUTO-GATE-09
+        pattern: unwanted
+        statement: 'もし CI の run が、自動処理が PR を作っていないブランチか、ブランチの先頭でない commit のものなら、何も書かずに `proceed` を偽にします。CI が通った後に人が push した run も同じです'
+      - id: PW-AUTO-GATE-10
+        pattern: optional
+        statement: 'CLI で `--dry-run` が有効なら、結果のコメント・Status・ラベルを書かず、書くはずの本文を JSON の欄 `comment` に入れます'
+      - id: PW-AUTO-GATE-11
+        pattern: unwanted
+        statement: 'もしプロジェクトの設定に `fields.status` が無いなら、何も読まずに、`project_init` を案内して `kind` が `not-initialized` の失敗を返します'
+      - id: PW-AUTO-GATE-12
+        pattern: unwanted
+        statement: 'もしイベントのファイルが無いか JSON でないなら、何も読まずに `kind` が `invalid-input` の失敗を返します'
+      - id: PW-AUTO-GATE-13
+        pattern: event
+        statement: '結果のコメントを書くと、実行の欄を `run` に入れ、`result` と `commentUrl` を足して返します'
+      - id: PW-AUTO-GATE-14
+        pattern: ubiquitous
+        statement: '常に、トークンの値を、結果・標準出力・標準エラー・コメントに書きません'
+      - id: PW-AUTO-GATE-15
+        pattern: unwanted
+        statement: 'もし CI が通っても、同じ commit のほかの run が落ちているか、同じ push の CI でもう `ci-passed` を書いているなら、何も書かずに `proceed` を偽にします'
+      - id: PW-AUTO-GATE-16
+        pattern: event
+        statement: '計画のコメントとブランチが無く、開いた PR だけがある Issue に起動ラベルが付くと、`kind` を `resume` にします'
+  PW-AUTO-START:
+    help:
+      details:
+        - Called first by the automated fix skill. Prints one JSON with the Issue, the last plan comment, the result comments of earlier runs, the answers after the last result comment, the number of withheld comments, the branch and the PR.
+        - The plan is the last comment starting with the heading "## Plan" by a bot or by a person with write permission. The answers are the comments after the last result comment by people whose permission is admin or write. Other comments are counted, and their bodies are not printed.
+        - When the Issue is not on the board, adds it with the column Ready.
+        - When the Status is Needs Attention written by the automation, restores it to In Progress when the branch has an open PR, and to Todo otherwise. A Needs Attention that pecot placed by its judgement is left as it is.
+        - Otherwise writes nothing.
+        - The project config must have the Status field (fields.status). Without it, the command stops and tells to run pecot project init.
+        - With --dry-run, prints the same JSON and writes nothing to the board.
+      examples:
+        - run: pecot auto start example-org/my-repo/123
+          note: Restore the Status and print the context to continue.
+      default_notes:
+        issue_ref: The short form N is completed from the value of pecot --repo, or else from the git remote of the current directory.
+    summary: '自動処理の実行を始めます。自動処理が書いた Status を戻し、続きに要る文脈を出します。'
+    arguments:
+      issue_ref: 'Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
+    constraints: []
+    details:
+      - '自動処理のスキルが最初に呼びます。標準出力に、Issue・計画・前回までの結果・答え・本文を出さなかったコメントの数・ブランチ・PR を持つ JSON を 1 つ出します。'
+      - '計画は、見出し `## Plan` で始まるコメントのうち、bot か書き込み権限を持つ人が書いた最後のものです。'
+      - '答えは、最後の結果のコメントの後に付いたコメントのうち、書いた人の権限が `admin` か `write` のものです。'
+      - 'ほかの人の計画と答えは、本文を出さずに数だけを出します。'
+      - 'Issue がボードに無ければ、進行の欄を Ready にしてボードに載せます。'
+      - '既定の Status が、自動処理の書いた Needs Attention なら、開いた PR があれば In Progress に、無ければ Todo に戻します。pecot の判定が置いた Needs Attention は戻しません。'
+      - 'どちらでもなければ、何も書きません。'
+      - 'プロジェクトの設定に `fields.status` が要ります。'
+    stdin: none
+    output:
+      format: text
+      description: '文脈を持つ JSON を 1 行で出します。欄は `issue`・`plan`・`results`・`answers`・`withheld`・`branch`・`pr` です。'
+    mcp_output:
+      fields:
+        issue: '対象の Issue です。`ref`（`owner/repo/N`）・`title`・`body` を持ちます。'
+        plan: '最後の計画のコメントの本文です。無いときは空です。'
+        results: '前回までの、bot が書いた結果のコメントの本文です。古い順に並べます。'
+        answers: '最後の結果のコメントの後に、書き込み権限を持つ人が書いたコメントです。`author` と `body` を持ち、古い順に並べます。'
+        withheld: '書き込み権限を確かめられず、本文を出さなかったコメントの数です。'
+        branch: 'Issue の既にあるブランチです。無いときは空です。'
+        pr: 'そのブランチの開いた PR の番号です。無いときは `0` です。'
+    diagnostics: '標準エラーに、ボードに載せたときは `added` の行を、Status を戻したときは `set` の行を出します。本文を出さなかったコメントがあるときは、その数を `count` の行で出します。`--dry-run` のときは、`added`・`set` の代わりに `dry-run: would` の行を出します。'
+    environment: []
+    exit_status:
+      - kind: invalid-input
+        code: 2
+        when: 'Issue の参照の形が誤っているか、ほかの引数の誤りがあります。'
+      - kind: not-initialized
+        code: 1
+        when: 'プロジェクトの設定に `fields.status` がありません。'
+      - kind: status-not-configured
+        code: 1
+        when: '設定に、要る選択肢がありません。ボードに載せるときは進行の欄の Ready が、Status を戻すときは Todo か In Progress が要ります。'
+      - kind: no-active-project
+        code: 1
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`project` もありません。'
+      - kind: project-not-found
+        code: 1
+        when: '`project` の名前の設定がありません。'
+      - kind: repo-not-in-project
+        code: 1
+        when: 'リポジトリがプロジェクトにありません。'
+      - kind: github-auth
+        code: 1
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
+      - kind: github-not-found
+        code: 1
+        when: 'GitHub に対象が見つかりません。'
+      - kind: github-rate-limit
+        code: 1
+        when: 'GitHub API のレート制限に当たりました。'
+      - kind: github-api
+        code: 1
+        when: 'GitHub API がほかのエラーを返しました。'
+      - kind: project-root-not-found
+        code: 1
+        when: 'プロジェクトのルートを決められません。'
+      - kind: other
+        code: 1
+        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+      - kind: session-directory-unresolved
+        code: 1
+        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+    on_error: 'ボードへ書く前に止まったときは、何も書きません。呼び直せば、同じ判定でボードに載せるか、Status を戻します。'
+    effects:
+      - target: github
+        kind: read
+        what: 'Issue の本文・進行の欄・Status・ブランチ・PR、Issue のコメント、コメントを書いた人の権限、ボードの項目を読みます。'
+      - target: github
+        kind: write
+        what: 'Issue をボードに載せて進行の欄を Ready にするか、既定の Status を Todo か In Progress に戻します。'
+      - target: file
+        kind: read
+        what: 'プロジェクトの設定ファイルを読みます。'
+    prerequisites:
+      - '対象のリポを含み、`fields.status` を持つプロジェクトの設定が要ります。'
+      - 'ホストの GitHub トークンと、プロジェクトを編集する権限が要ります。'
+    idempotent: true
+    examples:
+      - arguments:
+          issue_ref: example-org/my-repo/123
+        note: 'Status を戻し、続きに要る文脈を出します。'
+    cli_reference:
+      options:
+        dry_run: 'Issue を読み、文脈を出しますが、ボードに書きません。'
+      examples:
+        - run: pecot auto start example-org/my-repo/123
+          note: 'Status を戻し、続きに要る文脈を出します。'
+    default_notes:
+      issue_ref: '短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
+    behaviors:
+      - id: PW-AUTO-START-01
+        pattern: event
+        statement: 'ボードにあり、Status を自動処理が書いていない Issue で呼ぶと、何も書かずに、計画・前回までの結果・答え・ブランチ・PR を返します'
+      - id: PW-AUTO-START-02
+        pattern: unwanted
+        statement: 'もし計画か答えを書いた人が書き込み権限を持たないなら、その本文を出さず、数を `withheld` に入れます'
+      - id: PW-AUTO-START-03
+        pattern: event
+        statement: 'ボードに無い Issue で呼ぶと、進行の欄を Ready にしてボードに載せます'
+      - id: PW-AUTO-START-04
+        pattern: event
+        statement: 'Status が自動処理の書いた Needs Attention の Issue で呼ぶと、開いた PR があれば In Progress に、無ければ Todo に戻します'
+      - id: PW-AUTO-START-05
+        pattern: unwanted
+        statement: 'もし Needs Attention を pecot の判定が置いたなら、Status を戻しません'
+      - id: PW-AUTO-START-06
+        pattern: optional
+        statement: 'CLI で `--dry-run` が有効なら、ボードに書かず、書くはずの値を `dry-run` の行で出して、文脈の JSON を出します'
+      - id: PW-AUTO-START-07
+        pattern: unwanted
+        statement: 'もしプロジェクトの設定に `fields.status` か、戻す Status の選択肢が無いなら、書かずに `project_init` を案内して失敗を返します'
+      - id: PW-AUTO-START-08
+        pattern: ubiquitous
+        statement: '常に、トークンの値を、結果・標準出力・標準エラーに書きません'
+      - id: PW-AUTO-START-09
+        pattern: event
+        statement: '呼ぶと、`issue`・`plan`・`results`・`answers`・`withheld`・`branch`・`pr` を結果に返します'
   PW-BOARD-ADD:
     help:
       details:

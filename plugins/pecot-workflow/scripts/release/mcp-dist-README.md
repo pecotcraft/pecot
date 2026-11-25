@@ -116,6 +116,9 @@ Issue・コメント・PR のテンプレートは、MCP の resource で読め�
 | `pr_merge` | PR をマージする（スタックの中の PR は一番下だけ） |
 | `pr_restack` | スタックしたブランチを、base にしたブランチの新しい位置へスタックし直す |
 | `review_finish` | 自動レビューを終える（止まったときだけ、止まったことを知らせるコメントを PR に書く） |
+| `auto_gate` | GitHub Actions のイベントから、自動処理を進めるかと、その種類を決める |
+| `auto_start` | 自動処理の実行を始める（自動処理が書いた Status を戻し、続きに要る文脈を出す） |
+| `auto_finish` | 自動処理の実行を終える（結果のコメントを書き、待ちの Status を書き、起動ラベルを外す） |
 | `release_check` | リリース前の確認をする |
 | `release_create` | GitHub のリリースとタグを作る（ノートは CHANGELOG から取る） |
 | `release_merge` | リリースの PR を通常のマージで取り込む |

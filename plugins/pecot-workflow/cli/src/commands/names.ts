@@ -42,6 +42,7 @@ export const COMMAND_GROUPS: readonly CommandGroup[] = [
   { name: 'session', meaning: '1 つの Issue の作業の始まりから終わりまで', help: 'Start, show and finish the work on an Issue' },
   { name: 'pr', meaning: 'PR そのもの', help: 'Work with PRs' },
   { name: 'review', meaning: 'PR の自動レビューの実行', help: 'Work with automated reviews of PRs' },
+  { name: 'auto', meaning: 'Issue のラベルを契機にした自動処理の実行', help: 'Work with automated fixes started by an Issue label' },
   { name: 'release', meaning: 'リリース', help: 'Work with releases' },
   { name: 'tracker', meaning: 'Tracker の Issue の書き直し', help: 'Rewrite the list in a Tracker Issue' },
   { name: 'worktree', meaning: 'worktree', help: 'Work with worktrees' },
@@ -81,6 +82,7 @@ export const COMMAND_VERBS: readonly CommandWord[] = [
   { name: 'reopen', meaning: '閉じたものを開き直す' },
   { name: 'block', meaning: '前提を付ける' },
   { name: 'unblock', meaning: '前提を外す' },
+  { name: 'gate', meaning: '先へ進めるかを決める' },
 ]
 
 const COMMAND_WORD_COUNT = 2

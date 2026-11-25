@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { isJsonObject, jsonField } from '../domain/json.js'
 import { stripFrontmatter, stripLeadingHtmlComment } from '../domain/frontmatter.js'
 import { decideReviewFinish, hasStoppedMarker, readExecution, renderReviewStopped, stopLocationOf } from '../domain/review-finish.js'
+import { isWritePermission } from '../domain/write-permission.js'
 import type { ExecutionReading, FinishDecision, FinishInput, ReviewCommentReading, RunIdentity, StopLocation } from '../domain/review-finish.js'
 import type { JsonValue } from '../domain/python-format.js'
 import type { GitHubClient } from '../infra/github/index.js'
@@ -25,8 +26,6 @@ import { parseReference, PR_REFERENCE_DESCRIPTION } from './pr-reference.js'
 
 const PATH = ['review', 'finish']
 const DEFAULT_TRIGGER_PHRASE = '@pecotbot review'
-// action の checkWritePermissions と同じ。collaborators の permission で maintain は write になる
-const WRITE_PERMISSIONS: ReadonlySet<string> = new Set(['admin', 'write'])
 
 const SKIP_REASON_SCHEMA = z.enum(['reviewed', 'job-succeeded', 'workflow-mismatch', 'closed', 'already-written', 'actor-without-write'])
 type SkipReason = z.infer<typeof SKIP_REASON_SCHEMA>
@@ -111,7 +110,10 @@ function parseSince(out: FinishOutput, since: string | undefined): Date | undefi
   return new Date(time)
 }
 
-function readExecutionFile(path: string | undefined): ExecutionReading {
+/**
+execution_file を読む。無いか空なら absent、読めなければ unreadable
+*/
+export function readExecutionFile(path: string | undefined): ExecutionReading {
   const file = nonEmpty(path)
   if (file === undefined) return { kind: 'absent' }
   try {
@@ -165,7 +167,7 @@ async function canActorWrite(out: FinishOutput, client: GitHubClient, target: Re
   // action の checkWritePermissions と同じく、名前が [bot] で終わる起動者は API を読まずに書ける側とみなす
   if (actor === undefined || actor.endsWith('[bot]')) return true
   try {
-    return WRITE_PERMISSIONS.has(await client.getCollaboratorPermission(target.owner, target.repository, actor))
+    return isWritePermission(await client.getCollaboratorPermission(target.owner, target.repository, actor))
   }
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
