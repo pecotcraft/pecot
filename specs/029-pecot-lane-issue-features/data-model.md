@@ -91,17 +91,27 @@
 
 | 項目 | 内容 |
 |---|---|
-| `id` | 写しの項目の識別子。例: `graphql:CreateIssueInput.milestoneId`、`graphql:enum:ProjectV2FieldType.ITERATION`、`rest:POST /repos/{owner}/{repo}/issues#issue_field_values` |
+| `id` | 写しの項目の識別子。例: `graphql:CreateIssueInput.milestoneId`、`graphql:UpdateIssueInput.labelIds`、`graphql:ProjectV2FieldValue.iterationId`、`graphql:enum:ProjectV2FieldType.ITERATION`、`graphql:mutation:addBlockedBy`、`rest:POST /repos/{owner}/{repo}/issues#issue_field_values` |
 | `status` | `supported`・`excluded` |
-| `handler` | `supported` のとき、`ATTRIBUTE_HANDLERS` の鍵 |
+| `handler` | `supported` のとき、`ATTRIBUTE_HANDLERS` の鍵。`tool` とどちらか 1 つ |
+| `tool` | `supported` のとき、属性でなくツールが書く項目（題・本文・状態・parent・blocked_by など）の MCP のツール名。`handler` とどちらか 1 つ |
 | `reason` | `excluded` のとき、外す理由（preview・GitHub が計算する・pecot の流れの外 など） |
+
+`id` の形は次のとおり。
+
+| 項目 | `id` の形 |
+|---|---|
+| `CreateIssueInput`・`UpdateIssueInput`・`ProjectV2FieldValue` の項目 | `graphql:<型>.<項目>` |
+| `ProjectV2FieldType`・`ProjectV2CustomFieldType`・`IssueFieldDataType` の値 | `graphql:enum:<型>.<値>` |
+| Issue を対象にする mutation（`input` の項目に、`@possibleTypes` の `concreteTypes` が `["Issue"]` だけのものを持つ） | `graphql:mutation:<名前>` |
+| REST の `POST /repos/{owner}/{repo}/issues` の本文の項目。`requestBody` が `$ref` のときは `components` をたどる | `rest:POST /repos/{owner}/{repo}/issues#<項目>` |
 
 ### 写し（`plugins/pecot-workflow/interface/github-issue-surface.json`）
 
 | 項目 | 内容 |
 |---|---|
-| `sources` | 取った URL と日時、REST の API の版 |
-| `items` | 項目の `id` の一覧（並べ替え済み） |
+| `sources` | 取った URL（`graphql`・`rest`）と日時（`fetched_at`）、REST の API の版（`rest_api_version`） |
+| `items` | 項目の `id` の一覧（符号位置の順に並べ替え済み） |
 
 ### 差の Issue（定期の確かめが作る）
 

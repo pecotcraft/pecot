@@ -113,14 +113,19 @@
     - `ProjectV2FieldValue` の項目
     - Issue を対象にする mutation（`addSubIssue`・`addBlockedBy` など）の名前
     - REST の `POST /repos/{o}/{r}/issues` の本文の項目
+  - Issue を対象にする mutation は、`input` の項目の `@possibleTypes` の `concreteTypes` が `["Issue"]` だけのものとする。
+    Issue 以外の型も受ける mutation（`addLabelsToLabelable` など）は拾わない
+  - SDL は `https://docs.github.com/public/fpt/schema.docs.graphql` から取る。
+    OpenAPI は、版の付いたファイル `descriptions/api.github.com/api.github.com.<版>.json` から取る。版の既定は、pecot が REST に送る版（`cli/src/infra/github/client.ts` の `DEFAULT_API_VERSION`）にする。写しの本文の項目を、pecot が Issue の作成で送る版のものに合わせるため
   - 抜き出しと差の計算は、domain の `plugins/pecot-workflow/cli/src/domain/issue-surface.ts` に置く。
     SDL と OpenAPI の取得と、差の Issue の作成は infra に置く（憲章の I と VI）
   - `plugins/pecot-workflow/cli/scripts/github-surface/` の `extract.ts`（写しを作り直す）と `drift.ts`（定期の比べ）は、引数を読んで上を呼ぶだけにする。
     今の `export-interface.ts` が、比べる処理を `libs/interface-spec` の domain から呼ぶのと同じ形
-  - 担保の一覧 `plugins/pecot-workflow/interface/issue-coverage.yaml` に、写しの各項目を `supported`（扱うコードの名前）か `excluded`（理由）として書く
+  - 担保の一覧 `plugins/pecot-workflow/interface/issue-coverage.yaml` に、写しの各項目を `supported`（扱うコードの名前）か `excluded`（理由）として書く。
+    `supported` には、`ATTRIBUTE_HANDLERS` の鍵（`handler`）か MCP のツール名（`tool`）のどちらか 1 つを書く。`tool` は、題・本文・状態・parent・blocked_by など、ツールが書く項目に使う
   - PR の CI のテスト（vitest）は、次の 2 つを確かめる
     - 写しの各項目が一覧にあること
-    - `supported` の項目が、CLI の機能の登録（`ATTRIBUTE_HANDLERS`）に実在すること
+    - `supported` の項目が、CLI の機能の登録（`ATTRIBUTE_HANDLERS`）か、`COMMANDS` のツールに実在すること
   - 定期の確かめは、新しい workflow `issue-surface-drift.yml` で行う
     - `pecot-board-sync` の Lambda の dispatch の先に足す
     - workflow は、今の SDL と OpenAPI から抜き出して写しと比べ、差があれば、差の要約の hash を印にした Issue を 1 件起票する

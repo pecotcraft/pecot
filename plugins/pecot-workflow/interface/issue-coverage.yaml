@@ -1,0 +1,321 @@
+# GitHub の Issue の機能の写し（github-issue-surface.json）の各項目について、pecot が扱うものと外すものを書く。
+# 照らし合わせは cli/tests/issue-coverage.test.ts。直し方は CONTRIBUTING.md の「4. GitHub の Issue の機能の写しと担保の一覧」
+items:
+  - id: "graphql:CreateIssueInput.agentAssignment"
+    status: excluded
+    reason: pecot の流れの外。Copilot のエージェントへの割り当ては扱わない
+  - id: "graphql:CreateIssueInput.assigneeIds"
+    status: supported
+    handler: users
+  - id: "graphql:CreateIssueInput.body"
+    status: supported
+    tool: issue_create
+  - id: "graphql:CreateIssueInput.clientMutationId"
+    status: excluded
+    reason: GraphQL の仕組みの項目で、Issue の機能でない
+  - id: "graphql:CreateIssueInput.issueFields"
+    status: supported
+    tool: issue_create
+  - id: "graphql:CreateIssueInput.issueTemplate"
+    status: excluded
+    reason: pecot の流れの外。本文は pecot-template:// の雛形で作り、リポの Issue テンプレートは使わない
+  - id: "graphql:CreateIssueInput.issueTypeId"
+    status: supported
+    handler: issue_type
+  - id: "graphql:CreateIssueInput.labelIds"
+    status: supported
+    handler: labels
+  - id: "graphql:CreateIssueInput.milestoneId"
+    status: supported
+    handler: milestone
+  - id: "graphql:CreateIssueInput.parentIssueId"
+    status: supported
+    tool: issue_create
+  - id: "graphql:CreateIssueInput.projectIds"
+    status: excluded
+    reason: Projects (classic) の項目。pecot は Projects だけを扱う
+  - id: "graphql:CreateIssueInput.projectV2Ids"
+    status: supported
+    tool: issue_create
+  - id: "graphql:CreateIssueInput.repositoryId"
+    status: supported
+    tool: issue_create
+  - id: "graphql:CreateIssueInput.statusId"
+    status: excluded
+    reason: preview の機能（Issue の status）
+  - id: "graphql:CreateIssueInput.title"
+    status: supported
+    tool: issue_create
+  - id: "graphql:ProjectV2FieldValue.date"
+    status: supported
+    handler: date
+  - id: "graphql:ProjectV2FieldValue.iterationId"
+    status: supported
+    handler: iteration
+  - id: "graphql:ProjectV2FieldValue.multiSelectOptionIds"
+    status: supported
+    handler: multi_select
+  - id: "graphql:ProjectV2FieldValue.number"
+    status: supported
+    handler: number
+  - id: "graphql:ProjectV2FieldValue.singleSelectOptionId"
+    status: supported
+    handler: single_select
+  - id: "graphql:ProjectV2FieldValue.text"
+    status: supported
+    handler: text
+  - id: "graphql:UpdateIssueInput.agentAssignment"
+    status: excluded
+    reason: pecot の流れの外。Copilot のエージェントへの割り当ては扱わない
+  - id: "graphql:UpdateIssueInput.assigneeIds"
+    status: supported
+    handler: users
+  - id: "graphql:UpdateIssueInput.assignees"
+    status: supported
+    handler: users
+  - id: "graphql:UpdateIssueInput.body"
+    status: supported
+    tool: issue_block
+  - id: "graphql:UpdateIssueInput.clientMutationId"
+    status: excluded
+    reason: GraphQL の仕組みの項目で、Issue の機能でない
+  - id: "graphql:UpdateIssueInput.id"
+    status: supported
+    tool: issue_edit
+  - id: "graphql:UpdateIssueInput.issueFieldUpdates"
+    status: supported
+    tool: issue_edit
+  - id: "graphql:UpdateIssueInput.issueType"
+    status: supported
+    handler: issue_type
+  - id: "graphql:UpdateIssueInput.issueTypeId"
+    status: supported
+    handler: issue_type
+  - id: "graphql:UpdateIssueInput.labelIds"
+    status: supported
+    handler: labels
+  - id: "graphql:UpdateIssueInput.labels"
+    status: supported
+    handler: labels
+  - id: "graphql:UpdateIssueInput.milestoneId"
+    status: supported
+    handler: milestone
+  - id: "graphql:UpdateIssueInput.projectIds"
+    status: excluded
+    reason: Projects (classic) の項目。pecot は Projects だけを扱う
+  - id: "graphql:UpdateIssueInput.state"
+    status: supported
+    tool: session_finish
+  - id: "graphql:UpdateIssueInput.stateInput"
+    status: supported
+    tool: session_finish
+  - id: "graphql:UpdateIssueInput.statusId"
+    status: excluded
+    reason: preview の機能（Issue の status）
+  - id: "graphql:UpdateIssueInput.title"
+    status: excluded
+    reason: pecot の流れの外。起票の後に題を書き換えない
+  - id: "graphql:enum:IssueFieldDataType.DATE"
+    status: supported
+    handler: date
+  - id: "graphql:enum:IssueFieldDataType.MULTI_SELECT"
+    status: supported
+    handler: multi_select
+  - id: "graphql:enum:IssueFieldDataType.NUMBER"
+    status: supported
+    handler: number
+  - id: "graphql:enum:IssueFieldDataType.SINGLE_SELECT"
+    status: supported
+    handler: single_select
+  - id: "graphql:enum:IssueFieldDataType.TEXT"
+    status: supported
+    handler: text
+  - id: "graphql:enum:ProjectV2CustomFieldType.DATE"
+    status: supported
+    handler: date
+  - id: "graphql:enum:ProjectV2CustomFieldType.ITERATION"
+    status: supported
+    handler: iteration
+  - id: "graphql:enum:ProjectV2CustomFieldType.MULTI_SELECT"
+    status: supported
+    handler: multi_select
+  - id: "graphql:enum:ProjectV2CustomFieldType.NUMBER"
+    status: supported
+    handler: number
+  - id: "graphql:enum:ProjectV2CustomFieldType.SINGLE_SELECT"
+    status: supported
+    handler: single_select
+  - id: "graphql:enum:ProjectV2CustomFieldType.TEXT"
+    status: supported
+    handler: text
+  - id: "graphql:enum:ProjectV2FieldType.ASSIGNEES"
+    status: supported
+    handler: users
+  - id: "graphql:enum:ProjectV2FieldType.CLOSED"
+    status: excluded
+    reason: GitHub が計算する
+  - id: "graphql:enum:ProjectV2FieldType.CREATED"
+    status: excluded
+    reason: GitHub が計算する
+  - id: "graphql:enum:ProjectV2FieldType.DATE"
+    status: supported
+    handler: date
+  - id: "graphql:enum:ProjectV2FieldType.ISSUE_TYPE"
+    status: supported
+    handler: issue_type
+  - id: "graphql:enum:ProjectV2FieldType.ITERATION"
+    status: supported
+    handler: iteration
+  - id: "graphql:enum:ProjectV2FieldType.LABELS"
+    status: supported
+    handler: labels
+  - id: "graphql:enum:ProjectV2FieldType.LINKED_PULL_REQUESTS"
+    status: excluded
+    reason: GitHub が計算する（Pull Request の本文の closing keyword から）
+  - id: "graphql:enum:ProjectV2FieldType.MILESTONE"
+    status: supported
+    handler: milestone
+  - id: "graphql:enum:ProjectV2FieldType.MULTI_SELECT"
+    status: supported
+    handler: multi_select
+  - id: "graphql:enum:ProjectV2FieldType.NUMBER"
+    status: supported
+    handler: number
+  - id: "graphql:enum:ProjectV2FieldType.PARENT_ISSUE"
+    status: supported
+    tool: issue_create
+  - id: "graphql:enum:ProjectV2FieldType.REPOSITORY"
+    status: excluded
+    reason: GitHub が計算する
+  - id: "graphql:enum:ProjectV2FieldType.REVIEWERS"
+    status: excluded
+    reason: Pull Request の機能で、Issue の値でない
+  - id: "graphql:enum:ProjectV2FieldType.SINGLE_SELECT"
+    status: supported
+    handler: single_select
+  - id: "graphql:enum:ProjectV2FieldType.SUB_ISSUES_PROGRESS"
+    status: excluded
+    reason: GitHub が計算する
+  - id: "graphql:enum:ProjectV2FieldType.TEXT"
+    status: supported
+    handler: text
+  - id: "graphql:enum:ProjectV2FieldType.TITLE"
+    status: supported
+    tool: issue_create
+  - id: "graphql:enum:ProjectV2FieldType.TRACKED_BY"
+    status: excluded
+    reason: GitHub が計算する（tasklist の関係）
+  - id: "graphql:enum:ProjectV2FieldType.TRACKS"
+    status: excluded
+    reason: GitHub が計算する（tasklist の関係）
+  - id: "graphql:enum:ProjectV2FieldType.UPDATED"
+    status: excluded
+    reason: GitHub が計算する
+  - id: "graphql:mutation:addBlockedBy"
+    status: supported
+    tool: issue_block
+  - id: "graphql:mutation:addCloseIssueReferences"
+    status: excluded
+    reason: pecot の流れの外。Pull Request は本文の closing keyword で Issue につなぐ
+  - id: "graphql:mutation:addRelatesTo"
+    status: excluded
+    reason: pecot の流れの外。Issue の関係は parent と blocked_by だけを扱う
+  - id: "graphql:mutation:addSubIssue"
+    status: supported
+    tool: issue_create
+  - id: "graphql:mutation:applyPendingIssueSuggestions"
+    status: excluded
+    reason: pecot の流れの外。Issue の提案の適用・却下は扱わない
+  - id: "graphql:mutation:closeIssue"
+    status: supported
+    tool: session_finish
+  - id: "graphql:mutation:createIssue"
+    status: supported
+    tool: issue_create
+  - id: "graphql:mutation:createIssueFieldValue"
+    status: supported
+    tool: issue_edit
+  - id: "graphql:mutation:createLinkedBranch"
+    status: supported
+    tool: session_start
+  - id: "graphql:mutation:deleteIssue"
+    status: excluded
+    reason: pecot の流れの外。Issue は閉じて残し、消さない
+  - id: "graphql:mutation:deleteIssueFieldValue"
+    status: supported
+    tool: issue_edit
+  - id: "graphql:mutation:pinIssue"
+    status: excluded
+    reason: pecot の流れの外。リポでの Issue の固定は扱わない
+  - id: "graphql:mutation:rejectPendingIssueSuggestions"
+    status: excluded
+    reason: pecot の流れの外。Issue の提案の適用・却下は扱わない
+  - id: "graphql:mutation:removeBlockedBy"
+    status: supported
+    tool: issue_unblock
+  - id: "graphql:mutation:removeCloseIssueReferences"
+    status: excluded
+    reason: pecot の流れの外。Pull Request は本文の closing keyword で Issue につなぐ
+  - id: "graphql:mutation:removeRelatesTo"
+    status: excluded
+    reason: pecot の流れの外。Issue の関係は parent と blocked_by だけを扱う
+  - id: "graphql:mutation:removeSubIssue"
+    status: excluded
+    reason: pecot の流れの外。親は起票のときに付けるだけで、外さない
+  - id: "graphql:mutation:reopenIssue"
+    status: supported
+    tool: issue_reopen
+  - id: "graphql:mutation:reprioritizeSubIssue"
+    status: excluded
+    reason: pecot の流れの外。sub-issue の並びは題の番号で決め、GitHub の並びを変えない
+  - id: "graphql:mutation:setIssueFieldValue"
+    status: supported
+    tool: issue_edit
+  - id: "graphql:mutation:setIssueStatus"
+    status: excluded
+    reason: preview の機能（Issue の status）
+  - id: "graphql:mutation:transferIssue"
+    status: excluded
+    reason: pecot の流れの外。Issue を別のリポに移さない
+  - id: "graphql:mutation:unpinIssue"
+    status: excluded
+    reason: pecot の流れの外。リポでの Issue の固定は扱わない
+  - id: "graphql:mutation:updateIssue"
+    status: supported
+    tool: issue_edit
+  - id: "graphql:mutation:updateIssueFieldValue"
+    status: supported
+    tool: issue_edit
+  - id: "graphql:mutation:updateIssueIssueType"
+    status: supported
+    handler: issue_type
+  - id: "rest:POST /repos/{owner}/{repo}/issues#assignee"
+    status: excluded
+    reason: GitHub が非推奨にした項目（2026-03-10 の版で消えた）。担当者は assignees で送る
+  - id: "rest:POST /repos/{owner}/{repo}/issues#assignees"
+    status: supported
+    handler: users
+  - id: "rest:POST /repos/{owner}/{repo}/issues#body"
+    status: supported
+    tool: issue_create
+  - id: "rest:POST /repos/{owner}/{repo}/issues#issue_field_values"
+    status: supported
+    tool: issue_create
+  - id: "rest:POST /repos/{owner}/{repo}/issues#labels"
+    status: supported
+    handler: labels
+  - id: "rest:POST /repos/{owner}/{repo}/issues#milestone"
+    status: supported
+    handler: milestone
+  - id: "rest:POST /repos/{owner}/{repo}/issues#parent_issue_id"
+    status: supported
+    tool: issue_create
+  - id: "rest:POST /repos/{owner}/{repo}/issues#status"
+    status: excluded
+    reason: preview の機能（Issue の status）
+  - id: "rest:POST /repos/{owner}/{repo}/issues#title"
+    status: supported
+    tool: issue_create
+  - id: "rest:POST /repos/{owner}/{repo}/issues#type"
+    status: supported
+    handler: issue_type
