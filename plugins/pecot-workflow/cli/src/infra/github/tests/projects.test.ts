@@ -61,6 +61,22 @@ describe('listProjectItems', () => {
     expect(onLaneOptions.mock.calls).toEqual([[undefined]])
   })
 
+  it('ボードに pecot-lane が無く、laneField が NOT_FOUND の部分エラーでも、Item を返し、onLaneOptions に undefined を渡す', async () => {
+    const data = { node: { laneField: JSON_NULL, items: { nodes: [{ id: 'a' }], pageInfo: { hasNextPage: false, endCursor: JSON_NULL } } } }
+    const errors = [{ type: 'NOT_FOUND', path: ['node', 'laneField'], message: 'Could not resolve to a Unions::ProjectV2FieldConfiguration with the name pecot-lane' }]
+    const { client } = await startClient([{ match: { operation: 'ListProjectItems' }, respond: { status: 200, body: { data, errors } }, times: 1 }])
+    const onLaneOptions = vi.fn()
+    expect(await client.listProjectItems('PVT', { onLaneOptions })).toEqual([{ id: 'a' }])
+    expect(onLaneOptions.mock.calls).toEqual([[undefined]])
+  })
+
+  it('laneField 以外の部分エラーは、今までどおり失敗にする', async () => {
+    const data = { node: { laneField: JSON_NULL, items: JSON_NULL } }
+    const errors = [{ type: 'NOT_FOUND', path: ['node', 'items'], message: 'boom' }]
+    const { client } = await startClient([{ match: { operation: 'ListProjectItems' }, respond: { status: 200, body: { data, errors } }, times: 1 }])
+    await expect(client.listProjectItems('PVT')).rejects.toThrow('boom')
+  })
+
   it('limit に達したら次のページを取らずに切り詰める', async () => {
     const nodes = Array.from({ length: 10 }, (_unused, index) => ({ id: `item${String(index)}` }))
     const { client, server } = await startClient([graphqlData('ListProjectItems', page(nodes, true, 'cursor'))])

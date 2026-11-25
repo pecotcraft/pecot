@@ -93,6 +93,11 @@ export interface ListProjectItemsOptions {
   readonly onLaneOptions?: ((options: readonly string[] | undefined) => void) | undefined
 }
 
+// ProjectV2.field(name:) は、その名前のフィールドが無いと null と NOT_FOUND の errors を返す
+function isLaneFieldPath(path: readonly JsonValue[]): boolean {
+  return path.length === 2 && path[0] === 'node' && path[1] === 'laneField'
+}
+
 function laneOptionsOf(field: JsonValue | undefined): readonly string[] | undefined {
   const options = jsonField(field, 'options')
   return isJsonArray(options) ? options.map(option => jsonField(option, 'name')).filter(name => typeof name === 'string') : undefined
@@ -222,7 +227,8 @@ export class ProjectsApi extends ReposApi {
     for (;;) {
       let result: JsonObject
       try {
-        result = await this.executeGraphql(query, { projectId, cursor, laneFieldName: LANE_FIELD_NAME })
+        const outcome = await this.executeGraphqlTolerating(query, { projectId, cursor, laneFieldName: LANE_FIELD_NAME }, isLaneFieldPath)
+        result = outcome.data
       }
       catch (error: unknown) {
         // 古い GHES は blockedBy などを知らない。足す前のクエリで先頭から読み直す
