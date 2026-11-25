@@ -34,12 +34,13 @@ workflows: ["CI"]
 | `PECOT_AUTO_MAX_TURNS` | `80` | main のターンの上限 |
 | `PECOT_AUTO_TIMEOUT_MINUTES` | `30` | `run` の時間の上限。分 |
 | `PECOT_AUTO_MAX_CI_ATTEMPTS` | `3` | CI を直す回数の上限。`gate` に渡す |
+| `PECOT_AUTO_PROJECT` | 空 | 使うプロジェクトの設定の名前。複数のボードに入ったリポで指定する |
 
 先頭の `env` に置かないのは、job の `if` が `env` を読めないためだ。公式の表では、`jobs.<job_id>.if` で使える context は `github`・`needs`・`vars`・`inputs` だけだ。
 
 - 既定値は、式の `||` で書く。例は `vars.PECOT_AUTO_LABEL || 'pecot-auto'` だ
 - `timeout-minutes` は、`${{ fromJSON(vars.PECOT_AUTO_TIMEOUT_MINUTES || '30') }}` と書く。変数の値は文字列で、`timeout-minutes` は数を求める（spec 027 の R2）
-- 複数のボードに入ったリポでの指定の変数は、#640 が決める。決まったら、この表と `gate`・`run` の `env` に足す
+- 複数のボードに入ったリポでの指定は、#640（#660）の形に合わせ、変数 `PECOT_AUTO_PROJECT` で読む。`gate` と後始末の step には `--project` で、スキルには `prompt` の `project=<名前>` で渡す。空なら渡さない
 
 ## 認証の名前
 
@@ -114,7 +115,7 @@ action はすべて SHA で固定し、版をコメントに書く。
 | `github_token` | 発行した App のトークン |
 | `plugin_marketplaces` | `https://github.com/pecotcraft/pecot.git` |
 | `plugins` | `pecot-w@pecot` |
-| `prompt` | `/pecot-w:w-auto <gate の kind> <gate の issue>` |
+| `prompt` | `/pecot-w:w-auto <gate の kind> <gate の issue>`。変数 `PECOT_AUTO_PROJECT` があるときだけ `project=<名前>` を足す。`pecot-review.yml` と同じ書き方だ |
 | `allowed_bots` | 発行の step の出力 `app-slug`。`<slug>` と `<slug>[bot]` のどちらでも通る。`*` は使わない |
 | `claude_args` | `--permission-mode default`・`--max-turns`・`--allowedTools`・`--disallowedTools` |
 

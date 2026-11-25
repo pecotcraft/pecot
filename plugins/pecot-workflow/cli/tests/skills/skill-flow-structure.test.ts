@@ -410,6 +410,89 @@ describe('w-handoff の手順', () => {
   })
 })
 
+describe('w-auto の手順', () => {
+  const text = readSkill('w-auto')
+  const headings = stepHeadings(text)
+  const lines = text.split('\n')
+  const procedure = lines.slice(lines.indexOf('## 手順')).join('\n')
+  // 契約（specs/023-label-triggered-autofix/contracts/skill-flow.md）の表の止まる条件と結果
+  const STOPS: readonly (readonly [number, readonly string[]])[] = [
+    [1, ['setup-missing']],
+    [2, ['out-of-scope']],
+    [3, ['setup-missing', 'out-of-scope', 'failed']],
+    [5, ['question']],
+    [6, ['failed']],
+    [8, ['failed', 'setup-missing']],
+    [9, ['failed']],
+    [10, ['failed']],
+    [11, ['pr-created']],
+  ]
+
+  it('start と resume の Step は 1〜11 で、契約の表の順に並ぶ', () => {
+    expect(headings.map(heading => heading.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+    expect(headings.map(heading => heading.title)).toEqual([
+      '文脈を読む',
+      '対象かを確かめる',
+      'ブランチを用意する',
+      '変更対象を読む',
+      '直し方が決まるかを確かめる',
+      '計画を投稿する',
+      '実装する',
+      'テストを動かす',
+      'コミットする',
+      'PR を作る',
+      '結果を書いて終える',
+    ])
+  })
+
+  it('frontmatter に allowed-tools を持たず、when_to_use と argument-hint を持つ', () => {
+    const frontmatter = text.slice(0, text.indexOf('\n---', 4))
+    expect(frontmatter).not.toContain('allowed-tools')
+    expect(frontmatter).toContain('when_to_use:')
+    expect(frontmatter).toContain('argument-hint:')
+  })
+
+  it('手順の前に共通の決まりの 7 つを置き、その 1 つで --no-verify を禁じる', () => {
+    const start = lines.indexOf('## 共通の決まり')
+    expect(start).toBeGreaterThanOrEqual(0)
+    expect(start).toBeLessThan(lines.indexOf('## 手順'))
+    const end = lines.findIndex((line, index) => index > start && line.startsWith('## '))
+    const rules = lines.slice(start, end).filter(line => line.startsWith('- '))
+    expect(rules).toHaveLength(7)
+    expect(rules.join('\n')).toContain('`--no-verify` を使わない')
+  })
+
+  it('人を待たず、手順の節に EnterPlanMode・AskUserQuestion・--no-verify が無い', () => {
+    for (const word of ['EnterPlanMode', 'AskUserQuestion']) expect(text).not.toContain(word)
+    expect(procedure).not.toContain('--no-verify')
+  })
+
+  it('Step 1 の前に、引数の project を pecot-workflow の MCP ツールへ渡す文がある', () => {
+    const preamble = lines.slice(lines.indexOf('## 手順'), headings[0]?.line).join('\n')
+    expect(preamble).toContain('引数に `project=<名前>` があれば、このスキルで使う pecot-workflow の MCP ツールに、その名前を `project` で渡す。')
+  })
+
+  it.for(STOPS)('Step %i は、auto_finish に結果 %j を渡して止まる', ([step, results]) => {
+    const body = sectionBody(text, numberIndex(headings, step))
+    expect(body).toContain('`auto_finish`')
+    for (const result of results) expect(body).toContain(`\`result: ${result}\``)
+  })
+
+  it('Step 3 は、session_start で base を渡さずにブランチを作る', () => {
+    const body = sectionBody(text, numberIndex(headings, 3))
+    expect(body).toContain('`session_start`')
+    expect(body).toContain('`base` は渡さない')
+  })
+
+  it('Step 10 は、push してから pr_check と pr_create で PR を作り、screenshot に無人の実行の理由を書く', () => {
+    const body = sectionBody(text, numberIndex(headings, 10))
+    const order = ['`git push', '`pr_check`', '`pr_create`'].map(word => body.indexOf(word))
+    expect(order.every(position => position >= 0)).toBe(true)
+    expect(order).toEqual(order.toSorted((left, right) => left - right))
+    expect(body).toContain('`screenshot`')
+  })
+})
+
 describe('マージされた後の片付け', () => {
   const link = 'references/after-merge.md'
   const text = readPluginFile(`skills/w-pr/${link}`)

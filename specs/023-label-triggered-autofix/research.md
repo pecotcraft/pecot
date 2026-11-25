@@ -21,7 +21,7 @@ spec 023 が決めた仕組み（起動ラベル・`gate` と `run` の 2 つの
 | `pecot` の起動 | CLI は TypeScript（`cli/src/`）で、`bin/pecot` が Node で起動する。プラグインの `.mcp.json` が `bin/pecot mcp` を起動し、スキルは MCP ツールを使う |
 | Actions での前例 | `pecot-review.yml`（自動レビュー）と、`pecot-board-sync.yml`。ステップは checkout、`actions/setup-node`、`actions/create-github-app-token` の順で、CLI は `npx -y --prefix=/ @pecot/workflow-mcp@latest <コマンド>` で打つ |
 | CLI のトークン | `PECOT_GITHUB_COM_TOKEN` を読む。`GH_TOKEN` と `GITHUB_TOKEN` は直接読まない |
-| プロジェクトの設定 | 利用者のリポでは `.pecot/config/projects/*.json` を追跡する。`.active` が無い checkout では、ツールが対象のリポからプロジェクトの設定を決める（#579）。複数のボードに入ったリポでの指定は、#640 が決める |
+| プロジェクトの設定 | 利用者のリポでは `.pecot/config/projects/*.json` を追跡する。`.active` が無い checkout では、ツールが対象のリポからプロジェクトの設定を決める（#579）。複数のボードに入ったリポでの指定は、#640（#660）の形で、変数 `PECOT_AUTO_PROJECT` に設定の名前を置く |
 | 進行の欄の書き込み | MCP ツール `session_start` が Active に、`pr_create` が In Review にする。どちらも対話が無い |
 | 進行の欄 | `project init` が、`Blocked` を足す（`cli/src/commands/project.ts`） |
 | 既定の Status | 実装済み（#376・#404）。`project init` が `Needs Attention` を足す。設定の `project.fields.status`（`id` と `options`）がある。札と設定のキーの対応 `LABEL_CONFIG_KEYS`（`cli/src/domain/board-move.ts`）は `needs_attention` と `todo` の 2 つだ。入力 `labelWrittenByAutomation`（今の札を自動処理が書いたか）があり、呼ぶ側 3 か所（`board-judgment.ts`・`issue-create.ts`・`issue-dependency.ts`）が `false` 固定だ |
@@ -88,7 +88,7 @@ spec 023 が決めた仕組み（起動ラベル・`gate` と `run` の 2 つの
 - App にインストールで与える権限は、`run` の表と、自動レビューの権限（Pull requests: write、Contents: read）との合計にする。自動レビューも自前の App を使うときのためだ
 - 制約: user 所有のボードは、初版の対象にしない。GitHub App の権限の表に user の Projects の項目が無い。導入手順に書く
 - 制約: App の作成と organization へのインストールは、利用者が画面で行う。CLI は手順を示すだけだ
-- 制約: 複数のボードに入ったリポでの指定は、#640 が決める。決まった変数を、雛形の `env` と step に足す
+- 制約: 複数のボードに入ったリポでの指定は、#640（#660）の形に合わせる。変数 `PECOT_AUTO_PROJECT` を、CLI には `--project`、スキルには `project=<名前>` で渡す
 
 実装で確かめること: リポに絞って発行したトークンが、`permission-organization-projects: write` で organization のボードを書けるか。検証用（`pecotcraft/pecot-sandbox`）で確かめる。
 
@@ -242,7 +242,8 @@ Issue の本文は、action のサニタイズを通らない。そこで次の 
 決まったこと:
 
 - 種類は 3 つある。始める、続ける、CI を直す、だ。`gate` が決めて、引数でスキルに渡す
-- 手順は、MCP ツールの名前で書く。ブランチは `session_start`、計画は `issue_comment`（`prepare: true`・`template: "plan"`）、PR の確認と作成は `pr_check`・`pr_create` だ
+- 手順は、MCP ツールの名前で書く。ブランチは `session_start`、PR の確認と作成は `pr_check`・`pr_create` だ
+- 計画は、resource `pecot-template://comment/plan` を写したファイルを `issue_comment` で投稿する。テンプレートの取り方は、#651 で `prepare: true` から resource に変わった
 - 計画は plan のテンプレートで投稿する。承認は待たない（FR-005）
 - 直し方が決まらないときは、質問を書いて `auto_finish`（`result: question`）で終わる
 - PR のスクリーンショットは撮らない。`screenshot` の欄に、無人の実行である理由を書く
