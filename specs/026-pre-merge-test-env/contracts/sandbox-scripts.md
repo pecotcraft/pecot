@@ -29,6 +29,12 @@
 - ruleset は、個別の取得（`rulesets/{id}`）で読む。上の階層から来た ruleset は比べない
 - このリポだけの運用の ruleset（`pages-store`・`release-tags`）は、名前で外して比べない（FR-008）
 - ボードは、項目の名前・型・選択肢の名前と並びを比べる。列の項目は、名前の違い（`pecot-workflow-<名前>`）を読み替えて比べる
+- ボードの設定ファイルは、名前の形を比べる。項目の名前は `config-file`
+  - 各リポの `main` の `.pecot/config/projects/` から、中身の `host`・`owner`・`project.number` が比べるボードと同じファイルを選ぶ。読めない JSON は飛ばす
+  - 名前が `<host>_<owner>_<number>.json` なら、その形を出す
+  - 中身に `workflow_suffix` があり、名前が `<host>_<owner>_` で始まって `_<workflow_suffix>.json` で終わるなら、`<host>_<owner>_<題>_<suffix>.json` を出す
+  - どちらでもなければ名前をそのまま出す。2 つ以上なら名前順に `、` でつなぐ
+  - ディレクトリが無いときは、読めないとして止める
 - `ci.yml` は、有無だけを比べる
 - `pecot-board-sync.yml` と `pecot-review.yml` は、有無と中身を比べる。比べる相手は、このリポの main にある同じファイルだ（FR-032）
   - 中身が違えば、両方の値を `blob <sha>、<行番号> 行目: <その行>` の形で出す。行は、両方で違う最初の行にする
@@ -45,6 +51,14 @@
 | 検証用に `pages-store`・`release-tags` の ruleset が無い（比べない項目） | 0 件 |
 | ボードの列の値が 1 つ多い | 1 件 |
 | `id` と日時だけが違う | 0 件 |
+| 検証用の進行の欄だけが `pecot-status` | 2 件（`board-fields / pecot-status` と `board-fields / pecot-workflow-*`） |
+| 両方の設定ファイルが同じ形 | 0 件 |
+| 検証用の設定ファイルだけが今の形 | 1 件。項目の名前は `config-file` で、両方の形が出る |
+| 検証用に比べるボードの設定ファイルが無い | 1 件。検証用の値が「なし」 |
+| 別のボードを指す設定ファイルがある | 0 件 |
+| 同じボードの設定ファイルが 2 つある | 1 件。形を名前順につなぐ |
+| どちらの形にも合わない名前 | 1 件。名前をそのまま出す |
+| 設定のディレクトリが無い | `error:` の行、終了コード 2 |
 | 検証用の `pecot-board-sync.yml` の中身が、このリポの main と違う | 1 件 |
 | 検証用の `pecot-review.yml` の中身が、このリポの main と違う | 1 件。項目の名前は `workflows / pecot-review.yml` |
 | 検証用に `pecot-review.yml` が無い | 1 件。検証用の値が「なし」 |

@@ -15,6 +15,9 @@ import { fixtureName, makeSandbox, pluginScript, repositoryRoot, runScript, spli
 const THIS = 'pecotcraft/pecot'
 const SANDBOX = 'pecotcraft/pecot-sandbox'
 const WORKFLOWS = '.github/workflows'
+const CONFIG_DIR = '.pecot/config/projects'
+const CURRENT_FORM = '<host>_<owner>_<number>.json'
+const LEGACY_FORM = '<host>_<owner>_<題>_<suffix>.json'
 const script = pluginScript('scripts/sandbox/sandbox-diff.sh')
 
 // GraphQL は `-F number=` の値で graphql_<番号> を返す。FAKE_GH_AUTH_FAIL が立っていれば認証の失敗を返す。
@@ -58,6 +61,17 @@ interface Option { id: string, name: string, color: string, description: string 
 interface Field { __typename: string, id: string, name: string, dataType: string, options?: Option[] }
 interface Board { data: { organization: { projectV2: { fields: { nodes: Field[] } } | null } } }
 type Settings = Record<string, unknown>
+interface ProjectConfig { host: string, owner: string, workflow_suffix?: string, project: { number: number } }
+
+// #701 の前の形の設定ファイル（<host>_<owner>_<題>_<suffix>.json）
+function legacyConfig(slug: string, suffix: string, number: number): [string, ProjectConfig] {
+  return [`github.com_pecotcraft_${slug}_${suffix}.json`, { host: 'github.com', owner: 'pecotcraft', workflow_suffix: suffix, project: { number } }]
+}
+
+// 今の形の設定ファイル（<host>_<owner>_<number>.json）
+function currentConfig(number: number): [string, ProjectConfig] {
+  return [`github.com_pecotcraft_${String(number)}.json`, { host: 'github.com', owner: 'pecotcraft', project: { number } }]
+}
 
 // jq -c と同じ形（キーの順は入力のまま）
 function compact(value: unknown): string {
@@ -150,10 +164,17 @@ class Side {
   readonly rulesets: Ruleset[]
   board: Board
   readonly files: Record<string, string> = { 'ci.yml': 'name: ci\n', 'pecot-board-sync.yml': BOARD_SYNC, 'pecot-handoff.yml': HANDOFF, 'pecot-review.yml': REVIEW }
+  // undefined は、設定のディレクトリが無い（一覧が 404）
+  configs: Record<string, ProjectConfig> | undefined
 
-  constructor(readonly repository: string, readonly project: number, rulesetId: number, workflowField: string) {
+  constructor(readonly repository: string, readonly project: number, rulesetId: number, workflowField: string, config: [string, ProjectConfig]) {
     this.rulesets = [makeRuleset(rulesetId, repository)]
     this.board = makeBoard(workflowField)
+    this.configs = Object.fromEntries([config])
+  }
+
+  setConfigs(...configs: readonly [string, ProjectConfig][]): void {
+    this.configs = Object.fromEntries(configs)
   }
 
   rules(): Rule[] {
@@ -192,13 +213,22 @@ class Side {
         content: Buffer.from(text).toString('base64'),
       })
     }
+    if (this.configs === undefined) return
+    const configs = Object.entries(this.configs)
+    const listing = [{ name: '.active', type: 'file' }, ...configs.map(([name]) => ({ name, type: 'file' }))]
+    writeFixture(sandbox, `repos/${repository}/contents/${CONFIG_DIR}?ref=main`, listing)
+    for (const [name, config] of configs) {
+      // contents API と同じく、base64 を 60 文字ごとに改行する
+      const content = (Buffer.from(JSON.stringify(config, undefined, 2)).toString('base64').match(/.{1,60}/gu) ?? []).join('\n')
+      writeFixture(sandbox, `repos/${repository}/contents/${CONFIG_DIR}/${name}?ref=main`, { name, encoding: 'base64', content })
+    }
   }
 }
 
 // このリポ（Projects 1 番）と検証用（Projects 3 番）が、比べる項目で同じ状態から始める
 class Scene {
-  readonly this = new Side(THIS, 1, 26_538_811, 'pecot-workflow-pecotcraft')
-  readonly sandbox = new Side(SANDBOX, 3, 27_130_266, 'pecot-workflow-sandbox')
+  readonly this = new Side(THIS, 1, 26_538_811, 'pecot-workflow-pecotcraft', legacyConfig('pecot-project', 'pecotcraft', 1))
+  readonly sandbox = new Side(SANDBOX, 3, 27_130_266, 'pecot-workflow-sandbox', legacyConfig('pecot-sandbox', 'sandbox', 3))
 
   constructor(readonly workspace: Sandbox) {}
 
@@ -372,6 +402,62 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / ci.yml', 'あり', 'なし')))
   })
 
+  it('両方の設定ファイルが今の形なら、ずれは 0 件', () => {
+    scene.this.setConfigs(currentConfig(1))
+    scene.sandbox.setConfigs(currentConfig(3))
+    const result = scene.run()
+    expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+  })
+
+  it('検証用の設定ファイルだけが今の形だと、config-file のずれに両方の形を出す', () => {
+    scene.sandbox.setConfigs(currentConfig(3))
+    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', LEGACY_FORM, CURRENT_FORM)))
+  })
+
+  it('検証用に比べるボードの設定ファイルが無いと、検証用を「なし」としてずれに出す', () => {
+    scene.sandbox.setConfigs()
+    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', LEGACY_FORM, 'なし')))
+  })
+
+  it('別のボードを指す設定ファイルは比べない', () => {
+    scene.sandbox.setConfigs(legacyConfig('pecot-sandbox', 'sandbox', 3), currentConfig(9))
+    const result = scene.run()
+    expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+  })
+
+  it('同じボードの設定ファイルが 2 つあると、形を名前順につないでずれに出す', () => {
+    scene.sandbox.setConfigs(legacyConfig('pecot-sandbox', 'sandbox', 3), currentConfig(3))
+    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', LEGACY_FORM, `${CURRENT_FORM}、${LEGACY_FORM}`)))
+  })
+
+  it('どちらの形にも合わない名前は、名前をそのまま出す', () => {
+    const [, config] = legacyConfig('pecot-sandbox', 'sandbox', 3)
+    scene.sandbox.setConfigs(['renamed.json', config])
+    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', LEGACY_FORM, 'renamed.json')))
+  })
+
+  it('検証用の設定のディレクトリが無いと、error を出して終了コード 2 で止まる', () => {
+    scene.sandbox.configs = undefined
+    const result = scene.run()
+    expect([result.status, result.stdout]).toStrictEqual([2, ''])
+    expect(splitLines(result.stderr)).toStrictEqual([`error: repos/${SANDBOX}/contents/${CONFIG_DIR} を読めません（gh が失敗しました）`])
+  })
+
+  it('検証用の進行の欄だけが pecot-status だと、board-fields の 2 件のずれに出す', () => {
+    find(scene.sandbox.fields(), f => f.name === 'pecot-workflow-sandbox').name = 'pecot-status'
+    const result = scene.run()
+    expect(result.status).toBe(1)
+    const lines = splitLines(result.stdout)
+    expect([lines[0], lines[1], lines[2], lines[4], lines[6], lines[7]]).toStrictEqual([
+      'ずれは 2 件',
+      'board-fields / pecot-status',
+      '  このリポ: なし',
+      'board-fields / pecot-workflow-*',
+      '  検証用: なし',
+      undefined,
+    ])
+  })
+
   it('マージ設定が違うと、merge-settings のずれに出す', () => {
     scene.sandbox.settings['allow_rebase_merge'] = true
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('merge-settings / allow_rebase_merge', 'false', 'true')))
@@ -455,7 +541,7 @@ describe('sandbox-diff-items.json', { timeout: 30_000 }, () => {
     expect(compared).toStrictEqual(['FR-001', 'FR-002', 'FR-003'])
     const reasons = Object.fromEntries(items.filter(item => !item.compare).map(item => [item.id, item.reason]))
     expect(reasons).toStrictEqual(specTable(spec, '同じにしなくてよいもの'))
-    expect(new Set(items.filter(item => item.compare).map(item => item.name))).toStrictEqual(new Set(['merge-settings', 'ruleset', 'board-fields', 'workflows']))
+    expect(new Set(items.filter(item => item.compare).map(item => item.name))).toStrictEqual(new Set(['merge-settings', 'ruleset', 'board-fields', 'config-file', 'workflows']))
     expect(items.filter(item => item.compare).every(item => Array.isArray(item.ignore))).toBe(true)
   })
 })

@@ -329,6 +329,8 @@ description: "Task list for 029-pecot-lane-issue-features"
 - [ ] T077 このリポで `project_init` を `lanes: ["pecot-workflow", "pecot-visual", "pecot-tools", "repo"]` で呼び、`pecot-workflow-pecotcraft` が `pecot-status` になり、`Lanes` のビューができたことを確かめる
   あわせて、設定ファイルの新しい名前に合わせて、`PW/CONTRIBUTING.md` の `project activate` の例と Actions の変数 `PECOT_REVIEW_PROJECT` を直す
   `PW/scripts/sandbox/sandbox-diff-items.json` の FR-005 の `pecot-workflow-*` を `pecot-status` にする
+  検証用のボード（3 番）も同じ時に `project_init` で移し、設定ファイル `github.com_pecotcraft_3.json` を検証用の `main` に入れる
+  `PW/CONTRIBUTING.md` §3 の手順 2 の `git restore` と `.gitignore` の 2 行を外し、`specs/026-pre-merge-test-env/quickstart.md` の名前を確かめる
 - [ ] T078 開いている Issue のすべてに `pecot-lane` を入れ、`board_sync` の `missing_lane` が空になることを確かめる
 - [ ] T079 消すフィールド（`pecot-priority`・`pecot-size`）を利用者に示して確認を取り、`confirm_delete: true` で `project_init` を呼ぶ
 - [ ] T080 `Lanes` のビューを開き、着手できるタスクの無い領域が分かることを確かめる（SC-001）

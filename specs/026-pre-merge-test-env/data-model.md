@@ -21,7 +21,7 @@
 | 項目 | 中身 |
 |---|---|
 | `id` | spec の FR の番号（`FR-001` など） |
-| `name` | 項目の名前（`merge-settings`・`ruleset`・`board-fields`・`workflows`） |
+| `name` | 項目の名前（`merge-settings`・`ruleset`・`board-fields`・`config-file`・`workflows`） |
 | `compare` | 比べるなら `true`、比べないなら `false` |
 | `reason` | 比べない訳。`compare` が `false` のとき必須 |
 | `ignore` | 比べる項目の中で、読み飛ばすキーの一覧（`id`・`node_id`・日時など） |

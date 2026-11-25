@@ -119,7 +119,13 @@ GitHub に書き込む変更は、マージの前に検証用のリポとボー�
    git clone https://github.com/pecotcraft/pecot-sandbox .pecot/work/<Issue番号>/pecot-sandbox
    cd .pecot/work/<Issue番号>/pecot-sandbox
    <作業ツリー>/plugins/pecot-workflow/bin/pecot project activate github.com_pecotcraft_pecot-sandbox_sandbox.json
+   git restore .pecot/config/projects/github.com_pecotcraft_pecot-sandbox_sandbox.json
+   printf '/github.com_pecotcraft_3.json\n' > .pecot/config/projects/.gitignore
    ```
+
+   検証用の設定ファイルが旧い名前のあいだは、`project activate` が設定を `github.com_pecotcraft_3.json` に移す。
+   後の 2 行で、追跡中のファイルを戻し、新しいファイルをこの clone の中だけで無視する。clone に変更が残ると、`pr create` が止まる。
+   同じ clone で `project activate` を打ち直したときは、2 行も打ち直す
 
 3. 書き込む前に、毎回 `pecot board show --json`（MCP では `board_show`）を実行し、`project.number` が `3` であることを確かめる。ボードの題は出ないので、番号で見る
 4. 作るものの名前を決める。`<乱数>` は `[0-9a-z]{4}` の 4 文字、`<Issue番号>` はこのリポで確かめている Issue の番号

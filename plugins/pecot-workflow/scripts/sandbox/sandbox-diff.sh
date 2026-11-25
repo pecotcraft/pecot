@@ -8,6 +8,8 @@ THIS_PROJECT=1
 SANDBOX_REPO="pecotcraft/pecot-sandbox"
 SANDBOX_PROJECT=3
 WORKFLOWS=".github/workflows"
+HOST="github.com"
+CONFIG_DIR=".pecot/config/projects"
 # 有無と中身を比べる workflow。比べる相手は、このリポの main にある同じファイル（FR-032）。
 COPIED_WORKFLOWS=(pecot-board-sync.yml pecot-handoff.yml pecot-review.yml)
 
@@ -139,6 +141,31 @@ read_workflows() {
     echo "$out"
 }
 
+# 比べるボードを指す設定ファイルの名前を、形に読み替える。番号と題はリポごとに違う。読めない JSON は、CLI と同じく飛ばす。
+read_config_file() {
+    local repo="$1" project="$2" label="repos/$1/contents/$CONFIG_DIR" list name file entries="[]"
+    api "$label" "$label?ref=main"
+    require "$label" "ファイルの一覧" 'if type == "array" then . else null end'
+    list="$RESP"
+    while IFS= read -r name; do
+        file="$label/$name"
+        api "$file" "$file?ref=main"
+        require "$file" content '.content'
+        entries=$(jq -c --argjson acc "$entries" --arg n "$name" --arg host "$HOST" --arg owner "${repo%%/*}" --argjson p "$project" \
+            --arg current "<host>_<owner>_<number>.json" --arg legacy "<host>_<owner>_<題>_<suffix>.json" '
+            (try (.content | gsub("\\s"; "") | @base64d | fromjson) catch null) as $c
+            | if ($c | type) == "object" and $c.host == $host and $c.owner == $owner and (try $c.project.number catch null) == $p then
+                  "\($host)_\($owner)_" as $pre
+                  | (if $n == "\($pre)\($p).json" then $current
+                     elif ($c.workflow_suffix | type) == "string" and ($n | startswith($pre))
+                          and ($n | endswith("_\($c.workflow_suffix).json")) then $legacy
+                     else $n end) as $form
+                  | $acc + [{name: $n, form: $form}]
+              else $acc end' <<< "$RESP")
+    done < <(jq -r '.[] | select(.type == "file" and (.name | endswith(".json"))) | .name' <<< "$list")
+    jq -c 'if length == 0 then {} else {"config-file": (sort_by(.name) | map(.form) | join("、"))} end' <<< "$entries"
+}
+
 snapshot() {
     local repo="$1" project="$2" snap="{}" v
     if compared merge-settings; then
@@ -152,6 +179,10 @@ snapshot() {
     if compared board-fields; then
         v=$(read_board_fields "$repo" "$project")
         snap=$(jq -c --argjson v "$v" '. + {"board-fields": $v}' <<< "$snap")
+    fi
+    if compared config-file; then
+        v=$(read_config_file "$repo" "$project")
+        snap=$(jq -c --argjson v "$v" '. + {"config-file": $v}' <<< "$snap")
     fi
     if compared workflows; then
         v=$(read_workflows "$repo")
@@ -191,6 +222,7 @@ jq -r -n --slurpfile a "$work/this.json" --slurpfile b "$work/sandbox.json" \
     | [ pairs("merge-settings / "; $x["merge-settings"]; $y["merge-settings"]),
         rules_pairs($x.ruleset // {}; $y.ruleset // {}),
         pairs("board-fields / "; $x["board-fields"]; $y["board-fields"]),
+        pairs(""; $x["config-file"]; $y["config-file"]),
         pairs("workflows / "; $x.workflows; $y.workflows) ]
     | "\($count_head)\(length)\($count_tail)",
       (.[] | .name,
