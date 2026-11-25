@@ -469,7 +469,7 @@ describe('session finish', () => {
   it('PR がマージされていないなら、終了コード 1 で終わる', async () => {
     const workspace = await openWorkspace({ github: mergedRules({ state: 'OPEN' }) })
     const result = await workspace.run(CLEANUP)
-    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: PR #21 is not merged yet (state: OPEN); merge it with pecot pr merge first\n' })
+    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: PR #21 is not merged yet (state: OPEN); merge it on GitHub first\n' })
   })
 
   it('PR がマージされていないなら、何も変えない', async (context) => {
@@ -794,11 +794,12 @@ describe('session finish', () => {
       expect(operationsOf(workspace)).not.toContain('UpdateProjectItemField')
     })
 
-    it('PR がマージされていないと、pr_merge を案内する detail を入れて、kind が pr-state の失敗を返す', async (context) => {
+    it('PR がマージされていないと、GitHub の画面でマージするよう案内する detail を入れて、kind が pr-state の失敗を返す', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-24')
       const outcome = await finishTool(await openWorkspace({ github: mergedRules({ state: 'OPEN' }) }), {})
       expect(outcome).toMatchObject({ isError: true, structured: { kind: 'pr-state' } })
-      expect(outcome.structured['detail']).toContain('pr_merge')
+      expect(outcome.structured['detail']).toContain('merge it on GitHub first')
+      expect(outcome.structured['detail']).not.toContain('pr_merge')
     })
 
     it('リポを含む設定が 2 つあってアクティブな設定がどれでもないと、候補と project の案内を detail に入れ、no-active-project で失敗する', async (context) => {

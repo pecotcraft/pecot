@@ -4,7 +4,7 @@ description: |
   リリースを実行するスキル。CHANGELOG を更新し、ブランチモードに応じて
   develop → release の PR を作成・merge（2ブランチ）するか、main 上で直接リリース（単一ブランチ / trunk-based）する。
   Use when the user wants to release current development work.
-  Do NOT use for regular feature PR merges (use w-merge) or feature PR creation (use w-pr).
+  Do NOT use for regular feature PRs: they are merged on the GitHub UI while w-pr waits and cleans up afterwards (use w-pr to create them).
 when_to_use: "リリースしたい、CHANGELOG を更新して公開したい、バージョンを上げたい"
 ---
 

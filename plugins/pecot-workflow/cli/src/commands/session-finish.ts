@@ -418,7 +418,7 @@ async function finish(input: Readonly<z.output<typeof FinishInputSchema> & Globa
   const config = requireConfigFor(out, location, input.project, ['session', 'finish']).config
 
   const { client, pr } = await fetchPullRequestForCleanup(config, reference, out)
-  if (pr.state !== 'MERGED') stopWith(out, hinted`PR #${String(reference.number)} is not merged yet (state: ${pr.state}); merge it with ${commandHint(['pr', 'merge'])} first`, 'pr-state')
+  if (pr.state !== 'MERGED') stopWith(out, hinted`PR #${String(reference.number)} is not merged yet (state: ${pr.state}); merge it on GitHub first`, 'pr-state')
   context.record.hasStarted = true
 
   const closingNumbers = collectClosingIssueNumbers(pr, location)

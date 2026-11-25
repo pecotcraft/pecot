@@ -1,4 +1,4 @@
-// issue-flow-rules.md への参照と、skills の相対リンクの実在を確かめる。
+// issue-flow-rules.md への参照と、skills の相対リンク・/pecot-w:<スキル名> の参照先の実在を確かめる。
 // 対象は issue-quick のフッター・issue テンプレート・各 SKILL.md・references・hooks のテンプレート・agent 定義の、パス・節の anchor・§ 番号。
 //
 // anchor の slug は github-slugger のアルゴリズムの部分移植。
@@ -25,6 +25,7 @@ const SECTION_SIGN_NEAR_PATH = /issue-flow-rules(?:\.md)?[^§\n]{0,20}§(\d+)/gu
 const RULES_PATH = /skills\/[^\s#]*\.md(?:#[^\s)>]*)?/gu
 // 参照の側では相対形でも書かれるので、§N と節の同一性の検証では、パスの接頭辞を問わず anchor を拾う
 const RULES_ANCHOR = /issue-flow-rules(?:\.md)?#([^\s)>]+)/gu
+const SKILL_REFERENCE = /\/pecot-w:(w-[a-z-]*[a-z])/gu
 
 interface Line {
   readonly number: number
@@ -226,6 +227,29 @@ describe('起票ルールの参照', () => {
         }
       }
     }
+    expect(offenders).toEqual([])
+  })
+})
+
+describe('スキルの参照', () => {
+  it('配布する文書とソースの /pecot-w:<スキル名> が、skills/<スキル名>/SKILL.md として在る', () => {
+    const skills = new Set(glob('skills/*/SKILL.md').map(file => path.basename(path.dirname(file))))
+    const sources = [
+      'README.md',
+      ...glob('skills/**/*.md'),
+      ...glob('agents/*.md'),
+      ...glob('hooks/**/*.{sh,md,json}'),
+      ...glob('cli/src/**/*.ts'),
+      ...glob('cli/templates/**/*.{md,yml}'),
+    ]
+    const offenders: string[] = []
+    for (const source of sources) {
+      for (const match of readPluginFile(source).matchAll(SKILL_REFERENCE)) {
+        const name = match[1] ?? ''
+        if (!skills.has(name)) offenders.push(`${source}: /pecot-w:${name}`)
+      }
+    }
+    expect(skills.size).toBeGreaterThan(0)
     expect(offenders).toEqual([])
   })
 })

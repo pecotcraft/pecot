@@ -7,7 +7,6 @@
 | `w-backlog` | Epic作成 → Backlogに配置 |
 | `w-breakdown` | EpicをspeckitフローでIssue分解 |
 | `w-issueize` | 実装計画の各フェーズをIssue一括登録 |
-| `w-merge` | PRマージ・ブランチ削除・ワークツリー後処理 |
 | `w-onboarding` | 新規プロジェクトのセットアップ |
 | `w-pr` | PR作成（タイトル・説明を自動生成）・CI の待ち・レビュー指摘への対応・マージの待ち受けと後片付け |
 | `w-quick` | 小タスクを即Issue化 → ブランチ作成 → プランモード移行 |
