@@ -12,6 +12,7 @@ import type { CallToolResult } from '@modelcontextprotocol/client'
 import type { StandardSchemaWithJSON } from '@modelcontextprotocol/server'
 import { serveStdio, type StdioServerHandle } from '@modelcontextprotocol/server/stdio'
 
+import { attachingClient } from '../../../tests/_helpers/attached-client.js'
 import { isRecord } from '../../../tests/_helpers/records.js'
 import { toCallToolResult, type ExecutionResult } from '../result.js'
 import { createMcpServer, type ToolDefinition } from '../server.js'
@@ -75,10 +76,10 @@ export async function connectMcp(
     () => createMcpServer(tools, options),
     { transport: serverTransport },
   )
-  const client = new Client(
+  const client = attachingClient(new Client(
     { name: 'test-client', version: '0.0.0' },
     options.era === 'modern' ? { versionNegotiation: { mode: { pin: MODERN_PROTOCOL_VERSION } } } : {},
-  )
+  ))
   const errors: Readonly<Error>[] = []
   // eslint-disable-next-line unicorn/prefer-add-event-listener -- SDK の Protocol は onerror 経由で通知する
   client.onerror = (error: Readonly<Error>) => {

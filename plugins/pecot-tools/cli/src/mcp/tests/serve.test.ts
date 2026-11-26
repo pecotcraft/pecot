@@ -19,6 +19,7 @@ import {
   type ProcessSignals,
 } from '../serve.js'
 import { createMcpServer, MCP_SERVER_NAME, type ToolDefinition } from '../server.js'
+import { attachingClient } from '../../../tests/_helpers/attached-client.js'
 
 type WriteCallback = (error?: Error | null) => void
 
@@ -205,7 +206,7 @@ function makeHarness(overrides: Partial<McpServeDependencies> = {}): Harness {
     deps: dependencies,
     servers,
     createServer,
-    client: new Client({ name: 'test-client', version: '0.0.0' }),
+    client: attachingClient(new Client({ name: 'test-client', version: '0.0.0' })),
     clientTransport,
     serverTransport,
     stdin,

@@ -7,6 +7,7 @@ import { promisify } from 'node:util'
 import type { TextlintPluginProcessor } from '@textlint/types'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { TextlintKernelDescriptor } from '@textlint/kernel'
+import { attachOutput } from '../../interface-spec/src/vitest/attach.js'
 import { buildDescriptor } from '../lib/descriptor.js'
 import { formatMessage, main, parseArgv, REAL_DEPS, relativeToCwd, stripCommitComments } from '../lib/main.js'
 import type { IgnoreCheck, MainDependencies } from '../lib/main.js'
@@ -395,12 +396,15 @@ describe('コマンドの実体', () => {
 
   // dist の bin を子プロセスで動かし、終了コードと出力を返す。
   async function runBin(file: string, cwd = root): Promise<ExecResult> {
+    const command = `node dist/bin/pecot-text-lint.js ${file}`
     try {
       const { stdout, stderr } = await execFileAsync('node', [path.join(root, 'dist/bin/pecot-text-lint.js'), file], { cwd })
+      attachOutput(command, 0, stdout, stderr)
       return { code: 0, stdout, stderr }
     }
     catch (error) {
       if (isExecFailure(error)) {
+        attachOutput(command, error.code, error.stdout, error.stderr)
         return { code: error.code, stdout: error.stdout, stderr: error.stderr }
       }
       throw error
