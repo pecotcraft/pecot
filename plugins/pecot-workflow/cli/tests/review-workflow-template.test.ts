@@ -159,6 +159,19 @@ describe('review のワークフローの雛形', () => {
     expect(found.trim().split('\n')).toEqual(['1', '2'])
   })
 
+  it('w-review が前の指摘を読む jq は、指摘の一覧と対応のコメントだけを拾い、ログのコメントを拾わない', () => {
+    const skill = readFileSync(path.join(pluginRoot, 'skills/w-review/SKILL.md'), 'utf8')
+    const filter = /gh pr view [^\n]*--jq '([^']*)'/.exec(skill)?.[1] ?? ''
+    const comments = [
+      { body: '\n## Findings — 先頭に改行がある' },
+      { body: '## Resolution — 書き手の対応' },
+      { body: '<details>\n<summary>CUJ 1 のログ</summary>\n\n```text\n## Findings — ログの途中の行\n```\n\n</details>' },
+      { body: 'ふつうのコメント' },
+    ]
+    const found = execFileSync('jq', ['-r', filter], { input: JSON.stringify({ comments }), encoding: 'utf8' })
+    expect(found.trim().split('\n')).toEqual(['## Findings — 先頭に改行がある', '## Resolution — 書き手の対応'])
+  })
+
   it('前のレビューの確かめが探す文字列は、指摘の一覧のテンプレートと止まったことの目印の書き出しと一致する', () => {
     const findings = readFileSync(path.join(pluginRoot, 'cli/templates/comment/review-findings.md'), 'utf8')
     // 書き方の説明のコメントの後ろにある、本文の最初の見出しを読む

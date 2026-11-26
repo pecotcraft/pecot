@@ -32,4 +32,4 @@
 | プラグインの中身 | `plugins/<name>/` |
 | ライブラリ | `libs/<name>/` |
 | ワークフロー | `.github/workflows/` |
-| 作業ファイル・evidence・スクラッチ | `.pecot/work/<Issue番号>/` |
+| 作業ファイル・スクラッチ | `.pecot/work/<Issue番号>/` |
