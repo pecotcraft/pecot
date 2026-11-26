@@ -56,7 +56,7 @@ ruleTester.run('no-decorative-bar-element', noDecorativeBarElement, {
     },
     // width 6px（閾値境界: OK）
     {
-      name: 'width がしきい値ちょうどの 6px なら、報告しない',
+      name: 'width がしきい値の 5px を 1 つ超える 6px なら、報告しない',
       code: '<template><div></div></template><style scoped>.bar { position: absolute; width: 6px; height: 100%; left: 0; top: 0; background-color: #1e3a8a; }</style>',
       filename: 'test.vue',
     },

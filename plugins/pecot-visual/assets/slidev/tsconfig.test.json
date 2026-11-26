@@ -3,7 +3,7 @@
   "compilerOptions": {
     "composite": false,
     "incremental": false,
-    "rootDir": ".",
+    "rootDir": "../../../..",
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "noEmitOnError": true,
@@ -11,6 +11,6 @@
     "declarationMap": false,
     "sourceMap": false
   },
-  "include": ["**/*.test.ts", "vitest.setup.ts"],
+  "include": ["**/*.test.ts", "vitest.setup.ts", "vitest.config.ts"],
   "exclude": ["node_modules", "**/dist/**"]
 }

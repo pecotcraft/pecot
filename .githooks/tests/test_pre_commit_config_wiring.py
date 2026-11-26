@@ -250,7 +250,7 @@ _KEPT_TEXT_PATHS = [
     "plugins/pecot-workflow/docs-guide.md",
     "plugins/pecot-workflow/cli/tests/parity/run.ts",
     "plugins/pecot-workflow/cli/src/python-output/x.ts",
-    ".nx/nx-release/tests/dependabot-plans.test.js",
+    ".nx/nx-release/tests/dependabot-plans.test.mjs",
     "plugins/pecot-workflow/specs/x.md",
 ]
 

@@ -1,8 +1,10 @@
-import { test } from 'vitest';
+import { afterAll, test } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import assert from 'node:assert';
+import { RuleTester } from 'eslint';
+import markdown from '@eslint/markdown';
 import { extractFrontmatterText, parseFrontmatter, getClicksValidation } from '@v-slidev/eslint-shared';
 import {
   calculateExpectedClicks,
@@ -352,187 +354,106 @@ test('ルールオブジェクトを読むと、問題の種類・メッセー�
   assert.strictEqual(typeof validateClicksRule.create, 'function');
 });
 
-interface RuleReport {
-  messageId?: string;
-  data?: Record<string, unknown>;
+// 規則を実 ESLint（RuleTester）で通す。references は layout ごとの yaml を一時ディレクトリに置く。
+const referencesDirectory = mkdtempSync(join(tmpdir(), 'clicks-rule-'));
+afterAll(() => {
+  rmSync(referencesDirectory, { recursive: true, force: true });
+});
+const references: Record<string, string> = {
+  list: 'layout: list\nclicks:\n  supported: true\n  validation:\n    type: pagination\n    source_prop: items\n    per_page: 2\n',
+  cards: 'layout: cards\nclicks:\n  supported: true\n  validation:\n    type: count\n    source_prop: cards\n    offset: 1\n',
+  'cards-no-offset': 'layout: cards-no-offset\nclicks:\n  validation:\n    type: count\n    source_prop: cards\n',
+  scroll:
+    'layout: scroll\nclicks:\n  supported: true\n  validation:\n    type: required\n    min_clicks: 2\n    scroll_prop: rows\n',
+  plain: 'layout: plain\n',
+};
+for (const [name, body] of Object.entries(references)) {
+  writeFileSync(join(referencesDirectory, `${name}.yaml`), body);
 }
 
-// layout 名と reference の yaml 本文から一時ディレクトリを作り、markdown の本文にルールを当てる
-function runRule(
-  references: Record<string, string>,
-  markdown: string,
-  options: { settings?: Record<string, unknown>; throwOnGetText?: boolean; visitor?: 'root' | 'Program' } = {},
-): RuleReport[] {
-  const dir = mkdtempSync(join(tmpdir(), 'clicks-rule-'));
-  try {
-    for (const [name, body] of Object.entries(references)) {
-      writeFileSync(join(dir, `${name}.yaml`), body);
-    }
-    const reports: RuleReport[] = [];
-    const context = {
-      settings: options.settings ?? { 'slidev-theme': { referencesDirectories: [dir] } },
-      sourceCode: {
-        getText: () => {
-          if (options.throwOnGetText) throw new Error('no text');
-          return markdown;
+const page = (...lines: string[]): string => `${['---', ...lines, '---'].join('\n')}\n`;
+
+const ruleTester = new RuleTester({
+  plugins: { markdown },
+  language: 'markdown/commonmark',
+  settings: { 'slidev-theme': { referencesDirectories: [referencesDirectory] } },
+});
+
+ruleTester.run('validate-clicks', validateClicksRule, {
+  valid: [
+    { name: 'frontmatter が無いと、報告しない', code: '# 本文のみ\n' },
+    { name: 'frontmatter に layout が無いと、報告しない', code: page('clicks: 3') },
+    {
+      name: 'settings の references のディレクトリが空だと、報告しない',
+      code: page('layout: list', 'items: [a, b, c]'),
+      settings: { 'slidev-theme': { referencesDirectories: [] } },
+    },
+    { name: 'layout の reference が無いと、報告しない', code: page('layout: unknown', 'clicks: 3') },
+    { name: 'reference に clicks の検証が無いと、報告しない', code: page('layout: plain', 'clicks: 3') },
+    {
+      name: 'pagination で clicks が期待値どおりだと、報告しない',
+      code: page('layout: list', 'clicks: 2', 'items: [a, b, c, d, e]'),
+    },
+    {
+      name: 'pagination の source_prop が配列でないと、報告しない',
+      code: page('layout: list', 'clicks: 5', 'items: text'),
+    },
+    {
+      name: 'required で scroll_prop が配列でないと、min_clicks だけで判定する',
+      code: page('layout: scroll', 'clicks: 2', 'rows: text'),
+    },
+  ],
+  invalid: [
+    {
+      name: 'pagination で項目がページ数を超えるのに clicks が無いと、missingClicks を期待値つきで報告する',
+      code: page('layout: list', 'items: [a, b, c, d, e]'),
+      errors: [{ messageId: 'missingClicks', data: { count: 5, sourceProp: 'items', perPage: 2, expected: 2 } }],
+    },
+    {
+      name: 'pagination で clicks が期待値と違うと、incorrectClicks を報告する',
+      code: page('layout: list', 'clicks: 1', 'items: [a, b, c, d, e]'),
+      errors: [
+        {
+          messageId: 'incorrectClicks',
+          data: { actual: 1, count: 5, sourceProp: 'items', perPage: 2, expected: 2 },
         },
-      },
-      report: (descriptor: RuleReport) => reports.push(descriptor),
-    };
-    const visitors = validateClicksRule.create(context as never) as unknown as Record<
-      string,
-      (node: unknown) => void
-    >;
-    visitors[options.visitor ?? 'Program']({});
-    return reports;
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-}
-
-const PAGINATION_YAML =
-  'layout: list\nclicks:\n  supported: true\n  validation:\n    type: pagination\n    source_prop: items\n    per_page: 2\n';
-const COUNT_YAML =
-  'layout: cards\nclicks:\n  supported: true\n  validation:\n    type: count\n    source_prop: cards\n    offset: 1\n';
-const REQUIRED_YAML =
-  'layout: scroll\nclicks:\n  supported: true\n  validation:\n    type: required\n    min_clicks: 2\n    scroll_prop: rows\n';
-
-test('テキストの取得が失敗すると、報告せずに終える', () => {
-  const reports = runRule({}, '', { throwOnGetText: true });
-  assert.deepStrictEqual(reports, []);
-});
-
-test('frontmatter が無いと、報告しない', () => {
-  assert.deepStrictEqual(runRule({ list: PAGINATION_YAML }, '# 本文のみ\n'), []);
-});
-
-test('frontmatter に layout が無いと、報告しない', () => {
-  assert.deepStrictEqual(runRule({ list: PAGINATION_YAML }, '---\nclicks: 3\n---\n'), []);
-});
-
-test('references のディレクトリが settings に無いと、報告しない', () => {
-  const reports = runRule({ list: PAGINATION_YAML }, '---\nlayout: list\nitems: [a, b, c]\n---\n', {
-    settings: {},
-  });
-  assert.deepStrictEqual(reports, []);
-});
-
-test('layout の reference が無いと、報告しない', () => {
-  assert.deepStrictEqual(runRule({}, '---\nlayout: unknown\nclicks: 3\n---\n'), []);
-});
-
-test('reference に clicks の検証が無いと、報告しない', () => {
-  const reports = runRule({ plain: 'layout: plain\n' }, '---\nlayout: plain\nclicks: 3\n---\n');
-  assert.deepStrictEqual(reports, []);
-});
-
-test('root のビジターでも、Program と同じ検証をする', () => {
-  const reports = runRule({ list: PAGINATION_YAML }, '---\nlayout: list\nitems: [a, b, c]\n---\n', {
-    visitor: 'root',
-  });
-  assert.strictEqual(reports.length, 1);
-  assert.strictEqual(reports[0].messageId, 'missingClicks');
-});
-
-test('pagination で項目がページ数を超えるのに clicks が無いと、missingClicks を期待値つきで報告する', () => {
-  const reports = runRule({ list: PAGINATION_YAML }, '---\nlayout: list\nitems: [a, b, c, d, e]\n---\n');
-  assert.strictEqual(reports.length, 1);
-  assert.strictEqual(reports[0].messageId, 'missingClicks');
-  assert.strictEqual(reports[0].data?.expected, 2);
-});
-
-test('pagination で clicks が期待値どおりだと、報告しない', () => {
-  const reports = runRule(
-    { list: PAGINATION_YAML },
-    '---\nlayout: list\nclicks: 2\nitems: [a, b, c, d, e]\n---\n',
-  );
-  assert.deepStrictEqual(reports, []);
-});
-
-test('pagination で clicks が期待値と違うと、incorrectClicks を報告する', () => {
-  const reports = runRule(
-    { list: PAGINATION_YAML },
-    '---\nlayout: list\nclicks: 1\nitems: [a, b, c, d, e]\n---\n',
-  );
-  assert.strictEqual(reports.length, 1);
-  assert.strictEqual(reports[0].messageId, 'incorrectClicks');
-});
-
-test('pagination の source_prop が配列でないと、報告しない', () => {
-  const reports = runRule({ list: PAGINATION_YAML }, '---\nlayout: list\nclicks: 5\nitems: text\n---\n');
-  assert.deepStrictEqual(reports, []);
-});
-
-test('count で clicks が項目数と offset に合わないと、incorrectClicksCount を報告する', () => {
-  const reports = runRule({ cards: COUNT_YAML }, '---\nlayout: cards\nclicks: 9\ncards: [a, b]\n---\n');
-  assert.strictEqual(reports.length, 1);
-  assert.strictEqual(reports[0].messageId, 'incorrectClicksCount');
-  assert.strictEqual(reports[0].data?.expected, 3);
-});
-
-test('count で clicks が無いと、missingClicksCount を報告する', () => {
-  const reports = runRule({ cards: COUNT_YAML }, '---\nlayout: cards\ncards: [a, b]\n---\n');
-  assert.strictEqual(reports.length, 1);
-  assert.strictEqual(reports[0].messageId, 'missingClicksCount');
-});
-
-test('count で offset が無いと、offset を 0 として数える', () => {
-  const yamlNoOffset =
-    'layout: cards\nclicks:\n  validation:\n    type: count\n    source_prop: cards\n';
-  const reports = runRule({ cards: yamlNoOffset }, '---\nlayout: cards\ncards: [a, b]\n---\n');
-  assert.strictEqual(reports.length, 1);
-  assert.strictEqual(reports[0].data?.expected, 2);
-});
-
-test('required で clicks が無いと、missingClicksRequired を最小値つきで報告する', () => {
-  const reports = runRule({ scroll: REQUIRED_YAML }, '---\nlayout: scroll\n---\n');
-  assert.strictEqual(reports.length, 1);
-  assert.strictEqual(reports[0].messageId, 'missingClicksRequired');
-  assert.strictEqual(reports[0].data?.minClicks, 2);
-});
-
-test('required で scroll_prop の配列が min_clicks より長いと、その長さを最小値にする', () => {
-  const reports = runRule(
-    { scroll: REQUIRED_YAML },
-    '---\nlayout: scroll\nclicks: 3\nrows: [a, b, c, d]\n---\n',
-  );
-  assert.strictEqual(reports.length, 1);
-  assert.strictEqual(reports[0].messageId, 'insufficientClicks');
-  assert.strictEqual(reports[0].data?.minClicks, 4);
-});
-
-test('required で scroll_prop が配列でないと、min_clicks だけで判定する', () => {
-  const reports = runRule(
-    { scroll: REQUIRED_YAML },
-    '---\nlayout: scroll\nclicks: 2\nrows: text\n---\n',
-  );
-  assert.deepStrictEqual(reports, []);
-});
-
-test('required で scroll_prop が空の配列だと、min_clicks だけで判定する', () => {
-  const reports = runRule(
-    { scroll: REQUIRED_YAML },
-    '---\nlayout: scroll\nclicks: 1\nrows: []\n---\n',
-  );
-  assert.strictEqual(reports.length, 1);
-  assert.strictEqual(reports[0].data?.minClicks, 2);
-});
-
-test('required で min_clicks が無いと、最小値を 1 にする', () => {
-  const yamlNoMin = 'layout: scroll\nclicks:\n  validation:\n    type: required\n';
-  const reports = runRule({ scroll: yamlNoMin }, '---\nlayout: scroll\nclicks: 0\n---\n');
-  assert.strictEqual(reports.length, 1);
-  assert.strictEqual(reports[0].data?.minClicks, 1);
-});
-
-test('required で clicks が最小値以上だと、報告しない', () => {
-  const reports = runRule({ scroll: REQUIRED_YAML }, '---\nlayout: scroll\nclicks: 2\n---\n');
-  assert.deepStrictEqual(reports, []);
-});
-
-test('未知の validation の type だと、報告しない', () => {
-  const yamlUnknown =
-    'layout: odd\nclicks:\n  validation:\n    type: mystery\n    source_prop: items\n';
-  const reports = runRule({ odd: yamlUnknown }, '---\nlayout: odd\nitems: [a]\nclicks: 4\n---\n');
-  assert.deepStrictEqual(reports, []);
+      ],
+    },
+    {
+      name: 'count で clicks が項目数と offset に合わないと、incorrectClicksCount を報告する',
+      code: page('layout: cards', 'clicks: 9', 'cards: [a, b]'),
+      errors: [
+        { messageId: 'incorrectClicksCount', data: { actual: 9, count: 2, sourceProp: 'cards', expected: 3 } },
+      ],
+    },
+    {
+      name: 'count で clicks が無いと、missingClicksCount を報告する',
+      code: page('layout: cards', 'cards: [a, b]'),
+      errors: [{ messageId: 'missingClicksCount', data: { count: 2, sourceProp: 'cards', expected: 3 } }],
+    },
+    {
+      name: 'count で offset が無いと、offset を 0 として数える',
+      code: page('layout: cards-no-offset', 'cards: [a, b]'),
+      errors: [{ messageId: 'missingClicksCount', data: { count: 2, sourceProp: 'cards', expected: 2 } }],
+    },
+    {
+      name: 'required で clicks が無いと、missingClicksRequired を最小値つきで報告する',
+      code: page('layout: scroll'),
+      errors: [{ messageId: 'missingClicksRequired', data: { matchedProps: 'scroll', minClicks: 2 } }],
+    },
+    {
+      name: 'required で scroll_prop の配列が min_clicks より長いと、その長さを最小値にする',
+      code: page('layout: scroll', 'clicks: 3', 'rows: [a, b, c, d]'),
+      errors: [
+        { messageId: 'insufficientClicks', data: { actual: 3, matchedProps: 'scroll', minClicks: 4 } },
+      ],
+    },
+    {
+      name: 'required で scroll_prop が空の配列だと、min_clicks だけで判定する',
+      code: page('layout: scroll', 'clicks: 1', 'rows: []'),
+      errors: [
+        { messageId: 'insufficientClicks', data: { actual: 1, matchedProps: 'scroll', minClicks: 2 } },
+      ],
+    },
+  ],
 });

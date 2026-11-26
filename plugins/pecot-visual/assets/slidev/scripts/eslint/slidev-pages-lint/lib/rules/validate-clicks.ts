@@ -40,9 +40,11 @@ const rule: Rule.RuleModule = {
       let text: string;
       try {
         text = sourceCode.getText();
+        /* v8 ignore start -- 実際の ESLint の sourceCode.getText() は throw しない */
       } catch {
         return;
       }
+      /* v8 ignore stop */
 
       const frontmatter = parseFrontmatter(text) as (FrontmatterBase & { clicks?: number }) | null;
       if (!frontmatter || !frontmatter.layout) {

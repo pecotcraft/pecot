@@ -4,7 +4,7 @@
   =========================================================================
   Version change: 5.0.0 → 5.0.1
   Modified principles:
-    - III. テスト優先（明確化。カバレッジの閾値の正から .c8rc.json を外し、
+    - III. テストファースト（明確化。カバレッジの閾値の正から .c8rc.json を外し、
       slidev のテストも vitest.config.ts の thresholds に置く）
   Reason: slidev のテストを node:test と c8 から vitest に移した（#809）
   Backward compatibility: 原則は変わらない

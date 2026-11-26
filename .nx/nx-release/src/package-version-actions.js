@@ -9,7 +9,7 @@
  * 親クラスの init() が `validManifestFilenames=["package.json"]` を first-match で展開する。
  * 既定の versionActions（@nx/js）は root に入っていないため、PecotVersionActions を継承して使う。
  *
- * 回帰テスト: `.nx/nx-release/tests/version-actions.test.js`。
+ * 回帰テスト: `.nx/nx-release/tests/version-actions.test.mjs`。
  */
 
 const { PecotVersionActions } = require("./version-actions");

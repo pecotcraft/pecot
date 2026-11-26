@@ -1,8 +1,5 @@
 ---
 pecot-visual: patch
-pecot-tools: patch
-pecot-workflow: patch
-text-rules: patch
 ---
 
 Slidev の lint のテストを vitest に移し、使わなくなった c8 を devDependencies から外した。
