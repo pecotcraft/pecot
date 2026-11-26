@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """pytest の test_* 関数が、Allure の題（@allure.title）と説明（1 段落の docstring）を持つかを確かめる。
 
-決まりは .claude/rules/test-conventions.md の「pytest の題と説明」。引数のファイルだけを読む。
+決まりは .claude/rules/test-conventions.md の「説明の書き方」の「pytest」。引数のファイルだけを読む。
 """
 
 from __future__ import annotations
