@@ -22,7 +22,7 @@
 
 - pecot-c のスキルへ送る文は、固有の名前をプロジェクト指示の値の名前（「」で囲む）に置き換え、「書き直した文」の列に書いた
 - pecot-w のスキルへ送る文は、書き直さない。pecot-w は claude.ai の外（手元の Claude Code・GitHub Copilot CLI・Actions）でも動き、そこにプロジェクト指示は無いため。固有の名前があれば、pecot-w がその名前を今読む場所を理由の列に書いた
-- pecot-w のスキルへ送る文の理由には、「既存」か「未記載」かを書いた。既存なら、`plugins/pecot-workflow/skills/` の下のパスと見出しを添えた
+- pecot-w のスキルへ送る文の理由には、「既存」「一部未記載」「未記載」のどれかを書いた。既存の部分があれば、`plugins/pecot-workflow/skills/` の下のパスと見出しを添えた
 - Epic の後の作り替えで中身が変わる文は、今の行き先を書き、変わる先のフェーズを理由に添えた
 
 ## 一覧
@@ -32,11 +32,11 @@
 | 0 | coordinator が前提とする pecot の開発フロー（詳細は各 wt のセッションがリポの CLAUDE.md・SKILL.md で把握する） | pecot-c のスキル | coordinator が知る範囲と、スレッドが読むものの切り分け。どのプロジェクトでも同じ | coordinator が前提とする pecot の開発フロー（詳細は各作業場所のスレッドがリポの CLAUDE.md・SKILL.md で把握する） |
 | H1 | ■ 原則 | （見出し） | — | — |
 | 1 | 1 worktree = 1 セッション = 1 Issue = 1 リポ。 | pecot-w のスキル | 既存: `w-help/references/issue-flow-rules.md` の「5. セッションスコープ（着手前の前提）」 | — |
-| 2 | 並行は wt1〜wt12（/workspaces/wtN/pecot）の Remote Control セッションで行い、同じ Issue を 2 つの wt に割り当てない。 | pecot-c のスキル | 割り振りの決まり（FR-027）。wt の名前と場所は利用者の端末に固有 | 並行は「RC の作業場所」の Remote Control セッションとクラウドのスレッドで行い、同じ Issue を 2 つの作業場所に割り当てない。クラウドのスレッドは「クラウドのスレッドの上限」まで起動する |
+| 2 | 並行は wt1〜wt12（/workspaces/wtN/pecot）の Remote Control セッションで行い、同じ Issue を 2 つの wt に割り当てない。 | pecot-c のスキル | 割り振りの決まり（FR-027）。wt の名前と場所は利用者の端末に固有 | 並行は「RC の作業場所」の Remote Control セッションで行い、同じ Issue を 2 つの作業場所に割り当てない。 |
 | 3 | base（/workspaces/base/pecot）はリリース・計画用 | pecot-c のスキル | 割り振りから外す場所の決まり。場所の名前は利用者の端末に固有 | 「リリース・計画の場所」は作業場所に数えず、Issue を割り振らない |
 | 4 | ボード・Issue・PR の操作は pecot-workflow の MCP で行い、gh で作らない。 | pecot-w のスキル | 未記載: スキルは手順ごとに MCP のツールを名指すが、gh を使わないとは書いていない。US6 で、書き込みは GitHub 公式の MCP に変わる（FR-013）。T147 がスキルの手順を「計算 → 公式の MCP で書く」形に直すときに書く | — |
 | 5 | GitHub への書き込みの検証は pecotcraft/pecot-sandbox とボード「pecot sandbox」で行う | 固有の値 | 値「検証用のリポとボード」。検証用へ流す手順は既存: `w-help/references/cuj-run.md` の「CUJ の定義」（流す先）。pecot-w は、この値を今はリポの CLAUDE.md の「テスト・lint」から読む | — |
-| 6 | 開発環境の設定はローカル（settings.local.json・~/.claude 等）に頼らず、リポ管理のファイルで行う | リポの CLAUDE.md | このリポの開発の決まり。読み手は RC のスレッド・クラウドのスレッド・Actions。クラウドのスレッドは `~/.claude/settings.json` と `.claude/settings.local.json` を読まない（code.claude.com/docs/en/settings の「Settings in cloud sessions」、2026-11-26 に読んだ）。CLAUDE.md の「開発環境の設定」に足した | — |
+| 6 | 開発環境の設定はローカル（settings.local.json・~/.claude 等）に頼らず、リポ管理のファイルで行う | リポの CLAUDE.md | このリポの開発の決まり。読み手は RC のスレッド・クラウドのスレッド・Actions。クラウドのスレッドは `~/.claude/settings.json` と `.claude/settings.local.json` を読まない。claude.ai のプロジェクトのクラウドのスレッドは、`.claude/settings.json` の権限・hook・`env`・プラグインと `.mcp.json` も使わない（code.claude.com/docs/en/settings の「Settings in cloud sessions」と、code.claude.com/docs/en/claude-projects の「What threads pick up from your repositories」、2026-11-26 に読んだ）。CLAUDE.md の「開発環境の設定」に足した | — |
 | 7 | 標準とのズレは不適合として伝え、Issue にする | リポの CLAUDE.md | このリポの開発の決まり（constitution の原則 IV）。読み手は RC のスレッド・クラウドのスレッド・Actions。ズレを見つけて Issue にするのはスレッドで、coordinator はスレッドの報告を利用者に渡すだけ。CLAUDE.md の「標準に従う」にすでにある | — |
 | 8 | 「積める」「積む」でスタック PR を表さない。 | pecot-c のスキル | coordinator が利用者とスレッドに書く言葉の決まり。pecot-w のスキルは「スタック可」「スタック不可」「親 PR・子 PR」を使っている（`w-issueize/SKILL.md`・`w-pr/SKILL.md`） | — |
 | 9 | 「スタックできる」「スタック PR」「親 PR・子 PR」を使う | pecot-c のスキル | 8 と同じ | — |
@@ -48,7 +48,7 @@
 | 14 | 4. PR: /pecot-w:w-pr。 | pecot-w のスキル | 未記載: `w-active/SKILL.md` の「Step 11: 実装」は、実装の後に w-pr へ進むと書いていない。T180 で書く | — |
 | 15 | 自動レビューの指摘は基本すべて直す（仕様・挙動が変わるものや誤りの指摘だけ例外） | pecot-w のスキル | 既存: `w-pr/SKILL.md` の「Step 5: レビューの指摘に対応」の「採否を決める」 | — |
 | 16 | 5. マージ: ユーザーが GitHub の画面でマージする。 | pecot-w のスキル | 既存: `w-pr/SKILL.md` の「Step 6: マージを待ち受けて片付ける」 | — |
-| 17 | wt はマージを待ち受け、待つ間の指摘・CI・コンフリクトも直す | pecot-w のスキル | 既存: `w-pr/SKILL.md` の「Step 6: マージを待ち受けて片付ける」（CONFLICTING・DEQUEUED の行で Step 4 へ戻る）。「wt」は pecot-w が worktree を指す語（`issue-flow-rules.md` の「1 WT = 1 セッション」） | — |
+| 17 | wt はマージを待ち受け、待つ間の指摘・CI・コンフリクトも直す | pecot-w のスキル | 一部未記載: マージの待ち受けと、コンフリクト・merge queue から外れたときに直すことは既存（`w-pr/SKILL.md` の「Step 6: マージを待ち受けて片付ける」の CONFLICTING・DEQUEUED の行）。待つ間に届いた指摘と、落ちた CI に対応することは未記載で、`w-pr/scripts/wait-merge.cjs` はそれらで待ちを終えない。T180 で書く。「wt」は pecot-w が worktree を指す語（`issue-flow-rules.md` の「1 WT = 1 セッション」） | — |
 | 18 | 6. 片付け: wt は手元の片付けだけを行う。 | pecot-w のスキル | 既存: `w-active/references/after-merge.md` の「片付け」。今はリモートのブランチも消す。US6 でリポの設定に任せる形に変わる（FR-018・T145） | — |
 | 19 | Epic と後続 Issue への引き継ぎコメントは GitHub Actions が書く。 | pecot-w のスキル | 既存: `w-handoff/SKILL.md` の冒頭（Epic と後続へのコメントは、このスキルだけが書く） | — |
 | 20 | 取りこぼしは次の着手時に入口で拾う | pecot-w のスキル | 既存: `w-active/SKILL.md` の「Step 4: 前の PR の後片付けの取りこぼし」 | — |
@@ -108,13 +108,14 @@
 
 ### pecot-w のスキルに未記載の文
 
-pecot-w のスキルへ送る 10 文のうち、未記載は 3 件。
+pecot-w のスキルへ送る 10 文のうち、未記載か一部未記載は 4 件。
 
 | 番号 | 書くタスク |
 |---|---|
 | 4 | T147（スキルの手順を「計算 → 公式の MCP で書く」形に直すときに書く） |
 | 13 | T180（この Phase 1 で tasks.md の Phase 13 に足した） |
 | 14 | T180 |
+| 17 | T180（待つ間に届いた指摘と、落ちた CI に対応すること） |
 
 ## 値の一覧
 

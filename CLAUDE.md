@@ -56,7 +56,10 @@ Claude Code / GitHub Copilot CLI 向けプラグインの monorepo（nx workspac
 
 ## 開発環境の設定
 
-- 権限・hook・MCP・プラグインの設定は、`.claude/settings.json` などリポが管理するファイルに書く。クラウドのスレッドは `~/.claude` と `.claude/settings.local.json` を読まない
+- 権限・hook・MCP・プラグインの設定は、`.claude/settings.json` などリポが管理するファイルに書く。手元の Claude Code（RC のスレッドを含む）と Actions は、それを読む
+- claude.ai のプロジェクトのクラウドのスレッドは、`.claude/settings.json` の権限・hook・`env`・プラグインと `.mcp.json` を使わない
+  - プラグインはプロジェクトの設定、コネクタは claude.ai のアカウント、環境変数はクラウドの環境で入れる
+- `~/.claude` と `.claude/settings.local.json` は、どのクラウドのスレッドも読まない
 - `CLAUDE.local.md` と `settings.local.json` には、その端末だけの事情を書く
 
 ## 環境の既知事項

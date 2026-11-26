@@ -324,9 +324,9 @@
 - [ ] T164 [US7] `c-coordinate` に、Actions のプロジェクトが利用者のリポに入っていないときの案内（FR-010）と、claude.ai に入れたプラグインの版とリポの最新の版のずれを利用者に伝える手順を書く
 - [ ] T165 [US7] `c-coordinate` に、RC の wt とクラウドのスレッドを作業場所として扱い、同じ Issue を 2 か所に割り振らない手順を書く（FR-027）。クラウドのスレッドは pecot-workflow のスキルで進める（FR-028）
 - [ ] T166 [US7] `c-coordinate` に、スキルとプロジェクト指示が食い違うときはプロジェクト指示を優先し、食い違いを利用者に伝える手順を書く
-- [ ] T180 [US7] Phase 1 で pecot-w のスキルに「未記載」とした文（`specs/031-pecot-coordinator/verification/project-instructions.md` の 13・14）を書く。
+- [ ] T180 [US7] Phase 1 で pecot-w のスキルに「未記載」とした文（`specs/031-pecot-coordinator/verification/project-instructions.md` の 13・14・17）を書く。
   承認を求めるときに続け方で auto を選ぶよう添えることと、実装の後に w-pr へ進むことを、`plugins/pecot-workflow/skills/w-active/SKILL.md` の Step 10・Step 11 に書く。
-  pecot-workflow の version plan を足す
+  マージを待つ間に届いた指摘と、落ちた CI に対応することを、`plugins/pecot-workflow/skills/w-pr/SKILL.md` の Step 6 に書く。pecot-workflow の version plan を足す
 - [ ] T167 [US7] `plugins/pecot-coordinator/interface/authored.yaml` にスキルの項目を書き、テストの `verifies` と合わせる
 - [ ] T168 [US7] `plugins/pecot-coordinator/README.md` に、入れ方と、プロジェクト指示に書く値の一覧と例を書く（FR-026）
 - [ ] T169 [US7] `.claude-plugin/marketplace.json` に `pecot-c` を足し、`nx.json` の release と `claude plugin validate --strict` の対象に入れる
