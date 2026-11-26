@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { JSON_NULL } from '../../../domain/json-null.js'
-import { GitHubAPIError, GitHubNotFoundError } from '../errors.js'
+import { GitHubAPIError } from '../errors.js'
 import { fetchIssueSurfaceSources, GRAPHQL_SCHEMA_URL, listOpenIssues, restDescriptionUrl, rewriteIssue } from '../issue-surface.js'
-import { failure, rejection, restRequests, restResponse, startClient, useFakeGithub } from './fake-client.js'
+import { failure, graphqlData, graphqlError, graphqlRequests, rejection, restRequests, restResponse, startClient, useFakeGithub } from './fake-client.js'
 
 useFakeGithub()
 
@@ -55,28 +55,44 @@ describe('fetchIssueSurfaceSources', () => {
 
 const ISSUES_PATH = '/repos/acme/demo/issues'
 
+const OPERATION = 'ListOpenIssueBodies'
+
+function issuesPage(nodes: readonly unknown[], endCursor: string | null): unknown {
+  return { repository: { issues: { nodes, pageInfo: { hasNextPage: endCursor !== JSON_NULL, endCursor } } } }
+}
+
 describe('listOpenIssues', () => {
-  it('Link ヘッダの next を 2 ページ目まで params 無しでたどり、Pull Request を除いて番号と本文を返す', async () => {
+  it('pageInfo の hasNextPage が真のあいだ endCursor でページを送り、番号と本文を返す', async () => {
     const { client, server } = await startClient([
-      restResponse('GET', ISSUES_PATH, {
-        status: 200,
-        body: [{ number: 1, body: 'one' }, { number: 2, body: 'pr', pull_request: { url: 'u' } }],
-        headers: { link: `<{{GITHUB_API}}${ISSUES_PATH}?state=open&per_page=100&page=2>; rel="next", <{{GITHUB_API}}${ISSUES_PATH}?page=2>; rel="last"` },
-      }),
-      restResponse('GET', ISSUES_PATH, { status: 200, body: [{ number: 3, body: 'three' }] }),
+      graphqlData(OPERATION, issuesPage([{ number: 1, body: 'one' }, { number: 2, body: 'two' }], 'c1')),
+      graphqlData(OPERATION, issuesPage([{ number: 3, body: 'three' }], JSON_NULL)),
     ])
-    expect(await listOpenIssues(client, 'acme', 'demo')).toEqual([{ number: 1, body: 'one' }, { number: 3, body: 'three' }])
-    expect(restRequests(server).map(({ query }) => query)).toEqual([{ per_page: '100', state: 'open' }, { page: '2', per_page: '100', state: 'open' }])
+    expect(await listOpenIssues(client, 'acme', 'demo')).toEqual([{ number: 1, body: 'one' }, { number: 2, body: 'two' }, { number: 3, body: 'three' }])
+    expect(graphqlRequests(server)).toEqual([
+      { operation: OPERATION, variables: { owner: 'acme', repo: 'demo', after: JSON_NULL } },
+      { operation: OPERATION, variables: { owner: 'acme', repo: 'demo', after: 'c1' } },
+    ])
   })
 
   it('本文が null の Issue は、空の本文として返す', async () => {
-    const { client } = await startClient([restResponse('GET', ISSUES_PATH, { status: 200, body: [{ number: 4, body: JSON_NULL }] })])
+    const { client } = await startClient([graphqlData(OPERATION, issuesPage([{ number: 4, body: JSON_NULL }], JSON_NULL))])
     expect(await listOpenIssues(client, 'acme', 'demo')).toEqual([{ number: 4, body: '' }])
   })
 
-  it('一覧の取得が 404 だと、GitHubNotFoundError を投げる', async () => {
-    const { client } = await startClient([restResponse('GET', ISSUES_PATH, { status: 404, body: { message: 'Not Found' } })])
-    expect(await rejection(listOpenIssues(client, 'acme', 'demo'))).toMatchObject({ name: GitHubNotFoundError.name })
+  it('GraphQL が errors を返すと、GitHubAPIError を投げる', async () => {
+    const { client } = await startClient([graphqlError(OPERATION, 'boom')])
+    expect(await rejection(listOpenIssues(client, 'acme', 'demo'))).toMatchObject(failure(GitHubAPIError, 'GraphQL query error: {\'message\': \'boom\'}'))
+  })
+
+  it('応答に repository.issues が無いと、0 件と読まずに GitHubAPIError を投げる', async () => {
+    const { client } = await startClient([graphqlData(OPERATION, { repository: JSON_NULL })])
+    expect(await rejection(listOpenIssues(client, 'acme', 'demo'))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: repository.issues'))
+  })
+
+  it('次のページがあるのに endCursor が無いと、GitHubAPIError を投げる', async () => {
+    const page = { repository: { issues: { nodes: [], pageInfo: { hasNextPage: true, endCursor: JSON_NULL } } } }
+    const { client } = await startClient([graphqlData(OPERATION, page)])
+    expect(await rejection(listOpenIssues(client, 'acme', 'demo'))).toMatchObject(failure(GitHubAPIError, 'malformed GitHub response: repository.issues.pageInfo.endCursor'))
   })
 })
 

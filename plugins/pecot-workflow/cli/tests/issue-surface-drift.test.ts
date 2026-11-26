@@ -126,12 +126,16 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-function openIssues(issues: readonly unknown[]): ResponseRule {
-  return { match: { method: 'GET', path: ISSUES_PATH, query: { state: 'open', per_page: '100' } }, respond: { status: 200, body: issues }, times: 1 }
+const LIST_OPERATION = 'ListOpenIssueBodies'
+
+function openIssues(nodes: readonly unknown[]): ResponseRule {
+  const data = { repository: { issues: { nodes, pageInfo: { hasNextPage: false, endCursor: JSON_NULL } } } }
+  return { match: { operation: LIST_OPERATION, variables: { owner: 'acme', repo: 'demo' } }, respond: { status: 200, body: { data } }, times: 1 }
 }
 
+// 開いた Issue の一覧の読み出しを除いた要求
 function writes(requests: readonly RecordedRequest[]): readonly RecordedRequest[] {
-  return requests.filter(request => request.type === 'graphql' || request.method !== 'GET')
+  return requests.filter(request => request.type === 'graphql' ? request.operation !== LIST_OPERATION : request.method !== 'GET')
 }
 
 const CHANGED = [...SNAPSHOT.items, ADDED]
@@ -186,7 +190,7 @@ describe('drift.ts', () => {
     const requested = recordFetch()
     const sources = writeSources(CHANGED)
     const github = await startGithub([
-      openIssues([{ number: 1, body: JSON_NULL }, { number: 2, body: MARKER, pull_request: { url: 'u' } }]),
+      openIssues([{ number: 1, body: JSON_NULL }, { number: 2, body: 'ほかの Issue' }]),
       { match: { method: 'POST', path: ISSUES_PATH }, respond: { status: 201, body: { number: 12, html_url: 'https://github.com/acme/demo/issues/12' } }, times: 1 },
       ...boardRules(12, { onlyIfEmpty: false }),
     ])

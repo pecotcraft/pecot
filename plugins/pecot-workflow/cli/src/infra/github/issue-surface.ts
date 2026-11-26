@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は可変 */
-// GitHub の公開スキーマ（SDL）と REST の OpenAPI を取りに行く（認証なし）。差の Issue を探して書き直す REST の操作も置く。
+// GitHub の公開スキーマ（SDL）と REST の OpenAPI を取りに行く（認証なし）。差の Issue を探す GraphQL と、書き直す REST の操作も置く。
 import { isJsonObject, jsonField, parseJsonText } from '../../domain/json.js'
+import { JSON_NULL } from '../../domain/json-null.js'
 import type { JsonValue } from '../../domain/python-format.js'
 import type { IssueSurface, OpenIssue } from '../../domain/issue-surface.js'
 import type { GitHubClient } from './index.js'
-import { asArray, requireNumber } from './payload.js'
+import { asArray, requireNumber, requireString, throwMalformed } from './payload.js'
 import { repositoryPath } from './rest-path.js'
 
 export const GRAPHQL_SCHEMA_URL = 'https://docs.github.com/public/fpt/schema.docs.graphql'
@@ -58,26 +59,40 @@ export async function fetchIssueSurfaceSources(apiVersion: string): Promise<Issu
   }
 }
 
+const QUERY_LIST_OPEN_ISSUE_BODIES = `query ListOpenIssueBodies($owner: String!, $repo: String!, $after: String) {
+  repository(owner: $owner, name: $repo) {
+    issues(states: OPEN, first: ${String(ISSUES_PER_PAGE)}, after: $after) {
+      nodes {
+        number
+        body
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}`
+
 /**
-開いた Issue を全件取る（REST）。Link ヘッダの next をたどり、Pull Request を除く
+開いた Issue を全件取る。REST の一覧は 60 秒 cache され、作った直後の Issue が出ないので GraphQL で読む
 */
 export async function listOpenIssues(client: GitHubClient, owner: string, repository: string): Promise<OpenIssue[]> {
   const issues: OpenIssue[] = []
-  let target = `${repositoryPath(owner, repository)}/issues`
-  // 2 ページ目以降は next の絶対 URL に cursor が入るので、params を再送しない（ReposApi.listAll と同じ）
-  let parameters: Readonly<Record<string, number | string>> | undefined = { state: 'open', per_page: ISSUES_PER_PAGE }
+  let after: string | null = JSON_NULL
   for (;;) {
-    const response = await client.restRequest('GET', target, { params: parameters })
-    if (!response.isSuccess) client.handleHttpError(response)
-    for (const item of asArray(response.json())) {
-      if (!isJsonObject(item) || 'pull_request' in item) continue
-      const body = jsonField(item, 'body')
-      issues.push({ number: requireNumber(jsonField(item, 'number'), 'number'), body: typeof body === 'string' ? body : '' })
+    const result = await client.executeGraphql(QUERY_LIST_OPEN_ISSUE_BODIES, { owner, repo: repository, after })
+    const connection = jsonField(jsonField(result, 'repository'), 'issues')
+    // 0 件と読むと、開いた差の Issue があっても新しく作ってしまう
+    if (!isJsonObject(connection)) throwMalformed('repository.issues')
+    const nodes = asArray(jsonField(connection, 'nodes'))
+    for (const node of nodes) {
+      const body = jsonField(node, 'body')
+      issues.push({ number: requireNumber(jsonField(node, 'number'), 'repository.issues.nodes.number'), body: typeof body === 'string' ? body : '' })
     }
-    const next = response.links.get('next')
-    if (next === undefined) return issues
-    target = next.url
-    parameters = undefined
+    const pageInfo = jsonField(connection, 'pageInfo')
+    if (jsonField(pageInfo, 'hasNextPage') !== true) return issues
+    after = requireString(jsonField(pageInfo, 'endCursor'), 'repository.issues.pageInfo.endCursor')
   }
 }
 
