@@ -1,7 +1,15 @@
 ---
 paths:
-  - "plugins/pecot-workflow/cli/src/**"
-  - "plugins/pecot-workflow/cli/templates/**"
+  - "plugins/pecot-workflow/cli/src/commands/project-sync.ts"
+  - "plugins/pecot-workflow/cli/src/domain/board-move.ts"
+  - "plugins/pecot-workflow/cli/src/domain/config.ts"
+  - "plugins/pecot-workflow/cli/src/commands/board-view.ts"
+  - "plugins/pecot-workflow/cli/src/commands/issue-shared.ts"
+  - "plugins/pecot-workflow/cli/src/domain/issue-kind.ts"
+  - "plugins/pecot-workflow/cli/src/domain/issue-order.ts"
+  - "plugins/pecot-workflow/cli/templates/issue/**"
+  - "plugins/pecot-workflow/cli/templates/comment/**"
+  - "plugins/pecot-workflow/cli/templates/pr/**"
   - "plugins/pecot-workflow/interface/issue-coverage.yaml"
 ---
 
