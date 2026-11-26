@@ -20,7 +20,8 @@
 # Then set these in Settings > Secrets and variables > Actions.
 #   Variable PECOT_AGENT_APP_CLIENT_ID, the client ID of the App.
 #   Secret PECOT_AGENT_APP_PRIVATE_KEY, a private key of the App.
-# While the variable is empty, the setup job only comments on the issue with what is missing.
+# When the variable is empty or the App token cannot be made, the gate job stops.
+# Then the setup job only comments on the issue with what is missing.
 # Set one model credential too.
 #   Claude subscription (default).
 #     Set secret CLAUDE_CODE_OAUTH_TOKEN, made with `claude setup-token`.
@@ -73,6 +74,8 @@ jobs:
       issue: ${{ steps.decide.outputs.issue }}
       number: ${{ steps.decide.outputs.number }}
       branch: ${{ steps.decide.outputs.branch }}
+      # The setup job reports a token that could not be made, such as one missing a permission.
+      token-failed: ${{ steps.token.outcome == 'failure' }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -88,6 +91,7 @@ jobs:
 
       - name: Generate GitHub App token
         id: token
+        continue-on-error: true
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ vars.PECOT_AGENT_APP_CLIENT_ID }}
@@ -103,6 +107,7 @@ jobs:
       # --prefix=/ keeps npx from stopping in a repository that declares pnpm devEngines.
       - name: Decide
         id: decide
+        if: ${{ steps.token.outcome == 'success' }}
         env:
           PECOT_GITHUB_COM_TOKEN: ${{ steps.token.outputs.token }}
           PECOT_AUTO_LABEL: ${{ vars.PECOT_AUTO_LABEL || 'pecot-auto' }}
@@ -200,12 +205,15 @@ jobs:
           if [ -n "$PECOT_AUTO_PROJECT" ]; then set -- "$@" --project "$PECOT_AUTO_PROJECT"; fi
           npx -y --prefix=/ @pecot/workflow-mcp@latest auto finish "$GITHUB_REPOSITORY/$ISSUE" "$@"
 
-  # Without the App, tell the issue what is missing. The run token writes the comment.
+  # Without the App or its token, tell the issue what is missing. The run token writes the comment.
   setup:
+    needs: gate
+    # always() lets this job run after the gate job is skipped.
     if: >-
       ${{
-        vars.PECOT_AGENT_APP_CLIENT_ID == '' &&
-        github.event.label.name == (vars.PECOT_AUTO_LABEL || 'pecot-auto')
+        always() &&
+        github.event.label.name == (vars.PECOT_AUTO_LABEL || 'pecot-auto') &&
+        (vars.PECOT_AGENT_APP_CLIENT_ID == '' || needs.gate.outputs.token-failed == 'true')
       }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -233,7 +241,8 @@ jobs:
           PECOT_AUTO_PROJECT: ${{ vars.PECOT_AUTO_PROJECT }}
           ISSUE: ${{ github.event.issue.number }}
           SENDER: ${{ github.event.sender.login }}
-          BODY: |
+          NO_APP: ${{ vars.PECOT_AGENT_APP_CLIENT_ID == '' }}
+          BODY_NO_APP: |
             変数 `PECOT_AGENT_APP_CLIENT_ID` が空なので、自動処理を始めなかった。
 
             自動処理には、自前の GitHub App の次の 2 つが要る。Settings > Secrets and variables > Actions に置く。
@@ -242,12 +251,22 @@ jobs:
             - secret `PECOT_AGENT_APP_PRIVATE_KEY` — App の秘密鍵
 
             置いた後に、`pecot workflow doctor auto` で、足りない設定が無いことを確かめる。
+          BODY_NO_TOKEN: |
+            自前の GitHub App のトークンを作れなかったので、自動処理を始めなかった。
+
+            次の 2 つを確かめる。失敗の理由は、この run の `gate` の job の記録に出ている。
+
+            - 変数 `PECOT_AGENT_APP_CLIENT_ID` が App の Client ID で、secret `PECOT_AGENT_APP_PRIVATE_KEY` がその App の秘密鍵か
+            - App がこのリポに入っていて、ワークフローの先頭のコメントにある権限を持つか
+
+            直した後に、起動ラベルを付け直す。
         run: |
           case "$SENDER" in *"[bot]") exit 0 ;; esac
           role=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$SENDER/permission" --jq .permission) || exit 0
           case "$role" in admin|write) ;; *) exit 0 ;; esac
           BODY_FILE="$RUNNER_TEMP/pecot-auto-setup.md"
-          printf '%s' "$BODY" > "$BODY_FILE"
+          if [ "$NO_APP" = true ]; then body=$BODY_NO_APP; else body=$BODY_NO_TOKEN; fi
+          printf '%s' "$body" > "$BODY_FILE"
           set -- --result setup-missing --body-file "$BODY_FILE"
           if [ -n "$PECOT_AUTO_PROJECT" ]; then set -- "$@" --project "$PECOT_AUTO_PROJECT"; fi
           npx -y --prefix=/ @pecot/workflow-mcp@latest auto finish "$GITHUB_REPOSITORY/$ISSUE" "$@"

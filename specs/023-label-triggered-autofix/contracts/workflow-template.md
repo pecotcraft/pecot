@@ -62,10 +62,10 @@ workflows: ["CI"]
 | 動く条件 | 変数 `PECOT_AGENT_APP_CLIENT_ID` が空でなく、`issues` のときはラベルの名前が起動ラベルと同じ。空の間は、何もせずに飛ばす（知らせは `setup` が書く） |
 | 時間の上限 | 5 分 |
 | `permissions` | `contents: read` だけ |
-| step | checkout、Node、トークンの発行、`gate` |
+| step | checkout、Node、トークンの発行、`gate`。トークンの発行は `continue-on-error: true` で、失敗しても job を止めない。`gate` の step は、発行の `outcome` が `success` のときだけ動く |
 | 発行する権限 | `permission-issues: write`・`permission-actions: read`・`permission-organization-projects: write`・`permission-contents: read`・`permission-pull-requests: read`（[research.md](../research.md) の R2 の表）。`gate` は進行の欄を読み、CI の上限では札を `Needs Attention` に書き、ブランチと PR の有無を読む |
 | `env` | 下の表 |
-| 出力 | `proceed`・`kind`・`issue`・`number`・`branch`。`auto gate` が `GITHUB_OUTPUT` に書いた値を出す |
+| 出力 | `proceed`・`kind`・`issue`・`number`・`branch`。`auto gate` が `GITHUB_OUTPUT` に書いた値を出す。ほかに `token-failed` で、トークンの発行の `outcome` が `failure` かを出す。`setup` が読む |
 
 `gate` の step は、`npx -y --prefix=/ @pecot/workflow-mcp@latest auto gate` の形で CLI を打つ。dist-tag の決め方は、自動レビューの雛形と同じだ。このリポと検証用に置くファイルは、`@next` にする。
 
@@ -117,11 +117,11 @@ workflows: ["CI"]
 
 ### `setup`
 
-変数 `PECOT_AGENT_APP_CLIENT_ID` が空のまま起動ラベルが付いたときに、足りない設定を Issue に書く（[research.md](../research.md) の R4、FR-021）。App が無いので、run のトークン（`GITHUB_TOKEN`）で書く。
+変数 `PECOT_AGENT_APP_CLIENT_ID` が空のときと、`gate` が App のトークンを作れなかったときに、足りない設定を Issue に書く（[research.md](../research.md) の R4、FR-021）。App のトークンが無いので、run のトークン（`GITHUB_TOKEN`）で書く。
 
 | 項目 | 決め |
 |---|---|
-| 動く条件 | 変数 `PECOT_AGENT_APP_CLIENT_ID` が空で、ラベルの名前が起動ラベルと同じ。`gate` の動く条件と、変数の比べだけが逆になる |
+| 動く条件 | `needs: gate` で、`always()`・ラベルの名前が起動ラベルと同じ・変数 `PECOT_AGENT_APP_CLIENT_ID` が空か `gate` の `token-failed` が真。`always()` は、`gate` が飛ばされたときにも動くためだ |
 | 時間の上限 | 5 分 |
 | `permissions` | `contents: read` と `issues: write`。結果のコメントの投稿と、ラベルを外すためだ |
 | step | checkout、Node、`Report` |
@@ -140,9 +140,12 @@ workflows: ["CI"]
 | `PECOT_AUTO_PROJECT` | `${{ vars.PECOT_AUTO_PROJECT }}` |
 | `ISSUE` | `${{ github.event.issue.number }}` |
 | `SENDER` | `${{ github.event.sender.login }}` |
-| `BODY` | 本文。式を持たない |
+| `NO_APP` | `${{ vars.PECOT_AGENT_APP_CLIENT_ID == '' }}` |
+| `BODY_NO_APP`・`BODY_NO_TOKEN` | 本文。式を持たない。`NO_APP` が `true` なら前者、ほかは後者を書く |
 
-本文には、空の変数の名前、自前の App に要る変数 `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY` の置き場所、`pecot workflow doctor auto` で確かめることを書く。結果のコメントの書き方（段落の中で改行しない、プレースホルダを残さない）に従う。
+`BODY_NO_APP` には、空の変数の名前、自前の App に要る変数 `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY` の置き場所、`pecot workflow doctor auto` で確かめることを書く。
+`BODY_NO_TOKEN` には、トークンを作れなかったこと、失敗の理由が `gate` の記録にあること、確かめる変数・secret・App の権限、直した後に起動ラベルを付け直すことを書く。
+どちらも、結果のコメントの書き方（段落の中で改行しない、プレースホルダを残さない）に従う。
 
 プロジェクトの設定を復元する step は置かない。ツールが、対象のリポから設定を決める（#579）。
 action はすべて SHA で固定し、版をコメントに書く。
@@ -223,13 +226,14 @@ action はすべて SHA で固定し、版をコメントに書く。
 | 許可リストに、マージ・クローズ・リリースのツール（`pr_merge`・`release_create` など）が無い | 文字列を探す |
 | トークンの発行の step の `permission-*` が、job ごとの表と一致する | `with` のキーを比べる |
 | `gate`・`run`・`setup` の `permissions` が、表のとおり | 読み込んだ値を比べる |
-| `gate` が `proceed`・`kind`・`issue`・`number`・`branch` を job の出力にする | 読み込んだ `outputs` を比べる |
+| `gate` が `proceed`・`kind`・`issue`・`number`・`branch`・`token-failed` を job の出力にする | 読み込んだ `outputs` を比べる |
+| `gate` のトークンの発行が `continue-on-error: true` を持ち、`gate` の step が発行の成功のときだけ動く。`run` の発行は `continue-on-error` を持たない | 読み込んだ値を比べる |
 | `gate` の step の `env` に `PECOT_GITHUB_COM_TOKEN`・`PECOT_AUTO_LABEL`・`MAX_CI_ATTEMPTS`・`PECOT_AUTO_PROJECT` があり、`--project` を空でないときだけ足す | `env` のキーを見て、偽の `npx` で `run` を動かす |
 | 後始末の step が `if: always()` を持ち、`JOB_STATUS`・`EXECUTION_FILE` を `env` で受けて、`run` に `${{` が無い | `env` のキーと `run` の文字列を見る |
-| `setup` の `if` が、変数 `PECOT_AGENT_APP_CLIENT_ID` が空であることと起動ラベルを `vars` で読み、`env.` を読んでいない | 式の文字列を探す |
+| `setup` が `needs: gate` を持ち、`if` が `always()`・起動ラベル・変数が空か `token-failed` が真かを読み、`env.` を読んでいない | 式の文字列を探す |
 | `setup` が App のトークンを発行しない | `uses` の有無を見る |
 | `setup` の `Report` が、`[bot]` の名前と `admin`・`write` でない人（権限を読めないときも）では何も書かずに終わる | 偽の `gh`・`npx` で `run` を動かす |
-| `setup` の `Report` が、`auto finish "$GITHUB_REPOSITORY/$ISSUE" --result setup-missing --body-file "$BODY_FILE"` を打ち、本文が書き方に従い、`run` に `${{` が無い | 偽の `gh`・`npx` で `run` を動かし、本文を確かめる |
+| `setup` の `Report` が、`auto finish "$GITHUB_REPOSITORY/$ISSUE" --result setup-missing --body-file "$BODY_FILE"` を打ち、`NO_APP` で選んだ本文が書き方に従い、`run` に `${{` が無い | 偽の `gh`・`npx` で `run` を動かし、2 つの本文を確かめる |
 | `PECOT_AUTO_LABEL` が、`gate`・後始末・action の step の `env` にある | `env` のキーを見る |
 | 利用者が足す許可と CI の名前が、印の囲みの中にある | 印のコメントを探す |
 | action がすべて SHA で固定されている | `uses` の形を見る |

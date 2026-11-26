@@ -101,7 +101,7 @@ MCP ツールでは `workflow_install`・`workflow_doctor`（どちらも `name:
 | 操作 | 期待 |
 |---|---|
 | 変数 `PECOT_AGENT_APP_CLIENT_ID` を空にして起動する | `gate` と `run` が飛ばされる。`setup` の job が、足りない設定の結果のコメントを書き、起動ラベルを外す |
-| App の権限から Projects を外して起動する | 修正が始まらない。足りない設定の結果のコメントが Issue に付く |
+| App の持たない権限を `gate` のトークンに求める写しで起動する | `gate` のトークンの発行が失敗し、`run` が飛ばされる。`setup` の job が、トークンを作れなかった結果のコメントを書き、起動ラベルを外す |
 | 既定の Status から Needs Attention を消して、質問で止まる Issue を起動する | 結果のコメントに、足りない設定が書かれる。進行の欄は Active のままだ |
 
 ## CI の修正（US1 の続き）

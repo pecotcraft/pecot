@@ -17,13 +17,14 @@ const template = readFileSync(path.join(templateDirectory, 'pecot-auto.yml'), 'u
 const reviewTemplate = readFileSync(path.join(templateDirectory, 'pecot-review.yml'), 'utf8')
 
 interface Step {
-  readonly name?: string
-  readonly id?: string
-  readonly if?: string
-  readonly uses?: string
-  readonly run?: string
-  readonly with?: Readonly<Record<string, unknown>>
-  readonly env?: Readonly<Record<string, string>>
+  readonly 'name'?: string
+  readonly 'id'?: string
+  readonly 'if'?: string
+  readonly 'uses'?: string
+  readonly 'run'?: string
+  readonly 'with'?: Readonly<Record<string, unknown>>
+  readonly 'env'?: Readonly<Record<string, string>>
+  readonly 'continue-on-error'?: boolean
 }
 interface Job {
   readonly 'if'?: string
@@ -109,11 +110,25 @@ describe('auto のワークフローの雛形', () => {
     expect(condition).not.toContain('env.')
   })
 
-  it('setup の if は、変数 PECOT_AGENT_APP_CLIENT_ID が空であることと起動ラベルの名前を vars で読み、env を読まない', () => {
+  it('setup は gate の後に動き、gate が飛ばされても、変数が空かトークンを作れなかった起動ラベルで動く', () => {
+    expect(setup.needs).toBe('gate')
     const condition = setup.if ?? ''
-    expect(condition).toContain('vars.PECOT_AGENT_APP_CLIENT_ID == \'\'')
+    expect(condition).toContain('always()')
     expect(condition).toContain(`github.event.label.name == (${label})`)
+    expect(condition).toContain('(vars.PECOT_AGENT_APP_CLIENT_ID == \'\' || needs.gate.outputs.token-failed == \'true\')')
     expect(condition).not.toContain('env.')
+  })
+
+  it('gate は、トークンの発行が失敗しても job を続け、Decide を飛ばし、失敗を token-failed に出す', () => {
+    const gateToken = stepUsing(gate, 'actions/create-github-app-token')
+    expect(gateToken.id).toBe('token')
+    expect(gateToken['continue-on-error']).toBe(true)
+    expect(decide.if).toBe('${{ steps.token.outcome == \'success\' }}')
+    expect(gate.outputs?.['token-failed']).toBe('${{ steps.token.outcome == \'failure\' }}')
+  })
+
+  it('run のトークンの発行は、失敗したら job を止める', () => {
+    expect(stepUsing(run, 'actions/create-github-app-token')['continue-on-error']).toBeUndefined()
   })
 
   it('run は gate の後に、gate の proceed が真のときだけ動く', () => {
@@ -121,9 +136,11 @@ describe('auto のワークフローの雛形', () => {
     expect(run.if).toBe('${{ needs.gate.outputs.proceed == \'true\' }}')
   })
 
-  it('gate は、Decide の step が書いた proceed・kind・issue・number・branch を job の出力にする', () => {
+  it('gate は、Decide の step が書いた proceed・kind・issue・number・branch と、token-failed を job の出力にする', () => {
     expect(decide.id).toBe('decide')
-    expect(gate.outputs).toEqual(Object.fromEntries(
+    const { 'token-failed': tokenFailed, ...decided } = gate.outputs ?? {}
+    expect(tokenFailed).toBeDefined()
+    expect(decided).toEqual(Object.fromEntries(
       ['proceed', 'kind', 'issue', 'number', 'branch'].map(name => [name, `\${{ steps.decide.outputs.${name} }}`]),
     ))
   })
@@ -360,7 +377,7 @@ describe('auto のワークフローの雛形', () => {
 
   it('setup の Report は、run のトークンとラベルを付けた人と Issue の番号と本文を env で受け、run に式を埋め込まない', () => {
     expect(report.name).toBe('Report')
-    const { BODY: body, ...expressions } = report.env ?? {}
+    const { BODY_NO_APP: noApp, BODY_NO_TOKEN: noToken, ...expressions } = report.env ?? {}
     expect(expressions).toEqual({
       GH_TOKEN: '${{ github.token }}',
       PECOT_GITHUB_COM_TOKEN: '${{ github.token }}',
@@ -368,9 +385,12 @@ describe('auto のワークフローの雛形', () => {
       PECOT_AUTO_PROJECT: '${{ vars.PECOT_AUTO_PROJECT }}',
       ISSUE: '${{ github.event.issue.number }}',
       SENDER: '${{ github.event.sender.login }}',
+      NO_APP: '${{ vars.PECOT_AGENT_APP_CLIENT_ID == \'\' }}',
     })
-    expect(body).toContain('PECOT_AGENT_APP_CLIENT_ID')
-    expect(body).not.toContain('${{')
+    for (const body of [noApp, noToken]) {
+      expect(body).toContain('PECOT_AGENT_APP_CLIENT_ID')
+      expect(body).not.toContain('${{')
+    }
     expect(report.run).not.toContain('${{')
   })
 
@@ -475,12 +495,23 @@ describe('auto のワークフローの雛形の step の中身', () => {
     expect(logged('npx-args')).toEqual(['-y', '--prefix=/', '@pecot/workflow-mcp@latest', 'auto', 'finish', 'owner/repo/7', '--result', 'setup-missing', '--body-file', path.join(work, 'pecot-auto-setup.md')])
   })
 
-  it('Report の本文は、足りない変数と secret の名前と workflow doctor auto を書き、結果のコメントの書き方を守る', () => {
-    expect(runStep(report, { ISSUE: '7', SENDER: 'alice', FAKE_ROLE: 'write', PECOT_AUTO_PROJECT: '' })).toBe(0)
+  it('Report の本文は、変数が空なら、足りない変数と secret の名前と workflow doctor auto を書き、結果のコメントの書き方を守る', () => {
+    expect(runStep(report, { ISSUE: '7', SENDER: 'alice', FAKE_ROLE: 'write', PECOT_AUTO_PROJECT: '', NO_APP: 'true' })).toBe(0)
     const body = (logged('body') ?? []).join('\n')
     for (const name of ['`PECOT_AGENT_APP_CLIENT_ID`', '`PECOT_AGENT_APP_PRIVATE_KEY`', '`pecot workflow doctor auto`']) {
       expect(body).toContain(name)
     }
+    expect(validateBodyStyle(body)).toEqual([])
+  })
+
+  it('Report の本文は、変数があれば、トークンを作れなかったことと確かめる設定を書き、結果のコメントの書き方を守る', () => {
+    expect(runStep(report, { ISSUE: '7', SENDER: 'alice', FAKE_ROLE: 'write', PECOT_AUTO_PROJECT: '', NO_APP: 'false' })).toBe(0)
+    const body = (logged('body') ?? []).join('\n')
+    expect(body).toContain('トークンを作れなかった')
+    for (const name of ['`PECOT_AGENT_APP_CLIENT_ID`', '`PECOT_AGENT_APP_PRIVATE_KEY`', '`gate`']) {
+      expect(body).toContain(name)
+    }
+    expect(body).not.toContain('`pecot workflow doctor auto`')
     expect(validateBodyStyle(body)).toEqual([])
   })
 

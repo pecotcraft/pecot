@@ -146,8 +146,13 @@ spec 023 が決めた仕組み（起動ラベル・`gate` と `run` の 2 つの
 - 起動ラベルは、w-onboarding の導入の Step で作る。あるかは `workflow doctor auto` が確かめる。`workflow install` は、雛形を写すだけにする
 - 変数が空のとき（`gate` を飛ばす）と、App に権限が無いときは、足りない設定を Issue に書く経路が要る（FR-021）。この経路が届くかは、実装で確かめる
   - 変数が空のときは、job `setup` が run のトークン（`GITHUB_TOKEN`、`issues: write`）で `setup-missing` を書く。App が無いので、App のトークンでは書けないためだ。ラベルを付けた人の権限は、`gate` と同じ判定で先に読む
+  - App に権限が無いときは、`gate` のトークンの発行が失敗する。発行の step を `continue-on-error: true` にし、失敗を出力 `token-failed` で `setup` に渡す。`setup` が、同じ `GITHUB_TOKEN` で、トークンを作れなかったことを書く
 
-結果（2026-11-26、検証用）: 変数が空のときは、`setup` の job が `setup-missing` の結果のコメントを書き、起動ラベルを外した。`gate` と `run` は飛ばされた。
+結果（2026-11-26、検証用）:
+
+- 変数が空のときは、`setup` の job が `setup-missing` の結果のコメントを書き、起動ラベルを外した。`gate` と `run` は飛ばされた
+- App の持たない権限（Commit statuses）を `gate` のトークンに求めると、発行が `The permissions requested are not granted to this installation.` で失敗した。足す前の雛形では、知らせは届かない。足した後は、`gate` の Decide と `run` が飛ばされ、`setup` が結果のコメントを書き、起動ラベルを外した
+- 足した後も、変数があって発行できるときは `setup` が飛ばされ、`gate` が判定を書いた
 
 ## R5. 起動者の制限と、信頼できない入力
 

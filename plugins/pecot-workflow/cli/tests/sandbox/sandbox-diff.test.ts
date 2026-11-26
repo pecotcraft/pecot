@@ -49,8 +49,6 @@ const REVIEW = 'name: pecot review\non: pull_request\njobs:\n  review:\n    step
 
 const HANDOFF = 'name: pecot handoff\non: pull_request_target\njobs:\n  handoff:\n    steps:\n      - uses: anthropics/claude-code-action@0\n'
 
-const AUTO = 'name: pecot auto\non: issues\njobs:\n  gate:\n    steps:\n      - run: npx -y @pecot/workflow-mcp@next auto gate\n'
-
 interface Check { context: string, integration_id?: number }
 interface Rule { type: string, parameters?: { required_status_checks?: Check[], [key: string]: unknown } }
 interface Ruleset {
@@ -165,7 +163,7 @@ class Side {
   readonly settings = repositorySettings()
   readonly rulesets: Ruleset[]
   board: Board
-  readonly files: Record<string, string> = { 'ci.yml': 'name: ci\n', 'pecot-auto.yml': AUTO, 'pecot-board-sync.yml': BOARD_SYNC, 'pecot-handoff.yml': HANDOFF, 'pecot-review.yml': REVIEW }
+  readonly files: Record<string, string> = { 'ci.yml': 'name: ci\n', 'pecot-board-sync.yml': BOARD_SYNC, 'pecot-handoff.yml': HANDOFF, 'pecot-review.yml': REVIEW }
   // undefined は、設定のディレクトリが無い（一覧が 404）
   configs: Record<string, ProjectConfig> | undefined
   // 生の中身で置く設定ファイル。undefined は、応答に content が無い
@@ -399,21 +397,6 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     delete scene.sandbox.files['pecot-handoff.yml']
     const expectedThis = `blob ${blob(HANDOFF)}、1 行目: ${splitLines(HANDOFF)[0] ?? ''}`
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-handoff.yml', expectedThis, 'なし')))
-  })
-
-  it('pecot-auto.yml の中身が違うと、ファイルの名前で両方の blob の sha と違う最初の行を出す', () => {
-    const other = AUTO.replace('@next', '@latest')
-    scene.sandbox.files['pecot-auto.yml'] = other
-    const line = 6
-    const expectedThis = `blob ${blob(AUTO)}、${String(line)} 行目: ${splitLines(AUTO)[line - 1] ?? ''}`
-    const expectedSandbox = `blob ${blob(other)}、${String(line)} 行目: ${splitLines(other)[line - 1] ?? ''}`
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-auto.yml', expectedThis, expectedSandbox)))
-  })
-
-  it('このリポに pecot-auto.yml が無いと、このリポを「なし」としてずれに出す', () => {
-    delete scene.this.files['pecot-auto.yml']
-    const expectedSandbox = `blob ${blob(AUTO)}、1 行目: ${splitLines(AUTO)[0] ?? ''}`
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-auto.yml', 'なし', expectedSandbox)))
   })
 
   it('ci.yml は在るかどうかだけを比べる', () => {
