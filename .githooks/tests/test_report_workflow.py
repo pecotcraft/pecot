@@ -454,7 +454,10 @@ def test_read_history_looks_up_the_path_without_reading_the_blob() -> None:
     assert 'elif git rev-parse --verify --quiet "$stored" > /dev/null; then' in run
 
 
-def test_read_history_fails_when_the_stored_blob_cannot_be_fetched(tmp_path: Path) -> None:
+def test_read_history_warns_and_starts_empty_when_the_blob_cannot_be_fetched(
+    tmp_path: Path,
+) -> None:
+    # FR-021: 履歴を取れないときも、空の履歴でレポートを作り、job summary で知らせる。
     src = _store_repo(tmp_path, _STORED)
     bare, clone = tmp_path / "bare.git", tmp_path / "clone"
     subprocess.run(["git", "init", "-q", "--bare", str(bare)], check=True)
@@ -478,9 +481,10 @@ def test_read_history_fails_when_the_stored_blob_cannot_be_fetched(tmp_path: Pat
 
     result = _bash(step["run"], clone, env)
 
-    assert result.returncode != 0
+    assert result.returncode == 0, result.stderr
     assert "promisor remote" in result.stderr
-    assert not (tmp_path / "summary").exists()
+    assert (temp / "test-report/history.jsonl").read_text(encoding="utf-8") == ""
+    assert step["env"]["MSG_NO_STORE"] in (tmp_path / "summary").read_text(encoding="utf-8")
 
 
 def test_report_steps_hand_history_sources_and_tree_to_each_other(tmp_path: Path) -> None:

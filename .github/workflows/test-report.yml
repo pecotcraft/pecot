@@ -237,6 +237,7 @@ jobs:
           path: ${{ github.workspace }}
 
       # Pages の CDN は前の中身を返すことがあるので、公開元の pages-store から読む。ファイルが無ければ初めてとして空にする。
+      # checkout は blob:none なので、blob を取れないことがある。そのときも空の履歴で作り、job summary で知らせる（FR-021）。
       - name: Read stored history
         env:
           MSG_NO_STORE: "保管ブランチ pages-store を読めなかったので、空の履歴でレポートを作ります。"
@@ -252,7 +253,10 @@ jobs:
           if ! git rev-parse --verify --quiet origin/pages-store > /dev/null; then
             printf '\n> [!WARNING]\n> %s\n' "$MSG_NO_STORE" >> "$GITHUB_STEP_SUMMARY"
           elif git rev-parse --verify --quiet "$stored" > /dev/null; then
-            git show "$stored" > "$history"
+            if ! git show "$stored" > "$history"; then
+              : > "$history"
+              printf '\n> [!WARNING]\n> %s\n' "$MSG_NO_STORE" >> "$GITHUB_STEP_SUMMARY"
+            fi
           fi
 
       - name: Generate report

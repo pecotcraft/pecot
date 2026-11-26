@@ -46,7 +46,7 @@ paths:
 - 起動のたびに `post-start.sh` が `exclude-pages-store.sh` を呼び、`git fetch` の対象から外す
   - 取得の設定（`remote.origin.fetch`）に `^refs/heads/pages-store` を足し、残っている `origin/pages-store` を消す
   - 負の refspec で外したブランチの追跡 ref は、`git fetch --prune` では消えない
-- 中身を読みたいときは、手元の clone で `git fetch` しない。浅い clone に変わり、追跡 ref が作り直される
+- 中身を読みたいときは、手元の clone で `git fetch origin pages-store` しない。`origin/pages-store` が作り直され、展開で数百 MB の中身が手元の pack に入る。`--depth` を付けると、手元の clone が浅い clone にも変わる
 - 別のディレクトリへ、1 本だけ浅く取る
 
   ```bash
