@@ -97,10 +97,12 @@ pytest は `.githooks/tests/attach.py` を `sys.path.insert` で読む。
 run_attached(args, *, check=False, **kwargs) -> subprocess.CompletedProcess
 attach_output(command: str, stdout, stderr, returncode: int | None) -> None
 read_output(path) -> str
+attach_json(name: str, value) -> None
 ```
 
 - `run_attached` は `subprocess.run` と同じ引数で動かし、出力を添付してから結果を返す。`check=True` で終了コードが 0 でないときも、timeout のときも、添付してから例外を投げる
-- 添付の型は、出力が TEXT、`read_output` の `.json` が JSON。走っているテストの外（`PYTEST_CURRENT_TEST` が無い）と、allure-pytest を読めないときは何もしない
+- `attach_json` は、大きな出力の一部だけで判定するテストが、判定に使った値だけを JSON で添付する
+- 添付の型は、出力が TEXT、`read_output` の `.json` と `attach_json` が JSON。走っているテストの外（`PYTEST_CURRENT_TEST` が無い）と、allure-pytest を読めないときは何もしない
 
 ## `test-report.yml`（テストを動かし、レポートを作る）
 

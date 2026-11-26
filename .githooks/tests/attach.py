@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import json as _json
 import os
 import subprocess
 from collections.abc import Sequence
@@ -74,3 +75,8 @@ def read_output(path: str | Path) -> str:
     text = target.read_text(encoding="utf-8")
     _attach(text, target.name, json=target.suffix == ".json")
     return text
+
+
+def attach_json(name: str, value: Any) -> None:
+    """判定に使った値を JSON で添付する。大きな出力から一部だけを読んで判定するときに使う。"""
+    _attach(_json.dumps(value, ensure_ascii=False, indent=2), name, json=True)

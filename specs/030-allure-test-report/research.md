@@ -312,15 +312,16 @@ FR-007a（画面・成果物の添付）の対象にしないものを次に並�
   | pecot-workflow の `runCommand`・`runInProcess` | 標準出力・標準エラー（`capture({ attach: false })` で二重を避ける）。`read` は読んだ中身 |
   | pecot-workflow の `callToolOnce` | `toolOutcomeOf` で確かめる前の結果の全体 |
   | pecot-workflow の hook の `run` | 起動の失敗で throw する前の出力 |
-  | `.githooks/tests/attach.py` | `run_attached`（`check`・timeout でも添付してから投げる）・`attach_output`・`read_output` |
+  | `.githooks/tests/attach.py` | `run_attached`（`check`・timeout でも添付してから投げる）・`attach_output`・`read_output`・`attach_json` |
 
 - **名前**: コマンドを動かさず、io を注入して `run` を同じプロセスで呼ぶテストは、argv が無い。workflow-core の `capture()` と pecot-visual の `makeStream(name)` は、stream の名前（`capture stdout`・`stdout` など）を名前にする。終了コードは `run` の戻り値で、テストが判定する
 - **Rationale**: 成功したテストが実際に何を出したかを、レポートから確かめるため。`subprocess.run` や `child_process` を全体で差し替える案は採らない。テスト対象が中で動かす子プロセスの出力まで添付され、判定に使ったものと見分けられない
-- **大きさ**: #809 の 2 本を足す前の 13 レーンを手元で動かして作ったレポートの `data/attachments/` は、14,209 個で 63 MB だった（2026-11-26）
-  - 最も多いのは `githooks:test-nx-affected` の 27 MB で、nx が書き出して判定に使う graph の JSON（1 個 約 120 KB）が占める
+- **大きさ**: #809 の 2 本を足す前の 13 レーンを手元で動かして作ったレポートの `data/attachments/` は、13,910 個で 21 MB だった（2026-11-26）
+  - nx の graph の JSON（1 個 約 120 KB）と `nx show target inputs` の出力（1 個 約 190 KB）は、テストがその一部だけで判定する。全体を添付すると、2 つの nx のレーンで 47 MB になった
+  - そこで、判定に使ったタスク名・依存・target の設定・ファイルだけを `attach_json` で添付する。2 つのレーンで 1.5 MB になる。nx が落ちたときは、出力の全体を添付する
   - `beforeAll` で取った `tools/list` の結果は、describe のテストごとに複製される。そこで、全体は全体を見るテストだけが添付し、1 つのツールを見るテストはその項目だけを添付する
   - リポのファイルの一覧（`git ls-files`）は、テストの入力なので添付しない
-  - `pages-store`（2026-11-26 に 535 MB）に開発版とリリース版の増えを足すと、約 655 MB と見込む。保管の job の知らせ（900 MB）に収まる
+  - `pages-store`（2026-11-26 に 535 MB）に開発版とリリース版の増えを足すと、約 565 MB と見込む。保管の job の知らせ（900 MB）に収まる
 - `attachmentPath` は使わず、中身を読んで `attachment` に渡す（contracts の「添付」）
   - `allure-vitest` 3.15.0 の reporter は、`attachmentPath` のパスを `onTestRunEnd` で読む。テストが `afterAll` や `finally` で消した成果物は抜ける
 - PPM の画素で判定するテストは、その画素をそのまま可逆の PNG に包んで添付する。判定に使った画素そのものから作るので、FR-007b に当たらない

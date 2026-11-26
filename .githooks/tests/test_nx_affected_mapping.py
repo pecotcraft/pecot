@@ -31,7 +31,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from attach import attach_output, read_output, run_attached  # noqa: E402
+from attach import attach_json, attach_output, run_attached  # noqa: E402
 
 # parents[0]=tests, [1]=.githooks, [2]=リポルート。
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -216,9 +216,10 @@ def test_devcontainer_change_affects_all_projects(nx_bin: Path, changed_file: st
 # そのため、ファイルの変更で再実行されるレーンは、各レーンの inputs で決まる。
 
 
-def _nx(nx_bin: Path, *args: str) -> str:
+def _nx(nx_bin: Path, *args: str, attach: bool = True) -> str:
     # stdout はパイプでなくファイルで受ける。nx は stdout がパイプのとき大きな JSON を書き切る前に
     # 終了することがあり、切れた出力を受け取って JSONDecodeError になる (#1217)。
+    # attach が偽なら、一部だけを判定に使う大きな出力なので、落ちたときだけ添付する。
     with tempfile.TemporaryFile("w+", encoding="utf-8") as out:
         result = subprocess.run(
             [str(nx_bin), *args],
@@ -231,7 +232,8 @@ def _nx(nx_bin: Path, *args: str) -> str:
         )
         out.seek(0)
         text = out.read()
-        attach_output(f"nx {' '.join(args)}", text, result.stderr, result.returncode)
+        if attach or result.returncode != 0:
+            attach_output(f"nx {' '.join(args)}", text, result.stderr, result.returncode)
         assert result.returncode == 0, f"nx 失敗: {result.stderr}"
         return text
 
@@ -241,22 +243,29 @@ def lane_input_files(nx_bin: Path, tmp_path_factory: pytest.TempPathFactory) -> 
     """全 project の test-* レーン（`project:target`）→ そのレーンの inputs に入るファイル。"""
     graph_file = tmp_path_factory.mktemp("graph") / "graph.json"
     _nx(nx_bin, "graph", f"--file={graph_file}")
-    nodes = json.loads(read_output(graph_file))["graph"]["nodes"]
+    nodes = json.loads(graph_file.read_text(encoding="utf-8"))["graph"]["nodes"]
     lanes = [
         f"{project}:{target}"
         for project, node in nodes.items()
         for target in node["data"]["targets"]
         if target.startswith("test-")
     ]
+    attach_json("graph.json の test- のレーン", lanes)
     return {
-        lane: set(json.loads(_nx(nx_bin, "show", "target", "inputs", lane, "--json"))["files"])
+        lane: set(
+            json.loads(_nx(nx_bin, "show", "target", "inputs", lane, "--json", attach=False))[
+                "files"
+            ]
+        )
         for lane in lanes
     }
 
 
 def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> set[str]:
     assert (_REPO_ROOT / changed_file).exists(), f"代表ファイルが移動している: {changed_file}"
-    return {lane for lane, files in lane_input_files.items() if changed_file in files}
+    lanes = {lane for lane, files in lane_input_files.items() if changed_file in files}
+    attach_json(f"inputs に {changed_file} を持つレーン", sorted(lanes))
+    return lanes
 
 
 @pytest.mark.parametrize(
@@ -498,8 +507,10 @@ def test_release_lane_is_cached_and_not_run_by_unrelated_changes(
     graph_file = tmp_path / "graph.json"
     _nx(nx_bin, "graph", f"--file={graph_file}")
     project, target = release_lane.split(":")
-    nodes = json.loads(read_output(graph_file))["graph"]["nodes"]
-    assert nodes[project]["data"]["targets"][target].get("cache") is True
+    nodes = json.loads(graph_file.read_text(encoding="utf-8"))["graph"]["nodes"]
+    config = nodes[project]["data"]["targets"][target]
+    attach_json(f"graph.json の {release_lane}", config)
+    assert config.get("cache") is True
 
 
 @pytest.mark.parametrize(
@@ -540,10 +551,11 @@ def test_nx_release_lane_follows_its_inputs(
 def test_pecotv_test_lanes_depend_on_shared_install_and_build(tmp_path: Path, nx_bin: Path) -> None:
     graph_file = tmp_path / "graph.json"
     _nx(nx_bin, "run-many", "-t", "test", "-p", "pecot-visual", f"--graph={graph_file}")
-    tasks = json.loads(read_output(graph_file))["tasks"]
+    tasks = json.loads(graph_file.read_text(encoding="utf-8"))["tasks"]
     # nx 24 の dependencies は、task id から `[{"id": <依存 task id>}]` への対応になる。
     # nx 22 では、id の文字列の配列だった。
     deps = {task: {dep["id"] for dep in entries} for task, entries in tasks["dependencies"].items()}
+    attach_json("graph.json のタスクの依存", {task: sorted(ids) for task, ids in deps.items()})
     lanes = [t for t in tasks["tasks"] if t.startswith("pecot-visual:test-")]
     assert "pecot-visual:test-compare" in lanes, lanes
     for lane in lanes:
@@ -572,8 +584,9 @@ def test_pecot_visual_bootstrap_lane_waits_for_install_only(tmp_path: Path, nx_b
     """pecot-visual の bootstrap のレーン (#1235) は install を共有し、本体の cli/dist を使わないので build-cli に依存しない。"""
     graph_file = tmp_path / "graph.json"
     _nx(nx_bin, "run-many", "-t", "test", "-p", "pecot-visual", f"--graph={graph_file}")
-    tasks = json.loads(read_output(graph_file))["tasks"]
+    tasks = json.loads(graph_file.read_text(encoding="utf-8"))["tasks"]
     deps = {task: {dep["id"] for dep in entries} for task, entries in tasks["dependencies"].items()}
+    attach_json("graph.json のタスクの依存", {task: sorted(ids) for task, ids in deps.items()})
     assert "pecot-visual:install" in deps["pecot-visual:test-bootstrap"]
     assert "pecot-visual:build-cli" not in deps["pecot-visual:test-bootstrap"]
 
@@ -675,13 +688,14 @@ def _graph_lane_names(nx_bin: Path, tmp_path: Path, kind: str) -> list[str]:
     pattern = re.compile(r"^test(-|$)" if kind == "test" else r"^lint(-|$)")
     graph_file = tmp_path / f"graph-{kind}.json"
     _nx(nx_bin, "graph", f"--file={graph_file}")
-    nodes = json.loads(read_output(graph_file))["graph"]["nodes"]
+    nodes = json.loads(graph_file.read_text(encoding="utf-8"))["graph"]["nodes"]
     names = {
         target
         for node in nodes.values()
         for target, config in node["data"]["targets"].items()
         if pattern.match(target) and config.get("executor") not in ("nx:noop", "nx:run-script")
     }
+    attach_json(f"graph.json の {kind} のレーン", sorted(names))
     assert names, f"{kind} のレーンが graph に無い"
     return sorted(names)
 
@@ -704,7 +718,8 @@ def _selected_lanes(nx_bin: Path, tmp_path: Path, lanes: list[str], changed_file
     )
     if not graph_file.exists():
         return set()
-    tasks = json.loads(read_output(graph_file))["tasks"]["tasks"]
+    tasks = json.loads(graph_file.read_text(encoding="utf-8"))["tasks"]["tasks"]
+    attach_json("affected-tasks.json のタスク", sorted(tasks))
     wanted = set(lanes)
     return {task for task in tasks if task.split(":")[1] in wanted}
 

@@ -36,7 +36,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from attach import attach_output, read_output, run_attached  # noqa: E402
+from attach import attach_json, attach_output, read_output, run_attached  # noqa: E402
 
 # parents[0]=tests, [1]=.githooks, [2]=リポルート。
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -92,9 +92,10 @@ _REAL_REPO_NX_STATE = {
 }
 
 
-def _nx_output(nx_bin: Path, *args: str) -> str:
+def _nx_output(nx_bin: Path, *args: str, attach: bool = True) -> str:
     # stdout はパイプでなくファイルで受ける。nx は stdout がパイプのとき大きな JSON を書き切る前に
     # 終了することがあり、64 KiB 前後で切れた出力を受け取って JSONDecodeError になる (#1217)。
+    # attach が偽なら、一部だけを判定に使う大きな出力なので、落ちたときだけ添付する。
     with tempfile.TemporaryFile("w+", encoding="utf-8") as out:
         result = subprocess.run(
             [str(nx_bin), *args],
@@ -107,7 +108,8 @@ def _nx_output(nx_bin: Path, *args: str) -> str:
         )
         out.seek(0)
         text = out.read()
-        attach_output(f"nx {' '.join(args)}", text, result.stderr, result.returncode)
+        if attach or result.returncode != 0:
+            attach_output(f"nx {' '.join(args)}", text, result.stderr, result.returncode)
         assert result.returncode == 0, f"nx 失敗: {result.stderr}"
         return text
 
@@ -629,16 +631,32 @@ def resolved_targets(nx_bin: Path, tmp_path_factory: pytest.TempPathFactory) -> 
     """nx が targetDefaults を畳んだ後の全 target 設定（`project:target` → 設定）。"""
     out = tmp_path_factory.mktemp("graph") / "graph.json"
     _nx_output(nx_bin, "graph", f"--file={out}")
-    nodes = json.loads(read_output(out))["graph"]["nodes"]
-    return {
+    nodes = json.loads(out.read_text(encoding="utf-8"))["graph"]["nodes"]
+    resolved = {
         f"{project}:{target}": config
         for project, node in nodes.items()
         for target, config in node["data"]["targets"].items()
     }
+    attach_json(
+        "graph.json の target の executor・cache・dependsOn",
+        {
+            key: {name: config.get(name) for name in ("executor", "cache", "dependsOn")}
+            for key, config in resolved.items()
+        },
+    )
+    return resolved
 
 
 def _target_inputs(nx_bin: Path, project_target: str) -> dict:
-    return json.loads(_nx_output(nx_bin, "show", "target", "inputs", project_target, "--json"))
+    """files は大きいので、files を判定するテストが自分で読んだ分だけを添付する。"""
+    inputs = json.loads(
+        _nx_output(nx_bin, "show", "target", "inputs", project_target, "--json", attach=False)
+    )
+    attach_json(
+        f"{project_target} の inputs（files を除く）",
+        {key: value for key, value in inputs.items() if key != "files"},
+    )
+    return inputs
 
 
 def test_graph_has_no_test_or_lint_target_outside_project_json(
@@ -753,6 +771,7 @@ def test_cli_test_inputs_take_the_deck_lint_files_but_not_the_layouts(nx_bin: Pa
     files = [
         f for f in _target_inputs(nx_bin, "pecot-visual:test-cli")["files"] if f.startswith(_SLIDEV)
     ]
+    attach_json(f"pecot-visual:test-cli の inputs の {_SLIDEV} の files", files)
     assert _SLIDEV + "deck-lint.config.js" in files
     assert _SLIDEV + "deck-lint.env.config.js" in files
     assert _SLIDEV + "scripts/eslint/slidev-pages-lint/index.ts" in files
@@ -783,6 +802,14 @@ def test_hooks_test_inputs_take_validate_references_source_but_not_its_tests(nx_
     テーマの宣言は mirror-helper.sh の stub CLI が返すので、本体にテーマの宣言は無く、inputs にも入らない。
     """
     files = _target_inputs(nx_bin, "pecot-visual:test-hooks")["files"]
+    attach_json(
+        "pecot-visual:test-hooks の inputs の、判定に使う files",
+        [
+            f
+            for f in files
+            if f.startswith(_SLIDEV) or "/fixtures/themes/" in f or f.endswith("drawioGeometry.js")
+        ],
+    )
     prefix = _SLIDEV + "scripts/eslint/validate-references/"
     assert prefix + "index.ts" in files
     assert prefix + "lib/schema-validator.ts" in files
