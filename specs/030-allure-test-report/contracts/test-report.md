@@ -142,7 +142,8 @@ deploy と preview-status は変えない。
 
 - tests の job の「Stage JUnit」「Upload JUnit」の step を消す。artifact `pages-junit-<slug>` は上げない
 - レポートのレーンは、CI でも Allure の結果を残す
-- マージキューの run は、流したレーンの結果を artifact に上げ、開発版のレーンの最新の結果の材料にする。PR の run は上げない（2026-11-26 に改めた。形は #821）
+- マージキューの run は、流したレーンの結果を artifact に上げ、開発版のレーンの最新の結果の材料にする（2026-11-26 に改めた。形は #821）
+- マージキューが積のモードで省いたレーンは、PR の CI の run が試している。その結果をどう材料にするかは #821 で決める
 
 ## サイト（`interface-spec:docs`）
 
