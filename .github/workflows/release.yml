@@ -51,6 +51,7 @@ jobs:
         with:
           ref: ${{ inputs.sha || github.sha }}
           fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
 
       - name: Verify sha

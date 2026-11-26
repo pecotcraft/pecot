@@ -170,6 +170,7 @@ def test_nx_json_still_affects_all_projects(nx_bin: Path) -> None:
         ".devcontainer/devcontainer.json",
         ".devcontainer/features/playwright-deps/install.sh",
         ".devcontainer/scripts/post-create.sh",
+        ".devcontainer/scripts/post-start.sh",
     ],
 )
 def test_devcontainer_change_affects_all_projects(nx_bin: Path, changed_file: str) -> None:
@@ -980,6 +981,7 @@ def test_gate_selects_only_the_lanes_the_change_reaches(
         (".pre-commit-config.yaml", _GITHOOKS_CHECKS),
         (".textlintignore", _GITHOOKS_CHECKS),
         (".github/workflows/ci.yml", _GITHOOKS_CHECKS),
+        (".devcontainer/scripts/exclude-pages-store.sh", _GITHOOKS_CHECKS),
         (".github/rulesets/main.json", _GITHOOKS_CHECKS),
         (".gitlint", _GITHOOKS_CHECKS),
         (".github/plugin/marketplace.json", _GITHOOKS_CHECKS),

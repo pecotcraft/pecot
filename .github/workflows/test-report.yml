@@ -53,6 +53,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
 
       - name: Decide side
@@ -140,6 +141,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
 
       # dev container の取得と起動より前に替え、そのコミットの .devcontainer の定義で動かす。
@@ -205,12 +207,13 @@ jobs:
       SOURCES: ${{ needs.side.outputs.sources }}
       SIDE: ${{ needs.side.outputs.side }}
     steps:
-      # 履歴を origin/pages-store から読むので、全部のブランチを取る。
+      # 履歴を origin/pages-store から読むので、全部のブランチを取る。blob は読むものだけをその場で取る。
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
 
       # dev container の中からは GITHUB_STEP_SUMMARY に書けないので、ランナーで作る。
@@ -248,7 +251,7 @@ jobs:
           : > "$history"
           if ! git rev-parse --verify --quiet origin/pages-store > /dev/null; then
             printf '\n> [!WARNING]\n> %s\n' "$MSG_NO_STORE" >> "$GITHUB_STEP_SUMMARY"
-          elif git cat-file -e "$stored" 2> /dev/null; then
+          elif git rev-parse --verify --quiet "$stored" > /dev/null; then
             git show "$stored" > "$history"
           fi
 

@@ -3,7 +3,9 @@
 .devcontainer/devcontainer.json
 .devcontainer/features/playwright-deps/install.sh
 .devcontainer/scripts/install-git-hooks.sh
+.devcontainer/scripts/exclude-pages-store.sh
 .devcontainer/scripts/post-create.sh
+.devcontainer/scripts/post-start.sh
 .devcontainer/tmux/tmux.conf
 .githooks/ci/run-affected-tests.sh
 .githooks/ci/run-pr-checks.sh

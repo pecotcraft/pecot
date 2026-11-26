@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -446,6 +447,42 @@ def test_read_history_from_pages_store_of_the_side(
     assert (step["env"]["MSG_NO_STORE"] in text) == warned
 
 
+def test_read_history_looks_up_the_path_without_reading_the_blob() -> None:
+    # checkout は blob:none なので、cat-file -e は blob を取りに行き、取れないと「無い」と読む。
+    run = _step("report", "Read stored history")["run"]
+    assert "cat-file" not in run
+    assert 'elif git rev-parse --verify --quiet "$stored" > /dev/null; then' in run
+
+
+def test_read_history_fails_when_the_stored_blob_cannot_be_fetched(tmp_path: Path) -> None:
+    src = _store_repo(tmp_path, _STORED)
+    bare, clone = tmp_path / "bare.git", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", str(bare)], check=True)
+    subprocess.run(["git", "-C", str(bare), "config", "uploadpack.allowFilter", "true"], check=True)
+    store = "refs/remotes/origin/pages-store:refs/heads/pages-store"
+    subprocess.run(["git", "-C", str(src), "push", "-q", str(bare), store], check=True)
+    subprocess.run(
+        ["git", "clone", "-q", "--no-checkout", "--filter=blob:none", f"file://{bare}", str(clone)],
+        check=True,
+    )
+    shutil.rmtree(bare)
+    temp = tmp_path / "runner-temp"
+    temp.mkdir()
+    step = _step("report", "Read stored history")
+    env = {
+        **step["env"],
+        "RUNNER_TEMP": str(temp),
+        "SIDE": "dev",
+        "GITHUB_STEP_SUMMARY": str(tmp_path / "summary"),
+    }
+
+    result = _bash(step["run"], clone, env)
+
+    assert result.returncode != 0
+    assert "promisor remote" in result.stderr
+    assert not (tmp_path / "summary").exists()
+
+
 def test_report_steps_hand_history_sources_and_tree_to_each_other(tmp_path: Path) -> None:
     repo = _store_repo(tmp_path, _STORED)
     temp, bin_dir, seen = tmp_path / "runner-temp", tmp_path / "bin", tmp_path / "seen-sources"
@@ -512,6 +549,7 @@ def test_checkouts_use_github_ref_with_full_history() -> None:
         assert step["with"] == {
             "ref": "${{ github.sha }}",
             "fetch-depth": 0,
+            "filter": "blob:none",
             "persist-credentials": False,
         }
 
