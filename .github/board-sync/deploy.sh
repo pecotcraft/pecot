@@ -95,6 +95,37 @@ if [ -n "$PROFILE" ]; then
     AWS+=(--profile "$PROFILE")
 fi
 
+# aws login でログインし直すプロファイルを出す。ロールのプロファイルは source_profile をたどる。
+# aws login で直らないプロファイル（SSO・アクセスキーなど）では何も出さずに 1 を返す。
+login_profile() {
+    local name="${PROFILE:-${AWS_PROFILE:-${AWS_DEFAULT_PROFILE:-default}}}" next
+    local profiles
+    profiles="$(aws configure list-profiles 2>/dev/null || true)"
+    for _ in 1 2 3 4 5; do
+        if ! grep -qxF -- "$name" <<<"$profiles"; then
+            # 設定に無いプロファイルは、aws login が作る。
+            printf '%s\n' "$name"
+            return 0
+        fi
+        next="$(aws configure get source_profile --profile "$name" 2>/dev/null || true)"
+        [ -n "$next" ] || break
+        name="$next"
+    done
+    [ -n "$(aws configure get login_session --profile "$name" 2>/dev/null || true)" ] || return 1
+    printf '%s\n' "$name"
+}
+
+# 書き込みより前で、認証情報を得られるかを確かめる。aws の文が案内する aws login をそのまま打っても通らないので、打てる形を最後に示す。
+if ! STS_ERROR="$("${AWS[@]}" sts get-caller-identity 2>&1 >/dev/null)"; then
+    printf '%s\n' "$STS_ERROR" >&2
+    if LOGIN_PROFILE="$(login_profile)"; then
+        echo "ERROR: AWS の認証情報を得られません。ログインが切れていれば、別の端末で次を打ってから、打ち直してください" >&2
+        echo "  aws login --remote --profile $LOGIN_PROFILE --region $REGION" >&2
+        exit 1
+    fi
+    die "AWS の認証情報を得られません"
+fi
+
 # SSM へ書く前、gh の値とスタックの有無を済ませる。途中で止まっても、SSM だけが変わった状態を残さない。
 if [ -z "$SECURITY_CLIENT_ID" ]; then
     SECURITY_CLIENT_ID="$(gh variable get SECURITY_APP_CLIENT_ID -R "$REPO")"
