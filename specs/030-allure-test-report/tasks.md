@@ -239,14 +239,14 @@ description: "Task list for 030-allure-test-report"
 
 **Purpose**: 公開したレポートを実物で確かめ、起動・やり直しの手順をルールファイルに書く（FR-009c・FR-024）
 
-- [ ] T048 quickstart.md の 5 を、公開サイトの開発版で確かめる。12 本のレーンのテストがあること、定義書の項目のリンクから、その ID のテストだけが出ること、テストの要件の ID のリンクから、開発版の定義書の項目へ戻れること、2 回目の main への push の後に履歴が 2 件になることを見る。
+- [x] T048 quickstart.md の 5 を、公開サイトの開発版で確かめる。12 本のレーンのテストがあること、定義書の項目のリンクから、その ID のテストだけが出ること、テストの要件の ID のリンクから、開発版の定義書の項目へ戻れること、2 回目の main への push の後に履歴が 2 件になることを見る。
   `test-report.yml` の run の所要時間と、結果がそろってからレポートが変わるまでの時間を測り、30 分以内であることを確かめる（SC-008）。値を `.claude/rules/pages-site.md` に書く
   pages-deploy の deploy の step の所要時間を見て、Pages の 10 分の上限に余裕があることを確かめる（#698 で公開の中身が約 630 MB に増えた）
-- [ ] T049 quickstart.md の 6 を確かめる。リリースの前は、リリース版のフッターにリンクが無く、`/pecot/test-report/` に案内のページがあること。
+- [x] T049 quickstart.md の 6 を確かめる。リリースの前は、リリース版のフッターにリンクが無く、`/pecot/test-report/` に案内のページがあること。
   リリースの時機が来ていなければ、`gh workflow run test-report.yml --ref main -f side=release` で起こし、run が「結果を出せるプラグインが無い」で成功して終わることを確かめる。リリースの後の確かめは、その旨を Issue に残して次のリリースで行う
-- [ ] T050 `.claude/rules/pages-site.md` に、テストレポートの節を足す。URL の表、起動とやり直し（`gh workflow run test-report.yml --ref main -f side=dev`・`side=release`）、レポートが出ないときに読む所、手元での作り方（`generate.py --local`）、Allure の版を上げるときに見る所（`report-links.test.ts`）。
+- [x] T050 `.claude/rules/pages-site.md` に、テストレポートの節を足す。URL の表、起動とやり直し（`gh workflow run test-report.yml --ref main -f side=dev`・`side=release`）、レポートが出ないときに読む所、手元での作り方（`generate.py --local`）、Allure の版を上げるときに見る所（`report-links.test.ts`）。
   `paths` に `.github/workflows/test-report.yml` と `.githooks/scripts/test_report/**` を足す
-- [ ] T051 [P] `specs/030-allure-test-report/quickstart.md` と `contracts/test-report.md` を、実装で変わった所に合わせて直す
+- [x] T051 [P] `specs/030-allure-test-report/quickstart.md` と `contracts/test-report.md` を、実装で変わった所に合わせて直す
 
 ---
 
