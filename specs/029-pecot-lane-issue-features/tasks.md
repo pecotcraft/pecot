@@ -250,28 +250,29 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 ### Tests for User Story 5（担保）
 
-- [ ] T059 [P] [US5] `PW/cli/src/domain/tests/issue-surface.test.ts` に、抜き出しのテストを先に書く。
+- [x] T059 [P] [US5] `PW/cli/src/domain/tests/issue-surface.test.ts` に、抜き出しのテストを先に書く。
   入力は公開スキーマの SDL と REST の OpenAPI の小さな抜粋。確かめること: research R8 の範囲の項目だけが、data-model.md の `id` の形で、並べ替えて出る
-- [ ] T060 [P] [US5] `PW/cli/tests/issue-coverage.test.ts` に、網羅のテストを先に書く。
+- [x] T060 [P] [US5] `PW/cli/tests/issue-coverage.test.ts` に、網羅のテストを先に書く。
   確かめること:
   - 写しの各 `id` が担保の一覧にある
-  - `supported` の `handler` が `ATTRIBUTE_HANDLERS` にある
+  - `supported` の `handler` が `ATTRIBUTE_HANDLERS` に、`tool` が `COMMANDS` のツールにある
   - `excluded` には `reason` がある
   - 一覧にあって写しに無い `id` は落ちる
   - 落ちるときのメッセージに `id` が出る
 
 ### Implementation for User Story 5（担保）
 
-- [ ] T061 [US5] 抜き出しを、憲章の I・VI に合わせて 3 つに分けて作る（T059 の後）。
+- [x] T061 [US5] 抜き出しを、憲章の I・VI に合わせて 3 つに分けて作る（T059 の後）。
   - `PW/cli/src/domain/issue-surface.ts`: SDL と OpenAPI の文字列から写しの項目を抜く。SDL は既存の依存の `graphql` の `parse` で読む
   - `PW/cli/src/infra/github/issue-surface.ts`: 公開スキーマと OpenAPI を取りに行く
   - `PW/cli/scripts/github-surface/extract.ts`: 引数を読んで上の 2 つを呼び、写しを書くだけにする。処理を書かない
-- [ ] T062 [US5] `PW/interface/github-issue-surface.json` を、`extract.ts` で、この日の公開スキーマと OpenAPI（`X-GitHub-Api-Version: 2026-03-10`）から作る
-- [ ] T063 [US5] `PW/interface/issue-coverage.yaml` を書く。写しの全項目を `supported` か `excluded` にする。
+- [x] T062 [US5] `PW/interface/github-issue-surface.json` を、`extract.ts` で、この日の公開スキーマと OpenAPI から作る。
+  OpenAPI の版は、pecot が REST に送る版 `DEFAULT_API_VERSION`（今は `2022-11-28`）にする
+- [x] T063 [US5] `PW/interface/issue-coverage.yaml` を書く。写しの全項目を `supported` か `excluded` にする。
   `excluded` の理由の例: preview（Issue の `statusId`）、GitHub が計算する、担保の範囲（Issue の機能の値）の外（Issue fields の定義そのものの作成）
-- [ ] T064 [US5] `PW/project.json` の `test-cli` の入力に、2 つのファイルを足す
-- [ ] T065 [US5] `PW/CONTRIBUTING.md` に、写しを作り直す手順と、差が出たときの直し方を書く
-- [ ] T066 [US5] T059・T060 のテストのファイルを動かし、quickstart.md の B-2 の 1・2 を行う
+- [x] T064 [US5] `PW/project.json` の `test-cli` の入力に、2 つのファイルを足す
+- [x] T065 [US5] `PW/CONTRIBUTING.md` に、写しを作り直す手順と、差が出たときの直し方を書く
+- [x] T066 [US5] T059・T060 のテストのファイルを動かし、quickstart.md の B-2 の 1・2 を行う
 
 **Checkpoint**: 扱う範囲から 1 つを外すと、PR の CI が落ちる
 

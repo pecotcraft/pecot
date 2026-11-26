@@ -134,5 +134,5 @@ CLI の `pecot issue edit` は `--dry-run` を持つ。値を照らし、変わ�
 
 | 確かめ | どこで | 落ちる条件 |
 |---|---|---|
-| 一覧の網羅 | PR の CI（`pecot-workflow:test-cli` の vitest） | 写しの項目が担保の一覧に無い。`supported` の `handler` が `ATTRIBUTE_HANDLERS` に無い |
+| 一覧の網羅 | PR の CI（`pecot-workflow:test-cli` の vitest） | 写しの項目が担保の一覧に無い・一覧の項目が写しに無い・同じ `id` が 2 回ある。`supported` の `handler` が `ATTRIBUTE_HANDLERS` に無い・`tool` が `COMMANDS` に無い・`handler` と `tool` が 1 つでない・`reason` がある。`excluded` に `reason` が無い・`handler` か `tool` がある |
 | GitHub との差 | `issue-surface-drift.yml`（Lambda の Scheduler から dispatch） | 今の SDL・OpenAPI から抜いた項目が写しと違う。落ちる代わりに Issue を 1 件作る |

@@ -323,3 +323,54 @@ MCP のツール名は、CLI のコマンドの 2 語を `_` でつないだ形�
 | `session_finish` | Issue のクローズ・リモートの head ブランチの削除 | カードは sweep がアーカイブします |
 | `tracker_sync` | Tracker の Issue（題に `[cuj …]` が付きません）・カード | 作った Issue を `gh issue close <番号> -R pecotcraft/pecot-sandbox` で閉じます |
 | （配る workflow の `pecot-board-sync.yml`） | PR・Issue の変化で `board_sync` を動かす | 「配る自動化を確かめる」の手順で入れて戻します |
+
+## 4. GitHub の Issue の機能の写しと担保の一覧
+
+pecot が GitHub の Issue の機能をどこまで扱うかを、次の 2 つのファイルで記録します。GitHub が機能を足したときに、扱いの決まっていない項目を PR の CI で見つけるためです。
+
+| ファイル | 中身 |
+|:---|:---|
+| `interface/github-issue-surface.json` | 写し。公開スキーマ（GraphQL の SDL）と REST の OpenAPI から、Issue の機能に関わる項目の `id` を抜いた一覧と、取った URL・日時・REST の版 |
+| `interface/issue-coverage.yaml` | 担保の一覧。写しの各項目を、`supported`（扱う）か `excluded`（外す）にする |
+
+写しに入る項目と `id` の形は次のとおりです。
+
+| 項目 | `id` の形 |
+|:---|:---|
+| `CreateIssueInput`・`UpdateIssueInput`・`ProjectV2FieldValue` の項目 | `graphql:<型>.<項目>` |
+| `ProjectV2FieldType`・`ProjectV2CustomFieldType`・`IssueFieldDataType` の値 | `graphql:enum:<型>.<値>` |
+| Issue を対象にする mutation。`input` の項目のうち、`@possibleTypes` の `concreteTypes` が `["Issue"]` だけのものを持つ mutation | `graphql:mutation:<名前>` |
+| REST の Issue の作成（`POST /repos/{owner}/{repo}/issues`）の本文の項目 | `rest:POST /repos/{owner}/{repo}/issues#<項目>` |
+
+担保の一覧の各項目は、`id`・`status` と、`status` に応じた次の鍵を 1 つ持ちます。
+
+| `status` | 鍵 | 書くもの |
+|:---|:---|:---|
+| `supported` | `handler` | 値を書く `cli/src/domain/attributes.ts` の `ATTRIBUTE_HANDLERS` の鍵 |
+| `supported` | `tool` | 属性でなく、ツールが書く項目（題・本文・状態・parent・blocked_by など）の MCP のツール名 |
+| `excluded` | `reason` | 外す理由。preview・GitHub が計算する・pecot の流れの外 など |
+
+### 写しを作り直す
+
+写しは、REST の版を pecot が REST に送る版（`cli/src/infra/github/client.ts` の `DEFAULT_API_VERSION`）に合わせて作ります。`--api-version` を省くと、その版になります。
+
+```bash
+pnpm --dir plugins/pecot-workflow/cli exec tsx scripts/github-surface/extract.ts --out ../interface/github-issue-surface.json
+```
+
+PR の CI は写しだけを読み、GitHub には取りに行きません。
+
+### 網羅のテストが落ちたとき
+
+`cli/tests/issue-coverage.test.ts` が、写しと担保の一覧を照らします。落ちたときは、メッセージの `id` ごとに次のように直します。
+
+| メッセージ | 直し方 |
+|:---|:---|
+| `not in issue-coverage.yaml` | 担保の一覧に足します。扱うなら `handler` か `tool` を、外すなら `reason` を書きます。扱うのに受け持つ処理が無ければ、`ATTRIBUTE_HANDLERS` の kind かツールを作ってから足します |
+| `not in github-issue-surface.json` | GitHub が項目を消しています。担保の一覧から外し、その項目を扱う処理が残っていれば直します |
+| `supported needs exactly one of handler or tool` | `handler` と `tool` のどちらか 1 つだけを書きます |
+| `handler ... is not in ATTRIBUTE_HANDLERS`・`tool ... is not an MCP tool of COMMANDS` | 名前を直すか、消えた処理の代わりを書きます |
+| `excluded needs a reason` | 外す理由を書きます |
+| `excluded must not have handler or tool` | 外す項目から `handler`・`tool` を消します。扱うなら `status` を `supported` にします |
+| `supported must not have a reason` | 扱う項目から `reason` を消します。外すなら `status` を `excluded` にします |
+| `listed more than once` | 重なった項目を 1 つにします |
