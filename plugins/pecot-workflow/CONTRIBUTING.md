@@ -366,7 +366,7 @@ PR の CI は写しだけを読み、GitHub には取りに行きません。
 `.github/workflows/issue-surface-drift.yml` が、GitHub の今のスキーマを写しと比べます。`.github/board-sync/` の Lambda の Scheduler が、毎時 dispatch します。
 
 差は、`pecot tracker sync` の Tracker と同じ形の Tracker 1 件にまとめます。ラベルは `issue-surface` で、題は `[Tracker] GitHub issue surface — <立てた日>` です。
-本文の `list-begin`・`list-end` の間に、増えた項目（`## Added`）と消えた項目（`## Removed`）の `id` を並べます。
+本文には、`list-begin`・`list-end` の間に、見ている先（`## Source`）と、増えた項目（`## Added`）・消えた項目（`## Removed`）の `id` だけを並べます。
 
 | 差 | 開いた Tracker | 動き |
 |:---|:---|:---|

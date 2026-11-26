@@ -14,26 +14,12 @@ const MARKERS = markerPatterns('pecot-issue-surface')
 export const TRACKER_PATTERN = MARKERS.tracker
 
 /**
-本文に載せる、比べに使った SDL と OpenAPI の出どころ（URL か、渡されたファイル）と REST の版
+本文に載せる、比べに使った SDL と OpenAPI の出どころ（URL か、渡されたファイル）
 */
-export type IssueSurfaceSourceNames = Pick<IssueSurface['sources'], 'graphql' | 'rest' | 'rest_api_version'>
+export type IssueSurfaceSourceNames = Pick<IssueSurface['sources'], 'graphql' | 'rest'>
 
 function section(heading: string, ids: readonly string[]): string {
   return `${heading}\n\n${ids.length === 0 ? 'none' : ids.map(id => `- \`${id}\``).join('\n')}`
-}
-
-function introOf(sources: Readonly<IssueSurfaceSourceNames>): string {
-  return [
-    'GitHub の今のスキーマに、Issue の機能の写し（`plugins/pecot-workflow/interface/github-issue-surface.json`）と違う項目があります。一覧は毎時の実行が書き直します。',
-    '',
-    '比べたスキーマは次のとおりです。',
-    '',
-    `- SDL: ${sources.graphql}`,
-    `- OpenAPI: ${sources.rest}`,
-    `- REST API の版: ${sources.rest_api_version}`,
-    '',
-    '直すには、`plugins/pecot-workflow/CONTRIBUTING.md` の「4. GitHub の Issue の機能の写しと担保の一覧」に従って、写しと担保の一覧を更新します。差が無くなると、次の実行でこの Tracker は閉じます。',
-  ].join('\n')
 }
 
 /**
@@ -41,8 +27,8 @@ Tracker の本文。existingBody があれば list-begin から list-end の間�
 existingBody の印が 1 組でなければ IssueSurfaceTrackerError
 */
 export function renderTrackerBody(diff: Readonly<IssueSurfaceDiff>, sources: Readonly<IssueSurfaceSourceNames>, existingBody?: string): string {
-  const list = `${section('## Added', diff.added)}\n\n${section('## Removed', diff.removed)}`
-  if (existingBody === undefined) return `${TRACKER_MARKER}\n\n${introOf(sources)}\n\n${LIST_BEGIN}\n${list}\n${LIST_END}\n`
+  const list = [`## Source\n\n- SDL: ${sources.graphql}\n- OpenAPI: ${sources.rest}`, section('## Added', diff.added), section('## Removed', diff.removed)].join('\n\n')
+  if (existingBody === undefined) return `${TRACKER_MARKER}\n\n${LIST_BEGIN}\n${list}\n${LIST_END}\n`
   const text = normalizeNewlines(existingBody)
   const { begin, end } = listRegion(text, MARKERS.begin, MARKERS.end, IssueSurfaceTrackerError)
   return `${text.slice(0, begin)}\n${list}\n${text.slice(end)}`

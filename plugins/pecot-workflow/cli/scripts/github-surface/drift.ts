@@ -66,7 +66,7 @@ async function sourcesOf(options: Readonly<Options>): Promise<{ sdl: string, ope
     options.sdl === undefined ? fetchGraphqlSchema() : readText(options.sdl),
     options.openapi === undefined ? fetchRestDescription(DEFAULT_API_VERSION) : parseJsonText(readText(options.openapi)),
   ])
-  const names = { graphql: options.sdl ?? GRAPHQL_SCHEMA_URL, rest: options.openapi ?? restDescriptionUrl(DEFAULT_API_VERSION), rest_api_version: DEFAULT_API_VERSION }
+  const names = { graphql: options.sdl ?? GRAPHQL_SCHEMA_URL, rest: options.openapi ?? restDescriptionUrl(DEFAULT_API_VERSION) }
   return { sdl, openapi, names }
 }
 

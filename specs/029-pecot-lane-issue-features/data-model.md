@@ -119,5 +119,5 @@
 |---|---|
 | ラベル | `issue-surface`。開いた Tracker は、このラベルで引く |
 | 題 | `[Tracker] GitHub issue surface — <立てた日>` |
-| 本文 | 先頭に `<!-- pecot-issue-surface: tracker -->`、比べたスキーマの出どころと REST の版、写しを直す手順。`list-begin`・`list-end` の印の間に `## Added`・`## Removed` の一覧 |
+| 本文 | 先頭に `<!-- pecot-issue-surface: tracker -->`。`list-begin`・`list-end` の印の間に、見ている先（`## Source`）と、増えた・消えた項目（`## Added`・`## Removed`）だけを並べる |
 | 書き直し | 印の間の一覧だけを替え、外の文は残す。一覧が `none` だけになったら閉じる。開いた Tracker が 2 件以上あれば、番号の小さいものを使う |

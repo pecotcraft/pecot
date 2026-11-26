@@ -137,7 +137,7 @@ function trackerIssue(number: number, body: string, state = 'open'): JsonObject 
 }
 
 function bodyOf(ids: readonly string[], sources: Readonly<Sources>, existing?: string): string {
-  const names = { graphql: sources.sdl, rest: sources.openapi, rest_api_version: DEFAULT_API_VERSION }
+  const names = { graphql: sources.sdl, rest: sources.openapi }
   return renderTrackerBody(diffIssueSurface(SNAPSHOT.items, ids), names, existing)
 }
 
@@ -244,12 +244,13 @@ describe('drift.ts', () => {
 
   it('差が変わると、開いた Tracker の一覧の間だけを書き直し、外の文を残す', async () => {
     const sources = writeSources(CHANGED)
-    const existing = bodyOf(CHANGED, sources).replace('一覧は毎時の実行が書き直します。', '人が足した文。')
+    const existing = `人が足した文。\n\n${bodyOf(CHANGED, sources)}`
     const changed = [...CHANGED, ADDED_B]
-    const expected = bodyOf(changed, sources, existing)
+    const changedSources = writeSources(changed)
+    const expected = bodyOf(changed, changedSources, existing)
     const github = await startGithub([trackers(trackerIssue(5, existing)), patched({ body: expected }), ...boardRules(5, { onlyIfEmpty: true, filled: [WORKFLOW_FIELD] })])
     const { io, stderr } = capture()
-    const argv = argvOf(writeSources(changed))
+    const argv = argvOf(changedSources)
     expect(await run(argv, io)).toBe(0)
     expect(stderr()).toBe('updated: Tracker #5 body\n')
     expect(expected).toContain('人が足した文。')
