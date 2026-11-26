@@ -317,7 +317,12 @@ def test_pages_preview_context_is_written_only_by_pages_deploy() -> None:
 
 def test_verify_reads_the_run_from_main_and_keeps_artifact_outside_the_tree() -> None:
     (checkout,) = _uses(_DEPLOY, "verify", "actions/checkout")
-    assert checkout["with"] == {"ref": "main", "fetch-depth": 0, "persist-credentials": False}
+    assert checkout["with"] == {
+        "ref": "main",
+        "fetch-depth": 0,
+        "filter": "blob:none",
+        "persist-credentials": False,
+    }
     step = _step(_DEPLOY, "verify", "Verify run")
     assert step["env"]["RUN_ID"] == "${{ github.event.workflow_run.id }}"
     assert "verify.py" in step["run"]

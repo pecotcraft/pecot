@@ -14,6 +14,12 @@ step 名は英語で、Actions でよく使う形にする。Actions の画面�
 - tests は動的な matrix で、チェックの名前は `tests (<project>:<target>)` になる（例: `tests (pecot-visual:test-cli)`）。
   レーンの一覧は `lanes` の job が nx の task graph から作る
 
+# checkout の履歴
+
+`fetch-depth: 0` の `actions/checkout` には、`filter: blob:none` を `fetch-depth` の直後に付ける。
+全部のブランチを取ると、保管ブランチ `pages-store`（展開で数百 MB）まで入る。`filter` を付けると、blob は読むものだけをその場で取る。
+`.githooks/tests/test_workflow_checkouts.py` が、全 workflow でこれを固定する。
+
 # workflow の一覧
 
 - `ci.yml`: PR・merge queue で、変更が届いたレーンを devcontainer で検証する。`checks (lint)` とレーンごとの `tests` を `ci-result` にまとめ、`version-plan` も動かす
