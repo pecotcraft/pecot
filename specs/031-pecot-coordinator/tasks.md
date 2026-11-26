@@ -67,13 +67,13 @@
 
 **Independent Test**: スキルを 1 つだけ持つ試しのプラグインを claude.ai に入れ、coordinator とクラウドのスレッドがそのスキルを使う
 
-- [ ] T021 [US3] スキルを 1 つだけ持ち、`bin/` を持たない試しのプラグインと marketplace を `pecotcraft/pecot-sandbox` に置く
-- [ ] T022 [US3] 利用者に claude.ai の個人の Add marketplace で試しのプラグインを入れてもらう。手順は画面の場所とボタンの名前まで書いて渡す
-- [ ] T023 [US3] 経路ごとに入ったかと、止まったときの文を `specs/031-pecot-coordinator/verification/distribution.md` に書く
-- [ ] T024 [US3] coordinator とクラウドのスレッドに試しのスキルを使わせ、読まれたかを `specs/031-pecot-coordinator/verification/distribution.md` に書く
-- [ ] T025 [US3] 試しのプラグインの版を上げ、次に起動したスレッドに新しい版が届くかを `specs/031-pecot-coordinator/verification/distribution.md` に書く
-- [ ] T026 [US3] クラウドの VM で、`npx --prefix=<データ置き場> -y @pecot/workflow-mcp@9.0.0` が initialize に答えるかと、pnpm の install が npm に届くかを確かめて書く
-- [ ] T027 [US3] 結果が research の R3 と食い違う点と、後続のフェーズの形を変える点を `specs/031-pecot-coordinator/verification/distribution.md` に書く
+- [x] T021 [US3] スキルを 1 つだけ持ち、`bin/` を持たない試しのプラグインと marketplace を `pecotcraft/pecot-sandbox` に置く
+- [x] T022 [US3] 利用者に claude.ai の個人の Add marketplace で試しのプラグインを入れてもらう。手順は画面の場所とボタンの名前まで書いて渡す
+- [x] T023 [US3] 経路ごとに入ったかと、止まったときの文を `specs/031-pecot-coordinator/verification/distribution.md` に書く
+- [x] T024 [US3] coordinator とクラウドのスレッドに試しのスキルを使わせ、読まれたかを `specs/031-pecot-coordinator/verification/distribution.md` に書く
+- [x] T025 [US3] 試しのプラグインの版を上げ、次に起動したスレッドに新しい版が届くかを `specs/031-pecot-coordinator/verification/distribution.md` に書く
+- [x] T026 [US3] クラウドの VM で、`npx --prefix=<データ置き場> -y @pecot/workflow-mcp@9.0.0` が initialize に答えるかと、pnpm の install が npm に届くかを確かめて書く
+- [x] T027 [US3] 結果が research の R3 と食い違う点と、後続のフェーズの形を変える点を `specs/031-pecot-coordinator/verification/distribution.md` に書く
 
 ---
 
