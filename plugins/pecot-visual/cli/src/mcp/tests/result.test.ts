@@ -94,7 +94,7 @@ describe('withoutCommonFailureFields', () => {
 describe('toolOutputSchema', () => {
   it.for(['kind', 'detail', 'log', 'warnings'])('output が共通の項目の名前 %s を持つと、例外を投げる', (key) => {
     expect(() => toolOutputSchema(z.strictObject({ file: z.string(), [key]: z.string() })))
-      .toThrow(new TypeError(`output の ${key} は MCP の結果の共通の項目の予約名です`))
+      .toThrow(new TypeError(`output keys reserved for the common fields of the MCP result: ${key}`))
   })
 
   it('全ツールの output は、共通の項目の名前を持たず、例外を投げない', () => {

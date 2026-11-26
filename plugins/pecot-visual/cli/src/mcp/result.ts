@@ -313,7 +313,7 @@ anyOf の枝で「成功の必須項目」か「kind と detail」を求める�
 export function toolOutputSchema(output: z.ZodObject): Record<string, unknown> {
   // 同じ名前だと outputSchema では共通の項目が勝ち、ツールの宣言が知らせなしに消える
   const reserved = Object.keys(COMMON_OUTPUT_PROPERTIES).filter(key => Object.hasOwn(output.shape, key))
-  if (reserved.length > 0) throw new TypeError(`output の ${reserved.join('・')} は MCP の結果の共通の項目の予約名です`)
+  if (reserved.length > 0) throw new TypeError(`output keys reserved for the common fields of the MCP result: ${reserved.join(', ')}`)
   const generated = Object.entries(z.toJSONSchema(output, { io: 'output' })).filter(([key]) => key !== '$schema')
   const { required = [], properties = {}, ...rest } = JsonObjectSchema.parse(Object.fromEntries(generated))
   return {
