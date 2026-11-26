@@ -12,4 +12,5 @@ set -euo pipefail
 
 TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../tests"
 
-uvx --python 3.12 pytest "$TESTS_DIR/test_nx_env_inputs.py" -q --import-mode=importlib -p no:cacheprovider
+# テストの step に allure を使う。版は run.sh と同じにする。
+uvx --python 3.12 --with allure-pytest==2.16.2 pytest "$TESTS_DIR/test_nx_env_inputs.py" -q --import-mode=importlib -p no:cacheprovider
