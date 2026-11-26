@@ -1,4 +1,4 @@
-# pecot-workflow-template: review 7
+# pecot-workflow-template: review 8
 #
 # Place this file at .github/workflows/pecot-review.yml in your repository.
 #
@@ -163,7 +163,7 @@ jobs:
           COMMENT_AT: ${{ github.event.comment.created_at }}
         run: |
           pr=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR")
-          role=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$COMMENTER/permission" --jq .role_name)
+          permission=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$COMMENTER/permission" --jq .permission)
           head=$(jq -r '.head.repo.full_name // ""' <<< "$pr")
           draft=$(jq -r .draft <<< "$pr")
           state=$(jq -r .state <<< "$pr")
@@ -174,7 +174,7 @@ jobs:
           comment_time=$(date -d "$COMMENT_AT" +%s)
           ok=false
           if [ "$head" = "$GITHUB_REPOSITORY" ] && [ "$draft" = false ] && [ "$state" = open ] && [ "$commit_time" -le "$comment_time" ]; then
-            case "$role" in admin|maintain|write) ok=true ;; esac
+            case "$permission" in admin|write) ok=true ;; esac
           fi
           echo "ok=$ok" >> "$GITHUB_OUTPUT"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"

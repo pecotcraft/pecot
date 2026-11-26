@@ -70,7 +70,7 @@ job の `if` は `env` を読めない。公式の表では、`jobs.<job_id>.if`
 | draft の PR | `if` が `github.event.pull_request.draft` を見る |
 | 合言葉で始まらないコメント、Issue へのコメント | `if` が、コメントが PR に付いたことと、本文が合言葉で始まり、直後が空白か改行か本文の終わりであることを見る。`prompt` を渡した action は、合言葉を確かめないからだ（R15） |
 | 書き込み権限の無い人が、本文を編集する | 契機に無いので、起動しない |
-| 書き込み権限の無い人が、合言葉のコメントを書く | `if` が `github.event.comment.author_association` を `OWNER`・`MEMBER`・`COLLABORATOR` と比べ、runner を使わずに絞る。この値は read の collaborator と権限の無い member も通すので、PR の確かめの step が書いた人の権限を読み、`admin`・`maintain`・`write` でなければ後の step を飛ばす（#602 のレビューで追加）。action も actor の権限を見て止める。`if` で止めないと、action の失敗を後始末が「止まった」と PR に書く |
+| 書き込み権限の無い人が、合言葉のコメントを書く | `if` が `github.event.comment.author_association` を `OWNER`・`MEMBER`・`COLLABORATOR` と比べ、runner を使わずに絞る。この値は read の collaborator と権限の無い member も通すので、PR の確かめの step が書いた人の `permission` を読み、`admin`・`write`（maintain は write で返る）でなければ後の step を飛ばす（#602 のレビューで追加。#746 で `role_name` から `permission` に替えた）。action も actor の権限を見て止める。`if` で止めないと、action の失敗を後始末が「止まった」と PR に書く |
 | bot が作った PR | `if` が、PR の作者の名前を、許した bot の一覧と比べる。action の `allowed_bots` にも同じ一覧を渡す |
 
 - 書き込み権限のある人が合言葉を書いたとき、action は PR の作者を確かめない。リポの中のブランチから PR を作れるのは、リポに push できる人と bot だけなので、fork の判定で足りる

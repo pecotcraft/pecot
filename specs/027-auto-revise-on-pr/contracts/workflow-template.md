@@ -63,7 +63,7 @@ job の `if` に、`github.event_name` で始まる `pull_request` と `issue_co
 `issue_comment` のイベントは、PR の head のリポと draft を持たない。fork・draft・閉じた PR は、job の中の「PR の確かめ」の step で弾く。
 書いた人の権限は、`if`・PR の確かめの step・action の 3 か所で確かめる。
 `author_association` の `COLLABORATOR` は read・triage の招待も含み、`MEMBER` はリポへの権限を問わない。
-このため `if` は runner を使わない前段の絞りにとどめ、PR の確かめの step が `collaborators/<login>/permission` の `role_name` を読み、`admin`・`maintain`・`write` でなければ後の step を飛ばす。
+このため `if` は runner を使わない前段の絞りにとどめ、PR の確かめの step が `collaborators/<login>/permission` の `permission` を読み、`admin`・`write`（maintain は write で返る）でなければ後の step を飛ばす。
 ここで止めないと、action が step を失敗にし、後始末が「止まった」と PR に書く。
 
 PR の確かめの step は、head のコミットの時刻が合言葉のコメントの時刻より後なら、後の step を飛ばす。
@@ -91,7 +91,7 @@ startsWith(github.event.comment.body, format('{0}{1}', P, fromJSON('"\r\n"')))
 |---|---|
 | トークン | 変数 `PECOT_AGENT_APP_CLIENT_ID` があるときだけ。`actions/create-github-app-token` で、`permission-pull-requests: write` と `permission-contents: read` だけを渡す。無いときは飛ばし、Claude の App を使う |
 | 前のレビューの確かめ | `synchronize` の run だけ（`id: first`）。PR の Issue コメントのうち、Bot が書いたもので、本文が先頭の空白を除いて `## Findings` で始まるか、`<!-- pecot-review-stopped` を含むものを探す。無ければ `ok=true`、あれば `ok=false` を出力する。`gh api --paginate` の結果を変数に代入して読み、パイプとプロセス置換を使わない。API の失敗は step の失敗にする |
-| PR の確かめ | `issue_comment` の run だけ。PR と書いた人の権限を読み、fork・draft・閉じた PR か、書いた人が `admin`・`maintain`・`write` でなければ、後の step を飛ばす。読んだ PR の `head.sha` を出力する。API の失敗は step の失敗にする |
+| PR の確かめ | `issue_comment` の run だけ。PR と書いた人の権限を読み、fork・draft・閉じた PR か、書いた人の `permission` が `admin`・`write`（maintain は write で返る）でなければ、後の step を飛ばす。読んだ PR の `head.sha` を出力する。API の失敗は step の失敗にする |
 | 受け付けの印 | `issue_comment` の run で、PR の確かめを通ったときだけ。合言葉のコメントに 👀 のリアクションを付ける（FR-035）。付けられなくても、レビューは続ける |
 | checkout | `actions/checkout`。`fetch-depth: 1`、`persist-credentials: false`。`ref` に、`pull_request` の run は `github.event.pull_request.head.sha`、`issue_comment` の run は PR の確かめの step が出力した `head.sha` を渡す。既定の merge の ref では、base の変更で指摘の行が head の diff とずれる。`refs/pull/<PR番号>/head` を渡すと、確かめの後の push で先頭が動き、確かめた版と違う版を読むことがある |
 | Node | `actions/setup-node`。`package-manager-cache: false` を渡す。job が secret を持つので、PR の `package.json` が npm を指しても、npm のキャッシュを戻さず保存もしない。キャッシュが要る利用者は、利用者の準備の囲みで `actions/cache` を使う。setup-node は囲みの外にあり、`cache` を足しても雛形の上書きで消える |
@@ -252,7 +252,7 @@ MCP サーバが環境変数から読む形にしないのは、全部のツー�
 | 前のレビューの確かめの step が `synchronize` の run だけで動き、jq が Bot の指摘の一覧と止まったことの目印だけを拾う。checkout から自動レビューまでの `if` と後始末の `if` が、その出力を見る | `run` の jq を試しのコメントにかけ、`if` の文字列を見る |
 | job の `if` が `pull_request` と `issue_comment` の 2 つの枝に分かれ、`pull_request` の枝に fork・draft・bot の判定、`issue_comment` の枝に合言葉と区切りの 4 つの比べ方・`author_association`・bot の判定がある | 枝ごとに式の文字列を探す |
 | `issue_comment` の run に、PR の確かめの step があり、checkout の `ref` が `pull_request` の `head.sha` かその step の `head.sha` の出力を読む | step の `if` と `with` を見る |
-| PR の確かめの step が、書いた人の権限を読み、`admin`・`maintain`・`write` のときだけ通す。API の失敗をプロセス置換で握りつぶさない | `env` と `run` の文字列を見る |
+| PR の確かめの step が、書いた人の `permission` を読み、`admin`・`write` のときだけ通す。API の失敗をプロセス置換で握りつぶさない | `env` と `run` の文字列を見る |
 | job の `if`・`timeout-minutes`・`concurrency` が、`env.` を読んでいない | 式の文字列を探す |
 | 6 つの変数に、既定値の式がある | 式の文字列を探す |
 | `timeout-minutes` が `fromJSON` で数に直している | 式の文字列を探す |
