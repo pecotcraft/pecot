@@ -5,6 +5,7 @@ URL と workflow の入出力は [contracts/test-report.md](contracts/test-repor
 ## 前提
 
 - 028 の公開サイトの設定（GitHub Pages・`pages-store`・environment・ruleset）が済んでいる
+- リリース版の履歴を置く S3 のバケットと、Actions が入る OIDC のロールがある（#822）
 - 公開の運用は、このリポだけで動く。検証用（`pecotcraft/pecot-sandbox`）に確かめる場所は作らない
 - 手元は dev container（Node 24.22.1）。`pnpm install` が済んでいる
 
@@ -75,23 +76,25 @@ python3 .githooks/scripts/test_report/generate.py --local --output .pecot/work/6
 期待:
 
 - nx の `test-*` の target が、`report-lanes.json` に全部ある。新しい target を足して定めに書かないと落ちる
-- `test-report.yml` の契機に `pull_request` が無い。どの job も `contents: read` だけ
+- `test-report.yml` の契機に `pull_request` が無い。リリース版の履歴を S3 で扱う job のほかは、`contents: read` だけ
 - PR の run のレポートは、出どころの確かめで捨てられる
 - 定義書の側を差し替えても `test-report/` が残り、レポートを差し替えても定義書が残る
 
 ## 5. 開発版のレポート（マージの後。US1・US3）
 
-1. この機能の PR を main にマージする
+2026-11-26 に、開発版はマージキューの結果を寄せ集めて作り、履歴を持たない形に改めた（#821）。
+
+1. PR をマージキューで main にマージする
 2. `test-report.yml` の run が終わり、`pages-deploy.yml` の run が続くのを待つ
 3. `https://pecotcraft.github.io/pecot/dev/` を開き、フッターの「テストレポート」を押す
 
 期待:
 
-- レポートに、12 本のレーンのテストがある
+- レポートに、`report-lanes.json` で `results` を持つすべてのレーンのテストがある
+- マージの変更が届いたレーン（マージキューが流したレーンと、積のモードで省いたレーン）だけが、新しい結果に変わり、ほかのレーンは前の結果のままである。各レーンの結果がどのコミットのものかを、レポートで読める
+- `test-report.yml` の run で、結果のあるレーンの tests の job は動かない
 - 定義書の振る舞いの項目の「テスト」を押すと、その ID のテストだけが出る。テストの要件の ID のリンクから、開発版の定義書のその項目へ戻る
-- 2 回目の main への push の後、`dev/test-report/history.jsonl` が 2 行になる。テストの「履歴」のタブには、前の回の 1 件が並ぶ。タブは前の回までを並べ、今の回は並べない
-- 1 回目と状態が変わったテストに印が付く
-- 履歴は 3 回分までで、古い回から消える
+- テストの「履歴」のタブは空で、`dev/test-report/history.jsonl` は無い
 - 定義書の開発版は、テストの終わりを待たずに変わっている。`.pecot-store.json` の `dev.stored_at` が、`reports.dev.stored_at` より前になる
 
 Pages の応答は `cache-control: max-age=600` なので、deploy の後の 10 分ほどは、前の中身を返すことがある。開き直す前に、`index.html` の `last-modified` が deploy の後であることを見る。
@@ -112,7 +115,14 @@ gh workflow run test-report.yml --ref main -f side=dev
 - リリースする前は、リリース版にテストレポートのリンクが無い。`/pecot/test-report/` には案内のページがある
 - リリースする前に `gh workflow run test-report.yml --ref main -f side=release` で起こすと、side の job だけが動き、tests と report の job は飛ばされて成功で終わる。続く `pages-deploy.yml` の verify は、その run を受けない
 - リリースした後は、リンクがあり、そのプラグインのテストだけがレポートにある。まだリリースしていないプラグインの名前が、リンクのそばにある
-- 開発版のレポートと履歴は変わらない
+- 開発版のレポートは変わらない
+
+履歴（2026-11-26 に、リリース版だけ・10 回・S3 に改めた。#822）:
+
+- `gh workflow run test-report.yml --ref main -f side=release` で 2 回作ると、2 回目のテストの「履歴」のタブに前の回が並び、推移のグラフに 2 回分の値が出る。タブは前の回までを並べ、今の回は並べない
+- 前の回と状態が変わったテストに印が付く
+- 履歴は 10 回分までで、古い回から消える
+- 履歴のファイルは S3 のバケットにあり、`pages-store` に無い
 
 ## 7. 片付け（US4）
 

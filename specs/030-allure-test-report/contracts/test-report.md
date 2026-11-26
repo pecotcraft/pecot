@@ -6,9 +6,11 @@
 
 | 側 | レポート | 履歴 |
 |---|---|---|
-| リリース版 | `https://pecotcraft.github.io/pecot/test-report/` | `…/test-report/history.jsonl` |
-| 開発版 | `https://pecotcraft.github.io/pecot/dev/test-report/` | `…/dev/test-report/history.jsonl` |
+| リリース版 | `https://pecotcraft.github.io/pecot/test-report/` | S3 のバケットに置き、公開しない（#822） |
+| 開発版 | `https://pecotcraft.github.io/pecot/dev/test-report/` | 無い |
 | PR 版 | 無い | 無い |
+
+- 2026-11-26 に、履歴をリリース版だけにし、置き場所を S3 に改めた（spec の FR-018〜FR-020）
 
 - 定義書の項目からのリンク: `<側の URL>test-report/index.html?tags=<要件の ID>`
 - レポートのテストからのリンク: `<側の URL>permalink.html?id=<要件の ID>`
@@ -26,8 +28,8 @@
 
 | 名前 | 渡す人 | 値 |
 |---|---|---|
-| `PECOT_REPORT_SITE_URL` | `test-report.yml` | 側の URL。渡さなければ `http://localhost:8000/`。末尾に `/` が無ければ足す |
-| `PECOT_REPORT_HISTORY` | `generate.py` | `--history` を渡したときだけ、履歴のパス。Allure の設定（`allurerc.mjs`）が読む |
+| `PECOT_REPORT_SITE_URL` | `test-report.yml`（リリース版と、結果の無いレーンを main で流す開発版）と、`ci.yml` のマージキューの run（開発版の URL。渡し方は #821） | 側の URL。渡さなければ `http://localhost:8000/`。末尾に `/` が無ければ足す |
+| `PECOT_REPORT_HISTORY` | `generate.py` | `--history` を渡したときだけ、履歴のパス。Allure の設定（`allurerc.mjs`）が読む。`--history` を渡すのはリリース版だけ |
 
 - 終了コード・カバレッジの閾値の判定は、今のまま
 - `pecot-workflow:test-hooks` の 2 回目（`env -i`）の実行は、Allure の結果を残さない
@@ -83,17 +85,19 @@ attachContent(name: string, content: Uint8Array, extension: string): Promise<voi
 
 `pull_request` は契機にしない。
 
+開発版（`push` と、`workflow_dispatch` の `side=dev`）は、main でテストを流し直さない。レーンの最新の結果（data-model.md）を寄せ集め、結果の無いレーンだけを流す（2026-11-26 に改めた。材料の決め方は #821）。
+
 | job | すること |
 |---|---|
-| side | 側と ReportSources（data-model.md）を決める。リリース版で、結果を出せるプラグインが無ければ、後の job を飛ばして成功で終える |
+| side | 側と ReportSources（data-model.md）を決める。リリース版で、結果を出せるプラグインが無ければ、後の job を飛ばして成功で終える。開発版は、結果の無いレーンだけを `runs` に入れる |
 | tests | ReportSources の `runs` とレーンの matrix。そのコミットを取り出し、dev container で 1 つのレーンを動かす。テストが落ちても、結果のディレクトリと `source.json`（レーンと取り出したコミット）を artifact `allure-results-<slug>` に上げる |
-| report | 全レーンの artifact を取り、ResultsCheck で確かめる。保管ブランチ `pages-store` から、その側の履歴を取る（`pages-store` を読めないときは、空の履歴でレポートを作り、job summary に警告を出す）。`generate.py` でレポートを作り、レポートと履歴と `report-sources.json` を artifact `test-report-<side>` に上げる |
+| report | 全レーンの結果を取り、ResultsCheck で確かめる。開発版は、レーンの最新の結果と `tests` の結果を合わせ、履歴を読まずに作る。リリース版は、S3 から履歴を取る（取れないときは、空の履歴でレポートを作り、job summary に警告を出す）。`generate.py` でレポートを作り、artifact `test-report-<side>` に上げる |
 
 出力:
 
 | 出力 | 中身 |
 |---|---|
-| artifact `test-report-<side>` | レポートのツリーと `history.jsonl` の tar（`report.tar`）、`report-sources.json`。`retention-days` は 7、`overwrite: true` |
+| artifact `test-report-<side>` | レポートのツリーの tar（`report.tar`。リリース版は `history.jsonl` も入れる）、`report-sources.json`。`retention-days` は 7、`overwrite: true` |
 
 失敗の条件:
 
@@ -102,7 +106,7 @@ attachContent(name: string, content: Uint8Array, extension: string): Promise<voi
 
 テストが落ちただけでは失敗しない。レポートを作り、run は成功で終える。
 
-権限は、どの job も `contents: read` だけ。書き込みの権限と secret は持たない。
+権限は、`contents: read` だけにする。リリース版の履歴を S3 で読み書きする job だけは、OIDC のために `id-token: write` も持つ（2026-11-26 に改めた）。公開サイト（`pages-store`）への書き込みの権限と secret は、どの job も持たない。S3 に書く run と、ロールの信頼の条件は #822 で決める。
 
 concurrency は `test-report-<side>` で、`cancel-in-progress: false`。動いている run は取り消さず、後から来た run は待つ。待っている run は、さらに新しい run が来ると置き換わる。
 
@@ -121,7 +125,7 @@ verify（RunProvenance に足す決まり）:
 | head | main の祖先。開発版は、保管中のレポートのコミットより古くない |
 | 側 | `push` は開発版。`workflow_dispatch` は、上がっている `test-report-{dev,release}` の artifact が 1 つだけのとき、その側 |
 | リリース版の材料 | artifact の `report-sources.json` が、タグと main から決め直した値と同じ |
-| 中身 | SideCheck（`store.py` の確かめ。安全でないパスが無い・`index.html` がある・`history.jsonl` が行ごとに JSON として読める） |
+| 中身 | SideCheck（`store.py` の確かめ。安全でないパスが無い・`index.html` がある）。`history.jsonl` を行ごとに JSON として読む確かめは、リリース版の履歴を S3 に移すとき、#822 で扱いを決める |
 
 store:
 
@@ -137,7 +141,9 @@ deploy と preview-status は変えない。
 ## `ci.yml`（変える所）
 
 - tests の job の「Stage JUnit」「Upload JUnit」の step を消す。artifact `pages-junit-<slug>` は上げない
-- レポートのレーンは、CI でも Allure の結果を残す。CI は、それを artifact に上げない
+- レポートのレーンは、CI でも Allure の結果を残す
+- マージキューの run は、流したレーンの結果を artifact に上げ、開発版のレーンの最新の結果の材料にする（2026-11-26 に改めた。形は #821）
+- マージキューが積のモードで省いたレーンは、PR の CI の run が試している。その結果をどう材料にするかは #821 で決める
 
 ## サイト（`interface-spec:docs`）
 
@@ -170,3 +176,4 @@ python3 .githooks/scripts/test_report/generate.py --local --output <出力のデ
 
 - `--local` でないときは `--sources` が要る。結果が欠けたレーンや、結果のコミットが材料と違うレーンがあれば、レーンの名前を出して止まる（終了コード 1）
 - `--history` は、`--output` の中に置けない。読めない行があれば、警告を出して空の履歴で作る
+- `--history` を渡すのは、リリース版の run だけ。開発版の run は渡さない（2026-11-26 に改めた）
