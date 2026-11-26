@@ -12,7 +12,6 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 // vendor は、利用者側のミラーで libs/text-rules・libs/workflow-core を指す symlink の置き場所。
 const TARGETS = [
   { dir: 'plugins/pecot-visual', vendor: { 'libs/text-rules': 'vendor/text-rules' } },
-  { dir: 'plugins/pecot-tools', vendor: {} },
   { dir: 'plugins/pecot-workflow', vendor: { 'libs/workflow-core': 'vendor/workflow-core' } },
   { dir: 'libs/text-rules', vendor: {} },
 ];

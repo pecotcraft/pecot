@@ -7,7 +7,7 @@ nx の task cache は、宣言した入力が変わらない限りレーンを�
 抜き出した変数が、次のどれかに載っていることを要求する。
 
   - nx.json の namedInputs.env。全レーン共通で、node 自身が読む変数など、どのレーンにも関わるものを置く。
-  - そのプラグインの env。pecotPluginEnv / pecotvPluginEnv / pecotToolsPluginEnv のどれかで、
+  - そのプラグインの env。pecotPluginEnv / pecotvPluginEnv のどちらかで、
     変数を読むファイルのあるプラグインのレーンだけが、値の変化で再実行される。
   - 本ファイルの _EXEMPT。宣言しない理由を添える。
 
@@ -26,7 +26,7 @@ nx の task cache は、宣言した入力が変わらない限りレーンを�
 run-tests.sh / install.sh が外から読む変数は少ない。
 結果を左右する変数（PLAYWRIGHT_BROWSERS_PATH、PECOTV_SINGLE_PASS 等）は、テストコードと設定の側にある。
 シェルは scripts/ci/*.sh・bin/*・setup.sh に加え、レーンが直接実行する tests 配下の *.sh を走査する。
-tests 配下の例は plugins/pecot-tools/cli/tests/bootstrap/run.sh になる。
+tests 配下の例は plugins/pecot-visual/cli/tests/bootstrap/run.sh になる。
 hooks 配下の *.sh（hooks/**/*.sh と hooks/tests/*.test.sh）は走査しない。
 hook スクリプトは、dispatcher や別のスクリプトが設定して渡す変数を大量に読む。
 HOOK_COMMAND、REPO_DIR、FILE_PATH 等がその例で、環境変数と見分けがつかない。
@@ -371,13 +371,11 @@ def _tracked_plugin_files() -> list[str]:
 _PLUGIN_ENV_INPUT = {
     "pecot-workflow": "pecotPluginEnv",
     "pecot-visual": "pecotvPluginEnv",
-    "pecot-tools": "pecotToolsPluginEnv",
 }
 # プラグインのディレクトリ名 → そのプラグインの test / lint の Globals。
 _PLUGIN_GLOBALS = {
     "pecot-workflow": ("pecotPluginTestGlobals",),
     "pecot-visual": ("pecotvPluginTestGlobals", "pecotvPluginLintGlobals"),
-    "pecot-tools": ("pecotToolsPluginTestGlobals", "pecotToolsPluginLintGlobals"),
 }
 
 
@@ -439,7 +437,7 @@ def test_every_env_read_is_declared_or_exempt(repo_reads: dict[str, set[str]]) -
     assert not undeclared, (
         "次の環境変数が、どこにも宣言されていません。"
         "宣言先は、読むファイルのあるプラグインの env、共通の env、_EXEMPT のどれかです。"
-        "プラグインの env は nx.json の pecotPluginEnv / pecotvPluginEnv / pecotToolsPluginEnv を指します。"
+        "プラグインの env は nx.json の pecotPluginEnv / pecotvPluginEnv を指します。"
         "結果を左右するなら、そのプラグインの env へ載せてください。"
         "全レーンに関わるなら、共通の env へ載せてください。"
         "結果を左右しないなら、理由を添えて _EXEMPT へ載せてください:\n"

@@ -13,7 +13,7 @@ export default defineConfig({
       ...allureReporter(path.resolve(import.meta.dirname, '..')),
     ],
     outputFile: { junit: 'test-results/junit.xml' },
-    setupFiles: ['tests/_helpers/unset-plugin-data-environment.ts', path.resolve(import.meta.dirname, '../../../libs/interface-spec/src/vitest/unique-titles.ts')],
+    setupFiles: [path.resolve(import.meta.dirname, '../../../libs/interface-spec/src/vitest/unique-titles.ts')],
     include: ['src/**/tests/**/*.test.ts', 'tests/*.test.ts', 'tests/integration/**/*.test.ts', 'tests/interface/**/*.test.ts'],
     exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**'],
     testTimeout: 60_000,

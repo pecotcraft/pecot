@@ -45,6 +45,10 @@ export default defineConfig(
   security.configs.recommended,
   stylistic.configs.recommended,
   {
+    // n/hashbang が src/main.ts を package.json の bin（dist/main.js）と結び付け、shebang を許すため。
+    settings: { n: { convertPath: [{ include: ['src/**/*.ts'], replace: [String.raw`^src/(.+)\.ts$`, 'dist/$1.js'] }] } },
+  },
+  {
     files: ['**/*.ts'],
     languageOptions: {
       parserOptions: {

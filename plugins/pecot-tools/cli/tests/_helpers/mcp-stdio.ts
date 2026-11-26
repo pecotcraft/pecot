@@ -1,7 +1,4 @@
-// `pecot-tools mcp` を実プロセスとして起動する E2E 用ヘルパ。
-//
-// 起動条件（コマンド・env・stderr の扱い）を 1 箇所へ集約する。ファイルごとに条件がずれると、
-// 「片方でだけ別の処理に入る」ような差分の原因になる。
+// ビルド済みのサーバ（dist/main.js）を実プロセスとして起動する E2E 用ヘルパ。起動条件を 1 箇所に集める。
 
 import path from 'node:path'
 import type { Stream } from 'node:stream'
@@ -11,7 +8,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
 // tests/_helpers → tests → cli
 const HERE = import.meta.dirname
 export const CLI_ROOT = path.resolve(HERE, '..', '..')
-export const CLI_DIST = path.join(CLI_ROOT, 'dist', 'cli.js')
+export const CLI_DIST = path.join(CLI_ROOT, 'dist', 'main.js')
 export const PLUGIN_MANIFEST = path.join(CLI_ROOT, '..', '.claude-plugin', 'plugin.json')
 
 /**
@@ -30,16 +27,26 @@ export function serverEnvironment(
 }
 
 /**
-ビルド済み `dist/cli.js mcp` を子プロセスとして起動する transport。
+起動するファイルと、その後ろに付ける引数・cwd。既定は `dist/main.js` を引数なしで cli から起動する。
+*/
+export interface LaunchOptions {
+  readonly entry?: string
+  readonly extraArguments?: readonly string[]
+  readonly cwd?: string
+}
+
+/**
+ビルド済みのサーバを子プロセスとして起動する transport。
 */
 export function makeTransport(
   overrides: Readonly<Record<string, string>> = {},
+  { entry = CLI_DIST, extraArguments = [], cwd = CLI_ROOT }: LaunchOptions = {},
 ): StdioClientTransport {
   return new StdioClientTransport({
     command: process.execPath,
-    args: [CLI_DIST, 'mcp'],
+    args: [entry, ...extraArguments],
     env: serverEnvironment(overrides),
-    cwd: CLI_ROOT,
+    cwd,
     stderr: 'pipe',
   })
 }

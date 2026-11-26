@@ -3,13 +3,8 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."   # プラグインルート (= plugins/pecot-tools/)
 PLUGIN_ROOT="$PWD"
 
-# --scope で実行範囲を絞る。
-# nx の lint target（pecot-tools:lint）から呼び分けるためのパラメータ化。
-# install は scope に依らず常時実行。
-#   --scope=cli : cli の lint
-#   引数なし    : 全部（手動実行用のデフォルト）。
-# lock / manifest / 本 CI スクリプトを追加・改名した際は、nx.json の pecotToolsPluginLintGlobals にも追記すること。
-# JSON はコメント不可のため、本ファイルに保守の注意を残す。
+# --scope=cli|all（既定 all）。install は scope に依らず毎回行う。
+# 本 CI スクリプトを追加・改名したら、nx.json の pecotToolsPluginLintGlobals にも足す。
 SCOPE="all"
 for arg in "$@"; do
     case "$arg" in
@@ -29,9 +24,8 @@ case "$SCOPE" in
     all) RUN_CLI=true ;;
 esac
 
-# pnpm 起動コマンドの解決は bin/_lib.sh (resolve_pnpm) を使う（bin/pecot-tools と共通）。
-# shellcheck source=../../bin/_lib.sh
-. "$PLUGIN_ROOT/bin/_lib.sh"
+# shellcheck source=pnpm-lib.sh
+. "$PLUGIN_ROOT/scripts/ci/pnpm-lib.sh"
 
 PNPM="$(resolve_pnpm "$PLUGIN_ROOT")"
 if [ -z "$PNPM" ]; then

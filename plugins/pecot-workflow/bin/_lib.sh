@@ -2,13 +2,13 @@
 # sourced 前提のため shebang は付けず、`set -e` も付けない（呼び出し側の設定に従う）。
 # bash 3.2（macOS 標準）でも動く書き方に限る。
 #
-# data-dir ブロック（下の 2 本のマーカーの間）は pecot-visual / pecot-tools の bin/_lib.sh と逐語一致させる。
+# data-dir ブロック（下の 2 本のマーカーの間）は pecot-visual の bin/_lib.sh と逐語一致させる。
 # プラグインは導入先へ単体でコピーされるため、他プラグインのファイルを source する形にはできない。
 # project 名は引数で受けるので、ブロックの中に固有名は書かない。
 # pnpm ブロックは、Node 側（cli/）の依存導入に使う。scripts/ci/*.sh が source する。
-# runtime-mirror ブロックは pecot-visual / pecot-tools と逐語一致させる（lib-consistency.sh が固定する）。
+# runtime-mirror ブロックは pecot-visual と逐語一致させる（lib-consistency.sh が固定する）。
 
-# --- data-dir: 3 本で逐語一致 ---
+# --- data-dir: 2 本で逐語一致 ---
 
 # 値が有効なデータ置き場（空でない絶対パスで、未展開のプレースホルダでないもの）なら、改行と CR を落として出し 0 を返す。実在は問わない。
 # 引数: $1 = 判定する値
@@ -118,7 +118,7 @@ pnpm_resolution_hint() {
     echo ""
 }
 
-# --- runtime-mirror: pecot-visual / pecot-tools で逐語一致 ---
+# --- runtime-mirror: pecot-workflow / pecot-visual で逐語一致 ---
 
 # 実行用ミラー（${DATA}/runtime/<deps-hash>-<src-hash>/）の準備。このブロックは両プラグインで逐語一致させる。
 # プラグイン側が plugin_runtime_{deps_files,src_files,build} と PLUGIN_RUNTIME_NAME を定める。

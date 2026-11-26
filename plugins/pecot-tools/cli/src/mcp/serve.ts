@@ -1,4 +1,4 @@
-// `pecot-tools mcp` の実装。cli.ts の dynamic import で読む。exit code は 0=正常 / 1=起動失敗・stdout 書き込み失敗。
+// stdio の MCP サーバの実装。main.ts が版の確認の後に dynamic import で読む。exit code は 0=正常 / 1=起動失敗・stdout 書き込み失敗。
 
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数は Node stream。上流が mutable 型でしか公開していない */
 
@@ -172,7 +172,7 @@ export function runMcpServe(dependencies: Readonly<McpServeDependencies>): Stdio
 }
 
 /**
-`pecot-tools mcp` の action 本体。program.parse は Promise を await しないので、例外はここで process.exitCode へ反映する
+main.ts が呼ぶ起動の本体。起動の例外は、スタックを出さず診断行にして process.exitCode へ反映する
 */
 export function executeMcpServe(buildDependencies: () => McpServeDependencies): void {
   const dependencies = buildDependencies()

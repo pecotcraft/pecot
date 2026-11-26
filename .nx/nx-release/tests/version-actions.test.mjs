@@ -12,17 +12,18 @@ const { PecotPackageVersionActions } = require("../src/package-version-actions")
 
 // 親クラスの init() を通さず、manifestsToUpdate と projectGraphNode だけを持つ
 // インスタンスを作る（本番では init() がこの 2 つを埋める）。
-function makeActions(manifestPaths) {
+function makeActions(manifestPaths, name = "pecot-workflow") {
   const actions = Object.create(PecotVersionActions.prototype);
   actions.manifestsToUpdate = manifestPaths.map((manifestPath) => ({ manifestPath }));
-  actions.projectGraphNode = { name: "pecot-workflow" };
+  actions.projectGraphNode = { name, data: { root: `plugins/${name}` } };
   return actions;
 }
 
-// nx の Tree のうち read / write だけを持つメモリ上の木。
+// nx の Tree のうち exists / read / write だけを持つメモリ上の木。
 function makeTree(files) {
   const store = new Map(Object.entries(files));
   return {
+    exists: (path) => store.has(path),
     read: (path) => (store.has(path) ? Buffer.from(store.get(path)) : null),
     write: (path, content) => store.set(path, content),
     get: (path) => store.get(path),
@@ -101,6 +102,74 @@ test("manifest を読めなければ throw する", async () => {
     makeActions([CLAUDE]).updateProjectVersion(makeTree({}), "1.1.0"),
     /manifest を読めません/,
   );
+});
+
+// --- MCP の登録（.mcp.json・mcp.json）の npm の版 ---
+
+const TOOLS_CLAUDE = "plugins/pecot-tools/.claude-plugin/plugin.json";
+const TOOLS_MCP = "plugins/pecot-tools/.mcp.json";
+const TOOLS_AGENT_MCP = "plugins/pecot-tools/mcp.json";
+const TOOLS_MCP_BEFORE = `{
+  "mcpServers": {
+    "pecot-tools": {
+      "command": "npx",
+      "args": [
+        "--prefix=\${CLAUDE_PLUGIN_DATA}",
+        "-y",
+        "@pecot/tools-mcp@3.1.0"
+      ]
+    }
+  }
+}
+`;
+const TOOLS_AGENT_MCP_BEFORE = `{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "pecot-tools": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["--prefix=\${PLUGIN_DATA}", "-y", "@pecot/tools-mcp@3.1.0"]
+    }
+  }
+}`;
+
+test(".mcp.json・mcp.json の @pecot/<名前>-mcp の版だけを書き換え、整形を保つ", async () => {
+  const tree = makeTree({
+    [TOOLS_CLAUDE]: '{"name":"pecot-t","version":"3.1.0"}\n',
+    [TOOLS_MCP]: TOOLS_MCP_BEFORE,
+    [TOOLS_AGENT_MCP]: TOOLS_AGENT_MCP_BEFORE,
+  });
+  const logs = await makeActions([TOOLS_CLAUDE], "pecot-tools").updateProjectVersion(tree, "4.0.0-rc.0");
+  assert.equal(tree.get(TOOLS_MCP), TOOLS_MCP_BEFORE.replace("@pecot/tools-mcp@3.1.0", "@pecot/tools-mcp@4.0.0-rc.0"));
+  assert.equal(
+    tree.get(TOOLS_AGENT_MCP),
+    TOOLS_AGENT_MCP_BEFORE.replace("@pecot/tools-mcp@3.1.0", "@pecot/tools-mcp@4.0.0-rc.0"),
+  );
+  assert.deepEqual(logs, [
+    `Updated ${TOOLS_CLAUDE} to 4.0.0-rc.0`,
+    `Updated ${TOOLS_MCP} to 4.0.0-rc.0`,
+    `Updated ${TOOLS_AGENT_MCP} to 4.0.0-rc.0`,
+  ]);
+});
+
+test("ほかの project の npm の指定は書き換えない", async () => {
+  const visualMcp = `{"mcpServers":{"pecot-visual-playwright":{"command":"npx","args":["-y","@playwright/mcp@0.0.83","@pecot/tools-mcp@3.1.0"]}}}\n`;
+  const visualClaude = "plugins/pecot-visual/.claude-plugin/plugin.json";
+  const tree = makeTree({
+    [visualClaude]: '{"name":"pecot-v","version":"0.67.0"}\n',
+    "plugins/pecot-visual/.mcp.json": visualMcp,
+  });
+  const logs = await makeActions([visualClaude], "pecot-visual").updateProjectVersion(tree, "0.68.0");
+  assert.equal(tree.get("plugins/pecot-visual/.mcp.json"), visualMcp);
+  assert.deepEqual(logs, [`Updated ${visualClaude} to 0.68.0`]);
+});
+
+test(".mcp.json・mcp.json が無ければ何もしない", async () => {
+  const tree = makeTree({ [TOOLS_CLAUDE]: '{"name":"pecot-t","version":"3.1.0"}\n' });
+  const logs = await makeActions([TOOLS_CLAUDE], "pecot-tools").updateProjectVersion(tree, "4.0.0");
+  assert.equal(tree.exists(TOOLS_MCP), false);
+  assert.equal(tree.exists(TOOLS_AGENT_MCP), false);
+  assert.deepEqual(logs, [`Updated ${TOOLS_CLAUDE} to 4.0.0`]);
 });
 
 // --- 実 project.json から init() 経由で manifest を展開する ---
@@ -191,7 +260,7 @@ test("libs/text-rules: package.json の version を書き換え、他のフィ�
   });
   const actions = Object.create(PecotPackageVersionActions.prototype);
   actions.manifestsToUpdate = LIB_MANIFESTS.map((manifestPath) => ({ manifestPath }));
-  actions.projectGraphNode = { name: "text-rules" };
+  actions.projectGraphNode = { name: "text-rules", data: { root: "libs/text-rules" } };
   const logs = await actions.updateProjectVersion(tree, "0.1.0");
   assert.equal(logs.length, 1);
   assert.deepEqual(JSON.parse(tree.get("libs/text-rules/package.json")), {

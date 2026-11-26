@@ -1,9 +1,11 @@
 {
   "mcpServers": {
     "pecot-tools": {
-      "command": "${CLAUDE_PLUGIN_ROOT}/bin/pecot-tools",
+      "command": "npx",
       "args": [
-        "mcp"
+        "--prefix=${CLAUDE_PLUGIN_DATA}",
+        "-y",
+        "@pecot/tools-mcp@3.1.0"
       ]
     }
   }

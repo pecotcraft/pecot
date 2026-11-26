@@ -145,12 +145,11 @@ git init --quiet --initial-branch=main "$TEST_REPO" || exit 1
 # gh の -R は origin の URL から求める。合成した owner/name の https URL を置く。
 TEST_SLUG="acme-labs/example-repo"
 git -C "$TEST_REPO" remote add origin "https://github.com/$TEST_SLUG.git" || exit 1
-# git 管理対象の入力（manifest 2 件 + bin + scripts）。ls-files 経由で列挙して
-# node_modules 等を自動的に外す。bin は publish-mcp-dist.sh が resolve_pnpm 解決のため
-# bin/_lib.sh を source する（run-tests.sh と共通）ので同梱する。
+# git 管理対象の入力。ls-files 経由で列挙して node_modules 等を外す。
+# pnpm-lib.sh は publish-mcp-dist.sh が resolve_pnpm のために source する。
 (cd "$REPO_ROOT" && git ls-files -z -- \
     plugins/pecot-tools/.claude-plugin \
-    plugins/pecot-tools/bin \
+    plugins/pecot-tools/scripts/ci/pnpm-lib.sh \
     plugins/pecot-tools/package.json \
     plugins/pecot-tools/cli/package.json \
     plugins/pecot-tools/scripts/release \
@@ -283,7 +282,7 @@ else if (q === 'hasScripts') process.stdout.write(String('scripts' in m))
 
 assert_eq "package.json の name が配布パッケージ名" "@pecot/tools-mcp" "$(read_manifest name)"
 assert_eq "package.json の version がプラグイン版と一致" "$PLUGIN_VERSION" "$(read_manifest version)"
-assert_eq "package.json の bin が shim を指す" '{"pecot-tools-mcp":"bin/pecot-tools-mcp.mjs"}' "$(read_manifest bin)"
+assert_eq "package.json の bin が cli/dist/main.js を指す" '{"pecot-tools-mcp":"cli/dist/main.js"}' "$(read_manifest bin)"
 assert_eq "package.json の license が MIT" "MIT" "$(read_manifest license)"
 assert_eq "package.json の repository が公開リポを指す" \
     '{"type":"git","url":"git+https://github.com/pecotcraft/pecot.git","directory":"plugins/pecot-tools"}' "$(read_manifest repository)"
@@ -301,6 +300,12 @@ cli_dep_set() {
 }
 assert_eq "配布 package.json の依存が cli/package.json の dependencies と一致する" \
     "$(cli_dep_set)" "$(read_manifest deps)"
+# サーバは引数を読まないので、引数の解釈の commander は配布物に要らない。
+if printf ',%s,' "$(read_manifest deps)" | grep -qF ',commander,'; then
+    fail "配布 package.json の dependencies に commander がある"
+else
+    pass "配布 package.json の dependencies に commander が無い"
+fi
 
 # 実行時に node が解決する bare import は、すべて配布 package.json で宣言されている必要がある。
 # 宣言が無いと、npm の hoisting 次第で解決できたりできなかったりする。
@@ -348,7 +353,7 @@ assert_eq ".claude-plugin/plugin.json が実版を持つ" "$PLUGIN_VERSION" \
 
 # cli/dist は平坦なコピーではなくサブディレクトリを持つ。MCP サーバの起動に要る 4 点が
 # 階層ごと届いていることを見る（cp の -a 落ちや部分コピーの検出）。
-for entry in cli.js package.json infra/sso/login-registry.js mcp/tools/sso.js; do
+for entry in main.js package.json infra/sso/login-registry.js mcp/tools/sso.js; do
     if [ -f "$DIST/cli/dist/$entry" ]; then
         pass "cli/dist/$entry が配布ツリーにある"
     else
@@ -370,12 +375,6 @@ else
 fi
 assert_eq "配布ツリーに cert を含むパスが無い" "0" \
     "$(find "$DIST" -iname '*cert*' | wc -l | tr -d ' ')"
-
-if [ -x "$DIST/bin/pecot-tools-mcp.mjs" ]; then
-    pass "bin shim に実行権がある"
-else
-    fail "bin shim に実行権がない"
-fi
 
 # --- 3. README の登録例 ---
 
@@ -399,41 +398,29 @@ assert_eq "README の bash -lc の差し替え例が --prefix=/ を付ける" "1
 assert_eq "README の登録例 3 件がサーバ名 pecot-tools を使う" "3" \
     "$(grep -cF '"pecot-tools":' "$DIST/README.md" | tr -d ' ')"
 
-# --- 4. 配布ツリーの起動 smoke ---
-# shim の文字列一致（main() 呼び出し・argv への mcp 注入）では「起動して MCP として応答する」
-# ことを担保できない。構築した配布ツリーをそのまま起動して JSON-RPC を往復させる。
-# npx は配布ルートに node_modules を作る。同じ形をローカルの実体への symlink で再現し、
-# 起動 smoke をネットワーク無しで回す。
+# --- 4. 配布物の起動 smoke ---
+# 配布ツリーの tgz を npm install し、node_modules/.bin/pecot-tools-mcp から起動する。
+# tsc の出力は実行権を持たない。実行権は npm の bin-links が導入時に付ける。
+# npm はリポの外で打つ（リポの中は devEngines で EBADDEVENGINES になる）。
 
-MISSING_LINKS="$(node -e "
-const fs = require('node:fs'), path = require('node:path')
-const [dist, base] = process.argv.slice(1)
-// 解決の起点は cli（配布 package.json の依存はすべて cli/package.json 由来）。
-// require.resolve はエントリのファイルを返すだけで package の実体ディレクトリを返さず、
-// exports に package.json を公開しないパッケージでは /package.json も引けない。そのため
-// node_modules を実際に辿って package の実体ディレクトリを引き当てる。
-const rootOf = (spec) => {
-  let dir = path.resolve(base)
-  for (;;) {
-    const candidate = path.join(dir, 'node_modules', spec)
-    if (fs.existsSync(path.join(candidate, 'package.json'))) return fs.realpathSync(candidate)
-    const up = path.dirname(dir)
-    if (up === dir) return null
-    dir = up
-  }
-}
-const missing = []
-const dependencies = JSON.parse(fs.readFileSync(path.join(dist, 'package.json'), 'utf8')).dependencies
-for (const spec of Object.keys(dependencies)) {
-  const root = rootOf(spec)
-  if (root === null) { missing.push(spec); continue }
-  const link = path.join(dist, 'node_modules', spec)
-  fs.mkdirSync(path.dirname(link), { recursive: true })
-  fs.symlinkSync(root, link)
-}
-process.stdout.write(missing.join(','))
-" "$DIST" "$TOOLS_ROOT/cli")"
-assert_eq "配布 package.json の依存がすべてローカルに実体を持つ" "" "$MISSING_LINKS"
+SMOKE_ROOT="$TMP/smoke-install"
+mkdir -p "$TMP/smoke-pack" "$SMOKE_ROOT"
+printf '{"private":true}\n' > "$SMOKE_ROOT/package.json"
+SMOKE_TGZ_NAME="$(cd "$TMP" && "$REAL_NPM" pack "$DIST" --ignore-scripts --pack-destination "$TMP/smoke-pack" 2> "$TMP/smoke-pack.err" | tail -n 1)"
+SMOKE_BIN="$SMOKE_ROOT/node_modules/.bin/pecot-tools-mcp"
+if [ -n "$SMOKE_TGZ_NAME" ] && (cd "$SMOKE_ROOT" && "$REAL_NPM" install "$TMP/smoke-pack/$SMOKE_TGZ_NAME" \
+    --no-audit --no-fund --fetch-timeout=30000 --fetch-retries=1 \
+    "--cache=$NPM_PERSIST_CACHE" --prefer-offline > "$TMP/smoke-install.log" 2>&1); then
+    pass "配布物の tgz を npm install できる"
+else
+    smoke_install_tail="$(file_tail "$TMP/smoke-pack.err" 3) $(log_tail smoke-install.log 3)"
+    fail "配布物の tgz を npm install できない ($smoke_install_tail)"
+fi
+if [ -x "$SMOKE_BIN" ]; then
+    pass "npm install が node_modules/.bin/pecot-tools-mcp を実行できる形で張る"
+else
+    fail "npm install の後に node_modules/.bin/pecot-tools-mcp が無いか、実行できない"
+fi
 
 cat > "$TMP/smoke.mjs" << 'SMOKE'
 // MCP サーバを stdio で起動し、initialize / tools/list を送って応答が揃うまで待つ。
@@ -441,7 +428,7 @@ cat > "$TMP/smoke.mjs" << 'SMOKE'
 // 任意の tools/call 結果）を 1 行 JSON で返す。起動そのものに失敗したときだけ
 // `FAIL: <理由>` を返す。
 //
-// 使い方: node smoke.mjs <script> [args...]  （script は node で起動する）
+// 使い方: node smoke.mjs <command> [args...]  （command はそのまま実行する）
 // 環境変数 SMOKE_TOOL_CALLS に [{"name":..,"arguments":{..}}, ...] の JSON を渡すと、
 // tools/list の後に続けて tools/call を送り、各応答の isError と structuredContent.kind を
 // 返り値の calls 配列（呼び出し順）に載せる（配布ツリーが実際に起動して応答することの検証。
@@ -462,7 +449,7 @@ const requests = [
 ]
 const expected = requests.filter((message) => message.id !== undefined).map((message) => message.id)
 
-const child = spawn(process.execPath, command, { stdio: ['pipe', 'pipe', 'pipe'] })
+const child = spawn(command[0], command.slice(1), { stdio: ['pipe', 'pipe', 'pipe'] })
 const seen = new Map()
 let stderr = ''
 let buffer = ''
@@ -537,12 +524,11 @@ process.stdout.write(value === undefined ? '' : String(value))
 # tools/list の期待値は契約書の表（24 件・先頭 aws_sso_login）。
 # 契約書 contracts/mcp-tools.md は本リポには無い。
 # 実物は aist-roadmap 側の specs/012-awscli-mcp-server/contracts/mcp-tools.md にある。
-# 配布ツリーに TS ソースは含まれず、ここから参照できない。そのため写している（cli/tests/bootstrap/run.sh と同値）。
+# 配布ツリーに TS ソースは含まれず、ここから参照できない。そのため写している。
 EXPECTED_TOOL_COUNT=24
 EXPECTED_FIRST_TOOL="aws_sso_login"
 
-# 登録例と同じ引数なし起動と、`mcp` を明示した起動の双方を見る。前者は shim の argv 注入、
-# 後者は注入が無いときの素通しを担保する。
+# 登録例と同じ引数なし起動と、`mcp` を付けた起動（引数を読まないこと）の双方を見る。
 run_smoke() {
     local label="$1" out="$2"
     shift 2
@@ -571,8 +557,8 @@ run_smoke() {
         "$EXPECTED_FIRST_TOOL" "$(smoke_value "$out" firstTool)"
 }
 
-run_smoke "引数なし起動" "$TMP/smoke-default.json" "$DIST/bin/pecot-tools-mcp.mjs"
-run_smoke "mcp を明示した起動" "$TMP/smoke-mcp.json" "$DIST/bin/pecot-tools-mcp.mjs" mcp
+run_smoke "引数なし起動" "$TMP/smoke-default.json" "$SMOKE_BIN"
+run_smoke "mcp を付けた起動" "$TMP/smoke-mcp.json" "$SMOKE_BIN" mcp
 
 # F-06: README のツール表（`| \`aws_...\`` の行）が tools/list の名前列と順序込みで一致することを
 # 固定する。ツールの追加・改名・順序変更で表だけが古くなっても緑のままになるのを防ぐ。
@@ -605,7 +591,7 @@ FAKE_AWS_DIR="$TOOLS_ROOT/cli/tests/_fixtures/fake-aws"
 SMOKE_CALLS_OUT="$TMP/smoke-calls.json"
 SMOKE_TOOL_CALLS='[{"name":"aws_s3_ls","arguments":{}},{"name":"aws_athena_start_query_execution","arguments":{"query_string":"DROP TABLE orders"}}]' \
     PATH="$FAKE_AWS_DIR:$PATH" FAKE_AWS_FIXTURE_DIR="$FAKE_AWS_DIR/fixtures" \
-    node "$TMP/smoke.mjs" "$DIST/bin/pecot-tools-mcp.mjs" mcp \
+    node "$TMP/smoke.mjs" "$SMOKE_BIN" \
     > "$SMOKE_CALLS_OUT" 2> "$SMOKE_CALLS_OUT.err"
 case "$(head -c 5 "$SMOKE_CALLS_OUT")" in
     FAIL:)
@@ -625,19 +611,6 @@ case "$(head -c 5 "$SMOKE_CALLS_OUT")" in
             "$(call_value "$SMOKE_CALLS_OUT" 1 kind)"
         ;;
 esac
-
-# 引数がある起動は、そのまま commander へ渡す（argv 注入が --version を止めない）。
-VERSION_RC=0
-node "$DIST/bin/pecot-tools-mcp.mjs" --version > "$TMP/version.out" 2> "$TMP/version.err" || VERSION_RC=$?
-assert_eq "--version が exit 0 で終わる" "0" "$VERSION_RC"
-assert_eq "--version が配布ツリーの plugin.json の版を返す" "$PLUGIN_VERSION" \
-    "$(tr -d '\n' < "$TMP/version.out")"
-
-# smoke 用に張った symlink は配布ツリーの一部ではない。以降の publish は $DIST を使わないが、
-# 消し残すと、「配布物に node_modules が無い」の判定が smoke の副作用に依存してしまう。
-rm -rf "$DIST/node_modules"
-assert_eq "smoke 用の node_modules を配布ツリーに残さない" "0" \
-    "$(find "$DIST" -maxdepth 1 -name 'node_modules' | wc -l | tr -d ' ')"
 
 # --- 5. 冪等性の確認と Release への添付 ---
 
@@ -699,7 +672,7 @@ assert_eq "tgz の package.json の version" "$TEST_VERSION" \
 TREE="$TMP/tgz-list.txt"
 tgz_names > "$TREE"
 for entry in package/package.json package/npm-shrinkwrap.json package/README.md package/LICENSE \
-    package/.claude-plugin/plugin.json package/cli/dist/cli.js package/bin/pecot-tools-mcp.mjs; do
+    package/.claude-plugin/plugin.json package/cli/dist/main.js; do
     if grep -qxF "$entry" "$TREE"; then
         pass "tgz に $entry が入る"
     else

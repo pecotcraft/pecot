@@ -298,7 +298,6 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             {"pecot-visual:test-bootstrap"},
         ),
         ("plugins/pecot-visual/cli/tests/bootstrap/data-dir.sh", {"pecot-visual:test-bootstrap"}),
-        ("plugins/pecot-tools/cli/tests/bootstrap/data-dir.sh", {"pecot-tools:test-bootstrap"}),
         (
             "plugins/pecot-workflow/cli/tests/bootstrap/data-dir.sh",
             {"pecot-workflow:test-bootstrap"},
@@ -440,7 +439,7 @@ def test_skill_body_change_runs_skills_lane(
         ("plugins/pecot-visual/cli/src/domain/drawio/url.ts", "pecot-visual:test-release"),
         ("plugins/pecot-visual/skills/v-slidev/SKILL.md", "pecot-visual:test-release"),
         ("plugins/pecot-visual/hooks/hooks.json", "pecot-visual:test-release"),
-        ("plugins/pecot-tools/cli/src/cli.ts", "pecot-tools:test-release"),
+        ("plugins/pecot-tools/cli/src/main.ts", "pecot-tools:test-release"),
         ("plugins/pecot-workflow/cli/src/cli.ts", "pecot-workflow:test-release"),
     ],
 )
@@ -532,22 +531,14 @@ def test_pecotv_test_lanes_depend_on_shared_install_and_build(tmp_path: Path, nx
     assert "pecot-visual:install" in deps["pecot-visual:build-slidev"]
 
 
-def test_bootstrap_lanes_wait_for_install_and_pecot_tools_also_for_build_cli(
-    tmp_path: Path, nx_bin: Path
-) -> None:
-    """bootstrap のレーン (#1235) は install を共有し、pecot-tools のレーンは build-cli の後に実行する。
-
-    pecot-tools の `cli/tests/bootstrap/run.sh` は、本体の cli/dist/cli.js を bootstrap が書き換えていないか、mtime で確かめる。
-    build-cli が並行すると、dist の再生成を本体への書き込みと誤判定する。
-    pecot-visual のレーンは本体の cli/dist を使わないので、build-cli に依存しない。
-    """
+def test_pecot_visual_bootstrap_lane_waits_for_install_only(tmp_path: Path, nx_bin: Path) -> None:
+    """pecot-visual の bootstrap のレーン (#1235) は install を共有し、本体の cli/dist を使わないので build-cli に依存しない。"""
     graph_file = tmp_path / "graph.json"
-    _nx(nx_bin, "run-many", "-t", "test", "-p", "pecot-visual,pecot-tools", f"--graph={graph_file}")
+    _nx(nx_bin, "run-many", "-t", "test", "-p", "pecot-visual", f"--graph={graph_file}")
     tasks = json.loads(graph_file.read_text(encoding="utf-8"))["tasks"]
     deps = {task: {dep["id"] for dep in entries} for task, entries in tasks["dependencies"].items()}
     assert "pecot-visual:install" in deps["pecot-visual:test-bootstrap"]
     assert "pecot-visual:build-cli" not in deps["pecot-visual:test-bootstrap"]
-    assert {"pecot-tools:install", "pecot-tools:build-cli"} <= deps["pecot-tools:test-bootstrap"]
 
 
 # -----------------------------------------------------------------------------
@@ -703,10 +694,10 @@ _PECOTV_TEST_LANES = {
         # 検証用のスクリプトと、それが読む spec は、vitest で確かめる test-cli だけに届く (#562)。
         ("plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh", {"pecot-workflow:test-cli"}),
         ("specs/026-pre-merge-test-env/spec.md", {"pecot-workflow:test-cli"}),
-        # 起動スクリプトは Globals が全レーンに引く / E2E と bootstrap が起動する (#1235、実 push で確認済み)。
+        # pnpm の解決のファイルは Globals が test-cli・test-release に引く。
         (
-            "plugins/pecot-tools/bin/pecot-tools",
-            {"pecot-tools:test-cli", "pecot-tools:test-bootstrap", "pecot-tools:test-release"},
+            "plugins/pecot-tools/scripts/ci/pnpm-lib.sh",
+            {"pecot-tools:test-cli", "pecot-tools:test-release"},
         ),
         (
             "plugins/pecot-visual/bin/pecotv",
@@ -716,7 +707,6 @@ _PECOTV_TEST_LANES = {
         ("plugins/pecot-visual/setup.sh", set()),
         # bootstrap の bash テストの変更は、test-bootstrap だけに届く。cli の test は再実行されない (#1235)。
         ("plugins/pecot-visual/cli/tests/bootstrap/data-dir.sh", {"pecot-visual:test-bootstrap"}),
-        ("plugins/pecot-tools/cli/tests/bootstrap/data-dir.sh", {"pecot-tools:test-bootstrap"}),
         # root の package.json は pecot-visual の全レーンの Globals と、nx 本体の版を読む nx-release が読む。
         ("package.json", _PECOTV_TEST_LANES | {"nx-release:test-unit"} | _GITHOOKS_GRAPH),
         # libs/text-rules のレーンは 1 本で、テストの変更は test-unit だけを選ぶ。
@@ -764,21 +754,9 @@ _PECOTV_TEST_LANES = {
             "plugins/pecot-tools/package.json",
             {
                 "pecot-tools:test-cli",
-                "pecot-tools:test-bootstrap",
                 "pecot-tools:test-release",
                 "pecot-visual:test-cli",
                 *_GITHOOKS_GRAPH,
-            },
-        ),
-        # 検証対象の wrapper の変更は、bootstrap のレーンに届く。
-        # pecot-tools は Globals に持つので、全レーンが再実行される (#1235)。
-        (
-            "plugins/pecot-tools/bin/_lib.sh",
-            {
-                "pecot-tools:test-cli",
-                "pecot-tools:test-bootstrap",
-                "pecot-tools:test-release",
-                "pecot-visual:test-bootstrap",
             },
         ),
         # pecot-workflow の Node の CLI のソースは、次のレーンを選ぶ (#1313)。
@@ -928,25 +906,6 @@ _PECOTV_TEST_LANES = {
             },
         ),
         (
-            "plugins/pecot-tools/runtime-lock.yaml",
-            {
-                "pecot-tools:test-cli",
-                "pecot-tools:test-bootstrap",
-                "pecot-tools:test-release",
-                *_GITHOOKS_CHECKS,
-            },
-        ),
-        # permissions・engineStrict・minimumReleaseAge・skills.dirs は lock に出ないので、workspace も入力にする。
-        (
-            "plugins/pecot-tools/runtime-workspace.yaml",
-            {
-                "pecot-tools:test-cli",
-                "pecot-tools:test-bootstrap",
-                "pecot-tools:test-release",
-                *_GITHOOKS_CHECKS,
-            },
-        ),
-        (
             "plugins/pecot-visual/runtime-workspace.yaml",
             {
                 "pecot-visual:test-bootstrap",
@@ -1049,7 +1008,7 @@ def test_gate_selects_only_the_lanes_the_change_reaches(
         ("plugins/pecot-workflow/skills/w-pr/SKILL.md", set()),
         ("plugins/pecot-visual/CHANGELOG.md", set()),
         ("plugins/pecot-visual/cli/src/infra/drawio/pdf.ts", set()),
-        ("plugins/pecot-tools/cli/tests/bootstrap/run.sh", set()),
+        ("plugins/pecot-tools/cli/src/main.ts", set()),
         ("libs/workflow-core/src/commands-shared/cell-table.ts", set()),
     ],
 )
@@ -1092,6 +1051,7 @@ def test_graph_lanes_read_every_workspace_package_json(
         ),
         # pecot-tools の lint は実体の target。plugins/pecot-tools/package.json は pecot-visual:lint-cli も読む。
         ("plugins/pecot-tools/package.json", {"pecot-tools:lint", "pecot-visual:lint-cli"}),
+        ("plugins/pecot-tools/scripts/ci/pnpm-lib.sh", {"pecot-tools:lint"}),
         # root の package.json は、どのプロジェクトの lint のレーンにも届かない。
         ("package.json", set()),
         # pecot-workflow の lint は lint-cli だけ。

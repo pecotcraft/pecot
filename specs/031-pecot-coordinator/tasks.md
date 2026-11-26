@@ -216,16 +216,16 @@
 
 **Independent Test**: `claude plugin validate --strict` が通り、Claude Code で pecot-tools の MCP のツールが今どおり動く
 
-- [ ] T110 [US4] `.mcp.json` と `mcp.json` の形のテストを書く（`npx`・`--prefix` はデータ置き場・`@pecot/tools-mcp@<版>`） in `plugins/pecot-tools/cli/tests/`
-- [ ] T111 [US4] `plugins/pecot-tools/.mcp.json` と `mcp.json` を、`npx` で npm の版を起動する形に直す
-- [ ] T112 [US4] ツールをサーバに直に登録する形のテストを書き、CLI の入口が無いことを確かめる in `plugins/pecot-tools/cli/src/mcp/tests/`
-- [ ] T113 [US4] `plugins/pecot-tools/cli/src/cli.ts` を消し、ツールをサーバに直に登録する。`cli/package.json` の `bin` をサーバの入口にする
-- [ ] T114 [US4] `plugins/pecot-tools/setup.sh` を消す（`bin/pecot-tools` の起動を促すだけのため）。README などの参照も直す
-- [ ] T115 [US4] `plugins/pecot-tools/bin/`・`runtime-lock.yaml`・`runtime-workspace.yaml`・`cli/tests/bootstrap/`・`test-bootstrap` のレーンを消し、参照を直す
-- [ ] T116 [US4] リリースの版の書き換えを足し、`plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh` を直す
-- [ ] T117 [US4] `README.md` から、PATH のコマンドと `bin/` を前提にする箇所を消す in `plugins/pecot-tools/`
-- [ ] T118 [US4] version plan を足す（pecot-tools はメジャー）
-- [ ] T119 [US4] CUJ: `claude plugin validate --strict` を通し、子の Claude Code に入れてツールが動くことと、Inspector の `--cli` で作業ツリーの build を呼べることを確かめる
+- [x] T110 [US4] `.mcp.json` と `mcp.json` の形のテストを書く（`npx`・`--prefix` はデータ置き場・`@pecot/tools-mcp@<版>`） in `plugins/pecot-tools/cli/tests/`
+- [x] T111 [US4] `plugins/pecot-tools/.mcp.json` と `mcp.json` を、`npx` で npm の版を起動する形に直す
+- [x] T112 [US4] ツールをサーバに直に登録する形のテストを書き、CLI の入口が無いことを確かめる in `plugins/pecot-tools/cli/src/mcp/tests/`
+- [x] T113 [US4] `plugins/pecot-tools/cli/src/cli.ts` を消し、ツールをサーバに直に登録する。`cli/package.json` の `bin` をサーバの入口にする
+- [x] T114 [US4] `plugins/pecot-tools/setup.sh` を消す（`bin/pecot-tools` の起動を促すだけのため）。README などの参照も直す
+- [x] T115 [US4] `plugins/pecot-tools/bin/`・`runtime-lock.yaml`・`runtime-workspace.yaml`・`cli/tests/bootstrap/`・`test-bootstrap` のレーンを消し、参照を直す
+- [x] T116 [US4] リリースの版の書き換えを足し、`plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh` を直す
+- [x] T117 [US4] `README.md` から、PATH のコマンドと `bin/` を前提にする箇所を消す in `plugins/pecot-tools/`
+- [x] T118 [US4] version plan を足す（pecot-tools はメジャー）
+- [x] T119 [US4] CUJ: `claude plugin validate --strict` を通し、子の Claude Code に入れてツールが動くことと、Inspector の `--cli` で作業ツリーの build を呼べることを確かめる
 
 ---
 

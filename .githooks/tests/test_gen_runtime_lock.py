@@ -15,7 +15,6 @@ import yaml
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _TARGET_DIRS = (
     "plugins/pecot-visual",
-    "plugins/pecot-tools",
     "plugins/pecot-workflow",
     "libs/text-rules",
 )
@@ -95,14 +94,14 @@ def test_clean_tree_passes(repo: Path) -> None:
 
 
 def test_member_dependency_change_stops_with_hint(repo: Path) -> None:
-    pkg = repo / "plugins/pecot-tools/cli/package.json"
+    pkg = repo / "plugins/pecot-workflow/cli/package.json"
     data = json.loads(pkg.read_text(encoding="utf-8"))
     data["dependencies"]["commander"] = "^0.0.1"
     pkg.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     result = _check(repo)
     assert result.returncode == 1
     assert (
-        "plugins/pecot-tools/runtime-lock.yaml: cli の dependencies が package.json と一致しません"
+        "plugins/pecot-workflow/runtime-lock.yaml: cli の dependencies が package.json と一致しません"
         in result.stderr
     )
     assert "gen-runtime-lock.mjs --write" in result.stderr
@@ -118,17 +117,17 @@ def test_importer_missing_in_lock_stops(repo: Path) -> None:
 
 def test_workspace_setting_drift_stops(repo: Path) -> None:
     _edit(
-        repo / "plugins/pecot-tools/runtime-workspace.yaml",
+        repo / "plugins/pecot-workflow/runtime-workspace.yaml",
         "nodeLinker: hoisted",
         "nodeLinker: isolated",
     )
     result = _check(repo)
     assert result.returncode == 1
-    assert "plugins/pecot-tools/runtime-workspace.yaml" in result.stderr
+    assert "plugins/pecot-workflow/runtime-workspace.yaml" in result.stderr
 
 
 def test_package_integrity_drift_stops(repo: Path) -> None:
-    lock = repo / "plugins/pecot-tools/runtime-lock.yaml"
+    lock = repo / "plugins/pecot-workflow/runtime-lock.yaml"
     text = lock.read_text(encoding="utf-8")
     key = _first_package(text)
     entry = re.search(
@@ -143,7 +142,7 @@ def test_package_integrity_drift_stops(repo: Path) -> None:
 
 def test_package_missing_in_root_lock_stops(repo: Path) -> None:
     key = _first_package(
-        (repo / "plugins/pecot-tools/runtime-lock.yaml").read_text(encoding="utf-8")
+        (repo / "plugins/pecot-workflow/runtime-lock.yaml").read_text(encoding="utf-8")
     )
     root_lock = repo / "pnpm-lock.yaml"
     text = root_lock.read_text(encoding="utf-8")
@@ -158,8 +157,8 @@ def test_importer_version_drift_from_root_lock_stops(repo: Path) -> None:
     """root の lock で importer の版を別の実在する版に変えると、runtime-lock との差で止まる。"""
     root_lock = repo / "pnpm-lock.yaml"
     text = root_lock.read_text(encoding="utf-8")
-    start = text.index("\n  plugins/pecot-tools/cli:\n")
-    end = text.index("\n  plugins/", start + 1)
+    start = text.index("\n  plugins/pecot-workflow/cli:\n")
+    end = re.search(r"\n  (?!  )\S", text[start + 1 :]).start() + start + 1
     block = text[start:end]
     name, version, other = _drift_candidate(text, block)
     pattern = re.compile(
@@ -172,7 +171,7 @@ def test_importer_version_drift_from_root_lock_stops(repo: Path) -> None:
     result = _check(repo)
     assert result.returncode == 1
     assert (
-        "plugins/pecot-tools/runtime-lock.yaml: cli の importer の版が root の pnpm-lock.yaml と一致しません"
+        "plugins/pecot-workflow/runtime-lock.yaml: cli の importer の版が root の pnpm-lock.yaml と一致しません"
         in result.stderr
     )
 
@@ -197,7 +196,7 @@ def test_write_copies_referenced_catalog_only(repo: Path) -> None:
     )
     _write(repo)
     expected = "catalogs:\n  default:\n    vite:\n      specifier: ^"
-    for d in ("plugins/pecot-visual", "plugins/pecot-tools", "plugins/pecot-workflow"):
+    for d in ("plugins/pecot-visual", "plugins/pecot-workflow"):
         text = (repo / d / "runtime-lock.yaml").read_text(encoding="utf-8")
         assert expected in text, d
         assert "unreferenced-sample" not in text, d
@@ -211,7 +210,7 @@ def test_write_omits_catalogs_for_target_without_reference(repo: Path) -> None:
 
 
 def test_catalogs_missing_in_runtime_lock_stops(repo: Path) -> None:
-    lock = repo / "plugins/pecot-tools/runtime-lock.yaml"
+    lock = repo / "plugins/pecot-workflow/runtime-lock.yaml"
     text = lock.read_text(encoding="utf-8")
     start = text.index("catalogs:\n")
     end = text.index("overrides:\n", start)
@@ -219,7 +218,7 @@ def test_catalogs_missing_in_runtime_lock_stops(repo: Path) -> None:
     result = _check(repo)
     assert result.returncode == 1
     assert (
-        "plugins/pecot-tools/runtime-lock.yaml: catalogs が root の pnpm-lock.yaml と一致しません"
+        "plugins/pecot-workflow/runtime-lock.yaml: catalogs が root の pnpm-lock.yaml と一致しません"
         in result.stderr
     )
 

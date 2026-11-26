@@ -102,7 +102,7 @@ unset FORCE_COLOR
 # vitest では、setupFiles が CLAUDE_PLUGIN_DATA を一時ディレクトリへ向ける。
 # 該当のファイルは cli/tests/_helpers/unset-plugin-data-environment.ts。
 # XDG_DATA_HOME は付け替えない（pnpm の store の置き場まで動くため）。
-unset PLUGIN_DATA PECOTV_DEPENDENCY_ROOT PECOTV_RUNTIME_DIR PECOT_TOOLS_RUNTIME_DIR
+unset PLUGIN_DATA PECOTV_DEPENDENCY_ROOT PECOTV_RUNTIME_DIR
 GATE_PLUGIN_DATA="$(mktemp -d)"
 export CLAUDE_PLUGIN_DATA="$GATE_PLUGIN_DATA"
 

@@ -26,7 +26,7 @@ paths:
 | Claude Code | `.claude-plugin/plugin.json` と `.mcp.json`（`$schema` は無視する） |
 | GitHub Copilot CLI | `$schema` が Agent Plugins 1.0.0 の、ルートの `plugin.json` と `mcp.json`（`.claude-plugin/` より優先する） |
 
-- `name`・`version`・MCP サーバのキー・`command`・`args` を 2 組で一致させる。`version` はリリース時に nx が両方を書き換える
+- `name`・`version`・MCP サーバのキー・`command`・`args` を 2 組で一致させる。`args` は、データ置き場の変数名（`${CLAUDE_PLUGIN_DATA}` と `${PLUGIN_DATA}`）だけが違う。`version` はリリース時に nx が両方を書き換える
 - `mcp.json` に `env` を書かない。置き場はクライアントが MCP へ渡す `PLUGIN_DATA`・`CLAUDE_PLUGIN_DATA` で決まる
 - `.github/plugin/plugin.json` は持たない。Copilot CLI は 1.0 形式のプラグインでは読まない
 - Copilot CLI の hooks は `com.github.copilot/hooks/hooks.json` に置く。エージェントは `com.github.copilot/agents` に置く
@@ -36,11 +36,14 @@ paths:
     - `model` を書かない。auto で定義に `model` があると `400 model_not_supported` になるため（#416）
   - `tools` の値は `plugins/pecot-workflow/cli/tests/hooks/lib/agent-definitions.test.ts` が固定する
 - リモートの MCP サーバの `type` は、`.mcp.json` が `"http"`、`mcp.json` が `"streamable-http"` にする。1.0 のスキーマは `http` を認めない。`url` は同値
-- 一致は `plugins/{pecot-visual,pecot-tools}/cli/tests/bootstrap/manifest.sh` が確認する。pecot-workflow は `plugins/pecot-workflow/cli/tests/bootstrap/manifest.sh` が確認する
+- 一致は、次のファイルが確認する
+  - pecot-workflow・pecot-visual: `plugins/<名前>/cli/tests/bootstrap/manifest.sh`
+  - pecot-tools: `plugins/pecot-tools/cli/tests/plugin-manifests.test.ts`
 
 ## データ置き場は 3 段で解決する
 
-3 プラグインの `bin/_lib.sh` の data-dir ブロックは逐語一致です（`cli/tests/bootstrap/lib-consistency.sh` が確認）。
+pecot-workflow と pecot-visual の `bin/_lib.sh` の data-dir ブロックは逐語一致です。
+一致は `cli/tests/bootstrap/lib-consistency.sh` が確認します。
 解決順は次のとおりです。
 
 1. `CLAUDE_PLUGIN_DATA`
