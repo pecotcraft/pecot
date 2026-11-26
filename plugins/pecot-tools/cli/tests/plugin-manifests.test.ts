@@ -10,8 +10,10 @@ import { MCP_SERVER_NAME } from '../src/mcp/server.js'
 
 const PLUGIN_ROOT = path.resolve(import.meta.dirname, '../..')
 const PACKAGE_NAME = '@pecot/tools-mcp'
+// 利用者が入力する層の名前。ツールの名前空間と Copilot CLI のインストール先になる。
+const PLUGIN_NAME = 'pecot-t'
 
-const ServerSchema = z.object({
+const ServerSchema = z.strictObject({
   type: z.string().optional(),
   command: z.string(),
   args: z.array(z.string()),
@@ -47,6 +49,10 @@ const hasPluginFile = (file: string): boolean => existsSync(path.join(PLUGIN_ROO
 const byCodePoint = (a: string, b: string): number => (a < b ? -1 : Number(a > b))
 
 describe('プラグインの 2 組の manifest', () => {
+  it('.claude-plugin/plugin.json の name は pecot-t', () => {
+    expect(claudeManifest.name).toBe(PLUGIN_NAME)
+  })
+
   it('plugin.json の name・version が .claude-plugin/plugin.json と一致する', () => {
     expect([manifest.name, manifest.version]).toEqual([claudeManifest.name, claudeManifest.version])
   })
