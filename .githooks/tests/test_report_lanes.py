@@ -40,7 +40,8 @@ _INCLUDED = [
 
 
 def _project_files() -> list[str]:
-    out = run_attached(
+    # リポのファイルの一覧はテストの入力で、テスト対象の出力でないので添付しない。
+    out = subprocess.run(
         ["git", "ls-files"], cwd=_REPO, capture_output=True, text=True, check=True
     ).stdout
     return [path for path in out.splitlines() if PurePosixPath(path).name == "project.json"]

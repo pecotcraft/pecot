@@ -7,7 +7,7 @@ import { z } from 'zod'
 import type { CommandDefinition } from '../../src/commands/registry.js'
 import { standardOutputSchema } from '../../src/mcp/result.js'
 import { createMcpServer } from '../../src/mcp/server.js'
-import { attachJson } from '../../../../../libs/interface-spec/src/vitest/attach.js'
+import { attachJson, attachJsonInTest } from '../../../../../libs/interface-spec/src/vitest/attach.js'
 
 const TextBlockSchema = z.looseObject({ type: z.literal('text'), text: z.string() })
 
@@ -72,7 +72,7 @@ export interface ConnectedClient {
 }
 
 /**
-tools/call・tools/list の応答の全体を、受けた時点で添付するクライアント。判定で落ちても応答が残る
+tools/call・tools/list の応答の全体を、受けた時点で添付するクライアント。判定で落ちても応答が残る。beforeAll の tools/list は、使うテストが添付する
 */
 export class RecordingClient extends Client {
   override async callTool(...arguments_: Parameters<Client['callTool']>): ReturnType<Client['callTool']> {
@@ -83,7 +83,7 @@ export class RecordingClient extends Client {
 
   override async listTools(...arguments_: Parameters<Client['listTools']>): ReturnType<Client['listTools']> {
     const result = await super.listTools(...arguments_)
-    attachJson('tools/list の結果', result)
+    attachJsonInTest('tools/list の結果', result)
     return result
   }
 }

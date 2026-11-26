@@ -3,10 +3,10 @@
 
 import type { Client } from '@modelcontextprotocol/client'
 
-import { attachJson } from '../../../../../libs/interface-spec/src/vitest/attach.js'
+import { attachJson, attachJsonInTest } from '../../../../../libs/interface-spec/src/vitest/attach.js'
 
 /**
-渡したクライアントの callTool・listTools を、結果の全体を添付してから返す形に差し替える。同じクライアントを返す。
+渡したクライアントの callTool・listTools を、結果の全体を添付してから返す形に差し替える。同じクライアントを返す。beforeAll の tools/list は、使うテストが添付する。
 */
 export function attachingClient(client: Client): Client {
   const callTool = client.callTool.bind(client)
@@ -18,7 +18,7 @@ export function attachingClient(client: Client): Client {
   }
   client.listTools = async (...parameters: Parameters<Client['listTools']>) => {
     const result = await listTools(...parameters)
-    attachJson('tools/list の結果', result)
+    attachJsonInTest('tools/list の結果', result)
     return result
   }
   return client

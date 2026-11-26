@@ -55,6 +55,14 @@ export function attachJson(name: string, value: unknown): void {
 }
 
 /**
+動いているテストの中でだけ JSON を添付する。beforeAll の添付は describe のテストごとに複製されるので、そこでは添付しない
+*/
+export function attachJsonInTest(name: string, value: unknown): void {
+  if (TestRunner.getCurrentTest() === undefined) return
+  attachJson(name, value)
+}
+
+/**
 動かしたコマンドの出力を添付する。空でない stdout・stderr を残し、両方空なら空の stdout を 1 つ残す。終了コードが無ければ名前に書かない
 */
 export function attachOutput(command: string, exitCode: number | string | undefined, stdout: string, stderr: string): void {
