@@ -272,7 +272,7 @@ github.com で確かめた構成です。GHES では確かめていません。
 | 認証の名前 | エージェント用の変数と secret は、[認証・設定ファイル](auth-config.md) の「エージェント用の認証」の名前を使う。雛形ごとに名前を作らない |
 | 版の目印 | 1 行目のコメントに、雛形の名前と整数の版を書く。版は、雛形の中身を変えるたびに 1 つ上げる。`workflow_install` の `check` と `workflow_doctor` が、この版を比べる |
 | 利用者が足す行の印 | `# pecot-<名前>:<囲み>:begin` と `# pecot-<名前>:<囲み>:end` のコメントで囲む。`workflow_install` の `force` は、囲みの中の行を消す前に出す |
-| 起動する人の確かめ | fork・draft・許していない bot の PR では動かない。コメントでの起動は、`author_association` と、書いた人の権限（admin・maintain・write）の両方を見る |
+| 起動する人の確かめ | fork・draft・許していない bot の PR では動かない。コメントでの起動は、`author_association` と、書いた人の権限の `permission`（admin・write。maintain は write で返る）の両方を見る |
 | 許可するツール | `--allowedTools` に、使うツールだけを並べる。これは確認なしで使えるツールの一覧で、境界にはならない |
 | 拒否するツール | 書き換えのツール・`Agent` を `--disallowedTools` に書く。権限のモードは `default` にし、規則の無いコマンドを拒ませる。プラグインの hook が allow を返すコマンド（`git clone`）と、環境変数を読める `/proc` は、拒否の規則で塞ぐ |
 | 上限 | ターンと時間の上限を、変数で変えられる既定値として持つ |

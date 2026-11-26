@@ -175,10 +175,12 @@ describe('review のワークフローの雛形', () => {
     }
   })
 
-  it('PR の確かめは書いた人の権限を読み、admin・maintain・write のときだけ通す', () => {
+  it('PR の確かめは書いた人の permission を読み、admin・write のときだけ通す', () => {
     expect(checkPr.env?.['COMMENTER']).toBe('${{ github.event.comment.user.login }}')
-    expect(checkPr.run).toContain('collaborators/$COMMENTER/permission')
-    expect(checkPr.run).toContain('admin|maintain|write) ok=true')
+    expect(checkPr.run).toContain('collaborators/$COMMENTER/permission" --jq .permission)')
+    expect(checkPr.run).toContain('case "$permission" in admin|write) ok=true')
+    // role_name はカスタムロールの名前を返すので、書き込みを基にしたカスタムロールの人が止まる
+    expect(checkPr.run).not.toContain('role_name')
   })
 
   it('PR の確かめは、合言葉のコメントより後のコミットが head なら通さない', () => {
