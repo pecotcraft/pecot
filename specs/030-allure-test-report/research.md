@@ -305,7 +305,7 @@ FR-007a（画面・成果物の添付）の対象にしないものを次に並�
 
   | 補助 | 添付 |
   |---|---|
-  | `libs/interface-spec/src/vitest/attach.ts` | `attachText`・`attachJson`・`attachOutput`・`readOutput`・`attachReadText`・`attachAtTestEnd` |
+  | `libs/interface-spec/src/vitest/attach.ts` | `attachText`・`attachJson`・`attachJsonInTest`・`attachOutput`・`readOutput`・`attachReadText`・`attachAtTestEnd` |
   | MCP のクライアント（pecot-workflow の `RecordingClient`、pecot-visual の `AttachingClient`、pecot-tools の `attachingClient`） | `callTool`・`listTools` が返した結果の全体 |
   | pecot-visual の統合テストの `makeStream(name)` | 名前を付けた stream の、テストの終わりの中身 |
   | `libs/workflow-core/tests/_helpers/captured-io.ts` の `capture()` | テストの終わりの `out`・`err`。`TestRunner.getCurrentTest()` があるときだけ `onTestFinished` で添付する |
@@ -315,10 +315,11 @@ FR-007a（画面・成果物の添付）の対象にしないものを次に並�
   | `.githooks/tests/attach.py` | `run_attached`（`check`・timeout でも添付してから投げる）・`attach_output`・`read_output` |
 
 - **Rationale**: 成功したテストが実際に何を出したかを、レポートから確かめるため。`subprocess.run` や `child_process` を全体で差し替える案は採らない。テスト対象が中で動かす子プロセスの出力まで添付され、判定に使ったものと見分けられない
-- **大きさ**: 13 レーンを手元で動かして作ったレポートの `data/attachments/` は、14,274 個で 134 MB だった（2026-11-26）
-  - 多いのは、`beforeAll` の `tools/list` の結果（1 個 約 125 KB）が describe のテストごとに複製される分で、484 個・59 MB ある
-  - ほかは、nx の graph などの読んだ JSON（約 24 MB）と、テストの準備の `git` の出力（約 17 MB）
-  - `pages-store`（2026-11-26 に 535 MB）に開発版とリリース版の増えを足すと、約 800 MB と見込む。保管の job の知らせ（900 MB）に収まる
+- **大きさ**: 13 レーンを手元で動かして作ったレポートの `data/attachments/` は、14,209 個で 63 MB だった（2026-11-26）
+  - 最も多いのは `githooks:test-nx-affected` の 27 MB で、nx が書き出して判定に使う graph の JSON（1 個 約 120 KB）が占める
+  - `beforeAll` で取った `tools/list` の結果は、describe のテストごとに複製される。そこで、全体は全体を見るテストだけが添付し、1 つのツールを見るテストはその項目だけを添付する
+  - リポのファイルの一覧（`git ls-files`）は、テストの入力なので添付しない
+  - `pages-store`（2026-11-26 に 535 MB）に開発版とリリース版の増えを足すと、約 655 MB と見込む。保管の job の知らせ（900 MB）に収まる
 - `attachmentPath` は使わず、中身を読んで `attachment` に渡す（contracts の「添付」）
   - `allure-vitest` 3.15.0 の reporter は、`attachmentPath` のパスを `onTestRunEnd` で読む。テストが `afterAll` や `finally` で消した成果物は抜ける
 - PPM の画素で判定するテストは、その画素をそのまま可逆の PNG に包んで添付する。判定に使った画素そのものから作るので、FR-007b に当たらない
