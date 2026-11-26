@@ -110,7 +110,7 @@ describe('formatPlanTable', () => {
     ].join('\n'))
   })
 
-  it('マージを待つ前提とスタックできる前提の両方があると、Blocked by には両方を出し、Approach にはマージを待つ前提だけを出す', () => {
+  it('スタック不可の前提とスタック可の前提の両方があると、Blocked by には両方を出し、Approach にはスタック不可の前提だけを出す', () => {
     const { rows } = rowsOf(QUICKSTART, [1, 2, 3, 4, 5])
     expect(formatPlanTable(rows, HOME).split('\n').at(-1)).toBe('| phase5 | 5 | phase3, phase4 (merge) | wait for merge of phase4 |')
   })

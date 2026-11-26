@@ -21,7 +21,7 @@ blocked_by: []
 - parent_epic: 親 Epic を `owner/repo/number` で指定（推奨）
 - blocked_by: このフェーズの着手を止める前提の一覧。前提が無ければ `[]` のまま
   - `issue` は、同じ一括投稿のファイルのキー（`suffix`）か、Issue 化済みのフェーズを指す `owner/repo/N`
-  - マージを待つ前提だけ、`wait: merge` と、前提の表の `理由` の文をそのまま写した `reason`（改行しない）を足す
+  - スタック不可の前提だけ、`wait: merge` と、前提の表の `理由` の文をそのまま写した `reason`（改行しない）を足す
   ```yaml
   blocked_by:
     - issue: phase3

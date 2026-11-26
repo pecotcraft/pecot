@@ -619,7 +619,7 @@ describe('issue create', () => {
       expect(workflowWrites(github)).toMatchObject([{ optionId: 'o3' }, { optionId: 'o7' }])
     })
 
-    it('前提を持つ Issue の本文には、マージを待つ前提の節だけを書く', async () => {
+    it('前提を持つ Issue の本文には、スタック不可の前提の節だけを書く', async () => {
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': taskFile('先頭'),

@@ -502,7 +502,7 @@ describe('w-issueize の手順', () => {
   it('Step 2 は、4 列の表が無い tasks.md の扱いを持つ', () => {
     const body = sectionBody(text, titleIndex(headings, '前提'))
     expect(body).toContain('4 列の表が無い tasks.md')
-    expect(body).toContain('種類はすべて「スタックできる」とする')
+    expect(body).toContain('種類はすべて「スタック可」とする')
     expect(body).toContain('表が無かった旨を伝える')
   })
 
@@ -513,9 +513,9 @@ describe('w-issueize の手順', () => {
     expect(body).toContain('前提の表と並べて')
   })
 
-  it('Step 3 は、前の版の tasks.md の「積める」を「スタックできる」と同じに扱う', () => {
+  it('Step 3 は、前の版の tasks.md の種類の名前を、スタック可・スタック不可と同じに扱う', () => {
     const body = sectionBody(text, titleIndex(headings, 'Issueとして作成'))
-    expect(body).toContain('「積める」は「スタックできる」と同じに扱う')
+    expect(body).toContain('「積める」と「スタックできる」は「スタック可」と、「マージを待つ」は「スタック不可」と同じに扱う')
   })
 
   it('Step 3 は、失敗しても作った Issue があれば呼び直さないと書く', () => {
@@ -571,7 +571,7 @@ function firstCodeBlock(body: string): string {
 }
 
 const TABLE_HEADER = '| Phase | 前提 | 種類 | 理由 |'
-const MERGE_EXAMPLES_HEADING = '「マージを待つ」になる例:'
+const MERGE_EXAMPLES_HEADING = '「スタック不可」になる例:'
 
 /**
 見出しの行の直後から空行までの行
@@ -684,13 +684,13 @@ describe('w-breakdown の手順', () => {
 
   it('渡す指示は、種類を決める 2 つの問いを、開発ブランチを基準に持つ', () => {
     const block = tasksBlock()
-    expect(block).toContain('前提の変更を、手元のブランチか試験環境で動かして、このフェーズの実装と確認ができる。このときは「スタックできる」')
-    expect(block).toContain('前提の変更が開発ブランチに入っていないと、手元のブランチと試験環境のどちらでも、このフェーズの実装か確認ができない。このときは「マージを待つ」')
+    expect(block).toContain('前提の変更を、手元のブランチか試験環境で動かして、このフェーズの実装と確認ができる。このときは「スタック可」')
+    expect(block).toContain('前提の変更が開発ブランチに入っていないと、手元のブランチと試験環境のどちらでも、このフェーズの実装か確認ができない。このときは「スタック不可」')
     expect(block).toContain('試験環境は、開発ブランチに入れる前の変更を動かして確かめる場所だ。プロジェクトの文書に、その場所で動かす手順があるときだけ使う。無いときは、手元のブランチだけで判断する。')
     expect(block).not.toContain('main に入っていない')
   })
 
-  it('マージを待つになる例は 3 つで、配られるもの・リリースの後・開発ブランチのワークフローを挙げる', () => {
+  it('スタック不可になる例は 3 つで、配られるもの・リリースの後・開発ブランチのワークフローを挙げる', () => {
     const examples = linesAfter(tasksBlock(), MERGE_EXAMPLES_HEADING)
     expect(examples).toHaveLength(3)
     expect(examples[0]).toContain('既定のブランチから配られるものを使う')
@@ -712,7 +712,7 @@ describe('w-breakdown の手順', () => {
     const body = sectionBody(text, checkStep())
     expect(body).toContain(`1. \`${TABLE_HEADER}\` の 4 列の表がある`)
     expect(body).toContain('2. `Phase` と `前提` が数字だけで、どれも tasks.md のフェーズの見出し（`## Phase <番号>:`）にある')
-    expect(body).toContain('3. `種類` の値が、どの行も「スタックできる」か「マージを待つ」')
+    expect(body).toContain('3. `種類` の値が、どの行も「スタック可」か「スタック不可」')
     expect(body).toContain('4. すべての行に `理由` がある')
   })
 
@@ -728,14 +728,14 @@ describe('w-breakdown の手順', () => {
     expect(body.match(/のコードブロックをもう一度そのまま貼/gu)).toHaveLength(2)
   })
 
-  it('マージを待つ行の理由が空のときは、ユーザーに確かめ、答えを main が理由のセルに書く', () => {
+  it('スタック不可の行の理由が空のときは、ユーザーに確かめ、答えを main が理由のセルに書く', () => {
     const body = sectionBody(text, checkStep())
     for (const word of ['開発ブランチに入っていないと進められない訳をユーザーに確かめる', 'エージェントが理由を作らない', 'ユーザーが答えた文を、main がその行の `理由` のセルにそのまま書く', 'tasks の工程はやり直さない', 'やり直しの回数に数えない']) expect(body).toContain(word)
     expect(body).not.toContain('main に入っていない')
   })
 
-  it('スタックできる行の理由が空のときは、tasks の工程をやり直す', () => {
-    expect(sectionBody(text, checkStep())).toContain('「スタックできる」の行の理由が空のとき')
+  it('スタック可の行の理由が空のときは、tasks の工程をやり直す', () => {
+    expect(sectionBody(text, checkStep())).toContain('「スタック可」の行の理由が空のとき')
   })
 
   it('analyze の案内は、確かめの Step の承認の文より後ろにある', () => {
@@ -826,7 +826,7 @@ describe('w-issueize の前提の表の読み方', () => {
     // 例の表の理由と、例の reason が同じ文
     const reason = exampleReason(step)
     expect(reason).toBeDefined()
-    expect(step).toContain(`| マージを待つ | ${reason ?? ''} |`)
+    expect(step).toContain(`| スタック不可 | ${reason ?? ''} |`)
   })
 
   it('reason を YAML に書くときは、表の \\| を戻してから、バックスラッシュと二重引用符を逃がし、改行しない', () => {
@@ -855,14 +855,14 @@ describe('前提の種類を決める文', () => {
     'skills/w-ready/SKILL.md',
     'skills/w-help/references/issue-flow-rules.md',
     'skills/w-help/references/spec-driven-workflow.md',
-  ])('%s は、スタックできる・マージを待つの文に、試験環境の句を持つ', (file) => {
+  ])('%s は、スタック可・スタック不可の文に、試験環境の句を持つ', (file) => {
     const text = readPluginFile(file)
     expect(text).toContain(STACK_PHRASE)
     expect(text).toContain(MERGE_PHRASE)
   })
 
-  it('issue-flow-rules の merge の説明は、プラグインをマージを待つ例に挙げない', () => {
-    const line = readPluginFile('skills/w-help/references/issue-flow-rules.md').split('\n').find(text => text.startsWith('- `merge`（マージを待つ）'))
+  it('issue-flow-rules の merge の説明は、プラグインをスタック不可の例に挙げない', () => {
+    const line = readPluginFile('skills/w-help/references/issue-flow-rules.md').split('\n').find(text => text.startsWith('- `merge`（スタック不可）'))
     expect(line).toBeDefined()
     expect(line).not.toContain('プラグイン')
   })
