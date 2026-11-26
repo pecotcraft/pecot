@@ -20,28 +20,21 @@
  *
  *   ( cd plugins/pecot-visual && pnpm --filter @pecot/pecotv-cli run build )
  *
- * 変換は、次のコマンドで行う。
+ * 変換は、build した MCP サーバ（`cli/dist/main.js`）の `slide_convert` を呼んで行う。
+ * 引数は `project_dir`・`cache: false`・`out_path: .pecot/work/<Issue 番号>/before/deck.pptx` にする。
  *
- *   node plugins/pecot-visual/cli/dist/cli.js slide convert <project-dir> \
- *
- *     --no-cache --out .pecot/work/<Issue 番号>/before/deck.pptx
- *
- * `--no-cache` を付けて、キャッシュを読まずに全 slide を変換する。
- * before / after で project-dir と他のオプションを揃える。
+ * `cache: false` で、キャッシュを読まずに全 slide を変換する。
+ * before / after で project_dir と他の引数を揃える。
  * 揃えないと、バージョン差と設定差を区別できなくなる。
  *
  * # after の取り方
  *
- * 依存を更新した checkout で、同じ project-dir・同じオプションで変換する。
+ * 依存を更新した checkout で、同じ project_dir・同じ引数で変換する（`out_path` だけ after にする）。
  * build には、before と同じく `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` を付ける。
  *
  *   ( cd plugins/pecot-visual && pnpm install --frozen-lockfile )
  *
  *   ( cd plugins/pecot-visual && pnpm --filter @pecot/pecotv-cli run build )
- *
- *   node plugins/pecot-visual/cli/dist/cli.js slide convert <project-dir> \
- *
- *     --no-cache --out .pecot/work/<Issue 番号>/after/deck.pptx
  *
  * 変換の所要は、51 slide の deck で 1 回あたり 47 秒前後（#1062 の測定値）。
  *

@@ -26,10 +26,8 @@ export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 # nx 経由の実行と直接の実行で挙動が割れる罠を予防的に塞ぐため、除去する。run-tests.sh と対称の処理。
 unset FORCE_COLOR
 
-# pnpm 起動コマンドの解決は bin/_lib.sh の resolve_pnpm に一本化している。
-# run-tests.sh、run-lint.sh、publish-mcp-dist.sh も同じ関数を使う。
-# shellcheck source=../../bin/_lib.sh
-. "$PECOTV_PLUGIN_ROOT/bin/_lib.sh"
+# shellcheck source=pnpm-lib.sh
+. "$PECOTV_PLUGIN_ROOT/scripts/ci/pnpm-lib.sh"
 
 PNPM="$(resolve_pnpm "$PECOTV_PLUGIN_ROOT")"
 if [ -z "$PNPM" ]; then

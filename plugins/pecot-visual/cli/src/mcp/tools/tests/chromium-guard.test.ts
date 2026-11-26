@@ -36,7 +36,6 @@ const drawioExportTool = withOutputCheck(drawioExportDefinition)
 
 // src/mcp/tools/tests → cli/
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..')
-// cli/ → plugins/pecot-visual (既定 deps ファクトリが要求する CLAUDE_PLUGIN_ROOT)
 const PLUGIN_ROOT = path.resolve(CLI_ROOT, '..')
 const ICON_ROOT = path.join(PLUGIN_ROOT, 'assets', 'drawio-icons')
 const MINIMAL_DRAWIO = path.join(CLI_ROOT, 'tests', 'fixtures', 'drawio', 'minimal.drawio')
@@ -123,7 +122,6 @@ function createWorkDirectory(): string {
 }
 
 beforeEach(() => {
-  vi.stubEnv('CLAUDE_PLUGIN_ROOT', PLUGIN_ROOT)
   // ツール接続の観測に実ダウンロードを混ぜないよう、標準では opt-in を落としておく。
   vi.stubEnv('PECOTV_AUTO_INSTALL_BROWSER', '')
 })
@@ -225,7 +223,6 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
 
     expect(rejected?.ok).toBe(false)
     expect(rejected?.kind).toBe('chromium-install-failed')
-    // bin/pecotv の fatal メッセージと同じ誘導内容に揃える。
     const detail = String(rejected?.detail)
     expect(detail).toContain('HTTPS_PROXY')
     expect(detail).toContain('PLAYWRIGHT_DOWNLOAD_HOST')

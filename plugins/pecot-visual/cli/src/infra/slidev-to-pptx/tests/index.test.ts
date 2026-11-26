@@ -440,7 +440,7 @@ describe('InProcessSlidevPptxPipeline', () => {
     expect(receivedConfig?.logLevel).toBe('verbose')
   })
 
-  it('警告を process.stdout ではなく stderr の warning: 行に出す (slide convert --json の stdout を JSON 行だけにする)', async () => {
+  it('警告を process.stdout ではなく stderr の warning: 行に出す (標準出力を汚さない)', async () => {
     const stderr = makeStream()
     const isProcessStdoutWrite = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     try {

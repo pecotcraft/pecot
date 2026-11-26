@@ -1,11 +1,10 @@
 // Playwright Chromium の取得状態の判定と、取得の実行。
 //
-// `pecotv mcp` は、MCP クライアントの接続タイムアウトに収めるため、起動時に Chromium を取得しない。
+// MCP サーバは、MCP クライアントの接続タイムアウトに収めるため、起動時に Chromium を取得しない。
 // 接続タイムアウトは、Claude Code の MCP_TIMEOUT が既定 30000ms。
 // 取得は `runtime_setup` ツールを明示的に呼んだとき、または PECOTV_AUTO_INSTALL_BROWSER=1 のときにだけ動く。
 //
-// 通常の CLI 実行 (`pecotv drawio url` 等) の取得手段は bin/pecotv 側にあり、本モジュールは通らない。
-// 両者の「取得済みか」の判定基準は、Playwright が完了時に置く INSTALLATION_COMPLETE マーカーで揃える。
+// 「取得済みか」の判定基準は、Playwright が完了時に置く INSTALLATION_COMPLETE マーカーで揃える。
 
 import { existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -83,7 +82,6 @@ Chromium バイナリが取得済みかを判定する。
 見るのは、Playwright が取得完了時に置く INSTALLATION_COMPLETE マーカー。
 これは playwright-core の browserFetcher が完了判定に使うのと同じもの。
 ディレクトリの存在だけでは、展開先が先に作られるダウンロード途中の状態を、取得済みと誤判定する。
-bin/pecotv の bootstrap も同じマーカーを見る。
 
 判定に失敗したとき (playwright を解決できない・当該 platform 非対応) は、取得済み扱いで通す。
 誤検知で使える機能を塞ぐより、実際の起動失敗を各コマンドのエラーとして返す。その方が害は小さい。
@@ -121,18 +119,8 @@ export function resolvePlaywrightCli(): string {
 }
 
 /**
-bin/pecotv がバックグラウンド取得に使う専有ロックのパス。
-
-PECOTV_AUTO_INSTALL_BROWSER=1 の環境では、起動時のバックグラウンド取得とツール実行時の
-取得が同時に動き得る。同じロックファイルを同じ primitive (flock(2)) で取ることで、
-2 本目は 1 本目の完了を待ってから動く (待ったあとは Playwright 側が冪等に skip する)。
-
-置き場所は `${データ置き場}/runtime`（bin/pecotv と同じ場所。runtimeStateDirectory）。
-実行用ミラーを経ない形態（開発・単体配布）では、従来どおり依存ルートの node_modules
-(infra/_shared/dependency-root.ts)。
-実在するディレクトリが 1 つも無ければ undefined を返し、ロックなしで動く。
-flock(1) は親ディレクトリが無いとロックファイルを作れず exit 66 で終わる。
-そのため、場所が決まらないときにパスを組み立てて渡すと、取得そのものが必ず失敗する。
+Chromium の取得を直列にする flock のロックのパス。置き場が決まらなければ undefined を返し、ロック無しで動く。
+flock(1) は親ディレクトリが無いと exit 66 で終わるので、決まらない場所のパスを組み立てない。
 */
 export function installLockPath(): string | undefined {
   const stateDirectory = stateFileDirectory()
@@ -156,8 +144,8 @@ export interface InstallChromiumOptions {
 既に取得済みでも Playwright 側が冪等に skip するため、呼び出し前の存在確認は不要。
 取得済み判定は、ダウンロード途中を弾く目的でのみ使う。
 
-flock(1) が使える環境では、bin/pecotv と同じロックファイル越しに実行する。
-これは、起動時のバックグラウンド取得との二重ダウンロードを避けるため。
+flock(1) が使える環境では、ロックファイル越しに実行する。
+二重ダウンロードを避けるため。
 包み方と待ち方は infra/_shared/flock.ts に置き、実行時依存の取得と揃える。
 
 env は利用者環境のものを引き継ぐ。

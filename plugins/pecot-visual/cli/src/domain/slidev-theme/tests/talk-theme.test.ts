@@ -167,7 +167,7 @@ describe('resolveTalkTheme の候補名とパス形式', () => {
       const error = await rejection()
       expect(error.reason).toBe('theme-none')
       expect(error.message).toContain('is a path')
-      expect(error.message).toContain('slide sync --theme <theme-spec>')
+      expect(error.message).toContain('slide_sync with theme: <theme-spec>')
       expect(error.message).not.toContain('add the theme to dependencies')
     },
   )
@@ -185,8 +185,6 @@ describe('resolveTalkTheme の失敗', () => {
     writeTalk('theme: slidev-theme-acme', { 'slidev-theme-acme': 'file:../acme' })
     const error = await rejection()
     expect(error.reason).toBe('theme-unlinked')
-    expect(error.message).toContain(`slide sync --dir ${state.talk} --node-modules-only`)
-    // MCP から読む場合の手順も、同じ文言に含める
     expect(error.message).toContain(`slide_sync with dir: ${state.talk}, node_modules_only: true`)
     expect(error.message).toContain(path.join(state.talk, 'node_modules', 'slidev-theme-acme'))
   })
@@ -214,11 +212,11 @@ describe('resolveTalkTheme の失敗', () => {
     expect(error.message).toContain('JSON')
   })
 
-  it('theme: none で pecot-theme.json も無ければ theme-none で、slide sync --theme を案内する', async () => {
+  it('theme: none で pecot-theme.json も無ければ theme-none で、slide_sync の theme を案内する', async () => {
     writeTalk('theme: none', { 'slidev-theme-acme': 'file:../acme' })
     const error = await rejection()
     expect(error.reason).toBe('theme-none')
-    expect(error.message).toContain('slide sync --theme <theme-spec>')
+    expect(error.message).toContain('slide_sync with theme: <theme-spec>')
   })
 
   it('theme: が無い slides.md も theme-none', async () => {
@@ -247,7 +245,7 @@ describe('resolveTalkTheme: pecot-theme.json を持つ dir', () => {
     const error = await rejection()
     expect(error.reason).toBe('theme-none')
     expect(error.message, 'テーマの dir だと伝えていない').toContain('it is a theme dir')
-    expect(error.message, '移行の案内を出している').not.toContain('slide sync --theme')
+    expect(error.message, '移行の案内を出している').not.toContain('slide_sync with theme')
   })
 
   it('theme: が名前付きなら、pecot-theme.json が talk-dir にあっても node_modules のテーマを使う', async () => {

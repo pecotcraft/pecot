@@ -810,7 +810,7 @@ _SLIDEV_BUILD = "build-slidev"
 _SLIDEV = "plugins/pecot-visual/assets/slidev/"
 
 
-@pytest.mark.parametrize("project_target", ["pecot-visual:test-cli", "pecot-visual:test-hooks"])
+@pytest.mark.parametrize("project_target", ["pecot-visual:test-cli"])
 def test_lane_that_runs_template_eslint_plugins_builds_them_first(
     resolved_targets: dict[str, dict], project_target: str
 ) -> None:
@@ -864,38 +864,23 @@ def test_cli_test_inputs_take_the_deck_lint_files_but_not_the_layouts(nx_bin: Pa
         assert not in_tests, f"eslint plugin のテストが inputs に入っている: {in_tests[:3]}"
 
 
-def test_hooks_test_inputs_take_validate_references_source_but_not_its_tests(nx_bin: Path) -> None:
-    """validate-references-check.test.sh は validate-references の dist を起動する (dist が無いと SKIP)。
-
-    hooks のテストが読むテーマは fixture テーマの references で、talk-dir へ複写して使う。
-    テーマの宣言は mirror-helper.sh の stub CLI が返すので、本体にテーマの宣言は無く、inputs にも入らない。
-    """
+def test_hooks_test_inputs_do_not_take_slidev_assets(nx_bin: Path) -> None:
+    """hooks のテストは eslint の規則を動かさない。PostToolUse の確かめは MCP のツールに移り、test-cli が確かめる (#795)。"""
     with allure.step("hooks の test の inputs のファイルを集める"):
         files = _target_inputs(nx_bin, "pecot-visual:test-hooks")["files"]
-        prefix = _SLIDEV + "scripts/eslint/validate-references/"
         attach_json(
             "pecot-visual:test-hooks の inputs の、判定に使う files",
-            [
-                f
-                for f in files
-                if f.startswith(_SLIDEV)
-                or "/fixtures/themes/" in f
-                or f.endswith("drawioGeometry.js")
-            ],
+            [f for f in files if f.startswith(_SLIDEV) or "/cli/tests/fixtures/" in f],
         )
-    with allure.step(
-        "validate-references のソースと fixture が入り、そのテストは入らないことを確かめる"
-    ):
-        assert prefix + "index.ts" in files
-        assert prefix + "lib/schema-validator.ts" in files
-        assert not [f for f in files if f.startswith(prefix + "tests/")]
-        assert _SLIDEV + "deck-lint.env.config.js" in files
-        assert (
-            "plugins/pecot-visual/cli/tests/fixtures/themes/with-declaration/references/plain.yaml"
-            in files
-        )
-        assert not [f for f in files if f.startswith(_SLIDEV + "templates/")]
-        assert not [f for f in files if f.endswith("utils/drawioGeometry.js")]
+
+    with allure.step("slidev の資産と fixture が入らず、node-runtime.ts が入ることを確かめる"):
+        assert not [
+            f for f in files if f.startswith(_SLIDEV) and not f.endswith("/package.json")
+        ]
+        assert not [
+            f for f in files if "/cli/tests/fixtures/" in f and not f.endswith("/package.json")
+        ]
+        assert "plugins/pecot-visual/cli/src/node-runtime.ts" in files
 
 
 # 版の文字列を出さない runtime コマンドの出力の形。lock のハッシュと、dpkg の「名前=版」の一覧。

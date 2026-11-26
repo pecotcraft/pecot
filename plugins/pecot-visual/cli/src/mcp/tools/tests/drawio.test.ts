@@ -1,7 +1,6 @@
 // drawio 系 MCP ツール (drawio_create / drawio_export) のハンドラ単体テスト。
 //
-// ハンドラは deps を内部で組み立てる。CLAUDE_PLUGIN_ROOT 未設定でサーバ起動が落ちないための設計。
-// そのため DI では差し替えられない。
+// ハンドラは deps を内部で組み立てるので、DI では差し替えられない。
 // 代わりに実 fixture・一時ディレクトリ・失敗注入 env (PECOTV_FORCE_PNG_FAIL / PECOTV_FORCE_SVG_FAIL) で分岐を作る。
 // 実 Chromium と embed.diagrams.net には到達しない。
 //
@@ -13,7 +12,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { ToolCallContext } from '../../server.js'
 import { isRecord } from '../../../../tests/_helpers/records.js'
@@ -30,7 +29,7 @@ const drawioExportTool = withOutputCheck(drawioExportDefinition)
 
 // src/mcp/tools/tests → cli/
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..')
-// cli/ → plugins/pecot-visual (既定 deps ファクトリが要求する CLAUDE_PLUGIN_ROOT)
+// cli/ → plugins/pecot-visual
 const PLUGIN_ROOT = path.resolve(CLI_ROOT, '..')
 const ICON_ROOT = path.join(PLUGIN_ROOT, 'assets', 'drawio-icons')
 const FIXTURES = path.join(CLI_ROOT, 'tests', 'fixtures', 'drawio')
@@ -72,10 +71,6 @@ function makeTemporaryDirectory(): string {
 // 取得済みの一時ディレクトリへ向けて、判定を固定する。
 // ガードそのものの検証は chromium-guard.test.ts が持つ。
 useInstalledChromiumCache()
-
-beforeEach(() => {
-  vi.stubEnv('CLAUDE_PLUGIN_ROOT', PLUGIN_ROOT)
-})
 
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -153,18 +148,7 @@ describe('drawio_create', () => {
 
     expect(result.isError).toBe(true)
     expect(structuredOf(result)).toMatchObject({ event: 'drawio.url.error', kind: 'input-not-found' })
-    expect(sentenceOf(result)).toContain('pecotv drawio url:')
-  })
-
-  it('CLAUDE_PLUGIN_ROOT 未設定でも例外を投げず ok:false を返す', async () => {
-    // 既定 deps ファクトリはここで throw する。ハンドラが捕まえ損ねると
-    // SDK が包む未捕捉例外になり、structuredContent が返らなくなる。
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', '')
-    const result = await drawioCreateTool.handler({ input_path: MINIMAL }, CALL)
-    const structured = structuredOf(result)
-
-    expect(structured).toHaveProperty('kind')
-    expect(sentenceOf(result)).toContain('CLAUDE_PLUGIN_ROOT')
+    expect(sentenceOf(result)).toContain('drawio_create:')
   })
 
   it('警告のある入力は、成功のまま警告本文を warnings に載せる', async () => {
@@ -326,37 +310,12 @@ describe('drawio_export', () => {
     expect(dataOf(empty)['sourceSha256']).not.toBe(dataOf(omitted)['sourceSha256'])
   })
 
-  it('CLAUDE_PLUGIN_ROOT 未設定でも既定の icons root は source 相対で解決する', async () => {
-    // 単体配布ルートの `node dist/cli.js` 直叩きに対応する fallback ルート。
-    const withEnvironment = await drawioExportTool.handler(
-      { input_path: ICON_RESOLVABLE, print_hash: true },
-      CALL,
-    )
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', '')
-    const withoutEnvironment = await drawioExportTool.handler(
-      { input_path: ICON_RESOLVABLE, print_hash: true },
-      CALL,
-    )
-
-    expect(structuredOf(withoutEnvironment)).not.toHaveProperty('kind')
-    expect(dataOf(withoutEnvironment)['sourceSha256']).toBe(dataOf(withEnvironment)['sourceSha256'])
-  })
-
-  it('CLAUDE_PLUGIN_ROOT を別ルートへ向けると既定の icons root もそちらへ移る', async () => {
-    // 本ファイルの PLUGIN_ROOT と source 相対 fallback の解決先は同一ディレクトリなので、
-    // env を無視する実装でも上の 3 本は通る。
-    // env を「icon カタログを持たない fake plugin root」へ向ける。
-    // 標準の icons root が env 側へ移る（= 1 件も解決できずハッシュが変わる）ことで、precedence を判別する。
+  it('CLAUDE_PLUGIN_ROOT を別ルートへ向けても、既定の icons root は同梱のまま', async () => {
+    // npx で起動したサーバに渡る CLAUDE_PLUGIN_ROOT は、アセットを持たない入れたプラグインのディレクトリを指す。
     const bundled = await drawioExportTool.handler(
       { input_path: ICON_RESOLVABLE, print_hash: true },
       CALL,
     )
-    // 「1 件も解決できない」ときのハッシュ。fake root の期待値をこちらで固定する。
-    const unresolvable = await drawioExportTool.handler(
-      { input_path: ICON_RESOLVABLE, icons_dir: makeTemporaryDirectory(), print_hash: true },
-      CALL,
-    )
-
     vi.stubEnv('CLAUDE_PLUGIN_ROOT', makeTemporaryDirectory())
     const fromFakeRoot = await drawioExportTool.handler(
       { input_path: ICON_RESOLVABLE, print_hash: true },
@@ -364,8 +323,7 @@ describe('drawio_export', () => {
     )
 
     expect(structuredOf(fromFakeRoot)).not.toHaveProperty('kind')
-    expect(dataOf(fromFakeRoot)['sourceSha256']).not.toBe(dataOf(bundled)['sourceSha256'])
-    expect(dataOf(fromFakeRoot)['sourceSha256']).toBe(dataOf(unresolvable)['sourceSha256'])
+    expect(dataOf(fromFakeRoot)['sourceSha256']).toBe(dataOf(bundled)['sourceSha256'])
   })
 
   it('print_hash:true は export と書き出しのどちらも行わずハッシュだけを返す', async (context) => {

@@ -7,7 +7,7 @@
 // 実 Chromium のダウンロードには到達しない。
 
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは mkdtemp で作った一時ディレクトリ配下のみ */
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -19,6 +19,7 @@ import {
   removeChromiumCacheDirectory,
   stubUnresolvableChromium,
 } from '../../../../tests/_helpers/chromium-cache.js'
+import { resetPluginRoot, stubPluginRoot } from '../../../../tests/_helpers/plugin-root-stub.js'
 import {
   browsersRoot,
   installChromium,
@@ -27,6 +28,11 @@ import {
   isChromiumInstalled,
   resolvePlaywrightCli,
 } from '../chromium.js'
+
+vi.mock('../../_shared/plugin-root.js', async (importOriginal) => {
+  const { pluginRootMock } = await import('../../../../tests/_helpers/plugin-root-stub.js')
+  return await pluginRootMock(importOriginal)
+})
 
 const temporaryDirectories: string[] = []
 
@@ -44,6 +50,7 @@ function createTemporaryDirectory(): string {
 
 afterEach(() => {
   vi.unstubAllEnvs()
+  resetPluginRoot()
   for (const directory of temporaryDirectories.splice(0)) removeChromiumCacheDirectory(directory)
 })
 
@@ -151,7 +158,7 @@ describe('installLockPath', () => {
 
   it('プラグインルート配下の node_modules が実在すればそこに置く', () => {
     const pluginRoot = createRootWithNodeModules()
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', pluginRoot)
+    stubPluginRoot(pluginRoot)
     vi.stubEnv('CLAUDE_PLUGIN_DATA', createTemporaryDirectory())
 
     expect(installLockPath()).toBe(path.join(pluginRoot, 'node_modules', '.pecotv-chromium-install.lock'))
@@ -160,67 +167,20 @@ describe('installLockPath', () => {
   it('プラグインルートに無く永続層だけにあれば、永続層側へ置く (単体配布)', () => {
     const data = createTemporaryDirectory()
     mkdirSync(path.join(data, 'mcp-dist', 'node_modules'), { recursive: true })
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', path.join(createTemporaryDirectory(), 'no-node-modules'))
+    stubPluginRoot(path.join(createTemporaryDirectory(), 'no-node-modules'))
     vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
 
     expect(installLockPath())
       .toBe(path.join(data, 'mcp-dist', 'node_modules', '.pecotv-chromium-install.lock'))
   })
 
-  it('PECOTV_RUNTIME_DIR の親（runtime/）があればそこに置く (bin/pecotv と同じ場所。node_modules の中には置かない)', () => {
-    // ミラーの node_modules はハードリンク複製で世代間に inode を共有するため、中に置くと食い違う。
-    const pluginRoot = createRootWithNodeModules()
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', pluginRoot)
-    const data = createTemporaryDirectory()
-    mkdirSync(path.join(data, 'runtime'))
-    vi.stubEnv('PECOTV_RUNTIME_DIR', path.join(data, 'runtime', 'abc-def'))
-
-    expect(installLockPath()).toBe(path.join(data, 'runtime', '.pecotv-chromium-install.lock'))
-  })
-
-  it('PECOTV_RUNTIME_DIR の親が無ければ、従来の node_modules を使う', () => {
-    const pluginRoot = createRootWithNodeModules()
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', pluginRoot)
-    vi.stubEnv('PECOTV_RUNTIME_DIR', path.join(createTemporaryDirectory(), 'runtime', 'abc-def'))
-
-    expect(installLockPath()).toBe(path.join(pluginRoot, 'node_modules', '.pecotv-chromium-install.lock'))
-  })
-
   it('どの依存ルートにも node_modules が無ければ undefined (ロックなしで動く)', () => {
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', '')
+    stubPluginRoot(createTemporaryDirectory())
     vi.stubEnv('CLAUDE_PLUGIN_DATA', createTemporaryDirectory())
 
     expect(installLockPath()).toBeUndefined()
   })
 
-  it('bin/pecotv がバックグラウンド取得に使うロックと同じパスを指す', () => {
-    // 片側だけ動かすと、2 つの取得が別々のロックを取り、同じ chromium を二重にダウンロードする。
-    // bash 側は $PLUGIN_ROOT からの相対で組み立てている。
-    // そのため、その断片と一致するかを確かめる。
-    // src/infra/playwright/tests → cli/ → plugins/pecot-visual
-    const pluginRoot = path.resolve(import.meta.dirname, '..', '..', '..', '..', '..')
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', pluginRoot)
-    const data = createTemporaryDirectory()
-    mkdirSync(path.join(data, 'runtime'))
-    vi.stubEnv('PECOTV_RUNTIME_DIR', path.join(data, 'runtime', 'abc-def'))
-    const fromBash = readBinPecotvLockPath(path.join(pluginRoot, 'bin', 'pecotv'))
-
-    expect(installLockPath()).toBe(path.join(data, 'runtime', fromBash))
-  })
-})
-
-/**
-bin/pecotv の CHROMIUM_INSTALL_LOCK 定義から ${RUNTIME_BASE}（`${データ置き場}/runtime`）以降のファイル名を取り出す。
-*/
-function readBinPecotvLockPath(binPath: string): string {
-  const source = readFileSync(binPath, 'utf8')
-  const matched = /^\s*CHROMIUM_INSTALL_LOCK="\$RUNTIME_BASE\/(?<relative>[^"]+)"$/m.exec(source)
-  const relative = matched?.groups?.['relative']
-  if (relative === undefined) throw new Error('bin/pecotv に CHROMIUM_INSTALL_LOCK の定義が見つかりません')
-  return relative
-}
-
-describe('resolvePlaywrightCli', () => {
   it('playwright パッケージ root 直下の cli.js を指す', () => {
     expect(resolvePlaywrightCli()).toMatch(/[/\\]playwright[/\\]cli\.js$/)
   })
@@ -237,12 +197,10 @@ function writeFakeCli(body: string): string {
 }
 
 /**
-flock(1) を通すためのロック置き場 (CLAUDE_PLUGIN_ROOT/node_modules)。
+flock(1) を通すためのロック置き場（プラグインルートの node_modules）。
 */
-function stubPluginRoot(): void {
-  const root = createTemporaryDirectory()
-  mkdirSync(path.join(root, 'node_modules'))
-  vi.stubEnv('CLAUDE_PLUGIN_ROOT', root)
+function stubLockRoot(): void {
+  stubPluginRoot(createRootWithNodeModules())
 }
 
 describe('installChromium', () => {
@@ -278,7 +236,7 @@ describe('installChromium', () => {
   })
 
   it('取得コマンドを起動し、その stdout / exit code をそのまま返す', async () => {
-    stubPluginRoot()
+    stubLockRoot()
     const cliPath = writeFakeCli('process.stdout.write(process.argv.slice(2).join(" "))\n')
 
     const result = await installChromium({ resolveCli: () => cliPath })
@@ -289,7 +247,7 @@ describe('installChromium', () => {
   })
 
   it('取得コマンドの失敗をそのまま返す', async () => {
-    stubPluginRoot()
+    stubLockRoot()
     const cliPath = writeFakeCli('process.stderr.write("download failed\\n"); process.exit(1)\n')
 
     const result = await installChromium({ resolveCli: () => cliPath })
@@ -300,7 +258,7 @@ describe('installChromium', () => {
 
   it('NODE_EXTRA_CA_CERTS が未設定なら未設定のまま取得プロセスへ渡す', async () => {
     // pecot は証明書を足さない。空文字とも区別して、子が受け取った値そのものを見る。
-    stubPluginRoot()
+    stubLockRoot()
     vi.stubEnv('NODE_EXTRA_CA_CERTS', undefined)
     const cliPath = writeFakeCli('process.stdout.write(process.env.NODE_EXTRA_CA_CERTS ?? "<unset>")\n')
 
@@ -311,7 +269,7 @@ describe('installChromium', () => {
 
   it('NODE_EXTRA_CA_CERTS が設定済みならその値のまま渡す', async () => {
     // 利用者の値を pecot が書き換えないことを確かめる。
-    stubPluginRoot()
+    stubLockRoot()
     vi.stubEnv('NODE_EXTRA_CA_CERTS', '/etc/ssl/corp.pem')
     const cliPath = writeFakeCli('process.stdout.write(process.env.NODE_EXTRA_CA_CERTS ?? "<unset>")\n')
 
@@ -322,7 +280,7 @@ describe('installChromium', () => {
 
   it('signal が abort されたら子プロセスを打ち切る', async () => {
     // 配線していないと、クライアントが諦めたあとも取得が続き、ロックを保持し続ける。
-    stubPluginRoot()
+    stubLockRoot()
     const cliPath = writeFakeCli('setTimeout(() => {}, 60_000)\n')
     const result = await installChromium({ resolveCli: () => cliPath, signal: AbortSignal.timeout(50) })
 
@@ -333,7 +291,7 @@ describe('installChromium', () => {
   it('abort 済みの signal を渡されたら起動直後に打ち切る', async () => {
     // abort 済みの signal に後からリスナを足しても発火しない。
     // 現在値を先に見ていないと、クライアントが既に諦めた要求で 120MB の取得が最後まで続く。
-    stubPluginRoot()
+    stubLockRoot()
     const cliPath = writeFakeCli('setTimeout(() => {}, 60_000)\n')
 
     const result = await installChromium({ resolveCli: () => cliPath, signal: AbortSignal.abort() })

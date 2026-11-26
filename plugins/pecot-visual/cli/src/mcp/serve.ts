@@ -1,4 +1,4 @@
-// `pecotv mcp` — MCP サーバとして stdio で待ち受ける実装。
+// MCP サーバとして stdio で待ち受ける実装。
 //
 // 配置が src/commands/ ではなく src/mcp/ なのは ESLint の依存方向制約
 // (commands → mcp の import 禁止) による。cli.ts はどの zone の target でもないため、
@@ -133,7 +133,7 @@ export interface McpServeDependencies {
 dev サーバの後始末を終了ルートへ接続する。
 
 子を kill しない限り親は終了できない。stdio パイプを持つ子プロセスハンドルが Node の
-イベントループを保持するため、stdin の EOF で server.close() を呼んでも `pecotv mcp` が
+イベントループを保持するため、stdin の EOF で server.close() を呼んでも MCP サーバのプロセスが
 残り続ける。接続は「孤児を残さないため」だけでなく「親が終われるようにするため」にも要る。
 
 SIGTERM / SIGINT はハンドラを登録した時点で既定の即終了が無効になるので、明示的に exit する。
@@ -216,10 +216,9 @@ export function runMcpServe(dependencies: Readonly<McpServeDependencies>): Stdio
 }
 
 /**
-`pecotv mcp` の action 本体。
+MCP サーバの起動の実行本体。
 
-program.parse は action の Promise を await しない。
-そのため例外はここで捕まえて process.exitCode へ載せる (unhandled rejection にしない)。
+例外はここで捕まえて process.exitCode へ載せる (unhandled rejection にしない)。
 */
 export function executeMcpServe(buildDependencies: () => McpServeDependencies): void {
   const dependencies = buildDependencies()

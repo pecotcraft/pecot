@@ -1,5 +1,5 @@
 // talk-dir の package.json を生成する。
-// テーマを 1 つ参照する package.json を作る（slide create と、slide sync のテーマへの移行）。
+// テーマを 1 つ参照する package.json を作る（slide_create と、slide_sync のテーマへの移行）。
 
 export interface TalkPackageJsonInput {
   /**
@@ -17,7 +17,7 @@ export interface TalkPackageJsonInput {
 }
 
 /**
-slide create が生成する package.json の全文を返す。
+slide_create が生成する package.json の全文を返す。
 依存はテーマ 1 つだけで、そのほかの依存は実行用ミラーの node_modules から張る。
 */
 export function talkPackageJsonSource(input: Readonly<TalkPackageJsonInput>): string {

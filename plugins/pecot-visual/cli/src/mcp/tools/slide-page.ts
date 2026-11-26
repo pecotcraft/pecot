@@ -218,8 +218,8 @@ function isAlreadyExistsError(error: unknown): boolean {
 type ReferenceReader = (file: string) => Promise<string>
 
 /**
-テーマの解決・宣言の失敗を、slide_page の失敗応答にする。reason は `slide theme` と同じ。
-復旧の案内（CLI と MCP の両方の手順）は、例外の文言が持つ。
+テーマの解決・宣言の失敗を、slide_page の失敗応答にする。reason は slide_theme と同じ。
+復旧の案内は、例外の文言が持つ。
 */
 function themeFailure(error: unknown): FailedToolResult {
   return failure(slideThemeErrorToReason(error), formatError(error))
@@ -337,7 +337,7 @@ async function generatePage(
       reference: referenceText,
       includes: included.includes,
     },
-    message: `slide page: generated (${target})`
+    message: `slide_page: generated (${target})`
       + '; fill in the content following props / text_constraints in reference, '
       + `then register "src: ./pages/${file.filename}" in slides.md separately`,
   }

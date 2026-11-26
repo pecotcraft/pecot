@@ -82,7 +82,7 @@ describe('slide_theme の成功', () => {
 
     const structured = structuredOf(result)
     expect(structured).not.toHaveProperty('kind')
-    expect(sentenceOf(result)).toBe(`slide theme: ${THEME_NAME} (8 layouts)`)
+    expect(sentenceOf(result)).toBe(`slide_theme: ${THEME_NAME} (8 layouts)`)
     expect(result.isError).toBeUndefined()
 
     const data = dataOf(result)
@@ -154,13 +154,13 @@ describe('slide_theme の失敗', () => {
     const data = dataOf(result)
     expect(data['event']).toBe('slide.theme.error')
     expect(data['kind']).toBe('theme-unlinked')
-    expect(data['detail']).toEqual(expect.stringContaining('--node-modules-only'))
+    expect(data['detail']).toEqual(expect.stringContaining('node_modules_only'))
     expect(sentenceOf(result)).toEqual(expect.stringContaining('slide_sync'))
     // 張り直しと取得をしないので、node_modules は作られない。
     expect(snapshotTree(talk)).toEqual(before)
   })
 
-  it('theme: none で宣言も無ければ theme-none で、slide sync --theme を案内する', async (context) => {
+  it('theme: none で宣言も無ければ theme-none で、slide_sync の theme を案内する', async (context) => {
     await verifies(context, 'PV-SLIDE-THEME-03')
     const talk = makeTalk({ theme: 'none' })
     const result = await tool.handler({ dir: talk }, CALL)
@@ -168,7 +168,7 @@ describe('slide_theme の失敗', () => {
     expect(structuredOf(result)).toHaveProperty('kind')
     const data = dataOf(result)
     expect(data['kind']).toBe('theme-none')
-    expect(data['detail']).toEqual(expect.stringContaining('slide sync --theme <theme-spec>'))
+    expect(data['detail']).toEqual(expect.stringContaining('slide_sync with theme: <theme-spec>'))
   })
 
   it('宣言の誤りは theme-<reason> で返す', async () => {

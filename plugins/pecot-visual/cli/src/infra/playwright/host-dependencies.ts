@@ -1,9 +1,9 @@
 // Playwright Chromium が起動するのに要る OS の共有ライブラリの確認と導入 (#1217)。
 //
 // Chromium の実行ファイルは `playwright install chromium` で取得できるが、それが読み込む
-// libatk / libpango 等の OS ライブラリは入らない。利用環境に無ければ drawio export / url の
-// PNG 出力と slide convert が起動時に失敗する。利用者に手作業をさせないため、bootstrap と
-// MCP の `runtime_setup` ツールがここを通り、足りなければ自分で入れる。
+// libatk / libpango 等の OS ライブラリは入らない。利用環境に無ければ drawio_export / drawio_create の
+// PNG 出力と slide_convert が起動時に失敗する。利用者に手作業をさせないため、
+// `runtime_setup` ツールがここを通り、足りなければ自分で入れる。
 //
 // 入れるのは共有ライブラリだけにする。
 // `playwright install-deps` は、フォント (fonts-wqy-zenhei 等) と headed 用の X サーバ (xvfb 等) も入れる。
@@ -45,11 +45,11 @@ apt-get が dpkg / apt のロックを待つ秒数。並行起動した apt-get 
 const APT_LOCK_TIMEOUT_SECONDS = 120
 
 /**
-確認の結果を記録する印のファイル名。`${データ置き場}/runtime` 直下（bin/pecotv と同じ場所）に置く。
+確認の結果を記録する印のファイル名。`${データ置き場}/runtime` 直下に置く。
 実行用ミラーを経ない形態（開発・単体配布）では、従来どおり依存ルートの node_modules 直下。
 
 中身は 1 行 `<chromium のリビジョン> <ok|missing|launch-failed> <記録時の epoch 秒>`。
-bin/pecotv は、リビジョンが一致し、かつ ok か (失敗系なら) 記録から 1 日以内であれば
+リビジョンが一致し、かつ ok か (失敗系なら) 記録から 1 日以内であれば
 確認を飛ばす。リビジョンを含めるので、Playwright を上げて Chromium が変わったときは
 改めて確認が動く。失敗も記録するのは、確認に通らない環境で起動のたびに確認と警告が
 動き続けないため。
@@ -204,7 +204,7 @@ export function hostDependenciesDefaultDependencies(): HostDependencies {
     nodePath: process.execPath,
     record: recordHostDependenciesResult,
     notify: () => {
-      // デフォルトでは通知しない。stderr へ出す呼び出し元 (pecotv chromium host-deps) が差し替える。
+      // デフォルトでは通知しない。
     },
   }
 }

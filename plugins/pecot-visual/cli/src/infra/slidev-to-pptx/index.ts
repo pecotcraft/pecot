@@ -80,7 +80,7 @@ export class InProcessSlidevPptxPipeline implements SlidevPptxPipeline {
       skipPostprocess: arguments_.skipPostprocess === true,
       // 1 パス方式（#1141 で試作、#1147 で既定 on）。
       // env の解釈の基準はここで、pipeline は config だけを見る。
-      // `slide convert --no-single-pass`（arguments_.singlePass === false）なら off。
+      // arguments_.singlePass === false なら off。
       // env `PECOTV_SINGLE_PASS=0` でも off。env が `0` 以外の値、または未設定なら on。
       singlePass: arguments_.singlePass !== false && process.env['PECOTV_SINGLE_PASS'] !== '0',
       ...singlePassConcurrencyFromEnvironment(process.env['PECOTV_SINGLE_PASS_CONCURRENCY']),

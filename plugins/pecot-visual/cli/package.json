@@ -5,6 +5,9 @@
   "license": "MIT",
   "//slidev-parser-pin-reason": "@slidev/parser は @slidev/cli が引き込む版と同じに固定する。pptx 差分キャッシュの slideHash がずれるため。",
   "type": "module",
+  "bin": {
+    "pecot-visual-mcp": "dist/main.js"
+  },
   "engines": {
     "node": "^24.22.1 || >=26.12.1"
   },
@@ -22,7 +25,7 @@
     "test": "vitest run --coverage",
     "test:watch": "vitest",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
-    "dev": "tsx src/cli.ts"
+    "dev": "tsx src/main.ts"
   },
   "dependencies": {
     "@pecot/text-rules": "workspace:@pecot/text-rules-src@*",
@@ -30,7 +33,6 @@
     "@slidev/cli": "^53.1.0",
     "@slidev/parser": "53.1.0",
     "@xmldom/xmldom": "^0.9.12",
-    "commander": "^15.1.0",
     "dom-to-pptx": "2.1.2",
     "mime-types": "^2.1.35",
     "playwright": "^1.65.0",
@@ -41,6 +43,9 @@
     "zod": "^4.6.7"
   },
   "knip": {
+    "entry": [
+      "tests/_helpers/mcp-tool-call.ts"
+    ],
     "project": [
       "src/**/*.ts",
       "tests/**/*.ts",

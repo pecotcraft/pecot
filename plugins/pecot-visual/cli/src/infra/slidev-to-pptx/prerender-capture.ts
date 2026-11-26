@@ -134,7 +134,7 @@ export async function captureAndReplaceElements(request: Readonly<CaptureRequest
   boundingBox() が throw した要素でも、hiRes 側の screenshot は成功し得る。
   そのため、同じ fileIndex に別文言で 2 件積む場合がある。
   1 件は Phase 1 の catch（`boundingBox取得失敗: …`）、もう 1 件は Phase 3 の `!box`（`boundingBox is null`）。
-  `--json` の errors[] は要素単位の一覧として読まれるので、先に確定した具体的な理由だけ残す。
+  errors[] は要素単位の一覧として読まれるので、先に確定した具体的な理由だけ残す。
   診断用の warn ログは各分岐でそのまま出す（重複の抑止対象は results だけ）。
   */
   const failedIndexes = new Set<number>()

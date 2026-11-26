@@ -253,7 +253,7 @@ describe('runMcpServe', () => {
       expect(harness.servers[0]?.isConnected()).toBe(false)
     })
     // 子の stdio パイプがイベントループを保持するため、dev サーバを落とさないと
-    // 接続を閉じるだけでは `pecotv mcp` が自力終了できない。
+    // 接続を閉じるだけでは サーバが自力終了できない。
     expect(harness.shutdownDevServers).toHaveBeenCalled()
     await harness.client.close()
   })

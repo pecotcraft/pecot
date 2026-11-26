@@ -18,7 +18,6 @@ import { isSelfExecuted } from './self-exec.mjs'
 const RUNTIME_DEPS = [
   '@modelcontextprotocol/server',
   '@xmldom/xmldom',
-  'commander',
   'mime-types',
   'playwright',
   'xpath',
@@ -117,6 +116,13 @@ export function buildDistManifest(rawPecotvRoot, version, rawRepoRoot) {
     throw new Error('cli/package.json に engines.node がありません')
   }
 
+  // 配布ツリーは cli/ の下に cli/dist を置くので、cli/package.json の bin の各値に cli/ を付ける。
+  const cliBin = cliManifest.bin
+  if (cliBin === null || typeof cliBin !== 'object' || Object.keys(cliBin).length === 0) {
+    throw new Error('cli/package.json に bin がありません')
+  }
+  const bin = Object.fromEntries(Object.entries(cliBin).map(([name, target]) => [name, path.posix.join('cli', target)]))
+
   return {
     name: '@pecot/visual-mcp',
     version,
@@ -124,7 +130,7 @@ export function buildDistManifest(rawPecotvRoot, version, rawRepoRoot) {
     description: 'pecotv MCP server (standalone distribution)',
     license: 'MIT',
     repository: { type: 'git', url: 'git+https://github.com/pecotcraft/pecot.git', directory: 'plugins/pecot-visual' },
-    bin: { 'pecot-visual-mcp': 'bin/pecot-visual-mcp.mjs' },
+    bin,
     engines: { node: engineNode },
     dependencies: mergeDependencies([
       { origin: 'cli/package.json', dependencies: pick(cliManifest.dependencies, RUNTIME_DEPS, 'cli/package.json dependencies') },

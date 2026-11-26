@@ -141,7 +141,7 @@
 
 - **Decision**: `.githooks/scripts/test_report/report-lanes.json` を、レーンの 1 か所の定めにする。nx の `test-*` の target を全部並べ、レポートに入れるレーンには結果のディレクトリを、入れないレーンには理由を書く
 
-  | 入れるレーン（23） | 道具 |
+  | 入れるレーン（22） | 道具 |
   |---|---|
   | `pecot-workflow:test-cli`・`test-hooks`・`test-skills` | vitest |
   | `pecot-visual:test-cli`（e2e を含む） | vitest |
@@ -152,7 +152,7 @@
   | `interface-spec:test-site` | vitest |
   | `githooks:test-nx-cache`・`test-nx-affected`・`test-ci`・`test-checks` | pytest |
   | `pecot-visual:test-slidev`・`nx-release:test-unit` | vitest（`node --test` から移した。#809） |
-  | pecot-workflow・pecot-visual の `test-bootstrap`、各プラグインの `test-release`、pecot-visual の `test-hooks`・`test-compare`・`test-skills` | bash（`bash-test.sh` が結果を書く。#810） |
+  | pecot-workflow の `test-bootstrap`、各プラグインの `test-release`、pecot-visual の `test-hooks`・`test-compare`・`test-skills` | bash（`bash-test.sh` が結果を書く。#810） |
 
   入れないレーンは、今は無い。
 

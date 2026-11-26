@@ -1,12 +1,11 @@
-// Issue #924 — `pecotv evidence create` を実 CLI プロセスとして通す e2e。
+// Issue #924 — evidence_create を実サーバプロセス（dist/main.js）へ MCP で呼ぶ e2e。
 //
-// integration test は in-process (parseAsync) で command を呼ぶ。
-// そのため bin/pecotv → node dist/cli.js の起動手順と、`--out` を相対パスで渡したときの cwd 基準の解決は、
+// integration test は in-process で execute を呼ぶ。
+// そのため dist からの起動と MCP 越しの引数の受け渡しは、
 // この流れでしか観測できない。
 // ヘッダー・キャプション・並び順 (US3) の指定が実プロセスの出力 xlsx まで届くことを、生成物の中身まで見て確かめる。
 
 /* eslint-disable security/detect-non-literal-fs-filename */
-import { spawnSync } from 'node:child_process'
 import {
   existsSync,
   readdirSync,
@@ -18,7 +17,8 @@ import path from 'node:path'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { attachFile, attachOutput } from '../_helpers/attach.js'
+import { attachFile } from '../_helpers/attach.js'
+import { spawnToolSync } from '../_helpers/pecotv-e2e-run.js'
 import { buildPng } from '../_helpers/image-fixture.js'
 import {
   inlineStringTexts,
@@ -32,10 +32,9 @@ import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 
 const HERE = import.meta.dirname
 const CLI_TS_ROOT = path.resolve(HERE, '..', '..')
-const PLUGIN_ROOT = path.resolve(CLI_TS_ROOT, '..')
-const BIN_PECOTV = path.resolve(PLUGIN_ROOT, 'bin', 'pecotv')
+
 const CLI_TS_SOURCE = path.join(CLI_TS_ROOT, 'src')
-const CLI_TS_DIST = path.join(CLI_TS_ROOT, 'dist', 'cli.js')
+const CLI_TS_DIST = path.join(CLI_TS_ROOT, 'dist', 'main.js')
 
 interface RunResult {
   readonly status: number | null
@@ -67,20 +66,16 @@ function assertBuiltCliIsFresh(): void {
 }
 
 /**
-bin/pecotv を cwd 指定で起動する。
-bootstrap (pnpm install / build) は run-tests.sh が済ませているので、PECOTV_BOOTSTRAP_SKIP=1 でそのまま通す。
-これで観測対象を CLI 本体に絞る。
+ツールを cwd 指定で起動する。観測対象をサーバ本体に絞るため、build は事前に済ませておく。
 */
 function runPecotv(arguments_: readonly string[], cwd: string): RunResult {
-  const result = spawnSync(BIN_PECOTV, [...arguments_], {
+  const result = spawnToolSync(arguments_, {
     cwd,
-    env: { ...process.env, PECOTV_BOOTSTRAP_SKIP: '1' },
     encoding: 'utf8',
     timeout: 60_000,
   })
   const stdout = typeof result.stdout === 'string' ? result.stdout : ''
   const stderr = typeof result.stderr === 'string' ? result.stderr : ''
-  attachOutput(['pecotv', ...arguments_].join(' '), result.status ?? undefined, stdout, stderr)
   return { status: result.status, stdout, stderr }
 }
 
@@ -97,8 +92,8 @@ afterAll(() => {
   }
 })
 
-describe('pecotv evidence create の実プロセス実行', () => {
-  it('指定順・caption 混在・複数ヘッダーの xlsx を cwd 基準の --out に書き出す', async () => {
+describe('evidence_create の実プロセス実行', () => {
+  it('指定順・caption 混在・複数ヘッダーの xlsx を out に書き出す', async () => {
     // caption は 2 件目だけファイル名の stem と異なる文言を明示し、明示と補完 (FR-004) を
     // 判別できるようにする。
     const shots = [
@@ -124,7 +119,7 @@ describe('pecotv evidence create の実プロセス実行', () => {
     }), 'utf8')
 
     const result = runPecotv(
-      ['evidence', 'create', '--input', specPath, '--out', 'evidence.xlsx', '--json'],
+      ['evidence', 'create', '--input', specPath, '--out', workDirectory('evidence.xlsx')],
       workDirectory(),
     )
     await attachFile('エビデンスの xlsx', workDirectory('evidence.xlsx'))
@@ -132,7 +127,7 @@ describe('pecotv evidence create の実プロセス実行', () => {
     expect(result.status).toBe(0)
     const event = readSingleJsonEvent(result.stdout)
     expect(event['event']).toBe('result')
-    // 相対 --out は起動時の cwd を基準に絶対パス化して報告される (FR-007)。
+    // 報告される outPath は指定した絶対パスと一致する (FR-007)。
     expect(event['outPath']).toBe(workDirectory('evidence.xlsx'))
     expect(event['items']).toBe(3)
     expect(event['skipped']).toStrictEqual([])

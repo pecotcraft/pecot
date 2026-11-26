@@ -9,10 +9,16 @@ import { createMcpServer, MCP_SERVER_NAME, type ToolCallContext, type ToolDefini
 import { isRecord } from '../../../tests/_helpers/records.js'
 import { rejectionOf } from '../../../tests/_helpers/rejection.js'
 import { verifies } from '../../../tests/_helpers/verifies.js'
+import { resetPluginRoot, stubPluginRoot } from '../../../tests/_helpers/plugin-root-stub.js'
 import { closeMcp, connectMcp, PROTOCOL_ERAS } from './_client.js'
 
+vi.mock('../../infra/_shared/plugin-root.js', async (importOriginal) => {
+  const { pluginRootMock } = await import('../../../tests/_helpers/plugin-root-stub.js')
+  return await pluginRootMock(importOriginal)
+})
+
 /**
-CLAUDE_PLUGIN_ROOT を既知 version の plugin.json に向けて function_ を実行する。
+プラグインルートを既知 version の plugin.json に向けて function_ を実行する。
 */
 async function withPluginRoot(version: string, function_: () => void | Promise<void>): Promise<void> {
   const root = mkdtempSync(path.join(tmpdir(), 'pecotv-test-plugin-root-'))
@@ -22,19 +28,12 @@ async function withPluginRoot(version: string, function_: () => void | Promise<v
   // path is constructed from tmpdir() and a known suffix.
   // eslint-disable-next-line security/detect-non-literal-fs-filename
   writeFileSync(path.join(root, '.claude-plugin', 'plugin.json'), JSON.stringify({ name: 'pecot-v', version }))
-  const previous = process.env['CLAUDE_PLUGIN_ROOT']
-  process.env['CLAUDE_PLUGIN_ROOT'] = root
+  stubPluginRoot(root)
   try {
     await function_()
   }
   finally {
-    if (previous === undefined) {
-      // interface-env: none
-      Reflect.deleteProperty(process.env, 'CLAUDE_PLUGIN_ROOT')
-    }
-    else {
-      process.env['CLAUDE_PLUGIN_ROOT'] = previous
-    }
+    resetPluginRoot()
     rmSync(root, { recursive: true, force: true })
   }
 }
@@ -277,6 +276,57 @@ describe('createMcpServer', () => {
       // 経過時間 (delay(20) 2 件で 40ms 以上) では、タイマーの発火が数十 us 早いだけで
       // 落ちるフレークになるため、時間ではなく順序で判別する。
       expect(events).toEqual(['start', 'end', 'start', 'end'])
+    }
+    finally {
+      await closeMcp(connected)
+    }
+  })
+
+  it('フックが呼ぶツールは、ほかのツールの実行中でもキューで待たずに返る', async () => {
+    const gate = Promise.withResolvers<undefined>()
+    const slow: ToolDefinition = {
+      name: 'slow',
+      config: { title: 'Test tool', inputSchema: z.object({}) },
+      handler: async () => {
+        await gate.promise
+        return { content: [{ type: 'text', text: 'slow' }] }
+      },
+    }
+    const hook: ToolDefinition = {
+      name: 'hook',
+      config: { title: 'Test hook tool', inputSchema: z.object({}) },
+      handler: () => Promise.resolve({ content: [{ type: 'text', text: '{}' }] }),
+      isForHook: true,
+    }
+
+    const connected = await connectMcp([slow, hook])
+    try {
+      const slowCall = connected.client.callTool({ name: 'slow', arguments: {} })
+      const hookResult = await connected.client.callTool({ name: 'hook', arguments: {} })
+      gate.resolve(undefined)
+      await slowCall
+
+      expect(hookResult.content).toEqual([{ type: 'text', text: '{}' }])
+    }
+    finally {
+      await closeMcp(connected)
+    }
+  })
+
+  it('フックが呼ぶツールの outputSchema には、共通の 4 項目を足さない', async () => {
+    const hook: ToolDefinition = {
+      name: 'hook',
+      config: { title: 'Test hook tool', inputSchema: z.object({}), outputSchema: z.object({ hookSpecificOutput: z.object({ additionalContext: z.string() }).optional() }) },
+      handler: () => Promise.resolve({ content: [{ type: 'text', text: '{}' }], structuredContent: {} }),
+      isForHook: true,
+    }
+
+    const connected = await connectMcp([hook])
+    try {
+      const { tools } = await connected.client.listTools()
+      const properties = tools[0]?.outputSchema?.['properties'] ?? {}
+
+      expect(Object.keys(properties)).toEqual(['hookSpecificOutput'])
     }
     finally {
       await closeMcp(connected)

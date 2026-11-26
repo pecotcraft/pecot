@@ -157,8 +157,8 @@ async function runChromiumStage(
 Chromium が起動するのに要る OS のライブラリを確認し、足りなければ入れる (#1217)。
 
 実行ファイルの取得 (runChromiumStage) では OS のライブラリは入らない。本体は
-infra/playwright/host-dependencies.ts で、bin/pecotv の bootstrap と同じ判定・導入を通る。
-結果は bootstrap と同じ印に記録する (失敗も期限付きで記録し、毎回の確認を避ける)。
+infra/playwright/host-dependencies.ts。
+結果は印に記録する (失敗も期限付きで記録し、毎回の確認を避ける)。
 MCP は stdout を JSON-RPC に使うため、apt-get 開始前の通知 (deps.notify) は既定のまま何も出さない。
 */
 async function runHostDependenciesStage(
@@ -187,7 +187,7 @@ async function runHostDependenciesStage(
     case 'launch-failed': {
       // OS のライブラリ以外の原因 (実行ファイルの欠け等) は本段の担当外。
       // 実行ファイルは runChromiumStage が揃えており、起動の失敗は各ツールが案内付きで返す。
-      // そのためここでは理由を残して通す (bin/pecotv の `pecotv chromium host-deps` と同じ扱い)。
+      // そのためここでは理由を残して通す。
       dependencies.record('launch-failed')
       return { ...base, installed: true, downloaded: false, detail: `could not launch Chromium (cause other than OS libraries): ${outcome.detail}` }
     }

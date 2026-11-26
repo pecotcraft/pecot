@@ -77,7 +77,7 @@ export function createThemeRepository(options: Readonly<ThemeRepositoryOptions>)
 }
 
 /**
-`slide create --theme` に渡す、build できる fixture テーマの指定（`git+file://<bare>#v1.0.0`）を返す。
+`slide_create` の `theme` に渡す、build できる fixture テーマの指定（`git+file://<bare>#v1.0.0`）を返す。
 作業ファイルは `workDirectory` 配下に作る（呼び出し側の一時ディレクトリ）。
 */
 export function createFixtureThemeSpec(workDirectory: string): string {

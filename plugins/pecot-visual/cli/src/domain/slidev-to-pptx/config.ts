@@ -81,7 +81,7 @@ export const defaultExportToPptxOptions = {
 /**
 Phase 1 が出す単スライド PPTX のファイル名 prefix（`<prefix><N>.pptx`）の既定値。
 
-`pecotv slide convert` はこの値を pipeline へ渡し、同じ値で merge 入力を走査する
+slide_convert はこの値を pipeline へ渡し、同じ値で merge 入力を走査する
 （commands/slidev-to-pptx/convert.ts）。出力側と走査側で別々の prefix を使うと merge 入力が
 0 件になり「slides/ に slide-<N>.pptx が存在しません」という原因の分かりにくいエラーになる。
 名前の組み立て / 読み取りは下の formatSlideFilename / parseSlideFilename に閉じる。
@@ -135,7 +135,7 @@ export interface PipelineConfig {
   readonly concurrency: number
   readonly logLevel: string
   // Phase 2+3 (旧 Python pptx-postprocess による merge) を skip する。
-  // pecotv slide convert (TS 方式) は Phase 1 のみで完結する。
+  // slide_convert (TS 方式) は Phase 1 のみで完結する。
   // merge は cli 側の domain/pptx-ooxml/merge.ts + post-process.ts で実施するため、true で呼ぶ。
   readonly skipPostprocess?: boolean
   // 変換対象 slide 番号を絞り込む (各 slide の click 0 のみ)。指定時は scan/onlySlide

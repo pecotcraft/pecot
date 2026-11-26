@@ -16,7 +16,7 @@ import type { z } from 'zod'
 
 import { readVersion } from '../version.js'
 import { createExecutionQueue } from './queue.js'
-import { standardOutputSchema, toolOutputSchema } from './result.js'
+import { plainOutputSchema, standardOutputSchema, toolOutputSchema } from './result.js'
 import { ignoreRejection } from '../domain/_shared/ignore-rejection.js'
 
 /**
@@ -96,6 +96,10 @@ export interface ToolDefinition {
   readonly name: string
   readonly config: ToolConfig
   readonly handler: ToolHandler
+  /**
+  フックが呼ぶツール。編集のたびに呼ばれるので直列のキューに並べず、outputSchema に共通の 4 項目を足さない。
+  */
+  readonly isForHook?: boolean
 }
 
 interface ProgressHeartbeat {
@@ -183,7 +187,7 @@ interface McpServerOptions {
 /**
 MCP サーバを生成し、渡されたツール定義を登録する。
 
-各ハンドラは登録時にキューで包むため、tools/call が並行に届いても実行は 1 件ずつになる
+各ハンドラは登録時にキューで包むため、tools/call が並行に届いても実行は 1 件ずつになる（isForHook のツールは除く）
 (直列化はここで構造的に保証し、ツール実装側には依存しない)。キューは再入を禁止するので、
 ハンドラ内から同じキューへ積み直すと ReentrantEnqueueError で失敗する。
 
@@ -209,19 +213,22 @@ export function createMcpServer(tools: readonly ToolDefinition[] = [], options: 
 
   for (const tool of tools) {
     const { outputSchema, ...config } = tool.config
+    const isForHook = tool.isForHook === true
+    const declaredSchema = outputSchema === undefined ? undefined : (isForHook ? plainOutputSchema(outputSchema) : toolOutputSchema(outputSchema))
     server.registerTool(
       tool.name,
-      { ...config, ...(outputSchema !== undefined && { outputSchema: standardOutputSchema(toolOutputSchema(outputSchema)) }) },
+      { ...config, ...(declaredSchema !== undefined && { outputSchema: standardOutputSchema(declaredSchema) }) },
       async (arguments_: Readonly<Record<string, unknown>>, serverContext: ServerContext) => {
         const heartbeat = startProgressHeartbeat(tool.name, serverContext, intervalMs)
         const context: ToolContext = {
           reportProgress: (message) => { heartbeat?.report(message) },
         }
+        const run = (): Promise<CallToolResult> => {
+          heartbeat?.markRunning()
+          return tool.handler(arguments_, { signal: serverContext.mcpReq.signal }, context)
+        }
         try {
-          return await queue.enqueue(() => {
-            heartbeat?.markRunning()
-            return tool.handler(arguments_, { signal: serverContext.mcpReq.signal }, context)
-          })
+          return await (isForHook ? run() : queue.enqueue(run))
         }
         finally {
           heartbeat?.stop()

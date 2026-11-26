@@ -373,14 +373,14 @@ describe('slide_page のテーマの失敗', () => {
     expect(pageFilesOf(directory)).toEqual([])
   })
 
-  it('theme: none で宣言も無い talk-dir は theme-none で、slide sync --theme を案内する', async () => {
+  it('theme: none で宣言も無い talk-dir は theme-none で、slide_sync の theme を案内する', async () => {
     const directory = makeTalkDirectory()
     writeFileSync(path.join(directory, 'slides.md'), '---\ntheme: none\n---\n', 'utf8')
 
     const result = await tool.handler({ layout: 'plain', dir: directory, file: 'page' }, CALL)
 
     expect(structuredOf(result)['kind']).toBe('theme-none')
-    expect(textOf(dataOf(result)['detail'])).toContain('slide sync --theme <theme-spec>')
+    expect(textOf(dataOf(result)['detail'])).toContain('slide_sync with theme: <theme-spec>')
     expect(pageFilesOf(directory)).toEqual([])
   })
 

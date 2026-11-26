@@ -164,7 +164,8 @@ done < "$TARGETS"
 bt_eq "スクリプト内の .sh 参照すべてが解決でき実在する" "" "$REF_BAD"
 
 # --- ケース3: 解決済み参照の出現総数の下限（抽出器の空振り検知） ---
-# multiset 基準。distinct 基準にすると post-tool-use-{edit,write}.sh の参照が同時に全滅しても検知できない。
+# multiset 基準。distinct 基準にすると、同じ lib を読む複数のエントリポイントの
+# 参照が同時に全滅しても検知できない。
 if [ "$REF_OK" -ge 10 ]; then
     bt_pass "解決済み参照の出現総数が下限（10 件）を満たす"
 else
@@ -180,10 +181,10 @@ while IFS=$'\t' read -r rel cnt; do
         ENTRY_BAD+=$'\n'"$rel: 解決済み参照が 0 件（エントリポイントの参照全滅を検知）"
     fi
 done < "$ENTRY_REFS"
-if [ "$ENTRY_COUNT" -ne 5 ]; then
-    ENTRY_BAD+=$'\n'"hooks/ 直下のエントリポイント数が想定と違う（$ENTRY_COUNT 本、想定は 5 本）"
+if [ "$ENTRY_COUNT" -ne 3 ]; then
+    ENTRY_BAD+=$'\n'"hooks/ 直下のエントリポイント数が想定と違う（$ENTRY_COUNT 本、想定は 3 本）"
 fi
-bt_eq "hooks/ 直下のエントリポイント全 5 本が最低1件の解決済み参照を持つ" "" "$ENTRY_BAD"
+bt_eq "hooks/ 直下のエントリポイント全 3 本が最低1件の解決済み参照を持つ" "" "$ENTRY_BAD"
 
 # --- ケース4: hooks 設定（hooks*.json）の command ---
 if ! command -v jq >/dev/null 2>&1; then
@@ -204,9 +205,9 @@ else
 
     while IFS= read -r CFG_PATH; do
         CFG="${CFG_PATH#"$PLUGIN_ROOT"/}"
-        WANT_CMDS=5
+        WANT_CMDS=3
         CMDS="$TMP/cmds-${CFG//\//_}.txt"
-        if ! jq -r '.hooks | to_entries[] | .value[] | .hooks[] | .command' \
+        if ! jq -r '.hooks | to_entries[] | .value[] | .hooks[] | select(.type == "command") | .command' \
             "$CFG_PATH" > "$CMDS" 2>/dev/null; then
             bt_fail "$CFG: command を $WANT_CMDS 件抽出" "jq による command 抽出に失敗した"
             continue

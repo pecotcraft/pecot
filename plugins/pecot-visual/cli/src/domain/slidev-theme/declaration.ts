@@ -1,6 +1,6 @@
 // テーマの pecot 用の宣言（pecot-theme.json）を読む。
 // 形の契約は specs/016-slidev-theme-split/contracts/theme-declaration.md。
-// CLI・MCP・hooks・lint の規則は、ここの結果を受け取る。
+// MCP・hooks・lint の規則は、ここの結果を受け取る。
 
 import path from 'node:path'
 

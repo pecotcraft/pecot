@@ -3,16 +3,18 @@
   "mcpServers": {
     "pecot-visual": {
       "type": "stdio",
-      "command": "./bin/pecotv",
+      "command": "npx",
       "args": [
-        "mcp"
+        "--prefix=${PLUGIN_DATA}",
+        "-y",
+        "@pecot/visual-mcp@3.1.0"
       ]
     },
     "pecot-visual-playwright": {
       "type": "stdio",
       "command": "npx",
       "args": [
-        "--prefix=${PLUGIN_ROOT}/bin",
+        "--prefix=${PLUGIN_DATA}",
         "-y",
         "@playwright/mcp@0.0.83",
         "--headless",

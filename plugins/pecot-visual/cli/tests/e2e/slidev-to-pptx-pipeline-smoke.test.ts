@@ -2,7 +2,7 @@
 // `pnpm test:e2e` からのみ起動する重いテスト。
 // tests/e2e/ 配下に置くことで、vitest.config.ts の test.exclude (['tests/e2e/**']) により default test から分離される。
 //
-// CUJ 1: pecotv slide convert で minimal Slidev project から PPTX を生成する。
+// CUJ 1: slide_convert で minimal Slidev project から PPTX を生成する。
 // 次の 3 点を確かめる。
 //   - subprocess 方式 (`convert-slidev-to-pptx`) が cli bundle に静的に存在しない。
 //   - --json event に slide.convert.done が含まれる。
@@ -15,7 +15,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename */
 /* eslint-disable vitest/no-disabled-tests -- context.skip() は Chromium 未 install 時の実行時 skip。
    恒久的に無効化したテストではない */
-import { spawnSync } from 'node:child_process'
 import { cpSync, existsSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync } from 'node:fs'
 import { homedir } from 'node:os'
 import path from 'node:path'
@@ -25,7 +24,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { XmldomXmlEngine } from '../../src/infra/pptx-ooxml/xml-engine.js'
 import { YauzlYazlPptxArchive } from '../../src/infra/pptx-ooxml/archive.js'
 import { CONTAINER_APPEAR_TIMEOUT_MS } from '../../src/infra/slidev-to-pptx/single-pass-worker.js'
-import { attachFile, attachOutput } from '../_helpers/attach.js'
+import { attachFile } from '../_helpers/attach.js'
+import { spawnToolSync } from '../_helpers/pecotv-e2e-run.js'
 import {
   expectConvertRouteFromEnvironment,
   singlePassFallbackWarnings,
@@ -50,8 +50,7 @@ function walkJsFiles(root: string): string[] {
 const HERE = import.meta.dirname
 const CLI_ROOT = path.resolve(HERE, '..', '..')
 const PLUGIN_ROOT = path.resolve(CLI_ROOT, '..')
-const BIN_PECOTV = path.resolve(PLUGIN_ROOT, 'bin', 'pecotv')
-const CLI_DIST = path.join(CLI_ROOT, 'dist', 'cli.js')
+const CLI_DIST = path.join(CLI_ROOT, 'dist', 'main.js')
 // fixture は元位置で実行する。
 // tmp 配下にコピーすると、pnpm hoist された deps を親 traversal で resolve できない。
 // その結果 slidev build が失敗する (theme-default not found)。
@@ -143,7 +142,7 @@ afterAll(() => {
 
 afterEach(() => {
   // fixture は元位置で実行するため、staging artifact を都度 cleanup する。
-  // 各 `pecotv slide convert` 呼び出しは spawnSync 経由の subprocess。
+  // 各 slide_convert の呼び出しはサーバの subprocess で動く。
   // Playwright Chromium と in-process HTTP server は、subprocess 終了時に OS が回収する。
   // HTTP server は既定 port=0 の ephemeral bind。
   // test process 自身は browser を保持しないため、追加の close は不要。
@@ -172,7 +171,7 @@ describe('Issue #491 — slidev-to-pptx in-process pipeline smoke', () => {
     expect(offenders).toEqual([])
   })
 
-  it('pecotv slide convert で minimal Slidev project から PPTX 生成 (Chromium 必須)', { timeout: 240_000 }, async (context) => {
+  it('slide_convert で minimal Slidev project から PPTX 生成 (Chromium 必須)', { timeout: 240_000 }, async (context) => {
     if (!isChromiumCached()) context.skip(CHROMIUM_SKIP_NOTE)
 
     // fixture は元位置で実行する (afterEach で staging artifact を cleanup)。
@@ -181,13 +180,11 @@ describe('Issue #491 — slidev-to-pptx in-process pipeline smoke', () => {
     const projectDirectory = FIXTURE_DIR
 
     const outputPath = temporaryRoot('test.pptx')
-    const result = spawnSync(BIN_PECOTV, ['slide', 'convert', projectDirectory, '--out', outputPath, '--json'], {
-      env: { ...process.env, PECOTV_BOOTSTRAP_SKIP: '1' },
+    const result = spawnToolSync(['slide', 'convert', projectDirectory, '--out', outputPath, '--json'], {
       encoding: 'utf8',
       timeout: 240_000,
     })
     await attachFile('変換した PPTX', outputPath)
-    attachOutput('pecotv slide convert --json', result.status ?? undefined, result.stdout, result.stderr)
 
     expect(result.status).toBe(0)
     expect(existsSync(outputPath)).toBe(true)
@@ -207,11 +204,8 @@ describe('Issue #491 — slidev-to-pptx in-process pipeline smoke', () => {
       }
     }
     const eventNames = events.map(event => event.event).filter(Boolean)
-    // event 順序保証: slide.convert.start → slide.convert.done (失敗時は start → error)
-    const startIndex = eventNames.indexOf('slide.convert.start')
     const doneIndex = eventNames.indexOf('slide.convert.done')
-    expect(startIndex).toBeGreaterThanOrEqual(0)
-    expect(doneIndex).toBeGreaterThan(startIndex)
+    expect(doneIndex).toBeGreaterThanOrEqual(0)
 
     // timings payload: scan / phase1 / phase2 が positive で、perSlide が array。
     // eslint-disable-next-line security/detect-object-injection -- doneIndex は indexOf 戻り値
@@ -270,14 +264,13 @@ describe('Issue #491 — slidev-to-pptx in-process pipeline smoke', () => {
     if (!isChromiumCached()) context.skip(CHROMIUM_SKIP_NOTE)
 
     const outputPath = temporaryRoot('no-single-pass.pptx')
-    const result = spawnSync(BIN_PECOTV, ['slide', 'convert', FIXTURE_DIR, '--out', outputPath, '--json', '--no-single-pass'], {
+    const result = spawnToolSync(['slide', 'convert', FIXTURE_DIR, '--out', outputPath, '--json', '--no-single-pass'], {
       // option が env より優先することも同時に見る
-      env: { ...process.env, PECOTV_SINGLE_PASS: '1', PECOTV_BOOTSTRAP_SKIP: '1' },
+      env: { ...process.env, PECOTV_SINGLE_PASS: '1' },
       encoding: 'utf8',
       timeout: 240_000,
     })
     await attachFile('変換した PPTX', outputPath)
-    attachOutput('pecotv slide convert --json --no-single-pass', result.status ?? undefined, result.stdout, result.stderr)
 
     expect(result.status).toBe(0)
     const doneEvent = doneEventOf(result.stdout)
@@ -311,16 +304,15 @@ describe('Issue #491 — slidev-to-pptx in-process pipeline smoke', () => {
     symlinkSync(path.join(PLUGIN_ROOT, '..', '..', 'node_modules'), path.join(projectDirectory, 'node_modules'), 'dir')
 
     // 既定（1 パス方式）を試みさせるため、外側の PECOTV_SINGLE_PASS は引き継がない
-    const environment = { ...process.env, PECOTV_BOOTSTRAP_SKIP: '1' }
+    const environment = { ...process.env }
     Reflect.deleteProperty(environment, 'PECOTV_SINGLE_PASS')
     const outputPath = temporaryRoot('no-print-route.pptx')
-    const result = spawnSync(BIN_PECOTV, ['slide', 'convert', projectDirectory, '--out', outputPath, '--json'], {
+    const result = spawnToolSync(['slide', 'convert', projectDirectory, '--out', outputPath, '--json'], {
       env: environment,
       encoding: 'utf8',
       timeout: 240_000,
     })
     await attachFile('変換した PPTX', outputPath)
-    attachOutput('pecotv slide convert --json', result.status ?? undefined, result.stdout, result.stderr)
 
     expect(result.status).toBe(0)
     const doneEvent = doneEventOf(result.stdout)

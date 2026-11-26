@@ -8,6 +8,7 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { resetPluginRoot, stubPluginRoot } from '../../../../tests/_helpers/plugin-root-stub.js'
 import type { SpawnResult } from '../../../domain/_shared/spawn-result.js'
 import {
   aptInstallCommand,
@@ -21,6 +22,11 @@ import {
   type HostDependencies,
   type HostDependenciesStampStatus,
 } from '../host-dependencies.js'
+
+vi.mock('../../_shared/plugin-root.js', async (importOriginal) => {
+  const { pluginRootMock } = await import('../../../../tests/_helpers/plugin-root-stub.js')
+  return await pluginRootMock(importOriginal)
+})
 
 const LIBATK_FAILURE = 'browserType.launch: Target page, context or browser has been closed\nBrowser logs:\n'
   + '[pid=1][err] /x/chrome-headless-shell: error while loading shared libraries: libatk-1.0.so.0: cannot open shared object file: No such file or directory\n'
@@ -298,12 +304,10 @@ describe('ensureChromiumHostDependencies', () => {
 })
 
 describe('recordHostDependenciesResult', () => {
-  const originalPluginRoot = process.env['CLAUDE_PLUGIN_ROOT']
   const directories: string[] = []
 
   afterEach(() => {
-    if (originalPluginRoot === undefined) delete process.env['CLAUDE_PLUGIN_ROOT']
-    else process.env['CLAUDE_PLUGIN_ROOT'] = originalPluginRoot
+    resetPluginRoot()
     for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true })
     vi.restoreAllMocks()
   })
@@ -312,7 +316,7 @@ describe('recordHostDependenciesResult', () => {
     const root = mkdtempSync(path.join(tmpdir(), 'pecotv-host-deps-'))
     directories.push(root)
     if (hasNodeModules) mkdirSync(path.join(root, 'node_modules'))
-    process.env['CLAUDE_PLUGIN_ROOT'] = root
+    stubPluginRoot(root)
     return root
   }
 
@@ -331,23 +335,6 @@ describe('recordHostDependenciesResult', () => {
     recordHostDependenciesResult('launch-failed', 1_000_000)
     recordHostDependenciesResult('ok', 2_000_000)
     expect(readFileSync(path.join(root, 'node_modules', HOST_DEPS_STAMP), 'utf8')).toBe(`${chromiumRevision() ?? ''} ok 2000\n`)
-  })
-
-  it('PECOTV_RUNTIME_DIR の親（runtime/）があればその直下に書く (bin/pecotv と同じ場所。node_modules の中には書かない)', () => {
-    const root = pluginRootWithNodeModules(true)
-    const data = mkdtempSync(path.join(tmpdir(), 'pecotv-host-deps-data-'))
-    directories.push(data)
-    mkdirSync(path.join(data, 'runtime'))
-    process.env['PECOTV_RUNTIME_DIR'] = path.join(data, 'runtime', 'abc-def')
-    try {
-      recordHostDependenciesResult('ok', 3_000_000)
-    }
-    finally {
-      delete process.env['PECOTV_RUNTIME_DIR']
-    }
-
-    expect(readFileSync(path.join(data, 'runtime', HOST_DEPS_STAMP), 'utf8')).toBe(`${chromiumRevision() ?? ''} ok 3000\n`)
-    expect(() => readFileSync(path.join(root, 'node_modules', HOST_DEPS_STAMP), 'utf8')).toThrow()
   })
 
   it('依存ルートの node_modules が無ければ記録せず、失敗にもしない', () => {

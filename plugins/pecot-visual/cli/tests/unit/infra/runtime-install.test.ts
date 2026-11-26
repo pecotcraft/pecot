@@ -836,7 +836,6 @@ describe('installRuntimeDependencies', () => {
     const data = temporaryRoot('data-ca')
     mkdirSync(data, { recursive: true })
     vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', PLUGIN_ROOT)
     vi.stubEnv('NODE_EXTRA_CA_CERTS', undefined)
     const manifestPath = writeManifestWithCore({ dependencies: {} })
 
@@ -850,7 +849,6 @@ describe('installRuntimeDependencies', () => {
     const data = temporaryRoot('data-ca-preset')
     mkdirSync(data, { recursive: true })
     vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', PLUGIN_ROOT)
     vi.stubEnv('NODE_EXTRA_CA_CERTS', '/etc/ssl/corp.pem')
     const manifestPath = writeManifestWithCore({ dependencies: {} })
 

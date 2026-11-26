@@ -74,7 +74,7 @@ afterAll(() => {
   if (mountRoot() !== '') rmSync(mountRoot(), { recursive: true, force: true })
 })
 
-describe('pecotv mcp が Windows 形式のパス引数を変換する (stdio)', () => {
+describe('MCP サーバが Windows 形式のパス引数を変換する (stdio)', () => {
   it('evidence_create が UNC の spec を読み、ドライブ形式の out_path へ xlsx を書く', async () => {
     // 実クライアントが送る形に寄せて、区切りは全てバックスラッシュにする。
     const inputPath = `\\\\wsl.localhost\\${DISTRO}${specPath().replaceAll('/', '\\')}`

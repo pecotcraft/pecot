@@ -1,15 +1,17 @@
 {
   "mcpServers": {
     "pecot-visual": {
-      "command": "${CLAUDE_PLUGIN_ROOT}/bin/pecotv",
+      "command": "npx",
       "args": [
-        "mcp"
+        "--prefix=${CLAUDE_PLUGIN_DATA}",
+        "-y",
+        "@pecot/visual-mcp@3.1.0"
       ]
     },
     "pecot-visual-playwright": {
       "command": "npx",
       "args": [
-        "--prefix=${CLAUDE_PLUGIN_ROOT}/bin",
+        "--prefix=${CLAUDE_PLUGIN_DATA}",
         "-y",
         "@playwright/mcp@0.0.83",
         "--headless",

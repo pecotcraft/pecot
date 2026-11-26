@@ -1,11 +1,11 @@
-// `pecotv slide sync` の domain ロジック。
+// slide_sync の domain ロジック。
 //
 // 役割は次の 2 つ。
 // - `assertTalkDirectory`: 絶対パスチェック + dir 存在 + slides.md 存在を、usage / runtime error に振り分ける。
 //   infra fs helper を呼ぶが、infra → domain の逆依存は作らない。
 // - `runSlideSync`: talk-dir を 3 通りに分けて、sync の工程をオーケストレーションする。
-//   移行前（テンプレートのコピーを持つ形）に `--theme` を付けると、テーマを参照する形へ移す。
-//   移行済みと `--node-modules-only` は、テーマの取得と node_modules の張り直しだけを行う。
+//   移行前（テンプレートのコピーを持つ形）に `theme` を渡すと、テーマを参照する形へ移す。
+//   移行済みと `node_modules_only` は、テーマの取得と node_modules の張り直しだけを行う。
 //   `pecot-theme.json` を持つテーマの dir は、移行前に入れず usage error で止める。
 
 import path from 'node:path'
@@ -113,17 +113,17 @@ export interface SlideSyncSummary {
   */
   readonly removed: readonly string[]
   /**
-  利用者に伝える警告。テーマの宣言の警告と、使わなかった `--theme`。
+  利用者に伝える警告。テーマの宣言の警告と、使わなかった `theme`。
   */
   readonly warnings: readonly string[]
 }
 
 /**
 talk-dir マーカー検証。
-- 絶対パスでない: `relative-dir` (usage error / exit 2)。
-- 存在しない: `dir-not-found` (runtime error / exit 1)。
-- ディレクトリでない: `not-a-directory` (runtime error / exit 1)。
-- `slides.md` を含まない: `not-talk-dir` (runtime error / exit 1)。
+- 絶対パスでない: `relative-dir` (usage error)。
+- 存在しない: `dir-not-found` (runtime error)。
+- ディレクトリでない: `not-a-directory` (runtime error)。
+- `slides.md` を含まない: `not-talk-dir` (runtime error)。
   誤って ~/Documents に sync を撒かないための marker check。
 */
 export async function assertTalkDirectory(
@@ -132,7 +132,7 @@ export async function assertTalkDirectory(
 ): Promise<void> {
   if (!path.isAbsolute(directory)) {
     throw new SlideSyncUsageError(
-      `--dir must be an absolute path: ${directory}`,
+      `dir must be an absolute path: ${directory}`,
       'relative-dir',
     )
   }
@@ -155,14 +155,14 @@ export async function assertTalkDirectory(
   if (!hasSlidesMd) {
     throw new SlideSyncRuntimeError(
       `not a talk-dir (no slides.md): ${directory}; `
-      + 'specify a talk-dir created by pecotv slide create',
+      + 'specify a talk-dir created by slide_create',
       'not-talk-dir',
     )
   }
 }
 
 /**
-張り直しだけを行う sync（`--node-modules-only` と移行済みの talk-dir）が、テーマの取得と張り直しを任せる港。
+張り直しだけを行う sync（`node_modules_only` と移行済みの talk-dir）が、テーマの取得と張り直しを任せる港。
 `theme` は張る対象のテーマで、テーマを参照しない talk-dir（`theme: none`）は undefined。
 `relinked` が true なら、すでに張り直しを終えている（`nodeModulesTarget` を持つ）。
 `regenerated` が true なら、本体の生成ファイル（`vite.config.ts`・`start.mjs`）を書き直している。
@@ -194,7 +194,7 @@ export interface PreparedTheme {
 }
 
 /**
-`--theme` の指定を解釈し、依存ルートを確かめ、テーマを取得し、宣言を読む。何も書き換えない。
+`theme` の指定を解釈し、依存ルートを確かめ、テーマを取得し、宣言を読む。何も書き換えない。
 */
 export type PrepareThemePort = (themeSpec: string, talkDirectory: string) => Promise<PreparedTheme>
 
@@ -212,23 +212,22 @@ export interface SlideSyncDependencies {
 
 function themeRequiredMessage(directory: string): string {
   return `${directory} is a talk-dir from before migration that does not reference a theme; specify the theme to migrate to: `
-    + `slide sync --dir ${directory} --theme <theme-spec>`
-    + ` (MCP: slide_sync with dir: ${directory}, theme: <theme-spec>)`
+    + `call slide_sync with dir: ${directory}, theme: <theme-spec>`
 }
 
-const IGNORED_THEME_WARNING = '--theme was not used because this talk-dir already references a theme; '
-  + 'to change the theme or its version, edit the dependency in package.json and run sync'
+const IGNORED_THEME_WARNING = 'theme was not used because this talk-dir already references a theme; '
+  + 'to change the theme or its version, edit the dependency in package.json and call slide_sync'
 
 /**
 sync の工程。talk-dir を 3 通りに分けて進める。
 
-- `--node-modules-only`: 分けずに、テーマの取得と node_modules の張り直しだけを行う。
-  移行前の talk-dir は、テーマ無しで張り直す。`--theme` との同時指定は usage error。
+- `node_modules_only`: 分けずに、テーマの取得と node_modules の張り直しだけを行う。
+  移行前の talk-dir は、テーマ無しで張り直す。`theme` との同時指定は usage error。
 - 移行済み: 張り直しだけを行う。依存の版を書き換えてから打てば、その版のテーマで張り直す。
-  `--theme` を付けても使わず、警告に出す。
+  `theme` を渡しても使わず、警告に出す。
 - テーマの dir（`pecot-theme.json` を持つ）: 何も書き換えず usage error で止める。
   移行前に入れると、layouts・components を消しうるため。
-- 移行前: `--theme` が必須（無ければ usage error）。次の順で移す。
+- 移行前: `theme` が必須（無ければ usage error）。次の順で移す。
   1. `prepareTheme` が指定の解釈・依存ルートの確認・取得・宣言の読み取りを済ませる。
   2. slides.md と package.json の新しい中身を組み立てる。
   3. ここまでで失敗したら何も消さない。
@@ -244,8 +243,8 @@ export async function runSlideSync(
   if (options.nodeModulesOnly) {
     if (options.theme !== undefined) {
       throw new SlideSyncUsageError(
-        '--node-modules-only and --theme cannot be used together; '
-        + 'use --node-modules-only to relink node_modules only, or --theme to migrate',
+        'node_modules_only and theme cannot be used together; '
+        + 'use node_modules_only to relink node_modules only, or theme to migrate',
         'theme-with-node-modules-only',
       )
     }

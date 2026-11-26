@@ -14,7 +14,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { lintText } from '@pecot/text-rules'
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import type { CallToolResult } from '@modelcontextprotocol/server'
 import { attachOutput } from '../../../tests/_helpers/attach.js'
@@ -29,9 +29,6 @@ import { drawioCreateTool } from '../tools/drawio.js'
 import { evidenceCreateTool } from '../tools/evidence.js'
 import { slideLintTool } from '../tools/slide.js'
 import { withOutputCheck } from '../tools/tests/_output.js'
-
-// src/mcp/tests → cli/ → plugins/pecot-visual（既定 deps ファクトリが要求する CLAUDE_PLUGIN_ROOT）
-const PLUGIN_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..')
 
 const CALL: ToolCallContext = { signal: new AbortController().signal }
 
@@ -50,13 +47,6 @@ afterEach(() => {
   vi.doUnmock('@pecot/text-rules')
   vi.resetModules()
   rmSync(workDirectory(), { recursive: true, force: true })
-})
-
-beforeAll(() => {
-  vi.stubEnv('CLAUDE_PLUGIN_ROOT', PLUGIN_ROOT)
-})
-afterAll(() => {
-  vi.unstubAllEnvs()
 })
 
 function structuredOf(result: Readonly<Record<string, unknown>>): Record<string, unknown> {

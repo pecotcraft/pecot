@@ -80,7 +80,7 @@ export function startServer(distDir: string, port: number, logger: Pick<Logger, 
     // listen 失敗 (EADDRINUSE 等) は reject で呼び出し元へ返す。
     // error ハンドラが無いと、プロセスに uncaughtException リスナーが居る環境では例外が吸われる。
     // リスナーは dom-to-pptx の Emscripten ランタイムが登録する。
-    // すると Promise は永遠に pending のままになり、CLI が無限ハングする。
+    // すると Promise は永遠に pending のままになり、プロセスが無限ハングする。
     server.once('error', reject)
     // ループバックだけで待ち受け、同じネットワークの他の端末から届かないようにする
     server.listen(port, LOOPBACK_HOST, () => {
@@ -92,7 +92,7 @@ export function startServer(distDir: string, port: number, logger: Pick<Logger, 
         logger.error(`dist server error: ${error.message}`)
       })
       // 起動ログは呼び出し元 (pipeline.ts) が logger 経由で出す。ここで console.log すると
-      // `slide convert --json` の stdout (JSON 行専用) に混在する。
+      // 標準出力に混在する。
       resolve(server)
     })
   })

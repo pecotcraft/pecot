@@ -68,7 +68,7 @@ describe('generated.json の書き出し', () => {
   it('names は区切りが _ の 2 語で、どのツール名も 1 語目と 2 語目が語彙にある', () => {
     const names = exportNames()
     expect({ separator: names.separator, rest: names.rest, count: names.positions.length }).toEqual({ separator: '_', rest: false, count: 2 })
-    expect(names.positions[0]?.map(item => item.word)).toEqual(['drawio', 'evidence', 'slide', 'runtime'])
+    expect(names.positions[0]?.map(item => item.word)).toEqual(['drawio', 'evidence', 'slide', 'runtime', 'file'])
     const words = names.positions.map(position => new Set(position.map(item => item.word)))
     const outside = tools.map(tool => tool.name).filter(name => name.split('_').some((word, index) => words.at(index)?.has(word) !== true))
     expect(outside).toEqual([])

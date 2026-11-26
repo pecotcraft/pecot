@@ -1,22 +1,16 @@
-// `pecotv evidence create --input <spec.json> [--out <path.xlsx>] [--json]` の実装。
-// drawio/url.ts と同形の DI / configureOutput の writeErr フックを採用する。
+// evidence_create ツールの実装。drawio/url.ts と同形の DI を採用する。
 //
-// exit code 規約は contracts/evidence-cli.md §1 に従う。
-//   0 = 生成成功。除外警告があっても、有効画像が 1 件以上あれば成功とする。
-//   1 = spec の読込・parse・検証エラー、文面の違反、有効画像 0 件、xlsx の書き出し失敗。
-//       入力不正・文面の違反・有効画像 0 件では、出力に触れない。
-//       output-write-failed では、部分生成物が残り得る。
-//   2 = commander の usage エラー。required option 未指定などが当たり、cli.ts の main が変換する。
-//       ただし --help / --version は commander の想定内終了なので exit 0 とする。
+// 失敗する場合:
+//   spec の読込・parse・検証エラー、文面の違反、有効画像 0 件、xlsx の書き出し失敗。
+//   入力不正・文面の違反・有効画像 0 件では、出力に触れない。
+//   output-write-failed では、部分生成物が残り得る。
+// 除外警告があっても、有効画像が 1 件以上あれば成功とする。
 
-/* eslint-disable security/detect-non-literal-fs-filename -- --input / --out は CLI 引数として受理する仕様 */
+/* eslint-disable security/detect-non-literal-fs-filename -- input / out はツールの引数として受理する仕様 */
 import type { FailureReason } from '../../domain/_shared/failure-kind.js'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import { Command } from 'commander'
-
-import { createDiagnostics, passthrough, writeData } from '../../diagnostics.js'
 import { collectTextViolations, formatTextViolations } from '../../domain/_shared/text-check.js'
 import type { LintText, TextViolation } from '../../domain/_shared/text-check.js'
 import type { EvidenceSpec, NormalizedEvidenceSpec, SpecValidationError } from '../../domain/evidence-xlsx/spec-schema.js'
@@ -26,18 +20,10 @@ import type { EvidenceSkippedImage, EvidenceWriteResult } from '../../infra/evid
 import { EvidenceWorkbookError, writeEvidenceWorkbook } from '../../infra/evidence-xlsx/workbook-writer.js'
 import { defaultLintText } from '../../infra/text-lint.js'
 
-const DEFAULT_OUT = './evidence.xlsx'
-
 /**
---json のエラーイベント名。契約に定義が無いため drawio 同形の `<command>.error` に揃える。
+エラーの event 名。契約に定義が無いため drawio 同形の `<command>.error` に揃える。
 */
 const ERROR_EVENT = 'evidence.create.error'
-
-/**
-実行失敗時の exit code。usage エラー (exit 2) は commander が cli.ts の main へ委譲するため、
-本コマンド自身が設定するのは 1 のみ。
-*/
-export const EVIDENCE_CREATE_FAILURE_EXIT_CODE = 1
 
 /**
 spec の読込・parse・検証・文面確認の失敗理由。
@@ -151,9 +137,9 @@ export interface EvidenceCreateOptions {
 }
 
 /**
-`--json` の成功イベント。
+成功の結果。
 
-event 名が `evidence.create.done` ではなく `result` なのは、既存 CLI の外形に合わせたため。
+event 名が `evidence.create.done` ではなく `result` なのは、従来の外形に合わせたため。
 他コマンドの `<command>.done` 規約からは外れるが、互換のため追認している。
 */
 export interface EvidenceCreateResultData {
@@ -165,8 +151,7 @@ export interface EvidenceCreateResultData {
 }
 
 /**
-xlsx を生成し、`--json` と同形の結果オブジェクトを返す。
-CLI の action と MCP ツールはどちらもこの関数を呼ぶ (実行と結果組み立ての単一実装)。
+xlsx を生成し、結果オブジェクトを返す。MCP ツールがこの関数を呼ぶ。
 */
 export async function executeEvidenceCreate(
   options: Readonly<EvidenceCreateOptions>,
@@ -187,56 +172,6 @@ export async function executeEvidenceCreate(
   }
 }
 
-export function createEvidenceCreateCommand(buildDependencies: () => EvidenceCreateDependencies): Command {
-  return new Command('create')
-    .description('generate a work-evidence xlsx from an EvidenceSpec JSON')
-    .requiredOption('--input <path>', 'EvidenceSpec JSON path')
-    .option('--out <path>', 'output xlsx path (an existing file is overwritten)', DEFAULT_OUT)
-    .option('--json', 'print machine-readable JSON to stdout', false)
-    .exitOverride()
-    .configureOutput({
-      writeErr: (string_: string) => {
-        const dependencies = buildDependencies()
-        if (doesArgvWantJson(process.argv)) {
-          writeData(dependencies.stdout, JSON.stringify({
-            event: ERROR_EVENT,
-            reason: 'invalid-option',
-            detail: string_.replace(/^error:[ \t]*/i, '').trim(),
-          }))
-        }
-        else {
-          passthrough(dependencies.stderr, string_)
-        }
-      },
-    })
-    .action(async (raw: Readonly<Record<string, unknown>>) => {
-      const dependencies = buildDependencies()
-      const isJson = raw['json'] === true
-
-      try {
-        const data = await executeEvidenceCreate({
-          input: optionString(raw['input'], ''),
-          out: optionString(raw['out'], DEFAULT_OUT),
-        }, dependencies)
-        if (isJson) {
-          writeData(dependencies.stdout, JSON.stringify(data))
-        }
-        else {
-          writeHumanSummary(dependencies.stdout, data)
-        }
-      }
-      catch (error: unknown) {
-        if (isJson) {
-          writeData(dependencies.stdout, JSON.stringify(errorData(error)))
-        }
-        else {
-          createDiagnostics(dependencies.stderr).error(`evidence create: ${formatError(error)}`)
-        }
-        process.exitCode = EVIDENCE_CREATE_FAILURE_EXIT_CODE
-      }
-    })
-}
-
 export function evidenceCreateDefaultDependencies(): EvidenceCreateDependencies {
   return {
     stdout: process.stdout,
@@ -244,26 +179,6 @@ export function evidenceCreateDefaultDependencies(): EvidenceCreateDependencies 
     readFile: (filePath: string) => readFile(filePath, 'utf8'),
     lintText: defaultLintText,
     writeWorkbook: writeEvidenceWorkbook,
-  }
-}
-
-/**
-人間向けサマリ (contracts §1)。除外が無いときは除外ブロックを出さない。
-*/
-function writeHumanSummary(
-  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- write は mutate メソッド
-  stdout: NodeJS.WritableStream,
-  data: Readonly<EvidenceCreateResultData>,
-): void {
-  writeData(stdout, `created: ${data.outPath}`)
-  writeData(stdout, `items: ${data.items.toString()} / annotations: ${data.annotations.toString()}`)
-  if (data.skipped.length === 0) {
-    return
-  }
-
-  writeData(stdout, `skipped: ${data.skipped.length.toString()}`)
-  for (const entry of data.skipped) {
-    writeData(stdout, `  - ${entry.path} (${entry.reason})`)
   }
 }
 
@@ -276,15 +191,6 @@ function formatSpecErrors(errors: readonly SpecValidationError[]): string {
     .join('\n')
 }
 
-function optionString(value: unknown, fallback: string): string {
-  /* c8 ignore next -- requiredOption と既定値により commander が非 string を通さない、防御網のみ */
-  return typeof value === 'string' ? value : fallback
-}
-
-function doesArgvWantJson(argv: readonly string[]): boolean {
-  return argv.includes('--json')
-}
-
 export function errorToReason(error: unknown): FailureReason {
   if (error instanceof EvidenceCreateError) return error.reason
   if (error instanceof EvidenceWorkbookError) return error.reason
@@ -293,7 +199,7 @@ export function errorToReason(error: unknown): FailureReason {
 }
 
 /**
-`--json` のエラーイベントと MCP の data に載せる内容。CLI と MCP が同じ組み立てを使う。
+失敗時にツールの data に載せる内容。
 */
 export function errorData(error: unknown): Readonly<Record<string, unknown>> {
   const violations = error instanceof EvidenceCreateError ? error.violations : undefined

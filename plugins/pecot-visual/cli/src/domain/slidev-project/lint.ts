@@ -1,4 +1,4 @@
-// `pecotv slide lint` の domain ロジック。talk-dir 全体 (`pages/**/*.md` + `slides.md`) を
+// slide_lint の domain ロジック。talk-dir 全体 (`pages/**/*.md` + `slides.md`) を
 // 本体の assets/slidev の eslint で lint し、結果を集計する。
 //
 // PostToolUse hook (`hooks/lib/post-tool-use/eslint-check.sh`) は、編集された 1 ファイルしか見ない。
@@ -59,7 +59,7 @@ export interface EslintRunArguments {
   */
   readonly deckLintConfig: string
   /**
-  テーマの宣言の解釈結果（`slide theme` の lint）。環境変数 PECOTV_DECK_LINT に JSON で渡る。
+  テーマの宣言の解釈結果（slide_theme の lint）。環境変数 PECOTV_DECK_LINT に JSON で渡る。
   */
   readonly lint: DeckLintInput
 }
@@ -68,7 +68,7 @@ export interface EslintRunArguments {
 本体の `assets/slidev` の eslint を子プロセスで起動する port。
 
 eslint・flat config・プラグインは `assets/slidev` の node_modules から解決され、
-CLI 自身の依存ツリーとは別にある。同じ 10 系でも別のインスタンスなので、
+本体自身の依存ツリーとは別にある。同じ 10 系でも別のインスタンスなので、
 Node.js API (`new ESLint()`) ではなく必ず子プロセス起動で実装する。
 */
 export interface EslintRunner {
@@ -126,10 +126,10 @@ export interface SlideLintDependencies {
 /**
 talk-dir マーカー検証。振り分けは domain/slidev-project/sync.ts の
 `assertTalkDirectory` と同一方針（例外型のみ Lint 系）。
-- 絶対パスでない: `relative-dir` (usage error / exit 2)。
-- 存在しない: `dir-not-found` (runtime error / exit 1)。
-- ディレクトリでない: `not-a-directory` (runtime error / exit 1)。
-- `slides.md` を含まない: `not-talk-dir` (runtime error / exit 1)。
+- 絶対パスでない: `relative-dir` (usage error)。
+- 存在しない: `dir-not-found` (runtime error)。
+- ディレクトリでない: `not-a-directory` (runtime error)。
+- `slides.md` を含まない: `not-talk-dir` (runtime error)。
 */
 export async function assertTalkDirectory(
   directory: string,
@@ -137,7 +137,7 @@ export async function assertTalkDirectory(
 ): Promise<void> {
   if (!path.isAbsolute(directory)) {
     throw new SlideLintUsageError(
-      `--dir must be an absolute path: ${directory}`,
+      `dir must be an absolute path: ${directory}`,
       'relative-dir',
     )
   }
@@ -160,7 +160,7 @@ export async function assertTalkDirectory(
   if (!hasSlidesMd) {
     throw new SlideLintRuntimeError(
       `not a talk-dir (no slides.md): ${directory}; `
-      + 'specify a talk-dir created by pecotv slide create',
+      + 'specify a talk-dir created by slide_create',
       'not-talk-dir',
     )
   }
@@ -170,7 +170,7 @@ export async function assertTalkDirectory(
 talk-dir 全体を lint し、集計結果を返す。
 
 eslint の exit code は 0=違反なし / 1=違反あり / 2=設定エラー・内部エラー。
-2 は CLI の usage error (exit 2) と衝突させないため `SlideLintRuntimeError` に変換する。
+2 は usage error と区別するため `SlideLintRuntimeError` に変換する。
 起動失敗 (`exitCode: null`) と timeout (`timedOut: true`) は SpawnResult の契約上
 reject されないので、ここで明示的に分岐する。
 */

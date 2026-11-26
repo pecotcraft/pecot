@@ -1,6 +1,6 @@
 // 入力の受理・拒否の特性テスト (#1228)。
 //
-// MCP SDK の入力検証層を全 11 ツールで通し、受理する入力・拒否する入力・ハンドラへ届く値
+// MCP SDK の入力検証層を全ツールで通し、受理する入力・拒否する入力・ハンドラへ届く値
 // (既定値の適用と宣言外キーの除去) が SDK の版に依らず同じであることを pin する。
 // 本番の createMcpServer に、実ツール定義の handler だけを spy に差し替えて渡す。
 // そのため awscli と Slidev は起動しない。
@@ -28,7 +28,7 @@ import {
   negotiatedVersionOf,
   PROTOCOL_ERAS,
   spyDataOf,
-  spyResultOf,
+  spyCallResultOf,
   type ProtocolEra,
   type SpiedMcp,
 } from './_client.js'
@@ -197,6 +197,39 @@ const TABLES: readonly ToolTable[] = [
     full: {},
     rejects: [],
   },
+  {
+    tool: 'file_lint',
+    minimal: { file_path: '/work/deck/pages/intro.md' },
+    delivered: { file_path: '/work/deck/pages/intro.md' },
+    full: { file_path: '/work/deck/pages/intro.md', cwd: '/work/deck' },
+    rejects: [
+      ['必須の file_path が無い', {}],
+      ['file_path が数値', { file_path: 1 }],
+      ['cwd が真偽値', { file_path: '/work/deck/pages/intro.md', cwd: true }],
+    ],
+  },
+  {
+    tool: 'file_validate',
+    minimal: { file_path: '/work/deck/pages/intro.md' },
+    delivered: { file_path: '/work/deck/pages/intro.md' },
+    full: { file_path: '/work/deck/pages/intro.md', cwd: '/work/deck' },
+    rejects: [
+      ['必須の file_path が無い', {}],
+      ['file_path が数値', { file_path: 1 }],
+      ['cwd が真偽値', { file_path: '/work/deck/pages/intro.md', cwd: true }],
+    ],
+  },
+  {
+    tool: 'file_brief',
+    minimal: { file_path: '/work/deck/pages/intro.md' },
+    delivered: { file_path: '/work/deck/pages/intro.md' },
+    full: { file_path: '/work/deck/pages/intro.md', cwd: '/work/deck' },
+    rejects: [
+      ['必須の file_path が無い', {}],
+      ['file_path が数値', { file_path: 1 }],
+      ['cwd が真偽値', { file_path: '/work/deck/pages/intro.md', cwd: true }],
+    ],
+  },
 ]
 
 const UNEXPECTED = { unexpected_property: 'x' }
@@ -265,7 +298,7 @@ describe.each(PROTOCOL_ERAS)('MCP ツールの入力の受理・拒否 (クラ�
       const called = await mcp.client.callTool({ name: table.tool, arguments: { ...table.minimal } })
 
       expect(called.isError).toBeUndefined()
-      expect(called.structuredContent).toEqual(toCallToolResult(spyResultOf(table.tool)).structuredContent)
+      expect(called.structuredContent).toEqual(spyCallResultOf(table.tool).structuredContent)
     })
 
     it.for(table.rejects)('スキーマ違反を拒否する: %s', async ([, arguments_], context) => {

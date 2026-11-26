@@ -171,7 +171,7 @@ def test_project_set_is_the_expected_one(nx_bin: Path) -> None:
     _lane_cases(
         [
             ("plugins/pecot-workflow/cli/src/cli.ts", {"pecot-workflow"}),
-            ("plugins/pecot-visual/cli/src/cli.ts", {"pecot-visual"}),
+            ("plugins/pecot-visual/cli/src/main.ts", {"pecot-visual"}),
             ("libs/text-rules/index.ts", {"text-rules"}),
             # pecot-workflow は package.json の依存で workflow-core を読み、graph の辺でも affected になる。
             ("libs/workflow-core/src/domain/config.ts", {"workflow-core", "pecot-workflow"}),
@@ -291,8 +291,8 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
                 "plugins/pecot-visual/agents/v-diagram-creator.md",
                 {
                     "pecot-visual:test-skills",
+                    "pecot-visual:test-cli",
                     "pecot-workflow:test-hooks",
-                    "pecot-visual:test-bootstrap",
                 },
             ),
             # w-plan-reviewer.md を読むテストは 2 つある。
@@ -314,39 +314,27 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             ),
             # fake-aws を使うのは pecot-tools の cli のテストだけ (#1225)。
             ("plugins/pecot-tools/cli/tests/_fixtures/fake-aws/aws", {"pecot-tools:test-cli"}),
-            # bin/pecotv を起動するのは cli の E2E と bootstrap のテストだけ (#1225, #1235)。
-            (
-                "plugins/pecot-visual/bin/pecotv",
-                {"pecot-visual:test-cli", "pecot-visual:test-bootstrap"},
-            ),
-            # Agent Plugins 1.0 形式の manifest を確かめるのは、cli/tests/bootstrap/manifest.sh だけとなる。
+            # Agent Plugins 1.0 形式の manifest を確かめるのは、cli/tests/plugin-manifests.test.ts だけとなる。
             # 版の更新（nx release）は、nx-release の単体テストが読む (#1230, #1235)。
             (
                 "plugins/pecot-visual/plugin.json",
-                {"pecot-visual:test-bootstrap", "nx-release:test-unit"},
+                {"pecot-visual:test-cli", "nx-release:test-unit"},
             ),
-            ("plugins/pecot-visual/mcp.json", {"pecot-visual:test-bootstrap"}),
+            ("plugins/pecot-visual/mcp.json", {"pecot-visual:test-cli"}),
             (
                 "plugins/pecot-visual/com.github.copilot/hooks/hooks.json",
                 {
-                    "pecot-visual:test-bootstrap",
+                    "pecot-visual:test-cli",
                     "pecot-visual:test-hooks",
                     "pecot-workflow:test-hooks",
                 },
             ),
-            # hook から実行用ミラーを引く解決のテストは hooks レーンだけ (#1230)。
+            # manifest の一致のテストは vitest で確かめる test-cli だけに届く。
+            ("plugins/pecot-visual/cli/tests/plugin-manifests.test.ts", {"pecot-visual:test-cli"}),
+            # hooks.json の形を確かめるのは hooks レーンだけ。
             (
-                "plugins/pecot-visual/hooks/tests/runtime-dir-for-hooks.test.sh",
+                "plugins/pecot-visual/hooks/tests/hooks-json.test.sh",
                 {"pecot-visual:test-hooks"},
-            ),
-            # ミラーの回数・解決順のテストは bootstrap のレーンだけ (#1230, #1235)。
-            (
-                "plugins/pecot-visual/cli/tests/bootstrap/install-record.sh",
-                {"pecot-visual:test-bootstrap"},
-            ),
-            (
-                "plugins/pecot-visual/cli/tests/bootstrap/data-dir.sh",
-                {"pecot-visual:test-bootstrap"},
             ),
             (
                 "plugins/pecot-workflow/cli/tests/bootstrap/data-dir.sh",
@@ -451,7 +439,6 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
                     "githooks:test-ci",
                     "pecot-workflow:test-bootstrap",
                     "pecot-workflow:test-release",
-                    "pecot-visual:test-bootstrap",
                     "pecot-visual:test-hooks",
                     "pecot-visual:test-compare",
                     "pecot-visual:test-release",
@@ -622,21 +609,6 @@ def test_pecotv_test_lanes_depend_on_shared_install_and_build(tmp_path: Path, nx
         assert "pecot-visual:install" in deps["pecot-visual:build-slidev"]
 
 
-def test_pecot_visual_bootstrap_lane_waits_for_install_only(tmp_path: Path, nx_bin: Path) -> None:
-    """pecot-visual の bootstrap のレーン (#1235) は install を共有し、本体の cli/dist を使わないので build-cli に依存しない。"""
-    with allure.step("pecot-visual の test の依存を graph に書き出して集める"):
-        graph_file = tmp_path / "graph.json"
-        _nx(nx_bin, "run-many", "-t", "test", "-p", "pecot-visual", f"--graph={graph_file}")
-        tasks = json.loads(graph_file.read_text(encoding="utf-8"))["tasks"]
-        deps = {
-            task: {dep["id"] for dep in entries} for task, entries in tasks["dependencies"].items()
-        }
-        attach_json("graph.json のタスクの依存", {task: sorted(ids) for task, ids in deps.items()})
-    with allure.step("bootstrap のレーンが install だけを待つことを確かめる"):
-        assert "pecot-visual:install" in deps["pecot-visual:test-bootstrap"]
-        assert "pecot-visual:build-cli" not in deps["pecot-visual:test-bootstrap"]
-
-
 # -----------------------------------------------------------------------------
 #
 # --base/--head ケース。実際の呼び方で、使い捨て複製リポ上にプローブコミットを作る
@@ -781,7 +753,7 @@ _GITHOOKS_GRAPH = _GITHOOKS_CHECKS | {"githooks:test-nx-cache", "githooks:test-n
 
 _PECOTV_TEST_LANES = {
     f"pecot-visual:test-{lane}"
-    for lane in ("cli", "bootstrap", "slidev", "hooks", "compare", "release", "skills")
+    for lane in ("cli", "slidev", "hooks", "compare", "release", "skills")
 }
 
 
@@ -807,23 +779,15 @@ _PECOTV_TEST_LANES = {
                 {"pecot-tools:test-cli", "pecot-tools:test-release"},
             ),
             (
-                "plugins/pecot-visual/bin/pecotv",
-                {"pecot-visual:test-cli", "pecot-visual:test-bootstrap"},
-            ),
-            # setup.sh はどのレーンも読まない (#1235、pecot-visual:test-bootstrap の inputs から外した)。
-            ("plugins/pecot-visual/setup.sh", set()),
-            # bootstrap の bash テストの変更は、test-bootstrap だけに届く。cli の test は再実行されない (#1235)。
-            (
-                "plugins/pecot-visual/cli/tests/bootstrap/data-dir.sh",
-                {"pecot-visual:test-bootstrap"},
+                "plugins/pecot-visual/scripts/ci/pnpm-lib.sh",
+                _PECOTV_TEST_LANES,
             ),
             # root の package.json は pecot-visual の全レーンの Globals と、nx 本体の版を読む nx-release が読む。
             ("package.json", _PECOTV_TEST_LANES | {"nx-release:test-unit"} | _GITHOOKS_GRAPH),
             # libs/text-rules のレーンは 1 本で、テストの変更は test-unit だけを選ぶ。
             # ソースの変更は、配布ツリーに同梱する dist の元になるので、pecot-visual の release レーンにも届く (#1281)。
             # pecot-visual は text-rules をリンク（vendor/text-rules）で載せていて、nx がリンク先の変更を検知しない。
-            # そのため text-constraints を使う test-cli / test-hooks / test-slidev も inputs に持つ (#1297)。
-            # ミラーを実 build する test-bootstrap も同じ。
+            # そのため text-constraints を使う test-cli / test-slidev も inputs に持つ (#1297)。
             # nx-release の dependabot-plans は、作った plan に check-text をかける (#67)。
             (
                 "libs/text-rules/index.ts",
@@ -832,9 +796,7 @@ _PECOTV_TEST_LANES = {
                     "nx-release:test-unit",
                     "pecot-visual:test-release",
                     "pecot-visual:test-cli",
-                    "pecot-visual:test-hooks",
                     "pecot-visual:test-slidev",
-                    "pecot-visual:test-bootstrap",
                     *_GITHOOKS_CHECKS,
                 },
             ),
@@ -847,9 +809,7 @@ _PECOTV_TEST_LANES = {
                     "nx-release:test-unit",
                     "pecot-visual:test-release",
                     "pecot-visual:test-cli",
-                    "pecot-visual:test-hooks",
                     "pecot-visual:test-slidev",
-                    "pecot-visual:test-bootstrap",
                     *_GITHOOKS_GRAPH,
                 },
             ),
@@ -1019,32 +979,6 @@ _PECOTV_TEST_LANES = {
                     *_GITHOOKS_CHECKS,
                 },
             ),
-            (
-                "plugins/pecot-visual/runtime-workspace.yaml",
-                {
-                    "pecot-visual:test-bootstrap",
-                    "pecot-visual:test-cli",
-                    "pecot-visual:test-compare",
-                    "pecot-visual:test-hooks",
-                    "pecot-visual:test-release",
-                    "pecot-visual:test-skills",
-                    "pecot-visual:test-slidev",
-                    *_GITHOOKS_CHECKS,
-                },
-            ),
-            (
-                "plugins/pecot-visual/runtime-lock.yaml",
-                {
-                    "pecot-visual:test-bootstrap",
-                    "pecot-visual:test-cli",
-                    "pecot-visual:test-compare",
-                    "pecot-visual:test-hooks",
-                    "pecot-visual:test-release",
-                    "pecot-visual:test-skills",
-                    "pecot-visual:test-slidev",
-                    *_GITHOOKS_CHECKS,
-                },
-            ),
         ]
     ),
 )
@@ -1130,7 +1064,6 @@ def test_gate_selects_only_the_lanes_the_change_reaches(
             # 当たらない側。githooks のレーンは選ばれない。
             ("plugins/pecot-visual/cli/tests/fixtures/themes/with-declaration/package.json", set()),
             ("plugins/pecot-visual/scripts/release/audit-canary/package.json", set()),
-            ("plugins/pecot-visual/bin/pecotv", set()),
             ("plugins/pecot-visual/scripts/ci/run-lint.sh", set()),
             ("README.md", set()),
             ("plugins/pecot-workflow/skills/w-pr/SKILL.md", set()),

@@ -1,5 +1,5 @@
-// `pecotv evidence create` の integration test。
-// 実 PNG / JPEG をテスト内で組み立て、in-process (parseAsync) で CLI を回す。
+// evidence_create の integration test。
+// 実 PNG / JPEG をテスト内で組み立て、executeEvidenceCreate を実 fs で回す。
 // 生成 xlsx は yauzl + xmldom の XPath で観測する (contracts/evidence-cli.md §3)。
 //
 // XPath は prefix 必須。sheet1.xml / workbook.xml は既定名前空間つき文書なので
@@ -12,7 +12,8 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import {
-  createEvidenceCreateCommand,
+  errorData,
+  executeEvidenceCreate,
   type EvidenceCreateDependencies,
 } from '../../../src/commands/evidence-xlsx/create.js'
 import { writeEvidenceWorkbook } from '../../../src/infra/evidence-xlsx/workbook-writer.js'
@@ -24,7 +25,6 @@ import {
   mediaPartsByRelationship,
   OOXML_NS,
   parsePart,
-  readSingleJsonEvent,
 } from '../../_helpers/ooxml-parts.js'
 import { readZipEntries } from '../../_helpers/zip-entries.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
@@ -93,19 +93,22 @@ function writeSpec(spec: unknown): string {
   return specPath
 }
 
-async function runCli(arguments_: readonly string[]): Promise<void> {
-  const command = createEvidenceCreateCommand(realDependencies)
-  await command.parseAsync([...arguments_], { from: 'user' })
+// 最後の実行結果。成功は結果の data、失敗は errorData をそのまま保持する。
+const last: { event: Record<string, unknown> } = { event: {} }
+
+async function runCreate(specPath: string, out: string): Promise<void> {
+  try {
+    last.event = { ...await executeEvidenceCreate({ input: specPath, out }, realDependencies()) }
+  }
+  catch (error: unknown) {
+    last.event = { ...errorData(error) }
+  }
 }
 
-/**
-単一行 JSON の stdout をオブジェクトとして読む。
-*/
 function readJsonEvent(): Record<string, unknown> {
-  return readSingleJsonEvent(stdout.chunks.join(''))
+  return last.event
 }
-
-describe('pecotv evidence create — 正常系 (contracts §3 の観測点)', () => {
+describe('evidence_create — 正常系 (contracts §3 の観測点)', () => {
   it('画像 3 枚を渡すと、シート 1 枚・No.1 から No.3 の連番・画像 3 件・表示 px × 9525 の EMU・元画像と同じ media の xlsx を出す', async () => {
     const shots = [
       { bytes: buildPng(1920, 1080, [200, 40, 40]), name: '01-login.png', caption: 'ログイン画面を表示' },
@@ -124,15 +127,7 @@ describe('pecotv evidence create — 正常系 (contracts §3 の観測点)', ()
     })
     const out = workDirectory('evidence.xlsx')
 
-    const previousExit = process.exitCode
-    process.exitCode = undefined
-    try {
-      await runCli(['--input', specPath, '--out', out, '--json'])
-      expect(process.exitCode).toBe(undefined)
-    }
-    finally {
-      process.exitCode = previousExit
-    }
+    await runCreate(specPath, out)
 
     const event = readJsonEvent()
     expect(event['event']).toBe('result')
@@ -187,20 +182,6 @@ describe('pecotv evidence create — 正常系 (contracts §3 の観測点)', ()
     expect(embedded).toStrictEqual(shots.map(shot => shot.bytes))
   })
 
-  it('--json なしでは人間向けサマリを stdout に出す', async () => {
-    const specPath = writeSpec({
-      title: 'T',
-      createdDate: '2026-08-17',
-      items: [{ imagePath: place('01.png', buildPng(400, 300)) }],
-    })
-    const out = workDirectory('evidence.xlsx')
-
-    await runCli(['--input', specPath, '--out', out])
-
-    expect(stdout.chunks.join('')).toBe(`created: ${out}\nitems: 1 / annotations: 0\n`)
-    expect(existsSync(out)).toBe(true)
-  })
-
   it('偽装拡張子の JPEG は image<N>.jpeg として格納され rels もそれを指す', async () => {
     const jpeg = buildJpeg(640, 480)
     const specPath = writeSpec({
@@ -210,7 +191,7 @@ describe('pecotv evidence create — 正常系 (contracts §3 の観測点)', ()
     })
     const out = workDirectory('evidence.xlsx')
 
-    await runCli(['--input', specPath, '--out', out, '--json'])
+    await runCreate(specPath, out)
 
     const entries = await readZipEntries(out)
     const mediaParts = mediaPartsByRelationship(entries)
@@ -219,8 +200,8 @@ describe('pecotv evidence create — 正常系 (contracts §3 の観測点)', ()
   })
 })
 
-describe('pecotv evidence create — 混在入力 (FR-006)', () => {
-  it('skipped 3 語彙 + 有効 item の再採番で exit 0', async () => {
+describe('evidence_create — 混在入力 (FR-006)', () => {
+  it('skipped 3 語彙 + 有効 item の再採番で成功する', async () => {
     const directoryPath = workDirectory('shots')
     mkdirSync(directoryPath)
     const missing = workDirectory('missing.png')
@@ -239,16 +220,7 @@ describe('pecotv evidence create — 混在入力 (FR-006)', () => {
     })
     const out = workDirectory('evidence.xlsx')
 
-    const previousExit = process.exitCode
-    process.exitCode = undefined
-    try {
-      await runCli(['--input', specPath, '--out', out, '--json'])
-      // in-process 実行では成功時に exitCode を設定しないことで exit 0 を観測する。
-      expect(process.exitCode).toBe(undefined)
-    }
-    finally {
-      process.exitCode = previousExit
-    }
+    await runCreate(specPath, out)
 
     const event = readJsonEvent()
     expect(event['items']).toBe(1)
@@ -265,25 +237,6 @@ describe('pecotv evidence create — 混在入力 (FR-006)', () => {
     expect(texts.filter(text => text.startsWith('No.'))).toHaveLength(1)
     expect(parsePart(entries, 'xl/drawings/drawing1.xml')
       .selectNodes('//xdr:oneCellAnchor//xdr:pic', OOXML_NS)).toHaveLength(1)
-  })
-
-  it('--json なしの混在入力では除外一覧と理由を stdout に出す', async () => {
-    const missing = workDirectory('missing.png')
-    const specPath = writeSpec({
-      title: '混在入力',
-      createdDate: '2026-08-17',
-      items: [
-        { imagePath: place('valid.png', buildPng(400, 300)), caption: '有効' },
-        { imagePath: missing, caption: '不在' },
-      ],
-    })
-    const out = workDirectory('evidence.xlsx')
-
-    await runCli(['--input', specPath, '--out', out])
-
-    expect(stdout.chunks.join('')).toBe(
-      `created: ${out}\nitems: 1 / annotations: 0\nskipped: 1\n  - ${missing} (not-found)\n`,
-    )
   })
 })
 
@@ -317,7 +270,7 @@ function anchorSummaries(drawing: Readonly<XmlDocument>): readonly AnchorSummary
   })
 }
 
-describe('pecotv evidence create — 注記の描画 (FR-010 / SC-006)', () => {
+describe('evidence_create — 注記の描画 (FR-010 / SC-006)', () => {
   it('注記ありの画像・注記なしの画像・除外された画像が混在すると、注記図形を注記ありの画像のアンカーにだけ付ける', async () => {
     const annotated = place('01-login.png', buildPng(1920, 1080, [200, 40, 40]))
     const plain = place('02-home.png', buildPng(800, 600, [40, 80, 200]))
@@ -352,7 +305,7 @@ describe('pecotv evidence create — 注記の描画 (FR-010 / SC-006)', () => {
     })
     const out = workDirectory('evidence.xlsx')
 
-    await runCli(['--input', specPath, '--out', out, '--json'])
+    await runCreate(specPath, out)
 
     const event = readJsonEvent()
     expect(event['items']).toBe(2)
@@ -402,28 +355,9 @@ describe('pecotv evidence create — 注記の描画 (FR-010 / SC-006)', () => {
     expect(ids).toHaveLength(6)
     expect(new Set(ids).size).toBe(6)
   })
-
-  it('--json なしでは注記数もサマリに出す', async () => {
-    const specPath = writeSpec({
-      title: 'T',
-      createdDate: '2026-08-17',
-      items: [{
-        imagePath: place('01.png', buildPng(400, 300)),
-        annotations: [
-          { type: 'highlight', box: { x: 0.1, y: 0.1, w: 0.2, h: 0.2 } },
-          { type: 'arrow', from: { x: 0.1, y: 0.1 }, to: { x: 0.5, y: 0.5 } },
-        ],
-      }],
-    })
-    const out = workDirectory('evidence.xlsx')
-
-    await runCli(['--input', specPath, '--out', out])
-
-    expect(stdout.chunks.join('')).toBe(`created: ${out}\nitems: 1 / annotations: 2\n`)
-  })
 })
 
-describe('pecotv evidence create — US3 ヘッダー・キャプション・並び順の指定', () => {
+describe('evidence_create — US3 ヘッダー・キャプション・並び順の指定', () => {
   it('items の指定順が通し番号になり、caption の明示と省略が混在しても崩れない', async (context) => {
     await verifies(context, 'PV-EVIDENCE-CREATE-01')
     // 受入シナリオ 1–3 / SC-002: ファイル名の自然順 (01 → 02 → 03) ではなく spec の
@@ -450,7 +384,7 @@ describe('pecotv evidence create — US3 ヘッダー・キャプション・並
     })
     const out = workDirectory('evidence.xlsx')
 
-    await runCli(['--input', specPath, '--out', out, '--json'])
+    await runCreate(specPath, out)
 
     expect(readJsonEvent()['items']).toBe(3)
 
@@ -489,7 +423,7 @@ describe('pecotv evidence create — US3 ヘッダー・キャプション・並
     })
     const out = workDirectory('evidence.xlsx')
 
-    await runCli(['--input', specPath, '--out', out, '--json'])
+    await runCreate(specPath, out)
 
     const entries = await readZipEntries(out)
     const sheet = parsePart(entries, 'xl/worksheets/sheet1.xml')
@@ -503,8 +437,8 @@ describe('pecotv evidence create — US3 ヘッダー・キャプション・並
   })
 })
 
-describe('pecotv evidence create — 失敗系', () => {
-  it('全滅入力は exit 1 で既存 --out を壊さない', async () => {
+describe('evidence_create — 失敗系', () => {
+  it('全滅入力は既存 --out を壊さない', async () => {
     const out = workDirectory('evidence.xlsx')
     const existing = Buffer.from('前回の生成物', 'utf8')
     writeFileSync(out, existing)
@@ -517,15 +451,7 @@ describe('pecotv evidence create — 失敗系', () => {
       ],
     })
 
-    const previousExit = process.exitCode
-    process.exitCode = undefined
-    try {
-      await runCli(['--input', specPath, '--out', out, '--json'])
-      expect(process.exitCode).toBe(1)
-    }
-    finally {
-      process.exitCode = previousExit
-    }
+    await runCreate(specPath, out)
 
     const event = readJsonEvent()
     expect(event['event']).toBe('evidence.create.error')
@@ -533,7 +459,7 @@ describe('pecotv evidence create — 失敗系', () => {
     expect(readFileSync(out).equals(existing)).toBe(true)
   })
 
-  it('検証エラーは exit 1 で全件を stderr に列挙し xlsx を作らない', async () => {
+  it('検証エラーは detail に全件を列挙し xlsx を作らない', async () => {
     const specPath = writeSpec({
       title: '検証エラー',
       createdDate: '2026-08-17',
@@ -547,50 +473,11 @@ describe('pecotv evidence create — 失敗系', () => {
     })
     const out = workDirectory('evidence.xlsx')
 
-    const previousExit = process.exitCode
-    process.exitCode = undefined
-    try {
-      await runCli(['--input', specPath, '--out', out])
-      expect(process.exitCode).toBe(1)
-    }
-    finally {
-      process.exitCode = previousExit
-    }
+    await runCreate(specPath, out)
 
-    const written = stderr.chunks.join('')
+    const written = String(readJsonEvent()['detail'])
     expect(written).toContain('items[0].annotations[0].box.w: x + w exceeds 1')
     expect(written).toContain('items[0].annotations[1]: arrow from and to must not be the same point')
     expect(existsSync(out)).toBe(false)
-  })
-
-  it('--input 未指定 + --json は commander エラーを JSON イベント化する', async () => {
-    const command = createEvidenceCreateCommand(realDependencies)
-    const originalArgv = process.argv
-    process.argv = ['node', 'cli.js', 'evidence', 'create', '--json']
-    try {
-      await expect(command.parseAsync(['--json'], { from: 'user' })).rejects.toThrow()
-      const event = readJsonEvent()
-      expect(event['event']).toBe('evidence.create.error')
-      expect(event['reason']).toBe('invalid-option')
-      expect(event['detail']).toContain(`required option '--input <path>' not specified`)
-      expect(stderr.chunks).toHaveLength(0)
-    }
-    finally {
-      process.argv = originalArgv
-    }
-  })
-
-  it('--input 未指定 + --json なしは commander の文言を stderr に素通しする', async () => {
-    const command = createEvidenceCreateCommand(realDependencies)
-    const originalArgv = process.argv
-    process.argv = ['node', 'cli.js', 'evidence', 'create']
-    try {
-      await expect(command.parseAsync([], { from: 'user' })).rejects.toThrow()
-      expect(stderr.chunks.join('')).toContain(`required option '--input <path>' not specified`)
-      expect(stdout.chunks).toHaveLength(0)
-    }
-    finally {
-      process.argv = originalArgv
-    }
   })
 })

@@ -90,7 +90,7 @@ describe.skipIf(!isChromiumReady)('CUJ: キャッシュ系警告が --json paylo
     const error = lastEvent(failed.stdout, 'slide.convert.error')
     expect(error).toBeDefined()
     // pipeline 到達後の生 Error は merge-failed へ wrap される（unknown にならない）
-    expect(error?.reason).toBe('merge-failed')
+    expect(error?.kind).toBe('merge-failed')
     expect(warningsStartingWith(error?.warnings, MANIFEST_INVALID_PREFIX)).toHaveLength(1)
     expect(warningsStartingWith(error?.warnings, SAVE_FAILED_PREFIX)).toHaveLength(SLIDE_COUNT)
     expect(warningsStartingWith(error?.warnings, UPDATE_FAILED_PREFIX)).toHaveLength(1)

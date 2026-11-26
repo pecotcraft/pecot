@@ -1,13 +1,13 @@
-// drawio url が書体と文字サイズを確かめるときの、テーマの宣言の決め方。
+// drawio_create が書体と文字サイズを確かめるときの、テーマの宣言の決め方。
 //
-// 優先順は、`--theme`、図の祖先の talk-dir、本体の既定値。
-// - `--theme git+...#tag`: 置き場から取得する（fetchTheme）。
-// - `--theme file:<path>`: pecot-theme.json を直接読む。install は要らない。
-// - `--theme <path>`: talk-dir かテーマ root。slides.md か pecot-theme.json が無ければ invalid-theme。
+// 優先順は、`theme` の指定、図の祖先の talk-dir、本体の既定値。
+// - `theme: git+...#tag`: 置き場から取得する（fetchTheme）。
+// - `theme: file:<path>`: pecot-theme.json を直接読む。install は要らない。
+// - `theme: <path>`: talk-dir かテーマ root。slides.md か pecot-theme.json が無ければ invalid-theme。
 // - talk-dir: 祖先 D が slides.md を持ち、図が D/public/ の下にあるときだけ。
-// 書体は常に確かめる。5 段のサイズは、talk-dir の中か `--theme` 指定のときだけ確かめる。
+// 書体は常に確かめる。5 段のサイズは、talk-dir の中か `theme` 指定のときだけ確かめる。
 // 移行前の talk-dir（theme-none）は既定値で続ける。解けないテーマ（theme-unlinked・取得や宣言の失敗）は止める。
-// 宣言の欠落や schema の違いの警告は、図の作者には直せない。note で出し、exit 3 の件数に数えない。
+// 宣言の欠落や schema の違いの警告は、図の作者には直せない。note で出し、警告の件数に数えない。
 
 import path from 'node:path'
 
@@ -49,7 +49,7 @@ export interface DrawioThemeDependencies {
   readonly fetchTheme?: typeof fetchTheme
   readonly themeStoreRoot?: () => string | undefined
   /**
-  `--theme` の相対パスを絶対化する基準。省略時はカレント。
+  `theme` の相対パスを絶対化する基準。省略時はカレント。
   */
   readonly currentDirectory?: string
   readonly signal?: AbortSignal
@@ -67,7 +67,7 @@ const FALLBACK_THEME: DrawioTheme = {
 }
 
 /**
-`--json` と MCP の data に載せる `theme`。
+MCP の data に載せる `theme`。
 */
 export function themeData(theme: Readonly<DrawioTheme>): Readonly<Record<string, unknown>> {
   return {
@@ -134,7 +134,7 @@ async function hasTheme(files: ThemeFiles, directory: string, names: readonly st
 }
 
 function invalidTheme(option: string, detail: string): DrawioUrlUsageError {
-  return new DrawioUrlUsageError(`invalid --theme (${detail}): ${option}`, 'invalid-theme')
+  return new DrawioUrlUsageError(`invalid theme (${detail}): ${option}`, 'invalid-theme')
 }
 
 async function themeFromOption(
@@ -194,7 +194,7 @@ async function themeFromOption(
 
 /**
 図の確認に使うテーマを決める。
-`--theme`・図の祖先の talk-dir・既定値の順。解けないテーマは例外で止める（古い値で確かめ続けない）。
+`theme` の指定・図の祖先の talk-dir・既定値の順。解けないテーマは例外で止める（古い値で確かめ続けない）。
 info は取得や宣言の警告と、移行前の案内の出力先。
 */
 export async function resolveDrawioTheme(

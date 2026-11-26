@@ -37,14 +37,14 @@ paths:
   - `tools` の値は `plugins/pecot-workflow/cli/tests/hooks/lib/agent-definitions.test.ts` が固定する
 - リモートの MCP サーバの `type` は、`.mcp.json` が `"http"`、`mcp.json` が `"streamable-http"` にする。1.0 のスキーマは `http` を認めない。`url` は同値
 - 一致は、次のファイルが確認する
-  - pecot-workflow・pecot-visual: `plugins/<名前>/cli/tests/bootstrap/manifest.sh`
-  - pecot-tools: `plugins/pecot-tools/cli/tests/plugin-manifests.test.ts`
+  - pecot-workflow: `plugins/pecot-workflow/cli/tests/bootstrap/manifest.sh`
+  - pecot-tools・pecot-visual: `plugins/<名前>/cli/tests/plugin-manifests.test.ts`
 
 ## データ置き場は 3 段で解決する
 
-pecot-workflow と pecot-visual の `bin/_lib.sh` の data-dir ブロックは逐語一致です。
-一致は `cli/tests/bootstrap/lib-consistency.sh` が確認します。
 解決順は次のとおりです。
+pecot-workflow は `bin/_lib.sh` の data-dir ブロックで解決します。
+pecot-visual は `cli/src/infra/_shared/dependency-root.ts` で解決します。
 
 1. `CLAUDE_PLUGIN_DATA`
 2. `PLUGIN_DATA`
@@ -55,10 +55,7 @@ pecot-workflow と pecot-visual の `bin/_lib.sh` の data-dir ブロックは�
 - `PLUGIN_DATA` は 1 プラグイン専用の置き場で、project 名の階層が付かない。
   単体配布の MCP 登録の `env` にだけ書く案内にし、シェルで export する案内を書かない。複数プラグインが同じ `runtime/` を奪い合うためである
 - pecot-workflow も `${データ置き場}/runtime/` に実行用ミラーを作る。旧方式の `venv/` は、`bin/pecot` が解決した置き場と既定の場所の 2 か所から、毎回の起動で片づける（使用中の世代は次回に回す）
-- pecot-visual の単体配布も同じ順で、解決した置き場の `mcp-dist/` に依存を置く。
-  bash は `plugin_data_dir_normalize`、TypeScript は `cli/src/infra/_shared/dependency-root.ts` が解決する。
-  2 つは同じ入力で同じ結果になる。テストがこれを固定している。
-  片方だけ変えない
+- pecot-visual は、解決した置き場の `mcp-dist/` に依存を置く
 
 ## 名前は 4 層に分ける
 

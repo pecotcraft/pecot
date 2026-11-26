@@ -1,5 +1,5 @@
 // drawio 系 MCP ツール (drawio_create / drawio_export)。
-// deps はハンドラ内で組み立てる。既定 deps は CLAUDE_PLUGIN_ROOT 未設定で throw し、top-level だと tools/list ごと落ちる。
+// deps はハンドラ内で組み立てる。
 
 import { z } from 'zod'
 
@@ -114,7 +114,7 @@ function warningSuffix(warningCount: number): string {
 }
 
 /**
-CLI の `--json` の `warnings` は件数。MCP では warnings を捕捉した文の配列にするため、件数を外す (件数は配列の長さで分かる)。
+実行層の `warnings` は件数。ツールでは warnings を捕捉した文の配列にするため、件数を外す。
 */
 function withoutWarningCount(data: Readonly<Record<string, unknown>>): Record<string, unknown> {
   const { warnings: _count, ...rest } = data
@@ -129,13 +129,10 @@ function drawioCreateMessage(outputFile: string | undefined, warningCount: numbe
 }
 
 /**
-chromium 不在で PNG を諦めたときの結果を、CLI の degrade と同形に寄せる (SC-002)。
+chromium 不在で PNG を諦めたときの結果。PNG 生成の失敗は warning に格下げし、表示用 HTML は書く。
 
-CLI (`pecotv drawio url`) は PNG 生成の失敗を warning に格下げする。
-表示用 HTML は書いたうえで、`png: null` / `pngFailed: true` / warning 1 件を返す。
-MCP だけが実処理の前に hard-fail すると、CLI と結果が食い違う。
 degrade できる条件はこれだけ。drawio_export と slide_convert は、chromium が無いと成果物を 1 つも作れない。
-項目は CLI の PNG 失敗時と同一にし、`runtime_setup` の誘導は message へ載せる。
+`png: null` / `pngFailed: true` / warning 1 件を返し、`runtime_setup` の誘導は message へ載せる。
 */
 function degradeToPngSkipped(
   execution: Readonly<DrawioUrlExecution>,
@@ -145,7 +142,7 @@ function degradeToPngSkipped(
   return {
     data: {
       ...withoutWarningCount(execution.data),
-      // eslint-disable-next-line unicorn/no-null -- PNG 失敗時に png: null を返すことが CLI との契約
+      // eslint-disable-next-line unicorn/no-null -- PNG 失敗時は png: null を返す契約
       png: null,
       pngFailed: true,
     },
@@ -169,7 +166,7 @@ const handleDrawioCreate = async (
     return toCallToolResult({
       ok: false,
       kind: 'invalid-option',
-      detail: `pecotv drawio url: ${detail}`,
+      detail: `drawio_create: ${detail}`,
       data: { event: 'drawio.url.error' },
     })
   }
@@ -180,7 +177,7 @@ const handleDrawioCreate = async (
     : undefined
 
   const output = captureCommandOutput()
-  // CLI と同じく PNG の失敗を warning の行に書き、warnings に入れる。
+  // PNG の失敗は warning の行に書き、warnings に入れる。
   if (unavailable !== undefined) createDiagnostics(output.stderr).warning(`PNG export failed: ${unavailable.detail}`)
   try {
     const execution = await executeDrawioUrl(
@@ -189,7 +186,7 @@ const handleDrawioCreate = async (
       { mode: input.mode, png: input.png && unavailable === undefined, theme: normalized?.theme, output: input.out_path },
       { ...drawioUrlDefaultDependencies(), stdout: output.stdout, stderr: output.stderr, signal: call.signal },
     )
-    // 警告あり (CLI の exit 3) でも URL の生成そのものは完了しているので成功で返す。file・png の項目が CLI の artifacts と同じパスを持つ。
+    // 警告ありでも URL の生成そのものは完了しているので成功で返す。
     return output.finish({
       ok: true,
       data: withoutWarningCount(execution.data),
@@ -202,7 +199,7 @@ const handleDrawioCreate = async (
     return output.finish({
       ok: false,
       kind: failureKindOf(drawioUrlErrorToReason(error)),
-      detail: `pecotv drawio url: ${failureDetailOf(error, data)}`,
+      detail: `drawio_create: ${failureDetailOf(error, data)}`,
       data: withoutCommonFailureFields(data),
     })
   }
@@ -247,7 +244,7 @@ const handleDrawioExport = async (
       { icons: iconsRoot, output: input.out_path, printHash: input.print_hash, pdf: input.pdf },
       { ...drawioExportDefaultDependencies(), stdout: output.stdout, stderr: output.stderr },
     )
-    // 警告あり (CLI の exit 3。PDF 生成失敗) でも SVG の書き出しは完了しているので成功で返す。file・pdf の項目が CLI の artifacts と同じパスを持つ。
+    // PDF 生成の失敗という警告ありでも SVG の書き出しは完了しているので成功で返す。
     return output.finish({
       ok: true,
       data: withoutWarningCount(execution.data),
@@ -260,13 +257,13 @@ const handleDrawioExport = async (
 }
 
 /**
-drawio_export の失敗を CLI の `--json` エラーと同形の ToolResult に写す。
+drawio_export の失敗を ToolResult に写す。
 */
 function drawioExportFailure(error: unknown): FailedToolResult {
   return {
     ok: false,
     kind: failureKindOf(drawioExportErrorToReason(error)),
-    detail: `pecotv drawio export: ${formatError(error)}`,
+    detail: `drawio_export: ${formatError(error)}`,
     data: { event: 'drawio.export.error' },
   }
 }

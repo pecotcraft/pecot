@@ -10,7 +10,7 @@ export type FixtureTheme = 'with-declaration' | 'without-declaration'
 
 export interface CopiedTheme {
   readonly directory: string
-  // `slide create --theme` と package.json に渡す `file:` の指定
+  // `slide_create` の `theme` と package.json に渡す `file:` の指定
   readonly spec: string
 }
 

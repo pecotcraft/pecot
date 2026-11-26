@@ -1,4 +1,4 @@
-// T006: tools/list に載る 11 ツールの契約テスト。
+// T006: tools/list に載る 11 ツールの契約テスト。フックが呼ぶツールは、公開することだけを見る（応答は file-tools.test.ts）。
 //
 // 期待値テーブル (TOOL_CONTRACTS) は、次の契約の原本からの **転記** になる。
 //   aist-roadmap: specs/011-aistv-mcp-server/contracts/mcp-tools.md
@@ -255,6 +255,11 @@ const TOOL_CONTRACTS: readonly ToolContract[] = [
 ]
 
 /**
+フックが呼ぶツール。共通の 4 項目と相対パスの拒否を持たないので、TOOL_CONTRACTS に入れない。
+*/
+const HOOK_TOOL_NAMES = ['file_lint', 'file_validate', 'file_brief']
+
+/**
 全ツールの outputSchema が持つ共通の項目。ツールの項目はツールごとに宣言する。
 */
 const COMMON_OUTPUT_ITEMS = ['detail', 'kind', 'log', 'warnings']
@@ -265,10 +270,6 @@ const OutputBranchesSchema = z.looseObject({ anyOf: z.array(RequiredBranchSchema
 // src/mcp/tests → cli/。実在しないディレクトリを起点に、実処理が即失敗する入力を作る。
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..')
 const MISSING_DIRECTORY = path.join(CLI_ROOT, 'no-such-dir-980')
-/**
-プラグイン導入時の CLAUDE_PLUGIN_ROOT の値 (cli/ の親)。
-*/
-const PLUGIN_ROOT = path.resolve(CLI_ROOT, '..')
 
 /**
 相対パスの確認 (FR-011) を突く値。実処理まで進めば「入力不在」の失敗になる。
@@ -474,26 +475,10 @@ describe('MCP ツール契約 (tools/list)', () => {
     return found
   }
 
-  it('契約どおり 11 件のツールを公開する', () => {
+  it('契約どおりの 11 件と、フックが呼ぶ 3 件のツールを公開する', () => {
     const all = allListed()
-    expect(all).toHaveLength(TOOL_CONTRACTS.length)
-    expect(sorted(all.map(tool => tool.name))).toEqual(sorted(TOOL_CONTRACTS.map(contract => contract.name)))
-  })
-
-  it('CLAUDE_PLUGIN_ROOT 未設定でもサーバ生成と tools/list が成功する', async () => {
-    // 既定 deps ファクトリは CLAUDE_PLUGIN_ROOT 未設定で throw する。
-    // deps をモジュール top-level や allTools() の評価時に組み立てると、11 件まとめて公開できなくなる。
-    // deps はハンドラ内で毎回生成する、という設計をここで pin する。
-
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', undefined)
-    const connected = await connectMcp(allTools())
-    try {
-      const result = await connected.client.listTools()
-      expect(result.tools).toHaveLength(TOOL_CONTRACTS.length)
-    }
-    finally {
-      await closeMcp(connected)
-    }
+    expect(all).toHaveLength(TOOL_CONTRACTS.length + HOOK_TOOL_NAMES.length)
+    expect(sorted(all.map(tool => tool.name))).toEqual(sorted([...TOOL_CONTRACTS.map(contract => contract.name), ...HOOK_TOOL_NAMES]))
   })
 
   it.each(TOOL_CONTRACTS)('$name の inputSchema が契約表と一致する', (contract) => {
@@ -572,9 +557,6 @@ describe('MCP ツール契約 (tools/list)', () => {
   it.for(SINGLE_PATH_CONTRACTS)('$name は Windows 形式のパスを変換して下流へ渡す', async (contract, context) => {
     await verifies(context, 'PV-COMMON-04')
     // パス引数が 1 件のツールは、変換後の値がそのまま下流へ渡るので応答 (detail やツールの項目) に現れる。
-    // slide 系の既定 deps ファクトリは CLAUDE_PLUGIN_ROOT を要る。未設定だと、引数を見る前に失敗する。
-    // すると変換後のパスが応答に出ない。プラグイン導入時と同じ値を入れて、実処理まで進ませる。
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', PLUGIN_ROOT)
     const base = windowsBaseArgumentsOf(contract.name)
 
     for (const windowsPath of WINDOWS_PATHS) {
@@ -606,7 +588,6 @@ describe('MCP ツール契約 (tools/list)', () => {
     // そこで 2 点で引数ごとに変換を観測する。
     // 1 点目は、受理されること (invalidPaths が無いこと)。
     // 2 点目は、別のパス引数を相対パスにして拒否させたときの convertedPaths (元値 → 変換後)。
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', PLUGIN_ROOT)
     const base = windowsBaseArgumentsOf(contract.name)
 
     for (const windowsPath of WINDOWS_PATHS) {
@@ -641,9 +622,6 @@ describe('MCP ツール契約 (tools/list)', () => {
     // 対象は drawio_create / drawio_export / slide_convert の out_path。
     // 下流利用まで見ていたのは、evidence_create の E2E だけだった。
     // そこで Chromium を要らない設定 (png: false) の drawio_create を 1 件足す。
-    // 既定 deps ファクトリは CLAUDE_PLUGIN_ROOT 未設定で throw する。
-    // プラグイン導入時と同じ値を入れて実処理まで進ませる (SINGLE_PATH_CONTRACTS 系のテストと同じ理由)。
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', PLUGIN_ROOT)
     const inputPath = path.join(CLI_ROOT, 'tests', 'fixtures', 'drawio', 'minimal.drawio')
     const windowsOutPath = String.raw`C:\pecotv-1094\missing\diagram.drawio.html`
     const expectedOutPath = path.join(convertedPath, 'diagram.drawio.html')

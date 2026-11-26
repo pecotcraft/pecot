@@ -1,8 +1,8 @@
-// CUJ: MCP クライアントが `pecotv mcp` へ stdio で接続する。
+// CUJ: MCP クライアントが `node dist/main.js` へ stdio で接続する。
 //
-// 利用者が使う起動手順 (`plugins/pecot-visual/bin/pecotv mcp`) を、実際に spawn して検証する。
+// 利用者が npx で起動するのと同じ dist/main.js を、実際に spawn して検証する。
 // unit テストは InMemoryTransport 越しにしか見られない。
-// そのため、stdout 汚染 (bootstrap ログや console.log の混入) と、終了処理の退行を見つけられるのは、このテストだけになる。
+// そのため、stdout 汚染 (console.log の混入) と、終了処理の退行を見つけられるのは、このテストだけになる。
 //
 // 起動条件 (env・transport・stderr の扱い) は tests/_helpers/mcp-stdio.ts に集約する。
 // ツール呼び出しを見る mcp-tools.test.ts と共有する。
@@ -18,7 +18,6 @@ import { LATEST_PROTOCOL_VERSION } from '@modelcontextprotocol/server'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 import {
-  BIN_PECOTV,
   CLI_DIST,
   CLI_ROOT,
   PLUGIN_MANIFEST,
@@ -29,6 +28,7 @@ import {
 } from '../_helpers/mcp-stdio.js'
 import { attachOutput } from '../_helpers/attach.js'
 import { MCP_SERVER_NAME } from '../../src/mcp/server.js'
+import { allTools } from '../../src/mcp/tools/index.js'
 import { loadVersionFromPluginJson } from '../../src/version.js'
 import { isRecord } from '../_helpers/records.js'
 
@@ -76,9 +76,9 @@ const DISCOVER_THEN_INITIALIZE: readonly (readonly [label: string, waitForDiscov
   ['discover の応答を待ってから', true],
 ]
 
-describe('pecotv mcp (stdio)', () => {
+describe('MCP サーバ (stdio)', () => {
   // 2025 系の握手 (initialize) を直接見るテスト。2026-07-28 での接続は下の別ケースが担う。
-  it('initialize が成功し serverInfo が pecotv + plugin.json の版数を返す', async () => {
+  it('initialize が成功し serverInfo がサーバ名と plugin.json の版数を返す', async () => {
     const transport = makeTransport()
     const readStderr = drainStderr(transport.stderr)
     const transportErrors: Readonly<Error>[] = []
@@ -103,7 +103,7 @@ describe('pecotv mcp (stdio)', () => {
     }
   }, 30_000)
 
-  it('2026-07-28 で接続でき、tools/list が 11 件返る', async () => {
+  it('2026-07-28 で接続でき、tools/list が登録したツールの件数を返す', async () => {
     // serveStdio は、2025 系と 2026-07-28 系の両方に応答する。
     // 上の initialize のテストは 2025 系の握手専用。
     // そこで、pin した 2026-07-28 のクライアントで、実プロセスへの接続を別に確かめる。
@@ -123,7 +123,7 @@ describe('pecotv mcp (stdio)', () => {
         version: loadVersionFromPluginJson(PLUGIN_MANIFEST),
       })
       const listed = await client.listTools(undefined, { timeout: REQUEST_TIMEOUT_MS })
-      expect(listed.tools).toHaveLength(11)
+      expect(listed.tools).toHaveLength(allTools().length)
     }
     finally {
       await client.close()
@@ -152,7 +152,7 @@ describe('pecotv mcp (stdio)', () => {
   // initialize を生で送る 2025 系専用のテスト (2026-07-28 は initialize を使わない)。
   it('stdout に JSON-RPC 以外が混入しない', async () => {
     // SDK Client 経由では非 JSON 行が捨てられて検出できないため、生 spawn で stdout を丸ごと回収する。
-    const child = spawn(BIN_PECOTV, ['mcp'], {
+    const child = spawn(process.execPath, [CLI_DIST], {
       env: serverEnvironment(),
       cwd: CLI_ROOT,
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -191,7 +191,7 @@ describe('pecotv mcp (stdio)', () => {
     finally {
       child.stdin.end()
       exitCode = await exited
-      attachOutput('pecotv mcp（生の stdin 入力）', exitCode, stdout, readStderr())
+      attachOutput('MCP サーバ（生の stdin 入力）', exitCode, stdout, readStderr())
     }
 
     // serve.ts の exit code 規約は、0 が正常終了。
@@ -213,7 +213,7 @@ describe('pecotv mcp (stdio)', () => {
   // 2026-07-28 の探索で始まった接続でも、2025 系の握手と tools/call に応答できなければならない。
   describe.each(DISCOVER_THEN_INITIALIZE)('server/discover に続けて同じ接続で initialize が来る (%s)', (_label, waitForDiscover) => {
     it('initialize と tools/call に応答する', async () => {
-      const child = spawn(BIN_PECOTV, ['mcp'], {
+      const child = spawn(process.execPath, [CLI_DIST], {
         env: serverEnvironment(),
         cwd: CLI_ROOT,
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -275,7 +275,7 @@ describe('pecotv mcp (stdio)', () => {
       finally {
         child.stdin.end()
         exitCode = await exited
-        attachOutput('pecotv mcp（server/discover と initialize）', exitCode, JSON.stringify(responses.values().toArray(), undefined, 2), readStderr())
+        attachOutput('MCP サーバ（server/discover と initialize）', exitCode, JSON.stringify(responses.values().toArray(), undefined, 2), readStderr())
       }
       expect(exitCode, `子プロセス stderr: ${readStderr()}`).toBe(0)
     }, 30_000)

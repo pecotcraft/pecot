@@ -1,6 +1,6 @@
 // talk-dir の node_modules にテーマが今の値で張られているかを確かめ、違えば張り直す。
 // あわせて、本体の生成ファイル（`vite.config.ts`・`start.mjs`）を本体の今の内容にそろえる。
-// dev・convert・`sync --node-modules-only` と、移行済みの talk-dir の通常の `sync` が呼ぶ。
+// dev・convert・`node_modules_only` の sync と、移行済みの talk-dir の通常の sync が呼ぶ。
 //
 // 順は次のとおり。
 // `package.json` の spec を読み、`fetchTheme` を通してから、生成ファイルをそろえる。
@@ -80,7 +80,7 @@ export interface EnsureThemeLinkedResult {
 export interface EnsureThemeLinkedOptions {
   /**
   テーマを参照しない talk-dir を、`theme-none` で止めるか。
-  dev・convert は止める（移行前の形は描画しない）。`sync --node-modules-only` は止めず、テーマ無しで張り直す。
+  dev・convert は止める（移行前の形は描画しない）。`node_modules_only` の sync は止めず、テーマ無しで張り直す。
   */
   readonly requireTheme?: boolean
 }
@@ -115,7 +115,7 @@ async function unmanagedTheme(
   catch (error: unknown) {
     // ここへ来た時点で theme: は依存を指しているので、起こりうるのは theme-unlinked だけ。
     // dev・convert はそのまま Slidev を起こすと一般の起動失敗になり、案内が出ない。案内つきで止める。
-    // sync の --node-modules-only は止めず、テーマ無しで張り直す。
+    // sync の node_modules_only は止めず、テーマ無しで張り直す。
     if (error instanceof ThemeResolveError && options.requireTheme !== true) {
       return { relinked: false, regenerated: false, theme: undefined, nodeModulesTarget: undefined }
     }

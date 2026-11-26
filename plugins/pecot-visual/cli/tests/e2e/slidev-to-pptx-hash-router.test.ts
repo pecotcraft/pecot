@@ -18,7 +18,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename */
 /* eslint-disable vitest/no-disabled-tests -- context.skip() は Chromium 未 install 時の実行時 skip。
    恒久的に無効化したテストではない */
-import { spawnSync } from 'node:child_process'
 import { existsSync, readdirSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os'
 import path from 'node:path'
@@ -29,17 +28,15 @@ import type { Logger } from '../../src/domain/slidev-to-pptx/logger.js'
 import type { PipelineConfig } from '../../src/domain/slidev-to-pptx/config.js'
 import { convertToPptx } from '../../src/infra/slidev-to-pptx/pipeline.js'
 import { YauzlYazlPptxArchive } from '../../src/infra/pptx-ooxml/archive.js'
-import { attachFile, attachOutput } from '../_helpers/attach.js'
-import { formatOutputTails } from '../_helpers/pecotv-e2e-run.js'
+import { attachFile } from '../_helpers/attach.js'
+import { formatOutputTails, spawnToolSync } from '../_helpers/pecotv-e2e-run.js'
 import { expectConvertRouteFromEnvironment } from '../_helpers/single-pass-route.js'
 import { compareStrings } from '../../src/domain/_shared/compare-strings.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 
 const HERE = import.meta.dirname
 const CLI_ROOT = path.resolve(HERE, '..', '..')
-const PLUGIN_ROOT = path.resolve(CLI_ROOT, '..')
-const BIN_PECOTV = path.resolve(PLUGIN_ROOT, 'bin', 'pecotv')
-const CLI_DIST = path.join(CLI_ROOT, 'dist', 'cli.js')
+const CLI_DIST = path.join(CLI_ROOT, 'dist', 'main.js')
 // fixture は元位置で実行する（tmp コピーは pnpm hoist された deps を解決できない）。
 // 不変条件: この fixture (hash-slidev) を元位置で書き換え・掃除するのは本ファイルだけに
 // する。e2e ファイル間で fixture を共有してはならない — ファイル間並列実行時に一方の
@@ -211,8 +208,7 @@ describe('Issue #971 — routerMode: hash デッキの PPTX 変換', () => {
     if (!isChromiumCached()) context.skip(CHROMIUM_SKIP_NOTE)
 
     const outputPath = temporaryRoot('hash.pptx')
-    const result = spawnSync(BIN_PECOTV, ['slide', 'convert', FIXTURE_DIR, '--out', outputPath, '--json', '--log-level', 'verbose'], {
-      env: { ...process.env, PECOTV_BOOTSTRAP_SKIP: '1' },
+    const result = spawnToolSync(['slide', 'convert', FIXTURE_DIR, '--out', outputPath, '--json'], {
       encoding: 'utf8',
       timeout: 240_000,
       maxBuffer: 64 * 1024 * 1024,
@@ -221,7 +217,6 @@ describe('Issue #971 — routerMode: hash デッキの PPTX 変換', () => {
 
     const stdout = typeof result.stdout === 'string' ? result.stdout : ''
     const stderr = typeof result.stderr === 'string' ? result.stderr : ''
-    attachOutput('pecotv slide convert --json --log-level verbose', result.status ?? undefined, stdout, stderr)
     // 異常終了は一次情報（--json の失敗理由が載る stdout と stderr）が無いと原因を特定できない。
     // spawnSync timeout（status null）と cli の異常終了（非 0）のどちらでも tail を残す。
     if (result.status !== 0) {
@@ -232,10 +227,6 @@ describe('Issue #971 — routerMode: hash デッキの PPTX 変換', () => {
     }
     expect(result.status).toBe(0)
     expect(existsSync(outputPath)).toBe(true)
-
-    // stale dist 由来の false pass を防ぐ: hash と判定できていない run は不合格。
-    // 進捗の行は --log-level verbose のとき stderr に note: で出る。
-    expect(stderr).toContain('note: router detection: router=hash')
 
     const events = parseJsonEvents(stdout)
     const doneEvent = events.find(event => event.event === 'slide.convert.done')

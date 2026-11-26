@@ -35,10 +35,8 @@ case "$SCOPE" in
     all) RUN_CLI=true; RUN_SLIDEV=true ;;
 esac
 
-# pnpm 起動コマンドの解決は bin/_lib.sh の resolve_pnpm に一本化している。
-# run-tests.sh と publish-mcp-dist.sh も同じ関数を使う。
-# shellcheck source=../../bin/_lib.sh
-. "$PECOTV_PLUGIN_ROOT/bin/_lib.sh"
+# shellcheck source=pnpm-lib.sh
+. "$PECOTV_PLUGIN_ROOT/scripts/ci/pnpm-lib.sh"
 
 PNPM="$(resolve_pnpm "$PECOTV_PLUGIN_ROOT")"
 if [ -z "$PNPM" ]; then

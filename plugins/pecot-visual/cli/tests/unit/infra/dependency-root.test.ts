@@ -1,19 +1,10 @@
-// infra/_shared/dependency-root.ts の unit test。
-//
-// 見たいのは 2 つの依存ルートの切り替えそのもの。
-// 一時ディレクトリに 2 つの依存ルートを作り分ける。
-// 1 つ目はプラグイン側 (`$CLAUDE_PLUGIN_ROOT/node_modules`)。
-// 2 つ目は単体配布側 (`${データ置き場}/mcp-dist/node_modules`)。
-// 優先順・fallback・どちらも無いときの挙動を固定する。
-//
-// 依存ルートかどうかの判定は、代表パッケージ (RUNTIME_DEPENDENCY_PROBES) がその node_modules 配下から引けるかで決まる。
-// そのためテストの一時ツリーにも実体を置く (tests/_helpers/dependency-probes.ts)。
-// 永続層は版を持たない固定パスなので、install stamp の比較も併せて固定する。
+// infra/_shared/dependency-root.ts の unit test。同梱と永続層（`${データ置き場}/mcp-dist`）の 2 つの依存ルートの切り替えを固定する。
+// 依存ルートの判定は代表パッケージが引けるかで決まるので、一時ツリーにも実体を置く（tests/_helpers/dependency-probes.ts）。
 
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは mkdtemp で作った一時ディレクトリ配下のみ */
-import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -28,21 +19,33 @@ import {
   resolveTalkDirectoryNodeModules,
   runtimeDependencyRoot,
   runtimeInstallStampPath,
-  runningMirrorDirectory,
   themeStoreRoot,
-  runtimeStateDirectory,
   stateFileDirectory,
 } from '../../../src/infra/_shared/dependency-root.js'
-import { resolvePluginRoot } from '../../../src/infra/_shared/plugin-root.js'
-import { attachOutput } from '../../_helpers/attach.js'
+import type * as PluginRoot from '../../../src/infra/_shared/plugin-root.js'
 import { seedDependencyRoot } from '../../_helpers/dependency-probes.js'
 import { stubNoDataDirectory } from '../../_helpers/no-data-directory.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
+
+const pluginRootOverride: { value?: string } = vi.hoisted(() => ({}))
+
+vi.mock('../../../src/infra/_shared/plugin-root.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof PluginRoot>()
+  return { resolvePluginRoot: () => pluginRootOverride.value ?? actual.resolvePluginRoot() }
+})
+
+/**
+プラグインルート（resolvePluginRoot）を、このテストの間だけ差し替える。
+*/
+function stubPluginRoot(root: string): void {
+  pluginRootOverride.value = root
+}
 
 const temporaryRoot = useTemporaryDirectory('pecotv-dependency-root-', { resolveRealPath: true })
 
 afterEach(() => {
   vi.unstubAllEnvs()
+  delete pluginRootOverride.value
   rmSync(temporaryRoot(), { recursive: true, force: true })
 })
 
@@ -110,16 +113,13 @@ describe('ルートの解決', () => {
     expect(existsSync(data)).toBe(false)
   })
 
-  it('プラグインルートは CLAUDE_PLUGIN_ROOT。空白のみは未設定と同じ', () => {
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', '/plugins/pecot-visual')
+  it('同梱の依存ルートは、プラグインルートと同じ場所を返す', () => {
+    stubPluginRoot('/plugins/pecot-visual')
     expect(pluginDependencyRoot()).toBe('/plugins/pecot-visual')
-
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', ' '.repeat(3))
-    expect(pluginDependencyRoot()).toBeUndefined()
   })
 
   it('探索順はプラグインのパス → 永続層', () => {
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', '/plugins/pecot-visual')
+    stubPluginRoot('/plugins/pecot-visual')
     vi.stubEnv('CLAUDE_PLUGIN_DATA', '/fake/data')
 
     expect(dependencyRoots()).toEqual([
@@ -128,11 +128,11 @@ describe('ルートの解決', () => {
     ])
   })
 
-  it('決められないルートは列から落ちる', () => {
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', '')
+  it('永続層を決められなければ、プラグインのパスだけを返す', () => {
+    stubPluginRoot('/plugins/pecot-visual')
     stubNoDataDirectory()
 
-    expect(dependencyRoots()).toEqual([])
+    expect(dependencyRoots()).toEqual(['/plugins/pecot-visual'])
   })
 
   it('install stamp は永続層直下。場所が決まらなければ undefined', () => {
@@ -162,112 +162,24 @@ describe('themeStoreRoot', () => {
     expect(themeStoreRoot()).toBeUndefined()
   })
 })
+describe('resolvePluginRoot', () => {
+  it('CLAUDE_PLUGIN_ROOT があっても読まず、自身の置き場所から求める', async () => {
+    const actual = await vi.importActual<typeof PluginRoot>('../../../src/infra/_shared/plugin-root.js')
+    stubPluginRoot('/plugins/installed/pecot-visual')
 
-describe('PECOTV_DEPENDENCY_ROOT (bin/pecotv がミラーの依存ルートを渡す場合)', () => {
-  // ミラー方式では実行用の依存が ${データ置き場}/runtime/current 側にあり、同梱アセットは
-  // CLAUDE_PLUGIN_ROOT 側にある。2 つを別の変数で受け、依存の解決だけを前者へ向ける。
+    const testDirectory = path.dirname(fileURLToPath(import.meta.url))
 
-  it('PECOTV_DEPENDENCY_ROOT があれば CLAUDE_PLUGIN_ROOT より優先する', () => {
-    vi.stubEnv('PECOTV_DEPENDENCY_ROOT', '/data/runtime/current')
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', '/plugins/pecot-visual')
-
-    expect(pluginDependencyRoot()).toBe('/data/runtime/current')
-    expect(dependencyRoots()[0]).toBe('/data/runtime/current')
-  })
-
-  it('空白のみの PECOTV_DEPENDENCY_ROOT は未設定と同じで、従来の CLAUDE_PLUGIN_ROOT に降りる', () => {
-    vi.stubEnv('PECOTV_DEPENDENCY_ROOT', ' '.repeat(2))
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', '/plugins/pecot-visual')
-
-    expect(pluginDependencyRoot()).toBe('/plugins/pecot-visual')
-  })
-
-  it('PECOTV_DEPENDENCY_ROOT 未設定の従来解決は変わらない', () => {
-    vi.stubEnv('PECOTV_DEPENDENCY_ROOT', undefined)
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', '/plugins/pecot-visual')
-    vi.stubEnv('CLAUDE_PLUGIN_DATA', '/fake/data')
-
-    expect(dependencyRoots()).toEqual([
-      '/plugins/pecot-visual',
-      path.join('/fake/data', 'mcp-dist'),
-    ])
-  })
-
-  it('同梱アセットの起点 (resolvePluginRoot) は PECOTV_DEPENDENCY_ROOT に引きずられず CLAUDE_PLUGIN_ROOT を読む', () => {
-    vi.stubEnv('PECOTV_DEPENDENCY_ROOT', '/data/runtime/current')
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', '/plugins/pecot-visual')
-
-    expect(resolvePluginRoot()).toBe('/plugins/pecot-visual')
-  })
-
-  it('CLAUDE_PLUGIN_ROOT が無いときの resolvePluginRoot は source 相対で、PECOTV_DEPENDENCY_ROOT は使わない', () => {
-    vi.stubEnv('PECOTV_DEPENDENCY_ROOT', '/data/runtime/current')
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', '')
-
-    expect(resolvePluginRoot()).not.toBe('/data/runtime/current')
-    expect(path.isAbsolute(resolvePluginRoot())).toBe(true)
-  })
-})
-
-describe('runtimeStateDirectory (Chromium・host-deps の印とロックの置き場)', () => {
-  // bin/pecotv と cli が同じ場所を見る。ハードリンクで複製した node_modules の中に置くと
-  // inode を共有し、置き場が食い違うと確認が毎回実行される。求め方は PECOTV_RUNTIME_DIR の親。
-
-  it('PECOTV_RUNTIME_DIR の親（runtime/）が実在すれば返す', () => {
-    const runtime = temporaryRoot('data', 'runtime')
-    mkdirSync(path.join(runtime, 'abc-def'), { recursive: true })
-    vi.stubEnv('PECOTV_RUNTIME_DIR', path.join(runtime, 'abc-def'))
-
-    expect(runtimeStateDirectory()).toBe(runtime)
-  })
-
-  it('親が実在しなければ undefined（実在しない親ではロックファイルを作れず exit 66 になる）', () => {
-    vi.stubEnv('PECOTV_RUNTIME_DIR', temporaryRoot('data-without-runtime', 'runtime', 'abc-def'))
-
-    expect(runtimeStateDirectory()).toBeUndefined()
-  })
-
-  it('データ置き場の変数だけでは決まらない（ミラーの変数だけを見る）', () => {
-    const data = temporaryRoot('data')
-    mkdirSync(path.join(data, 'runtime'), { recursive: true })
-    vi.stubEnv('CLAUDE_PLUGIN_DATA', data)
-
-    expect(runtimeStateDirectory()).toBeUndefined()
-  })
-
-  it('相対パス・空値・未設定は無効', () => {
-    vi.stubEnv('PECOTV_RUNTIME_DIR', 'relative/dir')
-    expect(runtimeStateDirectory()).toBeUndefined()
-
-    vi.stubEnv('PECOTV_RUNTIME_DIR', '')
-    expect(runtimeStateDirectory()).toBeUndefined()
-
-    vi.stubEnv('PECOTV_RUNTIME_DIR', undefined)
-    expect(runtimeStateDirectory()).toBeUndefined()
+    expect(actual.resolvePluginRoot()).toBe(path.resolve(testDirectory, '../../../..'))
   })
 })
 
 describe('stateFileDirectory', () => {
-  it('runtime/ が実在すればそこ、無ければ依存ルートの node_modules へ戻る', () => {
+  it('プラグインルートの node_modules が実在すればそこを返す', () => {
     const pluginRoot = createRoot('plugin')
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', pluginRoot)
+    stubPluginRoot(pluginRoot)
     vi.stubEnv('CLAUDE_PLUGIN_DATA', temporaryRoot('empty-data'))
-    const runtime = temporaryRoot('data', 'runtime')
-    vi.stubEnv('PECOTV_RUNTIME_DIR', path.join(runtime, 'abc-def'))
+
     expect(stateFileDirectory()).toBe(path.join(pluginRoot, 'node_modules'))
-
-    mkdirSync(runtime, { recursive: true })
-    expect(stateFileDirectory()).toBe(runtime)
-  })
-})
-
-describe('runningMirrorDirectory', () => {
-  it('PECOTV_RUNTIME_DIR を返す。空白のみ・未設定は undefined', () => {
-    vi.stubEnv('PECOTV_RUNTIME_DIR', '/data/runtime/abc-def')
-    expect(runningMirrorDirectory()).toBe('/data/runtime/abc-def')
-
-    vi.stubEnv('PECOTV_RUNTIME_DIR', '  ')
-    expect(runningMirrorDirectory()).toBeUndefined()
   })
 })
 
@@ -277,21 +189,21 @@ describe('existingDependencyNodeModules', () => {
 
   it('プラグイン側の node_modules が実在すればそれを返す', () => {
     const pluginRoot = createRoot('plugin')
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', pluginRoot)
+    stubPluginRoot(pluginRoot)
     createRuntimeRoot()
 
     expect(existingDependencyNodeModules()).toBe(path.join(pluginRoot, 'node_modules'))
   })
 
   it('プラグイン側に実体が無ければ永続層へ降りる', () => {
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', temporaryRoot('absent'))
+    stubPluginRoot(temporaryRoot('absent'))
     const runtime = createRuntimeRoot()
 
     expect(existingDependencyNodeModules()).toBe(path.join(runtime, 'node_modules'))
   })
 
   it('どちらも無ければ undefined', () => {
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', temporaryRoot('absent'))
+    stubPluginRoot(temporaryRoot('absent'))
     vi.stubEnv('CLAUDE_PLUGIN_DATA', temporaryRoot('empty-data'))
 
     expect(existingDependencyNodeModules()).toBeUndefined()
@@ -299,11 +211,11 @@ describe('existingDependencyNodeModules', () => {
 })
 
 describe('resolveTalkDirectoryNodeModules', () => {
-  // talk-dir の symlink 先。プラグインルートは env ではなく引数で受ける。
+  // talk-dir の symlink 先。create / sync が deps で受けた依存ルートと食い違わせないため、引数で受ける。
   // create / sync が deps 経由で受け取った値と食い違わせないため。
-  it('引数のプラグインルートを優先し、env の値は見ない', () => {
+  it('引数の依存ルートを優先し、プラグインルートは見ない', () => {
     const pluginRoot = createRoot('plugin')
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', temporaryRoot('other'))
+    stubPluginRoot(temporaryRoot('other'))
     createRuntimeRoot()
 
     expect(resolveTalkDirectoryNodeModules(pluginRoot)).toBe(path.join(pluginRoot, 'node_modules'))
@@ -384,14 +296,14 @@ describe('開発ツリーの workspace root', () => {
 describe('resolveDependency', () => {
   it('依存ルートに置かれたパッケージを解決する', () => {
     const pluginRoot = createRoot('plugin', ['pkg-a'])
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', pluginRoot)
+    stubPluginRoot(pluginRoot)
     vi.stubEnv('CLAUDE_PLUGIN_DATA', temporaryRoot('empty-data'))
 
     expect(resolveDependency('pkg-a')).toBe(path.join(pluginRoot, 'node_modules', 'pkg-a', 'index.js'))
   })
 
   it('プラグイン側で見つからなければ永続層から解決する', () => {
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', createRoot('plugin'))
+    stubPluginRoot(createRoot('plugin'))
     const runtime = createRuntimeRoot(['pkg-b'])
 
     expect(resolveDependency('pkg-b')).toBe(path.join(runtime, 'node_modules', 'pkg-b', 'index.js'))
@@ -400,14 +312,14 @@ describe('resolveDependency', () => {
   it('fromUrl を渡すとそちらを先に試す', () => {
     // プラグイン側と開発時の hoist 構成で、従来どおりの解決結果を保つための優先順。
     const runtime = createRuntimeRoot(['pkg-c'])
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', createRoot('plugin'))
+    stubPluginRoot(createRoot('plugin'))
 
     expect(resolveDependency('pkg-c', import.meta.url), 'テスト自身の位置には無いので永続層へ降りる')
       .toBe(path.join(runtime, 'node_modules', 'pkg-c', 'index.js'))
   })
 
   it('どこにも無ければ undefined (throw しない)', () => {
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', createRoot('plugin'))
+    stubPluginRoot(createRoot('plugin'))
     vi.stubEnv('CLAUDE_PLUGIN_DATA', temporaryRoot('empty-data'))
 
     expect(resolveDependency('@pecotv/definitely-not-installed')).toBeUndefined()
@@ -416,9 +328,7 @@ describe('resolveDependency', () => {
 
 describe('areRuntimeDependenciesInstalled', () => {
   it('本モジュール自身の位置から引けるプラグイン側では true', () => {
-    // env を落としても、同梱の node_modules から引けるので「未取得」に倒れてはいけない
-    // (倒れると `runtime_setup` が 600MB の npm install を始める)。
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', '')
+    // 「未取得」に倒れると、`runtime_setup` が 600MB の npm install を始める。
     vi.stubEnv('CLAUDE_PLUGIN_DATA', temporaryRoot('empty-data'))
 
     expect(areRuntimeDependenciesInstalled()).toBe(true)
@@ -467,13 +377,7 @@ describe('isRuntimeLayerInstalled: 永続層の版判定', () => {
   })
 })
 
-describe('dataDirectory: bin/_lib.sh の plugin_data_dir_resolve と同じ結果', () => {
-  // 解決が bash と TS の 2 実装になるため、同じ入力で同じ結果になることを固定する。
-  // 比較の相手は実物の bin/_lib.sh（bash 3.2 でも通る書き方に限った関数）を source して呼ぶ。
-
-  const LIB = path.join(import.meta.dirname, '..', '..', '..', '..', 'bin', '_lib.sh')
-  const CALL_FUNCTION = path.join(import.meta.dirname, '..', '..', '_helpers', 'call-bash-function.sh')
-
+describe('dataDirectory の解決順', () => {
   interface Environment {
     readonly CLAUDE_PLUGIN_DATA?: string
     readonly PLUGIN_DATA?: string
@@ -482,26 +386,7 @@ describe('dataDirectory: bin/_lib.sh の plugin_data_dir_resolve と同じ結果
   }
 
   /**
-  bash の plugin_data_dir_resolve を子プロセスで呼ぶ。解決できなければ undefined。
-  PATH 以外はこの入力だけを渡す（実環境の XDG_DATA_HOME や HOME を混ぜない）。
-  */
-  function resolveWithBash(environment: Readonly<Environment>): string | undefined {
-    try {
-      const output = execFileSync(
-        'bash',
-        [CALL_FUNCTION, LIB, 'plugin_data_dir_resolve', 'pecot-visual'],
-        { env: { PATH: process.env['PATH'] ?? '/usr/bin:/bin', ...environment }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
-      )
-      attachOutput('bash plugin_data_dir_resolve', 0, output, '')
-      return output.replace(/\n$/u, '')
-    }
-    catch {
-      return undefined
-    }
-  }
-
-  /**
-  同じ入力で TS の dataDirectory を呼ぶ。入力に無いキーは未設定にする。
+  入力に無いキーは未設定にして dataDirectory を呼ぶ。
   */
   function resolveWithTypeScript(environment: Readonly<Environment>): string | undefined {
     vi.stubEnv('CLAUDE_PLUGIN_DATA', environment.CLAUDE_PLUGIN_DATA)
@@ -527,15 +412,13 @@ describe('dataDirectory: bin/_lib.sh の plugin_data_dir_resolve と同じ結果
     { name: '何も無ければ解決できない', environment: {}, expected: undefined },
   ]
 
-  it.each(cases)('$name のとき、bash と TS がともに $expected を返す', ({ environment, expected }) => {
-    expect(resolveWithBash(environment)).toBe(expected)
+  it.each(cases)('$name のとき、$expected を返す', ({ environment, expected }) => {
     expect(resolveWithTypeScript(environment)).toBe(expected)
   })
 
   it('末尾の改行・CR は落とす', () => {
     const environment: Environment = { CLAUDE_PLUGIN_DATA: '/client/data\r\n' }
 
-    expect(resolveWithBash(environment)).toBe('/client/data')
     expect(resolveWithTypeScript(environment)).toBe('/client/data')
   })
 })

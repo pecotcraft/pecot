@@ -32,7 +32,7 @@ describe('withFlock', () => {
   })
 
   it('flock(1) がある環境では待ち上限と衝突 exit code を付けて包む', () => {
-    // flock(1) が無い環境 (macOS 等) では包まずに実行する (bin/pecotv 側と同じフォールバック)。
+    // flock(1) が無い環境 (macOS 等) では包まずに実行する。
     const unwrapped = { command: '/bin/node', commandArguments: ['install', 'chromium'] }
     const wrapped = {
       command: 'flock',

@@ -1,4 +1,4 @@
-// CUJ: 利用者が `pecotv drawio url <input> -o <out>.html` を実行し、兄弟ファイルとして
+// CUJ: 利用者が drawio_create を呼び、兄弟ファイルとして
 // 実描画された PNG を受け取る。
 //
 // 守る対象は、src/infra/drawio/screenshot.ts を実 chromium で通す処理（capturePng → viewer.diagrams.net で描いて撮る）。
@@ -23,22 +23,15 @@
 // 既存 fixture では組み替えられない。
 
 /* eslint-disable security/detect-non-literal-fs-filename -- 読み書きするのは mkdtemp で作った一時ディレクトリ配下のみ */
-import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { performance } from 'node:perf_hooks'
-import path from 'node:path'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { assertCliBuilt, formatOutputTails, isChromiumCached } from '../_helpers/pecotv-e2e-run.js'
-import { attachFile, attachOutput } from '../_helpers/attach.js'
+import { assertCliBuilt, formatOutputTails, isChromiumCached, spawnToolSync } from '../_helpers/pecotv-e2e-run.js'
+import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
-
-const HERE = import.meta.dirname
-const CLI_TS_ROOT = path.resolve(HERE, '..', '..')
-const PLUGIN_ROOT = path.resolve(CLI_TS_ROOT, '..')
-const BIN_PECOTV = path.resolve(PLUGIN_ROOT, 'bin', 'pecotv')
 
 // PNG シグネチャ（8 byte）。以降に length(4) + "IHDR"(4) + width(4) + height(4) が続く。
 const PNG_SIGNATURE_HEX = '89504e470d0a1a0a'
@@ -86,7 +79,7 @@ interface UrlDoneEvent {
   readonly file?: string
   readonly png?: string | null
   readonly pngFailed?: boolean
-  readonly warnings?: number
+  readonly warnings?: readonly string[]
 }
 
 const workDirectory = useTemporaryDirectory('pecotv-drawio-png-e2e-', { hook: 'all' })
@@ -121,10 +114,7 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio url が実 chromium で PNG を�
     writeFileSync(inputPath, JAPANESE_DIAGRAM, 'utf8')
 
     const startedAt = performance.now()
-    const result = spawnSync(BIN_PECOTV, ['drawio', 'url', inputPath, '-o', outputPath, '--json'], {
-      // bootstrap の flock 待ちが ceiling 計測区間に乗らないよう、bootstrap をそのまま通す。
-      // pecotv-e2e-run.ts の createPecotvRunner と同じ注入。
-      env: { ...process.env, PECOTV_BOOTSTRAP_SKIP: '1' },
+    const result = spawnToolSync(['drawio', 'url', inputPath, '-o', outputPath, '--json'], {
       encoding: 'utf8',
       timeout: SPAWN_TIMEOUT_MS,
       maxBuffer: 64 * 1024 * 1024,
@@ -132,7 +122,6 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio url が実 chromium で PNG を�
     const elapsedMs = performance.now() - startedAt
     const stdout = typeof result.stdout === 'string' ? result.stdout : ''
     const stderr = typeof result.stderr === 'string' ? result.stderr : ''
-    attachOutput('pecotv drawio url --json', result.status ?? undefined, stdout, stderr)
     console.info(`[drawio-png] url: exit=${String(result.status)} ${(elapsedMs / 1000).toFixed(1)}s`)
     await attachFile('書き出した PNG', expectedPngPath)
     // PNG 生成失敗は warn として stderr に出るだけで、exit と stdout のどちらにも理由が載らない。
@@ -152,7 +141,7 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio url が実 chromium で PNG を�
     // pngFailed を先に見る。false でなければ以降の assert より前にここで理由が分かる。
     expect(done.pngFailed, `stderr tail: ${stderr.slice(-2000)}`).toBe(false)
     expect(done.png).toBe(expectedPngPath)
-    expect(done.warnings).toBe(0)
+    expect(done.warnings).toBeUndefined()
 
     expect(existsSync(expectedPngPath)).toBe(true)
     const png = readFileSync(expectedPngPath)

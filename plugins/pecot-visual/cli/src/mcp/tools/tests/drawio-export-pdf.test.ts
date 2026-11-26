@@ -80,7 +80,6 @@ function makeTemporaryDirectory(): string {
 }
 
 beforeEach(() => {
-  vi.stubEnv('CLAUDE_PLUGIN_ROOT', PLUGIN_ROOT)
   // 未取得ケースで実ダウンロードへ進まないよう、自動取得の opt-in を落としておく。
   vi.stubEnv('PECOTV_AUTO_INSTALL_BROWSER', '')
   chromiumState.installed = true

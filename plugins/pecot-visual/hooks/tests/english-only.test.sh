@@ -1,5 +1,5 @@
 #!/bin/bash
-# hooks と bin が返す固定の文言が英語であることを確かめる（spec 021 FR-014 / SC-007）。
+# hooks が返す固定の文言が英語であることを確かめる（spec 021 FR-014 / SC-007）。
 # コメント行は除く。ただし .sh の heredoc と複数行の引用符の中は出力の本文になりうるので調べる。
 
 set -u
@@ -82,18 +82,17 @@ FILES_SH="$TMP/files.sh.txt"
 FILES_MJS="$TMP/files.mjs.txt"
 FILES_JSON="$TMP/files.json.txt"
 find hooks -path hooks/tests -prune -o -type f -name '*.sh' -print | LC_ALL=C sort >"$FILES_SH"
-printf '%s\n' bin/pecotv bin/_lib.sh >>"$FILES_SH"
 find hooks -path hooks/tests -prune -o -type f -name '*.mjs' -print | LC_ALL=C sort >"$FILES_MJS"
 printf '%s\n' hooks/hooks.json com.github.copilot/hooks/hooks.json >"$FILES_JSON"
 
-for f in "$FILES_SH" "$FILES_MJS" "$FILES_JSON"; do
+for f in "$FILES_SH" "$FILES_JSON"; do
     if [ -s "$f" ]; then
         bt_pass "調べるファイルの一覧が空でない: ${f##*/}"
     else
         bt_fail "調べるファイルの一覧が空でない: ${f##*/}" "一覧が空"
     fi
 done
-for f in hooks/hooks.json com.github.copilot/hooks/hooks.json bin/pecotv bin/_lib.sh; do
+for f in hooks/hooks.json com.github.copilot/hooks/hooks.json; do
     if [ -f "$f" ]; then
         bt_pass "範囲のファイルがある: $f"
     else
@@ -132,7 +131,7 @@ if [ "$rc" -ge 2 ]; then
     ERRS="${ERRS}grep がエラー: rc=${rc}: ${GREP_ERR}; "
 fi
 if [ -n "$ERRS" ]; then
-    bt_fail "hooks と bin の非コメント行に日本語が無い" "$ERRS"
+    bt_fail "hooks の非コメント行に日本語が無い" "$ERRS"
 else
     # 例外の行を、ファイルと行の内容で名指しして外す
     FILTERED="$TMP/filtered.txt"
@@ -150,10 +149,10 @@ else
     if [ -s "$FILTERED" ]; then
         HIT_COUNT=$(wc -l <"$FILTERED")
         # path:line: text の形で並べる
-        bt_fail "hooks と bin の非コメント行に日本語が無い" \
+        bt_fail "hooks の非コメント行に日本語が無い" \
             "日本語が残っている (${HIT_COUNT} 行)"$'\n'"$(sed -E 's/^([^:]*):([0-9]+):/    \1:\2: /' "$FILTERED")"
     else
-        bt_pass "hooks と bin の非コメント行に日本語が無い"
+        bt_pass "hooks の非コメント行に日本語が無い"
     fi
 fi
 

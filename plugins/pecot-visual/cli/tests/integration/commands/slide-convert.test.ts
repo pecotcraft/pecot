@@ -16,14 +16,18 @@ import { ZipFile as YazlZipFile } from 'yazl'
 import {
   SlideConvertRuntimeError,
   SlideConvertUsageError,
-  createSlideConvertCommand,
+  convertErrorDiagnostics,
+  executeSlideConvert,
+  resolveDefaultOut,
   errorToReason,
   runSlideConvert,
   slideConvertDefaultDependencies,
   validateTheme,
   type SlideConvertDependencies,
+  type SlideConvertOptions,
   type SlideConvertResultSummary,
 } from '../../../src/commands/slidev-to-pptx/convert.js'
+import type { TransitionType } from '../../../src/domain/pptx-ooxml/post-process.js'
 import type {
   PptxArchive,
   SlidevPptxPipeline,
@@ -504,7 +508,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
 
     const summary = await runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -539,7 +543,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
 
     await runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -589,7 +593,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
 
     await runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner: createSuccessRunner(),
         pptxConverter: createConverterWithJapaneseSlide(),
@@ -621,7 +625,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
 
     await runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner: createSuccessRunner(),
         pptxConverter: createConverterWithJapaneseSlide(),
@@ -667,7 +671,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
 
     await runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner: createSuccessRunner(),
         pptxConverter: createConverterWithJapaneseSlide(),
@@ -699,7 +703,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
 
     await runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner: createSuccessRunner(),
         pptxConverter: createSuccessConverter(1),
@@ -725,7 +729,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
 
     await runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner: createSuccessRunner(),
         pptxConverter: createSuccessConverter(1),
@@ -757,7 +761,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
 
     const rejected = await rejectionOf(runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter: createSuccessConverter(1),
@@ -788,7 +792,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
 
     const rejected = await rejectionOf(runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter: createSuccessConverter(1),
@@ -811,7 +815,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(errorToReason(rejected)).toBe('theme-none')
     expect(rejected).toBeInstanceOf(Error)
     const message = rejected instanceof Error ? rejected.message : ''
-    expect(message).toContain('slide sync --theme <theme-spec>')
+    expect(message).toContain('slide_sync with theme: <theme-spec>')
     expect(message).toContain('slide_sync')
     expect(slidevRunner.calls).toHaveLength(0)
     expect(existsSync(out)).toBe(false)
@@ -831,7 +835,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
 
     await runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -905,7 +909,6 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
       projectDirectory,
       {
         out,
-        json: false,
         spacingJson: flagSpacingPath,
         hrefJson: flagHrefPath,
       },
@@ -956,7 +959,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
 
     await runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -996,7 +999,6 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
       projectDirectory,
       {
         out,
-        json: false,
         transitionType: 'morph',
         transitionDurationMs: 800,
         morphOption: 'byChar',
@@ -1054,7 +1056,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1086,7 +1088,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1121,7 +1123,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1156,7 +1158,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1188,7 +1190,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1220,7 +1222,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1255,7 +1257,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1278,7 +1280,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       projectDirectory,
-      { out, json: false, spacingJson: temporaryRoot('no-such-spacing.json') },
+      { out, spacingJson: temporaryRoot('no-such-spacing.json') },
       {
         slidevRunner,
         pptxConverter,
@@ -1301,7 +1303,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       projectDirectory,
-      { out, json: false, hrefJson: temporaryRoot('no-such-href.json') },
+      { out, hrefJson: temporaryRoot('no-such-href.json') },
       {
         slidevRunner,
         pptxConverter,
@@ -1335,7 +1337,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1359,7 +1361,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
 
     await runSlideConvert(
       projectDirectory,
-      { out, theme: 'sample-theme', json: false },
+      { out, theme: 'sample-theme' },
       {
         slidevRunner,
         pptxConverter,
@@ -1384,7 +1386,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       projectDirectory,
-      { out, theme: '$(rm -rf /)', json: false },
+      { out, theme: '$(rm -rf /)' },
       {
         slidevRunner,
         pptxConverter,
@@ -1406,7 +1408,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       temporaryRoot('nonexistent'),
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1430,7 +1432,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       file,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1454,7 +1456,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       directory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1479,7 +1481,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1504,7 +1506,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1532,7 +1534,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1557,7 +1559,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1582,7 +1584,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1608,7 +1610,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1639,7 +1641,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const infra = realInfra()
     await expect(runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1654,7 +1656,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toMatchObject({ reason: 'pptx-convert-failed' })
   })
 
-  it('--json 未指定時は子の stdout/stderr を deps stream に relay 設定する', async () => {
+  it('子の stdout/stderr を deps の stderr へ relay する', async () => {
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     let buildOptions: Parameters<SlidevRunner['build']>[1] | undefined
@@ -1671,7 +1673,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     const stderr = makeStream('stderr')
     await runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -1688,38 +1690,6 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(buildOptions?.stderr).toBeDefined()
   })
 
-  it('--json 指定時は子の stdout/stderr を relay しない (capture のみ)', async () => {
-    const projectDirectory = makeProjectDirectory(temporaryRoot())
-    const out = temporaryRoot('out.pptx')
-    let buildOptions: Parameters<SlidevRunner['build']>[1] | undefined
-    const slidevRunner: SlidevRunner = {
-      build: (projectDirectoryIn, options) => {
-        buildOptions = options
-        mkdirSync(path.join(projectDirectoryIn, 'dist'), { recursive: true })
-        return Promise.resolve(spawnSuccess())
-      },
-    }
-    const pptxConverter = createSuccessConverter(1)
-    const infra = realInfra()
-    await runSlideConvert(
-      projectDirectory,
-      { out, json: true },
-      {
-        slidevRunner,
-        pptxConverter,
-        archive: infra.archive,
-        engine: infra.engine,
-        stdout: process.stdout,
-        stderr: process.stderr,
-        now: () => 0,
-        pluginVersion: () => 'test-plugin',
-        ...THEME_PORTS,
-      },
-    )
-    expect(buildOptions?.stdout).toBeUndefined()
-    expect(buildOptions?.stderr).toBeUndefined()
-  })
-
   it('build 失敗時の stderr 末尾 1KB を超える場合は tail のみ detail に出る', async () => {
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
@@ -1733,7 +1703,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     try {
       await runSlideConvert(
         projectDirectory,
-        { out, json: false },
+        { out },
         {
           slidevRunner,
           pptxConverter,
@@ -1811,15 +1781,70 @@ interface ConvertErrorEvent {
   }[]
 }
 
-describe('createSlideConvertCommand (commander 経由)', () => {
-  it('--json 成功で slide.convert.start → slide.convert.done が stdout に出る', async () => {
+/**
+MCP の slide_convert と同じ組み立てで実行し、結果か失敗の payload を JSON 1 行で stdout に書く。
+*/
+function createConvertRunner(
+  createDependencies: () => SlideConvertDependencies,
+): { parseAsync: (argv: readonly string[]) => Promise<void> } {
+  return {
+    async parseAsync(argv) {
+      const dependencies = createDependencies()
+      const [projectDirectory = '', ...rest] = argv
+      const valueOf = (flag: string): string | undefined => {
+        const index = rest.indexOf(flag)
+        return index === -1 ? undefined : rest[index + 1]
+      }
+      const emit = (payload: unknown): void => {
+        dependencies.stdout.write(`${JSON.stringify(payload)}\n`)
+      }
+      try {
+        const out = valueOf('--out') ?? await resolveDefaultOut(path.resolve(projectDirectory), dependencies.stderr)
+        const theme = valueOf('--theme')
+        const spacingJson = valueOf('--spacing-json')
+        const hrefJson = valueOf('--href-json')
+        const transitionType = valueOf('--transition-type')
+        const transitionDurationMs = valueOf('--transition-duration-ms')
+        const morphOption = valueOf('--morph-option')
+        const logLevel = valueOf('--log-level')
+        const execution = await executeSlideConvert(projectDirectory, {
+          out,
+          cache: !rest.includes('--no-cache'),
+          ...(rest.includes('--no-single-pass') && { singlePass: false }),
+          ...(theme !== undefined && { theme }),
+          ...(spacingJson !== undefined && { spacingJson }),
+          ...(hrefJson !== undefined && { hrefJson }),
+          // eslint-disable-next-line no-restricted-syntax -- argv の文字列を option の型へ渡すだけ
+          ...(transitionType !== undefined && { transitionType: transitionType as TransitionType }),
+          ...(transitionDurationMs !== undefined && { transitionDurationMs: Number(transitionDurationMs) }),
+          // eslint-disable-next-line no-restricted-syntax -- 同上
+          ...(morphOption !== undefined && { morphOption: morphOption as NonNullable<SlideConvertOptions['morphOption']> }),
+          // eslint-disable-next-line no-restricted-syntax -- 同上
+          ...(logLevel !== undefined && { logLevel: logLevel as 'verbose' | 'debug' }),
+        }, dependencies)
+        emit(execution.data)
+      }
+      catch (error: unknown) {
+        emit({
+          event: 'slide.convert.error',
+          reason: errorToReason(error),
+          detail: error instanceof Error ? error.message : String(error),
+          ...convertErrorDiagnostics(error),
+        })
+      }
+    },
+  }
+}
+
+describe('slide convert の実行と結果 (execute 経由)', () => {
+  it('成功すると slide.convert.done の data を返す', async () => {
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('cmd-out.pptx')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
+    const command = createConvertRunner(() => buildFakeDependencies(stdout, stderr))
 
-    await command.parseAsync([projectDirectory, '--out', out, '--json'], { from: 'user' })
+    await command.parseAsync([projectDirectory, '--out', out, '--json'])
 
     const events = stdout.chunks
       .flatMap(chunk => chunk.split('\n'))
@@ -1829,7 +1854,7 @@ describe('createSlideConvertCommand (commander 経由)', () => {
         return JSON.parse(line) as { event?: string }
       })
     const eventNames = events.map(event => event.event)
-    expect(eventNames).toEqual(['slide.convert.start', 'slide.convert.done'])
+    expect(eventNames).toEqual(['slide.convert.done'])
   })
 
   it('--json の done の timings は perSlide[].phases / outer / singlePass を持つ (#1141)', async () => {
@@ -1867,9 +1892,9 @@ describe('createSlideConvertCommand (commander 経由)', () => {
         },
       },
     }
-    const command = createSlideConvertCommand(() => dependencies)
+    const command = createConvertRunner(() => dependencies)
 
-    await command.parseAsync([projectDirectory, '--out', out, '--json'], { from: 'user' })
+    await command.parseAsync([projectDirectory, '--out', out, '--json'])
 
     const done = stdout.chunks
       .flatMap(chunk => chunk.split('\n'))
@@ -1907,13 +1932,11 @@ describe('createSlideConvertCommand (commander 経由)', () => {
       }
     }
 
-    await createSlideConvertCommand(dependenciesCapturing).parseAsync(
+    await createConvertRunner(dependenciesCapturing).parseAsync(
       [projectDirectory, '--out', temporaryRoot('no-single-1.pptx'), '--no-single-pass'],
-      { from: 'user' },
     )
-    await createSlideConvertCommand(dependenciesCapturing).parseAsync(
+    await createConvertRunner(dependenciesCapturing).parseAsync(
       [projectDirectory, '--out', temporaryRoot('no-single-2.pptx')],
-      { from: 'user' },
     )
 
     expect(received).toStrictEqual([false, undefined])
@@ -1925,9 +1948,9 @@ describe('createSlideConvertCommand (commander 経由)', () => {
     const out = temporaryRoot('cmd-out-no-single.pptx')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
+    const command = createConvertRunner(() => buildFakeDependencies(stdout, stderr))
 
-    await command.parseAsync([projectDirectory, '--out', out, '--json'], { from: 'user' })
+    await command.parseAsync([projectDirectory, '--out', out, '--json'])
 
     const done = stdout.chunks
       .flatMap(chunk => chunk.split('\n'))
@@ -1959,16 +1982,16 @@ describe('createSlideConvertCommand (commander 経由)', () => {
           },
         }),
       }
-      const command = createSlideConvertCommand(() => dependencies)
+      const command = createConvertRunner(() => dependencies)
 
-      await command.parseAsync([projectDirectory, '--out', out, '--json'], { from: 'user' })
+      await command.parseAsync([projectDirectory, '--out', out, '--json'])
 
       const stdoutLines = stdout.chunks
         .flatMap(chunk => chunk.split('\n'))
         .filter(line => line.trim().length > 0)
       // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
       expect(stdoutLines.map(line => (JSON.parse(line) as { event?: string }).event))
-        .toStrictEqual(['slide.convert.start', 'slide.convert.done'])
+        .toStrictEqual(['slide.convert.done'])
       expect(stderr.chunks.join('')).toContain('warning: pipeline-human-log\n')
       expect(isProcessStdoutWrite).not.toHaveBeenCalled()
     }
@@ -1993,39 +2016,12 @@ describe('createSlideConvertCommand (commander 経由)', () => {
         },
       }),
     }
-    const command = createSlideConvertCommand(() => dependencies)
+    const command = createConvertRunner(() => dependencies)
 
-    await command.parseAsync([projectDirectory, '--out', out, '--log-level', 'verbose'], { from: 'user' })
+    await command.parseAsync([projectDirectory, '--out', out, '--log-level', 'verbose'])
 
     expect(stderr.chunks.join('')).toContain('note: pipeline-progress\n')
     expect(stdout.chunks.join('')).not.toContain('pipeline-progress')
-  })
-
-  it('--log-level の値が不正なら使い方エラーになる', async () => {
-    const projectDirectory = makeProjectDirectory(temporaryRoot())
-    const stdout = makeStream('stdout')
-    const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
-
-    await expect(
-      command.parseAsync([projectDirectory, '--log-level', 'loud'], { from: 'user' }),
-    ).rejects.toThrow()
-
-    expect(stderr.chunks.join('')).toMatch(/^error: .*--log-level/)
-    expect(stdout.chunks.join('')).toBe('')
-  })
-
-  it('--json なし成功で stdout にテキスト 1 行を出す', async () => {
-    const projectDirectory = makeProjectDirectory(temporaryRoot())
-    const out = temporaryRoot('cmd-out-text.pptx')
-    const stdout = makeStream('stdout')
-    const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
-
-    await command.parseAsync([projectDirectory, '--out', out], { from: 'user' })
-
-    expect(stdout.chunks.join('')).toContain('slide convert')
-    expect(stdout.chunks.join('')).toContain(out)
   })
 
   it('--json + invalid-theme で slide.convert.error / exit 2', async () => {
@@ -2033,249 +2029,47 @@ describe('createSlideConvertCommand (commander 経由)', () => {
     const out = temporaryRoot('cmd-out.pptx')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
-    const previousExitCode = process.exitCode
-    try {
-      await command.parseAsync([projectDirectory, '--out', out, '--theme', '$(rm -rf /)', '--json'], { from: 'user' })
-      // start → error の系列。最後の event を error として検証する
-      const events = stdout.chunks
-        .flatMap(chunk => chunk.split('\n'))
-        .filter(line => line.trim().length > 0)
-        .map((line): ConvertErrorEvent => {
-          // eslint-disable-next-line no-restricted-syntax -- JSON.parse narrowing
-          return JSON.parse(line) as ConvertErrorEvent
-        })
-      const lastEvent = events.at(-1)
-      expect(lastEvent?.event).toBe('slide.convert.error')
-      expect(lastEvent?.reason).toBe('invalid-theme')
-      // SlideConvertUsageError は SlideConvertRuntimeError と別の型。
-      // warningsOf / pipelineErrorsOf の非 SlideConvertRuntimeError 分岐を通り、空配列になる (#931/#945)。
-      expect(lastEvent?.warnings).toStrictEqual([])
-      expect(lastEvent?.errors).toStrictEqual([])
-      expect(process.exitCode).toBe(2)
-    }
-    finally {
-      process.exitCode = previousExitCode
-    }
-  })
-
-  it('--json + 未知フラグで slide.convert.error reason=invalid-option / warnings・errors は空配列', async () => {
-    // commander の option 解析で落ちるルートは action を通らず configureOutput.writeErr が
-    // JSON を書く。error payload 3 箇所のうちここだけ検証が無く、warnings の抜けを
-    // 検知できなかった (#931)。writeErr は parse 引数ではなく process.argv を見るため、
-    // --json 判定の材料をここで揃える。
-    const projectDirectory = makeProjectDirectory(temporaryRoot())
-    const stdout = makeStream('stdout')
-    const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
-    const previousArgv = process.argv
-    process.argv = [...previousArgv, '--json']
-    try {
-      await expect(
-        command.parseAsync([projectDirectory, '--bogus', '--json'], { from: 'user' }),
-      ).rejects.toThrow()
-
-      const events = stdout.chunks
-        .flatMap(chunk => chunk.split('\n'))
-        .filter(line => line.trim().length > 0)
-        .map((line): ConvertErrorEvent => {
-          // eslint-disable-next-line no-restricted-syntax -- JSON.parse narrowing
-          return JSON.parse(line) as ConvertErrorEvent
-        })
-      const lastEvent = events.at(-1)
-      expect(lastEvent?.event).toBe('slide.convert.error')
-      expect(lastEvent?.reason).toBe('invalid-option')
-      expect(lastEvent?.warnings).toStrictEqual([])
-      expect(lastEvent?.errors).toStrictEqual([])
-    }
-    finally {
-      process.argv = previousArgv
-    }
+    const command = createConvertRunner(() => buildFakeDependencies(stdout, stderr))
+    await command.parseAsync([projectDirectory, '--out', out, '--theme', '$(rm -rf /)', '--json'])
+    // start → error の系列。最後の event を error として検証する
+    const events = stdout.chunks
+      .flatMap(chunk => chunk.split('\n'))
+      .filter(line => line.trim().length > 0)
+      .map((line): ConvertErrorEvent => {
+        // eslint-disable-next-line no-restricted-syntax -- JSON.parse narrowing
+        return JSON.parse(line) as ConvertErrorEvent
+      })
+    const lastEvent = events.at(-1)
+    expect(lastEvent?.event).toBe('slide.convert.error')
+    expect(lastEvent?.reason).toBe('invalid-theme')
+    // SlideConvertUsageError は SlideConvertRuntimeError と別の型。
+    // warningsOf / pipelineErrorsOf の非 SlideConvertRuntimeError 分岐を通り、空配列になる (#931/#945)。
+    expect(lastEvent?.warnings).toStrictEqual([])
+    expect(lastEvent?.errors).toStrictEqual([])
   })
 
   it('--json + project-not-found で slide.convert.error reason が runtime error から伝搬', async () => {
     const out = temporaryRoot('cmd-out.pptx')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
-    const previousExitCode = process.exitCode
-    try {
-      await command.parseAsync(
-        [temporaryRoot('no-such-dir'), '--out', out, '--json'],
-        { from: 'user' },
-      )
-      const events = stdout.chunks
-        .flatMap(chunk => chunk.split('\n'))
-        .filter(line => line.trim().length > 0)
-        .map((line): ConvertErrorEvent => {
-          // eslint-disable-next-line no-restricted-syntax -- JSON.parse narrowing
-          return JSON.parse(line) as ConvertErrorEvent
-        })
-      const lastEvent = events.at(-1)
-      expect(lastEvent?.event).toBe('slide.convert.error')
-      expect(lastEvent?.reason).toBe('project-not-found')
-      // pipeline 未到達でも warnings / errors は載せる。フィールド不在は「旧版」の意味に
-      // 予約する (#931/#945)
-      expect(lastEvent?.warnings).toStrictEqual([])
-      expect(lastEvent?.errors).toStrictEqual([])
-      expect(process.exitCode).toBe(1)
-    }
-    finally {
-      process.exitCode = previousExitCode
-    }
-  })
-
-  it('--json なし + project-not-found で stderr に詳細', async () => {
-    const out = temporaryRoot('cmd-out.pptx')
-    const stdout = makeStream('stdout')
-    const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
-    const previousExitCode = process.exitCode
-    try {
-      await command.parseAsync([temporaryRoot('nonexistent'), '--out', out], { from: 'user' })
-      expect(stderr.chunks.join('')).toContain('error: ')
-      expect(stderr.chunks.join('')).not.toContain('pecotv slide convert')
-      expect(process.exitCode).toBe(1)
-    }
-    finally {
-      process.exitCode = previousExitCode
-    }
-  })
-
-  it('--json なし + --transition-type 不正値で stderr に英文を出す', async () => {
-    const projectDirectory = makeProjectDirectory(temporaryRoot())
-    const out = temporaryRoot('cmd-out.pptx')
-    const stdout = makeStream('stdout')
-    const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
-    const previousExitCode = process.exitCode
-    try {
-      await command.parseAsync(
-        [projectDirectory, '--out', out, '--transition-type', 'spin'],
-        { from: 'user' },
-      )
-      expect(stderr.chunks.join('')).toMatch(/^error: .*--transition-type/)
-      expect(stdout.chunks.length).toBe(0)
-      expect(process.exitCode).toBe(2)
-    }
-    finally {
-      process.exitCode = previousExitCode
-    }
-  })
-
-  it('--transition-type 不正値で slide.convert.error reason=invalid-transition-type', async () => {
-    const projectDirectory = makeProjectDirectory(temporaryRoot())
-    const out = temporaryRoot('cmd-out.pptx')
-    const stdout = makeStream('stdout')
-    const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
-    const previousExitCode = process.exitCode
-    try {
-      await command.parseAsync(
-        [projectDirectory, '--out', out, '--transition-type', 'spin', '--json'],
-        { from: 'user' },
-      )
-      // eslint-disable-next-line no-restricted-syntax -- JSON.parse narrowing
-      const parsed = JSON.parse(stdout.chunks[0] ?? '') as { event: string, reason: string }
-      expect(parsed.event).toBe('slide.convert.error')
-      expect(parsed.reason).toBe('invalid-transition-type')
-      expect(process.exitCode).toBe(2)
-    }
-    finally {
-      process.exitCode = previousExitCode
-    }
-  })
-
-  it('--morph-option 不正値で slide.convert.error reason=invalid-morph-option', async () => {
-    const projectDirectory = makeProjectDirectory(temporaryRoot())
-    const out = temporaryRoot('cmd-out.pptx')
-    const stdout = makeStream('stdout')
-    const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
-    const previousExitCode = process.exitCode
-    try {
-      await command.parseAsync(
-        [projectDirectory, '--out', out, '--morph-option', 'bogus', '--json'],
-        { from: 'user' },
-      )
-      // eslint-disable-next-line no-restricted-syntax -- JSON.parse narrowing
-      const parsed = JSON.parse(stdout.chunks[0] ?? '') as { event: string, reason: string }
-      expect(parsed.event).toBe('slide.convert.error')
-      expect(parsed.reason).toBe('invalid-morph-option')
-      expect(process.exitCode).toBe(2)
-    }
-    finally {
-      process.exitCode = previousExitCode
-    }
-  })
-
-  it('--transition-duration-ms に非整数を渡すと invalid-transition-duration-ms', async () => {
-    const projectDirectory = makeProjectDirectory(temporaryRoot())
-    const out = temporaryRoot('cmd-out.pptx')
-    const stdout = makeStream('stdout')
-    const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
-    const previousExitCode = process.exitCode
-    try {
-      await command.parseAsync(
-        [projectDirectory, '--out', out, '--transition-duration-ms', 'abc', '--json'],
-        { from: 'user' },
-      )
-      // eslint-disable-next-line no-restricted-syntax -- JSON.parse narrowing
-      const parsed = JSON.parse(stdout.chunks[0] ?? '') as { event: string, reason: string }
-      expect(parsed.event).toBe('slide.convert.error')
-      expect(parsed.reason).toBe('invalid-transition-duration-ms')
-      expect(process.exitCode).toBe(2)
-    }
-    finally {
-      process.exitCode = previousExitCode
-    }
-  })
-
-  it('--transition-duration-ms に小数を渡すと invalid-transition-duration-ms (trim 比較分岐)', async () => {
-    const projectDirectory = makeProjectDirectory(temporaryRoot())
-    const out = temporaryRoot('cmd-out.pptx')
-    const stdout = makeStream('stdout')
-    const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
-    const previousExitCode = process.exitCode
-    try {
-      await command.parseAsync(
-        [projectDirectory, '--out', out, '--transition-duration-ms', '12.5', '--json'],
-        { from: 'user' },
-      )
-      // eslint-disable-next-line no-restricted-syntax -- JSON.parse narrowing
-      const parsed = JSON.parse(stdout.chunks[0] ?? '') as { event: string, reason: string }
-      expect(parsed.event).toBe('slide.convert.error')
-      expect(parsed.reason).toBe('invalid-transition-duration-ms')
-      expect(process.exitCode).toBe(2)
-    }
-    finally {
-      process.exitCode = previousExitCode
-    }
-  })
-
-  it('--transition-duration-ms に 0 を渡すと invalid-transition-duration-ms', async () => {
-    const projectDirectory = makeProjectDirectory(temporaryRoot())
-    const out = temporaryRoot('cmd-out.pptx')
-    const stdout = makeStream('stdout')
-    const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
-    const previousExitCode = process.exitCode
-    try {
-      await command.parseAsync(
-        [projectDirectory, '--out', out, '--transition-duration-ms', '0', '--json'],
-        { from: 'user' },
-      )
-      // eslint-disable-next-line no-restricted-syntax -- JSON.parse narrowing
-      const parsed = JSON.parse(stdout.chunks[0] ?? '') as { event: string, reason: string }
-      expect(parsed.event).toBe('slide.convert.error')
-      expect(parsed.reason).toBe('invalid-transition-duration-ms')
-      expect(process.exitCode).toBe(2)
-    }
-    finally {
-      process.exitCode = previousExitCode
-    }
+    const command = createConvertRunner(() => buildFakeDependencies(stdout, stderr))
+    await command.parseAsync(
+      [temporaryRoot('no-such-dir'), '--out', out, '--json'],
+    )
+    const events = stdout.chunks
+      .flatMap(chunk => chunk.split('\n'))
+      .filter(line => line.trim().length > 0)
+      .map((line): ConvertErrorEvent => {
+        // eslint-disable-next-line no-restricted-syntax -- JSON.parse narrowing
+        return JSON.parse(line) as ConvertErrorEvent
+      })
+    const lastEvent = events.at(-1)
+    expect(lastEvent?.event).toBe('slide.convert.error')
+    expect(lastEvent?.reason).toBe('project-not-found')
+    // pipeline 未到達でも warnings / errors は載せる。フィールド不在は「旧版」の意味に
+    // 予約する (#931/#945)
+    expect(lastEvent?.warnings).toStrictEqual([])
+    expect(lastEvent?.errors).toStrictEqual([])
   })
 
   it('spacing / href / transition / morph の各オプションを全指定して成功する', async () => {
@@ -2288,7 +2082,7 @@ describe('createSlideConvertCommand (commander 経由)', () => {
     const hrefPath = temporaryRoot('href.json')
     writeFileSync(spacingPath, JSON.stringify({}))
     writeFileSync(hrefPath, JSON.stringify({}))
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
+    const command = createConvertRunner(() => buildFakeDependencies(stdout, stderr))
     await command.parseAsync(
       [
         projectDirectory,
@@ -2299,9 +2093,7 @@ describe('createSlideConvertCommand (commander 経由)', () => {
         '--transition-duration-ms', '500',
         '--morph-option', 'byObject',
       ],
-      { from: 'user' },
     )
-    expect(stdout.chunks.join('')).toContain('slide convert')
     expect(existsSync(out)).toBe(true)
   })
 
@@ -2309,9 +2101,9 @@ describe('createSlideConvertCommand (commander 経由)', () => {
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
+    const command = createConvertRunner(() => buildFakeDependencies(stdout, stderr))
 
-    await command.parseAsync([projectDirectory], { from: 'user' })
+    await command.parseAsync([projectDirectory])
 
     const expectedOut = path.join(projectDirectory, 'pptx', `${path.basename(projectDirectory)}.pptx`)
     expect(existsSync(expectedOut)).toBe(true)
@@ -2322,10 +2114,10 @@ describe('createSlideConvertCommand (commander 経由)', () => {
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
+    const command = createConvertRunner(() => buildFakeDependencies(stdout, stderr))
 
     // 末尾スラッシュ付きで渡しても path.resolve が正規化するため basename は同じになる
-    await command.parseAsync([`${projectDirectory}/`], { from: 'user' })
+    await command.parseAsync([`${projectDirectory}/`])
 
     const expectedOut = path.join(projectDirectory, 'pptx', `${path.basename(projectDirectory)}.pptx`)
     expect(existsSync(expectedOut)).toBe(true)
@@ -2336,9 +2128,9 @@ describe('createSlideConvertCommand (commander 経由)', () => {
     const projectDirectory = makeProjectDirectoryWithSlides(temporaryRoot(), '---\ntitle: 開発レポート\n---\n\n# body')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
+    const command = createConvertRunner(() => buildFakeDependencies(stdout, stderr))
 
-    await command.parseAsync([projectDirectory], { from: 'user' })
+    await command.parseAsync([projectDirectory])
 
     const expectedOut = path.join(projectDirectory, 'pptx', '開発レポート.pptx')
     expect(existsSync(expectedOut)).toBe(true)
@@ -2353,9 +2145,9 @@ describe('createSlideConvertCommand (commander 経由)', () => {
     const projectDirectory = makeProjectDirectoryWithSlides(temporaryRoot(), '---\ntheme: default\n---\n\n# body')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
+    const command = createConvertRunner(() => buildFakeDependencies(stdout, stderr))
 
-    await command.parseAsync([projectDirectory], { from: 'user' })
+    await command.parseAsync([projectDirectory])
 
     const expectedOut = path.join(projectDirectory, 'pptx', `${path.basename(projectDirectory)}.pptx`)
     expect(existsSync(expectedOut)).toBe(true)
@@ -2371,9 +2163,9 @@ describe('createSlideConvertCommand (commander 経由)', () => {
     mkdirSync(path.join(projectDirectory, 'slides.md'), { recursive: true })
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
+    const command = createConvertRunner(() => buildFakeDependencies(stdout, stderr))
 
-    await command.parseAsync([projectDirectory], { from: 'user' })
+    await command.parseAsync([projectDirectory])
 
     const expectedOut = path.join(projectDirectory, 'pptx', `${path.basename(projectDirectory)}.pptx`)
     expect(existsSync(expectedOut)).toBe(true)
@@ -2385,9 +2177,9 @@ describe('createSlideConvertCommand (commander 経由)', () => {
     const projectDirectory = makeProjectDirectoryWithSlides(temporaryRoot(), '---\ntitle: 2026/Q1 レポート\n---\n')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
+    const command = createConvertRunner(() => buildFakeDependencies(stdout, stderr))
 
-    await command.parseAsync([projectDirectory], { from: 'user' })
+    await command.parseAsync([projectDirectory])
 
     const expectedOut = path.join(projectDirectory, 'pptx', '2026_Q1 レポート.pptx')
     expect(existsSync(expectedOut)).toBe(true)
@@ -2398,22 +2190,22 @@ describe('createSlideConvertCommand (commander 経由)', () => {
     const projectDirectory = makeProjectDirectoryWithSlides(temporaryRoot(), '---\ntitle: \'クォート付き\'\n---\n')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
+    const command = createConvertRunner(() => buildFakeDependencies(stdout, stderr))
 
-    await command.parseAsync([projectDirectory], { from: 'user' })
+    await command.parseAsync([projectDirectory])
 
     const expectedOut = path.join(projectDirectory, 'pptx', 'クォート付き.pptx')
     expect(existsSync(expectedOut)).toBe(true)
     expect(stdout.chunks.join('')).toContain(expectedOut)
   })
 
-  it('--out 省略 + --json 時 start / done 双方の output が title 由来パスになる', async () => {
+  it('--out 省略時は done の output が title 由来パスになる', async () => {
     const projectDirectory = makeProjectDirectoryWithSlides(temporaryRoot(), '---\ntitle: JSON タイトル\n---\n')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
+    const command = createConvertRunner(() => buildFakeDependencies(stdout, stderr))
 
-    await command.parseAsync([projectDirectory, '--json'], { from: 'user' })
+    await command.parseAsync([projectDirectory, '--json'])
 
     const expectedOut = path.join(projectDirectory, 'pptx', 'JSON タイトル.pptx')
     const events = stdout.chunks
@@ -2423,9 +2215,7 @@ describe('createSlideConvertCommand (commander 経由)', () => {
         // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
         return JSON.parse(line) as { event?: string, output?: string }
       })
-    const start = events.find(event => event.event === 'slide.convert.start')
     const done = events.find(event => event.event === 'slide.convert.done')
-    expect(start?.output).toBe(expectedOut)
     expect(done?.output).toBe(expectedOut)
   })
 })
@@ -2678,7 +2468,7 @@ describe('prerender replace (CUJ 1-5)', () => {
 
     await runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -2713,7 +2503,7 @@ describe('prerender replace (CUJ 1-5)', () => {
 
     await runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -2755,7 +2545,7 @@ describe('prerender replace (CUJ 1-5)', () => {
 
     await runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -2796,7 +2586,7 @@ describe('prerender replace (CUJ 1-5)', () => {
 
     await runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -2854,7 +2644,7 @@ describe('prerender replace (CUJ 1-5)', () => {
 
     await runSlideConvert(
       projectDirectory,
-      { out, json: false },
+      { out },
       {
         slidevRunner,
         pptxConverter,
@@ -3277,12 +3067,12 @@ describe('slide convert の差分キャッシュ', () => {
 
     const first = await runSlideConvert(
       project.directory,
-      { out, json: false },
+      { out },
       cacheDependencies(project, firstCalls, stdout, stderr),
     )
     const second = await runSlideConvert(
       project.directory,
-      { out, json: false },
+      { out },
       cacheDependencies(project, secondCalls, stdout, stderr),
     )
 
@@ -3300,12 +3090,12 @@ describe('slide convert の差分キャッシュ', () => {
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
 
-    await runSlideConvert(project.directory, { out, json: false }, cacheDependencies(project, [], stdout, stderr))
+    await runSlideConvert(project.directory, { out }, cacheDependencies(project, [], stdout, stderr))
     rewriteCacheDeck(project, ['# スライド1', '# スライド2 を修正'])
     const calls: number[] = []
     const summary = await runSlideConvert(
       project.directory,
-      { out, json: false },
+      { out },
       cacheDependencies(project, calls, stdout, stderr),
     )
 
@@ -3322,13 +3112,13 @@ describe('slide convert の差分キャッシュ', () => {
     const out = temporaryRoot('cache-3.pptx')
     const firstStdout = makeStream('firstStdout')
     const stderr = makeStream('stderr')
-    const firstCommand = createSlideConvertCommand(() => cacheDependencies(project, [], firstStdout, stderr))
-    await firstCommand.parseAsync([project.directory, '--out', out, '--json'], { from: 'user' })
+    const firstCommand = createConvertRunner(() => cacheDependencies(project, [], firstStdout, stderr))
+    await firstCommand.parseAsync([project.directory, '--out', out, '--json'])
 
     rewriteCacheDeck(project, ['# スライド1', '# スライド2 を修正'])
     const stdout = makeStream('stdout')
-    const command = createSlideConvertCommand(() => cacheDependencies(project, [], stdout, stderr))
-    await command.parseAsync([project.directory, '--out', out, '--json'], { from: 'user' })
+    const command = createConvertRunner(() => cacheDependencies(project, [], stdout, stderr))
+    await command.parseAsync([project.directory, '--out', out, '--json'])
 
     const done = parseEvents(stdout).find(event => event.event === 'slide.convert.done')
     expect(done?.cache).toStrictEqual({ enabled: true, hits: 1, misses: 1, invalidated: 'partial' })
@@ -3337,57 +3127,6 @@ describe('slide convert の差分キャッシュ', () => {
       { key: '1', cache: 'hit' },
       { key: '2', cache: 'miss' },
     ])
-  })
-
-  it('--json なしの出力に cache サマリと miss ステップの列挙 + hit 件数集約が出る (F-14)', async () => {
-    const project = makeCacheProject(temporaryRoot(), 'cache-deck', ['# スライド1', '# スライド2'])
-    const out = temporaryRoot('cache-4.pptx')
-    const stderr = makeStream('stderr')
-    const firstStdout = makeStream('firstStdout')
-    const firstCommand = createSlideConvertCommand(() => cacheDependencies(project, [], firstStdout, stderr))
-    await firstCommand.parseAsync([project.directory, '--out', out], { from: 'user' })
-
-    rewriteCacheDeck(project, ['# スライド1', '# スライド2 を修正'])
-    const stdout = makeStream('stdout')
-    const command = createSlideConvertCommand(() => cacheDependencies(project, [], stdout, stderr))
-    await command.parseAsync([project.directory, '--out', out], { from: 'user' })
-
-    const text = stdout.chunks.join('')
-    expect(text).toContain('cache: 1 hits / 1 misses')
-    // miss（今回変換したステップ）のみを列挙し、hit は件数集約する（全ステップ列挙だと
-    // 多スライドデッキで 500 文字を超えるため）。
-    expect(text).toContain('cache steps: miss #2 (1 more hit)')
-  })
-
-  it('全ヒットなら miss 列挙なしで件数のみ出す (F-14)', async () => {
-    const project = makeCacheProject(temporaryRoot(), 'cache-deck', ['# スライド1', '# スライド2'])
-    const out = temporaryRoot('cache-4b.pptx')
-    const stderr = makeStream('stderr')
-    const stdout = makeStream('stdout')
-    const firstCommand = createSlideConvertCommand(() => cacheDependencies(project, [], stdout, stderr))
-    await firstCommand.parseAsync([project.directory, '--out', out], { from: 'user' })
-
-    const secondStdout = makeStream('secondStdout')
-    const secondCommand = createSlideConvertCommand(() => cacheDependencies(project, [], secondStdout, stderr))
-    await secondCommand.parseAsync([project.directory, '--out', out], { from: 'user' })
-
-    const text = secondStdout.chunks.join('')
-    expect(text).toContain('cache: 2 hits / 0 misses')
-    expect(text).toContain('cache steps: 2 hit\n')
-  })
-
-  it('全ミスなら hit 件数の付記なしで miss を列挙する (F-14)', async () => {
-    const project = makeCacheProject(temporaryRoot(), 'cache-deck', ['# スライド1', '# スライド2'])
-    const out = temporaryRoot('cache-4c.pptx')
-    const stderr = makeStream('stderr')
-    const stdout = makeStream('stdout')
-    const command = createSlideConvertCommand(() => cacheDependencies(project, [], stdout, stderr))
-    await command.parseAsync([project.directory, '--out', out], { from: 'user' })
-
-    const text = stdout.chunks.join('')
-    expect(text).toContain('cache: 0 hits / 2 misses')
-    expect(text).toContain('cache steps: miss #1, #2')
-    expect(text).not.toContain('more hit')
   })
 
   it('全ヒット run の出力 pptx は初回 run と同じ slide xml / ppt/media 件数を持つ (F-02)', async () => {
@@ -3404,7 +3143,7 @@ describe('slide convert の差分キャッシュ', () => {
     const firstCalls: number[] = []
     await runSlideConvert(
       project.directory,
-      { out: firstOut, json: false },
+      { out: firstOut },
       cachePrerenderDependencies(project, firstCalls, stdout, stderr),
     )
     expect(firstCalls).toStrictEqual([100, 200])
@@ -3412,7 +3151,7 @@ describe('slide convert の差分キャッシュ', () => {
     const secondCalls: number[] = []
     const second = await runSlideConvert(
       project.directory,
-      { out: secondOut, json: false },
+      { out: secondOut },
       cachePrerenderDependencies(project, secondCalls, stdout, stderr),
     )
     expect(secondCalls).toStrictEqual([])
@@ -3446,14 +3185,14 @@ describe('slide convert の差分キャッシュ', () => {
 
     await runSlideConvert(
       project.directory,
-      { out, json: false, theme: 'seriph' },
+      { out, theme: 'seriph' },
       cacheDependencies(project, [], stdout, stderr),
     )
 
     const sameThemeCalls: number[] = []
     const sameTheme = await runSlideConvert(
       project.directory,
-      { out, json: false, theme: 'seriph' },
+      { out, theme: 'seriph' },
       cacheDependencies(project, sameThemeCalls, stdout, stderr),
     )
     expect(sameThemeCalls).toStrictEqual([])
@@ -3462,7 +3201,7 @@ describe('slide convert の差分キャッシュ', () => {
     const differentThemeCalls: number[] = []
     const differentTheme = await runSlideConvert(
       project.directory,
-      { out, json: false, theme: 'sample-theme' },
+      { out, theme: 'sample-theme' },
       cacheDependencies(project, differentThemeCalls, stdout, stderr),
     )
     expect(differentThemeCalls).toStrictEqual([100, 200])
@@ -3477,7 +3216,7 @@ describe('slide convert の差分キャッシュ', () => {
 
     const first = await runSlideConvert(
       project.directory,
-      { out, json: false },
+      { out },
       clicksCacheDependencies(project, [], stdout, stderr),
     )
     expect(first.cache?.perStep).toStrictEqual([
@@ -3489,7 +3228,7 @@ describe('slide convert の差分キャッシュ', () => {
     const secondCalls: number[] = []
     const second = await runSlideConvert(
       project.directory,
-      { out, json: false },
+      { out },
       clicksCacheDependencies(project, secondCalls, stdout, stderr),
     )
     expect(secondCalls).toStrictEqual([])
@@ -3501,8 +3240,8 @@ describe('slide convert の差分キャッシュ', () => {
 
     // JSON の timings.perSlide でも key "2/1" に cache 注釈が付く（3 回目も引き続き全 hit）。
     const jsonStdout = makeStream('jsonStdout')
-    const command = createSlideConvertCommand(() => clicksCacheDependencies(project, [], jsonStdout, stderr))
-    await command.parseAsync([project.directory, '--out', out, '--json'], { from: 'user' })
+    const command = createConvertRunner(() => clicksCacheDependencies(project, [], jsonStdout, stderr))
+    await command.parseAsync([project.directory, '--out', out, '--json'])
     const done = parseEvents(jsonStdout).find(event => event.event === 'slide.convert.done')
     const perSlide = done?.timings?.perSlide ?? []
     expect(perSlide.find(entry => entry.key === '2/1')).toMatchObject({ key: '2/1', cache: 'hit' })
@@ -3513,9 +3252,9 @@ describe('slide convert の差分キャッシュ', () => {
     const out = temporaryRoot('cache-5.pptx')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
+    const command = createConvertRunner(() => buildFakeDependencies(stdout, stderr))
 
-    await command.parseAsync([projectDirectory, '--out', out, '--json'], { from: 'user' })
+    await command.parseAsync([projectDirectory, '--out', out, '--json'])
 
     const done = parseEvents(stdout).find(event => event.event === 'slide.convert.done')
     expect(done).toBeDefined()
@@ -3528,9 +3267,9 @@ describe('slide convert の差分キャッシュ', () => {
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
     const warning = 'cannot read the cache manifest; cleaning existing artifacts and rebuilding'
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr, [warning]))
+    const command = createConvertRunner(() => buildFakeDependencies(stdout, stderr, [warning]))
 
-    await command.parseAsync([projectDirectory, '--out', out, '--json'], { from: 'user' })
+    await command.parseAsync([projectDirectory, '--out', out, '--json'])
 
     const done = parseEvents(stdout).find(event => event.event === 'slide.convert.done')
     expect(done?.warnings).toStrictEqual([warning])
@@ -3542,9 +3281,9 @@ describe('slide convert の差分キャッシュ', () => {
     const out = temporaryRoot('warnings-2.pptx')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
-    const command = createSlideConvertCommand(() => buildFakeDependencies(stdout, stderr))
+    const command = createConvertRunner(() => buildFakeDependencies(stdout, stderr))
 
-    await command.parseAsync([projectDirectory, '--out', out, '--json'], { from: 'user' })
+    await command.parseAsync([projectDirectory, '--out', out, '--json'])
 
     const done = parseEvents(stdout).find(event => event.event === 'slide.convert.done')
     expect(done?.warnings).toStrictEqual([])
@@ -3591,14 +3330,8 @@ async function runCommandJson(
   dependencies: BuildFakeDependenciesResult,
   argv: readonly string[],
 ): Promise<void> {
-  const previousExitCode = process.exitCode
-  try {
-    const command = createSlideConvertCommand(() => dependencies)
-    await command.parseAsync([...argv], { from: 'user' })
-  }
-  finally {
-    process.exitCode = previousExitCode
-  }
+  const command = createConvertRunner(() => dependencies)
+  await command.parseAsync([...argv])
 }
 
 /**
@@ -3682,7 +3415,7 @@ function createSinglePassPipeline(
 }
 
 /**
-`slide convert --json` を 1 回実行し、done イベントと呼び出しを返す。
+slide_convert を 1 回呼び、done イベントと呼び出しを返す。
 */
 async function runSinglePassConvertJson(
   project: Readonly<CacheProject>,
@@ -3693,11 +3426,11 @@ async function runSinglePassConvertJson(
   const stdout = makeStream('stdout')
   const stderr = makeStream('stderr')
   const out = temporaryRoot('single-pass.pptx')
-  const command = createSlideConvertCommand(() => ({
+  const command = createConvertRunner(() => ({
     ...cacheDependencies(project, [], stdout, stderr),
     pptxConverter: createSinglePassPipeline(project, 2, calls, options),
   }))
-  await command.parseAsync([project.directory, '--out', out, '--json', ...extraArguments], { from: 'user' })
+  await command.parseAsync([project.directory, '--out', out, '--json', ...extraArguments])
   return { done: parseEvents(stdout).find(event => event.event === 'slide.convert.done'), calls }
 }
 
@@ -3849,22 +3582,6 @@ describe('slide.convert.error の warnings 掲載 (#931)', () => {
     expect(error?.reason).toBe('merge-failed')
     expect(error?.warnings).toStrictEqual([CACHE_WARNING])
   })
-
-  it('option 解析で落ちた run では warnings: [] を載せる', async () => {
-    const projectDirectory = makeProjectDirectory(temporaryRoot())
-    const out = temporaryRoot('error-warnings-5.pptx')
-    const stdout = makeStream('stdout')
-    const stderr = makeStream('stderr')
-
-    await runCommandJson(
-      buildFakeDependencies(stdout, stderr),
-      [projectDirectory, '--out', out, '--transition-type', 'spin', '--json'],
-    )
-
-    const error = parseEvents(stdout).find(event => event.event === 'slide.convert.error')
-    expect(error?.reason).toBe('invalid-transition-type')
-    expect(error?.warnings).toStrictEqual([])
-  })
 })
 
 // --- 変換に失敗した run の errors 掲載 (#945) ---
@@ -3945,23 +3662,6 @@ describe('slide.convert.error の errors 掲載 (#945)', () => {
     const error = parseEvents(stdout).find(event => event.event === 'slide.convert.error')
     expect(error?.reason).toBe('merge-failed')
     expect(error?.errors).toStrictEqual([ELEMENT_ERROR])
-  })
-
-  it('option 解析で落ちた run では errors: [] を載せる', async () => {
-    const projectDirectory = makeProjectDirectory(temporaryRoot())
-    const out = temporaryRoot('error-errors-5.pptx')
-    const stdout = makeStream('stdout')
-    const stderr = makeStream('stderr')
-
-    await runCommandJson(
-      buildFakeDependencies(stdout, stderr),
-      [projectDirectory, '--out', out, '--transition-type', 'spin', '--json'],
-    )
-
-    const error = parseEvents(stdout).find(event => event.event === 'slide.convert.error')
-    expect(error?.reason).toBe('invalid-transition-type')
-    expect(error?.errors).toStrictEqual([])
-    expect(error?.warnings).toStrictEqual([])
   })
 })
 
@@ -4612,7 +4312,7 @@ describe('slide convert の出力同一性 (T011-a)', () => {
     const warmCalls: number[] = []
     await runSlideConvert(
       diffProject.directory,
-      { out: warmOut, json: false },
+      { out: warmOut },
       contentCacheDependencies(diffProject, warmCalls, stdout, stderr),
     )
     expect(warmCalls).toStrictEqual([100, 200, 300])
@@ -4621,7 +4321,7 @@ describe('slide convert の出力同一性 (T011-a)', () => {
     const diffCalls: number[] = []
     const diffSummary = await runSlideConvert(
       diffProject.directory,
-      { out: diffOut, json: false },
+      { out: diffOut },
       contentCacheDependencies(diffProject, diffCalls, stdout, stderr),
     )
 
@@ -4637,7 +4337,7 @@ describe('slide convert の出力同一性 (T011-a)', () => {
     const fullCalls: number[] = []
     const fullSummary = await runSlideConvert(
       fullProject.directory,
-      { out: fullOut, json: false },
+      { out: fullOut },
       contentCacheDependencies(fullProject, fullCalls, stdout, stderr),
     )
     expect(fullCalls).toStrictEqual([100, 200, 300])
@@ -4655,13 +4355,13 @@ describe('slide convert の出力同一性 (T011-a)', () => {
     const diffOut = temporaryRoot('spacing-diff.pptx')
     await runSlideConvert(
       diffProject.directory,
-      { out: warmOut, json: false },
+      { out: warmOut },
       contentCacheDependencies(diffProject, [], stdout, stderr),
     )
     rewriteCacheDeck(diffProject, BODIES_AFTER)
     await runSlideConvert(
       diffProject.directory,
-      { out: diffOut, json: false },
+      { out: diffOut },
       contentCacheDependencies(diffProject, [], stdout, stderr),
     )
 
@@ -4669,7 +4369,7 @@ describe('slide convert の出力同一性 (T011-a)', () => {
     const fullOut = temporaryRoot('spacing-full.pptx')
     await runSlideConvert(
       fullProject.directory,
-      { out: fullOut, json: false },
+      { out: fullOut },
       contentCacheDependencies(fullProject, [], stdout, stderr),
     )
 
@@ -4698,14 +4398,14 @@ describe('slide convert の出力同一性 (T011-a)', () => {
     const diffOut = temporaryRoot('href-diff.pptx')
     await runSlideConvert(
       diffProject.directory,
-      { out: warmOut, json: false },
+      { out: warmOut },
       contentCacheDependencies(diffProject, [], stdout, stderr),
     )
     rewriteCacheDeck(diffProject, BODIES_AFTER)
     const diffCalls: number[] = []
     await runSlideConvert(
       diffProject.directory,
-      { out: diffOut, json: false },
+      { out: diffOut },
       contentCacheDependencies(diffProject, diffCalls, stdout, stderr),
     )
     // hit したスライドの hrefMap は manifest から復元される。ここが 3 件全て miss だと
@@ -4716,7 +4416,7 @@ describe('slide convert の出力同一性 (T011-a)', () => {
     const fullOut = temporaryRoot('href-full.pptx')
     await runSlideConvert(
       fullProject.directory,
-      { out: fullOut, json: false },
+      { out: fullOut },
       contentCacheDependencies(fullProject, [], stdout, stderr),
     )
 
@@ -4743,8 +4443,8 @@ describe('slide convert の出力同一性 (T011-a)', () => {
     const right = makeCacheProject(temporaryRoot(), 'gate-right', bodies)
     const leftOut = temporaryRoot('gate-left.pptx')
     const rightOut = temporaryRoot('gate-right.pptx')
-    await runSlideConvert(left.directory, { out: leftOut, json: false }, contentCacheDependencies(left, [], stdout, stderr))
-    await runSlideConvert(right.directory, { out: rightOut, json: false }, contentCacheDependencies(right, [], stdout, stderr))
+    await runSlideConvert(left.directory, { out: leftOut }, contentCacheDependencies(left, [], stdout, stderr))
+    await runSlideConvert(right.directory, { out: rightOut }, contentCacheDependencies(right, [], stdout, stderr))
 
     // 内容は同一なので、落ちる理由は退化検証の強さだけ
     expect(diffPptxSnapshots(await snapshotPptx(leftOut), await snapshotPptx(rightOut))).toStrictEqual([])
@@ -4764,8 +4464,8 @@ describe('slide convert の出力同一性 (T011-a)', () => {
     const right = makeCacheProject(temporaryRoot(), 'control-right', ['# 表紙', '# 別内容', '# まとめ'])
     const leftOut = temporaryRoot('control-left.pptx')
     const rightOut = temporaryRoot('control-right.pptx')
-    await runSlideConvert(left.directory, { out: leftOut, json: false }, contentCacheDependencies(left, [], stdout, stderr))
-    await runSlideConvert(right.directory, { out: rightOut, json: false }, contentCacheDependencies(right, [], stdout, stderr))
+    await runSlideConvert(left.directory, { out: leftOut }, contentCacheDependencies(left, [], stdout, stderr))
+    await runSlideConvert(right.directory, { out: rightOut }, contentCacheDependencies(right, [], stdout, stderr))
 
     const differences = diffPptxSnapshots(await snapshotPptx(leftOut), await snapshotPptx(rightOut))
     expect(differences.length).toBeGreaterThan(0)
@@ -4794,14 +4494,14 @@ describe('slide convert のスライド構成変更 (T012)', () => {
 
     await runSlideConvert(
       project.directory,
-      { out: firstOut, json: false },
+      { out: firstOut },
       contentCacheDependencies(project, [], stdout, stderr),
     )
     rewriteCacheDeck(project, ['# A', '# B', '# C'])
     const calls: number[] = []
     const summary = await runSlideConvert(
       project.directory,
-      { out: secondOut, json: false },
+      { out: secondOut },
       contentCacheDependencies(project, calls, stdout, stderr),
     )
 
@@ -4829,14 +4529,14 @@ describe('slide convert のスライド構成変更 (T012)', () => {
 
     await runSlideConvert(
       project.directory,
-      { out: firstOut, json: false },
+      { out: firstOut },
       contentCacheDependencies(project, [], stdout, stderr),
     )
     rewriteCacheDeck(project, ['# A', '# X', '# B'])
     const calls: number[] = []
     const summary = await runSlideConvert(
       project.directory,
-      { out: secondOut, json: false },
+      { out: secondOut },
       contentCacheDependencies(project, calls, stdout, stderr),
     )
 
@@ -4863,7 +4563,7 @@ describe('slide convert のスライド構成変更 (T012)', () => {
 
     await runSlideConvert(
       project.directory,
-      { out: firstOut, json: false },
+      { out: firstOut },
       contentCacheDependencies(project, [], stdout, stderr),
     )
     expect(readdirSync(cacheDirectoryOfProject(project))).toContain('slide-300.pptx')
@@ -4872,7 +4572,7 @@ describe('slide convert のスライド構成変更 (T012)', () => {
     const calls: number[] = []
     const summary = await runSlideConvert(
       project.directory,
-      { out: secondOut, json: false },
+      { out: secondOut },
       contentCacheDependencies(project, calls, stdout, stderr),
     )
 
@@ -4906,14 +4606,14 @@ describe('slide convert のスライド構成変更 (T012)', () => {
 
     await runSlideConvert(
       project.directory,
-      { out: firstOut, json: false },
+      { out: firstOut },
       contentCacheDependencies(project, [], stdout, stderr),
     )
     rewriteCacheDeck(project, ['# A', '# C', '# B'])
     const calls: number[] = []
     const summary = await runSlideConvert(
       project.directory,
-      { out: secondOut, json: false },
+      { out: secondOut },
       contentCacheDependencies(project, calls, stdout, stderr),
     )
 
@@ -4932,7 +4632,7 @@ describe('slide convert のスライド構成変更 (T012)', () => {
     const fullCalls: number[] = []
     await runSlideConvert(
       fullProject.directory,
-      { out: fullOut, json: false },
+      { out: fullOut },
       contentCacheDependencies(fullProject, fullCalls, stdout, stderr),
     )
     expect(fullCalls).toStrictEqual([100, 200, 300])
@@ -4955,7 +4655,7 @@ describe('slide convert のスライド構成変更 (T012)', () => {
 
     await runSlideConvert(
       project.directory,
-      { out: firstOut, json: false },
+      { out: firstOut },
       sourceSeparatedCacheDependencies(project, [], stdout, stderr),
     )
     expect(await readSlideMarkers(firstOut)).toStrictEqual([
@@ -4968,7 +4668,7 @@ describe('slide convert のスライド構成変更 (T012)', () => {
     const calls: number[] = []
     const summary = await runSlideConvert(
       project.directory,
-      { out: secondOut, json: false },
+      { out: secondOut },
       sourceSeparatedCacheDependencies(project, calls, stdout, stderr),
     )
 
@@ -4994,7 +4694,7 @@ describe('slide convert のスライド構成変更 (T012)', () => {
     const secondOut = temporaryRoot('clicks-insert-2.pptx')
     const first = await runSlideConvert(
       project.directory,
-      { out: firstOut, json: false },
+      { out: firstOut },
       contentCacheDependenciesWithScanUrls(project, readCacheDeckBodies, clicksScanUrlsBeforeInsert, [], stdout, stderr),
     )
     expect(first.cache?.perStep).toStrictEqual([
@@ -5007,7 +4707,7 @@ describe('slide convert のスライド構成変更 (T012)', () => {
     const calls: number[] = []
     const second = await runSlideConvert(
       project.directory,
-      { out: secondOut, json: false },
+      { out: secondOut },
       contentCacheDependenciesWithScanUrls(project, readCacheDeckBodies, clicksScanUrlsAfterInsert, calls, stdout, stderr),
     )
 
@@ -5039,7 +4739,7 @@ describe('slide convert のキャッシュ容量制御 (FR-010)', () => {
 
     await runSlideConvert(
       project.directory,
-      { out: firstOut, json: false },
+      { out: firstOut },
       contentCacheDependencies(project, [], stdout, stderr),
     )
     const cacheDirectory = cacheDirectoryOfProject(project)
@@ -5055,7 +4755,7 @@ describe('slide convert のキャッシュ容量制御 (FR-010)', () => {
     const calls: number[] = []
     const summary = await runSlideConvert(
       project.directory,
-      { out: secondOut, json: false },
+      { out: secondOut },
       contentCacheDependencies(project, calls, stdout, stderr),
     )
 
@@ -5144,7 +4844,7 @@ describe('slide convert のキャッシュ無効化とフォールバック (T01
     const firstCalls: number[] = []
     await runSlideConvert(
       project.directory,
-      { out: firstOut, json: false },
+      { out: firstOut },
       contentCacheDependencies(project, firstCalls, stdout, stderr),
     )
     expect(firstCalls).toStrictEqual([100, 200])
@@ -5153,7 +4853,7 @@ describe('slide convert のキャッシュ無効化とフォールバック (T01
     const calls: number[] = []
     const summary = await runSlideConvert(
       project.directory,
-      { out: secondOut, json: false },
+      { out: secondOut },
       contentCacheDependencies(project, calls, stdout, stderr),
     )
 
@@ -5173,7 +4873,7 @@ describe('slide convert のキャッシュ無効化とフォールバック (T01
 
     await runSlideConvert(
       project.directory,
-      { out: firstOut, json: false },
+      { out: firstOut },
       contentCacheDependencies(project, [], stdout, stderr),
     )
     corruptManifest(project)
@@ -5181,23 +4881,15 @@ describe('slide convert のキャッシュ無効化とフォールバック (T01
     const calls: number[] = []
     const commandStdout = makeStream('commandStdout')
     const commandStderr = makeStream('commandStderr')
-    const command = createSlideConvertCommand(
+    const command = createConvertRunner(
       () => contentCacheDependencies(project, calls, commandStdout, commandStderr),
     )
-    const previousExitCode = process.exitCode
-    process.exitCode = undefined
-    try {
-      await command.parseAsync([project.directory, '--out', secondOut], { from: 'user' })
-      expect(process.exitCode).toBeUndefined()
-    }
-    finally {
-      process.exitCode = previousExitCode
-    }
+    await command.parseAsync([project.directory, '--out', secondOut])
 
     expect(calls).toStrictEqual([100, 200])
     expect(existsSync(secondOut)).toBe(true)
     expect(commandStderr.chunks.join('')).toContain('cannot read the cache manifest; cleaning existing artifacts and rebuilding')
-    expect(commandStdout.chunks.join('')).toContain('cache: 0 hits / 2 misses (enabled: true, invalidated: all:manifest)')
+    expect(parseEvents(commandStdout).at(-1)?.cache).toStrictEqual({ enabled: true, hits: 0, misses: 2, invalidated: 'all:manifest' })
     expect(manifestEntryKeysOf(project)).toStrictEqual(['100', '200'])
     expect(await readSlideMarkers(secondOut)).toStrictEqual([slideMarkerOf('# A'), slideMarkerOf('# B')])
   })
@@ -5213,7 +4905,7 @@ describe('slide convert のキャッシュ無効化とフォールバック (T01
 
     await runSlideConvert(
       project.directory,
-      { out: firstOut, json: false },
+      { out: firstOut },
       contentCacheDependencies(project, [], stdout, stderr),
     )
     downgradeManifestSchema(project)
@@ -5223,7 +4915,7 @@ describe('slide convert のキャッシュ無効化とフォールバック (T01
     const secondStderr = makeStream('secondStderr')
     const summary = await runSlideConvert(
       project.directory,
-      { out: secondOut, json: false },
+      { out: secondOut },
       contentCacheDependencies(project, calls, secondStdout, secondStderr),
     )
 
@@ -5252,18 +4944,17 @@ describe('slide convert の --no-cache (T016 / T017)', () => {
     const warmStdout = makeStream('warmStdout')
     await runSlideConvert(
       project.directory,
-      { out: warmOut, json: false },
+      { out: warmOut },
       contentCacheDependencies(project, [], warmStdout, stderr),
     )
 
     const noCacheCalls: number[] = []
     const noCacheStdout = makeStream('noCacheStdout')
-    const command = createSlideConvertCommand(
+    const command = createConvertRunner(
       () => contentCacheDependencies(project, noCacheCalls, noCacheStdout, stderr),
     )
     await command.parseAsync(
       [project.directory, '--out', noCacheOut, '--no-cache', '--json'],
-      { from: 'user' },
     )
 
     // 全ステップ変換される。enabled: false と invalidated: none の組で「無効化を検知したの
@@ -5278,35 +4969,11 @@ describe('slide convert の --no-cache (T016 / T017)', () => {
     const afterStdout = makeStream('afterStdout')
     const after = await runSlideConvert(
       project.directory,
-      { out: afterOut, json: false },
+      { out: afterOut },
       contentCacheDependencies(project, afterCalls, afterStdout, stderr),
     )
     expect(afterCalls).toStrictEqual([])
     expect(after.cache).toMatchObject({ enabled: true, hits: 2, misses: 0, invalidated: 'none' })
-  })
-
-  it('人間向け出力は enabled: false / invalidated: none で miss を全件列挙する', async () => {
-    const stderr = makeStream('stderr')
-    const project = makeCacheProject(temporaryRoot(), 'no-cache-text', ['# A', '# B'])
-    const warmOut = temporaryRoot('no-cache-text-1.pptx')
-    const noCacheOut = temporaryRoot('no-cache-text-2.pptx')
-
-    const warmStdout = makeStream('warmStdout')
-    await runSlideConvert(
-      project.directory,
-      { out: warmOut, json: false },
-      contentCacheDependencies(project, [], warmStdout, stderr),
-    )
-
-    const stdout = makeStream('stdout')
-    const command = createSlideConvertCommand(() => contentCacheDependencies(project, [], stdout, stderr))
-    await command.parseAsync([project.directory, '--out', noCacheOut, '--no-cache'], { from: 'user' })
-
-    const text = stdout.chunks.join('')
-    expect(text).toContain('cache: 0 hits / 2 misses (enabled: false, invalidated: none)')
-    // 全 miss になるため hit 件数の付記は出ず、変換したステップが全件並ぶ。
-    expect(text).toContain('cache steps: miss #1, #2')
-    expect(text).not.toContain('more hit')
   })
 
   it('manifest が破損していても孤児を掃除して exit 0 で完走する', async () => {
@@ -5318,7 +4985,7 @@ describe('slide convert の --no-cache (T016 / T017)', () => {
     const warmStdout = makeStream('warmStdout')
     await runSlideConvert(
       project.directory,
-      { out: warmOut, json: false },
+      { out: warmOut },
       contentCacheDependencies(project, [], warmStdout, stderr),
     )
     // 削除済みスライド相当の残骸。manifest が読めない run では prune の起点が無いため、
@@ -5331,23 +4998,15 @@ describe('slide convert の --no-cache (T016 / T017)', () => {
     const calls: number[] = []
     const stdout = makeStream('stdout')
     const commandStderr = makeStream('commandStderr')
-    const command = createSlideConvertCommand(
+    const command = createConvertRunner(
       () => contentCacheDependencies(project, calls, stdout, commandStderr),
     )
-    const previousExitCode = process.exitCode
-    process.exitCode = undefined
-    try {
-      await command.parseAsync([project.directory, '--out', noCacheOut, '--no-cache'], { from: 'user' })
-      expect(process.exitCode).toBeUndefined()
-    }
-    finally {
-      process.exitCode = previousExitCode
-    }
+    await command.parseAsync([project.directory, '--out', noCacheOut, '--no-cache'])
 
     expect(calls).toStrictEqual([100, 200])
     expect(existsSync(noCacheOut)).toBe(true)
     // manifest 破損は all:manifest だが、判定していない run では種別を報告しない。
-    expect(stdout.chunks.join('')).toContain('(enabled: false, invalidated: none)')
+    expect(parseEvents(stdout).at(-1)?.cache).toMatchObject({ enabled: false, invalidated: 'none' })
     expect(commandStderr.chunks.join('')).toContain('cannot read the cache manifest; cleaning existing artifacts and rebuilding')
     expect(readdirSync(cacheDirectory).some(name => name.includes('999'))).toBe(false)
     expect(manifestEntryKeysOf(project)).toStrictEqual(['100', '200'])
@@ -5364,7 +5023,7 @@ describe('slide convert の --no-cache (T016 / T017)', () => {
     const warmStdout = makeStream('warmStdout')
     await runSlideConvert(
       project.directory,
-      { out: warmOut, json: false },
+      { out: warmOut },
       contentCacheDependencies(project, [], warmStdout, stderr),
     )
     const manifestBefore = manifestBytesOf(project)
@@ -5373,10 +5032,9 @@ describe('slide convert の --no-cache (T016 / T017)', () => {
     rmSync(project.bundlePath, { force: true })
     const calls: number[] = []
     const stdout = makeStream('stdout')
-    const command = createSlideConvertCommand(() => contentCacheDependencies(project, calls, stdout, stderr))
+    const command = createConvertRunner(() => contentCacheDependencies(project, calls, stdout, stderr))
     await command.parseAsync(
       [project.directory, '--out', noCacheOut, '--no-cache', '--json'],
-      { from: 'user' },
     )
 
     expect(calls).toStrictEqual([100, 200])
@@ -5396,7 +5054,7 @@ describe('slide convert の --no-cache (T016 / T017)', () => {
 
     await runSlideConvert(
       project.directory,
-      { out: firstOut, json: false },
+      { out: firstOut },
       contentCacheDependencies(project, [], stdout, stderr),
     )
     expect(readdirSync(cacheDirectoryOfProject(project))).toContain('slide-300.pptx')
@@ -5405,7 +5063,7 @@ describe('slide convert の --no-cache (T016 / T017)', () => {
     const calls: number[] = []
     const summary = await runSlideConvert(
       project.directory,
-      { out: secondOut, json: false, cache: false },
+      { out: secondOut, cache: false },
       contentCacheDependencies(project, calls, stdout, stderr),
     )
 
@@ -5496,7 +5154,7 @@ async function runConvertWithPolicy(
   const infra = realInfra()
   return runSlideConvert(
     makeProjectDirectory(temporaryRoot()),
-    { out, json: false },
+    { out },
     {
       slidevRunner: createSuccessRunner(),
       pptxConverter: timingStagingConverter(policyText),
@@ -5575,7 +5233,7 @@ async function runConvertWithSlideNames(out: string, names: readonly string[]): 
   const infra = realInfra()
   await runSlideConvert(
     makeProjectDirectory(temporaryRoot()),
-    { out, json: false },
+    { out },
     {
       slidevRunner: createSuccessRunner(),
       pptxConverter: decoyNameConverter(names),

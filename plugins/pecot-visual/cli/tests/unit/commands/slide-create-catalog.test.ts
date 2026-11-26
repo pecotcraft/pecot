@@ -1,5 +1,5 @@
 // slide create が返すレイアウトの一覧の検証。
-// 整形（emitLayoutCatalog）は与えた一覧をそのまま書く。fixture テーマ（with-declaration）を張った talk-dir から、
+// fixture テーマ（with-declaration）を張った talk-dir から、
 // 件数・分類・SKILL.md が名指しするキー名を固定する。期待値はテーマの references/ から導く。一覧の組み立て規則は domain の references.test.ts が持つ。
 
 /* eslint-disable security/detect-non-literal-fs-filename -- fixture テーマ配下の固定パスと一時ディレクトリだけを触る */
@@ -8,36 +8,10 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { emitLayoutCatalog } from '../../../src/commands/slidev-project/create.js'
 import { executeSlideTheme } from '../../../src/commands/slidev-project/theme.js'
 import { compareStrings } from '../../../src/domain/_shared/compare-strings.js'
-import type { LayoutCatalog } from '../../../src/domain/slidev-theme/references.js'
 import { NodeThemeFiles } from '../../../src/infra/slidev-theme/fs.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
-
-interface CapturedStream {
-  readonly chunks: string[]
-  write: (data: string) => boolean
-}
-
-function makeStream(): CapturedStream {
-  const chunks: string[] = []
-  return {
-    chunks,
-    write(data: string): boolean {
-      chunks.push(data)
-      return true
-    },
-  }
-}
-
-// write を持つ stub をそのまま使う。
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
-function asStream(captured: CapturedStream): NodeJS.WritableStream {
-  // eslint-disable-next-line no-restricted-syntax -- test 内 stub を NodeJS.WritableStream に narrowing
-  return captured as unknown as NodeJS.WritableStream
-}
-
 const PLUGIN_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..')
 const THEME_ROOT = path.join(PLUGIN_ROOT, 'cli', 'tests', 'fixtures', 'themes', 'with-declaration')
 const THEME_NAME = 'slidev-theme-pecotv-test-declared'
@@ -84,47 +58,6 @@ function readReferences(): readonly ReferenceEntry[] {
       }
     })
 }
-
-const CATALOG: Pick<LayoutCatalog, 'categories' | 'layouts'> = {
-  categories: [
-    { id: 'fixed', label: '定型ページ', question: '見せ方の選択対象外' },
-    { id: 'figure', label: '図', question: '図で見せる' },
-    { id: 'table', label: '表', question: '軸のある表で見せる' },
-  ],
-  layouts: [
-    { layout: 'cover', description: '表紙', category: 'fixed', deprecated: false, filename: 'cover.yaml' },
-    { layout: 'chart', description: 'グラフ', category: 'figure', deprecated: false, filename: 'chart.yaml' },
-    { layout: 'legacy', description: '旧い図', category: 'figure', deprecated: true, filename: 'legacy.yaml' },
-  ],
-}
-
-describe('emitLayoutCatalog', () => {
-  it('分類ごとに群化し、0 件分類は見出しと (no matching layouts) を出す', () => {
-    const stdout = makeStream()
-
-    emitLayoutCatalog(CATALOG, asStream(stdout))
-    const written = stdout.chunks.join('')
-
-    // 既存の `=` 罫線書式を保つ。
-    expect(written).toContain(`${'='.repeat(60)}\n`)
-    expect(written).toContain('Layout Catalog')
-
-    // 分類見出しは label: question の形で、宣言順に出る。
-    expect(written.indexOf('--- 定型ページ: 見せ方の選択対象外 ---'))
-      .toBeLessThan(written.indexOf('--- 図: 図で見せる ---'))
-    expect(written.indexOf('--- 図: 図で見せる ---'))
-      .toBeLessThan(written.indexOf('--- 表: 軸のある表で見せる ---'))
-
-    // deprecated は群の中に [deprecated] 付きで残り、末尾の専用セクションは作らない。
-    expect(written).toContain('- [deprecated] legacy: 旧い図\n')
-    expect(written).not.toContain('--- deprecated (use only if no alternative) ---')
-    const [, figureSection = ''] = written.split('--- 図: 図で見せる ---', 2)
-    expect(figureSection.indexOf('- chart:')).toBeLessThan(figureSection.indexOf('[deprecated] legacy:'))
-
-    // 0 件分類も見出しを出して不足を見せる。
-    expect(written).toContain('--- 表: 軸のある表で見せる ---\n\n(no matching layouts)\n')
-  })
-})
 
 describe('fixture テーマの一覧', () => {
   it('hidden を除いた全レイアウトを分類付きで返す', async () => {

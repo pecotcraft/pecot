@@ -1,15 +1,5 @@
-// pecotv MCP 単体配布ツリーの仕上げ (#982)。publish-mcp-dist.sh からのみ呼ばれる。
-//
-// 1. eslint プラグイン dist の specifier を、配布ツリー内の相対パスへ書き換える。
-//    deck-lint.config.js はプラグイン dist を相対パスで import するので、書き換えない。dist の存在だけ確かめる。
-//    text-constraints dist が import する @pecot/text-rules も、vendor/text-rules の実体へ向ける。
-//    cli/dist が動的 import する @pecot/text-rules も同じ実体へ向ける。
-// 2. 配布用 package.json と .claude-plugin/plugin.json を実版で生成する。
-//
-// 同梱した eslint プラグインを `file:` 依存で解決させると、npx の warm 起動が必ず失敗する。
-// 失敗は `npm error Cannot destructure property 'package' of 'node.target' as it is null` で、
-// 手元で再現を確認した。
-// そこで配布物は npm の依存解決に任せず、ツリー内の実体を相対 import で直接指す。
+// MCP 単体配布ツリーの仕上げ (#982)。eslint プラグイン・cli/dist の specifier をツリー内の相対パスへ書き換え、package.json と plugin.json を書く。
+// `file:` 依存で解決させると npx の warm 起動が `node.target is null` で落ちるため、npm の依存解決に任せない。
 
 import { readdirSync, statSync, readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import path from 'node:path'
@@ -123,7 +113,7 @@ for (const rel of PLUGIN_ENTRIES) {
 const distManifest = buildDistManifest(PECOTV_ROOT, version, REPO_ROOT)
 writeFileSync(path.join(DIST_ROOT, 'package.json'), `${JSON.stringify(distManifest, null, 2)}\n`)
 
-// plugin.json は readVersion() の解決先（CLAUDE_PLUGIN_ROOT 経由）。版だけ差し替えて配布する。
+// plugin.json は readVersion() の解決先（resolvePluginRoot が返す配布ルート）。版だけ差し替えて配布する。
 const pluginManifest = readJson(path.join(PECOTV_ROOT, '.claude-plugin/plugin.json'))
 pluginManifest.version = version
 mkdirSync(path.join(DIST_ROOT, '.claude-plugin'), { recursive: true })

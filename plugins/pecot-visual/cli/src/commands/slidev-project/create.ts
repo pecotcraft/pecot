@@ -1,4 +1,4 @@
-// `pecotv slide create --theme <theme-spec>` の実装。テンプレートはコピーしない。
+// slide_create ツールの実装。テンプレートはコピーしない。
 // 次の順に実行する。
 // テーマの指定の解釈 → テーマの取得 → 宣言の読み取り → レイアウトの参照と分類の読み取り。
 // 続けて、生成先の確認 → slides.md と package.json の生成 → 初期ページ → public/slides。
@@ -12,9 +12,7 @@ import { performance } from 'node:perf_hooks'
 import { mkdir, rename, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import { Command } from 'commander'
-
-import { createDiagnostics, passthrough, writeData } from '../../diagnostics.js'
+import { createDiagnostics } from '../../diagnostics.js'
 import { SlideCreateRuntimeError, SlideCreateUsageError } from '../../domain/slidev-project/errors.js'
 import { buildInitialPages, nameToTitle } from '../../domain/slidev-project/initial-pages.js'
 import { talkPackageJsonSource } from '../../domain/slidev-project/package-json.js'
@@ -29,8 +27,9 @@ import {
   resolveLayoutReferences,
 } from '../../domain/slidev-theme/references.js'
 import type { LayoutCatalog } from '../../domain/slidev-theme/references.js'
-import { ThemeSpecError, parseThemeSpec } from '../../domain/slidev-theme/theme-spec.js'
+import { parseThemeSpec } from '../../domain/slidev-theme/theme-spec.js'
 import { pluginDependencyRoot, themeStoreRoot } from '../../infra/_shared/dependency-root.js'
+import { resolvePluginRoot } from '../../infra/_shared/plugin-root.js'
 import {
   assertDependencyRootAvailable,
   linkNodeModules,
@@ -43,7 +42,6 @@ import { fetchTheme } from '../../infra/slidev-theme/store.js'
 import {
   autoDeckLintJsonField,
   runAutoDeckLint,
-  writeAutoDeckLintReport,
 } from './lint.js'
 import type { AutoDeckLintReport } from './lint.js'
 import { absoluteSpec, packageSpec } from './theme-source.js'
@@ -55,21 +53,11 @@ export interface SlideCreateOptions {
   */
   readonly theme: string
   readonly force: boolean
-  /**
-  レイアウトの一覧を stdout に書き出すか。
-
-  人間向け出力専用の副作用なので、判定材料を `--json` フラグから独立させている。
-  CLI は `--json` 無しのときだけ true にし、MCP ツールルートは常に false で呼ぶ
-  （結果として捕捉する stdout にカタログを混在させないため）。
-
-  読むのは `executeSlideCreate` だけで、`runSlideCreate` は一覧に触れない。
-  */
-  readonly emitCatalog: boolean
 }
 
 export interface SlideCreateDependencies {
   /**
-  同梱アセットの起点。CLAUDE_PLUGIN_ROOT。
+  同梱アセットの起点（resolvePluginRoot）。
   */
   readonly pluginRoot: string
   /**
@@ -120,7 +108,7 @@ export { SlideCreateUsageError } from '../../domain/slidev-project/errors.js'
 テーマを取得し、talk-dir を生成する。
 
 生成は生成先と同じ親の下の一時 dir で組み立て、最後に入れ替える。
-`--force` で既存の生成先があっても、取得・生成のどこで失敗しても、既存は消えない。
+`force` で既存の生成先があっても、取得・生成のどこで失敗しても、既存は消えない。
 失敗したら一時 dir を消す。取得中の警告は、失敗の前に出たものも stderr へ流す。
 */
 export async function runSlideCreate(
@@ -162,7 +150,7 @@ async function generateTalk(
   const destination = await talkDirectoryExists(projectAbsolute)
   if (!options.force && destination.exists) {
     throw new SlideCreateUsageError(
-      `destination already exists (use --force to overwrite): ${projectAbsolute}`,
+      `destination already exists (pass force: true to overwrite): ${projectAbsolute}`,
       'dest-exists',
     )
   }
@@ -220,7 +208,7 @@ async function generateTalk(
     await writeGeneratedFiles(staging, { themeName: fetched.name })
     // node_modules の相対 symlink は親ごと同じ位置に入れ替わるため、入れ替え後も同じ先を指す。
     await linkNodeModules(staging, dependencyRoot, [{ name: fetched.name, directory: fetched.directory }])
-    // 組み立てが済んでから、既存の生成先 (--force) を外して入れ替える。
+    // 組み立てが済んでから、既存の生成先 (force) を外して入れ替える。
     if (destination.exists) await rm(projectAbsolute, { recursive: true, force: true })
     await rename(staging, projectAbsolute)
   }
@@ -242,16 +230,13 @@ export interface SlideCreateExecution {
   readonly summary: SlideCreateResultSummary
   readonly lint: AutoDeckLintReport
   /**
-  `--json` の `slide.create.done` payload。MCP ツールの構造化データもこれをそのまま返す。
+  `slide.create.done` の payload。MCP ツールの構造化データもこれをそのまま返す。
   */
   readonly data: Readonly<Record<string, unknown>>
 }
 
 /**
-`slide create` の実処理と機械可読な結果組み立て。CLI action と MCP ツールの双方がここを通る。
-
-@param onCreated 生成完了時点（deck lint より前）に呼ばれる。CLI は人間向けの成否行を
-  ここで書き、違反一覧より先に出す。MCP ツールは渡さない。
+slide_create の実処理と機械可読な結果組み立て。MCP ツールがここを通る。
 */
 export async function executeSlideCreate(
   projectDirectory: string,
@@ -259,12 +244,9 @@ export async function executeSlideCreate(
   // DI 経由の write は mutate メソッド。
   // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
   dependencies: SlideCreateDependencies,
-  onCreated?: (summary: Readonly<SlideCreateResultSummary>) => void,
 ): Promise<SlideCreateExecution> {
   const { catalog, warnings, ...summary } = await runSlideCreate(projectDirectory, options, dependencies)
   for (const warning of warnings) createDiagnostics(dependencies.stderr).warning(warning)
-  if (options.emitCatalog) emitLayoutCatalog(catalog, dependencies.stdout)
-  onCreated?.(summary)
   // 生成直後のデッキ全体 lint。違反があっても create の成否は変えない。
   const lint = await runAutoDeckLint(summary.projectDirectory, dependencies)
   return {
@@ -283,43 +265,6 @@ export async function executeSlideCreate(
 }
 
 /**
-収集済みのレイアウトの一覧を人間向けに stdout へ書き出す。分類ごとに群化し、deprecated は群内で
-`[deprecated]` 接頭辞を付ける（選ばない対象だが、分類から外して別枠にすると、その分類に
-何が属するかが読めなくなる）。レイアウトが 0 件の分類も見出しを出して不足を見せる。
-*/
-export function emitLayoutCatalog(
-  catalog: Readonly<Pick<LayoutCatalog, 'categories' | 'layouts'>>,
-  // WritableStream の write は mutate。
-  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
-  stdout: NodeJS.WritableStream,
-): void {
-  const { categories, layouts } = catalog
-
-  writeData(stdout, '='.repeat(60))
-  writeData(stdout, 'Layout Catalog (read it fully before plan mode in Step 2)')
-  writeData(stdout, `${'='.repeat(60)}\n\n`)
-
-  for (const category of categories) {
-    writeData(stdout, `--- ${category.label}: ${category.question} ---\n\n`)
-    const members = layouts.filter(entry => entry.category === category.id)
-    if (members.length === 0) {
-      writeData(stdout, '(no matching layouts)\n\n')
-      continue
-    }
-    for (const { layout, description, deprecated } of members) {
-      writeData(stdout, `- ${deprecated ? '[deprecated] ' : ''}${layout}: ${description}`)
-    }
-    writeData(stdout, '')
-  }
-}
-
-/* c8 ignore start -- 非 Error 例外 (string throw 等) は本実装範囲では未発生、防御網のみ */
-function formatError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
-/* c8 ignore stop */
-
-/**
 失敗の reason。テーマの取得・宣言・指定の失敗は `theme-<reason>`（`themeErrorReason`）にする。
 */
 export function errorToReason(error: unknown): FailureReason {
@@ -328,103 +273,10 @@ export function errorToReason(error: unknown): FailureReason {
   return themeErrorReason(error) ?? 'unknown'
 }
 
-/**
-失敗時の exit code。usage error（引数の誤り、テーマの指定の誤り）= 2、それ以外の実行失敗 = 1。
-*/
-export function toExitCode(error: unknown): number {
-  return error instanceof SlideCreateUsageError || error instanceof ThemeSpecError ? 2 : 1
-}
-
-function doesArgvWantJson(argv: readonly string[]): boolean {
-  return argv.includes('--json')
-}
-
-export function createSlideCreateCommand(
-  buildDependencies: () => SlideCreateDependencies,
-): Command {
-  const command = new Command('create')
-    .description('create a Slidev presentation that references a theme')
-    .argument('<project-dir>', 'destination directory')
-    .requiredOption('--theme <spec>', 'theme spec (git+https://<host>/<owner>/<repo>.git#<tag> or file:<path>)')
-    .option('--force', 'overwrite an existing directory', false)
-    .option('--json', 'print machine-readable JSON to stdout', false)
-    .exitOverride()
-    .configureOutput({
-      writeErr: (string_: string) => {
-        const dependencies = buildDependencies()
-        if (doesArgvWantJson(process.argv)) {
-          writeData(dependencies.stdout, JSON.stringify({
-            event: 'slide.create.error',
-            reason: 'invalid-option',
-            detail: string_.replace(/^error:[ \t]*/i, '').trim(),
-          }))
-        }
-        else {
-          passthrough(dependencies.stderr, string_)
-        }
-      },
-    })
-    .action(async (projectDirectory: string, raw: Readonly<Record<string, unknown>>) => {
-      const dependencies = buildDependencies()
-      const isWantsJson = raw['json'] === true
-      const options: SlideCreateOptions = {
-        theme: requireString(raw, 'theme'),
-        force: raw['force'] === true,
-        emitCatalog: !isWantsJson,
-      }
-
-      try {
-        const execution = await executeSlideCreate(projectDirectory, options, dependencies, (summary) => {
-          if (isWantsJson) return
-          writeData(dependencies.stdout, `slide create: success (${summary.projectDirectory})`)
-          writeData(dependencies.stdout, `  theme=${summary.theme.name}, ${String(Math.round(summary.durationMs))}ms`)
-        })
-        if (isWantsJson) {
-          writeData(dependencies.stdout, JSON.stringify(execution.data))
-        }
-        else {
-          writeAutoDeckLintReport(execution.lint, execution.summary.projectDirectory, dependencies)
-        }
-      }
-      catch (error: unknown) {
-        const reason = errorToReason(error)
-        const detail = formatError(error)
-        if (isWantsJson) {
-          writeData(dependencies.stdout, JSON.stringify({
-            event: 'slide.create.error',
-            reason,
-            detail,
-          }))
-        }
-        else {
-          createDiagnostics(dependencies.stderr).error(`slide create failed: ${detail}`)
-        }
-        process.exitCode = toExitCode(error)
-      }
-    })
-  return command
-}
-
-function requireString(raw: Readonly<Record<string, unknown>>, key: string): string {
-  // eslint-disable-next-line security/detect-object-injection -- key は本ファイル内固定文字列
-  const value = raw[key]
-  /* c8 ignore next 3 -- commander の requiredOption で必ず string が入るため到達不能 */
-  if (typeof value !== 'string') {
-    throw new SlideCreateUsageError(`option --${key} is required`, 'missing-option')
-  }
-  return value
-}
-
 export function slideCreateDefaultDependencies(): SlideCreateDependencies {
-  const pluginRoot = process.env['CLAUDE_PLUGIN_ROOT']
-  /* c8 ignore next 3 -- bin/pecotv が CLAUDE_PLUGIN_ROOT を必ず export するため未設定ルートは実運用で発生しない */
-  if (pluginRoot === undefined || pluginRoot === '') {
-    throw new SlideCreateRuntimeError('CLAUDE_PLUGIN_ROOT is not set', 'unknown')
-  }
-  const dependencyRoot = pluginDependencyRoot()
   return {
-    pluginRoot,
-    ...(dependencyRoot !== undefined && { dependencyRoot }),
+    pluginRoot: resolvePluginRoot(),
+    dependencyRoot: pluginDependencyRoot(),
     stdout: process.stdout,
     stderr: process.stderr,
     now: () => performance.now(),

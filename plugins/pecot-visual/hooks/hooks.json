@@ -1,5 +1,5 @@
 {
-  "description": "pecot-visual plugin hooks: runs lint when MD or YAML files are edited in a Slidev talk-dir, initializes .pecotv and syncs README/CHANGELOG when pecotv use is detected, and notifies at SessionStart about tracking .pecotv/.gitignore in existing repos",
+  "description": "pecot-visual plugin hooks: calls the pecot-visual MCP tools that lint written or edited files, initializes .pecotv and syncs README/CHANGELOG when pecotv use is detected, and notifies at SessionStart about tracking .pecotv/.gitignore in existing repos",
   "hooks": {
     "SessionStart": [
       {
@@ -38,21 +38,36 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Write",
+        "matcher": "Write|Edit",
         "hooks": [
           {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/post-tool-use-write.sh",
+            "type": "mcp_tool",
+            "server": "plugin:pecot-v:pecot-visual",
+            "tool": "file_lint",
+            "input": {
+              "file_path": "${tool_input.file_path}",
+              "cwd": "${cwd}"
+            },
             "timeout": 80
-          }
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
+          },
           {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/post-tool-use-edit.sh",
+            "type": "mcp_tool",
+            "server": "plugin:pecot-v:pecot-visual",
+            "tool": "file_validate",
+            "input": {
+              "file_path": "${tool_input.file_path}",
+              "cwd": "${cwd}"
+            },
+            "timeout": 80
+          },
+          {
+            "type": "mcp_tool",
+            "server": "plugin:pecot-v:pecot-visual",
+            "tool": "file_brief",
+            "input": {
+              "file_path": "${tool_input.file_path}",
+              "cwd": "${cwd}"
+            },
             "timeout": 80
           }
         ]

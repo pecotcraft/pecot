@@ -108,8 +108,7 @@ def _hook_files_pattern(script_dir: Path, hook_id: str) -> re.Pattern[str]:
         "plugins/pecot-tools/scripts/ci/install.sh",
         "plugins/pecot-visual/scripts/ci/run-lint.sh",
         "plugins/pecot-visual/scripts/ci/check-pm-guard.sh",
-        "plugins/pecot-visual/bin/pecotv",
-        "plugins/pecot-visual/cli/tests/bootstrap/run.sh",
+        "plugins/pecot-visual/scripts/ci/pnpm-lib.sh",
         "plugins/pecot-visual/cli/package.json",
         "plugins/pecot-visual/package.json",
         "plugins/pecot-visual/cli/vitest.config.ts",
@@ -163,7 +162,7 @@ def test_nx_env_inputs_skips_unrelated_paths(script_dir: Path, changed_path: str
         "pnpm-workspace.yaml",
         "package.json",
         "plugins/pecot-tools/cli/package.json",
-        "plugins/pecot-visual/runtime-lock.yaml",
+        "plugins/pecot-workflow/runtime-lock.yaml",
         "libs/text-rules/runtime-workspace.yaml",
         ".githooks/scripts/gen-runtime-lock.mjs",
     ],
@@ -181,7 +180,7 @@ def test_check_runtime_lock_runs_when_its_inputs_change(
 
 @pytest.mark.parametrize(
     "changed_path",
-    ["README.md", "plugins/pecot-visual/cli/src/cli.ts", "plugins/pecot-tools/pnpm-lock.yml"],
+    ["README.md", "plugins/pecot-visual/cli/src/main.ts", "plugins/pecot-tools/pnpm-lock.yml"],
 )
 def test_check_runtime_lock_skips_unrelated_paths(script_dir: Path, changed_path: str) -> None:
     with allure.step("check-runtime-lock の files の正規表現を読む"):

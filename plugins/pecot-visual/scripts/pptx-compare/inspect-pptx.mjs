@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * 1 本以上の pptx を枚ごとに集計し、入力を列に並べた比較表を Markdown（と任意で JSON）で出す。
- * 変換手順（Slidev 公式 pptx / pptx-editable / pecotv slide convert 等）の構成差を並べるための集計で、
+ * 変換手順（Slidev 公式 pptx / pptx-editable / slide_convert 等）の構成差を並べるための集計で、
  * 合否の判定は持たない。
  *
  *   node plugins/pecot-visual/scripts/pptx-compare/inspect-pptx.mjs <a.pptx> [b.pptx ...] \

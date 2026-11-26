@@ -279,7 +279,7 @@ describe('runSlideSync (移行前の talk-dir に --theme を付ける)', () => 
     expect(thrown).toBeInstanceOf(SlideSyncUsageError)
     expect(thrown).toMatchObject({ reason: 'theme-required' })
     const message = thrown instanceof Error ? thrown.message : ''
-    expect(message).toContain('slide sync --dir /abs/my-talk --theme <theme-spec>')
+    expect(message).toContain('slide_sync with dir: /abs/my-talk, theme: <theme-spec>')
     expect(message).toContain('slide_sync')
     expect(prepareTheme).not.toHaveBeenCalled()
     expect(fs.events).toStrictEqual([])
@@ -430,7 +430,7 @@ describe('runSlideSync (移行済みの talk-dir)', () => {
     expect(summary.mode).toBe('relink')
     expect(summary.warnings).toHaveLength(1)
     const [warning] = summary.warnings
-    expect(warning).toContain('--theme')
+    expect(warning).toContain('theme was not used')
     expect(warning).toContain('was not used')
     expect(warning).toContain('edit the dependency in package.json')
   })

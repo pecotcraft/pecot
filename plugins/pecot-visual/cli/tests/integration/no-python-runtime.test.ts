@@ -11,7 +11,7 @@
 // untracked の新規ファイルは走査対象外。pre-push 時点では痕跡は commit 済み＝tracked に
 // なる運用前提で成立する。
 
-import { execSync, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { existsSync, globSync } from 'node:fs'
 import path from 'node:path'
 
@@ -23,8 +23,7 @@ const HERE = import.meta.dirname
 const CLI_ROOT = path.resolve(HERE, '..', '..')
 const PLUGIN_ROOT = path.resolve(CLI_ROOT, '..')
 const REPO_ROOT = path.resolve(PLUGIN_ROOT, '..', '..')
-const BIN_PECOTV = path.resolve(PLUGIN_ROOT, 'bin', 'pecotv')
-const CLI_TS_DIST = path.resolve(PLUGIN_ROOT, 'cli', 'dist', 'cli.js')
+const CLI_TS_DIST = path.resolve(PLUGIN_ROOT, 'cli', 'dist', 'main.js')
 const NODE_MODULES_DIR = path.resolve(REPO_ROOT, 'node_modules')
 
 // 走査から除外する pathspec。CHANGELOG は撤去の経緯記録、自テストはパターン定義
@@ -98,27 +97,16 @@ describe('Phase 4 acceptance: Python ランタイム痕跡ゼロ件', () => {
     expect(existsSync(path.join(PLUGIN_ROOT, 'skills', 'v-drawio', 'scripts', 'drawio-url.py'))).toBe(false)
   })
 
-  it('PATH 制限環境で pecotv --help が exit 0 (Python 不要を物的検証)', () => {
-    // bootstrap ルートは対象外。事前 build/install 済みを前提とする
-    // （run-tests.sh の build ステップが満たす）。
-    // stale marker 等の bootstrap 起因のフレークを避けるため、PECOTV_BOOTSTRAP_SKIP=1 を注入して bin/pecotv を通過させる。
-    // 純粋にランタイム特性（Python 不要で exit 0）だけを評価する。
-    const nodeBin = path.dirname(execSync('command -v node', { encoding: 'utf8' }).trim())
-    // CLAUDE_PLUGIN_ROOT を渡して bin/pecotv の realpath ルートを回避（macOS で /usr/bin/realpath が無い場合のフレーク予防）
-    const result = spawnSync('env', [
-      '-i',
-      'PECOTV_BOOTSTRAP_SKIP=1',
-      `CLAUDE_PLUGIN_ROOT=${PLUGIN_ROOT}`,
-      `PATH=${nodeBin}:/usr/bin:/bin`,
-      'HOME=/tmp',
-      BIN_PECOTV,
-      '--help',
-    ], {
+  it('PATH 制限環境で dist/main.js が stdin の EOF で exit 0 (Python 不要を物的検証)', () => {
+    // 事前 build 済みを前提とする（run-tests.sh の build ステップが満たす）。純粋にランタイム特性だけを評価する。
+    const result = spawnSync(process.execPath, [CLI_TS_DIST], {
+      env: { PATH: `${path.dirname(process.execPath)}:/usr/bin:/bin`, HOME: '/tmp' },
+      input: '',
       encoding: 'utf8',
       timeout: 30_000,
     })
-    attachOutput('env -i bin/pecotv --help（PATH 制限）', result.status ?? undefined, result.stdout, result.stderr)
+    attachOutput('dist/main.js（PATH 制限・stdin は EOF）', result.status ?? undefined, result.stdout, result.stderr)
     expect(result.status).toBe(0)
-    expect(result.stdout).toContain('Usage:')
+    expect(result.stdout).toBe('')
   })
 })

@@ -1,5 +1,5 @@
 // soffice (LibreOffice headless) を PdfConverter ポートに適合させるアダプタ。
-// `pecotv pptx preview` がプレビュー正規化済みの一時 PPTX を PDF にレンダリングする。
+// e2e が xlsx を PDF にレンダリングして見た目を確かめるときに使う。
 //
 // 成否判定の注意点 (tech-advisor 実機再現)。
 //   - soffice は変換失敗でも exit 0 を返す (`Error: source file could not be loaded` でも exitCode=0・outdir 空)。

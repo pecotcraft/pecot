@@ -583,6 +583,186 @@
     },
     {
       "deprecated": false,
+      "description": "Returns the status, best_practices and anti_patterns sections, verbatim, of the reference yaml for the layout of an edited page under pages/ in a talk-dir, with the yaml path. It does not judge the page. Called by the PostToolUse hook after Write and Edit. Returns {} when there is nothing to report, otherwise hookSpecificOutput.additionalContext. Never fails.",
+      "hidden": false,
+      "id": "PV-FILE-BRIEF",
+      "input": {
+        "properties": {
+          "cwd": {
+            "description": "Working directory of the session. Text rules for a file outside a git repository read .textlintignore from here",
+            "type": "string"
+          },
+          "file_path": {
+            "description": "Absolute path of the file that was written or edited (the hook passes tool_input.file_path)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_path"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "openWorldHint": false,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "hookSpecificOutput": {
+              "additionalProperties": false,
+              "description": "Present only when there is something to tell the agent",
+              "properties": {
+                "additionalContext": {
+                  "description": "Notice passed to the agent",
+                  "type": "string"
+                },
+                "hookEventName": {
+                  "const": "PostToolUse",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "hookEventName",
+                "additionalContext"
+              ],
+              "type": "object"
+            }
+          },
+          "type": "object"
+        },
+        "title": "Brief layout conventions"
+      },
+      "name": "file_brief",
+      "surfaces": {
+        "mcp": {
+          "tool": "file_brief"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Lints a file that was just written or edited. Slide pages and slides.md in a talk-dir are linted with the theme rules (eslint); other files are checked with the writing rules (pecot-text-lint) from the root of their git repository. Called by the PostToolUse hook after Write and Edit. Returns {} when there is nothing to report, otherwise hookSpecificOutput.additionalContext. Never fails.",
+      "hidden": false,
+      "id": "PV-FILE-LINT",
+      "input": {
+        "properties": {
+          "cwd": {
+            "description": "Working directory of the session. Text rules for a file outside a git repository read .textlintignore from here",
+            "type": "string"
+          },
+          "file_path": {
+            "description": "Absolute path of the file that was written or edited (the hook passes tool_input.file_path)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_path"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "openWorldHint": false,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "hookSpecificOutput": {
+              "additionalProperties": false,
+              "description": "Present only when there is something to tell the agent",
+              "properties": {
+                "additionalContext": {
+                  "description": "Notice passed to the agent",
+                  "type": "string"
+                },
+                "hookEventName": {
+                  "const": "PostToolUse",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "hookEventName",
+                "additionalContext"
+              ],
+              "type": "object"
+            }
+          },
+          "type": "object"
+        },
+        "title": "Lint edited file"
+      },
+      "name": "file_lint",
+      "surfaces": {
+        "mcp": {
+          "tool": "file_lint"
+        }
+      }
+    },
+    {
+      "deprecated": false,
+      "description": "Validates the reference yaml directory of a talk-dir when a yaml in it was edited, against the reference schema. Only directories listed in the theme lint.referencesDirectories are validated; _template.yaml is skipped. Called by the PostToolUse hook after Write and Edit. Returns {} when there is nothing to report, otherwise hookSpecificOutput.additionalContext. Never fails.",
+      "hidden": false,
+      "id": "PV-FILE-VALIDATE",
+      "input": {
+        "properties": {
+          "cwd": {
+            "description": "Working directory of the session. Text rules for a file outside a git repository read .textlintignore from here",
+            "type": "string"
+          },
+          "file_path": {
+            "description": "Absolute path of the file that was written or edited (the hook passes tool_input.file_path)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_path"
+        ],
+        "type": "object"
+      },
+      "mcp": {
+        "annotations": {
+          "openWorldHint": false,
+          "readOnlyHint": true
+        },
+        "output": {
+          "additionalProperties": false,
+          "properties": {
+            "hookSpecificOutput": {
+              "additionalProperties": false,
+              "description": "Present only when there is something to tell the agent",
+              "properties": {
+                "additionalContext": {
+                  "description": "Notice passed to the agent",
+                  "type": "string"
+                },
+                "hookEventName": {
+                  "const": "PostToolUse",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "hookEventName",
+                "additionalContext"
+              ],
+              "type": "object"
+            }
+          },
+          "type": "object"
+        },
+        "title": "Validate reference yaml"
+      },
+      "name": "file_validate",
+      "surfaces": {
+        "mcp": {
+          "tool": "file_validate"
+        }
+      }
+    },
+    {
+      "deprecated": false,
       "description": "Downloads the runtime dependencies pecotv uses (@slidev/cli / dom-to-pptx / @slidev/parser, etc.) and Playwright Chromium. Call it when slide_create / slide_convert / slide_sync fail with \"runtime dependencies are not installed\", or when drawio_export / slide_convert / drawio_create PNG output fails with \"Playwright Chromium is not installed\". The first run downloads about 600MB of runtime dependencies and about 120MB of Chromium, so it takes tens of seconds. If OS libraries needed to launch Chromium are missing, it installs them with apt-get where sudo is available, and otherwise returns the command to install them. It skips what is already installed, so it finishes quickly and is safe to call repeatedly.",
       "hidden": false,
       "id": "PV-RUNTIME-SETUP",
@@ -2701,6 +2881,10 @@
         {
           "meaning": "runtime dependencies and Playwright Chromium",
           "word": "runtime"
+        },
+        {
+          "meaning": "a file the agent just wrote or edited (called by hooks)",
+          "word": "file"
         }
       ],
       [
@@ -2721,7 +2905,7 @@
           "word": "dev"
         },
         {
-          "meaning": "list rule violations in a talk directory",
+          "meaning": "list rule violations in a talk directory or a file",
           "word": "lint"
         },
         {
@@ -2739,6 +2923,14 @@
         {
           "meaning": "download what other tools need at run time",
           "word": "setup"
+        },
+        {
+          "meaning": "check reference yaml against its schema",
+          "word": "validate"
+        },
+        {
+          "meaning": "return the conventions that apply to a page",
+          "word": "brief"
         }
       ]
     ],

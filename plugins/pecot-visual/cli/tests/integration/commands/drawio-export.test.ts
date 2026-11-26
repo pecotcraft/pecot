@@ -12,11 +12,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   DrawioExportRuntimeError,
-  createDrawioExportCommand,
   drawioExportDefaultDependencies,
+  errorToReason,
   executeDrawioExport,
   runDrawioExport,
 } from '../../../src/commands/drawio/export.js'
+import { rejectionOf } from '../../_helpers/rejection.js'
 import { SOURCE_HASH_ATTRIBUTE, collectIconReferences, computeSourceHash, readSourceHash } from '../../../src/domain/drawio/export.js'
 import { createIconResolver } from '../../../src/infra/drawio/icons.js'
 import { compareStrings } from '../../../src/domain/_shared/compare-strings.js'
@@ -75,7 +76,6 @@ afterEach(() => {
     rmSync(directory, { recursive: true, force: true })
   }
   vi.restoreAllMocks()
-  process.exitCode = 0
 })
 
 describe('runDrawioExport', () => {
@@ -212,135 +212,42 @@ describe('runDrawioExport', () => {
   })
 })
 
-describe('createDrawioExportCommand', () => {
-  it('--json 成功時に done イベントを stdout へ出す', async () => {
-    const stdout = makeStream('stdout')
+describe('executeDrawioExport の結果', () => {
+  it('成功時は done の data に file と icons 数を載せる', async () => {
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
-    const command = createDrawioExportCommand(() => buildDependencies({ stdout: asStream(stdout) }))
 
-    await command.parseAsync(
-      [RESOLVABLE_FIXTURE, '--icons', ICON_ROOT, '-o', outputPath, '--json'],
-      { from: 'user' },
+    const execution = await executeDrawioExport(
+      RESOLVABLE_FIXTURE,
+      { icons: ICON_ROOT, output: outputPath, printHash: false, pdf: false },
+      buildDependencies(),
     )
 
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りを検証用に narrowing
-    const payload = JSON.parse(stdout.chunks.join('')) as Record<string, unknown>
-    expect(payload['event']).toBe('drawio.export.done')
-    expect(payload['file']).toBe(outputPath)
-    expect(payload['icons']).toBe(2)
-    expect(process.exitCode).toBe(0)
+    expect(execution.data).toMatchObject({ event: 'drawio.export.done', file: outputPath, icons: 2 })
+    expect(execution.warningCount).toBe(0)
   })
 
-  it('--json 無しの成功は stderr へ書き出し先を案内する', async () => {
-    const stderr = makeStream('stderr')
-    const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
-    const command = createDrawioExportCommand(() => buildDependencies({ stderr: asStream(stderr) }))
-
-    await command.parseAsync(
-      [RESOLVABLE_FIXTURE, '--icons', ICON_ROOT, '-o', outputPath],
-      { from: 'user' },
+  it('printHash は export を行わず hash の data とハッシュ値だけを返す', async () => {
+    const execution = await executeDrawioExport(
+      RESOLVABLE_FIXTURE,
+      { icons: ICON_ROOT, output: undefined, printHash: true, pdf: false },
+      buildDependencies(),
     )
 
-    expect(stderr.chunks.join('')).toContain(`created: ${outputPath}`)
+    const expected = computeSourceHash(readFileSync(RESOLVABLE_FIXTURE, 'utf8'), createIconResolver(ICON_ROOT))
+    expect(execution.sourceSha256).toBe(expected)
+    expect(execution.data).toMatchObject({ event: 'drawio.export.hash', icons: 2, sourceSha256: expected })
+    expect(execution.artifacts).toEqual([])
   })
 
-  it('--print-hash は stdout にハッシュ 1 行だけを出す（フックが変数に取る前提）', async () => {
-    const stdout = makeStream('stdout')
-    const command = createDrawioExportCommand(() => buildDependencies({ stdout: asStream(stdout) }))
+  it('解決できない icon は icon-unresolved の runtime error になる', async () => {
+    const error = await rejectionOf(executeDrawioExport(
+      ICON_INCLUDED_FIXTURE,
+      { icons: ICON_ROOT, output: undefined, printHash: false, pdf: false },
+      buildDependencies(),
+    ))
 
-    await command.parseAsync([RESOLVABLE_FIXTURE, '--icons', ICON_ROOT, '--print-hash'], { from: 'user' })
-
-    expect(stdout.chunks.join('')).toBe(
-      `${computeSourceHash(readFileSync(RESOLVABLE_FIXTURE, 'utf8'), createIconResolver(ICON_ROOT))}\n`,
-    )
-    expect(process.exitCode).toBe(0)
-  })
-
-  it('--print-hash --json は hash イベントを出す', async () => {
-    const stdout = makeStream('stdout')
-    const command = createDrawioExportCommand(() => buildDependencies({ stdout: asStream(stdout) }))
-
-    await command.parseAsync(
-      [RESOLVABLE_FIXTURE, '--icons', ICON_ROOT, '--print-hash', '--json'],
-      { from: 'user' },
-    )
-
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りを検証用に narrowing
-    const payload = JSON.parse(stdout.chunks.join('')) as Record<string, unknown>
-    expect(payload['event']).toBe('drawio.export.hash')
-    expect(payload['icons']).toBe(2)
-  })
-
-  it('--icons が空文字なら exit 2 の usage error になる', async () => {
-    const stdout = makeStream('stdout')
-    const command = createDrawioExportCommand(() => buildDependencies({ stdout: asStream(stdout) }))
-
-    await command.parseAsync(
-      [RESOLVABLE_FIXTURE, '--icons', '', '--json'],
-      { from: 'user' },
-    )
-
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りを検証用に narrowing
-    const payload = JSON.parse(stdout.chunks.join('')) as Record<string, unknown>
-    expect(payload['reason']).toBe('missing-icons-root')
-    expect(process.exitCode).toBe(2)
-  })
-
-  it('runtime error は exit 1 で reason 付きの error イベントを出す', async () => {
-    const stdout = makeStream('stdout')
-    const command = createDrawioExportCommand(() => buildDependencies({ stdout: asStream(stdout) }))
-
-    await command.parseAsync(
-      [ICON_INCLUDED_FIXTURE, '--icons', ICON_ROOT, '--json'],
-      { from: 'user' },
-    )
-
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りを検証用に narrowing
-    const payload = JSON.parse(stdout.chunks.join('')) as Record<string, unknown>
-    expect(payload['event']).toBe('drawio.export.error')
-    expect(payload['reason']).toBe('icon-unresolved')
-    expect(process.exitCode).toBe(1)
-  })
-
-  it('--json 無しの runtime error は stderr へ出す', async () => {
-    const stderr = makeStream('stderr')
-    const command = createDrawioExportCommand(() => buildDependencies({ stderr: asStream(stderr) }))
-
-    await command.parseAsync(
-      [ICON_INCLUDED_FIXTURE, '--icons', ICON_ROOT],
-      { from: 'user' },
-    )
-
-    expect(stderr.chunks.join('')).toContain('error: ')
-    expect(process.exitCode).toBe(1)
-  })
-
-  it('未知オプションは --json 時に invalid-option を stdout へ出す', async () => {
-    const stdout = makeStream('stdout')
-    const command = createDrawioExportCommand(() => buildDependencies({ stdout: asStream(stdout) }))
-    vi.spyOn(process, 'argv', 'get').mockReturnValue(['node', 'pecotv', '--json'])
-
-    await expect(command.parseAsync(
-      [RESOLVABLE_FIXTURE, '--icons', ICON_ROOT, '--bogus', '--json'],
-      { from: 'user' },
-    )).rejects.toThrow()
-
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りを検証用に narrowing
-    const payload = JSON.parse(stdout.chunks.join('')) as Record<string, unknown>
-    expect(payload['reason']).toBe('invalid-option')
-  })
-
-  it('未知オプションは --json 無しなら stderr へ出す', async () => {
-    const stderr = makeStream('stderr')
-    const command = createDrawioExportCommand(() => buildDependencies({ stderr: asStream(stderr) }))
-    vi.spyOn(process, 'argv', 'get').mockReturnValue(['node', 'pecotv'])
-
-    await expect(command.parseAsync(
-      [RESOLVABLE_FIXTURE, '--icons', ICON_ROOT, '--bogus'],
-      { from: 'user' },
-    )).rejects.toThrow()
-
-    expect(stderr.chunks.join('')).toContain('--bogus')
+    expect(error).toBeInstanceOf(DrawioExportRuntimeError)
+    expect(errorToReason(error)).toBe('icon-unresolved')
   })
 })
 
@@ -389,10 +296,9 @@ describe('兄弟 PDF', () => {
     expect(execution.artifacts).toEqual([outputPath])
     // eslint-disable-next-line unicorn/no-null -- PDF を出さないときの `pdf: null` を pin する
     expect(execution.data).toMatchObject({ pdf: null, pdfFailed: false, warnings: 0 })
-    expect(execution.exitCode).toBe(0)
   })
 
-  it('PDF 生成に失敗しても SVG は残り、pdf: null / pdfFailed / warnings 1 / exit 3 になる', async () => {
+  it('PDF 生成に失敗しても SVG は残り、pdf: null / pdfFailed / warnings 1 になる', async () => {
     const stderr = makeStream('stderr')
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
 
@@ -414,7 +320,7 @@ describe('兄弟 PDF', () => {
     expect(execution.artifacts).toEqual([outputPath])
     expect(execution.pdfFile).toBeUndefined()
     expect(execution.warningCount).toBe(1)
-    expect(execution.exitCode).toBe(3)
+    expect(execution.warningCount).toBe(1)
     expect(stderr.chunks.join('')).toContain('warning: PDF export failed: chromium crashed')
   })
 
@@ -453,7 +359,7 @@ describe('兄弟 PDF', () => {
     expect(execution.data).toEqual(expect.objectContaining({ pdf: null, pdfFailed: true, warnings: 1 }))
     expect(Object.keys(execution.data).toSorted(compareStrings)).toEqual(['event', 'file', 'icons', 'pdf', 'pdfFailed', 'sourceSha256', 'warnings'])
     expect(execution.warningCount).toBe(1)
-    expect(execution.exitCode).toBe(3)
+    expect(execution.warningCount).toBe(1)
     expect(stderr.chunks.join('')).toContain('cannot remove the previous PDF')
   })
 
@@ -534,84 +440,69 @@ describe('兄弟 PDF', () => {
 
     expect(exportPdf).not.toHaveBeenCalled()
     expect(Object.keys(execution.data).toSorted(compareStrings)).toEqual(['event', 'file', 'icons', 'sourceSha256'])
-    expect(execution.exitCode).toBe(0)
     expect(execution.artifacts).toEqual([])
   })
 })
 
-describe('createDrawioExportCommand (PDF)', () => {
-  it('--json の done に pdf / pdfFailed / warnings が載り、artifacts 相当の PDF パスが返る', async () => {
-    const stdout = makeStream('stdout')
+describe('executeDrawioExport の PDF', () => {
+  it('done の data に pdf / pdfFailed / warnings が載り、PDF のパスが返る', async () => {
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
-    const command = createDrawioExportCommand(() => buildDependencies({ stdout: asStream(stdout) }))
 
-    await command.parseAsync([RESOLVABLE_FIXTURE, '--icons', ICON_ROOT, '-o', outputPath, '--json'], { from: 'user' })
+    const execution = await executeDrawioExport(
+      RESOLVABLE_FIXTURE,
+      { icons: ICON_ROOT, output: outputPath, printHash: false, pdf: true },
+      buildDependencies(),
+    )
 
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りを検証用に narrowing
-    const payload = JSON.parse(stdout.chunks.join('')) as Record<string, unknown>
-    expect(payload).toMatchObject({
+    expect(execution.data).toMatchObject({
       event: 'drawio.export.done',
       file: outputPath,
       pdf: path.join(path.dirname(outputPath), 'out.pdf'),
       pdfFailed: false,
       warnings: 0,
     })
-    expect(process.exitCode).toBe(0)
   })
 
-  it('--json 無しの成功は SVG に続けて PDF の書き出し先を stderr へ案内する', async () => {
+  it('pdf: false は exportPdf を呼ばない', async () => {
     const stderr = makeStream('stderr')
+    const exportPdf = pdfStub()
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
-    const command = createDrawioExportCommand(() => buildDependencies({ stderr: asStream(stderr) }))
 
-    await command.parseAsync([RESOLVABLE_FIXTURE, '--icons', ICON_ROOT, '-o', outputPath], { from: 'user' })
-
-    const pdfPath = path.join(path.dirname(outputPath), 'out.pdf')
-    expect(stderr.chunks.join('')).toBe(`created: ${outputPath}\ncreated: ${pdfPath}\n`)
-  })
-
-  it('--no-pdf は exportPdf を呼ばず PDF の案内も出さない', async () => {
-    const stderr = makeStream('stderr')
-    const exportPdf = vi.fn<(svg: string, outputPath: string) => Promise<void>>(() => Promise.resolve())
-    const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
-    const command = createDrawioExportCommand(() => buildDependencies({ stderr: asStream(stderr), exportPdf }))
-
-    await command.parseAsync([RESOLVABLE_FIXTURE, '--icons', ICON_ROOT, '-o', outputPath, '--no-pdf'], { from: 'user' })
+    await executeDrawioExport(
+      RESOLVABLE_FIXTURE,
+      { icons: ICON_ROOT, output: outputPath, printHash: false, pdf: false },
+      buildDependencies({ stderr: asStream(stderr), exportPdf }),
+    )
 
     expect(exportPdf).not.toHaveBeenCalled()
-    expect(stderr.chunks.join('')).toBe(`created: ${outputPath}\n`)
-    expect(process.exitCode).toBe(0)
   })
 
-  it('PDF 失敗は stderr に warning を出して exit 3 にする', async () => {
+  it('PDF 失敗は stderr に warning を出す', async () => {
     const stderr = makeStream('stderr')
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
-    const command = createDrawioExportCommand(() => buildDependencies({
-      stderr: asStream(stderr),
-      exportPdf: () => Promise.reject(new Error('forced PDF failure (PECOTV_FORCE_PDF_FAIL=1)')),
-    }))
 
-    await command.parseAsync([RESOLVABLE_FIXTURE, '--icons', ICON_ROOT, '-o', outputPath], { from: 'user' })
+    const execution = await executeDrawioExport(
+      RESOLVABLE_FIXTURE,
+      { icons: ICON_ROOT, output: outputPath, printHash: false, pdf: true },
+      buildDependencies({ stderr: asStream(stderr), exportPdf: () => Promise.reject(new Error('forced PDF failure')) }),
+    )
 
     const written = stderr.chunks.join('')
     expect(written).toContain('warning: PDF export failed: forced PDF failure')
-    expect(written).toContain(`created: ${outputPath}`)
     expect(written).not.toContain('.pdf')
-    expect(process.exitCode).toBe(3)
+    expect(execution.warningCount).toBe(1)
   })
 
-  it('-o diagram.pdf は exit 2 の invalid-output-extension で成果物を残さない', async () => {
-    const stdout = makeStream('stdout')
-    const directory = makeTemporaryDirectory()
-    const outputPath = path.join(directory, 'diagram.pdf')
-    const command = createDrawioExportCommand(() => buildDependencies({ stdout: asStream(stdout) }))
+  it('出力が .pdf なら invalid-output-extension で成果物を残さない', async () => {
+    const outputPath = path.join(makeTemporaryDirectory(), 'diagram.pdf')
 
-    await command.parseAsync([RESOLVABLE_FIXTURE, '--icons', ICON_ROOT, '-o', outputPath, '--json'], { from: 'user' })
+    const error = await rejectionOf(executeDrawioExport(
+      RESOLVABLE_FIXTURE,
+      { icons: ICON_ROOT, output: outputPath, printHash: false, pdf: true },
+      buildDependencies(),
+    ))
 
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りを検証用に narrowing
-    const payload = JSON.parse(stdout.chunks.join('')) as Record<string, unknown>
-    expect(payload).toMatchObject({ event: 'drawio.export.error', reason: 'invalid-output-extension' })
-    expect(process.exitCode).toBe(2)
+    expect(errorToReason(error)).toBe('invalid-output-extension')
     expect(existsSync(outputPath)).toBe(false)
   })
 })

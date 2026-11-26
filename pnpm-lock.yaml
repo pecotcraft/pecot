@@ -783,9 +783,6 @@ importers:
       '@xmldom/xmldom':
         specifier: ^0.9.12
         version: 0.9.12
-      commander:
-        specifier: ^15.1.0
-        version: 15.1.0
       dom-to-pptx:
         specifier: 2.1.2
         version: 2.1.2(yauzl@3.4.0)

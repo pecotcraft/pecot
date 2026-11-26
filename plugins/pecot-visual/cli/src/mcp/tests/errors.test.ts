@@ -16,7 +16,6 @@ import { closeMcp, connectMcp, type ConnectedMcp } from './_client.js'
 
 // src/mcp/tests → cli/
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..')
-// cli/ → plugins/pecot-visual (既定 deps ファクトリが要求する CLAUDE_PLUGIN_ROOT)
 const PLUGIN_ROOT = path.resolve(CLI_ROOT, '..')
 // 警告 0 件で URL を返す既存 fixture。out_path を省略するので、PNG 生成とネットワークのどちらにも触れない。
 const MINIMAL_DRAWIO = path.join(CLI_ROOT, 'tests', 'fixtures', 'drawio', 'minimal.drawio')
@@ -39,24 +38,14 @@ function firstTextOf(result: Readonly<Record<string, unknown>>): string {
 }
 
 describe('MCP ツールの異常系応答', () => {
-  let previousPluginRoot: string | undefined
   let connected: ConnectedMcp | undefined
 
   beforeAll(async () => {
-    previousPluginRoot = process.env['CLAUDE_PLUGIN_ROOT']
-    process.env['CLAUDE_PLUGIN_ROOT'] = PLUGIN_ROOT
     connected = await connectMcp(allTools())
   })
 
   afterAll(async () => {
     if (connected !== undefined) await closeMcp(connected)
-    if (previousPluginRoot === undefined) {
-      // interface-env: none
-      Reflect.deleteProperty(process.env, 'CLAUDE_PLUGIN_ROOT')
-    }
-    else {
-      process.env['CLAUDE_PLUGIN_ROOT'] = previousPluginRoot
-    }
   })
 
   function client(): ConnectedMcp['client'] {

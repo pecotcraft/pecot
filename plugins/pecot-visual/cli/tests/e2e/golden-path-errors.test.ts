@@ -14,7 +14,7 @@ import path from 'node:path'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { BIN_PECOTV, assertCliBuilt, createPecotvRunner } from '../_helpers/pecotv-e2e-run.js'
+import { assertCliBuilt, createPecotvRunner, toolCommandOf } from '../_helpers/pecotv-e2e-run.js'
 import { isStraceAvailable, parsePythonExecves, runWithoutPython } from '../_helpers/no-python.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { copyFixtureTheme } from '../_helpers/theme-fixtures.js'
@@ -33,16 +33,16 @@ const temporaryRoot = useTemporaryDirectory('pecotv-e2e-errors-', { hook: 'all' 
 
 const runPecotv = createPecotvRunner({
   logPrefix: 'golden-path/errors',
-  // 本ファイルは exit 1 / exit 2 を期待する CUJ を含むため、tail は spawnSync timeout のときだけ出す。
+  // 本ファイルは exit 1 を期待する CUJ を含むため、tail は spawnSync timeout のときだけ出す。
   isUnexpectedExit: status => status === null,
 })
 
 /**
-`--json` の最終行から reason を読む。エラーパスの payload はこの 1 行で完結する。
+最終行の structuredContent から失敗の kind を読む。エラーパスの payload はこの 1 行で完結する。
 */
-function lastReason(stdout: string): string {
+function lastKind(stdout: string): string {
   // eslint-disable-next-line no-restricted-syntax -- JSON.parse narrowing
-  return (JSON.parse(stdout.trim().split('\n').pop() ?? '{}') as { reason?: string }).reason ?? ''
+  return (JSON.parse(stdout.trim().split('\n').pop() ?? '{}') as { kind?: string }).kind ?? ''
 }
 
 beforeAll(() => {
@@ -54,15 +54,15 @@ afterAll(() => {
 })
 
 describe('CUJ 3: エラーパス + Python フリー', () => {
-  it('既存ディレクトリ + --force 無し → exit 2 / dest-exists', () => {
+  it('既存ディレクトリ + --force 無し → exit 1 / dest-exists', () => {
     const itT0 = performance.now()
     const projectDirectory = temporaryRoot('sample-cuj3-exist')
     // create だけを見る CUJ なので、依存を持たない写し（file:）で足りる。
     const theme = copyFixtureTheme('with-declaration', temporaryRoot('theme-cuj3-exist')).spec
     expect(runPecotv('create', ['slide', 'create', projectDirectory, '--theme', theme]).status).toBe(0)
     const second = runPecotv('create-again', ['slide', 'create', projectDirectory, '--theme', theme, '--json'])
-    expect(second.status).toBe(2)
-    expect(lastReason(second.stdout)).toBe('dest-exists')
+    expect(second.status).toBe(1)
+    expect(lastKind(second.stdout)).toBe('dest-exists')
     expect(performance.now() - itT0).toBeLessThan(PER_IT_CEILING_MS)
   }, 240_000)
 
@@ -75,11 +75,11 @@ describe('CUJ 3: エラーパス + Python フリー', () => {
       '--json',
     ])
     expect(result.status).toBe(1)
-    expect(lastReason(result.stdout)).toBe('project-not-found')
+    expect(lastKind(result.stdout)).toBe('project-not-found')
     expect(performance.now() - itT0).toBeLessThan(PER_IT_CEILING_MS)
   }, 60_000)
 
-  it('--theme 不正値 → exit 2 / invalid-theme', () => {
+  it('--theme 不正値 → exit 1 / invalid-theme', () => {
     const itT0 = performance.now()
     const projectDirectory = temporaryRoot('sample-cuj3-theme')
     mkdirSync(projectDirectory, { recursive: true })
@@ -90,8 +90,8 @@ describe('CUJ 3: エラーパス + Python フリー', () => {
       '--theme', '$(rm -rf /)',
       '--json',
     ])
-    expect(result.status).toBe(2)
-    expect(lastReason(result.stdout)).toBe('invalid-theme')
+    expect(result.status).toBe(1)
+    expect(lastKind(result.stdout)).toBe('invalid-theme')
     expect(performance.now() - itT0).toBeLessThan(PER_IT_CEILING_MS)
   }, 60_000)
 
@@ -102,11 +102,12 @@ describe('CUJ 3: エラーパス + Python フリー', () => {
     }
     const itT0 = performance.now()
     const projectDirectory = temporaryRoot('sample-cuj3-strace')
+    const call = toolCommandOf(['slide', 'create', projectDirectory, '--theme', copyFixtureTheme('with-declaration', temporaryRoot('theme-cuj3-strace')).spec])
     const result = await runWithoutPython(
-      BIN_PECOTV,
-      ['slide', 'create', projectDirectory, '--theme', copyFixtureTheme('with-declaration', temporaryRoot('theme-cuj3-strace')).spec],
+      call.command,
+      call.arguments_,
       {
-        env: { ...process.env, PECOTV_BOOTSTRAP_SKIP: '1' },
+        env: { ...process.env, ...call.environment },
         timeoutMs: 180_000,
       },
     )
@@ -126,11 +127,12 @@ describe('CUJ 3: エラーパス + Python フリー', () => {
     const fixture = path.resolve(
       CLI_TS_ROOT, 'tests', 'fixtures', 'drawio', 'minimal.drawio',
     )
+    const call = toolCommandOf(['drawio', 'url', fixture])
     const result = await runWithoutPython(
-      BIN_PECOTV,
-      ['drawio', 'url', fixture, '--json'],
+      call.command,
+      call.arguments_,
       {
-        env: { ...process.env, PECOTV_BOOTSTRAP_SKIP: '1' },
+        env: { ...process.env, ...call.environment },
         timeoutMs: 30_000,
       },
     )

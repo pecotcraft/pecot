@@ -251,7 +251,6 @@ describe('runtime_setup: chromium', () => {
     expect(structured).toMatchObject({ event: 'setup.error', kind: 'chromium-install-failed' })
     expect(structured).not.toHaveProperty('reason')
     expect(stageOf(result, 'chromium')['installed']).toBe(false)
-    // bin/pecotv の fatal メッセージと同じ誘導内容に揃える。
     const detail = String(dataOf(result)['detail'])
     expect(detail).toContain('HTTPS_PROXY')
     expect(detail).toContain('PLAYWRIGHT_DOWNLOAD_HOST')
