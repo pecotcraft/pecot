@@ -182,7 +182,10 @@ def test_project_set_is_the_expected_one(nx_bin: Path) -> None:
             ("plugins/pecot-visual/cli/src/main.ts", {"pecot-visual"}),
             ("libs/text-rules/index.ts", {"text-rules"}),
             # pecot-workflow は package.json の依存で、actions は implicitDependencies で workflow-core を読む。
-            ("libs/workflow-core/src/domain/config.ts", {"workflow-core", "pecot-workflow", "actions"}),
+            (
+                "libs/workflow-core/src/domain/config.ts",
+                {"workflow-core", "pecot-workflow", "actions"},
+            ),
             # pecot-workflow は actions の雛形の写しを持ち、implicitDependencies で actions に頼る。
             ("actions/src/entry.ts", {"actions", "pecot-workflow"}),
         ]

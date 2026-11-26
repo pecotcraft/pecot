@@ -22,6 +22,7 @@ _LANES = _REPO / ".githooks/scripts/test_report/lanes.py"
 _LIST_TEST_LANES = _REPO / ".githooks/ci/list-test-lanes.sh"
 
 _INCLUDED = [
+    "actions:test-unit",
     "githooks:test-checks",
     "githooks:test-ci",
     "githooks:test-nx-affected",
@@ -233,9 +234,9 @@ def test_real_lanes_make_one_job_per_lane_on_one_line() -> None:
         matrix = json.loads(result.stdout)
         assert [job["lane"] for job in matrix] == _INCLUDED
         assert matrix[0] == {
-            "lane": "githooks:test-checks",
-            "slug": "githooks-test-checks",
-            "results": ".githooks/test-results/test-checks/allure-results",
+            "lane": "actions:test-unit",
+            "slug": "actions-test-unit",
+            "results": "actions/test-results/test-unit/allure-results",
         }
         assert {job["slug"] for job in matrix} == set(_js_slug(_INCLUDED))
 

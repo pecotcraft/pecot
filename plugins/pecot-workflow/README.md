@@ -54,7 +54,7 @@ Claude Code の既定の権限では、呼び直しのときに、スキルを�
 
 ## MCP サーバ
 
-MCP サーバ `pecot-workflow` が、`pecot` CLI の 45 個のコマンドを MCP ツールとして公開します。
+MCP サーバ `pecot-workflow` が、`pecot` CLI の 39 個のコマンドを MCP ツールとして公開します。
 Issue・コメント・PR のテンプレートは、MCP の resource で読めます。URI は `pecot-template://<種類>/<名前>`（例: `pecot-template://comment/plan`）です。
 ツール名は、`<対象> <動詞>` の空白を `_` に置き換えた形です（`issue create` は `issue_create`、`session start` は `session_start`）。
 許可リストに書くツール名は、Claude Code では `mcp__plugin_pecot-w_pecot-workflow__<ツール名>` です。

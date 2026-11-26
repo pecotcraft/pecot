@@ -632,6 +632,7 @@ def _declared_env(nx_json: dict, input_name: str = "env") -> list[str]:
 
 def _project_jsons() -> list[Path]:
     roots = [
+        _REPO_ROOT / "actions",
         _REPO_ROOT / "plugins",
         _REPO_ROOT / "libs",
         _REPO_ROOT / ".nx",

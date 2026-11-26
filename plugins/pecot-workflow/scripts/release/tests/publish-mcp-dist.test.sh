@@ -518,7 +518,7 @@ process.stdout.write(value === undefined ? '' : String(value))
 }
 
 # tools/list の期待値。COMMANDS（cli/src/commands/registry.ts）の並びを写している（cli/tests/bootstrap/run.sh と同値）。
-EXPECTED_TOOL_COUNT=45
+EXPECTED_TOOL_COUNT=39
 EXPECTED_FIRST_TOOL="project_list"
 
 # smoke の起動はプラグインとセッションの環境変数を外す。残ると、同梱し忘れもソースツリーから読めて通ってしまう。
@@ -668,10 +668,10 @@ bt_eq "--version が exit 0 で終わる" "0" "$VERSION_RC"
 bt_eq "--version が配布ツリーの plugin.json の版を返す" "pecot version $PLUGIN_VERSION" \
     "$(tr -d '\n' < "$TMP/version.out")"
 
-# 配布物の bin に引数を渡すと CLI として動く。GitHub Actions のワークフローは、この形で board sync を打つ。
+# 配布物の bin に引数を渡すと CLI として動く。
 BOARD_HELP_RC=0
-node "$DIST/bin/pecot-workflow-mcp.mjs" board sync --help > "$TMP/board-help.out" 2> "$TMP/board-help.err" || BOARD_HELP_RC=$?
-bt_eq "board sync --help が exit 0 で終わる" "0" "$BOARD_HELP_RC"
+node "$DIST/bin/pecot-workflow-mcp.mjs" board show --help > "$TMP/board-help.out" 2> "$TMP/board-help.err" || BOARD_HELP_RC=$?
+bt_eq "board show --help が exit 0 で終わる" "0" "$BOARD_HELP_RC"
 
 # smoke 用に張った symlink は配布ツリーの一部ではないので消す。
 rm -rf "$DIST/node_modules"

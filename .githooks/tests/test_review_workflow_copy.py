@@ -87,7 +87,9 @@ def test_every_action_is_pinned(path: str, pecot_action: re.Pattern[str]) -> Non
     with allure.step("ワークフローの uses の行を集める"):
         text = (_REPO_ROOT / path).read_text(encoding="utf-8")
         uses = [match[0] for match in _USES_LINE.findall(text)]
-    with allure.step("pecot の action を呼び、ほかの action が 40 桁の SHA で固定されていることを確かめる"):
+    with allure.step(
+        "pecot の action を呼び、ほかの action が 40 桁の SHA で固定されていることを確かめる"
+    ):
         assert uses, (
             f"{path} に `uses:` の行が無い。正規表現 _USES_LINE が当たらなくなっていないか確かめる"
         )

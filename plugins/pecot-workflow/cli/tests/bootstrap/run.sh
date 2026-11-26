@@ -9,7 +9,7 @@ REPO_ROOT="$(cd "$PLUGIN_ROOT/../.." && pwd)"
 # shellcheck source=../../../../../.githooks/scripts/test_report/bash-test.sh
 . "$REPO_ROOT/.githooks/scripts/test_report/bash-test.sh"
 MCP_JSON="$PLUGIN_ROOT/.mcp.json"
-TOOL_COUNT=45
+TOOL_COUNT=39
 
 WORK_DIR="$REPO_ROOT/.pecot/tmp/pecot-workflow-bootstrap-test"
 rm -rf "$WORK_DIR"

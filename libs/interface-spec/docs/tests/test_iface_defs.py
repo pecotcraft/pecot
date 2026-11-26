@@ -26,6 +26,7 @@ from iface_defs import (  # noqa: E402
     MCP_FIELDS_EMPTY,
     PLUGIN_KEY,
     common_output_label,
+    interface_dir,
     interface_plugins,
     render_sections,
     report_cell,
@@ -1021,6 +1022,71 @@ def test_exit_code_column_and_command_section_are_only_for_cli_reference() -> No
         assert "標準出力には何も出しません。" in command
         titles = [title for title, _ in render_sections(_both_entry(cli_reference=_CLI_REFERENCE))]
         assert titles[-1] == COMMAND_TITLE
+
+
+def _action_entry(**extra: Any) -> dict[str, Any]:
+    """action の面だけを持つ項目。extra に action の outputs などを足す。"""
+    return {
+        "surfaces": {"action": {"path": "actions/sample-run"}},
+        "input": {
+            "type": "object",
+            "properties": {"token": {"type": "string"}, "dry-run": {"type": "string"}},
+            "required": ["token"],
+        },
+        "output": {"format": "text", "description": "動かした結果を、ログに 1 行ずつ出します。"},
+        "exit_status": [{"kind": "github-auth", "when": "トークンがありません。"}],
+        "examples": [{"arguments": {"token": "${{ secrets.T }}"}, "note": "動かします。"}],
+        **extra,
+    }
+
+
+@allure.title("action の入力は actioninput で書き、使用例はワークフローの step の形で書く")
+def test_action_inputs_use_actioninput_and_examples_are_workflow_steps() -> None:
+    """action の面だけを持つ項目を変換した場合の、入力と使用例の節のテストです。入力を `actioninput` の項目で書き、使用例を `uses:` と `with:` を持つ YAML の step で表示することを確認します。"""
+    with allure.step("節を描く"):
+        sections = dict(render_sections(_action_entry()))
+    with allure.step("入力と使用例の書き方を比べる"):
+        assert "引数" not in sections
+        inputs = "\n".join(sections["入力"])
+        assert ".. actioninput:: token" in inputs and ".. actioninput:: dry-run" in inputs
+        assert ".. option::" not in inputs and ".. mcparg::" not in inputs
+        examples = "\n".join(sections["使用例"])
+        assert ".. code-block:: yaml" in examples
+        assert "- uses: pecotcraft/pecot/actions/sample-run@<ref>" in examples
+        assert "token: ${{ secrets.T }}" in examples
+
+
+@allure.title("action の出力は、ログと action の outputs を表示し、終了コードを表示しない")
+def test_action_output_has_the_log_and_the_outputs_and_no_exit_code() -> None:
+    """`outputs` を持つ action の項目を変換した場合の、出力とエラーの節のテストです。ログの説明と `action の outputs` の表を表示し、終了コードとコマンドの節を表示しないことを確認します。"""
+    with allure.step("outputs を持つ action の節を描く"):
+        sections = dict(
+            render_sections(_action_entry(action={"outputs": {"proceed": "Whether to go on"}}))
+        )
+    with allure.step("出力とエラーの節を比べる"):
+        output = "\n".join(sections["出力"])
+        assert "動かした結果を、ログに 1 行ずつ出します。" in output
+        assert "action の outputs" in output and "``proceed``" in output
+        assert "終了コード" not in "\n".join(sections["エラー"])
+        assert COMMAND_TITLE not in sections
+
+
+@allure.title("定義書の場所は、targets.json に root があればそこを、無ければ plugins の下を指す")
+def test_interface_dir_follows_the_root_in_targets_json(tmp_path: Path) -> None:
+    """`interface_dir` と `interface_plugins` のテストです。`targets.json` で `root` を持つ項目はその下の `interface`、持たない項目は `plugins/<名前>/interface` を返すことを確認します。"""
+    with allure.step("root を持つ定義書と、plugins の下の定義書を置く"):
+        (tmp_path / "libs" / "interface-spec").mkdir(parents=True)
+        (tmp_path / "libs" / "interface-spec" / "targets.json").write_text(
+            json.dumps({"format": 1, "plugins": {"acts": {"root": "acts"}, "p": {}}}),
+            encoding="utf-8",
+        )
+        for directory in ("acts/interface", "plugins/p/interface"):
+            (tmp_path / directory).mkdir(parents=True)
+            (tmp_path / directory / "generated.json").write_text("{}", encoding="utf-8")
+    with allure.step("定義書の場所と、サイトに載せる名前を比べる"):
+        assert interface_dir(tmp_path, "acts") == tmp_path / "acts" / "interface"
+        assert interface_dir(tmp_path, "p") == tmp_path / "plugins" / "p" / "interface"
+        assert interface_plugins(tmp_path) == ["acts", "p"]
 
 
 @allure.title("CLI だけのオプションは、説明を表示し、MCP の引数には含めない")
