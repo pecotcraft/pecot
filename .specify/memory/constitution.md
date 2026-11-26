@@ -57,7 +57,8 @@ pecot-workflow の hook の入口は、`check-entry-point-logic` が振り分け
 **このリポジトリでは**: プラグインの機能は MCP のツールで公開し、同じ機能の CLI の入口を別に置かない。
 MCP ツールの構造化した結果は、定義書の `outputSchema` と一致させる。
 直したツールは、build したサーバを MCP Inspector の `--cli` で起動して呼ぶ。
-Actions のプロジェクト（`actions/`）は action で、ライブラリ（`libs/<name>`）はコマンドラインかモジュールの呼び出しで公開する。
+Actions のプロジェクト（`actions/`）は action で公開する。
+ライブラリ（`libs/<name>`）の機能は、ライブラリ自身のコマンドラインか、取り込むプロジェクトの MCP のツール・action で公開する。
 
 ### III. テストファースト（交渉不可）
 

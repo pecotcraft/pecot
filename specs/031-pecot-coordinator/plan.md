@@ -131,9 +131,9 @@ tasks.md で決める。前提の形だけ先に書く。
 | 4 | 共有する部品を `libs/workflow-core` に切り出す。pecot-workflow の動きは変えない | なし |
 | 5 | `actions/` を作り、Actions だけの処理と雛形を移して `uses:` で呼ぶ形にする。MCP から外す。古い雛形を見つけて書き換える（US5・FR-010〜FR-012・FR-029・FR-030） | 4 |
 | 6 | `actions/` に、手の無い操作とリリースのワークフローを足す（FR-016・FR-017） | 2・5 |
-| 7 | pecot-workflow の `bin/` と CLI の入口をなくし、MCP を npm の版で起動する。試験環境の手順を MCP Inspector に書き換える（US4・R10） | 5 |
-| 8 | pecot-visual の `bin/` と CLI の入口をなくし、MCP を npm の版で起動する。`bin/pecotv` のミラーに頼るフック（eslint・text-lint・参照の検証・テーマの読み取り）を、MCP のツールと Claude Code の `mcp_tool` のフックに移す。setup.sh・Chromium の準備の頼り先も直す（US4・R11） | なし |
-| 9 | pecot-tools の `bin/` と CLI の入口をなくし、MCP を npm の版で起動する（US4） | なし |
+| 7 | pecot-workflow の `bin/` と CLI の入口をなくし、MCP を npm の版で起動する。試験環境の手順を MCP Inspector に書き換える（US4・R10） | 3・5 |
+| 8 | pecot-visual の `bin/` と CLI の入口をなくし、MCP を npm の版で起動する。`bin/pecotv` のミラーに頼るフック（eslint・text-lint・参照の検証・テーマの読み取り）を、MCP のツールと Claude Code の `mcp_tool` のフックに移す。setup.sh・Chromium の準備の頼り先も直す（US4・R11） | 3 |
+| 9 | pecot-tools の `bin/` と CLI の入口をなくし、MCP を npm の版で起動する（US4） | 3 |
 | 10 | pecot-workflow: 計算のツールの形を決め、Issue のまとまりを作り替える（US6・FR-019） | 2・7 |
 | 11 | pecot-workflow: ボード・セッション・PR・プロジェクトの設定・リリースのまとまりを作り替える（US6・FR-016〜FR-018） | 6 のリリース・10 |
 | 12 | pecot-workflow: スキルが呼ばなくなった GitHub の I/O を消し、試験環境の手順をクラウドから行えるようにする（FR-022・SC-005） | 11 |

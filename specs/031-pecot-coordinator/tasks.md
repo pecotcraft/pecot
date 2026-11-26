@@ -233,7 +233,7 @@
 
 **Goal**: Issue の起票・編集・コメント・前提を、計算は pecot-workflow のツール、読み書きは GitHub 公式の MCP で行う（FR-013〜FR-015・FR-019・FR-020）
 
-**Independent Test**: sandbox で w-ready・w-quick を手元とクラウドのスレッドで流し、Issue の本文と欄が今の pecot-workflow のものと同じになる
+**Independent Test**: sandbox で w-ready・w-quick を、作業ツリーの build を読ませたプラグインで流し、Issue の本文と欄が今の pecot-workflow のものと同じになる
 
 ### Tests for User Story 6（Issue）
 
@@ -255,7 +255,7 @@
 - [ ] T132 [US6] `w-ready`・`w-quick`・`w-backlog`・`w-issueize`・`w-breakdown` の Issue の手順を、計算のツール → 公式の MCP で書く形に直す in `plugins/pecot-workflow/skills/`
 - [ ] T133 [US6] blocked-by の読み書きを Insiders の `issue_dependency_write`・`issue_dependency_read` で行う形に直す（FR-019）。名前か形が変わったら止める in `plugins/pecot-workflow/skills/`
 - [ ] T134 [US6] version plan を足す
-- [ ] T135 [US6] CUJ: 手元の RC のスレッドとクラウドのスレッドで、sandbox に w-ready・w-quick を流し、本文と欄を今の pecot-workflow で流したものと比べる
+- [ ] T135 [US6] CUJ: T108 と同じく、プラグインを写して `.mcp.json` を作業ツリーの build にし、子の `claude -p --plugin-dir` で sandbox に w-ready・w-quick を流す。本文と欄を今のものと比べる
 
 ---
 
@@ -263,7 +263,7 @@
 
 **Goal**: 残りのまとまりも、計算は pecot-workflow のツール、読み書きは公式の MCP、手の無い操作は `pecot-github-ops.yml` で行う。pecot はブランチを消さない（FR-013〜FR-018・FR-020・FR-021）
 
-**Independent Test**: sandbox の Issue 1 件を、手元とクラウドのスレッドで w-active → w-pr → マージ待ちまで流し、本文・欄・Development 欄・blocked-by が今と同じで、利用者に頼む手作業が 0 件（SC-006・SC-008）
+**Independent Test**: sandbox の Issue 1 件を、作業ツリーの build を読ませたプラグインで w-active → w-pr → マージ待ちまで流し、本文・欄・Development 欄・blocked-by が今と同じで、利用者に頼む手作業が 0 件（SC-006・SC-008）
 
 ### Tests for User Story 6（ボード・セッション・PR・設定・リリース）
 
@@ -285,7 +285,7 @@
 - [ ] T148 [US6] `w-release` を、利用者に頼まれたらエージェントがリリースのワークフローを起動する形に直す（FR-017） in `plugins/pecot-workflow/skills/w-release/SKILL.md`
 - [ ] T149 [US6] ワークフローが失敗するか終わらないときに止まり、実行の URL を示す手順と、5xx の後に書いたものを読んで確かめてからやり直す手順をスキルに書く
 - [ ] T150 [US6] version plan を足す（ツールの入出力が変わるのでメジャー）
-- [ ] T151 [US6] CUJ: 手元の RC のスレッドとクラウドのスレッドで、sandbox の Issue を w-active → 実装 → w-pr → マージ待ちまで流し、今の pecot-workflow で流したものと比べる
+- [ ] T151 [US6] CUJ: T135 と同じ形で、sandbox の Issue を w-active → 実装 → w-pr → マージ待ちまで流し、今のものと比べる。クラウドのスレッドでの確かめは T176 で行う
 
 ---
 
@@ -342,7 +342,7 @@
 - [ ] T173 [US8] 利用者に claude.ai の Add marketplace で 4 つのプラグインを入れてもらい、拒まれたものが 0 件かを `specs/031-pecot-coordinator/verification/cloud-flow.md` に書く（SC-003）
 - [ ] T174 [US8] このリポのプロジェクト指示を、Phase 1 の値の一覧の形で書き直した案を `specs/031-pecot-coordinator/verification/cloud-flow.md` に書き、利用者に claude.ai の設定へ貼ってもらう
 - [ ] T175 [US8] 書き直したプロジェクト指示で coordinator に割り振りを頼み、書き直す前と同じ判断になるかと、利用者が答えた質問の数を書く（SC-011・SC-012）
-- [ ] T176 [US8] coordinator が起動したクラウドのスレッドに pecot-workflow を直す Issue を進めさせ、着手から PR のマージ待ちまでの流れを書く
+- [ ] T176 [US8] coordinator が起動したクラウドのスレッドに pecot-workflow を直す Issue を進めさせ、着手から PR のマージ待ちまでの流れを書く。本文・欄・Development 欄・blocked-by を、手元のスレッドで流したものと比べる（SC-006）
 - [ ] T177 [US8] そのスレッドで、sandbox への確かめを VM の中から最後まで流し、結果を書く（SC-010）
 - [ ] T178 [US8] 利用者に、sandbox を扱う claude.ai のプロジェクトを作ってもらう。手順は画面の場所とボタンの名前まで書いて渡す
 - [ ] T179 [US8] このリポ以外のプロジェクト（sandbox のプロジェクト）で、プラグインと値だけのプロジェクト指示で US7 の確かめを流し、結果を書く（SC-009）
@@ -359,6 +359,9 @@
 | 6 | 2 | スタック可 | `github-ops` の operation と token が、Phase 2 の記録で決まる |
 | 6 | 5 | スタック可 | `github-ops` を、Phase 5 で作る `actions/` の project と build の形に足す。sandbox の雛形は、確かめるブランチの ref を `uses:` で指せる |
 | 7 | 5 | スタック可 | Phase 5 で、Actions だけの処理と、それを `bin/pecot` で呼ぶワークフローが無くなってから `bin/` を消す |
+| 7 | 3 | スタック可 | MCP を npx で npm の版から起動する形が、Phase 3 のクラウドの VM での確かめの記録で決まる |
+| 8 | 3 | スタック可 | 同じく、Phase 3 の記録で npx の起動の形が決まる |
+| 9 | 3 | スタック可 | 同じく、Phase 3 の記録で npx の起動の形が決まる |
 | 10 | 2 | スタック可 | 計算のツールの出力の形が、Phase 2 で書けると分かった公式の MCP の手で決まる |
 | 10 | 7 | スタック可 | 計算のツールを、Phase 7 で直したツールを直に登録するサーバに足す |
 | 11 | 6 | スタック可 | 手の無い操作を、Phase 6 の `pecot-github-ops.yml` で行う。sandbox の雛形は、確かめるブランチの ref を `uses:` で指せる |
@@ -375,7 +378,7 @@
 
 - US1・US2・US3（Phase 1〜3）は検証で、ほかに頼らない。結果で後続のフェーズの形を見直す
 - US5（Phase 5）は Phase 4 の土台に頼る
-- US4（Phase 7〜9）は、pecot-workflow だけが US5 に頼る。pecot-visual と pecot-tools はいつでも始められる
+- US4（Phase 7〜9）は、どれも US3 の記録に頼る。pecot-workflow だけは、US5 にも頼る
 - US6（Phase 6・10〜12）は US2・US5・US4 の pecot-workflow に頼る
 - US7（Phase 13）は US1・US3 に頼る
 - US8（Phase 14）は、ほかのすべてが既定のブランチに入り、リリースされてから始める
@@ -388,7 +391,7 @@
 
 ### Parallel Opportunities
 
-- Phase 1・2・3・4・8・9 は、前提が無いので並べて始められる
+- Phase 1・2・3・4 は、前提が無いので並べて始められる。Phase 8・9 は、Phase 3 の記録ができれば始められる
 - 各フェーズの [P] のテストは、ほかのファイルを触るので並べて書ける
 - Phase 13 は、Phase 1・3 が済めば Phase 5〜12 と並べて進められる
 
