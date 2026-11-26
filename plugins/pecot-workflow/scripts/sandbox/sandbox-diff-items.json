@@ -43,13 +43,6 @@
     "match": { "ruleset_rule_type": "code_scanning" }
   },
   {
-    "id": "FR-005",
-    "name": "board-fields",
-    "compare": false,
-    "reason": "pecot の仕様で、名前はプロジェクトごとに変わる",
-    "match": { "board_field_name": "pecot-workflow-*" }
-  },
-  {
     "id": "FR-006",
     "name": "visibility",
     "compare": false,
