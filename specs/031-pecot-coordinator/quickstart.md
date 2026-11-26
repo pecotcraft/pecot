@@ -7,7 +7,7 @@
 | 確かめ | 手順 | 期待 |
 |---|---|---|
 | 振り分け | 今のプロジェクト指示の文を 1 つずつ、[contracts/project-instruction-values.md](contracts/project-instruction-values.md) の分け方で振り分ける | どの文も「固有の値」か「スキルへ移す」のどちらかに入る |
-| 公式の MCP の手 | [contracts/github-io.md](contracts/github-io.md) の「未確認」の行を、クラウドのスレッドから sandbox に書く | 本文とボードの欄が、今の pecot-workflow が書く形と同じ |
+| 公式の MCP の手 | [verification/github-io.md](verification/github-io.md) で確かめた手を、クラウドのスレッドから sandbox に書く | 本文とボードの欄が、今の pecot-workflow が書く形と同じ |
 | `actions/` の token | sandbox に `workflow_dispatch` のワークフローを置き、[contracts/actions-interface.md](contracts/actions-interface.md) の操作を App の token と `GITHUB_TOKEN` で試す | 処理ごとに通る token が決まる |
 | claude.ai への配布 | 個人の Add marketplace で、`bin/` を外したプラグインを入れる。coordinator とクラウドのスレッドで、スキルの一覧を読ませる | coordinator とスレッドの両方で、入れたスキルが出る。版を上げると届く |
 

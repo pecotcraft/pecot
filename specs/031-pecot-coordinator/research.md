@@ -138,8 +138,8 @@
 | 問い | フェーズ |
 |---|---|
 | 今のプロジェクト指示の文の振り分け | Phase 1 |
-| [contracts/github-io.md](contracts/github-io.md) の「未確認」の行が、今と同じ形に書けるか | Phase 2 |
-| リモート MCP の actions の toolset で `actions/` のワークフローを起動できるか | Phase 2 |
-| `actions/` の処理ごとに要る token（ボード・Stacks API・merge-async・ボードの欄の作成） | Phase 2 |
+| [contracts/github-io.md](contracts/github-io.md) の「未確認」の行が、今と同じ形に書けるか | Phase 2（確かめた。[verification/github-io.md](verification/github-io.md)） |
+| リモート MCP の actions の toolset で `actions/` のワークフローを起動できるか | Phase 2（確かめた。同上） |
+| `actions/` の処理ごとに要る token（ボード・Stacks API・ボードの欄の作成） | Phase 2（確かめた。答えは R7） |
 | claude.ai にインストールしたプラグインが、coordinator とクラウドのスレッドで読まれるか。版の更新が届くか | Phase 3 |
 | クラウドの VM で、`npx` による MCP の起動と、build の前の依存の install が npm に届くか | Phase 3 |

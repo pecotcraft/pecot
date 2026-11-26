@@ -22,6 +22,10 @@ claude.ai のコネクタは、toolset ごとに 3 つに分けた。どれも G
 
 URL 1 つで指定できる toolset は 1 つだけなので（`docs/remote-server.md` の「URL Path Parameters」）、コネクタを分けた。claude.ai のコネクタはヘッダーを渡せないので、`X-MCP-Toolsets` は使えない。
 
+3 つの URL の resource metadata（`/.well-known/oauth-protected-resource/mcp/<path>`）は、どれも同じ `scopes_supported` を返す。
+`repo`・`read:org`・`read:user`・`user:email`・`read:packages`・`write:packages`・`read:project`・`project`・`gist`・`notifications` で、claude.ai のコネクタの承認はこの scope を求める。
+GitHub が実際に許した scope は、コネクタのツールからは読めない。下の Issue とボードへの書き込みは通った。
+
 コネクタは claude.ai のサーバーからつなぐ。クラウドのスレッドも同じサーバーからつなぐので、Issue の Tasks の「クラウドのスレッドから」は、この端末の Claude Code から呼んで代えた。セッションを始めた後に付け直したコネクタのツールは、そのセッションに現れない。新しいツールは、子の `claude -p` から呼んだ。
 
 試しのワークフローで比べた token は 3 つ。App の権限は、App の JWT で `GET /app/installations` を呼んで読んだ。
@@ -169,6 +173,28 @@ pecot-workflow の `issue_reopen` は、アーカイブを解き、`Status` の 
 | `release-create` | REST `POST /releases` | ○ | × | ○ | 403 |
 | `repo-settings` | REST `GET /repos/{owner}/{repo}` | ○ | 項目が無い | ○ | — |
 | `create-pr` | REST `POST /pulls` | 試していない | 試していない | ○ | — |
+
+run は次のとおり。どれも sandbox の Actions に残っている（試しのワークフローの中身は末尾）。
+
+| operation | request_id | run |
+|---|---|---|
+| `repo-settings` | `r-repo-settings` | [45781298643](https://github.com/pecotcraft/pecot-sandbox/actions/runs/45781298643) |
+| `app-info` | `r-app-info` | [45781299200](https://github.com/pecotcraft/pecot-sandbox/actions/runs/45781299200) |
+| `secrets-variables` | `r-secrets-variables` | [45781299507](https://github.com/pecotcraft/pecot-sandbox/actions/runs/45781299507) |
+| `app-info` | `r-app-info2` | [45782039489](https://github.com/pecotcraft/pecot-sandbox/actions/runs/45782039489) |
+| `link-branch` | `r-link` | [45782041117](https://github.com/pecotcraft/pecot-sandbox/actions/runs/45782041117) |
+| `link-branch` | `r-link2` | [45782144931](https://github.com/pecotcraft/pecot-sandbox/actions/runs/45782144931) |
+| `merge-async` | `r-merge-659` | [45782495965](https://github.com/pecotcraft/pecot-sandbox/actions/runs/45782495965) |
+| `project-fields` | `r-project-fields` | [45784142329](https://github.com/pecotcraft/pecot-sandbox/actions/runs/45784142329) |
+| `project-link` | `r-project-link` | [45784173329](https://github.com/pecotcraft/pecot-sandbox/actions/runs/45784173329) |
+| `create-pr` | `r-create-pr` | [45785483395](https://github.com/pecotcraft/pecot-sandbox/actions/runs/45785483395) |
+| `stack-register` | `r-stack` | [45785538523](https://github.com/pecotcraft/pecot-sandbox/actions/runs/45785538523) |
+| `release-create` | `r-release` | [45785570927](https://github.com/pecotcraft/pecot-sandbox/actions/runs/45785570927) |
+| `tracker-sync` | `r-tracker` | [45785600759](https://github.com/pecotcraft/pecot-sandbox/actions/runs/45785600759) |
+| `merge-async` | `r-merge-tokens` | [45785868581](https://github.com/pecotcraft/pecot-sandbox/actions/runs/45785868581) |
+| `project-view` | `r-view` | [45786351698](https://github.com/pecotcraft/pecot-sandbox/actions/runs/45786351698) |
+| `tracker-sync` | `r-tracker2` | [45786351714](https://github.com/pecotcraft/pecot-sandbox/actions/runs/45786351714) |
+| `vulnerability-alerts`（別の 1 本、`pecot-cuj-789-perm.yml`） | — | [45782038985](https://github.com/pecotcraft/pecot-sandbox/actions/runs/45782038985) |
 
 - `merge-async` は、`GITHUB_TOKEN` とエージェントの App で「Merge request enqueued.」の 202 が返った。
   `GET /pulls/{n}/merge-async/{uuid}` で読むと、どちらも「Pull request could not be added to the merge queue: Enqueuer is not authorized to merge」で失敗していた。
