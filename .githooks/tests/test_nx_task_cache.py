@@ -874,9 +874,7 @@ def test_hooks_test_inputs_do_not_take_slidev_assets(nx_bin: Path) -> None:
         )
 
     with allure.step("slidev の資産と fixture が入らず、node-runtime.ts が入ることを確かめる"):
-        assert not [
-            f for f in files if f.startswith(_SLIDEV) and not f.endswith("/package.json")
-        ]
+        assert not [f for f in files if f.startswith(_SLIDEV) and not f.endswith("/package.json")]
         assert not [
             f for f in files if "/cli/tests/fixtures/" in f and not f.endswith("/package.json")
         ]

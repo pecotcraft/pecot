@@ -10,11 +10,14 @@ const ENVELOPE = new Set(['ok', 'exitCode', 'data', 'artifacts', 'message', 'rea
 // ツールの項目と並べて最上位に置く、全ツールに共通の項目
 const COMMON = ['kind', 'detail', 'log', 'warnings']
 const plugins = ['pecot-tools', 'pecot-visual', 'pecot-workflow']
+// フックが呼ぶツールは、Claude Code のフックの出力の形（hookSpecificOutput）で返すので、共通の項目を持たない
+const HOOK_OUTPUT = 'hookSpecificOutput'
 
 describe.each(plugins)('%s の mcp.output', (plugin) => {
   const file = path.resolve(import.meta.dirname, '../../../plugins', plugin, 'interface/generated.json')
   const generated = generatedFileSchema.parse(JSON.parse(readFileSync(file, 'utf8')))
   const tools = generated.entries.filter(entry => entry.surfaces.mcp !== undefined)
+  const standardTools = tools.filter(entry => !Object.hasOwn(entry.mcp?.output?.properties ?? {}, HOOK_OUTPUT))
 
   it('MCP の面を持つ項目がある', () => {
     stepSync('MCP の項目の数を比べる', () => {
@@ -28,7 +31,7 @@ describe.each(plugins)('%s の mcp.output', (plugin) => {
     })
   })
 
-  it.each(tools.map(entry => [entry.id, entry.mcp?.output] as const))('%s の最上位が type: object で、properties に共通の 4 項目を持つ', (_id, output) => {
+  it.each(standardTools.map(entry => [entry.id, entry.mcp?.output] as const))('%s の最上位が type: object で、properties に共通の 4 項目を持つ', (_id, output) => {
     stepSync('最上位の型を比べる', () => {
       expect(output?.type).toBe('object')
     })

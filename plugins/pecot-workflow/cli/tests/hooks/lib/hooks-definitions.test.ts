@@ -48,7 +48,9 @@ const pluginsDirectory = path.join(projectRoot, 'plugins')
 
 interface Hook {
   readonly type: unknown
-  readonly command: string
+  // `type: "mcp_tool"` のフックは command を持たず、tool を持つ
+  readonly command: string | undefined
+  readonly tool: string | undefined
   readonly hasTimeout: boolean
   readonly timeout: unknown
 }
@@ -63,8 +65,17 @@ type Hooks = ReadonlyMap<string, readonly Entry[]>
 
 function toHook(value: unknown): Hook {
   const record = toRecord(value, 'hook')
+  const base = { type: record['type'], hasTimeout: 'timeout' in record, timeout: record['timeout'] }
+  if (record['type'] === 'mcp_tool') {
+    if (typeof record['tool'] !== 'string') throw new TypeError('tool が文字列ではありません')
+    return { ...base, command: undefined, tool: record['tool'] }
+  }
   if (typeof record['command'] !== 'string') throw new TypeError('command が文字列ではありません')
-  return { type: record['type'], command: record['command'], hasTimeout: 'timeout' in record, timeout: record['timeout'] }
+  return { ...base, command: record['command'], tool: undefined }
+}
+
+function isCommand(hook: Hook): boolean {
+  return hook.command !== undefined
 }
 
 function toEntry(value: unknown): Entry {
@@ -113,9 +124,14 @@ function allHooks(hooks: Hooks): FlatHook[] {
 }
 
 function fileOf(hook: Hook): string {
-  const found = FILE.exec(hook.command)?.groups?.['file']
-  if (found === undefined) throw new Error(`command が hooks/<file>.sh を指していない: ${hook.command}`)
+  const found = FILE.exec(hook.command ?? '')?.groups?.['file']
+  if (found === undefined) throw new Error(`command が hooks/<file>.sh を指していない: ${String(hook.command)}`)
   return found
+}
+
+// timeout の表を引く名前。command のフックはファイル名、mcp_tool のフックは `mcp:<ツール名>`。
+function nameOf(hook: Hook): string {
+  return hook.tool === undefined ? fileOf(hook) : `mcp:${hook.tool}`
 }
 
 // 期待の timeout の表。キーは `プラグイン|イベント|matcher`（matcher 無しは空）。
@@ -126,8 +142,7 @@ const EXPECTED_TIMEOUTS = new Map([
   ['pecot-visual|SessionStart|', 120],
   ['pecot-visual|UserPromptSubmit|', 10],
   ['pecot-visual|PreToolUse|', 10],
-  ['pecot-visual|PostToolUse|Write', 80],
-  ['pecot-visual|PostToolUse|Edit', 80],
+  ['pecot-visual|PostToolUse|Write|Edit', 80],
 ])
 
 // setup の時間切れで session-title の出力が捨てられないよう、別エントリで長く取る。
@@ -160,14 +175,14 @@ describe('全定義共通', () => {
     let seen = 0
     for (const { event, matcher, hook } of allHooks(hooks)) {
       seen += 1
-      expect(hook.hasTimeout, `timeout が無い: ${event} ${String(matcher)} ${hook.command}`).toBe(true)
-      expect(hook.timeout, `${event} ${String(matcher)} ${hook.command}`).toBe(expectedTimeout(row.plugin, event, matcher, fileOf(hook)))
+      expect(hook.hasTimeout, `timeout が無い: ${event} ${String(matcher)} ${nameOf(hook)}`).toBe(true)
+      expect(hook.timeout, `${event} ${String(matcher)} ${nameOf(hook)}`).toBe(expectedTimeout(row.plugin, event, matcher, nameOf(hook)))
     }
     expect(seen).toBeGreaterThan(0)
   })
 
   it.for(DEFINITIONS)('$label の command は、プラグインルートの変数をクォートする', (row) => {
-    const flat = allHooks(load(row.plugin, row.name))
+    const flat = allHooks(load(row.plugin, row.name)).filter(({ hook }) => isCommand(hook))
     for (const { event, matcher, hook } of flat) {
       expect(hook.type).toBe('command')
       expect(hook.command, `${event} ${String(matcher)}: "\${CLAUDE_PLUGIN_ROOT}"/hooks/<file> の形にする`).toMatch(QUOTED_COMMAND)
@@ -175,7 +190,7 @@ describe('全定義共通', () => {
   })
 
   it.for(DEFINITIONS)('$label の command が指すファイルは、実在し実行できる', (row) => {
-    const flat = allHooks(load(row.plugin, row.name))
+    const flat = allHooks(load(row.plugin, row.name)).filter(({ hook }) => isCommand(hook))
     for (const { event, matcher, hook } of flat) {
       const target = path.join(pluginsDirectory, row.plugin, 'hooks', fileOf(hook))
       expect(isFile(target), `${event} ${String(matcher)}: ${target} が無い`).toBe(true)
