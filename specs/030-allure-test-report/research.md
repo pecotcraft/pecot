@@ -141,7 +141,7 @@
 
 - **Decision**: `.githooks/scripts/test_report/report-lanes.json` を、レーンの 1 か所の定めにする。nx の `test-*` の target を全部並べ、レポートに入れるレーンには結果のディレクトリを、入れないレーンには理由を書く
 
-  | 入れるレーン（22） | 道具 |
+  | 入れるレーン（24） | 道具 |
   |---|---|
   | `pecot-workflow:test-cli`・`test-hooks`・`test-skills` | vitest |
   | `pecot-visual:test-cli`（e2e を含む） | vitest |
@@ -151,11 +151,10 @@
   | `interface-spec:test-unit` | vitest と pytest |
   | `interface-spec:test-site` | vitest |
   | `githooks:test-nx-cache`・`test-nx-affected`・`test-ci`・`test-checks` | pytest |
+  | `pecot-visual:test-slidev`・`nx-release:test-unit` | vitest（`node --test` から移した。#809） |
   | 各プラグインの `test-bootstrap`・`test-release`、pecot-visual の `test-hooks`・`test-compare`・`test-skills` | bash（`bash-test.sh` が結果を書く。#810） |
 
-  | 入れないレーン | 理由 |
-  |---|---|
-  | `pecot-visual:test-slidev`・`nx-release:test-unit` | `node --test` |
+  入れないレーンは、今は無い。
 
 - **2026-11-26 に改めた**: 上の「入れないレーン」も入れ、nx の `test-*` のレーンすべてをレポートに入れる（spec の FR-002）。上の 2 つの表は、改める前の記録として残す
   - `node --test` の 2 本は、vitest に移し、`allure-vitest` で結果を残す（#809。R2 の Alternatives）

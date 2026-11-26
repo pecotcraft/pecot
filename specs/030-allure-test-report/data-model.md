@@ -12,7 +12,7 @@
 | `target` | `test-hooks` | nx の target の名前。`test-` で始まる |
 | `plugin` | `pecot-workflow` | 配布するプラグインのレーンなら、その名前。libs と `.githooks` のレーンは持たない |
 | `results` | `plugins/pecot-workflow/test-results/test-hooks/allure-results` | レポートに入れるレーンだけが持つ。結果のディレクトリ。リポのルートからのパス |
-| `excluded` | `node --test` | レポートに入れないレーンだけが持つ。入れない理由 |
+| `excluded` | `node --test` | レポートに入れないレーンだけが持つ。入れない理由。今は持つレーンが無い |
 
 決まり:
 
