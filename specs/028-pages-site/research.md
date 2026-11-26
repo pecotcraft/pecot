@@ -67,6 +67,7 @@
   - 保管して公開する run は、`workflow_run` で受けた run を `GET /repos/{owner}/{repo}/actions/runs/{run_id}` で読み直す。PR 版か、main の祖先の定義で動いた run かは API の項目から決め、artifact の名前や中身からは決めない。項目は data-model.md の RunProvenance
   - run の API には起動の入力（`side`）が無いので、手での起動の開発版とリリース版は API の項目では分けられない。main の祖先の定義（レビュー済み）が上げた artifact の名前で分ける
   - job を 4 つに分け、各 job に要る権限だけを持たせる（contracts の `pages-deploy.yml`）。信頼できない tar を扱う job（verify）は書き込みの権限を持たない
+    - 2026-11-26 に #804 で、deploy を upload と deploy に分けた
   - `pages-store` に書けるのは、pages-store 専用の GitHub App だけにする。秘密鍵は environment `pages-store` の secret に置く。GitHub は、deploy key より GitHub App を勧める（docs「Managing deploy keys」）。deploy key は期限が無く、org の設定で止められている
 - **Rationale**:
   - PR の作者は、PR のブランチの workflow の定義を書き換えられる。artifact の名前を偽れば、1 回目の形ではリリース版・開発版をすり替えられた

@@ -92,22 +92,26 @@ job と権限:
 |---|---|---|
 | verify | `contents: read`・`actions: read`・`pull-requests: read` | RunProvenance で側を決める。artifact を、確かめた run の ID と側から作った名前で取り、SideCheck（data-model.md）で確かめる。確かめた中身を、この run の artifact に上げる。中身は実行しない |
 | store | `contents: read`。environment `pages-store` | pages-store の App のトークンで `pages-store` を取り、StoreLayout の決まりで差し替える。verify が出した開いている PR の一覧に無い `pr/<番号>/` を消し、側の間の行き来のリンクを確かめて push する |
-| deploy | `contents: read`・`pages: write`・`id-token: write`（starter workflow の値）。environment `github-pages` | `pages-store` を `configure-pages` v6 → `upload-pages-artifact` v5 → `deploy-pages` v5 で公開する |
+| upload | `contents: read`・`pages: read` | `pages-store` を取り、`configure-pages` v6 → `upload-pages-artifact` v5 で artifact `github-pages` に上げる |
+| deploy | `contents: read`・`pages: write`・`id-token: write`（starter workflow の値）。environment `github-pages` | upload が上げた artifact を `deploy-pages` v5 で公開する |
 | preview-status | `statuses: write` | PR 版を保管し、deploy が成功したか、`changed` が偽で deploy を飛ばしたとき、PR の head のコミットに commit status を付ける。開いたときに中身があるように、deploy の後に付ける |
 
 - `actions: write` は、どの job にも持たせない
 - verify の後の job は、verify が API から決めた値（側・PR の番号・head の SHA・開いている PR の番号の一覧）だけを使う
 - 受けた run が RunProvenance に合わないときは、verify が理由を summary に書き、store に側を渡さない。closed の PR の run と、合わない run でも、store は閉じた PR の掃除をする
-- store は、`pages-store` を書き換えて push したかを出力 `changed` にする。deploy は、`changed` が真のときと、`workflow_dispatch` のときだけ動く。`workflow_dispatch` では verify と store は動かない
+- store は、`pages-store` を書き換えて push したかを出力 `changed` にする。upload は、`changed` が真のときと、`workflow_dispatch` のときだけ動く。`workflow_dispatch` では verify と store は動かない
+- deploy は、upload が成功したときだけ動く。upload と deploy を 1 つの job にすると、上げた直後の artifact を `deploy-pages` の照会が見つけられないことがあるため、starter workflow と同じく分ける（2026-11-26、#804 で改めた。actions/deploy-pages#451）
 
 concurrency:
 
 | job | concurrency |
 |---|---|
 | store | `group: pages-store`・`cancel-in-progress: false`・`queue: max`（待っている保管を消さない） |
+| upload | `group: pages`・`cancel-in-progress: false`（starter workflow の値）・`queue: max` |
 | deploy | `group: pages`・`cancel-in-progress: false`（starter workflow の値）・`queue: max` |
 
 - deploy の `queue: max` は、PR への push のたびに deploy が起きるため。既定の `queue: single` では、待っている deploy が後から来た deploy に取り消され、その PR 版の status が付かない
+- upload も deploy と同じ group に入れる。deploy は自分の upload が終わってから待ち始め、待ち始めた順（FIFO）に並ぶ。docs は実際に始まる順を保証しないので、順が入れ替われば、次の deploy まで古い中身が残る
 - `queue` は actionlint 1.7.12 が知らない。`.github/actionlint.yaml` の除外は path ごとなので、`paths` に `.github/workflows/pages-deploy.yml` を足し、publish-npm.yml と同じ除外を付ける。#529（除外を消す Issue）の対象にも加える
 
 commit status:

@@ -219,7 +219,7 @@ def test_deploy_jobs_permissions_and_environments() -> None:
     workflow = _load(_DEPLOY)
     assert workflow["permissions"] == {}
     jobs = workflow["jobs"]
-    assert list(jobs) == ["verify", "store", "deploy", "preview-status"]
+    assert list(jobs) == ["verify", "store", "upload", "deploy", "preview-status"]
     assert jobs["preview-status"]["permissions"] == {"statuses": "write"}
     assert "environment" not in jobs["preview-status"]
     assert jobs["verify"]["permissions"] == {
@@ -230,6 +230,9 @@ def test_deploy_jobs_permissions_and_environments() -> None:
     assert "environment" not in jobs["verify"]
     assert jobs["store"]["permissions"] == {"contents": "read"}
     assert jobs["store"]["environment"] == "pages-store"
+    # configure-pages は enablement が偽なら GET /repos/{owner}/{repo}/pages だけを呼ぶ。
+    assert jobs["upload"]["permissions"] == {"contents": "read", "pages": "read"}
+    assert "environment" not in jobs["upload"]
     assert jobs["deploy"]["permissions"] == {
         "contents": "read",
         "pages": "write",
@@ -251,11 +254,13 @@ def test_deploy_concurrency() -> None:
         "queue": "max",
     }
     # PR への push のたびに deploy が起きる。既定の queue: single では待っている deploy が取り消される。
-    assert _job(_DEPLOY, "deploy")["concurrency"] == {
-        "group": "pages",
-        "cancel-in-progress": False,
-        "queue": "max",
-    }
+    # upload も同じ group に入れ、deploy を upload を終えた順に並べる。
+    for job in ("upload", "deploy"):
+        assert _job(_DEPLOY, job)["concurrency"] == {
+            "group": "pages",
+            "cancel-in-progress": False,
+            "queue": "max",
+        }, job
 
 
 def test_deploy_job_conditions() -> None:
@@ -265,13 +270,17 @@ def test_deploy_job_conditions() -> None:
     assert store["if"] == (
         "${{ github.event_name == 'workflow_run' && needs.verify.result == 'success' }}"
     )
-    deploy = _job(_DEPLOY, "deploy")
-    assert deploy["needs"] == ["verify", "store"]
+    upload = _job(_DEPLOY, "upload")
+    assert upload["needs"] == ["verify", "store"]
     # 手での起動は verify と store を飛ばし、pages-store の今の中身を公開し直す。
-    assert deploy["if"] == (
+    assert upload["if"] == (
         "${{ !cancelled() && (github.event_name == 'workflow_dispatch'"
         " || needs.store.outputs.changed == 'true') }}"
     )
+    deploy = _job(_DEPLOY, "deploy")
+    assert deploy["needs"] == "upload"
+    # 手での起動では verify と store が飛ぶので、既定の success() に任せず upload の結果を見る。
+    assert deploy["if"] == "${{ !cancelled() && needs.upload.result == 'success' }}"
 
 
 def test_preview_status_runs_after_deploy_of_a_stored_pr_side() -> None:
@@ -390,10 +399,18 @@ def test_store_passes_the_report_tar_and_sources_for_a_report() -> None:
 
 
 def test_deploy_publishes_pages_store() -> None:
-    (checkout,) = _uses(_DEPLOY, "deploy", "actions/checkout")
+    (checkout,) = _uses(_DEPLOY, "upload", "actions/checkout")
     assert checkout["with"]["ref"] == "pages-store"
-    names = [s.get("uses", "").split("@")[0] for s in _steps(_DEPLOY, "deploy")]
-    assert names[1:] == list(_PAGES_ACTIONS)
+    upload = [s.get("uses", "").split("@")[0] for s in _steps(_DEPLOY, "upload")]
+    deploy = [s.get("uses", "").split("@")[0] for s in _steps(_DEPLOY, "deploy")]
+    assert upload[1:] + deploy == list(_PAGES_ACTIONS)
+
+
+def test_pages_artifact_is_uploaded_in_an_earlier_job_than_deploy() -> None:
+    # 上げた直後の artifact は deploy-pages の照会に出ないことがある（actions/deploy-pages#451）。
+    for name, job in _load(_DEPLOY)["jobs"].items():
+        uses = {s.get("uses", "").split("@")[0] for s in job["steps"]}
+        assert not {"actions/upload-pages-artifact", "actions/deploy-pages"} <= uses, name
 
 
 def test_pages_actions_are_pinned_to_the_contract_versions() -> None:
