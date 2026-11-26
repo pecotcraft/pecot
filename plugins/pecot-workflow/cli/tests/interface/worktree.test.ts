@@ -9,6 +9,7 @@ import { expect, it, describe, beforeEach, vi } from 'vitest'
 
 import { COMMANDS } from '../../src/commands/registry.js'
 import { runCli } from '../../src/cli.js'
+import { attachOutput } from '../../../../../libs/interface-spec/src/vitest/attach.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { createGitRepository, gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import { makeTemporaryDirectory, writeTree } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
@@ -158,7 +159,10 @@ async function pecot(argv: readonly string[], options: Readonly<RunOptions> = {}
       environment: {},
       terminalColumns: undefined,
     })
-    return { code, stdout: out.join(''), stderr: error.join(''), reads }
+    const stdout = out.join('')
+    const stderr = error.join('')
+    attachOutput(['pecot', ...argv].join(' '), code, stdout, stderr)
+    return { code, stdout, stderr, reads }
   }
   finally {
     process.chdir(previous)
