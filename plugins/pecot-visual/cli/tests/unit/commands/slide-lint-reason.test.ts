@@ -8,6 +8,7 @@ import { SlideCreateRuntimeError } from '../../../src/domain/slidev-project/erro
 import { SlideLintRuntimeError, SlideLintUsageError } from '../../../src/domain/slidev-project/lint.js'
 import { ThemeDeclarationError } from '../../../src/domain/slidev-theme/declaration.js'
 import { ThemeResolveError } from '../../../src/domain/slidev-theme/talk-theme.js'
+import { explains } from '../../_helpers/explains.js'
 
 describe('errorToReason', () => {
   it.each([
@@ -19,7 +20,8 @@ describe('errorToReason', () => {
     [new ThemeDeclarationError('x', 'invalid-shape'), 'theme-invalid-shape'],
     [new ThemeDeclarationError('x', 'unknown-rule'), 'theme-unknown-rule'],
     [new Error('x'), 'unknown'],
-  ])('%s の reason に %s を返す', (error, reason) => {
+  ])('例外 %s に対して、reason %s を返す', async (error, reason) => {
+    await explains('`errorToReason` のテストです。lint・生成・テーマの解決・テーマの宣言の各例外を渡した場合に、対応する `reason` が返り、テーマの宣言の例外には `theme-` が付き、想定外の例外は `unknown` になることを確認します。')
     expect(errorToReason(error)).toBe(reason)
   })
 })

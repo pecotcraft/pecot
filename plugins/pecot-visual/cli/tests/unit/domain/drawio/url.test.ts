@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { generateDrawioViewerUrl } from '../../../../src/domain/drawio/url.js'
+import { explains } from '../../../_helpers/explains.js'
 
 const MINIMAL_XML = `<mxfile><diagram><mxGraphModel><root>
   <mxCell id="0"/>
@@ -15,12 +16,14 @@ const MINIMAL_XML = `<mxfile><diagram><mxGraphModel><root>
 </root></mxGraphModel></diagram></mxfile>`
 
 describe('generateDrawioViewerUrl', () => {
-  it('lightbox プレフィックスで始まる', () => {
+  it('生成した URL は、lightbox を有効にした draw.io のアドレスで始まる', async () => {
+    await explains('`generateDrawioViewerUrl` が作る閲覧用 URL のテストです。最小の XML を渡した場合に、`https://app.diagrams.net/?lightbox=1` で始まる URL を返すことを確認します。')
     const url = generateDrawioViewerUrl(MINIMAL_XML)
     expect(url.startsWith('https://app.diagrams.net/?lightbox=1')).toBe(true)
   })
 
-  it('editor UI 抑止のクエリ群を含む', () => {
+  it('生成した URL は、編集画面の表示を抑えるクエリを含む', async () => {
+    await explains('`generateDrawioViewerUrl` が作る閲覧用 URL のテストです。`edit=_blank`・`layers=1`・`nav=1`・`toolbar=0` のクエリがすべて含まれることを確認します。')
     const url = generateDrawioViewerUrl(MINIMAL_XML)
     expect(url).toContain('edit=_blank')
     expect(url).toContain('layers=1')
@@ -28,14 +31,16 @@ describe('generateDrawioViewerUrl', () => {
     expect(url).toContain('toolbar=0')
   })
 
-  it('viewbox クエリは付与しない (lightbox の scale-to-fit に任せる)', () => {
+  it('生成した URL には viewbox のクエリを含めず、lightbox の自動縮小に任せる', async () => {
+    await explains('`generateDrawioViewerUrl` が作る閲覧用 URL のテストです。`#` より前のクエリ部分に `viewbox=` が含まれないことを確認します。')
     const url = generateDrawioViewerUrl(MINIMAL_XML)
     const queryEnd = url.indexOf('#')
     const query = queryEnd === -1 ? url : url.slice(0, queryEnd)
     expect(query).not.toContain('viewbox=')
   })
 
-  it('#R の後に base64 文字列が続く', () => {
+  it('生成した URL は、#R の後ろに base64 の文字列を持つ', async () => {
+    await explains('`generateDrawioViewerUrl` が作る閲覧用 URL のテストです。`#R` が存在し、その後ろに空でない base64 の文字列が続くことを確認します。')
     const url = generateDrawioViewerUrl(MINIMAL_XML)
     const hashIndex = url.indexOf('#R')
     expect(hashIndex).toBeGreaterThan(0)
@@ -45,7 +50,8 @@ describe('generateDrawioViewerUrl', () => {
     expect(/^[\d+/a-z]+=*$/i.test(base64)).toBe(true)
   })
 
-  it('同じ XML で複数回呼んで戻り値が一致する（決定論性）', () => {
+  it('同じ XML で複数回呼び出しても、同じ URL を返す', async () => {
+    await explains('`generateDrawioViewerUrl` に同じ XML を 2 回渡した場合のテストです。どちらの呼び出しでも、まったく同じ URL を返すことを確認します。')
     const a = generateDrawioViewerUrl(MINIMAL_XML)
     const b = generateDrawioViewerUrl(MINIMAL_XML)
     expect(a).toBe(b)

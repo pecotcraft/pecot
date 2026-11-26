@@ -13,6 +13,7 @@ import { coreDirectory } from '../_helpers/paths.js'
 import { runShell } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { jsonDumps, parseJson } from '../_helpers/text.js'
+import { explains } from '../../_helpers/explains.js'
 
 const MERGE_SCRIPT = path.join(coreDirectory, 'merge-hook-outputs.sh')
 
@@ -60,7 +61,8 @@ function contextScript(scriptsDirectory: string, text = 'hello'): string {
 }
 
 describe('merge-hook-outputs.sh', () => {
-  it('サブスクリプトが 1 つのとき、additionalContext をそのまま出す', () => {
+  it('サブスクリプトが 1 つのとき、additionalContext をそのまま出す', async () => {
+    await explains('`merge-hook-outputs.sh`（複数のフックの出力を 1 つにまとめるスクリプト）のテストです。呼び出すスクリプトが 1 つの場合に、`additionalContext` をそのまま出力することを確認します。')
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
     const script = makeScript(scripts, 'script.sh', `echo '{"hookSpecificOutput":{"additionalContext":"test message"}}'`)
@@ -69,7 +71,8 @@ describe('merge-hook-outputs.sh', () => {
     expect(hookSpecificOutput(parseRecord(result.stdout))['additionalContext']).toBe('test message')
   })
 
-  it('サブスクリプトが複数のとき、additionalContext を改行でつなぐ', () => {
+  it('サブスクリプトが複数のとき、additionalContext を改行でつなぐ', async () => {
+    await explains('`merge-hook-outputs.sh` のテストです。呼び出すスクリプトが複数の場合に、それぞれの `additionalContext` を改行でつないで出力することを確認します。')
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
     const first = makeScript(scripts, 'script1.sh', `echo '{"hookSpecificOutput":{"additionalContext":"msg1"}}'`)
@@ -78,7 +81,8 @@ describe('merge-hook-outputs.sh', () => {
     expect(hookSpecificOutput(parseRecord(result.stdout))['additionalContext']).toBe('msg1\nmsg2')
   })
 
-  it('permissionDecision が混在するとき、deny を優先する', () => {
+  it('permissionDecision が混在するとき、deny を優先する', async () => {
+    await explains('`merge-hook-outputs.sh` のテストです。`allow` と `deny` の判定が混在する場合に、`deny` の判定と理由を優先して出力することを確認します。')
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
     const allow = makeScript(scripts, 'allow.sh', `echo '{"hookSpecificOutput":{"permissionDecision":"allow","permissionDecisionReason":"allow reason"}}'`)
@@ -90,7 +94,8 @@ describe('merge-hook-outputs.sh', () => {
     expect(specific).not.toHaveProperty('reason')
   })
 
-  it('素のテキストの出力は、additionalContext に入れる', () => {
+  it('素のテキストの出力は、additionalContext に入れる', async () => {
+    await explains('`merge-hook-outputs.sh` のテストです。JSON でない素のテキストを出力するスクリプトの場合に、その内容が `additionalContext` として出力されることを確認します。')
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
     const plain = makeScript(scripts, 'plain.sh', 'echo "plain text output"')
@@ -98,7 +103,8 @@ describe('merge-hook-outputs.sh', () => {
     expect(hookSpecificOutput(parseRecord(result.stdout))['additionalContext']).toBe('plain text output')
   })
 
-  it('出力が空のサブスクリプトは、読み飛ばす', () => {
+  it('出力が空のサブスクリプトは、読み飛ばす', async () => {
+    await explains('`merge-hook-outputs.sh` のテストです。出力が空のスクリプトと有効なスクリプトを呼び出す場合に、空の出力を読み飛ばし、有効な出力だけを返すことを確認します。')
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
     const empty = makeRawScript(scripts, 'empty.sh', '#!/bin/bash\ncat > /dev/null\n')
@@ -107,7 +113,8 @@ describe('merge-hook-outputs.sh', () => {
     expect(hookSpecificOutput(parseRecord(result.stdout))['additionalContext']).toBe('valid')
   })
 
-  it('サブスクリプトの stderr を隠さない', () => {
+  it('サブスクリプトの stderr を隠さない', async () => {
+    await explains('`merge-hook-outputs.sh` のテストです。呼び出すスクリプトが標準エラー出力へメッセージを書く場合に、そのメッセージを隠さず標準エラー出力に残すことを確認します。')
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
     const stderrScript = makeRawScript(scripts, 'stderr.sh', '#!/bin/bash\ncat > /dev/null\necho "stdout msg"\necho "stderr msg" >&2\n')
@@ -115,7 +122,8 @@ describe('merge-hook-outputs.sh', () => {
     expect(result.stderr.trim()).toBe('stderr msg')
   })
 
-  it('hookEventName を保つ', () => {
+  it('hookEventName を保つ', async () => {
+    await explains('`merge-hook-outputs.sh` のテストです。複数のスクリプトが同じ `hookEventName`（`PostToolUse`）を出力する場合に、その値を保ったまま出力することを確認します。')
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
     const first = makeScript(scripts, 'script1.sh', `echo '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"context1"}}'`)
@@ -129,7 +137,8 @@ describe('merge-hook-outputs.sh', () => {
     { name: 'continue', output: '{"continue":false}' },
     { name: 'suppressOutput', output: '{"suppressOutput":true}' },
     { name: 'updatedInput', output: '{"hookSpecificOutput":{"updatedInput":"x"}}' },
-  ])('$name だけの出力のとき、何も出さない', (row) => {
+  ])('$name だけの出力のとき、何も出さない', async (row) => {
+    await explains(`\`merge-hook-outputs.sh\` のテストです。出力が \`${row.name}\` だけの場合に、何も出力しないことを確認します。`)
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
     const script = makeScript(scripts, 'only.sh', `echo '${row.output}'`)
@@ -139,7 +148,8 @@ describe('merge-hook-outputs.sh', () => {
 
   // pre-tool-use-bash.sh / post-tool-use-exit-plan-mode.sh 等は、HSO 実フィールドを出す。
   // そのため、入力 JSON の hook_event_name が hookEventName として付与され続けること（F-06 回帰）。
-  it('additionalContext があるとき、入力由来の hookEventName を添える', () => {
+  it('additionalContext があるとき、入力由来の hookEventName を添える', async () => {
+    await explains('`merge-hook-outputs.sh` のテストです。`additionalContext` を出力する場合に、入力 JSON の `hook_event_name` を `hookEventName` として添えることを確認します。')
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
     const script = makeScript(scripts, 'ac.sh', `echo '{"hookSpecificOutput":{"additionalContext":"ctx"}}'`)
@@ -149,7 +159,8 @@ describe('merge-hook-outputs.sh', () => {
     expect(specific['hookEventName']).toBe('PreToolUse')
   })
 
-  it('全サブスクリプトの出力が空なら、入力に hook_event_name があっても何も出さない', () => {
+  it('全サブスクリプトの出力が空なら、入力に hook_event_name があっても何も出さない', async () => {
+    await explains('`merge-hook-outputs.sh` のテストです。すべてのスクリプトの出力が空の場合に、入力に `hook_event_name` があっても何も出力しないことを確認します。')
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
     const empty = makeRawScript(scripts, 'empty.sh', '#!/bin/bash\ncat > /dev/null\n')
@@ -159,7 +170,8 @@ describe('merge-hook-outputs.sh', () => {
   })
 
   // トップレベルの additionalContext（Copilot CLI 1.0.103 は SessionStart でこれだけを読む）。
-  it.for([{ label: 'SessionStart', event: 'SessionStart' }])('$label のとき、additionalContext をトップレベルにも出す', (row) => {
+  it.for([{ label: 'SessionStart', event: 'SessionStart' }])('$label のとき、additionalContext をトップレベルにも出す', async (row) => {
+    await explains(`\`merge-hook-outputs.sh\` のテストです。イベントが ${row.label} の場合に、\`additionalContext\` を \`hookSpecificOutput\` の中だけでなく、トップレベルにも出力することを確認します。`)
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
     const script = contextScript(scripts)
@@ -175,7 +187,8 @@ describe('merge-hook-outputs.sh', () => {
     { label: 'PreToolUse', event: 'PreToolUse' },
     { label: 'PostToolUse', event: 'PostToolUse' },
     { label: 'UserPromptSubmit', event: 'UserPromptSubmit' },
-  ])('$label のとき、additionalContext をトップレベルには出さない', (row) => {
+  ])('$label のとき、additionalContext をトップレベルには出さない', async (row) => {
+    await explains(`\`merge-hook-outputs.sh\` のテストです。イベントが ${row.label} の場合に、\`additionalContext\` を \`hookSpecificOutput\` の中だけに出力し、トップレベルには出力しないことを確認します。`)
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
     const script = contextScript(scripts)
@@ -185,7 +198,8 @@ describe('merge-hook-outputs.sh', () => {
     expect(hookSpecificOutput(data)['additionalContext']).toBe('hello')
   })
 
-  it('素のテキストと JSON が両方あるとき、JSON に畳み、トップレベルにも同じ連結結果を出す', () => {
+  it('素のテキストと JSON が両方あるとき、JSON に畳み、トップレベルにも同じ連結結果を出す', async () => {
+    await explains('`merge-hook-outputs.sh` のテストです。素のテキストと JSON の両方がある場合に、JSON へまとめた `additionalContext` を出力し、トップレベルにも同じ連結結果を出力することを確認します。')
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
     const text = makeScript(scripts, 'text.sh', 'echo \'# Git Sync\'')
@@ -196,7 +210,8 @@ describe('merge-hook-outputs.sh', () => {
     expect(hookSpecificOutput(data)['additionalContext']).toBe(data['additionalContext'])
   })
 
-  it('additionalContext が無いとき、トップレベルにも出さない', () => {
+  it('additionalContext が無いとき、トップレベルにも出さない', async () => {
+    await explains('`merge-hook-outputs.sh` のテストです。出力に `additionalContext` が含まれない場合は、トップレベルにも `additionalContext` を出力しないことを確認します。')
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
     const message = makeScript(scripts, 'title.sh', `echo '{"hookSpecificOutput":{"sessionTitle":"#1"}}'`)
@@ -205,7 +220,8 @@ describe('merge-hook-outputs.sh', () => {
   })
 
   // sessionTitle（SessionStart / UserPromptSubmit のセッション名）。
-  it('sessionTitle だけの出力は、空扱いにせず hookSpecificOutput へ載せる', () => {
+  it('sessionTitle だけの出力は、空扱いにせず hookSpecificOutput へ載せる', async () => {
+    await explains('`merge-hook-outputs.sh` のテストです。出力が `sessionTitle` だけの場合に、空として扱わず、`hookSpecificOutput` に載せて出力することを確認します。')
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
     const title = makeScript(scripts, 'title.sh', `echo '{"hookSpecificOutput":{"sessionTitle":"#12 題名"}}'`)
@@ -216,7 +232,8 @@ describe('merge-hook-outputs.sh', () => {
     })
   })
 
-  it('sessionTitle が複数のとき、最後のものを使い、additionalContext も残す', () => {
+  it('sessionTitle が複数のとき、最後のものを使い、additionalContext も残す', async () => {
+    await explains('`merge-hook-outputs.sh` のテストです。`sessionTitle` を出力するスクリプトが複数ある場合に、最後の値を使い、`additionalContext` も残して出力することを確認します。')
     const hookCase = createHookCase()
     const scripts = setUpScripts(hookCase)
     const first = makeScript(scripts, 't1.sh', `echo '{"hookSpecificOutput":{"sessionTitle":"first"}}'`)

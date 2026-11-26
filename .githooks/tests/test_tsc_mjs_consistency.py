@@ -20,8 +20,10 @@ _COPIES = (
 )
 
 
+@allure.title("{relative} の tsc.mjs は、pecot-visual/cli の tsc.mjs と逐語で一致する")
 @pytest.mark.parametrize("relative", _COPIES)
 def test_tsc_mjs_は_pecot_visual_cli_と逐語一致する(relative: str) -> None:
+    """配布の都合でプロジェクトごとに持つ `scripts/tsc.mjs` のテストです。各プロジェクトの写しが、`plugins/pecot-visual/cli/scripts/tsc.mjs` とバイト単位で一致することを確認します。"""
     with allure.step("写しと pecot-visual/cli の tsc.mjs を読む"):
         copy = (_REPO_ROOT / relative).read_bytes()
         reference = (_REPO_ROOT / _REFERENCE).read_bytes()

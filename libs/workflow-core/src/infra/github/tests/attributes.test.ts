@@ -1,6 +1,7 @@
 /* eslint-disable unicorn/no-null -- 偽サーバの応答に JSON の null を使う */
 // 応答は 2026-11-23 に取った公開スキーマ（schema.docs.graphql）の型に合わせる。
 import { describe, expect, it } from 'vitest'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 import type { ResponseRule } from '../../../../tests/_helpers/fake-github/server.js'
 import { readAttributeDefinitions, readAttributeValues } from '../attributes.js'
@@ -75,7 +76,8 @@ function definitionsData(data: Readonly<DefinitionsData> = {}): Record<string, u
 }
 
 describe('readAttributeDefinitions', () => {
-  it('ボードの 6 種類のフィールドを、data-model の kind と選択肢にし、フィールドと選択肢・Iteration の ID を持たせる', async () => {
+  it('ボードの 6 種類のフィールドを、種別と選択肢を持つ定義にし、フィールドと選択肢・Iteration の ID を保持する', async () => {
+    await explains('属性の定義を読み取る関数のテストです。ボードの単一選択・複数選択・テキスト・数値・日付・Iteration のフィールドが、種別と選択肢、フィールドと選択肢の ID を持つ定義として返ることを確認します。')
     const { client } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributeDefinitions', definitionsData())])
 
     const { definitions, unreadable } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
@@ -98,7 +100,8 @@ describe('readAttributeDefinitions', () => {
     expect(unreadable).toStrictEqual(new Map())
   })
 
-  it('定義のクエリは、選択肢・Iteration の ID、Issue field の fullDatabaseId、マイルストーンの番号を問い合わせる', () => {
+  it('定義のクエリは、選択肢・Iteration の ID、Issue field の fullDatabaseId、マイルストーンの番号を問い合わせる', async () => {
+    await explains('属性の定義を取得する GraphQL クエリのテストです。選択肢と Iteration の ID、Issue field の `fullDatabaseId`、マイルストーンの番号を問い合わせる文になっていることを確認します。')
     const definitions = QUERY_GET_ISSUE_ATTRIBUTE_DEFINITIONS.replaceAll(/\s+/gu, ' ')
     expect(definitions).toContain('options { id name }')
     expect(definitions).toContain('multiSelectOptions { id name }')
@@ -109,7 +112,8 @@ describe('readAttributeDefinitions', () => {
     expect(QUERY_GET_REPOSITORY_MILESTONES_PAGE.replaceAll(/\s+/gu, ' ')).toContain('nodes { number title }')
   })
 
-  it('GitHub が計算するフィールドは unsupported で書けず、Status と進行の欄も書けない', async () => {
+  it('GitHub が計算するフィールドは unsupported とし、Status と pecot-status も書き込み不可にする', async () => {
+    await explains('属性の定義を読み取る関数のテストです。`Title` など GitHub が計算するフィールドは `unsupported` の書き込み不可として返り、`Status` と `pecot-status` も書き込み不可になることを確認します。')
     const { client } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributeDefinitions', definitionsData())])
 
     const { definitions } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
@@ -123,7 +127,8 @@ describe('readAttributeDefinitions', () => {
     ])
   })
 
-  it('Issue の機能を写すフィールドと Issue field を写したフィールドは、source が project の定義に出さない', async () => {
+  it('Issue の機能を写したフィールドと Issue field を写したフィールドは、source が project の定義に含めない', async () => {
+    await explains('属性の定義を読み取る関数のテストです。Issue の機能を写したフィールド（`Assignees`）と Issue field を写したフィールド（`Priority`）が、source が `project` の定義に含まれないことを確認します。')
     const { client } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributeDefinitions', definitionsData())])
 
     const { definitions } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
@@ -133,7 +138,8 @@ describe('readAttributeDefinitions', () => {
     expect(names).not.toContain('Priority')
   })
 
-  it('知らない dataType のフィールドは、unsupported と unsupported_reason の種類になる', async () => {
+  it('未知の dataType のフィールドは、種別を unsupported とし、unsupportedReason を持たせる', async () => {
+    await explains('属性の定義を読み取る関数のテストです。未知の `dataType` を持つフィールドが、種別 `unsupported` と `unsupportedReason` を持つ書き込み不可の定義として返ることを確認します。')
     const project = { fields: page([projectField('F_x', 'People', 'PEOPLE')]) }
     const { client } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributeDefinitions', definitionsData({ project }))])
 
@@ -142,7 +148,8 @@ describe('readAttributeDefinitions', () => {
     expect(definitions[0]).toStrictEqual({ name: 'People', source: 'project', kind: 'unsupported', writable: false, unsupportedReason: 'PEOPLE', fieldId: 'F_x' })
   })
 
-  it('Issue fields・Issue type・ラベル・マイルストーンと組み込みの機能を、この順に出し、Issue field とマイルストーンに ID を持たせる', async () => {
+  it('Issue fields・Issue type・ラベル・マイルストーンと組み込みの機能を、この順に返し、Issue field とマイルストーンに ID を持たせる', async () => {
+    await explains('属性の定義を読み取る関数のテストです。Issue fields・Issue type・ラベル・マイルストーンと組み込みの機能が、この順に返り、Issue field とマイルストーンが ID を持つことを確認します。')
     const { client, server } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributeDefinitions', definitionsData())])
 
     const { definitions, warnings } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
@@ -168,7 +175,8 @@ describe('readAttributeDefinitions', () => {
   it.for([
     { name: 'FORBIDDEN', type: 'FORBIDDEN', message: 'Resource not accessible by integration' },
     { name: 'NOT_FOUND', type: 'NOT_FOUND', message: 'Could not resolve to a node' },
-  ])('Issue fields の読み込みが $name でも、ほかの定義は出し、warnings に 1 行入れ、issue_field を unreadable に入れる', async ({ type, message }) => {
+  ])('Issue fields の読み込みが $name で失敗しても、ほかの定義は返し、警告を 1 行追加し、issue_field を unreadable に記録する', async ({ type, message }) => {
+    await explains('部分エラーのテストです。Issue fields の読み取りが失敗した場合に、ほかの定義は返し、警告と `unreadable` の記録を残すことを確認します。')
     const data = definitionsData({ issueFields: null })
     const { client } = await startClient([issueFieldsProbe(), respond('GetIssueAttributeDefinitions', { data, errors: [{ type, path: ['repository', 'issueFields'], message }] })])
 
@@ -181,7 +189,8 @@ describe('readAttributeDefinitions', () => {
     expect(unreadable).toStrictEqual(new Map([['issue_field', `could not read the Issue fields of acme/demo: ${message}`]]))
   })
 
-  it('ボードを読めない部分エラーでも、リポの定義は出し、warnings に 1 行入れ、project を unreadable に入れる', async () => {
+  it('ボードを読み取れない部分エラーでも、リポジトリの定義は返し、警告を 1 行追加し、project を unreadable に記録する', async () => {
+    await explains('部分エラーのテストです。ボードの読み取りがエラーになった場合は、リポジトリの定義は返し、警告を 1 行追加して、`project` を `unreadable` として記録することを確認します。')
     const data = definitionsData({ project: null })
     const errors = [{ type: 'INSUFFICIENT_SCOPES', path: ['project'], message: 'Your token has not been granted the required scopes' }]
     const { client } = await startClient([issueFieldsProbe(), respond('GetIssueAttributeDefinitions', { data, errors })])
@@ -194,7 +203,8 @@ describe('readAttributeDefinitions', () => {
     expect(unreadable).toStrictEqual(new Map([['project', 'could not read the fields of the board: Your token has not been granted the required scopes']]))
   })
 
-  it('ボードが見つからなければ、project を unreadable に入れる', async () => {
+  it('ボードが存在しない場合は、project を unreadable に記録する', async () => {
+    await explains('属性の定義を読み取る関数のテストです。ボードが存在しない場合に、`project` を `unreadable` に記録することを確認します。')
     const { client } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributeDefinitions', definitionsData({ project: null }))])
 
     const { unreadable } = await readAttributeDefinitions(client, DEFINITIONS_TARGET)
@@ -202,7 +212,8 @@ describe('readAttributeDefinitions', () => {
     expect(unreadable).toStrictEqual(new Map([['project', 'could not read the fields of the board: project PVT_1 was not found']]))
   })
 
-  it('Issue type を読めない部分エラーでは、type を出さず、issue を unreadable に入れる', async () => {
+  it('Issue type を読み取れない部分エラーでは、type を返さず、issue を unreadable に記録する', async () => {
+    await explains('部分エラーのテストです。Issue type の読み取りがエラーになった場合は、`type` を返さず、`issue` を `unreadable` として記録することを確認します。')
     const data = definitionsData({ issueTypes: null })
     const errors = [{ type: 'FORBIDDEN', path: ['repository', 'issueTypes'], message: 'Resource not accessible' }]
     const { client } = await startClient([issueFieldsProbe(), respond('GetIssueAttributeDefinitions', { data, errors })])
@@ -213,7 +224,8 @@ describe('readAttributeDefinitions', () => {
     expect(unreadable).toStrictEqual(new Map([['issue', 'could not read the Issue types of acme/demo: Resource not accessible']]))
   })
 
-  it('Issue field の fullDatabaseId が null なら、fieldId を持たせない', async () => {
+  it('Issue field の fullDatabaseId が null の場合は、fieldId を持たせない', async () => {
+    await explains('属性の定義を読み取る関数のテストです。Issue field の `fullDatabaseId` が `null` の場合に、`fieldId` を持たない定義として返すことを確認します。')
     const issueFields = page([{ fullDatabaseId: null, name: 'Effort', dataType: 'NUMBER' }])
     const { client } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributeDefinitions', definitionsData({ issueFields }))])
 
@@ -222,7 +234,8 @@ describe('readAttributeDefinitions', () => {
     expect(definitions.find(definition => definition.name === 'Effort')).toStrictEqual({ name: 'Effort', source: 'issue_field', kind: 'number', writable: true })
   })
 
-  it('Issue fields の型が無い GHES では、Issue fields と Issue type を抜いた版で読み、type を出さない', async () => {
+  it('Issue fields の型が存在しない GHES では、Issue fields と Issue type を除いたクエリで読み取り、type を返さない', async () => {
+    await explains('GitHub Enterprise Server（GHES）向けのテストです。`IssueFields` の型が存在しない場合に、Issue fields と Issue type を除いたクエリで読み取り、`type` を返さないことを確認します。')
     const data = { project: { fields: page([projectField('F_note', 'Note', 'TEXT')]) }, repository: { labels: page([]), milestones: page([]) } }
     const { client, server } = await startClient([issueFieldsProbe(false), graphqlData('GetIssueAttributeDefinitionsWithoutIssueFields', data)])
 
@@ -233,12 +246,14 @@ describe('readAttributeDefinitions', () => {
     expect(graphqlRequests(server).map(request => request.operation)).toStrictEqual(['HasIssueFields', 'GetIssueAttributeDefinitionsWithoutIssueFields'])
   })
 
-  it('GHES 向けの版は、Issue fields と同じ頃に入った複数選択の型を問い合わせない', () => {
+  it('GHES 向けのクエリは、Issue fields と同じ時期に追加された複数選択の型を問い合わせない', async () => {
+    await explains('GHES 向けのクエリのテストです。Issue fields と同じ時期に追加された複数選択の型 `MultiSelect` を、問い合わせないことを確認します。')
     expect(QUERY_GET_ISSUE_ATTRIBUTE_DEFINITIONS_WITHOUT_ISSUE_FIELDS).not.toContain('MultiSelect')
     expect(QUERY_GET_ISSUE_ATTRIBUTES_WITHOUT_ISSUE_FIELDS).not.toContain('MultiSelect')
   })
 
-  it('ラベルとマイルストーンに続きのページがあれば、続きも読む', async () => {
+  it('ラベルとマイルストーンに続きのページがある場合は、続きも取得する', async () => {
+    await explains('属性の定義を読み取る関数のテストです。ラベルとマイルストーンに続きのページがある場合に、続きのページも取得して結合することを確認します。')
     const data = definitionsData({ labels: page([{ name: 'bug' }], true, 'L1'), milestones: page([{ number: 3, title: 'v1' }], true, 'M1') })
     const { client, server } = await startClient([
       issueFieldsProbe(),
@@ -257,7 +272,8 @@ describe('readAttributeDefinitions', () => {
     ])
   })
 
-  it('ボードのフィールド・Issue fields・Issue type に続きがあれば、warnings に 1 行ずつ入れ、その source を unreadable に入れる', async () => {
+  it('ボードのフィールド・Issue fields・Issue type が先頭の 100 件に収まらない場合は、警告を 1 行ずつ追加し、その source を unreadable に記録する', async () => {
+    await explains('属性の定義を読み取る関数のテストです。ボードのフィールドなどが 100 件を超える場合は、警告を 1 行ずつ追加し、その source を `unreadable` として記録することを確認します。')
     const data = definitionsData({ project: { fields: page([], true) }, issueFields: page([], true), issueTypes: page([], true) })
     const { client } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributeDefinitions', data)])
 
@@ -275,7 +291,8 @@ describe('readAttributeDefinitions', () => {
     ]))
   })
 
-  it('リポが無いと、GitHubNotFoundError にする', async () => {
+  it('リポジトリが存在しない場合は、GitHubNotFoundError が発生する', async () => {
+    await explains('属性の定義を読み取る関数のテストです。リポジトリが存在しない場合に、`GitHubNotFoundError` が発生することを確認します。')
     const errors = [{ type: 'NOT_FOUND', path: ['repository'], message: 'Could not resolve to a Repository with the name \'acme/demo\'.' }]
     const { client } = await startClient([issueFieldsProbe(), respond('GetIssueAttributeDefinitions', { data: { project: null, repository: null }, errors })])
 
@@ -318,7 +335,8 @@ function valuesData(issue: Readonly<ValuesIssue> = {}): Record<string, unknown> 
 }
 
 describe('readAttributeValues', () => {
-  it('設定のボードの 6 種類の値を、名前の値にする', async () => {
+  it('設定したボードの 6 種類の値を、種別と値を持つ読み取り結果にする', async () => {
+    await explains('属性の値を読み取る関数のテストです。設定したボードの単一選択・複数選択・テキスト・数値・日付・Iteration の値が、種別と値を持つ読み取り結果として返ることを確認します。')
     const fieldValues = [
       boardValue('ProjectV2ItemFieldSingleSelectValue', fieldOf('Area', 'SINGLE_SELECT'), { name: 'cli' }),
       boardValue('ProjectV2ItemFieldMultiSelectValue', fieldOf('Tags', 'MULTI_SELECT'), { options: [{ name: 'a' }, { name: 'b' }] }),
@@ -346,7 +364,8 @@ describe('readAttributeValues', () => {
     ])
   })
 
-  it('担当者・マイルストーン・Issue type・ラベルを、source が issue の値にする', async () => {
+  it('担当者・マイルストーン・Issue type・ラベルを、source が issue の値として返す', async () => {
+    await explains('属性の値を読み取る関数のテストです。担当者・マイルストーン・Issue type・ラベルが、source が `issue` の値として返ることを確認します。')
     const { client } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributes', valuesData())])
 
     const { readings } = await readAttributeValues(client, VALUES_TARGET)
@@ -359,7 +378,8 @@ describe('readAttributeValues', () => {
     ])
   })
 
-  it('Issue fields の値を、source が issue_field の値にする', async () => {
+  it('Issue fields の値を、source が issue_field の値として返す', async () => {
+    await explains('属性の値を読み取る関数のテストです。Issue fields の値が、source が `issue_field` の値として返ることを確認します。')
     const issueFieldValues = page([
       { __typename: 'IssueFieldSingleSelectValue', field: { name: 'Priority', dataType: 'SINGLE_SELECT' }, name: 'High' },
       { __typename: 'IssueFieldMultiSelectValue', field: { name: 'Teams', dataType: 'MULTI_SELECT' }, options: [{ name: 'x' }, { name: 'y' }] },
@@ -380,7 +400,8 @@ describe('readAttributeValues', () => {
     ])
   })
 
-  it('ProjectV2ItemIssueFieldValue と、Issue field を写したフィールドの値を読み捨てる', async () => {
+  it('ProjectV2ItemIssueFieldValue と、Issue field を写したフィールドの値は、結果に含めない', async () => {
+    await explains('属性の値を読み取る関数のテストです。`ProjectV2ItemIssueFieldValue` と、Issue field を写したフィールドの値を、結果に含めないことを確認します。')
     const fieldValues = [
       boardValue('ProjectV2ItemIssueFieldValue', fieldOf('Priority', 'SINGLE_SELECT', true)),
       boardValue('ProjectV2ItemFieldSingleSelectValue', fieldOf('Priority', 'SINGLE_SELECT', true), { name: 'High' }),
@@ -393,7 +414,8 @@ describe('readAttributeValues', () => {
     expect(unsupported).toStrictEqual([])
   })
 
-  it('システムのフィールドの値を読み捨てる', async () => {
+  it('システムのフィールドの値は、結果に含めない', async () => {
+    await explains('属性の値を読み取る関数のテストです。`Title` や `Repository` など GitHub が管理するシステムのフィールドの値を、結果に含めないことを確認します。')
     const fieldValues = [
       boardValue('ProjectV2ItemFieldTextValue', fieldOf('Title', 'TITLE'), { text: '題' }),
       boardValue('ProjectV2ItemFieldRepositoryValue', fieldOf('Repository', 'REPOSITORY')),
@@ -411,7 +433,8 @@ describe('readAttributeValues', () => {
     expect({ unsupported, warnings }).toStrictEqual({ unsupported: [], warnings: [] })
   })
 
-  it('知らない型で field を読めれば unsupported に、読めなければ warnings に出し、ほかの値は出す', async () => {
+  it('未知の型で field を取得できる場合は unsupported に、取得できない場合は警告に記録し、ほかの値は返す', async () => {
+    await explains('属性の値を読み取る関数のテストです。未知の型の値のうち、field を取得できるものは `unsupported` に、取得できないものは警告に記録し、ほかの値は返すことを確認します。')
     const fieldValues = [
       boardValue('ProjectV2ItemFieldPeopleValue', fieldOf('Reviewer group', 'PEOPLE')),
       boardValue('ProjectV2ItemFieldFutureValue', undefined),
@@ -436,7 +459,8 @@ describe('readAttributeValues', () => {
     ])
   })
 
-  it('知らない dataType の値は、型を知っていても unsupported に出す', async () => {
+  it('未知の dataType の値は、型が既知でも unsupported に記録する', async () => {
+    await explains('属性の値を読み取る関数のテストです。型は既知でも `dataType` が未知の値を、`unsupported` に記録することを確認します。')
     const fieldValues = [boardValue('ProjectV2ItemFieldTextValue', fieldOf('Summary', 'AI_SUMMARY'), { text: '要約' })]
     const { client } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributes', valuesData({ fieldValues }))])
 
@@ -445,7 +469,8 @@ describe('readAttributeValues', () => {
     expect(unsupported).toStrictEqual([{ name: 'Summary', source: 'project', githubType: 'AI_SUMMARY' }])
   })
 
-  it('値の無いフィールドは出さない', async () => {
+  it('値が設定されていないフィールドは、結果に含めない', async () => {
+    await explains('属性の値を読み取る関数のテストです。値が設定されていないフィールド（`null` や空の選択肢）を、結果に含めないことを確認します。')
     const fieldValues = [
       boardValue('ProjectV2ItemFieldSingleSelectValue', fieldOf('Area', 'SINGLE_SELECT'), { name: null }),
       boardValue('ProjectV2ItemFieldNumberValue', fieldOf('Estimate', 'NUMBER'), { number: null }),
@@ -458,7 +483,8 @@ describe('readAttributeValues', () => {
     expect(readings.filter(reading => reading.source === 'project')).toStrictEqual([])
   })
 
-  it('ボードを読めない部分エラーでも、Issue の値は出し、warnings に 1 行入れる', async () => {
+  it('ボードを読み取れない部分エラーでも、Issue の値は返し、警告を 1 行追加する', async () => {
+    await explains('部分エラーのテストです。ボードの読み取りがエラーになった場合は、Issue の値は返し、警告を 1 行追加することを確認します。')
     const data = valuesData({ projectItems: null })
     const errors = [{ type: 'INSUFFICIENT_SCOPES', path: ['repository', 'issue', 'projectItems'], message: 'Your token has not been granted the required scopes' }]
     const { client } = await startClient([issueFieldsProbe(), respond('GetIssueAttributes', { data, errors })])
@@ -469,7 +495,8 @@ describe('readAttributeValues', () => {
     expect(warnings).toStrictEqual(['could not read the board fields of acme/demo/7: Your token has not been granted the required scopes'])
   })
 
-  it('Issue fields を読めない部分エラーでも、ほかの値は出し、warnings に 1 行入れる', async () => {
+  it('Issue fields を読み取れない部分エラーでも、ほかの値は返し、警告を 1 行追加する', async () => {
+    await explains('部分エラーのテストです。Issue fields の読み取りがエラーになった場合は、ほかの値は返し、警告を 1 行追加することを確認します。')
     const data = valuesData({ issueFieldValues: null })
     const errors = [{ type: 'FORBIDDEN', path: ['repository', 'issue', 'issueFieldValues'], message: 'Resource not accessible' }]
     const { client } = await startClient([issueFieldsProbe(), respond('GetIssueAttributes', { data, errors })])
@@ -480,7 +507,8 @@ describe('readAttributeValues', () => {
     expect(warnings).toStrictEqual(['could not read the Issue fields of acme/demo/7: Resource not accessible'])
   })
 
-  it('Issue fields の型が無い GHES では、Issue fields と Issue type を抜いた版で読む', async () => {
+  it('Issue fields の型が存在しない GHES では、Issue fields と Issue type を除いたクエリで読み取る', async () => {
+    await explains('GHES 向けのテストです。`IssueFields` の型が存在しない場合に、Issue fields と Issue type を除いたクエリで値を読み取ることを確認します。')
     const data = { repository: { issue: { assignees: page([]), milestone: null, labels: page([]), projectItems: page([]) } } }
     const { client, server } = await startClient([issueFieldsProbe(false), graphqlData('GetIssueAttributesWithoutIssueFields', data)])
 
@@ -490,7 +518,8 @@ describe('readAttributeValues', () => {
     expect(graphqlRequests(server).map(request => request.operation)).toStrictEqual(['HasIssueFields', 'GetIssueAttributesWithoutIssueFields'])
   })
 
-  it('担当者・ラベル・ボードの値に続きがあれば、warnings に 1 行ずつ入れる', async () => {
+  it('担当者・ラベル・ボードの値が先頭の 100 件に収まらない場合は、警告を 1 行ずつ追加する', async () => {
+    await explains('属性の値を読み取る関数のテストです。担当者・ラベル・ボードの値などが 100 件を超える場合は、警告を 1 行ずつ追加することを確認します。')
     const projectItems = page([{ project: { id: 'PVT_1' }, fieldValues: page([], true) }], true)
     const data = valuesData({ projectItems, assignees: page([], true), labels: page([], true), issueFieldValues: page([], true) })
     const { client } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributes', data)])
@@ -506,7 +535,8 @@ describe('readAttributeValues', () => {
     ])
   })
 
-  it('許さない道筋のエラーは、GitHubAPIError にする', async () => {
+  it('許可していない道筋のエラーは、GitHubAPIError として扱う', async () => {
+    await explains('属性の値を読み取る関数のテストです。許可していない道筋のエラー（`SERVICE_UNAVAILABLE` など）が返った場合に、`GitHubAPIError` が発生することを確認します。')
     const errors = [{ type: 'SERVICE_UNAVAILABLE', path: ['repository', 'issue', 'labels'], message: 'boom' }]
     const { client } = await startClient([issueFieldsProbe(), respond('GetIssueAttributes', { data: valuesData(), errors })])
 
@@ -515,7 +545,8 @@ describe('readAttributeValues', () => {
     expect(String(error)).toContain('boom')
   })
 
-  it('設定のボードの Item の ID を itemId に返す', async () => {
+  it('設定したボードの Item の ID を、itemId として返す', async () => {
+    await explains('属性の値を読み取る関数のテストです。設定したボードの Item の ID を、`itemId` として返すことを確認します。')
     const { client } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributes', valuesData())])
 
     const { itemId } = await readAttributeValues(client, VALUES_TARGET)
@@ -527,7 +558,8 @@ describe('readAttributeValues', () => {
   it.for([
     { name: '別のボードにだけ載っている', projectItems: page([{ id: 'PVTI_other', project: { id: 'PVT_other' }, fieldValues: page([]) }]) },
     { name: 'どのボードにも載っていない', projectItems: page([]) },
-  ])('$name とき、itemId は undefined', async ({ projectItems }) => {
+  ])('Issue がボードに載っていない場合（$name）は、itemId が undefined になる', async ({ projectItems }) => {
+    await explains('属性の値を読み取る関数のテストです。Issue が別のボードにだけ載っている場合や、どのボードにも載っていない場合に、`itemId` が `undefined` になることを確認します。')
     const { client } = await startClient([issueFieldsProbe(), graphqlData('GetIssueAttributes', valuesData({ projectItems }))])
 
     const { itemId } = await readAttributeValues(client, VALUES_TARGET)

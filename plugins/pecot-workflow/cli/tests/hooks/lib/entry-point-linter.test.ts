@@ -14,6 +14,7 @@ import { hooksDirectory, projectRoot } from '../_helpers/paths.js'
 import { run } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { splitLines } from '../_helpers/text.js'
+import { explains } from '../../_helpers/explains.js'
 
 const LINTER = path.join(projectRoot, '.githooks', 'pre-commit', 'check-entry-point-logic.sh')
 
@@ -122,7 +123,8 @@ function reportedTargets(stdout: string): Set<string> {
 }
 
 describe('check-entry-point-logic.sh', () => {
-  it.for(PASS_FIXTURES)('ディスパッチャとして許される構文（$label）のとき、PASS を返す', (row) => {
+  it.for(PASS_FIXTURES)('ディスパッチャとして許される構文（$label）のとき、PASS を返す', async (row) => {
+    await explains(`エントリポイントのリンター（\`check-entry-point-logic.sh\`）のテストです。ディスパッチャとして許される構文（${row.label}）だけのスクリプトを実行した場合に、終了コード 0 で終了し、\`PASS:\` を出力することを確認します。`)
     const hookCase = createHookCase()
     const target = path.join(hookCase.temporaryPath, row.name)
     writeFileSync(target, row.content)
@@ -131,7 +133,8 @@ describe('check-entry-point-logic.sh', () => {
     expect(result.stdout).toContain('PASS:')
   })
 
-  it('実在するクリーンなエントリポイントは、PASS を返す', () => {
+  it('実在するクリーンなエントリポイントは、PASS を返す', async () => {
+    await explains('エントリポイントのリンター（`check-entry-point-logic.sh`）のテストです。実在する `session-start.sh` を実行した場合に、終了コード 0 で終了し、`PASS:` を出力することを確認します。')
     const hookCase = createHookCase()
     const result = runLinter(hookCase, path.join(hooksDirectory, 'session-start.sh'))
     expect(result.exitCode).toBe(0)
@@ -182,7 +185,8 @@ describe('check-entry-point-logic.sh', () => {
       content: joinLines('#!/bin/bash', 'mkdir -p "$WORK_DIR/test"', 'touch "$WORK_DIR/test/file"', 'rm -f "$WORK_DIR/test/file"', ''),
       marker: 'mkdir',
     },
-  ])('ロジック（$label）を含むとき、VIOLATION を報告する', (row) => {
+  ])('ロジック（$label）を含むとき、VIOLATION を報告する', async (row) => {
+    await explains(`エントリポイントのリンター（\`check-entry-point-logic.sh\`）のテストです。ロジック（${row.label}）を含むスクリプトを実行した場合に、終了コード 1 で終了し、\`VIOLATION:\` と該当箇所（\`${row.marker}\`）を出力することを確認します。`)
     const hookCase = createHookCase()
     const target = path.join(hookCase.temporaryPath, row.name)
     writeFileSync(target, row.content)
@@ -192,7 +196,8 @@ describe('check-entry-point-logic.sh', () => {
     expect(result.stdout).toContain(row.marker)
   })
 
-  it('実エントリポイント全件が、違反 0 かつ exit 0 で、未確認の WARNING も無い', () => {
+  it('実エントリポイント全件が、違反 0 かつ exit 0 で、未確認の WARNING も無い', async () => {
+    await explains('エントリポイントのリンター（`check-entry-point-logic.sh`）のテストです。実在するすべてのエントリポイントを実行した場合に、違反が 0 件で終了コード 0 になり、`WARNING` を出力せず、clean の件数が実在する数と一致することを確認します。')
     const hookCase = createHookCase()
     const result = runLinterAllEntryPoints(hookCase)
     const expectedCount = realEntryPoints().size
@@ -204,13 +209,15 @@ describe('check-entry-point-logic.sh', () => {
 
   // 一覧に実在しないパスが残ると WARNING 付きで clean 計上され、実在するエントリが一覧から抜けると恒久的に未確認になる。
   // どちらも guard を pass させてしまうため、実ファイル集合との一致をここで固定する。
-  it('ALL_ENTRY_POINTS の一覧と hooks/*.sh が、双方向で一致する', () => {
+  it('ALL_ENTRY_POINTS の一覧と hooks/*.sh が、双方向で一致する', async () => {
+    await explains('エントリポイントのリンター（`check-entry-point-logic.sh`）のテストです。対象の一覧（`ALL_ENTRY_POINTS`）と、`hooks` 直下の実在する `*.sh` の集合が、過不足なく一致することを確認します。')
     const hookCase = createHookCase()
     const result = runLinterAllEntryPoints(hookCase)
     expect(reportedTargets(result.stdout)).toEqual(realEntryPoints())
   })
 
-  it('クリーンなものと違反するものが両方あるとき、件数を分けて報告する', () => {
+  it('クリーンなものと違反するものが両方あるとき、件数を分けて報告する', async () => {
+    await explains('エントリポイントのリンター（`check-entry-point-logic.sh`）のテストです。違反のないスクリプトと違反のあるスクリプトを同時に実行した場合に、`PASS:` と `VIOLATION:` の両方を出力し、件数を分けて報告することを確認します。')
     const hookCase = createHookCase()
     const clean = path.join(hookCase.temporaryPath, 'clean.sh')
     writeFileSync(clean, joinLines('#!/bin/bash', 'SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"', '"$SCRIPT_DIR/lib/handler.sh"', ''))

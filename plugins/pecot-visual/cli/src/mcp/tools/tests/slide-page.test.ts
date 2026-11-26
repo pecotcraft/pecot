@@ -25,6 +25,7 @@ import { NodeThemeFiles } from '../../../infra/slidev-theme/fs.js'
 import type { ToolCallContext } from '../../server.js'
 import { normalizePageFileName, slidePageTool } from '../slide-page.js'
 import { withOutputCheck } from './_output.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 // src/mcp/tools/tests → cli/
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..')
@@ -134,6 +135,7 @@ function pageFilesOf(directory: string): readonly string[] {
 describe('slide_page の成功ルート', () => {
   it('pages/ 配下にスケルトンを書き出し、reference と includes を返す', async (context) => {
     await verifies(context, 'PV-SLIDE-PAGE-01')
+    await explains('`slide_page` ツールがページの雛形を書き出すテストです。`plain` レイアウトを指定した場合に、`pages/` に雛形が書き出され、参照 yaml の全文と共通仕様の yaml が結果に含まれることを確認します。')
     await verifies(context, 'PV-SLIDE-PAGE-02')
     const directory = makeTalkDirectory()
 
@@ -170,6 +172,7 @@ describe('slide_page の成功ルート', () => {
 
   it('ページを書いても slides.md は書き換えない', async (context) => {
     await verifies(context, 'PV-SLIDE-PAGE-09')
+    await explains('`slide_page` ツールが `slides.md` を変更しないことのテストです。ページを書き出した場合に、`slides.md` の内容が書き出しの前後で変わらないことを確認します。')
     const directory = makeTalkDirectory()
     const slides = path.join(directory, 'slides.md')
     const before = readFileSync(slides, 'utf8')
@@ -183,6 +186,7 @@ describe('slide_page の成功ルート', () => {
 
   it('file の .md は省略できる (明示指定と同じ結果になる)', async (context) => {
     await verifies(context, 'PV-SLIDE-PAGE-03')
+    await explains('`slide_page` ツールの `file` の拡張子のテストです。`file` の `.md` を省略した場合と明示した場合で、`pages/` 配下のパスが決まり、同じ雛形が書き出されることを確認します。')
     const directory = makeTalkDirectory()
 
     const omitted = await tool.handler({ layout: 'cover', dir: directory, file: 'chapter' }, CALL)
@@ -196,6 +200,7 @@ describe('slide_page の成功ルート', () => {
   it('layout_categories を持たないテーマでも生成でき、category は uncategorized になる', async () => {
     // 分類語彙を引けないだけでページ生成は止めない
     // (`slide_page` を丸ごと失敗させると、分類を宣言していないテーマのデッキが編集不能になる)。
+    await explains('`slide_page` ツールのレイアウトの分類のテストです。テーマがレイアウトの分類を宣言していない場合でも、ページを書き出し、`category` が `uncategorized` になることを確認します。')
     const directory = makeTalkDirectory()
     writeFileSync(
       path.join(themeReferences(directory), '_common.yaml'),
@@ -210,6 +215,7 @@ describe('slide_page の成功ルート', () => {
   })
 
   it('deprecated レイアウトも生成できる (deprecated: true で返る)', async () => {
+    await explains('`slide_page` ツールの非推奨のレイアウトのテストです。参照 yaml が `status: deprecated` のレイアウトでも、ページを書き出し、結果の `deprecated` が `true` になることを確認します。')
     const directory = makeTalkDirectory()
     const reference = path.join(themeReferences(directory), 'cover.yaml')
     writeFileSync(reference, `${readFileSync(reference, 'utf8')}\nstatus: deprecated\n`, 'utf8')
@@ -221,6 +227,7 @@ describe('slide_page の成功ルート', () => {
   })
 
   it('talk-dir の references/ の宣言がテーマの宣言に勝ち、includes も talk-dir 側を先に探す', async () => {
+    await explains('`slide_page` ツールの参照 yaml の優先順位のテストです。talk-dir の `references/` にある宣言がテーマの宣言より優先され、共通仕様の yaml も talk-dir 側から先に探すことを確認します。')
     const directory = makeTalkDirectory()
     const talkReferences = path.join(directory, 'references')
     mkdirSync(talkReferences)
@@ -244,6 +251,7 @@ describe('slide_page の成功ルート', () => {
 
   it.each(CATALOG)('$layout のスケルトンが有効なフロントマターとして書き出される', async (entry) => {
     // Acceptance「layouts に載る任意のレイアウト名」を代表値でなく全件で満たす。
+    await explains('`slide_page` ツールが、テーマのすべてのレイアウトで雛形を書き出すテストです。各レイアウトで、雛形が `---` で囲まれた有効な YAML で、`includes` が宣言と一致し、結果のサイズが上限以内であることを確認します。')
     const directory = makeTalkDirectory()
 
     const result = await tool.handler({ layout: entry.layout, dir: directory, file: 'page' }, CALL)
@@ -281,7 +289,8 @@ describe('slide_page の成功ルート', () => {
 })
 
 describe('slide_page の引数検証', () => {
-  it('dir が相対パスなら実処理を呼ばずに exitCode 2 で返す', async () => {
+  it('dir が相対パスなら、実処理を呼ばずに invalid-path のエラーを返す', async () => {
+    await explains('`slide_page` ツールの入力パスの検証のテストです。`dir` に相対パスを指定した場合に、実処理に進まず `invalid-path` のエラーと、該当する指定の一覧を返すことを確認します。')
     const result = await tool.handler({ layout: 'plain', dir: 'talk', file: 'page' }, CALL)
 
     expect(result.isError).toBe(true)
@@ -293,6 +302,7 @@ describe('slide_page の引数検証', () => {
     'パス区切りを含む file ($file) は拒否する',
     async ({ file }, context) => {
       await verifies(context, 'PV-SLIDE-PAGE-08')
+      await explains('`slide_page` ツールの `file` の検証のテストです。`sub/page.md` や `../escape.md` のようにパスの区切りを含む場合に、`invalid-file-name` のエラーを返し、ファイルを作らないことを確認します。')
       const directory = makeTalkDirectory()
 
       const result = await tool.handler({ layout: 'plain', dir: directory, file }, CALL)
@@ -303,6 +313,7 @@ describe('slide_page の引数検証', () => {
   )
 
   it('空の file は拒否する', async () => {
+    await explains('`slide_page` ツールの `file` の検証のテストです。`file` が空文字の場合に、`invalid-file-name` のエラーを返し、ファイルを作らないことを確認します。')
     const directory = makeTalkDirectory()
 
     const result = await tool.handler({ layout: 'plain', dir: directory, file: '' }, CALL)
@@ -316,6 +327,7 @@ describe('slide_page の引数検証', () => {
   it.each(['..md', ' .md', '-cover.md', '.hidden.md', 'カバー.md', 'cover page.md'])(
     'ファイル名として成立しない file (%s) はファイルを作らずに拒否する',
     async (file) => {
+      await explains('`slide_page` ツールの `file` の検証のテストです。`..md` や `カバー.md` のようにファイル名として成立しない場合に、`invalid-file-name` のエラーを返し、ファイルを作らないことを確認します。')
       const directory = makeTalkDirectory()
 
       const result = await tool.handler({ layout: 'plain', dir: directory, file }, CALL)
@@ -335,7 +347,8 @@ describe('slide_page の引数検証', () => {
     { file: 'cover1', numeric: false },
     { file: 'cover-1.md', numeric: false },
     { file: 'cover.1.md', numeric: false },
-  ])('file $file の数字始まり判定は lint ルールと一致する', ({ file, numeric }) => {
+  ])('file $file の数字始まり判定は lint ルールと一致する', async ({ file, numeric }) => {
+    await explains('`normalizePageFileName` の数字で始まる名前の判定のテストです。拡張子を除いた名前が数字で始まる場合だけを不正とし、lint ルールの判定と同じ結果になることを確認します。')
     const checked = normalizePageFileName(file)
     expect(checked.ok).toBe(!numeric)
 
@@ -347,6 +360,7 @@ describe('slide_page の引数検証', () => {
 
   it('数字始まりの file はファイルを作らずに拒否する', async (context) => {
     await verifies(context, 'PV-SLIDE-PAGE-07')
+    await explains('`slide_page` ツールの `file` の検証のテストです。`01-cover` のように数字で始まる場合に、`numeric-filename-prefix` のエラーを返し、ファイルを作らないことを確認します。')
     const directory = makeTalkDirectory()
 
     const result = await tool.handler({ layout: 'plain', dir: directory, file: '01-cover' }, CALL)
@@ -359,6 +373,7 @@ describe('slide_page の引数検証', () => {
 
 describe('slide_page のテーマの失敗', () => {
   it('テーマを張っていない talk-dir は theme-unlinked で、slide_sync の node_modules_only を案内する', async () => {
+    await explains('`slide_page` ツールのテーマが張られていない場合のテストです。テーマを張っていない場合は、`theme-unlinked` のエラーと `slide_sync` の案内を返し、ファイルを作らないことを確認します。')
     const directory = makeTalkDirectory({ link: false })
 
     const result = await tool.handler({ layout: 'plain', dir: directory, file: 'page' }, CALL)
@@ -374,6 +389,7 @@ describe('slide_page のテーマの失敗', () => {
   })
 
   it('theme: none で宣言も無い talk-dir は theme-none で、slide_sync の theme を案内する', async () => {
+    await explains('`slide_page` ツールのテーマの指定のテストです。`theme: none` で宣言も存在しない場合に、`theme-none` のエラーと `slide_sync` の `theme` の案内を返し、ファイルを作らないことを確認します。')
     const directory = makeTalkDirectory()
     writeFileSync(path.join(directory, 'slides.md'), '---\ntheme: none\n---\n', 'utf8')
 
@@ -384,7 +400,8 @@ describe('slide_page のテーマの失敗', () => {
     expect(pageFilesOf(directory)).toEqual([])
   })
 
-  it('宣言の誤りは theme-<reason> で返す', async () => {
+  it('宣言に未知の lint ルールがあると、theme-unknown-rule のエラーを返す', async () => {
+    await explains('`slide_page` ツールのテーマの宣言の検証のテストです。宣言の `lint.rules` に存在しないルールが含まれる場合に、`theme-unknown-rule` のエラーを返し、ファイルを作らないことを確認します。')
     const directory = makeTalkDirectory()
     writeFileSync(
       path.join(directory, 'node_modules', THEME_NAME, 'pecot-theme.json'),
@@ -399,6 +416,7 @@ describe('slide_page のテーマの失敗', () => {
   })
 
   it('参照 yaml を持たないテーマ（layouts/*.vue だけ）は skeleton-unavailable で失敗する', async () => {
+    await explains('`slide_page` ツールの参照 yaml がないテーマのテストです。`layouts/*.vue` だけを持つテーマの場合に、`skeleton-unavailable` のエラーを返し、ファイルを作らないことを確認します。')
     const directory = makeTalkDirectory({ themeFixture: BARE_FIXTURE, themeName: BARE_NAME })
 
     const result = await tool.handler({ layout: 'one', dir: directory, file: 'page' }, CALL)
@@ -409,6 +427,7 @@ describe('slide_page のテーマの失敗', () => {
   })
 
   it('テーマの警告は warnings に載せる', async () => {
+    await explains('`slide_page` ツールのテーマの警告のテストです。参照 yaml を持たないテーマの場合に、テーマの警告が `warnings` に含まれることを確認します。')
     const directory = makeTalkDirectory({ themeFixture: BARE_FIXTURE, themeName: BARE_NAME })
 
     const result = await tool.handler({ layout: 'one', dir: directory, file: 'page' }, CALL)
@@ -421,6 +440,7 @@ describe('slide_page のテーマの失敗', () => {
 describe('slide_page の失敗ルート', () => {
   it('未知の layout は選択可能な一覧つきで失敗する', async (context) => {
     await verifies(context, 'PV-SLIDE-PAGE-06')
+    await explains('`slide_page` ツールの未知のレイアウトのテストです。存在しないレイアウトを指定した場合に、`unknown-layout` のエラーと、選択できるレイアウトと分類の一覧を返し、ファイルを作らないことを確認します。')
     const directory = makeTalkDirectory()
 
     const result = await tool.handler({ layout: 'no-such-layout', dir: directory, file: 'page' }, CALL)
@@ -450,7 +470,8 @@ describe('slide_page の失敗ルート', () => {
     '',
     // status: hidden は catalog から落ちるため、ファイルが実在しても選べない。
     'secret',
-  ])('layout %s は catalog 一致確認で弾かれ、ファイルを読まない', async (layout) => {
+  ])('一覧にない layout (%s) を指定すると、ファイルを読まずに unknown-layout のエラーを返す', async (layout) => {
+    await explains('`slide_page` ツールのレイアウト名の検証のテストです。`../../../etc/passwd` や `_common` など一覧にない名前を指定した場合に、ファイルを読まず `unknown-layout` のエラーを返すことを確認します。')
     const directory = makeTalkDirectory()
     writeFileSync(
       path.join(themeReferences(directory), 'secret.yaml'),
@@ -468,6 +489,7 @@ describe('slide_page の失敗ルート', () => {
   it('既存ページは force なしなら上書きせず、force: true で上書きする', async (context) => {
     await verifies(context, 'PV-SLIDE-PAGE-04')
 
+    await explains('`slide_page` ツールの既存のページの扱いのテストです。同じ名前のページがある場合に、`force` なしでは `file-exists` のエラーで上書きせず、`force: true` では上書きすることを確認します。')
     await verifies(context, 'PV-SLIDE-PAGE-05')
     const directory = makeTalkDirectory()
     const target = path.join(directory, 'pages', 'page.md')
@@ -489,6 +511,7 @@ describe('slide_page の失敗ルート', () => {
   })
 
   it('examples を持たない参照 yaml はページを作らずに失敗する', async () => {
+    await explains('`slide_page` ツールの参照 yaml の検証のテストです。`examples` を持たない参照 yaml の場合に、`skeleton-unavailable` のエラーを返し、ページを作らないことを確認します。')
     const directory = makeTalkDirectory()
     writeFileSync(
       path.join(themeReferences(directory), 'no-examples.yaml'),
@@ -504,6 +527,7 @@ describe('slide_page の失敗ルート', () => {
 
   it('includes 宣言に挟まったコメント行は読み飛ばし、後続の項目も読む', async () => {
     // コメントは宣言の終端ではない。ここで打ち切ると、後ろに並ぶ共通仕様が通知なしに欠ける。
+    await explains('`slide_page` ツールの `includes` の読み取りのテストです。`includes` の宣言の途中にコメント行がある場合に、コメントを読み飛ばし、後ろの項目まですべて読み取ることを確認します。')
     const directory = makeTalkDirectory()
     writeFileSync(path.join(themeReferences(directory), '_footer.yaml'), 'description: フッター\n', 'utf8')
     writeFileSync(
@@ -523,6 +547,7 @@ describe('slide_page の失敗ルート', () => {
   })
 
   it('includes 宣言はリスト項目とコメントのどちらでもない行で読み終える', async () => {
+    await explains('`slide_page` ツールの `includes` の読み取りのテストです。`includes` の次に別のキーが現れた場合に、そこで `includes` の読み取りを終えることを確認します。')
     const directory = makeTalkDirectory()
     writeFileSync(
       path.join(themeReferences(directory), 'terminated.yaml'),
@@ -541,6 +566,7 @@ describe('slide_page の失敗ルート', () => {
   })
 
   it('includes 宣言を持たない参照でも生成でき、includes は空になる', async () => {
+    await explains('`slide_page` ツールの `includes` の読み取りのテストです。参照 yaml に `includes` の宣言がない場合でも、ページを書き出し、結果の `includes` が空になることを確認します。')
     const directory = makeTalkDirectory()
     writeFileSync(
       path.join(themeReferences(directory), 'standalone.yaml'),
@@ -558,6 +584,7 @@ describe('slide_page の失敗ルート', () => {
   it('examples が `---` で囲まれていない参照 yaml はページを作らずに失敗する', async () => {
     // 囲みが無い雛形をそのまま書くと「フロントマター無しの Markdown 本文」になり、
     // レイアウトの当たらないページが通知なしに出来る。書き込む前に弾く。
+    await explains('`slide_page` ツールの雛形の検証のテストです。`examples` の雛形が `---` で囲まれていない場合に、`skeleton-unavailable` のエラーを返し、ページを作らないことを確認します。')
     const directory = makeTalkDirectory()
     writeFileSync(
       path.join(themeReferences(directory), 'unwrapped.yaml'),
@@ -573,8 +600,9 @@ describe('slide_page の失敗ルート', () => {
     expect(pageFilesOf(directory)).toEqual([])
   })
 
-  it('参照 yaml が読めなければ、書き込みと別の reason で失敗する', async () => {
+  it('参照 yaml を読めないと、書き込みの失敗とは別の reference-read-failed のエラーを返す', async () => {
     // catalog の確認の後に参照 yaml が消える競合を、読み取りの差し替えで再現する。
+    await explains('`slide_page` ツールの参照 yaml の読み取りに失敗した場合のテストです。一覧の確認の後でファイルが消えた場合に、`reference-read-failed` のエラーを返し、ファイルを作らないことを確認します。')
     const directory = makeTalkDirectory()
     const racing = withOutputCheck(slidePageTool(() => Promise.reject(new Error('ENOENT: no such file (race)'))))
 
@@ -586,9 +614,10 @@ describe('slide_page の失敗ルート', () => {
     expect(pageFilesOf(directory)).toEqual([])
   })
 
-  it('書き込みに失敗しても structuredContent を持つ失敗応答に畳む', async () => {
+  it('書き込みに失敗すると、例外を投げずに write-failed の結果を structuredContent つきで返す', async () => {
     // ハンドラから例外が抜けると SDK が structuredContent 無しの応答を作り、
     // outputSchema を宣言したツールの契約が破れる。ENAMETOOLONG でルートを踏む。
+    await explains('`slide_page` ツールの書き込みに失敗した場合のテストです。ファイル名が長すぎて書き込めない場合に、例外を発生させず、`write-failed` のエラーを `structuredContent` つきで返すことを確認します。')
     const directory = makeTalkDirectory()
 
     const result = await tool.handler(
@@ -602,6 +631,7 @@ describe('slide_page の失敗ルート', () => {
   })
 
   it('__proto__ を include する参照でもキーを取りこぼさない', async () => {
+    await explains('`slide_page` ツールの `includes` のキーのテストです。`__proto__` を include する参照 yaml の場合に、そのキーを取りこぼさず、内容が `includes` に含まれることを確認します。')
     const directory = makeTalkDirectory()
     const references = themeReferences(directory)
     writeFileSync(path.join(references, '__proto__.yaml'), 'name: 危険なキー\n', 'utf8')
@@ -623,6 +653,7 @@ describe('slide_page の失敗ルート', () => {
   })
 
   it('include 先の共通 yaml が無いテーマはページを作らずに失敗する', async () => {
+    await explains('`slide_page` ツールの共通仕様の yaml がない場合のテストです。参照 yaml が include する `_common.yaml` が存在しないときに、`broken-reference` のエラーを返し、ページを作らないことを確認します。')
     const directory = makeTalkDirectory()
     rmSync(path.join(themeReferences(directory), '_common.yaml'))
 

@@ -21,6 +21,7 @@ import {
 import { BOARD_FIELDS_WITH_LANE, definitionRules } from '../_helpers/attributes.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
+import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -62,6 +63,7 @@ function writes(github: RunningGithub): string[] {
 describe('issue check', () => {
   it('ファイルを渡すと、何も作らずに番号・前提・進め方の表とスタックできる並びを標準出力に出す', async (context) => {
     await verifies(context, 'PW-ISSUE-CHECK-01')
+    await explains('`issue check` のテストです。ファイルを渡した場合に、何も作成せず、番号・前提・進め方の表と `Stackable chains` の並びを標準出力に出力することを確認します。')
     const project = setUpIssueProject()
     writeTree(project.root, {
       'a.md': taskFile('先頭', PARENT),
@@ -95,6 +97,7 @@ describe('issue check', () => {
 
   it('既存の Issue の表記は、一括の先頭のファイルのリポジトリを基準にそろえる', async (context) => {
     await verifies(context, 'PW-ISSUE-CHECK-01')
+    await explains('`issue check` の既存の Issue の表記のテストです。既存の Issue を指す前提の表記を、一括の先頭のファイルのリポジトリを基準にそろえて表に出力することを確認します。')
     const project = setUpIssueProject({ otherRepositories: ['other'] })
     writeTree(project.root, {
       'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')),
@@ -125,6 +128,7 @@ describe('issue check', () => {
 
   it('親 Epic のサブ Issue が複数のページにわたっても、全ページの最大の次の番号を表に出す', async (context) => {
     await verifies(context, 'PW-ISSUE-CHECK-01')
+    await explains('`issue check` の番号の割り当てのテストです。親 Epic のサブ Issue が複数のページにわたる場合に、全ページの最大の番号の次の番号を表に出力することを確認します。')
     const project = setUpIssueProject()
     writeTree(project.root, { 'a.md': taskFile('先頭', PARENT) })
     await startGithub([
@@ -141,6 +145,7 @@ describe('issue check', () => {
 
   it('ボードに Blocked の列が無いとき、これからの動きとして warning を 1 回だけ出す', async (context) => {
     await verifies(context, 'PW-ISSUE-CHECK-01')
+    await explains('`issue check` の警告のテストです。ボードが `Blocked` の列を持たない場合に、`Ready` に作成されることを示す warning を 1 回だけ出力することを確認します。')
     const project = setUpIssueProject({ withoutBlockedColumn: true })
     writeTree(project.root, {
       'a.md': taskFile('先頭'),
@@ -157,13 +162,14 @@ describe('issue check', () => {
 
   it.for([
     { name: '前提が一括のどのファイルのキーにも当たらない', second: blockedBy('nope'), first: [], expected: 'error: blocked_by in b.md refers to unknown key nope\n' },
-    { name: '前提が輪になる', second: blockedBy('a'), first: blockedBy('b'), expected: 'error: blocked_by forms a cycle: a -> b -> a\n' },
+    { name: '前提が循環する', second: blockedBy('a'), first: blockedBy('b'), expected: 'error: blocked_by forms a cycle: a -> b -> a\n' },
     { name: '前提が後ろのファイルを指す', second: [], first: blockedBy('b'), expected: 'error: blocked_by in a.md refers to b, which comes later\n' },
     { name: '同じ前提を 2 回書く', second: [...blockedBy('a'), '  - issue: a'], first: [], expected: 'error: blocked_by in b.md refers to a more than once\n' },
     { name: 'parallel を書く', second: ['parallel: true'], first: [], expected: 'error: parallel is no longer supported in b.md. Remove it\n' },
     { name: 'wait: merge に reason が無い', second: ['blocked_by:', '  - issue: a', '    wait: merge'], first: [], expected: 'error: blocked_by in b.md needs reason for wait: merge\n' },
   ])('$name とき、終了コード 1 で終わる', async (row, context) => {
     await verifies(context, 'PW-ISSUE-CHECK-02')
+    await explains('`issue check` の前提の検証のテストです。前提が一括のどのファイルのキーにも一致しない場合や循環する場合など、不正な指定の場合に、エラーを出力して終了コード 1 で終わることを確認します。')
     const project = setUpIssueProject()
     writeTree(project.root, {
       'a.md': taskFile('先頭', ...row.first),
@@ -177,6 +183,7 @@ describe('issue check', () => {
 
   it('依存関係に対応しないサーバで blocked_by を書いたとき、error を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-ISSUE-CHECK-02')
+    await explains('`issue check` の GitHub Enterprise Server のテストです。依存関係に対応していないサーバーで `blocked_by` を書いた場合に、バージョン 3.19 以降が必要であることを示すエラーを出力して終了コード 1 で終わることを確認します。')
     const project = setUpIssueProject()
     writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': taskFile('次', ...blockedBy('a')) })
     const github = await startGithub([linkedRepositories(), blockedByUnsupported()])
@@ -193,6 +200,7 @@ describe('issue check', () => {
 
   it('フロントマターの attributes の値が定義に合わないとき、合わない値ごとに error の行を出し、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-ISSUE-CHECK-04')
+    await explains('`issue check` の `attributes` の検証のテストです。フロントマターの `attributes` の値が定義と異なる場合に、値ごとの `invalid_value` のエラーを出力して終了コード 1 で終わることを確認します。')
     const project = setUpIssueProject()
     writeTree(project.root, { 'a.md': taskFile('先頭', 'attributes:', '  - name: Area', '    value: web', '  - name: Effort', '    value: big') })
     const github = await startGithub([linkedRepositories(), ...definitionRules()])
@@ -207,6 +215,7 @@ describe('issue check', () => {
 
   it('フロントマターの lane がボードの pecot-lane の選択肢に無いとき、取りうる値を error の行に出し、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-ISSUE-CHECK-05')
+    await explains('`issue check` の `lane` の検証のテストです。フロントマターの `lane` が `pecot-lane` の選択肢と一致しない場合に、取りうる値を示すエラーを出力して終了コード 1 で終わることを確認します。')
     const project = setUpIssueProject()
     writeTree(project.root, { 'a.md': taskFile('先頭', 'lane: web') })
     const github = await startGithub([linkedRepositories(), ...definitionRules({ fields: BOARD_FIELDS_WITH_LANE })])
@@ -221,6 +230,7 @@ describe('issue check', () => {
 
   it('ボードに pecot-lane が無いとき、フロントマターの lane を error にせず、warning の行を出して表を出す', async (context) => {
     await verifies(context, 'PW-ISSUE-CHECK-06')
+    await explains('`issue check` の `lane` の検証のテストです。ボードが `pecot-lane` を持たない場合に、フロントマターの `lane` をエラーにせず、warning を出力して表を出力することを確認します。')
     const project = setUpIssueProject()
     writeTree(project.root, { 'a.md': taskFile('先頭', 'lane: web') })
     await startGithub([linkedRepositories(), ...definitionRules()])
@@ -233,6 +243,7 @@ describe('issue check', () => {
 
   it('ファイルの引数が無いとき、終了コード 2 で終わる', async (context) => {
     await verifies(context, 'PW-ISSUE-CHECK-03')
+    await explains('`issue check` の引数の検証のテストです。ファイルの引数を省略した場合に、終了コード 2 で終わり、標準出力には何も出力しないことを確認します。')
     setUpIssueProject()
 
     const result = await check()
@@ -243,6 +254,7 @@ describe('issue check', () => {
 
   describe('MCP の data', () => {
     it('ファイルを渡すと、進め方の表の行とスタックできる並びを data に返す', async () => {
+      await explains('MCP ツール `issue_check` の結果のテストです。ファイルを渡した場合に、進め方の表の行（`plan`）と `stackableChains` を返すことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': taskFile('先頭', PARENT),
@@ -265,6 +277,7 @@ describe('issue check', () => {
     })
 
     it('files が空なら、invalid-input を返す', async () => {
+      await explains('MCP ツール `issue_check` の引数の検証のテストです。`files` が空の場合に、`kind` が `invalid-input` の失敗を返すことを確認します。')
       setUpIssueProject()
 
       const outcome = await checkTool({ files: [] })

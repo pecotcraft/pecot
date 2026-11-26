@@ -31,6 +31,7 @@ import { attachOutput } from '../../../../../libs/interface-spec/src/vitest/atta
 import { ALLOWLIST } from '../../src/domain/allowlist.js'
 import { MCP_SERVER_NAME } from '../../src/mcp/server.js'
 import { loadVersionFromPluginJson } from '../../src/version.js'
+import { explains } from '../../tests/_helpers/explains.js'
 
 /**
 SDK の request timeout。既定の 60s だと hang したときに it の timeout まで待たされる。
@@ -218,7 +219,8 @@ beforeAll(() => {
 })
 
 describe('pecot-tools-mcp (stdio)', () => {
-  it('initialize が成功し serverInfo が MCP サーバ名 + plugin.json の版数を返す', async () => {
+  it('initialize が成功し、serverInfo がサーバ名と plugin.json の版を返す', async () => {
+    await explains('`dist/main.js` を引数なしで実際のプロセスとして起動し、標準入出力（stdio）で通信するテストです。クライアントを接続した場合に、`serverInfo` の名前が `MCP_SERVER_NAME`、版が `plugin.json` の版と一致し、transport のエラーがないことを確認します。')
     const transport = makeTransport()
     const readStderr = drainStderr(transport.stderr)
     const transportErrors: Readonly<Error>[] = []
@@ -243,7 +245,8 @@ describe('pecot-tools-mcp (stdio)', () => {
     }
   }, 30_000)
 
-  it('tools/list が契約表の 24 件を表の順で返す', async () => {
+  it('tools/list は、契約表の 24 件のツールを表の順に返す', async () => {
+    await explains('`dist/main.js` を引数なしで実際のプロセスとして起動し、標準入出力（stdio）で通信するテストです。`tools/list` のツール名が、SSO の 2 件、許可リストのツール名の順に並ぶことを確認します。')
     const transport = makeTransport()
     const readStderr = drainStderr(transport.stderr)
     const client = new AttachingClient({ name: 'pecot-tools-e2e', version: '0.0.0' })
@@ -262,6 +265,7 @@ describe('pecot-tools-mcp (stdio)', () => {
 
   it('npx と同じ node_modules/.bin の symlink から cli 外の cwd で起動しても、plugin.json の版数で応える', async () => {
     // 直接起動の判定が argv[1] を realpath に揃えないと、サーバが起動せず無応答で終わる。
+    await explains('`node_modules/.bin` のシンボリックリンク経由で `pecot-tools-mcp` を起動するテストです。`cli` の外のディレクトリで起動した場合に、サーバが応答し、`serverInfo` の版が `plugin.json` の版と一致することを確認します。')
     const linkRoot = mkdtempSync(path.join(tmpdir(), 'pecot-tools-e2e-bin-'))
     const binDirectory = path.join(linkRoot, 'node_modules', '.bin')
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- mkdtemp で作った一時ディレクトリの配下
@@ -289,6 +293,7 @@ describe('pecot-tools-mcp (stdio)', () => {
 
   it('mcp を付けて起動しても引数を読まずに MCP のサーバとして tools/list に応える', async () => {
     // `pecot-tools-mcp mcp` と書いた登録も、そのまま動かすため。
+    await explains('`pecot-tools-mcp` に引数 `mcp` を付けて起動するテストです。引数を読まずに MCP のサーバとして起動し、`tools/list` がツール名の一覧を返すことを確認します。')
     const transport = makeTransport({}, { extraArguments: ['mcp'] })
     const readStderr = drainStderr(transport.stderr)
     const client = new AttachingClient({ name: 'pecot-tools-e2e', version: '0.0.0' })
@@ -305,9 +310,10 @@ describe('pecot-tools-mcp (stdio)', () => {
     }
   }, 30_000)
 
-  it('偽 awscli を PATH に置くと tools/call が実行結果を返す', async () => {
+  it('偽の awscli を PATH に置いて tools/call を呼び出すと、実行結果を返す', async () => {
     // 実プロセス越しに「引数の組み立て → 子プロセス起動 → 応答の structuredContent」までを 1 度通す。
     // 偽 awscli は bash スクリプトなので、PATH には node と coreutils も残す。
+    await explains('`dist/main.js` を引数なしで実際のプロセスとして起動し、標準入出力（stdio）で通信するテストです。偽の awscli で `aws_sts_get_caller_identity` を呼び出した場合は、`isError` が未設定で、`Account` が含まれ、`ok` は含まれないことを確認します。')
     const fake = fakeAwsEnvironment()
     const transport = makeTransport({ ...fake.env, PATH: fakeAwsPath() })
     const readStderr = drainStderr(transport.stderr)
@@ -330,11 +336,12 @@ describe('pecot-tools-mcp (stdio)', () => {
     }
   }, 30_000)
 
-  it('入れ子配列の引数が JSON-RPC 境界を越えて awscli の argv になる', async () => {
+  it('入れ子の配列の引数は、JSON-RPC の通信を経由しても、awscli の引数として 1 つの JSON になる', async () => {
     // dimensions（オブジェクトの配列）と statistics（列挙の配列）は、InMemoryTransport では
     // 素の JS オブジェクトのまま渡ってしまう。実プロセス越しに JSON へ直列化しても
     // JSON の 1 トークンに畳まれることを、呼び出し記録の argv で見る。
     // filters（list: true の項目を持つ要素）も同じ境界を越えるので 2 回目に呼ぶ。
+    await explains('`dist/main.js` を引数なしで実際のプロセスとして起動し、標準入出力（stdio）で通信するテストです。`dimensions` や `filters` のような入れ子の配列を持つ引数でツールを呼び出した場合は、それぞれが awscli へ JSON の 1 つの引数として渡されることを確認します。')
     const fake = fakeAwsEnvironment()
     const transport = makeTransport({ ...fake.env, PATH: fakeAwsPath() })
     const readStderr = drainStderr(transport.stderr)
@@ -402,9 +409,10 @@ describe('pecot-tools-mcp (stdio)', () => {
     }
   }, 30_000)
 
-  it('2026-07-28 で接続し、tools/list と tools/call が通る', async () => {
+  it('プロトコルの版 2026-07-28 で接続しても、tools/list と tools/call が成功する', async () => {
     // 既定の Client は 2025 系で握手する。serveStdio は 2026-07-28 の開幕 (server/discover) にも
     // 応答するので、実プロセス越しにこちらの世代でも一覧と呼び出しが通ることを固定する。
+    await explains('`dist/main.js` を引数なしで実際のプロセスとして起動し、標準入出力（stdio）で通信するテストです。版を `2026-07-28` に固定して接続した場合は、ネゴシエーションした版が `2026-07-28` になり、`tools/call` が成功することを確認します。')
     const fake = fakeAwsEnvironment()
     const transport = makeTransport({ ...fake.env, PATH: fakeAwsPath() })
     const readStderr = drainStderr(transport.stderr)
@@ -439,10 +447,11 @@ describe('pecot-tools-mcp (stdio)', () => {
     }
   }, 30_000)
 
-  it.each(ERA_CASES)('tools/call の実行中にクライアントがキャンセルすると awscli の子が終わり、次の呼び出しに応える [%s]', async (_label, pinned) => {
+  it.each(ERA_CASES)('tools/call の実行中にクライアントがキャンセルすると、awscli のプロセスが終了し、次の呼び出しに応答する [%s]', async (_label, pinned) => {
     // キャンセルは notifications/cancelled で ctx.mcpReq.signal を abort し、runAwscli が子を落とす。
     // 偽 awscli は FAKE_AWS_HANG で SIGTERM まで居座る。子が消えれば、キャンセルが届いたと分かる。
     // 続く呼び出しは awscli を起動しない aws_sso_login_status で、サーバが生きて応答することを見る。
+    await explains('`dist/main.js` を引数なしで実際のプロセスとして起動し、標準入出力（stdio）で通信するテストです。終了しない awscli の実行中にクライアントがキャンセルした場合は、awscli のプロセスが終了し、続く呼び出しに `invalid-input` で応答することを確認します。')
     const fake = fakeAwsEnvironment({ hang: true })
     const transport = makeTransport({ ...fake.env, PATH: fakeAwsPath() })
     const readStderr = drainStderr(transport.stderr)
@@ -485,9 +494,10 @@ describe('pecot-tools-mcp (stdio)', () => {
     }
   }, 30_000)
 
-  it('SIGTERM で exit 143 になり stdout は JSON-RPC のまま', async () => {
+  it('SIGTERM を受けると、終了コード 143 で終了し、標準出力は JSON-RPC だけになる', async () => {
     // MCP クライアントが子プロセスを終わらせるときの動作。後始末を配線した以上、既定の即終了は
     // 無効になっている。そこで、明示的に 143 で終わることを固定する。
+    await explains('`dist/main.js` を引数なしで実際のプロセスとして起動し、標準入出力（stdio）で通信するテストです。`initialize` の応答の後に `SIGTERM` を送った場合に、終了コードが `143` で、標準出力のすべての行が JSON-RPC のメッセージであることを確認します。')
     const server = spawnRawServer()
 
     server.send(INITIALIZE_REQUEST)
@@ -501,9 +511,10 @@ describe('pecot-tools-mcp (stdio)', () => {
     expectJsonRpcOnly(server.stdout())
   }, 30_000)
 
-  it('tools/call の実行中に SIGTERM を受けると awscli の子プロセスも落とす', async () => {
+  it('tools/call の実行中に SIGTERM を受けると、awscli のプロセスも終了する', async () => {
     // 後始末を配線しないと、親が 143 で終わっても、awscli の子は PPID 1 へ付け替えられて残る。
     // 120 秒 timeout を張っていた親が居なくなるため、長い呼び出しが野放しになる。
+    await explains('`dist/main.js` を引数なしで実際のプロセスとして起動し、標準入出力（stdio）で通信するテストです。終了しない awscli を実行中に `SIGTERM` を送った場合に、サーバが終了コード `143` で終了し、awscli のプロセスも終了することを確認します。')
     const fake = fakeAwsEnvironment({ hang: true })
     const server = spawnRawServer({ ...fake.env, PATH: fakeAwsPath() })
 
@@ -541,7 +552,8 @@ describe('pecot-tools-mcp (stdio)', () => {
     }
   }, 30_000)
 
-  it('client.close() で SIGTERM 待ちに入らず自力終了する', async () => {
+  it('client.close() を呼ぶと、SIGTERM を待たずにサーバが自力で終了する', async () => {
+    await explains('`dist/main.js` を引数なしで実際のプロセスとして起動し、標準入出力（stdio）で通信するテストです。接続後に `client.close()` を呼んだ場合に、2000 ミリ秒未満で返り、サーバのプロセスが回収されることを確認します。')
     const transport = makeTransport()
     const readStderr = drainStderr(transport.stderr)
     const client = new AttachingClient({ name: 'pecot-tools-e2e', version: '0.0.0' })
@@ -560,9 +572,10 @@ describe('pecot-tools-mcp (stdio)', () => {
     expect(typeof pid === 'number' && isReaped(pid)).toBe(true)
   }, 30_000)
 
-  it('SSO ログインの待機中に SIGTERM を受けると認証の子プロセスも落とす', async () => {
+  it('SSO ログインの待機中に SIGTERM を受けると、認証の awscli のプロセスも終了する', async () => {
     // aws_sso_login は URL とコードを返した後も子を生かす（2 段構成）。後始末を配線しないと、
     // サーバが 143 で終わった後も、子が PPID 1 へ付け替えられて最長 10 分動き続ける。
+    await explains('`dist/main.js` を引数なしで実際のプロセスとして起動し、標準入出力（stdio）で通信するテストです。`aws_sso_login` の応答の後に `SIGTERM` を送った場合に、サーバが終了コード `143` で終了し、待機中の `sso login` のプロセスも終了することを確認します。')
     const fake = fakeAwsEnvironment({ hang: true })
     const server = spawnRawServer({ ...fake.env, PATH: fakeAwsPath() })
 
@@ -605,9 +618,10 @@ describe('pecot-tools-mcp (stdio)', () => {
     }
   }, 30_000)
 
-  it('SSO ログインの待機中でも stdin の EOF で自力終了し子を残さない', async () => {
+  it('SSO ログインの待機中でも、標準入力が終端に達するとサーバが自力で終了し、awscli のプロセスを残さない', async () => {
     // client.close() は SDK Client 越しで、パースされた JSON-RPC しか見えず stdout 汚染を
     // 検知できない。SIGTERM 側（spawnRawServer）と対称にし、生 stdout で判定する。
+    await explains('`dist/main.js` を引数なしで実際のプロセスとして起動し、標準入出力（stdio）で通信するテストです。`aws_sso_login` の応答の後に標準入力を閉じた場合に、2000 ミリ秒未満で終了コード `0` で終了し、待機中のプロセスも終了することを確認します。')
     const fake = fakeAwsEnvironment({ hang: true })
     const server = spawnRawServer({ ...fake.env, PATH: fakeAwsPath() })
 
@@ -660,7 +674,8 @@ describe('pecot-tools-mcp (stdio)', () => {
     }
   }, 30_000)
 
-  it('stdout に JSON-RPC 以外を含まない', async () => {
+  it('標準出力には、JSON-RPC 以外の出力を含めない', async () => {
+    await explains('`dist/main.js` を引数なしで実際のプロセスとして起動し、標準入出力（stdio）で通信するテストです。`initialize` と `tools/list` を送って標準入力を閉じた場合に、終了コードが `0` で、標準出力のすべての行が JSON-RPC のメッセージであることを確認します。')
     const server = spawnRawServer()
 
     let exitCode: number | undefined
@@ -682,8 +697,9 @@ describe('pecot-tools-mcp (stdio)', () => {
     expectJsonRpcOnly(server.stdout())
   }, 30_000)
 
-  it('不正な JSON 行と未知ツール呼び出しでも stdout は JSON-RPC のまま 0 終了する', async () => {
+  it('不正な JSON の行と未知のツールの呼び出しがあっても、標準出力は JSON-RPC だけのまま、終了コード 0 で終了する', async () => {
     // 異常入力の報告先は stderr のみ。stdout に診断行が漏れると、クライアントが解析に失敗する。
+    await explains('`dist/main.js` を引数なしで実際のプロセスとして起動し、標準入出力（stdio）で通信するテストです。不正な行と存在しないツールの呼び出しを送った場合は、標準出力が JSON-RPC だけになり、未知のツールには `-32602` を返し、終了コードが `0` であることを確認します。')
     const server = spawnRawServer()
 
     let exitCode: number | undefined
@@ -729,9 +745,10 @@ describe('pecot-tools-mcp (stdio)', () => {
     ).toHaveLength(1)
   }, 30_000)
 
-  it('server/discover に続けて同じ接続で initialize を送っても、2025 系で応答して tools/call まで通る', async () => {
+  it('server/discover の後に同じ接続で initialize を送ると、2025 系の版で応答し、tools/call まで成功する', async () => {
     // Claude Code は discover の待ち時間を超えると、同じ接続へ initialize を送り直す。
     // 2026-07-28 の探査から 2025 系の握手へ切り替わる流れで、単体配布の初回起動で実際に起きる。
+    await explains('`dist/main.js` を引数なしで実際のプロセスとして起動し、標準入出力（stdio）で通信するテストです。`server/discover` に応答した後、同じ接続へ `initialize` を送った場合に、最新の 2025 系の版で応答し、続く `tools/call` が成功することを確認します。')
     const fake = fakeAwsEnvironment()
     const server = spawnRawServer({ ...fake.env, PATH: fakeAwsPath() })
     const clientInfo = { name: 'pecot-tools-e2e-raw', version: '0.0.0' }

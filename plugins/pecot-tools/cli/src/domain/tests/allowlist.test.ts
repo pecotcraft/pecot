@@ -7,6 +7,7 @@ import {
   REGION_INPUT,
   type AllowlistEntry,
 } from '../allowlist.js'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 const ENTRY: AllowlistEntry = {
   toolName: 'aws_sts_get_caller_identity',
@@ -51,30 +52,36 @@ const CONTRACT_ORDER: readonly string[] = [
 ]
 
 describe('findAllowlistEntry', () => {
-  it('注入したエントリからツール名で引ける', () => {
+  it('許可リストとして渡したエントリを、ツール名で検索できる', async () => {
+    await explains('許可リストからツール名でエントリを検索する `findAllowlistEntry` のテストです。第 2 引数としてエントリの一覧を渡した場合は、`aws_sts_get_caller_identity` のエントリが返されることを確認します。')
     expect(findAllowlistEntry('aws_sts_get_caller_identity', [ENTRY])).toBe(ENTRY)
   })
 
-  it('注入したエントリに無いツール名は undefined', () => {
+  it('渡した許可リストに存在しないツール名を検索すると、undefined を返す', async () => {
+    await explains('許可リストからツール名でエントリを検索する `findAllowlistEntry` のテストです。渡したエントリの一覧に存在しないツール名を指定した場合に、`undefined` を返すことを確認します。')
     expect(findAllowlistEntry('aws_lambda_list_functions', [ENTRY])).toBeUndefined()
   })
 
-  it('引数 1 つの呼び出しは ALLOWLIST を参照する', () => {
+  it('ツール名だけを渡して検索すると、組み込みの許可リスト ALLOWLIST から検索する', async () => {
+    await explains('許可リストからツール名でエントリを検索する `findAllowlistEntry` のテストです。ツール名だけを渡した場合に、`aws_sts_get_caller_identity` のエントリが返り、存在しない `aws_sso_login` では `undefined` が返ることを確認します。')
     expect(findAllowlistEntry('aws_sts_get_caller_identity')?.service).toBe('sts')
     expect(findAllowlistEntry('aws_sso_login')).toBeUndefined()
   })
 })
 
 describe('ALLOWLIST', () => {
-  it('awscli コマンドの 24 件を契約表の順で並べる（SSO は許可リスト外）', () => {
+  it('ALLOWLIST は、awscli コマンドの 24 件を契約表の順に並べ、SSO のツールを含めない', async () => {
+    await explains('許可するツールの一覧 `ALLOWLIST` のテストです。ツール名の並びが、契約表（`contracts/mcp-tools.md`）の awscli コマンドの 24 件と同じ順序で一致することを確認します。')
     expect(ALLOWLIST.map(entry => entry.toolName)).toEqual(CONTRACT_ORDER)
   })
 
-  it('ツール名が一意', () => {
+  it('ALLOWLIST のツール名は、重複しない', async () => {
+    await explains('許可するツールの一覧 `ALLOWLIST` のテストです。すべてのエントリのツール名が重複せず、ツール名の種類の数がエントリの数と一致することを確認します。')
     expect(new Set(ALLOWLIST.map(entry => entry.toolName)).size).toBe(ALLOWLIST.length)
   })
 
-  it('ツール名は aws_<service>_<subcommand> で、入力名に aws を含めない', () => {
+  it('ALLOWLIST のツール名は aws_<service>_<subcommand> の形で、入力名に aws を含まない', async () => {
+    await explains('許可するツールの一覧 `ALLOWLIST` のテストです。すべてのエントリで、ツール名が `aws_<service>_<subcommand>`（サブコマンドのハイフンはアンダースコア）と一致し、入力名に `aws` が含まれないことを確認します。')
     // 接頭辞 aws_ は「どの CLI を包んだツールか」を名前で示す。aws 以外の CLI を足すときは
     // 別の接頭辞で同居させる。入力名は AWS API のパラメータ名を写すので aws は現れない。
     for (const entry of ALLOWLIST) {
@@ -84,7 +91,8 @@ describe('ALLOWLIST', () => {
     }
   })
 
-  it('必須入力と位置引数の宣言が矛盾しない', () => {
+  it('ALLOWLIST の位置引数は、0 から始まる連番で宣言する', async () => {
+    await explains('許可するツールの一覧 `ALLOWLIST` のテストです。すべてのエントリで、位置引数の位置が 0 から始まる連番になっていることを確認します。')
     for (const entry of ALLOWLIST) {
       const positions = entry.inputs
         .map(input => input.positional)
@@ -95,7 +103,8 @@ describe('ALLOWLIST', () => {
     }
   })
 
-  it('shorthand の項目は同じエントリの入力を指す', () => {
+  it('shorthand の入力は、同じエントリに存在する入力だけを構成要素として参照する', async () => {
+    await explains('許可するツールの一覧 `ALLOWLIST` のテストです。種類が `shorthand` の入力のすべてで、構成要素が空でなく、参照先の入力名が同じエントリに存在することを確認します。')
     for (const entry of ALLOWLIST) {
       const names = new Set(entry.inputs.map(input => input.name))
       const shorthandInputs = entry.inputs.filter(candidate => candidate.kind === 'shorthand')
@@ -109,7 +118,8 @@ describe('ALLOWLIST', () => {
     }
   })
 
-  it('shorthand-list は elements と awsFlag を持ち parts を持たない', () => {
+  it('shorthand-list の入力は、elements と awsFlag を持ち、parts を持たない', async () => {
+    await explains('許可するツールの一覧 `ALLOWLIST` のテストです。種類が `shorthand-list` の入力のすべてで、`elements` と `awsFlag` が定義され、`parts` が定義されていないことを確認します。')
     // shorthand（合成項目）と違い、利用者がオブジェクトの配列で直接指定する入力。
     // 項目の宣言先が parts のままだと組み立てが空振りする。
     for (const entry of ALLOWLIST) {
@@ -122,7 +132,8 @@ describe('ALLOWLIST', () => {
     }
   })
 
-  it('exclusive に挙げた入力名が実在する', () => {
+  it('exclusive に指定した入力名は、同じエントリに存在する', async () => {
+    await explains('許可するツールの一覧 `ALLOWLIST` のテストです。すべてのエントリで、`exclusive` のグループに挙げた入力名が、同じエントリの入力に存在することを確認します。')
     for (const entry of ALLOWLIST) {
       const names = new Set(entry.inputs.map(input => input.name))
       const exclusiveGroups = entry.exclusive ?? []
@@ -132,7 +143,8 @@ describe('ALLOWLIST', () => {
     }
   })
 
-  it('高レベル s3 コマンドだけが JSON 出力を持たない', () => {
+  it('JSON 出力を持たないツールは、高レベル s3 コマンドの aws_s3_ls だけになる', async () => {
+    await explains('許可するツールの一覧 `ALLOWLIST` のテストです。`jsonOutput` が偽のエントリが、`aws_s3_ls` だけであることを確認します。')
     const withoutJson = ALLOWLIST.filter(entry => !entry.jsonOutput).map(entry => entry.toolName)
 
     expect(withoutJson).toEqual(['aws_s3_ls'])
@@ -140,14 +152,16 @@ describe('ALLOWLIST', () => {
 })
 
 describe('共通入力', () => {
-  it('profile は英数字と _ . - を受け、それ以外を弾く', () => {
+  it('profile の入力は、英数字と _ . - を受け付け、それ以外の文字を拒否する', async () => {
+    await explains('全ツールに共通の入力 `PROFILE_INPUT` のテストです。`dev-account.1` は受け付け、空白を含む `dev account` は拒否し、フラグが `--profile` で必須でないことを確認します。')
     expect(PROFILE_INPUT.pattern?.test('dev-account.1')).toBe(true)
     expect(PROFILE_INPUT.pattern?.test('dev account')).toBe(false)
     expect(PROFILE_INPUT.awsFlag).toBe('--profile')
     expect(PROFILE_INPUT.required).toBe(false)
   })
 
-  it('region は AWS のリージョン表記だけを受ける', () => {
+  it('region の入力は、AWS のリージョン表記だけを受け付ける', async () => {
+    await explains('全ツールに共通の入力 `REGION_INPUT` のテストです。`ap-northeast-1` や先頭が 4 文字の `eusc-de-east-1` は受け付け、`tokyo` のような不正な表記は拒否し、フラグが `--region` であることを確認します。')
     expect(REGION_INPUT.pattern?.test('ap-northeast-1')).toBe(true)
     expect(REGION_INPUT.pattern?.test('us-gov-west-1')).toBe(true)
     // European Sovereign Cloud は先頭が 4 文字。2 文字固定だと入力検証エラーで弾かれる。

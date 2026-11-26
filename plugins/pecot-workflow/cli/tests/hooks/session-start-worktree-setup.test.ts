@@ -12,6 +12,7 @@ import { gitOrThrow, gitRepository } from './_helpers/git.js'
 import { runHookEntry } from './_helpers/run.js'
 import type { RunResult } from './_helpers/run.js'
 import { readOutput } from '../../../../../libs/interface-spec/src/vitest/attach.js'
+import { explains } from '../_helpers/explains.js'
 
 const ENTRY = 'session-start-worktree-setup.sh'
 const COUNT_FILE = 'setup-count.txt'
@@ -52,7 +53,8 @@ function runCount(directory: string): number {
 }
 
 describe('session-start-worktree-setup.sh', () => {
-  it('.claude/worktrees/<name> の最初のセッション開始で、worktree のルートで setup を流し、印を置く', () => {
+  it('.claude/worktrees/<name> の最初のセッション開始で、worktree のルートで setup を流し、印を置く', async () => {
+    await explains('`session-start-worktree-setup.sh` のテストです。`.claude/worktrees/<name>` で最初にセッションを開始した場合に、worktree のルートで setup を実行し、完了の印を置くことを確認します。')
     const hookCase = createHookCase()
     hooksConfig(hookCase)
     const { worktree } = claudeWorktree(hookCase, COUNTING_CONFIG)
@@ -65,7 +67,8 @@ describe('session-start-worktree-setup.sh', () => {
     expect(existsSync(gitPath(hookCase, worktree, 'pecot-worktree-setup'))).toBe(true)
   })
 
-  it('印があると、もう一度は流さない', () => {
+  it('印があると、もう一度は流さない', async () => {
+    await explains('`session-start-worktree-setup.sh` のテストです。完了の印がすでにある worktree で 2 回目のセッションを開始した場合に、setup を再び実行せず、何も出力しないことを確認します。')
     const hookCase = createHookCase()
     hooksConfig(hookCase)
     const { worktree } = claudeWorktree(hookCase, COUNTING_CONFIG)
@@ -78,7 +81,8 @@ describe('session-start-worktree-setup.sh', () => {
     expect(runCount(worktree)).toBe(1)
   })
 
-  it('setup が失敗すると、印を置かずに warning とログのパスを出し、次のセッション開始でもう一度流す', () => {
+  it('setup が失敗すると、印を置かずに warning とログのパスを出し、次のセッション開始でもう一度流す', async () => {
+    await explains('`session-start-worktree-setup.sh` のテストです。setup が失敗した場合は、印を置かず、警告とログのパスを出力し、次のセッション開始で setup を再び実行することを確認します。')
     const hookCase = createHookCase()
     hooksConfig(hookCase)
     const { worktree } = claudeWorktree(hookCase, { setup_command: `${COUNTING_SETUP}; echo broken >&2; exit 3` })
@@ -96,7 +100,8 @@ describe('session-start-worktree-setup.sh', () => {
     expect(runCount(worktree)).toBe(2)
   })
 
-  it('setup_command_timeout を超えると、打ち切って印を置かずに warning を出す', () => {
+  it('setup_command_timeout を超えると、打ち切って印を置かずに warning を出す', async () => {
+    await explains('`session-start-worktree-setup.sh` のテストです。setup が `setup_command_timeout` を超えた場合に、実行を打ち切り、印を置かずに警告を出力することを確認します。')
     const hookCase = createHookCase()
     hooksConfig(hookCase)
     const { worktree } = claudeWorktree(hookCase, { setup_command: 'sleep 5', setup_command_timeout: 1 })
@@ -110,7 +115,8 @@ describe('session-start-worktree-setup.sh', () => {
   it.for([
     { name: 'setup_command_timeout が無い', config: { setup_command: 'sleep 5' } },
     { name: 'setup_command_timeout がフックの上限より長い', config: { setup_command: 'sleep 5', setup_command_timeout: 1000 } },
-  ])('$name と、フックの上限で打ち切って warning を出す', ({ config }) => {
+  ])('$name と、フックの上限で打ち切って warning を出す', async ({ config }) => {
+    await explains('`session-start-worktree-setup.sh` のテストです。`setup_command_timeout` が無い場合と、フックの上限より長い場合に、フックの上限の秒数で setup を打ち切り、警告を出力することを確認します。')
     const hookCase = createHookCase()
     hooksConfig(hookCase)
     const { worktree } = claudeWorktree(hookCase, config)
@@ -126,7 +132,8 @@ describe('session-start-worktree-setup.sh', () => {
     expect(existsSync(gitPath(hookCase, worktree, 'pecot-worktree-setup'))).toBe(false)
   })
 
-  it('.claude/worktrees の外のサブ worktree では流さない', () => {
+  it('.claude/worktrees の外のサブ worktree では流さない', async () => {
+    await explains('`session-start-worktree-setup.sh` のテストです。`.claude/worktrees` の外にある worktree でセッションを開始した場合に、setup を実行せず、何も出力しないことを確認します。')
     const hookCase = createHookCase()
     hooksConfig(hookCase)
     const main = gitRepository(hookCase, 'main')
@@ -140,7 +147,8 @@ describe('session-start-worktree-setup.sh', () => {
     expect(runCount(worktree)).toBe(0)
   })
 
-  it('main worktree では流さない', () => {
+  it('main worktree では流さない', async () => {
+    await explains('`session-start-worktree-setup.sh` のテストです。main の worktree でセッションを開始した場合に、setup を実行せず、何も出力しないことを確認します。')
     const hookCase = createHookCase()
     hooksConfig(hookCase)
     const { main } = claudeWorktree(hookCase, COUNTING_CONFIG)
@@ -151,7 +159,8 @@ describe('session-start-worktree-setup.sh', () => {
     expect(runCount(main)).toBe(0)
   })
 
-  it('compact のセッション開始では流さない', () => {
+  it('compact のセッション開始では流さない', async () => {
+    await explains('`session-start-worktree-setup.sh` のテストです。`source` が `compact` のセッション開始の場合に、setup を実行せず、何も出力しないことを確認します。')
     const hookCase = createHookCase()
     hooksConfig(hookCase)
     const { worktree } = claudeWorktree(hookCase, COUNTING_CONFIG)
@@ -162,7 +171,8 @@ describe('session-start-worktree-setup.sh', () => {
     expect(runCount(worktree)).toBe(0)
   })
 
-  it('worktree-config.json に setup_command が無いと、何もしない', () => {
+  it('worktree-config.json に setup_command が無いと、何もしない', async () => {
+    await explains('`session-start-worktree-setup.sh` のテストです。`worktree-config.json` に `setup_command` が無い場合に、何も実行せず、印も置かないことを確認します。')
     const hookCase = createHookCase()
     hooksConfig(hookCase)
     const { worktree } = claudeWorktree(hookCase, {})
@@ -173,7 +183,8 @@ describe('session-start-worktree-setup.sh', () => {
     expect(existsSync(gitPath(hookCase, worktree, 'pecot-worktree-setup'))).toBe(false)
   })
 
-  it('hooks-config.json で worktree-setup を切ると、流さない', () => {
+  it('hooks-config.json で worktree-setup を切ると、流さない', async () => {
+    await explains('`session-start-worktree-setup.sh` のテストです。`hooks-config.json` で `worktree-setup` を `false` にした場合は、setup を実行せず、何も出力しないことを確認します。')
     const hookCase = createHookCase()
     hooksConfig(hookCase).write({ 'worktree-setup': false })
     const { worktree } = claudeWorktree(hookCase, COUNTING_CONFIG)

@@ -116,6 +116,7 @@ def _affected(nx_bin: Path, cwd: Path, *args: str, nx_state: Path | None = None)
 # -----------------------------------------------------------------------------
 
 
+@allure.title("{changed_file} を変更しても、どの project も affected にならない")
 @pytest.mark.parametrize(
     "changed_file",
     [
@@ -125,10 +126,14 @@ def _affected(nx_bin: Path, cwd: Path, *args: str, nx_state: Path | None = None)
     ],
 )
 def test_outside_project_file_affects_nothing(nx_bin: Path, changed_file: str) -> None:
+    """実際の nx を使った、ファイルと project の対応のテストです。project の外にあるルートの lockfile を変更したときに、`nx show projects --affected` が空の一覧を返すことを確認します。"""
     with allure.step("project の外のファイルの変更が、どの project にも届かないことを確かめる"):
         assert _affected(nx_bin, _REPO_ROOT, f"--files={changed_file}") == []
 
 
+@allure.title(
+    "プラグインの外の {changed_file} を変更すると、ルートの project だけが affected になる"
+)
 @pytest.mark.parametrize(
     "changed_file",
     [
@@ -145,13 +150,14 @@ def test_outside_project_file_affects_nothing(nx_bin: Path, changed_file: str) -
 def test_outside_project_file_affects_only_the_root_project(
     nx_bin: Path, changed_file: str
 ) -> None:
-    """プラグインの外のファイルは、root の project（pecot）だけに属する。pecot はレーンの target を持たない (#113)。"""
+    """実際の nx を使った、ファイルと project の対応のテストです。`.markdownlint-cli2.jsonc` など、プラグインの外にあるファイルを変更した場合に、affected になる project がルートの `pecot` だけであることを確認します。"""
     with allure.step("project の外のファイルの変更が、root の project だけに届くことを確かめる"):
         assert _affected(nx_bin, _REPO_ROOT, f"--files={changed_file}") == ["pecot"]
 
 
+@allure.title("nx が認識する project の集合は、期待する 9 件と一致する")
 def test_project_set_is_the_expected_one(nx_bin: Path) -> None:
-    """project の集合を pin する。入れ子のメンバーが独立した project になると、レーンの選択が崩れる (#113)。"""
+    """実際の nx が認識する project の一覧のテストです。入れ子になったメンバーが独立した project にならず、`nx show projects` の結果が期待する集合と一致することを確認します。"""
     with allure.step("nx show projects を動かす"):
         result = run_attached(
             [str(nx_bin), "show", "projects", "--json"],
@@ -166,6 +172,7 @@ def test_project_set_is_the_expected_one(nx_bin: Path) -> None:
         assert set(json.loads(result.stdout.strip().splitlines()[-1])) == _EXPECTED_PROJECTS
 
 
+@allure.title("{changed_file} を変更すると、そのソースを持つ project が affected になる")
 @pytest.mark.parametrize(
     ("changed_file", "expected"),
     _lane_cases(
@@ -181,6 +188,7 @@ def test_project_set_is_the_expected_one(nx_bin: Path) -> None:
 def test_plugin_source_affects_own_projects(
     nx_bin: Path, changed_file: str, expected: frozenset[str]
 ) -> None:
+    """プラグインやライブラリのソースを変更した場合のテストです。`nx show projects --affected` の結果に、そのソースを持つ project が含まれることを確認します。`workflow-core` の変更では、依存する `pecot-workflow` も含まれます。"""
     with allure.step("代表ファイルが実在し、変更が自分の project に届くことを確かめる"):
         # 存在しないパスを --files に渡すと、nx は何も言わずに [] を返す。
         # そのため代表ファイルの移動や改名は、「affected が空」ではなく明示的な失敗として出す。
@@ -188,14 +196,16 @@ def test_plugin_source_affects_own_projects(
         assert expected <= set(_affected(nx_bin, _REPO_ROOT, f"--files={changed_file}"))
 
 
+@allure.title("nx.json を変更すると、すべての project が affected になる")
 def test_nx_json_still_affects_all_projects(nx_bin: Path) -> None:
-    """nx.json は sharedGlobals に残す設計。全 project 発火が生きていることを pin する。"""
+    """`nx.json` を変更した場合のテストです。`nx.json` は共通の入力に含める設計のため、`pecot-workflow` や `pecot-visual` など、主要な project がすべて affected になることを確認します。"""
     with allure.step("nx.json の変更で affected を調べる"):
         affected = set(_affected(nx_bin, _REPO_ROOT, "--files=nx.json"))
     with allure.step("全プラグインの project に届くことを確かめる"):
         assert {"pecot-workflow", "pecot-visual", "pecot-tools", "text-rules"} <= affected
 
 
+@allure.title("{changed_file} を変更すると、すべての project が affected になる")
 @pytest.mark.parametrize(
     "changed_file",
     [
@@ -206,7 +216,7 @@ def test_nx_json_still_affects_all_projects(nx_bin: Path) -> None:
     ],
 )
 def test_devcontainer_change_affects_all_projects(nx_bin: Path, changed_file: str) -> None:
-    """CI のイメージと起動に関わる .devcontainer のファイルは、sharedGlobals で全 project に届く。"""
+    """CI のイメージや起動に関わる、`.devcontainer` のファイルを変更した場合のテストです。代表ファイルが存在し、主要な project がすべて affected になることを確認します。"""
     with allure.step("代表ファイルが実在することを確かめる"):
         assert (_REPO_ROOT / changed_file).exists(), f"代表ファイルが移動している: {changed_file}"
     with allure.step(
@@ -280,6 +290,7 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
     return lanes
 
 
+@allure.title("{changed_file} は、それを読むレーンの inputs にだけ含まれる")
 @pytest.mark.parametrize(
     ("changed_file", "expected"),
     _lane_cases(
@@ -452,15 +463,12 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
 def test_out_of_lane_input_reruns_only_consumer_lane(
     lane_input_files: dict[str, set[str]], changed_file: str, expected: frozenset[str]
 ) -> None:
-    """レーンのディレクトリ外の入力は、消費者レーンの inputs だけに宣言する設計を pin する（#1080）。
-
-    nx.json の pecotvPluginTestGlobals（pecot-visual 全レーンが共有）へ戻すと、
-    1 ファイルの変更で pecot-visual の全レーンが再実行される。
-    """
+    """レーンのディレクトリの外にあるファイルが、レーンの inputs に含まれるかのテストです。そのファイルを使うレーンだけが inputs に宣言していて、ほかのレーンは再実行されないことを確認します。"""
     with allure.step("レーンの外の入力を、消費者のレーンだけが読むことを確かめる"):
         assert _lanes_reading(lane_input_files, changed_file) == expected
 
 
+@allure.title("{changed_file} を変更すると、pecot-workflow:test-hooks レーンが再実行される")
 @pytest.mark.parametrize(
     "changed_file",
     [
@@ -471,15 +479,12 @@ def test_out_of_lane_input_reruns_only_consumer_lane(
 def test_skill_definition_change_runs_definition_check(
     lane_input_files: dict[str, set[str]], changed_file: str
 ) -> None:
-    """SKILL.md の frontmatter を確かめる test_agent_definitions は、pecot-workflow の hooks レーンが持つ (#1231)。
-
-    skills と pecot-visual の SKILL.md は hooks/ の外にある。
-    レーンの inputs に直接宣言しないと、nx キャッシュが定義の変更を見逃し、確認が行われなくなる。
-    """
+    """`SKILL.md` を変更した場合のテストです。frontmatter を確認する `pecot-workflow:test-hooks` レーンの inputs に、そのファイルが含まれることを確認します。"""
     with allure.step("SKILL.md の変更を、pecot-workflow の hooks レーンが読むことを確かめる"):
         assert "pecot-workflow:test-hooks" in _lanes_reading(lane_input_files, changed_file)
 
 
+@allure.title("{changed_file} を変更すると、pecot-workflow:test-skills レーンが再実行される")
 @pytest.mark.parametrize(
     "changed_file",
     [
@@ -491,11 +496,12 @@ def test_skill_definition_change_runs_definition_check(
 def test_skill_body_change_runs_skills_lane(
     lane_input_files: dict[str, set[str]], changed_file: str
 ) -> None:
-    """スキル・エージェント・hooks テンプレートの本文を確認する test-skills は、本文と COMMANDS の変更で動く (#350)。"""
+    """スキルやエージェントの本文、または `cli.ts` を変更した場合のテストです。本文を確認する `pecot-workflow:test-skills` レーンの inputs に、そのファイルが含まれることを確認します。"""
     with allure.step("スキルの本文の変更を、pecot-workflow の skills レーンが読むことを確かめる"):
         assert "pecot-workflow:test-skills" in _lanes_reading(lane_input_files, changed_file)
 
 
+@allure.title("{changed_file} を変更しても、{release_lane} はキャッシュを再利用する")
 @pytest.mark.parametrize(
     ("changed_file", "release_lane"),
     [
@@ -513,13 +519,7 @@ def test_release_lane_is_cached_and_not_run_by_unrelated_changes(
     changed_file: str,
     release_lane: str,
 ) -> None:
-    """cli/src・SKILL.md・hooks の変更で release レーンはキャッシュから再利用される（#1080）。
-
-    release レーンは配布ツリー用の dist を自前で build するので、cli/src を inputs に入れない。
-    加えてレーンは cache: true なので、inputs に入らない変更では入力ハッシュが変わらない。
-    その場合はキャッシュが再利用される。
-    外部レジストリの状態はハッシュに表せない。その変化は、リリース時の dry-run と監査で拾う。
-    """
+    """`cli/src` や `SKILL.md` などを変更した場合の、release レーンのテストです。そのファイルが release レーンの inputs に含まれず、レーンの `cache` が `true` であることを確認します。"""
     with allure.step("cli/src などの変更を、release レーンが読まないことを確かめる"):
         assert release_lane not in _lanes_reading(lane_input_files, changed_file)
     with allure.step("nx graph を書き出し、release レーンの設定を取り出す"):
@@ -533,6 +533,7 @@ def test_release_lane_is_cached_and_not_run_by_unrelated_changes(
         assert config.get("cache") is True
 
 
+@allure.title("{changed_file} を変更すると、nx-release:test-unit レーンが再実行される")
 @pytest.mark.parametrize(
     "changed_file",
     [
@@ -550,7 +551,7 @@ def test_release_lane_is_cached_and_not_run_by_unrelated_changes(
 def test_nx_release_lane_follows_its_inputs(
     lane_input_files: dict[str, set[str]], changed_file: str
 ) -> None:
-    """`.nx/nx-release` のレーンが nx 更新・リリース設定の変更でも再実行される。"""
+    """nx の本体やリリースの設定を変更した場合のテストです。`.nx/nx-release` の `nx-release:test-unit` レーンの inputs に、そのファイルが含まれることを確認します。"""
     with allure.step("nx の更新と release の設定の変更を、nx-release のレーンが読むことを確かめる"):
         assert "nx-release:test-unit" in _lanes_reading(lane_input_files, changed_file)
 
@@ -569,7 +570,9 @@ def test_nx_release_lane_follows_its_inputs(
 # これを実 nx の task graph で確かめる。
 
 
+@allure.title("pecot-visual のテストのレーンは、共有の install と build-cli のタスクに依存する")
 def test_pecotv_test_lanes_depend_on_shared_install_and_build(tmp_path: Path, nx_bin: Path) -> None:
+    """`pecot-visual` のレーンの、task graph のテストです。すべてのレーンが `install` に依存し、`test-cli` などの dist を読むレーンが `build-cli` にも依存することを確認します。"""
     with allure.step("pecot-visual の test の依存を graph に書き出して集める"):
         graph_file = tmp_path / "graph.json"
         _nx(nx_bin, "run-many", "-t", "test", "-p", "pecot-visual", f"--graph={graph_file}")
@@ -621,7 +624,11 @@ def test_pecotv_test_lanes_depend_on_shared_install_and_build(tmp_path: Path, nx
 # lockfile のように locator の有無で結果が変わるケースは、こちらで pin する。
 
 
+@allure.title(
+    "lockfile だけを変更したコミットは、base と head の指定でも、どの project も affected にしない"
+)
 def test_lockfile_only_commit_affects_nothing_via_base_head(nx_bin: Path, tmp_path: Path) -> None:
+    """複製したリポジトリで、`pnpm-lock.yaml` の依存の版だけを変更してコミットした場合のテストです。`--base` と `--head` を指定した `nx show projects --affected` が、空の一覧を返すことを確認します。"""
     with allure.step("probe のリポを作り、nx の設定を写して base を決める"):
         probe = tmp_path / "probe"
         # --no-hardlinks は必須とする。
@@ -757,6 +764,7 @@ _PECOTV_TEST_LANES = {
 }
 
 
+@allure.title("{changed_file} を変更すると、その変更が届くテストのレーンだけが選ばれる")
 @pytest.mark.parametrize(
     ("changed_file", "expected"),
     _lane_cases(
@@ -985,12 +993,14 @@ _PECOTV_TEST_LANES = {
 def test_gate_selects_only_the_lanes_the_change_reaches(
     nx_bin: Path, tmp_path: Path, changed_file: str, expected: frozenset[str]
 ) -> None:
+    """pre-push の確認と同じ、`nx affected` にレーン名を指定する呼び方のテストです。変更したファイルを読むレーンだけが選ばれ、関係のないレーンは選ばれないことを確認します。"""
     with allure.step("test のレーン名を集める"):
         lanes = _graph_lane_names(nx_bin, tmp_path, "test")
     with allure.step("変更したファイルで選ばれるレーンが期待どおりであることを確かめる"):
         assert _selected_lanes(nx_bin, tmp_path, lanes, changed_file) == expected
 
 
+@allure.title("{changed_file} を変更すると、それを読む githooks のレーンだけが選ばれる")
 @pytest.mark.parametrize(
     ("changed_file", "expected"),
     _lane_cases(
@@ -1077,7 +1087,7 @@ def test_gate_selects_only_the_lanes_the_change_reaches(
 def test_gate_selects_the_githooks_lanes_that_read_the_change(
     nx_bin: Path, tmp_path: Path, changed_file: str, expected: frozenset[str]
 ) -> None:
-    """githooks のレーンだけを見る。ほかの project も読むファイルは、そちらのレーンも選ぶため。"""
+    """githooks のレーンだけを対象にした、`nx affected` のテストです。変更したファイルを読む githooks のレーンだけが選ばれ、読まないファイルでは 1 つも選ばれないことを確認します。"""
     with allure.step("test のレーン名を集め、変更したファイルで選ぶ"):
         lanes = _graph_lane_names(nx_bin, tmp_path, "test")
         selected = _selected_lanes(nx_bin, tmp_path, lanes, changed_file)
@@ -1085,13 +1095,14 @@ def test_gate_selects_the_githooks_lanes_that_read_the_change(
         assert {lane for lane in selected if lane.startswith("githooks:")} == expected
 
 
+@allure.title("{lane} は、ワークスペースのすべての package.json を入力として読む")
 @pytest.mark.parametrize(
     "lane", ["githooks:test-nx-cache", "githooks:test-nx-affected", "githooks:test-checks"]
 )
 def test_graph_lanes_read_every_workspace_package_json(
     lane_input_files: dict[str, set[str]], lane: str
 ) -> None:
-    """graph を作る package.json は pnpm-workspace.yaml の packages で決まる。入力が過不足なく追随する。"""
+    """graph を作る `package.json` の、入力の宣言のテストです。`pnpm-workspace.yaml` の `packages` にある `package.json` とルートの `package.json` が、レーンの入力と過不足なく一致することを確認します。"""
     with allure.step("workspace の package.json の一覧と、追跡するファイルを集める"):
         workspace = yaml.safe_load((_REPO_ROOT / "pnpm-workspace.yaml").read_text(encoding="utf-8"))
         expected = {f"{package}/package.json" for package in workspace["packages"]} | {
@@ -1109,6 +1120,7 @@ def test_graph_lanes_read_every_workspace_package_json(
         assert read == expected & set(tracked), sorted(read ^ expected)
 
 
+@allure.title("{changed_file} を変更すると、その変更が届く lint のレーンだけが選ばれる")
 @pytest.mark.parametrize(
     ("changed_file", "expected"),
     _lane_cases(
@@ -1227,15 +1239,17 @@ def test_graph_lanes_read_every_workspace_package_json(
 def test_lint_gate_selects_only_the_lanes_the_change_reaches(
     nx_bin: Path, tmp_path: Path, changed_file: str, expected: frozenset[str]
 ) -> None:
+    """pre-commit の確認と同じ、`nx affected` に lint のレーン名を指定する呼び方のテストです。変更したファイルを読む lint のレーンだけが選ばれることを確認します。"""
     with allure.step("lint のレーン名を集める"):
         lanes = _graph_lane_names(nx_bin, tmp_path, "lint")
     with allure.step("変更したファイルで選ばれるレーンが期待どおりであることを確かめる"):
         assert _selected_lanes(nx_bin, tmp_path, lanes, changed_file) == expected
 
 
+@allure.title("{kind} のレーン名は、nx-lanes.sh が返す名前と graph から集めた名前が一致する")
 @pytest.mark.parametrize("kind", ["test", "lint"])
 def test_gate_lane_names_match_the_lib(nx_bin: Path, tmp_path: Path, kind: str) -> None:
-    """lib/nx-lanes.sh が返すレーン名は、graph の定義から機械的に集めた名前と一致する。"""
+    """`.githooks/lib/nx-lanes.sh` の `nx_lane_targets` のテストです。この関数のレーン名が、graph の定義から集めた名前と一致することを確認します。"""
     with allure.step("nx-lanes.sh を動かす"):
         lib = _REPO_ROOT / ".githooks" / "lib" / "nx-lanes.sh"
         result = run_attached(
@@ -1271,8 +1285,9 @@ def _parametrized_changed_files() -> set[str]:
 _NOT_LISTED = {"pnpm-lock.yaml", ".pecot/config/.worktreeignore"}
 
 
+@allure.title("代表ファイルの一覧は、このファイルの parametrize の代表ファイルと一致する")
 def test_representative_files_list_matches_the_parametrized_ones() -> None:
-    """githooks:test-nx-affected の runtime 入力が実在を見る一覧は、このファイルの代表ファイルと一致する。"""
+    """`representative-files.txt` のテストです。一覧の内容が、このファイルの `parametrize` が `changed_file` に渡す代表ファイルと一致することを確認します。"""
     with allure.step("runtime の入力が実在を見る一覧を読む"):
         listed = set(
             (_REPO_ROOT / ".githooks/tests/representative-files.txt")
@@ -1283,8 +1298,9 @@ def test_representative_files_list_matches_the_parametrized_ones() -> None:
         assert _parametrized_changed_files() - _NOT_LISTED == listed
 
 
+@allure.title("lint-defs は、すべてのプラグインの定義書を入力に宣言している")
 def test_lint_defs_reads_the_definitions_of_every_plugin() -> None:
-    """定義書は plugins/*/interface/ に置かれる。実在を要る選び方のテストでなく、入力の宣言で固定する。"""
+    """`libs/interface-spec/project.json` のテストです。`lint-defs` の inputs に、`plugins/*/interface/` 以下のすべてのファイルが含まれることを確認します。"""
     with allure.step("lint-defs の inputs を読む"):
         project = json.loads((_REPO_ROOT / "libs/interface-spec/project.json").read_text("utf-8"))
         inputs = project["targets"]["lint-defs"]["inputs"]
@@ -1292,12 +1308,9 @@ def test_lint_defs_reads_the_definitions_of_every_plugin() -> None:
         assert "{workspaceRoot}/plugins/*/interface/**/*" in inputs
 
 
+@allure.title("lint-defs の inputs は、各プラグインの sources と tests の glob をすべて含む")
 def test_lint_defs_inputs_cover_the_sources_and_tests_of_every_plugin() -> None:
-    """targets.json の各プラグインの sources と tests の glob が、lint-defs の inputs に覆われる。
-
-    覆われないと、ソースの環境変数の読みが増えても nx affected が lint-defs を選ばず、キャッシュも当たる。
-    plugins が空の間は何も確かめない。
-    """
+    """`targets.json` に記載した各プラグインの `sources` と `tests` の glob のテストです。それらがすべて、`lint-defs` の inputs に含まれることを確認します。"""
     with allure.step("targets.json と lint-defs の inputs を読む"):
         targets = json.loads((_REPO_ROOT / "libs/interface-spec/targets.json").read_text("utf-8"))
         project = json.loads((_REPO_ROOT / "libs/interface-spec/project.json").read_text("utf-8"))
@@ -1323,12 +1336,12 @@ def _matches_by_segment(path: str, glob: str) -> bool:
     return len(parts) == len(patterns) and all(map(fnmatch.fnmatchcase, parts, patterns))
 
 
+@allure.title(
+    "{src_dir} の .ts を持つディレクトリは、すべて pecot-workflow の sources の glob に含まれる"
+)
 @pytest.mark.parametrize("src_dir", ["cli/src", "../../libs/workflow-core/src"])
 def test_pecot_workflow_sources_list_every_directory_of_cli_node_src(src_dir: str) -> None:
-    """cli/src と同梱する libs/workflow-core/src の .ts を直下に持つディレクトリ（tests は除く）が、どれも sources の glob に載る。
-
-    sources は ** を使わずディレクトリを列挙するので、載らないと環境変数の確認から漏れる。
-    """
+    """`targets.json` の `pecot-workflow` の `sources` のテストです。`tests` を除き、`.ts` を直下に持つディレクトリがすべて、`sources` のいずれかの glob に一致することを確認します。"""
     with allure.step("sources の glob と、.ts を持つディレクトリを集める"):
         sources = json.loads((_REPO_ROOT / "libs/interface-spec/targets.json").read_text("utf-8"))[
             "plugins"

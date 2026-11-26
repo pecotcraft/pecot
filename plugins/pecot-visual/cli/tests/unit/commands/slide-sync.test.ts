@@ -27,6 +27,7 @@ import { rejectionOf } from '../../_helpers/rejection.js'
 import { seedDependencyRoot } from '../../_helpers/dependency-probes.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
 import { verifies } from '../../_helpers/verifies.js'
+import { explains } from '../../_helpers/explains.js'
 
 // 実テンプレートが必要なテストは integration 側で実行するため、unit ではコマンドの
 // パース / エラーマッピング / default deps factory に絞る。
@@ -61,7 +62,8 @@ afterEach(() => {
 })
 
 describe('SlideSyncUsageError / SlideSyncRuntimeError re-export', () => {
-  it('command module から例外型が再エクスポートされる', () => {
+  it('コマンドのモジュールから、例外の型が再エクスポートされる', async () => {
+    await explains('例外の型の再エクスポートのテストです。`SlideSyncUsageError` と `SlideSyncRuntimeError` を作成した場合に、それぞれ渡した `reason` を保持していることを確認します。')
     expect(new SlideSyncUsageError('x', 'relative-dir').reason).toBe('relative-dir')
     expect(new SlideSyncRuntimeError('y', 'unknown').reason).toBe('unknown')
   })
@@ -74,18 +76,21 @@ function dependencies(): { pluginRoot: string, stdout: NodeJS.WritableStream, st
 
 describe('executeSlideSync の入力エラー', () => {
   it('相対パスの dir は relative-dir になる', async () => {
+    await explains('`executeSlideSync` の `dir` の検証のテストです。相対パスの `dir` を指定した場合に、例外が発生し、理由が `relative-dir` になることを確認します。')
     const error = await rejectionOf(executeSlideSync({ dir: 'relative/path', nodeModulesOnly: false }, dependencies()))
 
     expect(errorToReason(error)).toBe('relative-dir')
   })
 
   it('存在しない絶対パスは dir-not-found になる', async () => {
+    await explains('`executeSlideSync` の `dir` の検証のテストです。存在しない絶対パスを指定した場合に、例外が発生し、理由が `dir-not-found` になることを確認します。')
     const error = await rejectionOf(executeSlideSync({ dir: temporaryRoot('never-exists'), nodeModulesOnly: false }, dependencies()))
 
     expect(errorToReason(error)).toBe('dir-not-found')
   })
 
   it('slides.md 無しの dir は not-talk-dir になる', async () => {
+    await explains('`executeSlideSync` の `dir` の検証のテストです。`slides.md` が存在しないディレクトリを指定した場合に、例外が発生し、理由が `not-talk-dir` になることを確認します。')
     const empty = temporaryRoot('empty')
     mkdirSync(empty)
 
@@ -95,6 +100,7 @@ describe('executeSlideSync の入力エラー', () => {
   })
 
   it('ファイルの指定は not-a-directory になる', async () => {
+    await explains('`executeSlideSync` の `dir` の検証のテストです。ディレクトリではなくファイルを指定した場合に、例外が発生し、理由が `not-a-directory` になることを確認します。')
     const filePath = temporaryRoot('a-file')
     writeFileSync(filePath, '')
 
@@ -143,6 +149,7 @@ describe('executeSlideSync の結果とテーマ', () => {
   }
 
   it('移行済みの talk-dir の通常 sync は、data に theme を { name, spec, directory } で載せ、移行はしない', async () => {
+    await explains('`executeSlideSync` の通常の同期のテストです。移行済みの talk-dir を同期した場合に、結果の `theme` へ `name`・`spec`・`directory` が含まれ、移行は行わないことを確認します。')
     const talk = createMigratedTalk()
 
     const { data } = await executeSlideSync({ dir: talk, nodeModulesOnly: false }, buildDependencies(relinkedTheme))
@@ -155,6 +162,7 @@ describe('executeSlideSync の結果とテーマ', () => {
   })
 
   it('nodeModulesOnly は、data に nodeModulesOnly と theme を載せる', async () => {
+    await explains('`executeSlideSync` の `nodeModulesOnly` のテストです。移行済みの talk-dir へ `nodeModulesOnly` を指定した場合に、結果へ `nodeModulesOnly` と `theme` が含まれることを確認します。')
     const talk = createMigratedTalk()
 
     const { data } = await executeSlideSync({ dir: talk, nodeModulesOnly: true }, buildDependencies(relinkedTheme))
@@ -164,6 +172,7 @@ describe('executeSlideSync の結果とテーマ', () => {
   })
 
   it('nodeModulesOnly でテーマ無しの talk-dir は、theme を null にして依存ルートの node_modules を指す', async () => {
+    await explains('`executeSlideSync` の `nodeModulesOnly` のテストです。テーマのない talk-dir へ `nodeModulesOnly` を指定した場合に、`theme` が `null` になり、依存ルートの `node_modules` を指すことを確認します。')
     const talk = createLegacyTalk()
     const pluginRoot = temporaryRoot('plugin')
     seedDependencyRoot(pluginRoot)
@@ -177,7 +186,8 @@ describe('executeSlideSync の結果とテーマ', () => {
     expect(data['nodeModulesTarget']).toBe(path.join(pluginRoot, 'node_modules'))
   })
 
-  it('package.json が読めない移行済みの talk-dir は、複写に進まず theme-unlinked で止まる', async () => {
+  it('package.json を読み込めない移行済みの talk-dir は、コピーへ進まず、theme-unlinked で止まる', async () => {
+    await explains('`package.json` が不正な場合のテストです。JSON として不正な `package.json` を指定した場合に、`reason` が `theme-unlinked` で、テーマの処理が呼び出されず、ファイルが変更されないことを確認します。')
     const talk = createMigratedTalk()
     writeFileSync(path.join(talk, 'package.json'), '{ "dependencies": { ')
     const ensureThemeLinked = vi.fn<EnsureThemeLinkedPort>()
@@ -235,6 +245,7 @@ describe('slide_sync の theme 指定 (移行前の talk-dir)', () => {
   }
 
   it('theme が無ければ theme-required で、MCP の打ち方を示し、何も消さない', async () => {
+    await explains('`executeSlideSync` のテーマの必須の検証のテストです。移行前の talk-dir に `theme` を指定しなかった場合に、理由が `theme-required` で、`slide_sync` の使い方を示し、既存のファイルを削除しないことを確認します。')
     const talk = createLegacyTalkWithWork()
 
     const { reason, detail } = await failureOf({ dir: talk, nodeModulesOnly: false })
@@ -246,6 +257,7 @@ describe('slide_sync の theme 指定 (移行前の talk-dir)', () => {
 
   it('nodeModulesOnly との同時指定は theme-with-node-modules-only', async (context) => {
     await verifies(context, 'PV-SLIDE-SYNC-08')
+    await explains('`executeSlideSync` の引数の組み合わせの検証のテストです。`nodeModulesOnly` と `theme` を同時に指定した場合に、理由が `theme-with-node-modules-only` になることを確認します。')
     const talk = createLegacyTalkWithWork()
 
     const { reason } = await failureOf({ dir: talk, theme: 'file:/abs/theme', nodeModulesOnly: true })
@@ -254,6 +266,7 @@ describe('slide_sync の theme 指定 (移行前の talk-dir)', () => {
   })
 
   it('解釈できない theme は usage error で、何も消さない', async () => {
+    await explains('`executeSlideSync` の `theme` の指定の検証のテストです。タグのない `git+` の URL を指定した場合に、理由が `theme-tag-required` になり、既存のファイルを削除しないことを確認します。')
     const talk = createLegacyTalkWithWork()
 
     const { reason } = await failureOf({ dir: talk, theme: 'git+https://example.com/org/theme.git', nodeModulesOnly: false })
@@ -263,7 +276,8 @@ describe('slide_sync の theme 指定 (移行前の talk-dir)', () => {
     expect(readFileSync(path.join(talk, 'slides.md'), 'utf8')).toContain('theme: none')
   })
 
-  it('依存ルートの実体が無ければ、取得の前に止まり、何も消さない', async () => {
+  it('依存ルートの実体が存在しない場合は、取得の前に止まり、何も削除しない', async () => {
+    await explains('依存ルートの事前の確認のテストです。`node_modules` が存在しない状態で移行する場合に、`reason` が `symlink-failed` で、`fetchTheme` が呼び出されず、`layouts` が残ることを確認します。')
     const talk = createLegacyTalkWithWork()
     const fetchTheme = vi.fn()
     const noRuntimeRoot = temporaryRoot('no-runtime')
@@ -278,7 +292,8 @@ describe('slide_sync の theme 指定 (移行前の talk-dir)', () => {
     expect(existsSync(path.join(talk, 'layouts'))).toBe(true)
   })
 
-  it('テーマの置き場を決められなければ theme-unknown で止まり、何も消さない', async () => {
+  it('テーマの保管場所を決定できない場合は、theme-unknown で止まり、何も削除しない', async () => {
+    await explains('テーマの保管場所の決定のテストです。`themeStoreRoot` が `undefined` を返す場合に、`reason` が `theme-unknown` で、終了コードが 1 になり、`layouts` が残ることを確認します。')
     const talk = createLegacyTalkWithWork()
     const pluginRoot = temporaryRoot('plugin')
     seedDependencyRoot(pluginRoot)
@@ -293,6 +308,7 @@ describe('slide_sync の theme 指定 (移行前の talk-dir)', () => {
   })
 
   it('移行すると、data に消した名前・テーマ・移行の情報を載せる', async () => {
+    await explains('`executeSlideSync` の移行のテストです。移行前の talk-dir を `theme` つきで同期した場合に、結果へ削除した名前の一覧と移行の情報が含まれることを確認します。')
     const talk = createLegacyTalkWithWork()
     const pluginRoot = temporaryRoot('plugin')
     seedDependencyRoot(pluginRoot)
@@ -313,6 +329,7 @@ describe('slide_sync の theme 指定 (移行前の talk-dir)', () => {
   })
 
   it('runSlideSyncDirectly で移行し、作品と .gitignore を残して、テーマ付きの生成物を書く', async () => {
+    await explains('`runSlideSyncDirectly` の移行のテストです。移行前の talk-dir を同期した場合に、作品と `.gitignore` を残し、テーマに基づく生成物を書き出すことを確認します。')
     const talk = createLegacyTalkWithWork()
     const pluginRoot = temporaryRoot('plugin')
     seedDependencyRoot(pluginRoot)
@@ -344,7 +361,8 @@ describe('slide_sync の theme 指定 (移行前の talk-dir)', () => {
     expect(existsSync(path.join(talk, 'node_modules', THEME_NAME))).toBe(true)
   })
 
-  it('取得の警告は stderr に流す', async () => {
+  it('テーマの取得中の警告は、標準エラーに出力する', async () => {
+    await explains('取得中の警告の出力のテストです。`fetchTheme` が警告を出した場合に、標準エラーに `warning: 取得の警告` が含まれることを確認します。')
     const talk = createLegacyTalkWithWork()
     const pluginRoot = temporaryRoot('plugin')
     seedDependencyRoot(pluginRoot)
@@ -366,7 +384,8 @@ describe('slide_sync の theme 指定 (移行前の talk-dir)', () => {
 })
 
 describe('runSlideSyncDirectly helper', () => {
-  it('relative-dir を assertTalkDirectory が SlideSyncUsageError として上げる', async () => {
+  it('相対パスを渡した場合は、assertTalkDirectory が SlideSyncUsageError を発生させる', async () => {
+    await explains('`runSlideSyncFromCli` の入力の検証のテストです。相対パスの `--dir` を渡した場合に、`SlideSyncUsageError` が発生することを確認します。')
     const stdout = asStream(makeStream())
     const stderr = asStream(makeStream())
     await expect(
@@ -380,29 +399,35 @@ describe('runSlideSyncDirectly helper', () => {
 })
 
 describe('errorToReason', () => {
-  it('SlideSyncUsageError は reason をそのまま返す', () => {
+  it('errorToReason は、SlideSyncUsageError の reason をそのまま返す', async () => {
+    await explains('`errorToReason` のテストです。`relative-dir` の `SlideSyncUsageError` を渡した場合に、`relative-dir` が返ることを確認します。')
     expect(errorToReason(new SlideSyncUsageError('m', 'relative-dir'))).toBe('relative-dir')
   })
 
-  it('SlideSyncRuntimeError は reason をそのまま返す', () => {
+  it('errorToReason は、SlideSyncRuntimeError の reason をそのまま返す', async () => {
+    await explains('`errorToReason` のテストです。`symlink-failed` の `SlideSyncRuntimeError` を渡した場合に、`symlink-failed` が返ることを確認します。')
     expect(errorToReason(new SlideSyncRuntimeError('m', 'symlink-failed'))).toBe('symlink-failed')
   })
 
-  it('SlideCreateRuntimeError も reason を伝播する（infra 層からの想定ルート）', () => {
+  it('errorToReason は、SlideCreateRuntimeError の reason も返す（infra 層から送出される想定）', async () => {
+    await explains('`errorToReason` のテストです。`copy-failed` の `SlideCreateRuntimeError` を渡した場合に、`copy-failed` が返ることを確認します。')
     expect(errorToReason(new SlideCreateRuntimeError('m', 'copy-failed'))).toBe('copy-failed')
   })
 
-  it('テーマの指定の誤りは theme-<reason>', () => {
+  it('errorToReason は、ThemeSpecError の reason に theme- を付けた値を返す', async () => {
+    await explains('`errorToReason` のテーマの指定の誤りのテストです。`tag-required` の `ThemeSpecError` を渡した場合に、`theme-tag-required` が返ることを確認します。')
     expect(errorToReason(new ThemeSpecError('m', 'tag-required'))).toBe('theme-tag-required')
   })
 
-  it('未知の Error は "unknown" にまとめる', () => {
+  it('errorToReason は、未知の Error に対して unknown を返す', async () => {
+    await explains('`errorToReason` のテストです。通常の `Error` を渡した場合に、`unknown` が返ることを確認します。')
     expect(errorToReason(new Error('m'))).toBe('unknown')
   })
 })
 
 describe('slideSyncDefaultDependencies', () => {
-  it('CLAUDE_PLUGIN_ROOT があっても読まず、pluginRoot をサーバ自身の置き場所から求める', () => {
+  it('CLAUDE_PLUGIN_ROOT があっても読まず、pluginRoot をサーバ自身の置き場所から求める', async () => {
+    await explains('`slideSyncDefaultDependencies` の既定の依存のテストです。環境変数 `CLAUDE_PLUGIN_ROOT` を設定しても、`pluginRoot` はサーバ自身の置き場所から求めた値になり、標準出力と標準エラー出力は `process` のものになることを確認します。')
     vi.stubEnv('CLAUDE_PLUGIN_ROOT', '/plugins/installed/pecot-visual')
     try {
       const dependencies = slideSyncDefaultDependencies()

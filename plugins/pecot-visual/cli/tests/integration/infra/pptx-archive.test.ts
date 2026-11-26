@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { YauzlYazlPptxArchive } from '../../../src/infra/pptx-ooxml/archive.js'
 import { compareStrings } from '../../../src/domain/_shared/compare-strings.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
+import { explains } from '../../_helpers/explains.js'
 
 const HERE = import.meta.dirname
 const DUMMY_PPTX = path.join(
@@ -38,7 +39,8 @@ afterEach(() => {
 })
 
 describe('YauzlYazlPptxArchive', () => {
-  it('read で全 part を Buffer として取得できる', async () => {
+  it('アーカイブを読み込むと、すべてのパートを Buffer として取得できる', async () => {
+    await explains('`YauzlYazlPptxArchive` の読み込みのテストです。`dummy.pptx` の 6 つのパートを `read` した場合に、どのパートも空でない Buffer として返ることを確認します。')
     const archive = new YauzlYazlPptxArchive()
     const reader = await archive.read(DUMMY_PPTX)
     try {
@@ -52,7 +54,8 @@ describe('YauzlYazlPptxArchive', () => {
     }
   })
 
-  it('entries() AsyncIterable で全 part を逐次返す', async () => {
+  it('entries を反復すると、すべてのパートを順に返す', async () => {
+    await explains('`entries()` の非同期反復のテストです。`dummy.pptx` を反復した場合に、6 つのパートがすべて返り、それぞれの `read` が空でない Buffer を返すことを確認します。')
     const archive = new YauzlYazlPptxArchive()
     const reader = await archive.read(DUMMY_PPTX)
     const observed: string[] = []
@@ -69,7 +72,8 @@ describe('YauzlYazlPptxArchive', () => {
     expect(observed.toSorted(compareStrings)).toEqual([...EXPECTED_PARTS].toSorted(compareStrings))
   })
 
-  it('read で存在しない part を要求するとエラー', async () => {
+  it('存在しないパートを read すると、エラーが発生する', async () => {
+    await explains('存在しないパートの読み込みのテストです。`does/not/exist.xml` を `read` した場合に、`not found` を含むエラーで失敗することを確認します。')
     const archive = new YauzlYazlPptxArchive()
     const reader = await archive.read(DUMMY_PPTX)
     try {
@@ -80,28 +84,32 @@ describe('YauzlYazlPptxArchive', () => {
     }
   })
 
-  it('close 後に read を呼ぶとエラー', async () => {
+  it('close の後に read を呼び出すと、エラーが発生する', async () => {
+    await explains('閉じた後の読み込みのテストです。`close` の後で `read` を呼び出した場合に、`closed` を含むエラーで失敗することを確認します。')
     const archive = new YauzlYazlPptxArchive()
     const reader = await archive.read(DUMMY_PPTX)
     await reader.close()
     await expect(reader.read('ppt/presentation.xml')).rejects.toThrow(/closed/)
   })
 
-  it('close 後に entries を呼ぶとエラー', async () => {
+  it('close の後に entries を呼び出すと、エラーが発生する', async () => {
+    await explains('閉じた後の列挙のテストです。`close` の後で `entries` を呼び出した場合に、`closed` を含む例外が発生することを確認します。')
     const archive = new YauzlYazlPptxArchive()
     const reader = await archive.read(DUMMY_PPTX)
     await reader.close()
     expect(() => reader.entries()).toThrow(/closed/)
   })
 
-  it('close は冪等', async () => {
+  it('close を 2 回呼び出しても、エラーにならない', async () => {
+    await explains('`close` の呼び出しのテストです。`close` を 2 回続けて呼び出した場合に、2 回目も正常に完了することを確認します。')
     const archive = new YauzlYazlPptxArchive()
     const reader = await archive.read(DUMMY_PPTX)
     await reader.close()
     await expect(reader.close()).resolves.toBeUndefined()
   })
 
-  it('write は addBuffer / addReadStream の両方で part を追加し、再読込で内容が一致する', async () => {
+  it('write は addBuffer と addReadStream のどちらでもパートを追加でき、再読み込みで内容が一致する', async () => {
+    await explains('アーカイブの書き出しのテストです。XML を `addBuffer` で、それ以外を `addReadStream` で追加して書き出した場合に、再読み込みした全パートの内容が元の `dummy.pptx` と一致することを確認します。')
     const archive = new YauzlYazlPptxArchive()
     const reader = await archive.read(DUMMY_PPTX)
     const writer = archive.write()
@@ -142,7 +150,8 @@ describe('YauzlYazlPptxArchive', () => {
     }
   })
 
-  it('addReadStream パススルーで media-like バイナリを保持する', async () => {
+  it('addReadStream で追加したバイナリは、加工せずに保持する', async () => {
+    await explains('バイナリのパートの書き出しのテストです。PNG の署名を含むバイト列を `addReadStream` で追加して書き出した場合に、読み込んだ内容が元のバイト列と一致し、`addBuffer` の XML も保持されることを確認します。')
     const archive = new YauzlYazlPptxArchive()
     const writer = archive.write()
     const fakeMedia = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0xFF])
@@ -163,12 +172,14 @@ describe('YauzlYazlPptxArchive', () => {
     }
   })
 
-  it('read は存在しないパスで reject される', async () => {
+  it('存在しないファイルを読み込むと、エラーで失敗する', async () => {
+    await explains('存在しないファイルの読み込みのテストです。存在しない pptx のパスを `read` した場合に、`Error` で失敗することを確認します。')
     const archive = new YauzlYazlPptxArchive()
     await expect(archive.read(temporaryDirectory('does-not-exist.pptx'))).rejects.toBeInstanceOf(Error)
   })
 
-  it('read は不正な ZIP（空ファイル）で reject される', async () => {
+  it('空ファイルなど不正な ZIP を読み込むと、エラーで失敗する', async () => {
+    await explains('不正な ZIP の読み込みのテストです。空のファイルを `read` した場合に、`Error` で失敗することを確認します。')
     const badPath = temporaryDirectory('bad.pptx')
     // 空ファイルは ZIP として不正 → yauzl.open が err を返す
     const { writeFileSync } = await import('node:fs')
@@ -177,7 +188,8 @@ describe('YauzlYazlPptxArchive', () => {
     await expect(archive.read(badPath)).rejects.toBeInstanceOf(Error)
   })
 
-  it('read はディレクトリ entry をスキップして file entry のみを map に格納する', async () => {
+  it('ディレクトリのエントリはスキップし、ファイルのエントリだけを返す', async () => {
+    await explains('ディレクトリのエントリを含む ZIP の読み込みのテストです。`inside/file.txt` とディレクトリ `inside/` を含む ZIP を反復した場合に、ファイルのエントリ `inside/file.txt` だけが返ることを確認します。')
     // yazl を直接使って「ディレクトリ entry を含む ZIP」を作り yauzl 経由で読む。
     // 実装 (collectEntries) の "/" 末尾スキップ分岐をカバーする。
     const yazl = await import('yazl')
@@ -208,7 +220,8 @@ describe('YauzlYazlPptxArchive', () => {
     }
   })
 
-  it('finish が指定パスへ ZIP を書き出す（Buffer 一致は仕様外、ZIP magic で確認）', async () => {
+  it('finish を呼び出すと、指定したパスへ ZIP を書き出す', async () => {
+    await explains('`finish` の書き出しのテストです。1 つのパートを追加して `finish` を呼び出した場合に、書き出したファイルの先頭が ZIP の署名 `PK\\x03\\x04` になることを確認します。')
     const archive = new YauzlYazlPptxArchive()
     const writer = archive.write()
     writer.addBuffer('a.txt', Buffer.from('hello'))

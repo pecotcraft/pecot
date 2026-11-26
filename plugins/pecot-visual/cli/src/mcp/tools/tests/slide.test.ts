@@ -56,6 +56,7 @@ import {
   slideTools,
 } from '../slide.js'
 import { useTemporaryDirectory } from '../../../../tests/_helpers/temporary-directory.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 // src/mcp/tools/tests → cli/
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..')
@@ -347,14 +348,16 @@ function createConvertTool(pipeline: SlidevPptxPipeline): ToolDefinition {
 }
 
 describe('slideTools', () => {
-  it('4 件を既定 deps で組み立てる', () => {
+  it('4 件を既定 deps で組み立てる', async () => {
+    await explains('`slideTools` が返すツールの一覧のテストです。既定の依存で組み立てた場合に、`slide_create`・`slide_convert`・`slide_sync`・`slide_lint` の順に 4 件のツールを返すことを確認します。')
     expect(slideTools().map(tool => tool.name))
       .toEqual(['slide_create', 'slide_convert', 'slide_sync', 'slide_lint'])
   })
 })
 
 describe('slide_create', () => {
-  it('相対パスは実処理を呼ばずに exitCode 2 で返す', async () => {
+  it('project_dir が相対パスなら、実処理を呼ばずに invalid-path のエラーを返す', async () => {
+    await explains('`slide_create` ツールの入力パスの検証のテストです。`project_dir` に相対パスを指定した場合に、実処理に進まず `invalid-path` のエラーと、該当する指定の一覧を返すことを確認します。')
     const result = await call(createCreateTool(makePluginRoot(), makeStream(), makeStream()), {
       project_dir: 'relative/deck',
       theme: makeThemeSpec(),
@@ -370,6 +373,7 @@ describe('slide_create', () => {
   it('生成に成功すると slide.create.done を data に載せ、生成先を projectDir に返す', async (context) => {
     await verifies(context, 'PV-SLIDE-CREATE-01')
 
+    await explains('`slide_create` ツールの成功時の結果のテストです。有効なテーマを指定した場合に、`slide.create.done` と生成先の `projectDir` を返し、`slides.md` にテーマが書かれ、レイアウトの分類が宣言と一致することを確認します。')
     await verifies(context, 'PV-SLIDE-CREATE-02')
 
     await verifies(context, 'PV-SLIDE-CREATE-03')
@@ -406,6 +410,7 @@ describe('slide_create', () => {
   })
 
   it('layout catalog は stdout と結果のどちらにも出さない (emitCatalog: false 固定)', async () => {
+    await explains('`slide_create` ツールの出力のテストです。成功した場合に、レイアウトの一覧を標準出力と結果のどちらにも含めないことを確認します。')
     const stdout = makeStream()
     const result = await call(createCreateTool(makePluginRoot(), stdout, makeStream()), {
       project_dir: temporaryRoot('deck-no-catalog'),
@@ -419,6 +424,7 @@ describe('slide_create', () => {
 
   it('タグの無い git URL は取得に入らず usage error として exitCode 2 で返す', async (context) => {
     await verifies(context, 'PV-SLIDE-CREATE-07')
+    await explains('`slide_create` ツールのテーマの指定の検証のテストです。タグのない git URL を指定した場合に、取得を始めず `theme-tag-required` のエラーを返し、生成先を作らないことを確認します。')
     const result = await call(createCreateTool(makePluginRoot(), makeStream(), makeStream()), {
       project_dir: temporaryRoot('deck-no-tag'),
       theme: 'git+https://example.com/org/theme.git',
@@ -432,6 +438,7 @@ describe('slide_create', () => {
 
   it('相対の file: は実処理前に invalid-option・exitCode 2 で返す (サーバの cwd は呼び出し元と別)', async (context) => {
     await verifies(context, 'PV-SLIDE-CREATE-08')
+    await explains('`slide_create` ツールのテーマの指定の検証のテストです。`theme` に `file:` つきの相対パスを指定した場合に、実処理に進まず `invalid-option` のエラーを返し、生成先を作らないことを確認します。')
     const projectDirectory = temporaryRoot('deck-relative-theme')
     const result = await call(createCreateTool(makePluginRoot(), makeStream(), makeStream()), {
       project_dir: projectDirectory,
@@ -445,6 +452,7 @@ describe('slide_create', () => {
   })
 
   it('解決できない Windows 形式の file: (ドライブ相対) は invalid-option・exitCode 2 で返す', async () => {
+    await explains('`slide_create` ツールのテーマの指定の検証のテストです。`file:C:my-theme` のようなドライブ相対の指定の場合に、`invalid-option` のエラーを返し、生成先を作らないことを確認します。')
     const projectDirectory = temporaryRoot('deck-drive-relative')
     const result = await call(createCreateTool(makePluginRoot(), makeStream(), makeStream()), {
       project_dir: projectDirectory,
@@ -457,6 +465,7 @@ describe('slide_create', () => {
   })
 
   it('Windows 形式の file: は POSIX パスに変換して取得する', async () => {
+    await explains('`slide_create` ツールの Windows 形式のパスのテストです。ドライブ文字つきの `file:` を指定した場合に、変換後の `/mnt/c/themes/my-theme` が、取得に失敗した `theme-unknown` のエラーに含まれることを確認します。')
     const result = await call(createCreateTool(makePluginRoot(), makeStream(), makeStream()), {
       project_dir: temporaryRoot('deck-windows-theme'),
       theme: 'file:C:\\themes\\my-theme',
@@ -470,6 +479,7 @@ describe('slide_create', () => {
 
   it('force なしで既存ディレクトリを指すと exitCode 2 で返す', async (context) => {
     await verifies(context, 'PV-SLIDE-CREATE-06')
+    await explains('`slide_create` ツールの既存のディレクトリの扱いのテストです。`force` なしで既存のディレクトリを指定した場合は `dest-exists` のエラーで何も変更せず、`force: true` を指定した場合は成功することを確認します。')
     const pluginRoot = makePluginRoot()
     const projectDirectory = makeTalkDirectory('existing')
     const theme = makeThemeSpec()
@@ -493,7 +503,8 @@ describe('slide_create', () => {
 })
 
 describe('slide_sync', () => {
-  it('相対 dir は exitCode 2 で返す', async () => {
+  it('dir が相対パスなら、invalid-path のエラーを返す', async () => {
+    await explains('`slide_sync` ツールの入力パスの検証のテストです。`dir` に相対パスを指定した場合に、`invalid-path` のエラーと、該当する指定の一覧を返すことを確認します。')
     const result = await call(createSyncTool(makePluginRoot()), { dir: 'relative/talk' })
 
     expect(structuredOf(result)['kind']).toBe('invalid-path')
@@ -501,6 +512,7 @@ describe('slide_sync', () => {
   })
 
   it('node_modules_only の同期に成功すると slide.sync.done を返し、テーマを参照しない talk-dir では theme と migration が null になる', async () => {
+    await explains('`slide_sync` ツールの `node_modules` だけを張り直す指定のテストです。テーマを参照しない talk-dir では、`slide.sync.done` を返し、`theme` と `migration` が `null` になることを確認します。')
     const talk = makeTalkDirectory('talk-sync')
     const result = await call(createSyncTool(makePluginRoot()), { dir: talk, node_modules_only: true })
     const structured = structuredOf(result)
@@ -516,6 +528,7 @@ describe('slide_sync', () => {
   })
 
   it('移行済みの talk-dir は node_modules_only なしでも張り直し、message と data にテーマの name と spec を載せる', async () => {
+    await explains('`slide_sync` ツールの移行済みの talk-dir のテストです。`node_modules_only` を指定しなくてもテーマを張り直し、本文と結果にテーマの名前と取得元を含めることを確認します。')
     const talk = makeThemedTalkDirectory('talk-migrated')
     const spec = 'git+https://example.com/org/theme.git#v1.0.1'
     const directory = '/store/abc/v1.0.1/package'
@@ -545,6 +558,7 @@ describe('slide_sync', () => {
 
   it('移行前の talk-dir に theme を渡すと、テーマを参照する形へ移し、消した名前を migration.removed と message に返す', async (context) => {
     await verifies(context, 'PV-SLIDE-SYNC-01')
+    await explains('`slide_sync` ツールの移行前の talk-dir のテストです。`theme` を指定した場合に、テーマを参照する形へ移し、削除した名前を `migration.removed` と本文に含め、`pages/` の内容を残すことを確認します。')
     const talk = makeTalkDirectory('talk-legacy')
     mkdirSync(path.join(talk, 'layouts'))
     mkdirSync(path.join(talk, 'pages'))
@@ -568,8 +582,9 @@ describe('slide_sync', () => {
     expect(readFileSync(path.join(talk, 'slides.md'), 'utf8')).toContain(`theme: ${THEME_NAME}`)
   })
 
-  it('移行前の talk-dir に theme を渡さないと theme-required・exitCode 2 で返し、何も変えない', async (context) => {
+  it('移行前の talk-dir に theme を渡さないと、何も変えずに theme-required のエラーを返す', async (context) => {
     await verifies(context, 'PV-SLIDE-SYNC-07')
+    await explains('`slide_sync` ツールの移行前の talk-dir のテストです。`theme` を指定しない場合に、`theme-required` のエラーを返し、既存のファイルを変更しないことを確認します。')
     const talk = makeTalkDirectory('talk-legacy-no-theme')
     mkdirSync(path.join(talk, 'layouts'))
 
@@ -581,8 +596,9 @@ describe('slide_sync', () => {
     expect(existsSync(path.join(talk, 'layouts'))).toBe(true)
   })
 
-  it('theme と node_modules_only を同時に渡すと、何も変えず theme-with-node-modules-only・exitCode 2 で返す', async (context) => {
+  it('theme と node_modules_only を同時に渡すと、何も変えずに theme-with-node-modules-only のエラーを返す', async (context) => {
     await verifies(context, 'PV-SLIDE-SYNC-08')
+    await explains('`slide_sync` ツールの引数の組み合わせの検証のテストです。`theme` と `node_modules_only` を同時に指定した場合に、`theme-with-node-modules-only` のエラーを返し、talk-dir を変更しないことを確認します。')
     const talk = makeTalkDirectory('talk-theme-with-node-modules-only')
     mkdirSync(path.join(talk, 'layouts'))
     const before = snapshotTree(talk)
@@ -594,7 +610,8 @@ describe('slide_sync', () => {
     expect(snapshotTree(talk)).toEqual(before)
   })
 
-  it('相対の file: の theme は実処理前に invalid-option・exitCode 2 で返す', async () => {
+  it('theme に file: つきの相対パスを渡すと、実処理を呼ばずに invalid-option のエラーを返す', async () => {
+    await explains('`slide_sync` ツールのテーマの指定の検証のテストです。`theme` に `file:` つきの相対パスを指定した場合に、`invalid-option` のエラーを返し、既存のファイルを変更しないことを確認します。')
     const talk = makeTalkDirectory('talk-relative-theme')
     mkdirSync(path.join(talk, 'layouts'))
 
@@ -604,7 +621,8 @@ describe('slide_sync', () => {
     expect(existsSync(path.join(talk, 'layouts'))).toBe(true)
   })
 
-  it('タグの無い git URL の theme は theme-tag-required・exitCode 2 で返す', async () => {
+  it('theme にタグのない git URL を渡すと、theme-tag-required のエラーを返す', async () => {
+    await explains('`slide_sync` ツールのテーマの指定の検証のテストです。`theme` にタグのない git URL を指定した場合に、`theme-tag-required` のエラーを返すことを確認します。')
     const talk = makeTalkDirectory('talk-no-tag')
 
     const result = await call(createSyncTool(makePluginRoot()), { dir: talk, theme: 'git+https://example.com/org/theme.git' })
@@ -612,7 +630,8 @@ describe('slide_sync', () => {
     expect(structuredOf(result)).toMatchObject({ event: 'slide.sync.error', kind: 'theme-tag-required' })
   })
 
-  it('slides.md の無いディレクトリは実行失敗 (exitCode 1) として返る', async () => {
+  it('slides.md がないディレクトリを渡すと、not-talk-dir のエラーを返す', async () => {
+    await explains('`slide_sync` ツールの対象のディレクトリの検証のテストです。`slides.md` を持たないディレクトリを指定した場合に、`not-talk-dir` のエラーを返すことを確認します。')
     const notTalk = temporaryRoot('not-talk')
     mkdirSync(notTalk, { recursive: true })
 
@@ -624,15 +643,17 @@ describe('slide_sync', () => {
 })
 
 describe('slide_lint', () => {
-  it('相対 dir は exitCode 2 で返す', async () => {
+  it('dir が相対パスなら、invalid-path のエラーを返す', async () => {
+    await explains('`slide_lint` ツールの入力パスの検証のテストです。`dir` に相対パスを指定した場合に、`invalid-path` のエラーと `must be an absolute path` を含む本文を返すことを確認します。')
     const result = await call(createLintTool(fakeEslint(0, [])), { dir: 'relative/talk' })
 
     expect(structuredOf(result)['kind']).toBe('invalid-path')
     expect(textOf(sentenceOf(result))).toContain('must be an absolute path')
   })
 
-  it('違反なしは slide.lint.done / exitCode 0 で返す', async (context) => {
+  it('違反がなければ、outcome が clean の slide.lint.done を返す', async (context) => {
     await verifies(context, 'PV-SLIDE-LINT-03')
+    await explains('`slide_lint` ツールの lint に違反がない場合のテストです。eslint の結果が違反なしの場合に、エラーにはせず、`event` が `slide.lint.done`、`outcome` が `clean` の結果を返すことを確認します。')
     const talk = makeThemedTalkDirectory('talk-clean')
     const eslint = fakeEslint(0, [
       { filePath: path.join(talk, 'slides.md'), errorCount: 0, warningCount: 0, messages: [] },
@@ -645,8 +666,9 @@ describe('slide_lint', () => {
     expect(dataOf(result)).toMatchObject({ event: 'slide.lint.done', outcome: 'clean' })
   })
 
-  it('違反ありは「報告が成果」なので ok: true / exitCode 1 で返す', async (context) => {
+  it('違反があっても、エラーにせず outcome が violations の結果を返す', async (context) => {
     await verifies(context, 'PV-SLIDE-LINT-02')
+    await explains('`slide_lint` ツールの lint に違反がある場合のテストです。eslint が違反を報告した場合に、違反の検出自体は成功として扱い、`slide.lint.violations` と `errorCount` を返すことを確認します。')
     const talk = makeThemedTalkDirectory('talk-violations')
     const eslint = fakeEslint(1, [
       {
@@ -673,6 +695,7 @@ describe('slide_lint', () => {
 
   it('slides.md の無いディレクトリは、eslint を起動せず not-talk-dir の失敗を返す', async (context) => {
     await verifies(context, 'PV-SLIDE-LINT-05')
+    await explains('`slide_lint` ツールの対象のディレクトリの検証のテストです。`slides.md` を持たないディレクトリを指定した場合に、eslint を起動せず、`not-talk-dir` のエラーを返すことを確認します。')
     const notTalk = temporaryRoot('lint-not-talk')
     mkdirSync(notTalk, { recursive: true })
     const eslint = countingEslint()
@@ -686,6 +709,7 @@ describe('slide_lint', () => {
 
   it('テーマを参照しない talk-dir は、eslint を起動せず theme-none の失敗を返す', async (context) => {
     await verifies(context, 'PV-SLIDE-LINT-06')
+    await explains('`slide_lint` ツールのテーマの検証のテストです。テーマを参照しない talk-dir の場合に、eslint を起動せず、`theme-none` のエラーを返すことを確認します。')
     const talk = makeTalkDirectory('lint-theme-none', '---\ntheme: none\ntitle: デモ\n---\n\n# hello\n')
     const eslint = countingEslint()
 
@@ -696,7 +720,8 @@ describe('slide_lint', () => {
     expect(eslint.calls()).toBe(0)
   })
 
-  it('talk-dir が存在しないと実行失敗 (exitCode 1) として返る', async () => {
+  it('talk-dir が存在しないと、dir-not-found のエラーを返す', async () => {
+    await explains('`slide_lint` ツールの対象のディレクトリの検証のテストです。存在しないディレクトリを指定した場合に、`dir-not-found` のエラーを返すことを確認します。')
     const result = await call(createLintTool(fakeEslint(0, [])), {
       dir: temporaryRoot('no-such-talk'),
     })
@@ -706,6 +731,7 @@ describe('slide_lint', () => {
   })
 
   it('eslint が異常終了すると実行失敗として返り、stderr 抜粋が message に載る', async () => {
+    await explains('`slide_lint` ツールの eslint の異常終了のテストです。eslint が終了コード 2 で終了した場合に、`eslint-failed` のエラーを返し、本文に標準エラー出力の抜粋が含まれることを確認します。')
     const talk = makeThemedTalkDirectory('talk-eslint-broken')
     const broken: EslintRunner = {
       run: () => Promise.resolve({
@@ -727,7 +753,8 @@ describe('slide_lint', () => {
 })
 
 describe('slide_convert', () => {
-  it('相対パスは project_dir と out_path の両方をまとめて exitCode 2 で返す', async () => {
+  it('project_dir と out_path が相対パスなら、両方をまとめて invalid-path のエラーにする', async () => {
+    await explains('`slide_convert` ツールの入力パスの検証のテストです。`project_dir` と `out_path` の両方に相対パスを指定した場合に、`invalid-path` のエラーに、2 つの指定をまとめて含めることを確認します。')
     const result = await call(createConvertTool(fakePipeline()), {
       project_dir: 'relative/deck',
       out_path: 'relative/out.pptx',
@@ -741,6 +768,7 @@ describe('slide_convert', () => {
   it('変換に成功すると slide.convert.done を data に載せ、出力 PPTX を output に返す', async (context) => {
     await verifies(context, 'PV-SLIDE-CONVERT-01')
 
+    await explains('`slide_convert` ツールの成功時の結果のテストです。変換が成功した場合は、`slide.convert.done` と出力した PPTX のパスを返し、警告・所要時間・キャッシュの情報も含めることを確認します。')
     await verifies(context, 'PV-SLIDE-CONVERT-02')
     const project = makeTalkDirectory('convert-ok')
     const out = temporaryRoot('out', 'deck.pptx')
@@ -767,6 +795,7 @@ describe('slide_convert', () => {
   })
 
   it('工程と変換の件数・割合を reportProgress へ順に流す (#1160)', async () => {
+    await explains('`slide_convert` ツールの進捗の通知のテストです。変換の工程と、スライドの変換の件数・割合が、`reportProgress` へ順に渡されることを確認します。')
     const project = makeTalkDirectory('convert-progress')
     const out = temporaryRoot('out', 'progress.pptx')
     const messages: string[] = []
@@ -791,6 +820,7 @@ describe('slide_convert', () => {
 
   it('省略可能なパラメータを全て指定しても CLI の option へ写る', async (context) => {
     await verifies(context, 'PV-SLIDE-CONVERT-04')
+    await explains('`slide_convert` ツールの省略できる引数のテストです。省略できる引数をすべて指定した場合に、エラーにならず、`cache: false` が変換の処理の `cacheSkipRead` へ渡ることを確認します。')
     const project = makeTalkDirectory('convert-full')
     const out = temporaryRoot('out', 'full.pptx')
     const spacingJson = temporaryRoot('letter-spacing.json')
@@ -818,6 +848,7 @@ describe('slide_convert', () => {
 
   it('out_path 省略時は slides.md の title から既定の出力先を決める', async (context) => {
     await verifies(context, 'PV-SLIDE-CONVERT-01')
+    await explains('`slide_convert` ツールの出力先の既定値のテストです。`out_path` を省略した場合に、`slides.md` の `title` から `pptx/` 配下の出力先が決まることを確認します。')
     const project = makeTalkDirectory('convert-default-out', '---\ntitle: デモ資料\n---\n\n# hello\n')
 
     const result = await call(createConvertTool(fakePipeline()), { project_dir: project })
@@ -826,7 +857,8 @@ describe('slide_convert', () => {
     expect(dataOf(result)['output']).toBe(expected)
   })
 
-  it('pipeline の失敗は exitCode 1 と pipeline 診断つきで返る', async () => {
+  it('変換の処理が失敗すると、pptx-convert-failed のエラーと診断を返す', async () => {
+    await explains('`slide_convert` ツールの変換に失敗した場合のテストです。変換の処理が失敗を返した場合に、`pptx-convert-failed` のエラーと、失敗した内容の一覧を返すことを確認します。')
     const project = makeTalkDirectory('convert-fail')
 
     const result = await call(createConvertTool(failingPipeline()), {
@@ -845,6 +877,7 @@ describe('slide_convert', () => {
 
   it('クライアントのキャンセルで pipeline が止まり、PPTX を書かずに cancelled で返る (#1228)', async (context) => {
     await verifies(context, 'PV-SLIDE-CONVERT-10')
+    await explains('`slide_convert` ツールのキャンセルのテストです。クライアントがキャンセルした場合に、変換の処理を止め、PPTX を書き出さず、`cancelled` のエラーを返すことを確認します。')
     const project = makeTalkDirectory('convert-cancel')
     const out = temporaryRoot('out', 'cancel.pptx')
     const controller = new AbortController()
@@ -872,7 +905,8 @@ describe('slide_convert', () => {
     expect(existsSync(out)).toBe(false)
   })
 
-  it('不正な theme は usage error として exitCode 2 で返る', async () => {
+  it('theme に不正な値を渡すと、invalid-theme のエラーを返す', async () => {
+    await explains('`slide_convert` ツールのテーマの指定の検証のテストです。`theme` に空白を含む不正な値を指定した場合に、`invalid-theme` のエラーを返すことを確認します。')
     const result = await call(createConvertTool(fakePipeline()), {
       project_dir: makeTalkDirectory('convert-theme'),
       theme: 'bad theme',
@@ -881,8 +915,9 @@ describe('slide_convert', () => {
     expect(structuredOf(result)['kind']).toBe('invalid-theme')
   })
 
-  it('project-dir 不在は実行失敗 (exitCode 1) として返る', async (context) => {
+  it('project_dir が存在しないと、project-not-found のエラーを返す', async (context) => {
     await verifies(context, 'PV-SLIDE-CONVERT-08')
+    await explains('`slide_convert` ツールの入力ディレクトリの検証のテストです。存在しないディレクトリを `project_dir` で指定した場合に、`project-not-found` のエラーを返すことを確認します。')
     const result = await call(createConvertTool(fakePipeline()), {
       project_dir: temporaryRoot('no-such-project'),
     })

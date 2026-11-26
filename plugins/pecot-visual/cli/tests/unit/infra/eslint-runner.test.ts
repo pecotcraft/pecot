@@ -18,6 +18,7 @@ import {
   resolveEslintBin,
 } from '../../../src/infra/slidev-project/eslint-runner.js'
 import { verifies } from '../../_helpers/verifies.js'
+import { explains } from '../../_helpers/explains.js'
 
 const HERE = import.meta.dirname
 const PLUGIN_ROOT = path.resolve(HERE, '..', '..', '..', '..')
@@ -55,8 +56,9 @@ function writeStubBin(): string {
 }
 
 describe('ChildProcessEslintRunner', () => {
-  it('talk-dir を cwd に、本体の deck lint 設定と JSON formatter で eslint を起動する', async (context) => {
+  it('talk-dir を作業ディレクトリにして、本体の deck lint 設定と JSON 形式の出力で eslint を起動する', async (context) => {
     await verifies(context, 'PV-SLIDE-LINT-04')
+    await explains('eslint を子プロセスとして起動する `ChildProcessEslintRunner` のテストです。引数と作業ディレクトリを表示する代役を起動した場合に、deck lint の設定と対象の `pages/**/*.md`・`slides.md` が引数に渡されることを確認します。')
     const talkDirectory = path.join(state.temporaryRoot, 'talk')
     mkdirSync(talkDirectory, { recursive: true })
     const stub = writeStubBin()
@@ -87,7 +89,8 @@ describe('ChildProcessEslintRunner', () => {
     expect(JSON.parse(observed.deckLint)).toStrictEqual(LINT)
   })
 
-  it('glob はシェル展開されず文字列のまま eslint に渡る', async () => {
+  it('glob は、シェルで展開せず、文字列のまま eslint に渡す', async () => {
+    await explains('eslint を子プロセスとして起動する `ChildProcessEslintRunner` のテストです。`pages/` の下に複数の Markdown がある場合に、`pages/**/*.md` を展開せず、そのままの文字列で eslint の引数に渡すことを確認します。')
     const talkDirectory = path.join(state.temporaryRoot, 'talk-glob')
     mkdirSync(path.join(talkDirectory, 'pages'), { recursive: true })
     writeFileSync(path.join(talkDirectory, 'pages', 'a.md'), '# a\n', 'utf8')
@@ -158,7 +161,8 @@ describe('resolveEslintBin', () => {
   // 解決先のパスは package manager の配置で変わる。
   // pnpm 11 以降の hoisted linker は同版の依存を symlink で共有し、realpath が assets の外になる。
   // 守るのは「assets/slidev が宣言した版の eslint」。
-  it('assets/slidev が宣言した版の eslint bin を解決する', () => {
+  it('assets/slidev が宣言した版の eslint を解決する', async () => {
+    await explains('eslint の実行ファイルを解決する `resolveEslintBin` のテストです。実際の `assets/slidev` を渡した場合に、`bin/eslint.js` を解決し、そのバージョンのメジャーが `devDependencies.eslint` の範囲に含まれることを確認します。')
     const binPath = resolveEslintBin(ASSETS_DIR)
     expect(binPath.endsWith(path.join('bin', 'eslint.js'))).toBe(true)
     const resolvedManifestPath = path.join(path.dirname(binPath), '..', 'package.json')
@@ -172,7 +176,8 @@ describe('resolveEslintBin', () => {
     expect(doesRangeAllowMajor(wantRange, resolvedMajor), `${resolvedVersion} が ${wantRange} を満たさない`).toBe(true)
   })
 
-  it('eslint 未 install の assets は eslint-not-launched で落とす', () => {
+  it('eslint がインストールされていない assets を渡すと、解決に失敗して例外が発生する', async () => {
+    await explains('eslint の実行ファイルを解決する `resolveEslintBin` のテストです。`package.json` だけで eslint がない `assets` を渡した場合に、`cannot resolve eslint from` を含む例外が発生することを確認します。')
     const fakeAssets = path.join(state.temporaryRoot, 'no-deps-assets')
     mkdirSync(fakeAssets, { recursive: true })
     writeFileSync(path.join(fakeAssets, 'package.json'), '{"name":"fake"}', 'utf8')
@@ -188,27 +193,31 @@ describe('resolveEslintBin', () => {
   // assets の外に解決されること自体は許す。実際 <root>/outer/node_modules/eslint は
   // inner の外側だが、assets の要求と同じメジャーなら lint 結果は保証される。
 
-  it('assets の要求と同じメジャーなら、assets の外に解決されても使う', () => {
+  it('assets が要求するものと同じメジャーなら、assets の外にある eslint でも使う', async () => {
+    await explains('eslint の実行ファイルを解決する `resolveEslintBin` のテストです。`assets` の外側に eslint 9.39.4 があり、`assets` が `^9.17.0` を宣言している場合に、その eslint の実行ファイルを返すことを確認します。')
     const { inner, hoistedBin } = writeHoistedEslint({ version: '9.39.4', wantRange: '^9.17.0' })
 
     expect(resolveEslintBin(inner)).toBe(hoistedBin)
   })
 
-  it('assets の要求とメジャーが違う eslint は使わず中止する', () => {
+  it('assets が要求するものとメジャーが違う eslint は使わず、例外が発生する', async () => {
+    await explains('eslint の実行ファイルを解決する `resolveEslintBin` のテストです。`assets` が `^9.17.0` を宣言し、解決される eslint が 10.2.1 の場合に、`a different major from` を含む例外が発生することを確認します。')
     // プラグイン側で hoist 構成が変わり CLI 側の eslint 10 系が引かれた場合。
     const { inner } = writeHoistedEslint({ version: '10.2.1', wantRange: '^9.17.0' })
 
     expect(() => resolveEslintBin(inner)).toThrow(/a different major from/)
   })
 
-  it('assets が eslint を宣言していなければ中止する', () => {
+  it('assets が eslint を宣言していなければ、例外が発生する', async () => {
+    await explains('eslint の実行ファイルを解決する `resolveEslintBin` のテストです。`assets` が eslint を宣言していない場合は、`does not declare devDependencies.eslint` を含む例外が発生することを確認します。')
     // 宣言が無いまま通すと「どのメジャーでもよい」ことになり、assert が無効になる (fail-closed)。
     const { inner } = writeHoistedEslint({ version: '9.39.4' })
 
     expect(() => resolveEslintBin(inner)).toThrow(/does not declare devDependencies\.eslint/)
   })
 
-  it('eslint の version が読めなければ中止する (fail-closed)', () => {
+  it('eslint のバージョンを読み取れなければ、例外が発生する', async () => {
+    await explains('eslint の実行ファイルを解決する `resolveEslintBin` のテストです。解決される eslint の `package.json` に `version` がない場合に、`a different major from` を含む例外が発生することを確認します。')
     // `Number.parseInt('')` は NaN。
     // 判定材料が無いまま通すと、assets が想定しない eslint で lint が実行される。
     // その結果、違反の検出結果が変わる。
@@ -217,13 +226,15 @@ describe('resolveEslintBin', () => {
     expect(() => resolveEslintBin(inner)).toThrow(/a different major from/)
   })
 
-  it('version が数字で始まらない場合も中止する', () => {
+  it('バージョンが数字で始まらない場合も、例外が発生する', async () => {
+    await explains('eslint の実行ファイルを解決する `resolveEslintBin` のテストです。解決される eslint の `version` が `next` のように数字で始まらない場合に、`a different major from` を含む例外が発生することを確認します。')
     const { inner } = writeHoistedEslint({ version: 'next', wantRange: '^9.17.0' })
 
     expect(() => resolveEslintBin(inner)).toThrow(/a different major from/)
   })
 
-  it('assets の package.json が無ければ eslint-not-launched で中止する', () => {
+  it('assets に package.json が存在しなければ、SlideLintRuntimeError が発生する', async () => {
+    await explains('eslint の実行ファイルを解決する `resolveEslintBin` のテストです。`assets` に `package.json` がない場合に、`SlideLintRuntimeError` が発生することを確認します。')
     // range を読む require が try / catch の外にあると、生の MODULE_NOT_FOUND が伝播する。
     // すると reason 付きの失敗にならない。
     // 同関数の上流で起きる eslint 解決失敗と、扱いを揃える。
@@ -233,7 +244,8 @@ describe('resolveEslintBin', () => {
     expect(() => resolveEslintBin(inner)).toThrow(/cannot read package\.json in/)
   })
 
-  it('assets の package.json が不正 JSON でも SlideLintRuntimeError になる', () => {
+  it('assets の package.json が不正な JSON でも、SlideLintRuntimeError が発生する', async () => {
+    await explains('eslint の実行ファイルを解決する `resolveEslintBin` のテストです。`assets` の `package.json` が `{ not json` のように不正な JSON の場合に、`SlideLintRuntimeError` が発生することを確認します。')
     // この場合は Node の package config 検証が先に働くため、上流 (eslint の解決) 側で処理される。
     // どちらで捕まえても reason は eslint-not-launched で揃う。
     const { inner } = writeHoistedEslint({ version: '9.39.4', templateManifest: 'broken' })
@@ -241,7 +253,8 @@ describe('resolveEslintBin', () => {
     expect(() => resolveEslintBin(inner)).toThrow(SlideLintRuntimeError)
   })
 
-  it('assets/slidev は 10 系を宣言し、解決される eslint も 10 系になる', () => {
+  it('assets/slidev は eslint の 10 系を宣言し、解決される eslint も 10 系になる', async () => {
+    await explains('eslint の実行ファイルを解決する `resolveEslintBin` のテストです。現在の構成として、実際の `assets/slidev` の `devDependencies.eslint` が 10 系を指し、解決される eslint のメジャーが `10` であることを確認します。')
     // 現時点で得られた値の固定。
     // メジャーが揃っているため、メジャー判定では plugin root 側の eslint を掴んだかどうかを区別できない。
     // この判定は、assets の想定メジャーから外れた eslint を拒むためのものになる。

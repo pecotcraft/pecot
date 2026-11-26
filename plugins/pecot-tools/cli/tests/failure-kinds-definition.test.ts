@@ -7,6 +7,7 @@ import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
 
 import { ALLOWLIST, FAILURE_KINDS, type FailureKind } from '../src/domain/allowlist.js'
+import { explains } from '../tests/_helpers/explains.js'
 
 const AUTHORED_PATH = path.resolve(import.meta.dirname, '../../interface/authored.yaml')
 const ExitStatusSchema = z.object({ kind: z.string() })
@@ -40,13 +41,15 @@ const AWSCLI_KINDS: readonly FailureKind[] = [
 const NOT_ALLOWED_TOOLS = new Set(['aws_athena_start_query_execution'])
 
 describe('定義書の exit_status と実装', () => {
-  it('exit_status[].kind の集合が FAILURE_KINDS と一致する', () => {
+  it('定義書の exit_status の kind を集めた集合が、実装の FAILURE_KINDS と一致する', async () => {
+    await explains('定義書（`interface/authored.yaml`）の `exit_status` に書いた失敗の種類と、実装が返す種類を比較するテストです。すべての項目の `exit_status` の `kind` を重複なく集めた一覧が、`FAILURE_KINDS` と一致することを確認します。')
     const defined = Object.keys(authored.entries).flatMap(id => kindsOf(id))
 
     expect(sorted([...new Set(defined)])).toEqual(sorted(FAILURE_KINDS))
   })
 
-  it.each(ALLOWLIST.map(entry => entry.toolName))('%s の exit_status が、awscli 実行の失敗で返りうる名前と一致する', (toolName) => {
+  it.each(ALLOWLIST.map(entry => entry.toolName))('ツール %s の exit_status は、awscli の実行の失敗で返しうる種類と一致する', async (toolName) => {
+    await explains('定義書（`interface/authored.yaml`）の `exit_status` に書いた失敗の種類と、実装が返す種類を比較するテストです。許可リストの各ツールで、共通の種類と一致し、Athena の `start-query-execution` だけに `not-allowed` が加わることを確認します。')
     const expected = NOT_ALLOWED_TOOLS.has(toolName) ? [...AWSCLI_KINDS, 'not-allowed'] : AWSCLI_KINDS
 
     const actual = sorted(kindsOf(idOf(toolName)))
@@ -55,11 +58,13 @@ describe('定義書の exit_status と実装', () => {
   })
 
   // SSO の 2 件は awscli を許可リスト経由で呼ばない。失敗の名前は login-registry が classifyFailure で決める。
-  it('aws_sso_login の exit_status が、返りうる名前と一致する', () => {
+  it('aws_sso_login の exit_status は、返しうる種類と一致する', async () => {
+    await explains('定義書（`interface/authored.yaml`）の `exit_status` に書いた失敗の種類と、実装が返す種類を比較するテストです。`aws_sso_login` の `exit_status` の種類が、awscli の実行で共通の種類と一致することを確認します。')
     expect(sorted(kindsOf('PT-AWS-SSO-LOGIN'))).toEqual(sorted(AWSCLI_KINDS))
   })
 
-  it('aws_sso_login_status の exit_status が、awscli-missing 以外の名前と一致する', () => {
+  it('aws_sso_login_status の exit_status は、awscli-missing を除いた種類と一致する', async () => {
+    await explains('定義書（`interface/authored.yaml`）の `exit_status` に書いた失敗の種類と、実装が返す種類を比較するテストです。`aws_sso_login_status` の `exit_status` の種類が、`awscli-missing` を除いた共通の種類と一致することを確認します。')
     const expected = AWSCLI_KINDS.filter(kind => kind !== 'awscli-missing')
 
     expect(sorted(kindsOf('PT-AWS-SSO-LOGIN-STATUS'))).toEqual(sorted(expected))

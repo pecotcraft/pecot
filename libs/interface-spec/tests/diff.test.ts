@@ -3,6 +3,7 @@ import { diffGenerated, formatStale } from '../src/domain/diff.js'
 import { generatedFileSchema } from '../src/domain/schema.js'
 import type { GeneratedFile } from '../src/domain/schema.js'
 import { stepSync } from '../src/vitest/step.js'
+import { explains } from '../src/vitest/explains.js'
 
 const NAMES = { separator: ' ', positions: [[{ word: 'issue', meaning: 'Issue' }], [{ word: 'show', meaning: 'show one', read_only: true }]], rest: false }
 
@@ -18,14 +19,16 @@ function entry(id: string, input: object, extra: object = {}): object {
 }
 
 describe('diffGenerated', () => {
-  it('同じ内容のファイルのとき、何も返さない', () => {
+  it('同じ内容の generated.json を比べると、差を返さない', async () => {
+    await explains('`generated.json` の 2 つの版の差を求める `diffGenerated` のテストです。同じ内容のファイルを比較した場合に、空の配列を返すことを確認します。')
     const same = file([entry('PW-A', { a: { type: 'string' } })])
     stepSync('差分を求めて比べる', () => {
       expect(diffGenerated(same, same)).toEqual([])
     })
   })
 
-  it('プロパティの追加・default の変更・削除があると、それぞれ名前を出す', () => {
+  it('入力のプロパティの追加・default の変更・削除があると、それぞれの差の行を返す', async () => {
+    await explains('`generated.json` の 2 つの版の差を求める `diffGenerated` のテストです。入力のプロパティが追加・削除された場合と `default` が変わった場合に、項目の ID とフィールドのパスを含む差の行を返すことを確認します。')
     const before = file([entry('PW-ISSUE-CREATE', { draft: { type: 'boolean', default: false }, gone: { type: 'string' } })])
     const after = file([entry('PW-ISSUE-CREATE', { draft: { type: 'boolean', default: true }, label: { type: 'string' } })])
     stepSync('差分を求めて比べる', () => {
@@ -37,7 +40,8 @@ describe('diffGenerated', () => {
     })
   })
 
-  it('項目の追加と削除があると、id の順に名前を出す', () => {
+  it('項目の追加と削除があると、id の順に差の行を返す', async () => {
+    await explains('`generated.json` の 2 つの版の差を求める `diffGenerated` のテストです。項目が追加された場合と削除された場合に、項目の ID の順で `added` と `removed` の行を返すことを確認します。')
     const before = file([entry('PW-B', {}), entry('PW-C', {})])
     const after = file([entry('PW-A', {}), entry('PW-B', {})])
     stepSync('差分を求めて比べる', () => {
@@ -45,7 +49,8 @@ describe('diffGenerated', () => {
     })
   })
 
-  it('配列の要素を比べるとき、添字で対応づける', () => {
+  it('配列の要素は、添字で対応づけて比べる', async () => {
+    await explains('`generated.json` の 2 つの版の差を求める `diffGenerated` のテストです。配列の要素が変わり、さらに増減した場合に、添字ごとの差の行が方向に合わせて返ることを確認します。')
     const before = file([entry('PW-A', {}, { surfaces: { cli: { path: ['a', 'b'] } } })])
     const after = file([entry('PW-A', {}, { surfaces: { cli: { path: ['a', 'c', 'd'] } } })])
     stepSync('差分を求めて比べる', () => {
@@ -54,7 +59,8 @@ describe('diffGenerated', () => {
     })
   })
 
-  it('値の型が変わると、報告する', () => {
+  it('値の型が変わると、変更前と変更後の値を含む差の行を返す', async () => {
+    await explains('`generated.json` の 2 つの版の差を求める `diffGenerated` のテストです。`default` が数値から配列へ変わった場合に、変更前と変更後の値を示す差の行を返すことを確認します。')
     const before = file([entry('PW-A', { a: { type: 'string', default: 1 } })])
     const after = file([entry('PW-A', { a: { type: 'string', default: [1] } })])
     stepSync('差分を求めて比べる', () => {
@@ -62,7 +68,8 @@ describe('diffGenerated', () => {
     })
   })
 
-  it('CLI だけの入力の増減と変更があると、cli.only の欄のパスで報告する', () => {
+  it('CLI だけの入力の追加・削除・変更があると、cli.only のパスを含む差の行を返す', async () => {
+    await explains('`generated.json` の 2 つの版の差を求める `diffGenerated` のテストです。CLI だけの入力（`cli.only`）が追加・削除・変更された場合に、それぞれ `cli.only` 以下のパスを含む差の行を返すことを確認します。')
     const cli = (only: object | undefined): object => ({ cli: { positional: [], flags: { dry_run: ['--dry-run'] }, ...(only !== undefined && { only }) } })
     const none = file([entry('PW-A', {}, cli(undefined))])
     const boolean = file([entry('PW-A', {}, cli({ dry_run: { type: 'boolean' } }))])
@@ -78,13 +85,15 @@ describe('diffGenerated', () => {
     })
   })
 
-  it('ファイルの先頭部が変わると、報告する', () => {
+  it('ファイルの先頭の項目が変わると、file の行で差を返す', async () => {
+    await explains('`generated.json` の 2 つの版の差を求める `diffGenerated` のテストです。先頭の `prefix` が変わった場合に、`file: prefix:` で始まる差の行を返すことを確認します。')
     stepSync('差分を求めて比べる', () => {
       expect(diffGenerated(file([]), file([], { prefix: 'PV' }))).toEqual(['file: prefix: "PW" -> "PV"'])
     })
   })
 
-  it('語彙の語の追加と読むだけの印の削除があると、names の欄のパスで報告する', () => {
+  it('names の語の追加と read_only の削除があると、names のパスを含む差の行を返す', async () => {
+    await explains('`generated.json` の 2 つの版の差を求める `diffGenerated` のテストです。コマンド名の語彙（`names`）に語が追加された場合と `read_only` が削除された場合に、`names.positions` 以下のパスを含む差の行を返すことを確認します。')
     const after = { ...NAMES, positions: [[{ word: 'issue', meaning: 'Issue' }, { word: 'pr', meaning: 'PR' }], [{ word: 'show', meaning: 'show one' }]] }
     stepSync('差分を求めて比べる', () => {
       expect(diffGenerated(file([]), file([], { names: after }))).toEqual([
@@ -98,7 +107,8 @@ describe('diffGenerated', () => {
 describe('diffGenerated の resources', () => {
   const RESOURCE = { uri: 'pecot-template://issue/task', name: 'issue-task', mimeType: 'text/markdown' }
 
-  it('resources の追加・変更・削除を、file の行で報告する', () => {
+  it('resources の追加・変更・削除があると、file の行で差を返す', async () => {
+    await explains('`generated.json` の 2 つの版の差を求める `diffGenerated` のテストです。`resources` の要素が追加・変更・削除された場合に、`file: resources[…]` の形の差の行を返すことを確認します。')
     const before = file([], { resources: [RESOURCE] })
     const after = file([], { resources: [{ ...RESOURCE, mimeType: 'text/plain' }, { uri: 'pecot-template://pr/default', name: 'pr-default' }] })
     stepSync('差分を求めて比べる', () => {
@@ -113,7 +123,8 @@ describe('diffGenerated の resources', () => {
 })
 
 describe('formatStale', () => {
-  it('差の行を字下げして error の行と run の行で挟む', () => {
+  it('差の行を字下げし、error の行と run の行で挟んで返す', async () => {
+    await explains('古い `generated.json` を報告する `formatStale` のテストです。差の行がある場合に、2 つの空白で字下げした差の行を、`error:` の行と `run:` の行で挟んで返すことを確認します。')
     stepSync('stale の行を整えて比べる', () => {
       expect(formatStale('plugins/x/interface/generated.json', ['PW-A: entry: added', 'PW-B: entry: removed'], 'do --write')).toEqual([
         'error: plugins/x/interface/generated.json is stale',
@@ -124,7 +135,8 @@ describe('formatStale', () => {
     })
   })
 
-  it('差の行が無くても error の行と run の行を返す', () => {
+  it('差の行が存在しなくても、error の行と run の行を返す', async () => {
+    await explains('古い `generated.json` を報告する `formatStale` のテストです。差の行が 0 件の場合でも、`error:` の行と `run:` の行の 2 行を返すことを確認します。')
     stepSync('stale の行を整えて比べる', () => {
       expect(formatStale('f.json', [], 'cmd')).toEqual(['error: f.json is stale', '  run: cmd'])
     })

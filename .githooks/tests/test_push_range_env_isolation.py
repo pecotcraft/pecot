@@ -29,8 +29,9 @@ _MISSING_SHA = "0123456789abcdef0123456789abcdef01234567"
 _BLOCK_CASE = "test_check_version_plan_required.py::test_01_block_no_plan"
 
 
+@allure.title("存在しない sha を `PECOT_VERSION_PLAN_BASE` に指定しても、block 系のケースが通る")
 def test_block_case_passes_with_push_range_env_set() -> None:
-    """PECOT_VERSION_PLAN_BASE が親から引き継がれていても、block 系のケースが通る。"""
+    """`PECOT_VERSION_PLAN_BASE` に存在しない sha を設定したまま、別の pytest プロセスで block 系のケースを実行した場合のテストです。conftest が push 範囲の環境変数を外すため、終了コードが 0 で `1 passed` と表示されることを確認します。"""
     with allure.step("PECOT_VERSION_PLAN_BASE を設定した環境で pytest を子として動かす"):
         tests_dir = Path(__file__).resolve().parent
         env = {**os.environ, "PECOT_VERSION_PLAN_BASE": _MISSING_SHA}

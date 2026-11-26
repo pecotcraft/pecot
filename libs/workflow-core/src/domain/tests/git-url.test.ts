@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { explains } from '../../../tests/_helpers/explains.js'
 import { parseRemoteUrl, RemoteUrlFormatError } from '../git-url.js'
 
 const parseWithSecret = (): unknown => parseRemoteUrl('https://user:ghp_secret@github.com/owner')
@@ -29,7 +30,8 @@ describe('parseRemoteUrl', () => {
     ['https://github.com/pecotcraft/pecot/', 'github.com', 'pecotcraft', 'pecot'],
     ['https://ghe.example:8443/o/r.git', 'ghe.example', 'o', 'r'],
     ['ftp://host/o/r.git', 'host', 'o', 'r'],
-  ])('%j を (host, owner, repository) に分ける', (url, host, owner, repository) => {
+  ])('%j を渡すと、host・owner・repository に分けて返す', async (url, host, owner, repository) => {
+    await explains(`Git のリモート URL を分解する、\`parseRemoteUrl\` のテストです。\`${JSON.stringify(url)}\` を渡した場合に、host・owner・repository に分けた結果を返すことを確認します。`)
     expect(parseRemoteUrl(url)).toEqual({ host, owner, repository })
   })
 
@@ -51,23 +53,27 @@ describe('parseRemoteUrl', () => {
     'git://host/~user/repo',
     'C:/o/r.git',
     'ssh://git@github.com:２２/o/r.git',
-  ])('%j は形式不正', (url) => {
+  ])('%j を渡すと、形式が不正として例外が発生する', async (url) => {
+    await explains(`Git のリモート URL を分解する、\`parseRemoteUrl\` のテストです。形式が不正な \`${JSON.stringify(url)}\` を渡した場合に、\`RemoteUrlFormatError\` の例外が発生することを確認します。`)
     expect(() => parseRemoteUrl(url)).toThrow(RemoteUrlFormatError)
     expect(() => parseRemoteUrl(url)).toThrow(/^unexpected remote URL format: /u)
   })
 
-  it('https の userinfo は host に含めない', () => {
+  it('https の URL に userinfo がある場合は、host に含めない', async () => {
+    await explains('Git のリモート URL を分解する、`parseRemoteUrl` のテストです。`https` の URL にユーザー名やトークンが含まれる場合に、host にそれらを含めず分解することを確認します。')
     expect(parseRemoteUrl('https://user:ghp_secret@ghes.example.com/owner/repo.git')).toEqual({ host: 'ghes.example.com', owner: 'owner', repository: 'repo' })
     expect(parseRemoteUrl('https://token@github.com/owner/repo')).toEqual({ host: 'github.com', owner: 'owner', repository: 'repo' })
   })
 
-  it('エラー文には userinfo（トークン）を出さない', () => {
+  it('エラー文には userinfo（トークン）を表示しない', async () => {
+    await explains('Git のリモート URL を分解する、`parseRemoteUrl` のテストです。形式が不正でトークンを含む URL を渡した場合に、例外のメッセージにトークンが含まれないことを確認します。')
     expect(parseWithSecret).toThrow(RemoteUrlFormatError)
     expect(parseWithSecret).toThrow('unexpected remote URL format: https://github.com/owner')
     expect(parseWithSecret).toThrow(/^(?!.*ghp_secret)/su)
   })
 
-  it('エラー文は空白を除いた URL を含む（Python と同じ）', () => {
+  it('エラー文には、前後の空白を除いた URL を含める（Python と同じ）', async () => {
+    await explains('Git のリモート URL を分解する、`parseRemoteUrl` のテストです。前後に空白がある不正な URL を渡した場合に、例外のメッセージに空白を除いた URL が含まれることを確認します。')
     expect(() => parseRemoteUrl('  foo  ')).toThrow('unexpected remote URL format: foo')
   })
 })

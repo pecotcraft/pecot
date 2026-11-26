@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { explains } from '../../../_helpers/explains.js'
 
 const SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="200.5px" height="120px"><text>日本語</text></svg>'
 const PDF_BYTES = Buffer.from('%PDF-1.4 stub')
@@ -51,7 +52,8 @@ describe('exportPdf', () => {
     }
   })
 
-  it('SVG の px 寸法 (切り上げ) と pageRanges: 1 / printBackground で印刷し、結果を書き出す', async () => {
+  it('SVG の寸法を切り上げ、1 ページ目だけを背景つきで印刷し、結果をファイルに書き出す', async () => {
+    await explains('SVG から 1 ページの PDF を書き出す `exportPdf` のテストです。幅 `200.5px` の SVG を渡した場合に、寸法を `201px` と `120px` に切り上げて 1 ページ目を背景つきで印刷し、結果を出力先に書き込み、ブラウザを 1 回閉じることを確認します。')
     const { pdf, setContent, close } = mockPlaywright()
     const { exportPdf } = await import('../../../../src/infra/drawio/pdf.js')
     const outputPath = path.join(makeTemporaryDirectory(), 'nested', 'out.pdf')
@@ -74,7 +76,8 @@ describe('exportPdf', () => {
     expect(readFileSync(outputPath)).toEqual(PDF_BYTES)
   })
 
-  it('PECOTV_FORCE_PDF_FAIL=1 なら Playwright を起動する前に reject し、何も書かない', async () => {
+  it('PECOTV_FORCE_PDF_FAIL に 1 を指定すると、Playwright を起動せずに失敗し、何も書き出さない', async () => {
+    await explains('SVG から 1 ページの PDF を書き出す `exportPdf` のテストです。`PECOTV_FORCE_PDF_FAIL=1` の場合に、`forced PDF failure` の例外が発生し、Playwright の起動と出力ディレクトリの作成は行わないことを確認します。')
     vi.stubEnv('PECOTV_FORCE_PDF_FAIL', '1')
     const { launch } = mockPlaywright()
     const { exportPdf } = await import('../../../../src/infra/drawio/pdf.js')
@@ -86,7 +89,8 @@ describe('exportPdf', () => {
     expect(existsSync(directory)).toBe(false)
   })
 
-  it('SVG の寸法が読めなければ Playwright を起動せずに reject する', async () => {
+  it('SVG の寸法を読み取れない場合は、Playwright を起動せずに失敗する', async () => {
+    await explains('SVG から 1 ページの PDF を書き出す `exportPdf` のテストです。幅が `100%` のように px でない SVG を渡した場合に、`is not a positive px value` を含む例外が発生し、Playwright を起動しないことを確認します。')
     const { launch } = mockPlaywright()
     const { exportPdf } = await import('../../../../src/infra/drawio/pdf.js')
 
@@ -96,7 +100,8 @@ describe('exportPdf', () => {
     expect(launch).not.toHaveBeenCalled()
   })
 
-  it('印刷に失敗したら出力ディレクトリを作らず、ブラウザは閉じる', async () => {
+  it('印刷に失敗した場合は、出力ディレクトリを作成せず、ブラウザを閉じる', async () => {
+    await explains('SVG から 1 ページの PDF を書き出す `exportPdf` のテストです。印刷が `print failed` で失敗する場合に、同じ例外が発生し、ブラウザを 1 回閉じて、出力ディレクトリを作成しないことを確認します。')
     const { close } = mockPlaywright(() => Promise.reject(new Error('print failed')))
     const { exportPdf } = await import('../../../../src/infra/drawio/pdf.js')
     const directory = path.join(makeTemporaryDirectory(), 'out')
@@ -107,7 +112,8 @@ describe('exportPdf', () => {
     expect(existsSync(directory)).toBe(false)
   })
 
-  it('印刷が上限時間内に終わらなければ reject する', async () => {
+  it('印刷が上限の時間内に終わらない場合は、失敗する', async () => {
+    await explains('SVG から 1 ページの PDF を書き出す `exportPdf` のテストです。印刷が終わらない状態で 60 秒経過した場合に、`did not finish within 60s` を含む例外が発生し、ブラウザは 1 回閉じて出力ファイルは作成しないことを確認します。')
     vi.useFakeTimers()
     const { close } = mockPlaywright(() => new Promise<Buffer>(() => { /* 返らない印刷 */ }))
     const { exportPdf } = await import('../../../../src/infra/drawio/pdf.js')

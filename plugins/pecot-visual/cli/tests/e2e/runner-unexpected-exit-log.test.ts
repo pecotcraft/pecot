@@ -17,6 +17,7 @@ import type { MockInstance } from 'vitest'
 
 import { assertCliBuilt, createPecotvRunner } from '../_helpers/pecotv-e2e-run.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { explains } from '../_helpers/explains.js'
 
 const MINIMAL_DRAWIO = path.resolve(import.meta.dirname, '..', 'fixtures', 'drawio', 'minimal.drawio')
 const workDirectory = useTemporaryDirectory('pecotv-runner-log-e2e-', { hook: 'all' })
@@ -62,7 +63,8 @@ function convertMissingProjectArguments(): readonly string[] {
 }
 
 describe('createPecotvRunner の想定外終了ログ', () => {
-  it('想定外の exit 1 では stdout tail にツールの失敗理由（event と kind）が載る', () => {
+  it('想定外の終了コード 1 では、標準出力の末尾にツールの失敗の理由を `event`・`kind` の順で載せる', async () => {
+    await explains('`createPecotvRunner` の想定外の終了のログのテストです。終了コード 1 が想定外の場合に、`console.error` の出力が、失敗の結果の `event` と `kind` を含むことを確認します。')
     const spies = silenceConsole()
     const runPecotv = createPecotvRunner({ logPrefix: 'runner-log', isUnexpectedExit: status => status !== 0 })
 
@@ -74,7 +76,8 @@ describe('createPecotvRunner の想定外終了ログ', () => {
     expect(spies.error).toHaveBeenCalledWith(expect.stringContaining('"kind":"project-not-found"'))
   })
 
-  it('exit 0 では console.error を呼ばず、どの console 出力にも stdout を載せない', () => {
+  it('終了コード 0 では `console.error` を呼ばず、どのコンソール出力にも標準出力の内容を載せない', async () => {
+    await explains('`createPecotvRunner` の正常な終了のログのテストです。終了コード 0 の場合に、`console.error` を呼ばず、どのコンソール出力にも標準出力の版の番号が含まれないことを確認します。')
     const spies = silenceConsole()
     const runPecotv = createPecotvRunner({ logPrefix: 'runner-log', isUnexpectedExit: status => status !== 0 })
 
@@ -91,7 +94,8 @@ describe('createPecotvRunner の想定外終了ログ', () => {
     }
   })
 
-  it('exit 1 を期待する判定では console.error を呼ばない', () => {
+  it('終了コード 1 を想定どおりとする判定では、`console.error` を呼ばない', async () => {
+    await explains('`createPecotvRunner` の判定の指定のテストです。終了コード 1 を想定外としない判定の場合に、終了コード 1 で終わっても、`console.error` を呼ばないことを確認します。')
     const spies = silenceConsole()
     const runPecotv = createPecotvRunner({ logPrefix: 'runner-log', isUnexpectedExit: status => status === null })
 

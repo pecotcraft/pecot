@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { createDiagnostics, DiagnosticVerbSchema, passthrough, writeData } from '../diagnostics.js'
+import { explains } from '../../tests/_helpers/explains.js'
 
 const StreamSchema = z.enum(['stdout', 'stderr'])
 const MessageSchema = z.object({ message: z.string() })
@@ -80,15 +81,18 @@ function run(item: Case): Written[] {
 const named = cases.map((item, index) => ({ item, name: `${String(index)} ${item.kind} ${JSON.stringify(item.input)}` }))
 
 describe('診断行の共通の関数（error・warning・note）', () => {
-  it('期待の行の一覧は 13 件ある', () => {
+  it('診断行の期待値の一覧は、13 件ある', async () => {
+    await explains('`tests/diagnostics-cases.json` に定義した期待する行を使う、診断行を書き出す共通の関数のテストです。読み込んだケースが 13 件であることを確認します。')
     expect(cases.length).toBe(13)
   })
 
-  it.each(named)('$name のとき、$item.line を書く', ({ item }) => {
+  it.each(named)('入力が $name のときは、行 $item.line を書く', async ({ item }) => {
+    await explains('`tests/diagnostics-cases.json` に定義した期待する行を使う、診断行を書き出す共通の関数のテストです。`error`、`warning`、`note`、`result`、`data` の各ケースで、入力から作る出力が、期待する出力先と行の文字列だけであることを確認します。')
     expect(run(item)).toEqual([{ stream: item.stream, text: item.line }])
   })
 
-  it('passthrough は受け取った文字列に手を加えずに書く', () => {
+  it('passthrough は、受け取った文字列を加工せずに書き出す', async () => {
+    await explains('`tests/diagnostics-cases.json` に定義した期待する行を使う、診断行を書き出す共通の関数のテストです。`passthrough` に `error: unknown option` で始まる文字列を渡した場合に、同じ文字列がそのまま書き出されることを確認します。')
     const chunks: string[] = []
     const stream = {
       write: (text: string) => {

@@ -11,6 +11,7 @@ import { BORROWED_MAP, POSIX_MAP } from '../src/domain/field-map.js'
 import process from 'node:process'
 import { materialize } from './helpers/repository.js'
 import { step, stepSync } from '../src/vitest/step.js'
+import { explains } from '../src/vitest/explains.js'
 
 const exec = promisify(execFile)
 const PROJECT = path.join(import.meta.dirname, '..')
@@ -46,13 +47,15 @@ async function call(...argv: string[]): Promise<{ code: number, stdout: string, 
 }
 
 describe('validate', () => {
-  it('正しいリポジトリのとき、何も出さず 0 で終わる', async () => {
+  it('定義書が正しいリポジトリを validate すると、何も出力せず 0 で終了する', async () => {
+    await explains('`interface-spec validate` コマンドのテストです。定義書が正しいリポジトリを指定した場合に、標準出力と標準エラーのどちらにも何も出力せず、終了コード 0 で終了することを確認します。')
     await step('正しいリポジトリを検証し、出力を比べる', async () => {
       expect(await call('validate', '--root', await materialize('valid'))).toEqual({ code: 0, stdout: '', stderr: '' })
     })
   })
 
-  it('失敗があると、1 件ごとに 1 行を標準エラーに出して 1 で終わる', async () => {
+  it('検証エラーがあると、1 件ごとに 1 行を標準エラーに出力し、1 で終了する', async () => {
+    await explains('`interface-spec validate` コマンドのテストです。定義書に検証エラーが 2 件ある場合に、エラーを 1 件ごとに 1 行で標準エラーへ出力し、終了コード 1 で終了することを確認します。')
     await step('失敗のあるリポジトリを検証し、出力を比べる', async () => {
       expect(await call('validate', '--root', await materialize('language'))).toEqual({
         code: 1,
@@ -63,14 +66,16 @@ describe('validate', () => {
     })
   })
 
-  it('--root を省くと、リポジトリの root を指す', () => {
+  it('--root を省略すると、既定の root がこのリポジトリの root になる', async () => {
+    await explains('`defaultRoot` が返す、`--root` を省略したときの root のテストです。返された root の下に `libs/interface-spec/targets.json` が存在することを確認します。')
     const targets = stepSync('既定の root から targets.json の場所を求める', () => path.join(defaultRoot(), 'libs/interface-spec/targets.json'))
     stepSync('ファイルの有無を比べる', () => {
       expect(existsSync(targets)).toBe(true)
     })
   })
 
-  it('root が git リポジトリでないと、エラーを 1 行出して 2 で終わる', async () => {
+  it('root が git リポジトリでないと、エラーを 1 行出力し、2 で終了する', async () => {
+    await explains('`interface-spec validate` コマンドのテストです。`--root` に git リポジトリでないディレクトリを指定した場合に、`git ls-files` の失敗を示すエラーを 1 行出力し、終了コード 2 で終了することを確認します。')
     const root = await mkdtemp(path.join(tmpdir(), 'interface-spec-nogit-'))
     const fixture = path.join(PROJECT, 'tests', 'fixtures', 'valid')
     await step('git でない root を検証し、出力を比べる', async () => {
@@ -88,7 +93,8 @@ describe('validate', () => {
     })
   })
 
-  it('想定外の読み取りエラーのとき、エラーを 1 行出して 2 で終わる', async () => {
+  it('定義書がディレクトリで読み取れないと、エラーを 1 行出力し、2 で終了する', async () => {
+    await explains('`interface-spec validate` コマンドのテストです。`authored.yaml` がファイルでなくディレクトリになっている場合に、`EISDIR` のエラーを 1 行出力し、終了コード 2 で終了することを確認します。')
     const root = await materialize('valid')
     const authored = path.join(root, 'plugins/pecot-workflow/interface/authored.yaml')
     await step('authored.yaml をディレクトリに置き換える', async () => {
@@ -107,7 +113,8 @@ describe('validate', () => {
     [['validate', '--bogus', 'x']],
     [['validate', '--root', 'a', 'b']],
     [['field-map', 'x']],
-  ])('%j を渡すと、使い方を出して 2 で終わる', async (argv) => {
+  ])('引数 %j を渡すと、使い方を出力し、2 で終了する', async (argv) => {
+    await explains(`\`interface-spec\` コマンドの引数の検証のテストです。引数が \`${JSON.stringify(argv)}\` の場合に、使い方を標準エラーへ出力し、終了コード 2 で終了することを確認します。`)
     await step('使い方を出すコマンドを動かし、出力を比べる', async () => {
       expect(await call(...argv)).toEqual({ code: 2, stdout: '', stderr: 'usage: interface-spec validate [--root <dir>]\n       interface-spec links [--root <dir>]\n       interface-spec commands-md (--check | --write) [--root <dir>]\n       interface-spec field-map\n' })
     })
@@ -115,7 +122,8 @@ describe('validate', () => {
 })
 
 describe('field-map', () => {
-  it('欄の対応の 2 つの表を JSON で標準出力に出し、0 で終わる', async () => {
+  it('field-map を実行すると、欄の対応の 2 つの表を JSON で標準出力に出力し、0 で終了する', async () => {
+    await explains('`interface-spec field-map` コマンドのテストです。実行した場合に、`posix` と `borrowed` の 2 つの表を JSON で標準出力へ出力し、終了コード 0 で終了することを確認します。')
     const result = await step('field-map を動かす', () => call('field-map'))
     stepSync('結果を比べる', () => {
       expect(result.code).toBe(0)
@@ -126,7 +134,8 @@ describe('field-map', () => {
 })
 
 describe('the command line', () => {
-  it('lint-defs と同じく tsx から呼ぶと、欠けた欄を 1 行出して終了コード 1 で終わる', async () => {
+  it('tsx で src/cli.ts を直接起動して validate すると、欠けている欄のエラーを 1 行出力し、1 で終了する', async () => {
+    await explains('`lint-defs` の target と同じ形で、`tsx` から `src/cli.ts` を起動するテストです。必須の欄が存在しない定義書を検証した場合に、その欄のエラーを標準エラーへ 1 行出力し、終了コード 1 で終了することを確認します。')
     const root = await materialize('field-missing')
     const failure = await step('tsx から検証を動かす', () => failureOf(exec('pnpm', ['exec', 'tsx', 'src/cli.ts', 'validate', '--root', root], { cwd: PROJECT, env: CHILD_ENV })))
     stepSync('出力を比べる', () => {

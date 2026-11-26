@@ -7,6 +7,7 @@ import { cliEntry, builtCliProblem } from '../parity/built-cli.js'
 import { runScenario } from '../parity/run.js'
 import type { Launcher, Outcome } from '../parity/run.js'
 import { readScenario } from '../parity/scenario.js'
+import { explains } from '../_helpers/explains.js'
 
 const TEST_TIMEOUT_MS = 30_000
 const REASON = 'cannot determine the target repository: the server was started in the plugin directory'
@@ -26,11 +27,13 @@ async function statusFrom(pluginRoot: string, environment: Readonly<Record<strin
 }
 
 describe('pecot mcp のセッションのディレクトリ', () => {
-  it('Node の CLI がビルドされている', () => {
+  it('Node の CLI がビルドされている場合は、ビルドの問題を報告しない', async () => {
+    await explains('ビルド済みの Node の CLI（`pecot`）が存在するかを確認するテストです。ビルドに関する問題が報告されないことを確認します。')
     expect(builtCliProblem()).toBeUndefined()
   })
 
   it('プラグインの root で起動され、COPILOT_SESSION_CWD があれば、そのリポを対象にする', { timeout: TEST_TIMEOUT_MS }, async () => {
+    await explains('プラグインの root で起動した `pecot mcp` が、対象のリポジトリを決める方法のテストです。`COPILOT_SESSION_CWD` を指定した場合に、そのディレクトリのリポジトリ（`acme/session-repo`）を対象にすることを確認します。')
     const pluginRoot = repositoryWithRemote('plugin-root')
     const session = repositoryWithRemote('session-repo')
     const outcome = await statusFrom(pluginRoot, { COPILOT_SESSION_CWD: session })
@@ -40,6 +43,7 @@ describe('pecot mcp のセッションのディレクトリ', () => {
   })
 
   it('COPILOT_SESSION_CWD が無くても、CLAUDE_PROJECT_DIR があれば、そのリポを対象にする', { timeout: TEST_TIMEOUT_MS }, async () => {
+    await explains('プラグインの root で起動した `pecot mcp` が、対象のリポジトリを決める方法のテストです。`COPILOT_SESSION_CWD` を指定せず、`CLAUDE_PROJECT_DIR` を指定した場合に、そのリポジトリ（`acme/project-repo`）を対象にすることを確認します。')
     const pluginRoot = repositoryWithRemote('plugin-root')
     const project = repositoryWithRemote('project-repo')
     const outcome = await statusFrom(pluginRoot, { CLAUDE_PROJECT_DIR: project })
@@ -48,7 +52,8 @@ describe('pecot mcp のセッションのディレクトリ', () => {
     expect(outcome.data?.['repository']).toBe('acme/project-repo')
   })
 
-  it('どちらの変数も無ければ、プラグインの root のリポを使わず、理由を失敗で返す', { timeout: TEST_TIMEOUT_MS }, async () => {
+  it('どちらの環境変数も指定しなければ、プラグインの root のリポを使わず、理由を失敗で返す', { timeout: TEST_TIMEOUT_MS }, async () => {
+    await explains('プラグインの root で起動し、どちらの環境変数も指定しない場合のテストです。プラグインの root のリポジトリを対象にせず、理由を示すエラーを出力して終了コード 1 で終了することを確認します。')
     const pluginRoot = repositoryWithRemote('plugin-root')
     const outcome = await statusFrom(pluginRoot, {})
     expect(outcome.spawnError).toBeUndefined()
@@ -58,6 +63,7 @@ describe('pecot mcp のセッションのディレクトリ', () => {
   })
 
   it('Copilot CLI の起動で COPILOT_SESSION_CWD が無ければ、継いだ CLAUDE_PROJECT_DIR のリポを使わず、理由を失敗で返す', { timeout: TEST_TIMEOUT_MS }, async () => {
+    await explains('Copilot CLI から起動し、`COPILOT_SESSION_CWD` を指定しない場合のテストです。継承した `CLAUDE_PROJECT_DIR` のリポジトリを対象にせず、理由を示すエラーを出力して終了コード 1 で終了することを確認します。')
     const pluginRoot = repositoryWithRemote('plugin-root')
     const inherited = repositoryWithRemote('inherited-repo')
     const outcome = await statusFrom(pluginRoot, { COPILOT_PLUGIN_ROOT: pluginRoot, CLAUDE_PROJECT_DIR: inherited })
@@ -68,6 +74,7 @@ describe('pecot mcp のセッションのディレクトリ', () => {
   })
 
   it('COPILOT_SESSION_CWD が実在しなければ、理由を失敗で返す', { timeout: TEST_TIMEOUT_MS }, async () => {
+    await explains('`COPILOT_SESSION_CWD` に存在しないディレクトリを指定した場合に、使用できないディレクトリであることを示すエラーを出力して、終了コード 1 で終了することを確認します。')
     const pluginRoot = repositoryWithRemote('plugin-root')
     const missing = `${pluginRoot}/missing`
     const outcome = await statusFrom(pluginRoot, { COPILOT_SESSION_CWD: missing })

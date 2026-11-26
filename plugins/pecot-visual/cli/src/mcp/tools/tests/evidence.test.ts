@@ -15,6 +15,7 @@ import { compareStrings } from '../../../domain/_shared/compare-strings.js'
 import { buildPng } from '../../../../tests/_helpers/image-fixture.js'
 import { isRecord } from '../../../../tests/_helpers/records.js'
 import { verifies } from '../../../../tests/_helpers/verifies.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 import type { ToolCallContext } from '../../server.js'
 import { evidenceCreateTool as evidenceCreateDefinition } from '../evidence.js'
 import { withOutputCheck } from './_output.js'
@@ -82,6 +83,7 @@ function validSpec(): Record<string, unknown> {
 describe('evidence_create ツール', () => {
   it('spec から xlsx を生成し、CLI の --json と同形の項目を返す', async (context) => {
     await verifies(context, 'PV-EVIDENCE-CREATE-01')
+    await explains('`evidence_create` ツールが、仕様の JSON から xlsx を生成するテストです。有効な仕様と画像を渡した場合に、CLI の `--json` と同じ形の結果を返し、`out_path` に xlsx が書き出されることを確認します。')
     const specPath = placeSpec(validSpec())
     const outPath = workDirectory('login-evidence.xlsx')
 
@@ -99,7 +101,8 @@ describe('evidence_create ツール', () => {
     expect(existsSync(outPath)).toBe(true)
   })
 
-  it('out_path 省略時は input_path と同じディレクトリの evidence.xlsx に書く', async () => {
+  it('out_path を省略すると、input_path と同じディレクトリの evidence.xlsx に書き出す', async () => {
+    await explains('`evidence_create` ツールの出力先を省略した場合のテストです。`out_path` を省略したときに、`input_path` と同じディレクトリの `evidence.xlsx` へ書き出され、結果の `outPath` にそのパスが入ることを確認します。')
     // CLI の既定 `./evidence.xlsx` は cwd 依存で MCP からは使えないため、input 基準に導出する。
     const specPath = placeSpec(validSpec())
     const expectedOut = workDirectory('evidence.xlsx')
@@ -112,6 +115,7 @@ describe('evidence_create ツール', () => {
 
   it('除外された画像は skipped に載せたうえで成功扱いにする', async (context) => {
     await verifies(context, 'PV-EVIDENCE-CREATE-02')
+    await explains('`evidence_create` ツールが、除外した画像を扱うテストです。仕様に存在しない画像のパスが含まれる場合に、エラーにはせず成功のまま、その画像を `skipped` に載せることを確認します。')
     const missing = workDirectory('missing.png')
     const specPath = placeSpec({
       title: '一部欠落',
@@ -131,6 +135,7 @@ describe('evidence_create ツール', () => {
   })
 
   it('相対の input_path は実処理を呼ばず invalid-path で返す', async () => {
+    await explains('`evidence_create` ツールの入力パスの検証のテストです。`input_path` に相対パスを指定した場合に、実処理に進まず `invalid-path` のエラーと、該当する指定の一覧を返すことを確認します。')
     const result = await callEvidenceCreate({ input_path: 'spec.json' })
     const structured = structuredOf(result)
 
@@ -141,6 +146,7 @@ describe('evidence_create ツール', () => {
   })
 
   it('相対の out_path も同じく invalid-path で弾く', async () => {
+    await explains('`evidence_create` ツールの出力先パスの検証のテストです。`out_path` に相対パスを指定した場合に、`invalid-path` のエラーを返し、`invalidPaths` に `out_path` の指定が入ることを確認します。')
     const specPath = placeSpec(validSpec())
 
     const result = await callEvidenceCreate({ input_path: specPath, out_path: 'out/evidence.xlsx' })
@@ -151,6 +157,7 @@ describe('evidence_create ツール', () => {
 
   it('spec が存在しないときは input-not-found で返す', async (context) => {
     await verifies(context, 'PV-EVIDENCE-CREATE-05')
+    await explains('`evidence_create` ツールの仕様ファイルの検証のテストです。`input_path` で存在しないファイルを指定した場合に、`input-not-found` のエラーを返し、本文が結果の `detail` と一致することを確認します。')
     const result = await callEvidenceCreate({ input_path: workDirectory('no-such.json') })
     const structured = structuredOf(result)
 
@@ -166,6 +173,7 @@ describe('evidence_create ツール', () => {
 
   it('spec が JSON として破損しているときは invalid-json', async (context) => {
     await verifies(context, 'PV-EVIDENCE-CREATE-04')
+    await explains('`evidence_create` ツールの仕様ファイルの検証のテストです。JSON として不正なファイルを指定した場合に、`invalid-json` のエラーを返すことを確認します。')
     const specPath = workDirectory('broken.json')
     writeFileSync(specPath, '{ "title": ', 'utf8')
 
@@ -176,6 +184,7 @@ describe('evidence_create ツール', () => {
   })
 
   it('spec の検証で失敗するときは invalid-spec', async () => {
+    await explains('`evidence_create` ツールの仕様の内容の検証のテストです。`title` が空で `items` も空の仕様を渡した場合に、`invalid-spec` のエラーを返すことを確認します。')
     const specPath = placeSpec({ title: '', items: [] })
 
     const result = await callEvidenceCreate({ input_path: specPath })
@@ -185,6 +194,7 @@ describe('evidence_create ツール', () => {
   })
 
   it('有効な画像が 1 件も無いときは no-valid-images', async () => {
+    await explains('`evidence_create` ツールの画像の検証のテストです。仕様に含まれる画像がすべて存在しない場合に、`no-valid-images` のエラーを返すことを確認します。')
     const specPath = placeSpec({
       title: '画像なし',
       createdDate: '2026-08-26',
@@ -201,6 +211,7 @@ describe('evidence_create ツール', () => {
   })
 
   it('成功の結果に、入れ物の項目と、捕捉した出力の stdout / stderr・log を載せない', async () => {
+    await explains('`evidence_create` ツールの成功時の結果の形のテストです。成功した場合に、結果が `annotations`・`event`・`items`・`outPath`・`skipped` の 5 項目だけを持ち、標準出力などの捕捉した出力を含まないことを確認します。')
     const specPath = placeSpec(validSpec())
 
     const structured = structuredOf(await callEvidenceCreate({ input_path: specPath }))

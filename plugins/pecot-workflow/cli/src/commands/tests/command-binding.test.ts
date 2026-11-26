@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+
+import { explains } from '../../../tests/_helpers/explains.js'
 import { z } from 'zod'
 
 import { isHelpRequested, runDefinition, synopsisOf, usageOf } from '../command-binding.js'
@@ -136,7 +138,8 @@ async function usageErrorOf(promise: Promise<unknown>): Promise<UsageError> {
 }
 
 describe('synopsisOf・usageOf', () => {
-  it('必須の位置引数は波括弧、任意なら角括弧、複数なら ... を付ける', () => {
+  it('必須の位置引数は波括弧、任意の位置引数は角括弧、複数の位置引数は末尾に ... を付けて、使い方の文を作成する', async () => {
+    await explains('コマンドの使い方の文を作成する `synopsisOf` と `usageOf` のテストです。必須の位置引数は `{issue_ref}`、任意の位置引数は `[version]`、複数の位置引数は `{names}...` の形で表示することを確認します。')
     expect(synopsisOf(read)).toBe('[OPTIONS] {issue_ref}')
     expect(synopsisOf(preflight)).toBe('[OPTIONS] [version]')
     expect(synopsisOf(remove)).toBe('[OPTIONS] {names}...')
@@ -147,37 +150,43 @@ describe('synopsisOf・usageOf', () => {
 
 describe('runDefinition', () => {
   it('位置引数とオプションを input にして run を呼び、終了コードを返す', async () => {
+    await explains('コマンドの引数を解釈して `run` を呼ぶ `runDefinition` のテストです。位置引数と `-c` や `--labels` などのオプションを渡した場合に、それらを入力としてまとめて `run` に渡し、`run` が返した終了コード `7` を返すことを確認します。')
     seen.length = 0
     expect(await runDefinition(read, ['a/b/1', '-c', '3', '--json', '--labels', 'x', '--labels', 'y'], capture())).toBe(7)
     expect(seen).toEqual([{ issue_ref: 'a/b/1', comment_limit: 3, json: true, labels: ['x', 'y'] }])
   })
 
-  it('グローバルの --repo は入力 repo にする', async () => {
+  it('グローバルの --repo の値を、入力の repo として run に渡す', async () => {
+    await explains('グローバルの `--repo` を扱う `runDefinition` のテストです。グローバルの値 `x/y` を渡した場合に、`run` の入力の `repo` にその値が入ることを確認します。')
     seen.length = 0
     await runDefinition(read, ['a/b/1'], capture(), 'x/y')
     expect(seen).toEqual([{ issue_ref: 'a/b/1', comment_limit: 5, json: false, repo: 'x/y' }])
   })
 
-  it('ignoresGlobalRepo のコマンドは、自分の -r を使い、グローバルの --repo は捨てる', async () => {
+  it('ignoresGlobalRepo を指定したコマンドは、自分の -r の値を使い、グローバルの --repo を無視する', async () => {
+    await explains('`ignoresGlobalRepo` を指定したコマンドのテストです。コマンド自身の `-r y/z` を指定した場合はその値を使い、指定しない場合はグローバルの `--repo` の値 `x/y` を渡さないことを確認します。')
     seen.length = 0
     await runDefinition(ownRepository, ['t', '-r', 'y/z'], capture(), 'x/y')
     await runDefinition(ownRepository, ['t'], capture(), 'x/y')
     expect(seen).toEqual([{ title: 't', repo: 'y/z' }, { title: 't' }])
   })
 
-  it('指定の無い真偽値は false。既定値は zod が足す', async () => {
+  it('指定しない真偽値は false になり、既定値を持つ入力には既定値が入る', async () => {
+    await explains('オプションを何も指定しない場合の `runDefinition` のテストです。真偽値の `json` が `false` になり、`comment_limit` に既定値の `5` が入ることを確認します。')
     seen.length = 0
     await runDefinition(read, ['a/b/1'], capture())
     expect(seen).toEqual([{ issue_ref: 'a/b/1', comment_limit: 5, json: false }])
   })
 
-  it('複数の位置引数は配列にする', async () => {
+  it('複数の位置引数は、配列にまとめて run に渡す', async () => {
+    await explains('複数指定できる位置引数 `names` を持つコマンドのテストです。`one` と `two` を渡した場合に、`names` が `[\'one\', \'two\']` の配列になって `run` に渡されることを確認します。')
     seen.length = 0
     await runDefinition(remove, ['one', 'two'], capture())
     expect(seen).toEqual([{ names: ['one', 'two'] }])
   })
 
-  it('必須の位置引数が無ければ Missing argument', async () => {
+  it('必須の位置引数が指定されていない場合は、Missing argument の使い方の誤りにする', async () => {
+    await explains('必須の位置引数 `issue_ref` を指定しなかった場合のテストです。`Usage:` の行と `Missing argument \'issue_ref\'.` を、枠で囲んだエラーの文として表示することを確認します。')
     const error = await usageErrorOf(runDefinition(read, [], capture()))
     expect(formatUsageError(error)).toBe([
       'Usage: pecot issue read [OPTIONS] {issue_ref}',
@@ -189,52 +198,61 @@ describe('runDefinition', () => {
     ].join('\n'))
   })
 
-  it('必須のオプションが無ければ Missing option（長い形・短い形の順）', async () => {
+  it('必須のオプションが指定されていない場合は、長い形と短い形を並べた Missing option の使い方の誤りにする', async () => {
+    await explains('必須の `--directory` を指定しなかった場合のテストです。`Missing option \'--directory\' / \'-D\'.` のメッセージで、コマンドの使い方の情報を持つ `UsageError` が発生することを確認します。')
     const error = await usageErrorOf(runDefinition(preflight, [], capture()))
     expect(error.message).toBe('Missing option \'--directory\' / \'-D\'.')
     expect(error.context).toEqual({ commandPath: ['release', 'preflight'], synopsis: '[OPTIONS] [version]' })
   })
 
-  it('任意の位置引数は省ける。短いオプションで渡せる', async () => {
+  it('任意の位置引数は省略でき、オプションは短い形でも長い形でも渡せる', async () => {
+    await explains('任意の位置引数 `version` と、必須の `--directory`（短い形は `-D`）を持つコマンドのテストです。位置引数を省略して `-D .` だけを渡した場合も、位置引数と `--directory .` を渡した場合も、終了コード `0` を返すことを確認します。')
     expect(await runDefinition(preflight, ['-D', '.'], capture())).toBe(0)
     expect(await runDefinition(preflight, ['1.0.0', '--directory', '.'], capture())).toBe(0)
   })
 
-  it('未知のオプションは No such option', async () => {
+  it('定義されていないオプションを渡すと、No such option の使い方の誤りにする', async () => {
+    await explains('コマンドに定義されていないオプションのテストです。`--bogus` を渡した場合に、`No such option: --bogus` の使い方の誤りになることを確認します。')
     const error = await usageErrorOf(runDefinition(preflight, ['--bogus'], capture()))
     expect(error.message).toBe('No such option: --bogus')
   })
 
-  it('値の無いオプションは requires an argument', async () => {
+  it('値を指定しないオプションは、requires an argument の使い方の誤りにする', async () => {
+    await explains('値を取るオプションの値を省略した場合のテストです。`--directory` だけを渡した場合に、`Option \'--directory\' requires an argument.` の使い方の誤りになることを確認します。')
     const error = await usageErrorOf(runDefinition(preflight, ['--directory'], capture()))
     expect(error.message).toBe('Option \'--directory\' requires an argument.')
   })
 
-  it('余分な位置引数は、個数によらず Got unexpected extra argument(s)', async () => {
+  it('余分な位置引数を渡すと、個数によらず Got unexpected extra argument(s) の使い方の誤りにする', async () => {
+    await explains('位置引数が 1 つのコマンドへ、余分な位置引数を渡した場合のテストです。余分な引数が 1 つの場合と 2 つの場合で、使い方の誤りとして `Got unexpected extra argument(s)` と余分な引数を表示することを確認します。')
     const io = capture()
     expect(await messageOf(runDefinition(preflight, ['1', '2', '-D', '.'], io))).toBe('Got unexpected extra argument(s) (2)')
     expect(await messageOf(runDefinition(preflight, ['1', '2', '3', '-D', '.'], io))).toBe('Got unexpected extra argument(s) (2 3)')
   })
 
-  it('--help は commander の help を使わず、未知のオプションとして断る（help は cli.ts が先に出す）', async () => {
+  it('--help は未知のオプションとして拒否し、標準出力には何も出力しない', async () => {
+    await explains('`runDefinition` が `--help` を受け取った場合のテストです。ヘルプを表示せず、`No such option: --help (Possible options: --help)` の使い方の誤りにして、標準出力には何も出力しないことを確認します。')
     const io = capture()
     const error = await usageErrorOf(runDefinition(preflight, ['--help'], io))
     expect(error.message).toBe('No such option: --help (Possible options: --help)')
     expect(io.out).toEqual([])
   })
 
-  it('--help=値 は、値を取らない旨で断る（Possible options は付けない）', async () => {
+  it('--help に値を付けると、値を取らない旨の使い方の誤りにし、Possible options は付けない', async () => {
+    await explains('`--help=x` のように値を付けた場合のテストです。`Option \'--help\' does not take a value.` の使い方の誤りになり、コマンドの使い方の情報は付かないことを確認します。')
     const error = await usageErrorOf(runDefinition(preflight, ['--help=x'], capture()))
     expect(error.message).toBe('Option \'--help\' does not take a value.')
     expect(error.context).toBeUndefined()
   })
 
-  it('run の入力検証に失敗すれば Invalid value', async () => {
+  it('入力の検証に失敗した場合は、Invalid value の使い方の誤りにする', async () => {
+    await explains('`--mode` に、選択肢の `a` と `b` 以外の値 `z` を渡した場合のテストです。`Invalid value for \'--mode\':` で始まる使い方の誤りになることを確認します。')
     const error = await usageErrorOf(runDefinition(preflight, ['-D', '.', '--mode', 'z'], capture()))
     expect(error.message).toMatch(/^Invalid value for '--mode': /u)
   })
 
-  it('入力全体の誤りは input として扱う', async () => {
+  it('入力全体の検証に失敗した場合は、Invalid value for \'input\' の使い方の誤りにする', async () => {
+    await explains('入力全体を検証する `refine` が失敗する場合のテストです。個別の項目でなく `input` を対象にした `Invalid value for \'input\': だめです` の使い方の誤りになることを確認します。')
     const strict = defineCommand({
       path: ['x'],
       title: 'Test command',
@@ -249,7 +267,8 @@ describe('runDefinition', () => {
     expect(await messageOf(runDefinition(strict, [], io))).toBe('Invalid value for \'input\': だめです')
   })
 
-  it('run が投げた他の例外は握りつぶさない', async () => {
+  it('run が使い方の誤り以外の例外を投げると、runDefinition はそのまま送出する', async () => {
+    await explains('コマンドの `run` が例外 `boom` を投げた場合のテストです。`runDefinition` が使い方の誤りに変換せず、元の例外をそのまま送出することを確認します。')
     const broken = defineCommand({
       path: ['x'],
       title: 'Test command',
@@ -286,33 +305,38 @@ describe('型の変換', () => {
     },
   })
 
-  it('整数・実数に変換して渡す', async () => {
+  it('文字列で渡した引数を、整数や実数に変換して run に渡す', async () => {
+    await explains('数値の入力を持つコマンドのテストです。`7` や `1.5`、前後に空白がある ` 8 ` などを渡した場合に、整数や実数に変換して `run` に渡すことを確認します。')
     seen.length = 0
     await runDefinition(typed, ['7', '-c', '3', '--limit', '4', '--ratio', '1.5', '--step', ' 8 '], capture())
     expect(seen).toEqual([{ number: 7, count: 3, limit: 4, ratio: 1.5, step: 8 }])
   })
 
-  it('範囲つきの整数は、click と同じ文で誤りにする', async () => {
+  it('範囲を持つ整数に、整数でない値や範囲外の値を渡すと、範囲を示す使い方の誤りにする', async () => {
+    await explains('範囲を持つ整数の入力（`--count` は 0 以上 20 以下、`--limit` は 1 以上）のテストです。整数でない値や範囲外の値を渡した場合に、`is not a valid int range.` や `is not in the range` を含む使い方の誤りになることを確認します。')
     const io = capture()
     expect(await messageOf(runDefinition(typed, ['1', '-c', 'x'], io))).toBe('Invalid value for \'--count\' / \'-c\': \'x\' is not a valid int range.')
     expect(await messageOf(runDefinition(typed, ['1', '-c', '99'], io))).toBe('Invalid value for \'--count\' / \'-c\': 99 is not in the range 0<=x<=20.')
     expect(await messageOf(runDefinition(typed, ['1', '--limit', '0'], io))).toBe('Invalid value for \'--limit\': 0 is not in the range x>=1.')
   })
 
-  it('整数の項目に 1.5、実数の項目に abc を渡すと、範囲を言わない誤りの文を返す', async () => {
+  it('整数の項目に 1.5、実数の項目に abc を渡すと、範囲に触れない使い方の誤りにする', async () => {
+    await explains('範囲を持たない数値の入力のテストです。整数の `--step` と実数の `--ratio` に不正な値を渡した場合に、`is not a valid int.` と `is not a valid float.` の誤りになることを確認します。')
     const io = capture()
     expect(await messageOf(runDefinition(typed, ['1', '--step', '1.5'], io))).toBe('Invalid value for \'--step\': \'1.5\' is not a valid int.')
     expect(await messageOf(runDefinition(typed, ['1', '--ratio', 'abc'], io))).toBe('Invalid value for \'--ratio\': \'abc\' is not a valid float.')
   })
 
-  it('位置引数の誤りは、入力の名前で出す', async () => {
+  it('位置引数に不正な値を渡すと、入力の名前を示した使い方の誤りにする', async () => {
+    await explains('整数の位置引数 `number` のテストです。`abc` を渡した場合に、`Invalid value for \'number\': \'abc\' is not a valid int.` の使い方の誤りになることを確認します。')
     const io = capture()
     expect(await messageOf(runDefinition(typed, ['abc'], io))).toBe('Invalid value for \'number\': \'abc\' is not a valid int.')
   })
 
   const tagType = z.enum(['a', 'b'])
 
-  it('選択肢の項目は、選択肢を全部並べて誤りにする', async () => {
+  it('選択肢を持つ項目に選択肢以外の値を渡すと、選択肢をすべて並べた使い方の誤りにする', async () => {
+    await explains('選択肢を持つ項目（`--kind` と `--tags`）のテストです。選択肢以外の値を渡した場合に、`is not one of \'task\', \'bug\'.` のように選択肢をすべて並べた使い方の誤りになり、選択肢の値は受け付けることを確認します。')
     const command = defineCommand({
       path: ['pick'],
       title: 'Test command',
@@ -330,7 +354,8 @@ describe('型の変換', () => {
     expect(await runDefinition(command, ['-k', 'bug'], io)).toBe(0)
   })
 
-  it('実数は指数と _ を受ける', async () => {
+  it('実数は、指数表記や区切りの _ を含む値も受け付ける', async () => {
+    await explains('実数の入力 `--ratio` のテストです。`1_0e1` を渡した場合に、`_` を区切りとして無視し、指数表記として解釈した `100` が `run` に渡されることを確認します。')
     seen.length = 0
     await runDefinition(typed, ['1', '--ratio', '1_0e1'], capture())
     expect(seen).toEqual([{ number: 1, count: 5, ratio: 100 }])
@@ -353,14 +378,16 @@ describe('JSON のオブジェクトの値', () => {
     },
   })
 
-  it('別名で 2 回渡した JSON を、2 要素の配列にして渡す', async () => {
+  it('別名の --attribute で JSON を 2 回渡すと、2 要素の配列にして run に渡す', async () => {
+    await explains('JSON のオブジェクトを受け取る入力 `attributes` のテストです。別名の `--attribute` で JSON を 2 回渡した場合に、2 要素の配列にして `run` に渡すことを確認します。')
     seen.length = 0
     const argv = ['--attribute', '{"name":"Estimate","value":3}', '--attribute', '{"name":"Labels","value":["a","b"],"source":"issue"}']
     expect(await runDefinition(edit, argv, capture())).toBe(0)
     expect(seen).toEqual([{ attributes: [{ name: 'Estimate', value: 3 }, { name: 'Labels', value: ['a', 'b'], source: 'issue' }] }])
   })
 
-  it('長い形でも受ける', async () => {
+  it('JSON のオブジェクトの入力は、長い形の --attributes でも受け付ける', async () => {
+    await explains('JSON のオブジェクトを受け取る入力 `attributes` のテストです。別名でなく長い形の `--attributes` で JSON を渡した場合に、1 要素の配列にして `run` に渡すことを確認します。')
     seen.length = 0
     await runDefinition(edit, ['--attributes', '{"name":"Due","value":"2026-12-01"}'], capture())
     expect(seen).toEqual([{ attributes: [{ name: 'Due', value: '2026-12-01' }] }])
@@ -371,14 +398,16 @@ describe('JSON のオブジェクトの値', () => {
     { name: '配列', text: '[{"name":"Estimate","value":3}]' },
     { name: '数', text: '3' },
     { name: 'null', text: 'null' },
-  ])('$name を渡すと、終了コード 2 の Invalid value にする', async ({ text }) => {
+  ])('$name を渡すと、JSON のオブジェクトでない旨の使い方の誤りにし、終了コード 2 を返す', async ({ text }) => {
+    await explains('JSON のオブジェクトを受け取る `--attribute` に、オブジェクトでない値を渡した場合のテストです。読めない JSON・配列・数・`null` のどれでも、`is not a valid JSON object.` の使い方の誤りになり、終了コードが `2` になることを確認します。')
     const error = await usageErrorOf(runDefinition(edit, ['--attribute', text], capture()))
     expect(error.message).toBe(`Invalid value for '--attributes' / '--attribute': '${text}' is not a valid JSON object.`)
     expect(error.context).toEqual({ commandPath: ['issue', 'edit'], synopsis: '[OPTIONS]' })
     expect(exitCodeOfFailure(error, capture(), 80)).toBe(2)
   })
 
-  it('JSON の中身の誤りは、zod の検証が Invalid value にする', async () => {
+  it('JSON の中身が入力の形に合わない場合は、Invalid value の使い方の誤りにする', async () => {
+    await explains('`--attribute` に、必須の `value` を含まない JSON（`{"name":"Estimate"}`）を渡した場合のテストです。`Invalid value for \'--attributes\' / \'--attribute\':` で始まる使い方の誤りになることを確認します。')
     const message = await messageOf(runDefinition(edit, ['--attribute', '{"name":"Estimate"}'], capture()))
     expect(message).toMatch(/^Invalid value for '--attributes' \/ '--attribute': /u)
   })
@@ -409,7 +438,8 @@ describe('否定形と包んだスキーマ', () => {
     },
   })
 
-  it('既定値が真の真偽値は、--no-x で偽にできる', async () => {
+  it('既定値が true の真偽値は、--no-checkout を指定すると false になる', async () => {
+    await explains('既定値が `true` の真偽値 `checkout` のテストです。指定しない場合と `--checkout` を指定した場合は `true`、`--no-checkout` を指定した場合は `false` になることを確認します。')
     seen.length = 0
     await runDefinition(flags, ['a'], capture())
     await runDefinition(flags, ['a', '--no-checkout'], capture())
@@ -421,7 +451,8 @@ describe('否定形と包んだスキーマ', () => {
     ])
   })
 
-  it('入力名が no_ で始まる真偽値は、付けると true になり、省くと既定値の false になる', async () => {
+  it('入力名が no_ で始まる真偽値は、--no-branch を指定すると true、省略すると既定値の false になる', async () => {
+    await explains('入力名が `no_` で始まる真偽値 `no_branch` のテストです。`--no-branch` を指定した場合は `true`、指定しない場合は既定値の `false` になることを確認します。')
     const quick = defineCommand({
       path: ['quick'],
       title: 'Test command',
@@ -441,33 +472,38 @@ describe('否定形と包んだスキーマ', () => {
     expect(seen).toEqual([{ no_branch: true }, { no_branch: false }])
   })
 
-  it('readonly の配列は繰り返しで渡し、transform つきの真偽値は旗になる', async () => {
+  it('readonly の配列は同じオプションの繰り返しで渡し、transform を使った真偽値はフラグとして受け付ける', async () => {
+    await explains('`readonly` の配列と、`transform` を使った真偽値のテストです。`--names` を繰り返して値を渡し、`--verbose` をフラグとして指定した場合に、`names` が配列に、`verbose` が `true` になることを確認します。')
     seen.length = 0
     await runDefinition(flags, ['a', '--names', 'x', '--names', 'y', '--verbose'], capture())
     expect(seen).toEqual([{ files: ['a'], checkout: true, verbose: true, names: ['x', 'y'] }])
   })
 
-  it('必須の可変長の位置引数が無ければ、入力の名前で案内する', async () => {
+  it('複数指定できる必須の位置引数を渡さないと、入力の名前を示した使い方の誤りにする', async () => {
+    await explains('複数指定できる必須の位置引数 `files` のテストです。何も渡さなかった場合に、`Missing argument \'files\'.` の使い方の誤りになり、書式が `[OPTIONS] {files}...` になることを確認します。')
     const io = capture()
     expect(await messageOf(runDefinition(flags, [], io))).toBe('Missing argument \'files\'.')
     expect(synopsisOf(flags)).toBe('[OPTIONS] {files}...')
   })
 
-  it('名前が no_ で始まる真偽値は、指定が無ければ false で、--no-copy を付けると true', async () => {
+  it('名前が no_ で始まる真偽値 no_copy は、指定しなければ false、--no-copy を指定すれば true になる', async () => {
+    await explains('入力名が `no_` で始まる真偽値 `no_copy` のテストです。何も指定しない場合は `false`、`--no-copy` を指定した場合は `true` になることを確認します。')
     seen.length = 0
     await runDefinition(skipping, [], capture())
     await runDefinition(skipping, ['--no-copy'], capture())
     expect(seen).toEqual([{ no_copy: false }, { no_copy: true }])
   })
 
-  it('--no-copy の否定形 --copy は、未知のオプションで No such option になる', async () => {
+  it('--no-copy の反対の --copy を渡すと、No such option の使い方の誤りにする', async () => {
+    await explains('入力名が `no_` で始まる真偽値 `no_copy` のテストです。`--copy` を渡した場合に、`No such option: --copy (Possible options: --no-copy)` の使い方の誤りになり、`run` を呼ばないことを確認します。')
     seen.length = 0
     const error = await usageErrorOf(runDefinition(skipping, ['--copy'], capture()))
     expect(error.message).toBe('No such option: --copy (Possible options: --no-copy)')
     expect(seen).toEqual([])
   })
 
-  it('別名は長い形のまま、元の名前の入力にする', async () => {
+  it('別名の --force は、元の名前 allow_existing_branch の入力として run に渡す', async () => {
+    await explains('別名 `--force` を持つ真偽値 `allow_existing_branch` のテストです。`--allow-existing-branch` と `--force` のどちらを指定しても `true`、指定しない場合は `false` になることを確認します。')
     seen.length = 0
     await runDefinition(add, ['--allow-existing-branch'], capture())
     await runDefinition(add, ['--force'], capture())
@@ -479,12 +515,14 @@ describe('否定形と包んだスキーマ', () => {
     ])
   })
 
-  it('別名も未知のオプションの候補になる', async () => {
+  it('定義されていないオプションの誤りでは、別名も候補として表示する', async () => {
+    await explains('別名の綴りを誤った場合のテストです。`--forc` を渡した場合に、`No such option: --forc (Possible options: --force)` のように、別名を候補として表示することを確認します。')
     const message = await messageOf(runDefinition(add, ['--forc'], capture()))
     expect(message).toBe('No such option: --forc (Possible options: --force)')
   })
 
-  it('否定形も未知のオプションの候補になる', async () => {
+  it('定義されていないオプションの誤りでは、否定形も候補として表示する', async () => {
+    await explains('否定形の綴りを誤った場合のテストです。`--no-checkou` を渡した場合に、`Possible options: --checkout, --no-checkout` のように、否定形を候補に含めて表示することを確認します。')
     const io = capture()
     expect(await messageOf(runDefinition(flags, ['a', '--no-checkou'], io))).toBe('No such option: --no-checkou (Possible options: --checkout, --no-checkout)')
   })
@@ -505,7 +543,8 @@ describe('名前が no_ で始まる旗', () => {
     },
   })
 
-  it('--no-issue-ref を渡さなければ偽、渡せば真になる', async () => {
+  it('--no-issue-ref を指定しなければ false、指定すれば true になる', async () => {
+    await explains('入力名が `no_issue_ref` の真偽値のテストです。何も指定しない場合は `false`、`--no-issue-ref` を指定した場合は `true` になることを確認します。')
     seen.length = 0
     await runDefinition(skip, [], capture())
     await runDefinition(skip, ['--no-issue-ref'], capture())
@@ -514,26 +553,30 @@ describe('名前が no_ で始まる旗', () => {
 })
 
 describe('誤りの扱い', () => {
-  it('値の無いオプションは、利用者が打った名前で案内する', async () => {
+  it('値を指定しないオプションは、利用者が指定した名前を使って案内する', async () => {
+    await explains('値を取るオプションの値を省略した場合のテストです。`-c` と `--comment-limit` のどちらでも、指定した名前を使った `requires an argument.` の使い方の誤りになることを確認します。')
     const io = capture()
     expect(await messageOf(runDefinition(read, ['1', '-c'], io))).toBe('Option \'-c\' requires an argument.')
     expect(await messageOf(runDefinition(read, ['1', '--comment-limit'], io))).toBe('Option \'--comment-limit\' requires an argument.')
   })
 
-  it('値を取らないフラグに =値 を付けたら、Usage 行なしで断る', async () => {
+  it('値を取らないフラグに =値 を付けると、Usage 行を付けずに拒否する', async () => {
+    await explains('真偽値のフラグ `--json` に `--json=1` のように値を付けた場合のテストです。`Option \'--json\' does not take a value.` の使い方の誤りになり、コマンドの使い方の情報は付かないことを確認します。')
     const io = capture()
     const error = await usageErrorOf(runDefinition(read, ['--json=1', '1'], io))
     expect(error.message).toBe('Option \'--json\' does not take a value.')
     expect(error.context).toBeUndefined()
   })
 
-  it('値の無いオプションは、Usage 行なしで断る', async () => {
+  it('値を指定しないオプションの誤りには、Usage 行を付けない', async () => {
+    await explains('値を取る `-c` の値を省略した場合のテストです。コマンドの使い方の情報が付かず、整形した文が枠付きの `Error` の表示で始まることを確認します。')
     const error = await usageErrorOf(runDefinition(read, ['1', '-c'], capture()))
     expect(error.context).toBeUndefined()
     expect(formatUsageError(error)).toMatch(/^╭─ Error/u)
   })
 
-  it('未知の長いオプションには候補を案内する。短いオプションには案内しない', async () => {
+  it('定義されていない長いオプションには候補を表示し、短いオプションには表示しない', async () => {
+    await explains('定義されていないオプションを渡した場合のテストです。長い形の `--jso` には `Possible options: --json` の候補を表示し、短い形の `-x` には候補を表示しないことを確認します。')
     const io = capture()
     expect(await messageOf(runDefinition(read, ['1', '--jso'], io))).toBe('No such option: --jso (Possible options: --json)')
     expect(await messageOf(runDefinition(read, ['1', '-x'], io))).toBe('No such option: -x')
@@ -541,7 +584,8 @@ describe('誤りの扱い', () => {
 
   const checked = z.object({ mode: z.enum(['a', 'b']).optional(), text: z.string().optional() })
 
-  it('入力の検証（parse）の誤りだけを使い方の誤りにする', async () => {
+  it('入力の検証（parse）に失敗すると、使い方の誤りにする', async () => {
+    await explains('`--mode` に選択肢以外の値 `z` を渡した場合のテストです。入力の検証（`parse`）の失敗が、`Invalid value for \'--mode\':` で始まる使い方の誤りになることを確認します。')
     const command = defineCommand({
       path: ['checked'],
       title: 'Test command',
@@ -557,7 +601,8 @@ describe('誤りの扱い', () => {
     expect(error.message).toMatch(/^Invalid value for '--mode': /u)
   })
 
-  it('本体（run）が投げた context 無しの UsageError には、このコマンドの使い方を付ける', async () => {
+  it('run が使い方の情報を持たない UsageError を投げると、このコマンドの使い方を付ける', async () => {
+    await explains('`run` が使い方の情報を持たない `UsageError` を投げた場合のテストです。整形した文に、このコマンドの `Usage: pecot issue read [OPTIONS] {issue_ref}` が含まれることを確認します。')
     const command = defineCommand({
       path: ['issue', 'read'],
       title: 'Test command',
@@ -572,7 +617,8 @@ describe('誤りの扱い', () => {
     expect(formatUsageError(error)).toContain('Usage: pecot issue read [OPTIONS] {issue_ref}')
   })
 
-  it('本体（run）が投げた ZodError は、使い方の誤りにしない', async () => {
+  it('run が ZodError を投げた場合は、使い方の誤りにせず、そのまま送出する', async () => {
+    await explains('`run` の中で `ZodError` が発生した場合のテストです。使い方の誤りに変換せず、`ZodError` のまま送出することを確認します。')
     const command = defineCommand({
       path: ['inner'],
       title: 'Test command',
@@ -604,7 +650,8 @@ describe('click と同じ文にそろえた使い方の誤り', () => {
     run: async () => await exitWith(0),
   })
 
-  it('値を取るオプションに値が無いとき、Usage 行・Try 行は付けない', async () => {
+  it('値を取るオプションに値が無い場合は、Usage 行と Try 行を付けない', async () => {
+    await explains('値を取る `-b` の値を省略した場合のテストです。コマンドの使い方の情報は付かず、`Option \'-b\' requires an argument.` だけを枠で囲んだ文になることを確認します。')
     const error = await usageErrorOf(runDefinition(flags, ['a', '-b'], capture()))
     expect(error.context).toBeUndefined()
     expect(formatUsageError(error)).toBe(`╭─ Error ──────────────────────────────────────────────────────────────────────╮
@@ -613,7 +660,8 @@ describe('click と同じ文にそろえた使い方の誤り', () => {
 `)
   })
 
-  it('真偽のオプションに値を付けると does not take a value。Usage 行は付けない', async () => {
+  it('真偽値のオプションに値を付けると、does not take a value の使い方の誤りにし、Usage 行は付けない', async () => {
+    await explains('`--yes=1`・`--yes=`・`--no-checkout=1` のように、真偽値のオプションに値を付けた場合のテストです。`does not take a value.` の使い方の誤りになり、コマンドの使い方の情報は付かないことを確認します。')
     const cases: readonly (readonly [string, string])[] = [['--yes=1', '--yes'], ['--yes=', '--yes'], ['--no-checkout=1', '--no-checkout']]
     for (const [argument, name] of cases) {
       const error = await usageErrorOf(runDefinition(flags, ['a', argument], capture()))
@@ -622,14 +670,16 @@ describe('click と同じ文にそろえた使い方の誤り', () => {
     }
   })
 
-  it('未知のオプションに = で値を付けても、名前だけで案内する', async () => {
+  it('定義されていないオプションに =値 を付けても、値を含めず名前だけで案内する', async () => {
+    await explains('`--bogus=1` や `--yse=1` のように、定義されていないオプションへ値を付けた場合のテストです。値を含めない `No such option: --bogus` の形になり、近い名前があれば `Possible options: --yes` も表示することを確認します。')
     const plain = await messageOf(runDefinition(flags, ['a', '--bogus=1'], capture()))
     expect(plain).toBe('No such option: --bogus')
     const close = await messageOf(runDefinition(flags, ['a', '--yse=1'], capture()))
     expect(close).toBe('No such option: --yse (Possible options: --yes)')
   })
 
-  it('負数に見える語は、位置引数として受けず、No such option: -N で止める（先頭の 2 文字だけ）', async () => {
+  it('負数に見える語は位置引数として受け付けず、先頭の 2 文字だけを示した No such option の使い方の誤りにする', async () => {
+    await explains('`-1` や `-12` のように、負数に見える語を渡した場合のテストです。位置引数として受け付けず、`No such option: -1` のように先頭の 2 文字だけを示した使い方の誤りになることを確認します。')
     const cases: readonly (readonly [readonly string[], string])[] = [[['-1'], '-1'], [['a', '-1'], '-1'], [['a', '-12'], '-1'], [['a', '-1x'], '-1'], [['a', '--yes', '-5'], '-5']]
     for (const [argv, name] of cases) {
       const error = await usageErrorOf(runDefinition(flags, argv, capture()))
@@ -638,13 +688,15 @@ describe('click と同じ文にそろえた使い方の誤り', () => {
     }
   })
 
-  it('値を取るオプションの値の位置、-- の後ろの負数は誤りにしない', async () => {
+  it('値を取るオプションの値として渡した負数と、-- の後ろの負数は、誤りにしない', async () => {
+    await explains('負数に見える語を、オプションの値や `--` の後ろに置いた場合のテストです。`-b -1`・`--branch -1`・`-- -1` のどれも、使い方の誤りにならず、終了コード `0` を返すことを確認します。')
     expect(await runDefinition(flags, ['a', '-b', '-1'], capture())).toBe(0)
     expect(await runDefinition(flags, ['a', '--branch', '-1'], capture())).toBe(0)
     expect(await runDefinition(flags, ['--', '-1'], capture())).toBe(0)
   })
 
-  it('負数に見える語より前に誤りがあれば、その誤りを先に出す', async () => {
+  it('負数に見える語より前に誤りがある場合は、その誤りを先に表示する', async () => {
+    await explains('`--yes=1 -1` や `--bogus -1` のように、負数に見える語より前に誤りがある場合のテストです。負数の誤りでなく、前にある誤り（`does not take a value.` と `No such option: --bogus`）を表示することを確認します。')
     const first = await messageOf(runDefinition(flags, ['a', '--yes=1', '-1'], capture()))
     expect(first).toBe('Option \'--yes\' does not take a value.')
     const second = await messageOf(runDefinition(flags, ['a', '--bogus', '-1'], capture()))
@@ -668,7 +720,8 @@ describe('isHelpRequested', () => {
     [['a', '--', '--help'], false],
   ]
 
-  it.for(cases)('$0 を渡すと、$1 を返す', ([argv, expected]) => {
+  it.for(cases)('引数が $0 のとき、help の要求かどうかを $1 と判定する', async ([argv, expected]) => {
+    await explains('引数に `--help` が含まれるかを判定する `isHelpRequested` のテストです。`--help` が `--` より前にある場合は `true`、`--` の後ろや `--base=--help` のように値の一部の場合は `false` を返すことを確認します。')
     expect(isHelpRequested(argv)).toBe(expected)
   })
 })

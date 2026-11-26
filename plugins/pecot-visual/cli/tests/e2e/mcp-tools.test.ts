@@ -45,6 +45,7 @@ import { compareStrings } from '../../src/domain/_shared/compare-strings.js'
 import { ignoreRejection } from '../../src/domain/_shared/ignore-rejection.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { FIXTURE_THEMES } from '../_helpers/theme-fixtures.js'
+import { explains } from '../_helpers/explains.js'
 
 /**
 fixture テーマの見せ方の分類 id を、宣言（references/_common.yaml の layout_categories）の並びのまま返す。
@@ -216,7 +217,8 @@ afterAll(() => {
 })
 
 describe('MCP のツール (stdio)', () => {
-  it('tools/list が登録した件数を description と inputSchema つきで返す', async () => {
+  it('`tools/list` が登録した件数のツールを、説明と入力のスキーマつきで返す', async () => {
+    await explains('`pecotv mcp` のツールの一覧のテストです。`tools/list` を呼んだ場合に、登録した件数のツールを返し、各ツールが空でない説明と、型が `object` の入力のスキーマを持つことを確認します。')
     await withClient(async (client, readStderr) => {
       const listed = await client.listTools(undefined, { timeout: REQUEST_TIMEOUT_MS })
 
@@ -232,7 +234,8 @@ describe('MCP のツール (stdio)', () => {
     })
   }, 60_000)
 
-  it('drawio_create を out_path 省略で呼ぶと URL を返す', async () => {
+  it('`drawio_create` を `out_path` なしで呼ぶと、URL を返す', async () => {
+    await explains('`drawio_create` ツールのテストです。`out_path` を省略した場合に、`drawio.url.done` として URL と既定のテーマ情報を返し、URL が `https://` で始まることを確認します。')
     await withClient(async (client, readStderr) => {
       const called = await client.callTool(
         { name: 'drawio_create', arguments: { input_path: MINIMAL_DRAWIO } },
@@ -250,11 +253,12 @@ describe('MCP のツール (stdio)', () => {
     })
   }, 60_000)
 
-  it('drawio_create を out_path 付きで呼ぶと表示用 HTML を実ファイルとして書き出す', async () => {
+  it('`drawio_create` を `out_path` つきで呼ぶと、表示用の HTML を実際のファイルに書き出す', async () => {
     // 利用者が実際に踏むのはこちら (v-drawio スキルが out_path を必須にしている)。
     // in-process のハンドラテストは同一プロセスの fs しか見ない。
     // そのため、dist 経由で起動したサーバが本当に HTML を残すかは、ここでしか観測できない。
     // png: false を渡すので、Chromium は使わない。
+    await explains('`drawio_create` ツールのテストです。`out_path` と `png: false` を指定した場合に、表示用の HTML を `out_path` へ書き出し、draw.io の URL へ移動する内容を含むことを確認します。')
     const outPath = workDirectory('diagram.drawio.html')
 
     await withClient(async (client, readStderr) => {
@@ -272,7 +276,8 @@ describe('MCP のツール (stdio)', () => {
     })
   }, 60_000)
 
-  it.skipIf(!isChromiumReady)('drawio_export を out_path 付きで呼ぶと SVG と兄弟 PDF のパスを返す', async () => {
+  it.skipIf(!isChromiumReady)('`drawio_export` を `out_path` つきで呼ぶと、SVG と同じ名前の PDF のパスを返す', async () => {
+    await explains('`drawio_export` ツールのテストです。実際の Chromium で `out_path` を指定して呼んだ場合に、SVG と兄弟の PDF を書き出し、結果に両方のパスと `pdfFailed: false` を含めることを確認します。')
     const outPath = workDirectory('export-ok', 'diagram.drawio.svg')
     const pdfPath = workDirectory('export-ok', 'diagram.drawio.pdf')
 
@@ -296,7 +301,8 @@ describe('MCP のツール (stdio)', () => {
     })
   }, DRAWIO_EXPORT_TIMEOUT_MS + 30_000)
 
-  it.skipIf(!isChromiumReady)('drawio_export は PDF 生成に失敗しても SVG を返し warnings つきで degrade する', async () => {
+  it.skipIf(!isChromiumReady)('`drawio_export` は PDF の生成に失敗しても、SVG を返して警告を添える', async () => {
+    await explains('`drawio_export` ツールの PDF の生成に失敗した場合のテストです。PDF の生成を強制的に失敗させた場合に、エラーにはせず、SVG を書き出し、`pdfFailed: true` と警告 1 件を返すことを確認します。')
     const outPath = workDirectory('export-degrade', 'diagram.drawio.svg')
     const pdfPath = workDirectory('export-degrade', 'diagram.drawio.pdf')
 
@@ -325,11 +331,12 @@ describe('MCP のツール (stdio)', () => {
     }, { PECOTV_FORCE_PDF_FAIL: '1' })
   }, DRAWIO_EXPORT_TIMEOUT_MS + 30_000)
 
-  it('evidence_create が spec から xlsx を実ファイルとして書き出す', async () => {
+  it('`evidence_create` は、入力の仕様から xlsx を実際のファイルに書き出す', async () => {
     // 成果物をファイルとして書くツールを、実プロセスで 1 本通す。
     // in-process の unit test では同一プロセスの fs しか見ない。
     // そのため、dist 経由で起動したサーバが本当に xlsx を残すかは、ここでしか観測できない。
     // Chromium と LibreOffice のどちらも起動しないので、skip 条件は要らない。
+    await explains('`evidence_create` ツールのテストです。画像 1 枚を含む仕様を渡した場合に、エラーにならず、`out_path` へ空でない xlsx を書き出し、結果に項目数 1 と空の `skipped` を返すことを確認します。')
     const imagePath = workDirectory('01-login.png')
     writeFileSync(imagePath, buildPng(80, 60))
     const specPath = workDirectory('spec.json')
@@ -355,11 +362,12 @@ describe('MCP のツール (stdio)', () => {
     })
   }, 60_000)
 
-  it('slide_page が talk-dir のカタログ全件のページを実ファイルとして書き出す', async () => {
+  it('`slide_page` は、talk-dir のレイアウトの一覧に含まれるすべてのレイアウトのページを実際のファイルに書き出す', async () => {
     // 実プロセスの talk-dir に対して、カタログに載る全レイアウトを 1 本の接続で順に回す
     // (ファイル読みと 1 ファイル書き込みだけなので spawn 1 回で足りる)。レイアウト名は
     // テスト側に書き写さず slide_create の layouts から取る — 書き写すとレイアウトを
     // 足したときに片側だけ古くなる。
+    await explains('`slide_page` ツールのテストです。全レイアウトを順に指定した場合に、各ページを書き出し、未知のレイアウトと既存のページは拒否し、`slide_lint` の違反がないことを確認します。')
     const talkDirectory = workDirectory('page-talk')
 
     await withClient(async (client, readStderr) => {
@@ -475,7 +483,7 @@ describe('MCP のツール (stdio)', () => {
     })
   }, 120_000)
 
-  it('slide_dev が実 slidev の dev サーバを起こし、stop とサーバ終了でポートを解放する', async () => {
+  it('`slide_dev` は実際の slidev の開発サーバーを起動し、停止とサーバーの終了でポートを解放する', async () => {
     // 実プロセスでしか観測できないものを 1 本にまとめる。
     //   - 実 slidev が起動して、応答 URL でデッキを配信すること。
     //   - 使用中ポートを指定すると、既存を止めずに失敗すること。
@@ -484,6 +492,7 @@ describe('MCP のツール (stdio)', () => {
     // ポートは OS に選ばせて `port` で渡す (e2e lane は最大 6 並列で動く)。
     // 確保は、使う slide_dev 呼び出しの直前で行う。
     // 確保から使用までの間隔が空くと、その間に別 worker が同じ番号を掴み、dev-server-port-in-use になり得る。
+    await explains('`slide_dev` ツールのテストです。起動・再利用・使用中のポートの拒否・停止を順に呼んだ場合に、起動した開発サーバーが応答し、停止したサーバーと、クライアントの終了時に残ったサーバーのポートが解放されることを確認します。')
     const talkDirectory = workDirectory('dev-talk')
     let leftRunningPort = 0
 
@@ -596,12 +605,13 @@ describe('MCP のツール (stdio)', () => {
     await expectPortReleased(leftRunningPort)
   }, 120_000)
 
-  it('親プロセスへの SIGTERM でも dev サーバを回収する', async () => {
+  it('親プロセスへ `SIGTERM` を送っても、開発サーバーを終了させる', async () => {
     // 終了の契機は stdin EOF / SIGTERM / SIGINT / 'exit' の 4 本ある。
     // in-process の serve.test.ts が見ているのはフェイクの signals までで、実シグナルは通っていない。
     // SIGTERM は実運用の主な流れになり得る。
     // MCP SDK の close は stdin を閉じて 2 秒待ち、終了していなければ SIGTERM を撃つ。
     // そのため、ここで 1 本通す。
+    await explains('`slide_dev` ツールの後始末のテストです。開発サーバーを起動した状態で、MCP サーバーのプロセスへ `SIGTERM` を送った場合に、開発サーバーのポートが解放され、MCP サーバーも終了することを確認します。')
     const talkDirectory = workDirectory('sigterm-talk')
     const transport = makeTransport()
     const readStderr = drainStderr(transport.stderr)
@@ -642,11 +652,12 @@ describe('MCP のツール (stdio)', () => {
     }
   }, 120_000)
 
-  it('chromium 未取得でも serve は続き、依存ツールは runtime_setup を案内する', async () => {
+  it('Chromium が取得されていなくてもサーバーは動き続け、Chromium を使うツールは `runtime_setup` を案内する', async () => {
     // サーバは接続を MCP_TIMEOUT に収めるため chromium を起動条件から外し、デフォルトでは
     // 取得もしない (サーバ起動時)。未取得のまま呼ばれたときの見え方は、サーバプロセス側の
     // 環境でしか作れないのでここで観測する。空の browsers root を向けて未取得を作る。
     // 実ダウンロードを誘発しないよう opt-in の env は立てない。
+    await explains('Chromium が未取得の場合のテストです。ブラウザなしの場合に、`drawio_export` は `chromium-not-installed` で `runtime_setup` を案内し、`drawio_create` は成功することを確認します。')
     const emptyBrowsersRoot = mkdtempSync(path.join(tmpdir(), 'pecotv-test-e2e-nochromium-'))
     try {
       await withClient(async (client, readStderr) => {
@@ -681,13 +692,14 @@ describe('MCP のツール (stdio)', () => {
     }
   }, 60_000)
 
-  it.skipIf(!isChromiumReady)('runtime_setup は chromium 取得済みならダウンロードせずに成功を返す', async () => {
+  it.skipIf(!isChromiumReady)('`runtime_setup` は、Chromium が取得済みならダウンロードせずに成功を返す', async () => {
     // 実プロセス経由で runtime_setup が呼べること (dist に含まれ、引数なしで通ること) を見る。
     // runtime_setup は取得済みでも `playwright install chromium` を実行する (判定が「取得済み」に
     // 倒れていても実体が欠けていることがあるため)。取得済みホストでは Playwright 側が
     // skip して数秒で返る。取得済みでないホストでは 120MB を落としに行くので skip する
     // — 実ダウンロードを伴う処理は bootstrap CUJ 13 が持つ。
     // browsers root は上書きしない (上書きすると必ず実ダウンロードになる)。
+    await explains('`runtime_setup` ツールのテストです。Chromium が取得済みの場合に、`setup.skipped` を返し、ランタイムと Chromium のどちらもダウンロードしないことを確認します。')
     await withClient(async (client, readStderr) => {
       const called = await client.callTool(
         { name: 'runtime_setup', arguments: {} },
@@ -703,7 +715,8 @@ describe('MCP のツール (stdio)', () => {
     })
   }, 120_000)
 
-  it('エラー呼び出しのあとも同じプロセスが次の呼び出しに応える', async () => {
+  it('エラーを返した呼び出しの後も、同じプロセスが次の呼び出しに応答する', async () => {
+    await explains('`pecotv mcp` のエラーからの回復のテストです。存在しない入力で `drawio_create` が失敗した後に、同じプロセスへ正しい入力で呼んだ場合に、エラーにならず URL を返すことを確認します。')
     await withClient(async (client, readStderr) => {
       const failed = await client.callTool(
         { name: 'drawio_create', arguments: { input_path: path.join(CLI_ROOT, 'no-such-dir-980', 'missing.drawio') } },

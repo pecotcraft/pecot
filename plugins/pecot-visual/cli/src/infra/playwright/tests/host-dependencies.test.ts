@@ -22,6 +22,7 @@ import {
   type HostDependencies,
   type HostDependenciesStampStatus,
 } from '../host-dependencies.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 vi.mock('../../_shared/plugin-root.js', async (importOriginal) => {
   const { pluginRootMock } = await import('../../../../tests/_helpers/plugin-root-stub.js')
@@ -128,38 +129,45 @@ function fakeDependencies(options: FakeOptions = {}): {
 }
 
 describe('missingSharedLibraries', () => {
-  it('読み込めなかったライブラリ名を重複なく取り出す', () => {
+  it('読み込めなかったライブラリ名を重複なく取り出す', async () => {
+    await explains('起動失敗の出力から不足したライブラリを取り出す `missingSharedLibraries` のテストです。`libatk-1.0.so.0` が 2 回出る出力を渡した場合に、重複を除いた `libatk-1.0.so.0` と `libasound.so.2` を返すことを確認します。')
     expect(missingSharedLibraries(`${LIBATK_FAILURE}\n... error while loading shared libraries: libasound.so.2: cannot open`))
       .toEqual(['libatk-1.0.so.0', 'libasound.so.2'])
   })
 
-  it('ライブラリ不足でない失敗からは何も取り出さない', () => {
+  it('ライブラリの不足ではない失敗からは、ライブラリ名を取り出さない', async () => {
+    await explains('起動失敗の出力から不足したライブラリを取り出す `missingSharedLibraries` のテストです。`Executable doesn\'t exist` のようにライブラリと無関係な出力を渡した場合に、空の配列を返すことを確認します。')
     expect(missingSharedLibraries('browserType.launch: Executable doesn\'t exist at /x/chrome')).toEqual([])
   })
 
-  it('起動前の依存確認が枠付きで並べるライブラリ名も取り出す', () => {
+  it('起動前の依存確認が枠付きで並べるライブラリ名も、取り出す', async () => {
+    await explains('起動失敗の出力から不足したライブラリを取り出す `missingSharedLibraries` のテストです。枠で囲んでライブラリ名を並べる形式の出力を渡した場合に、`libatk-1.0.so.0` と `libasound.so.2` を返すことを確認します。')
     expect(missingSharedLibraries(BOXED_MISSING_LIBRARIES)).toEqual(['libatk-1.0.so.0', 'libasound.so.2'])
   })
 })
 
 describe('isMissingHostDependencies', () => {
-  it('ライブラリ名を取り出せる失敗と、パッケージ名だけを案内する枠付きの失敗をどちらも不足とみなす', () => {
+  it('ライブラリ名を取り出せる失敗と、パッケージの案内だけの枠付きの失敗は、どちらも依存の不足と判定する', async () => {
+    await explains('依存の不足かどうかを判定する `isMissingHostDependencies` のテストです。ライブラリ名を含む 2 種類の出力と、インストールの案内だけの出力のすべてで、`true` を返すことを確認します。')
     expect(isMissingHostDependencies(LIBATK_FAILURE)).toBe(true)
     expect(isMissingHostDependencies(BOXED_MISSING_LIBRARIES)).toBe(true)
     expect(isMissingHostDependencies(BOXED_INSTALL_HINT)).toBe(true)
   })
 
-  it('無関係な失敗は不足とみなさない', () => {
+  it('依存の不足と無関係な失敗は、不足と判定しない', async () => {
+    await explains('依存の不足かどうかを判定する `isMissingHostDependencies` のテストです。`Executable doesn\'t exist` のように無関係な出力を渡した場合に、`false` を返すことを確認します。')
     expect(isMissingHostDependencies('browserType.launch: Executable doesn\'t exist at /x/chrome')).toBe(false)
   })
 })
 
 describe('hostPackagesFromDryRun', () => {
-  it('フォントと X サーバを除いた共有ライブラリのパッケージだけを返す', () => {
+  it('フォントと X サーバのパッケージを除き、共有ライブラリのパッケージだけを返す', async () => {
+    await explains('`install-deps` の出力から入れるパッケージを取り出す `hostPackagesFromDryRun` のテストです。フォントと X サーバを含む出力を渡した場合に、`libatk1.0-0t64` などの共有ライブラリ 4 件だけを返すことを確認します。')
     expect(hostPackagesFromDryRun(DRY_RUN_OUTPUT)).toEqual(['at-spi2-common', 'libatk1.0-0t64', 'libpango-1.0-0', 'libxdamage1'])
   })
 
-  it('見出しが無ければ空を返す', () => {
+  it('不足パッケージの見出しが存在しない出力では、空の配列を返す', async () => {
+    await explains('`install-deps` の出力から入れるパッケージを取り出す `hostPackagesFromDryRun` のテストです。`ERROR: Unsupported OS` のように見出しが存在しない出力を渡した場合に、空の配列を返すことを確認します。')
     expect(hostPackagesFromDryRun('ERROR: Unsupported OS')).toEqual([])
   })
 })
@@ -168,25 +176,29 @@ const PACKAGES = 'at-spi2-common libatk1.0-0t64 libpango-1.0-0 libxdamage1'
 const APT = 'env DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=120'
 
 describe('ensureChromiumHostDependencies', () => {
-  it('Linux 以外は起動も確かめずに ok を返す', async () => {
+  it('Linux 以外の OS では、起動の確認もせずに ok を返す', async () => {
+    await explains('Chromium の依存を整える `ensureChromiumHostDependencies` のテストです。`darwin` の場合に、結果が `ok` で、コマンドが 1 つも実行されないことを確認します。')
     const { deps, calls } = fakeDependencies({ platform: 'darwin', probes: [LIBATK_FAILURE] })
     await expect(ensureChromiumHostDependencies(deps)).resolves.toEqual({ status: 'ok' })
     expect(calls).toEqual([])
   })
 
-  it('起動できれば何も入れずに ok を返す', async () => {
+  it('Chromium を起動できた場合は、何も導入せずに ok を返す', async () => {
+    await explains('Chromium の依存を整える `ensureChromiumHostDependencies` のテストです。起動の確認が成功した場合に、結果が `ok` で、コマンドが 1 つも実行されないことを確認します。')
     const { deps, calls } = fakeDependencies()
     await expect(ensureChromiumHostDependencies(deps)).resolves.toEqual({ status: 'ok' })
     expect(calls).toEqual([])
   })
 
-  it('ライブラリ不足以外の起動失敗は launch-failed として返し、何も入れない', async () => {
+  it('ライブラリの不足以外の起動失敗は、launch-failed として返し、何も導入しない', async () => {
+    await explains('Chromium の依存を整える `ensureChromiumHostDependencies` のテストです。`Executable doesn\'t exist` の失敗の場合に、状態が `launch-failed` で、コマンドが 1 つも実行されないことを確認します。')
     const { deps, calls } = fakeDependencies({ probes: ['browserType.launch: Executable doesn\'t exist at /x/chrome'] })
     await expect(ensureChromiumHostDependencies(deps)).resolves.toMatchObject({ status: 'launch-failed' })
     expect(calls).toEqual([])
   })
 
-  it('sudo を使えれば権限を確かめ、フォントと X サーバを除いて apt-get で入れ、起動を確かめ直す', async () => {
+  it('sudo を使える場合は、権限を確認し、フォントと X サーバを除いて apt-get で導入し、起動を再確認する', async () => {
+    await explains('Chromium の依存を整える `ensureChromiumHostDependencies` のテストです。不足がある環境で `sudo` を使える場合に、権限の確認・不足の判定・`apt-get update`・`install` の順に実行され、通知が 1 件出ることを確認します。')
     const { deps, calls, notices } = fakeDependencies({ probes: [LIBATK_FAILURE, undefined] })
     await expect(ensureChromiumHostDependencies(deps)).resolves.toEqual({ status: 'installed', packages: PACKAGES.split(' ') })
     expect(calls).toEqual([
@@ -199,7 +211,8 @@ describe('ensureChromiumHostDependencies', () => {
     expect(notices[0]).toContain('apt-get')
   })
 
-  it('root なら sudo を介さずに入れる', async () => {
+  it('root の場合は、sudo を使わずに導入する', async () => {
+    await explains('Chromium の依存を整える `ensureChromiumHostDependencies` のテストです。root で実行している場合に、`sudo` を確認せず、`apt-get update` と `install` が直接実行されることを確認します。')
     const { deps, calls } = fakeDependencies({ isRoot: true, probes: [LIBATK_FAILURE, undefined] })
     await expect(ensureChromiumHostDependencies(deps)).resolves.toMatchObject({ status: 'installed' })
     expect(calls.slice(1)).toEqual([
@@ -208,7 +221,8 @@ describe('ensureChromiumHostDependencies', () => {
     ])
   })
 
-  it('子プロセスへ signal を渡す', async () => {
+  it('実行する子プロセスのすべてに、signal を渡す', async () => {
+    await explains('Chromium の依存を整える `ensureChromiumHostDependencies` のテストです。`AbortController` の `signal` を渡した場合に、実行した 4 つの子プロセスのすべてに同じ `signal` が渡ることを確認します。')
     const { deps, signals } = fakeDependencies({ probes: [LIBATK_FAILURE, undefined] })
     const controller = new AbortController()
     await ensureChromiumHostDependencies(deps, controller.signal)
@@ -216,7 +230,8 @@ describe('ensureChromiumHostDependencies', () => {
     expect(signals.every(signal => signal === controller.signal)).toBe(true)
   })
 
-  it('apt の一覧が空で dry-run が失敗する環境では、update してから割り出し直す', async () => {
+  it('apt のパッケージ一覧が空で dry-run が失敗する環境では、update してから不足パッケージを調べ直す', async () => {
+    await explains('Chromium の依存を整える `ensureChromiumHostDependencies` のテストです。最初の `--dry-run` が失敗する場合に、`apt-get update` の後でもう一度 `--dry-run` を実行し、導入まで進むことを確認します。')
     const { deps, calls } = fakeDependencies({
       probes: [LIBATK_FAILURE, undefined],
       dryRuns: [spawnResult({ exitCode: 1, stderr: '\'apt-get install -s\' exited with code 100' })],
@@ -231,7 +246,8 @@ describe('ensureChromiumHostDependencies', () => {
     ])
   })
 
-  it('sudo を使えなければ入れずに、足りないライブラリと入れるコマンドを案内する', async () => {
+  it('sudo を使えない場合は、導入せず、不足しているライブラリと導入のコマンドを案内する', async () => {
+    await explains('Chromium の依存を整える `ensureChromiumHostDependencies` のテストです。`sudo -n true` が失敗する場合に、状態が `missing` で、`detail` に導入のコマンドが含まれ、`apt-get` が実行されないことを確認します。')
     const { deps, calls } = fakeDependencies({ probes: [LIBATK_FAILURE], results: { 'sudo -n true': spawnResult({ exitCode: 1 }) } })
     const outcome = await ensureChromiumHostDependencies(deps)
     expect(outcome).toMatchObject({ status: 'missing', libraries: ['libatk-1.0.so.0'] })
@@ -240,7 +256,8 @@ describe('ensureChromiumHostDependencies', () => {
     expect(calls.some(line => line.includes('apt-get'))).toBe(false)
   })
 
-  it('不足パッケージを割り出せない OS では、足りないライブラリを示して返す', async () => {
+  it('不足パッケージを調べられない OS では、不足しているライブラリを示して返す', async () => {
+    await explains('Chromium の依存を整える `ensureChromiumHostDependencies` のテストです。`--dry-run` が `Unsupported OS` で失敗する場合に、状態が `missing` で、`detail` にライブラリ名と `Unsupported OS` が含まれることを確認します。')
     const { deps } = fakeDependencies({ probes: [LIBATK_FAILURE], results: { '--dry-run': spawnResult({ exitCode: 1, stderr: 'ERROR: Unsupported OS' }) } })
     const outcome = await ensureChromiumHostDependencies(deps)
     expect(outcome).toMatchObject({ status: 'missing', packages: [] })
@@ -249,13 +266,15 @@ describe('ensureChromiumHostDependencies', () => {
     expect(outcome.detail).toContain('Unsupported OS')
   })
 
-  it('apt-get update が失敗しても install まで進み、install が通れば入れたことにする', async () => {
+  it('apt-get update が失敗しても install まで進み、install が成功した場合は、導入済みとして扱う', async () => {
+    await explains('Chromium の依存を整える `ensureChromiumHostDependencies` のテストです。`update` が終了コード 100 で失敗する場合でも、`install` が実行され、状態が `installed` になることを確認します。')
     const { deps, calls } = fakeDependencies({ probes: [LIBATK_FAILURE, undefined], results: { 'apt-get -o DPkg::Lock::Timeout=120 update': spawnResult({ exitCode: 100, stderr: 'NO_PUBKEY' }) } })
     await expect(ensureChromiumHostDependencies(deps)).resolves.toMatchObject({ status: 'installed' })
     expect(calls.some(line => line.includes('apt-get -o DPkg::Lock::Timeout=120 install'))).toBe(true)
   })
 
-  it('update と install の両方が失敗したら、両方の理由と入れるコマンドを添えて返す', async () => {
+  it('update と install の両方が失敗した場合は、両方の理由と導入のコマンドを添えて返す', async () => {
+    await explains('Chromium の依存を整える `ensureChromiumHostDependencies` のテストです。`update` と `install` がどちらも失敗する場合に、状態が `missing` で、`detail` に両方のエラーと導入のコマンドが含まれることを確認します。')
     const { deps } = fakeDependencies({
       probes: [LIBATK_FAILURE],
       results: {
@@ -271,7 +290,8 @@ describe('ensureChromiumHostDependencies', () => {
     expect(outcome.detail).toContain(aptInstallCommand(PACKAGES.split(' ')))
   })
 
-  it('apt-get install がタイムアウトしたら、その旨を添えて返す', async () => {
+  it('apt-get install がタイムアウトした場合は、その旨を添えて返す', async () => {
+    await explains('Chromium の依存を整える `ensureChromiumHostDependencies` のテストです。`install` がタイムアウトした場合に、状態が `missing` で、`detail` に `did not finish in time` が含まれることを確認します。')
     const { deps } = fakeDependencies({ probes: [LIBATK_FAILURE], results: { 'Timeout=120 install': spawnResult({ exitCode: 100, timedOut: true, stderr: 'dpkg lock' }) } })
     const outcome = await ensureChromiumHostDependencies(deps)
     expect(outcome).toMatchObject({ status: 'missing' })
@@ -279,22 +299,26 @@ describe('ensureChromiumHostDependencies', () => {
     expect(outcome.detail).toContain('did not finish in time')
   })
 
-  it('入れてもまだライブラリが足りなければ missing を返す', async () => {
+  it('導入した後もライブラリが不足している場合は、missing を返す', async () => {
+    await explains('Chromium の依存を整える `ensureChromiumHostDependencies` のテストです。導入した後の起動の確認が、再びライブラリの不足で失敗する場合に、状態が `missing` になることを確認します。')
     const { deps } = fakeDependencies({ probes: [LIBATK_FAILURE, LIBATK_FAILURE] })
     await expect(ensureChromiumHostDependencies(deps)).resolves.toMatchObject({ status: 'missing' })
   })
 
-  it('入れたあとの失敗がライブラリ不足でなければ launch-failed を返す', async () => {
+  it('導入した後の失敗がライブラリの不足でない場合は、launch-failed を返す', async () => {
+    await explains('Chromium の依存を整える `ensureChromiumHostDependencies` のテストです。導入した後の起動の確認が `browserType.launch: crashed` で失敗する場合に、状態が `launch-failed` で、その出力が `detail` に入ることを確認します。')
     const { deps } = fakeDependencies({ probes: [LIBATK_FAILURE, 'browserType.launch: crashed'] })
     await expect(ensureChromiumHostDependencies(deps)).resolves.toEqual({ status: 'launch-failed', detail: 'browserType.launch: crashed' })
   })
 
-  it('起動前の依存確認が枠付きで返すライブラリ不足も、不足として入れる', async () => {
+  it('起動前の依存確認が枠付きで返すライブラリの不足も、不足として導入する', async () => {
+    await explains('Chromium の依存を整える `ensureChromiumHostDependencies` のテストです。起動前の確認が枠付きでライブラリの不足を返す場合に、導入が行われ、状態が `installed` になることを確認します。')
     const { deps } = fakeDependencies({ probes: [BOXED_MISSING_LIBRARIES, undefined] })
     await expect(ensureChromiumHostDependencies(deps)).resolves.toMatchObject({ status: 'installed' })
   })
 
-  it('ライブラリ名を含まない枠付きの失敗でも、名前なしの不足として案内する', async () => {
+  it('ライブラリ名を含まない枠付きの失敗でも、ライブラリ名なしの不足として案内する', async () => {
+    await explains('Chromium の依存を整える `ensureChromiumHostDependencies` のテストです。インストールの案内だけの枠付きの出力で `sudo` を使えない場合に、状態が `missing` で、`libraries` が空になり、`detail` に不足の説明が含まれることを確認します。')
     const { deps } = fakeDependencies({ probes: [BOXED_INSTALL_HINT], results: { 'sudo -n true': spawnResult({ exitCode: 1 }) } })
     const outcome = await ensureChromiumHostDependencies(deps)
     expect(outcome).toMatchObject({ status: 'missing', libraries: [] })
@@ -320,7 +344,8 @@ describe('recordHostDependenciesResult', () => {
     return root
   }
 
-  it('リビジョン・結果・epoch 秒を 1 行で依存ルートの node_modules に書く', () => {
+  it('リビジョン・結果・epoch 秒を 1 行にして、依存ルートの node_modules に書き込む', async () => {
+    await explains('確認結果を記録する `recordHostDependenciesResult` のテストです。`missing` と時刻を渡した場合に、リビジョン・結果・秒単位の時刻が 1 行で書き込まれることを確認します。')
     const root = pluginRootWithNodeModules(true)
     const revision = chromiumRevision()
     expect(revision).toMatch(/^\d+$/)
@@ -330,14 +355,16 @@ describe('recordHostDependenciesResult', () => {
     expect(readFileSync(path.join(root, 'node_modules', HOST_DEPS_STAMP), 'utf8')).toBe(`${revision ?? ''} missing 1700000000\n`)
   })
 
-  it('結果ごとに値を書き分け、記録し直すと上書きする', () => {
+  it('結果の値を書き分け、記録し直した場合は上書きする', async () => {
+    await explains('確認結果を記録する `recordHostDependenciesResult` のテストです。`launch-failed` の後に `ok` を記録した場合に、ファイルの内容が後の `ok` と時刻で上書きされることを確認します。')
     const root = pluginRootWithNodeModules(true)
     recordHostDependenciesResult('launch-failed', 1_000_000)
     recordHostDependenciesResult('ok', 2_000_000)
     expect(readFileSync(path.join(root, 'node_modules', HOST_DEPS_STAMP), 'utf8')).toBe(`${chromiumRevision() ?? ''} ok 2000\n`)
   })
 
-  it('依存ルートの node_modules が無ければ記録せず、失敗にもしない', () => {
+  it('依存ルートに node_modules が存在しない場合は、記録せず、エラーにもしない', async () => {
+    await explains('確認結果を記録する `recordHostDependenciesResult` のテストです。`node_modules` が存在しない場合に、例外が発生せず、記録のファイルも作成されないことを確認します。')
     const root = pluginRootWithNodeModules(false)
     const home = process.env['HOME']
     process.env['HOME'] = root

@@ -70,6 +70,7 @@ import { verifies } from '../../_helpers/verifies.js'
 import { ensureTalkThemeLinked, linkedThemeDefaultDependencies } from '../../../src/commands/slidev-project/linked-theme.js'
 import { makeStream } from '../../_helpers/talk-directory.js'
 import type { CapturedStream } from '../../_helpers/talk-directory.js'
+import { explains } from '../../_helpers/explains.js'
 
 // テーマの宣言（pecot-theme.json）の pptx を、テスト内の値で与える。テーマの固有値は本体に持たない。
 const TEST_LINK_COLOR = '4F46E5'
@@ -477,20 +478,23 @@ function callValidateTheme(value: string): () => void {
 }
 
 describe('validateTheme', () => {
-  it('許容文字 [a-zA-Z0-9@/_.-] のみで成功する', () => {
+  it('テーマ名に許容文字（英数字・@・/・_・.・-）だけを使った場合は、検証に成功する', async () => {
+    await explains('`validateTheme` の許容文字のテストです。`default`・`@my-org/theme_v2.0`・`a/b.c-d_e` を渡した場合に、いずれも例外が発生しないことを確認します。')
     expect(callValidateTheme('default')).not.toThrow()
     expect(callValidateTheme('@my-org/theme_v2.0')).not.toThrow()
     expect(callValidateTheme('a/b.c-d_e')).not.toThrow()
   })
 
-  it('禁止文字を含む値は SlideConvertUsageError(invalid-theme) を投げる', () => {
+  it('テーマ名に禁止文字を含む場合は、invalid-theme の SlideConvertUsageError が発生する', async () => {
+    await explains('`validateTheme` の禁止文字のテストです。`$(rm -rf /)`・空白を含む値・`;` を含む値・空文字を渡した場合に、いずれも `SlideConvertUsageError` が発生することを確認します。')
     expect(callValidateTheme('$(rm -rf /)')).toThrow(SlideConvertUsageError)
     expect(callValidateTheme('foo bar')).toThrow(SlideConvertUsageError)
     expect(callValidateTheme('foo;bar')).toThrow(SlideConvertUsageError)
     expect(callValidateTheme('')).toThrow(SlideConvertUsageError)
   })
 
-  it('SlideConvertUsageError には reason=invalid-theme が入る', () => {
+  it('SlideConvertUsageError には、reason に invalid-theme が設定される', async () => {
+    await explains('`validateTheme` の例外の `reason` のテストです。空白だけの値を渡した場合に、`reason` が `invalid-theme` の例外が発生することを確認します。')
     expect(callValidateTheme(' ')).toThrow(
       expect.objectContaining({ reason: 'invalid-theme' }),
     )
@@ -498,8 +502,9 @@ describe('validateTheme', () => {
 })
 
 describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
-  it('成功時: outputAbs に merge 済 PPTX を書き出し、runner / converter が 1 回ずつ呼ばれる', async (context) => {
+  it('成功した場合は、結合した PPTX を outputAbs に書き出し、runner と converter を 1 回ずつ呼び出す', async (context) => {
     await verifies(context, 'PV-SLIDE-CONVERT-02')
+    await explains('`runSlideConvert` の成功時のテストです。2 枚のスライドを返す偽の変換器を使った場合に、出力先と入力元が絶対パスになり、runner と converter が 1 回ずつ呼び出され、PPTX が作成されることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'sample.pptx')
     const slidevRunner = createSuccessRunner()
@@ -530,11 +535,12 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(existsSync(out)).toBe(true)
   })
 
-  it('merge 後に font fix + CSS-only typeface sanitize が適用される (#391 回帰防止)', async () => {
+  it('結合した後に、フォントの補正と CSS だけの書体の除去が適用される（#391 の回帰防止）', async () => {
     // dom-to-pptx が出力する次の内容が、`slide convert` 後の merged PPTX で補正されていることを XPath assertion する。
     // 内容は「日本語テキストに英文専用 ea (Test Display Extended) + CSS-only typeface (-apple-system) + 段落終端 endParaRPr」。
     // Phase 2 で `--skip-postprocess` を立てた際に slide convert からの font fix chain が
     // 抜け落ちて Phase 4 で顕在化したバグの回帰防止。
+    await explains('結合後の後処理のテストです。日本語と `-apple-system` の書体を含む PPTX を結合した場合に、`a:ea` が `Noto Sans JP` になり、`-apple-system` が残らないことを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'fontfix.pptx')
     const slidevRunner = createSuccessRunner()
@@ -586,7 +592,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(endParaEaValues).toContain('Noto Sans JP')
   })
 
-  it('宣言に pptx の値が無ければ、東アジア書体を書き込まない', async () => {
+  it('宣言に pptx の値が存在しない場合は、東アジアのフォントを書き込まない', async () => {
+    await explains('テーマの宣言に `pptx` の値が存在しない場合のテストです。`pptx` が空の宣言を使った場合に、`a:ea` の書体へ `Noto Sans JP` と `-apple-system` のどちらも含まれないことを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'no-policy.pptx')
     const infra = realInfra()
@@ -616,7 +623,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(eaValues).not.toContain('-apple-system')
   })
 
-  it('テーマの宣言の eastAsianFont を ea に書き、読み先は ensureThemeLinked が返したテーマの directory にする', async () => {
+  it('テーマの宣言の eastAsianFont を ea に書き込み、宣言の読み込み先は ensureThemeLinked が返したテーマの directory にする', async () => {
+    await explains('テーマの宣言の読み込みのテストです。`eastAsianFont` が `Test Sans JP` の場合に、`a:ea` へその値が書き込まれ、`ensureThemeLinked` が返した `directory` から読み込まれることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'declared-font.pptx')
     const infra = realInfra()
@@ -659,11 +667,13 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(eaValues).not.toContain('Noto Sans JP')
   })
 
-  it('テーマの名前の不一致 (SlideCreateRuntimeError) は専用の reason を返す', () => {
+  it('テーマの名前が一致しない場合（SlideCreateRuntimeError）は、専用の reason の theme-name-mismatch を返す', async () => {
+    await explains('`errorToReason` のテストです。`theme-name-mismatch` の `SlideCreateRuntimeError` を渡した場合に、`theme-name-mismatch` が返ることを確認します。')
     expect(errorToReason(new SlideCreateRuntimeError('名前が違う', 'theme-name-mismatch'))).toBe('theme-name-mismatch')
   })
 
-  it('宣言の警告と、pptx の値を省いたことの警告を stderr に warning: で流す', async () => {
+  it('宣言の警告と、pptx の値を省略したことの警告を、標準エラーに warning: 付きで出力する', async () => {
+    await explains('警告の出力のテストです。宣言の読み込みで警告が出て `pptx` が空の場合に、標準エラーへ宣言の警告と、`pptx.linkColor`・`pptx.eastAsianFont` の省略の警告が出力されることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'warnings.pptx')
     const infra = realInfra()
@@ -695,7 +705,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(written).toContain('warning: pptx.eastAsianFont is omitted, so no East Asian font is written')
   })
 
-  it('pptx の値が揃っていれば、省略の警告は出さない', async () => {
+  it('pptx の値が揃っている場合は、省略の警告を出力しない', async () => {
+    await explains('省略の警告が出ない場合のテストです。`linkColor` と `eastAsianFont` を持つ宣言を使った場合に、標準エラーに `is omitted, so` が含まれないことを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'no-warnings.pptx')
     const infra = realInfra()
@@ -720,7 +731,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(stderr.chunks.join('')).not.toContain('is omitted, so')
   })
 
-  it('取得の signal と警告の出力先を、ensureThemeLinked の文脈として渡す', async () => {
+  it('取得の signal と警告の出力先を、ensureThemeLinked の引数の文脈として渡す', async () => {
+    await explains('`ensureThemeLinked` へ渡す文脈のテストです。`AbortController` の `signal` を指定した場合に、同じ `signal` が文脈に含まれ、文脈の `warn` の出力が標準エラーに `warning:` 付きで出力されることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'context.pptx')
     const infra = realInfra()
@@ -752,7 +764,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(stderr.chunks.join('')).toContain('warning: 取得中の警告')
   })
 
-  it('テーマを張れなければ、slidev build に入らず、theme-<reason> で止まる', async () => {
+  it('テーマをリンクできない場合は、slidev build を始めず、theme-<reason> で止まる', async () => {
+    await explains('テーマのリンクの失敗のテストです。`ensureThemeLinked` が `tag` の `ThemeFetchError` で失敗した場合に、同じ例外が発生し、`slidev build` が呼ばれず、PPTX が作成されないことを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'unlinked.pptx')
     const slidevRunner = createSuccessRunner()
@@ -782,8 +795,9 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(existsSync(out)).toBe(false)
   })
 
-  it('移行前の talk-dir (theme: none でテーマの宣言も無い) は、slidev build に入らず theme-none で止まり、移行を案内する', async (context) => {
+  it('移行前の talk-dir（theme が none でテーマの宣言も存在しない）は、slidev build を始めず theme-none で止まり、移行を案内する', async (context) => {
     await verifies(context, 'PV-SLIDE-CONVERT-09')
+    await explains('移行前の `talk-dir` の変換のテストです。`theme: none` の `talk-dir` を指定した場合に、`reason` が `theme-none` になり、移行手順を示すメッセージが含まれ、build が呼ばれないことを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     writeFileSync(path.join(projectDirectory, 'slides.md'), '---\ntheme: none\ntitle: Legacy\n---\n# 表紙\n')
     const out = temporaryRoot('out', 'legacy.pptx')
@@ -821,9 +835,10 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(existsSync(out)).toBe(false)
   })
 
-  it('staging の letter-spacing.json / href-map.json を auto-detect して chain に流す (ケース A)', async () => {
+  it('staging の letter-spacing.json と href-map.json を自動で検出し、変換の後処理へ渡す（ケース A）', async () => {
     // staging に書かれた json を CLI flag 無しでも自動検出して spc / hlinkClick が出力される
     // ことを pin。priority: `flag > staging > empty` の staging ルート。
+    await explains('staging の JSON の自動検出のテストです。フラグなしで両方の JSON がある場合に、`spc` が 150 になり、`a:hlinkClick` が 1 件以上で、`Target` が `https://example.com` になることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'staging-auto.pptx')
     const slidevRunner = createSuccessRunner()
@@ -882,9 +897,10 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(targets).toContain('https://example.com')
   })
 
-  it('flag 指定時は staging json を無視して flag 側を優先する (ケース B / priority pin)', async () => {
+  it('フラグを指定した場合は、staging の JSON を使わず、フラグの指定を優先する（ケース B）', async () => {
     // staging には spacing/href json を書きつつ、CLI flag で別 path の JSON を渡す。
     // 出力 spc 値は flag 側 (5px → spc=375) と一致し、staging 値 (2px → 150) ではないことを assert。
+    await explains('フラグと staging の優先順位のテストです。両方に JSON がある場合に、`spc` が 375 で `Target` が `https://flag.example.com` になり、staging の値が含まれないことを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'flag-priority.pptx')
     const slidevRunner = createSuccessRunner()
@@ -949,8 +965,9 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(targets).not.toContain('https://staging.example.com')
   })
 
-  it('staging に json が無いルートでは空 Map で chain される (priority: staging > empty)', async () => {
+  it('staging に JSON が存在しない場合は、空の Map を使い、spc と hlinkClick を出力しない', async () => {
     // staging json を作らないルート。flag も無い。spc / hlinkClick は出力されない (= empty Map)。
+    await explains('staging の JSON が存在しない場合のテストです。フラグも指定しなかった場合に、`a:rPr` の `spc` 属性が 0 件になることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'no-staging.pptx')
     const slidevRunner = createSuccessRunner()
@@ -987,8 +1004,9 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(spcCount).toBe(0)
   })
 
-  it('--transition-type=morph + --morph-option=byChar + --transition-duration-ms=800 が反映される', async (context) => {
+  it('--transition-type に morph、--morph-option に byChar、--transition-duration-ms に 800 を指定すると、PPTX に反映される', async (context) => {
     await verifies(context, 'PV-SLIDE-CONVERT-05')
+    await explains('トランジションの指定のテストです。3 つのオプションを指定した場合に、`p159:morph` の `option` が `byChar` になり、`p14:dur` を持つ要素が 1 件以上になることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'morph.pptx')
     const slidevRunner = createSuccessRunner()
@@ -1038,7 +1056,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(durCount).toBeGreaterThanOrEqual(1)
   })
 
-  it('staging letter-spacing.json が破損している場合 SlideConvertRuntimeError(invalid-staging-json)', async () => {
+  it('staging の letter-spacing.json が JSON として不正な場合は、invalid-staging-json の SlideConvertRuntimeError が発生する', async () => {
+    await explains('staging の JSON の検証のテストです。`letter-spacing.json` の内容が JSON として不正な場合に、`reason` が `invalid-staging-json` の例外が発生することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const slidevRunner = createSuccessRunner()
@@ -1071,7 +1090,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toMatchObject({ reason: 'invalid-staging-json' })
   })
 
-  it('staging letter-spacing.json が plain object でない場合 invalid-staging-json', async () => {
+  it('staging の letter-spacing.json が通常のオブジェクトでない場合は、invalid-staging-json の例外が発生する', async () => {
+    await explains('staging の JSON の検証のテストです。`letter-spacing.json` の内容が配列の場合に、`reason` が `invalid-staging-json` の例外が発生することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const slidevRunner = createSuccessRunner()
@@ -1103,7 +1123,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toMatchObject({ reason: 'invalid-staging-json' })
   })
 
-  it('staging letter-spacing.json の entry 型不正で invalid-staging-json', async () => {
+  it('staging の letter-spacing.json の項目の型が不正な場合は、invalid-staging-json の例外が発生する', async () => {
+    await explains('staging の JSON の検証のテストです。`letter-spacing.json` の項目がオブジェクトでなく文字列の場合に、`reason` が `invalid-staging-json` の例外が発生することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const slidevRunner = createSuccessRunner()
@@ -1138,7 +1159,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toMatchObject({ reason: 'invalid-staging-json' })
   })
 
-  it('staging letter-spacing.json の entry が { letterSpacing, fontSize } 不揃いで invalid-staging-json', async () => {
+  it('staging の letter-spacing.json の項目で letterSpacing か fontSize が不足している場合は、invalid-staging-json の例外が発生する', async () => {
+    await explains('staging の JSON の検証のテストです。`letter-spacing.json` の項目に `fontSize` が不足している場合に、`reason` が `invalid-staging-json` の例外が発生することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const slidevRunner = createSuccessRunner()
@@ -1173,7 +1195,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toMatchObject({ reason: 'invalid-staging-json' })
   })
 
-  it('staging href-map.json が plain object でない場合 invalid-staging-json', async () => {
+  it('staging の href-map.json が通常のオブジェクトでない場合は、invalid-staging-json の例外が発生する', async () => {
+    await explains('staging の JSON の検証のテストです。`href-map.json` の内容が文字列の場合に、`reason` が `invalid-staging-json` の例外が発生することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const slidevRunner = createSuccessRunner()
@@ -1205,7 +1228,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toMatchObject({ reason: 'invalid-staging-json' })
   })
 
-  it('staging href-map.json が parse 不能な場合 invalid-staging-json', async () => {
+  it('staging の href-map.json が JSON として不正な場合は、invalid-staging-json の例外が発生する', async () => {
+    await explains('staging の JSON の検証のテストです。`href-map.json` の内容が JSON として不正な場合に、`reason` が `invalid-staging-json` の例外が発生することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const slidevRunner = createSuccessRunner()
@@ -1237,7 +1261,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toMatchObject({ reason: 'invalid-staging-json' })
   })
 
-  it('staging href-map.json の entry 型不正で invalid-staging-json', async () => {
+  it('staging の href-map.json の項目の型が不正な場合は、invalid-staging-json の例外が発生する', async () => {
+    await explains('staging の JSON の検証のテストです。`href-map.json` の項目が文字列でなく数値の場合に、`reason` が `invalid-staging-json` の例外が発生することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const slidevRunner = createSuccessRunner()
@@ -1272,7 +1297,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toMatchObject({ reason: 'invalid-staging-json' })
   })
 
-  it('flag 指定の path が読めない場合 invalid-staging-json', async () => {
+  it('フラグで指定した spacing の JSON のパスを読み込めない場合は、invalid-staging-json の例外が発生する', async () => {
+    await explains('フラグで指定した JSON の検証のテストです。存在しないパスを `spacingJson` へ指定した場合に、`reason` が `invalid-staging-json` の例外が発生することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const slidevRunner = createSuccessRunner()
@@ -1295,7 +1321,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toMatchObject({ reason: 'invalid-staging-json' })
   })
 
-  it('flag href の path が読めない場合 invalid-staging-json', async () => {
+  it('フラグで指定した href の JSON のパスを読み込めない場合は、invalid-staging-json の例外が発生する', async () => {
+    await explains('フラグで指定した JSON の検証のテストです。存在しないパスを `hrefJson` へ指定した場合に、`reason` が `invalid-staging-json` の例外が発生することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const slidevRunner = createSuccessRunner()
@@ -1318,8 +1345,9 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toMatchObject({ reason: 'invalid-staging-json' })
   })
 
-  it('staging json path がディレクトリの場合は読み込まずスキップ (空 Map で進行)', async () => {
+  it('staging の JSON のパスがディレクトリの場合は、読み込まずに、空の Map で処理を続ける', async () => {
     // resolveJsonSource は stat で isFile() のみ true を返すため、ディレクトリは無視される
+    await explains('staging の JSON がディレクトリの場合のテストです。`letter-spacing.json` という名前のディレクトリがある場合に、読み込みをせず、変換が例外なく完了することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const slidevRunner = createSuccessRunner()
@@ -1352,7 +1380,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).resolves.toBeDefined()
   })
 
-  it('--theme 指定時: runner.build に theme が伝搬する', async () => {
+  it('--theme を指定した場合は、runner.build に theme の値を渡す', async () => {
+    await explains('`--theme` の伝達のテストです。`theme` に `sample-theme` を指定した場合に、`slidevRunner.build` の呼び出しの `theme` が `sample-theme` になることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out2.pptx')
     const slidevRunner = createSuccessRunner()
@@ -1378,7 +1407,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(slidevRunner.calls[0]?.theme).toBe('sample-theme')
   })
 
-  it('--theme 不正値で SlideConvertUsageError(invalid-theme)', async () => {
+  it('--theme に不正な値を指定した場合は、invalid-theme の SlideConvertUsageError が発生する', async () => {
+    await explains('`--theme` の検証のテストです。`$(rm -rf /)` を指定した場合に、`SlideConvertUsageError` が発生することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const slidevRunner = createSuccessRunner()
@@ -1401,7 +1431,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toThrow(SlideConvertUsageError)
   })
 
-  it('project-dir 不存在で SlideConvertRuntimeError(project-not-found)', async () => {
+  it('project-dir が存在しない場合は、project-not-found の SlideConvertRuntimeError が発生する', async () => {
+    await explains('`project-dir` の検証のテストです。存在しないディレクトリを指定した場合に、`SlideConvertRuntimeError` が発生することを確認します。')
     const out = temporaryRoot('out.pptx')
     const slidevRunner = createSuccessRunner()
     const pptxConverter = createSuccessConverter(1)
@@ -1423,7 +1454,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toThrow(SlideConvertRuntimeError)
   })
 
-  it('project-dir がファイル (= isDirectory()===false) で SlideConvertRuntimeError(project-not-found)', async () => {
+  it('project-dir がファイルの場合（ディレクトリでない場合）は、project-not-found の SlideConvertRuntimeError が発生する', async () => {
+    await explains('`project-dir` の検証のテストです。ディレクトリでなくファイルを指定した場合に、`not a directory` を含む例外が発生することを確認します。')
     const file = temporaryRoot('a-file')
     writeFileSync(file, 'not a directory')
     const out = temporaryRoot('out.pptx')
@@ -1447,7 +1479,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toThrow(/not a directory/)
   })
 
-  it('slides.md 不在で SlideConvertRuntimeError(project-not-found)', async () => {
+  it('slides.md が存在しない場合は、project-not-found の SlideConvertRuntimeError が発生する', async () => {
+    await explains('`slides.md` の検証のテストです。`slides.md` が存在しないディレクトリを指定した場合に、`slides.md not found` を含む例外が発生することを確認します。')
     const directory = temporaryRoot('no-slides')
     mkdirSync(directory, { recursive: true })
     const out = temporaryRoot('out.pptx')
@@ -1471,7 +1504,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toThrow(/slides\.md not found/)
   })
 
-  it('SlidevRunner が exit≠0 で SlideConvertRuntimeError(slidev-build-failed)', async () => {
+  it('SlidevRunner が 0 以外の終了コードで失敗した場合は、slidev-build-failed の SlideConvertRuntimeError が発生する', async () => {
+    await explains('`slidev build` の失敗のテストです。`SlidevRunner` が失敗の結果を返した場合に、`reason` が `slidev-build-failed` の例外が発生することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const slidevRunner: SlidevRunner = {
@@ -1496,7 +1530,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toMatchObject({ reason: 'slidev-build-failed' })
   })
 
-  it('SlidevRunner timeout で SlideConvertRuntimeError(slidev-build-timeout)', async () => {
+  it('SlidevRunner が時間切れになった場合は、slidev-build-timeout の SlideConvertRuntimeError が発生する', async () => {
+    await explains('`slidev build` の時間切れのテストです。`SlidevRunner` が時間切れの結果を返した場合に、`reason` が `slidev-build-timeout` の例外が発生することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const slidevRunner: SlidevRunner = {
@@ -1521,7 +1556,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toMatchObject({ reason: 'slidev-build-timeout' })
   })
 
-  it('Pipeline が success=false を返した時 SlideConvertRuntimeError(pptx-convert-failed)', async () => {
+  it('Pipeline が success=false を返した場合は、pptx-convert-failed の SlideConvertRuntimeError が発生する', async () => {
+    await explains('変換の失敗のテストです。Pipeline が `success` が偽の結果を返した場合に、`reason` が `pptx-convert-failed` の例外が発生することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const slidevRunner = createSuccessRunner()
@@ -1549,7 +1585,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toMatchObject({ reason: 'pptx-convert-failed' })
   })
 
-  it('Pipeline が PipelineRuntimeError を throw した時 SlideConvertRuntimeError(pptx-convert-failed)', async () => {
+  it('Pipeline が PipelineRuntimeError を送出した場合は、pptx-convert-failed の SlideConvertRuntimeError が発生する', async () => {
+    await explains('変換の例外の変換のテストです。Pipeline が `PipelineRuntimeError` で失敗した場合に、`reason` が `pptx-convert-failed` の例外が発生することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const slidevRunner = createSuccessRunner()
@@ -1574,7 +1611,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toMatchObject({ reason: 'pptx-convert-failed' })
   })
 
-  it('Pipeline が PipelineTimeoutError を throw した時 SlideConvertRuntimeError(pptx-convert-timeout)', async () => {
+  it('Pipeline が PipelineTimeoutError を送出した場合は、pptx-convert-timeout の SlideConvertRuntimeError が発生する', async () => {
+    await explains('変換の時間切れのテストです。Pipeline が `PipelineTimeoutError` で失敗した場合に、`reason` が `pptx-convert-timeout` の例外が発生することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const slidevRunner = createSuccessRunner()
@@ -1599,7 +1637,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toMatchObject({ reason: 'pptx-convert-timeout' })
   })
 
-  it('success=true でも staging に slide-<N>.pptx が無ければ SlideConvertRuntimeError(pptx-convert-failed)', async () => {
+  it('success が真でも staging に slide-<N>.pptx が存在しない場合は、pptx-convert-failed の SlideConvertRuntimeError が発生する', async () => {
+    await explains('staging の成果物の確認のテストです。Pipeline が成功を返し、`slides` ディレクトリを作成しなかった場合に、`reason` が `pptx-convert-failed` の例外が発生することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const slidevRunner = createSuccessRunner()
@@ -1625,7 +1664,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     )).rejects.toMatchObject({ reason: 'pptx-convert-failed' })
   })
 
-  it('staging/slides/ 内に slide-<N>.pptx が 0 件でも (例: 空ディレクトリ) pptx-convert-failed', async () => {
+  it('staging の slides ディレクトリに slide-<N>.pptx が 0 件の場合（空のディレクトリなど）も、pptx-convert-failed の例外が発生する', async () => {
+    await explains('staging の成果物の確認のテストです。`slides` ディレクトリに `README.txt` だけがある場合に、`reason` が `pptx-convert-failed` の例外が発生することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const slidevRunner = createSuccessRunner()
@@ -1657,6 +1697,7 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
   })
 
   it('子の stdout/stderr を deps の stderr へ relay する', async () => {
+    await explains('`runSlideConvert` の子プロセスの出力のテストです。`build` を実行した場合に、`slidevRunner` へ標準出力と標準エラー出力の出力先を渡すことを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     let buildOptions: Parameters<SlidevRunner['build']>[1] | undefined
@@ -1690,7 +1731,8 @@ describe('runSlideConvert (fake DI 経由 / 全分岐)', () => {
     expect(buildOptions?.stderr).toBeDefined()
   })
 
-  it('build 失敗時の stderr 末尾 1KB を超える場合は tail のみ detail に出る', async () => {
+  it('build の失敗時の標準エラーが 1KB を超える場合は、末尾だけを detail に出力する', async () => {
+    await explains('失敗時のメッセージの長さのテストです。2048 文字の標準エラーで失敗した場合に、`SlideConvertRuntimeError` のメッセージの長さが、元の長さに 200 を加えた値より短いことを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out.pptx')
     const longStderr = 'X'.repeat(2048)
@@ -1838,6 +1880,7 @@ function createConvertRunner(
 
 describe('slide convert の実行と結果 (execute 経由)', () => {
   it('成功すると slide.convert.done の data を返す', async () => {
+    await explains('`slide convert` コマンドの `--json` のテストです。変換が成功した場合は、標準出力へ `slide.convert.done` のイベントだけを出力することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('cmd-out.pptx')
     const stdout = makeStream('stdout')
@@ -1857,7 +1900,8 @@ describe('slide convert の実行と結果 (execute 経由)', () => {
     expect(eventNames).toEqual(['slide.convert.done'])
   })
 
-  it('--json の done の timings は perSlide[].phases / outer / singlePass を持つ (#1141)', async () => {
+  it('--json の done の timings は、perSlide の phases・outer・singlePass を含む（#1141）', async () => {
+    await explains('`slide.convert.done` の `timings` のテストです。区間の時間を持つ変換の結果を返した場合に、`perSlide` の項目へ `phases` が含まれ、`singlePass` と `outer` がそのまま出力されることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('cmd-out-phases.pptx')
     const stdout = makeStream('stdout')
@@ -1912,7 +1956,8 @@ describe('slide convert の実行と結果 (execute 経由)', () => {
     expect(done?.timings?.['outer']).toStrictEqual({ cleanBuild: 10, slidevBuild: 10, pipeline: 10, mergeAndPostprocess: 10 })
   })
 
-  it('--no-single-pass は pipeline に singlePass: false を渡し、未指定ならキーを置かない (#1147)', async () => {
+  it('--no-single-pass を指定した場合は pipeline に singlePass が false の値を渡し、指定しない場合は singlePass のキーを渡さない（#1147）', async () => {
+    await explains('`--no-single-pass` の伝達のテストです。指定して実行した場合は `singlePass` が `false`、指定せずに実行した場合は `singlePass` のキーが存在しないことを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const received: (false | undefined)[] = []
     const keyPresent: boolean[] = []
@@ -1943,7 +1988,8 @@ describe('slide convert の実行と結果 (execute 経由)', () => {
     expect(keyPresent).toStrictEqual([true, false])
   })
 
-  it('--json の done の timings は現行ルートの run では singlePass を持たず outer は常に載る (#1141)', async () => {
+  it('--json の done の timings は、現行のルートの実行では singlePass を含まず、outer は常に含まれる（#1141）', async () => {
+    await explains('`slide.convert.done` の `timings` のテストです。1 パスの情報を持たない変換の場合に、`timings` に `perSlidePhases` と `singlePass` が含まれず、`outer` が含まれることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('cmd-out-no-single.pptx')
     const stdout = makeStream('stdout')
@@ -1963,7 +2009,8 @@ describe('slide convert の実行と結果 (execute 経由)', () => {
     expect(done?.timings).toHaveProperty('outer')
   })
 
-  it('--json のとき pipeline の人間可読ログは stdout ではなく stderr へ出す', async () => {
+  it('--json を指定した場合は、pipeline の人間向けのログを、標準出力でなく標準エラーに出力する', async () => {
+    await explains('`--json` のログの出力先のテストです。pipeline が警告を出した場合に、標準エラーへ `warning: pipeline-human-log` が出力され、標準出力が 2 件のイベントだけになることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('cmd-out-json-log.pptx')
     const stdout = makeStream('stdout')
@@ -2000,7 +2047,8 @@ describe('slide convert の実行と結果 (execute 経由)', () => {
     }
   })
 
-  it('--log-level verbose で進捗の行が stderr に note: で出て、stdout には出ない', async () => {
+  it('--log-level に verbose を指定した場合は、進捗の行を標準エラーに note: 付きで出力し、標準出力には出力しない', async () => {
+    await explains('`--log-level` のテストです。`verbose` を指定した場合に、標準エラーに `note: pipeline-progress` が出力され、標準出力には含まれないことを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('cmd-out-log-level.pptx')
     const stdout = makeStream('stdout')
@@ -2024,7 +2072,8 @@ describe('slide convert の実行と結果 (execute 経由)', () => {
     expect(stdout.chunks.join('')).not.toContain('pipeline-progress')
   })
 
-  it('--json + invalid-theme で slide.convert.error / exit 2', async () => {
+  it('--json を指定して theme が不正な場合は、slide.convert.error を出力し、終了コード 2 で終わる', async () => {
+    await explains('`--json` のエラーの出力のテストです。`$(rm -rf /)` を `--theme` へ指定した場合に、最後のイベントの `reason` が `invalid-theme` で、終了コードが 2 になることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('cmd-out.pptx')
     const stdout = makeStream('stdout')
@@ -2048,7 +2097,8 @@ describe('slide convert の実行と結果 (execute 経由)', () => {
     expect(lastEvent?.errors).toStrictEqual([])
   })
 
-  it('--json + project-not-found で slide.convert.error reason が runtime error から伝搬', async () => {
+  it('--json を指定して project-dir が存在しない場合は、runtime error の reason を slide.convert.error へ引き継ぐ', async () => {
+    await explains('`--json` のエラーの reason のテストです。存在しないディレクトリを指定した場合に、最後のイベントの `reason` が `project-not-found` で、終了コードが 1 になることを確認します。')
     const out = temporaryRoot('cmd-out.pptx')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
@@ -2072,8 +2122,9 @@ describe('slide convert の実行と結果 (execute 経由)', () => {
     expect(lastEvent?.errors).toStrictEqual([])
   })
 
-  it('spacing / href / transition / morph の各オプションを全指定して成功する', async () => {
+  it('spacing・href・transition・morph の各オプションをすべて指定した場合は、変換に成功する', async () => {
     // commander で 5 flag が受理され、optional spread が全て分岐する正常系を pin。
+    await explains('オプションの組み合わせのテストです。`--spacing-json` や `--href-json` など 5 つを同時に指定した場合に、`slide convert` が出力され、PPTX が作成されることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('cmd-all-flags.pptx')
     const stdout = makeStream('stdout')
@@ -2097,7 +2148,8 @@ describe('slide convert の実行と結果 (execute 経由)', () => {
     expect(existsSync(out)).toBe(true)
   })
 
-  it('--out 省略時は <project-dir>/pptx/<basename>.pptx に書き出す', async () => {
+  it('--out を指定しない場合は、<project-dir>/pptx/<basename>.pptx に書き出す', async () => {
+    await explains('出力先の既定値のテストです。`--out` を指定しない場合に、`pptx` ディレクトリ配下にディレクトリ名の PPTX が作成され、標準出力にそのパスが含まれることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
@@ -2110,7 +2162,8 @@ describe('slide convert の実行と結果 (execute 経由)', () => {
     expect(stdout.chunks.join('')).toContain(expectedOut)
   })
 
-  it('--out 省略 + 末尾スラッシュ付き project-dir でも basename から既定パスが導出される', async () => {
+  it('--out を指定せず project-dir の末尾にスラッシュを付けた場合も、basename から既定のパスを決定する', async () => {
+    await explains('末尾のスラッシュの扱いのテストです。末尾に `/` を付けた `project-dir` を指定した場合に、スラッシュのない場合と同じ既定のパスに PPTX が作成されることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
@@ -2124,7 +2177,8 @@ describe('slide convert の実行と結果 (execute 経由)', () => {
     expect(stdout.chunks.join('')).toContain(expectedOut)
   })
 
-  it('--out 省略 + slides.md に title があれば title 由来の既定パスに書き出す', async () => {
+  it('--out を指定せず slides.md に title がある場合は、title を元にした既定のパスに書き出す', async () => {
+    await explains('`title` を使った既定のパスのテストです。`slides.md` に `title: 開発レポート` がある場合に、`開発レポート.pptx` が作成され、ディレクトリ名の PPTX が作成されないことを確認します。')
     const projectDirectory = makeProjectDirectoryWithSlides(temporaryRoot(), '---\ntitle: 開発レポート\n---\n\n# body')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
@@ -2140,8 +2194,9 @@ describe('slide convert の実行と結果 (execute 経由)', () => {
     expect(existsSync(legacyOut)).toBe(false)
   })
 
-  it('--out 省略 + slides.md はあるが title キーが無ければ basename 由来にフォールバックする', async () => {
+  it('--out を指定せず slides.md に title が存在しない場合は、basename を元にした既定のパスに書き出す', async () => {
     // readFile は成功するが parseSlidesTitle が undefined を返す接続 (title 不在 → basename fallback)。
+    await explains('`title` が存在しない場合の既定のパスのテストです。`slides.md` に `title` がない場合に、ディレクトリ名の PPTX が作成され、標準エラーが空であることを確認します。')
     const projectDirectory = makeProjectDirectoryWithSlides(temporaryRoot(), '---\ntheme: default\n---\n\n# body')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
@@ -2156,9 +2211,10 @@ describe('slide convert の実行と結果 (execute 経由)', () => {
     expect(stderr.chunks.join('')).toBe('')
   })
 
-  it('--out 省略 + slides.md 読取が ENOENT 以外で失敗したら stderr に診断を出し basename にフォールバック', async () => {
+  it('--out を指定せず slides.md の読み込みが ENOENT 以外で失敗した場合は、標準エラーに診断を出力し、basename を元にした既定のパスに書き出す', async () => {
     // slides.md をディレクトリにして readFile を EISDIR (非 ENOENT) で失敗させる。
     // ensureProjectDirectory の stat は成功し、後段は進行する。
+    await explains('`slides.md` の読み込みの失敗のテストです。`slides.md` がディレクトリで `EISDIR` となる場合に、ディレクトリ名の PPTX が作成され、標準エラーへ `cannot read slides.md` が含まれることを確認します。')
     const projectDirectory = temporaryRoot('sample')
     mkdirSync(path.join(projectDirectory, 'slides.md'), { recursive: true })
     const stdout = makeStream('stdout')
@@ -2173,7 +2229,8 @@ describe('slide convert の実行と結果 (execute 経由)', () => {
     expect(stderr.chunks.join('')).toContain('cannot read slides.md')
   })
 
-  it('--out 省略 + title の禁止文字は _ に正規化される', async () => {
+  it('--out を指定せず title に禁止文字がある場合は、_ に置き換えた既定のパスに書き出す', async () => {
+    await explains('`title` の禁止文字のテストです。`title` が `2026/Q1 レポート` の場合に、`/` が `_` に置き換わった `2026_Q1 レポート.pptx` が作成されることを確認します。')
     const projectDirectory = makeProjectDirectoryWithSlides(temporaryRoot(), '---\ntitle: 2026/Q1 レポート\n---\n')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
@@ -2186,7 +2243,8 @@ describe('slide convert の実行と結果 (execute 経由)', () => {
     expect(stdout.chunks.join('')).toContain(expectedOut)
   })
 
-  it('--out 省略 + quoted title はクォートを外して既定パスにする', async () => {
+  it('--out を指定せず title が引用符で囲まれている場合は、引用符を外した既定のパスに書き出す', async () => {
+    await explains('引用符付きの `title` のテストです。`title` が `\'クォート付き\'` の場合に、引用符を除いた `クォート付き.pptx` が作成されることを確認します。')
     const projectDirectory = makeProjectDirectoryWithSlides(temporaryRoot(), '---\ntitle: \'クォート付き\'\n---\n')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
@@ -2200,6 +2258,7 @@ describe('slide convert の実行と結果 (execute 経由)', () => {
   })
 
   it('--out 省略時は done の output が title 由来パスになる', async () => {
+    await explains('`slide convert` コマンドの出力先の決め方のテストです。`--out` を省略した場合に、`slide.convert.done` の `output` が `slides.md` の `title` から決まるパスになることを確認します。')
     const projectDirectory = makeProjectDirectoryWithSlides(temporaryRoot(), '---\ntitle: JSON タイトル\n---\n')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
@@ -2221,7 +2280,8 @@ describe('slide convert の実行と結果 (execute 経由)', () => {
 })
 
 describe('slideConvertDefaultDependencies', () => {
-  it('infra 実装を組み立てて返す (in-process pipeline ルート)', () => {
+  it('既定の依存は、infra の実装（in-process の pipeline）を組み立てて返す', async () => {
+    await explains('`slideConvertDefaultDependencies` のテストです。既定の依存を作成した場合に、`slidevRunner`・`pptxConverter`・`archive`・`engine` が定義され、`now()` が数値を返すことを確認します。')
     const dependencies = slideConvertDefaultDependencies()
     expect(dependencies.slidevRunner).toBeDefined()
     expect(dependencies.pptxConverter).toBeDefined()
@@ -2446,8 +2506,9 @@ describe('prerender replace (CUJ 1-5)', () => {
   // EMU per CSS px (96 dpi): 1 CSS px = 9525 EMU
   const EMU = 9525
 
-  it('CUJ 1: 1 段目発火 — 座標 + サイズ一致で高解像度版に差し替わる', async () => {
+  it('座標とサイズが一致する場合は、1 段目の判定で、画像を高解像度版に差し替える（CUJ 1）', async () => {
     // invariant: 1 段目発火 (距離 ≤ 50 px, サイズ相対 ≤ 15%, includeImageRel=true で picMap 非空)
+    await explains('高解像度の画像への差し替えの 1 段目のテストです。画像の位置の差が 50 px 以内で、サイズが一致する場合に、`image1-s1.png` の大きさが 1200 x 900 になることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'stage1.pptx')
     const slidevRunner = createSuccessRunner()
@@ -2488,7 +2549,8 @@ describe('prerender replace (CUJ 1-5)', () => {
     expect(dims).toStrictEqual({ width: 1200, height: 900 })
   })
 
-  it('CUJ 2: prerender ファイル不在で no-op (image dimensions 不変)', async () => {
+  it('prerender のファイルが存在しない場合は、何も差し替えず、画像の大きさが変わらない（CUJ 2）', async () => {
+    await explains('高解像度の画像がない場合のテストです。prerender のファイルが存在しない場合に、`image1-s1.png` の大きさが入力の 400 x 300 のままであることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'noop.pptx')
     const slidevRunner = createSuccessRunner()
@@ -2523,8 +2585,9 @@ describe('prerender replace (CUJ 1-5)', () => {
     expect(dims).toStrictEqual({ width: 400, height: 300 })
   })
 
-  it('CUJ 3: 2 段目発火 — 座標外 + サイズ一致でフォールバック差し替え', async () => {
+  it('座標が離れていてサイズが一致する場合は、2 段目の判定で、画像を差し替える（CUJ 3）', async () => {
     // invariant: 2 段目発火 (距離 > 50 px で 1 段目却下、サイズ相対 ≤ 15%、picMap 非空で 3 段目には落ちない)
+    await explains('高解像度の画像への差し替えの 2 段目のテストです。位置の差が 50 px を超え、サイズが一致する場合に、`image1-s1.png` の大きさが 1600 x 1200 になることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'stage2.pptx')
     const slidevRunner = createSuccessRunner()
@@ -2564,8 +2627,9 @@ describe('prerender replace (CUJ 1-5)', () => {
     expect(dims).toStrictEqual({ width: 1600, height: 1200 })
   })
 
-  it('CUJ 4: 3 段目発火 — rels に image rel が無く pic_media_map が空でも全 PNG 走査で差し替わる', async () => {
+  it('rels に画像の関係定義が存在せず対応表も空の場合は、3 段目の判定により、すべての PNG を走査して差し替える（CUJ 4）', async () => {
     // invariant: 3 段目発火 (includeImageRel=false で picMap 空、PNG 絶対差 ≤ 50 px)
+    await explains('高解像度の画像への差し替えの 3 段目のテストです。画像の関係定義がなく、サイズの差が 50 px 以内の場合に、`image1-s1.png` の大きさが 2000 x 1500 になることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'stage3.pptx')
     const slidevRunner = createSuccessRunner()
@@ -2610,9 +2674,10 @@ describe('prerender replace (CUJ 1-5)', () => {
   // 既存 CUJ 1 は merged_index === original_slideNumber === 1 の幸運ケースで
   // バグを検出できなかった (commit 08bf130 を参照)。本テストは逆引きが必須の
   // ルートのみで合格する設計で、再発検出のための regression test。
-  it('CUJ 5: 複数スライドの slideNumber が 100 刻みのとき、prerender 画像を元のスライド番号で逆引きして差し替える', async () => {
+  it('複数のスライドの slideNumber が 100 刻みの場合は、元のスライド番号から逆引きして、prerender の画像を差し替える（CUJ 5）', async () => {
     // invariant: 元 slideNumber (100, 200) と merged 連番 (1, 2) は一致しない。
     // そのため逆引きが破損していると、prerender ファイルが見つからず差し替え 0 件になる。
+    await explains('スライド番号の逆引きのテストです。元の番号が 100 と 200 で、結合後の連番が 1 と 2 の場合に、どちらのスライドの画像も高解像度版に差し替わることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'stage5.pptx')
     const slidevRunner = createSuccessRunner()
@@ -3056,8 +3121,9 @@ interface CacheDoneEvent {
 }
 
 describe('slide convert の差分キャッシュ', () => {
-  it('2 回連続で実行すると 2 回目は全ヒットし、変換が 1 件も動かない', async (context) => {
+  it('2 回続けて実行すると、2 回目はすべてキャッシュに一致し、変換が 1 件も動かない', async (context) => {
     await verifies(context, 'PV-SLIDE-CONVERT-03')
+    await explains('差分キャッシュのテストです。同じデッキを 2 回続けて変換した場合に、1 回目は 2 件とも変換されて `misses` が 2、2 回目は変換が 0 件で `hits` が 2 になることを確認します。')
     const project = makeCacheProject(temporaryRoot(), 'cache-deck', ['# スライド1', '# スライド2'])
     const out = temporaryRoot('cache-1.pptx')
     const firstCalls: number[] = []
@@ -3083,8 +3149,9 @@ describe('slide convert の差分キャッシュ', () => {
     expect(existsSync(out)).toBe(true)
   })
 
-  it('1 枚だけ変更した再実行では該当ステップのみ miss になる', async (context) => {
+  it('1 枚だけ変更して再実行すると、そのステップだけがキャッシュに一致しない', async (context) => {
     await verifies(context, 'PV-SLIDE-CONVERT-03')
+    await explains('差分キャッシュの部分的な無効化のテストです。2 枚目だけを変更して再実行した場合に、変換されるのが `200` だけで、`invalidated` が `partial`、`perStep` が `hit` と `miss` の順になることを確認します。')
     const project = makeCacheProject(temporaryRoot(), 'cache-deck', ['# スライド1', '# スライド2'])
     const out = temporaryRoot('cache-2.pptx')
     const stdout = makeStream('stdout')
@@ -3107,7 +3174,8 @@ describe('slide convert の差分キャッシュ', () => {
     ])
   })
 
-  it('--json の done イベントに cache と timings.perSlide[].cache が乗る', async () => {
+  it('--json の done イベントに、cache と timings.perSlide[].cache を含める', async () => {
+    await explains('`--json` のキャッシュの出力のテストです。2 枚目を変更して再実行した場合に、`cache` が `hits` 1 と `misses` 1 になり、`perSlide` が `hit` と `miss` になることを確認します。')
     const project = makeCacheProject(temporaryRoot(), 'cache-deck', ['# スライド1', '# スライド2'])
     const out = temporaryRoot('cache-3.pptx')
     const firstStdout = makeStream('firstStdout')
@@ -3129,11 +3197,12 @@ describe('slide convert の差分キャッシュ', () => {
     ])
   })
 
-  it('全ヒット run の出力 pptx は初回 run と同じ slide xml / ppt/media 件数を持つ (F-02)', async () => {
+  it('すべてキャッシュに一致した実行の出力 PPTX は、初回の実行と同じ数のスライドの XML と ppt/media を持つ（F-02）', async () => {
     // existsSync(out) だけでは、materialize の復元抜け（通知なしのスライド欠落）を検知できない。
     // fake worker に prerender ファイルを書かせる。
     // キャッシュルートと prerender 差し替え（cache 由来 PNG が ppt/media に載るルート）を同時に踏む。
     // その上で初回 run と全ヒット run の出力を比べる（out は run ごとに別パス）。
+    await explains('キャッシュからの復元のテストです。2 回目がすべて一致した場合に、2 回の出力でスライドの数と `ppt/media` の件数が同じ 2 件で、画像が高解像度版（1200 x 900）のままであることを確認します。')
     const project = makeCacheProject(temporaryRoot(), 'cache-deck', ['# スライド1', '# スライド2'])
     const firstOut = temporaryRoot('cache-content-1.pptx')
     const secondOut = temporaryRoot('cache-content-2.pptx')
@@ -3175,9 +3244,10 @@ describe('slide convert の差分キャッシュ', () => {
     expect(readPngDimensions(secondMedia2)).toStrictEqual({ width: 1200, height: 900 })
   })
 
-  it('同じ --theme の再実行は全ヒットし、--theme を変えると全キャッシュが無効化される (F-01)', async () => {
+  it('同じ --theme で再実行するとすべてキャッシュに一致し、--theme を変更するとすべてのキャッシュが無効になる（F-01）', async () => {
     // --theme は slides.md の headmatter と共有クロージャのどちらにも現れない。
     // そのため envHash の材料に含めないと、テーマ切替後に旧テーマの描画が通知なしにヒットしてしまう。
+    await explains('`--theme` とキャッシュのテストです。同じ `seriph` で再実行した場合は変換が 0 件で、`sample-theme` に変更した場合は `invalidated` が `all:env` で 2 件とも変換されることを確認します。')
     const project = makeCacheProject(temporaryRoot(), 'cache-deck', ['# スライド1', '# スライド2'])
     const out = temporaryRoot('cache-theme.pptx')
     const stdout = makeStream('stdout')
@@ -3208,7 +3278,8 @@ describe('slide convert の差分キャッシュ', () => {
     expect(differentTheme.cache).toMatchObject({ hits: 0, misses: 2, invalidated: 'all:env' })
   })
 
-  it('clicks=N クエリで展開されたステップは stepIndex/key で個別にキャッシュされ、2 回目で hit する (F-06)', async () => {
+  it('clicks=N のクエリで展開されたステップは、stepIndex と key ごとに別々にキャッシュされ、2 回目に一致する（F-06）', async () => {
+    await explains('クリックのステップのキャッシュのテストです。`2/1` を含む 3 ステップの場合に、1 回目は `miss`、2 回目は `hit` になり、`--json` の `perSlide` の `2/1` にも `hit` が付くことを確認します。')
     const project = makeCacheProject(temporaryRoot(), 'cache-deck', ['# スライド1', '# スライド2'])
     const out = temporaryRoot('cache-clicks.pptx')
     const stdout = makeStream('stdout')
@@ -3247,7 +3318,8 @@ describe('slide convert の差分キャッシュ', () => {
     expect(perSlide.find(entry => entry.key === '2/1')).toMatchObject({ key: '2/1', cache: 'hit' })
   })
 
-  it('pipeline が cache を返さないルートでは done イベントに cache フィールドが出ない', async () => {
+  it('pipeline が cache を返さない場合は、done イベントに cache のフィールドを含めない', async () => {
+    await explains('キャッシュの情報がない場合のテストです。偽の pipeline が `cache` を返さない場合に、`slide.convert.done` の `cache` が `undefined` になることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('cache-5.pptx')
     const stdout = makeStream('stdout')
@@ -3261,7 +3333,8 @@ describe('slide convert の差分キャッシュ', () => {
     expect(done?.cache).toBeUndefined()
   })
 
-  it('pipeline が積んだ warnings が done イベントに載る (#929)', async () => {
+  it('pipeline が記録した warnings を、done イベントに含める（#929）', async () => {
+    await explains('`warnings` の出力のテストです。pipeline が警告を 1 件返した場合に、`slide.convert.done` の `warnings` がその 1 件だけの配列になることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('warnings-1.pptx')
     const stdout = makeStream('stdout')
@@ -3275,8 +3348,9 @@ describe('slide convert の差分キャッシュ', () => {
     expect(done?.warnings).toStrictEqual([warning])
   })
 
-  it('警告なしの run でも done イベントに warnings: [] を出す (#929)', async () => {
+  it('警告がない実行でも、done イベントに warnings として空の配列を出力する（#929）', async () => {
     // 条件付き掲載にすると「フィールドが無い＝警告なし」と「旧版で観測不能」が同型になる。
+    await explains('警告がない場合の `warnings` のテストです。警告が 0 件の場合に、`slide.convert.done` の `warnings` が空の配列になることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('warnings-2.pptx')
     const stdout = makeStream('stdout')
@@ -3445,7 +3519,8 @@ describe('slide convert の 1 パスのルート (#1147)', () => {
     vi.unstubAllEnvs()
   })
 
-  it('env 未設定では 1 パスのルートで変換し、done の timings.singlePass に載せる', async () => {
+  it('環境変数が未設定の場合は、1 パスのルートで変換し、done の timings.singlePass に記録する', async () => {
+    await explains('1 パスのルートの既定のテストです。`PECOTV_SINGLE_PASS` が未設定の場合に、変換が 1 パスのルートで 2 件行われ、`timings.singlePass` に結果が含まれ、`warnings` が空であることを確認します。')
     const project = makeCacheProject(temporaryRoot(), 'single-pass-deck', ['# スライド1', '# スライド2'])
 
     const { done, calls } = await runSinglePassConvertJson(project)
@@ -3456,7 +3531,8 @@ describe('slide convert の 1 パスのルート (#1147)', () => {
     expect(done?.cache).toMatchObject({ hits: 0, misses: 2, invalidated: 'none' })
   })
 
-  it('1 パスのルートの成果物をキャッシュし、2 回目は全 hit で 1 パスのルートと現行 worker を呼ばない', async () => {
+  it('1 パスのルートの成果物をキャッシュし、2 回目はすべて一致して、1 パスのルートも現行の worker も呼び出さない', async () => {
+    await explains('1 パスのルートのキャッシュのテストです。同じデッキを 2 回変換した場合に、2 回目は変換が 0 件で、`hits` が 2 で、`timings` に `singlePass` が含まれないことを確認します。')
     const project = makeCacheProject(temporaryRoot(), 'single-pass-deck', ['# スライド1', '# スライド2'])
     await runSinglePassConvertJson(project)
 
@@ -3467,7 +3543,8 @@ describe('slide convert の 1 パスのルート (#1147)', () => {
     expect(done?.timings).not.toHaveProperty('singlePass')
   })
 
-  it('1 パスのルートの退避は warning に載り、退避したステップは現行 worker で変換される', async () => {
+  it('1 パスのルートから現行のルートに切り替えた場合は、warning に記録し、切り替えたステップを現行の worker で変換する', async () => {
+    await explains('1 パスのルートの退避のテストです。2 枚目が退避した場合に、worker が `200`、1 パスのルートが `100` を変換し、警告に理由が含まれ、次の実行がすべて一致することを確認します。')
     const project = makeCacheProject(temporaryRoot(), 'single-pass-deck', ['# スライド1', '# スライド2'])
 
     const { done, calls } = await runSinglePassConvertJson(project, [], { fallbackKeys: ['2'] })
@@ -3479,7 +3556,8 @@ describe('slide convert の 1 パスのルート (#1147)', () => {
     expect(second.done?.cache).toMatchObject({ hits: 2, misses: 0, invalidated: 'none' })
   })
 
-  it('print ルートの無い build は warning 1 件で run 全体を現行ルートに任せ、timings.singlePass に理由と判定時間を載せる', async () => {
+  it('print のルートが存在しない build の場合は、warning を 1 件出力して全体を現行のルートに任せ、timings.singlePass に理由と判定時間を記録する', async () => {
+    await explains('print のルートがない場合のテストです。`printRouteMissing` の結果の場合に、worker が 2 件を変換し、`timings.singlePass` が判定結果と一致し、`slide_sync` を案内する警告が出力されます。')
     const project = makeCacheProject(temporaryRoot(), 'single-pass-deck', ['# スライド1', '# スライド2'])
     const missing: SinglePassFallbackTiming = { kind: 'printRouteMissing', fallback: 'the deck build has no print route', detectMs: 40 }
 
@@ -3492,7 +3570,8 @@ describe('slide convert の 1 パスのルート (#1147)', () => {
     ])
   })
 
-  it('ルートを切り替えた run は envHash が変わり all:env で全変換になる（--no-single-pass と PECOTV_SINGLE_PASS=0 は同じルート）', async () => {
+  it('ルートを切り替えた実行は envHash が変わり、all:env で全件を変換する（--no-single-pass と PECOTV_SINGLE_PASS=0 は同じルート）', async () => {
+    await explains('ルートの切り替えとキャッシュのテストです。1 パスと現行のルートを切り替えた場合に、`invalidated` が `all:env` になり、同じルートの再実行は `hits` が 2 になることを確認します。')
     const project = makeCacheProject(temporaryRoot(), 'single-pass-deck', ['# スライド1', '# スライド2'])
 
     const singlePass = await runSinglePassConvertJson(project)
@@ -3517,7 +3596,8 @@ describe('slide convert の 1 パスのルート (#1147)', () => {
 })
 
 describe('slide.convert.error の warnings 掲載 (#931)', () => {
-  it('pipeline が success:false を返した run でも、積まれた警告が error イベントに載る', async () => {
+  it('pipeline が success が偽の結果を返した実行でも、記録された警告を error イベントに含める', async () => {
+    await explains('`slide.convert.error` の `warnings` のテストです。pipeline が警告付きの失敗を返した場合に、`reason` が `pptx-convert-failed` で、`warnings` にその警告が含まれることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('error-warnings-1.pptx')
     const stdout = makeStream('stdout')
@@ -3534,7 +3614,8 @@ describe('slide.convert.error の warnings 掲載 (#931)', () => {
     expect(error?.warnings).toStrictEqual([CACHE_WARNING])
   })
 
-  it('warnings 付きの PipelineRuntimeError を throw した run では、その警告が error イベントに載る', async () => {
+  it('warnings 付きの PipelineRuntimeError が発生した実行では、その警告を error イベントに含める', async () => {
+    await explains('`slide.convert.error` の `warnings` のテストです。警告付きの `PipelineRuntimeError` が発生した場合に、`reason` が `pptx-convert-failed` で、`warnings` にその警告が含まれることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('error-warnings-2.pptx')
     const stdout = makeStream('stdout')
@@ -3550,7 +3631,8 @@ describe('slide.convert.error の warnings 掲載 (#931)', () => {
     expect(error?.warnings).toStrictEqual([CACHE_WARNING])
   })
 
-  it('warnings 付きの PipelineTimeoutError でも警告が error イベントに載る', async () => {
+  it('warnings 付きの PipelineTimeoutError でも、その警告を error イベントに含める', async () => {
+    await explains('`slide.convert.error` の `warnings` のテストです。警告付きの `PipelineTimeoutError` が発生した場合に、`reason` が `pptx-convert-timeout` で、`warnings` にその警告が含まれることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('error-warnings-3.pptx')
     const stdout = makeStream('stdout')
@@ -3566,9 +3648,10 @@ describe('slide.convert.error の warnings 掲載 (#931)', () => {
     expect(error?.warnings).toStrictEqual([CACHE_WARNING])
   })
 
-  it('pipeline 成功後の書き出し失敗でも reason は unknown にならず、警告が載る', async () => {
+  it('pipeline の成功後に書き出しが失敗した場合も、reason は unknown にならず、警告を含める', async () => {
     // --out がディレクトリだと writer.finish が生の EISDIR Error を投げる。wrap しないと
     // errorToReason が unknown になり、pipeline の警告も添付されない（e2e 計測のルート）。
+    await explains('書き出しの失敗のテストです。`--out` がディレクトリの場合に、`reason` が `merge-failed` で、pipeline の警告が `warnings` に含まれることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('error-warnings-4-dir')
     mkdirSync(out, { recursive: true })
@@ -3592,7 +3675,8 @@ const SLIDE_ERROR = { level: 'slide', slideNumber: 2, message: 'worker-failed' }
 const ELEMENT_ERROR = { level: 'element', slideNumber: 1, selector: '.chart', message: 'pr-fail' }
 
 describe('slide.convert.error の errors 掲載 (#945)', () => {
-  it('pipeline が success:false を返した run では、その errors が error イベントに載る', async () => {
+  it('pipeline が success が偽の結果を返した実行では、その errors を error イベントに含める', async () => {
+    await explains('`slide.convert.error` の `errors` のテストです。pipeline が失敗を返した場合に、`reason` が `pptx-convert-failed` で、`errors` にスライド単位のエラーが含まれることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('error-errors-1.pptx')
     const stdout = makeStream('stdout')
@@ -3611,7 +3695,8 @@ describe('slide.convert.error の errors 掲載 (#945)', () => {
     ])
   })
 
-  it('errors 付きの PipelineRuntimeError を throw した run では、その errors が error イベントに載る', async () => {
+  it('errors 付きの PipelineRuntimeError が発生した実行では、その errors を error イベントに含める', async () => {
+    await explains('`slide.convert.error` の `errors` のテストです。要素とスライドのエラーを持つ `PipelineRuntimeError` が発生した場合に、`errors` がその 2 件と一致することを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('error-errors-2.pptx')
     const stdout = makeStream('stdout')
@@ -3627,7 +3712,8 @@ describe('slide.convert.error の errors 掲載 (#945)', () => {
     expect(error?.errors).toStrictEqual([ELEMENT_ERROR, SLIDE_ERROR])
   })
 
-  it('errors 付きの PipelineTimeoutError でも errors が error イベントに載る', async () => {
+  it('errors 付きの PipelineTimeoutError でも、その errors を error イベントに含める', async () => {
+    await explains('`slide.convert.error` の `errors` のテストです。スライドのエラーを持つ `PipelineTimeoutError` が発生した場合に、`reason` が `pptx-convert-timeout` で、`errors` がその 1 件になることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('error-errors-3.pptx')
     const stdout = makeStream('stdout')
@@ -3643,9 +3729,10 @@ describe('slide.convert.error の errors 掲載 (#945)', () => {
     expect(error?.errors).toStrictEqual([SLIDE_ERROR])
   })
 
-  it('pipeline 成功後の書き出し失敗でも、pipeline の積んだ要素エラーが載る', async () => {
+  it('pipeline の成功後に書き出しが失敗した場合も、pipeline が記録した要素のエラーを含める', async () => {
     // 要素エラーは success:true と両立する（スライド単位の失敗のみが success を落とす）。
     // --out がディレクトリだと writer.finish が生の EISDIR Error を投げ、merge-failed へ wrap される。
+    await explains('書き出しの失敗時の `errors` のテストです。`--out` がディレクトリで、pipeline が要素のエラーを返した場合に、`reason` が `merge-failed` で、`errors` にその要素のエラーが含まれることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('error-errors-4-dir')
     mkdirSync(out, { recursive: true })
@@ -3673,7 +3760,8 @@ describe('slide.convert.error の errors 掲載 (#945)', () => {
 // このルートを固定し、退行時の検知を可能にする。
 
 describe('slide.convert.error の detail (idle timeout) (#1097 F-05)', () => {
-  it('PipelineTimeoutError の elapsedMs / lastProgress が detail に「進捗なし」と最終進捗ラベルとして載る', async () => {
+  it('PipelineTimeoutError の elapsedMs と lastProgress が、detail に「進捗なし」の経過時間と最後の進捗として含まれる', async () => {
+    await explains('時間切れのメッセージのテストです。`lastProgress` を持つ `PipelineTimeoutError` の場合に、`detail` へ `no progress for` と `last progress` の行が含まれます。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('error-timeout-detail.pptx')
     const stdout = makeStream('stdout')
@@ -3695,7 +3783,8 @@ describe('slide.convert.error の detail (idle timeout) (#1097 F-05)', () => {
 // MCP のキャンセル (signal の abort) で slidev build と pipeline を止め、PPTX を書き出さない。
 
 describe('runSlideConvert のキャンセル (#1228)', () => {
-  it('pipeline の実行中に abort すると、pipeline へ渡した signal が abort され、PPTX を書かずに cancelled で失敗する', async () => {
+  it('pipeline の実行中に abort すると、pipeline に渡した signal が中止され、PPTX を書き出さずに cancelled で失敗する', async () => {
+    await explains('キャンセルのテストです。pipeline の実行中に `abort` した場合は、pipeline が受け取った `signal` が同一で、`reason` が `cancelled` の例外が発生し、PPTX は作成されません。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'cancel-pipeline.pptx')
     const controller = new AbortController()
@@ -3723,7 +3812,8 @@ describe('runSlideConvert のキャンセル (#1228)', () => {
     expect(existsSync(out)).toBe(false)
   })
 
-  it('slidev build の実行中に abort すると、build へ signal が渡り、pipeline を起動せず cancelled で失敗する', async () => {
+  it('slidev build の実行中に abort すると、build に signal を渡し、pipeline を起動せずに cancelled で失敗する', async () => {
+    await explains('`slidev build` のキャンセルのテストです。build の実行中に `abort` した場合は、`reason` が `cancelled` の例外が発生し、`convert` が呼び出されず、PPTX も作成されないことを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'cancel-build.pptx')
     const controller = new AbortController()
@@ -3749,7 +3839,8 @@ describe('runSlideConvert のキャンセル (#1228)', () => {
     expect(existsSync(out)).toBe(false)
   })
 
-  it('pipeline がキャンセルに間に合わず完走しても、PPTX は書き出さない', async () => {
+  it('pipeline がキャンセルに間に合わず完了した場合も、PPTX を書き出さない', async () => {
+    await explains('完了後のキャンセルのテストです。pipeline が完了した直後に `abort` した場合は、`reason` が `cancelled` の例外が発生し、PPTX が作成されないことを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'cancel-late.pptx')
     const controller = new AbortController()
@@ -3771,7 +3862,8 @@ describe('runSlideConvert のキャンセル (#1228)', () => {
     expect(existsSync(out)).toBe(false)
   })
 
-  it('abort 済みで呼ぶと、前処理 (dist / index.html の削除) にも入らず cancelled で失敗する', async () => {
+  it('abort 済みの signal で呼び出した場合は、前処理（dist と index.html の削除）も行わず、cancelled で失敗する', async () => {
+    await explains('開始前のキャンセルのテストです。`abort` 済みの `signal` を渡した場合に、`reason` が `cancelled` で、`build` が呼ばれず、出力先は作成されません。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const staleDistribution = path.join(projectDirectory, 'dist')
     const staleIndex = path.join(projectDirectory, 'index.html')
@@ -3795,7 +3887,8 @@ describe('runSlideConvert のキャンセル (#1228)', () => {
     expect(existsSync(path.dirname(out))).toBe(false)
   })
 
-  it('pipeline 完了後、結合の直前に abort されても、PPTX は書き出さない', async () => {
+  it('pipeline の完了後で結合の直前に abort した場合も、PPTX を書き出さない', async () => {
+    await explains('結合の直前のキャンセルのテストです。pipeline の完了後に `abort` した場合は、`reason` が `cancelled` の例外が発生し、PPTX が作成されないことを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'cancel-before-merge.pptx')
     const controller = new AbortController()
@@ -3824,7 +3917,8 @@ describe('runSlideConvert のキャンセル (#1228)', () => {
     expect(existsSync(out)).toBe(false)
   })
 
-  it('signal を渡さない実行は従来どおり完走する', async () => {
+  it('signal を渡さない場合は、従来どおり最後まで完了する', async () => {
+    await explains('`signal` を渡さない場合のテストです。`signal` を指定せず実行した場合に、PPTX が作成されることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('out', 'no-signal.pptx')
 
@@ -3840,7 +3934,8 @@ describe('runSlideConvert のキャンセル (#1228)', () => {
 // 観測ルートになる。
 
 describe('slide.convert.done の errors 掲載 (#949)', () => {
-  it('element エラーのみで成功完走した run でも、その errors が done イベントに載る', async () => {
+  it('要素のエラーだけで成功した実行でも、その errors を done イベントに含める', async () => {
+    await explains('`slide.convert.done` の `errors` のテストです。pipeline が要素のエラーだけを返した場合に、`error` のイベントがなく、PPTX が作成され、`done` の `errors` にそのエラーが含まれることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('done-errors-1.pptx')
     const stdout = makeStream('stdout')
@@ -3861,8 +3956,9 @@ describe('slide.convert.done の errors 掲載 (#949)', () => {
     expect(done?.errors).toStrictEqual([ELEMENT_ERROR])
   })
 
-  it('エラーなしの run でも done イベントに errors: [] を出す', async () => {
+  it('エラーがない実行でも、done イベントに errors として空の配列を出力する', async () => {
     // 条件付き掲載にすると「フィールドが無い＝エラーなし」と「旧版で観測不能」が同型になる。
+    await explains('エラーがない場合の `errors` のテストです。エラーが 0 件の場合に、`slide.convert.done` の `errors` が空の配列になることを確認します。')
     const projectDirectory = makeProjectDirectory(temporaryRoot())
     const out = temporaryRoot('done-errors-2.pptx')
     const stdout = makeStream('stdout')
@@ -3874,8 +3970,9 @@ describe('slide.convert.done の errors 掲載 (#949)', () => {
     expect(done?.errors).toStrictEqual([])
   })
 
-  it('errors が複数件でも done イベントには全件が載る', async () => {
+  it('errors が複数件でも、done イベントにはすべてを含める', async () => {
     // detail 側（formatPipelineErrors）の先頭 3 件丸めを機械可読な errors へ波及させない。
+    await explains('`slide.convert.done` の `errors` の件数のテストです。要素のエラーが 2 件ある場合に、`errors` に 2 件がすべて含まれ、先頭 3 件への丸めが行われないことを確認します。')
     const secondElementError = {
       level: 'element',
       slideNumber: 2,
@@ -4273,10 +4370,11 @@ function cacheDirectoryOfProject(project: Readonly<CacheProject>): string {
 }
 
 describe('キャッシュ検証デッキの fixture', () => {
-  it('cacheDeckMarkdown で書いたデッキを readCacheDeckBodies が同じ本文列に戻す', () => {
+  it('cacheDeckMarkdown で書いたデッキを、readCacheDeckBodies が同じ本文の並びに戻す', async () => {
     // 区切り書式（headmatter の終端と `---` の前後空行）を builder と reader が暗黙に
     // 共有している。片方だけ変えると fake worker が空本文で pptx を書き、内容依存性を
     // 失ったまま全テストが green になる。
+    await explains('キャッシュの検証用のデッキの往復のテストです。3 枚のデッキを書いて読み込んだ場合と、1 枚に書き換えて読み込んだ場合に、書いた本文の並びと一致することを確認します。')
     const bodies = ['# 表紙', '# 本編\n\n本文が複数行のケース', '# まとめ']
     const project = makeCacheProject(temporaryRoot(), 'deck-roundtrip', bodies)
     expect(readCacheDeckBodies(project)).toStrictEqual(bodies)
@@ -4285,7 +4383,8 @@ describe('キャッシュ検証デッキの fixture', () => {
     expect(readCacheDeckBodies(project)).toStrictEqual(['# 1 枚だけ'])
   })
 
-  it('src 分離デッキの slides.md を readSourceSeparatedBodies が参照順の本文列に戻す', () => {
+  it('src で分離したデッキの slides.md を、readSourceSeparatedBodies が参照順の本文の並びに戻す', async () => {
+    await explains('`src` で分離した検証用のデッキの往復のテストです。`a`・`b` の順と `b`・`a` の順へ書き換えた場合に、参照した順の本文の並びが返ることを確認します。')
     const project = makeSourceSeparatedCacheProject(temporaryRoot(), 'src-roundtrip', [
       { file: 'a', body: '# ページ A' },
       { file: 'b', body: '# ページ B' },
@@ -4301,7 +4400,8 @@ describe('slide convert の出力同一性 (T011-a)', () => {
   const BODIES_BEFORE = ['# 表紙', '# 本編', '# まとめ']
   const BODIES_AFTER = ['# 表紙', '# 本編 改訂', '# まとめ']
 
-  it('差分変換の出力は同一ソースの全変換の出力と XPath 抽出値レベルで一致する', async () => {
+  it('差分変換の出力は、同じ内容を全変換した出力と、XPath の抽出値の水準で一致する', async () => {
+    await explains('出力の同一性のテストです。3 枚のうち 1 枚を変更して差分変換した場合に、変換が `200` の 1 件だけで、全変換の出力と一致することを確認します。')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
 
@@ -4346,7 +4446,8 @@ describe('slide convert の出力同一性 (T011-a)', () => {
     await expectPptxOutputsEquivalent(fullOut, diffOut, { expectedSlideCount: 3 })
   })
 
-  it('同一テキストの letterSpacing 後勝ち集約は差分変換でも全変換と同じ値に落ち着く', async () => {
+  it('同じテキストの letterSpacing を後勝ちで集約した値は、差分変換でも全変換と同じ値になる', async () => {
+    await explains('`letterSpacing` の集約のテストです。3 枚のデッキを差分変換した場合に、`spc` の値が 3 件とも同じで、全変換の値と一致することを確認します。')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
 
@@ -4389,7 +4490,8 @@ describe('slide convert の出力同一性 (T011-a)', () => {
     expect(diffSpacing).toStrictEqual(fullSpacing)
   })
 
-  it('同一テキストの hrefMap 後勝ち集約とハイパーリンク復元も差分変換で全変換と一致する', async () => {
+  it('同じテキストの hrefMap を後勝ちで集約した値と、ハイパーリンクの復元も、差分変換で全変換と一致する', async () => {
+    await explains('ハイパーリンクの復元のテストです。差分変換でキャッシュに一致したスライドも含めて、リンクが 3 件になり、リンク先が同じ URL で、全変換と一致することを確認します。')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
 
@@ -4433,9 +4535,10 @@ describe('slide convert の出力同一性 (T011-a)', () => {
     expect(diffTargets).toStrictEqual(hyperlinkTargetsOf(await snapshotPptx(fullOut)))
   })
 
-  it('画像のみのスライドを含むデッキは per-slide の退化検証で落ち、deck の退化検証では通る', async () => {
+  it('画像だけのスライドを含むデッキは、スライドごとの退化の検証では失敗し、デッキ全体の退化の検証では成功する', async () => {
     // 実デッキには a:t と xfrm を持たないスライドがあり得る。
     // 外部 pptx モード（T013）で per-slide の退化検証のまま比較すると、出力が正しくても落ちる。
+    await explains('退化の検証の強さのテストです。画像だけのスライドを含むデッキを比較した場合に、`degeneracyGate` を指定しない場合は例外が発生し、`deck` を指定した場合は成功することを確認します。')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
     const bodies = ['# 表紙', `# ${IMAGE_ONLY_BODY_MARKER}`]
@@ -4457,7 +4560,8 @@ describe('slide convert の出力同一性 (T011-a)', () => {
     })
   })
 
-  it('比較ヘルパは内容の違う 2 出力を不一致として報告する (負のコントロール)', async () => {
+  it('比較ヘルパは、内容が異なる 2 つの出力を、不一致として報告する（負の対照）', async () => {
+    await explains('比較ヘルパの検出力のテストです。1 枚だけ内容が異なる 2 つの出力を比較した場合に、`slide2.xml` と `image1-s2.png` の差分が報告され、`slide1.xml` の差分が含まれないことを確認します。')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
     const left = makeCacheProject(temporaryRoot(), 'control-left', BODIES_AFTER)
@@ -4485,7 +4589,8 @@ describe('slide convert の出力同一性 (T011-a)', () => {
 })
 
 describe('slide convert のスライド構成変更 (T012)', () => {
-  it('末尾追加では既存スライドが全ヒットし、追加分のみ変換される', async () => {
+  it('末尾にスライドを追加した場合は、既存のスライドがすべてキャッシュに一致し、追加したスライドだけを変換する', async () => {
+    await explains('スライドの末尾の追加のテストです。2 枚のデッキに 1 枚を追加した場合に、変換が `300` の 1 件だけで、`invalidated` が `none` になり、出力の並びが追加後の順になることを確認します。')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
     const project = makeCacheProject(temporaryRoot(), 'compose-append', ['# A', '# B'])
@@ -4520,7 +4625,8 @@ describe('slide convert のスライド構成変更 (T012)', () => {
     ])
   })
 
-  it('中間挿入では挿入位置以降がミスになり、出力の並びが新構成に追従する', async () => {
+  it('途中にスライドを挿入した場合は、挿入位置以降がキャッシュに一致せず、出力の並びが新しい構成に従う', async () => {
+    await explains('スライドの途中への挿入のテストです。2 枚のデッキの間に 1 枚を挿入した場合に、変換が `200` と `300` で、`invalidated` が `partial` になり、出力の並びが挿入後の順になることを確認します。')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
     const project = makeCacheProject(temporaryRoot(), 'compose-insert', ['# A', '# B'])
@@ -4554,7 +4660,8 @@ describe('slide convert のスライド構成変更 (T012)', () => {
     ])
   })
 
-  it('削除では manifest と cache/ の双方から削除スライドの成果物が消える', async () => {
+  it('スライドを削除した場合は、manifest と cache/ の両方から、削除したスライドの成果物が削除される', async () => {
+    await explains('スライドの削除のテストです。3 枚のデッキから 1 枚を削除した場合に、`manifest` の項目が `100` と `200` だけになり、`slide-300.pptx` などのファイルが残らないことを確認します。')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
     const project = makeCacheProject(temporaryRoot(), 'compose-delete', ['# A', '# B', '# C'])
@@ -4597,7 +4704,8 @@ describe('slide convert のスライド構成変更 (T012)', () => {
     expect(names.filter(name => name.startsWith('prerender-slide300-'))).toStrictEqual([])
   })
 
-  it('並べ替えでは位置のずれたスライドをミスとして扱い、出力の並びが入れ替わる', async () => {
+  it('スライドを並べ替えた場合は、位置の変わったスライドだけキャッシュに一致せず、出力の並びが入れ替わる', async () => {
+    await explains('スライドの並べ替えのテストです。3 枚のうち 2 枚を入れ替えた場合に、変換が `200` と `300` で、出力の並びが新しい順になり、全変換の出力と一致することを確認します。')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
     const project = makeCacheProject(temporaryRoot(), 'compose-reorder', ['# A', '# B', '# C'])
@@ -4639,9 +4747,10 @@ describe('slide convert のスライド構成変更 (T012)', () => {
     await expectPptxOutputsEquivalent(fullOut, secondOut, { expectedSlideCount: 3 })
   })
 
-  it('src 分離デッキの並べ替えでも位置のずれたスライドをミスとして扱い、本文が新構成に追従する', async () => {
+  it('src で分離したデッキを並べ替えた場合も、位置の変わったスライドだけキャッシュに一致せず、本文は新しい構成に従う', async () => {
     // 実デッキ（テーマを参照する talk-dir）は本文を pages/*.md へ分けた src 分離構成で、
     // slideHash の bodyRaw 側が動く。inline デッキだけでは このルートを通らない。
+    await explains('`src` で分離したデッキの並べ替えのテストです。`pages` の参照順を `a`・`c`・`b` に変えた場合は、変換が `200` と `300` になり、出力の本文の並びが新しい順になることを確認します。')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
     const pages = [
@@ -4686,7 +4795,8 @@ describe('slide convert のスライド構成変更 (T012)', () => {
     ])
   })
 
-  it('clicks 付きスライドの前に 1 枚挿入すると perStep キーがずれて全ステップがミスになる', async () => {
+  it('clicks 付きのスライドの前に 1 枚挿入した場合は、perStep のキーがずれて、すべてのステップがキャッシュに一致しない', async () => {
+    await explains('clicks のステップのキーのテストです。クリックを持つスライドの前へ 1 枚挿入した場合は、キーが `3` と `3/1` へ移り、4 件のステップすべてが `miss` になることを確認します。')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
     const project = makeCacheProject(temporaryRoot(), 'compose-clicks', ['# A', '# B'])
@@ -4724,10 +4834,11 @@ describe('slide convert のスライド構成変更 (T012)', () => {
 })
 
 describe('slide convert のキャッシュ容量制御 (FR-010)', () => {
-  it('生存ステップの prerender 枚数が減ると参照されなくなった旧ファイルが cache/ から消える', async () => {
+  it('残るステップの prerender の枚数が減った場合は、参照されなくなった古いファイルが cache/ から削除される', async () => {
     // prune の対象は、スキャン結果から消えた stepIndex だけ。
     // 同じ stepIndex が生き残ったまま枚数だけ減るケースは、removeUnreferencedArtifacts でしか掃除されない。
     // 掃除が無いと prerender の増減を繰り返すたびに cache/ が単調増加する。
+    await explains('キャッシュの容量の制御のテストです。2 枚の prerender を持つステップを 1 枚へ変更した場合は、`200` のファイルが 1 枚分へ減り、`100` のファイルが残ることを確認します。')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
     const project = makeCacheProject(temporaryRoot(), 'prerender-shrink', [
@@ -4832,9 +4943,10 @@ function downgradeManifestSchema(project: Readonly<CacheProject>): void {
 }
 
 describe('slide convert のキャッシュ無効化とフォールバック (T014 / T015)', () => {
-  it('スライド本文が同じでも共有クロージャ（styles/）が変われば全ステップが miss になる (FR-005)', async () => {
+  it('スライドの本文が同じでも共有の styles/ が変更された場合は、すべてのステップがキャッシュに一致しない（FR-005）', async () => {
     // 本文由来の slideHash は不変で envHash だけが動くケース。テーマ切替 (F-01) は --theme
     // 引数を材料に取るルートで、デッキ内のファイル内容を材料に取るルートはここでしか通らない。
+    await explains('共有のスタイルとキャッシュのテストです。`styles` の内容を変更した場合に、変換が `100` と `200` で、`invalidated` が `all:env` になることを確認します。')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
     const project = makeCacheProject(temporaryRoot(), 'invalidate-shared', ['# A', '# B'])
@@ -4862,9 +4974,10 @@ describe('slide convert のキャッシュ無効化とフォールバック (T01
     expect(await readSlideMarkers(secondOut)).toStrictEqual([slideMarkerOf('# A'), slideMarkerOf('# B')])
   })
 
-  it('manifest が破損していても exit 0 で pptx を出し、警告のうえ manifest を再生成する (FR-006 / SC-004)', async () => {
+  it('manifest が破損していても、終了コード 0 で PPTX を出力し、警告のうえ manifest を再作成する（FR-006 / SC-004）', async () => {
     // pipeline 層の同ルートは pipeline.test.ts が見ている。ここは CLI 層まで通したときに
     // キャッシュ起因の異常が終了コードへ抜けないこと（contracts/cache-interface.md）を固定する。
+    await explains('manifest の破損時の動作のテストです。破損した状態で実行した場合に、終了コードが変わらず、警告が標準エラーへ出力され、`invalidated` が `all:manifest` になることを確認します。')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
     const project = makeCacheProject(temporaryRoot(), 'fallback-manifest', ['# A', '# B'])
@@ -4894,9 +5007,10 @@ describe('slide convert のキャッシュ無効化とフォールバック (T01
     expect(await readSlideMarkers(secondOut)).toStrictEqual([slideMarkerOf('# A'), slideMarkerOf('# B')])
   })
 
-  it('manifest のスキーマ版が現行と違うときは破損と別の文言で報告し、全変換で作り直す', async () => {
+  it('manifest のスキーマ版が現行と異なる場合は、破損と別の文言で警告し、全件を変換して作り直す', async () => {
     // プラグイン更新後の初回 run が必ず踏むルート。
     // 破損と同じ文言だと、利用者がキャッシュの破損と誤解する（#1070 F-17）。
+    await explains('manifest の版の違いのテストです。古い版へ書き換えた場合は、版の違いを示す警告が出力され、`invalidated` が `all:manifest` になり、読み込み失敗の警告は含まれません。')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
     const project = makeCacheProject(temporaryRoot(), 'manifest-outdated', ['# A', '# B'])
@@ -4933,8 +5047,9 @@ describe('slide convert のキャッシュ無効化とフォールバック (T01
 })
 
 describe('slide convert の --no-cache (T016 / T017)', () => {
-  it('warm cache でも全変換し、完了時の再構築で次の run が全ヒットする', async (context) => {
+  it('キャッシュがある状態でも --no-cache ですべてを変換し、完了時の再構築で、次の実行がすべてキャッシュに一致する', async (context) => {
     await verifies(context, 'PV-SLIDE-CONVERT-04')
+    await explains('`--no-cache` のテストです。キャッシュがある状態で指定した場合に、`enabled` が偽で 2 件とも変換され、次の通常の実行は変換が 0 件で `hits` が 2 になることを確認します。')
     const stderr = makeStream('stderr')
     const project = makeCacheProject(temporaryRoot(), 'no-cache-rebuild', ['# A', '# B'])
     const warmOut = temporaryRoot('no-cache-warm.pptx')
@@ -4976,7 +5091,8 @@ describe('slide convert の --no-cache (T016 / T017)', () => {
     expect(after.cache).toMatchObject({ enabled: true, hits: 2, misses: 0, invalidated: 'none' })
   })
 
-  it('manifest が破損していても孤児を掃除して exit 0 で完走する', async () => {
+  it('--no-cache で manifest が破損していても、不要になったファイルを掃除して、終了コード 0 で完了する', async () => {
+    await explains('`--no-cache` と manifest の破損のテストです。不要な `slide-999.pptx` を残して破損させた場合に、警告が出力され、`999` を含むファイルが削除され、`manifest` が再作成されることを確認します。')
     const stderr = makeStream('stderr')
     const project = makeCacheProject(temporaryRoot(), 'no-cache-broken', ['# A', '# B'])
     const warmOut = temporaryRoot('no-cache-broken-1.pptx')
@@ -5012,9 +5128,10 @@ describe('slide convert の --no-cache (T016 / T017)', () => {
     expect(manifestEntryKeysOf(project)).toStrictEqual(['100', '200'])
   })
 
-  it('キー算出に失敗した場合は all:key を報告し manifest を更新しない', async () => {
+  it('キーの算出に失敗した場合は、all:key を報告し、manifest を更新しない', async () => {
     // --no-cache とキー算出失敗が重なると保存側も動かないため、完了時のキャッシュ再構築は
     // 成立しない（既知の限界）。manifest が warm run のまま据え置かれることで固定する。
+    await explains('`--no-cache` とキーの算出の失敗のテストです。バンドルを読み込めない状態の場合に、`invalidated` が `all:key` で、`manifest` の内容が実行前と一致することを確認します。')
     const stderr = makeStream('stderr')
     const project = makeCacheProject(temporaryRoot(), 'no-cache-keyfail', ['# A', '# B'])
     const warmOut = temporaryRoot('no-cache-keyfail-1.pptx')
@@ -5043,9 +5160,10 @@ describe('slide convert の --no-cache (T016 / T017)', () => {
     expect(manifestBytesOf(project)).toBe(manifestBefore)
   })
 
-  it('スライドを削除して再変換すると旧スライドの成果物と manifest エントリが残らない (FR-010)', async () => {
+  it('スライドを削除して再変換すると、古いスライドの成果物と manifest の項目が残らない（FR-010）', async () => {
     // hit 判定を飛ばしても prune の起点として前回 manifest は読む、という設計をここで固定する。
     // previous を読まない実装にすると、このテストだけが落ちる。
+    await explains('`--no-cache` でのスライドの削除のテストです。3 枚のデッキから 1 枚を削除して `cache: false` で実行した場合に、`manifest` の項目が `100` と `200` だけになり、`slide-300.pptx` が残らないことを確認します。')
     const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
     const project = makeCacheProject(temporaryRoot(), 'no-cache-delete', ['# A', '# B', '# C'])
@@ -5172,7 +5290,8 @@ async function runConvertWithPolicy(
 describe('slide convert のアニメーション方針 (#1070)', () => {
   const namespaces: Readonly<Record<string, string>> = { p: NS_PRESENTATIONML }
 
-  it('animation-policy.json の keepTimingSteps に載る stepIndex だけ p:timing が残る', async () => {
+  it('animation-policy.json の keepTimingSteps に含まれる stepIndex だけ、p:timing を残す', async () => {
+    await explains('アニメーションの方針のテストです。`keepTimingSteps` が `100` だけの場合に、`slide1.xml` の `p:timing` が 1 件、`slide2.xml` が 0 件になり、`bldLst` も除去されることを確認します。')
     const out = temporaryRoot('animation-policy.pptx')
     // stepIndex 100 のみ明示指定あり。merge 後は 100 → slide1、200 → slide2。
     const summary = await runConvertWithPolicy(out, policyJson([100]))
@@ -5188,7 +5307,8 @@ describe('slide convert のアニメーション方針 (#1070)', () => {
     expect(bldLst[0]?.value).toBe(0)
   })
 
-  it('animation-policy.json が無ければ全スライドの p:timing を落とす', async () => {
+  it('animation-policy.json が存在しない場合は、すべてのスライドの p:timing を除去する', async () => {
+    await explains('アニメーションの方針がない場合のテストです。`animation-policy.json` が存在しない場合に、`animationTimingRemovedSlides` が 2 で、2 枚とも `p:timing` が 0 件になることを確認します。')
     const out = temporaryRoot('animation-policy-absent.pptx')
     const summary = await runConvertWithPolicy(out)
     expect(summary.animationTimingRemovedSlides).toBe(2)
@@ -5206,7 +5326,8 @@ describe('slide convert のアニメーション方針 (#1070)', () => {
     ['schemaVersion 不一致', '{"schemaVersion":999,"keepTimingSteps":[100]}'],
     ['keepTimingSteps が配列でない', '{"schemaVersion":1,"keepTimingSteps":100}'],
     ['keepTimingSteps の要素が整数でない', '{"schemaVersion":1,"keepTimingSteps":["100"]}'],
-  ])('animation-policy.json が %s なら invalid-staging-json', async (_name, policyText) => {
+  ])('animation-policy.json の内容（%s）が不正な場合は、invalid-staging-json の例外が発生する', async (_name, policyText) => {
+    await explains('アニメーションの方針の検証のテストです。内容が不正な JSON などの場合に、`reason` が `invalid-staging-json` の例外が発生することを確認します。')
     const out = temporaryRoot('animation-policy-invalid.pptx')
     await expect(runConvertWithPolicy(out, policyText))
       .rejects.toMatchObject({ reason: 'invalid-staging-json' })
@@ -5249,7 +5370,8 @@ async function runConvertWithSlideNames(out: string, names: readonly string[]): 
 }
 
 describe('merge 入力に拾うファイル名', () => {
-  it('`slide-<数字>.pptx` に合わない名前は merge 入力に入らない', async () => {
+  it('slide-<数字>.pptx の形式に合わない名前のファイルは、結合の入力に含めない', async () => {
+    await explains('結合の入力のファイル名のテストです。`slide-1.pptx` と、形式に合わない 4 つの名前のファイルを置いた場合に、出力のスライドが 1 枚だけになることを確認します。')
     const out = temporaryRoot('decoy-names.pptx')
     // 数字以外 / prefix 違い / 数字なし / suffix 違いを混ぜても、拾うのは slide-1.pptx だけ。
     await runConvertWithSlideNames(out, [
@@ -5264,7 +5386,8 @@ describe('merge 入力に拾うファイル名', () => {
     expect(await countPptxParts(out, 'ppt/slides/slide')).toBe(1)
   })
 
-  it('名前が 1 つも合わなければ merge 入力 0 件として失敗する', async () => {
+  it('形式に合う名前のファイルが 1 つも存在しない場合は、結合の入力が 0 件として、pptx-convert-failed で失敗する', async () => {
+    await explains('結合の入力が 0 件の場合のテストです。`slide-<数字>.pptx` の形式に合わないファイルだけがある場合に、`reason` が `pptx-convert-failed` の例外が発生することを確認します。')
     const out = temporaryRoot('decoy-names-only.pptx')
     await expect(runConvertWithSlideNames(out, ['slide-abc.pptx', 'other-1.pptx']))
       .rejects.toMatchObject({ reason: 'pptx-convert-failed' })

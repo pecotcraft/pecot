@@ -12,6 +12,7 @@ import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harnes
 import { AMBIGUOUS_MESSAGE, ambiguousWorkspaceFiles, NO_ACTIVE_FILES, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
+import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
 import { filesOf, KIND_FAILURE, lines, operationsOf, restRequests, stateFile } from '../_helpers/workspace-inspect.js'
 import { finishPullRequestData, graphql, HOST, issueKindData, openWorkspace, rest, rule } from '../_helpers/workspace.js'
@@ -129,6 +130,7 @@ const WAITING_RULES: ResponseRuleList = [
 describe('session finish', () => {
   it('既定ブランチ宛ての PR の参照を渡すと、PR のリポの closing issues と head ブランチ名の末尾の番号の Issue を close し、本文は読まない', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-01')
+    await explains('`session finish` が閉じる Issue を決める動作のテストです。既定ブランチ宛ての PR の場合に、PR の closing issues と head ブランチ名の末尾の番号の Issue を close し、本文は参照しないことを確認します。')
     const github = mergedRules({ closing: [10, [11, 'acme/other']], body: 'Fixes #13\n' }, [10, 12].flatMap(number => closedRules(number)))
     const workspace = await openWorkspace({ github })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
@@ -139,6 +141,7 @@ describe('session finish', () => {
 
   it('既定ブランチでない base の PR の参照を渡すと、本文のコードと HTML コメントの外の Closes / Fixes / Resolves の Issue も close する', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-01')
+    await explains('`session finish` が閉じる Issue を決める動作のテストです。既定ブランチ以外が base の PR の場合に、本文の `Closes`・`Fixes`・`Resolves` で指定した Issue も close することを確認します。')
     const body = 'Fixes #11\n\nResolves #13\n\n```console\nCloses #15\n```\n\n`Closes #16` <!-- Closes #17 -->\n\nCloses acme/other#18\n\nCloses #14\n'
     const github = mergedRules({ base: 'develop', closing: [], body }, [11, 12, 13, 14].flatMap(number => closedRules(number)))
     const workspace = await openWorkspace({ github })
@@ -150,6 +153,7 @@ describe('session finish', () => {
 
   it('base のリポに既定ブランチが無いと、本文の Closes の Issue も close する', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-01')
+    await explains('`session finish` が閉じる Issue を決める動作のテストです。base のリポジトリの既定ブランチが取得できない場合に、本文の `Closes` で指定した Issue も close することを確認します。')
     // eslint-disable-next-line unicorn/no-null -- 応答の形（既定ブランチが無いと null）
     const github = mergedRules({ defaultBranch: null, closing: [], body: 'Closes #13\n' }, [12, 13].flatMap(number => closedRules(number)))
     const workspace = await openWorkspace({ github })
@@ -160,6 +164,7 @@ describe('session finish', () => {
 
   it('閉じた Issue があると、close を送らず、unchanged の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-41')
+    await explains('`session finish` の閉じ済みの Issue のテストです。対象の Issue が既に閉じている場合に、close の要求を送信せず、`unchanged` の行を標準エラーに出力することを確認します。')
     const github = mergedRules({ closing: [10] }, [kindRule(10, { state: 'CLOSED' }), waitingRule([], 10), ...closedRules(12)])
     const workspace = await openWorkspace({ github })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
@@ -169,6 +174,7 @@ describe('session finish', () => {
   })
 
   it('種別の読み取りと close が 404 の Issue は、warning を出して飛ばす', async () => {
+    await explains('`session finish` の存在しない Issue のテストです。Issue の種別の取得と close の応答が 404 の場合に、`warning` の行を出力して処理を続けることを確認します。')
     // eslint-disable-next-line unicorn/no-null -- 応答の形（Issue が無いと null）
     const missing = graphql('GetIssueKind', { repository: { issue: null } }, { variables: { number: 10 } })
     const github = mergedRules({ closing: [10] }, [missing, rest('PATCH', '/repos/acme/demo/issues/10', 404, { message: 'Not Found' }), ...closedRules(12)])
@@ -180,6 +186,7 @@ describe('session finish', () => {
   })
 
   it('close が別の要求に先を越されたなら、unchanged の行を出す', async () => {
+    await explains('`session finish` の close の競合のテストです。close の要求が別の要求に先を越され、422 になった場合は、`unchanged` の行を出力し、`warning` は出力しないことを確認します。')
     const raced = rest('PATCH', '/repos/acme/demo/issues/10', 422, { message: 'Validation Failed: closed by another request' })
     const github = mergedRules({ closing: [10] }, [kindRule(10), raced, ...closedRules(12)])
     const workspace = await openWorkspace({ github })
@@ -191,6 +198,7 @@ describe('session finish', () => {
 
   it('閉じた Issue があると、MCP の結果の skippedIssues に already-closed で入れる', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-41')
+    await explains('`session finish` の MCP の結果のテストです。対象の Issue が既に閉じている場合に、`skippedIssues` に理由 `already-closed` で記録し、close は行わないことを確認します。')
     const workspace = await openWorkspace({ github: mergedRules({}, [kindRule(12, { state: 'CLOSED' }), waitingRule([])]) })
     const outcome = await finishTool(workspace, { skip_local_cleanup: true })
     expect(outcome.structured).toMatchObject({ closedIssues: [], skippedIssues: [{ number: 12, reason: 'already-closed' }] })
@@ -199,12 +207,14 @@ describe('session finish', () => {
 
   it('閉じた Issue があると、--dry-run でも close の予定に入れず、unchanged の予定の行を出す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-41')
+    await explains('`session finish` の `--dry-run` のテストです。対象の Issue が既に閉じている場合に、close の予定に含めず、変更しない予定の行を出力することを確認します。')
     const workspace = await openWorkspace({ github: mergedRules({}, [kindRule(12, { state: 'CLOSED' }), waitingRule([])]) })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup', '--dry-run'])
     expect(lines(result.stderr)).toStrictEqual(['count: Issues to close: 0', 'dry-run: would leave Issue #12 (already closed) unchanged'])
   })
 
   it('閉じた Epic があると、Epic として skipped の行を出す', async () => {
+    await explains('`session finish` の Epic の扱いのテストです。閉じた Epic の場合に、Issue を close せず、Epic として `skipped` の行を出力することを確認します。')
     const workspace = await openWorkspace({ github: mergedRules({}, [kindRule(12, { issueType: 'Epic', state: 'CLOSED' })]) })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
     expect(result.stderr).toBe('count: Issues to close: 0\nskipped: closing Issue #12 (Epic)\n')
@@ -215,6 +225,7 @@ describe('session finish', () => {
     { title: 'sub-issue を持つ Issue', options: { subIssues: 3 } },
   ])('次の Issue があると（$title）、その Issue を close しない', async (row, context) => {
     await verifies(context, 'PW-SESSION-FINISH-02')
+    await explains('`session finish` の対象外の Issue のテストです。Issue Type が Epic の場合と、sub-issue を持つ場合に、その Issue は close せず、PR の Issue だけを close することを確認します。')
     const workspace = await openWorkspace({ github: mergedRules({ closing: [10] }, [kindRule(10, row.options), ...closedRules(12)]) })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
     expect(result.code).toBe(0)
@@ -225,6 +236,7 @@ describe('session finish', () => {
 
   it('もし Issue の種別と状態を読めないなら、warning の行を出し、その Issue を close しない', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-42')
+    await explains('`session finish` の Issue の種別の取得に失敗した場合のテストです。種別と状態を取得できなかった場合に、`warning` の行を出力して、その Issue は close しないことを確認します。')
     const workspace = await openWorkspace({ github: mergedRules({}, [KIND_FAILURE]) })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
     expect(result.code).toBe(0)
@@ -235,12 +247,14 @@ describe('session finish', () => {
 
   it('もし Issue の種別と状態を読めないなら、MCP の結果の skippedIssues に failed で入れる', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-42')
+    await explains('`session finish` の MCP の結果のテストです。Issue の種別と状態を取得できなかった場合に、`skippedIssues` に理由 `failed` で記録することを確認します。')
     const workspace = await openWorkspace({ github: mergedRules({}, [KIND_FAILURE]) })
     const outcome = await finishTool(workspace, { skip_local_cleanup: true })
     expect(outcome.structured).toMatchObject({ closedIssues: [], skippedIssues: [{ number: 12, reason: 'failed' }] })
   })
 
   it('Epic か sub-issue を持つ Issue があると、skipped の行を標準エラーに出す', async () => {
+    await explains('`session finish` の対象外の Issue のテストです。sub-issue を持つ Issue の場合に、Epic として扱い、`skipped` の行を標準エラーに出力することを確認します。')
     const workspace = await openWorkspace({ github: mergedRules({}, [kindRule(12, { subIssues: 1 })]) })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
     expect(result.stderr).toBe('count: Issues to close: 0\nskipped: closing Issue #12 (Epic)\n')
@@ -248,6 +262,7 @@ describe('session finish', () => {
 
   it('--delete-branch を付けて打つと、リモートの head ブランチを削除する', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-04')
+    await explains('`session finish` の `--delete-branch` のテストです。`--delete-branch` を指定した場合に、リモートの head ブランチを削除することを確認します。')
     const workspace = await openWorkspace({ github: mergedRules({}, [...closedRules(12), deleteRule()]) })
     const result = await workspace.run([...CLEANUP, '--delete-branch', '--skip-local-cleanup'])
     expect(result.code).toBe(0)
@@ -256,6 +271,7 @@ describe('session finish', () => {
 
   it('カレントのリポジトリが PR のリポジトリと同じで worktree の外だと、develop_branch のブランチに切り替える', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-06')
+    await explains('`session finish` の戻り先のブランチのテストです。カレントのリポジトリが PR のリポジトリと同じで、worktree の外の場合に、`develop_branch` のブランチへ切り替えることを確認します。')
     const workspace = await cleanupBranch({ github: mergedRules() })
     const result = await workspace.run(CLEANUP)
     expect(result.stderr).toContain('set: current branch to main\n')
@@ -264,6 +280,7 @@ describe('session finish', () => {
 
   it('カレントが worktree だと、置き場所の親ディレクトリの名前の wtN のブランチに切り替える', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-06')
+    await explains('`session finish` の戻り先のブランチのテストです。カレントが worktree の場合に、置き場所の親ディレクトリの名前に対応する `wtN` のブランチへ切り替えることを確認します。')
     const workspace = await cleanupBranch({
       branch: 'main',
       branches: [{ name: 'wt1' }, { name: BRANCH }],
@@ -279,6 +296,7 @@ describe('session finish', () => {
 
   it('カレントが worktree で add の記録があると、記録の wtN のブランチに切り替える', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-06')
+    await explains('`session finish` の戻り先のブランチのテストです。カレントが worktree で追加時の記録がある場合に、記録された `wtN` のブランチへ切り替えることを確認します。')
     const workspace = await cleanupBranch({
       branch: 'main',
       branches: [{ name: 'wt1' }, { name: BRANCH }],
@@ -296,6 +314,7 @@ describe('session finish', () => {
 
   it('カレントが Claude Code の作った .claude/worktrees/<name> だと、worktree-<name> のブランチに切り替え、head ブランチを消す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-06')
+    await explains('`session finish` の戻り先のブランチのテストです。カレントが `.claude/worktrees/<name>` の場合は、`worktree-<name>` へ切り替え、head ブランチを削除することを確認します。')
     const workspace = await cleanupBranch({ branch: 'main', github: mergedRules() })
     const worktree = path.join(workspace.directory, '.claude', 'worktrees', 'bold-oak')
     workspace.git(['worktree', 'add', '-q', '-b', 'worktree-bold-oak', worktree])
@@ -308,6 +327,7 @@ describe('session finish', () => {
 
   it('.claude/worktrees のフォルダ名の + は、ブランチ名の / に戻して探す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-06')
+    await explains('`session finish` の戻り先のブランチのテストです。`.claude/worktrees` のフォルダ名に `+` が含まれる場合は、ブランチ名の `/` と読み替えて戻り先を決定することを確認します。')
     const workspace = await cleanupBranch({ branch: 'main', github: mergedRules() })
     const worktree = path.join(workspace.directory, '.claude', 'worktrees', 'team+task')
     workspace.git(['worktree', 'add', '-q', '-b', 'worktree-team/task', worktree])
@@ -319,6 +339,7 @@ describe('session finish', () => {
 
   it('worktree の中で戻り先のブランチが決まらないと、ブランチを切り替えずにローカルの片付けを飛ばす', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-47')
+    await explains('`session finish` の戻り先のブランチが決まらない場合のテストです。worktree の中で戻り先を決定できないときに、ブランチを切り替えず、ローカルの後始末を実施しないことを確認します。')
     const workspace = await cleanupBranch({ branch: 'main', github: mergedRules() })
     const worktree = path.join(workspace.root, 'elsewhere', 'demo')
     workspace.git(['worktree', 'add', '-q', worktree, BRANCH])
@@ -332,6 +353,7 @@ describe('session finish', () => {
 
   it('ブランチを切り替えると、origin の remote（無ければ最初の remote）から develop_branch を pull する', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-07')
+    await explains('`session finish` の pull のテストです。ブランチを切り替えた場合に、`origin` の remote から `develop_branch` を pull し、`origin` が存在しなければ最初の remote を使うことを確認します。')
     const workspace = await cleanupBranch({ github: mergedRules() })
     workspace.git(['remote', 'rename', 'origin', 'upstream'])
     workspace.advanceRemote('main')
@@ -343,6 +365,7 @@ describe('session finish', () => {
 
   it('pull すると、ローカルの head ブランチを git branch -D で削除する', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-08')
+    await explains('`session finish` のローカルブランチの削除のテストです。pull が終わった場合に、ローカルの head ブランチを `git branch -D` で削除することを確認します。')
     const workspace = await cleanupBranch({ github: mergedRules() })
     expect(hasBranch(workspace)).toBe(true)
     const result = await workspace.run(CLEANUP)
@@ -350,8 +373,9 @@ describe('session finish', () => {
     expect(hasBranch(workspace)).toBe(false)
   })
 
-  it('ローカルの片付けを終えると、フラグのファイルを消し、古い版の .pecot-quick-mode・.pecot-active には触れない', async (context) => {
+  it('ローカルの片付けを終えると、作業の記録のファイル（.pecot-base と .pecot-session-title）を削除し、古い版のファイルは残す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-09')
+    await explains('`session finish` のフラグファイルの削除のテストです。ローカルの後始末が終わった場合に、フラグのファイルを削除し、古い版の `.pecot-quick-mode` と `.pecot-active` は残すことを確認します。')
     const workspace = await cleanupBranch({ github: mergedRules(), files: flagFiles() })
     expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true])
     await workspace.run(CLEANUP)
@@ -361,6 +385,7 @@ describe('session finish', () => {
 
   it('--skip-local-cleanup を付けて打つと、ローカルの片付けをしない', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-10')
+    await explains('`session finish` の `--skip-local-cleanup` のテストです。`--skip-local-cleanup` を指定した場合は、ブランチの切り替えとローカルブランチの削除をしないことを確認します。')
     const workspace = await cleanupBranch({ github: mergedRules() })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
     expect(result.code).toBe(0)
@@ -371,6 +396,7 @@ describe('session finish', () => {
 
   it('--skip-local-cleanup を付けて打つと、フラグのファイルを消さない', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-11')
+    await explains('`session finish` の `--skip-local-cleanup` のテストです。`--skip-local-cleanup` を指定した場合に、フラグのファイルを削除しないことを確認します。')
     const workspace = await cleanupBranch({ github: mergedRules(), files: flagFiles() })
     await workspace.run([...CLEANUP, '--skip-local-cleanup'])
     expect(ALL_FLAGS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([true, true])
@@ -378,6 +404,7 @@ describe('session finish', () => {
 
   it('.pecot-session-title が PR の Issue でない Issue のものだと、.pecot-base と .pecot-session-title を残す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-46')
+    await explains('`session finish` の作業対象の記録のテストです。`.pecot-session-title` が PR 以外の Issue のものの場合は、`.pecot-base` と `.pecot-session-title` を残すことを確認します。')
     const files = { [stateFile('.pecot-base')]: `main ${'0'.repeat(40)}\n`, [stateFile('.pecot-session-title')]: '#30 次の作業\n' }
     const workspace = await cleanupBranch({ github: mergedRules(), files })
     const result = await workspace.run(CLEANUP)
@@ -387,6 +414,7 @@ describe('session finish', () => {
   })
 
   it('--dry-run を付けて打つと、何も変えずに dry-run: would の行を標準エラーに出す', async () => {
+    await explains('`session finish` の `--dry-run` のテストです。`--dry-run` を指定した場合は、リポジトリと GitHub を変更せず、`dry-run: would` の行を標準エラーへ出力することを確認します。')
     const workspace = await cleanupBranch({ github: mergedRules(), files: flagFiles() })
     const files = filesOf(workspace.directory)
     const result = await workspace.run([...CLEANUP, '--dry-run', '--delete-branch'])
@@ -406,24 +434,28 @@ describe('session finish', () => {
 
   it('実行すると、close する Issue の件数を count の行で標準エラーに出す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-13')
+    await explains('`session finish` の件数の出力のテストです。実行した場合に、close する Issue の件数を `count` の行として標準エラーに出力することを確認します。')
     const workspace = await openWorkspace({ github: mergedRules({ closing: [10] }, [...closedRules(10), ...closedRules(12)]) })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
     expect(result.stderr.startsWith('count: Issues to close: 2\n')).toBe(true)
   })
 
   it('Issue を close すると、closed の行を標準エラーに出す', async () => {
+    await explains('`session finish` の出力のテストです。Issue を close した場合に、`closed` の行を標準エラーに出力することを確認します。')
     const workspace = await openWorkspace({ github: mergedRules() })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
     expect(result.stderr).toBe('count: Issues to close: 1\nclosed: Issue #12\n')
   })
 
   it('ブランチを削除すると、deleted の行を標準エラーに出す', async () => {
+    await explains('`session finish` の出力のテストです。ブランチを削除した場合に、`deleted` の行を標準エラーに出力することを確認します。')
     const workspace = await openWorkspace({ github: mergedRules({}, [...closedRules(12), deleteRule()]) })
     const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
     expect(result.stderr).toContain(`deleted: remote branch ${BRANCH}\n`)
   })
 
   it('リモートの head ブランチが既に無いと、unchanged の行を標準エラーに出す', async () => {
+    await explains('`session finish` の削除済みのブランチのテストです。リモートの head ブランチが既に存在しない場合に、`unchanged` の行を標準エラーに出力することを確認します。')
     const workspace = await openWorkspace({ github: mergedRules({}, [...closedRules(12), deleteRule(422, 'Reference does not exist')]) })
     const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
     expect(result.code).toBe(0)
@@ -431,6 +463,7 @@ describe('session finish', () => {
   })
 
   it('ローカルの head ブランチが既に無いなら、warning の行を標準エラーに出す', async () => {
+    await explains('`session finish` のローカルブランチが存在しない場合のテストです。ローカルの head ブランチが既に存在しない場合に、`warning` の行を標準エラーに出力し、終了コード 0 で終わることを確認します。')
     const workspace = await openWorkspace({ github: mergedRules() })
     const result = await workspace.run(CLEANUP)
     expect(result.code).toBe(0)
@@ -440,6 +473,7 @@ describe('session finish', () => {
   it('--delete-branch を付けてローカルの片付けも通すと、結果の行を実行した順で標準エラーへ出す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-04')
     await verifies(context, 'PW-SESSION-FINISH-13')
+    await explains('`session finish` の出力の順序のテストです。`--delete-branch` を指定し、ローカルの後始末まで実行した場合に、結果の行を実行した順に標準エラーへ出力することを確認します。')
     const workspace = await cleanupBranch({ github: mergedRules({}, [...closedRules(12), deleteRule()]) })
     const result = await workspace.run([...CLEANUP, '-d'])
     expect(result.code).toBe(0)
@@ -456,6 +490,7 @@ describe('session finish', () => {
   })
 
   it('origin の develop_branch が無く pull に失敗すると、warning の行を出したうえで、ローカルの head ブランチを削除する', async () => {
+    await explains('`session finish` の pull の失敗のテストです。`origin` に `develop_branch` が存在しない場合は、`warning` の行を出力し、ローカルの head ブランチは削除することを確認します。')
     const workspace = await cleanupBranch({ github: mergedRules() })
     workspace.remoteGit(['update-ref', '-d', 'refs/heads/main'])
     const result = await workspace.run(CLEANUP)
@@ -470,6 +505,7 @@ describe('session finish', () => {
   })
 
   it('カレントのリポジトリが PR のリポジトリと違うなら、warning の行を標準エラーに出す', async () => {
+    await explains('`session finish` のリポジトリの不一致のテストです。カレントのリポジトリが PR のリポジトリと異なる場合に、`warning` の行を標準エラーに出力することを確認します。')
     const github = [graphql(MERGED, finishPullRequestData({ closing: [], body: '', head: 'feat/other' }))]
     const workspace = await cleanupBranch({ github, config: { hasSecondRepository: true } })
     const result = await workspace.run(['session', 'finish', 'acme/other/21'])
@@ -479,6 +515,7 @@ describe('session finish', () => {
 
   it('カレントのリポジトリが PR のリポジトリと違うなら、ローカルの片付けを飛ばす', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-19')
+    await explains('`session finish` のリポジトリの不一致のテストです。カレントのリポジトリが PR のリポジトリと異なる場合に、ローカルの後始末を実施しないことを確認します。')
     const github = [graphql(MERGED, finishPullRequestData({ closing: [], body: '', head: BRANCH }))]
     const workspace = await cleanupBranch({ github, config: { hasSecondRepository: true } })
     const result = await workspace.run(['session', 'finish', 'acme/other/21'])
@@ -488,6 +525,7 @@ describe('session finish', () => {
   })
 
   it('Issue の close に失敗したなら、warning の行を標準エラーに出す', async () => {
+    await explains('`session finish` の close の失敗のテストです。Issue の close に失敗した場合は、`warning` の行を標準エラーへ出力し、終了コード 0 で終わることを確認します。')
     const workspace = await openWorkspace({ github: mergedRules({}, [kindRule(12), closeRule(12, 500)]) })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
     expect(result.code).toBe(0)
@@ -496,6 +534,7 @@ describe('session finish', () => {
 
   it('Issue の close に失敗したなら、ほかの Issue と後の処理を続ける', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-21')
+    await explains('`session finish` の close の失敗のテストです。Issue の close に失敗した場合は、ほかの Issue の close と後続の処理を継続することを確認します。')
     const github = mergedRules({ closing: [10] }, [kindRule(10), closeRule(10, 500), ...closedRules(12), deleteRule()])
     const workspace = await openWorkspace({ github })
     const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
@@ -505,6 +544,7 @@ describe('session finish', () => {
   })
 
   it('リモートの head ブランチの削除に失敗したなら、warning の行を標準エラーに出し、終了コード 0 で終わる', async () => {
+    await explains('`session finish` のリモートブランチの削除の失敗のテストです。削除に失敗した場合は、`warning` の行を標準エラーへ出力し、終了コード 0 で終わることを確認します。')
     const workspace = await openWorkspace({ github: mergedRules({}, [...closedRules(12), deleteRule(403, 'Forbidden')]) })
     const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
     expect(result.code).toBe(0)
@@ -514,6 +554,7 @@ describe('session finish', () => {
 
   it('checkout に失敗したなら、pull と git branch -D を飛ばす', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-23')
+    await explains('`session finish` の checkout の失敗のテストです。`develop_branch` の checkout に失敗した場合は、pull とローカルブランチの削除をしないことを確認します。')
     const workspace = await cleanupBranch({ config: { developBranch: 'ghost' }, github: mergedRules() })
     const result = await workspace.run(CLEANUP)
     expect(result.code).toBe(0)
@@ -524,6 +565,7 @@ describe('session finish', () => {
   })
 
   it('PR がマージされていないなら、終了コード 1 で終わる', async () => {
+    await explains('`session finish` の未マージの PR のテストです。PR がマージされていない場合に、マージを促すエラーを表示して終了コード 1 で終わることを確認します。')
     const workspace = await openWorkspace({ github: mergedRules({ state: 'OPEN' }) })
     const result = await workspace.run(CLEANUP)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: PR #21 is not merged yet (state: OPEN); merge it on GitHub first\n' })
@@ -531,6 +573,7 @@ describe('session finish', () => {
 
   it('PR がマージされていないなら、何も変えない', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-25')
+    await explains('`session finish` の未マージの PR のテストです。PR がマージされていない場合に、Issue・ブランチ・ファイルのいずれも変更しないことを確認します。')
     const workspace = await cleanupBranch({ github: mergedRules({ state: 'OPEN' }), files: flagFiles() })
     const files = filesOf(workspace.directory)
     await workspace.run([...CLEANUP, '-d'])
@@ -541,6 +584,7 @@ describe('session finish', () => {
   })
 
   it('対象のリポを含む設定が 2 つあり .active も選べないなら、候補と --project の案内を出して終了コード 1 で終わる', async () => {
+    await explains('`session finish` のプロジェクト設定の選択のテストです。対象のリポジトリを含む設定が 2 つあり、`.active` でも選べない場合に、候補と `--project` の案内を出力して終了コード 1 で終わることを確認します。')
     const workspace = await openWorkspace({ files: ambiguousWorkspaceFiles() })
     const result = await workspace.run(CLEANUP)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: `error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n` })
@@ -548,6 +592,7 @@ describe('session finish', () => {
   })
 
   it('対象のリポを含む設定が無いなら、error を出して終了コード 1 で終わる', async () => {
+    await explains('`session finish` のプロジェクト設定の選択のテストです。対象のリポジトリを含む設定が存在しない場合に、エラーを出力して終了コード 1 で終わることを確認します。')
     const workspace = await openWorkspace({ config: false })
     const result = await workspace.run(CLEANUP)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: (none)\n' })
@@ -556,6 +601,7 @@ describe('session finish', () => {
 
   it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で片付ける', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-44')
+    await explains('`session finish` の `--project` のテストです。対象のリポジトリを含む設定が 2 つあっても、`--project` で指定した設定で後始末することを確認します。')
     const workspace = await openWorkspace({ github: mergedRules(), files: ambiguousWorkspaceFiles() })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup', '--project', SECOND_PROJECT])
     expect(result.code).toBe(0)
@@ -563,6 +609,7 @@ describe('session finish', () => {
   })
 
   it('.active が無くても、対象のリポを含む設定が 1 つならその設定で片付ける', async () => {
+    await explains('`session finish` のプロジェクト設定の選択のテストです。`.active` が存在しなくても、対象のリポジトリを含む設定が 1 つであれば、その設定で後始末することを確認します。')
     const workspace = await openWorkspace({ github: mergedRules(), files: NO_ACTIVE_FILES })
     const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
     expect(result.code).toBe(0)
@@ -572,6 +619,7 @@ describe('session finish', () => {
     { title: 'PR が無い', rules: [graphql(MERGED, NO_PULL_REQUEST)], expected: 'error: PR not found: acme/demo/21\n' },
     { title: 'PR を取得できない', rules: [rule({ operation: MERGED }, { status: 502, body: { message: 'Bad Gateway' } })], expected: 'error: GraphQL query error: ' },
   ])('次の場合は（$title）、終了コード 1 で終わる', async (row) => {
+    await explains('`session finish` の PR を取得できない場合のテストです。PR が存在しない場合と取得に失敗した場合は、標準出力に何も出力せず、終了コード 1 で終わることを確認します。')
     const workspace = await openWorkspace({ github: row.rules })
     const result = await workspace.run(CLEANUP)
     expect(result.code).toBe(1)
@@ -580,6 +628,7 @@ describe('session finish', () => {
   })
 
   it('PR の参照の形が誤っているなら、終了コード 2 で終わる', async () => {
+    await explains('`session finish` の引数検証のテストです。PR の参照の形式が誤っている場合に、GitHub へ要求を送信せず、終了コード 2 で終わることを確認します。')
     const workspace = await openWorkspace()
     const result = await workspace.run(['session', 'finish', 'not-a-ref'])
     expect(result.code).toBe(2)
@@ -591,6 +640,7 @@ describe('session finish', () => {
     it('片付けると、閉じた Issue を待つ Issue の列を動かし、着手の跡がある Issue は動かさない', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-31')
       await verifies(context, 'PW-SESSION-FINISH-32')
+      await explains('`session finish` が待機中の Issue を更新する動作のテストです。Issue を閉じた場合に、それを待つ Issue の列を移動し、着手済みの Issue は移動しないことを確認します。')
       const workspace = await openWorkspace({ github: [...WAITING_RULES, READY_WRITE_13] })
       const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
       expect(result.code).toBe(0)
@@ -605,6 +655,7 @@ describe('session finish', () => {
     })
 
     it('待つ Issue の列が古い ID で書けないと、warning と project activate の案内を出して続け、終了コード 0 で終わる', async () => {
+      await explains('`session finish` のボードの列の更新に失敗した場合のテストです。待機中の Issue の列を古い ID で更新できなかった場合に、`warning` と `project activate` の案内を出力して、終了コード 0 で終わることを確認します。')
       const workspace = await openWorkspace({ github: [...WAITING_RULES, staleOptionUpdate()] })
       const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
       expect(result.code).toBe(0)
@@ -620,6 +671,7 @@ describe('session finish', () => {
 
     it('判定が変わった Issue を、stdout の Readiness changed の節に出す', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-33')
+      await explains('`session finish` の判定の変化の出力のテストです。判定の変わった Issue が存在する場合は、標準出力の `Readiness changed` の節へ出力することを確認します。')
       const workspace = await openWorkspace({ github: [...WAITING_RULES, READY_WRITE_13] })
       const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
       expect(result.stdout).toBe('Readiness changed:\n- #13 stackable on #12 -> startable\n- #14 stackable on #12 -> startable\n')
@@ -627,6 +679,7 @@ describe('session finish', () => {
 
     it('判定が変わらない待つ Issue は、Readiness changed の節に出さない', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-34')
+      await explains('`session finish` の判定の変化の出力のテストです。判定が変わらない待機中の Issue を、`Readiness changed` の節に出力しないことを確認します。')
       // #13 は別の未着手の前提 #15 も待つので、#12 の前後で blocked のまま
       const github = [...mergedRules({}, [kindRule(12), closeRule(12), waitingRule([13])]), boardItemRule(13, 'Blocked'), prerequisitesRule({ number: 13, blockedBy: [DONE_12, { number: 15 }] })]
       const workspace = await openWorkspace({ github })
@@ -635,6 +688,7 @@ describe('session finish', () => {
     })
 
     it('子ブランチがあると、スタックし直しを案内し、子ブランチを消す要求を送らない', async () => {
+      await explains('`session finish` の子ブランチのテストです。子ブランチがある場合に、スタックし直す手順を案内し、子ブランチを削除する要求は送信しないことを確認します。')
       const workspace = await openWorkspace({ github: [...WAITING_RULES, READY_WRITE_13, deleteRule()] })
       const result = await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
       expect(result.stderr).toContain(`warning: #14 is stacked on #12; run pecot pr restack in the working directory of ${UPPER}\n`)
@@ -643,6 +697,7 @@ describe('session finish', () => {
 
     it('Issue を閉じた後、ブランチを消す前に、待つ Issue を読んで動かす', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-31')
+      await explains('`session finish` の処理順のテストです。Issue を閉じた後でブランチを削除する前に、待機中の Issue を取得して列を移動することを確認します。')
       const workspace = await openWorkspace({ github: [...WAITING_RULES, READY_WRITE_13, deleteRule()] })
       await workspace.run([...CLEANUP, '-d', '--skip-local-cleanup'])
       const operations = operationsOf(workspace)
@@ -652,6 +707,7 @@ describe('session finish', () => {
 
     it('base が開発ブランチでない PR を片付けても、その PR の Issue を閉じる', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-38')
+      await explains('`session finish` の base が開発ブランチでない PR のテストです。このような PR を後始末する場合でも、その PR の Issue を閉じることを確認します。')
       const workspace = await openWorkspace({ github: mergedRules({ base: 'feat/demo/11' }) })
       const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
       expect(result.code).toBe(0)
@@ -660,6 +716,7 @@ describe('session finish', () => {
 
     it('ローカルの片付けを終えると、base の記録のファイルを消し、古い版の .pecot-active には触れない', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-09')
+      await explains('`session finish` の base の記録のテストです。ローカルの後始末が終わった場合に、base の記録のファイルを削除し、古い版の `.pecot-active` は残すことを確認します。')
       const files = { [stateFile('.pecot-active')]: 'acme/demo/12\n', [stateFile('.pecot-base')]: `feat/demo/11 ${'0'.repeat(40)} acme/demo#11\n` }
       const workspace = await cleanupBranch({ github: mergedRules(), files })
       await workspace.run(CLEANUP)
@@ -668,6 +725,7 @@ describe('session finish', () => {
 
     it('前提にされていない Issue の PR では、待つ Issue の読み取りを 1 回だけ足し、出力を変えない', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-34')
+      await explains('`session finish` の待機中の Issue の取得のテストです。前提にされていない Issue の PR の場合に、待機中の Issue の取得を 1 回だけ追加し、出力は変わらないことを確認します。')
       const workspace = await cleanupBranch({ github: mergedRules({}, [...closedRules(12), deleteRule()]) })
       const result = await workspace.run([...CLEANUP, '-d'])
       expect(result).toStrictEqual({
@@ -680,6 +738,7 @@ describe('session finish', () => {
 
     it('待つ Issue の判定に閉じた Issue が済んだ前提として出なければ、1 回だけ読み直してから動かす', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-31')
+      await explains('`session finish` の判定の再取得のテストです。閉じた Issue が済んだ前提として判定に現れない場合は、1 回だけ取得し直してから列を移動することを確認します。')
       const github = [...mergedRules({}, [kindRule(12), closeRule(12), waitingRule([13])]), boardItemRule(13, 'Blocked'), waitingTarget(13, MERGED_UNCLOSED_12), waitingTarget(13), READY_WRITE_13]
       const workspace = await openWorkspace({ github })
       useFakeDelays()
@@ -689,6 +748,7 @@ describe('session finish', () => {
     })
 
     it('読み直しても閉じた Issue が済んだ前提として出なければ、board sync で後から直せる旨の warning の行を出して列を動かさない', async () => {
+      await explains('`session finish` の判定の再取得のテストです。取得し直しても閉じた Issue が済んだ前提として現れない場合に、列を移動せず、`board sync` で後から移動できる旨の `warning` を出力することを確認します。')
       const github = [...mergedRules({}, [kindRule(12), closeRule(12), waitingRule([13])]), boardItemRule(13, 'Blocked'), waitingTarget(13, MERGED_UNCLOSED_12), waitingTarget(13, MERGED_UNCLOSED_12)]
       const workspace = await openWorkspace({ github })
       useFakeDelays()
@@ -701,6 +761,7 @@ describe('session finish', () => {
     })
 
     it('--dry-run では、閉じる前の Issue を済んだものとして判定し、列を書かずに予定の行と判定の変化を出す', async () => {
+      await explains('`session finish` の `--dry-run` と待機中の Issue のテストです。`--dry-run` を指定した場合に、閉じる前の Issue を済んだものとして判定し、列は更新せず予定の行と判定の変化を出力することを確認します。')
       const github = [...mergedRules({}, [kindRule(12), waitingRule([13])]), boardItemRule(13, 'Blocked'), waitingTarget(13, MERGED_UNCLOSED_12)]
       const workspace = await openWorkspace({ github })
       const result = await workspace.run([...CLEANUP, '--dry-run', '--skip-local-cleanup'])
@@ -716,6 +777,7 @@ describe('session finish', () => {
   describe('MCP の data', () => {
     it('待つ Issue の判定が変わり、子ブランチがあると、readinessChanges と restack を data に返す', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-33')
+      await explains('`session finish` の MCP の結果のテストです。待機中の Issue の判定が変わり、子ブランチがある場合に、`readinessChanges` と `restack` を data に含めることを確認します。')
       const workspace = await openWorkspace({ github: [...WAITING_RULES, READY_WRITE_13] })
 
       const outcome = await finishTool(workspace, { skip_local_cleanup: true })
@@ -734,6 +796,7 @@ describe('session finish', () => {
     it('ブランチの削除とローカルの片付けまで通すと、close した Issue・消したブランチ・切り替えた先を data に返す', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-14')
       await verifies(context, 'PW-SESSION-FINISH-15')
+      await explains('`session finish` の MCP の結果のテストです。ブランチの削除とローカルの後始末まで実行した場合に、close した Issue・削除したブランチ・切り替えた先のブランチを data に含めることを確認します。')
       const workspace = await cleanupBranch({ github: mergedRules({}, [...closedRules(12), deleteRule()]) })
 
       const outcome = await finishTool(workspace, { delete_branch: true })
@@ -751,6 +814,7 @@ describe('session finish', () => {
 
     it('Epic を守って close しなかったとき、その番号と epic を data.skippedIssues に返す', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-03')
+      await explains('`session finish` の MCP の結果のテストです。Epic のために close しなかった場合は、その Issue の番号と理由 `epic` を `skippedIssues` へ含めることを確認します。')
       const workspace = await openWorkspace({ github: mergedRules({ closing: [10] }, [kindRule(10, { issueType: 'Epic' }), ...closedRules(12)]) })
 
       const outcome = await finishTool(workspace, { skip_local_cleanup: true })
@@ -760,6 +824,7 @@ describe('session finish', () => {
 
     it('CLI で --dry-run を付けると、何も変えずに、close・ブランチの削除・切り替えの予定を dry-run の行に出す', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-12')
+      await explains('`session finish` の `--dry-run` のテストです。ブランチの削除を含めて実行した場合に、何も変更せず、close・ブランチの削除・切り替えの予定を `dry-run` の行に出力することを確認します。')
       const workspace = await cleanupBranch({ github: mergedRules() })
 
       const result = await workspace.run(['session', 'finish', 'acme/demo/21', '--delete-branch', '--dry-run'])
@@ -771,6 +836,7 @@ describe('session finish', () => {
 
     it('判定が変わらない待つ Issue だけだと、readinessChanges を空の配列にする', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-34')
+      await explains('`session finish` の MCP の結果のテストです。判定が変わらない待機中の Issue だけの場合に、`readinessChanges` を空の配列にすることを確認します。')
       const github = [...mergedRules({}, [kindRule(12), closeRule(12), waitingRule([13])]), boardItemRule(13, 'Blocked'), prerequisitesRule({ number: 13, blockedBy: [DONE_12, { number: 15 }] })]
       const outcome = await finishTool(await openWorkspace({ github }), { skip_local_cleanup: true })
       expect(outcome.structured['readinessChanges']).toStrictEqual([])
@@ -778,6 +844,7 @@ describe('session finish', () => {
 
     it('子ブランチがあると、pr_restack を warnings で案内し、その子ブランチを消す要求を送らない', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-35')
+      await explains('`session finish` の MCP の結果のテストです。子ブランチがある場合に、`warnings` に `pr_restack` の案内を含め、その子ブランチを削除する要求は送信しないことを確認します。')
       const workspace = await openWorkspace({ github: [...WAITING_RULES, READY_WRITE_13, deleteRule()] })
       const outcome = await finishTool(workspace, { delete_branch: true, skip_local_cleanup: true })
       expect(outcome.structured['warnings']).toStrictEqual([`#14 is stacked on #12; call pr_restack in the working directory of ${UPPER}`])
@@ -786,6 +853,7 @@ describe('session finish', () => {
 
     it('リモートの head ブランチが既に無いと、deletedBranches へ入れずに続ける', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-16')
+      await explains('`session finish` の MCP の結果のテストです。リモートの head ブランチが既に存在しない場合は、`deletedBranches` へ含めずに処理を続けることを確認します。')
       const workspace = await openWorkspace({ github: mergedRules({}, [...closedRules(12), deleteRule(422, 'Reference does not exist')]) })
       const outcome = await finishTool(workspace, { delete_branch: true, skip_local_cleanup: true })
       expect(outcome.isError).toBe(false)
@@ -794,6 +862,7 @@ describe('session finish', () => {
 
     it('ローカルの head ブランチが既に無いと、warnings に 1 つ入れる', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-17')
+      await explains('`session finish` の MCP の結果のテストです。ローカルの head ブランチが既に存在しない場合に、`warnings` に 1 件含めることを確認します。')
       const outcome = await finishTool(await openWorkspace({ github: mergedRules() }), {})
       expect(outcome.isError).toBe(false)
       expect(outcome.structured['warnings']).toStrictEqual([expect.stringMatching(new RegExp(`^deleting local branch ${BRANCH} failed: `, 'u'))])
@@ -801,6 +870,7 @@ describe('session finish', () => {
 
     it('セッションのリポジトリが PR のリポジトリと違うと、warnings に 1 つ入れる', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-18')
+      await explains('`session finish` の MCP の結果のテストです。セッションのリポジトリが PR のリポジトリと異なる場合に、`warnings` に 1 件含めることを確認します。')
       const github = [graphql(MERGED, finishPullRequestData({ closing: [], body: '', head: 'feat/other' }))]
       const outcome = await finishTool(await cleanupBranch({ github, config: { hasSecondRepository: true } }), { pr_ref: 'acme/other/21' })
       expect(outcome.structured['warnings']).toStrictEqual(['current repository (acme/demo) differs from the PR\'s (acme/other); skipped local cleanup'])
@@ -808,6 +878,7 @@ describe('session finish', () => {
 
     it('Issue の close に失敗すると、warnings に 1 つ入れる', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-20')
+      await explains('`session finish` の MCP の結果のテストです。Issue の close に失敗した場合は、`warnings` へ 1 件含めることを確認します。')
       const github = mergedRules({}, [kindRule(12), closeRule(12, 500)])
       const outcome = await finishTool(await openWorkspace({ github }), { skip_local_cleanup: true })
       expect(outcome.isError).toBe(false)
@@ -816,6 +887,7 @@ describe('session finish', () => {
 
     it('リモートの head ブランチの削除に失敗すると、warnings に 1 つ入れ、成功を返す', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-39')
+      await explains('`session finish` の MCP の結果のテストです。リモートの head ブランチの削除に失敗した場合は、`warnings` へ 1 件含め、成功を返すことを確認します。')
       const workspace = await openWorkspace({ github: mergedRules({}, [...closedRules(12), deleteRule(403, 'Forbidden')]) })
       const outcome = await finishTool(workspace, { delete_branch: true, skip_local_cleanup: true })
       expect(outcome.isError).toBe(false)
@@ -824,6 +896,7 @@ describe('session finish', () => {
 
     it('待つ Issue の列が古い ID で書けないと、warnings に入れて続け、project_activate の案内を 1 回だけ添える', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-40')
+      await explains('`session finish` の MCP の結果のテストです。待機中の Issue の列を古い ID で更新できなかった場合に、`warnings` に含めて続け、`project_activate` の案内は 1 回だけ添えることを確認します。')
       const outcome = await finishTool(await openWorkspace({ github: [...WAITING_RULES, staleOptionUpdate()] }), { skip_local_cleanup: true })
       expect(outcome.isError).toBe(false)
       const warnings = [outcome.structured['warnings']].flat().filter(warning => typeof warning === 'string')
@@ -833,6 +906,7 @@ describe('session finish', () => {
 
     it('読み直しても閉じた Issue が済んだ前提として判定に出ないと、warnings に 1 つ入れて列を動かさない', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-36')
+      await explains('`session finish` の MCP の結果のテストです。取得し直しても閉じた Issue が済んだ前提として現れない場合に、`warnings` に 1 件含め、列は移動しないことを確認します。')
       const github = [...mergedRules({}, [kindRule(12), closeRule(12), waitingRule([13])]), boardItemRule(13, 'Blocked'), waitingTarget(13, MERGED_UNCLOSED_12), waitingTarget(13, MERGED_UNCLOSED_12)]
       const workspace = await openWorkspace({ github })
       useFakeDelays()
@@ -843,6 +917,7 @@ describe('session finish', () => {
 
     it('CLI で --dry-run を付けると、閉じる予定の Issue を済んだものとして判定し、列を書かずに判定の変化を標準出力に出す', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-37')
+      await explains('`session finish` の `--dry-run` のテストです。`--dry-run` を指定した場合に、閉じる予定の Issue を済んだものとして判定し、列は更新せず判定の変化を標準出力に出力することを確認します。')
       const github = [...mergedRules({}, [kindRule(12), waitingRule([13])]), boardItemRule(13, 'Blocked'), waitingTarget(13, MERGED_UNCLOSED_12)]
       const workspace = await openWorkspace({ github })
       const result = await workspace.run(['session', 'finish', 'acme/demo/21', '--dry-run', '--skip-local-cleanup'])
@@ -853,6 +928,7 @@ describe('session finish', () => {
 
     it('PR がマージされていないと、GitHub の画面でマージするよう案内する detail を入れて、kind が pr-state の失敗を返す', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-24')
+      await explains('`session finish` の MCP の失敗のテストです。PR がマージされていない場合に、GitHub の画面でマージするよう案内する `detail` を含め、`kind` が `pr-state` の失敗を返すことを確認します。')
       const outcome = await finishTool(await openWorkspace({ github: mergedRules({ state: 'OPEN' }) }), {})
       expect(outcome).toMatchObject({ isError: true, structured: { kind: 'pr-state' } })
       expect(outcome.structured['detail']).toContain('merge it on GitHub first')
@@ -861,6 +937,7 @@ describe('session finish', () => {
 
     it('リポを含む設定が 2 つあってアクティブな設定がどれでもないと、候補と project の案内を detail に入れ、no-active-project で失敗する', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-26')
+      await explains('`session finish` の MCP の失敗のテストです。対象のリポジトリを含む設定が 2 つあり、アクティブな設定がどれでもない場合に、候補と `project` の案内を `detail` に含め、`no-active-project` で失敗することを確認します。')
       const outcome = await finishTool(await openWorkspace({ files: ambiguousWorkspaceFiles() }), {})
       expect(outcome).toMatchObject({ isError: true, structured: { kind: 'no-active-project' } })
       expect(outcome.structured['detail']).toContain('choose one with project: <NAME>')
@@ -869,6 +946,7 @@ describe('session finish', () => {
 
     it('対象のリポを含む設定が無いと、kind が repo-not-in-project の失敗を返す', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-43')
+      await explains('`session finish` の MCP の失敗のテストです。対象のリポジトリを含む設定が存在しない場合に、`kind` が `repo-not-in-project` の失敗を返すことを確認します。')
       const outcome = await finishTool(await openWorkspace({ config: false }), {})
       expect(outcome).toMatchObject({ isError: true, structured: { kind: 'repo-not-in-project' } })
     })
@@ -878,6 +956,7 @@ describe('session finish', () => {
       { title: 'PR を取得できない', rules: [rule({ operation: MERGED }, { status: 502, body: { message: 'Bad Gateway' } })], expected: 'GraphQL query error: ' },
     ])('次の場合は（$title）、失敗を返す', async (row, context) => {
       await verifies(context, 'PW-SESSION-FINISH-27')
+      await explains('`session finish` の MCP の失敗のテストです。PR が存在しない場合と取得に失敗した場合は、原因を `detail` に含む失敗を返すことを確認します。')
       const outcome = await finishTool(await openWorkspace({ github: row.rules }), {})
       expect(outcome.isError).toBe(true)
       expect(outcome.structured['detail']).toContain(row.expected)
@@ -885,6 +964,7 @@ describe('session finish', () => {
 
     it('pr_ref の形が誤っていると、kind が invalid-input の失敗を返す', async (context) => {
       await verifies(context, 'PW-SESSION-FINISH-28')
+      await explains('`session finish` の MCP の失敗のテストです。`pr_ref` の形式が誤っている場合に、`kind` が `invalid-input` の失敗を返すことを確認します。')
       const workspace = await openWorkspace()
       const outcome = await finishTool(workspace, { pr_ref: 'not-a-ref' })
       expect(outcome).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
@@ -893,6 +973,7 @@ describe('session finish', () => {
 
     it('リモートのブランチの削除と checkout が失敗すると、済んだ分と warning を data に返して続ける', async (context) => {
       await verifies(context, 'PW-COMMON-19')
+      await explains('`session finish` の MCP の結果のテストです。リモートブランチの削除と checkout が失敗した場合に、完了した分と `warning` を data に含めて処理を続けることを確認します。')
       const workspace = await cleanupBranch({ config: { developBranch: 'ghost' }, github: mergedRules({}, [...closedRules(12), deleteRule(403, 'Forbidden')]) })
 
       const outcome = await finishTool(workspace, { delete_branch: true })

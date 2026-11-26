@@ -13,6 +13,7 @@ import { hooksDirectory, pluginRoot } from '../_helpers/paths.js'
 import { runScript } from '../_helpers/run.js'
 import { extractReferences, resolveDirectoryVariables } from '../_helpers/script-references.js'
 import { splitLines } from '../_helpers/text.js'
+import { explains } from '../../_helpers/explains.js'
 
 // 検知スクリプトを呼ぶエントリ × 参照変数 → lib サブディレクトリ。
 const DIRECTORY_REFERENCE_ROWS = [
@@ -64,7 +65,8 @@ function isPecotDirectoryCreated(project: string): boolean {
 describe('検知スクリプトを呼ぶエントリの静的ガード', () => {
   // 解決先が別ディレクトリへ移ると、下のガードは何にもマッチせず常に通る。literal と実態をここで繋ぐ。
   // 参照が 0 件でも空集合同士の一致で通るため、参照の存在も固定する。
-  it.for(DIRECTORY_REFERENCE_ROWS)('$label は、期待のサブディレクトリへ解決し、その配下への参照が 1 件以上ある', (row) => {
+  it.for(DIRECTORY_REFERENCE_ROWS)('$label は、期待のサブディレクトリへ解決し、その配下への参照が 1 件以上ある', async (row) => {
+    await explains(`検知スクリプトを呼ぶエントリのテストです。\`${row.label}\` が、期待するサブディレクトリを指すディレクトリ変数に解決され、その配下への参照が 1 件以上あることを確認します。`)
     const source = readFileSync(path.join(hooksDirectory, row.entry), 'utf8')
     const directoryVariables = resolveDirectoryVariables(source, hooksDirectory, pluginRoot)
     expect(directoryVariables.get(row.directoryVariable)).toBe(path.join(hooksDirectory, row.librarySubdirectory))
@@ -72,7 +74,8 @@ describe('検知スクリプトを呼ぶエントリの静的ガード', () => {
   })
 
   // `$SCRIPT_DIR/lib/core/foo.sh` のような生パスは、参照抽出と *_DIR の差し替えのどちらにも掛からない。変数経由に固定し、定義行だけ生パスを許す。
-  it.for(DIRECTORY_REFERENCE_ROWS)('$label の配下は、変数経由でだけ参照する', (row) => {
+  it.for(DIRECTORY_REFERENCE_ROWS)('$label の配下は、変数経由でだけ参照する', async (row) => {
+    await explains(`検知スクリプトを呼ぶエントリのテストです。\`${row.label}\` のサブディレクトリの配下を、生のパスではなくディレクトリ変数を通してだけ参照していることを確認します。`)
     const source = readFileSync(path.join(hooksDirectory, row.entry), 'utf8')
     const rawReferences = splitLines(source)
       .filter(line => line.includes(row.librarySubdirectory) && !DIRECTORY_ASSIGN.test(line))
@@ -88,7 +91,8 @@ describe('UserPromptSubmit', () => {
     { label: '名前空間付き', prompt: '/pecot-w:w-help' },
     { label: '名前空間なしの短縮形', prompt: '/w-help' },
     { label: '引数つきの短縮形', prompt: '/w-quick READMEのtypo修正' },
-  ])('pecot のコマンド（$label）のとき、init が発火する', (row) => {
+  ])('pecot のコマンド（$label）のとき、init が発火する', async (row) => {
+    await explains(`UserPromptSubmit の検知スクリプトのテストです。pecot のコマンド（${row.label}）を入力した場合に、\`.pecot\` ディレクトリが作成される（初期化が起動する）ことを確認します。`)
     const hookCase = createHookCase()
     const detection = setUpDetection(hookCase)
     const result = runScript(hookCase, detection.upsScript, [], { stdin: `{"prompt": "${row.prompt}"}` })
@@ -96,7 +100,8 @@ describe('UserPromptSubmit', () => {
     expect(isPecotDirectoryCreated(detection.project)).toBe(true)
   })
 
-  it('通常の文のとき、init が発火せず、何も出力しない', () => {
+  it('通常の文のとき、init が発火せず、何も出力しない', async () => {
+    await explains('UserPromptSubmit の検知スクリプトのテストです。通常の文を入力した場合に、`.pecot` ディレクトリを作成せず、標準出力に何も出力しないことを確認します。')
     const hookCase = createHookCase()
     const detection = setUpDetection(hookCase)
     const result = runScript(hookCase, detection.upsScript, [], { stdin: '{"prompt": "今日の天気を教えて"}' })
@@ -110,7 +115,8 @@ describe('UserPromptSubmit', () => {
   it.for([
     { label: '/v-slidev', prompt: '/v-slidev' },
     { label: '/help', prompt: '/help' },
-  ])('pecot 以外のスラッシュコマンド（$label）のとき、init が発火しない', (row) => {
+  ])('pecot 以外のスラッシュコマンド（$label）のとき、init が発火しない', async (row) => {
+    await explains(`UserPromptSubmit の検知スクリプトのテストです。pecot 以外のスラッシュコマンド（${row.label}）を入力した場合に、\`.pecot\` ディレクトリを作成しないことを確認します。`)
     const hookCase = createHookCase()
     const detection = setUpDetection(hookCase)
     const result = runScript(hookCase, detection.upsScript, [], { stdin: `{"prompt": "${row.prompt}"}` })
@@ -118,7 +124,8 @@ describe('UserPromptSubmit', () => {
     expect(isPecotDirectoryCreated(detection.project)).toBe(false)
   })
 
-  it('コードブロック内の pecot のコマンドでは、誤発火しない', () => {
+  it('コードブロック内の pecot のコマンドでは、誤発火しない', async () => {
+    await explains('UserPromptSubmit の検知スクリプトのテストです。コードブロックの中に pecot のコマンドを書いた入力の場合に、誤って初期化を起動せず、`.pecot` ディレクトリを作成しないことを確認します。')
     const hookCase = createHookCase()
     const detection = setUpDetection(hookCase)
     const result = runScript(hookCase, detection.upsScript, [], { stdin: '{"prompt": "説明: `/pecot-w:w-help`"}' })
@@ -132,7 +139,8 @@ describe('UserPromptSubmit', () => {
 describe('統合式の意味論（クロス payload）', () => {
   // prompt が非 pecot でも `.tool_input.skill` が `pecot:` なら、init が動く。これが `or` 統合式の意味論になる。
   // ホスト payload にクロスフィールドが現れた場合の挙動を、宣言として固定する（変わったら意図的に判断し直す）。
-  it('UserPromptSubmit に tool_input.skill が混入したとき、init が発火する', () => {
+  it('UserPromptSubmit に tool_input.skill が混入したとき、init が発火する', async () => {
+    await explains('UserPromptSubmit と PreToolUse の検知式のテストです。UserPromptSubmit の入力に `tool_input.skill`（pecot のスキル）が混入した場合に、`.pecot` ディレクトリが作成され、標準出力は空であることを確認します。')
     const hookCase = createHookCase()
     const detection = setUpDetection(hookCase)
     const result = runScript(hookCase, detection.upsScript, [], {
@@ -146,7 +154,8 @@ describe('統合式の意味論（クロス payload）', () => {
 
   // skill が非 pecot でも `.prompt` が `/pecot:` なら、init が動く。これが `or` 統合式の意味論になる。
   // ホスト payload にクロスフィールドが現れた場合の挙動を、宣言として固定する（変わったら意図的に判断し直す）。
-  it('PreToolUse(Skill) に prompt が混入したとき、init が発火する', () => {
+  it('PreToolUse(Skill) に prompt が混入したとき、init が発火する', async () => {
+    await explains('UserPromptSubmit と PreToolUse の検知式のテストです。PreToolUse(Skill) の入力に pecot のコマンドを含む `prompt` が混入した場合に、`.pecot` ディレクトリが作成されることを確認します。')
     const hookCase = createHookCase()
     const detection = setUpDetection(hookCase)
     const result = runScript(hookCase, detection.ptusScript, [], {
@@ -158,7 +167,8 @@ describe('統合式の意味論（クロス payload）', () => {
 })
 
 describe('PreToolUse(Skill)', () => {
-  it('pecot の skill のとき、init が発火する', () => {
+  it('pecot の skill のとき、init が発火する', async () => {
+    await explains('PreToolUse(Skill) の検知スクリプトのテストです。pecot のスキルを入力した場合に、`.pecot` ディレクトリが作成される（初期化が起動する）ことを確認します。')
     const hookCase = createHookCase()
     const detection = setUpDetection(hookCase)
     const result = runScript(hookCase, detection.ptusScript, [], { stdin: '{"tool_input": {"skill": "pecot-w:w-help"}}' })
@@ -166,7 +176,8 @@ describe('PreToolUse(Skill)', () => {
     expect(isPecotDirectoryCreated(detection.project)).toBe(true)
   })
 
-  it('pecot 以外の skill のとき、init が発火しない', () => {
+  it('pecot 以外の skill のとき、init が発火しない', async () => {
+    await explains('PreToolUse(Skill) の検知スクリプトのテストです。pecot 以外のスキルを入力した場合に、`.pecot` ディレクトリを作成しないことを確認します。')
     const hookCase = createHookCase()
     const detection = setUpDetection(hookCase)
     const result = runScript(hookCase, detection.ptusScript, [], { stdin: '{"tool_input": {"skill": "claude-code-guide"}}' })
@@ -175,7 +186,8 @@ describe('PreToolUse(Skill)', () => {
   })
 
   // 決まりの注入は撤廃した（spec 025 FR-010）。
-  it('pecot の skill のとき、何も出力しない', () => {
+  it('pecot の skill のとき、何も出力しない', async () => {
+    await explains('PreToolUse(Skill) の検知スクリプトのテストです。pecot のスキルを入力した場合に、標準出力に何も出力せず、`.pecot` ディレクトリが作成されることを確認します。')
     const hookCase = createHookCase()
     const detection = setUpDetection(hookCase)
     const result = runScript(hookCase, detection.ptusScript, [], { stdin: '{"tool_input": {"skill": "pecot-w:w-help"}}' })
@@ -184,7 +196,8 @@ describe('PreToolUse(Skill)', () => {
     expect(isPecotDirectoryCreated(detection.project)).toBe(true)
   })
 
-  it('pecot 以外の skill のとき、何も出力しない', () => {
+  it('pecot 以外の skill のとき、何も出力しない', async () => {
+    await explains('PreToolUse(Skill) の検知スクリプトのテストです。pecot 以外のスキルを入力した場合に、標準出力に何も出力しないことを確認します。')
     const hookCase = createHookCase()
     const detection = setUpDetection(hookCase)
     const result = runScript(hookCase, detection.ptusScript, [], { stdin: '{"tool_input": {"skill": "claude-code-guide"}}' })

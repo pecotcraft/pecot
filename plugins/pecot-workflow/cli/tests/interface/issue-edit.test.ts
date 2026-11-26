@@ -10,6 +10,7 @@ import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { boardValue, connectionPage, definitionsData, issueAttributesData, issueFieldsProbeRule } from '../_helpers/attributes.js'
 import type { DefinitionsSpec, IssueAttributesSpec } from '../_helpers/attributes.js'
+import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -68,6 +69,7 @@ function writesOf(github: Readonly<RunningGithub>): readonly RecordedRequest[] {
 describe('issue edit', () => {
   describe('書く', () => {
     it('--attribute を渡すと、変えた値を Markdown の箇条書きで標準出力に出し、変えた機能を set の行に出す', async () => {
+      await explains('`issue edit` の基本の動作のテストです。`--attribute` を渡した場合に、変えた値を Markdown の箇条書きで標準出力へ出力し、変えた機能を `set` の行として出力することを確認します。')
       setUpProject()
       await startGithub([...readRules(), boardWritten()])
 
@@ -76,8 +78,9 @@ describe('issue edit', () => {
       expect(result).toEqual({ code: 0, stdout: '- Area: cli -> docs\n', stderr: 'set: Issue acme/demo/7 Area\n' })
     })
 
-    it('--dry-run を付けて打つと、値を照らし、何も書かずに、書く予定を dry-run の行と箇条書きで出す', async (context) => {
+    it('--dry-run を付けると、値を検証し、何も書かずに、書く予定を dry-run の行と箇条書きで出す', async (context) => {
       await verifies(context, 'PW-ISSUE-EDIT-16')
+      await explains('`issue edit --dry-run` のテストです。`--dry-run` を指定した場合に、値の検証だけを行い、書き込みは送らずに、書く予定を `dry-run` の行と箇条書きで出力することを確認します。')
       setUpProject()
       const github = await startGithub(readRules())
 
@@ -90,6 +93,7 @@ describe('issue edit', () => {
     it('attributes に値を渡すと、名前で引いた機能に値を書き、changed に前と後の値を入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-EDIT-01')
       await verifies(context, 'PW-ISSUE-EDIT-04')
+      await explains('MCP ツール `issue_edit` の基本の動作のテストです。`attributes` に値を渡した場合に、名前で選んだ機能へ値を書き、`changed` に変更前と変更後の値を返すことを確認します。')
       setUpProject()
       const github = await startGithub([
         ...readRules(),
@@ -131,6 +135,7 @@ describe('issue edit', () => {
 
     it('value に null を渡すと、その機能の値を外し、changed の after を null にする', async (context) => {
       await verifies(context, 'PW-ISSUE-EDIT-02')
+      await explains('MCP ツール `issue_edit` の値を外すテストです。`value` に `null` を渡した場合に、その機能の値を外し、`changed` の `after` を `null` で返すことを確認します。')
       setUpProject()
       const issueFieldValues = [{ __typename: 'IssueFieldNumberValue', field: { name: 'Effort', dataType: 'NUMBER' }, numberValue: 5 }]
       const github = await startGithub([...readRules({ fieldValues: [AREA_CLI], milestone: 'v1', issueFieldValues }), patched({}), fieldValueDeleted(), boardCleared()])
@@ -155,6 +160,7 @@ describe('issue edit', () => {
 
     it('外す Issue field の値が書く前に消えていると、DELETE の 404 を変化なしとして changed に入れない', async (context) => {
       await verifies(context, 'PW-ISSUE-EDIT-02')
+      await explains('MCP ツール `issue_edit` の Issue field の値を外すテストです。外す値が書き込みの前に消えていて `DELETE` が 404 を返した場合に、変化なしとして扱い、`changed` に入れないことを確認します。')
       setUpProject()
       const issueFieldValues = [{ __typename: 'IssueFieldNumberValue', field: { name: 'Effort', dataType: 'NUMBER' }, numberValue: 5 }]
       await startGithub([...readRules({ fieldValues: [AREA_CLI], issueFieldValues }), fieldValueDeleted(404)])
@@ -165,8 +171,9 @@ describe('issue edit', () => {
       expect(outcome.structured).toStrictEqual({ changed: [], errors: [], failed: [] })
     })
 
-    it('今の値と同じ値を渡すと、書かずに、changed にも入れない。ラベルは順を問わずに比べる', async (context) => {
+    it('今の値と同じ値を渡すと、書かずに、changed にも入れない。ラベルは順序が違っても同じ値として扱う', async (context) => {
       await verifies(context, 'PW-ISSUE-EDIT-03')
+      await explains('MCP ツール `issue_edit` の変更なしのテストです。今の値と同じ値を渡した場合に、何も書かず、`changed` にも入れず、ラベルは並びが違っても同じ値として扱うことを確認します。')
       setUpProject()
       const definitions = { labels: connectionPage([{ name: 'bug' }, { name: 'docs' }]) }
       const github = await startGithub(readRules({ fieldValues: [AREA_CLI], labels: ['bug', 'docs'] }, definitions))
@@ -178,11 +185,12 @@ describe('issue edit', () => {
     })
   })
 
-  describe('照らして止める', () => {
+  describe('検証して止める', () => {
     it('値が 1 つでも定義に合わないと、何も書かずに、合わないものをすべて errors に入れて invalid-input の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-EDIT-05')
       await verifies(context, 'PW-ISSUE-EDIT-06')
       await verifies(context, 'PW-ISSUE-EDIT-09')
+      await explains('MCP ツール `issue_edit` の値の検証のテストです。定義に合わない値が 1 つでもある場合に、何も書かず、合わない値をすべて `errors` に入れて `kind` が `invalid-input` の失敗を返すことを確認します。')
       setUpProject()
       const github = await startGithub([...readRules(), assignable('ghost', 404)])
 
@@ -205,6 +213,7 @@ describe('issue edit', () => {
 
     it('同じ名前が複数の source にあり source を渡していないと、ambiguous_attribute にし、候補の source を sources に入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-EDIT-07')
+      await explains('MCP ツール `issue_edit` の機能の名前の検証のテストです。同じ名前が複数の source にあり source を渡していない場合に、`ambiguous_attribute` を返し、候補の source を `sources` に入れることを確認します。')
       setUpProject()
       const fields = [{ id: 'F_effort', name: 'Effort', dataType: 'NUMBER', isIssueField: false }]
       await startGithub(readRules({}, { fields }))
@@ -219,6 +228,7 @@ describe('issue edit', () => {
       { name: '組み込みの Status', attribute: 'Status', value: 'Done' },
     ])('$name を渡すと、read_only_attribute にし、board_move を使うよう hint に入れる', async ({ attribute, value }, context) => {
       await verifies(context, 'PW-ISSUE-EDIT-08')
+      await explains('MCP ツール `issue_edit` の読み取り専用の機能のテストです。進行の欄と組み込みの `Status` を渡した場合に、`read_only_attribute` を返し、`board_move` の使用を `hint` で案内することを確認します。')
       setUpProject()
       await startGithub(readRules())
 
@@ -228,8 +238,9 @@ describe('issue edit', () => {
       expect(JSON.stringify(outcome.structured['errors'])).toContain('board_move')
     })
 
-    it('Issue が設定のボードに無いのにボードのフィールドを渡すと、not_on_board にし、board_add を使うよう hint に入れる', async (context) => {
+    it('Issue が設定のボードに存在しないのにボードのフィールドを渡すと、not_on_board にし、board_add を使うよう hint に入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-EDIT-10')
+      await explains('MCP ツール `issue_edit` のボードのフィールドのテストです。設定のボードが Issue を持たない場合に、`not_on_board` を返し、`board_add` の使用を `hint` で案内することを確認します。')
       setUpProject()
       await startGithub(readRules({ isOnBoard: false }))
 
@@ -241,6 +252,7 @@ describe('issue edit', () => {
 
     it('機能の定義を読めなかった source の名前を渡すと、unreadable_attribute にし、読めなかった理由を hint に入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-EDIT-11')
+      await explains('MCP ツール `issue_edit` の機能の定義のテストです。定義を読めなかった source の名前を渡した場合に、`unreadable_attribute` を返し、読めなかった理由を `hint` に入れることを確認します。')
       setUpProject()
       const errors = [{ type: 'FORBIDDEN', path: ['repository', 'issueFields'], message: 'Resource not accessible by integration' }]
       await startGithub([issueFieldsProbeRule(true, 2), valuesRule(issueAttributesData()), definitionsRule({ data: definitionsData({ issueFields: null }), errors })])
@@ -255,6 +267,7 @@ describe('issue edit', () => {
   describe('書けなかった機能', () => {
     it('Issue fields の書き込みを GitHub が拒むと、ほかの機能を書き続け、GitHub の理由を failed に入れて partial-failure の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-EDIT-12')
+      await explains('MCP ツール `issue_edit` の Issue fields の書き込みが失敗した場合のテストです。GitHub が書き込みを拒んだ場合に、ほかの機能は書き続け、GitHub の理由を `failed` に入れて `partial-failure` の失敗を返すことを確認します。')
       setUpProject()
       const github = await startGithub([...readRules(), fieldValuesAdded(403), boardWritten()])
 
@@ -272,6 +285,7 @@ describe('issue edit', () => {
 
     it('GitHub が組み込みの機能の値を捨てると、その機能を failed に入れて partial-failure の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-EDIT-13')
+      await explains('MCP ツール `issue_edit` の組み込みの機能の書き込みのテストです。GitHub が値を捨てた場合に、その機能を `failed` に入れて `partial-failure` の失敗を返すことを確認します。')
       setUpProject()
       await startGithub([...readRules(), patched({})])
 
@@ -286,8 +300,9 @@ describe('issue edit', () => {
   })
 
   describe('失敗', () => {
-    it('対象のリポを含む設定が無いと、kind が repo-not-in-project の失敗を返す', async (context) => {
+    it('対象のリポを含む設定が存在しないと、kind が repo-not-in-project の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-EDIT-14')
+      await explains('MCP ツール `issue_edit` のプロジェクトの登録を検証するテストです。対象のリポジトリを含む設定が存在しない場合に、`kind` が `repo-not-in-project` の失敗を返すことを確認します。')
       setUpProject({ repositories: ['other'] })
 
       const outcome = await edit([{ name: 'Area', value: 'docs' }])
@@ -297,6 +312,7 @@ describe('issue edit', () => {
 
     it('GitHub API がエラーを返すと、kind が github-api の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-EDIT-15')
+      await explains('MCP ツール `issue_edit` の GitHub API のエラーのテストです。GitHub API がエラーを返した場合に、`kind` が `github-api` の失敗を返すことを確認します。')
       setUpProject()
       await startGithub([issueFieldsProbeRule(), { match: { operation: 'GetIssueAttributes' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
 
@@ -308,6 +324,7 @@ describe('issue edit', () => {
     })
 
     it('JSON として読めない --attribute を渡すと、使い方の誤りで終了コード 2 を返し、GitHub を呼ばない', async () => {
+      await explains('`issue edit` の `--attribute` の検証のテストです。JSON として読めない値を渡した場合に、GitHub へは要求せず、終了コード 2 で終わることを確認します。')
       setUpProject()
       const github = await startGithub([])
 

@@ -8,6 +8,7 @@ import { generatedFileSchema } from '../src/domain/schema.js'
 import type { GeneratedFile } from '../src/domain/schema.js'
 import { materialize } from './helpers/repository.js'
 import { step, stepSync } from '../src/vitest/step.js'
+import { explains } from '../src/vitest/explains.js'
 
 const GENERATED = 'plugins/pecot-workflow/interface/generated.json'
 
@@ -63,14 +64,16 @@ const EXPECTED = [
 ].join('\n')
 
 describe('commands-md', () => {
-  it('グループを名前順に並べ、1 段のパスを最後のその他にまとめて描く', async () => {
+  it('コマンドをグループの名前順に並べ、パスが 1 段のものを最後の「その他」にまとめて出力する', async () => {
+    await explains('定義書から `commands.md` の本文を作成する `renderCommandsMd` のテストです。コマンドがグループの名前順に並び、パスが 1 段のコマンドが最後の「その他」の表にまとまることを確認します。')
     const file = await step('定義を読み込む', async () => await fixtureFile(await materialize('commands-md')))
     stepSync('描いた文書を比べる', () => {
       expect(renderCommandsMd(file, 'CMD')).toBe(EXPECTED)
     })
   })
 
-  it('hidden の項目と CLI の面を持たない項目を出さない', async () => {
+  it('非表示にした項目と CLI を持たない項目を、commands.md に出力しない', async () => {
+    await explains('定義書から `commands.md` の本文を作成する `renderCommandsMd` のテストです。`hidden` の項目と、CLI の面を持たず MCP だけの項目が、出力に含まれないことを確認します。')
     const file = await step('定義を読み込む', async () => await fixtureFile(await materialize('commands-md')))
     const text = stepSync('文書を描く', () => renderCommandsMd(file, 'CMD'))
     stepSync('文書を比べる', () => {
@@ -79,7 +82,8 @@ describe('commands-md', () => {
     })
   })
 
-  it('生成物と一致していると、何も出さず 0 で終わる', async () => {
+  it('commands.md が定義書から作成した内容と一致していると、何も出力せず 0 で終了する', async () => {
+    await explains('`interface-spec commands-md --check` コマンドのテストです。`--write` で作成した `commands.md` に対して `--check` を実行した場合、何も出力せず、終了コード 0 で終了することを確認します。')
     const root = await materialize('commands-md')
     await step('commands.md を書く', async () => {
       await call('commands-md', '--write', '--root', root)
@@ -89,7 +93,8 @@ describe('commands-md', () => {
     })
   })
 
-  it('説明を変えると、stale の 2 行を出して 1 で終わる', async () => {
+  it('定義書の説明を変えると、stale の 2 行を出力し、1 で終了する', async () => {
+    await explains('`interface-spec commands-md --check` コマンドのテストです。`generated.json` の説明を変更した場合に、`commands.md` が古いことを示す 2 行を標準エラーへ出力し、終了コード 1 で終了することを確認します。')
     const root = await materialize('commands-md')
     await step('commands.md を書く', async () => {
       await call('commands-md', '--write', '--root', root)
@@ -106,7 +111,8 @@ describe('commands-md', () => {
     })
   })
 
-  it('commands.md が無いと、stale の 2 行を出して 1 で終わる', async () => {
+  it('commands.md が存在しないと、stale の 2 行を出力し、1 で終了する', async () => {
+    await explains('`interface-spec commands-md --check` コマンドのテストです。`commands.md` を削除した場合に、`commands.md` が古いことを示す 2 行を標準エラーへ出力し、終了コード 1 で終了することを確認します。')
     const root = await materialize('commands-md')
     await step('commands.md を消す', async () => {
       await rm(path.join(root, COMMANDS_MD_PATH))
@@ -116,7 +122,8 @@ describe('commands-md', () => {
     })
   })
 
-  it('--write は書き換えて updated を出し、変わらないときは何も出さず 0 で終わる', async () => {
+  it('commands-md --write は、内容が変わると updated を出力し、変わらないと何も出力せず 0 で終了する', async () => {
+    await explains('`interface-spec commands-md --write` コマンドのテストです。古い内容の `commands.md` を更新した場合に `updated:` の行を出力し、2 回目の実行では何も出力せず、どちらも終了コード 0 で終了することを確認します。')
     const root = await materialize('commands-md')
     await step('古い commands.md を置く', async () => {
       await writeFile(path.join(root, COMMANDS_MD_PATH), 'stale\n')
@@ -138,7 +145,8 @@ describe('commands-md', () => {
     { name: '知らない引数', argv: ['commands-md', '--check', '--unknown'] },
     { name: '値の無い --root', argv: ['commands-md', '--check', '--root'] },
     { name: 'validate への余分な引数', argv: ['validate', '--check'] },
-  ])('$name を渡すと、使い方を出して 2 で終わる', async ({ argv }) => {
+  ])('commands-md に $name を渡すと、使い方を出力し、2 で終了する', async ({ name, argv }) => {
+    await explains(`\`interface-spec commands-md\` コマンドの引数の検証のテストです。\`${name}\` を渡した場合に、使い方を標準エラーへ出力し、終了コード 2 で終了することを確認します。`)
     const result = await step('CLI を動かす', () => call(...argv))
     stepSync('結果を比べる', () => {
       expect(result.code).toBe(2)
@@ -158,7 +166,8 @@ describe('commands-md', () => {
       },
       message: `${COMMANDS_MD_PATH}: EISDIR`,
     },
-  ])('$name と、エラーを 1 行出して 2 で終わる', async ({ prepare, message }) => {
+  ])('$name と、エラーを 1 行出力し、2 で終了する', async ({ name, prepare, message }) => {
+    await explains(`\`interface-spec commands-md --check\` コマンドのテストです。入力のファイルが「${name}」状態の場合に、原因を示すエラーを標準エラーへ 1 行出力し、終了コード 2 で終了することを確認します。`)
     const root = await materialize('commands-md')
     await step('失敗する状態を用意する', async () => {
       await prepare(root)

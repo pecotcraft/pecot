@@ -62,7 +62,11 @@ def _all_steps(path: Path) -> list[dict[str, Any]]:
 # ---------------------------------------------------------------- pages-build.yml
 
 
+@allure.title(
+    "pages-build は、main への push・PR の更新・手動の起動で動き、手動の起動では側を選べる"
+)
 def test_build_triggers() -> None:
+    """`pages-build.yml` の契機のテストです。`push` は main だけ、`pull_request` は 4 種類のイベントで動くことを確認します。`workflow_dispatch` は、`release` と `dev` から選ぶ `side` だけを入力に持ちます。"""
     with allure.step("pages-build.yml の on を読む"):
         on = _load(_BUILD)[True]
     with allure.step("push・pull_request・workflow_dispatch の形を確かめる"):
@@ -76,7 +80,9 @@ def test_build_triggers() -> None:
         assert set(on) == {"push", "pull_request", "workflow_dispatch"}
 
 
+@allure.title("pages-build は、側を決める job の後に、ビルドの job を実行する")
 def test_build_has_side_and_build_jobs() -> None:
+    """`pages-build.yml` の job のテストです。`side` と `build` の 2 つがこの順に存在し、`build` が `side` の結果に応じて動くことを確認します。"""
     with allure.step("pages-build.yml の job を読む"):
         jobs = _load(_BUILD)["jobs"]
     with allure.step("side と build の 2 つで、build が side に続くことを確かめる"):
@@ -85,7 +91,9 @@ def test_build_has_side_and_build_jobs() -> None:
         assert jobs["build"]["if"] == "${{ needs.side.outputs.build == 'true' }}"
 
 
+@allure.title("main 以外のブランチから手動で起動すると、最初の step で失敗する")
 def test_dispatch_outside_main_fails_before_anything_else() -> None:
+    """`pages-build.yml` の `side` の job の最初の step のテストです。`workflow_dispatch` かつ main 以外のブランチのときだけ動き、`exit 1` で終了することを確認します。"""
     with allure.step("side の job の最初の step を読む"):
         first = _steps(_BUILD, "side")[0]
     with allure.step("main の外の dispatch を最初に失敗させることを確かめる"):
@@ -95,7 +103,9 @@ def test_dispatch_outside_main_fails_before_anything_else() -> None:
         assert "exit 1" in first["run"]
 
 
+@allure.title("閉じた PR とフォークの PR では、サイトをビルドしない")
 def test_side_builds_nothing_for_closed_and_fork_pull_requests() -> None:
+    """`pages-build.yml` の `decide` の step のテストです。PR が閉じられたときとフォークからの PR のときに、`build=false` になることを確認します。あわせて、PR の情報が環境変数で渡され、sha が 40 桁の 16 進数であることを検証していることも確認します。"""
     with allure.step("side を決める step の env と run を読む"):
         step = next(s for s in _steps(_BUILD, "side") if s.get("id") == "decide")
         env = step["env"]
@@ -115,7 +125,9 @@ def test_side_builds_nothing_for_closed_and_fork_pull_requests() -> None:
         assert '[[ "$SHA" =~ ^[0-9a-f]{40}$ ]]' in step["run"]
 
 
+@allure.title("リリース版は、全履歴を取得して材料を求める")
 def test_release_resolves_sources_from_full_history() -> None:
+    """リリース版の `side` の job のテストです。全履歴の checkout が行われ、`release_sources.py` が呼ばれ、`sha` と `sources` が job の出力に含まれることを確認します。"""
     with allure.step("side の job の checkout と release の元の step を読む"):
         (checkout,) = _uses(_BUILD, "side", "actions/checkout")
     with allure.step("全履歴から release の元を決めることを確かめる"):
@@ -128,7 +140,9 @@ def test_release_resolves_sources_from_full_history() -> None:
         assert outputs["sources"] == "${{ steps.release.outputs.sources }}"
 
 
+@allure.title("リリース版のビルドには、レポートの材料を渡す")
 def test_release_passes_report_sources_to_release_build() -> None:
+    """リリース版のレポートの材料のテストです。`release_sources.py --report release` の結果が、`build` の job を経て `--report-sources` の引数に渡されることを確認します。"""
     with allure.step("release の元の step を読む"):
         resolve = _step(_BUILD, "side", "Resolve release sources")
     with allure.step("report の元を release の build へ渡すことを確かめる"):
@@ -143,7 +157,9 @@ def test_release_passes_report_sources_to_release_build() -> None:
         assert '--report-sources "$RUNNER_TEMP/report-sources.json"' in release["run"]
 
 
+@allure.title("ビルドの job は、テストを実行せずにサイトだけを作る")
 def test_build_makes_the_site_without_running_tests() -> None:
+    """`pages-build.yml` の `build` の job のテストです。step の並びが期待どおりで、実行する nx のコマンドが `interface-spec:docs` だけであり、`run-pr-checks.sh` が呼ばれないことを確認します。"""
     with allure.step("build の job の step の名前を読む"):
         names = [s["name"] for s in _steps(_BUILD, "build")]
     with allure.step("サイトを作るだけで、テストは動かさないことを確かめる"):
@@ -165,7 +181,9 @@ def test_build_makes_the_site_without_running_tests() -> None:
         assert "release_build.py" in release["run"]
 
 
+@allure.title("サイトの側と PR 番号を、開発用のコンテナに渡す")
 def test_build_passes_site_env_into_container() -> None:
+    """`build` の job の環境変数のテストです。`PECOT_SITE_SIDE` と `PECOT_SITE_PR` が `side` の出力から設定され、`DEVCONTAINER_ENV` にこの 2 つが並ぶことを確認します。"""
     with allure.step("build の job の env を読む"):
         env = _job(_BUILD, "build")["env"]
     with allure.step("サイトの env をコンテナへ渡すことを確かめる"):
@@ -174,14 +192,18 @@ def test_build_passes_site_env_into_container() -> None:
         assert env["DEVCONTAINER_ENV"].split() == ["PECOT_SITE_SIDE", "PECOT_SITE_PR"]
 
 
+@allure.title("pages-build の権限は、contents の読み取りだけに限る")
 def test_build_permissions_are_contents_read_only() -> None:
+    """`pages-build.yml` の権限のテストです。workflow に `contents: read` だけが指定され、job ごとの権限の指定が存在しないことを確認します。"""
     with allure.step("権限が contents の read だけで、job に権限が無いことを確かめる"):
         assert _load(_BUILD)["permissions"] == {"contents": "read"}
         for name, job in _load(_BUILD)["jobs"].items():
             assert "permissions" not in job, name
 
 
+@allure.title("pages-build は、側ごとに最新の run だけを残す")
 def test_build_concurrency_keeps_only_the_latest_per_side() -> None:
+    """`pages-build.yml` の `concurrency` のテストです。グループが側と PR 番号またはブランチで決まり、`cancel-in-progress` が `true` であることを確認します。"""
     with allure.step("concurrency の設定を読む"):
         concurrency = _load(_BUILD)["concurrency"]
     with allure.step("side ごとに最新の 1 つだけを残すことを確かめる"):
@@ -192,7 +214,9 @@ def test_build_concurrency_keeps_only_the_latest_per_side() -> None:
         assert concurrency["cancel-in-progress"] is True
 
 
+@allure.title("ビルドの job は、1 つの側を artifact として 7 日間保存する")
 def test_build_uploads_one_side_for_seven_days() -> None:
+    """`pages-build.yml` の artifact のアップロードのテストです。`upload-artifact` が 1 つだけで、名前・パス・保存期間 7 日・上書きの許可・ファイルが存在しないときのエラーが期待どおりであることを確認します。"""
     with allure.step("upload の step を集める"):
         uploads = [
             s
@@ -210,7 +234,9 @@ def test_build_uploads_one_side_for_seven_days() -> None:
         assert upload["with"]["if-no-files-found"] == "error"
 
 
+@allure.title("checkout の参照は、step の出力ではなく github のコンテキストから取得する")
 def test_checkout_refs_come_from_github_not_step_outputs() -> None:
+    """`pages-build.yml` の `actions/checkout` の `ref` のテストです。`build` は PR の head の sha か `github.sha`、`side` は `github.sha` であることを確認します。"""
     with allure.step("build と side の checkout を読む"):
         # step の出力の SHA を checkout すると、CodeQL の actions/cache-poisoning が手での起動で止める。
         # PR 版は、merge のコミットでなく PR の head で作る。
@@ -221,7 +247,9 @@ def test_checkout_refs_come_from_github_not_step_outputs() -> None:
         assert side["with"]["ref"] == "${{ github.sha }}"
 
 
+@allure.title("ワークスペースの所有者は、失敗した場合も含めて必ず元に戻す")
 def test_build_restores_owner_always() -> None:
+    """`Restore workspace owner` の step のテストです。条件が `always()` で、`dev-container.sh restore-owner` を実行することを確認します。"""
     with allure.step("owner を戻す step を読む"):
         step = _step(_BUILD, "build", "Restore workspace owner")
     with allure.step("いつでも動き、restore-owner を呼ぶことを確かめる"):
@@ -232,7 +260,9 @@ def test_build_restores_owner_always() -> None:
 # ---------------------------------------------------------------- pages-deploy.yml
 
 
+@allure.title("pages-deploy は、pages-build と test-report の run の完了で動く")
 def test_deploy_triggers() -> None:
+    """`pages-deploy.yml` の契機のテストです。`workflow_run` が 2 つの workflow の完了を待ち、`workflow_dispatch` も使え、それ以外の契機が存在しないことを確認します。"""
     with allure.step("pages-deploy.yml の on を読む"):
         on = _load(_DEPLOY)[True]
     with allure.step("workflow_run と workflow_dispatch の形を確かめる"):
@@ -245,7 +275,9 @@ def test_deploy_triggers() -> None:
         assert set(on) == {"workflow_run", "workflow_dispatch"}
 
 
+@allure.title("pages-deploy の job は、最小の権限と決まった environment を持つ")
 def test_deploy_jobs_permissions_and_environments() -> None:
+    """`pages-deploy.yml` の job の並びと権限のテストです。job ごとに必要な権限だけが指定され、`store` は `pages-store`、`deploy` は `github-pages` の environment を使うことを確認します。"""
     with allure.step("pages-deploy.yml の job を読む"):
         workflow = _load(_DEPLOY)
     with allure.step("job ごとの権限と environment を確かめる"):
@@ -273,14 +305,18 @@ def test_deploy_jobs_permissions_and_environments() -> None:
         assert jobs["deploy"]["environment"]["name"] == "github-pages"
 
 
+@allure.title("サイトに関する workflow は、actions の書き込み権限を持たない")
 def test_no_workflow_has_actions_write() -> None:
+    """`pages-build.yml`・`pages-deploy.yml`・`ci.yml` のテストです。いずれも `actions: write` を含まないことを確認します。"""
     with allure.step("3 つの workflow に actions の write が無いことを確かめる"):
         for path in (_BUILD, _DEPLOY, _CI):
             text = path.read_text(encoding="utf-8")
             assert not re.search(r"actions:\s*write", text), path.name
 
 
+@allure.title("pages-deploy の `concurrency` は、実行中の run を取り消さず、順番に実行する")
 def test_deploy_concurrency() -> None:
+    """`pages-deploy.yml` の `concurrency` のテストです。`store` と、`upload` と `deploy` が、それぞれ `queue: max` で `cancel-in-progress` が `false` のグループを使うことを確認します。"""
     with allure.step("store・upload・deploy の concurrency を確かめる"):
         assert _job(_DEPLOY, "store")["concurrency"] == {
             "group": "pages-store",
@@ -297,7 +333,9 @@ def test_deploy_concurrency() -> None:
             }, job
 
 
+@allure.title("pages-deploy の job は、前の job の結果に応じた条件で動く")
 def test_deploy_job_conditions() -> None:
+    """`pages-deploy.yml` の job の `needs` と `if` のテストです。手動の起動では `verify` と `store` を飛ばして公開し直し、`deploy` は `upload` の結果が成功のときだけ動くことを確認します。"""
     with allure.step("verify・store・upload・deploy の条件と needs を確かめる"):
         assert _job(_DEPLOY, "verify")["if"] == "${{ github.event_name == 'workflow_run' }}"
         store = _job(_DEPLOY, "store")
@@ -318,7 +356,9 @@ def test_deploy_job_conditions() -> None:
         assert deploy["if"] == "${{ !cancelled() && needs.upload.result == 'success' }}"
 
 
+@allure.title("プレビューのステータスは、保管した PR 版の deploy の後に付ける")
 def test_preview_status_runs_after_deploy_of_a_stored_pr_side() -> None:
+    """`preview-status` の job のテストです。`verify`・`store`・`deploy` を待ち、条件が期待する式と一致することを確認します。"""
     with allure.step("preview-status の job を読む"):
         job = _job(_DEPLOY, "preview-status")
     with allure.step("deploy の後で、保管した PR の side にだけ動くことを確かめる"):
@@ -327,7 +367,9 @@ def test_preview_status_runs_after_deploy_of_a_stored_pr_side() -> None:
         assert job["if"] == _PREVIEW_IF
 
 
+@allure.title("検証した head のコミットに、pages / preview のステータスを付ける")
 def test_preview_status_sets_pages_preview_on_the_verified_head() -> None:
+    """`Set preview status` の step のテストです。環境変数が期待どおりで、`gh api` で `success` の状態・`pages / preview` の context・PR のプレビューの URL を送信することを確認します。"""
     with allure.step("preview-status の step を読む"):
         (step,) = _steps(_DEPLOY, "preview-status")
     with allure.step("確かめた head に pages / preview の status を付けることを確かめる"):
@@ -345,7 +387,9 @@ def test_preview_status_sets_pages_preview_on_the_verified_head() -> None:
         assert '-f target_url="https://pecotcraft.github.io/pecot/pr/$PR/"' in run
 
 
+@allure.title("pages / preview のステータスは、pages-deploy だけが書き込む")
 def test_pages_preview_context_is_written_only_by_pages_deploy() -> None:
+    """ステータスの context `pages / preview` のテストです。この文字列を含む workflow が `pages-deploy.yml` だけで、main の必須チェックの名前と重ならないことを確認します。"""
     with allure.step("pages / preview を書く workflow を集める"):
         writers = [
             p.name
@@ -365,7 +409,9 @@ def test_pages_preview_context_is_written_only_by_pages_deploy() -> None:
         assert "pages / preview" not in contexts
 
 
+@allure.title("検証の job は、main を checkout して run を読み、artifact をツリーの外に置く")
 def test_verify_reads_the_run_from_main_and_keeps_artifact_outside_the_tree() -> None:
+    """`verify` の job のテストです。checkout が main の全履歴で認証情報を残さず、`RUN_ID` が `workflow_run` の id から設定され、出力先が `RUNNER_TEMP` の下であることを確認します。"""
     with allure.step("verify の checkout と step を読む"):
         (checkout,) = _uses(_DEPLOY, "verify", "actions/checkout")
     with allure.step("main から読み、artifact を作業ツリーの外に置くことを確かめる"):
@@ -381,7 +427,9 @@ def test_verify_reads_the_run_from_main_and_keeps_artifact_outside_the_tree() ->
         assert '--out "$RUNNER_TEMP/pages-verified"' in step["run"]
 
 
+@allure.title("保管の job は、environment の GitHub App のトークンだけで書き込む")
 def test_store_writes_with_the_pages_store_app_from_environment_only() -> None:
+    """`store` の job のテストです。トークンを `PAGES_STORE_APP_CLIENT_ID` と秘密鍵から作り、秘密鍵の参照が 1 か所だけで、トークンを remote の URL に入れず、マスクすることを確認します。"""
     with allure.step("store の App token の step を読む"):
         (token,) = _uses(_DEPLOY, "store", "actions/create-github-app-token")
     with allure.step("pages-store の App を environment からだけ使うことを確かめる"):
@@ -399,14 +447,18 @@ def test_store_writes_with_the_pages_store_app_from_environment_only() -> None:
         assert "::add-mask::" in store["run"]
 
 
+@allure.title("pages-deploy が待つ workflow の名前は、ビルドとレポートの workflow の名前と一致する")
 def test_deploy_workflow_run_names_match_the_build_and_report_workflows() -> None:
+    """`workflow_run` に指定した名前のテストです。`pages-build.yml` と `test-report.yml` の `name` と過不足なく一致することを確認します。"""
     with allure.step("build と report の workflow の名前を集める"):
         names = {_load(path)["name"] for path in (_BUILD, _REPORT)}
     with allure.step("deploy の workflow_run の名前と一致することを確かめる"):
         assert set(_load(_DEPLOY)[True]["workflow_run"]["workflows"]) == names
 
 
+@allure.title("検証した種類と側を、保管の job に渡す")
 def test_verify_outputs_the_kind_to_store() -> None:
+    """`verify` の job の出力のテストです。`kind` が出力に含まれ、`store` の環境変数 `KIND` と `SIDE` に `verify` の出力が設定されることを確認します。"""
     with allure.step("verify の output を読む"):
         outputs = _job(_DEPLOY, "verify")["outputs"]
     with allure.step("保管する種類を store へ渡すことを確かめる"):
@@ -424,7 +476,9 @@ def _store_branches() -> tuple[str, str, str]:
     return report, site, rest
 
 
+@allure.title("保管の job は、種類に応じて渡す tar と材料のファイルを切り替える")
 def test_store_passes_the_report_tar_and_sources_for_a_report() -> None:
+    """`Store side` の step のテストです。レポートの場合は `report.tar` と `report-sources.json` を、定義書の場合は `site.tar` などを渡すことを確認します。側が決まらないときは `--side none` になります。"""
     with allure.step("store の run を読む"):
         run = _step(_DEPLOY, "store", "Store side")["run"]
     with allure.step("report・site・それ以外で、渡す引数が分かれることを確かめる"):
@@ -449,7 +503,9 @@ def test_store_passes_the_report_tar_and_sources_for_a_report() -> None:
         assert "--kind" not in rest
 
 
+@allure.title("公開の job は、pages-store を checkout して Pages に公開する")
 def test_deploy_publishes_pages_store() -> None:
+    """`pages-deploy.yml` の公開のテストです。`upload` の job が `pages-store` を checkout し、`upload` と `deploy` が Pages の 3 つの action を順に使うことを確認します。"""
     with allure.step("upload の checkout と action の並びを読む"):
         (checkout,) = _uses(_DEPLOY, "upload", "actions/checkout")
     with allure.step("pages-store を公開する並びであることを確かめる"):
@@ -459,7 +515,9 @@ def test_deploy_publishes_pages_store() -> None:
         assert upload[1:] + deploy == list(_PAGES_ACTIONS)
 
 
+@allure.title("Pages の artifact は、deploy より前の job でアップロードする")
 def test_pages_artifact_is_uploaded_in_an_earlier_job_than_deploy() -> None:
+    """`pages-deploy.yml` のテストです。`upload-pages-artifact` と `deploy-pages` を同じ job で使う job が存在しないことを確認します。"""
     with allure.step("Pages の artifact の upload が、deploy より前の job にあることを確かめる"):
         # 上げた直後の artifact は deploy-pages の照会に出ないことがある（actions/deploy-pages#451）。
         for name, job in _load(_DEPLOY)["jobs"].items():
@@ -467,7 +525,9 @@ def test_pages_artifact_is_uploaded_in_an_earlier_job_than_deploy() -> None:
             assert not {"actions/upload-pages-artifact", "actions/deploy-pages"} <= uses, name
 
 
+@allure.title("Pages の action は、定めた版に固定する")
 def test_pages_actions_are_pinned_to_the_contract_versions() -> None:
+    """`pages-deploy.yml` の 3 つの Pages の action のテストです。SHA の後ろのコメントに、定めた版が書かれていることを確認します。"""
     with allure.step("pages-deploy.yml の行を読む"):
         # 版は SHA の後ろのコメントにだけある。YAML の読み込みではコメントが消えるので、行で見る。
         lines = _DEPLOY.read_text(encoding="utf-8").splitlines()
@@ -477,7 +537,9 @@ def test_pages_actions_are_pinned_to_the_contract_versions() -> None:
             assert line.endswith(f" # {version}"), line
 
 
+@allure.title("actionlint は、pages-deploy の `queue` を publish-npm と同じ設定で除外する")
 def test_actionlint_ignores_queue_for_pages_deploy() -> None:
+    """`.github/actionlint.yaml` のテストです。`pages-deploy.yml` の除外の設定が、`publish-npm.yml` と同じであることを確認します。"""
     with allure.step("actionlint の設定を読む"):
         paths = _load(_ACTIONLINT)["paths"]
     with allure.step("pages-deploy.yml の無視が publish-npm.yml と同じであることを確かめる"):
@@ -490,7 +552,9 @@ def test_actionlint_ignores_queue_for_pages_deploy() -> None:
 # ---------------------------------------------------------------- ci.yml
 
 
+@allure.title("ci.yml は、サイトをビルドしない")
 def test_ci_does_not_build_the_site() -> None:
+    """`ci.yml` のテストです。`pages-preview` の job が存在せず、`interface-spec:docs` を実行しないことを確認します。"""
     with allure.step("ci.yml にサイトを作る job が無いことを確かめる"):
         assert "pages-preview" not in _load(_CI)["jobs"]
         assert "interface-spec:docs" not in _CI.read_text(encoding="utf-8")
@@ -499,7 +563,9 @@ def test_ci_does_not_build_the_site() -> None:
 # ---------------------------------------------------------------- 共通
 
 
+@allure.title("すべての checkout は、認証情報を残さない")
 def test_checkouts_do_not_persist_credentials() -> None:
+    """`pages-build.yml`・`pages-deploy.yml`・`ci.yml` の `actions/checkout` のテストです。すべてで `persist-credentials` が `false` であることを確認します。"""
     with allure.step("3 つの workflow の checkout が認証情報を残さないことを確かめる"):
         for path in (_BUILD, _DEPLOY, _CI):
             for step in _all_steps(path):
@@ -507,7 +573,9 @@ def test_checkouts_do_not_persist_credentials() -> None:
                     assert step["with"]["persist-credentials"] is False, path.name
 
 
+@allure.title("すべての action は、40 桁の SHA で固定する")
 def test_actions_are_pinned_by_sha() -> None:
+    """`pages-build.yml`・`pages-deploy.yml`・`ci.yml` の `uses` のテストです。すべての参照が `owner/repo@<40 桁の 16 進数>` の形であることを確認します。"""
     with allure.step("3 つの workflow の action が sha で固定されていることを確かめる"):
         for path in (_BUILD, _DEPLOY, _CI):
             for step in _all_steps(path):
@@ -515,7 +583,9 @@ def test_actions_are_pinned_by_sha() -> None:
                     assert re.fullmatch(r"[\w.-]+/[\w.-]+@[0-9a-f]{40}", step["uses"]), step["uses"]
 
 
+@allure.title("run の中に、式と日本語を書かない")
 def test_run_has_no_expressions_and_no_japanese() -> None:
+    """`pages-build.yml`・`pages-deploy.yml`・`ci.yml` の `run` のテストです。すべての step で `${{` が含まれず、ASCII 以外の文字も含まれないことを確認します。"""
     with allure.step("3 つの workflow の run に式と日本語が無いことを確かめる"):
         for path in (_BUILD, _DEPLOY, _CI):
             for step in _all_steps(path):
@@ -531,7 +601,9 @@ def _ruleset(name: str) -> dict[str, Any]:
     return json.loads((_RULESETS / f"{name}.json").read_text(encoding="utf-8"))
 
 
+@allure.title("pages-store の ruleset は、専用の GitHub App だけに書き込みを許す")
 def test_pages_store_ruleset_lets_only_the_pages_store_app_write() -> None:
+    """`pages-store.json` のテストです。対象が `pages-store` ブランチで、迂回できるのは Integration 1 件だけであり、リリース用の App と別であることを確認します。"""
     with allure.step("pages-store の ruleset を読む"):
         data = _ruleset("pages-store")
     with allure.step("pages-store の App だけが書けることを確かめる"):
@@ -546,7 +618,9 @@ def test_pages_store_ruleset_lets_only_the_pages_store_app_write() -> None:
         assert {r["type"] for r in data["rules"]} == {"creation", "update", "deletion"}
 
 
+@allure.title("リリースのタグの ruleset は、リリース用の GitHub App だけに書き込みを許す")
 def test_release_tags_ruleset_lets_only_the_release_app_write() -> None:
+    """`release-tags.json` のテストです。対象が `refs/tags/*-v*` のタグで、迂回できる対象が main の ruleset と同じであることを確認します。"""
     with allure.step("release-tags と main の ruleset を読む"):
         data = _ruleset("release-tags")
         main = _ruleset("main")

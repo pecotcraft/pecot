@@ -17,6 +17,7 @@ import { buildPng } from '../_helpers/image-fixture.js'
 import type { PixelRegion, PpmImage } from '../_helpers/raster.js'
 import { CONVERT_TIMEOUT_MS, colorBounds, countColorOutside, ppmToPng, rasterize, readPpm } from '../_helpers/raster.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { explains } from '../_helpers/explains.js'
 
 const temporaryRoot = useTemporaryDirectory('pecotv-922-evidence-', { hook: 'all' })
 function isCommandAvailable(command: string): boolean {
@@ -326,7 +327,8 @@ afterAll(() => {
 })
 
 describe('生成 xlsx の soffice 変換', () => {
-  it('修復なしに Calc として PDF 化でき、タイトルと No.1 が現れる', { timeout: 240_000 }, async (context) => {
+  it('xlsx を Calc で修復せず PDF へ変換でき、タイトルと `No.1` の文言が含まれる', { timeout: 240_000 }, async (context) => {
+    await explains('エビデンスの xlsx の PDF への変換のテストです。2 枚の画像を持つ xlsx を soffice で PDF へ変換した場合に、修復なしで成功し、タイトルと `No.1`・`No.2` のキャプションが本文に含まれることを確認します。')
     skipUnless(context, isCalcConversionUsable, 'soffice の Calc → PDF 変換')
 
     const caseRoot = caseDirectory('basic')
@@ -367,7 +369,8 @@ describe('生成 xlsx の soffice 変換', () => {
     expect(text).toContain('No.2 ホーム画面へ遷移')
   })
 
-  it('注記付きでも修復なしに PDF 化でき、callout の文言が現れる', { timeout: 240_000 }, async (context) => {
+  it('注記付きの xlsx も修復せず PDF へ変換でき、吹き出しの文言が含まれる', { timeout: 240_000 }, async (context) => {
+    await explains('エビデンスの xlsx の注記のテストです。吹き出し・強調・矢印の注記を持つ xlsx を PDF へ変換した場合に、修復なしで成功し、吹き出しの文言 `ログインボタンを押下` が本文に含まれることを確認します。')
     skipUnless(context, isCalcConversionUsable, 'soffice の Calc → PDF 変換')
 
     const caseRoot = caseDirectory('annotated')
@@ -413,7 +416,8 @@ describe('生成 xlsx の soffice 変換', () => {
   // #924: ヘッダーの追加項目と items の指定順が、実レンダラを通した後も宣言順で
   // 上から並ぶことを見る。XPath の統合テストは XML 上の順序しか見ないため、
   // 行割付を取り違えて重なった / 逆順に描かれた場合はこの流れでしか出ない。
-  it('追加ヘッダーと items の指定順が PDF 上でも宣言順に並ぶ', { timeout: 240_000 }, async (context) => {
+  it('追加のヘッダーと画像の指定順が、PDF でも宣言した順に並ぶ', { timeout: 240_000 }, async (context) => {
+    await explains('エビデンスの xlsx の並び順のテストです。追加のヘッダーと画像を指定した場合に、PDF の本文で、タイトル・作成日・追加のヘッダー・`No.1` から `No.3` の順に並び、値も宣言順に並ぶことを確認します。')
     skipUnless(context, isCalcConversionUsable, 'soffice の Calc → PDF 変換')
 
     // ファイル名の自然順 (01 → 02 → 03) とは別の順序で並べる。
@@ -470,7 +474,8 @@ describe('生成 xlsx の soffice 変換', () => {
   })
 
   // #324: セルの寸法を超えるオフセットを LibreOffice が切り詰めると、右下の注記が左上に寄る。構造テストでは出ない。
-  it('2 枚の画像の注記が、端に置いたものも含め、spec の相対座標の指す位置に縮まず描かれる', { timeout: 240_000 }, async (context) => {
+  it('2 枚の画像の注記が、端に置いたものも含め、仕様の相対座標が指す位置に縮まず描かれる', { timeout: 240_000 }, async (context) => {
+    await explains('エビデンスの xlsx の注記の位置のテストです。2 枚の画像に端の位置を含む注記を置いた場合に、PDF を画像化した各注記が、仕様の相対座標が指す位置に縮まず描かれ、互いの領域が重ならないことを確認します。')
     skipUnless(context, isRasterUsable, 'soffice の Calc → PDF 変換と pdftoppm')
 
     const caseRoot = caseDirectory('position')

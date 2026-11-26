@@ -10,6 +10,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
+import { explains } from '../../_helpers/explains.js'
 
 // tests/unit/infra → cli/
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..')
@@ -49,7 +50,8 @@ function readJson(file: string): { readonly version?: string, readonly dependenc
 describe('manifest の peer と依存ルートの版', () => {
   const dependencies = new Map(Object.entries(readJson(RUNTIME_MANIFEST).dependencies ?? {}))
 
-  it('peer 11 件が完全一致の版で書かれている', () => {
+  it('テーマの peer 11 件は、完全一致の版で書かれている', async () => {
+    await explains('実行時依存の `package.json` に書かれた、テーマの peer 11 件のテストです。11 件のすべてが `1.2.3` の形の完全一致の版で宣言されていることを確認します。')
     const notExact = PEER_NAMES
       .filter(name => !EXACT_VERSION.test(dependencies.get(name) ?? ''))
       .map(name => `${name}: ${dependencies.get(name) ?? '(宣言なし)'}`)
@@ -57,7 +59,8 @@ describe('manifest の peer と依存ルートの版', () => {
     expect(notExact, `完全一致の版でない peer:\n${notExact.join('\n')}`).toEqual([])
   })
 
-  it('peer 11 件の版が依存ルートの node_modules/<name>/package.json と一致する', () => {
+  it('peer 11 件の版は、依存ルートの node_modules/<name>/package.json の版と一致する', async () => {
+    await explains('実行時依存の `package.json` と、依存ルートの `node_modules` にある、テーマの peer 11 件のテストです。11 件のすべてで、宣言した版と実際にインストールされた版が一致することを確認します。')
     const mismatches = PEER_NAMES
       .map(name => ({
         name,

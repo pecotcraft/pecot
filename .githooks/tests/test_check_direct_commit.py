@@ -49,10 +49,11 @@ def _run_hook_on(
     )
 
 
+@allure.title("main ブランチでも、chore(release) で始まるコミットメッセージは許可する")
 def test_main_release_commit_allowed(
     script_dir: Path, direct_commit_repo: Path, run_script, git
 ) -> None:
-    """main + chore(release): → 許可（単一ブランチ release commit, #648）。"""
+    """`main` ブランチで `chore(release): publish` のコミットメッセージを渡した場合の、`check-direct-commit.sh` のテストです。単一ブランチの運用ではリリースのコミットが `main` に載るため、終了コード 0 で終わることを確認します。"""
     with allure.step("main で release のコミットメッセージをチェックする"):
         result = _run_hook_on(
             script_dir, direct_commit_repo, run_script, git, "main", "chore(release): publish"
@@ -62,10 +63,11 @@ def test_main_release_commit_allowed(
         assert result.returncode == 0
 
 
+@allure.title("main ブランチへの通常のコミットは、理由を出力して拒否する")
 def test_main_normal_commit_blocked(
     script_dir: Path, direct_commit_repo: Path, run_script, git
 ) -> None:
-    """main + 通常コミット → block。"""
+    """`main` ブランチで `fix: something` のコミットメッセージを渡した場合のテストです。終了コードが 0 以外で、`main` への変更はフィーチャーブランチからの PR のみ許可する旨のメッセージを出力することを確認します。"""
     with allure.step("main で通常のコミットメッセージをチェックする"):
         result = _run_hook_on(
             script_dir, direct_commit_repo, run_script, git, "main", "fix: something"
@@ -76,10 +78,11 @@ def test_main_normal_commit_blocked(
         assert "main への変更は feature branch からのPRのみ許可" in (result.stdout + result.stderr)
 
 
+@allure.title("develop-aist ブランチへの通常のコミットは許可する")
 def test_develop_pecot_normal_commit_allowed(
     script_dir: Path, direct_commit_repo: Path, run_script, git
 ) -> None:
-    """develop-aist + 通常コミット → 許可（保護対象から撤去済 #702）。"""
+    """保護の対象から外した `develop-aist` ブランチで、通常のコミットメッセージを渡した場合のテストです。終了コード 0 で終わることを確認します。"""
     with allure.step("develop-aist で通常のコミットメッセージをチェックする"):
         result = _run_hook_on(
             script_dir, direct_commit_repo, run_script, git, "develop-aist", "fix: something"
@@ -89,10 +92,11 @@ def test_develop_pecot_normal_commit_allowed(
         assert result.returncode == 0
 
 
+@allure.title("wtN ブランチ（wt1 など）への通常のコミットは拒否する")
 def test_wtn_normal_commit_blocked(
     script_dir: Path, direct_commit_repo: Path, run_script, git
 ) -> None:
-    """wtN + 通常コミット → block。"""
+    """ワークツリー用の `wt1` ブランチで、通常のコミットメッセージを渡した場合のテストです。終了コードが 0 以外になることを確認します。"""
     with allure.step("wt1 で通常のコミットメッセージをチェックする"):
         result = _run_hook_on(
             script_dir, direct_commit_repo, run_script, git, "wt1", "fix: something"
@@ -102,10 +106,11 @@ def test_wtn_normal_commit_blocked(
         assert result.returncode != 0
 
 
+@allure.title("wtN ブランチ（wt1 など）でも、chore(release) で始まるコミットメッセージは許可する")
 def test_wtn_release_commit_allowed(
     script_dir: Path, direct_commit_repo: Path, run_script, git
 ) -> None:
-    """wtN + chore(release): → 許可。"""
+    """ワークツリー用の `wt1` ブランチで、`chore(release): publish` のコミットメッセージを渡した場合のテストです。終了コード 0 で終わることを確認します。"""
     with allure.step("wt1 で release のコミットメッセージをチェックする"):
         result = _run_hook_on(
             script_dir, direct_commit_repo, run_script, git, "wt1", "chore(release): publish"
@@ -115,10 +120,11 @@ def test_wtn_release_commit_allowed(
         assert result.returncode == 0
 
 
+@allure.title("フィーチャーブランチへの通常のコミットは許可する")
 def test_feature_branch_normal_commit_allowed(
     script_dir: Path, direct_commit_repo: Path, run_script, git
 ) -> None:
-    """feature branch + 通常コミット → 許可。"""
+    """`feat/some-feature` のブランチで、通常のコミットメッセージを渡した場合のテストです。終了コード 0 で終わることを確認します。"""
     with allure.step("feature branch で通常のコミットメッセージをチェックする"):
         result = _run_hook_on(
             script_dir, direct_commit_repo, run_script, git, "feat/some-feature", "fix: something"

@@ -4,6 +4,8 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { explains } from '../../../tests/_helpers/explains.js'
+
 import { FrontmatterError } from '@pecot/workflow-core/domain/frontmatter.js'
 import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { parseCommentFile, parseIssueFile, parsePullRequestFile } from '../frontmatter-file.js'
@@ -16,7 +18,8 @@ function writeFile(name: string, content: string): string {
 }
 
 describe('parseIssueFile', () => {
-  it('Issue のファイルを読むと、frontmatter と本文を返す', () => {
+  it('Issue のファイルを読むと、frontmatter と本文を返す', async () => {
+    await explains('Issue のファイルを読み込む `parseIssueFile` のテストです。`title`・`type`・`status` を持つ frontmatter と、`## タスク概要` を含む本文を、分けて返すことを確認します。')
     const file = writeFile('issue.md', `---
 title: ファイルからのテスト
 type: task
@@ -35,24 +38,28 @@ status: ready
     expect(result.body).toContain('## タスク概要')
   })
 
-  it('CRLF のファイルも読める', () => {
+  it('CRLF の改行のファイルも読み込める', async () => {
+    await explains('Issue のファイルを読み込む `parseIssueFile` のテストです。改行が CRLF のファイルでも、本文を `本文` として返すことを確認します。')
     const file = writeFile('issue.md', '---\r\ntitle: T\r\ntype: task\r\nrepository: o/r\r\nstatus: ready\r\n---\r\n\r\n本文\r\n')
     expect(parseIssueFile(file).body).toBe('本文')
   })
 
-  it('存在しないファイルはエラー', () => {
+  it('Issue のファイルが存在しない場合は、FrontmatterError を送出する', async () => {
+    await explains('存在しないパスを渡した場合の `parseIssueFile` のテストです。`FrontmatterError` が、`file not found: <パス>` のメッセージで発生することを確認します。')
     const file = path.join(makeTemporaryDirectory(), 'nonexistent.md')
     expect(() => parseIssueFile(file)).toThrow(FrontmatterError)
     expect(() => parseIssueFile(file)).toThrow(`file not found: ${file}`)
   })
 
-  it('エラー文のパスは Python の Path と同じ書き方（重複した / と . を畳む）', () => {
+  it('エラーメッセージのパスは、重複した / と . をまとめた形で表示する', async () => {
+    await explains('存在しないパスを渡した場合の `parseIssueFile` のテストです。`./no-such//dir/./x.md` を渡した場合に、メッセージのパスが `no-such/dir/x.md` の形にまとめられ、`.` を渡した場合は `OsError` になることを確認します。')
     expect(() => parseIssueFile('./no-such//dir/./x.md')).toThrow('file not found: no-such/dir/x.md')
     expect(() => parseIssueFile('/no-such-pecot//x.md')).toThrow('file not found: /no-such-pecot/x.md')
     expect(() => parseIssueFile('.')).toThrow(OsError)
   })
 
-  it('ディレクトリは読めないので OsError', () => {
+  it('ディレクトリを渡した場合は、読み込めないため OsError を送出する', async () => {
+    await explains('ディレクトリを渡した場合の `parseIssueFile` のテストです。ファイルとして読み込めないため、`OsError` が発生することを確認します。')
     const directory = path.join(makeTemporaryDirectory(), 'dir')
     mkdirSync(directory)
     expect(() => parseIssueFile(directory)).toThrow(OsError)
@@ -60,7 +67,8 @@ status: ready
 })
 
 describe('parseCommentFile', () => {
-  it('コメントのファイルを読むと、frontmatter と本文を返す', () => {
+  it('コメントのファイルを読むと、frontmatter と本文を返す', async () => {
+    await explains('コメントのファイルを読み込む `parseCommentFile` のテストです。`issue_ref` と `template` を持つ frontmatter と、`## 進捗報告` を含む本文を、分けて返すことを確認します。')
     const file = writeFile('comment.md', `---
 issue_ref: "owner/repo/123"
 template: merge-diff
@@ -76,13 +84,15 @@ template: merge-diff
     expect(result.body).toContain('## 進捗報告')
   })
 
-  it('存在しないファイルはエラー', () => {
+  it('コメントのファイルが存在しない場合は、file not found のエラーにする', async () => {
+    await explains('存在しないパスを渡した場合の `parseCommentFile` のテストです。`file not found` を含むメッセージで例外が発生することを確認します。')
     expect(() => parseCommentFile(path.join(makeTemporaryDirectory(), 'nonexistent.md'))).toThrow('file not found')
   })
 })
 
 describe('parsePullRequestFile', () => {
-  it('PR のファイルを読むと、frontmatter と本文を返す', () => {
+  it('PR のファイルを読むと、frontmatter と本文を返す', async () => {
+    await explains('PR のファイルを読み込む `parsePullRequestFile` のテストです。`title`・`repository`・`base`・`head` を持つ frontmatter と、`Refs #42` を含む本文を、分けて返すことを確認します。')
     const file = writeFile('pr.md', `---
 title: "ファイルからのPR"
 repository: "owner/repo"
@@ -105,7 +115,8 @@ Refs #42
     expect(result.body).toContain('Refs #42')
   })
 
-  it('存在しないファイルはエラー', () => {
+  it('PR のファイルが存在しない場合は、file not found のエラーにする', async () => {
+    await explains('存在しないパスを渡した場合の `parsePullRequestFile` のテストです。`file not found` を含むメッセージで例外が発生することを確認します。')
     expect(() => parsePullRequestFile(path.join(makeTemporaryDirectory(), 'nonexistent.md'))).toThrow('file not found')
   })
 })

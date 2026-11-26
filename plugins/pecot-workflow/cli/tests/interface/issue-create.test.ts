@@ -38,6 +38,7 @@ import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { prerequisitesRule } from '../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
 import type { IssueSpec } from '../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
+import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -94,17 +95,18 @@ async function createTool(argumentsOfTool: Readonly<Record<string, unknown>>): P
 
 const REJECTED_INPUTS = [
   { id: 'PW-ISSUE-CREATE-52', name: '前提が一括のどのファイルのキーにも当たらない', second: blockedBy('nope'), first: [], kind: 'invalid-input', expected: 'error: blocked_by in b.md refers to unknown key nope\n' },
-  { id: 'PW-ISSUE-CREATE-52', name: '前提が輪になる', second: blockedBy('a'), first: blockedBy('b'), kind: 'invalid-input', expected: 'error: blocked_by forms a cycle: a -> b -> a\n' },
+  { id: 'PW-ISSUE-CREATE-52', name: '前提が循環する', second: blockedBy('a'), first: blockedBy('b'), kind: 'invalid-input', expected: 'error: blocked_by forms a cycle: a -> b -> a\n' },
   { id: 'PW-ISSUE-CREATE-52', name: '前提が後ろのファイルを指す', second: [], first: blockedBy('b'), kind: 'invalid-input', expected: 'error: blocked_by in a.md refers to b, which comes later\n' },
   { id: 'PW-ISSUE-CREATE-52', name: '同じ前提を 2 回書く', second: [...blockedBy('a'), '  - issue: a'], first: [], kind: 'invalid-input', expected: 'error: blocked_by in b.md refers to a more than once\n' },
   { id: 'PW-ISSUE-CREATE-53', name: 'parallel を書く', second: ['parallel: true'], first: [], kind: 'content-invalid', expected: 'error: parallel is no longer supported in b.md. Remove it\n' },
   { id: 'PW-ISSUE-CREATE-53', name: 'parallel とほかの誤りを両方書く', second: ['parallel: true', 'labels: a'], first: [], kind: 'content-invalid', expected: 'error: parallel is no longer supported in b.md. Remove it\n' },
-  { id: 'PW-ISSUE-CREATE-54', name: 'wait: merge に reason が無い', second: ['blocked_by:', '  - issue: a', '    wait: merge'], first: [], kind: 'content-invalid', expected: 'error: blocked_by in b.md needs reason for wait: merge\n' },
+  { id: 'PW-ISSUE-CREATE-54', name: 'wait: merge に reason を渡していない', second: ['blocked_by:', '  - issue: a', '    wait: merge'], first: [], kind: 'content-invalid', expected: 'error: blocked_by in b.md needs reason for wait: merge\n' },
 ]
 
 describe('issue create', () => {
   describe('ファイルから作る', () => {
     it('ファイルを 2 つ渡すと、渡した順に作って {{issue:key}} を前の番号に直し、ボードと親 Epic につなぎ、フラグを消す', async () => {
+      await explains('`issue create` のファイル指定のテストです。ファイルを 2 つ渡した場合に、渡した順に作って `{{issue:key}}` を前の番号に直し、ボードと親 Epic につないでフラグを消すことを確認します。')
       const project = setUpIssueProject()
       const secondBody = TASK_BODY.replace('実現したい状態', '{{issue:first}} が終わってから進める。')
       writeTree(project.root, {
@@ -144,6 +146,7 @@ describe('issue create', () => {
     })
 
     it('ファイルと -m を一緒に渡すと、-m の本文を使わずにファイルから作る', async () => {
+      await explains('`issue create` の引数のテストです。ファイルと `-m` を両方渡した場合は、`-m` の本文を使わず、ファイルから Issue を作ることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_FRONTMATTER) })
       const github = await startGithub(fileRules())
@@ -157,6 +160,7 @@ describe('issue create', () => {
     })
 
     it('フロントマターに labels を書くと、Issue にそのラベルを付けて作る', async () => {
+      await explains('`issue create` のフロントマターの `labels` のテストです。`labels` を書いた場合に、そのラベルを付けて Issue を作ることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', 'labels:', '  - bug') })
       const github = await startGithub(fileRules())
@@ -168,6 +172,7 @@ describe('issue create', () => {
     })
 
     it('リポジトリを空にした Epic のファイルは、aggregation_repo に作る', async () => {
+      await explains('`issue create` の Epic のファイルのテストです。リポジトリを空にした Epic のファイルは、`aggregation_repo` に作ることを確認します。')
       const project = setUpIssueProject({ aggregation: 'acme/demo' })
       writeTree(project.root, { 'epic.md': rawFrontmatterFile(['type: epic', 'repository: ""', 'title: 大きな仕事', 'status: backlog'], EPIC_BODY) })
       const github = await startGithub(fileRules())
@@ -180,6 +185,7 @@ describe('issue create', () => {
     })
 
     it('aggregation_repo と違うリポジトリを書いた Epic のファイルは、warning の行を出してそのリポに作る', async () => {
+      await explains('`issue create` の Epic のファイルのテストです。`aggregation_repo` と違うリポジトリを書いた場合に、warning の行を出力して、そのリポジトリに作ることを確認します。')
       const project = setUpIssueProject({ aggregation: 'acme/demo', otherRepositories: ['other'] })
       writeTree(project.root, { 'epic.md': rawFrontmatterFile(['type: epic', 'repository: acme/other', 'title: 大きな仕事', 'status: backlog'], EPIC_BODY) })
       await startGithub([linkedRepositories(1, ['demo', 'other']), createdIssue(12, { repository: 'other' }), issueNodeId(12, 1, 'other'), addedToProject(), updatedFields(1)])
@@ -192,6 +198,7 @@ describe('issue create', () => {
     })
 
     it('ボードへの追加に失敗したとき、warning の行と Issue の URL を出し、次のファイルへ進んで終了コード 0 で終わる', async () => {
+      await explains('`issue create` のボードへの追加が失敗した場合のテストです。ボードへの追加が失敗した場合に、warning の行と Issue の URL を出力し、次のファイルへ進んで終了コード 0 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '1 件目' }),
@@ -216,6 +223,7 @@ describe('issue create', () => {
     })
 
     it('ボードへの追加に失敗しても、親 Epic へつなぎ、Issue の URL を 1 回だけ出して終了コード 0 で終わる', async () => {
+      await explains('`issue create` のボードへの追加が失敗した場合のテストです。ボードへの追加が失敗しても、親 Epic へつなぎ、Issue の URL を 1 回だけ出力して終了コード 0 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', PARENT) })
       await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), parentLane(3), createdIssue(12), issueNodeId(12), failedAddToProject(), issueNodeId(3), subIssueAdded()])
@@ -228,6 +236,7 @@ describe('issue create', () => {
     })
 
     it('欄の設定に失敗したとき、warning を出し、project activate の案内を添えて、終了コード 0 で終わる', async () => {
+      await explains('`issue create` の欄の設定が失敗した場合のテストです。欄の設定が失敗した場合に、warning と `pecot project activate` の案内を出力して、終了コード 0 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_FRONTMATTER) })
       await startGithub([linkedRepositories(), createdIssue(12), issueNodeId(12), addedToProject(), staleOptionUpdate(1)])
@@ -246,6 +255,7 @@ describe('issue create', () => {
     })
 
     it('複数のファイルで欄の設定に失敗しても、project activate の案内は 1 回だけ出す', async () => {
+      await explains('`issue create` の欄の設定が失敗した場合のテストです。複数のファイルで欄の設定が失敗した場合でも、`pecot project activate` の案内は 1 回だけ出力することを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': taskFile('次') })
       await startGithub([linkedRepositories(), createdIssue(12), createdIssue(13), issueNodeId(12), issueNodeId(13), addedToProject(2), staleOptionUpdate(2)])
@@ -267,9 +277,10 @@ describe('issue create', () => {
 
     it.for([
       { name: 'レート制限', respond: { status: 200, body: { errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }] } }, expected: 'GraphQL rate limit error: ' },
-      { name: '型の無い error', respond: { status: 200, body: { errors: [{ message: 'cannot write' }] } }, expected: 'GraphQL query error: ' },
+      { name: '型を持たない error', respond: { status: 200, body: { errors: [{ message: 'cannot write' }] } }, expected: 'GraphQL query error: ' },
       { name: '500', respond: { status: 500, body: { message: 'boom' } }, expected: 'GraphQL query error: ' },
     ])('$name で欄の設定に失敗したときは、warning だけを出し、ID を読み直す案内を添えない', async (row) => {
+      await explains('`issue create` の欄の設定が失敗した場合のテストです。レート制限・型を持たないエラー・HTTP 500 の場合に、warning だけを出力し、ID を読み直す案内は付けないことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭') })
       await startGithub([
@@ -288,6 +299,7 @@ describe('issue create', () => {
     })
 
     it('親 Epic へのつなぎに失敗したとき、Issue の URL を標準出力に、error の行を標準エラーに出して終了コード 1 で終わる', async () => {
+      await explains('`issue create` の親 Epic へのつなぎが失敗した場合のテストです。つなぎが失敗した場合に、Issue の URL を標準出力へ、`error` の行を標準エラーへ出力して終了コード 1 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_WITH_PARENT) })
       await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), parentLane(3), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(1), issueNodeId(3), failedSubIssue()])
@@ -300,6 +312,7 @@ describe('issue create', () => {
     })
 
     it('途中のファイルで作成に失敗したとき、後のファイルを処理せず、終了コード 1 で終わる', async () => {
+      await explains('`issue create` の作成が失敗した場合のテストです。途中のファイルで作成が失敗した場合に、後のファイルは処理せず、終了コード 1 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '1 件目' }),
@@ -317,7 +330,8 @@ describe('issue create', () => {
       expect(posts).toHaveLength(2)
     })
 
-    it('ファイルの本文がテンプレに合わないとき、テンプレのパスを 1 行目にした error を出して終了コード 1 で終わる', async () => {
+    it('ファイルの本文がテンプレートに合わないとき、テンプレートのパスを 1 行目にした error を出して終了コード 1 で終わる', async () => {
+      await explains('`issue create` の本文の検証のテストです。ファイルの本文がテンプレートと合わない場合に、テンプレートのパスを 1 行目にした `error` を出力して終了コード 1 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_FRONTMATTER, '## 関係のない見出し\n\n本文\n') })
 
@@ -328,7 +342,8 @@ describe('issue create', () => {
       expect(result.stderr).toMatch(TEMPLATE_VIOLATION)
     })
 
-    it('-m の本文がテンプレに合わないとき、テンプレのパスを 1 行目にした error を出して終了コード 1 で終わる', async () => {
+    it('-m の本文がテンプレートに合わないとき、テンプレートのパスを 1 行目にした error を出して終了コード 1 で終わる', async () => {
+      await explains('`issue create -m` の本文の検証のテストです。`-m` の本文がテンプレートと合わない場合に、テンプレートのパスを 1 行目にした `error` を出力して終了コード 1 で終わることを確認します。')
       setUpIssueProject()
 
       const result = await create('-t', '題', '-r', 'acme/demo', '-m', '## 関係のない見出し\n\n本文\n')
@@ -339,6 +354,7 @@ describe('issue create', () => {
     })
 
     it('status が型の既定の値でないとき、error の行を出して終了コード 1 で終わる', async () => {
+      await explains('`issue create` の `status` の検証のテストです。`status` が型の既定の値でない場合に、`error` の行を出力して終了コード 1 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile({ ...TASK_FRONTMATTER, status: 'active' }) })
 
@@ -349,10 +365,11 @@ describe('issue create', () => {
     })
 
     it.for([
-      { name: 'ファイルが無い', body: TASK_BODY, files: ['missing.md'], expected: /^error: file not found: .+\/missing\.md\n$/u },
+      { name: 'ファイルが存在しない', body: TASK_BODY, files: ['missing.md'], expected: /^error: file not found: .+\/missing\.md\n$/u },
       { name: '同じファイルを重ねて渡す', body: TASK_BODY, files: ['draft.md', 'draft.md'], expected: /^error: file specified more than once: .+\/draft\.md\n$/u },
       { name: '先のファイルを指さないプレースホルダがある', body: TASK_BODY.replace('実現したい状態', '{{issue:later}} の後'), files: ['draft.md'], expected: /^error: \{\{issue:later\}\} in draft\.md does not point to an earlier file/u },
     ])('$name とき、1 件も作らずに error の行を出して終了コード 1 で終わる', async (row) => {
+      await explains('`issue create` のファイルの検証のテストです。ファイルが存在しない場合や同じファイルを重ねて渡した場合などに、1 件も作らず、`error` の行を出力して終了コード 1 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_FRONTMATTER, row.body) })
 
@@ -364,9 +381,10 @@ describe('issue create', () => {
     })
 
     it.for([
-      { name: 'フロントマターが無い', content: TASK_BODY, expected: /^error: frontmatter not found/u },
+      { name: 'フロントマターが存在しない', content: TASK_BODY, expected: /^error: frontmatter not found/u },
       { name: 'repository が owner/repo の形でない', content: frontmatterFile({ ...TASK_FRONTMATTER, repository: 'demo' }), expected: /^error: invalid repository format in the frontmatter: 'demo'\n$/u },
     ])('$name とき、error の行を出して終了コード 1 で終わる', async ({ content, expected }) => {
+      await explains('`issue create` のフロントマターの検証のテストです。フロントマターが存在しない場合や `repository` の形が誤っている場合に、`error` の行を出力して終了コード 1 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': content })
 
@@ -377,6 +395,7 @@ describe('issue create', () => {
     })
 
     it('同じ親 Epic に同じ order の Issue があるとき、作らずに error の行を出して終了コード 1 で終わる', async () => {
+      await explains('`issue create` の `order` の検証のテストです。同じ親 Epic に同じ `order` の Issue が存在する場合に、作らずに `error` の行を出力して終了コード 1 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile({ ...TASK_WITH_PARENT, order: '2' }) })
       await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE])])
@@ -389,6 +408,7 @@ describe('issue create', () => {
     })
 
     it('リポジトリがプロジェクトにつながっていないとき、error の行を出して終了コード 1 で終わる', async () => {
+      await explains('`issue create` のプロジェクトの登録のテストです。リポジトリがプロジェクトにつながっていない場合に、`error` の行を出力して終了コード 1 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_FRONTMATTER) })
       await startGithub([linkedRepositories(1, [])])
@@ -399,6 +419,7 @@ describe('issue create', () => {
     })
 
     it('親 Epic の形が誤っているとき、使い方のエラーを出して終了コード 2 で終わる', async () => {
+      await explains('`issue create` の親 Epic の検証のテストです。親 Epic の形が誤っている場合に、使い方のエラーを出力して終了コード 2 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile({ ...TASK_WITH_PARENT, parent_epic: 'abc' }) })
 
@@ -412,7 +433,8 @@ describe('issue create', () => {
   })
 
   describe('-m で直接作る', () => {
-    it('--title と --repo を付けて打つと、status を省けば型の既定の status を設定して Issue を 1 件作る', async () => {
+    it('--title と --repo を付けると、status を省けば型の既定の status を設定して Issue を 1 件作る', async () => {
+      await explains('`issue create -m` の基本の動作のテストです。`--title` と `--repo` を付けて `status` を省いた場合に、型の既定の `status` を設定して Issue を 1 件作ることを確認します。')
       setUpIssueProject()
       const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
 
@@ -427,6 +449,7 @@ describe('issue create', () => {
     })
 
     it('--label・--parent-epic・--order を付けると、status を設定し、ラベルを付け、親 Epic のサブ Issue につなぐ', async () => {
+      await explains('`issue create -m` のオプションのテストです。`--label`・`--parent-epic`・`--order` を付けた場合に、`status` を設定し、ラベルを付け、親 Epic のサブ Issue につなぐことを確認します。')
       setUpIssueProject()
       const github = await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), parentLane(3), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
 
@@ -442,6 +465,7 @@ describe('issue create', () => {
       { name: '--size', argv: ['--size', 'm'] },
     ])('$name を付けると、知らないオプションとして、何も作らずに終了コード 2 で終わる', async (row, context) => {
       await verifies(context, 'PW-ISSUE-CREATE-87')
+      await explains('`issue create -m` のオプションの検証のテストです。`--priority` や `--size` を渡した場合に、知らないオプションとして、何も作らず終了コード 2 で終わることを確認します。')
       setUpIssueProject()
       const github = await startGithub([])
 
@@ -454,6 +478,7 @@ describe('issue create', () => {
     })
 
     it('--status が有効な値でないとき、有効な値を並べた error の行を出して終了コード 1 で終わる', async () => {
+      await explains('`issue create -m` の `--status` の検証のテストです。有効でない値を渡した場合に、有効な値を並べた `error` の行を出力して終了コード 1 で終わることを確認します。')
       setUpIssueProject()
 
       const result = await create('-t', '題', '-r', 'acme/demo', '-m', TASK_BODY, '--status', 'doing')
@@ -462,6 +487,7 @@ describe('issue create', () => {
     })
 
     it('--status が有効な値で型の既定の値でないとき、error の行を出して終了コード 1 で終わる', async () => {
+      await explains('`issue create -m` の `--status` の検証のテストです。有効な値でも型の既定の値でない場合に、`error` の行を出力して終了コード 1 で終わることを確認します。')
       setUpIssueProject()
 
       const result = await create('-t', '題', '-r', 'acme/demo', '-m', TASK_BODY, '--status', 'backlog')
@@ -471,6 +497,7 @@ describe('issue create', () => {
     })
 
     it('--title を渡していないとき、error の行を出して終了コード 1 で終わる', async () => {
+      await explains('`issue create -m` の `--title` の検証のテストです。`--title` を渡さなかった場合に、`error` の行を出力して終了コード 1 で終わることを確認します。')
       setUpIssueProject()
 
       const result = await create('-r', 'acme/demo', '-m', TASK_BODY)
@@ -479,6 +506,7 @@ describe('issue create', () => {
     })
 
     it('epic 以外で --repo を渡していないとき、error の行を出して終了コード 1 で終わる', async () => {
+      await explains('`issue create -m` の `--repo` の検証のテストです。Epic 以外で `--repo` を渡さなかった場合に、`error` の行を出力して終了コード 1 で終わることを確認します。')
       setUpIssueProject()
 
       const result = await create('-t', '題', '-m', TASK_BODY)
@@ -487,6 +515,7 @@ describe('issue create', () => {
     })
 
     it('--repo が owner/repo の形でないとき、error の行を出して終了コード 2 で終わる', async () => {
+      await explains('`issue create -m` の `--repo` の検証のテストです。`--repo` が `owner/repo` の形でない場合に、`error` の行を出力して終了コード 2 で終わることを確認します。')
       setUpIssueProject()
 
       const result = await create('-t', '題', '-r', 'acme/demo/x', '-m', TASK_BODY)
@@ -495,6 +524,7 @@ describe('issue create', () => {
     })
 
     it('作り先のリポを含む設定が 2 つで選べないとき、候補と --project の案内を出して終了コード 1 で終わる', async () => {
+      await explains('`issue create -m` のプロジェクトの設定の選択のテストです。作り先のリポジトリを含む設定が 2 つあり選べない場合に、候補と `--project` の案内を出力して終了コード 1 で終わることを確認します。')
       setUpIssueProject({ files: { '.pecot/config/projects/.active': '', '.pecot/config/projects/second.json': configText({}) } })
 
       const result = await create('-t', '題', '-r', 'acme/demo', '-m', TASK_BODY)
@@ -502,7 +532,8 @@ describe('issue create', () => {
       expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ghes.example.com_acme_board_acme, second\n' })
     })
 
-    it('作り先のリポを含む設定が無いとき、どの設定にも無いと出して終了コード 1 で終わる', async () => {
+    it('作り先のリポを含む設定が存在しないとき、どの設定にも無いと出して終了コード 1 で終わる', async () => {
+      await explains('`issue create -m` のプロジェクトの設定の選択のテストです。作り先のリポジトリを含む設定が存在しない場合に、どの設定にも存在しない旨を出力して終了コード 1 で終わることを確認します。')
       setUpIssueProject()
 
       const result = await create('-t', '題', '-r', 'acme/unknown', '-m', TASK_BODY)
@@ -511,6 +542,7 @@ describe('issue create', () => {
     })
 
     it('--project を付けると、作り先のリポを含む設定が 2 つでも、その設定で作る', async () => {
+      await explains('`issue create -m` の `--project` のテストです。作り先のリポジトリを含む設定が 2 つある場合でも、`--project` で指定した設定で作ることを確認します。')
       setUpIssueProject({ files: { '.pecot/config/projects/.active': '', '.pecot/config/projects/second.json': configText({}) } })
       await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
 
@@ -519,7 +551,8 @@ describe('issue create', () => {
       expect(result.code).toBe(0)
     })
 
-    it('Epic を --repo なしで作るとき、.active が無くて設定の数が 2 つなら、候補と --project の案内を出して終了コード 1 で終わる', async () => {
+    it('Epic を --repo なしで作るとき、.active が存在せず設定の数が 2 つなら、候補と --project の案内を出して終了コード 1 で終わる', async () => {
+      await explains('`issue create -m` の Epic のテストです。`--repo` を付けず、`.active` が存在せず設定が 2 つある場合に、候補と `--project` の案内を出力して終了コード 1 で終わることを確認します。')
       setUpIssueProject({ aggregation: 'acme/demo', files: { '.pecot/config/projects/.active': '', '.pecot/config/projects/second.json': configText({ aggregation: 'acme/demo' }) } })
 
       const result = await create('-t', '大きな仕事', '--type', 'epic', '-m', EPIC_BODY)
@@ -528,6 +561,7 @@ describe('issue create', () => {
     })
 
     it('Epic を --repo なしで --project を付けて作ると、その設定の aggregation_repo に作る', async () => {
+      await explains('`issue create -m` の Epic のテストです。`--repo` を付けず `--project` を付けた場合に、その設定の `aggregation_repo` に Epic を作ることを確認します。')
       setUpIssueProject({ aggregation: 'acme/demo', files: { '.pecot/config/projects/.active': '', '.pecot/config/projects/second.json': configText({ aggregation: 'acme/other', otherRepositories: ['other'] }) } })
       const github = await startGithub([linkedRepositories(1, ['demo', 'other']), createdIssue(12, { repository: 'other' }), addedToProject(), updatedFields(1)])
 
@@ -538,6 +572,7 @@ describe('issue create', () => {
     })
 
     it('Epic を --repo なしで作ると、aggregation_repo に作る', async () => {
+      await explains('`issue create -m` の Epic のテストです。`--repo` を付けない場合に、`aggregation_repo` に Epic を作ることを確認します。')
       setUpIssueProject({ aggregation: 'acme/demo' })
       const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
 
@@ -549,6 +584,7 @@ describe('issue create', () => {
     })
 
     it('aggregation_repo と違うリポジトリに Epic を作ると、warning の行を出して続ける', async () => {
+      await explains('`issue create -m` の Epic のテストです。`aggregation_repo` と違うリポジトリに Epic を作る場合に、warning の行を出力して作成を続けることを確認します。')
       setUpIssueProject({ aggregation: 'acme/demo', otherRepositories: ['other'] })
       await startGithub([linkedRepositories(1, ['demo', 'other']), createdIssue(12, { repository: 'other' }), addedToProject(), updatedFields(1)])
 
@@ -562,6 +598,7 @@ describe('issue create', () => {
     })
 
     it('Epic の作り先を決められないとき、error の行を出して終了コード 2 で終わる', async () => {
+      await explains('`issue create -m` の Epic の作り先のテストです。作り先を決められない場合に、`error` の行を出力して終了コード 2 で終わることを確認します。')
       setUpIssueProject()
 
       const result = await create('-t', '大きな仕事', '--type', 'epic', '-m', EPIC_BODY)
@@ -574,6 +611,7 @@ describe('issue create', () => {
   describe('引数がないとき', () => {
     it('ファイルと -m のどちらも渡していないとき、使い方を error の行に出して終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-33')
+      await explains('`issue create` の引数の検証のテストです。ファイルと `-m` のどちらも渡さなかった場合に、使い方を示す `error` の行を出力して終了コード 1 で終わることを確認します。')
       setUpIssueProject()
 
       const result = await create()
@@ -593,6 +631,7 @@ describe('issue create', () => {
 
     it.for(REJECTED_INPUTS)('$name とき、何も投稿せずに終了コード 1 で終わる', async (row, context) => {
       await verifies(context, row.id)
+      await explains('`issue create` の前提の検証のテストです。前提の指定が一括の中で誤っている場合に、何も投稿せず、`error` の行を出力して終了コード 1 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': taskFile('先頭', ...row.first),
@@ -606,6 +645,7 @@ describe('issue create', () => {
     })
 
     it('前提の既存の Issue を読めないとき、1 件も作らずに、読めなかった Issue を示す error を出して終了コード 1 で終わる', async () => {
+      await explains('`issue create` の前提の既存の Issue のテストです。前提の既存の Issue を読めない場合に、1 件も作らず、読めなかった Issue を示す `error` を出力して終了コード 1 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/99')) })
       await startGithub([linkedRepositories(), blockedBySupported(), { match: { operation: 'GetIssueNodeId' }, times: 1, respond: { status: 200, body: { errors: [{ message: 'not found' }] } } }])
@@ -617,7 +657,8 @@ describe('issue create', () => {
       expect(result.stderr).toMatch(/^error: blocked_by in a\.md refers to acme\/demo\/99, which could not be read: .+\n$/u)
     })
 
-    it('前提のあるファイルを渡すと、前提を付けて Blocked に置き、通し番号を振り、スタックできる並びを出す', async () => {
+    it('前提のあるファイルを渡すと、前提を付けて Blocked に置き、通し番号を振り、スタック可の並びを出す', async () => {
+      await explains('`issue create` の前提のあるファイルのテストです。前提を付けて Blocked に置き、通し番号を振り、スタック可の並びを出力することを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': taskFile('先頭', PARENT),
@@ -658,6 +699,7 @@ describe('issue create', () => {
     })
 
     it('前提を持つ Issue の本文には、スタック不可の前提の節だけを書く', async () => {
+      await explains('`issue create` の前提の節のテストです。前提を持つ Issue の本文には、`wait` が `merge` の前提の節だけを書くことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': taskFile('先頭'),
@@ -689,6 +731,7 @@ describe('issue create', () => {
     })
 
     it('前提が済んだ既存の Issue だけを待つとき、Blocked で作ってから Ready へ動かす', async () => {
+      await explains('`issue create` の済んだ前提のテストです。前提が済んだ既存の Issue だけを待つ場合に、Blocked で作ってから Ready へ動かすことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')) })
       const github = await startGithub([
@@ -714,6 +757,7 @@ describe('issue create', () => {
     })
 
     it('欄と列の直しがどちらも古い ID で書けないとき、project activate の案内を 1 回だけ出す', async () => {
+      await explains('`issue create` の古い選択肢の ID のテストです。欄の直しと列の直しがどちらも古い ID で書けない場合に、`pecot project activate` の案内を 1 回だけ出力することを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')), 'b.md': taskFile('次') })
       await startGithub([
@@ -748,7 +792,8 @@ describe('issue create', () => {
       ].join('\n'))
     })
 
-    it('作成の応答に node_id が無いとき、ボードへ先に足して、その node ID で前提を付ける', async () => {
+    it('作成の応答に node_id が存在しないとき、ボードへ先に追加して、その node ID で前提を付ける', async () => {
+      await explains('`issue create` の前提の付け方のテストです。作成の応答が `node_id` を含まない場合に、まずボードへ追加して、その node ID で前提を付けることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': taskFile('先頭'),
@@ -776,6 +821,7 @@ describe('issue create', () => {
     })
 
     it('前提を付けるのに失敗したとき、warning と付け直すコマンドを出し、Issue は残して全件を作り終え、終了コード 1 で終わる', async () => {
+      await explains('`issue create` の前提を付けるのが失敗した場合のテストです。失敗した場合に、warning と付け直すコマンドを出力し、Issue は残して全件を作り終え、終了コード 1 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': taskFile('先頭'),
@@ -801,7 +847,8 @@ describe('issue create', () => {
       expect(result.stderr).toMatch(/\nerror: could not add some blocked-by; add them again with:\n {2}pecot issue block acme\/demo\/13 --by acme\/demo\/12 --wait merge --reason '配られる'\n$/u)
     })
 
-    it('ボードに Blocked の列が無いとき、前提のある Issue を Ready で作り、warning を 1 回だけ出す', async () => {
+    it('ボードに Blocked の列が存在しないとき、前提のある Issue を Ready で作り、warning を 1 回だけ出す', async () => {
+      await explains('`issue create` の Blocked の選択肢のテストです。ボードに Blocked の列が存在しない場合に、前提のある Issue を Ready で作り、warning を 1 回だけ出力することを確認します。')
       const project = setUpIssueProject({ withoutBlockedColumn: true })
       writeTree(project.root, {
         'a.md': taskFile('先頭'),
@@ -830,9 +877,10 @@ describe('issue create', () => {
     })
 
     it.for([
-      { name: '既定のブランチの設定が無い', develop: { developBranch: undefined }, blockedBy: [OPEN_PREREQUISITE], expected: '' },
+      { name: '既定のブランチの設定が存在しない', develop: { developBranch: undefined }, blockedBy: [OPEN_PREREQUISITE], expected: '' },
       { name: '読めた前提が付けた数に足りない', develop: {}, blockedBy: [], expected: 'warning: could not read all blocked-by of #13 yet; left it in Blocked\n' },
     ])('$name とき、Blocked のまま残す', async (row) => {
+      await explains('`issue create` の Blocked のまま残すテストです。既定のブランチの設定が存在しない場合と、読めた前提が付けた数を満たさない場合に、Blocked のまま残すことを確認します。')
       const project = setUpIssueProject(row.develop)
       writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')) })
       const github = await startGithub([
@@ -858,6 +906,7 @@ describe('issue create', () => {
 
     it('依存関係に対応しないサーバで blocked_by を書いたとき、何も作らずに error を出して終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-58')
+      await explains('`issue create` の GitHub Enterprise Server のテストです。依存関係に対応しないサーバで `blocked_by` を書いた場合に、何も作らず、`error` を出力して終了コード 1 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': taskFile('次', ...blockedBy('a')) })
       const github = await startGithub([linkedRepositories(), blockedByUnsupported()])
@@ -870,6 +919,7 @@ describe('issue create', () => {
     })
 
     it('付け直すコマンドの --reason は、シェルに展開されないよう単一引用符で包む', async () => {
+      await explains('`issue create` の付け直すコマンドのテストです。`--reason` の値は、シェルに展開されないよう単一引用符で包んで出力することを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': taskFile('先頭'),
@@ -884,6 +934,7 @@ describe('issue create', () => {
     })
 
     it('前提を 1 件付けられなくても、同じ Issue の残りの前提と、あとのファイルを作り終える', async () => {
+      await explains('`issue create` の前提を付けるのが失敗した場合のテストです。前提を 1 件付けられなくても、同じ Issue の残りの前提とあとのファイルは作り終えることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': taskFile('先頭'),
@@ -919,6 +970,7 @@ describe('issue create', () => {
     })
 
     it('作成が途中で失敗したとき、作った Issue どうしの前提だけを付ける', async () => {
+      await explains('`issue create` の作成が失敗した場合のテストです。作成が途中で失敗した場合に、作った Issue どうしの前提だけを付けることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': taskFile('先頭'),
@@ -947,6 +999,7 @@ describe('issue create', () => {
     })
 
     it('列を書けなかったとき、前提の判定を読まず、列を動かさない', async () => {
+      await explains('`issue create` の列を書けなかった場合のテストです。列を書けなかった場合に、前提の判定は読まず、列を動かさないことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')) })
       await startGithub([linkedRepositories(), blockedBySupported(), issueNodeId(12), createdIssue(13), blockedByAdded(), issueNodeId(13), addedToProject(), staleOptionUpdate()])
@@ -966,6 +1019,7 @@ describe('issue create', () => {
     })
 
     it('ファイルの作り先が別々のプロジェクトの設定に分かれると、1 件も作らずに終了コード 1 で終わる', async () => {
+      await explains('`issue create` のプロジェクトの設定のテストです。ファイルの作り先が別々のプロジェクトの設定へ分かれる場合に、1 件も作らず、終了コード 1 で終わることを確認します。')
       const otherOnly = configText({}).replaceAll('"name": "demo"', '"name": "other"')
       const project = setUpIssueProject({ files: { '.pecot/config/projects/second.json': otherOnly } })
       writeTree(project.root, {
@@ -982,6 +1036,7 @@ describe('issue create', () => {
 
     it('一括の中で同じ親 Epic に同じ order を書いたファイルがあるとき、何も作らずに終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-57')
+      await explains('`issue create` の `order` の検証のテストです。一括の中で同じ親 Epic に同じ `order` を書いたファイルがある場合に、何も作らず、終了コード 1 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': taskFile('先頭', PARENT, 'order: 4'),
@@ -998,6 +1053,7 @@ describe('issue create', () => {
     const DIRECT = { title: '一覧に状態を出す', repo: 'acme/demo', message: TASK_BODY }
 
     it('message で作ると、作った Issue の番号・URL・書いた status を data.issues に返す', async () => {
+      await explains('MCP ツール `issue_create` の基本の動作のテストです。`message` で作った場合に、作った Issue の番号・URL・書いた `status` を `data.issues` に返すことを確認します。')
       setUpIssueProject()
       await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
 
@@ -1008,6 +1064,7 @@ describe('issue create', () => {
     })
 
     it('親 Epic を付けて作ると、つないだ親の参照を data.issues の parent に返す', async () => {
+      await explains('MCP ツール `issue_create` の親 Epic のテストです。親 Epic を付けて作った場合に、つないだ親の参照を `data.issues` の `parent` に返すことを確認します。')
       setUpIssueProject()
       await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), parentLane(3), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
 
@@ -1017,6 +1074,7 @@ describe('issue create', () => {
     })
 
     it('前提の済んだ Issue を Blocked で作って Ready へ動かすと、data.issues の status を ready にする', async () => {
+      await explains('MCP ツール `issue_create` の済んだ前提のテストです。前提の済んだ Issue を Blocked で作って Ready へ動かした場合に、`data.issues` の `status` を `ready` にすることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')) })
       await startGithub([
@@ -1036,8 +1094,9 @@ describe('issue create', () => {
       expect(outcome.structured['issues']).toEqual([{ owner: 'acme', repository: 'demo', number: 13, url: `${ISSUE_URL_BASE}/13`, status: 'ready' }])
     })
 
-    it('Blocked の ID が古くて列を書けないと、書けなかった列と案内を warnings に返し、data.issues に status を返さない', async (context) => {
+    it('Blocked の ID が古くて Status を書けないと、書けなかった Status と案内を warnings に返し、data.issues に status を返さない', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-24')
+      await explains('MCP ツール `issue_create` の古い選択肢の ID のテストです。Blocked の ID が古くて Status を書けない場合に、書けなかった Status と案内を `warnings` に返し、`status` は返さないことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')) })
       const github = await startGithub([
@@ -1062,6 +1121,7 @@ describe('issue create', () => {
     })
 
     it('途中のファイルで作成に失敗すると、作り終えた Issue を失敗の data.issues に残す', async () => {
+      await explains('MCP ツール `issue_create` の作成が失敗した場合のテストです。途中のファイルで作成が失敗した場合に、作り終えた Issue を失敗の `data.issues` に残すことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '1 件目' }),
@@ -1076,6 +1136,7 @@ describe('issue create', () => {
     })
 
     it('前提を付けられずに partial-failure で終わっても、作り終えた Issue をすべて data.issues に残す', async () => {
+      await explains('MCP ツール `issue_create` の前提を付けるのが失敗した場合のテストです。`partial-failure` で終わっても、作り終えた Issue をすべて `data.issues` に残すことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': taskFile('次', ...blockedBy('a')) })
       await startGithub([linkedRepositories(), blockedBySupported(), createdIssue(12), createdIssue(13), issueNodeId(12), issueNodeId(13), failedBlockedBy(), addedToProject(2), updatedFields(2)])
@@ -1096,6 +1157,7 @@ describe('issue create', () => {
 
     it('message の repo が owner/repo の形でないとき、kind が invalid-input の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-40')
+      await explains('MCP ツール `issue_create` の `repo` の検証のテストです。`message` の `repo` が `owner/repo` の形でない場合に、`kind` が `invalid-input` の失敗を返すことを確認します。')
       setUpIssueProject()
 
       const outcome = await createTool({ title: '題', repo: 'acme/demo/x', message: TASK_BODY })
@@ -1115,6 +1177,7 @@ describe('issue create', () => {
       await verifies(context, 'PW-ISSUE-CREATE-18')
       await verifies(context, 'PW-ISSUE-CREATE-19')
       await verifies(context, 'PW-ISSUE-CREATE-20')
+      await explains('MCP ツール `issue_create` のファイル指定のテストです。ファイルを 2 つ渡した場合に、渡した順に作って `{{issue:key}}` を前の番号に直し、ボードと親 Epic につないで `issues` に返すことを確認します。')
       const project = setUpIssueProject()
       const secondBody = TASK_BODY.replace('実現したい状態', '{{issue:first}} が終わってから進める。')
       writeTree(project.root, {
@@ -1153,8 +1216,9 @@ describe('issue create', () => {
       expect(variablesOf(github, 'UpdateProjectItemField')).toMatchObject([{ fieldId: 'PVTSSF_workflow', optionId: 'o3' }, { fieldId: 'PVTSSF_workflow', optionId: 'o3' }])
     })
 
-    it('フロントマターに旧い priority・size があっても、読み捨てて作り、ボードには status だけを設定する', async (context) => {
+    it('フロントマターに旧い priority・size があっても、無視して作り、ボードには status だけを設定する', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-88')
+      await explains('MCP ツール `issue_create` の旧い項目のテストです。フロントマターに旧い `priority` や `size` があっても、無視して作り、ボードには `status` だけを設定することを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': taskFile('先頭', 'priority: high', 'size: s'),
@@ -1177,8 +1241,9 @@ describe('issue create', () => {
     it.for([
       { name: 'priority', arguments_: { priority: 'high' } },
       { name: 'size', arguments_: { size: 'm' } },
-    ])('$name を渡すと、無い入力として止まり、Issue を作らない', async (row, context) => {
+    ])('$name を渡すと、定義にない入力として止まり、Issue を作らない', async (row, context) => {
       await verifies(context, 'PW-ISSUE-CREATE-87')
+      await explains('MCP ツール `issue_create` の引数の検証のテストです。`priority` や `size` を渡した場合に、定義にない入力として止まり、Issue を作らないことを確認します。')
       setUpIssueProject()
       const github = await startGithub([])
 
@@ -1191,6 +1256,7 @@ describe('issue create', () => {
 
     it('files と message を一緒に渡すと、message の本文を使わずにファイルから作る', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-07')
+      await explains('MCP ツール `issue_create` の引数のテストです。`files` と `message` を両方渡した場合は、`message` の本文を使わず、ファイルから作ることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_FRONTMATTER) })
       const github = await startGithub(fileRules())
@@ -1205,6 +1271,7 @@ describe('issue create', () => {
       await verifies(context, 'PW-ISSUE-CREATE-21')
       await verifies(context, 'PW-ISSUE-CREATE-22')
       await verifies(context, 'PW-ISSUE-CREATE-23')
+      await explains('MCP ツール `issue_create` のボードへの追加が失敗した場合のテストです。ボードへの追加が失敗した場合に、`warnings` に入れ、作った Issue を `issues` に入れて次のファイルへ進むことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '1 件目' }),
@@ -1221,6 +1288,7 @@ describe('issue create', () => {
 
     it('ボードへの追加に失敗しても、親 Epic へつなぎ、warnings に入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-21')
+      await explains('MCP ツール `issue_create` のボードへの追加が失敗した場合のテストです。ボードへの追加が失敗しても、親 Epic へつなぎ、`warnings` に入れることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', PARENT) })
       await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), parentLane(3), createdIssue(12), issueNodeId(12), failedAddToProject(), issueNodeId(3), subIssueAdded()])
@@ -1234,6 +1302,7 @@ describe('issue create', () => {
 
     it('欄の設定に失敗したとき、失敗を warnings へ入れ、project_activate の案内を添えて、次のファイルの欄を設定する', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-24')
+      await explains('MCP ツール `issue_create` の欄の設定が失敗した場合のテストです。欄の設定が失敗した場合に、`warnings` に失敗と `project_activate` の案内を入れ、次のファイルの欄は設定することを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': taskFile('次') })
       const github = await startGithub([linkedRepositories(), createdIssue(12), createdIssue(13), issueNodeId(12), issueNodeId(13), addedToProject(2), staleOptionUpdate(1), updatedFields(1)])
@@ -1249,6 +1318,7 @@ describe('issue create', () => {
 
     it('500 で欄の設定に失敗したときは、warnings に入れ、ID を読み直す案内を添えない', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-24')
+      await explains('MCP ツール `issue_create` の欄の設定が失敗した場合のテストです。HTTP 500 で失敗した場合に、`warnings` に入れ、ID を読み直す案内は付けないことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭') })
       await startGithub([linkedRepositories(), createdIssue(12), issueNodeId(12), addedToProject(), { match: { operation: 'UpdateProjectItemField' }, times: 1, respond: { status: 500, body: { message: 'boom' } } }])
@@ -1263,6 +1333,7 @@ describe('issue create', () => {
     it('親 Epic へのつなぎに失敗したとき、作った Issue を issues に入れて失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-25')
       await verifies(context, 'PW-ISSUE-CREATE-26')
+      await explains('MCP ツール `issue_create` の親 Epic へのつなぎが失敗した場合のテストです。つなぎが失敗した場合に、作った Issue を `issues` に入れて失敗を返すことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_WITH_PARENT) })
       await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), parentLane(3), createdIssue(12), issueNodeId(12), addedToProject(), updatedFields(1), issueNodeId(3), failedSubIssue()])
@@ -1278,6 +1349,7 @@ describe('issue create', () => {
       await verifies(context, 'PW-ISSUE-CREATE-27')
       await verifies(context, 'PW-ISSUE-CREATE-28')
       await verifies(context, 'PW-ISSUE-CREATE-39')
+      await explains('MCP ツール `issue_create` の作成が失敗した場合のテストです。途中のファイルで作成が失敗した場合に、後のファイルは処理せず、作り終えた Issue を残して失敗を返すことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': frontmatterFile({ ...TASK_FRONTMATTER, title: '1 件目' }),
@@ -1297,8 +1369,9 @@ describe('issue create', () => {
     it.for([
       { name: 'ファイル', arguments_: (root: string): Record<string, unknown> => ({ files: inRoot(root, 'draft.md') }) },
       { name: 'message', arguments_: (): Record<string, unknown> => ({ title: '題', repo: 'acme/demo', message: '## 関係のない見出し\n\n本文\n' }) },
-    ])('$name の本文がテンプレに合わないとき、kind が content-invalid の失敗を返す', async (row, context) => {
+    ])('$name の本文がテンプレートに合わないとき、kind が content-invalid の失敗を返す', async (row, context) => {
       await verifies(context, 'PW-ISSUE-CREATE-29')
+      await explains('MCP ツール `issue_create` の本文の検証のテストです。ファイルか `message` の本文がテンプレートと合わない場合に、`kind` が `content-invalid` の失敗を返すことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_FRONTMATTER, '## 関係のない見出し\n\n本文\n') })
 
@@ -1314,6 +1387,7 @@ describe('issue create', () => {
       { name: 'message の status', arguments_: (): Record<string, unknown> => ({ ...DIRECT, status: 'backlog' }), given: 'backlog' },
     ])('$name が型の既定の値でないとき、kind が invalid-input の失敗を返す', async (row, context) => {
       await verifies(context, 'PW-ISSUE-CREATE-30')
+      await explains('MCP ツール `issue_create` の `status` の検証のテストです。ファイルか `message` の `status` が型の既定の値でない場合に、`kind` が `invalid-input` の失敗を返すことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile({ ...TASK_FRONTMATTER, status: 'active' }) })
 
@@ -1324,11 +1398,12 @@ describe('issue create', () => {
     })
 
     it.for([
-      { name: 'ファイルが無い', body: TASK_BODY, files: ['missing.md'], detail: /^file not found: .+\/missing\.md$/u },
+      { name: 'ファイルが存在しない', body: TASK_BODY, files: ['missing.md'], detail: /^file not found: .+\/missing\.md$/u },
       { name: '同じファイルを重ねて渡す', body: TASK_BODY, files: ['draft.md', 'draft.md'], detail: /^file specified more than once: .+\/draft\.md$/u },
       { name: '先のファイルを指さないプレースホルダがある', body: TASK_BODY.replace('実現したい状態', '{{issue:later}} の後'), files: ['draft.md'], detail: /^\{\{issue:later\}\} in draft\.md does not point to an earlier file/u },
     ])('$name とき、1 件も作らずに失敗を返す', async (row, context) => {
       await verifies(context, 'PW-ISSUE-CREATE-34')
+      await explains('MCP ツール `issue_create` のファイルの検証のテストです。ファイルが存在しない場合や同じファイルを重ねて渡した場合などに、1 件も作らず失敗を返すことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_FRONTMATTER, row.body) })
       const github = await startGithub([])
@@ -1341,10 +1416,11 @@ describe('issue create', () => {
     })
 
     it.for([
-      { name: 'フロントマターが無い', content: TASK_BODY, detail: /^frontmatter not found/u },
+      { name: 'フロントマターが存在しない', content: TASK_BODY, detail: /^frontmatter not found/u },
       { name: 'repository が owner/repo の形でない', content: frontmatterFile({ ...TASK_FRONTMATTER, repository: 'demo' }), detail: /^invalid repository format in the frontmatter: 'demo'$/u },
     ])('$name とき、kind が content-invalid の失敗を返す', async (row, context) => {
       await verifies(context, 'PW-ISSUE-CREATE-35')
+      await explains('MCP ツール `issue_create` のフロントマターの検証のテストです。フロントマターが存在しない場合や `repository` の形が誤っている場合に、`kind` が `content-invalid` の失敗を返すことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': row.content })
 
@@ -1357,6 +1433,7 @@ describe('issue create', () => {
 
     it('同じ親 Epic に同じ order の Issue があるとき、作らずに kind が order-conflict の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-36')
+      await explains('MCP ツール `issue_create` の `order` の検証のテストです。同じ親 Epic に同じ `order` の Issue が存在する場合に、作らずに `kind` が `order-conflict` の失敗を返すことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile({ ...TASK_WITH_PARENT, order: '2' }) })
       const github = await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE])])
@@ -1370,6 +1447,7 @@ describe('issue create', () => {
 
     it('リポジトリがプロジェクトにつながっていないとき、kind が repo-not-in-project の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-37')
+      await explains('MCP ツール `issue_create` のプロジェクトの登録のテストです。リポジトリがプロジェクトにつながっていない場合に、`kind` が `repo-not-in-project` の失敗を返すことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'draft.md': frontmatterFile(TASK_FRONTMATTER) })
       await startGithub([linkedRepositories(1, [])])
@@ -1383,6 +1461,7 @@ describe('issue create', () => {
     it('parent_epic の形が誤っているとき、受け付ける形を detail に入れて、kind が invalid-input の失敗を返す', async (context) => {
       await verifies(context, 'PW-COMMON-28')
       await verifies(context, 'PW-ISSUE-CREATE-43')
+      await explains('MCP ツール `issue_create` の `parent_epic` の検証のテストです。`parent_epic` の形が誤っている場合に、受け付ける形を `detail` に入れ、`kind` が `invalid-input` の失敗を返すことを確認します。')
       setUpIssueProject()
 
       const outcome = await createTool({ ...DIRECT, parent_epic: 'abc' })
@@ -1397,6 +1476,7 @@ describe('issue create', () => {
     it('message に title と repo を渡すと、status を省けば型の既定の status を設定して Issue を 1 件作る', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-05')
       await verifies(context, 'PW-ISSUE-CREATE-12')
+      await explains('MCP ツール `issue_create` の `message` の基本の動作のテストです。`message` に `title` と `repo` を渡して `status` を省いた場合に、型の既定の `status` を設定して Issue を 1 件作ることを確認します。')
       setUpIssueProject()
       const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
 
@@ -1413,6 +1493,7 @@ describe('issue create', () => {
       await verifies(context, 'PW-ISSUE-CREATE-13')
       await verifies(context, 'PW-ISSUE-CREATE-19')
       await verifies(context, 'PW-ISSUE-CREATE-20')
+      await explains('MCP ツール `issue_create` のオプションのテストです。`label`・`parent_epic`・`order` を渡した場合に、`status` を設定し、ラベルを付け、親 Epic のサブ Issue につなぐことを確認します。')
       setUpIssueProject()
       const github = await startGithub([linkedRepositories(), parentEpic(3, [EXISTING_SUB_ISSUE]), parentLane(3), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
 
@@ -1425,6 +1506,7 @@ describe('issue create', () => {
 
     it('message の status が有効な値でないとき、有効な値を並べた detail を入れて、kind が invalid-input の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-44')
+      await explains('MCP ツール `issue_create` の `status` の検証のテストです。`message` の `status` が有効な値でない場合に、有効な値を並べた `detail` を入れ、`kind` が `invalid-input` の失敗を返すことを確認します。')
       setUpIssueProject()
 
       const outcome = await createTool({ ...DIRECT, status: 'doing' })
@@ -1434,10 +1516,11 @@ describe('issue create', () => {
     })
 
     it.for([
-      { name: 'title が無い', id: 'PW-ISSUE-CREATE-31', arguments_: { repo: 'acme/demo', message: TASK_BODY }, detail: 'title is required with message' },
-      { name: 'epic 以外で repo が無い', id: 'PW-ISSUE-CREATE-32', arguments_: { title: '題', message: TASK_BODY }, detail: 'repo is required with message' },
+      { name: 'title を渡していない', id: 'PW-ISSUE-CREATE-31', arguments_: { repo: 'acme/demo', message: TASK_BODY }, detail: 'title is required with message' },
+      { name: 'epic 以外で repo を渡していない', id: 'PW-ISSUE-CREATE-32', arguments_: { title: '題', message: TASK_BODY }, detail: 'repo is required with message' },
     ])('message で $name とき、kind が invalid-input の失敗を返す', async (row, context) => {
       await verifies(context, row.id)
+      await explains('MCP ツール `issue_create` の `message` の引数の検証のテストです。`title` を渡さない場合や Epic 以外で `repo` を渡さない場合に、`kind` が `invalid-input` の失敗を返すことを確認します。')
       setUpIssueProject()
 
       const outcome = await createTool(row.arguments_)
@@ -1448,6 +1531,7 @@ describe('issue create', () => {
 
     it('作り先のリポを含む設定が 2 つで選べないとき、kind が no-active-project の失敗に候補と project の案内を入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-38')
+      await explains('MCP ツール `issue_create` のプロジェクトの設定の選択のテストです。作り先のリポジトリを含む設定が 2 つあり選べない場合に、`kind` が `no-active-project` の失敗を返し、候補と `project` の案内を入れることを確認します。')
       setUpIssueProject({ files: { '.pecot/config/projects/.active': '', '.pecot/config/projects/second.json': configText({}) } })
 
       const outcome = await createTool(DIRECT)
@@ -1456,8 +1540,9 @@ describe('issue create', () => {
       expect(outcome.structured).toEqual({ kind: 'no-active-project', detail: 'acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ghes.example.com_acme_board_acme, second' })
     })
 
-    it('作り先のリポを含む設定が無いとき、どの設定にも無いことと設定の名前の一覧を detail に入れて失敗を返す', async (context) => {
+    it('作り先のリポを含む設定が存在しないとき、どの設定にも無いことと設定の名前の一覧を detail に入れて失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-74')
+      await explains('MCP ツール `issue_create` のプロジェクトの設定の選択のテストです。作り先のリポジトリを含む設定が存在しない場合に、存在しない旨と設定の名前の一覧を `detail` に入れて失敗を返すことを確認します。')
       setUpIssueProject()
 
       const outcome = await createTool({ ...DIRECT, repo: 'acme/unknown' })
@@ -1468,6 +1553,7 @@ describe('issue create', () => {
 
     it('project を渡すと、作り先のリポを含む設定が 2 つでも、その設定で作る', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-75')
+      await explains('MCP ツール `issue_create` の `project` のテストです。作り先のリポジトリを含む設定が 2 つある場合でも、`project` で指定した設定で作ることを確認します。')
       setUpIssueProject({ files: { '.pecot/config/projects/.active': '', '.pecot/config/projects/second.json': configText({}) } })
       await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
 
@@ -1477,8 +1563,9 @@ describe('issue create', () => {
       expect(outcome.structured).toEqual({ issues: [{ ...ISSUE_12, status: 'ready' }] })
     })
 
-    it('Epic を repo なしで作るとき、.active が無くて設定の数が 2 つなら、kind が no-active-project の失敗に候補と project の案内を入れる', async (context) => {
+    it('Epic を repo なしで作るとき、.active が存在せず設定の数が 2 つなら、kind が no-active-project の失敗に候補と project の案内を入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-76')
+      await explains('MCP ツール `issue_create` の Epic のテストです。`repo` を付けず、`.active` が存在せず設定が 2 つある場合に、`kind` が `no-active-project` の失敗を返し、候補と `project` の案内を入れることを確認します。')
       setUpIssueProject({ aggregation: 'acme/demo', files: { '.pecot/config/projects/.active': '', '.pecot/config/projects/second.json': configText({ aggregation: 'acme/demo' }) } })
 
       const outcome = await createTool({ title: '大きな仕事', type: 'epic', message: EPIC_BODY })
@@ -1489,6 +1576,7 @@ describe('issue create', () => {
 
     it('Epic を repo なしで project を付けて作ると、その設定の aggregation_repo に作る', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-77')
+      await explains('MCP ツール `issue_create` の Epic のテストです。`repo` を付けず `project` を付けた場合に、その設定の `aggregation_repo` に Epic を作ることを確認します。')
       setUpIssueProject({ aggregation: 'acme/demo', files: { '.pecot/config/projects/.active': '', '.pecot/config/projects/second.json': configText({ aggregation: 'acme/other', otherRepositories: ['other'] }) } })
       const github = await startGithub([linkedRepositories(1, ['demo', 'other']), createdIssue(12, { repository: 'other' }), addedToProject(), updatedFields(1)])
 
@@ -1500,6 +1588,7 @@ describe('issue create', () => {
 
     it('Epic を repo なしで作ると、aggregation_repo に作る', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-14')
+      await explains('MCP ツール `issue_create` の Epic のテストです。`repo` を付けない場合に、`aggregation_repo` に Epic を作ることを確認します。')
       setUpIssueProject({ aggregation: 'acme/demo' })
       const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
 
@@ -1511,6 +1600,7 @@ describe('issue create', () => {
 
     it('aggregation_repo と違うリポジトリに Epic を作ると、warnings に入れて続ける', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-15')
+      await explains('MCP ツール `issue_create` の Epic のテストです。`aggregation_repo` と違うリポジトリに Epic を作る場合に、warning を `warnings` に入れて作成を続けることを確認します。')
       setUpIssueProject({ aggregation: 'acme/demo', otherRepositories: ['other'] })
       await startGithub([linkedRepositories(1, ['demo', 'other']), createdIssue(12, { repository: 'other' }), addedToProject(), updatedFields(1)])
 
@@ -1522,6 +1612,7 @@ describe('issue create', () => {
 
     it('Epic の作り先を決められないとき、kind が repo-setting-missing の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-42')
+      await explains('MCP ツール `issue_create` の Epic の作り先のテストです。作り先を決められない場合に、`kind` が `repo-setting-missing` の失敗を返すことを確認します。')
       setUpIssueProject()
 
       const outcome = await createTool({ title: '大きな仕事', type: 'epic', message: EPIC_BODY })
@@ -1532,6 +1623,7 @@ describe('issue create', () => {
 
     it('files と message のどちらも渡していないとき、kind が invalid-input の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-33')
+      await explains('MCP ツール `issue_create` の引数の検証のテストです。`files` と `message` のどちらも渡さなかった場合に、`kind` が `invalid-input` の失敗を返すことを確認します。')
       setUpIssueProject()
 
       const outcome = await createTool({})
@@ -1544,6 +1636,7 @@ describe('issue create', () => {
     describe('前提と進め方', () => {
       it.for(REJECTED_INPUTS)('$name とき、何も作らずに失敗を返す', async (row, context) => {
         await verifies(context, row.id)
+        await explains('MCP ツール `issue_create` の前提の検証のテストです。前提の指定が一括の中で誤っている場合に、何も作らず失敗を返すことを確認します。')
         const project = setUpIssueProject()
         writeTree(project.root, { 'a.md': taskFile('先頭', ...row.first), 'b.md': taskFile('次', ...row.second) })
 
@@ -1555,6 +1648,7 @@ describe('issue create', () => {
 
       it('前提の既存の Issue を読めないとき、1 件も作らずに、読めなかった Issue を示す失敗を返す', async (context) => {
         await verifies(context, 'PW-ISSUE-CREATE-52')
+        await explains('MCP ツール `issue_create` の前提の既存の Issue のテストです。前提の既存の Issue を読めない場合に、1 件も作らず、読めなかった Issue を示す失敗を返すことを確認します。')
         const project = setUpIssueProject()
         writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/99')) })
         const github = await startGithub([linkedRepositories(), blockedBySupported(), { match: { operation: 'GetIssueNodeId' }, times: 1, respond: { status: 200, body: { errors: [{ message: 'not found' }] } } }])
@@ -1566,11 +1660,12 @@ describe('issue create', () => {
         expect(postsOf(github)).toEqual([])
       })
 
-      it('前提のあるファイルを渡すと、前提を付けて Blocked に置き、通し番号を振り、スタックできる並びを stackableChains に返す', async (context) => {
+      it('前提のあるファイルを渡すと、前提を付けて Blocked に置き、通し番号を振り、スタック可の並びを stackableChains に返す', async (context) => {
         await verifies(context, 'PW-ISSUE-CREATE-46')
         await verifies(context, 'PW-ISSUE-CREATE-47')
         await verifies(context, 'PW-ISSUE-CREATE-49')
         await verifies(context, 'PW-ISSUE-CREATE-56')
+        await explains('MCP ツール `issue_create` の前提のあるファイルのテストです。前提を付けて Blocked に置き、通し番号を振り、スタック可の並びを `stackableChains` に返すことを確認します。')
         const project = setUpIssueProject()
         writeTree(project.root, {
           'a.md': taskFile('先頭', PARENT),
@@ -1609,6 +1704,7 @@ describe('issue create', () => {
 
       it('wait が merge の前提を付けると、その前提と reason を本文の Waits for merge の節に書く', async (context) => {
         await verifies(context, 'PW-ISSUE-CREATE-50')
+        await explains('MCP ツール `issue_create` の `wait` のテストです。`wait` が `merge` の前提を付けた場合に、その前提と `reason` を本文の `Waits for merge` の節に書くことを確認します。')
         const project = setUpIssueProject()
         writeTree(project.root, {
           'a.md': taskFile('先頭'),
@@ -1628,8 +1724,9 @@ describe('issue create', () => {
         expect(bodies.at(1)).toContain('- #12: 既定のブランチから配られる')
       })
 
-      it('作成の応答に node_id が無いとき、ボードへ先に足して、その node ID で前提を付ける', async (context) => {
+      it('作成の応答に node_id が存在しないとき、ボードへ先に追加して、その node ID で前提を付ける', async (context) => {
         await verifies(context, 'PW-ISSUE-CREATE-46')
+        await explains('MCP ツール `issue_create` の前提の付け方のテストです。作成の応答が `node_id` を含まない場合に、まずボードへ追加して、その node ID で前提を付けることを確認します。')
         const project = setUpIssueProject()
         writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': taskFile('次', ...blockedBy('a')) })
         const github = await startGithub([
@@ -1647,6 +1744,7 @@ describe('issue create', () => {
 
       it('前提を付けるのに失敗したとき、warnings に入れ、detail に付け直す issue_block の呼び方を入れて、kind が partial-failure の失敗を返す', async (context) => {
         await verifies(context, 'PW-ISSUE-CREATE-51')
+        await explains('MCP ツール `issue_create` の前提を付けるのが失敗した場合のテストです。失敗した場合に、`warnings` に入れ、付け直す `issue_block` の呼び方を `detail` に入れて、`kind` が `partial-failure` の失敗を返すことを確認します。')
         const project = setUpIssueProject()
         writeTree(project.root, {
           'a.md': taskFile('先頭'),
@@ -1668,8 +1766,9 @@ describe('issue create', () => {
         expect(outcome.structured['issues']).toHaveLength(3)
       })
 
-      it('前提のあるタスクを作るとき、ボードに Blocked の列が無ければ、Ready に置いて warnings に 1 回だけ入れる', async (context) => {
+      it('前提のあるタスクを作るとき、ボードに Blocked の列が存在しなければ、Ready に置いて warnings に 1 回だけ入れる', async (context) => {
         await verifies(context, 'PW-ISSUE-CREATE-47')
+        await explains('MCP ツール `issue_create` の Blocked の選択肢のテストです。ボードに Blocked の列が存在しない場合に、前提のある Issue を Ready に置き、`warnings` へ 1 回だけ入れることを確認します。')
         const project = setUpIssueProject({ withoutBlockedColumn: true })
         writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': taskFile('次', ...blockedBy('a')), 'c.md': taskFile('最後', ...blockedBy('b')) })
         await startGithub([
@@ -1686,6 +1785,7 @@ describe('issue create', () => {
 
       it('既存の Issue を前提にした Issue を作ると、前提が済んでいれば Ready の列へ動かす', async (context) => {
         await verifies(context, 'PW-ISSUE-CREATE-48')
+        await explains('MCP ツール `issue_create` の済んだ前提のテストです。既存の Issue を前提にした Issue を作り、前提が済んでいる場合に、Ready の列へ動かすことを確認します。')
         const project = setUpIssueProject()
         writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')) })
         const github = await startGithub([
@@ -1701,6 +1801,7 @@ describe('issue create', () => {
 
       it('既存の Issue を前提にした Issue を作り、読めた前提が付けた数に足りないとき、Blocked のまま残す', async (context) => {
         await verifies(context, 'PW-ISSUE-CREATE-48')
+        await explains('MCP ツール `issue_create` の Blocked のまま残すテストです。読めた前提が付けた数を満たさない場合に、Blocked のまま残すことを確認します。')
         const project = setUpIssueProject()
         writeTree(project.root, { 'a.md': taskFile('先頭', ...blockedBy('acme/demo/12')) })
         const github = await startGithub([
@@ -1717,6 +1818,7 @@ describe('issue create', () => {
 
       it('同じ親 Epic に同じ order を書いたファイルが一括の中に 2 つあるとき、何も作らずに kind が order-conflict の失敗を返す', async (context) => {
         await verifies(context, 'PW-ISSUE-CREATE-57')
+        await explains('MCP ツール `issue_create` の `order` の検証のテストです。同じ親 Epic へ同じ `order` を書いたファイルが一括の中で 2 つある場合に、何も作らず `kind` が `order-conflict` の失敗を返すことを確認します。')
         const project = setUpIssueProject()
         writeTree(project.root, { 'a.md': taskFile('先頭', PARENT, 'order: 4'), 'b.md': taskFile('次', PARENT, 'order: 4') })
 
@@ -1728,6 +1830,7 @@ describe('issue create', () => {
 
       it('依存関係に対応しないサーバで blocked_by を書いたとき、何も作らずに kind が dependency-rejected の失敗を返す', async (context) => {
         await verifies(context, 'PW-ISSUE-CREATE-58')
+        await explains('MCP ツール `issue_create` の GitHub Enterprise Server のテストです。依存関係に対応しないサーバで `blocked_by` を書いた場合に、何も作らず `kind` が `dependency-rejected` の失敗を返すことを確認します。')
         const project = setUpIssueProject()
         writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': taskFile('次', ...blockedBy('a')) })
         const github = await startGithub([linkedRepositories(), blockedByUnsupported()])
@@ -1741,6 +1844,7 @@ describe('issue create', () => {
 
       it('作成が途中で失敗したとき、作った Issue どうしの前提だけを付けて失敗を返す', async (context) => {
         await verifies(context, 'PW-ISSUE-CREATE-59')
+        await explains('MCP ツール `issue_create` の作成が失敗した場合のテストです。作成が途中で失敗した場合に、作った Issue どうしの前提だけを付けて失敗を返すことを確認します。')
         const project = setUpIssueProject()
         writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': taskFile('次', ...blockedBy('a')), 'c.md': taskFile('最後', ...blockedBy('b')) })
         const github = await startGithub([
@@ -1756,6 +1860,7 @@ describe('issue create', () => {
 
       it('ファイルの作り先が別々のプロジェクトの設定に分かれると、ファイルと設定の名前を detail に入れ、1 件も作らずに失敗を返す', async (context) => {
         await verifies(context, 'PW-ISSUE-CREATE-78')
+        await explains('MCP ツール `issue_create` のプロジェクトの設定のテストです。ファイルの作り先が別々のプロジェクトの設定へ分かれる場合に、ファイルと設定の名前を `detail` に入れ、1 件も作らず失敗を返すことを確認します。')
         const otherOnly = configText({}).replaceAll('"name": "demo"', '"name": "other"')
         const project = setUpIssueProject({ files: { '.pecot/config/projects/second.json': otherOnly } })
         writeTree(project.root, { 'a.md': taskFile('先頭'), 'b.md': rawFrontmatterFile(['type: task', 'repository: acme/other', 'title: 別のリポ']) })

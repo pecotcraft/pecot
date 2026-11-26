@@ -136,6 +136,8 @@
         "{projectRoot}/src/vitest/allure-reporter.ts",
         "{projectRoot}/src/vitest/attach.ts",
         "{projectRoot}/src/vitest/step.ts",
+        "{projectRoot}/src/vitest/explains.ts",
+        "{projectRoot}/src/vitest/rule-tester.ts",
         "{workspaceRoot}/.githooks/scripts/test_report/step-gate.mjs",
         "{workspaceRoot}/.githooks/scripts/test_report/step-gate.sh",
         "{workspaceRoot}/.githooks/scripts/run-pnpm.sh",

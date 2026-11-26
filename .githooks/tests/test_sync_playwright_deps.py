@@ -55,7 +55,9 @@ def _run(repo: Path) -> subprocess.CompletedProcess[str]:
     return run_attached(["node", _SCRIPT], cwd=repo, capture_output=True, text=True, check=False)
 
 
+@allure.title("lock の版が設定と違うと、版だけを書き換えてコメントを残す")
 def test_rewrites_only_the_version_and_keeps_comments(repo: Path) -> None:
+    """`pnpm-lock.yaml` の playwright の版が `devcontainer.json` と異なる場合のテストです。スクリプトが終了コード 0 で終了し、版だけが新しい値になり、コメントを含むほかの部分が変わらないことを確認します。"""
     with allure.step("lock と設定を置き、sync-playwright-deps.mjs を動かす"):
         path = _setup(repo, _lock("1.65.0"), _CONFIG % "1.64.1")
         result = _run(repo)
@@ -64,7 +66,9 @@ def test_rewrites_only_the_version_and_keeps_comments(repo: Path) -> None:
         assert read_output(path) == _CONFIG % "1.65.0"
 
 
+@allure.title("lock の版が設定と同じなら、ファイルを書き込まない")
 def test_same_version_is_not_written(repo: Path) -> None:
+    """`pnpm-lock.yaml` と `devcontainer.json` の playwright の版が同じ場合のテストです。ファイルの内容と更新時刻が変わらないことを確認します。"""
     with allure.step("同じ版の lock と設定を置き、sync-playwright-deps.mjs を動かす"):
         path = _setup(repo, _lock("1.65.0"), _CONFIG % "1.65.0")
         before = path.stat().st_mtime_ns
@@ -75,8 +79,10 @@ def test_same_version_is_not_written(repo: Path) -> None:
         assert path.stat().st_mtime_ns == before
 
 
+@allure.title("lock の playwright の版が {versions} のとき、エラーで止まり設定を変更しない")
 @pytest.mark.parametrize("versions", [[], ["1.64.1", "1.65.0"]])
 def test_lock_without_exactly_one_version_stops(repo: Path, versions: list[str]) -> None:
+    """`pnpm-lock.yaml` の playwright の版が 0 個または 2 個以上の場合のテストです。終了コードが 1 になり、標準エラー出力に「1 版でない」と表示され、`devcontainer.json` が変更されないことを確認します。"""
     with allure.step("版が 1 つでない lock を置き、sync-playwright-deps.mjs を動かす"):
         path = _setup(repo, _lock(*versions), _CONFIG % "1.64.1")
         result = _run(repo)
@@ -86,7 +92,9 @@ def test_lock_without_exactly_one_version_stops(repo: Path, versions: list[str])
         assert read_output(path) == _CONFIG % "1.64.1"
 
 
+@allure.title("設定に playwright-deps の feature が存在しないと、エラーで止まる")
 def test_config_without_the_feature_stops(repo: Path) -> None:
+    """`devcontainer.json` に `playwright-deps` の feature が存在しない場合のテストです。終了コードが 1 になり、標準エラー出力に `playwright-deps` が表示されることを確認します。"""
     with allure.step("feature の無い設定を置き、sync-playwright-deps.mjs を動かす"):
         _setup(repo, _lock("1.65.0"), '{ "features": {} }\n')
         result = _run(repo)
@@ -95,7 +103,9 @@ def test_config_without_the_feature_stops(repo: Path) -> None:
         assert "playwright-deps" in result.stderr
 
 
+@allure.title("lock に playwright-core などの行が存在しても、版として数えない")
 def test_lock_ignores_other_playwright_packages(repo: Path) -> None:
+    """`pnpm-lock.yaml` に `playwright-core` と `@playwright/test` の行が含まれる場合のテストです。それらを版として数えず、`playwright` の版だけで `devcontainer.json` が更新されることを確認します。"""
     with allure.step(
         "別の playwright 系の行を足した lock を置き、sync-playwright-deps.mjs を動かす"
     ):
@@ -108,7 +118,9 @@ def test_lock_ignores_other_playwright_packages(repo: Path) -> None:
         assert read_output(path) == _CONFIG % "1.65.0"
 
 
+@allure.title("pnpm-lock.yaml が存在しないと、1 行のメッセージで止まる")
 def test_missing_lock_stops_with_one_line_message(repo: Path) -> None:
+    """`pnpm-lock.yaml` が存在しない場合のテストです。終了コードが 1 になり、標準エラー出力が 1 行で、「pnpm-lock.yaml を読めない」と表示されることを確認します。"""
     with allure.step("lock の無いリポで sync-playwright-deps.mjs を動かす"):
         (repo / ".devcontainer/devcontainer.json").write_text(_CONFIG % "1.64.1", encoding="utf-8")
         result = _run(repo)

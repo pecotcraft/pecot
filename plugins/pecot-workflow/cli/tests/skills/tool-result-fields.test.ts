@@ -5,6 +5,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { explains } from '../_helpers/explains.js'
 import { readDocuments } from './_helpers/documents.js'
 
 /**
@@ -53,7 +54,8 @@ function isResultText(line: string): boolean {
 }
 
 describe('ツールの結果の読み方', () => {
-  it('スキルが MCP ツールの結果を読ませるときは、stdout・stderr や結果の行ではなく data の項目で読ませる', () => {
+  it('スキルは MCP ツールの結果を、stdout・stderr や結果の行ではなく、項目で読ませる', async () => {
+    await explains('スキルの本文の、ツールの結果の読み方のテストです。`stdout`・`stderr` や `created:` などの結果の行を読ませる記述が、許可した行を除いて存在しないことを確認します。')
     const found = readDocuments().flatMap(({ file, text }) => text.split('\n')
       .map((line, index) => ({ file, number: index + 1, line }))
       .filter(({ line }) => isResultText(line) && !isAllowed(file, line))
@@ -61,12 +63,14 @@ describe('ツールの結果の読み方', () => {
     expect(found).toEqual([])
   })
 
-  it('結果の文を読ませていた変更前の行は、どれもパターンに当たる', () => {
+  it('結果の文を読ませていた変更前の行は、どれも検出パターンに一致する', async () => {
+    await explains('検出パターンの感度のテストです。結果の文を読ませていた変更前の 74 行のすべてに、検出パターンが一致することを確認します。')
     expect(RESULT_TEXT_BEFORE).toHaveLength(74)
     expect(RESULT_TEXT_BEFORE.filter(line => !isResultText(line))).toEqual([])
   })
 
-  it('許可の一覧の行は、どれも理由を持ち、今も本文にあり、パターンに当たる', () => {
+  it('許可した行は、どれも理由を持ち、今も本文に存在し、検出パターンに一致する', async () => {
+    await explains('許可した行の一覧のテストです。8 件のすべてに理由があり、今も本文に存在し、検出パターンに一致することを確認します。')
     const lines = new Map(readDocuments().map(({ file, text }) => [file, new Set(text.split('\n').map(line => line.trim()))]))
     const invalid = ALLOWED.filter(entry => entry.reason === '' || lines.get(entry.file)?.has(entry.line) !== true || !isResultText(entry.line))
     expect(ALLOWED).toHaveLength(8)
@@ -88,7 +92,8 @@ const CONTAINER_PATTERNS: readonly RegExp[] = [
 ]
 
 describe('ツールの結果の入れ物', () => {
-  it('スキルは、結果の項目を data. 付きで読ませず、ok・exitCode・artifacts で分岐させない', () => {
+  it('スキルは、結果の項目を data. 付きで読ませず、ok・exitCode・artifacts で分岐させない', async () => {
+    await explains('スキルの本文の、結果の入れ物の読み方のテストです。`data.` を付けた項目の読み方や、`ok`・`exitCode`・`artifacts` で分岐させる記述が、どの文書にも存在しないことを確認します。')
     const found = readDocuments().flatMap(({ file, text }) => text.split('\n')
       .map((line, index) => ({ file, number: index + 1, line }))
       .filter(({ line }) => CONTAINER_PATTERNS.some(pattern => pattern.test(line)))
@@ -96,12 +101,14 @@ describe('ツールの結果の入れ物', () => {
     expect(found).toEqual([])
   })
 
-  it('パターンは、変更前の読み方に当たる', () => {
+  it('検出パターンは、変更前の読み方に一致する', async () => {
+    await explains('検出パターンの感度のテストです。`data.branch` や `ok` を使う変更前の読み方の見本が、いずれも検出パターンに一致することを確認します。')
     const before = ['結果の `data.branch` を読む', '結果の `ok` が `false` なら止まる', '`kind` が `x`（`exitCode` は 2）', '結果の `artifacts` にある', '結果の `data` を見る']
     expect(before.filter(line => CONTAINER_PATTERNS.every(pattern => !pattern.test(line)))).toEqual([])
   })
 
-  it('スキルは、失敗の読み方（isError・structuredContent・kind・detail）を説明しない', () => {
+  it('スキルは、失敗の読み方（isError・structuredContent・kind・detail）を説明しない', async () => {
+    await explains('スキルの本文のテストです。失敗の読み方を説明する `isError`・`structuredContent`・`kind`・`detail` の語が、どの文書にも含まれないことを確認します。')
     const found = readDocuments().flatMap(({ file, text }) => text.split('\n')
       .map((line, index) => ({ file, number: index + 1, line }))
       .filter(({ line }) => /isError|structuredContent|`kind`|`detail`/u.test(line))

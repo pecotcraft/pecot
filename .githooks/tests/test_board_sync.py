@@ -25,7 +25,11 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _BOARD_SYNC = _REPO_ROOT / ".github/board-sync"
 
 
+@allure.title(
+    "handler.test.mjs の node:test を pytest から実行すると、失敗・skip・todo が 0 件で終わる"
+)
 def test_handler_node_tests_pass() -> None:
+    """Lambda の webhook 受け口（`.github/board-sync/handler.mjs`）の `node:test` を、pytest から実行するテストです。終了コードが 0 で、実行したテストが 1 件以上あり、失敗・skip・todo が 0 件であることを確認します。"""
     with allure.step("handler.test.mjs を node --test で動かす"):
         result = run_attached(
             ["node", "--test", "--test-reporter=tap", ".github/board-sync/handler.test.mjs"],
@@ -58,8 +62,10 @@ def _permissions() -> list[dict[str, Any]]:
     return [r["Properties"] for r in resources.values() if r["Type"] == "AWS::Lambda::Permission"]
 
 
+@allure.title("公開した lambda:InvokeFunction の許可は、関数 URL 経由の呼び出しだけに限る")
 def test_public_invoke_function_requires_function_url() -> None:
     # 条件が無いと、誰でも Invoke API で Scheduler と同じ event を渡せる。
+    """Lambda の公開された呼び出しの許可（`lambda:InvokeFunction`）の、条件のテストです。許可が 1 件だけで、`InvokedViaFunctionUrl` が `true` であることを確認します。"""
     with allure.step("lambda:InvokeFunction の Permission を template から集める"):
         props = [p for p in _permissions() if p["Action"] == "lambda:InvokeFunction"]
 
@@ -68,7 +74,9 @@ def test_public_invoke_function_requires_function_url() -> None:
         assert props[0]["InvokedViaFunctionUrl"] is True
 
 
+@allure.title("公開した lambda:InvokeFunctionUrl の許可は、認証なし（NONE）の 1 件だけにする")
 def test_public_invoke_function_url_is_auth_none_only() -> None:
+    """Lambda の関数 URL の呼び出しの許可（`lambda:InvokeFunctionUrl`）のテストです。許可が 1 件だけで、`FunctionUrlAuthType` が `NONE` であることを確認します。"""
     with allure.step("lambda:InvokeFunctionUrl の Permission を template から集める"):
         props = [p for p in _permissions() if p["Action"] == "lambda:InvokeFunctionUrl"]
 
@@ -77,7 +85,9 @@ def test_public_invoke_function_url_is_auth_none_only() -> None:
         assert props[0]["FunctionUrlAuthType"] == "NONE"
 
 
+@allure.title("ハンドラが読む環境変数のキーは、すべて関数の環境変数として定義する")
 def test_function_environment_has_every_key_handler_reads() -> None:
+    """`handler.mjs` が読み込む環境変数と、`template.yaml` の関数の環境変数のテストです。アプリごとの接頭辞を付けたキーなどが、関数の `Environment` に過不足なく定義されていることを確認します。"""
     with allure.step("handler.mjs から prefix を取り出す"):
         handler = _handler_text()
         prefixes = re.findall(r'prefix: "([A-Z_]+_)"', handler)
@@ -118,7 +128,9 @@ def test_function_environment_has_every_key_handler_reads() -> None:
         assert set(variables) == expected
 
 
+@allure.title("WorkflowFile のパラメータの既定値は、存在するワークフローのファイル名にする")
 def test_workflow_file_defaults_name_existing_workflows() -> None:
+    """`template.yaml` の `WorkflowFile` で終わるパラメータ 4 件のテストです。既定値のファイルが、すべて `.github/workflows` に存在することを確認します。"""
     with allure.step("template の WorkflowFile のパラメータを集める"):
         parameters = _template()["Parameters"]
         names = [name for name in parameters if name.endswith("WorkflowFile")]
@@ -130,7 +142,9 @@ def test_workflow_file_defaults_name_existing_workflows() -> None:
             assert workflow.is_file(), name
 
 
+@allure.title("スケジュールの入力の source は、ハンドラの SCHEDULER_SOURCE と一致する")
 def test_schedule_input_source_matches_handler() -> None:
+    """`template.yaml` のスケジュールの入力と、`handler.mjs` の定数のテストです。入力の JSON の `source` が、`SCHEDULER_SOURCE` の値と一致することを確認します。"""
     with allure.step("handler.mjs の SCHEDULER_SOURCE を読む"):
         source = re.search(r'const SCHEDULER_SOURCE = "([^"]+)"', _handler_text())
 
@@ -140,7 +154,9 @@ def test_schedule_input_source_matches_handler() -> None:
         assert yaml.safe_load(target["Input"]) == {"source": source.group(1)}
 
 
+@allure.title("deploy.sh が書き込む SSM パラメータのパスは、template の既定値と一致する")
 def test_deploy_ssm_paths_match_template_defaults() -> None:
+    """`deploy.sh` が書き込む SSM パラメータのパスのテストです。アプリごとの秘密鍵と webhook の secret のパスが、`template.yaml` のパラメータの既定値と一致することを確認します。"""
     with allure.step("deploy.sh から SSM の prefix とパスを読む"):
         deploy = (_BOARD_SYNC / "deploy.sh").read_text(encoding="utf-8")
         prefix = re.search(r'^SSM_PREFIX="([^"]+)"$', deploy, flags=re.M)
@@ -168,8 +184,9 @@ def _agent_denies() -> dict[str, dict[str, Any]]:
     return {s["Sid"]: s for s in policy["Statement"] if s["Effect"] == "Deny"}
 
 
+@allure.title("kms:Decrypt の拒否は、Lambda 経由の復号だけを例外にする")
 def test_agent_decrypt_deny_exempts_only_lambda() -> None:
-    """Deny が Lambda 経由の復号まで拒むと、デプロイが環境変数を書き換えない (#487)。"""
+    """エージェントのロールのポリシー（`NoDecryptOutsideLambda`）のテストです。`kms:Decrypt` の拒否が、`kms:ViaService` が Lambda の場合だけを除外する条件であることを確認します。"""
     with allure.step("agent の policy から NoDecryptOutsideLambda の Deny を読む"):
         deny = _agent_denies()["NoDecryptOutsideLambda"]
 
@@ -181,7 +198,9 @@ def test_agent_decrypt_deny_exempts_only_lambda() -> None:
         }
 
 
+@allure.title("secret の読み出しの拒否は、条件を付けず、常に有効にする")
 def test_agent_secret_reads_stay_denied_unconditionally() -> None:
+    """エージェントのロールのポリシー（`NoSecretReads`）のテストです。`ssm:GetParameter` などの拒否が、`Condition` を持たず、すべてのリソースに適用されることを確認します。"""
     with allure.step("agent の policy から NoSecretReads の Deny を読む"):
         deny = _agent_denies()["NoSecretReads"]
 
@@ -193,8 +212,9 @@ def test_agent_secret_reads_stay_denied_unconditionally() -> None:
         )
 
 
+@allure.title("deploy.sh が使う環境変数名の抽出は、template の環境変数と一致する")
 def test_deploy_env_keys_parse_from_template() -> None:
-    """deploy.sh が反映を確かめる名前の取り出しが、template の環境変数と一致する (#487)。"""
+    """`deploy.sh` が環境変数の反映を確認するために使う、変数名の抽出のテストです。`sed` で `template.yaml` から取り出した名前が、関数の環境変数のキーと順序も含めて一致することを確認します。"""
     with allure.step("環境変数名を取り出すコマンドと deploy.sh を用意する"):
         script = (
             "sed -n '/^        Variables:$/,/^      [^ ]/p' \"$1\" | "
@@ -218,7 +238,9 @@ def test_deploy_env_keys_parse_from_template() -> None:
         assert out == list(variables)
 
 
+@allure.title("2 つのロールには、どちらも権限境界を設定する")
 def test_both_roles_carry_the_permissions_boundary() -> None:
+    """`template.yaml` の `Role` と `SchedulerRole` のテストです。どちらの `PermissionsBoundary` も、`pecot-board-sync-boundary` のポリシーを指していることを確認します。"""
     with allure.step("template の Resources を読む"):
         resources = _template()["Resources"]
 
@@ -228,8 +250,12 @@ def test_both_roles_carry_the_permissions_boundary() -> None:
             assert boundary["Fn::Sub"].endswith(":policy/pecot-board-sync-boundary"), name
 
 
+@allure.title(
+    "Scheduler ロールの信頼ポリシーは、aws:SourceArn にスケジュールグループの ARN を指定する"
+)
 def test_scheduler_trust_source_arn_is_the_schedule_group() -> None:
     # Scheduler は aws:SourceArn に schedule ではなく schedule group の ARN を渡す
+    """`SchedulerRole` の信頼ポリシーのテストです。条件の `aws:SourceArn` が、スケジュールではなくスケジュールグループの ARN で終わることを確認します。"""
     with allure.step("Scheduler の trust policy から SourceArn を読む"):
         resources = _template()["Resources"]
         group = resources["Schedule"]["Properties"].get("GroupName", "default")
@@ -341,6 +367,9 @@ def _last_line(result: subprocess.CompletedProcess[str]) -> str:
     return result.stderr.rstrip("\n").splitlines()[-1].strip()
 
 
+@allure.title(
+    "{args} を指定して認証情報の確認に失敗すると、{expected} を付けた aws login のコマンドを表示して終了する"
+)
 @pytest.mark.parametrize(
     ("args", "config", "expected"),
     [
@@ -363,6 +392,7 @@ def _last_line(result: subprocess.CompletedProcess[str]) -> str:
 def test_deploy_shows_runnable_login_command_when_credentials_fail(
     tmp_path: Path, args: list[str], config: dict[str, dict[str, str]], expected: str
 ) -> None:
+    """認証情報の期限が切れた状態で `deploy.sh` を実行したときの、案内のテストです。終了コード 1 で終わり、期限切れのメッセージと、`aws login --remote` に正しいプロファイルとリージョンを付けたコマンドを表示し、`gh` を呼び出さないことを確認します。"""
     with allure.step("認証情報が失敗する状態で deploy.sh を動かす"):
         result = _run_deploy(tmp_path, args, config)
 
@@ -373,7 +403,9 @@ def test_deploy_shows_runnable_login_command_when_credentials_fail(
         assert not (tmp_path / "gh-called").exists()
 
 
+@allure.title("SSO など aws login ではない認証情報の期限が切れても、aws login を案内しない")
 def test_deploy_does_not_suggest_aws_login_for_other_credentials(tmp_path: Path) -> None:
+    """SSO の認証情報の期限が切れた状態で `deploy.sh` を実行したときのテストです。終了コード 1 で終わり、`aws login` を案内せずに、認証情報を取得できないエラーを表示することを確認します。"""
     with allure.step("SSO の設定で認証が失敗する状態で deploy.sh を動かす"):
         config = {"sso": {"sso_session": "corp", "sso_account_id": "111111111111"}}
         result = _run_deploy(
@@ -387,7 +419,9 @@ def test_deploy_does_not_suggest_aws_login_for_other_credentials(tmp_path: Path)
         assert not (tmp_path / "gh-called").exists()
 
 
+@allure.title("認証情報の確認に失敗すると、secret の入力を求める前に終了する")
 def test_deploy_stops_before_secret_prompt(tmp_path: Path) -> None:
+    """`--put-secrets` を指定して `deploy.sh` を実行したときのテストです。認証情報が使えない場合に、webhook の secret の入力を求める前に、終了コード 1 で終わることを確認します。"""
     with allure.step("鍵ファイルを用意し、認証が失敗する状態で deploy.sh を動かす"):
         key = tmp_path / "key.pem"
         key.write_text("dummy\n", encoding="utf-8")
@@ -402,7 +436,9 @@ def test_deploy_stops_before_secret_prompt(tmp_path: Path) -> None:
         assert _last_line(result) == "aws login --remote --profile pecot --region ap-southeast-2"
 
 
+@allure.title("認証情報が使えると、確認を通過して gh を呼び出す")
 def test_deploy_passes_the_check_when_credentials_work(tmp_path: Path) -> None:
+    """認証情報の確認が成功する場合の、`deploy.sh` のテストです。確認を通過して `gh` を呼び出し、`aws login` を案内しないことを確認します。"""
     with allure.step("認証が通る状態で deploy.sh を動かす"):
         result = _run_deploy(tmp_path, ["--profile", "pecot"], _PECOT_CONFIG, sts_error=None)
 
@@ -411,6 +447,7 @@ def test_deploy_passes_the_check_when_credentials_work(tmp_path: Path) -> None:
         assert "aws login" not in result.stderr
 
 
+@allure.title("環境変数が {extra_env} の場合に、aws login の案内に {expected} を使う")
 @pytest.mark.parametrize(
     ("extra_env", "expected"),
     [
@@ -423,7 +460,7 @@ def test_deploy_passes_the_check_when_credentials_work(tmp_path: Path) -> None:
 def test_deploy_starts_from_the_profile_aws_cli_uses(
     tmp_path: Path, extra_env: dict[str, str], expected: str
 ) -> None:
-    """aws-cli v2 は AWS_PROFILE を AWS_DEFAULT_PROFILE より先に読む（botocore の configprovider.py）。"""
+    """`AWS_PROFILE` と `AWS_DEFAULT_PROFILE` を指定して `deploy.sh` を実行したときのテストです。aws-cli と同じく `AWS_PROFILE` を優先してプロファイルを選び、`aws login` のコマンドに表示することを確認します。"""
     with allure.step("環境変数でプロファイルを指して deploy.sh を動かす"):
         config = {
             "a": {"source_profile": "pecot"},
@@ -437,7 +474,9 @@ def test_deploy_starts_from_the_profile_aws_cli_uses(
         assert _last_line(result) == f"aws login --remote {expected} --region ap-southeast-2"
 
 
+@allure.title("アクセスキーの環境変数で認証している場合は、aws login を案内しない")
 def test_deploy_does_not_suggest_aws_login_for_env_keys(tmp_path: Path) -> None:
+    """`AWS_ACCESS_KEY_ID` を指定して `deploy.sh` を実行したときのテストです。終了コード 1 で終わり、`aws login --remote` を案内せずに、認証情報を取得できないエラーを表示することを確認します。"""
     with allure.step("環境変数のアクセスキーで認証が失敗する状態で deploy.sh を動かす"):
         result = _run_deploy(
             tmp_path, [], _PECOT_CONFIG, extra_env={"AWS_ACCESS_KEY_ID": "AKIAFAKE"}

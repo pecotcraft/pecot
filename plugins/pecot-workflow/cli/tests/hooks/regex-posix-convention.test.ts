@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest'
 import { hooksDirectory } from './_helpers/paths.js'
 import { codeLines } from './_helpers/script-references.js'
 import { comparePathParts } from './_helpers/text.js'
+import { explains } from '../_helpers/explains.js'
 
 const scripts = [...globSync('*.sh', { cwd: hooksDirectory }), ...globSync('lib/**/*.sh', { cwd: hooksDirectory })]
   .filter(relative => !relative.split('/').includes('tests'))
@@ -27,17 +28,20 @@ function offending(lines: readonly string[]): string[] {
 }
 
 describe('hooks の ERE の記法の規約', () => {
-  it('走査するスクリプトを下限以上の数で列挙できる', () => {
+  it('走査するスクリプトを下限以上の数で列挙できる', async () => {
+    await explains('hooks の ERE の記法の規約の静的なテストです。走査するスクリプトを列挙した場合に、件数が下限（25 件）以上であることを確認します。')
     expect(scripts.length).toBeGreaterThanOrEqual(25)
   })
 
-  it.for(scripts.map(label => ({ label })))('$label のコード行に glibc 拡張の \\s・\\S は無い', (row) => {
+  it.for(scripts.map(label => ({ label })))('$label のコード行に glibc 拡張の \\s・\\S は無い', async (row) => {
+    await explains(`hooks の ERE の記法の規約の静的なテストです。\`${row.label}\` のコード行を走査した場合に、glibc 拡張の \`\\s\` と \`\\S\` が含まれないことを確認します。`)
     const text = readFileSync(path.join(hooksDirectory, row.label), 'utf8')
     const found = offending(codeLines(text))
     expect(found, `${row.label}: glibc 拡張の空白クラスがあります。[[ =~ ]] の ERE には POSIX の [[:space:]]・[^[:space:]] を使ってください`).toEqual([])
   })
 
-  it('検出は glibc 拡張を拾い、POSIX の記法と PCRE・jq の行は拾わない', () => {
+  it('検出は glibc 拡張を拾い、POSIX の記法と PCRE・jq の行は拾わない', async () => {
+    await explains('hooks の ERE の記法の規約の静的なテストです。検出関数に glibc 拡張の行と、POSIX の記法の行と、PCRE や jq の行を渡した場合に、glibc 拡張の行だけを検出することを確認します。')
     expect(offending([String.raw`P='git\s+commit'`])).toEqual([String.raw`P='git\s+commit'`])
     expect(offending([String.raw`P='-C\s+\S+'`])).toEqual([String.raw`P='-C\s+\S+'`])
     expect(offending(['P=\'git[[:space:]]+commit\''])).toEqual([])

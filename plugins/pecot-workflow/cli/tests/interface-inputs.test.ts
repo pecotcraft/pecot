@@ -7,6 +7,7 @@ import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
 
 import { authoredFileSchema } from '../../../../libs/interface-spec/src/domain/schema.js'
+import { explains } from './_helpers/explains.js'
 
 const propertySchema = z.object({ description: z.string().optional() })
 const inputSchema = z.object({ properties: z.record(z.string(), propertySchema) })
@@ -80,11 +81,13 @@ function hasCliOnlyDryRun(id: string): boolean {
 }
 
 describe('定義書の入力名', () => {
-  it('どの項目も、MCP の入力に dry_run を持たない', () => {
+  it('どの項目も、MCP の入力に dry_run を持たない', async () => {
+    await explains('定義書の入力名の決まりのテストです。定義書のすべての項目を調べた場合に、MCP の入力に `dry_run` を持つ項目が 1 つも無いことを確認します。')
     expect(generated.entries.filter(entry => hasInput(entry.id, 'dry_run')).map(entry => entry.id)).toEqual([])
   })
 
-  it('write か destructive の effects を持つ項目は、予行を check の項目が担うものを除き、CLI だけの入力に dry_run を持つ', () => {
+  it('write か destructive の effects を持つ項目は、予行を check の項目が担うものを除き、CLI だけの入力に dry_run を持つ', async () => {
+    await explains('定義書の入力名の決まりのテストです。`write` か `destructive` の効果を持つ項目を調べた場合に、予行を `check` の項目が担うものを除き、CLI だけの入力に `dry_run` を持つことを確認します。')
     const writing = Object.entries(authored.entries)
       .filter(([, entry]) => entry.effects.some(effect => WRITING_KINDS.has(effect.kind)))
       .map(([id]) => id)
@@ -92,28 +95,33 @@ describe('定義書の入力名', () => {
     expect(writing.filter(id => !hasCliOnlyDryRun(id) && !CHECKED_ELSEWHERE.has(id))).toEqual([])
   })
 
-  it('予行を check の項目が担う項目は、dry_run を持たず、その check の項目は書き込まない', () => {
+  it('予行を check の項目が担う項目は、dry_run を持たず、その check の項目は書き込まない', async () => {
+    await explains('定義書の入力名の決まりのテストです。予行を `check` の項目が担う項目を調べた場合に、`dry_run` を持たず、その `check` の項目が読むだけの効果であることを確認します。')
     for (const [id, check] of CHECKED_ELSEWHERE) {
       expect(hasInput(id, 'dry_run') || hasCliOnlyDryRun(id)).toBe(false)
       expect(Object.entries(authored.entries).find(([key]) => key === check)?.[1].effects.map(effect => effect.kind)).toEqual(['read', 'read'])
     }
   })
 
-  it('Issue・PR・リポ・操作するブランチを指す入力の名前は、対象ごとに 1 つ（issue_ref・pr_ref・repo・branch）で、役割の名前は例外の一覧にある', () => {
+  it('Issue・PR・リポ・操作するブランチを指す入力の名前は、対象ごとに 1 つ（issue_ref・pr_ref・repo・branch）で、役割の名前は例外の一覧にある', async () => {
+    await explains('定義書の入力名の決まりのテストです。Issue・PR・リポ・ブランチを指す入力を調べた場合に、対象ごとの名前（`issue_ref`・`pr_ref`・`repo`・`branch`）か、例外の一覧にある役割の名前だけであることを確認します。')
     expect(aliasesIn(generated.entries)).toEqual([])
   })
 
-  it('対象を指す入力が、対象ごとに決めた名前で実在する', () => {
+  it('対象を指す入力が、対象ごとに決めた名前で実在する', async () => {
+    await explains('定義書の入力名の決まりのテストです。対象ごとに決めた名前を調べた場合に、どの名前も定義書の入力に実在することを確認します。')
     const used = new Set(generated.entries.flatMap(entry => Object.keys(entry.input.properties)))
     expect(TARGET_MATCHERS.map(matcher => matcher.allowed).filter(name => !used.has(name))).toEqual([])
   })
 
-  it('例外の一覧の入力は、どれも定義書に実在する', () => {
+  it('例外の一覧の入力は、どれも定義書に実在する', async () => {
+    await explains('定義書の入力名の決まりのテストです。例外の一覧の入力名を調べた場合に、どれも定義書に実在することを確認します。')
     const used = new Set(generated.entries.flatMap(entry => Object.keys(entry.input.properties)))
     expect(Object.keys(ROLE_EXCEPTIONS).filter(name => !used.has(name))).toEqual([])
   })
 
-  it('新しい別名（issue_number・pull_request・repository・target_branch）を足した項目は、検出する', () => {
+  it('新しい別名（issue_number・pull_request・repository・target_branch）を足した項目は、検出する', async () => {
+    await explains('定義書の入力名の決まりのテストです。`issue_number` などの新しい別名を持つ項目を調べた場合に、別名として検出し、決めた名前の項目は検出しないことを確認します。')
     expect(aliasesIn([entryOf('issue_number', 'Issue reference (owner/repo/N)')])).toEqual(['x: issue_number (issue)'])
     expect(aliasesIn([entryOf('pull_request', 'PR reference (owner/repo/123)')])).toEqual(['x: pull_request (pr)'])
     expect(aliasesIn([entryOf('repository', 'Repository in owner/repo form')])).toEqual(['x: repository (repo)'])
@@ -121,7 +129,8 @@ describe('定義書の入力名', () => {
     expect(aliasesIn([entryOf('issue_ref', 'Issue reference (owner/repo/N)'), entryOf('repo', 'Repository in owner/repo form')])).toEqual([])
   })
 
-  it('改名前の名前を入力に持つ項目が無い', () => {
+  it('改名前の名前を入力に持つ項目が無い', async () => {
+    await explains('定義書の入力名の決まりのテストです。改名前の名前を入力に持つ項目を調べた場合に、該当する項目が 1 つも無いことを確認します。')
     const found = generated.entries.flatMap(entry => OLD_NAMES.filter(name => hasInput(entry.id, name)).map(name => `${entry.id}: ${name}`))
     expect(found).toEqual([])
   })

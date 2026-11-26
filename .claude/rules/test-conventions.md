@@ -4,11 +4,13 @@ paths:
   - ".nx/nx-release/tests/*.test.mjs"
   - "**/*.test.sh"
   - "plugins/*/cli/tests/bootstrap/*.sh"
+  - "**/test_*.py"
 ---
 
 # テストの規約
 
-テストを、振る舞いの資料として読める形にそろえます。題の形と、定義書の振る舞いの項目へのつなぎ方を決めます。
+テストを、振る舞いの資料として読める形にそろえます。題と説明の形と、定義書の振る舞いの項目へのつなぎ方を決めます。
+題と説明は、テストレポート（Allure Report）でテストを開いた人が、何を確かめて成功としたかを読むためのものです。
 
 ## 対象
 
@@ -16,6 +18,7 @@ paths:
 |---|---|---|
 | コマンド・ツールの公開面を確かめる vitest | 規約に従う。lint が止める | 振る舞いの項目を確かめるテストは、ID を書く |
 | ドメイン層などの単体の vitest | 規約に従う。lint が止める | 求めない |
+| `.githooks/tests`・`libs/interface-spec/docs/tests` の pytest | 規約に従う。hook が止める | 求めない |
 
 新しく作る公開面のテストのファイルは、各 project の `tests/interface/` に置きます。
 今の公開面のテストは、観点ごとのファイルで全ツールを回す作りのまま残し、この置き場に入れません。
@@ -29,6 +32,7 @@ ESLint の `RuleTester` のケースは、`name` が題になります。`name` 
 | 新しく作る公開面のテストのファイルでは、いちばん外の `describe` の題を、コマンド・ツールの名前にする | `describe('aws_s3_ls', …)`、`describe('issue create', …)` |
 | `it` の題は、「どのとき、どうするか」の日本語の 1 文にする。主語（コマンド・ツールの名前）は書かない。文の形は、振る舞いの項目と同じ EARS の型に寄せる | `it('バケット名に大文字があると、入力エラーを返す', …)` |
 | `it` の題は句点で終えない。「正しく動く」「正常に処理する」のように、結果を言わない題にしない | — |
+| 題だけを読んで、対象・場面・結果が分かる文にする。コードの中の名前や略した言い方に頼らない | 「ボードに無い値を名前の順に並べる」でなく「ボードに存在しない選択肢を名前順に並べ、数に応じて it と them を使い分けた警告文を作成する」 |
 | 表を回すテストの題は、行ごとに読める文になる。行がオブジェクトなら `$name` のようにキーで、配列なら `%s` で値を埋める。空文字が入りうる値は `%j` で埋める | `it.for(rows)('$name を渡すと、$expected を返す', …)` |
 
 `$name` の直後は、空白・`、`・括弧にします。vitest はひらがなや漢字、`・`、`ー`、`$` もキーの一部と読みます。そのため `'$nameのとき'` はキーが `nameのとき` になり、題が `undefined` になります。
@@ -42,6 +46,66 @@ ESLint の `RuleTester` のケースは、`name` が題になります。`name` 
 
 `describe` の題は、ほかのファイルでは関数名のままでかまいません。
 
+## 説明の書き方
+
+テストは、何を確認するかの説明を 1 つ持ちます。説明は、Allure Report のテストの Description の欄に表示されます。
+
+説明は、何をするテストかを短く書きます。Allure の公式の例は `This test attempts to log into the website using a login and a password.` です。
+
+| 決め | 内容 |
+|---|---|
+| 形 | 1〜2 文で書く。「〜のテストです。」で対象を示し、「〜の場合に、〜することを確認します。」で成功の条件を示す。1 文で足りれば 1 文にする |
+| 中身 | assert を 1 つずつ文に写さない。入力と期待値は、すべてを列挙せず、読み手が成功の条件をつかめる分だけ書く |
+| 言葉 | 日本語のテスト仕様書や公式ドキュメントで使う語にする（存在しない・不足している・表示する・送信する・確認する）。「確かめる」「比べる」「足す」「足りない」のような短い和語の動詞に偏らない |
+| 略語 | 題やコードの中の略した言い方を、言い換えずに使わない。題を言い直すだけの文にしない |
+| 長さ | 1 文は 100 字以内、読点は 3 つまでにする。`check-text` が、テストの文字列にも同じ規則をかける |
+| 書式 | です・ます調の地の文にする。説明は Markdown として描かれるので、パス・コード・記号はバッククォートで囲み、1 段落で書く |
+| ID | 振る舞いの項目の ID は書かない。つなぎの確認は、ファイルの中の ID をすべて数えるため、`verifies` しない項目もつないだことになる |
+
+次は、`missingWarning` のテストの題と説明の例です。題は次のとおりです。
+
+> ボードに存在しない選択肢を名前順に並べ、数に応じて it と them を使い分けた警告文を作成する
+
+説明は次のとおりです。
+
+> ボードに存在しない選択肢（`Blocked` や `Todo` など）へ Issue を移動しようとしたときに表示する、警告文のテストです。不足している選択肢が 1 つの場合と 2 つの場合で、名前が名前順に並び、`it` と `them` が正しく使い分けられることを確認します。
+
+### vitest
+
+テストの本体の先頭で、`explains` に説明を渡します。`verifies` を呼ぶテストは、その直後に呼びます。
+各 project の `tests/_helpers/explains.ts`（text-rules は `tests/helpers/explains.ts`）から import します。本体は `libs/interface-spec/src/vitest/explains.ts` にあり、nx のレーンの中でだけ Allure の `description` を呼びます。
+
+```ts
+it('バケット名に大文字があると、awscli を呼ばずに入力エラーを返す', async (ctx) => {
+  await verifies(ctx, 'PT-AWS-S3-LS-03')
+  await explains('大文字を含むバケット名を渡した場合に、awscli を起動せずに入力エラーを返すことを確認します。')
+  // ...
+})
+```
+
+`it.for` で行ごとに違う説明が要るときは、テンプレートリテラルで行の値を埋めます。
+
+テストの中で Allure の runtime（`setGlobalTestRuntime`）を差し替えるときは、`explains` を差し替えの前に呼びます。差し替えた後に呼ぶと、説明がレポートに届きません。
+
+ESLint の `RuleTester` のケースも、vitest のテストとしてレポートに載ります。
+`libs/interface-spec/src/vitest/rule-tester.ts` の `useExplainedRuleTester(RuleTester)` で登録します。slidev は `vitest.setup.ts` で登録しています。valid と invalid で決まった説明と、名前の付いた step が付きます。
+
+### pytest
+
+題は `@allure.title` で付け、説明は docstring に書きます。allure-pytest は docstring を説明に使います。
+
+```python
+@allure.title("-o でラベルを指定すると、すべての結果に project と lane のラベルが 1 つずつ付く")
+def test_ini_labels_are_added_to_every_result(tmp_path: Path) -> None:
+    """pytest を `--alluredir` と `-o` を指定して実行したときに、Allure の結果ファイルに付くラベルのテストです。2 件のテストのどちらの結果にも、指定した project と lane のラベルが 1 つずつだけ付いていることを確認します。"""
+```
+
+| 決め | 内容 |
+|---|---|
+| 題 | vitest の `it` の題と同じ形にする |
+| parametrize の題 | `{引数名}` か `{param_id}` で行の値を埋め、行ごとに違う題にする |
+| docstring | 1 行目から書き始め、空行を入れない 1 段落にする。githooks の pytest は Python 3.12 で動き、docstring の字下げが残る。空行の後や改行で始まる段落は、レポートでコードブロックになる |
+
 ## lint が止めるもの
 
 `@vitest/eslint-plugin` の `vitest/valid-title` に、`it` と `test` の題の形を渡しています。
@@ -53,6 +117,12 @@ ESLint の `RuleTester` のケースは、`name` が題になります。`name` 
 | `tests/interface/**` のいちばん外の `describe` の題が、定義書の `name` に無い | `describe の題 '…' が定義書の name に無い` |
 | `tests/interface/**` のいちばん外の `describe` の題が、文字列のリテラルでない | `describe の題が文字列のリテラルでない` |
 | `.each`・`.for` の題の `$` の後ろが、キーとして読めない（ASCII の識別子か数字を `.` でつないだ形でない） | `題の $'…' がキーとして読めない` |
+| `it`・`test` の本体の先頭の `verifies`・`explains` の並びに、`await explains(…)` が無い | `テストの本体の先頭で await explains('…') を呼んでいない` |
+| `explains` を 2 回以上呼ぶ | `explains を 2 回以上呼んでいる` |
+| `explains` に、空でない文字列かテンプレートリテラルを渡していない | `explains に、空でない文字列かテンプレートリテラルを渡していない` |
+| `explains` を、先頭の並びの外で呼ぶ | `explains を、本体の先頭の verifies・explains の並びの外で呼んでいる` |
+| pytest の `test_*` 関数に、文字列を渡す `@allure.title` が無い（hook `check-pytest-titles`） | `文字列を渡す @allure.title（題）が無い` |
+| pytest の `test_*` 関数の docstring が無い、改行で始まる、空行を含む（同上） | `docstring（説明）が無い` など |
 
 日本語が無く、しかも句点で終わる題では、句点の文言だけが出ます。
 
@@ -75,6 +145,10 @@ ESLint の `RuleTester` のケースは、`name` が題になります。`name` 
 上の設定のうち、interface-spec を除く 7 つが、`describeTitleConfig` で読み込んでいます。
 入れ子の `describe` と関数の中の `describe`、`describe` が無いファイルは止めません。`${}` の無いテンプレートリテラルは題として読みます。
 `libs/text-rules`・`libs/workflow-core`・slidev・nx-release は定義書を持たず、`definitions` が空です。`tests/interface/` に `describe` を足すと、どの題も止まります。
+
+`explains` の行は、8 つの設定が `testDescriptionConfig` で読み込みます。規則は `libs/interface-spec/src/eslint/test-description.ts` にあります。
+本体は、引数の中の最後の関数式とします。`test(題, options, 本体)` と `test(題, 本体, timeout)` の形があるためです。本体の関数式が無い呼び出しと、`.todo`・`.extend` は見ません。
+pytest の行は、pre-commit の hook `check-pytest-titles`（`.githooks/pre-commit/check-pytest-titles.py`）が止めます。モジュールの直下と `Test*` クラスの `test_*` 関数を見ます。
 
 `$` のキーの行は、8 つの設定が `tableKeyConfig` で読み込みます。規則は `libs/interface-spec/src/eslint/table-key.ts` にあります。
 見るのは、根が `it`・`test`・`describe`・`suite` の `.each(…)(題)` と `.for(…)(題)` です。入れ子の `describe` と関数の中も見ます。題は、文字列のリテラルと `${}` の無いテンプレートリテラルだけ読みます。

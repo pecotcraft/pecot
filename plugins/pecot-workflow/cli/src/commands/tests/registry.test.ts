@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
+
+import { explains } from '../../../tests/_helpers/explains.js'
 import { z } from 'zod'
 
 import { compareStrings } from '../../../tests/parity/baseline.js'
@@ -17,22 +19,26 @@ const EntrySchema = z.object({ id: z.string() })
 const GeneratedSchema = z.object({ prefix: z.string(), entries: z.array(EntrySchema) })
 
 describe('コマンドの一覧', () => {
-  it('45 個が登録され、path は重複しない', () => {
+  it('コマンドが 45 個登録され、path が重複しない', async () => {
+    await explains('登録済みのコマンドの一覧（`COMMANDS`）のテストです。コマンドが 45 個あり、`path` を空白でつないだ値がすべて異なることを確認します。')
     expect(COMMANDS).toHaveLength(COMMAND_COUNT)
     expect(new Set(COMMANDS.map(command => command.path.join(' '))).size).toBe(COMMAND_COUNT)
   })
 
-  it('ID の集合が、定義書の項目の ID と同じになる', () => {
+  it('コマンドの ID の一覧が、定義書の項目の ID の一覧と一致する', async () => {
+    await explains('コマンドと定義書（`generated.json`）の対応のテストです。各コマンドの `path` から作成した ID を並べ替えた一覧が、定義書の項目の ID の一覧と一致することを確認します。')
     const generated = GeneratedSchema.parse(JSON.parse(readFileSync(GENERATED, 'utf8')))
     const ids = COMMANDS.map(command => `${generated.prefix}-${command.path.join('-').toUpperCase().replaceAll('_', '-')}`)
     expect(ids.toSorted(compareStrings)).toEqual(generated.entries.map(entry => entry.id).toSorted(compareStrings))
   })
 
-  it('全部の path が、コマンド名の決まりに合う', () => {
+  it('すべてのコマンドの path が、コマンド名の規則に違反しない', async () => {
+    await explains('コマンド名の規則のテストです。登録済みのすべてのコマンドの `path` について、`commandNameViolations` が違反を 1 件も返さないことを確認します。')
     expect(commandNameViolations(COMMANDS.map(command => command.path))).toEqual([])
   })
 
-  it('1 語目のグループごとにまとまり、グループは決めた順に並ぶ', () => {
+  it('コマンドは、1 語目のグループごとにまとめ、決められた順に並べる', async () => {
+    await explains('コマンドの並び順のテストです。登録済みのコマンドが、`project`・`board`・`issue` などのグループごとにまとまり、グループと各コマンドが決められた順に並ぶことを確認します。')
     expect(COMMANDS.map(command => command.path.join(' '))).toEqual([
       'project list', 'project search', 'project init', 'project create', 'project activate', 'project link', 'project get', 'project set', 'project unset',
       'board show', 'board add', 'board move', 'board sync',
@@ -49,11 +55,13 @@ describe('コマンドの一覧', () => {
     ])
   })
 
-  it.for(COMMANDS.map(command => ({ name: command.path.join(' '), output: command.output })))('$name の output は、入力の向きと出力の向きで JSON Schema が同じになる', ({ output }) => {
+  it.for(COMMANDS.map(command => ({ name: command.path.join(' '), output: command.output })))('$name の output は、入力の向きと出力の向きで JSON Schema が同じになる', async ({ output }) => {
+    await explains('各コマンドの `output` の JSON Schema のテストです。入力の向き（`input`）で変換した結果と、出力の向き（`output`）で変換した結果が一致することを確認します。')
     expect(z.toJSONSchema(output, { io: 'input' })).toEqual(z.toJSONSchema(output, { io: 'output' }))
   })
 
-  it('lib のテストが登録するコマンドの形の写しが、登録した形と同じになる', () => {
+  it('ライブラリのテストが使うコマンドの形の写しが、登録したコマンドの形と一致する', async () => {
+    await explains('`libs/workflow-core` のテストが使う `hint-commands.json` のテストです。写しに書かれた `path`・位置引数・入力名・`cliOnly`・`hasOwnRepo` が、登録済みのコマンドの値と一致することを確認します。')
     const shapes: unknown = JSON.parse(readFileSync(HINT_COMMANDS, 'utf8'))
     expect(shapes).toEqual(COMMANDS.map(command => ({
       path: command.path,
@@ -64,13 +72,15 @@ describe('コマンドの一覧', () => {
     })))
   })
 
-  it('toolName は重複せず、path から作られている', () => {
+  it('toolName が重複せず、path から作成した名前と一致する', async () => {
+    await explains('コマンドの `toolName` のテストです。登録済みのコマンドの `toolName` が重複せず、`toolNameOf` が `path` から作成した名前と一致することを確認します。')
     const names = COMMANDS.map(command => command.toolName)
     expect(new Set(names).size).toBe(names.length)
     for (const command of COMMANDS) expect(command.toolName).toBe(toolNameOf(command.path))
   })
 
-  it('どのコマンドの output も、最上位に MCP の結果の共通の項目の名前を持たない', () => {
+  it('どのコマンドの output も、最上位に MCP の結果の共通の項目の名前を含まない', async () => {
+    await explains('MCP の結果に共通する項目の名前（`COMMON_OUTPUT_KEYS`）のテストです。登録済みのどのコマンドの `output` も、最上位にその名前を持たないことを確認します。')
     const overlaps = COMMANDS.flatMap(command => COMMON_OUTPUT_KEYS
       .filter(key => Object.hasOwn(command.output.shape, key))
       .map(key => `${command.path.join(' ')}: ${key}`))
@@ -79,7 +89,8 @@ describe('コマンドの一覧', () => {
 })
 
 describe('findCommand', () => {
-  it('path が一致するコマンドを返し、一致しなければ undefined を返す', () => {
+  it('path が一致するコマンドを返し、一致しなければ undefined を返す', async () => {
+    await explains('コマンドを探す `findCommand` のテストです。`path` が一致する場合はそのコマンドを返し、一致しない場合は `undefined` を返すことを確認します。')
     const command = defineCommand({
       path: ['pr', 'read'],
       title: 'Test command',

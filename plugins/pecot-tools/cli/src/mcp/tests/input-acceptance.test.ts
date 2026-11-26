@@ -8,6 +8,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { explains } from '../../../tests/_helpers/explains.js'
 import { verifies } from '../../../tests/_helpers/verifies.js'
 import { toCallToolResult } from '../result.js'
 import { allTools } from '../tools/index.js'
@@ -395,17 +396,20 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
     await closeMcp(mcp)
   })
 
-  it('期待したプロトコル版で接続している', () => {
+  it('クライアントは、期待したプロトコルの版で接続する', async () => {
+    await explains('MCP のクライアントとサーバの接続のテストです。接続した場合に、ネゴシエーションしたプロトコルの版が、テストの対象の版と一致することを確認します。')
     expect(mcp.client.getNegotiatedProtocolVersion()).toBe(negotiatedVersionOf(era))
   })
 
-  it('表が公開ツール全件と過不足なく一致する', () => {
+  it('テストの表のツール名は、公開しているツールの全件と、過不足なく一致する', async () => {
+    await explains('このテストの入力の表のテストです。表のツール名が、サーバが公開する 24 件のツールの名前と同じ順序で一致することを確認します。')
     expect(toolCaseNames()).toEqual(allTools().map(tool => tool.name))
     expect(TOOL_CASES).toHaveLength(24)
   })
 
   describe.each(TOOL_CASES)('$name', (toolCase) => {
-    it('必須だけの最小入力を受理し、既定値を補って handler へ渡す', async () => {
+    it('必須の入力だけを渡すと受け付け、既定値を補って handler へ渡す', async () => {
+      await explains('MCP の入力検証（SDK の検証層）が、ツールの入力を受け付けるか拒否するかのテストです。必須の入力だけを渡した場合に、入力を受け付け、既定値を補った引数が handler に 1 回だけ渡されることを確認します。')
       const before = mcp.calls.length
       const outcome = await classifyCall(mcp.client, toolCase.name, toolCase.minimal)
 
@@ -415,7 +419,8 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
       ])
     })
 
-    it('全パラメータを指定した入力を受理し、そのまま handler へ渡す', async () => {
+    it('すべてのパラメータを指定した入力を受け付け、そのまま handler へ渡す', async () => {
+      await explains('MCP の入力検証（SDK の検証層）が、ツールの入力を受け付けるか拒否するかのテストです。すべてのパラメータを既定値以外の値で指定した場合に、入力を受け付け、指定した値のまま handler に 1 回だけ渡されることを確認します。')
       const before = mcp.calls.length
       const outcome = await classifyCall(mcp.client, toolCase.name, toolCase.full)
 
@@ -423,8 +428,9 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
       expect(mcp.calls.slice(before)).toEqual([{ name: toolCase.name, arguments: toolCase.full }])
     })
 
-    it('最上位の追加プロパティは受理したうえで落とし、handler へ渡さない', async (context) => {
+    it('最上位に宣言していないプロパティを渡すと、受け付けたうえで取り除き、handler へ渡さない', async (context) => {
       await verifies(context, 'PT-COMMON-02')
+      await explains('MCP の入力検証（SDK の検証層）が、ツールの入力を受け付けるか拒否するかのテストです。最小の入力に `unexpected_key` を加えた場合に、入力を受け付け、そのキーを取り除いた引数だけが handler に渡されることを確認します。')
       const before = mcp.calls.length
       const outcome = await classifyCall(mcp.client, toolCase.name, { ...toolCase.minimal, unexpected_key: 'x' })
 
@@ -434,7 +440,8 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
       ])
     })
 
-    it.each(toolCase.required)('必須 %s が欠けた入力を拒否する', async (missing) => {
+    it.each(toolCase.required)('必須の入力 %s が指定されていないと、拒否する', async (missing) => {
+      await explains('MCP の入力検証（SDK の検証層）が、ツールの入力を受け付けるか拒否するかのテストです。必須のパラメータを 1 つ欠いた入力を渡した場合に、スキーマの検証で拒否され、handler が呼ばれないことを確認します。')
       const before = mcp.calls.length
       const rest = Object.fromEntries(Object.entries(toolCase.minimal).filter(([key]) => key !== missing))
       const outcome = await classifyCall(mcp.client, toolCase.name, rest)
@@ -443,7 +450,8 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
       expect(mcp.calls).toHaveLength(before)
     })
 
-    it.each(Object.entries(toolCase.invalid))('%s を拒否する', async (_label, override) => {
+    it.each(Object.entries(toolCase.invalid))('%s の入力を、スキーマの検証で拒否する', async (_label, override) => {
+      await explains('MCP の入力検証（SDK の検証層）が、ツールの入力を受け付けるか拒否するかのテストです。型の不一致、`enum` の範囲外、数値の範囲外などの不正な値を渡した場合に、スキーマの検証で拒否され、handler が呼ばれないことを確認します。')
       const before = mcp.calls.length
       const outcome = await classifyCall(mcp.client, toolCase.name, { ...toolCase.minimal, ...override })
 
@@ -451,7 +459,8 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
       expect(mcp.calls).toHaveLength(before)
     })
 
-    it('profile の書式違反を拒否する', async () => {
+    it('profile の書式に合わない値を渡すと、拒否する', async () => {
+      await explains('MCP の入力検証（SDK の検証層）が、ツールの入力を受け付けるか拒否するかのテストです。`profile` に `bad profile!` を渡した場合に、スキーマの検証で拒否され、handler が呼ばれないことを確認します。')
       const before = mcp.calls.length
       const outcome = await classifyCall(mcp.client, toolCase.name, { ...toolCase.minimal, profile: 'bad profile!' })
 
@@ -461,7 +470,8 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
   })
 
   describe.each(TOOL_CASES.filter(item => !SSO_NAMES.has(item.name)))('$name の region', (toolCase) => {
-    it('書式違反を拒否する', async () => {
+    it('region の書式に合わない値を渡すと、拒否する', async () => {
+      await explains('MCP の入力検証（SDK の検証層）が、ツールの入力を受け付けるか拒否するかのテストです。`region` に `Tokyo` を渡した場合に、スキーマの検証で拒否され、handler が呼ばれないことを確認します。')
       const before = mcp.calls.length
       const outcome = await classifyCall(mcp.client, toolCase.name, { ...toolCase.minimal, region: 'Tokyo' })
 
@@ -471,7 +481,8 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
   })
 
   describe.each(TOOL_CASES.filter(item => SSO_NAMES.has(item.name)))('$name の region', (toolCase) => {
-    it('宣言されておらず、渡しても落とされる', async () => {
+    it('SSO のツールに region を渡すと、受け付けたうえで取り除き、handler へ渡さない', async () => {
+      await explains('MCP の入力検証（SDK の検証層）が、ツールの入力を受け付けるか拒否するかのテストです。SSO のツールは `region` を宣言していないため、`region` を渡した場合に、入力を受け付け、`region` を取り除いた引数だけが handler に渡されることを確認します。')
       const before = mcp.calls.length
       const outcome = await classifyCall(mcp.client, toolCase.name, { ...toolCase.minimal, region: 'Tokyo' })
 
@@ -483,7 +494,8 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
   })
 
   describe('strictObject 要素の宣言外キー', () => {
-    it.for(STRICT_ELEMENT_CASES)('$tool は要素の宣言外キーを拒否する', async ({ tool, args, ids }, context) => {
+    it.for(STRICT_ELEMENT_CASES)('ツール $tool は、配列の要素に宣言していないキーがある入力を拒否する', async ({ tool, args, ids }, context) => {
+      await explains('MCP の入力検証（SDK の検証層）が、ツールの入力を受け付けるか拒否するかのテストです。配列の要素のオブジェクトに `extra` のような宣言していないキーを含めた場合に、スキーマの検証で拒否され、handler が呼ばれないことを確認します。')
       for (const id of ids) await verifies(context, id)
       const before = mcp.calls.length
       const outcome = await classifyCall(mcp.client, tool, args)
@@ -494,8 +506,9 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
   })
 
   describe('未知ツール', () => {
-    it('スキーマ拒否とは別の形で拒否し、handler へ届かない', async (context) => {
+    it('存在しないツール名を呼び出すと、スキーマの拒否とは別の形で拒否し、handler へ渡さない', async (context) => {
       await verifies(context, 'PT-COMMON-04')
+      await explains('MCP の入力検証（SDK の検証層）が、ツールの入力を受け付けるか拒否するかのテストです。存在しない `aws_nothing_here` を呼び出した場合に、未知のツールとして拒否され、handler が呼ばれないことを確認します。')
       const before = mcp.calls.length
       const outcome = await classifyCall(mcp.client, 'aws_nothing_here', {})
 
@@ -505,14 +518,16 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
   })
 
   describe('結果の outputSchema 検証', () => {
-    it('成功結果が検証を通ってクライアントへ届く', async () => {
+    it('成功の結果は、出力スキーマの検証を通ってクライアントへ届く', async () => {
+      await explains('結果の出力スキーマの検証のテストです。`aws_sts_get_caller_identity` を呼び出した場合に、`isError` が未設定で、`structuredContent` が handler の結果と一致することを確認します。')
       const called = await mcp.client.callTool({ name: 'aws_sts_get_caller_identity', arguments: {} })
 
       expect(called.isError).toBeUndefined()
       expect(called.structuredContent).toEqual(toCallToolResult(spyResultOf('aws_sts_get_caller_identity')).structuredContent)
     })
 
-    it.for(TOOL_CASES)('$name の成功の結果が宣言に無い項目を持つと、Output validation error で拒まれる', async ({ name, minimal }) => {
+    it.for(TOOL_CASES)('ツール $name の成功の結果に宣言していない項目があると、Output validation error で拒否する', async ({ name, minimal }) => {
+      await explains('結果の出力スキーマの検証のテストです。宣言していない項目を含む成功の結果を handler が返した場合は、`isError` が真で、内容に `Output validation error` を含むことを確認します。')
       const tool = allTools().find(item => item.name === name)
       if (tool === undefined) throw new Error(`${name} が公開されていません`)
       const extra = toCallToolResult({ ok: true, data: { undeclared: 1 }, message: 'extra' })
@@ -528,7 +543,8 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
       }
     })
 
-    it('失敗結果 (isError + structuredContent) も検証を通ってクライアントへ届く', async () => {
+    it('失敗の結果も、出力スキーマの検証を通ってクライアントへ届く', async () => {
+      await explains('結果の出力スキーマの検証のテストです。`kind` と `detail` を持つ失敗の結果を handler が返した場合に、`isError` が真で、`structuredContent` が handler の結果と一致することを確認します。')
       const failure = toCallToolResult({
         ok: false,
         kind: 'permission-denied',
@@ -549,7 +565,8 @@ describe.each(PROTOCOL_ERAS)('input-acceptance (全ツールの入力の受理�
       }
     })
 
-    it('スキーマに違反する structuredContent は拒否される', async () => {
+    it('出力スキーマに違反する structuredContent は、拒否する', async () => {
+      await explains('結果の出力スキーマの検証のテストです。型が合わない `log` を含む結果を handler が返した場合は、`isError` が真になり、内容に `Output validation error` を含むことを確認します。')
       const sts = allTools().find(tool => tool.name === 'aws_sts_get_caller_identity')
       if (sts === undefined) throw new Error('aws_sts_get_caller_identity が公開されていません')
       const violating = await connectMcp([{

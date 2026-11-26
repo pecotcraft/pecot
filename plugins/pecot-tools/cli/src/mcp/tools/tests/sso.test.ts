@@ -20,6 +20,7 @@ import { outputSchemaIssues } from '../../tests/_client.js'
 import { ssoTools } from '../sso.js'
 import { useLoginRegistry } from '../../../../tests/_helpers/login-registry.js'
 import { useTemporaryDirectories } from '../../../../tests/_helpers/temporary-directory.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 /**
 キャンセル済みの tools/call を模した呼び出し文脈。
@@ -65,7 +66,8 @@ function sentenceOf(result: Readonly<CallToolResult>): string {
 }
 
 describe('ssoTools', () => {
-  it('キャンセル済みの呼び出しでもログインの子プロセスは落とさない', async () => {
+  it('キャンセル済みの呼び出しでも、ログインの awscli のプロセスを終了しない', async () => {
+    await explains('SSO のツール（`aws_sso_login` と `aws_sso_login_status`）のハンドラのテストです。中断済みの呼び出しの文脈で `aws_sso_login` を実行した場合は、状態が `pending` で認証コードと URL を含む結果になり、出力スキーマに適合することを確認します。')
     // 開始だけして後で確認するのが 2 段構成の趣旨。abort で子を畳むと、クライアントが
     // 応答を待たずに切った時点で認証フローごと消える。
     fakeAws.install({ exitWhenFile: true })
@@ -85,7 +87,8 @@ describe('ssoTools', () => {
     expect(Object.keys(dataOf(result)).toSorted(compareStrings)).toEqual(['profile', 'state', 'userCode', 'verificationUrl', 'verificationUrlComplete'])
   })
 
-  it('pending の状態確認は、state・URL・コードだけを返す', async () => {
+  it('状態が pending のときの状態確認は、state、URL、コードだけを返す', async () => {
+    await explains('SSO のツール（`aws_sso_login` と `aws_sso_login_status`）のハンドラのテストです。ログインの開始後に `aws_sso_login_status` を実行した場合は、結果が `state` や `userCode` など 4 つのキーだけを持つことを確認します。')
     fakeAws.install({ exitWhenFile: true })
     const registry = newRegistry()
     const tools = ssoTools({ loginRegistry: registry })
@@ -98,7 +101,8 @@ describe('ssoTools', () => {
     expect(Object.keys(dataOf(result)).toSorted(compareStrings)).toEqual(['state', 'userCode', 'verificationUrl', 'verificationUrlComplete'])
   })
 
-  it('成功の必須項目を欠いた結果は、outputSchema の検証で落ちる', async () => {
+  it('成功の必須項目を欠いた結果は、outputSchema の検証で拒否する', async () => {
+    await explains('SSO のツール（`aws_sso_login` と `aws_sso_login_status`）のハンドラのテストです。`aws_sso_login` と `aws_sso_login_status` の出力スキーマで、必須の項目を欠く結果は問題として検出され、失敗の結果は適合することを確認します。')
     const tools = ssoTools({ loginRegistry: newRegistry() })
     const login = toolOf(tools, 'aws_sso_login')
     const status = toolOf(tools, 'aws_sso_login_status')
@@ -111,7 +115,8 @@ describe('ssoTools', () => {
     expect(await outputSchemaIssues(status, { kind: 'invalid-input', detail: 'd' })).toEqual([])
   })
 
-  it('開始していない状態確認の失敗も、宣言した型に合う', async () => {
+  it('ログインを開始していないときの状態確認の失敗も、宣言した型に適合する', async () => {
+    await explains('SSO のツール（`aws_sso_login` と `aws_sso_login_status`）のハンドラのテストです。ログインを開始する前に `aws_sso_login_status` を実行した場合に、`isError` が真で、結果が出力スキーマに適合することを確認します。')
     const tools = ssoTools({ loginRegistry: newRegistry() })
 
     const result = await toolOf(tools, 'aws_sso_login_status').handler({}, ABORTED_CONTEXT)
@@ -120,7 +125,8 @@ describe('ssoTools', () => {
     await expectDeclared(toolOf(tools, 'aws_sso_login_status'), result)
   })
 
-  it('status の output は上限で切り詰めて、注記を文に残す', async () => {
+  it('状態確認の output は、上限で切り詰め、切り詰めたことをメッセージに残す', async () => {
+    await explains('SSO のツール（`aws_sso_login` と `aws_sso_login_status`）のハンドラのテストです。上限を超える出力を持つログインの状態確認を呼び出した場合は、`output` が上限のバイト数以内で、メッセージに `exceeded the limit` が含まれることを確認します。')
     const fixtureDirectory = makeFixtureDirectory('pecot-tools-sso-limit-')
     // 上限を確実に超える出力。デバイスフローに入らず exit 0 で終わるので completed になる。
     writeFileSync(
@@ -142,7 +148,8 @@ describe('ssoTools', () => {
     await expectDeclared(toolOf(tools, 'aws_sso_login_status'), result)
   })
 
-  it('確定待ちより先にタイムアウトが来ると timed-out を返す', async () => {
+  it('案内の確定を待つ上限より先にログインの制限時間に達したときは、timed-out を返す', async () => {
+    await explains('SSO のツール（`aws_sso_login` と `aws_sso_login_status`）のハンドラのテストです。ログインの制限時間を案内の待ち時間より短くした場合は、`timeout` の失敗になり、メッセージに `Call aws_sso_login again` を含むことを確認します。')
     // 既定値（promptTimeoutMs 30 秒 < timeoutMs 10 分）では到達しない分岐。timeoutMs を
     // promptTimeoutMs より短く注入して、loginTimer が先に締め切る形を作る。fixture 名は
     // 存在しないものにして URL / コードが確定しない（= login-registry.test.ts の
@@ -161,7 +168,8 @@ describe('ssoTools', () => {
     await expectDeclared(toolOf(tools, 'aws_sso_login'), result)
   })
 
-  it('開始に失敗して出力が上限を超えると、注記を detail に残す', async () => {
+  it('ログインの開始に失敗して出力が上限を超えたときは、切り詰めたことを detail に残す', async () => {
+    await explains('SSO のツール（`aws_sso_login` と `aws_sso_login_status`）のハンドラのテストです。上限を超える標準エラー出力を出して失敗した場合に、`log` が上限のバイト数以内で、メッセージに `exceeded the limit` が含まれ、出力スキーマに適合することを確認します。')
     const fixtureDirectory = makeFixtureDirectory('pecot-tools-sso-fail-limit-')
     writeFileSync(
       path.join(fixtureDirectory, 'sso-login.stderr'),

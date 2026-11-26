@@ -5,6 +5,8 @@ import path from "node:path";
 
 import { test } from "vitest";
 
+import { explains } from "../../../libs/interface-spec/src/vitest/explains.js";
+
 // src は CommonJS なので、Node の require で読む。
 const require = createRequire(import.meta.url);
 const { PecotVersionActions } = require("../src/version-actions");
@@ -34,12 +36,14 @@ const CLAUDE = "plugins/pecot-workflow/.claude-plugin/plugin.json";
 const COPILOT = "plugins/pecot-workflow/plugin.json";
 
 test("先頭の plugin.json から現在の version を読む", async () => {
+  await explains("先頭の `plugin.json` から現在の版を読み取る `readCurrentVersionFromSourceManifest` のテストです。先頭の `plugin.json` の `version` を、現在の版とそのパスとして返すことを確認します。");
   const tree = makeTree({ [CLAUDE]: '{"name":"pecot-w","version":"1.29.3"}\n' });
   const result = await makeActions([CLAUDE]).readCurrentVersionFromSourceManifest(tree);
   assert.deepEqual(result, { currentVersion: "1.29.3", manifestPath: CLAUDE });
 });
 
 test("version が空なら throw する", async () => {
+  await explains("`plugin.json` から現在の版を読み取る `readCurrentVersionFromSourceManifest` のテストです。`version` が空文字列の場合に、`version` フィールドに関する例外が発生することを確認します。");
   const tree = makeTree({ [CLAUDE]: '{"name":"pecot-w","version":""}\n' });
   await assert.rejects(
     makeActions([CLAUDE]).readCurrentVersionFromSourceManifest(tree),
@@ -48,6 +52,7 @@ test("version が空なら throw する", async () => {
 });
 
 test("manifestsToUpdate が空なら throw する", async () => {
+  await explains("`plugin.json` から現在の版を読み取る `readCurrentVersionFromSourceManifest` のテストです。`manifestsToUpdate` が空の場合に、その旨の例外が発生することを確認します。");
   await assert.rejects(
     makeActions([]).readCurrentVersionFromSourceManifest(makeTree({})),
     /manifestsToUpdate が空/,
@@ -55,6 +60,7 @@ test("manifestsToUpdate が空なら throw する", async () => {
 });
 
 test("両配布チャネルの plugin.json の version を書き換え、他のフィールドを保つ", async () => {
+  await explains("版を更新する `updateProjectVersion` のテストです。Claude Code 向けと Agent Plugins 向けの 2 つの `plugin.json` の `version` が更新され、`$schema` など他のフィールドが保たれることを確認します。");
   const tree = makeTree({
     [CLAUDE]: '{"name":"pecot-w","version":"1.29.3"}\n',
     [COPILOT]: '{"name":"pecot-w","version":"1.29.3","$schema":"https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"}\n',
@@ -70,6 +76,7 @@ test("両配布チャネルの plugin.json の version を書き換え、他の�
 });
 
 test("Agent Plugins 1.0 形式のルートの plugin.json も更新し、$schema など他のフィールドを保つ", async () => {
+  await explains("版を更新する `updateProjectVersion` のテストです。Agent Plugins 1.0 形式のルートの `plugin.json` も `version` が更新され、`$schema` などのフィールドが保たれることを確認します。");
   const claude = "plugins/pecot-visual/.claude-plugin/plugin.json";
   const root = "plugins/pecot-visual/plugin.json";
   const tree = makeTree({
@@ -88,6 +95,7 @@ test("Agent Plugins 1.0 形式のルートの plugin.json も更新し、$schema
 });
 
 test("末尾改行の有無を元の manifest に合わせる", async () => {
+  await explains("版を更新する `updateProjectVersion` のテストです。末尾に改行がある `plugin.json` と改行がない `plugin.json` のそれぞれで、更新後も元の末尾の形が保たれることを確認します。");
   const tree = makeTree({
     [CLAUDE]: '{"version":"1.0.0"}\n',
     [COPILOT]: '{"version":"1.0.0"}',
@@ -98,6 +106,7 @@ test("末尾改行の有無を元の manifest に合わせる", async () => {
 });
 
 test("manifest を読めなければ throw する", async () => {
+  await explains("版を更新する `updateProjectVersion` のテストです。`plugin.json` が存在しない場合に、読み取れない旨の例外が発生することを確認します。");
   await assert.rejects(
     makeActions([CLAUDE]).updateProjectVersion(makeTree({}), "1.1.0"),
     /manifest を読めません/,
@@ -134,6 +143,7 @@ const TOOLS_AGENT_MCP_BEFORE = `{
 }`;
 
 test(".mcp.json・mcp.json の @pecot/<名前>-mcp の版だけを書き換え、整形を保つ", async () => {
+  await explains("MCP の登録ファイルの版を更新する `updateProjectVersion` のテストです。`.mcp.json` と `mcp.json` の `@pecot/<名前>-mcp` の版だけが書き換わり、整形が保たれ、更新のログが 3 件出力されることを確認します。");
   const tree = makeTree({
     [TOOLS_CLAUDE]: '{"name":"pecot-t","version":"3.1.0"}\n',
     [TOOLS_MCP]: TOOLS_MCP_BEFORE,
@@ -153,6 +163,7 @@ test(".mcp.json・mcp.json の @pecot/<名前>-mcp の版だけを書き換え�
 });
 
 test("ほかの project の npm の指定は書き換えない", async () => {
+  await explains("MCP の登録ファイルの版を更新する `updateProjectVersion` のテストです。ほかのプロジェクトの `@pecot/tools-mcp` の指定を含む `.mcp.json` が、そのまま変更されないことを確認します。");
   const visualMcp = `{"mcpServers":{"pecot-visual-playwright":{"command":"npx","args":["-y","@playwright/mcp@0.0.83","@pecot/tools-mcp@3.1.0"]}}}\n`;
   const visualClaude = "plugins/pecot-visual/.claude-plugin/plugin.json";
   const tree = makeTree({
@@ -165,6 +176,7 @@ test("ほかの project の npm の指定は書き換えない", async () => {
 });
 
 test("pecot-visual の @pecot/visual-mcp の版だけを書き換え、@playwright/mcp の版は残す", async () => {
+  await explains("MCP の登録ファイルの版を更新する `updateProjectVersion` のテストです。pecot-visual の `.mcp.json` で、`@pecot/visual-mcp` の版だけが書き換わり、`@playwright/mcp` の版が保たれることを確認します。");
   const visualClaude = "plugins/pecot-visual/.claude-plugin/plugin.json";
   const visualMcpBefore = `{"mcpServers":{"pecot-visual":{"command":"npx","args":["--prefix=\${CLAUDE_PLUGIN_DATA}","-y","@pecot/visual-mcp@3.1.0"]},"pecot-visual-playwright":{"command":"npx","args":["--prefix=\${CLAUDE_PLUGIN_DATA}","-y","@playwright/mcp@0.0.83"]}}}\n`;
   const tree = makeTree({
@@ -180,6 +192,7 @@ test("pecot-visual の @pecot/visual-mcp の版だけを書き換え、@playwrig
 });
 
 test(".mcp.json・mcp.json が無ければ何もしない", async () => {
+  await explains("MCP の登録ファイルの版を更新する `updateProjectVersion` のテストです。`.mcp.json` と `mcp.json` が存在しない場合に、ファイルを作成せず、`plugin.json` の更新のログだけを出力することを確認します。");
   const tree = makeTree({ [TOOLS_CLAUDE]: '{"name":"pecot-t","version":"3.1.0"}\n' });
   const logs = await makeActions([TOOLS_CLAUDE], "pecot-tools").updateProjectVersion(tree, "4.0.0");
   assert.equal(tree.exists(TOOLS_MCP), false);
@@ -229,6 +242,7 @@ const EXPECTED_MANIFESTS = {
 
 for (const [dir, expected] of Object.entries(EXPECTED_MANIFESTS)) {
   test(`${dir}: init() が project.json の manifestRootsToUpdate を実在する plugin.json に展開する`, async () => {
+    await explains(`${dir} のプロジェクト設定から \`plugin.json\` を求める \`init\` のテストです。\`project.json\` の \`manifestRootsToUpdate\` が、実在する 2 つの \`plugin.json\` に展開され、すべて同じ版であることを確認します。`);
     const { projectGraphNode, finalConfigForProject } = readProject(`plugins/${dir}`);
     const actions = new PecotVersionActions({}, projectGraphNode, finalConfigForProject);
     await actions.init(fsTree);
@@ -254,6 +268,7 @@ for (const [dir, expected] of Object.entries(EXPECTED_MANIFESTS)) {
 const LIB_MANIFESTS = ["libs/text-rules/package.json"];
 
 test("libs/text-rules: init() が実体の package.json に展開する", async () => {
+  await explains("`libs/text-rules` の `init` のテストです。`manifestRootsToUpdate` が実体の `package.json` に展開され、現在の版を読み取れることを確認します。");
   const { projectGraphNode, finalConfigForProject } = readProject("libs/text-rules");
   const actions = new PecotPackageVersionActions({}, projectGraphNode, finalConfigForProject);
   await actions.init(fsTree);
@@ -270,6 +285,7 @@ test("libs/text-rules: init() が実体の package.json に展開する", async 
 });
 
 test("libs/text-rules: package.json の version を書き換え、他のフィールドを保つ", async () => {
+  await explains("`libs/text-rules` の版を更新する `updateProjectVersion` のテストです。`package.json` の `version` が更新され、`name` や `type` など他のフィールドが保たれることを確認します。");
   const tree = makeTree({
     "libs/text-rules/package.json": '{"name":"@pecot/text-rules-src","version":"0.0.0","type":"module"}\n',
   });

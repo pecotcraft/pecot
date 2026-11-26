@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 import { projectRoot } from './_helpers/paths.js'
 import { compareStrings } from '../parity/baseline.js'
+import { explains } from '../_helpers/explains.js'
 
 const SOURCES: readonly string[] = [
   'plugins/pecot-workflow/cli/templates/comment/review-findings.md',
@@ -23,7 +24,8 @@ function marksOf(text: string): string {
 }
 
 describe('視点の印', () => {
-  it('配布物の全箇所で、印の集合が一致する', () => {
+  it('配布物の全箇所で、印の集合が一致する', async () => {
+    await explains('視点の印のテストです。印を複製した配布物のすべてのファイルを読んだ場合に、印の集合が期待する集合と一致することを確認します。')
     const found = new Map<string, string>()
     for (const relative of SOURCES) {
       const file = path.join(projectRoot, relative)
@@ -37,7 +39,8 @@ describe('視点の印', () => {
   it.for([
     'plugins/pecot-workflow/agents/w-plan-reviewer.md',
     'plugins/pecot-workflow/skills/w-review/references/review-viewpoints.md',
-  ])('%s の視点の節の見出しは、印の集合と一致する', (relative) => {
+  ])('%s の視点の節の見出しは、印の集合と一致する', async (relative) => {
+    await explains(`視点の印のテストです。\`${relative}\` を読んだ場合に、視点の節の見出しが印の集合と一致することを確認します。`)
     const text = readFileSync(path.join(projectRoot, relative), 'utf8')
     const headings = Array.from(text.matchAll(/^## (\[[a-z]+\]) /gmu), match => match[1] ?? '')
     expect(headings.toSorted(compareStrings).join(' ')).toBe(EXPECTED)

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { detectPreviewDivergence } from '../preview-normalize.js'
 import { parseTestXml } from '../../../../tests/unit/domain/_helpers/xmldom-engine.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 const SLIDE_NS_DECL = [
   'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"',
@@ -35,7 +36,8 @@ function slideWithDivergentBodyPr(options: {
 }
 
 describe('detectPreviewDivergence', () => {
-  it('wrap=none + spAutoFit の組み合わせを検知し shapeName を解決する', () => {
+  it('wrap が none で spAutoFit もある場合は、検出し、図形の名前を取得する', async () => {
+    await explains('スライドの表示の差を検出する `detectPreviewDivergence` のテストです。`wrap="none"` と `spAutoFit` を両方持つ図形がある場合に、規則 `spautofit-wrap-none` と図形の名前を含む結果を返すことを確認します。')
     const slide = parseTestXml(slideWithDivergentBodyPr({ shapeName: 'footer-copyright' }))
     const findings = detectPreviewDivergence(slide)
     expect(findings).toStrictEqual([
@@ -43,14 +45,16 @@ describe('detectPreviewDivergence', () => {
     ])
   })
 
-  it('shape name が無ければ shapeName を undefined で degrade する', () => {
+  it('図形に名前がない場合は、shapeName を持たない結果を返す', async () => {
+    await explains('スライドの表示の差を検出する `detectPreviewDivergence` のテストです。`wrap="none"` と `spAutoFit` を持つ図形に名前がない場合に、`shapeName` を含まない結果を返すことを確認します。')
     const slide = parseTestXml(slideWithDivergentBodyPr())
     const findings = detectPreviewDivergence(slide)
     expect(findings).toStrictEqual([{ rule: 'spautofit-wrap-none' }])
     expect(findings[0]?.shapeName).toBeUndefined()
   })
 
-  it('wrap=none だけ (spAutoFit 無し) は検知しない', () => {
+  it('wrap が none だけで spAutoFit がない場合は、検出しない', async () => {
+    await explains('スライドの表示の差を検出する `detectPreviewDivergence` のテストです。`wrap="none"` だけで `spAutoFit` がない図形を渡した場合に、空の配列を返すことを確認します。')
     const slide = parseTestXml(`
       <p:sld ${SLIDE_NS_DECL}>
         <p:cSld><p:spTree>
@@ -63,7 +67,8 @@ describe('detectPreviewDivergence', () => {
     expect(detectPreviewDivergence(slide)).toStrictEqual([])
   })
 
-  it('spAutoFit だけ (wrap=none 無し) は検知しない', () => {
+  it('spAutoFit だけで wrap が none でない場合は、検出しない', async () => {
+    await explains('スライドの表示の差を検出する `detectPreviewDivergence` のテストです。`spAutoFit` だけで `wrap="none"` でない図形を渡した場合に、空の配列を返すことを確認します。')
     const slide = parseTestXml(`
       <p:sld ${SLIDE_NS_DECL}>
         <p:cSld><p:spTree>
@@ -76,7 +81,8 @@ describe('detectPreviewDivergence', () => {
     expect(detectPreviewDivergence(slide)).toStrictEqual([])
   })
 
-  it('複数の divergent bodyPr を全件列挙する', () => {
+  it('条件に当てはまる図形が複数ある場合は、すべて列挙する', async () => {
+    await explains('スライドの表示の差を検出する `detectPreviewDivergence` のテストです。`wrap="none"` と `spAutoFit` を持つ図形が 2 つある場合に、どちらも結果に含め、図形の名前を `a`、`b` の順に返すことを確認します。')
     const slide = parseTestXml(`
       <p:sld ${SLIDE_NS_DECL}>
         <p:cSld><p:spTree>

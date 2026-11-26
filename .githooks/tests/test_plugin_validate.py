@@ -68,14 +68,13 @@ def _make_marketplace_repo(root: Path) -> None:
         skill.write_text(_VALID_SKILL.format(name=f"{name}-skill"))
 
 
+@allure.title(
+    "claude CLI が PATH に存在しないと、skip せずに非 0 で終了し、見つからない旨を表示する"
+)
 def test_fails_without_claude(
     script_dir: Path, repo_root: Path, run_script, tmp_path: Path
 ) -> None:
-    """(a) claude CLI が PATH に無い → skip せず非 0 で、claude が無い旨を stderr に出す。
-
-    PATH は bash と git だけを symlink した専用ディレクトリにする。/usr/bin:/bin 固定だと
-    claude が /usr/bin にある環境で「無い」状態を作れない。
-    """
+    """`plugin-validate.sh` を、claude CLI が PATH に存在しない環境で実行した場合のテストです。skip されず終了コードが 0 以外になり、標準エラー出力に `claude` が `not found` である旨が表示されることを確認します。"""
     with allure.step("PATH を bash と git だけにして plugin-validate.sh を動かす"):
         bin_dir = tmp_path / "bin"
         bin_dir.mkdir()
@@ -94,18 +93,20 @@ def test_fails_without_claude(
         assert "not found" in result.stderr
 
 
+@allure.title("現在のリポジトリの 4 つの対象を検証すると、終了コード 0 で終了する")
 @requires_claude
 def test_current_repo_passes(script_dir: Path, repo_root: Path, run_script) -> None:
-    """(b) 現リポの 4 対象 → exit 0。"""
+    """`plugin-validate.sh` を現在のリポジトリで実行した場合のテストです。3 つのプラグインとリポジトリルートの検証がすべて成功し、終了コードが 0 になることを確認します。"""
     with allure.step("現リポで plugin-validate.sh を動かす"):
         result = run_script(script_dir / "plugin-validate.sh", cwd=repo_root)
     with allure.step("終了コードが 0 であることを確かめる"):
         assert result.returncode == 0, result.stdout + result.stderr
 
 
+@allure.title("壊す前の最小構成のリポジトリを検証すると、終了コード 0 で終了する")
 @requires_claude
 def test_fixture_repo_passes(script_dir: Path, run_script, tmp_path: Path) -> None:
-    """(c の前提) 壊す前の最小構成は exit 0。失敗の原因が壊した SKILL.md だけであることを保証する。"""
+    """3 つのプラグインと `marketplace.json` だけの最小構成で `plugin-validate.sh` を実行した場合のテストです。終了コードが 0 になり、後続の失敗が SKILL.md を壊したことだけに起因することを確認します。"""
     with allure.step("最小構成のリポを作り、plugin-validate.sh を動かす"):
         _make_marketplace_repo(tmp_path)
         result = run_script(script_dir / "plugin-validate.sh", cwd=tmp_path)
@@ -113,9 +114,10 @@ def test_fixture_repo_passes(script_dir: Path, run_script, tmp_path: Path) -> No
         assert result.returncode == 0, result.stdout + result.stderr
 
 
+@allure.title("SKILL.md の frontmatter が閉じていないと、非 0 で終了し、失敗した対象だけを表示する")
 @requires_claude
 def test_broken_skill_frontmatter_fails(script_dir: Path, run_script, tmp_path: Path) -> None:
-    """(c) 1 プラグインの SKILL.md の frontmatter が閉じていない → 非 0。失敗した対象だけ出す。"""
+    """1 つのプラグインの `SKILL.md` の frontmatter を閉じずに `plugin-validate.sh` を実行した場合のテストです。終了コードが 0 以外になり、`plugins/pecot-visual` と `frontmatter` が出力に含まれ、`plugins/pecot-workflow` が含まれないことを確認します。"""
     with allure.step("SKILL.md の frontmatter を壊し、plugin-validate.sh を動かす"):
         _make_marketplace_repo(tmp_path)
         skill = tmp_path / "plugins" / "pecot-visual" / "skills" / "pecot-visual-skill" / "SKILL.md"

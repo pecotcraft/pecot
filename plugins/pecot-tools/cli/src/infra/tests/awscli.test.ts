@@ -16,6 +16,7 @@ import { CAPTURE_LIMIT_BYTES, ensureAwscli, killRunningAwscli, mergeStderr, rese
 import { useFakeAws } from '../../../tests/_helpers/fake-aws.js'
 import { isReaped } from '../../../tests/_helpers/process.js'
 import { compareStrings } from '../../../tests/_helpers/compare-strings.js'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 /**
 テストが生成する fixture の置き場。使い終わったら消す。
@@ -49,7 +50,8 @@ function expectTerminated(result: Readonly<{ signal: NodeJS.Signals | null, exit
 }
 
 describe('runAwscli', () => {
-  it('fixture の stdout を返して exit 0 で終わる', async () => {
+  it('正常に終了する awscli を実行すると、標準出力を返し、終了コード 0 で終わる', async () => {
+    await explains('偽の awscli を PATH の先頭に置いて、awscli を子プロセスとして実行する `runAwscli` を呼び出すテストです。`sts get-caller-identity` を実行した場合に、終了コードが `0` で、時間切れや起動エラーがなく、フィクスチャの標準出力を返すことを確認します。')
     const fake = fakeAws.install()
 
     const result = await runAwscli(['sts', 'get-caller-identity'], { timeoutMs: 10_000 })
@@ -61,7 +63,8 @@ describe('runAwscli', () => {
     expect(fake.callLog()).toEqual([['sts', 'get-caller-identity']])
   })
 
-  it('fixture の stderr と exit 254 をそのまま返す', async () => {
+  it('異常終了する awscli を実行すると、標準エラー出力と終了コード 254 をそのまま返す', async () => {
+    await explains('偽の awscli を PATH の先頭に置いて、awscli を子プロセスとして実行する `runAwscli` を呼び出すテストです。`access-denied` のフィクスチャで実行した場合に、終了コードが `254`、標準エラー出力に `AccessDeniedException` が含まれ、標準出力が空であることを確認します。')
     fakeAws.install({ fixture: 'access-denied' })
 
     const result = await runAwscli(['lambda', 'list-functions'], { timeoutMs: 10_000 })
@@ -71,7 +74,8 @@ describe('runAwscli', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('timeout で SIGTERM を送り、子プロセスを残さない', async () => {
+  it('時間切れになると、awscli のプロセスに SIGTERM を送り、プロセスを残さない', async () => {
+    await explains('偽の awscli を PATH の先頭に置いて、awscli を子プロセスとして実行する `runAwscli` を呼び出すテストです。終了しない awscli を 500 ミリ秒の制限時間で実行した場合に、`timedOut` が真になり、起動したプロセスが回収されることを確認します。')
     const fake = fakeAws.install({ hang: true })
 
     const result = await runAwscli(['lambda', 'list-functions'], { timeoutMs: 500 })
@@ -82,7 +86,8 @@ describe('runAwscli', () => {
     expect(typeof pid === 'number' && isReaped(pid)).toBe(true)
   })
 
-  it('killRunningAwscli が実行中の子プロセスへ SIGTERM を送る', async () => {
+  it('killRunningAwscli を呼ぶと、実行中の awscli のプロセスに SIGTERM を送る', async () => {
+    await explains('偽の awscli を PATH の先頭に置いて、awscli を子プロセスとして実行する `runAwscli` を呼び出すテストです。実行中に、サーバの終了処理が使う `killRunningAwscli` を呼んだ場合は、プロセスが `SIGTERM` で終了し、回収されることを確認します。')
     // サーバの終了処理（mcp/serve.ts の onShutdown）が使う。ここが働かないと、親が消えた後の
     // 子が PPID 1 へ再親付けされ、timeout を張っていた親ごと打ち切りが失われる。
     const instance = fakeAws.install({ hang: true })
@@ -100,7 +105,8 @@ describe('runAwscli', () => {
     expect(typeof pid === 'number' && isReaped(pid)).toBe(true)
   })
 
-  it('終了した子プロセスは killRunningAwscli の対象から外れる', async () => {
+  it('終了した awscli のプロセスは、killRunningAwscli の対象から外れる', async () => {
+    await explains('偽の awscli を PATH の先頭に置いて、awscli を子プロセスとして実行する `runAwscli` を呼び出すテストです。実行が完了した後に `killRunningAwscli` を呼んだ場合に、終了済みのプロセスへシグナルを送らず、例外が発生しないことを確認します。')
     fakeAws.install()
 
     await runAwscli(['sts', 'get-caller-identity'], { timeoutMs: 10_000 })
@@ -111,7 +117,8 @@ describe('runAwscli', () => {
     }).not.toThrow()
   })
 
-  it('abort で SIGTERM を送る', async () => {
+  it('実行中に abort すると、awscli のプロセスに SIGTERM を送り、timedOut は立てない', async () => {
+    await explains('偽の awscli を PATH の先頭に置いて、awscli を子プロセスとして実行する `runAwscli` を呼び出すテストです。`AbortController` で実行を中断した場合に、`timedOut` が偽で、プロセスが `SIGTERM` で終了することを確認します。')
     fakeAws.install({ hang: true })
     const controller = new AbortController()
 
@@ -124,7 +131,8 @@ describe('runAwscli', () => {
     expectTerminated(result)
   })
 
-  it('abort 済みの signal を渡しても即座に SIGTERM を送る', async () => {
+  it('abort 済みの signal を渡して実行すると、すぐに SIGTERM を送る', async () => {
+    await explains('偽の awscli を PATH の先頭に置いて、awscli を子プロセスとして実行する `runAwscli` を呼び出すテストです。最初から中断済みの `signal` を渡した場合に、`timedOut` が偽で、プロセスが `SIGTERM` で終了することを確認します。')
     fakeAws.install({ hang: true })
 
     const result = await runAwscli(['lambda', 'list-functions'], {
@@ -136,7 +144,8 @@ describe('runAwscli', () => {
     expectTerminated(result)
   })
 
-  it('awscli が PATH に無ければ ENOENT を spawnErrorCode に載せる', async () => {
+  it('awscli が PATH に存在しないときは、ENOENT を spawnErrorCode に設定する', async () => {
+    await explains('偽の awscli を PATH の先頭に置いて、awscli を子プロセスとして実行する `runAwscli` を呼び出すテストです。PATH に awscli が存在しない場合は、終了コードが `null`、`spawnErrorCode` が `ENOENT` となり、標準エラー出力にも `ENOENT` が含まれることを確認します。')
     fakeAws.withoutAws()
 
     const result = await runAwscli(['sts', 'get-caller-identity'], { timeoutMs: 10_000 })
@@ -146,7 +155,8 @@ describe('runAwscli', () => {
     expect(result.stderr).toContain('ENOENT')
   })
 
-  it('同名 fixture の 2 回目は連番 fixture を使い、以降は既定へ戻る', async () => {
+  it('同じ名前のフィクスチャを 2 回目に使うと連番のフィクスチャを返し、以降は既定のフィクスチャに戻る', async () => {
+    await explains('偽の awscli を PATH の先頭に置いて、awscli を子プロセスとして実行する `runAwscli` を呼び出すテストです。`sequence` のフィクスチャで 2 回実行した場合に、1 回目が `call` が `1` の出力、2 回目が `fallback` の出力になることを確認します。')
     fakeAws.install({ fixture: 'sequence' })
 
     const first = await runAwscli(['lambda', 'list-functions'], { timeoutMs: 10_000 })
@@ -156,7 +166,8 @@ describe('runAwscli', () => {
     expect(JSON.parse(second.stdout)).toEqual({ call: 'fallback' })
   })
 
-  it('fixture が無ければ stdout 空・exit 0 で返す', async () => {
+  it('フィクスチャが存在しないときは、標準出力を空にして終了コード 0 で返す', async () => {
+    await explains('偽の awscli を PATH の先頭に置いて、awscli を子プロセスとして実行する `runAwscli` を呼び出すテストです。存在しないフィクスチャ名を指定した場合に、終了コードが `0` で、標準出力と標準エラー出力が空であることを確認します。')
     fakeAws.install({ fixture: 'no-such-fixture' })
 
     const result = await runAwscli(['lambda', 'list-functions'], { timeoutMs: 10_000 })
@@ -166,7 +177,8 @@ describe('runAwscli', () => {
     expect(result.stderr).toBe('')
   })
 
-  it('連番は並行呼び出しでも重複しない', async () => {
+  it('連番のフィクスチャは、並行して呼び出しても、同じ連番を重複して配らない', async () => {
+    await explains('偽の awscli を PATH の先頭に置いて、awscli を子プロセスとして実行する `runAwscli` を呼び出すテストです。5 件の連番のフィクスチャを用意し、5 回を並行して実行した場合に、`1` から `5` の出力が 1 回ずつ得られることを確認します。')
     // 連番の read-modify-write が非アトミックだと、同じ連番が複数プロセスへ配られる。
     await withFixtureDirectory(async (directory) => {
       for (const index of [1, 2, 3, 4, 5]) {
@@ -183,7 +195,8 @@ describe('runAwscli', () => {
     })
   }, 30_000)
 
-  it('捕捉は上限で打ち切る', async () => {
+  it('標準出力の取り込みは、上限のバイト数で打ち切る', async () => {
+    await explains('偽の awscli を PATH の先頭に置いて、awscli を子プロセスとして実行する `runAwscli` を呼び出すテストです。上限より 4096 バイト大きい標準出力を出すフィクスチャを実行した場合に、結果の標準出力が `CAPTURE_LIMIT_BYTES` ちょうどになることを確認します。')
     // filter-log-events の数 MiB 出力を全件溜めると常駐メモリに直結する。
     await withFixtureDirectory(async (directory) => {
       writeFileSync(path.join(directory, 'huge.stdout'), 'x'.repeat(CAPTURE_LIMIT_BYTES + 4096))
@@ -202,13 +215,15 @@ describe('mergeStderr', () => {
     ['captured', '', 'captured'],
     ['', 'extra', 'extra'],
     ['captured', 'extra', 'captured\nextra'],
-  ])('captured %j と extra %j を %j に束ねる', (captured, extra, expected) => {
+  ])('取り込んだ標準エラー出力 %j と追加の出力 %j は、%j に連結する', async (captured, extra, expected) => {
+    await explains('標準エラー出力を連結する `mergeStderr` のテストです。取り込んだ出力と追加の出力がどちらも空の場合、片方だけの場合、両方ある場合で、空の側を除き、両方ある場合は改行で連結した文字列を返すことを確認します。')
     expect(mergeStderr(captured, extra)).toBe(expected)
   })
 })
 
 describe('ensureAwscli', () => {
-  it('版が要件を満たせば ok を返し、--version は 1 回しか呼ばない', async () => {
+  it('版が要件を満たすときは ok を返し、--version は 1 回だけ実行する', async () => {
+    await explains('awscli の版を確認する `ensureAwscli` のテストです。版が要件を満たす awscli で 2 回確認した場合に、どちらも `ok` が真で版が `2.36.40` の同じ結果を返し、`--version` の実行が 1 回だけであることを確認します。')
     const fake = fakeAws.install()
 
     const first = await ensureAwscli()
@@ -223,13 +238,15 @@ describe('ensureAwscli', () => {
   it.each([
     ['aws-cli/3.0.0 Python/3.12.6 Linux/6.1 exe/x86_64', '3.0.0'],
     ['aws-cli/2.22.0 Python/3.12.6 Linux/6.1 exe/x86_64', '2.22.0'],
-  ])('%s は要件を満たす', async (version, expected) => {
+  ])('版の出力 %s は、要件を満たすと判定する', async (version, expected) => {
+    await explains('awscli の版を確認する `ensureAwscli` のテストです。`aws-cli/3.0.0` と `aws-cli/2.22.0` のように要件の版以上の出力を返す場合に、`ok` が真で、版の番号を取り出して返すことを確認します。')
     fakeAws.install({ version })
 
     expect(await ensureAwscli()).toEqual({ ok: true, version: expected })
   })
 
-  it('2.22 未満は awscli-missing にする', async () => {
+  it('版が 2.22 未満のときは、awscli-missing と判定する', async () => {
+    await explains('awscli の版を確認する `ensureAwscli` のテストです。`aws-cli/2.21.0` を返す awscli を確認した場合に、`ok` が偽で種類が `awscli-missing`、メッセージに `2.21.0` が含まれることを確認します。')
     fakeAws.install({ version: 'aws-cli/2.21.0 Python/3.12.6 Linux/6.1 exe/x86_64' })
 
     const probe = await ensureAwscli()
@@ -238,7 +255,8 @@ describe('ensureAwscli', () => {
     expect(probe.ok ? '' : probe.message).toContain('2.21.0')
   })
 
-  it('版を判定できない出力は awscli-missing にする', async () => {
+  it('版を判定できない出力のときは、awscli-missing と判定する', async () => {
+    await explains('awscli の版を確認する `ensureAwscli` のテストです。版を含まない出力を返す awscli を用意した場合は、`ok` が偽で種類が `awscli-missing` となり、メッセージに版を判定できない旨が含まれることを確認します。')
     fakeAws.install({ version: 'unexpected version banner' })
 
     const probe = await ensureAwscli()
@@ -247,7 +265,8 @@ describe('ensureAwscli', () => {
     expect(probe.ok ? '' : probe.message).toContain('Could not determine the awscli version')
   })
 
-  it('awscli が PATH に無ければ導入を促す message を返す', async () => {
+  it('awscli が PATH に存在しないときは、導入を促すメッセージを返す', async () => {
+    await explains('awscli の版を確認する `ensureAwscli` のテストです。PATH に awscli が存在しない場合は、`ok` が偽で種類が `awscli-missing` となり、メッセージに `awscli not found` が含まれることを確認します。')
     fakeAws.withoutAws()
 
     const probe = await ensureAwscli()
@@ -256,7 +275,8 @@ describe('ensureAwscli', () => {
     expect(probe.ok ? '' : probe.message).toContain('awscli not found')
   })
 
-  it('失敗した判定は memo せず、次の呼び出しで再判定する', async () => {
+  it('失敗した判定は保存せず、次の呼び出しで再度判定する', async () => {
+    await explains('awscli の版を確認する `ensureAwscli` のテストです。要件を満たさない版で失敗した後に、要件を満たす版 `2.27.0` へ入れ替えて再度確認した場合に、2 回目は `ok` が真になり、`--version` が 2 回実行されることを確認します。')
     // 失敗を memo すると、利用者が awscli を導入してもサーバ再起動まで awscli-missing が続く。
     const fake = fakeAws.install({ version: 'aws-cli/2.21.0 Python/3.12.6 Linux/6.1 exe/x86_64' })
 
@@ -269,7 +289,8 @@ describe('ensureAwscli', () => {
     expect(fake.callLog()).toEqual([['--version'], ['--version']])
   })
 
-  it('resetAwscliProbe の後は再度 --version を呼ぶ', async () => {
+  it('resetAwscliProbe を呼んだ後は、再度 --version を実行する', async () => {
+    await explains('awscli の版を確認する `ensureAwscli` のテストです。1 回確認した後に `resetAwscliProbe` を呼んでからもう一度確認した場合に、`--version` が 2 回実行されることを確認します。')
     const fake = fakeAws.install()
 
     await ensureAwscli()

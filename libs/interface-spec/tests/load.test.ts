@@ -6,9 +6,11 @@ import { describe, expect, it } from 'vitest'
 import { LoadError, loadJson, loadSources, loadYaml } from '../src/infra/load.js'
 import { materialize } from './helpers/repository.js'
 import { step, stepSync } from '../src/vitest/step.js'
+import { explains } from '../src/vitest/explains.js'
 
 describe('loadJson and loadYaml', () => {
-  it('ファイルが無いと、missing として報告する', async () => {
+  it('ファイルが存在しないと、missing の状態を返す', async () => {
+    await explains('JSON と YAML のファイルを読み込む `loadJson` と `loadYaml` のテストです。ファイルが存在しない場合に、どちらも `{ kind: \'missing\' }` を返すことを確認します。')
     const root = await materialize('empty')
     await step('存在しないファイルを読み込み、結果を比べる', async () => {
       expect(await loadJson(path.join(root, 'none.json'))).toEqual({ kind: 'missing' })
@@ -16,7 +18,8 @@ describe('loadJson and loadYaml', () => {
     })
   })
 
-  it('ファイルが無い以外の読み取りエラーは、投げる', async () => {
+  it('ファイルが存在しない以外の読み取りエラーは、例外として投げる', async () => {
+    await explains('JSON と YAML のファイルを読み込む `loadJson` と `loadYaml` のテストです。ファイルでなくディレクトリを渡した場合に、`EISDIR` を含む例外が発生することを確認します。')
     const root = await materialize('empty')
     await step('ディレクトリを読み込み、失敗を比べる', async () => {
       await expect(loadJson(root)).rejects.toThrow(/EISDIR/u)
@@ -24,6 +27,7 @@ describe('loadJson and loadYaml', () => {
   })
 
   it('json と yaml のファイルを読み込むと、ok の状態とパースしたデータを返す', async () => {
+    await explains('JSON と YAML のファイルを読み込む `loadJson` と `loadYaml` のテストです。内容が正しい JSON と YAML のファイルを渡した場合に、どちらも `ok` の状態と、解析したデータを返すことを確認します。')
     const root = await materialize('empty')
     await step('json と yaml を書く', async () => {
       await writeFile(path.join(root, 'a.json'), '{"a":1}')
@@ -35,7 +39,8 @@ describe('loadJson and loadYaml', () => {
     })
   })
 
-  it('yaml のエラーには、すべて行を付ける', async () => {
+  it('YAML に構文エラーが複数あると、すべてのエラーに行番号を付けて返す', async () => {
+    await explains('JSON と YAML のファイルを読み込む `loadJson` と `loadYaml` のテストです。キーの重複と括弧の閉じ忘れが 1 つずつある YAML を渡した場合に、`syntax` の状態で、2 行目と 4 行目のエラーを返すことを確認します。')
     const root = await materialize('empty')
     await step('yaml を書く', async () => {
       await writeFile(path.join(root, 'a.yaml'), 'a: 1\na: 2\nb: [\n')
@@ -53,13 +58,15 @@ describe('loadJson and loadYaml', () => {
 })
 
 describe('loadSources', () => {
-  it('glob が無いとき、何も読まない', async () => {
+  it('glob が指定されていないと、ソースを 1 件も読み込まない', async () => {
+    await explains('plugin のソースファイルを読み込む `loadSources` のテストです。glob を 1 つも渡さなかった場合に、空の配列を返すことを確認します。')
     await step('glob が無いときの読み込みを比べる', async () => {
       expect(await loadSources(await materialize('valid'), 'pecot-workflow', [])).toEqual([])
     })
   })
 
-  it('追跡されて一致するファイルだけを、パス順に読む', async () => {
+  it('glob に一致し、git が追跡しているファイルだけを、パスの順に読み込む', async () => {
+    await explains('plugin のソースファイルを読み込む `loadSources` のテストです。追跡されていないファイルも一致する glob の場合、追跡されているファイルだけがパスの順に返り、内容も読み込まれることを確認します。')
     const root = await materialize('valid')
     await step('無視されるファイルを置く', async () => {
       await mkdir(path.join(root, 'plugins/pecot-workflow/cli/node_modules'), { recursive: true })
@@ -72,7 +79,8 @@ describe('loadSources', () => {
     })
   })
 
-  it('プラグインの外を ../../ で指す glob は、リポジトリの中のライブラリを読む', async () => {
+  it('glob が ../../ で plugin の外を指すと、リポジトリ内のライブラリのファイルも読み込む', async () => {
+    await explains('plugin のソースファイルを読み込む `loadSources` のテストです。`../../libs/core/src/*.ts` のように plugin の外を指す glob を渡した場合に、リポジトリ内のライブラリのファイルも、パスの順に返ることを確認します。')
     const root = await materialize('valid')
     await step('ライブラリのファイルを置く', async () => {
       await mkdir(path.join(root, 'libs/core/src/tests'), { recursive: true })
@@ -88,7 +96,8 @@ describe('loadSources', () => {
     })
   })
 
-  it('リポジトリの外を指す glob は、LoadError を投げる', async () => {
+  it('glob がリポジトリの外を指すと、LoadError を投げる', async () => {
+    await explains('plugin のソースファイルを読み込む `loadSources` のテストです。`../../../outside/*.ts` のようにリポジトリの外を指す glob を渡した場合に、`LoadError` が発生することを確認します。')
     const root = await materialize('valid')
     await step('リポジトリの外の glob で読み込み、LoadError を比べる', async () => {
       await expect(loadSources(root, 'pecot-workflow', ['../../../outside/*.ts'])).rejects.toBeInstanceOf(LoadError)
@@ -97,7 +106,8 @@ describe('loadSources', () => {
 })
 
 describe('loadSources with a missing or broken repository', () => {
-  it('git に載っていてもワーキングツリーに無いファイルは、飛ばす', async () => {
+  it('git に登録されていても作業ツリーに存在しないファイルは、読み込みの対象から外す', async () => {
+    await explains('plugin のソースファイルを読み込む `loadSources` のテストです。追跡されているファイルを作業ツリーから削除した場合に、そのファイルを読み込まず、空の配列を返すことを確認します。')
     const root = await materialize('valid')
     await step('追跡されるファイルを消す', async () => {
       await rm(path.join(root, 'plugins/pecot-workflow/cli/core/session.py'))
@@ -108,6 +118,7 @@ describe('loadSources with a missing or broken repository', () => {
   })
 
   it('root が git リポジトリでないと、LoadError を投げる', async () => {
+    await explains('plugin のソースファイルを読み込む `loadSources` のテストです。git リポジトリでないディレクトリを root に指定した場合、`LoadError` が発生することを確認します。')
     const root = await mkdtemp(path.join(tmpdir(), 'interface-spec-nogit-'))
     await step('git でない root を読み込み、LoadError を比べる', async () => {
       try {
@@ -121,7 +132,8 @@ describe('loadSources with a missing or broken repository', () => {
 })
 
 describe('syntax errors with a position', () => {
-  it('不正な JSON には、行を付ける', async () => {
+  it('不正な JSON は、エラーの行番号を付けて syntax の状態で返す', async () => {
+    await explains('不正な JSON を読み込む `loadJson` のテストです。3 行目でカンマが抜けた JSON を渡した場合に、`syntax` の状態と、行番号 3 のエラーを返すことを確認します。')
     const root = await materialize('empty')
     await step('読めない json を書く', async () => {
       await writeFile(path.join(root, 'a.json'), '{\n"a": 1\n"b": 2}')
@@ -131,7 +143,8 @@ describe('syntax errors with a position', () => {
     })
   })
 
-  it('alias の展開が投げると、構文エラーとして報告する', async () => {
+  it('YAML の alias の展開が過大になると、例外を投げず syntax の状態で返す', async () => {
+    await explains('YAML を読み込む `loadYaml` のテストです。1 つの配列を 200 回参照するように alias の展開が過大になる場合、例外を投げず `syntax` の状態を返すことを確認します。')
     const root = await materialize('empty')
     const item = Array.from({ length: 20 }, (_, index) => String(index)).join(', ')
     const references = Array.from({ length: 200 }, () => '*a').join(', ')

@@ -5,6 +5,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { explains } from '../_helpers/explains.js'
 import { projectRoot } from './_helpers/paths.js'
 
 const SOURCES: readonly string[] = [
@@ -24,7 +25,8 @@ function extractDefinition(file: string): string {
 }
 
 describe('CUJ の定義段落', () => {
-  it('配布物の 3 箇所で一致する', () => {
+  it('配布物の 3 箇所で一致する', async () => {
+    await explains('CUJ の定義段落のテストです。plan のテンプレート・CUJ の流し方の参照・`w-plan-reviewer.md` の 3 箇所で、`CUJ = ` で始まる定義段落が差異なく一致することを確認します。')
     const definitions = new Map<string, string>()
     for (const relative of SOURCES) {
       const file = path.join(projectRoot, relative)
@@ -35,7 +37,8 @@ describe('CUJ の定義段落', () => {
     expect(new Set(definitions.values()).size, `CUJ 定義段落が 3 箇所で一致していない:\n${joined}`).toBe(1)
   })
 
-  it.each(SOURCES)('%s の定義段落は、「流す先」の決まりを含む', (relative) => {
+  it.each(SOURCES)('%s の定義段落は、「流す先」の決まりを含む', async (relative) => {
+    await explains(`CUJ の定義段落のテストです。\`${relative}\` の定義段落が、「流す先」の決まりと、外へ書き込むことの定義を含むことを確認します。`)
     const definition = extractDefinition(path.join(projectRoot, relative))
     expect(definition).toContain('CUJ ごとに「流す先」を書く。')
     expect(definition).toContain('外へ書き込むとは、')

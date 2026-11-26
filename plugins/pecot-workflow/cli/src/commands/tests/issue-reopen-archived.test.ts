@@ -1,6 +1,8 @@
 // issue reopen で、ボードのアイテムがアーカイブ済みなら、Status を書く前にアーカイブを解く
 import { describe, expect, it } from 'vitest'
 
+import { explains } from '../../../tests/_helpers/explains.js'
+
 import { useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import type { CliResult } from '../../../tests/_helpers/interface-case.js'
 import { runInProcess, settleWithFakeDelays, startGithub, useFakeDelays } from '../../../tests/_helpers/interface-case.js'
@@ -31,7 +33,8 @@ function labelOf(request: RecordedRequest): string {
 }
 
 describe('issue reopen のアーカイブ済みのアイテム', () => {
-  it('アーカイブ済みなら、アーカイブを解いてから Status を設定し、updated の行を出す', async () => {
+  it('アーカイブ済みの場合は、アーカイブを解除してから Status を設定し、updated の行を表示する', async () => {
+    await explains('ボードの項目がアーカイブ済みの場合の `issue reopen` のテストです。`Status` を設定する前にアーカイブを解除し、`updated: … unarchived on the board` の行を表示することを確認します。')
     prepareProject()
     const github = await startGithub([linkedRepositories(), boardItem(true), reopened(), UNARCHIVED, fieldUpdated('o3'), reopened()])
 
@@ -44,7 +47,8 @@ describe('issue reopen のアーカイブ済みのアイテム', () => {
     expect(labels.indexOf('UnarchiveProjectItem')).toBeLessThan(labels.indexOf('UpdateProjectItemField'))
   })
 
-  it('アーカイブされていなければ、アーカイブの解除を呼ばない', async () => {
+  it('アーカイブされていない場合は、アーカイブの解除を呼ばない', async () => {
+    await explains('ボードの項目がアーカイブされていない場合の `issue reopen` のテストです。アーカイブの解除を呼ばず、`unarchived` を含む行も表示しないことを確認します。')
     prepareProject()
     const github = await startGithub([linkedRepositories(), boardItem(false), reopened(), fieldUpdated('o3'), reopened()])
 

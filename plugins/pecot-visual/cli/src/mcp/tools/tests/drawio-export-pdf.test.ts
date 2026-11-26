@@ -19,6 +19,7 @@ import type * as ChromiumModule from '../../../infra/playwright/chromium.js'
 import type { ToolCallContext } from '../../server.js'
 import { isRecord } from '../../../../tests/_helpers/records.js'
 import { verifies } from '../../../../tests/_helpers/verifies.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 import { drawioExportTool as drawioExportDefinition } from '../drawio.js'
 import { withOutputCheck } from './_output.js'
 
@@ -93,8 +94,9 @@ afterEach(() => {
 })
 
 describe('drawio_export の兄弟 PDF', () => {
-  it('標準で SVG と兄弟 PDF を書き、file と pdf に載せる', async (context) => {
+  it('PDF の指定を省略すると、SVG と同じ場所に PDF を書き、結果の file と pdf に載せる', async (context) => {
     await verifies(context, 'PV-DRAWIO-EXPORT-01')
+    await explains('`drawio_export` が SVG と同時に書き出す PDF のテストです。PDF の指定を省略した場合に、SVG と PDF の両方が書き出され、結果の `file` と `pdf` にそれぞれのパスが入ることを確認します。')
     const directory = makeTemporaryDirectory()
     const svgPath = path.join(directory, 'diagram.drawio.svg')
     const pdfPath = path.join(directory, 'diagram.drawio.pdf')
@@ -114,6 +116,7 @@ describe('drawio_export の兄弟 PDF', () => {
 
   it('PECOTV_FORCE_PDF_FAIL=1 では SVG だけを残し、成功のまま pdfFailed と警告を返す', async (context) => {
     await verifies(context, 'PV-DRAWIO-EXPORT-04')
+    await explains('PDF の出力に失敗した場合の、`drawio_export` の結果のテストです。`PECOTV_FORCE_PDF_FAIL=1` を指定した場合に、SVG だけが残り、成功のまま `pdfFailed` と警告が返され、前回の PDF が削除されることを確認します。')
     vi.stubEnv('PECOTV_FORCE_PDF_FAIL', '1')
     const directory = makeTemporaryDirectory()
     const svgPath = path.join(directory, 'out.svg')
@@ -139,6 +142,7 @@ describe('drawio_export の兄弟 PDF', () => {
 
   it('pdf: false では PDF を書かず、既存の PDF にも触れない', async (context) => {
     await verifies(context, 'PV-DRAWIO-EXPORT-02')
+    await explains('PDF を出力しない指定の、`drawio_export` のテストです。`pdf: false` を指定した場合に、PDF が書き出されず、同じ場所にある既存の PDF も変更されないことを確認します。')
     const directory = makeTemporaryDirectory()
     const svgPath = path.join(directory, 'out.svg')
     const pdfPath = path.join(directory, 'out.pdf')
@@ -157,6 +161,7 @@ describe('drawio_export の兄弟 PDF', () => {
 
   it('out_path の拡張子が .pdf なら invalid-output-extension で何も書かない', async (context) => {
     await verifies(context, 'PV-DRAWIO-EXPORT-06')
+    await explains('出力先の拡張子を検証する、`drawio_export` のテストです。`out_path` の拡張子が `.pdf` の場合に、`invalid-output-extension` のエラーを返し、ファイルを書き出さないことを確認します。')
     const directory = makeTemporaryDirectory()
     const outPath = path.join(directory, 'diagram.pdf')
 
@@ -171,6 +176,7 @@ describe('drawio_export の兄弟 PDF', () => {
   })
 
   it('pdf: false でも out_path の拡張子が .pdf なら invalid-output-extension で拒否する', async () => {
+    await explains('PDF を出力しない指定でも行う、出力先の拡張子の検証のテストです。`pdf: false` かつ `out_path` の拡張子が `.pdf` の場合に、`invalid-output-extension` のエラーを返し、ファイルを書き出さないことを確認します。')
     const outPath = path.join(makeTemporaryDirectory(), 'diagram.pdf')
 
     const result = await drawioExportTool.handler(
@@ -183,6 +189,7 @@ describe('drawio_export の兄弟 PDF', () => {
   })
 
   it('Chromium 未取得でも out_path の拡張子の確認が先に行われ invalid-output-extension を返す', async () => {
+    await explains('Chromium が未取得の環境での、検証の順序のテストです。`out_path` の拡張子が `.pdf` の場合は `invalid-output-extension` を返し、拡張子が正しい場合は `chromium-not-installed` を返すことを確認します。')
     chromiumState.installed = false
     const directory = makeTemporaryDirectory()
 

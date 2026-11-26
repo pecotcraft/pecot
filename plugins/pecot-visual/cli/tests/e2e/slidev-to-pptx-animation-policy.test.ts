@@ -40,6 +40,7 @@ import { expectConvertRouteFromEnvironment } from '../_helpers/single-pass-route
 import { readZipEntries } from '../_helpers/zip-entries.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
+import { explains } from '../_helpers/explains.js'
 
 // hang regression を spawnSync の SIGTERM kill（600s）より手前で落とすための上限。
 // 性能目標ではない。
@@ -412,13 +413,15 @@ async function runAnimationPolicyCuj(
 }
 
 describe.skipIf(!isChromiumReady)('CUJ: 明示指定のアニメーションだけが pptx に残る', () => {
-  it('装飾のみのスライドから p:timing が消え、混在スライドでは 4 効果が順序どおり残る', async () => {
+  it('装飾だけのスライドから `p:timing` が消え、混在するスライドには 4 つの効果が順序どおり残る', async () => {
+    await explains('実際の Chromium で変換した PPTX のアニメーションの方針のテストです。装飾だけのスライドは `p:timing` が消え、明示指定を含むスライドには 4 つの効果が順序どおり残り、キャッシュを使った 2 回目も同じ結果になることを確認します。')
     expect.hasAssertions()
     // 変換方式の assert（#1147）: 既定は 1 パス方式、PECOTV_SINGLE_PASS=0 なら現行の方式で変換している
     await runAnimationPolicyCuj('animation-policy', [], expectConvertRouteFromEnvironment)
   }, 660_000)
 
-  it('--no-single-pass（現行の方式）でも装飾のみのスライドから p:timing が消え、混在スライドでは 4 効果が順序どおり残る (#1147)', async () => {
+  it('`--no-single-pass` で変換しても、装飾だけのスライドから `p:timing` が消え、混在するスライドには 4 つの効果が順序どおり残る', async () => {
+    await explains('アニメーションの方針のテストです。`--no-single-pass` でステップごとの方式に切り替えた場合も、同じ判定になり、完了の結果の `timings` に `singlePass` が含まれないことを確認します。')
     expect.hasAssertions()
     await runAnimationPolicyCuj('animation-policy-per-step', ['--no-single-pass'], (done) => {
       expect(done?.timings).not.toHaveProperty('singlePass')

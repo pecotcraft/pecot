@@ -38,6 +38,7 @@ import { slideDevTool } from '../slide-dev.js'
 import { withOutputCheck } from './_output.js'
 import type { EnsureThemeLinked } from '../slide-dev.js'
 import type { RuntimeDependencies } from '../_shared.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 const CALL: ToolCallContext = { signal: new AbortController().signal }
 
@@ -129,6 +130,7 @@ const TALK_DIRECTORY = '/talk/deck'
 
 describe('createDevServerRegistry', () => {
   it('起動して URL とポートを返す', async () => {
+    await explains('dev サーバのレジストリ `createDevServerRegistry` の起動のテストです。talk-dir を指定して起動した場合に、既定の最初のポート 3030 で子を起動し、URL・ポート・pid を返すことを確認します。')
     const spawned: DevServerSpawnOptions[] = []
     const registry = createDevServerRegistry(makeDependencies({
       spawn: (options: Readonly<DevServerSpawnOptions>) => {
@@ -144,6 +146,7 @@ describe('createDevServerRegistry', () => {
   })
 
   it('同じ talk-dir の再呼び出しでは起こし直さず既存を返す', async () => {
+    await explains('dev サーバのレジストリの再利用のテストです。同じ talk-dir で続けて起動を要求した場合に、子を起動し直さず、既存のサーバを `reused: true` で返すことを確認します。')
     let spawnCount = 0
     const registry = createDevServerRegistry(makeDependencies({
       spawn: () => {
@@ -163,6 +166,7 @@ describe('createDevServerRegistry', () => {
   it('表記の違う同じ talk-dir は同じサーバとして扱う', async () => {
     // 引数を組み立てるのはエージェントで末尾スラッシュの有無は揺れる。正規化しないと
     // 同じデッキに dev サーバが二重に立ち、片方の表記では停止もできなくなる。
+    await explains('dev サーバのレジストリの talk-dir の表記のテストです。末尾のスラッシュや `.` を含む表記でも、同じサーバとして再利用され、停止も同じサーバに届くことを確認します。')
     let spawnCount = 0
     const registry = createDevServerRegistry(makeDependencies({
       spawn: () => {
@@ -183,7 +187,8 @@ describe('createDevServerRegistry', () => {
     expect(registry.stop(`${TALK_DIRECTORY}/`)).toEqual({ stopped: true, port: 3030 })
   })
 
-  it('預かっていた子が死んでいたら起こし直す', async () => {
+  it('預かっていた子が終了していたら、起動し直す', async () => {
+    await explains('dev サーバのレジストリの子の終了のテストです。預かっていた子のプロセスがすでに終了している場合に、再び子を起動し、`reused: false` で新しい pid を返すことを確認します。')
     const children = [makeFakeChild(1), makeFakeChild(2)]
     let index = 0
     const registry = createDevServerRegistry(makeDependencies({
@@ -202,8 +207,9 @@ describe('createDevServerRegistry', () => {
     expect(restarted).toMatchObject({ ok: true, reused: false, pid: 2 })
   })
 
-  it('ポートを奪われて即死したら次の候補で張り直す', async () => {
+  it('ポートの衝突で子がすぐ終了すると、次の候補のポートで起動し直す', async () => {
     // slidev は --port 明示時 strictPort で動くため、塞がっていれば自動採番せず即 exit 1 する。
+    await explains('dev サーバのレジストリのポートの衝突のテストです。先に別のプロセスがポートを使っていて子がすぐ終了した場合に、次の候補のポートで起動し直し、終了した子へシグナルを送らないことを確認します。')
     const children = [makeFakeChild(1), makeFakeChild(2)]
     let index = 0
     const registry = createDevServerRegistry(makeDependencies({
@@ -235,14 +241,17 @@ describe('createDevServerRegistry', () => {
 
   it('ready を待つ既定の時間は 15 秒', async (context) => {
     await verifies(context, 'PV-SLIDE-DEV-10')
+    await explains('dev サーバのレジストリの既定値のテストです。ready を待つ既定の時間が 15 秒であることを確認します。')
     expect(devServerDefaultDependencies().readyTimeoutMs).toBe(15_000)
   })
 
-  it('既定のポートは 3030 から 3034 まで', () => {
+  it('既定のポートは 3030 から 3034 まで', async () => {
+    await explains('dev サーバのレジストリの既定値のテストです。既定のポートの候補が 3030 から 3034 までの 5 つであることを確認します。')
     expect(devServerDefaultDependencies().defaultPorts).toEqual([3030, 3031, 3032, 3033, 3034])
   })
 
   it('ポートの指定が無ければ既定のポートを小さい順に試し、最初の空きで起動する', async () => {
+    await explains('dev サーバのレジストリのポートの選び方のテストです。ポートを指定しない場合に、既定の候補を小さい順に試し、最初の空きのポートで起動することを確認します。')
     const spawned: DevServerSpawnOptions[] = []
     const registry = createDevServerRegistry(makeDependencies({
       spawn: (options: Readonly<DevServerSpawnOptions>) => {
@@ -260,6 +269,7 @@ describe('createDevServerRegistry', () => {
   })
 
   it('既定のポートがすべて使用中なら spawn せず失敗を返す', async () => {
+    await explains('dev サーバのレジストリのポートがすべて使用中の場合のテストです。既定の候補がすべて使用中のときに、子を起動せず、`dev-server-port-in-use` の失敗を返し、`detail` に候補のポートを含めることを確認します。')
     let spawnCount = 0
     const registry = createDevServerRegistry(makeDependencies({
       spawn: () => {
@@ -277,6 +287,7 @@ describe('createDevServerRegistry', () => {
   })
 
   it('既定のポートがすべて使用中のときの detail は、利用者に確認してから呼び直すよう案内する', async () => {
+    await explains('dev サーバのレジストリのポートがすべて使用中の場合の案内のテストです。`detail` に、プレビューを止めてよいか利用者へ確認してから呼び直す案内が含まれることを確認します。')
     const registry = createDevServerRegistry(makeDependencies({ isPortFree: () => Promise.resolve(false) }))
 
     const started = await registry.start(TALK_DIRECTORY)
@@ -285,6 +296,7 @@ describe('createDevServerRegistry', () => {
   })
 
   it('指定されたポートで起動する', async () => {
+    await explains('dev サーバのレジストリのポートの指定のテストです。ポートを指定した場合に、そのポートで子を起動し、`reused: false` の結果を返すことを確認します。')
     const spawned: DevServerSpawnOptions[] = []
     const registry = createDevServerRegistry(makeDependencies({
       spawn: (options: Readonly<DevServerSpawnOptions>) => {
@@ -301,6 +313,7 @@ describe('createDevServerRegistry', () => {
 
   it('指定されたポートが使用中なら別のポートへ移らず失敗を返す', async (context) => {
     await verifies(context, 'PV-SLIDE-DEV-06')
+    await explains('dev サーバのレジストリの指定したポートが使用中の場合のテストです。使用中のポートを指定したときに、別のポートへ移らず、子を起動せずに `dev-server-port-in-use` の失敗を返すことを確認します。')
     let spawnCount = 0
     const registry = createDevServerRegistry(makeDependencies({
       spawn: () => {
@@ -318,6 +331,7 @@ describe('createDevServerRegistry', () => {
   })
 
   it('指定された port が使用中のときの detail は、利用者に確認してから呼び直すよう案内する', async () => {
+    await explains('dev サーバのレジストリの指定したポートが使用中の場合の案内のテストです。`detail` に、どのポートを使うか利用者へ確認する案内が含まれることを確認します。')
     const registry = createDevServerRegistry(makeDependencies({ isPortFree: port => Promise.resolve(port !== 5000) }))
 
     const started = await registry.start(TALK_DIRECTORY, { port: 5000 })
@@ -326,6 +340,7 @@ describe('createDevServerRegistry', () => {
   })
 
   it('指定されたポートを起動直前に奪われたら、捕捉した出力を添えて失敗を返す', async () => {
+    await explains('dev サーバのレジストリの指定したポートを奪われた場合のテストです。起動の直前に別のプロセスがポートを使った場合は、`dev-server-port-in-use` の失敗を返し、捕捉した標準エラー出力を含めることを確認します。')
     let spawnCount = 0
     let current: FakeChild | undefined
     const registry = createDevServerRegistry(makeDependencies({
@@ -349,6 +364,7 @@ describe('createDevServerRegistry', () => {
   })
 
   it('起動済みの talk-dir へ同じポートを指定したら既存を返す', async () => {
+    await explains('dev サーバのレジストリの起動済みの talk-dir のテストです。起動済みの talk-dir に同じポートを指定した場合に、子を起動し直さず、既存のサーバを `reused: true` で返すことを確認します。')
     let spawnCount = 0
     const registry = createDevServerRegistry(makeDependencies({
       spawn: () => {
@@ -365,6 +381,7 @@ describe('createDevServerRegistry', () => {
   })
 
   it('起動済みの talk-dir へ別のポートを指定したら、既存を止めて指定のポートで開き直す', async () => {
+    await explains('dev サーバのレジストリの起動済みの talk-dir のテストです。別のポートを指定した場合に、既存のサーバを `SIGTERM` で止め、指定したポートで起動し直すことを確認します。')
     const children = [makeFakeChild(27), makeFakeChild(28)]
     let index = 0
     const registry = createDevServerRegistry(makeDependencies({
@@ -387,6 +404,7 @@ describe('createDevServerRegistry', () => {
 
   it('開き直しの指定先が使用中なら、既存を止めずに失敗を返す', async () => {
     // 止めてから起動に失敗すると、動いていたプレビューまで失う。
+    await explains('dev サーバのレジストリのポートの変更に失敗する場合のテストです。変更先のポートが使用中のときに、既存のサーバを止めず、`dev-server-port-in-use` の失敗を返して、既存のサーバを使い続けられることを確認します。')
     const fake = makeFakeChild(29)
     let spawnCount = 0
     const registry = createDevServerRegistry(makeDependencies({
@@ -408,6 +426,7 @@ describe('createDevServerRegistry', () => {
   })
 
   it('起動済みの talk-dir へ別のポートを指定した呼び出しが中断済みなら、既存を止めずに cancelled を返す', async () => {
+    await explains('dev サーバのレジストリのキャンセルのテストです。別のポートを指定した呼び出しがすでに中断されている場合に、既存のサーバを止めず、`dev-server-cancelled` の失敗を返すことを確認します。')
     const fake = makeFakeChild(30)
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => fake.child }))
     await registry.start(TALK_DIRECTORY)
@@ -423,6 +442,7 @@ describe('createDevServerRegistry', () => {
   })
 
   it('ポート衝突以外で即死したときは再試行しない', async () => {
+    await explains('dev サーバのレジストリの子がすぐ終了した場合のテストです。ポートの衝突以外の原因で子が終了したときに、起動を再試行せず、`dev-server-exited` の失敗と標準エラー出力を返すことを確認します。')
     let spawnCount = 0
     let current: FakeChild | undefined
     const registry = createDevServerRegistry(makeDependencies({
@@ -445,8 +465,9 @@ describe('createDevServerRegistry', () => {
     expect(started.ok ? '' : started.stderr).toContain('slides.md が破損しています')
   })
 
-  it('ready にならなければタイムアウトで畳んで子を止める', async (context) => {
+  it('ready にならないまま待ち時間が過ぎると、dev-server-timeout を返して子を止める', async (context) => {
     await verifies(context, 'PV-SLIDE-DEV-10')
+    await explains('dev サーバのレジストリの起動の待ち時間のテストです。待ち時間が過ぎても ready にならない場合は、`dev-server-timeout` の失敗を返し、子へ `SIGTERM` を送ることを確認します。')
     const fake = makeFakeChild(7)
     const registry = createDevServerRegistry(makeDependencies({
       spawn: () => fake.child,
@@ -462,6 +483,7 @@ describe('createDevServerRegistry', () => {
 
   it('200 を返したのが自分の子でなければ ready と見なさない', async () => {
     // ポートを掴んでいた別プロセスの応答を掴んで、他人のサーバの URL を返さないための組。
+    await explains('dev サーバのレジストリの ready の判定のテストです。応答が成功でも、返したのが自分の子のプロセスでない場合に、ready とみなさず、`dev-server-exited` の失敗を返すことを確認します。')
     const fake = makeFakeChild(8)
     const registry = createDevServerRegistry(makeDependencies({
       spawn: () => fake.child,
@@ -477,6 +499,7 @@ describe('createDevServerRegistry', () => {
   })
 
   it('spawn そのものが失敗したら理由付きで返す', async () => {
+    await explains('dev サーバのレジストリの子の起動に失敗した場合のテストです。子の起動で例外が発生したときに、`dev-server-spawn-failed` の失敗を返し、`detail` に例外の内容を含めることを確認します。')
     const registry = createDevServerRegistry(makeDependencies({
       spawn: () => {
         throw new Error('@slidev/cli が解決できません')
@@ -490,6 +513,7 @@ describe('createDevServerRegistry', () => {
   })
 
   it('子の error イベントを拾って stderr に載せる (未処理だと MCP サーバごと落ちる)', async () => {
+    await explains('dev サーバのレジストリの子の `error` イベントのテストです。子が `error` イベントを発行した場合に、MCP サーバを停止させず、標準エラー出力に内容を載せた `dev-server-exited` の失敗を返すことを確認します。')
     const fake = makeFakeChild(9)
     const registry = createDevServerRegistry(makeDependencies({
       spawn: () => fake.child,
@@ -506,6 +530,7 @@ describe('createDevServerRegistry', () => {
   })
 
   it('呼び出しがキャンセルされたら起動途中の子を止める', async () => {
+    await explains('dev サーバのレジストリのキャンセルのテストです。起動の途中で呼び出しがキャンセルされた場合に、`dev-server-cancelled` の失敗を返し、子へ `SIGTERM` を送ることを確認します。')
     const fake = makeFakeChild(10)
     const controller = new AbortController()
     const registry = createDevServerRegistry(makeDependencies({
@@ -523,6 +548,7 @@ describe('createDevServerRegistry', () => {
   })
 
   it('abort 済みの signal では spawn せずに打ち切る', async () => {
+    await explains('dev サーバのレジストリのキャンセルのテストです。すでに中断された `signal` を渡した場合に、子を起動せず、`dev-server-cancelled` の失敗を返すことを確認します。')
     let spawnCount = 0
     const controller = new AbortController()
     controller.abort()
@@ -542,6 +568,7 @@ describe('createDevServerRegistry', () => {
   it('既定のポートがすべて使用中かつ abort 済みの signal では、spawn せず cancelled を返す', async () => {
     // 全候補が isPortFree で continue するだけだと、attemptStart (中断を見る場所) に一度も到達しない。
     // そのため候補ループの先頭でも中断を見ないと、port-in-use を誤って返してしまう。
+    await explains('dev サーバのレジストリのキャンセルのテストです。既定のポートがすべて使用中でも、中断された `signal` を渡した場合は、子を起動せず `dev-server-cancelled` を返すことを確認します。')
     let spawnCount = 0
     const controller = new AbortController()
     controller.abort()
@@ -560,6 +587,7 @@ describe('createDevServerRegistry', () => {
   })
 
   it('stop は預かっているサーバを止め、動いていなければ止めなかったと返す', async () => {
+    await explains('dev サーバのレジストリの停止のテストです。`stop` を呼んだ場合に、預かっているサーバを止めてポートを返し、2 回目は動いていないので `stopped: false` を返すことを確認します。')
     const fake = makeFakeChild(12)
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => fake.child }))
     await registry.start(TALK_DIRECTORY)
@@ -574,6 +602,7 @@ describe('createDevServerRegistry', () => {
 
   it('自力で落ちたサーバへの stop はポートを載せずに止めなかったと返す', async () => {
     // 「起動中のサーバはありません」という応答にポート番号が付くと読み取れない。
+    await explains('dev サーバのレジストリの停止のテストです。自力で終了したサーバに `stop` を呼んだ場合に、ポートを含めず `stopped: false` を返し、終了した子へシグナルを送らないことを確認します。')
     const fake = makeFakeChild(17)
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => fake.child }))
     await registry.start(TALK_DIRECTORY)
@@ -585,7 +614,8 @@ describe('createDevServerRegistry', () => {
     expect(fake.killedWith, '死んだ子へシグナルは撃たない').toEqual([])
   })
 
-  it('SIGTERM で終わらない子は SIGKILL へ上げる', async () => {
+  it('SIGTERM で終了しない子には、続けて SIGKILL を送る', async () => {
+    await explains('dev サーバのレジストリの停止のテストです。`SIGTERM` で終了しない子に対して、一定の時間の後に `SIGKILL` を送ることを確認します。')
     const fake = makeFakeChild(13)
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => fake.child }))
     await registry.start(TALK_DIRECTORY)
@@ -598,7 +628,8 @@ describe('createDevServerRegistry', () => {
     expect(fake.killedWith).toEqual(['SIGTERM', 'SIGKILL'])
   })
 
-  it('kill が失敗しても停止要求は落ちない', async () => {
+  it('kill が失敗しても、停止の要求は例外を発生させずに結果を返す', async () => {
+    await explains('dev サーバのレジストリの停止のテストです。子の `kill` が例外を発生させた場合でも、`stop` が例外を伝えず、`stopped: true` とポートを返すことを確認します。')
     const fake = makeFakeChild(14, { killThrows: true })
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => fake.child }))
     await registry.start(TALK_DIRECTORY)
@@ -607,6 +638,7 @@ describe('createDevServerRegistry', () => {
   })
 
   it('shutdown は預かっている全てのサーバを止める', async () => {
+    await explains('dev サーバのレジストリの `shutdown` のテストです。複数の talk-dir のサーバを預かっている場合に、すべての子へ `SIGTERM` を送り、以降の `stop` が `stopped: false` を返すことを確認します。')
     const children = [makeFakeChild(15), makeFakeChild(16)]
     let index = 0
     const registry = createDevServerRegistry(makeDependencies({
@@ -685,6 +717,7 @@ const failingAfterWarning: EnsureThemeLinked = (_directory, context) => {
 
 describe('createDevServerRegistry.stopAndWait', () => {
   it('止めたサーバのプロセスが終わるまで待ってから戻る', async () => {
+    await explains('dev サーバのレジストリの `stopAndWait` のテストです。サーバを止めた場合に、子のプロセスが終了するまで待ってから、`stopped: true` とポートを返すことを確認します。')
     const fake = makeFakeChild(10)
     const delays: number[] = []
     const registry = createDevServerRegistry(makeDependencies({
@@ -707,12 +740,14 @@ describe('createDevServerRegistry.stopAndWait', () => {
   })
 
   it('動いていなければ待たずに stopped: false で戻る', async () => {
+    await explains('dev サーバのレジストリの `stopAndWait` のテストです。動いているサーバがない場合に、待たずに `stopped: false` を返すことを確認します。')
     const registry = createDevServerRegistry(makeDependencies())
 
     expect(await registry.stopAndWait(TALK_DIRECTORY)).toEqual({ stopped: false, port: undefined })
   })
 
   it('SIGTERM を無視して生き続ける子でも、待ちを打ち切って戻る', async () => {
+    await explains('dev サーバのレジストリの `stopAndWait` のテストです。子が `SIGTERM` を無視して生き続ける場合でも、待ちを打ち切り、`stopped: true` とポートを返すことを確認します。')
     const fake = makeFakeChild(11)
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => fake.child, delay: () => Promise.resolve() }))
     await registry.start(TALK_DIRECTORY)
@@ -736,15 +771,17 @@ describe('slideDevTool', () => {
     rmSync(workDirectory, { recursive: true, force: true })
   })
 
-  it('相対パスは実処理前に invalid-path で弾く', async () => {
+  it('dir が相対パスなら、実処理の前に invalid-path のエラーを返す', async () => {
+    await explains('`slide_dev` ツールの入力パスの検証のテストです。`dir` に相対パスを指定した場合に、`invalid-path` のエラーと `invalidPaths` を返すことを確認します。')
     const result = await toolWith(unusedRegistry()).handler({ dir: 'relative/deck', stop: false }, CALL)
 
     expect(structuredOf(result)['kind']).toBe('invalid-path')
     expect(dataOf(result)).toHaveProperty('invalidPaths')
   })
 
-  it('talk-dir が無ければ spawn せず即失敗し、log を載せない', async (context) => {
+  it('talk-dir が存在しないと、子を起動せずに talk-dir-not-found のエラーを返し、log を載せない', async (context) => {
     await verifies(context, 'PV-SLIDE-DEV-07')
+    await explains('`slide_dev` ツールの入力ディレクトリの検証のテストです。存在しないディレクトリを指定した場合に、子を起動せず `talk-dir-not-found` のエラーを返し、`log` を含めないことを確認します。')
     const result = await toolWith(unusedRegistry()).handler(
       { dir: path.join(workDirectory, 'no-such-deck'), stop: false },
       CALL,
@@ -756,8 +793,9 @@ describe('slideDevTool', () => {
     expect(structuredOf(result)).not.toHaveProperty('stderr')
   })
 
-  it('slides.md が無ければ Slidev プロジェクトとして扱わない', async (context) => {
+  it('slides.md がないと、slides-md-not-found のエラーを返す', async (context) => {
     await verifies(context, 'PV-SLIDE-DEV-07')
+    await explains('`slide_dev` ツールの入力ディレクトリの検証のテストです。`slides.md` を持たないディレクトリを指定した場合に、Slidev のプロジェクトとして扱わず、`slides-md-not-found` のエラーを返すことを確認します。')
     rmSync(path.join(talkDirectory, 'slides.md'))
 
     const result = await toolWith(unusedRegistry()).handler({ dir: talkDirectory, stop: false }, CALL)
@@ -768,6 +806,7 @@ describe('slideDevTool', () => {
   it('node_modules を解決できなければ slide_sync を案内する', async () => {
     // 実環境では talk-dir/node_modules は依存ルートへの symlink で、切れると vite が
     // 不明瞭な失敗をする。start.mjs と同じ案内を spawn 前に返す。
+    await explains('`slide_dev` ツールの `node_modules` の検証のテストです。`node_modules` を解決できない場合に、`node-modules-unresolved` のエラーを返し、`slide_sync` を案内する `detail` を含めることを確認します。')
     rmSync(path.join(talkDirectory, 'node_modules'), { recursive: true })
 
     const result = await toolWith(unusedRegistry()).handler({ dir: talkDirectory, stop: false }, CALL)
@@ -779,6 +818,7 @@ describe('slideDevTool', () => {
   it('既定の張り直しは、テーマを参照しない talk-dir (slides.md に theme が無い) を theme-none で止める', async (context) => {
     await verifies(context, 'PV-SLIDE-DEV-08')
     // 3 つ目の引数を省き、既定の ensureTalkThemeLinked (実ファイルを読む) を通す。
+    await explains('`slide_dev` ツールの既定のテーマの張り直しのテストです。`slides.md` に `theme` がない talk-dir を渡した場合に、`theme-none` のエラーを返して止まることを確認します。')
     const tool = withOutputCheck(slideDevTool(() => unusedRegistry(), installedRuntimeDependencies))
 
     const result = await tool.handler({ dir: talkDirectory, stop: false }, CALL)
@@ -788,6 +828,7 @@ describe('slideDevTool', () => {
   })
 
   it('テーマの取得に失敗したら、原因ごとの reason と文言で止まり、spawn しない', async () => {
+    await explains('`slide_dev` ツールのテーマの取得に失敗した場合のテストです。原因ごとの `kind` と文言のエラーを返し、子を起動しないことを確認します。')
     const failure = new ThemeFetchError('テーマの取得元 https://example.com/x.git にタグ \'v9.9.9\' がありません。タグ名を確認してください。', 'tag')
 
     const result = await toolWith(unusedRegistry(), () => Promise.reject(failure)).handler(
@@ -802,6 +843,7 @@ describe('slideDevTool', () => {
   })
 
   it('テーマを参照しない talk-dir (移行前の形) は theme-none で止まる', async () => {
+    await explains('`slide_dev` ツールのテーマの解決に失敗した場合のテストです。テーマを参照しない移行前の talk-dir の場合に、`theme-none` のエラーを返すことを確認します。')
     const failure = new ThemeResolveError('テーマを参照していません。slide_sync の theme を渡してください', 'theme-none')
 
     const result = await toolWith(unusedRegistry(), () => Promise.reject(failure)).handler(
@@ -813,6 +855,7 @@ describe('slideDevTool', () => {
   })
 
   it('テーマの張り直しは node_modules の確認より前に行う (張り直しで復旧できる状態を拒まない)', async () => {
+    await explains('`slide_dev` ツールの処理の順序のテストです。`node_modules` がなくても、テーマの張り直しで復旧できるため、張り直しを先に行い、起動に成功することを確認します。')
     rmSync(path.join(talkDirectory, 'node_modules'), { recursive: true })
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => makeFakeChild(556).child }))
     const ensureThemeLinked: EnsureThemeLinked = () => {
@@ -827,6 +870,7 @@ describe('slideDevTool', () => {
   })
 
   it('張り直したときは、起動済みのサーバを止めてから起動し直す', async () => {
+    await explains('`slide_dev` ツールのテーマを張り直した場合のテストです。テーマを張り直したときに、起動済みのサーバを `stopAndWait` で止めてから、`start` で起動し直すことを確認します。')
     const calls: string[] = []
     const registry: DevServerRegistry = {
       start: () => {
@@ -853,6 +897,7 @@ describe('slideDevTool', () => {
   })
 
   it('生成ファイルを書き直したときも、起動済みのサーバを止めてから起動し直す', async () => {
+    await explains('`slide_dev` ツールの生成ファイルの書き直しのテストです。生成ファイルを書き直したときも、起動済みのサーバを `stopAndWait` で止めてから、`start` で起動し直すことを確認します。')
     const calls: string[] = []
     const registry: DevServerRegistry = {
       start: () => {
@@ -879,6 +924,7 @@ describe('slideDevTool', () => {
   })
 
   it('張り直しと書き直しが無ければ、起動済みのサーバを止めない', async () => {
+    await explains('`slide_dev` ツールの張り直しがない場合のテストです。テーマの張り直しも生成ファイルの書き直しもない場合に、起動済みのサーバを止めず、`start` だけを呼ぶことを確認します。')
     const calls: string[] = []
     const registry: DevServerRegistry = {
       start: () => {
@@ -902,6 +948,7 @@ describe('slideDevTool', () => {
   })
 
   it('MCP のキャンセルの signal と警告の出力先を、テーマの取得へ渡し、警告を warnings に載せる', async () => {
+    await explains('`slide_dev` ツールのテーマの取得への引数のテストです。MCP のキャンセルの `signal` と警告の出力先を、テーマの取得へ渡し、取得中の警告が結果の `warnings` に含まれることを確認します。')
     const received: { signal: AbortSignal | undefined }[] = []
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => makeFakeChild(557).child }))
     const controller = new AbortController()
@@ -921,6 +968,7 @@ describe('slideDevTool', () => {
   })
 
   it('テーマの取得に失敗したときも、取得中の警告を warnings に残す', async () => {
+    await explains('`slide_dev` ツールのテーマの取得に失敗した場合の警告のテストです。接続の失敗で終わる場合でも、取得中に出た警告が `warnings` に含まれることを確認します。')
     const result = await toolWith(unusedRegistry(), failingAfterWarning).handler({ dir: talkDirectory, stop: false }, CALL)
 
     expect(structuredOf(result)['kind']).toBe('theme-connection')
@@ -928,6 +976,7 @@ describe('slideDevTool', () => {
   })
 
   it('張り直しが無ければ、起動済みのサーバを止めずに再利用へ進む', async () => {
+    await explains('`slide_dev` ツールの張り直しがない場合の再利用のテストです。テーマの張り直しがない場合に、起動済みのサーバを止めず、既存のサーバの再利用へ進むことを確認します。')
     const calls: string[] = []
     const registry: DevServerRegistry = {
       start: () => {
@@ -952,6 +1001,7 @@ describe('slideDevTool', () => {
 
   it('起動できたら URL・ポート・pid を data に載せる', async (context) => {
     await verifies(context, 'PV-SLIDE-DEV-01')
+    await explains('`slide_dev` ツールの起動の成功のテストです。起動が成功した場合は、`slide.dev.started` と URL・ポート・pid を結果に含め、本文にも URL が含まれることを確認します。')
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => makeFakeChild(555).child }))
 
     const result = await toolWith(registry).handler({ dir: talkDirectory, stop: false }, CALL)
@@ -970,6 +1020,7 @@ describe('slideDevTool', () => {
 
   it('port を指定したらそのポートで起動する', async (context) => {
     await verifies(context, 'PV-SLIDE-DEV-03')
+    await explains('`slide_dev` ツールのポートの指定のテストです。`port` を指定した場合に、そのポートで起動し、結果の URL にもそのポートが含まれることを確認します。')
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => makeFakeChild(560).child }))
 
     const result = await toolWith(registry).handler({ dir: talkDirectory, port: 5000, stop: false }, CALL)
@@ -980,6 +1031,7 @@ describe('slideDevTool', () => {
 
   it('指定した port が使用中なら理由付きで失敗を返す', async (context) => {
     await verifies(context, 'PV-SLIDE-DEV-06')
+    await explains('`slide_dev` ツールの指定したポートが使用中の場合のテストです。使用中のポートを `port` で指定した場合に、`dev-server-port-in-use` のエラーを返し、本文にポート番号が含まれることを確認します。')
     const registry = createDevServerRegistry(makeDependencies({ isPortFree: () => Promise.resolve(false) }))
 
     const result = await toolWith(registry).handler({ dir: talkDirectory, port: 5000, stop: false }, CALL)
@@ -992,6 +1044,7 @@ describe('slideDevTool', () => {
   it.each([0, 65_536, 3030.5])('ポートとして成り立たない port (%s) は受け付けない', async (port) => {
     // 投げられるのが schema.parse (parsePathArguments) の ZodError であること、拒否した先が
     // port であることまで見る。rejects.toThrow() だけでは、別の理由で reject しても通ってしまう。
+    await explains('`slide_dev` ツールのポートの検証のテストです。`0`・`65536`・`3030.5` のようにポートとして成り立たない値を指定した場合に、`port` を指す `ZodError` が発生することを確認します。')
     let rejection: unknown
     try {
       await toolWith(unusedRegistry()).handler({ dir: talkDirectory, port, stop: false }, CALL)
@@ -1006,6 +1059,7 @@ describe('slideDevTool', () => {
 
   it('起動済みなら reused として同じ URL を返す', async (context) => {
     await verifies(context, 'PV-SLIDE-DEV-02')
+    await explains('`slide_dev` ツールの再利用のテストです。起動済みの talk-dir を再び指定した場合は、`slide.dev.reused` と同じポートを返し、`reused` が `true` になることを確認します。')
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => makeFakeChild(556).child }))
     const tool = toolWith(registry)
     await tool.handler({ dir: talkDirectory, stop: false }, CALL)
@@ -1016,6 +1070,7 @@ describe('slideDevTool', () => {
   })
 
   it('起動に失敗したら、捕捉した出力を log に添えて返す', async () => {
+    await explains('`slide_dev` ツールの起動に失敗した場合のテストです。子がエラーを出力して終了した場合に、`dev-server-exited` のエラーを返し、捕捉した出力を `log` に含めることを確認します。')
     let current: FakeChild | undefined
     const registry = createDevServerRegistry(makeDependencies({
       spawn: () => {
@@ -1038,6 +1093,7 @@ describe('slideDevTool', () => {
   })
 
   it('起動に失敗した子の出力が上限を超えても、早く出た warning を warnings に残す', async () => {
+    await explains('`slide_dev` ツールの起動に失敗した場合の警告のテストです。子の出力が上限を超えても、先に出た警告が `warnings` に残り、上限を超えた出力側の `log` には含まれないことを確認します。')
     let current: FakeChild | undefined
     const registry = createDevServerRegistry(makeDependencies({
       spawn: () => {
@@ -1061,6 +1117,7 @@ describe('slideDevTool', () => {
   it('実行時依存を失っていても stop は通る', async () => {
     // 止めるのに @slidev/cli は要らない。ガードを停止の前に置くと、起動後に依存を失った
     // 環境で「動いているサーバを止められない」行き止まりになる。
+    await explains('`slide_dev` ツールの停止のテストです。実行時依存が取得されていない状態でも、`stop` を指定した場合に停止でき、`slide.dev.stopped` と `stopped: true` を返すことを確認します。')
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => makeFakeChild(559).child }))
     await toolWith(registry).handler({ dir: talkDirectory, stop: false }, CALL)
     const tool = withOutputCheck(slideDevTool(() => registry, () => runtimeDependencies(false)))
@@ -1074,6 +1131,7 @@ describe('slideDevTool', () => {
   it('stop は talk-dir の確認を通さずに停止する', async (context) => {
     await verifies(context, 'PV-SLIDE-DEV-04')
     // 停止は talk-dir の体裁と無関係で、消えた talk-dir のサーバも止められる必要がある。
+    await explains('`slide_dev` ツールの停止のテストです。talk-dir が削除された後でも、`stop` を指定すると talk-dir を検証せず、サーバを止めて `slide.dev.stopped` を返すことを確認します。')
     const registry = createDevServerRegistry(makeDependencies({ spawn: () => makeFakeChild(558).child }))
     const tool = toolWith(registry)
     await tool.handler({ dir: talkDirectory, stop: false }, CALL)
@@ -1092,6 +1150,7 @@ describe('slideDevTool', () => {
 
   it('動いていないサーバへの stop は失敗にしない', async (context) => {
     await verifies(context, 'PV-SLIDE-DEV-05')
+    await explains('`slide_dev` ツールの停止のテストです。動いていないサーバに `stop` を指定した場合に、エラーにせず、`slide.dev.stopped` と `stopped: false` を返すことを確認します。')
     const registry = createDevServerRegistry(makeDependencies())
 
     const result = await toolWith(registry).handler({ dir: talkDirectory, stop: true }, CALL)

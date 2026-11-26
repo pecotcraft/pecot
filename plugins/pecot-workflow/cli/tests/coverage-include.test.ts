@@ -5,6 +5,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { explains } from './_helpers/explains.js'
 import config from '../vitest.config.js'
 import { readBaseline } from './parity/baseline.js'
 
@@ -13,7 +14,8 @@ const cliRoot = path.resolve(import.meta.dirname, '..')
 describe('coverage', () => {
   const coverage = config.test?.coverage
 
-  it('include の各パターンが、tests 以外の実在ファイルに当たる', () => {
+  it('include の各パターンが、tests 以外の実在ファイルに当たる', async () => {
+    await explains('vitest のカバレッジの設定のテストです。`include` の各パターンが、`tests` 以外の実在するファイルに当たることを確認します。')
     const include = coverage?.include ?? []
     expect(include.length).toBeGreaterThan(0)
     const unmatched = include.filter(
@@ -23,7 +25,8 @@ describe('coverage', () => {
     expect(unmatched).toEqual([])
   })
 
-  it('cli project の include が、tests/mcp/ の実在するテストに当たる', () => {
+  it('cli project の include が、tests/mcp/ の実在するテストに当たる', async () => {
+    await explains('vitest のカバレッジの設定のテストです。`cli` project の `include` が、`tests/mcp/` の実在するテストのファイルに当たることを確認します。')
     const project = config.test?.projects?.find(entry => typeof entry === 'object' && 'test' in entry && entry.test.name === 'cli')
     const include = typeof project === 'object' && 'test' in project ? project.test.include ?? [] : []
     const matched = include.flatMap(pattern => globSync(pattern, { cwd: cliRoot })).filter(file => file.startsWith('tests/mcp/'))
@@ -31,7 +34,8 @@ describe('coverage', () => {
     expect(matched).toContain('tests/mcp/worktree-link.test.ts')
   })
 
-  it('skills project の include が、tests/skills/ の実在するテストに当たる', () => {
+  it('skills project の include が、tests/skills/ の実在するテストに当たる', async () => {
+    await explains('vitest のカバレッジの設定のテストです。`skills` project の `include` が、`tests/skills/` の実在するテストのファイルに当たることを確認します。')
     const project = config.test?.projects?.find(entry => typeof entry === 'object' && 'test' in entry && entry.test.name === 'skills')
     const include = typeof project === 'object' && 'test' in project ? project.test.include ?? [] : []
     const matched = include.flatMap(pattern => globSync(pattern, { cwd: cliRoot }))
@@ -39,7 +43,8 @@ describe('coverage', () => {
     expect(matched).toContain('tests/skills/skill-scripts.test.ts')
   })
 
-  it('lines の閾値は baseline の行カバレッジと 90 の大きいほう', () => {
+  it('lines の閾値は baseline の行カバレッジと 90 の大きいほう', async () => {
+    await explains('vitest のカバレッジの設定のテストです。行カバレッジの閾値が、`baseline` の行カバレッジと 90 のうち大きいほうの値になっていることを確認します。')
     expect(coverage?.thresholds?.lines).toBe(Math.max(readBaseline().cli.lineCoverage, 90))
   })
 })

@@ -10,6 +10,7 @@ import type { HookCase } from '../_helpers/environment.js'
 import { coreDirectory } from '../_helpers/paths.js'
 import { runShell } from '../_helpers/run.js'
 import { jsonDumps } from '../_helpers/text.js'
+import { explains } from '../../_helpers/explains.js'
 
 const HOOK_INPUT = path.join(coreDirectory, 'hook-input.sh')
 
@@ -43,7 +44,8 @@ function load(hookCase: HookCase, ...payloads: readonly string[]): ReadonlyMap<s
 }
 
 describe('hook-input.sh', () => {
-  it('Claude の Bash の入力を、PECOT_HOOK_* に読み込む', () => {
+  it('Claude の Bash の入力を、PECOT_HOOK_* に読み込む', async () => {
+    await explains('`hook-input.sh` のテストです。Claude Code の Bash の入力を読み込んだ場合に、ツール名やコマンドなどが `PECOT_HOOK_*` に設定されることを確認します。')
     const hookCase = createHookCase()
     const payload = jsonDumps({
       hook_event_name: 'PreToolUse',
@@ -62,7 +64,8 @@ describe('hook-input.sh', () => {
     expect(got.get('PECOT_HOOK_TRANSCRIPT_PATH')).toBe('/t/s-1.jsonl')
   })
 
-  it('Copilot の apply_patch のように tool_input がパッチ文字列でも、受け入れる', () => {
+  it('Copilot の apply_patch のように tool_input がパッチ文字列でも、受け入れる', async () => {
+    await explains('`hook-input.sh` のテストです。Copilot の `apply_patch` のように `tool_input` がパッチの文字列の場合でも、エラーにならず、`PECOT_HOOK_COMMAND` が空文字になることを確認します。')
     const hookCase = createHookCase()
     const got = load(hookCase, jsonDumps({ tool_name: 'Edit', tool_input: '*** Begin Patch\n*** End Patch', cwd: '/w' }))
     expect(got.get('PECOT_HOOK_TOOL_NAME')).toBe('Edit')
@@ -70,7 +73,8 @@ describe('hook-input.sh', () => {
     expect(got.get('PECOT_HOOK_CWD')).toBe('/w')
   })
 
-  it('skill の名前と plan のパスを読む', () => {
+  it('skill の名前と plan のパスを読む', async () => {
+    await explains('`hook-input.sh` のテストです。`skill` の入力と `ExitPlanMode` の入力を読み込んだ場合に、スキル名とプランのパスが `PECOT_HOOK_*` に設定されることを確認します。')
     const hookCase = createHookCase()
     const skill = load(hookCase, jsonDumps({ tool_name: 'skill', tool_input: { skill: 'w-help' } }))
     expect(skill.get('PECOT_HOOK_SKILL_NAME')).toBe('w-help')
@@ -78,7 +82,8 @@ describe('hook-input.sh', () => {
     expect(plan.get('PECOT_HOOK_PLAN_PATH')).toBe('/p/x.md')
   })
 
-  it('引用符と改行を含むコマンドを、そのまま保ち、実行しない', () => {
+  it('引用符と改行を含むコマンドを、そのまま保ち、実行しない', async () => {
+    await explains('`hook-input.sh` のテストです。引用符・改行・コマンド置換を含むコマンドを読み込んだ場合に、値を変えずに保持し、含まれるコマンドは実行しないことを確認します。')
     const hookCase = createHookCase()
     const marker = path.join(hookCase.temporaryPath, 'injected')
     const command = `echo 'a'; touch ${marker}\n"$(touch ${marker})" \`touch ${marker}\`\n'`
@@ -92,14 +97,16 @@ describe('hook-input.sh', () => {
     // eslint-disable-next-line unicorn/no-null -- session_title が null の入力を確かめる
     { label: 'null', extra: { session_title: null }, title: '' },
     { label: 'キーなし', extra: {}, title: '' },
-  ])('session_title が $label のとき、source を読み、セッション名は $title になる', (row) => {
+  ])('session_title が $label のとき、source を読み、セッション名は $title になる', async (row) => {
+    await explains(`\`hook-input.sh\` のテストです。\`session_title\` が ${row.label} の場合に、\`source\` を読み込み、\`PECOT_HOOK_SESSION_TITLE\` が期待する値になることを確認します。`)
     const hookCase = createHookCase()
     const got = load(hookCase, jsonDumps({ hook_event_name: 'SessionStart', source: 'resume', ...row.extra }))
     expect(got.get('PECOT_HOOK_SOURCE')).toBe('resume')
     expect(got.get('PECOT_HOOK_SESSION_TITLE')).toBe(row.title)
   })
 
-  it('2 回目の読み込みは、前の値を残さない', () => {
+  it('2 回目の読み込みは、前の値を残さない', async () => {
+    await explains('`hook-input.sh` のテストです。続けて 2 回読み込んだ場合に、1 回目の値が残らず、2 回目の入力にない項目が空文字になることを確認します。')
     const hookCase = createHookCase()
     const first = jsonDumps({
       tool_name: 'Bash',
@@ -125,7 +132,8 @@ describe('hook-input.sh', () => {
     { label: '空の配列', payload: '[]' },
     { label: 'null', payload: 'null' },
     { label: 'tool_input が null', payload: '{"tool_input":null}' },
-  ])('入力が不正または空（$label）のとき、すべて空の値になる', (row) => {
+  ])('入力が不正または空（$label）のとき、すべて空の値になる', async (row) => {
+    await explains(`\`hook-input.sh\` のテストです。入力が不正または空（${row.label}）の場合に、すべての \`PECOT_HOOK_*\` が空文字になることを確認します。`)
     const hookCase = createHookCase()
     const got = load(hookCase, row.payload)
     expect(new Set(got.values())).toEqual(new Set(['']))
@@ -145,7 +153,8 @@ describe('hook-input.sh', () => {
       { label: '上限を 1 文字超える', command: 'a'.repeat(60_001), chars: 60_001, oversize: '1', childLength: 'unset'.length },
       // 日本語は 1 文字 3 バイト。文字数では 25000 でも 75000 バイトなので超過扱いにする
       { label: 'マルチバイトで上限を超える', command: 'あ'.repeat(25_000), chars: 25_000, oversize: '1', childLength: 'unset'.length },
-    ])('$label のとき、子プロセスへ export するかを切り替える', (row) => {
+    ])('$label のとき、子プロセスへ export するかを切り替える', async (row) => {
+      await explains(`\`hook-input.sh\` のテストです。コマンドの長さが「${row.label}」の場合に、子プロセスへ \`PECOT_HOOK_COMMAND\` を渡すかどうかが切り替わることを確認します。`)
       const hookCase = createHookCase()
       // json.dumps(…, ensure_ascii=False) と同じバイト列にする（区切りは ", " と ": "、非 ASCII はそのまま）
       const payload = `{"tool_input": {"command": ${JSON.stringify(row.command)}}}`
@@ -155,7 +164,8 @@ describe('hook-input.sh', () => {
     })
   })
 
-  it('OVERSIZE フラグは、次の読み込みでリセットされる', () => {
+  it('OVERSIZE フラグは、次の読み込みでリセットされる', async () => {
+    await explains('`hook-input.sh` のテストです。長すぎるコマンドを読み込んだ後に、短いコマンドを読み込んだ場合に、`PECOT_HOOK_COMMAND_OVERSIZE` が空文字に戻ることを確認します。')
     const hookCase = createHookCase()
     const big = jsonDumps({ tool_input: { command: 'a'.repeat(70_000) } })
     const small = jsonDumps({ tool_input: { command: 'ls' } })

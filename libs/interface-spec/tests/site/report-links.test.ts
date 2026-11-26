@@ -12,6 +12,7 @@ import type { Browser } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { attachContent } from '../../src/vitest/attach.js'
 import { step, stepSync } from '../../src/vitest/step.js'
+import { explains } from '../../src/vitest/explains.js'
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '../../../..')
 const GENERATE = path.join(REPO_ROOT, '.githooks/scripts/test_report/generate.py')
@@ -144,7 +145,8 @@ afterAll(async () => {
 })
 
 describe('テストレポートの tag の絞り込み', () => {
-  it.for(TAGGED)('URL の tags に $id を渡して開くと、一覧に $id の tag を持つテストだけを出す', async ({ id, name }) => {
+  it.for(TAGGED)('URL の tags に $id を渡して開くと、一覧に $id の tag を持つテストだけを表示する', async ({ id, name }) => {
+    await explains(`テストレポートの tag による絞り込みのテストです。URL の \`tags\` に \`${id}\` を指定して開いた場合に、一覧に \`${id}\` の tag を持つテストだけが表示され、頭が同じ別の ID のテストは含まれないことを確認します。`)
     const tab = await step('タブを開く', () => report().browser.newPage({ viewport: { width: 1280, height: 720 } }))
     await step('レポートを開く', async () => {
       await tab.goto(`${report().origin}/index.html?tags=${encodeURIComponent(id)}`)

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { verifies } from '../../../tests/_helpers/verifies.js'
 import { ReentrantEnqueueError, createExecutionQueue } from '../queue.js'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 /**
 setTimeout ベースの遅延。task の実行区間を意図的に重ねるために使う。
@@ -15,6 +16,7 @@ async function delay(ms: number): Promise<void> {
 describe('createExecutionQueue', () => {
   it('到着順に実行する', async (context) => {
     await verifies(context, 'PV-COMMON-08')
+    await explains('実行キュー `createExecutionQueue` に複数のタスクを追加した場合のテストです。先に追加したタスクの処理に時間がかかっても、追加した順に実行され、結果も追加した順に返ることを確認します。')
     const queue = createExecutionQueue()
     const order: string[] = []
 
@@ -37,7 +39,8 @@ describe('createExecutionQueue', () => {
     expect(order).toEqual(['first', 'second', 'third'])
   })
 
-  it('同時に動く task は 1 件以下に保たれる', async () => {
+  it('同時に実行されるタスクは 1 件以下に保たれる', async () => {
+    await explains('実行キューに 5 つのタスクを追加した場合のテストです。同時に実行されるタスクの最大数が 1 で、すべての完了後は実行中のタスクがないことを確認します。')
     const queue = createExecutionQueue()
     let running = 0
     let peak = 0
@@ -55,7 +58,8 @@ describe('createExecutionQueue', () => {
     expect(running).toBe(0)
   })
 
-  it('task の失敗を呼び出し元へ伝播しつつ後続の task を処理する', async () => {
+  it('タスクが失敗した場合は、呼び出し元に失敗を伝え、後続のタスクは続けて処理する', async () => {
+    await explains('先に追加したタスクが失敗する場合のテストです。失敗したタスクの呼び出し元には例外が伝わり、後続のタスクは正常に実行されて結果を返すことを確認します。')
     const queue = createExecutionQueue()
     const order: string[] = []
 
@@ -74,14 +78,16 @@ describe('createExecutionQueue', () => {
     expect(order).toEqual(['failing', 'following'])
   })
 
-  it('失敗した task の後に enqueue しても実行される', async () => {
+  it('タスクが失敗した後に追加したタスクも実行される', async () => {
+    await explains('タスクの失敗が完了した後に、新しいタスクを追加した場合のテストです。追加したタスクが実行され、結果を返すことを確認します。')
     const queue = createExecutionQueue()
 
     await expect(queue.enqueue(() => Promise.reject(new Error('first-boom')))).rejects.toThrow('first-boom')
     await expect(queue.enqueue(() => Promise.resolve(42))).resolves.toBe(42)
   })
 
-  it('task が Promise を返す前に同期 throw しても gate は解放される', () => {
+  it('タスクが Promise を返す前に例外を発生させても、実行の順番待ちは解除される', async () => {
+    await explains('タスクが Promise を返す前に、同期的に例外を発生させた場合のテストです。そのタスクは失敗として扱われ、続けて追加したタスクが実行されて結果を返すことを確認します。')
     const queue = createExecutionQueue()
 
     const failing = queue.enqueue(() => {
@@ -99,7 +105,8 @@ describe('createExecutionQueue', () => {
   })
 
   describe('再入禁止', () => {
-    it('走行中の task から enqueue すると待たずに ReentrantEnqueueError で失敗する', async () => {
+    it('実行中のタスクからタスクを追加すると、待たずに ReentrantEnqueueError で失敗する', async () => {
+      await explains('実行中のタスクの中から、同じキューにタスクを追加した場合のテストです。キュー自身の完了を待つことなく、`ReentrantEnqueueError` の例外が発生することを確認します。')
       const queue = createExecutionQueue()
 
       // 再入を許すとキューが自分自身の完了を待ってデッドロックする。
@@ -112,14 +119,16 @@ describe('createExecutionQueue', () => {
       await expect(outer).rejects.toThrow(ReentrantEnqueueError)
     })
 
-    it('再入で失敗しても後続の enqueue は動く', async () => {
+    it('実行中のタスクからの追加に失敗しても、その後に追加したタスクは実行される', async () => {
+      await explains('実行中のタスクからの追加が `ReentrantEnqueueError` で失敗した場合のテストです。その後に追加したタスクが実行され、結果を返すことを確認します。')
       const queue = createExecutionQueue()
 
       await expect(queue.enqueue(() => queue.enqueue(() => Promise.resolve('inner')))).rejects.toThrow(ReentrantEnqueueError)
       await expect(queue.enqueue(() => Promise.resolve('ok'))).resolves.toBe('ok')
     })
 
-    it('task の完了後に同じ呼び出し元から enqueue するのは再入ではない', async () => {
+    it('タスクの完了後に、同じ呼び出し元からタスクを追加しても、再入とは扱わない', async () => {
+      await explains('タスクの完了を待ってから、同じ呼び出し元が次のタスクを追加した場合のテストです。例外が発生せず、2 つのタスクがそれぞれ結果を返すことを確認します。')
       const queue = createExecutionQueue()
 
       await expect(queue.enqueue(() => Promise.resolve('first'))).resolves.toBe('first')

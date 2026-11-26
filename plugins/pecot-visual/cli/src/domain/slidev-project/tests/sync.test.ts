@@ -20,6 +20,7 @@ import type {
   SlideSyncDependencies,
   SlideSyncFsAdapter,
 } from '../sync.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 interface FakeFsState {
   exists: boolean
@@ -115,38 +116,44 @@ function buildDependencies(
 const FS_OK: FakeFsState = { exists: true, isDirectory: true, hasSlidesMd: true }
 
 describe('assertTalkDirectory', () => {
-  it('絶対パスでない場合は SlideSyncUsageError(relative-dir)', async () => {
+  it('talk-dir の指定が絶対パスでない場合は、理由 relative-dir の使い方エラーを返す', async () => {
+    await explains('talk-dir を検証する `assertTalkDirectory` のテストです。`relative/p` のような相対パスを渡した場合に、`SlideSyncUsageError` が発生し、理由が `relative-dir` になることを確認します。')
     const { adapter } = buildFs(FS_OK)
     await expect(assertTalkDirectory('relative/p', adapter)).rejects.toBeInstanceOf(SlideSyncUsageError)
     await expect(assertTalkDirectory('relative/p', adapter)).rejects.toMatchObject({ reason: 'relative-dir' })
   })
 
-  it('dir 不在は dir-not-found', async () => {
+  it('指定した dir が存在しない場合は、理由 dir-not-found の実行エラーを返す', async () => {
+    await explains('talk-dir を検証する `assertTalkDirectory` のテストです。指定したディレクトリが存在しない場合に、`SlideSyncRuntimeError` が発生し、理由が `dir-not-found` になることを確認します。')
     const { adapter } = buildFs({ exists: false, isDirectory: false, hasSlidesMd: false })
     await expect(assertTalkDirectory('/abs/missing', adapter)).rejects.toBeInstanceOf(SlideSyncRuntimeError)
     await expect(assertTalkDirectory('/abs/missing', adapter)).rejects.toMatchObject({ reason: 'dir-not-found' })
   })
 
-  it('ファイルなら not-a-directory', async () => {
+  it('指定したパスがファイルの場合は、理由 not-a-directory の実行エラーを返す', async () => {
+    await explains('talk-dir を検証する `assertTalkDirectory` のテストです。指定したパスがディレクトリでなくファイルの場合に、`SlideSyncRuntimeError` が発生し、理由が `not-a-directory` になることを確認します。')
     const { adapter } = buildFs({ exists: true, isDirectory: false, hasSlidesMd: false })
     await expect(assertTalkDirectory('/abs/file', adapter)).rejects.toBeInstanceOf(SlideSyncRuntimeError)
     await expect(assertTalkDirectory('/abs/file', adapter)).rejects.toMatchObject({ reason: 'not-a-directory' })
   })
 
-  it('slides.md 無しは not-talk-dir', async () => {
+  it('dir に slides.md が存在しない場合は、理由 not-talk-dir の実行エラーを返す', async () => {
+    await explains('talk-dir を検証する `assertTalkDirectory` のテストです。`slides.md` が存在しないディレクトリを渡した場合に、`SlideSyncRuntimeError` が発生し、理由が `not-talk-dir` になることを確認します。')
     const { adapter } = buildFs({ exists: true, isDirectory: true, hasSlidesMd: false })
     await expect(assertTalkDirectory('/abs/d', adapter)).rejects.toBeInstanceOf(SlideSyncRuntimeError)
     await expect(assertTalkDirectory('/abs/d', adapter)).rejects.toMatchObject({ reason: 'not-talk-dir' })
   })
 
-  it('全条件 OK なら resolve する', async () => {
+  it('絶対パスのディレクトリに slides.md が存在する場合は、エラーなく完了する', async () => {
+    await explains('talk-dir を検証する `assertTalkDirectory` のテストです。絶対パスで、ディレクトリが存在し、`slides.md` もある場合に、例外が発生せず `undefined` で完了することを確認します。')
     const { adapter } = buildFs(FS_OK)
     await expect(assertTalkDirectory('/abs/d', adapter)).resolves.toBeUndefined()
   })
 })
 
 describe('runSlideSync (移行前の talk-dir に --theme を付ける)', () => {
-  it('取得してから、消す・slides.md・package.json・生成ファイル・node_modules の順に行う', async () => {
+  it('テーマを取得してから、テンプレートの削除・slides.md・package.json・生成ファイル・node_modules の順に処理する', async () => {
+    await explains('移行前の talk-dir に `--theme` を指定して同期する `runSlideSync` のテストです。処理の呼び出し順が、取得・読み込み・削除・書き込み・生成ファイル・`node_modules` の順になり、結果が `migrate` になることを確認します。')
     const fs = buildFs(FS_OK)
     const prepareTheme = vi.fn<SlideSyncDependencies['prepareTheme']>(() => {
       fs.events.push('prepare')
@@ -174,6 +181,7 @@ describe('runSlideSync (移行前の talk-dir に --theme を付ける)', () => 
   })
 
   it('slides.md の theme: をテーマ名に書き換え、package.json の依存をテーマ 1 つにする', async () => {
+    await explains('移行前の talk-dir に `--theme` を指定して同期する `runSlideSync` のテストです。`slides.md` の `theme:` がテーマ名に変わり、`package.json` の `dependencies` がそのテーマ 1 つだけになることを確認します。')
     const fs = buildFs(FS_OK)
 
     await runSlideSync(
@@ -191,7 +199,8 @@ describe('runSlideSync (移行前の talk-dir に --theme を付ける)', () => 
     })
   })
 
-  it('生成ファイルに、テーマ名を渡し、テーマ付きで node_modules を張る', async () => {
+  it('生成ファイルの同期にテーマ名を渡し、テーマを指定して node_modules にリンクを張る', async () => {
+    await explains('移行前の talk-dir に `--theme` を指定して同期する `runSlideSync` のテストです。生成ファイルの同期に `themeName` が渡され、`node_modules` のリンクにテーマ名とテーマの dir が渡されることを確認します。')
     const syncGeneratedFiles = vi.fn(() => Promise.resolve([]))
     const linkNodeModules = vi.fn(() => Promise.resolve({ nodeModulesTarget: '/abs/plugin/node_modules', entries: 3 }))
     const fs = buildFs(FS_OK, { syncGeneratedFiles, linkNodeModules })
@@ -209,7 +218,8 @@ describe('runSlideSync (移行前の talk-dir に --theme を付ける)', () => 
     )
   })
 
-  it('パス形式の theme: の talk-dir も、同じ移行になる', async () => {
+  it('slides.md の theme: がパス形式の talk-dir も、移行前として同じ手順で移行する', async () => {
+    await explains('移行前の talk-dir に `--theme` を指定して同期する `runSlideSync` のテストです。`theme: ./theme` のようにパス形式の場合に、まとめの `mode` が `migrate` になり、`slides.md` がテーマ名に書き換わることを確認します。')
     const fs = buildFs({ ...FS_OK, slidesMd: '---\ntheme: ./theme\n---\n' })
 
     const summary = await runSlideSync(
@@ -222,6 +232,7 @@ describe('runSlideSync (移行前の talk-dir に --theme を付ける)', () => 
   })
 
   it('取得の失敗は原因の文言のまま返し、削除と書き込みを行わない', async () => {
+    await explains('移行前の talk-dir に `--theme` を指定して同期する `runSlideSync` のテストです。テーマの取得が `ThemeFetchError` で失敗した場合に、同じ例外がそのまま発生し、削除と書き込みが 1 つも呼ばれないことを確認します。')
     const fs = buildFs(FS_OK)
     const failure = new ThemeFetchError('タグ名を確認してください', 'tag')
 
@@ -234,7 +245,8 @@ describe('runSlideSync (移行前の talk-dir に --theme を付ける)', () => 
     expect(fs.events).toStrictEqual([])
   })
 
-  it('slides.md を読めなければ、削除の前に migrate-failed で止まる', async () => {
+  it('slides.md を読み込めない場合は、削除の前に理由 migrate-failed で処理を止める', async () => {
+    await explains('移行前の talk-dir に `--theme` を指定して同期する `runSlideSync` のテストです。`slides.md` の読み込みが失敗した場合に、理由 `migrate-failed` の `SlideSyncRuntimeError` が発生し、削除などの処理が呼ばれないことを確認します。')
     const fs = buildFs(FS_OK, { readSlidesMd: () => Promise.reject(new Error('EACCES')) })
 
     await expect(runSlideSync(
@@ -244,7 +256,8 @@ describe('runSlideSync (移行前の talk-dir に --theme を付ける)', () => 
     expect(fs.events).toStrictEqual([])
   })
 
-  it('消す・書くの失敗は migrate-failed に包み、node_modules は張らない', async () => {
+  it('テンプレートの削除に失敗した場合は、migrate-failed のエラーに包み、node_modules にリンクを張らない', async () => {
+    await explains('移行前の talk-dir に `--theme` を指定して同期する `runSlideSync` のテストです。削除が失敗した場合に、元のメッセージを含む理由 `migrate-failed` の `SlideSyncRuntimeError` が発生し、後続の書き込みとリンクが呼ばれないことを確認します。')
     const fs = buildFs(FS_OK, { removeTemplateEntries: () => Promise.reject(new Error('rm boom')) })
 
     const thrown = await rejectionOf(runSlideSync(
@@ -258,7 +271,8 @@ describe('runSlideSync (移行前の talk-dir に --theme を付ける)', () => 
     expect(fs.events).toStrictEqual(['readSlidesMd'])
   })
 
-  it('書き込みの失敗も migrate-failed に包む', async () => {
+  it('生成ファイルの書き込みに失敗した場合も、migrate-failed のエラーに包む', async () => {
+    await explains('移行前の talk-dir に `--theme` を指定して同期する `runSlideSync` のテストです。生成ファイルの同期が失敗した場合に、理由 `migrate-failed` のエラーが発生することを確認します。')
     const fs = buildFs(FS_OK, { syncGeneratedFiles: () => Promise.reject(new Error('disk full')) })
 
     await expect(runSlideSync(
@@ -267,7 +281,8 @@ describe('runSlideSync (移行前の talk-dir に --theme を付ける)', () => 
     )).rejects.toMatchObject({ reason: 'migrate-failed' })
   })
 
-  it('--theme が無ければ theme-required の usage error になり、取得せず、何も消さない', async () => {
+  it('--theme を指定しない場合は、理由 theme-required の使い方エラーを返し、取得と削除をしない', async () => {
+    await explains('移行前の talk-dir に `--theme` を指定しないときの、`runSlideSync` のテストです。理由 `theme-required` の `SlideSyncUsageError` が発生し、メッセージにコマンドの書き方が含まれ、取得と削除が呼ばれないことを確認します。')
     const fs = buildFs(FS_OK)
     const prepareTheme = vi.fn<SlideSyncDependencies['prepareTheme']>()
 
@@ -285,7 +300,8 @@ describe('runSlideSync (移行前の talk-dir に --theme を付ける)', () => 
     expect(fs.events).toStrictEqual([])
   })
 
-  it('linkNodeModules が未知例外を投げると symlink-failed に包む', async () => {
+  it('node_modules のリンクで想定外の例外が発生した場合は、symlink-failed のエラーに包む', async () => {
+    await explains('移行前の talk-dir に `--theme` を指定して同期する `runSlideSync` のテストです。`linkNodeModules` が通常の `Error` を投げた場合に、`SlideSyncRuntimeError` に包まれ、理由が `symlink-failed` になることを確認します。')
     const fs = buildFs(FS_OK, { linkNodeModules: () => Promise.reject(new Error('symlink boom')) })
 
     await expect(runSlideSync(
@@ -296,7 +312,8 @@ describe('runSlideSync (移行前の talk-dir に --theme を付ける)', () => 
 })
 
 describe('runSlideSync (--node-modules-only)', () => {
-  it('移行前の talk-dir でも、テーマ無しで張り直すだけにする', async () => {
+  it('移行前の talk-dir でも、--node-modules-only ではテーマを指定せずにリンクを張り直すだけにする', async () => {
+    await explains('`--node-modules-only` を指定して同期する `runSlideSync` のテストです。移行前の talk-dir でも、テーマを空にして `node_modules` のリンクだけが呼ばれ、まとめの `mode` が `relink` になることを確認します。')
     const linkNodeModules = vi.fn(() => Promise.resolve({ nodeModulesTarget: '/abs/plugin/node_modules', entries: 3 }))
     const fs = buildFs(FS_OK, { linkNodeModules })
     const prepareTheme = vi.fn<SlideSyncDependencies['prepareTheme']>()
@@ -320,7 +337,8 @@ describe('runSlideSync (--node-modules-only)', () => {
     })
   })
 
-  it('--theme との同時指定は theme-with-node-modules-only の usage error', async () => {
+  it('--node-modules-only と --theme を同時に指定した場合は、理由 theme-with-node-modules-only の使い方エラーを返す', async () => {
+    await explains('`--node-modules-only` を指定して同期する `runSlideSync` のテストです。`--theme` も渡した場合に、理由 `theme-with-node-modules-only` の `SlideSyncUsageError` が発生し、書き込みなどが呼ばれないことを確認します。')
     const fs = buildFs(FS_OK)
 
     const thrown = await rejectionOf(runSlideSync(
@@ -336,7 +354,8 @@ describe('runSlideSync (--node-modules-only)', () => {
   describe('テーマの張り直し', () => {
     const theme = { name: 'slidev-theme-sample', spec: 'git+https://example.com/org/theme.git#v1.0.0', directory: '/store/abc/v1.0.0/package' }
 
-    it('張り直しが済んでいれば、その結果を使い、もう一度は張らない', async () => {
+    it('テーマのリンクの張り直しが完了していた場合は、その結果を使い、リンクをもう一度張らない', async () => {
+      await explains('移行済みのテーマを持つ talk-dir に、`--node-modules-only` を指定して同期する `runSlideSync` のテストです。`ensureThemeLinked` が張り直し済みの結果を返した場合に、まとめにその `node_modules` の場所とテーマが入り、`linkNodeModules` が呼ばれないことを確認します。')
       const fs = buildFs(FS_OK)
       const ensureThemeLinked = vi.fn<EnsureThemeLinkedPort>(() => Promise.resolve({
         relinked: true,
@@ -357,7 +376,8 @@ describe('runSlideSync (--node-modules-only)', () => {
       expect(summary.theme).toStrictEqual(theme)
     })
 
-    it('印が今の値と同じで張り直さなかったときも、求められた張り直しをテーマ付きで行う', async () => {
+    it('テーマの状態が前回と同じで張り直しが不要だった場合も、--node-modules-only ならテーマを指定してリンクを張り直す', async () => {
+      await explains('移行済みのテーマを持つ talk-dir に、`--node-modules-only` を指定して同期する `runSlideSync` のテストです。`ensureThemeLinked` が張り直しをしなかった場合に、`linkNodeModules` がテーマ名とテーマの dir を指定して呼ばれることを確認します。')
       const linkNodeModules = vi.fn(() => Promise.resolve({ nodeModulesTarget: '/abs/plugin/node_modules', entries: 3 }))
       const fs = buildFs(FS_OK, { linkNodeModules })
 
@@ -371,7 +391,8 @@ describe('runSlideSync (--node-modules-only)', () => {
       expect(linkNodeModules).toHaveBeenCalledWith('/abs/d', '/abs/plugin', [{ name: theme.name, directory: theme.directory }])
     })
 
-    it('取得の失敗は原因ごとの文言のまま伝播し、symlink-failed に包まない', async () => {
+    it('テーマの取得に失敗した場合は、原因ごとのエラーをそのまま返し、symlink-failed のエラーに包まない', async () => {
+      await explains('移行済みのテーマを持つ talk-dir に、`--node-modules-only` を指定して同期する `runSlideSync` のテストです。`ensureThemeLinked` が `ThemeFetchError` で失敗した場合に、同じ例外がそのまま発生することを確認します。')
       const fs = buildFs(FS_OK)
       const failure = new ThemeFetchError('タグ名を確認してください', 'tag')
 
@@ -392,7 +413,8 @@ describe('runSlideSync (移行済みの talk-dir)', () => {
     nodeModulesTarget: '/runtime/current/node_modules',
   })
 
-  it('--theme が無ければ、取得と張り直しだけを行い、消す・書くは 1 つも呼ばない', async () => {
+  it('移行済みの talk-dir に --theme を指定しない場合は、テーマの取得とリンクの張り直しだけを行い、削除と書き込みを行わない', async () => {
+    await explains('移行済みの talk-dir を同期する `runSlideSync` のテストです。`--theme` を指定しない場合に、`ensureThemeLinked` が 1 回だけ呼ばれ、削除と書き込みは呼ばれず、まとめの `mode` が `relink` になることを確認します。')
     const fs = buildFs(FS_OK)
     const ensureThemeLinked = vi.fn<EnsureThemeLinkedPort>(relinkedTheme)
     const prepareTheme = vi.fn<SlideSyncDependencies['prepareTheme']>()
@@ -416,7 +438,8 @@ describe('runSlideSync (移行済みの talk-dir)', () => {
     })
   })
 
-  it('--theme を付けても張り直しだけを行い、使わなかったことと替え方を警告に出す', async () => {
+  it('移行済みの talk-dir に --theme を指定しても、リンクの張り直しだけを行い、指定を使わなかったことを警告する', async () => {
+    await explains('移行済みの talk-dir を同期する `runSlideSync` のテストです。`--theme` を指定した場合に、テーマの取得は呼ばれず、`was not used` と `package.json` の依存を編集する方法を含む警告が 1 件返ることを確認します。')
     const fs = buildFs(FS_OK)
     const prepareTheme = vi.fn<SlideSyncDependencies['prepareTheme']>()
 
@@ -435,7 +458,8 @@ describe('runSlideSync (移行済みの talk-dir)', () => {
     expect(warning).toContain('edit the dependency in package.json')
   })
 
-  it('印が今の値と同じでも、求められた張り直しをテーマ付きで行う', async () => {
+  it('テーマの状態が前回と同じで張り直しが不要だった場合も、テーマを指定してリンクを張り直す', async () => {
+    await explains('移行済みの talk-dir を同期する `runSlideSync` のテストです。`ensureThemeLinked` が張り直しをしなかった場合に、`linkNodeModules` がテーマ名とテーマの dir を指定して呼ばれることを確認します。')
     const linkNodeModules = vi.fn(() => Promise.resolve({ nodeModulesTarget: '/abs/plugin/node_modules', entries: 3 }))
     const fs = buildFs(FS_OK, { linkNodeModules })
 
@@ -451,6 +475,7 @@ describe('runSlideSync (移行済みの talk-dir)', () => {
   })
 
   it('テーマの取得の失敗は原因の文言のまま返す', async () => {
+    await explains('移行済みの talk-dir を同期する `runSlideSync` のテストです。テーマの取得が `ThemeFetchError` で失敗した場合に、同じ例外がそのまま発生し、削除や書き込みが呼ばれないことを確認します。')
     const fs = buildFs(FS_OK)
     const failure = new ThemeFetchError('タグ名を確認してください', 'tag')
 
@@ -461,7 +486,8 @@ describe('runSlideSync (移行済みの talk-dir)', () => {
     expect(fs.events).toStrictEqual([])
   })
 
-  it('theme-name-mismatch は symlink-failed に包まない', async () => {
+  it('テーマ名の不一致（theme-name-mismatch）のエラーは、symlink-failed のエラーに包まずそのまま返す', async () => {
+    await explains('移行済みの talk-dir を同期する `runSlideSync` のテストです。`ensureThemeLinked` が理由 `theme-name-mismatch` のエラーで失敗した場合に、同じ例外がそのまま発生することを確認します。')
     const fs = buildFs(FS_OK)
     const failure = new SlideCreateRuntimeError('dependencies のキーをテーマの name に合わせてください', 'theme-name-mismatch')
 
@@ -473,7 +499,8 @@ describe('runSlideSync (移行済みの talk-dir)', () => {
     expect(thrown).toBe(failure)
   })
 
-  it('判定が失敗したら、その例外を返し、何も呼ばない', async () => {
+  it('talk-dir の種類の判定に失敗した場合は、その例外を返し、後続の処理を呼ばない', async () => {
+    await explains('talk-dir の種類を判定する処理が失敗したときの、`runSlideSync` のテストです。`classifyTalk` が `ThemeResolveError` で失敗した場合に、同じ例外が発生し、`ensureThemeLinked` も削除などの処理も呼ばれないことを確認します。')
     const fs = buildFs(FS_OK)
     const failure = new ThemeResolveError('package.json を読めません', 'theme-unlinked')
     const ensureThemeLinked = vi.fn<EnsureThemeLinkedPort>()
@@ -493,7 +520,8 @@ describe('runSlideSync (pecot-theme.json を持つテーマの dir)', () => {
   it.each([
     ['--theme なし', undefined],
     ['--theme あり', 'file:/abs/theme'],
-  ])('%s でも theme-root の usage error で止め、何も書き換えない', async (_label, theme) => {
+  ])('テーマ自体の dir を渡した場合は、%s でも理由 theme-root の使い方エラーで止め、何も書き換えない', async (_label, theme) => {
+    await explains(`\`pecot-theme.json\` を持つテーマの dir を指定したときの、\`runSlideSync\` のテストです。\`${_label}\` の場合に、理由 \`theme-root\` の使い方エラーが発生し、取得や書き込みが呼ばれないことを確認します。`)
     const linkNodeModules = vi.fn(() => Promise.resolve({ nodeModulesTarget: '/abs/plugin/node_modules', entries: 3 }))
     const fs = buildFs(FS_OK, { linkNodeModules })
     const prepareTheme = vi.fn<SlideSyncDependencies['prepareTheme']>()
@@ -513,7 +541,8 @@ describe('runSlideSync (pecot-theme.json を持つテーマの dir)', () => {
 })
 
 describe('runSlideSync エラー伝播', () => {
-  it('assertTalkDirectory の usage error を伝播する', async () => {
+  it('talk-dir の検証で使い方エラーが発生した場合は、そのまま返す', async () => {
+    await explains('`runSlideSync` のエラーの扱いのテストです。`assertTalkDirectory` が使い方エラーにする相対パスを渡した場合は、同じ `SlideSyncUsageError` が発生することを確認します。')
     const fs = buildFs(FS_OK)
     await expect(runSlideSync(
       { directory: 'relative', nodeModulesOnly: false },
@@ -521,7 +550,8 @@ describe('runSlideSync エラー伝播', () => {
     )).rejects.toBeInstanceOf(SlideSyncUsageError)
   })
 
-  it('張り直しの失敗時 infra 側の reason を尊重する', async () => {
+  it('リンクの張り直しが理由つきの実行エラーで失敗した場合は、その理由を変えずに返す', async () => {
+    await explains('`runSlideSync` のエラーの扱いのテストです。`linkNodeModules` が理由 `symlink-failed` の `SlideSyncRuntimeError` を投げた場合に、同じ理由のエラーが発生することを確認します。')
     const fs = buildFs(FS_OK, {
       linkNodeModules: vi.fn(() => Promise.reject(new SlideSyncRuntimeError('boom', 'symlink-failed'))),
     })
@@ -531,7 +561,8 @@ describe('runSlideSync エラー伝播', () => {
     )).rejects.toMatchObject({ reason: 'symlink-failed' })
   })
 
-  it('linkNodeModules が未知例外を投げると symlink-failed に再ラップされる', async () => {
+  it('リンクの張り直しで想定外の例外が発生した場合は、symlink-failed の実行エラーに包み直す', async () => {
+    await explains('`runSlideSync` のエラーの扱いのテストです。`linkNodeModules` が通常の `Error` を投げた場合に、理由が `symlink-failed` の `SlideSyncRuntimeError` に変わることを確認します。')
     const fs = buildFs(FS_OK, {
       linkNodeModules: vi.fn(() => Promise.reject(new Error('symlink boom'))),
     })
@@ -544,7 +575,8 @@ describe('runSlideSync エラー伝播', () => {
     })
   })
 
-  it('移行中に SlideSyncUsageError が投げられても、そのまま上位に渡す', async () => {
+  it('移行中に使い方エラーが発生した場合は、別のエラーに包まずそのまま返す', async () => {
+    await explains('`runSlideSync` のエラーの扱いのテストです。テンプレートの削除が `SlideSyncUsageError` を投げた場合に、`migrate-failed` に包まれず、同じ種類のエラーが発生することを確認します。')
     const fs = buildFs(FS_OK, {
       removeTemplateEntries: vi.fn(() => Promise.reject(new SlideSyncUsageError('rare', 'missing-option'))),
     })
@@ -554,7 +586,8 @@ describe('runSlideSync エラー伝播', () => {
     )).rejects.toBeInstanceOf(SlideSyncUsageError)
   })
 
-  it('張り直しで SlideSyncUsageError が投げられても、そのまま上位に渡す', async () => {
+  it('リンクの張り直し中に使い方エラーが発生した場合は、別のエラーに包まずそのまま返す', async () => {
+    await explains('`runSlideSync` のエラーの扱いのテストです。`linkNodeModules` が `SlideSyncUsageError` を投げた場合に、`symlink-failed` に包まれず、同じ種類のエラーが発生することを確認します。')
     const fs = buildFs(FS_OK, {
       linkNodeModules: vi.fn(() => Promise.reject(new SlideSyncUsageError('rare', 'missing-option'))),
     })
@@ -566,7 +599,8 @@ describe('runSlideSync エラー伝播', () => {
 })
 
 describe('SlideSyncUsageError / SlideSyncRuntimeError', () => {
-  it('reason フィールドがそのまま乗る', () => {
+  it('エラーに渡した理由が、reason に設定され、name にはクラス名が入る', async () => {
+    await explains('`SlideSyncUsageError` と `SlideSyncRuntimeError` のテストです。コンストラクタに渡した理由が `reason` にそのまま設定され、`name` がそれぞれのクラス名になることを確認します。')
     const usage = new SlideSyncUsageError('m', 'missing-option')
     expect(usage.reason).toBe('missing-option')
     expect(usage.name).toBe('SlideSyncUsageError')

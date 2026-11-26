@@ -9,6 +9,7 @@ import { parse } from 'yaml'
 
 import { attachOutput } from '../../../../libs/interface-spec/src/vitest/attach.js'
 import { markdownSection } from './_helpers/markdown-section.js'
+import { explains } from './_helpers/explains.js'
 
 const pluginRoot = path.resolve(import.meta.dirname, '..', '..')
 const template = readFileSync(path.join(pluginRoot, 'cli/templates/workflow/pecot-handoff.yml'), 'utf8')
@@ -74,15 +75,18 @@ function tableRow(label: string): string {
 }
 
 describe('handoff のワークフローの雛形', () => {
-  it('1 行目に、雛形の名前と版の目印がある', () => {
+  it('1 行目に、雛形の名前と版の目印がある', async () => {
+    await explains('配布する引き継ぎのワークフローの雛形（`pecot-handoff.yml`）のテストです。1 行目が `# pecot-workflow-template: handoff 2` という、雛形の名前と版を示すコメントであることを確認します。')
     expect(template.split('\n', 1)[0]).toBe('# pecot-workflow-template: handoff 2')
   })
 
-  it('契機は pull_request_target の closed だけになる', () => {
+  it('契機は pull_request_target の closed だけになる', async () => {
+    await explains('引き継ぎのワークフローの雛形の、起動の契機（`on`）のテストです。`on` が `pull_request_target` の `closed` だけであることを確認します。')
     expect(workflow.on).toEqual({ pull_request_target: { types: ['closed'] } })
   })
 
-  it('job の if は、マージされた・同じリポの head・bot でない PR だけを通す', () => {
+  it('job の if は、マージされた・同じリポの head・bot でない PR だけを通す', async () => {
+    await explains('引き継ぎのワークフローの雛形の、job の `if` のテストです。マージされた PR、同じリポジトリの head、Bot ではない作成者の条件を含み、`env.` と `secrets.` を参照しないことを確認します。')
     expect(condition).toContain('github.event.pull_request.merged')
     expect(condition).toContain('github.event.pull_request.head.repo.full_name == github.repository')
     expect(condition).toContain('github.event.pull_request.user.type != \'Bot\'')
@@ -90,7 +94,8 @@ describe('handoff のワークフローの雛形', () => {
     expect(condition).not.toContain('secrets.')
   })
 
-  it('PR のコードを checkout せず、既定のブランチを資格情報を残さずに読む', () => {
+  it('PR のコードを checkout せず、既定のブランチを資格情報を残さずに読む', async () => {
+    await explains('引き継ぎのワークフローの雛形の、checkout の step のテストです。checkout が 1 回だけで `persist-credentials: false` を指定し、PR の `head.sha` と `head.ref` を使わないことを確認します。')
     const checkouts = steps.filter(step => step.uses?.startsWith('actions/checkout@'))
     expect(checkouts).toHaveLength(1)
     expect(checkouts[0]?.with).toEqual({ 'persist-credentials': false })
@@ -98,12 +103,14 @@ describe('handoff のワークフローの雛形', () => {
     expect(active).not.toContain('head.ref')
   })
 
-  it('workflow 全体の permissions を持たず、job の permissions は 4 つだけになる', () => {
+  it('workflow 全体の permissions を持たず、job の permissions は 4 つだけになる', async () => {
+    await explains('引き継ぎのワークフローの雛形の、権限のテストです。workflow 全体の `permissions` を持たず、job の `permissions` が 4 つの権限だけであることを確認します。')
     expect(workflow).not.toHaveProperty('permissions')
     expect(job.permissions).toEqual({ 'contents': 'read', 'issues': 'write', 'pull-requests': 'read', 'id-token': 'write' })
   })
 
-  it('トークンの発行は変数のあるときだけ動き、Issues の write と Pull requests・Contents の read だけを渡す', () => {
+  it('トークンの発行は変数のあるときだけ動き、Issues の write と Pull requests・Contents の read だけを渡す', async () => {
+    await explains('引き継ぎのワークフローの雛形の、GitHub App のトークンを発行する step のテストです。`PECOT_AGENT_APP_CLIENT_ID` の設定時だけ動き、`issues` の write と `pull-requests`・`contents` の read だけを要求することを確認します。')
     const token = stepUsing('actions/create-github-app-token')
     expect(token.id).toBe('token')
     expect(token.if).toBe('${{ vars.PECOT_AGENT_APP_CLIENT_ID != \'\' }}')
@@ -111,12 +118,14 @@ describe('handoff のワークフローの雛形', () => {
     expect(granted).toEqual({ 'permission-issues': 'write', 'permission-pull-requests': 'read', 'permission-contents': 'read' })
   })
 
-  it('発行したトークンが無いとき、github_token と PECOT_GITHUB_COM_TOKEN に GITHUB_TOKEN を渡し、OIDC の交換を避ける', () => {
+  it('発行したトークンが存在しない場合は、github_token と PECOT_GITHUB_COM_TOKEN に GITHUB_TOKEN を渡し、OIDC の交換を避ける', async () => {
+    await explains('引き継ぎのワークフローの雛形の、action に渡すトークンのテストです。App のトークンが発行されない場合に、`github_token` と `PECOT_GITHUB_COM_TOKEN` の両方へ `github.token` を渡すことを確認します。')
     expect(inputs['github_token']).toBe('${{ steps.token.outputs.token || github.token }}')
     expect(handoff.env).toEqual({ PECOT_GITHUB_COM_TOKEN: '${{ steps.token.outputs.token || github.token }}' })
   })
 
-  it('OAuth のトークンを渡し、secret があれば Workload Identity Federation の 4 つの入力を空で渡す', () => {
+  it('OAuth のトークンを渡し、secret があれば Workload Identity Federation の 4 つの入力を空で渡す', async () => {
+    await explains('引き継ぎのワークフローの雛形の、Claude の認証（OAuth と Workload Identity Federation）の入力のテストです。`claude_code_oauth_token` へ secret を渡し、4 つの入力は secret の設定時に空文字で渡すことを確認します。')
     expect(inputs['claude_code_oauth_token']).toBe('${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}')
     const federation: [string, string][] = [
       ['anthropic_federation_rule_id', 'FEDERATION_RULE_ID'],
@@ -129,22 +138,26 @@ describe('handoff のワークフローの雛形', () => {
     }
   })
 
-  it('action に、書き込み権限の無い人を通す入力・追跡のモード・API キーを渡さない', () => {
+  it('action に、書き込み権限を持たない人を通す入力・追跡のモード・API キーを渡さない', async () => {
+    await explains('引き継ぎのワークフローの雛形の、action の入力のテストです。`allowed_non_write_users`・`track_progress`・`anthropic_api_key`・`allowed_bots` のいずれも指定されていないことを確認します。')
     for (const key of ['allowed_non_write_users', 'track_progress', 'anthropic_api_key', 'allowed_bots']) {
       expect(inputs).not.toHaveProperty(key)
     }
   })
 
-  it('プラグインを配布のマーケットプレイスから取る', () => {
+  it('プラグインを配布のマーケットプレイスから取る', async () => {
+    await explains('引き継ぎのワークフローの雛形の、プラグインの取得元のテストです。`plugin_marketplaces` が `https://github.com/pecotcraft/pecot.git`、`plugins` が `pecot-w@pecot` であることを確認します。')
     expect(inputs['plugin_marketplaces']).toBe('https://github.com/pecotcraft/pecot.git')
     expect(inputs['plugins']).toBe('pecot-w@pecot')
   })
 
-  it('prompt は w-handoff に PR を渡し、変数 PECOT_HANDOFF_PROJECT のあるときだけ project=<名前> を足す', () => {
+  it('prompt は w-handoff に PR を渡し、変数 PECOT_HANDOFF_PROJECT が設定されている場合だけ project=<名前> を足す', async () => {
+    await explains('引き継ぎのワークフローの雛形の、`prompt` のテストです。`/pecot-w:w-handoff` に PR を渡し、変数 `PECOT_HANDOFF_PROJECT` が設定されている場合だけ `project=<名前>` を付けることを確認します。')
     expect(inputs['prompt']).toBe('/pecot-w:w-handoff ${{ github.repository }}/${{ github.event.pull_request.number }}${{ vars.PECOT_HANDOFF_PROJECT != \'\' && format(\' project={0}\', vars.PECOT_HANDOFF_PROJECT) || \'\' }}')
   })
 
-  it('claude_args は権限のモード・モデル・effort・ターンの上限を、既定値の式で持つ', () => {
+  it('claude_args は権限のモード・モデル・effort・ターンの上限を、既定値の式で持つ', async () => {
+    await explains('引き継ぎのワークフローの雛形の、`claude_args` のテストです。権限のモード・モデル・effort・ターンの上限が、変数と既定値を使った式で指定されていることを確認します。')
     expect(claudeArguments).toContain('--permission-mode default')
     expect(claudeArguments).toContain('--model ${{ vars.PECOT_HANDOFF_MODEL || \'opus\' }}')
     expect(claudeArguments).toContain('--effort ${{ vars.PECOT_HANDOFF_EFFORT || \'medium\' }}')
@@ -152,11 +165,13 @@ describe('handoff のワークフローの雛形', () => {
     expect(claudeArguments).not.toContain('#')
   })
 
-  it('timeout-minutes は、変数を fromJSON で数に直す', () => {
+  it('timeout-minutes は、変数を fromJSON で数に直す', async () => {
+    await explains('引き継ぎのワークフローの雛形の、`timeout-minutes` のテストです。変数 `PECOT_HANDOFF_TIMEOUT_MINUTES` を `fromJSON` で数値に変換する式であることを確認します。')
     expect(job['timeout-minutes']).toBe('${{ fromJSON(vars.PECOT_HANDOFF_TIMEOUT_MINUTES || \'20\') }}')
   })
 
-  it('許すツールは、PR と Issue を読むものとコメントの投稿だけになる', () => {
+  it('許可するツールは、PR と Issue を読むものとコメントの投稿だけになる', async () => {
+    await explains('引き継ぎのワークフローの雛形の、`--allowedTools` のテストです。PR と Issue の参照、コメントの投稿、`gh pr diff`・`gh pr view` に限られていることを確認します。')
     expect(toolList('--allowedTools')).toEqual([
       'Read',
       `${pecot}pr_show`,
@@ -167,7 +182,8 @@ describe('handoff のワークフローの雛形', () => {
     ])
   })
 
-  it('書き換え・外への取得・clone・/proc の読みを拒む', () => {
+  it('書き換え・外部からの取得・clone・/proc の読み取りを拒否する', async () => {
+    await explains('引き継ぎのワークフローの雛形の、`--disallowedTools` のテストです。`Edit`・`Write`・`WebFetch`・`git clone`・`/proc` の読み取りなどを拒否する一覧であることを確認します。')
     expect(toolList('--disallowedTools')).toEqual([
       'Edit',
       'Write',
@@ -181,7 +197,8 @@ describe('handoff のワークフローの雛形', () => {
     ])
   })
 
-  it('settings は、使われた effort を RUNNER_TEMP のファイルに書く PreToolUse のフックだけを持つ', () => {
+  it('settings は、使われた effort を RUNNER_TEMP のファイルに書く PreToolUse のフックだけを持つ', async () => {
+    await explains('引き継ぎのワークフローの雛形の、`settings` のテストです。使われた effort を `RUNNER_TEMP` のファイルへ書き出す `PreToolUse` のフックだけを持つことを確認します。')
     const settings: unknown = JSON.parse(text(inputs['settings']))
     expect(settings).toEqual({
       hooks: {
@@ -190,7 +207,8 @@ describe('handoff のワークフローの雛形', () => {
     })
   })
 
-  it('記録の step は、action の直後に置かれ、実行のファイルのある run で動き、失敗しても job を失敗にしない', () => {
+  it('記録の step は、action の直後に置かれ、実行のファイルのある run で動き、失敗しても job を失敗にしない', async () => {
+    await explains('引き継ぎのワークフローの雛形の、実行の記録を出す step のテストです。action の直後の最後の step であり、実行ファイルが存在する場合に動き、失敗しても job を失敗にしないことを確認します。')
     expect(steps.at(-1)).toBe(record)
     expect(steps[steps.indexOf(handoff) + 1]).toBe(record)
     expect(record.if).toBe('${{ always() && steps.claude.outputs.execution_file != \'\' }}')
@@ -199,7 +217,8 @@ describe('handoff のワークフローの雛形', () => {
     expect(record.run).not.toContain('${{')
   })
 
-  it('記録の jq は、モデル・effort・ツールの呼び出し・拒否を表に出し、コメントの本文を出さない', () => {
+  it('記録の jq は、モデル・effort・ツールの呼び出し・拒否を表に出し、コメントの本文を出さない', async () => {
+    await explains('実行の記録を作る `jq` の式のテストです。模擬した実行ログを渡した場合に、モデル・effort・ツールの呼び出し・拒否を表に出力し、コメントの本文や考えた文は出力しないことを確認します。')
     const filter = /jq -r --arg effort "\$effort" '([^']*)'/.exec(record.run ?? '')?.[1] ?? ''
     const execution = [
       { type: 'system', subtype: 'init', model: 'claude-opus-5-5' },
@@ -222,11 +241,13 @@ describe('handoff のワークフローの雛形', () => {
     for (const hidden of ['考えた文', '本文の中身']) expect(summary).not.toContain(hidden)
   })
 
-  it('setup-node は、secret を持つ job なので npm のキャッシュを戻さず保存もしない', () => {
+  it('setup-node は、secret を持つ job なので npm のキャッシュを戻さず保存もしない', async () => {
+    await explains('引き継ぎのワークフローの雛形の、`actions/setup-node` のテストです。secret を持つ job のため、`package-manager-cache` が `false` で、npm のキャッシュを使わないことを確認します。')
     expect(stepUsing('actions/setup-node').with?.['package-manager-cache']).toBe(false)
   })
 
-  it('すべての action を 40 桁の SHA で固定する', () => {
+  it('すべての action を 40 桁の SHA で固定する', async () => {
+    await explains('引き継ぎのワークフローの雛形の、action の指定のテストです。使っているすべての action が、40 桁の SHA で固定されていることを確認します。')
     const uses = steps.map(step => step.uses).filter(use => use !== undefined)
     expect(uses.length).toBeGreaterThan(0)
     for (const action of uses) expect(action).toMatch(/@[0-9a-f]{40}$/)
@@ -234,11 +255,13 @@ describe('handoff のワークフローの雛形', () => {
 })
 
 describe('引き継ぎの導入の説明', () => {
-  it('説明のファイルが w-help の参照にある', () => {
+  it('説明のファイルが w-help の参照にある', async () => {
+    await explains('引き継ぎの導入の説明のテストです。説明のファイル `skills/w-help/references/handoff-workflow.md` が存在することを確認します。')
     expect(existsSync(documentPath)).toBe(true)
   })
 
-  it('雛形の変数と secret の名前が、すべて説明に出てくる', () => {
+  it('雛形の変数と secret の名前が、すべて説明に記載されている', async () => {
+    await explains('引き継ぎの導入の説明のテストです。雛形が参照する変数と secret の名前がすべて説明に記載され、`PECOT_HANDOFF_` で始まる変数が 5 つであることを確認します。')
     const names = new Set(Array.from(active.matchAll(/\b(?:vars|secrets)\.([A-Z][A-Z0-9_]+)/g), match => match[1] ?? ''))
     for (const name of names) {
       const isDocumented = document.includes(`\`${name}\``) || (name.startsWith('PECOT_AGENT_') && document.includes('review-workflow.md'))
@@ -253,7 +276,8 @@ describe('引き継ぎの導入の説明', () => {
     ])
   })
 
-  it('変数の既定値が、説明の「変えられる値」の表の同じ行にある', () => {
+  it('変数の既定値が、説明の「変えられる値」の表の同じ行にある', async () => {
+    await explains('引き継ぎの導入の説明の、「変えられる値」の表のテストです。雛形の変数の既定値が、説明の表の同じ変数の行に記載されていることを確認します。')
     const defaults = new Map(Array.from(active.matchAll(/vars\.(PECOT_HANDOFF_[A-Z_]+) \|\| '([^']*)'/g), match => [match[1] ?? '', match[2] ?? '']))
     expect(new Set(defaults.keys())).toEqual(new Set(['PECOT_HANDOFF_EFFORT', 'PECOT_HANDOFF_MAX_TURNS', 'PECOT_HANDOFF_MODEL', 'PECOT_HANDOFF_TIMEOUT_MINUTES']))
     const rows = markdownSection(document, '### 変えられる値').split('\n')
@@ -265,13 +289,15 @@ describe('引き継ぎの導入の説明', () => {
     expect(rows.some(line => line.startsWith('| `PECOT_HANDOFF_PROJECT` |'))).toBe(true)
   })
 
-  it('job の権限が、説明の「権限」の表と一致する', () => {
+  it('job の権限が、説明の「権限」の表と一致する', async () => {
+    await explains('引き継ぎの導入の説明の、「権限」の表のテストです。雛形の job の権限が、「job の権限」の行にすべて記載されていることを確認します。')
     const row = tableRow('job の権限')
     const scopes = Object.entries(job.permissions ?? {})
     for (const [scope, access] of scopes) expect(row).toContain(`\`${scope}: ${access}\``)
   })
 
-  it('許すツールと拒むツールが、説明の「権限」の表に出てくる', () => {
+  it('許可するツールと拒否するツールが、説明の「権限」の表に記載されている', async () => {
+    await explains('引き継ぎの導入の説明の、「権限」の表のテストです。雛形が許可するツールと拒否するツールが、それぞれの行にすべて記載されていることを確認します。')
     const allowedRow = tableRow('許すツール')
     for (const tool of toolList('--allowedTools')) {
       const shown = tool.replace(pecot, '').replace(/^Bash\((.*):\*\)$/, '$1')
@@ -284,7 +310,8 @@ describe('引き継ぎの導入の説明', () => {
     }
   })
 
-  it('自前の App の権限が、説明の「自前の GitHub App」の節と食い違わない', () => {
+  it('自前の App の権限が、説明の「自前の GitHub App」の節と一致する', async () => {
+    await explains('引き継ぎの導入の説明の、「自前の GitHub App」の節のテストです。トークンを発行する step の権限が、節に記載された App の権限の一覧と一致することを確認します。')
     const labels = new Map([['issues', 'Issues'], ['pull-requests', 'Pull requests'], ['contents', 'Contents']])
     const fromTemplate = Object.entries(stepUsing('actions/create-github-app-token').with ?? {})
       .filter(([key]) => key.startsWith('permission-'))
@@ -299,7 +326,8 @@ describe('引き継ぎの導入の説明', () => {
     expect(permissionLines).toEqual(fromTemplate)
   })
 
-  it('雛形の名前で workflow_install と workflow_doctor を呼ぶ手順がある', () => {
+  it('雛形の名前で workflow_install と workflow_doctor を呼ぶ手順がある', async () => {
+    await explains('引き継ぎの導入の説明のテストです。`name: "handoff"` を指定して `workflow_install` と `workflow_doctor` を呼ぶ手順が、説明に記載されていることを確認します。')
     expect(document).toContain('`workflow_install`（`name: "handoff"`）')
     expect(document).toContain('`workflow_doctor`（`name: "handoff"`）')
   })

@@ -30,6 +30,7 @@ import { drawioCreateTool as drawioCreateDefinition, drawioExportTool as drawioE
 import { withOutputCheck } from './_output.js'
 import { ensureChromium, type ChromiumDependencies } from '../_shared.js'
 import { slideConvertTool as slideConvertDefinition } from '../slide.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 const drawioCreateTool = withOutputCheck(drawioCreateDefinition)
 const drawioExportTool = withOutputCheck(drawioExportDefinition)
@@ -133,14 +134,16 @@ afterEach(() => {
 })
 
 describe('ensureChromium: 既定は取得せず runtime_setup ツールを案内する', () => {
-  it('取得済みなら undefined を返し、実処理を止めない', async () => {
+  it('Chromium を取得済みの場合は、undefined を返し、実際の処理を止めない', async () => {
+    await explains('Chromium の実行時ガード `ensureChromium` の、既定の設定のテストです。Chromium を取得済みの場合に `undefined` を返し、取得の処理を呼び出さないことを確認します。')
     const { deps, installCalls } = fakeDependencies({ installed: true, autoInstall: false })
 
     expect(await ensureChromium('drawio_export', deps)).toBeUndefined()
     expect(installCalls()).toBe(0)
   })
 
-  it('未取得なら取得を試みずに失敗結果を返す', async () => {
+  it('Chromium を取得していない場合は、取得を試みずに、失敗の結果を返す', async () => {
+    await explains('Chromium を取得しておらず、自動取得も有効にしていない場合の `ensureChromium` のテストです。取得の処理を呼び出さず、`chromium-not-installed` の失敗の結果を返すことを確認します。')
     const { deps, installCalls } = fakeDependencies({ installed: false, autoInstall: false })
 
     const rejected = await ensureChromium('drawio_export', deps)
@@ -154,7 +157,8 @@ describe('ensureChromium: 既定は取得せず runtime_setup ツールを案内
     expect(rejected?.data).not.toHaveProperty('reason')
   })
 
-  it('案内文が「何が無いか / どこに期待していたか / 何を実行すべきか」を含む', async () => {
+  it('案内文に、不足しているもの、期待していた場所、実行すべき操作が含まれる', async () => {
+    await explains('Chromium を取得していない場合の、案内文のテストです。Chromium が存在しないこと、期待していた場所、`runtime_setup` ツールの呼び出し、ダウンロードの量（`120MB`）、環境変数による自動取得の方法が含まれることを確認します。')
     const { deps } = fakeDependencies({ installed: false, autoInstall: false })
 
     const rejected = await ensureChromium('drawio_export', deps)
@@ -170,7 +174,8 @@ describe('ensureChromium: 既定は取得せず runtime_setup ツールを案内
     expect(detail).toContain('PECOTV_AUTO_INSTALL_BROWSER=1')
   })
 
-  it('取得先を特定できないときも案内文を組み立てられる', async () => {
+  it('取得先を特定できない場合も、案内文を作成できる', async () => {
+    await explains('Chromium の取得先を特定できない場合の `ensureChromium` のテストです。期待していた場所が既定の Playwright のディレクトリと案内され、案内文に `undefined` が含まれないことを確認します。')
     // PLAYWRIGHT_BROWSERS_PATH=0 や HOME 無しでは場所が決まらない。undefined を
     // そのまま文言へ埋めると「undefined に見つかりません」になり、誘導として読めない。
     const { deps } = fakeDependencies({ installed: false, autoInstall: false })
@@ -182,7 +187,8 @@ describe('ensureChromium: 既定は取得せず runtime_setup ツールを案内
     expect(String(rejected?.detail)).not.toContain('undefined')
   })
 
-  it('detail は runtime_setup ツールを名指しする', async () => {
+  it('detail には、runtime_setup ツールの名前を含める', async () => {
+    await explains('`slide_convert` のために `ensureChromium` を実行した場合のテストです。`detail` に、ツール名の `slide_convert` と、`runtime_setup` ツールの呼び出しの案内が含まれることを確認します。')
     const { deps } = fakeDependencies({ installed: false, autoInstall: false })
 
     const rejected = await ensureChromium('slide_convert', deps)
@@ -194,21 +200,24 @@ describe('ensureChromium: 既定は取得せず runtime_setup ツールを案内
 })
 
 describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', () => {
-  it('未取得なら取得し、成功したら処理を続行させる', async () => {
+  it('Chromium を取得していない場合は取得し、成功すれば処理を続ける', async () => {
+    await explains('自動取得を有効にして、Chromium を取得していない場合の `ensureChromium` のテストです。取得の処理を 1 回呼び出し、成功した場合に `undefined` を返すことを確認します。')
     const { deps, installCalls } = fakeDependencies({ installed: false, autoInstall: true })
 
     expect(await ensureChromium('drawio_export', deps)).toBeUndefined()
     expect(installCalls()).toBe(1)
   })
 
-  it('取得済みなら opt-in でも取得しない', async () => {
+  it('取得済みの場合は、自動取得を有効にしていても、取得しない', async () => {
+    await explains('自動取得を有効にして、Chromium を取得済みの場合の `ensureChromium` のテストです。取得の処理を呼び出さず、`undefined` を返すことを確認します。')
     const { deps, installCalls } = fakeDependencies({ installed: true, autoInstall: true })
 
     expect(await ensureChromium('drawio_export', deps)).toBeUndefined()
     expect(installCalls()).toBe(0)
   })
 
-  it('取得が失敗したら理由と復旧手順を返す', async () => {
+  it('取得が失敗した場合は、理由と復旧の手順を返す', async () => {
+    await explains('自動取得が失敗する場合の `ensureChromium` のテストです。`chromium-install-failed` の失敗になり、プロキシの環境変数などの復旧手順が含まれ、`log` に標準出力と標準エラー出力が入ることを確認します。')
     const { deps } = fakeDependencies({
       installed: false,
       autoInstall: true,
@@ -230,7 +239,8 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
     expect(rejected?.data['log']).toBe('Downloading Chromium 140.0 (playwright build v1217)\ndownload failed')
   })
 
-  it('TLS の証明書検証で落ちた場合は NODE_EXTRA_CA_CERTS の確認を促す', async () => {
+  it('TLS の証明書の検証で失敗した場合は、NODE_EXTRA_CA_CERTS の確認を案内する', async () => {
+    await explains('取得が TLS の証明書の検証で失敗した場合の `ensureChromium` のテストです。これまでの案内に加えて、`NODE_EXTRA_CA_CERTS` を確認する案内が含まれ、同梱の証明書には触れないことを確認します。')
     // SSL を中継するプロキシの CA が無いと TLS で落ちる。
     // pecot は証明書を同梱しないので、runtime_setup ツール側と同じ判定・同じ文言で NODE_EXTRA_CA_CERTS を案内する。
     const { deps } = fakeDependencies({
@@ -252,7 +262,8 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
     expect(detail, '同梱の証明書は無い').not.toContain('bundled')
   })
 
-  it('起動失敗 (exitCode null) を「exit null」と書かずに返す', async () => {
+  it('取得のコマンドを起動できなかった場合は、exit null と書かずに、起動できなかったことを返す', async () => {
+    await explains('取得のコマンドを起動できず、終了コードが `null` になる場合の `ensureChromium` のテストです。`exit null` とは書かず、`could not start the download command` と案内することを確認します。')
     // playwright を解決できない / node を起動できないケース。SpawnResult は exitCode: null で表す。
     const { deps } = fakeDependencies({
       installed: false,
@@ -268,7 +279,8 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
     expect(detail).toContain('could not start the download command')
   })
 
-  it('シグナル終了 (exitCode null + signal) は中断として返す', async () => {
+  it('シグナルで終了した場合は、中断として返す', async () => {
+    await explains('取得のコマンドが `SIGTERM` で終了した場合の `ensureChromium` のテストです。`exit null` とは書かず、`detail` にシグナルの名前が含まれることを確認します。')
     const { deps } = fakeDependencies({
       installed: false,
       autoInstall: true,
@@ -283,7 +295,8 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
     expect(detail).toContain('SIGTERM')
   })
 
-  it('ロック待ちの上限超過は「別プロセスが取得中」として返す', async () => {
+  it('ロックの待ち時間が上限を超えた場合は、別のプロセスが取得中であることを返す', async () => {
+    await explains('取得のコマンドが、ロックの競合を示す終了コードで終了した場合の `ensureChromium` のテストです。別のプロセスがダウンロード中であることを示すメッセージが、`detail` に含まれることを確認します。')
     // flock(1) の -E で指定した exit code。取得コマンド自身の失敗と区別する。
     const { deps } = fakeDependencies({
       installed: false,
@@ -296,7 +309,8 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
     expect(String(rejected?.detail)).toContain('another process is downloading chromium')
   })
 
-  it('呼び出し元の signal を取得コマンドへ渡す', async () => {
+  it('呼び出し元の signal を、取得のコマンドへ渡す', async () => {
+    await explains('`ensureChromium` に `signal` を渡して呼び出した場合のテストです。取得の処理が、渡した `signal` と同じものを受け取ることを確認します。')
     const { deps, installSignal } = fakeDependencies({ installed: false, autoInstall: true })
     const controller = new AbortController()
 
@@ -305,7 +319,8 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
     expect(installSignal()).toBe(controller.signal)
   })
 
-  it('タイムアウトはタイムアウトとして理由に出す', async () => {
+  it('タイムアウトした場合は、タイムアウトしたことを理由として返す', async () => {
+    await explains('取得のコマンドがタイムアウトした場合の `ensureChromium` のテストです。`detail` に、ダウンロードがタイムアウトしたことを示すメッセージが含まれることを確認します。')
     const { deps } = fakeDependencies({
       installed: false,
       autoInstall: true,
@@ -317,7 +332,8 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
     expect(String(rejected?.detail)).toContain('download timed out')
   })
 
-  it('exit 0 でも実体が置かれていなければ失敗として扱う', async () => {
+  it('終了コードが 0 でも、Chromium が配置されていない場合は、失敗として扱う', async () => {
+    await explains('取得のコマンドは成功したが、Chromium が配置されていない場合の `ensureChromium` のテストです。`chromium-install-failed` の失敗になり、`detail` に期待していた場所が含まれることを確認します。')
     // 「取得コマンドは成功したが skip されただけ」を成功と取り違えないための分岐。
     const dependencies: ChromiumDependencies = {
       isInstalled: () => Promise.resolve(false),
@@ -334,8 +350,9 @@ describe('ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する', 
 })
 
 describe('chromium 未取得時のツール応答', () => {
-  it('drawio_export は実処理を呼ばず isError で返す', async (context) => {
+  it('Chromium を取得していない場合は、drawio_export は実際の処理を呼び出さず、エラーを返す', async (context) => {
     await verifies(context, 'PV-DRAWIO-EXPORT-07')
+    await explains('Chromium を取得していない状態で、`drawio_export` を呼び出した場合のテストです。`isError` が `true` で、`kind` が `chromium-not-installed` になり、出力先に何も書き出されないことを確認します。')
     stubChromium()
 
     const workDirectory = createWorkDirectory()
@@ -351,8 +368,9 @@ describe('chromium 未取得時のツール応答', () => {
     expect(snapshotTree(workDirectory)).toEqual(new Map())
   })
 
-  it('drawio_export は print_hash なら chromium 未取得でも成功する', async (context) => {
+  it('Chromium を取得していなくても、print_hash を指定した drawio_export は成功する', async (context) => {
     await verifies(context, 'PV-DRAWIO-EXPORT-03')
+    await explains('Chromium を取得していない状態で、`print_hash` を指定して `drawio_export` を呼び出した場合のテストです。エラーにならず、`drawio.export.hash` のイベントが返ることを確認します。')
     stubChromium()
 
     const result = await drawioExportTool.handler(
@@ -364,8 +382,9 @@ describe('chromium 未取得時のツール応答', () => {
     expect(dataOf(result)['event']).toBe('drawio.export.hash')
   })
 
-  it('slide_convert は実処理を呼ばず isError で返す', async (context) => {
+  it('Chromium を取得していない場合は、slide_convert は実際の処理を呼び出さず、エラーを返す', async (context) => {
     await verifies(context, 'PV-SLIDE-CONVERT-07')
+    await explains('Chromium を取得していない状態で、`slide_convert` を呼び出した場合のテストです。`isError` が `true` で、`kind` が `chromium-not-installed` になり、`runtime_setup` ツールの呼び出しを案内することを確認します。')
     stubChromium()
 
     const result = await withOutputCheck(slideConvertDefinition()).handler(
@@ -378,8 +397,9 @@ describe('chromium 未取得時のツール応答', () => {
     expect(sentenceOf(result)).toContain('call the `runtime_setup` tool')
   })
 
-  it('drawio_create は PNG を諦めて表示用 HTML は書く (CLI の degrade と同じ)', async (context) => {
+  it('Chromium を取得していない場合は、drawio_create は PNG を生成せず、表示用の HTML だけを書き出す', async (context) => {
     await verifies(context, 'PV-DRAWIO-CREATE-07')
+    await explains('Chromium を取得していない状態で、PNG を生成する設定の `drawio_create` を呼び出した場合のテストです。エラーにならず、HTML を書き出し、`png` が `null` で `pngFailed` が `true` になり、警告と復旧手段を返すことを確認します。')
     // drawio_export / slide_convert と違い、chromium 無しでも表示用 HTML の生成は成立する。
     // CLI は PNG 失敗を警告に落として exit 3 を返すので、MCP もそこへ揃える (SC-002)。
     stubChromium()
@@ -401,7 +421,8 @@ describe('chromium 未取得時のツール応答', () => {
     expect(sentenceOf(degraded)).toContain('call the `runtime_setup` tool')
   })
 
-  it('drawio_create は out_path 省略なら chromium 未取得でも URL を返す', async () => {
+  it('Chromium を取得していなくても、out_path を省略した drawio_create は URL を返す', async () => {
+    await explains('Chromium を取得していない状態で、`out_path` を省略して `drawio_create` を呼び出した場合のテストです。エラーにならず、`drawio.url.done` のイベントが返ることを確認します。')
     stubChromium()
 
     const result = await drawioCreateTool.handler({ input_path: MINIMAL_DRAWIO }, CALL)
@@ -410,8 +431,9 @@ describe('chromium 未取得時のツール応答', () => {
     expect(dataOf(result)['event']).toBe('drawio.url.done')
   })
 
-  it('drawio_create は png: false なら chromium 未取得でも表示用 HTML を書く', async (context) => {
+  it('Chromium を取得していなくても、png を false にした drawio_create は表示用の HTML を書き出す', async (context) => {
     await verifies(context, 'PV-DRAWIO-CREATE-04')
+    await explains('Chromium を取得していない状態で、`png` を `false` にして `drawio_create` を呼び出した場合のテストです。エラーにならず、指定した出力先に HTML が書き出されることを確認します。')
     stubChromium()
     const workDirectory = createWorkDirectory()
     const outPath = path.join(workDirectory, 'out.drawio.html')

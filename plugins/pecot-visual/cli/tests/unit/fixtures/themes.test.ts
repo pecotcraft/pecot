@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
 import { extractSkeleton, isFrontmatterBlock } from '../../../src/domain/slidev-theme/skeleton.js'
+import { explains } from '../../_helpers/explains.js'
 
 // tests/unit/fixtures → tests/fixtures/themes
 const THEMES_ROOT = path.resolve(import.meta.dirname, '..', '..', 'fixtures', 'themes')
@@ -88,7 +89,8 @@ function declaredLayoutNames(): readonly string[] {
 }
 
 describe('テスト用テーマのファイル構成', () => {
-  it('with-declaration は宣言・references・layouts・public を持つ', () => {
+  it('宣言ありのテスト用テーマは、宣言・references・layouts・public などのファイルを持つ', async () => {
+    await explains('テスト用テーマ `with-declaration` のファイル構成のテストです。`pecot-theme.json`・`references/`・`layouts/`・`public/`・`styles/` の下のファイルを、期待した一覧のとおりに持つことを確認します。')
     expect(listFiles(DECLARED)).toEqual([
       'layouts/cover.vue',
       'layouts/end.vue',
@@ -121,7 +123,8 @@ describe('テスト用テーマのファイル構成', () => {
     ])
   })
 
-  it('without-declaration は layouts だけを持ち、宣言と references を持たない', () => {
+  it('宣言なしのテスト用テーマは、layouts と package.json だけを持ち、宣言と references を持たない', async () => {
+    await explains('テスト用テーマ `without-declaration` のファイル構成のテストです。`layouts/` の 2 ファイルと `package.json` だけがあり、`pecot-theme.json` と `references/` が存在しないことを確認します。')
     expect(listFiles(BARE)).toEqual([
       'layouts/one.vue',
       'layouts/two.vue',
@@ -136,7 +139,8 @@ describe('package.json', () => {
   it.each([
     ['with-declaration', DECLARED, 'slidev-theme-pecotv-test-declared'],
     ['without-declaration', BARE, 'slidev-theme-pecotv-test-bare'],
-  ])('%s は取得時に何も動かさない形で、vue を peerDependencies に持つ', (_label, root, name) => {
+  ])('%s は、取得時に何も実行しない形で、vue を peerDependencies に持つ', async (_label, root, name) => {
+    await explains('テスト用テーマの `package.json` のテストです。名前・版・`private`・`type` が決めた値で、`scripts` を持たず、`peerDependencies` に `vue` と `@slidev/client` を持つことを確認します。')
     const packageJson = readPackage(path.join(root, 'package.json'))
     expect(packageJson.name).toBe(name)
     expect(packageJson.version).toBe('0.0.0')
@@ -149,16 +153,19 @@ describe('package.json', () => {
     expect(packageJson.engines).not.toHaveProperty('slidev')
   })
 
-  it('with-declaration の dependencies は、テーマだけが使う依存 1 つだけ', () => {
+  it('宣言ありのテスト用テーマの dependencies は、テーマだけが使う依存 1 つだけにする', async () => {
+    await explains('テスト用テーマ `with-declaration` の `package.json` のテストです。`dependencies` が `pecotv-test-theme-dep` の 1 つだけで、`file:../theme-only-dep` を指していることを確認します。')
     const packageJson = readPackage(path.join(DECLARED, 'package.json'))
     expect(packageJson.dependencies).toEqual({ 'pecotv-test-theme-dep': 'file:../theme-only-dep' })
   })
 
-  it('without-declaration は dependencies を持たない', () => {
+  it('宣言なしのテスト用テーマは、dependencies を持たない', async () => {
+    await explains('テスト用テーマ `without-declaration` の `package.json` のテストです。`dependencies` の項目が存在しないことを確認します。')
     expect(readPackage(path.join(BARE, 'package.json'))).not.toHaveProperty('dependencies')
   })
 
-  it('theme-only-dep は engines.node と vue の peer を固定し、ファイルは 2 つだけ', () => {
+  it('テーマだけが使う依存は、engines.node と vue の peerDependencies を固定し、ファイルは 2 つだけにする', async () => {
+    await explains('テスト用の依存 `theme-only-dep` のテストです。`engines.node` と `peerDependencies` が決めた値で、`dependencies` がなく、ファイルが `index.js` と `package.json` だけであることを確認します。')
     const packageJson = readPackage(path.join(DEP, 'package.json'))
     expect(packageJson.name).toBe('pecotv-test-theme-dep')
     expect(packageJson.engines).toEqual({ node: '^24.22.1 || >=26.12.1' })
@@ -171,7 +178,8 @@ describe('package.json', () => {
 describe('pecot-theme.json', () => {
   const declaration = readDeclaration(path.join(DECLARED, 'pecot-theme.json'))
 
-  it('契約の項目が揃っている', () => {
+  it('宣言ファイルは、テーマの宣言に必要な項目をすべて持つ', async () => {
+    await explains('テスト用テーマの `pecot-theme.json` のテストです。`schema`・`slide`・`fonts`・`fontSizes`・`pptx`・`lint.rules`・`layouts` が、決めた値で書かれていることを確認します。')
     expect(declaration.schema).toBe(1)
     expect(declaration.slide).toEqual({ width: 960, height: 540 })
     expect(declaration.fonts).toEqual({
@@ -189,7 +197,8 @@ describe('pecot-theme.json', () => {
     expect(declaration.layouts).toEqual({ references: 'references' })
   })
 
-  it('drawio の枠と印のレイアウトは layouts に存在する', () => {
+  it('宣言ファイルに書いた draw.io の枠と印のレイアウトは、layouts に存在する', async () => {
+    await explains('テスト用テーマの `pecot-theme.json` の `drawio` のテストです。`panels` と `markerLayouts` に書いたレイアウトの名前が、すべて `layouts/` のファイル名として存在することを確認します。')
     const names = declaredLayoutNames()
     expect(declaration.drawio?.panels).toEqual({ panel: { width: 400, height: 300 } })
     expect(declaration.drawio?.markerLayouts).toEqual(['marked'])
@@ -210,13 +219,15 @@ describe('references', () => {
   const directory = path.join(DECLARED, 'references')
   const layoutFiles = listFiles(directory).filter(file => file !== '_common.yaml')
 
-  it('_common.yaml は description と 2 つ以上の分類を持つ', () => {
+  it('_common.yaml は、description と 2 つ以上のカテゴリを持つ', async () => {
+    await explains('テスト用テーマの `references/_common.yaml` のテストです。文字列の `description` と、2 つ以上の `layout_categories` を持つことを確認します。')
     const common = readYaml(path.join(directory, '_common.yaml'))
     expect(common.description).toEqual(expect.any(String))
     expect(common.layout_categories?.length).toBeGreaterThanOrEqual(2)
   })
 
-  it('layout: が layouts/*.vue のファイル名と 1 対 1 に対応する', () => {
+  it('references の layout の値は、layouts の .vue のファイル名と 1 対 1 で対応する', async () => {
+    await explains('テスト用テーマの `references/` と `layouts/` の対応のテストです。各 yaml の `layout` の値が、`layouts/` の `.vue` のファイル名の一覧と過不足なく一致することを確認します。')
     const declared = layoutFiles.map(file => readYaml(path.join(directory, file)).layout)
       .toSorted(byName)
     expect(declared).toEqual(declaredLayoutNames().toSorted(byName))
@@ -224,7 +235,8 @@ describe('references', () => {
   })
 
   // hidden の scratch は一覧に出ないため、分類を持たない。
-  it.each(DECLARED_LAYOUTS.filter(name => name !== 'scratch'))('%s は _template.yaml の項目を持ち、includes は _common だけ', (name) => {
+  it.each(DECLARED_LAYOUTS.filter(name => name !== 'scratch'))('%s の宣言は、_template.yaml の項目を持ち、includes は _common だけにする', async (name) => {
+    await explains('テスト用テーマの `references/` にあるレイアウトの宣言のテストです。`layout`・`description`・`props`・`text_constraints` を持ち、`includes` が `_common` だけであることを確認します。')
     const reference = readYaml(path.join(directory, `${name}.yaml`))
     expect(reference.layout).toBe(name)
     expect(reference.description).toEqual(expect.any(String))
@@ -236,7 +248,8 @@ describe('references', () => {
     expect(categories).toContain(reference.category)
   })
 
-  it.each(DECLARED_LAYOUTS)('%s は examples に --- で囲んだ frontmatter を 1 件以上持つ', (name) => {
+  it.each(DECLARED_LAYOUTS)('%s の宣言は、examples に --- で囲んだ frontmatter を 1 件以上持つ', async (name) => {
+    await explains('テスト用テーマの `references/` にあるレイアウトの宣言のテストです。`examples` から取り出した見本が `---` で囲んだ frontmatter で、その `layout` に自分のレイアウト名を指定していることを確認します。')
     const text = readFileSync(path.join(directory, `${name}.yaml`), 'utf8')
     expect(extractSkeleton(text), `${name}.yaml の examples`).toSatisfy(isFrontmatterBlock)
     expect(extractSkeleton(text)).toContain(`layout: ${name}\n`)

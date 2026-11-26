@@ -18,6 +18,7 @@ import { run, runShell, shellFile } from './_helpers/run.js'
 import type { RunResult } from './_helpers/run.js'
 import { splitLines } from './_helpers/text.js'
 import { readOutput } from '../../../../../libs/interface-spec/src/vitest/attach.js'
+import { explains } from '../_helpers/explains.js'
 
 const COMMON_SCRIPT = path.join(hooksDirectory, 'lib', 'session-start-common.sh')
 
@@ -96,7 +97,8 @@ function lockFileFor(hookCase: HookCase, temporaryDirectory: string, projectDire
 describe('session-start-common.sh', () => {
   // CLAUDE_ENV_FILE（spec 025 で session-project-dir を撤廃した）
 
-  it('CLAUDE_ENV_FILE があっても、何も書き込まない', () => {
+  it('CLAUDE_ENV_FILE があっても、何も書き込まない', async () => {
+    await explains('`session-start-common.sh` のテストです。`CLAUDE_ENV_FILE` が指定されている場合でも、そのファイルへ何も書き込まないことを確認します。')
     const hookCase = createHookCase()
     const environmentFile = setUpEnvironmentFile(hookCase)
     const projectDirectory = makeGitProject(hookCase, true)
@@ -108,7 +110,8 @@ describe('session-start-common.sh', () => {
 
   // flock の排他制御。flock コマンド単体の相互排他だけを確かめる。本体の _LOCK_ID 配線は、本体を通すケースが確かめる。
 
-  it('flock コマンドで、ロックを取得できる', () => {
+  it('flock コマンドで、ロックを取得できる', async () => {
+    await explains('`flock` による排他制御のテストです。ロックを誰も持たない状態で `flock -n` を実行した場合に、ロックを取得でき、終了コード 0 で `ok` を出力することを確認します。')
     const hookCase = createHookCase()
     const lockDirectory = path.join(hookCase.temporaryPath, 'tmp')
     mkdirSync(lockDirectory, { recursive: true })
@@ -121,6 +124,7 @@ describe('session-start-common.sh', () => {
   })
 
   it('ロックを保持している間、別のプロセスのロック取得は失敗する', async () => {
+    await explains('`flock` による排他制御のテストです。別のプロセスがロックを保持している間に `flock -n` を実行した場合に、ロックの取得が失敗し、終了コードが 0 以外になることを確認します。')
     const hookCase = createHookCase()
     const lockDirectory = path.join(hookCase.temporaryPath, 'tmp')
     mkdirSync(lockDirectory, { recursive: true })
@@ -138,7 +142,8 @@ describe('session-start-common.sh', () => {
     }
   })
 
-  it('ロックを解放した後は、再び取得できる', () => {
+  it('ロックを解放した後は、再び取得できる', async () => {
+    await explains('`flock` による排他制御のテストです。ロックを取得したサブシェルが終了した後に、もう一度 `flock -n` を実行した場合に、ロックを再び取得できることを確認します。')
     const hookCase = createHookCase()
     const lockDirectory = path.join(hookCase.temporaryPath, 'tmp')
     mkdirSync(lockDirectory, { recursive: true })
@@ -154,6 +159,7 @@ describe('session-start-common.sh', () => {
 
   // lock のパスは TMPDIR 配下に _LOCK_ID（PROJECT_DIR の cksum）で作られる。同じ規則で再現して、holder に先取りさせる。
   it('別のプロセスが同じロックを保持している間、本体はロックの取得に失敗して何もせず終わる', async () => {
+    await explains('`session-start-common.sh` のテストです。別のプロセスが同じロックを保持している間に本体を実行した場合に、ロックの取得に失敗して終了コード 0 で終わり、`.gitignore` を作らないことを確認します。')
     const hookCase = createHookCase()
     const projectDirectory = makeGitProject(hookCase, true)
     const temporaryDirectory = path.join(hookCase.temporaryPath, 'tmpdir')
@@ -183,7 +189,8 @@ describe('session-start-common.sh', () => {
 
   // flock が無い環境（標準の macOS）
 
-  it('flock が PATH に無くても、サブスクリプトが動き、ロックを残さない', () => {
+  it('flock が PATH に無くても、サブスクリプトが動き、ロックを残さない', async () => {
+    await explains('`session-start-common.sh` のテストです。`PATH` に `flock` が無い環境で実行した場合に、終了コード 0 で `.gitignore` を作り、ロックのファイルを残さないことを確認します。')
     const hookCase = createHookCase()
     const binDirectory = pathWithoutCommand(hookCase, 'flock')
     expect(existsSync(path.join(binDirectory, 'flock'))).toBe(false)
@@ -207,7 +214,8 @@ describe('session-start-common.sh', () => {
 
   // .pecot/.gitignore 生成の配線
 
-  it('.pecot が無いプロジェクトでは、.pecot を作らない', () => {
+  it('.pecot が無いプロジェクトでは、.pecot を作らない', async () => {
+    await explains('`session-start-common.sh` のテストです。`.pecot` ディレクトリが無いプロジェクトで実行した場合に、終了コード 0 で終わり、`.pecot` を作らないことを確認します。')
     const hookCase = createHookCase()
     const projectDirectory = makeGitProject(hookCase)
     hookCase.setEnv('CLAUDE_PROJECT_DIR', projectDirectory)
@@ -220,7 +228,8 @@ describe('session-start-common.sh', () => {
     expect(existsSync(path.join(projectDirectory, '.pecot'))).toBe(false)
   })
 
-  it('.pecot があるとき、.gitignore を作り、config を除外の対象から外す行を書く', () => {
+  it('.pecot があるとき、.gitignore を作り、config を除外の対象から外す行を書く', async () => {
+    await explains('`session-start-common.sh` のテストです。`.pecot` ディレクトリがあるプロジェクトで実行した場合に、`.gitignore` を作り、`config` を除外の対象から外す行を書くことを確認します。')
     const hookCase = createHookCase()
     const projectDirectory = makeGitProject(hookCase, true)
     hookCase.setEnv('CLAUDE_PROJECT_DIR', projectDirectory)
@@ -236,7 +245,8 @@ describe('session-start-common.sh', () => {
     expect(lines).toContain('!/config/projects/*.json')
   })
 
-  it('設定が無いとき、git pull を呼ばない', () => {
+  it('設定が無いとき、git pull を呼ばない', async () => {
+    await explains('`session-start-common.sh` のテストです。設定ファイルが存在しない場合に、終了コード 0 で終わり、`git pull` を呼ばないことを確認します。')
     const hookCase = createHookCase()
     const projectDirectory = makeGitProject(hookCase)
     hookCase.setEnv('PECOT_HOOKS_CONFIG_PATH', path.join(hookCase.temporaryPath, 'missing.json'))
@@ -248,7 +258,8 @@ describe('session-start-common.sh', () => {
     expect(gitCallLog.count('pull')).toBe(0)
   })
 
-  it('git-sync を有効にしても、source が compact のときは pull せず、.gitignore は作る', () => {
+  it('git-sync を有効にしても、source が compact のときは pull せず、.gitignore は作る', async () => {
+    await explains('`session-start-common.sh` のテストです。`git-sync` を有効にして `source` が `compact` の場合に、`git pull` を呼ばず、`.gitignore` は作ることを確認します。')
     const hookCase = createHookCase()
     const projectDirectory = makeGitProject(hookCase, true)
     hooksConfig(hookCase).write({ 'git-sync': true })

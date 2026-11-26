@@ -79,7 +79,9 @@ def _roots() -> dict[str, str]:
     return {project: root for (project, _), (root, _) in _test_targets().items()}
 
 
+@allure.title("`project.json` の収集結果に、置き場所の 4 種類がすべて含まれる")
 def test_project_files_include_all_kinds() -> None:
+    """`git ls-files` から `project.json` を集める処理のテストです。`.githooks`・`.nx/nx-release`・`libs`・`plugins` の 4 種類の置き場所が、いずれも収集結果に含まれることを確認します。"""
     with allure.step("project.json の一覧を読む"):
         # 集め方が狭まると、下の突き合わせが抜けに気づかず通るので、置き場所の 4 種類を確かめる。
         files = _project_files()
@@ -90,7 +92,9 @@ def test_project_files_include_all_kinds() -> None:
         assert "plugins/pecot-workflow/project.json" in files
 
 
+@allure.title("nx の test target は、すべて report-lanes.json に載っている")
 def test_every_test_target_is_listed() -> None:
+    """`project.json` に定義された `test-` で始まる target（`nx:noop` を除く）のテストです。`report-lanes.json` に載っていない target が 1 件も存在しないことを確認します。"""
     with allure.step("nx の test target を読む"):
         listed = {(entry["project"], entry["target"]) for entry in _entries()}
         missing = sorted(f"{p}:{t}" for p, t in set(_test_targets()) - listed)
@@ -98,7 +102,9 @@ def test_every_test_target_is_listed() -> None:
         assert missing == [], f"report-lanes.json に無い target: {missing}"
 
 
+@allure.title("report-lanes.json の項目は、すべて実在する nx の target を指す")
 def test_every_entry_is_a_real_target() -> None:
+    """`report-lanes.json` の各項目のテストです。project と target の組み合わせが、nx に存在しない項目が 1 件も存在しないことを確認します。"""
     with allure.step("report-lanes.json の項目を読む"):
         targets = _test_targets()
         unknown = sorted(
@@ -110,15 +116,19 @@ def test_every_entry_is_a_real_target() -> None:
         assert unknown == [], f"nx に無い target: {unknown}"
 
 
+@allure.title("report-lanes.json の項目は、project と target の組み合わせが重ならない")
 def test_entries_are_unique() -> None:
+    """`report-lanes.json` の項目の識別子（`project:target`）に、重複が存在しないことを確認するテストです。"""
     with allure.step("項目の識別子を集める"):
         ids = _entry_ids()
     with allure.step("識別子が重ならないことを確かめる"):
         assert len(ids) == len(set(ids))
 
 
+@allure.title("項目 {param_id} は、results と excluded のどちらか一方だけを持つ")
 @pytest.mark.parametrize("entry", _entries(), ids=_entry_ids())
 def test_entry_has_either_results_or_excluded(entry: dict[str, Any]) -> None:
+    """`report-lanes.json` の各項目のテストです。使える項目名が決まった範囲に収まり、`results` と `excluded` のうち一方だけが存在し、値が空でない文字列であることを確認します。"""
     with allure.step("項目のキーの種類を確かめる"):
         assert set(entry) <= {"project", "target", "plugin", "results", "excluded"}
         kinds = [key for key in ("results", "excluded") if key in entry]
@@ -126,14 +136,18 @@ def test_entry_has_either_results_or_excluded(entry: dict[str, Any]) -> None:
         assert isinstance(entry[kinds[0]], str) and entry[kinds[0]]
 
 
+@allure.title("レポートに載せるレーンは、期待する一覧と一致する")
 def test_included_lanes_match_the_list() -> None:
+    """`results` を持つ項目、つまりレポートに載せるレーンのテストです。レーンの一覧が、期待する一覧と過不足なく一致することを確認します。"""
     with allure.step("results を持つ項目を集める"):
         included = sorted(f"{e['project']}:{e['target']}" for e in _entries() if "results" in e)
     with allure.step("含めるレーンが期待の一覧と同じことを確かめる"):
         assert included == _INCLUDED
 
 
+@allure.title("report-lanes.json に、除外するレーンは存在しない")
 def test_excluded_reasons() -> None:
+    """`excluded` を持つ項目のテストです。すべてのレーンをレポートへ載せる今の構成で、除外するレーンが 1 つも存在しないことを確認します。"""
     with allure.step("除外の理由を集める"):
         reasons = {
             f"{e['project']}:{e['target']}": e["excluded"] for e in _entries() if "excluded" in e
@@ -142,12 +156,14 @@ def test_excluded_reasons() -> None:
         assert reasons == {}
 
 
+@allure.title("レーン {param_id} の results は、target の outputs に含まれる")
 @pytest.mark.parametrize(
     "entry",
     [e for e in _entries() if "results" in e],
     ids=lambda e: f"{e['project']}:{e['target']}",
 )
 def test_results_is_in_outputs(entry: dict[str, Any]) -> None:
+    """レポートに載せる各レーンの `results` のテストです。`project.json` の `outputs` から求めたパスの一覧に、`results` の値が含まれることを確認します。"""
     with allure.step("target の outputs を読む"):
         root, definition = _test_targets()[(entry["project"], entry["target"])]
         outputs = [
@@ -160,12 +176,14 @@ def test_results_is_in_outputs(entry: dict[str, Any]) -> None:
         )
 
 
+@allure.title("レーン {param_id} の results は、project のルート配下の決まった形にする")
 @pytest.mark.parametrize(
     "entry",
     [e for e in _entries() if "results" in e],
     ids=lambda e: f"{e['project']}:{e['target']}",
 )
 def test_results_path_shape(entry: dict[str, Any]) -> None:
+    """レポートに載せる各レーンの `results` のテストです。名前が `allure-results` で、パスが `<project のルート>/test-results/<target>/allure-results` の形であることを確認します。"""
     with allure.step("results の path の形を確かめる"):
         # allure-reporter.ts と run.sh が、この形でディレクトリを作る。
         assert PurePosixPath(entry["results"]).name == "allure-results"
@@ -173,8 +191,10 @@ def test_results_path_shape(entry: dict[str, Any]) -> None:
         assert entry["results"] == f"{root}/test-results/{entry['target']}/allure-results"
 
 
+@allure.title("項目 {param_id} は、プラグインの project にだけ plugin を持つ")
 @pytest.mark.parametrize("entry", _entries(), ids=_entry_ids())
 def test_plugin_only_for_plugins(entry: dict[str, Any]) -> None:
+    """`report-lanes.json` の各項目の `plugin` のテストです。`plugins` 直下の project では `plugin` が project 名と一致し、それ以外の project では `plugin` が存在しないことを確認します。"""
     with allure.step("プロジェクトの場所を読む"):
         root = _roots()[entry["project"]]
     with allure.step("plugin の項目がプラグインにだけあることを確かめる"):
@@ -202,7 +222,9 @@ def _js_slug(lanes: list[str]) -> list[str]:
     return json.loads(out.stdout)
 
 
+@allure.title("実際の report-lanes.json から、すべてのレーンの job を 1 行の JSON で出力する")
 def test_real_lanes_make_one_job_per_lane_on_one_line() -> None:
+    """`lanes.py` を引数なしで実行した場合のテストです。標準出力が改行 1 つの JSON で、job の順序と先頭の内容が期待どおりであり、slug が ci.yml の matrix と一致することを確認します。"""
     with allure.step("実際のレーンの一覧で CLI を動かす"):
         result = _run()
     with allure.step("終了コード・1 行の matrix・レーンごとの job を確かめる"):
@@ -218,7 +240,9 @@ def test_real_lanes_make_one_job_per_lane_on_one_line() -> None:
         assert {job["slug"] for job in matrix} == set(_js_slug(_INCLUDED))
 
 
+@allure.title("レーン名から作る slug は、ci.yml の matrix の式と一致する")
 def test_slug_matches_ci_matrix(tmp_path: Path) -> None:
+    """記号や空白を含むレーン名を持つ `report-lanes.json` から、`lanes.py` が slug を作る場合のテストです。`list-test-lanes.sh` の JavaScript の式と同じ slug になり、除外したレーンは出力に含まれないことを確認します。"""
     with allure.step("記号を含むレーン名の一覧を書いて CLI を動かす"):
         lanes = ["p:test-a", "p/x:test b", "p.q_r:test-c"]
         path = tmp_path / "report-lanes.json"
@@ -240,6 +264,7 @@ def test_slug_matches_ci_matrix(tmp_path: Path) -> None:
         assert "p:test-z" not in by_lane
 
 
+@allure.title("{param_id} の形式の report-lanes.json を渡すと、1 行のエラーで止まる")
 @pytest.mark.parametrize(
     ("lanes", "message"),
     [
@@ -258,6 +283,7 @@ def test_slug_matches_ci_matrix(tmp_path: Path) -> None:
     ids=["duplicate-slug", "missing-target", "both-kinds", "no-kind", "not-a-list"],
 )
 def test_broken_lanes_stop_with_one_line(tmp_path: Path, lanes: object, message: str) -> None:
+    """形式が正しくない `report-lanes.json` を渡した場合のテストです。終了コードが 1 になり、標準出力が空で、標準エラー出力に原因を示す 1 行のメッセージが表示されることを確認します。"""
     with allure.step("読めないレーンの一覧を書いて CLI を動かす"):
         path = tmp_path / "report-lanes.json"
         path.write_text(json.dumps(lanes), encoding="utf-8")
@@ -269,7 +295,9 @@ def test_broken_lanes_stop_with_one_line(tmp_path: Path, lanes: object, message:
         assert result.stderr.count("\n") == 1
 
 
+@allure.title("report-lanes.json が存在しないと、`ERROR:` で始まるメッセージを表示して止まる")
 def test_missing_file_stops(tmp_path: Path) -> None:
+    """存在しないファイルのパスを渡して `lanes.py` を実行した場合のテストです。終了コードが 1 になり、標準出力が空で、標準エラー出力が `ERROR: ` で始まることを確認します。"""
     with allure.step("存在しないファイルで CLI を動かす"):
         result = _run(str(tmp_path / "none.json"))
     with allure.step("終了コード 1 と ERROR の出力を確かめる"):

@@ -13,6 +13,7 @@ import { gitRepository } from '../_helpers/git.js'
 import { run, runHookEntry } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { containing, parseJson } from '../_helpers/text.js'
+import { explains } from '../../_helpers/explains.js'
 
 interface Client {
   readonly client: string
@@ -103,7 +104,8 @@ describe('pre-tool-use-bash.sh の応答形式', () => {
     { label: 'pecot issue quick -r owner/repo -m "summary"' },
     { label: 'pecot pr create' },
     { label: 'pecot issue show 1' },
-  ]))('$clientName の入力でコマンドが $label のとき、何も返さない', (row) => {
+  ]))('$clientName の入力でコマンドが $label のとき、何も返さない', async (row) => {
+    await explains(`Bash の PreToolUse フック（\`pre-tool-use-bash.sh\`）の応答のテストです。${row.clientName} の入力で、コマンドが \`${row.label}\` の場合に、標準出力に何も出力しないことを確認します。`)
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     const result = runBashEntry(hookCase, row.client, row.label, project)
@@ -112,7 +114,8 @@ describe('pre-tool-use-bash.sh の応答形式', () => {
   })
 
   // deny（禁止操作）は hookSpecificOutput.permissionDecision で出す。
-  it.for(CLIENTS)('$clientName の入力で git-no-verify-check を有効にして git commit に --no-verify が付くとき、deny を返す', (row) => {
+  it.for(CLIENTS)('$clientName の入力で git-no-verify-check を有効にして git commit に --no-verify が付くとき、deny を返す', async (row) => {
+    await explains(`Bash の PreToolUse フック（\`pre-tool-use-bash.sh\`）の応答のテストです。${row.clientName} の入力で、\`git-no-verify-check\` を有効にして \`git commit --no-verify\` を実行しようとした場合に、\`deny\`（拒否）の判定を返すことを確認します。`)
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     hooksConfig(hookCase).write({ 'git-no-verify-check': true })
@@ -121,7 +124,8 @@ describe('pre-tool-use-bash.sh の応答形式', () => {
     assertDecision(result, 'deny', 'git-no-verify-check')
   })
 
-  it.for(CLIENTS)('$clientName の入力で git-no-verify-check が初期値のまま git commit に --no-verify が付くとき、何も返さない', (row) => {
+  it.for(CLIENTS)('$clientName の入力で git-no-verify-check が初期値のまま git commit に --no-verify が付くとき、何も返さない', async (row) => {
+    await explains(`Bash の PreToolUse フック（\`pre-tool-use-bash.sh\`）の応答のテストです。${row.clientName} の入力で、\`git-no-verify-check\` を初期値のまま \`git commit --no-verify\` を実行しようとした場合に、標準出力に何も出力しないことを確認します。`)
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     const result = runBashEntry(hookCase, row.client, 'git commit --no-verify -m x', project)
@@ -132,7 +136,8 @@ describe('pre-tool-use-bash.sh の応答形式', () => {
   it.for(clientRows([
     { label: 'gh pr create --title t', marker: 'gh-pr-create-check' },
     { label: 'gh issue create --title t', marker: 'gh-issue-create-check' },
-  ]))('$clientName の入力でコマンドが $label のとき、deny を返す', (row) => {
+  ]))('$clientName の入力でコマンドが $label のとき、deny を返す', async (row) => {
+    await explains(`Bash の PreToolUse フック（\`pre-tool-use-bash.sh\`）の応答のテストです。${row.clientName} の入力で、コマンドが \`${row.label}\` の場合に、\`deny\`（拒否）の判定を返し、理由に \`${row.marker}\` を含めることを確認します。`)
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     const result = runBashEntry(hookCase, row.client, row.label, project)
@@ -140,7 +145,8 @@ describe('pre-tool-use-bash.sh の応答形式', () => {
     assertDecision(result, 'deny', row.marker)
   })
 
-  it.for(CLIENTS)('$clientName の入力で保護ブランチから commit するとき、deny を返す', (row) => {
+  it.for(CLIENTS)('$clientName の入力で保護ブランチから commit するとき、deny を返す', async (row) => {
+    await explains(`Bash の PreToolUse フック（\`pre-tool-use-bash.sh\`）の応答のテストです。${row.clientName} の入力で、保護ブランチ（\`wt3\`）から \`git commit\` を実行しようとした場合に、\`deny\`（拒否）の判定を返すことを確認します。`)
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     const checkout = run(hookCase, 'git', ['checkout', '-q', '-b', 'wt3'], { cwd: project })
@@ -151,7 +157,8 @@ describe('pre-tool-use-bash.sh の応答形式', () => {
   })
 
   // allow は理由が残る。
-  it.for(CLIENTS)('$clientName の入力で reviewer の作業場所へ clone するとき、理由つきで allow を返す', (row) => {
+  it.for(CLIENTS)('$clientName の入力で reviewer の作業場所へ clone するとき、理由つきで allow を返す', async (row) => {
+    await explains(`Bash の PreToolUse フック（\`pre-tool-use-bash.sh\`）の応答のテストです。${row.clientName} の入力で、reviewer の作業場所へ \`git clone\` を実行しようとした場合に、\`allow\`（許可）の判定を理由つきで返すことを確認します。`)
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     const command = 'git clone https://github.com/owner/repo.git .pecot/work/1229/reviewer/repo'
@@ -162,7 +169,8 @@ describe('pre-tool-use-bash.sh の応答形式', () => {
 
   // 統合後のエントリは、リマインダーと判定が同時に当たっても判定が落ちない。判定の無いコマンドにはリマインダーだけを載せる。
   // リマインダーは、/tmp/... に当たる tmp-path-warner だけになる。
-  it.for(CLIENTS)('$clientName の入力でリマインダーと gh pr merge が同時に当たるとき、判定を付けずにリマインダーだけを載せる', (row) => {
+  it.for(CLIENTS)('$clientName の入力でリマインダーと gh pr merge が同時に当たるとき、判定を付けずにリマインダーだけを載せる', async (row) => {
+    await explains(`Bash の PreToolUse フック（\`pre-tool-use-bash.sh\`）の応答のテストです。${row.clientName} の入力で、\`/tmp/\` を使う警告と \`gh pr merge\` が同時に当たる場合に、判定は付けず、警告だけを \`additionalContext\` に載せることを確認します。`)
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     const command = 'git switch feat/other; gh pr merge 999999 --body-file /tmp/note-1229'
@@ -172,7 +180,8 @@ describe('pre-tool-use-bash.sh の応答形式', () => {
     expect(getPath(output, ['hookSpecificOutput', 'permissionDecision'])).toBeUndefined()
   })
 
-  it.for(CLIENTS)('$clientName の入力でリマインダーと deny が同時に当たるとき、deny を落とさず両方を載せる', (row) => {
+  it.for(CLIENTS)('$clientName の入力でリマインダーと deny が同時に当たるとき、deny を落とさず両方を載せる', async (row) => {
+    await explains(`Bash の PreToolUse フック（\`pre-tool-use-bash.sh\`）の応答のテストです。${row.clientName} の入力で、\`/tmp/\` を使う警告と \`deny\`（拒否）の判定が同時に当たる場合に、判定を落とさず、警告も \`additionalContext\` に載せることを確認します。`)
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     hooksConfig(hookCase).write({ 'git-no-verify-check': true })
@@ -182,7 +191,8 @@ describe('pre-tool-use-bash.sh の応答形式', () => {
     assertReminders(assertDecision(result, 'deny', 'git-no-verify-check'))
   })
 
-  it.for(CLIENTS)('$clientName の入力で /tmp/ のパスを使うとき、Bash のエントリ経由でも警告を届ける', (row) => {
+  it.for(CLIENTS)('$clientName の入力で /tmp/ のパスを使うとき、Bash のエントリ経由でも警告を届ける', async (row) => {
+    await explains(`Bash の PreToolUse フック（\`pre-tool-use-bash.sh\`）の応答のテストです。${row.clientName} の入力で、\`/tmp/\` のパスを使うコマンドを実行しようとした場合に、判定は付けず、警告を \`additionalContext\` に載せることを確認します。`)
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     const result = runBashEntry(hookCase, row.client, 'cat /tmp/x-1229', project)
@@ -192,7 +202,8 @@ describe('pre-tool-use-bash.sh の応答形式', () => {
     expect(getPath(output, ['hookSpecificOutput', 'permissionDecision'])).toBeUndefined()
   })
 
-  it.for(CLIENTS)('$clientName の入力で判定とリマインダーのどちらにも当たらないとき、何も出力しない', (row) => {
+  it.for(CLIENTS)('$clientName の入力で判定とリマインダーのどちらにも当たらないとき、何も出力しない', async (row) => {
+    await explains(`Bash の PreToolUse フック（\`pre-tool-use-bash.sh\`）の応答のテストです。${row.clientName} の入力で、判定と警告のどちらにも当たらないコマンド（\`echo hi\`）を実行しようとした場合に、標準出力に何も出力しないことを確認します。`)
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     const result = runBashEntry(hookCase, row.client, 'echo hi', project)

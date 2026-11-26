@@ -45,7 +45,9 @@ def _run_cmd() -> str:
     return _step("Run release")["with"]["runCmd"]
 
 
+@allure.title("リリースの workflow は、release-plan の environment で 1 つの job を実行する")
 def test_single_job_runs_in_release_plan_environment() -> None:
+    """`release.yml` の job のテストです。job が `release` の 1 つだけで、environment が `release-plan` であることを確認します。"""
     with allure.step("release.yml の workflow を読む"):
         wf = _workflow()
     with allure.step("job が 1 つで、release-plan の environment で動くことを確かめる"):
@@ -53,7 +55,9 @@ def test_single_job_runs_in_release_plan_environment() -> None:
         assert wf["jobs"]["release"]["environment"] == "release-plan"
 
 
+@allure.title("手動の起動で dry-run の指定を省略すると、dry-run で実行する")
 def test_inputs_default_to_dry_run() -> None:
+    """`release.yml` の `workflow_dispatch` の入力のテストです。`dry-run` が真偽値で既定値が `true`、`sha` が文字列であることを確認します。"""
     with allure.step("workflow_dispatch の inputs を読む"):
         inputs = _workflow()[True]["workflow_dispatch"]["inputs"]
     with allure.step("dry-run の既定が true で、sha が文字列であることを確かめる"):
@@ -62,7 +66,9 @@ def test_inputs_default_to_dry_run() -> None:
         assert inputs["sha"]["type"] == "string"
 
 
+@allure.title("sha の形式を確認した後に、入力の sha を checkout する")
 def test_checkout_uses_input_sha_after_the_sha_form_is_checked() -> None:
+    """`release.yml` の step の順序のテストです。`Check sha input` が `Checkout` より前に実行され、checkout の `ref` が入力の `sha` か `github.sha` になることを確認します。"""
     with allure.step("step の並びを読む"):
         names = [s.get("name") for s in _steps()]
     with allure.step("sha の形を確かめた後に、入力の sha で checkout することを確かめる"):
@@ -70,12 +76,16 @@ def test_checkout_uses_input_sha_after_the_sha_form_is_checked() -> None:
         assert _step("Checkout")["with"]["ref"] == "${{ inputs.sha || github.sha }}"
 
 
+@allure.title("入力は、文字列として扱う `github.event.inputs` を使わない")
 def test_does_not_use_stringly_typed_inputs() -> None:
+    """`release.yml` の全文のテストです。`github.event.inputs` が含まれないことを確認します。"""
     with allure.step("workflow の本文に github.event.inputs が無いことを確かめる"):
         assert "github.event.inputs" not in _WORKFLOW.read_text(encoding="utf-8")
 
 
+@allure.title("App のトークンの権限は、dry-run の指定に応じて変わる")
 def test_token_permissions_follow_dry_run() -> None:
+    """`Generate GitHub App token` の step のテストです。dry-run のときは `contents` を `read` にして `actions` を付与せず、本番のときは `write` にします。脆弱性に関する 3 つの権限は、常に `read` であることを確認します。"""
     with allure.step("App token の step の権限を読む"):
         with_ = _step("Generate GitHub App token")["with"]
     with allure.step("権限が dry-run に従い、読み取りの権限が read であることを確かめる"):
@@ -89,14 +99,18 @@ def test_token_permissions_follow_dry_run() -> None:
             assert with_[key] == "read"
 
 
+@allure.title("シェルのスクリプトに、日本語を書かない")
 def test_no_japanese_in_shell() -> None:
+    """`release.yml` の `run` と `runCmd` のテストです。ASCII 以外の文字が含まれないことを確認します。"""
     with allure.step("すべての step の run に日本語が無いことを確かめる"):
         for step in _steps():
             for text in (step.get("run", ""), step.get("with", {}).get("runCmd", "")):
                 assert not re.search(r"[^\x00-\x7f]", text), step["name"]
 
 
+@allure.title("release の job は、actions の書き込み権限を持たない")
 def test_release_job_has_no_actions_write() -> None:
+    """`release.yml` の権限のテストです。workflow の権限が `contents` と `packages` の読み取りだけで、job ごとの権限の指定が存在しないことを確認します。"""
     with allure.step("workflow の権限を読む"):
         wf = _workflow()
     with allure.step("job に権限が無く、actions の write が無いことを確かめる"):
@@ -104,7 +118,9 @@ def test_release_job_has_no_actions_write() -> None:
         assert "permissions" not in wf["jobs"]["release"]
 
 
+@allure.title("リリース版のサイトのビルドは、本番のリリースが main に反映された後にだけ起動する")
 def test_pages_release_build_is_triggered_after_land_in_production_only() -> None:
+    """`Trigger pages release build` の step のテストです。`Run release` の後に動き、dry-run でないときだけ実行され、`land.log` を確認してから `pages-build.yml` を `side=release` で起動することを確認します。"""
     with allure.step("step の並びと Pages のビルドを起こす step を読む"):
         names = [s.get("name") for s in _steps()]
         step = _step("Trigger pages release build")
@@ -121,6 +137,7 @@ def test_pages_release_build_is_triggered_after_land_in_production_only() -> Non
         )
 
 
+@allure.title("land.log が {param_id} のとき、リリース版のサイトのビルドを起動するかを決める")
 @pytest.mark.parametrize(
     ("land_log", "called"),
     [
@@ -134,6 +151,7 @@ def test_pages_release_build_is_triggered_after_land_in_production_only() -> Non
 def test_pages_release_build_trigger_reads_land_log(
     tmp_path: Path, land_log: str | None, called: bool
 ) -> None:
+    """偽の `gh` を使って `Trigger pages release build` の step を実行した場合のテストです。`land.log` が `landed:` で始まる場合だけ `gh workflow run` が呼ばれ、それ以外の場合は呼ばれないことを確認します。"""
     with allure.step("land.log と偽の gh を置き、Pages のビルドを起こす step の run を動かす"):
         if land_log is not None:
             (tmp_path / ".pecot/tmp/release").mkdir(parents=True)
@@ -162,7 +180,9 @@ def test_pages_release_build_trigger_reads_land_log(
             assert not calls.exists()
 
 
+@allure.title("`release-land.sh` には、実行権限が付いている")
 def test_land_script_is_executable() -> None:
+    """`.githooks/scripts/release-land.sh` が存在し、所有者の実行権限が付いていることを確認するテストです。"""
     with allure.step("land.sh が実在し、実行できることを確かめる"):
         assert _LAND.is_file()
         assert _LAND.stat().st_mode & stat.S_IXUSR
@@ -291,9 +311,11 @@ _NX_PUSH_ENV = {
 }
 
 
+@allure.title("ローカルの main が進んでいても、nx と同じ形の push はブランチとタグだけを送信する")
 def test_nx_style_push_moves_only_branch_and_tag_even_when_local_main_is_ahead(
     scene: Scene,
 ) -> None:
+    """ローカルの main にだけコミットがある状態で、nx と同じ引数の `git push` を実行した場合のテストです。リリースのブランチとタグだけが origin に反映され、origin の main は変わらないことを確認します。"""
     with allure.step("ローカルの main を進め、nx と同じ形で push する"):
         _commit_file(scene.work, "local-only.txt", "x\n", "chore: local only")
         scene.release(push=False)
@@ -309,7 +331,9 @@ def test_nx_style_push_moves_only_branch_and_tag_even_when_local_main_is_ahead(
 # ---- release-land.sh ----
 
 
+@allure.title("main が進んでいないとき、`release-land.sh` は fast-forward で main に反映する")
 def test_land_fast_forward(scene: Scene) -> None:
+    """`release-land.sh` で、origin の main がリリースのブランチの元から進んでいない場合のテストです。出力が `landed: <sha> (fast-forward)` になり、main がリリースのコミットを指し、ブランチが削除されることを確認します。"""
     with allure.step("release を用意し、land.sh を動かす"):
         release = scene.release()
         result = scene.land()
@@ -320,7 +344,9 @@ def test_land_fast_forward(scene: Scene) -> None:
         assert scene.origin_ref(f"refs/heads/{scene.branch}") == ""
 
 
+@allure.title("main が進んでいるとき、`release-land.sh` は main をマージして反映する")
 def test_land_merges_advanced_main(scene: Scene) -> None:
+    """origin の main が別のコミットで進んでいる場合の `release-land.sh` のテストです。マージのコミットの親が新しい main とリリースのコミットになり、タグがその祖先に含まれ、ブランチが削除されることを確認します。"""
     with allure.step("release を用意し、origin の main を進めて、land.sh を動かす"):
         release = scene.release()
         new_main = _advance_main(scene.other, "other.txt", "o\n")
@@ -344,7 +370,11 @@ def test_land_merges_advanced_main(scene: Scene) -> None:
         assert scene.origin_ref(f"refs/heads/{scene.branch}") == ""
 
 
+@allure.title(
+    "リリースのコミットが存在しないとき、`release-land.sh` はブランチを削除するだけにする"
+)
 def test_land_without_release_commit_only_deletes_branch(scene: Scene) -> None:
+    """リリースのコミットを持たないブランチで `release-land.sh` を実行した場合のテストです。出力が `skipped: no release commit` になり、ブランチが削除され、main は変わらないことを確認します。"""
     with allure.step("commit の無い release のブランチを用意し、origin にあることを確かめる"):
         scene.release(commit=False)
         assert scene.origin_ref(f"refs/heads/{scene.branch}")
@@ -357,7 +387,9 @@ def test_land_without_release_commit_only_deletes_branch(scene: Scene) -> None:
         assert scene.origin_ref("refs/heads/main") == scene.base
 
 
+@allure.title("push の直前に main が進んでも、`release-land.sh` は再試行して反映する")
 def test_land_retries_when_main_advances_just_before_push(tmp_path: Path, scene: Scene) -> None:
+    """push の直前に別の clone から main を進める git の shim を使った場合のテストです。再試行後に main をマージして反映し、進めたコミットが親に含まれ、ブランチが削除されることを確認します。"""
     with allure.step("release を用意し、push の直前に main が進む shim を置いて、land.sh を動かす"):
         release = scene.release()
         shim_env = _push_shim(tmp_path, scene, times=1)
@@ -380,7 +412,9 @@ def _assert_land_error(result: subprocess.CompletedProcess[str], scene: Scene) -
     assert scene.origin_ref(f"refs/heads/{scene.branch}")
 
 
+@allure.title("マージが競合すると、`release-land.sh` はエラーで終了し、ブランチを残す")
 def test_land_conflict_errors_and_keeps_branch(scene: Scene) -> None:
+    """main と同じファイルを別の内容で変更した場合の `release-land.sh` のテストです。終了コードが 1 になり、`error:` で始まる行が 1 つだけ出力され、ブランチが残ることを確認します。"""
     with allure.step(
         "release と main の変更を衝突させ、land.sh を動かして、ERROR とブランチの残りを確かめる"
     ):
@@ -389,7 +423,9 @@ def test_land_conflict_errors_and_keeps_branch(scene: Scene) -> None:
         _assert_land_error(scene.land(), scene)
 
 
+@allure.title("main が進み続けると、`release-land.sh` は 5 回で諦めてエラーで終了する")
 def test_land_gives_up_after_five_attempts(tmp_path: Path, scene: Scene) -> None:
+    """push のたびに main が進む shim を使った場合のテストです。終了コードが 1 になり、push の試行が 5 回で止まり、ブランチが残ることを確認します。"""
     with allure.step("push を毎回失敗させて、land.sh を動かし、ERROR を確かめる"):
         scene.release()
         shim_env = _push_shim(tmp_path, scene, times=99)
@@ -398,9 +434,13 @@ def test_land_gives_up_after_five_attempts(tmp_path: Path, scene: Scene) -> None
         assert read_output(tmp_path / "counter").strip() == "5"
 
 
+@allure.title(
+    "リモートの hook が拒否したときは、メッセージに fetch first を含んでも再試行せずに止まる"
+)
 def test_land_stops_at_once_when_remote_hook_rejects_even_if_it_says_fetch_first(
     scene: Scene,
 ) -> None:
+    """origin の `pre-receive` が `denied: fetch first` を出力して拒否する場合の `release-land.sh` のテストです。エラーで終了し、`retry:` が出力されず、main が変わらないことを確認します。"""
     with allure.step("origin の hook で push を拒み、land.sh を動かして、ERROR を確かめる"):
         scene.release()
         hook = scene.origin / "hooks/pre-receive"
@@ -413,7 +453,9 @@ def test_land_stops_at_once_when_remote_hook_rejects_even_if_it_says_fetch_first
         assert scene.origin_ref("refs/heads/main") == scene.base
 
 
+@allure.title("ブランチの削除に失敗したとき、`release-land.sh` はその出力を表示する")
 def test_land_shows_branch_delete_failure_output(scene: Scene) -> None:
+    """origin の `pre-receive` が削除を拒否する場合の `release-land.sh` のテストです。エラーで終了し、標準エラー出力に hook のメッセージ `no delete` が含まれることを確認します。"""
     with allure.step("origin の hook でブランチの削除を拒み、land.sh を動かして、ERROR を確かめる"):
         scene.release(commit=False)
         hook = scene.origin / "hooks/pre-receive"
@@ -425,7 +467,9 @@ def test_land_shows_branch_delete_failure_output(scene: Scene) -> None:
         assert "no delete" in result.stderr
 
 
+@allure.title("checkout しているブランチが main でも、`release-land.sh` は反映できる")
 def test_land_does_not_depend_on_the_checked_out_branch(scene: Scene) -> None:
+    """作業ツリーが main を checkout している状態で `release-land.sh` を実行した場合のテストです。終了コードが 0 になり、origin の main がリリースのコミットを指すことを確認します。"""
     with allure.step("release を用意し、main に切り替えて、land.sh を動かす"):
         release = scene.release()
         _git(scene.work, "switch", "-q", "main")
@@ -457,6 +501,9 @@ def _sha_flow(scene: Scene, dry_run: str, sha: str) -> int:
     return 0
 
 
+@allure.title(
+    "dry-run が {dry_run} で sha が {sha_kind} のとき、sha の確認の終了コードは {expected} になる"
+)
 @pytest.mark.parametrize(
     ("dry_run", "sha_kind", "expected"),
     [
@@ -473,6 +520,7 @@ def _sha_flow(scene: Scene, dry_run: str, sha: str) -> int:
     ],
 )
 def test_sha_flow(scene: Scene, dry_run: str, sha_kind: str, expected: int) -> None:
+    """`Check sha input` と `Verify sha` の step を、bash で続けて実行した場合のテストです。本番では空・短縮形・大文字・複数行・祖先でない sha を拒否し、dry-run では空を許可することを確認します。"""
     with allure.step("origin に無い commit を作り、sha の入力を用意する"):
         _git(scene.work, "switch", "-q", "-c", "local-only")
         local_only = _commit_file(scene.work, "x.txt", "x\n", "feat: not pushed")
@@ -564,7 +612,9 @@ def run_scene(tmp_path: Path) -> RunScene:
     return RunScene(tmp_path)
 
 
+@allure.title("dry-run のとき、`runCmd` は計画を作るだけで、main には何も反映しない")
 def test_run_cmd_dry_run_only_plans(run_scene: RunScene) -> None:
+    """偽の `pecot`・`pnpm`・`gh` を使って `runCmd` を dry-run で実行した場合のテストです。`preflight.log` と `nx.log` が作られ、`land.log` は作られず、origin の main とブランチが変わらないことを確認します。"""
     with allure.step("dry-run で release の run コマンドを動かす"):
         result = run_scene.run_cmd(dry_run=True)
     with allure.step("plan を出すだけで、land と push は行わないことを確かめる"):
@@ -576,7 +626,9 @@ def test_run_cmd_dry_run_only_plans(run_scene: RunScene) -> None:
         assert run_scene.origin_ref(f"refs/heads/{run_scene.branch}") == ""
 
 
+@allure.title("本番のとき、`runCmd` はリリースを作り、main に反映する")
 def test_run_cmd_production_lands_release(run_scene: RunScene) -> None:
+    """`runCmd` を本番で実行した場合のテストです。タグを付けたコミットを origin の main に反映し、リリースのブランチを削除することを確認します。あわせて、`land.log` が `landed:` と fast-forward で始まることも確認します。"""
     with allure.step("本番で release の run コマンドを動かす"):
         result = run_scene.run_cmd(dry_run=False, NX_MODE="ok")
     with allure.step("release が main に載り、ブランチが消えることを確かめる"):
@@ -589,7 +641,9 @@ def test_run_cmd_production_lands_release(run_scene: RunScene) -> None:
         assert land_log.startswith(f"landed: {released} (fast-forward)")
 
 
+@allure.title("push の前に nx が失敗すると、`runCmd` は main に反映しない")
 def test_run_cmd_nx_failure_before_push_skips_land(run_scene: RunScene) -> None:
+    """push の前に nx が失敗する場合の `runCmd` のテストです。終了コードが 1 になり、`land.log` が作られず、origin の main が変わらないことを確認します。"""
     with allure.step("push の前に nx を失敗させて、run コマンドを動かす"):
         result = run_scene.run_cmd(dry_run=False, NX_MODE="fail-before")
     with allure.step("終了コード 1 で、land せず main が動かないことを確かめる"):
@@ -598,9 +652,11 @@ def test_run_cmd_nx_failure_before_push_skips_land(run_scene: RunScene) -> None:
         assert run_scene.origin_ref("refs/heads/main") == run_scene.base
 
 
+@allure.title("push の後に nx が失敗しても、`runCmd` は main に反映し、nx の終了コードを返す")
 def test_run_cmd_nx_failure_after_push_still_lands_and_returns_nx_code(
     run_scene: RunScene,
 ) -> None:
+    """push の後に nx が終了コード 3 で失敗する場合の `runCmd` のテストです。終了コードが 3 になり、リリースのコミットが main に反映され、`land.log` が `landed:` で始まることを確認します。"""
     with allure.step("push の後に nx を失敗させて、run コマンドを動かす"):
         result = run_scene.run_cmd(dry_run=False, NX_MODE="fail-after")
     with allure.step("land は行い、nx の終了コードを返すことを確かめる"):
@@ -610,7 +666,9 @@ def test_run_cmd_nx_failure_after_push_still_lands_and_returns_nx_code(
         assert read_output(run_scene.logs / "land.log").startswith("landed:")
 
 
+@allure.title("`git ls-remote` が失敗すると、`runCmd` はその旨を land.log に記録する")
 def test_run_cmd_ls_remote_failure_is_reported_in_land_log(run_scene: RunScene) -> None:
+    """`git ls-remote` が終了コード 128 で失敗する場合の `runCmd` のテストです。終了コードが 128 になり、`land.log` に `error: git ls-remote failed` で始まる行が残り、main が変わらないことを確認します。"""
     with allure.step("git ls-remote を失敗させて、run コマンドを動かす"):
         result = run_scene.run_cmd(dry_run=False, NX_MODE="ok", LS_REMOTE_FAIL="1")
     with allure.step("失敗が land.log に出て、main が動かないことを確かめる"):
@@ -661,7 +719,9 @@ def _msg(name: str) -> str:
     return _step("Write job summary")["env"][name]
 
 
+@allure.title("dry-run のとき、ジョブのサマリーの見出しは Release plan になる")
 def test_summary_dry_run_heading(tmp_path: Path) -> None:
+    """`Write job summary` の step を dry-run で実行した場合のテストです。サマリーが `## Release plan` で始まり、`preflight` と `nx` のログが `details` として含まれることを確認します。"""
     with allure.step("dry-run のログから要約を作る"):
         text = _summary(tmp_path, {"preflight": "ok\n", "nx": "plan\n"}, DRY_RUN="true")
     with allure.step("plan の見出しと、ログごとの details があることを確かめる"):
@@ -670,7 +730,9 @@ def test_summary_dry_run_heading(tmp_path: Path) -> None:
         assert "<details><summary>nx</summary>" in text
 
 
+@allure.title("本番のとき、ジョブのサマリーは landed の行を表示し、git のエラーは除外する")
 def test_summary_production_shows_landed_line_without_git_errors(tmp_path: Path) -> None:
+    """`land.log` に git のエラーの行が含まれる状態で、本番の `Write job summary` を実行した場合のテストです。`landed:` と `error: push to main was rejected` は表示され、`failed to push some refs` は表示されないことを確認します。"""
     with allure.step("git のエラーを含む land のログから要約を作る"):
         land = (
             "landed: abc123 (merged def456)\n"
@@ -687,7 +749,9 @@ def test_summary_production_shows_landed_line_without_git_errors(tmp_path: Path)
         assert "<summary>land</summary>" not in text
 
 
+@allure.title("sha の確認が失敗したとき、サマリーは基盤の失敗として報告しない")
 def test_summary_sha_failure_is_not_reported_as_infrastructure(tmp_path: Path) -> None:
+    """`Verify sha` の結果が失敗の場合の `Write job summary` のテストです。sha の失敗のメッセージが含まれ、コンテナの起動の失敗のメッセージが含まれないことを確認します。"""
     with allure.step("sha の確認が失敗した状態の要約を作る"):
         text = _summary(
             tmp_path, {}, SHA_VERIFY_OUTCOME="failure", UP_OUTCOME="skipped", RUN_OUTCOME="skipped"
@@ -697,7 +761,9 @@ def test_summary_sha_failure_is_not_reported_as_infrastructure(tmp_path: Path) -
         assert _msg("MSG_UP_FAILED") not in text
 
 
+@allure.title("コンテナの起動の失敗と skip で、サマリーのメッセージを分ける")
 def test_summary_container_failure_and_skipped_are_told_apart(tmp_path: Path) -> None:
+    """コンテナの起動が失敗した場合と、skip された場合の `Write job summary` のテストです。失敗のときは起動の失敗のメッセージを、skip のときは未実行のメッセージを表示することを確認します。"""
     with allure.step("コンテナの起動が失敗した状態の要約を作る"):
         failed = _summary(tmp_path, {}, UP_OUTCOME="failure", RUN_OUTCOME="skipped")
     with allure.step("失敗と未実行で、別の文が出ることを確かめる"):
@@ -707,14 +773,18 @@ def test_summary_container_failure_and_skipped_are_told_apart(tmp_path: Path) ->
         assert _msg("MSG_UP_FAILED") not in skipped
 
 
+@allure.title("リリースの step が失敗したとき、サマリーは本番と dry-run でメッセージを分ける")
 def test_summary_release_failure_messages(tmp_path: Path) -> None:
+    """`Run release` の結果が失敗の場合の `Write job summary` のテストです。本番ではリリースの失敗のメッセージを、dry-run では計画の失敗のメッセージを表示することを確認します。"""
     with allure.step("release の失敗と plan の失敗の要約が、それぞれの文を出すことを確かめる"):
         assert _msg("MSG_RELEASE_FAILED") in _summary(tmp_path, {}, RUN_OUTCOME="failure")
         plan = _summary(tmp_path / "b", {}, RUN_OUTCOME="failure", DRY_RUN="true")
         assert _msg("MSG_PLAN_FAILED") in plan
 
 
+@allure.title("ログが非常に大きくても、サマリーは 1 MiB 未満に収める")
 def test_summary_stays_under_one_mebibyte(tmp_path: Path) -> None:
+    """3 つのログがそれぞれ約 2 MB になる状態で `Write job summary` を実行した場合のテストです。サマリーの大きさが 1 MiB 未満であることを確認します。"""
     with allure.step("大きなログから要約を作る"):
         big = "x" * 100 + "\n"
         logs = dict.fromkeys(("preflight", "nx", "land"), big * 20000)

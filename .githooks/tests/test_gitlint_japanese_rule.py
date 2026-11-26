@@ -58,6 +58,7 @@ def _violates_uc1(tmp_path: Path, title: str, config: Path | None = None) -> boo
     return "UC1" in result.stderr
 
 
+@allure.title("タイトルが「{title}」のコミットは、日本語の規則に違反しない")
 @pytest.mark.parametrize(
     "title",
     [
@@ -68,15 +69,21 @@ def _violates_uc1(tmp_path: Path, title: str, config: Path | None = None) -> boo
     ],
 )
 def test_title_passes(tmp_path: Path, title: str) -> None:
+    """`.gitlint` の `title-requires-japanese`（`UC1`）のテストです。Dependabot の英語のタイトルや、日本語のタイトルを渡した場合に、`UC1` の違反を出力しないことを確認します。"""
     with allure.step("gitlint でタイトルをチェックし、UC1 に違反しないことを確かめる"):
         assert not _violates_uc1(tmp_path, title)
 
 
+@allure.title("Dependabot ではない英語のタイトルは、日本語の規則に違反する")
 def test_non_dependabot_english_title_fails(tmp_path: Path) -> None:
+    """`build(pecot-tools): update deps` のように、Dependabot の形ではない英語のタイトルを渡した場合のテストです。`UC1` の違反を出力することを確認します。"""
     with allure.step("gitlint で英語のタイトルをチェックし、UC1 に違反することを確かめる"):
         assert _violates_uc1(tmp_path, "build(pecot-tools): update deps")
 
 
+@allure.title(
+    "タイトルが「{title}」のように、Dependabot の形に近いだけだと、日本語の規則に違反する"
+)
 @pytest.mark.parametrize(
     "title",
     [
@@ -85,13 +92,16 @@ def test_non_dependabot_english_title_fails(tmp_path: Path) -> None:
     ],
 )
 def test_near_miss_title_fails(tmp_path: Path, title: str) -> None:
+    """`!` を付けた形や `bumpy` のように、Dependabot のタイトルに近い英語のタイトルを渡した場合のテストです。例外にならず、`UC1` の違反を出力することを確認します。"""
     with allure.step(
         "gitlint で dependabot に似たタイトルをチェックし、UC1 に違反することを確かめる"
     ):
         assert _violates_uc1(tmp_path, title)
 
 
+@allure.title("allow-dependabot を false にすると、Dependabot のタイトルも日本語の規則に違反する")
 def test_dependabot_title_fails_when_option_disabled(tmp_path: Path) -> None:
+    """`.gitlint` の `allow-dependabot` を `false` に変えた設定のテストです。Dependabot のタイトルを渡した場合に、`UC1` の違反を出力することを確認します。"""
     with allure.step("元の .gitlint を読む"):
         config = tmp_path / "gitlint.ini"
         text = (_REPO_ROOT / ".gitlint").read_text(encoding="utf-8")

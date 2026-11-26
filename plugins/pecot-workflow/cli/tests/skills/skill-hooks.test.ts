@@ -4,6 +4,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { explains } from '../_helpers/explains.js'
 import { compareStrings } from '../parity/baseline.js'
 import { asRecord, frontmatter } from './_helpers/frontmatter.js'
 import { pluginRoot } from './_helpers/documents.js'
@@ -25,7 +26,8 @@ describe('スキルの frontmatter のフック', () => {
     describe(`skill ${name}`, () => {
       const hooks = asRecord(frontmatter(skillFile(name))['hooks'])
 
-      it('PostToolUse だけを持ち、1 組で ExitPlanMode に一致する', () => {
+      it('PostToolUse だけを持ち、1 組で ExitPlanMode に一致する', async () => {
+        await explains(`スキル \`${name}\` の frontmatter の hooks のテストです。\`PostToolUse\` だけを持ち、その 1 組のマッチャーが \`ExitPlanMode\` だけに一致することを確認します。`)
         expect(Object.keys(hooks)).toEqual(['PostToolUse'])
         const groups = asArray(hooks['PostToolUse'])
         expect(groups).toHaveLength(1)
@@ -34,7 +36,8 @@ describe('スキルの frontmatter のフック', () => {
         expect(String(group['matcher'])).not.toContain('|')
       })
 
-      it('handler は 1 つで、once: true の command', () => {
+      it('handler は 1 つで、once: true の command', async () => {
+        await explains('ハンドラーの設定のテストです。ハンドラーが 1 つだけで、`type` が `command`、`once` が `true`、`timeout` が 10 であることを確認します。')
         const group = asRecord(asArray(hooks['PostToolUse'])[0])
         const handlers = asArray(group['hooks'])
         expect(handlers).toHaveLength(1)
@@ -44,14 +47,16 @@ describe('スキルの frontmatter のフック', () => {
         expect(handler['timeout']).toBe(10)
       })
 
-      it('command は PREFIX で始まり mode で終わる', () => {
+      it('command は固定の接頭辞で始まり、スキルごとの --mode で終わる', async () => {
+        await explains(`ハンドラーの \`command\` のテストです。\`post-tool-use-exit-plan-mode.sh\` の呼び出しの後ろに \`${mode}\` が付いた文字列と一致し、\`CLAUDE_SKILL_DIR\` を含まないことを確認します。`)
         const group = asRecord(asArray(hooks['PostToolUse'])[0])
         const command = String(asRecord(asArray(group['hooks'])[0])['command'])
         expect(command).toBe(`${PREFIX} ${mode}`)
         expect(command).not.toContain('CLAUDE_SKILL_DIR')
       })
 
-      it('command の指すスクリプトがあり、実行の権限を持つ', () => {
+      it('command の指すスクリプトが存在し、実行権限を持つ', async () => {
+        await explains('ハンドラーのスクリプトのテストです。`hooks/post-tool-use-exit-plan-mode.sh` が存在し、実行権限を持つことを確認します。')
         const script = path.join(pluginRoot, 'hooks', 'post-tool-use-exit-plan-mode.sh')
         expect(() => {
           accessSync(script, constants.X_OK)
@@ -60,7 +65,8 @@ describe('スキルの frontmatter のフック', () => {
     })
   }
 
-  it('ほかのスキルは hooks を持たない', () => {
+  it('ほかのスキルは hooks を持たない', async () => {
+    await explains('`w-active` と `w-quick` 以外のスキルのテストです。ほかのすべての `SKILL.md` の frontmatter に `hooks` が含まれないことを確認します。')
     const others = globSync('skills/*/SKILL.md', { cwd: pluginRoot })
       .toSorted(compareStrings)
       .filter(file => !Object.keys(WITH_HOOKS).includes(path.basename(path.dirname(file))))

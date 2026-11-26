@@ -45,7 +45,9 @@ _BROAD_INPUTS = {
 }
 
 
+@allure.title("test の起点の target は、すべてのレーンをまとめて実行する")
 def test_test_entry_bundles_exactly_the_lanes() -> None:
+    """`.githooks/project.json` の `test` の target のテストです。executor が `nx:noop` で、`dependsOn` が `test-` で始まるレーンの集合と一致することを確認します。"""
     with allure.step("githooks の project.json から test target を読む"):
         entry = _PROJECT["targets"]["test"]
 
@@ -54,7 +56,9 @@ def test_test_entry_bundles_exactly_the_lanes() -> None:
         assert set(entry["dependsOn"]) == set(_LANES)
 
 
+@allure.title("tests の各テストのファイルは、ちょうど 1 つのレーンに載る")
 def test_every_test_file_is_in_exactly_one_lane() -> None:
+    """`.githooks/tests` にあるすべての `test_*.py` と、レーンの command に載るファイルのテストです。載っていないファイルも二重に載っているファイルも存在せず、2 つの一覧が一致することを確認します。"""
     with allure.step("tests/ のファイルと、レーンの command のテストを集める"):
         on_disk = {path.name for path in (_GITHOOKS_DIR / "tests").glob("test_*.py")}
         listed = [name for lane in _LANES.values() for name in _command_tests(lane)]
@@ -66,20 +70,20 @@ def test_every_test_file_is_in_exactly_one_lane() -> None:
         )
 
 
+@allure.title("{lane_name} の command は、各テストを .githooks/tests からのパスで指定する")
 @pytest.mark.parametrize("lane_name", sorted(_LANES))
 def test_command_names_the_full_path_of_each_test(lane_name: str) -> None:
+    """レーンの command に書かれたテストのパスのテストです。すべてのパスが `.githooks/tests/<ファイル名>` の形で、実際にファイルが存在することを確認します。"""
     with allure.step("レーンの command が、実在するテストのフルパスを指すことを確かめる"):
         for word in _command_words(_LANES[lane_name]):
             assert word == f".githooks/tests/{Path(word).name}", f"{lane_name}: {word}"
             assert (_GITHOOKS_DIR.parent / word).is_file(), f"{lane_name}: {word} が無い"
 
 
+@allure.title("{lane_name} は、広い入力を使わず、必要な入力だけを宣言する")
 @pytest.mark.parametrize("lane_name", sorted(_LANES))
 def test_lane_declares_narrow_inputs(lane_name: str) -> None:
-    """広い入力を書くと、.githooks/ のどの変更でもレーンが動く。
-
-    例外は test-checks の tests/test_*.py だけで、新しいテストのファイルを拾う。
-    """
+    """レーンの `inputs` のテストです。`default` などの広い入力を含まず、`test_*.py` の glob は `test-checks` だけが持ち、ほかのレーンは自分のテストのファイルを入力に挙げていることを確認します。"""
     with allure.step("レーンの inputs を読む"):
         inputs = _LANES[lane_name]["inputs"]
 
@@ -94,20 +98,25 @@ def test_lane_declares_narrow_inputs(lane_name: str) -> None:
                 )
 
 
+@allure.title("{lane_name} は、共通の install の target を待つ")
 @pytest.mark.parametrize("lane_name", sorted(_LANES))
 def test_lane_waits_for_the_shared_install(lane_name: str) -> None:
+    """レーンの `dependsOn` のテストです。`pecot` の project の `install` の target が含まれていることを確認します。"""
     with allure.step("レーンが共有の install を待つことを確かめる"):
         assert {"projects": ["pecot"], "target": "install"} in _LANES[lane_name]["dependsOn"]
 
 
+@allure.title("test-checks のレーンは、text-rules の build を待つ")
 def test_checks_lane_waits_for_the_text_rules_build() -> None:
-    """test_check_text.py が使う libs/text-rules/dist を、text-rules:build が用意する。"""
+    """`test-checks` の `dependsOn` のテストです。`test_check_text.py` が使う `libs/text-rules/dist` を作るため、`text-rules` の `build` の target が含まれていることを確認します。"""
     with allure.step("test-checks が text-rules の build を待つことを確かめる"):
         assert {"projects": ["text-rules"], "target": "build"} in _LANES["test-checks"]["dependsOn"]
 
 
+@allure.title("{lane_name} は、共通の入力を使う")
 @pytest.mark.parametrize("lane_name", sorted(_LANES))
 def test_lane_uses_the_shared_inputs(lane_name: str) -> None:
+    """レーンの `inputs` のテストです。`githooksTestGlobals` を含み、`githooksGraphInputs` は `test-nx-cache` など 3 つのレーンだけが含むことを確認します。"""
     with allure.step("レーンの inputs を読む"):
         inputs = _LANES[lane_name]["inputs"]
 

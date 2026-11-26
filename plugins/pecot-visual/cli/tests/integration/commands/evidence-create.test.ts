@@ -30,6 +30,7 @@ import { readZipEntries } from '../../_helpers/zip-entries.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
 import { verifies } from '../../_helpers/verifies.js'
 import { attachAtTestEnd } from '../../_helpers/attach.js'
+import { explains } from '../../_helpers/explains.js'
 
 interface CapturedStream {
   readonly chunks: string[]
@@ -110,6 +111,7 @@ function readJsonEvent(): Record<string, unknown> {
 }
 describe('evidence_create — 正常系 (contracts §3 の観測点)', () => {
   it('画像 3 枚を渡すと、シート 1 枚・No.1 から No.3 の連番・画像 3 件・表示 px × 9525 の EMU・元画像と同じ media の xlsx を出す', async () => {
+    await explains('`evidence create` コマンドが、画像から作成する xlsx のテストです。画像 3 枚を `--json` 付きで渡した場合に、シート 1 枚・`No.1` から `No.3` の連番・画像 3 件が出力され、埋め込まれた画像が元の内容と一致することを確認します。')
     const shots = [
       { bytes: buildPng(1920, 1080, [200, 40, 40]), name: '01-login.png', caption: 'ログイン画面を表示' },
       { bytes: buildPng(800, 600, [40, 80, 200]), name: '02-home.png', caption: 'ホーム画面へ遷移' },
@@ -182,7 +184,8 @@ describe('evidence_create — 正常系 (contracts §3 の観測点)', () => {
     expect(embedded).toStrictEqual(shots.map(shot => shot.bytes))
   })
 
-  it('偽装拡張子の JPEG は image<N>.jpeg として格納され rels もそれを指す', async () => {
+  it('拡張子が png の JPEG ファイルを渡すと、image1.jpeg として格納し、関係定義もそのファイルを指す', async () => {
+    await explains('拡張子と実際の形式が異なる画像を渡した場合の、`evidence create` のテストです。拡張子が `.png` の JPEG を渡した場合に、xlsx の中へ `xl/media/image1.jpeg` として格納され、中身が元の画像と一致することを確認します。')
     const jpeg = buildJpeg(640, 480)
     const specPath = writeSpec({
       title: 'T',
@@ -202,6 +205,7 @@ describe('evidence_create — 正常系 (contracts §3 の観測点)', () => {
 
 describe('evidence_create — 混在入力 (FR-006)', () => {
   it('skipped 3 語彙 + 有効 item の再採番で成功する', async () => {
+    await explains('`evidence create` コマンドの読み込めない画像のテストです。存在しない画像・画像ではないファイル・途中で切れた画像を含む場合に、`skipped` へ理由を出力し、有効な画像だけを番号を振り直して xlsx に出力することを確認します。')
     const directoryPath = workDirectory('shots')
     mkdirSync(directoryPath)
     const missing = workDirectory('missing.png')
@@ -272,6 +276,7 @@ function anchorSummaries(drawing: Readonly<XmlDocument>): readonly AnchorSummary
 
 describe('evidence_create — 注記の描画 (FR-010 / SC-006)', () => {
   it('注記ありの画像・注記なしの画像・除外された画像が混在すると、注記図形を注記ありの画像のアンカーにだけ付ける', async () => {
+    await explains('画像に付ける注記図形のテストです。注記ありの画像・注記なしの画像・除外された画像が混在した場合に、注記図形が注記ありの画像のアンカーにだけ付き、図形の位置・大きさ・矢印の向き・文言が仕様どおりに出力されることを確認します。')
     const annotated = place('01-login.png', buildPng(1920, 1080, [200, 40, 40]))
     const plain = place('02-home.png', buildPng(800, 600, [40, 80, 200]))
     const missing = workDirectory('missing.png')
@@ -366,6 +371,7 @@ describe('evidence_create — US3 ヘッダー・キャプション・並び順�
     // caption は 2 件目だけファイル名の stem と異なる文言を明示する。全件省略にすると
     // 「明示された caption を無視して常に stem を使う」実装も通ってしまい、明示と補完
     // (FR-004) の判別ができない。
+    await explains('画像の並び順と見出しのテストです。`items` を宣言した順に `No.` の通し番号と画像が並び、`caption` を省略した画像にはファイル名が、明示した画像にはその文言が使われることを確認します。')
     const shots = [
       { name: '03-logout.png', bytes: buildPng(1920, 1080, [200, 40, 40]), caption: undefined },
       { name: '01-login.png', bytes: buildPng(800, 600, [40, 80, 200]), caption: 'ログイン画面を表示' },
@@ -416,6 +422,7 @@ describe('evidence_create — US3 ヘッダー・キャプション・並び順�
   })
 
   it('extraHeaders 未指定ではヘッダーがタイトルと作成日だけになる', async () => {
+    await explains('ヘッダーの出力のテストです。`extraHeaders` を指定しなかった場合に、ヘッダーがタイトルと作成日だけになり、追加の行が 1 行も出力されないことを確認します。')
     const specPath = writeSpec({
       title: 'ヘッダー既定のエビデンス',
       createdDate: '2026-08-17',
@@ -439,6 +446,7 @@ describe('evidence_create — US3 ヘッダー・キャプション・並び順�
 
 describe('evidence_create — 失敗系', () => {
   it('全滅入力は既存 --out を壊さない', async () => {
+    await explains('`evidence create` コマンドの有効な画像がない場合のテストです。すべての画像が存在しない場合に、理由が `no-valid-images` のエラーのイベントを出力し、既存の出力先のファイルを変更しないことを確認します。')
     const out = workDirectory('evidence.xlsx')
     const existing = Buffer.from('前回の生成物', 'utf8')
     writeFileSync(out, existing)
@@ -460,6 +468,7 @@ describe('evidence_create — 失敗系', () => {
   })
 
   it('検証エラーは detail に全件を列挙し xlsx を作らない', async () => {
+    await explains('`evidence create` コマンドの入力の検証のテストです。注釈の位置や向きが不正な場合に、エラーのイベントの `detail` へ違反をすべて含め、xlsx を作成しないことを確認します。')
     const specPath = writeSpec({
       title: '検証エラー',
       createdDate: '2026-08-17',

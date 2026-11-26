@@ -11,6 +11,7 @@ import security from 'eslint-plugin-security'
 import vitest from '@vitest/eslint-plugin'
 import stylistic from '@stylistic/eslint-plugin'
 import { tableKeyConfig } from './src/eslint/table-key.ts'
+import { testDescriptionConfig } from './src/eslint/test-description.ts'
 
 const JA = String.raw`[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]`
 const NO_JA = '題に日本語が無い（.claude/rules/test-conventions.md）'
@@ -99,6 +100,7 @@ export default defineConfig(
   },
   {
     // zod が推論する型と ESTree の node の型は変更可能な型で、これらの関数がそれを引数に取る。テストは vitest の型と fixture の型を取る。
+    // rule-tester.ts は、呼び出し側の RuleTester のクラスを受け取って書き換える。
     files: [
       'src/domain/commands-md.ts',
       'src/domain/diff.ts',
@@ -108,6 +110,8 @@ export default defineConfig(
       'src/domain/validate.ts',
       'src/eslint/describe-title.ts',
       'src/eslint/table-key.ts',
+      'src/eslint/test-description.ts',
+      'src/vitest/rule-tester.ts',
       'tests/**/*.ts',
     ],
     rules: { '@typescript-eslint/prefer-readonly-parameter-types': 'off' },
@@ -133,6 +137,7 @@ export default defineConfig(
   },
   // 表を回すテストの題の $キー を確かめる。規則は src/eslint/table-key.ts にある。
   tableKeyConfig(['**/*.test.ts']),
+  testDescriptionConfig(['**/*.test.ts']),
   {
     files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
     ...tsConfigs.disableTypeChecked,

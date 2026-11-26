@@ -16,6 +16,7 @@ import { DEFAULT_API_VERSION } from '@pecot/workflow-core/infra/github/client.js
 import type { RecordedRequest, ResponseRule } from '../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { setUpProject, startGithub } from './_helpers/interface-case.js'
 import { boardRules, createdTracker, freezeClock, issueListRule, WORKFLOW_FIELD } from './_helpers/tracker-sync-case.js'
+import { explains } from './_helpers/explains.js'
 
 useIsolatedEnvironment()
 
@@ -162,11 +163,12 @@ describe('drift.ts', () => {
   })
 
   it.for([
-    { name: '--repo が無い', argv: [] },
-    { name: '--repo が owner/repo の形でない', argv: ['--repo', 'acme'] },
+    { name: '--repo を指定しない', argv: [] },
+    { name: '--repo が owner/repo の形式でない', argv: ['--repo', 'acme'] },
     { name: '--repo の owner が空', argv: ['--repo', '/demo'] },
-    { name: '知らない引数がある', argv: ['--repo', 'acme/demo', '--out', 'x'] },
-  ])('$name と、usage を出して 2 で止まり、取りに行かない', async ({ argv }) => {
+    { name: '未定義の引数を指定する', argv: ['--repo', 'acme/demo', '--out', 'x'] },
+  ])('$name と、usage を出力して終了コード 2 で終了し、スキーマを取得しない', async ({ argv }) => {
+    await explains('`--repo` の指定が不正な場合と、未定義の引数を指定した場合の、`drift.ts` のテストです。どの場合も、使い方（usage）を標準エラーに出力して終了コード 2 で終了し、スキーマを取得しないことを確認します。')
     const requested = recordFetch()
     const { io, stderr } = capture()
     expect(await run(argv, io)).toBe(2)
@@ -174,7 +176,8 @@ describe('drift.ts', () => {
     expect(requested).toEqual([])
   })
 
-  it('--sdl と --openapi を渡し、差と開いた Tracker が無いと、スキーマを取りに行かず、Tracker を作らない', async () => {
+  it('--sdl と --openapi を指定し、差がなく開いた Tracker も存在しないと、スキーマを取得せず、Tracker を作成しない', async () => {
+    await explains('`--sdl` と `--openapi` にファイルを指定し、写しとの差がなく、開いた Tracker も存在しない場合のテストです。スキーマを取得せず、Tracker を作成せずに、`skipped: Tracker creation` を出力することを確認します。')
     const requested = recordFetch()
     const github = await startGithub([trackers()])
     const { io, stderr } = capture()
@@ -185,7 +188,8 @@ describe('drift.ts', () => {
     expect(restWrites(github.requests())).toEqual([])
   })
 
-  it('--sdl だけを省くと、SDL だけを公開スキーマから取り、OpenAPI はファイルから読む', async () => {
+  it('--sdl だけを省略すると、SDL だけを公開スキーマから取得し、OpenAPI はファイルから読み込む', async () => {
+    await explains('`--sdl` だけを省略して実行した場合のテストです。GraphQL の SDL だけを公開スキーマの URL から取得し、OpenAPI は指定したファイルから読み込むことを確認します。')
     const sources = writeSources(SNAPSHOT.items)
     const requested = recordFetch(new Map([[GRAPHQL_SCHEMA_URL, readFileSync(sources.sdl, 'utf8')]]))
     await startGithub([trackers()])
@@ -194,7 +198,8 @@ describe('drift.ts', () => {
     expect(requested).toEqual([GRAPHQL_SCHEMA_URL])
   })
 
-  it('--openapi だけを省くと、DEFAULT_API_VERSION の版の OpenAPI だけを取りに行く', async () => {
+  it('--openapi だけを省略すると、DEFAULT_API_VERSION の版の OpenAPI だけを取得する', async () => {
+    await explains('`--openapi` だけを省略して実行した場合のテストです。`DEFAULT_API_VERSION` の版の OpenAPI だけを取得し、SDL は取得しないことを確認します。')
     const sources = writeSources(SNAPSHOT.items)
     const rest = restDescriptionUrl(DEFAULT_API_VERSION)
     const requested = recordFetch(new Map([[rest, readFileSync(sources.openapi, 'utf8')]]))
@@ -204,7 +209,8 @@ describe('drift.ts', () => {
     expect(requested).toEqual([rest])
   })
 
-  it('差があって開いた Tracker が無いと、ラベル付きの Tracker を作ってボードの Backlog に載せる', async () => {
+  it('差があって開いた Tracker が存在しないと、ラベル付きの Tracker を作成してボードの Backlog に載せる', async () => {
+    await explains('写しとの差があり、開いた Tracker が存在しない場合のテストです。ラベル付きの Tracker を、差の項目を本文に含めて作成し、`created: Tracker` の行を出力することを確認します。')
     const sources = writeSources(CHANGED)
     const listing = trackers(trackerIssue(3, bodyOf(CHANGED, sources), 'closed'))
     const github = await startGithub([listing, createdTracker(12), ...boardRules(12, { onlyIfEmpty: false })])
@@ -218,7 +224,8 @@ describe('drift.ts', () => {
     expect(JSON.stringify(created)).toContain(`- \`${ADDED}\``)
   })
 
-  it('作った Tracker のボードの列を書けないと、error の行を出して 1 で止まる', async () => {
+  it('作成した Tracker のボードの列を設定できないと、error の行を出力して終了コード 1 で終了する', async () => {
+    await explains('作成した Tracker のボード上の Status を設定できない場合のテストです。`error: could not set status backlog of Tracker #12` を出力して、終了コード 1 で終了することを確認します。')
     const rules = boardRules(12, { onlyIfEmpty: false }).filter(rule => rule.match.operation !== 'UpdateProjectItemField')
     await startGithub([
       trackers(),
@@ -232,7 +239,8 @@ describe('drift.ts', () => {
     expect(stderr()).toMatch(/error: could not set status backlog of Tracker #12:/u)
   })
 
-  it('差があり、開いた Tracker の一覧が同じだと、本文を書かずに unchanged の行を出す', async () => {
+  it('差があり、開いた Tracker の本文の一覧が現在の差と同じだと、本文を更新せずに unchanged の行を出力する', async () => {
+    await explains('開いた Tracker の本文に記載した差の一覧が、現在の差と同じ場合のテストです。本文を更新せず、`unchanged: Tracker #5` を出力することを確認します。')
     const sources = writeSources(CHANGED)
     const listing = trackers(trackerIssue(5, bodyOf(CHANGED, sources)))
     const github = await startGithub([listing, ...boardRules(5, { onlyIfEmpty: true, filled: [WORKFLOW_FIELD] })])
@@ -242,7 +250,8 @@ describe('drift.ts', () => {
     expect(restWrites(github.requests())).toEqual([])
   })
 
-  it('差が変わると、開いた Tracker の一覧の間だけを書き直し、外の文を残す', async () => {
+  it('差が変わると、開いた Tracker の本文の一覧の部分だけを書き換え、前後の文を残す', async () => {
+    await explains('開いた Tracker の本文に人の追記を含む状態で、差の内容が変わった場合のテストです。差の一覧の部分だけを書き換え、追記した文を残して本文を更新することを確認します。')
     const sources = writeSources(CHANGED)
     const existing = `人が足した文。\n\n${bodyOf(CHANGED, sources)}`
     const changed = [...CHANGED, ADDED_B]
@@ -258,7 +267,8 @@ describe('drift.ts', () => {
     expect(restWrites(github.requests())).toHaveLength(1)
   })
 
-  it('差が無くなると、開いた Tracker の一覧を none に書き直してから閉じる', async () => {
+  it('差がなくなると、開いた Tracker の本文の一覧を none に書き換えてから閉じる', async () => {
+    await explains('写しとの差がなくなった場合のテストです。開いた Tracker の本文の一覧を `none` に書き換えてから、その Tracker を閉じることを確認します。')
     const sources = writeSources(SNAPSHOT.items)
     const existing = bodyOf(CHANGED, sources)
     const github = await startGithub([trackers(trackerIssue(5, existing)), patched({ body: bodyOf(SNAPSHOT.items, sources, existing) }), patched({ state: 'closed', state_reason: 'completed' })])
@@ -268,7 +278,8 @@ describe('drift.ts', () => {
     expect(restWrites(github.requests())).toHaveLength(2)
   })
 
-  it('開いた Tracker が 2 件以上あると、番号の最も小さいものを使い、ほかを警告に挙げる', async () => {
+  it('開いた Tracker が 2 件以上あると、番号が最も小さいものを対象にし、ほかを警告に挙げる', async () => {
+    await explains('開いた Tracker が 3 件ある場合のテストです。番号が最も小さい `#5` を対象にし、ほかの `#7` と `#9` を開いたままにして、警告を出力することを確認します。')
     const sources = writeSources(CHANGED)
     const body = bodyOf(CHANGED, sources)
     const github = await startGithub([trackers(trackerIssue(9, body), trackerIssue(5, body), trackerIssue(7, body)), ...boardRules(5, { onlyIfEmpty: true, filled: [WORKFLOW_FIELD] })])
@@ -278,7 +289,8 @@ describe('drift.ts', () => {
     expect(restWrites(github.requests())).toEqual([])
   })
 
-  it('開いた Tracker の一覧の印が 1 組でないと、書き込まずに error の行を出して 1 で止まる', async () => {
+  it('開いた Tracker の本文で一覧の範囲を示すコメントが 1 組そろっていないと、書き込まずに error の行を出力して終了コード 1 で終了する', async () => {
+    await explains('開いた Tracker の本文で、一覧の範囲を示すコメントが 1 組そろっていない場合のテストです。書き込みを行わずに、`error: Tracker #5: cannot rewrite the list` で始まる行を出力して、終了コード 1 で終了することを確認します。')
     const github = await startGithub([trackers(trackerIssue(5, '<!-- pecot-issue-surface: tracker -->\n'))])
     const { io, stderr } = capture()
     const argv = argvOf(writeSources(CHANGED))
@@ -287,7 +299,8 @@ describe('drift.ts', () => {
     expect(restWrites(github.requests())).toEqual([])
   })
 
-  it('--dry-run で作るときは、書き込まずに作る予定の行を出す', async () => {
+  it('--dry-run で作成するときは、書き込まずに作成の予定の行を出力する', async () => {
+    await explains('`--dry-run` を指定して、Tracker を作成する場合のテストです。書き込みを行わず、`dry-run: would create Tracker` の行を出力することを確認します。')
     const github = await startGithub([trackers()])
     const { io, stderr } = capture()
     const argv = argvOf(writeSources(CHANGED), '--dry-run')
@@ -296,7 +309,8 @@ describe('drift.ts', () => {
     expect(restWrites(github.requests())).toEqual([])
   })
 
-  it('--dry-run で差が無くなったときは、書き込まずに書き直しと閉じる予定の行を出す', async () => {
+  it('--dry-run で差がなくなったときは、書き込まずに更新と閉じる予定の行を出力する', async () => {
+    await explains('`--dry-run` を指定して、写しとの差がなくなった場合のテストです。書き込みを行わず、本文の更新と Tracker を閉じる予定の行を出力することを確認します。')
     const sources = writeSources(SNAPSHOT.items)
     const listing = trackers(trackerIssue(5, bodyOf(CHANGED, sources)))
     const github = await startGithub([listing])
@@ -306,7 +320,8 @@ describe('drift.ts', () => {
     expect(restWrites(github.requests())).toEqual([])
   })
 
-  it('Tracker の一覧を読めないと、error の行を出して 1 で止まる', async () => {
+  it('Tracker を検索できないと、error の行を出力して終了コード 1 で終了する', async () => {
+    await explains('Tracker の検索が失敗する（HTTP 500 を返す）場合のテストです。`error: Tracker:` で始まる行を出力して、終了コード 1 で終了することを確認します。')
     await startGithub([issueListRule(SURFACE_LABEL, [], 500)])
     const { io, stderr } = capture()
     const argv = argvOf(writeSources(CHANGED))
@@ -314,7 +329,8 @@ describe('drift.ts', () => {
     expect(stderr()).toMatch(/^error: Tracker: /u)
   })
 
-  it('ボードの設定が見つからないと、Tracker を読まずに error の行を出して 1 で止まる', async () => {
+  it('ボードの設定が見つからないと、Tracker を検索せずに error の行を出力して終了コード 1 で終了する', async () => {
+    await explains('対象のリポジトリ（`acme/demo`）がボードの設定に存在しない場合のテストです。GitHub へ要求を送らず、`error:` で始まる行を出力して、終了コード 1 で終了することを確認します。')
     setUpProject({ host: 'github.com', repositories: ['other'] })
     const github = await startGithub([])
     const { io, stderr } = capture()

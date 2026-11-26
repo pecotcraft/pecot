@@ -93,7 +93,11 @@ def _edit(path: Path, old: str, new: str, count: int = 1) -> None:
     path.write_text(text.replace(old, new, count), encoding="utf-8")
 
 
+@allure.title(
+    "ずれが存在しない作業ツリーに gen-runtime-lock.mjs --check を実行すると、成功で終わる"
+)
 def test_clean_tree_passes(repo: Path) -> None:
+    """`gen-runtime-lock.mjs --check` の、複製した作業ツリーに変更を加えない場合のテストです。終了コード 0 で終わり、標準エラーに何も出力しないことを確認します。"""
     with allure.step("runtime-lock のチェックを動かす"):
         result = _check(repo)
 
@@ -101,7 +105,9 @@ def test_clean_tree_passes(repo: Path) -> None:
         assert (result.returncode, result.stderr) == (0, "")
 
 
+@allure.title("メンバーの package.json の依存を変更すると、--write の案内を出力して失敗で終わる")
 def test_member_dependency_change_stops_with_hint(repo: Path) -> None:
+    """`plugins/pecot-workflow/cli/package.json` の `commander` の版を変更した場合のテストです。終了コード 1 で終わり、`runtime-lock.yaml` が `package.json` と一致しない旨と、`--write` の案内を出力することを確認します。"""
     with allure.step("メンバーの package.json の依存を書き換え、runtime-lock のチェックを動かす"):
         pkg = repo / "plugins/pecot-workflow/cli/package.json"
         data = json.loads(pkg.read_text(encoding="utf-8"))
@@ -118,7 +124,9 @@ def test_member_dependency_change_stops_with_hint(repo: Path) -> None:
         assert "gen-runtime-lock.mjs --write" in result.stderr
 
 
+@allure.title("runtime-lock.yaml から importer が存在しなくなると、失敗で終わる")
 def test_importer_missing_in_lock_stops(repo: Path) -> None:
+    """`plugins/pecot-workflow/runtime-lock.yaml` の `cli` の importer の名前を変更した場合のテストです。終了コード 1 で終わり、`importers` に関するメッセージを出力することを確認します。"""
     with allure.step("lock の importer を消し、runtime-lock のチェックを動かす"):
         lock = repo / "plugins/pecot-workflow/runtime-lock.yaml"
         _edit(lock, "  cli:\n", "  cli-gone:\n")
@@ -129,7 +137,9 @@ def test_importer_missing_in_lock_stops(repo: Path) -> None:
         assert "plugins/pecot-workflow/runtime-lock.yaml: importers" in result.stderr
 
 
+@allure.title("runtime-workspace.yaml の設定が変わると、失敗で終わる")
 def test_workspace_setting_drift_stops(repo: Path) -> None:
+    """`plugins/pecot-workflow/runtime-workspace.yaml` の `nodeLinker` を `isolated` に変更した場合のテストです。終了コード 1 で終わり、そのファイルのパスを出力することを確認します。"""
     with allure.step("workspace の設定をずらし、runtime-lock のチェックを動かす"):
         _edit(
             repo / "plugins/pecot-workflow/runtime-workspace.yaml",
@@ -143,7 +153,9 @@ def test_workspace_setting_drift_stops(repo: Path) -> None:
         assert "plugins/pecot-workflow/runtime-workspace.yaml" in result.stderr
 
 
+@allure.title("runtime-lock.yaml の package の integrity が root の lock と異なると、失敗で終わる")
 def test_package_integrity_drift_stops(repo: Path) -> None:
+    """`runtime-lock.yaml` の先頭の package の `integrity` を書き換えた場合のテストです。終了コード 1 で終わり、root の `pnpm-lock.yaml` と一致しない旨を、package 名とともに出力することを確認します。"""
     with allure.step("runtime-lock の最初のパッケージの integrity の位置を探す"):
         lock = repo / "plugins/pecot-workflow/runtime-lock.yaml"
         text = lock.read_text(encoding="utf-8")
@@ -164,7 +176,9 @@ def test_package_integrity_drift_stops(repo: Path) -> None:
         assert f"{key} の integrity が root の pnpm-lock.yaml と一致しません" in result.stderr
 
 
+@allure.title("runtime-lock.yaml の package が root の lock に存在しないと、失敗で終わる")
 def test_package_missing_in_root_lock_stops(repo: Path) -> None:
+    """root の `pnpm-lock.yaml` から、`runtime-lock.yaml` の先頭の package を削除した場合のテストです。終了コード 1 で終わり、root の lock に存在しない旨を、package 名とともに出力することを確認します。"""
     with allure.step("runtime-lock の最初のパッケージを選び、root の lock を読む"):
         key = _first_package(
             (repo / "plugins/pecot-workflow/runtime-lock.yaml").read_text(encoding="utf-8")
@@ -186,8 +200,9 @@ def test_package_missing_in_root_lock_stops(repo: Path) -> None:
         assert f"{key} が root の pnpm-lock.yaml にありません" in result.stderr
 
 
+@allure.title("root の lock の importer の版が runtime-lock.yaml と異なると、失敗で終わる")
 def test_importer_version_drift_from_root_lock_stops(repo: Path) -> None:
-    """root の lock で importer の版を別の実在する版に変えると、runtime-lock との差で止まる。"""
+    """root の `pnpm-lock.yaml` で、importer の依存の版を別の実在する版に変えた場合のテストです。終了コード 1 で終わり、`runtime-lock.yaml` の importer の版が root の lock と一致しない旨を出力することを確認します。"""
     with allure.step("root の lock から importer の block と、変える版を選ぶ"):
         root_lock = repo / "pnpm-lock.yaml"
         text = root_lock.read_text(encoding="utf-8")
@@ -227,8 +242,10 @@ def _write(repo: Path) -> None:
     assert result.returncode == 0, result.stderr
 
 
+@allure.title("--write は、importer が参照する catalog の項目だけを runtime-lock.yaml に写す")
 def test_write_copies_referenced_catalog_only(repo: Path) -> None:
     # どの importer も参照しない項目を root の catalogs.default に足す。--write はこれを落とす。
+    """どの importer も参照しない項目を root の `catalogs.default` に追加して、`--write` を実行するテストです。参照される `vite` などは 3 つのプラグインの `runtime-lock.yaml` に写り、参照されない項目は写らないことを確認します。"""
     with allure.step("参照されない項目を root の catalogs に足し、--write を動かす"):
         _edit(
             repo / "pnpm-lock.yaml",
@@ -245,7 +262,9 @@ def test_write_copies_referenced_catalog_only(repo: Path) -> None:
             assert "unreferenced-sample" not in text, d
 
 
+@allure.title("--write は、catalog を参照しない対象の runtime-lock.yaml に catalogs を書かない")
 def test_write_omits_catalogs_for_target_without_reference(repo: Path) -> None:
+    """`--write` を実行するテストです。catalog を参照しない `libs/text-rules/runtime-lock.yaml` に、`catalogs:` が含まれないことを確認します。"""
     with allure.step("--write を動かす"):
         _write(repo)
 
@@ -253,7 +272,9 @@ def test_write_omits_catalogs_for_target_without_reference(repo: Path) -> None:
         assert "catalogs:" not in read_output(repo / "libs/text-rules/runtime-lock.yaml")
 
 
+@allure.title("runtime-lock.yaml の catalogs が存在しないと、失敗で終わる")
 def test_catalogs_missing_in_runtime_lock_stops(repo: Path) -> None:
+    """`plugins/pecot-workflow/runtime-lock.yaml` から `catalogs` の節を削除した場合のテストです。終了コード 1 で終わり、`catalogs` が root の `pnpm-lock.yaml` と一致しない旨を出力することを確認します。"""
     with allure.step("runtime-lock から catalogs を消し、チェックを動かす"):
         lock = repo / "plugins/pecot-workflow/runtime-lock.yaml"
         text = lock.read_text(encoding="utf-8")
@@ -270,8 +291,9 @@ def test_catalogs_missing_in_runtime_lock_stops(repo: Path) -> None:
         )
 
 
+@allure.title("dependabot-commit.yml が実行する gen-runtime-lock.mjs は、実在するスクリプトを指す")
 def test_runtime_lock_workflow_runs_an_existing_script() -> None:
-    """dependabot-commit.yml は Dependabot の PR でしか動かない。run が指す script の実在をここで確かめる。"""
+    """`dependabot-commit.yml` は Dependabot の PR でしか動かないため、静的に確認するテストです。`run` が指す `gen-runtime-lock.mjs` のパスが 1 つで、そのファイルが存在することを確認します。"""
     with allure.step("dependabot-commit.yml から、実行する script を取り出す"):
         workflow = (_REPO_ROOT / ".github/workflows/dependabot-commit.yml").read_text(
             encoding="utf-8"
@@ -283,8 +305,9 @@ def test_runtime_lock_workflow_runs_an_existing_script() -> None:
         assert (_REPO_ROOT / paths[0]).is_file()
 
 
+@allure.title("dependabot-commit.yml のコミットには、Dependabot の rebase を許す印を付ける")
 def test_runtime_lock_workflow_marks_commit_for_dependabot_rebase() -> None:
-    """印が無いと、dependabot は他者の commit がある PR を rebase しない。"""
+    """`dependabot-commit.yml` の `git commit` の行のテストです。印（`[dependabot skip]`）がないと、他者のコミットがある PR を Dependabot が rebase しないため、コミットの行がその印を含む 1 つだけであることを確認します。"""
     with allure.step("dependabot-commit.yml の git commit の行を集める"):
         workflow = (_REPO_ROOT / ".github/workflows/dependabot-commit.yml").read_text(
             encoding="utf-8"
@@ -297,8 +320,9 @@ def test_runtime_lock_workflow_marks_commit_for_dependabot_rebase() -> None:
         )
 
 
+@allure.title("--write は pnpm を使わず、コミット済みの生成物と同じ内容を作る")
 def test_write_reproduces_committed_files_without_pnpm(repo: Path) -> None:
-    """--write は pnpm を呼ばず、commit 済みの生成物と同じものを作る。"""
+    """`PATH` から `pnpm` を外して `--write` を実行するテストです。終了コード 0 で終わり、生成したファイルがコミット済みのものと一致し、続けて `--check` も成功することを確認します。"""
     with allure.step("pnpm の無い PATH で --write を動かす"):
         empty_bin = repo / "empty-bin"
         empty_bin.mkdir()
@@ -323,8 +347,9 @@ def test_write_reproduces_committed_files_without_pnpm(repo: Path) -> None:
         assert _check(repo).returncode == 0
 
 
+@allure.title("dependabot-commit.yml は、コミットの前に version plan を作る")
 def test_workflow_creates_version_plans_before_commit() -> None:
-    """version plan は dependabot-plans.js --pr で作り、add -A を先にして staged の差分で判定する。"""
+    """`dependabot-commit.yml` の、version plan を作る step のテストです。`dependabot-plans.js --pr` を実行し、そのファイルが存在し、`git add -A` が `git diff --cached --quiet` より前にあることを確認します。"""
     with allure.step("dependabot-commit.yml を読む"):
         workflow = (_REPO_ROOT / ".github/workflows/dependabot-commit.yml").read_text(
             encoding="utf-8"
@@ -349,8 +374,9 @@ def _steps() -> list[dict]:
     return _workflow()["jobs"]["regenerate"]["steps"]
 
 
+@allure.title("dependabot-commit.yml は、パスを絞らずにすべての PR で動く")
 def test_workflow_runs_on_every_pull_request_path() -> None:
-    """paths で絞ると、lock の変更を含まない更新で plan が作られない。"""
+    """`dependabot-commit.yml` の `pull_request` のトリガーのテストです。`paths` が指定されていないことを確認します。"""
     with allure.step("workflow の on を読む"):
         on = _workflow()[True]  # YAML 1.1 では on が True になる
 
@@ -358,7 +384,9 @@ def test_workflow_runs_on_every_pull_request_path() -> None:
         assert on["pull_request"] is None or "paths" not in on["pull_request"]
 
 
+@allure.title("dependabot-commit.yml は、履歴をすべて取得してチェックアウトする")
 def test_workflow_checks_out_full_history() -> None:
+    """`dependabot-commit.yml` の `Checkout` の step のテストです。`fetch-depth` が `0` であることを確認します。"""
     with allure.step("Checkout の step を探す"):
         checkout = next(s for s in _steps() if s.get("name") == "Checkout")
 
@@ -366,7 +394,9 @@ def test_workflow_checks_out_full_history() -> None:
         assert checkout["with"]["fetch-depth"] == 0
 
 
+@allure.title("dependabot-commit.yml は、origin の base ブランチを plan の作成に渡す")
 def test_workflow_passes_origin_base_to_plans() -> None:
+    """`dependabot-commit.yml` の、plan を作る step のテストです。`--base origin/$BASE_REF` の形で base を渡し、`continue-on-error` が `true` であることを確認します。"""
     with allure.step("plans の step を探す"):
         plans = next(s for s in _steps() if s.get("id") == "plans")
 
@@ -375,7 +405,9 @@ def test_workflow_passes_origin_base_to_plans() -> None:
         assert plans["continue-on-error"] is True
 
 
+@allure.title("dependabot-commit.yml は、plan の作成に失敗したとき、push の後で失敗にする")
 def test_workflow_fails_after_push_when_plans_failed() -> None:
+    """`dependabot-commit.yml` の、plan の作成が失敗した場合のテストです。失敗を判定する step が `Push generated files` より後にあり、`exit 1` を実行することを確認します。"""
     with allure.step("step の並びから、Push と失敗の step の位置を探す"):
         steps = _steps()
         names = [s.get("name") for s in steps]
@@ -391,8 +423,11 @@ def test_workflow_fails_after_push_when_plans_failed() -> None:
         assert "exit 1" in steps[fail]["run"]
 
 
+@allure.title(
+    "dependabot-commit.yml が git add する pathspec は、各 runtime-lock.yaml の場所に当たる"
+)
 def test_workflow_adds_only_generated_paths() -> None:
-    """生成物の path に絞る。pathspec が runtime-lock.yaml の置き場に当たることも確かめる。"""
+    """生成物のパスだけに絞った pathspec（`**/runtime-*.yaml`）のテストです。`git ls-files` の結果に、4 つの対象ディレクトリの `runtime-lock.yaml` がすべて含まれることを確認します。"""
     with allure.step("git ls-files で runtime-*.yaml の pathspec を引く"):
         listed = run_attached(
             ["git", "ls-files", "--", ":(glob)**/runtime-*.yaml"],

@@ -86,13 +86,18 @@ def _sphinx_like(tar: tarfile.TarFile) -> None:
     _add_file(tar, "./guides/a.html", _page("./", "../", "index.html#top", "%61.html"))
 
 
+@allure.title(
+    "Sphinx が出力する形の側は、`./` 始まりのリンクや外部 URL を含んでいても、問題なしと判定する"
+)
 def test_side_check_passes_sphinx_like_tree(tmp_path: Path) -> None:
+    """`side_check` に Sphinx の出力に似た tar を渡した場合のテストです。`./` で始まるリンク、クエリ、断片、ディレクトリへのリンク、外部の URL、`/pecot/` 内の行き来があっても、指摘が 1 件も返らないことを確認します。"""
     with allure.step("Sphinx のような tar の木が側の verify を通ることを確かめる"):
         # `./` 始まり・クエリ・断片・ディレクトリへのリンク・外の URL・/pecot/ の行き来はどれも問題にしない。
         # Sphinx は _sources を出す（html_copy_source の既定）。実物の _build でも切れたリンクは無かった。
         assert store.side_check(_tar(tmp_path, _sphinx_like)) == []
 
 
+@allure.title("側の tar に {member} のような危険なメンバーがあると、理由を示して指摘する")
 @pytest.mark.parametrize(
     ("member", "kind", "linkname", "expected"),
     [
@@ -123,6 +128,7 @@ def test_side_check_passes_sphinx_like_tree(tmp_path: Path) -> None:
 def test_side_check_rejects_unsafe_members(
     tmp_path: Path, member: str, kind: bytes, linkname: str, expected: str
 ) -> None:
+    """`side_check` に、絶対パス、`..` を含むパス、シンボリックリンク、ハードリンク、特殊ファイルを含む tar を渡した場合のテストです。それぞれのメンバーについて、期待する理由を示した指摘が 1 件だけ返ることを確認します。"""
     with allure.step("危険な名前を持つ tar を組み立てる"):
 
         def build(tar: tarfile.TarFile) -> None:
@@ -136,7 +142,9 @@ def test_side_check_rejects_unsafe_members(
         assert store.side_check(_tar(tmp_path, build)) == [expected]
 
 
+@allure.title("側の中のリンクの先が存在しない場合は、リンクごとに指摘する")
 def test_side_check_rejects_broken_internal_links(tmp_path: Path) -> None:
+    """存在しないファイルやディレクトリ、側の外、サイトの外の絶対パスを指すリンクを含む tar を `side_check` に渡した場合のテストです。ページとリンクの組ごとに、先がない旨か、側の外を指す旨の指摘が返ることを確認します。"""
     with allure.step("切れた内部リンクを持つ tar を組み立てる"):
 
         def build(tar: tarfile.TarFile) -> None:
@@ -173,7 +181,11 @@ def _with_report_links(tar: tarfile.TarFile) -> None:
     _add_file(tar, "./_generated/p/tool.html", _page("../../test-report/index.html?tags=PW-B-02"))
 
 
+@allure.title(
+    "テストレポートへのリンクは、`report_links` を指定した場合だけ許可し、指定しなければ指摘する"
+)
 def test_side_check_lets_report_links_through_only_when_asked(tmp_path: Path) -> None:
+    """`test-report/` への相対リンクを含む tar を `side_check` に渡した場合のテストです。`report_links=True` では指摘がなく、指定しない場合は、すべてのリンクについて先がない旨の指摘が返ることを確認します。"""
     with allure.step("レポートへのリンクを持つ tar を組み立てる"):
         tar = _tar(tmp_path, _with_report_links)
     with allure.step("指定したときだけレポートへのリンクが通ることを確かめる"):
@@ -184,7 +196,9 @@ def test_side_check_lets_report_links_through_only_when_asked(tmp_path: Path) ->
         ]
 
 
+@allure.title("`report_links` を指定しても、テストレポート以外へのリンクは引き続き確認する")
 def test_side_check_report_links_still_check_other_links(tmp_path: Path) -> None:
+    """`report_links=True` で、`test-reports/` のようにレポートに似た別の名前のリンクを含む tar を渡した場合のテストです。そのリンクについて、先がない旨の指摘が返ることを確認します。"""
     with allure.step("レポートへのリンクだけの tar を組み立てる"):
         tar = _tar(tmp_path, lambda t: _add_file(t, "./index.html", _page("test-reports/x.html")))
     with allure.step("レポートへのリンクを許してもほかのリンクは verify されることを確かめる"):
@@ -193,7 +207,9 @@ def test_side_check_report_links_still_check_other_links(tmp_path: Path) -> None
         ]
 
 
+@allure.title("`report_links` を指定した場合は、側の中に `test-report/` があると指摘する")
 def test_side_check_with_report_links_refuses_a_test_report_dir(tmp_path: Path) -> None:
+    """側の中に `test-report/` のディレクトリがある tar を渡した場合のテストです。保管がレポートを置く場所なので、`report_links=True` では指摘が返り、指定しない PR 版では指摘が返らないことを確認します。"""
     with allure.step("test-report ディレクトリを持つ tar を組み立てる"):
 
         def build(tar: tarfile.TarFile) -> None:
@@ -220,16 +236,21 @@ def _report_tree(tar: tarfile.TarFile, history: str = '{"uuid":"a"}\n{"uuid":"b"
     _add_file(tar, "./history.jsonl", history)
 
 
+@allure.title("正しいレポートの tar は、問題なしと判定する")
 def test_report_check_passes_a_report_tree(tmp_path: Path) -> None:
+    """`index.html`、`history.jsonl`、データのファイルを含む、正しい形のレポートの tar を `report_check` に渡した場合のテストです。指摘が 1 件も返らないことを確認します。"""
     with allure.step("レポートの tar の木が verify を通ることを確かめる"):
         assert store.report_check(_tar(tmp_path, _report_tree)) == []
 
 
+@allure.title("履歴が空のレポートの tar も、問題なしと判定する")
 def test_report_check_passes_an_empty_history(tmp_path: Path) -> None:
+    """`history.jsonl` が空のレポートの tar を `report_check` に渡した場合のテストです。指摘が 1 件も返らないことを確認します。"""
     with allure.step("履歴が空のレポートの tar が verify を通ることを確かめる"):
         assert store.report_check(_tar(tmp_path, lambda t: _report_tree(t, ""))) == []
 
 
+@allure.title("レポートの tar に {missing} が存在しないと、存在しない旨を指摘する")
 @pytest.mark.parametrize(
     ("missing", "expected"),
     [
@@ -238,6 +259,7 @@ def test_report_check_passes_an_empty_history(tmp_path: Path) -> None:
     ],
 )
 def test_report_check_needs_index_and_history(tmp_path: Path, missing: str, expected: str) -> None:
+    """`index.html` と `history.jsonl` のどちらか一方が欠けたレポートの tar を渡した場合のテストです。欠けたファイルの名前を示した指摘が 1 件だけ返ることを確認します。"""
     with allure.step("index か履歴が欠けた tar を組み立てる"):
 
         def build(tar: tarfile.TarFile) -> None:
@@ -249,6 +271,7 @@ def test_report_check_needs_index_and_history(tmp_path: Path, missing: str, expe
         assert store.report_check(_tar(tmp_path, build)) == [expected]
 
 
+@allure.title("履歴に Allure の読めない行（{param_id}）があると、その行の番号を示して指摘する")
 @pytest.mark.parametrize(
     ("history", "expected"),
     [
@@ -262,11 +285,14 @@ def test_report_check_needs_index_and_history(tmp_path: Path, missing: str, expe
 def test_report_check_refuses_unreadable_history_lines(
     tmp_path: Path, history: str, expected: str
 ) -> None:
+    """`history.jsonl` に、`NaN`、`null`、文字列の途中で行が切れる `U+2028` を含むレポートの tar を渡した場合のテストです。Allure が読めない行の番号を示した指摘が 1 件だけ返ることを確認します。"""
     with allure.step("読めない行のある履歴のレポートの tar が断られることを確かめる"):
         assert store.report_check(_tar(tmp_path, lambda t: _report_tree(t, history))) == [expected]
 
 
+@allure.title("履歴が UTF-8 ではない場合は、その旨を指摘する")
 def test_report_check_refuses_history_that_is_not_utf8(tmp_path: Path) -> None:
+    """`history.jsonl` に UTF-8 として読めないバイト列を含むレポートの tar を渡した場合のテストです。`history.jsonl` が UTF-8 ではない旨の指摘が返ることを確認します。"""
     with allure.step("UTF-8 でない履歴を持つ tar を組み立てる"):
 
         def build(tar: tarfile.TarFile) -> None:
@@ -281,7 +307,9 @@ def test_report_check_refuses_history_that_is_not_utf8(tmp_path: Path) -> None:
         ]
 
 
+@allure.title("レポートの確認でも、側の確認と同じ危険なメンバーを指摘する")
 def test_report_check_also_runs_side_check(tmp_path: Path) -> None:
+    """シンボリックリンクを含むレポートの tar を `report_check` に渡した場合のテストです。側の確認と同じ、シンボリックリンクである旨の指摘が返ることを確認します。"""
     with allure.step("シンボリックリンクを含むレポートの tar を組み立てる"):
 
         def build(tar: tarfile.TarFile) -> None:
@@ -292,7 +320,11 @@ def test_report_check_also_runs_side_check(tmp_path: Path) -> None:
         assert store.report_check(_tar(tmp_path, build)) == ["`./link`: シンボリックリンクです"]
 
 
+@allure.title(
+    "`check` コマンドは、指摘を Markdown の箇条書きで標準出力に表示し、終了コード 1 で終了する"
+)
 def test_check_cli_prints_markdown_and_fails(tmp_path: Path) -> None:
+    """リンク切れのある tar に対して `store.py check` を実行した場合のテストです。終了コードが 1 になり、標準出力に指摘が箇条書きの 1 行で表示されることを確認します。"""
     with allure.step("リンク切れの tar で verify の CLI を動かす"):
         tar = _tar(tmp_path, lambda t: _add_file(t, "./index.html", _page("gone.html")))
         result = run_attached(
@@ -305,6 +337,9 @@ def test_check_cli_prints_markdown_and_fails(tmp_path: Path) -> None:
         )
 
 
+@allure.title(
+    "`check` コマンドに {args} を指定すると、種類と側に応じて確認し、終了コード {code} で終了する"
+)
 @pytest.mark.parametrize(
     ("args", "code"),
     [
@@ -317,6 +352,7 @@ def test_check_cli_prints_markdown_and_fails(tmp_path: Path) -> None:
 def test_check_cli_chooses_the_check_by_kind_and_side(
     tmp_path: Path, args: tuple[str, ...], code: int
 ) -> None:
+    """テストレポートへのリンクを含む tar に対して、`--kind` と `--side` の組み合わせを変えて `store.py check` を実行した場合のテストです。指定なしと PR 版では終了コード 1、開発版とリリース版では 0 になることを確認します。"""
     with allure.step("レポートへのリンクを持つ tar で、種類と側を変えて verify の CLI を動かす"):
         tar = _tar(tmp_path, _with_report_links)
         result = run_attached(
@@ -326,7 +362,9 @@ def test_check_cli_chooses_the_check_by_kind_and_side(
         assert result.returncode == code, result.stdout + result.stderr
 
 
+@allure.title("`check --kind report` は、レポートの確認を使う")
 def test_check_cli_report_uses_report_check(tmp_path: Path) -> None:
+    """`index.html` だけの tar に対して、`--kind report` を指定して `store.py check` を実行した場合のテストです。終了コードが 1 になり、`history.jsonl` が存在しない旨が表示されることを確認します。"""
     with allure.step("index だけのレポートの tar で verify の CLI を動かす"):
         tar = _tar(tmp_path, lambda t: _add_file(t, "./index.html", "<html></html>"))
         result = run_attached(
@@ -338,7 +376,9 @@ def test_check_cli_report_uses_report_check(tmp_path: Path) -> None:
         assert (result.returncode, result.stdout) == (1, "- `history.jsonl` がありません\n")
 
 
+@allure.title("`checker` は、種類と側に応じた確認の関数を返す")
 def test_checker_follows_kind_and_side(tmp_path: Path) -> None:
+    """`store.checker` に、種類と側の組み合わせを渡した場合のテストです。サイトの開発版とリリース版ではレポートへのリンクを許可し、PR 版では許可せず、レポートでは常に `report_check` を返すことを確認します。"""
     with allure.step("レポートへのリンクを持つ tar を組み立てる"):
         links = _tar(tmp_path, _with_report_links)
     with allure.step("種類と側に応じた verify が選ばれることを確かめる"):
@@ -349,7 +389,9 @@ def test_checker_follows_kind_and_side(tmp_path: Path) -> None:
         assert store.checker("report", "release") is store.report_check
 
 
+@allure.title("`extract` は、渡された確認の関数を使い、指摘があれば展開しない")
 def test_extract_uses_the_given_check(tmp_path: Path) -> None:
+    """テストレポートへのリンクを含む tar を `extract` に渡した場合のテストです。PR 版の確認では例外が発生して展開先が作られず、開発版の確認では展開が成功することを確認します。"""
     with allure.step("レポートへのリンクを持つ tar を組み立てる"):
         tar = _tar(tmp_path, _with_report_links)
     with allure.step("渡した verify に従って取り出しが断られたり通ったりすることを確かめる"):
@@ -360,7 +402,9 @@ def test_extract_uses_the_given_check(tmp_path: Path) -> None:
         assert (tmp_path / "dev" / "_generated/p/tool.html").is_file()
 
 
+@allure.title("確認に通った tar は、中のファイルをすべて展開先に書き出す")
 def test_extract_writes_checked_tree(tmp_path: Path) -> None:
+    """Sphinx の出力に似た tar を `extract` に渡した場合のテストです。展開先にファイルがすべて書き出され、`index.html` などの内容が読めることを確認します。"""
     with allure.step("tar を verify 付きで取り出す"):
         dest = tmp_path / "out"
         store.extract(_tar(tmp_path, _sphinx_like), dest, check=store.side_check)
@@ -376,7 +420,9 @@ def test_extract_writes_checked_tree(tmp_path: Path) -> None:
         ]
 
 
+@allure.title("危険なメンバーを含む tar は、例外を発生させて展開先を作らない")
 def test_extract_refuses_unsafe_tar(tmp_path: Path) -> None:
+    """シンボリックリンクを含む tar を `extract` に渡した場合のテストです。シンボリックリンクに関する例外が発生し、展開先のディレクトリが作られないことを確認します。"""
     with allure.step("シンボリックリンクを含む tar を組み立てる"):
         tar = _tar(tmp_path, lambda t: _add(t, "./link", tarfile.SYMTYPE, "/etc/passwd"))
     with allure.step("取り出しが断られて何も書かれないことを確かめる"):
@@ -415,7 +461,9 @@ def _meta(root: Path) -> dict[str, object]:
 _BAND = ("/pecot/", "/pecot/dev/")
 
 
+@allure.title("空の保管には、リンクを含まない案内のページを作る")
 def test_empty_store_gets_guide_pages_without_links(tmp_path: Path) -> None:
+    """何も保管していない状態で `apply` を実行した場合のテストです。トップ・開発版・テストレポートの案内のページが作られ、まだ公開していない旨が書かれ、リンクを含まず、記録が空になることを確認します。"""
     with allure.step("空の保管先に案内のページを作る"):
         root = tmp_path / "store"
         root.mkdir()
@@ -439,7 +487,9 @@ def test_empty_store_gets_guide_pages_without_links(tmp_path: Path) -> None:
         assert store.check_cross_links(root) == []
 
 
+@allure.title("開発版だけがある場合は、リリース版の案内のページから開発版へ誘導する")
 def test_dev_only_guides_release_to_dev(tmp_path: Path) -> None:
+    """開発版だけを保管した場合のテストです。トップとテストレポートの案内のページに、リリース版がない旨と開発版へのリンクが表示され、記録の `dev` に保管した内容が入ることを確認します。"""
     with allure.step("dev だけの保管先を作る"):
         root = tmp_path / "store"
         root.mkdir()
@@ -465,7 +515,9 @@ def test_dev_only_guides_release_to_dev(tmp_path: Path) -> None:
         assert store.check_cross_links(root) == []
 
 
+@allure.title("リリース版だけがある場合は、開発版の案内のページからリリース版へ誘導する")
 def test_release_only_guides_dev_to_release(tmp_path: Path) -> None:
+    """リリース版だけを保管した場合のテストです。開発版の案内のページに、開発版がない旨とリリース版へのリンクが表示され、記録の `release` に保管した内容が入ることを確認します。"""
     with allure.step("release だけの保管先を作る"):
         root = tmp_path / "store"
         root.mkdir()
@@ -481,7 +533,9 @@ def test_release_only_guides_dev_to_release(tmp_path: Path) -> None:
         assert store.check_cross_links(root) == []
 
 
+@allure.title("リリース版を書き換えても、開発版と PR 版は残し、古いファイルは消す")
 def test_release_rewrite_keeps_dev_and_pr(tmp_path: Path) -> None:
+    """開発版・PR 版・リリース版を保管した後で、リリース版を書き換えた場合のテストです。リリース版の古いファイルだけが消え、開発版と PR 版の内容と記録が変わらないことを確認します。"""
     with allure.step("dev と PR のある保管先で release を書き換える"):
         root = tmp_path / "store"
         root.mkdir()
@@ -543,7 +597,9 @@ def test_release_rewrite_keeps_dev_and_pr(tmp_path: Path) -> None:
         }
 
 
+@allure.title("開発版を書き換えても、`dev/` と記録だけを変える")
 def test_dev_rewrite_touches_only_dev_and_record(tmp_path: Path) -> None:
+    """リリース版と開発版を保管した後で、開発版を書き換えた場合のテストです。`dev/` の古いファイルが消え、`dev/` の外のファイルは変わらず、記録の `dev` だけが更新されることを確認します。"""
     with allure.step("release のある保管先で dev を書き換える"):
         root = tmp_path / "store"
         root.mkdir()
@@ -611,10 +667,12 @@ def _sites(root: Path, tmp_path: Path) -> None:
         )
 
 
+@allure.title("{side} のレポートを保管すると、その側のテストレポートと記録だけが変わる")
 @pytest.mark.parametrize(("side", "prefix"), [("dev", "dev/"), ("release", "")])
 def test_report_changes_only_its_test_report_and_record(
     tmp_path: Path, side: str, prefix: str
 ) -> None:
+    """リリース版・開発版・PR 版の定義書を保管した後で、開発版またはリリース版のレポートを保管した場合のテストです。その側の `test-report/` と記録の `reports` だけが変わり、PR 版にはレポートが作られないことを確認します。"""
     with allure.step("各側のある保管先でレポートを書き込む"):
         root = tmp_path / "store"
         root.mkdir()
@@ -651,7 +709,9 @@ def test_report_changes_only_its_test_report_and_record(
         assert store.check_cross_links(root) == []
 
 
+@allure.title("同じ側のレポートを保管し直すと、前のレポートを置き換える")
 def test_report_replaces_the_previous_report(tmp_path: Path) -> None:
+    """開発版のレポートを 2 回保管した場合のテストです。1 回目だけにあるファイルが消え、`index.html` が 2 回目の内容になり、記録も 2 回目のものになることを確認します。"""
     with allure.step("レポートを 2 回書き込む"):
         root = tmp_path / "store"
         root.mkdir()
@@ -679,8 +739,10 @@ def test_report_replaces_the_previous_report(tmp_path: Path) -> None:
         assert _meta(root)["reports"] == {"dev": _rec("rep2")}
 
 
+@allure.title("{side} の定義書を書き換えても、保管済みのレポートと履歴は残す")
 @pytest.mark.parametrize(("side", "prefix"), [("dev", "dev/"), ("release", "")])
 def test_site_rewrite_keeps_the_report(tmp_path: Path, side: str, prefix: str) -> None:
+    """レポートを保管した後で、同じ側の定義書を 2 回書き換えた場合のテストです。レポートの `index.html` と `history.jsonl` が変わらず、定義書のファイルだけが新しくなり、記録の `reports` も残ることを確認します。"""
     with allure.step("レポートのある保管先でサイトを書き換える"):
         root = tmp_path / "store"
         root.mkdir()
@@ -710,7 +772,9 @@ def test_site_rewrite_keeps_the_report(tmp_path: Path, side: str, prefix: str) -
         assert _meta(root)["reports"] == {side: _rec("t1")}
 
 
+@allure.title("開発版の定義書が案内のページである間も、開発版のレポートは残す")
 def test_dev_report_survives_while_dev_site_is_a_guide(tmp_path: Path) -> None:
+    """開発版のレポートだけを保管した後で、側を指定しない `apply` を実行した場合のテストです。`dev/` が案内のページで作り直されても、`dev/test-report/` のレポートは残ることを確認します。"""
     with allure.step("dev のレポートを置いて dev のサイトを案内に戻す"):
         # 定義書の開発版がまだ無い間は、毎回 dev/ を案内のページで作り直す。そのときもレポートは残す。
         root = tmp_path / "store"
@@ -732,7 +796,9 @@ def test_dev_report_survives_while_dev_site_is_a_guide(tmp_path: Path) -> None:
         assert "<h1>テストレポートはまだありません</h1>" in files["test-report/index.html"]
 
 
+@allure.title("レポートを保管すると、その側のテストレポートの案内のページがレポートに置き換わる")
 def test_report_guide_is_replaced_by_the_report(tmp_path: Path) -> None:
+    """案内のページだけの状態で、リリース版のレポートを保管した場合のテストです。リリース版のテストレポートがレポートに置き換わり、開発版のテストレポートは案内のページのままであることを確認します。"""
     with allure.step("レポートの案内だけの保管先を作る"):
         root = tmp_path / "store"
         root.mkdir()
@@ -753,8 +819,10 @@ def test_report_guide_is_replaced_by_the_report(tmp_path: Path) -> None:
         assert "テストレポートはまだありません" in files["dev/test-report/index.html"]
 
 
+@allure.title("レポートを {side} の側で保管しようとすると、例外が発生する")
 @pytest.mark.parametrize("side", ["pr", "none"])
 def test_report_refuses_pr_and_none(tmp_path: Path, side: str) -> None:
+    """`kind=report` で、PR 版の側と、側を指定しない場合を `apply` に渡したテストです。どちらも `report` に関する例外が発生し、`pr/` のディレクトリが作られないことを確認します。"""
     with allure.step("空の保管先を用意する"):
         root = tmp_path / "store"
         root.mkdir()
@@ -774,8 +842,12 @@ def test_report_refuses_pr_and_none(tmp_path: Path, side: str) -> None:
         assert not (root / "pr").exists()
 
 
+@allure.title(
+    "記録の `reports` が {reports} のようにオブジェクトでない場合は、空のオブジェクトに直して読む"
+)
 @pytest.mark.parametrize("reports", [None, [], "x"])
 def test_read_meta_fixes_reports_that_are_not_an_object(tmp_path: Path, reports: object) -> None:
+    """`reports` がない場合、リスト、文字列の場合の記録を `read_meta` で読んだテストです。いずれの場合も、`reports` が空のオブジェクトとして返ることを確認します。"""
     with allure.step("オブジェクトでない reports の記録を書く"):
         root = tmp_path / "store"
         root.mkdir()
@@ -787,7 +859,9 @@ def test_read_meta_fixes_reports_that_are_not_an_object(tmp_path: Path, reports:
         assert store.read_meta(root)["reports"] == {}
 
 
+@allure.title("保管の大きさには、レポートの大きさも含める")
 def test_size_counts_the_reports(tmp_path: Path) -> None:
+    """大きな履歴を持つレポートを、開発版とリリース版の両方に保管した場合のテストです。レポートの外のファイルは上限に届かず、`store_size` の合計は上限を超え、`size_warning` が警告を返すことを確認します。"""
     with allure.step("レポートのある保管先を作る"):
         root = tmp_path / "store"
         root.mkdir()
@@ -816,7 +890,9 @@ def test_size_counts_the_reports(tmp_path: Path) -> None:
         assert store.size_warning(root, limit=6000) is not None
 
 
+@allure.title("開いていない PR の側は、`apply` で削除し、記録からも消す")
 def test_closed_prs_are_removed(tmp_path: Path) -> None:
+    """3 つの PR の側を保管した後で、開いている PR を絞って `apply` を実行した場合のテストです。`closed_prs` が閉じた PR を返し、その `pr/N/` と記録が消え、開いている PR がなければ `pr/` ごと消えることを確認します。"""
     with allure.step("複数の PR のある保管先を作る"):
         root = tmp_path / "store"
         root.mkdir()
@@ -839,7 +915,9 @@ def test_closed_prs_are_removed(tmp_path: Path) -> None:
         assert _meta(root)["pr"] == {}
 
 
+@allure.title("側の間のリンクの先が存在しない場合は、リンクごとにページの数と例を示して指摘する")
 def test_check_cross_links_reports_missing_targets(tmp_path: Path) -> None:
+    """`/pecot/pr/4/` のように、まだ保管していない側を指すリンクを含む保管に対して `check_cross_links` を実行した場合のテストです。先がない旨と、該当するページの数、例のページの名前を示した指摘が返ることを確認します。"""
     with allure.step("切れたリンクのある保管先を作る"):
         root = tmp_path / "store"
         root.mkdir()
@@ -853,7 +931,9 @@ def test_check_cross_links_reports_missing_targets(tmp_path: Path) -> None:
         ]
 
 
+@allure.title("側の間のリンクの確認では、`.git` の中のファイルは対象にしない")
 def test_check_cross_links_ignores_git_dir(tmp_path: Path) -> None:
+    """`.git` の中に、リンクを含む HTML があり、トップのページが `.git` の中を指す場合のテストです。`.git` の中のページは確認されず、トップのページのリンクだけが指摘されることを確認します。"""
     with allure.step(".git の下にリンクを置いた保管先を作る"):
         root = tmp_path / "store"
         (root / ".git").mkdir(parents=True)
@@ -865,7 +945,9 @@ def test_check_cross_links_ignores_git_dir(tmp_path: Path) -> None:
         ]
 
 
+@allure.title("保管の大きさが上限を超えると、警告を返す")
 def test_size_warning(tmp_path: Path) -> None:
+    """`.git` の中を除いたファイルの合計が、上限ちょうどの場合と、1 バイト超える場合のテストです。上限を超えるまでは `None` が返り、超えると大きさと上限を示した警告が返り、既定の上限では `None` が返ることを確認します。"""
     with allure.step(".git と通常のファイルで大きさを作る"):
         root = tmp_path / "store"
         (root / ".git").mkdir(parents=True)
@@ -880,7 +962,9 @@ def test_size_warning(tmp_path: Path) -> None:
         assert store.size_warning(root) is None
 
 
+@allure.title("`dev_is_newer` は、保管済みの開発版が祖先でなければ新しいと判定しない")
 def test_dev_is_newer() -> None:
+    """保管済みの開発版が、存在しない・同じ・古い・新しいのそれぞれの場合の判定のテストです。新しいと判定されるのは前の 3 つの場合だけで、祖先の確認は必要な組に限って呼ばれることを確認します。"""
     with allure.step("祖先の判定を記録する関数を用意する"):
         calls: list[tuple[str, str]] = []
 
@@ -976,7 +1060,9 @@ def _remote_log(scene: dict[str, Path | str]) -> list[str]:
     return log.splitlines()
 
 
+@allure.title("初めての保管では、親のない commit を作って push し、結果の概要を返す")
 def test_publish_first_time_creates_orphan_commit(scene: dict[str, Path | str]) -> None:
+    """リモートにブランチがない状態で `publish` を実行した場合のテストです。ブランチに必要なファイルと記録が揃い、commit の作者が bot の 1 件だけで、概要に側・採否・push の回数が表示され、警告が含まれないことを確認します。"""
     with allure.step("最初の公開を動かす"):
         code, summary, changed = store.publish(_opts(scene))
     with allure.step("孤立した commit が作られ、ファイルと記録と要約を確かめる"):
@@ -1001,7 +1087,9 @@ def test_publish_first_time_creates_orphan_commit(scene: dict[str, Path | str]) 
         assert "[!WARNING]" not in summary
 
 
+@allure.title("保管を繰り返しても、ブランチの commit は 1 つのままで、中身を置き換える")
 def test_publish_replaces_and_stays_single_commit(scene: dict[str, Path | str]) -> None:
+    """PR 版と開発版を保管した後で、開いていない PR を除いて開発版を保管した場合のテストです。ブランチの commit が 1 つのままで、PR 版が消え、記録が新しい開発版になり、概要に消した PR が表示されることを確認します。"""
     with allure.step("公開を 2 回動かして commit が 1 つのままで置き換わることを確かめる"):
         assert (
             store.publish(_opts(scene, side="pr", pr=12, sha=scene["c1"], open_prs=[12, 13])).code
@@ -1027,7 +1115,9 @@ def test_publish_replaces_and_stays_single_commit(scene: dict[str, Path | str]) 
         assert "- 消した PR の側: #12" in summary
 
 
+@allure.title("push の前に別の保管が書き込まれた場合は、取り込み直して再び push する")
 def test_publish_retries_when_lease_is_stale(scene: dict[str, Path | str]) -> None:
+    """push の直前に、別のクローンが `pr/9/` を追加して push した場合のテストです。2 回目の push で成功し、概要に回数が表示され、追加された `pr/9/` と新しい開発版の両方が残り、commit は 1 つのままであることを確認します。"""
     with allure.step("push の競合を起こして公開を動かし、再試行で通ることを確かめる"):
         assert store.publish(_opts(scene, sha=scene["c0"])).code == 0
         intruder = Path(scene["tmp"]) / "intruder"
@@ -1064,7 +1154,9 @@ def test_publish_retries_when_lease_is_stale(scene: dict[str, Path | str]) -> No
         assert len(_remote_log(scene)) == 1
 
 
+@allure.title("保管済みより古い開発版は、保管せずに終了コード 0 で終了する")
 def test_publish_skips_older_dev(scene: dict[str, Path | str]) -> None:
+    """新しい開発版を保管した後で、古い SHA の開発版を `publish` に渡した場合のテストです。終了コードは 0 で、変更はなく、概要に保管しない理由と push しない旨が表示され、リモートの中身が変わらないことを確認します。"""
     with allure.step("新しい dev の後に古い dev を公開して、保管されないことを確かめる"):
         assert store.publish(_opts(scene, sha=scene["c2"])).code == 0
         before = _remote_files(scene)
@@ -1075,7 +1167,9 @@ def test_publish_skips_older_dev(scene: dict[str, Path | str]) -> None:
         assert _remote_files(scene) == before
 
 
+@allure.title("開発版の SHA が `main` の祖先でない場合は、終了コード 1 で終了し、push しない")
 def test_publish_refuses_dev_outside_main(scene: dict[str, Path | str]) -> None:
+    """`main` から分かれたブランチの commit を開発版として `publish` に渡した場合のテストです。終了コード 1 で終了し、概要へ祖先ではない旨を表示し、リモートにブランチを作成しないことを確認します。"""
     with allure.step("main の外の commit の dev を用意する"):
         history = Path(scene["history"])
         _run_git(history, "checkout", "-q", "-b", "topic")
@@ -1088,7 +1182,9 @@ def test_publish_refuses_dev_outside_main(scene: dict[str, Path | str]) -> None:
         assert _run_git(Path(scene["remote"]), "branch", "--list") == ""
 
 
+@allure.title("側の間のリンクの先が存在しない場合は、終了コード 1 で終了し、push しない")
 def test_publish_refuses_broken_cross_links(scene: dict[str, Path | str]) -> None:
+    """まだ保管していない PR 版へのリンクを含む開発版を `publish` に渡した場合のテストです。終了コード 1 で終了し、概要へ切れたリンクの指摘を表示し、リモートにブランチを作成しないことを確認します。"""
     with allure.step("側の間のリンクが切れた木を用意する"):
         tree = _tree(Path(scene["tmp"]), "broken", ("/pecot/pr/77/",))
         code, summary, changed = store.publish(_opts(scene, tree=tree))
@@ -1099,7 +1195,11 @@ def test_publish_refuses_broken_cross_links(scene: dict[str, Path | str]) -> Non
         assert _run_git(Path(scene["remote"]), "branch", "--list") == ""
 
 
+@allure.title(
+    "`publish` コマンドでリリース版を渡すと、`sources` を記録に書き、存在しない作業ディレクトリも作る"
+)
 def test_publish_cli_release_with_sources(scene: dict[str, Path | str]) -> None:
+    """`--sources` を指定してリリース版を `store.py publish` で保管した場合のテストです。終了コードが 0 になり、記録の `release` に `sources` と `run_id` が入り、開発版の案内のページが作られることを確認します。"""
     with allure.step("release の元の記録を用意して公開の CLI を動かす"):
         tmp = Path(scene["tmp"])
         sources = tmp / "release-sources.json"
@@ -1143,7 +1243,11 @@ def test_publish_cli_release_with_sources(scene: dict[str, Path | str]) -> None:
         assert "<h1>開発版はまだありません</h1>" in files["dev/index.html"]
 
 
+@allure.title(
+    "側を受けない `publish` は、変更がなければ push せず、閉じた PR があれば消して push する"
+)
 def test_publish_none_without_changes_does_not_push(scene: dict[str, Path | str]) -> None:
+    """PR 版を保管した後で、側を指定せずに `publish` を 2 回実行した場合のテストです。1 回目は変更がなく push されず、2 回目は PR が閉じたので `pr/4/` が消え、変更ありになることを確認します。"""
     with allure.step("変更の無い公開が push されず、PR を消すと push されることを確かめる"):
         assert store.publish(_opts(scene, side="pr", pr=4, open_prs=[4])).code == 0
         head = _run_git(Path(scene["remote"]), "rev-parse", "pages-store")
@@ -1186,7 +1290,9 @@ def _cli(scene: dict[str, Path | str], *args: str) -> tuple[subprocess.Completed
     return result, read_output(output)
 
 
+@allure.title("`publish` コマンドは、tar を受け取り、変更の有無を `GITHUB_OUTPUT` に書く")
 def test_publish_cli_takes_tar_and_writes_changed(scene: dict[str, Path | str]) -> None:
+    """`--tar` を指定して `store.py publish` を 2 回実行した場合のテストです。新しい開発版では `changed=true` が書かれてファイルと記録が保管され、古い開発版では `changed=false` が書かれ、保管しない理由が表示されることを確認します。"""
     with allure.step("tar を用意して公開の CLI を動かす"):
         tmp = Path(scene["tmp"])
         tar = tmp / "site.tar"
@@ -1213,7 +1319,9 @@ def test_publish_cli_takes_tar_and_writes_changed(scene: dict[str, Path | str]) 
         assert "新しい開発版が先に保管されています" in result.stdout
 
 
+@allure.title("`publish` コマンドは、危険なメンバーを含む tar を拒否し、push しない")
 def test_publish_cli_refuses_unsafe_tar(scene: dict[str, Path | str]) -> None:
+    """シンボリックリンクを含む tar を `--tar` に指定して `store.py publish` を実行した場合のテストです。終了コードが 1 になり、`changed=false` が書かれ、標準出力に指摘が表示されて、リモートにブランチが作られないことを確認します。"""
     with allure.step("危険な tar を用意して公開の CLI を動かす"):
         tar = Path(scene["tmp"]) / "bad.tar"
         with tarfile.open(tar, "w") as t:
@@ -1227,9 +1335,13 @@ def test_publish_cli_refuses_unsafe_tar(scene: dict[str, Path | str]) -> None:
         assert _run_git(Path(scene["remote"]), "branch", "--list") == ""
 
 
+@allure.title(
+    "PR 版の保管は、その PR のディレクトリと記録だけを変え、開いていない PR のディレクトリを消す"
+)
 def test_publish_pr_changes_only_its_dir_and_record_and_drops_closed_prs(
     scene: dict[str, Path | str],
 ) -> None:
+    """開発版と PR #5 を保管した後で、PR #12 を保管し、開いている PR を 12 だけにした場合のテストです。`pr/` の外が変わらず、`pr/12/` だけが残り、記録の `pr` に 12 だけが入り、概要に消した PR が表示されることを確認します。"""
     with allure.step(
         "PR の公開が、その PR のディレクトリと記録だけを変え、閉じた PR を消すことを確かめる"
     ):
@@ -1300,7 +1412,9 @@ def _report_opts(scene: dict[str, Path | str], name: str, **over: object) -> obj
     return _opts(scene, **values)
 
 
+@allure.title("レポートへのリンクを含む開発版の定義書を保管した後で、開発版のレポートを保管できる")
 def test_publish_dev_site_with_report_links_then_dev_report(scene: dict[str, Path | str]) -> None:
+    """レポートへのリンクを含む定義書の tar を保管してから、開発版のレポートを保管し、定義書を置き直した場合のテストです。レポートと履歴が保管されて記録が付き、概要に種類が表示され、定義書を置き直してもレポートが残ることを確認します。"""
     with allure.step("dev のサイトの tar を用意する"):
         site = _site_tar(scene, "site1")
     with allure.step("dev のサイトとレポートを順に公開し、リンク・レポート・記録・要約を確かめる"):
@@ -1340,12 +1454,16 @@ def test_publish_dev_site_with_report_links_then_dev_report(scene: dict[str, Pat
         assert json.loads(files[".pecot-store.json"])["reports"]["dev"]["sha"] == scene["c1"]
 
 
+@allure.title("定義書を保管した場合は、概要に種類として「定義書」を表示する")
 def test_publish_summary_names_the_site_kind(scene: dict[str, Path | str]) -> None:
+    """`kind` を指定せずに `publish` を実行した場合のテストです。概要に、種類が定義書である旨の行が表示されることを確認します。"""
     with allure.step("公開の要約に「定義書」の種類が出ることを確かめる"):
         assert "- 種類: 定義書" in store.publish(_opts(scene)).summary
 
 
+@allure.title("リリース版のレポートを保管すると、`sources` をレポートの記録に書く")
 def test_publish_release_report_writes_sources(scene: dict[str, Path | str]) -> None:
+    """`--sources` を指定して、リリース版のレポートを `publish` に渡した場合のテストです。リリース版の `test-report/` にレポートが入り、記録の `reports` に `sources` が書かれ、`release` は空のままであることを確認します。"""
     with allure.step("release のレポートの元の記録を用意する"):
         sources = Path(scene["tmp"]) / "report-sources.json"
         body = {"side": "release", "runs": [], "missing": ["pecot-tools"]}
@@ -1365,7 +1483,9 @@ def test_publish_release_report_writes_sources(scene: dict[str, Path | str]) -> 
         assert "- 側: リリース版" in summary and "- 種類: レポート" in summary
 
 
+@allure.title("保管済みより古い開発版のレポートは、保管せずに終了コード 0 で終了する")
 def test_publish_skips_older_dev_report(scene: dict[str, Path | str]) -> None:
+    """新しい開発版のレポートを保管した後で、古い SHA のレポートを `publish` に渡した場合のテストです。終了コード 0 で終了し、概要へ保管しない理由を表示し、リモートの内容を変更しないことを確認します。"""
     with allure.step(
         "新しい dev のレポートの後に古いレポートを公開して、保管されないことを確かめる"
     ):
@@ -1377,9 +1497,13 @@ def test_publish_skips_older_dev_report(scene: dict[str, Path | str]) -> None:
         assert _remote_files(scene) == before
 
 
+@allure.title(
+    "開発版のレポートの新旧は、保管済みのレポートとだけ比べ、定義書の新旧とは関係なく扱う"
+)
 def test_publish_dev_report_is_compared_with_the_stored_report_only(
     scene: dict[str, Path | str],
 ) -> None:
+    """定義書の開発版が新しい状態で、古い SHA のレポートを保管し、さらに古いレポートを保管した場合のテストです。最初のレポートは保管され、さらに古いレポートは保管されず、定義書とレポートの SHA がそれぞれ記録に残ることを確認します。"""
     with allure.step(
         "dev のサイトの後に dev のレポートを公開し、保管済みのレポートとだけ比べられることを確かめる"
     ):
@@ -1393,7 +1517,11 @@ def test_publish_dev_report_is_compared_with_the_stored_report_only(
         assert (meta["dev"]["sha"], meta["reports"]["dev"]["sha"]) == (scene["c2"], scene["c1"])
 
 
+@allure.title(
+    "開発版のレポートの SHA が `main` の祖先でない場合は、終了コード 1 で終了し、push しない"
+)
 def test_publish_refuses_dev_report_outside_main(scene: dict[str, Path | str]) -> None:
+    """`main` から分かれたブランチの commit を、開発版のレポートとして `publish` に渡した場合のテストです。終了コード 1 で終了し、概要へ祖先ではない旨を表示し、リモートにブランチを作成しないことを確認します。"""
     with allure.step("main の外の commit の dev のレポートを用意する"):
         history = Path(scene["history"])
         _run_git(history, "checkout", "-q", "-b", "topic")
@@ -1406,7 +1534,9 @@ def test_publish_refuses_dev_report_outside_main(scene: dict[str, Path | str]) -
         assert _run_git(Path(scene["remote"]), "branch", "--list") == ""
 
 
+@allure.title("レポートの確認に通らない tar は、終了コード 1 で終了し、push しない")
 def test_publish_refuses_a_report_that_fails_report_check(scene: dict[str, Path | str]) -> None:
+    """`history.jsonl` に読めない行を含むレポートの tar を `publish` に渡した場合のテストです。終了コード 1 で終了し、概要へ指摘と種類を表示し、リモートにブランチを作成しないことを確認します。"""
     with allure.step("履歴が不正なレポートの tar を用意する"):
         tar = _report_tar(scene, "bad", '{"u":1}\nnull\n')
         code, summary, changed = store.publish(_report_opts(scene, "unused", tar=tar))
@@ -1417,7 +1547,9 @@ def test_publish_refuses_a_report_that_fails_report_check(scene: dict[str, Path 
         assert _run_git(Path(scene["remote"]), "branch", "--list") == ""
 
 
+@allure.title("PR 版は、テストレポートへのリンクを含む tar を拒否する")
 def test_publish_refuses_pr_side_with_report_links(scene: dict[str, Path | str]) -> None:
+    """テストレポートへのリンクを含む定義書の tar を、PR 版として `publish` に渡した場合のテストです。終了コードが 1 になり、概要にそのリンクの先がない旨の指摘が表示されることを確認します。"""
     with allure.step("レポートへのリンクを持つ PR 側の tar を用意する"):
         tar = _site_tar(scene, "pr")
         code, summary, _ = store.publish(
@@ -1428,7 +1560,9 @@ def test_publish_refuses_pr_side_with_report_links(scene: dict[str, Path | str])
         assert "`index.html`: `test-report/index.html` の先がありません" in summary
 
 
+@allure.title("定義書の tar に `test-report/` が含まれる場合は、終了コード 1 で終了する")
 def test_publish_refuses_a_site_tar_with_test_report(scene: dict[str, Path | str]) -> None:
+    """`test-report/` のディレクトリを含む定義書の tar を `publish` に渡した場合のテストです。終了コードが 1 になり、概要に `test-report/` は保管がレポートを置く場所である旨が表示されることを確認します。"""
     with allure.step("test-report を持つサイトの tar を用意して公開する"):
         tar = Path(scene["tmp"]) / "own.tar"
         with tarfile.open(tar, "w") as t:
@@ -1440,6 +1574,9 @@ def test_publish_refuses_a_site_tar_with_test_report(scene: dict[str, Path | str
         assert "`./test-report/index.html`: `test-report/` は保管でレポートを置く所です" in summary
 
 
+@allure.title(
+    "レポートの `publish` に不正なオプション {over} を渡すと、{message} に関する例外が発生する"
+)
 @pytest.mark.parametrize(
     ("over", "message"),
     [
@@ -1454,12 +1591,15 @@ def test_publish_refuses_a_site_tar_with_test_report(scene: dict[str, Path | str
 def test_publish_report_option_errors(
     scene: dict[str, Path | str], over: dict[str, object], message: str
 ) -> None:
+    """レポートの `publish` に、PR 版・側なし・tar なし・tree と tar の併用・不明な kind・`sources` のないリリース版を渡した場合のテストです。いずれも、該当するオプションを示す `ValueError` が発生することを確認します。"""
     with allure.step("レポートの公開に誤った指定を渡すと、ValueError になることを確かめる"):
         with pytest.raises(ValueError, match=message):
             store.publish(_report_opts(scene, "rep", **over))
 
 
+@allure.title("`publish` コマンドでレポートの tar を渡すと、レポートとして保管し、変更ありと書く")
 def test_publish_cli_report(scene: dict[str, Path | str]) -> None:
+    """`--kind report` を指定して、レポートの tar を `store.py publish` で保管した場合のテストです。終了コードが 0 になり、`changed=true` が書かれ、`dev/test-report/` にレポートが入り、記録に `run_id` が入ることを確認します。"""
     with allure.step("レポートの tar を用意して公開の CLI を動かす"):
         tar = _report_tar(scene, "cli")
         args = ("--kind", "report", "--side", "dev", "--tar", str(tar), "--sha", str(scene["c1"]))

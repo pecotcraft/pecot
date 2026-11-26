@@ -48,8 +48,10 @@
         "env",
         "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
         "{workspaceRoot}/libs/interface-spec/src/eslint/table-key.ts",
+        "{workspaceRoot}/libs/interface-spec/src/eslint/test-description.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
-        "{workspaceRoot}/libs/interface-spec/src/vitest/attach.ts"
+        "{workspaceRoot}/libs/interface-spec/src/vitest/attach.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/explains.ts"
       ],
       "dependsOn": [
         "install"
@@ -78,6 +80,7 @@
         "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/attach.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/explains.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/step.ts",
         "{workspaceRoot}/.githooks/scripts/test_report/step-gate.mjs",
         "{workspaceRoot}/.githooks/scripts/test_report/step-gate.sh",

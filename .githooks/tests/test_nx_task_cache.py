@@ -380,7 +380,9 @@ def _wrapper_bin(tmp_path: Path, tool: str, version_output: str | None = None) -
     return bin_dir
 
 
+@allure.title("空のコミットを push し直すと、すべてのレーンがキャッシュを再利用する")
 def test_empty_commit_repush_reuses_every_lane(ws: _Workspace) -> None:
+    """実際の nx を使った、pre-push のテストの task cache のテストです。1 回目のレーンがすべて `success` になり、空のコミットを挟んだ 2 回目は、すべてのレーンが再利用されることを確認します。"""
     with allure.step("push 前のチェックを 1 回目に動かす"):
         first, first_statuses = ws.run_gate()
     with allure.step("全レーンが成功することを確かめる"):
@@ -396,7 +398,9 @@ def test_empty_commit_repush_reuses_every_lane(ws: _Workspace) -> None:
         assert all(status in _REUSED for status in reused.values()), reused
 
 
+@allure.title("あるレーンの入力を変更すると、そのレーンだけが再実行される")
 def test_changed_input_reruns_only_its_lane(ws: _Workspace) -> None:
+    """`lane-tools` のソースを変更してコミットした場合のテストです。`lane-tools` だけが `success` で再実行され、ほかのレーンはキャッシュを再利用することを確認します。"""
     with allure.step("push 前のチェックを 1 回目に動かす"):
         assert ws.run_gate()[0].returncode == 0
     with allure.step("lane-tools の入力を変えて commit する"):
@@ -413,7 +417,9 @@ def test_changed_input_reruns_only_its_lane(ws: _Workspace) -> None:
         assert all(status in _REUSED for status in lanes.values()), lanes
 
 
+@allure.title("失敗したレーンは、入力が同じでも再利用せずに再実行する")
 def test_failed_lane_is_rerun_not_reused(ws: _Workspace) -> None:
+    """`lane-flaky` を失敗させて、空のコミットで push し直す場合のテストです。2 回目も失敗が再利用されずに終了コードが 0 以外になり、原因を取り除いた 3 回目は成功することを確認します。"""
     with allure.step("レーンが失敗するようにして、1 回目を動かす"):
         ws.flag.write_text("fail\n")
         first, first_statuses = ws.run_gate()
@@ -438,8 +444,9 @@ def test_failed_lane_is_rerun_not_reused(ws: _Workspace) -> None:
         assert third_statuses["lane-flaky"] == "success"
 
 
+@allure.title("入力が同じなら、commit 時の lint は前回の成功を再利用する")
 def test_lint_with_unchanged_input_is_reused(ws: _Workspace) -> None:
-    """commit 時の lint も、入力が同じなら前回の成功を再利用する (#1225)。"""
+    """pre-commit の lint を、入力を変えずに 2 回実行する場合のテストです。2 回目は lint が再実行されず、実行回数が 1 回のままであることを確認します。"""
     with allure.step("lint を 1 回目に動かす"):
         first = ws.run_lint()
     with allure.step("成功し、実行が 1 回であることを確かめる"):
@@ -453,7 +460,9 @@ def test_lint_with_unchanged_input_is_reused(ws: _Workspace) -> None:
         assert ws.lint_runs == 1, "同じ入力なのに lint が再実行された"
 
 
+@allure.title("入力を変更すると、commit 時の lint を再実行する")
 def test_lint_input_change_reruns(ws: _Workspace) -> None:
+    """pre-commit の lint を実行したあとに、`lane-lint` の入力を変更して再び実行する場合のテストです。lint の実行回数が 2 回になることを確認します。"""
     with allure.step("lint を動かし、入力を変えて、もう一度動かす"):
         assert ws.run_lint().returncode == 0
         _write(ws.repo / "lane-lint" / "src.txt", "v1\n")
@@ -462,8 +471,9 @@ def test_lint_input_change_reruns(ws: _Workspace) -> None:
         assert ws.lint_runs == 2
 
 
+@allure.title("失敗した lint は、直るまで再利用せずに再実行する")
 def test_failed_lint_is_rerun_until_fixed(ws: _Workspace) -> None:
-    """lint 違反の commit は、入力を変えなくても直るまで止まり続ける（失敗は再利用されない）。"""
+    """lint を失敗させたあと、入力を変えずに再び実行する場合のテストです。2 回目も失敗が再利用されずに再実行され、原因を取り除いた 3 回目に成功することを確認します。"""
     with allure.step("lint が失敗するようにして、1 回目を動かす"):
         ws.lint_flag.write_text("fail\n")
         first = ws.run_lint()
@@ -485,7 +495,9 @@ def test_failed_lint_is_rerun_until_fixed(ws: _Workspace) -> None:
         assert ws.lint_runs == 3
 
 
+@allure.title("共通の環境変数を変更すると、すべてのレーンが再実行される")
 def test_common_env_change_reruns_every_lane(ws: _Workspace, tmp_path: Path) -> None:
+    """`nx.json` の `env` に宣言した、共通の環境変数 `HOME` を変更する場合のテストです。同じ値ならすべてのレーンが再利用され、値を変えるとすべてのレーンが再実行されることを確認します。"""
     with allure.step("nx.json の env を読み、共通の変数が宣言されていることを確かめる"):
         declared = _declared_env(json.loads(_NX_JSON.read_text(encoding="utf-8")))
         assert _COMMON_ENV_PROBE in declared, (
@@ -512,11 +524,14 @@ def test_common_env_change_reruns_every_lane(ws: _Workspace, tmp_path: Path) -> 
         assert _lane_status(changed_statuses) == dict.fromkeys(_LANES, "success")
 
 
+@allure.title(
+    "プラグイン別の環境変数 {variable} を変更すると、そのプラグインのレーンだけが再実行される"
+)
 @pytest.mark.parametrize(("variable", "rerun_lanes"), sorted(_PLUGIN_ENV_PROBES.items()))
 def test_plugin_env_change_reruns_only_that_plugins_lanes(
     ws: _Workspace, variable: str, rerun_lanes: tuple[str, ...]
 ) -> None:
-    """プラグイン別の env は、そのプラグインの Globals を使うレーンだけを再実行する (#1225)。"""
+    """プラグインごとに宣言した環境変数を変更する場合のテストです。その環境変数を使うレーンだけが再実行され、無関係なレーンはキャッシュを再利用することを確認します。"""
     with allure.step("env を a にして動かし、空の commit を足して、b にして動かす"):
         assert ws.run_gate({variable: "a"})[0].returncode == 0
         ws.commit_empty()
@@ -534,6 +549,7 @@ def test_plugin_env_change_reruns_only_that_plugins_lanes(
                 )
 
 
+@allure.title("{tool} の版が変わると、その版を入力に持つレーンだけが再実行される")
 @pytest.mark.parametrize(
     ("tool", "rerun_lanes"),
     [
@@ -546,6 +562,7 @@ def test_plugin_env_change_reruns_only_that_plugins_lanes(
 def test_runtime_change_reruns_only_lanes_that_use_the_tool(
     ws: _Workspace, tmp_path: Path, tool: str, rerun_lanes: tuple[str, ...]
 ) -> None:
+    """`--version` の出力を差し替えたラッパーを、`PATH` の先頭に置いて実行する場合のテストです。`node` では全レーン、`aws` では `lane-tools` だけが再実行され、ほかのレーンは再利用されることを確認します。"""
     with allure.step("push 前のチェックを動かし、ツールの版を変えて、もう一度動かす"):
         assert ws.run_gate()[0].returncode == 0
         ws.commit_empty()
@@ -567,13 +584,11 @@ def test_runtime_change_reruns_only_lanes_that_use_the_tool(
                 )
 
 
+@allure.title("aws の版の出力に含まれるカーネルの版が変わっても、キャッシュを再利用する")
 def test_aws_runtime_ignores_the_kernel_version_in_its_output(
     ws: _Workspace, tmp_path: Path
 ) -> None:
-    """`aws --version` はカーネル版を出力に含む。ホストのカーネル更新で pecot-tools のキャッシュが
-
-    すべて外れないよう、CLI 名と版（先頭の 1 語）だけを入力にする。
-    """
+    """`aws --version` の出力に、ホストのカーネルの版が含まれる場合のテストです。カーネルの版だけを変えて実行しても、`lane-tools` が再利用されることを確認します。"""
     with allure.step("カーネルの版を差し替えられる aws の出力を用意する"):
         version = "aws-cli/2.0.0 Python/3.13.0 Linux/{kernel} exe/x86_64.debian.12"
 
@@ -592,7 +607,9 @@ def test_aws_runtime_ignores_the_kernel_version_in_its_output(
         assert gate_with_kernel("7.0.0-41-generic")["lane-tools"] in _REUSED
 
 
+@allure.title("nx のキャッシュをリセットすると、すべてのレーンを実行し直す")
 def test_nx_reset_falls_back_to_execution(ws: _Workspace) -> None:
+    """`nx reset` でキャッシュを消した場合のテストです。再利用できる結果が残っていなくても、すべてのレーンが実行されて `success` になることを確認します。"""
     with allure.step("push 前のチェックを動かし、nx を初期化して、もう一度動かす"):
         assert ws.run_gate()[0].returncode == 0
         ws.commit_empty()
@@ -706,10 +723,11 @@ def _target_inputs(nx_bin: Path, project_target: str) -> dict:
     return inputs
 
 
+@allure.title("project.json に宣言していない test と lint の target は、graph に存在しない")
 def test_graph_has_no_test_or_lint_target_outside_project_json(
     resolved_targets: dict[str, dict],
 ) -> None:
-    """package.json などから推論された test / lint target がチェックをすり抜けないようにする。"""
+    """graph に現れる test と lint の target のテストです。`package.json` などから推論された target が含まれず、`project.json` に宣言した target と一致することを確認します。"""
     with allure.step("解決した target から test と lint のものを集める"):
         resolved = {
             k
@@ -720,11 +738,9 @@ def test_graph_has_no_test_or_lint_target_outside_project_json(
         assert resolved == set(_TEST_LINT_IDS)
 
 
+@allure.title("起点の test と lint は、同じ project のレーンだけを束ねる")
 def test_entry_targets_only_bundle_lanes(resolved_targets: dict[str, dict]) -> None:
-    """起点の test / lint が nx:noop なら、同じ project の test-* / lint-* だけを束ねる。
-
-    起点から外れたレーンは、チェックで実行されなくなる。
-    """
+    """`nx:noop` の起点の target のテストです。`dependsOn` が、同じ project の `test-*` または `lint-*` のレーンと過不足なく一致することを確認します。"""
     with allure.step("起点の target が、同じ project のレーンだけを束ねることを確かめる"):
         for key, config in resolved_targets.items():
             project, target = key.split(":", 1)
@@ -738,10 +754,12 @@ def test_entry_targets_only_bundle_lanes(resolved_targets: dict[str, dict]) -> N
             assert set(config.get("dependsOn", [])) == lanes, key
 
 
+@allure.title("{project_target} は、キャッシュを有効にし、runtime と環境変数を入力に宣言する")
 @pytest.mark.parametrize("project_target", _TEST_LINT_IDS)
 def test_cacheable_target_declares_runtime_and_env(
     nx_bin: Path, resolved_targets: dict[str, dict], project_target: str
 ) -> None:
+    """test と lint の各 target のテストです。`cache` が `true` で、入力に `node --version` と、共通と自分のプラグインの環境変数が含まれ、ほかのプラグインの変数は含まれないことを確認します。"""
     with allure.step("target の設定を読み、cache が true であることを確かめる"):
         config = resolved_targets[project_target]
         assert config.get("cache") is True, f"{project_target} が cache: true でない"
@@ -770,6 +788,7 @@ def test_cacheable_target_declares_runtime_and_env(
         assert not leaked, f"{project_target} の env 入力に他プラグインの変数がある: {leaked}"
 
 
+@allure.title("{project_target} は、そのレーン固有の runtime を入力に宣言する")
 @pytest.mark.parametrize(
     ("project_target", "commands"),
     [("pecot-tools:test-cli", ["aws --version | cut -d' ' -f1"])],
@@ -777,24 +796,28 @@ def test_cacheable_target_declares_runtime_and_env(
 def test_lane_specific_runtime_is_declared(
     nx_bin: Path, project_target: str, commands: list[str]
 ) -> None:
+    """`pecot-tools:test-cli` の runtime のテストです。`aws --version` から版の先頭の 1 語だけを取り出すコマンドが、入力の runtime に含まれることを確認します。"""
     with allure.step("target の runtime の入力を読む"):
         runtime = _target_inputs(nx_bin, project_target).get("runtime", [])
     with allure.step("レーンに固有の runtime が宣言されていることを確かめる"):
         assert set(commands) <= set(runtime), runtime
 
 
+@allure.title("pecot-workflow:{lane} は、uv の版を runtime の入力に宣言しない")
 @pytest.mark.parametrize("lane", ["test-hooks", "test-skills"])
 def test_pecot_workflow_lanes_do_not_declare_the_uv_runtime(nx_bin: Path, lane: str) -> None:
-    """pecot-workflow のレーンは vitest だけで動く。uv は要らないので、uv の版を入力に置かない。"""
+    """vitest だけで動く、`pecot-workflow` のレーンの runtime のテストです。入力の runtime に、`uv --version` が含まれないことを確認します。"""
     with allure.step("レーンの runtime の入力を読む"):
         runtime = _target_inputs(nx_bin, f"pecot-workflow:{lane}").get("runtime", [])
     with allure.step("uv の版が入っていないことを確かめる"):
         assert "uv --version" not in runtime, runtime
 
 
+@allure.title("nx を起動する環境から、キャッシュの置き場を変える環境変数を除く")
 def test_nx_env_drops_the_variables_that_move_the_cache_location(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """`NX_CACHE_DIRECTORY` など 3 つの環境変数を設定した状態で、`_nx_env` を呼ぶテストです。3 つの変数が環境に含まれず、`NX_DAEMON` が `false` であることを確認します。"""
     with allure.step("キャッシュの場所を動かす変数を設定し、nx の env を作る"):
         for key in ("NX_CACHE_DIRECTORY", "NX_WORKSPACE_DATA_DIRECTORY", "NX_SKIP_NX_CACHE"):
             monkeypatch.setenv(key, "/somewhere/else")
@@ -810,27 +833,19 @@ _SLIDEV_BUILD = "build-slidev"
 _SLIDEV = "plugins/pecot-visual/assets/slidev/"
 
 
+@allure.title("{project_target} は、eslint plugin の dist を作る build-slidev を先に実行する")
 @pytest.mark.parametrize("project_target", ["pecot-visual:test-cli"])
 def test_lane_that_runs_template_eslint_plugins_builds_them_first(
     resolved_targets: dict[str, dict], project_target: str
 ) -> None:
-    """assets/slidev の eslint plugin の dist（pecot-visual:build-slidev が作る）を起動するレーンは、
-
-    build を dependsOn に持つ。
-    無いと、ソースを変えた push で両レーンが同時に実行される。
-    その結果、古い dist で通った成功が、新しいハッシュでキャッシュに残る。
-    dist が無い worktree では SKIP して通るテストもある。
-    """
+    """`assets/slidev` の eslint plugin を起動するレーンのテストです。`dependsOn` に `build-slidev` が含まれることを確認します。"""
     with allure.step("レーンの dependsOn に slidev の build が入っていることを確かめる"):
         assert _SLIDEV_BUILD in resolved_targets[project_target]["dependsOn"]
 
 
+@allure.title("pecot-visual:test-cli の inputs は、deck の lint の設定と plugin のソースだけを含む")
 def test_cli_test_inputs_take_the_deck_lint_files_but_not_the_layouts(nx_bin: Path) -> None:
-    """slide lint 系テストが起動する eslint 設定・plugin ソース（テスト以外）だけを入れる。
-
-    本体はテーマのレイアウト・ページ・スタイルを持たない。
-    テストが使うテーマは cli/tests/fixtures 配下の fixture テーマで、別の入力として宣言される。
-    """
+    """`assets/slidev` のうち、`pecot-visual:test-cli` の inputs に含まれるファイルのテストです。`deck-lint` の設定と eslint plugin のソースは含まれ、`templates/` のレイアウトや plugin のテストは含まれないことを確認します。"""
     with allure.step("cli の test の inputs から slidev のファイルを集める"):
         files = [
             f
@@ -864,8 +879,11 @@ def test_cli_test_inputs_take_the_deck_lint_files_but_not_the_layouts(nx_bin: Pa
         assert not in_tests, f"eslint plugin のテストが inputs に入っている: {in_tests[:3]}"
 
 
+@allure.title(
+    "pecot-visual:test-hooks の inputs は、slidev の資産と fixture を含まず、node-runtime.ts を含む"
+)
 def test_hooks_test_inputs_do_not_take_slidev_assets(nx_bin: Path) -> None:
-    """hooks のテストは eslint の規則を動かさない。PostToolUse の確かめは MCP のツールに移り、test-cli が確かめる (#795)。"""
+    """`pecot-visual:test-hooks` の inputs のテストです。slidev の資産と `cli/tests/fixtures/` のファイルは `package.json` を除いて含まれず、`node-runtime.ts` が含まれることを確認します。"""
     with allure.step("hooks の test の inputs のファイルを集める"):
         files = _target_inputs(nx_bin, "pecot-visual:test-hooks")["files"]
         attach_json(
@@ -889,12 +907,9 @@ _RUNTIME_OUTPUT_PATTERNS = {
 }
 
 
+@allure.title("runtime の各コマンドは、終了コード 0 で終わり、版を含む出力を返す")
 def test_runtime_commands_exit_zero_and_print_a_version(nx_bin: Path) -> None:
-    """runtime の各コマンドが workspace root で exit 0 を返し、出力に版を含む（devcontainer の Debian 系が前提）。
-
-    nx は終了コードを見ずに出力をハッシュする。失敗時のエラー文がハッシュされて版が変わっても
-    同じ値になる誤再利用を防ぐため、実際に版が取れることを保証する。
-    """
+    """すべての test と lint の target が、入力に宣言した runtime のコマンドのテストです。ワークスペースのルートで実行して終了コード 0 で終わり、出力が版やハッシュなど、期待する形であることを確認します。"""
     with allure.step("test と lint の target の runtime を集める"):
         commands: set[str] = set()
         for project, target, _ in _TEST_LINT:
@@ -925,6 +940,7 @@ def test_runtime_commands_exit_zero_and_print_a_version(nx_bin: Path) -> None:
             )
 
 
+@allure.title("{project_target} は、cache を false と明示している")
 @pytest.mark.parametrize(
     "project_target",
     [
@@ -951,19 +967,14 @@ def test_runtime_commands_exit_zero_and_print_a_version(nx_bin: Path) -> None:
 def test_non_cacheable_target_says_cache_false(
     resolved_targets: dict[str, dict], project_target: str
 ) -> None:
+    """キャッシュしない target のテストです。graph に解決した設定の `cache` が、`false` であることを確認します。"""
     with allure.step("target が cache: false であることを確かめる"):
         assert resolved_targets[project_target].get("cache") is False
 
 
+@allure.title("nx:noop の起点の target は、inputs を持たない")
 def test_noop_entry_targets_have_no_inputs(resolved_targets: dict[str, dict]) -> None:
-    """起点の test / lint（nx:noop）は inputs を持たない (#1232)。
-
-    nx 24 のタスク単位 affected は、起点が project 全体を入力にしていると、起点自身が affected になる。
-    その結果、dependsOn のレーンを全部連れてくる。
-    チェックはレーンを名前で要求する。
-    ただし pecot-visual の起点 `lint` は lint-* と同じ列挙に入る。
-    そのため、noop 側の inputs を空にして連れてこさせない。
-    """
+    """起点の `test` と `lint` のテストです。`nx.json` の `nx:noop` の `inputs` が空で、解決後の起点の target も `inputs` が空であることを確認します。"""
     with allure.step("nx.json と起点の target を読む"):
         nx_json = json.loads(_NX_JSON.read_text(encoding="utf-8"))
     with allure.step("起点の target が inputs を持たないことを確かめる"):
@@ -985,33 +996,27 @@ def test_noop_entry_targets_have_no_inputs(resolved_targets: dict[str, dict]) ->
             assert config.get("inputs") == [], f"{key} の inputs が空でない: {config.get('inputs')}"
 
 
+@allure.title("リリースの設定は、0.x の版の上げ方を nx 22 と同じにする")
 def test_release_keeps_zero_major_versions_as_before_nx_24() -> None:
-    """0.x の bump を nx 22 と同じ読み方に固定する (#1232)。
-
-    nx 24 は `adjustSemverBumpsForZeroMajorVersion` の既定が true で、0.x の minor を patch に、
-    major を minor に下げる。pecot-visual（0.x）の plan が宣言どおりの版にならないよう、root の
-    release.version で false を明示する（group の version と合成される）。
-    """
+    """`nx.json` の `release` の設定のテストです。`adjustSemverBumpsForZeroMajorVersion` が `false` であることを確認します。"""
     with allure.step("nx.json の release を読む"):
         release = json.loads(_NX_JSON.read_text(encoding="utf-8"))["release"]
     with allure.step("0.x の bump を下げない設定であることを確かめる"):
         assert release["version"]["adjustSemverBumpsForZeroMajorVersion"] is False
 
 
+@allure.title("affected の設定は、legacy を置かず、タスク単位の選択を使う")
 def test_affected_uses_task_level_selection() -> None:
-    """`affected.legacy`（project 単位の選択へ戻す設定）を置かない (#1232)。
-
-    nx 24 の migration `enable-legacy-affected` は、22 の挙動を保つために legacy を書く。
-    legacy のままだと起点を含む project 全体が選ばれ、チェックがレーン単位にならない。
-    """
+    """`nx.json` の `affected` の設定のテストです。project 単位の選択に戻す `legacy` が含まれないことを確認します。"""
     with allure.step("nx.json を読む"):
         nx_json = json.loads(_NX_JSON.read_text(encoding="utf-8"))
     with allure.step("affected に legacy が無いことを確かめる"):
         assert "legacy" not in nx_json.get("affected", {})
 
 
+@allure.title("nx-release のテストは、入っている nx の版を入力として読む")
 def test_nx_release_test_reads_the_installed_nx_version() -> None:
-    """root lockfile は .nxignore 済みで file 入力に書いても無視される。実際に入っている nx の版を見る。"""
+    """`.nx/nx-release/project.json` の `test-unit` の inputs のテストです。`package-lock.json` を含まず、`nx/package.json` を読む runtime と、`runtime` および `env` が含まれることを確認します。"""
     with allure.step("nx-release の project.json の inputs を読む"):
         data = json.loads((_REPO_ROOT / ".nx" / "nx-release" / "project.json").read_text("utf-8"))
         inputs = data["targets"]["test-unit"]["inputs"]

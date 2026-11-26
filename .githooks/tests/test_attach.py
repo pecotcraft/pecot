@@ -80,8 +80,11 @@ def _attachments(results: Path) -> dict[str, list[tuple[str, str, str]]]:
     return by_test
 
 
+@allure.title(
+    "run_attached を呼ぶと、コマンドと終了コードを名前にして stdout と stderr を添付し、結果をそのまま返す"
+)
 def test_run_attached_attaches_stdout_and_stderr(tmp_path: Path) -> None:
-    """run_attached は、コマンドと終了コードを名前にして、空でない stdout と stderr を添付し、結果をそのまま返す。"""
+    """`run_attached` が子プロセスの出力を Allure に添付するときのテストです。stdout と stderr が空でない場合に、コマンドと終了コードを名前にした 2 つの添付が残り、実行結果が呼び出し元にそのまま返ることを確認します。"""
     body = """
 def test_run() -> None:
     done = run_attached([*EMIT, "out", "err", "3"], capture_output=True, text=True)
@@ -106,8 +109,11 @@ def test_run() -> None:
         ]
 
 
+@allure.title(
+    "check=True で終了コードが 0 以外になると、出力を添付してから CalledProcessError を送出する"
+)
 def test_run_attached_check_attaches_before_raising(tmp_path: Path) -> None:
-    """check=True で終了コードが 0 でないとき、出力を添付してから CalledProcessError を投げる。"""
+    """`run_attached` に `check=True` を指定して、子プロセスが失敗した場合のテストです。stderr の添付が残り、そのあとで `CalledProcessError` が発生することを確認します。"""
     body = """
 def test_check() -> None:
     run_attached([*EMIT, "", "broken", "1"], capture_output=True, text=True, check=True)
@@ -127,8 +133,9 @@ def test_check() -> None:
         ]
 
 
+@allure.title("timeout で止まると、そこまでの出力を添付してから TimeoutExpired を送出する")
 def test_run_attached_timeout_attaches_partial_output(tmp_path: Path) -> None:
-    """timeout で止まると、そこまでの出力を添付してから TimeoutExpired を投げる。"""
+    """`run_attached` に `timeout` を指定して、子プロセスが時間内に終わらなかった場合のテストです。途中まで出力した stdout が添付に残り、そのあとで `TimeoutExpired` が発生することを確認します。"""
     body = """
 def test_timeout() -> None:
     run_attached([*EMIT, "started", "", "0", "5"], capture_output=True, text=True, timeout=1)
@@ -148,8 +155,11 @@ def test_timeout() -> None:
         ]
 
 
+@allure.title(
+    "出力が両方とも空なら空の stdout を 1 つ添付し、読み込んだファイルは拡張子に合う型で添付する"
+)
 def test_attach_output_and_read_output(tmp_path: Path) -> None:
-    """出力が両方空なら空の stdout を 1 つ添付し、読んだファイルは中身を拡張子の型で添付する。"""
+    """`attach_output` と `read_output` が Allure に残す添付のテストです。出力が両方とも空の場合は空の stdout が 1 つ添付され、読み込んだ `.md` と `.json` のファイルは拡張子に合う型で添付されることを確認します。"""
     body = """
 def test_files(tmp_path: Path) -> None:
     attach_output("server", "", "", 0)
@@ -170,8 +180,9 @@ def test_files(tmp_path: Path) -> None:
         ]
 
 
+@allure.title("--alluredir を指定しないと、何も添付せず結果をそのまま返す")
 def test_without_alluredir_nothing_is_written(tmp_path: Path) -> None:
-    """--alluredir が無いと、添付せずに結果をそのまま返す。"""
+    """`--alluredir` を指定せずに pytest を実行した場合のテストです。`run_attached` が結果をそのまま返し、Allure の結果ディレクトリが作成されないことを確認します。"""
     body = """
 def test_run() -> None:
     done = run_attached([*EMIT, "out", "", "0"], capture_output=True, text=True, check=True)

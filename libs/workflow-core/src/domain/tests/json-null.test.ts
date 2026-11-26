@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
+import { explains } from '../../../tests/_helpers/explains.js'
 import { JSON_NULL } from '../json-null.js'
 
 describe('JSON_NULL', () => {
-  it('JSON にすると null になる（undefined のように落ちない）', () => {
+  it('JSON に変換すると、undefined のように落ちず null になる', async () => {
+    await explains('JSON の `null` を表す定数 `JSON_NULL` のテストです。`JSON.stringify` で変換した場合に、`undefined` の値はキーごと省かれる一方、`JSON_NULL` は `null` として出力されることを確認します。')
     expect(JSON.stringify({ a: JSON_NULL, b: undefined })).toBe('{"a":null}')
   })
 })

@@ -8,6 +8,7 @@ import type { Browser, Page } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { attachContent } from '../../src/vitest/attach.js'
 import { step, stepSync } from '../../src/vitest/step.js'
+import { explains } from '../../src/vitest/explains.js'
 
 const PROJECT_ROOT = path.resolve(import.meta.dirname, '../..')
 // テーマの右の欄が出る幅（xl）より広い 2 つと、スマートフォンの幅。
@@ -128,7 +129,8 @@ async function rightGap(width: number, page: string, shot?: string): Promise<num
 }
 
 describe('公開サイトの見た目', () => {
-  it('開発版で作ったサイトは、フッターと機能要件の表にテストレポートへのリンクを持つ', async () => {
+  it('開発版でビルドしたサイトは、フッターと機能要件の表に、テストレポートへのリンクを含む', async () => {
+    await explains('開発版でビルドした公開サイトの表示のテストです。ツールのページを開いた場合に、フッターと機能要件の表に、テストレポートへのリンクと、項目の ID で絞り込むリンクが含まれることを確認します。')
     const tab = await step('ページを開く', () => open(WIDE[0], TOOL_PAGE))
     const hrefs = await step('リンクを集める', () => tab.evaluate(() => [...document.querySelectorAll('footer a, table.iface-behaviors a')]
       .map(link => link.getAttribute('href') ?? '')))
@@ -141,7 +143,8 @@ describe('公開サイトの見た目', () => {
     })
   })
 
-  it.for(WIDE)('幅 %s px で、目次の無いページは本文が外枠の右端まで広がり、空欄を残さない', async (width) => {
+  it.for(WIDE)('幅 %s px で、目次がないページは、本文が外枠の右端まで広がり、空欄を残さない', async (width) => {
+    await explains(`開発版でビルドした公開サイトの表示のテストです。幅 ${String(width)} px で全ページを開いた場合に、目次がないページの本文が外枠の右端まで広がり、右側に空欄が残らないことを確認します。`)
     const gaps: Record<string, number> = {}
     let shot: Shot | undefined
     const pages = site().pages.filter(page => !NO_NOTOC.has(page))
@@ -162,7 +165,8 @@ describe('公開サイトの見た目', () => {
     })
   })
 
-  it.for(WIDE)('幅 %s px で、見出しが 2 段以上あるページは右に目次を出す', async (width) => {
+  it.for(WIDE)('幅 %s px で、見出しが 2 段以上あるページは、右に目次を表示する', async (width) => {
+    await explains(`開発版でビルドした公開サイトの表示のテストです。幅 ${String(width)} px で、見出しが 2 段以上あるページを開いた場合に、右側に目次の欄が表示されることを確認します。`)
     const gaps: Record<string, number> = {}
     await step('各ページの右の余白を測る', async () => {
       for (const page of [TOOL_PAGE, 'genindex.html']) {
@@ -175,6 +179,7 @@ describe('公開サイトの見た目', () => {
   })
 
   it.for(WIDE)('幅 %s px で、段落と箇条書きの 1 行は 50rem を超えない', async (width) => {
+    await explains(`開発版でビルドした公開サイトの表示のテストです。幅 ${String(width)} px で全ページを開いた場合に、表の外にある段落と箇条書きの幅が、50rem（800 px）を超えないことを確認します。`)
     const widths: Record<string, number> = {}
     let shot: Shot | undefined
     await step('各ページの行幅を測る', async () => {
@@ -197,6 +202,7 @@ describe('公開サイトの見た目', () => {
   })
 
   it.for(WIDE)('幅 %s px で、ヘッダーは画面の幅いっぱいに広がり、フッターの中身は真ん中に寄る', async (width) => {
+    await explains(`開発版でビルドした公開サイトの表示のテストです。幅 ${String(width)} px でトップページを開いた場合に、ヘッダーの内容が画面の左端から 32 px 以内まで広がり、フッターの内容が左右の余白の等しい真ん中に寄ることを確認します。`)
     const tab = await step('ページを開く', () => open(width, 'index.html'))
     const header = 'header .container:not(.pecot-site-row) a, header .container:not(.pecot-site-row) button'
     const [headerEdges, footerEdges] = await step('ヘッダーとフッターの端を測る', () => tab.evaluate(selectors => selectors.map((selector): [number, number] => {
@@ -215,7 +221,8 @@ describe('公開サイトの見た目', () => {
     })
   })
 
-  it('見出しのリンクはテーマのアイコンで、文字の ¶ を出さない', async () => {
+  it('見出しのリンクは、テーマのアイコンで表示し、文字の ¶ を表示しない', async () => {
+    await explains('開発版でビルドした公開サイトの表示のテストです。全ページを開いた場合に、見出しのリンクがテーマの SVG アイコンで表示され、文字の `¶` を含まないことを確認します。')
     const broken: Record<string, number> = {}
     let shot: Shot | undefined
     await step('各ページのリンクを調べる', async () => {
@@ -236,7 +243,8 @@ describe('公開サイトの見た目', () => {
     })
   })
 
-  it.for([TOOL_LIST, TOOL_PAGE])('%s の題のリンクは、カーソルを当てる前は見えず、当てると見える', async (page) => {
+  it.for([TOOL_LIST, TOOL_PAGE])('%s の題のリンクは、カーソルを当てる前は非表示で、当てると表示される', async (page) => {
+    await explains(`開発版でビルドした公開サイトの表示のテストです。\`${page}\` を開いた場合に、題のリンクのアイコンが、カーソルを当てる前は非表示で、題に当てると表示されることを確認します。`)
     const tab = await step('ページを開く', () => open(WIDE[0], page))
     const visibility = async (): Promise<string> => tab.evaluate(() => {
       const icon = document.querySelector('h1 a.headerlink > svg')
@@ -256,6 +264,7 @@ describe('公開サイトの見た目', () => {
   })
 
   it('幅 390 px で、どのページも横にはみ出さない', async () => {
+    await explains('開発版でビルドした公開サイトの表示のテストです。スマートフォンの幅（390 px）で全ページを開いた場合に、どのページも横にはみ出さない（横スクロールが発生しない）ことを確認します。')
     const overflows: Record<string, number> = {}
     let shot: Shot | undefined
     await step('各ページのはみ出しを測る', async () => {

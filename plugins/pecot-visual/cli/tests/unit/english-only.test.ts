@@ -8,6 +8,7 @@ import path from 'node:path'
 
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
+import { explains } from '../_helpers/explains.js'
 
 // tests/unit → プラグインのルート。報告のパスと例外の file はこのルートからの相対にする。
 const PLUGIN_ROOT = path.resolve(import.meta.dirname, '..', '..', '..')
@@ -98,11 +99,13 @@ const FILES = sourceFiles()
 const FINDINGS = FILES.flatMap(file => japaneseLiterals(file, readFileSync(path.join(PLUGIN_ROOT, file), 'utf8')))
 
 describe('cli/src/ と eslint の規則・設定の固定の文言が英語', () => {
-  it('調べる .ts を 1 件以上見つける', () => {
+  it('検索対象の .ts ファイルが 1 件以上見つかる', async () => {
+    await explains('`cli/src/` と eslint の規則・設定から、英語の文言を確認する対象の `.ts` ファイルを集める処理のテストです。対象のファイルが 1 件以上見つかることを確認します。')
     expect(FILES.length).toBeGreaterThan(0)
   })
 
-  it('eslint の規則・index.ts・設定ファイルも調べる', () => {
+  it('eslint の規則・index.ts・設定ファイルも、検索対象に含まれる', async () => {
+    await explains('英語の文言を確認する対象のファイルの一覧のテストです。`textlint.ts` などの規則と各パッケージの `index.ts`、設定ファイルが含まれ、`tests` や `dist` のファイルは含まれないことを確認します。')
     const base = 'assets/slidev'
     expect(FILES).toEqual(expect.arrayContaining([
       `${base}/scripts/eslint/text-constraints/lib/rules/textlint.ts`,
@@ -115,14 +118,16 @@ describe('cli/src/ と eslint の規則・設定の固定の文言が英語', ()
     expect(FILES.some(file => file.includes('/tests/') || file.includes('/dist/'))).toBe(false)
   })
 
-  it('文字列リテラルに日本語の文字が無い', () => {
+  it('対象のファイルの文字列リテラルに、日本語の文字が含まれない', async () => {
+    await explains('`cli/src/` と eslint の規則・設定の、文字列リテラルとテンプレートリテラルの固定部分のテストです。許可した例外を除き、ひらがな・カタカナ・漢字などの日本語の文字が含まれないことを確認します。')
     const report = FINDINGS.filter(finding => !isAllowed(finding)).map(
       finding => `${finding.file}:${String(finding.line)}: ${finding.text.trim().slice(0, 40)}`,
     )
     expect(report, `Japanese text in string literals:\n${report.join('\n')}`).toEqual([])
   })
 
-  it('例外はすべて使われている', () => {
+  it('許可した例外は、すべて実際に使われている', async () => {
+    await explains('日本語の文字を許可する例外の一覧のテストです。一覧のすべての項目が、実際に対象のファイルから見つかることを確認します。')
     const unused = ALLOWED.filter(
       allowed => FINDINGS.every(finding => !(finding.file === allowed.file && finding.text === allowed.text)),
     )
@@ -141,7 +146,8 @@ describe('判定器', () => {
     ['const a = `${日本}`', 0],
     ['const a = /[\\u3040-\\u30FF]|あ/u', 0],
     ['// コメント\nconst a = 1', 0],
-  ])('%s → %i 件', (source, expected) => {
+  ])('ソースが %s のとき、日本語を含むリテラルを %i 件見つける', async (source, expected) => {
+    await explains('日本語を含む文字列リテラルを見つける `japaneseLiterals` のテストです。文字列と、テンプレートリテラルの固定部分に日本語がある場合だけ数え、英語や記号だけの文字列、`${}` の中の式、正規表現、コメントは数えないことを確認します。')
     expect(japaneseLiterals('sample.ts', source)).toHaveLength(expected)
   })
 })

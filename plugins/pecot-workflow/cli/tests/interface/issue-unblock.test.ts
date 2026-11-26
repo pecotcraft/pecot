@@ -12,6 +12,7 @@ import { boardItems, fieldUpdated, linkedRepositories } from '../_helpers/board-
 import { botResult, commentsFailure, commentsRule, humanResult, prerequisitesRule } from '../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
 import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
+import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -33,6 +34,7 @@ async function unblockTool(argumentsOfTool: Readonly<Record<string, unknown>>): 
 
 describe('issue unblock', () => {
   it('Issue と --by を渡すと、前提を外して removed の行を出し、節の行を外し、判定が変われば列を Ready に動かす', async () => {
+    await explains('前提（blocked by）を外す、`issue unblock` の基本的な動作のテストです。`--by` で指定した前提を外した場合に、`removed` の行を出力して本文の節の行を削除し、判定が変わればボードの列を `Ready` へ動かすことを確認します。')
     prepareDependencyProject()
     const github = await startGithub([
       bothLinked(), targetReferences(7, WITH_SECTION, [{ number: 5 }]), removeBlockedByRule(7, 5), bodyWritten(7, BODY),
@@ -46,6 +48,7 @@ describe('issue unblock', () => {
   })
 
   it('選択肢の ID が古くて列を書けないと、前提を外したまま warning と project activate の案内を出し、終了コード 0 で終わる', async () => {
+    await explains('Status の選択肢の ID が古くなっている場合の、`issue unblock` のテストです。列を書き込めないときに、前提は外したまま、`warning` と `project activate` の案内を出力して終了コード 0 で終了することを確認します。')
     prepareDependencyProject()
     await startGithub([
       bothLinked(), targetReferences(7, WITH_SECTION, [{ number: 5 }]), removeBlockedByRule(7, 5), bodyWritten(7, BODY),
@@ -67,6 +70,7 @@ describe('issue unblock', () => {
   })
 
   it('--by がプロジェクトに無い別のリポジトリでも、待つ側のリポジトリだけを確かめて前提を外す', async () => {
+    await explains('`--by` に、プロジェクトへリンクされていない別のリポジトリの Issue を指定した場合の、`issue unblock` のテストです。待つ側のリポジトリだけを確認して前提を外すことを確認します。')
     prepareDependencyProject()
     const github = await startGithub([
       bothLinked(), targetReferences(7, BODY, [{ number: 5, repo: 'other' }]), removeBlockedByRule(7, 5, 'other'),
@@ -81,6 +85,7 @@ describe('issue unblock', () => {
   })
 
   it('節に前提が 2 行あるとき、外した前提の行だけを節から消す', async () => {
+    await explains('本文の節に前提が 2 行ある Issue の前提を外す、`issue unblock` のテストです。1 つの前提を外した場合に、外した前提の行だけを節から削除することを確認します。')
     prepareDependencyProject()
     const both = `${BODY}\n${WAITS_SECTION(['#5: first', '#6: second'])}`
     const rest = `${BODY}\n${WAITS_SECTION(['#6: second'])}`
@@ -95,6 +100,7 @@ describe('issue unblock', () => {
   })
 
   it('付いていない前提を外すと、何も書かずに unchanged の行を出し、節に残った古い行も書き換えない', async () => {
+    await explains('Issue に付いていない前提を外そうとした場合の、`issue unblock` のテストです。何も書き込まず、`unchanged` の行を出力し、節に残った古い行も書き換えないことを確認します。')
     prepareDependencyProject()
     const github = await startGithub([bothLinked(), targetReferences(7, WITH_SECTION, [])])
 
@@ -104,7 +110,8 @@ describe('issue unblock', () => {
     expect(requestLabels(github.requests())).toEqual(['GetLinkedRepositoriesUser', 'GetIssueBlockedByReferences'])
   })
 
-  it('札が Needs Attention で、閉じた前提を外すと、列を戻した後に札を Todo にする', async () => {
+  it('Status が Needs Attention で、閉じた前提を外すと、列を戻した後に Status を Todo にする', async () => {
+    await explains('Status が `Needs Attention` の Issue から、閉じた前提を外す場合の、`issue unblock` のテストです。ボードの列を戻した後で、Status を `Todo` にすることを確認します。')
     prepareDependencyProject()
     const github = await startGithub([
       bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
@@ -117,8 +124,9 @@ describe('issue unblock', () => {
     expect(writes(github)).toEqual(['RemoveBlockedBy', 'UpdateProjectItemField', 'UpdateProjectItemField'])
   })
 
-  it('札が Needs Attention で、bot が書いた最後の自動処理の結果が question なら、閉じた前提を外しても札を Todo に戻さない', async (context) => {
+  it('Status が Needs Attention で、bot が書いた最後の自動処理の結果が question なら、閉じた前提を外しても Status を Todo に戻さない', async (context) => {
     await verifies(context, 'PW-ISSUE-UNBLOCK-22')
+    await explains('Status が `Needs Attention` の Issue から、閉じた前提を外す場合の、`issue unblock` のテストです。bot が書いた最後の自動処理の結果が `question` のときは、Status を `Todo` に戻さないことを確認します。')
     prepareDependencyProject()
     const github = await startGithub([
       bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
@@ -131,8 +139,9 @@ describe('issue unblock', () => {
     expect(writes(github)).toEqual(['RemoveBlockedBy', 'UpdateProjectItemField'])
   })
 
-  it('札が Needs Attention で、人が書いた自動処理の結果の目印しか無いなら、閉じた前提を外すと札を Todo に戻す', async (context) => {
+  it('Status が Needs Attention で、人が書いた自動処理の結果の目印しか無いなら、閉じた前提を外すと Status を Todo に戻す', async (context) => {
     await verifies(context, 'PW-ISSUE-UNBLOCK-05')
+    await explains('Status が `Needs Attention` の Issue から、閉じた前提を外す場合の、`issue unblock` のテストです。人が自動処理の結果の目印だけを書いているときは、bot の結果として扱わず、Status を `Todo` に戻すことを確認します。')
     prepareDependencyProject()
     const github = await startGithub([
       bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
@@ -145,8 +154,9 @@ describe('issue unblock', () => {
     expect(writes(github)).toEqual(['RemoveBlockedBy', 'UpdateProjectItemField', 'UpdateProjectItemField'])
   })
 
-  it('札が Needs Attention の Issue のコメントを読めないと、前提は外し、判定を出せない warning を出して列と札を動かさない', async (context) => {
+  it('Status が Needs Attention の Issue のコメントを読めないと、前提は外し、判定を出せない warning を出して列と Status を動かさない', async (context) => {
     await verifies(context, 'PW-ISSUE-UNBLOCK-23')
+    await explains('Status が `Needs Attention` の Issue のコメントを取得できない場合の、`issue unblock` のテストです。前提は外し、判定できない旨の `warning` を出力して、列と Status は動かさないことを確認します。')
     prepareDependencyProject()
     const github = await startGithub([
       bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
@@ -159,7 +169,8 @@ describe('issue unblock', () => {
     expect(writes(github)).toEqual(['RemoveBlockedBy'])
   })
 
-  it('札が Needs Attention でも、開いた最後の前提を外しただけなら、札を戻さない', async () => {
+  it('Status が Needs Attention でも、開いた最後の前提を外しただけなら、Status を戻さない', async () => {
+    await explains('Status が `Needs Attention` の Issue から、開いた最後の前提を外す場合の、`issue unblock` のテストです。ボードの列は動かすが、Status は戻さないことを確認します。')
     prepareDependencyProject()
     const github = await startGithub([
       bothLinked(), targetReferences(7, BODY, [{ number: 5 }]), removeBlockedByRule(7, 5),
@@ -172,7 +183,8 @@ describe('issue unblock', () => {
     expect(writes(github)).toEqual(['RemoveBlockedBy', 'UpdateProjectItemField'])
   })
 
-  it('着手の跡がある Issue から外すと、前提は外し、列と札は動かさない', async () => {
+  it('着手の跡がある Issue から外すと、前提は外し、列と Status は動かさない', async () => {
+    await explains('着手した形跡のある Issue から前提を外す場合の、`issue unblock` のテストです。ブランチがあり、`Active` の列にある Issue では、前提だけを外し、列と Status は動かさないことを確認します。')
     prepareDependencyProject()
     const github = await startGithub([
       bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
@@ -186,6 +198,7 @@ describe('issue unblock', () => {
   })
 
   it('--dry-run を付けると、読み取りだけ行い、書き込みを送らずに dry-run の行を出す', async () => {
+    await explains('`issue unblock` の `--dry-run` のテストです。`--dry-run` を指定した場合に、読み取りだけを行い、書き込みを送信せず、外す予定を `dry-run` の行に出力することを確認します。')
     prepareDependencyProject()
     const github = await startGithub([bothLinked(), targetReferences(7, WITH_SECTION, [{ number: 5 }])])
 
@@ -196,6 +209,7 @@ describe('issue unblock', () => {
   })
 
   it('本文の節が読めないとき、前提だけを外し、節を直していない旨を warning で出す', async () => {
+    await explains('本文の `Waits for merge` の節の書式が誤っている場合の、`issue unblock` のテストです。節を解析できないときに、前提だけを外し、節は変更していない旨を `warning` に出力することを確認します。')
     prepareDependencyProject()
     const malformed = '## Waits for merge\n\nplain text\n'
     const github = await startGithub([
@@ -213,7 +227,8 @@ describe('issue unblock', () => {
     expect(writes(github)).toEqual(['RemoveBlockedBy', 'UpdateProjectItemField'])
   })
 
-  it('読み直した前提が書いた内容と合わないとき、列と札を動かさずに warning を出して終了コード 0 で終わる', async () => {
+  it('読み直した前提が書いた内容と合わないとき、列と Status を動かさずに warning を出して終了コード 0 で終わる', async () => {
+    await explains('前提を外した後の再取得の結果が、書き込んだ内容と合わない場合の、`issue unblock` のテストです。前提がまだ残って見えるときに、列と Status は動かさず、`warning` を出力して終了コード 0 で終了することを確認します。')
     prepareDependencyProject()
     const stale = prerequisitesRule({ number: 7, column: 'Blocked', body: BODY, blockedBy: [{ number: 5 }] })
     const github = await startGithub([bothLinked(), targetReferences(7, BODY, [{ number: 5 }]), removeBlockedByRule(7, 5), stale, stale])
@@ -225,7 +240,8 @@ describe('issue unblock', () => {
     expect(writes(github)).toEqual(['RemoveBlockedBy'])
   })
 
-  it('動かす先の札がボードに無いとき、列は動かし、warning と project init の hint を出す', async () => {
+  it('動かす先の Status（Todo）の選択肢がボードに存在しないとき、列は動かし、warning と project init の hint を出す', async () => {
+    await explains('動かす先の Status の選択肢がボードに存在しない場合の、`issue unblock` のテストです。`Todo` の選択肢がないときに、列だけを動かし、`warning` と `project init` の `hint` を出力することを確認します。')
     prepareDependencyProject({ omit: ['todo'] })
     await startGithub([
       bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
@@ -242,6 +258,7 @@ describe('issue unblock', () => {
   })
 
   it('依存関係に対応しない GHES では、終了コード 1 で止める', async () => {
+    await explains('Issue の依存関係に対応していない GHES での、`issue unblock` のテストです。GraphQL の応答が非対応を示す場合に、`error` の行を出力して終了コード 1 で終了することを確認します。')
     prepareDependencyProject()
     const message = 'Field \'blockedBy\' doesn\'t exist on type \'Issue\''
     const unsupported: ResponseRule = { match: { operation: 'GetIssueBlockedByReferences' }, respond: { status: 200, body: { errors: [{ message }] } }, times: 1 }
@@ -257,6 +274,7 @@ describe('issue unblock', () => {
   })
 
   it('Issue の参照の形が誤っているとき、要求を送らずに終了コード 2 で止める', async () => {
+    await explains('Issue の参照の形式が誤っている場合の、`issue unblock` のテストです。`invalid-format` のような参照を渡したときに、要求を送信せず、終了コード 2 で終了することを確認します。')
     prepareDependencyProject()
     const github = await startGithub([])
 
@@ -268,6 +286,7 @@ describe('issue unblock', () => {
   })
 
   it('リポジトリがプロジェクトに無いとき、終了コード 1 で止める', async () => {
+    await explains('リポジトリがプロジェクトにリンクされていない場合の、`issue unblock` のテストです。対象のリポジトリがプロジェクトに存在しないときは、`error` を出力して終了コード 1 で終了することを確認します。')
     prepareDependencyProject()
     await startGithub([linkedRepositories(['other'])])
 
@@ -277,6 +296,7 @@ describe('issue unblock', () => {
   })
 
   it('対象のリポを含む設定が 2 つあり .active も選べないとき、候補と --project の案内を出して終了コード 1 で止める', async () => {
+    await explains('対象のリポジトリを含むプロジェクトの設定が複数ある場合の、`issue unblock` のテストです。設定が 2 つあり、`.active` でも選べないときに、候補と `--project` の案内を出力して終了コード 1 で終了することを確認します。')
     const project = setUpProject()
     makeAmbiguous(project)
     const github = await startGithub([])
@@ -288,6 +308,7 @@ describe('issue unblock', () => {
   })
 
   it('待つ側のリポを含む設定が無いとき、error を出して終了コード 1 で止める', async () => {
+    await explains('待つ側のリポジトリを含むプロジェクトの設定が存在しない場合の、`issue unblock` のテストです。該当する設定がないときに、`error` の行を出力して終了コード 1 で終了することを確認します。')
     setUpProject({ repositories: ['other'] })
 
     const result = await unblock('acme/demo/7', '--by', 'acme/demo/5')
@@ -296,6 +317,7 @@ describe('issue unblock', () => {
   })
 
   it('--project を渡すと、待つ側のリポを含む設定が 2 つあってもその設定で動く', async () => {
+    await explains('`issue unblock` の `--project` オプションのテストです。待つ側のリポジトリを含む設定が 2 つある場合でも、`--project` で設定を指定したときに、その設定で前提を外すことを確認します。')
     const project = prepareDependencyProject()
     makeAmbiguous(project)
     await startGithub([
@@ -310,6 +332,7 @@ describe('issue unblock', () => {
   })
 
   it('.active が無くても、待つ側のリポを含む設定が 1 つならその設定で動く', async () => {
+    await explains('`.active` が存在しない場合の、`issue unblock` のテストです。待つ側のリポジトリを含む設定が 1 つだけのときに、その設定で前提を外すことを確認します。')
     const project = prepareDependencyProject()
     removeActive(project)
     await startGithub([
@@ -324,6 +347,7 @@ describe('issue unblock', () => {
   })
 
   it('前提を外す要求が失敗したとき、error を出して終了コード 1 で止める', async () => {
+    await explains('前提を外す GitHub API の要求が失敗した場合の、`issue unblock` のテストです。要求が 502 を返したときに、`could not remove blocked-by` の `error` を出力して終了コード 1 で終了することを確認します。')
     prepareDependencyProject()
     const failing: ResponseRule = { match: { operation: 'RemoveBlockedBy' }, respond: { status: 502, body: { message: 'failure' } }, times: 1 }
     await startGithub([bothLinked(), targetReferences(7, BODY, [{ number: 5 }]), failing])
@@ -340,6 +364,7 @@ describe('issue unblock', () => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-03')
       await verifies(context, 'PW-ISSUE-UNBLOCK-04')
       await verifies(context, 'PW-ISSUE-UNBLOCK-18')
+      await explains('前提を外した結果を返す、MCP の `issue_unblock` のテストです。前提を外した場合に、Issue と前提の参照、`removed`、動かした列を `data` に含めて返し、本文の節の行も削除することを確認します。')
       prepareDependencyProject()
       const github = await startGithub([
         bothLinked(), targetReferences(7, WITH_SECTION, [{ number: 5 }]), removeBlockedByRule(7, 5), bodyWritten(7, BODY),
@@ -358,9 +383,10 @@ describe('issue unblock', () => {
       expect(writes(github)).toEqual(['RemoveBlockedBy', 'PATCH /repos/acme/demo/issues/7', 'UpdateProjectItemField'])
     })
 
-    it('札が Needs Attention で閉じた前提を外すと、札を Todo に戻し、moves の要素に label を入れて data に返す', async (context) => {
+    it('Status が Needs Attention で閉じた前提を外すと、Status を Todo に戻し、moves の要素に label を入れて data に返す', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-05')
       await verifies(context, 'PW-ISSUE-UNBLOCK-18')
+      await explains('Status が `Needs Attention` の Issue から、閉じた前提を外す場合の、MCP の `issue_unblock` のテストです。Status を `Todo` に戻し、`moves` の要素に `label` を含めて `data` に返すことを確認します。')
       prepareDependencyProject()
       const github = await startGithub([
         bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
@@ -378,8 +404,9 @@ describe('issue unblock', () => {
       expect(writes(github)).toEqual(['RemoveBlockedBy', 'UpdateProjectItemField', 'UpdateProjectItemField'])
     })
 
-    it('札が Needs Attention で、bot が書いた最後の自動処理の結果が failed なら、札を戻さず、列の動きだけを moves に入れる', async (context) => {
+    it('Status が Needs Attention で、bot が書いた最後の自動処理の結果が failed なら、Status を戻さず、列の動きだけを moves に入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-22')
+      await explains('Status が `Needs Attention` の Issue から、閉じた前提を外す場合の、MCP の `issue_unblock` のテストです。bot が書いた最後の自動処理の結果が `failed` のときは、Status を戻さず、列の移動だけを `moves` に含めることを確認します。')
       prepareDependencyProject()
       await startGithub([
         bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
@@ -396,8 +423,9 @@ describe('issue unblock', () => {
       })
     })
 
-    it('札が Needs Attention の Issue のコメントを読めないと、空の moves と判定を出せない旨の warning を data に返す', async (context) => {
+    it('Status が Needs Attention の Issue のコメントを読めないと、空の moves と判定を出せない旨の warning を data に返す', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-23')
+      await explains('Status が `Needs Attention` の Issue のコメントを取得できない場合の、MCP の `issue_unblock` のテストです。`moves` を空にし、判定できない旨の警告を `warnings` に含めて返すことを確認します。')
       prepareDependencyProject()
       await startGithub([
         bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
@@ -419,6 +447,7 @@ describe('issue unblock', () => {
     it('読み直した前提が書いた内容と合わないとき、空の moves と理由の warning を data に返す', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-10')
       await verifies(context, 'PW-ISSUE-UNBLOCK-18')
+      await explains('前提を外した後の再取得の結果が、書き込んだ内容と合わない場合の、MCP の `issue_unblock` のテストです。`moves` を空にし、理由を示す警告を `warnings` に含めて返すことを確認します。')
       prepareDependencyProject()
       const stale = prerequisitesRule({ number: 7, column: 'Blocked', body: BODY, blockedBy: [{ number: 5 }] })
       await startGithub([bothLinked(), targetReferences(7, BODY, [{ number: 5 }]), removeBlockedByRule(7, 5), stale, stale])
@@ -437,6 +466,7 @@ describe('issue unblock', () => {
     it('付いていない前提を外すと、何も書かずに unchanged と空の moves を data に返す', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-02')
       await verifies(context, 'PW-ISSUE-UNBLOCK-18')
+      await explains('Issue に付いていない前提を外そうとした場合の、MCP の `issue_unblock` のテストです。何も書き込まず、`change` が `unchanged` で `moves` が空の `data` を返すことを確認します。')
       prepareDependencyProject()
       const github = await startGithub([bothLinked(), targetReferences(7, WITH_SECTION, [])])
 
@@ -448,6 +478,7 @@ describe('issue unblock', () => {
 
     it('CLI で --dry-run を付けると、書き込みを送らずに、外す予定を dry-run の行に出す', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-08')
+      await explains('CLI の `issue unblock` の `--dry-run` を、MCP のテストファイルから確認するテストです。`--dry-run` を指定した場合に、書き込みを送信せず、外す予定を `dry-run` の行に出力することを確認します。')
       prepareDependencyProject()
       const github = await startGithub([bothLinked(), targetReferences(7, WITH_SECTION, [{ number: 5 }])])
 
@@ -459,6 +490,7 @@ describe('issue unblock', () => {
 
     it('選択肢の ID が古くて列を書けないと、前提を外したまま warnings に project_activate の案内を入れて成功を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-19')
+      await explains('Status の選択肢の ID が古くなっている場合の、MCP の `issue_unblock` のテストです。列を書き込めないときに、前提は外したまま、`project_activate` の案内を `warnings` に含めて成功を返すことを確認します。')
       prepareDependencyProject()
       await startGithub([
         bothLinked(), targetReferences(7, WITH_SECTION, [{ number: 5 }]), removeBlockedByRule(7, 5), bodyWritten(7, BODY),
@@ -479,6 +511,7 @@ describe('issue unblock', () => {
 
     it('by がプロジェクトに無い別のリポジトリでも、待つ側のリポジトリだけを確かめて前提を外す', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-17')
+      await explains('`by` に、プロジェクトへリンクされていない別のリポジトリの Issue を指定した場合の、MCP の `issue_unblock` のテストです。待つ側のリポジトリだけを確認して前提を外すことを確認します。')
       prepareDependencyProject()
       const github = await startGithub([
         bothLinked(), targetReferences(7, BODY, [{ number: 5, repo: 'other' }]), removeBlockedByRule(7, 5, 'other'),
@@ -493,6 +526,7 @@ describe('issue unblock', () => {
 
     it('節に前提が 2 行あるとき、外した前提の行だけを節から消す', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-03')
+      await explains('本文の節に前提が 2 行ある Issue の前提を外す、MCP の `issue_unblock` のテストです。1 つの前提を外した場合に、外した前提の行だけを節から削除することを確認します。')
       prepareDependencyProject()
       const both = `${BODY}\n${WAITS_SECTION(['#5: first', '#6: second'])}`
       const rest = `${BODY}\n${WAITS_SECTION(['#6: second'])}`
@@ -507,8 +541,9 @@ describe('issue unblock', () => {
       expect(writes(github)).toEqual(['RemoveBlockedBy', 'PATCH /repos/acme/demo/issues/7'])
     })
 
-    it('札が Needs Attention でも、開いた最後の前提を外しただけなら、札を戻さない', async (context) => {
+    it('Status が Needs Attention でも、開いた最後の前提を外しただけなら、Status を戻さない', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-06')
+      await explains('Status が `Needs Attention` の Issue から、開いた最後の前提を外す場合の、MCP の `issue_unblock` のテストです。ボードの列は動かすが、Status は戻さないことを確認します。')
       prepareDependencyProject()
       const github = await startGithub([
         bothLinked(), targetReferences(7, BODY, [{ number: 5 }]), removeBlockedByRule(7, 5),
@@ -521,8 +556,9 @@ describe('issue unblock', () => {
       expect(writes(github)).toEqual(['RemoveBlockedBy', 'UpdateProjectItemField'])
     })
 
-    it('着手の跡がある Issue から外すと、前提は外し、列と札は動かさない', async (context) => {
+    it('着手の跡がある Issue から外すと、前提は外し、列と Status は動かさない', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-07')
+      await explains('着手した形跡のある Issue から前提を外す場合の、MCP の `issue_unblock` のテストです。ブランチがあり、`Active` の列にある Issue では、前提だけを外し、列と Status は動かさないことを確認します。')
       prepareDependencyProject()
       const github = await startGithub([
         bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
@@ -537,6 +573,7 @@ describe('issue unblock', () => {
 
     it('本文の節が読めないとき、前提だけを外し、節を直していない旨を warnings に入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-09')
+      await explains('本文の `Waits for merge` の節の書式が誤っている場合の、MCP の `issue_unblock` のテストです。節を解析できないときに、前提だけを外し、節は変更していない旨を `warnings` に含めることを確認します。')
       prepareDependencyProject()
       const malformed = '## Waits for merge\n\nplain text\n'
       const github = await startGithub([
@@ -556,8 +593,9 @@ describe('issue unblock', () => {
       expect(writes(github)).toEqual(['RemoveBlockedBy', 'UpdateProjectItemField'])
     })
 
-    it('動かす先の札がボードに無いとき、列は動かし、warnings に project_init の案内を入れる', async (context) => {
+    it('動かす先の Status（Todo）の選択肢がボードに存在しないとき、列は動かし、warnings に project_init の案内を入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-11')
+      await explains('動かす先の Status の選択肢がボードに存在しない場合の、MCP の `issue_unblock` のテストです。`Todo` の選択肢がないときに、列だけを動かし、`project_init` の案内を `warnings` に含めることを確認します。')
       prepareDependencyProject({ omit: ['todo'] })
       await startGithub([
         bothLinked(), targetReferences(7, BODY, [{ number: 5, state: 'CLOSED' }]), removeBlockedByRule(7, 5),
@@ -577,6 +615,7 @@ describe('issue unblock', () => {
 
     it('依存関係に対応しない GHES では、kind が dependency-rejected の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-12')
+      await explains('Issue の依存関係に対応していない GHES での、MCP の `issue_unblock` のテストです。GraphQL の応答が非対応を示す場合に、種別 `dependency-rejected` の失敗を返すことを確認します。')
       prepareDependencyProject()
       const message = 'Field \'blockedBy\' doesn\'t exist on type \'Issue\''
       const unsupported: ResponseRule = { match: { operation: 'GetIssueBlockedByReferences' }, respond: { status: 200, body: { errors: [{ message }] } }, times: 1 }
@@ -590,6 +629,7 @@ describe('issue unblock', () => {
 
     it('Issue の参照の形が誤っているとき、要求を送らずに kind が invalid-input の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-13')
+      await explains('Issue の参照の形式が誤っている場合の、MCP の `issue_unblock` のテストです。`invalid-format` のような参照を渡したときに、要求を送信せず、種別 `invalid-input` の失敗を返すことを確認します。')
       prepareDependencyProject()
       const github = await startGithub([])
 
@@ -603,6 +643,7 @@ describe('issue unblock', () => {
 
     it('リポジトリがプロジェクトに無いとき、kind が repo-not-in-project の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-14')
+      await explains('リポジトリがプロジェクトにリンクされていない場合の、MCP の `issue_unblock` のテストです。対象のリポジトリがプロジェクトに存在しないときは、種別 `repo-not-in-project` の失敗を返すことを確認します。')
       prepareDependencyProject()
       await startGithub([linkedRepositories(['other'])])
 
@@ -614,6 +655,7 @@ describe('issue unblock', () => {
 
     it('対象のリポを含む設定が 2 つあり .active も選べないとき、kind が no-active-project の失敗に候補と project の案内を入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-15')
+      await explains('対象のリポジトリを含むプロジェクトの設定が複数ある場合の、MCP の `issue_unblock` のテストです。設定が 2 つあり、`.active` でも選べないときに、候補と `project` の案内を含む種別 `no-active-project` の失敗を返すことを確認します。')
       makeAmbiguous(setUpProject())
       const github = await startGithub([])
 
@@ -626,6 +668,7 @@ describe('issue unblock', () => {
 
     it('待つ側のリポを含む設定が無いとき、kind が repo-not-in-project の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-20')
+      await explains('待つ側のリポジトリを含むプロジェクトの設定が存在しない場合の、MCP の `issue_unblock` のテストです。該当する設定がないときに、種別 `repo-not-in-project` の失敗を返すことを確認します。')
       setUpProject({ repositories: ['other'] })
 
       const outcome = await unblockTool({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
@@ -636,6 +679,7 @@ describe('issue unblock', () => {
 
     it('project を渡すと、待つ側のリポを含む設定が 2 つあってもその設定で動く', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-21')
+      await explains('MCP の `issue_unblock` の `project` 入力のテストです。待つ側のリポジトリを含む設定が 2 つある場合でも、`project` で設定を指定したときに、その設定で前提を外すことを確認します。')
       makeAmbiguous(prepareDependencyProject())
       await startGithub([
         bothLinked(), targetReferences(7, WITH_SECTION, [{ number: 5 }]), removeBlockedByRule(7, 5), bodyWritten(7, BODY),
@@ -650,6 +694,7 @@ describe('issue unblock', () => {
 
     it('前提を外す要求が失敗したとき、失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-UNBLOCK-16')
+      await explains('前提を外す GitHub API の要求が失敗した場合の、MCP の `issue_unblock` のテストです。要求が 502 を返したときに、種別 `github-api` の失敗を返し、`detail` に `could not remove blocked-by` を含めることを確認します。')
       prepareDependencyProject()
       const failing: ResponseRule = { match: { operation: 'RemoveBlockedBy' }, respond: { status: 502, body: { message: 'failure' } }, times: 1 }
       await startGithub([bothLinked(), targetReferences(7, BODY, [{ number: 5 }]), failing])

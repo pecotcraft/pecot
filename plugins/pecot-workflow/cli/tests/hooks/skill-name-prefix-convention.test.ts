@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 import { compareStrings } from '../parity/baseline.js'
 import { pluginRoot } from './_helpers/paths.js'
+import { explains } from '../_helpers/explains.js'
 
 const skillsDirectory = path.join(pluginRoot, 'skills')
 const SKILL_PREFIX = 'w-'
@@ -21,12 +22,14 @@ function skillNames(): string[] {
 }
 
 describe('スキル名の規約', () => {
-  it('すべてのスキル名が w- で始まる', () => {
+  it('すべてのスキル名が w- で始まる', async () => {
+    await explains('スキル名の規約のテストです。すべてのスキル名を列挙した場合に、全部が `w-` プレフィックスで始まることを確認します。')
     const violations = skillNames().filter(name => !name.startsWith(SKILL_PREFIX))
     expect(violations, `${SKILL_PREFIX} で始まらないスキルがあります。hooks の短縮形検知はこのプレフィックスで pecot コマンドを判別します`).toEqual([])
   })
 
-  it('スキルの列挙は下限を割らない', () => {
+  it('スキルの列挙は下限を割らない', async () => {
+    await explains('スキル名の規約のテストです。スキルを列挙した場合に、件数が下限（`MIN_SKILLS`）を割らないことを確認します。')
     const skills = skillNames()
     expect(skills.length, `スキルが ${String(skills.length)} 件しか列挙できていません。探索先 ${skillsDirectory} を確認してください`).toBeGreaterThanOrEqual(MIN_SKILLS)
   })

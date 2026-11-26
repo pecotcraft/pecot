@@ -29,7 +29,9 @@ def _devcontainer_version() -> str:
     return m.group(1)
 
 
+@allure.title("devcontainer の playwright-deps の版は、pnpm-lock.yaml の playwright の版と一致する")
 def test_playwright_deps_version_matches_lock() -> None:
+    """`.devcontainer/devcontainer.json` の `playwright-deps` の `version` と、`pnpm-lock.yaml` の `playwright` のテストです。lock に `playwright` の版が 1 つだけ存在し、devcontainer の版がそれと一致していることを確認します。"""
     with allure.step("pnpm-lock.yaml の playwright の版を読む"):
         locked = _lock_playwright_versions()
 

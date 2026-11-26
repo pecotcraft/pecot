@@ -7,6 +7,7 @@ import { validateRepository } from '../src/validate-repository.js'
 import { loadJson, loadYaml } from '../src/infra/load.js'
 import { materialize } from './helpers/repository.js'
 import { step, stepSync } from '../src/vitest/step.js'
+import { explains } from '../src/vitest/explains.js'
 
 const FIXTURE = path.join(import.meta.dirname, 'fixtures', 'valid', 'plugins', 'pecot-workflow', 'interface')
 const PLUGINS = path.join(import.meta.dirname, '..', '..', '..', 'plugins')
@@ -72,7 +73,8 @@ function verbIn(data: Record<string, unknown>, word: string): Record<string, unk
 }
 
 describe('names の形', () => {
-  it('names が無いと、generated.json の形の誤りとして止める', async () => {
+  it('generated.json に names が存在しないと、names の形の誤りとして検証エラーにする', async () => {
+    await explains('generated.json の `names`（項目の名前の語彙）を検証するテストです。`names` を削除した場合に、`names` に関する検証エラーが返ることを確認します。')
     const result = await step('定義書を書き換えて検証する', () => withNames((data) => {
       Reflect.deleteProperty(data, 'names')
     }))
@@ -86,7 +88,8 @@ describe('names の形', () => {
     { label: '語の位置が空', change: (names: Record<string, unknown>) => { names['positions'] = [] } },
     { label: '語に大文字がある', change: (names: Record<string, unknown>) => { names['positions'] = [[{ word: 'Issue', meaning: 'x' }]] } },
     { label: 'read_only が false', change: (names: Record<string, unknown>) => { names['positions'] = [[{ word: 'issue', meaning: 'x', read_only: false }]] } },
-  ])('$label と、形の誤りとして止める', async ({ change }) => {
+  ])('names が不正な形（$label）だと、検証エラーにする', async ({ label, change }) => {
+    await explains(`generated.json の \`names\`（項目の名前の語彙）を検証するテストです。「${label}」の誤りを含む \`names\` を渡した場合に、\`names\` に関する検証エラーが返ることを確認します。`)
     const result = await step('定義書を書き換えて検証する', () => withNames((data) => {
       change(record(data['names']))
     }))
@@ -95,7 +98,8 @@ describe('names の形', () => {
     })
   })
 
-  it('同じ位置に同じ語が 2 回あると、止める', async () => {
+  it('names の同じ位置に同じ語が 2 回含まれていると、検証エラーにする', async () => {
+    await explains('generated.json の `names`（項目の名前の語彙）を検証するテストです。動詞の位置に `create` を重複して含めた場合に、`is listed more than once` の検証エラーが返ることを確認します。')
     await step('書き換えた定義書を検証し、指摘を比べる', async () => {
       expect(await withNames((data) => {
         positions(data)[1]?.push({ word: 'create', meaning: 'again' })
@@ -105,13 +109,15 @@ describe('names の形', () => {
 })
 
 describe('項目の名前と names', () => {
-  it('どの項目の名前も語彙に合うとき、何も出さない', async () => {
+  it('すべての項目の名前が names の語彙に合っていると、検証エラーを返さない', async () => {
+    await explains('項目の `name` と `names` の整合を検証するテストです。すべての項目の名前が語彙に合っている場合に、検証エラーが 0 件であることを確認します。')
     await step('書き換えた定義書を検証し、指摘を比べる', async () => {
       expect(await withNames()).toEqual([])
     })
   })
 
-  it('語彙に無い語があると、語の位置と一緒に止める', async () => {
+  it('項目の名前に names の語彙にない語があると、語の位置を含む検証エラーにする', async () => {
+    await explains('項目の `name` と `names` の整合を検証するテストです。`issue fast` のように語彙にない語を含む名前の場合に、何番目の語かを示す検証エラーが返ることを確認します。')
     await step('書き換えた定義書を検証し、指摘を比べる', async () => {
       expect(await withNames((data) => {
         entryNamed(data, 'PW-ISSUE-QUICK')['name'] = 'issue fast'
@@ -119,7 +125,8 @@ describe('項目の名前と names', () => {
     })
   })
 
-  it('区切りが違う名前は、語の数の違いと語彙に無い語として止める', async () => {
+  it('区切りが違う名前は、語の数の不一致と語彙にない語の 2 件で検証エラーにする', async () => {
+    await explains('項目の `name` と `names` の整合を検証するテストです。`issue_quick` のように区切りが `_` の名前の場合に、語の数が合わないことと語彙にない語があることの、2 件の検証エラーが返ることを確認します。')
     await step('書き換えた定義書を検証し、指摘を比べる', async () => {
       expect(await withNames((data) => {
         entryNamed(data, 'PW-ISSUE-QUICK')['name'] = 'issue_quick'
@@ -130,7 +137,8 @@ describe('項目の名前と names', () => {
     })
   })
 
-  it('rest が false で語が多いと、語の数の違いとして止める', async () => {
+  it('rest が false で語が多いと、語の数の不一致として検証エラーにする', async () => {
+    await explains('項目の `name` と `names` の整合を検証するテストです。`rest` が `false` の語彙に対して、`issue quick now` のように語が多い名前の場合に、語の数の不一致を示す検証エラーが返ることを確認します。')
     await step('書き換えた定義書を検証し、指摘を比べる', async () => {
       expect(await withNames((data) => {
         entryNamed(data, 'PW-ISSUE-QUICK')['name'] = 'issue quick now'
@@ -138,7 +146,8 @@ describe('項目の名前と names', () => {
     })
   })
 
-  it('rest が true なら後ろの自由な語を許し、自由な語が無いと止める', async () => {
+  it('rest が true だと、後ろの自由な語を許可し、自由な語がない名前は検証エラーにする', async () => {
+    await explains('項目の `name` と `names` の整合を検証するテストです。`rest` が `true` の場合に、`issue quick now` は検証エラーにならず、自由な語を持たない `issue create` は検証エラーになることを確認します。')
     const result = await step('定義書を書き換えて検証する', () => withNames((data) => {
       const names = record(data['names'])
       names['rest'] = true
@@ -149,7 +158,8 @@ describe('項目の名前と names', () => {
     })
   })
 
-  it('rest の自由な語が英小文字と数字でないと、止める', async () => {
+  it('rest の自由な語が英小文字と数字でないと、検証エラーにする', async () => {
+    await explains('項目の `name` と `names` の整合を検証するテストです。`rest` が `true` の場合に、自由な語が `Now` のように大文字を含む場合や空の場合に、英小文字と数字だけを求める検証エラーが返ることを確認します。')
     await step('書き換えた定義書を検証し、指摘を比べる', async () => {
       expect(await withNames((data) => {
         record(data['names'])['rest'] = true
@@ -164,7 +174,8 @@ describe('項目の名前と names', () => {
 })
 
 describe('読むだけの動詞と effects', () => {
-  it('名前が read_only の語を持ち、write の effects もあると、authored.yaml の行で止める', async () => {
+  it('read_only の語を含む名前の項目に write の effects があると、authored.yaml の検証エラーにする', async () => {
+    await explains('名前の語彙の `read_only` と、定義書の `effects` の整合を検証するテストです。`create` を読み取り専用の語にした場合、`write` の `effects` を持つ項目で、`authored.yaml` の検証エラーが返ることを確認します。')
     await step('書き換えた定義書を検証し、指摘を比べる', async () => {
       expect(await withNames((data) => {
         verbIn(data, 'create')['read_only'] = true
@@ -172,7 +183,8 @@ describe('読むだけの動詞と effects', () => {
     })
   })
 
-  it('名前が read_only の語を持っても、effects が read だけなら通す', async () => {
+  it('名前が read_only の語を含んでいても、effects が read だけなら、検証エラーにしない', async () => {
+    await explains('名前の語彙の `read_only` と、定義書の `effects` の整合を検証するテストです。名前に読み取り専用の語を含む項目でも、`effects` が `read` だけの場合に、検証エラーが 0 件であることを確認します。')
     const plugin = await pluginOf('pecot-workflow', FIXTURE)
     if (plugin.authored.kind !== 'ok') throw new Error('fixture must load')
     const authored = okData(plugin.authored)
@@ -186,7 +198,8 @@ describe('読むだけの動詞と effects', () => {
 })
 
 describe('fixture の names', () => {
-  it('合わない名前と読む動詞の書き込みを、validate が 1 件 1 行で出す', async () => {
+  it('名前が語彙に合わない項目と、読み取り専用の語で書き込む項目を、validate が 1 件ごとに 1 行で報告する', async () => {
+    await explains('`interface-spec validate` が `names` の検証エラーを出力するテストです。名前の誤りが 4 件と、読み取り専用の語で書き込む項目が 1 件ある場合に、1 件ごとに 1 行で出力することを確認します。')
     const root = await materialize('names')
     const result = await step('リポジトリを検証する', () => validateRepository(root))
     stepSync('結果を比べる', () => {
@@ -206,7 +219,8 @@ describe('実物の定義書の names', () => {
     { plugin: 'pecot-visual', name: 'visual_create', id: 'PV-VISUAL-CREATE', expected: ['word 1 "visual" is not in names.positions[0]'] },
     { plugin: 'pecot-visual', name: 'setup', id: 'PV-SETUP', expected: ['"setup" has 1 word(s) but names expects 2', 'word 1 "setup" is not in names.positions[0]'] },
     { plugin: 'pecot-tools', name: 'aws_iam_list_roles', id: 'PT-AWS-IAM-LIST-ROLES', expected: ['word 2 "iam" is not in names.positions[1]'] },
-  ])('$plugin に合わない名前 $name の項目を足すと、止める', async ({ plugin, name, id, expected }) => {
+  ])('$plugin の定義書へ、語彙に合わない名前 $name の項目を追加すると、検証エラーにする', async ({ plugin, name, id, expected }) => {
+    await explains(`実際の定義書の \`names\` を検証するテストです。${plugin} の定義書に名前 \`${name}\` の項目を追加した場合に、語彙に合わない語を示す検証エラーが返ることを確認します。`)
     const input = await pluginOf(plugin, path.join(PLUGINS, plugin, 'interface'))
     const data = okData(input.generated)
     const entries = list(data['entries'])
@@ -216,7 +230,8 @@ describe('実物の定義書の names', () => {
     })
   })
 
-  it.for(['pecot-visual', 'pecot-tools'])('%s の定義書は、足す前は names に合う', async (plugin) => {
+  it.for(['pecot-visual', 'pecot-tools'])('%s の定義書は、項目を追加する前は names の語彙に合っている', async (plugin) => {
+    await explains(`実際の定義書の \`names\` を検証するテストです。${plugin} の定義書をそのまま検証した場合に、検証エラーが 0 件であることを確認します。`)
     const input = await pluginOf(plugin, path.join(PLUGINS, plugin, 'interface'))
     stepSync('検証して結果を比べる', () => {
       expect(lines(input, okData(input.generated))).toEqual([])

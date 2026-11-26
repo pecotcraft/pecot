@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { createDiagnostics, DiagnosticVerbSchema, writeData } from '../diagnostics.js'
+import { explains } from '../../tests/_helpers/explains.js'
 
 const StreamSchema = z.enum(['stdout', 'stderr'])
 const MessageSchema = z.object({ message: z.string() })
@@ -80,11 +81,13 @@ function run(item: Case): Written[] {
 const named = cases.map((item, index) => ({ item, name: `${String(index)} ${item.kind} ${JSON.stringify(item.input)}` }))
 
 describe('診断行の共通の関数（error・warning・note）', () => {
-  it('期待の行の一覧は 13 件ある', () => {
+  it('期待の行の一覧は 13 件ある', async () => {
+    await explains('診断行の期待値の一覧 `tests/diagnostics-cases.json` の件数のテストです。一覧に 13 件の期待値が含まれることを確認します。')
     expect(cases.length).toBe(13)
   })
 
-  it.each(named)('$name のとき、$item.line を書く', ({ item }) => {
+  it.each(named)('$name のとき、$item.line を書く', async ({ item }) => {
+    await explains('診断行を書き出す共通の関数のテストです。`error`・`warning`・`note`・`result`・`data` の各入力で、期待値の一覧で指定された出力先へ、期待値の行を 1 つだけ書き出すことを確認します。')
     expect(run(item)).toEqual([{ stream: item.stream, text: item.line }])
   })
 })

@@ -8,6 +8,7 @@ import { z } from 'zod'
 
 import { compareStrings } from '../src/domain/_shared/compare-strings.js'
 import { CLI_ONLY_FAILURE_REASONS, FAILURE_KINDS, isFailureKind } from '../src/domain/_shared/failure-kind.js'
+import { explains } from './_helpers/explains.js'
 
 const SOURCE_ROOT = path.resolve(import.meta.dirname, '../src')
 const AUTHORED_PATH = path.resolve(import.meta.dirname, '../../interface/authored.yaml')
@@ -39,22 +40,26 @@ const TOOL_SOURCES: readonly { readonly id: string, readonly files: readonly str
 ]
 
 describe('定義書の exit_status と FAILURE_KINDS', () => {
-  it('exit_status[].kind の集合が FAILURE_KINDS と一致する', () => {
+  it('定義書の `exit_status[].kind` の集合が、`FAILURE_KINDS` と一致する', async () => {
+    await explains('インタフェース定義書の失敗の名前のテストです。全ツールの `exit_status[].kind` を集めた場合に、その集合が実装の `FAILURE_KINDS` と一致することを確認します。')
     const defined = Object.keys(authored.entries).flatMap(id => kindsOf(id))
 
     expect([...new Set(defined)].toSorted(compareStrings)).toEqual([...FAILURE_KINDS].toSorted(compareStrings))
   })
 
-  it('CLI だけの名前は FAILURE_KINDS と重ならない', () => {
+  it('CLI だけで使う失敗の名前は、`FAILURE_KINDS` と重ならない', async () => {
+    await explains('失敗の名前の区別のテストです。`CLI_ONLY_FAILURE_REASONS` に含まれる名前が、どれも `FAILURE_KINDS` に含まれないことを確認します。')
     expect(CLI_ONLY_FAILURE_REASONS.filter(reason => isFailureKind(reason))).toEqual([])
   })
 
   // parsePathArguments と failureKindOf は、setup 以外の全ツールの共有の処理にある。
-  it.for(TOOL_SOURCES.filter(tool => tool.id !== 'PV-RUNTIME-SETUP'))('$id は、共有の処理が返す invalid-path と unknown を exit_status に持つ', (tool) => {
+  it.for(TOOL_SOURCES.filter(tool => tool.id !== 'PV-RUNTIME-SETUP'))('`$id` の定義は、共有の処理が返す `invalid-path` と `unknown` を `exit_status` に持つ', async (tool) => {
+    await explains('インタフェース定義書の共有の失敗の名前のテストです。`runtime_setup` を除く各ツールの `exit_status` に、共有の処理が返す `invalid-path` と `unknown` が含まれることを確認します。')
     expect(kindsOf(tool.id)).toEqual(expect.arrayContaining(['invalid-path', 'unknown']))
   })
 
-  it.for(TOOL_SOURCES)('$id の実装に書かれた失敗の名前が、exit_status にある', (tool) => {
+  it.for(TOOL_SOURCES)('`$id` の実装に書かれた失敗の名前が、定義書の `exit_status` にある', async (tool) => {
+    await explains('インタフェース定義書と実装の一致のテストです。各ツールの実装のソースに書かれた失敗の名前が、そのツールの定義書の `exit_status` に存在することを確認します。')
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- TOOL_SOURCES の固定のパス
     const source = tool.files.map(file => readFileSync(path.join(SOURCE_ROOT, file), 'utf8')).join('\n')
     const written = FAILURE_KINDS.filter(kind => source.includes(`'${kind}'`) && !tool.ignored.includes(kind))

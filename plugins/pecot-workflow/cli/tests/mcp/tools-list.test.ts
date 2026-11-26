@@ -14,6 +14,7 @@ import { attachJson } from '../../../../../libs/interface-spec/src/vitest/attach
 import { parseJson } from '../../../../../libs/workflow-core/tests/_helpers/json.js'
 import { connectInMemory, outcomeOf, structuredOf } from '../_helpers/mcp-client.js'
 import type { ConnectedClient } from '../_helpers/mcp-client.js'
+import { explains } from '../_helpers/explains.js'
 
 const GENERATED = path.resolve(import.meta.dirname, '../../../interface/generated.json')
 const ToolSchema = z.object({ tool: z.string() })
@@ -91,19 +92,22 @@ describe('tools/list', () => {
   }
 
   it('COMMANDS と同じ 45 個の名前を、同じ並びで返す', async () => {
+    await explains('MCP サーバのツール一覧（`tools/list`）の件数と並びのテストです。コマンド定義（`COMMANDS`）と同じ 45 個の名前が、同じ並びで返ることを確認します。')
     const { client } = await connect()
     const { tools } = await client.listTools()
     expect(tools).toHaveLength(45)
     expect(tools.map(tool => tool.name)).toEqual(COMMANDS.map(command => command.toolName))
   })
 
-  it('mcp という名前のツールは無い', async () => {
+  it('mcp という名前のツールは存在しない', async () => {
+    await explains('`tools/list` が返すツール名のテストです。`mcp` という名前のツールが含まれないことを確認します。')
     const { client } = await connect()
     const { tools } = await client.listTools()
     expect(tools.map(tool => tool.name)).not.toContain('mcp')
   })
 
   it('説明は、コマンド定義の description の 1 行になる', async () => {
+    await explains('`tools/list` が返すツールの説明のテストです。各ツールの説明が、コマンド定義の `description`（1 行の文）と一致することを確認します。')
     const { client } = await connect()
     const { tools } = await client.listTools()
     expect(tools.map(tool => tool.description)).toEqual(COMMANDS.map(command => command.description))
@@ -114,11 +118,13 @@ describe('tools/list', () => {
     { name: '括弧の中の -m', text: '(required with -m)', expected: true },
     { name: '引数名', text: 'of `repo`, with `message`', expected: false },
     { name: '語の中のハイフン', text: 'a non-empty owner/repo-name', expected: false },
-  ])('フラグの検出は、$name に $expected を返す', ({ text, expected }) => {
+  ])('フラグの検出は、$name に $expected を返す', async ({ text, expected }) => {
+    await explains('CLI のフラグを検出する正規表現（`CLI_FLAG`）のテストです。バッククォートや括弧の中のフラグは検出し、引数名や語の中のハイフンは検出しないことを確認します。')
     expect(CLI_FLAG.test(text)).toBe(expected)
   })
 
-  it('全ツールの説明・入力・出力の文に、CLI のフラグ（--name・-m）が無い', async () => {
+  it('全ツールの説明・入力・出力の文に、CLI のフラグ（--name・-m）が含まれない', async () => {
+    await explains('ツールの説明・入力・出力に含まれる文のテストです。CLI のフラグ（`--name` や `-m` の形）が、どのツールの文にも含まれないことを確認します。')
     const { client } = await connect()
     const { tools } = await client.listTools()
     const flagged = tools.flatMap(({ name, description, inputSchema, outputSchema }) =>
@@ -126,7 +132,8 @@ describe('tools/list', () => {
     expect(flagged).toEqual([])
   })
 
-  it.for(COMMANDS.map(command => ({ name: command.toolName, command })))('$name の入力は、定義書の同じ項目の input に一致する', ({ command }) => {
+  it.for(COMMANDS.map(command => ({ name: command.toolName, command })))('$name の入力は、定義書の同じ項目の input に一致する', async ({ command }) => {
+    await explains(`\`${command.toolName}\` の入力のテストです。\`tools/list\` が返す入力のスキーマを正規化した結果が、定義書（\`generated.json\`）の同じ項目の \`input\` と一致することを確認します。`)
     const tool = toolOf(command.toolName)
     const entry = generated.entries.find(item => item.surfaces.mcp.tool === command.toolName)
     expect(entry).toBeDefined()
@@ -134,6 +141,7 @@ describe('tools/list', () => {
   })
 
   it('全ツールが最上位の title を持ち、値は定義書の mcp.title に一致し、annotations に title を持たない', async () => {
+    await explains('ツールの `title` のテストです。全ツールが最上位の `title` を持ち、その値が定義書の `mcp.title` と一致し、`annotations` には `title` が含まれないことを確認します。')
     const { client } = await connect()
     const { tools } = await client.listTools()
     const expected = tools.map(tool => generated.entries.find(item => item.surfaces.mcp.tool === tool.name)?.mcp.title)
@@ -143,6 +151,7 @@ describe('tools/list', () => {
   })
 
   it('readOnlyHint: true を返すのは読むだけの 12 個だけで、ほかのツールは false を返す', async () => {
+    await explains('ツールの `readOnlyHint` のテストです。`true` を返すのは読み取り専用の 12 個のツールだけで、ほかのツールは `false` を返すことを確認します。')
     const { client } = await connect()
     const { tools } = await client.listTools()
     expect(tools.filter(tool => tool.annotations?.readOnlyHint === true).map(tool => tool.name).toSorted(byName)).toEqual(READ_ONLY_TOOLS)
@@ -150,6 +159,7 @@ describe('tools/list', () => {
   })
 
   it('全ツールの annotations は、定義書の mcp.annotations に一致する', async () => {
+    await explains('ツールの `annotations` のテストです。全ツールの `annotations` が、定義書の `mcp.annotations` と一致することを確認します。')
     const { client } = await connect()
     const { tools } = await client.listTools()
     const expected = tools.map(tool => generated.entries.find(item => item.surfaces.mcp.tool === tool.name)?.mcp.annotations)
@@ -157,6 +167,7 @@ describe('tools/list', () => {
   })
 
   it('全ツールの outputSchema は、$schema を除いて定義書の mcp.output に一致する', async () => {
+    await explains('ツールの `outputSchema` のテストです。`$schema` を除いた `outputSchema` が、定義書の `mcp.output` と一致することを確認します。')
     const { client } = await connect()
     const { tools } = await client.listTools()
     const outputs = tools.map(({ outputSchema }) => Object.fromEntries(Object.entries(outputSchema ?? {}).filter(([key]) => key !== '$schema')))
@@ -164,7 +175,8 @@ describe('tools/list', () => {
     expect(outputs).toEqual(expected)
   })
 
-  it.for(COMMANDS.map(command => ({ name: command.toolName, command })))('$name の outputSchema は、最上位が type: object の閉じた型で、properties にツールの項目と共通の 4 項目を持ち、入れ物の名前を持たない', ({ command }) => {
+  it.for(COMMANDS.map(command => ({ name: command.toolName, command })))('$name の outputSchema は、最上位が type: object の閉じた型で、properties にツールの項目と共通の 4 項目を持ち、入れ物の名前を持たない', async ({ command }) => {
+    await explains(`\`${command.toolName}\` の \`outputSchema\` の形のテストです。最上位が \`type: object\` で、ツール固有の項目と共通の 4 項目だけを持ち、\`ok\` や \`data\` などの名前を持たない閉じた型であることを確認します。`)
     const schema = OutputSchemaShape.parse(toolOf(command.toolName).outputSchema)
     const names = Object.keys(schema.properties)
     expect(names).toEqual([...Object.keys(command.output.shape), 'kind', 'detail', 'log', 'warnings'])
@@ -178,24 +190,28 @@ describe('tools/list', () => {
     { name: 'issue_check', required: ['plan'] },
     { name: 'pr_create', required: ['url', 'head', 'base', 'title', 'moves'] },
     { name: 'project_activate', required: ['configPath', 'change', 'config_moved'] },
-  ])('$name の outputSchema は、成功の結果の項目を anyOf で必須にする', ({ name, required }) => {
+  ])('$name の outputSchema は、成功の結果の項目を anyOf で必須にする', async ({ name, required }) => {
+    await explains(`\`${name}\` の \`outputSchema\` のテストです。成功の結果の必須の項目が \`anyOf\` の 1 つ目に指定され、2 つ目にエラーの項目（\`kind\` と \`detail\`）が指定されていることを確認します。`)
     const schema = toolOf(name).outputSchema
     expect(schema).toMatchObject({ anyOf: [{ required }, { required: ['kind', 'detail'] }] })
   })
 
-  it('全ツールの outputSchema に、真偽値の true の schema が無い', async () => {
+  it('全ツールの outputSchema に、真偽値の true の schema が含まれない', async () => {
+    await explains('ツールの `outputSchema` のテストです。どのツールの `outputSchema` にも、真偽値の `true` の schema が含まれないことを確認します。')
     const { client } = await connect()
     const { tools } = await client.listTools()
     expect(tools.filter(tool => hasTrueSchema(tool.outputSchema)).map(tool => tool.name)).toEqual([])
   })
 
   it('全ツールの生の入力が、additionalProperties: false を持つ', async () => {
+    await explains('ツールの入力のスキーマのテストです。全ツールの入力が `additionalProperties: false` を持つことを確認します。')
     const { client } = await connect()
     const { tools } = await client.listTools()
     expect(tools.map(tool => tool.inputSchema['additionalProperties'])).toEqual(COMMANDS.map(() => false))
   })
 
-  it('どのツールの入力にも dry_run が無く、どの outputSchema にも dryRun が無い', async () => {
+  it('どのツールの入力にも dry_run が存在せず、どの outputSchema にも dryRun が存在しない', async () => {
+    await explains('ツールの入出力から CLI 専用の項目を除いたことのテストです。入力に `dry_run` が、`outputSchema` に `dryRun` が存在するツールがないことを確認します。')
     const { client } = await connect()
     const { tools } = await client.listTools()
     expect(tools.filter(tool => Object.hasOwn(tool.inputSchema.properties ?? {}, 'dry_run')).map(tool => tool.name)).toEqual([])
@@ -203,6 +219,7 @@ describe('tools/list', () => {
   })
 
   it('全ツールが入力 repo（文字列）を持つ', async () => {
+    await explains('ツールの入力のテストです。全ツールが、文字列型の入力 `repo` を持つことを確認します。')
     const { client } = await connect()
     const { tools } = await client.listTools()
     const shapes = tools.map(tool => WithRepositorySchema.safeParse(tool.inputSchema).success)
@@ -211,7 +228,8 @@ describe('tools/list', () => {
 })
 
 describe('入力の検証の誤り', () => {
-  it('定義書に無いキーを渡すと、コマンドを呼ばずに isError で返す', async () => {
+  it('定義書に存在しないキーを渡すと、コマンドを呼ばずに isError で返す', async () => {
+    await explains('定義書に存在しないキー（`bogus`）を指定して `issue_create` を呼び出した場合のテストです。コマンドを呼ばずに、`invalid-input` のエラーを `isError` 付きで返すことを確認します。')
     const { client } = await connect()
     const result = await client.callTool({ name: 'issue_create', arguments: { message: 'm', repo: 'acme/demo', bogus: true } })
     expect(result.isError).toBe(true)
@@ -219,6 +237,7 @@ describe('入力の検証の誤り', () => {
   })
 
   it('CLI だけの入力 dry_run を渡すと、コマンドを呼ばずに、dry_run を名指しして isError で返す', async () => {
+    await explains('CLI 専用の入力 `dry_run` を指定して `board_move` を呼び出した場合のテストです。コマンドを呼ばずに、`dry_run` を示した `invalid-input` のエラーを返すことを確認します。')
     const { client } = await connect()
     const result = await client.callTool({ name: 'board_move', arguments: { issue_ref: 'acme/demo/7', status: 'active', dry_run: true } })
     expect(result.isError).toBe(true)
@@ -226,6 +245,7 @@ describe('入力の検証の誤り', () => {
   })
 
   it('真偽値に文字列の "true" を渡すと、コマンドを呼ばずに isError で返す', async () => {
+    await explains('真偽値の入力 `force` に文字列の `\'true\'` を指定して `worktree_link` を呼び出した場合のテストです。コマンドを呼ばずに、`force` を示した `invalid-input` のエラーを返すことを確認します。')
     const { client } = await connect()
     const result = await client.callTool({ name: 'worktree_link', arguments: { directory: '.', force: 'true' } })
     expect(result.isError).toBe(true)
@@ -233,7 +253,8 @@ describe('入力の検証の誤り', () => {
     expect(outcomeOf(result).detail).toContain('force')
   })
 
-  it('必須の入力が無いと、コマンドを呼ばずに isError で返す', async () => {
+  it('必須の入力を指定しないと、コマンドを呼ばずに isError で返す', async () => {
+    await explains('必須の入力 `directory` を指定せずに `worktree_link` を呼び出した場合のテストです。コマンドを呼ばずに、`directory` を示した `invalid-input` のエラーを返すことを確認します。')
     const { client } = await connect()
     const result = await client.callTool({ name: 'worktree_link', arguments: {} })
     expect(result.isError).toBe(true)
@@ -242,6 +263,7 @@ describe('入力の検証の誤り', () => {
   })
 
   it('repo の形が owner/repo でないと、コマンドを呼ばずに isError で返す', async () => {
+    await explains('`repo` に `owner/repo` の形式でない値を指定して `worktree_link` を呼び出した場合のテストです。コマンドを呼ばずに、`repo` を示した `invalid-input` のエラーを返すことを確認します。')
     const { client } = await connect()
     const result = await client.callTool({ name: 'worktree_link', arguments: { directory: '.', repo: 'not-a-repo' } })
     expect(result.isError).toBe(true)

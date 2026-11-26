@@ -22,6 +22,7 @@ import { SlideCreateRuntimeError } from '../../../domain/slidev-project/errors.j
 import { isNodeModulesLinkCurrent, linkNodeModules } from '../fs.js'
 import { seedDependencyRoot, writeFakePackage } from '../../../../tests/_helpers/dependency-probes.js'
 import { useTemporaryDirectory } from '../../../../tests/_helpers/temporary-directory.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 const temporaryRoot = useTemporaryDirectory('pecotv-node-modules-', { resolveRealPath: true })
 
@@ -66,6 +67,7 @@ function listNames(directory: string): readonly string[] {
 
 describe('linkNodeModules (依存ルートの項目)', () => {
   it('node_modules を実ディレクトリにし、各項目を物理パスへ解決する相対 symlink で張る', async () => {
+    await explains('`linkNodeModules` が作成する `node_modules` のテストです。実ディレクトリになり、`plain-pkg` や `@slidev` などの各項目が、依存ルートの物理パスへ解決する相対 symlink になることを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     const dependencyNodeModules = seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -87,6 +89,7 @@ describe('linkNodeModules (依存ルートの項目)', () => {
   })
 
   it('.bin と @scope は 1 本の symlink で張る', async () => {
+    await explains('`.bin` と `@scope` の張り方のテストです。どちらも配下を個別に張らず、依存ルートの同名の項目を指す 1 本の symlink になることを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     const dependencyNodeModules = seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -101,7 +104,8 @@ describe('linkNodeModules (依存ルートの項目)', () => {
     expect(realpathSync(scope)).toBe(path.join(dependencyNodeModules, '@scope'))
   })
 
-  it('.bin 以外の . 始まりの項目は張らない', async () => {
+  it('依存ルートに .bin 以外のドットで始まる項目が存在する場合は、それらを張らない', async () => {
+    await explains('`.pnpm`、`.modules.yaml`、`.vite` が依存ルートに存在する場合のテストです。`node_modules` には `.bin` と印のファイルだけが残り、張った項目の数に印のファイルを含めないことを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -124,7 +128,8 @@ describe('linkNodeModules (依存ルートの項目)', () => {
     expect(result.entries).toBe(5)
   })
 
-  it('依存ルートが runtime/current の symlink なら current を残して張る (世代削除でも切れない)', async () => {
+  it('依存ルートが runtime/current の symlink の場合は、current を経由する symlink を張り、世代を削除しても切れない', async () => {
+    await explains('依存ルートが `runtime/current` の symlink である場合のテストです。張った symlink は世代名を含まず `current` を経由し、`current` が別の世代へ向き直って旧世代を削除しても、新しい世代へ解決することを確認します。')
     const dataDirectory = temporaryRoot('data')
     const runtimeDirectory = path.join(dataDirectory, 'runtime')
     const generation = path.join(runtimeDirectory, 'deps0-src0')
@@ -152,7 +157,8 @@ describe('linkNodeModules (依存ルートの項目)', () => {
     expect(realpathSync(link)).toBe(path.join(nextGeneration, 'node_modules', '@slidev'))
   })
 
-  it('talkDirectory が物理 symlink でも物理パスを基準に相対化する', async () => {
+  it('talkDirectory が symlink 経由のパスの場合も、物理パスを基準に相対パスを作成する', async () => {
+    await explains('`talkDirectory` が symlink 経由のパスで渡された場合のテストです。張った symlink の相対パスが物理パスを基準に作られ、依存ルートの項目へ解決することを確認します。')
     const physicalRoot = temporaryRoot('physical')
     const pluginRoot = path.join(physicalRoot, 'plugin')
     const dependencyNodeModules = seedFullDependencyRoot(pluginRoot)
@@ -169,7 +175,8 @@ describe('linkNodeModules (依存ルートの項目)', () => {
 })
 
 describe('linkNodeModules (依存ルートの解決)', () => {
-  it('plugin-root に node_modules が無ければ永続層へ張る (単体配布ルート)', async () => {
+  it('plugin-root に node_modules が存在しない場合は、永続層の依存ルートへ張る', async () => {
+    await explains('単体配布の plugin-root に `node_modules` が存在しない場合のテストです。環境変数 `CLAUDE_PLUGIN_DATA` 配下の依存ルートが張り先に選ばれ、その項目へ解決することを確認します。')
     const pluginRoot = temporaryRoot('dist-pkg')
     mkdirSync(pluginRoot, { recursive: true })
     const data = temporaryRoot('data')
@@ -185,7 +192,8 @@ describe('linkNodeModules (依存ルートの解決)', () => {
     expect(realpathSync(link)).toBe(path.join(runtimeNodeModules, 'plain-pkg'))
   })
 
-  it('node_modules は在っても実行時依存を引けなければ永続層へ張る', async () => {
+  it('node_modules が存在しても実行時の依存を解決できない場合は、永続層の依存ルートへ張る', async () => {
+    await explains('plugin-root に空の `node_modules` が存在し、実行時の依存を解決できない場合のテストです。`CLAUDE_PLUGIN_DATA` 配下の依存ルートが張り先に選ばれることを確認します。')
     const pluginRoot = temporaryRoot('shallow-pkg')
     mkdirSync(path.join(pluginRoot, 'node_modules'), { recursive: true })
     const data = temporaryRoot('data-shallow')
@@ -199,7 +207,8 @@ describe('linkNodeModules (依存ルートの解決)', () => {
     expect(realpathSync(path.join(talk, 'node_modules', 'plain-pkg'))).toBe(path.join(runtimeNodeModules, 'plain-pkg'))
   })
 
-  it('どの依存ルートにも node_modules が無ければ symlink-failed で中止し、talk-dir を変えない', async () => {
+  it('どの依存ルートにも node_modules が存在しない場合は、symlink-failed で中止し、talk-dir を変更しない', async () => {
+    await explains('依存ルートがどこにも存在しない場合のテストです。理由 `symlink-failed` の `SlideCreateRuntimeError` が発生し、既存の `node_modules` の内容が変更されないことを確認します。')
     const pluginRoot = temporaryRoot('no-deps')
     mkdirSync(pluginRoot, { recursive: true })
     vi.stubEnv('CLAUDE_PLUGIN_DATA', temporaryRoot('empty-data'))
@@ -215,7 +224,8 @@ describe('linkNodeModules (依存ルートの解決)', () => {
 })
 
 describe('linkNodeModules (張り直し)', () => {
-  it('旧形の symlink 1 本を実ディレクトリに替え、依存ルートを消さない', async () => {
+  it('旧形の symlink 1 本の場合は、実ディレクトリに置き換え、依存ルートを削除しない', async () => {
+    await explains('`node_modules` が依存ルートへの symlink 1 本である旧形のテストです。実ディレクトリへ置き換わり、依存ルートの中身が張る前と同じままであることを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     const dependencyNodeModules = seedFullDependencyRoot(pluginRoot)
     const before = listNames(dependencyNodeModules)
@@ -230,7 +240,8 @@ describe('linkNodeModules (張り直し)', () => {
     expect(listNames(path.join(dependencyNodeModules, '@scope'))).toStrictEqual(['pkg'])
   })
 
-  it('破損した絶対 symlink からも張り直す', async () => {
+  it('存在しない場所を指す絶対パスの symlink の場合も、張り直す', async () => {
+    await explains('`node_modules` が存在しない場所を指す絶対パスの symlink である場合のテストです。実ディレクトリに置き換わり、各項目が相対 symlink で張られることを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -242,7 +253,8 @@ describe('linkNodeModules (張り直し)', () => {
     expect(readlinkSync(path.join(talk, 'node_modules', 'plain-pkg')).startsWith('/')).toBe(false)
   })
 
-  it('実ディレクトリの中身を捨てて作り直し、2 回続けても同じ結果になる', async () => {
+  it('実ディレクトリの中身を破棄して作り直し、2 回続けて実行しても同じ結果になる', async () => {
+    await explains('`node_modules` が古い項目を含む実ディレクトリである場合のテストです。古い項目が残らず、2 回続けて実行しても一覧が一致し、依存ルートの項目が残ることを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     const dependencyNodeModules = seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -259,7 +271,8 @@ describe('linkNodeModules (張り直し)', () => {
     expect(listNames(dependencyNodeModules)).toContain('plain-pkg')
   })
 
-  it('実ディレクトリの中の symlink の先を消さない', async () => {
+  it('張り直しのとき、実ディレクトリの中の symlink の先にある依存ルートの中身を削除しない', async () => {
+    await explains('張り直しを 2 回続けて実行する場合のテストです。symlink の先にある依存ルートのファイルとディレクトリが、削除されずに残ることを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     const dependencyNodeModules = seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -273,7 +286,8 @@ describe('linkNodeModules (張り直し)', () => {
 })
 
 describe('linkNodeModules (入れ替え)', () => {
-  it('テーマの directory が存在せず中断しても、既存の node_modules を残す', async () => {
+  it('テーマの directory が存在せず中断した場合は、既存の node_modules を残す', async () => {
+    await explains('テーマの `directory` が存在せず、張る処理が例外で中断する場合のテストです。既存の `node_modules` の内容が変わらず、`talk` に組み立て中のディレクトリが残らないことを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -286,7 +300,8 @@ describe('linkNodeModules (入れ替え)', () => {
     expect(listNames(talk)).toStrictEqual(['node_modules'])
   })
 
-  it('組み立ての途中で symlink が失敗したら、組み立て中のものを消して既存を残す', async () => {
+  it('組み立ての途中で symlink の作成が失敗した場合は、組み立て中のものを削除し、既存を残す', async () => {
+    await explains('テーマ名がファイルの項目の配下になり、組み立て中の作成が失敗する場合のテストです。組み立て中のディレクトリが削除され、既存の `node_modules` が変わらないことを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     const dependencyNodeModules = seedFullDependencyRoot(pluginRoot)
     writeFileSync(path.join(dependencyNodeModules, 'single-file'), '')
@@ -302,7 +317,8 @@ describe('linkNodeModules (入れ替え)', () => {
     expect(listNames(talk)).toStrictEqual(['node_modules'])
   })
 
-  it('前回の異常終了で残った組み立て中と入れ替え前の名前を、次の張り直しで消す', async () => {
+  it('前回の異常終了で残った組み立て中と入れ替え前のディレクトリを、次の張り直しで削除する', async () => {
+    await explains('`node_modules.tmp-` と `node_modules.old-` で始まる名前が前回の異常終了で残っている場合のテストです。次の張り直しで削除され、`talk` に `node_modules` だけが残ることを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -316,7 +332,8 @@ describe('linkNodeModules (入れ替え)', () => {
     expect(listNames(pluginRoot)).toContain('node_modules')
   })
 
-  it('張り終えたあとの node_modules は、最終の位置から見て解決する相対 symlink になる', async () => {
+  it('張り終えた後の node_modules は、最終の位置を基準に解決する相対 symlink となる', async () => {
+    await explains('組み立て用の一時ディレクトリから入れ替えた後の、symlink のテストです。相対パスに `node_modules.tmp-` が含まれず、最終の位置を基準に依存ルートの項目へ解決することを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     const dependencyNodeModules = seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -331,7 +348,8 @@ describe('linkNodeModules (入れ替え)', () => {
 })
 
 describe('linkNodeModules (テーマ)', () => {
-  it('テーマ名の項目を置き場へ相対 symlink で張る', async () => {
+  it('テーマ名の項目を、テーマの置き場への相対 symlink で張る', async () => {
+    await explains('テーマを 1 つ指定した場合のテストです。テーマ名の項目が置き場への相対 symlink になり、その中の `package.json` を読み出せることを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -346,7 +364,8 @@ describe('linkNodeModules (テーマ)', () => {
     expect(readFileSync(path.join(link, 'package.json'), 'utf8')).toBe(JSON.stringify({ name: 'theme-a' }))
   })
 
-  it('依存ルートと同名の項目はテーマが勝ち、依存ルートは変わらない', async () => {
+  it('依存ルートと同名のテーマを指定した場合は、テーマを優先し、依存ルートを変更しない', async () => {
+    await explains('依存ルートの `plain-pkg` と同じ名前のテーマを指定した場合のテストです。`node_modules` の項目はテーマの置き場へ解決し、依存ルートの `package.json` は変更されないことを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     const dependencyNodeModules = seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -359,7 +378,8 @@ describe('linkNodeModules (テーマ)', () => {
     expect(original).toMatchObject({ name: 'plain-pkg', version: '1.0.0' })
   })
 
-  it('scope 付きのテーマ名は、その scope だけ実ディレクトリにして配下を 1 本ずつ張る', async () => {
+  it('scope 付きのテーマ名の場合は、その scope だけを実ディレクトリにして、配下を 1 本ずつ張る', async () => {
+    await explains('`@scope/theme` のような scope 付きのテーマ名を指定した場合のテストです。`@scope` が実ディレクトリになり、`theme` と依存ルートの `pkg` や `other` が並び、依存ルート側には `theme` が追加されないことを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     const dependencyNodeModules = seedFullDependencyRoot(pluginRoot)
     writeFakePackage(pluginRoot, '@scope/other')
@@ -380,7 +400,8 @@ describe('linkNodeModules (テーマ)', () => {
     expect(listNames(path.join(dependencyNodeModules, '@scope'))).toStrictEqual(['other', 'pkg'])
   })
 
-  it('依存ルートに無い scope のテーマ名でも scope を作って張る', async () => {
+  it('依存ルートに存在しない scope のテーマ名の場合も、scope を作成して張る', async () => {
+    await explains('依存ルートに存在しない `@fresh` の scope でテーマ名を指定した場合のテストです。`@fresh` が実ディレクトリとして作成され、配下にテーマだけが張られることを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -394,7 +415,8 @@ describe('linkNodeModules (テーマ)', () => {
     expect(realpathSync(path.join(scope, 'theme'))).toBe(directory)
   })
 
-  it('同じ scope のテーマが 2 つあっても、どちらも張る', async () => {
+  it('同じ scope のテーマが 2 つ指定された場合も、どちらも張る', async () => {
+    await explains('`@scope/one` と `@scope/two` の 2 つのテーマを指定した場合のテストです。依存ルートの `pkg` を含めて 3 項目が並び、各テーマがそれぞれの置き場へ解決することを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -412,7 +434,8 @@ describe('linkNodeModules (テーマ)', () => {
     expect(realpathSync(path.join(scope, 'two'))).toBe(second)
   })
 
-  it('置き場が symlink 経由のパスでも物理パスへ張る', async () => {
+  it('テーマの置き場が symlink 経由のパスの場合も、物理パスへ張る', async () => {
+    await explains('テーマの `directory` が symlink 経由のパスで渡された場合のテストです。張った symlink の相対パスが、テーマの物理パスへ解決することを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -428,7 +451,8 @@ describe('linkNodeModules (テーマ)', () => {
 })
 
 describe('linkNodeModules (.pecotv-link.json)', () => {
-  it('current でない依存ルートは物理パス、テーマは name と directory を書く', async () => {
+  it('current ではない依存ルートの場合は、印に物理パスとテーマの name と directory を書く', async () => {
+    await explains('`.pecotv-link.json` の内容のテストです。`current` ではない依存ルートは種別 `path` の物理パスで、テーマは `name` と `directory` の組で記録されることを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     const dependencyNodeModules = seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -443,7 +467,8 @@ describe('linkNodeModules (.pecotv-link.json)', () => {
     })
   })
 
-  it('依存ルートが current のときは世代名を書く', async () => {
+  it('依存ルートが current の場合は、印に世代名を書く', async () => {
+    await explains('依存ルートが `current` の symlink である場合の `.pecotv-link.json` のテストです。種別 `generation` で世代名 `deps0-src0` が記録されることを確認します。')
     const runtimeDirectory = temporaryRoot('data', 'runtime')
     seedFullDependencyRoot(path.join(runtimeDirectory, 'deps0-src0'))
     const currentLink = path.join(runtimeDirectory, 'current')
@@ -457,7 +482,8 @@ describe('linkNodeModules (.pecotv-link.json)', () => {
 })
 
 describe('isNodeModulesLinkCurrent (印との比較)', () => {
-  it('印の依存ルートとテーマが今の値と同じなら true', async () => {
+  it('印の依存ルートとテーマが現在の値と一致する場合は、true を返す', async () => {
+    await explains('`isNodeModulesLinkCurrent` のテストです。張った直後に同じ依存ルートとテーマで呼び出した場合に、`true` を返すことを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -468,7 +494,8 @@ describe('isNodeModulesLinkCurrent (印との比較)', () => {
     expect(await isNodeModulesLinkCurrent(talk, pluginRoot, themes)).toBe(true)
   })
 
-  it('テーマの directory が symlink 経由の別名でも、実体が同じなら true', async () => {
+  it('テーマの directory が symlink 経由の別名でも、実体が同じ場合は、true を返す', async () => {
+    await explains('テーマの `directory` を symlink 経由の別名で渡した場合のテストです。物理パスが印と一致するため、`true` を返すことを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -480,7 +507,8 @@ describe('isNodeModulesLinkCurrent (印との比較)', () => {
     expect(await isNodeModulesLinkCurrent(talk, pluginRoot, [{ name: 'theme-a', directory: alias }])).toBe(true)
   })
 
-  it('テーマの directory が変わったら false', async () => {
+  it('テーマの directory が変わった場合は、false を返す', async () => {
+    await explains('張った後にテーマの `directory` を別の場所へ変えて呼び出した場合のテストです。印と一致しないため、`false` を返すことを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -491,7 +519,8 @@ describe('isNodeModulesLinkCurrent (印との比較)', () => {
     expect(await isNodeModulesLinkCurrent(talk, pluginRoot, [{ name: 'theme-a', directory: other }])).toBe(false)
   })
 
-  it('テーマの数が違えば false', async () => {
+  it('テーマの数が印と異なる場合は、false を返す', async () => {
+    await explains('テーマなしで張った後に、テーマを 1 つ指定して呼び出した場合のテストです。印のテーマの数と異なるため、`false` を返すことを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -500,7 +529,8 @@ describe('isNodeModulesLinkCurrent (印との比較)', () => {
     expect(await isNodeModulesLinkCurrent(talk, pluginRoot, [{ name: 'theme-a', directory: makeThemeDirectory('theme-a') }])).toBe(false)
   })
 
-  it('依存ルートの世代が変わったら false', async () => {
+  it('依存ルートの世代が変わった場合は、false を返す', async () => {
+    await explains('依存ルートの `current` が別の世代を指す場合のテストです。同じ依存ルートの場合は `true`、別の世代の場合は `false` を返すことを確認します。')
     const runtimeDirectory = temporaryRoot('data', 'runtime')
     seedFullDependencyRoot(path.join(runtimeDirectory, 'deps0-src0'))
     const currentLink = path.join(runtimeDirectory, 'current')
@@ -517,7 +547,8 @@ describe('isNodeModulesLinkCurrent (印との比較)', () => {
     expect(await isNodeModulesLinkCurrent(talk, nextCurrentLink, [])).toBe(false)
   })
 
-  it('印が無い旧形の symlink 1 本は false', async () => {
+  it('印のファイルが存在しない旧形の symlink 1 本の場合は、false を返す', async () => {
+    await explains('`node_modules` が依存ルートへの symlink 1 本で、印のファイルが存在しない旧形のテストです。`false` を返すことを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     const dependencyNodeModules = seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -526,7 +557,8 @@ describe('isNodeModulesLinkCurrent (印との比較)', () => {
     expect(await isNodeModulesLinkCurrent(talk, pluginRoot, [])).toBe(false)
   })
 
-  it('張り先が消えた symlink と node_modules の不在は false', async () => {
+  it('張り先が存在しない symlink と node_modules が存在しない場合は、false を返す', async () => {
+    await explains('`node_modules` が存在しない場合と、存在しない場所を指す symlink である場合のテストです。どちらの場合も `false` を返すことを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -536,7 +568,8 @@ describe('isNodeModulesLinkCurrent (印との比較)', () => {
     expect(await isNodeModulesLinkCurrent(talk, pluginRoot, [])).toBe(false)
   })
 
-  it('印が JSON として読めない・形が違うときは false', async () => {
+  it('印が JSON として解析できない場合と、形式が異なる場合は、false を返す', async () => {
+    await explains('印のファイルを不正な JSON にした場合と、`runtime` が数値になっている場合のテストです。どちらの場合も `false` を返すことを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')
@@ -550,7 +583,8 @@ describe('isNodeModulesLinkCurrent (印との比較)', () => {
     expect(await isNodeModulesLinkCurrent(talk, pluginRoot, [])).toBe(false)
   })
 
-  it('テーマの項目が node_modules から消えていたら false', async () => {
+  it('テーマの項目が node_modules から削除されている場合は、false を返す', async () => {
+    await explains('張った後にテーマの symlink を削除してから呼び出した場合のテストです。印は一致していても、項目が存在しないため `false` を返すことを確認します。')
     const pluginRoot = temporaryRoot('plugin')
     seedFullDependencyRoot(pluginRoot)
     const talk = makeTalk('talk')

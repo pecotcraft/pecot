@@ -14,6 +14,7 @@ import { runShell } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { splitLines } from '../_helpers/text.js'
 import { readOutput } from '../../../../../../libs/interface-spec/src/vitest/attach.js'
+import { explains } from '../../_helpers/explains.js'
 
 const DISPATCHER = path.join(coreDirectory, 'config-dispatcher.sh')
 
@@ -43,7 +44,8 @@ function countCalls(log: string): number {
 }
 
 describe('config-dispatcher.sh のキャッシュ', () => {
-  it('キーを何度引いても、jq は 1 回しか呼ばない', () => {
+  it('キーを何度引いても、jq は 1 回しか呼ばない', async () => {
+    await explains('`config-dispatcher.sh` の設定ファイルのキャッシュのテストです。同じキーを含む複数のキーを続けて判定した場合に、`jq` を 1 回だけ起動し、設定の値どおりに判定することを確認します。')
     const hookCase = createHookCase()
     const config = hooksConfig(hookCase)
     const jqCalls = installJqCalls(hookCase)
@@ -54,7 +56,8 @@ describe('config-dispatcher.sh のキャッシュ', () => {
     expect(countCalls(jqCalls)).toBe(1)
   })
 
-  it('設定ファイルが無いとき、jq を呼ばない', () => {
+  it('設定ファイルが無いとき、jq を呼ばない', async () => {
+    await explains('`config-dispatcher.sh` の設定ファイルのキャッシュのテストです。設定ファイルが存在しない場合に、`jq` を起動せず、すべてのキーを既定の値（`true`）で有効と判定することを確認します。')
     const hookCase = createHookCase()
     hooksConfig(hookCase)
     const jqCalls = installJqCalls(hookCase)
@@ -64,7 +67,8 @@ describe('config-dispatcher.sh のキャッシュ', () => {
     expect(countCalls(jqCalls)).toBe(0)
   })
 
-  it('false と bool 以外の値のとき、無効とし、空文字はキーなし扱いで既定の true にする', () => {
+  it('false と bool 以外の値のとき、無効とし、空文字はキーなし扱いで既定の true にする', async () => {
+    await explains('`config-dispatcher.sh` の設定値の判定のテストです。`false` や配列、`null` が指定されたキーは無効と判定し、空文字が指定されたキーは指定なしとして既定の値（`true`）で有効と判定することを確認します。')
     const hookCase = createHookCase()
     const config = hooksConfig(hookCase)
     claudeProjectDirectory(hookCase)
@@ -74,7 +78,8 @@ describe('config-dispatcher.sh のキャッシュ', () => {
     expect(result.stdout.trim()).toBe('off=0 list=0 null=0 empty=1')
   })
 
-  it('JSON のパースに失敗したとき、警告を出して既定値を使う', () => {
+  it('JSON のパースに失敗したとき、警告を出して既定値を使う', async () => {
+    await explains('`config-dispatcher.sh` の設定ファイルの読み込みのテストです。JSON として解析できない場合に、標準エラー出力に `failed to parse` を含む警告を表示し、既定の値で有効と判定することを確認します。')
     const hookCase = createHookCase()
     const config = hooksConfig(hookCase)
     claudeProjectDirectory(hookCase)
@@ -84,7 +89,8 @@ describe('config-dispatcher.sh のキャッシュ', () => {
     expect(result.stderr).toContain('failed to parse')
   })
 
-  it('JSON がオブジェクトでないとき、パース失敗として扱う', () => {
+  it('JSON がオブジェクトでないとき、パース失敗として扱う', async () => {
+    await explains('`config-dispatcher.sh` の設定ファイルの読み込みのテストです。JSON がオブジェクトでなく配列の場合に、解析の失敗として警告を表示し、既定の値で有効と判定することを確認します。')
     const hookCase = createHookCase()
     const config = hooksConfig(hookCase)
     claudeProjectDirectory(hookCase)
@@ -94,7 +100,8 @@ describe('config-dispatcher.sh のキャッシュ', () => {
     expect(result.stderr).toContain('failed to parse')
   })
 
-  it('macOS の bash 3.2 に無い連想配列を使わない', () => {
+  it('macOS の bash 3.2 に無い連想配列を使わない', async () => {
+    await explains('`config-dispatcher.sh` の互換性のテストです。macOS の bash 3.2 が対応していない連想配列（`declare -A`・`local -A`・`typeset -A`）が、スクリプトに含まれていないことを確認します。')
     const source = readFileSync(DISPATCHER, 'utf8')
     expect(source).not.toContain('declare -A')
     expect(source).not.toContain('local -A')

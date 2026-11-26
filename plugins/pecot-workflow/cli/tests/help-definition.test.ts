@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 import { z } from 'zod'
 
+import { explains } from './_helpers/explains.js'
 import { runCli } from '../src/cli.js'
 import { defineCommand, interfaceIdOf } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { COMMANDS } from '../src/commands/registry.js'
@@ -291,7 +292,8 @@ function expectHelpMatchesDefinition(definition: CommandDefinition, text: string
 const commandRows = COMMANDS.flatMap(definition => WIDTHS.map(width => ({ name: definition.path.join(' '), definition, width })))
 
 describe('全コマンドの --help は定義書の中身を全部出す', () => {
-  it.for(commandRows)('$name を幅 $width で打つと、定義書の項目を全部出す', async ({ definition, width }) => {
+  it.for(commandRows)('$name を幅 $width で打つと、定義書の項目を全部出す', async ({ name, definition, width }) => {
+    await explains(`コマンドの \`--help\` のテストです。\`${name}\` を幅 ${String(width)} で実行した場合に、定義書の引数・オプション・説明・例をすべて出力し、幅を超える行や日本語の文字を含まないことを確認します。`)
     const text = await helpOf(definition.path, width)
     expectHelpMatchesDefinition(definition, text)
     // 幅を超えてよいのは、Examples の打つ形の行だけ
@@ -302,14 +304,16 @@ describe('全コマンドの --help は定義書の中身を全部出す', () =>
     expect(text).not.toMatch(/ $/mu)
   })
 
-  it('全コマンドで、説明の欠けた項目が無い', () => {
+  it('全コマンドで、説明が欠けている項目が存在しない', async () => {
+    await explains('定義書の説明の網羅性のテストです。登録されたすべてのコマンドについて、説明が欠けている項目を検出しないことを確認します。')
     const missing = COMMANDS
       .map(definition => ({ path: definition.path.join(' '), items: missingHelpItems(definition, notesOf(definition)) }))
       .filter(entry => entry.items.length > 0)
     expect(missing).toEqual([])
   })
 
-  it('定義書の項目を持たないコマンドは無く、default_notes を持つ項目がある', () => {
+  it('すべてのコマンドが定義書の項目を持ち、default_notes を持つ項目が存在する', async () => {
+    await explains('定義書の項目のテストです。登録されたすべてのコマンドが `authored.yaml` の項目を持ち、`default_notes` を持つコマンドが 1 つ以上存在することを確認します。')
     expect(COMMANDS.filter(definition => notesOf(definition) === undefined).map(definition => definition.path.join(' '))).toEqual([])
     expect(COMMANDS.some(definition => (notesOf(definition)?.defaultNotes.size ?? 0) > 0)).toBe(true)
   })
@@ -318,7 +322,8 @@ describe('全コマンドの --help は定義書の中身を全部出す', () =>
     { name: 'issue show', argv: ['issue', 'show'], text: 'the short form `N` in the repository of `--repo`,' },
     { name: 'issue block', argv: ['issue', 'block'], text: 'Why it waits for the merge (required when `--wait` is merge)' },
     { name: 'project link', argv: ['project', 'link'], text: 'falls back to `--changelog-file` or the default' },
-  ])('$name の --help は、説明の文の引数名をフラグの形で出す', async ({ argv, text }) => {
+  ])('$name の --help は、説明の文の引数名をフラグの形で出す', async ({ name, argv, text }) => {
+    await explains(`引数名の表示のテストです。\`${name}\` の \`--help\` で、説明の文中の引数名が、\`--repo\` のようなフラグの形で出力されることを確認します。`)
     const help = await helpOf(argv, 80)
     expect(unwrapped(help.split('\n'))).toContain(text)
   })
@@ -341,24 +346,29 @@ function sampleCommand(description: string, argumentDescription: string | undefi
 describe('missingHelpItems', () => {
   const notes: AuthoredNotes = { details: ['A detail.'], constraints: [], examples: [], defaultNotes: new Map() }
 
-  it('欠けが無ければ空', () => {
+  it('説明の欠けが存在しない場合は、空の一覧を返す', async () => {
+    await explains('説明の欠けを検出する `missingHelpItems` のテストです。コマンドの説明・引数の説明・`details` がそろっている場合に、空の一覧を返すことを確認します。')
     expect(missingHelpItems(sampleCommand('Sample', 'A name'), notes)).toEqual([])
   })
 
-  it('コマンドの説明が空なら description を返す', () => {
+  it('コマンドの説明が空なら description を返す', async () => {
+    await explains('説明の欠けを検出する `missingHelpItems` のテストです。コマンドの説明が空の場合に、`description` を返すことを確認します。')
     expect(missingHelpItems(sampleCommand('', 'A name'), notes)).toEqual(['description'])
   })
 
-  it('引数の説明が無ければ argument:名前 を返す', () => {
+  it('引数の説明が存在しない場合は、argument:名前 を返す', async () => {
+    await explains('説明の欠けを検出する `missingHelpItems` のテストです。引数に説明が指定されていない場合に、`argument:name` を返すことを確認します。')
     expect(missingHelpItems(sampleCommand('Sample', undefined), notes)).toEqual(['argument:name'])
   })
 
-  it('details が空か、定義書の項目が無ければ details を返す', () => {
+  it('details が空か、定義書の項目が無ければ details を返す', async () => {
+    await explains('説明の欠けを検出する `missingHelpItems` のテストです。`details` が空の場合と、定義書の項目が存在しない場合に、`details` を返すことを確認します。')
     expect(missingHelpItems(sampleCommand('Sample', 'A name'), { ...notes, details: [] })).toEqual(['details'])
     expect(missingHelpItems(sampleCommand('Sample', 'A name'), undefined)).toEqual(['details'])
   })
 
-  it('空白だけの説明も欠けとして数え、全部を順に返す', () => {
+  it('空白だけの説明も欠けとして数え、全部を順に返す', async () => {
+    await explains('説明の欠けを検出する `missingHelpItems` のテストです。空白だけの説明と空の `details` を渡した場合に、欠けた項目を `description`・`argument:name`・`details` の順にすべて返すことを確認します。')
     expect(missingHelpItems(sampleCommand(' ', ' '), { ...notes, details: [] })).toEqual(['description', 'argument:name', 'details'])
   })
 })
@@ -376,7 +386,8 @@ const groupNames = new Set(COMMANDS.flatMap(definition => definition.path.slice(
 const groupRows = ['', ...groupNames].flatMap(group => WIDTHS.map(width => ({ name: group === '' ? 'ルート' : group, group: group === '' ? [] : group.split(' '), width })))
 
 describe('ルートとグループの --help', () => {
-  it.for(groupRows)('$name を幅 $width で打つと、直下のコマンドの名前と説明を全部出す', async ({ group, width }) => {
+  it.for(groupRows)('$name を幅 $width で打つと、直下のコマンドの名前と説明を全部出す', async ({ name, group, width }) => {
+    await explains(`ルートとグループの \`--help\` のテストです。\`${name}\` を幅 ${String(width)} で実行した場合に、直下のコマンドの名前と説明をすべて出力し、幅を超える行を含まないことを確認します。`)
     const text = await helpOf(group, width)
     const rows = chunksOf(sectionsOf(text).get('Commands') ?? [], isNameLine)
     const children = childrenOf(group)
@@ -393,6 +404,7 @@ describe('ルートとグループの --help', () => {
   })
 
   it('COMMANDS の全グループが、ルートの Commands の行とグループの help の両方で、空でない説明を持つ', async () => {
+    await explains('グループの説明のテストです。すべてのグループが、ルートの `Commands` の行とグループ自身の `--help` の両方で、空ではない説明を出力することを確認します。')
     const root = chunksOf(sectionsOf(await helpOf([], 80)).get('Commands') ?? [], isNameLine)
     const withoutRootDescription = [...groupNames].filter(name => !name.includes(' ')).filter((name) => {
       const row = root.find(candidate => candidate[0]?.startsWith(`  ${name}  `) === true)

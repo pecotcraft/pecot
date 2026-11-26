@@ -9,6 +9,7 @@ import path from 'node:path'
 
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { explains } from '../_helpers/explains.js'
 import { compareStrings } from '../parity/baseline.js'
 import { fixtureName, makeSandbox, pluginScript, repositoryRoot, runScript, splitLines, type Result, type Sandbox } from './_helpers/run.js'
 
@@ -297,18 +298,21 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     scene = new Scene(workspace)
   })
 
-  it('git の作業ツリーの外で打つと、error の行を出して終了コード 2 で止まる', () => {
+  it('git の作業ツリーの外で実行すると、error の行を表示して終了コード 2 で止まる', async () => {
+    await explains('`sandbox-diff.sh` を git の作業ツリーの外で実行した場合のテストです。作業用のディレクトリを作成できないため、`error:` で始まるメッセージを標準エラーに表示して、終了コード 2 で終了することを確認します。')
     const outside = makeSandbox(FAKE_GH)
     const result = runScript(outside, script, [], { GIT_CEILING_DIRECTORIES: path.dirname(outside.directory) })
     expect([result.status, result.stdout, result.stderr]).toStrictEqual([2, '', 'error: git の作業ツリーの中で打ってください（作業用の場所を .pecot/tmp に作るため）\n'])
   })
 
-  it('設定が同じなら、ずれは 0 件', () => {
+  it('両方の設定が同じ場合は、ずれが 0 件になる', async () => {
+    await explains('本体リポジトリと検証用リポジトリの設定が同じ場合のテストです。「ずれは 0 件」と表示して、終了コード 0 で終了することを確認します。')
     const result = scene.run()
     expect([result.status, result.stdout, result.stderr]).toStrictEqual([0, 'ずれは 0 件\n', ''])
   })
 
-  it('必須チェックが 1 つ足りないと、required_status_checks のずれとして出す', () => {
+  it('検証用の必須チェックが 1 つ不足していると、required_status_checks の差異として表示する', async () => {
+    await explains('必須のステータスチェックの比較のテストです。検証用の ruleset から `version-plan` を除くと、`required_status_checks` の差異が表示され、検証用だけ `version-plan` を含まないことを確認します。')
     const checks = scene.sandbox.rule('required_status_checks')
     checks.parameters?.required_status_checks?.pop()
     const thisChecks = scene.this.rule('required_status_checks')
@@ -321,33 +325,38 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect(lines[3]).not.toContain('version-plan')
   })
 
-  it('merge_queue の規則が検証用に無いと、「なし」としてずれに出す', () => {
+  it('merge_queue の規則が検証用に存在しないと、検証用を「なし」として差異に表示する', async () => {
+    await explains('ruleset の `merge_queue` の規則の比較のテストです。検証用に規則が存在しない場合に、検証用の値を「なし」として差異に表示することを確認します。')
     scene.sandbox.withoutRule('merge_queue')
     const queue = scene.this.rule('merge_queue')
     const expected = expectedDrifts(drift('ruleset main / merge_queue', compact(queue.parameters), 'なし'))
     expect(drifted(scene.run())).toStrictEqual(expected)
   })
 
-  it('code_scanning の規則が無くても比べない（FR-004）', () => {
+  it('code_scanning の規則が検証用に存在しなくても、比較の対象にしない', async () => {
+    await explains('ruleset の `code_scanning` の規則の扱いのテストです。検証用にこの規則が存在しなくても差異にならず、「ずれは 0 件」と表示することを確認します。')
     scene.sandbox.withoutRule('code_scanning')
     const result = scene.run()
     expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
   })
 
-  it.for(['pages-store', 'release-tags'])('このリポだけの運用の ruleset %s が検証用に無くても比べない（FR-008）', (name) => {
+  it.for(['pages-store', 'release-tags'])('本体リポジトリだけで使う ruleset %s が検証用に存在しなくても、比較の対象にしない', async (name) => {
+    await explains(`本体リポジトリだけで使う ruleset の扱いのテストです。\`${name}\` が検証用に存在しなくても差異にならず、「ずれは 0 件」と表示することを確認します。`)
     scene.this.rulesets.push({ ...makeRuleset(1, THIS), name })
     const result = scene.run()
     expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
   })
 
-  it('一覧に無い名前の ruleset が検証用に無いと、ruleset のずれに出す', () => {
+  it('除外の一覧にない名前の ruleset が検証用に存在しないと、ruleset の差異として表示する', async () => {
+    await explains('ruleset の比較のテストです。本体リポジトリだけに `other` という ruleset がある場合に、「ずれは 1 件」と `ruleset other` を表示することを確認します。')
     scene.this.rulesets.push({ ...makeRuleset(1, THIS), name: 'other' })
     const result = scene.run()
     expect(result.status).toBe(1)
     expect(splitLines(result.stdout).slice(0, 2)).toStrictEqual(['ずれは 1 件', 'ruleset other'])
   })
 
-  it('ボードの選択肢が 1 つ多いと、board-fields のずれに出す', () => {
+  it('検証用のボードの選択肢が 1 つ多いと、board-fields の差異として表示する', async () => {
+    await explains('ボードの欄の比較のテストです。検証用の `pecot-status` に選択肢 `Done` を追加すると、`board-fields / pecot-status` の差異として、両方の選択肢の一覧を表示することを確認します。')
     const field = find(scene.sandbox.fields(), f => f.name === 'pecot-status')
     const names = (field.options ?? []).map(option => ({ name: option.name }))
     const before = { dataType: 'SINGLE_SELECT', options: names }
@@ -357,14 +366,16 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect(drifted(scene.run())).toStrictEqual(expected)
   })
 
-  it('ボードの選択肢は順番まで比べる', () => {
+  it('ボードの選択肢は、順序の違いも差異として扱う', async () => {
+    await explains('ボードの選択肢の順序のテストです。検証用の `pecot-lane` の選択肢を逆順にすると、`board-fields / pecot-lane` の差異として表示することを確認します。')
     find(scene.sandbox.fields(), f => f.name === 'pecot-lane').options?.reverse()
     const result = scene.run()
     expect(result.status).toBe(1)
     expect(splitLines(result.stdout).slice(0, 2)).toStrictEqual(['ずれは 1 件', 'board-fields / pecot-lane'])
   })
 
-  it('ID と日付だけが違うなら、ずれは 0 件', () => {
+  it('ID や日付など比較しない項目だけが違う場合は、ずれが 0 件になる', async () => {
+    await explains('比較から除外する項目のテストです。ruleset・ボード・リポジトリ設定の ID、日付、色などだけが違う場合に、「ずれは 0 件」と表示することを確認します。')
     const ruleset = scene.sandbox.rulesets[0]
     if (ruleset === undefined) throw new Error('ruleset が無い')
     Object.assign(ruleset, { node_id: 'RRS_other', created_at: '2020-01-01T00:00:00Z', updated_at: '2020-01-02T00:00:00Z', bypass_actors: [], current_user_can_bypass: 'always' })
@@ -380,7 +391,8 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
   })
 
-  it('board-sync の中身が違うと、両方の blob の sha と違う最初の行を出す（FR-032）', () => {
+  it('pecot-board-sync.yml の内容が違うと、両方の blob の sha と、違う最初の行を表示する', async () => {
+    await explains('ワークフローのファイルの比較のテストです。検証用の `pecot-board-sync.yml` の内容が違う場合に、両方の blob の sha と、内容が違う最初の行を差異として表示することを確認します。')
     const other = BOARD_SYNC.replace('@next', '@6')
     scene.sandbox.files['pecot-board-sync.yml'] = other
     const line = 6
@@ -389,7 +401,8 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-board-sync.yml', expectedThis, expectedSandbox)))
   })
 
-  it('pecot-review.yml の中身が違うと、ファイルの名前で両方の blob の sha と違う最初の行を出す', () => {
+  it('pecot-review.yml の内容が違うと、ファイル名の項目に両方の blob の sha と違う最初の行を表示する', async () => {
+    await explains('ワークフローのファイルの比較のテストです。`pecot-review.yml` の内容が違う場合に、`workflows / pecot-review.yml` の差異として、blob の sha と違う最初の行を表示することを確認します。')
     const other = REVIEW.replace('on: pull_request', 'on: push')
     scene.sandbox.files['pecot-review.yml'] = other
     const line = 2
@@ -398,13 +411,15 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-review.yml', expectedThis, expectedSandbox)))
   })
 
-  it('検証用に pecot-review.yml が無いと、検証用を「なし」としてずれに出す', () => {
+  it('検証用に pecot-review.yml が存在しないと、検証用を「なし」として差異に表示する', async () => {
+    await explains('ワークフローのファイルの存在の比較のテストです。検証用に `pecot-review.yml` が存在しない場合は、検証用の値を「なし」と表示することを確認します。')
     delete scene.sandbox.files['pecot-review.yml']
     const expectedThis = `blob ${blob(REVIEW)}、1 行目: ${splitLines(REVIEW)[0] ?? ''}`
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-review.yml', expectedThis, 'なし')))
   })
 
-  it('pecot-handoff.yml の中身が違うと、ファイルの名前で両方の blob の sha と違う最初の行を出す', () => {
+  it('pecot-handoff.yml の内容が違うと、ファイル名の項目に両方の blob の sha と違う最初の行を表示する', async () => {
+    await explains('ワークフローのファイルの比較のテストです。`pecot-handoff.yml` の内容が違う場合に、`workflows / pecot-handoff.yml` の差異として、blob の sha と違う最初の行を表示することを確認します。')
     const other = HANDOFF.replace('@0', '@1')
     scene.sandbox.files['pecot-handoff.yml'] = other
     const line = 6
@@ -413,13 +428,15 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-handoff.yml', expectedThis, expectedSandbox)))
   })
 
-  it('検証用に pecot-handoff.yml が無いと、検証用を「なし」としてずれに出す', () => {
+  it('検証用に pecot-handoff.yml が存在しないと、検証用を「なし」として差異に表示する', async () => {
+    await explains('ワークフローのファイルの存在の比較のテストです。検証用に `pecot-handoff.yml` が存在しない場合は、検証用の値を「なし」と表示することを確認します。')
     delete scene.sandbox.files['pecot-handoff.yml']
     const expectedThis = `blob ${blob(HANDOFF)}、1 行目: ${splitLines(HANDOFF)[0] ?? ''}`
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-handoff.yml', expectedThis, 'なし')))
   })
 
-  it('ci.yml は在るかどうかだけを比べる', () => {
+  it('ci.yml は、存在するかどうかだけを比較する', async () => {
+    await explains('`ci.yml` の比較のテストです。内容が違っても差異にならず、検証用に存在しない場合だけ、「あり」と「なし」の差異として表示することを確認します。')
     scene.sandbox.files['ci.yml'] = 'name: other ci\n'
     const same = scene.run()
     expect([same.status, same.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
@@ -427,41 +444,48 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / ci.yml', 'あり', 'なし')))
   })
 
-  it('両方の設定ファイルが旧い形なら、ずれは 0 件', () => {
+  it('両方の設定ファイルが旧い名前の形式なら、ずれが 0 件になる', async () => {
+    await explains('ボードの設定ファイル名の比較のテストです。両方が旧い形式（`<host>_<owner>_<題>_<suffix>.json`）の名前である場合に、「ずれは 0 件」と表示することを確認します。')
     scene.this.setConfigs(legacyConfig('pecot-project', 'pecotcraft', 1))
     scene.sandbox.setConfigs(legacyConfig('pecot-sandbox', 'sandbox', 3))
     const result = scene.run()
     expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
   })
 
-  it('検証用の設定ファイルだけが旧い形だと、config-file のずれに両方の形を出す', () => {
+  it('検証用の設定ファイルだけが旧い名前の形式だと、config-file の差異に両方の形式を表示する', async () => {
+    await explains('ボードの設定ファイル名の比較のテストです。検証用だけが旧い形式の場合に、`config-file` の差異として、現在の形式と旧い形式の両方を表示することを確認します。')
     scene.sandbox.setConfigs(legacyConfig('pecot-sandbox', 'sandbox', 3))
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, LEGACY_FORM)))
   })
 
-  it('検証用に比べるボードの設定ファイルが無いと、検証用を「なし」としてずれに出す', () => {
+  it('検証用に比較対象のボードの設定ファイルが存在しないと、検証用を「なし」として差異に表示する', async () => {
+    await explains('ボードの設定ファイルの存在のテストです。検証用に設定ファイルが 1 つも存在しない場合に、`config-file` の差異として検証用の値を「なし」と表示することを確認します。')
     scene.sandbox.setConfigs()
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, 'なし')))
   })
 
-  it('別のボードを指す設定ファイルは比べない', () => {
+  it('別のボードを指す設定ファイルは、比較の対象にしない', async () => {
+    await explains('ボードの設定ファイルの選択のテストです。検証用に別のボード（番号 9）を指す設定ファイルがあっても差異にならず、「ずれは 0 件」と表示することを確認します。')
     scene.sandbox.setConfigs(currentConfig(3), currentConfig(9))
     const result = scene.run()
     expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
   })
 
-  it('同じボードの設定ファイルが 2 つあると、形を名前順につないでずれに出す', () => {
+  it('同じボードの設定ファイルが 2 つあると、形式を名前順につないで差異に表示する', async () => {
+    await explains('ボードの設定ファイルの重複のテストです。検証用に同じボードの設定ファイルが現在の形式と旧い形式で 2 つある場合に、`config-file` の差異として 2 つの形式を名前順に並べて表示することを確認します。')
     scene.sandbox.setConfigs(legacyConfig('pecot-sandbox', 'sandbox', 3), currentConfig(3))
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, `${CURRENT_FORM}、${LEGACY_FORM}`)))
   })
 
-  it('どちらの形にも合わない名前は、名前をそのまま出す', () => {
+  it('どちらの形式にも合わない名前は、名前をそのまま表示する', async () => {
+    await explains('ボードの設定ファイル名の比較のテストです。検証用の設定ファイルの名前がどちらの形式にも合わない場合に、`config-file` の差異として `renamed.json` をそのまま表示することを確認します。')
     const [, config] = currentConfig(3)
     scene.sandbox.setConfigs(['renamed.json', config])
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, 'renamed.json')))
   })
 
-  it('検証用の設定の status に in_progress が無いと、config-options のずれに両方のキーを出す', () => {
+  it('検証用の設定の status に in_progress が存在しないと、config-options の差異に両方のキーを表示する', async () => {
+    await explains('設定ファイルの選択肢のキーの比較のテストです。検証用の `status` から `in_progress` を除くと、`config-options / status` の差異として両方のキーの一覧を表示することを確認します。')
     const status = scene.sandbox.configFields()['status']
     if (status?.options === undefined) throw new Error('status が無い')
     delete status.options['in_progress']
@@ -469,7 +493,8 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect(drifted(scene.run())).toStrictEqual(expected)
   })
 
-  it('検証用だけ workflow の選択肢のキーが 1 つ多いと、config-options / workflow のずれに出す', () => {
+  it('検証用の workflow の選択肢のキーが 1 つ多いと、config-options / workflow の差異として表示する', async () => {
+    await explains('設定ファイルの選択肢のキーの比較のテストです。検証用の `workflow` にキー `done` を追加すると、`config-options / workflow` の差異として両方のキーの一覧を表示することを確認します。')
     const workflow = scene.sandbox.configFields()['workflow']
     if (workflow?.options === undefined) throw new Error('workflow が無い')
     workflow.options['done'] = 'x'
@@ -479,14 +504,16 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect(drifted(scene.run())).toStrictEqual(expected)
   })
 
-  it('検証用の設定に欄 status が無いと、検証用を「なし」としてずれに出す', () => {
+  it('検証用の設定に欄 status が存在しないと、検証用を「なし」として差異に表示する', async () => {
+    await explains('設定ファイルの欄の比較のテストです。検証用の設定に `status` の欄が存在しない場合に、`config-options / status` の差異として検証用の値を「なし」と表示することを確認します。')
     const fields = scene.sandbox.configFields()
     delete fields['status']
     const expected = expectedDrifts(drift('config-options / status', compact(['in_progress', 'needs_attention', 'todo']), 'なし'))
     expect(drifted(scene.run())).toStrictEqual(expected)
   })
 
-  it('検証用の設定に project.fields が無いと、欄ごとに検証用を「なし」として終了コード 1 で終わる', () => {
+  it('検証用の設定に project.fields が存在しないと、欄ごとの差異を表示して終了コード 1 で終了する', async () => {
+    await explains('設定ファイルの `project.fields` のテストです。検証用の設定にこれが存在しない場合に、`status` と `workflow` の 2 件の差異を表示して、終了コード 1 で終了することを確認します。')
     const [name, config] = currentConfig(3)
     delete config.project.fields
     scene.sandbox.setConfigs([name, config])
@@ -500,7 +527,8 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     ])
   })
 
-  it('選択肢の ID とキーの並びだけが違うなら、ずれは 0 件', () => {
+  it('選択肢の ID とキーの並び順だけが違う場合は、ずれが 0 件になる', async () => {
+    await explains('設定ファイルの選択肢の比較のテストです。選択肢の ID とキーの並び順だけが違う場合に、キーの集合が同じなら「ずれは 0 件」と表示することを確認します。')
     const status = scene.sandbox.configFields()['status']
     if (status === undefined) throw new Error('status が無い')
     status.options = { needs_attention: 'a', todo: 'b', in_progress: 'c' }
@@ -508,7 +536,8 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
   })
 
-  it('同じボードの設定ファイルが 2 つあると、選択肢のキーが違っても config-options を出さない', () => {
+  it('同じボードの設定ファイルが 2 つあると、選択肢のキーを比較せず、config-options の差異を表示しない', async () => {
+    await explains('ボードの設定ファイルの重複時のテストです。欄を持たない設定ファイルが一覧の先頭にあっても、`config-options` の差異を表示せず、`config-file` の差異だけを表示することを確認します。')
     // 欄の無いファイルを一覧の先頭に置く。先頭だけを読む形に崩れると、config-options のずれが出る
     const [name, config] = legacyConfig('pecot-sandbox', 'sandbox', 3)
     delete config.project.fields
@@ -516,27 +545,31 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, `${CURRENT_FORM}、${LEGACY_FORM}`)))
   })
 
-  it('JSON として読めない設定ファイルは飛ばし、ずれは 0 件', () => {
+  it('JSON として読み込めない設定ファイルは無視し、ずれが 0 件になる', async () => {
+    await explains('不正な設定ファイルの扱いのテストです。検証用に JSON として読み込めない設定ファイルがあっても、それを無視して「ずれは 0 件」と表示することを確認します。')
     scene.sandbox.rawConfigs['broken.json'] = '{'
     const result = scene.run()
     expect([result.status, result.stdout, result.stderr]).toStrictEqual([0, 'ずれは 0 件\n', ''])
   })
 
-  it('設定ファイルの応答に content が無いと、error を出して終了コード 2 で止まる', () => {
+  it('設定ファイルの応答に content が存在しないと、error を表示して終了コード 2 で止まる', async () => {
+    await explains('設定ファイルの応答の検証のテストです。応答に `content` が存在しない場合は、権限の不足を示す `error:` を標準エラーに表示し、終了コード 2 で終了することを確認します。')
     scene.sandbox.rawConfigs['empty.json'] = undefined
     const result = scene.run()
     expect([result.status, result.stdout]).toStrictEqual([2, ''])
     expect(splitLines(result.stderr)).toStrictEqual([`error: repos/${SANDBOX}/contents/${CONFIG_DIR}/empty.json の応答に content がありません（権限の不足とみられます）`])
   })
 
-  it('検証用の設定のディレクトリが無いと、error を出して終了コード 2 で止まる', () => {
+  it('検証用の設定のディレクトリが存在しないと、error を表示して終了コード 2 で止まる', async () => {
+    await explains('設定のディレクトリを読み込めない場合のテストです。検証用のディレクトリの一覧が 404 になると、「gh が失敗しました」を含む `error:` のメッセージを標準エラーに表示して、終了コード 2 で終了することを確認します。')
     scene.sandbox.configs = undefined
     const result = scene.run()
     expect([result.status, result.stdout]).toStrictEqual([2, ''])
     expect(splitLines(result.stderr)).toStrictEqual([`error: repos/${SANDBOX}/contents/${CONFIG_DIR} を読めません（gh が失敗しました）`])
   })
 
-  it('検証用の進行の欄だけが旧い名前だと、board-fields の 2 件のずれに出す', () => {
+  it('検証用のボードの進行の欄だけが旧い名前だと、board-fields の 2 件の差異として表示する', async () => {
+    await explains('ボードの欄名の比較のテストです。検証用の `pecot-status` の欄が旧い名前 `pecot-workflow-sandbox` の場合に、それぞれの欄が片側に存在しない 2 件の差異として表示することを確認します。')
     find(scene.sandbox.fields(), f => f.name === 'pecot-status').name = 'pecot-workflow-sandbox'
     const result = scene.run()
     expect(result.status).toBe(1)
@@ -551,12 +584,14 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     ])
   })
 
-  it('マージ設定が違うと、merge-settings のずれに出す', () => {
+  it('マージ設定が違うと、merge-settings の差異として表示する', async () => {
+    await explains('リポジトリのマージ設定の比較のテストです。検証用の `allow_rebase_merge` だけが違う場合に、`merge-settings / allow_rebase_merge` の差異として両方の値を表示することを確認します。')
     scene.sandbox.settings['allow_rebase_merge'] = true
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('merge-settings / allow_rebase_merge', 'false', 'true')))
   })
 
-  it('認証に失敗したら、エラーを出して終了コード 2 で止まる', () => {
+  it('認証に失敗すると、エラーを表示して終了コード 2 で止まる', async () => {
+    await explains('gh の認証に失敗した場合のテストです。`HTTP 401` のメッセージを含む `error:` を標準エラーに表示し、標準出力は空のまま、終了コード 2 で終了することを確認します。')
     const result = scene.run({ FAKE_GH_AUTH_FAIL: '1' })
     expect(result.status).toBe(2)
     expect(result.stdout).toBe('')
@@ -590,14 +625,16 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
         return 'error: orgs/pecotcraft/projectsV2/3 の応答に fields がありません（権限の不足とみられます）'
       },
     },
-  ])('比べるキーが無いと、error を出して終了コード 2 で止まる: $name', ({ breaks }) => {
+  ])('比較するキーが存在しないと、error を表示して終了コード 2 で止まる: $name', async ({ name, breaks }) => {
+    await explains(`比較するキーが存在しない応答のテストです。「${name}」の場合に、同じ値とみなさず、権限の不足を示す \`error:\` のメッセージを表示して終了コード 2 で終了することを確認します。`)
     const expected = breaks(scene)
     const result = scene.run()
     expect([result.status, result.stdout]).toStrictEqual([2, ''])
     expect(splitLines(result.stderr)).toStrictEqual([expected])
   })
 
-  it('両方のリポで allow_auto_merge が null でも、同じとせず error で止まる', () => {
+  it('両方のリポジトリで allow_auto_merge が null でも、同じとみなさず error で止まる', async () => {
+    await explains('両方のリポジトリで比較するキーが `null` の場合のテストです。`allow_auto_merge` が両方とも `null` でも、同じ値とみなさず、`error:` を表示して終了コード 2 で終了することを確認します。')
     scene.this.settings['allow_auto_merge'] = null
     scene.sandbox.settings['allow_auto_merge'] = null
     const result = scene.run()
@@ -605,7 +642,8 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect(result.stderr.startsWith(`error: repos/${THIS} の応答に allow_auto_merge がありません`)).toBe(true)
   })
 
-  it('検証用の ruleset を読めないと、gh の失敗として終了コード 2 で止まる', () => {
+  it('検証用の ruleset を取得できないと、gh の失敗として終了コード 2 で止まる', async () => {
+    await explains('ruleset の取得に失敗した場合のテストです。検証用の ruleset の応答が存在しないと、「gh が失敗しました」を含む `error:` を標準エラーに表示して、終了コード 2 で終了することを確認します。')
     scene.writeAll()
     rmSync(path.join(scene.workspace.fake, fixtureName(`repos/${SANDBOX}/rulesets/27130266`)))
     const result = runScript(scene.workspace, script, [])
@@ -626,7 +664,8 @@ function specTable(spec: string, heading: string): Record<string, string> {
 interface Item { id: string, name: string, compare: boolean, reason?: string, ignore?: unknown }
 
 describe('sandbox-diff-items.json', { timeout: 30_000 }, () => {
-  it('比べる項目と外す理由が、spec.md の 2 つの表と合う', () => {
+  it('比較する項目と除外する理由が、spec.md の 2 つの表と一致する', async () => {
+    await explains('`sandbox-diff-items.json` と仕様書の対応のテストです。比較する項目が 3 つの要件に対応し、比較から除外する項目の理由が `spec.md` の表の内容と一致することを確認します。')
     // eslint-disable-next-line no-restricted-syntax -- リポ内の定義ファイル。直後に項目の形を確かめて使う
     const items = JSON.parse(readFileSync(pluginScript('scripts/sandbox/sandbox-diff-items.json'), 'utf8')) as Item[]
     const spec = readFileSync(path.join(repositoryRoot, 'specs/026-pre-merge-test-env/spec.md'), 'utf8')

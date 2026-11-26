@@ -10,6 +10,7 @@ import { gitRepository } from './_helpers/git.js'
 import { hooksDirectory } from './_helpers/paths.js'
 import { run } from './_helpers/run.js'
 import { jsonDumps } from './_helpers/text.js'
+import { explains } from '../_helpers/explains.js'
 
 const ENTRY = path.join(hooksDirectory, 'pre-tool-use-bash.sh')
 
@@ -29,7 +30,8 @@ const OPERATIONS = [
 describe('pre-tool-use-bash.sh', () => {
   it.for(
     OPERATIONS.flatMap(operation => ['default', 'plan'].map(mode => ({ ...operation, mode, label: operation.command }))),
-  )('permission_mode が $mode のとき、$label に対するガードの判定は $expected になる', (row) => {
+  )('permission_mode が $mode のとき、$label に対するガードの判定は $expected になる', async (row) => {
+    await explains(`\`pre-tool-use-bash.sh\` のテストです。\`permission_mode\` が \`${row.mode}\` の場合に、\`${row.label}\` に対するガードの判定が期待する内容と一致することを確認します。`)
     const hookCase = createHookCase()
     // 環境は、feature ブランチの git リポジトリ
     const repository = gitRepository(hookCase)

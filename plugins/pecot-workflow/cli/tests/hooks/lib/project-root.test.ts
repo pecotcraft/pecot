@@ -13,6 +13,7 @@ import { gitOrThrow, gitRepository, workLayout } from '../_helpers/git.js'
 import { coreDirectory } from '../_helpers/paths.js'
 import { runShell } from '../_helpers/run.js'
 import { jsonDumps } from '../_helpers/text.js'
+import { explains } from '../../_helpers/explains.js'
 
 const UNSET = '<unset>'
 const PROJECT_ROOT_SH = path.join(coreDirectory, 'project-root.sh')
@@ -40,7 +41,8 @@ function real(target: string): string {
 }
 
 describe('project-root.sh', () => {
-  it('tool の cwd がサブディレクトリのとき、そのリポの toplevel に解決する', () => {
+  it('tool の cwd がサブディレクトリのとき、そのリポの toplevel に解決する', async () => {
+    await explains('`project-root.sh`（`CLAUDE_PROJECT_DIR` を解決するスクリプト）のテストです。ツールの `cwd` がリポジトリのサブディレクトリの場合に、そのリポジトリのルートに解決することを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase, 'tool-repo')
     const sub = path.join(repository, 'a', 'b')
@@ -51,7 +53,8 @@ describe('project-root.sh', () => {
     expect(resolved).toBe(real(repository))
   })
 
-  it('cwd が git の外のとき、CLAUDE_PROJECT_DIR にフォールバックする', () => {
+  it('cwd が git の外のとき、CLAUDE_PROJECT_DIR にフォールバックする', async () => {
+    await explains('`project-root.sh` のテストです。`cwd` が git リポジトリの外の場合に、`CLAUDE_PROJECT_DIR` のリポジトリのルートにフォールバックすることを確認します。')
     const hookCase = createHookCase()
     const session = gitRepository(hookCase, 'session-repo')
     const sub = path.join(session, 'sub')
@@ -63,7 +66,8 @@ describe('project-root.sh', () => {
     expect(resolved).toBe(real(session))
   })
 
-  it('cwd と CLAUDE_PROJECT_DIR のどちらも無いとき、プロセスの pwd にフォールバックする', () => {
+  it('cwd と CLAUDE_PROJECT_DIR のどちらも無いとき、プロセスの pwd にフォールバックする', async () => {
+    await explains('`project-root.sh` のテストです。入力の `cwd` と `CLAUDE_PROJECT_DIR` のどちらもない場合に、プロセスの現在のディレクトリのリポジトリのルートにフォールバックすることを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase, 'pwd-repo')
     const sub = path.join(repository, 'deep')
@@ -73,7 +77,8 @@ describe('project-root.sh', () => {
     expect(resolved).toBe(real(repository))
   })
 
-  it('すべて git の外のとき、CLAUDE_PROJECT_DIR は未設定のままにする', () => {
+  it('すべて git の外のとき、CLAUDE_PROJECT_DIR は未設定のままにする', async () => {
+    await explains('`project-root.sh` のテストです。すべての候補が git リポジトリの外の場合に、`CLAUDE_PROJECT_DIR` を未設定のままにすることを確認します。')
     const hookCase = createHookCase()
     const loose = path.join(hookCase.temporaryPath, 'loose')
     mkdirSync(loose)
@@ -82,7 +87,8 @@ describe('project-root.sh', () => {
     expect(resolved).toBe(UNSET)
   })
 
-  it('すべて git の外のとき、渡された CLAUDE_PROJECT_DIR を保つ', () => {
+  it('すべて git の外のとき、渡された CLAUDE_PROJECT_DIR を保つ', async () => {
+    await explains('`project-root.sh` のテストです。すべての候補が git リポジトリの外の場合に、渡された `CLAUDE_PROJECT_DIR` の値を変更しないことを確認します。')
     const hookCase = createHookCase()
     const loose = path.join(hookCase.temporaryPath, 'loose')
     mkdirSync(loose)
@@ -93,13 +99,15 @@ describe('project-root.sh', () => {
     expect(resolved).toBe(given)
   })
 
-  it('入力が空のとき、CLAUDE_PROJECT_DIR を使う', () => {
+  it('入力が空のとき、CLAUDE_PROJECT_DIR を使う', async () => {
+    await explains('`project-root.sh` のテストです。入力が空の場合に、`CLAUDE_PROJECT_DIR` のリポジトリのルートを使うことを確認します。')
     const hookCase = createHookCase()
     const session = gitRepository(hookCase, 'session-repo')
     expect(resolve(hookCase, undefined, { cwd: hookCase.temporaryPath, projectDirectory: session })).toBe(real(session))
   })
 
-  it('GIT_DIR が export されていても、漏らさない', () => {
+  it('GIT_DIR が export されていても、漏らさない', async () => {
+    await explains('`project-root.sh` のテストです。環境変数 `GIT_DIR` と `GIT_WORK_TREE` が設定されていても、その値の影響を受けず、`cwd` のリポジトリのルートに解決することを確認します。')
     // pre-push 等で GIT_DIR が export されていても cwd 側の toplevel を返す。
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase, 'tool-repo')
@@ -120,7 +128,8 @@ describe('project-root.sh の .pecot/work 配下', () => {
     { label: 'work/1244', sub: '1244' },
     { label: 'work/1244/sub', sub: '1244/sub' },
     { label: 'work 直下', sub: '' },
-  ])('cwd が base の $label のとき、セッションの worktree に解決する', (row) => {
+  ])('cwd が base の $label のとき、セッションの worktree に解決する', async (row) => {
+    await explains(`\`project-root.sh\` の \`.pecot/work\` 配下のテストです。\`cwd\` が base の \`${row.label}\` の場合に、セッションの worktree に解決することを確認します。`)
     const hookCase = createHookCase()
     const layout = workLayout(hookCase)
     const cwd = path.join(layout.work, row.sub)
@@ -128,7 +137,8 @@ describe('project-root.sh の .pecot/work 配下', () => {
     expect(resolved).toBe(real(layout.wt))
   })
 
-  it('cwd が worktree の link 経由の work 配下のとき、セッションの worktree に解決する', () => {
+  it('cwd が worktree の link 経由の work 配下のとき、セッションの worktree に解決する', async () => {
+    await explains('`project-root.sh` の `.pecot/work` 配下のテストです。`cwd` が worktree のシンボリックリンク経由の `work` 配下の場合に、セッションの worktree に解決することを確認します。')
     const hookCase = createHookCase()
     const layout = workLayout(hookCase)
     const cwd = path.join(layout.wtWork, '1244')
@@ -136,7 +146,8 @@ describe('project-root.sh の .pecot/work 配下', () => {
     expect(resolved).toBe(real(layout.wt))
   })
 
-  it('base の work 配下で、セッションが base のとき、base のままにする', () => {
+  it('base の work 配下で、セッションが base のとき、base のままにする', async () => {
+    await explains('`project-root.sh` の `.pecot/work` 配下のテストです。base の `work` 配下で、セッションの起点も base の場合に、base のまま解決することを確認します。')
     const hookCase = createHookCase()
     const layout = workLayout(hookCase)
     const cwd = path.join(layout.work, '1244')
@@ -144,14 +155,16 @@ describe('project-root.sh の .pecot/work 配下', () => {
     expect(resolved).toBe(real(layout.base))
   })
 
-  it('cwd が work の外のとき、セッションの worktree を無視する', () => {
+  it('cwd が work の外のとき、セッションの worktree を無視する', async () => {
+    await explains('`project-root.sh` の `.pecot/work` 配下のテストです。`cwd` が `work` の外の場合に、セッションの worktree を使わず、`cwd` のリポジトリのルートに解決することを確認します。')
     const hookCase = createHookCase()
     const layout = workLayout(hookCase)
     const resolved = resolve(hookCase, { cwd: layout.base }, { cwd: layout.base, projectDirectory: layout.wt })
     expect(resolved).toBe(real(layout.base))
   })
 
-  it('work に名前が似たディレクトリには、一致させない', () => {
+  it('work に名前が似たディレクトリには、一致させない', async () => {
+    await explains('`project-root.sh` の `.pecot/work` 配下のテストです。`work2` のように名前が似たディレクトリを `work` として扱わず、`cwd` のリポジトリのルートに解決することを確認します。')
     const hookCase = createHookCase()
     const layout = workLayout(hookCase)
     const cwd = path.join(layout.base, '.pecot', 'work2')
@@ -159,7 +172,8 @@ describe('project-root.sh の .pecot/work 配下', () => {
     expect(resolved).toBe(real(layout.base))
   })
 
-  it('work 配下で CLAUDE_PROJECT_DIR が無いとき、cwd の toplevel にフォールバックする', () => {
+  it('work 配下で CLAUDE_PROJECT_DIR が無いとき、cwd の toplevel にフォールバックする', async () => {
+    await explains('`project-root.sh` の `.pecot/work` 配下のテストです。`work` 配下で `CLAUDE_PROJECT_DIR` が設定されていない場合に、`cwd` のリポジトリのルートにフォールバックすることを確認します。')
     const hookCase = createHookCase()
     const layout = workLayout(hookCase)
     const cwd = path.join(layout.work, '1244')
@@ -167,7 +181,8 @@ describe('project-root.sh の .pecot/work 配下', () => {
     expect(resolved).toBe(real(layout.base))
   })
 
-  it('work の link が切れているとき、cwd の toplevel にフォールバックする', () => {
+  it('work の link が切れているとき、cwd の toplevel にフォールバックする', async () => {
+    await explains('`project-root.sh` の `.pecot/work` 配下のテストです。`work` のシンボリックリンクの参照先が存在しない場合に、`cwd` のリポジトリのルートにフォールバックすることを確認します。')
     const hookCase = createHookCase()
     const layout = workLayout(hookCase)
     unlinkSync(layout.wtWork)
@@ -177,7 +192,8 @@ describe('project-root.sh の .pecot/work 配下', () => {
     expect(resolved).toBe(real(layout.base))
   })
 
-  it('work 配下でも、GIT_DIR が export されていても漏らさない', () => {
+  it('work 配下でも、GIT_DIR が export されていても漏らさない', async () => {
+    await explains('`project-root.sh` の `.pecot/work` 配下のテストです。`work` 配下でも、環境変数 `GIT_DIR` と `GIT_WORK_TREE` の影響を受けず、セッションの worktree に解決することを確認します。')
     const hookCase = createHookCase()
     const layout = workLayout(hookCase)
     const other = gitRepository(hookCase, 'other-repo')
@@ -190,7 +206,8 @@ describe('project-root.sh の .pecot/work 配下', () => {
     expect(resolved).toBe(real(layout.wt))
   })
 
-  it('work 配下で解決した値は、もう一度解決しても変わらない', () => {
+  it('work 配下で解決した値は、もう一度解決しても変わらない', async () => {
+    await explains('`project-root.sh` の `.pecot/work` 配下のテストです。解決した値を `CLAUDE_PROJECT_DIR` として再度渡しても、同じ値に解決されることを確認します。')
     const hookCase = createHookCase()
     const layout = workLayout(hookCase)
     const cwd = path.join(layout.work, '1244')
@@ -200,7 +217,8 @@ describe('project-root.sh の .pecot/work 配下', () => {
     expect(first).toBe(real(layout.wt))
   })
 
-  it('work 配下に clone した入れ子のリポは、そのリポの toplevel に解決する', () => {
+  it('work 配下に clone した入れ子のリポは、そのリポの toplevel に解決する', async () => {
+    await explains('`project-root.sh` の `.pecot/work` 配下のテストです。`work` 配下に clone した入れ子のリポジトリでは、セッションの worktree ではなく、その入れ子のリポジトリのルートに解決することを確認します。')
     // .pecot/work/N に clone した入れ子のリポは、セッションの worktree ではなくそのリポが基準。
     const hookCase = createHookCase()
     const layout = workLayout(hookCase)
@@ -214,7 +232,8 @@ describe('project-root.sh の .pecot/work 配下', () => {
     expect(resolvedInSub).toBe(real(nested))
   })
 
-  it('入れ子が .git ファイル（worktree・submodule）でも、そのリポの toplevel に解決する', () => {
+  it('入れ子が .git ファイル（worktree・submodule）でも、そのリポの toplevel に解決する', async () => {
+    await explains('`project-root.sh` の `.pecot/work` 配下のテストです。入れ子のリポジトリの `.git` がファイル（worktree や submodule）の場合でも、そのリポジトリのルートに解決することを確認します。')
     const hookCase = createHookCase()
     const layout = workLayout(hookCase)
     const nested = path.join(layout.work, '1244', 'linked')
@@ -224,7 +243,8 @@ describe('project-root.sh の .pecot/work 配下', () => {
     expect(resolved).toBe(real(nested))
   })
 
-  it('別リポの work 配下は、セッションの worktree にせず、そのリポに解決する', () => {
+  it('別リポの work 配下は、セッションの worktree にせず、そのリポに解決する', async () => {
+    await explains('`project-root.sh` の `.pecot/work` 配下のテストです。別のリポジトリの `work` 配下では、セッションの worktree ではなく、そのリポジトリのルートに解決することを確認します。')
     // 前置きの case に当たってもセッションの worktree にしない。
     const hookCase = createHookCase()
     const layout = workLayout(hookCase)

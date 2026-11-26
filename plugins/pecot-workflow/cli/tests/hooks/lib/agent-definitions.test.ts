@@ -10,6 +10,7 @@ import { projectRoot } from '../_helpers/paths.js'
 import { splitLines } from '../_helpers/text.js'
 import { frontmatter } from '../../skills/_helpers/frontmatter.js'
 import { compareStrings } from '../../parity/baseline.js'
+import { explains } from '../../_helpers/explains.js'
 
 const agentsDirectory = path.join(projectRoot, 'plugins', 'pecot-workflow', 'agents')
 const PLUGINS = ['pecot-workflow', 'pecot-visual']
@@ -96,27 +97,33 @@ function fileOf(files: Map<string, string>, key: string): string {
 }
 
 describe('エージェントファイルの存在', () => {
-  it('w-implementer.md が実在する', () => {
+  it('w-implementer.md が実在する', async () => {
+    await explains('エージェント定義ファイルの存在のテストです。`agents` ディレクトリに `w-implementer.md` がファイルとして存在することを確認します。')
     expect(statSync(path.join(agentsDirectory, 'w-implementer.md')).isFile()).toBe(true)
   })
 
-  it('w-worker.md は削除済みになっている', () => {
+  it('w-worker.md は削除済みになっている', async () => {
+    await explains('エージェント定義ファイルの削除のテストです。廃止した `w-worker.md` が `agents` ディレクトリに存在しないことを確認します。')
     expect(existsSync(path.join(agentsDirectory, 'w-worker.md'))).toBe(false)
   })
 
-  it('w-e2e-planner.md は削除済みになっている', () => {
+  it('w-e2e-planner.md は削除済みになっている', async () => {
+    await explains('エージェント定義ファイルの削除のテストです。廃止した `w-e2e-planner.md` が `agents` ディレクトリに存在しないことを確認します。')
     expect(existsSync(path.join(agentsDirectory, 'w-e2e-planner.md'))).toBe(false)
   })
 
-  it('w-e2e-tester.md は削除済みになっている', () => {
+  it('w-e2e-tester.md は削除済みになっている', async () => {
+    await explains('エージェント定義ファイルの削除のテストです。廃止した `w-e2e-tester.md` が `agents` ディレクトリに存在しないことを確認します。')
     expect(existsSync(path.join(agentsDirectory, 'w-e2e-tester.md'))).toBe(false)
   })
 
-  it('w-plan-reviewer.md が実在する', () => {
+  it('w-plan-reviewer.md が実在する', async () => {
+    await explains('エージェント定義ファイルの存在のテストです。`agents` ディレクトリに `w-plan-reviewer.md` がファイルとして存在することを確認します。')
     expect(statSync(path.join(agentsDirectory, 'w-plan-reviewer.md')).isFile()).toBe(true)
   })
 
-  it('w-plan-reviewer の [cuj] は、流す先の欠け・作業中のリポで流す計画・-p で動かない CUJ を挙げる', () => {
+  it('w-plan-reviewer の [cuj] は、流す先の欠け・作業中のリポで流す計画・-p で動かない CUJ を挙げる', async () => {
+    await explains('`w-plan-reviewer.md` の本文のテストです。CUJ に関する 3 つの規則（流す先の欠け、作業中のリポで流す計画、`-p` で動かない CUJ を挙げること）が、本文に記載されていることを確認します。')
     const body = readFileSync(path.join(agentsDirectory, 'w-plan-reviewer.md'), 'utf8')
     for (const rule of [
       '- 「流す先」の項目が無い CUJ は、欠けとして CUJ の番号を挙げる',
@@ -125,13 +132,15 @@ describe('エージェントファイルの存在', () => {
     ]) expect(body).toContain(rule)
   })
 
-  it('pecot-visual の v-slide-creator.md は削除済みになっている', () => {
+  it('pecot-visual の v-slide-creator.md は削除済みになっている', async () => {
+    await explains('エージェント定義ファイルの削除のテストです。廃止した pecot-visual の `v-slide-creator.md` が、`agents` ディレクトリに存在しないことを確認します。')
     expect(existsSync(path.join(projectRoot, 'plugins', 'pecot-visual', 'agents', 'v-slide-creator.md'))).toBe(false)
   })
 })
 
 describe('model フィールド', () => {
-  it.for(['w-implementer', 'w-plan-reviewer'])('%s は、空でない model を持つ', (agent) => {
+  it.for(['w-implementer', 'w-plan-reviewer'])('%s は、空でない model を持つ', async (agent) => {
+    await explains(`エージェント定義の \`model\` フィールドのテストです。\`${agent}\` の定義が、空でない \`model\` を持つことを確認します。`)
     const model = modelOf(path.join(agentsDirectory, `${agent}.md`))
     expect(model).toBeDefined()
     expect(model).not.toBe('')
@@ -140,11 +149,13 @@ describe('model フィールド', () => {
   it.for([
     { label: 'w-implementer', agent: 'w-implementer', expected: 'sonnet' },
     { label: 'w-plan-reviewer', agent: 'w-plan-reviewer', expected: 'opus' },
-  ])('$label の model は $expected になっている', (row) => {
+  ])('$label の model は $expected になっている', async (row) => {
+    await explains(`エージェント定義の \`model\` フィールドのテストです。\`${row.label}\` の定義の \`model\` が、期待する値（\`${row.expected}\`）と一致することを確認します。`)
     expect(modelOf(path.join(agentsDirectory, `${row.agent}.md`))).toBe(row.expected)
   })
 
-  it.for(['w-plan-reviewer'])('%s の model は、agent-models.md の「役ごとのモデル」の表と一致する', (agent) => {
+  it.for(['w-plan-reviewer'])('%s の model は、agent-models.md の「役ごとのモデル」の表と一致する', async (agent) => {
+    await explains(`エージェント定義の \`model\` と、\`agent-models.md\` の「役ごとのモデル」の表のテストです。\`${agent}\` の定義の \`model\` が、表に記載された値と一致することを確認します。`)
     const text = readFileSync(path.join(agentsDirectory, '..', 'skills', 'w-help', 'references', 'agent-models.md'), 'utf8')
     const lines = splitLines(text)
     const start = lines.indexOf('## 役ごとのモデル')
@@ -161,7 +172,8 @@ describe('model フィールド', () => {
 })
 
 describe('本文の規則', () => {
-  it('w-implementer の本文に、越境ガードの判定手段・パッチ退避・定義元参照が残る', () => {
+  it('w-implementer の本文に、越境ガードの判定手段・パッチ退避・定義元参照が残る', async () => {
+    await explains('`w-implementer.md` の本文のテストです。越境ガードの判定手段、パッチの退避先、定義元の参照（`issue-flow-rules.md §6`）が、本文に含まれていることを確認します。')
     const body = readFileSync(path.join(agentsDirectory, 'w-implementer.md'), 'utf8')
     expect(body).toContain('作業中の worktree の remote のリポジトリ')
     expect(body).toContain('越境')
@@ -171,46 +183,55 @@ describe('本文の規則', () => {
 })
 
 describe('型と内容', () => {
-  it('エージェントの集合が期待どおりになっている', () => {
+  it('エージェントの集合が期待どおりになっている', async () => {
+    await explains('エージェント定義の一覧のテストです。`agents` ディレクトリにあるエージェントの集合が、期待する一覧と一致することを確認します。')
     expect(keysOf(agentFiles())).toEqual(AGENT_ROWS.map(row => row.label))
   })
 
-  it.for(AGENT_ROWS)('$label の disallowedTools は、期待どおりに完全一致する', (row) => {
+  it.for(AGENT_ROWS)('$label の disallowedTools は、期待どおりに完全一致する', async (row) => {
+    await explains(`エージェント定義の frontmatter のテストです。\`${row.label}\` の \`disallowedTools\` が、期待するツールの一覧と一致することを確認します。`)
     const fm = frontmatter(fileOf(agentFiles(), row.label))
     expect(fm['disallowedTools']).toEqual(row.tools)
   })
 
-  it.for(AGENT_ROWS)('$label の autoCompactWindow は、期待どおりの整数になっている', (row) => {
+  it.for(AGENT_ROWS)('$label の autoCompactWindow は、期待どおりの整数になっている', async (row) => {
+    await explains(`エージェント定義の frontmatter のテストです。\`${row.label}\` の \`autoCompactWindow\` が、期待する整数の値と一致することを確認します。`)
     const value = frontmatter(fileOf(agentFiles(), row.label))['autoCompactWindow']
     expect(Number.isSafeInteger(value), `${row.agent}: autoCompactWindow が int ではない`).toBe(true)
     expect(value).toBe(row.window)
   })
 
-  it('Copilot 向けのエージェントの集合が、Claude Code 向けと同じになっている', () => {
+  it('Copilot 向けのエージェントの集合が、Claude Code 向けと同じになっている', async () => {
+    await explains('Copilot 向けのエージェント定義の一覧のテストです。`com.github.copilot/agents` にあるエージェントの集合が、Claude Code 向けの一覧と一致することを確認します。')
     expect(keysOf(copilotAgentFiles())).toEqual(AGENT_ROWS.map(row => row.label))
   })
 
-  it.for(AGENT_ROWS)('$label の Copilot 向けの frontmatter は、Copilot が読むキーだけを持つ', (row) => {
+  it.for(AGENT_ROWS)('$label の Copilot 向けの frontmatter は、Copilot が読むキーだけを持つ', async (row) => {
+    await explains(`Copilot 向けのエージェント定義の frontmatter のテストです。\`${row.label}\` が Copilot の読むキーだけを持ち、\`include-custom-instructions\` が \`true\` であることを確認します。`)
     const fm = frontmatter(fileOf(copilotAgentFiles(), row.label))
     expect(Object.keys(fm).toSorted(compareStrings)).toEqual(COPILOT_KEYS.toSorted(compareStrings))
     expect(fm['include-custom-instructions']).toBe(true)
   })
 
-  it.for(AGENT_ROWS)('$label の Copilot 向けの tools は、期待どおりに完全一致する', (row) => {
+  it.for(AGENT_ROWS)('$label の Copilot 向けの tools は、期待どおりに完全一致する', async (row) => {
+    await explains(`Copilot 向けのエージェント定義の frontmatter のテストです。\`${row.label}\` の \`tools\` が、期待するツールの一覧と一致することを確認します。`)
     const fm = frontmatter(fileOf(copilotAgentFiles(), row.label))
     expect(fm['tools']).toEqual(row.copilotTools)
   })
 
-  it('スキルの集合が期待どおりになっている', () => {
+  it('スキルの集合が期待どおりになっている', async () => {
+    await explains('スキル定義の一覧のテストです。`skills` ディレクトリにあるスキルの集合が、期待する一覧と一致することを確認します。')
     expect(keysOf(skillFiles())).toEqual(EXPECTED_SKILLS.toSorted(compareStrings))
   })
 
-  it('どのスキルにも disable-model-invocation を付けない', () => {
+  it('どのスキルにも disable-model-invocation を付けない', async () => {
+    await explains('スキル定義の frontmatter のテストです。どのスキルの frontmatter にも `disable-model-invocation` が含まれていないことを確認します。')
     const offenders = keysOf(skillFiles()).filter(key => 'disable-model-invocation' in frontmatter(fileOf(skillFiles(), key)))
     expect(offenders).toEqual([])
   })
 
-  it('スキルの when_to_use は短い文字列で、一覧の上限に収まる', () => {
+  it('スキルの when_to_use は短い文字列で、一覧の上限に収まる', async () => {
+    await explains('スキル定義の frontmatter の長さのテストです。すべてのスキルの `when_to_use` が 80 文字以内の文字列であり、`description` との合計が一覧の上限（1536 文字）に収まることを確認します。')
     for (const [name, file] of skillFiles()) {
       const fm = frontmatter(file)
       const whenToUse = fm['when_to_use']
@@ -225,7 +246,8 @@ describe('型と内容', () => {
     }
   })
 
-  it('argument-hint を持つスキルの集合と値は固定で、どの値も文字列になる', () => {
+  it('argument-hint を持つスキルの集合と値は固定で、どの値も文字列になる', async () => {
+    await explains('スキル定義の `argument-hint` のテストです。`argument-hint` を持つスキルの集合と値が期待する内容と一致し、どの値も文字列であることを確認します。')
     const hints: [string, unknown][] = []
     for (const [key, file] of skillFiles()) {
       const fm = frontmatter(file)

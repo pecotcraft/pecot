@@ -13,6 +13,7 @@ import type { ToolDefinition } from '../server.js'
 import { isRecord } from '../../../tests/_helpers/records.js'
 import { verifies } from '../../../tests/_helpers/verifies.js'
 import { closeMcp, connectMcp, type ConnectedMcp } from './_client.js'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 // src/mcp/tests → cli/
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..')
@@ -53,8 +54,9 @@ describe('MCP ツールの異常系応答', () => {
     return connected.client
   }
 
-  it('必須パラメータ欠落は入力検証で弾き、structuredContent を返さない', async (context) => {
+  it('必須パラメータを指定しない場合は、入力の検証で失敗し、structuredContent を返さない', async (context) => {
     await verifies(context, 'PV-COMMON-01')
+    await explains('必須パラメーターを指定せずに `drawio_create` を呼び出した場合のテストです。入力の検証でエラーになり、`structuredContent` を返さず、`Input validation error:` を含むメッセージを返すことを確認します。')
     const called = await client().callTool({ name: 'drawio_create', arguments: {} })
 
     expect(called.isError).toBe(true)
@@ -62,7 +64,8 @@ describe('MCP ツールの異常系応答', () => {
     expect(firstTextOf(called)).toContain('Input validation error:')
   })
 
-  it('型不一致も同じく入力検証で弾く', async () => {
+  it('パラメータの型が一致しない場合も、入力の検証で失敗する', async () => {
+    await explains('真偽値のパラメーター `png` に文字列を指定した場合のテストです。必須パラメーターを指定しない場合と同じく、入力の検証でエラーになり、`structuredContent` を返さないことを確認します。')
     const called = await client().callTool({
       name: 'drawio_create',
       arguments: { input_path: MINIMAL_DRAWIO, png: 'yes' },
@@ -73,7 +76,8 @@ describe('MCP ツールの異常系応答', () => {
     expect(firstTextOf(called)).toContain('Input validation error:')
   })
 
-  it('相対パスは実処理を呼ばずに invalid-path で返す', async () => {
+  it('相対パスを指定すると、実際の処理を呼び出さずに、invalid-path で失敗する', async () => {
+    await explains('存在しない相対パスを `input_path` に指定した場合のテストです。実際の処理には進まず、`input-not-found` ではなく `invalid-path` を返し、絶対パスが必要であることを伝えることを確認します。')
     // 存在しない相対パスを渡す。実処理まで進んでいれば「入力不在」の input-not-found になるため、
     // invalid-path が返ること自体、「実行前に弾いた」証拠になる。
     const called = await client().callTool({
@@ -87,7 +91,8 @@ describe('MCP ツールの異常系応答', () => {
     expect(firstTextOf(called)).toContain('must be an absolute path')
   })
 
-  it('入力ファイル不在は実行失敗として input-not-found で返す', async () => {
+  it('入力ファイルが存在しない場合は、実行の失敗として input-not-found を返す', async () => {
+    await explains('存在しない絶対パスを `input_path` に指定した場合のテストです。`kind` が `input-not-found` のエラーになり、メッセージが `detail` と同じ内容になることを確認します。')
     const called = await client().callTool({
       name: 'drawio_create',
       arguments: { input_path: MISSING_DRAWIO },
@@ -100,8 +105,9 @@ describe('MCP ツールの異常系応答', () => {
     expect(firstTextOf(called)).toBe(structured['detail'])
   })
 
-  it('エラー 2 連投のあとでも同じ接続で正常呼び出しが通る', async (context) => {
+  it('エラーが 2 回続いた後でも、同じ接続で正常な呼び出しが成功する', async (context) => {
     await verifies(context, 'PV-COMMON-12')
+    await explains('入力の検証エラーと実行の失敗を 1 回ずつ起こした後のテストです。同じ接続で、正常な `drawio_create` の呼び出しが成功し、URL が返ることを確認します。')
     // 入力検証エラー (キューに載る前で弾かれる) と実行エラー (キューを通る) を 1 件ずつ挟み、
     // どちらのルートもサーバとキューを壊さないことを見る。
     const invalid = await client().callTool({ name: 'drawio_create', arguments: {} })
@@ -117,8 +123,9 @@ describe('MCP ツールの異常系応答', () => {
       .toEqual(expect.stringContaining('https://'))
   })
 
-  it('ハンドラ内の未捕捉例外は当該呼び出しだけを失敗させ、サーバは受け付け続ける (SC-005)', async (context) => {
+  it('ハンドラ内で捕捉されない例外が発生しても、その呼び出しだけが失敗し、サーバーは呼び出しを受け付け続ける', async (context) => {
     await verifies(context, 'PV-COMMON-14')
+    await explains('ハンドラが例外を発生させるテスト用のツールを登録した場合のテストです。そのツールの呼び出しだけがエラーになり、続けて呼び出した別のツールは正常に応答することを確認します。')
     // 実ツールのハンドラは例外を捕捉して ok:false を返す設計なので、未捕捉例外のルートは
     // 意図的に throw するツールを登録して直接作る。
     const exploding: ToolDefinition = {

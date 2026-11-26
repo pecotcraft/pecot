@@ -9,6 +9,7 @@ import { CancelledError } from '../../domain/errors.js'
 import { makeTemporaryDirectory } from '../../../tests/_helpers/temporary.js'
 import { OsError } from '../os-error.js'
 import { KILL_GRACE_MILLISECONDS, killRunningProcesses, runProcess } from '../process-run.js'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 const leftovers: number[] = []
 
@@ -51,7 +52,8 @@ function groupOf(pid: number): string {
 }
 
 describe('runProcess', () => {
-  it('終わったら、終了コードと標準出力・標準エラーを返す', async () => {
+  it('子プロセスが終了すると、終了コードと標準出力・標準エラーを返す', async () => {
+    await explains('子プロセスを実行する `runProcess` のテストです。`exit 3` で終了するスクリプトの場合に、終了コード 3 と標準出力・標準エラーの内容を返し、時間切れではないことを確認します。')
     const script = writeScript('echo out\necho err >&2\nexit 3\n')
     const result = await runProcess('sh', [script])
     expect(result).toMatchObject({ exitCode: 3, stdout: 'out\n', stderr: 'err\n', isTimedOut: false })
@@ -59,12 +61,14 @@ describe('runProcess', () => {
   })
 
   it('時間切れになると、子を止めて isTimedOut が true の結果を返す', async () => {
+    await explains('`runProcess` のテストです。`timeoutMilliseconds` を超えて実行が続く場合に、子プロセスを `SIGTERM` で停止し、`isTimedOut` が `true` の結果を返すことを確認します。')
     const script = writeScript('echo started\nexec sleep 30\n')
     const result = await runProcess('sh', [script], { timeoutMilliseconds: 300 })
     expect(result).toMatchObject({ isTimedOut: true, signal: 'SIGTERM', stdout: 'started\n' })
   })
 
-  it('取り消すと、孫までグループごと止めて CancelledError を投げる', async () => {
+  it('取り消すと、孫プロセスまでグループごと停止し、CancelledError を発生させる', async () => {
+    await explains('`runProcess` のテストです。孫プロセスを持つ子の実行中に `AbortSignal` で取り消した場合は、孫プロセスも停止し、`CancelledError` が発生することを確認します。')
     const directory = makeTemporaryDirectory('pecot-process-run-')
     const grandchildPid = path.join(directory, 'grandchild.pid')
     const script = writeScript(`sleep 30 &\necho $! > '${grandchildPid}'\nwait\n`)
@@ -76,7 +80,8 @@ describe('runProcess', () => {
     await expect.poll(() => isAlive(pid), { timeout: 2000, interval: 20 }).toBe(false)
   })
 
-  it('取り消し済みの signal を渡すと、起動せずに CancelledError を投げる', async () => {
+  it('取り消し済みの signal を指定すると、起動せずに CancelledError を発生させる', async () => {
+    await explains('`runProcess` のテストです。取り消し済みの `AbortSignal` を指定した場合に、子プロセスを起動せず、`CancelledError` が発生することを確認します。')
     const marker = path.join(makeTemporaryDirectory('pecot-process-run-'), 'started')
     const script = writeScript(`touch '${marker}'\n`)
     const controller = new AbortController()
@@ -85,13 +90,15 @@ describe('runProcess', () => {
     expect(existsSync(marker)).toBe(false)
   })
 
-  it('子を、このプロセスとは別のプロセスグループで動かす', async () => {
+  it('子プロセスを、呼び出し元とは別のプロセスグループで実行する', async () => {
+    await explains('`runProcess` のテストです。子プロセスのプロセスグループ ID が、呼び出し元のプロセスと異なることを確認します。')
     const script = writeScript('ps -o pgid= -p $$\n')
     const result = await runProcess('sh', [script])
     expect(result.stdout.trim()).not.toBe(groupOf(process.pid))
   })
 
-  it('時間切れになると、孫までグループごと止める', async () => {
+  it('時間切れになると、孫プロセスまでグループごと停止する', async () => {
+    await explains('`runProcess` のテストです。孫プロセスを持つ子が時間切れになった場合は、孫プロセスも同じグループとして停止することを確認します。')
     const directory = makeTemporaryDirectory('pecot-process-run-')
     const grandchildPid = path.join(directory, 'grandchild.pid')
     const script = writeScript(`sleep 30 &\necho $! > '${grandchildPid}'\nwait\n`)
@@ -100,7 +107,8 @@ describe('runProcess', () => {
     const pid = await readPid(grandchildPid)
     await expect.poll(() => isAlive(pid), { timeout: 2000, interval: 20 }).toBe(false)
   })
-  it('孫がパイプを握ったまま残っても、時間切れの時刻に返る', async () => {
+  it('孫プロセスがパイプを保持し続けても、時間切れの時刻に結果を返す', async () => {
+    await explains('`runProcess` のテストです。孫プロセスが標準出力のパイプを保持したまま終了しない場合でも、時間切れの設定から 5 秒未満で `isTimedOut` が `true` の結果を返すことを確認します。')
     const directory = makeTemporaryDirectory('pecot-process-run-')
     const grandchildPid = path.join(directory, 'grandchild.pid')
     const script = writeScript(`sleep 30 &\necho $! > '${grandchildPid}'\nexec sleep 30\n`)
@@ -111,7 +119,8 @@ describe('runProcess', () => {
     await readPid(grandchildPid)
   })
 
-  it('SIGTERM を無視する子は、猶予の後に SIGKILL で止める', async () => {
+  it('SIGTERM を無視する子プロセスは、猶予時間の後に SIGKILL で停止する', async () => {
+    await explains('`runProcess` のテストです。`SIGTERM` を無視する子を取り消した場合は、猶予時間（`KILL_GRACE_MILLISECONDS`）を過ぎてから `SIGKILL` で停止することを確認します。')
     const childPid = path.join(makeTemporaryDirectory('pecot-process-run-'), 'child.pid')
     // 無視したシグナルは、exec した sleep にも引き継がれる
     const script = writeScript(`trap '' TERM\necho $$ > '${childPid}'\nexec sleep 30\n`)
@@ -125,7 +134,8 @@ describe('runProcess', () => {
     expect(isAlive(pid)).toBe(false)
   })
 
-  it('SIGTERM で片付けて 0 以外で終わる子は、片付けを終えてから止まる', async () => {
+  it('SIGTERM を受けて後始末をする子プロセスは、後始末を終えてから停止する', async () => {
+    await explains('`runProcess` のテストです。`SIGTERM` を受けて後始末をし、終了コード 143 で終了する子を取り消した場合に、後始末が完了してから `CancelledError` が発生することを確認します。')
     const directory = makeTemporaryDirectory('pecot-process-run-')
     const cleaned = path.join(directory, 'cleaned')
     const childPid = path.join(directory, 'child.pid')
@@ -138,7 +148,8 @@ describe('runProcess', () => {
     expect(existsSync(cleaned)).toBe(true)
   })
 
-  it('このプロセスが SIGHUP を受けると、子のグループへ SIGHUP を送ってから自分にも送り直す', async () => {
+  it('呼び出し元が SIGHUP を受けると、子プロセスのグループへ SIGHUP を送信してから、自分にも再送する', async () => {
+    await explains('`runProcess` のテストです。呼び出し元のプロセスが `SIGHUP` を受けた場合に、子のグループへ `SIGHUP` を送信し、自分自身にも `SIGHUP` を再送し、リスナーを残さないことを確認します。')
     const directory = makeTemporaryDirectory('pecot-process-run-')
     const hungUp = path.join(directory, 'hung-up')
     const childPid = path.join(directory, 'child.pid')
@@ -167,7 +178,8 @@ describe('runProcess', () => {
     }
   })
 
-  it('killRunningProcesses は、動いている子のグループへ SIGTERM を送る', async () => {
+  it('killRunningProcesses を呼ぶと、実行中の子プロセスのグループへ SIGTERM を送信する', async () => {
+    await explains('実行中の子を停止する `killRunningProcesses` のテストです。孫プロセスを持つ子の実行中に呼び出した場合は、`SIGTERM` で停止した結果を返し、孫プロセスも停止することを確認します。')
     const directory = makeTemporaryDirectory('pecot-process-run-')
     const grandchildPid = path.join(directory, 'grandchild.pid')
     const script = writeScript(`sleep 30 &\necho $! > '${grandchildPid}'\nwait\n`)
@@ -178,7 +190,8 @@ describe('runProcess', () => {
     await expect.poll(() => isAlive(pid), { timeout: 2000, interval: 20 }).toBe(false)
   })
 
-  it('0 で終わった後、孫がパイプを握っている間に取り消されると、成功の結果を返す', async () => {
+  it('終了コード 0 で終了した後、孫プロセスがパイプを保持している間に取り消されても、成功の結果を返す', async () => {
+    await explains('`runProcess` のテストです。子が終了コード 0 で終了した後、孫プロセスがパイプを保持している間に取り消した場合は、`CancelledError` ではなく成功の結果を返すことを確認します。')
     const directory = makeTemporaryDirectory('pecot-process-run-')
     const grandchildPid = path.join(directory, 'grandchild.pid')
     const script = writeScript(`sleep 30 &\necho $! > '${grandchildPid}'\necho done\nexit 0\n`)
@@ -192,7 +205,8 @@ describe('runProcess', () => {
     expect(await running).toMatchObject({ exitCode: 0, isTimedOut: false, stdout: 'done\n' })
   })
 
-  it('0 以外で終わった後、孫がパイプを握っている間の時間切れでは、子の終了コードを返す', async () => {
+  it('0 以外の終了コードで終了した子は、孫プロセスのパイプが残ったまま時間切れになっても、その終了コードを返す', async () => {
+    await explains('`runProcess` のテストです。子が終了コード 3 で終了した後、孫プロセスがパイプを保持している間に時間切れとなった場合は、`isTimedOut` が `false` で終了コード 3 の結果を返すことを確認します。')
     const directory = makeTemporaryDirectory('pecot-process-run-')
     const grandchildPid = path.join(directory, 'grandchild.pid')
     const script = writeScript(`sleep 30 &\necho $! > '${grandchildPid}'\nexit 3\n`)
@@ -202,7 +216,8 @@ describe('runProcess', () => {
     await expect.poll(() => isAlive(pid), { timeout: 2000, interval: 20 }).toBe(false)
   })
 
-  it('起動に失敗すると OsError を投げる', async () => {
+  it('起動に失敗すると、OsError を発生させる', async () => {
+    await explains('`runProcess` のテストです。存在しないコマンドを指定した場合に、`code` が `ENOENT` の `OsError` が発生することを確認します。')
     const missing = path.join(makeTemporaryDirectory('pecot-process-run-'), 'no-such-command')
     await expect(runProcess(missing, [])).rejects.toThrow(OsError)
     await expect(runProcess(missing, [])).rejects.toMatchObject({ code: 'ENOENT' })

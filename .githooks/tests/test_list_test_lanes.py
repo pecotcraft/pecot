@@ -148,7 +148,9 @@ def _parse(stdout: str, lint: str = "run") -> tuple[list[dict], str]:
     return json.loads(lines[0][len("lanes=") :]), lines[1][len("count=") :]
 
 
+@allure.title("affected のモードでは、タスクのうちレーンのものだけを残して出力する")
 def test_affected_mode_keeps_only_lane_tasks(env: _Env) -> None:
+    """`list-test-lanes.sh` を偽の `nx` で動かし、タスクの一覧から `test-` のレーンだけを残すことのテストです。`install` や `build` のタスクを除外し、`p:test-cli` と `q:test-hooks` の 2 件を `lanes` と `count` に出力することを確認します。"""
     with allure.step("nx のタスクを用意してレーン一覧を作る"):
         env.set_tasks("q:test-hooks", "p:install", "p:test-cli", "p:build-cli", "q:build")
         r = env.run()
@@ -162,7 +164,9 @@ def test_affected_mode_keeps_only_lane_tasks(env: _Env) -> None:
         assert count == "2"
 
 
+@allure.title("affected のモードでは、base と head とレーン名を nx affected に渡す")
 def test_affected_mode_passes_base_head_and_lane_names(env: _Env) -> None:
+    """偽の `nx` の呼び出しの記録のテストです。`affected` を 1 回だけ呼び、`-t` にレーン名（`test` や `install` などは除く）、`--base` と `--head` に sha を渡し、`run-many` を呼ばないことを確認します。"""
     with allure.step("レーン一覧を作る"):
         env.set_tasks("p:test-unit")
     with allure.step("affected の呼び出しの base・head・レーン名と環境変数を確かめる"):
@@ -180,7 +184,9 @@ def test_affected_mode_passes_base_head_and_lane_names(env: _Env) -> None:
         assert "NO_COLOR=1 LEGACY=unset" in log
 
 
+@allure.title("NO_PREV が true だと、affected ではなく run-many を使う")
 def test_no_prev_uses_run_many(env: _Env) -> None:
+    """`NO_PREV=true` を指定して実行するテストです。`affected` を呼ばず、`run-many -t` にレーン名を渡して、`count` が 2 になることを確認します。"""
     with allure.step("前の結果なしの指定でレーン一覧を作る"):
         env.set_tasks("p:test-unit", "q:test-hooks")
         r = env.run(NO_PREV="true")
@@ -193,7 +199,9 @@ def test_no_prev_uses_run_many(env: _Env) -> None:
         assert _parse(r.stdout)[1] == "2"
 
 
+@allure.title("base のコミットが存在しないと、affected ではなく run-many を使う")
 def test_missing_base_uses_run_many(env: _Env) -> None:
+    """base に、リポジトリに存在しない sha（`0` を 40 個並べたもの）を渡す場合のテストです。`affected` を呼ばず、`run-many` を呼ぶことを確認します。"""
     with allure.step("存在しない base でレーン一覧を作る"):
         env.set_tasks("p:test-unit")
         r = env.run(base="0" * 40)
@@ -203,8 +211,9 @@ def test_missing_base_uses_run_many(env: _Env) -> None:
         assert not any(c.startswith("affected") for c in env.calls())
 
 
+@allure.title("異なるレーンの slug が衝突すると、ERROR を出力して失敗で終わる")
 def test_slug_collision_fails_closed(env: _Env) -> None:
-    """a:test-b-test-c と a-test-b:test-c は slug が同じになるため、ERROR で非 0 にする。"""
+    """`a:test-b-test-c` と `a-test-b:test-c` のように、slug が同じになるレーンがある場合のテストです。終了コードが 0 以外で、`ERROR` と衝突した slug を標準エラーに出力し、標準出力には何も出力しないことを確認します。"""
     with allure.step("slug が同じになるレーンの graph を用意して動かす"):
         graph = {
             "graph": {
@@ -224,7 +233,9 @@ def test_slug_collision_fails_closed(env: _Env) -> None:
         assert r.stdout == ""
 
 
+@allure.title("レーンのタスクが存在しないと、空の lanes と count の 0 を出力する")
 def test_zero_lanes(env: _Env) -> None:
+    """タスクが、レーン以外（`install` と `build-cli`）だけの場合のテストです。標準出力が `lanes=[]`、`count=0`、`lint=run` の 3 行になることを確認します。"""
     with allure.step("レーンの無いタスクだけで動かす"):
         env.set_tasks("p:install", "p:build-cli")
         r = env.run()
@@ -233,7 +244,9 @@ def test_zero_lanes(env: _Env) -> None:
         assert r.stdout == "lanes=[]\ncount=0\nlint=run\n"
 
 
+@allure.title("project graph の取得に失敗すると、ERROR を出力して失敗で終わる")
 def test_graph_failure_fails_closed(env: _Env) -> None:
+    """偽の `nx graph` が失敗する場合のテストです。終了コードが 0 以外で、標準エラーに `ERROR` を出力し、標準出力には何も出力しないことを確認します。"""
     with allure.step("nx graph が失敗する状態で動かす"):
         r = env.run(STUB_GRAPH_FAIL="1")
     with allure.step("非 0 の終了と ERROR の出力を確かめる"):
@@ -242,7 +255,9 @@ def test_graph_failure_fails_closed(env: _Env) -> None:
         assert r.stdout == ""
 
 
+@allure.title("task graph の取得に失敗すると、ERROR を出力して失敗で終わる")
 def test_task_graph_failure_fails_closed(env: _Env) -> None:
+    """偽の `nx affected` が失敗する場合のテストです。終了コードが 0 以外で、標準エラーに `ERROR` を出力し、標準出力には何も出力しないことを確認します。"""
     with allure.step("タスクグラフの取得が失敗する状態で動かす"):
         r = env.run(STUB_TASKS_FAIL="1")
     with allure.step("非 0 の終了と ERROR の出力を確かめる"):
@@ -251,7 +266,9 @@ def test_task_graph_failure_fails_closed(env: _Env) -> None:
         assert r.stdout == ""
 
 
+@allure.title("task graph が不正な JSON だと、ERROR を出力して失敗で終わる")
 def test_broken_task_graph_fails_closed(env: _Env) -> None:
+    """偽の `nx` が、JSON として不正な task graph を書き出す場合のテストです。終了コードが 0 以外で、標準エラーに `ERROR` を出力し、標準出力には何も出力しないことを確認します。"""
     with allure.step("読めないタスクグラフを返す状態で動かす"):
         r = env.run(STUB_TASKS_BROKEN="1")
     with allure.step("非 0 の終了と ERROR の出力を確かめる"):
@@ -260,7 +277,9 @@ def test_broken_task_graph_fails_closed(env: _Env) -> None:
         assert r.stdout == ""
 
 
+@allure.title("一時ディレクトリは、実行後に削除する")
 def test_temp_dir_is_removed(env: _Env) -> None:
+    """`list-test-lanes.sh` を正常に実行したあとのテストです。`.pecot/tmp` に、`list-test-lanes.` で始まるディレクトリが残っていないことを確認します。"""
     with allure.step("レーン一覧を作る"):
         env.set_tasks("p:test-unit")
     with allure.step("一時ディレクトリが残っていないことを確かめる"):
@@ -277,7 +296,11 @@ def _affected(env: _Env) -> list[str]:
     return [c for c in env.calls() if c.startswith("affected ")]
 
 
+@allure.title(
+    "積モードで PR の main と queue の base が同じだと、nx を 1 回だけ呼び、レーンは 0 件で lint を飛ばす"
+)
 def test_stack_same_main_calls_nx_once_and_skips_lint(env: _Env) -> None:
+    """`--pr-main` と `--queue-base` が同じ sha の場合の、積モードのテストです。`affected` を 1 回だけ呼び、`lint=skip` と `count=0` を出力し、PR の変更のレーンと「積: なし」を標準エラーに出力することを確認します。"""
     with allure.step("積の base が PR と同じ main の状態で動かす"):
         m0 = env.head
         head = env.new_commit("a")
@@ -300,7 +323,11 @@ def _stack_run(env: _Env, m0: str, qbase: str, head: str, **extra: str):
     return env.run(base=qbase, opts=_stack_opts(m0, qbase), head=head, **extra)
 
 
+@allure.title(
+    "積モードで PR の変更と main の変更に共通するレーンがあると、そのレーンだけを出力する"
+)
 def test_stack_overlap_remains(env: _Env) -> None:
+    """PR の main と queue の base が異なり、PR の変更のレーンと main の変更のレーンに共通するものがある場合の、積モードのテストです。共通する `q:test-hooks` だけを `lanes` に出力し、`lint=run` になり、`affected` を 2 回呼ぶことを確認します。"""
     with allure.step("main に重なるレーンのある積の状態で動かす"):
         m0 = env.head
         qbase = env.new_commit("m")
@@ -320,7 +347,9 @@ def test_stack_overlap_remains(env: _Env) -> None:
         assert "積: q:test-hooks" in r.stderr
 
 
+@allure.title("積モードで共通するレーンが存在しないと、lanes を空にして lint は実行する")
 def test_stack_no_overlap(env: _Env) -> None:
+    """PR の変更と main の変更に、共通するレーンが存在しない場合の、積モードのテストです。`lanes` が空で `count` が 0、`lint=run` になり、標準エラーに「積: なし」を出力することを確認します。"""
     with allure.step("main に重なるレーンの無い積の状態で動かす"):
         m0 = env.head
         qbase = env.new_commit("m")
@@ -334,7 +363,9 @@ def test_stack_no_overlap(env: _Env) -> None:
         assert "積: なし" in r.stderr
 
 
+@allure.title("積モードでは、NO_PREV が true でも run-many を使わない")
 def test_stack_ignores_no_prev(env: _Env) -> None:
+    """積モードで `NO_PREV=true` を指定して実行するテストです。`run-many` を呼ばず、共通する `q:test-hooks` を 1 件出力することを確認します。"""
     with allure.step("積の状態で前の結果なしの指定を付けて動かす"):
         m0 = env.head
         qbase = env.new_commit("m")
@@ -348,8 +379,10 @@ def test_stack_ignores_no_prev(env: _Env) -> None:
         assert not any(c.startswith("run-many") for c in env.calls())
 
 
+@allure.title("{opt} だけを渡すと、使い方を出力して終了コード 2 で終わる")
 @pytest.mark.parametrize("opt", ["--pr-main", "--queue-base"])
 def test_stack_single_option_is_usage_error(env: _Env, opt: str) -> None:
+    """`--pr-main` と `--queue-base` のどちらか一方だけを渡す場合のテストです。終了コード 2 で終わり、標準エラーに使い方を出力し、`nx` を呼び出さないことを確認します。"""
     with allure.step("積の指定を片方だけ付けて動かす"):
         r = env.run(opts=[f"{opt}={env.head}"])
     with allure.step("使い方のエラーを確かめる"):
@@ -359,8 +392,10 @@ def test_stack_single_option_is_usage_error(env: _Env, opt: str) -> None:
         assert env.calls() == []
 
 
+@allure.title("{bad} の sha を読めないと、警告を出力して通常のモードで実行する")
 @pytest.mark.parametrize("bad", ["pr_main", "queue_base"])
 def test_stack_unreadable_sha_falls_back_to_normal(env: _Env, bad: str) -> None:
+    """`--pr-main` か `--queue-base` の sha が、リポジトリに存在しない場合のテストです。終了コード 0 で終わり、標準エラーに `WARN` を出力し、通常のモードとして `affected` を 1 回呼んで `count` が 1 になることを確認します。"""
     with allure.step("読めない SHA を積の指定に渡して動かす"):
         env.set_tasks("p:test-unit")
         good = env.head

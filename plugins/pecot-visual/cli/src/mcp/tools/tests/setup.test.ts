@@ -18,6 +18,7 @@ import { LOCK_CONFLICT_EXIT_CODE } from '../../../infra/_shared/flock.js'
 import type { RuntimeInstallResult } from '../../../infra/_shared/runtime-install.js'
 import { isRecord } from '../../../../tests/_helpers/records.js'
 import { verifies } from '../../../../tests/_helpers/verifies.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 import type { ToolCallContext } from '../../server.js'
 import { setupTool } from '../setup.js'
 import { withOutputCheck } from './_output.js'
@@ -180,6 +181,7 @@ async function setupDetail(...callArguments: Parameters<typeof callSetup>): Prom
 describe('runtime_setup: chromium', () => {
   it('未取得なら取得して成功を返す', async (context) => {
     await verifies(context, 'PV-RUNTIME-SETUP-03')
+    await explains('`runtime_setup` ツールの Chromium の取得のテストです。Chromium が取得されていない場合に、取得コマンドを 1 回実行し、`setup.done` と取得先の場所を含む成功の結果を返すことを確認します。')
     const { deps, installCalls } = fakeDependencies({ installed: false })
 
     const result = await callSetup(deps)
@@ -200,6 +202,7 @@ describe('runtime_setup: chromium', () => {
 
   it('取得済みでも取得コマンドは実行し、ダウンロードなしとして返す', async (context) => {
     await verifies(context, 'PV-RUNTIME-SETUP-04')
+    await explains('`runtime_setup` ツールの Chromium の取得のテストです。Chromium が取得済みの場合も取得コマンドを起動し、ダウンロードなしの `setup.skipped` の結果を返すことを確認します。')
     // 早期 return はしない。判定が「取得済み」でも実体が欠けていることがある。
     // 例はダウンロード途中、必要リビジョンだけ未取得の状態。
     // 早期 return は、取得と案内のどちらも行われない行き止まりを作る。
@@ -215,6 +218,7 @@ describe('runtime_setup: chromium', () => {
   })
 
   it('呼び出し元の signal を取得コマンドへ渡す', async () => {
+    await explains('`runtime_setup` ツールの中断の扱いのテストです。呼び出し元の `signal` を、Chromium と実行時依存の両方の取得コマンドへ渡すことを確認します。')
     // 接続していないと、クライアントがリクエストを打ち切っても子プロセスが動き続け、
     // 取得ロックを保持したままになる。
     const { deps, installSignal } = fakeDependencies({ installed: false })
@@ -227,6 +231,7 @@ describe('runtime_setup: chromium', () => {
   })
 
   it('成功のときは、取得コマンドの出力を結果に載せない', async () => {
+    await explains('`runtime_setup` ツールの成功時の結果の形のテストです。取得コマンドが標準出力と標準エラー出力を出した場合でも、結果に `stdout`・`stderr`・`log` などの項目を含めないことを確認します。')
     const { deps } = fakeDependencies({
       installed: false,
       install: () => Promise.resolve(spawnResult({ stdout: 'Downloading Chromium', stderr: 'note' })),
@@ -239,6 +244,7 @@ describe('runtime_setup: chromium', () => {
   })
 
   it('取得が失敗したら isError で原因と復旧手順を返す', async () => {
+    await explains('`runtime_setup` ツールの Chromium の取得に失敗した場合のテストです。取得コマンドが終了コード 1 で終了した場合に、`chromium-install-failed` のエラーと、プロキシ設定などの復旧手順を返すことを確認します。')
     const { deps } = fakeDependencies({
       installed: false,
       install: () => Promise.resolve(spawnResult({ exitCode: 1, stderr: 'ECONNREFUSED' })),
@@ -258,7 +264,8 @@ describe('runtime_setup: chromium', () => {
     expect(structured).not.toHaveProperty('stderr')
   })
 
-  it('タイムアウトはタイムアウトとして理由に出す', async () => {
+  it('Chromium の取得がタイムアウトすると、理由に download timed out を含める', async () => {
+    await explains('`runtime_setup` ツールの Chromium の取得に失敗した場合のテストです。取得コマンドがタイムアウトした場合に、エラーの `detail` に `download timed out` が含まれることを確認します。')
     const { deps } = fakeDependencies({
       installed: false,
       install: () => Promise.resolve(spawnResult({ exitCode: 1, timedOut: true })),
@@ -268,6 +275,7 @@ describe('runtime_setup: chromium', () => {
   })
 
   it('exit 0 でも実体が置かれていなければ失敗として扱う', async () => {
+    await explains('`runtime_setup` ツールの Chromium の取得後の確認のテストです。取得コマンドが終了コード 0 で終了しても、実体が置かれていない場合に、エラーを返し、`detail` に取得先の場所を含めることを確認します。')
     const dependencies: ChromiumDependencies = {
       isInstalled: () => Promise.resolve(false),
       isAutoInstallEnabled: () => false,
@@ -282,6 +290,7 @@ describe('runtime_setup: chromium', () => {
   })
 
   it('browsers root を特定できなくても例外を出さずに返す', async () => {
+    await explains('`runtime_setup` ツールの Chromium の取得先を特定できない場合のテストです。取得先を特定できなくても、例外を発生させず、`location` を含まない成功の結果を返すことを確認します。')
     // PLAYWRIGHT_BROWSERS_PATH=0 のように場所を特定できない環境。
     // eslint-disable-next-line unicorn/no-useless-undefined -- browsersRoot は場所を特定できないとき undefined を返す契約
     const { deps } = fakeDependencies({ installed: false, browsersRoot: () => undefined })
@@ -296,6 +305,7 @@ describe('runtime_setup: chromium', () => {
 describe('runtime_setup: 実行時依存 (永続層)', () => {
   it('未取得なら npm install を実行し、取得先を runtime.location に載せる', async (context) => {
     await verifies(context, 'PV-RUNTIME-SETUP-01')
+    await explains('`runtime_setup` ツールの実行時依存の取得のテストです。実行時依存が取得されていない場合に、`npm install` を 1 回実行し、`setup.done` と取得先の場所を `runtime.location` に含む結果を返すことを確認します。')
     const runtime = fakeRuntimeDependencies({ installed: false })
 
     const result = await callSetup(fakeDependencies({ installed: true }).deps, runtime.deps)
@@ -312,6 +322,7 @@ describe('runtime_setup: 実行時依存 (永続層)', () => {
 
   it('取得済みなら install を呼ばない', async (context) => {
     await verifies(context, 'PV-RUNTIME-SETUP-02')
+    await explains('`runtime_setup` ツールの実行時依存の取得のテストです。実行時依存が取得済みの場合に、`install` を呼ばず、`setup.skipped` の結果を返すことを確認します。')
 
     await verifies(context, 'PV-RUNTIME-SETUP-04')
     // chromium と違い install は 600MB 級の依存解決を毎回やり直すため、取得済みなら飛ばす。
@@ -326,6 +337,7 @@ describe('runtime_setup: 実行時依存 (永続層)', () => {
   })
 
   it('2 回続けて呼んでも 2 回目は取得しない (再入可能)', async () => {
+    await explains('`runtime_setup` ツールを続けて呼び出すテストです。1 回目で取得が完了した場合に、2 回目の呼び出しでは取得せず、ダウンロードなしの結果を返すことを確認します。')
     const runtime = fakeRuntimeDependencies({ installed: false })
     const chromium = fakeDependencies({ installed: false })
     const hostDependencies = fakeHostDependencies().deps
@@ -340,6 +352,7 @@ describe('runtime_setup: 実行時依存 (永続層)', () => {
 
   it('取得に失敗したら runtime-install-failed として返し、chromium は続行する', async (context) => {
     await verifies(context, 'PV-RUNTIME-SETUP-05')
+    await explains('`runtime_setup` ツールの実行時依存の取得に失敗した場合のテストです。`runtime-install-failed` のエラーと終了コードを返し、Chromium の取得は続行して成功することを確認します。')
     const runtime = fakeRuntimeDependencies({
       installed: false,
       install: () => Promise.resolve(spawnResult({ exitCode: 1, stderr: 'ERR_PNPM' })),
@@ -359,6 +372,7 @@ describe('runtime_setup: 実行時依存 (永続層)', () => {
   })
 
   it('npm を起動できない場合も理由付きで返す', async () => {
+    await explains('`runtime_setup` ツールの実行時依存の取得に失敗した場合のテストです。`npm` を起動できなかった場合に、`could not start npm` を含む理由を返すことを確認します。')
     const runtime = fakeRuntimeDependencies({
       installed: false,
       // eslint-disable-next-line unicorn/no-null -- 起動失敗は exitCode: null で表す
@@ -371,6 +385,7 @@ describe('runtime_setup: 実行時依存 (永続層)', () => {
   })
 
   it('exit 0 でも解決できなければ失敗として扱う', async () => {
+    await explains('`runtime_setup` ツールの実行時依存の取得後の確認のテストです。取得コマンドが終了コード 0 で終了しても、依存を解決できない場合に、エラーを返し、`detail` に取得先の場所を含めることを確認します。')
     const runtime: RuntimeDependencies = {
       isInstalled: () => false,
       root: () => RUNTIME_ROOT,
@@ -384,6 +399,7 @@ describe('runtime_setup: 実行時依存 (永続層)', () => {
   })
 
   it('タイムアウトと中断は原因を区別して返す', async () => {
+    await explains('`runtime_setup` ツールの実行時依存の取得に失敗した場合のテストです。タイムアウトの場合は `download timed out`、シグナルで中断した場合は `SIGTERM` を、それぞれ `detail` に含めることを確認します。')
     const timedOut = fakeRuntimeDependencies({
       installed: false,
       install: () => Promise.resolve(spawnResult({ exitCode: 1, timedOut: true })),
@@ -401,6 +417,7 @@ describe('runtime_setup: 実行時依存 (永続層)', () => {
   })
 
   it('取得先を特定できなくても例外を出さずに返す', async () => {
+    await explains('`runtime_setup` ツールの実行時依存の取得先を特定できない場合のテストです。`HOME` が未設定などで取得先を特定できなくても、例外を発生させず、`location` を含まない成功の結果を返すことを確認します。')
     // HOME が無い環境では永続層の場所を決められない。
     const runtime = fakeRuntimeDependencies({
       installed: false,
@@ -415,6 +432,7 @@ describe('runtime_setup: 実行時依存 (永続層)', () => {
   })
 
   it('ロック待ちの上限超過は「別プロセスが取得中」として返す', async () => {
+    await explains('`runtime_setup` ツールの取得のロックのテストです。ロックの待ち時間が上限を超えた場合に、取得の失敗とは別に、別のプロセスが取得中であることを `detail` で伝えることを確認します。')
     // 取得失敗と区別できないと、待てば済む状況で利用者が原因究明に入る。
     const runtime = fakeRuntimeDependencies({
       installed: false,
@@ -452,6 +470,7 @@ describe('runtime_setup: TLS 証明書の検証で落ちた場合', () => {
 
   it('実行時依存側: npm の検証コードを含む失敗には誘導が付く', async (context) => {
     await verifies(context, 'PV-RUNTIME-SETUP-07')
+    await explains('実行時依存の取得で TLS 証明書の検証に失敗した場合の、`runtime_setup` ツールのテストです。標準エラー出力に npm の検証エラーのコードが含まれる場合に、既存の理由に加えて `NODE_EXTRA_CA_CERTS` の案内を返すことを確認します。')
     const runtime = fakeRuntimeDependencies({
       installed: false,
       install: () => Promise.resolve(spawnResult({
@@ -469,6 +488,7 @@ describe('runtime_setup: TLS 証明書の検証で落ちた場合', () => {
   })
 
   it('実行時依存側: TLS と無関係な失敗には誘導が付かない', async () => {
+    await explains('実行時依存の取得で TLS 証明書と無関係な失敗をした場合の、`runtime_setup` ツールのテストです。接続拒否などの失敗では、`detail` に `NODE_EXTRA_CA_CERTS` の案内を含めないことを確認します。')
     const runtime = fakeRuntimeDependencies({
       installed: false,
       install: () => Promise.resolve(spawnResult({ exitCode: 1, stderr: 'npm error code ECONNREFUSED' })),
@@ -482,6 +502,7 @@ describe('runtime_setup: TLS 証明書の検証で落ちた場合', () => {
 
   it('chromium 側: playwright の文言を含む失敗には同じ誘導が付く', async (context) => {
     await verifies(context, 'PV-RUNTIME-SETUP-07')
+    await explains('Chromium の取得で TLS 証明書の検証に失敗した場合の、`runtime_setup` ツールのテストです。標準エラー出力に Playwright の検証エラーの文言が含まれる場合に、既存の理由に加えて `NODE_EXTRA_CA_CERTS` の案内を返すことを確認します。')
     const { deps } = fakeDependencies({
       installed: false,
       install: () => Promise.resolve(spawnResult({
@@ -498,6 +519,7 @@ describe('runtime_setup: TLS 証明書の検証で落ちた場合', () => {
   })
 
   it('chromium 側: TLS と無関係な失敗には誘導が付かない', async () => {
+    await explains('Chromium の取得で TLS 証明書と無関係な失敗をした場合の、`runtime_setup` ツールのテストです。接続拒否などの失敗では、`detail` に `NODE_EXTRA_CA_CERTS` の案内を含めないことを確認します。')
     const { deps } = fakeDependencies({
       installed: false,
       install: () => Promise.resolve(spawnResult({ exitCode: 1, stderr: 'ECONNREFUSED' })),
@@ -510,6 +532,7 @@ describe('runtime_setup: TLS 証明書の検証で落ちた場合', () => {
   })
 
   it('取得先 URL に cert の語が含まれるだけでは誘導が付かない', async () => {
+    await explains('TLS 証明書の案内を付ける条件のテストです。標準エラー出力の取得先 URL に `certs` の語が含まれるだけで、検証の失敗ではない場合に、`NODE_EXTRA_CA_CERTS` の案内を含めないことを確認します。')
     // `CERT` だけのような広い一致にすると、無関係な失敗まで TLS の問題に見せてしまう。
     const { deps } = fakeDependencies({
       installed: false,
@@ -528,6 +551,7 @@ describe('runtime_setup: 両系統が失敗した場合', () => {
   // 利用者は <系統>.detail を読み比べないと全体像が分からない。
 
   it('message と detail に両方の理由を載せる', async () => {
+    await explains('実行時依存と Chromium の両方の取得に失敗した場合の、`runtime_setup` ツールのテストです。エラーの `detail` と本文の両方に、実行時依存と Chromium それぞれの失敗の理由が含まれることを確認します。')
     const result = await callSetupWithBothFailing()
 
     expect(result.isError).toBe(true)
@@ -540,6 +564,7 @@ describe('runtime_setup: 両系統が失敗した場合', () => {
   })
 
   it('両系統が失敗すると、kind は最初の失敗の系統を指し、失敗した系統は各段の installed で読め、reason を返さない', async () => {
+    await explains('実行時依存と Chromium の両方の取得に失敗した場合の、結果の形のテストです。`kind` が最初に失敗した実行時依存を指し、各段の `installed` が `false` で、`reason` を含まないことを確認します。')
     const structured = structuredOf(await callSetupWithBothFailing())
 
     expect(structured['kind']).toBe('runtime-install-failed')
@@ -548,6 +573,7 @@ describe('runtime_setup: 両系統が失敗した場合', () => {
   })
 
   it('両系統が失敗したら、両系統の stdout と stderr を log に残す', async () => {
+    await explains('実行時依存と Chromium の両方の取得に失敗した場合の、`log` のテストです。両方の標準出力と標準エラー出力が、`log` にまとめて含まれることを確認します。')
     const log = String(dataOf(await callSetupWithBothFailing())['log'])
 
     expect(log).toContain('ERR_NPM')
@@ -556,7 +582,8 @@ describe('runtime_setup: 両系統が失敗した場合', () => {
     expect(log).toContain('pw-out')
   })
 
-  it('取得できた実体が無いので、どちらの系統も installed が false', async () => {
+  it('両系統の取得に失敗すると、実行時依存と Chromium のどちらも installed が false になる', async () => {
+    await explains('実行時依存と Chromium の両方の取得に失敗した場合の、各段の状態のテストです。実行時依存と Chromium のどちらの `installed` も `false` になることを確認します。')
     const result = await callSetupWithBothFailing()
 
     expect(stageOf(result, 'runtime')['installed']).toBe(false)
@@ -566,6 +593,7 @@ describe('runtime_setup: 両系統が失敗した場合', () => {
 
 describe('runtime_setup: Chromium の OS ライブラリ', () => {
   it('起動できれば何も入れずに成功を返し、確認に通ったことを記録する', async () => {
+    await explains('`runtime_setup` ツールの Chromium の OS ライブラリの確認のテストです。Chromium を起動できる場合に、何も導入せず、確認に通ったことを `ok` として記録し、成功の結果を返すことを確認します。')
     const host = fakeHostDependencies()
 
     const result = await callSetup(fakeDependencies({ installed: true }).deps, fakeRuntimeDependencies().deps, host.deps)
@@ -576,6 +604,7 @@ describe('runtime_setup: Chromium の OS ライブラリ', () => {
   })
 
   it('足りなければ入れて成功を返し、入れたパッケージを message に載せる', async () => {
+    await explains('`runtime_setup` ツールの Chromium の OS ライブラリの導入のテストです。OS ライブラリが不足している場合に、導入して成功の結果を返し、導入したパッケージ名を本文に含めることを確認します。')
     const host = fakeHostDependencies({ probes: [LIBATK_FAILURE, undefined] })
 
     const result = await callSetup(fakeDependencies({ installed: true }).deps, fakeRuntimeDependencies().deps, host.deps)
@@ -589,6 +618,7 @@ describe('runtime_setup: Chromium の OS ライブラリ', () => {
   })
 
   it('OS ライブラリだけを入れた回は setup.skipped ではなく setup.done にする', async () => {
+    await explains('`runtime_setup` ツールの結果のイベントのテストです。OS ライブラリだけを導入した場合に、`setup.skipped` ではなく `setup.done` の結果を返すことを確認します。')
     const host = fakeHostDependencies({ probes: [LIBATK_FAILURE, undefined] })
 
     const result = await callSetup(fakeDependencies({ installed: true }).deps, fakeRuntimeDependencies().deps, host.deps)
@@ -597,6 +627,7 @@ describe('runtime_setup: Chromium の OS ライブラリ', () => {
   })
 
   it('OS ライブラリの段にも call.signal を渡す', async () => {
+    await explains('`runtime_setup` ツールの Chromium の OS ライブラリの導入のテストです。OS ライブラリを導入する各処理へも、呼び出し元の `signal` を渡すことを確認します。')
     const host = fakeHostDependencies({ probes: [LIBATK_FAILURE, undefined] })
 
     await callSetup(fakeDependencies({ installed: true }).deps, fakeRuntimeDependencies().deps, host.deps)
@@ -607,6 +638,7 @@ describe('runtime_setup: Chromium の OS ライブラリ', () => {
 
   it('sudo を使えなければ chromium-host-deps-missing として入れるコマンドを返す', async (context) => {
     await verifies(context, 'PV-RUNTIME-SETUP-06')
+    await explains('`runtime_setup` ツールの Chromium の OS ライブラリの導入のテストです。`sudo` を使えない場合に、`chromium-host-deps-missing` のエラーと、導入するコマンドを案内する本文を 1 回だけ返すことを確認します。')
     const host = fakeHostDependencies({ probes: [LIBATK_FAILURE], sudoExitCode: 1 })
 
     const result = await callSetup(fakeDependencies({ installed: true }).deps, fakeRuntimeDependencies().deps, host.deps)
@@ -622,6 +654,7 @@ describe('runtime_setup: Chromium の OS ライブラリ', () => {
   })
 
   it('起動の失敗が OS ライブラリ以外なら担当外として通し、理由を message と失敗の記録に残す', async () => {
+    await explains('`runtime_setup` ツールの Chromium の起動の確認のテストです。起動の失敗が OS ライブラリ以外の原因の場合に、このツールの対象外として成功の結果を返し、理由を本文と `launch-failed` の記録に残すことを確認します。')
     const host = fakeHostDependencies({ probes: ['browserType.launch: crashed'] })
 
     const result = await callSetup(fakeDependencies({ installed: true }).deps, fakeRuntimeDependencies().deps, host.deps)
@@ -633,6 +666,7 @@ describe('runtime_setup: Chromium の OS ライブラリ', () => {
   })
 
   it('Chromium の取得に失敗したら OS ライブラリの確認はしない', async () => {
+    await explains('`runtime_setup` ツールの処理の順序のテストです。Chromium の取得に失敗した場合は、OS ライブラリを確認せず、結果に `hostDeps` を含めないことを確認します。')
     const host = fakeHostDependencies()
     const chromium = fakeDependencies({ installed: false, install: () => Promise.resolve(spawnResult({ exitCode: 1 })) })
 

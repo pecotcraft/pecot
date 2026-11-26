@@ -14,6 +14,7 @@ import { run } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { splitLines } from '../_helpers/text.js'
 import { readOutput } from '../../../../../../libs/interface-spec/src/vitest/attach.js'
+import { explains } from '../../_helpers/explains.js'
 
 const INIT_SCRIPT = path.join(coreDirectory, 'pecot-dir-init.sh')
 
@@ -57,7 +58,8 @@ function setUpIsolatedPluginHooks(hookCase: HookCase): void {
 }
 
 describe('pecot-dir-init.sh', () => {
-  it('.pecot が無いとき、必要なディレクトリとファイルを作る', () => {
+  it('.pecot が無いとき、必要なディレクトリとファイルを作る', async () => {
+    await explains('`pecot-dir-init.sh` のテストです。`.pecot` が存在しない場合に、必要なディレクトリ（`state` や `config` など）とファイルを作成し、`.gitkeep` は作成しないことを確認します。')
     const hookCase = createHookCase()
     const project = setUpDirectoryInit(hookCase)
     const result = runInit(hookCase)
@@ -82,7 +84,8 @@ describe('pecot-dir-init.sh', () => {
     expect(gitignoreLines).toContain('/config/*')
   })
 
-  it('CLAUDE_PROJECT_DIR が未設定のとき、何もせず、.pecot を作らない', () => {
+  it('CLAUDE_PROJECT_DIR が未設定のとき、何もせず、.pecot を作らない', async () => {
+    await explains('`pecot-dir-init.sh` のテストです。環境変数 `CLAUDE_PROJECT_DIR` が設定されていない場合に、何も実行せず終了コード 0 で終了し、`.pecot` ディレクトリを作成しないことを確認します。')
     const hookCase = createHookCase()
     const project = setUpDirectoryInit(hookCase)
     hookCase.setEnv('CLAUDE_PROJECT_DIR', undefined)
@@ -92,7 +95,8 @@ describe('pecot-dir-init.sh', () => {
     expect(existsSync(path.join(project, '.pecot'))).toBe(false)
   })
 
-  it('マーカーが plugin.json より新しいとき、同期をスキップする', () => {
+  it('マーカーが plugin.json より新しいとき、同期をスキップする', async () => {
+    await explains('`pecot-dir-init.sh` のテストです。同期済みのマーカー（`.plugin-sync-version`）が `plugin.json` より新しい場合に、同期を省略し、`README.md` の更新時刻が変わらないことを確認します。')
     const hookCase = createHookCase()
     const project = setUpDirectoryInit(hookCase)
     setUpIsolatedPluginHooks(hookCase)
@@ -115,7 +119,8 @@ describe('pecot-dir-init.sh', () => {
     expect(modifiedSeconds(readme)).toBe(before)
   })
 
-  it('マーカーが plugin.json より古いとき、同期して更新する', () => {
+  it('マーカーが plugin.json より古いとき、同期して更新する', async () => {
+    await explains('`pecot-dir-init.sh` のテストです。同期済みのマーカー（`.plugin-sync-version`）が `plugin.json` より古い場合に、同期を実行し、`README.md` の更新時刻が新しくなることを確認します。')
     const hookCase = createHookCase()
     const project = setUpDirectoryInit(hookCase)
     setUpIsolatedPluginHooks(hookCase)
@@ -136,7 +141,8 @@ describe('pecot-dir-init.sh', () => {
     expect(modifiedSeconds(readme)).toBeGreaterThan(before)
   })
 
-  it('既存の hosts.json と .env は、上書きしない', () => {
+  it('既存の hosts.json と .env は、上書きしない', async () => {
+    await explains('`pecot-dir-init.sh` のテストです。利用者が編集した `hosts.json` と `.env` が既に存在する場合に、その内容を上書きせず保持することを確認します。')
     const hookCase = createHookCase()
     const project = setUpDirectoryInit(hookCase)
     const config = path.join(project, '.pecot', 'config')
@@ -152,8 +158,9 @@ describe('pecot-dir-init.sh', () => {
     expect(readOutput(path.join(config, '.env'))).toBe('MY_CUSTOM_TOKEN=secret')
   })
 
-  it('旧内容の .gitignore を実 git リポに置いても、untracked が残らない', () => {
+  it('旧内容の .gitignore を実 git リポに置いても、untracked が残らない', async () => {
     // 旧内容は tmp/ だけの .pecot/.gitignore
+    await explains('`pecot-dir-init.sh` のテストです。古い内容（`tmp/` だけ）の `.gitignore` が実際の git リポジトリにある場合は、実行後の `git status` で `.pecot/` の未追跡のファイルが表示されないことを確認します。')
     const hookCase = createHookCase()
     setUpDirectoryInit(hookCase)
     const repository = gitRepository(hookCase, 'repo')
@@ -169,8 +176,9 @@ describe('pecot-dir-init.sh', () => {
     expect(status.stdout).toBe('')
   })
 
-  it('最初のコピー対象が dangling symlink で失敗しても、untracked が残らない', () => {
+  it('最初のコピー対象が dangling symlink で失敗しても、untracked が残らない', async () => {
     // 最初のコピー対象は hooks-config.json
+    await explains('`pecot-dir-init.sh` のテストです。最初のコピー対象（`hooks-config.json`）が参照先のないシンボリックリンクで失敗した場合は、終了コード 0 以外で終了し、`.pecot/` の未追跡のファイルが残らないことを確認します。')
     const hookCase = createHookCase()
     setUpDirectoryInit(hookCase)
     const repository = gitRepository(hookCase, 'repo')
@@ -188,7 +196,8 @@ describe('pecot-dir-init.sh', () => {
     expect(status.stdout).toBe('')
   })
 
-  it('README の cp が dangling symlink で失敗しても、untracked が残らない', () => {
+  it('README の cp が dangling symlink で失敗しても、untracked が残らない', async () => {
+    await explains('`pecot-dir-init.sh` のテストです。`README.md` のコピーが参照先のないシンボリックリンクで失敗した場合は、終了コード 0 以外で終了し、`.pecot/` の未追跡のファイルが残らないことを確認します。')
     const hookCase = createHookCase()
     setUpDirectoryInit(hookCase)
     const repository = gitRepository(hookCase, 'repo')

@@ -1,5 +1,6 @@
 // ボードの Issue の判定と、列と札の動かし方。GitHub は偽サーバにする。
 import { describe, expect, it } from 'vitest'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 import { capture } from '../../../tests/_helpers/captured-io.js'
 import { prerequisitesRule } from '../../../tests/_helpers/prerequisites.js'
@@ -49,7 +50,8 @@ function judgedOf(target: JudgedTarget): JudgedIssue {
 }
 
 describe('missingWarning', () => {
-  it('ボードに無い値を名前の順に並べ、数に合わせて代名詞を変える', () => {
+  it('ボードに存在しない選択肢を名前順に並べ、数に応じて it と them を使い分けた警告文を作成する', async () => {
+    await explains('ボードに存在しない選択肢（`Blocked` や `Todo` など）へ Issue を移動しようとしたときに表示する、警告文のテストです。不足している選択肢が 1 つの場合と 2 つの場合で、名前が名前順に並び、`it` と `them` が正しく使い分けられることを確認します。')
     const one = missingWarning(new Set(['Todo']))
     const two = missingWarning(new Set(['Todo', 'Blocked']))
     expect([formatHinted(one, 'cli'), formatHinted(two, 'cli')]).toEqual([
@@ -60,7 +62,8 @@ describe('missingWarning', () => {
 })
 
 describe('judgeBoard', () => {
-  it('対象の列の Issue だけを読み、PR・Tracker・ほかの列・リポジトリの無いものを外す', async () => {
+  it('対象の列の Issue だけを読み込み、PR・Tracker・ほかの列の項目と、リポジトリが不明な項目を除外する', async () => {
+    await explains('ボードの項目から判定の対象を絞り込む処理のテストです。`Ready` 列の Issue だけが判定の対象になり、PR・Tracker・ほかの列・リポジトリが不明の項目は除外され、前提の取得も対象の 1 件だけであることを確認します。')
     const { client, server } = await startClient([prerequisitesRule({ number: 1, column: 'Ready' })])
     const items = [
       item(1, 'Ready'),
@@ -73,7 +76,8 @@ describe('judgeBoard', () => {
     expect({ targets: judged?.map(({ target }) => target.key), operations: graphqlRequests(server).map(request => request.operation) }).toEqual({ targets: ['acme/demo#1'], operations: ['GetIssuePrerequisites'] })
   })
 
-  it('withoutRead が skip なら外し、読み取り結果を返せばそれで判定する', async () => {
+  it('withoutRead が skip を返した Issue は除外し、判定用のデータを返した Issue はそのデータで判定する', async () => {
+    await explains('前提の取得を省略できる仕組み（`withoutRead`）のテストです。`skip` を返した Issue が判定の対象から除外され、データを返した Issue はそのデータで判定されて、API を呼び出さないことを確認します。')
     const { client, server } = await startClient([])
     const judged = await judgeBoard(client, config(), [item(1, 'Ready'), item(2, 'Ready')], new Map(), {
       columns: SYNCED_COLUMNS,
@@ -84,7 +88,8 @@ describe('judgeBoard', () => {
     expect({ judged: judged?.map(target => [target.target.key, judgedOf(target).readiness?.kind]), requests: graphqlRequests(server) }).toEqual({ judged: [['acme/demo#2', 'startable']], requests: [] })
   })
 
-  it('ボードの Issue どうしの前提の輪を、判定に入れる', async () => {
+  it('ボードの Issue どうしが互いを前提にしている場合は、循環した前提として判定する', async () => {
+    await explains('2 つの Issue が互いを前提にしている場合の、判定のテストです。どちらの Issue も、判定の理由が循環（`cycle`）になることを確認します。')
     const { client } = await startClient([
       prerequisitesRule({ number: 1, column: 'Ready', blockedBy: [{ number: 2, column: 'Ready' }] }),
       prerequisitesRule({ number: 2, column: 'Ready', blockedBy: [{ number: 1, column: 'Ready' }] }),
@@ -93,12 +98,14 @@ describe('judgeBoard', () => {
     expect(judged?.map(target => judgedOf(target).readiness?.reason?.code)).toEqual(['cycle', 'cycle'])
   })
 
-  it('依存関係に対応しない GHES では、undefined を返す', async () => {
+  it('依存関係に対応していない GHES の場合は、undefined を返す', async () => {
+    await explains('GitHub Enterprise Server が前提の取得（`blockedBy` フィールド）に対応していない場合のテストです。API が `blockedBy` フィールドは存在しないと応答したときに、判定せず `undefined` を返すことを確認します。')
     const { client } = await startClient([{ match: { operation: 'GetIssuePrerequisites' }, respond: { status: 200, body: { errors: [{ message: UNSUPPORTED }] } }, times: 1 }])
     expect(await judgeBoard(client, config(), [item(1, 'Ready')], new Map(), readAll)).toBeUndefined()
   })
 
-  it('読めない Issue は、読めない理由のまま返す', async () => {
+  it('Issue の取得に失敗した場合は、判定できなかった項目（unreadable）として返す', async () => {
+    await explains('前提の取得で GraphQL のエラーが発生した場合のテストです。その Issue が、判定できなかった項目（`unreadable`）として返されることを確認します。')
     const { client } = await startClient([graphqlError('GetIssuePrerequisites', 'boom')])
     const judged = await judgeBoard(client, config(), [item(1, 'Ready')], new Map(), readAll)
     expect(judged?.map(target => target.result.kind)).toEqual(['unreadable'])
@@ -116,7 +123,8 @@ async function judge(rules: readonly ResponseRule[], hasBlocked = true): Promise
 const blockedRule = (): ResponseRule => prerequisitesRule({ number: 1, column: 'Ready', blockedBy: [{ number: 2 }] })
 
 describe('applyJudgedMoves', () => {
-  it('判定に合わせて列を書き、書いた行を返す', async () => {
+  it('判定の結果に従って列を更新し、更新した内容を返す', async () => {
+    await explains('判定の結果をボードへ反映する処理のテストです。未着手の Issue を前提に持つ Issue を `Blocked` 列へ移動し、移動した内容と標準エラー出力のメッセージを返すことを確認します。')
     const { client, judged } = await judge([blockedRule(), write('PVTI_1', 'ob')])
     const io = capture()
     const result = await applyJudgedMoves({ out: createOutput(false, io), client, config: config(), home: HOME }, judged)
@@ -127,27 +135,31 @@ describe('applyJudgedMoves', () => {
     })
   })
 
-  it('dry-run では書かず、予定の行を返す', async () => {
+  it('dry-run の場合は、列を更新せず、移動の予定だけを表示する', async () => {
+    await explains('`dry-run` を指定した場合のテストです。ボードへ書き込まず、移動の予定（`Ready` から `Blocked`）を標準エラー出力に表示することを確認します。')
     const { client, judged } = await judge([blockedRule()])
     const io = capture()
     const result = await applyJudgedMoves({ out: createOutput(true, io), client, config: config(), home: HOME }, judged, true)
     expect({ moves: result.moves.map(move => move.column), err: io.err.join('') }).toEqual({ moves: [{ from: 'Ready', to: 'Blocked' }], err: 'dry-run: would move #1 Ready -> Blocked (blocked by #2 (not in review: #2 (not started)))\n' })
   })
 
-  it('書き込みに失敗した Issue を数える', async () => {
+  it('ボードへの書き込みに失敗した場合は、失敗した Issue の数を返す', async () => {
+    await explains('ボードへの書き込みが HTTP 500 で失敗した場合のテストです。失敗の件数が 1 件になり、移動した内容は空になることを確認します。')
     const { client, judged } = await judge([blockedRule(), { match: { operation: 'UpdateProjectItemField' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
     const result = await applyJudgedMoves({ out: createOutput(false, capture()), client, config: config(), home: HOME }, judged)
     expect(result).toEqual({ failures: 1, moves: [] })
   })
 
-  it('ボードに無い動かし先は、最後に 1 行の warning にまとめる', async () => {
+  it('ボードに存在しない列への移動は、最後に警告を 1 行だけ表示する', async () => {
+    await explains('移動先の `Blocked` 列がボードに存在しない場合のテストです。書き込みは行わず、不足している列を知らせる警告を 1 行だけ表示することを確認します。')
     const { client, judged } = await judge([blockedRule()], false)
     const io = capture()
     const result = await applyJudgedMoves({ out: createOutput(false, io), client, config: config(false), home: HOME }, judged)
     expect({ result, err: io.err.join('') }).toEqual({ result: { failures: 0, moves: [] }, err: 'warning: the board has no option Blocked; add it with pecot project init\n' })
   })
 
-  it('読めない Issue は、空白を詰めた理由で warning にする', async () => {
+  it('判定できなかった Issue は、理由の空白を 1 つにまとめた警告を表示する', async () => {
+    await explains('判定できなかった Issue がある場合の警告のテストです。理由に含まれる改行と連続した空白が 1 つの空白にまとめられ、警告に表示されることを確認します。')
     const io = capture()
     const { client } = await startClient([])
     const target: BoardTarget = { item: item(1, 'Ready'), key: 'acme/demo#1', ref: { repository: HOME, number: 1 } }
@@ -155,7 +167,8 @@ describe('applyJudgedMoves', () => {
     expect({ result, err: io.err.join('') }).toEqual({ result: { failures: 0, moves: [] }, err: 'warning: could not judge #1: a b\n' })
   })
 
-  it('動かす要らない判定は、何も書かない', async () => {
+  it('列を移動する必要がない判定の場合は、何も書き込まない', async () => {
+    await explains('移動が不要と判定された Issue のテストです。書き込みや出力をせず、`boardMoveOf` が `undefined` を返すことを確認します。')
     const { client, judged } = await judge([prerequisitesRule({ number: 1, column: 'Ready' })])
     const io = capture()
     expect({ result: await applyJudgedMoves({ out: createOutput(false, io), client, config: config(), home: HOME }, judged), err: io.err.join('') }).toEqual({ result: { failures: 0, moves: [] }, err: '' })

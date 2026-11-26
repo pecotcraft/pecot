@@ -11,6 +11,7 @@ import { convertSingleSlideWithRetry } from '../slide-worker.js'
 import { FakeBrowser, FakePage } from './support/fake-playwright.js'
 import { makeLogger } from './support/logger.js'
 import { compareStrings } from '../../../domain/_shared/compare-strings.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 describe('convertSingleSlideWithRetry', () => {
   let outDir: string
@@ -36,7 +37,8 @@ describe('convertSingleSlideWithRetry', () => {
     vi.unstubAllGlobals()
   })
 
-  it('step.url をそのまま goto する (history ルータ)', async () => {
+  it('history ルータの URL を、そのまま開く', async () => {
+    await explains('1 つのステップを変換する `convertSingleSlideWithRetry` のテストです。`clicks` のクエリ付きの URL（history ルータ）がそのまま開かれ、結果に工程ごとの所要時間のキーが返ることを確認します。')
     const page = new FakePage()
     const browser = new FakeBrowser({ pages: [page] })
     const result = await convertSingleSlideWithRetry(
@@ -54,7 +56,8 @@ describe('convertSingleSlideWithRetry', () => {
     )
   })
 
-  it('hash ルータのフラグメント付き URL もそのまま goto する', async () => {
+  it('hash ルータのフラグメント付きの URL も、そのまま開く', async () => {
+    await explains('hash ルータの URL（`#/4?clicks=1`）を渡した場合に、その URL がそのままページで開かれることを確認します。')
     const page = new FakePage()
     const browser = new FakeBrowser({ pages: [page] })
     await convertSingleSlideWithRetry(
@@ -67,7 +70,8 @@ describe('convertSingleSlideWithRetry', () => {
     expect(page.gotoCalls[0]?.url).toBe('http://localhost:3002/#/4?clicks=1')
   })
 
-  it('clickStep の有無で stepIndex (PPTX ファイル名) が変わる', async () => {
+  it('clickStep が null の場合も 3 の場合も、ステップの情報をそのまま結果に含める', async () => {
+    await explains('クリック数が `null` のステップと、`3` のステップを変換した場合のテストです。どちらの結果にも、渡したクリック数がそのまま含まれることを確認します。')
     const page1 = new FakePage()
     const browser1 = new FakeBrowser({ pages: [page1] })
     const r1 = await convertSingleSlideWithRetry(
@@ -93,7 +97,8 @@ describe('convertSingleSlideWithRetry', () => {
     expect(r2.step.clickStep).toBe(3)
   })
 
-  it('1 回目失敗 → リトライで 2 回目成功', async () => {
+  it('1 回目の変換に失敗しても、リトライして 2 回目で成功する', async () => {
+    await explains('1 回目の変換が失敗する場合のテストです。待機時間を短縮してリトライし、2 回目で成功して結果を返し、`conversion failed (attempt 1/2)` を含む警告がログに出力されることを確認します。')
     // setTimeout を即時 resolve に差し替え (timeouts.slideRetryDelay = 2000ms を待たないため)
     const realSetTimeout = setTimeout
     vi.stubGlobal('setTimeout', (cb: () => void, ms?: number): ReturnType<typeof setTimeout> => {
@@ -124,7 +129,8 @@ describe('convertSingleSlideWithRetry', () => {
     }
   })
 
-  it('全リトライ失敗で最後の error を throw', async () => {
+  it('すべてのリトライに失敗した場合は、最後のエラーで失敗する', async () => {
+    await explains('1 回目と 2 回目のどちらも変換が失敗する場合のテストです。最後のエラー（`waitForFunction timed out`）の例外が発生することを確認します。')
     const realSetTimeout = setTimeout
     vi.stubGlobal('setTimeout', (cb: () => void, ms?: number): ReturnType<typeof setTimeout> => {
       // リトライ待ちだけを即時にする（dom-to-pptx 注入の上限タイマー等は実時間のまま）

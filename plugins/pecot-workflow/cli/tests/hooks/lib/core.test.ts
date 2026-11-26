@@ -11,6 +11,7 @@ import { gitOrThrow, gitRepository } from '../_helpers/git.js'
 import { adapterDirectory, coreDirectory } from '../_helpers/paths.js'
 import { run, runHookScript } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
+import { explains } from '../../_helpers/explains.js'
 
 interface CommandRow {
   readonly label: string
@@ -38,7 +39,8 @@ function enabledNoVerifyCase(): HookCase {
 }
 
 describe('git-no-verify-check.sh', () => {
-  it('設定が無いとき、--no-verify でも何も出力せず通す', () => {
+  it('設定が無いとき、--no-verify でも何も出力せず通す', async () => {
+    await explains('`git-no-verify-check.sh` のテストです。設定ファイルが存在しない場合に、`git commit --no-verify` でも、何も出力せず終了コード 0 で許可することを確認します。')
     const hookCase = createHookCase()
     hookCase.setEnv('PECOT_HOOKS_CONFIG_PATH', path.join(hookCase.temporaryPath, 'missing.json'))
     const result = runCore(hookCase, 'git-no-verify-check.sh', { env: { HOOK_COMMAND: 'git commit --no-verify' } })
@@ -77,7 +79,8 @@ describe('git-no-verify-check.sh', () => {
     'HUSKY=0 git push',
     // ヒアドキュメントの後ろのコマンド
     'cat <<\'EOF\' > note.txt\nbody\nEOF\ngit commit -n',
-  ]))('有効にしてコマンドが $label のとき、終了コード 1 で止める', (row) => {
+  ]))('有効にしてコマンドが $label のとき、終了コード 1 で止める', async (row) => {
+    await explains(`\`git-no-verify-check.sh\` のテストです。チェックを有効にして、コマンドが \`${row.label}\` の場合に、終了コード 1 で拒否することを確認します。`)
     const hookCase = enabledNoVerifyCase()
     const result = runCore(hookCase, 'git-no-verify-check.sh', { env: { HOOK_COMMAND: row.command } })
     expect(result.exitCode).toBe(1)
@@ -120,21 +123,24 @@ describe('git-no-verify-check.sh', () => {
     'cat <<\'EOF\' > note.txt\ngit commit -n\nEOF',
     'cat <<EOF > note.txt\ngit commit --no-verify\nEOF',
     'cat <<-EOF > note.txt\n\tgit commit -n\n\tEOF',
-  ]))('有効にしてコマンドが $label のとき、何も出力せず通す', (row) => {
+  ]))('有効にしてコマンドが $label のとき、何も出力せず通す', async (row) => {
+    await explains(`\`git-no-verify-check.sh\` のテストです。チェックを有効にして、コマンドが \`${row.label}\` の場合に、何も出力せず終了コード 0 で許可することを確認します。`)
     const hookCase = enabledNoVerifyCase()
     const result = runCore(hookCase, 'git-no-verify-check.sh', { env: { HOOK_COMMAND: row.command } })
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toBe('')
   })
 
-  it('--no-verify を使うとき、止めるメッセージにそのフラグを含める', () => {
+  it('--no-verify を使うとき、止めるメッセージにそのフラグを含める', async () => {
+    await explains('`git-no-verify-check.sh` の拒否メッセージのテストです。`git commit --no-verify` を拒否する場合に、標準出力のメッセージへ `--no-verify` が含まれることを確認します。')
     const hookCase = enabledNoVerifyCase()
     const result = runCore(hookCase, 'git-no-verify-check.sh', { env: { HOOK_COMMAND: 'git commit --no-verify' } })
     expect(result.exitCode).toBe(1)
     expect(result.stdout).toContain('--no-verify')
   })
 
-  it('--no-verify を使うとき、止めるメッセージにエラー見出しと修正の案内を含める', () => {
+  it('--no-verify を使うとき、止めるメッセージにエラー見出しと修正の案内を含める', async () => {
+    await explains('`git-no-verify-check.sh` の拒否メッセージのテストです。`git commit --no-verify` を拒否する場合に、エラーの見出し（`error: git-no-verify-check:`）と修正の案内が含まれることを確認します。')
     const hookCase = enabledNoVerifyCase()
     const result = runCore(hookCase, 'git-no-verify-check.sh', { env: { HOOK_COMMAND: 'git commit --no-verify' } })
     expect(result.exitCode).toBe(1)
@@ -143,7 +149,8 @@ describe('git-no-verify-check.sh', () => {
     expect(result.stdout).toContain('Fix the root cause of the violation')
   })
 
-  it('HOOK_COMMAND が未設定のとき、終了コード 2 を返す', () => {
+  it('HOOK_COMMAND が未設定のとき、終了コード 2 を返す', async () => {
+    await explains('`git-no-verify-check.sh` のテストです。環境変数 `HOOK_COMMAND` が設定されていない場合に、終了コード 2 を返すことを確認します。')
     const hookCase = enabledNoVerifyCase()
     const result = runCore(hookCase, 'git-no-verify-check.sh', { env: { HOOK_COMMAND: undefined } })
     expect(result.exitCode).toBe(2)
@@ -190,7 +197,8 @@ describe('gh-command-check.sh', () => {
     ['gh\tissue  create'],
     ['echo a;  gh\tpr create'],
     ['GH_HOST=x\tgh pr create'],
-  ]))('コマンドが $label のとき、終了コード 1 で止める', (row) => {
+  ]))('コマンドが $label のとき、終了コード 1 で止める', async (row) => {
+    await explains(`\`gh-command-check.sh\` のテストです。コマンドが \`${row.label}\` の場合に、終了コード 1 で拒否することを確認します。`)
     const hookCase = createHookCase()
     const result = runCore(hookCase, 'gh-command-check.sh', { env: { HOOK_COMMAND: row.command } })
     expect(result.exitCode).toBe(1)
@@ -223,14 +231,16 @@ describe('gh-command-check.sh', () => {
     'gh api "search?a=1&b=2"',
     // ヒアドキュメント本文は実行されないので、行頭に現れても通す
     'cat > doc.md <<EOF\ngh pr create is banned\nEOF',
-  ]))('コマンドが $label のとき、何も出力せず通す', (row) => {
+  ]))('コマンドが $label のとき、何も出力せず通す', async (row) => {
+    await explains(`\`gh-command-check.sh\` のテストです。コマンドが \`${row.label}\` の場合に、何も出力せず終了コード 0 で許可することを確認します。`)
     const hookCase = createHookCase()
     const result = runCore(hookCase, 'gh-command-check.sh', { env: { HOOK_COMMAND: row.command } })
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toBe('')
   })
 
-  it('HOOK_COMMAND が未設定のとき、終了コード 2 を返す', () => {
+  it('HOOK_COMMAND が未設定のとき、終了コード 2 を返す', async () => {
+    await explains('`gh-command-check.sh` のテストです。環境変数 `HOOK_COMMAND` が設定されていない場合に、終了コード 2 を返すことを確認します。')
     const hookCase = createHookCase()
     const result = runCore(hookCase, 'gh-command-check.sh', { env: { HOOK_COMMAND: undefined } })
     expect(result.exitCode).toBe(2)
@@ -253,7 +263,8 @@ function wordRows(commands: readonly string[], word: string): WordRow[] {
 }
 
 describe('git-worktree-branch-check.sh', () => {
-  it('保護ブランチで git commit するとき、止める', () => {
+  it('保護ブランチで git commit するとき、止める', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。保護ブランチ（`wt3`）で `git commit` を実行しようとした場合に、終了コード 1 で拒否し、標準出力へ `commit` を含めることを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, 'wt3')
@@ -262,7 +273,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toContain('commit')
   })
 
-  it('保護ブランチで git push するとき、止める', () => {
+  it('保護ブランチで git push するとき、止める', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。保護ブランチ（`wt1`）で `git push` を実行しようとした場合に、終了コード 1 で拒否し、標準出力へ `push` を含めることを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, 'wt1')
@@ -271,7 +283,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toContain('push')
   })
 
-  it('連結コマンドの中の git commit も、保護ブランチなら止める', () => {
+  it('連結コマンドの中の git commit も、保護ブランチなら止める', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。保護ブランチ（`wt2`）で連結したコマンド（`echo test && git commit`）を実行しようとした場合に、後半の `git commit` を検出して終了コード 1 で拒否することを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, 'wt2')
@@ -282,7 +295,8 @@ describe('git-worktree-branch-check.sh', () => {
   it.for([
     ...wordRows(['git\tcommit -m x', 'git  commit -m x', 'echo a;  git\tcommit -m x'], 'commit'),
     ...wordRows(['git\tpush', 'git  push', 'echo a &&\tgit  push'], 'push'),
-  ])('コマンドが $label のとき、タブや連続空白の区切りでも保護ブランチなら止める', (row) => {
+  ])('コマンドが $label のとき、タブや連続空白の区切りでも保護ブランチなら止める', async (row) => {
+    await explains(`\`git-worktree-branch-check.sh\` のテストです。コマンドが \`${row.label}\` の場合に、タブや連続した空白でも、保護ブランチ（\`wt3\`）への操作として終了コード 1 で拒否することを確認します。`)
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, 'wt3')
@@ -291,7 +305,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toContain(row.word)
   })
 
-  it('git -C で commit するとき、HOOK_WORKING_DIR だけで保護ブランチを判定して止める', () => {
+  it('git -C で commit するとき、HOOK_WORKING_DIR だけで保護ブランチを判定して止める', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。`git -C` を付けた `git commit` を保護ブランチ（`wt4`）で実行しようとした場合に、`HOOK_WORKING_DIR` だけを根拠に終了コード 1 で拒否することを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, 'wt4')
@@ -301,7 +316,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.exitCode).toBe(1)
   })
 
-  it('git status のとき、保護ブランチでも何も出力しない', () => {
+  it('git status のとき、保護ブランチでも何も出力しない', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。保護ブランチ（`wt1`）で `git status` を実行する場合に、何も出力せず終了コード 0 で許可することを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, 'wt1')
@@ -312,7 +328,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('wt3 ブランチで commit するとき、ブランチ名を示して止める', () => {
+  it('wt3 ブランチで commit するとき、ブランチ名を示して止める', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。`wt3` ブランチで `git commit` を実行しようとした場合に、標準出力へブランチ名（`\'wt3\'`）を示して拒否することを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, 'wt3')
@@ -321,7 +338,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toContain('\'wt3\'')
   })
 
-  it('wt10 ブランチで commit するとき、ブランチ名を示して止める', () => {
+  it('wt10 ブランチで commit するとき、ブランチ名を示して止める', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。`wt10` ブランチで `git commit` を実行しようとした場合に、標準出力へブランチ名（`\'wt10\'`）を示して拒否することを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, 'wt10')
@@ -330,7 +348,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toContain('\'wt10\'')
   })
 
-  it('wt1 ブランチで push するとき、止める', () => {
+  it('wt1 ブランチで push するとき、止める', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。`wt1` ブランチで `git push origin wt1` を実行しようとした場合に、終了コード 1 で拒否し、標準出力へ `push` を含めることを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, 'wt1')
@@ -339,7 +358,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toContain('push')
   })
 
-  it('feature ブランチで commit するとき、何も出力せず通す', () => {
+  it('feature ブランチで commit するとき、何も出力せず通す', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。feature ブランチ（`feat/test-feature`）で `git commit` を実行する場合に、何も出力せず終了コード 0 で許可することを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, 'feat/test-feature')
@@ -348,7 +368,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('develop-aist ブランチで commit するとき、何も出力せず通す', () => {
+  it('develop-aist ブランチで commit するとき、何も出力せず通す', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。`develop-aist` ブランチで `git commit` を実行する場合に、何も出力せず終了コード 0 で許可することを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, 'develop-aist')
@@ -357,7 +378,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('main ブランチで commit するとき、何も出力せず通す', () => {
+  it('main ブランチで commit するとき、何も出力せず通す', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。`main` ブランチで `git commit` を実行する場合に、何も出力せず終了コード 0 で許可することを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     // 既定ブランチ名と衝突しうるので -B で切り替える。失敗しても続行する。
@@ -367,7 +389,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('wt の後ろに数字が無いブランチで commit するとき、何も出力せず通す', () => {
+  it('wt の後ろに数字が無いブランチで commit するとき、何も出力せず通す', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。`wt-feature` のように、`wt` の後ろに数字が続かないブランチで `git commit` を実行する場合に、何も出力せず終了コード 0 で許可することを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, 'wt-feature')
@@ -376,7 +399,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('detached HEAD で commit するとき、何も出力せず通す', () => {
+  it('detached HEAD で commit するとき、何も出力せず通す', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。detached HEAD の状態で `git commit` を実行する場合に、何も出力せず終了コード 0 で許可することを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     const head = gitOrThrow(hookCase, repository, ['rev-parse', 'HEAD']).stdout.trim()
@@ -386,13 +410,15 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('HOOK_COMMAND が未設定のとき、終了コード 2 を返す', () => {
+  it('HOOK_COMMAND が未設定のとき、終了コード 2 を返す', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。環境変数 `HOOK_COMMAND` が設定されていない場合に、終了コード 2 を返すことを確認します。')
     const hookCase = createHookCase()
     const result = runCore(hookCase, 'git-worktree-branch-check.sh', { env: { HOOK_COMMAND: undefined } })
     expect(result.exitCode).toBe(2)
   })
 
-  it('claude-bash-guards をプラグインの環境で動かすとき、--no-verify を deny で止める', () => {
+  it('claude-bash-guards をプラグインの環境で動かすとき、--no-verify を deny で止める', async () => {
+    await explains('`claude-bash-guards.sh` のテストです。`git-no-verify-check` を有効にして `git commit --no-verify` を実行する場合に、`deny` の判定を出力し、`decision` は出力しないことを確認します。')
     const hookCase = createHookCase()
     const pluginRoot = path.join(hookCase.temporaryPath, 'plugin')
     const pluginCore = path.join(pluginRoot, 'hooks', 'lib', 'core')
@@ -425,7 +451,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toContain('--no-verify')
   })
 
-  it('git リポジトリでないディレクトリで commit するとき、何も出力せず通す', () => {
+  it('git リポジトリでないディレクトリで commit するとき、何も出力せず通す', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。git リポジトリでないディレクトリで `git commit` を実行する場合に、何も出力せず終了コード 0 で許可することを確認します。')
     const hookCase = createHookCase()
     const nonGit = path.join(hookCase.temporaryPath, 'non-git')
     mkdirSync(nonGit, { recursive: true })
@@ -437,7 +464,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('commit を止めるとき、メッセージに commit と feature を含める', () => {
+  it('commit を止めるとき、メッセージに commit と feature を含める', async () => {
+    await explains('`git-worktree-branch-check.sh` の拒否メッセージのテストです。保護ブランチで `git commit` を拒否する場合に、標準出力のメッセージへ `commit` と `feature` が含まれることを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, 'wt1')
@@ -447,7 +475,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toContain('feature')
   })
 
-  it('push を止めるとき、メッセージに push と feature を含める', () => {
+  it('push を止めるとき、メッセージに push と feature を含める', async () => {
+    await explains('`git-worktree-branch-check.sh` の拒否メッセージのテストです。保護ブランチで `git push` を拒否する場合に、標準出力のメッセージへ `push` と `feature` が含まれることを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, 'wt2')
@@ -458,7 +487,8 @@ describe('git-worktree-branch-check.sh', () => {
   })
 
   // pwd と HOOK_WORKING_DIR が別のリポを指すクロスリポジトリのケース
-  it('git -C の対象が feature で HOOK_WORKING_DIR が保護ブランチのとき、通す', () => {
+  it('git -C の対象が feature で HOOK_WORKING_DIR が保護ブランチのとき、通す', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。`git -C` の対象が feature ブランチで、`HOOK_WORKING_DIR` が保護ブランチの場合に、何も出力せず終了コード 0 で許可することを確認します。')
     const hookCase = createHookCase()
     const primary = gitRepository(hookCase, 'primary')
     checkout(hookCase, primary, 'wt1')
@@ -471,7 +501,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('git -C の対象が保護ブランチで HOOK_WORKING_DIR が feature のとき、止める', () => {
+  it('git -C の対象が保護ブランチで HOOK_WORKING_DIR が feature のとき、止める', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。`git -C` の対象が保護ブランチ（`wt2`）で、`HOOK_WORKING_DIR` が feature ブランチの場合に、終了コード 1 で拒否し、ブランチ名を示すことを確認します。')
     const hookCase = createHookCase()
     const primary = gitRepository(hookCase, 'primary')
     checkout(hookCase, primary, 'feat/main-work')
@@ -484,7 +515,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toContain('\'wt2\'')
   })
 
-  it('pwd が保護ブランチでも HOOK_WORKING_DIR が feature のとき、HOOK_WORKING_DIR を優先して通す', () => {
+  it('pwd が保護ブランチでも HOOK_WORKING_DIR が feature のとき、HOOK_WORKING_DIR を優先して通す', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。現在のディレクトリが保護ブランチで、`HOOK_WORKING_DIR` が feature ブランチの場合に、`HOOK_WORKING_DIR` を優先して許可することを確認します。')
     const hookCase = createHookCase()
     const primary = gitRepository(hookCase, 'primary')
     checkout(hookCase, primary, 'feat/work')
@@ -495,7 +527,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('pwd が feature でも HOOK_WORKING_DIR が保護ブランチのとき、HOOK_WORKING_DIR を優先して止める', () => {
+  it('pwd が feature でも HOOK_WORKING_DIR が保護ブランチのとき、HOOK_WORKING_DIR を優先して止める', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。現在のディレクトリが feature ブランチで、`HOOK_WORKING_DIR` が保護ブランチ（`wt2`）の場合に、`HOOK_WORKING_DIR` を優先して拒否することを確認します。')
     const hookCase = createHookCase()
     const primary = gitRepository(hookCase, 'primary')
     checkout(hookCase, primary, 'wt2')
@@ -506,7 +539,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toContain('\'wt2\'')
   })
 
-  it('HOOK_WORKING_DIR が未設定のとき、pwd のブランチで判定して止める', () => {
+  it('HOOK_WORKING_DIR が未設定のとき、pwd のブランチで判定して止める', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。`HOOK_WORKING_DIR` が設定されていない場合に、現在のディレクトリのブランチ（`wt1`）で判定し、終了コード 1 で拒否することを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, 'wt1')
@@ -516,7 +550,8 @@ describe('git-worktree-branch-check.sh', () => {
   })
 
   // 対象リポジトリの解決順は、cd チェイン / HOOK_TOOL_CWD が HOOK_WORKING_DIR より先になる。
-  it('cd 先が保護ブランチで HOOK_WORKING_DIR が feature のとき、cd 先で判定して止める', () => {
+  it('cd 先が保護ブランチで HOOK_WORKING_DIR が feature のとき、cd 先で判定して止める', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。`cd` の移動先が保護ブランチ（`wt5`）で、`HOOK_WORKING_DIR` が feature ブランチの場合に、移動先のブランチで判定して拒否することを確認します。')
     const hookCase = createHookCase()
     const primary = gitRepository(hookCase, 'primary')
     checkout(hookCase, primary, 'feat/work')
@@ -527,7 +562,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toContain('\'wt5\'')
   })
 
-  it('cd 先が feature で HOOK_WORKING_DIR が保護ブランチのとき、cd 先で判定して通す', () => {
+  it('cd 先が feature で HOOK_WORKING_DIR が保護ブランチのとき、cd 先で判定して通す', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。`cd` の移動先が feature ブランチで、`HOOK_WORKING_DIR` が保護ブランチの場合に、移動先のブランチで判定して許可することを確認します。')
     const hookCase = createHookCase()
     const primary = gitRepository(hookCase, 'primary')
     checkout(hookCase, primary, 'wt1')
@@ -538,7 +574,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('HOOK_TOOL_CWD が保護ブランチで HOOK_WORKING_DIR が feature のとき、HOOK_TOOL_CWD で判定して止める', () => {
+  it('HOOK_TOOL_CWD が保護ブランチで HOOK_WORKING_DIR が feature のとき、HOOK_TOOL_CWD で判定して止める', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。`HOOK_TOOL_CWD` が保護ブランチ（`wt6`）で、`HOOK_WORKING_DIR` が feature ブランチの場合に、`HOOK_TOOL_CWD` で判定して拒否することを確認します。')
     const hookCase = createHookCase()
     const primary = gitRepository(hookCase, 'primary')
     checkout(hookCase, primary, 'feat/work')
@@ -552,7 +589,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toContain('\'wt6\'')
   })
 
-  it('HOOK_TOOL_CWD が feature で HOOK_WORKING_DIR が保護ブランチのとき、HOOK_TOOL_CWD で判定して通す', () => {
+  it('HOOK_TOOL_CWD が feature で HOOK_WORKING_DIR が保護ブランチのとき、HOOK_TOOL_CWD で判定して通す', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。`HOOK_TOOL_CWD` が feature ブランチで、`HOOK_WORKING_DIR` が保護ブランチの場合に、`HOOK_TOOL_CWD` で判定して許可することを確認します。')
     const hookCase = createHookCase()
     const primary = gitRepository(hookCase, 'primary')
     checkout(hookCase, primary, 'wt2')
@@ -567,7 +605,8 @@ describe('git-worktree-branch-check.sh', () => {
   })
 
   // cd チェインは、git ワークツリーとして解決できた cd 先だけを採る。
-  it('cd 先が git でないとき、cd を採らず HOOK_TOOL_CWD 以降で判定して止める', () => {
+  it('cd 先が git でないとき、cd を採らず HOOK_TOOL_CWD 以降で判定して止める', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。`cd` の移動先が git リポジトリでない場合に、その `cd` を採用せず、`HOOK_TOOL_CWD` 以降の指定で判定して拒否することを確認します。')
     const hookCase = createHookCase()
     const plain = path.join(hookCase.temporaryPath, 'plain-dir')
     mkdirSync(plain)
@@ -585,7 +624,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toContain('\'wt7\'')
   })
 
-  it('多段の cd の先頭が git でないとき、後段の cd も評価して保護ブランチなら止める', () => {
+  it('多段の cd の先頭が git でないとき、後段の cd も評価して保護ブランチなら止める', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。多段の `cd` の先頭が git リポジトリでない場合に、後段の `cd` の移動先（保護ブランチ `wt8`）も評価して拒否することを確認します。')
     const hookCase = createHookCase()
     const plain = path.join(hookCase.temporaryPath, 'plain-dir')
     mkdirSync(plain)
@@ -599,7 +639,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toContain('\'wt8\'')
   })
 
-  it('相対 cd のとき、フックの pwd ではなく HOOK_TOOL_CWD を基点に解決して止める', () => {
+  it('相対 cd のとき、フックの pwd ではなく HOOK_TOOL_CWD を基点に解決して止める', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。相対パスの `cd` を含む場合に、フックの現在のディレクトリではなく `HOOK_TOOL_CWD` を基点に解決し、保護ブランチ（`wt9`）を拒否することを確認します。')
     const hookCase = createHookCase()
     // 同名の target を、ツール cwd 側とフック pwd 側の両方に置き、選ばれた側をブランチ名で見分ける。
     const toolSide = gitRepository(hookCase, 'tool-base/target')
@@ -618,7 +659,8 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toContain('\'wt9\'')
   })
 
-  it('cd チェイン経由の push のとき、commit と同じく cd 先のブランチで判定して止める', () => {
+  it('cd チェイン経由の push のとき、commit と同じく cd 先のブランチで判定して止める', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。`cd` を連結した `git push` を実行しようとした場合に、`git commit` と同様に移動先のブランチ（`wt5`）で判定して拒否することを確認します。')
     const hookCase = createHookCase()
     const primary = gitRepository(hookCase, 'primary')
     checkout(hookCase, primary, 'feat/work')

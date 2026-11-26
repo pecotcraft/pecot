@@ -14,6 +14,7 @@ import { describe, expect, it } from 'vitest'
 
 import { isRecord } from '../../_shared/json.js'
 import { computeEnvHash, computeSlideHash, type EnvHashInput } from '../cache-key.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 const baseInput: EnvHashInput = {
   headmatter: {
@@ -56,15 +57,18 @@ function jsonRecord(text: string): Readonly<Record<string, unknown>> {
 }
 
 describe('computeEnvHash', () => {
-  it('同一入力からは同一ハッシュを返す', () => {
+  it('同一入力からは同一ハッシュを返す', async () => {
+    await explains('変換環境のハッシュを求める `computeEnvHash` のテストです。同じ内容の入力を 2 回渡した場合に、同じハッシュが返ることを確認します。')
     expect(computeEnvHash(baseInput)).toBe(computeEnvHash({ ...baseInput }))
   })
 
-  it('sha256 hex 形式の文字列を返す', () => {
+  it('ハッシュは、16 進数 64 桁の文字列で返す', async () => {
+    await explains('変換環境のハッシュを求める `computeEnvHash` のテストです。返り値が、sha256 の 16 進数表記（小文字の 64 桁）の形式であることを確認します。')
     expect(computeEnvHash(baseInput)).toMatch(/^[\da-f]{64}$/)
   })
 
-  it('共有ファイル一覧の並び順が違ってもハッシュは変わらない', () => {
+  it('共有ファイルの一覧の並び順が違っても、同じハッシュを返す', async () => {
+    await explains('変換環境のハッシュを求める `computeEnvHash` のテストです。共有ファイルの一覧を逆順にして渡した場合でも、元の順の場合と同じハッシュが返ることを確認します。')
     const reordered: EnvHashInput = {
       ...baseInput,
       sharedFiles: baseInput.sharedFiles.toReversed(),
@@ -72,7 +76,8 @@ describe('computeEnvHash', () => {
     expect(computeEnvHash(reordered)).toBe(computeEnvHash(baseInput))
   })
 
-  it('headmatter のキー順が違ってもハッシュは変わらない', () => {
+  it('headmatter のキーの並び順が違っても、同じハッシュを返す', async () => {
+    await explains('変換環境のハッシュを求める `computeEnvHash` のテストです。`headmatter` の値は同じで、キーの並び順だけが違う場合に、同じハッシュが返ることを確認します。')
     const reordered: EnvHashInput = {
       ...baseInput,
       headmatter: {
@@ -87,7 +92,8 @@ describe('computeEnvHash', () => {
     expect(computeEnvHash(reordered)).toBe(computeEnvHash(baseInput))
   })
 
-  it('null / undefined を含む headmatter でも決定論的に扱える', () => {
+  it('headmatter に null や undefined が含まれていても、同じ入力なら同じハッシュを返し、null と undefined は同じ値として扱う', async () => {
+    await explains('変換環境のハッシュを求める `computeEnvHash` のテストです。`highlighter` の値が `null` の場合と `undefined` の場合で、どちらも同じハッシュが返ることを確認します。')
     const withNull: EnvHashInput = {
       ...baseInput,
       headmatter: jsonRecord('{"theme":"none","highlighter":null,"canvasWidth":960}'),
@@ -129,11 +135,13 @@ describe('computeEnvHash', () => {
     ['ビルドオプション（--theme）', { ...baseInput, buildOptions: { theme: 'custom-theme' } }],
   ]
 
-  it.each(variations)('%s が変わるとハッシュも変わる', (_name, changed) => {
+  it.each(variations)('変換環境の「%s」が変わった場合は、ハッシュも変わる', async (_name, changed) => {
+    await explains(`変換環境のハッシュを求める \`computeEnvHash\` のテストです。「${_name}」だけを変えた入力を渡した場合に、元の入力とは違うハッシュが返ることを確認します。`)
     expect(computeEnvHash(changed)).not.toBe(computeEnvHash(baseInput))
   })
 
-  it('bundle は宣言バージョンが同じでも中身が違えばハッシュが変わる', () => {
+  it('bundle は、宣言されたバージョンが同じでも中身が違う場合は、ハッシュが変わる', async () => {
+    await explains('変換環境のハッシュを求める `computeEnvHash` のテストです。バージョンの宣言が同じで、関数の中身だけが違う 2 つの bundle を渡した場合に、違うハッシュが返ることを確認します。')
     // ワークスペースに宣言 1.1.10 / 実体 1.1.7 の乖離が実在したため、実体の内容で判定する。
     const declaredSameVersion = 'export const VERSION = "1.1.10"\n'
     const bundleA = `${declaredSameVersion}export function convert() { return 1 }\n`
@@ -198,23 +206,27 @@ function slideHashesOf(blocks: readonly string[]): readonly string[] {
 const baseBlocks = [coverBlock, sectionBlock, detailBlock, closingBlock]
 
 describe('computeSlideHash', () => {
-  it('同一入力からは同一ハッシュを返す', () => {
+  it('同一入力からは同一ハッシュを返す', async () => {
+    await explains('スライドのハッシュを求める `computeSlideHash` のテストです。同じ内容の入力を 2 回渡した場合に、同じハッシュが返り、その形が 16 進数 64 桁であることを確認します。')
     const input = { slideNumber: 3, blockRaw: sectionBlock, bodyRaw: '# 本文\n' }
     expect(computeSlideHash(input)).toBe(computeSlideHash({ ...input }))
     expect(computeSlideHash(input)).toMatch(/^[\da-f]{64}$/)
   })
 
-  it('自スライドブロックが変わるとハッシュも変わる', () => {
+  it('スライド自身のブロックが変わった場合は、ハッシュも変わる', async () => {
+    await explains('スライドのハッシュを求める `computeSlideHash` のテストです。同じ番号で、ブロックの内容だけが違う入力を渡した場合に、違うハッシュが返ることを確認します。')
     expect(computeSlideHash({ slideNumber: 1, blockRaw: sectionBlock }))
       .not.toBe(computeSlideHash({ slideNumber: 1, blockRaw: closingBlock }))
   })
 
-  it('本文（src 分離時）が変わるとハッシュも変わる', () => {
+  it('src で分離した本文が変わった場合は、ハッシュも変わる', async () => {
+    await explains('スライドのハッシュを求める `computeSlideHash` のテストです。ブロックが同じで、`bodyRaw`（`src` で分離した本文）だけが違う入力を渡した場合に、違うハッシュが返ることを確認します。')
     expect(computeSlideHash({ slideNumber: 1, blockRaw: detailBlock, bodyRaw: '# A\n' }))
       .not.toBe(computeSlideHash({ slideNumber: 1, blockRaw: detailBlock, bodyRaw: '# B\n' }))
   })
 
-  it('raw 末尾の改行差はハッシュに影響しない', () => {
+  it('raw の末尾の改行の数が違っても、同じハッシュを返す', async () => {
+    await explains('スライドのハッシュを求める `computeSlideHash` のテストです。ブロックと本文の末尾に改行が余分にある場合でも、ない場合と同じハッシュが返ることを確認します。')
     // @slidev/parser の raw は末尾スライドだけ末尾改行を含む。正規化しないと
     // 「末尾に 1 枚追加」で直前のスライドがミスになる。
     expect(computeSlideHash({ slideNumber: 2, blockRaw: `${sectionBlock}\n\n` }))
@@ -223,26 +235,30 @@ describe('computeSlideHash', () => {
       .toBe(computeSlideHash({ slideNumber: 2, blockRaw: detailBlock, bodyRaw: '# 本文' }))
   })
 
-  it('本文なし（inline）と空本文は区別される', () => {
+  it('本文が存在しない場合（inline）と、本文が空文字の場合は、違うハッシュを返す', async () => {
+    await explains('スライドのハッシュを求める `computeSlideHash` のテストです。`bodyRaw` を渡さない場合と、空文字を渡した場合で、違うハッシュが返ることを確認します。')
     expect(computeSlideHash({ slideNumber: 1, blockRaw: detailBlock }))
       .not.toBe(computeSlideHash({ slideNumber: 1, blockRaw: detailBlock, bodyRaw: '' }))
   })
 
-  it('デッキ内位置が変わるとハッシュも変わる（ページ番号が描画に含まれるため）', () => {
+  it('デッキ内の位置（スライド番号）が変わった場合は、ハッシュも変わる', async () => {
+    await explains('スライドのハッシュを求める `computeSlideHash` のテストです。ブロックは同じで、スライド番号だけが違う入力を渡した場合に、ページ番号が描画に含まれるため、違うハッシュが返ることを確認します。')
     expect(computeSlideHash({ slideNumber: 2, blockRaw: sectionBlock }))
       .not.toBe(computeSlideHash({ slideNumber: 3, blockRaw: sectionBlock }))
   })
 })
 
 describe('slides.md の構成変更と slideHash', () => {
-  it('末尾へのスライド追加では既存スライドのハッシュが変わらない', () => {
+  it('末尾にスライドを追加した場合は、既存のスライドのハッシュが変わらない', async () => {
+    await explains('`slides.md` の構成を変えたときのスライドのハッシュのテストです。末尾へ 1 枚追加した場合は、枚数が 1 つ増え、既存のスライドのハッシュがすべて同じであることを確認します。')
     const before = slideHashesOf(baseBlocks)
     const after = slideHashesOf([...baseBlocks, extraBlock])
     expect(after).toHaveLength(before.length + 1)
     expect(after.slice(0, before.length)).toStrictEqual(before)
   })
 
-  it('中間挿入では、挿入位置の前側は不変で、後ろ側は全変化する', () => {
+  it('途中にスライドを挿入した場合は、挿入位置より前のハッシュは変わらず、後ろはすべて変わる', async () => {
+    await explains('`slides.md` の構成を変えたときのスライドのハッシュのテストです。途中へ 1 枚挿入した場合は、前の 2 枚のハッシュが同じで、後ろの 2 枚は位置がずれるため変わることを確認します。')
     const before = slideHashesOf(baseBlocks)
     const after = slideHashesOf([coverBlock, sectionBlock, extraBlock, detailBlock, closingBlock])
     expect(after.slice(0, 2)).toStrictEqual(before.slice(0, 2))
@@ -251,7 +267,8 @@ describe('slides.md の構成変更と slideHash', () => {
     expect(after[4]).not.toBe(before[3])
   })
 
-  it('中間削除では、削除位置の前側は不変で、後ろ側は全変化する', () => {
+  it('途中のスライドを削除した場合は、削除位置より前のハッシュは変わらず、後ろはすべて変わる', async () => {
+    await explains('`slides.md` の構成を変えたときのスライドのハッシュのテストです。途中の 1 枚を削除した場合に、先頭のハッシュが同じで、後ろの 2 枚は位置がずれるため変わることを確認します。')
     const before = slideHashesOf(baseBlocks)
     const after = slideHashesOf([coverBlock, detailBlock, closingBlock])
     expect(after[0]).toBe(before[0])
@@ -259,7 +276,8 @@ describe('slides.md の構成変更と slideHash', () => {
     expect(after[2]).not.toBe(before[3])
   })
 
-  it('並べ替えでは位置が変わらないスライドのハッシュは変わらない', () => {
+  it('スライドを並べ替えた場合は、位置が変わらないスライドのハッシュは変わらない', async () => {
+    await explains('`slides.md` の構成を変えたときのスライドのハッシュのテストです。中の 2 枚を入れ替えた場合に、先頭と末尾のハッシュが同じで、入れ替えた 2 枚だけが変わることを確認します。')
     const before = slideHashesOf(baseBlocks)
     const after = slideHashesOf([coverBlock, detailBlock, sectionBlock, closingBlock])
     expect(after[0]).toBe(before[0])
@@ -268,7 +286,8 @@ describe('slides.md の構成変更と slideHash', () => {
     expect(after[2]).not.toBe(before[2])
   })
 
-  it('コードフェンス内の --- はスライド区切りとして扱われない', () => {
+  it('コードフェンスの中の --- は、スライドの区切りとして扱わない', async () => {
+    await explains('`slides.md` の構成を変えたときのスライドのハッシュのテストです。コードフェンスの中に `---` がある場合でも、スライドが 3 枚のまま分解され、フェンス内を編集したスライドだけハッシュが変わることを確認します。')
     const fencedBlock = [
       '---',
       'layout: default',

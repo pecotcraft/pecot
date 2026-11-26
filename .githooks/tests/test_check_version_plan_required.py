@@ -230,8 +230,11 @@ def _plan(group: str) -> str:
     return f"---\n{group}: patch\n---\n\nplan body\n"
 
 
+@allure.title(
+    "プラグインのファイルを変更して version plan が存在しないと、その release group を示して失敗する"
+)
 def test_01_block_no_plan(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """1. pecot-workflow のファイルを変更 / plan 未同梱 → block (exit 1)。"""
+    """`check-version-plan-required.sh` のテストです。`pecot-workflow` を変更して version plan を同梱しないと、`release group [pecot-workflow]` を示して終了コード 1 で終わることを確認します。"""
     with allure.step("pecot-workflow のファイルだけを変更し、フックを動かす"):
         vpr_repo.build_feature()
         vpr_repo.stub_nx()
@@ -243,8 +246,9 @@ def test_01_block_no_plan(script_dir: Path, vpr_repo: _VprRepo, run_script) -> N
         assert "release group [pecot-workflow]" in out
 
 
+@allure.title("変更した group の version plan を同梱すると、成功する")
 def test_02_pass_feature_adds_own_plan(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """2. feature が自分の plan(pecot-workflow)を追加 → pass。"""
+    """`pecot-workflow` のファイルの変更に加えて、`pecot-workflow` を宣言する version plan を追加する場合のテストです。終了コード 0 で終わることを確認します。"""
     with allure.step("pecot-workflow の変更と、自分の plan を commit し、フックを動かす"):
         vpr_repo.build_feature()
         vpr_repo.stub_nx()
@@ -256,8 +260,9 @@ def test_02_pass_feature_adds_own_plan(script_dir: Path, vpr_repo: _VprRepo, run
         assert result.returncode == 0
 
 
+@allure.title("README.md だけを変更した場合は、version plan が存在しなくても成功する")
 def test_03_pass_doc_only_readme(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """3. README.md だけの変更 → pass。"""
+    """`plugins/pecot-workflow/README.md` だけを変更する場合のテストです。version plan が存在しなくても、終了コード 0 で終わることを確認します。"""
     with allure.step("README.md だけを変更し、フックを動かす"):
         feature_sha = _commit_feature(
             vpr_repo, {"plugins/pecot-workflow/README.md": "docs update\n"}
@@ -268,8 +273,9 @@ def test_03_pass_doc_only_readme(script_dir: Path, vpr_repo: _VprRepo, run_scrip
         assert result.returncode == 0
 
 
+@allure.title("リリースの commit は、version plan が存在しなくても成功する")
 def test_04_pass_release_commit(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """4. release commit (chore(release): ...) → pass。"""
+    """メッセージが `chore(release): v1.0` の commit で、`pecot-workflow` のファイルを変更する場合のテストです。リリースの commit と判定して、`nx` を呼ぶ前に、終了コード 0 で終わることを確認します。"""
     with allure.step("release の commit を作り、フックを動かす"):
         feature_sha = _commit_feature(
             vpr_repo,
@@ -282,8 +288,9 @@ def test_04_pass_release_commit(script_dir: Path, vpr_repo: _VprRepo, run_script
         assert result.returncode == 0
 
 
+@allure.title("PECOT_VERSION_PLAN_BASE で base を指定すると、その ref で判定して失敗する")
 def test_05a_explicit_base_override_block(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """5a. PECOT_VERSION_PLAN_BASE で明示 override → 指定 ref で判定 / block。"""
+    """`PECOT_VERSION_PLAN_BASE` に `origin/custom-base` を指定する場合のテストです。指定した ref を基準に判定し、version plan が存在しないため、終了コード 1 で終わってエラーを出力することを確認します。"""
     with allure.step("base を明示して、フックを動かす"):
         vpr_repo.build_feature()
         vpr_repo.stub_nx()
@@ -300,8 +307,9 @@ def test_05a_explicit_base_override_block(script_dir: Path, vpr_repo: _VprRepo, 
         assert "ERROR:" in (result.stdout + result.stderr)
 
 
+@allure.title("PECOT_VERSION_PLAN_BASE に存在しない ref を指定すると、警告を出力して成功する")
 def test_05b_nonexistent_base_skips(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """5b. PECOT_VERSION_PLAN_BASE=存在しない ref → skip (exit 0 / WARN)。"""
+    """`PECOT_VERSION_PLAN_BASE` に、存在しない ref を指定する場合のテストです。判定を飛ばして、終了コード 0 で終わり、`WARN` を含む出力をすることを確認します。"""
     with allure.step("存在しない base を指定して、フックを動かす"):
         vpr_repo.build_feature()
         vpr_repo.stub_nx()
@@ -317,8 +325,11 @@ def test_05b_nonexistent_base_skips(script_dir: Path, vpr_repo: _VprRepo, run_sc
         assert "WARN" in (result.stdout + result.stderr)
 
 
+@allure.title(
+    "version plan が存在しない main から直接分岐したブランチは、origin/HEAD を基準に判定して失敗する"
+)
 def test_06_block_main_direct_branch(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """6. 既存 plan なしの main 直分岐 → origin/HEAD(main) で判定 → block。"""
+    """既存の version plan を持たない `main` から、直接分岐したブランチで、`pecot-workflow` のファイルを変更する場合のテストです。`origin/HEAD` が指す `main` を基準に判定し、終了コード 1 でエラーを出力することを確認します。"""
     with allure.step("main から分けた feature でファイルを変更し、フックを動かす"):
         vpr_repo.git("checkout", "-q", "-b", "feature")
         probe = vpr_repo.repo / "plugins/pecot-workflow/cli/pecot/probe.py"
@@ -335,10 +346,11 @@ def test_06_block_main_direct_branch(script_dir: Path, vpr_repo: _VprRepo, run_s
         assert "ERROR:" in (result.stdout + result.stderr)
 
 
+@allure.title("別の origin ブランチが残っていても、origin/HEAD の main を基準に判定する")
 def test_07_pass_origin_head_over_develop_pecot(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """7. 残存 origin/develop-aist がいても origin/HEAD(main) を採用 (#702)。"""
+    """`origin/develop-aist` に既存の version plan が残っている場合のテストです。`origin/HEAD` が指す `main` を採用し、終了コード 0 で終わることを確認します。"""
     with allure.step("残った develop-aist を持つ feature を用意し、フックを動かす"):
         vpr_repo.git("checkout", "-q", "-b", "develop-aist")
         vpr_repo.make_plan(".nx/version-plans/000-existing.md", "pecot-workflow")
@@ -362,10 +374,13 @@ def test_07_pass_origin_head_over_develop_pecot(
         assert result.returncode == 0
 
 
+@allure.title(
+    "version plan が変更とは別の group だけを宣言していると、変更した group を示して失敗する"
+)
 def test_08_block_plan_declares_wrong_group(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """8. pecot-workflow を変更したが plan は pecot-visual のみ宣言 → block (宣言と変更の対応)。"""
+    """`pecot-workflow` を変更して、version plan が `pecot-visual` だけを宣言する場合のテストです。宣言と変更が対応しないため、終了コード 1 で終わり、`release group [pecot-workflow]` を含むエラーを出力することを確認します。"""
     with allure.step("別の group を宣言した plan を付けて、フックを動かす"):
         vpr_repo.build_feature(plan_group="pecot-visual")
         vpr_repo.stub_nx()
@@ -377,8 +392,9 @@ def test_08_block_plan_declares_wrong_group(
         assert "release group [pecot-workflow]" in out
 
 
+@allure.title("nx を解決できないと、警告を出力して成功する")
 def test_09_nx_unresolved_skips(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """9. nx 解決不能 (nx 未インストール) → skip (exit 0 / WARN)。"""
+    """`PATH` から `nx` を持つディレクトリを外して実行する場合のテストです。判定を飛ばして、終了コード 0 で終わり、`WARN` を含む出力をすることを確認します。"""
     with allure.step("nx を解決できない PATH にして、フックを動かす"):
         vpr_repo.build_feature()
         # stub_nx を呼ばない。nx の task の中では PATH に node_modules/.bin が入るため、nx を持つ dir を外す。
@@ -393,8 +409,9 @@ def test_09_nx_unresolved_skips(script_dir: Path, vpr_repo: _VprRepo, run_script
         assert "WARN" in (result.stdout + result.stderr)
 
 
+@allure.title("nx の graph の生成に失敗すると、警告を出力して成功する")
 def test_10_nx_graph_failure_skips(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """10. nx graph の生成に失敗 → skip (exit 0 / WARN)。"""
+    """`STUB_NX_GRAPH_FAIL` を `1` にして、`nx graph` を失敗させる場合のテストです。判定を飛ばして、終了コード 0 で終わり、`WARN` を含む出力をすることを確認します。"""
     with allure.step("nx graph を失敗させて、フックを動かす"):
         vpr_repo.build_feature()
         vpr_repo.stub_nx()
@@ -520,8 +537,11 @@ def _stub_plans_ok(h: _VprRepo) -> None:
     (src / "dependabot-plans.js").write_text("process.exit(0);\n")
 
 
+@allure.title(
+    "dependabot の更新が group へ届く場合に version plan が存在しないと、理由を出力して失敗する"
+)
 def test_37_block_dependabot_without_plan(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """37. dependabot の更新が group へ届くのに plan の commit が無い → 理由を出して止める（strict でなくても）。"""
+    """`dependabot` の author で `pecot-tools` の依存を更新して、version plan の commit が存在しない場合のテストです。strict でなくても、終了コード 1 で終わり、`pecot-tools の version plan がありません` を出力することを確認します。"""
     with allure.step("plan の無い dependabot の更新を用意し、フックを動かす"):
         sha = _dependabot_bump(vpr_repo)
         result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
@@ -530,8 +550,9 @@ def test_37_block_dependabot_without_plan(script_dir: Path, vpr_repo: _VprRepo, 
         assert "pecot-tools の version plan がありません" in result.stderr
 
 
+@allure.title("version plan を commit せず作業ツリーに置いただけでは、失敗する")
 def test_37b_block_uncommitted_plan(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """37b. 作業ツリーに置いただけの plan（未 commit）では通らない。"""
+    """dependabot の更新に対して、version plan を作業ツリーにだけ置く場合のテストです。commit されていないため、終了コード 1 で終わり、version plan が存在しない旨を出力することを確認します。"""
     with allure.step("未 commit の plan を置き、フックを動かす"):
         sha = _dependabot_bump(vpr_repo)
         (vpr_repo.repo / ".nx/version-plans/9-dependabot-deps.md").write_text(_plan("pecot-tools"))
@@ -541,8 +562,9 @@ def test_37b_block_uncommitted_plan(script_dir: Path, vpr_repo: _VprRepo, run_sc
         assert "version plan がありません" in result.stderr
 
 
+@allure.title("github-actions が version plan を commit したあとは、dependabot の更新でも成功する")
 def test_38_pass_dependabot_with_plan(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """38. github-actions[bot] が plan を commit した後 → pass。"""
+    """dependabot の更新のあとに、`github-actions[bot]` が `pecot-tools` の version plan を commit する場合のテストです。終了コード 0 で終わり、PR の commit で作る旨を標準エラーに出力することを確認します。"""
     with allure.step("github-actions が plan を commit した後に、フックを動かす"):
         _dependabot_bump(vpr_repo)
         sha = _commit_plan_as_actions(vpr_repo)
@@ -552,8 +574,9 @@ def test_38_pass_dependabot_with_plan(script_dir: Path, vpr_repo: _VprRepo, run_
         assert "PR の commit で作る" in result.stderr
 
 
+@allure.title("dependabot の判定には、base と head の commit を引数で渡す")
 def test_38b_check_receives_base_and_head(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """38b. --check には --base <from> --head <to> が渡る（スタブで argv を記録）。"""
+    """`dependabot-plans.js` を、引数を記録するスタブに差し替える場合のテストです。`--check --base <main の SHA> --head <push する SHA>` の引数で呼ばれることを確認します。"""
     with allure.step("argv を記録するスタブを置き、フックを動かす"):
         sha = _authored_feature(vpr_repo, [_DEPENDABOT])
         src = vpr_repo.repo / ".nx/nx-release/src"
@@ -568,10 +591,11 @@ def test_38b_check_receives_base_and_head(script_dir: Path, vpr_repo: _VprRepo, 
         assert argv == f"--check --base {vpr_repo.main_sha} --head {sha}"
 
 
+@allure.title("dependabot-plans.js が存在しないと、通常は警告で成功し、strict では失敗する")
 def test_38c_strict_fails_without_plans_script(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """38c. dependabot-plans.js が無い tmp repo は、通常は WARN で通し、strict では失敗にする。"""
+    """`dependabot-plans.js` が存在しない一時のリポジトリで、dependabot の commit を判定する場合のテストです。通常は終了コード 0 で終わって警告を出力し、`PECOT_VERSION_PLAN_STRICT=1` では終了コード 1 で終わることを確認します。"""
     with allure.step("dependabot-plans.js の無い feature を用意し、通常で動かす"):
         sha = _authored_feature(vpr_repo, [_DEPENDABOT])
         normal = _run(script_dir, vpr_repo, run_script, to_ref=sha)
@@ -584,8 +608,9 @@ def test_38c_strict_fails_without_plans_script(
         assert "PECOT_VERSION_PLAN_STRICT=1" in strict.stderr
 
 
+@allure.title("dependabot の commit だけの範囲は、理由を出力して成功する")
 def test_30_pass_dependabot_only(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """30. dependabot だけの range → 理由を出して pass。"""
+    """範囲のすべての commit の author が `dependabot[bot]` の場合のテストです。終了コード 0 で終わり、version plan を PR の commit で作る旨を出力することを確認します。"""
     with allure.step("dependabot だけの feature を用意し、フックを動かす"):
         sha = _authored_feature(vpr_repo, [_DEPENDABOT])
         _stub_plans_ok(vpr_repo)
@@ -595,8 +620,9 @@ def test_30_pass_dependabot_only(script_dir: Path, vpr_repo: _VprRepo, run_scrip
         assert "dependabot の更新の version plan は PR の commit で作る" in result.stderr
 
 
+@allure.title("dependabot と github-actions の commit だけの範囲は、成功する")
 def test_31_pass_dependabot_and_actions(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """31. dependabot と github-actions（lock の commit）→ pass。"""
+    """範囲に `dependabot[bot]` と `github-actions[bot]` の commit がある場合のテストです。終了コード 0 で終わり、version plan を PR の commit で作る旨を出力することを確認します。"""
     with allure.step("dependabot と github-actions の feature を用意し、フックを動かす"):
         sha = _authored_feature(vpr_repo, [_DEPENDABOT, _ACTIONS])
         _stub_plans_ok(vpr_repo)
@@ -606,8 +632,9 @@ def test_31_pass_dependabot_and_actions(script_dir: Path, vpr_repo: _VprRepo, ru
         assert "dependabot の更新の version plan は PR の commit で作る" in result.stderr
 
 
+@allure.title("dependabot の PR に人が commit を足すと、失敗する")
 def test_32_block_dependabot_and_human(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """32. dependabot の PR に人が commit を足した → 今までどおり ERROR。"""
+    """範囲に、`dependabot[bot]` の commit と人の commit がある場合のテストです。素通しにせず、終了コード 1 で終わり、エラーを出力することを確認します。"""
     with allure.step("dependabot の PR に人の commit を足し、フックを動かす"):
         sha = _authored_feature(vpr_repo, [_DEPENDABOT, _HUMAN])
         result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
@@ -616,8 +643,9 @@ def test_32_block_dependabot_and_human(script_dir: Path, vpr_repo: _VprRepo, run
         assert "ERROR:" in result.stderr
 
 
+@allure.title("github-actions の commit だけの範囲は、失敗する")
 def test_33_block_actions_only(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """33. github-actions だけ（dependabot が 0 件）→ ERROR。"""
+    """範囲に `dependabot[bot]` の commit が存在せず、`github-actions[bot]` の commit だけがある場合のテストです。終了コード 1 で終わり、エラーを出力することを確認します。"""
     with allure.step("github-actions だけの feature を用意し、フックを動かす"):
         sha = _authored_feature(vpr_repo, [_ACTIONS])
         result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
@@ -626,10 +654,11 @@ def test_33_block_actions_only(script_dir: Path, vpr_repo: _VprRepo, run_script)
         assert "ERROR:" in result.stderr
 
 
+@allure.title("人が作った merge commit は数えず、残りが dependabot の commit だけなら成功する")
 def test_34_pass_human_merge_commit_is_not_counted(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """34. 人が作った merge commit を挟んでも、merge でない commit が dependabot だけなら pass。"""
+    """`dependabot[bot]` の commit の間に、人が作った merge commit を挟む場合のテストです。merge commit を数えずに判定し、終了コード 0 で終わって、version plan を PR の commit で作る旨を出力することを確認します。"""
     with allure.step("人の merge commit を挟んだ feature を用意し、フックを動かす"):
         h = vpr_repo
         h.build_base_with_plan()
@@ -652,10 +681,11 @@ def test_34_pass_human_merge_commit_is_not_counted(
         assert "dependabot の更新の version plan は PR の commit で作る" in result.stderr
 
 
+@allure.title("dependabot の squash commit は、PR の情報の環境変数が存在しなくても成功する")
 def test_35_pass_squash_commit_without_pr_env(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """35. squash の 1 commit（author が dependabot）→ PR の情報の env なしで pass。"""
+    """author が `dependabot[bot]` の 1 つの commit を、PR の環境変数を設定せずに判定する場合のテストです。終了コード 0 で終わることを確認します。"""
     with allure.step("dependabot の squash の commit を用意し、フックを動かす"):
         sha = _authored_feature(vpr_repo, [_DEPENDABOT])
         result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
@@ -663,10 +693,11 @@ def test_35_pass_squash_commit_without_pr_env(
         assert result.returncode == 0
 
 
+@allure.title("strict では、base を解決できないと失敗し、strict でなければ飛ばす")
 def test_36_strict_fails_on_unresolved_base(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """36. strict では base が解決できないと失敗。env が無ければ今までどおり skip。"""
+    """`PECOT_VERSION_PLAN_BASE` に存在しない ref を指定する場合のテストです。`PECOT_VERSION_PLAN_STRICT=1` では終了コード 1 で終わって設定名を出力し、設定しないと終了コード 0 で終わることを確認します。"""
     with allure.step("解決できない base を指定した feature を用意する"):
         vpr_repo.build_feature()
         vpr_repo.stub_nx()
@@ -684,10 +715,11 @@ def test_36_strict_fails_on_unresolved_base(
         assert loose.returncode == 0
 
 
+@allure.title("strict では、nx の graph の生成に失敗すると失敗し、strict でなければ飛ばす")
 def test_37_strict_fails_on_nx_graph_failure(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """37. strict では nx graph が失敗すると失敗。env が無ければ今までどおり skip。"""
+    """`nx graph` が失敗する場合のテストです。`PECOT_VERSION_PLAN_STRICT=1` では終了コード 1 で終わり、設定しないと終了コード 0 で終わることを確認します。"""
     with allure.step("nx graph を失敗させる feature を用意する"):
         vpr_repo.build_feature()
         vpr_repo.stub_nx()
@@ -702,8 +734,9 @@ def test_37_strict_fails_on_nx_graph_failure(
         assert loose.returncode == 0
 
 
+@allure.title("strict でも、判定が不要な変更は、成功のままにする")
 def test_38_strict_keeps_normal_pass(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """38. strict でも、判定不能でない素通し（変更の無い場合）は 0 のまま。"""
+    """README だけを変更する場合のテストです。`PECOT_VERSION_PLAN_STRICT=1` を設定しても、判定を飛ばす対象ではないため、終了コード 0 で終わることを確認します。"""
     with allure.step("README.md だけを変更し、strict でフックを動かす"):
         sha = _commit_feature(vpr_repo, {"plugins/pecot-workflow/README.md": "docs\n"})
         vpr_repo.stub_nx()
@@ -711,10 +744,11 @@ def test_38_strict_keeps_normal_pass(script_dir: Path, vpr_repo: _VprRepo, run_s
         assert _run(script_dir, vpr_repo, run_script, to_ref=sha, env=_STRICT).returncode == 0
 
 
+@allure.title("strict では、push の情報が存在しないと失敗し、strict でなければ飛ばす")
 def test_39_strict_fails_without_push_info(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """39. strict では push 情報なしも失敗。env が無ければ skip。"""
+    """`PRE_COMMIT_TO_REF` を渡さずに実行する場合のテストです。`PECOT_VERSION_PLAN_STRICT=1` では終了コード 1 で終わり、設定しないと終了コード 0 で終わることを確認します。"""
     with allure.step("push の情報の無い状態を用意する"):
         vpr_repo.build_feature()
         vpr_repo.stub_nx()
@@ -726,8 +760,9 @@ def test_39_strict_fails_without_push_info(
 # touched の判定（持ち主の project と release group）
 
 
+@allure.title("ルートの設定だけを変更した場合は、どの project にも属さないため、成功する")
 def test_11_pass_root_config_only(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """11. ルート設定 (nx.json) だけの変更 → どの project にも属さないので pass（affected でも touched ではない）。"""
+    """`nx.json` だけを変更する場合のテストです。どの project にも属さないファイルは、affected になっても touched にならないため、終了コード 0 で終わることを確認します。"""
     with allure.step("nx.json だけを変更し、フックを動かす"):
         vpr_repo.build_base_with_plan()
         vpr_repo.git("checkout", "-q", "-b", "feature")
@@ -742,8 +777,9 @@ def test_11_pass_root_config_only(script_dir: Path, vpr_repo: _VprRepo, run_scri
         assert result.returncode == 0
 
 
+@allure.title("どの project にも属さないファイルだけを変更した場合は、成功する")
 def test_12_pass_files_outside_projects(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """12. どの project にも属さないファイル（.githooks 等）だけの変更 → pass。"""
+    """`.githooks` 配下のファイルだけを変更する場合のテストです。project に属さないため、version plan が存在しなくても、終了コード 0 で終わることを確認します。"""
     with allure.step("project に属さないファイルだけを変更し、フックを動かす"):
         feature_sha = _commit_feature(vpr_repo, {".githooks/pre-commit/probe.sh": "echo probe\n"})
         vpr_repo.stub_nx()
@@ -752,8 +788,9 @@ def test_12_pass_files_outside_projects(script_dir: Path, vpr_repo: _VprRepo, ru
         assert result.returncode == 0
 
 
+@allure.title("release group に入っていない project だけを変更した場合は、成功する")
 def test_13_pass_project_outside_groups(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """13. release group に入っていない project（nx-release）だけの変更 → pass。"""
+    """`.nx/nx-release` の `nx-release` だけを変更する場合のテストです。group に入っていない project のため、終了コード 0 で終わることを確認します。"""
     with allure.step("group に入らない project だけを変更し、フックを動かす"):
         feature_sha = _commit_feature(vpr_repo, {".nx/nx-release/src/probe.js": "// probe\n"})
         vpr_repo.stub_nx()
@@ -762,10 +799,11 @@ def test_13_pass_project_outside_groups(script_dir: Path, vpr_repo: _VprRepo, ru
         assert result.returncode == 0
 
 
+@allure.title("配布しない libs の project だけを変更した場合は、version plan を求めず成功する")
 def test_13b_pass_libs_project_outside_groups(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """13b. 配布しない libs/interface-spec だけの変更 → group に無い project なので plan を求めず pass。"""
+    """配布しない `libs/interface-spec` だけを変更する場合のテストです。group に入っていない project のため、version plan を求めず、終了コード 0 で終わることを確認します。"""
     with allure.step("配布しない libs の project だけを変更し、フックを動かす"):
         feature_sha = _commit_feature(
             vpr_repo, {"libs/interface-spec/src/probe.ts": "export {};\n"}
@@ -776,10 +814,13 @@ def test_13b_pass_libs_project_outside_groups(
         assert result.returncode == 0
 
 
+@allure.title(
+    "プラグイン配下の深いディレクトリの変更は、そのプラグインの group の変更として扱い、失敗する"
+)
 def test_14_block_nested_dir_maps_to_plugin(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """14. プラグイン配下の深いディレクトリの変更も、そのプラグインの group に写る。"""
+    """`plugins/pecot-visual/skills/v-drawio/references/` のファイルを変更する場合のテストです。そのプラグインの group の変更として扱い、終了コード 1 で終わって、`release group [pecot-visual]` を出力することを確認します。"""
     with allure.step("プラグインの深いディレクトリを変更し、フックを動かす"):
         feature_sha = _commit_feature(
             vpr_repo, {"plugins/pecot-visual/skills/v-drawio/references/x.md": "ref\n"}
@@ -791,8 +832,9 @@ def test_14_block_nested_dir_maps_to_plugin(
         assert "release group [pecot-visual]" in (result.stdout + result.stderr)
 
 
+@allure.title("SKILL.md だけを変更した場合は、除外の glob に当たらないため、失敗する")
 def test_15_block_skill_md_only(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """15. SKILL.md のみの変更 → block (SKILL.md は nx.json の glob に当たらない)。"""
+    """`plugins/pecot-workflow/skills/foo/SKILL.md` だけを変更する場合のテストです。`nx.json` の glob に当たらず、終了コード 1 で終わって、`release group [pecot-workflow]` を出力することを確認します。"""
     with allure.step("SKILL.md だけを変更し、フックを動かす"):
         feature_sha = _commit_feature(
             vpr_repo, {"plugins/pecot-workflow/skills/foo/SKILL.md": "skill doc\n"}
@@ -806,8 +848,9 @@ def test_15_block_skill_md_only(script_dir: Path, vpr_repo: _VprRepo, run_script
         assert "release group [pecot-workflow]" in out
 
 
+@allure.title("同じ group で README.md とコードを変更した場合は、失敗する")
 def test_16_block_mixed_doc_and_code(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """16. README.md とコードを同じ group で変更 → block。"""
+    """`pecot-visual` の README.md と `cli/probe.ts` を同時に変更する場合のテストです。コードの変更があるため、終了コード 1 で終わって、`release group [pecot-visual]` を出力することを確認します。"""
     with allure.step("README.md とコードを変更し、フックを動かす"):
         feature_sha = _commit_feature(
             vpr_repo,
@@ -823,8 +866,9 @@ def test_16_block_mixed_doc_and_code(script_dir: Path, vpr_repo: _VprRepo, run_s
         assert "release group [pecot-visual]" in (result.stdout + result.stderr)
 
 
+@allure.title("複数のディレクトリの README.md と CHANGELOG.md だけを変更した場合は、成功する")
 def test_17_pass_doc_only_across_dirs(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """17. 複数ディレクトリの README.md / CHANGELOG.md だけの変更 → pass。"""
+    """`pecot-visual` の複数のディレクトリで、README.md と CHANGELOG.md だけを変更する場合のテストです。すべて除外の glob に当たるため、終了コード 0 で終わることを確認します。"""
     with allure.step("複数のディレクトリの README.md と CHANGELOG.md を変更し、フックを動かす"):
         feature_sha = _commit_feature(
             vpr_repo,
@@ -839,10 +883,11 @@ def test_17_pass_doc_only_across_dirs(script_dir: Path, vpr_repo: _VprRepo, run_
         assert result.returncode == 0
 
 
+@allure.title("project.json だけを変更した場合は、その group の宣言だけで成功する")
 def test_18_pass_other_group_file_in_test_inputs(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """18. pecot-visual の project.json だけを変更 → pecot-visual の宣言だけで pass（他 group は touched ではない）。"""
+    """`pecot-visual` の `project.json` を変更して、`pecot-visual` の version plan を同梱する場合のテストです。ほかの group は touched にならず、終了コード 0 で終わることを確認します。"""
     with allure.step("pecot-visual の project.json と plan を commit し、フックを動かす"):
         feature_sha = _commit_feature(
             vpr_repo,
@@ -857,8 +902,11 @@ def test_18_pass_other_group_file_in_test_inputs(
         assert result.returncode == 0, result.stdout + result.stderr
 
 
+@allure.title(
+    "名前が前方一致するだけの別のディレクトリは、そのプラグインの持ち物として扱わず、成功する"
+)
 def test_19_pass_root_prefix_is_not_owner(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """19. plugins/pecot-workflowx 配下は plugins/pecot-workflow の持ち物ではない → pass（`/` 境界の固定）。"""
+    """`plugins/pecot-workflowx` 配下のファイルを変更する場合のテストです。`plugins/pecot-workflow` の持ち物にならず、終了コード 0 で終わり、`release group [pecot-workflow]` を出力しないことを確認します。"""
     with allure.step("名前が前方一致するだけのディレクトリを変更し、フックを動かす"):
         feature_sha = _commit_feature(vpr_repo, {"plugins/pecot-workflowx/probe.py": "print(1)\n"})
         vpr_repo.stub_nx()
@@ -873,10 +921,11 @@ def _set_nx_json(h: _VprRepo, text: str) -> None:
     (h.repo / "nx.json").write_text(text)
 
 
+@allure.title("nx.json に除外の glob が存在しないと、README.md だけの変更でも失敗する")
 def test_17b_block_readme_without_glob_in_nx_json(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """17b. nx.json に glob が無い（versionPlans: true）→ README.md だけでも block。"""
+    """`nx.json` の `versionPlans` が `true` で、除外の glob が存在しない場合のテストです。README.md だけの変更でも、終了コード 1 で終わって、`release group [pecot-workflow]` を出力することを確認します。"""
     with allure.step("glob の無い nx.json を置き、README.md だけの変更でフックを動かす"):
         feature_sha = _commit_feature(vpr_repo, {"plugins/pecot-workflow/README.md": "docs\n"})
         _set_nx_json(vpr_repo, _nx_json(root_globs=None))
@@ -887,8 +936,9 @@ def test_17b_block_readme_without_glob_in_nx_json(
         assert "release group [pecot-workflow]" in (result.stdout + result.stderr)
 
 
+@allure.title("ルートの glob に *.txt を足すと、.txt だけの変更は成功する")
 def test_17c_pass_txt_with_glob_added(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """17c. root の glob に *.txt を足す → .txt だけの変更は pass。足さなければ block。"""
+    """`plugins/pecot-workflow/cli/a.txt` だけを変更する場合のテストです。glob に足す前は終了コード 1 で終わり、`nx.json` に `*.txt` を足したあとは終了コード 0 で終わることを確認します。"""
     with allure.step("*.txt だけの変更を用意する"):
         feature_sha = _commit_feature(vpr_repo, {"plugins/pecot-workflow/cli/a.txt": "x\n"})
         vpr_repo.stub_nx()
@@ -901,8 +951,11 @@ def test_17c_pass_txt_with_glob_added(script_dir: Path, vpr_repo: _VprRepo, run_
         assert result.returncode == 0, result.stdout + result.stderr
 
 
+@allure.title(
+    "group が versionPlans に true を書くと、ルートの glob は使わず、その group の README.md の変更で失敗する"
+)
 def test_17d_group_true_cancels_root_glob(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """17d. group が versionPlans: true を書くと root の glob は使われない。ほかの group は継承する。"""
+    """`pecot-workflow` の `versionPlans` を `true` にして、2 つの group の README.md を変更する場合のテストです。`pecot-workflow` はルートの glob を使わないため、終了コード 1 で終わって、`release group [pecot-workflow]` を出力することを確認します。"""
     with allure.step("group に versionPlans: true を書いた nx.json を置き、フックを動かす"):
         feature_sha = _commit_feature(
             vpr_repo,
@@ -920,10 +973,11 @@ def test_17d_group_true_cancels_root_glob(script_dir: Path, vpr_repo: _VprRepo, 
         assert "release group [pecot-workflow]" in out
 
 
+@allure.title("ほかの group は、ルートの glob を引き継ぐため、README.md だけの変更で成功する")
 def test_17e_pass_other_group_inherits_root_glob(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """17e. 17d と同じ nx.json で、ほかの group の README.md だけの変更は pass。"""
+    """`pecot-workflow` の `versionPlans` を `true` にした `nx.json` で、`pecot-visual` の README.md だけを変更する場合のテストです。ルートの glob を引き継ぐため、終了コード 0 で終わることを確認します。"""
     with allure.step("別の group の README.md だけを変更し、フックを動かす"):
         feature_sha = _commit_feature(vpr_repo, {"plugins/pecot-visual/README.md": "docs\n"})
         _set_nx_json(vpr_repo, _nx_json(group_vp={"pecot-workflow": True}))
@@ -933,10 +987,13 @@ def test_17e_pass_other_group_inherits_root_glob(
         assert result.returncode == 0, result.stdout + result.stderr
 
 
+@allure.title(
+    "group が自分の glob を書くと、ルートの glob は使わず、README.md は失敗し、.txt は成功する"
+)
 def test_17h_group_object_overrides_root_glob(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """17h. group が自分の glob を書くと root の glob は使われない。README.md は block、.txt は pass。"""
+    """`pecot-workflow` が `*.txt` だけを除外する glob を持つ場合のテストです。README.md の変更は終了コード 1 で終わり、`.txt` の変更は終了コード 0 で終わることを確認します。"""
     with allure.step("group に自分の glob を書いた nx.json を置く"):
         group_vp = {"pecot-workflow": {"ignorePatternsForPlanCheck": ["*.txt"]}}
         _set_nx_json(vpr_repo, _nx_json(group_vp=group_vp))
@@ -955,10 +1012,11 @@ def test_17h_group_object_overrides_root_glob(
         assert result.returncode == 0, result.stdout + result.stderr
 
 
+@allure.title("group が空の配列を書くと、何も除外せず、README.md だけの変更でも失敗する")
 def test_17i_group_empty_array_counts_readme(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """17i. group が空の配列を書くと何も除外しない → README.md だけでも block。"""
+    """`pecot-workflow` の `ignorePatternsForPlanCheck` が空の配列の場合のテストです。README.md だけの変更でも、終了コード 1 で終わって、`release group [pecot-workflow]` を出力することを確認します。"""
     with allure.step("group に空の glob を書いた nx.json を置き、フックを動かす"):
         feature_sha = _commit_feature(vpr_repo, {"plugins/pecot-workflow/README.md": "docs\n"})
         group_vp = {"pecot-workflow": {"ignorePatternsForPlanCheck": []}}
@@ -970,8 +1028,9 @@ def test_17i_group_empty_array_counts_readme(
         assert "release group [pecot-workflow]" in (result.stdout + result.stderr)
 
 
+@allure.title("小文字の readme.md も、大文字と小文字を区別せずに除外して、成功する")
 def test_17f_pass_readme_case_insensitive(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """17f. readme.md（小文字）も pass。nx の ignore() と同じく大文字小文字を区別しない。"""
+    """`plugins/pecot-workflow/readme.md` だけを変更する場合のテストです。nx の `ignore()` と同様に、大文字と小文字を区別せず除外し、終了コード 0 で終わることを確認します。"""
     with allure.step("小文字の readme.md だけを変更し、フックを動かす"):
         feature_sha = _commit_feature(vpr_repo, {"plugins/pecot-workflow/readme.md": "docs\n"})
         vpr_repo.stub_nx()
@@ -980,8 +1039,9 @@ def test_17f_pass_readme_case_insensitive(script_dir: Path, vpr_repo: _VprRepo, 
         assert result.returncode == 0, result.stdout + result.stderr
 
 
+@allure.title("nx 配下の ignore を解決できないと、専用の警告を出力して成功する")
 def test_17g_ignore_unresolved_skips(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """17g. nx 配下の ignore を解決できない → 専用の WARN を出して skip (exit 0)。"""
+    """`node_modules/nx` を外して実行する場合のテストです。判定を飛ばして、終了コード 0 で終わり、`nx 配下の ignore を解決できないため version plan check を skip` を出力することを確認します。"""
     with allure.step("nx の ignore を解決できない状態で、フックを動かす"):
         feature_sha = _commit_feature(vpr_repo, {"plugins/pecot-workflow/cli/probe.py": "x = 1\n"})
         (vpr_repo.repo / "node_modules" / "nx").unlink()
@@ -992,10 +1052,11 @@ def test_17g_ignore_unresolved_skips(script_dir: Path, vpr_repo: _VprRepo, run_s
         assert "nx 配下の ignore を解決できないため version plan check を skip" in result.stderr
 
 
+@allure.title("除外の glob が存在しなければ、ignore を解決せず、nx 配下が存在しなくても失敗する")
 def test_17j_block_without_glob_needs_no_ignore_resolution(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """17j. glob が無ければ ignore を解決しない → nx 配下が無くても、ソースの変更は block で WARN も無い。"""
+    """`versionPlans` が `true` で、`node_modules/nx` が存在しない場合のテストです。ソースの変更で、終了コード 1 で終わり、`release group [pecot-workflow]` を出力して、ignore を解決できない旨の警告は出力しないことを確認します。"""
     with allure.step("glob の無い nx.json を置き、nx 配下を外してフックを動かす"):
         feature_sha = _commit_feature(vpr_repo, {"plugins/pecot-workflow/cli/probe.py": "x = 1\n"})
         _set_nx_json(vpr_repo, _nx_json(root_globs=None))
@@ -1011,8 +1072,9 @@ def test_17j_block_without_glob_needs_no_ignore_resolution(
 # version plan の宣言
 
 
+@allure.title("version plan の bump の値が空だと、宣言として扱わず、失敗する")
 def test_20_block_empty_bump_value(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """20. plan の bump 値が空 → 宣言扱いされず block。"""
+    """version plan の `pecot-workflow` の値が空の場合のテストです。宣言として扱わないため、終了コード 1 で終わり、エラーを出力することを確認します。"""
     with allure.step("bump の値が空の plan を commit し、フックを動かす"):
         feature_sha = _commit_feature(
             vpr_repo,
@@ -1028,8 +1090,9 @@ def test_20_block_empty_bump_value(script_dir: Path, vpr_repo: _VprRepo, run_scr
         assert "ERROR:" in (result.stdout + result.stderr)
 
 
+@allure.title("version plan が group 名以外のキーで宣言していると、宣言として扱わず、失敗する")
 def test_21_block_non_group_key_plan(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """21. plan が group 名以外のキー (pecot-visual-drawio) で宣言 → 宣言扱いされず block。"""
+    """version plan が `pecot-visual-drawio` というキーで宣言する場合のテストです。group 名ではないため、終了コード 1 で終わり、`release group [pecot-visual]` を出力することを確認します。"""
     with allure.step("group 名でないキーの plan を commit し、フックを動かす"):
         feature_sha = _commit_feature(
             vpr_repo,
@@ -1045,8 +1108,9 @@ def test_21_block_non_group_key_plan(script_dir: Path, vpr_repo: _VprRepo, run_s
         assert "release group [pecot-visual]" in (result.stdout + result.stderr)
 
 
+@allure.title("2 つの group を変更して version plan が存在しないと、両方の group を示して失敗する")
 def test_22_block_both_plugins(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """22. pecot-workflow と pecot-visual を変更 / plan 未同梱 → 両 group を列挙して block。"""
+    """`pecot-workflow` と `pecot-visual` を変更して、version plan を同梱しない場合のテストです。終了コード 1 で終わり、`release group [pecot-visual pecot-workflow]` を出力することを確認します。"""
     with allure.step("2 つのプラグインを変更し、フックを動かす"):
         feature_sha = _commit_feature(
             vpr_repo,
@@ -1062,10 +1126,11 @@ def test_22_block_both_plugins(script_dir: Path, vpr_repo: _VprRepo, run_script)
         assert "release group [pecot-visual pecot-workflow]" in (result.stdout + result.stderr)
 
 
+@allure.title("2 つの group を変更して片方だけ宣言すると、宣言のない group だけを示して失敗する")
 def test_23_block_only_missing_group_listed(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """23. 2 group を変更し片方だけ宣言 → 宣言の無い group だけを挙げて block。"""
+    """`pecot-tools` と `pecot-visual` を変更して、`pecot-tools` の version plan だけを同梱する場合のテストです。終了コード 1 で終わり、宣言がない `release group [pecot-visual]` だけを出力することを確認します。"""
     with allure.step("2 つの group を変更して片方だけ plan を付け、フックを動かす"):
         feature_sha = _commit_feature(
             vpr_repo,
@@ -1082,8 +1147,9 @@ def test_23_block_only_missing_group_listed(
         assert "release group [pecot-visual]" in (result.stdout + result.stderr)
 
 
+@allure.title("pecot-tools の変更に、pecot-tools を宣言する version plan を同梱すると、成功する")
 def test_24_pass_pecot_tools_plan(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """24. pecot-tools を変更 + plan が pecot-tools を宣言 → pass。"""
+    """`pecot-tools` のファイルを変更して、`pecot-tools` を宣言する version plan を同梱する場合のテストです。終了コード 0 で終わることを確認します。"""
     with allure.step("pecot-tools の変更と plan を commit し、フックを動かす"):
         feature_sha = vpr_repo.build_feature(
             rel_path="plugins/pecot-tools/cli/probe.ts",
@@ -1098,10 +1164,11 @@ def test_24_pass_pecot_tools_plan(script_dir: Path, vpr_repo: _VprRepo, run_scri
         assert result.returncode == 0
 
 
+@allure.title("libs の text-rules を変更して version plan が存在しないと、失敗する")
 def test_24b_block_libs_project_without_plan(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """24b. libs/text-rules を変更 / plan 未同梱 → release group [text-rules] で block。"""
+    """`libs/text-rules` を変更して、version plan を同梱しない場合のテストです。終了コード 1 で終わり、`release group [text-rules]` を出力することを確認します。"""
     with allure.step("libs/text-rules を変更し、フックを動かす"):
         vpr_repo.build_feature(
             rel_path="libs/text-rules/index.ts",
@@ -1115,10 +1182,13 @@ def test_24b_block_libs_project_without_plan(
         assert "release group [text-rules]" in (result.stdout + result.stderr)
 
 
+@allure.title(
+    "libs の text-rules の変更に、text-rules を宣言する version plan を同梱すると、成功する"
+)
 def test_24c_pass_libs_project_with_text_rules_plan(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """24c. libs/text-rules を変更 + plan が text-rules を宣言 → pass。"""
+    """`libs/text-rules` を変更して、`text-rules` を宣言する version plan を同梱する場合のテストです。終了コード 0 で終わることを確認します。"""
     with allure.step("libs/text-rules の変更と plan を commit し、フックを動かす"):
         feature_sha = vpr_repo.build_feature(
             rel_path="libs/text-rules/index.ts",
@@ -1133,8 +1203,9 @@ def test_24c_pass_libs_project_with_text_rules_plan(
         assert result.returncode == 0
 
 
+@allure.title("3 つの group を変更して version plan が存在しないと、3 つの group を並べて失敗する")
 def test_25_block_three_groups(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """25. 3 group を変更 / plan 未同梱 → 3 group を列挙して block。"""
+    """`pecot-workflow`、`pecot-visual`、`pecot-tools` を変更して、version plan を同梱しない場合のテストです。終了コード 1 で終わり、`release group [pecot-tools pecot-visual pecot-workflow]` と整列した順に出力することを確認します。"""
     with allure.step("3 つの group を変更し、フックを動かす"):
         feature_sha = _commit_feature(
             vpr_repo,
@@ -1154,8 +1225,11 @@ def test_25_block_three_groups(script_dir: Path, vpr_repo: _VprRepo, run_script)
         )
 
 
+@allure.title(
+    "非 ASCII のパスの変更も、クォートされず、持ち主の project の変更として扱い、失敗する"
+)
 def test_26_block_non_ascii_path(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """26. 非 ASCII パスの変更もクォートされずに持ち主の project へ写る → block。"""
+    """`plugins/pecot-visual/skills/日本語/SKILL.md` を変更する場合のテストです。パスがクォートされずに、持ち主の project に対応し、終了コード 1 で終わって、`release group [pecot-visual]` を出力することを確認します。"""
     with allure.step("非 ASCII のパスを変更し、フックを動かす"):
         feature_sha = _commit_feature(
             vpr_repo, {"plugins/pecot-visual/skills/日本語/SKILL.md": "日本語の skill\n"}
@@ -1167,8 +1241,9 @@ def test_26_block_non_ascii_path(script_dir: Path, vpr_repo: _VprRepo, run_scrip
         assert "release group [pecot-visual]" in (result.stdout + result.stderr)
 
 
+@allure.title("判定が終わったあと、.pecot/tmp に一時ファイルが残らない")
 def test_27_no_temp_files_left(script_dir: Path, vpr_repo: _VprRepo, run_script) -> None:
-    """27. 判定後に .pecot/tmp の一時ファイルが残らない。"""
+    """判定したあとの、`.pecot/tmp` のテストです。ディレクトリが存在しないか、存在しても空であることを確認します。"""
     with allure.step("feature を用意し、フックを動かす"):
         vpr_repo.build_feature()
         vpr_repo.stub_nx()
@@ -1178,10 +1253,13 @@ def test_27_no_temp_files_left(script_dir: Path, vpr_repo: _VprRepo, run_script)
         assert list(tmp.iterdir()) == [] if tmp.exists() else True
 
 
+@allure.title(
+    "group 外の project がプラグインの project の配下にあると、README だけの変更でもエラーにする"
+)
 def test_28_error_nested_project_outside_group(
     script_dir: Path, vpr_repo: _VprRepo, run_script
 ) -> None:
-    """28. group 外の project がプラグイン project の配下にある → 変更が README だけでも ERROR (exit 1)。"""
+    """`pecot-workflow` の配下に、group 外の `pecot-workflow-cli` という project がある場合のテストです。変更が README だけでも、終了コード 1 で終わり、project 名を含むエラーを出力することを確認します。"""
     with allure.step("group 外の project がプラグイン配下にある状態で、フックを動かす"):
         vpr_repo.build_feature(rel_path="plugins/pecot-workflow/cli/pecot/README.md")
         vpr_repo.stub_nx()
@@ -1338,8 +1416,11 @@ def real_nx(tmp_path_factory: pytest.TempPathFactory) -> Iterator[_RealNx]:
         yield h
 
 
+@allure.title(
+    "実際の nx で、SKILL.md を変更して version plan が存在しないと、その group を示して失敗する"
+)
 def test_real_01_block_skill_md_without_plan(real_nx: _RealNx) -> None:
-    """実 nx (a): pecot-visual の SKILL.md 変更・宣言なし → block [pecot-visual]。"""
+    """実際の nx を使い、`pecot-visual` の `SKILL.md` を変更して version plan を同梱しない場合のテストです。終了コード 1 で終わり、`release group [pecot-visual]` を出力することを確認します。"""
     with allure.step("pecot-visual の SKILL.md を変更して commit する"):
         real_nx.case("real-01")
         skill = real_nx.probe / real_nx.tracked("plugins/pecot-visual", "SKILL.md")
@@ -1352,8 +1433,11 @@ def test_real_01_block_skill_md_without_plan(real_nx: _RealNx) -> None:
         assert "release group [pecot-visual]" in result.stderr
 
 
+@allure.title(
+    "実際の nx で、別のプラグインへファイルを移動して移動先だけ宣言すると、移動元の group を示して失敗する"
+)
 def test_real_02_block_move_into_other_plugin(real_nx: _RealNx) -> None:
-    """実 nx (b): pecot-visual のファイルを pecot-workflow へ移動し pecot-workflow だけ宣言 → block。"""
+    """実際の nx を使い、`pecot-visual` のファイルを `pecot-workflow` に移動して、`pecot-workflow` だけを宣言する場合のテストです。終了コード 1 で終わり、`release group [pecot-visual]` を出力することを確認します。"""
     with allure.step("pecot-visual のファイルを pecot-workflow へ移し、plan を付けて commit する"):
         real_nx.case("real-02")
         src = real_nx.tracked("plugins/pecot-visual/skills")
@@ -1369,8 +1453,9 @@ def test_real_02_block_move_into_other_plugin(real_nx: _RealNx) -> None:
         assert "release group [pecot-visual]" in result.stderr
 
 
+@allure.title("実際の nx で、ファイルの削除だけでも、その group を示して失敗する")
 def test_real_03_block_delete_only(real_nx: _RealNx) -> None:
-    """実 nx (c): pecot-tools のファイル削除だけ → block [pecot-tools]。"""
+    """実際の nx を使い、`pecot-tools` のファイルを削除するだけの場合のテストです。終了コード 1 で終わり、`release group [pecot-tools]` を出力することを確認します。"""
     with allure.step("pecot-tools のファイルを削除して commit する"):
         real_nx.case("real-03")
         real_nx.git("rm", "-q", real_nx.tracked("plugins/pecot-tools/cli"))
@@ -1382,8 +1467,11 @@ def test_real_03_block_delete_only(real_nx: _RealNx) -> None:
         assert "release group [pecot-tools]" in result.stderr
 
 
+@allure.title(
+    "実際の nx で、project.json の変更は、ほかの project が affected になっても、自分の group の宣言だけで成功する"
+)
 def test_real_04_pass_project_json_with_own_plan(real_nx: _RealNx) -> None:
-    """実 nx (d): project.json の変更は他 project も affected にするが、touched でなければ宣言は要らない。"""
+    """実際の nx を使い、`pecot-visual` の `project.json` を変更して、その group の version plan を同梱する場合のテストです。同じ範囲で `pecot-workflow` が affected になっても、touched ではないため、終了コード 0 で終わることを確認します。"""
     with allure.step("pecot-visual の project.json を変更し、plan を付けて commit する"):
         real_nx.case("real-04")
         project_json = real_nx.probe / "plugins/pecot-visual/project.json"
@@ -1399,8 +1487,9 @@ def test_real_04_pass_project_json_with_own_plan(real_nx: _RealNx) -> None:
         assert result.returncode == 0, result.stderr
 
 
+@allure.title("実際の nx で、group 外の project がプラグインの配下にあると、エラーにする")
 def test_real_05_error_nested_project(real_nx: _RealNx) -> None:
-    """実 nx (e): プラグイン配下に group 外の project がある → ERROR (exit 1)。"""
+    """実際の nx を使い、`plugins/pecot-visual` の配下に `nested-probe` という project を置く場合のテストです。終了コード 1 で終わり、`ERROR:` と project 名を出力することを確認します。"""
     with allure.step("プラグイン配下に group 外の project を足し、plan を付けて commit する"):
         real_nx.case("real-05")
         nested = real_nx.probe / "plugins/pecot-visual/nested-probe"
@@ -1417,8 +1506,9 @@ def test_real_05_error_nested_project(real_nx: _RealNx) -> None:
         assert "nested-probe" in result.stderr
 
 
+@allure.title("実際の nx で、README.md だけの変更は成功し、nx の plan:check も同じ判定をする")
 def test_real_06_pass_readme_only_and_plan_check_agrees(real_nx: _RealNx) -> None:
-    """実 nx (f): README.md だけの変更は pass し、plan:check も同じ glob で対象なしと判定する。"""
+    """実際の nx を使い、`pecot-visual` の README.md だけを変更する場合のテストです。フックは警告なしで終了コード 0 で終わり、`nx release plan:check` も、対象の project が存在しないと判定することを確認します。"""
     with allure.step("README.md を変更して commit する"):
         real_nx.case("real-06")
         readme = real_nx.probe / "plugins/pecot-visual/README.md"
@@ -1456,8 +1546,11 @@ def test_real_06_pass_readme_only_and_plan_check_agrees(real_nx: _RealNx) -> Non
         )
 
 
+@allure.title(
+    "実際の nx で、利用環境で使わないファイルだけの変更は、version plan が存在しなくても成功する"
+)
 def test_real_07_pass_dev_only_files_without_plan(real_nx: _RealNx) -> None:
-    """実 nx (g): 利用環境で使わないファイル（テスト・CI・開発用の設定）だけの変更は pass。"""
+    """実際の nx を使い、テスト、CI、開発用の設定のファイルだけを変更する場合のテストです。終了コード 0 で終わり、警告を出力しないことを確認します。"""
     with allure.step("開発用のファイルだけを変更して commit する"):
         real_nx.case("real-07")
         for rel in (
@@ -1481,8 +1574,11 @@ def test_real_07_pass_dev_only_files_without_plan(real_nx: _RealNx) -> None:
         assert "WARN" not in result.stderr
 
 
+@allure.title(
+    "実際の nx で、利用者の talk-dir に写す slidev の eslint 設定の変更は、数えて失敗する"
+)
 def test_real_08_block_slidev_eslint_config(real_nx: _RealNx) -> None:
-    """実 nx (h): assets/slidev/eslint.config.js は利用者の talk-dir に写すので数える → block。"""
+    """実際の nx を使い、`assets/slidev/eslint.config.js` を変更する場合のテストです。利用者の talk-dir に写すファイルのため、終了コード 1 で終わり、`release group [pecot-visual]` を出力することを確認します。"""
     with allure.step("slidev の eslint.config.js を変更して commit する"):
         real_nx.case("real-08")
         config = real_nx.probe / "plugins/pecot-visual/assets/slidev/eslint.config.js"
@@ -1495,8 +1591,9 @@ def test_real_08_block_slidev_eslint_config(real_nx: _RealNx) -> None:
         assert "release group [pecot-visual]" in result.stderr
 
 
+@allure.title("実際の nx で、scripts/ci の glob が及ばないスクリプトの変更は、失敗する")
 def test_real_09_block_scripts_outside_ci(real_nx: _RealNx) -> None:
-    """実 nx (i): scripts/ci/ の glob は release・dev-install-lib.sh に及ばない → どちらも block。"""
+    """実際の nx を使い、`publish-mcp-dist.sh` と `dev-install-lib.sh` を、それぞれ変更する場合のテストです。`scripts/ci/` の glob が及ばないため、どちらも終了コード 1 で終わり、該当する group を出力することを確認します。"""
     with allure.step(
         "scripts/ci/ の外のファイルを 1 つずつ変更し、実 nx でフックが止めることを確かめる"
     ):

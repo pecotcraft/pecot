@@ -160,6 +160,14 @@ repos:
         files: ^plugins/pecot-visual/skills/.*(SKILL|README)\.md$
         stages: [pre-commit]
 
+      - id: check-pytest-titles
+        name: pytest test titles and descriptions
+        entry: .githooks/pre-commit/check-pytest-titles.py
+        language: unsupported
+        files: (^|/)test_[^/]*\.py$
+        exclude: /fixtures/
+        stages: [pre-commit]
+
       - id: plugin-validate
         name: claude plugin validate --strict
         entry: .githooks/lib/with-timing.sh plugin-validate .githooks/pre-commit/plugin-validate.sh

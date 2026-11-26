@@ -32,6 +32,7 @@ import {
   type ProtocolEra,
   type SpiedMcp,
 } from './_client.js'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 type Arguments = Readonly<Record<string, unknown>>
 
@@ -260,16 +261,19 @@ describe.each(PROTOCOL_ERAS)('MCP ツールの入力の受理・拒否 (クラ�
     await closeMcp(mcp)
   })
 
-  it('期待したプロトコル版で接続している', () => {
+  it('クライアントは、指定したプロトコル世代の版で接続する', async () => {
+    await explains('クライアントのプロトコル世代ごとの接続のテストです。ネゴシエーションの結果が、その世代に対応するプロトコル版と一致することを確認します。')
     expect(mcp.client.getNegotiatedProtocolVersion()).toBe(negotiatedVersionOf(era))
   })
 
-  it('表が全ツールを網羅している', () => {
+  it('テストの表は、公開されているすべてのツールを同じ順序で含む', async () => {
+    await explains('入力の受理と拒否を検証する表のテストです。表に含まれるツール名が、公開されているすべてのツールと同じ順序で一致することを確認します。')
     expect(TABLES.map(table => table.tool)).toEqual(allTools().map(tool => tool.name))
   })
 
   describe.each(TABLES)('$tool', (table) => {
     it('必須だけの入力を受理し、既定値を補ってハンドラへ渡す', async () => {
+      await explains(`必須パラメーターだけを指定して、\`${table.tool}\` を呼び出した場合のテストです。入力が受理され、省略したパラメーターに既定値が補われた状態でハンドラに渡されることを確認します。`)
       const before = mcp.calls.length
       const outcome = await classifyCall(mcp.client, table.tool, table.minimal)
 
@@ -278,6 +282,7 @@ describe.each(PROTOCOL_ERAS)('MCP ツールの入力の受理・拒否 (クラ�
     })
 
     it('全パラメータの入力を受理し、そのままハンドラへ渡す', async () => {
+      await explains(`すべてのパラメーターを指定して、\`${table.tool}\` を呼び出した場合のテストです。入力が受理され、指定した値がそのままハンドラに渡されることを確認します。`)
       const before = mcp.calls.length
       const outcome = await classifyCall(mcp.client, table.tool, table.full)
 
@@ -285,8 +290,9 @@ describe.each(PROTOCOL_ERAS)('MCP ツールの入力の受理・拒否 (クラ�
       expect(mcp.calls.slice(before)).toEqual([{ name: table.tool, arguments: table.full }])
     })
 
-    it('宣言外のキーは拒否せず、ハンドラへ渡さない', async (context) => {
+    it('宣言していないキーは、拒否せずに受理し、ハンドラへは渡さない', async (context) => {
       await verifies(context, 'PV-COMMON-02')
+      await explains(`宣言していないキーを加えて、\`${table.tool}\` を呼び出した場合のテストです。入力が受理され、宣言していないキーが取り除かれた状態でハンドラに渡されることを確認します。`)
       const before = mcp.calls.length
       const outcome = await classifyCall(mcp.client, table.tool, { ...table.minimal, ...UNEXPECTED })
 
@@ -294,15 +300,17 @@ describe.each(PROTOCOL_ERAS)('MCP ツールの入力の受理・拒否 (クラ�
       expect(mcp.calls.slice(before)).toEqual([{ name: table.tool, arguments: table.delivered }])
     })
 
-    it('成功結果が outputSchema の検証を通ってクライアントへ届く', async () => {
+    it('成功の結果は、outputSchema の検証を通り、クライアントへ届く', async () => {
+      await explains(`\`${table.tool}\` が成功の結果を返した場合のテストです。出力スキーマの検証を通過し、エラーにはならず、\`structuredContent\` がクライアントへ届くことを確認します。`)
       const called = await mcp.client.callTool({ name: table.tool, arguments: { ...table.minimal } })
 
       expect(called.isError).toBeUndefined()
       expect(called.structuredContent).toEqual(spyCallResultOf(table.tool).structuredContent)
     })
 
-    it.for(table.rejects)('スキーマ違反を拒否する: %s', async ([, arguments_], context) => {
+    it.for(table.rejects)('スキーマ違反を拒否する: %s', async ([label, arguments_], context) => {
       await verifies(context, 'PV-COMMON-01')
+      await explains(`スキーマに違反する入力（${label}）で、\`${table.tool}\` を呼び出した場合のテストです。入力がスキーマの検証で拒否され、ハンドラに届かないことを確認します。`)
       const before = mcp.calls.length
       const outcome = await classifyCall(mcp.client, table.tool, arguments_)
 
@@ -312,7 +320,8 @@ describe.each(PROTOCOL_ERAS)('MCP ツールの入力の受理・拒否 (クラ�
   })
 
   describe('結果の outputSchema 検証', () => {
-    it('失敗結果 (isError + structuredContent) もスキーマ拒否とは区別されてクライアントへ届く', async () => {
+    it('失敗の結果（isError と structuredContent）は、スキーマの検証による拒否とは区別され、クライアントへ届く', async () => {
+      await explains('ハンドラが失敗の結果（`isError` と `structuredContent`）を返した場合のテストです。スキーマの検証による拒否にはならず、失敗の内容がそのままクライアントに届くことを確認します。')
       const failure = toCallToolResult({ ok: false, kind: 'unknown', detail: 'failed', data: { event: 'x' } })
 
       const called = await callLintWith(era, () => failure)
@@ -322,6 +331,7 @@ describe.each(PROTOCOL_ERAS)('MCP ツールの入力の受理・拒否 (クラ�
     })
 
     it('outputSchema に違反する structuredContent は拒否され、違反した値はクライアントへ届かない', async () => {
+      await explains('ハンドラが、出力スキーマに違反する `structuredContent` を返した場合のテストです。エラーになり、`structuredContent` はクライアントに届かず、`Output validation error` を含むメッセージを返すことを確認します。')
       const violating: CallToolResult = { content: [{ type: 'text', text: '{}' }], structuredContent: { kind: 1 } }
 
       const called = await callLintWith(era, () => violating)
@@ -332,7 +342,8 @@ describe.each(PROTOCOL_ERAS)('MCP ツールの入力の受理・拒否 (クラ�
       expect(block?.type === 'text' ? block.text : '').toContain('Output validation error')
     })
 
-    it('宣言に無い項目を返す成功結果は拒否され、その項目はクライアントへ届かない', async () => {
+    it('宣言していない項目を含む成功の結果は拒否され、その項目はクライアントへ届かない', async () => {
+      await explains('成功の結果に、出力スキーマで宣言していない項目が含まれる場合のテストです。エラーになり、`structuredContent` はクライアントに届かず、`Output validation error` を含むメッセージを返すことを確認します。')
       const undeclared = toCallToolResult({ ok: true, data: { ...spyDataOf('slide_lint'), undeclared: 1 }, message: 'lint' })
 
       const called = await callLintWith(era, () => undeclared)
@@ -343,7 +354,8 @@ describe.each(PROTOCOL_ERAS)('MCP ツールの入力の受理・拒否 (クラ�
       expect(block?.type === 'text' ? block.text : '').toContain('Output validation error')
     })
 
-    it('成功の必須項目が欠けた成功結果は拒否され、クライアントへ届かない', async () => {
+    it('必須の項目が不足している成功の結果は拒否され、クライアントへ届かない', async () => {
+      await explains('成功の結果から、出力スキーマで必須の項目（`outcome`）を取り除いた場合のテストです。エラーになり、`structuredContent` はクライアントに届かず、`Output validation error` を含むメッセージを返すことを確認します。')
       const { outcome: _dropped, ...withoutOutcome } = spyDataOf('slide_lint')
       const missing = toCallToolResult({ ok: true, data: withoutOutcome, message: 'lint' })
 
@@ -357,8 +369,9 @@ describe.each(PROTOCOL_ERAS)('MCP ツールの入力の受理・拒否 (クラ�
   })
 
   describe('未知ツール', () => {
-    it('JSON-RPC エラー (-32602) で拒否し、ハンドラへ届かない', async (context) => {
+    it('存在しないツールは、JSON-RPC エラー（-32602）で拒否し、ハンドラへ届かない', async (context) => {
       await verifies(context, 'PV-COMMON-13')
+      await explains('存在しないツール名で呼び出した場合のテストです。JSON-RPC のエラーコード `-32602` で拒否され、ハンドラに届かないことを確認します。')
       const before = mcp.calls.length
       const error: unknown = await rejectionOf(mcp.client.callTool({ name: 'no_such_tool', arguments: {} }))
 

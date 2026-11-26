@@ -2,6 +2,7 @@ import type { RuntimeMessage } from 'allure-js-commons/sdk'
 import { getGlobalTestRuntime, MessageHolderTestRuntime, setGlobalTestRuntime } from 'allure-js-commons/sdk/runtime'
 import type { SyncTestRuntime } from 'allure-js-commons/sdk/runtime'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { explains } from '../src/vitest/explains.js'
 import { step, stepSync } from '../src/vitest/step.js'
 
 // allure-js-commons 3.15.0 の sync の型（undefined を含む）は、exactOptionalPropertyTypes の下で TestRuntime に合わない。
@@ -52,6 +53,7 @@ afterEach(() => {
 
 describe('step', () => {
   it('レーンの中では、名前の付いた step を始めて閉じ、本体の値を返す', async () => {
+    await explains('名前の付いた Allure の step を送る `step` のテストです。nx のレーンの中で呼んだ場合に、名前の付いた step を開始して終了し、本体の値を返すことを確認します。')
     const result = await recorded('test-unit', () => step('CLI を動かす', () => Promise.resolve(42)))
     await step('送った step と値を比べる', () => {
       expect(result).toEqual({ value: 42, steps: [{ type: 'step_start', name: 'CLI を動かす' }, { type: 'step_stop', status: 'passed' }] })
@@ -59,6 +61,7 @@ describe('step', () => {
   })
 
   it('レーンの中で本体が投げると、step を失敗で閉じ、同じ例外を投げる', async () => {
+    await explains('名前の付いた Allure の step を送る `step` のテストです。nx のレーンの中で本体が例外を発生させた場合に、step を失敗の状態で終了し、同じ例外を再度発生させることを確認します。')
     const thrown = new Error('本体が失敗した')
     const fail = (): never => {
       throw thrown
@@ -70,6 +73,7 @@ describe('step', () => {
   })
 
   it('NX_TASK_TARGET_TARGET が空だと、step を送らずに本体の値を返す', async () => {
+    await explains('名前の付いた Allure の step を送る `step` のテストです。nx のレーンの外（`NX_TASK_TARGET_TARGET` が空の場合）で呼んだ場合に、step を送信せず、本体の値だけを返すことを確認します。')
     const result = await recorded('', () => step('CLI を動かす', () => 'done'))
     await step('値と、送った step が無いことを確かめる', () => {
       expect(result).toEqual({ value: 'done', steps: [] })
@@ -79,6 +83,7 @@ describe('step', () => {
 
 describe('stepSync', () => {
   it('レーンの中では、名前の付いた step を始めて閉じ、本体の値をそのまま返す', async () => {
+    await explains('名前の付いた Allure の step を送る `stepSync` のテストです。nx のレーンの中で呼んだ場合に、名前の付いた step を開始して終了し、本体の値をそのまま返すことを確認します。')
     const result = await recorded('test-unit', () => stepSync('規則にかける', () => 'ok'))
     stepSync('送った step と値を比べる', () => {
       expect(result).toEqual({ value: 'ok', steps: [{ type: 'step_start', name: '規則にかける' }, { type: 'step_stop', status: 'passed' }] })
@@ -86,6 +91,7 @@ describe('stepSync', () => {
   })
 
   it('レーンの中で本体が投げると、step を失敗で閉じ、同じ例外を投げる', async () => {
+    await explains('名前の付いた Allure の step を送る `stepSync` のテストです。nx のレーンの中で本体が例外を発生させた場合に、step を失敗の状態で終了し、同じ例外を再度発生させることを確認します。')
     const thrown = new Error('本体が失敗した')
     const fail = (): never => {
       throw thrown
@@ -97,6 +103,7 @@ describe('stepSync', () => {
   })
 
   it('NX_TASK_TARGET_TARGET が空だと、step を送らずに本体の値を返す', async () => {
+    await explains('名前の付いた Allure の step を送る `stepSync` のテストです。nx のレーンの外（`NX_TASK_TARGET_TARGET` が空の場合）で呼んだ場合に、step を送信せず、本体の値だけを返すことを確認します。')
     const result = await recorded('', () => stepSync('規則にかける', () => 7))
     stepSync('値と、送った step が無いことを確かめる', () => {
       expect(result).toEqual({ value: 7, steps: [] })

@@ -29,7 +29,9 @@ def root() -> dict:
     return _load(_REPO_ROOT / "package.json")
 
 
+@allure.title("root の package.json は、配布しない nx workspace として定義されている")
 def test_root_is_a_private_nx_workspace(root: dict) -> None:
+    """root の `package.json` の定義のテストです。名前が `pecot`、`private` が `true` で、`nx` が `devDependencies` に存在することを確認します。`overrides` は `package.json` ではなく `pnpm-workspace.yaml` に置きます。"""
     with allure.step("root の package.json が private な nx workspace であることを確かめる"):
         assert root["name"] == "pecot"
         assert root["private"] is True
@@ -41,19 +43,24 @@ def test_root_is_a_private_nx_workspace(root: dict) -> None:
         )
 
 
+@allure.title("root の package.json には、配布用の項目を定義しない")
 def test_root_does_not_distribute(root: dict) -> None:
+    """root の `package.json` に、`exports`・`bin`・`files`・`dependencies` のいずれも存在しないことを確認するテストです。"""
     with allure.step("root の package.json に配布用の項目が無いことを確かめる"):
         for key in ("exports", "bin", "files", "dependencies"):
             assert key not in root, key
 
 
+@allure.title("root の package.json に、prepare スクリプトを定義しない")
 def test_root_has_no_prepare(root: dict) -> None:
-    """lib の build は nx の text-rules:build が担うので、root に prepare を置かない。"""
+    """root の `package.json` の `scripts` に `prepare` が存在しないことを確認するテストです。ライブラリの build は nx の `text-rules:build` が担います。"""
     with allure.step("root の scripts に prepare が無いことを確かめる"):
         assert "prepare" not in root.get("scripts", {})
 
 
+@allure.title("root の install target は、lockfile を固定した pnpm install を実行する")
 def test_root_install_target_is_a_frozen_pnpm_install(root: dict) -> None:
+    """root の `nx` の `install` target のテストです。キャッシュが無効で、コマンドが `run-pnpm.sh install --frozen-lockfile` で終わり、呼び出すスクリプトが実在することを確認します。"""
     with allure.step("install の target の設定を読む"):
         install = root["nx"]["targets"]["install"]
     with allure.step("lockfile を固定した pnpm install で、script が実在することを確かめる"):
@@ -64,8 +71,9 @@ def test_root_install_target_is_a_frozen_pnpm_install(root: dict) -> None:
         assert (_REPO_ROOT / script).is_file(), script
 
 
+@allure.title("違うパッケージマネージャの install を止める宣言を、root とライブラリで維持する")
 def test_package_manager_guard_is_kept(root: dict) -> None:
-    """違うパッケージマネージャの install を止める宣言（devEngines）を弱めない。"""
+    """`devEngines` によるパッケージマネージャの制限のテストです。root は `onFail: download`、`libs/text-rules` は `onFail: error` で `pnpm` を指定していることを確認します。`libs/text-rules` の `engines` には、`node` だけが存在します。"""
     with allure.step("違うパッケージマネージャを止める宣言が残っていることを確かめる"):
         # engines の npm / yarn の "<0.0.0" は使わない。止める役は devEngines.packageManager が持つ。
         assert "engines" not in root

@@ -10,6 +10,7 @@ import { SlideCreateRuntimeError } from '../../../src/domain/slidev-project/erro
 import { ThemeFetchError } from '../../../src/domain/slidev-theme/store-layout.js'
 import { ThemeSpecError } from '../../../src/domain/slidev-theme/theme-spec.js'
 import { rejectionOf } from '../../_helpers/rejection.js'
+import { explains } from '../../_helpers/explains.js'
 
 const TALK = '/work/talk'
 const THEME_NAME = 'slidev-theme-sample'
@@ -64,7 +65,8 @@ function probes(overrides: Partial<{ current: boolean, storeRoot: string | undef
 }
 
 describe('ensureTalkThemeLinked', () => {
-  it('印が違えば張り直し、取得した名前と directory をテーマとして渡す', async () => {
+  it('リンクが現在の状態と一致しない場合は、node_modules を張り直し、取得したテーマの名前と directory を返す', async () => {
+    await explains('`ensureTalkThemeLinked` のリンクの更新のテストです。`isLinkCurrent` が偽の場合に、テーマを取得して `linkNodeModules` を呼び出し、`relinked` が真になり、取得したテーマの情報が返ることを確認します。')
     const { dependencies, fetchTheme, isLinkCurrent, linkNodeModules } = probes({ current: false })
 
     const result = await ensureTalkThemeLinked(TALK, dependencies)
@@ -84,7 +86,8 @@ describe('ensureTalkThemeLinked', () => {
     expect(linkNodeModules).toHaveBeenCalledWith(TALK, '/runtime/current', links)
   })
 
-  it('印が今の値と同じなら張り直さない', async () => {
+  it('リンクが現在の状態と一致する場合は、node_modules を張り直さない', async () => {
+    await explains('`ensureTalkThemeLinked` のリンクが最新の場合のテストです。`isLinkCurrent` が真の場合に、`linkNodeModules` が呼び出されず、`relinked` が偽になることを確認します。')
     const { dependencies, linkNodeModules } = probes({ current: true })
 
     const result = await ensureTalkThemeLinked(TALK, dependencies)
@@ -98,7 +101,8 @@ describe('ensureTalkThemeLinked', () => {
     expect(linkNodeModules).not.toHaveBeenCalled()
   })
 
-  it('印が今の値と同じでも、生成ファイルを書き直したら regenerated を真にし、警告で知らせる', async () => {
+  it('リンクが一致していても生成ファイルを書き直した場合は、regenerated を真にし、警告で知らせる', async () => {
+    await explains('生成ファイルの再生成のテストです。`vite.config.ts` と `start.mjs` を書き直した場合に、`regenerated` が真になり、書き直したファイル名を含む警告が 1 回だけ表示されることを確認します。')
     const { dependencies, linkNodeModules, syncGeneratedFiles, warn } = probes({ current: true, written: ['vite.config.ts', 'start.mjs'] })
 
     const result = await ensureTalkThemeLinked(TALK, dependencies)
@@ -116,7 +120,8 @@ describe('ensureTalkThemeLinked', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('setup/vite-plugins.ts'))
   })
 
-  it('生成ファイルが今の内容と同じなら、regenerated は偽で警告も出さない', async () => {
+  it('生成ファイルが現在の内容と同じ場合は、regenerated を偽にし、警告も表示しない', async () => {
+    await explains('生成ファイルを書き直さない場合のテストです。`syncGeneratedFiles` が空の一覧を返した場合に、`regenerated` が偽になり、`warn` が呼び出されないことを確認します。')
     const { dependencies, warn } = probes({ current: true, written: [] })
 
     const result = await ensureTalkThemeLinked(TALK, dependencies)
@@ -125,7 +130,8 @@ describe('ensureTalkThemeLinked', () => {
     expect(warn).not.toHaveBeenCalled()
   })
 
-  it('張り直しと書き直しが重なれば、どちらも真にする', async () => {
+  it('張り直しと生成ファイルの書き直しが重なった場合は、relinked と regenerated をどちらも真にする', async () => {
+    await explains('張り直しと再生成が同時に起きた場合のテストです。リンクが一致せず、生成ファイルも書き直した場合に、`relinked` と `regenerated` の両方が真になることを確認します。')
     const { dependencies } = probes({ current: false, written: ['start.mjs'] })
 
     const result = await ensureTalkThemeLinked(TALK, dependencies)
@@ -133,7 +139,8 @@ describe('ensureTalkThemeLinked', () => {
     expect(result).toMatchObject({ relinked: true, regenerated: true })
   })
 
-  it('file: の spec は talk-dir を基準に取得へ渡す', async () => {
+  it('file: で始まる spec は、talk-dir を基準にして取得処理へ渡す', async () => {
+    await explains('`file:` 形式のテーマの指定のテストです。`file:../theme` を指定した場合に、`fetchTheme` が `kind` が `file` の指定と、`talk-dir` の `baseDirectory` を受け取ることを確認します。')
     const { dependencies, fetchTheme } = probes({ files: themedTalk('file:../theme') })
 
     await ensureTalkThemeLinked(TALK, dependencies)
@@ -141,7 +148,8 @@ describe('ensureTalkThemeLinked', () => {
     expect(fetchTheme).toHaveBeenCalledWith({ kind: 'file', path: '../theme' }, expect.objectContaining({ baseDirectory: TALK }))
   })
 
-  it('theme: none の talk-dir（移行前の形）は何も取得せず、張り直さない', async () => {
+  it('theme が none の talk-dir（移行前の形）は、テーマを取得せず、張り直さない', async () => {
+    await explains('テーマを使わない `talk-dir` のテストです。`theme: none` の場合に、`undefined` のテーマと `relinked` が偽の結果が返り、取得・リンク・生成ファイルの同期が呼び出されないことを確認します。')
     const files = memoryFiles({
       [`${TALK}/slides.md`]: '---\ntheme: none\ntitle: t\n---\n',
       [`${TALK}/package.json`]: JSON.stringify({ name: 'talk', dependencies: {} }),
@@ -156,7 +164,8 @@ describe('ensureTalkThemeLinked', () => {
     expect(syncGeneratedFiles).not.toHaveBeenCalled()
   })
 
-  it('requireTheme: theme: none の talk-dir は theme-none で止まる', async () => {
+  it('requireTheme を指定した場合に theme が none の talk-dir は、theme-none の例外で終わる', async () => {
+    await explains('`requireTheme` を指定したときのテストです。`theme: none` の `talk-dir` を渡した場合に、`reason` が `theme-none` の例外が発生することを確認します。')
     const files = memoryFiles({
       [`${TALK}/slides.md`]: '---\ntheme: none\ntitle: t\n---\n',
       [`${TALK}/package.json`]: JSON.stringify({ name: 'talk', dependencies: {} }),
@@ -168,7 +177,8 @@ describe('ensureTalkThemeLinked', () => {
     })
   })
 
-  it('requireTheme: pecot-theme.json を持つ dir はテーマとして読まず、テーマの dir だと伝えて theme-none で止まる', async () => {
+  it('requireTheme を指定した場合に pecot-theme.json のある dir は、テーマの dir だと伝えて theme-none で終わる', async () => {
+    await explains('テーマ自身の `dir` を渡した場合のテストです。`pecot-theme.json` を持つ `dir` を渡した場合に、`it is a theme dir` を含む `theme-none` の例外が発生し、取得とリンクが呼び出されないことを確認します。')
     const files = memoryFiles({
       [`${TALK}/slides.md`]: '---\ntheme: none\ntitle: t\n---\n',
       [`${TALK}/package.json`]: JSON.stringify({ name: 'theme-package' }),
@@ -185,7 +195,8 @@ describe('ensureTalkThemeLinked', () => {
     expect(syncGeneratedFiles).not.toHaveBeenCalled()
   })
 
-  it('置き場を決められなければ、取得の失敗として止まる', async () => {
+  it('テーマの保管場所を決定できない場合は、取得の失敗として unknown の ThemeFetchError が発生する', async () => {
+    await explains('テーマの保管場所の決定のテストです。`storeRoot` が `undefined` を返す場合に、`reason` が `unknown` の `ThemeFetchError` が発生し、`fetchTheme` が呼び出されないことを確認します。')
     const { dependencies, fetchTheme } = probes({ storeRoot: undefined })
 
     const failure = await rejectionOf(ensureTalkThemeLinked(TALK, dependencies))
@@ -195,7 +206,8 @@ describe('ensureTalkThemeLinked', () => {
     expect(fetchTheme).not.toHaveBeenCalled()
   })
 
-  it('dependencies のキーと取得したテーマの name が違えば、張らずに止まる', async () => {
+  it('dependencies のキーと取得したテーマの name が一致しない場合は、リンクせずに theme-name-mismatch で終わる', async () => {
+    await explains('テーマの名前の整合のテストです。取得したテーマの名前が `dependencies` のキーと異なる場合に、`theme-name-mismatch` の例外が発生し、`linkNodeModules` が呼び出されないことを確認します。')
     const { dependencies, linkNodeModules } = probes({ fetchedName: 'slidev-theme-other' })
 
     const failure = await rejectionOf(ensureTalkThemeLinked(TALK, dependencies))
@@ -206,7 +218,8 @@ describe('ensureTalkThemeLinked', () => {
     expect(linkNodeModules).not.toHaveBeenCalled()
   })
 
-  it('registry の版など git でも file: でもない指定は、取得せず、張り直さない (依存の管理は利用者に任せる)', async () => {
+  it('registry の版など git でも file: でもない指定は、テーマを取得せず、張り直さない（依存の管理は利用者に任せる）', async () => {
+    await explains('取得の対象外の指定のテストです。`^1.0.0` を指定した場合に、`undefined` のテーマと `relinked` が偽の結果が返り、取得・リンクの確認・張り直しが呼び出されないことを確認します。')
     const { dependencies, fetchTheme, isLinkCurrent, linkNodeModules, syncGeneratedFiles } = probes({ files: themedTalk('^1.0.0') })
 
     const result = await ensureTalkThemeLinked(TALK, dependencies)
@@ -218,7 +231,8 @@ describe('ensureTalkThemeLinked', () => {
     expect(syncGeneratedFiles).not.toHaveBeenCalled()
   })
 
-  it('取得しない指定でも、talk-dir の node_modules にテーマがあればその root を返す', async () => {
+  it('取得しない指定でも、talk-dir の node_modules にテーマが存在する場合は、その directory を返す', async () => {
+    await explains('利用者が管理するテーマの解決のテストです。`^0.25.0` を指定し、`node_modules` にテーマが存在する場合に、そのパスを `directory` とするテーマが返り、`fetchTheme` が呼び出されないことを確認します。')
     const files = memoryFiles({
       [`${TALK}/slides.md`]: `---\ntheme: ${THEME_NAME}\n---\n`,
       [`${TALK}/package.json`]: JSON.stringify({ name: 'talk', dependencies: { [THEME_NAME]: '^0.25.0' } }),
@@ -233,7 +247,8 @@ describe('ensureTalkThemeLinked', () => {
     expect(fetchTheme).not.toHaveBeenCalled()
   })
 
-  it('取得しない指定のテーマが node_modules に無ければ、requireTheme のとき theme-unlinked で止まる', async () => {
+  it('取得しない指定のテーマが node_modules に存在しない場合は、requireTheme で theme-unlinked の例外が発生する', async () => {
+    await explains('テーマが存在しない場合のテストです。`^1.0.0` を指定し、`node_modules` にテーマが存在しない状態で `requireTheme` を指定した場合に、`theme-unlinked` の例外が発生することを確認します。')
     const { dependencies, fetchTheme } = probes({ files: themedTalk('^1.0.0') })
 
     await expect(ensureTalkThemeLinked(TALK, dependencies, { requireTheme: true })).rejects.toMatchObject({
@@ -242,7 +257,8 @@ describe('ensureTalkThemeLinked', () => {
     expect(fetchTheme).not.toHaveBeenCalled()
   })
 
-  it('取得しない指定のテーマの解決で想定外の読み取りエラーが出たら、握りつぶさずに投げる', async () => {
+  it('取得しない指定のテーマの解決で想定外の読み取りエラーが発生した場合は、握りつぶさずに送出する', async () => {
+    await explains('想定外の読み取りエラーのテストです。`node_modules` 配下の読み取りが `EACCES` で失敗した場合に、`EACCES` を含む例外がそのまま発生することを確認します。')
     const base = themedTalk('^0.25.0')
     const files: ThemeFiles = {
       listFiles: directory => base.listFiles(directory),
@@ -255,14 +271,16 @@ describe('ensureTalkThemeLinked', () => {
     await expect(ensureTalkThemeLinked(TALK, dependencies)).rejects.toThrow('EACCES')
   })
 
-  it('タグの無い git の指定は、取得の指定の誤りとして ThemeSpecError で止まる', async () => {
+  it('タグが指定されていない git の指定は、取得の指定の誤りとして ThemeSpecError で終わる', async () => {
+    await explains('タグのない `git` の指定のテストです。`#` 以降のタグを含まない URL を指定した場合に、`ThemeSpecError` が発生し、`fetchTheme` が呼び出されないことを確認します。')
     const { dependencies, fetchTheme } = probes({ files: themedTalk('git+https://example.com/org/theme.git') })
 
     await expect(ensureTalkThemeLinked(TALK, dependencies)).rejects.toBeInstanceOf(ThemeSpecError)
     expect(fetchTheme).not.toHaveBeenCalled()
   })
 
-  it('取得の失敗はそのまま投げ、張り直さない', async () => {
+  it('取得に失敗した場合は、その例外をそのまま送出し、張り直さない', async () => {
+    await explains('取得の失敗のテストです。`fetchTheme` が `ThemeFetchError` で失敗した場合に、同じ `reason` の例外が発生し、`linkNodeModules` が呼び出されないことを確認します。')
     const { dependencies, fetchTheme, linkNodeModules } = probes()
     fetchTheme.mockRejectedValueOnce(new ThemeFetchError('接続できません', 'connection'))
 

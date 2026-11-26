@@ -48,6 +48,7 @@ import { verifies } from '../../_helpers/verifies.js'
 import { themeErrorReason } from '../../../src/domain/slidev-theme/error-reason.js'
 import { readOutput } from '../../_helpers/attach.js'
 import type { CapturedStream } from '../../_helpers/talk-directory.js'
+import { explains } from '../../_helpers/explains.js'
 
 const HERE = import.meta.dirname
 const PLUGIN_ROOT = path.resolve(HERE, '..', '..', '..', '..')
@@ -128,8 +129,9 @@ async function setupTalkDirectory(): Promise<string> {
 }
 
 describe('runSlideSyncDirectly (smoke)', () => {
-  it('移行前の talk-dir に --theme を付けると、テンプレート由来の名前を消してテーマを参照する形へ移し、作品と生成物と .gitignore を残す', async (context) => {
+  it('移行前の talk-dir に --theme を指定すると、テーマを参照する形へ移し、作品と生成物と .gitignore は残す', async (context) => {
     await verifies(context, 'PV-SLIDE-SYNC-02')
+    await explains('`slide sync --theme` による移行のテストです。テンプレートのコピーを持つ talk-dir を移行した場合に、コピーした名前が削除され、`slides.md` の `theme:` の行だけが変わることを確認します。')
     const talk = await setupTalkDirectory()
     // 作品と生成物
     writeFileSync(path.join(talk, 'pages', '_user.md'), 'USER MARKER')
@@ -204,7 +206,8 @@ describe('runSlideSyncDirectly (smoke)', () => {
     expect(realpathSync(themeLink)).toBe(realpathSync(state.themeDirectory))
   })
 
-  it('--theme が無い移行前の talk-dir は、theme-required で止まり、何も変えない', async () => {
+  it('移行前の talk-dir に --theme を指定しないと、theme-required のエラーで止まり、何も変更しない', async () => {
+    await explains('`--theme` を指定しない移行のテストです。移行前の talk-dir を同期した場合に、`SlideSyncUsageError`（理由 `theme-required`）が発生し、`node_modules` 以外が変更されないことを確認します。')
     const talk = await setupTalkDirectory()
     const before = snapshotOutsideNodeModules(talk)
     const nodeModulesLinkBefore = readlinkSync(path.join(talk, 'node_modules', 'vue'))
@@ -216,7 +219,8 @@ describe('runSlideSyncDirectly (smoke)', () => {
     expect(readlinkSync(path.join(talk, 'node_modules', 'vue'))).toBe(nodeModulesLinkBefore)
   })
 
-  it('取得できないテーマを渡すと、何も消さずに止まる', async () => {
+  it('取得できないテーマを指定すると、何も削除せずに止まる', async () => {
+    await explains('存在しないテーマを指定した移行のテストです。取得できない `file:` のテーマを渡した場合に、テーマの取得エラーが発生し、talk-dir のファイルが何も変更されないことを確認します。')
     const talk = await setupTalkDirectory()
     const before = snapshotOutsideNodeModules(talk)
 
@@ -231,7 +235,8 @@ describe('runSlideSyncDirectly (smoke)', () => {
     expect(snapshotOutsideNodeModules(talk)).toStrictEqual(before)
   })
 
-  it('--node-modules-only は ファイル系を一切触らずに node_modules のみ張り直す', async () => {
+  it('--node-modules-only を指定すると、ファイルには触れず、node_modules だけを作り直す', async () => {
+    await explains('`--node-modules-only` の同期のテストです。`node_modules` を削除して同期した場合に、`node_modules` が作り直され、手を加えた `vite.config.ts`・`start.mjs`・`pages` は変更されないことを確認します。')
     const talk = await setupTalkDirectory()
     // 生成ファイルを改変して、書き直されないことを見る
     writeFileSync(path.join(talk, 'vite.config.ts'), '// USER PATCH')
@@ -255,7 +260,8 @@ describe('runSlideSyncDirectly (smoke)', () => {
     expect(lstatSync(path.join(talk, 'node_modules', 'vue')).isSymbolicLink()).toBe(true)
   })
 
-  it('旧形の symlink 1 本の node_modules を実ディレクトリに替え、依存ルートの項目を消さない', async () => {
+  it('旧形式の node_modules（symlink 1 本）は、実ディレクトリに置き換え、依存ルートの項目は削除しない', async () => {
+    await explains('依存ルートへの symlink 1 本だった `node_modules` を同期する、テストです。2 回同期した場合に、`node_modules` が実ディレクトリになり、依存ルートの項目の数が変わらず、依存ルートの項目ごとのリンクが並ぶことを確認します。')
     const talk = await setupTalkDirectory()
     const dependencyNodeModules = DEPENDENCY_NODE_MODULES
     const itemsBefore = readdirSync(dependencyNodeModules).length
@@ -279,7 +285,8 @@ describe('runSlideSyncDirectly (smoke)', () => {
     expect(linked.toSorted(compareStrings)).toStrictEqual(expected.toSorted(compareStrings))
   })
 
-  it('再 sync は冪等で、同じ項目が同じ向きに張り直される', async () => {
+  it('同期を 2 回続けて実行しても、同じ項目が同じ向きにリンクされる', async () => {
+    await explains('同期を繰り返した場合の、`node_modules` のテストです。`--node-modules-only` を 2 回実行した場合に、`vue` のリンク先と `node_modules` の項目の一覧が、1 回目と変わらないことを確認します。')
     const talk = await setupTalkDirectory()
     await runSlideSyncDirectly(talk, { nodeModulesOnly: true }, {
       pluginRoot: PLUGIN_ROOT,
@@ -298,7 +305,8 @@ describe('runSlideSyncDirectly (smoke)', () => {
     expect(readdirSync(path.join(talk, 'node_modules')).toSorted(compareStrings)).toStrictEqual(items1)
   })
 
-  it('移行の 2 回目は張り直しだけで、node_modules のほかは変わらず、使わなかった --theme を警告に出す', async () => {
+  it('移行を 2 回実行すると、2 回目はリンクの作り直しだけを行い、使わなかった --theme を警告に表示する', async () => {
+    await explains('移行済みの talk-dir に、もう一度 `--theme` を指定する場合のテストです。2 回目の結果が `relink` になり、削除した名前が空で、`--theme was not used` の警告が 1 件表示され、`node_modules` 以外が変わらないことを確認します。')
     const talk = await setupTalkDirectory()
     writeFileSync(path.join(talk, 'pages', '_user.md'), 'USER MARKER')
     await runSlideSyncDirectly(talk, { nodeModulesOnly: false, theme: themeSpec() }, migrateDependencies())
@@ -317,7 +325,8 @@ describe('runSlideSyncDirectly (smoke)', () => {
     expect(realpathSync(themeLink)).toBe(realpathSync(state.themeDirectory))
   })
 
-  it('破損した絶対 symlink は張り替える', async () => {
+  it('node_modules が不正な絶対パスの symlink でも、実ディレクトリとして作り直す', async () => {
+    await explains('不正な `node_modules` の同期のテストです。存在しない絶対パス `/abs/wrong` を指す symlink があった場合に、`--node-modules-only` で実ディレクトリに作り直され、項目が相対パスのリンクになることを確認します。')
     const talk = await setupTalkDirectory()
     rmSync(path.join(talk, 'node_modules'), { recursive: true, force: true })
     symlinkSync('/abs/wrong', path.join(talk, 'node_modules'), 'dir')
@@ -333,6 +342,7 @@ describe('runSlideSyncDirectly (smoke)', () => {
 
 describe('executeSlideSync (smoke)', () => {
   it('nodeModulesOnly の成功は slide.sync.done に dir と nodeModulesOnly を載せる', async () => {
+    await explains('`executeSlideSync` の成功時の結果のテストです。`nodeModulesOnly` を指定して同期が成功した場合は、`slide.sync.done` のイベントへ `dir` と `nodeModulesOnly` が含まれることを確認します。')
     const talk = await setupTalkDirectory()
 
     const { data } = await executeSlideSync(
@@ -344,6 +354,7 @@ describe('executeSlideSync (smoke)', () => {
   })
 
   it('存在しない dir は dir-not-found の失敗になる', async () => {
+    await explains('`executeSlideSync` の `dir` の検証のテストです。存在しない `dir` を指定した場合に、例外が発生し、理由が `dir-not-found` になることを確認します。')
     const error = await rejectionOf(executeSlideSync(
       { dir: path.join(state.temporaryRoot, 'never-exists'), nodeModulesOnly: false },
       plainDependencies(),
@@ -353,6 +364,7 @@ describe('executeSlideSync (smoke)', () => {
   })
 
   it('移行すると、data に移行後のレイアウトの一覧と移行の情報を載せる', async () => {
+    await explains('`executeSlideSync` の移行のテストです。移行前の talk-dir を `theme` つきで同期した場合に、結果へ移行後のレイアウトの一覧と、削除したファイルを含む移行の情報が含まれることを確認します。')
     const talk = await setupTalkDirectory()
 
     const { data } = await executeSlideSync({ dir: talk, theme: themeSpec(), nodeModulesOnly: false }, migrateDependencies())
@@ -367,6 +379,7 @@ describe('executeSlideSync (smoke)', () => {
   })
 
   it('移行前の形のまま nodeModulesOnly を指すと、テーマを引けないため一覧は空で、stderr に理由を出す', async () => {
+    await explains('`executeSlideSync` の移行前の talk-dir のテストです。テーマを参照していない talk-dir へ `nodeModulesOnly` を指定した場合に、レイアウトの一覧が空になり、標準エラー出力へ理由を表示することを確認します。')
     const talk = await setupTalkDirectory()
     const stderr = makeStream('stderr')
 
@@ -400,8 +413,9 @@ async function createThemedTalk(): Promise<string> {
 }
 
 describe('slide_sync の node_modules_only (テーマを参照する talk-dir)', () => {
-  it('消えた node_modules を、package.json の spec のテーマ付きで張り直し、レイアウトの一覧を返す', async (context) => {
+  it('node_modules を削除した talk-dir を同期すると、package.json の spec のテーマでリンクを作り直し、レイアウトの一覧を出力する', async (context) => {
     await verifies(context, 'PV-SLIDE-SYNC-05')
+    await explains('テーマを参照する talk-dir に対する、`slide sync --node-modules-only --json` のテストです。`node_modules` を削除した場合に、テーマのリンクが作り直され、レイアウト 8 件が出力され、`slides.md` は変更されないことを確認します。')
     const talk = await createThemedTalk()
     rmSync(path.join(talk, 'node_modules'), { recursive: true, force: true })
 
@@ -418,6 +432,7 @@ describe('slide_sync の node_modules_only (テーマを参照する talk-dir)',
   })
 
   it('テーマの取得に失敗したら、theme-<reason> と文言で止まる', async () => {
+    await explains('`executeSlideSync` のテーマの取得に失敗した場合のテストです。テーマの取得が失敗した場合に、例外が発生し、理由が `theme-tag` で、メッセージに原因の説明が含まれることを確認します。')
     const talk = await createThemedTalk()
 
     const error = await rejectionOf(executeSlideSync(
@@ -536,7 +551,8 @@ describe('slide sync (移行済みの talk-dir で、依存の版を替えて通
     return isRecord(resolve) ? resolve['dedupe'] : undefined
   }
 
-  it('版を上げて sync すると、vite.config.ts は変わらず、テーマが足した peer が次の読み込みで dedupe に入る', async () => {
+  it('テーマの版を上げて同期すると、vite.config.ts は変わらず、テーマが追加した peer が次の読み込みで dedupe に入る', async () => {
+    await explains('テーマの版を `v1.0.0` から `v1.0.1` へ上げた場合の、`slide sync` のテストです。`vite.config.ts` と `node_modules` 以外のファイルが変わらず、`v1.0.1` が追加した `@vueuse/core` が `resolve.dedupe` に加わることを確認します。')
     const url = createThemeRepository()
     const talk = await createTalk(url)
     expect(await loadDedupe(talk)).toStrictEqual(['@slidev/client', 'vue'])
@@ -557,8 +573,9 @@ describe('slide sync (移行済みの talk-dir で、依存の版を替えて通
     { name: '通常の sync', nodeModulesOnly: false, id: 'PV-SLIDE-SYNC-04' },
     { name: '--node-modules-only', nodeModulesOnly: true, id: 'PV-SLIDE-SYNC-05' },
   ]
-  it.for(REWRITE_CASES)('旧内容の生成ファイルを置いた移行済みの talk-dir は、$name で本体の今の内容に書き直す', { timeout: 120_000 }, async (row, context) => {
+  it.for(REWRITE_CASES)('旧内容の生成ファイルがある移行済みの talk-dir は、$name で本体の今の内容に書き直す', { timeout: 120_000 }, async (row, context) => {
     await verifies(context, row.id)
+    await explains(`生成ファイルが旧い内容の、移行済みの talk-dir に対する、\`slide sync\`（${row.name}）のテストです。\`vite.config.ts\` と \`start.mjs\` が本体の現在の内容に書き直され、\`start.mjs\` に実行権限が付き、ほかのファイルは変更されないことを確認します。`)
     const { nodeModulesOnly } = row
     const url = createThemeRepository()
     const talk = await createTalk(url)
@@ -577,8 +594,9 @@ describe('slide sync (移行済みの talk-dir で、依存の版を替えて通
     expect(withoutGeneratedFiles(snapshotOutsideNodeModules(talk))).toStrictEqual(withoutGeneratedFiles(before))
   })
 
-  it('依存の版を書き換えて sync すると、新しい版のテーマで張り直し、node_modules のほかは変えない', async (context) => {
+  it('依存の版を書き換えて同期すると、新しい版のテーマでリンクを作り直し、node_modules 以外は変更しない', async (context) => {
     await verifies(context, 'PV-SLIDE-SYNC-03')
+    await explains('`package.json` の依存の版を `v1.0.0` から `v1.0.1` へ書き換えた場合の、`slide sync --json` のテストです。`v1.0.1` のテーマの置き場へリンクされ、結果のイベントに新しい版が含まれ、`node_modules` 以外は変わらないことを確認します。')
     const url = createThemeRepository()
     const talk = await createTalk(url)
     const packagePath = path.join(talk, 'package.json')
@@ -602,7 +620,8 @@ describe('slide sync (移行済みの talk-dir で、依存の版を替えて通
     }
   }, 120_000)
 
-  it('package.json が JSON として読めない移行済みの talk-dir は、theme-unlinked で止まり、何も書き換えない', async () => {
+  it('package.json が JSON として読めない移行済みの talk-dir は、theme-unlinked のエラーで止まり、何も書き換えない', async () => {
+    await explains('`package.json` が不正な talk-dir に対する、`slide sync --json` のテストです。`slide.sync.error` のイベントに理由 `theme-unlinked` が含まれ、終了コードが 1 になり、ファイルが書き換わらないことを確認します。')
     const url = createThemeRepository()
     const talk = await createTalk(url)
     const packagePath = path.join(talk, 'package.json')

@@ -20,7 +20,9 @@ def _allowed(script: Path) -> list[str]:
     return body.group(1).split()
 
 
+@allure.title("許可された名前のディレクトリとルート直下のファイルだけなら、成功で終わる")
 def test_allowed_names_only_pass(script_dir: Path, git_repo, git, run_script) -> None:
+    """`check-root-entries.sh` の、許可された名前だけを追跡している場合のテストです。ルート直下のファイルと `plugins` ディレクトリだけを追跡しているときに、終了コード 0 で終わることを確認します。"""
     with allure.step("許可の名前のファイルとディレクトリを追跡して hook を動かす"):
         repo = git_repo()
         for name in ("README.md", "package.json", ".gitignore"):
@@ -35,9 +37,11 @@ def test_allowed_names_only_pass(script_dir: Path, git_repo, git, run_script) ->
         assert result.returncode == 0, result.stderr
 
 
+@allure.title(". で始まるディレクトリとルート直下のファイルは、制限の対象にしない")
 def test_dot_dirs_and_root_files_are_not_restricted(
     script_dir: Path, git_repo, git, run_script
 ) -> None:
+    """`.newtool` のようなドットで始まるディレクトリと、ルート直下の新しいファイルを追跡している場合のテストです。制限の対象外のため、終了コード 0 で終わることを確認します。"""
     with allure.step("ドット始まりのディレクトリとルート直下のファイルを追跡して hook を動かす"):
         repo = git_repo()
         for name in ("setup.sh", "NEW-ROOT-FILE.md"):
@@ -52,9 +56,13 @@ def test_dot_dirs_and_root_files_are_not_restricted(
         assert result.returncode == 0, result.stderr
 
 
+@allure.title(
+    "許可の一覧に存在しないルート直下のディレクトリがあると、名前と案内を出力して失敗で終わる"
+)
 def test_unlisted_root_dir_blocks_with_name_and_guidance(
     script_dir: Path, git_repo, git, run_script
 ) -> None:
+    """許可の一覧に存在しない `scripts` ディレクトリを追跡している場合のテストです。終了コード 1 で終わり、ディレクトリの名前と、ユーザーの同意が必要である旨の案内を出力することを確認します。"""
     with allure.step("一覧に無いディレクトリを追跡して hook を動かす"):
         repo = git_repo()
         (repo / "README.md").write_text("x")
@@ -73,7 +81,9 @@ def test_unlisted_root_dir_blocks_with_name_and_guidance(
         assert ".githooks/scripts/" in result.stderr
 
 
+@allure.title("Git が追跡していないディレクトリは、許可の一覧に存在しなくても対象にしない")
 def test_untracked_unlisted_name_is_ignored(script_dir: Path, git_repo, run_script) -> None:
+    """`node_modules` のように、Git が追跡していないディレクトリがある場合のテストです。対象外のため、終了コード 0 で終わることを確認します。"""
     with allure.step("追跡していない node_modules を置いて hook を動かす"):
         repo = git_repo()
         (repo / "node_modules").mkdir()
@@ -85,7 +95,9 @@ def test_untracked_unlisted_name_is_ignored(script_dir: Path, git_repo, run_scri
         assert result.returncode == 0, result.stderr
 
 
+@allure.title("このリポジトリの作業ツリーに対して実行すると、成功で終わる")
 def test_working_tree_repo_passes(script_dir: Path, run_script) -> None:
+    """実際のリポジトリの作業ツリーで `check-root-entries.sh` を実行するテストです。ルート直下のディレクトリが許可の一覧に収まっており、終了コード 0 で終わることを確認します。"""
     with allure.step("作業ツリーのリポで hook を動かす"):
         result = run_script(script_dir / "check-root-entries.sh", cwd=script_dir.parents[1])
 
@@ -93,7 +105,9 @@ def test_working_tree_repo_passes(script_dir: Path, run_script) -> None:
         assert result.returncode == 0, result.stderr
 
 
+@allure.title("ルールファイルの表のディレクトリは、hook の ALLOWED の一覧と一致する")
 def test_rule_table_matches_hook_allowed_list(script_dir: Path) -> None:
+    """`.claude/rules/repo-root-layout.md` の先頭の表と、hook の `ALLOWED` のテストです。2 つの一覧が並び順を除いて一致し、`ALLOWED` に重複が存在しないことを確認します。"""
     with allure.step("ルールファイルの表と hook の ALLOWED を読む"):
         root = script_dir.parents[1]
         rule = (root / _RULE).read_text(encoding="utf-8")

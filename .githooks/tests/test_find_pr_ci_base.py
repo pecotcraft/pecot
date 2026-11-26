@@ -134,15 +134,19 @@ def scene(env: Env) -> Scene:
     return Scene(env)
 
 
+@allure.title("すべての条件を満たすと、PR の CI が基にした main の sha を pr_main として出力する")
 def test_outputs_pr_main_on_success(scene: Scene) -> None:
+    """`find-pr-ci-base.sh` の、merge queue のコミットが PR の CI の結果を再利用できる場合のテストです。標準出力に `pr_main=` と、PR の CI が基にした main の sha を出力し、標準エラーには何も出力しないことを確認します。"""
     with allure.step("成功する run を用意して動かす"):
         scene.good_run()
     with allure.step("出力が pr_main であることを確かめる"):
         assert scene.go() == (f"pr_main={scene.m0}", "")
 
 
+@allure.title("HEAD_REF の接頭辞が「{prefix}」でも、pr_main を出力する")
 @pytest.mark.parametrize("prefix", ["refs/heads/", ""])
 def test_head_ref_forms(scene: Scene, prefix: str) -> None:
+    """`HEAD_REF` を `refs/heads/` 付きと接頭辞なしの 2 通りで渡すテストです。どちらの場合も、同じ `pr_main` を出力することを確認します。"""
     with allure.step("成功する run を用意して head の ref の形を変えて動かす"):
         scene.good_run()
         ref = f"{prefix}gh-readonly-queue/main/pr-7-{scene.base}"
@@ -150,7 +154,9 @@ def test_head_ref_forms(scene: Scene, prefix: str) -> None:
         assert scene.env.go(ref, scene.base, scene.q_head)[0] == f"pr_main={scene.m0}"
 
 
+@allure.title("成功した run が複数あるときは、検証に合格した新しい run の pr_main を出力する")
 def test_picks_newer_run_that_passes(scene: Scene) -> None:
+    """成功した run が 2 件あり、どちらの artifact も検証に合格する場合のテストです。作成日時が新しい run の `main_sha` を、`pr_main` として出力することを確認します。"""
     with allure.step("新旧 2 つの run と artifact を用意する"):
         scene.env.runs(scene.pr_head, (100, "2026-11-01T00:00:00Z"), (110, "2026-11-02T00:00:00Z"))
         scene.env.artifact(100, scene.m0, scene.pr_head)
@@ -159,7 +165,9 @@ def test_picks_newer_run_that_passes(scene: Scene) -> None:
         assert scene.go()[0] == f"pr_main={scene.base}"
 
 
+@allure.title("新しい run の artifact が検証に合格しないと、古い run の pr_main を出力する")
 def test_falls_back_to_older_run_when_newer_fails_check(scene: Scene) -> None:
+    """新しい run の artifact の `pr_head` が、PR の head と異なる場合のテストです。新しい run を選ばず、古い run の `main_sha` を `pr_main` として出力することを確認します。"""
     with allure.step("新しい run の verify が失敗する状態を用意する"):
         scene.env.runs(scene.pr_head, (100, "2026-11-01T00:00:00Z"), (110, "2026-11-02T00:00:00Z"))
         scene.env.artifact(100, scene.m0, scene.pr_head)
@@ -168,7 +176,9 @@ def test_falls_back_to_older_run_when_newer_fails_check(scene: Scene) -> None:
         assert scene.go()[0] == f"pr_main={scene.m0}"
 
 
+@allure.title("別の PR の run は除外し、次の run の pr_main を出力する")
 def test_skips_run_of_other_pr(scene: Scene) -> None:
+    """新しい run が別の PR（#8）のものである場合のテストです。その run を除外して、PR #7 の古い run の `main_sha` を `pr_main` として出力することを確認します。"""
     with allure.step("別の PR の run を混ぜた状態を用意する"):
         scene.env.runs(
             scene.pr_head,
@@ -181,7 +191,9 @@ def test_skips_run_of_other_pr(scene: Scene) -> None:
         assert scene.go()[0] == f"pr_main={scene.m0}"
 
 
+@allure.title("イベントが pull_request ではない run は除外し、次の run の pr_main を出力する")
 def test_skips_run_of_other_event(scene: Scene) -> None:
+    """新しい run のイベントが `push` の場合のテストです。その run を除外して、古い run の `main_sha` を `pr_main` として出力することを確認します。"""
     with allure.step("別のイベントの run を混ぜた状態を用意する"):
         scene.env.runs(
             scene.pr_head,
@@ -194,21 +206,29 @@ def test_skips_run_of_other_event(scene: Scene) -> None:
         assert scene.go()[0] == f"pr_main={scene.m0}"
 
 
+@allure.title("別の PR の run しか存在しないと、run に PR が含まれない理由を出力する")
 def test_only_run_of_other_pr_gives_reason(scene: Scene) -> None:
+    """成功した run が、別の PR（#8）のものだけの場合のテストです。標準出力は空で、標準エラーに `reason=run に PR が含まれない` を出力することを確認します。"""
     with allure.step("別の PR の run だけを用意して動かす"):
         scene.env.runs(scene.pr_head, run_entry(110, "2026-11-02T00:00:00Z", prs=(8,)))
     with allure.step("理由が「run に PR が含まれない」であることを確かめる"):
         assert scene.go() == ("", "reason=run に PR が含まれない")
 
 
+@allure.title("成功した run が存在しないと、その理由を出力する")
 def test_no_successful_run(scene: Scene) -> None:
+    """成功した run が 0 件の場合のテストです。標準出力は空で、標準エラーに `reason=成功した run なし` を出力することを確認します。"""
     with allure.step("成功した run が無い状態で動かす"):
         scene.env.runs(scene.pr_head)
     with allure.step("理由が「成功した run なし」であることを確かめる"):
         assert scene.go() == ("", "reason=成功した run なし")
 
 
+@allure.title(
+    "PR の head と異なる head_sha の run は、結果に含まれず、成功した run なしの理由を出力する"
+)
 def test_runs_for_other_head_are_not_returned(scene: Scene) -> None:
+    """API が、PR の head と異なる `head_sha` の run を返さず、`workflow_runs` が空になる場合のテストです。標準出力は空で、標準エラーに `reason=成功した run なし` を出力することを確認します。"""
     with allure.step("別の head の run だけを返す API を用意する"):
         # PR の head と違う head_sha の run は、API が `workflow_runs: []` で返す
         scene.env.api(
@@ -244,6 +264,9 @@ _BREAKS = {
 }
 
 
+@allure.title(
+    "artifact の検証（{param_id}）に失敗すると、理由として「{reason}」を出力し、pr_main を出力しない"
+)
 @pytest.mark.parametrize(
     ("broken", "reason"),
     [
@@ -255,6 +278,7 @@ _BREAKS = {
     ids=["missing", "pr_head_differs", "not_ancestor", "malformed"],
 )
 def test_bad_artifact_gives_reason(scene: Scene, broken: str, reason: str) -> None:
+    """`ci-base.txt` が存在しない場合や、`pr_head` が異なる場合など、検証に失敗する場合のテストです。標準出力は空で、標準エラーにそれぞれの理由を出力することを確認します。"""
     with allure.step("読めない artifact を用意して動かす"):
         scene.good_run()
         _BREAKS[broken](scene)
@@ -262,8 +286,10 @@ def test_bad_artifact_gives_reason(scene: Scene, broken: str, reason: str) -> No
         assert scene.go() == ("", f"reason={reason}")
 
 
+@allure.title("{missing} が空だと、入力の不足の理由を出力する")
 @pytest.mark.parametrize("missing", ["REPO", "QUEUE_BASE", "QUEUE_HEAD"])
 def test_missing_input(scene: Scene, missing: str) -> None:
+    """`REPO`・`QUEUE_BASE`・`QUEUE_HEAD` のいずれかを空にして実行するテストです。標準出力は空で、標準エラーに `reason=入力の不足` を出力することを確認します。"""
     with allure.step("入力の 1 つを空にして動かす"):
         scene.good_run()
         args = {"REPO": REPO, "QUEUE_BASE": scene.base, "QUEUE_HEAD": scene.q_head}
@@ -273,7 +299,9 @@ def test_missing_input(scene: Scene, missing: str) -> None:
         assert out == ("", "reason=入力の不足")
 
 
+@allure.title("queue のコミットの親が base と異なると、その理由を出力する")
 def test_queue_head_parent_is_not_queue_base(scene: Scene) -> None:
+    """queue の head のコミットの親が、`QUEUE_BASE` と異なる場合のテストです。標準出力は空で、標準エラーに `reason=queue の commit の親が base でない` を出力することを確認します。"""
     with allure.step("queue の commit の親が base と違う状態で動かす"):
         scene.good_run()
         out = scene.env.go(scene.ref, scene.m0, scene.q_head)
@@ -281,7 +309,9 @@ def test_queue_head_parent_is_not_queue_base(scene: Scene) -> None:
         assert out == ("", "reason=queue の commit の親が base でない")
 
 
+@allure.title("base と PR の head のマージが衝突すると、merge-tree の失敗の理由を出力する")
 def test_merge_tree_conflict(env: Env) -> None:
+    """base と PR の head が、同じファイルを別の内容に変更していて、マージが衝突する場合のテストです。標準出力は空で、標準エラーに `merge-tree が失敗` の理由を出力することを確認します。"""
     with allure.step("merge-tree が衝突する git のリポを用意して動かす"):
         env.git("checkout", "-q", "-b", "main")
         m0 = env.commit("f.txt", "m0")
@@ -299,7 +329,11 @@ def test_merge_tree_conflict(env: Env) -> None:
         )
 
 
+@allure.title(
+    "base と PR の head をマージした tree が queue の head と異なると、tree 不一致の理由を出力する"
+)
 def test_tree_differs_from_queue_head(env: Env) -> None:
+    """マージした tree が、queue の head のコミットの tree と異なる場合のテストです。標準出力は空で、標準エラーに `reason=tree 不一致` を出力することを確認します。"""
     with allure.step("tree が queue の commit と違う git のリポを用意して動かす"):
         env.git("checkout", "-q", "-b", "main")
         m0 = env.commit("a.txt", "a")
@@ -314,7 +348,9 @@ def test_tree_differs_from_queue_head(env: Env) -> None:
         assert env.go(ref, base, q_head) == ("", "reason=tree 不一致")
 
 
+@allure.title("PR の head のコミットがローカルに存在しないと、merge-tree の失敗の理由を出力する")
 def test_pr_head_commit_missing_locally(scene: Scene) -> None:
+    """PR の head の sha が、ローカルのリポジトリに存在しないコミットの場合のテストです。標準出力は空で、標準エラーに `merge-tree が失敗` の理由を出力することを確認します。"""
     with allure.step("手元に無い PR の head を指して動かす"):
         scene.env.pull(7, "9" * 40)
         out = scene.go()
@@ -322,21 +358,27 @@ def test_pr_head_commit_missing_locally(scene: Scene) -> None:
         assert out == ("", "reason=merge-tree が失敗（衝突または commit なし）")
 
 
+@allure.title("fork の PR だと、fork の PR の理由を出力する")
 def test_fork_pr(scene: Scene) -> None:
+    """PR の head が別のリポジトリ（`evil/r`）の場合のテストです。標準出力は空で、標準エラーに `reason=fork の PR` を出力することを確認します。"""
     with allure.step("フォークの PR を用意して動かす"):
         scene.env.pull(7, scene.pr_head, head_repo="evil/r")
     with allure.step("理由が「fork の PR」であることを確かめる"):
         assert scene.go() == ("", "reason=fork の PR")
 
 
+@allure.title("HEAD_REF から PR 番号を取り出せないと、PR 番号不明の理由を出力する")
 def test_unparsable_head_ref(scene: Scene) -> None:
+    """`HEAD_REF` が `refs/heads/other` のように、`gh-readonly-queue` の形ではない場合のテストです。標準出力は空で、標準エラーに `reason=PR 番号不明` を出力することを確認します。"""
     with allure.step("読めない head の ref で動かす"):
         out = scene.env.go("refs/heads/other", scene.base, scene.q_head)
     with allure.step("理由が「PR 番号不明」であることを確かめる"):
         assert out == ("", "reason=PR 番号不明")
 
 
+@allure.title("PR の API が失敗すると、取得の失敗の理由を出力する")
 def test_pull_api_failure(scene: Scene) -> None:
+    """PR の情報を取得する API が失敗する場合のテストです。標準出力は空で、標準エラーに `reason=取得の失敗` を出力することを確認します。"""
     with allure.step("PR を取る API の応答を消して動かす"):
         (scene.env.fake / "repos_o_r_pulls_7").unlink()
     with allure.step("理由が「取得の失敗」であることを確かめる"):

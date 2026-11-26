@@ -10,6 +10,7 @@ import { createHookCase } from '../_helpers/environment.js'
 import type { HookCase } from '../_helpers/environment.js'
 import { runScript } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
+import { explains } from '../../_helpers/explains.js'
 
 function makeEntry(entryDirectory: string, lines: readonly string[]): string {
   const entry = path.join(entryDirectory, 'entry.sh')
@@ -41,7 +42,8 @@ function combined(result: RunResult): string {
 }
 
 describe('エントリポイントのエッジケース', () => {
-  it('呼ぶスクリプトが存在しないとき、終了コード 127 とスクリプト名のエラーを返す', () => {
+  it('呼ぶスクリプトが存在しないとき、終了コード 127 とスクリプト名のエラーを返す', async () => {
+    await explains('`set -e` を使わないエントリポイントのテストです。呼び出すスクリプトが存在しない場合に、終了コード 127 を返し、エラーにスクリプト名（`nonexistent.sh`）を含めることを確認します。')
     const hookCase = createHookCase()
     const { entryDirectory, scriptsDirectory } = setUpDirectories(hookCase)
     const entry = makeEntry(entryDirectory, [`"${scriptsDirectory}/nonexistent.sh"`])
@@ -51,7 +53,8 @@ describe('エントリポイントのエッジケース', () => {
     expect(combined(result)).toContain('nonexistent.sh')
   })
 
-  it('存在しないスクリプトの後に有効なスクリプトを呼ぶとき、終了コード 0 でその出力を返す', () => {
+  it('存在しないスクリプトの後に有効なスクリプトを呼ぶとき、終了コード 0 でその出力を返す', async () => {
+    await explains('`set -e` を使わないエントリポイントのテストです。存在しないスクリプトの後ろに有効なスクリプトを呼び出す場合に、終了コード 0 で、有効なスクリプトの出力を返すことを確認します。')
     const hookCase = createHookCase()
     const { entryDirectory, scriptsDirectory } = setUpDirectories(hookCase)
     makeDummy(path.join(scriptsDirectory, 'valid.sh'), 'valid-output')
@@ -61,7 +64,8 @@ describe('エントリポイントのエッジケース', () => {
     expect(combined(result)).toContain('valid-output')
   })
 
-  it('呼ぶスクリプトがすべて存在しないとき、終了コード 127 ですべての名前をエラーに含める', () => {
+  it('呼ぶスクリプトがすべて存在しないとき、終了コード 127 ですべての名前をエラーに含める', async () => {
+    await explains('`set -e` を使わないエントリポイントのテストです。呼び出すスクリプトがすべて存在しない場合に、終了コード 127 を返し、3 つのスクリプト名をすべてエラーに含めることを確認します。')
     const hookCase = createHookCase()
     const { entryDirectory, scriptsDirectory } = setUpDirectories(hookCase)
     const entry = makeEntry(entryDirectory, [
@@ -76,7 +80,8 @@ describe('エントリポイントのエッジケース', () => {
     expect(combined(result)).toContain('missing3.sh')
   })
 
-  it('呼ぶスクリプトに実行権限が無いとき、終了コード 126 を返し、スクリプトは実行しない', () => {
+  it('呼ぶスクリプトに実行権限が無いとき、終了コード 126 を返し、スクリプトは実行しない', async () => {
+    await explains('`set -e` を使わないエントリポイントのテストです。呼び出すスクリプトに実行権限が付いていない場合に、終了コード 126 を返し、そのスクリプトを実行しないことを確認します。')
     const hookCase = createHookCase()
     const { entryDirectory, scriptsDirectory } = setUpDirectories(hookCase)
     const noPermission = path.join(scriptsDirectory, 'no_perm.sh')
@@ -89,7 +94,8 @@ describe('エントリポイントのエッジケース', () => {
     expect(combined(result)).not.toContain('should-not-appear')
   })
 
-  it('実行権限の無いスクリプトの後に有効なスクリプトを呼ぶとき、終了コード 0 でその出力を返す', () => {
+  it('実行権限の無いスクリプトの後に有効なスクリプトを呼ぶとき、終了コード 0 でその出力を返す', async () => {
+    await explains('`set -e` を使わないエントリポイントのテストです。実行権限のないスクリプトの後ろに有効なスクリプトを呼び出す場合に、終了コード 0 で、有効なスクリプトの出力を返すことを確認します。')
     const hookCase = createHookCase()
     const { entryDirectory, scriptsDirectory } = setUpDirectories(hookCase)
     const noPermission = path.join(scriptsDirectory, 'no_perm.sh')

@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest'
 import { collectTextViolations } from '../../src/domain/_shared/text-check.js'
 import { labelTexts } from '../../src/domain/drawio/label-text.js'
 import { defaultLintText } from '../../src/infra/text-lint.js'
+import { explains } from '../_helpers/explains.js'
 
 // tests/unit → cli/ → plugins/pecot-visual
 const PLUGIN_ROOT = path.resolve(import.meta.dirname, '..', '..', '..')
@@ -26,11 +27,13 @@ function drawioFilesUnder(directory: string): readonly string[] {
 const FILES = BUNDLED_ROOTS.flatMap(root => drawioFilesUnder(path.join(PLUGIN_ROOT, root)))
 
 describe('同梱の .drawio の文面', () => {
-  it('同梱の .drawio を 1 件以上見つける', () => {
+  it('同梱の .drawio が 1 件以上存在する', async () => {
+    await explains('同梱の `.drawio` の検出のテストです。`skills` と `assets` の下を走査した場合に、以降の文面のチェックが 0 件で通らないよう、`.drawio` が 1 件以上見つかることを確認します。')
     expect(FILES.length).toBeGreaterThan(0)
   })
 
-  it.each(FILES.map(file => [path.relative(PLUGIN_ROOT, file), file]))('%s は違反 0 件', async (_name, file) => {
+  it.each(FILES.map(file => [path.relative(PLUGIN_ROOT, file), file]))('同梱の .drawio（%s）は、文面の違反が 0 件になる', async (_name, file) => {
+    await explains('同梱の `.drawio` の文面のテストです。図のラベルの文章に、実際の文章の規則を適用した場合に、違反が 0 件であることを確認します。')
     const violations = await collectTextViolations(labelTexts(readFileSync(file, 'utf8')), defaultLintText)
     expect(violations).toStrictEqual([])
   })

@@ -16,6 +16,7 @@ import { run } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { containing, jsonDumps, parseJson } from '../_helpers/text.js'
 import { readOutput } from '../../../../../../libs/interface-spec/src/vitest/attach.js'
+import { explains } from '../../_helpers/explains.js'
 
 const SESSION_START_DIRECTORY = path.join(hooksDirectory, 'lib', 'session-start')
 const GIT_SYNC_SCRIPT = path.join(SESSION_START_DIRECTORY, 'git-sync.sh')
@@ -172,7 +173,8 @@ function outdatedPluginRoot(hookCase: HookCase): string {
 
 describe('session-start のロジックスクリプト', () => {
   describe('git-sync.sh', () => {
-    it('作業ツリーが clean で pull に成功したとき、同期した旨とブランチ名を出す', () => {
+    it('作業ツリーが clean で pull に成功したとき、同期した旨とブランチ名を出す', async () => {
+      await explains('`git-sync.sh`（セッション開始時にブランチをリモートと同期するスクリプト）のテストです。作業ツリーが clean で `git pull` に成功した場合は、同期した旨とブランチ名を標準出力へ出力することを確認します。')
       const hookCase = createHookCase()
       const stubDirectory = makeStubDirectory(hookCase)
       makeGitStub(stubDirectory, GIT_SYNC_STUB)
@@ -188,8 +190,9 @@ describe('session-start のロジックスクリプト', () => {
     it.for([
       { label: 'GIT_SSH_COMMAND が未設定', preset: undefined, expected: 'ssh -o BatchMode=yes' },
       { label: 'GIT_SSH_COMMAND が設定済み', preset: 'ssh -i /k/id', expected: 'ssh -i /k/id -o BatchMode=yes' },
-    ])('$label のとき、pull は SSH のプロンプトを止め、既存の値を残す', (row) => {
+    ])('$label のとき、pull は SSH のプロンプトを止め、既存の値を残す', async (row) => {
       // GIT_TERMINAL_PROMPT=0 では SSH の認証プロンプトを止められない。BatchMode=yes を足し、既存値は残す
+      await explains(`\`git-sync.sh\` のテストです。「${row.label}」の場合に、\`git pull\` へ \`-o BatchMode=yes\` を加えて SSH のプロンプトを止め、既存の値は残すことを確認します。`)
       const hookCase = createHookCase()
       const stubDirectory = makeStubDirectory(hookCase)
       makeGitStub(stubDirectory, GIT_SYNC_ENV_STUB)
@@ -202,7 +205,8 @@ describe('session-start のロジックスクリプト', () => {
       expect(readOutput(log).trim()).toBe(row.expected)
     })
 
-    it('未コミットの変更があるとき、何も出力しない', () => {
+    it('未コミットの変更があるとき、何も出力しない', async () => {
+      await explains('`git-sync.sh` のテストです。未コミットの変更がある場合に、同期せず、標準出力に何も出力しないことを確認します。')
       const hookCase = createHookCase()
       const stubDirectory = makeStubDirectory(hookCase)
       makeGitStub(stubDirectory, GIT_SYNC_STUB)
@@ -213,7 +217,8 @@ describe('session-start のロジックスクリプト', () => {
       expect(result.stdout).toBe('')
     })
 
-    it('pull に失敗しても exit 0 で、同期した旨は出さない', () => {
+    it('pull に失敗しても exit 0 で、同期した旨は出さない', async () => {
+      await explains('`git-sync.sh` のテストです。`git pull` に失敗した場合でも、終了コード 0 で終了し、同期した旨は出力しないことを確認します。')
       const hookCase = createHookCase()
       const stubDirectory = makeStubDirectory(hookCase)
       makeGitStub(stubDirectory, GIT_SYNC_STUB)
@@ -224,7 +229,8 @@ describe('session-start のロジックスクリプト', () => {
       expect(result.stdout).not.toContain('synced the branch with the remote')
     })
 
-    it('remote に到達できないとき、pull は 1 回だけで、失敗の理由を stderr に出し、exit 0 を返す', () => {
+    it('remote に到達できないとき、pull は 1 回だけで、失敗の理由を stderr に出し、exit 0 を返す', async () => {
+      await explains('`git-sync.sh` のテストです。リモートへ到達できない場合は、`git pull` を 1 回だけ実行し、失敗の理由を標準エラー出力へ出力して、終了コード 0 で終了することを確認します。')
       const hookCase = createHookCase()
       const { unreachable, gitCallLog } = setUpUnreachableRepository(hookCase, 'sync-repo')
       const result = run(hookCase, GIT_SYNC_SCRIPT)
@@ -235,8 +241,9 @@ describe('session-start のロジックスクリプト', () => {
       expect(result.stderr).toContain(unreachable)
     })
 
-    it('uvx が PATH に無くても、pull して同期した旨を出す', () => {
+    it('uvx が PATH に無くても、pull して同期した旨を出す', async () => {
       // bashrc で PATH が復元されないよう、env -i 相当の環境で動かす。PATH は stub と /usr/bin・/bin だけにし、uvx を置かない
+      await explains('`git-sync.sh` のテストです。`uvx` が `PATH` に存在しない環境でも、`git pull` を実行し、同期した旨を標準出力に出力することを確認します。')
       const hookCase = createHookCase()
       const stubDirectory = makeStubDirectory(hookCase)
       makeGitStub(stubDirectory, GIT_SYNC_STUB)
@@ -255,7 +262,8 @@ describe('session-start のロジックスクリプト', () => {
       expect(result.stdout).toContain('synced the branch with the remote (branch: main)')
     })
 
-    it('設定が無いとき、pull せず何も出力しない', () => {
+    it('設定が無いとき、pull せず何も出力しない', async () => {
+      await explains('`git-sync.sh` のテストです。設定ファイルが存在しない場合は、`git pull` を実行せず、標準出力と標準エラー出力のどちらにも何も出力しないことを確認します。')
       const hookCase = createHookCase()
       const { gitCallLog } = setUpUnreachableRepository(hookCase, 'sync-default')
       hookCase.setEnv('PECOT_HOOKS_CONFIG_PATH', path.join(hookCase.temporaryPath, 'no-such-config.json'))
@@ -266,7 +274,8 @@ describe('session-start のロジックスクリプト', () => {
       expect(result.stderr).toBe('')
     })
 
-    it('有効にしていても、source が compact のときは pull しない', () => {
+    it('有効にしていても、source が compact のときは pull しない', async () => {
+      await explains('`git-sync.sh` のテストです。有効にしていても、`source` が `compact` の場合は、`git pull` を実行せず、何も出力しないことを確認します。')
       const hookCase = createHookCase()
       const { gitCallLog } = setUpUnreachableRepository(hookCase, 'sync-compact')
       hookCase.setEnv('PECOT_HOOK_SOURCE', 'compact')
@@ -277,8 +286,9 @@ describe('session-start のロジックスクリプト', () => {
       expect(result.stderr).toBe('')
     })
 
-    it('CLAUDE_PROJECT_DIR が未設定のとき、何もせず、空パスの警告も出さない', () => {
+    it('CLAUDE_PROJECT_DIR が未設定のとき、何もせず、空パスの警告も出さない', async () => {
       // git の外で起動した場合
+      await explains('`git-sync.sh` のテストです。git の外で起動し、`CLAUDE_PROJECT_DIR` が設定されていない場合に、何も実行せず、空のパスの警告も出力しないことを確認します。')
       const hookCase = createHookCase()
       const stubDirectory = makeStubDirectory(hookCase)
       makeGitStub(stubDirectory, GIT_SYNC_STUB)
@@ -293,8 +303,9 @@ describe('session-start のロジックスクリプト', () => {
   })
 
   describe('session-start.sh（エントリ）', () => {
-    it('Copilot の SessionStart(source=new) でも、git pull を 1 回だけ実行する', () => {
+    it('Copilot の SessionStart(source=new) でも、git pull を 1 回だけ実行する', async () => {
       // 旧構成は Copilot が matcher を無視して new / clear / resume の 3 本を起動し、pull が 3 回動いた
+      await explains('`session-start.sh`（エントリ）のテストです。Copilot の SessionStart（`source=new`）の場合でも、`git pull` を 1 回だけ実行することを確認します。')
       const hookCase = createHookCase()
       const { repository, gitCallLog } = setUpUnreachableRepository(hookCase, 'sync-entry')
       const result = runSessionStartEntry(hookCase, repository, { source: 'new' })
@@ -303,9 +314,10 @@ describe('session-start のロジックスクリプト', () => {
       expect(result.stderr).toContain('fatal:')
     })
 
-    it('git-sync の結果が JSON になり、hookSpecificOutput とトップレベルの両方に additionalContext が入る', () => {
+    it('git-sync の結果が JSON になり、hookSpecificOutput とトップレベルの両方に additionalContext が入る', async () => {
       // Copilot CLI 1.0.103 は SessionStart ではトップレベルの additionalContext だけをモデルに渡す。
       // Claude Code は hookSpecificOutput を読みトップレベルは読まないため、両方に出しても二重に入らない
+      await explains('`session-start.sh`（エントリ）のテストです。git-sync の結果が JSON で出力され、`hookSpecificOutput` とトップレベルの両方に `additionalContext` が含まれることを確認します。')
       const hookCase = createHookCase()
       const repository = setUpReachableRepository(hookCase, 'sync-json')
       const result = runSessionStartEntry(hookCase, repository, { source: 'new' })
@@ -318,9 +330,10 @@ describe('session-start のロジックスクリプト', () => {
       expect(valueAt(data, 'additionalContext')).toBe(context)
     })
 
-    it('git-sync が素のテキストを出す状態でも、sessionTitle は additionalContext に入り込まない', () => {
+    it('git-sync が素のテキストを出す状態でも、sessionTitle は additionalContext に入り込まない', async () => {
       // session-title.sh は session-start-common.sh とは別のスクリプトとして merge に渡す。
       // 同じスクリプトの出力に素のテキストと JSON が入り込むと、JSON が文脈の文字列になってしまう
+      await explains('`session-start.sh`（エントリ）のテストです。git-sync が素のテキストを出力する場合でも、`sessionTitle` が `additionalContext` に混入しないことを確認します。')
       const hookCase = createHookCase()
       const repository = setUpReachableRepository(hookCase, 'sync-title')
       // 作業中の Issue は origin とブランチ名から求める。git pull は改名した remote の追跡ブランチから取る
@@ -344,7 +357,8 @@ describe('session-start のロジックスクリプト', () => {
       expect(topContext).not.toEqual(containing('sessionTitle'))
     })
 
-    it('compact では、git-sync を有効にしても pull せず、.gitignore を補完し、sessionTitle を出さない', () => {
+    it('compact では、git-sync を有効にしても pull せず、.gitignore を補完し、sessionTitle を出さない', async () => {
+      await explains('`session-start.sh`（エントリ）のテストです。`source` が `compact` の場合に、`git pull` を実行せず、`.gitignore` を補完し、`sessionTitle` も出力しないことを確認します。')
       const hookCase = createHookCase()
       const config = hooksConfig(hookCase)
       config.write({ 'git-sync': true })
@@ -367,7 +381,8 @@ describe('session-start のロジックスクリプト', () => {
     })
 
     // 撤廃の前は、VS Code の情報・.gitignore の案内・更新の通知が出た条件をそろえる（spec 025 FR-012）。
-    it('VS Code・未追跡の .gitignore・古い版の導入がそろっても、案内を出さない', () => {
+    it('VS Code・未追跡の .gitignore・古い版の導入がそろっても、案内を出さない', async () => {
+      await explains('`session-start.sh`（エントリ）のテストです。VS Code、未追跡の `.gitignore`、古い版のプラグインがそろっていても、案内を出力しないことを確認します。')
       const hookCase = createHookCase()
       hooksConfig(hookCase).write({ 'git-sync': false })
       const repository = gitRepository(hookCase, 'notices')

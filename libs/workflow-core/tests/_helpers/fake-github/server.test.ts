@@ -7,6 +7,7 @@ import { parseOperation } from './identify.js'
 import { OPERATION_NAMES, operationNameOf, operationTable } from './operations.js'
 import type { FakeGithub, ResponseRule, StartOptions } from './server.js'
 import { isAvoidedPort, isSubset, MAX_LISTEN_ATTEMPTS, startFakeGithub } from './server.js'
+import { explains } from '../explains.js'
 
 const running: FakeGithub[] = []
 
@@ -40,6 +41,7 @@ async function post(server: FakeGithub, pathname: string, body: unknown): Promis
 
 describe('REST', () => {
   it('上から見て、まだ使っていない最初の一致を返し、times を使い切ったら次へ進む', async () => {
+    await explains('偽の GitHub サーバのREST の応答の選び方のテストです。同じ条件のルールが複数ある場合に、`times` を使い切るまで上のルールで応じ、使い切ると次のルールで応じることを確認します。')
     const server = await start([
       rule({ method: 'GET', path: '/repos/a/b' }, 200, { n: 1 }, 2),
       rule({ method: 'GET', path: '/repos/a/b' }, 404, { n: 2 }),
@@ -54,7 +56,8 @@ describe('REST', () => {
     expect(server.problems()).toEqual([])
   })
 
-  it('メソッド・パス・キー順のクエリ・本文・Authorization の前置きを記録する', async () => {
+  it('REST の要求を受けると、メソッド・パス・キー順のクエリ・本文・Authorization の種別を記録する', async () => {
+    await explains('偽の GitHub サーバの要求の記録のテストです。クエリ付きの POST を受けた場合に、メソッド・パス・クエリ（キー順）・本文と、`Authorization` ヘッダの種別（`token`）だけを記録することを確認します。')
     const server = await start([rule({ method: 'POST', path: '/repos/a/b/issues' }, 201, { number: 3 })])
     const response = await post(server, '/repos/a/b/issues?z=1&a=2', { title: 't' })
     expect(response.status).toBe(201)
@@ -64,7 +67,8 @@ describe('REST', () => {
     ])
   })
 
-  it('query と body の部分一致で応答を選ぶ', async () => {
+  it('query と body は、ルールに指定した項目だけが一致すれば、応答を選ぶ', async () => {
+    await explains('REST のルールの一致条件のテストです。ルールに指定したクエリや本文の項目が要求に含まれていれば、ほかの項目があっても、そのルールの応答を返すことを確認します。')
     const server = await start([
       rule({ method: 'GET', path: '/p', query: { page: '2' } }, 200, { page: 2 }),
       rule({ method: 'POST', path: '/p', body: { title: 't' } }, 200, { ok: true }),
@@ -75,7 +79,8 @@ describe('REST', () => {
     expect(created.status).toBe(200)
   })
 
-  it('どの応答にも当たらない要求は 500 を返し、誤りとして残す', async () => {
+  it('どの応答にも当たらない要求を受けると、500 を返し、問題として記録する', async () => {
+    await explains('偽の GitHub サーバのテストです。ルールに一致しない要求を受けた場合に、ステータス 500 を返し、その要求を問題の記録に残すことを確認します。')
     const server = await start([])
     const response = await get(server, '/nothing')
     expect(response.status).toBe(500)
@@ -83,7 +88,8 @@ describe('REST', () => {
     expect(server.requests()).toHaveLength(1)
   })
 
-  it('使われなかった応答を unused に返す', async () => {
+  it('使われなかったルールを、unused の一覧に返す', async () => {
+    await explains('`unused` のテストです。使われていないルールと、`times` を使い切っていないルールの両方が、番号付きで一覧に含まれることを確認します。')
     const server = await start([rule({ method: 'GET', path: '/a' }, 200, {}), rule({ method: 'GET', path: '/b' }, 200, {}, 2)])
     await get(server, '/b')
     expect(server.unused()).toHaveLength(2)
@@ -91,7 +97,8 @@ describe('REST', () => {
     expect(server.unused()[1]).toContain('#2')
   })
 
-  it('応答の本文とヘッダの {{GITHUB_API}} を自分の URL に戻す。text は本文より優先する', async () => {
+  it('応答の本文とヘッダの {{GITHUB_API}} を、サーバ自身の URL に置き換える。text は本文より優先する', async () => {
+    await explains('応答のプレースホルダのテストです。本文とヘッダの `{{GITHUB_API}}` がサーバ自身の URL に置き換わり、`text` を指定した場合は本文より優先して返されることを確認します。')
     const server = await start([
       { match: { method: 'GET', path: '/a' }, respond: { status: 200, body: { next: '{{GITHUB_API}}/a?page=2' }, headers: { link: '<{{GITHUB_API}}/a?page=2>; rel="next"' } }, times: 1 },
       { match: { method: 'GET', path: '/t' }, respond: { status: 200, body: { ignored: true }, text: 'plain {{GITHUB_API}}' }, times: 1 },
@@ -105,7 +112,8 @@ describe('REST', () => {
 })
 
 describe('GraphQL', () => {
-  it('無名の query は構造から operation 名を引き、名前と変数を記録する', async () => {
+  it('名前のない query は、構造から operation 名を判定し、名前と変数を記録する', async () => {
+    await explains('偽の GitHub サーバのGraphQL の判定のテストです。operation 名のない query を受けた場合に、構造から `GetIssueNodeId` と判定し、名前と変数を記録することを確認します。')
     const server = await start([rule({ operation: 'GetIssueNodeId', variables: { number: 1 } }, 200, { data: {} })])
     const response = await post(server, '/graphql', { query: ISSUE_QUERY, variables: { owner: 'a', repo: 'b', number: 1 } })
     expect(response.status).toBe(200)
@@ -115,7 +123,8 @@ describe('GraphQL', () => {
     expect(server.problems()).toEqual([])
   })
 
-  it('名前を持つ operation は query の名前を使う', async () => {
+  it('名前のある operation は、query に書かれた名前を使う', async () => {
+    await explains('GraphQL の判定のテストです。`mutation CreateLinkedBranch` のように名前のある operation は、その名前で応答のルールに一致することを確認します。')
     const server = await start([rule({ operation: 'CreateLinkedBranch' }, 200, { data: {} })])
     const query = 'mutation CreateLinkedBranch($input: CreateLinkedBranchInput!) { createLinkedBranch(input: $input) { linkedBranch { ref { name prefix } } } }'
     const response = await post(server, '/graphql', { query, variables: {} })
@@ -123,14 +132,16 @@ describe('GraphQL', () => {
     expect(server.unused()).toEqual([])
   })
 
-  it('表に無い operation は誤りとして残し、500 を返す', async () => {
+  it('対応表に存在しない operation は、問題として記録し、500 を返す', async () => {
+    await explains('GraphQL の判定のテストです。対応表に存在しない operation を受けた場合に、ステータス 500 を返し、問題として記録することを確認します。')
     const server = await start([])
     const response = await post(server, '/graphql', { query: '{ viewer { login } }', variables: {} })
     expect(response.status).toBe(500)
     expect(server.problems()[0]).toContain('対応表に無い GraphQL の operation')
   })
 
-  it('operation が違えば当たらない', async () => {
+  it('operation が異なる場合は、ルールに一致しない', async () => {
+    await explains('GraphQL の判定のテストです。ルールの operation と受けた operation が異なる場合に、一致しない要求として記録され、ルールが未使用のまま残ることを確認します。')
     const server = await start([rule({ operation: 'GetRepositoryId' }, 200, {})])
     await post(server, '/graphql', { query: ISSUE_QUERY, variables: {} })
     expect(server.problems()).toEqual(['どの応答にも当たらない要求を受けました: GraphQL GetIssueNodeId'])
@@ -139,13 +150,15 @@ describe('GraphQL', () => {
 })
 
 describe('ポートの選び方', () => {
-  it('401 を含むポートか判定する', () => {
+  it('401 を含むポートかどうかを判定する', async () => {
+    await explains('`isAvoidedPort` のテストです。ポート番号に `401` を含む場合は `true`、含まない場合は `false` を返すことを確認します。')
     expect(isAvoidedPort(40_199)).toBe(true)
     expect(isAvoidedPort(14_010)).toBe(true)
     expect(isAvoidedPort(40_299)).toBe(false)
   })
 
-  it('401 を含むポートを得たら選び直す。偽の listen は bind しない', async () => {
+  it('401 を含むポートを得た場合は、次の候補のポートを選び直す', async () => {
+    await explains('偽の `listen` を指定したテストです。最初に `401` を含むポート 40199 を得た場合に、40299 を選び直してサーバの URL に使うことを確認します。')
     const candidates = [40_199, 40_299]
     const server = await start([], { listen: () => Promise.resolve(candidates.shift() ?? 0) })
     expect(server.url).toBe('http://127.0.0.1:40299')
@@ -153,13 +166,15 @@ describe('ポートの選び方', () => {
   })
 
   it('実際の listen で起動でき、選ばれたポートは 401 を含まない', async () => {
+    await explains('`startFakeGithub` の起動のテストです。実際に待ち受けを開始した場合に、サーバが要求に応答し、選ばれたポートに `401` が含まれないことを確認します。')
     const server = await start([])
     const response = await get(server, '/x')
     expect(response.status).toBe(500)
     expect(new URL(server.url).port).not.toContain('401')
   })
 
-  it('上限まで 401 を含むポートしか得られなければ、理由付きで失敗する', async () => {
+  it('上限まで 401 を含むポートしか得られない場合は、理由を示して失敗する', async () => {
+    await explains('`startFakeGithub` のテストです。`401` を含むポートしか得られない場合に、上限の回数まで試行したうえで、理由を示す例外が発生することを確認します。')
     let calls = 0
     const listen = (): Promise<number> => {
       calls += 1
@@ -175,14 +190,16 @@ describe('異常時', () => {
     vi.restoreAllMocks()
   })
 
-  it('応答の組み立てで例外が起きても 500 を返し、誤りに残す', async () => {
+  it('応答の組み立てで例外が発生しても、500 を返し、問題として記録する', async () => {
+    await explains('偽の GitHub サーバの異常時のテストです。応答の本文に JSON へ変換できない値（`BigInt`）を指定した場合に、ステータス 500 を返し、内部エラーを問題として記録することを確認します。')
     const server = await start([rule({ path: '/x' }, 200, { value: 1n })])
     const response = await get(server, '/x')
     expect(response.status).toBe(500)
     expect(server.problems()[0]).toContain('偽サーバの内部エラー')
   })
 
-  it('アドレスが取れなければ server を閉じて失敗する', async () => {
+  it('アドレスを取得できない場合は、server を閉じて失敗する', async () => {
+    await explains('`startFakeGithub` の異常時のテストです。サーバのアドレスを取得できない場合に、サーバを閉じたうえで、ポートを取得できない旨の例外が発生することを確認します。')
     vi.spyOn(Server.prototype, 'address').mockReturnValue('pipe')
     const close = vi.spyOn(Server.prototype, 'close')
     await expect(startFakeGithub([])).rejects.toThrow('ポートを取得できません')
@@ -191,7 +208,8 @@ describe('異常時', () => {
 })
 
 describe('isSubset', () => {
-  it('オブジェクトは含まれていればよく、配列は長さも含めて比べる', () => {
+  it('オブジェクトは含まれていれば一致とし、配列は長さも含めて比較する', async () => {
+    await explains('`isSubset` のテストです。オブジェクトは期待する項目が含まれていれば一致とし、配列は長さも含めて一致を判定することを確認します。')
     expect(isSubset({ a: 1 }, { a: 1, b: 2 })).toBe(true)
     expect(isSubset({ a: { b: 1 } }, { a: { b: 1, c: 2 } })).toBe(true)
     expect(isSubset({ a: 1 }, { a: 2 })).toBe(false)
@@ -203,13 +221,15 @@ describe('isSubset', () => {
 })
 
 describe('対応表', () => {
-  it('識別子と名前のどちらにも重複が無い', () => {
+  it('識別子と名前のどちらにも重複が存在しない', async () => {
+    await explains('operation の対応表のテストです。識別子と名前のどちらも重複がなく、表の件数と一致することを確認します。')
     const table = operationTable()
     expect(new Set(table.map(([id]) => id)).size).toBe(table.length)
     expect(OPERATION_NAMES.size).toBe(table.length)
   })
 
-  it('queries.ts の全定数が、表の名前に引ける', () => {
+  it('queries.ts の全定数は、対応表の名前に対応する', async () => {
+    await explains('`queries.ts` の GraphQL の定数のテストです。すべての定数が対応表と同じ件数で、どの定数からも operation 名を取得できることを確認します。')
     const texts = Object.values(queries)
     expect(texts).toHaveLength(operationTable().length)
     expect(texts.map(query => operationNameOf(query)).filter(name => name === undefined)).toEqual([])
@@ -221,25 +241,30 @@ function idOf(query: string): string {
 }
 
 describe('識別子（fragment）', () => {
-  it('fragment の参照（...Name）は、定義の選択集合に展開する', () => {
+  it('fragment の参照（...Name）は、定義の選択集合に展開する', async () => {
+    await explains('`parseOperation` が作る識別子のテストです。`...A` のような fragment の参照が、定義の選択集合に展開されることを確認します。')
     const query = 'query ($n: Int!) { repository { issue(number: $n) { ...A id } } } fragment A on Issue { title body }'
     expect(idOf(query)).toBe('repository.issue{title,body,id}|n')
   })
 
-  it('inline fragment の中の参照と、fragment の中の fragment も展開する', () => {
+  it('inline fragment の中の参照と、fragment の中の fragment も展開する', async () => {
+    await explains('識別子のテストです。inline fragment の中の参照と、fragment の中で参照する別の fragment も、順に展開されることを確認します。')
     const query = 'query { node { ... on Issue { ...A } } } fragment A on Issue { ...B state } fragment B on Issue { title }'
     expect(idOf(query)).toBe('node{title,state}|')
   })
 
-  it('子が 1 つの間は、fragment の中のフィールドも道筋に入れる', () => {
+  it('子が 1 つだけの間は、fragment の中のフィールドも識別子のパスに含める', async () => {
+    await explains('識別子のテストです。子が 1 つだけのフィールドが fragment の中にある場合も、`repository.issue` のようにパスに含まれることを確認します。')
     expect(idOf('query { repository { ...A } } fragment A on Repository { issue { ...B } } fragment B on Issue { title body }')).toBe('repository.issue{title,body}|')
   })
 
-  it('定義の無い fragment は、理由つきで失敗する', () => {
+  it('定義のない fragment を参照すると、理由を示して失敗する', async () => {
+    await explains('識別子のテストです。定義が存在しない fragment を参照した場合に、見つからない旨の例外が発生することを確認します。')
     expect(() => idOf('query { repository { ...Missing } }')).toThrow('GraphQL の fragment Missing の定義が見つかりません')
   })
 
-  it('fragment が自分を参照しても止まる', () => {
+  it('fragment が自分自身を参照しても、展開が止まる', async () => {
+    await explains('識別子のテストです。fragment が自分自身を参照している場合でも、無限に展開せず、結果を返すことを確認します。')
     expect(idOf('query { node { ...A } } fragment A on Issue { title ...A }')).toBe('node{title}|')
   })
 })

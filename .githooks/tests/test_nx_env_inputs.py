@@ -412,8 +412,11 @@ def repo_reads() -> dict[str, set[str]]:
     return scan_env_reads(_REPO_ROOT, _tracked_plugin_files())
 
 
+@allure.title(
+    "環境変数の読み取りは、プラグインの env か共通の env に宣言するか、_EXEMPT に理由を添えて載せる"
+)
 def test_every_env_read_is_declared_or_exempt(repo_reads: dict[str, set[str]]) -> None:
-    """変数を読むファイルのあるプラグインの env か、共通の env に宣言されていること。"""
+    """レーンが読むコードと設定から抜き出した環境変数の、宣言のテストです。読む変数がすべて、そのファイルのあるプラグインの `env` か共通の `env` に宣言されているか、`_EXEMPT` に載っていることを確認します。"""
     with allure.step("読まれる環境変数のうち、宣言・免除の無いものを集める"):
         undeclared: dict[str, list[str]] = {}
         for name, files in sorted(repo_reads.items()):
@@ -435,13 +438,9 @@ def test_every_env_read_is_declared_or_exempt(repo_reads: dict[str, set[str]]) -
         )
 
 
+@allure.title("共通の env には、すべてのプラグインが読む変数だけを置く")
 def test_common_env_is_only_what_every_plugin_reads(repo_reads: dict[str, set[str]]) -> None:
-    """共通の env に置くのは、全レーンに関わる変数だけとする。
-
-    1 プラグインしか読まない変数は、その他のプラグインのレーンを無関係に再実行する。
-    そのため、プラグインの env へ移す。
-    node 自身が読む変数（NODE_OPTIONS 等）は走査では見えないため、読み取りが見えた変数だけを見る。
-    """
+    """`nx.json` の共通の `env` のテストです。読み取りが見える変数について、一部のプラグインしか読まないものが含まれていないことを確認します。"""
     with allure.step("共通の env の変数ごとに、読むプラグインを集める"):
         narrow = {
             name: sorted({_plugin_of(f) for f in repo_reads[name]} & set(_PLUGIN_ENV_INPUT))
@@ -455,13 +454,10 @@ def test_common_env_is_only_what_every_plugin_reads(repo_reads: dict[str, set[st
         assert not narrow, f"共通の env にあるが、一部のプラグインしか読まない変数: {narrow}"
 
 
+@allure.title("{plugin} の env に載せた変数は、そのプラグインのファイルに名前が出てくる")
 @pytest.mark.parametrize("plugin", sorted(_PLUGIN_ENV_INPUT))
 def test_plugin_env_is_mentioned_in_that_plugin(plugin: str) -> None:
-    """プラグインの env に載せた変数は、そのプラグインのファイルに名前が出てくること。
-
-    走査で見えない読み取り（hooks のテスト、monkeypatch 経由）を手で載せた変数が、
-    別のプラグインのレーンを再実行する場所に紛れ込むのを防ぐ。
-    """
+    """プラグインの `env` に載せた変数のテストです。すべての変数の名前が、そのプラグインの追跡しているファイルのどこかに出てくることを確認します。"""
     with allure.step("プラグインの env の変数が、そのプラグインのファイルに出てくるか探す"):
         pending = _named_env(_PLUGIN_ENV_INPUT[plugin])
         for rel in _tracked_plugin_files():
@@ -480,8 +476,12 @@ def test_plugin_env_is_mentioned_in_that_plugin(plugin: str) -> None:
         assert not absent, f"plugins/{plugin} のどのファイルにも出てこない変数: {absent}"
 
 
+@allure.title(
+    "{plugin} のレーンの共通入力は、共通の env とそのプラグインの env を含み、ほかのプラグインの env を含まない"
+)
 @pytest.mark.parametrize("plugin", sorted(_PLUGIN_ENV_INPUT))
 def test_lane_globals_include_common_and_plugin_env(plugin: str) -> None:
+    """`nx.json` のレーンの共通入力（`namedInputs`）のテストです。共通の `env` とプラグインの `env` が含まれ、ほかのプラグインの `env` が含まれていないことを確認します。"""
     with allure.step("nx.json を読む"):
         nx_json = json.loads((_REPO_ROOT / "nx.json").read_text(encoding="utf-8"))
 
@@ -494,8 +494,9 @@ def test_lane_globals_include_common_and_plugin_env(plugin: str) -> None:
             assert not others & set(entries), f"{globals_name} に他プラグインの env が入っている"
 
 
+@allure.title("libs の追跡ファイルは走査し、宣言済みとみなすのは共通の env だけにする")
 def test_library_project_files_are_scanned_against_the_common_env() -> None:
-    """libs/<name>/ の追跡ファイルも走査し、宣言済みとみなすのは共通の env だけにする。"""
+    """`libs/<name>/` のファイルの走査のテストです。`libs/text-rules/index.ts` が走査の対象に含まれ、プラグインに属さないため、宣言済みの扱いが共通の `env` だけになることを確認します。"""
     with allure.step("追跡しているファイルの一覧を得る"):
         files = _tracked_plugin_files()
 
@@ -506,8 +507,9 @@ def test_library_project_files_are_scanned_against_the_common_env() -> None:
         assert _declared_for("libs/text-rules") == _declared_env()
 
 
+@allure.title("プラグインに同梱するライブラリは、そのプラグインの env で宣言済みとみなす")
 def test_bundled_library_is_scanned_against_its_plugin_env() -> None:
-    """プラグインに同梱するライブラリは、そのプラグインの env で宣言済みとみなす。lib の test-unit も同じ env を入力に持つ。"""
+    """`libs/workflow-core` の走査のテストです。同梱先の `pecot-workflow` のプラグインに属するものとして扱い、`test-unit` の入力に `pecotPluginEnv` を持つことを確認します。"""
     with allure.step("同梱するライブラリの所属するプラグインを確かめる"):
         assert _plugin_of("libs/workflow-core/src/infra/paths.ts") == "pecot-workflow"
 
@@ -520,8 +522,9 @@ def test_bundled_library_is_scanned_against_its_plugin_env() -> None:
         assert "pecotPluginEnv" in project["targets"]["test-unit"]["inputs"]
 
 
+@allure.title("_EXEMPT の変数は、現在も読み取りが存在する")
 def test_exempt_entries_are_still_read(repo_reads: dict[str, set[str]]) -> None:
-    """読まれなくなった変数が _EXEMPT へ残り続けないようにする。"""
+    """`_EXEMPT` に載せた変数のテストです。読まれなくなった変数が残っておらず、すべてがどこかで読まれていることを確認します。"""
     with allure.step("読まれていない _EXEMPT の項目を集める"):
         stale = sorted(name for name in _EXEMPT if name not in repo_reads)
 
@@ -529,7 +532,9 @@ def test_exempt_entries_are_still_read(repo_reads: dict[str, set[str]]) -> None:
         assert not stale, f"_EXEMPT に残っているが、どこからも読まれていない変数: {stale}"
 
 
+@allure.title("_EXEMPT の変数は、env に宣言済みの変数と重ならない")
 def test_exempt_and_declared_do_not_overlap() -> None:
+    """`_EXEMPT` と、`env` に宣言した変数のテストです。2 つの集合に共通する変数が存在しないことを確認します。"""
     with allure.step("宣言済みの変数と _EXEMPT の重なりを集める"):
         both = sorted(set(_EXEMPT) & _all_declared_env())
 
@@ -537,7 +542,9 @@ def test_exempt_and_declared_do_not_overlap() -> None:
         assert not both, f"env に宣言済みの変数が _EXEMPT にもある: {both}"
 
 
+@allure.title("_EXEMPT のすべての変数に、理由を添える")
 def test_exempt_reasons_are_not_empty() -> None:
+    """`_EXEMPT` の各項目のテストです。すべての変数の理由が、空ではない文字列であることを確認します。"""
     with allure.step("_EXEMPT の理由がすべて空でないことを確かめる"):
         assert all(reason.strip() for reason in _EXEMPT.values())
 
@@ -545,7 +552,11 @@ def test_exempt_reasons_are_not_empty() -> None:
 # --- 検出の仕組み自体を固定する。走査が対象を取りこぼさないことを確かめる ---
 
 
+@allure.title(
+    "走査は、シェル・JSON・TypeScript・Python などの各種のファイルから、宣言されていない変数を見つける"
+)
 def test_scan_finds_undeclared_variable_in_each_kind_of_file(tmp_path: Path) -> None:
+    """環境変数の走査（`scan_env_reads`）のテストです。シェルのスクリプトと `bin`、`package.json`、設定とソースとテストの TypeScript、Python のファイルに書いた 8 つの変数を、すべて検出することを確認します。"""
     with allure.step("種類の違うファイルを書き、宣言の無い変数を走査する"):
         files = {
             "plugins/p/scripts/ci/run-tests.sh": 'echo "${UNDECLARED_SH:-x}"\n',
@@ -578,7 +589,9 @@ def test_scan_finds_undeclared_variable_in_each_kind_of_file(tmp_path: Path) -> 
         }
 
 
+@allure.title("走査は、ファイル自身が代入した変数を数えない")
 def test_scan_ignores_variables_the_file_assigns_itself(tmp_path: Path) -> None:
+    """シェルの代入や `vi.stubEnv` など、ファイル自身が環境変数を設定する場合のテストです。外の値を読まないため、検出結果が空になることを確認します。"""
     with allure.step("ファイル自身が代入する変数を読むファイルを書き、走査する"):
         files = {
             "plugins/p/scripts/ci/run-tests.sh": 'LOCAL_SH=1\nexport EXPORTED_SH=2\necho "$LOCAL_SH $EXPORTED_SH"\n',
@@ -601,7 +614,9 @@ def test_scan_ignores_variables_the_file_assigns_itself(tmp_path: Path) -> None:
         assert scan_env_reads(tmp_path, list(files)) == {}
 
 
+@allure.title("走査は、コメントの中の変数とシェルの組み込みの変数を数えない")
 def test_scan_skips_comments_and_shell_builtins(tmp_path: Path) -> None:
+    """コメントの中の変数と、`BASH_SOURCE` や `PWD` のようなシェルの組み込みの変数がある場合のテストです。検出結果が空になることを確認します。"""
     with allure.step("コメントとシェル組み込みの変数だけのスクリプトを書き、走査する"):
         rel = "plugins/p/scripts/ci/run-tests.sh"
         (tmp_path / rel).parent.mkdir(parents=True)
@@ -621,11 +636,12 @@ def _write_files(root: Path, files: dict[str, str]) -> list[str]:
     return list(files)
 
 
+@allure.title("代入があっても、既定値つきの展開（{operator}）は外の値の読み取りとして数える")
 @pytest.mark.parametrize("operator", [":-", "-", ":=", "="])
 def test_scan_counts_default_expansion_even_when_the_file_assigns_the_variable(
     tmp_path: Path, operator: str
 ) -> None:
-    """`X="${X:-1}"` は外の値を読んでから代入する。代入があっても外の値の読み取りとして数える。"""
+    """同じ変数に `X=${X:-1}` のような既定値つきの展開を代入するシェルのスクリプトのテストです。代入より先に外の値を読むため、その変数を検出することを確認します。"""
     with allure.step("既定値の展開で代入するスクリプトを書き、走査する"):
         rels = _write_files(
             tmp_path,
@@ -638,8 +654,9 @@ def test_scan_counts_default_expansion_even_when_the_file_assigns_the_variable(
         assert set(scan_env_reads(tmp_path, rels)) == {"DEFAULTED_SH"}
 
 
+@allure.title("シェルでは、最初の代入より前の読み取りを、外の値の読み取りとして数える")
 def test_scan_counts_shell_reads_before_the_first_assignment(tmp_path: Path) -> None:
-    """ファイルの後ろで代入していても、それより前の読み取りは外の値を読む。"""
+    """ファイルの後ろで代入している変数の場合のテストです。代入より前の行で読む `READ_FIRST` は検出し、代入より後で読む `ASSIGNED_FIRST` は検出しないことを確認します。"""
     with allure.step("代入の前に読むスクリプトを書き、走査する"):
         rels = _write_files(
             tmp_path,
@@ -658,11 +675,13 @@ def test_scan_counts_shell_reads_before_the_first_assignment(tmp_path: Path) -> 
         assert set(scan_env_reads(tmp_path, rels)) == {"READ_FIRST"}
 
 
+@allure.title("代入があっても、JavaScript の既定値つきの読み取り（{read} {default}）は数える")
 @pytest.mark.parametrize("default", ["??", "||"])
 @pytest.mark.parametrize("read", ["process.env.DEFAULTED_JS", "process.env['DEFAULTED_JS']"])
 def test_scan_counts_js_default_reads_even_when_the_file_assigns_the_variable(
     tmp_path: Path, default: str, read: str
 ) -> None:
+    """ファイルの中で代入している環境変数を、`??` か `||` で既定値を付けて読む TypeScript のテストです。`process.env.X` と `process.env['X']` のどちらの書き方でも、その変数を検出することを確認します。"""
     with allure.step("代入と既定値つきの読み取りを含む JS を書き、走査する"):
         rels = _write_files(
             tmp_path,
@@ -677,8 +696,9 @@ def test_scan_counts_js_default_reads_even_when_the_file_assigns_the_variable(
         assert set(scan_env_reads(tmp_path, rels)) == {"DEFAULTED_JS"}
 
 
+@allure.title("走査は、tests 配下のシェルは読み、hooks 配下と対象外の場所のシェルは読まない")
 def test_scan_reads_shell_under_tests_but_not_under_hooks(tmp_path: Path) -> None:
-    """レーンが直接実行する tests 配下の *.sh は走査する。hooks 配下は走査しない（docstring 参照）。"""
+    """tests 配下、release の tests 配下、hooks 配下、`cli/src` 配下にシェルのスクリプトを置いた場合のテストです。tests 配下の 2 つの変数だけを検出し、hooks 配下と `cli/src` 配下の変数は検出しないことを確認します。"""
     with allure.step("tests・hooks・src の下にシェルを書き、走査する"):
         rels = _write_files(
             tmp_path,
@@ -698,8 +718,9 @@ def test_scan_reads_shell_under_tests_but_not_under_hooks(tmp_path: Path) -> Non
         }
 
 
+@allure.title("名前を定数で渡して読む場合は、interface-env のコメントの名前を数える")
 def test_scan_counts_interface_env_names_for_reads_by_a_constant(tmp_path: Path) -> None:
-    """名前を定数で渡す読みは、直前の `interface-env:` の名前で数える。同じファイルの stub では引かない。"""
+    """TypeScript と Python のファイルに、`interface-env:` のコメントと、定数や変数で名前を渡す読み取りを書く場合のテストです。コメントに書いた 4 つの名前を、同じファイルの `stubEnv` に関わらず、すべて検出することを確認します。"""
     with allure.step("interface-env を添えた読み取りを書き、走査する"):
         rels = _write_files(
             tmp_path,
@@ -717,7 +738,9 @@ def test_scan_counts_interface_env_names_for_reads_by_a_constant(tmp_path: Path)
         assert set(scan_env_reads(tmp_path, rels)) == {"A", "B", "C", "D"}
 
 
+@allure.title("interface-env の none と、文字列の中の目印は数えない")
 def test_scan_skips_interface_env_none_and_markers_inside_strings(tmp_path: Path) -> None:
+    """`interface-env: none` と、行頭ではない文字列の中の `interface-env:` がある場合のテストです。行頭のコメントの `KEPT` だけを検出することを確認します。"""
     with allure.step("interface-env: none と、文字列中の印を含むファイルを書き、走査する"):
         rels = _write_files(
             tmp_path,
@@ -736,7 +759,9 @@ def test_scan_skips_interface_env_none_and_markers_inside_strings(tmp_path: Path
         assert set(scan_env_reads(tmp_path, rels)) == {"KEPT"}
 
 
+@allure.title("interface-env のコメントからは、変数名の形をした語だけを取り出す")
 def test_scan_keeps_only_valid_names_in_interface_env(tmp_path: Path) -> None:
+    """`interface-env:` のコメントに、ワイルドカードを含む名前と、説明の文字列を書く場合のテストです。`PECOT_GITHUB_*_TOKEN` と `PLAIN_NAME` だけを検出し、説明の語は検出しないことを確認します。"""
     with allure.step("無効な語を含む interface-env を書き、走査する"):
         rels = _write_files(
             tmp_path,

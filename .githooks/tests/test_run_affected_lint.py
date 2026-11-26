@@ -105,10 +105,13 @@ def install_nx_stub(nx_stub_graph_branch: Callable[[dict, dict], str]) -> Callab
     return _install
 
 
+@allure.title(
+    "変更ファイルを渡すと、lint のレーンを列挙した `nx affected` をそのファイルで実行する"
+)
 def test_changed_files_run_affected_lint(
     script_dir: Path, lint_repo: tuple[Path, Path], run_script, install_nx_stub
 ) -> None:
-    """1. 変更ファイル引数 → affected -t lint --files=<csv> で実行。"""
+    """変更ファイルを引数に `run-affected-lint.sh` を実行した場合のテストです。`lint` と `lint-` で始まるレーンの名前が `-t` に並び、変更ファイルが `--files` に渡されることを確認します。`--parallel=1` と `--output-style=stream` も付きます。"""
     repo, nx_log = lint_repo
     install_nx_stub(repo)
 
@@ -131,10 +134,11 @@ def test_changed_files_run_affected_lint(
         assert "--output-style=stream" in log
 
 
+@allure.title("変更ファイルが存在しないと、nx を起動せずに終了コード 0 で終了する")
 def test_no_changed_files_skips_nx(
     script_dir: Path, lint_repo: tuple[Path, Path], run_script, install_nx_stub
 ) -> None:
-    """2. 変更ファイルなし（引数 0 個）→ nx 未起動 / exit 0。"""
+    """引数なしで `run-affected-lint.sh` を実行した場合のテストです。終了コードが 0 になり、記録型の nx スタブが 1 度も呼ばれないことを確認します。"""
     repo, nx_log = lint_repo
     install_nx_stub(repo)
 
@@ -148,10 +152,11 @@ def test_no_changed_files_skips_nx(
         assert read_output(nx_log) == ""
 
 
+@allure.title("nx が失敗すると、終了コード 1 で終了してコミットを止める")
 def test_lint_failure_propagates(
     script_dir: Path, lint_repo: tuple[Path, Path], run_script, install_nx_stub
 ) -> None:
-    """3. lint 失敗（nx exit 1）→ exit 1 で伝播 / commit ブロック。"""
+    """nx が終了コード 1 で終了する状態で `run-affected-lint.sh` を実行した場合のテストです。スクリプトの終了コードも 1 になり、`affected -t lint` が実行されたことを確認します。"""
     repo, nx_log = lint_repo
     install_nx_stub(repo)
 
@@ -166,10 +171,11 @@ def test_lint_failure_propagates(
         assert "affected -t lint" in read_output(nx_log)
 
 
+@allure.title("nx を解決できないと、復旧手順を添えたエラーを表示して終了コード 1 で終了する")
 def test_nx_unresolved_fail_closed(
     script_dir: Path, lint_repo: tuple[Path, Path], run_script
 ) -> None:
-    """4. nx 未解決 → fail-closed（exit 1 / 復旧手順入り ERROR）。"""
+    """`node_modules` と PATH のどちらにも nx が存在しない状態で `run-affected-lint.sh` を実行した場合のテストです。終了コードが 1 になり、出力に `ERROR` と `nx` が含まれることを確認します。"""
     repo, nx_log = lint_repo
     # install_nx_stub を呼ばない: node_modules と PATH のどちらにも nx は無い。
 
@@ -186,10 +192,11 @@ def test_nx_unresolved_fail_closed(
         assert "nx" in out
 
 
+@allure.title("レーンの名前を固定せず、実行のたびに `nx graph` から 1 回取得する")
 def test_lane_names_come_from_the_graph_each_run(
     script_dir: Path, lint_repo: tuple[Path, Path], run_script, install_nx_stub
 ) -> None:
-    """レーン名は固定せず、実行ごとに `nx graph --file` で 1 回集める。"""
+    """`run-affected-lint.sh` を 1 回実行した場合のテストです。`graph --file` が 1 回だけ呼ばれ、`nx affected` の `-t` には graph から集めた `lint,lint-docs,lint-src` が渡されることを確認します。"""
     repo, nx_log = lint_repo
     install_nx_stub(repo)
 
@@ -210,10 +217,11 @@ def test_lane_names_come_from_the_graph_each_run(
         assert affected[0].split()[2] == "lint,lint-docs,lint-src"
 
 
+@allure.title("変更ファイルが存在しないと、`nx graph` も実行しない")
 def test_no_changed_files_does_not_compute_the_graph(
     script_dir: Path, lint_repo: tuple[Path, Path], run_script, install_nx_stub
 ) -> None:
-    """変更ファイルが無ければ lint 対象なし。graph も計算しない。"""
+    """引数なしで `run-affected-lint.sh` を実行した場合のテストです。終了コードが 0 になり、graph の呼び出しの記録が作成されないことを確認します。"""
     repo, nx_log = lint_repo
     install_nx_stub(repo)
 
@@ -225,11 +233,12 @@ def test_no_changed_files_does_not_compute_the_graph(
         assert not Path(f"{nx_log}.graph").exists()
 
 
+@allure.title("{stub_env} が指定されると、nx affected を起動せずエラーで止める")
 @pytest.mark.parametrize("stub_env", ["STUB_NX_GRAPH_FAIL", "STUB_NX_GRAPH_NO_LANES"])
 def test_graph_unavailable_fail_closed(
     script_dir: Path, lint_repo: tuple[Path, Path], run_script, install_nx_stub, stub_env: str
 ) -> None:
-    """graph が取れない・lint のレーンが無いと、空の -t で nx を起動せず ERROR で commit を止める。"""
+    """`nx graph` が失敗する場合と、lint のレーンが 1 つも存在しない場合のテストです。終了コードが 1 になり、出力に `ERROR` が含まれ、`nx affected` が実行されないことを確認します。"""
     repo, nx_log = lint_repo
     install_nx_stub(repo)
 

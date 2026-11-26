@@ -69,9 +69,10 @@ def _rows(repo: Path) -> list[list[str]]:
     return [line.split("\t") for line in read_output(path).splitlines()]
 
 
+@allure.title("子の終了コードが {code} のとき、そのコードで終了し、記録にも `rc={code}` を残す")
 @pytest.mark.parametrize("code", [0, 3])
 def test_propagates_child_exit_code(script_dir: Path, run_script, repo: Path, code: int) -> None:
-    """子の exit code をそのまま返し、補足列にも rc=<n> で残す。"""
+    """`with-timing.sh` が実行する子の終了コードのテストです。ラッパーが子と同じ終了コードで終了し、記録の補足の列に、`rc=` に続けて同じ値が 1 行だけ残ることを確認します。"""
     result = _wrap(script_dir, run_script, repo, exit_code=code)
     with allure.step("終了コードと記録の行を確かめる"):
         assert result.returncode == code
@@ -80,8 +81,9 @@ def test_propagates_child_exit_code(script_dir: Path, run_script, repo: Path, co
         assert rows[0][4] == f"rc={code}"
 
 
+@allure.title("子のコマンドに、空白を含む引数と標準入力をそのまま渡す")
 def test_passes_args_and_stdin_through(script_dir: Path, run_script, repo: Path) -> None:
-    """子へ引数（空白入りを含む）と stdin をそのまま渡す。"""
+    """`with-timing.sh` に引数と標準入力を渡して実行した場合のテストです。空白を含む引数が分割されず、標準入力の内容と合わせて子の出力に現れることを確認します。"""
     result = _wrap(
         script_dir, run_script, repo, "probe-hook", "one", "two words", stdin="from-stdin\n"
     )
@@ -90,8 +92,9 @@ def test_passes_args_and_stdin_through(script_dir: Path, run_script, repo: Path)
         assert result.stdout == "ARG:one\nARG:two words\nfrom-stdin\n"
 
 
+@allure.title("記録の行は、時刻・hook・hook id・秒・`rc=` の 5 列で作成される")
 def test_hook_row_format(script_dir: Path, run_script, repo: Path) -> None:
-    """hook 行は 5 列: 時刻 / hook / hook id / 秒（小数 1 桁）/ rc=<n>。"""
+    """`with-timing.sh` が追記する 1 行の形式のテストです。時刻が ISO 形式で、種別が `hook`、hook id が指定した値、秒が小数 1 桁、補足が `rc=0` であることを確認します。"""
     _wrap(script_dir, run_script, repo, "nx-affected-lint")
     rows = _rows(repo)
     with allure.step("記録の行の各列の形を確かめる"):
@@ -104,8 +107,9 @@ def test_hook_row_format(script_dir: Path, run_script, repo: Path) -> None:
         assert detail == "rc=0"
 
 
+@allure.title("起動のたびに、記録を 1 行ずつ追記する")
 def test_one_row_per_invocation(script_dir: Path, run_script, repo: Path) -> None:
-    """起動 1 回につき 1 行だけ追記する（2 回で 2 行）。"""
+    """`with-timing.sh` を 2 回続けて実行した場合のテストです。1 回目と 2 回目の hook id と終了コードが、この順に 2 行として記録されることを確認します。"""
     _wrap(script_dir, run_script, repo, "first")
     with allure.step("1 回目の記録の行を確かめる"):
         assert [r[2] for r in _rows(repo)] == ["first"]
@@ -113,8 +117,9 @@ def test_one_row_per_invocation(script_dir: Path, run_script, repo: Path) -> Non
         assert [(r[2], r[4]) for r in _rows(repo)] == [("first", "rc=0"), ("second", "rc=1")]
 
 
+@allure.title("記録先を作成できなくても、子の終了コードと出力は変えない")
 def test_unwritable_record_keeps_exit_code(script_dir: Path, run_script, repo: Path) -> None:
-    """記録先を作れない（.pecot/tmp をファイルで塞ぐ）場合も子の exit code を返す。"""
+    """`.pecot/tmp` をファイルで塞いで記録先を作成できなくした場合のテストです。子の終了コード 3 と標準出力がそのまま返り、標準エラー出力が空で、塞いだファイルが残ることを確認します。"""
     (repo / ".pecot").mkdir()
     (repo / ".pecot" / "tmp").write_text("blocker\n")
     result = _wrap(script_dir, run_script, repo, exit_code=3, stdin="x\n")
@@ -125,8 +130,9 @@ def test_unwritable_record_keeps_exit_code(script_dir: Path, run_script, repo: P
         assert (repo / ".pecot" / "tmp").is_file()
 
 
+@allure.title("git の管理外で実行しても、子の終了コードを返し、記録は作成しない")
 def test_outside_git_keeps_exit_code(script_dir: Path, run_script, tmp_path: Path) -> None:
-    """git 管理外の cwd でも子を実行し exit code を返す（記録はしない）。"""
+    """git の管理外のディレクトリで `with-timing.sh` を実行した場合のテストです。子の終了コード 3 がそのまま返り、記録のファイルが作成されないことを確認します。"""
     plain = tmp_path / "plain"
     plain.mkdir()
     result = _wrap(
@@ -141,8 +147,9 @@ def test_outside_git_keeps_exit_code(script_dir: Path, run_script, tmp_path: Pat
         assert not (plain / _TIMING_RELPATH).exists()
 
 
+@allure.title("子のコマンドを指定しないと、usage を表示して終了コード 2 で終了する")
 def test_usage_error_without_child(script_dir: Path, run_script, repo: Path) -> None:
-    """子のコマンドが無い呼び出しは usage を出して exit 2（記録しない）。"""
+    """子のコマンドを指定せずに `with-timing.sh` を実行した場合のテストです。終了コードが 2 になり、標準エラー出力に `usage` が含まれ、記録は作成されないことを確認します。"""
     result = run_script(script_dir.parent / "lib" / "with-timing.sh", "probe-hook", cwd=repo)
     with allure.step("終了コードと usage の出力と記録が無いことを確かめる"):
         assert result.returncode == 2
@@ -150,8 +157,9 @@ def test_usage_error_without_child(script_dir: Path, run_script, repo: Path) -> 
         assert _rows(repo) == []
 
 
+@allure.title("`with-timing.sh` は、git のモードを、実行可能な 100755 にする")
 def test_wrapper_is_executable_in_git(script_dir: Path) -> None:
-    """pre-commit は language: unsupported_script の entry を直接実行するため git mode 100755 が要る。"""
+    """`.githooks/lib/with-timing.sh` のファイルモードのテストです。pre-commit が直接実行できるよう、git の記録が 100755 であることを確認します。まだ追跡されていない場合は、実行権限が付いていることを確認します。"""
     with allure.step("git の実行権限を調べる"):
         repo_root = script_dir.parents[1]
         staged = run_attached(
@@ -169,9 +177,10 @@ def test_wrapper_is_executable_in_git(script_dir: Path) -> None:
             assert os.access(repo_root / _WRAPPER_RELPATH, os.X_OK)
 
 
+@allure.title("開始時刻が {arg} のとき、経過秒として 0.0 を返す")
 @pytest.mark.parametrize("arg", ["", "abc", "12x", "-5"])
 def test_elapsed_sec_invalid_start_returns_zero(arg: str) -> None:
-    """開始時刻が空・数字以外のときは算術展開に入れず 0.0 を返す。"""
+    """`timing_elapsed_sec` に、空や数字ではない開始時刻を渡した場合のテストです。算術展開に入らず、終了コード 0 で `0.0` を出力し、標準エラー出力が空であることを確認します。"""
     with allure.step("不正な開始時刻で経過秒の関数を呼ぶ"):
         result = run_attached(
             ["bash", "-c", 'source "$1"; timing_elapsed_sec "$2"', "x", str(_LIB), arg],
@@ -211,10 +220,11 @@ def _start_blocking_child(script_dir: Path, repo: Path, tmp_path: Path):
     raise AssertionError("child did not start")
 
 
+@allure.title("プロセスグループに SIGINT が届くと、`rc=130` を記録し、同じコードで終了する")
 def test_sigint_to_process_group_records_rc_130(
     script_dir: Path, repo: Path, tmp_path: Path
 ) -> None:
-    """プロセスグループへ SIGINT が届いても hook 行を rc=130 で残し、同じ code で終わる。"""
+    """ラッパーを別のセッションで起動し、プロセスグループへ SIGINT を送った場合のテストです。ラッパーが終了コード 130 で終了し、hook の行が `rc=130` で 1 行だけ記録されることを確認します。"""
     with allure.step("子を起動してプロセスグループへ SIGINT を送る"):
         proc, _ = _start_blocking_child(script_dir, repo, tmp_path)
         os.killpg(proc.pid, signal.SIGINT)
@@ -224,8 +234,9 @@ def test_sigint_to_process_group_records_rc_130(
         assert [(r[1], r[2], r[4]) for r in rows] == [("hook", "sig-hook", "rc=130")]
 
 
+@allure.title("子のプロセスだけが SIGTERM で終了すると、`rc=143` を記録し、同じコードで終了する")
 def test_sigterm_to_child_records_rc_143(script_dir: Path, repo: Path, tmp_path: Path) -> None:
-    """子だけが SIGTERM で終了しても hook 行を rc=143 で残し、同じ code で終わる。"""
+    """ラッパーの子のプロセスだけに SIGTERM を送った場合のテストです。ラッパーが終了コード 143 で終了し、hook の行が `rc=143` で 1 行だけ記録されることを確認します。"""
     with allure.step("子を起動して子へ SIGTERM を送る"):
         proc, child_pid = _start_blocking_child(script_dir, repo, tmp_path)
         os.kill(child_pid, signal.SIGTERM)

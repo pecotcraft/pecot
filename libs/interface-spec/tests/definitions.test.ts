@@ -4,6 +4,7 @@ import { validateDefinitions } from '../src/domain/validate.js'
 import type { PluginInput } from '../src/domain/validate.js'
 import { loadJson, loadYaml } from '../src/infra/load.js'
 import { step, stepSync } from '../src/vitest/step.js'
+import { explains } from '../src/vitest/explains.js'
 
 const VALID = path.join(import.meta.dirname, 'fixtures', 'valid', 'plugins', 'pecot-workflow', 'interface')
 const AUTHORED = 'plugins/pecot-workflow/interface/authored.yaml'
@@ -60,7 +61,8 @@ function generatedEntry(data: Record<string, unknown>, index: number): Record<st
 }
 
 describe('generated.json checks', () => {
-  it('plugin 名がディレクトリと違い、接頭辞も不正だと、止める', async () => {
+  it('generated.json の plugin 名がディレクトリ名と違い、接頭辞も不正だと、検証エラーにする', async () => {
+    await explains('`generated.json` の検証のテストです。`plugin` がディレクトリ名と違い、`prefix` が小文字の場合に、`plugin` が一致しないという検証エラーが返ることを確認します。')
     await step('定義書を書き換えて検証し、指摘を比べる', async () => {
       expect(await withGenerated((data) => {
         data['plugin'] = 'other'
@@ -69,7 +71,8 @@ describe('generated.json checks', () => {
     })
   })
 
-  it('id に接頭辞が無い、id が重複する、surface の無い項目があると、止める', async () => {
+  it('generated.json の id の接頭辞の欠落・id の重複・surface の欠落は、それぞれ検証エラーにする', async () => {
+    await explains('`generated.json` の検証のテストです。`id` に接頭辞がない項目、`id` が重複する項目、`surfaces` が空の項目がある場合に、それぞれの検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withGenerated((data) => {
       const first = generatedEntry(data, 0)
       first['id'] = 'XX-ISSUE-CREATE'
@@ -83,7 +86,8 @@ describe('generated.json checks', () => {
     })
   })
 
-  it('接頭辞が小文字だと、止める', async () => {
+  it('generated.json の接頭辞が小文字だと、検証エラーにする', async () => {
+    await explains('`generated.json` の検証のテストです。`prefix` が小文字の `pw` の場合に、大文字と数字だけを求める検証エラーが返ることを確認します。')
     await step('定義書を書き換えて検証し、指摘を比べる', async () => {
       expect(await withGenerated((data) => {
         data['prefix'] = 'pw'
@@ -91,7 +95,8 @@ describe('generated.json checks', () => {
     })
   })
 
-  it('name・description・入力の説明に日本語があると、止める', async () => {
+  it('generated.json の description と入力の説明に日本語があると、検証エラーにする', async () => {
+    await explains('`generated.json` の検証のテストです。項目の `description` と入力のプロパティの説明が日本語の場合に、英語で書くことを求める検証エラーがそれぞれ返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withGenerated((data) => {
       const first = generatedEntry(data, 0)
       first['description'] = '説明'
@@ -103,7 +108,8 @@ describe('generated.json checks', () => {
     })
   })
 
-  it('input に無い cli 名があると、止める', async () => {
+  it('generated.json の cli が input に存在しない名前を持つと、検証エラーにする', async () => {
+    await explains('`generated.json` の検証のテストです。`cli.positional` と `cli.flags` に、`input` のプロパティにない名前を指定した場合、未知の入力名として検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withGenerated((data) => {
       generatedEntry(data, 1)['cli'] = { positional: ['nope'], flags: { gone: ['--gone'] } }
     }))
@@ -115,7 +121,8 @@ describe('generated.json checks', () => {
 })
 
 describe('authored.yaml checks', () => {
-  it('plugin 名がディレクトリと違うと、止める', async () => {
+  it('authored.yaml の plugin 名がディレクトリ名と違うと、検証エラーにする', async () => {
+    await explains('`authored.yaml` の検証のテストです。`plugin` がディレクトリ名と違う場合に、一致しないという検証エラーが返ることを確認します。')
     await step('定義書を書き換えて検証し、指摘を比べる', async () => {
       expect(await withAuthored((data) => {
         data['plugin'] = 'other'
@@ -123,7 +130,8 @@ describe('authored.yaml checks', () => {
     })
   })
 
-  it('環境変数名が不正、または effect に日本語があると、止める', async () => {
+  it('authored.yaml の環境変数名が不正、または effect に日本語があると、検証エラーにする', async () => {
+    await explains('`authored.yaml` の検証のテストです。環境変数名に使えない文字を含む場合と、`effect` が日本語の場合に、それぞれ検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['environment'] = [{ name: 'PECOT_*', effect: '効果' }, { name: 'ok name', effect: 'x' }]
     }))
@@ -134,7 +142,8 @@ describe('authored.yaml checks', () => {
     })
   })
 
-  it('requires か default_notes が、input に無い名前を持つと止める', async () => {
+  it('authored.yaml の requires か default_notes が input に存在しない名前を持つと、検証エラーにする', async () => {
+    await explains('`authored.yaml` の検証のテストです。`requires` や `default_notes` に、`input` にない名前を指定した場合、未知の入力名として検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       const target = entry(data, 'PW-ISSUE-CREATE')
       target['constraints'] = [{ requires: { message: ['ttl'] } }]
@@ -146,7 +155,8 @@ describe('authored.yaml checks', () => {
     })
   })
 
-  it('制約が conflicts でも requires でもないと、止める', async () => {
+  it('authored.yaml の constraints が conflicts でも requires でもないと、検証エラーにする', async () => {
+    await explains('`authored.yaml` の検証のテストです。`constraints` の要素が `conflicts` と `requires` のどちらも持たない場合に、検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       entry(data, 'PW-ISSUE-CREATE')['constraints'] = [{ excludes: ['a'] }, 'text']
     }))
@@ -156,7 +166,8 @@ describe('authored.yaml checks', () => {
     })
   })
 
-  it('exit_status が kind を持つと受け入れ、kind が無い要素（code だけの形を含む）を止める', async () => {
+  it('authored.yaml の exit_status は、kind を持つ要素を受け入れ、kind がない要素を検証エラーにする', async () => {
+    await explains('`authored.yaml` の検証のテストです。`kind` を持つ要素は検証エラーにならず、`code` だけの要素と、オブジェクトでない要素は検証エラーになることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       entry(data, 'PW-ISSUE-CREATE')['exit_status'] = [{ kind: 'auth-expired', when: 'Authentication expired.' }, { code: 1, when: 'x' }, 7]
     }))
@@ -167,7 +178,8 @@ describe('authored.yaml checks', () => {
     })
   })
 
-  it('behaviors が空、または behavior のフィールドが無いと、止める', async () => {
+  it('authored.yaml の behaviors が空、または behavior の必須の欄がないと、検証エラーにする', async () => {
+    await explains('`authored.yaml` の検証のテストです。`behaviors` が空の場合と、`pattern` を持たない behavior がある場合に、それぞれ検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       entry(data, 'PW-ISSUE-QUICK')['behaviors'] = []
       const create = entry(data, 'PW-ISSUE-CREATE')
@@ -179,7 +191,8 @@ describe('authored.yaml checks', () => {
     })
   })
 
-  it('behavior がオブジェクトでないと、その項目の名前を出す', async () => {
+  it('authored.yaml の behavior がオブジェクトでないと、項目の ID を含む検証エラーにする', async () => {
+    await explains('`authored.yaml` の検証のテストです。`behaviors` の要素が文字列の場合に、項目の ID と実際の型を含む検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       entry(data, 'PW-ISSUE-QUICK')['behaviors'] = ['x']
     }))
@@ -188,7 +201,8 @@ describe('authored.yaml checks', () => {
     })
   })
 
-  it('共通の behavior に日本語が無いと、止める', async () => {
+  it('authored.yaml の共通の behavior の statement に日本語がないと、検証エラーにする', async () => {
+    await explains('`authored.yaml` の検証のテストです。`common_behaviors` の `statement` が英語だけの場合に、日本語で書くことを求める検証エラーだけが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['common_behaviors'] = [{ id: 'PW-COMMON-01', pattern: 'event', statement: 'English only' }]
     }))
@@ -197,7 +211,8 @@ describe('authored.yaml checks', () => {
     })
   })
 
-  it('共通の behavior に未知のパターンがあると、止める', async () => {
+  it('authored.yaml の共通の behavior の pattern が未知の値だと、検証エラーにする', async () => {
+    await explains('`authored.yaml` の検証のテストです。`common_behaviors` の `pattern` に未定義の値を指定した場合、指定できる値を示す検証エラーだけが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['common_behaviors'] = [{ id: 'PW-COMMON-02', pattern: 'nope', statement: '常に、終わる' }]
     }))
@@ -206,7 +221,8 @@ describe('authored.yaml checks', () => {
     })
   })
 
-  it('entries がオブジェクトでない、または common_behaviors が無いと、ファイル単位で名前を出す', async () => {
+  it('authored.yaml の entries がオブジェクトでない、または common_behaviors が存在しないと、欄の名前を含む検証エラーにする', async () => {
+    await explains('`authored.yaml` の検証のテストです。`entries` が配列の場合と、`common_behaviors` が存在しない場合に、それぞれ欄の名前を含む検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['entries'] = []
       delete data['common_behaviors']
@@ -217,7 +233,8 @@ describe('authored.yaml checks', () => {
     })
   })
 
-  it('output が無い、または schema の無い json の output だと、止める', async () => {
+  it('authored.yaml の output が存在しない、または json の output に schema がないと、検証エラーにする', async () => {
+    await explains('`authored.yaml` の検証のテストです。`output` が存在しない項目と、`format: json` なのに `schema` がない項目について、それぞれ検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       delete entry(data, 'PW-ISSUE-CREATE')['output']
       entry(data, 'PW-ISSUE-QUICK')['output'] = { format: 'json', description: 'x' }
@@ -228,7 +245,8 @@ describe('authored.yaml checks', () => {
     })
   })
 
-  it('項目がオブジェクトでないと、報告する', async () => {
+  it('authored.yaml の項目がオブジェクトでないと、項目の ID を含む検証エラーにする', async () => {
+    await explains('`authored.yaml` の検証のテストです。項目が文字列の場合に、期待する型と実際の型を示す検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       record(data['entries'])['PW-ISSUE-QUICK'] = 'x'
     }))
@@ -237,7 +255,8 @@ describe('authored.yaml checks', () => {
     })
   })
 
-  it('ファイルが無いと、報告する', async () => {
+  it('generated.json が存在せず、authored.yaml が構文エラーだと、ファイルごとの検証エラーを返す', async () => {
+    await explains('定義書のファイルの状態に応じた検証のテストです。`generated.json` が存在せず、`authored.yaml` が構文エラーの場合に、ファイルごとの検証エラーを返すことを確認します。')
     const plugin = await validPlugin()
     const lines = stepSync('定義書を書き換えて検証する', () => validateDefinitions([{ ...plugin, generated: { kind: 'missing' }, authored: { kind: 'syntax', problems: [{ message: 'broken' }] } }]))
     stepSync('指摘を比べる', () => {
@@ -269,7 +288,8 @@ function japanize(data: Record<string, unknown>): Record<string, unknown> {
 describe('prose（人が書く欄の言語）', () => {
   const TEXT_FIELDS = ['details[0]', 'output.description', 'exit_status[0].when', 'effects[0].what', 'prerequisites[0]', 'examples[0].note', 'default_notes.title']
 
-  it('prose: ja で、決まった値以外の欄に日本語があれば、通る', async () => {
+  it('prose が ja で、日本語で書く欄がすべて日本語だと、検証エラーにしない', async () => {
+    await explains('`prose`（人が書く欄の言語）の検証のテストです。`prose: ja` の定義書で、人が書く欄をすべて日本語にした場合、言語に関する検証エラーは返らないことを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['prose'] = 'ja'
       japanize(data)
@@ -280,7 +300,8 @@ describe('prose（人が書く欄の言語）', () => {
     })
   })
 
-  it('prose: ja で、日本語の無い欄は止める（決まった値の stdin・diagnostics・on_error は止めない）', async () => {
+  it('prose が ja で、日本語のない欄は検証エラーにし、決まった値の欄は検証エラーにしない', async () => {
+    await explains('`prose`（人が書く欄の言語）の検証のテストです。`prose: ja` の定義書に英語の欄がある場合に、欄ごとの検証エラーが返り、`stdin` などの決まった値の欄は対象にならないことを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['prose'] = 'ja'
       const target = japanize(data)
@@ -304,7 +325,8 @@ describe('prose（人が書く欄の言語）', () => {
     })
   })
 
-  it('prose: ja で、stdin・diagnostics・on_error が決まった値以外の英語だと、止める', async () => {
+  it('prose が ja で、stdin・diagnostics・on_error が決まった値以外の英語だと、検証エラーにする', async () => {
+    await explains('`prose`（人が書く欄の言語）の検証のテストです。`stdin`・`diagnostics`・`on_error` に、決まった値でない英語を書いた場合に、日本語で書くことを求める検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['prose'] = 'ja'
       const target = japanize(data)
@@ -319,7 +341,8 @@ describe('prose（人が書く欄の言語）', () => {
     })
   })
 
-  it('prose: ja でも、generated.json の欄は英語のまま', async () => {
+  it('prose が ja でも、generated.json の欄は英語で書くことを求める', async () => {
+    await explains('`prose`（人が書く欄の言語）の検証のテストです。`prose: ja` の定義書で、`generated.json` の `description` が日本語の場合に、英語で書くことを求める検証エラーが返ることを確認します。')
     const plugin = await validPlugin()
     if (plugin.authored.kind !== 'ok' || plugin.generated.kind !== 'ok') throw new Error('fixture must load')
     const authored = record(clone(plugin.authored.data))
@@ -333,7 +356,8 @@ describe('prose（人が書く欄の言語）', () => {
     })
   })
 
-  it('prose: ja でも、behavior の statement は日本語を求める', async () => {
+  it('prose が ja のとき、behavior の statement は日本語で書くことを求める', async () => {
+    await explains('`prose`（人が書く欄の言語）の検証のテストです。`prose: ja` で `statement` が英語の場合に、日本語で書くことを求める検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['prose'] = 'ja'
       data['common_behaviors'] = [{ id: 'PW-COMMON-01', pattern: 'event', statement: 'English only' }]
@@ -343,7 +367,8 @@ describe('prose（人が書く欄の言語）', () => {
     })
   })
 
-  it('prose: en と、prose を省いたときは、日本語の欄を止める', async () => {
+  it('prose が en のときと prose を省略したときは、日本語で書いた欄を検証エラーにする', async () => {
+    await explains('`prose`（人が書く欄の言語）の検証のテストです。`prose` が `en` の場合と省略した場合に、日本語で書いた `prerequisites` だけが検証エラーになることを確認します。')
     await step('定義書を書き換えて検証し、指摘を比べる', async () => {
       for (const prose of [undefined, 'en']) {
         const lines = await withAuthored((data) => {
@@ -357,7 +382,8 @@ describe('prose（人が書く欄の言語）', () => {
     })
   })
 
-  it('prose: ja で CLI の面がある項目に help が無いと、止める', async () => {
+  it('prose が ja で CLI の面を持つ項目に help がないと、検証エラーにする', async () => {
+    await explains('`prose`（人が書く欄の言語）の検証のテストです。`prose: ja` の定義書で、CLI の面を持つ項目に `help` がない場合に、`help` を英語で書くことを促す検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['prose'] = 'ja'
       japanize(data)
@@ -367,7 +393,8 @@ describe('prose（人が書く欄の言語）', () => {
     })
   })
 
-  it('prose: ja で help が英語で、examples の run と default_notes の名前がそろっていれば、通る', async () => {
+  it('prose が ja で、help が英語で本体とそろっていると、検証エラーにしない', async () => {
+    await explains('`prose`（人が書く欄の言語）の検証のテストです。`help` が英語で、`examples` の `run` と `default_notes` の名前が本体と同じ場合に、`help` に関する検証エラーが返らないことを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['prose'] = 'ja'
       japanize(data)['help'] = { details: ['Returns the result'], examples: [{ run: 'pecot x', note: 'An example' }], default_notes: { title: 'Empty by default' } }
@@ -377,7 +404,8 @@ describe('prose（人が書く欄の言語）', () => {
     })
   })
 
-  it('help に日本語があるか、examples の run か default_notes の名前が本体と違うと、止める', async () => {
+  it('help に日本語がある、または examples の run か default_notes の名前が本体と違うと、検証エラーにする', async () => {
+    await explains('`prose`（人が書く欄の言語）の検証のテストです。`help` が日本語の場合と、`run` や `default_notes` の名前が本体と違う場合に、それぞれ検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['prose'] = 'ja'
       japanize(data)['help'] = { details: ['結果を返す'], examples: [{ run: 'pecot y', note: 'An example' }], default_notes: {} }
@@ -389,7 +417,8 @@ describe('prose（人が書く欄の言語）', () => {
     })
   })
 
-  it('prose を省いた定義書に help があると、止める', async () => {
+  it('prose を省略した定義書に help があると、検証エラーにする', async () => {
+    await explains('`prose`（人が書く欄の言語）の検証のテストです。`prose` を省略した定義書に `help` がある場合に、`prose: ja` の定義書だけで使えるという検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       entry(data, 'PW-ISSUE-CREATE')['help'] = { details: [], examples: [], default_notes: {} }
     }))
@@ -398,7 +427,8 @@ describe('prose（人が書く欄の言語）', () => {
     })
   })
 
-  it('prose が ja・en 以外だと、止める', async () => {
+  it('prose が ja と en 以外の値だと、検証エラーにする', async () => {
+    await explains('`prose`（人が書く欄の言語）の検証のテストです。`prose` に `fr` を指定した場合に、`prose` に関する検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['prose'] = 'fr'
     }))
@@ -407,7 +437,8 @@ describe('prose（人が書く欄の言語）', () => {
     })
   })
 
-  it('形が崩れた authored.yaml でも、prose: ja の environment の effect を確かめる', async () => {
+  it('authored.yaml の形が崩れていても、prose が ja のとき environment の effect の言語を検証する', async () => {
+    await explains('`prose`（人が書く欄の言語）の検証のテストです。`common_behaviors` が不正な形でも、英語の `environment` の `effect` について、日本語で書くことを求める検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['prose'] = 'ja'
       data['environment'] = [{ name: 'PECOT_Y', effect: 'English' }]
@@ -452,28 +483,32 @@ function mcpExamples(examples: unknown[]): (data: Record<string, unknown>) => vo
 }
 
 describe('MCP の表示名と使用例', () => {
-  it('MCP の面を持つ項目に mcp.title が無いと、止める', async () => {
+  it('MCP の面を持つ項目に mcp.title がないと、検証エラーにする', async () => {
+    await explains('MCP の表示名と使用例の検証のテストです。MCP の面を持つ項目に `mcp.title` がない場合に、英語の表示名を付けることを求める検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(true), mcpExamples([{ arguments: { title: 'x' }, note: 'An example' }])))
     stepSync('指摘を比べる', () => {
       expect(lines).toContain(`${GENERATED}|PW-ISSUE-CREATE|mcp.title|is missing (give the tool a display name in English)`)
     })
   })
 
-  it('MCP の面を持つ項目の使用例が arguments の形で、キーが input にあれば、通る', async () => {
+  it('MCP の面を持つ項目の使用例が arguments の形で、キーが input にあれば、検証エラーにしない', async () => {
+    await explains('MCP の表示名と使用例の検証のテストです。使用例が `arguments` の形で、`input` にあるキーだけを使っている場合に、検証エラーが 0 件であることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(true, TITLE), mcpExamples([{ arguments: { title: 'x', message: 'y' }, note: 'An example' }])))
     stepSync('指摘を比べる', () => {
       expect(lines.filter(line => line.includes('|PW-ISSUE-CREATE|'))).toEqual([])
     })
   })
 
-  it('MCP の面を持つ項目の使用例が run の形だと、止める', async () => {
+  it('MCP の面を持つ項目の使用例が run の形だと、検証エラーにする', async () => {
+    await explains('MCP の表示名と使用例の検証のテストです。MCP の面を持つ項目の使用例が `run` の形の場合に、`arguments` で書くことを求める検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(true, TITLE), mcpExamples([{ run: 'pecot issue create a.md', note: 'An example' }])))
     stepSync('指摘を比べる', () => {
       expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0]|must be an MCP call (write arguments instead of run)`)
     })
   })
 
-  it('使用例の arguments が input に無い名前を持つか、required が欠けると、止める', async () => {
+  it('使用例の arguments が input に存在しない名前を持つか、必須の入力が欠けていると、検証エラーにする', async () => {
+    await explains('MCP の表示名と使用例の検証のテストです。`arguments` に未知のキーがある場合と、必須の入力が欠けている場合、それぞれ検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withBoth((data) => {
       withMcpSurface(true, TITLE)(data)
       record(generatedEntry(data, 0)['input'])['required'] = ['title']
@@ -484,7 +519,8 @@ describe('MCP の表示名と使用例', () => {
     })
   })
 
-  it('MCP の面の無い項目の使用例が arguments の形だと、止める', async () => {
+  it('MCP の面を持たない項目の使用例が arguments の形だと、検証エラーにする', async () => {
+    await explains('MCP の表示名と使用例の検証のテストです。MCP の面を持たない項目の使用例が `arguments` の形の場合に、コマンドラインの `run` で書くことを求める検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       entry(data, 'PW-ISSUE-CREATE')['examples'] = [{ arguments: { title: 'x' }, note: 'An example' }]
     }))
@@ -495,7 +531,8 @@ describe('MCP の表示名と使用例', () => {
 })
 
 describe('CLI の節と終了コード', () => {
-  it('CLI の面の無い項目に cli_reference と終了コードがあると、止める', async () => {
+  it('CLI の面を持たない項目に cli_reference と終了コードがあると、検証エラーにする', async () => {
+    await explains('CLI の節と終了コードの検証のテストです。MCP だけの項目に `cli_reference` と `exit_status` の `code` がある場合に、削除を求める検証エラーがそれぞれ返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(false, TITLE), (data) => {
       mcpExamples([{ arguments: { title: 'x' }, note: 'An example' }])(data)
       entry(data, 'PW-ISSUE-CREATE')['cli_reference'] = { examples: [{ run: 'pecot issue create a.md', note: 'An example' }] }
@@ -507,7 +544,8 @@ describe('CLI の節と終了コード', () => {
     })
   })
 
-  it('cli_reference を持つ項目は、help.examples の run を cli_reference.examples と比べる', async () => {
+  it('cli_reference を持つ項目で、help.examples の run が cli_reference.examples と違うと、検証エラーにする', async () => {
+    await explains('CLI の節と終了コードの検証のテストです。`help.examples` の `run` が `cli_reference.examples` と違う場合に、同じ値を同じ順で書くことを求める検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(true, TITLE), (data) => {
       data['prose'] = 'ja'
       const target = japanize(data)
@@ -521,7 +559,8 @@ describe('CLI の節と終了コード', () => {
     })
   })
 
-  it('cli_reference を持たない MCP の項目は、help.examples を比べない', async () => {
+  it('cli_reference を持たない項目は、help.examples の run を cli_reference.examples と比較しない', async () => {
+    await explains('CLI の節と終了コードの検証のテストです。`cli_reference` を持たない項目の `help.examples` の `run` が本体と違う場合でも、`help.examples` に関する検証エラーが返らないことを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(true, TITLE), (data) => {
       data['prose'] = 'ja'
       const target = japanize(data)

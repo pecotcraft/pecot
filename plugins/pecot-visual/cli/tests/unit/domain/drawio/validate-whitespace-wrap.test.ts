@@ -9,6 +9,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { validateWhitespaceWrap } from '../../../../src/domain/drawio/url.js'
+import { explains } from '../../../_helpers/explains.js'
 
 function wrap(cellAttributes: string, value: string): string {
   const valueAttribute = value === '' ? '' : ` value="${value}"`
@@ -25,12 +26,14 @@ function wrap(cellAttributes: string, value: string): string {
 const HANKAKU_KANA = String.fromCodePoint(0xFF_71, 0xFF_72, 0xFF_73)
 
 describe('validateWhitespaceWrap', () => {
-  it('半角英数のみの value は警告 0', () => {
+  it('半角英数字だけの value には、警告を返さない', async () => {
+    await explains('図のセルの折り返し指定を判定する `validateWhitespaceWrap` のテストです。`Hello world` のような半角英数字だけの `value` を持つセルを渡した場合に、警告を返さないことを確認します。')
     const xml = wrap('vertex="1" style="rounded=1;fillColor=#fff;"', 'Hello world')
     expect(validateWhitespaceWrap(xml)).toEqual([])
   })
 
-  it('改行のみ + rounded=1 + wrap 無し → 警告 1', () => {
+  it('改行を含み、角丸で折り返し指定のないセルには、警告を 1 件返す', async () => {
+    await explains('図のセルの折り返し指定を判定する `validateWhitespaceWrap` のテストです。`value` に改行を含み、`whiteSpace=wrap` を持たないセルを渡した場合に、警告が 1 件だけ返り、エスケープした文字列が含まれることを確認します。')
     // XML attribute では生の `\n` は normalize で空白に潰れるため、数値文字参照で渡す
     const xml = wrap('vertex="1" style="rounded=1;fillColor=#fff;"', 'line1&#10;line2')
     const warnings = validateWhitespaceWrap(xml)
@@ -41,73 +44,85 @@ describe('validateWhitespaceWrap', () => {
     expect(warnings[0]?.message).toContain(String.raw`line1\nline2`)
   })
 
-  it('<br/> のみ + ellipse + wrap 無し → 警告 1', () => {
+  it('br タグを含み、楕円で折り返し指定のないセルには、警告を 1 件返す', async () => {
+    await explains('図のセルの折り返し指定を判定する `validateWhitespaceWrap` のテストです。`value` に `<br/>` を含む楕円のセルで、`whiteSpace=wrap` がない場合に、警告を 1 件だけ返すことを確認します。')
     const xml = wrap('vertex="1" style="ellipse;fillColor=#fff;"', 'a&lt;br/&gt;b')
     const warnings = validateWhitespaceWrap(xml)
     expect(warnings.length).toBe(1)
     expect(warnings[0]?.message).toContain('mxCell id=x')
   })
 
-  it('日本語あり + whiteSpace=wrap あり → 警告 0', () => {
+  it('和文を含んでいても、折り返しを指定したセルには、警告を返さない', async () => {
+    await explains('図のセルの折り返し指定を判定する `validateWhitespaceWrap` のテストです。`value` が和文で、style に `whiteSpace=wrap` を持つセルを渡した場合に、警告を返さないことを確認します。')
     const xml = wrap('vertex="1" style="rounded=1;whiteSpace=wrap;fillColor=#fff;"', '日本語テキスト')
     expect(validateWhitespaceWrap(xml)).toEqual([])
   })
 
-  it('日本語あり + shape=ellipse + wrap 無し → 警告 1', () => {
+  it('和文を含み、shape が楕円で折り返し指定のないセルには、警告を 1 件返す', async () => {
+    await explains('図のセルの折り返し指定を判定する `validateWhitespaceWrap` のテストです。`value` が和文で `shape=ellipse` のセルに、`whiteSpace=wrap` がない場合に、警告を 1 件だけ返すことを確認します。')
     const xml = wrap('vertex="1" style="shape=ellipse;fillColor=#fff;"', '円のラベル')
     const warnings = validateWhitespaceWrap(xml)
     expect(warnings.length).toBe(1)
     expect(warnings[0]?.message).toContain('円のラベル')
   })
 
-  it('日本語あり + shape=mxgraph.aws4.lambda + wrap 無し → 警告 1 (AWS shape を捕捉)', () => {
+  it('和文を含み、AWS の図形で折り返し指定のないセルにも、警告を 1 件返す', async () => {
+    await explains('図のセルの折り返し指定を判定する `validateWhitespaceWrap` のテストです。`value` が和文で `shape=mxgraph.aws4.lambda` のセルに、`whiteSpace=wrap` がない場合に、警告を 1 件だけ返すことを確認します。')
     const xml = wrap('vertex="1" style="sketch=0;points=[[0,0,0]];shape=mxgraph.aws4.lambda;"', 'AWS ラムダ')
     const warnings = validateWhitespaceWrap(xml)
     expect(warnings.length).toBe(1)
     expect(warnings[0]?.message).toContain('AWS ラムダ')
   })
 
-  it('日本語あり + edgeStyle=orthogonalEdgeStyle (edge) → 警告 0', () => {
+  it('和文を含んでいても、線（edgeStyle を指定したセル）には、警告を返さない', async () => {
+    await explains('図のセルの折り返し指定を判定する `validateWhitespaceWrap` のテストです。`value` が和文で、style が `edgeStyle=orthogonalEdgeStyle` のセルを渡した場合に、図形ではなく線として扱い、警告を返さないことを確認します。')
     const xml = wrap('vertex="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;"', 'エッジラベル')
     expect(validateWhitespaceWrap(xml)).toEqual([])
   })
 
-  it('日本語ありで、後方 segment の style に whiteSpace=wrap がある → 警告 0 (segment 検出の堅牢性)', () => {
+  it('和文を含んでいても、style の後ろの項目に whiteSpace=wrap があれば、警告を返さない', async () => {
+    await explains('図のセルの折り返し指定を判定する `validateWhitespaceWrap` のテストです。`text;rounded=1;whiteSpace=wrap;` のように、`whiteSpace=wrap` が末尾の style でも、折り返し指定として扱い、警告を返さないことを確認します。')
     const xml = wrap('vertex="1" style="text;rounded=1;whiteSpace=wrap;"', '順序違いテスト')
     expect(validateWhitespaceWrap(xml)).toEqual([])
   })
 
-  it('日本語あり + vertex 属性欠落 → 警告 0', () => {
+  it('和文を含んでいても、vertex 属性のないセルには、警告を返さない', async () => {
+    await explains('図のセルの折り返し指定を判定する `validateWhitespaceWrap` のテストです。`value` が和文で、`vertex` 属性を持たないセルを渡した場合に、頂点ではないセルとして扱い、警告を返さないことを確認します。')
     const xml = wrap('style="rounded=1;fillColor=#fff;"', '頂点でない')
     expect(validateWhitespaceWrap(xml)).toEqual([])
   })
 
-  it('パース不能 XML → 警告 0 (例外を投げない)', () => {
+  it('XML として読み取れない文字列を渡した場合は、例外を発生させず、警告を返さない', async () => {
+    await explains('図のセルの折り返し指定を判定する `validateWhitespaceWrap` のテストです。`<root><unclosed>` のように閉じていない XML を渡した場合に、例外が発生せず、警告を返さないことを確認します。')
     expect(validateWhitespaceWrap('<root><unclosed>')).toEqual([])
   })
 
-  it('全角記号のみ value + rounded=1 + wrap 無し → 警告 1 (非 ASCII 拡張カバレッジ)', () => {
+  it('全角記号だけの value で、折り返し指定のない角丸のセルには、警告を 1 件返す', async () => {
+    await explains('図のセルの折り返し指定を判定する `validateWhitespaceWrap` のテストです。`value` が `※注意` の角丸のセルに、`whiteSpace=wrap` がない場合に、非 ASCII の文字として扱い、警告を 1 件だけ返すことを確認します。')
     const xml = wrap('vertex="1" style="rounded=1;fillColor=#fff;"', '※注意')
     const warnings = validateWhitespaceWrap(xml)
     expect(warnings.length).toBe(1)
     expect(warnings[0]?.message).toContain('※注意')
   })
 
-  it('半角カナ value + rounded=1 + wrap 無し → 警告 1 (非 ASCII 拡張カバレッジ)', () => {
+  it('半角カナの value で、折り返し指定のない角丸のセルには、警告を 1 件返す', async () => {
+    await explains('図のセルの折り返し指定を判定する `validateWhitespaceWrap` のテストです。`value` が半角カナの角丸のセルに、`whiteSpace=wrap` がない場合に、非 ASCII の文字として扱い、警告を 1 件だけ返すことを確認します。')
     const xml = wrap('vertex="1" style="rounded=1;fillColor=#fff;"', HANKAKU_KANA)
     const warnings = validateWhitespaceWrap(xml)
     expect(warnings.length).toBe(1)
     expect(warnings[0]?.message).toContain(HANKAKU_KANA)
   })
 
-  it('絵文字含む value + rounded=1 + wrap 無し → 警告 1 (非 ASCII 拡張カバレッジ)', () => {
+  it('記号の `✓` を含む value で、折り返し指定のない角丸のセルには、警告を 1 件返す', async () => {
+    await explains('図のセルの折り返し指定を判定する `validateWhitespaceWrap` のテストです。`value` が `✓done` の角丸のセルに、`whiteSpace=wrap` がない場合に、非 ASCII の記号として扱い、警告を 1 件だけ返すことを確認します。')
     const xml = wrap('vertex="1" style="rounded=1;fillColor=#fff;"', '✓done')
     const warnings = validateWhitespaceWrap(xml)
     expect(warnings.length).toBe(1)
     expect(warnings[0]?.message).toContain('✓done')
   })
 
-  it('preview が 20 code point 超で … が付き、surrogate pair も文字単位で切れる', () => {
+  it('メッセージに載せる文字列は 20 文字で切って末尾に … を付け、サロゲートペアの文字も 1 文字として数える', async () => {
+    await explains('図のセルの折り返し指定を判定する `validateWhitespaceWrap` のテストです。`value` が `🚀` を 25 個並べた文字列の場合に、メッセージには先頭の 20 個と `…` だけを含め、サロゲートペアの途中で切らないことを確認します。')
     // 🚀 (U+1F680) は surrogate pair (UTF-16 で 2 code unit) だが、code point 1 文字として扱う。
     // value は 🚀×25 で 25 code point。preview は先頭 20 code point + …。
     const rocket = '🚀'.repeat(25)
@@ -120,7 +135,8 @@ describe('validateWhitespaceWrap', () => {
     expect(warnings[0]?.message).toContain(`"${expectedPreview}…"`)
   })
 
-  it('CRLF 含む value + rounded=1 + wrap 無し → 警告 1 + preview に CRLF がエスケープされる', () => {
+  it('CRLF の改行を含み、折り返し指定のないセルには、警告を 1 件返し、メッセージの改行をエスケープして表示する', async () => {
+    await explains('図のセルの折り返し指定を判定する `validateWhitespaceWrap` のテストです。`value` に CRLF を含み、`whiteSpace=wrap` を持たないセルを渡した場合に、警告が 1 件だけ返り、メッセージにエスケープした文字列 `a\\r\\nb` が含まれることを確認します。')
     // &#13;&#10; で CRLF を attribute 値に埋め込む (normalize 回避)
     const xml = wrap('vertex="1" style="rounded=1;fillColor=#fff;"', 'a&#13;&#10;b')
     const warnings = validateWhitespaceWrap(xml)
@@ -130,18 +146,21 @@ describe('validateWhitespaceWrap', () => {
 })
 
 describe('XML 名前空間を含む drawio XML の扱い', () => {
-  it('未宣言の名前空間 prefix を含む XML は parse 失敗として警告を返さない', () => {
+  it('宣言されていない名前空間の接頭辞を含む XML は、読み取りに失敗したものとして警告を返さない', async () => {
+    await explains('図のセルの折り返し指定を判定する `validateWhitespaceWrap` のテストです。`<x:extra/>` のように、名前空間が宣言されていない接頭辞を含む XML を渡した場合に、警告を返さないことを確認します。')
     const xml = '<root><mxCell id="a" value="日本語" vertex="1" style="rounded=0;"/><x:extra/></root>'
     expect(validateWhitespaceWrap(xml)).toEqual([])
   })
 
-  it('default namespace 宣言付きの XML でも mxCell を確かめる', () => {
+  it('既定の名前空間を宣言した XML でも、mxCell の折り返し指定を判定する', async () => {
+    await explains('図のセルの折り返し指定を判定する `validateWhitespaceWrap` のテストです。`<mxGraphModel xmlns="urn:mx">` のように既定の名前空間を宣言した XML で、折り返し指定のない和文のセルを渡した場合に、警告が 1 件返ることを確認します。')
     const xml = '<mxGraphModel xmlns="urn:mx"><root>'
       + '<mxCell id="b" value="日本語" vertex="1" style="rounded=0;"/></root></mxGraphModel>'
     expect(validateWhitespaceWrap(xml)).toHaveLength(1)
   })
 
-  it('警告文に直し方（style に whiteSpace=wrap を付ける）が入っている (F-17)', () => {
+  it('警告のメッセージに、style へ whiteSpace=wrap を追加する直し方を含める', async () => {
+    await explains('図のセルの折り返し指定を判定する `validateWhitespaceWrap` のテストです。折り返し指定のない和文のセルを渡した場合に、メッセージに `add whiteSpace=wrap to style` が含まれる警告が返ることを確認します。')
     const xml = wrap('vertex="1" style="rounded=1;fillColor=#fff;"', '日本語テキスト')
     expect(validateWhitespaceWrap(xml)[0]?.message).toContain('add whiteSpace=wrap to style')
   })

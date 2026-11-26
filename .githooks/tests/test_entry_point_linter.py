@@ -7,8 +7,9 @@ from pathlib import Path
 import allure
 
 
+@allure.title("正常なエントリポイントを渡すと、PASS を出力して成功で終わる")
 def test_valid_entry_point_passes(script_dir: Path, tmp_path: Path, run_script) -> None:
-    """正常なエントリポイントは PASS。"""
+    """`check-entry-point-logic.sh` に、`lib/` のスクリプトを呼ぶだけのエントリポイントを渡した場合のテストです。終了コード 0 で終わり、`PASS` を出力することを確認します。"""
     with allure.step("正常なエントリポイントを書き、check-entry-point-logic.sh を動かす"):
         test_file = tmp_path / "good-entry.sh"
         test_file.write_text(
@@ -28,8 +29,9 @@ def test_valid_entry_point_passes(script_dir: Path, tmp_path: Path, run_script) 
         assert "PASS" in (result.stdout + result.stderr)
 
 
+@allure.title("エントリポイントに if 文のロジックがあると、違反の案内を出力して失敗で終わる")
 def test_logic_violation_shows_guidance(script_dir: Path, tmp_path: Path, run_script) -> None:
-    """ロジック違反時にガイダンスを表示。"""
+    """エントリポイントに `if` 文のロジックがある場合のテストです。終了コード 1 で終わり、`VIOLATION` と、ルールと修正方法の案内を出力することを確認します。"""
     with allure.step("ロジックを含むエントリポイントを書き、check-entry-point-logic.sh を動かす"):
         test_file = tmp_path / "bad-entry.sh"
         test_file.write_text(
@@ -46,8 +48,9 @@ def test_logic_violation_shows_guidance(script_dir: Path, tmp_path: Path, run_sc
         assert "lib/ 配下のスクリプトに移動してください" in out
 
 
+@allure.title("エントリポイントに for 文のロジックがあると、違反の理由を出力する")
 def test_violation_shows_reason(script_dir: Path, tmp_path: Path, run_script) -> None:
-    """違反時に理由を表示。"""
+    """エントリポイントに `for` 文のロジックがある場合のテストです。終了コード 1 で終わり、違反の理由として、ディスパッチャー層についての説明を出力することを確認します。"""
     with allure.step("for ループを含むエントリポイントを書き、check-entry-point-logic.sh を動かす"):
         test_file = tmp_path / "bad-entry2.sh"
         test_file.write_text('#!/bin/bash\nfor f in *.sh; do\n    echo "$f"\ndone\n')

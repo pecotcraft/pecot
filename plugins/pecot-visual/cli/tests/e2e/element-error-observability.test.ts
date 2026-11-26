@@ -54,6 +54,7 @@ import { readZipEntries } from '../_helpers/zip-entries.js'
 import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
+import { explains } from '../_helpers/explains.js'
 
 const PRERENDER_SELECTOR = '.point-number'
 const SLIDE_COUNT = 2
@@ -134,7 +135,8 @@ afterAll(() => {
 const isChromiumReady = isChromiumCached()
 
 describe.skipIf(!isChromiumReady)('CUJ: element エラーが成功 run の done payload から観測できる', () => {
-  it('CUJ: prerender 対象が不可視のスライドを含む run は exit 0 のまま、done payload に level=element を 1 件載せる。キャッシュヒット run では errors が空になり、警告で置き換わる', async () => {
+  it('不可視の要素を含むスライドを変換しても終了コード 0 で、done の結果に element の失敗を 1 件含め、キャッシュ使用時は空にする', async () => {
+    await explains('要素単位の失敗の出力のテストです。表示されない要素を含むスライドを変換した場合に、終了コード 0 のまま `errors` へ `level: element` を 1 件含め、キャッシュを使う 2 回目は空にすることを確認します。')
     const itT0 = performance.now()
     const outPath = temporaryRoot('element-error.pptx')
     const cachedOutPath = temporaryRoot('element-error-cached.pptx')

@@ -4,6 +4,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { generatedFileSchema } from '../src/domain/schema.js'
 import { stepSync } from '../src/vitest/step.js'
+import { explains } from '../src/vitest/explains.js'
 
 // #436 で外した、pecot 独自の入れ物の名前
 const ENVELOPE = new Set(['ok', 'exitCode', 'data', 'artifacts', 'message', 'reason'])
@@ -19,19 +20,22 @@ describe.each(plugins)('%s の mcp.output', (plugin) => {
   const tools = generated.entries.filter(entry => entry.surfaces.mcp !== undefined)
   const standardTools = tools.filter(entry => !Object.hasOwn(entry.mcp?.output?.properties ?? {}, HOOK_OUTPUT))
 
-  it('MCP の面を持つ項目がある', () => {
+  it('MCP の面を持つ項目が 1 つ以上存在する', async () => {
+    await explains(`${plugin} の定義書（\`generated.json\`）のテストです。MCP の面を持つ項目が 1 つ以上含まれていることを確認します。`)
     stepSync('MCP の項目の数を比べる', () => {
       expect(tools.length).toBeGreaterThan(0)
     })
   })
 
-  it.each(tools.map(entry => [entry.id, entry.mcp?.output] as const))('%s の最上位に、入れ物の名前が無い', (_id, output) => {
+  it.each(tools.map(entry => [entry.id, entry.mcp?.output] as const))('%s の mcp.output の最上位に、独自の入れ物の名前が含まれていない', async (id, output) => {
+    await explains(`MCP ツールの \`mcp.output\` の最上位のプロパティのテストです。${plugin} の項目 \`${id}\` に、\`ok\`・\`exitCode\`・\`data\` など、pecot 独自の入れ物の名前が含まれないことを確認します。`)
     stepSync('最上位の入れ物の名前を比べる', () => {
       expect(Object.keys(output?.properties ?? {}).filter(name => ENVELOPE.has(name))).toEqual([])
     })
   })
 
-  it.each(standardTools.map(entry => [entry.id, entry.mcp?.output] as const))('%s の最上位が type: object で、properties に共通の 4 項目を持つ', (_id, output) => {
+  it.each(standardTools.map(entry => [entry.id, entry.mcp?.output] as const))('%s の mcp.output は、type が object で、共通の 4 項目を properties に含む', async (id, output) => {
+    await explains(`MCP ツールの \`mcp.output\` の形のテストです。${plugin} の項目 \`${id}\` の最上位が \`type: object\` で、\`kind\`・\`detail\`・\`log\`・\`warnings\` を \`properties\` に含むことを確認します。`)
     stepSync('最上位の型を比べる', () => {
       expect(output?.type).toBe('object')
     })

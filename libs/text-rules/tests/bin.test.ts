@@ -14,6 +14,7 @@ import type { IgnoreCheck, MainDependencies } from '../lib/main.js'
 import { buildRules } from '../lib/rules.js'
 import { pickWord } from './helpers/dictionary.js'
 import { step, stepSync } from '../../interface-spec/src/vitest/step.js'
+import { explains } from './helpers/explains.js'
 
 const word = pickWord()
 const sentence = `${word}を使う。`
@@ -65,7 +66,8 @@ function wordLines(result: Run): string[] {
 }
 
 describe('main', () => {
-  it('違反のある .py を path:line:col ruleId message の 1 行で出し、終了コード 1 を返す', async () => {
+  it('違反のある .py ファイルを渡すと、違反ごとに「パス:行:桁 規則 ID メッセージ」の 1 行を出力し、終了コード 1 を返す', async () => {
+    await explains('文章の規則違反を 1 行ずつ出力するコマンド `pecot-text-lint` の `main` のテストです。違反を含む `.py` ファイルを渡した場合に、違反ごとに 1 行を標準出力へ出力し、指摘の位置が `sample.py` の 1 行目 6 桁になり、終了コードが 1 になることを確認します。')
     const result = await step('規則にかける', () => run(['sample.py'], { 'sample.py': `x = "${sentence}"\n` }))
     stepSync('結果を比べる', () => {
       expect(result.code).toBe(1)
@@ -79,14 +81,16 @@ describe('main', () => {
     })
   })
 
-  it('違反のない .md は終了コード 0 で何も出さない', async () => {
+  it('違反のない .md ファイルを渡すと、何も出力せず、終了コード 0 を返す', async () => {
+    await explains('文章の規則違反を 1 行ずつ出力するコマンド `pecot-text-lint` の `main` のテストです。違反を含まない `.md` ファイルを渡した場合に、標準出力と標準エラーのどちらへも何も出力せず、終了コードが 0 になることを確認します。')
     const result = await step('規則にかける', () => run(['sample.md'], { 'sample.md': '短い文です。\n' }))
     stepSync('結果を比べる', () => {
       expect(result).toEqual({ code: 0, stdout: [], stderr: [] })
     })
   })
 
-  it('.go のコメントの違反を返す', async () => {
+  it('.go ファイルのコメントに違反があると、その位置を指摘として返す', async () => {
+    await explains('文章の規則違反を 1 行ずつ出力するコマンド `pecot-text-lint` の `main` のテストです。`.go` ファイルのコメントに違反がある場合に、コメントの 1 行目 4 桁の `no-ai-words` の指摘を返し、終了コードが 1 になることを確認します。')
     const result = await step('規則にかける', () => run(['main.go'], { 'main.go': `// ${sentence}\npackage main\n` }))
     stepSync('結果を比べる', () => {
       expect(result.code).toBe(1)
@@ -97,7 +101,8 @@ describe('main', () => {
   it.each([
     ['a.ts', `export const a = '${sentence}'\n`, /^a\.ts:1:19 no-ai-words /],
     ['App.vue', `<template>\n  <p>${sentence}</p>\n</template>\n`, /^App\.vue:2:6 no-ai-words /],
-  ])('%s の文字列の違反を返す', async (file, content, expected) => {
+  ])('%s の文字列に違反があると、その位置を指摘として返す', async (file, content, expected) => {
+    await explains(`文章の規則違反を 1 行ずつ出力するコマンド \`pecot-text-lint\` の \`main\` のテストです。\`${file}\` の文字列に違反がある場合に、文字列の位置の \`no-ai-words\` の指摘を返し、終了コードが 1 になることを確認します。`)
     const result = await step('規則にかける', () => run([file], { [file]: content }))
     stepSync('結果を比べる', () => {
       expect(result.code).toBe(1)
@@ -105,7 +110,8 @@ describe('main', () => {
     })
   })
 
-  it('担当 plugin の無い拡張子は読まずに飛ばし、終了コード 0 を返す', async () => {
+  it('対応する plugin が存在しない拡張子のファイルは、読み込まずに飛ばし、終了コード 0 を返す', async () => {
+    await explains('文章の規則違反を 1 行ずつ出力するコマンド `pecot-text-lint` の `main` のテストです。`.png` や `README` のように対応する plugin が存在しないファイルを渡した場合に、何も読み込まず、何も出力せず、終了コードが 0 になることを確認します。')
     const readFile = vi.fn<MainDependencies['readFile']>()
     const result = await step('規則にかける', () => run(['logo.png', 'notes.txt', 'README'], {}, { readFile }))
     stepSync('結果を比べる', () => {
@@ -114,8 +120,9 @@ describe('main', () => {
     })
   })
 
-  it('個別の指摘は残し、要約の message は出さず、message の改行を 1 行にする', async () => {
+  it('複数の指摘をまとめる message は出力せず、個別の指摘だけを 1 行ずつ出力する', async () => {
     // 同じ接続詞で始まる文を続け、ai-tech-writing-guideline の【構造化】（文の始まりの単調さ）を狙う。
+    await explains('文章の規則違反を 1 行ずつ出力するコマンド `pecot-text-lint` の `main` のテストです。同じ接続詞で始まる文が続く文章を渡した場合に、【構造化】の個別の指摘は出力され、まとめの message は出力されず、各行が 1 行で終わることを確認します。')
     const result = await step('規則にかける', () => run(['sample.md'], { 'sample.md': 'また、短い文です。'.repeat(2) }))
     stepSync('結果を比べる', () => {
       expect(result.code).toBe(1)
@@ -127,7 +134,8 @@ describe('main', () => {
     })
   })
 
-  it('複数のファイルを順に読み、1 つでも違反があれば終了コード 1 を返す', async () => {
+  it('複数のファイルを渡し、1 つでも違反があると、終了コード 1 を返す', async () => {
+    await explains('文章の規則違反を 1 行ずつ出力するコマンド `pecot-text-lint` の `main` のテストです。違反のない `a.md` と違反のある `b.sh` を渡した場合に、`b.sh` の指摘だけが 1 件出力され、終了コードが 1 になることを確認します。')
     const result = await step('規則にかける', () => run(['a.md', 'b.sh'], { 'a.md': '短い文です。\n', 'b.sh': `echo "${sentence}"\n` }))
     stepSync('結果を比べる', () => {
       expect(result.code).toBe(1)
@@ -136,7 +144,8 @@ describe('main', () => {
     })
   })
 
-  it('存在しないファイルは理由を stderr に出し、終了コード 2 を返す', async () => {
+  it('存在しないファイルを渡すと、理由を標準エラーへ出力し、終了コード 2 を返す', async () => {
+    await explains('文章の規則違反を 1 行ずつ出力するコマンド `pecot-text-lint` の `main` のテストです。存在しないファイルを渡した場合に、ファイルを読めなかった理由を標準エラーへ 1 行出力し、標準出力には何も出力せず、終了コードが 2 になることを確認します。')
     const result = await step('規則にかける', () => run(['missing-file.md'], {}, { readFile: REAL_DEPS.readFile }))
     stepSync('結果を比べる', () => {
       expect(result.code).toBe(2)
@@ -146,14 +155,16 @@ describe('main', () => {
     })
   })
 
-  it('どのファイルで失敗したか分かるよう、ファイル名を付けて終了コード 2 を返す', async () => {
+  it('読み込みに失敗したファイルの名前を、標準エラーの出力に含めて、終了コード 2 を返す', async () => {
+    await explains('文章の規則違反を 1 行ずつ出力するコマンド `pecot-text-lint` の `main` のテストです。読めるファイルと存在しないファイルを渡した場合に、標準エラーの出力に存在しないファイルの名前が含まれ、終了コードが 2 になることを確認します。')
     const result = await step('規則にかける', () => run(['a.md', 'missing.md'], { 'a.md': '短い文です。\n' }))
     stepSync('結果を比べる', () => {
       expect(result).toEqual({ code: 2, stdout: [], stderr: ['pecot-text-lint: missing.md: ENOENT: missing.md\n'] })
     })
   })
 
-  it('plugin が例外を投げたら、違反ではなく実行失敗として stderr に出し、終了コード 2 を返す', async () => {
+  it('plugin が例外を投げると、違反としてではなく実行の失敗として標準エラーへ出力し、終了コード 2 を返す', async () => {
+    await explains('文章の規則違反を 1 行ずつ出力するコマンド `pecot-text-lint` の `main` のテストです。解析の途中で例外を投げる plugin を使った場合に、標準出力には何も出力せず、ファイル名と例外のメッセージを標準エラーへ 1 行出力し、終了コードが 2 になることを確認します。')
     class ThrowingProcessor {
       availableExtensions(): string[] {
         return ['.boom']
@@ -184,7 +195,8 @@ describe('main', () => {
     })
   })
 
-  it('BOM 付きの .ts でも、コメントの違反を BOM 無しと同じ位置で返す', async () => {
+  it('先頭に BOM がある .ts ファイルでも、BOM が無い場合と同じ位置にコメントの違反を返す', async () => {
+    await explains('文章の規則違反を 1 行ずつ出力するコマンド `pecot-text-lint` の `main` のテストです。先頭に BOM がある `.ts` ファイルを渡した場合に、BOM が無いファイルと同じ出力になることを確認します。')
     const plain = await step('BOM 無しの入力を規則にかける', () => run(['a.ts'], { 'a.ts': `// ${sentence}\n` }))
     const withBom = await step('BOM 付きの入力を規則にかける', () => run(['a.ts'], { 'a.ts': `\u{FEFF}// ${sentence}\n` }))
     stepSync('結果を比べる', () => {
@@ -193,7 +205,8 @@ describe('main', () => {
     })
   })
 
-  it('descriptor の生成が失敗したら理由を stderr に出し、終了コード 2 を返す', async () => {
+  it('規則の読み込みに失敗すると、理由を標準エラーへ出力し、終了コード 2 を返す', async () => {
+    await explains('文章の規則違反を 1 行ずつ出力するコマンド `pecot-text-lint` の `main` のテストです。規則の一式（descriptor）の生成が例外で失敗した場合に、その理由を標準エラーへ 1 行出力し、終了コードが 2 になることを確認します。')
     const result = await step('規則にかける', () => run(['sample.md'], {}, {
       descriptor: () => {
         throw new Error('規則を読み込めません')
@@ -204,7 +217,8 @@ describe('main', () => {
     })
   })
 
-  it('Error でない失敗も理由を文字列にして終了コード 2 を返す', async () => {
+  it('Error ではない値で失敗しても、その理由を文字列にして標準エラーへ出力し、終了コード 2 を返す', async () => {
+    await explains('文章の規則違反を 1 行ずつ出力するコマンド `pecot-text-lint` の `main` のテストです。ファイルの読み込みが Error ではなく文字列で失敗した場合に、ファイル名と文字列を標準エラーへ出力し、終了コードが 2 になることを確認します。')
     const result = await step('規則にかける', () => run(['sample.md'], {}, { readFile: vi.fn<MainDependencies['readFile']>().mockRejectedValue('文字列の失敗') }))
     stepSync('結果を比べる', () => {
       expect(result).toEqual({ code: 2, stdout: [], stderr: ['pecot-text-lint: sample.md: 文字列の失敗\n'] })
@@ -213,7 +227,8 @@ describe('main', () => {
 })
 
 describe('main の除外', () => {
-  it('除外に当たるファイルは読まずに飛ばし、終了コード 0 を返す', async () => {
+  it('除外の対象のファイルは、読み込まずに飛ばし、終了コード 0 を返す', async () => {
+    await explains('文章の規則違反を 1 行ずつ出力するコマンド `pecot-text-lint` の `main` のテストです。`.textlintignore` の除外の対象になるファイルを渡した場合に、ファイルを読み込まず、何も出力せず、終了コードが 0 になることを確認します。')
     const readFile = vi.fn<MainDependencies['readFile']>()
     const result = await step('規則にかける', () => run(['specs/a.md'], {}, { ignoreCheck: ignoreSpecs, readFile }))
     stepSync('結果を比べる', () => {
@@ -222,7 +237,8 @@ describe('main の除外', () => {
     })
   })
 
-  it('除外に当たらないファイルは、今までどおり違反を返す', async () => {
+  it('除外の対象ではないファイルは、除外の対象のファイルと一緒に渡しても、違反を返す', async () => {
+    await explains('文章の規則違反を 1 行ずつ出力するコマンド `pecot-text-lint` の `main` のテストです。除外の対象のファイルと対象ではないファイルを一緒に渡した場合、`docs/a.md` の指摘だけが 1 件出力され、終了コード 1 を返すことを確認します。')
     const result = await step('規則にかける', () => run(['specs/a.md', 'docs/a.md'], { 'docs/a.md': `${sentence}\n` }, { ignoreCheck: ignoreSpecs }))
     stepSync('結果を比べる', () => {
       expect(result.code).toBe(1)
@@ -231,7 +247,8 @@ describe('main の除外', () => {
     })
   })
 
-  it('--commit-msg のときは、除外の判定を作らない', async () => {
+  it('--commit-msg を付けると、除外の判定を作らずに、メッセージのファイルを調べる', async () => {
+    await explains('`--commit-msg` を付けて、コミットメッセージを調べる `main` のテストです。`specs/` の下のファイルを渡した場合に、除外の判定が 1 回も呼ばれず、違反が無いので終了コードが 0 になることを確認します。')
     const ignoreCheck = vi.fn<MainDependencies['ignoreCheck']>()
     const result = await step('規則にかける', () => run(['--commit-msg', 'specs/MSG'], { 'specs/MSG': '短い文です。\n' }, { ignoreCheck }))
     stepSync('結果を比べる', () => {
@@ -240,7 +257,8 @@ describe('main の除外', () => {
     })
   })
 
-  it('除外の判定が失敗したら、ファイル名を付けて終了コード 2 を返す', async () => {
+  it('除外の判定に失敗すると、ファイル名と理由を標準エラーへ出力し、終了コード 2 を返す', async () => {
+    await explains('文章の規則違反を 1 行ずつ出力するコマンド `pecot-text-lint` の `main` のテストです。除外の判定が例外で失敗した場合に、ファイル名と例外のメッセージを標準エラーへ 1 行出力し、終了コードが 2 になることを確認します。')
     const result = await step('規則にかける', () => run(['a.md'], { 'a.md': '短い文です。\n' }, { ignoreCheck: ignoreCheckFailing }))
     stepSync('結果を比べる', () => {
       expect(result).toEqual({ code: 2, stdout: [], stderr: ['pecot-text-lint: a.md: Failed to read ignore file: .textlintignore\n'] })
@@ -269,14 +287,16 @@ describe('relativeToCwd', () => {
     await rm(directory, { recursive: true, force: true })
   })
 
-  it('作業ディレクトリの下の絶対パスを、/ 区切りの相対パスにする', async () => {
+  it('作業ディレクトリの下の絶対パスを、/ 区切りの相対パスにして返す', async () => {
+    await explains('絶対パスを作業ディレクトリからの相対パスにする `relativeToCwd` のテストです。作業ディレクトリの下のファイルの絶対パスを渡した場合に、`specs/a.md` のような / 区切りの相対パスを返すことを確認します。')
     const cwd = path.join(directory, 'repo')
     await step('相対パスを求めて比べる', async () => {
       await expect(relativeToCwd(path.join(cwd, 'specs/a.md'), cwd)).resolves.toBe('specs/a.md')
     })
   })
 
-  it('リンクを通った作業ディレクトリでも、実体と同じ相対パスにする', async () => {
+  it('作業ディレクトリがシンボリックリンクでも、実体のパスで渡したときと同じ相対パスを返す', async () => {
+    await explains('絶対パスを作業ディレクトリからの相対パスにする `relativeToCwd` のテストです。作業ディレクトリがシンボリックリンクの場合に、リンクのパスで渡しても実体のパスで渡しても、同じ相対パスを返すことを確認します。')
     const cwd = path.join(directory, 'link')
     await step('リンク経由の相対パスを求めて比べる', async () => {
       await expect(relativeToCwd(path.join(cwd, 'specs/a.md'), cwd)).resolves.toBe('specs/a.md')
@@ -284,21 +304,24 @@ describe('relativeToCwd', () => {
     })
   })
 
-  it('作業ディレクトリの中のリンクの下は、リンク先が外にあっても見かけのパスで返す', async () => {
+  it('作業ディレクトリの中のリンクの下のファイルは、リンク先が外にあっても、リンクを通った相対パスを返す', async () => {
+    await explains('絶対パスを作業ディレクトリからの相対パスにする `relativeToCwd` のテストです。作業ディレクトリの中のリンクが、外のディレクトリを指している場合に、リンクを通ったままの相対パスを返すことを確認します。')
     const cwd = path.join(directory, 'repo')
     await step('相対パスを求めて比べる', async () => {
       await expect(relativeToCwd(path.join(cwd, 'vendor/a.md'), cwd)).resolves.toBe('vendor/a.md')
     })
   })
 
-  it('.. で始まる名前のファイルは、作業ディレクトリの中として返す', async () => {
+  it('名前が .. で始まるファイルは、親ディレクトリではなく、作業ディレクトリの中のファイルとして扱う', async () => {
+    await explains('絶対パスを作業ディレクトリからの相対パスにする `relativeToCwd` のテストです。`..notes.md` のように名前が `..` で始まるファイルを渡した場合に、その名前のままの相対パスを返すことを確認します。')
     const cwd = path.join(directory, 'repo')
     await step('相対パスを求めて比べる', async () => {
       await expect(relativeToCwd(path.join(cwd, '..notes.md'), cwd)).resolves.toBe('..notes.md')
     })
   })
 
-  it('作業ディレクトリの外のパスには undefined を返す', async () => {
+  it('作業ディレクトリの外のパスを渡すと、undefined を返す', async () => {
+    await explains('絶対パスを作業ディレクトリからの相対パスにする `relativeToCwd` のテストです。作業ディレクトリの外のファイルを渡した場合に、相対パスを求められないので `undefined` を返すことを確認します。')
     await step('作業ディレクトリの外のパスの相対パスを求めて比べる', async () => {
       await expect(relativeToCwd(path.join(directory, 'repo/a.md'), path.join(directory, 'repo/specs'))).resolves.toBeUndefined()
     })
@@ -309,7 +332,8 @@ describe('main --commit-msg の type(scope)', () => {
   const file = 'COMMIT_EDITMSG'
   const scoped = 'fix(pecot-tools,pecot-visual,pecot-workflow,text-rules,repo):'
 
-  it('scope の , 区切りを数えず、違反なしで通す', async () => {
+  it('scope にカンマで区切った複数の値があっても、件名の先頭の type(scope): を外して、違反なしで通す', async () => {
+    await explains('`--commit-msg` を付けて、コミットメッセージを調べる `main` のテストです。`fix(a,b):` のように scope を複数持つ件名を渡した場合に、先頭の `type(scope):` を調べず、何も出力せず、終了コードが 0 になることを確認します。')
     const result = await step('規則にかける', () => run(['--commit-msg', file], { [file]: `${scoped} #1297 レビュー指摘に対応する\n` }))
     stepSync('結果を比べる', () => {
       expect(result.stdout).toEqual([])
@@ -317,7 +341,8 @@ describe('main --commit-msg の type(scope)', () => {
     })
   })
 
-  it.each(['feat!:', 'feat(x)!:'])('%s の形も外す', async (prefix) => {
+  it.each(['feat!:', 'feat(x)!:'])('件名の先頭が %s の形でも、先頭の type と印を外して、違反なしで通す', async (prefix) => {
+    await explains(`\`--commit-msg\` を付けて、コミットメッセージを調べる \`main\` のテストです。件名の先頭が \`${prefix}\` の形の場合に、その部分を調べる対象から外し、何も出力せず、終了コードが 0 になることを確認します。`)
     const result = await step('規則にかける', () => run(['--commit-msg', file], { [file]: `${prefix} 対応する\n` }))
     stepSync('結果を比べる', () => {
       expect(result.stdout).toEqual([])
@@ -325,7 +350,8 @@ describe('main --commit-msg の type(scope)', () => {
     })
   })
 
-  it('件名の本文の違反は止める', async () => {
+  it('件名の type(scope): より後ろに違反があると、終了コード 1 を返す', async () => {
+    await explains('`--commit-msg` を付けて、コミットメッセージを調べる `main` のテストです。`type(scope):` の後ろの件名に違反がある場合に、指摘を出力し、終了コードが 1 になることを確認します。')
     const result = await step('規則にかける', () => run(['--commit-msg', file], { [file]: `${scoped} ${sentence}\n` }))
     stepSync('結果を比べる', () => {
       expect(result.code).toBe(1)
@@ -333,7 +359,8 @@ describe('main --commit-msg の type(scope)', () => {
     })
   })
 
-  it('本文の段落の違反は止める', async () => {
+  it('本文の段落に違反があると、その行番号を付けて、終了コード 1 を返す', async () => {
+    await explains('`--commit-msg` を付けて、コミットメッセージを調べる `main` のテストです。件名の後ろの本文の段落に違反がある場合に、3 行目の指摘を出力し、終了コードが 1 になることを確認します。')
     const result = await step('規則にかける', () => run(['--commit-msg', file], { [file]: `${scoped} 対応する\n\n${sentence}\n` }))
     stepSync('結果を比べる', () => {
       expect(result.code).toBe(1)
@@ -345,7 +372,8 @@ describe('main --commit-msg の type(scope)', () => {
     ['scope のある件名', 'fix(a,b): '],
     ['scope の無い件名', ''],
     ['破壊的変更の印のある件名', 'feat(x)!:  '],
-  ])('%s の本文の違反の列は、ファイル上の位置と一致する', async (_name, prefix) => {
+  ])('%s の違反の桁は、先頭の type(scope): を含めた、ファイル上の桁と一致する', async (name, prefix) => {
+    await explains(`\`--commit-msg\` を付けて、コミットメッセージを調べる \`main\` のテストです。件名の先頭が \`${name}\` の場合に、違反の桁が、先頭の部分の長さに 1 を加えた、ファイル上の桁と一致することを確認します。`)
     const result = await step('規則にかける', () => run(['--commit-msg', file], { [file]: `${prefix}${sentence}\n` }))
     const columns = stepSync('桁を取り出す', () => wordLines(result).map(line => Number(/^\S+:1:(\d+) /.exec(line)?.[1])))
     stepSync('結果を比べる', () => {
@@ -353,7 +381,8 @@ describe('main --commit-msg の type(scope)', () => {
     })
   })
 
-  it('type(scope): の無い件名は今までどおり全体を確認する', async () => {
+  it('type(scope): が付いていない件名は、全体を調べて、違反があると終了コード 1 を返す', async () => {
+    await explains('`--commit-msg` を付けて、コミットメッセージを調べる `main` のテストです。`type(scope):` が付いていない件名に違反がある場合に、件名の全体が調べられ、指摘を出力し、終了コードが 1 になることを確認します。')
     const result = await step('規則にかける', () => run(['--commit-msg', file], { [file]: `${sentence}\n` }))
     stepSync('結果を比べる', () => {
       expect(result.code).toBe(1)
@@ -365,14 +394,16 @@ describe('main --commit-msg の type(scope)', () => {
 describe('main --commit-msg', () => {
   const file = '.git/COMMIT_EDITMSG'
 
-  it('# 行だけのメッセージは終了コード 0 で何も出さない', async () => {
+  it('# で始まる行だけのメッセージは、何も出力せず、終了コード 0 を返す', async () => {
+    await explains('`--commit-msg` を付けて、コミットメッセージを調べる `main` のテストです。`#` で始まるコメントの行だけのメッセージを渡した場合に、コメントの行が調べられず、何も出力せず、終了コードが 0 になることを確認します。')
     const result = await step('規則にかける', () => run(['--commit-msg', file], { [file]: `# ${sentence}\n# ${sentence}\n` }))
     stepSync('結果を比べる', () => {
       expect(result).toEqual({ code: 0, stdout: [], stderr: [] })
     })
   })
 
-  it('scissors 行以降の diff を読まず、違反の行番号を元ファイルのまま返す', async () => {
+  it('scissors の行より後ろの diff を調べず、違反の行番号は、元のファイルの行番号のまま返す', async () => {
+    await explains('`--commit-msg` を付けて、コミットメッセージを調べる `main` のテストです。scissors の行より後ろに diff が付いている場合に、diff の中の違反は出力されず、本文の違反が元のファイルと同じ 3 行目で出力されることを確認します。')
     const text = `件名です\n\n${sentence}\n${SCISSORS}\ndiff --git a/${sentence} b/x\n`
     const result = await step('規則にかける', () => run(['--commit-msg', file], { [file]: text }))
     stepSync('結果を比べる', () => {
@@ -382,7 +413,8 @@ describe('main --commit-msg', () => {
     })
   })
 
-  it('scissors 行が無くても # 行を空行にして行番号を保つ', async () => {
+  it('scissors の行が存在しなくても、# の行を空行として扱い、元のファイルの行番号を保つ', async () => {
+    await explains('`--commit-msg` を付けて、コミットメッセージを調べる `main` のテストです。`#` の行の次に違反の行がある場合に、違反の行番号が元のファイルと同じ 3 行目になることを確認します。')
     const result = await step('規則にかける', () => run(['--commit-msg', file], { [file]: `件名です\n# ${sentence}\n${sentence}\n` }))
     stepSync('結果を比べる', () => {
       expect(wordLines(result)).toHaveLength(1)
@@ -390,7 +422,8 @@ describe('main --commit-msg', () => {
     })
   })
 
-  it('CRLF でも行番号が元ファイルと一致する', async () => {
+  it('改行が CRLF のメッセージでも、違反の行番号が、元のファイルの行番号と一致する', async () => {
+    await explains('`--commit-msg` を付けて、コミットメッセージを調べる `main` のテストです。改行が CRLF で、コメントの行と scissors の行を含むメッセージを渡した場合に、違反の行番号が元のファイルと同じ 3 行目になることを確認します。')
     const result = await step('規則にかける', () => run(['--commit-msg', file], { [file]: `件名です\r\n\r\n${sentence}\r\n# ${sentence}\r\n${SCISSORS}\r\n${sentence}\r\n` }))
     stepSync('結果を比べる', () => {
       expect(wordLines(result)).toHaveLength(1)
@@ -405,7 +438,8 @@ describe('parseArgv', () => {
     [['a.md', 'b.py'], { commitMsg: false, files: ['a.md', 'b.py'] }],
     [['--commit-msg', '.git/COMMIT_EDITMSG'], { commitMsg: true, files: ['.git/COMMIT_EDITMSG'] }],
     [['a.md', '--commit-msg'], { commitMsg: true, files: ['a.md'] }],
-  ])('引数が %j のとき、%j を返す', (argv, expected) => {
+  ])('引数が %j のとき、%j を返す', async (argv, expected) => {
+    await explains('`pecot-text-lint` のコマンドの引数を読み取る `parseArgv` のテストです。引数の配列を渡した場合に、`--commit-msg` の有無と、ファイルの一覧を、位置によらず返すことを確認します。')
     stepSync('引数を解釈して比べる', () => {
       expect(parseArgv(argv)).toEqual(expected)
     })
@@ -425,7 +459,8 @@ describe('stripCommitComments', () => {
     [`${BREAKING_SCOPED} の type・scope・印を外す`, `${BREAKING_SCOPED} c`, 'c'],
     ['コメント行の次の行を件名とする', '# x\nfix(a): c', '\nc'],
     ['type(scope): の無い件名はそのまま', 'Fix(a): c', 'Fix(a): c'],
-  ])('コミットメッセージを整えるとき、%s', (_name, input, expected) => {
+  ])('コミットメッセージを整えるとき、%s', async (_name, input, expected) => {
+    await explains('コミットメッセージから、調べる対象にならない部分を取り除く `stripCommitComments` のテストです。メッセージの種類ごとに、コメントの行・scissors の行より後ろ・先頭の `type(scope):` が取り除かれ、本文が残ることを確認します。')
     stepSync('コミットメッセージのコメントを除いて比べる', () => {
       expect(stripCommitComments(input)).toBe(expected)
     })
@@ -433,7 +468,8 @@ describe('stripCommitComments', () => {
 })
 
 describe('formatMessage', () => {
-  it('path:line:col ruleId message を作り、message の改行と前後の空白を 1 つの空白にする', () => {
+  it('指摘を「パス:行:桁 規則 ID メッセージ」の 1 行にし、メッセージの改行と前後の空白を 1 つの空白にする', async () => {
+    await explains('指摘を出力用の 1 行にする `formatMessage` のテストです。改行と前後の空白を含むメッセージを渡した場合に、改行が 1 つの空白になり、前後の空白が取り除かれた 1 行を返すことを確認します。')
     const message = { ruleId: 'rule-a', message: '1 行目\n  2 行目 ', loc: { start: { line: 3, column: 5 } } }
     stepSync('出力の 1 行を作って比べる', () => {
       expect(formatMessage('dir/a.py', message)).toBe('dir/a.py:3:5 rule-a 1 行目 2 行目')
@@ -490,7 +526,8 @@ describe('コマンドの実体', () => {
     await rm(directory, { recursive: true, force: true })
   })
 
-  it('dist の bin は違反のあるファイルで終了コード 1 と 1 行形式の出力を返す', async () => {
+  it('ビルドした bin を実行し、違反のあるファイルを渡すと、終了コード 1 と、違反ごとの 1 行を出力する', async () => {
+    await explains('ビルドした `dist/bin/pecot-text-lint.js` を子プロセスで実行するテストです。違反のあるファイルを渡した場合に、終了コードが 1 になり、違反の 1 行が標準出力へ出力され、実行の失敗の行が標準エラーに無いことを確認します。')
     const file = path.join(directory, 'sample.sh')
     await step('規則にかけるファイルを書く', async () => {
       // eslint-disable-next-line security/detect-non-literal-fs-filename -- テスト用に作った一時ディレクトリの中のパス
@@ -504,7 +541,8 @@ describe('コマンドの実体', () => {
     })
   })
 
-  it('dist の bin は違反のないファイルで終了コード 0 を返す', async () => {
+  it('ビルドした bin を実行し、違反のないファイルを渡すと、何も出力せず、終了コード 0 を返す', async () => {
+    await explains('ビルドした `dist/bin/pecot-text-lint.js` を子プロセスで実行するテストです。違反のないファイルを渡した場合に、終了コードが 0 になり、標準出力に何も出力せず、実行の失敗の行が標準エラーに無いことを確認します。')
     const file = path.join(directory, 'clean.md')
     await step('規則にかけるファイルを書く', async () => {
       // eslint-disable-next-line security/detect-non-literal-fs-filename -- テスト用に作った一時ディレクトリの中のパス
@@ -541,7 +579,8 @@ describe('コマンドの実体', () => {
       { name: '相対パス', file: 'specs/a.md', cwd: 'repository' },
       { name: '絶対パス', file: 'repository/specs/a.md', cwd: 'repository' },
       { name: 'リンクを通った作業ディレクトリの絶対パス', file: 'link/specs/a.md', cwd: 'link' },
-    ])('除外に当たるファイルを $name で渡すと、終了コード 0 を返す', async ({ file, cwd }) => {
+    ])('除外に当たるファイルを $name で渡すと、終了コード 0 を返す', async ({ name, file, cwd }) => {
+      await explains(`ビルドした \`dist/bin/pecot-text-lint.js\` を、\`.textlintignore\` のあるディレクトリで実行するテストです。除外の対象のファイルを \`${name}\` で渡した場合に、違反があっても何も出力せず、終了コードが 0 になることを確認します。`)
       const target = file.startsWith('specs/') ? file : path.join(directory, file)
       const result = await step('dist の bin を動かす', () => runBin(target, path.join(directory, cwd)))
       stepSync('結果を比べる', () => {
@@ -550,7 +589,8 @@ describe('コマンドの実体', () => {
       })
     })
 
-    it('除外に当たらないファイルは、違反を返す', async () => {
+    it('除外の対象ではないファイルを渡すと、違反を返す', async () => {
+      await explains('ビルドした `dist/bin/pecot-text-lint.js` を、`.textlintignore` のあるディレクトリで実行するテストです。除外の対象ではない `docs/a.md` を渡した場合に、違反が出力され、終了コードが 1 になることを確認します。')
       const result = await step('dist の bin を動かす', () => runBin(path.join(repository, 'docs/a.md'), repository))
       stepSync('結果を比べる', () => {
         expect(result.code).toBe(1)
@@ -558,7 +598,8 @@ describe('コマンドの実体', () => {
       })
     })
 
-    it('作業ディレクトリの外のファイルは、除外の型に当たっても違反を返す', async () => {
+    it('作業ディレクトリの外のファイルを渡すと、除外の型に一致しても、違反を返す', async () => {
+      await explains('ビルドした `dist/bin/pecot-text-lint.js` を、`.textlintignore` のあるディレクトリの中の別のディレクトリで実行するテストです。作業ディレクトリの外のファイルが除外の型に一致しても、除外されず、終了コードが 1 になることを確認します。')
       const result = await step('dist の bin を動かす', () => runBin(path.join(repository, 'specs/a.md'), path.join(repository, 'docs')))
       stepSync('結果を比べる', () => {
         expect(result.code).toBe(1)
@@ -566,7 +607,8 @@ describe('コマンドの実体', () => {
     })
 
     // textlint の scanFilePath はパスを glob の型として扱うので、[ ] を含むパスは除外と照らせない（CLI と同じ）。
-    it('glob の記号を含むパスは、除外の下でも違反を返す', async () => {
+    it('パスに glob の記号が含まれるファイルを渡すと、除外の対象の下にあっても、違反を返す', async () => {
+      await explains('ビルドした `dist/bin/pecot-text-lint.js` を、`.textlintignore` のあるディレクトリで実行するテストです。`specs/[id]/a.md` のように、パスに glob の記号 `[` と `]` が含まれる場合に、除外の型に一致するか判定できず、終了コードが 1 になることを確認します。')
       const result = await step('dist の bin を動かす', () => runBin('specs/[id]/a.md', repository))
       stepSync('結果を比べる', () => {
         expect(result.code).toBe(1)

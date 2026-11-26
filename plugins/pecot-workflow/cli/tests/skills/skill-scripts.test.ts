@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { attachOutput, attachText, readOutput } from '../../../../../libs/interface-spec/src/vitest/attach.js'
 import { makeTemporaryDirectory, writeTree } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { pluginRoot, readDocuments, readPluginFile } from './_helpers/documents.js'
+import { explains } from '../_helpers/explains.js'
 
 function scriptPath(relative: string): string {
   return path.join(pluginRoot, relative)
@@ -28,13 +29,15 @@ describe('スキルの本文とスクリプトのファイル', () => {
     { skill: 'skills/w-onboarding/SKILL.md', script: 'scripts/board-url.cjs' },
     { skill: 'skills/w-pr/SKILL.md', script: 'scripts/serve-preview.cjs' },
     { skill: 'skills/w-pr/SKILL.md', script: 'scripts/wait-merge.cjs' },
-  ])('$skill は、base directory の $script を node で動かすよう書き、そのファイルが在る', ({ skill, script }) => {
+  ])('$skill は、base directory の $script を node で実行するよう書き、そのファイルが存在する', async ({ skill, script }) => {
+    await explains(`スキルの本文とスクリプトの対応のテストです。\`${skill}\` に \`node <このスキルの base directory>/${script}\` の記述があり、そのスクリプトのファイルが存在することを確認します。`)
     expect(readPluginFile(skill)).toContain(`node <このスキルの base directory>/${script}`)
     const file = path.join(pluginRoot, path.dirname(skill), script)
     expect(existsSync(file)).toBe(true)
   })
 
-  it('スキルとエージェントの本文に、node で動かすスクリプトを埋め込まない', () => {
+  it('スキルとエージェントの本文に、node で実行するスクリプトを埋め込まない', async () => {
+    await explains('スキルとエージェントの本文のテストです。`node --eval` や `node -p` などで、スクリプトを本文に直接書いた記述が含まれないことを確認します。')
     const embedded = readDocuments()
       .filter(({ text }) => /node (?:--input-type|--eval|-[ep] |- <<)/u.test(text))
       .map(({ file }) => file)
@@ -52,7 +55,8 @@ describe('w-onboarding Step 4 のボード URL の取得', () => {
   const script = 'skills/w-onboarding/scripts/board-url.cjs'
   const url = 'https://github.com/orgs/pecotcraft/projects/1'
 
-  it('相対パスの .active から、ボード URL を 1 行で出す', () => {
+  it('相対パスの .active から、ボード URL を 1 行で出力する', async () => {
+    await explains('`board-url.cjs` のテストです。`.active` に相対パスが書かれている場合に、設定ファイルの `board_url` を 1 行で標準出力に出力し、終了コード 0 で終了することを確認します。')
     const directory = repositoryWith({
       '.pecot/config/projects/.active': 'p.json\n',
       '.pecot/config/projects/p.json': JSON.stringify({ project: { board_url: url } }),
@@ -60,13 +64,15 @@ describe('w-onboarding Step 4 のボード URL の取得', () => {
     expect(runScript(script, directory)).toMatchObject({ status: 0, stdout: `${url}\n` })
   })
 
-  it('絶対パスの .active でも、ボード URL を 1 行で出す', () => {
+  it('絶対パスの .active でも、ボード URL を 1 行で出力する', async () => {
+    await explains('`board-url.cjs` のテストです。`.active` に絶対パスが書かれている場合でも、設定ファイルの `board_url` を 1 行で出力し、終了コード 0 で終了することを確認します。')
     const directory = repositoryWith({ '.pecot/config/projects/p.json': JSON.stringify({ project: { board_url: url } }) })
     writeTree(directory, { '.pecot/config/projects/.active': `${path.join(directory, '.pecot/config/projects/p.json')}\n` })
     expect(runScript(script, directory)).toMatchObject({ status: 0, stdout: `${url}\n` })
   })
 
-  it('board_url が無いと、終了コード 1 で止まる', () => {
+  it('board_url が存在しないと、終了コード 1 で止まる', async () => {
+    await explains('`board-url.cjs` のテストです。設定ファイルに `board_url` が存在しない場合は、何も出力せず、終了コード 1 で終了することを確認します。')
     const directory = repositoryWith({
       '.pecot/config/projects/.active': 'p.json\n',
       '.pecot/config/projects/p.json': JSON.stringify({ project: {} }),
@@ -76,7 +82,8 @@ describe('w-onboarding Step 4 のボード URL の取得', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('.active が無いと、終了コード 1 で止まる', () => {
+  it('.active が存在しないと、終了コード 1 で止まる', async () => {
+    await explains('`board-url.cjs` のテストです。`.active` のファイルが存在しない場合に、何も出力せず、終了コード 1 で終了することを確認します。')
     const result = runScript(script, repositoryWith({}))
     expect(result.status).toBe(1)
     expect(result.stdout).toBe('')
@@ -141,7 +148,8 @@ describe('w-onboarding の兄弟リポの検出', () => {
   const other = JSON.stringify({ host: 'github.com', owner: 'other' })
   const https = 'https://github.com/pecotcraft/cur.git'
 
-  it('一致が 1 件だと、MATCH の行でそのパスを出す', () => {
+  it('一致する設定ファイルが 1 件だと、MATCH の行でそのパスを出力する', async () => {
+    await explains('`detect-sibling-config.cjs` のテストです。同じ owner の設定ファイルを持つ兄弟のリポジトリが 1 件だけの場合に、`MATCH: ` に続けてそのパスを出力することを確認します。')
     const { current } = layout(https, { a: mine, b: other })
     expect(runScript(script, current)).toMatchObject({
       status: 0,
@@ -149,7 +157,8 @@ describe('w-onboarding の兄弟リポの検出', () => {
     })
   })
 
-  it('一致が 2 件だと、複数見つかった旨と 2 行のパスを出す', () => {
+  it('一致する設定ファイルが 2 件だと、複数見つかった旨と 2 行のパスを出力する', async () => {
+    await explains('`detect-sibling-config.cjs` のテストです。同じ owner の設定ファイルを持つ兄弟のリポジトリが 2 件の場合に、複数見つかった旨のメッセージと、2 行のパスを出力することを確認します。')
     const { current } = layout(https, { a: mine, b: mine })
     expect(runScript(script, current).stdout).toBe(
       '複数見つかりました（AskUserQuestion で選択）:\n'
@@ -158,7 +167,8 @@ describe('w-onboarding の兄弟リポの検出', () => {
     )
   })
 
-  it('一致が 0 件だと、見つからなかった旨を出す', () => {
+  it('一致する設定ファイルが存在しないと、見つからなかった旨を出力する', async () => {
+    await explains('`detect-sibling-config.cjs` のテストです。同じ owner の設定ファイルを持つ兄弟のリポジトリが存在しない場合に、見つからなかった旨のメッセージを出力し、終了コード 0 で終了することを確認します。')
     const { current } = layout(https, { b: other })
     expect(runScript(script, current)).toMatchObject({
       status: 0,
@@ -166,7 +176,8 @@ describe('w-onboarding の兄弟リポの検出', () => {
     })
   })
 
-  it('ssh の origin でも、一致が 1 件と数える', () => {
+  it('ssh 形式の origin でも、一致する設定ファイルを 1 件と数える', async () => {
+    await explains('`detect-sibling-config.cjs` のテストです。`origin` が `git@github.com:pecotcraft/cur.git` の形でも、同じ owner の兄弟のリポジトリを 1 件検出することを確認します。')
     const { current } = layout('git@github.com:pecotcraft/cur.git', { a: mine })
     expect(runScript(script, current).stdout).toBe('MATCH: ../a/.pecot/config/projects/p.json\n')
   })
@@ -177,17 +188,20 @@ describe('w-onboarding の兄弟リポの検出', () => {
     'https://user:tok@github.com:8443/pecotcraft/cur.git',
     'git://github.com/pecotcraft/cur.git',
     'https://github.com/pecotcraft/cur/',
-  ])('origin が %s だと、一致が 1 件と数える', (origin) => {
+  ])('origin が %s でも、一致する設定ファイルを 1 件と数える', async (origin) => {
+    await explains(`\`detect-sibling-config.cjs\` の \`origin\` の形式のテストです。\`origin\` が \`${origin}\` の場合でも、同じ owner の兄弟のリポジトリを 1 件検出することを確認します。`)
     const { current } = layout(origin, { a: mine })
     expect(runScript(script, current).stdout).toBe('MATCH: ../a/.pecot/config/projects/p.json\n')
   })
 
-  it('別名の origin だと、host が別名になり一致が 0 件になる', () => {
+  it('別名の origin では、host が別名になり、一致する設定ファイルが存在しなくなる', async () => {
+    await explains('`detect-sibling-config.cjs` のテストです。`origin` が `gh-alias:pecotcraft/cur.git` の別名の場合に、host が別名として扱われ、見つからなかった旨を出力することを確認します。')
     const { current } = layout('gh-alias:pecotcraft/cur.git', { a: mine })
     expect(runScript(script, current).stdout).toBe('兄弟リポに一致する設定ファイルが見つかりませんでした\n')
   })
 
-  it('シンボリックリンクの兄弟リポも、一致に数える', () => {
+  it('シンボリックリンクの兄弟リポジトリも、一致する設定ファイルとして数える', async () => {
+    await explains('`detect-sibling-config.cjs` のテストです。兄弟のディレクトリがシンボリックリンクの場合でも、そのリンク先の設定ファイルを検出することを確認します。')
     const { parent, current } = layout(https, {})
     const outer = makeTemporaryDirectory()
     writeTree(outer, { '.pecot/config/projects/p.json': mine })
@@ -195,12 +209,14 @@ describe('w-onboarding の兄弟リポの検出', () => {
     expect(runScript(script, current).stdout).toBe('MATCH: ../lnk/.pecot/config/projects/p.json\n')
   })
 
-  it('解析できない JSON は、一致の数に入れない', () => {
+  it('解析できない JSON は、一致する設定ファイルの数に入れない', async () => {
+    await explains('`detect-sibling-config.cjs` のテストです。JSON として解析できない設定ファイルが兄弟にあっても、一致の件数に入れず、正しい設定ファイルだけを検出することを確認します。')
     const { current } = layout(https, { a: mine, broken: '{"host":' })
     expect(runScript(script, current).stdout).toBe('MATCH: ../a/.pecot/config/projects/p.json\n')
   })
 
-  it.for(['foo', 'git@github.com:~pecotcraft/cur.git', 'C:/pecotcraft/cur.git'])('origin が %s だと、解析できない旨の ERROR の行を出して終了コード 1 で止まる', (origin) => {
+  it.for(['foo', 'git@github.com:~pecotcraft/cur.git', 'C:/pecotcraft/cur.git'])('origin が %s だと、解析できない旨の ERROR の行を出力して終了コード 1 で止まる', async (origin) => {
+    await explains(`\`detect-sibling-config.cjs\` のテストです。\`origin\` が \`${origin}\` のように解析できない形式の場合に、\`ERROR: origin URL を解析できませんでした\` を出力し、終了コード 1 で終了することを確認します。`)
     const { current } = layout(origin, { a: mine })
     expect(runScript(script, current)).toMatchObject({
       status: 1,
@@ -208,7 +224,8 @@ describe('w-onboarding の兄弟リポの検出', () => {
     })
   })
 
-  it('origin が無いと、取得できない旨の ERROR の行を出して終了コード 1 で止まる', () => {
+  it('origin が存在しないと、取得できない旨の ERROR の行を出力して終了コード 1 で止まる', async () => {
+    await explains('`detect-sibling-config.cjs` のテストです。リポジトリに `origin` が存在しない場合は、`ERROR: origin URL を取得できませんでした` を出力し、終了コード 1 で終了することを確認します。')
     const current = makeTemporaryDirectory()
     git(current, 'init', '-q')
     expect(runScript(script, current)).toMatchObject({
@@ -252,7 +269,8 @@ describe('w-pr のプレビューの配信', () => {
     return port
   }
 
-  it('.html を text/html で 200 を返す', async () => {
+  it('.html のファイルには、text/html の Content-Type で 200 を返す', async () => {
+    await explains('`serve-preview.cjs` のテストです。`.html` のファイルを要求すると、ステータス 200 と `text/html` の Content-Type で、日本語の本文を返すことを確認します。')
     const port = await serve()
     const response = await get(port, '/index.html')
     expect(response.status).toBe(200)
@@ -260,26 +278,30 @@ describe('w-pr のプレビューの配信', () => {
     expect(response.body).toContain('日本語')
   })
 
-  it('..%2f で配信の起点の外を指すと、403 を返す', async () => {
+  it('..%2f で配信の起点の外を指定すると、403 を返す', async () => {
+    await explains('`serve-preview.cjs` のテストです。`..%2f` を使って配信するディレクトリの外のファイルを要求すると、ステータス 403 を返すことを確認します。')
     const port = await serve()
     const response = await get(port, '/..%2f..%2f..%2fsecret.txt')
     expect(response.status).toBe(403)
   })
 
-  it('無いパスには、404 を返す', async () => {
+  it('存在しないパスには、404 を返す', async () => {
+    await explains('`serve-preview.cjs` のテストです。存在しないパスを要求すると、ステータス 404 を返すことを確認します。')
     const port = await serve()
     const response = await get(port, '/nope.html')
     expect(response.status).toBe(404)
   })
 
-  it('止めると、接続を受け付けなくなる', async () => {
+  it('配信を止めると、接続を受け付けなくなる', async () => {
+    await explains('`serve-preview.cjs` のテストです。起動したプロセスを止めた後に同じポートへ接続すると、接続に失敗することを確認します。')
     const port = await serve()
     if (server?.pid !== undefined) process.kill(-server.pid)
     await sleep(300)
     await expect(fetch(`http://127.0.0.1:${String(port)}/index.html`)).rejects.toThrow()
   })
 
-  it.for(['70000', '-1', 'abc'])('port が %s だと、立てられない旨を出して終了コード 1 で止まる', (port) => {
+  it.for(['70000', '-1', 'abc'])('port が %s だと、配信を立てられない旨を出力して終了コード 1 で止まる', async (port) => {
+    await explains(`\`serve-preview.cjs\` のポートの検証のテストです。ポートに \`${port}\` を指定すると、0〜65535 の整数ではない旨を標準エラーに出力し、終了コード 1 で終了することを確認します。`)
     const repository = makeTemporaryDirectory()
     writeTree(repository, { '.pecot/work/399/index.html': '<p>x</p>\n' })
     const result = spawnSync(process.execPath, [script, '.pecot/work/399', port], { cwd: repository, encoding: 'utf8' })
@@ -322,34 +344,40 @@ describe('w-pr のマージの待ち受け', () => {
     { name: 'マージされずに閉じられた', responses: [{ state: 'CLOSED', mergeable: 'MERGEABLE', isInMergeQueue: false }], word: 'CLOSED' },
     { name: 'base とコンフリクトした', responses: [open('CONFLICTING')], word: 'CONFLICTING' },
     { name: 'merge queue から外れて開いたまま', responses: [open('MERGEABLE', true), open('MERGEABLE')], word: 'DEQUEUED' },
-  ])('PR が $name なら、$word を 1 行出して終了コード 0 で終わる', ({ responses, word }) => {
+  ])('PR が $name なら、$word を 1 行出力して終了コード 0 で終了する', async ({ name, responses, word }) => {
+    await explains(`\`wait-merge.cjs\` のテストです。PR が「${name}」の状態の場合は、\`${word}\` を 1 行出力し、標準エラーには何も出力せず、終了コード 0 で終了することを確認します。`)
     expect(waitMerge(responses)).toMatchObject({ status: 0, stdout: `${word}\n`, stderr: '' })
   })
 
-  it('開いたままの間は待ち続け、マージされたら MERGED を出す', () => {
+  it('PR が開いたままの間は待ち続け、マージされたら MERGED を出力する', async () => {
+    await explains('`wait-merge.cjs` のテストです。PR が開いたままの間は状態を取得し続け、3 回目の取得でマージされた場合に `MERGED` を出力することを確認します。')
     const result = waitMerge([open('UNKNOWN'), open('MERGEABLE', true), { state: 'MERGED', mergeable: 'UNKNOWN', isInMergeQueue: false }])
     expect(result).toMatchObject({ status: 0, stdout: 'MERGED\n' })
     expect(result.calls).toHaveLength(3)
   })
 
-  it('開いたまま上限が来ると、TIMEOUT を出して終了コード 0 で終わる', () => {
+  it('PR が開いたまま待ち時間の上限に達すると、TIMEOUT を出力して終了コード 0 で終了する', async () => {
+    await explains('`wait-merge.cjs` のテストです。PR が開いたまま待ち時間の上限に達した場合は、`TIMEOUT` を出力し、終了コード 0 で終了することを確認します。')
     const result = waitMerge([open('MERGEABLE')], [url, '0.05', '0.3'])
     expect(result).toMatchObject({ status: 0, stdout: 'TIMEOUT\n' })
     expect(result.calls.length).toBeGreaterThan(1)
   })
 
-  it('PR の URL のホスト・owner・repo・番号で、GraphQL を読む', () => {
+  it('PR の URL のホスト・owner・repo・番号を指定して、GraphQL で状態を取得する', async () => {
+    await explains('`wait-merge.cjs` の `gh` の呼び出しのテストです。PR の URL から求めたホスト・owner・repo・番号を指定して、`isInMergeQueue` を含む GraphQL のクエリを呼ぶことを確認します。')
     const [call] = waitMerge([{ state: 'MERGED', mergeable: 'UNKNOWN', isInMergeQueue: false }]).calls
     expect(call?.slice(0, 4)).toStrictEqual(['api', '--hostname', 'github.com', 'graphql'])
     expect(call).toEqual(expect.arrayContaining(['owner=pecotcraft', 'repo=pecot-sandbox', 'number=12']))
     expect(call?.find(argument => argument.startsWith('query='))).toContain('isInMergeQueue')
   })
 
-  it('gh が 1 回失敗しても、読み直して続ける', () => {
+  it('gh が 1 回失敗しても、状態を取得し直して続ける', async () => {
+    await explains('`wait-merge.cjs` のテストです。`gh` の呼び出しが 1 回失敗しても、取得し直して続け、マージされた場合に `MERGED` を出力することを確認します。')
     expect(waitMerge(['fail', { state: 'MERGED', mergeable: 'UNKNOWN', isInMergeQueue: false }])).toMatchObject({ status: 0, stdout: 'MERGED\n' })
   })
 
-  it('gh が 3 回続けて失敗すると、理由を stderr に出して終了コード 1 で止まる', () => {
+  it('gh が 3 回続けて失敗すると、理由を標準エラーに出力して終了コード 1 で止まる', async () => {
+    await explains('`wait-merge.cjs` のテストです。`gh` の呼び出しが 3 回続けて失敗した場合に、失敗の理由を標準エラーに出力し、終了コード 1 で終了することを確認します。')
     const result = waitMerge(['fail'])
     expect(result).toMatchObject({ status: 1, stdout: '', stderr: '待ち受けを続けられません: HTTP 502\n' })
     expect(result.calls).toHaveLength(3)
@@ -359,7 +387,8 @@ describe('w-pr のマージの待ち受け', () => {
     { name: '間隔が 0', arguments_: [url, '0'], message: '間隔が正の数ではありません（0）' },
     { name: '上限が数でない', arguments_: [url, '1', 'abc'], message: '上限が正の数ではありません（abc）' },
     { name: 'URL が PR を指さない', arguments_: ['https://github.com/pecotcraft/pecot-sandbox/issues/12'], message: 'PR の URL ではありません（https://github.com/pecotcraft/pecot-sandbox/issues/12）' },
-  ])('$name だと、gh を呼ばずに終了コード 1 で止まる', ({ arguments_, message }) => {
+  ])('$name だと、gh を呼ばずに終了コード 1 で止まる', async ({ name, arguments_, message }) => {
+    await explains(`\`wait-merge.cjs\` の引数の検証のテストです。「${name}」の場合に、\`gh\` を呼ばず、「${message}」を標準エラーに出力して、終了コード 1 で終了することを確認します。`)
     expect(waitMerge([open('MERGEABLE')], arguments_)).toMatchObject({ status: 1, stdout: '', stderr: `待ち受けを続けられません: ${message}\n`, calls: [] })
   })
 })

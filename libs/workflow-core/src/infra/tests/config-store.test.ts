@@ -24,6 +24,7 @@ import {
   saveConfig,
   setActiveConfig,
 } from '../config-store.js'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 useIsolatedEnvironment()
 
@@ -60,7 +61,8 @@ function useProject(): { readonly root: string, readonly projects: string } {
 }
 
 describe('ディレクトリ', () => {
-  it('設定ディレクトリは .pecot/config、プロジェクト設定ディレクトリはその下の projects を返す', () => {
+  it('設定ディレクトリは .pecot/config、プロジェクト設定ディレクトリはその下の projects を返す', async () => {
+    await explains('プロジェクトの設定の置き場所（`configDirectory`・`projectsDirectory`）のテストです。`CLAUDE_PROJECT_DIR` を指定した場合に、`.pecot/config` とその下の `projects` のパスを返すことを確認します。')
     const { root } = useProject()
     expect(configDirectory()).toBe(path.join(root, '.pecot', 'config'))
     expect(projectsDirectory()).toBe(path.join(root, '.pecot', 'config', 'projects'))
@@ -68,7 +70,8 @@ describe('ディレクトリ', () => {
 })
 
 describe('loadConfig', () => {
-  it('有効な設定ファイルを読む', () => {
+  it('有効な設定ファイルを読み込むと、設定の内容を返す', async () => {
+    await explains('設定ファイルを読み込む `loadConfig` のテストです。有効な JSON の場合に、`host` や `owner` などの値を持つ設定を返すことを確認します。')
     const { projects } = useProject()
     const file = path.join(projects, 'test.json')
     writeFileSync(file, JSON.stringify(sampleData()))
@@ -77,13 +80,15 @@ describe('loadConfig', () => {
     expect(config.owner).toBe('test-owner')
   })
 
-  it('存在しないファイルは ConfigError', () => {
+  it('存在しないファイルを読み込むと、ConfigError を発生させる', async () => {
+    await explains('`loadConfig` のテストです。存在しないファイルを指定した場合に、`config file not found` を含む `ConfigError` が発生することを確認します。')
     const { projects } = useProject()
     expect(() => loadConfig(path.join(projects, 'nonexistent.json'))).toThrow(ConfigError)
     expect(() => loadConfig(path.join(projects, 'nonexistent.json'))).toThrow('config file not found')
   })
 
-  it('不正な JSON は invalid config file の ConfigError（詳細は JSON パーサーの文で、Python とは違う）', () => {
+  it('JSON として不正なファイルを読み込むと、invalid config file の ConfigError を発生させる', async () => {
+    await explains('`loadConfig` のテストです。JSON として解釈できないファイルの場合に、`invalid config file` とファイルのパスを含む `ConfigError` が発生することを確認します。')
     const { projects } = useProject()
     const file = path.join(projects, 'invalid.json')
     writeFileSync(file, 'not valid json')
@@ -91,7 +96,8 @@ describe('loadConfig', () => {
     expect(() => loadConfig(file)).toThrow(`invalid config file: ${file}: `)
   })
 
-  it('形が不正なら invalid config file の ConfigError（詳細は 場所: 本文 を ; でつなぐ）', () => {
+  it('必須の項目が不足している設定ファイルを読み込むと、不足している項目を含む ConfigError を発生させる', async () => {
+    await explains('`loadConfig` のテストです。必須の項目が存在しない設定ファイルの場合に、`host` や `owner` などの項目ごとのエラーを `;` でつないだ `ConfigError` が発生することを確認します。')
     const { projects } = useProject()
     const file = path.join(projects, 'bad.json')
     writeFileSync(file, '{}')
@@ -101,28 +107,32 @@ describe('loadConfig', () => {
 })
 
 describe('saveConfig', () => {
-  it('設定を保存する', () => {
+  it('設定を保存すると、シリアライズした内容のファイルを作成する', async () => {
+    await explains('設定を保存する `saveConfig` のテストです。保存したファイルの内容が、`serializeProjectConfig` の出力と一致することを確認します。')
     const { projects } = useProject()
     const file = path.join(projects, 'output.json')
     saveConfig(sampleConfig(), file)
     expect(readFileSync(file, 'utf8')).toBe(serializeProjectConfig(sampleConfig()))
   })
 
-  it('親ディレクトリが無ければ作る', () => {
+  it('保存先の親ディレクトリが存在しない場合は、作成してから保存する', async () => {
+    await explains('`saveConfig` のテストです。親ディレクトリが存在しないパスを指定した場合に、ディレクトリを作成してファイルが保存されることを確認します。')
     const { root } = useProject()
     const file = path.join(root, 'subdir', 'output.json')
     saveConfig(sampleConfig(), file)
     expect(existsSync(file)).toBe(true)
   })
 
-  it('release_branch を保存して読み直せる', () => {
+  it('release_branch を含む設定を保存すると、読み込み直しても値が保持される', async () => {
+    await explains('`saveConfig` と `loadConfig` のテストです。保存した設定を読み込み直した場合に、リポジトリの `release_branch` の値が `main` のまま保持されることを確認します。')
     const { projects } = useProject()
     const file = path.join(projects, 'output.json')
     saveConfig(sampleConfig(), file)
     expect(loadConfig(file).repositories[0]?.release_branch).toBe('main')
   })
 
-  it('値の無い項目は出力しない', () => {
+  it('値を持たない項目は、保存したファイルに含めない', async () => {
+    await explains('`saveConfig` のテストです。値を設定していない `priority` や `board_url` が、保存したファイルに含まれないことを確認します。')
     const { projects } = useProject()
     const file = path.join(projects, 'output.json')
     saveConfig(sampleConfig(), file)
@@ -133,12 +143,14 @@ describe('saveConfig', () => {
 })
 
 describe('アクティブ設定', () => {
-  it('.active が無ければ undefined', () => {
+  it('.active が存在しない場合は、アクティブな設定のパスを返さない', async () => {
+    await explains('アクティブな設定のパスを取得する `getActiveConfigPath` のテストです。`.active` ファイルが存在しない場合に、`undefined` を返すことを確認します。')
     useProject()
     expect(getActiveConfigPath()).toBeUndefined()
   })
 
-  it('.active が絶対パスならそのパスを返す', () => {
+  it('.active に絶対パスが書かれている場合は、そのパスを返す', async () => {
+    await explains('`getActiveConfigPath` のテストです。`.active` に設定ファイルの絶対パスが書かれている場合に、そのパスを返すことを確認します。')
     const { projects } = useProject()
     const file = path.join(projects, 'config.json')
     writeFileSync(file, JSON.stringify(sampleData()))
@@ -146,7 +158,8 @@ describe('アクティブ設定', () => {
     expect(getActiveConfigPath()).toBe(file)
   })
 
-  it('.active が相対パスなら .active のあるディレクトリ基準で解決する', () => {
+  it('.active に相対パスが書かれている場合は、.active のあるディレクトリを基準に解決する', async () => {
+    await explains('`getActiveConfigPath` のテストです。`.active` に相対パスが書かれている場合に、`.active` のあるディレクトリを基準に解決した絶対パスを返すことを確認します。')
     const { projects } = useProject()
     const file = path.join(projects, 'config.json')
     writeFileSync(file, JSON.stringify(sampleData()))
@@ -154,19 +167,22 @@ describe('アクティブ設定', () => {
     expect(getActiveConfigPath()).toBe(file)
   })
 
-  it('.active が空なら undefined', () => {
+  it('.active が空の場合は、アクティブな設定のパスを返さない', async () => {
+    await explains('`getActiveConfigPath` のテストです。`.active` が空白と改行だけの場合に、`undefined` を返すことを確認します。')
     const { projects } = useProject()
     writeFileSync(path.join(projects, '.active'), ' \n')
     expect(getActiveConfigPath()).toBeUndefined()
   })
 
-  it('.active の指す先が無ければ undefined', () => {
+  it('.active の指す先が存在しない場合は、アクティブな設定のパスを返さない', async () => {
+    await explains('`getActiveConfigPath` のテストです。`.active` が存在しないファイルを指している場合に、`undefined` を返すことを確認します。')
     const { projects } = useProject()
     writeFileSync(path.join(projects, '.active'), '/nonexistent/path.json')
     expect(getActiveConfigPath()).toBeUndefined()
   })
 
-  it('loadActiveConfig: アクティブ設定を読む', () => {
+  it('アクティブな設定が存在する場合は、その設定を読み込んで返す', async () => {
+    await explains('アクティブな設定を読み込む `loadActiveConfig` のテストです。`.active` が有効な設定ファイルを指している場合に、その設定の `host` を持つ設定を返すことを確認します。')
     const { projects } = useProject()
     const file = path.join(projects, 'config.json')
     writeFileSync(file, JSON.stringify(sampleData()))
@@ -174,12 +190,14 @@ describe('アクティブ設定', () => {
     expect(loadActiveConfig()?.host).toBe('ghes.example.com')
   })
 
-  it('loadActiveConfig: 無ければ undefined', () => {
+  it('アクティブな設定が存在しない場合は、undefined を返す', async () => {
+    await explains('`loadActiveConfig` のテストです。`.active` が存在しない場合に、`undefined` を返すことを確認します。')
     useProject()
     expect(loadActiveConfig()).toBeUndefined()
   })
 
-  it('setActiveConfig: .active に相対パスを書く', () => {
+  it('アクティブな設定を指定すると、.active に相対パスを書き込む', async () => {
+    await explains('アクティブな設定を指定する `setActiveConfig` のテストです。設定ファイルのパスを指定した場合に、`.active` に相対パス（`config.json`）が書き込まれ、`getActiveConfigPath` が同じファイルを返すことを確認します。')
     const { projects } = useProject()
     const file = path.join(projects, 'config.json')
     writeFileSync(file, JSON.stringify(sampleData()))
@@ -188,7 +206,8 @@ describe('アクティブ設定', () => {
     expect(getActiveConfigPath()).toBe(file)
   })
 
-  it('setActiveConfig: projects ディレクトリが無ければ作る', () => {
+  it('projects ディレクトリが存在しない場合は、作成してから .active を書き込む', async () => {
+    await explains('`setActiveConfig` のテストです。`projects` ディレクトリが存在しない場合に、ディレクトリを作成し、`.active` に外部ファイルへの相対パスが書き込まれることを確認します。')
     const root = makeTemporaryDirectory()
     setEnvironment({ CLAUDE_PROJECT_DIR: root })
     const file = path.join(root, 'elsewhere.json')
@@ -197,7 +216,8 @@ describe('アクティブ設定', () => {
     expect(readFileSync(path.join(root, '.pecot', 'config', 'projects', '.active'), 'utf8')).toBe('../../../elsewhere.json\n')
   })
 
-  it('setActiveConfig: 存在しないファイルは ConfigError', () => {
+  it('存在しないファイルをアクティブな設定に指定すると、ConfigError を発生させる', async () => {
+    await explains('`setActiveConfig` のテストです。存在しないファイルを指定した場合に、`config file not found` を含む `ConfigError` が発生することを確認します。')
     const { projects } = useProject()
     expect(() => {
       setActiveConfig(path.join(projects, 'nonexistent.json'))
@@ -225,7 +245,8 @@ function writeProject(projects: string, name: string, repositories: readonly str
 const TARGET = { owner: 'acme', repository: 'app' }
 
 describe('listProjectConfigEntries', () => {
-  it('設定ファイルの名前と、中身が指すボードを名前順に返し、読めないファイルは飛ばす', () => {
+  it('設定ファイルの名前とボードの情報を名前順に返し、読み込めないファイルは対象から外す', async () => {
+    await explains('プロジェクト設定の一覧を返す `listProjectConfigEntries` のテストです。複数の設定ファイルが存在する場合に、ファイル名の順に `fileName` や `host` などを返し、不正なファイルを除外することを確認します。')
     const { projects } = useProject()
     writeProject(projects, 'b', ['acme/app'])
     writeProject(projects, 'a', ['acme/app'])
@@ -238,7 +259,8 @@ describe('listProjectConfigEntries', () => {
 })
 
 describe('removeConfig', () => {
-  it('渡した設定ファイルを消す', () => {
+  it('指定した設定ファイルを削除する', async () => {
+    await explains('設定ファイルを削除する `removeConfig` のテストです。指定したファイルが削除され、存在しなくなることを確認します。')
     const { projects } = useProject()
     const file = writeProject(projects, 'board', ['acme/app'])
     removeConfig(file)
@@ -247,7 +269,8 @@ describe('removeConfig', () => {
 })
 
 describe('loadNamedConfig', () => {
-  it('名前で読み、.json は省ける。無い名前は undefined', () => {
+  it('名前で設定を読み込み、.json は省略でき、存在しない名前は undefined を返す', async () => {
+    await explains('名前を指定して設定を読み込む `loadNamedConfig` のテストです。`board` と `board.json` のどちらでも同じ設定を返し、存在しない名前の場合に `undefined` を返すことを確認します。')
     const { projects } = useProject()
     writeProject(projects, 'board', ['acme/app'])
     expect(loadNamedConfig('board')?.name).toBe('board')
@@ -257,7 +280,8 @@ describe('loadNamedConfig', () => {
 })
 
 describe('findConfigsForRepository', () => {
-  it('対象のリポを含む設定だけを名前順に返す', () => {
+  it('対象のリポジトリを含む設定だけを、名前順に返す', async () => {
+    await explains('リポジトリを含む設定を探す `findConfigsForRepository` のテストです。対象のリポジトリを含む設定だけが、名前の順に返されることを確認します。')
     const { projects } = useProject()
     writeProject(projects, 'b', ['acme/app'])
     writeProject(projects, 'a', ['acme/app', 'acme/lib'])
@@ -265,13 +289,15 @@ describe('findConfigsForRepository', () => {
     expect(findConfigsForRepository(TARGET).map(found => found.name)).toEqual(['a', 'b'])
   })
 
-  it('repositories に無くても aggregation_repo が一致すれば含む', () => {
+  it('repositories に存在しなくても、aggregation_repo が一致する場合は含める', async () => {
+    await explains('`findConfigsForRepository` のテストです。`repositories` に存在せず `aggregation_repo` だけが対象と一致する設定も、結果に含まれることを確認します。')
     const { projects } = useProject()
     writeProject(projects, 'board', ['acme/lib'], 'acme/app')
     expect(findConfigsForRepository(TARGET).map(found => found.name)).toEqual(['board'])
   })
 
-  it('.active が projects/ の外の設定を指せば、それも候補にし、名前はパスにする', () => {
+  it('.active が projects/ の外の設定を指す場合は、候補に含め、名前をパスにする', async () => {
+    await explains('`findConfigsForRepository` のテストです。`.active` が `projects` ディレクトリの外の設定を指している場合に、その設定が候補に含まれ、名前が実パスになることを確認します。')
     const { root, projects } = useProject()
     const outside = writeProject(root, 'outside', ['acme/app'])
     writeFileSync(path.join(projects, '.active'), outside)
@@ -280,7 +306,8 @@ describe('findConfigsForRepository', () => {
     expect(found?.name).toBe(realpathSync(outside))
   })
 
-  it('形の誤った設定は、関係が無くても、パスを文に出して ConfigError', () => {
+  it('不正な形式の設定を含む場合は、対象と無関係でも、パスを含む ConfigError を発生させる', async () => {
+    await explains('`findConfigsForRepository` のテストです。不正な形式の設定ファイルが存在する場合に、そのパスを含む `ConfigError` を発生させることを確認します。')
     const { projects } = useProject()
     writeProject(projects, 'good', ['acme/app'])
     writeFileSync(path.join(projects, 'broken.json'), '{}')
@@ -290,14 +317,16 @@ describe('findConfigsForRepository', () => {
 })
 
 describe('findConfigFor', () => {
-  it('候補が 1 つならそれ、0 個なら none', () => {
+  it('候補が 1 つの場合はその設定を返し、0 個の場合は none を返す', async () => {
+    await explains('リポジトリに対応する設定を選ぶ `findConfigFor` のテストです。候補が 1 つの場合に `found` を返し、0 個の場合に `none` を返すことを確認します。')
     const { projects } = useProject()
     writeProject(projects, 'board', ['acme/app'])
     expect(findConfigFor(TARGET)).toMatchObject({ kind: 'found', found: { name: 'board' } })
     expect(findConfigFor({ owner: 'acme', repository: 'other' })).toEqual({ kind: 'none' })
   })
 
-  it('候補が 2 つ以上なら、.active の指す候補を使い、無ければ ambiguous', () => {
+  it('候補が 2 つ以上の場合は、.active の指す候補を使い、指していなければ ambiguous を返す', async () => {
+    await explains('`findConfigFor` のテストです。候補が 2 つ以上で `.active` を設定していない場合は `ambiguous` を返し、`.active` で候補の 1 つを指定した場合は、その設定を `found` として返すことを確認します。')
     const { projects } = useProject()
     writeProject(projects, 'a', ['acme/app'])
     const second = writeProject(projects, 'b', ['acme/app'])
@@ -306,7 +335,8 @@ describe('findConfigFor', () => {
     expect(findConfigFor(TARGET)).toMatchObject({ kind: 'found', found: { name: 'b' } })
   })
 
-  it('project を渡せば、その名前の設定を使う。無い名前（空の名前も含む）と、対象のリポを含まない設定を分ける', () => {
+  it('project を指定した場合は、その名前の設定を使い、存在しない名前と対象を含まない設定を区別する', async () => {
+    await explains('`findConfigFor` のテストです。`project` を指定した場合に、設定が存在すれば `found`、名前が存在しなければ `unknown-project`、対象を含まなければ `not-in-project` を返すことを確認します。')
     const { projects } = useProject()
     writeProject(projects, 'a', ['acme/app'])
     writeProject(projects, 'b', ['acme/app'])
@@ -319,7 +349,8 @@ describe('findConfigFor', () => {
 })
 
 describe('configSourcePath', () => {
-  it('loadConfig で読んだ設定のファイルの実パスを返す', () => {
+  it('loadConfig で読み込んだ設定は、元のファイルの実パスを返す', async () => {
+    await explains('設定の読み込み元を返す `configSourcePath` のテストです。`loadConfig` で読み込んだ設定の場合に実パスを返し、メモリ上で作成した設定の場合に `undefined` を返すことを確認します。')
     const { projects } = useProject()
     const file = writeProject(projects, 'board', ['acme/app'])
     expect(configSourcePath(loadConfig(file))).toBe(realpathSync(file))

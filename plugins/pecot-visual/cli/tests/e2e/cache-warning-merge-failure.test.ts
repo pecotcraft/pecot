@@ -40,6 +40,7 @@ import {
 } from '../_helpers/cache-warning.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
+import { explains } from '../_helpers/explains.js'
 
 // hang regression を spawnSync の SIGTERM kill（600s）より手前で落とすための上限。
 // 性能目標ではない。
@@ -68,7 +69,8 @@ afterAll(() => {
 const isChromiumReady = isChromiumCached()
 
 describe.skipIf(!isChromiumReady)('CUJ: キャッシュ系警告が --json payload から観測できる', () => {
-  it('CUJ-C: 変換の後で失敗した run でも、error payload に同じ警告が載る', () => {
+  it('変換の後で失敗した場合も、error の結果に同じキャッシュの警告を含める', async () => {
+    await explains('キャッシュの警告の出力のテストです。キャッシュの保存先が作れず、出力先もディレクトリで失敗する場合に、終了コード 1 の `slide.convert.error` に、保存と更新の失敗の警告が含まれることを確認します。')
     const itT0 = performance.now()
 
     const themeSpec = createFixtureThemeSpec(temporaryRoot('theme'))

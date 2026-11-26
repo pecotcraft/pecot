@@ -19,6 +19,7 @@ import { isStraceAvailable, parsePythonExecves, runWithoutPython } from '../_hel
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { copyFixtureTheme } from '../_helpers/theme-fixtures.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
+import { explains } from '../_helpers/explains.js'
 
 const HERE = import.meta.dirname
 const CLI_TS_ROOT = path.resolve(HERE, '..', '..')
@@ -54,7 +55,8 @@ afterAll(() => {
 })
 
 describe('CUJ 3: エラーパス + Python フリー', () => {
-  it('既存ディレクトリ + --force 無し → exit 1 / dest-exists', () => {
+  it('既存のディレクトリへ `--force` なしで `slide create` すると、終了コード 1 で `dest-exists` を返す', async () => {
+    await explains('`slide create` の既存のディレクトリの扱いのテストです。作成済みのディレクトリへ `--force` なしでもう一度作成した場合に、終了コードが 1 で、失敗の理由が `dest-exists` になることを確認します。')
     const itT0 = performance.now()
     const projectDirectory = temporaryRoot('sample-cuj3-exist')
     // create だけを見る CUJ なので、依存を持たない写し（file:）で足りる。
@@ -66,7 +68,8 @@ describe('CUJ 3: エラーパス + Python フリー', () => {
     expect(performance.now() - itT0).toBeLessThan(PER_IT_CEILING_MS)
   }, 240_000)
 
-  it('不存在 project-dir で slide convert → exit 1 / project-not-found', () => {
+  it('存在しないプロジェクトを `slide convert` に指定すると、終了コード 1 で `project-not-found` を返す', async () => {
+    await explains('`slide convert` の入力の検証のテストです。存在しないディレクトリを指定した場合に、終了コードが 1 で、失敗の理由が `project-not-found` になることを確認します。')
     const itT0 = performance.now()
     const result = runPecotv('convert-missing', [
       'slide', 'convert',
@@ -79,7 +82,8 @@ describe('CUJ 3: エラーパス + Python フリー', () => {
     expect(performance.now() - itT0).toBeLessThan(PER_IT_CEILING_MS)
   }, 60_000)
 
-  it('--theme 不正値 → exit 1 / invalid-theme', () => {
+  it('`--theme` に不正な値を指定すると、終了コード 1 で `invalid-theme` を返す', async () => {
+    await explains('`slide convert` のテーマの指定の検証のテストです。`--theme` にシェルの構文を含む不正な値を指定した場合に、終了コードが 1 で、失敗の理由が `invalid-theme` になることを確認します。')
     const itT0 = performance.now()
     const projectDirectory = temporaryRoot('sample-cuj3-theme')
     mkdirSync(projectDirectory, { recursive: true })
@@ -95,7 +99,8 @@ describe('CUJ 3: エラーパス + Python フリー', () => {
     expect(performance.now() - itT0).toBeLessThan(PER_IT_CEILING_MS)
   }, 60_000)
 
-  it('黄金パス subprocess ツリーで python / python3 / uvx / uv の execve が 0 件', async () => {
+  it('`slide create` が起動するプロセスの中で、Python 関連のコマンドを起動しない', async () => {
+    await explains('Python を使わないことのテストです。`strace` で `slide create` の子プロセスまでたどった場合に、`python`・`python3`・`uvx`・`uv` の起動が 0 件であることを確認します。')
     if (!isStraceAvailable()) {
       console.warn('[CUJ 3] strace 不在のため Python フリー assertion を skip')
       return
@@ -118,7 +123,8 @@ describe('CUJ 3: エラーパス + Python フリー', () => {
     expect(performance.now() - itT0).toBeLessThan(PER_IT_CEILING_MS)
   }, 240_000)
 
-  it('drawio url の subprocess ツリーで python / python3 / uvx / uv の execve が 0 件', async () => {
+  it('`drawio url` が起動するプロセスの中で、Python 関連のコマンドを起動しない', async () => {
+    await explains('Python を使わないことのテストです。`strace` で `drawio url` の子プロセスまでたどった場合に、`python`・`python3`・`uvx`・`uv` の起動が 0 件で、`drawio.url.done` を返すことを確認します。')
     if (!isStraceAvailable()) {
       console.warn('[CUJ 3] strace 不在のため drawio url Python フリー assertion を skip')
       return

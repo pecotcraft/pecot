@@ -5,6 +5,8 @@ import path from 'node:path'
 import { ESLint } from 'eslint'
 import { beforeAll, describe, expect, it } from 'vitest'
 
+import { explains } from './_helpers/explains.js'
+
 const ROOT = path.resolve(import.meta.dirname, '..')
 const RESTRICTED_PATH = path.join(ROOT, 'src', 'cli.ts')
 // 止める側のパスは、src/cli.ts のほかに infra と domain の実在のファイルでも確かめる
@@ -31,18 +33,20 @@ async function ruleIds(code: string, filePath: string): Promise<readonly string[
 }
 
 describe('直接の出力を止める lint', () => {
-  describe.each(RESTRICTED_PATHS)('%s のパス', (_name, filePath) => {
+  describe.each(RESTRICTED_PATHS)('%s のパス', (name, filePath) => {
     it.each([
       ['console.log("x")', 'no-console'],
       ['process.stderr.write("x")', 'no-restricted-syntax'],
       ['process.stdout.write("x")', 'no-restricted-syntax'],
       ['declare const io: { stderr: { write: (text: string) => void } }\nio.stderr.write("x")', 'no-restricted-syntax'],
-    ])('%s は止まる', async (code, expected) => {
+    ])('%s を書くと、期待したルールの違反が報告される', async (code, expected) => {
+      await explains(`コンソールや標準出力への直接の出力を禁止する lint のテストです。\`${name}\` のファイルに直接の出力を書いたコードを渡した場合は、\`${expected}\` の違反が報告されることを確認します。`)
       expect(await ruleIds(`${code}\n`, filePath)).toContain(expected)
     })
   })
 
   it('共通の規則（enum 禁止）は src/cli.ts のパスでも止まる', async () => {
+    await explains('直接の出力を禁止する lint のテストです。共通の規則である `enum` の禁止が、`src/cli.ts` のファイルでも `no-restricted-syntax` の違反として報告されることを確認します。')
     expect(await ruleIds('enum Color { Red }\n', RESTRICTED_PATH)).toContain('no-restricted-syntax')
   })
 })

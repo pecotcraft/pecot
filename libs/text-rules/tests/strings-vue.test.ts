@@ -3,6 +3,7 @@ import { documentOf } from '../lib/plugins/inline-spans.js'
 import strings, { stringParagraphs } from '../lib/plugins/strings.js'
 import { at, lint, lintAll, sentence } from './helpers/strings.js'
 import { step, stepSync } from '../../interface-spec/src/vitest/step.js'
+import { explains } from './helpers/explains.js'
 
 const template = (body: string): string => `<template>\n${body}\n</template>\n`
 const script = (body: string, attributes = ''): string => `<template><div></div></template>\n<script${attributes}>\n${body}\n</script>\n`
@@ -27,13 +28,15 @@ describe('strings plugin: .vue の template', () => {
     ['閉じていないコメント', `<template>\n  <!-- ${sentence}\n`, at(2, 8)],
     ['閉じていない補間の開始は本文として読む', template(`  <p>{{ ${sentence}</p>`), at(2, 9)],
     ['閉じていない template', `<template>\n  <p>${sentence}</p>\n`, at(2, 6)],
-  ])('%s の違反を元ファイルの行と列で返す', async (_name, text, hit) => {
+  ])('%s に違反があると、元のファイルの行と桁で指摘を返す', async (name, text, hit) => {
+    await explains(`\`.vue\` ファイルの \`<template>\` から文を取り出す strings plugin のテストです。\`<template>\` の「${name}」に違反がある場合に、指摘を 1 件だけ返し、その位置が元のファイルの行と桁と一致することを確認します。`)
     await step('Vue の文言を規則にかけ、指摘の位置を比べる', async () => {
       expect(await lint(text, '.vue')).toEqual([hit])
     })
   })
 
-  it('入れ子の template の後ろの要素と、template の後ろの script まで読む', async () => {
+  it('入れ子の template があっても、その後ろの要素と、template の後ろの script まで読む', async () => {
+    await explains('`.vue` ファイルの `<template>` から文を取り出す strings plugin のテストです。`<template>` が入れ子になっている場合に、内側の `<template>` の中と後ろの要素、さらに後ろの `<script>` の文字列まで読み、3 件の指摘を返すことを確認します。')
     const text = [
       '<template>',
       '  <template v-if="ok">',
@@ -51,27 +54,31 @@ describe('strings plugin: .vue の template', () => {
     })
   })
 
-  it('補間で分けたテキストは、それぞれ別の Paragraph にする', async () => {
+  it('補間で区切られたテキストを、それぞれ別の段落にする', async () => {
+    await explains('`.vue` ファイルの `<template>` から文を取り出す strings plugin のテストです。`{{ n }}` の補間やタグで区切られたテキストを渡した場合に、区切られたテキストごとに別の段落として取り出されることを確認します。')
     const paragraphs = await step('文字列を段落に分ける', () => stringParagraphs(template('  <p>あ{{ n }}い<b>う</b></p>'), '.vue'))
     stepSync('段落の文字列を比べる', () => {
       expect(paragraphs.map(paragraph => paragraph.raw)).toEqual(['あ', 'い', 'う'])
     })
   })
 
-  it('テキスト以外の違反の無い文言と、日本語を含まない template は数えない', async () => {
+  it('違反の無い日本語の文と、日本語を含まない template は、数えない', async () => {
+    await explains('`.vue` ファイルの `<template>` から文を取り出す strings plugin のテストです。違反の無い日本語の文と、日本語を含まないテキストを渡した場合に、指摘が 1 件も返らず、段落も取り出されないことを確認します。')
     await step('日本語を含まない template を規則にかけ、指摘が無いかを比べる', async () => {
       expect(await lintAll(template('  <div title="今日は晴れです。">今日は晴れです。</div>'), '.vue')).toEqual([])
       expect(await stringParagraphs(template('  <div title="a" :b="\'c\'">{{ d }} e</div>'), '.vue')).toEqual([])
     })
   })
 
-  it('タグの名前が続かない < は本文の文字として読む', async () => {
+  it('タグの名前が続かない < は、タグではなく、本文の文字として読む', async () => {
+    await explains('`.vue` ファイルの `<template>` から文を取り出す strings plugin のテストです。`1 < 2` のように、`<` の後ろにタグの名前が続かない場合に、`<` を本文の文字として読み、後ろの文の違反を返すことを確認します。')
     await step('Vue の文言を規則にかけ、指摘の位置を比べる', async () => {
       expect(await lint(template(`  <p>1 < 2 ${sentence}</p>`), '.vue')).toEqual([at(2, 12)])
     })
   })
 
-  it('lang が html でない template は読まない', async () => {
+  it('lang が html ではない template は読まず、html の template は読む', async () => {
+    await explains('`.vue` ファイルの `<template>` から文を取り出す strings plugin のテストです。`lang="pug"` の `<template>` は読まれず、`lang="html"` の `<template>` は読まれて指摘が返ることを確認します。')
     await step('pug の template を規則にかけ、指摘が無いかを比べる', async () => {
       expect(await lint(`<template lang="pug">\np ${sentence}\n</template>\n`, '.vue')).toEqual([])
     })
@@ -81,6 +88,7 @@ describe('strings plugin: .vue の template', () => {
   })
 
   it('template の中の script と style は、中身を HTML として読まない', async () => {
+    await explains('`.vue` ファイルの `<template>` から文を取り出す strings plugin のテストです。`<template>` の中に `<script>` と `<style>` がある場合に、それぞれの中身を HTML として読まず、指摘が 1 件も返らないことを確認します。')
     await step('Vue の文言を規則にかけ、指摘の位置を比べる', async () => {
       expect(await lint(template(`<script>const x = '${sentence}'</script><style>/* ${sentence} */</style>`), '.vue')).toEqual([])
     })
@@ -96,20 +104,23 @@ describe('strings plugin: .vue の script', () => {
     ['lang="tsx" の JSX 属性', script(`const a = <div title="${sentence}" />`, ' lang="tsx"'), at(3, 23)],
     ['lang="jsx"', script(`const a = <div title="${sentence}" />`, ' lang="jsx"'), at(3, 23)],
     ['閉じていない script', `<script>\nconst a = '${sentence}'\n`, at(2, 12)],
-  ])('%s の違反を元ファイルの行と列で返す', async (_name, text, hit) => {
+  ])('%s に違反があると、元のファイルの行と桁で指摘を返す', async (name, text, hit) => {
+    await explains(`\`.vue\` ファイルの \`<script>\` から文を取り出す strings plugin のテストです。\`<script>\` の「${name}」に違反がある場合に、指摘を 1 件だけ返し、その位置が元のファイルの行と桁と一致することを確認します。`)
     await step('Vue の文言を規則にかけ、指摘の位置を比べる', async () => {
       expect(await lint(text, '.vue')).toEqual([hit])
     })
   })
 
-  it('script と script setup の両方を読む', async () => {
+  it('script と script setup が両方あると、どちらの違反も返す', async () => {
+    await explains('`.vue` ファイルの `<script>` から文を取り出す strings plugin のテストです。`<script>` と `<script setup>` の両方に違反がある場合に、2 つの違反が元のファイルの位置で返ることを確認します。')
     const text = `<script>\nconst a = '${sentence}'\n</script>\n<script setup lang="ts">\nconst b: string = '${sentence}'\n</script>\n`
     await step('Vue の文言を規則にかけ、指摘の位置を比べる', async () => {
       expect(await lint(text, '.vue')).toEqual([at(2, 12), at(5, 20)])
     })
   })
 
-  it('script のコメントを 1 件だけ返す（strings と comments の二重に数えない）', async () => {
+  it('script のコメントの違反を 1 件だけ返し、strings と comments で二重に返さない', async () => {
+    await explains('`.vue` ファイルの `<script>` から文を取り出す strings plugin のテストです。`<script>` のコメントに違反がある場合に、文字列を調べる plugin とコメントを調べる plugin の両方で数えず、指摘が 1 件だけ返ることを確認します。')
     await step('script のコメントを規則にかけ、指摘の件数を比べる', async () => {
       expect(await lintAll(script(`// ${sentence}`), '.vue')).toHaveLength(1)
     })
@@ -117,19 +128,22 @@ describe('strings plugin: .vue の script', () => {
 })
 
 describe('strings plugin: .vue の style とその他', () => {
-  it('style の /* */ コメントの違反を返す', async () => {
+  it('style の /* */ コメントに違反があると、その位置を指摘として返す', async () => {
+    await explains('`.vue` ファイルの `<style>` やその他の部分から文を取り出す strings plugin のテストです。`<style>` の `/* */` コメントに違反がある場合に、元のファイルの位置で指摘を返すことを確認します。')
     await step('style のコメントを規則にかけ、指摘の位置を比べる', async () => {
       expect(await lint(style(`/* ${sentence} */\n.a { color: red; }`), '.vue')).toEqual([at(3, 4)])
     })
   })
 
-  it('閉じていないコメントは style の末尾までを読む', async () => {
+  it('閉じていないコメントは、style の末尾までをコメントとして読む', async () => {
+    await explains('`.vue` ファイルの `<style>` やその他の部分から文を取り出す strings plugin のテストです。`<style>` の中で `/*` が閉じていない場合に、末尾までをコメントとして読み、その中の違反を返すことを確認します。')
     await step('閉じていないコメントを規則にかけ、指摘の位置を比べる', async () => {
       expect(await lint(style(`.a { color: red; }\n/* ${sentence}`), '.vue')).toEqual([at(4, 4)])
     })
   })
 
-  it('複数行コメントの行頭の * を Str に含めず、続きの行を同じ Paragraph にする', async () => {
+  it('複数行のコメントの行頭の * を本文に含めず、続きの行を同じ段落にする', async () => {
+    await explains('`.vue` ファイルの `<style>` やその他の部分から文を取り出す strings plugin のテストです。`<style>` の複数行のコメントを渡した場合に、行頭の `*` が本文の文字に含まれず、続きの行が同じ段落の子になり、違反の位置が元のファイルと一致することを確認します。')
     const [paragraph] = await step('文字列を段落に分ける', () => stringParagraphs(style('/**\n * あ\n * い\n */'), '.vue'))
     stepSync('子ノードを比べる', () => {
       expect(paragraph?.children.map(child => [child.type, child.raw])).toEqual([['Str', 'あ'], ['Break', '\n * '], ['Str', 'い']])
@@ -139,25 +153,29 @@ describe('strings plugin: .vue の style とその他', () => {
     })
   })
 
-  it('style の文字列と、// は読まない', async () => {
+  it('style の文字列と // は、コメントとして読まない', async () => {
+    await explains('`.vue` ファイルの `<style>` やその他の部分から文を取り出す strings plugin のテストです。`<style>` の中の文字列と `//` に違反のある文があっても、コメントではないので、指摘が 1 件も返らないことを確認します。')
     await step('style の文字列を規則にかけ、指摘が無いかを比べる', async () => {
       expect(await lint(style(`.a::after { content: "${sentence}"; } // ${sentence}`), '.vue')).toEqual([])
     })
   })
 
-  it('ブロックの外のタグでない < と終了タグを読み飛ばして、後ろの script を読む', async () => {
+  it('ブロックの外にあるタグではない < と終了タグを読み飛ばし、後ろの script を読む', async () => {
+    await explains('`.vue` ファイルの `<style>` やその他の部分から文を取り出す strings plugin のテストです。ブロックの外に `1 < 2` と終了タグがある場合に、それらを読み飛ばし、後ろの `<script>` の文字列の違反を返すことを確認します。')
     await step('Vue の文言を規則にかけ、指摘の位置を比べる', async () => {
       expect(await lint(`1 < 2 </div>\n<br/>\n<script>\nconst a = '${sentence}'\n</script>\n`, '.vue')).toEqual([at(4, 12)])
     })
   })
 
   it('カスタムブロックと、ブロックの外のコメントは読まない', async () => {
+    await explains('`.vue` ファイルの `<style>` やその他の部分から文を取り出す strings plugin のテストです。`<i18n>` のカスタムブロックと、ブロックの外の HTML コメントに違反がある場合に、どちらも読まず、指摘が 1 件も返らないことを確認します。')
     await step('カスタムブロックを規則にかけ、指摘が無いかを比べる', async () => {
       expect(await lint(`<!-- ${sentence} -->\n<i18n>\n{"a": "${sentence}"}\n</i18n>\n`, '.vue')).toEqual([])
     })
   })
 
-  it('空のファイルと、BOM 付きのファイル', async () => {
+  it('空のファイルは段落を取り出さず、BOM 付きのファイルは BOM を除いた位置で指摘を返す', async () => {
+    await explains('`.vue` ファイルの `<style>` やその他の部分から文を取り出す strings plugin のテストです。空のファイルを渡した場合に段落が取り出されず、先頭に BOM があるファイルを渡した場合に、BOM を除いた位置で指摘が返ることを確認します。')
     await step('空のファイルを段落に分け、空かを比べる', async () => {
       expect(await stringParagraphs('', '.vue')).toEqual([])
     })
@@ -168,7 +186,8 @@ describe('strings plugin: .vue の style とその他', () => {
 })
 
 describe('Processor: .vue', () => {
-  it('script のコメントと template と script の文字列を range の順に並べた Document を返す', async () => {
+  it('script のコメントと、template と script の文字列を、位置の順に並べた Document を返す', async () => {
+    await explains('`.vue` ファイルを Document に変換する Processor のテストです。コメントと文字列を含む `.vue` ファイルを渡した場合に、`Document` の範囲が全文になり、子の要素が位置の順に 3 つ並び、`parent` を持たないことを確認します。')
     const text = `<template><p>${sentence}</p></template>\n<script>\n// ${sentence}\nconst a = '${sentence}'\n</script>\n`
     const result = await step('Document を作る', async () => documentOf(await new strings.Processor().processor('.vue').preProcess(text)))
     stepSync('Document の形を比べる', () => {

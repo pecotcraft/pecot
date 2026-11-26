@@ -30,6 +30,7 @@ import { expectConvertRouteFromEnvironment } from '../_helpers/single-pass-route
 import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
+import { explains } from '../_helpers/explains.js'
 
 // hang regression を spawnSync の SIGTERM kill（600s）より手前で落とすための上限。
 // 性能目標ではない。
@@ -62,6 +63,7 @@ const isChromiumReady = isChromiumCached()
 
 describe.skipIf(externalPair !== undefined || !isChromiumReady)('CUJ: --no-cache', () => {
   it('warm cache でも全ステップを変換し、完了時の再構築で次の run が全ヒットする', async () => {
+    await explains('`--no-cache` を指定したスライド変換のテストです。キャッシュが温まっていても全スライドを変換し、その直後に指定なしで変換すると、全スライドがキャッシュに一致することを確認します。')
     const itT0 = performance.now()
     const projectDirectory = temporaryRoot('no-cache-deck')
     const slidesPath = path.join(projectDirectory, 'slides.md')

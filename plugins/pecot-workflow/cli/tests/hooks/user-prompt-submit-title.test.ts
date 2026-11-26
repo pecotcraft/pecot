@@ -10,6 +10,7 @@ import type { HookCase } from './_helpers/environment.js'
 import { checkoutWorkBranch, gitRepository } from './_helpers/git.js'
 import { runHookEntry } from './_helpers/run.js'
 import { parseJson } from './_helpers/text.js'
+import { explains } from '../_helpers/explains.js'
 
 const ENTRY = 'user-prompt-submit-title.sh'
 
@@ -37,7 +38,8 @@ function payload(cwd: string, sessionTitle: string): Record<string, unknown> {
 }
 
 describe('user-prompt-submit-title.sh', () => {
-  it('作業対象の Issue があるとき、題名を sessionTitle に出す', () => {
+  it('作業対象の Issue があるとき、題名を sessionTitle に出す', async () => {
+    await explains('`user-prompt-submit-title.sh` のテストです。作業中の Issue のブランチで実行した場合に、題名（`#7 題名`）を `sessionTitle` として出力することを確認します。')
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     const result = runHookEntry(hookCase, ENTRY, payload(project, ''))
@@ -47,7 +49,8 @@ describe('user-prompt-submit-title.sh', () => {
     })
   })
 
-  it('別の番号の .pecot-active があっても読まず、ブランチの番号で出す', () => {
+  it('別の番号の .pecot-active があっても読まず、ブランチの番号で出す', async () => {
+    await explains('`user-prompt-submit-title.sh` のテストです。別の番号の `.pecot-active` がある場合でも、それを読まずに、ブランチの番号の題名を出力することを確認します。')
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     writeFileSync(path.join(project, '.pecot', 'state', '.pecot-active'), 'owner/repo/1\n')
@@ -57,7 +60,8 @@ describe('user-prompt-submit-title.sh', () => {
     })
   })
 
-  it('作業中の Issue のブランチでないとき、.pecot-active があっても何も出力しない', () => {
+  it('作業中の Issue のブランチでないとき、.pecot-active があっても何も出力しない', async () => {
+    await explains('`user-prompt-submit-title.sh` のテストです。作業中の Issue のブランチでない場合は、`.pecot-active` があっても、何も出力しないことを確認します。')
     const hookCase = createHookCase()
     const project = setUpProject(hookCase, 'main')
     writeFileSync(path.join(project, '.pecot', 'state', '.pecot-active'), 'owner/repo/7\n')
@@ -66,7 +70,8 @@ describe('user-prompt-submit-title.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('入力のセッション名が題名と同じとき、何も出力しない', () => {
+  it('入力のセッション名が題名と同じとき、何も出力しない', async () => {
+    await explains('`user-prompt-submit-title.sh` のテストです。入力のセッション名がすでに題名と同じ場合に、何も出力しないことを確認します。')
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     const result = runHookEntry(hookCase, ENTRY, payload(project, '#7 題名'))

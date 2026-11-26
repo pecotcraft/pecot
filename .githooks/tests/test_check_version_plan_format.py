@@ -30,6 +30,7 @@ def plan_dir(tmp_path: Path) -> Path:
     return d
 
 
+@allure.title("ファイル名が {filename} の version plan は、成功で終わる")
 @pytest.mark.parametrize(
     "filename",
     [
@@ -38,7 +39,7 @@ def plan_dir(tmp_path: Path) -> Path:
     ],
 )
 def test_valid_filename_passes(script_dir: Path, plan_dir: Path, run_script, filename: str) -> None:
-    """正例: <番号>-<slug>.md は pass。"""
+    """`check-version-plan-format.sh` に、ファイル名の規則（`<番号>-<slug>.md`）に合う version plan を渡した場合のテストです。終了コード 0 で終わることを確認します。"""
     with allure.step("plan ファイルを作り、check-version-plan-format.sh を動かす"):
         f = plan_dir / filename
         _make_plan(f)
@@ -48,6 +49,7 @@ def test_valid_filename_passes(script_dir: Path, plan_dir: Path, run_script, fil
         assert result.returncode == 0
 
 
+@allure.title("ファイル名が {filename} の version plan は、規則の形を出力して失敗で終わる")
 @pytest.mark.parametrize(
     "filename",
     [
@@ -62,7 +64,7 @@ def test_valid_filename_passes(script_dir: Path, plan_dir: Path, run_script, fil
 def test_invalid_filename_fails(
     script_dir: Path, plan_dir: Path, run_script, filename: str
 ) -> None:
-    """負例: 規則外のファイル名は exit 1 で "<番号>-<slug>.md" を含む。"""
+    """ファイル名が規則（`<番号>-<slug>.md`）に合わない version plan を渡した場合のテストです。終了コード 1 で終わり、規則の形（`<番号>-<slug>.md`）を出力することを確認します。"""
     with allure.step("規則外の名前の plan ファイルを作り、check-version-plan-format.sh を動かす"):
         f = plan_dir / filename
         _make_plan(f)
@@ -73,8 +75,9 @@ def test_invalid_filename_fails(
         assert "<番号>-<slug>.md" in (result.stdout + result.stderr)
 
 
+@allure.title("旧 group 名の pecot をキーにした version plan は、有効なキーを出力して失敗で終わる")
 def test_stale_group_key_fails(script_dir: Path, plan_dir: Path, run_script) -> None:
-    """旧 group 名 `pecot` は nx.json の release.groups に無いので弾く。"""
+    """frontmatter のキーが旧 group 名の `pecot` で、`nx.json` の `release.groups` に存在しない場合のテストです。終了コード 1 で終わり、`'pecot'` と `release.groups`、有効なキー（`pecot-workflow` など）を出力することを確認します。"""
     with allure.step("旧 group 名をキーにした plan を書き、check-version-plan-format.sh を動かす"):
         f = plan_dir / "227-stale-key.md"
         f.write_text("---\npecot: patch\n---\n\n旧キーの検証用ダミー本文。\n")
@@ -88,8 +91,9 @@ def test_stale_group_key_fails(script_dir: Path, plan_dir: Path, run_script) -> 
         assert "pecot-workflow" in output  # 有効なキーの一覧
 
 
+@allure.title("3 つの release group をすべてキーにした version plan は、成功で終わる")
 def test_all_release_group_keys_pass(script_dir: Path, plan_dir: Path, run_script) -> None:
-    """3 つの release group すべてをキーにした plan は pass。"""
+    """`pecot-workflow`・`pecot-visual`・`pecot-tools` の 3 つの release group をキーにした version plan を渡した場合のテストです。終了コード 0 で終わることを確認します。"""
     with allure.step(
         "全 release group をキーにした plan を書き、check-version-plan-format.sh を動かす"
     ):
@@ -104,8 +108,9 @@ def test_all_release_group_keys_pass(script_dir: Path, plan_dir: Path, run_scrip
         assert result.returncode == 0, result.stdout + result.stderr
 
 
+@allure.title("text-rules の release group をキーにした version plan は、成功で終わる")
 def test_text_rules_group_key_passes(script_dir: Path, plan_dir: Path, run_script) -> None:
-    """libs/text-rules の release group `text-rules` をキーにした plan は pass。"""
+    """`libs/text-rules` の release group である `text-rules` をキーにした version plan を渡した場合のテストです。終了コード 0 で終わることを確認します。"""
     with allure.step("text-rules をキーにした plan を書き、check-version-plan-format.sh を動かす"):
         f = plan_dir / "1278-text-rules.md"
         f.write_text("---\ntext-rules: patch\n---\n\ntext-rules 用の検証ダミー本文。\n")

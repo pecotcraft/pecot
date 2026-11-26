@@ -29,6 +29,7 @@ import { drawioCreateTool } from '../tools/drawio.js'
 import { evidenceCreateTool } from '../tools/evidence.js'
 import { slideLintTool } from '../tools/slide.js'
 import { withOutputCheck } from '../tools/tests/_output.js'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 const CALL: ToolCallContext = { signal: new AbortController().signal }
 
@@ -105,8 +106,9 @@ function callEvidence(input: string, out: string): Promise<CallToolResult> {
 }
 
 describe('drawio_create の文面確認', () => {
-  it('違反ラベル 1 件は text-violation で返し、何も書かない', async (context) => {
+  it('違反のあるラベルが 1 件の場合は、text-violation で失敗し、ファイルを書き出さない', async (context) => {
     await verifies(context, 'PV-DRAWIO-CREATE-05')
+    await explains('文章規則に違反するラベルが 1 件ある図を、`drawio_create` で変換する場合のテストです。`text-violation` の失敗になり、違反の項目、規則名、文が返され、出力のファイルが作成されないことを確認します。')
     const { input, out } = placeDiagram(`<mxCell id="n1" value="${HYPE}" vertex="1" parent="1"/>`)
 
     const result = await callDrawio(input, out)
@@ -124,8 +126,9 @@ describe('drawio_create の文面確認', () => {
     expect(existsSync(out)).toBe(false)
   })
 
-  it('違反ラベル 3 件（value・object label・html=1）を全件返し、違反の無いセルは含めない', async (context) => {
+  it('違反のあるラベルが 3 件（value、object の label、html=1 の value）の場合は、すべてを返し、違反のないセルは含めない', async (context) => {
     await verifies(context, 'PV-DRAWIO-CREATE-05')
+    await explains('3 種類の書き方で違反のあるラベルと、違反のないラベルを含む図を、`drawio_create` で変換する場合のテストです。違反のある 3 件だけが返され、違反のないセルは含まれず、出力のファイルが作成されないことを確認します。')
     const { input, out } = placeDiagram(
       `<mxCell id="n1" value="${HYPE}" vertex="1" parent="1"/>`
       + `<object id="n2" label="${HYPE_2}"><mxCell vertex="1" parent="1"/></object>`
@@ -144,7 +147,8 @@ describe('drawio_create の文面確認', () => {
     expect(existsSync(out)).toBe(false)
   })
 
-  it('違反が無ければ従来どおり表示用 HTML を書く', async () => {
+  it('違反がない場合は、これまでどおり表示用の HTML を書き出す', async () => {
+    await explains('文章規則に違反するラベルがない図を、`drawio_create` で変換する場合のテストです。失敗の `kind` が含まれず、出力の HTML ファイルが作成されることを確認します。')
     const { input, out } = placeDiagram(`<mxCell id="n1" value="${CLEAN}" vertex="1" parent="1"/>`)
 
     const result = await callDrawio(input, out)
@@ -153,7 +157,8 @@ describe('drawio_create の文面確認', () => {
     expect(existsSync(out)).toBe(true)
   })
 
-  it('確認器が失敗したら text-lint-failed で返し、何も書かない', async () => {
+  it('文章規則の確認自体が失敗した場合は、text-lint-failed で失敗し、ファイルを書き出さない', async () => {
+    await explains('文章規則の確認が失敗する場合の、`drawio_create` のテストです。`text-lint-failed` の失敗になり、`detail` に失敗の原因が含まれ、`violations` を含まず、出力のファイルが作成されないことを確認します。')
     vi.doMock('@pecot/text-rules', () => ({
       lintText: () => Promise.reject(new Error('辞書を読めません')),
     }))
@@ -169,8 +174,9 @@ describe('drawio_create の文面確認', () => {
 })
 
 describe('evidence_create の文面確認', () => {
-  it('title の違反は text-violation で返し、xlsx を書かない', async (context) => {
+  it('title に違反がある場合は、text-violation で失敗し、xlsx を書き出さない', async (context) => {
     await verifies(context, 'PV-EVIDENCE-CREATE-03')
+    await explains('`title` が文章規則に違反する入力を、`evidence_create` に渡した場合のテストです。`text-violation` の失敗になり、違反の項目として `title` が返され、xlsx が作成されないことを確認します。')
     const { input, out } = placeEvidence({
       title: HYPE,
       createdDate: '2026-10-28',
@@ -191,8 +197,9 @@ describe('evidence_create の文面確認', () => {
     expect(existsSync(out)).toBe(false)
   })
 
-  it('title・caption・callout の 3 項目を全件返す', async (context) => {
+  it('title、caption、callout の 3 項目の違反を、すべて返す', async (context) => {
     await verifies(context, 'PV-EVIDENCE-CREATE-03')
+    await explains('`title`、`caption`、注釈の `callout` のすべてが違反する入力を、`evidence_create` に渡した場合のテストです。3 項目の違反がすべて返され、xlsx が作成されないことを確認します。')
     const { input, out } = placeEvidence({
       title: HYPE,
       createdDate: '2026-10-28',
@@ -218,6 +225,7 @@ describe('evidence_create の文面確認', () => {
   })
 
   it('入力の spec は書き換えない', async () => {
+    await explains('`title` に違反がある入力を、`evidence_create` に渡した場合のテストです。`text-violation` の失敗になり、入力の spec ファイルの内容が変更されないことを確認します。')
     const { input, out } = placeEvidence({
       title: HYPE,
       createdDate: '2026-10-28',
@@ -231,7 +239,8 @@ describe('evidence_create の文面確認', () => {
     expect(readFileSync(input, 'utf8')).toBe(before)
   })
 
-  it('確認器が失敗したら text-lint-failed で返し、xlsx を書かない', async () => {
+  it('文章規則の確認自体が失敗した場合は、text-lint-failed で失敗し、xlsx を書き出さない', async () => {
+    await explains('文章規則の確認が失敗する場合の、`evidence_create` のテストです。`text-lint-failed` の失敗になり、`detail` に失敗の原因が含まれ、xlsx が作成されないことを確認します。')
     vi.doMock('@pecot/text-rules', () => ({
       lintText: () => Promise.reject(new Error('辞書を読めません')),
     }))
@@ -297,6 +306,7 @@ describe('SC-002 止める場所ごとの規則名の一致', () => {
   beforeAll(assertTemplatePluginsBuilt)
 
   it('fragment を lintText に渡すと、ほかの止める場所と同じ 3 つの規則名を返す', async () => {
+    await explains('文章規則を確認する `lintText` に、禁止された表現を含む文を `fragment` として渡した場合のテストです。ほかの確認の場所と同じ、3 つの規則名の違反が返ることを確認します。')
     const findings = await lintText(PARITY_TEXT, 'fragment')
 
     expect(new Set(findings.map(finding => finding.ruleId))).toStrictEqual(PARITY_RULES)
@@ -307,7 +317,8 @@ describe('SC-002 止める場所ごとの規則名の一致', () => {
     ['pecot-text-lint（bin）の .ts の文字列', 'parity.ts', `export const text = '${PARITY_TEXT}'\n`, []],
     ['pecot-text-lint（bin）の .vue の template', 'parity.vue', `<template>\n  <p>${PARITY_TEXT}</p>\n</template>\n`, []],
     ['pecot-text-lint（bin）の --commit-msg', 'COMMIT_EDITMSG', `fix: ${PARITY_TEXT}\n`, ['--commit-msg']],
-  ])('%s のとき、ほかの止める場所と同じ 3 つの規則名を返す', (_name, name, content, options) => {
+  ])('%s のとき、ほかの止める場所と同じ 3 つの規則名を返す', async (_name, name, content, options) => {
+    await explains('`pecot-text-lint` に、禁止された表現を含むファイルを渡した場合のテストです。終了コードが 1 になり、出力された違反の規則名が、ほかの確認の場所と同じ 3 つになることを確認します。')
     const entry = fileURLToPath(import.meta.resolve('@pecot/text-rules'))
     const bin = path.join(path.dirname(entry), 'bin', 'pecot-text-lint.js')
     const file = workDirectory(name)
@@ -323,6 +334,7 @@ describe('SC-002 止める場所ごとの規則名の一致', () => {
   })
 
   it('drawio_create に禁止文を渡すと、ほかの止める場所と同じ 3 つの規則名を返す', async () => {
+    await explains('禁止された表現を含むラベルの図を、`drawio_create` に渡した場合のテストです。返された違反の規則名が、ほかの確認の場所と同じ 3 つになることを確認します。')
     const { input, out } = placeDiagram(`<mxCell id="n1" value="${PARITY_TEXT}" vertex="1" parent="1"/>`)
 
     const result = await callDrawio(input, out)
@@ -331,6 +343,7 @@ describe('SC-002 止める場所ごとの規則名の一致', () => {
   })
 
   it('evidence_create に禁止文を渡すと、ほかの止める場所と同じ 3 つの規則名を返す', async () => {
+    await explains('禁止された表現を含む `title` を、`evidence_create` に渡した場合のテストです。返された違反の規則名が、ほかの確認の場所と同じ 3 つになることを確認します。')
     const { input, out } = placeEvidence({
       title: PARITY_TEXT,
       createdDate: '2026-10-28',
@@ -343,10 +356,12 @@ describe('SC-002 止める場所ごとの規則名の一致', () => {
   })
 
   it('slide_lint の本文（text-constraints/textlint-body）に禁止文があると、ほかの止める場所と同じ 3 つの規則名を返す', async () => {
+    await explains('スライドの本文に禁止された表現を含む場合の、`slide_lint` のテストです。`text-constraints/textlint-body` の違反として、ほかの確認の場所と同じ 3 つの規則名が返ることを確認します。')
     expect(await slideLintRuleIds('text-constraints/textlint-body')).toStrictEqual(PARITY_RULES)
   })
 
   it('slide_lint の frontmatter の表示項目（text-constraints/textlint）に禁止文があると、ほかの止める場所と同じ 3 つの規則名を返す', async () => {
+    await explains('スライドの frontmatter の表示項目に禁止された表現を含む場合の、`slide_lint` のテストです。`text-constraints/textlint` の違反として、ほかの確認の場所と同じ 3 つの規則名が返ることを確認します。')
     expect(await slideLintRuleIds('text-constraints/textlint')).toStrictEqual(PARITY_RULES)
   })
 })

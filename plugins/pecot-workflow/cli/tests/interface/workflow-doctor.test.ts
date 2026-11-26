@@ -10,6 +10,7 @@ import { requestLabels, restRule, runCommand, runTool } from '../_helpers/comman
 import type { ToolResult } from '../_helpers/command-harness.js'
 import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
+import { explains } from '../_helpers/explains.js'
 
 useIsolatedEnvironment()
 
@@ -80,6 +81,7 @@ const READY: Settings = { secrets: ['CLAUDE_CODE_OAUTH_TOKEN'] }
 describe('workflow doctor', () => {
   it('呼ぶと、確かめた項目を name と state の組で items に入れる', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-01')
+    await explains('ワークフローの診断（`workflow_doctor`）を、ファイルと設定がそろった状態で呼び出した場合のテストです。確認した項目が `name` と `state` の組として `items` に格納され、問題が 1 件も報告されないことを確認します。')
     const result = await doctor(READY)
     expect(itemsOf(result)).toEqual([
       { name: DESTINATION, state: 'ok' },
@@ -93,13 +95,15 @@ describe('workflow doctor', () => {
 
   it('ファイルと設定がそろっていると、ready を true にして成功を返す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-06')
+    await explains('ワークフローのファイルと設定がそろっている場合のテストです。`ready` が `true` になり、成功の結果が返ることを確認します。')
     const result = await doctor(READY)
     expect(result.isError).toBe(false)
     expect(result.structured).toMatchObject({ repository: 'acme/demo', ready: true })
   })
 
-  it('もしワークフローのファイルが無いなら、その項目を missing にして失敗を返す', async (context) => {
+  it('もしワークフローのファイルが存在しないなら、その項目を missing にして失敗を返す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-02')
+    await explains('ワークフローのファイル（`.github/workflows/pecot-review.yml`）が存在しない場合のテストです。その項目が `missing` になって失敗の結果が返り、雛形の版の項目は `items` に含まれないことを確認します。')
     const result = await doctor(READY, {})
     expect(result.isError).toBe(true)
     expect(itemsOf(result)).toContainEqual({ name: DESTINATION, state: 'missing' })
@@ -108,6 +112,7 @@ describe('workflow doctor', () => {
 
   it('もしファイルの版が同梱の雛形より古いなら、その項目を outdated にして失敗を返す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-03')
+    await explains('ワークフローのファイルの版が、同梱の雛形より古い場合のテストです。雛形の項目が `outdated` になり、`repo-setting-missing` の失敗の結果が返ることを確認します。')
     const result = await doctor(READY, { [DESTINATION]: OLD })
     expect(result.isError).toBe(true)
     expect(itemsOf(result)).toContainEqual({ name: 'workflow template review', state: 'outdated' })
@@ -116,6 +121,7 @@ describe('workflow doctor', () => {
 
   it('もし Client ID の変数を置き、秘密鍵の secret を置いていないなら、その項目を missing にして失敗を返す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-04')
+    await explains('Client ID の変数のみを設定し、秘密鍵の secret（`PECOT_AGENT_APP_PRIVATE_KEY`）を設定していない場合のテストです。秘密鍵の項目が `missing` になり、失敗の結果が返ることを確認します。')
     const result = await doctor({ secrets: ['CLAUDE_CODE_OAUTH_TOKEN'], variables: ['PECOT_AGENT_APP_CLIENT_ID'] })
     expect(result.isError).toBe(true)
     expect(itemsOf(result)).toContainEqual({ name: KEY_MISSING, state: 'missing' })
@@ -123,6 +129,7 @@ describe('workflow doctor', () => {
 
   it('もしモデルの認証の secret も 4 つの変数のそろった組も無いなら、その項目を missing にして失敗を返す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-05')
+    await explains('モデルの認証の secret（`CLAUDE_CODE_OAUTH_TOKEN`）と、4 つの変数（`PECOT_AGENT_ANTHROPIC_*`）の完全な組のどちらも存在しない場合のテストです。モデルの認証の項目が `missing` になり、`repo-setting-missing` の失敗の結果が返ることを確認します。')
     const result = await doctor({ variables: ['PECOT_AGENT_ANTHROPIC_FEDERATION_RULE_ID'] })
     expect(result.isError).toBe(true)
     expect(result.structured).toMatchObject({ kind: 'repo-setting-missing', repository: 'acme/demo', ready: false })
@@ -131,20 +138,23 @@ describe('workflow doctor', () => {
 
   it('review では、Claude の App は確かめず、その項目を skipped で入れる', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-07')
+    await explains('ワークフロー `review` を診断した場合のテストです。Claude GitHub App の項目が確認されず、`skipped` として `items` に含まれることを確認します。')
     const result = await doctor(READY)
     expect(itemsOf(result)).toContainEqual({ name: 'Claude GitHub App', state: 'skipped' })
   })
 
-  it('secret の一覧を読めないと、その一覧に頼る項目を skipped で入れ、足りないと数えない', async (context) => {
+  it('secret の一覧を取得できないと、その一覧に依存する項目を skipped にし、不足として数えない', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-08')
+    await explains('secret の一覧を取得できない（HTTP 403 を返す）場合のテストです。その一覧に依存する項目が `skipped` になり、不足（`missing`）として数えられないことを確認します。')
     const result = await doctor({ secrets: 403 })
     expect(result.isError).toBe(false)
     expect(itemsOf(result)).toContainEqual({ name: TOKEN_MISSING, state: 'skipped' })
     expect(itemsOf(result)).not.toContainEqual(expect.objectContaining({ state: 'missing' }))
   })
 
-  it('一部の一覧を読めなくても、読めた一覧に名前があれば ok を入れる', async (context) => {
+  it('一部の一覧を取得できなくても、取得できた一覧に名前があれば ok にする', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-08')
+    await explains('一部の一覧を取得できない場合のテストです。Organization の secret の一覧が 403 でも、取得できたリポジトリの secret に名前があれば、その項目が `ok` になることを確認します。')
     const result = await doctor({ secrets: ['CLAUDE_CODE_OAUTH_TOKEN'], organizationSecrets: 403 })
     expect(result.isError).toBe(false)
     expect(itemsOf(result)).toContainEqual({ name: TOKEN_MISSING, state: 'ok' })
@@ -152,6 +162,7 @@ describe('workflow doctor', () => {
 
   it('持ち主が organization だと、organization の secret と変数も見る', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-09')
+    await explains('リポジトリの持ち主が Organization の場合のテストです。リポジトリの secret と変数に加えて、Organization の secret と変数の一覧も取得することを確認します。')
     const result = await doctor({ organizationSecrets: ['CLAUDE_CODE_OAUTH_TOKEN'] })
     expect(result.isError).toBe(false)
     expect(sortedLabels(result)).toEqual([
@@ -163,23 +174,26 @@ describe('workflow doctor', () => {
     ])
   })
 
-  it('持ち主が個人だと、organization の一覧を読まない', async (context) => {
+  it('持ち主が個人だと、organization の一覧を取得しない', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-10')
+    await explains('リポジトリの持ち主が個人（`User`）の場合のテストです。Organization の一覧を取得せず、問題が報告されないことを確認します。')
     const result = await doctor({ ownerType: 'User', secrets: ['CLAUDE_CODE_OAUTH_TOKEN'] })
     expect(result.isError).toBe(false)
     expect(requestLabels(result.requests).filter(label => label.includes('organization'))).toEqual([])
     expect(result.problems).toEqual([])
   })
 
-  it('secret と変数の値を結果に入れない', async (context) => {
+  it('secret と変数の値を結果に含めない', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-11')
+    await explains('secret と変数の値の取り扱いのテストです。構造化された結果とテキストの出力のどちらにも、値が含まれないことを確認します。')
     const result = await doctor({ secrets: ['CLAUDE_CODE_OAUTH_TOKEN'], variables: ['PECOT_AGENT_APP_CLIENT_ID'] })
     expect(JSON.stringify(result.structured)).not.toContain(SECRET_VALUE)
     expect(result.text ?? '').not.toContain(SECRET_VALUE)
   })
 
-  it('名前が雛形の一覧に無いと、一覧の名前を detail に入れて invalid-input の失敗を返す', async (context) => {
+  it('名前が雛形の一覧に存在しないと、一覧の名前を detail に含めて invalid-input の失敗を返す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-12')
+    await explains('存在しない雛形の名前（`deploy`）を指定した場合のテストです。`invalid-input` の失敗が返り、`detail` に不明な雛形の名前と、指定できる名前の一覧が含まれることを確認します。')
     const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'deploy' }, config: false, github: [] })
     expect(result.isError).toBe(true)
     expect(result.structured).toMatchObject({ kind: 'invalid-input' })
@@ -189,6 +203,7 @@ describe('workflow doctor', () => {
 
   it('name に handoff を渡すと、引き継ぎの雛形と review と同じエージェント用の認証を確かめ、Claude の App の項目を入れない', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-01')
+    await explains('`name` に `handoff` を指定した場合のテストです。引き継ぎの雛形と、`review` と同じエージェント用の認証が項目に含まれ、Claude GitHub App の項目は含まれないことを確認します。')
     await verifies(context, 'PW-WORKFLOW-DOCTOR-16')
     const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'handoff' }, files: { [HANDOFF_DESTINATION]: BUNDLED_HANDOFF }, config: false, github: github(READY) })
     expect(result.isError).toBe(false)
@@ -201,6 +216,7 @@ describe('workflow doctor', () => {
 
   it('もし handoff の 1 の版を置いているなら、その項目を outdated にして失敗を返す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-03')
+    await explains('`handoff` のワークフローのファイルが、古い版（`1`）の場合のテストです。その項目が `outdated` になり、失敗の結果が返ることを確認します。')
     const old = BUNDLED_HANDOFF.replace(/^# pecot-workflow-template: handoff \d+/u, '# pecot-workflow-template: handoff 1')
     const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'handoff' }, files: { [HANDOFF_DESTINATION]: old }, config: false, github: github(READY) })
     expect(result.isError).toBe(true)
@@ -210,6 +226,7 @@ describe('workflow doctor', () => {
 
   it('もし auto で App の変数と secret が無いなら、その 2 つを missing にし、Claude の App の項目を入れずに失敗を返す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-17')
+    await explains('`name` に `auto` を指定し、App の変数と secret が存在しない場合のテストです。その 2 項目が `missing` になり、Claude GitHub App の項目は含まれず、失敗の結果が返ることを確認します。')
     await verifies(context, 'PW-WORKFLOW-DOCTOR-16')
     const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'auto' }, files: { [AUTO_DESTINATION]: bundledAuto() }, config: false, github: github(READY) })
     expect(result.isError).toBe(true)
@@ -225,6 +242,7 @@ describe('workflow doctor', () => {
 
   it('auto で App の変数と secret とモデルの認証がそろっていると、ready を true にして成功を返す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-06')
+    await explains('`name` に `auto` を指定し、App の変数と secret、モデルの認証がそろっている場合のテストです。`ready` が `true` になり、成功の結果が返ることを確認します。')
     const settings: Settings = { secrets: ['CLAUDE_CODE_OAUTH_TOKEN', 'PECOT_AGENT_APP_PRIVATE_KEY'], variables: ['PECOT_AGENT_APP_CLIENT_ID'] }
     const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'auto' }, files: { [AUTO_DESTINATION]: bundledAuto() }, config: false, github: github(settings) })
     expect(result.isError).toBe(false)
@@ -232,8 +250,9 @@ describe('workflow doctor', () => {
     expect(itemsOf(result)).not.toContainEqual(expect.objectContaining({ name: 'Claude GitHub App' }))
   })
 
-  it('git remote からリポジトリを読めないと、GitHub を読まずに git-unresolved の失敗を返す', async (context) => {
+  it('git remote からリポジトリを特定できないと、GitHub へ要求を送らずに git-unresolved の失敗を返す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-13')
+    await explains('git remote の URL からリポジトリを特定できない場合のテストです。GitHub へ要求を送らずに、`git-unresolved` の失敗が返ることを確認します。')
     const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'review' }, remoteUrl: '/srv/git/demo.git', config: false, github: [] })
     expect(result.isError).toBe(true)
     expect(result.structured).toMatchObject({ kind: 'git-unresolved' })
@@ -241,8 +260,9 @@ describe('workflow doctor', () => {
     expect(result.requests).toEqual([])
   })
 
-  it('Git リポジトリの外だと、GitHub を読まずに git-unresolved の失敗を返す', async (context) => {
+  it('Git リポジトリの外だと、GitHub へ要求を送らずに git-unresolved の失敗を返す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-13')
+    await explains('Git リポジトリの外で実行した場合のテストです。GitHub へ要求を送らずに、`git-unresolved` の失敗が返ることを確認します。')
     const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'review' }, remote: false, config: false, github: [] })
     expect(result.isError).toBe(true)
     expect(result.structured).toMatchObject({ kind: 'git-unresolved' })
@@ -251,18 +271,21 @@ describe('workflow doctor', () => {
 
   it('リポのサブディレクトリを directory に渡すと、リポのルートに置いたワークフローのファイルを見る', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-14')
+    await explains('リポジトリのサブディレクトリを `directory` に指定した場合のテストです。リポジトリのルートに置いたワークフローのファイルが対象になり、その項目が `ok` になることを確認します。')
     const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'review', directory: 'sub' }, files: { ...INSTALLED, 'sub/.keep': '' }, config: false, github: github(READY) })
     expect(result.isError).toBe(false)
     expect(itemsOf(result)).toContainEqual({ name: DESTINATION, state: 'ok' })
   })
 
-  it('Client ID の変数が無いと、秘密鍵の secret の項目を入れない', async (context) => {
+  it('Client ID の変数が存在しないと、秘密鍵の secret の項目を含めない', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-15')
+    await explains('Client ID の変数が存在しない場合のテストです。秘密鍵の secret の項目が、`items` に含まれないことを確認します。')
     const result = await doctor(READY)
     expect(itemsOf(result)).not.toContainEqual(expect.objectContaining({ name: KEY_MISSING }))
   })
 
   it('CLI で打つと、確かめた項目を状態と名前の行で標準出力に出す', async () => {
+    await explains('`pecot workflow doctor review` を実行した場合のテストです。確認した項目が、状態と名前の行として標準出力に表示され、終了コード 0 で終了することを確認します。')
     const result = await runCommand({ argv: ['workflow', 'doctor', 'review'], files: INSTALLED, config: false, github: github(READY) })
     expect(result.code).toBe(0)
     expect(result.stdout).toBe([

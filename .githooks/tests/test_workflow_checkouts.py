@@ -29,12 +29,16 @@ def _checkouts_with_full_history() -> list[tuple[str, dict[str, Any]]]:
     return found
 
 
+@allure.title("全履歴を取得する checkout が、ワークフローに 1 つ以上存在する")
 def test_full_history_checkouts_exist() -> None:
+    """`.github/workflows/*.yml` に `fetch-depth: 0` の checkout が存在することを確認するテストです。存在しない場合は、次のテストが何も検証しないまま通ってしまうのを防ぎます。"""
     with allure.step("全履歴の checkout が 1 つ以上あることを確かめる"):
         assert _checkouts_with_full_history()
 
 
+@allure.title("全履歴を取得する checkout は、すべて `filter: blob:none` を指定している")
 def test_full_history_checkouts_filter_blobs() -> None:
+    """`fetch-depth: 0` で全履歴を取得する checkout のテストです。すべての checkout が `filter: blob:none` を指定し、指定が漏れているものが 1 件も存在しないことを確認します。"""
     with allure.step("全履歴の checkout のうち、filter: blob:none の無いものを集める"):
         missing = [
             label

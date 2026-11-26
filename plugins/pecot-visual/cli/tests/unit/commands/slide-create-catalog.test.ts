@@ -12,6 +12,7 @@ import { executeSlideTheme } from '../../../src/commands/slidev-project/theme.js
 import { compareStrings } from '../../../src/domain/_shared/compare-strings.js'
 import { NodeThemeFiles } from '../../../src/infra/slidev-theme/fs.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
+import { explains } from '../../_helpers/explains.js'
 const PLUGIN_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..')
 const THEME_ROOT = path.join(PLUGIN_ROOT, 'cli', 'tests', 'fixtures', 'themes', 'with-declaration')
 const THEME_NAME = 'slidev-theme-pecotv-test-declared'
@@ -60,7 +61,8 @@ function readReferences(): readonly ReferenceEntry[] {
 }
 
 describe('fixture テーマの一覧', () => {
-  it('hidden を除いた全レイアウトを分類付きで返す', async () => {
+  it('hidden を除いたすべてのレイアウトを、分類を付けて返す', async () => {
+    await explains('fixture のテーマのレイアウトの一覧のテストです。`references` に書いた内容と比較して、hidden 以外のレイアウトが同じ数で、非推奨と分類が一致し、hidden のレイアウトが含まれないことを確認します。')
     const { data } = await executeSlideTheme({ dir: makeTalk() }, { files: new NodeThemeFiles() })
     const { categories, layouts } = data
     const references = readReferences()
@@ -91,7 +93,8 @@ describe('fixture テーマの一覧', () => {
 // SKILL.md は配布物であり、利用環境のエージェントはこの本文だけを手掛かりに応答を読む。
 // 本文が名指しするキー名と実際の応答キーが割れると、エージェントは存在しないキーを探す。
 describe('v-slidev SKILL.md の応答キー名', () => {
-  it('SKILL.md が名指しするキーが fixture テーマの一覧に実在する', async () => {
+  it('SKILL.md が名指しするキー名が、fixture のテーマの一覧に実在する', async () => {
+    await explains('`v-slidev` の `SKILL.md` と応答の整合のテストです。`categories` と `layouts` を名指しする行のキー名が、`executeSlideTheme` の応答のキーに含まれ、選択の手順が使うキーも存在することを確認します。')
     const skillPath = path.join(PLUGIN_ROOT, 'skills', 'v-slidev', 'SKILL.md')
     const skill = readFileSync(skillPath, 'utf8')
     const { data } = await executeSlideTheme({ dir: makeTalk() }, { files: new NodeThemeFiles() })

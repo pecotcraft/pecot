@@ -2,6 +2,7 @@
 // 表は specs/027-auto-revise-on-pr/contracts/cli-commands.md の pecot review finish。
 
 import { describe, expect, it } from 'vitest'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 import { stripFrontmatter, stripLeadingHtmlComment } from '../frontmatter.js'
 import { decideReviewFinish, hasStoppedMarker, readExecution, renderReviewStopped, REVIEW_STOPPED_PLACEHOLDERS, stopLocationOf, stoppedMarker } from '../review-finish.js'
@@ -47,7 +48,8 @@ const AUTH_FAILURE = executionOf({ subtype: 'success', is_error: true, terminal_
 const SUCCESS_WITH_API_ERROR = executionOf({ subtype: 'success', is_error: true, terminal_reason: 'api_error', result: 'error 4012 tokens' })
 
 describe('readExecution', () => {
-  it('最後の type: result の行の subtype・is_error・terminal_reason・result・errors を読む', () => {
+  it('最後の result の行から、subtype・is_error・terminal_reason・result・errors を読み取る', async () => {
+    await explains('Claude Code の実行結果を読み取る `readExecution` のテストです。JSON の配列に result の行が複数ある場合に、最後の行の `subtype` や `is_error` などを読み取り、文字列でない `errors` の要素は除くことを確認します。')
     const text = JSON.stringify([
       { type: 'result', subtype: 'success', is_error: false, result: 'first' },
       { type: 'assistant' },
@@ -56,11 +58,13 @@ describe('readExecution', () => {
     expect(readExecution(text)).toEqual({ kind: 'read', last: { subtype: 'error_during_execution', isError: true, terminalReason: 'tool_error', text: '', errors: ['boom'] } })
   })
 
-  it('result の行が無ければ last を undefined にする', () => {
+  it('result の行が存在しなければ、last を undefined にする', async () => {
+    await explains('result の行が存在しない場合の、`readExecution` のテストです。`type` が `result` の行がないとき、`last` が `undefined` の `read` を返すことを確認します。')
     expect(readExecution(JSON.stringify([{ type: 'assistant' }]))).toEqual({ kind: 'read', last: undefined })
   })
 
-  it.each(['not json', '{"type":"result"}'])('JSON の配列でない本文（%s）は unreadable にする', (text) => {
+  it.each(['not json', '{"type":"result"}'])('JSON の配列でない本文（%s）は、unreadable として扱う', async (text) => {
+    await explains('JSON の配列として読めない場合の、`readExecution` のテストです。JSON ではない文字列や、配列ではない JSON を渡したとき、`unreadable` を返すことを確認します。')
     expect(readExecution(text)).toEqual({ kind: 'unreadable' })
   })
 })
@@ -83,38 +87,45 @@ describe('decideReviewFinish', () => {
     ['result の行が無い', ensure({ execution: { kind: 'read', last: undefined } }), 'failed', 'retry', false],
     ['subtype が success でも、api_error でない（上限を超えたターン数）', ensure({ execution: executionOf({ subtype: 'success', is_error: false, num_turns: 99 }) }), 'failed', 'retry', false],
     ['ほかの subtype', ensure({ execution: executionOf({ subtype: 'error_during_execution', is_error: true }) }), 'failed', 'retry', false],
-  ])('%s のとき、表の結果と次にすることを返す', (_name, input, result, next, shouldCheckActor) => {
+  ])('%s の場合は、表のとおりの結果と次にすることを決める', async (_name, input, result, next, shouldCheckActor) => {
+    await explains('自動レビューの終了時に、書く内容を決める `decideReviewFinish` のテストです。`--result` の指定や、job と step の結果、Claude Code の実行結果の組み合わせごとに、表のとおりの結果・次にすること・実行者の確認の要否を返すことを確認します。')
     expect(decideReviewFinish(input)).toEqual({ action: 'write', result, next, shouldCheckActor })
   })
 
-  it('subtype だけでは決めない。subtype が success でも is_error と api_error なら failed', () => {
+  it('subtype だけでは決めない。subtype が success でも、is_error が真で api_error なら failed にする', async () => {
+    await explains('Claude Code の実行結果の判定のテストです。`subtype` が `success` でも、`is_error` が真で終了理由が `api_error` の場合は、結果を `failed`、次にすることを `retry` とすることを確認します。')
     expect(decideReviewFinish(ensure({ execution: SUCCESS_WITH_API_ERROR }))).toMatchObject({ result: 'failed', next: 'retry' })
   })
 
-  it('上限と認証の失敗は、トークンの無さより先に見る', () => {
+  it('上限と認証の失敗は、トークンが存在しない場合より先に判定する', async () => {
+    await explains('判定の優先順位のテストです。トークンがない場合でも、ターン数の上限なら `limit`、認証の失敗なら `failed` と `auth` を返し、トークンの不足を理由にしないことを確認します。')
     expect(decideReviewFinish(ensure({ hasToken: false, execution: MAX_TURNS }))).toMatchObject({ result: 'limit' })
     expect(decideReviewFinish(ensure({ hasToken: false, execution: AUTH_FAILURE }))).toMatchObject({ result: 'failed', next: 'auth' })
   })
 
-  it('--result reviewed は書かない', () => {
+  it('--result が reviewed なら、コメントを書かない', async () => {
+    await explains('`--result reviewed` を渡した場合のテストです。レビューが完了しているため、コメントを書かず、理由を `reviewed` として省略することを確認します。')
     expect(decideReviewFinish({ kind: 'result', result: 'reviewed' })).toEqual({ action: 'skip', reason: 'reviewed' })
   })
 
   it.for<[string, FinishInput]>([
     ['job も成功', ensure({ job: 'success', outcome: 'success', conclusion: '' })],
     ['後の step で job が失敗', ensure({ job: 'failure', outcome: 'success', conclusion: '' })],
-  ])('自動レビューの step が成功で conclusion が空なら（%s）、雛形の食い違いとして書かない', ([, input]) => {
+  ])('自動レビューの step が成功で conclusion が空の場合（%s）は、雛形の食い違いとして書かない', async ([, input]) => {
+    await explains('Actions の雛形とのずれがある場合のテストです。自動レビューの step が成功なのに `conclusion` が空のとき、コメントを書かず、理由を `workflow-mismatch` として省略することを確認します。')
     expect(decideReviewFinish(input)).toEqual({ action: 'skip', reason: 'workflow-mismatch' })
   })
 
   it.for<[string, FinishInput]>([
     ['レビューを終えた', ensure({ job: 'success', outcome: 'success', conclusion: 'success' })],
     ['PR の確かめで飛ばした', ensure({ job: 'success', outcome: 'skipped', conclusion: '', hasToken: false })],
-  ])('job が success なら（%s）書かない', ([, input]) => {
+  ])('job が success の場合（%s）は、コメントを書かない', async ([, input]) => {
+    await explains('job が成功している場合のテストです。レビューを終えた場合と、PR の確認で step を省略した場合のどちらでも、コメントを書かず、理由を `job-succeeded` として省略することを確認します。')
     expect(decideReviewFinish(input)).toEqual({ action: 'skip', reason: 'job-succeeded' })
   })
 
-  it('setup-missing は、--result か、step が failure でトークンが無いときだけ出る', () => {
+  it('setup-missing は、--result で指定した場合と、step が failure でトークンが存在しない場合だけ返す', async () => {
+    await explains('`setup-missing` を返さない場合のテストです。トークンがなくても step が失敗していない場合や、step が失敗してもトークンがある場合は、`setup-missing` にならないことを確認します。')
     const results = [
       ensure(),
       ensure({ hasToken: false, outcome: 'skipped' }),
@@ -133,11 +144,13 @@ describe('stopLocationOf', () => {
     ['since より前の指摘は数えない', [{ body: '**F-01** [tech] 前の実行', createdAt: '2026-11-17T09:59:59Z' }], 'before-findings'],
     ['F-NN で始まらないコメントは数えない', [{ body: 'nit: **F-01**', createdAt: '2026-11-17T10:05:00Z' }], 'before-findings'],
     ['コメントが無ければ、投稿する前', [], 'before-findings'],
-  ])('%s を返す', (_name, comments, location) => {
+  ])('止まった場所は、%s', async (_name, comments, location) => {
+    await explains('止まった場所を、既存のコメントから判断する `stopLocationOf` のテストです。実行の開始時刻より後で、`F-NN` で始まるインラインコメントがある場合だけ、投稿した後（`after-inline`）になり、それ以外は `before-findings` になることを確認します。')
     expect(stopLocationOf(comments, since)).toBe(location)
   })
 
-  it('since が無ければ、分からない', () => {
+  it('since が存在しなければ、止まった場所を unknown とする', async () => {
+    await explains('開始時刻が指定されていない場合の、`stopLocationOf` のテストです。`since` が `undefined` のとき、止まった場所を `unknown` として返すことを確認します。')
     expect(stopLocationOf([{ body: '**F-01** [tech] x', createdAt: '2026-11-17T10:05:00Z' }], undefined)).toBe('unknown')
   })
 })
@@ -145,19 +158,23 @@ describe('stopLocationOf', () => {
 describe('目印', () => {
   const run = { runId: '44040534751', attempt: '1' }
 
-  it('実行の ID と試行の番号を入れた、画面に出ないコメントの行にする', () => {
+  it('実行の ID と試行の番号を入れた、画面に表示されないコメントの行を返す', async () => {
+    await explains('止まったことを知らせるコメントの目印を作る、`stoppedMarker` のテストです。実行の ID と試行の番号を含む、画面に表示されない HTML コメントの行を返すことを確認します。')
     expect(stoppedMarker(run)).toBe('<!-- pecot-review-stopped run=44040534751 attempt=1 -->')
   })
 
-  it('Bot のコメントが同じ実行・同じ試行の目印を持てば、書いたとみなす', () => {
+  it('Bot のコメントが同じ実行と同じ試行の目印を持てば、書き込み済みとみなす', async () => {
+    await explains('目印の有無を判定する `hasStoppedMarker` のテストです。Bot のコメントに、同じ実行と同じ試行の目印が含まれる場合に、真を返すことを確認します。')
     expect(hasStoppedMarker([{ body: `x\n${stoppedMarker(run)}\n`, userType: 'Bot' }], run)).toBe(true)
   })
 
-  it('re-run で試行の番号が違えば、書いていないとみなす', () => {
+  it('re-run で試行の番号が異なれば、書き込み済みとみなさない', async () => {
+    await explains('再実行した場合の、`hasStoppedMarker` のテストです。目印の試行の番号が現在と異なる場合に、書き込み済みとみなさず、偽を返すことを確認します。')
     expect(hasStoppedMarker([{ body: stoppedMarker(run), userType: 'Bot' }], { ...run, attempt: '2' })).toBe(false)
   })
 
-  it('人が書いた目印は数えない', () => {
+  it('人が書いた目印は、書き込み済みに数えない', async () => {
+    await explains('コメントの投稿者の種別の、`hasStoppedMarker` のテストです。投稿者が人（`User`）の場合は、同じ目印があっても、偽を返すことを確認します。')
     expect(hasStoppedMarker([{ body: stoppedMarker(run), userType: 'User' }], run)).toBe(false)
   })
 })
@@ -165,7 +182,8 @@ describe('目印', () => {
 describe('renderReviewStopped', () => {
   const sections = extractSectionsFromTemplate(TEMPLATE)
 
-  it('テンプレートの本文が、埋めるプレースホルダをすべて持つ', () => {
+  it('テンプレートの本文が、埋めるプレースホルダをすべて含む', async () => {
+    await explains('止まったことを知らせるコメントのテンプレートのテストです。本文が、`renderReviewStopped` で埋めるプレースホルダをすべて含むことを確認します。')
     for (const placeholder of Object.values(REVIEW_STOPPED_PLACEHOLDERS)) expect(TEMPLATE_BODY).toContain(placeholder)
   })
 
@@ -176,14 +194,16 @@ describe('renderReviewStopped', () => {
     { result: 'setup-missing', next: 'app-token', location: 'before-findings', triggerPhrase: '@pecotbot review' },
     { result: 'setup-missing', next: 'setup-detail', location: 'unknown', triggerPhrase: '@pecotbot review', detail: 'secret <X> `Y`' },
     { result: 'setup-missing', next: 'setup-detail', location: 'unknown', triggerPhrase: '@pecotbot review', detail: 'secret X\nと変数 Y' },
-  ])('%$ 行目の $result と $next の本文が、テンプレートの検証を通る', (values) => {
+  ])('%$ 番目の例（$result と $next）の本文は、テンプレートの検証を通る', async (values) => {
+    await explains('コメントの本文を作る `renderReviewStopped` のテストです。結果・次にすること・止まった場所・detail の値の組み合わせごとに、作った本文がテンプレートの節・見出し・書式の検証を通ることを確認します。')
     const body = renderReviewStopped(TEMPLATE_BODY, values)
     expect(validateSections(body, sections)).toEqual([])
     expect(validateHeadingSummaries(body, sections)).toEqual([])
     expect(validateBodyStyle(body)).toEqual([])
   })
 
-  it('結果・止まった場所・次にすることと目印を書く', () => {
+  it('結果・止まった場所・次にすることと目印を、本文に書く', async () => {
+    await explains('上限で止まった場合の本文のテストです。見出し・結果・止まった場所・次にすること・目印の行が、期待どおりの文面で出力されることを確認します。')
     const body = renderReviewStopped(TEMPLATE_BODY, { result: 'limit', next: 'limit', location: 'after-inline', triggerPhrase: '@my-bot review', run: { runId: '7', attempt: '2' } })
     expect(body).toBe([
       '## Review stopped — 自動レビューがターンか時間の上限で止まった',
@@ -197,12 +217,14 @@ describe('renderReviewStopped', () => {
     ].join('\n'))
   })
 
-  it('setup-missing の detail を、足りない設定の名前として書く', () => {
+  it('setup-missing の detail を、不足している設定の名前として書く', async () => {
+    await explains('`setup-missing` の本文のテストです。`detail` に渡した設定の名前が、不足している設定として本文に含まれることを確認します。')
     const body = renderReviewStopped(TEMPLATE_BODY, { result: 'setup-missing', next: 'setup-detail', location: 'before-findings', triggerPhrase: '@pecotbot review', detail: 'pull-requests: write' })
     expect(body).toContain('足りない設定は `pull-requests: write` だ。')
   })
 
-  it('detail の改行と続く空白は、1 つの空白にまとめて 1 行のコードに書く', () => {
+  it('detail の改行と続く空白は、1 つの空白にまとめ、1 行のコードとして書く', async () => {
+    await explains('改行を含む `detail` の本文のテストです。改行と続く空白を 1 つの空白にまとめ、1 行のコードとして本文に含めることを確認します。')
     const body = renderReviewStopped(TEMPLATE_BODY, { result: 'setup-missing', next: 'setup-detail', location: 'before-findings', triggerPhrase: '@pecotbot review', detail: 'secret X\n  と変数 Y' })
     expect(body).toContain('足りない設定は `secret X と変数 Y` だ。')
   })

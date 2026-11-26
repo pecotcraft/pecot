@@ -11,6 +11,7 @@ import { adapterDirectory, coreDirectory, hooksDirectory } from '../_helpers/pat
 import { run } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { jsonDumps } from '../_helpers/text.js'
+import { explains } from '../../_helpers/explains.js'
 
 const GH_PR_CREATE_JSON = jsonDumps({ tool_input: { command: 'gh pr create --title "feat: test" --body "test"' } })
 
@@ -59,7 +60,8 @@ function setUpPluginRoot(hookCase: HookCase): void {
 }
 
 describe('claude-bash-guards', () => {
-  it('false のとき、gh pr create をブロックしない', () => {
+  it('false のとき、gh pr create をブロックしない', async () => {
+    await explains('`claude-bash-guards` の設定のテストです。`false` を指定した場合に、`gh pr create` を拒否せず、`deny` の判定と `decision` を出力しないことを確認します。')
     const hookCase = createHookCase()
     const config = setUpDisable(hookCase)
     config.write({ 'claude-bash-guards': false })
@@ -72,7 +74,8 @@ describe('claude-bash-guards', () => {
     expect(result.stdout).not.toContain('"decision"')
   })
 
-  it('true のとき、gh pr create をブロックする', () => {
+  it('true のとき、gh pr create をブロックする', async () => {
+    await explains('`claude-bash-guards` の設定のテストです。`true` を指定した場合に、`gh pr create` を拒否し、`deny` の判定を出力することを確認します。')
     const hookCase = createHookCase()
     const config = setUpDisable(hookCase)
     config.write({ 'claude-bash-guards': true })
@@ -85,7 +88,8 @@ describe('claude-bash-guards', () => {
 })
 
 describe('撤廃したキー', () => {
-  it.for([{ value: false }, { value: true }])('撤廃した 18 キーを $value で残しても、gh pr create の deny は今どおり返り、エラーと警告を出さない', (row) => {
+  it.for([{ value: false }, { value: true }])('撤廃した 18 キーを $value で残しても、gh pr create の deny は今どおり返り、エラーと警告を出さない', async (row) => {
+    await explains(`\`hooks-config.json\` に撤廃した 18 個のキーが残っている場合のテストです。キーの値が \`${String(row.value)}\` でも、\`gh pr create\` に \`deny\` の判定を返し、標準エラー出力に何も出力しないことを確認します。`)
     const hookCase = createHookCase()
     const config = setUpDisable(hookCase)
     config.write(Object.fromEntries(RETIRED_KEYS.map(key => [key, row.value])))
@@ -97,7 +101,8 @@ describe('撤廃したキー', () => {
     expect(result.stderr).toBe('')
   })
 
-  it.for([{ value: false }, { value: true }])('撤廃した 18 キーを $value で残しても、SessionStart はエラーと警告を出さない', (row) => {
+  it.for([{ value: false }, { value: true }])('撤廃した 18 キーを $value で残しても、SessionStart はエラーと警告を出さない', async (row) => {
+    await explains(`\`hooks-config.json\` に撤廃した 18 個のキーが残っている場合のテストです。キーの値が \`${String(row.value)}\` でも、SessionStart のフックは標準エラー出力へ何も出力せず、\`additionalContext\` も出力しないことを確認します。`)
     const hookCase = createHookCase()
     const config = setUpDisable(hookCase)
     // git-sync は git の外で警告を出すので止める。撤廃したキーと関わらない。

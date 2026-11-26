@@ -26,6 +26,7 @@ import { attachFile } from '../_helpers/attach.js'
 import { buildPng } from '../_helpers/image-fixture.js'
 import { CLI_DIST, drainStderr, makeTransport } from '../_helpers/mcp-stdio.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { explains } from '../_helpers/explains.js'
 
 /**
 SDK の request timeout。mcp-tools.test.ts と同値 (hang を it の timeout まで持ち越さない)。
@@ -75,8 +76,9 @@ afterAll(() => {
 })
 
 describe('MCP サーバが Windows 形式のパス引数を変換する (stdio)', () => {
-  it('evidence_create が UNC の spec を読み、ドライブ形式の out_path へ xlsx を書く', async () => {
+  it('`evidence_create` は、UNC 形式の仕様ファイルを読み、ドライブ形式の `out_path` へ xlsx を書き出す', async () => {
     // 実クライアントが送る形に寄せて、区切りは全てバックスラッシュにする。
+    await explains('`pecotv mcp` の Windows 形式のパスの変換のテストです。`\\\\wsl.localhost\\…` 形式の入力とドライブ形式の出力を渡した場合に、変換後のパスへ xlsx を書き出し、別のディストリビューションを指す入力は拒否することを確認します。')
     const inputPath = `\\\\wsl.localhost\\${DISTRO}${specPath().replaceAll('/', '\\')}`
     const expectedOut = mountRoot('c', 'pecotv-1094', 'out.xlsx')
 
@@ -120,11 +122,12 @@ describe('MCP サーバが Windows 形式のパス引数を変換する (stdio)'
     }
   }, 120_000)
 
-  it('spec 内の imagePath は変換対象外で、Windows 形式のまま渡ると not-found で除外される (#1094 F-11)', async () => {
+  it('仕様の中の `imagePath` は変換せず、Windows 形式のまま渡すと `not-found` として除外する', async () => {
     // 変換が働くのはツール引数 (input_path / out_path) のみで、EvidenceSpec の中身 (imagePath) までは変換しない。
     // この境界を越えて imagePath に Windows 形式を書くと、全件なら失敗する (配置できる画像がありません)。
     // POSIX と混在なら成功のまま、当該画像だけ skipped に入る (成果物が静かに欠ける)。
     // 混在ケースを pin する。
+    await explains('`pecotv mcp` のパスの変換の範囲のテストです。仕様ファイルの中の画像のパスが Windows 形式の場合に、変換せず、存在しない画像として `skipped` に `not-found` を含め、存在する画像だけで xlsx を書き出すことを確認します。')
     const mixedRoot = mkdtempSync(path.join(tmpdir(), 'pecotv-1094-e2e-mixed-'))
     const validImagePath = path.join(mixedRoot, '01-login.png')
     writeFileSync(validImagePath, buildPng(80, 60))

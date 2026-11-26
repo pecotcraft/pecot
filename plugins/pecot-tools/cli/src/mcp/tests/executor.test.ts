@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { createBoundedExecutor } from '../executor.js'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 describe('createBoundedExecutor', () => {
-  it('上限まで同時に実行し、超過分は先行の完了を待つ', async () => {
+  it('同時に実行できる上限まで並行して実行し、超えた分は先に始めた処理の完了を待つ', async () => {
+    await explains('同時に実行する数を制限する `createBoundedExecutor` のテストです。上限を 4 にして 5 件を投入した場合に、4 件が同時に開始し、1 件が完了した後で 5 件目が開始し、同時に実行した最大の数が 4 であることを確認します。')
     const executor = createBoundedExecutor(4)
     const gates: PromiseWithResolvers<void>[] = Array.from({ length: 5 }, () => Promise.withResolvers())
     let started = 0
@@ -37,7 +39,8 @@ describe('createBoundedExecutor', () => {
     expect(peak).toBe(4)
   })
 
-  it('到着順に実行する', async () => {
+  it('上限を 1 にしたときは、投入した順に実行する', async () => {
+    await explains('同時に実行する数を制限する `createBoundedExecutor` のテストです。上限を 1 にして 3 件を順に投入した場合に、実行の順序が投入した順序と一致することを確認します。')
     const executor = createBoundedExecutor(1)
     const order: number[] = []
 
@@ -51,20 +54,23 @@ describe('createBoundedExecutor', () => {
     expect(order).toEqual([1, 2, 3])
   })
 
-  it('タスクの失敗は呼び出し元へ伝播する', async () => {
+  it('処理が失敗したときは、その失敗を呼び出し元へ伝える', async () => {
+    await explains('同時に実行する数を制限する `createBoundedExecutor` のテストです。拒否される処理を実行した場合に、`run` の結果が同じエラーで拒否されることを確認します。')
     const executor = createBoundedExecutor(2)
 
     await expect(executor.run(() => Promise.reject(new Error('失敗')))).rejects.toThrow('失敗')
   })
 
-  it('タスクが失敗しても後続は実行される（枠を握り潰さない）', async () => {
+  it('処理が失敗しても、後続の処理は実行される', async () => {
+    await explains('同時に実行する数を制限する `createBoundedExecutor` のテストです。上限を 1 にして、失敗する処理の後に成功する処理を実行した場合に、後続の処理が実行されて値を返し、実行枠が解放されることを確認します。')
     const executor = createBoundedExecutor(1)
 
     await expect(executor.run(() => Promise.reject(new Error('失敗')))).rejects.toThrow('失敗')
     await expect(executor.run(() => Promise.resolve('ok'))).resolves.toBe('ok')
   })
 
-  it('タスクの戻り値をそのまま返す', async () => {
+  it('処理の戻り値は、そのまま呼び出し元へ返す', async () => {
+    await explains('同時に実行する数を制限する `createBoundedExecutor` のテストです。`42` を返す処理を実行した場合に、`run` の結果が `42` になることを確認します。')
     const executor = createBoundedExecutor(2)
 
     await expect(executor.run(() => Promise.resolve(42))).resolves.toBe(42)

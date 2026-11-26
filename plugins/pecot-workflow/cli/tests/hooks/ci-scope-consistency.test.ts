@@ -6,6 +6,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { explains } from '../_helpers/explains.js'
 import { compareStrings, isRecord } from '../parity/baseline.js'
 import { isFile } from './_helpers/files.js'
 import { projectRoot } from './_helpers/paths.js'
@@ -72,12 +73,14 @@ function collectScopeTargets(): ScopeTarget[] {
 const scopeTargets = collectScopeTargets()
 
 describe('project.json の --scope 値', () => {
-  it('3 つのプラグインとも、run-*.sh を --scope 付きで起動する target を持つ', () => {
+  it('3 つのプラグインとも、run-*.sh を --scope 付きで起動する target を持つ', async () => {
+    await explains('各プラグインの `project.json` のテストです。3 つのプラグインすべてが、`run-*.sh` を `--scope` 付きで起動する target を持つことを確認します。')
     const plugins = new Set(scopeTargets.map(row => row.projectRelative.split('/', 2)[1]))
     expect(plugins).toEqual(new Set(PLUGINS))
   })
 
-  it.for(scopeTargets)('$label が起動する run-*.sh は実在し、その --scope 値を受理する', (row) => {
+  it.for(scopeTargets)('$label が起動する run-*.sh は実在し、その --scope 値を受理する', async (row) => {
+    await explains(`\`project.json\` の target と、起動する \`run-*.sh\` のテストです。\`${row.label}\` の \`--scope\` の値が、起動先の \`run-*.sh\` の \`case\` 文で受理される値に含まれることを確認します。`)
     const script = path.join(projectRoot, row.scriptRelative)
     expect(isFile(script), `${row.projectRelative}:${row.target} が起動する ${row.scriptRelative} が無い`).toBe(true)
 

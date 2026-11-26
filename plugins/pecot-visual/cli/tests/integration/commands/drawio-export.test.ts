@@ -24,6 +24,7 @@ import { compareStrings } from '../../../src/domain/_shared/compare-strings.js'
 import { readOutput } from '../../_helpers/attach.js'
 import { makeStream } from '../../_helpers/talk-directory.js'
 import type { CapturedStream } from '../../_helpers/talk-directory.js'
+import { explains } from '../../_helpers/explains.js'
 
 const HERE = import.meta.dirname
 const PLUGIN_ROOT = path.resolve(HERE, '..', '..', '..', '..')
@@ -80,6 +81,7 @@ afterEach(() => {
 
 describe('runDrawioExport', () => {
   it('icon:// を全件 data URI に解決してから export へ渡す', async () => {
+    await explains('`runDrawioExport` の `icon://` の解決のテストです。2 件の `icon://` を含む図を書き出す場合に、すべて data URI に置き換えた XML を export へ渡すことを確認します。')
     const exportSvg = vi.fn<(xmlString: string) => Promise<string>>(() => Promise.resolve(EXPORTED_SVG))
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
 
@@ -100,6 +102,7 @@ describe('runDrawioExport', () => {
   })
 
   it('書き出す SVG は color-scheme が light 固定で、入力の合成ハッシュを持つ', async () => {
+    await explains('`runDrawioExport` が書き出す SVG のテストです。書き出した SVG が `color-scheme: light;` を持ち、入力と画像から計算した合成ハッシュを持つことを確認します。')
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
 
     const summary = await runDrawioExport(
@@ -122,6 +125,7 @@ describe('runDrawioExport', () => {
   })
 
   it('同一入力・同一 export 応答なら 2 回の出力がバイト一致する', async () => {
+    await explains('`runDrawioExport` の再現性のテストです。同じ入力と同じ export の応答で 2 回書き出した場合に、2 つの SVG がバイト単位で一致することを確認します。')
     const directory = makeTemporaryDirectory()
     const first = path.join(directory, 'a.svg')
     const second = path.join(directory, 'b.svg')
@@ -133,6 +137,7 @@ describe('runDrawioExport', () => {
   })
 
   it('--output 省略時は <input>.svg に書き出す', async () => {
+    await explains('`runDrawioExport` の出力先の既定値のテストです。出力先を省略した場合に、入力のファイル名に `.svg` を付けたパスへ書き出し、合成ハッシュを含むことを確認します。')
     const directory = makeTemporaryDirectory()
     const inputPath = path.join(directory, 'diagram.drawio')
     await fsWriteFile(inputPath, readFileSync(MINIMAL_FIXTURE, 'utf8'), 'utf8')
@@ -143,7 +148,8 @@ describe('runDrawioExport', () => {
     expect(readOutput(summary.outputFile)).toContain(SOURCE_HASH_ATTRIBUTE)
   })
 
-  it('解決できない icon:// があれば export へ進まず fail する', async () => {
+  it('解決できない `icon://` があれば、export へ進まず `icon-unresolved` で失敗する', async () => {
+    await explains('`runDrawioExport` の `icon://` の検証のテストです。解決できない `icon://` を含む図の場合に、export を呼ばず、`icon-unresolved` で失敗することを確認します。')
     const exportSvg = vi.fn<(xmlString: string) => Promise<string>>(() => Promise.resolve(EXPORTED_SVG))
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
 
@@ -156,7 +162,8 @@ describe('runDrawioExport', () => {
     expect(exportSvg).not.toHaveBeenCalled()
   })
 
-  it('--print-hash は export と書き出しのどちらも行わずハッシュだけを返す', async () => {
+  it('`--print-hash` は export と書き出しを行わず、ハッシュだけを返す', async () => {
+    await explains('`runDrawioExport` のハッシュだけを返す指定のテストです。`printHash` を指定した場合に、export を呼ばず、ファイルも書き出さず、入力から計算したハッシュを返すことを確認します。')
     const exportSvg = vi.fn<(xmlString: string) => Promise<string>>(() => Promise.resolve(EXPORTED_SVG))
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
 
@@ -174,7 +181,8 @@ describe('runDrawioExport', () => {
     )
   })
 
-  it('--print-hash は icon が解決できなくても値を返す（判定は export 時に行う）', async () => {
+  it('`--print-hash` は、`icon://` が解決できなくてもハッシュを返す', async () => {
+    await explains('`runDrawioExport` のハッシュだけを返す指定のテストです。解決できない `icon://` を含む図でも、解決の判定は export のときに行うため、64 桁の 16 進数のハッシュを返すことを確認します。')
     const summary = await runDrawioExport(
       ICON_INCLUDED_FIXTURE,
       { icons: ICON_ROOT, output: undefined, printHash: true, pdf: true },
@@ -184,7 +192,8 @@ describe('runDrawioExport', () => {
     expect(summary.sourceSha256).toMatch(/^[\da-f]{64}$/)
   })
 
-  it('入力ファイルが読めなければ input-not-found で fail する', async () => {
+  it('入力ファイルを読めなければ、`input-not-found` で失敗する', async () => {
+    await explains('`runDrawioExport` の入力の検証のテストです。存在しない入力ファイルを指定した場合に、`DrawioExportRuntimeError` の例外が発生することを確認します。')
     const missingInput = path.join(makeTemporaryDirectory(), 'missing.drawio')
     await expect(runDrawioExport(
       missingInput,
@@ -193,7 +202,8 @@ describe('runDrawioExport', () => {
     )).rejects.toBeInstanceOf(DrawioExportRuntimeError)
   })
 
-  it('export 失敗（オフライン・Chromium 不在）は export-failed で fail する', async () => {
+  it('オフラインや Chromium の不在で export に失敗すると、`export-failed` で失敗する', async () => {
+    await explains('`runDrawioExport` の export の失敗のテストです。export がネットワークの切断で失敗した場合に、`export-failed` の理由で失敗することを確認します。')
     const output = path.join(makeTemporaryDirectory(), 'out.svg')
     await expect(runDrawioExport(
       RESOLVABLE_FIXTURE,
@@ -202,7 +212,8 @@ describe('runDrawioExport', () => {
     )).rejects.toMatchObject({ reason: 'export-failed' })
   })
 
-  it('書き込み失敗は output-write-failed で fail する', async () => {
+  it('書き込みに失敗すると、`output-write-failed` で失敗する', async () => {
+    await explains('`runDrawioExport` の書き込みの失敗のテストです。書き込みが権限のエラーで失敗した場合に、`output-write-failed` の理由で失敗することを確認します。')
     const output = path.join(makeTemporaryDirectory(), 'out.svg')
     await expect(runDrawioExport(
       RESOLVABLE_FIXTURE,
@@ -214,6 +225,7 @@ describe('runDrawioExport', () => {
 
 describe('executeDrawioExport の結果', () => {
   it('成功時は done の data に file と icons 数を載せる', async () => {
+    await explains('`executeDrawioExport` の成功時の結果のテストです。図の書き出しが成功した場合は、`drawio.export.done` のイベントへ出力先と解決したアイコンの数が含まれ、警告が 0 件であることを確認します。')
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
 
     const execution = await executeDrawioExport(
@@ -227,6 +239,7 @@ describe('executeDrawioExport の結果', () => {
   })
 
   it('printHash は export を行わず hash の data とハッシュ値だけを返す', async () => {
+    await explains('`executeDrawioExport` の `printHash` のテストです。`printHash` を指定した場合に、書き出しを行わず、`drawio.export.hash` のイベントとハッシュ値だけを返し、成果物が空であることを確認します。')
     const execution = await executeDrawioExport(
       RESOLVABLE_FIXTURE,
       { icons: ICON_ROOT, output: undefined, printHash: true, pdf: false },
@@ -240,6 +253,7 @@ describe('executeDrawioExport の結果', () => {
   })
 
   it('解決できない icon は icon-unresolved の runtime error になる', async () => {
+    await explains('`executeDrawioExport` の `icon://` の解決のテストです。解決できない `icon://` を含む図を書き出す場合に、`DrawioExportRuntimeError` が発生し、理由が `icon-unresolved` になることを確認します。')
     const error = await rejectionOf(executeDrawioExport(
       ICON_INCLUDED_FIXTURE,
       { icons: ICON_ROOT, output: undefined, printHash: false, pdf: false },
@@ -256,7 +270,8 @@ function pdfStub(): ReturnType<typeof vi.fn<(svg: string, outputPath: string) =>
 }
 
 describe('兄弟 PDF', () => {
-  it('標準で SVG の兄弟 .pdf へ、書き出した SVG と同じ baked SVG を渡す', async () => {
+  it('標準では、SVG の兄弟の `.pdf` へ、書き出した SVG と同じ内容の SVG を渡す', async () => {
+    await explains('兄弟の PDF の書き出しのテストです。PDF の指定を変えない場合に、SVG と同じ場所の `.pdf` を出力先として、書き出した SVG と同じ内容を PDF の生成へ渡すことを確認します。')
     const exportPdf = pdfStub()
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
 
@@ -276,7 +291,8 @@ describe('兄弟 PDF', () => {
     expect(summary).toMatchObject({ pdfFile: pdfPath, pdfFailed: false, warningCount: 0 })
   })
 
-  it('pdf: false では exportPdf を呼ばず、既存の兄弟 PDF にも触れない', async () => {
+  it('`pdf: false` では PDF を生成せず、既存の兄弟の PDF にも触れない', async () => {
+    await explains('兄弟の PDF の書き出しのテストです。`pdf: false` を指定した場合に、PDF の生成と削除を呼ばず、既存の PDF が変わらず、終了コードが 0 であることを確認します。')
     const exportPdf = pdfStub()
     const removeFile = vi.fn<(filePath: string) => Promise<void>>(() => Promise.resolve())
     const directory = makeTemporaryDirectory()
@@ -299,6 +315,7 @@ describe('兄弟 PDF', () => {
   })
 
   it('PDF 生成に失敗しても SVG は残り、pdf: null / pdfFailed / warnings 1 になる', async () => {
+    await explains('`executeDrawioExport` の PDF の生成に失敗した場合のテストです。PDF の生成が失敗した場合に、SVG を残し、結果が `pdf: null`・`pdfFailed: true`・警告 1 件になり、標準エラー出力へ警告を表示することを確認します。')
     const stderr = makeStream('stderr')
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
 
@@ -324,7 +341,8 @@ describe('兄弟 PDF', () => {
     expect(stderr.chunks.join('')).toContain('warning: PDF export failed: chromium crashed')
   })
 
-  it('PDF 生成に失敗したら前回の兄弟 PDF を削除する', async () => {
+  it('PDF の生成に失敗したら、前回の兄弟の PDF を削除する', async () => {
+    await explains('兄弟の PDF の生成に失敗した場合のテストです。前回の PDF があるときに PDF の生成が失敗した場合に、古い PDF を削除し、SVG は残ることを確認します。')
     const directory = makeTemporaryDirectory()
     const outputPath = path.join(directory, 'out.svg')
     const stalePdf = path.join(directory, 'out.pdf')
@@ -340,7 +358,8 @@ describe('兄弟 PDF', () => {
     expect(existsSync(outputPath)).toBe(true)
   })
 
-  it('前回の PDF を削除できなくても PDF 失敗 1 件に集約し、stderr だけで知らせる', async () => {
+  it('前回の PDF を削除できなくても、PDF の失敗 1 件にまとめ、標準エラー出力だけで知らせる', async () => {
+    await explains('兄弟の PDF の削除に失敗した場合のテストです。PDF の生成と削除が失敗した場合に、警告を 1 件にまとめ、終了コード 3 で、削除できなかったことを標準エラー出力へ表示することを確認します。')
     const stderr = makeStream('stderr')
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
 
@@ -363,7 +382,8 @@ describe('兄弟 PDF', () => {
     expect(stderr.chunks.join('')).toContain('cannot remove the previous PDF')
   })
 
-  it('多重拡張子は末尾だけを置換する (diagram.drawio.svg → diagram.drawio.pdf)', async () => {
+  it('多重拡張子は末尾だけを置き換える（`diagram.drawio.svg` は `diagram.drawio.pdf` になる）', async () => {
+    await explains('兄弟の PDF のパスの決め方のテストです。出力先が `diagram.drawio.svg` の場合に、末尾の拡張子だけを置き換え、`diagram.drawio.pdf` に書き出すことを確認します。')
     const exportPdf = pdfStub()
     const directory = makeTemporaryDirectory()
 
@@ -377,7 +397,8 @@ describe('兄弟 PDF', () => {
     expect(exportPdf.mock.calls[0]?.[1]).toBe(path.join(directory, 'diagram.drawio.pdf'))
   })
 
-  it('拡張子だけのファイル名 (-o .svg) は置換せず付加して .svg.pdf に書き出す', async () => {
+  it('拡張子だけのファイル名（`-o .svg`）は置き換えず、`.svg.pdf` として書き出す', async () => {
+    await explains('兄弟の PDF のパスの決め方のテストです。出力先が `.svg` の場合に、拡張子を置き換えず、`.svg.pdf` に書き出すことを確認します。')
     const exportPdf = pdfStub()
     const directory = makeTemporaryDirectory()
 
@@ -391,7 +412,8 @@ describe('兄弟 PDF', () => {
     expect(summary.pdfFile).toBe(path.join(directory, '.svg.pdf'))
   })
 
-  it('--output 省略時は <input>.svg の兄弟 <input>.pdf に書き出す', async () => {
+  it('出力先を省略すると、`<input>.svg` の兄弟の `<input>.pdf` に書き出す', async () => {
+    await explains('兄弟の PDF のパスの決め方のテストです。出力先を省略した場合に、入力のファイル名に `.pdf` を付けたパスへ PDF を書き出すことを確認します。')
     const exportPdf = pdfStub()
     const directory = makeTemporaryDirectory()
     const inputPath = path.join(directory, 'diagram.drawio')
@@ -402,7 +424,8 @@ describe('兄弟 PDF', () => {
     expect(summary.pdfFile).toBe(path.join(directory, 'diagram.drawio.pdf'))
   })
 
-  it('-o の拡張子が .pdf なら入力を読む前に invalid-output-extension で止まる', async () => {
+  it('`-o` の拡張子が `.pdf` なら、入力を読む前に `invalid-output-extension` で止まる', async () => {
+    await explains('`runDrawioExport` の出力先の拡張子の検証のテストです。`-o` に `.PDF` の拡張子を指定した場合に、入力を読まず、`invalid-output-extension` の使い方の誤りで失敗することを確認します。')
     const readFile = vi.fn<(filePath: string) => Promise<string>>(() => Promise.resolve(''))
     const outputPath = path.join(makeTemporaryDirectory(), 'diagram.PDF')
 
@@ -414,7 +437,8 @@ describe('兄弟 PDF', () => {
     expect(readFile).not.toHaveBeenCalled()
   })
 
-  it('pdf: false でも -o に .pdf を指定すると拒否し、.svg の指定を案内する', async () => {
+  it('`pdf: false` でも `-o` に `.pdf` を指定すると拒否し、`.svg` の指定を案内する', async () => {
+    await explains('`runDrawioExport` の出力先の拡張子の検証のテストです。`pdf: false` でも `-o` に `.pdf` を指定した場合に、拒否してファイルを作らず、`.svg` など別の拡張子を案内することを確認します。')
     const outputPath = path.join(makeTemporaryDirectory(), 'diagram.pdf')
 
     const rejected = runDrawioExport(
@@ -429,7 +453,8 @@ describe('兄弟 PDF', () => {
     expect(existsSync(outputPath)).toBe(false)
   })
 
-  it('--print-hash は exportPdf を呼ばず、hash イベントのキー集合は従来のまま', async () => {
+  it('`--print-hash` は PDF を生成せず、hash のイベントのキーは従来のままにする', async () => {
+    await explains('`executeDrawioExport` の `--print-hash` のテストです。`--print-hash` を指定した場合に、PDF の生成を呼ばず、結果のキーが `event`・`file`・`icons`・`sourceSha256` だけで、終了コード 0 であることを確認します。')
     const exportPdf = pdfStub()
 
     const execution = await executeDrawioExport(
@@ -446,6 +471,7 @@ describe('兄弟 PDF', () => {
 
 describe('executeDrawioExport の PDF', () => {
   it('done の data に pdf / pdfFailed / warnings が載り、PDF のパスが返る', async () => {
+    await explains('`executeDrawioExport` の PDF の結果のテストです。PDF の生成が成功した場合は、`drawio.export.done` のイベントへ PDF のパスと `pdfFailed: false`、警告 0 件が含まれることを確認します。')
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
 
     const execution = await executeDrawioExport(
@@ -464,6 +490,7 @@ describe('executeDrawioExport の PDF', () => {
   })
 
   it('pdf: false は exportPdf を呼ばない', async () => {
+    await explains('`executeDrawioExport` の `pdf: false` のテストです。`pdf: false` を指定した場合に、PDF の生成を呼び出さないことを確認します。')
     const stderr = makeStream('stderr')
     const exportPdf = pdfStub()
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
@@ -478,6 +505,7 @@ describe('executeDrawioExport の PDF', () => {
   })
 
   it('PDF 失敗は stderr に warning を出す', async () => {
+    await explains('`executeDrawioExport` の PDF の警告のテストです。PDF の生成が失敗した場合は、標準エラー出力へ失敗の理由つきの警告を表示し、PDF のパスは表示せず、警告が 1 件になることを確認します。')
     const stderr = makeStream('stderr')
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
 
@@ -494,6 +522,7 @@ describe('executeDrawioExport の PDF', () => {
   })
 
   it('出力が .pdf なら invalid-output-extension で成果物を残さない', async () => {
+    await explains('`executeDrawioExport` の出力先の拡張子の検証のテストです。出力先に `.pdf` を指定した場合に、理由が `invalid-output-extension` のエラーになり、ファイルを作成しないことを確認します。')
     const outputPath = path.join(makeTemporaryDirectory(), 'diagram.pdf')
 
     const error = await rejectionOf(executeDrawioExport(
@@ -508,7 +537,8 @@ describe('executeDrawioExport の PDF', () => {
 })
 
 describe('drawioExportDefaultDependencies', () => {
-  it('writeFile は親ディレクトリを補完してから書き込む', async () => {
+  it('既定の `writeFile` は、親ディレクトリを作ってから書き込む', async () => {
+    await explains('`drawioExportDefaultDependencies` の `writeFile` のテストです。存在しない親ディレクトリを含むパスを渡した場合に、親ディレクトリを作ってから、渡した内容を書き込むことを確認します。')
     const dependencies = drawioExportDefaultDependencies()
     const nested = path.join(makeTemporaryDirectory(), 'a', 'b', 'out.svg')
 
@@ -517,7 +547,8 @@ describe('drawioExportDefaultDependencies', () => {
     expect(readFileSync(nested, 'utf8')).toBe('<svg/>')
   })
 
-  it('removeFile は存在しないファイルでも成功する', async () => {
+  it('既定の `removeFile` は、存在しないファイルでも成功する', async () => {
+    await explains('`drawioExportDefaultDependencies` の `removeFile` のテストです。存在しないファイルのパスを渡した場合に、エラーにならず、`undefined` で成功することを確認します。')
     const dependencies = drawioExportDefaultDependencies()
 
     const missingPdf = path.join(makeTemporaryDirectory(), 'missing.pdf')

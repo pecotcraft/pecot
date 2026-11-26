@@ -5,6 +5,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { explains } from '../_helpers/explains.js'
 import { compareStrings, readBaseline } from '../parity/baseline.js'
 import { pluginRoot } from './_helpers/paths.js'
 import { codeLines } from './_helpers/script-references.js'
@@ -77,7 +78,8 @@ function isNamedBy(referrer: string, script: string): boolean {
 }
 
 describe('baseline.json の hooks.scripts', () => {
-  it('列挙したスクリプトがすべて実在する', () => {
+  it('列挙したスクリプトがすべて実在する', async () => {
+    await explains('`baseline.json` の `hooks.scripts` のテストです。列挙されたスクリプトのファイルが、すべてプラグインの中に存在することを確認します。')
     const missing = readBaseline().hooks.scripts.filter(
       // eslint-disable-next-line security/detect-non-literal-fs-filename -- plugin ルート配下の固定の相対パス
       script => !existsSync(path.join(pluginRoot, script)),
@@ -85,21 +87,24 @@ describe('baseline.json の hooks.scripts', () => {
     expect(missing).toEqual([])
   })
 
-  it('テストが名指しするスクリプトと間接に動くスクリプトで、すべてを覆っている', () => {
+  it('テストが名指しするスクリプトと間接に動くスクリプトで、すべてを覆っている', async () => {
+    await explains('`baseline.json` の `hooks.scripts` のテストです。テストが名指しするスクリプトと、別のスクリプトから間接に動くスクリプトで、列挙されたすべてを網羅していることを確認します。')
     const { scripts } = readBaseline().hooks
     const named = scriptsNamedByTests(scripts)
     const covered = new Set([...named, ...Object.keys(INDIRECT_SCRIPTS)])
     expect(scripts.filter(script => !covered.has(script))).toEqual([])
   })
 
-  it('間接に動くスクリプトを、どのテストも名指ししていない', () => {
+  it('間接に動くスクリプトは、どのテストからも名指しされていない', async () => {
+    await explains('`baseline.json` の `hooks.scripts` のテストです。間接に動くものとして登録したスクリプトが、いずれのテストにも名指しされていないことを確認します。')
     const { scripts } = readBaseline().hooks
     const named = scriptsNamedByTests(scripts)
     const stale = Object.keys(INDIRECT_SCRIPTS).filter(script => named.has(script))
     expect(stale.toSorted(compareStrings)).toEqual([])
   })
 
-  it('間接に動くスクリプトの呼び出し元が、そのスクリプトを実際に名指ししている', () => {
+  it('間接に動くスクリプトの呼び出し元が、そのスクリプトを実際に名指ししている', async () => {
+    await explains('`baseline.json` の `hooks.scripts` のテストです。間接に動くスクリプトの呼び出し元が、テストで起動されるか登録済みであり、実際にそのスクリプトの名前をコードに含むことを確認します。')
     const { scripts } = readBaseline().hooks
     const named = scriptsNamedByTests(scripts)
     const indirect = Object.keys(INDIRECT_SCRIPTS)

@@ -6,6 +6,7 @@ import { ESLint } from 'eslint'
 import { beforeAll, describe, expect, it } from 'vitest'
 
 import { COMMAND_GROUPS } from '../src/commands-shared/names.js'
+import { explains } from './_helpers/explains.js'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
 const FIRST_PATH = path.join(ROOT, 'src', 'commands-shared', 'board-view.ts')
@@ -44,12 +45,14 @@ describe('案内の文字列を止める lint', () => {
     it.each([
       ['文字列', 'export const text = \'run: pecot project init\'\n'],
       ['テンプレートの固定部分', 'declare const name: string\nexport const text = `run pecot issue block ${name} to fix`\n'],
-    ])('%s の案内は止まる', async (_kind, code) => {
+    ])('%s に pecot のコマンドの案内を書くと、lint の違反になる', async (_kind, code) => {
+      await explains('コマンドの案内の文字列を止める lint のテストです。`src` の実在のファイルで、文字列とテンプレートの固定部分に `pecot project init` のような案内を書いた場合に、違反が 1 件検出されることを確認します。')
       expect(await hintMessages(code, filePath)).toHaveLength(1)
     })
   })
 
-  it.each(COMMAND_GROUPS.map(group => group.name))('グループ %s の案内は止まる', async (group) => {
+  it.each(COMMAND_GROUPS.map(group => group.name))('グループ %s の案内を書くと、lint の違反になる', async (group) => {
+    await explains('コマンドの案内の文字列を止める lint のテストです。`pecot` の後ろにコマンドのグループ名（`project` や `issue` など）を書いた場合に、グループごとに違反が 1 件検出されることを確認します。')
     expect(await hintMessages(`export const text = 'pecot ${group} x'\n`, FIRST_PATH)).toHaveLength(1)
   })
 
@@ -58,11 +61,13 @@ describe('案内の文字列を止める lint', () => {
     ['グループの語で終わる文', 'export const text = \'not registered in the active pecot project\\nto add it to the pecot project:\'\n'],
     ['コメントの中', '// pecot project init を案内する\nexport const text = 1\n'],
     ['.pecot のパス', 'export const text = \'.pecot/work\'\n'],
-  ])('%s は止まらない', async (_kind, code) => {
+  ])('案内に当たらない書き方（%s）は、lint の違反にならない', async (_kind, code) => {
+    await explains('コマンドの案内の文字列を止める lint のテストです。案内ではない文字列（`pecot projects are listed` や `.pecot/work` など）やコメントの中の記述の場合に、違反が検出されないことを確認します。')
     expect(await hintMessages(code, FIRST_PATH)).toEqual([])
   })
 
-  it('テストのファイルでは止まらない', async () => {
+  it('テストのファイルでは、案内を書いても lint の違反にならない', async () => {
+    await explains('コマンドの案内の文字列を止める lint のテストです。テストのファイルに `pecot project init` を書いた場合に、違反が検出されないことを確認します。')
     expect(await hintMessages('export const text = \'pecot project init\'\n', TEST_PATH)).toEqual([])
   })
 })
@@ -79,7 +84,8 @@ describe('フラグ名の文字列を止める lint', () => {
       ['引数の null 合体演算子の右側のテンプレート', 'declare function stop(text: string): void\ndeclare const text: string | undefined\ndeclare const name: string\nstop(text ?? `pass --repo ${name}`)\n'],
       ['テンプレートの中の三項演算子の文字列', 'declare function stop(text: string): void\ndeclare const flag: boolean\nstop(`run it again${flag ? \' with --force\' : \'\'}`)\n'],
       ['テンプレートの中の三項演算子のテンプレート', 'declare function stop(text: string): void\ndeclare const flag: boolean\ndeclare const name: string\nstop(`run it again${flag ? ` with --force ${name}` : \'\'}`)\n'],
-    ])('%s のフラグ名は止まる', async (_kind, code) => {
+    ])('%s にフラグ名を書くと、lint の違反になる', async (_kind, code) => {
+      await explains('フラグ名の文字列を止める lint のテストです。関数の呼び出しの引数などに、`--repo` のようなフラグ名を含む案内を書いた場合に、違反が 1 件検出されることを確認します。')
       expect(await flagMessages(code, filePath)).toHaveLength(1)
     })
   })
@@ -92,7 +98,8 @@ describe('フラグ名の文字列を止める lint', () => {
     ['return の文', 'export function text(): string {\n  return \'pass --repo to fix\'\n}\n'],
     ['短いオプション', 'declare function stop(text: string): void\nstop(\'check it with: git remote -v\')\n'],
     ['コメントの中', '// --repo を案内する\nexport const text = 1\n'],
-  ])('%s は止まらない', async (_kind, code) => {
+  ])('フラグ名の検出に当たらない書き方（%s）は、lint の違反にならない', async (_kind, code) => {
+    await explains('フラグ名の文字列を止める lint のテストです。`.describe()` の説明文や `return` の文など、止める対象ではない書き方の場合に、違反が検出されないことを確認します。')
     expect(await flagMessages(code)).toEqual([])
   })
 })

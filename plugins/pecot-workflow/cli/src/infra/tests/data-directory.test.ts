@@ -8,6 +8,7 @@ import { dataDirectory } from '@pecot/workflow-core/infra/paths.js'
 import { attachOutput } from '../../../../../../libs/interface-spec/src/vitest/attach.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { pluginRoot } from '../../version.js'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 useIsolatedEnvironment()
 
@@ -44,7 +45,8 @@ describe('dataDirectory は bin/_lib.sh の plugin_data_dir_resolve と同じ結
     ['空白を含むパスは trim しない', { CLAUDE_PLUGIN_DATA: '/data/with space ' }],
   ]
 
-  it.each(CASES)('%s のとき、bash と同じ場所を返す', (_name, values) => {
+  it.each(CASES)('%s の場合は、bash と同じ場所を返す', async (_name, values) => {
+    await explains('データ置き場を求める `dataDirectory` のテストです。環境変数の組み合わせごとに、`bin/_lib.sh` の `plugin_data_dir_resolve` と同じ場所（解決できない場合は `undefined`）を返すことを確認します。')
     const expected = bashResolve(values)
     // 未設定にした上で設定する（テストの env を bash に渡した env と一致させる）
     setEnvironment({ CLAUDE_PLUGIN_DATA: undefined, PLUGIN_DATA: undefined, XDG_DATA_HOME: undefined, HOME: undefined })
@@ -53,7 +55,8 @@ describe('dataDirectory は bin/_lib.sh の plugin_data_dir_resolve と同じ結
     expect(dataDirectory()).toBe(expectedDirectory)
   })
 
-  it('bash の解決結果が実際に得られている（テストの前提）', () => {
+  it('bash の解決結果が実際に得られる（テストの前提）', async () => {
+    await explains('上のテストの前提を確認するテストです。`HOME` だけを設定して `plugin_data_dir_resolve` を呼んだ場合に、`/home/u/.local/share/pecot/pecot-workflow` が返ることを確認します。')
     const stdout = execFileSync('bash', [callFunction, libraryPath, 'plugin_data_dir_resolve', PROJECT_NAME], { env: { PATH: process.env['PATH'] ?? '', HOME: '/home/u' }, encoding: 'utf8' })
     attachOutput('bash plugin_data_dir_resolve', 0, stdout, '')
     expect(stdout)

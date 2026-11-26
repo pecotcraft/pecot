@@ -11,6 +11,7 @@ import { closeMcp, connectMcp, type ConnectedMcp } from '../../src/mcp/tests/_cl
 import { allTools } from '../../src/mcp/tools/index.js'
 import { useFakeAws, type FakeAws } from '../_helpers/fake-aws.js'
 import { isRecord } from '../_helpers/records.js'
+import { explains } from '../../tests/_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
 import { useLoginRegistry } from '../_helpers/login-registry.js'
 
@@ -86,8 +87,9 @@ function commandCallCount(instance: Readonly<FakeAws>): number {
 }
 
 describe('SSO の 2 段構成', () => {
-  it('開始で URL とコードを返し、承認後の状態確認で completed になる', async (context) => {
+  it('開始すると URL とコードを返し、承認後の状態確認で completed になる', async (context) => {
     await verifies(context, 'PT-AWS-SSO-LOGIN-01')
+    await explains('偽の awscli を PATH の先頭に置き、MCP 経由で SSO の 2 段構成（開始と状態確認）を通すテストです。`aws_sso_login` が `pending` で URL とコードを返し、承認後の状態確認で `completed` になることを確認します。')
     await verifies(context, 'PT-AWS-SSO-LOGIN-STATUS-01')
     await verifies(context, 'PT-AWS-SSO-LOGIN-STATUS-02')
     const instance = fakeAws.install({ exitWhenFile: true })
@@ -123,8 +125,9 @@ describe('SSO の 2 段構成', () => {
     expect(commandCallCount(instance)).toBe(1)
   })
 
-  it('開始していない状態確認は invalid-input で awscli を起こさない', async (context) => {
+  it('ログインを開始していない状態確認は、invalid-input を返し、awscli を起動しない', async (context) => {
     await verifies(context, 'PT-AWS-SSO-LOGIN-STATUS-03')
+    await explains('偽の awscli を PATH の先頭に置き、MCP 経由で SSO の 2 段構成（開始と状態確認）を通すテストです。ログインを開始する前に `aws_sso_login_status` を呼び出した場合は、種類が `invalid-input` になり、awscli が呼ばれないことを確認します。')
     const instance = fakeAws.install()
     await connect()
 
@@ -135,8 +138,9 @@ describe('SSO の 2 段構成', () => {
     expect(commandCallCount(instance)).toBe(0)
   })
 
-  it('awscli が 2.22 未満なら開始せず awscli-missing を返す', async (context) => {
+  it('awscli が 2.22 未満のときは、ログインを開始せず awscli-missing を返す', async (context) => {
     await verifies(context, 'PT-AWS-SSO-LOGIN-03')
+    await explains('偽の awscli を PATH の先頭に置き、MCP 経由で SSO の 2 段構成（開始と状態確認）を通すテストです。版が `2.15.0` の awscli でログインを開始した場合は、種類が `awscli-missing` になり、awscli のコマンドが呼ばれないことを確認します。')
     await verifies(context, 'PT-COMMON-07')
     // `--use-device-code` は 2.22 以降にしか無い。そのまま起動すると invalid-input に化けて
     // 打ち手（awscli の更新）が伝わらない。
@@ -150,8 +154,9 @@ describe('SSO の 2 段構成', () => {
     expect(commandCallCount(instance)).toBe(0)
   })
 
-  it('SSO 設定の無い profile は auth-missing を返す', async (context) => {
+  it('SSO の設定がない profile でログインを開始すると、auth-missing を返す', async (context) => {
     await verifies(context, 'PT-AWS-SSO-LOGIN-04')
+    await explains('偽の awscli を PATH の先頭に置き、MCP 経由で SSO の 2 段構成（開始と状態確認）を通すテストです。SSO の設定がない profile を指定した場合は、種類が `auth-missing` になり、`detail` に `aws configure sso` が含まれることを確認します。')
     fakeAws.install({ fixture: 'sso-login.no-config' })
     await connect()
 
@@ -162,8 +167,9 @@ describe('SSO の 2 段構成', () => {
     expect(String(structured['detail'])).toContain('aws configure sso')
   })
 
-  it('失敗したフローの状態確認は同じ種別と出力を返す', async (context) => {
+  it('失敗したログインの状態確認は、同じ種類と出力を返す', async (context) => {
     await verifies(context, 'PT-AWS-SSO-LOGIN-STATUS-04')
+    await explains('偽の awscli を PATH の先頭に置き、MCP 経由で SSO の 2 段構成（開始と状態確認）を通すテストです。ログインの開始に失敗した後で状態確認を呼び出した場合は、種類が `auth-missing`、`state` が `failed` になることを確認します。')
     // 開始が失敗した直後に状態を引きにいくケース。開始の応答を取りこぼしたエージェントが
     // ここで理由に辿り着けないと、原因不明のまま再試行を繰り返す。
     fakeAws.install({ fixture: 'sso-login.no-config' })
@@ -177,8 +183,9 @@ describe('SSO の 2 段構成', () => {
     expect(String(structured['log'])).toContain('Missing the following required SSO configuration')
   })
 
-  it('時間切れの状態確認は timeout と再開始の案内を返す', async (context) => {
+  it('時間切れになったログインの状態確認は、timeout と再開始の案内を返す', async (context) => {
     await verifies(context, 'PT-AWS-SSO-LOGIN-STATUS-05')
+    await explains('偽の awscli を PATH の先頭に置き、MCP 経由で SSO の 2 段構成（開始と状態確認）を通すテストです。制限時間を 1 秒にして開始し、`pending` のまま時間切れになった場合は、状態確認が `timed-out` と種類 `timeout` を返すことを確認します。')
     fakeAws.install({ exitWhenFile: true })
     await connect({ timeoutMs: 1000 })
 
@@ -193,7 +200,8 @@ describe('SSO の 2 段構成', () => {
     expect(String(structured['detail'])).toContain('Call aws_sso_login again')
   })
 
-  it('region と未知キーを渡しても拒否されず通常応答を返し、awscli の引数にも現れない', async () => {
+  it('region と未知のキーを渡しても、入力として拒否せず通常の応答を返し、awscli の引数にも含めない', async () => {
+    await explains('偽の awscli を PATH の先頭に置き、MCP 経由で SSO の 2 段構成（開始と状態確認）を通すテストです。`region` と `bogus` を渡してログインを開始した場合は、拒否されず `auth-missing` の応答を返すことを確認します。')
     // SSO の 2 件は inputSchema に region を持たない（profile だけを公開）。z.object は
     // デフォルトで未知キーを strip する。そのため渡しても入力検証エラーにはならず、通常の失敗応答が返る。
     const instance = fakeAws.install({ fixture: 'sso-login.no-config' })
@@ -211,8 +219,9 @@ describe('SSO の 2 段構成', () => {
     ])
   })
 
-  it('失敗の直後も同じ接続が次の呼び出しに応える', async (context) => {
+  it('ログインが失敗した直後でも、同じ接続が次の呼び出しに応答する', async (context) => {
     await verifies(context, 'PT-COMMON-13')
+    await explains('偽の awscli を PATH の先頭に置き、MCP 経由で SSO の 2 段構成（開始と状態確認）を通すテストです。`auth-missing` で失敗した後に、偽の awscli を差し替えて再度開始した場合に、同じ接続のまま `pending` で認証コードを含む結果を返すことを確認します。')
     // SC-008。失敗した呼び出しがサーバを畳んでしまうと、再認証の導線が途切れる。
     fakeAws.install({ fixture: 'sso-login.no-config' })
     await connect()

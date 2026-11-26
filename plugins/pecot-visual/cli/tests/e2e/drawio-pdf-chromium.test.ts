@@ -28,6 +28,7 @@ import { assertCliBuilt, formatOutputTails, isChromiumCached, spawnToolSync } fr
 import { attachFile, attachOutput, readOutput } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
+import { explains } from '../_helpers/explains.js'
 
 const HERE = import.meta.dirname
 const CLI_TS_ROOT = path.resolve(HERE, '..', '..')
@@ -170,6 +171,7 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio export が実 chromium で SVG �
   let successPdfPath = ''
 
   it('日本語入りの図から exit 0 で SVG と 1 ページの PDF を書き出す', async () => {
+    await explains('`drawio export` の実際の Chromium での書き出しのテストです。日本語を含む図の場合に、終了コード 0 で SVG と 1 ページの PDF を書き出し、PDF の用紙の大きさが SVG の寸法と一致することを確認します。')
     const run = runExport('success')
     const caseDirectory = workDirectory('success')
     const svgPath = path.join(caseDirectory, 'out.svg')
@@ -213,6 +215,7 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio export が実 chromium で SVG �
   }, DURATION_CEILING_MS + 30_000)
 
   it.skipIf(!isCommandAvailable('pdftotext'))('書き出した PDF から日本語ラベルが文字として抽出できる', async () => {
+    await explains('書き出した PDF の文字のテストです。`pdftotext` で抽出した本文に、図の日本語のラベルが含まれることを確認します。')
     expect(successPdfPath, '成功ケースの PDF が無い（先行 it の失敗を参照）').not.toBe('')
     await attachFile('書き出した PDF', successPdfPath)
     const extracted = spawnSync('pdftotext', [successPdfPath, '-'], { encoding: 'utf8' })
@@ -225,6 +228,7 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio export が実 chromium で SVG �
   })
 
   it.skipIf(!isCommandAvailable('pdffonts') || !hasNotoSansCjkJp())('日本語ラベルは Noto Sans CJK JP を埋め込んで描かれる', async () => {
+    await explains('書き出した PDF のフォントのテストです。`pdffonts` の一覧に、Noto Sans CJK JP が埋め込まれていることを確認します。')
     expect(successPdfPath, '成功ケースの PDF が無い（先行 it の失敗を参照）').not.toBe('')
     await attachFile('書き出した PDF', successPdfPath)
     const listed = spawnSync('pdffonts', [successPdfPath], { encoding: 'utf8' })
@@ -235,7 +239,8 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio export が実 chromium で SVG �
     expect(fontNames.some(name => name.includes(CJK_FONT_NAME)), `pdffonts:\n${listed.stdout}`).toBe(true)
   })
 
-  it('PDF 生成に失敗すると SVG を残し、pdfFailed と警告を返して degrade する', async () => {
+  it('PDF の生成に失敗した場合、SVG だけを残し、`pdfFailed` が `true` の結果と警告を 1 件返す', async () => {
+    await explains('`drawio_export` の PDF の生成に失敗した場合のテストです。PDF の生成を強制的に失敗させた場合に、SVG だけを残し、終了コード 0 で `pdfFailed` が `true`、警告が 1 件の結果を返すことを確認します。')
     const run = runExport('degrade', { PECOTV_FORCE_PDF_FAIL: '1' })
     const caseDirectory = workDirectory('degrade')
     await attachFile('degrade で残った SVG', path.join(caseDirectory, 'out.svg'))
