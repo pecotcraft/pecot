@@ -182,6 +182,7 @@ _EXEMPT: dict[str, str] = {
     "STUB_PNPM_DELAY": "テストが env に渡す stub pnpm の遅延秒数。外の値は読まれない",
     "STUB_BIN": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
     "STUB_NODE_MAJOR": "テストが env に渡す stub node の値。外の値は読まれない",
+    "PYTEST_CURRENT_TEST": "pytest がテストごとに設定する。添付するかどうかだけを決め、テストの成否を変えない",
 }
 
 _ENV_NAME = r"[A-Z][A-Z0-9_]{2,}"
