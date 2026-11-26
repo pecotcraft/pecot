@@ -18,7 +18,7 @@ pecot-workflow の MCP ツール `project_init` を使う（`owner`・`name`）�
 
 ## 旧い形のボードを移す
 
-`board_show`・`board_sync` が、旧い名前の進行の欄や、pecot が使わないフィールド（`pecot-priority`・`pecot-size`）を warning で知らせたときに行う。
+`board_show` か、ボードを自動で直すワークフローのログが warning を出したときに行う。warning は、旧い名前の進行の欄と、pecot が使わないフィールド（`pecot-priority`・`pecot-size`）を知らせる。
 
 1. pecot-workflow の MCP ツール `project_init` を、`confirm_delete` を付けずに使う（`owner`・`name`）。名前を移し、設定ファイルを書き直す
 2. 結果の `migration.pending_delete` に名前があれば、その名前を利用者に示し、消してよいか承認を得る。消すと、各 Item のそのフィールドの値も消え、戻せない

@@ -21,6 +21,7 @@ import type { IssueReference } from '../domain/reference-parser.js'
 import { createRepositoryReference, resolveShortReferenceBase, withUnreadableReason } from '../domain/repository-resolver.js'
 import {
   CLOSED_HEADINGS_BY_TEMPLATE,
+  extractSectionsFromTemplate,
   FOLD_SUMMARY_BY_TEMPLATE,
   validateBodyStyle,
   validateClosedHeadings,
@@ -29,6 +30,7 @@ import {
   validateHeadingSummaries,
   validateSections,
 } from '../domain/sections.js'
+import type { SectionHeading } from '../domain/sections.js'
 import type { JsonObject } from '../domain/json.js'
 import { gitRunnerFor } from '../infra/git.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
@@ -502,11 +504,29 @@ export async function clientForIssueCreate(
 1 行目はテンプレートのパス。続く行に、違反のある種類だけを並べる
 */
 export function hasReportedTemplateViolations(output: Output, body: string, templatePath: string, options: { readonly emDashHint?: boolean } = {}): boolean {
-  const required = readTemplateSections(templatePath)
+  const stem = path.basename(templatePath, path.extname(templatePath))
+  return hasReportedSectionViolations(output, body, { label: templatePath, stem, required: readTemplateSections(templatePath) }, options)
+}
+
+/**
+hasReportedTemplateViolations の、テンプレートを文字列で受ける形。ファイルを持たない bundle（action）が使う。
+templateName はファイル名から拡張子を除いたもの
+*/
+export function hasReportedTemplateTextViolations(output: Output, body: string, templateName: string, templateText: string, options: { readonly emDashHint?: boolean } = {}): boolean {
+  return hasReportedSectionViolations(output, body, { label: templateName, stem: templateName, required: extractSectionsFromTemplate(templateText) }, options)
+}
+
+interface TemplateSections {
+  readonly label: string
+  readonly stem: string
+  readonly required: readonly SectionHeading[]
+}
+
+function hasReportedSectionViolations(output: Output, body: string, template: Readonly<TemplateSections>, options: { readonly emDashHint?: boolean }): boolean {
+  const { label, stem, required } = template
   const missing = required.length > 0 ? validateSections(body, required) : []
   const summaryErrors = required.length > 0 ? validateHeadingSummaries(body, required) : []
   const styleErrors = validateBodyStyle(body)
-  const stem = path.basename(templatePath, path.extname(templatePath))
   const closedGuidance = CLOSED_HEADINGS_BY_TEMPLATE.get(stem)
   const foldErrors = closedGuidance === undefined ? [] : [...validateFoldBalance(body)]
   const extraHeadings = closedGuidance !== undefined && required.length > 0 ? validateClosedHeadings(body, required) : []
@@ -514,7 +534,7 @@ export function hasReportedTemplateViolations(output: Output, body: string, temp
   if (foldSummary !== undefined) foldErrors.push(...validateFoldSummaries(body, foldSummary))
   if (missing.length === 0 && summaryErrors.length === 0 && styleErrors.length === 0 && foldErrors.length === 0 && extraHeadings.length === 0) return false
 
-  const lines = [`the body does not follow the template ${templatePath}`]
+  const lines = [`the body does not follow the template ${label}`]
   if (missing.length > 0) {
     lines.push(`missing sections: ${missing.join(', ')}`)
     if (options.emDashHint === true && missing.some(section => section.includes(' — <'))) {

@@ -81,6 +81,7 @@
       {"runtime": "node -p \"require('nx/package.json').version\""},
       "{workspaceRoot}/.nxignore",
       "{workspaceRoot}/.gitignore",
+      "{workspaceRoot}/actions/.gitignore",
       "{workspaceRoot}/libs/interface-spec/.gitignore",
       "{workspaceRoot}/libs/text-rules/.gitignore",
       "{workspaceRoot}/libs/workflow-core/.gitignore",
@@ -93,6 +94,8 @@
       "{workspaceRoot}/pnpm-workspace.yaml",
       "{workspaceRoot}/plugins/**/project.json",
       "{workspaceRoot}/libs/**/project.json",
+      "{workspaceRoot}/actions/project.json",
+      "{workspaceRoot}/actions/package.json",
       "{workspaceRoot}/.nx/nx-release/project.json",
       "{workspaceRoot}/libs/*/package.json",
       "{workspaceRoot}/plugins/*/package.json",
@@ -287,6 +290,24 @@
           "file": "libs/workflow-core/CHANGELOG.md",
           "createRelease": "github"
         }
+      },
+      "actions": {
+        "projects": [
+          "actions"
+        ],
+        "projectsRelationship": "fixed",
+        "releaseTag": {
+          "pattern": "pecot-actions/v{version}"
+        },
+        "version": {
+          "specifierSource": "version-plans",
+          "updateDependents": "always",
+          "currentVersionResolver": "disk"
+        },
+        "changelog": {
+          "file": "actions/CHANGELOG.md",
+          "createRelease": "github"
+        }
       }
     },
     "version": {
@@ -305,6 +326,9 @@
         "plugins/*/scripts/ci/**",
         "plugins/*/scripts/sandbox/**",
         "plugins/*/interface/**",
+        "actions/interface/**",
+        "actions/scripts/export-interface.ts",
+        "actions/eslint.config.js",
         "plugins/*/cli*/scripts/export-interface.ts",
         "!plugins/pecot-visual/scripts/ci/dev-install-lib.sh",
         "plugins/pecot-visual/scripts/pptx-compare/",

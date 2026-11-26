@@ -61,7 +61,7 @@ describe('loadSources', () => {
   it('glob が指定されていないと、ソースを 1 件も読み込まない', async () => {
     await explains('plugin のソースファイルを読み込む `loadSources` のテストです。glob を 1 つも渡さなかった場合に、空の配列を返すことを確認します。')
     await step('glob が無いときの読み込みを比べる', async () => {
-      expect(await loadSources(await materialize('valid'), 'pecot-workflow', [])).toEqual([])
+      expect(await loadSources(await materialize('valid'), 'plugins/pecot-workflow', [])).toEqual([])
     })
   })
 
@@ -72,7 +72,7 @@ describe('loadSources', () => {
       await mkdir(path.join(root, 'plugins/pecot-workflow/cli/node_modules'), { recursive: true })
       await writeFile(path.join(root, 'plugins/pecot-workflow/cli/node_modules/ignored.py'), 'x = 1\n')
     })
-    const sources = await step('ソースを読み込む', () => loadSources(root, 'pecot-workflow', ['cli/**/*.py']))
+    const sources = await step('ソースを読み込む', () => loadSources(root, 'plugins/pecot-workflow', ['cli/**/*.py']))
     stepSync('結果を比べる', () => {
       expect(sources.map(source => source.path)).toEqual(['plugins/pecot-workflow/cli/core/session.py'])
       expect(sources[0]?.text).toContain('PECOT_GITHUB_API_URL')
@@ -90,7 +90,7 @@ describe('loadSources', () => {
     stepSync('git に追跡させる', () => {
       execFileSync('git', ['add', '--all'], { cwd: root })
     })
-    const sources = await step('ソースを読み込む', () => loadSources(root, 'pecot-workflow', ['cli/**/*.py', '../../libs/core/src/*.ts']))
+    const sources = await step('ソースを読み込む', () => loadSources(root, 'plugins/pecot-workflow', ['cli/**/*.py', '../../libs/core/src/*.ts']))
     stepSync('結果を比べる', () => {
       expect(sources.map(source => source.path)).toEqual(['libs/core/src/auth.ts', 'plugins/pecot-workflow/cli/core/session.py'])
     })
@@ -100,7 +100,7 @@ describe('loadSources', () => {
     await explains('plugin のソースファイルを読み込む `loadSources` のテストです。`../../../outside/*.ts` のようにリポジトリの外を指す glob を渡した場合に、`LoadError` が発生することを確認します。')
     const root = await materialize('valid')
     await step('リポジトリの外の glob で読み込み、LoadError を比べる', async () => {
-      await expect(loadSources(root, 'pecot-workflow', ['../../../outside/*.ts'])).rejects.toBeInstanceOf(LoadError)
+      await expect(loadSources(root, 'plugins/pecot-workflow', ['../../../outside/*.ts'])).rejects.toBeInstanceOf(LoadError)
     })
   })
 })
@@ -113,7 +113,7 @@ describe('loadSources with a missing or broken repository', () => {
       await rm(path.join(root, 'plugins/pecot-workflow/cli/core/session.py'))
     })
     await step('ソースを読み込み、結果を比べる', async () => {
-      expect(await loadSources(root, 'pecot-workflow', ['cli/**/*.py'])).toEqual([])
+      expect(await loadSources(root, 'plugins/pecot-workflow', ['cli/**/*.py'])).toEqual([])
     })
   })
 
@@ -122,7 +122,7 @@ describe('loadSources with a missing or broken repository', () => {
     const root = await mkdtemp(path.join(tmpdir(), 'interface-spec-nogit-'))
     await step('git でない root を読み込み、LoadError を比べる', async () => {
       try {
-        await expect(loadSources(root, 'pecot-workflow', ['**/*.py'])).rejects.toBeInstanceOf(LoadError)
+        await expect(loadSources(root, 'plugins/pecot-workflow', ['**/*.py'])).rejects.toBeInstanceOf(LoadError)
       }
       finally {
         await rm(root, { recursive: true, force: true })

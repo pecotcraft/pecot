@@ -9,7 +9,7 @@
 //
 // 隔離の対象は ISOLATED_ENVIRONMENT に並べてある。
 // 対象はトークン（GITHUB_*_TOKEN と、ホスト名を挟む PECOT_GITHUB_*_TOKEN）、PECOT_GITHUB_API_URL、CLAUDE_PROJECT_DIR。
-// review finish と auto が読む Actions の変数（GITHUB_RUN_ID など）と PECOT_AUTO_LABEL なども対象。
+// actions が読む Actions の変数（GITHUB_RUN_ID・RUNNER_TEMP など）と PECOT_AUTO_LABEL なども対象。
 // COPILOT_SESSION_CWD、PLUGIN_ROOT、COPILOT_PLUGIN_ROOT も対象。
 // データ置き場の 3 変数、XDG_DATA_HOME、HOME、GIT_* も対象。
 // 隔離の後に、GIT_CONFIG_NOSYSTEM=1 と GIT_CONFIG_GLOBAL=/dev/null を置く。
@@ -24,6 +24,7 @@ import { afterEach, beforeEach } from 'vitest'
 export const ISOLATED_ENVIRONMENT: readonly (string | RegExp)[] = [
   /^GIT_/u,
   /^GH_/u,
+  /^INPUT_/u,
   /^GITHUB_.*TOKEN$/u,
   /^PECOT_GITHUB_.*TOKEN$/u,
   'PECOT_GITHUB_API_URL',
@@ -35,6 +36,9 @@ export const ISOLATED_ENVIRONMENT: readonly (string | RegExp)[] = [
   'GITHUB_REPOSITORY',
   'GITHUB_SERVER_URL',
   'GITHUB_OUTPUT',
+  'GITHUB_EVENT_NAME',
+  'GITHUB_EVENT_PATH',
+  'RUNNER_TEMP',
   'CLAUDE_PROJECT_DIR',
   'CLAUDE_PLUGIN_ROOT',
   'PLUGIN_ROOT',

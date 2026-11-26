@@ -1,0 +1,4 @@
+coverage/
+test-results/
+# root の dist/ を外す。action の dist は rollup でまとめて commit する
+!/*/dist/

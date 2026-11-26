@@ -1,0 +1,18 @@
+name: pecot auto start
+description: Start an automated fix run. Put the Issue on the board or restore the Status the automation wrote, and write the context to continue to a JSON file.
+inputs:
+  token:
+    description: Token to read the Issue and to write the board (the App token of the workflow)
+    required: false
+  issue:
+    description: Issue number in the repository of the workflow, or owner/repo/N
+    required: true
+  project:
+    description: Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the repository of the Issue; when several do, the active one among them
+    required: false
+outputs:
+  context-file:
+    description: Path of the JSON file with the Issue, the plan, the earlier results, the answers, the branch and the PR, under RUNNER_TEMP
+runs:
+  using: node24
+  main: dist/index.js

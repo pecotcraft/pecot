@@ -5,9 +5,10 @@ command:
   args:
     - "acme/demo/21"
     - "-d"
-    - "--skip-local-cleanup"
 setup:
   repo:
+    branches:
+      - name: feat/demo/12
     files:
       .pecot/config/projects/ghes.example.com_acme_board_acme.json: |
           {

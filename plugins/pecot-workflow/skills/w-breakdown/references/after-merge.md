@@ -18,12 +18,11 @@ pecot-workflow の MCP ツール `session_finish` を使って、マージ後の
 
 ## ワークツリー環境での手作業
 
-手元の片付けは `session_finish` が行う。この節は、`skip_local_cleanup: true` を使ったときと、`session_finish` の手元の片付けが警告で止まったときのためのものだ。
+手元の片付けは `session_finish` が行う。この節は、`session_finish` の手元の片付けが警告で止まったときのためのものだ。
 
 `session_finish` は `pr_ref: "<owner>/<repo>/<番号>"` と `delete_branch: true` で呼ぶ。
 
 - `delete_branch`: リモートブランチを削除
-- `skip_local_cleanup`: ローカルの後処理をスキップ
 
 ### ワークツリー判定
 

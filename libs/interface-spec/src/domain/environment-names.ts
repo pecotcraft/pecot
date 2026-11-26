@@ -183,7 +183,7 @@ export function isValidEnvironmentName(name: string): boolean {
 }
 
 export interface EnvironmentCheck {
-  // プラグインのディレクトリ（plugins/<name>）。読んだソースの表示はここからの相対にする。
+  // プラグインのディレクトリ（plugins/<name>）。読んだソースの表示はここからの相対にする。外のソースはリポからの相対のまま
   readonly pluginDir: string
   readonly authoredPath: string
   readonly sources: readonly SourceFile[]
@@ -198,7 +198,7 @@ export function checkEnvironment(check: EnvironmentCheck): Finding[] {
   for (const source of sources) {
     const { reads, unresolved } = scanEnvironmentReads(source)
     for (const read of reads) {
-      if (!firstReader.has(read.name)) firstReader.set(read.name, source.path.slice(check.pluginDir.length + 1))
+      if (!firstReader.has(read.name)) firstReader.set(read.name, readerPath(check.pluginDir, source.path))
     }
     for (const read of unresolved) {
       findings.push({
@@ -215,4 +215,8 @@ export function checkEnvironment(check: EnvironmentCheck): Finding[] {
     }
   }
   return findings
+}
+
+function readerPath(pluginDirectory: string, sourcePath: string): string {
+  return sourcePath.startsWith(`${pluginDirectory}/`) ? sourcePath.slice(pluginDirectory.length + 1) : sourcePath
 }

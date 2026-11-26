@@ -81,12 +81,12 @@ function fixedDirectory(glob: string): string {
 }
 
 // git に追跡されたファイルのうち、glob に当たるものを読む。node_modules や .gitignore のものは入らない。
-// glob はプラグインのディレクトリからの相対で書き、../../libs/<name>/ のようにプラグインが同梱するライブラリも指せる。
-export async function loadSources(root: string, plugin: string, globs: readonly string[]): Promise<SourceFile[]> {
+// glob は base（plugins/<name> など、リポからの相対）からの相対で書き、../../libs/<name>/ のように同梱するライブラリも指せる。
+export async function loadSources(root: string, base: string, globs: readonly string[]): Promise<SourceFile[]> {
   if (globs.length === 0) return []
-  const repositoryGlobs = globs.map(glob => path.posix.normalize(path.posix.join('plugins', plugin, glob)))
-  if (repositoryGlobs.some(glob => glob.startsWith('../'))) throw new LoadError(`${plugin}: a source glob points outside the repository`)
-  const directories = [...new Set([`plugins/${plugin}`, ...repositoryGlobs.map(glob => fixedDirectory(glob))])]
+  const repositoryGlobs = globs.map(glob => path.posix.normalize(path.posix.join(base, glob)))
+  if (repositoryGlobs.some(glob => glob.startsWith('../'))) throw new LoadError(`${base}: a source glob points outside the repository`)
+  const directories = [...new Set([base, ...repositoryGlobs.map(glob => fixedDirectory(glob))])]
   let stdout: string
   try {
     ;({ stdout } = await run('git', ['ls-files', '-z', '--', ...directories], { cwd: root, maxBuffer: 64 * 1024 * 1024 }))
@@ -102,15 +102,24 @@ export async function loadSources(root: string, plugin: string, globs: readonly 
   return read.filter(file => file.text !== undefined).map(file => ({ path: file.path, text: file.text ?? '' }))
 }
 
-export async function loadPlugin(root: string, name: string, setting: { readonly entries: 'complete' | 'partial', readonly sources: readonly string[] }): Promise<PluginInput> {
-  const directory = path.join(root, 'plugins', name, 'interface')
+/**
+targets.json の root を省いたら plugins/<name> にする
+*/
+export function pluginRoot(name: string, setting: { readonly root?: string | undefined }): string {
+  return setting.root ?? `plugins/${name}`
+}
+
+export async function loadPlugin(root: string, name: string, setting: { readonly root?: string | undefined, readonly entries: 'complete' | 'partial', readonly sources: readonly string[] }): Promise<PluginInput> {
+  const base = pluginRoot(name, setting)
+  const directory = path.join(root, base, 'interface')
   const hasDirectory = await isDirectory(directory)
   return {
     name,
+    root: base,
     dirExists: hasDirectory,
     mode: setting.entries,
     generated: hasDirectory ? await loadJson(path.join(directory, 'generated.json')) : { kind: 'missing' },
     authored: hasDirectory ? await loadYaml(path.join(directory, 'authored.yaml')) : { kind: 'missing' },
-    sources: hasDirectory && setting.entries === 'complete' ? await loadSources(root, name, setting.sources) : [],
+    sources: hasDirectory && setting.entries === 'complete' ? await loadSources(root, base, setting.sources) : [],
   }
 }

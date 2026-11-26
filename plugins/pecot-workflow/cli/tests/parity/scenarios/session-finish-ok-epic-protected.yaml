@@ -1,12 +1,13 @@
-# クローズ対象が Epic。片付けはするが Issue は閉じない（Epic 保護）。
+# クローズ対象が Epic。片付けはするが Issue は閉じない（Epic 保護）。手元のブランチも消す。
 id: session-finish-ok-epic-protected
 command:
   path: [session, finish]
   args:
     - "acme/demo/21"
-    - "--skip-local-cleanup"
 setup:
   repo:
+    branches:
+      - name: feat/demo/12
     files:
       .pecot/config/projects/ghes.example.com_acme_board_acme.json: |
           {

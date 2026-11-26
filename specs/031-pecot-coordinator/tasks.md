@@ -104,38 +104,38 @@
 
 ### Tests for User Story 5
 
-- [ ] T038 [US5] 今の pecot-workflow の 45 個のツールと、Actions のワークフローの処理の行き先（残す・`actions/` へ移す・消す）の一覧を `specs/031-pecot-coordinator/verification/feature-inventory.md` に書く（FR-021）
-- [ ] T039 [US5] ルート直下の一覧に `actions` を足す。`.claude/rules/repo-root-layout.md` の表と `.githooks/pre-commit/check-root-entries.sh` の `ALLOWED` を同じ変更で直し、`test_check_root_entries.py` を通す
-- [ ] T040 [US5] `actions/` の nx project を作る（`project.json`・`package.json`・`tsconfig.json`・`vitest.config.ts`・`eslint.config.js`・`rollup.config.mjs`・`CHANGELOG.md`）。`CLAUDE.md` の表に足す
+- [x] T038 [US5] 今の pecot-workflow の 45 個のツールと、Actions のワークフローの処理の行き先（残す・`actions/` へ移す・消す）の一覧を `specs/031-pecot-coordinator/verification/feature-inventory.md` に書く（FR-021）
+- [x] T039 [US5] ルート直下の一覧に `actions` を足す。`.claude/rules/repo-root-layout.md` の表と `.githooks/pre-commit/check-root-entries.sh` の `ALLOWED` を同じ変更で直し、`test_check_root_entries.py` を通す
+- [x] T040 [US5] `actions/` の nx project を作る（`project.json`・`package.json`・`tsconfig.json`・`vitest.config.ts`・`eslint.config.js`・`rollup.config.mjs`・`CHANGELOG.md`）。`CLAUDE.md` の表に足す
   - lint と knip の対象に入れ、層の向きの決まりを `actions/eslint.config.js` に置く
-- [ ] T041 [P] [US5] `board-sync` の入口のテストを書き、今の `board sync` と同じ処理を呼ぶことを確かめる in `actions/tests/board-sync.test.ts`
-- [ ] T042 [P] [US5] `session-finish` の入口のテストを書く。今の `session finish --skip-local-cleanup` と同じ片付けで、ブランチを消さない in `actions/tests/session-finish.test.ts`
-- [ ] T043 [P] [US5] `tracker-sync` の入口のテストを書く（security・dependabot） in `actions/tests/tracker-sync.test.ts`
-- [ ] T044 [P] [US5] `review-finish` の入口のテストを書く（今の `review finish --ensure`） in `actions/tests/review-finish.test.ts`
-- [ ] T045 [P] [US5] `auto-gate`・`auto-start`・`auto-finish` の入口のテストを書く in `actions/tests/auto.test.ts`
-- [ ] T046 [P] [US5] `plugins/pecot-workflow/cli/tests/*-workflow-template.test.ts` を `actions/tests/templates/` に移し、雛形が `uses: pecotcraft/pecot/actions/<処理>@pecot-actions/v<版>` で呼ぶ形を確かめるように直す
-- [ ] T047 [P] [US5] `actions/` の中に、スキル・MCP・エージェントに向けたファイルと文が無いことのテストを書く in `actions/tests/no-agent-content.test.ts`
-- [ ] T048 [P] [US5] pecot-workflow の MCP のツールの一覧に `auto_gate`・`auto_start`・`auto_finish`・`review_finish`・`board_sync`・`tracker_sync` が無いことのテストを書く in `plugins/pecot-workflow/cli/tests/mcp/`
-- [ ] T049 [P] [US5] `workflow_doctor` が、`.github/workflows/` で `@pecot/workflow-mcp` を `npx` で呼ぶ古い雛形を見つけて返すことのテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
+- [x] T041 [P] [US5] `board-sync` の入口のテストを書き、今の `board sync` と同じ処理を呼ぶことを確かめる in `actions/tests/board-sync.test.ts`
+- [x] T042 [P] [US5] `session-finish` の入口のテストを書く。今の `session finish --skip-local-cleanup` と同じ片付けで、ブランチを消さない in `actions/tests/session-finish.test.ts`
+- [x] T043 [P] [US5] `tracker-sync` の入口のテストを書く（security・dependabot） in `actions/tests/tracker-sync.test.ts`
+- [x] T044 [P] [US5] `review-finish` の入口のテストを書く（今の `review finish --ensure`） in `actions/tests/review-finish.test.ts`
+- [x] T045 [P] [US5] `auto-gate`・`auto-start`・`auto-finish` の入口のテストを書く in `actions/tests/auto.test.ts`
+- [x] T046 [P] [US5] `plugins/pecot-workflow/cli/tests/*-workflow-template.test.ts` を `actions/tests/templates/` に移し、雛形が `uses: pecotcraft/pecot/actions/<処理>@pecot-actions/v<版>` で呼ぶ形を確かめるように直す
+- [x] T047 [P] [US5] `actions/` の中に、スキル・MCP・エージェントに向けたファイルと文が無いことのテストを書く in `actions/tests/no-agent-content.test.ts`
+- [x] T048 [P] [US5] pecot-workflow の MCP のツールの一覧に `auto_gate`・`auto_start`・`auto_finish`・`review_finish`・`board_sync`・`tracker_sync` が無いことのテストを書く in `plugins/pecot-workflow/cli/tests/mcp/`
+- [x] T049 [P] [US5] `workflow_doctor` が、`.github/workflows/` で `@pecot/workflow-mcp` を `npx` で呼ぶ古い雛形を見つけて返すことのテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
 
 ### Implementation for User Story 5
 
-- [ ] T050 [US5] 処理ごとの入口を `actions/src/<処理>.ts` に書き、`libs/workflow-core` を呼ぶ。入力は `action.yml` の `inputs` から読む
-- [ ] T051 [US5] 処理ごとの `actions/<処理>/action.yml` を書く（`runs.using: node24`・`main: dist/index.js`・`inputs` に `token`）。一覧は [contracts/actions-interface.md](contracts/actions-interface.md) の 1 節
-- [ ] T052 [US5] rollup で `actions/<処理>/dist/index.js` を作って commit する。source と `dist/` の食い違いを止める target を `actions/project.json` に置き、`ci.yml` で動かす
-- [ ] T053 [US5] `plugins/pecot-workflow/cli/templates/workflow/` の 3 つの雛形を `actions/templates/` に移し、`uses:` で版のタグを指して呼ぶ形に書き換える
-- [ ] T054 [US5] このリポの `pecot-board-sync.yml`・`pecot-review.yml`・`pecot-handoff.yml`・`security-alerts.yml`・`dependabot-prs.yml` の CLI を呼ぶ step を、`uses: ./actions/<処理>` に書き換える
-- [ ] T055 [US5] `auto_gate`・`auto_start`・`auto_finish`・`review_finish`・`board_sync`・`tracker_sync` を、pecot-workflow のツール・CLI のコマンド・npm の package から消す in `plugins/pecot-workflow/cli/src/`
-- [ ] T056 [US5] `session_finish` から Actions だけの片付けの道（`--skip-local-cleanup`）を外し、スキルが使う手元の片付けだけを残す in `plugins/pecot-workflow/cli/src/commands/session-finish.ts`
-- [ ] T057 [US5] 消したツールの項目を `plugins/pecot-workflow/interface/authored.yaml` から消し、`generated.json` を作り直して `interface-spec:lint-defs` を通す
-- [ ] T058 [US5] `workflow_install` が `actions/templates/` の雛形を置くようにし、pecot-workflow の build が雛形を同梱する in `plugins/pecot-workflow/cli/src/commands/workflow.ts`
-- [ ] T059 [US5] `workflow_doctor` に、古い雛形の検出と、`actions/` が入っていないときの案内を足す（FR-010・FR-030） in `plugins/pecot-workflow/cli/src/commands/workflow.ts`
-- [ ] T060 [US5] 古い雛形を見つけたら、エージェントが `actions/templates/` の雛形で置き換える PR を出す手順を `plugins/pecot-workflow/skills/w-onboarding/SKILL.md` に書く
-- [ ] T061 [US5] `nx.json` の release に `actions` を足し、タグを `pecot-actions/v{version}` にする。npm には出さない
-- [ ] T062 [US5] `actions/README.md` に、導入の手順と、要る secret・variable を書く
-- [ ] T063 [US5] version plan を足す。pecot-workflow はメジャー（FR-029）、`actions` は最初の版
-- [ ] T064 [US5] CUJ: sandbox の `.github/workflows/` に `actions/templates/` の雛形を置き（`uses:` は確かめるブランチの ref）、PR のマージと Issue の移動の結果を今の雛形と比べる
-- [ ] T065 [US5] CUJ: 古い雛形を置いた sandbox で `workflow_doctor` を呼び、古い雛形として返ることを確かめる
+- [x] T050 [US5] 処理ごとの入口を `actions/src/<処理>.ts` に書き、`libs/workflow-core` を呼ぶ。入力は `action.yml` の `inputs` から読む
+- [x] T051 [US5] 処理ごとの `actions/<処理>/action.yml` を書く（`runs.using: node24`・`main: dist/index.js`・`inputs` に `token`）。一覧は [contracts/actions-interface.md](contracts/actions-interface.md) の 1 節
+- [x] T052 [US5] rollup で `actions/<処理>/dist/index.js` を作って commit する。source と `dist/` の食い違いを止める target を `actions/project.json` に置き、`ci.yml` で動かす
+- [x] T053 [US5] `plugins/pecot-workflow/cli/templates/workflow/` の 3 つの雛形を `actions/templates/` に移し、`uses:` で版のタグを指して呼ぶ形に書き換える
+- [x] T054 [US5] このリポの `pecot-board-sync.yml`・`pecot-review.yml`・`pecot-handoff.yml`・`security-alerts.yml`・`dependabot-prs.yml` の CLI を呼ぶ step を、`uses: ./actions/<処理>` に書き換える
+- [x] T055 [US5] `auto_gate`・`auto_start`・`auto_finish`・`review_finish`・`board_sync`・`tracker_sync` を、pecot-workflow のツール・CLI のコマンド・npm の package から消す in `plugins/pecot-workflow/cli/src/`
+- [x] T056 [US5] `session_finish` から Actions だけの片付けの道（`--skip-local-cleanup`）を外し、スキルが使う手元の片付けだけを残す in `plugins/pecot-workflow/cli/src/commands/session-finish.ts`
+- [x] T057 [US5] 消したツールの項目を `plugins/pecot-workflow/interface/authored.yaml` から消し、`generated.json` を作り直して `interface-spec:lint-defs` を通す
+- [x] T058 [US5] `workflow_install` が `actions/templates/` の雛形を置くようにし、pecot-workflow の build が雛形を同梱する in `plugins/pecot-workflow/cli/src/commands/workflow.ts`
+- [x] T059 [US5] `workflow_doctor` に、古い雛形の検出と、`actions/` が入っていないときの案内を足す（FR-010・FR-030） in `plugins/pecot-workflow/cli/src/commands/workflow.ts`
+- [x] T060 [US5] 古い雛形を見つけたら、エージェントが `actions/templates/` の雛形で置き換える PR を出す手順を `plugins/pecot-workflow/skills/w-onboarding/SKILL.md` に書く
+- [x] T061 [US5] `nx.json` の release に `actions` を足し、タグを `pecot-actions/v{version}` にする。npm には出さない
+- [x] T062 [US5] `actions/README.md` に、導入の手順と、要る secret・variable を書く
+- [x] T063 [US5] version plan を足す。pecot-workflow はメジャー（FR-029）、`actions` は最初の版
+- [x] T064 [US5] CUJ: sandbox の `.github/workflows/` に `actions/templates/` の雛形を置き（`uses:` は確かめるブランチの ref）、PR のマージと Issue の移動の結果を今の雛形と比べる
+- [x] T065 [US5] CUJ: 古い雛形を置いた sandbox で `workflow_doctor` を呼び、古い雛形として返ることを確かめる
 
 ---
 

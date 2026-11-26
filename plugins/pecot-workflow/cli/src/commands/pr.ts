@@ -54,14 +54,12 @@ import type { CommandDefinition, CommandIo, GlobalInput } from '@pecot/workflow-
 import { BOARD_MOVE_JSON, moveJson } from '@pecot/workflow-core/commands-shared/issue-board.js'
 import type { BoardMoveLine } from '@pecot/workflow-core/commands-shared/issue-board.js'
 import { PR_MERGE_COMMAND } from './pr-merge.js'
-import { parseReference, PR_REFERENCE_DESCRIPTION } from '@pecot/workflow-core/commands-shared/pr-reference.js'
+import { isPositive, parseReference, PR_REFERENCE_DESCRIPTION } from '@pecot/workflow-core/commands-shared/pr-reference.js'
 import { readRestackDecision } from './restack-reading.js'
 import type { KnownLowerPullRequest } from './restack-reading.js'
-import { moveWaitingIssues } from './pr-waiting.js'
+import { moveWaitingIssues } from '@pecot/workflow-core/commands-shared/pr-waiting.js'
 import { fieldWriteFailure } from '@pecot/workflow-core/commands-shared/field-write-failure.js'
 import type { FieldHintState } from '@pecot/workflow-core/commands-shared/field-write-failure.js'
-
-export { parseReference, PR_REFERENCE_DESCRIPTION } from '@pecot/workflow-core/commands-shared/pr-reference.js'
 
 // 本文の検証の失敗。1（通信・設定・引数）と 2（preflight）と区別する
 const VALIDATION_EXIT_CODE = 3
@@ -77,10 +75,6 @@ export function reasonOf(error: unknown): string {
 
 function templateKindOf(template: string): 'create' | 'release' {
   return template === 'release' ? 'release' : 'create'
-}
-
-export function isPositive(value: number | undefined): value is number {
-  return value !== undefined && value !== 0
 }
 
 // 主の remote

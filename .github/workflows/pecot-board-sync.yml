@@ -1,14 +1,19 @@
-# Place this file at .github/workflows/pecot-board-sync.yml in your repository.
+# pecot-workflow-template: board-sync 1
 #
-# This workflow runs `pecot board sync` after PRs and issues change.
-# The command fixes the Status column and label of the pecot project board.
+# Place this file at .github/workflows/pecot-board-sync.yml in your repository.
+# `pecot workflow install board-sync` places it and pins the pecot actions to a commit SHA.
+#
+# This workflow runs the pecot board-sync action after PRs and issues change.
+# The action fixes the Status column and label of the pecot project board.
 # It reads the whole board on every run, so the trigger only decides when it runs.
 #
-# When a PR from this repository is merged, the finish job runs `pecot session finish` first.
-# It closes the issues of the PR and deletes its head branch, even when no local session does it.
+# When a PR from this repository is merged, the finish job runs the pecot session-finish action first.
+# It closes the issues of the PR and moves the issues that wait for them.
+# It does so even when no local session does it.
+# It does not delete the head branch. Turn on "Automatically delete head branches" in Settings > General.
 # It runs only for a head branch whose name ends in /<number>, as pecot task branches do.
 # So the head branch of a release PR, such as develop, is kept.
-# The finish job uses the GITHUB_TOKEN of the run, with Contents: write and Issues: write.
+# The finish job uses the GITHUB_TOKEN of the run, with Issues: write.
 # The App and the token below need no more permissions for it.
 #
 # Set one of the two token setups in Settings > Secrets and variables > Actions.
@@ -23,10 +28,8 @@
 #     Set variable PECOT_BOARD_SYNC_USE_PAT to true.
 #     Set secret PECOT_BOARD_SYNC_TOKEN.
 #
-# GitHub Enterprise Server names the token variable after the host.
-# The name is PECOT_GITHUB_<HOST>_TOKEN, with the host upper-cased and dots replaced by underscores.
-# For example, ghe.example.com gives PECOT_GITHUB_GHE_EXAMPLE_COM_TOKEN.
-# Change the name under `env:` in the steps that run npx.
+# The pecot actions are pinned to a commit SHA, with the release tag in the comment after it.
+# Dependabot can update them when .github/dependabot.yml has the github-actions ecosystem.
 #
 # pull_request_target runs the workflow from the default branch.
 # Secrets are passed to PRs from forks, so this workflow never checks out code from a PR.
@@ -61,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      contents: write
+      contents: read
       issues: write
       pull-requests: read
     steps:
@@ -71,21 +74,20 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: "24.22.1"
-          package-manager-cache: false
+      - name: Check the head branch
+        id: branch
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          if [[ "$HEAD_REF" =~ /[0-9]+$ ]]; then echo "ok=true" >> "$GITHUB_OUTPUT"; fi
 
       # The board cannot be read with this token, so moving the cards only warns. The sync job moves them.
       - name: Finish the merged PR
-        env:
-          PECOT_GITHUB_COM_TOKEN: ${{ github.token }}
-          PR: ${{ github.event.pull_request.number }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
-        run: |
-          if ! [[ "$HEAD_REF" =~ /[0-9]+$ ]]; then exit 0; fi
-          npx -y --prefix=/ @pecot/workflow-mcp@next session finish "$GITHUB_REPOSITORY/$PR" --skip-local-cleanup --delete-branch
+        if: ${{ steps.branch.outputs.ok == 'true' }}
+        uses: ./actions/session-finish
+        with:
+          token: ${{ github.token }}
+          pr: ${{ github.event.pull_request.number }}
 
   sync:
     needs: finish
@@ -105,13 +107,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: "24.22.1"
-          # This job holds secrets, so the npm cache is neither restored nor saved.
-          package-manager-cache: false
-
       - name: Generate GitHub App token
         id: app-token
         if: ${{ vars.PECOT_BOARD_SYNC_APP_CLIENT_ID != '' }}
@@ -125,10 +120,7 @@ jobs:
           permission-pull-requests: read
           permission-contents: read
 
-      # The dist-tag after the package name decides the version. @latest is the newest release,
-      # and a new major version brings breaking changes. Use @<major> or @<version> to stay on one.
-      # --prefix=/ keeps npx from stopping in a repository that declares pnpm devEngines.
       - name: Sync the board
-        env:
-          PECOT_GITHUB_COM_TOKEN: ${{ steps.app-token.outputs.token || secrets.PECOT_BOARD_SYNC_TOKEN }}
-        run: npx -y --prefix=/ @pecot/workflow-mcp@next board sync
+        uses: ./actions/board-sync
+        with:
+          token: ${{ steps.app-token.outputs.token || secrets.PECOT_BOARD_SYNC_TOKEN }}

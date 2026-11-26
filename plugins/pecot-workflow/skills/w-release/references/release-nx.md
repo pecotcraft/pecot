@@ -284,7 +284,7 @@ pecot-workflow の MCP ツール `release_check` を使う（`repo: "<owner>/<re
 
 Dependabot の open の alert は、件数・最高 severity・一覧 URL を警告に出すだけで止めない。
 その一覧を取得できないときも警告にとどめる。
-後で対応する open の Dependabot alert は、security alert の Tracker で追う。Tracker は pecot-workflow の MCP ツール `tracker_sync` が立てる。
+後で対応する open の Dependabot alert は、security alert の Tracker で追う。Tracker は、このリポの `security-alerts.yml` が pecot の action の tracker-sync で立てる。
 止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。
 alert は、解消（fixed）か理由付きの dismiss で 0 件にして再実行する。
 一覧を取得できないときは、トークンと権限を直して再実行する。
@@ -378,7 +378,7 @@ export GH_TOKEN="$(gh auth token --hostname <gh-host>)"
 
 Dependabot の open の alert は、件数・最高 severity・一覧 URL を警告に出すだけで止めない。
 その一覧を取得できないときも警告にとどめる。
-後で対応する open の Dependabot alert は、`tracker_sync`（`source: "security"`）が立てる security alert の Tracker で追う。
+後で対応する open の Dependabot alert は、security alert の Tracker で追う。Tracker は、`security-alerts.yml` が pecot の action の tracker-sync で立てる。
 止めるのは、code scanning・secret scanning の open の alert があるときと、その一覧を取得できないときの 2 つ。
 alert は、解消（fixed）か理由付きの dismiss で 0 件にして再実行する。
 一覧を取得できないときは、トークンと権限を直して再実行する。

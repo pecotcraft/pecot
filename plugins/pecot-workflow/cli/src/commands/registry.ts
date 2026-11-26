@@ -1,18 +1,15 @@
 // コマンド定義の一覧。CLI と MCP の両方がこの一覧から作られる。
 // 各コマンドは defineCommand() で定義して、グループのファイルの一覧に足す。定義の型と defineCommand は command-definition.ts にあり、ここから再公開する。
-import { AUTO_COMMANDS } from './auto.js'
 import { BOARD_COMMANDS } from './board.js'
 import { BRANCH_COMMANDS } from './branch.js'
 import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { registerCommandHints } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import { ISSUE_COMMANDS } from './issue.js'
 import { PR_RESTACK_COMMANDS } from './pr-restack.js'
-import { REVIEW_COMMANDS } from './review-finish.js'
 import { PR_COMMANDS } from './pr.js'
 import { PROJECT_COMMANDS } from './project.js'
 import { RELEASE_COMMANDS } from './release.js'
 import { SESSION_COMMANDS } from './session.js'
-import { TRACKER_COMMANDS } from './tracker.js'
 import { WORKTREE_COMMANDS } from './worktree.js'
 import { WORKFLOW_COMMANDS } from './workflow.js'
 
@@ -27,10 +24,7 @@ export const COMMANDS: readonly CommandDefinition[] = [
   ...SESSION_COMMANDS,
   ...PR_COMMANDS,
   ...PR_RESTACK_COMMANDS,
-  ...REVIEW_COMMANDS,
-  ...AUTO_COMMANDS,
   ...RELEASE_COMMANDS,
-  ...TRACKER_COMMANDS,
   ...WORKTREE_COMMANDS,
   ...BRANCH_COMMANDS,
   ...WORKFLOW_COMMANDS,

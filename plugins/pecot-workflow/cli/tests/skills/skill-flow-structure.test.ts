@@ -466,9 +466,8 @@ describe('w-auto の手順', () => {
   const headings = stepHeadings(text)
   const lines = text.split('\n')
   const procedure = lines.slice(lines.indexOf('## 手順')).join('\n')
-  // 契約（specs/023-label-triggered-autofix/contracts/skill-flow.md）の表の止まる条件と結果
+  // 契約（specs/023-label-triggered-autofix/contracts/skill-flow.md）の表の止まる条件と結果。文脈を作れないときは、ワークフローの Start の step が止める
   const STOPS: readonly (readonly [number, readonly string[]])[] = [
-    [1, ['setup-missing']],
     [2, ['out-of-scope']],
     [3, ['setup-missing', 'out-of-scope', 'failed']],
     [5, ['question']],
@@ -528,10 +527,30 @@ describe('w-auto の手順', () => {
     expect(preamble).toContain('引数に `project=<名前>` があれば、このスキルで使う pecot-workflow の MCP ツールに、その名前を `project` で渡す。')
   })
 
-  it.for(STOPS)('Step %i は、auto_finish に結果 %j を渡して終了する', async ([step, results]) => {
-    await explains(`\`w-auto\` の Step ${String(step)} のテストです。\`auto_finish\` を呼び、結果として \`${results.join('`・`')}\` を渡して終了すると書かれていることを確認します。`)
+  it('Step 1 の前に、止まる Step が結果のファイルの frontmatter に result を書いて終える文がある', async () => {
+    await explains('`w-auto` の手順の冒頭のテストです。止まる Step が、`result=` のパスに結果のファイルを書き、frontmatter の `result` に結果を書くと定めていることを確認します。')
+    const preamble = lines.slice(lines.indexOf('## 手順'), headings[0]?.line).join('\n')
+    expect(preamble).toContain('止まる Step では、`result=` のパスに結果のファイルを書いて終わる。')
+    expect(preamble).toContain('frontmatter の `result` に、その Step の結果を書く。')
+  })
+
+  it('Step 1 は、context= のパスの文脈のファイルを読み、MCP ツールを呼ばない', async () => {
+    await explains('`w-auto` の Step 1 のテストです。`context=` のパスの JSON を読み、Issue や計画などの欄を表で説明し、MCP ツールを呼ばないことを確認します。')
+    const body = sectionBody(text, numberIndex(headings, 1))
+    expect(body).toContain('`context=` のパスにある JSON のファイルを読む。')
+    for (const field of ['issue', 'plan', 'results', 'answers', 'withheld', 'branch', 'pr']) expect(body).toContain(`| \`${field}\` |`)
+    expect(body).not.toContain('MCP ツール')
+  })
+
+  it('自動処理の MCP ツールを呼ばない', async () => {
+    await explains('`w-auto` の SKILL.md の全体のテストです。移した自動処理のツール（`auto_start`・`auto_finish`）と `body_file` の入力が書かれていないことを確認します。')
+    for (const word of ['auto_start', 'auto_finish', 'body_file']) expect(text).not.toContain(word)
+  })
+
+  it.for(STOPS)('Step %i は、結果のファイルに結果 %j を書いて止まる', async ([step, results]) => {
+    await explains(`\`w-auto\` の Step ${String(step)} のテストです。結果のファイルに \`${results.join('`・`')}\` を書いて止まると書かれていることを確認します。`)
     const body = sectionBody(text, numberIndex(headings, step))
-    expect(body).toContain('`auto_finish`')
+    expect(body).toContain('結果のファイル')
     for (const result of results) expect(body).toContain(`\`result: ${result}\``)
   })
 

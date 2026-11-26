@@ -22,7 +22,7 @@ const annotations = z.strictObject({
   openWorldHint: z.boolean().optional(),
 })
 
-// generated.json は書き出しのコマンドが書く。cli・mcp は公開しない面では持たない。
+// generated.json は書き出しのコマンドが書く。cli・mcp・action は公開しない面では持たない。action は GitHub Actions の action のディレクトリ。
 export const generatedEntrySchema = z.strictObject({
   id: z.string(),
   name: z.string(),
@@ -30,6 +30,7 @@ export const generatedEntrySchema = z.strictObject({
   surfaces: z.strictObject({
     cli: z.strictObject({ path: z.array(z.string()).min(1) }).optional(),
     mcp: z.strictObject({ tool: z.string() }).optional(),
+    action: z.strictObject({ path: z.string() }).optional(),
   }),
   hidden: z.boolean(),
   deprecated: z.boolean(),
@@ -45,6 +46,10 @@ export const generatedEntrySchema = z.strictObject({
     title: z.string().optional(),
     output: jsonSchemaObject.optional(),
     annotations: annotations.optional(),
+  }).optional(),
+  // action.yml の outputs。キーは output の名前、値は action.yml の description。
+  action: z.strictObject({
+    outputs: z.record(z.string(), z.string()),
   }).optional(),
 })
 
@@ -171,6 +176,8 @@ export const authoredFileSchema = z.strictObject({
 export const targetsSchema = z.strictObject({
   format: z.literal(1),
   plugins: z.record(z.string().regex(/^[a-z0-9][a-z0-9-]*$/u), z.strictObject({
+    // 定義書（interface/）と glob の起点のディレクトリ。省いたら plugins/<名前>。
+    root: z.string().regex(/^[a-z0-9][a-z0-9/-]*$/u).optional(),
     entries: z.enum(ENTRIES_MODES),
     coverage: z.enum(COVERAGE_MODES),
     sources: z.array(z.string()),

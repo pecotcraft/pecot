@@ -4,19 +4,19 @@ import { explains } from '../../../tests/_helpers/explains.js'
 import { COMMAND_GROUPS, COMMAND_VERBS, commandNameViolations } from '../names.js'
 
 describe('commandNameViolations', () => {
-  it('コマンド名が、グループの一覧にある語と動詞の語彙にある語の 2 語の場合は、違反を返さない', async () => {
+  it('グループの一覧の語と語彙の動詞の 2 語なら、違反を返さない', async () => {
     await explains('コマンド名の規則の違反を求める関数（`commandNameViolations`）のテストです。`issue create` のように、グループと動詞の 2 語で構成されたコマンド名の場合に、違反が 1 件も返らないことを確認します。')
-    expect(commandNameViolations([['issue', 'create'], ['board', 'add'], ['tracker', 'sync']])).toEqual([])
+    expect(commandNameViolations([['issue', 'create'], ['board', 'add'], ['session', 'finish']])).toEqual([])
   })
 
   it.for([
     { name: 'ハイフンを含む 1 語', path: ['create-branch'], reason: 'has 1 word(s); a command name is \'<group> <verb>\' (2 words); \'create-branch\' is not a group in COMMAND_GROUPS' },
     { name: 'ハイフンを含む 2 語目の動詞', path: ['project', 'set-repo'], reason: '\'set-repo\' is not a verb in COMMAND_VERBS' },
     { name: '3 語', path: ['project', 'set', 'repo'], reason: 'has 3 word(s); a command name is \'<group> <verb>\' (2 words)' },
-    { name: '一覧に存在しないグループ', path: ['dependabot', 'sync'], reason: '\'dependabot\' is not a group in COMMAND_GROUPS' },
-    { name: '語彙に存在しない動詞', path: ['issue', 'read'], reason: '\'read\' is not a verb in COMMAND_VERBS' },
-    { name: 'グループと動詞の順序が逆', path: ['create', 'issue'], reason: '\'create\' is not a group in COMMAND_GROUPS; \'issue\' is not a verb in COMMAND_VERBS' },
-  ])('コマンド名が $name の場合は、path と違反の理由を返す', async ({ name, path, reason }) => {
+    { name: '一覧に無いグループ', path: ['dependabot', 'show'], reason: '\'dependabot\' is not a group in COMMAND_GROUPS' },
+    { name: '語彙に無い動詞', path: ['issue', 'read'], reason: '\'read\' is not a verb in COMMAND_VERBS' },
+    { name: 'グループと動詞の取り違え', path: ['create', 'issue'], reason: '\'create\' is not a group in COMMAND_GROUPS; \'issue\' is not a verb in COMMAND_VERBS' },
+  ])('$name は、path と理由を返す', async ({ name, path, reason }) => {
     await explains(`コマンド名の規則に違反するコマンド名のテストです。コマンド名が ${name} の場合に、path と違反の理由を返すことを確認します。`)
     expect(commandNameViolations([path])).toEqual([{ path: path.join(' '), reason }])
   })
@@ -39,9 +39,9 @@ describe('COMMAND_GROUPS と COMMAND_VERBS', () => {
     }
   })
 
-  it('グループは 12 個あり、help の一覧と同じ順に並ぶ', async () => {
-    await explains('コマンドのグループ（`COMMAND_GROUPS`）のテストです。`project`・`board`・`issue` など 12 個のグループが、`help` の一覧と同じ順序で並ぶことを確認します。')
-    expect(COMMAND_GROUPS.map(group => group.name)).toEqual(['project', 'board', 'issue', 'session', 'pr', 'review', 'auto', 'release', 'tracker', 'worktree', 'branch', 'workflow'])
+  it('グループは 9 個で、help の一覧の順に並ぶ', async () => {
+    await explains('コマンドのグループ（`COMMAND_GROUPS`）のテストです。`project`・`board`・`issue` など 9 個のグループが、`help` の一覧と同じ順序で並ぶことを確認します。')
+    expect(COMMAND_GROUPS.map(group => group.name)).toEqual(['project', 'board', 'issue', 'session', 'pr', 'release', 'worktree', 'branch', 'workflow'])
   })
 
   it('すべてのグループが、help に表示する説明を持つ', async () => {

@@ -34,7 +34,7 @@ const UNIVERSAL: readonly { readonly kind: string, readonly code: number }[] = [
 const UNREACHABLE: readonly { readonly file: string, readonly kinds: readonly string[], readonly ids: readonly string[] }[] = [
   // --repo の形は、引数の解析（CLI）と prepare（MCP）が先に確かめる
   { file: 'repository-match.ts', kinds: ['invalid-input'], ids: ['PW-ISSUE-ATTRIBUTES', 'PW-RELEASE-MERGE', 'PW-SESSION-START', 'PW-WORKTREE-ADD', 'PW-WORKTREE-INIT', 'PW-WORKTREE-REMOVE'] },
-  { file: 'release.ts', kinds: ['invalid-input'], ids: ['PW-ISSUE-ATTRIBUTES', 'PW-TRACKER-SYNC'] },
+  { file: 'release.ts', kinds: ['invalid-input'], ids: ['PW-ISSUE-ATTRIBUTES'] },
   // issue attributes・release check・create は、食い違いを warn で流す
   { file: 'repository-match.ts', kinds: ['repo-mismatch'], ids: ['PW-ISSUE-ATTRIBUTES', 'PW-RELEASE-CHECK', 'PW-RELEASE-CREATE'] },
   // キーごとの操作の表のうち、値を確かめるのは set だけ

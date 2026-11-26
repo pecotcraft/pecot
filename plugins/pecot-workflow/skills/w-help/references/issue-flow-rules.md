@@ -9,13 +9,13 @@ AI は推測で埋めない。ここで定義される手順に従い、ユー�
 ## 1. `repository` の決定
 
 Epic と、task / bug / tracker で挙動が異なる。
-表の `issue_create`・`tracker_sync` は、pecot-workflow の MCP ツールの名前。
+表の `issue_create` は、pecot-workflow の MCP ツールの名前。
 
 | 種類 | 投稿先の決まり方 |
 |------|-----------------|
 | Epic | `aggregation_repo` が設定済みなら **そこに集約する**。`repo` 未指定 + `repository: ""` でも `issue_create` が自動補完。例外時のみ `repo: "<owner/repo>"` で明示（警告を出して作成は続行） |
 | 通常 Issue（task / bug） | **実装が行われるリポ** を指定する。Epic が aggregation_repo に置かれていても、その配下のサブタスクは aggregation_repo に作らない |
-| Tracker | task と同じく `repo` が必須で、aggregation_repo に寄せない。security alert の Tracker は `tracker_sync`（`source: "security"`）が実装リポに立てる |
+| Tracker | task と同じく `repo` が必須で、aggregation_repo に寄せない。security alert の Tracker は、pecot の action の tracker-sync が、`source` を `security` にして実装リポに立てる |
 
 Epic は「プロジェクト全体の進捗把握 / 親子追跡」のため集約リポに寄せる。一方サブタスクは
 実装コードが置かれるリポに作ることで、PR や branch と同じ場所で追跡できる。両者を混同すると
@@ -116,7 +116,7 @@ aggregation_repo が同じ場合のみ意図通り動く。
 - `bug.md`: 既存挙動が期待値と乖離している事象の修正。**Problem（Expected / Actual を対置する表 + Repro）** が主軸
 
 `tracker.md` は、複数の作業を束ねる Tracker を `issue_create` で起こすときのテンプレで、Backlog に置く。
-security alert の Tracker は、このテンプレを通らない。本文は pecot-workflow の MCP ツール `tracker_sync` が作る。
+security alert の Tracker は、このテンプレを通らない。本文は pecot の action の tracker-sync が作る。
 
 `task-implement.md` は w-issueize 固有の「実装フェーズを順に展開する」フォーマットで、
 通常の単発起票では使わない。

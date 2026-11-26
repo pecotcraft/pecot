@@ -8,10 +8,12 @@ import { parseArgs } from 'node:util'
 import { CommandExit } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { makeClient } from '@pecot/workflow-core/commands-shared/github-client.js'
 import { createIssue, putOnBoard } from '@pecot/workflow-core/commands-shared/issue-board.js'
-import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
+import { createOutput, settle } from '@pecot/workflow-core/commands-shared/output.js'
 import type { Operation, Output } from '@pecot/workflow-core/commands-shared/output.js'
 import type { CommandIo } from '../../src/commands/registry.js'
-import { apiErrorDetail, isBodyUnchanged, loadTarget, settle, todayUtc, warnExtraTrackers } from '../../src/commands/tracker-sync.js'
+import { apiErrorDetail, isBodyUnchanged, syncTargetOf, todayUtc, warnExtraTrackers } from '@pecot/workflow-core/commands-shared/tracker-shared.js'
+import type { SyncTarget } from '@pecot/workflow-core/commands-shared/tracker-shared.js'
+import { requireReleaseTargetRepository } from '../../src/commands/release.js'
 import { diffIssueSurface, extractIssueSurface, hasIssueSurfaceDifference, issueSurfaceSchema } from '../../src/domain/issue-surface.js'
 import type { IssueSurfaceDiff } from '../../src/domain/issue-surface.js'
 import { buildTrackerTitle, IssueSurfaceTrackerError, renderTrackerBody, SURFACE_LABEL, TRACKER_PATTERN } from '../../src/domain/issue-surface-tracker.js'
@@ -73,7 +75,7 @@ async function sourcesOf(options: Readonly<Options>): Promise<{ sdl: string, ope
 interface SyncContext {
   readonly out: Readonly<Output>
   readonly client: GitHubClient
-  readonly target: ReturnType<typeof loadTarget>
+  readonly target: SyncTarget
   readonly diff: IssueSurfaceDiff
   readonly names: IssueSurfaceSourceNames
   readonly isDryRun: boolean
@@ -128,7 +130,7 @@ async function rewriteTracker(context: Readonly<SyncContext>, tracker: Readonly<
 }
 
 async function sync(out: Readonly<Output>, options: Readonly<Options>, diff: Readonly<IssueSurfaceDiff>, names: Readonly<IssueSurfaceSourceNames>): Promise<number> {
-  const target = loadTarget(out, options.repository, undefined)
+  const target = syncTargetOf(out, requireReleaseTargetRepository(undefined, options.repository, out), undefined)
   const client = await makeClient(out, target.config)
   try {
     const issues = await client.listIssuesByLabel(target.owner, target.repository, SURFACE_LABEL)

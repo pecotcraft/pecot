@@ -64,9 +64,24 @@ const AUTO_REQUIREMENTS: readonly SettingRequirement[] = [
 ]
 
 /**
+ボードの同期は App か PAT のどちらかの組を使う（雛形の先頭のコメント）
+*/
+const BOARD_SYNC_REQUIREMENTS: readonly SettingRequirement[] = [
+  {
+    type: 'anyOf',
+    options: [
+      [{ kind: 'variable', name: 'PECOT_BOARD_SYNC_APP_CLIENT_ID' }, { kind: 'secret', name: 'PECOT_BOARD_SYNC_APP_PRIVATE_KEY' }],
+      [{ kind: 'variable', name: 'PECOT_BOARD_SYNC_USE_PAT' }, { kind: 'secret', name: 'PECOT_BOARD_SYNC_TOKEN' }],
+    ],
+    missing: 'variable PECOT_BOARD_SYNC_APP_CLIENT_ID and secret PECOT_BOARD_SYNC_APP_PRIVATE_KEY, or variable PECOT_BOARD_SYNC_USE_PAT and secret PECOT_BOARD_SYNC_TOKEN',
+  },
+]
+
+/**
 雛形の一覧。雛形を足すときは行を足す
 */
 export const WORKFLOW_TEMPLATES: readonly WorkflowTemplate[] = [
+  { name: 'board-sync', templateFile: 'pecot-board-sync.yml', destination: '.github/workflows/pecot-board-sync.yml', requirements: BOARD_SYNC_REQUIREMENTS, claudeApp: false },
   { name: 'review', templateFile: 'pecot-review.yml', destination: '.github/workflows/pecot-review.yml', requirements: AGENT_REQUIREMENTS, claudeApp: true },
   { name: 'handoff', templateFile: 'pecot-handoff.yml', destination: '.github/workflows/pecot-handoff.yml', requirements: AGENT_REQUIREMENTS, claudeApp: false },
   { name: 'auto', templateFile: 'pecot-auto.yml', destination: '.github/workflows/pecot-auto.yml', requirements: AUTO_REQUIREMENTS, claudeApp: false },
@@ -99,6 +114,56 @@ export function isOutdated(installed: string, bundled: string): boolean {
   const latest = readTemplateVersion(bundled)
   if (latest === undefined) throw new Error('the bundled template has no version marker')
   return current?.name !== latest.name || current.version < latest.version
+}
+
+/**
+雛形が pecot の action を指す行の、action の名前とタグ
+*/
+export interface PecotActionReference {
+  readonly action: string
+  readonly tag: string
+}
+
+// eslint-disable-next-line security/detect-unsafe-regex -- 行ごとに当てる。繰り返す群は空白と `- ` だけで、再試行は行の長さに比例して増えない
+const PECOT_ACTION_TAG = /^(\s*(?:-\s+)?uses:\s*)pecotcraft\/pecot\/actions\/([a-z][a-z-]*)@(pecot-actions\/v\S+)\s*$/u
+// eslint-disable-next-line security/detect-unsafe-regex -- 各行の先頭に錨がある。省ける群は空白と `- ` だけで、ほかの群は固定の文字列
+const PECOT_ACTION_USE = /^\s*(?:-\s+)?uses:\s*(?:pecotcraft\/pecot\/actions\/|\.\/(?:\.pecot-actions\/)?actions\/)/mu
+const NPX_WORKFLOW_MCP = /\bnpx\b.*@pecot\/workflow-mcp\b/u
+
+/**
+タグで pecot の action を指す行を、出てくる順に返す
+*/
+export function pecotActionReferences(text: string): readonly PecotActionReference[] {
+  return text.split('\n').flatMap((line) => {
+    const match = PECOT_ACTION_TAG.exec(line)
+    return match === null ? [] : { action: match[2] ?? '', tag: match[3] ?? '' }
+  })
+}
+
+/**
+タグで pecot の action を指す行を、`<SHA> # <タグ>` の形に直す。SHA は shaOf がタグごとに返す
+*/
+export function pinPecotActions(text: string, shaOf: (tag: string) => string): string {
+  return text.split('\n').map((line) => {
+    const match = PECOT_ACTION_TAG.exec(line)
+    if (match === null) return line
+    const [, prefix = '', action = '', tag = ''] = match
+    return `${prefix}pecotcraft/pecot/actions/${action}@${shaOf(tag)} # ${tag}`
+  }).join('\n')
+}
+
+/**
+`@pecot/workflow-mcp` を npx で呼ぶ行。pecot の action に移す前の雛形にある
+*/
+export function npxWorkflowMcpLines(text: string): readonly string[] {
+  return text.split('\n').filter(line => NPX_WORKFLOW_MCP.test(line) && !line.trimStart().startsWith('#'))
+}
+
+/**
+pecot の action を uses で呼ぶ行があるか
+*/
+export function hasPecotActionStep(text: string): boolean {
+  return PECOT_ACTION_USE.test(text)
 }
 
 const BLOCK_MARKER = /^\s*# pecot-[\w-]+:([\w-]+):(begin|end)\s*$/u

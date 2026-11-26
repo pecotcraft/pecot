@@ -32,8 +32,10 @@ export type FileState
     | { readonly kind: 'ok', readonly data: unknown }
 
 export interface PluginInput {
-  // plugins/ の下のディレクトリ名
+  // targets.json のキー。定義書の plugin の欄と同じ
   readonly name: string
+  // 定義書と glob の起点のディレクトリ。リポからの相対で、既定は plugins/<name>
+  readonly root: string
   readonly dirExists: boolean
   readonly mode: 'complete' | 'partial'
   readonly generated: FileState
@@ -155,8 +157,8 @@ function checkGenerated(file: string, name: string, data: GeneratedFile): Findin
     }
     if (seen.has(scope)) findings.push({ file, scope, field: 'id', reason: 'is defined more than once' })
     seen.add(scope)
-    if (entry.surfaces.cli === undefined && entry.surfaces.mcp === undefined) {
-      findings.push({ file, scope, field: 'surfaces', reason: 'must have cli or mcp' })
+    if (entry.surfaces.cli === undefined && entry.surfaces.mcp === undefined && entry.surfaces.action === undefined) {
+      findings.push({ file, scope, field: 'surfaces', reason: 'must have cli, mcp or action' })
     }
     if (entry.surfaces.mcp !== undefined && entry.mcp?.output?.['additionalProperties'] !== false) {
       findings.push({ file, scope, field: 'mcp.output', reason: 'is not a closed type (declare every field the tool returns and set additionalProperties to false)' })
@@ -365,9 +367,9 @@ function runExamples(entry: AuthoredEntry): RunExample[] {
   return entry.examples.filter((example): example is RunExample => 'run' in example)
 }
 
-// MCP の面を持つ項目の使用例は arguments の形で、キーは input にあり、required を全部持つ。面の無い項目は run の形。
+// MCP か action の面を持つ項目の使用例は arguments の形（action は with: の inputs）で、キーは input にあり、required を全部持つ。どちらも無い項目は run の形。
 function exampleFindings(file: string, scope: string, entry: AuthoredEntry, generated: GeneratedEntry): Finding[] {
-  const hasMcp = generated.surfaces.mcp !== undefined
+  const hasArgumentsForm = generated.surfaces.mcp !== undefined || generated.surfaces.action !== undefined
   const known = new Set(Object.keys(generated.input.properties))
   const only = new Set(cliOnlyNames(generated))
   const listed: unknown = generated.input['required']
@@ -375,9 +377,9 @@ function exampleFindings(file: string, scope: string, entry: AuthoredEntry, gene
   return entry.examples.flatMap((example, index): Finding[] => {
     const field = `examples[${String(index)}]`
     if (!('arguments' in example)) {
-      return hasMcp ? [{ file, scope, field, reason: 'must be an MCP call (write arguments instead of run)' }] : []
+      return hasArgumentsForm ? [{ file, scope, field, reason: 'must be an MCP call or action inputs (write arguments instead of run)' }] : []
     }
-    if (!hasMcp) return [{ file, scope, field, reason: 'must be a command line (write run instead of arguments; the entry has no MCP surface)' }]
+    if (!hasArgumentsForm) return [{ file, scope, field, reason: 'must be a command line (write run instead of arguments; the entry has no MCP or action surface)' }]
     const names = Object.keys(example.arguments)
     return [
       ...names.filter(name => !known.has(name)).map(name => ({
@@ -640,7 +642,7 @@ function lenientFindings(file: string, data: unknown, generated: GeneratedFile |
 }
 
 function checkPlugin(plugin: PluginInput): { readonly findings: Finding[], readonly ids: readonly string[] } {
-  const directory = `plugins/${plugin.name}/interface`
+  const directory = `${plugin.root}/interface`
   if (!plugin.dirExists) {
     return { findings: [{ file: directory, reason: `directory is missing (listed in ${TARGETS_PATH})` }], ids: [] }
   }
@@ -670,7 +672,7 @@ function checkPlugin(plugin: PluginInput): { readonly findings: Finding[], reado
   findings.push(...checkAuthored(authoredPath, plugin.name, plugin.mode, parsed.data, generated))
   if (plugin.mode === 'complete') {
     findings.push(...checkEnvironment({
-      pluginDir: `plugins/${plugin.name}`,
+      pluginDir: plugin.root,
       authoredPath,
       sources: plugin.sources,
       listed: [...parsed.data.environment, ...Object.values(parsed.data.entries).flatMap(entry => entry.environment)].map(item => item.name),
@@ -684,6 +686,6 @@ export function validateDefinitions(plugins: readonly PluginInput[]): Finding[] 
   const checked = plugins.toSorted((left, right) => compareText(left.name, right.name)).map(plugin => ({
     plugin, ...checkPlugin(plugin),
   }))
-  const files = checked.map(item => ({ file: `plugins/${item.plugin.name}/interface/authored.yaml`, ids: item.ids }))
+  const files = checked.map(item => ({ file: `${item.plugin.root}/interface/authored.yaml`, ids: item.ids }))
   return sortFindings([...checked.flatMap(item => item.findings), ...duplicateIds(files)])
 }

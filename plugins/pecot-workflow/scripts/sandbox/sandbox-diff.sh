@@ -12,6 +12,18 @@ HOST="github.com"
 CONFIG_DIR=".pecot/config/projects"
 # 有無と中身を比べる workflow。比べる相手は、このリポの main にある同じファイル（FR-032）。
 COPIED_WORKFLOWS=(pecot-board-sync.yml pecot-handoff.yml pecot-review.yml)
+# pecot の action を、このリポは ./actions/<処理> で呼び、検証用は pecotcraft/pecot/actions/<処理>@<ref> で呼ぶ。そろえてから比べる。
+# このリポだけの step（Check out the pecot actions）も落とす
+PECOT_ACTIONS='
+    def pecot_actions:
+        reduce .[] as $l ({out: [], skip: false};
+            if ($l | test("^      - name: Check out the pecot actions$")) then
+                .skip = true | .out |= (if ((.[-1] // "") | test("^      # ")) then .[:-1] else . end)
+            elif .skip and ($l | test("^        ")) then .
+            elif .skip then .skip = false | (if $l == "" then . else .out += [$l] end)
+            else .out += [$l] end)
+        | .out
+        | map(sub("^(?<p>\\s*(?:- )?uses: )(?:\\./(?:\\.pecot-actions/)?actions/|pecotcraft/pecot/actions/)(?<a>[a-z-]+)(?:@\\S+)?(?:\\s+#.*)?$"; "\(.p)pecotcraft/pecot/actions/\(.a)@<ref>"));'
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 items_file="$script_dir/sandbox-diff-items.json"
@@ -133,8 +145,8 @@ read_workflows() {
         api "$file" "$file?ref=main"
         require "$file" content '.content'
         require "$file" sha '.sha'
-        out=$(jq -c --argjson acc "$out" --arg n "$name" '
-            $acc + {($n): {sha, lines: (.content | gsub("\\s"; "") | @base64d | split("\n"))}}' <<< "$RESP")
+        out=$(jq -c --argjson acc "$out" --arg n "$name" "$PECOT_ACTIONS"'
+            $acc + {($n): {sha, lines: (.content | gsub("\\s"; "") | @base64d | split("\n") | pecot_actions)}}' <<< "$RESP")
     done
     echo "$out"
 }
@@ -206,9 +218,10 @@ snapshot "$SANDBOX_REPO" "$SANDBOX_PROJECT" > "$work/sandbox.json"
 jq -r -n --slurpfile a "$work/this.json" --slurpfile b "$work/sandbox.json" \
     --arg none "なし" --arg no_line "（行なし）" --arg line_unit " 行目: " \
     --arg count_head "ずれは " --arg count_tail " 件" --arg this_head "  このリポ: " --arg sandbox_head "  検証用: " '
+    def compared_value: if type == "object" and has("lines") then .lines else . end;
     def pairs($prefix; $x; $y):
         (($x // {}) | keys) + (($y // {}) | keys) | unique[] as $k
-        | select(($x // {})[$k] != ($y // {})[$k])
+        | select((($x // {})[$k] | compared_value) != (($y // {})[$k] | compared_value))
         | {name: "\($prefix)\($k)", this: ($x // {})[$k], sandbox: ($y // {})[$k],
            has_this: (($x // {}) | has($k)), has_sandbox: (($y // {}) | has($k))};
     def rules_pairs($x; $y):

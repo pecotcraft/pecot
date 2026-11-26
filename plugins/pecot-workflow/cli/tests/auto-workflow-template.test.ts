@@ -54,6 +54,8 @@ const run: Job = workflow.jobs['run'] ?? { steps: [] }
 const setup: Job = workflow.jobs['setup'] ?? { steps: [] }
 const label = 'vars.PECOT_AUTO_LABEL || \'pecot-auto\''
 const pecot = 'mcp__plugin_pecot-w_pecot-workflow__'
+const actions = 'pecotcraft/pecot/actions'
+const project = '${{ vars.PECOT_AUTO_PROJECT }}'
 
 function text(value: unknown): string {
   return typeof value === 'string' ? value : ''
@@ -78,9 +80,11 @@ function grantedPermissions(step: Readonly<Step>): Record<string, unknown> {
 const fix = stepUsing(run, 'anthropics/claude-code-action')
 const fixInputs = fix.with ?? {}
 const claudeArguments = text(fixInputs['claude_args'])
-const decide = stepRunning(gate, 'auto gate')
-const finish = stepRunning(run, 'auto finish')
-const report = stepRunning(setup, 'auto finish')
+const decide = stepUsing(gate, `${actions}/auto-gate`)
+const start = stepUsing(run, `${actions}/auto-start`)
+const finish = stepUsing(run, `${actions}/auto-finish`)
+const check = stepRunning(setup, 'gh api')
+const report = stepUsing(setup, `${actions}/auto-finish`)
 
 function toolList(flag: string): string[] {
   const start = claudeArguments.indexOf(`${flag} "`)
@@ -92,8 +96,8 @@ function toolList(flag: string): string[] {
 
 describe('auto のワークフローの雛形', () => {
   it('1 行目に、雛形の名前と版の目印がある', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。1 行目に、雛形の名前と版を示す `# pecot-workflow-template: auto 1` があることを確認します。')
-    expect(template.split('\n', 1)[0]).toBe('# pecot-workflow-template: auto 1')
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。1 行目に、雛形の名前と版を示す `# pecot-workflow-template: auto 2` があることを確認します。')
+    expect(template.split('\n', 1)[0]).toBe('# pecot-workflow-template: auto 2')
   })
 
   it('YAML として読めると、gate・run・setup の 3 つの job を持つ', async () => {
@@ -215,33 +219,35 @@ describe('auto のワークフローの雛形', () => {
     expect(setup.steps.filter(step => step.uses?.startsWith('actions/create-github-app-token@') === true)).toEqual([])
   })
 
-  it('gate の step は、Checkout・Set up Node.js・トークンの発行・Decide の順に並ぶ', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`gate` の step が、`Checkout`・`Set up Node.js`・トークンの発行・`Decide` の順に並ぶことを確認します。')
+  it('gate の step は、Checkout・トークンの発行・Decide の順に並ぶ', async () => {
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`gate` の step が、`Checkout`・トークンの発行・`auto-gate` の action の順に並ぶことを確認します。')
     expect(gate.steps.map(step => step.uses?.split('@', 1)[0] ?? step.id)).toEqual([
       'actions/checkout',
-      'actions/setup-node',
       'actions/create-github-app-token',
-      'decide',
+      `${actions}/auto-gate`,
     ])
   })
 
-  it('run の step は、Checkout・Set up Node.js・トークンの発行・action・後始末の順に並び、準備の囲みが action の前にある', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`run` の step が、`Checkout`・`Set up Node.js`・トークンの発行・action・後始末の順に並び、準備の囲みが action の前にあることを確認します。')
+  it('run の step は、Checkout・Set up Node.js・トークンの発行・Start・action・Finish の順に並び、準備の囲みが Start と action の間にある', async () => {
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`run` の step が `auto-start` と `auto-finish` を含む 6 つの順に並び、準備の囲みが `auto-start` と action の間にあることを確認します。')
     expect(run.steps.map(step => step.uses?.split('@', 1)[0] ?? step.name)).toEqual([
       'actions/checkout',
       'actions/setup-node',
       'actions/create-github-app-token',
+      `${actions}/auto-start`,
       'anthropics/claude-code-action',
-      finish.name,
+      `${actions}/auto-finish`,
     ])
     const prepare = template.indexOf('# pecot-auto:prepare:begin')
-    expect(prepare).toBeGreaterThan(template.indexOf('actions/create-github-app-token@', template.indexOf('\n  run:')))
+    expect(prepare).toBeGreaterThan(template.indexOf(`${actions}/auto-start@`))
     expect(prepare).toBeLessThan(template.indexOf('anthropics/claude-code-action@'))
   })
 
-  it('setup の step は、Checkout・Set up Node.js・Report の 3 つになる', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`setup` の step が、`Checkout`・`Set up Node.js`・`Report` の 3 つであることを確認します。')
-    expect(setup.steps.map(step => step.uses?.split('@', 1)[0] ?? step.name)).toEqual(['actions/checkout', 'actions/setup-node', 'Report'])
+  it('setup の step は、Checkout・Check・Report の 3 つになる', async () => {
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`setup` の step が、`Checkout`・`Check`・`auto-finish` の action を使う `Report` の 3 つであることを確認します。')
+    expect(setup.steps.map(step => step.uses?.split('@', 1)[0] ?? step.name)).toEqual(['actions/checkout', 'Check', `${actions}/auto-finish`])
+    expect(check.id).toBe('check')
+    expect(report.name).toBe('Report')
   })
 
   it('Checkout は、どの job も既定のブランチを persist-credentials: false で読む', async () => {
@@ -251,11 +257,12 @@ describe('auto のワークフローの雛形', () => {
     }
   })
 
-  it('setup-node は、どの job も review と同じ版の Node で、npm のキャッシュを戻さず保存もしない', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。すべての job の `setup-node` は、`pecot-review.yml` と同じ版の Node を使い、npm のキャッシュを復元せず保存もしないことを確認します。')
+  it('setup-node は、プラグインの MCP サーバを動かす run の job にだけあり、review と同じ版の Node で、npm のキャッシュを戻さず保存もしない', async () => {
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`setup-node` は `run` の job にだけあり、`pecot-review.yml` と同じ版の Node を使い、npm のキャッシュを復元せず保存もしないことを確認します。')
     const reviewNode = stepUsing(review.jobs['review'] ?? { steps: [] }, 'actions/setup-node').with?.['node-version']
-    for (const job of [gate, run, setup]) {
-      expect(stepUsing(job, 'actions/setup-node').with).toEqual({ 'node-version': reviewNode, 'package-manager-cache': false })
+    expect(stepUsing(run, 'actions/setup-node').with).toEqual({ 'node-version': reviewNode, 'package-manager-cache': false })
+    for (const job of [gate, setup]) {
+      expect(job.steps.filter(step => step.uses?.startsWith('actions/setup-node@') === true)).toEqual([])
     }
   })
 
@@ -292,9 +299,14 @@ describe('auto のワークフローの雛形', () => {
     expect(fixInputs['allowed_bots']).toBe('${{ steps.token.outputs.app-slug }}')
   })
 
-  it('prompt は、gate の kind と issue を w-auto に渡し、変数 PECOT_AUTO_PROJECT のあるときだけ project=<名前> を足す', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`prompt` が `gate` の `kind` と `issue` を `w-auto` に渡し、`PECOT_AUTO_PROJECT` の設定時だけ `project=<名前>` を追加することを確認します。')
-    expect(fixInputs['prompt']).toBe('/pecot-w:w-auto ${{ needs.gate.outputs.kind }} ${{ needs.gate.outputs.issue }}${{ vars.PECOT_AUTO_PROJECT != \'\' && format(\' project={0}\', vars.PECOT_AUTO_PROJECT) || \'\' }}')
+  it('prompt は、gate の kind と issue・文脈と結果のファイルを w-auto に渡し、変数があれば project=<名前> を足す', async () => {
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` の `prompt` のテストです。`gate` の `kind`・`issue` と文脈・結果のファイルを `w-auto` に渡し、変数 `PECOT_AUTO_PROJECT` があるときだけ `project=<名前>` を追加することを確認します。')
+    expect(fixInputs['prompt']).toBe('/pecot-w:w-auto ${{ needs.gate.outputs.kind }} ${{ needs.gate.outputs.issue }} context=${{ steps.start.outputs.context-file }} result=${{ runner.temp }}/pecot-auto/result.md${{ vars.PECOT_AUTO_PROJECT != \'\' && format(\' project={0}\', vars.PECOT_AUTO_PROJECT) || \'\' }}')
+  })
+
+  it('action の step は、Start が成功したときだけ動く', async () => {
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。action の step の `if` が、`auto-start` の step が成功した場合だけ動く条件であることを確認します。')
+    expect(fix.if).toBe('${{ success() && steps.start.outcome == \'success\' }}')
   })
 
   it('prompt は、Issue の本文・タイトル・コメントを埋め込まない', async () => {
@@ -305,23 +317,25 @@ describe('auto のワークフローの雛形', () => {
     }
   })
 
-  it('claude_args は権限のモード・ターンの上限・許可・拒否の 4 つを持ち、# を含まない', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`claude_args` が、権限のモード・ターンの上限・許可・拒否の 4 つのオプションだけを持ち、`#` を含まないことを確認します。')
+  it('claude_args は権限のモード・ターンの上限・文脈と結果の置き場所・許可・拒否の 5 つを持ち、# を含まない', async () => {
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`claude_args` が、権限のモード・ターンの上限・`--add-dir`・許可・拒否の 5 つのオプションだけを持ち、`#` を含まないことを確認します。')
     expect(claudeArguments).toContain('--permission-mode default')
     expect(claudeArguments).toContain('--max-turns ${{ vars.PECOT_AUTO_MAX_TURNS || \'80\' }}')
+    expect(claudeArguments).toContain('--add-dir "${{ runner.temp }}/pecot-auto"')
     expect(claudeArguments).toContain('--allowedTools "')
     expect(claudeArguments).toContain('--disallowedTools "')
     expect(Array.from(claudeArguments.matchAll(/(?:^|\s)(--[a-z-]+)/gi), match => match[1])).toEqual([
       '--permission-mode',
       '--max-turns',
+      '--add-dir',
       '--allowedTools',
       '--disallowedTools',
     ])
     expect(claudeArguments).not.toContain('#')
   })
 
-  it('許可は契約のツールだけで、Edit・Write と 6 つの MCP ツールを含み、pecot の CLI を Bash で許さない', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`--allowedTools` が定めたツールだけで、`Edit`・`Write` と 6 つの MCP ツールを含み、pecot の CLI を `Bash` で許可しないことを確認します。')
+  it('許可は契約のツールだけで、Edit・Write と 4 つの MCP ツールを含み、pecot の CLI を Bash で許さない', async () => {
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`--allowedTools` が定めたツールだけで、`Edit`・`Write` と 4 つの MCP ツールを含み、pecot の CLI を `Bash` で許可しないことを確認します。')
     const allowed = toolList('--allowedTools')
     expect(allowed).toEqual([
       'Read',
@@ -333,8 +347,6 @@ describe('auto のワークフローの雛形', () => {
       `${pecot}issue_comment`,
       `${pecot}pr_check`,
       `${pecot}pr_create`,
-      `${pecot}auto_start`,
-      `${pecot}auto_finish`,
       'Bash(git status:*)',
       'Bash(git diff:*)',
       'Bash(git log:*)',
@@ -352,7 +364,7 @@ describe('auto のワークフローの雛形', () => {
   it('許可に、マージ・クローズ・リリースのツールを含まない', async () => {
     await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`--allowedTools` のどのツールにも、マージ・クローズ・リリースに関わるものが含まれないことを確認します。')
     for (const tool of toolList('--allowedTools')) {
-      expect(tool).not.toMatch(/merge|close|release|session_finish|branch_delete|gh api|gh issue/)
+      expect(tool).not.toMatch(/merge|close|release|session_finish|branch_delete|auto_|gh api|gh issue/)
     }
   })
 
@@ -382,47 +394,48 @@ describe('auto のワークフローの雛形', () => {
     expect(allowedTools).toContain('PECOT_AUTO_EXTRA_ALLOWED_TOOLS: ""')
   })
 
-  it('action の step は、App のトークンと起動ラベルの名前を env で受ける', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。action の step が、App のトークンと起動ラベルの名前を `env` で受け取ることを確認します。')
+  it('action の step は、App のトークンだけを env で受ける', async () => {
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。action の step が、`env` で App のトークンだけを受け取ることを確認します。')
     expect(fix.id).toBe('claude')
-    expect(fix.env).toEqual({ PECOT_GITHUB_COM_TOKEN: '${{ steps.token.outputs.token }}', PECOT_AUTO_LABEL: `\${{ ${label} }}` })
+    expect(fix.env).toEqual({ PECOT_GITHUB_COM_TOKEN: '${{ steps.token.outputs.token }}' })
   })
 
-  it('Decide は、App のトークン・起動ラベル・CI を直す回数の上限・プロジェクトを env で受け、run に式を埋め込まない', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`Decide` が、App のトークン・起動ラベル・CI の修正回数の上限・プロジェクトを `env` で受け取り、`run` に式を埋め込まないことを確認します。')
-    expect(decide.env).toEqual({
-      PECOT_GITHUB_COM_TOKEN: '${{ steps.token.outputs.token }}',
-      PECOT_AUTO_LABEL: `\${{ ${label} }}`,
-      MAX_CI_ATTEMPTS: '${{ vars.PECOT_AUTO_MAX_CI_ATTEMPTS || \'3\' }}',
-      PECOT_AUTO_PROJECT: '${{ vars.PECOT_AUTO_PROJECT }}',
+  it('Decide は、起動ラベルを env で、App のトークン・CI を直す回数の上限・プロジェクトを入力で受ける', async () => {
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`Decide` が起動ラベルを `env` で受け取り、App のトークン・CI の修正回数の上限・プロジェクトを `with` で受け取ることを確認します。')
+    expect(decide.env).toEqual({ PECOT_AUTO_LABEL: `\${{ ${label} }}` })
+    expect(decide.with).toEqual({
+      'token': '${{ steps.token.outputs.token }}',
+      'max-ci-attempts': '${{ vars.PECOT_AUTO_MAX_CI_ATTEMPTS || \'3\' }}',
+      project,
     })
-    expect(decide.run).not.toContain('${{')
   })
 
-  it('後始末の step は if: always() で動き、6 つの値を env で受け、run に式を埋め込まない', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。後始末の step が `if: always()` で動き、6 つの値を `env` で受け取り、`run` に式を埋め込まないことを確認します。')
+  it('Start は、App のトークン・gate の issue・プロジェクトを入力で受ける', async () => {
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`auto-start` の step が、App のトークン・`gate` の `issue`・プロジェクトを `with` で受け取ることを確認します。')
+    expect(start.id).toBe('start')
+    expect(start.with).toEqual({ token: '${{ steps.token.outputs.token }}', issue: '${{ needs.gate.outputs.issue }}', project })
+  })
+
+  it('Finish は if: always() で動き、起動ラベルを env で、job の様子と結果と実行のファイルを入力で受ける', async () => {
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`auto-finish` の step が `if: always()` で動き、起動ラベルを `env` で、job の状態や結果のファイルなど 7 つの値を `with` で受け取ることを確認します。')
     expect(finish.if).toBe('${{ always() }}')
-    expect(finish.env).toEqual({
-      ISSUE: '${{ needs.gate.outputs.number }}',
-      JOB_STATUS: '${{ job.status }}',
-      EXECUTION_FILE: '${{ steps.claude.outputs.execution_file }}',
-      PECOT_AUTO_LABEL: `\${{ ${label} }}`,
-      PECOT_GITHUB_COM_TOKEN: '${{ steps.token.outputs.token }}',
-      PECOT_AUTO_PROJECT: '${{ vars.PECOT_AUTO_PROJECT }}',
+    expect(finish.env).toEqual({ PECOT_AUTO_LABEL: `\${{ ${label} }}` })
+    expect(finish.with).toEqual({
+      'token': '${{ steps.token.outputs.token }}',
+      'issue': '${{ needs.gate.outputs.issue }}',
+      'job-status': '${{ job.status }}',
+      'start-outcome': '${{ steps.start.outcome }}',
+      'result-file': '${{ runner.temp }}/pecot-auto/result.md',
+      'execution-file': '${{ steps.claude.outputs.execution_file }}',
+      project,
     })
-    expect(finish.run).not.toContain('${{')
   })
 
-  it('setup の Report は、run のトークンとラベルを付けた人と Issue の番号と本文を env で受け、run に式を埋め込まない', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`setup` の `Report` が、トークン・ラベルを付けた人・Issue の番号・本文を `env` で受け取り、`run` に式を埋め込まないことを確認します。')
-    expect(report.name).toBe('Report')
-    const { BODY_NO_APP: noApp, BODY_NO_TOKEN: noToken, ...expressions } = report.env ?? {}
+  it('setup の Check は、run のトークンとラベルを付けた人と本文を env で受け、run に式を埋め込まない', async () => {
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`setup` の `Check` が、トークン・ラベルを付けた人・本文を `env` で受け取り、`run` に式を埋め込まないことを確認します。')
+    const { BODY_NO_APP: noApp, BODY_NO_TOKEN: noToken, ...expressions } = check.env ?? {}
     expect(expressions).toEqual({
       GH_TOKEN: '${{ github.token }}',
-      PECOT_GITHUB_COM_TOKEN: '${{ github.token }}',
-      PECOT_AUTO_LABEL: `\${{ ${label} }}`,
-      PECOT_AUTO_PROJECT: '${{ vars.PECOT_AUTO_PROJECT }}',
-      ISSUE: '${{ github.event.issue.number }}',
       SENDER: '${{ github.event.sender.login }}',
       NO_APP: '${{ vars.PECOT_AGENT_APP_CLIENT_ID == \'\' }}',
     })
@@ -430,22 +443,40 @@ describe('auto のワークフローの雛形', () => {
       expect(body).toContain('PECOT_AGENT_APP_CLIENT_ID')
       expect(body).not.toContain('${{')
     }
-    expect(report.run).not.toContain('${{')
+    expect(check.run).not.toContain('${{')
   })
 
-  it('CLI を打つ 3 つの step は、どれも最新の正式版の CLI を --prefix=/ で取る', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。CLI を実行する 3 つの step が、いずれも最新の正式版の CLI を `--prefix=/` を付けて取得することを確認します。')
-    for (const step of [decide, finish, report]) {
-      expect(step.run).toContain('npx -y --prefix=/ @pecot/workflow-mcp@latest auto ')
-    }
-    expect(Array.from(template.matchAll(/@pecot\/workflow-mcp@(\S+)/g), match => match[1])).toEqual(['latest', 'latest', 'latest'])
+  it('setup の Report は、Check が通ったときだけ、run のトークンで Check の本文を setup-missing の結果として書く', async () => {
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`setup` の `Report` が `Check` を通った場合だけ動き、`Check` の本文を `setup-missing` の結果として `auto-finish` の action に渡すことを確認します。')
+    expect(report.if).toBe('${{ steps.check.outputs.ok == \'true\' }}')
+    expect(report.env).toEqual({ PECOT_AUTO_LABEL: `\${{ ${label} }}` })
+    expect(report.with).toEqual({
+      'token': '${{ github.token }}',
+      'issue': '${{ github.event.issue.number }}',
+      'result': 'setup-missing',
+      'body-file': '${{ steps.check.outputs.body-file }}',
+      project,
+    })
   })
 
-  it('すべての action を 40 桁の SHA で固定し、review の雛形と同じ版にそろえる', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。すべての action を 40 桁の SHA で固定し、`pecot-review.yml` と同じ版にそろえていることを確認します。')
+  it('pecot の 4 つの action はリリースのタグで指し、npx で CLI を取らない', async () => {
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。pecot の 4 つの action をリリースのタグで指定し、`npx` で CLI を取得しないことを確認します。')
+    const pecotUses = Array.from(template.matchAll(/uses: (pecotcraft\/pecot\/actions\/[a-z-]+)@(\S+)$/gm), match => [match[1], match[2]])
+    expect(pecotUses).toEqual([
+      [`${actions}/auto-gate`, 'pecot-actions/v0.0.0'],
+      [`${actions}/auto-start`, 'pecot-actions/v0.0.0'],
+      [`${actions}/auto-finish`, 'pecot-actions/v0.0.0'],
+      [`${actions}/auto-finish`, 'pecot-actions/v0.0.0'],
+    ])
+    expect(template).not.toMatch(/\bnpx\b/)
+  })
+
+  it('pecot 以外の action を 40 桁の SHA で固定し、review の雛形と同じ版にそろえる', async () => {
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。pecot 以外のすべての action を 40 桁の SHA で固定し、`pecot-review.yml` と同じ版にそろえていることを確認します。')
     const reviewUses = new Map(Array.from(reviewTemplate.matchAll(/uses: ([^@\s]+)(@\S+ # \S+)/g), match => [match[1] ?? '', match[2] ?? '']))
     const uses = Array.from(template.matchAll(/uses: ([^@\s]+)(@.*)$/gm), match => ({ action: match[1] ?? '', ref: match[2] ?? '' }))
-    expect(uses.length).toBe(9)
+      .filter(({ action }) => !action.startsWith(`${actions}/`))
+    expect(uses.length).toBe(7)
     for (const { action, ref } of uses) {
       expect(ref).toMatch(/^@[0-9a-f]{40} # v\d+\.\d+\.\d+$/)
       expect(ref, `${action} の版が review と違う`).toBe(reviewUses.get(action))
@@ -460,33 +491,29 @@ describe('auto のワークフローの雛形', () => {
   })
 })
 
-// run の中身を、偽の gh と npx を PATH の先頭に置いた bash で動かし、CLI に渡す引数と書く本文を見る。
-describe('auto のワークフローの雛形の step の中身', () => {
+function readLines(file: string): string[] | undefined {
+  return existsSync(file) ? readOutput(file).split('\n').slice(0, -1) : undefined
+}
+
+// Check の run を、偽の gh を PATH の先頭に置いた bash で動かし、outputs と書く本文を見る。
+describe('auto のワークフローの雛形の Check の中身', () => {
   let work = ''
   let bin = ''
   let log = ''
+  let output = ''
 
   beforeEach(() => {
     work = mkdtempSync(path.join(tmpdir(), 'pecot-auto-template-'))
     bin = path.join(work, 'bin')
     log = path.join(work, 'log')
+    output = path.join(work, 'github-output')
     for (const directory of [bin, log]) mkdirSync(directory)
-    const fakeNpx = [
-      '#!/usr/bin/env bash',
-      'printf \'%s\\n\' "$@" > "$FAKE_LOG/npx-args"',
-      'previous=""',
-      'for argument in "$@"; do',
-      '    if [ "$previous" = "--body-file" ]; then cp "$argument" "$FAKE_LOG/body"; fi',
-      '    previous="$argument"',
-      'done',
-    ].join('\n')
     const fakeGh = [
       '#!/usr/bin/env bash',
       'printf \'%s\\n\' "$@" > "$FAKE_LOG/gh-args"',
       'if [ -z "${FAKE_ROLE:-}" ]; then exit 1; fi',
       'echo "$FAKE_ROLE"',
     ].join('\n')
-    writeFileSync(path.join(bin, 'npx'), `${fakeNpx}\n`, { mode: 0o755 })
     writeFileSync(path.join(bin, 'gh'), `${fakeGh}\n`, { mode: 0o755 })
   })
 
@@ -494,68 +521,47 @@ describe('auto のワークフローの雛形の step の中身', () => {
     rmSync(work, { recursive: true, force: true })
   })
 
-  // GitHub Actions の既定の shell と同じく、bash --noprofile --norc -eo pipefail でファイルを動かす。式の無い step の env はそのまま渡す。
-  function runStep(step: Readonly<Step>, environment: Readonly<Record<string, string>>): number {
+  // GitHub Actions の既定の shell と同じく、bash --noprofile --norc -eo pipefail でファイルを動かす。式の無い env はそのまま渡す。
+  function runCheck(environment: Readonly<Record<string, string>>): number {
     const script = path.join(work, 'step.sh')
-    writeFileSync(script, step.run ?? '')
-    const literal = Object.fromEntries(Object.entries(step.env ?? {}).filter(([, value]) => !value.includes('${{')))
+    writeFileSync(script, check.run ?? '')
+    const literal = Object.fromEntries(Object.entries(check.env ?? {}).filter(([, value]) => !value.includes('${{')))
     const result = spawnSync('bash', ['--noprofile', '--norc', '-eo', 'pipefail', script], {
-      env: { PATH: `${bin}:${process.env['PATH'] ?? ''}`, FAKE_LOG: log, RUNNER_TEMP: work, GITHUB_REPOSITORY: 'owner/repo', ...literal, ...environment },
+      env: { PATH: `${bin}:${process.env['PATH'] ?? ''}`, FAKE_LOG: log, RUNNER_TEMP: work, GITHUB_REPOSITORY: 'owner/repo', GITHUB_OUTPUT: output, ...literal, ...environment },
       encoding: 'utf8',
     })
-    attachOutput(`bash step.sh（${step.name ?? ''}）`, result.status ?? undefined, result.stdout, result.stderr)
+    attachOutput(`bash step.sh（${check.name ?? ''}）`, result.status ?? undefined, result.stdout, result.stderr)
     return result.status ?? -1
   }
 
-  function logged(name: string): string[] | undefined {
-    const file = path.join(log, name)
-    return existsSync(file) ? readOutput(file).split('\n').slice(0, -1) : undefined
+  function writtenBody(): string {
+    return readOutput(path.join(work, 'pecot-auto-setup.md'))
   }
-
-  it('Decide は、変数 PECOT_AUTO_PROJECT が空なら、イベントと上限の 3 つの引数だけで auto gate を打つ', async () => {
-    await explains('雛形の `Decide` の step を実行するテストです。変数 `PECOT_AUTO_PROJECT` が空の場合に、偽の `npx` に対しイベントと上限の 3 つの引数だけで `auto gate` を実行することを確認します。')
-    expect(runStep(decide, { GITHUB_EVENT_NAME: 'issues', GITHUB_EVENT_PATH: '/e.json', MAX_CI_ATTEMPTS: '3', PECOT_AUTO_PROJECT: '' })).toBe(0)
-    expect(logged('npx-args')).toEqual(['-y', '--prefix=/', '@pecot/workflow-mcp@latest', 'auto', 'gate', '--event-name', 'issues', '--event-path', '/e.json', '--max-ci-attempts', '3'])
-  })
-
-  it('Decide は、変数 PECOT_AUTO_PROJECT があれば、--project を足す', async () => {
-    await explains('雛形の `Decide` の step を実行するテストです。変数 `PECOT_AUTO_PROJECT` がある場合に、`auto gate` の引数に `--project` を追加することを確認します。')
-    expect(runStep(decide, { GITHUB_EVENT_NAME: 'issues', GITHUB_EVENT_PATH: '/e.json', MAX_CI_ATTEMPTS: '5', PECOT_AUTO_PROJECT: 'my board' })).toBe(0)
-    expect(logged('npx-args')?.slice(-4)).toEqual(['--max-ci-attempts', '5', '--project', 'my board'])
-  })
-
-  it('後始末は、job の状態と実行のファイルを渡して auto finish --ensure を打ち、プロジェクトがあれば --project を足す', async () => {
-    await explains('雛形の後始末の step を実行するテストです。job の状態と実行のファイルを渡して `auto finish --ensure` を実行し、プロジェクトがある場合は `--project` を追加することを確認します。')
-    expect(runStep(finish, { ISSUE: '12', JOB_STATUS: 'failure', EXECUTION_FILE: '', PECOT_AUTO_PROJECT: '' })).toBe(0)
-    expect(logged('npx-args')).toEqual(['-y', '--prefix=/', '@pecot/workflow-mcp@latest', 'auto', 'finish', 'owner/repo/12', '--ensure', '--job-status', 'failure', '--execution-file', ''])
-    expect(runStep(finish, { ISSUE: '12', JOB_STATUS: 'success', EXECUTION_FILE: '/x.json', PECOT_AUTO_PROJECT: 'p' })).toBe(0)
-    expect(logged('npx-args')?.slice(-4)).toEqual(['--execution-file', '/x.json', '--project', 'p'])
-  })
 
   it.for([
     { role: 'admin' },
     { role: 'write' },
-  ])('Report は、ラベルを付けた人の権限が $role なら、本文のファイルを書いて auto finish --result setup-missing を打つ', async ({ role }) => {
-    await explains(`雛形の \`Report\` の step を実行するテストです。ラベルを付けた人の権限が \`${role}\` の場合に、本文のファイルを書き込み、\`auto finish --result setup-missing\` を実行することを確認します。`)
-    expect(runStep(report, { ISSUE: '7', SENDER: 'alice', FAKE_ROLE: role, PECOT_AUTO_PROJECT: '' })).toBe(0)
-    expect(logged('gh-args')).toEqual(['api', 'repos/owner/repo/collaborators/alice/permission', '--jq', '.permission'])
-    expect(logged('npx-args')).toEqual(['-y', '--prefix=/', '@pecot/workflow-mcp@latest', 'auto', 'finish', 'owner/repo/7', '--result', 'setup-missing', '--body-file', path.join(work, 'pecot-auto-setup.md')])
+  ])('ラベルを付けた人の権限が $role なら、本文のファイルを書いて、ok とファイルのパスを outputs に出す', async ({ role }) => {
+    await explains(`雛形の \`Check\` の step を実行するテストです。ラベルを付けた人の権限が \`${role}\` の場合に、本文のファイルを書き込み、\`ok=true\` とファイルのパスを outputs に出力することを確認します。`)
+    expect(runCheck({ SENDER: 'alice', FAKE_ROLE: role })).toBe(0)
+    expect(readLines(path.join(log, 'gh-args'))).toEqual(['api', 'repos/owner/repo/collaborators/alice/permission', '--jq', '.permission'])
+    expect(readLines(output)).toEqual(['ok=true', `body-file=${path.join(work, 'pecot-auto-setup.md')}`])
   })
 
-  it('Report の本文は、変数が空なら、足りない変数と secret の名前と workflow doctor auto を書き、結果のコメントの書き方を守る', async () => {
-    await explains('雛形の `Report` の step を実行するテストです。変数が空の場合に、不足している変数と secret の名前と `pecot workflow doctor auto` を本文に含め、結果のコメントの書式に従うことを確認します。')
-    expect(runStep(report, { ISSUE: '7', SENDER: 'alice', FAKE_ROLE: 'write', PECOT_AUTO_PROJECT: '', NO_APP: 'true' })).toBe(0)
-    const body = (logged('body') ?? []).join('\n')
+  it('変数が空なら、足りない変数と secret の名前と workflow doctor auto を本文に書き、結果のコメントの書き方を守る', async () => {
+    await explains('雛形の `Check` の step を実行するテストです。変数が空の場合に、不足している変数と secret の名前と `pecot workflow doctor auto` を本文に含め、結果のコメントの書式に従うことを確認します。')
+    expect(runCheck({ SENDER: 'alice', FAKE_ROLE: 'write', NO_APP: 'true' })).toBe(0)
+    const body = writtenBody()
     for (const name of ['`PECOT_AGENT_APP_CLIENT_ID`', '`PECOT_AGENT_APP_PRIVATE_KEY`', '`pecot workflow doctor auto`']) {
       expect(body).toContain(name)
     }
     expect(validateBodyStyle(body)).toEqual([])
   })
 
-  it('Report の本文は、変数があれば、トークンを作れなかったことと確かめる設定と権限を書き、書き方を守る', async () => {
-    await explains('雛形の `Report` の step を実行するテストです。変数がある場合に、トークンを作成できなかったことと、確認する設定と権限を本文に含め、書式に従うことを確認します。')
-    expect(runStep(report, { ISSUE: '7', SENDER: 'alice', FAKE_ROLE: 'write', PECOT_AUTO_PROJECT: '', NO_APP: 'false' })).toBe(0)
-    const body = (logged('body') ?? []).join('\n')
+  it('変数があれば、トークンを作れなかったことと確かめる設定と権限を本文に書き、書き方を守る', async () => {
+    await explains('雛形の `Check` の step を実行するテストです。変数がある場合に、トークンを作成できなかったことと、確認する設定と権限を本文に含め、書式に従うことを確認します。')
+    expect(runCheck({ SENDER: 'alice', FAKE_ROLE: 'write', NO_APP: 'false' })).toBe(0)
+    const body = writtenBody()
     expect(body).toContain('トークンを作れなかった')
     for (const name of ['`PECOT_AGENT_APP_CLIENT_ID`', '`PECOT_AGENT_APP_PRIVATE_KEY`', '`gate`', 'Contents: write', 'Issues: write', 'Pull requests: write', 'Actions: read', 'Projects: write']) {
       expect(body).toContain(name)
@@ -564,32 +570,27 @@ describe('auto のワークフローの雛形の step の中身', () => {
     expect(validateBodyStyle(body)).toEqual([])
   })
 
-  it('Report は、変数 PECOT_AUTO_PROJECT があれば、--project を足す', async () => {
-    await explains('雛形の `Report` の step を実行するテストです。変数 `PECOT_AUTO_PROJECT` がある場合に、`auto finish` の引数に `--project` を追加することを確認します。')
-    expect(runStep(report, { ISSUE: '7', SENDER: 'alice', FAKE_ROLE: 'admin', PECOT_AUTO_PROJECT: 'p' })).toBe(0)
-    expect(logged('npx-args')?.slice(-2)).toEqual(['--project', 'p'])
-  })
-
   it.for([
     { role: 'read' },
     { role: 'triage' },
     { role: 'none' },
-  ])('Report は、ラベルを付けた人の権限が $role なら、何も書かずに成功で終わる', async ({ role }) => {
-    await explains(`雛形の \`Report\` の step を実行するテストです。ラベルを付けた人の権限が \`${role}\` の場合に、何も書き込まずに成功で終了することを確認します。`)
-    expect(runStep(report, { ISSUE: '7', SENDER: 'bob', FAKE_ROLE: role, PECOT_AUTO_PROJECT: '' })).toBe(0)
-    expect(logged('npx-args')).toBeUndefined()
+  ])('ラベルを付けた人の権限が $role なら、本文と outputs を書かずに成功で終わる', async ({ role }) => {
+    await explains(`雛形の \`Check\` の step を実行するテストです。ラベルを付けた人の権限が \`${role}\` の場合に、本文と outputs を書き込まずに成功で終了することを確認します。`)
+    expect(runCheck({ SENDER: 'bob', FAKE_ROLE: role })).toBe(0)
+    expect(readLines(output)).toBeUndefined()
+    expect(existsSync(path.join(work, 'pecot-auto-setup.md'))).toBe(false)
   })
 
-  it('Report は、権限を読めないとき、何も書かずに成功で終わる', async () => {
-    await explains('雛形の `Report` の step を実行するテストです。ラベルを付けた人の権限を取得できない場合に、何も書き込まずに成功で終了することを確認します。')
-    expect(runStep(report, { ISSUE: '7', SENDER: 'bob', PECOT_AUTO_PROJECT: '' })).toBe(0)
-    expect(logged('npx-args')).toBeUndefined()
+  it('権限を読めないとき、本文と outputs を書かずに成功で終わる', async () => {
+    await explains('雛形の `Check` の step を実行するテストです。ラベルを付けた人の権限を取得できない場合に、本文と outputs を書き込まずに成功で終了することを確認します。')
+    expect(runCheck({ SENDER: 'bob' })).toBe(0)
+    expect(readLines(output)).toBeUndefined()
   })
 
-  it('Report は、ラベルを付けた人の名前が [bot] で終わると、権限を読まずに何も書かずに終わる', async () => {
-    await explains('雛形の `Report` の step を実行するテストです。ラベルを付けた人の名前が `[bot]` で終わる場合に、権限を取得せず、何も書き込まずに終了することを確認します。')
-    expect(runStep(report, { ISSUE: '7', SENDER: 'some-app[bot]', FAKE_ROLE: 'write', PECOT_AUTO_PROJECT: '' })).toBe(0)
-    expect(logged('gh-args')).toBeUndefined()
-    expect(logged('npx-args')).toBeUndefined()
+  it('ラベルを付けた人の名前が [bot] で終わると、権限を読まずに何も書かずに終わる', async () => {
+    await explains('雛形の `Check` の step を実行するテストです。ラベルを付けた人の名前が `[bot]` で終わる場合に、権限を取得せず、何も書き込まずに終了することを確認します。')
+    expect(runCheck({ SENDER: 'some-app[bot]', FAKE_ROLE: 'write' })).toBe(0)
+    expect(readLines(path.join(log, 'gh-args'))).toBeUndefined()
+    expect(readLines(output)).toBeUndefined()
   })
 })

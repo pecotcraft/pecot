@@ -1,4 +1,4 @@
-# pecot-workflow-template: review 8
+# pecot-workflow-template: review 9
 #
 # Place this file at .github/workflows/pecot-review.yml in your repository.
 #
@@ -60,6 +60,10 @@
 # Runs started by Dependabot read Dependabot secrets, not Actions secrets.
 # To review Dependabot PRs, add "dependabot[bot]" to PECOT_REVIEW_ALLOWED_BOTS.
 # Then set the secrets above as Dependabot secrets too.
+#
+# The pecot action of the Finish step is pinned to a commit SHA.
+# The comment after it names the release tag.
+# Dependabot can update it when .github/dependabot.yml has the github-actions ecosystem.
 #
 # Keep your own lines between the pecot-review:*:begin and :end markers.
 # `pecot workflow install review --force` shows them before it overwrites this file.
@@ -277,24 +281,28 @@ jobs:
                     (.[] | "| \(.tool_name | cell) | \(.tool_input | target | cell) |")) end)
           ' "$EXECUTION_FILE" >> "$GITHUB_STEP_SUMMARY"
 
-      # The dist-tag after the package name decides the version. @latest is the newest release,
-      # and a new major version brings breaking changes. Use @<major> or @<version> to stay on one.
-      # --prefix=/ keeps npx from stopping in a repository that declares pnpm devEngines.
+      # このリポだけの step。PR の head の action を App の token で動かさないよう、既定のブランチの actions/ を別のパスに置く
+      - name: Check out the pecot actions
+        if: ${{ always() && steps.first.outputs.ok != 'false' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .pecot-actions
+          sparse-checkout: actions
+          persist-credentials: false
+
       - name: Finish
         if: ${{ always() && steps.first.outputs.ok != 'false' }}
+        uses: ./.pecot-actions/actions/review-finish
         env:
-          PR: ${{ github.event.pull_request.number || github.event.issue.number }}
-          JOB_STATUS: ${{ job.status }}
-          REVIEW_OUTCOME: ${{ steps.claude.outcome }}
-          REVIEW_CONCLUSION: ${{ steps.claude.outputs.conclusion }}
-          # Pass only whether the action got a token, never the token itself.
-          REVIEW_HAS_TOKEN: ${{ steps.claude.outputs.github_token != '' }}
-          EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
-          REVIEW_STARTED_AT: ${{ steps.start.outputs.time }}
           PECOT_REVIEW_TRIGGER_PHRASE: ${{ vars.PECOT_REVIEW_TRIGGER_PHRASE }}
-          PECOT_GITHUB_COM_TOKEN: ${{ steps.token.outputs.token || github.token }}
-        run: >-
-          npx -y --prefix=/ @pecot/workflow-mcp@next review finish "$GITHUB_REPOSITORY/$PR" --ensure
-          --job-status "$JOB_STATUS" --review-outcome "$REVIEW_OUTCOME"
-          --review-conclusion "$REVIEW_CONCLUSION" --review-has-token "$REVIEW_HAS_TOKEN"
-          --execution-file "$EXECUTION_FILE" --since "$REVIEW_STARTED_AT"
+        with:
+          token: ${{ steps.token.outputs.token || github.token }}
+          pr: ${{ github.event.pull_request.number || github.event.issue.number }}
+          job-status: ${{ job.status }}
+          review-outcome: ${{ steps.claude.outcome }}
+          review-conclusion: ${{ steps.claude.outputs.conclusion }}
+          # Pass only whether the action got a token, never the token itself.
+          review-has-token: ${{ steps.claude.outputs.github_token != '' }}
+          execution-file: ${{ steps.claude.outputs.execution_file }}
+          since: ${{ steps.start.outputs.time }}

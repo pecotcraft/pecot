@@ -1,0 +1,160 @@
+# pecot-workflow-template: handoff 2
+#
+# Place this file at .github/workflows/pecot-handoff.yml in your repository.
+#
+# This workflow runs the pecot w-handoff skill with claude-code-action after a PR is merged.
+# It compares the merged changes with the plan of each closed issue.
+# Then it posts a merge-diff comment on the parent Epic of the issue.
+# When a speckit task changes what later tasks rely on, it posts precede-notify comments on them.
+# When no closed issue has a parent Epic, it posts nothing.
+# It never pushes, merges, closes, or edits files. It reads the PR with gh pr diff and gh pr view.
+# Other commands that need approval are denied.
+# Running it again posts the comments again.
+# PRs from forks and PRs opened by bots are skipped.
+#
+# pull_request_target runs the workflow from the default branch.
+# Secrets are passed to PRs from forks, so this workflow never checks out code from a PR.
+# The default branch must hold the pecot project config under .pecot/config/projects.
+#
+# The Claude GitHub App is not needed.
+# Set one model credential in Settings > Secrets and variables > Actions.
+#   Claude subscription (default).
+#     Set secret CLAUDE_CODE_OAUTH_TOKEN, made with `claude setup-token`.
+#   Claude Platform with Workload Identity Federation.
+#     Leave secret CLAUDE_CODE_OAUTH_TOKEN unset.
+#     Set variable PECOT_AGENT_ANTHROPIC_FEDERATION_RULE_ID.
+#     Set variable PECOT_AGENT_ANTHROPIC_ORGANIZATION_ID.
+#     Set variable PECOT_AGENT_ANTHROPIC_SERVICE_ACCOUNT_ID.
+#     Set variable PECOT_AGENT_ANTHROPIC_WORKSPACE_ID.
+#     The id-token permission of the job is used only for this.
+# The pecot-review.yml workflow uses the same settings.
+#
+# By default, comments come from github-actions[bot].
+# To post as your own GitHub App, set variable PECOT_AGENT_APP_CLIENT_ID.
+# Also set secret PECOT_AGENT_APP_PRIVATE_KEY.
+# The workflow narrows its token to Issues: write, Pull requests: read, and Contents: read.
+#
+# Optional variables. Each one falls back to its default when unset.
+#   PECOT_HANDOFF_MODEL names the Claude model, as an alias or a full name. The default is "opus".
+#   PECOT_HANDOFF_EFFORT sets the effort level (low/medium/high/xhigh/max). The default is "medium".
+#   PECOT_HANDOFF_MAX_TURNS limits the turns of the main agent. The default is 30.
+#   PECOT_HANDOFF_TIMEOUT_MINUTES limits the job time in minutes. The default is 20.
+#   PECOT_HANDOFF_PROJECT names the pecot project config to use. The default is unset.
+#     Set it when the repository is in two or more configs under .pecot/config/projects.
+#     Write the file name without .json.
+#
+# The job summary of each run shows the model and the effort level that were used.
+# It also lists the tools that were called and the calls that were denied.
+# For each call it shows one input field cut to 200 characters, never tool output.
+# The field is the first one found in this order: path, command, pattern, URL.
+# Then it looks for a query or a reference.
+# A call with none of these shows only the names of its input fields.
+# Any of these inputs, even in a denied call, can carry text that Claude wrote.
+name: pecot handoff
+
+on:
+  pull_request_target:
+    types: [closed]
+
+jobs:
+  handoff:
+    if: >-
+      ${{
+        github.event.pull_request.merged &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.user.type != 'Bot'
+      }}
+    runs-on: ubuntu-latest
+    # Variables are strings, and timeout-minutes needs a number.
+    timeout-minutes: ${{ fromJSON(vars.PECOT_HANDOFF_TIMEOUT_MINUTES || '20') }}
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+      id-token: write
+    steps:
+      - name: Generate GitHub App token
+        id: token
+        if: ${{ vars.PECOT_AGENT_APP_CLIENT_ID != '' }}
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.PECOT_AGENT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PECOT_AGENT_APP_PRIVATE_KEY }}
+          permission-issues: write
+          permission-pull-requests: read
+          permission-contents: read
+
+      # No ref: the default branch is checked out, which holds the project settings.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.22.1"
+          # This job holds secrets, so the npm cache is neither restored nor saved.
+          package-manager-cache: false
+
+      - name: Hand off
+        id: claude
+        uses: anthropics/claude-code-action@cc98b3ae241b0fcfb6a42a2690751afffecb4452 # v1.0.278
+        env:
+          PECOT_GITHUB_COM_TOKEN: ${{ steps.token.outputs.token || github.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # The action takes either a token or Workload Identity Federation, not both.
+          anthropic_federation_rule_id: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && vars.PECOT_AGENT_ANTHROPIC_FEDERATION_RULE_ID || '' }}
+          anthropic_organization_id: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && vars.PECOT_AGENT_ANTHROPIC_ORGANIZATION_ID || '' }}
+          anthropic_service_account_id: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && vars.PECOT_AGENT_ANTHROPIC_SERVICE_ACCOUNT_ID || '' }}
+          anthropic_workspace_id: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && vars.PECOT_AGENT_ANTHROPIC_WORKSPACE_ID || '' }}
+          # Without an App token, the run token is passed. Then the action does not exchange
+          # an OIDC token for a Claude GitHub App token. The exchange rejects pull_request_target.
+          github_token: ${{ steps.token.outputs.token || github.token }}
+          plugin_marketplaces: https://github.com/pecotcraft/pecot.git
+          plugins: pecot-w@pecot
+          prompt: /pecot-w:w-handoff ${{ github.repository }}/${{ github.event.pull_request.number }}${{ vars.PECOT_HANDOFF_PROJECT != '' && format(' project={0}', vars.PECOT_HANDOFF_PROJECT) || '' }}
+          # The hook writes the effort level in use, which the record step shows. It returns nothing.
+          settings: >-
+            {"hooks":{"PreToolUse":[{"hooks":[{"type":"command",
+            "command":"printf %s \"$CLAUDE_EFFORT\" > \"$RUNNER_TEMP/pecot-handoff-effort\""}]}]}}
+          claude_args: >-
+            --permission-mode default
+            --model ${{ vars.PECOT_HANDOFF_MODEL || 'opus' }}
+            --effort ${{ vars.PECOT_HANDOFF_EFFORT || 'medium' }}
+            --max-turns ${{ vars.PECOT_HANDOFF_MAX_TURNS || '30' }}
+            --allowedTools "Read,mcp__plugin_pecot-w_pecot-workflow__pr_show,mcp__plugin_pecot-w_pecot-workflow__issue_show,mcp__plugin_pecot-w_pecot-workflow__issue_comment,Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --disallowedTools "Edit,Write,NotebookEdit,AskUserQuestion,Agent,WebFetch,WebSearch,Bash(git clone:*),Read(//proc/**)"
+
+      # Tool inputs carry text that Claude wrote from the diff, so each one goes in a code span.
+      - name: Record the run
+        if: ${{ always() && steps.claude.outputs.execution_file != '' }}
+        continue-on-error: true
+        env:
+          EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
+        run: |
+          if [ ! -f "$EXECUTION_FILE" ]; then exit 0; fi
+          effort=unknown
+          if [ -s "$RUNNER_TEMP/pecot-handoff-effort" ]; then effort=$(cat "$RUNNER_TEMP/pecot-handoff-effort"); fi
+          jq -r --arg effort "$effort" '
+            def cell: tostring | gsub("[\r\n]+"; " ") | gsub("`"; "") | .[0:200] | gsub("\\|"; "\\|") | if . == "" then "" else "`" + . + "`" end;
+            def target: if type != "object" then ""
+              else (.file_path // .path // .file // .pattern // .command // .url // .query
+                // .pr_ref // .issue_ref) // (keys | join(", ")) end;
+            (map(select(.type == "system" and .subtype == "init")) | first // {}) as $init
+            | (map(select(.type == "result")) | last // {}) as $result
+            | "## Handoff run", "",
+              "| Model | Effort | Turns | Result |", "|---|---|---|---|",
+              "| \($init.model // "unknown" | cell) | \($effort | cell) | \($result.num_turns // "" | cell) | \($result.subtype // "" | cell) |",
+              "", "### Tool calls", "",
+              ([.[] | select(.type == "assistant") | .message.content[]? | select(.type == "tool_use")]
+                | if length == 0 then "None."
+                  else ("| # | Tool | Target |", "|---|---|---|",
+                    (to_entries[] | "| \(.key + 1) | \(.value.name | cell) | \(.value.input | target | cell) |")) end),
+              "", "### Denied calls", "",
+              (($result.permission_denials // [])
+                | if length == 0 then "None."
+                  else ("| Tool | Target |", "|---|---|",
+                    (.[] | "| \(.tool_name | cell) | \(.tool_input | target | cell) |")) end)
+          ' "$EXECUTION_FILE" >> "$GITHUB_STEP_SUMMARY"

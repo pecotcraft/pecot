@@ -11,11 +11,13 @@ Claude Code / GitHub Copilot CLI 向けプラグインの monorepo（nx workspac
 | `plugins/pecot-tools` | 許可リストで限定した awscli コマンドの MCP サーバ | `pecot-tools` | `test-cli` / `test-release` |
 | `libs/text-rules` | テキスト規則ライブラリ（pecot-visual への同梱と root フックが使う） | `text-rules` | `test-unit` |
 | `libs/workflow-core` | pecot-workflow と Actions の処理が共有するコード（pecot-workflow への同梱が使う） | `workflow-core` | `test-unit` |
+| `actions` | 利用者のリポのワークフローが `uses:` で呼ぶ GitHub Actions の action と、ワークフローの雛形。AI と無関係に動く | `actions` | `test-unit` |
 | `libs/interface-spec` | インタフェース定義書の形式と検証。配布しない | `interface-spec` | `test-unit` / `test-site` |
 | `.githooks` | root 共通の hook とそのテスト | `githooks` | `test-nx-cache` / `test-nx-affected` / `test-ci` / `test-checks` |
 
 - `test` target は全量実行（`nx run-many -t test`）の起点で、入力を持たない。`nx affected -t test` は 0 件で成功するので、チェックはレーン名を列挙して `nx affected` で要求する
 - lint は pecot-visual・pecot-workflow が `lint-*` のレーン、interface-spec が `lint`・`lint-defs`、ほかは `lint` 1 つ
+  - actions は `lint` に加えて `lint-dist` を持つ。commit した `actions/<処理>/dist` が、build し直したものと同じかを確かめる
 - `interface-spec` の `docs` は、定義書の HTML を作る target で、ci でも `nx affected` でも動かない。公開サイトを作る `pages-build.yml` だけが動かす。手順は `libs/interface-spec/README.md`
 
 ## プラグイン製品としての前提

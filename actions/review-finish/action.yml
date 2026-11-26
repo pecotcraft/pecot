@@ -1,0 +1,30 @@
+name: pecot review finish
+description: Finish an automated review. Post one comment on the PR only when the review stopped (failed, limit or setup-missing).
+inputs:
+  token:
+    description: Token to read the PR and write the comment (the App token of the workflow)
+    required: false
+  pr:
+    description: PR number in the repository of the workflow, or owner/repo/N
+    required: true
+  job-status:
+    description: Status of the job (job.status)
+    required: true
+  execution-file:
+    description: Path of the execution_file output of claude-code-action
+    required: false
+  since:
+    description: Start time of the review step in ISO 8601, to find the inline comments it posted. Empty means the stop location is unknown
+    required: false
+  review-outcome:
+    description: Outcome of the automated review step (steps.<id>.outcome)
+    required: true
+  review-conclusion:
+    description: The conclusion output of claude-code-action. Pass it even when empty; empty means Claude Code did not run
+    required: true
+  review-has-token:
+    description: Whether claude-code-action output a github_token (true or false; never the token itself)
+    required: true
+runs:
+  using: node24
+  main: dist/index.js

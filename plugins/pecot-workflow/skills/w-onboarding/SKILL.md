@@ -132,7 +132,26 @@ PR を作ると GitHub Actions の上で w-review のレビューを回すワー
 8. 利用者が設定を終えたら、`workflow_doctor` で確かめる。`items` のうち `state` が `missing` か `outdated` の項目の `name` を示す。`skipped` は足りないと数えない
 9. 足りないものが無ければ、既定のブランチへ入れるまで動かないことを添えて、Step 6 へ進む
 
-### Step 6: 次ステップ案内
+### Step 6: 古い雛形を置き換える
+
+前にカレントリポへ置いた雛形が古ければ、新しい雛形へ置き換える PR を出す。古い雛形は `@pecot/workflow-mcp` を npx で呼んでおり、新しい雛形は pecot の action を呼ぶ。
+
+1. 雛形の一覧の `board-sync`・`review`・`handoff`・`auto` ごとに、pecot-workflow の MCP ツール `workflow_doctor` を使う
+   - ファイルの項目が `missing` の雛形は飛ばす
+   - 止まったら、止まった理由を示して Step 7 へ進む
+2. 次の項目のどちらかが `outdated` の雛形を集める。無ければ Step 7 へ進む
+   - `workflow template <名前>`
+   - `<置き先> calls the pecot actions, not npx @pecot/workflow-mcp`
+3. 既定のブランチの最新から作業ブランチ `chore/update-pecot-workflows` を作って切り替える
+4. 集めた雛形ごとに、pecot-workflow の MCP ツール `workflow_install` を `force: true` で使い、置き直す
+   - 結果に `removedLines` があれば、利用者が足していた行として示す
+   - `github-not-found` で止まったら、pecot の action のリリースがまだ無いので、その旨を示して Step 7 へ進む
+5. 置き直したファイルをコミットして push し、pecot-workflow の MCP ツール `pr_create` で PR を出す
+   - `no_issue_ref: true` を渡す。紐づく Issue は無い
+   - 本文には、置き直した雛形の名前と、npx の行が pecot の action の呼び出しに替わったことを書く
+6. PR の URL を示し、GitHub の画面でマージすると新しい雛形で動くことを添えて、Step 7 へ進む
+
+### Step 7: 次ステップ案内
 
 集約リポの設定状況に応じて案内を分岐する。設定は pecot-workflow の MCP ツール `project_get` で確かめる。
 

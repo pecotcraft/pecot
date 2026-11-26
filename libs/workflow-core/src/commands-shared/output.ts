@@ -98,6 +98,14 @@ export interface Output<D extends object = Record<string, unknown>> {
 }
 
 /**
+API を呼ばない操作の行を出す。dry-run では計画、実行では結果になる
+*/
+export function settle(out: Output, operation: Operation): void {
+  out.planned(operation)
+  out.done(operation)
+}
+
+/**
 warning の行の前置き。MCP の側はこれで stderr から warning の文を拾う
 */
 export const WARNING_PREFIX = 'warning: '

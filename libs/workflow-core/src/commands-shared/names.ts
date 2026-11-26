@@ -41,10 +41,7 @@ export const COMMAND_GROUPS: readonly CommandGroup[] = [
   { name: 'issue', meaning: 'Issue そのもの', help: 'Work with Issues' },
   { name: 'session', meaning: '1 つの Issue の作業の始まりから終わりまで', help: 'Start, show and finish the work on an Issue' },
   { name: 'pr', meaning: 'PR そのもの', help: 'Work with PRs' },
-  { name: 'review', meaning: 'PR の自動レビューの実行', help: 'Work with automated reviews of PRs' },
-  { name: 'auto', meaning: 'Issue のラベルを契機にした自動処理の実行', help: 'Work with automated fixes started by an Issue label' },
   { name: 'release', meaning: 'リリース', help: 'Work with releases' },
-  { name: 'tracker', meaning: 'Tracker の Issue の書き直し', help: 'Rewrite the list in a Tracker Issue' },
   { name: 'worktree', meaning: 'worktree', help: 'Work with worktrees' },
   { name: 'branch', meaning: 'リモートのブランチ', help: 'Work with remote branches' },
   { name: 'workflow', meaning: '導入先のリポに置く GitHub Actions のワークフロー', help: 'Install and check the GitHub Actions workflows of pecot' },
@@ -73,7 +70,6 @@ export const COMMAND_VERBS: readonly CommandWord[] = [
   { name: 'activate', meaning: '使うプロジェクトを切り替える' },
   { name: 'start', meaning: '作業を始める' },
   { name: 'finish', meaning: '作業を終えて片付ける' },
-  { name: 'sync', meaning: '判定や一覧に合わせて書き直す' },
   { name: 'move', meaning: 'ボードの列を移す' },
   { name: 'merge', meaning: 'PR をマージする' },
   { name: 'restack', meaning: 'スタックしたブランチを、base の新しい位置へスタックし直す' },
@@ -82,7 +78,6 @@ export const COMMAND_VERBS: readonly CommandWord[] = [
   { name: 'reopen', meaning: '閉じたものを開き直す' },
   { name: 'block', meaning: '前提を付ける' },
   { name: 'unblock', meaning: '前提を外す' },
-  { name: 'gate', meaning: '先へ進めるかを決める' },
 ]
 
 const COMMAND_WORD_COUNT = 2

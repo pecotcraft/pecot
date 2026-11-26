@@ -93,9 +93,6 @@ plugins/pecot-visual/skills/v-slidev/SKILL.md
 plugins/pecot-workflow/agents/w-plan-reviewer.md
 plugins/pecot-workflow/cli/src/cli.ts
 plugins/pecot-workflow/cli/templates/comment/plan.md
-plugins/pecot-workflow/cli/templates/workflow/pecot-board-sync.yml
-plugins/pecot-workflow/cli/templates/workflow/pecot-handoff.yml
-plugins/pecot-workflow/cli/templates/workflow/pecot-review.yml
 plugins/pecot-workflow/cli/tests/bootstrap/data-dir.sh
 plugins/pecot-workflow/cli/tests/bootstrap/install-record.sh
 plugins/pecot-workflow/cli/tests/hooks/baseline-scripts.test.ts
@@ -117,3 +114,7 @@ pnpm-workspace.yaml
 pyproject.toml
 specs/026-pre-merge-test-env/spec.md
 uv.lock
+actions/src/entry.ts
+actions/templates/pecot-board-sync.yml
+actions/templates/pecot-handoff.yml
+actions/templates/pecot-review.yml

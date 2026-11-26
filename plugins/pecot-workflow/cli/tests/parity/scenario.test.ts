@@ -1,9 +1,9 @@
 // 器の前提の確認。Node の build は要らない。
 // 「シナリオの網羅」は、次の 4 つを確かめる。
 //   - シナリオが全件読め、golden の id の集合とシナリオの id の集合が一致する。
-//   - 45 サブコマンドの path がすべてシナリオにある。
+//   - 39 サブコマンドの path がすべてシナリオにある。
 //   - 各 path に ok と ok 以外があり、全体で auth・4xx・5xx・usage の種類がそろう。
-//   - commands.ts の 45 個が src/commands/registry.ts の COMMANDS と一致する。
+//   - commands.ts の 39 個が src/commands/registry.ts の COMMANDS と一致する。
 import { readdirSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
@@ -127,17 +127,17 @@ describe('シナリオの網羅', () => {
     expect(goldenIds).toEqual(ids)
   })
 
-  it('commands.ts の 45 個のコマンドの path が、本番の登録（COMMANDS）と一致する', async () => {
+  it('commands.ts の 39 個のコマンドの path が、本番の登録（COMMANDS）と一致する', async () => {
     await explains('シナリオ用のコマンド一覧（`commands.ts`）のテストです。一覧の path が、本番のコマンド登録（`COMMANDS`）の path と過不足なく一致することを確認します。')
     const registered = COMMANDS.map(definition => definition.path.join(' '))
     expect(registered.toSorted(compareStrings)).toEqual(COMMAND_PATHS.map(commandPath => commandPath.join(' ')).toSorted(compareStrings))
   })
 
-  it('シナリオが使う path の集合が、45 個のコマンドの path と一致する（path が空のシナリオは除く）', async () => {
-    await explains('シナリオの網羅のテストです。シナリオが使う path の集合が、45 個のコマンドの path と一致し、グローバルオプションだけのシナリオ（path が空）は集計から除くことを確認します。')
+  it('シナリオが使う path の集合が、39 個のコマンドの path と一致する（path が空のシナリオは除く）', async () => {
+    await explains('シナリオの網羅のテストです。シナリオが使う path の集合が、39 個のコマンドの path と一致し、グローバルオプションだけのシナリオ（path が空）は集計から除くことを確認します。')
     const expected = COMMAND_PATHS.map(commandPath => commandPath.join(' ')).toSorted(compareStrings)
     const actual = [...new Set(ids.map(id => readScenario(id).command.path.join(' ')))].filter(key => key !== '').toSorted(compareStrings)
-    expect(COMMAND_PATHS).toHaveLength(45)
+    expect(COMMAND_PATHS).toHaveLength(39)
     expect(actual).toEqual(expected)
   })
 

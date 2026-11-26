@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -28,14 +28,15 @@ const TOOLS_FILE = 'plugins/pecot-tools/cli/tests/a.txt'
 const WORKFLOW_FILE = 'plugins/pecot-workflow/cli/tests/b.txt'
 
 describe('scanBehaviorIds', () => {
-  it('行ごとに ID と行番号を返し、コメントの中の ID も含める', async () => {
-    await explains('テストのソースから振る舞いの項目の ID を探す `scanBehaviorIds` のテストです。複数の ID を含むソースの場合に、ID と行番号の組を出現順に返し、コメントの中の ID も含まれることを確認します。')
-    const found = stepSync('ID を走査する', () => scanBehaviorIds({ path: 'a.test.ts', text: `verifies(ctx, 'PT-AWS-S3-LS-01')\n// PW-ISSUE-CREATE-02 と PV-DRAWIO-01\n` }))
+  it('行ごとに ID と行番号を返し、コメントの中も数える', async () => {
+    await explains('テストのソースから振る舞いの項目の ID を探す `scanBehaviorIds` のテストです。`PA-` を含む複数の接頭辞の ID を含むソースの場合に、ID と行番号の組を出現順に返し、コメントの中の ID も含まれることを確認します。')
+    const found = stepSync('ID を走査する', () => scanBehaviorIds({ path: 'a.test.ts', text: `verifies(ctx, 'PT-AWS-S3-LS-01')\n// PW-ISSUE-CREATE-02 と PV-DRAWIO-01\nPA-BOARD-SYNC-03\n` }))
     stepSync('結果を比べる', () => {
       expect(found).toEqual([
         { id: 'PT-AWS-S3-LS-01', line: 1 },
         { id: 'PW-ISSUE-CREATE-02', line: 2 },
         { id: 'PV-DRAWIO-01', line: 2 },
+        { id: 'PA-BOARD-SYNC-03', line: 3 },
       ])
     })
   })
@@ -137,7 +138,27 @@ describe('linkRepository', () => {
     })
   })
 
-  it('git が追跡していないファイルは、テストとして読み込まない', async () => {
+  it('root を持つプラグインは、root の下の定義書とテストを読む', async () => {
+    await explains('リポジトリのテストから、定義書に存在しない ID を探す `linkRepository` のテストです。`targets.json` で `root` を指定したプラグインの場合に、`root` の下の定義書とテストを読み込み、報告が空になることを確認します。')
+    const root = await step('fixture を展開する', () => materialize('links'))
+    await step('定義書を root の下に移し、targets.json に root を書く', async () => {
+      await mkdir(path.join(root, 'actions/tests'), { recursive: true })
+      await rename(path.join(root, 'plugins/pecot-workflow/interface'), path.join(root, 'actions/interface'))
+      await writeFile(path.join(root, 'libs/interface-spec/targets.json'), JSON.stringify({
+        format: 1,
+        plugins: { 'pecot-workflow': { root: 'actions', entries: 'complete', coverage: 'on', sources: [], tests: ['tests/*.txt'] } },
+      }))
+      await writeFile(path.join(root, 'actions/tests/a.txt'), 'PW-COMMON-01\nPW-ISSUE-CREATE-02\nPW-ISSUE-QUICK-01\nPW-ISSUE-CREATE-01\n')
+    })
+    stepSync('git に追跡させる', () => {
+      execFileSync('git', ['add', '--all'], { cwd: root })
+    })
+    await step('リポジトリのリンクを確かめる、結果を比べる', async () => {
+      expect(await linkRepository(root)).toEqual([])
+    })
+  })
+
+  it('git が追跡しないファイルは読まない', async () => {
     await explains('リポジトリのテストから、定義書に存在しない ID を探す `linkRepository` のテストです。`git add` していないファイルに存在しない ID が書かれていても、報告に含まれないことを確認します。')
     const root = await materialize('links-coverage-off')
     await step('追跡されないファイルを書く', async () => {

@@ -1,0 +1,27 @@
+name: pecot auto gate
+description: Decide from the issues or workflow_run event whether the automated fix runs, and of what kind. Post the result comment and remove the trigger label when the Issue is out of scope or the CI fixes reached the limit.
+inputs:
+  token:
+    description: Token to read the Issue and the board and to write the result comment (the App token of the workflow)
+    required: false
+  max-ci-attempts:
+    description: Maximum number of CI fixes on one branch
+    required: false
+    default: '3'
+  project:
+    description: Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the repository of the event; when several do, the active one among them
+    required: false
+outputs:
+  proceed:
+    description: Whether the agent runs (true or false)
+  kind:
+    description: Kind of the run (start, resume, ci-fix or ci-passed); empty when it is not decided
+  issue:
+    description: Issue (owner/repo/N); empty when the branch of the workflow run does not end with an Issue number
+  number:
+    description: Issue number; 0 when unknown
+  branch:
+    description: Existing branch of the Issue; empty when none
+runs:
+  using: node24
+  main: dist/index.js

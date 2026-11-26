@@ -12,13 +12,14 @@ paths:
 
 ## CHANGELOG.md は手動編集しない
 
-対象は次の 5 つです。
+対象は次の 6 つです。
 
 - `plugins/pecot-workflow/CHANGELOG.md`
 - `plugins/pecot-visual/CHANGELOG.md`
 - `plugins/pecot-tools/CHANGELOG.md`
 - `libs/text-rules/CHANGELOG.md`
 - `libs/workflow-core/CHANGELOG.md`
+- `actions/CHANGELOG.md`
 
 これらはリリース時に nx が version-plans から自動生成・追記します。手で編集してもリリース時に
 上書きされる可能性があるため、変更を入れたい時は CHANGELOG ではなく
@@ -40,7 +41,7 @@ dom-to-pptx 1.1.7 の Fractional Font Precision 修正で sz が +5〜13.3% 増�
 テンプレ側 shape 寸法を 1.1.7 sz に合わせて拡張する形で吸収する。
 ```
 
-プロジェクト名は `nx.json` の release group 名に対応します。`pecot-workflow` / `pecot-visual` / `pecot-tools` / `text-rules` / `workflow-core` のいずれかです。
+プロジェクト名は `nx.json` の release group 名に対応します。`pecot-workflow` / `pecot-visual` / `pecot-tools` / `text-rules` / `workflow-core` / `actions` のいずれかです。
 複数プロジェクトを同時に bump する時は frontmatter に複数行書きます。
 
 ## bump 種別の判断

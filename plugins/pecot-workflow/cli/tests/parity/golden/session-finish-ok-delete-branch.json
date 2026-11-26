@@ -1,6 +1,6 @@
 {
   "stdout": "",
-  "stderr": "count: Issues to close: 1\nclosed: Issue #12\ndeleted: remote branch feat/demo/12\n",
+  "stderr": "count: Issues to close: 1\nclosed: Issue #12\ndeleted: remote branch feat/demo/12\nunchanged: current branch main\nupdated: main from origin/main\ndeleted: local branch feat/demo/12\n",
   "exitCode": 0,
   "requests": [
     {

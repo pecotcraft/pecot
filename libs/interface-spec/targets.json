@@ -1,6 +1,22 @@
 {
   "format": 1,
   "plugins": {
+    "actions": {
+      "root": "actions",
+      "entries": "complete",
+      "coverage": "on",
+      "sources": [
+        "src/*.ts",
+        "src/commands/*.ts",
+        "../libs/workflow-core/src/commands-shared/*.ts",
+        "../libs/workflow-core/src/domain/*.ts",
+        "../libs/workflow-core/src/infra/*.ts",
+        "../libs/workflow-core/src/infra/github/*.ts"
+      ],
+      "tests": [
+        "tests/**/*.ts"
+      ]
+    },
     "pecot-tools": { "entries": "complete", "coverage": "on", "sources": ["cli/src/**/*.ts"], "tests": ["cli/tests/**/*.ts", "cli/src/**/tests/**/*.ts"] },
     "pecot-visual": { "entries": "complete", "coverage": "on", "sources": ["cli/src/**/*.ts"], "tests": ["cli/tests/**/*.ts", "cli/src/**/tests/**/*.ts"] },
     "pecot-workflow": {

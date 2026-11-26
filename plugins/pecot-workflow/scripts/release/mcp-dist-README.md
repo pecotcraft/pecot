@@ -97,7 +97,6 @@ Issue・コメント・PR のテンプレートは、MCP の resource で読め�
 | `board_show` | ボードの状態をまとめて表示する |
 | `board_add` | プロジェクトボードに Issue を足す（pecot の外で作った Issue 用） |
 | `board_move` | Issue 番号でボードのステータスを更新する |
-| `board_sync` | ボードの Ready・Blocked・Active・In Review の Issue を、判定に合う列と札へ直す（`project` を取る） |
 | `issue_create` | frontmatter 付きの Markdown から Issue を作る（`freeform: true` と `repo`・`message` で、自由形式のメッセージから作る） |
 | `issue_check` | `issue_create` に渡すファイルを確かめ、作らずに番号・前提・進め方の表を出す |
 | `issue_show` | Issue の詳細を必要な項目だけ取得する |
@@ -115,14 +114,9 @@ Issue・コメント・PR のテンプレートは、MCP の resource で読め�
 | `pr_check` | PR を作る前に確かめる情報をまとめて表示する |
 | `pr_merge` | PR をマージする（スタックの中の PR は一番下だけ） |
 | `pr_restack` | スタックしたブランチを、base にしたブランチの新しい位置へスタックし直す |
-| `review_finish` | 自動レビューを終える（止まったときだけ、止まったことを知らせるコメントを PR に書く） |
-| `auto_gate` | GitHub Actions のイベントから、自動処理を進めるかと、その種類を決める |
-| `auto_start` | 自動処理の実行を始める（自動処理が書いた Status を戻し、続きに要る文脈を出す） |
-| `auto_finish` | 自動処理の実行を終える（結果のコメントを書き、待ちの Status を書き、起動ラベルを外す） |
 | `release_check` | リリース前の確認をする |
 | `release_create` | GitHub のリリースとタグを作る（ノートは CHANGELOG から取る） |
 | `release_merge` | リリースの PR を通常のマージで取り込む |
-| `tracker_sync` | 開いている Tracker の一覧を書き直す（`source` が `dependabot` なら Dependabot PR、`security` ならセキュリティアラート） |
 | `worktree_add` | worktree を作る |
 | `worktree_remove` | worktree を削除する |
 | `worktree_init` | メイン worktree に worktree の設定ファイルを作る |

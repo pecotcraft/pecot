@@ -47,7 +47,6 @@ const ROLE_EXCEPTIONS: Readonly<Record<string, string>> = {
   allow_existing_branch: '既存のブランチの再利用を許す印で、ブランチを指さない',
   delete_branch: 'ブランチを消すかの印で、ブランチを指さない',
   keep_branch: 'ブランチを残すかの印で、ブランチを指さない',
-  skip_local_cleanup: 'ローカルの後片付けを飛ばす印で、ブランチを指さない',
   develop_branch: '設定値としての開発ブランチ名。操作するブランチではない',
   release_branch: '設定値としてのリリースブランチ名。操作するブランチではない',
   base: 'PR の base。操作するブランチ（branch）とは別の役割',

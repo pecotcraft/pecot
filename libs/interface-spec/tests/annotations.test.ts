@@ -31,7 +31,7 @@ async function check(id: string, hints: Record<string, unknown>, kinds: readonly
   target['effects'] = kinds.map(kind => ({ target: 'aws', kind, what: 'x' }))
   target['idempotent'] = isIdempotent
   return validateDefinitions([{
-    name: 'pecot-tools', dirExists: true, mode: 'partial', sources: [],
+    name: 'pecot-tools', root: 'plugins/pecot-tools', dirExists: true, mode: 'partial', sources: [],
     generated: { kind: 'ok', data: generatedData }, authored: { kind: 'ok', data: authoredData },
   }]).map(finding => `${finding.scope ?? ''}: ${finding.reason}`)
 }

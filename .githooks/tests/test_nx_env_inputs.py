@@ -112,15 +112,17 @@ _EXEMPT: dict[str, str] = {
         "run-tests.sh と conftest が unset して固定する。ミラーを作り直す bootstrap テストは、自分で env に渡す"
     ),
     "GITHUB_RUN_ID": (
-        "review finish が目印に入れる。vitest の useIsolatedEnvironment が外し、review finish のテストが自分で渡す"
+        "review-finish の action が目印に入れる。vitest の useIsolatedEnvironment が外し、review-finish のテストが自分で渡す"
     ),
     "GITHUB_RUN_ATTEMPT": "GITHUB_RUN_ID と同じ",
     "GITHUB_ACTOR": "GITHUB_RUN_ID と同じ",
     "PECOT_REVIEW_TRIGGER_PHRASE": "GITHUB_RUN_ID と同じ",
-    "PECOT_AUTO_LABEL": "auto のコマンドが読む。GITHUB_RUN_ID と同じく、useIsolatedEnvironment が外し、テストが自分で渡す",
+    "PECOT_AUTO_LABEL": "auto の action が読む。GITHUB_RUN_ID と同じく、useIsolatedEnvironment が外し、テストが自分で渡す",
     "GITHUB_REPOSITORY": "PECOT_AUTO_LABEL と同じ",
     "GITHUB_SERVER_URL": "PECOT_AUTO_LABEL と同じ",
-    "GITHUB_OUTPUT": "PECOT_AUTO_LABEL と同じ",
+    "GITHUB_EVENT_NAME": "auto-gate の action が読む。GITHUB_RUN_ID と同じく、useIsolatedEnvironment が外し、テストが自分で渡す",
+    "GITHUB_EVENT_PATH": "GITHUB_EVENT_NAME と同じ",
+    "RUNNER_TEMP": "auto-start の action が読む。GITHUB_RUN_ID と同じく、useIsolatedEnvironment が外し、テストが自分で渡す",
     "PECOT_GITHUB_API_URL": (
         "cli/tests/conftest.py が unset して固定する。前後比較のテストは、子プロセスの env に偽サーバの URL を"
         "自分で渡す"
@@ -336,21 +338,22 @@ def scan_env_reads(root: Path, rels: list[str]) -> dict[str, set[str]]:
 
 
 def _tracked_plugin_files() -> list[str]:
-    """走査する追跡ファイル。プラグインと、プラグインではないライブラリ（libs/<name>/）。"""
+    """走査する追跡ファイル。プラグインと、ライブラリ（libs/<name>/）と、actions/。"""
     # リポのファイルの一覧はテストの入力で、テスト対象の出力でないので添付しない。
     out = subprocess.run(
-        ["git", "ls-files", "plugins", "libs"],
+        ["git", "ls-files", "plugins", "libs", "actions"],
         cwd=_REPO_ROOT,
         capture_output=True,
         text=True,
         check=True,
     ).stdout
-    # interface-spec の fixture のソースは検証にかけるデータで、どのレーンも実行しない。
+    # interface-spec の fixture のソースは検証にかけるデータで、どのレーンも実行しない。actions の dist は src をまとめた生成物。
     return [
         line
         for line in out.splitlines()
         if "/node_modules/" not in line
         and not line.startswith("libs/interface-spec/tests/fixtures/")
+        and not re.match(r"actions/[^/]+/dist/", line)
     ]
 
 
@@ -385,10 +388,12 @@ _BUNDLED_LIBS = {"libs/workflow-core": "pecot-workflow"}
 
 
 def _plugin_of(rel: str) -> str:
-    """ファイルの持ち主。プラグインはディレクトリ名、ライブラリは `libs/<name>`。同梱するライブラリはプラグイン。"""
+    """ファイルの持ち主。プラグインはディレクトリ名、ライブラリは `libs/<name>`、actions/ は `actions`。同梱するライブラリはプラグイン。"""
     parts = rel.split("/")
     if parts[0] == "plugins":
         return parts[1]
+    if parts[0] == "actions":
+        return "actions"
     lib = "/".join(parts[:2])
     return _BUNDLED_LIBS.get(lib, lib)
 

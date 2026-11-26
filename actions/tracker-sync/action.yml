@@ -1,0 +1,19 @@
+name: pecot tracker sync
+description: Rewrite the open Tracker's list for a source in the repository of the workflow. Dependabot PRs waiting for a human decision, or open security alerts.
+inputs:
+  token:
+    description: Token to read the PRs or alerts and write the Tracker and the board (the App token or PAT of the workflow)
+    required: false
+  source:
+    description: 'What to put into the Tracker: dependabot (Dependabot PRs waiting for a human decision) or security (open security alerts)'
+    required: true
+  project:
+    description: Name of the project config under .pecot/config/projects (without .json). Without it, the config that has the repository of the workflow
+    required: false
+  dry-run:
+    description: Show the planned Tracker changes without changing anything
+    required: false
+    default: 'false'
+runs:
+  using: node24
+  main: dist/index.js

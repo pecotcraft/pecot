@@ -3,7 +3,7 @@
 共通仕様
 ========
 
-pecot-workflow は、Issue・PR・リリースの運用を管理するためのツールを提供する `MCP <https://modelcontextprotocol.io/>`__ サーバです。スキルとエージェントは、各ツールを MCP のツールとして呼びます。GitHub Actions から呼ぶ 5 つのコマンド（``board sync``・``review finish``・``release check``・``tracker sync dependabot``・``tracker sync security``）は、``pecot`` コマンドでも実行できます。
+pecot-workflow は、Issue・PR・リリースの運用を管理するためのツールを提供する `MCP <https://modelcontextprotocol.io/>`__ サーバです。スキルとエージェントは、各ツールを MCP のツールとして呼びます。GitHub Actions から呼ぶ ``release check`` は、``pecot`` コマンドでも実行できます。Actions だけが使う処理は、ツールでなく ``actions/`` の action です。
 
 MCP サーバは、MCP プロトコルリビジョン `2026-07-28 <https://modelcontextprotocol.io/specification/2026-07-28>`__ と `2025-11-25 <https://modelcontextprotocol.io/specification/2025-11-25>`__ をサポートしています。`stdio <https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/stdio>`__ サーバとして、マシン上でローカルプロセスとして実行されます。
 
