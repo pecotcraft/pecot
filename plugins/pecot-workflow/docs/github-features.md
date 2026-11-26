@@ -45,7 +45,7 @@ Issue の機能を項目ごとにどう扱うかは、[`interface/issue-coverage
 | [Issue fields](https://docs.github.com/en/issues/planning-and-tracking-with-projects/understanding-fields/about-issue-fields) | 作らない。既定の Priority・Effort・Start date・Target date も使わない | 使わない（`attributes` で書ける） | pecot の判定に優先度・見積もり・期日を使わない。`graphql:CreateIssueInput.issueFields` | #702・#705 |
 | [親の Issue・sub-issue の進み具合の欄](https://docs.github.com/en/issues/planning-and-tracking-with-projects/understanding-fields/about-parent-issue-and-sub-issue-progress-fields) | 親は `issue_create` が付ける。進み具合は読まない | 使う（親）・使わない（進み具合） | 進み具合は GitHub が計算する。`graphql:enum:ProjectV2FieldType.PARENT_ISSUE`・`.SUB_ISSUES_PROGRESS` | — |
 | [Pull Request の欄](https://docs.github.com/en/issues/planning-and-tracking-with-projects/understanding-fields/about-pull-request-fields) | 使っていない | 使わない | GitHub が計算する。`graphql:enum:ProjectV2FieldType.LINKED_PULL_REQUESTS`・`.REVIEWERS` | — |
-| [Issue type の欄](https://docs.github.com/en/issues/planning-and-tracking-with-projects/understanding-fields/about-the-issue-type-field) | Epic の判定に Issue type を読む | 使う | `graphql:enum:ProjectV2FieldType.ISSUE_TYPE` | — |
+| [Issue type の欄](https://docs.github.com/en/issues/planning-and-tracking-with-projects/understanding-fields/about-the-issue-type-field) | ボードの欄としては読まない。Epic の判定は Issue の `issueType` を読む（Issue の節の「Issue type」の行） | 使わない（`attributes` で書ける） | `graphql:enum:ProjectV2FieldType.ISSUE_TYPE` | — |
 | [欄の名前を変える](https://docs.github.com/en/issues/planning-and-tracking-with-projects/understanding-fields/renaming-custom-fields) | `project_init` が、前の名前の進行の欄を `pecot-status` に変える | 使う | — | #701 |
 | [欄を消す](https://docs.github.com/en/issues/planning-and-tracking-with-projects/understanding-fields/deleting-custom-fields) | `project_init` が、`confirm_delete` で `pecot-priority`・`pecot-size` を消す | 使う | — | #702 |
 
@@ -87,7 +87,7 @@ Issue の機能を項目ごとにどう扱うかは、[`interface/issue-coverage
 | [閉じる・消す](https://docs.github.com/en/issues/planning-and-tracking-with-projects/managing-your-project/closing-and-deleting-your-projects) | 使っていない | 使わない | pecot の流れの外 | — |
 | [リポに付ける](https://docs.github.com/en/issues/planning-and-tracking-with-projects/managing-your-project/adding-your-project-to-a-repository) | `project_link` が、登録するリポをボードにつなぐ | 使う | — | — |
 | [チームに付ける](https://docs.github.com/en/issues/planning-and-tracking-with-projects/managing-your-project/adding-your-project-to-a-team)・[書き出す](https://docs.github.com/en/issues/planning-and-tracking-with-projects/managing-your-project/exporting-your-projects-data) | 使っていない | 使わない | pecot の流れの外 | — |
-| [プロジェクトを探す](https://docs.github.com/en/issues/planning-and-tracking-with-projects/finding-your-projects) | `project_search`・`project_list` が API で探す | 使わない | 画面で探す機能 | — |
+| [プロジェクトを探す](https://docs.github.com/en/issues/planning-and-tracking-with-projects/finding-your-projects) | 画面の操作は使わない。pecot は `project_search`・`project_list` で API から探す（「API で扱う」の行） | 使わない | 画面だけの操作 | — |
 | [status updates](https://docs.github.com/en/issues/planning-and-tracking-with-projects/sharing-project-updates) | 使っていない | 使わない | Epic の進みは、引き継ぎのワークフローが Epic へのコメントで書く | — |
 
 ## Issue
@@ -139,4 +139,4 @@ GitHub の機能と役割の重なる、pecot 独自の仕組みです。決め�
 | 5. 題の通し番号 `#<Epic>-<番号>:` | sub-issue の親と並び | `specs/024-issue-readiness-stacked-prs/` の FR-043 と R13 は番号の形を決めた記録で、sub-issue の並びを使わない理由は書かれていない | 未決 |
 | 6. `pecot-template://` の Issue の雛形 | リポの Issue テンプレート（`graphql:CreateIssueInput.issueTemplate`） | `issue-coverage.yaml` に扱いはあるが、リポの Issue テンプレートを使わない理由は書かれていない | 未決 |
 
-「未決」は、標準の形に直すか、理由を書いて残すかを、まだ決めていない仕組みです。決めるときは Epic の下に起票し、残すならその Issue の計画に利用者の承認と理由を書きます（憲法の原則 IV）。
+「未決」は、標準の形に直すか、理由を書いて残すかを、まだ決めていない仕組みです。#709 では、意図して持つ可能性を確かめないまま不適合と呼ばないよう、利用者が承認した計画に沿って、起票せずにこの表へ残しました。決めるときは Epic の下に起票し、残すならその Issue の計画に利用者の承認と理由を書きます（憲法の原則 IV）。
