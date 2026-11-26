@@ -24,6 +24,14 @@ const BUNDLED_HANDOFF = readFileSync(path.join(pluginRoot(), 'cli/templates/work
 const REPO = '/repos/acme/demo'
 const TOKEN_MISSING = 'secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*'
 const KEY_MISSING = 'secret PECOT_AGENT_APP_PRIVATE_KEY'
+const CLIENT_ID_MISSING = 'variable PECOT_AGENT_APP_CLIENT_ID'
+const AUTO_DESTINATION = '.github/workflows/pecot-auto.yml'
+
+// 雛形が無くても、ほかのケースは流れるように、使うケースの中で読む
+function bundledAuto(): string {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同梱の雛形のパス
+  return readFileSync(path.join(pluginRoot(), 'cli/templates/workflow/pecot-auto.yml'), 'utf8')
+}
 const SECRET_VALUE = 'value-that-must-not-appear'
 
 interface Settings {
@@ -176,7 +184,7 @@ describe('workflow doctor', () => {
     expect(result.isError).toBe(true)
     expect(result.structured).toMatchObject({ kind: 'invalid-input' })
     expect(result.structured['detail']).toContain('unknown workflow template: deploy')
-    expect(result.structured['detail']).toContain('available: review, handoff')
+    expect(result.structured['detail']).toContain('available: review, handoff, auto')
   })
 
   it('name に handoff を渡すと、引き継ぎの雛形と review と同じエージェント用の認証を確かめ、Claude の App の項目を入れない', async (context) => {
@@ -198,6 +206,30 @@ describe('workflow doctor', () => {
     expect(result.isError).toBe(true)
     expect(itemsOf(result)).toContainEqual({ name: 'workflow template handoff', state: 'outdated' })
     expect(result.structured).toMatchObject({ kind: 'repo-setting-missing', ready: false })
+  })
+
+  it('もし auto で App の変数と secret が無いなら、その 2 つを missing にし、Claude の App の項目を入れずに失敗を返す', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-DOCTOR-17')
+    await verifies(context, 'PW-WORKFLOW-DOCTOR-16')
+    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'auto' }, files: { [AUTO_DESTINATION]: bundledAuto() }, config: false, github: github(READY) })
+    expect(result.isError).toBe(true)
+    expect(itemsOf(result)).toEqual([
+      { name: AUTO_DESTINATION, state: 'ok' },
+      { name: 'workflow template auto', state: 'ok' },
+      { name: CLIENT_ID_MISSING, state: 'missing' },
+      { name: KEY_MISSING, state: 'missing' },
+      { name: TOKEN_MISSING, state: 'ok' },
+    ])
+    expect(result.structured).toMatchObject({ kind: 'repo-setting-missing', ready: false, detail: '2 item(s) of workflow auto are missing or outdated' })
+  })
+
+  it('auto で App の変数と secret とモデルの認証がそろっていると、ready を true にして成功を返す', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-DOCTOR-06')
+    const settings: Settings = { secrets: ['CLAUDE_CODE_OAUTH_TOKEN', 'PECOT_AGENT_APP_PRIVATE_KEY'], variables: ['PECOT_AGENT_APP_CLIENT_ID'] }
+    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'auto' }, files: { [AUTO_DESTINATION]: bundledAuto() }, config: false, github: github(settings) })
+    expect(result.isError).toBe(false)
+    expect(result.structured).toMatchObject({ ready: true })
+    expect(itemsOf(result)).not.toContainEqual(expect.objectContaining({ name: 'Claude GitHub App' }))
   })
 
   it('git remote からリポジトリを読めないと、GitHub を読まずに git-unresolved の失敗を返す', async (context) => {

@@ -233,6 +233,7 @@ Claude Code では、Reconnect の後も、会話に読み込み済みのツー�
 | ボードの同期（`pecot-board-sync.yml`） | 有無と中身 | この節の手順 1〜8 |
 | 自動レビュー（`pecot-review.yml`） | 有無と中身 | `specs/027-auto-revise-on-pr/quickstart.md` |
 | 引き継ぎ（`pecot-handoff.yml`） | 有無と中身 | この節の「引き継ぎを確かめる」 |
+| 自動処理（`pecot-auto.yml`） | 有無と中身 | `specs/023-label-triggered-autofix/quickstart.md` |
 
 検証用にも自動レビューの写しがあるので、検証用で作る draft でない PR には、自動レビューが付きます。
 自動レビューを quickstart で確かめるときは、次の 2 つに気を付けます。

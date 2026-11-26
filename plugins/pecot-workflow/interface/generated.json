@@ -7737,7 +7737,7 @@
           },
           "name": {
             "type": "string",
-            "description": "Name of the workflow template (review, handoff)"
+            "description": "Name of the workflow template (review, handoff, auto)"
           }
         },
         "required": [
@@ -7872,7 +7872,7 @@
           },
           "name": {
             "type": "string",
-            "description": "Name of the workflow template (review, handoff)"
+            "description": "Name of the workflow template (review, handoff, auto)"
           }
         },
         "required": [

@@ -8135,8 +8135,9 @@ entries:
         - Checks that the repository in --directory has the workflow file of the named template and the GitHub settings it needs. Nothing is written.
         - The repository is read from the git remote of --directory. The project config and the board are not read.
         - Prints one line per checked item to stdout, in the form <state> <name>. The state is ok, missing, outdated or skipped.
-        - The items are the workflow file, the version marker on its first line, and the secrets and variables the template needs. For review, the Claude GitHub App is also an item. Handoff does not use the Claude GitHub App.
+        - The items are the workflow file, the version marker on its first line, and the secrets and variables the template needs. For review, the Claude GitHub App is also an item. Handoff and auto do not use the Claude GitHub App.
         - "For review and handoff: the secret PECOT_AGENT_APP_PRIVATE_KEY is needed, and printed as an item, only when the variable PECOT_AGENT_APP_CLIENT_ID is set. The secret CLAUDE_CODE_OAUTH_TOKEN, or all 4 variables PECOT_AGENT_ANTHROPIC_*, are needed."
+        - "For auto: the variable PECOT_AGENT_APP_CLIENT_ID and the secret PECOT_AGENT_APP_PRIVATE_KEY are always needed, and each is printed as an item. The model credential is the same as review."
         - Secrets and variables are read by name only, at the repository level and, for a repository of an organization, the organization level shared with the repository. Their values are never printed.
         - When the token cannot read a list (403 or 404), an item whose names are not found in the lists that were read is skipped, and a skipped item does not count as missing.
         - For review, whether the Claude GitHub App is installed cannot be read with the token of the repository, so it is always printed as skipped.
@@ -8146,19 +8147,22 @@ entries:
           note: Check the files and settings for the automatic review.
         - run: pecot workflow doctor handoff
           note: Check the files and settings for the handoff after a merge.
+        - run: pecot workflow doctor auto
+          note: Check the files and settings for the automated fix of an Issue.
       default_notes:
         directory: The current directory.
     summary: ワークフローの雛形と、雛形の要る設定が、導入先のリポにそろっているかを確かめます。
     arguments:
-      name: '雛形の一覧の名前です。`review`・`handoff` のどれかです。'
+      name: '雛形の一覧の名前です。`review`・`handoff`・`auto` のどれかです。'
       directory: '対象の Git リポジトリの中のディレクトリです。サブディレクトリでも、リポのルートを使います。絶対パスと相対パスのどちらも渡せます。省くと、セッションのディレクトリです。'
     constraints: []
     details:
       - '`directory` のリポに、名前の雛形のワークフローのファイルと、雛形が要る GitHub の設定がそろっているかを確かめます。何も書きません。'
       - 'リポは `directory` の git remote から読みます。プロジェクトの設定とボードは読みません。'
       - '確かめた項目を、結果の `items` に 1 つずつ入れます。状態の `state` は `ok`・`missing`・`outdated`・`skipped` のどれかです。'
-      - '項目は、ワークフローのファイル、その 1 行目の版の目印、雛形が要る secret と変数です。`review` では、Claude の GitHub App も項目です。`handoff` は Claude の GitHub App を使いません。'
+      - '項目は、ワークフローのファイル、その 1 行目の版の目印、雛形が要る secret と変数です。`review` では、Claude の GitHub App も項目です。`handoff` と `auto` は Claude の GitHub App を使いません。'
       - '`review` と `handoff` の要る設定は同じです。変数 `PECOT_AGENT_APP_CLIENT_ID` があるときだけ、secret `PECOT_AGENT_APP_PRIVATE_KEY` が要り、その項目を入れます。secret `CLAUDE_CODE_OAUTH_TOKEN` か、`PECOT_AGENT_ANTHROPIC_*` の 4 つの変数のすべてが要ります。'
+      - '`auto` では、変数 `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY` の両方が、いつも要ります。それぞれを項目に入れます。モデルの認証は `review` と同じです。'
       - 'secret と変数は、名前の有無だけを読みます。リポの単位と、organization のリポでは、リポに渡る organization の単位の両方を見ます。値は返しません。'
       - 'トークンで読めない一覧（403・404）があると、読めた一覧に名前の見つからない項目を `skipped` にします。`skipped` は足りないと数えません。'
       - '`review` で、Claude の GitHub App が入っているかは、リポのトークンでは読めません。いつも `skipped` で入れます。'
@@ -8268,17 +8272,21 @@ entries:
         statement: 'リポのサブディレクトリを `directory` に渡すと、リポのルートに置いたワークフローのファイルを見ます'
       - id: PW-WORKFLOW-DOCTOR-15
         pattern: event
-        statement: '変数 `PECOT_AGENT_APP_CLIENT_ID` が無いと、秘密鍵の secret の項目を入れません'
+        statement: '`review` と `handoff` で、変数 `PECOT_AGENT_APP_CLIENT_ID` が無いと、秘密鍵の secret の項目を入れません'
       - id: PW-WORKFLOW-DOCTOR-16
         pattern: event
-        statement: '`handoff` を確かめると、Claude の GitHub App の項目を入れません'
+        statement: '`handoff` か `auto` を確かめると、Claude の GitHub App の項目を入れません'
+      - id: PW-WORKFLOW-DOCTOR-17
+        pattern: unwanted
+        statement: 'もし `auto` で、App の Client ID の変数か秘密鍵の secret が無いなら、無いものの項目を `missing` にして失敗を返します'
   PW-WORKFLOW-INSTALL:
     help:
       details:
         - Writes the named workflow template bundled with pecot into the repository in --directory. For review, the file is .github/workflows/pecot-review.yml.
         - For handoff, the file is .github/workflows/pecot-handoff.yml. When a PR is merged, it posts on GitHub Actions the merge-diff comment on the parent Epic and the precede-notify comment on the following Issue. It uses the same model credential as review, and does not need the Claude GitHub App.
+        - For auto, the file is .github/workflows/pecot-auto.yml. When the trigger label is added to an Issue, it fixes the Issue on GitHub Actions and opens a PR. Unlike review and handoff, it always needs both the variable PECOT_AGENT_APP_CLIENT_ID and the secret PECOT_AGENT_APP_PRIVATE_KEY of your GitHub App. It uses the same model credential as review, and does not need the Claude GitHub App.
         - Creates the parent directories when they are missing.
-        - After writing, prints the next steps to stdout. They are installing the Claude GitHub App (review only), setting the model credential, and checking with pecot workflow doctor.
+        - After writing, prints the next steps to stdout. They are installing the Claude GitHub App (review only), setting the variable and the secret of your GitHub App (auto only), setting the model credential, and checking with pecot workflow doctor.
         - When the file already exists, the command stops unless --force is given.
         - With --force, the lines you added between the begin and end markers are printed as a warning before the file is overwritten.
         - With --check, nothing is written. The command checks that the file has the version of the bundled template on its first line, and fails with the command to update it when the file is missing or outdated.
@@ -8294,11 +8302,13 @@ entries:
           note: Update the installed workflow to the bundled version.
         - run: pecot workflow install handoff
           note: Write the workflow that posts the comments after a merge.
+        - run: pecot workflow install auto
+          note: Write the workflow that fixes an Issue with the trigger label and opens a PR.
       default_notes:
         directory: The current directory.
     summary: pecot が同梱する GitHub Actions のワークフローの雛形を、リポに書き出します。
     arguments:
-      name: '雛形の一覧の名前です。`review`・`handoff` のどれかです。'
+      name: '雛形の一覧の名前です。`review`・`handoff`・`auto` のどれかです。'
       check: '書き出さずに、置いたファイルの版が同梱の雛形と同じかを確かめるかどうかです。'
       force: 'ファイルが既にあるときに上書きするかどうかです。'
       directory: '対象の Git リポジトリの中のディレクトリです。サブディレクトリでも、リポのルートを使います。絶対パスと相対パスのどちらも渡せます。省くと、セッションのディレクトリです。'
@@ -8307,8 +8317,9 @@ entries:
     details:
       - '名前の雛形を、`directory` のリポに書き出します。`review` の置き先は `.github/workflows/pecot-review.yml` です。'
       - '`handoff` の置き先は `.github/workflows/pecot-handoff.yml` です。PR がマージされると、GitHub Actions で、親 Epic へ merge-diff のコメントを、後続の Issue へ precede-notify のコメントを書きます。モデルの認証は `review` と同じで、Claude の GitHub App は要りません。'
+      - '`auto` の置き先は `.github/workflows/pecot-auto.yml` です。起動ラベルを付けた Issue を、GitHub Actions で直し、PR まで作ります。自前の GitHub App の変数 `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY` の両方が、いつも要ります。`review`・`handoff` では、変数があるときだけ secret が要ります。モデルの認証は `review` と同じで、Claude の GitHub App は要りません。'
       - '親のディレクトリが無ければ作ります。'
-      - '書き出した後は、モデルの認証を設定し、`workflow_doctor` で確かめます。`review` では、その前に Claude の GitHub App を入れます。'
+      - '書き出した後は、モデルの認証を設定し、`workflow_doctor` で確かめます。`review` では、その前に Claude の GitHub App を入れます。`auto` では、その前に自前の GitHub App の変数と secret を設定します。'
       - 'ファイルが既にあるときは、`force` が無ければ失敗を返します。'
       - '`force` では、利用者が begin と end の印の間に足した行を、結果の `removedLines` と `warnings` に入れてから上書きします。'
       - '`check` では何も書きません。ファイルの 1 行目の版が同梱の雛形と同じかを確かめ、結果の `upToDate` に入れます。ファイルが無いか古いときは、更新の呼び方を `detail` に入れて失敗を返します。'
@@ -8413,6 +8424,9 @@ entries:
       - id: PW-WORKFLOW-INSTALL-13
         pattern: event
         statement: 'CLI で `handoff` を書き出すと、次にすることに Claude の GitHub App の手順を入れません'
+      - id: PW-WORKFLOW-INSTALL-14
+        pattern: event
+        statement: 'CLI で `auto` を書き出すと、次にすることに、自前の GitHub App の変数と secret の設定を入れ、Claude の GitHub App の手順を入れません'
   PW-WORKTREE-ADD:
     help:
       details:

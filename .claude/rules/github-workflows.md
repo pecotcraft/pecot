@@ -44,4 +44,6 @@ step 名は英語で、Actions でよく使う形にする。Actions の画面�
   - 変数 `DEPENDABOT_PRS_APP_CLIENT_ID`・`SECURITY_APP_CLIENT_ID` が空の間は動かない
 - `pecot-board-sync.yml`: ボードの列と札を判定どおりに直す。pecot-workflow の雛形の写しで、npx の dist-tag だけ `@next`（main の開発版）にする
   - PR と Issue のイベントと、Scheduler（毎時）で起動する。変数 `PECOT_BOARD_SYNC_APP_CLIENT_ID` が空の間は動かない
+- `pecot-auto.yml`: 起動ラベルを付けた Issue を、w-auto で直して PR まで作る。pecot-workflow の雛形の写しで、npx の dist-tag だけ `@next` にする
+  - job `gate` が CLI だけで進めるかを決め、`run` が claude-code-action を動かす。変数 `PECOT_AGENT_APP_CLIENT_ID` が空の間は、`setup` が Issue に足りない設定を書くだけで動かない
 - `dependabot-*`・`release.yml` の push と auto-merge は、リリースの App のトークンで行う

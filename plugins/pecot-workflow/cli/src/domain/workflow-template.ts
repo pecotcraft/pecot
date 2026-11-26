@@ -37,21 +37,30 @@ export interface WorkflowTemplate {
 const AGENT_ANTHROPIC_VARIABLES: readonly SettingName[] = ['FEDERATION_RULE_ID', 'ORGANIZATION_ID', 'SERVICE_ACCOUNT_ID', 'WORKSPACE_ID']
   .map(suffix => ({ kind: 'variable', name: `PECOT_AGENT_ANTHROPIC_${suffix}` }))
 
+const APP_CLIENT_ID: SettingName = { kind: 'variable', name: 'PECOT_AGENT_APP_CLIENT_ID' }
+const APP_PRIVATE_KEY: SettingName = { kind: 'secret', name: 'PECOT_AGENT_APP_PRIVATE_KEY' }
+
+const MODEL_AUTH_REQUIREMENT: SettingRequirement = {
+  type: 'anyOf',
+  options: [[{ kind: 'secret', name: 'CLAUDE_CODE_OAUTH_TOKEN' }], AGENT_ANTHROPIC_VARIABLES],
+  missing: 'secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*',
+}
+
 /**
 エージェント用の認証。自動処理が同じ名前で読む（spec 027 の data-model の「エージェント用の認証」）
 */
 const AGENT_REQUIREMENTS: readonly SettingRequirement[] = [
-  {
-    type: 'when',
-    when: { kind: 'variable', name: 'PECOT_AGENT_APP_CLIENT_ID' },
-    require: { kind: 'secret', name: 'PECOT_AGENT_APP_PRIVATE_KEY' },
-    missing: 'secret PECOT_AGENT_APP_PRIVATE_KEY',
-  },
-  {
-    type: 'anyOf',
-    options: [[{ kind: 'secret', name: 'CLAUDE_CODE_OAUTH_TOKEN' }], AGENT_ANTHROPIC_VARIABLES],
-    missing: 'secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*',
-  },
+  { type: 'when', when: APP_CLIENT_ID, require: APP_PRIVATE_KEY, missing: 'secret PECOT_AGENT_APP_PRIVATE_KEY' },
+  MODEL_AUTH_REQUIREMENT,
+]
+
+/**
+自動処理は自前の App を必須にする（spec 023 の data-model の「エージェント用の認証」）。必須の 1 つの名前は、候補 1 つの anyOf で書く
+*/
+const AUTO_REQUIREMENTS: readonly SettingRequirement[] = [
+  { type: 'anyOf', options: [[APP_CLIENT_ID]], missing: 'variable PECOT_AGENT_APP_CLIENT_ID' },
+  { type: 'anyOf', options: [[APP_PRIVATE_KEY]], missing: 'secret PECOT_AGENT_APP_PRIVATE_KEY' },
+  MODEL_AUTH_REQUIREMENT,
 ]
 
 /**
@@ -60,6 +69,7 @@ const AGENT_REQUIREMENTS: readonly SettingRequirement[] = [
 export const WORKFLOW_TEMPLATES: readonly WorkflowTemplate[] = [
   { name: 'review', templateFile: 'pecot-review.yml', destination: '.github/workflows/pecot-review.yml', requirements: AGENT_REQUIREMENTS, claudeApp: true },
   { name: 'handoff', templateFile: 'pecot-handoff.yml', destination: '.github/workflows/pecot-handoff.yml', requirements: AGENT_REQUIREMENTS, claudeApp: false },
+  { name: 'auto', templateFile: 'pecot-auto.yml', destination: '.github/workflows/pecot-auto.yml', requirements: AUTO_REQUIREMENTS, claudeApp: false },
 ]
 
 export function findWorkflowTemplate(name: string): WorkflowTemplate | undefined {
