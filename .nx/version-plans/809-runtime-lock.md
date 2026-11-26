@@ -1,5 +1,4 @@
 ---
-pecot-tools: patch
 pecot-workflow: patch
 text-rules: patch
 ---
