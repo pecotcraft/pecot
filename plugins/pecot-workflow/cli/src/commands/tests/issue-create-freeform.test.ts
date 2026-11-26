@@ -5,7 +5,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
+import { useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { runInProcess, startGithub } from '../../../tests/_helpers/interface-case.js'
 import type { CliResult } from '../../../tests/_helpers/interface-case.js'
 import {

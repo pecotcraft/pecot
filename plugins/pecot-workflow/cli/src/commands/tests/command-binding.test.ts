@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { isHelpRequested, runDefinition, synopsisOf, usageOf } from '../command-binding.js'
-import { exitCodeOfFailure } from '../failure.js'
+import { exitCodeOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
 import { defineCommand } from '../registry.js'
-import { formatUsageError, UsageError } from '../usage-error.js'
+import { formatUsageError, UsageError } from '@pecot/workflow-core/commands-shared/usage-error.js'
 import { ATTRIBUTES_INPUT, capture, exitWith, failWith, throwFailure } from './support.js'
 
 const seen: unknown[] = []

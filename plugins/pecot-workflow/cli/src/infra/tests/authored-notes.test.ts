@@ -4,8 +4,8 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
-import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
+import { useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { readAuthoredNotes } from '../authored-notes.js'
 import type { AuthoredNotes, NotesResult } from '../authored-notes.js'
 

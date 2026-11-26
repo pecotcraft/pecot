@@ -5,8 +5,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { COMMANDS } from '../../src/commands/registry.js'
-import { boardShowData, boardShowResult } from '../../src/commands/board-view.js'
-import { parseProjectConfig } from '../../src/domain/config.js'
+import { boardShowData, boardShowResult } from '@pecot/workflow-core/commands-shared/board-view.js'
+import { parseProjectConfig } from '@pecot/workflow-core/domain/config.js'
 import { TEMPLATE_RESOURCES, templateUri } from '../../src/mcp/templates.js'
 import { readDocuments, readPluginFile, toolInputs } from './_helpers/documents.js'
 

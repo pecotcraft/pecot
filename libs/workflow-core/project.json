@@ -1,0 +1,120 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "workflow-core",
+  "projectType": "library",
+  "tags": [
+    "type:lib",
+    "scope:libs"
+  ],
+  "targets": {
+    "install": {
+      "executor": "nx:noop",
+      "cache": false,
+      "dependsOn": [
+        {
+          "projects": [
+            "pecot"
+          ],
+          "target": "install"
+        }
+      ],
+      "metadata": {
+        "description": "依存の導入は、root の project の install（pnpm install --frozen-lockfile）が行う。このターゲットは何もせず、root の install の後に動く順序だけを build / lint / test-unit に与える。"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "inputs": [
+        "production",
+        "sharedGlobals"
+      ],
+      "dependsOn": [
+        "install"
+      ],
+      "metadata": {
+        "description": "dist を作る。pecot-workflow の cli の tsc と vitest が @pecot/workflow-core としてこの dist を読む。cache: false は dist を outputs に宣言せず、毎回作り直すため。"
+      },
+      "options": {
+        "command": "pnpm run build",
+        "cwd": "libs/workflow-core"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "default",
+        "runtime",
+        "env",
+        "pecotPluginEnv",
+        "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
+        "{workspaceRoot}/libs/interface-spec/src/eslint/table-key.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts"
+      ],
+      "dependsOn": [
+        "install"
+      ],
+      "metadata": {
+        "description": "型チェック（typescript7 の tsc --noEmit）、eslint（警告も失敗）、knip。"
+      },
+      "options": {
+        "command": "pnpm run lint",
+        "cwd": "libs/workflow-core"
+      }
+    },
+    "test": {
+      "executor": "nx:noop",
+      "cache": false,
+      "dependsOn": [
+        "test-unit"
+      ],
+      "metadata": {
+        "description": "CI と manual の stage の nx-affected-tests が起動するターゲット。プラグインの project と同じく、レーン（test-*）を dependsOn で束ねる。"
+      }
+    },
+    "test-unit": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
+        "default",
+        "runtime",
+        "env",
+        "pecotPluginEnv",
+        { "runtime": "git --version" }
+      ],
+      "outputs": ["{projectRoot}/test-results/test-unit/allure-results"],
+      "dependsOn": [
+        "install"
+      ],
+      "metadata": {
+        "description": "vitest の単体テスト。カバレッジ閾値は 90%。一時リポで git を起動するテストがあるので、git のバージョンを runtime 入力に置く。"
+      },
+      "options": {
+        "command": "rm -rf test-results/test-unit/allure-results && pnpm exec vitest run --coverage",
+        "cwd": "libs/workflow-core"
+      }
+    },
+    "nx-release-publish": {
+      "executor": "nx:run-commands",
+      "metadata": {
+        "description": "nx release の publish phase は全 group の project を回り、このターゲットを持たない project があると throw する。pecot-workflow に同梱するため、publish 時にすることは無い。"
+      },
+      "options": {
+        "//forwardAllArgs-reason": "既定 true だと --dryRun=true が echo の出力に入る。",
+        "forwardAllArgs": false,
+        "command": "echo 'workflow-core: pecot-workflow に同梱するため publish は不要'"
+      }
+    }
+  },
+  "release": {
+    "version": {
+      "versionActions": "./.nx/nx-release/src/package-version-actions.js",
+      "manifestRootsToUpdate": [
+        {
+          "path": "{projectRoot}"
+        }
+      ]
+    }
+  }
+}

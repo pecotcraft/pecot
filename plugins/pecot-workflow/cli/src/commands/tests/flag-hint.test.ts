@@ -1,7 +1,7 @@
 // 入力の誤りの文のフラグ名。CLI ではフラグの形で出す（MCP の形は domain の repository-policy・pull-request のテストが見る）
 import { describe, expect, it } from 'vitest'
 
-import { useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
+import { useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { runCommand } from '../../../tests/_helpers/command-harness.js'
 
 useIsolatedEnvironment()

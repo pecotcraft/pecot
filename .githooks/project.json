@@ -58,7 +58,7 @@
           "runtime": "git ls-files -- $(cat .githooks/tests/representative-files.txt) | git hash-object --stdin"
         },
         {
-          "runtime": "git ls-files -- plugins/pecot-workflow/cli/src | git hash-object --stdin"
+          "runtime": "git ls-files -- plugins/pecot-workflow/cli/src libs/workflow-core/src | git hash-object --stdin"
         },
         "{workspaceRoot}/libs/interface-spec/targets.json",
         "{projectRoot}/tests/representative-files.txt"
@@ -191,7 +191,7 @@
         "{workspaceRoot}/uv.lock",
         "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/run-tests.sh",
         "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/run-lint.sh",
-        "{workspaceRoot}/plugins/pecot-workflow/cli/tests/output/cases.json",
+        "{workspaceRoot}/libs/workflow-core/tests/output/cases.json",
         "{workspaceRoot}/plugins/pecot-visual/cli/tests/diagnostics-cases.json",
         "{workspaceRoot}/plugins/pecot-tools/cli/tests/diagnostics-cases.json",
         "{workspaceRoot}/plugins/*/runtime-lock.yaml",

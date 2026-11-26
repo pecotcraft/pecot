@@ -2,8 +2,8 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { ChangelogFileNotFoundError, VersionNotFoundError } from '../../domain/changelog.js'
-import { makeTemporaryDirectory, writeTree } from '../../tests/_helpers/temporary.js'
+import { ChangelogFileNotFoundError, VersionNotFoundError } from '@pecot/workflow-core/domain/changelog.js'
+import { makeTemporaryDirectory, writeTree } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { extractReleaseNotesFromFile, readChangelogIfExists, readLatestVersionFromFile, resolveChangelogPath } from '../changelog-file.js'
 
 describe('resolveChangelogPath', () => {

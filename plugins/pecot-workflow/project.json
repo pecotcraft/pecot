@@ -24,9 +24,13 @@
         "!{projectRoot}/cli/**/tests/**/*",
         "!{projectRoot}/cli/**/*.test.*",
         "!{projectRoot}/cli/dist/**/*",
-        "sharedGlobals"
+        "sharedGlobals",
+        "^production"
       ],
-      "dependsOn": ["install"],
+      "dependsOn": ["install", { "projects": ["workflow-core"], "target": "build" }],
+      "metadata": {
+        "description": "cli の tsc が @pecot/workflow-core を libs/workflow-core/dist から読むため、workflow-core:build を待つ。libs/workflow-core の変更は、project graph の依存先として ^production が取り込む。"
+      },
       "options": {
         "command": "pnpm --filter @pecot/pecot-workflow-cli run build",
         "cwd": "plugins/pecot-workflow"
@@ -71,12 +75,16 @@
         "{projectRoot}/scripts/sandbox/**/*",
         "{workspaceRoot}/specs/026-pre-merge-test-env/spec.md",
         "{workspaceRoot}/.github/workflows/ci.yml",
-        { "runtime": "node -p \"require('nx/package.json').version\"" }
+        { "runtime": "node -p \"require('nx/package.json').version\"" },
+        "^production",
+        "{workspaceRoot}/libs/workflow-core/tests/_helpers/**/*",
+        "{workspaceRoot}/libs/workflow-core/tests/python-output/**/*",
+        "{workspaceRoot}/libs/workflow-core/src/infra/github/tests/fake-client.ts"
       ],
-      "dependsOn": ["install", "build-cli"],
+      "dependsOn": ["install", "build-cli", { "projects": ["workflow-core"], "target": "build" }],
       "outputs": ["{projectRoot}/cli/test-results/junit.xml", "{projectRoot}/test-results/test-cli/allure-results"],
       "metadata": {
-        "description": "cli の vitest（project cli）。hooks/ を読むテストは tests/hooks/ に置き、test-hooks が実行するので、入力から tests/hooks/ を除く。前後比較のテスト（tests/parity/）は一時リポで git を起動するので、git のバージョンを runtime 入力に置く。cli/templates/・plugin.json・interface/ の定義書は、それぞれを読むテストのために宣言する。hooks/lib/core の pecot-gitignore-ensure.sh も同じ理由で宣言する。interface/ の GitHub の Issue の機能の写しと担保の一覧は、網羅のテスト（tests/issue-coverage.test.ts）が照らす対象なので宣言する。scripts/sandbox/ と spec 026 の spec.md は、tests/sandbox/ が動かして読むので宣言する。.github/workflows/ci.yml は、tests/interface/workflow-install.test.ts が CI の名前を読むので宣言する。nx のバージョンの runtime 入力は、実 nx の graph を読む契約テスト（infra/tests/nx-scope.test.ts）を nx の更新でキャッシュから外すために置く。install と build は dependsOn 経由で 1 回だけ流し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "cli の vitest（project cli）。hooks/ を読むテストは tests/hooks/ に置き、test-hooks が実行するので、入力から tests/hooks/ を除く。前後比較のテスト（tests/parity/）は一時リポで git を起動するので、git のバージョンを runtime 入力に置く。cli/templates/・plugin.json・interface/ の定義書は、それぞれを読むテストのために宣言する。hooks/lib/core の pecot-gitignore-ensure.sh も同じ理由で宣言する。interface/ の GitHub の Issue の機能の写しと担保の一覧は、網羅のテスト（tests/issue-coverage.test.ts）が照らす対象なので宣言する。scripts/sandbox/ と spec 026 の spec.md は、tests/sandbox/ が動かして読むので宣言する。.github/workflows/ci.yml は、tests/interface/workflow-install.test.ts が CI の名前を読むので宣言する。nx のバージョンの runtime 入力は、実 nx の graph を読む契約テスト（infra/tests/nx-scope.test.ts）を nx の更新でキャッシュから外すために置く。libs/workflow-core の変更は、project graph の依存先として ^production が取り込む。cli が読む dist は、workflow-core:build が作る。cli のテストが相対パスで読む lib のテストのヘルパー・Python の出力の fixture・偽の GitHub のクライアントは ^production に入らないので宣言する。install と build は dependsOn 経由で 1 回だけ流し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "rm -rf test-results/test-cli/allure-results && PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=cli",
@@ -105,11 +113,12 @@
         "runtime",
         "env",
         "pecotPluginEnv",
-        "pecotPluginNodeInputs"
+        "pecotPluginNodeInputs",
+        "^production"
       ],
-      "dependsOn": ["install", "build-cli"],
+      "dependsOn": ["install", "build-cli", { "projects": ["workflow-core"], "target": "build" }],
       "metadata": {
-        "description": "bin/pecot の bootstrap と登録ファイルの bash テスト（run.sh、data-dir、manifest、install-record。約 1 分）。実 pnpm でミラーを build する run.sh は、実の cli/src をミラーに build し、tools/list の 36 件を確かめる。そのため cli/src を入力に置く（テストは除く）。登録ファイルと wrapper は inputs に宣言する。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "bin/pecot の bootstrap と登録ファイルの bash テスト（約 1 分）。対象は run.sh、data-dir、manifest、install-record、workflow-core-link だ。実 pnpm でミラーを build する run.sh は、cli/src と vendor/workflow-core をミラーに build し、tools/list の 36 件を確かめる。そのため cli/src を入力に置き（テストは除く）、libs/workflow-core は ^production で取り込む。登録ファイルと wrapper は inputs に宣言する。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=bootstrap",
@@ -139,12 +148,14 @@
         "env",
         "pecotPluginEnv",
         "pecotPluginNodeInputs",
-        "{projectRoot}/.claude-plugin/plugin.json"
+        "{projectRoot}/.claude-plugin/plugin.json",
+        "^production",
+        "{workspaceRoot}/libs/workflow-core/tests/_helpers/**/*"
       ],
-      "dependsOn": ["install"],
+      "dependsOn": ["install", { "projects": ["workflow-core"], "target": "build" }],
       "outputs": ["{projectRoot}/cli/test-results/junit-skills.xml", "{projectRoot}/test-results/test-skills/allure-results"],
       "metadata": {
-        "description": "skills テスト（cli/tests/skills/）の vitest（project skills）。skills・agents・hooks テンプレートの本文のツール名と入力名を、cli/src の COMMANDS の定義と照らして確かめる。w-release の docs PR の例は PR のテンプレート（cli/templates/pr/create.md）の節と照らす。tests/parity/baseline.ts は、並べ替えの関数を借りる。install は dependsOn 経由で 1 回だけ流し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "skills テスト（cli/tests/skills/）の vitest（project skills）。skills・agents・hooks テンプレートの本文のツール名と入力名を、cli/src の COMMANDS の定義と照らして確かめる。w-release の docs PR の例は PR のテンプレート（cli/templates/pr/create.md）の節と照らす。tests/parity/baseline.ts は、並べ替えの関数を借りる。libs/workflow-core の変更は、project graph の依存先として ^production が取り込む。cli が読む dist は、workflow-core:build が作る。tests/skills が読む lib のテストのヘルパーは宣言する。install は dependsOn 経由で 1 回だけ流し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "rm -rf test-results/test-skills/allure-results && PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=skills",
@@ -191,12 +202,13 @@
         "{workspaceRoot}/plugins/pecot-tools/scripts/ci/run-tests.sh",
         "{workspaceRoot}/plugins/pecot-tools/project.json",
         "{workspaceRoot}/plugins/pecot-visual/hooks/hooks*.json",
-        "{workspaceRoot}/plugins/pecot-visual/com.github.copilot/hooks/hooks.json"
+        "{workspaceRoot}/plugins/pecot-visual/com.github.copilot/hooks/hooks.json",
+        "^production"
       ],
-      "dependsOn": ["install", "build-cli"],
+      "dependsOn": ["install", "build-cli", { "projects": ["workflow-core"], "target": "build" }],
       "outputs": ["{projectRoot}/cli/test-results/junit-hooks.xml", "{projectRoot}/test-results/test-hooks/allure-results"],
       "metadata": {
-        "description": "hooks テスト（cli/tests/hooks/）の vitest（project hooks）を、通常の環境と空の設定の環境で 2 回流して結果を比べる。テストが読む hooks・agents・SKILL.md・plugin.json・bin/pecot・各 project.json と run-*.sh を宣言する。state-directory-resolution は build 済みの CLI を起動するので、build-cli を dependsOn に、cli/src を入力に置く。install は dependsOn 経由で 1 回だけ流し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "hooks テスト（cli/tests/hooks/）の vitest（project hooks）を、通常の環境と空の設定の環境で 2 回流して結果を比べる。テストが読む hooks・agents・SKILL.md・plugin.json・bin/pecot・各 project.json と run-*.sh を宣言する。state-directory-resolution は build 済みの CLI を起動するので、build-cli を dependsOn に、cli/src を入力に置く。libs/workflow-core の変更は、project graph の依存先として ^production が取り込む。cli が読む dist は、workflow-core:build が作る。install は dependsOn 経由で 1 回だけ流し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "rm -rf test-results/test-hooks/allure-results && PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=hooks",
@@ -223,11 +235,12 @@
         "runtime",
         "env",
         "pecotPluginEnv",
-        "pecotPluginNodeInputs"
+        "pecotPluginNodeInputs",
+        "^production"
       ],
-      "dependsOn": ["install", "build-cli"],
+      "dependsOn": ["install", "build-cli", { "projects": ["workflow-core"], "target": "build" }],
       "metadata": {
-        "description": "MCP 単体配布の publish スクリプトの確認。npm の依存解決でレジストリの状態を読むが、入力ハッシュには表せない。それでもキャッシュするのは、cli/src の 1 行修正のたびに実行しないため。レジストリ側の変化はリリース時の dry-run で拾う。ツールの一覧が決まる cli/src/commands・mcp/server.ts・template-store.ts だけを入力に置く。dist は build-cli の dependsOn が用意する。npm の依存解決のキャッシュは PECOT_RELEASE_TEST_NPM_CACHE で永続化する。"
+        "description": "MCP 単体配布の publish スクリプトの確認。npm の依存解決でレジストリの状態を読むが、入力ハッシュには表せない。それでもキャッシュするのは、cli/src の 1 行修正のたびに実行しないため。レジストリ側の変化はリリース時の dry-run で拾う。ツールの一覧が決まる cli/src/commands・mcp/server.ts・template-store.ts だけを入力に置く。配布ツリーに同梱する libs/workflow-core は ^production で取り込み、dist は workflow-core:build が作る。dist は build-cli の dependsOn が用意する。npm の依存解決のキャッシュは PECOT_RELEASE_TEST_NPM_CACHE で永続化する。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 PECOT_RELEASE_TEST_NPM_CACHE=\"$PWD/../../.pecot/tmp/release-npm-cache/pecot-workflow\" bash scripts/ci/run-tests.sh --scope=release",
@@ -261,11 +274,15 @@
         "{workspaceRoot}/libs/interface-spec/src/domain/diff.ts",
         "{workspaceRoot}/libs/interface-spec/src/domain/schema.ts",
         "{workspaceRoot}/libs/interface-spec/src/domain/utility.ts",
-        "{workspaceRoot}/libs/interface-spec/package.json"
+        "{workspaceRoot}/libs/interface-spec/package.json",
+        "^production",
+        "{workspaceRoot}/libs/workflow-core/tests/_helpers/**/*",
+        "{workspaceRoot}/libs/workflow-core/tests/python-output/**/*",
+        "{workspaceRoot}/libs/workflow-core/src/infra/github/tests/fake-client.ts"
       ],
-      "dependsOn": ["install"],
+      "dependsOn": ["install", { "projects": ["workflow-core"], "target": "build" }],
       "metadata": {
-        "description": "cli の tsc / eslint / knip と、スキルの scripts/*.cjs の eslint。tests/hooks/ も型の確認と eslint の対象なので、入力から除かない。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-lint.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "cli の tsc / eslint / knip と、スキルの scripts/*.cjs の eslint。tests/hooks/ も型の確認と eslint の対象なので、入力から除かない。libs/workflow-core の変更は、project graph の依存先として ^production が取り込む。cli が読む dist は、workflow-core:build が作る。cli のテストが読む lib のテストのヘルパーも型の確認の対象なので宣言する。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-lint.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-lint.sh --scope=cli",

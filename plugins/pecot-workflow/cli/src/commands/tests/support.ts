@@ -1,29 +1,10 @@
-// コマンドのテストの補助。出力を集める io と、await を含む非同期の終了コード。
+// コマンドのテストの補助。出力を集める io（@pecot/workflow-core のテストと共有する）と、await を含む非同期の終了コード。
 import { z } from 'zod'
 
-import { CommandExit } from '../command-definition.js'
-import type { FailureKind } from '../failure-kind.js'
-import type { CommandIo } from '../registry.js'
+import { CommandExit } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { FailureKind } from '@pecot/workflow-core/commands-shared/failure-kind.js'
 
-export interface CapturedIo extends CommandIo {
-  readonly out: string[]
-  readonly err: string[]
-}
-
-export function capture(): CapturedIo {
-  const out: string[] = []
-  const error: string[] = []
-  return {
-    out,
-    err: error,
-    stdout: (text) => {
-      out.push(text)
-    },
-    stderr: (text) => {
-      error.push(text)
-    },
-  }
-}
+export { capture } from '../../../../../../libs/workflow-core/tests/_helpers/captured-io.js'
 
 /**
 run の本体に使う。lint の規則（async は await を含む）を満たしつつ、0 を返すか、0 以外の終了コードで止める

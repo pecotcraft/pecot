@@ -6,7 +6,8 @@ cd "${PLUGIN_ROOT}"
 
 # --scope で実行範囲を絞る（nx のレーン pecot-workflow:test-<scope> から呼ぶ）。引数なしは全部。
 #   cli / bootstrap / hooks / skills / release。release は cli/dist が要る（nx では build-cli が用意する）。hooks は vitest の hooks project を、通常の環境と空の設定の環境で 2 回流して比べる。
-# env PECOT_WORKFLOW_SKIP_INSTALL=1: install を飛ばす（nx 経由では pecot-workflow:install が 1 回だけ流す）。
+# env PECOT_WORKFLOW_SKIP_INSTALL=1: install と lib の build を飛ばす。
+#   nx 経由では、pecot-workflow:install と workflow-core:build が 1 回だけ流す。
 # 本ファイルや lock を足したら、nx.json の pecotPluginTestGlobals か pecotPluginNodeInputs に足す。
 # CLAUDE_PLUGIN_DATA は一時ディレクトリに固定し、bin/pecot 経由のテストが導入先のデータ置き場を触らないようにする。
 unset PLUGIN_DATA PECOT_BOOTSTRAP_SKIP PECOT_BOOTSTRAP_FORCE
@@ -101,12 +102,16 @@ if [ "$RUN_CLI" = true ] || [ "$RUN_HOOKS" = true ] || [ "$RUN_SKILLS" = true ];
         ( cd "$PLUGIN_ROOT/../.." && $PNPM install --frozen-lockfile )
         echo "==> bash $PLUGIN_ROOT/scripts/ci/check-pm-scripts.sh"
         bash "$PLUGIN_ROOT/scripts/ci/check-pm-scripts.sh"
+        # cli は @pecot/workflow-core を libs/workflow-core/dist から読むので、cli より先に build する。
+        echo "==> $PNPM --filter @pecot/workflow-core-src run build"
+        # shellcheck disable=SC2086
+        ( cd "$PLUGIN_ROOT/../.." && $PNPM --filter @pecot/workflow-core-src run build )
     fi
 fi
 
 if [ "$RUN_CLI" = true ]; then
-    # nx 経由では pecot-workflow:build-cli target が build を 1 push 1 回だけ実行する。
-    # vitest は src を直接読むため、build は要らない。
+    # vitest は cli の src を直接読むが、@pecot/workflow-core は libs/workflow-core/dist から読む。
+    # lib の dist は、上の install の後か、nx 経由では workflow-core:build が用意する。
     echo "==> $PNPM --filter @pecot/pecot-workflow-cli run test (cli: vitest run --coverage、閾値判定)"
     # shellcheck disable=SC2086
     ( cd "$PLUGIN_ROOT" && $PNPM --filter @pecot/pecot-workflow-cli run test )
@@ -116,7 +121,8 @@ if [ "$RUN_BOOTSTRAP" = true ]; then
     # run.sh は、実 pnpm でミラーを build する CUJ。
     # data-dir.sh は、データ置き場の解決順。manifest.sh は、登録ファイルの整合。
     # install-record.sh は、stub pnpm でミラーを作り直す条件と世代削除を確かめる。
-    for script in run.sh data-dir.sh manifest.sh install-record.sh; do
+    # workflow-core-link.sh は、libs/workflow-core のリンクと、ミラーの入力に node_modules・dist・テストが入らないこと。
+    for script in run.sh data-dir.sh manifest.sh install-record.sh workflow-core-link.sh; do
         echo "==> bash cli/tests/bootstrap/$script"
         bash "$PLUGIN_ROOT/cli/tests/bootstrap/$script"
     done
@@ -162,9 +168,13 @@ if [ "$RUN_SKILLS" = true ]; then
 fi
 
 if [ "$RUN_RELEASE" = true ]; then
-    # テストは publish を --skip-build で流すので、cli/dist が要る。
+    # テストは publish を --skip-build で流すので、cli/dist と lib の dist が要る。
     if [ ! -d "$PLUGIN_ROOT/cli/dist" ]; then
         echo "ERROR: $PLUGIN_ROOT/cli/dist がありません。先に build してください（nx では pecot-workflow:build-cli）。" >&2
+        exit 1
+    fi
+    if [ ! -d "$PLUGIN_ROOT/../../libs/workflow-core/dist" ]; then
+        echo "ERROR: libs/workflow-core/dist がありません。先に build してください（nx では workflow-core:build）。" >&2
         exit 1
     fi
     mapfile -t release_test_files < <(find "$PLUGIN_ROOT/scripts/release/tests" -name '*.test.sh' | LC_ALL=C sort)

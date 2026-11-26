@@ -8,6 +8,7 @@ minimumReleaseAge: 1440
 packages:
   - libs/interface-spec
   - libs/text-rules
+  - libs/workflow-core
   - plugins/pecot-workflow
   - plugins/pecot-tools
   - plugins/pecot-visual

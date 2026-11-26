@@ -6,33 +6,33 @@ import path from 'node:path'
 
 import { z } from 'zod'
 
-import { isRepositoryInProject } from '../domain/config.js'
-import { FrontmatterError, setFrontmatterValue } from '../domain/frontmatter.js'
-import { jsonField } from '../domain/json.js'
-import type { JsonObject } from '../domain/json.js'
-import { pythonStrip } from '../domain/python-format.js'
-import { OsError, toOsError } from '../infra/os-error.js'
+import { isRepositoryInProject } from '@pecot/workflow-core/domain/config.js'
+import { FrontmatterError, setFrontmatterValue } from '@pecot/workflow-core/domain/frontmatter.js'
+import { jsonField } from '@pecot/workflow-core/domain/json.js'
+import type { JsonObject } from '@pecot/workflow-core/domain/json.js'
+import { pythonStrip } from '@pecot/workflow-core/domain/python-format.js'
+import { OsError, toOsError } from '@pecot/workflow-core/infra/os-error.js'
 import { parseCommentFile } from '../infra/frontmatter-file.js'
-import { GitHubAPIError } from '../infra/github/errors.js'
-import type { GitHubClient } from '../infra/github/index.js'
-import { readTextFile } from '../infra/text-file.js'
+import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
+import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
+import { readTextFile } from '@pecot/workflow-core/infra/text-file.js'
 import { templateFile } from '../infra/template-store.js'
-import { defineCommand, CommandExit } from './command-definition.js'
-import type { CommandDefinition } from './command-definition.js'
-import { commandHint, hinted, inputNameHint, placeholder } from './command-hint.js'
-import { stopWith, requireConfigFor, PROJECT_INPUT } from './command-stop.js'
-import { kindOfFailure } from './failure.js'
-import { createAuthenticatedGitHubClient, createGitHubClient } from './github-client.js'
+import { defineCommand, CommandExit } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { commandHint, hinted, inputNameHint, placeholder } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import { stopWith, requireConfigFor, PROJECT_INPUT } from '@pecot/workflow-core/commands-shared/command-stop.js'
+import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
+import { createAuthenticatedGitHubClient, createGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
 import {
   COMMENT_VALIDATION_EXIT_CODE,
   hasReportedTemplateViolations,
   issuePath,
   parseIssueReferenceOrExit,
   runWithExit,
-} from './issue-shared.js'
-import type { IssueTarget } from './issue-shared.js'
-import { createOutput } from './output.js'
-import type { Output } from './output.js'
+} from '@pecot/workflow-core/commands-shared/issue-shared.js'
+import type { IssueTarget } from '@pecot/workflow-core/commands-shared/issue-shared.js'
+import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
+import type { Output } from '@pecot/workflow-core/commands-shared/output.js'
 
 const TEMPLATE_SCHEMA = z.enum(['plan', 'merge-diff', 'review-findings', 'review-resolution', 'precede-notify'])
 const TEMPLATE_CHOICES = TEMPLATE_SCHEMA.options.join(' / ')

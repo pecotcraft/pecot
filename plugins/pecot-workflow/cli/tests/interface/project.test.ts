@@ -7,10 +7,10 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
+import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import type { RecordedRequest, ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
-import { botResult, commentsRule, type IssueSpec, prerequisitesRule } from '../_helpers/prerequisites.js'
+import { botResult, commentsRule, type IssueSpec, prerequisitesRule } from '../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
 import { CONFIG_FILE as LEGACY_CONFIG_FILE, DEFAULT_HOST, graphqlRule, projectConfig, requestLabels, restRule, runCommand, runTool } from '../_helpers/command-harness.js'
 import type { CommandResult, CommandRun } from '../_helpers/command-harness.js'
 
@@ -2353,6 +2353,13 @@ describe('project set', () => {
     expect(result.code).toBe(0)
     expect(result.stderr).toBe('warning: overwriting aggregation_repo: acme/roadmap -> acme/new\n  pass --yes to omit this hint\nset: aggregation_repo to acme/new\n')
     expect(savedConfig(result)['aggregation_repo']).toBe('acme/new')
+  })
+
+  it('未設定の状態で --dry-run を付けると、書くはずの行を出し、設定ファイルに書かない', async () => {
+    const result = await set(['acme/roadmap', '--dry-run'])
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe('dry-run: would set aggregation_repo to acme/roadmap\n')
+    expect(savedConfig(result)).not.toHaveProperty('aggregation_repo')
   })
 
   it('--yes を付けて上書きすると、warning の行から確認の案内を省く', async () => {

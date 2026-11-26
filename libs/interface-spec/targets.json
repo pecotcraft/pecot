@@ -14,7 +14,11 @@
         "cli/src/domain/*.ts",
         "cli/src/infra/*.ts",
         "cli/src/infra/github/*.ts",
-        "cli/src/mcp/*.ts"
+        "cli/src/mcp/*.ts",
+        "../../libs/workflow-core/src/commands-shared/*.ts",
+        "../../libs/workflow-core/src/domain/*.ts",
+        "../../libs/workflow-core/src/infra/*.ts",
+        "../../libs/workflow-core/src/infra/github/*.ts"
       ],
       "tests": [
         "cli/tests/**/*.ts",

@@ -7,7 +7,7 @@
 #   --version=<ver>  配布する版。既定は plugins/pecot-workflow/.claude-plugin/plugin.json の版。
 #   --out-dir=<dir>  配布ツリーの構築先。既定は mktemp -d で、実行後に破棄する。
 #   --dry-run        npm pack までを実施し、gh release view / upload / workflow run は表示だけにする。
-#   --skip-build     cli の build を省略する。既に build 済みの場合に使う。
+#   --skip-build     lib と cli の build を省略する。既に build 済みの場合に使う。
 #
 # 環境変数 NX_DRY_RUN=true|1 でも dry-run になる。nx release --dry-run からの伝播を受ける。
 set -euo pipefail
@@ -35,7 +35,7 @@ fi
 RELEASE_TAG="pecot-workflow-v$VERSION"
 
 # --- 1. 冪等性の確認 ---
-mcp_publish_require_release_head "$RELEASE_TAG" pecot-workflow plugins/pecot-workflow
+mcp_publish_require_release_head "$RELEASE_TAG" pecot-workflow plugins/pecot-workflow libs/workflow-core
 
 echo "==> @pecot/workflow-mcp 配布ツリーを構築 (version=$VERSION / dry-run=$DRY_RUN)"
 
@@ -56,6 +56,10 @@ if [ "$SKIP_BUILD" = false ]; then
     echo "==> $PNPM install --frozen-lockfile (cwd=$REPO_ROOT)"
     # shellcheck disable=SC2086
     (cd "$REPO_ROOT" && $PNPM install --frozen-lockfile)
+    # cli の tsc は libs/workflow-core/dist の型を読むので、lib を cli より先に build する。
+    echo "==> $PNPM --filter @pecot/workflow-core-src run build"
+    # shellcheck disable=SC2086
+    (cd "$REPO_ROOT" && $PNPM --filter @pecot/workflow-core-src run build)
     echo "==> $PNPM --filter @pecot/pecot-workflow-cli run build"
     # shellcheck disable=SC2086
     (cd "$WORKFLOW_ROOT" && $PNPM --filter @pecot/pecot-workflow-cli run build)
@@ -66,6 +70,11 @@ if [ ! -d "$WORKFLOW_ROOT/cli/dist" ]; then
     exit 1
 fi
 
+if [ ! -d "$REPO_ROOT/libs/workflow-core/dist" ]; then
+    echo "ERROR: $REPO_ROOT/libs/workflow-core/dist がありません（--skip-build の指定誤り、または build 失敗）。" >&2
+    exit 1
+fi
+
 # --- 3. 配布ツリーの構築 ---
 mcp_publish_make_dist
 
@@ -73,6 +82,9 @@ mcp_publish_make_dist
 mkdir -p "$DIST/cli" "$DIST/hooks/lib/core"
 cp -a "$WORKFLOW_ROOT/cli/dist" "$DIST/cli/dist"
 cp -a "$WORKFLOW_ROOT/cli/templates" "$DIST/cli/templates"
+# finalize-dist.mjs が cli/dist の @pecot/workflow-core/ の import を、この実体への相対パスへ書き換える。
+mkdir -p "$DIST/vendor/workflow-core"
+cp -a "$REPO_ROOT/libs/workflow-core/dist" "$DIST/vendor/workflow-core/dist"
 cp "$WORKFLOW_ROOT/hooks/lib/core/pecot-gitignore-ensure.sh" "$DIST/hooks/lib/core/pecot-gitignore-ensure.sh"
 find "$DIST" -name '*.map' -type f -delete
 

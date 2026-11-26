@@ -9,12 +9,12 @@ import { z } from 'zod'
 
 import { defineCommand } from '../src/commands/registry.js'
 import { exitWith } from '../src/commands/tests/support.js'
-import { gitCurrentBranch } from '../src/infra/git.js'
-import { loadActiveConfig } from '../src/infra/config-store.js'
-import { GitHubClient } from '../src/infra/github/index.js'
-import { useIsolatedEnvironment } from '../src/tests/_helpers/environment.js'
-import { ignoredDiagnostics } from '../src/infra/tests/recording-diagnostics.js'
-import { restResponse } from '../src/infra/github/tests/fake-client.js'
+import { gitCurrentBranch } from '@pecot/workflow-core/infra/git.js'
+import { loadActiveConfig } from '@pecot/workflow-core/infra/config-store.js'
+import { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
+import { useIsolatedEnvironment } from '../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { ignoredDiagnostics } from '../../../../libs/workflow-core/tests/_helpers/recording-diagnostics.js'
+import { restResponse } from '../../../../libs/workflow-core/src/infra/github/tests/fake-client.js'
 import { enterGitRepository, runInProcess, setUpProject, settleWithFakeDelays, startGithub, useFakeDelays } from './_helpers/interface-case.js'
 
 useIsolatedEnvironment()

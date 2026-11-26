@@ -6,7 +6,7 @@ import path from 'node:path'
 
 import { describe, expect, it, vi } from 'vitest'
 
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -14,10 +14,10 @@ import { lines, operationsOf, stateFile } from '../_helpers/workspace-inspect.js
 import { AMBIGUOUS_MESSAGE, ambiguousWorkspaceFiles, NO_ACTIVE_FILES, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { finishPullRequestData, graphql, openWorkspace, rest } from '../_helpers/workspace.js'
 import type { ConfigOptions, FinishPullRequestSample, Workspace } from '../_helpers/workspace.js'
-import type { ResponseRule } from '../fake-github/server.js'
-import { prerequisitesRule } from '../_helpers/prerequisites.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
+import { prerequisitesRule } from '../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
 import { COMMANDS } from '../../src/commands/registry.js'
-import { PUSH_TIMEOUT_MILLISECONDS } from '../../src/infra/git.js'
+import { PUSH_TIMEOUT_MILLISECONDS } from '@pecot/workflow-core/infra/git.js'
 
 useIsolatedEnvironment()
 
@@ -498,6 +498,15 @@ describe('pr restack', () => {
     expect(workspace.git(['rev-parse', '--abbrev-ref', 'HEAD']).trim()).toBe(UPPER)
     expect(workspace.read(BASE_FILE)).toBe(record)
     expect(workspace.exists(PROGRESS_FILE)).toBe(false)
+  })
+
+  it('--abort と --dry-run を付けると、戻すはずの行を出し、rebase と途中の記録を残す', async () => {
+    const workspace = await openStacked({ github: [lowerPullRequests('OPEN')] })
+    makeConflict(workspace)
+    await workspace.run(['pr', 'restack'])
+    const result = await workspace.run(['pr', 'restack', '--abort', '--dry-run'])
+    expect(result).toStrictEqual({ code: 0, stdout: '', stderr: `dry-run: would leave ${UPPER} restack aborted unchanged\n` })
+    expect(workspace.exists(PROGRESS_FILE)).toBe(true)
   })
 
   it('衝突を解いてから --continue を付けると、スタックし直しを終えて push し、記録を書き直す', async () => {

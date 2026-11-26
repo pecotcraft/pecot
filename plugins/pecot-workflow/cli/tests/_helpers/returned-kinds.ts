@@ -1,16 +1,24 @@
 // コマンドが stopWith・CommandExit に渡す失敗の原因の名前を、ソースから集める。
-// 各コマンドの run から、src/commands の中の関数への参照をたどる。例外のクラスから決まる名前（kindOfFailure など）は集めない。
+// 各コマンドの run から、src/commands と lib の src/commands-shared の中の関数への参照をたどる。例外のクラスから決まる名前（kindOfFailure など）は集めない。
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- コンパイラ API の型は readonly にできない */
 import path from 'node:path'
 
 import ts from 'typescript'
 
-import { FAILURE_KINDS } from '../../src/commands/failure-kind.js'
-import { interfaceIdOf } from '../../src/commands/command-definition.js'
+import { FAILURE_KINDS } from '@pecot/workflow-core/commands-shared/failure-kind.js'
+import { interfaceIdOf } from '@pecot/workflow-core/commands-shared/command-definition.js'
 
 const CLI_ROOT = path.resolve(import.meta.dirname, '../..')
 const COMMANDS_DIRECTORY = path.join(CLI_ROOT, 'src', 'commands') + path.sep
+const LIBRARY_SOURCE = path.resolve(CLI_ROOT, '../../../libs/workflow-core/src')
+const SHARED_DIRECTORY = path.join(LIBRARY_SOURCE, 'commands-shared') + path.sep
 const KNOWN_KINDS: ReadonlySet<string> = new Set(FAILURE_KINDS)
+
+// 参照をたどるディレクトリ。at はこのディレクトリからの相対パス
+function directoryOf(file: string): string | undefined {
+  const resolved = path.resolve(file)
+  return [COMMANDS_DIRECTORY, SHARED_DIRECTORY].find(directory => resolved.startsWith(directory))
+}
 
 /**
 名前と終了コード。終了コードが型から決まらないときは undefined
@@ -19,7 +27,7 @@ export interface ReturnedKind {
   readonly kind: string
   readonly code: number | undefined
   /**
-  stopWith・CommandExit を呼ぶ所（src/commands からの相対パスと行）
+  stopWith・CommandExit を呼ぶ所（src/commands か lib の src/commands-shared からの相対パスと行）
   */
   readonly at: string
 }
@@ -28,12 +36,12 @@ function createProgram(): ts.Program {
   const configFile = ts.readConfigFile(path.join(CLI_ROOT, 'tsconfig.json'), ts.sys.readFile.bind(ts.sys))
   const parsed = ts.parseJsonConfigFileContent(configFile.config, ts.sys, CLI_ROOT)
   const roots = parsed.fileNames.filter(file => file.startsWith(COMMANDS_DIRECTORY) && !file.includes(`${path.sep}tests${path.sep}`))
-  return ts.createProgram(roots, parsed.options)
+  // lib を dist の .d.ts でなく src で読み、関数の本体までたどる
+  return ts.createProgram(roots, { ...parsed.options, paths: { '@pecot/workflow-core/*': [`${LIBRARY_SOURCE}/*`] } })
 }
 
 function isInCommands(node: ts.Node): boolean {
-  const file = node.getSourceFile().fileName
-  return path.resolve(file).startsWith(COMMANDS_DIRECTORY)
+  return directoryOf(node.getSourceFile().fileName) !== undefined
 }
 
 // 括弧・as・satisfies を外した式（ts.skipOuterExpressions は公開の型に無い）
@@ -90,7 +98,8 @@ class Collector {
     if (kindArgument === undefined) return []
     const kinds = literalStrings(this.checker.getTypeAtLocation(kindArgument)) ?? []
     const { line } = node.getSourceFile().getLineAndCharacterOfPosition(node.getStart())
-    const at = `${path.relative(COMMANDS_DIRECTORY, node.getSourceFile().fileName)}:${String(line + 1)}`
+    const file = node.getSourceFile().fileName
+    const at = `${path.relative(directoryOf(file) ?? COMMANDS_DIRECTORY, file)}:${String(line + 1)}`
     return kinds.map(kind => ({ kind, code, at }))
   }
 
@@ -116,7 +125,7 @@ class Collector {
   }
 
   /**
-  node の中と、そこから参照する src/commands の関数の中で、stopWith・CommandExit に渡す名前
+  node の中と、そこから参照する src/commands・lib の src/commands-shared の関数の中で、stopWith・CommandExit に渡す名前
   */
   collect(root: ts.Node): readonly ReturnedKind[] {
     const cached = this.cache.get(root)

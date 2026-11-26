@@ -7,7 +7,7 @@ import path from 'node:path'
 
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { readFakeCalls } from '../../src/tests/_helpers/fake-executables.js'
+import { readFakeCalls } from '../../../../../libs/workflow-core/tests/_helpers/fake-executables.js'
 import { fixtureName, makeSandbox, pluginScript, runScript, splitLines, type Result, type Sandbox } from './_helpers/run.js'
 
 const SANDBOX = 'pecotcraft/pecot-sandbox'

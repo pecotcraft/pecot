@@ -86,6 +86,7 @@
       "{workspaceRoot}/.gitignore",
       "{workspaceRoot}/libs/interface-spec/.gitignore",
       "{workspaceRoot}/libs/text-rules/.gitignore",
+      "{workspaceRoot}/libs/workflow-core/.gitignore",
       "{workspaceRoot}/plugins/pecot-tools/.gitignore",
       "{workspaceRoot}/plugins/pecot-visual/.gitignore",
       "{workspaceRoot}/plugins/pecot-visual/assets/slidev/.gitignore",
@@ -287,6 +288,22 @@
           "file": "libs/text-rules/CHANGELOG.md",
           "createRelease": "github"
         }
+      },
+      "workflow-core": {
+        "projects": ["workflow-core"],
+        "projectsRelationship": "fixed",
+        "releaseTag": {
+          "pattern": "workflow-core-v{version}"
+        },
+        "version": {
+          "specifierSource": "version-plans",
+          "updateDependents": "always",
+          "currentVersionResolver": "disk"
+        },
+        "changelog": {
+          "file": "libs/workflow-core/CHANGELOG.md",
+          "createRelease": "github"
+        }
       }
     },
     "version": {
@@ -311,6 +328,7 @@
         "plugins/pecot-visual/scripts/page-compare/",
         "plugins/*/cli/eslint.config.js",
         "libs/text-rules/eslint.config.js",
+        "libs/workflow-core/eslint.config.js",
         "plugins/pecot-visual/assets/slidev/tsconfig.test.json"
       ]
     },

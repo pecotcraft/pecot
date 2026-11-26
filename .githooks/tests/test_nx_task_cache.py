@@ -600,9 +600,13 @@ _PLUGIN_ENV_INPUT = {
 }
 
 
+# プラグインに同梱し、そのプラグインの env を入力に持つライブラリの project。
+_BUNDLED_LIB_PLUGIN = {"workflow-core": "pecot-workflow"}
+
+
 def _project_plugins() -> dict[str, str]:
-    """project 名 → それが属するプラグインのディレクトリ名（plugins/ 配下のものだけ）。"""
-    out: dict[str, str] = {}
+    """project 名 → それが属するプラグインのディレクトリ名（plugins/ 配下と、同梱するライブラリ）。"""
+    out: dict[str, str] = dict(_BUNDLED_LIB_PLUGIN)
     for path in _project_jsons():
         rel = path.relative_to(_REPO_ROOT).parts
         if rel[0] == "plugins":

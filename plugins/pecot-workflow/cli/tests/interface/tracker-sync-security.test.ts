@@ -2,8 +2,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { TRACKER_COMMANDS } from '../../src/commands/tracker.js'
-import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
+import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import type { RecordedRequest, ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'

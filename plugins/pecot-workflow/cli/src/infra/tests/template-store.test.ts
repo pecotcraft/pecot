@@ -1,29 +1,24 @@
-/* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
-import { mkdirSync, writeFileSync } from 'node:fs'
+/* eslint-disable security/detect-non-literal-fs-filename -- 読むのは配布テンプレートと一時ディレクトリ配下のみ */
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import type { CommentFrontmatter, IssueFrontmatter } from '@pecot/workflow-core/domain/frontmatter.js'
 import {
-  extractSectionsFromTemplate,
   validateBodyStyle,
   validateClosedHeadings,
   validateHeadingSummaries,
   validateSections,
-} from '../../domain/sections.js'
-import type { SectionHeading } from '../../domain/sections.js'
-import { useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
-import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
-import { readTemplateSections, templateFile, templatesDirectory } from '../template-store.js'
+} from '@pecot/workflow-core/domain/sections.js'
+import type { SectionHeading } from '@pecot/workflow-core/domain/sections.js'
+import { readTemplateSections } from '@pecot/workflow-core/infra/template-sections.js'
+import { useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
+import { templateFile, templatesDirectory } from '../template-store.js'
 import type { TemplateKind } from '../template-store.js'
 
 useIsolatedEnvironment()
-
-function writeTemplate(content: string): string {
-  const file = path.join(makeTemporaryDirectory(), 'test.md')
-  writeFileSync(file, content, 'utf8')
-  return file
-}
 
 const DISTRIBUTED_TEMPLATES: readonly (readonly [TemplateKind, string])[] = [['issue', 'task'], ['issue', 'epic'], ['comment', 'plan'], ['pr', 'create'], ['pr', 'release']]
 
@@ -68,21 +63,19 @@ describe('templatesDirectory・templateFile', () => {
   })
 })
 
-describe('readTemplateSections', () => {
-  it('ファイルから見出しレベルを抽出する', () => {
-    const file = writeTemplate('---\nissue_ref: ""\n---\n\n### 完了した作業\n- 内容\n\n#### 残タスク\n- なし\n')
-    expect(readTemplateSections(file)).toEqual([{ level: 3, name: '完了した作業' }, { level: 4, name: '残タスク' }])
+// 検証に渡すテンプレートの名前の全部。readTemplateSections は無いファイルで空を返し、検証が何も止めなくなるため、実在を確かめる
+const ISSUE_TEMPLATE_NAMES: Readonly<Record<NonNullable<IssueFrontmatter['template']> | IssueFrontmatter['type'], true>> = { 'task': true, 'bug': true, 'epic': true, 'tracker': true, 'task-implement': true }
+const COMMENT_TEMPLATE_NAMES: Readonly<Record<NonNullable<CommentFrontmatter['template']>, true>> = { 'plan': true, 'merge-diff': true, 'review-findings': true, 'review-resolution': true, 'precede-notify': true }
+
+describe('検証に渡すテンプレートのパス', () => {
+  it.each(Object.keys(ISSUE_TEMPLATE_NAMES))('Issue の %s のテンプレートは見出しを持って実在する', (name) => {
+    expect(existsSync(templateFile('issue', name))).toBe(true)
+    expect(readTemplateSections(templateFile('issue', name)).length).toBeGreaterThan(0)
   })
 
-  it('ファイルが存在しない場合は空リスト', () => {
-    const file = path.join(makeTemporaryDirectory(), 'nonexistent.md')
-    expect(readTemplateSections(file)).toEqual([])
-  })
-
-  it('読めないファイル（ディレクトリ）は空リスト', () => {
-    const directory = path.join(makeTemporaryDirectory(), 'dir.md')
-    mkdirSync(directory)
-    expect(readTemplateSections(directory)).toEqual([])
+  it.each(Object.keys(COMMENT_TEMPLATE_NAMES))('コメントの %s のテンプレートは見出しを持って実在する', (name) => {
+    expect(existsSync(templateFile('comment', name))).toBe(true)
+    expect(readTemplateSections(templateFile('comment', name)).length).toBeGreaterThan(0)
   })
 })
 
@@ -173,12 +166,5 @@ describe('comment/plan.md の実体の見出しの集合（#1330）', () => {
     const sections = readTemplateSections(templateFile('comment', 'plan'))
     const body = sections.map(({ level, name }) => `${'#'.repeat(level)} ${name}`).join('\n')
     expect(validateClosedHeadings(body, sections)).toEqual([])
-  })
-})
-
-describe('domain との整合', () => {
-  it('テンプレートファイルの内容を domain の抽出関数に渡した結果と同じ', () => {
-    const file = writeTemplate('## A — <a>\n### B\n')
-    expect(readTemplateSections(file)).toEqual(extractSectionsFromTemplate('## A — <a>\n### B\n'))
   })
 })

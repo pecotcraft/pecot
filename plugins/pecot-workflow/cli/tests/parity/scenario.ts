@@ -6,8 +6,8 @@ import path from 'node:path'
 
 import { parse } from 'yaml'
 
-import { OPERATION_NAMES } from '../fake-github/operations.js'
-import type { ResponseMatch, ResponseRule, ResponseSpec } from '../fake-github/server.js'
+import { OPERATION_NAMES } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/operations.js'
+import type { ResponseMatch, ResponseRule, ResponseSpec } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { compareStrings, isRecord, isStringArray } from './baseline.js'
 
 export const scenariosDirectory = path.join(import.meta.dirname, 'scenarios')

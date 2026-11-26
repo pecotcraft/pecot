@@ -4,8 +4,8 @@
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 
-import { CHANGELOG_FALLBACK_FILES, changelogFileName, changelogNotFoundMessage, ChangelogFileNotFoundError, DEFAULT_CHANGELOG_FILE, extractVersionReleaseNotes, getLatestVersion } from '../domain/changelog.js'
-import { readTextFile } from './text-file.js'
+import { CHANGELOG_FALLBACK_FILES, changelogFileName, changelogNotFoundMessage, ChangelogFileNotFoundError, DEFAULT_CHANGELOG_FILE, extractVersionReleaseNotes, getLatestVersion } from '@pecot/workflow-core/domain/changelog.js'
+import { readTextFile } from '@pecot/workflow-core/infra/text-file.js'
 
 /**
 CHANGELOG ファイルのパスを解決する。存在しない場合もパスだけ返す。

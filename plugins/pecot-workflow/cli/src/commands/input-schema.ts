@@ -1,6 +1,6 @@
 // コマンドの入力（zod）から JSON Schema を作り、定義書（generated.json）と同じ形にそろえる。
 // 定義書の書き出し（scripts/export-interface.ts）と、コマンドごとの --help が同じ関数を通す。
-import { byName } from './names.js'
+import { byName } from '@pecot/workflow-core/commands-shared/names.js'
 
 export type JsonObject = Readonly<Record<string, unknown>>
 

@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -48,6 +49,21 @@ describe('loadSources', () => {
     const sources = await loadSources(root, 'pecot-workflow', ['cli/**/*.py'])
     expect(sources.map(source => source.path)).toEqual(['plugins/pecot-workflow/cli/core/session.py'])
     expect(sources[0]?.text).toContain('PECOT_GITHUB_API_URL')
+  })
+
+  it('プラグインの外を ../../ で指す glob は、リポジトリの中のライブラリを読む', async () => {
+    const root = await materialize('valid')
+    await mkdir(path.join(root, 'libs/core/src/tests'), { recursive: true })
+    await writeFile(path.join(root, 'libs/core/src/auth.ts'), 'export const name = 1\n')
+    await writeFile(path.join(root, 'libs/core/src/tests/auth.test.ts'), 'export {}\n')
+    execFileSync('git', ['add', '--all'], { cwd: root })
+    const sources = await loadSources(root, 'pecot-workflow', ['cli/**/*.py', '../../libs/core/src/*.ts'])
+    expect(sources.map(source => source.path)).toEqual(['libs/core/src/auth.ts', 'plugins/pecot-workflow/cli/core/session.py'])
+  })
+
+  it('リポジトリの外を指す glob は、LoadError を投げる', async () => {
+    const root = await materialize('valid')
+    await expect(loadSources(root, 'pecot-workflow', ['../../../outside/*.ts'])).rejects.toBeInstanceOf(LoadError)
   })
 })
 

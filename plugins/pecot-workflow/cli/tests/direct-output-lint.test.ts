@@ -1,4 +1,4 @@
-// 共通の関数の外の直接の出力を、eslint.config.js が止めることを確かめる。
+// 共通の関数の外の直接の出力を、eslint.config.js が止めることを確かめる。出力の関数を持つ output.ts は lib にある。
 // lintText に渡す filePath は実在するファイルにする（実在しないパスは typed lint が Parsing error にする）。
 import path from 'node:path'
 
@@ -11,9 +11,8 @@ const RESTRICTED_PATH = path.join(ROOT, 'src', 'cli.ts')
 const RESTRICTED_PATHS: readonly (readonly [string, string])[] = [
   ['src/cli.ts', RESTRICTED_PATH],
   ['src/infra/worktree.ts', path.join(ROOT, 'src', 'infra', 'worktree.ts')],
-  ['src/domain/format.ts', path.join(ROOT, 'src', 'domain', 'format.ts')],
+  ['src/domain/issue-surface.ts', path.join(ROOT, 'src', 'domain', 'issue-surface.ts')],
 ]
-const OUTPUT_PATH = path.join(ROOT, 'src', 'commands', 'output.ts')
 
 // 最初の lintText はプロジェクト全体の読み込みで重い。src/tests/lint-rules.test.ts と同じく beforeAll の 1 回に寄せる
 const WARM_UP_TIMEOUT_MS = 120_000
@@ -41,14 +40,6 @@ describe('直接の出力を止める lint', () => {
     ])('%s は止まる', async (code, expected) => {
       expect(await ruleIds(`${code}\n`, filePath)).toContain(expected)
     })
-  })
-
-  it.each([
-    'console.log("x")',
-    'process.stderr.write("x")',
-    'declare const io: { stderr: { write: (text: string) => void } }\nio.stderr.write("x")',
-  ])('%s は src/commands/output.ts のパスでは止まらない', async (code) => {
-    expect(await ruleIds(`${code}\n`, OUTPUT_PATH)).toEqual([])
   })
 
   it('共通の規則（enum 禁止）は src/cli.ts のパスでも止まる', async () => {

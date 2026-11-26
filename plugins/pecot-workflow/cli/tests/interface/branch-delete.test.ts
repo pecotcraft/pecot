@@ -1,8 +1,8 @@
 // branch delete の振る舞い（PW-BRANCH-DELETE-*）を MCP のツールで確かめ、CLI の行と終了コードも runCli をプロセス内で呼んで確かめる。
 import { describe, expect, it } from 'vitest'
 
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import type { ResponseRule } from '../fake-github/server.js'
+import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
 import { ambiguousFiles, AMBIGUOUS_MESSAGE, NO_ACTIVE_FILES, otherRepositoryConfig, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { projectConfig, requestLabels, restRule, runCommand, runTool } from '../_helpers/command-harness.js'

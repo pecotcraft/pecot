@@ -9,13 +9,13 @@ import { parse } from 'yaml'
 import { z } from 'zod'
 
 import { runCli } from '../src/cli.js'
-import { defineCommand, interfaceIdOf } from '../src/commands/command-definition.js'
+import { defineCommand, interfaceIdOf } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { COMMANDS } from '../src/commands/registry.js'
 import type { CommandDefinition } from '../src/commands/registry.js'
-import { cellLength } from '../src/commands/rich-panel.js'
+import { cellLength } from '@pecot/workflow-core/commands-shared/rich-panel.js'
 import { capture, exitWith } from '../src/commands/tests/support.js'
 import type { AuthoredNotes } from '../src/infra/authored-notes.js'
-import { parseJson } from '../src/tests/_helpers/json.js'
+import { parseJson } from '../../../../libs/workflow-core/tests/_helpers/json.js'
 import { missingHelpItems } from './_helpers/help-items.js'
 
 const PLUGIN_ROOT = path.resolve(import.meta.dirname, '../..')

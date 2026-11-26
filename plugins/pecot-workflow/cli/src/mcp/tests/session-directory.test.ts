@@ -4,7 +4,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
+import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { resolveSessionDirectory } from '../session-directory.js'
 
 function layout(): { readonly pluginRoot: string, readonly session: string, readonly project: string, readonly elsewhere: string } {

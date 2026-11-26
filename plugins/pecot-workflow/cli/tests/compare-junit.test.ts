@@ -6,7 +6,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { compareJunit, main, parseJunit } from '../scripts/compare-junit.js'
-import { makeTemporaryDirectory } from '../src/tests/_helpers/temporary.js'
+import { makeTemporaryDirectory } from '../../../../libs/workflow-core/tests/_helpers/temporary.js'
 
 function suite(body: string): string {
   return `<?xml version="1.0"?>\n<testsuites>\n<testsuite name="a.test.ts">\n${body}\n</testsuite>\n</testsuites>\n`

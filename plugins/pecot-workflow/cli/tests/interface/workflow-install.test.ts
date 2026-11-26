@@ -5,7 +5,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { pluginRoot } from '../../src/version.js'
 import { runCommand, runTool } from '../_helpers/command-harness.js'
 import type { ToolResult } from '../_helpers/command-harness.js'

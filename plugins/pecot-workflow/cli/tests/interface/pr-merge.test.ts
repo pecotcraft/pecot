@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { PR_COMMANDS } from '../../src/commands/pr.js'
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { prepareProject } from '../_helpers/board-issue-case.js'
 import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -11,7 +11,7 @@ import type { CliResult } from '../_helpers/interface-case.js'
 import { runInProcess, settleWithFakeDelays, startGithub, useFakeDelays } from '../_helpers/interface-case.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
-import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
+import type { RecordedRequest, ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 
 useIsolatedEnvironment()
 
@@ -324,6 +324,57 @@ describe('pr merge', () => {
 
     expect(outcome.code).toBe(1)
     expect(outcome.stderr).toMatch(/^error: could not merge PR acme\/demo\/11: access denied/u)
+  })
+
+  it.for([
+    {
+      name: 'PR の読み取り',
+      rules: [{ match: { operation: 'GetPullRequestForMerge' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }],
+      line: 'could not read PR acme/demo/11: ',
+    },
+    { name: 'スタックの読み取り', rules: [pullRequest(), stacks({ message: 'boom' }, 500)], line: 'could not read the stack of PR acme/demo/11: ' },
+    {
+      name: 'マージの結果の読み取り',
+      rules: [pullRequest(), NO_STACK, requested(202, pending()), { match: { method: 'GET', path: `${MERGE_ASYNC}/u-1` }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }],
+      line: 'could not read the merge result of PR acme/demo/11: ',
+    },
+    { name: '同期のマージ', rules: [pullRequest(), NO_STACK, ASYNC_MISSING, syncMerged(500, { message: 'boom' })], line: 'could not merge PR acme/demo/11: ' },
+  ])('$name が GitHub の失敗で止まると、PR を示す error の行を出し、終了コード 1 を返す', async ({ rules, line }) => {
+    prepareProject()
+    await startGithub(rules)
+
+    const outcome = await merge(['acme/demo/11'])
+
+    expect(outcome.code).toBe(1)
+    expect(outcome.stderr.startsWith(`error: ${line}`)).toBe(true)
+  })
+
+  it('結果が failed で details.message が無いと、理由が無いことを添えた error の行を出す', async () => {
+    prepareProject()
+    await startGithub([pullRequest(), NO_STACK, requested(202, pending()), result({ status: 'failed', details: {} })])
+
+    const outcome = await merge(['acme/demo/11'])
+
+    expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: merge was rejected: GitHub gave no reason\n' })
+  })
+
+  it('409 の本文に uuid が無く、PR がマージ済みでもキューの中でもなければ、確かめられない error の行を出す', async () => {
+    prepareProject()
+    await startGithub([pullRequest(), NO_STACK, requested(409, { message: 'conflict' }), pullRequest()])
+
+    const outcome = await merge(['acme/demo/11'])
+
+    expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: could not confirm the merge of PR #11: it is neither merged nor in the merge queue\n' })
+  })
+
+  it('同期のマージが本文に message の無い 405 で拒まれると、状態の文を添えた rejected の行を出す', async () => {
+    prepareProject()
+    await startGithub([pullRequest(), NO_STACK, ASYNC_MISSING, syncMerged(405, {})])
+
+    const outcome = await merge(['acme/demo/11'])
+
+    expect(outcome.code).toBe(1)
+    expect(outcome.stderr).toMatch(/^error: merge was rejected: \S/u)
   })
 
   it('--dry-run は、PR とスタックを読み、要求を送らずに dry-run の行を出して 0 で終わる', async () => {

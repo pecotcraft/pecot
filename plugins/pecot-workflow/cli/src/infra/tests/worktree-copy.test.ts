@@ -4,8 +4,8 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
-import { makeTemporaryDirectory, writeTree } from '../../tests/_helpers/temporary.js'
+import { useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { makeTemporaryDirectory, writeTree } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { copyFiles } from '../worktree-copy.js'
 
 useIsolatedEnvironment()

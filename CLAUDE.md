@@ -10,6 +10,7 @@ Claude Code / GitHub Copilot CLI 向けプラグインの monorepo（nx workspac
 | `plugins/pecot-visual` | ビジュアル系スキル（Slidev / draw.io） | `pecot-visual` | `test-cli` / `test-bootstrap` / `test-slidev` / `test-hooks` / `test-compare` / `test-release` / `test-skills` |
 | `plugins/pecot-tools` | 許可リストで限定した awscli コマンドの MCP サーバ | `pecot-tools` | `test-cli` / `test-bootstrap` / `test-release` |
 | `libs/text-rules` | テキスト規則ライブラリ（pecot-visual への同梱と root フックが使う） | `text-rules` | `test-unit` |
+| `libs/workflow-core` | pecot-workflow と Actions の処理が共有するコード（pecot-workflow への同梱が使う） | `workflow-core` | `test-unit` |
 | `libs/interface-spec` | インタフェース定義書の形式と検証。配布しない | `interface-spec` | `test-unit` / `test-site` |
 | `.githooks` | root 共通の hook とそのテスト | `githooks` | `test-nx-cache` / `test-nx-affected` / `test-ci` / `test-checks` |
 

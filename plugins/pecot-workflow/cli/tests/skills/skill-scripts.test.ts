@@ -8,7 +8,7 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { makeTemporaryDirectory, writeTree } from '../../src/tests/_helpers/temporary.js'
+import { makeTemporaryDirectory, writeTree } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { pluginRoot, readDocuments, readPluginFile } from './_helpers/documents.js'
 
 function scriptPath(relative: string): string {

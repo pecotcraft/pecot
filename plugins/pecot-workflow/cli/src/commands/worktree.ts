@@ -5,12 +5,12 @@ import path from 'node:path'
 
 import { z } from 'zod'
 
-import { InvalidValueError } from '../domain/errors.js'
-import { aggregationRepositoryReference, ConfigError } from '../domain/config.js'
-import { loadActiveConfig } from '../infra/config-store.js'
-import { gitToplevel } from '../infra/git.js'
-import { hasErrorCode, OsError, toOsError } from '../infra/os-error.js'
-import { resolveRealPath, WORKTREE_CONFIG_FILENAME, WORKTREE_IGNORE_FILENAME } from '../infra/paths.js'
+import { InvalidValueError } from '@pecot/workflow-core/domain/errors.js'
+import { aggregationRepositoryReference, ConfigError } from '@pecot/workflow-core/domain/config.js'
+import { loadActiveConfig } from '@pecot/workflow-core/infra/config-store.js'
+import { gitToplevel } from '@pecot/workflow-core/infra/git.js'
+import { hasErrorCode, OsError, toOsError } from '@pecot/workflow-core/infra/os-error.js'
+import { resolveRealPath, WORKTREE_CONFIG_FILENAME, WORKTREE_IGNORE_FILENAME } from '@pecot/workflow-core/infra/paths.js'
 import {
   createWorktree,
   detectProjectRoot,
@@ -33,12 +33,12 @@ import {
   WorktreeConfigError,
 } from '../infra/worktree-links.js'
 import type { LinkPlan, SymlinkResult, WorktreeConfig } from '../infra/worktree-links.js'
-import { createOutput, isConfirmed } from './output.js'
-import type { Operation, Output } from './output.js'
-import { defineCommand } from './command-definition.js'
-import { commandHint, hinted, hintedTextOf, inputHint, placeholder, RUN_COLON } from './command-hint.js'
-import type { CommandDefinition, CommandIo, GlobalInput } from './command-definition.js'
-import { PROJECT_INPUT, stopWith } from './command-stop.js'
+import { createOutput, isConfirmed } from '@pecot/workflow-core/commands-shared/output.js'
+import type { Operation, Output } from '@pecot/workflow-core/commands-shared/output.js'
+import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { commandHint, hinted, hintedTextOf, inputHint, placeholder, RUN_COLON } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import type { CommandDefinition, CommandIo, GlobalInput } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { PROJECT_INPUT, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { directorySchema } from './directory-option.js'
 import { requireRepositoryMatch } from './repository-match.js'
 

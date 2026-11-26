@@ -35,6 +35,6 @@ description: PR の CI（checks (lint) や tests (<project>:<target>)）が落�
    plugins/pecot-tools/scripts/ci/run-tests.sh --scope=<cli|bootstrap|release>
    ```
 
-   - githooks は `.githooks/tests/run.sh <file>`。text-rules・interface-spec・nx-release には `run-tests.sh` が無いので、手順 3 の `nx run` を使う
+   - githooks は `.githooks/tests/run.sh <file>`。text-rules・workflow-core・interface-spec・nx-release には `run-tests.sh` が無いので、手順 3 の `nx run` を使う
 
 `pre-commit run` は staged でない変更を退避して index の内容で動くので、直しは `git add` してから打ち直します。

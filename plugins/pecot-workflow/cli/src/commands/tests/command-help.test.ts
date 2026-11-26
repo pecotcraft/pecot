@@ -4,7 +4,7 @@ import { z } from 'zod'
 import type { AuthoredNotes } from '../../infra/authored-notes.js'
 import { cliTextOf, commandHelpText } from '../command-help.js'
 import { defineCommand } from '../registry.js'
-import { cellLength } from '../rich-panel.js'
+import { cellLength } from '@pecot/workflow-core/commands-shared/rich-panel.js'
 import { ATTRIBUTES_INPUT, exitWith } from './support.js'
 
 const STRINGS = z.array(z.string())

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { COMMON_OUTPUT_KEYS } from '../../commands/command-definition.js'
-import { createOutput } from '../../commands/output.js'
+import { COMMON_OUTPUT_KEYS } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import { outputSchemaIssues } from '../../../tests/_helpers/mcp-client.js'
 import { z } from 'zod'
 

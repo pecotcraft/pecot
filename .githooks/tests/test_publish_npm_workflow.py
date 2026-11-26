@@ -305,6 +305,7 @@ def _targets(files: list[str]) -> list[str]:
         (["plugins/pecot-tools/cli/src/index.ts"], ["pecot-tools"]),
         (["plugins/pecot-visual/SKILL.md"], ["pecot-visual"]),
         (["libs/text-rules/src/index.ts"], ["pecot-visual"]),
+        (["libs/workflow-core/src/domain/config.ts"], ["pecot-workflow"]),
         (
             ["plugins/pecot-workflow/cli/a.ts", "plugins/pecot-tools/b.ts"],
             ["pecot-tools", "pecot-workflow"],

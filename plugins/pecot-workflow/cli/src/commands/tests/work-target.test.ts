@@ -4,10 +4,10 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { createGitRepository } from '../../tests/_helpers/git-repository.js'
-import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
-import { writeTree } from '../../tests/_helpers/temporary.js'
-import { createOutput } from '../output.js'
+import { createGitRepository } from '../../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
+import { setEnvironment, useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { writeTree } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
+import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import { planWorkTarget, recordWorkTarget } from '../work-target.js'
 import { capture } from './support.js'
 

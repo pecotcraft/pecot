@@ -2,7 +2,7 @@
 // オプションと位置引数の型。zod のスキーマの形から、click と同じ型変換と誤りの文を決める。
 import { z } from 'zod'
 
-import { parsePythonInteger, pythonFloatRepr, pythonStringRepr } from '../domain/python-format.js'
+import { parsePythonInteger, pythonFloatRepr, pythonStringRepr } from '@pecot/workflow-core/domain/python-format.js'
 
 /**
 CLI の値の形。真偽値は値を取らない旗、list は繰り返して渡す

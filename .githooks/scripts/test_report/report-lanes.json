@@ -95,6 +95,11 @@
     "results": "libs/text-rules/test-results/test-unit/allure-results"
   },
   {
+    "project": "workflow-core",
+    "target": "test-unit",
+    "results": "libs/workflow-core/test-results/test-unit/allure-results"
+  },
+  {
     "project": "interface-spec",
     "target": "test-unit",
     "results": "libs/interface-spec/test-results/test-unit/allure-results"

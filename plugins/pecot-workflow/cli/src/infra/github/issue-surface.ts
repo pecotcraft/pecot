@@ -1,6 +1,6 @@
 // GitHub の公開スキーマ（SDL）と REST の OpenAPI を取りに行く。どちらも認証なしで取れる。
-import { parseJsonText } from '../../domain/json.js'
-import type { JsonValue } from '../../domain/python-format.js'
+import { parseJsonText } from '@pecot/workflow-core/domain/json.js'
+import type { JsonValue } from '@pecot/workflow-core/domain/python-format.js'
 import type { IssueSurface } from '../../domain/issue-surface.js'
 
 export const GRAPHQL_SCHEMA_URL = 'https://docs.github.com/public/fpt/schema.docs.graphql'

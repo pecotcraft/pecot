@@ -23,7 +23,7 @@ import {
   validateFoldSummaries,
   validateHeadingSummaries,
   validateSections,
-} from '../../src/domain/sections.js'
+} from '@pecot/workflow-core/domain/sections.js'
 import { compareStrings } from '../parity/baseline.js'
 import { pluginRoot, readPluginFile } from './_helpers/documents.js'
 

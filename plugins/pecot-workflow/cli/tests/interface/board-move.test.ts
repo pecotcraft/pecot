@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { BOARD_MOVE_COMMANDS } from '../../src/commands/board-move.js'
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import { boardItems, failing, fieldUpdated, linkedRepositories, prepareProject } from '../_helpers/board-issue-case.js'
 import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'

@@ -15,17 +15,17 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, lstatSync, mkdirSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { commandHint, formatHinted, hinted, RUN } from '../domain/command-hint.js'
-import type { HintedText } from '../domain/command-hint.js'
-import { PecotError, InvalidValueError } from '../domain/errors.js'
-import { isJsonObject, jsonField, parseJsonText } from '../domain/json.js'
-import type { JsonObject } from '../domain/json.js'
-import { isJsonArray, pythonStrip, ValidationFailure } from '../domain/python-format.js'
-import type { JsonValue, ValidationIssue } from '../domain/python-format.js'
-import { childStdin } from './child-stdin.js'
+import { commandHint, formatHinted, hinted, RUN } from '@pecot/workflow-core/domain/command-hint.js'
+import type { HintedText } from '@pecot/workflow-core/domain/command-hint.js'
+import { PecotError, InvalidValueError } from '@pecot/workflow-core/domain/errors.js'
+import { isJsonObject, jsonField, parseJsonText } from '@pecot/workflow-core/domain/json.js'
+import type { JsonObject } from '@pecot/workflow-core/domain/json.js'
+import { isJsonArray, pythonStrip, ValidationFailure } from '@pecot/workflow-core/domain/python-format.js'
+import type { JsonValue, ValidationIssue } from '@pecot/workflow-core/domain/python-format.js'
+import { childStdin } from '@pecot/workflow-core/infra/child-stdin.js'
 import { isFile } from './file-kind.js'
-import { runGit } from './git.js'
-import { hasErrorCode, OsError, toOsError } from './os-error.js'
+import { runGit } from '@pecot/workflow-core/infra/git.js'
+import { hasErrorCode, OsError, toOsError } from '@pecot/workflow-core/infra/os-error.js'
 import {
   ACTIVE_PROJECT_FILENAME,
   PECOT_DIR,
@@ -34,11 +34,11 @@ import {
   normalizePath,
   WORK_DIR,
   WORKTREE_IGNORE_FILENAME,
-} from './paths.js'
-import type { Diagnostics } from './diagnostics.js'
+} from '@pecot/workflow-core/infra/paths.js'
+import type { Diagnostics } from '@pecot/workflow-core/infra/diagnostics.js'
 import { compileGitIgnoreSpec } from './gitignore-spec.js'
 import type { GitIgnoreSpec } from './gitignore-spec.js'
-import { readTextFile } from './text-file.js'
+import { readTextFile } from '@pecot/workflow-core/infra/text-file.js'
 import { pluginRoot } from '../version.js'
 
 // 定数

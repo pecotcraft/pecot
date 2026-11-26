@@ -2,7 +2,7 @@
 
 import os from 'node:os'
 
-import { runProcess } from './process-run.js'
+import { runProcess } from '@pecot/workflow-core/infra/process-run.js'
 
 export interface SetupResult {
   /**

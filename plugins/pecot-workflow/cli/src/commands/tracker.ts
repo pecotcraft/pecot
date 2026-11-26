@@ -1,9 +1,9 @@
 // `pecot tracker sync <source>`。source ごとの本体（dependabot.ts・security.ts）を呼び分ける。
 import { z } from 'zod'
 
-import { PROJECT_INPUT } from './command-stop.js'
-import { defineCommand } from './command-definition.js'
-import type { CommandDefinition } from './command-definition.js'
+import { PROJECT_INPUT } from '@pecot/workflow-core/commands-shared/command-stop.js'
+import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { runDependabotSync } from './tracker-sync-dependabot.js'
 import { runSecuritySync } from './tracker-sync-security.js'
 import { TRACKER_SYNC_OUTPUT } from './tracker-sync.js'

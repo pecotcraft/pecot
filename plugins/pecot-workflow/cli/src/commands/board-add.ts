@@ -1,13 +1,13 @@
 // board add。cli/commands/issue.py の add_to_project の移植。
 import { z } from 'zod'
 
-import { GitHubAPIError } from '../infra/github/errors.js'
-import { defineCommand } from './command-definition.js'
-import type { CommandDefinition } from './command-definition.js'
-import { addIssueToBoard, isStatusConfigured, setIssueField } from './issue-board.js'
-import { stopWith, requireConfigFor, PROJECT_INPUT } from './command-stop.js'
-import { kindOfFailure } from './failure.js'
-import { fieldWriteFailure } from './field-write-failure.js'
+import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
+import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { addIssueToBoard, isStatusConfigured, setIssueField } from '@pecot/workflow-core/commands-shared/issue-board.js'
+import { stopWith, requireConfigFor, PROJECT_INPUT } from '@pecot/workflow-core/commands-shared/command-stop.js'
+import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
+import { fieldWriteFailure } from '@pecot/workflow-core/commands-shared/field-write-failure.js'
 import {
   connectToProject,
   exitInvalidStatus,
@@ -17,8 +17,8 @@ import {
   parseIssueReferenceOrExit,
   runWithExit,
   VALID_STATUSES,
-} from './issue-shared.js'
-import { createOutput } from './output.js'
+} from '@pecot/workflow-core/commands-shared/issue-shared.js'
+import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 
 const BOARD_ADD_OUTPUT = z.strictObject({
   issue: z.string().describe('Issue (owner/repo/N)'),

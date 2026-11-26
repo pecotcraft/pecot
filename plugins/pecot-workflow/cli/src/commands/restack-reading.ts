@@ -1,12 +1,12 @@
 // スタックしたブランチをスタックし直す先の判断を、親 PR と remote の先頭から求める。pr restack・pr check・pr create・session show が共有する。
-import type { PullRequestReadout } from '../domain/issue-readout.js'
-import { pickLowerPullRequest } from '../domain/pull-request.js'
-import { decideRestack } from '../domain/restack.js'
-import type { RestackDecision } from '../domain/restack.js'
-import type { BaseReading } from '../domain/state.js'
-import { isAncestor, remoteBranchHead, resolveCommit } from '../infra/git.js'
-import { GitHubAPIError } from '../infra/github/errors.js'
-import type { GitHubClient } from '../infra/github/index.js'
+import type { PullRequestReadout } from '@pecot/workflow-core/domain/issue-readout.js'
+import { pickLowerPullRequest } from '@pecot/workflow-core/domain/pull-request.js'
+import { decideRestack } from '@pecot/workflow-core/domain/restack.js'
+import type { RestackDecision } from '@pecot/workflow-core/domain/restack.js'
+import type { BaseReading } from '@pecot/workflow-core/domain/state.js'
+import { isAncestor, remoteBranchHead, resolveCommit } from '@pecot/workflow-core/infra/git.js'
+import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
+import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
 
 /**
 既に読んだ親 PR。PR が無かったことも示せるよう、包んで渡す

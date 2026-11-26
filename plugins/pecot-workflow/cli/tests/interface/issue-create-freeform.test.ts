@@ -5,7 +5,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { ISSUE_CREATE_COMMANDS } from '../../src/commands/issue-create.js'
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import type { CliResult, RunningGithub } from '../_helpers/interface-case.js'
 import {
@@ -68,6 +68,16 @@ describe('issue create', () => {
     expect(post?.type === 'rest' ? JSON.stringify(post.body) : '').toContain(`${MESSAGE}\\n\\n<!-- ${FOOTER}`)
     expect(hasQuickMode(project.root)).toBe(false)
     expect(existsSync(path.join(project.root, '.pecot/state/.pecot-active'))).toBe(false)
+  })
+
+  it('--label を付けると、Issue にそのラベルを付けて作る', async () => {
+    setUpIssueProject()
+    const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
+
+    const result = await freeform('-m', MESSAGE, '-r', 'acme/demo', '--label', 'bug')
+
+    expect(result.code).toBe(0)
+    expect(github.requests().find(request => request.type === 'rest')).toMatchObject({ body: { title: `[Task] ${MESSAGE}`, labels: ['bug'] } })
   })
 
   it('複数行のメッセージを渡すと、1 行目の連続する空白を 1 つにしたものを type の接頭辞つきの題にし、本文にはメッセージの全体を入れる', async () => {

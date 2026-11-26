@@ -1,11 +1,11 @@
 // 作業対象のセッション名のキャッシュ（.pecot-session-title）と作業ディレクトリを作って、結果の行を出す。
-import { InvalidValueError, ProjectRootNotFoundError } from '../domain/errors.js'
-import { FLAG_PECOT_BASE } from '../domain/state.js'
-import type { BaseRecord } from '../domain/state.js'
-import { OsError, hasErrorCode, toOsError } from '../infra/os-error.js'
-import { WORK_DIR } from '../infra/paths.js'
+import { InvalidValueError, ProjectRootNotFoundError } from '@pecot/workflow-core/domain/errors.js'
+import { FLAG_PECOT_BASE } from '@pecot/workflow-core/domain/state.js'
+import type { BaseRecord } from '@pecot/workflow-core/domain/state.js'
+import { OsError, hasErrorCode, toOsError } from '@pecot/workflow-core/infra/os-error.js'
+import { WORK_DIR } from '@pecot/workflow-core/infra/paths.js'
 import { ensureWorkDirectory, removeFlag, writeBaseRecord, writeSessionTitle } from '../infra/state-store.js'
-import type { Output } from './output.js'
+import type { Output } from '@pecot/workflow-core/commands-shared/output.js'
 
 export interface RecordWorkTargetOptions {
   /**

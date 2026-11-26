@@ -8,15 +8,15 @@
 import { accessSync, constants, mkdirSync, mkdtempSync, rmSync, statSync } from 'node:fs'
 import path from 'node:path'
 
-import { isJsonObject, jsonField, tryParseJsonText } from '../domain/json.js'
-import type { JsonValue } from '../domain/python-format.js'
-import { compareStrings, isJsonArray, pythonRepr } from '../domain/python-format.js'
-import { GitCommandError, runGit } from './git.js'
-import { isFileNotFound, OsError } from './os-error.js'
-import { TMP_DIR } from './paths.js'
-import { runProcess } from './process-run.js'
-import type { ProcessResult } from './process-run.js'
-import { readTextFile } from './text-file.js'
+import { isJsonObject, jsonField, tryParseJsonText } from '@pecot/workflow-core/domain/json.js'
+import type { JsonValue } from '@pecot/workflow-core/domain/python-format.js'
+import { compareStrings, isJsonArray, pythonRepr } from '@pecot/workflow-core/domain/python-format.js'
+import { GitCommandError, runGit } from '@pecot/workflow-core/infra/git.js'
+import { isFileNotFound, OsError } from '@pecot/workflow-core/infra/os-error.js'
+import { TMP_DIR } from '@pecot/workflow-core/infra/paths.js'
+import { runProcess } from '@pecot/workflow-core/infra/process-run.js'
+import type { ProcessResult } from '@pecot/workflow-core/infra/process-run.js'
+import { readTextFile } from '@pecot/workflow-core/infra/text-file.js'
 
 /**
 nx graph の実行上限（秒）

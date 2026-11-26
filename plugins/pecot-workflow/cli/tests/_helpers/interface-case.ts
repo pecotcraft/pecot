@@ -10,12 +10,12 @@ import { afterEach, expect, vi } from 'vitest'
 import { runCli } from '../../src/cli.js'
 import type { CommandDefinition } from '../../src/commands/registry.js'
 import { capture } from '../../src/commands/tests/support.js'
-import { installFakeGh, prependToPath } from '../../src/tests/_helpers/fake-executables.js'
-import { setEnvironment } from '../../src/tests/_helpers/environment.js'
-import { createGitRepository } from '../../src/tests/_helpers/git-repository.js'
-import { makeTemporaryDirectory, writeTree } from '../../src/tests/_helpers/temporary.js'
-import { startFakeGithub } from '../fake-github/server.js'
-import type { FakeGithub, RecordedRequest, ResponseRule } from '../fake-github/server.js'
+import { installFakeGh, prependToPath } from '../../../../../libs/workflow-core/tests/_helpers/fake-executables.js'
+import { setEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { createGitRepository } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
+import { makeTemporaryDirectory, writeTree } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
+import { startFakeGithub } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
+import type { FakeGithub, RecordedRequest, ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 
 const startingDirectory = process.cwd()
 const servers: FakeGithub[] = []

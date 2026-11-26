@@ -1,6 +1,6 @@
 // help の共通の書式。枠を使わず、「見出し + 字下げした 2 列」で並べる。
 // どの関数も、行を改行でつないだ文字列を返す（末尾の改行は付けない）。
-import { cellLength, padCells, wrapText as wrapCells } from './rich-panel.js'
+import { cellLength, padCells, wrapText as wrapCells } from '@pecot/workflow-core/commands-shared/rich-panel.js'
 
 /**
 help の幅の下限。これより狭い端末でも、Usage と名前の列が崩れないように 40 桁で組む

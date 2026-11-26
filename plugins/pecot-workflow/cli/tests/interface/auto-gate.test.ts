@@ -6,16 +6,16 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { AUTO_GATE_COMMANDS } from '../../src/commands/auto-gate.js'
-import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
+import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { makeTemporaryDirectory } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { AUTO_COMMENT_URL, AUTO_POSTED, AUTO_TOKEN, autoResult, bot, botResult, issueComments, LABEL_PATH, labelRemoved, permissionOf, postedBody, prepareAuto, statusUpdated, writesOf } from '../_helpers/auto-case.js'
 import { boardItems } from '../_helpers/board-issue-case.js'
 import type { CliResult } from '../_helpers/interface-case.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
-import { prerequisitesRule } from '../_helpers/prerequisites.js'
+import { prerequisitesRule } from '../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
 import { verifies } from '../_helpers/verifies.js'
-import type { ResponseRule } from '../fake-github/server.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 
 useIsolatedEnvironment()
 
@@ -281,6 +281,111 @@ describe('auto gate', () => {
     const outcome = await gate('issues', file)
 
     expect(outcome).toEqual({ code: 1, stdout: '', stderr: `error: --event-path is not JSON: ${file}\n` })
+  })
+
+  describe('読めないイベントと GitHub の失敗', () => {
+    it.for([
+      { name: 'repository.name', event: { issue: { number: 7, state: 'open' }, sender: { login: 'alice' }, repository: { owner: { login: 'acme' } } } },
+      { name: 'issue.number', event: { issue: { state: 'open' }, sender: { login: 'alice' }, repository: REPOSITORY } },
+      { name: 'issue.state of open or closed', event: { issue: { number: 7 }, sender: { login: 'alice' }, repository: REPOSITORY } },
+    ])('issues のイベントに $name が無いと、何も読まずに入力の誤りで止まる', async ({ name, event }, context) => {
+      await verifies(context, 'PW-AUTO-GATE-12')
+      prepareAuto()
+      const github = await startGithub([])
+
+      const outcome = await gate('issues', eventFile(event))
+
+      expect(outcome).toEqual({ code: 1, stdout: '', stderr: `error: the event has no ${name}\n` })
+      expect(github.requests()).toEqual([])
+    })
+
+    it('ラベルを付けた人の権限を読めないと、Issue を読まずに proceed を偽にする', async () => {
+      prepareAuto()
+      const github = await startGithub([{ match: { method: 'GET', path: '/repos/acme/demo/collaborators/alice/permission' }, respond: { status: 404, body: { message: 'Not Found' } }, times: 1 }])
+
+      const outcome = await gate('issues', labeled())
+
+      expect(outcome.code).toBe(0)
+      expect(JSON.parse(outcome.stdout)).toMatchObject({ proceed: false })
+      expect(writesOf(github.requests())).toEqual([])
+    })
+
+    it('Issue の読み取りが GitHub の失敗で止まると、Issue を示して止まる', async () => {
+      prepareAuto()
+      const github = await startGithub([permissionOf('alice', 'write'), { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
+
+      const outcome = await gate('issues', labeled())
+
+      expect(outcome.code).toBe(1)
+      expect(outcome.stderr).toMatch(/^error: could not read Issue acme\/demo\/7: /u)
+      expect(writesOf(github.requests())).toEqual([])
+    })
+
+    it('Blocked の Issue の前提を判定できないと、前提を blocked とだけ書いて、proceed を偽にする', async () => {
+      prepareAuto()
+      const blocker = { number: 3, column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, base: 'feat/2' }] }
+      const github = await startGithub([
+        permissionOf('alice', 'write'),
+        prerequisitesRule({ number: 7, column: 'Blocked', blockedBy: [blocker] }),
+        { match: { operation: 'ListPullRequestsByHead' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 },
+        issueComments(),
+        AUTO_POSTED,
+        labelRemoved(),
+      ])
+
+      const outcome = await gate('issues', labeled())
+
+      expect(outcome.code).toBe(0)
+      expect(JSON.parse(outcome.stdout)).toMatchObject({ proceed: false })
+      expect(postedBody(github.requests())).toContain('待っている前提は `blocked` だ')
+    })
+
+    it('Blocked の Issue なら、残る前提を本文に書いて、proceed を偽にする', async () => {
+      prepareAuto()
+      const github = await startGithub([
+        permissionOf('alice', 'write'),
+        prerequisitesRule({ number: 7, column: 'Blocked', blockedBy: [{ number: 3, column: 'In Progress' }] }),
+        issueComments(),
+        AUTO_POSTED,
+        labelRemoved(),
+      ])
+
+      const outcome = await gate('issues', labeled())
+
+      expect(JSON.parse(outcome.stdout)).toMatchObject({ proceed: false })
+      expect(postedBody(github.requests())).toContain('待っている前提は `blocked by #3 (not in review: #3 (not started))` だ')
+    })
+
+    it('終わっていない run の conclusion が null で、PR が無いと、何も読まず、PR の番号を 0 にする', async () => {
+      prepareAuto()
+      const github = await startGithub([])
+
+      // eslint-disable-next-line unicorn/no-null -- イベントの JSON の null（終わっていない run）
+      const outcome = await gate('workflow_run', workflowRun({ conclusion: null, pull_requests: [] }))
+
+      expect(JSON.parse(outcome.stdout)).toMatchObject({ proceed: false, pr: 0 })
+      expect(github.requests()).toEqual([])
+    })
+
+    it('CI のブランチがもう無いと、proceed を偽にする', async () => {
+      prepareAuto()
+      const github = await startGithub([issueComments([botResult('pr-created')]), { match: { method: 'GET', path: `/repos/acme/demo/git/ref/heads/${BRANCH}` }, respond: { status: 404, body: { message: 'Not Found' } }, times: 1 }])
+
+      const outcome = await gate('workflow_run', workflowRun())
+
+      expect(JSON.parse(outcome.stdout)).toMatchObject({ proceed: false })
+      expect(writesOf(github.requests())).toEqual([])
+    })
+
+    it('CI のブランチの読み取りが GitHub の失敗で止まると、ブランチを示して止まる', async () => {
+      prepareAuto()
+      await startGithub([issueComments([botResult('pr-created')]), { match: { method: 'GET', path: `/repos/acme/demo/git/ref/heads/${BRANCH}` }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
+
+      const outcome = await gate('workflow_run', workflowRun())
+
+      expect(outcome.code).toBe(1)
+      expect(outcome.stderr).toMatch(new RegExp(`^error: could not read the branch ${BRANCH}: `, 'u'))
+    })
   })
 
   describe('MCP の data', () => {

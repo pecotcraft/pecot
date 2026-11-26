@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { ISSUE_REOPEN_COMMANDS } from '../../src/commands/issue-reopen.js'
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import type { CliResult } from '../_helpers/interface-case.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { runInProcess, settleWithFakeDelays, startGithub, useFakeDelays } from '../_helpers/interface-case.js'
 import { boardItems, commented, failing, fieldUpdated, linkedRepositories, prepareProject, reopened, waitForRequests } from '../_helpers/board-issue-case.js'
-import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
+import type { RecordedRequest, ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -193,6 +193,31 @@ describe('issue reopen', () => {
       stderr: 'warning: status \'active\' is not configured in the project\nreopened: Issue acme/demo/7\n',
     })
     expect(github.requests().map(request => labelOf(request))).not.toContain('UpdateProjectItemField')
+  })
+
+  it.for([
+    { name: 'Issue がボードに無い', setup: (): void => { prepareProject() }, rules: (): ResponseRule[] => [linkedRepositories(), boardItems({ onBoard: false })], argv: [], warning: 'warning: Issue acme/demo/7 is not on the project board\n' },
+    { name: 'status がプロジェクトに設定されていない', setup: (): void => { prepareProject({ missingStatus: 'active' }) }, rules: (): ResponseRule[] => [linkedRepositories(), boardItems()], argv: ['--status', 'active'], warning: 'warning: status \'active\' is not configured in the project\n' },
+  ])('--dry-run で $name とき、warning を出し、Issue を開かない', async ({ setup, rules, argv, warning }) => {
+    setup()
+    const github = await startGithub(rules())
+
+    const result = await reopen(['acme/demo/7', '--dry-run', ...argv])
+
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain(warning)
+    expect(github.requests().map(request => labelOf(request))).not.toContain(PATCH)
+  })
+
+  it('2 回目の reopen の応答に state が無いとき、None と書いた error を出して終了コード 1 で終わる', async () => {
+    prepareProject()
+    const noState: ResponseRule = { match: { method: 'PATCH', path: '/repos/acme/demo/issues/7' }, respond: { status: 200, body: {} }, times: 1 }
+    await startGithub([linkedRepositories(), reopened(), boardItems(), fieldUpdated('o3'), noState])
+
+    const result = await reopen(['acme/demo/7'])
+
+    expect(result.code).toBe(1)
+    expect(result.stderr).toContain('error: Issue acme/demo/7 did not become open (state: None)\n')
   })
 
   it('blocked がプロジェクトに設定されていないとき、足し方の hint を添えた warning を出して reopen する', async () => {

@@ -8,10 +8,10 @@ import { describe, expect, it } from 'vitest'
 import { parse as parseYaml } from 'yaml'
 
 import { COMMANDS } from '../src/commands/registry.js'
-import { ATTRIBUTE_HANDLERS } from '../src/domain/attributes.js'
+import { ATTRIBUTE_HANDLERS } from '@pecot/workflow-core/domain/attributes.js'
 import type { IssueCoverage } from '../src/domain/issue-surface.js'
 import { checkIssueCoverage, issueCoverageSchema, issueSurfaceSchema } from '../src/domain/issue-surface.js'
-import { DEFAULT_API_VERSION } from '../src/infra/github/client.js'
+import { DEFAULT_API_VERSION } from '@pecot/workflow-core/infra/github/client.js'
 
 const INTERFACE = path.resolve(import.meta.dirname, '../../interface')
 

@@ -29,6 +29,7 @@ _INCLUDED = [
     "pecot-workflow:test-hooks",
     "pecot-workflow:test-skills",
     "text-rules:test-unit",
+    "workflow-core:test-unit",
 ]
 
 

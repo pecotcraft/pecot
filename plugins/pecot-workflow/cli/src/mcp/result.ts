@@ -4,10 +4,10 @@ import { fromJsonSchema } from '@modelcontextprotocol/server'
 import type { CallToolResult, JsonSchemaType, StandardSchemaWithJSON } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { CommonOutputKey } from '../commands/command-definition.js'
-import type { FailureKind } from '../commands/failure-kind.js'
+import type { CommonOutputKey } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { FailureKind } from '@pecot/workflow-core/commands-shared/failure-kind.js'
 import type { CommandIo } from '../commands/registry.js'
-import { USAGE_EXIT_CODE } from '../commands/usage-error.js'
+import { USAGE_EXIT_CODE } from '@pecot/workflow-core/commands-shared/usage-error.js'
 
 export interface CommandOutcome {
   /**

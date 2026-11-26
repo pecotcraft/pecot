@@ -4,9 +4,9 @@ import type { ConstDirectiveNode, DefinitionNode, InputObjectTypeDefinitionNode,
 import { Kind, parse } from 'graphql'
 import { z } from 'zod'
 
-import { compareCodePoints } from './fuzzy.js'
-import { isJsonObject, jsonField } from './json.js'
-import type { JsonValue } from './python-format.js'
+import { compareCodePoints } from '@pecot/workflow-core/domain/fuzzy.js'
+import { isJsonObject, jsonField } from '@pecot/workflow-core/domain/json.js'
+import type { JsonValue } from '@pecot/workflow-core/domain/python-format.js'
 
 const INPUT_TYPES = ['CreateIssueInput', 'UpdateIssueInput', 'ProjectV2FieldValue']
 

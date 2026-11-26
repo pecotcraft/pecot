@@ -1,6 +1,6 @@
 // auto gate・start・finish のテストが共有する準備と、偽サーバの応答。
-import { setEnvironment } from '../../src/tests/_helpers/environment.js'
-import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
+import { setEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import type { RecordedRequest, ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { CONFIG_FILE } from './board-issue-case.js'
 import { setUpProject } from './interface-case.js'
 

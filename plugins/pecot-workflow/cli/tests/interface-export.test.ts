@@ -13,10 +13,10 @@ import { COMMANDS } from '../src/commands/registry.js'
 import { defineCommand, type CommandIo } from '../src/commands/registry.js'
 import { compareText } from '../../../../libs/interface-spec/src/domain/utility.js'
 import { collectVerifiedIds, missingIds } from './_helpers/behavior-ids.js'
-import { makeTemporaryDirectory, writeTree } from '../src/tests/_helpers/temporary.js'
+import { makeTemporaryDirectory, writeTree } from '../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import vitestConfig from '../vitest.config.js'
 import { exportEntries, exportNames, exportResources, main } from '../scripts/export-interface.js'
-import { COMMAND_GROUPS, COMMAND_VERBS } from '../src/commands/names.js'
+import { COMMAND_GROUPS, COMMAND_VERBS } from '@pecot/workflow-core/commands-shared/names.js'
 
 const alpha = defineCommand({
   path: ['alpha'],

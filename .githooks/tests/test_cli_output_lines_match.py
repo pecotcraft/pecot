@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 _FILES = {
-    "pecot-workflow": "plugins/pecot-workflow/cli/tests/output/cases.json",
+    "pecot-workflow": "libs/workflow-core/tests/output/cases.json",
     "pecot-visual": "plugins/pecot-visual/cli/tests/diagnostics-cases.json",
     "pecot-tools": "plugins/pecot-tools/cli/tests/diagnostics-cases.json",
 }

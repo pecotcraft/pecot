@@ -395,10 +395,17 @@ def _declared_env() -> set[str]:
     return _named_env("env")
 
 
+# プラグインの配布物に同梱し、そのプラグインのレーンが読むライブラリ → プラグインのディレクトリ名。
+_BUNDLED_LIBS = {"libs/workflow-core": "pecot-workflow"}
+
+
 def _plugin_of(rel: str) -> str:
-    """ファイルの持ち主。プラグインはディレクトリ名、ライブラリは `libs/<name>`。"""
+    """ファイルの持ち主。プラグインはディレクトリ名、ライブラリは `libs/<name>`。同梱するライブラリはプラグイン。"""
     parts = rel.split("/")
-    return parts[1] if parts[0] == "plugins" else "/".join(parts[:2])
+    if parts[0] == "plugins":
+        return parts[1]
+    lib = "/".join(parts[:2])
+    return _BUNDLED_LIBS.get(lib, lib)
 
 
 def _declared_for(plugin: str) -> set[str]:
@@ -497,6 +504,15 @@ def test_library_project_files_are_scanned_against_the_common_env() -> None:
     assert _plugin_of("libs/text-rules/index.ts") == "libs/text-rules"
     assert _plugin_of("plugins/pecot-tools/cli/src/a.ts") == "pecot-tools"
     assert _declared_for("libs/text-rules") == _declared_env()
+
+
+def test_bundled_library_is_scanned_against_its_plugin_env() -> None:
+    """プラグインに同梱するライブラリは、そのプラグインの env で宣言済みとみなす。lib の test-unit も同じ env を入力に持つ。"""
+    assert _plugin_of("libs/workflow-core/src/infra/paths.ts") == "pecot-workflow"
+    project = json.loads(
+        (_REPO_ROOT / "libs/workflow-core/project.json").read_text(encoding="utf-8")
+    )
+    assert "pecotPluginEnv" in project["targets"]["test-unit"]["inputs"]
 
 
 def test_exempt_entries_are_still_read(repo_reads: dict[str, set[str]]) -> None:

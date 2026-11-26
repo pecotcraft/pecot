@@ -8,7 +8,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
 import { z } from 'zod'
 
 import { toolNameOf } from '../../src/commands/registry.js'
-import { parseJson } from '../../src/tests/_helpers/json.js'
+import { parseJson } from '../../../../../libs/workflow-core/tests/_helpers/json.js'
 import { outputSchemaIssues, toolOutcomeOf } from '../_helpers/mcp-client.js'
 import { readToolShape, toolInputOf } from './mcp-input.js'
 import { renderMcpView } from './mcp-view.js'

@@ -1,20 +1,20 @@
 // issue check。issue create に渡すファイルを確かめ、番号・前提・進め方の表を返す。書き込まない。
 import { z } from 'zod'
 
-import { formatPlanTable } from '../domain/batch-plan.js'
-import type { PlanRow, ResolvedPrerequisite } from '../domain/batch-plan.js'
-import { displayReference } from '../domain/readiness.js'
-import type { RepositoryReference } from '../domain/repository-resolver.js'
-import { defineCommand } from './command-definition.js'
-import type { CommandDefinition, CommandIo } from './command-definition.js'
-import { inputNameHint, hinted } from './command-hint.js'
-import { PROJECT_INPUT, stopWith } from './command-stop.js'
+import { formatPlanTable } from '@pecot/workflow-core/domain/batch-plan.js'
+import type { PlanRow, ResolvedPrerequisite } from '@pecot/workflow-core/domain/batch-plan.js'
+import { displayReference } from '@pecot/workflow-core/domain/readiness.js'
+import type { RepositoryReference } from '@pecot/workflow-core/domain/repository-resolver.js'
+import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { CommandDefinition, CommandIo } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { inputNameHint, hinted } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import { PROJECT_INPUT, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { chainsData, chainsText, existingLabels, prepareBatch, STACKABLE_CHAINS } from './issue-create.js'
 import type { BatchContext } from './issue-create.js'
-import { runWithExit } from './issue-shared.js'
-import { createOutput } from './output.js'
-import type { Output } from './output.js'
-import { USAGE_EXIT_CODE } from './usage-error.js'
+import { runWithExit } from '@pecot/workflow-core/commands-shared/issue-shared.js'
+import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
+import type { Output } from '@pecot/workflow-core/commands-shared/output.js'
+import { USAGE_EXIT_CODE } from '@pecot/workflow-core/commands-shared/usage-error.js'
 
 const CHECK_PATH = ['issue', 'check']
 

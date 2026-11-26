@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { parseGlobalOptions } from '../global-options.js'
-import { UsageError } from '../usage-error.js'
+import { UsageError } from '@pecot/workflow-core/commands-shared/usage-error.js'
 
 function usageErrorOf(argv: readonly string[]): UsageError {
   try {

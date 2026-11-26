@@ -1,7 +1,7 @@
 /* eslint-disable unicorn/no-null -- 偽サーバの応答に JSON の null を使う */
 // Issue の機能の偽の応答（HasIssueFields・GetIssueAttributes・GetIssueAttributeDefinitions）。
 // 応答は 2026-11-23 に取った公開スキーマの型に合わせる。
-import type { ResponseRule } from '../fake-github/server.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 
 const page = (nodes: readonly unknown[]): Record<string, unknown> => ({ pageInfo: { hasNextPage: false, endCursor: null }, nodes })
 

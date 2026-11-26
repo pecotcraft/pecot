@@ -1,8 +1,8 @@
 // tracker sync dependabot のテストが共有する準備。PR のノード・Tracker の Issue・偽の GitHub の応答を組み立てる。
 // 時刻に頼る理由（30 分・24 時間）は、NOW を基準にした経過時間で PR を作って確かめる。
-import type { JsonObject } from '../../src/domain/json.js'
-import { JSON_NULL } from '../../src/domain/json-null.js'
-import type { ResponseRule } from '../fake-github/server.js'
+import type { JsonObject } from '@pecot/workflow-core/domain/json.js'
+import { JSON_NULL } from '@pecot/workflow-core/domain/json-null.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { issueListRule, NOW } from './tracker-sync-case.js'
 
 export const TODAY_TITLE = '[Tracker] dependabot PR — 2026-11-09'

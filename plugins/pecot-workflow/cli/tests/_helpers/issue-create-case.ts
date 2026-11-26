@@ -1,6 +1,6 @@
 // issue create（freeform を含む）のテストが共有する準備。設定の組み立てと、偽の GitHub の応答の組み立て。
-import { JSON_NULL } from '../../src/domain/json-null.js'
-import type { ResponseRule } from '../fake-github/server.js'
+import { JSON_NULL } from '@pecot/workflow-core/domain/json-null.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { enterGitRepository, setUpProject } from './interface-case.js'
 import type { ProjectFixture } from './interface-case.js'
 

@@ -2,13 +2,13 @@
 // 途中で抜ける箇所は CommandExit を投げ、defineCommand が終了コードにする。
 import { z } from 'zod'
 
-import { describeApiError } from '../domain/api-error-detail.js'
-import { getDevelopBranch } from '../domain/config.js'
-import { extractClosingIssueNumbers, FORCE_PUSH_COMMAND } from '../domain/pull-request.js'
-import { describeGone, describeRestackCheck, RESTACK_PATH } from '../domain/restack.js'
-import type { RestackDecision } from '../domain/restack.js'
-import { FLAG_PECOT_RESTACK, formatRestackProgress, interpretRestackProgress } from '../domain/state.js'
-import type { BaseReading, BaseRecord, RestackProgress } from '../domain/state.js'
+import { describeApiError } from '@pecot/workflow-core/domain/api-error-detail.js'
+import { getDevelopBranch } from '@pecot/workflow-core/domain/config.js'
+import { extractClosingIssueNumbers, FORCE_PUSH_COMMAND } from '@pecot/workflow-core/domain/pull-request.js'
+import { describeGone, describeRestackCheck, RESTACK_PATH } from '@pecot/workflow-core/domain/restack.js'
+import type { RestackDecision } from '@pecot/workflow-core/domain/restack.js'
+import { FLAG_PECOT_RESTACK, formatRestackProgress, interpretRestackProgress } from '@pecot/workflow-core/domain/state.js'
+import type { BaseReading, BaseRecord, RestackProgress } from '@pecot/workflow-core/domain/state.js'
 import {
   abortRebase,
   conflictedFiles,
@@ -26,25 +26,25 @@ import {
   remoteOnlyChanges,
   resetHardTo,
   resolveCommit,
-} from '../infra/git.js'
-import type { FetchResult, PushResult } from '../infra/git.js'
-import { findConfigFor } from '../infra/config-store.js'
-import type { PullRequestForFinish } from '../infra/github/pulls.js'
+} from '@pecot/workflow-core/infra/git.js'
+import type { FetchResult, PushResult } from '@pecot/workflow-core/infra/git.js'
+import { findConfigFor } from '@pecot/workflow-core/infra/config-store.js'
+import type { PullRequestForFinish } from '@pecot/workflow-core/infra/github/pulls.js'
 import { readBaseRecord, readFlag, removeFlag, writeBaseRecord, writeFlag } from '../infra/state-store.js'
-import { defineCommand } from './command-definition.js'
-import type { CommandDefinition, CommandIo } from './command-definition.js'
-import { commandHint, hinted, RUN_COLON, runAgain } from './command-hint.js'
-import type { HintedText } from './command-hint.js'
-import { gitFailureText } from '../domain/git-output.js'
-import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
-import { kindOfFailure } from './failure.js'
-import { apiFailureMessage, createGitHubClient } from './github-client.js'
-import { createOutput } from './output.js'
-import type { Output } from './output.js'
+import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { CommandDefinition, CommandIo } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { commandHint, hinted, RUN_COLON, runAgain } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import type { HintedText } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import { gitFailureText } from '@pecot/workflow-core/domain/git-output.js'
+import { PROJECT_INPUT, requireConfigFor, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
+import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
+import { apiFailureMessage, createGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
+import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
+import type { Output } from '@pecot/workflow-core/commands-shared/output.js'
 import { primaryRemote, stopOnMalformedRecord, validatePullRequestContext } from './pr.js'
 import { readRestackDecision } from './restack-reading.js'
 import { readBaseOrInfer, warnUnresolved } from './base-reading.js'
-import { USAGE_EXIT_CODE } from './usage-error.js'
+import { USAGE_EXIT_CODE } from '@pecot/workflow-core/commands-shared/usage-error.js'
 
 const CONFLICT_EXIT_CODE = 3
 const UNCOMMITTED_EXIT_CODE = 2

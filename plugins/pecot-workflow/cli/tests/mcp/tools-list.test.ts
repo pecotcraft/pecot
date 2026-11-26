@@ -8,7 +8,7 @@ import { z } from 'zod'
 import { normalizeInput } from '../../src/commands/input-schema.js'
 import { COMMANDS } from '../../src/commands/registry.js'
 import { createMcpServer } from '../../src/mcp/server.js'
-import { parseJson } from '../../src/tests/_helpers/json.js'
+import { parseJson } from '../../../../../libs/workflow-core/tests/_helpers/json.js'
 import { connectInMemory, outcomeOf, structuredOf } from '../_helpers/mcp-client.js'
 import type { ConnectedClient } from '../_helpers/mcp-client.js'
 

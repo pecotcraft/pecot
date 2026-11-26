@@ -3,7 +3,7 @@
 import { statSync } from 'node:fs'
 import path from 'node:path'
 
-import { normalizePath, resolveRealPath } from '../infra/paths.js'
+import { normalizePath, resolveRealPath } from '@pecot/workflow-core/infra/paths.js'
 
 /**
 判定の結果。move は directory へ移る。variable と value は元の環境変数で、移れなかったときの理由に使う。

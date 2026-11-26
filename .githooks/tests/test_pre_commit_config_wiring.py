@@ -237,7 +237,7 @@ def test_check_text_skips_other_files(script_dir: Path, changed_path: str) -> No
 _IGNORED_TEXT_PATHS = [
     "plugins/pecot-visual/CHANGELOG.md",
     "plugins/pecot-workflow/cli/tests/parity/golden/pr-create-ok.json",
-    "plugins/pecot-workflow/cli/tests/python-output/sections.json",
+    "libs/workflow-core/tests/python-output/sections.json",
     ".nx/nx-release/tests/_fixtures/dependabot-real.json",
     ".specify/templates/spec-template.md",
     ".claude/skills/speckit-plan/SKILL.md",

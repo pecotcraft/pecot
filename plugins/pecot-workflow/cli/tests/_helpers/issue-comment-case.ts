@@ -1,7 +1,7 @@
 // issue comment のテストが使う準備。テンプレートに合う本文、コメントのファイル、偽の GitHub の応答。
 import path from 'node:path'
 
-import type { ResponseRule } from '../fake-github/server.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { setUpProject } from './interface-case.js'
 import type { ProjectFixture } from './interface-case.js'
 

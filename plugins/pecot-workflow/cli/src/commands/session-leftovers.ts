@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は内部の状態を持つ */
 // session start が、前の PR の手元の後片付けの取りこぼしを確かめる。
-import { extractIssueNumberFromBranch } from '../domain/branch-name.js'
-import { createIssueReference, issueReferenceToCliReference, issueReferenceToString } from '../domain/reference-parser.js'
-import type { IssueReference } from '../domain/reference-parser.js'
-import { isSameRepository } from '../domain/repository-resolver.js'
-import type { RepositoryReference } from '../domain/repository-resolver.js'
-import { gitCurrentBranch, primaryRemoteRepository } from '../infra/git.js'
-import type { GitHubClient } from '../infra/github/index.js'
-import { commandHint, hinted, RUN } from './command-hint.js'
-import { apiFailureMessage } from './github-client.js'
-import type { Output } from './output.js'
+import { extractIssueNumberFromBranch } from '@pecot/workflow-core/domain/branch-name.js'
+import { createIssueReference, issueReferenceToCliReference, issueReferenceToString } from '@pecot/workflow-core/domain/reference-parser.js'
+import type { IssueReference } from '@pecot/workflow-core/domain/reference-parser.js'
+import { isSameRepository } from '@pecot/workflow-core/domain/repository-resolver.js'
+import type { RepositoryReference } from '@pecot/workflow-core/domain/repository-resolver.js'
+import { gitCurrentBranch, primaryRemoteRepository } from '@pecot/workflow-core/infra/git.js'
+import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
+import { commandHint, hinted, RUN } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import { apiFailureMessage } from '@pecot/workflow-core/commands-shared/github-client.js'
+import type { Output } from '@pecot/workflow-core/commands-shared/output.js'
 
 export interface Leftover {
   readonly pullRequest: string

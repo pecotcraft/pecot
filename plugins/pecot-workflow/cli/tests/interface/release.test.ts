@@ -4,15 +4,15 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { RELEASE_COMMANDS } from '../../src/commands/release.js'
-import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
-import { startFakeGithub } from '../fake-github/server.js'
+import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
+import { startFakeGithub } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
 import { alertPath, alertRules, compareRule, createProject, DEFAULT_REPOSITORY, failRemoteLookupFrom, NOTES_0_2_0, pathsOf, pullRequestResponse, rest, runRelease } from '../_helpers/release-sandbox.js'
 import type { Project, ProjectOptions } from '../_helpers/release-sandbox.js'
-import type { ResponseRule } from '../fake-github/server.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 
 useIsolatedEnvironment()
 
@@ -159,6 +159,20 @@ describe('release check', () => {
     expect(result.stderr).toContain('#1 (minimatch, medium)')
     expect(result.stderr).toContain('#2 (glob, critical)')
     expect(result.stderr).toContain('https://ghes.example.com/acme/demo/security/dependabot')
+  })
+
+  it('severity と package の無い Dependabot alert が 1 件なら、単数の warning の行に番号だけを出す', async () => {
+    const rules = alertRules({ dependabot: [rest('GET', alertPath('dependabot'), 200, [{ number: 3 }])] })
+    const result = await runCounted(project(WITH_BRANCHES), [], rules)
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain('warning: 1 open Dependabot alert. The release is not blocked.\n  #3\n')
+  })
+
+  it('open の code scanning alert が 2 件あると、複数形の error の行を出す', async () => {
+    const rules = alertRules({ code: [rest('GET', alertPath('code'), 200, [{ number: 10, rule: { severity: 'error' } }, { number: 11, rule: { severity: 'error' } }])] })
+    const result = await runPreflight(project(WITH_BRANCHES), [], rules)
+    expect(result.code).toBe(1)
+    expect(result.stderr).toContain('error: code scanning has 2 open alerts\n  #10\n  #11\n')
   })
 
   it('release_type が nx のリポジトリに打つと、alert だけを調べる', async (context) => {

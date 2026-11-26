@@ -7,7 +7,7 @@ import { lstatSync, readdirSync, readFileSync, readlinkSync } from 'node:fs'
 import path from 'node:path'
 
 import { loadVersionFromPluginJson } from '../../src/version.js'
-import { startFakeGithub } from '../fake-github/server.js'
+import { startFakeGithub } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { compareStrings } from './baseline.js'
 import type { Golden, Scenario, Substitution } from './scenario.js'
 import { normalizeDeep, normalizeText } from './scenario.js'

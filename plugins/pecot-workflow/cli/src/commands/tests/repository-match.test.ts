@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { gitForTest, createGitRepository } from '../../tests/_helpers/git-repository.js'
-import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
-import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
-import { CommandExit } from '../command-definition.js'
+import { gitForTest, createGitRepository } from '../../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
+import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
+import { setEnvironment, useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { CommandExit } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { readCurrentRepository, requireRepositoryMatch, resolveCurrentRepository } from '../repository-match.js'
 import { capture } from './support.js'
 

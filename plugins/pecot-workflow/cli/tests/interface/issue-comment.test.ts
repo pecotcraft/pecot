@@ -6,12 +6,12 @@ import { describe, expect, it } from 'vitest'
 
 import { ISSUE_COMMENT_COMMANDS } from '../../src/commands/issue-comment.js'
 import { templateFile } from '../../src/infra/template-store.js'
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { COMMENT_URL, commentFileContent, failedPost, linkedRepositories, MERGE_DIFF_BODY, postedComment, setUpCommentProject, updatedComment } from '../_helpers/issue-comment-case.js'
 import { enterGitRepository, runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
-import type { ResponseRule } from '../fake-github/server.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 
@@ -65,6 +65,27 @@ describe('issue comment', () => {
       { type: 'graphql', operation: 'GetLinkedRepositoriesUser' },
       { type: 'rest', method: 'PATCH', path: '/repos/acme/demo/issues/comments/456', body: { body: POSTED_BODY } },
     ])
+  })
+
+  it('書き換えの応答に URL が無いと、comment_url の URL を出す', async () => {
+    const url = 'https://ghes.example.com/acme/demo/issues/7#issuecomment-456'
+    const { file } = setUpCommentProject({ extra: [`comment_url: "${url}"`] })
+    await startGithub([linkedRepositories(), { match: { method: 'PATCH', path: '/repos/acme/demo/issues/comments/456' }, respond: { status: 200, body: { id: 456 } }, times: 1 }])
+
+    const result = await comment(file)
+
+    expect(result).toEqual({ code: 0, stdout: `${url}\n`, stderr: 'updated: comment on acme/demo/7\n' })
+  })
+
+  it('--dry-run で comment_url を持つファイルを渡すと、書き換えるはずの行を出し、コメントを書かない', async () => {
+    const url = 'https://ghes.example.com/acme/demo/issues/7#issuecomment-456'
+    const { file } = setUpCommentProject({ extra: [`comment_url: "${url}"`] })
+    const github = await startGithub([linkedRepositories()])
+
+    const result = await comment(file, '--dry-run')
+
+    expect(result).toEqual({ code: 0, stdout: '', stderr: 'dry-run: would update comment on acme/demo/7\n' })
+    expect(github.requests()).toMatchObject([{ type: 'graphql', operation: 'GetLinkedRepositoriesUser' }])
   })
 
   it('ファイルからコメントを投稿すると、できたコメントの URL をファイルの comment_url に書き戻す', async () => {

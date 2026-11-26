@@ -4,7 +4,7 @@ import type { Stats } from 'node:fs'
 
 import { z } from 'zod'
 
-import { pythonStringRepr } from '../domain/python-format.js'
+import { pythonStringRepr } from '@pecot/workflow-core/domain/python-format.js'
 
 export const DIRECTORY_DESCRIPTION = 'Target Git repository (absolute or relative path)'
 

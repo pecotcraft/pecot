@@ -10,7 +10,7 @@ import { expect, it } from 'vitest'
 
 import { createMcpServer } from '../../src/mcp/server.js'
 import { COMMANDS } from '../../src/commands/registry.js'
-import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { verifies } from '../_helpers/verifies.js'
 import { stateFile } from '../_helpers/workspace-inspect.js'
 import { finishPullRequestData, graphql, openWorkspace, rest } from '../_helpers/workspace.js'

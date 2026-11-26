@@ -6,18 +6,18 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { hasReportedTemplateViolations } from '../../src/commands/issue-shared.js'
-import { createOutput } from '../../src/commands/output.js'
+import { hasReportedTemplateViolations } from '@pecot/workflow-core/commands-shared/issue-shared.js'
+import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import { REVIEW_COMMANDS } from '../../src/commands/review-finish.js'
 import { capture } from '../../src/commands/tests/support.js'
 import { templateFile } from '../../src/infra/template-store.js'
-import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
+import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { makeTemporaryDirectory } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { verifies } from '../_helpers/verifies.js'
 import type { CliResult } from '../_helpers/interface-case.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
-import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
+import type { RecordedRequest, ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 
 useIsolatedEnvironment()
 
@@ -350,6 +350,50 @@ describe('review finish', () => {
 
     expect(outcome).toEqual({ code: 1, stdout: '', stderr: row.message })
     expect(github.requests()).toEqual([])
+  })
+
+  it.for([
+    { name: '無い', file: (): string => path.join(makeTemporaryDirectory('pecot-review-finish-'), 'missing.json') },
+    { name: 'ディレクトリで読めない', file: (): string => makeTemporaryDirectory('pecot-review-finish-') },
+  ])('実行のファイルが $name と、理由の分からない failed のコメントを書く', async ({ file }) => {
+    prepare()
+    const github = await startGithub([pullRequest(), comments(), POSTED])
+
+    const outcome = await finish([...FAILED_RUN, '--execution-file', file()])
+
+    expect(outcome.code).toBe(0)
+    expect(postedBody(github.requests())).toContain('- 結果 — `failed`')
+  })
+
+  it('GITHUB_RUN_ATTEMPT が無いと、目印の試行を 1 にする', async () => {
+    prepare({ GITHUB_RUN_ATTEMPT: undefined })
+    const github = await startGithub([pullRequest(), comments(), POSTED])
+
+    await finish(['--result', 'limit'])
+
+    expect(postedBody(github.requests())).toContain('<!-- pecot-review-stopped run=500 attempt=1 -->')
+  })
+
+  it('インラインコメントの本文と日時が文字列でなければ、指摘として数えない', async () => {
+    prepare()
+    const github = await startGithub([pullRequest(), comments(), reviewComments([{ body: 1, created_at: 2 }]), POSTED])
+
+    await finish([...CANCELLED_RUN, '--since', '2026-11-17T10:00:00Z'])
+
+    expect(postedBody(github.requests())).toContain('- 止まった場所 — 指摘を投稿する前')
+  })
+
+  it.for([
+    { name: 'PR の読み取り', rules: [{ match: { method: 'GET', path: PR }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }], line: 'could not read PR acme/demo#11: ' },
+    { name: 'コメントの作成', rules: [pullRequest(), comments(), { match: { method: 'POST', path: COMMENTS }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }], line: 'could not create a comment on PR acme/demo#11: ' },
+  ])('$name が GitHub の失敗で止まると、PR を示して止まる', async ({ rules, line }) => {
+    prepare()
+    await startGithub(rules)
+
+    const outcome = await finish(['--result', 'limit'])
+
+    expect(outcome.code).toBe(1)
+    expect(outcome.stderr.startsWith(`error: ${line}`)).toBe(true)
   })
 
   it('埋めた本文が、テンプレートの検証を通る', async () => {
