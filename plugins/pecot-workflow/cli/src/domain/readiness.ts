@@ -211,7 +211,7 @@ export function judgeReadiness(input: JudgeReadinessInput): Readiness | undefine
 
   if (cycle !== undefined) return blocked({ code: 'cycle', cycle })
   if (isNeedsReview) return blocked({ code: 'closed-unmerged', issues: closedUnmerged.map(({ issue }) => issue.ref) })
-  // PR がマージ済みなら、マージを待つ前提でも待つものが無いので、順 7 の状態で示す
+  // PR がマージ済みなら、スタック不可の前提でも待つものが無いので、順 7 の状態で示す
   const waitsMerge = unfinished.filter(({ issue, wait }) => wait === 'merge' && !isMergedOpen(issue))
   if (waitsMerge.length > 0) {
     return blocked({ code: 'waits-merge', issues: waitsMerge.map(({ issue, reason }) => ({ issue: issue.ref, reason })) })

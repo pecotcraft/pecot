@@ -20,7 +20,7 @@ blocked_by: []
 - lane: 分類したいときだけ、ボードの `pecot-lane` の値を書く。空なら親 Epic の値が入る
 - blocked_by: この Issue の着手を止める前提の一覧。前提が無ければ `[]` のまま
   - `issue` は、前提の Issue を指す `owner/repo/N`
-  - マージを待つ前提だけ、`wait: merge` と、待つ理由の 1 文の `reason`（改行しない）を足す
+  - スタック不可の前提だけ、`wait: merge` と、待つ理由の 1 文の `reason`（改行しない）を足す
   ```yaml
   blocked_by:
     - issue: acme/mytool/12

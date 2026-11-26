@@ -2,36 +2,32 @@
   =========================================================================
   Sync Impact Report
   =========================================================================
-  Version change: 3.2.1 → 4.0.0
-  Restructure: Spec Kit の spec-driven.md の「The Nine Articles of Development」の
-    訳を骨組みにし、IV〜VI の枠に pecot の原則を置いた
-  Principle mapping (3.2.1 → 4.0.0):
-    - I. ドメイン駆動設計 → VI. 層の分離（縮めて移した）
-    - II. テスト駆動開発 → III. テストファースト・IX. 統合を先にするテスト（分けて移した）
-    - III. コード品質ゲート → V. 品質の自動チェック（縮めて移した）
-    - IV. シンプルさと YAGNI → 削除（VII・VIII に置き換えた。依頼の範囲を超えた改善の禁止は持ち込まない）
-    - V. 本体実装優先 → 削除
-    - VI. 標準準拠と不適合の是正 → IV（中身は変えず、文体だけ直した）
-  Added principles: I. ライブラリ優先、II. CLI インタフェース、VII. シンプルさ、
-    VIII. 抽象化しない、IX. 統合を先にするテスト
-  Removed principles: 旧 IV（シンプルさと YAGNI）、旧 V（本体実装優先）
+  Version change: 4.0.0 → 5.0.0
+  Modified principles:
+    - II. CLI インタフェース → II. テキストのインタフェース（再定義。入口にコマンドライン・
+      MCP のツール・GitHub Actions の action を含め、プラグインは MCP のツールだけで公開する）
+  Reason: プラグインは MCP のツールだけで使い、Actions の処理は actions/ の action に移す（#755・#756）。
+    CLI と MCP の 2 つの入口を持つ形は、MCP の公式の文書に例が無い
+  Backward compatibility: 既存の計画の Constitution Check の II の行は、当時の版の判断として残す。
+    プラグインの CLI の入口は、#755 のフェーズで消す
+  Added principles: なし
+  Removed principles: なし
   Templates requiring updates:
-    - .specify/templates/plan-template.md ✅ 更新不要（Constitution Check は原則を汎用で参照し、
-      Complexity Tracking の表がガバナンスの「条を外れるとき」の置き場になる）
+    - .specify/templates/plan-template.md ✅ 更新不要
     - .specify/templates/spec-template.md ✅ 更新不要
     - .specify/templates/tasks-template.md ✅ 更新不要
     - .specify/templates/checklist-template.md ✅ 更新不要
-    - CLAUDE.md ✅ 標準準拠の原則の番号を VI から IV に直した
+    - CLAUDE.md ✅ 更新不要（II を引いていない）
   Follow-up TODOs:
-    - 計画の雛形（pecot-workflow の plan テンプレ）に、標準との対照を書く必須の見出しを足す。
-      CLI と lint には、不適合を止める仕組みがまだ無い
+    - plugins/pecot-workflow/CONTRIBUTING.md の試験環境の手順を、MCP Inspector の --cli に書き換える（#755）
   =========================================================================
 -->
 
 # pecot 憲法
 
 この憲法は、仕様をコードにするときに従う原則を定める。
-I〜III と VII〜IX は、Spec Kit の `spec-driven.md` にある「The Nine Articles of Development」の訳である。
+I・III と VII〜IX は、Spec Kit の `spec-driven.md` にある「The Nine Articles of Development」の訳である。
+II は、同じ条（CLI Interface Mandate）の訳を、MCP のツールと action も入口に含むように広げた。
 IV〜VI は、Spec Kit がプロジェクトに任せている枠で、pecot の原則を置く。
 各条の「このリポジトリでは」は、原則を pecot に当てはめるときの読み替えと補足である。
 
@@ -49,16 +45,20 @@ IV〜VI は、Spec Kit がプロジェクトに任せている枠で、pecot の
 プラグインの機能は `cli/src/` のモジュールに置き、スキル・hook・MCP ツールの入口には処理を書かない。
 pecot-workflow の hook の入口は、`check-entry-point-logic` が振り分けだけであることを確かめる。
 
-### II. CLI インタフェース
+### II. テキストのインタフェース
 
-すべてのライブラリは、機能をコマンドラインのインタフェースで公開しなければならない（MUST）。
+すべてのライブラリは、機能をテキストで入出力するインタフェースで公開しなければならない（MUST）。
+インタフェースは、コマンドライン・MCP のツール・GitHub Actions の action のどれかとする。
 
-- 入力はテキストで受け取る（標準入力・引数・ファイル）
-- 出力はテキストで標準出力に出す
+- 入力はテキストで受け取る（コマンドラインは標準入力・引数・ファイル、MCP のツールは引数、action は `inputs`）
+- 出力はテキストで返す（コマンドラインは標準出力、MCP のツールは結果、action は `outputs` とログ）
 - 構造のあるデータのやり取りには JSON を使えるようにする
 
-**このリポジトリでは**: プラグインの CLI（`cli/src/cli.ts`）と MCP サーバ（`cli/src/mcp/`）は、
-同じ処理（`commands/`・`domain/`）を呼ぶ。MCP ツールの構造化した結果は、定義書の `outputSchema` と一致させる。
+**このリポジトリでは**: プラグインの機能は MCP のツールで公開し、同じ機能の CLI の入口を別に置かない。
+MCP ツールの構造化した結果は、定義書の `outputSchema` と一致させる。
+直したツールは、build したサーバを MCP Inspector の `--cli` で起動して呼ぶ。
+Actions のプロジェクト（`actions/`）は action で公開する。
+ライブラリ（`libs/<name>`）の機能は、ライブラリ自身のコマンドラインか、取り込むプロジェクトの MCP のツール・action で公開する。
 
 ### III. テストファースト（交渉不可）
 
@@ -196,4 +196,4 @@ Spec Kit の成果物（仕様・計画・タスク・チェックリスト）�
 - **版**: セマンティック バージョニング（MAJOR.MINOR.PATCH）に従う。
   MAJOR は原則の削除・再定義、MINOR は追加・拡張、PATCH は明確化・誤字の修正とする
 
-**Version**: 4.0.0 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-11-17
+**Version**: 5.0.0 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-11-26

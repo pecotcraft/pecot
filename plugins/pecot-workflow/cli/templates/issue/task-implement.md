@@ -23,7 +23,7 @@ blocked_by: []
 - lane: 分類したいときだけ、ボードの `pecot-lane` の値を書く。空なら親 Epic の値が入る
 - blocked_by: このフェーズの着手を止める前提の一覧。前提が無ければ `[]` のまま
   - `issue` は、同じ一括投稿のファイルのキー（`suffix`）か、Issue 化済みのフェーズを指す `owner/repo/N`
-  - マージを待つ前提だけ、`wait: merge` と、前提の表の `理由` の文をそのまま写した `reason`（改行しない）を足す
+  - スタック不可の前提だけ、`wait: merge` と、前提の表の `理由` の文をそのまま写した `reason`（改行しない）を足す
   ```yaml
   blocked_by:
     - issue: phase3

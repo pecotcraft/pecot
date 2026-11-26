@@ -653,7 +653,7 @@ describe('describeReadiness', () => {
     expect(describeFor([])).toBe('startable')
   })
 
-  it('スタックできる前提には stackable on #N を返す', () => {
+  it('スタック可の前提には stackable on #N を返す', () => {
     expect(describeFor([reviewing(1)])).toBe('stackable on #1')
   })
 

@@ -80,7 +80,7 @@ describe('decideStart', () => {
     ].join('\n'))
   })
 
-  it('マージを待つ前提でも PR がマージ済みなら、マージ済みと示し、スタックに切り替える案内を出さない', () => {
+  it('スタック不可の前提でも PR がマージ済みなら、マージ済みと示し、スタックに切り替える案内を出さない', () => {
     expect(blockedText({ ...mergedOpen, wait: 'merge', reason: '理由' })).toBe([
       '#7 is blocked by #3 (not in review: #3 (PR merged, Issue open))',
       '- #3: PR merged, Issue open',
