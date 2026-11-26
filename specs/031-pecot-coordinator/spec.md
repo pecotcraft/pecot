@@ -34,6 +34,12 @@
 | Actions のプロジェクト | pecot の GitHub Actions のテンプレートと、そこで動くスクリプトをまとめる新しいプロジェクト。AI と無関係で、AI エージェントに入れるプラグインではない。pecot-workflow か pecot-coordinator を使うリポには、導入が必須 |
 | 配布性 | このリポ以外のプロジェクトにも、固有の値を書き換えずに配れること |
 
+## Clarifications
+
+### Session 2026-11-26
+
+- Q: npm の `@pecot/workflow-mcp@latest` を npx で動かす古い雛形が残る利用者のリポを、どう移すか → A: 破壊的変更の版で一度に切り替える。古い雛形は pecot-workflow の確かめが見つけ、エージェントが `uses:` で呼ぶ新しいワークフローに書き換える（FR-029・FR-030）
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - プロジェクト指示とプラグインの線が引かれる (Priority: P1)
@@ -179,6 +185,7 @@ Issue・PR の本文とボードの欄は今と同じ形で、今ある機能は
 - マージせずに閉じた PR のブランチは、自動で消す設定では残る。sandbox の確かめのブランチは名前の形で見分けられ、ほかの確かめを邪魔しない
 - GitHub が 5xx を返したとき、書き込みが済んでいることがある。やり直す前に、書いたものがあるかを読んで確かめる
 - claude.ai に入れたプラグインの版と、このリポの版がずれたとき、利用者が気づける
+- 古い雛形が残ったまま新しい版に上がったリポでは、Actions のワークフローが失敗する。pecot-workflow の確かめが古い雛形を見つけ、書き換えを案内する前に、失敗した実行の URL から原因が古い雛形だと分かる
 
 ## Requirements *(mandatory)*
 
@@ -226,6 +233,11 @@ Issue・PR の本文とボードの欄は今と同じ形で、今ある機能は
 - **FR-027**: coordinator は、RC の wt とクラウドのスレッドを作業場所として扱い、同じ Issue を 2 つの作業場所に割り振ってはならない
 - **FR-028**: クラウドのスレッドは、pecot-coordinator に別のスキルを持たせず、pecot-workflow のスキルで流れを進めなければならない
 
+#### 移行
+
+- **FR-029**: Actions のスクリプトを `actions/` へ移す版は、破壊的変更の版として一度で切り替えなければならない。npm の package から、Actions だけで使うコマンドを消す
+- **FR-030**: pecot-workflow の確かめ（オンボーディング・診断）は、npm の package を npx で呼ぶ古い雛形が利用者のリポにあることを見つけなければならない。見つけたら、エージェントが `uses:` で `actions/` を呼ぶワークフローに書き換え、利用者に手作業を頼んではならない
+
 ### Key Entities
 
 - **振り分けの一覧**: プロジェクト指示の文・行き先・理由
@@ -259,3 +271,4 @@ Issue・PR の本文とボードの欄は今と同じ形で、今ある機能は
 - RC のスレッドは、US6 の作り替えが入るまで、今の pecot-workflow を使う
 - coordinator とスレッドの基本の振る舞い（スレッドの起動・メッセージの送り方）は claude.ai の側が決め、スキルでは変えない
 - プラグインと Actions のプロジェクトは、このリポの monorepo の nx project として置く。ルート直下に `actions/` を足すことは、2026-11-26 に利用者が許した（`.claude/rules/repo-root-layout.md` の一覧と hook を同じ変更で直す）
+- 利用者のリポの `uses:` のタグの更新は、GitHub の Dependabot（github-actions）に任せる。`pecot-actions-v<版>` の形のタグを Dependabot が追えるかは plan で確かめ、追えなければタグの形を見直す
