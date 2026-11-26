@@ -307,6 +307,35 @@ def test_readable_history_is_left_as_is(
     assert "履歴" not in capsys.readouterr().err
 
 
+class HistoryWriter(Recorder):
+    """allure の代わりに、JSON.stringify と同じく U+2028・U+2029 をそのまま含む 1 行を足す。"""
+
+    def __call__(self, command: list[str], env: dict[str, str]) -> int:
+        with Path(env[generate.HISTORY_ENV]).open("a", encoding="utf-8") as f:
+            f.write('{"uuid": "2", "name": "a\u2028b\u2029c"}\n')
+        return super().__call__(command, env)
+
+
+def test_line_separators_that_allure_writes_are_escaped(root: Path, tmp_path: Path) -> None:
+    _results(root, "alpha:test-unit", commit=SHA_A)
+    sources = _sources(tmp_path, [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}])
+    history = tmp_path / "history.jsonl"
+    history.write_bytes(b'{"uuid": "1"}\n')
+
+    code, _ = _main(
+        root,
+        "--sources", str(sources),
+        "--output", str(tmp_path / "out"),
+        "--history", str(history),
+        run=HistoryWriter(),
+    )  # fmt: skip
+
+    assert code == 0
+    assert history.read_bytes() == b'{"uuid": "1"}\n{"uuid": "2", "name": "a\\u2028b\\u2029c"}\n'
+    assert generate.read_history(history.read_bytes()) == []
+    assert json.loads(_entries(history)[1])["name"] == "a\u2028b\u2029c"
+
+
 def test_lone_carriage_return_splits_lines_like_node_readline() -> None:
     assert generate.read_history(b'{"a": 1}\r{"b": 2}\n') == []
     assert generate.read_history(b'{"a": 1}\r{oops\n') == [2]
@@ -496,7 +525,7 @@ def test_config_values() -> None:
     assert config["resolved"] == {
         "name": "pecot テストレポート",
         "historyPath": None,
-        "historyLimit": 20,
+        "historyLimit": 3,
         "historyBaseUrl": None,
         "flakyDetection": {"includePassedTests": True},
     }
@@ -585,14 +614,34 @@ def test_real_allure_appends_a_line_per_report(
 
 
 @_needs_pnpm
+def test_real_allure_keeps_history_of_a_test_name_with_line_separator(
+    root: Path,
+    real_build: tuple[Callable[[], int], Path],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    build, history = real_build
+    result = _allure_result("1") | {"name": "テスト\u2028続き"}
+    (root / _LANES[0]["results"] / "1-result.json").write_text(json.dumps(result), "utf-8")
+
+    assert build() == 0
+    capsys.readouterr()
+    assert build() == 0
+
+    assert "履歴" not in capsys.readouterr().err
+    assert len(_entries(history)) == 2
+
+
+# Allure は空の行も historyLimit に数える。空の行は 1 つずつにする。
+@_needs_pnpm
 @pytest.mark.parametrize(
     "extend",
     [
-        lambda line: f"{line}\n   \n\u3000\n",
+        lambda line: f"{line}\n   \n",
+        lambda line: f"{line}\n\u3000\n",
         lambda line: f"{line}\r\n",
         lambda line: f"{line}\r",
     ],
-    ids=["blank-lines", "crlf", "lone-cr"],
+    ids=["blank-line", "ideographic-space-line", "crlf", "lone-cr"],
 )
 def test_real_allure_reads_what_generate_passes_as_readable(
     real_build: tuple[Callable[[], int], Path],

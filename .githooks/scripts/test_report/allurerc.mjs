@@ -13,7 +13,7 @@ export default defineConfig({
       },
     },
   },
-  historyLimit: 20,
+  historyLimit: 3,
   flakyDetection: { includePassedTests: true },
   ...(historyPath ? { historyPath } : {}),
 });

@@ -11,6 +11,11 @@
     <nav class="pecot-footer-links" aria-label="関連リンク">
       <a href="https://github.com/pecotcraft/pecot" rel="noopener">GitHub</a>
       <a href="https://github.com/pecotcraft/pecot/blob/main/LICENSE" rel="noopener">ライセンス</a>
+      {%- if site.report_url %}
+      <span><a href="{{ pathto(site.report_url, 1) }}">テストレポート</a>
+        {%- if site.report_missing %}（{{ site.report_missing|join('、')|e }} は含みません）{% endif -%}
+      </span>
+      {%- endif %}
     </nav>
   </div>
 </footer>

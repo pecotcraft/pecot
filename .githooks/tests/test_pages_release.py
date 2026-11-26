@@ -565,7 +565,24 @@ def _sources_file(tmp_path: Path) -> Path:
     return path
 
 
-def _main(tmp_path: Path, workspace: Path, runner: FakeRunner) -> tuple[int, Path, Path]:
+def _report_sources_file(tmp_path: Path, record: object) -> Path:
+    path = tmp_path / "report-sources.json"
+    path.write_text(json.dumps(record), encoding="utf-8")
+    return path
+
+
+def _report_record(missing: list[str]) -> dict[str, object]:
+    """release_sources.py --report release の標準出力の sources の形。"""
+    commits = {"a": A, "b": B}
+    runs = [
+        {"commit": c, "lanes": [f"{p}:test-cli"]} for p, c in commits.items() if p not in missing
+    ]
+    return {"side": "release", "runs": runs, "missing": missing}
+
+
+def _main(
+    tmp_path: Path, workspace: Path, runner: FakeRunner, report: object | None = None
+) -> tuple[int, Path, Path]:
     temp, out = tmp_path / "runner-temp", tmp_path / "out"
     temp.mkdir()
     env = {
@@ -574,8 +591,17 @@ def _main(tmp_path: Path, workspace: Path, runner: FakeRunner) -> tuple[int, Pat
         "DEVCONTAINER_ENV": "PECOT_SITE_SIDE\nPECOT_SITE_PR\n",
         "PECOT_SITE_SIDE": "release",
     }
+    report_file = _report_sources_file(tmp_path, _report_record([]) if report is None else report)
     rc = release_build.main(
-        ["release_build.py", "--sources", str(_sources_file(tmp_path)), "--out", str(out)],
+        [
+            "release_build.py",
+            "--sources",
+            str(_sources_file(tmp_path)),
+            "--report-sources",
+            str(report_file),
+            "--out",
+            str(out),
+        ],
         env=env,
         runner=runner,
     )
@@ -635,6 +661,7 @@ def test_build_passes_site_env_to_container(tmp_path: Path, workspace: Path) -> 
         "PECOT_SITE_SIDE",
         "PECOT_SITE_PR",
         "PECOT_SITE_LANES",
+        "PECOT_SITE_REPORT_PLUGINS",
     ]
     # 消した版の値を、もう渡さない。
     assert "PECOT_SITE_SHA" not in env
@@ -642,6 +669,47 @@ def test_build_passes_site_env_to_container(tmp_path: Path, workspace: Path) -> 
     # サイトを作る段の外では、レーンの一覧を足さない。
     others = [e for i, e in enumerate(runner.envs) if i != docs]
     assert all("PECOT_SITE_LANES" not in e for e in others)
+    assert all("PECOT_SITE_REPORT_PLUGINS" not in e for e in others)
+
+
+@pytest.mark.parametrize(
+    ("missing", "expected"),
+    [([], "a,b"), (["b"], "a"), (["a", "b"], "")],
+    ids=["all", "partial", "empty"],
+)
+def test_build_passes_plugins_in_the_report_to_container(
+    tmp_path: Path, workspace: Path, missing: list[str], expected: str
+) -> None:
+    runner = FakeRunner(workspace)
+    rc, _, _ = _main(tmp_path, workspace, runner, _report_record(missing))
+
+    assert rc == 0
+    docs = runner.calls.index(("exec", "pnpm exec nx run interface-spec:docs --skip-nx-cache"))
+    env = runner.envs[docs]
+    assert env["PECOT_SITE_REPORT_PLUGINS"] == expected
+    assert "PECOT_SITE_REPORT_PLUGINS" in env["DEVCONTAINER_ENV"].split()
+
+
+@pytest.mark.parametrize(
+    "record",
+    [
+        {"side": "dev", "runs": [], "missing": []},
+        {"side": "release", "runs": []},
+        {"side": "release", "runs": [], "missing": "a"},
+        {"side": "release", "runs": [], "missing": [1]},
+        [],
+    ],
+    ids=["dev-side", "no-missing", "missing-not-list", "missing-not-str", "not-object"],
+)
+def test_build_rejects_malformed_report_sources(
+    tmp_path: Path, workspace: Path, record: object, capsys: pytest.CaptureFixture[str]
+) -> None:
+    runner = FakeRunner(workspace)
+    rc, _, _ = _main(tmp_path, workspace, runner, record)
+
+    assert rc == 1
+    assert "report-sources.json" in capsys.readouterr().err
+    assert runner.calls == []
 
 
 @pytest.mark.parametrize(
@@ -673,6 +741,8 @@ def test_build_requires_runner_env(tmp_path: Path, capsys: pytest.CaptureFixture
             "release_build.py",
             "--sources",
             str(_sources_file(tmp_path)),
+            "--report-sources",
+            str(_report_sources_file(tmp_path, _report_record([]))),
             "--out",
             str(tmp_path / "out"),
         ],

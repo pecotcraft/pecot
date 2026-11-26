@@ -127,7 +127,7 @@ store:
 - レポートを、その側の `test-report/` に置く。その側の定義書と、ほかの側は変えない
 - 定義書の側を差し替えるときは、その側の `test-report/` を残す
 - `test-report/` が無い側（リリース版と開発版）には、案内のページを置く
-- `.pecot-store.json` の `reports` に、run の ID とコミットを書く
+- `.pecot-store.json` の `reports` に、run の ID とコミットを書く。リリース版は `report-sources.json` も `sources` に書く
 - 大きさの知らせ（900 MB）は、レポートも数える
 
 deploy と preview-status は変えない。

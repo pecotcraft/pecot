@@ -84,12 +84,16 @@
 ## R5. 履歴
 
 - **Decision**: 履歴は、側ごとの 1 つのファイル `<側>/test-report/history.jsonl` として、保管ブランチ `pages-store` に置く。レポートを作る run が、保管ブランチのファイルを git で読んで `historyPath` に渡し、足された後のファイルを、レポートと一緒に artifact で渡す
-  - `historyLimit` は 20 にする
+  - `historyLimit` は 3 にする（#698 で 20 から下げた）
   - `historyBaseUrl` は設定しない
   - 不安定なテストの判定は、`flakyDetection: { includePassedTests: true }` にする。ほかの値（`historyDepth: 10`・`stabilizationPeriod: 5`）は既定のまま。既定では、最新の実行で落ちたテストにしか印が付かない
 - **Rationale**:
   - Allure 3 の履歴は、1 回の実行が 1 行の JSONL で、`historyPath` のファイルを読み、足す（文書の history-and-retries・how-it-works-history-files）。置き場所は自分で持ち越す。公式の GitHub Pages の手引きの Allure 3 の例は、履歴を持ち越していない
-  - `historyLimit` の既定は無制限。Allure 2 が持つ数（20）に合わせる。不安定の判定が見るのは前の 10 件までなので、足りる
+  - `historyLimit` の既定は無制限。初めは Allure 2 が持つ数（20）に合わせたが、大きさが公開の上限を超えるので 3 にした
+    - main の結果（17,635 テスト）で測ると、履歴 1 件で `history.jsonl` が約 25 MB、レポートが約 30 MB 増える
+    - 20 件では 1 つの側が約 1.2 GB になり、GitHub の 1 ファイル 100 MB と Pages の 1 GB を超える
+    - 3 件では `history.jsonl` が約 67 MB、2 つの側のレポートと履歴で約 550 MB に収まる
+    - 不安定の判定が見る前の回は、既定の 10 件でなく、残っている 3 件になる
   - `historyBaseUrl` は、過去のレポートへのリンクを作るための設定。このサイトは、レポートを側ごとに上書きし、過去のレポートを残さないので、設定しない
   - 前回との違い（New・Fixed・Regressed・Malfunctioned）と Flaky の印は、履歴があれば Allure が出す（文書の test-stability）
   - 履歴は、添付とステップを持たない。添付は、今の実行のレポートにだけある

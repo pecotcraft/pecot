@@ -86,7 +86,7 @@ description: "Task list for 030-allure-test-report"
 
 - [x] T012 [US1] `.githooks/scripts/test_report/allurerc.mjs` を、`defineConfig` で作る。
   トップレベルの `name: "pecot テストレポート"`、awesome の plugin を 1 つ（`groupBy: ["project", "lane", "parentSuite", "suite", "subSuite"]`、`reportLanguage: "ja"`）、
-  `historyLimit: 20`、`flakyDetection: { includePassedTests: true }`。`historyBaseUrl` は設定しない（research R5・R7）
+  `historyLimit: 20`（#698 で 3 に下げた。research R5）、`flakyDetection: { includePassedTests: true }`。`historyBaseUrl` は設定しない（research R5・R7）
 - [x] T013 [US1] `.githooks/scripts/test_report/generate.py` を作る（T011・T012 の後）。
   判定（どのレーンがそろったか）は純粋な処理に、`allure` の起動は I/O に分ける。入力は `--local`・`--output`・`--history`（省ける）・`--sources`（ReportSources の JSON。`--local` のときだけ省ける）
 - [x] T014 [US1] 実物で確かめる（T013 の後）。
@@ -185,26 +185,26 @@ description: "Task list for 030-allure-test-report"
 
 ### Tests（先に書く）
 
-- [ ] T032 [P] [US1] `.githooks/tests/test_pages_provenance.py` に、`test-report.yml` の run の決まりのテストを先に書く（contracts の verify の表）。
+- [x] T032 [P] [US1] `.githooks/tests/test_pages_provenance.py` に、`test-report.yml` の run の決まりのテストを先に書く（contracts の verify の表）。
   確かめること: workflow のパスが `test-report.yml` の run を受ける、event が `pull_request` の run は捨てる、head が main の祖先でなければ捨てる、
   開発版は保管中のレポートのコミットより古ければ捨てる、`workflow_dispatch` は artifact が 1 つだけのときその側。入力は、GitHub の API の応答の実物の形
-- [ ] T033 [P] [US3] `.githooks/tests/test_pages_store.py` に、レポートの置き場所のテストを先に書く（data-model.md の StoreLayout に足すもの）。
+- [x] T033 [P] [US3] `.githooks/tests/test_pages_store.py` に、レポートの置き場所のテストを先に書く（data-model.md の StoreLayout に足すもの）。
   確かめること: レポートを置いても定義書とほかの側が変わらない、定義書の側を差し替えても `test-report/` と `history.jsonl` が残る、
   `test-report/` の無いリリース版・開発版に案内のページが置かれる、`pr/<番号>/` に `test-report/` を置かない、
   `.pecot-store.json` の `reports` に run の ID とコミットが書かれる、SideCheck が定義書の側の中の `test-report/` へのリンクをリンク切れにしない、`history.jsonl` に JSON として読めない行があると捨てる
-- [ ] T034 [P] [US1] `libs/interface-spec/docs/tests/test_iface_defs.py` に、サイトのリンクのテストを先に書く（data-model.md の SiteStamp に足すもの、contracts の「サイト」の表）。
+- [x] T034 [P] [US1] `libs/interface-spec/docs/tests/test_iface_defs.py` に、サイトのリンクのテストを先に書く（data-model.md の SiteStamp に足すもの、contracts の「サイト」の表）。
   確かめること: 開発版はフッターのリンクと項目のリンク（`test-report/index.html?tags=<ID>`）を出す、
   リリース版は `PECOT_SITE_REPORT_PLUGINS` にあるプラグインの項目だけリンクを出し、無いプラグインの名前をフッターのリンクのそばに書く、`PECOT_SITE_REPORT_PLUGINS` が空ならリリース版はリンクを出さない、PR 版と手元はどちらのリンクも出さない
 
 ### Implementation
 
-- [ ] T035 [US1] `.githooks/scripts/pages_site/provenance.py` と `verify.py` に、`test-report.yml` の run の決まりと、レポートの artifact の確かめ（`report-sources.json` の決め直しと、T036 の SideCheck の呼び出し）を足す（T032・T036 の後）
-- [ ] T036 [US3] `.githooks/scripts/pages_site/store.py` に、レポートの置き場所・残す決まり・案内のページ・`reports` の記録と、SideCheck の `history.jsonl` の行の確かめを足す（T033 の後）。大きさの知らせは、レポートも数える
-- [ ] T037 [US1] `.github/workflows/pages-deploy.yml` の `workflow_run` の対象に `test-report.yml` を足す（T035・T036 の後）。
+- [x] T035 [US1] `.githooks/scripts/pages_site/provenance.py` と `verify.py` に、`test-report.yml` の run の決まりと、レポートの artifact の確かめ（`report-sources.json` の決め直しと、T036 の SideCheck の呼び出し）を足す（T032・T036 の後）
+- [x] T036 [US3] `.githooks/scripts/pages_site/store.py` に、レポートの置き場所・残す決まり・案内のページ・`reports` の記録と、SideCheck の `history.jsonl` の行の確かめを足す（T033 の後）。大きさの知らせは、レポートも数える
+- [x] T037 [US1] `.github/workflows/pages-deploy.yml` の `workflow_run` の対象に `test-report.yml` を足す（T035・T036 の後）。
   `.githooks/tests/test_pages_workflows.py` の契機と、「`pages / preview` を書くのは pages-deploy だけ」のテストを直す
-- [ ] T038 [US1] `libs/interface-spec/docs/_ext/site_stamp.py` に `report_url`・`report_plugins` を足し、`_templates/footer.html` にテストレポートのリンクを、`_ext/iface_defs.py` の振る舞いの項目にテストへのリンクを足す（T034 の後）。
+- [x] T038 [US1] `libs/interface-spec/docs/_ext/site_stamp.py` に `report_url`・`report_plugins` を足し、`_templates/footer.html` にテストレポートのリンクを、`_ext/iface_defs.py` の振る舞いの項目にテストへのリンクを足す（T034 の後）。
   `.githooks/scripts/pages_site/release_build.py` が、ReportSources から `PECOT_SITE_REPORT_PLUGINS` を渡す。`libs/interface-spec/tests/site/layout.test.ts` が、足したリンクで崩れないことを確かめる
-- [ ] T039 [US3] 手元で、保管を実物に通す（T036 の後）。
+- [x] T039 [US3] 手元で、保管を実物に通す（T036 の後）。
   一時の git リポを `pages-store` に見立て、`store.py publish` に、手元で作ったレポートの tar を 2 回続けて渡す。2 回目の `history.jsonl` が 2 行になること、定義書の側を差し替えても残ることを確かめる
 
 **Checkpoint**: quickstart.md の 4 が通る。マージの後に、quickstart.md の 5（開発版のレポートが出て、2 回目の push で履歴が 2 件になる）を確かめる
@@ -241,6 +241,7 @@ description: "Task list for 030-allure-test-report"
 
 - [ ] T048 quickstart.md の 5 を、公開サイトの開発版で確かめる。12 本のレーンのテストがあること、定義書の項目のリンクから、その ID のテストだけが出ること、テストの要件の ID のリンクから、開発版の定義書の項目へ戻れること、2 回目の main への push の後に履歴が 2 件になることを見る。
   `test-report.yml` の run の所要時間と、結果がそろってからレポートが変わるまでの時間を測り、30 分以内であることを確かめる（SC-008）。値を `.claude/rules/pages-site.md` に書く
+  pages-deploy の deploy の step の所要時間を見て、Pages の 10 分の上限に余裕があることを確かめる（#698 で公開の中身が約 630 MB に増えた）
 - [ ] T049 quickstart.md の 6 を確かめる。リリースの前は、リリース版のフッターにリンクが無く、`/pecot/test-report/` に案内のページがあること。
   リリースの時機が来ていなければ、`gh workflow run test-report.yml --ref main -f side=release` で起こし、run が「結果を出せるプラグインが無い」で成功して終わることを確かめる。リリースの後の確かめは、その旨を Issue に残して次のリリースで行う
 - [ ] T050 `.claude/rules/pages-site.md` に、テストレポートの節を足す。URL の表、起動とやり直し（`gh workflow run test-report.yml --ref main -f side=dev`・`side=release`）、レポートが出ないときに読む所、手元での作り方（`generate.py --local`）、Allure の版を上げるときに見る所（`report-links.test.ts`）。

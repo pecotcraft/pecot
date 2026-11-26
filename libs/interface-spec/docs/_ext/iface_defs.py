@@ -61,6 +61,8 @@ _FAILING = frozenset({"failed", "error"})
 _SKIPPING = frozenset({"skipped", "disabled"})
 
 JUNIT_DIR = Path("_generated") / "junit"
+# encodeURIComponent が変えない文字。この形の ID は、そのまま URL の query に書ける。
+_URI_SAFE_ID = re.compile(r"[A-Za-z0-9\-_.!~*'()]+")
 
 
 # ---------------------------------------------------------------- JUnit
@@ -858,6 +860,19 @@ def junit_lanes_table(lanes: object, root: Path, name: str) -> dict[str, dict[st
 # ---------------------------------------------------------------- ディレクティブ
 
 
+def report_href(docname: str, url: str, behavior_id: str) -> str | None:
+    """ページから、側のルートのテストレポートの、その ID の tag の一覧への相対のパス。ID が URL に書けなければ None。"""
+    if not _URI_SAFE_ID.fullmatch(behavior_id):
+        return None
+    return "../" * docname.count("/") + f"{url}?tags={behavior_id}"
+
+
+def report_cell(href: str) -> str:
+    # 匿名のリンクにして、同じ名前のリンクの重複を警告させない。末尾の _ は参照の名前と読まれるので、\ で打ち消す。
+    target = href[:-1] + "\\_" if href.endswith("_") else href
+    return f"`テスト <{target}>`__"
+
+
 def _config_junit(config: Config, plugin: str) -> dict[str, Path]:
     table = cast("dict[str, dict[str, str]]", config.iface_junit)
     return {lane: Path(p) for lane, p in table.get(plugin, {}).items()}
@@ -914,20 +929,25 @@ class IfaceDefs(_Base):
             behaviors = [b for b in plan.behaviors if b.belongs == command.id]
             for b in behaviors:
                 out += self._behavior(b, collected, source)
-            out += self._page(command, behaviors, collected, single)
+            out += self._page(plugin, command, behaviors, collected, single)
         if only in (None, COMMON):
             behaviors = [b for b in plan.behaviors if b.belongs is None]
             for b in behaviors:
                 out += self._behavior(b, collected, source)
             lines = [
-                *self._behavior_table(behaviors, collected),
+                *self._behavior_table(behaviors, collected, plugin),
                 *self._case_notes(behaviors, collected),
             ]
             out += self._anchored(lines, behaviors, collected)
         return out
 
     def _page(
-        self, command: Command, behaviors: list[Behavior], collected: Collected, single: bool
+        self,
+        plugin: str,
+        command: Command,
+        behaviors: list[Behavior],
+        collected: Collected,
+        single: bool,
     ) -> list[nodes.Node]:
         """1 項目の表示。need は隠してあるので、ここで ID のアンカーを置き、節を見出しとして描く。
 
@@ -960,7 +980,7 @@ class IfaceDefs(_Base):
                 "",
                 self._behavior_lead(behaviors),
                 "",
-                *self._behavior_table(behaviors, collected),
+                *self._behavior_table(behaviors, collected, plugin),
                 *self._case_notes(behaviors, collected),
             ]
         parsed = self.parse_text_to_nodes("\n".join(lines), allow_section_headings=True)
@@ -971,8 +991,29 @@ class IfaceDefs(_Base):
         """表の前の 1 文。使う人に、動作を機能要件として決め、テストで確かめていることを伝える。"""
         return f"次の {len(behaviors)} 件の要件を、自動テストで確かめています。"
 
-    def _behavior_table(self, behaviors: list[Behavior], collected: Collected) -> list[str]:
+    def _report_url(self, plugin: str) -> str | None:
+        """そのプラグインの項目から、テストレポートへリンクするときの側のルートからの相対。しないときは None。"""
+        report = cast("dict[str, Any]", self.config.iface_report)
+        url = report.get("url")
+        plugins = cast("list[str]", report.get("plugins") or [])
+        return url if isinstance(url, str) and url and plugin in plugins else None
+
+    def _report_column(self, b: Behavior, url: str) -> str:
+        href = report_href(self.env.docname, url, b.id)
+        if href is None:
+            logger.warning(
+                "%s: ID に URL の query にそのまま書けない文字があるため、テストレポートへリンクしません",
+                b.id,
+                location=(self.env.docname, self.lineno),
+            )
+            return "     -"
+        return f"     - {report_cell(href)}"
+
+    def _behavior_table(
+        self, behaviors: list[Behavior], collected: Collected, plugin: str
+    ) -> list[str]:
         results = bool(self.config.iface_results)
+        report = self._report_url(plugin)
         lines = [
             ".. list-table::",
             "   :header-rows: 1",
@@ -982,12 +1023,15 @@ class IfaceDefs(_Base):
             "   * - ID",
             "     - 要件",
             *(["     - テスト結果"] if results else []),
+            *(["     - テスト"] if report else []),
         ]
         for b in behaviors:
             lines += [f"   * - {_lit(b.id)}", f"     - {_esc(b.statement)}"]
             if results:
                 outcome = collected.outcome(b.id)
                 lines += [f"     - :iface-{outcome}:`{label(outcome)}`"]
+            if report:
+                lines += [self._report_column(b, report)]
         return [*lines, ""]
 
     def _case_notes(self, behaviors: list[Behavior], collected: Collected) -> list[str]:
@@ -1376,6 +1420,7 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_config_value("iface_terms", {}, "env", types=[dict])
     app.add_config_value("iface_strict", False, "env", types=[bool])
     app.add_config_value("iface_results", False, "env", types=[bool])
+    app.add_config_value("iface_report", {}, "env", types=[dict])
     app.connect("config-inited", _load_terms)
     app.connect("builder-inited", check_strict)
     app.connect("builder-inited", write_pages)

@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any, cast
 
 import pytest
+from docutils import core as docutils_core
+from docutils import nodes as docutils_nodes
 from sphinx.cmd.build import build_main
 
 DOCS = Path(__file__).resolve().parent.parent
@@ -27,6 +29,8 @@ from iface_defs import (  # noqa: E402
     load_junit_lanes,
     outcome_of,
     render_sections,
+    report_cell,
+    report_href,
 )
 from site_stamp import SiteStamp, SiteStampError, site_stamp  # noqa: E402
 
@@ -86,6 +90,7 @@ def build(
     strict: bool = False,
     site: dict[str, str] | None = None,
     results: bool = True,
+    plugins: tuple[str, ...] = ("sample",),
 ) -> Built:
     src = tmp_path / "src"
     src.mkdir(exist_ok=True)
@@ -94,7 +99,9 @@ def build(
         (src / name).parent.mkdir(parents=True, exist_ok=True)
         (src / name).write_text(text, encoding="utf-8")
     junit_map = {"sample": {lane: str(p) for lane, p in junit.items()}}
-    context = {"site": site_stamp(site or {}).context()}
+    stamp = site_stamp(site or {}, plugins).context()
+    context = {"site": stamp}
+    report = {"url": stamp["report_url"], "plugins": stamp["report_plugins"]}
     (src / "conf.py").write_text(
         "import runpy\n"
         f"_ns = runpy.run_path({str(DOCS / 'conf.py')!r})\n"
@@ -105,6 +112,7 @@ def build(
         f"iface_strict = {strict!r}\n"
         f"iface_results = {results!r}\n"
         f"html_context = {context!r}\n"
+        f"iface_report = {report!r}\n"
         f"templates_path = [{str(DOCS / '_templates')!r}]\n",
         encoding="utf-8",
     )
@@ -736,6 +744,9 @@ def test_strict_passes_when_every_lane_is_read(
 # ---------------------------------------------------------------- site_stamp
 
 PR_ENV = {"PECOT_SITE_SIDE": "pr", "PECOT_SITE_PR": "612"}
+REPORT = "test-report/index.html"
+PLUGINS = ("pecot-tools", "pecot-visual", "pecot-workflow")
+NO_REPORT: dict[str, object] = {"report_url": None, "report_plugins": [], "report_missing": []}
 
 
 def test_site_stamp_defaults_to_local() -> None:
@@ -752,6 +763,7 @@ def test_site_stamp_defaults_to_local() -> None:
                 "notice": "これはローカルでビルドしたドキュメントです。",
                 "pr_url": None,
                 "release_url": None,
+                **NO_REPORT,
             },
         ),
         (
@@ -761,6 +773,9 @@ def test_site_stamp_defaults_to_local() -> None:
                 "notice": "これは開発中のバージョンのドキュメントです。",
                 "pr_url": None,
                 "release_url": "/pecot/",
+                "report_url": REPORT,
+                "report_plugins": list(PLUGINS),
+                "report_missing": [],
             },
         ),
         (
@@ -770,16 +785,58 @@ def test_site_stamp_defaults_to_local() -> None:
                 "notice": "これはプルリクエスト #612 のプレビューです。",
                 "pr_url": "https://github.com/pecotcraft/pecot/pull/612",
                 "release_url": "/pecot/",
+                **NO_REPORT,
             },
         ),
         (
             {"PECOT_SITE_SIDE": "release"},
-            {"side": "release", "notice": None, "pr_url": None, "release_url": None},
+            {
+                "side": "release",
+                "notice": None,
+                "pr_url": None,
+                "release_url": None,
+                "report_url": None,
+                "report_plugins": [],
+                "report_missing": list(PLUGINS),
+            },
         ),
     ],
 )
-def test_site_context_per_side(env: dict[str, str], expected: dict[str, str | None]) -> None:
-    assert site_stamp(env).context() == expected
+def test_site_context_per_side(env: dict[str, str], expected: dict[str, object]) -> None:
+    assert site_stamp(env, PLUGINS).context() == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "url", "plugins", "missing"),
+    [
+        (
+            " pecot-workflow , pecot-visual ",
+            REPORT,
+            ["pecot-workflow", "pecot-visual"],
+            ["pecot-tools"],
+        ),
+        ("pecot-tools,pecot-visual,pecot-workflow", REPORT, list(PLUGINS), []),
+        ("", None, [], list(PLUGINS)),
+        (" , ", None, [], list(PLUGINS)),
+    ],
+)
+def test_site_context_reads_report_plugins_on_release(
+    value: str, url: str | None, plugins: list[str], missing: list[str]
+) -> None:
+    env = {"PECOT_SITE_SIDE": "release", "PECOT_SITE_REPORT_PLUGINS": value}
+    context = site_stamp(env, PLUGINS).context()
+    assert (context["report_url"], context["report_plugins"], context["report_missing"]) == (
+        url,
+        plugins,
+        missing,
+    )
+
+
+@pytest.mark.parametrize("env", [{}, {"PECOT_SITE_SIDE": "dev"}, PR_ENV])
+def test_site_context_ignores_report_plugins_off_release(env: dict[str, str]) -> None:
+    plain = site_stamp(env, PLUGINS).context()
+    given = site_stamp({**env, "PECOT_SITE_REPORT_PLUGINS": "pecot-tools"}, PLUGINS).context()
+    assert given == plain
 
 
 @pytest.mark.parametrize(
@@ -862,6 +919,172 @@ def test_footer_has_logo_links_and_copyright(full: Built) -> None:
         "ライセンス": "https://github.com/pecotcraft/pecot/blob/main/LICENSE",
     }
     assert "© 2026 pecotcraft" in text_of(footer)
+
+
+# ---------------------------------------------------------------- テストレポートへのリンク
+
+
+def footer_of(built: Built, page: str = "index.html") -> str:
+    found = re.search(r"<footer[\s\S]*?</footer>", built.html(page))
+    assert found
+    return found.group(0)
+
+
+def plain_of(part: str) -> str:
+    """タグを除いた文字。タグの所に空白を入れないので、リンクとそのそばの文字がつながる。"""
+    return " ".join(html.unescape(re.sub(r"<[^>]+>", "", part)).split())
+
+
+def report_links(page: str) -> dict[str, str]:
+    """機能要件の表の行の ID → その行の「テスト」のリンクの先。"""
+    rows = re.findall(r'<tr[^>]*id="([^"]+)"[^>]*>(.*?)</tr>', page, flags=re.S)
+    return {
+        row_id: href for row_id, body in rows if (href := links_of(body).get("テスト")) is not None
+    }
+
+
+def behavior_heads(page: str) -> list[list[str]]:
+    heads = re.findall(r"<thead>(.*?)</thead>", page, flags=re.S)
+    return [re.findall(r"<th[^>]*><p>([^<]*)</p></th>", h) for h in heads if "要件" in h]
+
+
+DEV = {"PECOT_SITE_SIDE": "dev"}
+
+
+def test_dev_links_footer_and_each_requirement_to_the_report(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "dev").mkdir()
+    (tmp_path / "local").mkdir()
+    built = build(
+        tmp_path / "dev", LANES, capfd, files={"index.rst": DEFS_ONLY}, site=DEV, results=False
+    )
+    assert built.code == 0, built.warnings
+    # fixture がもともと出す警告のほかに、リンクの重複などの警告を出さない。
+    local = build(tmp_path / "local", LANES, capfd, files={"index.rst": DEFS_ONLY}, results=False)
+    assert built.warnings.replace("/dev/", "/") == local.warnings.replace("/local/", "/")
+    assert links_of(footer_of(built))["テストレポート"] == REPORT
+    assert "含みません" not in footer_of(built)
+    page = built.html()
+    assert behavior_heads(page) and all(
+        head == ["ID", "要件", "テスト"] for head in behavior_heads(page)
+    )
+    ids = behaviors_of(built)
+    assert ids
+    assert report_links(page) == {i: f"{REPORT}?tags={i}" for i in ids}
+
+
+def test_report_column_sits_beside_the_result_column(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    built = build(tmp_path, LANES, capfd, files={"index.rst": DEFS_ONLY}, site=DEV)
+    assert built.code == 0, built.warnings
+    page = built.html()
+    assert all(head == ["ID", "要件", "テスト結果", "テスト"] for head in behavior_heads(page))
+    assert report_links(page)["SM-TWO-02"] == f"{REPORT}?tags=SM-TWO-02"
+
+
+def test_report_links_on_generated_pages_point_to_the_side_root(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    built = build(tmp_path, LANES, capfd, files={"index.rst": PAGES_INDEX}, pages=True, site=DEV)
+    assert built.code == 0, built.warnings
+    page = "_generated/sample/one-run.html"
+    assert links_of(footer_of(built, page))["テストレポート"] == f"../../{REPORT}"
+    assert report_links(built.html(page)) == {
+        i: f"../../{REPORT}?tags={i}" for i in ("SM-ONE-01", "SM-ONE-02", "SM-ONE-03")
+    }
+
+
+def test_release_links_only_plugins_in_the_report_and_names_the_rest(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    site = {"PECOT_SITE_SIDE": "release", "PECOT_SITE_REPORT_PLUGINS": "sample"}
+    built = build(
+        tmp_path,
+        LANES,
+        capfd,
+        files={"index.rst": DEFS_ONLY},
+        site=site,
+        results=False,
+        plugins=("other", "pecot-x", "sample"),
+    )
+    assert built.code == 0, built.warnings
+    footer = footer_of(built)
+    assert links_of(footer)["テストレポート"] == REPORT
+    assert "テストレポート（other、pecot-x は含みません）" in plain_of(footer)
+    assert report_links(built.html()) == {i: f"{REPORT}?tags={i}" for i in behaviors_of(built)}
+
+
+def test_release_does_not_link_items_of_a_plugin_left_out_of_the_report(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    site = {"PECOT_SITE_SIDE": "release", "PECOT_SITE_REPORT_PLUGINS": "other"}
+    built = build(
+        tmp_path,
+        LANES,
+        capfd,
+        files={"index.rst": DEFS_ONLY},
+        site=site,
+        results=False,
+        plugins=("other", "sample"),
+    )
+    assert built.code == 0, built.warnings
+    footer = footer_of(built)
+    assert links_of(footer)["テストレポート"] == REPORT
+    assert "テストレポート（sample は含みません）" in plain_of(footer)
+    page = built.html()
+    assert report_links(page) == {}
+    assert all(head == ["ID", "要件"] for head in behavior_heads(page))
+
+
+@pytest.mark.parametrize(
+    "site",
+    [
+        {"PECOT_SITE_SIDE": "release", "PECOT_SITE_REPORT_PLUGINS": ""},
+        {"PECOT_SITE_SIDE": "release"},
+        PR_ENV,
+        {},
+    ],
+    ids=["release-empty", "release-unset", "pr", "local"],
+)
+def test_sides_without_report_show_neither_link(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str], site: dict[str, str]
+) -> None:
+    built = build(tmp_path, LANES, capfd, files={"index.rst": DEFS_ONLY}, site=site, results=False)
+    assert built.code == 0, built.warnings
+    footer = footer_of(built)
+    assert "テストレポート" not in footer
+    assert "含みません" not in footer
+    page = built.html()
+    assert report_links(page) == {}
+    assert "test-report" not in page
+    assert all(head == ["ID", "要件"] for head in behavior_heads(page))
+
+
+@pytest.mark.parametrize(
+    ("docname", "behavior_id", "expected"),
+    [
+        ("index", "SM-ONE-01", f"{REPORT}?tags=SM-ONE-01"),
+        ("reference/tools/sample", "PW_X.1", f"../../{REPORT}?tags=PW_X.1"),
+        ("_generated/sample/one-run", "SM-ONE-01", f"../../{REPORT}?tags=SM-ONE-01"),
+        ("index", "SM ONE", None),
+        ("index", "SM&ONE", None),
+        ("index", "SM-ÖNE", None),
+    ],
+)
+def test_report_href_is_relative_to_the_page_and_takes_only_safe_ids(
+    docname: str, behavior_id: str, expected: str | None
+) -> None:
+    assert report_href(docname, REPORT, behavior_id) == expected
+
+
+def test_report_cell_keeps_a_trailing_underscore_in_the_url() -> None:
+    # 末尾の _ を打ち消さないと、docutils が URL を参照の名前と読み、未定義のリンクのエラーになる。
+    nodes = docutils_core.publish_doctree(report_cell(f"{REPORT}?tags=SM_ONE_"))
+    (reference,) = list(nodes.findall(docutils_nodes.reference))
+    assert reference["refuri"] == f"{REPORT}?tags=SM_ONE_"
+    assert reference.astext() == "テスト"
 
 
 _COMMON = {

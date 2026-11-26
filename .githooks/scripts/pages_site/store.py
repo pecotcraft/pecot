@@ -1,14 +1,17 @@
 """公開サイトの側を確かめ、保管ブランチ pages-store に置いて push する（spec 028 の SideCheck・StoreLayout）。
 
+側に置くものは、定義書（kind site）と、開発版・リリース版の test-report/ のテストレポート（kind report。spec 030）。
+
 サブコマンド:
-- check <tar>: 側の tar を展開せずに確かめる。問題があれば markdown の箇条で出して 1 で終わる
-- extract <tar> <dest>: 確かめてから展開する
+- check [--kind] [--side] <tar>: tar を展開せずに確かめる。問題があれば markdown の箇条で出して 1 で終わる
+- extract [--kind] [--side] <tar> <dest>: 確かめてから展開する
 - publish ...: pages-store を取り、側を差し替えて orphan のコミット 1 つで push する
 """
 
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import os
 import posixpath
@@ -27,12 +30,17 @@ from urllib.parse import unquote, urlsplit
 SITE_BASE = "/pecot/"
 META = ".pecot-store.json"
 SIDES = ("release", "dev", "pr", "none")
+KINDS = ("site", "report")
+REPORT_SIDES = ("release", "dev")
+REPORT_DIR = "test-report"
+HISTORY = "history.jsonl"
 SIZE_LIMIT = 900 * 1024**2
 MAX_ATTEMPTS = 5
 BOT_NAME = "github-actions[bot]"
 BOT_EMAIL = "41898282+github-actions[bot]@users.noreply.github.com"
-_KEEP_AT_ROOT = {"dev", "pr", META, ".git"}
+_KEEP_AT_ROOT = {"dev", "pr", REPORT_DIR, META, ".git"}
 _LABELS = {"release": "リリース版", "dev": "開発版", "none": "なし"}
+_KIND_LABELS = {"site": "定義書", "report": "レポート"}
 _HTML_SUFFIXES = (".html", ".htm")
 
 
@@ -92,12 +100,20 @@ def _local_target(page: str, link: str) -> str | None:
     return joined
 
 
-def side_check(tar_path: Path) -> list[str]:
-    """側の tar を展開せずに確かめ、問題を 1 行ずつ返す。空なら合格。"""
+def _in_report(path: str) -> bool:
+    return path == REPORT_DIR or path.startswith(f"{REPORT_DIR}/")
+
+
+def side_check(tar_path: Path, *, report_links: bool = False) -> list[str]:
+    """側の tar を展開せずに確かめ、問題を 1 行ずつ返す。空なら合格。
+
+    report_links は、保管が `test-report/` を置く側（開発版・リリース版）で True にする。
+    """
     problems: list[str] = []
     files: set[str] = set()
     dirs: set[str] = {""}
     pages: dict[str, str] = {}
+    report_member: str | None = None
     with tarfile.open(tar_path) as tar:
         for member in tar:
             name = _member_name(member.name)
@@ -107,6 +123,9 @@ def side_check(tar_path: Path) -> list[str]:
                 continue
             if name in ("", "."):
                 continue
+            if report_links and report_member is None and _in_report(name):
+                report_member = member.name
+                problems.append(f"`{member.name}`: `{REPORT_DIR}/` は保管でレポートを置く所です")
             if member.isdir():
                 dirs.add(name)
                 continue
@@ -136,6 +155,8 @@ def side_check(tar_path: Path) -> list[str]:
                 problems.append(f"`{page}`: `{link}` は側の外を指します")
                 continue
             path = target.rstrip("/")
+            if report_links and _in_report(path):
+                continue
             if path in ("", ".") or target.endswith("/") or path in dirs:
                 path = posixpath.join("" if path == "." else path, "index.html")
             if path not in files:
@@ -143,8 +164,58 @@ def side_check(tar_path: Path) -> list[str]:
     return problems
 
 
-def extract(tar_path: Path, dest: Path) -> None:
+def _load_read_history() -> Callable[[bytes], list[int]]:
+    # pages_site と test_report の lanes.py が同じ名前なので、release_sources.py と同じくパスで読む
+    path = Path(__file__).resolve().parents[1] / "test_report/generate.py"
+    spec = importlib.util.spec_from_file_location("test_report_generate", path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"{path} を読めません")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return cast("Callable[[bytes], list[int]]", module.read_history)
+
+
+read_history = _load_read_history()
+
+
+def report_check(tar_path: Path) -> list[str]:
+    """レポートの tar を確かめる。SideCheck に加え、index.html と、Allure が全行を読める history.jsonl があること。"""
     problems = side_check(tar_path)
+    found: set[str] = set()
+    history: bytes | None = None
+    with tarfile.open(tar_path) as tar:
+        for member in tar:
+            name = _member_name(member.name)
+            if not member.isfile() or name not in ("index.html", HISTORY):
+                continue
+            found.add(name)
+            if name == HISTORY:
+                stream = tar.extractfile(member)
+                history = stream.read() if stream is not None else b""
+    for name in ("index.html", HISTORY):
+        if name not in found:
+            problems.append(f"`{name}` がありません")
+    if history is not None:
+        bad = read_history(history)
+        if bad == [0]:
+            problems.append(f"`{HISTORY}` が UTF-8 ではありません")
+        elif bad:
+            problems.append(f"`{HISTORY}` の {', '.join(map(str, bad))} 行目を Allure が読めません")
+    return problems
+
+
+def checker(kind: str, side: str | None) -> Callable[[Path], list[str]]:
+    """種類と側に合う確かめ。定義書の開発版・リリース版だけが、保管で置くレポートへのリンクを持てる。"""
+    if kind not in KINDS:
+        raise ValueError(f"kind が不正です: {kind}")
+    if kind == "report":
+        return report_check
+    report_links = side in REPORT_SIDES
+    return lambda tar_path: side_check(tar_path, report_links=report_links)
+
+
+def extract(tar_path: Path, dest: Path, *, check: Callable[[Path], list[str]]) -> None:
+    problems = check(tar_path)
     if problems:
         raise ValueError("側の確かめに通らない tar です: " + "; ".join(problems))
     dest.mkdir(parents=True, exist_ok=True)
@@ -153,7 +224,7 @@ def extract(tar_path: Path, dest: Path) -> None:
 
 
 def _empty_meta() -> dict[str, object]:
-    return {"release": None, "dev": None, "pr": {}}
+    return {"release": None, "dev": None, "pr": {}, "reports": {}}
 
 
 def read_meta(store: Path) -> dict[str, object]:
@@ -165,13 +236,22 @@ def read_meta(store: Path) -> dict[str, object]:
         raise ValueError(f"{META}: オブジェクトではありません")
     meta = _empty_meta()
     meta.update(cast("dict[str, object]", loaded))
-    if not isinstance(meta["pr"], dict):
-        meta["pr"] = {}
+    for key in ("pr", "reports"):
+        if not isinstance(meta[key], dict):
+            meta[key] = {}
     return meta
 
 
 def _pr_records(meta: dict[str, object]) -> dict[str, object]:
     return cast("dict[str, object]", meta["pr"])
+
+
+def _report_records(meta: dict[str, object]) -> dict[str, object]:
+    return cast("dict[str, object]", meta["reports"])
+
+
+def _report_dir(store: Path, side: str) -> Path:
+    return (store if side == "release" else store / "dev") / REPORT_DIR
 
 
 def _remove(path: Path) -> None:
@@ -187,9 +267,21 @@ def _clear_root(store: Path) -> None:
             _remove(entry)
 
 
-def _replace_dir(target: Path, tree: Path) -> None:
-    _remove(target)
-    shutil.copytree(tree, target, symlinks=True)
+def _clear_dir(target: Path, keep: Iterable[str] = ()) -> None:
+    """target を、keep の名前の子だけを残した空のディレクトリにする。"""
+    if target.is_dir() and not target.is_symlink():
+        kept = set(keep)
+        for entry in target.iterdir():
+            if entry.name not in kept:
+                _remove(entry)
+    else:
+        _remove(target)
+        target.mkdir(parents=True)
+
+
+def _replace_dir(target: Path, tree: Path, keep: Iterable[str] = ()) -> None:
+    _clear_dir(target, keep)
+    shutil.copytree(tree, target, symlinks=True, dirs_exist_ok=True)
 
 
 def closed_prs(store: Path, open_prs: Iterable[int]) -> list[int]:
@@ -204,7 +296,15 @@ def closed_prs(store: Path, open_prs: Iterable[int]) -> list[int]:
 
 
 def guide_page(side: str, meta: dict[str, object]) -> str:
-    missing = _LABELS[side]
+    return _guide(f"{_LABELS[side]}はまだありません", meta)
+
+
+def report_guide_page(meta: dict[str, object]) -> str:
+    """レポートがまだ無い側の test-report/index.html。リンクは公開している定義書の側だけ。"""
+    return _guide("テストレポートはまだありません", meta)
+
+
+def _guide(title: str, meta: dict[str, object]) -> str:
     links: list[str] = []
     if meta.get("release") is not None:
         links.append(f'<li><a href="{SITE_BASE}">リリース版</a></li>')
@@ -220,10 +320,10 @@ def guide_page(side: str, meta: dict[str, object]) -> str:
         "<head>\n"
         '<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-        f"<title>{missing}はまだありません</title>\n"
+        f"<title>{title}</title>\n"
         "</head>\n"
         "<body>\n"
-        f"<h1>{missing}はまだありません</h1>\n"
+        f"<h1>{title}</h1>\n"
         f"{body}\n"
         "</body>\n"
         "</html>\n"
@@ -238,22 +338,30 @@ def apply(
     tree: Path | None,
     record: dict[str, object] | None,
     open_prs: list[int] | None,
+    kind: str = "site",
 ) -> None:
-    """受けた側と .pecot-store.json だけを書き換え、閉じた PR の側を消し、無い側に案内のページを置く。"""
+    """受けた側（定義書かレポート）と .pecot-store.json だけを書き換え、閉じた PR の側を消し、無い側に案内のページを置く。"""
     if side not in SIDES:
         raise ValueError(f"side が不正です: {side}")
+    if kind not in KINDS:
+        raise ValueError(f"kind が不正です: {kind}")
+    if kind == "report" and side not in REPORT_SIDES:
+        raise ValueError(f"kind が report のときは side が dev か release です: {side}")
     if side == "pr" and pr is None:
         raise ValueError("side が pr のときは pr の番号が要ります")
     if tree is not None and (record is None or side == "none"):
         raise ValueError("側を置くときは side と record が要ります")
     meta = read_meta(store)
-    if tree is not None and record is not None:
+    if tree is not None and record is not None and kind == "report":
+        _replace_dir(_report_dir(store, side), tree)
+        _report_records(meta)[side] = record
+    elif tree is not None and record is not None:
         if side == "release":
             _clear_root(store)
             shutil.copytree(tree, store, symlinks=True, dirs_exist_ok=True)
             meta["release"] = record
         elif side == "dev":
-            _replace_dir(store / "dev", tree)
+            _replace_dir(store / "dev", tree, keep=[REPORT_DIR])
             meta["dev"] = record
         else:
             (store / "pr").mkdir(exist_ok=True)
@@ -269,9 +377,13 @@ def apply(
         _clear_root(store)
         (store / "index.html").write_text(guide_page("release", meta), encoding="utf-8")
     if meta["dev"] is None:
-        _remove(store / "dev")
-        (store / "dev").mkdir()
+        _clear_dir(store / "dev", keep=[REPORT_DIR])
         (store / "dev" / "index.html").write_text(guide_page("dev", meta), encoding="utf-8")
+    for report_side in REPORT_SIDES:
+        if _report_records(meta).get(report_side) is None:
+            target = _report_dir(store, report_side)
+            _clear_dir(target)
+            (target / "index.html").write_text(report_guide_page(meta), encoding="utf-8")
     (store / META).write_text(
         json.dumps(meta, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
@@ -335,10 +447,17 @@ def size_warning(store: Path, limit: int = SIZE_LIMIT) -> str | None:
 
 
 def dev_is_newer(
-    store_record: dict[str, object], head_sha: str, is_ancestor: Callable[[str, str], bool]
+    store_record: dict[str, object],
+    head_sha: str,
+    is_ancestor: Callable[[str, str], bool],
+    kind: str = "site",
 ) -> bool:
-    """保管中の開発版が head_sha の祖先（同じを含む）なら True。無ければ True。"""
-    dev = store_record.get("dev")
+    """保管中の開発版（kind が report なら reports.dev）が head_sha の祖先（同じを含む）なら True。無ければ True。"""
+    if kind == "report":
+        reports = store_record.get("reports")
+        dev = cast("dict[str, object]", reports).get("dev") if isinstance(reports, dict) else None
+    else:
+        dev = store_record.get("dev")
     if not isinstance(dev, dict):
         return True
     stored = cast("dict[str, object]", dev).get("sha")
@@ -424,7 +543,9 @@ class PublishOptions:
         main_ref: str,
         history: Path,
         workdir: Path,
+        kind: str = "site",
     ) -> None:
+        self.kind = kind
         self.remote_url = remote_url
         self.side = side
         self.pr = pr
@@ -460,8 +581,17 @@ class PublishResult(NamedTuple):
     changed: bool
 
 
+def _head_lines(opts: PublishOptions) -> list[str]:
+    return [
+        "## 保管",
+        "",
+        f"- 側: {_side_label(opts.side, opts.pr)}",
+        f"- 種類: {_KIND_LABELS.get(opts.kind, opts.kind)}",
+    ]
+
+
 def _failed(opts: PublishOptions, *details: str) -> PublishResult:
-    lines = ["## 保管", "", f"- 側: {_side_label(opts.side, opts.pr)}", *details]
+    lines = [*_head_lines(opts), *details]
     return PublishResult(1, "\n".join(lines) + "\n", False)
 
 
@@ -469,6 +599,13 @@ def publish(opts: PublishOptions, before_push: Callable[[], None] | None = None)
     """pages-store を差し替え、変わったときだけ push する。"""
     if opts.side not in SIDES:
         raise ValueError(f"side が不正です: {opts.side}")
+    if opts.kind not in KINDS:
+        raise ValueError(f"kind が不正です: {opts.kind}")
+    if opts.kind == "report":
+        if opts.side not in REPORT_SIDES:
+            raise ValueError(f"--kind report は --side dev か release だけで使えます: {opts.side}")
+        if opts.tar is None or opts.tree is not None:
+            raise ValueError("--kind report は --tar だけで受けます")
     if opts.tree is not None and opts.tar is not None:
         raise ValueError("--tree と --tar は一緒に渡せません")
     if opts.side != "none" and opts.tree is None and opts.tar is None:
@@ -484,7 +621,8 @@ def publish(opts: PublishOptions, before_push: Callable[[], None] | None = None)
         )
     side_tree = opts.tree
     if opts.tar is not None and opts.side != "none":
-        problems = side_check(opts.tar)
+        check = checker(opts.kind, opts.side)
+        problems = check(opts.tar)
         if problems:
             return _failed(
                 opts,
@@ -492,17 +630,18 @@ def publish(opts: PublishOptions, before_push: Callable[[], None] | None = None)
                 *(f"  - {p}" for p in problems),
             )
         side_tree = opts.workdir / "side"
-        extract(opts.tar, side_tree)
+        extract(opts.tar, side_tree, check=check)
 
     store = opts.workdir / "pages-store"
     record = _record(opts)
+    newer = "新しい開発版のレポート" if opts.kind == "report" else "新しい開発版"
     for attempt in range(1, MAX_ATTEMPTS + 1):
         lease = _fetch_store(opts.remote_url, store)
-        side, tree = opts.side, side_tree
+        side, tree, kind = opts.side, side_tree, opts.kind
         verdict = "掃除だけ（側は受けていません）" if side == "none" else "保管した"
-        if side == "dev" and not dev_is_newer(read_meta(store), opts.sha, is_ancestor):
-            side, tree = "none", None
-            verdict = "保管しない（新しい開発版が先に保管されています）"
+        if side == "dev" and not dev_is_newer(read_meta(store), opts.sha, is_ancestor, kind):
+            side, tree, kind = "none", None, "site"
+            verdict = f"保管しない（{newer}が先に保管されています）"
         removed = closed_prs(store, opts.open_prs) if opts.open_prs is not None else []
         apply(
             store,
@@ -511,11 +650,10 @@ def publish(opts: PublishOptions, before_push: Callable[[], None] | None = None)
             tree=tree,
             record=record if tree is not None else None,
             open_prs=opts.open_prs,
+            kind=kind,
         )
         lines = [
-            "## 保管",
-            "",
-            f"- 側: {_side_label(opts.side, opts.pr)}",
+            *_head_lines(opts),
             f"- コミット: `{opts.sha}`" if opts.sha else "- コミット: なし",
             f"- 採否: {verdict}",
             "- 消した PR の側: " + (", ".join(f"#{n}" for n in removed) or "なし"),
@@ -536,7 +674,10 @@ def publish(opts: PublishOptions, before_push: Callable[[], None] | None = None)
         if not changed:
             lines.append("- pages-store: 書き換えが無いので push しません")
         else:
-            message = f"pages-store: {_side_label(opts.side, opts.pr)} {opts.sha}".rstrip()
+            label = _side_label(opts.side, opts.pr)
+            if opts.kind == "report":
+                label += "のレポート"
+            message = f"pages-store: {label} {opts.sha}".rstrip()
             commit = _git(store, "commit-tree", tree_sha, "-m", message, author=True).stdout.strip()
             if before_push is not None:
                 before_push()
@@ -584,9 +725,14 @@ def main(argv: list[str]) -> int:
     ext = sub.add_parser("extract")
     ext.add_argument("tar", type=Path)
     ext.add_argument("dest", type=Path)
+    # --side を渡さない check・extract は、レポートへのリンクを切れたものとする（PR 版と同じ）。
+    for command in (check, ext):
+        command.add_argument("--kind", choices=KINDS, default="site")
+        command.add_argument("--side", choices=SIDES[:3])
     pub = sub.add_parser("publish")
     pub.add_argument("--remote-url", required=True)
     pub.add_argument("--side", choices=SIDES, required=True)
+    pub.add_argument("--kind", choices=KINDS, default="site")
     pub.add_argument("--pr", type=int)
     pub.add_argument("--tree", type=Path)
     pub.add_argument("--tar", type=Path)
@@ -600,13 +746,13 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv[1:])
 
     if args.command == "check":
-        problems = side_check(args.tar)
+        problems = checker(args.kind, args.side)(args.tar)
         if problems:
             print("\n".join(f"- {p}" for p in problems))
             return 1
         return 0
     if args.command == "extract":
-        extract(args.tar, args.dest)
+        extract(args.tar, args.dest, check=checker(args.kind, args.side))
         return 0
 
     if args.workdir is not None:
@@ -614,6 +760,7 @@ def main(argv: list[str]) -> int:
     with tempfile.TemporaryDirectory(dir=args.workdir) as tmp:
         result = publish(
             PublishOptions(
+                kind=args.kind,
                 remote_url=args.remote_url,
                 side=args.side,
                 pr=args.pr,

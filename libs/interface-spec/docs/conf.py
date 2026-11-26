@@ -113,8 +113,11 @@ iface_junit = (
 # 付けると、JUnit が無いか読めないレーンがあるときに止める。合否を出すときにだけ使う。
 iface_strict = os.environ.get("PECOT_SITE_STRICT") == "1"
 
-# リリース版でない側の知らせ（_templates/header.html）。公開のサイトを作る run は PECOT_SITE_SIDE・PECOT_SITE_PR を渡す。
-html_context = {"site": site_stamp(os.environ).context()}
+# 側の知らせ（_templates/header.html）とテストレポートへのリンク。公開のサイトを作る run は PECOT_SITE_* を渡す。
+_site = site_stamp(os.environ, sorted(iface_junit)).context()
+html_context = {"site": _site}
+# 機能要件の表の「テスト」の列。url が None なら列を出さない。
+iface_report = {"url": _site["report_url"], "plugins": _site["report_plugins"]}
 
 # コマンド・ツールごとのページを _generated/<plugin>/ に書く。テストは 1 ページで組むので切る。
 iface_pages = True

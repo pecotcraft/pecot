@@ -122,7 +122,8 @@
 
 決まり:
 
-- どの側も、pages-build.yml の run からだけ受ける。ci.yml の run は受けない（2026-11-18、#648 で改めた。ci の run を待つと、PR 版がテストの終わりまで出ないため）
+- 定義書は、どの側も pages-build.yml の run からだけ受ける。ci.yml の run は受けない（2026-11-18、#648 で改めた。ci の run を待つと、PR 版がテストの終わりまで出ないため）
+- テストレポートは、開発版・リリース版で test-report.yml の run からも受ける。決まりは 030 の [contracts/test-report.md](../030-allure-test-report/contracts/test-report.md) の `pages-deploy.yml` の節（#698 で足した）
 - PR の作者は自分のブランチの pages-build.yml を書き換えられる。そのため、`pull_request` の run は PR 版にしか使わず、開発版・リリース版は main の祖先のコミットの run からだけ受ける
 - main の祖先かは、`GET /repos/{owner}/{repo}/compare/{head_sha}...main` の `behind_by == 0` で決める
 - `head_branch` では、ブランチを判定しない。タグで動いた run では、`head_branch` にタグ名が入るため
