@@ -101,6 +101,7 @@ aws lambda get-policy --function-name pecot-board-sync \
 4. エージェント用の IAM ロール `claude-agent` を作り、既定のプロファイルにする。詳しくは「エージェントの権限」を参照
 5. AWS Budgets で、月 $1 を超えたらメールで知らせるアラートを作る。実際の費用と予測の両方で知らせる
 6. ログインの期限が切れたら、3 のコマンドを打ち直す。認証情報は 15 分ごとに自動で更新され、最長 12 時間で切れる
+   - `deploy.sh` は、認証情報を得られないと AWS へ書き込む前に止まり、渡したプロファイルとリージョンを入れたこのコマンドを示す
 7. 2 つの App で、それぞれ秘密鍵をもう 1 本作り、ダウンロードする。Actions の鍵とは別に失効できる
    - security の App（変数 `SECURITY_APP_CLIENT_ID`）
    - dependabot-prs の App（変数 `DEPENDABOT_PRS_APP_CLIENT_ID`）
