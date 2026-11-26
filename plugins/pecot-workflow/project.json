@@ -118,7 +118,7 @@
       ],
       "dependsOn": ["install", "build-cli", { "projects": ["workflow-core"], "target": "build" }],
       "metadata": {
-        "description": "bin/pecot の bootstrap と登録ファイルの bash テスト（約 1 分）。対象は run.sh、data-dir、manifest、install-record、workflow-core-link だ。実 pnpm でミラーを build する run.sh は、cli/src と vendor/workflow-core をミラーに build し、tools/list の 36 件を確かめる。そのため cli/src を入力に置き（テストは除く）、libs/workflow-core は ^production で取り込む。登録ファイルと wrapper は inputs に宣言する。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
+        "description": "bin/pecot の bootstrap と登録ファイルの bash テスト（約 1 分）。対象は run.sh、data-dir、manifest、install-record、workflow-core-link だ。実 pnpm でミラーを build する run.sh は、cli/src と vendor/workflow-core をミラーに build し、tools/list のツールの件数を確かめる。そのため cli/src を入力に置き（テストは除く）、libs/workflow-core は ^production で取り込む。登録ファイルと wrapper は inputs に宣言する。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
         "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=bootstrap",
