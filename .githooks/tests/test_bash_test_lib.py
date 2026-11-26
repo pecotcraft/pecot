@@ -6,10 +6,16 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
+import allure
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output, run_attached  # noqa: E402
 
 _REPO = Path(__file__).resolve().parents[2]
 _LIB_PATH = ".githooks/scripts/test_report/bash-test.sh"
@@ -26,12 +32,13 @@ def _repo(tmp_path: Path) -> Path:
 
 
 def _write_test(directory: Path, body: str, *, options: str = "set -u") -> Path:
-    directory.mkdir(parents=True, exist_ok=True)
-    path = directory / "sample.test.sh"
-    lib = Path(*[".."] * len(directory.relative_to(_root(directory)).parts)) / _LIB_PATH
-    source = f'. "$(dirname "$0")/{lib.as_posix()}"'
-    path.write_text(f"#!/bin/bash\n{options}\n{source}\n{body}\n", encoding="utf-8")
-    return path
+    with allure.step("bash のテストのファイルを書く"):
+        directory.mkdir(parents=True, exist_ok=True)
+        path = directory / "sample.test.sh"
+        lib = Path(*[".."] * len(directory.relative_to(_root(directory)).parts)) / _LIB_PATH
+        source = f'. "$(dirname "$0")/{lib.as_posix()}"'
+        path.write_text(f"#!/bin/bash\n{options}\n{source}\n{body}\n", encoding="utf-8")
+        return path
 
 
 def _root(path: Path) -> Path:
@@ -42,19 +49,19 @@ def _run_files(
     tmp_path: Path, *tests: Path, results: Path | None
 ) -> subprocess.CompletedProcess[str]:
     """runner と同じく、bash-test.sh を読んだシェルから bt_run_files でファイルを動かす。"""
-    runner = tmp_path / "runner.sh"
-    runner.write_text(
-        f'. "{tmp_path / _LIB_PATH}"\nPECOT_REPORT_RESULTS="{results or ""}"\nbt_run_files "$@"\n',
-        encoding="utf-8",
-    )
-    return subprocess.run(
-        ["bash", str(runner), *map(str, tests)],
-        cwd=tmp_path,
-        env={**os.environ, **_LANE},
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    with allure.step("bt_run_files でテストのファイルを動かす"):
+        runner = tmp_path / "runner.sh"
+        runner.write_text(
+            f'. "{tmp_path / _LIB_PATH}"\nPECOT_REPORT_RESULTS="{results or ""}"\nbt_run_files "$@"\n',
+            encoding="utf-8",
+        )
+        return run_attached(
+            ["bash", str(runner), *map(str, tests)],
+            cwd=tmp_path,
+            env={**os.environ, **_LANE},
+            capture_output=True,
+            text=True,
+        )
 
 
 def _run_file(
@@ -64,11 +71,9 @@ def _run_file(
 
 
 def _results(directory: Path) -> list[dict[str, Any]]:
-    found = [
-        json.loads(path.read_text(encoding="utf-8"))
-        for path in sorted(directory.glob("*-result.json"))
-    ]
-    return sorted(found, key=lambda result: result["stop"])
+    with allure.step("書かれた Allure の結果を読む"):
+        found = [json.loads(read_output(path)) for path in sorted(directory.glob("*-result.json"))]
+        return sorted(found, key=lambda result: result["stop"])
 
 
 def _label(result: dict[str, Any], name: str) -> list[str]:
@@ -91,52 +96,53 @@ def test_one_result_per_check_with_status_and_reason(tmp_path: Path) -> None:
     )
     test = _write_test(tmp_path / "suite", body)
     done = _run_file(tmp_path, test, results=tmp_path / "results")
+    results = _results(tmp_path / "results")
 
-    assert done.returncode == 1, done.stdout + done.stderr
-    got = [
-        (r["name"], r["status"], r["statusDetails"].get("message"))
-        for r in _results(tmp_path / "results")
-    ]
-    assert got == [
-        ("通る", "passed", None),
-        ("落ちる", "failed", "理由がある"),
-        ("飛ばす", "skipped", "環境が無い"),
-        ("等しい", "failed", "期待 [a] / 実際 [b]"),
-        ("違う", "failed", "[a] と違う値のはずが、同じだった"),
-        ("含む", "failed", "「zz」を含まない: abc"),
-        ("含まない", "failed", "「b」を含む: abc"),
-    ]
-    assert "PASS: 1 / FAIL: 5 / SKIP: 1" in done.stdout
+    with allure.step("終了コードと、確かめごとの状態と理由を確かめる"):
+        assert done.returncode == 1, done.stdout + done.stderr
+        got = [(r["name"], r["status"], r["statusDetails"].get("message")) for r in results]
+        assert got == [
+            ("通る", "passed", None),
+            ("落ちる", "failed", "理由がある"),
+            ("飛ばす", "skipped", "環境が無い"),
+            ("等しい", "failed", "期待 [a] / 実際 [b]"),
+            ("違う", "failed", "[a] と違う値のはずが、同じだった"),
+            ("含む", "failed", "「zz」を含まない: abc"),
+            ("含まない", "failed", "「b」を含む: abc"),
+        ]
+        assert "PASS: 1 / FAIL: 5 / SKIP: 1" in done.stdout
 
 
 def test_eq_has_expected_and_actual(tmp_path: Path) -> None:
     """bt_eq は、Allure が差分を出せるよう expected と actual を書く。"""
     test = _write_test(tmp_path / "suite", 'bt_eq "等しい" "a" "b"\nbt_finish')
     _run_file(tmp_path, test, results=tmp_path / "results")
-
     [result] = _results(tmp_path / "results")
-    assert result["statusDetails"]["expected"] == "a"
-    assert result["statusDetails"]["actual"] == "b"
+
+    with allure.step("expected と actual を確かめる"):
+        assert result["statusDetails"]["expected"] == "a"
+        assert result["statusDetails"]["actual"] == "b"
 
 
 def test_labels_and_full_name(tmp_path: Path) -> None:
     """ラベルはレーン・ファイルのパス・host・thread を持ち、fullName はレーンとパスと題を持つ。"""
     test = _write_test(tmp_path / "plugins/p/tests", 'bt_pass "通る"\nbt_finish')
     _run_file(tmp_path, test, results=tmp_path / "results")
-
     [result] = _results(tmp_path / "results")
-    path = "plugins/p/tests/sample.test.sh"
-    assert _label(result, "project") == ["pecot-visual"]
-    assert _label(result, "lane") == ["test-hooks"]
-    assert _label(result, "parentSuite") == [path]
-    assert _label(result, "language") == ["bash"]
-    assert _label(result, "framework") == ["bash"]
-    assert len(_label(result, "host")) == 1
-    assert len(_label(result, "thread")) == 1
-    assert result["fullName"] == f"pecot-visual:test-hooks {path}#通る"
-    assert result["stage"] == "finished"
-    assert isinstance(result["start"], int) and isinstance(result["stop"], int)
-    assert result["start"] <= result["stop"]
+
+    with allure.step("ラベル・fullName・時刻を確かめる"):
+        path = "plugins/p/tests/sample.test.sh"
+        assert _label(result, "project") == ["pecot-visual"]
+        assert _label(result, "lane") == ["test-hooks"]
+        assert _label(result, "parentSuite") == [path]
+        assert _label(result, "language") == ["bash"]
+        assert _label(result, "framework") == ["bash"]
+        assert len(_label(result, "host")) == 1
+        assert len(_label(result, "thread")) == 1
+        assert result["fullName"] == f"pecot-visual:test-hooks {path}#通る"
+        assert result["stage"] == "finished"
+        assert isinstance(result["start"], int) and isinstance(result["stop"], int)
+        assert result["start"] <= result["stop"]
 
 
 def test_path_with_dot_dot_is_normalized(tmp_path: Path) -> None:
@@ -144,9 +150,10 @@ def test_path_with_dot_dot_is_normalized(tmp_path: Path) -> None:
     test = _write_test(tmp_path / "plugins/p/tests", 'bt_pass "通る"\nbt_finish')
     detour = tmp_path / "plugins/p/../../plugins/p/tests" / test.name
     _run_file(tmp_path, detour, results=tmp_path / "results")
-
     [result] = _results(tmp_path / "results")
-    assert _label(result, "parentSuite") == ["plugins/p/tests/sample.test.sh"]
+
+    with allure.step("parentSuite が正規のパスであることを確かめる"):
+        assert _label(result, "parentSuite") == ["plugins/p/tests/sample.test.sh"]
 
 
 def test_json_escapes_quotes_backslashes_and_control_characters(tmp_path: Path) -> None:
@@ -156,10 +163,11 @@ def test_json_escapes_quotes_backslashes_and_control_characters(tmp_path: Path) 
     )
     test = _write_test(tmp_path / "suite", body)
     _run_file(tmp_path, test, results=tmp_path / "results")
-
     [result] = _results(tmp_path / "results")
-    assert result["name"] == '題 "引用" \\ 日本語'
-    assert result["statusDetails"]["message"] == "1行目\n2行目\tタブ\x01"
+
+    with allure.step("題と理由が元の文字のまま読めることを確かめる"):
+        assert result["name"] == '題 "引用" \\ 日本語'
+        assert result["statusDetails"]["message"] == "1行目\n2行目\tタブ\x01"
 
 
 def test_without_results_dir_prints_only(tmp_path: Path) -> None:
@@ -167,30 +175,35 @@ def test_without_results_dir_prints_only(tmp_path: Path) -> None:
     test = _write_test(tmp_path / "suite", 'bt_pass "通る"\nbt_finish')
     done = _run_file(tmp_path, test, results=None)
 
-    assert done.returncode == 0, done.stdout + done.stderr
-    assert "PASS: 通る" in done.stdout
-    assert list(tmp_path.rglob("*-result.json")) == []
+    with allure.step("印字があり、結果のファイルが無いことを確かめる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert "PASS: 通る" in done.stdout
+        assert list(tmp_path.rglob("*-result.json")) == []
 
 
 def test_run_directly_without_runner(tmp_path: Path) -> None:
     """runner を通さず bash で打っても、確かめと終了コードは今までどおり。"""
     test = _write_test(tmp_path / "suite", 'bt_pass "通る"\nbt_fail "落ちる" "理由"\nbt_finish')
-    done = subprocess.run(["bash", str(test)], capture_output=True, text=True, check=False)
+    with allure.step("runner を通さず bash でファイルを動かす"):
+        done = run_attached(["bash", str(test)], capture_output=True, text=True)
 
-    assert done.returncode == 1
-    assert "PASS: 通る" in done.stdout
-    assert "FAIL: 落ちる — 理由" in done.stdout
+    with allure.step("終了コードと印字を確かめる"):
+        assert done.returncode == 1
+        assert "PASS: 通る" in done.stdout
+        assert "FAIL: 落ちる — 理由" in done.stdout
 
 
 def test_duplicate_title_fails_as_a_separate_result(tmp_path: Path) -> None:
     """1 ファイルで題が重なると、2 回目を別の 1 件の failed にする。"""
     test = _write_test(tmp_path / "suite", 'bt_pass "同じ"\nbt_pass "同じ"\nbt_finish')
     done = _run_file(tmp_path, test, results=tmp_path / "results")
+    results = _results(tmp_path / "results")
 
-    assert done.returncode == 1
-    got = [(r["name"], r["status"]) for r in _results(tmp_path / "results")]
-    assert got == [("同じ", "passed"), ("同じ（2 回目）", "failed")]
-    assert len({r["fullName"] for r in _results(tmp_path / "results")}) == 2
+    with allure.step("2 回目が別の題の failed になることを確かめる"):
+        assert done.returncode == 1
+        got = [(r["name"], r["status"]) for r in results]
+        assert got == [("同じ", "passed"), ("同じ（2 回目）", "failed")]
+        assert len({r["fullName"] for r in results}) == 2
 
 
 def test_failure_in_subshell_is_counted(tmp_path: Path) -> None:
@@ -198,8 +211,9 @@ def test_failure_in_subshell_is_counted(tmp_path: Path) -> None:
     test = _write_test(tmp_path / "suite", '( bt_fail "中で落ちる" "理由" )\nbt_finish')
     done = _run_file(tmp_path, test, results=tmp_path / "results")
 
-    assert done.returncode == 1
-    assert "PASS: 0 / FAIL: 1 / SKIP: 0" in done.stdout
+    with allure.step("終了コードと数を確かめる"):
+        assert done.returncode == 1
+        assert "PASS: 0 / FAIL: 1 / SKIP: 0" in done.stdout
 
 
 @pytest.mark.parametrize(
@@ -213,10 +227,12 @@ def test_file_stopped_before_finish_is_broken(
     """bt_finish の前で終わると「最後まで動く」を broken として書き、それまでの確かめは残す。"""
     test = _write_test(tmp_path / "suite", f'bt_pass "前"\n{stop}\nbt_finish', options=options)
     done = _run_file(tmp_path, test, results=tmp_path / "results")
+    results = _results(tmp_path / "results")
 
-    assert done.returncode == code
-    got = [(r["name"], r["status"]) for r in _results(tmp_path / "results")]
-    assert got == [("前", "passed"), ("最後まで動く", "broken")]
+    with allure.step("終了コードと、broken の 1 件を確かめる"):
+        assert done.returncode == code
+        got = [(r["name"], r["status"]) for r in results]
+        assert got == [("前", "passed"), ("最後まで動く", "broken")]
 
 
 def test_broken_has_the_tail_of_stderr(tmp_path: Path) -> None:
@@ -225,12 +241,13 @@ def test_broken_has_the_tail_of_stderr(tmp_path: Path) -> None:
         tmp_path / "suite", 'echo "前提が崩れた" >&2\n: "$UNDEFINED_IN_TEST"\nbt_finish'
     )
     done = _run_file(tmp_path, test, results=tmp_path / "results")
-
     [broken] = _results(tmp_path / "results")
-    trace = broken["statusDetails"]["trace"]
-    assert "前提が崩れた" in trace
-    assert "UNDEFINED_IN_TEST: unbound variable" in trace
-    assert "UNDEFINED_IN_TEST: unbound variable" in done.stderr
+
+    with allure.step("trace と stderr に止まった原因の行があることを確かめる"):
+        trace = broken["statusDetails"]["trace"]
+        assert "前提が崩れた" in trace
+        assert "UNDEFINED_IN_TEST: unbound variable" in trace
+        assert "UNDEFINED_IN_TEST: unbound variable" in done.stderr
 
 
 def test_run_files_runs_every_file_and_lists_failures(tmp_path: Path) -> None:
@@ -238,10 +255,12 @@ def test_run_files_runs_every_file_and_lists_failures(tmp_path: Path) -> None:
     first = _write_test(tmp_path / "a", 'bt_fail "落ちる" "理由"\nbt_finish')
     second = _write_test(tmp_path / "b", 'bt_pass "通る"\nbt_finish')
     done = _run_files(tmp_path, first, second, results=tmp_path / "results")
+    results = _results(tmp_path / "results")
 
-    assert done.returncode == 1
-    assert [r["name"] for r in _results(tmp_path / "results")] == ["落ちる", "通る"]
-    assert f"{first} (exit 1)" in done.stderr
+    with allure.step("両方の確かめが残り、落ちたファイルが一覧に出ることを確かめる"):
+        assert done.returncode == 1
+        assert [r["name"] for r in results] == ["落ちる", "通る"]
+        assert f"{first} (exit 1)" in done.stderr
 
 
 def test_grandchild_does_not_write_to_the_lane(tmp_path: Path) -> None:
@@ -249,8 +268,10 @@ def test_grandchild_does_not_write_to_the_lane(tmp_path: Path) -> None:
     inner = _write_test(tmp_path / "inner", 'bt_pass "孫"\nbt_finish')
     outer = _write_test(tmp_path / "outer", f'bash "{inner}" > /dev/null\nbt_pass "子"\nbt_finish')
     _run_file(tmp_path, outer, results=tmp_path / "results")
+    results = _results(tmp_path / "results")
 
-    assert [r["name"] for r in _results(tmp_path / "results")] == ["子"]
+    with allure.step("子の確かめだけが残ることを確かめる"):
+        assert [r["name"] for r in results] == ["子"]
 
 
 def test_leaves_no_temporary_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -261,10 +282,11 @@ def test_leaves_no_temporary_files(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     empty = _write_test(tmp_path / "empty", "bt_finish")
     done = _run_files(tmp_path, empty, results=tmp_path / "results")
 
-    assert done.returncode == 0, done.stdout + done.stderr
-    assert "No such file" not in done.stderr
-    assert "PASS: 0 / FAIL: 0 / SKIP: 0" in done.stdout
-    assert list(temp.iterdir()) == []
+    with allure.step("一時ディレクトリが空のままであることを確かめる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert "No such file" not in done.stderr
+        assert "PASS: 0 / FAIL: 0 / SKIP: 0" in done.stdout
+        assert list(temp.iterdir()) == []
 
 
 @pytest.mark.skipif(shutil.which("pnpm") is None, reason="pnpm が要る")
@@ -273,32 +295,41 @@ def test_real_allure_reads_the_results(tmp_path: Path) -> None:
     test = _write_test(tmp_path / "suite", 'bt_pass "通る"\nbt_eq "等しい" "a" "b"\nbt_finish')
     _run_file(tmp_path, test, results=tmp_path / "results")
     report = tmp_path / "report"
-    done = subprocess.run(
-        ["pnpm", "exec", "allure", "generate", "--output", str(report), str(tmp_path / "results")],
-        cwd=_REPO,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    with allure.step("allure generate でレポートを作る"):
+        done = run_attached(
+            [
+                "pnpm",
+                "exec",
+                "allure",
+                "generate",
+                "--output",
+                str(report),
+                str(tmp_path / "results"),
+            ],
+            cwd=_REPO,
+            capture_output=True,
+            text=True,
+        )
+    with allure.step("レポートが読んだテストの結果を集める"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        read = [
+            json.loads(read_output(path)) for path in (report / "data/test-results").glob("*.json")
+        ]
+        by_name = {r["name"]: r for r in read}
 
-    assert done.returncode == 0, done.stdout + done.stderr
-    read = [
-        json.loads(path.read_text(encoding="utf-8"))
-        for path in (report / "data/test-results").glob("*.json")
-    ]
-    by_name = {r["name"]: r for r in read}
-    assert sorted(by_name) == ["等しい", "通る"]
-    assert by_name["通る"]["status"] == "passed"
-    assert by_name["等しい"]["status"] == "failed"
-    error = by_name["等しい"]["error"]
-    assert (error["message"], error["expected"], error["actual"]) == (
-        "期待 [a] / 実際 [b]",
-        "a",
-        "b",
-    )
-    labels = {label["name"]: label["value"] for label in by_name["通る"]["labels"]}
-    assert (labels["project"], labels["lane"], labels["parentSuite"]) == (
-        "pecot-visual",
-        "test-hooks",
-        "suite/sample.test.sh",
-    )
+    with allure.step("題・状態・理由・期待と実際・ラベルを確かめる"):
+        assert sorted(by_name) == ["等しい", "通る"]
+        assert by_name["通る"]["status"] == "passed"
+        assert by_name["等しい"]["status"] == "failed"
+        error = by_name["等しい"]["error"]
+        assert (error["message"], error["expected"], error["actual"]) == (
+            "期待 [a] / 実際 [b]",
+            "a",
+            "b",
+        )
+        labels = {label["name"]: label["value"] for label in by_name["通る"]["labels"]}
+        assert (labels["project"], labels["lane"], labels["parentSuite"]) == (
+            "pecot-visual",
+            "test-hooks",
+            "suite/sample.test.sh",
+        )
