@@ -409,6 +409,7 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
                     "interface-spec:test-unit",
                     "interface-spec:test-site",
                     "pecot-visual:test-cli",
+                    "pecot-visual:test-slidev",
                     "pecot-tools:test-cli",
                     "pecot-workflow:test-cli",
                     "pecot-workflow:test-hooks",

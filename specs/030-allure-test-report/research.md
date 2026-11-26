@@ -301,7 +301,7 @@ FR-007a（画面・成果物の添付）の対象にしないものを次に並�
   - 標準出力・標準エラーは空でないものを添付し、両方空なら空の標準出力を 1 つ添付する。名前は、コマンド（先頭から 200 字）と終了コード
   - 関数を直に呼ぶ単体テストの戻り値は添付しない。判定する値はテストのコードにあり、落ちたときは vitest・pytest が差分を出す
   - 準備で動かすコマンドも、補助を通れば添付する。`beforeAll` で動かしたものは、allure-vitest が describe の中のテストの全部に付ける
-  - 対象のレーンは、`interface-spec:test-site` を除く 12。`test-site` は画面の添付のまま
+  - 対象のレーンは、レポートのレーンのうち `interface-spec:test-site` を除くすべて。#809 で足した `pecot-visual:test-slidev`・`nx-release:test-unit` も入る。`test-site` は画面の添付のまま
 
   | 補助 | 添付 |
   |---|---|
@@ -315,7 +315,7 @@ FR-007a（画面・成果物の添付）の対象にしないものを次に並�
   | `.githooks/tests/attach.py` | `run_attached`（`check`・timeout でも添付してから投げる）・`attach_output`・`read_output` |
 
 - **Rationale**: 成功したテストが実際に何を出したかを、レポートから確かめるため。`subprocess.run` や `child_process` を全体で差し替える案は採らない。テスト対象が中で動かす子プロセスの出力まで添付され、判定に使ったものと見分けられない
-- **大きさ**: 13 レーンを手元で動かして作ったレポートの `data/attachments/` は、14,209 個で 63 MB だった（2026-11-26）
+- **大きさ**: #809 の 2 本を足す前の 13 レーンを手元で動かして作ったレポートの `data/attachments/` は、14,209 個で 63 MB だった（2026-11-26）
   - 最も多いのは `githooks:test-nx-affected` の 27 MB で、nx が書き出して判定に使う graph の JSON（1 個 約 120 KB）が占める
   - `beforeAll` で取った `tools/list` の結果は、describe のテストごとに複製される。そこで、全体は全体を見るテストだけが添付し、1 つのツールを見るテストはその項目だけを添付する
   - リポのファイルの一覧（`git ls-files`）は、テストの入力なので添付しない

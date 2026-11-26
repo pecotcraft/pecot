@@ -179,6 +179,7 @@
       "inputs": [
         "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/attach.ts",
         "{projectRoot}/assets/slidev/**/*",
         "{projectRoot}/cli/tests/fixtures/themes/**",
         "sharedGlobals",

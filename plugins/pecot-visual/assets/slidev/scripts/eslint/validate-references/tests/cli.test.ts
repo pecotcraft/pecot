@@ -2,6 +2,7 @@ import { describe, it } from 'vitest';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
+import { attachOutput } from '../../../../../../../../libs/interface-spec/src/vitest/attach.js';
 
 // 自己実行の判定は argv[1] の実体とモジュールの URL を比べる。ソースをそのまま起動して確かめる。
 const ENTRY = join(import.meta.dirname, '../index.ts');
@@ -11,6 +12,7 @@ function run(args: string[]): { status: number | null; stdout: string; stderr: s
   const result = spawnSync(process.execPath, ['--experimental-strip-types', ENTRY, ...args], {
     encoding: 'utf-8',
   });
+  attachOutput(['validate-references', ...args].join(' '), result.status ?? result.signal ?? undefined, result.stdout, result.stderr);
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
 }
 
