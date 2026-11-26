@@ -4,7 +4,7 @@ description: |
   PRを作成しタイトル・説明を自動生成し、CIとレビューの指摘に対応します。
   Use when the user wants to create a pull request for the current branch — auto-generates title/description from commits and diff, waits for CI, then addresses the review findings without asking which to adopt, replying with the reason on each one it declines. Triggers: "create PR", "submit for review", "address review comments".
   Does not merge PRs itself — it then waits for the user to merge on GitHub and runs the post-merge cleanup (session finish).
-allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check mcp__plugin_pecot-w_pecot-workflow__pr_create mcp__plugin_pecot-w_pecot-workflow__pr_show mcp__plugin_pecot-w_pecot-workflow__issue_comment mcp__plugin_pecot-w_pecot-workflow__issue_show mcp__plugin_pecot-w_pecot-workflow__session_show mcp__plugin_pecot-w_pecot-workflow__session_finish Bash(node ${CLAUDE_SKILL_DIR}/scripts/wait-merge.cjs *) Bash(gh api:*) Bash(git push:*) Bash(git checkout:*) Bash(git branch:*) Bash(git worktree list:*) Bash(git fetch:*) Bash(git pull:*) Bash(mkdir:*) Bash(touch:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr checks:*) Bash(gh run view:*) Bash(git add:*) Bash(git commit:*)
+allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check mcp__plugin_pecot-w_pecot-workflow__pr_create mcp__plugin_pecot-w_pecot-workflow__pr_show mcp__plugin_pecot-w_pecot-workflow__issue_comment mcp__plugin_pecot-w_pecot-workflow__issue_show mcp__plugin_pecot-w_pecot-workflow__session_show mcp__plugin_pecot-w_pecot-workflow__session_finish Bash(node ${CLAUDE_SKILL_DIR}/scripts/wait-merge.cjs *) Bash(gh api:*) Bash(git push:*) Bash(git checkout:*) Bash(git branch:*) Bash(git worktree list:*) Bash(git fetch:*) Bash(git pull:*) Bash(mkdir:*) Bash(touch:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr comment:*) Bash(gh pr checks:*) Bash(gh run view:*) Bash(git add:*) Bash(git commit:*)
 when_to_use: "PR を作りたい、レビューに出したい、プルリクエストの説明文を作ってほしい、PR のレビュー指摘に対応したい"
 ---
 
@@ -44,6 +44,7 @@ pecot-workflow の MCP ツール `pr_check` を使って、PR を作れる状態
 1. pecot-workflow の MCP サーバの resource `pecot-template://pr/create` を読み、テンプレートのファイルを作る
 2. できたファイルを編集する
    - 冒頭の <!-- 読者: / 書き方: / フィールド: --> ガイドコメントに従って YAML フロントマターと本文を記述する
+   - Verified の evidence は、w-help の [CUJ の流し方](../w-help/references/cuj-run.md) の「evidence の残し方」に従って載せる
 3. pecot-workflow の MCP ツール `pr_create` を使って、書いたファイルで PR を作る
 
 `base` は空のままにする。ツールが決める。スタックして着手したブランチでは親ブランチになる。
@@ -58,6 +59,24 @@ PR を作った後は、結果を見て利用者に伝える。
 - 警告は、利用者に示すだけにする。スタックを手で作らず、PR を作り直さない。PR は作られている
 
 本文に、上下の PR やスタックの中の位置を書かない。GitHub の画面が示す情報だからだ。
+
+#### 本文に収まらないログ
+
+本文の上限（65,536 文字）を超えるログは、PR を作った後に、PR のコメントへ分けて載せる。
+
+1. ログを `<details>` で包んだファイルを作る。1 件のコメントも 65,536 文字までなので、超えるならファイルを分ける
+2. ファイルごとに次を打ち、出力されたコメントの URL を控える。`--body-file` を省くと、対話の入力待ちになる
+
+   ```bash
+   gh pr comment <PR番号> --body-file <ファイル>
+   ```
+
+3. 本文を取り、Verified の CUJ の節に、控えたコメントへのリンクを足して戻す
+
+   ```bash
+   gh pr view <PR番号> --json body -q .body > <本文のファイル>
+   gh pr edit <PR番号> --body-file <本文のファイル>
+   ```
 
 #### スクリーンショット
 
@@ -215,6 +234,7 @@ gh api --hostname <対象ホスト> graphql \
 #### CUJ 再実行
 
 計画の CUJ（実装の後に実行したもの）が、直したファイルを読むなら、main が [`w-help/references/cuj-run.md`](../w-help/references/cuj-run.md) に従って流し直す。サブエージェントには渡さない。不合格なら修正に戻る。
+流し直した結果で、Verified を書き直す。コメントに分けたログは、[本文に収まらないログ](#本文に収まらないログ) の手順で新しいコメントに載せ、Verified のリンクを差し替える。
 
 #### スレッドを一括 resolve
 

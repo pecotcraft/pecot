@@ -44,10 +44,11 @@ Claude Code / GitHub Copilot CLI 向けプラグインの monorepo（nx workspac
 
 ## 作業ファイルの置き場所
 
-- 一時ファイル・evidence・スクラッチは `.pecot/work/<Issue番号>/` に置く。直下のディレクトリ名は Issue 番号の数字だけ。Issue の無い作業は先に起票する
+- CUJ の evidence は、PR の Verified とコメントに中身を載せる。手元のパスを evidence として示さない。残し方は `plugins/pecot-workflow/skills/w-help/references/cuj-run.md` の「evidence の残し方」
+- 一時ファイル・スクラッチは `.pecot/work/<Issue番号>/` に置く。直下のディレクトリ名は Issue 番号の数字だけ。Issue の無い作業は先に起票する
 - `/tmp/` 直下は使わない（ユーザーの指定と、`find /tmp` などの調査は除く）。`.pecot/tmp/` は CLI / hooks 専用。ただし、`pecot-template://` の resource を写す作業ファイルは `.pecot/tmp/output/` に置く
 - wtN の `.pecot/work` は base へのシンボリックリンク。base の絶対パスを `.claude/settings.json` の `additionalDirectories` に置いている
-- Claude Code が作る worktree（`.claude/worktrees/<name>`）の `.pecot/work` は、その worktree の中にあり、worktree と一緒に消える
+- Claude Code が作る worktree（`.claude/worktrees/<name>`）の `.pecot/work` は、worktree と一緒に消える。消えるのはスクラッチだけで、evidence は PR にある
 
 ## リリース
 
