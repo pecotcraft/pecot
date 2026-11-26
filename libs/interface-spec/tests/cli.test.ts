@@ -10,6 +10,7 @@ import { defaultRoot, run } from '../src/cli.js'
 import { BORROWED_MAP, POSIX_MAP } from '../src/domain/field-map.js'
 import process from 'node:process'
 import { materialize } from './helpers/repository.js'
+import { step, stepSync } from '../src/vitest/step.js'
 
 const exec = promisify(execFile)
 const PROJECT = path.join(import.meta.dirname, '..')
@@ -46,45 +47,57 @@ async function call(...argv: string[]): Promise<{ code: number, stdout: string, 
 
 describe('validate', () => {
   it('正しいリポジトリのとき、何も出さず 0 で終わる', async () => {
-    expect(await call('validate', '--root', await materialize('valid'))).toEqual({ code: 0, stdout: '', stderr: '' })
+    await step('正しいリポジトリを検証し、出力を比べる', async () => {
+      expect(await call('validate', '--root', await materialize('valid'))).toEqual({ code: 0, stdout: '', stderr: '' })
+    })
   })
 
   it('失敗があると、1 件ごとに 1 行を標準エラーに出して 1 で終わる', async () => {
-    expect(await call('validate', '--root', await materialize('language'))).toEqual({
-      code: 1,
-      stdout: '',
-      stderr: 'error: plugins/pecot-workflow/interface/authored.yaml: PW-ISSUE-CREATE: details[1]: contains Japanese text (write English)\n'
-        + 'error: plugins/pecot-workflow/interface/authored.yaml: PW-ISSUE-CREATE-01: statement: has no Japanese text (write Japanese)\n',
+    await step('失敗のあるリポジトリを検証し、出力を比べる', async () => {
+      expect(await call('validate', '--root', await materialize('language'))).toEqual({
+        code: 1,
+        stdout: '',
+        stderr: 'error: plugins/pecot-workflow/interface/authored.yaml: PW-ISSUE-CREATE: details[1]: contains Japanese text (write English)\n'
+          + 'error: plugins/pecot-workflow/interface/authored.yaml: PW-ISSUE-CREATE-01: statement: has no Japanese text (write Japanese)\n',
+      })
     })
   })
 
   it('--root を省くと、リポジトリの root を指す', () => {
-    const targets = path.join(defaultRoot(), 'libs/interface-spec/targets.json')
-    expect(existsSync(targets)).toBe(true)
+    const targets = stepSync('既定の root から targets.json の場所を求める', () => path.join(defaultRoot(), 'libs/interface-spec/targets.json'))
+    stepSync('ファイルの有無を比べる', () => {
+      expect(existsSync(targets)).toBe(true)
+    })
   })
 
   it('root が git リポジトリでないと、エラーを 1 行出して 2 で終わる', async () => {
     const root = await mkdtemp(path.join(tmpdir(), 'interface-spec-nogit-'))
     const fixture = path.join(PROJECT, 'tests', 'fixtures', 'valid')
-    try {
-      await cp(fixture, root, { recursive: true })
-      expect(await call('validate', '--root', root)).toEqual({
-        code: 2,
-        stdout: '',
-        stderr: `error: ${root}: git ls-files failed (is it a git repository?)\n`,
-      })
-    }
-    finally {
-      await rm(root, { recursive: true, force: true })
-    }
+    await step('git でない root を検証し、出力を比べる', async () => {
+      try {
+        await cp(fixture, root, { recursive: true })
+        expect(await call('validate', '--root', root)).toEqual({
+          code: 2,
+          stdout: '',
+          stderr: `error: ${root}: git ls-files failed (is it a git repository?)\n`,
+        })
+      }
+      finally {
+        await rm(root, { recursive: true, force: true })
+      }
+    })
   })
 
   it('想定外の読み取りエラーのとき、エラーを 1 行出して 2 で終わる', async () => {
     const root = await materialize('valid')
     const authored = path.join(root, 'plugins/pecot-workflow/interface/authored.yaml')
-    await rm(authored)
-    await mkdir(authored)
-    expect(await call('validate', '--root', root)).toEqual({ code: 2, stdout: '', stderr: `error: ${authored}: EISDIR\n` })
+    await step('authored.yaml をディレクトリに置き換える', async () => {
+      await rm(authored)
+      await mkdir(authored)
+    })
+    await step('検証を動かし、出力を比べる', async () => {
+      expect(await call('validate', '--root', root)).toEqual({ code: 2, stdout: '', stderr: `error: ${authored}: EISDIR\n` })
+    })
   })
 
   it.each([
@@ -95,26 +108,32 @@ describe('validate', () => {
     [['validate', '--root', 'a', 'b']],
     [['field-map', 'x']],
   ])('%j を渡すと、使い方を出して 2 で終わる', async (argv) => {
-    expect(await call(...argv)).toEqual({ code: 2, stdout: '', stderr: 'usage: interface-spec validate [--root <dir>]\n       interface-spec links [--root <dir>]\n       interface-spec commands-md (--check | --write) [--root <dir>]\n       interface-spec field-map\n' })
+    await step('使い方を出すコマンドを動かし、出力を比べる', async () => {
+      expect(await call(...argv)).toEqual({ code: 2, stdout: '', stderr: 'usage: interface-spec validate [--root <dir>]\n       interface-spec links [--root <dir>]\n       interface-spec commands-md (--check | --write) [--root <dir>]\n       interface-spec field-map\n' })
+    })
   })
 })
 
 describe('field-map', () => {
   it('欄の対応の 2 つの表を JSON で標準出力に出し、0 で終わる', async () => {
-    const result = await call('field-map')
-    expect(result.code).toBe(0)
-    expect(result.stderr).toBe('')
-    expect(JSON.parse(result.stdout)).toEqual({ posix: POSIX_MAP, borrowed: BORROWED_MAP })
+    const result = await step('field-map を動かす', () => call('field-map'))
+    stepSync('結果を比べる', () => {
+      expect(result.code).toBe(0)
+      expect(result.stderr).toBe('')
+      expect(JSON.parse(result.stdout)).toEqual({ posix: POSIX_MAP, borrowed: BORROWED_MAP })
+    })
   })
 })
 
 describe('the command line', () => {
   it('lint-defs と同じく tsx から呼ぶと、欠けた欄を 1 行出して終了コード 1 で終わる', async () => {
     const root = await materialize('field-missing')
-    const failure = await failureOf(exec('pnpm', ['exec', 'tsx', 'src/cli.ts', 'validate', '--root', root], { cwd: PROJECT, env: CHILD_ENV }))
-    expect(failure).toMatchObject({
-      code: 1,
-      stderr: 'error: plugins/pecot-workflow/interface/authored.yaml: PW-ISSUE-CREATE: on_error: field is missing (write "default" if nothing remains)\n',
+    const failure = await step('tsx から検証を動かす', () => failureOf(exec('pnpm', ['exec', 'tsx', 'src/cli.ts', 'validate', '--root', root], { cwd: PROJECT, env: CHILD_ENV })))
+    stepSync('出力を比べる', () => {
+      expect(failure).toMatchObject({
+        code: 1,
+        stderr: 'error: plugins/pecot-workflow/interface/authored.yaml: PW-ISSUE-CREATE: on_error: field is missing (write "default" if nothing remains)\n',
+      })
     })
   })
 })

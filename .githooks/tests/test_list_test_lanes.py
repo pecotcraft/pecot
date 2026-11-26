@@ -17,6 +17,7 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
+import allure
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -148,104 +149,124 @@ def _parse(stdout: str, lint: str = "run") -> tuple[list[dict], str]:
 
 
 def test_affected_mode_keeps_only_lane_tasks(env: _Env) -> None:
-    env.set_tasks("q:test-hooks", "p:install", "p:test-cli", "p:build-cli", "q:build")
-    r = env.run()
-    assert r.returncode == 0, r.stderr
-    lanes, count = _parse(r.stdout)
-    assert lanes == [
-        {"lane": "p:test-cli", "slug": "p-test-cli"},
-        {"lane": "q:test-hooks", "slug": "q-test-hooks"},
-    ]
-    assert count == "2"
+    with allure.step("nx のタスクを用意してレーン一覧を作る"):
+        env.set_tasks("q:test-hooks", "p:install", "p:test-cli", "p:build-cli", "q:build")
+        r = env.run()
+    with allure.step("終了コードとレーンの一覧と件数を確かめる"):
+        assert r.returncode == 0, r.stderr
+        lanes, count = _parse(r.stdout)
+        assert lanes == [
+            {"lane": "p:test-cli", "slug": "p-test-cli"},
+            {"lane": "q:test-hooks", "slug": "q-test-hooks"},
+        ]
+        assert count == "2"
 
 
 def test_affected_mode_passes_base_head_and_lane_names(env: _Env) -> None:
-    env.set_tasks("p:test-unit")
-    assert env.run().returncode == 0
-    affected = [c for c in env.calls() if c.startswith("affected ")]
-    assert len(affected) == 1
-    assert (
-        f"-t test-cli,test-hooks,test-unit --base={env.head} --head={env.head} --graph="
-        in affected[0]
-    )
-    assert not any(c.startswith("run-many") for c in env.calls())
-    # 起点の test と依存の target は -t に入らない。
-    assert "install" not in affected[0] and "build" not in affected[0]
-    log = read_output(env.log)
-    assert "NO_COLOR=1 LEGACY=unset" in log
+    with allure.step("レーン一覧を作る"):
+        env.set_tasks("p:test-unit")
+    with allure.step("affected の呼び出しの base・head・レーン名と環境変数を確かめる"):
+        assert env.run().returncode == 0
+        affected = [c for c in env.calls() if c.startswith("affected ")]
+        assert len(affected) == 1
+        assert (
+            f"-t test-cli,test-hooks,test-unit --base={env.head} --head={env.head} --graph="
+            in affected[0]
+        )
+        assert not any(c.startswith("run-many") for c in env.calls())
+        # 起点の test と依存の target は -t に入らない。
+        assert "install" not in affected[0] and "build" not in affected[0]
+        log = read_output(env.log)
+        assert "NO_COLOR=1 LEGACY=unset" in log
 
 
 def test_no_prev_uses_run_many(env: _Env) -> None:
-    env.set_tasks("p:test-unit", "q:test-hooks")
-    r = env.run(NO_PREV="true")
-    assert r.returncode == 0, r.stderr
-    assert any(
-        c.startswith("run-many -t test-cli,test-hooks,test-unit --graph=") for c in env.calls()
-    )
-    assert not any(c.startswith("affected") for c in env.calls())
-    assert _parse(r.stdout)[1] == "2"
+    with allure.step("前の結果なしの指定でレーン一覧を作る"):
+        env.set_tasks("p:test-unit", "q:test-hooks")
+        r = env.run(NO_PREV="true")
+    with allure.step("run-many を使い affected を使わないことを確かめる"):
+        assert r.returncode == 0, r.stderr
+        assert any(
+            c.startswith("run-many -t test-cli,test-hooks,test-unit --graph=") for c in env.calls()
+        )
+        assert not any(c.startswith("affected") for c in env.calls())
+        assert _parse(r.stdout)[1] == "2"
 
 
 def test_missing_base_uses_run_many(env: _Env) -> None:
-    env.set_tasks("p:test-unit")
-    r = env.run(base="0" * 40)
-    assert r.returncode == 0, r.stderr
-    assert any(c.startswith("run-many ") for c in env.calls())
-    assert not any(c.startswith("affected") for c in env.calls())
+    with allure.step("存在しない base でレーン一覧を作る"):
+        env.set_tasks("p:test-unit")
+        r = env.run(base="0" * 40)
+    with allure.step("run-many を使い affected を使わないことを確かめる"):
+        assert r.returncode == 0, r.stderr
+        assert any(c.startswith("run-many ") for c in env.calls())
+        assert not any(c.startswith("affected") for c in env.calls())
 
 
 def test_slug_collision_fails_closed(env: _Env) -> None:
     """a:test-b-test-c と a-test-b:test-c は slug が同じになるため、ERROR で非 0 にする。"""
-    graph = {
-        "graph": {
-            "nodes": {
-                "a": {"data": {"targets": {"test-b-test-c": {}}}},
-                "a-test-b": {"data": {"targets": {"test-c": {}}}},
+    with allure.step("slug が同じになるレーンの graph を用意して動かす"):
+        graph = {
+            "graph": {
+                "nodes": {
+                    "a": {"data": {"targets": {"test-b-test-c": {}}}},
+                    "a-test-b": {"data": {"targets": {"test-c": {}}}},
+                }
             }
         }
-    }
-    env.project_graph.write_text(json.dumps(graph))
-    env.set_tasks("a:test-b-test-c", "a-test-b:test-c")
-    r = env.run()
-    assert r.returncode != 0
-    assert "ERROR" in r.stderr
-    assert "a-test-b-test-c" in r.stderr
-    assert r.stdout == ""
+        env.project_graph.write_text(json.dumps(graph))
+        env.set_tasks("a:test-b-test-c", "a-test-b:test-c")
+        r = env.run()
+    with allure.step("非 0 の終了と ERROR の出力を確かめる"):
+        assert r.returncode != 0
+        assert "ERROR" in r.stderr
+        assert "a-test-b-test-c" in r.stderr
+        assert r.stdout == ""
 
 
 def test_zero_lanes(env: _Env) -> None:
-    env.set_tasks("p:install", "p:build-cli")
-    r = env.run()
-    assert r.returncode == 0, r.stderr
-    assert r.stdout == "lanes=[]\ncount=0\nlint=run\n"
+    with allure.step("レーンの無いタスクだけで動かす"):
+        env.set_tasks("p:install", "p:build-cli")
+        r = env.run()
+    with allure.step("終了コードとレーンが空の出力を確かめる"):
+        assert r.returncode == 0, r.stderr
+        assert r.stdout == "lanes=[]\ncount=0\nlint=run\n"
 
 
 def test_graph_failure_fails_closed(env: _Env) -> None:
-    r = env.run(STUB_GRAPH_FAIL="1")
-    assert r.returncode != 0
-    assert "ERROR" in r.stderr
-    assert r.stdout == ""
+    with allure.step("nx graph が失敗する状態で動かす"):
+        r = env.run(STUB_GRAPH_FAIL="1")
+    with allure.step("非 0 の終了と ERROR の出力を確かめる"):
+        assert r.returncode != 0
+        assert "ERROR" in r.stderr
+        assert r.stdout == ""
 
 
 def test_task_graph_failure_fails_closed(env: _Env) -> None:
-    r = env.run(STUB_TASKS_FAIL="1")
-    assert r.returncode != 0
-    assert "ERROR" in r.stderr
-    assert r.stdout == ""
+    with allure.step("タスクグラフの取得が失敗する状態で動かす"):
+        r = env.run(STUB_TASKS_FAIL="1")
+    with allure.step("非 0 の終了と ERROR の出力を確かめる"):
+        assert r.returncode != 0
+        assert "ERROR" in r.stderr
+        assert r.stdout == ""
 
 
 def test_broken_task_graph_fails_closed(env: _Env) -> None:
-    r = env.run(STUB_TASKS_BROKEN="1")
-    assert r.returncode != 0
-    assert "ERROR" in r.stderr
-    assert r.stdout == ""
+    with allure.step("読めないタスクグラフを返す状態で動かす"):
+        r = env.run(STUB_TASKS_BROKEN="1")
+    with allure.step("非 0 の終了と ERROR の出力を確かめる"):
+        assert r.returncode != 0
+        assert "ERROR" in r.stderr
+        assert r.stdout == ""
 
 
 def test_temp_dir_is_removed(env: _Env) -> None:
-    env.set_tasks("p:test-unit")
-    assert env.run().returncode == 0
-    tmp = env.repo / ".pecot" / "tmp"
-    assert not list(tmp.glob("list-test-lanes.*"))
+    with allure.step("レーン一覧を作る"):
+        env.set_tasks("p:test-unit")
+    with allure.step("一時ディレクトリが残っていないことを確かめる"):
+        assert env.run().returncode == 0
+        tmp = env.repo / ".pecot" / "tmp"
+        assert not list(tmp.glob("list-test-lanes.*"))
 
 
 def _stack_opts(pr_main: str, queue_base: str) -> list[str]:
@@ -257,20 +278,22 @@ def _affected(env: _Env) -> list[str]:
 
 
 def test_stack_same_main_calls_nx_once_and_skips_lint(env: _Env) -> None:
-    m0 = env.head
-    head = env.new_commit("a")
-    env.set_tasks("p:test-cli", "q:test-hooks")
-    r = env.run(base=m0, opts=_stack_opts(m0, m0), head=head)
-    assert r.returncode == 0, r.stderr
-    lanes, count = _parse(r.stdout, lint="skip")
-    assert [x["lane"] for x in lanes] == []
-    assert count == "0"
-    calls = _affected(env)
-    assert len(calls) == 1
-    assert f"--base={m0} --head={head}" in calls[0]
-    assert "PR の変更のレーン: p:test-cli,q:test-hooks" in r.stderr
-    assert "main の変更のレーン: なし" in r.stderr
-    assert "積: なし" in r.stderr
+    with allure.step("積の base が PR と同じ main の状態で動かす"):
+        m0 = env.head
+        head = env.new_commit("a")
+        env.set_tasks("p:test-cli", "q:test-hooks")
+        r = env.run(base=m0, opts=_stack_opts(m0, m0), head=head)
+    with allure.step("レーンが空で nx を 1 回だけ呼び、lint を飛ばすことを確かめる"):
+        assert r.returncode == 0, r.stderr
+        lanes, count = _parse(r.stdout, lint="skip")
+        assert [x["lane"] for x in lanes] == []
+        assert count == "0"
+        calls = _affected(env)
+        assert len(calls) == 1
+        assert f"--base={m0} --head={head}" in calls[0]
+        assert "PR の変更のレーン: p:test-cli,q:test-hooks" in r.stderr
+        assert "main の変更のレーン: なし" in r.stderr
+        assert "積: なし" in r.stderr
 
 
 def _stack_run(env: _Env, m0: str, qbase: str, head: str, **extra: str):
@@ -278,65 +301,75 @@ def _stack_run(env: _Env, m0: str, qbase: str, head: str, **extra: str):
 
 
 def test_stack_overlap_remains(env: _Env) -> None:
-    m0 = env.head
-    qbase = env.new_commit("m")
-    head = env.new_commit("a")
-    env.set_tasks_for_base(qbase, "p:test-cli", "q:test-hooks")
-    env.set_tasks_for_base(m0, "q:test-hooks", "p:test-unit")
-    r = _stack_run(env, m0, qbase, head)
-    assert r.returncode == 0, r.stderr
-    lanes, count = _parse(r.stdout, lint="run")
-    assert lanes == [{"lane": "q:test-hooks", "slug": "q-test-hooks"}]
-    assert count == "1"
-    calls = _affected(env)
-    assert len(calls) == 2
-    assert f"--base={qbase} --head={head}" in calls[0]
-    assert f"--base={m0} --head={qbase}" in calls[1]
-    assert "積: q:test-hooks" in r.stderr
+    with allure.step("main に重なるレーンのある積の状態で動かす"):
+        m0 = env.head
+        qbase = env.new_commit("m")
+        head = env.new_commit("a")
+        env.set_tasks_for_base(qbase, "p:test-cli", "q:test-hooks")
+        env.set_tasks_for_base(m0, "q:test-hooks", "p:test-unit")
+        r = _stack_run(env, m0, qbase, head)
+    with allure.step("重なるレーンだけが残り、nx を 2 回呼ぶことを確かめる"):
+        assert r.returncode == 0, r.stderr
+        lanes, count = _parse(r.stdout, lint="run")
+        assert lanes == [{"lane": "q:test-hooks", "slug": "q-test-hooks"}]
+        assert count == "1"
+        calls = _affected(env)
+        assert len(calls) == 2
+        assert f"--base={qbase} --head={head}" in calls[0]
+        assert f"--base={m0} --head={qbase}" in calls[1]
+        assert "積: q:test-hooks" in r.stderr
 
 
 def test_stack_no_overlap(env: _Env) -> None:
-    m0 = env.head
-    qbase = env.new_commit("m")
-    head = env.new_commit("a")
-    env.set_tasks_for_base(qbase, "p:test-cli")
-    env.set_tasks_for_base(m0, "q:test-hooks")
-    r = _stack_run(env, m0, qbase, head)
-    assert r.returncode == 0, r.stderr
-    assert _parse(r.stdout, lint="run") == ([], "0")
-    assert "積: なし" in r.stderr
+    with allure.step("main に重なるレーンの無い積の状態で動かす"):
+        m0 = env.head
+        qbase = env.new_commit("m")
+        head = env.new_commit("a")
+        env.set_tasks_for_base(qbase, "p:test-cli")
+        env.set_tasks_for_base(m0, "q:test-hooks")
+        r = _stack_run(env, m0, qbase, head)
+    with allure.step("レーンが空で、積が無いと出力することを確かめる"):
+        assert r.returncode == 0, r.stderr
+        assert _parse(r.stdout, lint="run") == ([], "0")
+        assert "積: なし" in r.stderr
 
 
 def test_stack_ignores_no_prev(env: _Env) -> None:
-    m0 = env.head
-    qbase = env.new_commit("m")
-    head = env.new_commit("a")
-    env.set_tasks_for_base(qbase, "q:test-hooks")
-    env.set_tasks_for_base(m0, "q:test-hooks")
-    r = _stack_run(env, m0, qbase, head, NO_PREV="true")
-    assert r.returncode == 0, r.stderr
-    assert _parse(r.stdout, lint="run")[1] == "1"
-    assert not any(c.startswith("run-many") for c in env.calls())
+    with allure.step("積の状態で前の結果なしの指定を付けて動かす"):
+        m0 = env.head
+        qbase = env.new_commit("m")
+        head = env.new_commit("a")
+        env.set_tasks_for_base(qbase, "q:test-hooks")
+        env.set_tasks_for_base(m0, "q:test-hooks")
+        r = _stack_run(env, m0, qbase, head, NO_PREV="true")
+    with allure.step("件数と run-many を使わないことを確かめる"):
+        assert r.returncode == 0, r.stderr
+        assert _parse(r.stdout, lint="run")[1] == "1"
+        assert not any(c.startswith("run-many") for c in env.calls())
 
 
 @pytest.mark.parametrize("opt", ["--pr-main", "--queue-base"])
 def test_stack_single_option_is_usage_error(env: _Env, opt: str) -> None:
-    r = env.run(opts=[f"{opt}={env.head}"])
-    assert r.returncode == 2
-    assert "使い方" in r.stderr
-    assert r.stdout == ""
-    assert env.calls() == []
+    with allure.step("積の指定を片方だけ付けて動かす"):
+        r = env.run(opts=[f"{opt}={env.head}"])
+    with allure.step("使い方のエラーを確かめる"):
+        assert r.returncode == 2
+        assert "使い方" in r.stderr
+        assert r.stdout == ""
+        assert env.calls() == []
 
 
 @pytest.mark.parametrize("bad", ["pr_main", "queue_base"])
 def test_stack_unreadable_sha_falls_back_to_normal(env: _Env, bad: str) -> None:
-    env.set_tasks("p:test-unit")
-    good = env.head
-    pr_main = "0" * 40 if bad == "pr_main" else good
-    queue_base = "0" * 40 if bad == "queue_base" else good
-    r = env.run(opts=_stack_opts(pr_main, queue_base))
-    assert r.returncode == 0, r.stderr
-    assert "WARN" in r.stderr
-    assert _parse(r.stdout, lint="run")[1] == "1"
-    assert len(_affected(env)) == 1
-    assert f"--base={good} --head={good}" in _affected(env)[0]
+    with allure.step("読めない SHA を積の指定に渡して動かす"):
+        env.set_tasks("p:test-unit")
+        good = env.head
+        pr_main = "0" * 40 if bad == "pr_main" else good
+        queue_base = "0" * 40 if bad == "queue_base" else good
+        r = env.run(opts=_stack_opts(pr_main, queue_base))
+    with allure.step("警告を出して通常の動きに戻ることを確かめる"):
+        assert r.returncode == 0, r.stderr
+        assert "WARN" in r.stderr
+        assert _parse(r.stdout, lint="run")[1] == "1"
+        assert len(_affected(env)) == 1
+        assert f"--base={good} --head={good}" in _affected(env)[0]

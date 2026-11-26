@@ -11,6 +11,7 @@ import { chromium } from 'playwright'
 import type { Browser } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { attachContent } from '../../src/vitest/attach.js'
+import { step, stepSync } from '../../src/vitest/step.js'
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '../../../..')
 const GENERATE = path.join(REPO_ROOT, '.githooks/scripts/test_report/generate.py')
@@ -144,15 +145,29 @@ afterAll(async () => {
 
 describe('テストレポートの tag の絞り込み', () => {
   it.for(TAGGED)('URL の tags に $id を渡して開くと、一覧に $id の tag を持つテストだけを出す', async ({ id, name }) => {
-    const tab = await report().browser.newPage({ viewport: { width: 1280, height: 720 } })
-    await tab.goto(`${report().origin}/index.html?tags=${encodeURIComponent(id)}`)
-    await tab.getByTestId('tree-section').first().waitFor()
-    // 木は 1 段目だけを開いて出る。すべて開いてから、葉のテストの名前を読む。
-    await tab.getByTestId('collapse-all-button').click()
-    await tab.getByTestId('tree-leaf-title').first().waitFor()
-    const titles = await tab.getByTestId('tree-leaf-title').allTextContents()
-    await attachContent(`tags=${id} の一覧`, await tab.screenshot({ fullPage: true, animations: 'disabled' }), '.png')
-    await tab.close()
-    expect(titles).toEqual([name])
+    const tab = await step('タブを開く', () => report().browser.newPage({ viewport: { width: 1280, height: 720 } }))
+    await step('レポートを開く', async () => {
+      await tab.goto(`${report().origin}/index.html?tags=${encodeURIComponent(id)}`)
+    })
+    await step('一覧の表示を待つ', async () => {
+      await tab.getByTestId('tree-section').first().waitFor()
+    })
+    await step('全体を折りたたむ', async () => {
+      // 木は 1 段目だけを開いて出る。すべて開いてから、葉のテストの名前を読む。
+      await tab.getByTestId('collapse-all-button').click()
+    })
+    await step('テストの題の表示を待つ', async () => {
+      await tab.getByTestId('tree-leaf-title').first().waitFor()
+    })
+    const titles = await step('題を集める', () => tab.getByTestId('tree-leaf-title').allTextContents())
+    await step('画面を添付する', async () => {
+      await attachContent(`tags=${id} の一覧`, await tab.screenshot({ fullPage: true, animations: 'disabled' }), '.png')
+    })
+    await step('タブを閉じる', async () => {
+      await tab.close()
+    })
+    stepSync('題を比べる', () => {
+      expect(titles).toEqual([name])
+    })
   })
 })

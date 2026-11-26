@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { documentOf } from '../lib/plugins/inline-spans.js'
 import strings, { stringParagraphs } from '../lib/plugins/strings.js'
 import { at, lint, lintAll, sentence } from './helpers/strings.js'
+import { step, stepSync } from '../../interface-spec/src/vitest/step.js'
 
 const template = (body: string): string => `<template>\n${body}\n</template>\n`
 const script = (body: string, attributes = ''): string => `<template><div></div></template>\n<script${attributes}>\n${body}\n</script>\n`
@@ -27,7 +28,9 @@ describe('strings plugin: .vue の template', () => {
     ['閉じていない補間の開始は本文として読む', template(`  <p>{{ ${sentence}</p>`), at(2, 9)],
     ['閉じていない template', `<template>\n  <p>${sentence}</p>\n`, at(2, 6)],
   ])('%s の違反を元ファイルの行と列で返す', async (_name, text, hit) => {
-    expect(await lint(text, '.vue')).toEqual([hit])
+    await step('Vue の文言を規則にかけ、指摘の位置を比べる', async () => {
+      expect(await lint(text, '.vue')).toEqual([hit])
+    })
   })
 
   it('入れ子の template の後ろの要素と、template の後ろの script まで読む', async () => {
@@ -43,30 +46,44 @@ describe('strings plugin: .vue の template', () => {
       '</script>',
       '',
     ].join('\n')
-    expect(await lint(text, '.vue')).toEqual([at(3, 8), at(5, 6), at(8, 12)])
+    await step('Vue の文言を規則にかけ、指摘の位置を比べる', async () => {
+      expect(await lint(text, '.vue')).toEqual([at(3, 8), at(5, 6), at(8, 12)])
+    })
   })
 
   it('補間で分けたテキストは、それぞれ別の Paragraph にする', async () => {
-    const paragraphs = await stringParagraphs(template('  <p>あ{{ n }}い<b>う</b></p>'), '.vue')
-    expect(paragraphs.map(paragraph => paragraph.raw)).toEqual(['あ', 'い', 'う'])
+    const paragraphs = await step('文字列を段落に分ける', () => stringParagraphs(template('  <p>あ{{ n }}い<b>う</b></p>'), '.vue'))
+    stepSync('段落の文字列を比べる', () => {
+      expect(paragraphs.map(paragraph => paragraph.raw)).toEqual(['あ', 'い', 'う'])
+    })
   })
 
   it('テキスト以外の違反の無い文言と、日本語を含まない template は数えない', async () => {
-    expect(await lintAll(template('  <div title="今日は晴れです。">今日は晴れです。</div>'), '.vue')).toEqual([])
-    expect(await stringParagraphs(template('  <div title="a" :b="\'c\'">{{ d }} e</div>'), '.vue')).toEqual([])
+    await step('日本語を含まない template を規則にかけ、指摘が無いかを比べる', async () => {
+      expect(await lintAll(template('  <div title="今日は晴れです。">今日は晴れです。</div>'), '.vue')).toEqual([])
+      expect(await stringParagraphs(template('  <div title="a" :b="\'c\'">{{ d }} e</div>'), '.vue')).toEqual([])
+    })
   })
 
   it('タグの名前が続かない < は本文の文字として読む', async () => {
-    expect(await lint(template(`  <p>1 < 2 ${sentence}</p>`), '.vue')).toEqual([at(2, 12)])
+    await step('Vue の文言を規則にかけ、指摘の位置を比べる', async () => {
+      expect(await lint(template(`  <p>1 < 2 ${sentence}</p>`), '.vue')).toEqual([at(2, 12)])
+    })
   })
 
   it('lang が html でない template は読まない', async () => {
-    expect(await lint(`<template lang="pug">\np ${sentence}\n</template>\n`, '.vue')).toEqual([])
-    expect(await lint(`<template lang="html">\n${sentence}\n</template>\n`, '.vue')).toEqual([at(2, 1)])
+    await step('pug の template を規則にかけ、指摘が無いかを比べる', async () => {
+      expect(await lint(`<template lang="pug">\np ${sentence}\n</template>\n`, '.vue')).toEqual([])
+    })
+    await step('html の template を規則にかけ、指摘の位置を比べる', async () => {
+      expect(await lint(`<template lang="html">\n${sentence}\n</template>\n`, '.vue')).toEqual([at(2, 1)])
+    })
   })
 
   it('template の中の script と style は、中身を HTML として読まない', async () => {
-    expect(await lint(template(`<script>const x = '${sentence}'</script><style>/* ${sentence} */</style>`), '.vue')).toEqual([])
+    await step('Vue の文言を規則にかけ、指摘の位置を比べる', async () => {
+      expect(await lint(template(`<script>const x = '${sentence}'</script><style>/* ${sentence} */</style>`), '.vue')).toEqual([])
+    })
   })
 })
 
@@ -80,59 +97,85 @@ describe('strings plugin: .vue の script', () => {
     ['lang="jsx"', script(`const a = <div title="${sentence}" />`, ' lang="jsx"'), at(3, 23)],
     ['閉じていない script', `<script>\nconst a = '${sentence}'\n`, at(2, 12)],
   ])('%s の違反を元ファイルの行と列で返す', async (_name, text, hit) => {
-    expect(await lint(text, '.vue')).toEqual([hit])
+    await step('Vue の文言を規則にかけ、指摘の位置を比べる', async () => {
+      expect(await lint(text, '.vue')).toEqual([hit])
+    })
   })
 
   it('script と script setup の両方を読む', async () => {
     const text = `<script>\nconst a = '${sentence}'\n</script>\n<script setup lang="ts">\nconst b: string = '${sentence}'\n</script>\n`
-    expect(await lint(text, '.vue')).toEqual([at(2, 12), at(5, 20)])
+    await step('Vue の文言を規則にかけ、指摘の位置を比べる', async () => {
+      expect(await lint(text, '.vue')).toEqual([at(2, 12), at(5, 20)])
+    })
   })
 
   it('script のコメントを 1 件だけ返す（strings と comments の二重に数えない）', async () => {
-    expect(await lintAll(script(`// ${sentence}`), '.vue')).toHaveLength(1)
+    await step('script のコメントを規則にかけ、指摘の件数を比べる', async () => {
+      expect(await lintAll(script(`// ${sentence}`), '.vue')).toHaveLength(1)
+    })
   })
 })
 
 describe('strings plugin: .vue の style とその他', () => {
   it('style の /* */ コメントの違反を返す', async () => {
-    expect(await lint(style(`/* ${sentence} */\n.a { color: red; }`), '.vue')).toEqual([at(3, 4)])
+    await step('style のコメントを規則にかけ、指摘の位置を比べる', async () => {
+      expect(await lint(style(`/* ${sentence} */\n.a { color: red; }`), '.vue')).toEqual([at(3, 4)])
+    })
   })
 
   it('閉じていないコメントは style の末尾までを読む', async () => {
-    expect(await lint(style(`.a { color: red; }\n/* ${sentence}`), '.vue')).toEqual([at(4, 4)])
+    await step('閉じていないコメントを規則にかけ、指摘の位置を比べる', async () => {
+      expect(await lint(style(`.a { color: red; }\n/* ${sentence}`), '.vue')).toEqual([at(4, 4)])
+    })
   })
 
   it('複数行コメントの行頭の * を Str に含めず、続きの行を同じ Paragraph にする', async () => {
-    const [paragraph] = await stringParagraphs(style('/**\n * あ\n * い\n */'), '.vue')
-    expect(paragraph?.children.map(child => [child.type, child.raw])).toEqual([['Str', 'あ'], ['Break', '\n * '], ['Str', 'い']])
-    expect(await lint(style(`/**\n * ${sentence}\n */`), '.vue')).toEqual([at(4, 4)])
+    const [paragraph] = await step('文字列を段落に分ける', () => stringParagraphs(style('/**\n * あ\n * い\n */'), '.vue'))
+    stepSync('子ノードを比べる', () => {
+      expect(paragraph?.children.map(child => [child.type, child.raw])).toEqual([['Str', 'あ'], ['Break', '\n * '], ['Str', 'い']])
+    })
+    await step('コメントを規則にかけ、指摘の位置を比べる', async () => {
+      expect(await lint(style(`/**\n * ${sentence}\n */`), '.vue')).toEqual([at(4, 4)])
+    })
   })
 
   it('style の文字列と、// は読まない', async () => {
-    expect(await lint(style(`.a::after { content: "${sentence}"; } // ${sentence}`), '.vue')).toEqual([])
+    await step('style の文字列を規則にかけ、指摘が無いかを比べる', async () => {
+      expect(await lint(style(`.a::after { content: "${sentence}"; } // ${sentence}`), '.vue')).toEqual([])
+    })
   })
 
   it('ブロックの外のタグでない < と終了タグを読み飛ばして、後ろの script を読む', async () => {
-    expect(await lint(`1 < 2 </div>\n<br/>\n<script>\nconst a = '${sentence}'\n</script>\n`, '.vue')).toEqual([at(4, 12)])
+    await step('Vue の文言を規則にかけ、指摘の位置を比べる', async () => {
+      expect(await lint(`1 < 2 </div>\n<br/>\n<script>\nconst a = '${sentence}'\n</script>\n`, '.vue')).toEqual([at(4, 12)])
+    })
   })
 
   it('カスタムブロックと、ブロックの外のコメントは読まない', async () => {
-    expect(await lint(`<!-- ${sentence} -->\n<i18n>\n{"a": "${sentence}"}\n</i18n>\n`, '.vue')).toEqual([])
+    await step('カスタムブロックを規則にかけ、指摘が無いかを比べる', async () => {
+      expect(await lint(`<!-- ${sentence} -->\n<i18n>\n{"a": "${sentence}"}\n</i18n>\n`, '.vue')).toEqual([])
+    })
   })
 
   it('空のファイルと、BOM 付きのファイル', async () => {
-    expect(await stringParagraphs('', '.vue')).toEqual([])
-    expect(await lint(`\u{FEFF}${template(`  <p>${sentence}</p>`)}`, '.vue')).toEqual([at(2, 6)])
+    await step('空のファイルを段落に分け、空かを比べる', async () => {
+      expect(await stringParagraphs('', '.vue')).toEqual([])
+    })
+    await step('BOM 付きのファイルを規則にかけ、指摘の位置を比べる', async () => {
+      expect(await lint(`\u{FEFF}${template(`  <p>${sentence}</p>`)}`, '.vue')).toEqual([at(2, 6)])
+    })
   })
 })
 
 describe('Processor: .vue', () => {
   it('script のコメントと template と script の文字列を range の順に並べた Document を返す', async () => {
     const text = `<template><p>${sentence}</p></template>\n<script>\n// ${sentence}\nconst a = '${sentence}'\n</script>\n`
-    const result = documentOf(await new strings.Processor().processor('.vue').preProcess(text))
-    expect(result.type).toBe('Document')
-    expect(result.range).toEqual([0, text.length])
-    expect(result.children.map(child => child.loc.start.line)).toEqual([1, 3, 4])
-    expect(result.children.some(child => 'parent' in child)).toBe(false)
+    const result = await step('Document を作る', async () => documentOf(await new strings.Processor().processor('.vue').preProcess(text)))
+    stepSync('Document の形を比べる', () => {
+      expect(result.type).toBe('Document')
+      expect(result.range).toEqual([0, text.length])
+      expect(result.children.map(child => child.loc.start.line)).toEqual([1, 3, 4])
+      expect(result.children.some(child => 'parent' in child)).toBe(false)
+    })
   })
 })

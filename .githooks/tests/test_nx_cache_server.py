@@ -20,6 +20,7 @@ import urllib.request
 from collections.abc import Iterator
 from pathlib import Path
 
+import allure
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -84,125 +85,152 @@ def server(tmp_path: Path) -> Iterator[_Server]:
 
 
 def test_get_miss_is_404(server: _Server) -> None:
-    assert server.request("GET", "/v1/cache/abc123")[0] == 404
+    with allure.step("存在しないキーの取得が 404 になることを確かめる"):
+        assert server.request("GET", "/v1/cache/abc123")[0] == 404
 
 
 def test_put_then_get_returns_stored_bytes(server: _Server) -> None:
-    assert server.request("PUT", "/v1/cache/abc123", b"tarball")[0] == 200
-    status, body = server.request("GET", "/v1/cache/abc123")
-    assert (status, body) == (200, b"tarball")
-    assert (server.dir / "abc123.tar.gz").read_bytes() == b"tarball"
-    assert [p.name for p in server.dir.iterdir()] == ["abc123.tar.gz"]
+    with allure.step("保存して取得し、保存したバイト列を確かめる"):
+        assert server.request("PUT", "/v1/cache/abc123", b"tarball")[0] == 200
+        status, body = server.request("GET", "/v1/cache/abc123")
+        assert (status, body) == (200, b"tarball")
+        assert (server.dir / "abc123.tar.gz").read_bytes() == b"tarball"
+        assert [p.name for p in server.dir.iterdir()] == ["abc123.tar.gz"]
 
 
 def test_put_existing_is_409_and_keeps_content(server: _Server) -> None:
-    server.request("PUT", "/v1/cache/abc123", b"first")
-    assert server.request("PUT", "/v1/cache/abc123", b"second")[0] == 409
-    assert server.request("GET", "/v1/cache/abc123")[1] == b"first"
+    with allure.step("先に 1 回保存する"):
+        server.request("PUT", "/v1/cache/abc123", b"first")
+    with allure.step("2 回目の保存が 409 で、中身が最初のままであることを確かめる"):
+        assert server.request("PUT", "/v1/cache/abc123", b"second")[0] == 409
+        assert server.request("GET", "/v1/cache/abc123")[1] == b"first"
 
 
 @pytest.mark.parametrize("token", [None, "wrong"])
 def test_bad_token_is_401(server: _Server, token: str | None) -> None:
-    assert server.request("GET", "/v1/cache/abc123", token=token)[0] == 401
-    assert server.request("PUT", "/v1/cache/abc123", b"x", token=token)[0] == 401
-    assert not list(server.dir.iterdir())
+    with allure.step("不正なトークンでの取得と保存が 401 になり、何も保存されないことを確かめる"):
+        assert server.request("GET", "/v1/cache/abc123", token=token)[0] == 401
+        assert server.request("PUT", "/v1/cache/abc123", b"x", token=token)[0] == 401
+        assert not list(server.dir.iterdir())
 
 
 @pytest.mark.parametrize("bad", ["a.b", "..", "a%2Fb", "a-b"])
 def test_non_alphanumeric_hash_is_400(server: _Server, bad: str) -> None:
-    assert server.request("GET", f"/v1/cache/{bad}")[0] == 400
-    assert server.request("PUT", f"/v1/cache/{bad}", b"x")[0] == 400
-    assert not list(server.dir.iterdir())
+    with allure.step(
+        "英数字でないハッシュの取得と保存が 400 になり、何も保存されないことを確かめる"
+    ):
+        assert server.request("GET", f"/v1/cache/{bad}")[0] == 400
+        assert server.request("PUT", f"/v1/cache/{bad}", b"x")[0] == 400
+        assert not list(server.dir.iterdir())
 
 
 def test_summary_line_on_sigterm(server: _Server) -> None:
-    server.request("PUT", "/v1/cache/abc123", b"x")
-    server.request("GET", "/v1/cache/abc123")
-    server.request("GET", "/v1/cache/zzz")
-    assert "GET hit=1 miss=1 PUT=1 conflict=0 保存=1" in server.stop()
+    with allure.step("保存と取得を何回か行う"):
+        server.request("PUT", "/v1/cache/abc123", b"x")
+        server.request("GET", "/v1/cache/abc123")
+        server.request("GET", "/v1/cache/zzz")
+    with allure.step("SIGTERM で止めたときの集計の行を確かめる"):
+        assert "GET hit=1 miss=1 PUT=1 conflict=0 保存=1" in server.stop()
 
 
 def test_other_methods_are_405(server: _Server) -> None:
-    for method in ("POST", "DELETE"):
-        assert (
-            server.request(method, "/v1/cache/abc123", b"x" if method == "POST" else None)[0] == 405
-        )
-    assert not list(server.dir.iterdir())
+    with allure.step("POST と DELETE が 405 になり、何も保存されないことを確かめる"):
+        for method in ("POST", "DELETE"):
+            assert (
+                server.request(method, "/v1/cache/abc123", b"x" if method == "POST" else None)[0]
+                == 405
+            )
+        assert not list(server.dir.iterdir())
 
 
 @pytest.mark.parametrize("path", ["/", "/v1/other/abc", "/v1/cache/", "/v1/cache/a/b"])
 def test_other_paths_are_404(server: _Server, path: str) -> None:
-    assert server.request("GET", path)[0] == 404
-    assert server.request("PUT", path, b"x")[0] == 404
+    with allure.step("想定外のパスの取得と保存が 404 になることを確かめる"):
+        assert server.request("GET", path)[0] == 404
+        assert server.request("PUT", path, b"x")[0] == 404
 
 
 def test_concurrent_puts_one_wins(server: _Server) -> None:
-    codes: list[int] = []
-    body = b"x" * 1_000_000
+    with allure.step("同じキーへ 8 本のスレッドで同時に保存する"):
+        codes: list[int] = []
+        body = b"x" * 1_000_000
 
-    def put() -> None:
-        codes.append(server.request("PUT", "/v1/cache/race", body)[0])
+        def put() -> None:
+            codes.append(server.request("PUT", "/v1/cache/race", body)[0])
 
-    threads = [threading.Thread(target=put) for _ in range(8)]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
-    assert sorted(codes) == [200] + [409] * 7
-    assert [p.name for p in server.dir.iterdir()] == ["race.tar.gz"]
+        threads = [threading.Thread(target=put) for _ in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+    with allure.step("1 本だけが 200 で残りが 409 になり、ファイルが 1 つだけ残ることを確かめる"):
+        assert sorted(codes) == [200] + [409] * 7
+        assert [p.name for p in server.dir.iterdir()] == ["race.tar.gz"]
 
 
 def test_aborted_put_leaves_no_temp_file(server: _Server) -> None:
-    port = int(server.url.rsplit(":", 1)[1])
-    with socket.create_connection(("127.0.0.1", port)) as s:
-        s.sendall(
-            f"PUT /v1/cache/cut HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer {_TOKEN}\r\n"
-            "Content-Length: 100\r\n\r\nshort".encode()
-        )
-    time.sleep(1)
-    assert not list(server.dir.iterdir())
+    with allure.step("ソケットで保存を途中まで送って切る"):
+        port = int(server.url.rsplit(":", 1)[1])
+        with socket.create_connection(("127.0.0.1", port)) as s:
+            s.sendall(
+                f"PUT /v1/cache/cut HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer {_TOKEN}\r\n"
+                "Content-Length: 100\r\n\r\nshort".encode()
+            )
+        time.sleep(1)
+    with allure.step("一時ファイルが残っていないことを確かめる"):
+        assert not list(server.dir.iterdir())
 
 
 @pytest.mark.skipif(os.geteuid() == 0, reason="root は書き込み権限を無視する")
 def test_unwritable_store_is_500_not_409(server: _Server) -> None:
-    server.dir.chmod(0o500)
-    try:
-        assert server.request("PUT", "/v1/cache/abc123", b"x")[0] == 500
-    finally:
-        server.dir.chmod(0o700)
+    with allure.step("保存先を書き込み不可にする"):
+        server.dir.chmod(0o500)
+    with allure.step("保存が 409 でなく 500 になることを確かめる"):
+        try:
+            assert server.request("PUT", "/v1/cache/abc123", b"x")[0] == 500
+        finally:
+            server.dir.chmod(0o700)
 
 
 def test_used_file_lists_hits_and_puts_only(tmp_path: Path) -> None:
-    used = tmp_path / "used.txt"
-    srv = _start(tmp_path / "store", tmp_path / "port", used)
-    (srv.dir / "old1.tar.gz").write_bytes(b"o")
-    (srv.dir / "old2.tar.gz").write_bytes(b"o")
-    srv.request("GET", "/v1/cache/old1")
-    srv.request("GET", "/v1/cache/old1")
-    srv.request("GET", "/v1/cache/missing")
-    srv.request("PUT", "/v1/cache/new1", b"n")
-    srv.request("PUT", "/v1/cache/new1", b"n")
-    srv.request("PUT", "/v1/cache/old2", b"n")
-    srv.stop()
-    assert sorted(read_output(used).splitlines()) == ["new1", "old1"]
-    assert not list(tmp_path.glob("used.txt.tmp"))
+    with allure.step("取得と保存を重ねて行い、サーバを止める"):
+        used = tmp_path / "used.txt"
+        srv = _start(tmp_path / "store", tmp_path / "port", used)
+        (srv.dir / "old1.tar.gz").write_bytes(b"o")
+        (srv.dir / "old2.tar.gz").write_bytes(b"o")
+        srv.request("GET", "/v1/cache/old1")
+        srv.request("GET", "/v1/cache/old1")
+        srv.request("GET", "/v1/cache/missing")
+        srv.request("PUT", "/v1/cache/new1", b"n")
+        srv.request("PUT", "/v1/cache/new1", b"n")
+        srv.request("PUT", "/v1/cache/old2", b"n")
+        srv.stop()
+    with allure.step("使ったキーのファイルが hit と新規保存だけを並べることを確かめる"):
+        assert sorted(read_output(used).splitlines()) == ["new1", "old1"]
+        assert not list(tmp_path.glob("used.txt.tmp"))
 
 
 def test_no_used_file_without_arg(server: _Server, tmp_path: Path) -> None:
-    server.request("PUT", "/v1/cache/abc123", b"x")
-    server.stop()
-    assert not any(p.name.startswith("used") for p in tmp_path.iterdir())
+    with allure.step("引数なしで保存してサーバを止める"):
+        server.request("PUT", "/v1/cache/abc123", b"x")
+        server.stop()
+    with allure.step("使ったキーのファイルが作られないことを確かめる"):
+        assert not any(p.name.startswith("used") for p in tmp_path.iterdir())
 
 
 def test_sigterm_exits_when_store_is_gone(server: _Server) -> None:
-    shutil.rmtree(server.dir)
-    server.stop()
-    assert server.proc.returncode == 0
+    with allure.step("保存先を消してサーバを止める"):
+        shutil.rmtree(server.dir)
+        server.stop()
+    with allure.step("サーバが終了コード 0 で終わることを確かめる"):
+        assert server.proc.returncode == 0
 
 
 def test_missing_args_exit_2() -> None:
-    result = run_attached(["node", str(_SERVER)], capture_output=True, text=True, timeout=10)
-    assert result.returncode == 2
+    with allure.step("引数なしでサーバを動かす"):
+        result = run_attached(["node", str(_SERVER)], capture_output=True, text=True, timeout=10)
+    with allure.step("終了コードが 2 であることを確かめる"):
+        assert result.returncode == 2
 
 
 def test_real_nx_puts_then_replays_from_remote(tmp_path: Path, git_repo, git) -> None:
@@ -230,36 +258,37 @@ def test_real_nx_puts_then_replays_from_remote(tmp_path: Path, git_repo, git) ->
     git(repo, "commit", "-q", "-m", "chore: init")
 
     srv = _start(tmp_path / "store", tmp_path / "port")
-    try:
+    with allure.step("本物の nx で保存と再生を確かめる"):
+        try:
 
-        def run_nx(state: str) -> str:
-            env = {
-                **os.environ,
-                "NX_DAEMON": "false",
-                "NX_CACHE_DIRECTORY": str(tmp_path / state / "cache"),
-                "NX_WORKSPACE_DATA_DIRECTORY": str(tmp_path / state / "data"),
-                "NX_SELF_HOSTED_REMOTE_CACHE_SERVER": srv.url,
-                "NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN": _TOKEN,
-            }
-            env.pop("NX_SKIP_NX_CACHE", None)
-            result = run_attached(
-                [str(nx_bin), "run", "fx:test", "--outputStyle=static"],
-                cwd=repo,
-                capture_output=True,
-                text=True,
-                timeout=120,
-                env=env,
-            )
-            assert result.returncode == 0, result.stdout + result.stderr
-            return result.stdout + result.stderr
+            def run_nx(state: str) -> str:
+                env = {
+                    **os.environ,
+                    "NX_DAEMON": "false",
+                    "NX_CACHE_DIRECTORY": str(tmp_path / state / "cache"),
+                    "NX_WORKSPACE_DATA_DIRECTORY": str(tmp_path / state / "data"),
+                    "NX_SELF_HOSTED_REMOTE_CACHE_SERVER": srv.url,
+                    "NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN": _TOKEN,
+                }
+                env.pop("NX_SKIP_NX_CACHE", None)
+                result = run_attached(
+                    [str(nx_bin), "run", "fx:test", "--outputStyle=static"],
+                    cwd=repo,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                    env=env,
+                )
+                assert result.returncode == 0, result.stdout + result.stderr
+                return result.stdout + result.stderr
 
-        run_nx("first")
-        deadline = time.time() + 15
-        while time.time() < deadline and not list((tmp_path / "store").glob("*.tar.gz")):
-            time.sleep(0.2)
-        assert list((tmp_path / "store").glob("*.tar.gz")), "1 回目の結果が PUT されていない"
+            run_nx("first")
+            deadline = time.time() + 15
+            while time.time() < deadline and not list((tmp_path / "store").glob("*.tar.gz")):
+                time.sleep(0.2)
+            assert list((tmp_path / "store").glob("*.tar.gz")), "1 回目の結果が PUT されていない"
 
-        second = run_nx("second")
-        assert "remote cache" in second, second
-    finally:
-        srv.stop()
+            second = run_nx("second")
+            assert "remote cache" in second, second
+        finally:
+            srv.stop()

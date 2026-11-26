@@ -9,6 +9,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import allure
+
 # parents[0]=tests, [1]=.githooks, [2]=リポルート。
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -28,15 +30,22 @@ def _devcontainer_version() -> str:
 
 
 def test_playwright_deps_version_matches_lock() -> None:
-    locked = _lock_playwright_versions()
-    assert locked, "pnpm-lock.yaml に playwright@X.Y.Z がない"
-    actual = _devcontainer_version()
-    assert actual in locked, (
-        "devcontainer.json の playwright-deps の version を pnpm-lock.yaml の playwright にそろえる。"
-        f" devcontainer.json: {actual}、pnpm-lock.yaml の playwright: {locked}"
-        "（複数あるときは、Chromium を起動する playwright の版にそろえる）"
-    )
-    assert len(locked) == 1, (
-        f"pnpm-lock.yaml に playwright が複数版ある: {locked}。"
-        " どの版にそろえるかをこのテストで決め直す"
-    )
+    with allure.step("pnpm-lock.yaml の playwright の版を読む"):
+        locked = _lock_playwright_versions()
+
+    with allure.step("playwright の版が見つかることを確かめる"):
+        assert locked, "pnpm-lock.yaml に playwright@X.Y.Z がない"
+
+    with allure.step("devcontainer.json の playwright-deps の版を読む"):
+        actual = _devcontainer_version()
+
+    with allure.step("版が lock と一致し、複数版でないことを確かめる"):
+        assert actual in locked, (
+            "devcontainer.json の playwright-deps の version を pnpm-lock.yaml の playwright にそろえる。"
+            f" devcontainer.json: {actual}、pnpm-lock.yaml の playwright: {locked}"
+            "（複数あるときは、Chromium を起動する playwright の版にそろえる）"
+        )
+        assert len(locked) == 1, (
+            f"pnpm-lock.yaml に playwright が複数版ある: {locked}。"
+            " どの版にそろえるかをこのテストで決め直す"
+        )

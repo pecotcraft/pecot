@@ -14,6 +14,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import allure
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -65,25 +66,29 @@ def _hook_ids(config_text: str) -> list[str]:
 @pytest.mark.parametrize("hook_id", _WRAPPED_HOOKS)
 def test_entry_wrapped_with_timing(script_dir: Path, hook_id: str) -> None:
     """entry が `with-timing.sh <自分の id> <元の script>` の形で、元の script が実在する。"""
-    block = _hook_entry_lines(_config_text(script_dir), hook_id)
-    entries = [line.strip() for line in block if line.strip().startswith("entry:")]
-    assert len(entries) == 1
-    entry = entries[0].removeprefix("entry:").strip()
-    prefix = f".githooks/lib/with-timing.sh {hook_id} "
-    assert entry.startswith(prefix)
-    wrapped = entry[len(prefix) :].split()[0]
-    assert (script_dir.parents[1] / wrapped).is_file()
+    with allure.step("hook の entry を .pre-commit-config.yaml から取り出す"):
+        block = _hook_entry_lines(_config_text(script_dir), hook_id)
+        entries = [line.strip() for line in block if line.strip().startswith("entry:")]
+    with allure.step("with-timing.sh で包まれ、元の script が実在することを確かめる"):
+        assert len(entries) == 1
+        entry = entries[0].removeprefix("entry:").strip()
+        prefix = f".githooks/lib/with-timing.sh {hook_id} "
+        assert entry.startswith(prefix)
+        wrapped = entry[len(prefix) :].split()[0]
+        assert (script_dir.parents[1] / wrapped).is_file()
 
 
 def test_verbose_only_on_hooks_that_print_a_success_line(script_dir: Path) -> None:
     """`verbose: true` を持つ hook は、成功時にも端末へ出す行がある nx-affected-tests だけ。"""
-    text = _config_text(script_dir)
-    verbose = [
-        hook_id
-        for hook_id in _hook_ids(text)
-        if "verbose: true" in [line.strip() for line in _hook_entry_lines(text, hook_id)]
-    ]
-    assert verbose == ["nx-affected-tests"]
+    with allure.step("verbose: true を持つ hook を集める"):
+        text = _config_text(script_dir)
+        verbose = [
+            hook_id
+            for hook_id in _hook_ids(text)
+            if "verbose: true" in [line.strip() for line in _hook_entry_lines(text, hook_id)]
+        ]
+    with allure.step("nx-affected-tests だけであることを確かめる"):
+        assert verbose == ["nx-affected-tests"]
 
 
 def _hook_files_pattern(script_dir: Path, hook_id: str) -> re.Pattern[str]:
@@ -126,8 +131,12 @@ def _hook_files_pattern(script_dir: Path, hook_id: str) -> re.Pattern[str]:
 def test_nx_env_inputs_runs_when_env_scan_inputs_change(
     script_dir: Path, changed_path: str
 ) -> None:
-    pattern = _hook_files_pattern(script_dir, "nx-env-inputs")
-    assert pattern.search(changed_path), f"nx-env-inputs の files が {changed_path} に一致しない"
+    with allure.step("nx-env-inputs の files の正規表現を読む"):
+        pattern = _hook_files_pattern(script_dir, "nx-env-inputs")
+    with allure.step("変更したパスに一致することを確かめる"):
+        assert pattern.search(changed_path), (
+            f"nx-env-inputs の files が {changed_path} に一致しない"
+        )
 
 
 @pytest.mark.parametrize(
@@ -141,8 +150,10 @@ def test_nx_env_inputs_runs_when_env_scan_inputs_change(
     ],
 )
 def test_nx_env_inputs_skips_unrelated_paths(script_dir: Path, changed_path: str) -> None:
-    pattern = _hook_files_pattern(script_dir, "nx-env-inputs")
-    assert not pattern.search(changed_path)
+    with allure.step("nx-env-inputs の files の正規表現を読む"):
+        pattern = _hook_files_pattern(script_dir, "nx-env-inputs")
+    with allure.step("関係の無いパスに一致しないことを確かめる"):
+        assert not pattern.search(changed_path)
 
 
 @pytest.mark.parametrize(
@@ -160,10 +171,12 @@ def test_nx_env_inputs_skips_unrelated_paths(script_dir: Path, changed_path: str
 def test_check_runtime_lock_runs_when_its_inputs_change(
     script_dir: Path, changed_path: str
 ) -> None:
-    pattern = _hook_files_pattern(script_dir, "check-runtime-lock")
-    assert pattern.search(changed_path), (
-        f"check-runtime-lock の files が {changed_path} に一致しない"
-    )
+    with allure.step("check-runtime-lock の files の正規表現を読む"):
+        pattern = _hook_files_pattern(script_dir, "check-runtime-lock")
+    with allure.step("変更したパスに一致することを確かめる"):
+        assert pattern.search(changed_path), (
+            f"check-runtime-lock の files が {changed_path} に一致しない"
+        )
 
 
 @pytest.mark.parametrize(
@@ -171,10 +184,12 @@ def test_check_runtime_lock_runs_when_its_inputs_change(
     ["README.md", "plugins/pecot-visual/cli/src/cli.ts", "plugins/pecot-tools/pnpm-lock.yml"],
 )
 def test_check_runtime_lock_skips_unrelated_paths(script_dir: Path, changed_path: str) -> None:
-    pattern = _hook_files_pattern(script_dir, "check-runtime-lock")
-    assert not pattern.search(changed_path), (
-        f"check-runtime-lock の files が {changed_path} に一致する"
-    )
+    with allure.step("check-runtime-lock の files の正規表現を読む"):
+        pattern = _hook_files_pattern(script_dir, "check-runtime-lock")
+    with allure.step("関係の無いパスに一致しないことを確かめる"):
+        assert not pattern.search(changed_path), (
+            f"check-runtime-lock の files が {changed_path} に一致する"
+        )
 
 
 @pytest.mark.parametrize(
@@ -192,8 +207,12 @@ def test_check_runtime_lock_skips_unrelated_paths(script_dir: Path, changed_path
     ],
 )
 def test_plugin_validate_runs_when_definitions_change(script_dir: Path, changed_path: str) -> None:
-    pattern = _hook_files_pattern(script_dir, "plugin-validate")
-    assert pattern.search(changed_path), f"plugin-validate の files が {changed_path} に一致しない"
+    with allure.step("plugin-validate の files の正規表現を読む"):
+        pattern = _hook_files_pattern(script_dir, "plugin-validate")
+    with allure.step("変更したパスに一致することを確かめる"):
+        assert pattern.search(changed_path), (
+            f"plugin-validate の files が {changed_path} に一致しない"
+        )
 
 
 @pytest.mark.parametrize(
@@ -205,10 +224,12 @@ def test_plugin_validate_runs_when_definitions_change(script_dir: Path, changed_
     ],
 )
 def test_plugin_validate_skips_unrelated_paths(script_dir: Path, changed_path: str) -> None:
-    pattern = _hook_files_pattern(script_dir, "plugin-validate")
-    assert not pattern.search(changed_path), (
-        f"plugin-validate の files が {changed_path} に一致する"
-    )
+    with allure.step("plugin-validate の files の正規表現を読む"):
+        pattern = _hook_files_pattern(script_dir, "plugin-validate")
+    with allure.step("関係の無いパスに一致しないことを確かめる"):
+        assert not pattern.search(changed_path), (
+            f"plugin-validate の files が {changed_path} に一致する"
+        )
 
 
 _TEXT_FILES_HOOK = "check-text"
@@ -227,14 +248,18 @@ _LONG_SENTENCE = "あ" * 101 + "。"
     ],
 )
 def test_check_text_runs_for_text_sources(script_dir: Path, changed_path: str) -> None:
-    pattern = _hook_files_pattern(script_dir, _TEXT_FILES_HOOK)
-    assert pattern.search(changed_path), f"check-text の files が {changed_path} に一致しない"
+    with allure.step("check-text の files の正規表現を読む"):
+        pattern = _hook_files_pattern(script_dir, _TEXT_FILES_HOOK)
+    with allure.step("文章の元のファイルに一致することを確かめる"):
+        assert pattern.search(changed_path), f"check-text の files が {changed_path} に一致しない"
 
 
 @pytest.mark.parametrize("changed_path", [".yamllint", "docs/index.html"])
 def test_check_text_skips_other_files(script_dir: Path, changed_path: str) -> None:
-    pattern = _hook_files_pattern(script_dir, _TEXT_FILES_HOOK)
-    assert not pattern.search(changed_path), f"check-text の files が {changed_path} に一致する"
+    with allure.step("check-text の files の正規表現を読む"):
+        pattern = _hook_files_pattern(script_dir, _TEXT_FILES_HOOK)
+    with allure.step("文章でないファイルに一致しないことを確かめる"):
+        assert not pattern.search(changed_path), f"check-text の files が {changed_path} に一致する"
 
 
 # .textlintignore で外すファイルと、外さない手書きのファイル。
@@ -283,40 +308,50 @@ def _lint_with_textlintignore(
 
 def test_check_text_skips_textlintignore_paths(script_dir: Path, tmp_path: Path) -> None:
     """生成物・逐語の記録・上流の文書の写し・spec-kit のテンプレートの形の成果物は、.textlintignore で外れる。"""
-    result = _lint_with_textlintignore(script_dir, tmp_path, _IGNORED_TEXT_PATHS)
-    assert (result.returncode, result.stdout) == (0, ""), result.stdout + result.stderr
+    with allure.step("除外するパスに違反を書き、.textlintignore を置いて text-lint を動かす"):
+        result = _lint_with_textlintignore(script_dir, tmp_path, _IGNORED_TEXT_PATHS)
+    with allure.step("違反が 1 件も出ないことを確かめる"):
+        assert (result.returncode, result.stdout) == (0, ""), result.stdout + result.stderr
 
 
 def test_check_text_keeps_hand_written_files(script_dir: Path, tmp_path: Path) -> None:
-    result = _lint_with_textlintignore(script_dir, tmp_path, _KEPT_TEXT_PATHS)
-    assert result.returncode == 1, result.stderr
-    reported = {line.split(":", 1)[0] for line in result.stdout.splitlines()}
-    assert reported == set(_KEPT_TEXT_PATHS)
+    with allure.step("手書きのパスに違反を書き、.textlintignore を置いて text-lint を動かす"):
+        result = _lint_with_textlintignore(script_dir, tmp_path, _KEPT_TEXT_PATHS)
+    with allure.step("すべてのパスで違反が出ることを確かめる"):
+        assert result.returncode == 1, result.stderr
+        reported = {line.split(":", 1)[0] for line in result.stdout.splitlines()}
+        assert reported == set(_KEPT_TEXT_PATHS)
 
 
 def test_check_text_has_no_exclude(script_dir: Path) -> None:
     """除外の一覧は .textlintignore の 1 か所に置き、pre-commit の exclude と二重に持たない。"""
-    block = _hook_entry_lines(_config_text(script_dir), _TEXT_FILES_HOOK)
-    assert not [line for line in block if line.strip().startswith("exclude:")]
+    with allure.step("check-text の設定の行を取り出す"):
+        block = _hook_entry_lines(_config_text(script_dir), _TEXT_FILES_HOOK)
+    with allure.step("exclude: が無いことを確かめる"):
+        assert not [line for line in block if line.strip().startswith("exclude:")]
 
 
 def test_check_text_stages_and_flags(script_dir: Path) -> None:
     """check-text は pre-commit だけで動き、fail_fast と require_serial を付ける。"""
-    block = [line.strip() for line in _hook_entry_lines(_config_text(script_dir), "check-text")]
-    assert "stages: [pre-commit]" in block
-    assert "fail_fast: true" in block
-    assert "require_serial: true" in block
+    with allure.step("check-text の設定の行を取り出す"):
+        block = [line.strip() for line in _hook_entry_lines(_config_text(script_dir), "check-text")]
+    with allure.step("stages・fail_fast・require_serial を確かめる"):
+        assert "stages: [pre-commit]" in block
+        assert "fail_fast: true" in block
+        assert "require_serial: true" in block
 
 
 def test_check_text_push_stage_and_flags(script_dir: Path) -> None:
     """pre-push はステージ済みの差分でなく push 範囲を自前で解決するため、常に動く。"""
-    block = [
-        line.strip() for line in _hook_entry_lines(_config_text(script_dir), "check-text-push")
-    ]
-    assert "stages: [pre-push]" in block
-    assert "always_run: true" in block
-    assert "pass_filenames: false" in block
-    assert "fail_fast: true" in block
+    with allure.step("check-text-push の設定の行を取り出す"):
+        block = [
+            line.strip() for line in _hook_entry_lines(_config_text(script_dir), "check-text-push")
+        ]
+    with allure.step("stages・always_run・pass_filenames・fail_fast を確かめる"):
+        assert "stages: [pre-push]" in block
+        assert "always_run: true" in block
+        assert "pass_filenames: false" in block
+        assert "fail_fast: true" in block
 
 
 def _script_regex(script_dir: Path, name: str) -> str:
@@ -328,41 +363,53 @@ def _script_regex(script_dir: Path, name: str) -> str:
 
 def test_check_text_push_regexes_match_config(script_dir: Path) -> None:
     """check-text-push.sh の対象判定は、check-text の files と同一にする。"""
-    files = _hook_files_pattern(script_dir, _TEXT_FILES_HOOK).pattern
-    assert _script_regex(script_dir, "TEXT_FILES_RE") == files
+    with allure.step("check-text の files の正規表現を読む"):
+        files = _hook_files_pattern(script_dir, _TEXT_FILES_HOOK).pattern
+    with allure.step("check-text-push.sh の正規表現と同じことを確かめる"):
+        assert _script_regex(script_dir, "TEXT_FILES_RE") == files
 
 
 def test_check_commit_text_stage_and_always_run(script_dir: Path) -> None:
     """コミットメッセージは files: の対象にならないため、commit-msg stage で常に動く。"""
-    block = [
-        line.strip() for line in _hook_entry_lines(_config_text(script_dir), "check-commit-text")
-    ]
-    assert "stages: [commit-msg]" in block
-    assert "always_run: true" in block
+    with allure.step("check-commit-text の設定の行を取り出す"):
+        block = [
+            line.strip()
+            for line in _hook_entry_lines(_config_text(script_dir), "check-commit-text")
+        ]
+    with allure.step("stages と always_run を確かめる"):
+        assert "stages: [commit-msg]" in block
+        assert "always_run: true" in block
 
 
 def test_check_text_runs_before_heavy_hooks(script_dir: Path) -> None:
     """check-text は重い nx-affected-lint より前に置く。"""
-    ids = _hook_ids(_config_text(script_dir))
-    assert ids.index("check-text") < ids.index("nx-affected-lint")
+    with allure.step("hook の並びを読む"):
+        ids = _hook_ids(_config_text(script_dir))
+    with allure.step("check-text が nx-affected-lint より前にあることを確かめる"):
+        assert ids.index("check-text") < ids.index("nx-affected-lint")
 
 
 def test_check_text_push_runs_before_heavy_hooks(script_dir: Path) -> None:
     """check-text-push は version plan ガードより前に置く。"""
-    ids = _hook_ids(_config_text(script_dir))
-    assert ids.index("check-text-push") < ids.index("check-version-plan-required")
+    with allure.step("hook の並びを読む"):
+        ids = _hook_ids(_config_text(script_dir))
+    with allure.step("check-text-push が check-version-plan-required より前にあることを確かめる"):
+        assert ids.index("check-text-push") < ids.index("check-version-plan-required")
 
 
 def test_pages_build_hook_is_removed(script_dir: Path) -> None:
     """Pages の公開ビルドは持たない。docs/ を除外する設定も残さない。"""
-    text = _config_text(script_dir)
-    assert "build-pages-slides" not in _hook_ids(text)
-    assert "^docs/" not in text
+    with allure.step("設定の本文を読む"):
+        text = _config_text(script_dir)
+    with allure.step("Pages のビルドの hook も docs/ の除外も無いことを確かめる"):
+        assert "build-pages-slides" not in _hook_ids(text)
+        assert "^docs/" not in text
 
 
 def test_pecotv_skill_frontmatter_hook_is_replaced(script_dir: Path) -> None:
     """旧 check-pecotv-skill-frontmatter は plugin-validate に吸収済みで、残さない。"""
-    assert "check-pecotv-skill-frontmatter" not in _hook_ids(_config_text(script_dir))
+    with allure.step("旧 check-pecotv-skill-frontmatter が残っていないことを確かめる"):
+        assert "check-pecotv-skill-frontmatter" not in _hook_ids(_config_text(script_dir))
 
 
 def test_local_hooks_use_unsupported_languages(script_dir: Path) -> None:
@@ -370,14 +417,16 @@ def test_local_hooks_use_unsupported_languages(script_dir: Path) -> None:
 
     旧 `script` / `system` は pre-commit 側で読み替え対象（将来撤去）になっている。
     """
-    text = _config_text(script_dir)
-    local_part = text.split("  - repo: https://", 1)[0]
-    languages = re.findall(r"^\s+language:\s*(\S+)", local_part, flags=re.MULTILINE)
-    assert languages
-    assert set(languages) <= {"unsupported", "unsupported_script"}
-    match = re.search(r'^minimum_pre_commit_version:\s*"?([\d.]+)"?', text, flags=re.MULTILINE)
-    assert match, "minimum_pre_commit_version が無い"
-    assert tuple(int(p) for p in match.group(1).split(".")) >= (4, 4, 0)
+    with allure.step("local の hook の language と最低版を読む"):
+        text = _config_text(script_dir)
+        local_part = text.split("  - repo: https://", 1)[0]
+        languages = re.findall(r"^\s+language:\s*(\S+)", local_part, flags=re.MULTILINE)
+    with allure.step("language が新表記で、最低版が 4.4.0 以上であることを確かめる"):
+        assert languages
+        assert set(languages) <= {"unsupported", "unsupported_script"}
+        match = re.search(r'^minimum_pre_commit_version:\s*"?([\d.]+)"?', text, flags=re.MULTILINE)
+        assert match, "minimum_pre_commit_version が無い"
+        assert tuple(int(p) for p in match.group(1).split(".")) >= (4, 4, 0)
 
 
 # --- 置き場のディレクトリと stages の一致（#64） ---
@@ -443,88 +492,105 @@ def _local_scripts(script_dir: Path) -> dict[str, str]:
 
 def test_local_hooks_declare_stages(script_dir: Path) -> None:
     """local hook は stages を必ず持つ。置き場との一致を確かめる前提になる。"""
-    blocks = _local_hook_blocks(_config_text(script_dir))
-    missing = [hook_id for hook_id, block in blocks.items() if _stages(block) is None]
-    assert missing == []
+    with allure.step("local の hook を切り出し、stages の無いものを集める"):
+        blocks = _local_hook_blocks(_config_text(script_dir))
+        missing = [hook_id for hook_id, block in blocks.items() if _stages(block) is None]
+    with allure.step("stages の無い hook が無いことを確かめる"):
+        assert missing == []
 
 
 def test_local_hook_entry_scripts_exist(script_dir: Path) -> None:
     """全 local hook の entry の実体が実在する。E2E で発火しない hook も押さえる。"""
-    root = script_dir.parents[1]
-    missing = [
-        f"{hook_id}: {script}"
-        for hook_id, script in _local_scripts(script_dir).items()
-        if not (root / script).is_file()
-    ]
-    assert missing == []
+    with allure.step("local の hook の entry の実体を集め、無いものを挙げる"):
+        root = script_dir.parents[1]
+        missing = [
+            f"{hook_id}: {script}"
+            for hook_id, script in _local_scripts(script_dir).items()
+            if not (root / script).is_file()
+        ]
+    with allure.step("実体の無い hook が無いことを確かめる"):
+        assert missing == []
 
 
 def test_stage_dir_matches_stages(script_dir: Path) -> None:
     """実体が stage 名のディレクトリ直下にある hook は、stages がそのディレクトリ名 1 つだけ。"""
-    blocks = _local_hook_blocks(_config_text(script_dir))
-    mismatched = []
-    for hook_id, script in _local_scripts(script_dir).items():
-        parts = Path(script).parts  # 直下 = (.githooks, <dir>, <file>) の 3 要素
-        if len(parts) == 3 and parts[0] == ".githooks" and parts[1] in _STAGE_DIRS:
-            if _stages(blocks[hook_id]) != [parts[1]]:
-                mismatched.append(f"{hook_id}: {script} stages={_stages(blocks[hook_id])}")
-    assert mismatched == []
+    with allure.step("stage の置き場の hook の stages を集め、置き場と合わないものを挙げる"):
+        blocks = _local_hook_blocks(_config_text(script_dir))
+        mismatched = []
+        for hook_id, script in _local_scripts(script_dir).items():
+            parts = Path(script).parts  # 直下 = (.githooks, <dir>, <file>) の 3 要素
+            if len(parts) == 3 and parts[0] == ".githooks" and parts[1] in _STAGE_DIRS:
+                if _stages(blocks[hook_id]) != [parts[1]]:
+                    mismatched.append(f"{hook_id}: {script} stages={_stages(blocks[hook_id])}")
+    with allure.step("置き場と stages の食い違いが無いことを確かめる"):
+        assert mismatched == []
 
 
 def test_ci_dir_hooks_run_only_in_manual(script_dir: Path) -> None:
     """実体が `.githooks/ci/` 直下にある local hook は、stages が manual だけ。"""
-    blocks = _local_hook_blocks(_config_text(script_dir))
-    ci_hooks = {
-        hook_id: script
-        for hook_id, script in _local_scripts(script_dir).items()
-        if (parts := Path(script).parts)[:2] == (".githooks", "ci") and len(parts) == 3
-    }
-    assert ci_hooks
-    assert {hook_id: _stages(blocks[hook_id]) for hook_id in ci_hooks} == {
-        hook_id: ["manual"] for hook_id in ci_hooks
-    }
+    with allure.step("ci/ 直下の hook を集める"):
+        blocks = _local_hook_blocks(_config_text(script_dir))
+        ci_hooks = {
+            hook_id: script
+            for hook_id, script in _local_scripts(script_dir).items()
+            if (parts := Path(script).parts)[:2] == (".githooks", "ci") and len(parts) == 3
+        }
+    with allure.step("stages が manual だけであることを確かめる"):
+        assert ci_hooks
+        assert {hook_id: _stages(blocks[hook_id]) for hook_id in ci_hooks} == {
+            hook_id: ["manual"] for hook_id in ci_hooks
+        }
 
 
 def test_pre_push_hooks_are_only_the_expected_local_ones(script_dir: Path) -> None:
     """pre-push で動く hook は、明示の stages に pre-push を含む local hook の 3 本だけ。"""
-    text = _config_text(script_dir)
-    default = re.search(r"^default_stages:\s*\[(.*)\]", text, re.MULTILINE)
-    assert default is not None
-    assert "pre-push" not in [item.strip() for item in default.group(1).split(",")]
+    with allure.step("pre-push で動く hook を設定から集める"):
+        text = _config_text(script_dir)
+        default = re.search(r"^default_stages:\s*\[(.*)\]", text, re.MULTILINE)
+        assert default is not None
+        assert "pre-push" not in [item.strip() for item in default.group(1).split(",")]
 
-    blocks = _local_hook_blocks(text)
-    local_pre_push = {
-        hook_id for hook_id, block in blocks.items() if "pre-push" in (_stages(block) or [])
-    }
-    assert local_pre_push == {"check-text-push", "check-version-plan-required", "nx-env-inputs"}
+        blocks = _local_hook_blocks(text)
+        local_pre_push = {
+            hook_id for hook_id, block in blocks.items() if "pre-push" in (_stages(block) or [])
+        }
+        assert local_pre_push == {"check-text-push", "check-version-plan-required", "nx-env-inputs"}
 
-    lines = text.splitlines()
-    local_start = next(i for i, line in enumerate(lines) if line.strip() == "- repo: local")
-    local_end = next(
-        (i for i in range(local_start + 1, len(lines)) if lines[i].strip().startswith("- repo:")),
-        len(lines),
-    )
-    external = lines[:local_start] + lines[local_end:]
-    stage_lines = [line for line in external if line.strip().startswith("stages:")]
-    assert all("pre-push" not in line for line in stage_lines)
+        lines = text.splitlines()
+        local_start = next(i for i, line in enumerate(lines) if line.strip() == "- repo: local")
+        local_end = next(
+            (
+                i
+                for i in range(local_start + 1, len(lines))
+                if lines[i].strip().startswith("- repo:")
+            ),
+            len(lines),
+        )
+        external = lines[:local_start] + lines[local_end:]
+        stage_lines = [line for line in external if line.strip().startswith("stages:")]
+        assert all("pre-push" not in line for line in stage_lines)
 
 
 def test_stage_dir_scripts_are_referenced_by_entries(script_dir: Path) -> None:
     """stage 名のディレクトリ直下の *.sh は、どれかの entry から参照される。"""
-    root = script_dir.parents[1]
-    referenced = set(_local_scripts(script_dir).values())
-    orphans = [
-        str(path.relative_to(root))
-        for stage_dir in _STAGE_DIRS
-        if (root / ".githooks" / stage_dir).is_dir()
-        for path in sorted((root / ".githooks" / stage_dir).glob("*.sh"))
-        if str(path.relative_to(root)) not in referenced
-    ]
-    assert orphans == []
+    with allure.step("entry に参照される script を集め、参照されない *.sh を挙げる"):
+        root = script_dir.parents[1]
+        referenced = set(_local_scripts(script_dir).values())
+        orphans = [
+            str(path.relative_to(root))
+            for stage_dir in _STAGE_DIRS
+            if (root / ".githooks" / stage_dir).is_dir()
+            for path in sorted((root / ".githooks" / stage_dir).glob("*.sh"))
+            if str(path.relative_to(root)) not in referenced
+        ]
+    with allure.step("参照されない *.sh が無いことを確かめる"):
+        assert orphans == []
 
 
 @pytest.mark.parametrize("hook_id", ["nx-affected-tests"])
 def test_test_hooks_run_only_in_manual(script_dir: Path, hook_id: str) -> None:
     """テストの hook は manual だけで動く。manual は CI（run-pr-checks.sh）と手動用。"""
-    block = _hook_entry_lines(_config_text(script_dir), hook_id)
-    assert _stages(block) == ["manual"]
+    with allure.step("テストの hook の設定の行を取り出す"):
+        block = _hook_entry_lines(_config_text(script_dir), hook_id)
+    with allure.step("stages が manual だけであることを確かめる"):
+        assert _stages(block) == ["manual"]

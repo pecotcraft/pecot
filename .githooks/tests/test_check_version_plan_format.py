@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import allure
 import pytest
 
 
@@ -38,10 +39,13 @@ def plan_dir(tmp_path: Path) -> Path:
 )
 def test_valid_filename_passes(script_dir: Path, plan_dir: Path, run_script, filename: str) -> None:
     """正例: <番号>-<slug>.md は pass。"""
-    f = plan_dir / filename
-    _make_plan(f)
-    result = run_script(script_dir / "check-version-plan-format.sh", str(f))
-    assert result.returncode == 0
+    with allure.step("plan ファイルを作り、check-version-plan-format.sh を動かす"):
+        f = plan_dir / filename
+        _make_plan(f)
+        result = run_script(script_dir / "check-version-plan-format.sh", str(f))
+
+    with allure.step("終了コード 0 を確かめる"):
+        assert result.returncode == 0
 
 
 @pytest.mark.parametrize(
@@ -59,39 +63,53 @@ def test_invalid_filename_fails(
     script_dir: Path, plan_dir: Path, run_script, filename: str
 ) -> None:
     """負例: 規則外のファイル名は exit 1 で "<番号>-<slug>.md" を含む。"""
-    f = plan_dir / filename
-    _make_plan(f)
-    result = run_script(script_dir / "check-version-plan-format.sh", str(f))
-    assert result.returncode == 1
-    assert "<番号>-<slug>.md" in (result.stdout + result.stderr)
+    with allure.step("規則外の名前の plan ファイルを作り、check-version-plan-format.sh を動かす"):
+        f = plan_dir / filename
+        _make_plan(f)
+        result = run_script(script_dir / "check-version-plan-format.sh", str(f))
+
+    with allure.step("終了コード 1 と、ファイル名の形式の案内を確かめる"):
+        assert result.returncode == 1
+        assert "<番号>-<slug>.md" in (result.stdout + result.stderr)
 
 
 def test_stale_group_key_fails(script_dir: Path, plan_dir: Path, run_script) -> None:
     """旧 group 名 `pecot` は nx.json の release.groups に無いので弾く。"""
-    f = plan_dir / "227-stale-key.md"
-    f.write_text("---\npecot: patch\n---\n\n旧キーの検証用ダミー本文。\n")
-    result = run_script(script_dir / "check-version-plan-format.sh", str(f))
-    assert result.returncode == 1
-    output = result.stdout + result.stderr
-    assert "'pecot'" in output
-    assert "release.groups" in output
-    assert "pecot-workflow" in output  # 有効なキーの一覧
+    with allure.step("旧 group 名をキーにした plan を書き、check-version-plan-format.sh を動かす"):
+        f = plan_dir / "227-stale-key.md"
+        f.write_text("---\npecot: patch\n---\n\n旧キーの検証用ダミー本文。\n")
+        result = run_script(script_dir / "check-version-plan-format.sh", str(f))
+
+    with allure.step("終了コード 1 と、有効なキーの案内を確かめる"):
+        assert result.returncode == 1
+        output = result.stdout + result.stderr
+        assert "'pecot'" in output
+        assert "release.groups" in output
+        assert "pecot-workflow" in output  # 有効なキーの一覧
 
 
 def test_all_release_group_keys_pass(script_dir: Path, plan_dir: Path, run_script) -> None:
     """3 つの release group すべてをキーにした plan は pass。"""
-    f = plan_dir / "227-all-groups.md"
-    f.write_text(
-        "---\npecot-workflow: patch\npecot-visual: minor\npecot-tools: major\n---\n\n"
-        "全 group の検証用ダミー本文。\n"
-    )
-    result = run_script(script_dir / "check-version-plan-format.sh", str(f))
-    assert result.returncode == 0, result.stdout + result.stderr
+    with allure.step(
+        "全 release group をキーにした plan を書き、check-version-plan-format.sh を動かす"
+    ):
+        f = plan_dir / "227-all-groups.md"
+        f.write_text(
+            "---\npecot-workflow: patch\npecot-visual: minor\npecot-tools: major\n---\n\n"
+            "全 group の検証用ダミー本文。\n"
+        )
+        result = run_script(script_dir / "check-version-plan-format.sh", str(f))
+
+    with allure.step("終了コード 0 を確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_text_rules_group_key_passes(script_dir: Path, plan_dir: Path, run_script) -> None:
     """libs/text-rules の release group `text-rules` をキーにした plan は pass。"""
-    f = plan_dir / "1278-text-rules.md"
-    f.write_text("---\ntext-rules: patch\n---\n\ntext-rules 用の検証ダミー本文。\n")
-    result = run_script(script_dir / "check-version-plan-format.sh", str(f))
-    assert result.returncode == 0, result.stdout + result.stderr
+    with allure.step("text-rules をキーにした plan を書き、check-version-plan-format.sh を動かす"):
+        f = plan_dir / "1278-text-rules.md"
+        f.write_text("---\ntext-rules: patch\n---\n\ntext-rules 用の検証ダミー本文。\n")
+        result = run_script(script_dir / "check-version-plan-format.sh", str(f))
+
+    with allure.step("終了コード 0 を確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr

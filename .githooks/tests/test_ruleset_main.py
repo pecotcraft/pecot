@@ -6,6 +6,7 @@ import json
 import re
 from pathlib import Path
 
+import allure
 import pytest
 
 _PR_KEYS = {
@@ -57,28 +58,36 @@ def _job_names(ci_yml: str) -> set[str]:
 
 
 def test_required_contexts_are_ci_job_names(repo_root: Path, rules: dict[str, dict]) -> None:
-    contexts = {c["context"] for c in rules["required_status_checks"]["required_status_checks"]}
-    assert contexts == {"ci-result", "version-plan"}
-    jobs = _job_names((repo_root / ".github/workflows/ci.yml").read_text())
-    assert contexts <= jobs, f"ci.yml に無い job: {contexts - jobs}"
+    with allure.step("ruleset の必須の check と ci.yml の job 名を読む"):
+        contexts = {c["context"] for c in rules["required_status_checks"]["required_status_checks"]}
+    with allure.step("必須の check が ci.yml の job 名に含まれることを確かめる"):
+        assert contexts == {"ci-result", "version-plan"}
+        jobs = _job_names((repo_root / ".github/workflows/ci.yml").read_text())
+        assert contexts <= jobs, f"ci.yml に無い job: {contexts - jobs}"
 
 
 def test_pull_request_has_required_keys(rules: dict[str, dict]) -> None:
-    params = rules["pull_request"]
-    assert _PR_KEYS <= params.keys()
-    assert params["required_approving_review_count"] == 0
-    assert params["allowed_merge_methods"] == ["squash"]
+    with allure.step("pull_request のルールの項目を読む"):
+        params = rules["pull_request"]
+    with allure.step("必須の項目がそろい、承認数とマージ方法が決めた値であることを確かめる"):
+        assert _PR_KEYS <= params.keys()
+        assert params["required_approving_review_count"] == 0
+        assert params["allowed_merge_methods"] == ["squash"]
 
 
 def test_merge_queue_has_all_seven_keys(rules: dict[str, dict]) -> None:
-    params = rules["merge_queue"]
-    assert set(params) == _QUEUE_KEYS
-    assert params["merge_method"] == "SQUASH"
-    assert params["grouping_strategy"] == "ALLGREEN"
+    with allure.step("merge_queue のルールの項目を読む"):
+        params = rules["merge_queue"]
+    with allure.step("7 項目がそろい、マージ方法と grouping が決めた値であることを確かめる"):
+        assert set(params) == _QUEUE_KEYS
+        assert params["merge_method"] == "SQUASH"
+        assert params["grouping_strategy"] == "ALLGREEN"
 
 
 def test_bypass_is_release_app_only(repo_root: Path) -> None:
-    data = json.loads((repo_root / ".github/rulesets/main.json").read_text())
-    assert data["bypass_actors"] == [
-        {"actor_id": 5676665, "actor_type": "Integration", "bypass_mode": "always"}
-    ]
+    with allure.step("ruleset の JSON を読む"):
+        data = json.loads((repo_root / ".github/rulesets/main.json").read_text())
+    with allure.step("bypass できるのがリリース用の App だけであることを確かめる"):
+        assert data["bypass_actors"] == [
+            {"actor_id": 5676665, "actor_type": "Integration", "bypass_mode": "always"}
+        ]

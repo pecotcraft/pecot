@@ -8,6 +8,7 @@ import re
 import sys
 from pathlib import Path
 
+import allure
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -126,211 +127,263 @@ def _queue_ref(n: int, prefix: str = "refs/heads/") -> str:
 
 
 def test_pull_request_picks_latest_artifact(env: Env) -> None:
-    env.pr(7, HEAD)
-    env.artifacts(
-        _art(100, OLD, "2026-11-01T00:00:00Z"),
-        _art(120, HEAD, "2026-11-03T00:00:00Z"),
-        _art(110, HEAD, "2026-11-02T00:00:00Z"),
-    )
-    env.run_info(120, [7])
-    got = env.go("pull_request", PR_NUMBER="7")
-    assert got == {
-        "status": "imported",
-        "run_id": "120",
-        "pr": "7",
-        "head_sha": HEAD,
-    }
-    assert env.run_id_output() == "120"
+    with allure.step("PR・artifact・run を用意して取り込む"):
+        env.pr(7, HEAD)
+        env.artifacts(
+            _art(100, OLD, "2026-11-01T00:00:00Z"),
+            _art(120, HEAD, "2026-11-03T00:00:00Z"),
+            _art(110, HEAD, "2026-11-02T00:00:00Z"),
+        )
+        env.run_info(120, [7])
+        got = env.go("pull_request", PR_NUMBER="7")
+    with allure.step("取り込みの結果と run の ID を確かめる"):
+        assert got == {
+            "status": "imported",
+            "run_id": "120",
+            "pr": "7",
+            "head_sha": HEAD,
+        }
+        assert env.run_id_output() == "120"
 
 
 def test_no_artifact_means_no_run(env: Env) -> None:
-    # 失敗したレーンは artifact を上げないので、候補に出ない
-    env.pr(7, HEAD)
-    env.artifacts()
-    got = env.go("pull_request", PR_NUMBER="7")
-    assert got == {"status": "none", "reason": "run なし"}
-    assert env.run_id_output() is None
+    with allure.step("artifact の無い状態で取り込む"):
+        # 失敗したレーンは artifact を上げないので、候補に出ない
+        env.pr(7, HEAD)
+        env.artifacts()
+        got = env.go("pull_request", PR_NUMBER="7")
+    with allure.step("「run なし」の結果と run の ID が無いことを確かめる"):
+        assert got == {"status": "none", "reason": "run なし"}
+        assert env.run_id_output() is None
 
 
 def test_falls_back_to_older_commit_artifact(env: Env) -> None:
-    env.pr(7, HEAD)
-    env.artifacts(_art(100, OLD, "2026-11-01T00:00:00Z"))
-    env.run_info(100, [7])
-    got = env.go("pull_request", PR_NUMBER="7")
-    assert got["run_id"] == "100"
-    assert got["head_sha"] == OLD
+    with allure.step("古い commit の artifact だけを用意して取り込む"):
+        env.pr(7, HEAD)
+        env.artifacts(_art(100, OLD, "2026-11-01T00:00:00Z"))
+        env.run_info(100, [7])
+        got = env.go("pull_request", PR_NUMBER="7")
+    with allure.step("古い commit の run が選ばれることを確かめる"):
+        assert got["run_id"] == "100"
+        assert got["head_sha"] == OLD
 
 
 def test_excludes_own_run(env: Env) -> None:
-    env.pr(7, HEAD)
-    env.artifacts(_art(int(OWN_RUN), HEAD, "2026-11-05T00:00:00Z"))
-    got = env.go("pull_request", PR_NUMBER="7")
-    assert got == {"status": "none", "reason": "run なし"}
+    with allure.step("自分の run の artifact だけを用意して取り込む"):
+        env.pr(7, HEAD)
+        env.artifacts(_art(int(OWN_RUN), HEAD, "2026-11-05T00:00:00Z"))
+        got = env.go("pull_request", PR_NUMBER="7")
+    with allure.step("自分の run が除かれて「run なし」になることを確かめる"):
+        assert got == {"status": "none", "reason": "run なし"}
 
 
 def test_does_not_pick_expired_artifact(env: Env) -> None:
-    env.pr(7, HEAD)
-    env.artifacts(
-        _art(130, HEAD, "2026-11-09T00:00:00Z", expired=True),
-        _art(100, OLD, "2026-11-01T00:00:00Z"),
-    )
-    env.run_info(100, [7])
-    got = env.go("pull_request", PR_NUMBER="7")
-    assert got["run_id"] == "100"
+    with allure.step("期限切れの artifact を混ぜて取り込む"):
+        env.pr(7, HEAD)
+        env.artifacts(
+            _art(130, HEAD, "2026-11-09T00:00:00Z", expired=True),
+            _art(100, OLD, "2026-11-01T00:00:00Z"),
+        )
+        env.run_info(100, [7])
+        got = env.go("pull_request", PR_NUMBER="7")
+    with allure.step("期限切れでない run が選ばれることを確かめる"):
+        assert got["run_id"] == "100"
 
 
 def test_does_not_pick_other_repo_head(env: Env) -> None:
-    env.pr(7, HEAD)
-    env.artifacts(_art(400, HEAD, "2026-11-09T00:00:00Z", repo_id=999))
-    got = env.go("pull_request", PR_NUMBER="7")
-    assert got == {"status": "none", "reason": "run なし"}
-    assert env.run_id_output() is None
+    with allure.step("別のリポの head の artifact を用意して取り込む"):
+        env.pr(7, HEAD)
+        env.artifacts(_art(400, HEAD, "2026-11-09T00:00:00Z", repo_id=999))
+        got = env.go("pull_request", PR_NUMBER="7")
+    with allure.step("「run なし」で run の ID が無いことを確かめる"):
+        assert got == {"status": "none", "reason": "run なし"}
+        assert env.run_id_output() is None
 
 
 def test_does_not_pick_sha_outside_pr_commits(env: Env) -> None:
-    env.pr(7, HEAD)
-    other = "d3" * 20
-    env.artifacts(_art(300, other, "2026-11-09T00:00:00Z"))
-    got = env.go("pull_request", PR_NUMBER="7")
-    assert got["reason"] == "run なし"
+    with allure.step("PR の commit に無い SHA の artifact を用意して取り込む"):
+        env.pr(7, HEAD)
+        other = "d3" * 20
+        env.artifacts(_art(300, other, "2026-11-09T00:00:00Z"))
+        got = env.go("pull_request", PR_NUMBER="7")
+    with allure.step("理由が「run なし」であることを確かめる"):
+        assert got["reason"] == "run なし"
 
 
 def test_does_not_pick_other_pr_run_with_same_sha(env: Env) -> None:
-    # 同じ sha を持つ別の PR（#8）の run は pull_requests で弾き、次の候補に進む
-    env.pr(7, HEAD)
-    env.artifacts(_art(300, HEAD, "2026-11-09T00:00:00Z"), _art(100, OLD, "2026-11-01T00:00:00Z"))
-    env.run_info(300, [8])
-    env.run_info(100, [7])
-    got = env.go("pull_request", PR_NUMBER="7")
-    assert got["run_id"] == "100"
+    with allure.step("同じ SHA で別の PR の run を混ぜて取り込む"):
+        # 同じ sha を持つ別の PR（#8）の run は pull_requests で弾き、次の候補に進む
+        env.pr(7, HEAD)
+        env.artifacts(
+            _art(300, HEAD, "2026-11-09T00:00:00Z"), _art(100, OLD, "2026-11-01T00:00:00Z")
+        )
+        env.run_info(300, [8])
+        env.run_info(100, [7])
+        got = env.go("pull_request", PR_NUMBER="7")
+    with allure.step("自分の PR の run が選ばれることを確かめる"):
+        assert got["run_id"] == "100"
 
 
 def test_other_pr_run_only_gives_no_run(env: Env) -> None:
-    env.pr(7, HEAD)
-    env.artifacts(_art(300, HEAD, "2026-11-09T00:00:00Z"))
-    env.run_info(300, [8])
-    got = env.go("pull_request", PR_NUMBER="7")
-    assert got == {"status": "none", "reason": "run なし"}
-    assert env.run_id_output() is None
+    with allure.step("別の PR の run だけを用意して取り込む"):
+        env.pr(7, HEAD)
+        env.artifacts(_art(300, HEAD, "2026-11-09T00:00:00Z"))
+        env.run_info(300, [8])
+        got = env.go("pull_request", PR_NUMBER="7")
+    with allure.step("「run なし」で run の ID が無いことを確かめる"):
+        assert got == {"status": "none", "reason": "run なし"}
+        assert env.run_id_output() is None
 
 
 def test_non_pull_request_run_is_rejected(env: Env) -> None:
-    env.pr(7, HEAD)
-    env.artifacts(_art(300, HEAD, "2026-11-09T00:00:00Z"))
-    env.run_info(300, [7], event="push")
-    got = env.go("pull_request", PR_NUMBER="7")
-    assert got["reason"] == "run なし"
+    with allure.step("push の run だけを用意して取り込む"):
+        env.pr(7, HEAD)
+        env.artifacts(_art(300, HEAD, "2026-11-09T00:00:00Z"))
+        env.run_info(300, [7], event="push")
+        got = env.go("pull_request", PR_NUMBER="7")
+    with allure.step("理由が「run なし」であることを確かめる"):
+        assert got["reason"] == "run なし"
 
 
 def test_commits_are_joined_across_pages(env: Env) -> None:
-    env.pr(7, HEAD)
-    page1 = [{"sha": OLD}]
-    page2 = [{"sha": HEAD}]
-    (
-        env.fake / re.sub(r"[^A-Za-z0-9]", "_", f"repos/{REPO}/pulls/7/commits?per_page=100")
-    ).write_text(json.dumps(page1) + "\n" + json.dumps(page2))
-    env.artifacts(_art(100, OLD, "2026-11-01T00:00:00Z"))
-    env.run_info(100, [7])
-    assert env.go("pull_request", PR_NUMBER="7")["run_id"] == "100"
-    env.artifacts(_art(110, HEAD, "2026-11-02T00:00:00Z"))
-    env.run_info(110, [7])
-    assert env.go("pull_request", PR_NUMBER="7")["run_id"] == "110"
+    with allure.step("PR の commit を 2 ページに分けて返す API を用意する"):
+        env.pr(7, HEAD)
+        page1 = [{"sha": OLD}]
+        page2 = [{"sha": HEAD}]
+        (
+            env.fake / re.sub(r"[^A-Za-z0-9]", "_", f"repos/{REPO}/pulls/7/commits?per_page=100")
+        ).write_text(json.dumps(page1) + "\n" + json.dumps(page2))
+        env.artifacts(_art(100, OLD, "2026-11-01T00:00:00Z"))
+        env.run_info(100, [7])
+    with allure.step("1 ページ目と 2 ページ目の commit の run がそれぞれ選ばれることを確かめる"):
+        assert env.go("pull_request", PR_NUMBER="7")["run_id"] == "100"
+        env.artifacts(_art(110, HEAD, "2026-11-02T00:00:00Z"))
+        env.run_info(110, [7])
+        assert env.go("pull_request", PR_NUMBER="7")["run_id"] == "110"
 
 
 def test_fork_pr_is_not_imported(env: Env) -> None:
-    env.pr(7, HEAD, head_repo="evil/r")
-    got = env.go("pull_request", PR_NUMBER="7")
-    assert got == {"status": "none", "reason": "fork の PR"}
-    assert env.run_id_output() is None
+    with allure.step("フォークの PR を用意して取り込む"):
+        env.pr(7, HEAD, head_repo="evil/r")
+        got = env.go("pull_request", PR_NUMBER="7")
+    with allure.step("「fork の PR」の結果と run の ID が無いことを確かめる"):
+        assert got == {"status": "none", "reason": "fork の PR"}
+        assert env.run_id_output() is None
 
 
 def test_deleted_fork_repo_is_treated_as_fork(env: Env) -> None:
-    env.pr(7, HEAD, head_repo=None)
-    got = env.go("pull_request", PR_NUMBER="7")
-    assert got["reason"] == "fork の PR"
+    with allure.step("フォーク元が消えた PR を用意して取り込む"):
+        env.pr(7, HEAD, head_repo=None)
+        got = env.go("pull_request", PR_NUMBER="7")
+    with allure.step("理由が「fork の PR」であることを確かめる"):
+        assert got["reason"] == "fork の PR"
 
 
 @pytest.mark.parametrize("prefix", ["refs/heads/", ""])
 def test_merge_group_head_ref_forms(env: Env, prefix: str) -> None:
-    env.pr(7, HEAD)
-    env.artifacts(_art(110, HEAD, "2026-11-02T00:00:00Z"))
-    env.run_info(110, [7])
-    got = env.go("merge_group", HEAD_REF=_queue_ref(7, prefix))
-    assert got["status"] == "imported"
-    assert got["run_id"] == "110"
-    assert got["pr"] == "7"
+    with allure.step("merge_group の head の ref の形を変えて取り込む"):
+        env.pr(7, HEAD)
+        env.artifacts(_art(110, HEAD, "2026-11-02T00:00:00Z"))
+        env.run_info(110, [7])
+        got = env.go("merge_group", HEAD_REF=_queue_ref(7, prefix))
+    with allure.step("取り込めた結果と run の ID と PR 番号を確かめる"):
+        assert got["status"] == "imported"
+        assert got["run_id"] == "110"
+        assert got["pr"] == "7"
 
 
 def test_merge_group_base_with_slash(env: Env) -> None:
-    env.pr(7, HEAD)
-    env.artifacts(_art(110, HEAD, "2026-11-02T00:00:00Z"))
-    env.run_info(110, [7])
-    got = env.go("merge_group", HEAD_REF=f"gh-readonly-queue/release/x/pr-7-{BASE_SHA}")
-    assert got["pr"] == "7"
-    assert got["run_id"] == "110"
+    with allure.step("スラッシュを含む base の ref で取り込む"):
+        env.pr(7, HEAD)
+        env.artifacts(_art(110, HEAD, "2026-11-02T00:00:00Z"))
+        env.run_info(110, [7])
+        got = env.go("merge_group", HEAD_REF=f"gh-readonly-queue/release/x/pr-7-{BASE_SHA}")
+    with allure.step("PR 番号と run の ID を確かめる"):
+        assert got["pr"] == "7"
+        assert got["run_id"] == "110"
 
 
 def test_merge_group_does_not_use_trailing_base_sha(env: Env) -> None:
-    env.pr(7, HEAD)
-    env.artifacts(
-        _art(110, HEAD, "2026-11-02T00:00:00Z"), _art(500, BASE_SHA, "2026-11-09T00:00:00Z")
-    )
-    env.run_info(110, [7])
-    got = env.go("merge_group", HEAD_REF=_queue_ref(7))
-    assert got["run_id"] == "110"
+    with allure.step("末尾の base の SHA を使わない状態で取り込む"):
+        env.pr(7, HEAD)
+        env.artifacts(
+            _art(110, HEAD, "2026-11-02T00:00:00Z"), _art(500, BASE_SHA, "2026-11-09T00:00:00Z")
+        )
+        env.run_info(110, [7])
+        got = env.go("merge_group", HEAD_REF=_queue_ref(7))
+    with allure.step("run の ID を確かめる"):
+        assert got["run_id"] == "110"
 
 
 def test_merge_group_rejects_head_mismatch(env: Env) -> None:
-    env.pr(7, HEAD)
-    env.artifacts(_art(100, OLD, "2026-11-01T00:00:00Z"))
-    got = env.go("merge_group", HEAD_REF=_queue_ref(7))
-    assert got == {"status": "none", "reason": "head 不一致"}
-    assert env.run_id_output() is None
+    with allure.step("head が合わない artifact を用意して取り込む"):
+        env.pr(7, HEAD)
+        env.artifacts(_art(100, OLD, "2026-11-01T00:00:00Z"))
+        got = env.go("merge_group", HEAD_REF=_queue_ref(7))
+    with allure.step("「head 不一致」の結果と run の ID が無いことを確かめる"):
+        assert got == {"status": "none", "reason": "head 不一致"}
+        assert env.run_id_output() is None
 
 
 def test_merge_group_no_runs(env: Env) -> None:
-    env.pr(7, HEAD)
-    env.artifacts()
-    got = env.go("merge_group", HEAD_REF=_queue_ref(7))
-    assert got == {"status": "none", "reason": "run なし"}
+    with allure.step("run の無い状態で merge_group を取り込む"):
+        env.pr(7, HEAD)
+        env.artifacts()
+        got = env.go("merge_group", HEAD_REF=_queue_ref(7))
+    with allure.step("「run なし」の結果を確かめる"):
+        assert got == {"status": "none", "reason": "run なし"}
 
 
 def test_merge_group_fork_pr(env: Env) -> None:
-    env.pr(7, HEAD, head_repo="evil/r")
-    got = env.go("merge_group", HEAD_REF=_queue_ref(7))
-    assert got["reason"] == "fork の PR"
+    with allure.step("フォークの PR を merge_group で取り込む"):
+        env.pr(7, HEAD, head_repo="evil/r")
+        got = env.go("merge_group", HEAD_REF=_queue_ref(7))
+    with allure.step("理由が「fork の PR」であることを確かめる"):
+        assert got["reason"] == "fork の PR"
 
 
 def test_other_event(env: Env) -> None:
-    got = env.go("push")
-    assert got == {"status": "none", "reason": "対象外の event"}
+    with allure.step("対象外のイベントで取り込む"):
+        got = env.go("push")
+    with allure.step("「対象外の event」の結果を確かめる"):
+        assert got == {"status": "none", "reason": "対象外の event"}
 
 
 def test_api_failure_exits_zero_with_reason(env: Env) -> None:
-    got = env.go("pull_request", PR_NUMBER="7")
-    assert got == {"status": "none", "reason": "取得の失敗"}
-    assert env.run_id_output() is None
+    with allure.step("API が失敗する状態で取り込む"):
+        got = env.go("pull_request", PR_NUMBER="7")
+    with allure.step("「取得の失敗」の結果と run の ID が無いことを確かめる"):
+        assert got == {"status": "none", "reason": "取得の失敗"}
+        assert env.run_id_output() is None
 
 
 def test_artifacts_api_failure(env: Env) -> None:
-    env.pr(7, HEAD)
-    got = env.go("pull_request", PR_NUMBER="7")
-    assert got == {"status": "none", "reason": "取得の失敗"}
+    with allure.step("artifact の API だけが失敗する状態で取り込む"):
+        env.pr(7, HEAD)
+        got = env.go("pull_request", PR_NUMBER="7")
+    with allure.step("「取得の失敗」の結果を確かめる"):
+        assert got == {"status": "none", "reason": "取得の失敗"}
 
 
 def test_empty_repo(env: Env) -> None:
-    got = env.go("pull_request", PR_NUMBER="7", REPO="")
-    assert got == {"status": "none", "reason": "取得の失敗"}
+    with allure.step("リポの名前を空にして取り込む"):
+        got = env.go("pull_request", PR_NUMBER="7", REPO="")
+    with allure.step("「取得の失敗」の結果を確かめる"):
+        assert got == {"status": "none", "reason": "取得の失敗"}
 
 
 def test_unparsable_head_ref(env: Env) -> None:
-    got = env.go("merge_group", HEAD_REF="refs/heads/other")
-    assert got == {"status": "none", "reason": "PR 番号不明"}
+    with allure.step("読めない head の ref で取り込む"):
+        got = env.go("merge_group", HEAD_REF="refs/heads/other")
+    with allure.step("「PR 番号不明」の結果を確かめる"):
+        assert got == {"status": "none", "reason": "PR 番号不明"}
 
 
 def test_missing_pr_number(env: Env) -> None:
-    got = env.go("pull_request", PR_NUMBER="")
-    assert got == {"status": "none", "reason": "PR 番号不明"}
+    with allure.step("PR 番号を空にして取り込む"):
+        got = env.go("pull_request", PR_NUMBER="")
+    with allure.step("「PR 番号不明」の結果を確かめる"):
+        assert got == {"status": "none", "reason": "PR 番号不明"}
 
 
 def _download_failed(env: Env, tmp_path: Path) -> tuple[dict[str, str], Path]:
@@ -355,19 +408,29 @@ def _download_failed(env: Env, tmp_path: Path) -> tuple[dict[str, str], Path]:
 
 
 def test_download_failed_without_artifact(env: Env, tmp_path: Path) -> None:
-    env.api(f"repos/{REPO}/actions/runs/120/artifacts?name=nx-cache-tests-x", {"total_count": 0})
-    got, remote = _download_failed(env, tmp_path)
-    assert got == {"status": "none", "reason": "artifact なし"}
-    assert not remote.exists()
+    with allure.step("artifact が無い状態でダウンロードする"):
+        env.api(
+            f"repos/{REPO}/actions/runs/120/artifacts?name=nx-cache-tests-x", {"total_count": 0}
+        )
+        got, remote = _download_failed(env, tmp_path)
+    with allure.step("「artifact なし」の結果と何も取り込まれないことを確かめる"):
+        assert got == {"status": "none", "reason": "artifact なし"}
+        assert not remote.exists()
 
 
 def test_download_failed_with_artifact(env: Env, tmp_path: Path) -> None:
-    env.api(f"repos/{REPO}/actions/runs/120/artifacts?name=nx-cache-tests-x", {"total_count": 1})
-    got, remote = _download_failed(env, tmp_path)
-    assert got == {"status": "none", "reason": "download の失敗"}
-    assert not remote.exists()
+    with allure.step("artifact があるのにダウンロードが失敗する状態にする"):
+        env.api(
+            f"repos/{REPO}/actions/runs/120/artifacts?name=nx-cache-tests-x", {"total_count": 1}
+        )
+        got, remote = _download_failed(env, tmp_path)
+    with allure.step("「download の失敗」の結果と何も取り込まれないことを確かめる"):
+        assert got == {"status": "none", "reason": "download の失敗"}
+        assert not remote.exists()
 
 
 def test_download_failed_api_error(env: Env, tmp_path: Path) -> None:
-    got, _ = _download_failed(env, tmp_path)
-    assert got == {"status": "none", "reason": "取得の失敗"}
+    with allure.step("API が失敗する状態でダウンロードする"):
+        got, _ = _download_failed(env, tmp_path)
+    with allure.step("「取得の失敗」の結果を確かめる"):
+        assert got == {"status": "none", "reason": "取得の失敗"}

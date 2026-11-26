@@ -74,6 +74,8 @@
       "{projectRoot}/tests/conftest.py",
       "{projectRoot}/tests/attach.py",
       "{projectRoot}/tests/run.sh",
+      "{projectRoot}/scripts/test_report/step-gate.mjs",
+      "{projectRoot}/scripts/test_report/step-gate.sh",
       "{projectRoot}/lib/**/*"
     ],
     "githooksGraphInputs": [

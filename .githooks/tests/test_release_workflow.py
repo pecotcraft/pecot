@@ -13,6 +13,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import allure
 import pytest
 import yaml
 
@@ -45,64 +46,79 @@ def _run_cmd() -> str:
 
 
 def test_single_job_runs_in_release_plan_environment() -> None:
-    wf = _workflow()
-    assert list(wf["jobs"]) == ["release"]
-    assert wf["jobs"]["release"]["environment"] == "release-plan"
+    with allure.step("release.yml の workflow を読む"):
+        wf = _workflow()
+    with allure.step("job が 1 つで、release-plan の environment で動くことを確かめる"):
+        assert list(wf["jobs"]) == ["release"]
+        assert wf["jobs"]["release"]["environment"] == "release-plan"
 
 
 def test_inputs_default_to_dry_run() -> None:
-    inputs = _workflow()[True]["workflow_dispatch"]["inputs"]
-    assert inputs["dry-run"]["type"] == "boolean"
-    assert inputs["dry-run"]["default"] is True
-    assert inputs["sha"]["type"] == "string"
+    with allure.step("workflow_dispatch の inputs を読む"):
+        inputs = _workflow()[True]["workflow_dispatch"]["inputs"]
+    with allure.step("dry-run の既定が true で、sha が文字列であることを確かめる"):
+        assert inputs["dry-run"]["type"] == "boolean"
+        assert inputs["dry-run"]["default"] is True
+        assert inputs["sha"]["type"] == "string"
 
 
 def test_checkout_uses_input_sha_after_the_sha_form_is_checked() -> None:
-    names = [s.get("name") for s in _steps()]
-    assert names.index("Check sha input") < names.index("Checkout")
-    assert _step("Checkout")["with"]["ref"] == "${{ inputs.sha || github.sha }}"
+    with allure.step("step の並びを読む"):
+        names = [s.get("name") for s in _steps()]
+    with allure.step("sha の形を確かめた後に、入力の sha で checkout することを確かめる"):
+        assert names.index("Check sha input") < names.index("Checkout")
+        assert _step("Checkout")["with"]["ref"] == "${{ inputs.sha || github.sha }}"
 
 
 def test_does_not_use_stringly_typed_inputs() -> None:
-    assert "github.event.inputs" not in _WORKFLOW.read_text(encoding="utf-8")
+    with allure.step("workflow の本文に github.event.inputs が無いことを確かめる"):
+        assert "github.event.inputs" not in _WORKFLOW.read_text(encoding="utf-8")
 
 
 def test_token_permissions_follow_dry_run() -> None:
-    with_ = _step("Generate GitHub App token")["with"]
-    assert with_["permission-contents"] == "${{ inputs.dry-run && 'read' || 'write' }}"
-    assert with_["permission-actions"] == "${{ !inputs.dry-run && 'write' || '' }}"
-    for key in (
-        "permission-vulnerability-alerts",
-        "permission-security-events",
-        "permission-secret-scanning-alerts",
-    ):
-        assert with_[key] == "read"
+    with allure.step("App token の step の権限を読む"):
+        with_ = _step("Generate GitHub App token")["with"]
+    with allure.step("権限が dry-run に従い、読み取りの権限が read であることを確かめる"):
+        assert with_["permission-contents"] == "${{ inputs.dry-run && 'read' || 'write' }}"
+        assert with_["permission-actions"] == "${{ !inputs.dry-run && 'write' || '' }}"
+        for key in (
+            "permission-vulnerability-alerts",
+            "permission-security-events",
+            "permission-secret-scanning-alerts",
+        ):
+            assert with_[key] == "read"
 
 
 def test_no_japanese_in_shell() -> None:
-    for step in _steps():
-        for text in (step.get("run", ""), step.get("with", {}).get("runCmd", "")):
-            assert not re.search(r"[^\x00-\x7f]", text), step["name"]
+    with allure.step("すべての step の run に日本語が無いことを確かめる"):
+        for step in _steps():
+            for text in (step.get("run", ""), step.get("with", {}).get("runCmd", "")):
+                assert not re.search(r"[^\x00-\x7f]", text), step["name"]
 
 
 def test_release_job_has_no_actions_write() -> None:
-    wf = _workflow()
-    assert wf["permissions"] == {"contents": "read", "packages": "read"}
-    assert "permissions" not in wf["jobs"]["release"]
+    with allure.step("workflow の権限を読む"):
+        wf = _workflow()
+    with allure.step("job に権限が無く、actions の write が無いことを確かめる"):
+        assert wf["permissions"] == {"contents": "read", "packages": "read"}
+        assert "permissions" not in wf["jobs"]["release"]
 
 
 def test_pages_release_build_is_triggered_after_land_in_production_only() -> None:
-    names = [s.get("name") for s in _steps()]
-    step = _step("Trigger pages release build")
-    assert names.index("Run release") < names.index("Trigger pages release build")
-    assert names.index("Trigger pages release build") < names.index("Write job summary")
-    # nx が落ちても land が済んでいれば起こすので、step の成否ではなく land.log を見る。
-    assert step["if"] == "${{ !cancelled() && !inputs.dry-run }}"
-    assert step["env"]["GH_TOKEN"] == "${{ steps.app-token.outputs.token }}"
-    assert "grep -q '^landed:' .pecot/tmp/release/land.log" in step["run"]
-    assert (
-        'gh workflow run pages-build.yml --repo "$REPO" --ref main -f side=release' in step["run"]
-    )
+    with allure.step("step の並びと Pages のビルドを起こす step を読む"):
+        names = [s.get("name") for s in _steps()]
+        step = _step("Trigger pages release build")
+    with allure.step("land の後で、本番のときだけ起こすことを確かめる"):
+        assert names.index("Run release") < names.index("Trigger pages release build")
+        assert names.index("Trigger pages release build") < names.index("Write job summary")
+        # nx が落ちても land が済んでいれば起こすので、step の成否ではなく land.log を見る。
+        assert step["if"] == "${{ !cancelled() && !inputs.dry-run }}"
+        assert step["env"]["GH_TOKEN"] == "${{ steps.app-token.outputs.token }}"
+        assert "grep -q '^landed:' .pecot/tmp/release/land.log" in step["run"]
+        assert (
+            'gh workflow run pages-build.yml --repo "$REPO" --ref main -f side=release'
+            in step["run"]
+        )
 
 
 @pytest.mark.parametrize(
@@ -118,35 +134,38 @@ def test_pages_release_build_is_triggered_after_land_in_production_only() -> Non
 def test_pages_release_build_trigger_reads_land_log(
     tmp_path: Path, land_log: str | None, called: bool
 ) -> None:
-    if land_log is not None:
-        (tmp_path / ".pecot/tmp/release").mkdir(parents=True)
-        (tmp_path / ".pecot/tmp/release/land.log").write_text(land_log, encoding="utf-8")
-    bin_dir = tmp_path / "bin"
-    bin_dir.mkdir()
-    calls = tmp_path / "gh-calls"
-    gh = bin_dir / "gh"
-    gh.write_text(f'#!/bin/sh\necho "$*" >> {calls}\n', encoding="utf-8")
-    gh.chmod(0o755)
-    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REPO": "o/r"}
-    result = run_attached(
-        ["bash", "-e", "-c", _step("Trigger pages release build")["run"]],
-        cwd=tmp_path,
-        env=env,
-        text=True,
-        capture_output=True,
-    )
-    assert result.returncode == 0, result.stderr
-    if called:
-        assert read_output(calls) == (
-            "workflow run pages-build.yml --repo o/r --ref main -f side=release\n"
+    with allure.step("land.log と偽の gh を置き、Pages のビルドを起こす step の run を動かす"):
+        if land_log is not None:
+            (tmp_path / ".pecot/tmp/release").mkdir(parents=True)
+            (tmp_path / ".pecot/tmp/release/land.log").write_text(land_log, encoding="utf-8")
+        bin_dir = tmp_path / "bin"
+        bin_dir.mkdir()
+        calls = tmp_path / "gh-calls"
+        gh = bin_dir / "gh"
+        gh.write_text(f'#!/bin/sh\necho "$*" >> {calls}\n', encoding="utf-8")
+        gh.chmod(0o755)
+        env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REPO": "o/r"}
+        result = run_attached(
+            ["bash", "-e", "-c", _step("Trigger pages release build")["run"]],
+            cwd=tmp_path,
+            env=env,
+            text=True,
+            capture_output=True,
         )
-    else:
-        assert not calls.exists()
+    with allure.step("land.log の内容に応じて gh を呼ぶか確かめる"):
+        assert result.returncode == 0, result.stderr
+        if called:
+            assert read_output(calls) == (
+                "workflow run pages-build.yml --repo o/r --ref main -f side=release\n"
+            )
+        else:
+            assert not calls.exists()
 
 
 def test_land_script_is_executable() -> None:
-    assert _LAND.is_file()
-    assert _LAND.stat().st_mode & stat.S_IXUSR
+    with allure.step("land.sh が実在し、実行できることを確かめる"):
+        assert _LAND.is_file()
+        assert _LAND.stat().st_mode & stat.S_IXUSR
 
 
 # ---- git のフィクスチャ ----
@@ -275,67 +294,82 @@ _NX_PUSH_ENV = {
 def test_nx_style_push_moves_only_branch_and_tag_even_when_local_main_is_ahead(
     scene: Scene,
 ) -> None:
-    _commit_file(scene.work, "local-only.txt", "x\n", "chore: local only")
-    scene.release(push=False)
-    _git(scene.work, "push", "--follow-tags", "--no-verify", "--atomic", env=_NX_PUSH_ENV)
-    assert scene.origin_ref(f"refs/heads/{scene.branch}") == _out(scene.work, "rev-parse", "HEAD")
-    assert scene.origin_ref("refs/tags/v1.0.0")
-    assert scene.origin_ref("refs/heads/main") == scene.base
+    with allure.step("ローカルの main を進め、nx と同じ形で push する"):
+        _commit_file(scene.work, "local-only.txt", "x\n", "chore: local only")
+        scene.release(push=False)
+        _git(scene.work, "push", "--follow-tags", "--no-verify", "--atomic", env=_NX_PUSH_ENV)
+    with allure.step("origin のブランチとタグだけが進み、main は動かないことを確かめる"):
+        assert scene.origin_ref(f"refs/heads/{scene.branch}") == _out(
+            scene.work, "rev-parse", "HEAD"
+        )
+        assert scene.origin_ref("refs/tags/v1.0.0")
+        assert scene.origin_ref("refs/heads/main") == scene.base
 
 
 # ---- release-land.sh ----
 
 
 def test_land_fast_forward(scene: Scene) -> None:
-    release = scene.release()
-    result = scene.land()
-    assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == f"landed: {release} (fast-forward)"
-    assert scene.origin_ref("refs/heads/main") == release
-    assert scene.origin_ref(f"refs/heads/{scene.branch}") == ""
+    with allure.step("release を用意し、land.sh を動かす"):
+        release = scene.release()
+        result = scene.land()
+    with allure.step("fast-forward で main に載り、ブランチが消えることを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.strip() == f"landed: {release} (fast-forward)"
+        assert scene.origin_ref("refs/heads/main") == release
+        assert scene.origin_ref(f"refs/heads/{scene.branch}") == ""
 
 
 def test_land_merges_advanced_main(scene: Scene) -> None:
-    release = scene.release()
-    new_main = _advance_main(scene.other, "other.txt", "o\n")
-    result = scene.land()
-    assert result.returncode == 0, result.stderr
-    landed = scene.origin_ref("refs/heads/main")
-    assert result.stdout.strip() == f"landed: {landed} (merged {new_main})"
-    assert _out(scene.origin, "rev-parse", f"{landed}^1") == new_main
-    assert _out(scene.origin, "rev-parse", f"{landed}^2") == release
-    assert (
-        _out(scene.origin, "log", "-1", "--format=%s", landed)
-        == "chore(release): merge main into publish"
-    )
-    assert (
-        _git(scene.origin, "merge-base", "--is-ancestor", "v1.0.0", landed, check=False).returncode
-        == 0
-    )
-    assert scene.origin_ref(f"refs/heads/{scene.branch}") == ""
+    with allure.step("release を用意し、origin の main を進めて、land.sh を動かす"):
+        release = scene.release()
+        new_main = _advance_main(scene.other, "other.txt", "o\n")
+        result = scene.land()
+    with allure.step("main を merge して載せ、ブランチが消えることを確かめる"):
+        assert result.returncode == 0, result.stderr
+        landed = scene.origin_ref("refs/heads/main")
+        assert result.stdout.strip() == f"landed: {landed} (merged {new_main})"
+        assert _out(scene.origin, "rev-parse", f"{landed}^1") == new_main
+        assert _out(scene.origin, "rev-parse", f"{landed}^2") == release
+        assert (
+            _out(scene.origin, "log", "-1", "--format=%s", landed)
+            == "chore(release): merge main into publish"
+        )
+        assert (
+            _git(
+                scene.origin, "merge-base", "--is-ancestor", "v1.0.0", landed, check=False
+            ).returncode
+            == 0
+        )
+        assert scene.origin_ref(f"refs/heads/{scene.branch}") == ""
 
 
 def test_land_without_release_commit_only_deletes_branch(scene: Scene) -> None:
-    scene.release(commit=False)
-    assert scene.origin_ref(f"refs/heads/{scene.branch}")
-    result = scene.land()
-    assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == "skipped: no release commit"
-    assert scene.origin_ref(f"refs/heads/{scene.branch}") == ""
-    assert scene.origin_ref("refs/heads/main") == scene.base
+    with allure.step("commit の無い release のブランチを用意し、origin にあることを確かめる"):
+        scene.release(commit=False)
+        assert scene.origin_ref(f"refs/heads/{scene.branch}")
+    with allure.step("land.sh を動かす"):
+        result = scene.land()
+    with allure.step("ブランチだけが消え、main は動かないことを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.strip() == "skipped: no release commit"
+        assert scene.origin_ref(f"refs/heads/{scene.branch}") == ""
+        assert scene.origin_ref("refs/heads/main") == scene.base
 
 
 def test_land_retries_when_main_advances_just_before_push(tmp_path: Path, scene: Scene) -> None:
-    release = scene.release()
-    shim_env = _push_shim(tmp_path, scene, times=1)
-    result = scene.land(shim_env)
-    assert result.returncode == 0, result.stderr
-    landed = scene.origin_ref("refs/heads/main")
-    assert result.stdout.strip().startswith(f"landed: {landed} (merged ")
-    assert _out(scene.origin, "rev-parse", f"{landed}^2") == release
-    assert (scene.other / "adv-0.txt").is_file()
-    assert _out(scene.origin, "show", f"{landed}^1:adv-0.txt") == "0"
-    assert scene.origin_ref(f"refs/heads/{scene.branch}") == ""
+    with allure.step("release を用意し、push の直前に main が進む shim を置いて、land.sh を動かす"):
+        release = scene.release()
+        shim_env = _push_shim(tmp_path, scene, times=1)
+        result = scene.land(shim_env)
+    with allure.step("取り込み直して載り、ブランチが消えることを確かめる"):
+        assert result.returncode == 0, result.stderr
+        landed = scene.origin_ref("refs/heads/main")
+        assert result.stdout.strip().startswith(f"landed: {landed} (merged ")
+        assert _out(scene.origin, "rev-parse", f"{landed}^2") == release
+        assert (scene.other / "adv-0.txt").is_file()
+        assert _out(scene.origin, "show", f"{landed}^1:adv-0.txt") == "0"
+        assert scene.origin_ref(f"refs/heads/{scene.branch}") == ""
 
 
 def _assert_land_error(result: subprocess.CompletedProcess[str], scene: Scene) -> None:
@@ -347,47 +381,58 @@ def _assert_land_error(result: subprocess.CompletedProcess[str], scene: Scene) -
 
 
 def test_land_conflict_errors_and_keeps_branch(scene: Scene) -> None:
-    scene.release(file="CHANGELOG.md")
-    _advance_main(scene.other, "CHANGELOG.md", "conflicting\n")
-    _assert_land_error(scene.land(), scene)
+    with allure.step(
+        "release と main の変更を衝突させ、land.sh を動かして、ERROR とブランチの残りを確かめる"
+    ):
+        scene.release(file="CHANGELOG.md")
+        _advance_main(scene.other, "CHANGELOG.md", "conflicting\n")
+        _assert_land_error(scene.land(), scene)
 
 
 def test_land_gives_up_after_five_attempts(tmp_path: Path, scene: Scene) -> None:
-    scene.release()
-    shim_env = _push_shim(tmp_path, scene, times=99)
-    _assert_land_error(scene.land(shim_env), scene)
-    assert read_output(tmp_path / "counter").strip() == "5"
+    with allure.step("push を毎回失敗させて、land.sh を動かし、ERROR を確かめる"):
+        scene.release()
+        shim_env = _push_shim(tmp_path, scene, times=99)
+        _assert_land_error(scene.land(shim_env), scene)
+    with allure.step("試行が 5 回で止まることを確かめる"):
+        assert read_output(tmp_path / "counter").strip() == "5"
 
 
 def test_land_stops_at_once_when_remote_hook_rejects_even_if_it_says_fetch_first(
     scene: Scene,
 ) -> None:
-    scene.release()
-    hook = scene.origin / "hooks/pre-receive"
-    hook.write_text("#!/bin/sh\necho 'denied: fetch first' >&2\nexit 1\n", encoding="utf-8")
-    hook.chmod(0o755)
-    result = scene.land()
-    _assert_land_error(result, scene)
-    assert "retry:" not in result.stderr
-    assert scene.origin_ref("refs/heads/main") == scene.base
+    with allure.step("origin の hook で push を拒み、land.sh を動かして、ERROR を確かめる"):
+        scene.release()
+        hook = scene.origin / "hooks/pre-receive"
+        hook.write_text("#!/bin/sh\necho 'denied: fetch first' >&2\nexit 1\n", encoding="utf-8")
+        hook.chmod(0o755)
+        result = scene.land()
+        _assert_land_error(result, scene)
+    with allure.step("再試行せず、main が動かないことを確かめる"):
+        assert "retry:" not in result.stderr
+        assert scene.origin_ref("refs/heads/main") == scene.base
 
 
 def test_land_shows_branch_delete_failure_output(scene: Scene) -> None:
-    scene.release(commit=False)
-    hook = scene.origin / "hooks/pre-receive"
-    hook.write_text("#!/bin/sh\necho 'no delete' >&2\nexit 1\n", encoding="utf-8")
-    hook.chmod(0o755)
-    result = scene.land()
-    _assert_land_error(result, scene)
-    assert "no delete" in result.stderr
+    with allure.step("origin の hook でブランチの削除を拒み、land.sh を動かして、ERROR を確かめる"):
+        scene.release(commit=False)
+        hook = scene.origin / "hooks/pre-receive"
+        hook.write_text("#!/bin/sh\necho 'no delete' >&2\nexit 1\n", encoding="utf-8")
+        hook.chmod(0o755)
+        result = scene.land()
+        _assert_land_error(result, scene)
+    with allure.step("拒んだ理由が stderr に出ることを確かめる"):
+        assert "no delete" in result.stderr
 
 
 def test_land_does_not_depend_on_the_checked_out_branch(scene: Scene) -> None:
-    release = scene.release()
-    _git(scene.work, "switch", "-q", "main")
-    result = scene.land()
-    assert result.returncode == 0, result.stderr
-    assert scene.origin_ref("refs/heads/main") == release
+    with allure.step("release を用意し、main に切り替えて、land.sh を動かす"):
+        release = scene.release()
+        _git(scene.work, "switch", "-q", "main")
+        result = scene.land()
+    with allure.step("どのブランチを開いていても main に載ることを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert scene.origin_ref("refs/heads/main") == release
 
 
 # ---- sha の確認（step の run をそのまま bash で動かす） ----
@@ -428,18 +473,20 @@ def _sha_flow(scene: Scene, dry_run: str, sha: str) -> int:
     ],
 )
 def test_sha_flow(scene: Scene, dry_run: str, sha_kind: str, expected: int) -> None:
-    _git(scene.work, "switch", "-q", "-c", "local-only")
-    local_only = _commit_file(scene.work, "x.txt", "x\n", "feat: not pushed")
-    sha = {
-        "empty": "",
-        "branch-name": "main",
-        "short": scene.base[:7],
-        "upper": scene.base.upper(),
-        "multi-line": scene.base + "\n" + scene.base,
-        "not-ancestor": local_only,
-        "base": scene.base,
-    }[sha_kind]
-    assert _sha_flow(scene, dry_run, sha) == expected
+    with allure.step("origin に無い commit を作り、sha の入力を用意する"):
+        _git(scene.work, "switch", "-q", "-c", "local-only")
+        local_only = _commit_file(scene.work, "x.txt", "x\n", "feat: not pushed")
+        sha = {
+            "empty": "",
+            "branch-name": "main",
+            "short": scene.base[:7],
+            "upper": scene.base.upper(),
+            "multi-line": scene.base + "\n" + scene.base,
+            "not-ancestor": local_only,
+            "base": scene.base,
+        }[sha_kind]
+    with allure.step("sha の入力の確かめを動かし、終了コードを確かめる"):
+        assert _sha_flow(scene, dry_run, sha) == expected
 
 
 # ---- runCmd（stub の pecot・pnpm・gh と本物の git・release-land.sh で動かす） ----
@@ -518,51 +565,61 @@ def run_scene(tmp_path: Path) -> RunScene:
 
 
 def test_run_cmd_dry_run_only_plans(run_scene: RunScene) -> None:
-    result = run_scene.run_cmd(dry_run=True)
-    assert result.returncode == 0, result.stderr
-    assert (run_scene.logs / "preflight.log").is_file()
-    assert "dry-run plan" in read_output(run_scene.logs / "nx.log")
-    assert not (run_scene.logs / "land.log").exists()
-    assert run_scene.origin_ref("refs/heads/main") == run_scene.base
-    assert run_scene.origin_ref(f"refs/heads/{run_scene.branch}") == ""
+    with allure.step("dry-run で release の run コマンドを動かす"):
+        result = run_scene.run_cmd(dry_run=True)
+    with allure.step("plan を出すだけで、land と push は行わないことを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert (run_scene.logs / "preflight.log").is_file()
+        assert "dry-run plan" in read_output(run_scene.logs / "nx.log")
+        assert not (run_scene.logs / "land.log").exists()
+        assert run_scene.origin_ref("refs/heads/main") == run_scene.base
+        assert run_scene.origin_ref(f"refs/heads/{run_scene.branch}") == ""
 
 
 def test_run_cmd_production_lands_release(run_scene: RunScene) -> None:
-    result = run_scene.run_cmd(dry_run=False, NX_MODE="ok")
-    assert result.returncode == 0, result.stderr
-    released = run_scene.origin_ref("refs/tags/v1.0.0^{commit}")
-    assert released
-    assert run_scene.origin_ref("refs/heads/main") == released
-    assert run_scene.origin_ref(f"refs/heads/{run_scene.branch}") == ""
-    land_log = read_output(run_scene.logs / "land.log")
-    assert land_log.startswith(f"landed: {released} (fast-forward)")
+    with allure.step("本番で release の run コマンドを動かす"):
+        result = run_scene.run_cmd(dry_run=False, NX_MODE="ok")
+    with allure.step("release が main に載り、ブランチが消えることを確かめる"):
+        assert result.returncode == 0, result.stderr
+        released = run_scene.origin_ref("refs/tags/v1.0.0^{commit}")
+        assert released
+        assert run_scene.origin_ref("refs/heads/main") == released
+        assert run_scene.origin_ref(f"refs/heads/{run_scene.branch}") == ""
+        land_log = read_output(run_scene.logs / "land.log")
+        assert land_log.startswith(f"landed: {released} (fast-forward)")
 
 
 def test_run_cmd_nx_failure_before_push_skips_land(run_scene: RunScene) -> None:
-    result = run_scene.run_cmd(dry_run=False, NX_MODE="fail-before")
-    assert result.returncode == 1
-    assert not (run_scene.logs / "land.log").exists()
-    assert run_scene.origin_ref("refs/heads/main") == run_scene.base
+    with allure.step("push の前に nx を失敗させて、run コマンドを動かす"):
+        result = run_scene.run_cmd(dry_run=False, NX_MODE="fail-before")
+    with allure.step("終了コード 1 で、land せず main が動かないことを確かめる"):
+        assert result.returncode == 1
+        assert not (run_scene.logs / "land.log").exists()
+        assert run_scene.origin_ref("refs/heads/main") == run_scene.base
 
 
 def test_run_cmd_nx_failure_after_push_still_lands_and_returns_nx_code(
     run_scene: RunScene,
 ) -> None:
-    result = run_scene.run_cmd(dry_run=False, NX_MODE="fail-after")
-    assert result.returncode == 3
-    released = run_scene.origin_ref("refs/tags/v1.0.0^{commit}")
-    assert run_scene.origin_ref("refs/heads/main") == released
-    assert read_output(run_scene.logs / "land.log").startswith("landed:")
+    with allure.step("push の後に nx を失敗させて、run コマンドを動かす"):
+        result = run_scene.run_cmd(dry_run=False, NX_MODE="fail-after")
+    with allure.step("land は行い、nx の終了コードを返すことを確かめる"):
+        assert result.returncode == 3
+        released = run_scene.origin_ref("refs/tags/v1.0.0^{commit}")
+        assert run_scene.origin_ref("refs/heads/main") == released
+        assert read_output(run_scene.logs / "land.log").startswith("landed:")
 
 
 def test_run_cmd_ls_remote_failure_is_reported_in_land_log(run_scene: RunScene) -> None:
-    result = run_scene.run_cmd(dry_run=False, NX_MODE="ok", LS_REMOTE_FAIL="1")
-    assert result.returncode == 128
-    land_log = read_output(run_scene.logs / "land.log")
-    assert land_log.startswith(
-        f"error: git ls-remote failed with exit code 128 (branch: {run_scene.branch})"
-    )
-    assert run_scene.origin_ref("refs/heads/main") == run_scene.base
+    with allure.step("git ls-remote を失敗させて、run コマンドを動かす"):
+        result = run_scene.run_cmd(dry_run=False, NX_MODE="ok", LS_REMOTE_FAIL="1")
+    with allure.step("失敗が land.log に出て、main が動かないことを確かめる"):
+        assert result.returncode == 128
+        land_log = read_output(run_scene.logs / "land.log")
+        assert land_log.startswith(
+            f"error: git ls-remote failed with exit code 128 (branch: {run_scene.branch})"
+        )
+        assert run_scene.origin_ref("refs/heads/main") == run_scene.base
 
 
 # ---- Write job summary ----
@@ -605,52 +662,63 @@ def _msg(name: str) -> str:
 
 
 def test_summary_dry_run_heading(tmp_path: Path) -> None:
-    text = _summary(tmp_path, {"preflight": "ok\n", "nx": "plan\n"}, DRY_RUN="true")
-    assert text.startswith("## Release plan\n")
-    assert "<details><summary>preflight</summary>" in text
-    assert "<details><summary>nx</summary>" in text
+    with allure.step("dry-run のログから要約を作る"):
+        text = _summary(tmp_path, {"preflight": "ok\n", "nx": "plan\n"}, DRY_RUN="true")
+    with allure.step("plan の見出しと、ログごとの details があることを確かめる"):
+        assert text.startswith("## Release plan\n")
+        assert "<details><summary>preflight</summary>" in text
+        assert "<details><summary>nx</summary>" in text
 
 
 def test_summary_production_shows_landed_line_without_git_errors(tmp_path: Path) -> None:
-    land = (
-        "landed: abc123 (merged def456)\n"
-        "  error: failed to push some refs to 'origin'\n"
-        "error: push to main was rejected (branch: release/run-1-1)\n"
-    )
-    text = _summary(tmp_path, {"land": land, "nx": "x\n"})
-    assert text.startswith("## Release\n")
-    section = text.split("### land", 1)[1].split("```", 2)[1]
-    assert "landed: abc123 (merged def456)" in section
-    assert "error: push to main was rejected (branch: release/run-1-1)" in section
-    assert "failed to push some refs" not in section
-    assert "<summary>land</summary>" not in text
+    with allure.step("git のエラーを含む land のログから要約を作る"):
+        land = (
+            "landed: abc123 (merged def456)\n"
+            "  error: failed to push some refs to 'origin'\n"
+            "error: push to main was rejected (branch: release/run-1-1)\n"
+        )
+        text = _summary(tmp_path, {"land": land, "nx": "x\n"})
+    with allure.step("landed の行と error の行だけが出て、git のエラーは出ないことを確かめる"):
+        assert text.startswith("## Release\n")
+        section = text.split("### land", 1)[1].split("```", 2)[1]
+        assert "landed: abc123 (merged def456)" in section
+        assert "error: push to main was rejected (branch: release/run-1-1)" in section
+        assert "failed to push some refs" not in section
+        assert "<summary>land</summary>" not in text
 
 
 def test_summary_sha_failure_is_not_reported_as_infrastructure(tmp_path: Path) -> None:
-    text = _summary(
-        tmp_path, {}, SHA_VERIFY_OUTCOME="failure", UP_OUTCOME="skipped", RUN_OUTCOME="skipped"
-    )
-    assert _msg("MSG_SHA_FAILED") in text
-    assert _msg("MSG_UP_FAILED") not in text
+    with allure.step("sha の確認が失敗した状態の要約を作る"):
+        text = _summary(
+            tmp_path, {}, SHA_VERIFY_OUTCOME="failure", UP_OUTCOME="skipped", RUN_OUTCOME="skipped"
+        )
+    with allure.step("sha の失敗の文が出て、基盤の失敗の文は出ないことを確かめる"):
+        assert _msg("MSG_SHA_FAILED") in text
+        assert _msg("MSG_UP_FAILED") not in text
 
 
 def test_summary_container_failure_and_skipped_are_told_apart(tmp_path: Path) -> None:
-    failed = _summary(tmp_path, {}, UP_OUTCOME="failure", RUN_OUTCOME="skipped")
-    assert _msg("MSG_UP_FAILED") in failed
-    skipped = _summary(tmp_path / "b", {}, UP_OUTCOME="skipped", RUN_OUTCOME="skipped")
-    assert _msg("MSG_NOT_RUN") in skipped
-    assert _msg("MSG_UP_FAILED") not in skipped
+    with allure.step("コンテナの起動が失敗した状態の要約を作る"):
+        failed = _summary(tmp_path, {}, UP_OUTCOME="failure", RUN_OUTCOME="skipped")
+    with allure.step("失敗と未実行で、別の文が出ることを確かめる"):
+        assert _msg("MSG_UP_FAILED") in failed
+        skipped = _summary(tmp_path / "b", {}, UP_OUTCOME="skipped", RUN_OUTCOME="skipped")
+        assert _msg("MSG_NOT_RUN") in skipped
+        assert _msg("MSG_UP_FAILED") not in skipped
 
 
 def test_summary_release_failure_messages(tmp_path: Path) -> None:
-    assert _msg("MSG_RELEASE_FAILED") in _summary(tmp_path, {}, RUN_OUTCOME="failure")
-    plan = _summary(tmp_path / "b", {}, RUN_OUTCOME="failure", DRY_RUN="true")
-    assert _msg("MSG_PLAN_FAILED") in plan
+    with allure.step("release の失敗と plan の失敗の要約が、それぞれの文を出すことを確かめる"):
+        assert _msg("MSG_RELEASE_FAILED") in _summary(tmp_path, {}, RUN_OUTCOME="failure")
+        plan = _summary(tmp_path / "b", {}, RUN_OUTCOME="failure", DRY_RUN="true")
+        assert _msg("MSG_PLAN_FAILED") in plan
 
 
 def test_summary_stays_under_one_mebibyte(tmp_path: Path) -> None:
-    big = "x" * 100 + "\n"
-    logs = dict.fromkeys(("preflight", "nx", "land"), big * 20000)
-    logs["preflight"] = ("warning: w\n  detail\n" * 40000) + logs["preflight"]
-    text = _summary(tmp_path, logs)
-    assert len(text.encode("utf-8")) < 1024 * 1024
+    with allure.step("大きなログから要約を作る"):
+        big = "x" * 100 + "\n"
+        logs = dict.fromkeys(("preflight", "nx", "land"), big * 20000)
+        logs["preflight"] = ("warning: w\n  detail\n" * 40000) + logs["preflight"]
+        text = _summary(tmp_path, logs)
+    with allure.step("要約が 1 MiB を超えないことを確かめる"):
+        assert len(text.encode("utf-8")) < 1024 * 1024

@@ -7,6 +7,7 @@ import { renderCommandsMd } from '../src/domain/commands-md.js'
 import { generatedFileSchema } from '../src/domain/schema.js'
 import type { GeneratedFile } from '../src/domain/schema.js'
 import { materialize } from './helpers/repository.js'
+import { step, stepSync } from '../src/vitest/step.js'
 
 const GENERATED = 'plugins/pecot-workflow/interface/generated.json'
 
@@ -63,46 +64,72 @@ const EXPECTED = [
 
 describe('commands-md', () => {
   it('グループを名前順に並べ、1 段のパスを最後のその他にまとめて描く', async () => {
-    const file = await fixtureFile(await materialize('commands-md'))
-    expect(renderCommandsMd(file, 'CMD')).toBe(EXPECTED)
+    const file = await step('定義を読み込む', async () => await fixtureFile(await materialize('commands-md')))
+    stepSync('描いた文書を比べる', () => {
+      expect(renderCommandsMd(file, 'CMD')).toBe(EXPECTED)
+    })
   })
 
   it('hidden の項目と CLI の面を持たない項目を出さない', async () => {
-    const file = await fixtureFile(await materialize('commands-md'))
-    const text = renderCommandsMd(file, 'CMD')
-    expect(text).not.toContain('internal')
-    expect(text).not.toContain('mcp only')
+    const file = await step('定義を読み込む', async () => await fixtureFile(await materialize('commands-md')))
+    const text = stepSync('文書を描く', () => renderCommandsMd(file, 'CMD'))
+    stepSync('文書を比べる', () => {
+      expect(text).not.toContain('internal')
+      expect(text).not.toContain('mcp only')
+    })
   })
 
   it('生成物と一致していると、何も出さず 0 で終わる', async () => {
     const root = await materialize('commands-md')
-    await call('commands-md', '--write', '--root', root)
-    expect(await call('commands-md', '--check', '--root', root)).toEqual({ code: 0, stdout: '', stderr: '' })
+    await step('commands.md を書く', async () => {
+      await call('commands-md', '--write', '--root', root)
+    })
+    await step('確認を動かし、出力を比べる', async () => {
+      expect(await call('commands-md', '--check', '--root', root)).toEqual({ code: 0, stdout: '', stderr: '' })
+    })
   })
 
   it('説明を変えると、stale の 2 行を出して 1 で終わる', async () => {
     const root = await materialize('commands-md')
-    await call('commands-md', '--write', '--root', root)
-    const file = await fixtureFile(root)
+    await step('commands.md を書く', async () => {
+      await call('commands-md', '--write', '--root', root)
+    })
+    const file = await step('定義を読み込む', () => fixtureFile(root))
     const [first] = file.entries
     if (first === undefined) throw new Error('fixture has no entries')
     first.description = 'Changed'
-    await writeFile(path.join(root, GENERATED), JSON.stringify(file))
-    expect(await call('commands-md', '--check', '--root', root)).toEqual({ code: 1, stdout: '', stderr: STALE })
+    await step('説明を変えた定義を書く', async () => {
+      await writeFile(path.join(root, GENERATED), JSON.stringify(file))
+    })
+    await step('確認を動かし、出力を比べる', async () => {
+      expect(await call('commands-md', '--check', '--root', root)).toEqual({ code: 1, stdout: '', stderr: STALE })
+    })
   })
 
   it('commands.md が無いと、stale の 2 行を出して 1 で終わる', async () => {
     const root = await materialize('commands-md')
-    await rm(path.join(root, COMMANDS_MD_PATH))
-    expect(await call('commands-md', '--check', '--root', root)).toEqual({ code: 1, stdout: '', stderr: STALE })
+    await step('commands.md を消す', async () => {
+      await rm(path.join(root, COMMANDS_MD_PATH))
+    })
+    await step('確認を動かし、出力を比べる', async () => {
+      expect(await call('commands-md', '--check', '--root', root)).toEqual({ code: 1, stdout: '', stderr: STALE })
+    })
   })
 
   it('--write は書き換えて updated を出し、変わらないときは何も出さず 0 で終わる', async () => {
     const root = await materialize('commands-md')
-    await writeFile(path.join(root, COMMANDS_MD_PATH), 'stale\n')
-    expect(await call('commands-md', '--write', '--root', root)).toEqual({ code: 0, stdout: `updated: ${COMMANDS_MD_PATH}\n`, stderr: '' })
-    expect(await readFile(path.join(root, COMMANDS_MD_PATH), 'utf8')).toBe(EXPECTED.replace('CMD', () => REGENERATE_COMMAND))
-    expect(await call('commands-md', '--write', '--root', root)).toEqual({ code: 0, stdout: '', stderr: '' })
+    await step('古い commands.md を置く', async () => {
+      await writeFile(path.join(root, COMMANDS_MD_PATH), 'stale\n')
+    })
+    await step('--write を動かし、出力を比べる', async () => {
+      expect(await call('commands-md', '--write', '--root', root)).toEqual({ code: 0, stdout: `updated: ${COMMANDS_MD_PATH}\n`, stderr: '' })
+    })
+    await step('書いた内容を比べる', async () => {
+      expect(await readFile(path.join(root, COMMANDS_MD_PATH), 'utf8')).toBe(EXPECTED.replace('CMD', () => REGENERATE_COMMAND))
+    })
+    await step('--write をもう一度動かし、出力を比べる', async () => {
+      expect(await call('commands-md', '--write', '--root', root)).toEqual({ code: 0, stdout: '', stderr: '' })
+    })
   })
 
   it.for([
@@ -112,9 +139,11 @@ describe('commands-md', () => {
     { name: '値の無い --root', argv: ['commands-md', '--check', '--root'] },
     { name: 'validate への余分な引数', argv: ['validate', '--check'] },
   ])('$name を渡すと、使い方を出して 2 で終わる', async ({ argv }) => {
-    const result = await call(...argv)
-    expect(result.code).toBe(2)
-    expect(result.stderr).toMatch(/^usage: interface-spec validate .*\n {7}interface-spec links .*\n {7}interface-spec commands-md .*\n {7}interface-spec field-map\n$/u)
+    const result = await step('CLI を動かす', () => call(...argv))
+    stepSync('結果を比べる', () => {
+      expect(result.code).toBe(2)
+      expect(result.stderr).toMatch(/^usage: interface-spec validate .*\n {7}interface-spec links .*\n {7}interface-spec commands-md .*\n {7}interface-spec field-map\n$/u)
+    })
   })
 
   it.for([
@@ -131,9 +160,13 @@ describe('commands-md', () => {
     },
   ])('$name と、エラーを 1 行出して 2 で終わる', async ({ prepare, message }) => {
     const root = await materialize('commands-md')
-    await prepare(root)
-    const result = await call('commands-md', '--check', '--root', root)
-    expect(result.code).toBe(2)
-    expect(result.stderr.replace(root + path.sep, '')).toBe(`error: ${message}\n`)
+    await step('失敗する状態を用意する', async () => {
+      await prepare(root)
+    })
+    const result = await step('確認を動かす', () => call('commands-md', '--check', '--root', root))
+    stepSync('結果を比べる', () => {
+      expect(result.code).toBe(2)
+      expect(result.stderr.replace(root + path.sep, '')).toBe(`error: ${message}\n`)
+    })
   })
 })

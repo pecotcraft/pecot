@@ -9,6 +9,7 @@ import sys
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+import allure
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -72,53 +73,66 @@ def _roots() -> dict[str, str]:
 
 
 def test_project_files_include_all_kinds() -> None:
-    # 集め方が狭まると、下の突き合わせが抜けに気づかず通るので、置き場所の 4 種類を確かめる。
-    files = _project_files()
-    assert ".githooks/project.json" in files
-    assert ".nx/nx-release/project.json" in files
-    assert "libs/interface-spec/project.json" in files
-    assert "plugins/pecot-workflow/project.json" in files
+    with allure.step("project.json の一覧を読む"):
+        # 集め方が狭まると、下の突き合わせが抜けに気づかず通るので、置き場所の 4 種類を確かめる。
+        files = _project_files()
+    with allure.step("全種類のプロジェクトのファイルが含まれることを確かめる"):
+        assert ".githooks/project.json" in files
+        assert ".nx/nx-release/project.json" in files
+        assert "libs/interface-spec/project.json" in files
+        assert "plugins/pecot-workflow/project.json" in files
 
 
 def test_every_test_target_is_listed() -> None:
-    listed = {(entry["project"], entry["target"]) for entry in _entries()}
-    missing = sorted(f"{p}:{t}" for p, t in set(_test_targets()) - listed)
-    assert missing == [], f"report-lanes.json に無い target: {missing}"
+    with allure.step("nx の test target を読む"):
+        listed = {(entry["project"], entry["target"]) for entry in _entries()}
+        missing = sorted(f"{p}:{t}" for p, t in set(_test_targets()) - listed)
+    with allure.step("すべてが report-lanes.json に載っていることを確かめる"):
+        assert missing == [], f"report-lanes.json に無い target: {missing}"
 
 
 def test_every_entry_is_a_real_target() -> None:
-    targets = _test_targets()
-    unknown = sorted(
-        f"{entry['project']}:{entry['target']}"
-        for entry in _entries()
-        if (entry["project"], entry["target"]) not in targets
-    )
-    assert unknown == [], f"nx に無い target: {unknown}"
+    with allure.step("report-lanes.json の項目を読む"):
+        targets = _test_targets()
+        unknown = sorted(
+            f"{entry['project']}:{entry['target']}"
+            for entry in _entries()
+            if (entry["project"], entry["target"]) not in targets
+        )
+    with allure.step("すべてが nx の実在の target であることを確かめる"):
+        assert unknown == [], f"nx に無い target: {unknown}"
 
 
 def test_entries_are_unique() -> None:
-    ids = _entry_ids()
-    assert len(ids) == len(set(ids))
+    with allure.step("項目の識別子を集める"):
+        ids = _entry_ids()
+    with allure.step("識別子が重ならないことを確かめる"):
+        assert len(ids) == len(set(ids))
 
 
 @pytest.mark.parametrize("entry", _entries(), ids=_entry_ids())
 def test_entry_has_either_results_or_excluded(entry: dict[str, Any]) -> None:
-    assert set(entry) <= {"project", "target", "plugin", "results", "excluded"}
-    kinds = [key for key in ("results", "excluded") if key in entry]
-    assert len(kinds) == 1, f"results と excluded のどちらか一方だけが要ります: {kinds}"
-    assert isinstance(entry[kinds[0]], str) and entry[kinds[0]]
+    with allure.step("項目のキーの種類を確かめる"):
+        assert set(entry) <= {"project", "target", "plugin", "results", "excluded"}
+        kinds = [key for key in ("results", "excluded") if key in entry]
+        assert len(kinds) == 1, f"results と excluded のどちらか一方だけが要ります: {kinds}"
+        assert isinstance(entry[kinds[0]], str) and entry[kinds[0]]
 
 
 def test_included_lanes_match_the_list() -> None:
-    included = sorted(f"{e['project']}:{e['target']}" for e in _entries() if "results" in e)
-    assert included == _INCLUDED
+    with allure.step("results を持つ項目を集める"):
+        included = sorted(f"{e['project']}:{e['target']}" for e in _entries() if "results" in e)
+    with allure.step("含めるレーンが期待の一覧と同じことを確かめる"):
+        assert included == _INCLUDED
 
 
 def test_excluded_reasons() -> None:
-    reasons = {
-        f"{e['project']}:{e['target']}": e["excluded"] for e in _entries() if "excluded" in e
-    }
-    assert set(reasons.values()) == {"bash の *.test.sh"}
+    with allure.step("除外の理由を集める"):
+        reasons = {
+            f"{e['project']}:{e['target']}": e["excluded"] for e in _entries() if "excluded" in e
+        }
+    with allure.step("除外の理由が bash の *.test.sh だけであることを確かめる"):
+        assert set(reasons.values()) == {"bash の *.test.sh"}
 
 
 @pytest.mark.parametrize(
@@ -127,14 +141,16 @@ def test_excluded_reasons() -> None:
     ids=lambda e: f"{e['project']}:{e['target']}",
 )
 def test_results_is_in_outputs(entry: dict[str, Any]) -> None:
-    root, definition = _test_targets()[(entry["project"], entry["target"])]
-    outputs = [
-        output.replace("{projectRoot}", root).replace("{workspaceRoot}/", "").rstrip("/")
-        for output in definition.get("outputs", [])
-    ]
-    assert entry["results"] in outputs, (
-        f"{entry['project']}:{entry['target']} の outputs: {outputs}"
-    )
+    with allure.step("target の outputs を読む"):
+        root, definition = _test_targets()[(entry["project"], entry["target"])]
+        outputs = [
+            output.replace("{projectRoot}", root).replace("{workspaceRoot}/", "").rstrip("/")
+            for output in definition.get("outputs", [])
+        ]
+    with allure.step("results が outputs に入っていることを確かめる"):
+        assert entry["results"] in outputs, (
+            f"{entry['project']}:{entry['target']} の outputs: {outputs}"
+        )
 
 
 @pytest.mark.parametrize(
@@ -143,19 +159,22 @@ def test_results_is_in_outputs(entry: dict[str, Any]) -> None:
     ids=lambda e: f"{e['project']}:{e['target']}",
 )
 def test_results_path_shape(entry: dict[str, Any]) -> None:
-    # allure-reporter.ts と run.sh が、この形でディレクトリを作る。
-    assert PurePosixPath(entry["results"]).name == "allure-results"
-    root = _roots()[entry["project"]]
-    assert entry["results"] == f"{root}/test-results/{entry['target']}/allure-results"
+    with allure.step("results の path の形を確かめる"):
+        # allure-reporter.ts と run.sh が、この形でディレクトリを作る。
+        assert PurePosixPath(entry["results"]).name == "allure-results"
+        root = _roots()[entry["project"]]
+        assert entry["results"] == f"{root}/test-results/{entry['target']}/allure-results"
 
 
 @pytest.mark.parametrize("entry", _entries(), ids=_entry_ids())
 def test_plugin_only_for_plugins(entry: dict[str, Any]) -> None:
-    root = _roots()[entry["project"]]
-    if PurePosixPath(root).parent == PurePosixPath("plugins"):
-        assert entry.get("plugin") == entry["project"]
-    else:
-        assert "plugin" not in entry
+    with allure.step("プロジェクトの場所を読む"):
+        root = _roots()[entry["project"]]
+    with allure.step("plugin の項目がプラグインにだけあることを確かめる"):
+        if PurePosixPath(root).parent == PurePosixPath("plugins"):
+            assert entry.get("plugin") == entry["project"]
+        else:
+            assert "plugin" not in entry
 
 
 def _run(*args: str) -> subprocess.CompletedProcess[str]:
@@ -177,37 +196,41 @@ def _js_slug(lanes: list[str]) -> list[str]:
 
 
 def test_real_lanes_make_one_job_per_lane_on_one_line() -> None:
-    result = _run()
-    assert result.returncode == 0, result.stderr
-    assert result.stdout.count("\n") == 1
-    matrix = json.loads(result.stdout)
-    assert [job["lane"] for job in matrix] == _INCLUDED
-    assert matrix[0] == {
-        "lane": "githooks:test-checks",
-        "slug": "githooks-test-checks",
-        "results": ".githooks/test-results/test-checks/allure-results",
-    }
-    assert {job["slug"] for job in matrix} == set(_js_slug(_INCLUDED))
+    with allure.step("実際のレーンの一覧で CLI を動かす"):
+        result = _run()
+    with allure.step("終了コード・1 行の matrix・レーンごとの job を確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.count("\n") == 1
+        matrix = json.loads(result.stdout)
+        assert [job["lane"] for job in matrix] == _INCLUDED
+        assert matrix[0] == {
+            "lane": "githooks:test-checks",
+            "slug": "githooks-test-checks",
+            "results": ".githooks/test-results/test-checks/allure-results",
+        }
+        assert {job["slug"] for job in matrix} == set(_js_slug(_INCLUDED))
 
 
 def test_slug_matches_ci_matrix(tmp_path: Path) -> None:
-    lanes = ["p:test-a", "p/x:test b", "p.q_r:test-c"]
-    path = tmp_path / "report-lanes.json"
-    path.write_text(
-        json.dumps(
-            [
-                {"project": lane.split(":")[0], "target": lane.split(":")[1], "results": f"{i}"}
-                for i, lane in enumerate(lanes)
-            ]
-            + [{"project": "p", "target": "test-z", "excluded": "bash の *.test.sh"}]
-        ),
-        encoding="utf-8",
-    )
-    result = _run(str(path))
-    assert result.returncode == 0, result.stderr
-    by_lane = {job["lane"]: job["slug"] for job in json.loads(result.stdout)}
-    assert [by_lane[lane] for lane in lanes] == _js_slug(lanes)
-    assert "p:test-z" not in by_lane
+    with allure.step("記号を含むレーン名の一覧を書いて CLI を動かす"):
+        lanes = ["p:test-a", "p/x:test b", "p.q_r:test-c"]
+        path = tmp_path / "report-lanes.json"
+        path.write_text(
+            json.dumps(
+                [
+                    {"project": lane.split(":")[0], "target": lane.split(":")[1], "results": f"{i}"}
+                    for i, lane in enumerate(lanes)
+                ]
+                + [{"project": "p", "target": "test-z", "excluded": "bash の *.test.sh"}]
+            ),
+            encoding="utf-8",
+        )
+        result = _run(str(path))
+    with allure.step("slug が CI の matrix と合うことを確かめる"):
+        assert result.returncode == 0, result.stderr
+        by_lane = {job["lane"]: job["slug"] for job in json.loads(result.stdout)}
+        assert [by_lane[lane] for lane in lanes] == _js_slug(lanes)
+        assert "p:test-z" not in by_lane
 
 
 @pytest.mark.parametrize(
@@ -228,17 +251,21 @@ def test_slug_matches_ci_matrix(tmp_path: Path) -> None:
     ids=["duplicate-slug", "missing-target", "both-kinds", "no-kind", "not-a-list"],
 )
 def test_broken_lanes_stop_with_one_line(tmp_path: Path, lanes: object, message: str) -> None:
-    path = tmp_path / "report-lanes.json"
-    path.write_text(json.dumps(lanes), encoding="utf-8")
-    result = _run(str(path))
-    assert result.returncode == 1
-    assert result.stdout == ""
-    assert message in result.stderr
-    assert result.stderr.count("\n") == 1
+    with allure.step("読めないレーンの一覧を書いて CLI を動かす"):
+        path = tmp_path / "report-lanes.json"
+        path.write_text(json.dumps(lanes), encoding="utf-8")
+        result = _run(str(path))
+    with allure.step("終了コード 1 と 1 行のエラーの出力を確かめる"):
+        assert result.returncode == 1
+        assert result.stdout == ""
+        assert message in result.stderr
+        assert result.stderr.count("\n") == 1
 
 
 def test_missing_file_stops(tmp_path: Path) -> None:
-    result = _run(str(tmp_path / "none.json"))
-    assert result.returncode == 1
-    assert result.stdout == ""
-    assert result.stderr.startswith("ERROR: ")
+    with allure.step("存在しないファイルで CLI を動かす"):
+        result = _run(str(tmp_path / "none.json"))
+    with allure.step("終了コード 1 と ERROR の出力を確かめる"):
+        assert result.returncode == 1
+        assert result.stdout == ""
+        assert result.stderr.startswith("ERROR: ")

@@ -9,6 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import allure
 import yaml
 
 _WORKFLOWS = Path(__file__).resolve().parents[2] / ".github/workflows"
@@ -29,13 +30,16 @@ def _checkouts_with_full_history() -> list[tuple[str, dict[str, Any]]]:
 
 
 def test_full_history_checkouts_exist() -> None:
-    assert _checkouts_with_full_history()
+    with allure.step("全履歴の checkout が 1 つ以上あることを確かめる"):
+        assert _checkouts_with_full_history()
 
 
 def test_full_history_checkouts_filter_blobs() -> None:
-    missing = [
-        label
-        for label, with_ in _checkouts_with_full_history()
-        if with_.get("filter") != "blob:none"
-    ]
-    assert missing == []
+    with allure.step("全履歴の checkout のうち、filter: blob:none の無いものを集める"):
+        missing = [
+            label
+            for label, with_ in _checkouts_with_full_history()
+            if with_.get("filter") != "blob:none"
+        ]
+    with allure.step("filter の無い checkout が無いことを確かめる"):
+        assert missing == []

@@ -26,6 +26,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+import allure
 import pytest
 import yaml
 
@@ -124,7 +125,8 @@ def _affected(nx_bin: Path, cwd: Path, *args: str, nx_state: Path | None = None)
     ],
 )
 def test_outside_project_file_affects_nothing(nx_bin: Path, changed_file: str) -> None:
-    assert _affected(nx_bin, _REPO_ROOT, f"--files={changed_file}") == []
+    with allure.step("project の外のファイルの変更が、どの project にも届かないことを確かめる"):
+        assert _affected(nx_bin, _REPO_ROOT, f"--files={changed_file}") == []
 
 
 @pytest.mark.parametrize(
@@ -144,21 +146,24 @@ def test_outside_project_file_affects_only_the_root_project(
     nx_bin: Path, changed_file: str
 ) -> None:
     """プラグインの外のファイルは、root の project（pecot）だけに属する。pecot はレーンの target を持たない (#113)。"""
-    assert _affected(nx_bin, _REPO_ROOT, f"--files={changed_file}") == ["pecot"]
+    with allure.step("project の外のファイルの変更が、root の project だけに届くことを確かめる"):
+        assert _affected(nx_bin, _REPO_ROOT, f"--files={changed_file}") == ["pecot"]
 
 
 def test_project_set_is_the_expected_one(nx_bin: Path) -> None:
     """project の集合を pin する。入れ子のメンバーが独立した project になると、レーンの選択が崩れる (#113)。"""
-    result = run_attached(
-        [str(nx_bin), "show", "projects", "--json"],
-        cwd=_REPO_ROOT,
-        capture_output=True,
-        text=True,
-        timeout=180,
-        env=_nx_env(),
-    )
-    assert result.returncode == 0, f"nx 失敗: {result.stderr}"
-    assert set(json.loads(result.stdout.strip().splitlines()[-1])) == _EXPECTED_PROJECTS
+    with allure.step("nx show projects を動かす"):
+        result = run_attached(
+            [str(nx_bin), "show", "projects", "--json"],
+            cwd=_REPO_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=180,
+            env=_nx_env(),
+        )
+    with allure.step("終了コード 0 で、project の集合が期待どおりであることを確かめる"):
+        assert result.returncode == 0, f"nx 失敗: {result.stderr}"
+        assert set(json.loads(result.stdout.strip().splitlines()[-1])) == _EXPECTED_PROJECTS
 
 
 @pytest.mark.parametrize(
@@ -176,16 +181,19 @@ def test_project_set_is_the_expected_one(nx_bin: Path) -> None:
 def test_plugin_source_affects_own_projects(
     nx_bin: Path, changed_file: str, expected: frozenset[str]
 ) -> None:
-    # 存在しないパスを --files に渡すと、nx は何も言わずに [] を返す。
-    # そのため代表ファイルの移動や改名は、「affected が空」ではなく明示的な失敗として出す。
-    assert (_REPO_ROOT / changed_file).exists(), f"代表ファイルが移動している: {changed_file}"
-    assert expected <= set(_affected(nx_bin, _REPO_ROOT, f"--files={changed_file}"))
+    with allure.step("代表ファイルが実在し、変更が自分の project に届くことを確かめる"):
+        # 存在しないパスを --files に渡すと、nx は何も言わずに [] を返す。
+        # そのため代表ファイルの移動や改名は、「affected が空」ではなく明示的な失敗として出す。
+        assert (_REPO_ROOT / changed_file).exists(), f"代表ファイルが移動している: {changed_file}"
+        assert expected <= set(_affected(nx_bin, _REPO_ROOT, f"--files={changed_file}"))
 
 
 def test_nx_json_still_affects_all_projects(nx_bin: Path) -> None:
     """nx.json は sharedGlobals に残す設計。全 project 発火が生きていることを pin する。"""
-    affected = set(_affected(nx_bin, _REPO_ROOT, "--files=nx.json"))
-    assert {"pecot-workflow", "pecot-visual", "pecot-tools", "text-rules"} <= affected
+    with allure.step("nx.json の変更で affected を調べる"):
+        affected = set(_affected(nx_bin, _REPO_ROOT, "--files=nx.json"))
+    with allure.step("全プラグインの project に届くことを確かめる"):
+        assert {"pecot-workflow", "pecot-visual", "pecot-tools", "text-rules"} <= affected
 
 
 @pytest.mark.parametrize(
@@ -199,9 +207,13 @@ def test_nx_json_still_affects_all_projects(nx_bin: Path) -> None:
 )
 def test_devcontainer_change_affects_all_projects(nx_bin: Path, changed_file: str) -> None:
     """CI のイメージと起動に関わる .devcontainer のファイルは、sharedGlobals で全 project に届く。"""
-    assert (_REPO_ROOT / changed_file).exists(), f"代表ファイルが移動している: {changed_file}"
-    affected = set(_affected(nx_bin, _REPO_ROOT, f"--files={changed_file}"))
-    assert {"pecot-workflow", "pecot-visual", "pecot-tools", "text-rules"} <= affected
+    with allure.step("代表ファイルが実在することを確かめる"):
+        assert (_REPO_ROOT / changed_file).exists(), f"代表ファイルが移動している: {changed_file}"
+    with allure.step(
+        "変更したファイルで affected を調べ、全プラグインの project に届くことを確かめる"
+    ):
+        affected = set(_affected(nx_bin, _REPO_ROOT, f"--files={changed_file}"))
+        assert {"pecot-workflow", "pecot-visual", "pecot-tools", "text-rules"} <= affected
 
 
 # -----------------------------------------------------------------------------
@@ -443,7 +455,8 @@ def test_out_of_lane_input_reruns_only_consumer_lane(
     nx.json の pecotvPluginTestGlobals（pecot-visual 全レーンが共有）へ戻すと、
     1 ファイルの変更で pecot-visual の全レーンが再実行される。
     """
-    assert _lanes_reading(lane_input_files, changed_file) == expected
+    with allure.step("レーンの外の入力を、消費者のレーンだけが読むことを確かめる"):
+        assert _lanes_reading(lane_input_files, changed_file) == expected
 
 
 @pytest.mark.parametrize(
@@ -461,7 +474,8 @@ def test_skill_definition_change_runs_definition_check(
     skills と pecot-visual の SKILL.md は hooks/ の外にある。
     レーンの inputs に直接宣言しないと、nx キャッシュが定義の変更を見逃し、確認が行われなくなる。
     """
-    assert "pecot-workflow:test-hooks" in _lanes_reading(lane_input_files, changed_file)
+    with allure.step("SKILL.md の変更を、pecot-workflow の hooks レーンが読むことを確かめる"):
+        assert "pecot-workflow:test-hooks" in _lanes_reading(lane_input_files, changed_file)
 
 
 @pytest.mark.parametrize(
@@ -476,7 +490,8 @@ def test_skill_body_change_runs_skills_lane(
     lane_input_files: dict[str, set[str]], changed_file: str
 ) -> None:
     """スキル・エージェント・hooks テンプレートの本文を確認する test-skills は、本文と COMMANDS の変更で動く (#350)。"""
-    assert "pecot-workflow:test-skills" in _lanes_reading(lane_input_files, changed_file)
+    with allure.step("スキルの本文の変更を、pecot-workflow の skills レーンが読むことを確かめる"):
+        assert "pecot-workflow:test-skills" in _lanes_reading(lane_input_files, changed_file)
 
 
 @pytest.mark.parametrize(
@@ -503,14 +518,17 @@ def test_release_lane_is_cached_and_not_run_by_unrelated_changes(
     その場合はキャッシュが再利用される。
     外部レジストリの状態はハッシュに表せない。その変化は、リリース時の dry-run と監査で拾う。
     """
-    assert release_lane not in _lanes_reading(lane_input_files, changed_file)
-    graph_file = tmp_path / "graph.json"
-    _nx(nx_bin, "graph", f"--file={graph_file}")
-    project, target = release_lane.split(":")
-    nodes = json.loads(graph_file.read_text(encoding="utf-8"))["graph"]["nodes"]
-    config = nodes[project]["data"]["targets"][target]
-    attach_json(f"graph.json の {release_lane}", config)
-    assert config.get("cache") is True
+    with allure.step("cli/src などの変更を、release レーンが読まないことを確かめる"):
+        assert release_lane not in _lanes_reading(lane_input_files, changed_file)
+    with allure.step("nx graph を書き出し、release レーンの設定を取り出す"):
+        graph_file = tmp_path / "graph.json"
+        _nx(nx_bin, "graph", f"--file={graph_file}")
+        project, target = release_lane.split(":")
+        nodes = json.loads(graph_file.read_text(encoding="utf-8"))["graph"]["nodes"]
+        config = nodes[project]["data"]["targets"][target]
+        attach_json(f"graph.json の {release_lane}", config)
+    with allure.step("release レーンが cache: true であることを確かめる"):
+        assert config.get("cache") is True
 
 
 @pytest.mark.parametrize(
@@ -531,7 +549,8 @@ def test_nx_release_lane_follows_its_inputs(
     lane_input_files: dict[str, set[str]], changed_file: str
 ) -> None:
     """`.nx/nx-release` のレーンが nx 更新・リリース設定の変更でも再実行される。"""
-    assert "nx-release:test-unit" in _lanes_reading(lane_input_files, changed_file)
+    with allure.step("nx の更新と release の設定の変更を、nx-release のレーンが読むことを確かめる"):
+        assert "nx-release:test-unit" in _lanes_reading(lane_input_files, changed_file)
 
 
 # -----------------------------------------------------------------------------
@@ -549,46 +568,58 @@ def test_nx_release_lane_follows_its_inputs(
 
 
 def test_pecotv_test_lanes_depend_on_shared_install_and_build(tmp_path: Path, nx_bin: Path) -> None:
-    graph_file = tmp_path / "graph.json"
-    _nx(nx_bin, "run-many", "-t", "test", "-p", "pecot-visual", f"--graph={graph_file}")
-    tasks = json.loads(graph_file.read_text(encoding="utf-8"))["tasks"]
-    # nx 24 の dependencies は、task id から `[{"id": <依存 task id>}]` への対応になる。
-    # nx 22 では、id の文字列の配列だった。
-    deps = {task: {dep["id"] for dep in entries} for task, entries in tasks["dependencies"].items()}
-    attach_json("graph.json のタスクの依存", {task: sorted(ids) for task, ids in deps.items()})
-    lanes = [t for t in tasks["tasks"] if t.startswith("pecot-visual:test-")]
-    assert "pecot-visual:test-compare" in lanes, lanes
-    for lane in lanes:
-        assert "pecot-visual:install" in deps[lane], f"{lane} が install に依存しない"
-    for lane in ("pecot-visual:test-cli", "pecot-visual:test-release", "pecot-visual:test-compare"):
-        assert "pecot-visual:build-cli" in deps[lane], f"{lane} が build-cli に依存しない"
-    # 共有ステップは task graph 上で project ごとの 1 件が載る。
-    # text-rules:build が text-rules:install を連れてくるので、install は 3 件になる (#1281)。
-    # どの project の install も、root の pecot:install（pnpm install --frozen-lockfile）に依存する (#113)。
-    assert sorted(t for t in tasks["tasks"] if t.endswith(":install")) == [
-        "pecot-visual:install",
-        "pecot:install",
-        "text-rules:install",
-    ]
-    assert "pecot:install" in deps["pecot-visual:install"]
-    assert "pecot:install" in deps["text-rules:install"]
-    # 配布ツリーに同梱する text-rules の dist を、release レーンが先に build する。
-    assert "text-rules:build" in deps["pecot-visual:test-release"]
-    # pecot:install → text-rules:install → text-rules:build → build-slidev。
-    assert "text-rules:install" in deps["text-rules:build"]
-    assert "text-rules:build" in deps["pecot-visual:build-slidev"]
-    assert "pecot-visual:install" in deps["pecot-visual:build-slidev"]
+    with allure.step("pecot-visual の test の依存を graph に書き出して集める"):
+        graph_file = tmp_path / "graph.json"
+        _nx(nx_bin, "run-many", "-t", "test", "-p", "pecot-visual", f"--graph={graph_file}")
+        tasks = json.loads(graph_file.read_text(encoding="utf-8"))["tasks"]
+        # nx 24 の dependencies は、task id から `[{"id": <依存 task id>}]` への対応になる。
+        # nx 22 では、id の文字列の配列だった。
+        deps = {
+            task: {dep["id"] for dep in entries} for task, entries in tasks["dependencies"].items()
+        }
+        attach_json("graph.json のタスクの依存", {task: sorted(ids) for task, ids in deps.items()})
+        lanes = [t for t in tasks["tasks"] if t.startswith("pecot-visual:test-")]
+    with allure.step("レーンが install と build を共有して待つことを確かめる"):
+        assert "pecot-visual:test-compare" in lanes, lanes
+        for lane in lanes:
+            assert "pecot-visual:install" in deps[lane], f"{lane} が install に依存しない"
+        for lane in (
+            "pecot-visual:test-cli",
+            "pecot-visual:test-release",
+            "pecot-visual:test-compare",
+        ):
+            assert "pecot-visual:build-cli" in deps[lane], f"{lane} が build-cli に依存しない"
+        # 共有ステップは task graph 上で project ごとの 1 件が載る。
+        # text-rules:build が text-rules:install を連れてくるので、install は 3 件になる (#1281)。
+        # どの project の install も、root の pecot:install（pnpm install --frozen-lockfile）に依存する (#113)。
+        assert sorted(t for t in tasks["tasks"] if t.endswith(":install")) == [
+            "pecot-visual:install",
+            "pecot:install",
+            "text-rules:install",
+        ]
+        assert "pecot:install" in deps["pecot-visual:install"]
+        assert "pecot:install" in deps["text-rules:install"]
+        # 配布ツリーに同梱する text-rules の dist を、release レーンが先に build する。
+        assert "text-rules:build" in deps["pecot-visual:test-release"]
+        # pecot:install → text-rules:install → text-rules:build → build-slidev。
+        assert "text-rules:install" in deps["text-rules:build"]
+        assert "text-rules:build" in deps["pecot-visual:build-slidev"]
+        assert "pecot-visual:install" in deps["pecot-visual:build-slidev"]
 
 
 def test_pecot_visual_bootstrap_lane_waits_for_install_only(tmp_path: Path, nx_bin: Path) -> None:
     """pecot-visual の bootstrap のレーン (#1235) は install を共有し、本体の cli/dist を使わないので build-cli に依存しない。"""
-    graph_file = tmp_path / "graph.json"
-    _nx(nx_bin, "run-many", "-t", "test", "-p", "pecot-visual", f"--graph={graph_file}")
-    tasks = json.loads(graph_file.read_text(encoding="utf-8"))["tasks"]
-    deps = {task: {dep["id"] for dep in entries} for task, entries in tasks["dependencies"].items()}
-    attach_json("graph.json のタスクの依存", {task: sorted(ids) for task, ids in deps.items()})
-    assert "pecot-visual:install" in deps["pecot-visual:test-bootstrap"]
-    assert "pecot-visual:build-cli" not in deps["pecot-visual:test-bootstrap"]
+    with allure.step("pecot-visual の test の依存を graph に書き出して集める"):
+        graph_file = tmp_path / "graph.json"
+        _nx(nx_bin, "run-many", "-t", "test", "-p", "pecot-visual", f"--graph={graph_file}")
+        tasks = json.loads(graph_file.read_text(encoding="utf-8"))["tasks"]
+        deps = {
+            task: {dep["id"] for dep in entries} for task, entries in tasks["dependencies"].items()
+        }
+        attach_json("graph.json のタスクの依存", {task: sorted(ids) for task, ids in deps.items()})
+    with allure.step("bootstrap のレーンが install だけを待つことを確かめる"):
+        assert "pecot-visual:install" in deps["pecot-visual:test-bootstrap"]
+        assert "pecot-visual:build-cli" not in deps["pecot-visual:test-bootstrap"]
 
 
 # -----------------------------------------------------------------------------
@@ -604,65 +635,70 @@ def test_pecot_visual_bootstrap_lane_waits_for_install_only(tmp_path: Path, nx_b
 
 
 def test_lockfile_only_commit_affects_nothing_via_base_head(nx_bin: Path, tmp_path: Path) -> None:
-    probe = tmp_path / "probe"
-    # --no-hardlinks は必須とする。
-    # tmp_path はリポジトリと別マウントになり得る。
-    # devcontainer の bind mount 構成では、実際に別デバイスになる。
-    # その場合、既定のハードリンク複製は "Invalid cross-device link" で失敗する。
-    run_attached(
-        ["git", "clone", "--local", "--no-hardlinks", "-q", str(_REPO_ROOT), str(probe)],
-        check=True,
-        capture_output=True,
-    )
-    # 複製には node_modules が無いので実体を貼る（nx 本体と plugin 依存の解決用）。
-    (probe / "node_modules").symlink_to(_REPO_ROOT / "node_modules")
-
-    def git(*args: str) -> None:
+    with allure.step("probe のリポを作り、nx の設定を写して base を決める"):
+        probe = tmp_path / "probe"
+        # --no-hardlinks は必須とする。
+        # tmp_path はリポジトリと別マウントになり得る。
+        # devcontainer の bind mount 構成では、実際に別デバイスになる。
+        # その場合、既定のハードリンク複製は "Invalid cross-device link" で失敗する。
         run_attached(
-            [
-                "git",
-                "-c",
-                "commit.gpgsign=false",
-                "-c",
-                "user.email=t@example.com",
-                "-c",
-                "user.name=t",
-                *args,
-            ],
-            cwd=probe,
+            ["git", "clone", "--local", "--no-hardlinks", "-q", str(_REPO_ROOT), str(probe)],
             check=True,
             capture_output=True,
         )
+        # 複製には node_modules が無いので実体を貼る（nx 本体と plugin 依存の解決用）。
+        (probe / "node_modules").symlink_to(_REPO_ROOT / "node_modules")
 
-    # プローブ 1: 作業ツリー側の nx 設定を複製へ持ち込んで base を作る。clone は
-    # コミット済みの内容しか持たないため、未コミットの .nxignore / nx.json 変更でも
-    # 同じ判定が pin されるようにする。
-    for name in _NX_CONFIG_FILES:
-        shutil.copyfile(_REPO_ROOT / name, probe / name)
-    git("add", "-A")
-    git("commit", "-q", "--allow-empty", "-m", "probe: sync nx config")
-    base = run_attached(
-        ["git", "rev-parse", "HEAD"], cwd=probe, check=True, capture_output=True, text=True
-    ).stdout.strip()
+        def git(*args: str) -> None:
+            run_attached(
+                [
+                    "git",
+                    "-c",
+                    "commit.gpgsign=false",
+                    "-c",
+                    "user.email=t@example.com",
+                    "-c",
+                    "user.name=t",
+                    *args,
+                ],
+                cwd=probe,
+                check=True,
+                capture_output=True,
+            )
 
-    # プローブ 2: root lockfile だけを変更する（packages の 1 件の版を、キーと参照箇所の両方で書き換える）。
-    # 実際の依存の変更にしておく。末尾へのコメント追加では、projectsAffectedByDependencyUpdates が
-    # 'auto' でも通ってしまい、.nxignore を外した退行を検出できない。
-    lockfile = probe / "pnpm-lock.yaml"
-    lock = lockfile.read_text(encoding="utf-8")
-    bumped = lock.replace("@antfu/install-pkg@1.1.0", "@antfu/install-pkg@1.1.0-probe")
-    assert bumped != lock
-    lockfile.write_text(bumped, encoding="utf-8")
-    git("add", "-A")
-    git("commit", "-q", "-m", "probe: bump transitive lockfile version")
-    head = run_attached(
-        ["git", "rev-parse", "HEAD"], cwd=probe, check=True, capture_output=True, text=True
-    ).stdout.strip()
+        # プローブ 1: 作業ツリー側の nx 設定を複製へ持ち込んで base を作る。clone は
+        # コミット済みの内容しか持たないため、未コミットの .nxignore / nx.json 変更でも
+        # 同じ判定が pin されるようにする。
+        for name in _NX_CONFIG_FILES:
+            shutil.copyfile(_REPO_ROOT / name, probe / name)
+        git("add", "-A")
+        git("commit", "-q", "--allow-empty", "-m", "probe: sync nx config")
+        base = run_attached(
+            ["git", "rev-parse", "HEAD"], cwd=probe, check=True, capture_output=True, text=True
+        ).stdout.strip()
 
-    assert (
-        _affected(nx_bin, probe, f"--base={base}", f"--head={head}", nx_state=tmp_path / "nx-state")
-        == []
-    )
+    with allure.step("lockfile の推移的な版を上げて commit する"):
+        # プローブ 2: root lockfile だけを変更する（packages の 1 件の版を、キーと参照箇所の両方で書き換える）。
+        # 実際の依存の変更にしておく。末尾へのコメント追加では、projectsAffectedByDependencyUpdates が
+        # 'auto' でも通ってしまい、.nxignore を外した退行を検出できない。
+        lockfile = probe / "pnpm-lock.yaml"
+        lock = lockfile.read_text(encoding="utf-8")
+        bumped = lock.replace("@antfu/install-pkg@1.1.0", "@antfu/install-pkg@1.1.0-probe")
+        assert bumped != lock
+        lockfile.write_text(bumped, encoding="utf-8")
+        git("add", "-A")
+        git("commit", "-q", "-m", "probe: bump transitive lockfile version")
+    with allure.step("base と head で affected を調べ、何も届かないことを確かめる"):
+        head = run_attached(
+            ["git", "rev-parse", "HEAD"], cwd=probe, check=True, capture_output=True, text=True
+        ).stdout.strip()
+
+        assert (
+            _affected(
+                nx_bin, probe, f"--base={base}", f"--head={head}", nx_state=tmp_path / "nx-state"
+            )
+            == []
+        )
 
 
 # -----------------------------------------------------------------------------
@@ -1000,8 +1036,10 @@ _PECOTV_TEST_LANES = {
 def test_gate_selects_only_the_lanes_the_change_reaches(
     nx_bin: Path, tmp_path: Path, changed_file: str, expected: frozenset[str]
 ) -> None:
-    lanes = _graph_lane_names(nx_bin, tmp_path, "test")
-    assert _selected_lanes(nx_bin, tmp_path, lanes, changed_file) == expected
+    with allure.step("test のレーン名を集める"):
+        lanes = _graph_lane_names(nx_bin, tmp_path, "test")
+    with allure.step("変更したファイルで選ばれるレーンが期待どおりであることを確かめる"):
+        assert _selected_lanes(nx_bin, tmp_path, lanes, changed_file) == expected
 
 
 @pytest.mark.parametrize(
@@ -1091,9 +1129,11 @@ def test_gate_selects_the_githooks_lanes_that_read_the_change(
     nx_bin: Path, tmp_path: Path, changed_file: str, expected: frozenset[str]
 ) -> None:
     """githooks のレーンだけを見る。ほかの project も読むファイルは、そちらのレーンも選ぶため。"""
-    lanes = _graph_lane_names(nx_bin, tmp_path, "test")
-    selected = _selected_lanes(nx_bin, tmp_path, lanes, changed_file)
-    assert {lane for lane in selected if lane.startswith("githooks:")} == expected
+    with allure.step("test のレーン名を集め、変更したファイルで選ぶ"):
+        lanes = _graph_lane_names(nx_bin, tmp_path, "test")
+        selected = _selected_lanes(nx_bin, tmp_path, lanes, changed_file)
+    with allure.step("選ばれた githooks のレーンが期待どおりであることを確かめる"):
+        assert {lane for lane in selected if lane.startswith("githooks:")} == expected
 
 
 @pytest.mark.parametrize(
@@ -1103,17 +1143,21 @@ def test_graph_lanes_read_every_workspace_package_json(
     lane_input_files: dict[str, set[str]], lane: str
 ) -> None:
     """graph を作る package.json は pnpm-workspace.yaml の packages で決まる。入力が過不足なく追随する。"""
-    workspace = yaml.safe_load((_REPO_ROOT / "pnpm-workspace.yaml").read_text(encoding="utf-8"))
-    expected = {f"{package}/package.json" for package in workspace["packages"]} | {"package.json"}
-    tracked = run_attached(
-        ["git", "ls-files", "--", "*package.json"],
-        cwd=_REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.split()
-    read = {f for f in lane_input_files[lane] if f in set(tracked)}
-    assert read == expected & set(tracked), sorted(read ^ expected)
+    with allure.step("workspace の package.json の一覧と、追跡するファイルを集める"):
+        workspace = yaml.safe_load((_REPO_ROOT / "pnpm-workspace.yaml").read_text(encoding="utf-8"))
+        expected = {f"{package}/package.json" for package in workspace["packages"]} | {
+            "package.json"
+        }
+        tracked = run_attached(
+            ["git", "ls-files", "--", "*package.json"],
+            cwd=_REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.split()
+        read = {f for f in lane_input_files[lane] if f in set(tracked)}
+    with allure.step("レーンが読む package.json が過不足なく一致することを確かめる"):
+        assert read == expected & set(tracked), sorted(read ^ expected)
 
 
 @pytest.mark.parametrize(
@@ -1234,23 +1278,27 @@ def test_graph_lanes_read_every_workspace_package_json(
 def test_lint_gate_selects_only_the_lanes_the_change_reaches(
     nx_bin: Path, tmp_path: Path, changed_file: str, expected: frozenset[str]
 ) -> None:
-    lanes = _graph_lane_names(nx_bin, tmp_path, "lint")
-    assert _selected_lanes(nx_bin, tmp_path, lanes, changed_file) == expected
+    with allure.step("lint のレーン名を集める"):
+        lanes = _graph_lane_names(nx_bin, tmp_path, "lint")
+    with allure.step("変更したファイルで選ばれるレーンが期待どおりであることを確かめる"):
+        assert _selected_lanes(nx_bin, tmp_path, lanes, changed_file) == expected
 
 
 @pytest.mark.parametrize("kind", ["test", "lint"])
 def test_gate_lane_names_match_the_lib(nx_bin: Path, tmp_path: Path, kind: str) -> None:
     """lib/nx-lanes.sh が返すレーン名は、graph の定義から機械的に集めた名前と一致する。"""
-    lib = _REPO_ROOT / ".githooks" / "lib" / "nx-lanes.sh"
-    result = run_attached(
-        ["bash", "-c", f'source "{lib}" && nx_lane_targets "{nx_bin}" "{_REPO_ROOT}" {kind}'],
-        capture_output=True,
-        text=True,
-        timeout=180,
-        env=_nx_env(),
-    )
-    assert result.returncode == 0, result.stderr
-    assert result.stdout.strip().split(",") == _graph_lane_names(nx_bin, tmp_path, kind)
+    with allure.step("nx-lanes.sh を動かす"):
+        lib = _REPO_ROOT / ".githooks" / "lib" / "nx-lanes.sh"
+        result = run_attached(
+            ["bash", "-c", f'source "{lib}" && nx_lane_targets "{nx_bin}" "{_REPO_ROOT}" {kind}'],
+            capture_output=True,
+            text=True,
+            timeout=180,
+            env=_nx_env(),
+        )
+    with allure.step("終了コード 0 で、graph から集めたレーン名と一致することを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.strip().split(",") == _graph_lane_names(nx_bin, tmp_path, kind)
 
 
 def _parametrized_changed_files() -> set[str]:
@@ -1276,19 +1324,23 @@ _NOT_LISTED = {"pnpm-lock.yaml", ".pecot/config/.worktreeignore"}
 
 def test_representative_files_list_matches_the_parametrized_ones() -> None:
     """githooks:test-nx-affected の runtime 入力が実在を見る一覧は、このファイルの代表ファイルと一致する。"""
-    listed = set(
-        (_REPO_ROOT / ".githooks/tests/representative-files.txt")
-        .read_text(encoding="utf-8")
-        .split()
-    )
-    assert _parametrized_changed_files() - _NOT_LISTED == listed
+    with allure.step("runtime の入力が実在を見る一覧を読む"):
+        listed = set(
+            (_REPO_ROOT / ".githooks/tests/representative-files.txt")
+            .read_text(encoding="utf-8")
+            .split()
+        )
+    with allure.step("このファイルの代表ファイルと一致することを確かめる"):
+        assert _parametrized_changed_files() - _NOT_LISTED == listed
 
 
 def test_lint_defs_reads_the_definitions_of_every_plugin() -> None:
     """定義書は plugins/*/interface/ に置かれる。実在を要る選び方のテストでなく、入力の宣言で固定する。"""
-    project = json.loads((_REPO_ROOT / "libs/interface-spec/project.json").read_text("utf-8"))
-    inputs = project["targets"]["lint-defs"]["inputs"]
-    assert "{workspaceRoot}/plugins/*/interface/**/*" in inputs
+    with allure.step("lint-defs の inputs を読む"):
+        project = json.loads((_REPO_ROOT / "libs/interface-spec/project.json").read_text("utf-8"))
+        inputs = project["targets"]["lint-defs"]["inputs"]
+    with allure.step("全プラグインの定義書を読む宣言があることを確かめる"):
+        assert "{workspaceRoot}/plugins/*/interface/**/*" in inputs
 
 
 def test_lint_defs_inputs_cover_the_sources_and_tests_of_every_plugin() -> None:
@@ -1297,19 +1349,23 @@ def test_lint_defs_inputs_cover_the_sources_and_tests_of_every_plugin() -> None:
     覆われないと、ソースの環境変数の読みが増えても nx affected が lint-defs を選ばず、キャッシュも当たる。
     plugins が空の間は何も確かめない。
     """
-    targets = json.loads((_REPO_ROOT / "libs/interface-spec/targets.json").read_text("utf-8"))
-    project = json.loads((_REPO_ROOT / "libs/interface-spec/project.json").read_text("utf-8"))
-    inputs = {
-        entry.removeprefix("{workspaceRoot}/")
-        for entry in project["targets"]["lint-defs"]["inputs"]
-        if isinstance(entry, str) and entry.startswith("{workspaceRoot}/")
-    }
-    for name, plugin in targets["plugins"].items():
-        for key in ("sources", "tests"):
-            for glob in plugin[key]:
-                # glob は plugins/<name>/ から、inputs はリポのルートから。
-                path = posixpath.normpath(f"plugins/{name}/{glob}")
-                assert path in inputs, f"{name} の {key} の {glob} が lint-defs の inputs に無い"
+    with allure.step("targets.json と lint-defs の inputs を読む"):
+        targets = json.loads((_REPO_ROOT / "libs/interface-spec/targets.json").read_text("utf-8"))
+        project = json.loads((_REPO_ROOT / "libs/interface-spec/project.json").read_text("utf-8"))
+        inputs = {
+            entry.removeprefix("{workspaceRoot}/")
+            for entry in project["targets"]["lint-defs"]["inputs"]
+            if isinstance(entry, str) and entry.startswith("{workspaceRoot}/")
+        }
+    with allure.step("各プラグインの sources と tests の glob が inputs に覆われることを確かめる"):
+        for name, plugin in targets["plugins"].items():
+            for key in ("sources", "tests"):
+                for glob in plugin[key]:
+                    # glob は plugins/<name>/ から、inputs はリポのルートから。
+                    path = posixpath.normpath(f"plugins/{name}/{glob}")
+                    assert path in inputs, (
+                        f"{name} の {key} の {glob} が lint-defs の inputs に無い"
+                    )
 
 
 def _matches_by_segment(path: str, glob: str) -> bool:
@@ -1324,17 +1380,19 @@ def test_pecot_workflow_sources_list_every_directory_of_cli_node_src(src_dir: st
 
     sources は ** を使わずディレクトリを列挙するので、載らないと環境変数の確認から漏れる。
     """
-    sources = json.loads((_REPO_ROOT / "libs/interface-spec/targets.json").read_text("utf-8"))[
-        "plugins"
-    ]["pecot-workflow"]["sources"]
-    globs = [posixpath.normpath(f"plugins/pecot-workflow/{glob}") for glob in sources]
-    src = _REPO_ROOT / posixpath.normpath(f"plugins/pecot-workflow/{src_dir}")
-    directories = {
-        path.parent for path in src.rglob("*.ts") if "tests" not in path.relative_to(src).parts
-    }
-    assert directories, f"{src_dir} に .ts が無い"
-    for directory in sorted(directories):
-        file = f"{directory.relative_to(_REPO_ROOT).as_posix()}/x.ts"
-        assert any(_matches_by_segment(file, glob) for glob in globs), (
-            f"{directory.relative_to(_REPO_ROOT).as_posix()} が targets.json の pecot-workflow の sources に無い"
-        )
+    with allure.step("sources の glob と、.ts を持つディレクトリを集める"):
+        sources = json.loads((_REPO_ROOT / "libs/interface-spec/targets.json").read_text("utf-8"))[
+            "plugins"
+        ]["pecot-workflow"]["sources"]
+        globs = [posixpath.normpath(f"plugins/pecot-workflow/{glob}") for glob in sources]
+        src = _REPO_ROOT / posixpath.normpath(f"plugins/pecot-workflow/{src_dir}")
+        directories = {
+            path.parent for path in src.rglob("*.ts") if "tests" not in path.relative_to(src).parts
+        }
+    with allure.step("どのディレクトリも sources の glob に載ることを確かめる"):
+        assert directories, f"{src_dir} に .ts が無い"
+        for directory in sorted(directories):
+            file = f"{directory.relative_to(_REPO_ROOT).as_posix()}/x.ts"
+            assert any(_matches_by_segment(file, glob) for glob in globs), (
+                f"{directory.relative_to(_REPO_ROOT).as_posix()} が targets.json の pecot-workflow の sources に無い"
+            )

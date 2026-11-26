@@ -35,6 +35,7 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
+import allure
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -470,19 +471,20 @@ def test_env_path_affected_with_merge_base(
     at_repo.build_feature()
 
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": at_repo.feature_sha})
-    assert result.returncode == 0
+    with allure.step("終了コードと affected の呼び出しの base・head・並列・出力の形を確かめる"):
+        assert result.returncode == 0
 
-    log = read_output(at_repo.nx_log)
-    # 起点の `test`（nx:noop）ではなく、graph の test-* レーンを名前で列挙して要求する（#1232）。
-    assert "affected -t test-cli,test-hooks,test-unit --base=" in log
-    assert f"--base={at_repo.from_sha}" in log
-    assert f"--head={at_repo.feature_sha}" in log
-    assert "--parallel=4" in log
-    assert "--nxBail" in log
-    assert "--output-style=stream" in log
-    assert "run-many" not in log
-    # 色付けを止めて起動する（ANSI がログと抽出を汚さないように）。
-    assert "ENV NO_COLOR=1" in log
+        log = read_output(at_repo.nx_log)
+        # 起点の `test`（nx:noop）ではなく、graph の test-* レーンを名前で列挙して要求する（#1232）。
+        assert "affected -t test-cli,test-hooks,test-unit --base=" in log
+        assert f"--base={at_repo.from_sha}" in log
+        assert f"--head={at_repo.feature_sha}" in log
+        assert "--parallel=4" in log
+        assert "--nxBail" in log
+        assert "--output-style=stream" in log
+        assert "run-many" not in log
+        # 色付けを止めて起動する（ANSI がログと抽出を汚さないように）。
+        assert "ENV NO_COLOR=1" in log
 
 
 def test_stdin_path_affected(script_dir: Path, at_repo: _AffectedTestsRepo, run_script) -> None:
@@ -496,12 +498,13 @@ def test_stdin_path_affected(script_dir: Path, at_repo: _AffectedTestsRepo, run_
         run_script,
         stdin=f"refs/heads/feature {at_repo.feature_sha} refs/heads/feature {at_repo.main_sha}\n",
     )
-    assert result.returncode == 0
+    with allure.step("終了コードと affected の呼び出しの base と head を確かめる"):
+        assert result.returncode == 0
 
-    log = read_output(at_repo.nx_log)
-    assert "affected -t test" in log
-    assert f"--base={at_repo.from_sha}" in log
-    assert f"--head={at_repo.feature_sha}" in log
+        log = read_output(at_repo.nx_log)
+        assert "affected -t test" in log
+        assert f"--base={at_repo.from_sha}" in log
+        assert f"--head={at_repo.feature_sha}" in log
 
 
 def test_version_plan_base_override(
@@ -521,11 +524,12 @@ def test_version_plan_base_override(
             "PRE_COMMIT_TO_REF": at_repo.feature_sha,
         },
     )
-    assert result.returncode == 0
+    with allure.step("終了コードと指定した base の merge-base が使われることを確かめる"):
+        assert result.returncode == 0
 
-    log = read_output(at_repo.nx_log)
-    assert f"--base={at_repo.from_sha}" in log
-    assert f"--head={at_repo.feature_sha}" in log
+        log = read_output(at_repo.nx_log)
+        assert f"--base={at_repo.from_sha}" in log
+        assert f"--head={at_repo.feature_sha}" in log
 
 
 def test_branch_delete_push_skips(
@@ -536,8 +540,9 @@ def test_branch_delete_push_skips(
     at_repo.build_feature()
 
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": _ZERO_SHA})
-    assert result.returncode == 0
-    assert read_output(at_repo.nx_log) == ""
+    with allure.step("終了コードと nx が起動されないことを確かめる"):
+        assert result.returncode == 0
+        assert read_output(at_repo.nx_log) == ""
 
 
 def test_from_equals_to_skips(script_dir: Path, at_repo: _AffectedTestsRepo, run_script) -> None:
@@ -548,8 +553,9 @@ def test_from_equals_to_skips(script_dir: Path, at_repo: _AffectedTestsRepo, run
     at_repo.fake_origin_head("main")
 
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": at_repo.main_sha})
-    assert result.returncode == 0
-    assert read_output(at_repo.nx_log) == ""
+    with allure.step("終了コードと nx が起動されないことを確かめる"):
+        assert result.returncode == 0
+        assert read_output(at_repo.nx_log) == ""
 
 
 def test_affected_test_failure_propagates(
@@ -565,8 +571,9 @@ def test_affected_test_failure_propagates(
         run_script,
         env={"STUB_NX_EXIT": "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 1
-    assert "affected -t test" in read_output(at_repo.nx_log)
+    with allure.step("終了コード 1 と affected の呼び出しを確かめる"):
+        assert result.returncode == 1
+        assert "affected -t test" in read_output(at_repo.nx_log)
 
 
 def test_nx_unresolved_fail_closed(
@@ -577,10 +584,11 @@ def test_nx_unresolved_fail_closed(
     at_repo.build_feature()
 
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": at_repo.feature_sha})
-    assert result.returncode == 1
-    out = result.stdout + result.stderr
-    assert "ERROR" in out
-    assert "nx" in out
+    with allure.step("終了コード 1 と復旧手順入りの ERROR を確かめる"):
+        assert result.returncode == 1
+        out = result.stdout + result.stderr
+        assert "ERROR" in out
+        assert "nx" in out
 
 
 def test_base_unresolved_run_many_fallback(
@@ -592,17 +600,18 @@ def test_base_unresolved_run_many_fallback(
     at_repo.build_feature_no_remote()
 
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": at_repo.feature_sha})
-    assert result.returncode == 0
-    assert "WARN" in (result.stdout + result.stderr)
+    with allure.step("終了コードと警告と run-many への切り替えを確かめる"):
+        assert result.returncode == 0
+        assert "WARN" in (result.stdout + result.stderr)
 
-    log = read_output(at_repo.nx_log)
-    assert "run-many -t test" in log
-    assert "--parallel=4" in log
-    assert "--nxBail" in log
-    assert "--output-style=stream" in log
-    assert "affected -t test" not in log
-    # フォールバックは push range を判定できないため pm-guard は未設定（両方実行）で起動する。
-    assert "ENV PECOTV_PM_GUARD_BEHAVIOR=unset" in log
+        log = read_output(at_repo.nx_log)
+        assert "run-many -t test" in log
+        assert "--parallel=4" in log
+        assert "--nxBail" in log
+        assert "--output-style=stream" in log
+        assert "affected -t test" not in log
+        # フォールバックは push range を判定できないため pm-guard は未設定（両方実行）で起動する。
+        assert "ENV PECOTV_PM_GUARD_BEHAVIOR=unset" in log
 
 
 def test_lane_names_come_from_the_graph_each_run(
@@ -613,14 +622,17 @@ def test_lane_names_come_from_the_graph_each_run(
     at_repo.build_feature()
 
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": at_repo.feature_sha})
-    assert result.returncode == 0
+    with allure.step("nx graph の呼び出しと test のレーン名を確かめる"):
+        assert result.returncode == 0
 
-    graph_calls = read_output(Path(f"{at_repo.nx_log}.graph")).splitlines()
-    assert len(graph_calls) == 1
-    assert graph_calls[0].startswith("graph --file=")
-    affected = [ln for ln in read_output(at_repo.nx_log).splitlines() if ln.startswith("affected ")]
-    assert len(affected) == 1
-    assert affected[0].split()[2] == "test-cli,test-hooks,test-unit"
+        graph_calls = read_output(Path(f"{at_repo.nx_log}.graph")).splitlines()
+        assert len(graph_calls) == 1
+        assert graph_calls[0].startswith("graph --file=")
+        affected = [
+            ln for ln in read_output(at_repo.nx_log).splitlines() if ln.startswith("affected ")
+        ]
+        assert len(affected) == 1
+        assert affected[0].split()[2] == "test-cli,test-hooks,test-unit"
 
 
 def test_affected_fails_closed_when_graph_cannot_be_computed(
@@ -636,11 +648,12 @@ def test_affected_fails_closed_when_graph_cannot_be_computed(
         run_script,
         env={"PRE_COMMIT_TO_REF": at_repo.feature_sha, "STUB_NX_GRAPH_FAIL": "1"},
     )
-    assert result.returncode == 1
-    out = result.stdout + result.stderr
-    assert "ERROR" in out
-    assert "nx graph" in out
-    assert "affected" not in read_output(at_repo.nx_log)
+    with allure.step("終了コード 1・ERROR と、affected が呼ばれないことを確かめる"):
+        assert result.returncode == 1
+        out = result.stdout + result.stderr
+        assert "ERROR" in out
+        assert "nx graph" in out
+        assert "affected" not in read_output(at_repo.nx_log)
 
 
 def test_affected_fails_closed_when_graph_has_no_test_lane(
@@ -656,9 +669,10 @@ def test_affected_fails_closed_when_graph_has_no_test_lane(
         run_script,
         env={"PRE_COMMIT_TO_REF": at_repo.feature_sha, "STUB_NX_GRAPH_NO_LANES": "1"},
     )
-    assert result.returncode == 1
-    assert "ERROR" in (result.stdout + result.stderr)
-    assert "affected" not in read_output(at_repo.nx_log)
+    with allure.step("終了コード 1・ERROR と、affected が呼ばれないことを確かめる"):
+        assert result.returncode == 1
+        assert "ERROR" in (result.stdout + result.stderr)
+        assert "affected" not in read_output(at_repo.nx_log)
 
 
 def test_run_many_fallback_does_not_need_the_graph(
@@ -674,9 +688,10 @@ def test_run_many_fallback_does_not_need_the_graph(
         run_script,
         env={"PRE_COMMIT_TO_REF": at_repo.feature_sha, "STUB_NX_GRAPH_FAIL": "1"},
     )
-    assert result.returncode == 0
-    assert "run-many -t test " in read_output(at_repo.nx_log)
-    assert not Path(f"{at_repo.nx_log}.graph").exists()
+    with allure.step("終了コードと run-many の呼び出しと graph が呼ばれないことを確かめる"):
+        assert result.returncode == 0
+        assert "run-many -t test " in read_output(at_repo.nx_log)
+        assert not Path(f"{at_repo.nx_log}.graph").exists()
 
 
 def test_base_unresolved_run_many_failure_propagates(
@@ -692,8 +707,9 @@ def test_base_unresolved_run_many_failure_propagates(
         run_script,
         env={"STUB_NX_EXIT": "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 1
-    assert "run-many -t test" in read_output(at_repo.nx_log)
+    with allure.step("終了コード 1 と run-many の呼び出しを確かめる"):
+        assert result.returncode == 1
+        assert "run-many -t test" in read_output(at_repo.nx_log)
 
 
 def test_no_push_info_run_many_fallback(
@@ -705,9 +721,10 @@ def test_no_push_info_run_many_fallback(
 
     # PRE_COMMIT_TO_REF 未設定 & stdin を空（tty でない空入力）にする。
     result = _run(script_dir, at_repo, run_script, stdin="")
-    assert result.returncode == 0
-    assert "WARN" in (result.stdout + result.stderr)
-    assert "run-many -t test" in read_output(at_repo.nx_log)
+    with allure.step("終了コードと警告と run-many の呼び出しを確かめる"):
+        assert result.returncode == 0
+        assert "WARN" in (result.stdout + result.stderr)
+        assert "run-many -t test" in read_output(at_repo.nx_log)
 
 
 def test_stdin_two_lines_two_affected(
@@ -725,16 +742,17 @@ def test_stdin_two_lines_two_affected(
         f"refs/heads/feature2 {feature2_sha} refs/heads/feature2 {at_repo.main_sha}\n"
     )
     result = _run(script_dir, at_repo, run_script, stdin=stdin)
-    assert result.returncode == 0
+    with allure.step("終了コードと affected が 2 回呼ばれることと各 head を確かめる"):
+        assert result.returncode == 0
 
-    log = read_output(at_repo.nx_log)
-    # affected が tip ごとに 2 回実行され、run-many は呼ばれない。
-    assert log.count("affected -t test") == 2
-    assert f"--base={at_repo.from_sha}" in log
-    assert f"--head={at_repo.feature_sha}" in log
-    assert f"--base={from2_sha}" in log
-    assert f"--head={feature2_sha}" in log
-    assert "run-many" not in log
+        log = read_output(at_repo.nx_log)
+        # affected が tip ごとに 2 回実行され、run-many は呼ばれない。
+        assert log.count("affected -t test") == 2
+        assert f"--base={at_repo.from_sha}" in log
+        assert f"--head={at_repo.feature_sha}" in log
+        assert f"--base={from2_sha}" in log
+        assert f"--head={feature2_sha}" in log
+        assert "run-many" not in log
 
 
 def test_annotated_tag_peeled(
@@ -747,23 +765,26 @@ def test_annotated_tag_peeled(
     # annotated tag を feature の tip に作る。tag object SHA は commit SHA と異なる。
     git(at_repo.repo, "tag", "-a", "-m", "release tag", "v-probe", at_repo.feature_sha)
     tag_obj = git_rev_parse(at_repo.repo, "v-probe")
-    assert tag_obj != at_repo.feature_sha  # annotated tag は別オブジェクト
+    with allure.step(
+        "annotated tag の SHA が別であることと、剥がした commit の SHA が head に渡ることを確かめる"
+    ):
+        assert tag_obj != at_repo.feature_sha  # annotated tag は別オブジェクト
 
-    # pre-push stdin に tag object SHA を local_sha として流す。
-    result = _run(
-        script_dir,
-        at_repo,
-        run_script,
-        stdin=f"refs/tags/v-probe {tag_obj} refs/tags/v-probe {at_repo.main_sha}\n",
-    )
-    assert result.returncode == 0
+        # pre-push stdin に tag object SHA を local_sha として流す。
+        result = _run(
+            script_dir,
+            at_repo,
+            run_script,
+            stdin=f"refs/tags/v-probe {tag_obj} refs/tags/v-probe {at_repo.main_sha}\n",
+        )
+        assert result.returncode == 0
 
-    log = read_output(at_repo.nx_log)
-    assert "affected -t test" in log
-    # peel 後の commit SHA が --head に渡る（tag object SHA ではない）。
-    assert f"--head={at_repo.feature_sha}" in log
-    assert f"--base={at_repo.from_sha}" in log
-    assert f"--head={tag_obj}" not in log
+        log = read_output(at_repo.nx_log)
+        assert "affected -t test" in log
+        # peel 後の commit SHA が --head に渡る（tag object SHA ではない）。
+        assert f"--head={at_repo.feature_sha}" in log
+        assert f"--base={at_repo.from_sha}" in log
+        assert f"--head={tag_obj}" not in log
 
 
 def test_multiple_tip_all_fallback_run_many_once(
@@ -783,14 +804,15 @@ def test_multiple_tip_all_fallback_run_many_once(
         f"refs/heads/feature2 {feat2_sha} refs/heads/feature2 {at_repo.main_sha}\n"
     )
     result = _run(script_dir, at_repo, run_script, stdin=stdin)
-    assert result.returncode == 0
+    with allure.step("終了コードと警告が 1 回で run-many も 1 回であることを確かめる"):
+        assert result.returncode == 0
 
-    # WARN は初回のみ（2 tip 全フォールバックでも 1 行）。
-    out = result.stdout + result.stderr
-    assert out.count("WARN") == 1
+        # WARN は初回のみ（2 tip 全フォールバックでも 1 行）。
+        out = result.stdout + result.stderr
+        assert out.count("WARN") == 1
 
-    # run-many が 1 回だけ実行される（フォールバックは集約され 1 回）。
-    assert read_output(at_repo.nx_log).count("run-many -t test") == 1
+        # run-many が 1 回だけ実行される（フォールバックは集約され 1 回）。
+        assert read_output(at_repo.nx_log).count("run-many -t test") == 1
 
 
 def test_node_unresolved_fail_closed(
@@ -823,10 +845,11 @@ def test_node_unresolved_fail_closed(
         run_script,
         env={"PATH": clean_path, "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 1
-    out = result.stdout + result.stderr
-    assert "ERROR" in out
-    assert "node" in out
+    with allure.step("終了コード 1 と復旧手順入りの ERROR を確かめる"):
+        assert result.returncode == 1
+        out = result.stdout + result.stderr
+        assert "ERROR" in out
+        assert "node" in out
 
 
 def test_pm_guard_behavior_off_without_manifest_change(
@@ -837,8 +860,9 @@ def test_pm_guard_behavior_off_without_manifest_change(
     at_repo.build_feature()  # plugins/pecot-workflow/cli/probe.py のみ
 
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": at_repo.feature_sha})
-    assert result.returncode == 0
-    assert "ENV PECOTV_PM_GUARD_BEHAVIOR=0" in read_output(at_repo.nx_log)
+    with allure.step("pm-guard の環境変数が 0 であることを確かめる"):
+        assert result.returncode == 0
+        assert "ENV PECOTV_PM_GUARD_BEHAVIOR=0" in read_output(at_repo.nx_log)
 
 
 @pytest.mark.parametrize(
@@ -858,8 +882,9 @@ def test_pm_guard_behavior_on_with_manifest_change(
     at_repo.build_feature(changed_path=changed_path)
 
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": at_repo.feature_sha})
-    assert result.returncode == 0
-    assert "ENV PECOTV_PM_GUARD_BEHAVIOR=1" in read_output(at_repo.nx_log)
+    with allure.step("pm-guard の環境変数が 1 であることを確かめる"):
+        assert result.returncode == 0
+        assert "ENV PECOTV_PM_GUARD_BEHAVIOR=1" in read_output(at_repo.nx_log)
 
 
 # ====
@@ -880,33 +905,34 @@ def test_failure_reports_failed_lane_only_and_normalizes_exit(
         run_script,
         env={"STUB_NX_EXIT": "130", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    # 130 は SIGINT と誤読されるため 1 へ正規化する。
-    assert result.returncode == 1
-    # 正規化で失われる元の exit code は端末へ出す。
-    assert "nx exit code: 130" in result.stderr
+    with allure.step("終了コードの正規化と失敗レーンだけの報告とログの全出力を確かめる"):
+        # 130 は SIGINT と誤読されるため 1 へ正規化する。
+        assert result.returncode == 1
+        # 正規化で失われる元の exit code は端末へ出す。
+        assert "nx exit code: 130" in result.stderr
 
-    # 要約の `Failed tasks:` に載った project の行と要約だけが端末へ出る。
-    # 並列で交互に混在した他レーンの行（LANE_ONE_*）は、失敗レーンより後の行でも出さない。
-    assert "=== 失敗レーン: lane-two ===" in result.stderr
-    assert "LANE_TWO_BODY" in result.stderr
-    assert "AssertionError: expected 1 to be 2" in result.stderr
-    assert "Failed tasks:" in result.stderr
-    assert "Tasks not run because their dependencies failed" in result.stderr
-    assert "LANE_ONE_BODY" not in result.stderr
-    assert "LANE_ONE_TAIL" not in result.stderr
-    assert "LANE_ONE_BODY" not in result.stdout
-    # `Tasks not run` に列挙された project は失敗レーンとして扱わない。
-    assert "=== 失敗レーン: lane-three ===" not in result.stderr
+        # 要約の `Failed tasks:` に載った project の行と要約だけが端末へ出る。
+        # 並列で交互に混在した他レーンの行（LANE_ONE_*）は、失敗レーンより後の行でも出さない。
+        assert "=== 失敗レーン: lane-two ===" in result.stderr
+        assert "LANE_TWO_BODY" in result.stderr
+        assert "AssertionError: expected 1 to be 2" in result.stderr
+        assert "Failed tasks:" in result.stderr
+        assert "Tasks not run because their dependencies failed" in result.stderr
+        assert "LANE_ONE_BODY" not in result.stderr
+        assert "LANE_ONE_TAIL" not in result.stderr
+        assert "LANE_ONE_BODY" not in result.stdout
+        # `Tasks not run` に列挙された project は失敗レーンとして扱わない。
+        assert "=== 失敗レーン: lane-three ===" not in result.stderr
 
-    # ログパスの案内が出る。
-    log = _hook_log_path(at_repo)
-    assert f"全出力: {log}" in result.stderr
-    assert f"進行確認: tail -f {log}" in result.stderr
+        # ログパスの案内が出る。
+        log = _hook_log_path(at_repo)
+        assert f"全出力: {log}" in result.stderr
+        assert f"進行確認: tail -f {log}" in result.stderr
 
-    # ログ側には全レーン分が残る。
-    log_text = read_output(log)
-    assert "LANE_ONE_BODY" in log_text
-    assert "LANE_TWO_BODY" in log_text
+        # ログ側には全レーン分が残る。
+        log_text = read_output(log)
+        assert "LANE_ONE_BODY" in log_text
+        assert "LANE_TWO_BODY" in log_text
 
 
 def test_failure_without_summary_falls_back_to_log_tail(
@@ -926,10 +952,11 @@ def test_failure_without_summary_falls_back_to_log_tail(
             "PRE_COMMIT_TO_REF": at_repo.feature_sha,
         },
     )
-    assert result.returncode == 1
-    assert "ログ末尾" in result.stderr
-    assert "NO_SUMMARY_BODY" in result.stderr
-    assert f"全出力: {_hook_log_path(at_repo)}" in result.stderr
+    with allure.step("終了コードとログ末尾への切り替えを確かめる"):
+        assert result.returncode == 1
+        assert "ログ末尾" in result.stderr
+        assert "NO_SUMMARY_BODY" in result.stderr
+        assert f"全出力: {_hook_log_path(at_repo)}" in result.stderr
 
 
 def test_success_writes_log_and_keeps_terminal_quiet(
@@ -940,16 +967,17 @@ def test_success_writes_log_and_keeps_terminal_quiet(
     at_repo.build_feature()
 
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": at_repo.feature_sha})
-    assert result.returncode == 0
+    with allure.step("終了コードとログが残ることと端末に本文が流れないことを確かめる"):
+        assert result.returncode == 0
 
-    log_text = read_output(_hook_log_path(at_repo))
-    assert "LANE_ONE_BODY" in log_text
-    assert "Successfully ran target test" in log_text
+        log_text = read_output(_hook_log_path(at_repo))
+        assert "LANE_ONE_BODY" in log_text
+        assert "Successfully ran target test" in log_text
 
-    out = result.stdout + result.stderr
-    assert "LANE_ONE_BODY" not in out
-    assert "LANE_TWO_BODY" not in out
-    assert "全出力:" not in out
+        out = result.stdout + result.stderr
+        assert "LANE_ONE_BODY" not in out
+        assert "LANE_TWO_BODY" not in out
+        assert "全出力:" not in out
 
 
 def test_fallback_run_many_failure_reports_failed_lane(
@@ -965,15 +993,16 @@ def test_fallback_run_many_failure_reports_failed_lane(
         run_script,
         env={"STUB_NX_EXIT": "130", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 1
+    with allure.step("終了コードと run-many の呼び出しと失敗レーンの表示を確かめる"):
+        assert result.returncode == 1
 
-    args_log = read_output(at_repo.nx_log)
-    assert "run-many -t test" in args_log
-    assert "--nxBail" in args_log
+        args_log = read_output(at_repo.nx_log)
+        assert "run-many -t test" in args_log
+        assert "--nxBail" in args_log
 
-    assert "LANE_TWO_BODY" in result.stderr
-    assert "LANE_ONE_BODY" not in result.stderr
-    assert f"全出力: {_hook_log_path(at_repo)}" in result.stderr
+        assert "LANE_TWO_BODY" in result.stderr
+        assert "LANE_ONE_BODY" not in result.stderr
+        assert f"全出力: {_hook_log_path(at_repo)}" in result.stderr
 
 
 def test_failure_body_truncated_to_line_limit(
@@ -997,18 +1026,19 @@ def test_failure_body_truncated_to_line_limit(
             "PRE_COMMIT_TO_REF": at_repo.feature_sha,
         },
     )
-    assert result.returncode == 1
+    with allure.step("失敗レーンの本文が末尾 400 行に切り詰められることを確かめる"):
+        assert result.returncode == 1
 
-    # 本文（`lane-two: ` 接頭辞）は 1,003 行あるが、端末へ出るのは末尾 400 行だけ。
-    lane_lines = [ln for ln in result.stderr.splitlines() if ln.startswith("lane-two: ")]
-    assert len(lane_lines) == 400
-    assert "先頭 603 行を省略" in result.stderr
-    # 末尾（原因が読める側）は残り、先頭のドットは落ちる。
-    assert "lane-two: DOT1000 ." in result.stderr
-    assert "AssertionError: expected 1 to be 2" in result.stderr
-    assert "lane-two: DOT1 ." not in result.stderr
-    # ログ側には全量が残る。
-    assert "lane-two: DOT1 ." in read_output(_hook_log_path(at_repo))
+        # 本文（`lane-two: ` 接頭辞）は 1,003 行あるが、端末へ出るのは末尾 400 行だけ。
+        lane_lines = [ln for ln in result.stderr.splitlines() if ln.startswith("lane-two: ")]
+        assert len(lane_lines) == 400
+        assert "先頭 603 行を省略" in result.stderr
+        # 末尾（原因が読める側）は残り、先頭のドットは落ちる。
+        assert "lane-two: DOT1000 ." in result.stderr
+        assert "AssertionError: expected 1 to be 2" in result.stderr
+        assert "lane-two: DOT1 ." not in result.stderr
+        # ログ側には全量が残る。
+        assert "lane-two: DOT1 ." in read_output(_hook_log_path(at_repo))
 
 
 def test_failure_reports_only_current_nx_run(
@@ -1031,18 +1061,19 @@ def test_failure_reports_only_current_nx_run(
         stdin=stdin,
         env={"STUB_NX_EXIT": "1", "STUB_NX_FAIL_ON_CALL": "2"},
     )
-    assert result.returncode == 1
-    assert "nx exit code: 1" in result.stderr
+    with allure.step("報告が失敗した nx 実行分だけであることを確かめる"):
+        assert result.returncode == 1
+        assert "nx exit code: 1" in result.stderr
 
-    # 失敗した 2 回目の本文だけが出る（1 回目の同名レーン行・成功要約は出ない）。
-    assert "CALL2_BODY" in result.stderr
-    assert "CALL1_BODY" not in result.stderr
-    assert "Successfully ran target test" not in result.stderr
+        # 失敗した 2 回目の本文だけが出る（1 回目の同名レーン行・成功要約は出ない）。
+        assert "CALL2_BODY" in result.stderr
+        assert "CALL1_BODY" not in result.stderr
+        assert "Successfully ran target test" not in result.stderr
 
-    # ログには両方の実行分が残る。
-    log_text = read_output(_hook_log_path(at_repo))
-    assert "CALL1_BODY" in log_text
-    assert "CALL2_BODY" in log_text
+        # ログには両方の実行分が残る。
+        log_text = read_output(_hook_log_path(at_repo))
+        assert "CALL1_BODY" in log_text
+        assert "CALL2_BODY" in log_text
 
 
 def test_failure_fallback_keeps_summary_block(
@@ -1065,15 +1096,16 @@ def test_failure_fallback_keeps_summary_block(
             "PRE_COMMIT_TO_REF": at_repo.feature_sha,
         },
     )
-    assert result.returncode == 1
-    assert "ログ末尾" in result.stderr
-    # 要約は末尾から 100 行以上離れているが落ちない。
-    assert "NX   Running target test for 2 projects failed" in result.stderr
-    assert "SUMMARY_MARKER_LINE" in result.stderr
-    # ログ末尾側も出る。
-    assert "lane-one: TRAILING100" in result.stderr
-    # nx が書く profile の場所の行は失敗の原因と無関係なので出さない。
-    assert "Performance Profile" not in result.stderr
+    with allure.step("フォールバックでも要約のブロック以降が含まれることを確かめる"):
+        assert result.returncode == 1
+        assert "ログ末尾" in result.stderr
+        # 要約は末尾から 100 行以上離れているが落ちない。
+        assert "NX   Running target test for 2 projects failed" in result.stderr
+        assert "SUMMARY_MARKER_LINE" in result.stderr
+        # ログ末尾側も出る。
+        assert "lane-one: TRAILING100" in result.stderr
+        # nx が書く profile の場所の行は失敗の原因と無関係なので出さない。
+        assert "Performance Profile" not in result.stderr
 
 
 def test_failure_reports_multiple_lanes_in_summary_order(
@@ -1093,21 +1125,22 @@ def test_failure_reports_multiple_lanes_in_summary_order(
             "PRE_COMMIT_TO_REF": at_repo.feature_sha,
         },
     )
-    assert result.returncode == 1
+    with allure.step("複数の失敗レーンが要約の順に分かれて出ることを確かめる"):
+        assert result.returncode == 1
 
-    head_two = result.stderr.index("=== 失敗レーン: lane-two ===")
-    head_one = result.stderr.index("=== 失敗レーン: lane-one ===")
-    # 並びは要約の順（lane-two → lane-one）。辞書順に並べ替えない。
-    assert head_two < head_one
+        head_two = result.stderr.index("=== 失敗レーン: lane-two ===")
+        head_one = result.stderr.index("=== 失敗レーン: lane-one ===")
+        # 並びは要約の順（lane-two → lane-one）。辞書順に並べ替えない。
+        assert head_two < head_one
 
-    section_two = result.stderr[head_two:head_one]
-    section_one = result.stderr[head_one:]
-    assert "LANE_TWO_BODY" in section_two
-    assert "AssertionError: expected 1 to be 2" in section_two
-    assert "LANE_ONE" not in section_two
-    assert "LANE_ONE_BODY" in section_one
-    assert "LANE_ONE_TAIL" in section_one
-    assert "LANE_TWO_BODY" not in section_one
+        section_two = result.stderr[head_two:head_one]
+        section_one = result.stderr[head_one:]
+        assert "LANE_TWO_BODY" in section_two
+        assert "AssertionError: expected 1 to be 2" in section_two
+        assert "LANE_ONE" not in section_two
+        assert "LANE_ONE_BODY" in section_one
+        assert "LANE_ONE_TAIL" in section_one
+        assert "LANE_TWO_BODY" not in section_one
 
 
 def test_failure_body_truncated_at_line_boundary_by_byte_limit(
@@ -1131,16 +1164,19 @@ def test_failure_body_truncated_at_line_boundary_by_byte_limit(
             "PRE_COMMIT_TO_REF": at_repo.feature_sha,
         },
     )
-    assert result.returncode == 1
+    with allure.step("byte の上限が行の境界で切られることを確かめる"):
+        assert result.returncode == 1
 
-    assert "先頭 4 行を省略" in result.stderr
-    assert "lane-two: WIDE3 " in result.stderr
-    assert "WIDE2" not in result.stderr
-    assert "WIDE1" not in result.stderr
-    # 行の途中で切られていない（分断されると復号で置換文字が出る）。
-    assert "\ufffd" not in result.stderr
-    wide_line = next(ln for ln in result.stderr.splitlines() if ln.startswith("lane-two: WIDE3 "))
-    assert wide_line.count("あ") == 16384
+        assert "先頭 4 行を省略" in result.stderr
+        assert "lane-two: WIDE3 " in result.stderr
+        assert "WIDE2" not in result.stderr
+        assert "WIDE1" not in result.stderr
+        # 行の途中で切られていない（分断されると復号で置換文字が出る）。
+        assert "\ufffd" not in result.stderr
+        wide_line = next(
+            ln for ln in result.stderr.splitlines() if ln.startswith("lane-two: WIDE3 ")
+        )
+        assert wide_line.count("あ") == 16384
 
 
 # ====
@@ -1174,17 +1210,18 @@ def test_success_prints_one_summary_line(
     at_repo.build_feature()
 
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": at_repo.feature_sha})
-    assert result.returncode == 0
+    with allure.step("終了コードと合計行が 1 行だけ出ることを確かめる"):
+        assert result.returncode == 0
 
-    lines = result.stdout.splitlines()
-    assert len(lines) == 1
-    line = lines[0]
-    assert re.match(r"^nx affected tests: 合計 \d+\.\ds / ", line)
-    assert "最長 lane-two:test-unit 2.5s" in line
-    assert "並列 4" in line
-    assert "レーン 2" in line
-    assert "WARN" not in result.stderr
-    assert (at_repo.repo / _PROFILE_RELPATH).is_file()
+        lines = result.stdout.splitlines()
+        assert len(lines) == 1
+        line = lines[0]
+        assert re.match(r"^nx affected tests: 合計 \d+\.\ds / ", line)
+        assert "最長 lane-two:test-unit 2.5s" in line
+        assert "並列 4" in line
+        assert "レーン 2" in line
+        assert "WARN" not in result.stderr
+        assert (at_repo.repo / _PROFILE_RELPATH).is_file()
 
 
 def test_success_records_task_and_nx_rows(
@@ -1195,22 +1232,23 @@ def test_success_records_task_and_nx_rows(
     at_repo.build_feature()
 
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": at_repo.feature_sha})
-    assert result.returncode == 0
+    with allure.step("終了コードと task 行と nx 行の記録を確かめる"):
+        assert result.returncode == 0
 
-    tasks = _rows_of(at_repo, "task")
-    assert [(r[2], r[3], r[4]) for r in tasks] == [
-        ("lane-two:install", "3.0", "status=success"),
-        ("lane-one:test-unit", "1.5", "status=success"),
-        ("lane-two:test-unit", "2.5", "status=success"),
-    ]
-    nx_rows = _rows_of(at_repo, "nx")
-    assert len(nx_rows) == 1
-    assert nx_rows[0][2] == "affected"
-    float(nx_rows[0][3])
-    assert nx_rows[0][4].startswith("parallel=4 lanes=2 longest=lane-two:test-unit rec=")
-    float(nx_rows[0][4].rsplit("rec=", 1)[1])
-    # hook 行はラッパーの責務で、本スクリプトは書かない。
-    assert _rows_of(at_repo, "hook") == []
+        tasks = _rows_of(at_repo, "task")
+        assert [(r[2], r[3], r[4]) for r in tasks] == [
+            ("lane-two:install", "3.0", "status=success"),
+            ("lane-one:test-unit", "1.5", "status=success"),
+            ("lane-two:test-unit", "2.5", "status=success"),
+        ]
+        nx_rows = _rows_of(at_repo, "nx")
+        assert len(nx_rows) == 1
+        assert nx_rows[0][2] == "affected"
+        float(nx_rows[0][3])
+        assert nx_rows[0][4].startswith("parallel=4 lanes=2 longest=lane-two:test-unit rec=")
+        float(nx_rows[0][4].rsplit("rec=", 1)[1])
+        # hook 行はラッパーの責務で、本スクリプトは書かない。
+        assert _rows_of(at_repo, "hook") == []
 
 
 def test_multiple_tips_aggregate_lanes_without_duplicates(
@@ -1226,14 +1264,15 @@ def test_multiple_tips_aggregate_lanes_without_duplicates(
         f"refs/heads/feature2 {feature2_sha} refs/heads/feature2 {at_repo.main_sha}\n"
     )
     result = _run(script_dir, at_repo, run_script, stdin=stdin)
-    assert result.returncode == 0
+    with allure.step("終了コードと記録の行数と重複なしの合計行を確かめる"):
+        assert result.returncode == 0
 
-    assert len(_rows_of(at_repo, "nx")) == 2
-    assert len(_rows_of(at_repo, "task")) == 6
-    lines = result.stdout.splitlines()
-    assert len(lines) == 1
-    assert "最長 lane-two:test-unit 2.5s" in lines[0]
-    assert "レーン 2" in lines[0]
+        assert len(_rows_of(at_repo, "nx")) == 2
+        assert len(_rows_of(at_repo, "task")) == 6
+        lines = result.stdout.splitlines()
+        assert len(lines) == 1
+        assert "最長 lane-two:test-unit 2.5s" in lines[0]
+        assert "レーン 2" in lines[0]
 
 
 def test_fallback_records_run_many(
@@ -1244,13 +1283,14 @@ def test_fallback_records_run_many(
     at_repo.build_feature_no_remote()
 
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": at_repo.feature_sha})
-    assert result.returncode == 0
+    with allure.step("終了コード・nx 行の名前と、run-many の合計行を確かめる"):
+        assert result.returncode == 0
 
-    nx_rows = _rows_of(at_repo, "nx")
-    assert [r[2] for r in nx_rows] == ["run-many"]
-    assert len(result.stdout.splitlines()) == 1
-    assert result.stdout.startswith("nx run-many tests: 合計 ")
-    assert "レーン 2" in result.stdout
+        nx_rows = _rows_of(at_repo, "nx")
+        assert [r[2] for r in nx_rows] == ["run-many"]
+        assert len(result.stdout.splitlines()) == 1
+        assert result.stdout.startswith("nx run-many tests: 合計 ")
+        assert "レーン 2" in result.stdout
 
 
 def test_no_push_info_fallback_prints_summary(
@@ -1261,11 +1301,12 @@ def test_no_push_info_fallback_prints_summary(
     at_repo.build_feature()
 
     result = _run(script_dir, at_repo, run_script, stdin="")
-    assert result.returncode == 0
-    lines = result.stdout.splitlines()
-    assert len(lines) == 1
-    assert lines[0].startswith("nx run-many tests: 合計 ")
-    assert [r[2] for r in _rows_of(at_repo, "nx")] == ["run-many"]
+    with allure.step("終了コードと合計行が 1 行で nx 行が run-many であることを確かめる"):
+        assert result.returncode == 0
+        lines = result.stdout.splitlines()
+        assert len(lines) == 1
+        assert lines[0].startswith("nx run-many tests: 合計 ")
+        assert [r[2] for r in _rows_of(at_repo, "nx")] == ["run-many"]
 
 
 def test_empty_profile_reports_zero_lanes_without_warn(
@@ -1281,16 +1322,17 @@ def test_empty_profile_reports_zero_lanes_without_warn(
         run_script,
         env={"STUB_NX_EMPTY_PROFILE": "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 0
-    assert "WARN" not in result.stderr
+    with allure.step("終了コードと警告が無いこととレーン 0 の合計行を確かめる"):
+        assert result.returncode == 0
+        assert "WARN" not in result.stderr
 
-    lines = result.stdout.splitlines()
-    assert len(lines) == 1
-    assert "最長 - / 並列 4 / レーン 0" in lines[0]
-    assert _rows_of(at_repo, "task") == []
-    nx_rows = _rows_of(at_repo, "nx")
-    assert len(nx_rows) == 1
-    assert nx_rows[0][4].startswith("parallel=4 lanes=0 longest=- rec=")
+        lines = result.stdout.splitlines()
+        assert len(lines) == 1
+        assert "最長 - / 並列 4 / レーン 0" in lines[0]
+        assert _rows_of(at_repo, "task") == []
+        nx_rows = _rows_of(at_repo, "nx")
+        assert len(nx_rows) == 1
+        assert nx_rows[0][4].startswith("parallel=4 lanes=0 longest=- rec=")
 
 
 def test_missing_profile_warns_and_keeps_exit_code(
@@ -1306,16 +1348,17 @@ def test_missing_profile_warns_and_keeps_exit_code(
         run_script,
         env={"STUB_NX_NO_PROFILE": "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 0
-    assert "WARN" in result.stderr
-    assert "profile" in result.stderr
+    with allure.step("終了コードと profile の警告と合計行を確かめる"):
+        assert result.returncode == 0
+        assert "WARN" in result.stderr
+        assert "profile" in result.stderr
 
-    lines = result.stdout.splitlines()
-    assert len(lines) == 1
-    assert "最長 - / 並列 4 / レーン 0" in lines[0]
-    nx_rows = _rows_of(at_repo, "nx")
-    assert len(nx_rows) == 1
-    assert nx_rows[0][4].startswith("parallel=4 lanes=0 longest=- rec=")
+        lines = result.stdout.splitlines()
+        assert len(lines) == 1
+        assert "最長 - / 並列 4 / レーン 0" in lines[0]
+        nx_rows = _rows_of(at_repo, "nx")
+        assert len(nx_rows) == 1
+        assert nx_rows[0][4].startswith("parallel=4 lanes=0 longest=- rec=")
 
 
 def test_skip_push_prints_nothing_and_records_nothing(
@@ -1326,9 +1369,10 @@ def test_skip_push_prints_nothing_and_records_nothing(
     at_repo.build_feature()
 
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": _ZERO_SHA})
-    assert result.returncode == 0
-    assert result.stdout == ""
-    assert not (at_repo.repo / _TIMING_RELPATH).exists()
+    with allure.step("終了コードと出力が空で記録のファイルが無いことを確かめる"):
+        assert result.returncode == 0
+        assert result.stdout == ""
+        assert not (at_repo.repo / _TIMING_RELPATH).exists()
 
 
 def test_failure_records_tasks_without_summary_line(
@@ -1344,16 +1388,17 @@ def test_failure_records_tasks_without_summary_line(
         run_script,
         env={"STUB_NX_EXIT": "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 1
-    assert "tests: 合計" not in result.stdout + result.stderr
-    assert "=== 失敗レーン: lane-two ===" in result.stderr
-    assert "Failed tasks:" in result.stderr
-    assert "Performance Profile" not in result.stderr
+    with allure.step("終了コード 1 と task 行の記録と合計行が出ないことを確かめる"):
+        assert result.returncode == 1
+        assert "tests: 合計" not in result.stdout + result.stderr
+        assert "=== 失敗レーン: lane-two ===" in result.stderr
+        assert "Failed tasks:" in result.stderr
+        assert "Performance Profile" not in result.stderr
 
-    tasks = {r[2]: r[4] for r in _rows_of(at_repo, "task")}
-    assert tasks["lane-two:test-unit"] == "status=failure"
-    assert tasks["lane-one:test-unit"] == "status=success"
-    assert len(_rows_of(at_repo, "nx")) == 1
+        tasks = {r[2]: r[4] for r in _rows_of(at_repo, "task")}
+        assert tasks["lane-two:test-unit"] == "status=failure"
+        assert tasks["lane-one:test-unit"] == "status=success"
+        assert len(_rows_of(at_repo, "nx")) == 1
 
 
 def test_failure_before_profile_does_not_warn(
@@ -1373,12 +1418,13 @@ def test_failure_before_profile_does_not_warn(
             "PRE_COMMIT_TO_REF": at_repo.feature_sha,
         },
     )
-    assert result.returncode == 1
-    assert "WARN" not in result.stderr
-    assert "nx exit code: 1" in result.stderr
-    nx_rows = _rows_of(at_repo, "nx")
-    assert len(nx_rows) == 1
-    assert nx_rows[0][4].startswith("parallel=4 lanes=0 longest=- rec=")
+    with allure.step("終了コード 1 と二次の警告が出ないことを確かめる"):
+        assert result.returncode == 1
+        assert "WARN" not in result.stderr
+        assert "nx exit code: 1" in result.stderr
+        nx_rows = _rows_of(at_repo, "nx")
+        assert len(nx_rows) == 1
+        assert nx_rows[0][4].startswith("parallel=4 lanes=0 longest=- rec=")
 
 
 def test_broken_profile_warns_and_keeps_exit_code(
@@ -1394,17 +1440,18 @@ def test_broken_profile_warns_and_keeps_exit_code(
         run_script,
         env={"STUB_NX_BROKEN_PROFILE": "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 0
-    assert "WARN" in result.stderr
-    assert "profile" in result.stderr
+    with allure.step("終了コードと警告と合計行を確かめる"):
+        assert result.returncode == 0
+        assert "WARN" in result.stderr
+        assert "profile" in result.stderr
 
-    lines = result.stdout.splitlines()
-    assert len(lines) == 1
-    assert "最長 - / 並列 4 / レーン 0" in lines[0]
-    assert _rows_of(at_repo, "task") == []
-    nx_rows = _rows_of(at_repo, "nx")
-    assert len(nx_rows) == 1
-    assert nx_rows[0][4].startswith("parallel=4 lanes=0 longest=- rec=")
+        lines = result.stdout.splitlines()
+        assert len(lines) == 1
+        assert "最長 - / 並列 4 / レーン 0" in lines[0]
+        assert _rows_of(at_repo, "task") == []
+        nx_rows = _rows_of(at_repo, "nx")
+        assert len(nx_rows) == 1
+        assert nx_rows[0][4].startswith("parallel=4 lanes=0 longest=- rec=")
 
 
 def test_negative_duration_is_clamped_to_zero(
@@ -1420,15 +1467,16 @@ def test_negative_duration_is_clamped_to_zero(
         run_script,
         env={"STUB_NX_NEGATIVE_DUR": "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 0
-    assert result.stderr == ""
+    with allure.step("負の所要時間が 0.0 に丸められることを確かめる"):
+        assert result.returncode == 0
+        assert result.stderr == ""
 
-    lines = result.stdout.splitlines()
-    assert len(lines) == 1
-    assert "最長 lane-two:test-unit 2.5s" in lines[0]
-    assert "レーン 2" in lines[0]
-    tasks = {r[2]: r[3] for r in _rows_of(at_repo, "task")}
-    assert tasks["lane-one:test-unit"] == "0.0"
+        lines = result.stdout.splitlines()
+        assert len(lines) == 1
+        assert "最長 lane-two:test-unit 2.5s" in lines[0]
+        assert "レーン 2" in lines[0]
+        tasks = {r[2]: r[3] for r in _rows_of(at_repo, "task")}
+        assert tasks["lane-one:test-unit"] == "0.0"
 
 
 def test_configured_test_task_counts_as_lane(
@@ -1448,14 +1496,15 @@ def test_configured_test_task_counts_as_lane(
         run_script,
         env={"STUB_NX_CONFIGURED": "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 0
+    with allure.step("configuration 付きの task がレーンに数えられることを確かめる"):
+        assert result.returncode == 0
 
-    lines = result.stdout.splitlines()
-    assert len(lines) == 1
-    assert "最長 lane-two:test-unit:ci 2.5s" in lines[0]
-    assert "レーン 2" in lines[0]
-    nx_rows = _rows_of(at_repo, "nx")
-    assert nx_rows[0][4].startswith("parallel=4 lanes=2 longest=lane-two:test-unit:ci rec=")
+        lines = result.stdout.splitlines()
+        assert len(lines) == 1
+        assert "最長 lane-two:test-unit:ci 2.5s" in lines[0]
+        assert "レーン 2" in lines[0]
+        nx_rows = _rows_of(at_repo, "nx")
+        assert nx_rows[0][4].startswith("parallel=4 lanes=2 longest=lane-two:test-unit:ci rec=")
 
 
 def test_two_lanes_of_the_same_project_count_as_two(
@@ -1474,13 +1523,14 @@ def test_two_lanes_of_the_same_project_count_as_two(
         run_script,
         env={"STUB_NX_SAME_PROJECT": "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 0
+    with allure.step("同じ project の 2 レーンが 2 つに数えられることを確かめる"):
+        assert result.returncode == 0
 
-    lines = result.stdout.splitlines()
-    assert len(lines) == 1
-    assert "レーン 2" in lines[0]
-    nx_rows = _rows_of(at_repo, "nx")
-    assert " lanes=2 " in nx_rows[0][4]
+        lines = result.stdout.splitlines()
+        assert len(lines) == 1
+        assert "レーン 2" in lines[0]
+        nx_rows = _rows_of(at_repo, "nx")
+        assert " lanes=2 " in nx_rows[0][4]
 
 
 def test_aggregator_test_target_is_not_a_lane(
@@ -1496,14 +1546,15 @@ def test_aggregator_test_target_is_not_a_lane(
         run_script,
         env={"STUB_NX_AGGREGATOR": "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 0
+    with allure.step("起点の test がレーンの数と最長に数えられないことを確かめる"):
+        assert result.returncode == 0
 
-    lines = result.stdout.splitlines()
-    assert len(lines) == 1
-    assert "最長 lane-two:test-unit 2.5s" in lines[0]
-    assert "レーン 2" in lines[0]
-    tasks = {r[2] for r in _rows_of(at_repo, "task")}
-    assert "lane-one:test" in tasks
+        lines = result.stdout.splitlines()
+        assert len(lines) == 1
+        assert "最長 lane-two:test-unit 2.5s" in lines[0]
+        assert "レーン 2" in lines[0]
+        tasks = {r[2] for r in _rows_of(at_repo, "task")}
+        assert "lane-one:test" in tasks
 
 
 def test_multiple_tips_pick_longest_across_runs(
@@ -1519,16 +1570,17 @@ def test_multiple_tips_pick_longest_across_runs(
         f"refs/heads/feature2 {feature2_sha} refs/heads/feature2 {at_repo.main_sha}\n"
     )
     result = _run(script_dir, at_repo, run_script, stdin=stdin, env={"STUB_NX_CALL2_LONGER": "1"})
-    assert result.returncode == 0
+    with allure.step("最長の task が起動をまたいで選ばれることを確かめる"):
+        assert result.returncode == 0
 
-    nx_rows = _rows_of(at_repo, "nx")
-    assert len(nx_rows) == 2
-    assert "longest=lane-two:test-unit " in nx_rows[0][4]
-    assert "longest=lane-one:test-unit " in nx_rows[1][4]
-    lines = result.stdout.splitlines()
-    assert len(lines) == 1
-    assert "最長 lane-one:test-unit 4.0s" in lines[0]
-    assert "レーン 2" in lines[0]
+        nx_rows = _rows_of(at_repo, "nx")
+        assert len(nx_rows) == 2
+        assert "longest=lane-two:test-unit " in nx_rows[0][4]
+        assert "longest=lane-one:test-unit " in nx_rows[1][4]
+        lines = result.stdout.splitlines()
+        assert len(lines) == 1
+        assert "最長 lane-one:test-unit 4.0s" in lines[0]
+        assert "レーン 2" in lines[0]
 
 
 # ====
@@ -1549,14 +1601,17 @@ def test_ci_mode_affected_uses_static_without_bail(
         run_script,
         env={"PECOT_NX_CI": "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 0
+    with allure.step("CI モードの affected が static で bail を付けないことを確かめる"):
+        assert result.returncode == 0
 
-    affected = [ln for ln in read_output(at_repo.nx_log).splitlines() if ln.startswith("affected ")]
-    assert len(affected) == 1
-    assert "--output-style=static" in affected[0]
-    assert "--output-style=stream" not in affected[0]
-    assert "--nxBail" not in affected[0]
-    assert "--parallel=4" in affected[0]
+        affected = [
+            ln for ln in read_output(at_repo.nx_log).splitlines() if ln.startswith("affected ")
+        ]
+        assert len(affected) == 1
+        assert "--output-style=static" in affected[0]
+        assert "--output-style=stream" not in affected[0]
+        assert "--nxBail" not in affected[0]
+        assert "--parallel=4" in affected[0]
 
 
 def test_ci_mode_run_many_uses_static_without_bail(
@@ -1572,12 +1627,15 @@ def test_ci_mode_run_many_uses_static_without_bail(
         run_script,
         env={"PECOT_NX_CI": "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 0
+    with allure.step("CI モードの run-many が static で bail を付けないことを確かめる"):
+        assert result.returncode == 0
 
-    run_many = [ln for ln in read_output(at_repo.nx_log).splitlines() if ln.startswith("run-many ")]
-    assert len(run_many) == 1
-    assert "--output-style=static" in run_many[0]
-    assert "--nxBail" not in run_many[0]
+        run_many = [
+            ln for ln in read_output(at_repo.nx_log).splitlines() if ln.startswith("run-many ")
+        ]
+        assert len(run_many) == 1
+        assert "--output-style=static" in run_many[0]
+        assert "--nxBail" not in run_many[0]
 
 
 @pytest.mark.parametrize("value", [None, "", "0", "true"])
@@ -1592,21 +1650,26 @@ def test_ci_mode_unset_or_other_value_keeps_stream_and_bail(
         env["PECOT_NX_CI"] = value
 
     result = _run(script_dir, at_repo, run_script, env=env)
-    assert result.returncode == 0
-    lines = [ln for ln in read_output(at_repo.nx_log).splitlines() if ln.startswith("affected ")]
-    assert len(lines) == 1
-    assert "--nxBail" in lines[0]
-    assert "--output-style=stream" in lines[0]
-    assert "static" not in lines[0]
+    with allure.step("CI モードが未設定か 1 以外のとき stream と bail のままであることを確かめる"):
+        assert result.returncode == 0
+        lines = [
+            ln for ln in read_output(at_repo.nx_log).splitlines() if ln.startswith("affected ")
+        ]
+        assert len(lines) == 1
+        assert "--nxBail" in lines[0]
+        assert "--output-style=stream" in lines[0]
+        assert "static" not in lines[0]
 
-    # run-many（push 情報なし）も同じ。
-    at_repo.nx_log.write_text("")
-    result = _run(script_dir, at_repo, run_script, env=dict(env, PRE_COMMIT_TO_REF=""), stdin="")
-    assert result.returncode == 0
-    many = [ln for ln in read_output(at_repo.nx_log).splitlines() if ln.startswith("run-many ")]
-    assert len(many) == 1
-    assert "--nxBail" in many[0]
-    assert "--output-style=stream" in many[0]
+        # run-many（push 情報なし）も同じ。
+        at_repo.nx_log.write_text("")
+        result = _run(
+            script_dir, at_repo, run_script, env=dict(env, PRE_COMMIT_TO_REF=""), stdin=""
+        )
+        assert result.returncode == 0
+        many = [ln for ln in read_output(at_repo.nx_log).splitlines() if ln.startswith("run-many ")]
+        assert len(many) == 1
+        assert "--nxBail" in many[0]
+        assert "--output-style=stream" in many[0]
 
 
 def test_ci_mode_failure_reports_only_the_failed_task_chunk(
@@ -1631,27 +1694,30 @@ def test_ci_mode_failure_reports_only_the_failed_task_chunk(
             "PRE_COMMIT_TO_REF": at_repo.feature_sha,
         },
     )
-    assert result.returncode == 1
-    assert "nx exit code: 1" in result.stderr
+    with allure.step("失敗したレーンの塊だけが stderr に出ることを確かめる"):
+        assert result.returncode == 1
+        assert "nx exit code: 1" in result.stderr
 
-    # 失敗の単位は `<project>:<target>`。
-    assert "=== 失敗レーン: p:test-cli ===" in result.stderr
-    assert "=== 失敗レーン: p:" not in result.stderr.replace("=== 失敗レーン: p:test-cli ===", "")
-    assert "> nx run p:test-cli  [local cache]" in result.stderr
-    assert "STATIC_FAIL_BODY AssertionError: expected 1 to be 2" in result.stderr
-    # 他のレーンの塊は出さない（前方一致の p:test-cli-x も含む）。
-    assert "STATIC_PASS_UNIT_BODY" not in result.stderr
-    assert "STATIC_PASS_CLIX_BODY" not in result.stderr
-    assert "STATIC_PASS_HOOKS_BODY" not in result.stderr
-    # 要約は出る。
-    assert "Failed tasks:" in result.stderr
-    assert "Performance Profile" not in result.stderr
-    assert f"全出力: {_hook_log_path(at_repo)}" in result.stderr
+        # 失敗の単位は `<project>:<target>`。
+        assert "=== 失敗レーン: p:test-cli ===" in result.stderr
+        assert "=== 失敗レーン: p:" not in result.stderr.replace(
+            "=== 失敗レーン: p:test-cli ===", ""
+        )
+        assert "> nx run p:test-cli  [local cache]" in result.stderr
+        assert "STATIC_FAIL_BODY AssertionError: expected 1 to be 2" in result.stderr
+        # 他のレーンの塊は出さない（前方一致の p:test-cli-x も含む）。
+        assert "STATIC_PASS_UNIT_BODY" not in result.stderr
+        assert "STATIC_PASS_CLIX_BODY" not in result.stderr
+        assert "STATIC_PASS_HOOKS_BODY" not in result.stderr
+        # 要約は出る。
+        assert "Failed tasks:" in result.stderr
+        assert "Performance Profile" not in result.stderr
+        assert f"全出力: {_hook_log_path(at_repo)}" in result.stderr
 
-    # ログには全レーン分が残る。
-    log_text = read_output(_hook_log_path(at_repo))
-    assert "STATIC_PASS_UNIT_BODY" in log_text
-    assert "STATIC_PASS_HOOKS_BODY" in log_text
+        # ログには全レーン分が残る。
+        log_text = read_output(_hook_log_path(at_repo))
+        assert "STATIC_PASS_UNIT_BODY" in log_text
+        assert "STATIC_PASS_HOOKS_BODY" in log_text
 
 
 def test_ci_mode_failure_normalizes_exit_130(
@@ -1672,8 +1738,9 @@ def test_ci_mode_failure_normalizes_exit_130(
             "PRE_COMMIT_TO_REF": at_repo.feature_sha,
         },
     )
-    assert result.returncode == 1
-    assert "nx exit code: 130" in result.stderr
+    with allure.step("終了コード 1 と nx の終了コード 130 の表示を確かめる"):
+        assert result.returncode == 1
+        assert "nx exit code: 130" in result.stderr
 
 
 _RECOMMEND_SHAPES = ("multi", "single", "hidden")
@@ -1701,9 +1768,10 @@ def test_failure_ignores_performance_report_recommendations_in_stream(
             "PRE_COMMIT_TO_REF": at_repo.feature_sha,
         },
     )
-    assert result.returncode == 1
-    assert _lane_headings(result.stderr) == ["=== 失敗レーン: lane-two ==="]
-    assert "Cache: drop" in result.stderr  # 要約としては出る
+    with allure.step("stream で性能レポートの推奨が失敗レーンに拾われないことを確かめる"):
+        assert result.returncode == 1
+        assert _lane_headings(result.stderr) == ["=== 失敗レーン: lane-two ==="]
+        assert "Cache: drop" in result.stderr  # 要約としては出る
 
 
 @pytest.mark.parametrize("shape", _RECOMMEND_SHAPES)
@@ -1726,8 +1794,9 @@ def test_failure_ignores_performance_report_recommendations_in_static(
             "PRE_COMMIT_TO_REF": at_repo.feature_sha,
         },
     )
-    assert result.returncode == 1
-    assert _lane_headings(result.stderr) == ["=== 失敗レーン: p:test-cli ==="]
+    with allure.step("static で性能レポートの推奨が失敗レーンに拾われないことを確かめる"):
+        assert result.returncode == 1
+        assert _lane_headings(result.stderr) == ["=== 失敗レーン: p:test-cli ==="]
 
 
 @pytest.mark.parametrize("static", [False, True])
@@ -1747,13 +1816,14 @@ def test_failure_with_two_lanes_and_recommendations_reports_both(
     if static:
         env.update({"PECOT_NX_CI": "1", "STUB_NX_STATIC": "1"})
     result = _run(script_dir, at_repo, run_script, env=env)
-    assert result.returncode == 1
-    expected = (
-        ["=== 失敗レーン: p:test-cli ===", "=== 失敗レーン: q:test-hooks ==="]
-        if static
-        else ["=== 失敗レーン: lane-two ===", "=== 失敗レーン: lane-one ==="]
-    )
-    assert _lane_headings(result.stderr) == expected
+    with allure.step("失敗が 2 件で推奨が続いても 2 件とも拾うことを確かめる"):
+        assert result.returncode == 1
+        expected = (
+            ["=== 失敗レーン: p:test-cli ===", "=== 失敗レーン: q:test-hooks ==="]
+            if static
+            else ["=== 失敗レーン: lane-two ===", "=== 失敗レーン: lane-one ==="]
+        )
+        assert _lane_headings(result.stderr) == expected
 
 
 def test_nx_parallel_env_overrides_default(
@@ -1769,13 +1839,14 @@ def test_nx_parallel_env_overrides_default(
         run_script,
         env={"PECOT_NX_PARALLEL": "2", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 0
-    log = read_output(at_repo.nx_log)
-    assert "--parallel=2" in log
-    assert "--parallel=4" not in log
-    assert "並列 2" in result.stdout
-    nx_rows = _rows_of(at_repo, "nx")
-    assert nx_rows[0][4].startswith("parallel=2 ")
+    with allure.step("並列の指定が nx と要約と記録に反映されることを確かめる"):
+        assert result.returncode == 0
+        log = read_output(at_repo.nx_log)
+        assert "--parallel=2" in log
+        assert "--parallel=4" not in log
+        assert "並列 2" in result.stdout
+        nx_rows = _rows_of(at_repo, "nx")
+        assert nx_rows[0][4].startswith("parallel=2 ")
 
 
 def test_nx_parallel_empty_uses_default(
@@ -1791,9 +1862,10 @@ def test_nx_parallel_empty_uses_default(
         run_script,
         env={"PECOT_NX_PARALLEL": "", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 0
-    assert "--parallel=4" in read_output(at_repo.nx_log)
-    assert "並列 4" in result.stdout
+    with allure.step("並列の指定が空のとき既定の 4 になることを確かめる"):
+        assert result.returncode == 0
+        assert "--parallel=4" in read_output(at_repo.nx_log)
+        assert "並列 4" in result.stdout
 
 
 @pytest.mark.parametrize("value", ["0", "abc", "-1", "2.5", "04", "2 3"])
@@ -1810,9 +1882,10 @@ def test_nx_parallel_invalid_fails_before_nx(
         run_script,
         env={"PECOT_NX_PARALLEL": value, "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 1
-    assert f"ERROR: PECOT_NX_PARALLEL は正の整数です: {value}" in result.stderr
-    assert read_output(at_repo.nx_log) == ""
+    with allure.step("終了コード 1・ERROR と、nx が起動されないことを確かめる"):
+        assert result.returncode == 1
+        assert f"ERROR: PECOT_NX_PARALLEL は正の整数です: {value}" in result.stderr
+        assert read_output(at_repo.nx_log) == ""
 
 
 # ====
@@ -1845,16 +1918,19 @@ def test_lane_mode_runs_one_lane_with_run_many(
         run_script,
         env={**_LANE_ENV, "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 0, result.stderr
+    with allure.step(
+        "lane モードが run-many で 1 レーンを動かし affected を呼ばないことを確かめる"
+    ):
+        assert result.returncode == 0, result.stderr
 
-    assert _nx_calls(at_repo, "affected") == []
-    calls = _nx_calls(at_repo, "run-many")
-    assert len(calls) == 1
-    assert calls[0].startswith("run-many -t test-unit -p lane-one ")
-    assert "--parallel=4" in calls[0]
-    assert "--output-style=static" in calls[0]
-    assert "--nxBail" not in calls[0]
-    assert _guard_values(at_repo) == ["0"]
+        assert _nx_calls(at_repo, "affected") == []
+        calls = _nx_calls(at_repo, "run-many")
+        assert len(calls) == 1
+        assert calls[0].startswith("run-many -t test-unit -p lane-one ")
+        assert "--parallel=4" in calls[0]
+        assert "--output-style=static" in calls[0]
+        assert "--nxBail" not in calls[0]
+        assert _guard_values(at_repo) == ["0"]
 
 
 def test_lane_mode_skip_tip_still_runs_lane_without_guard(
@@ -1867,10 +1943,11 @@ def test_lane_mode_skip_tip_still_runs_lane_without_guard(
     result = _run(
         script_dir, at_repo, run_script, env={**_LANE_ENV, "PRE_COMMIT_TO_REF": _ZERO_SHA}
     )
-    assert result.returncode == 0, result.stderr
-    assert len(_nx_calls(at_repo, "run-many")) == 1
-    assert _nx_calls(at_repo, "affected") == []
-    assert _guard_values(at_repo) == ["unset"]
+    with allure.step("skip の tip でもレーンが 1 回動き、pm-guard が unset であることを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert len(_nx_calls(at_repo, "run-many")) == 1
+        assert _nx_calls(at_repo, "affected") == []
+        assert _guard_values(at_repo) == ["unset"]
 
 
 def test_lane_mode_fallback_runs_lane_once_without_guard(
@@ -1886,11 +1963,14 @@ def test_lane_mode_fallback_runs_lane_once_without_guard(
         run_script,
         env={**_LANE_ENV, "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 0, result.stderr
-    calls = _nx_calls(at_repo, "run-many")
-    assert len(calls) == 1
-    assert calls[0].startswith("run-many -t test-unit -p lane-one ")
-    assert _guard_values(at_repo) == ["unset"]
+    with allure.step(
+        "フォールバックでもレーンが 1 回だけ動き、pm-guard が unset であることを確かめる"
+    ):
+        assert result.returncode == 0, result.stderr
+        calls = _nx_calls(at_repo, "run-many")
+        assert len(calls) == 1
+        assert calls[0].startswith("run-many -t test-unit -p lane-one ")
+        assert _guard_values(at_repo) == ["unset"]
 
 
 def test_lane_mode_without_push_info_runs_lane_once(
@@ -1900,9 +1980,12 @@ def test_lane_mode_without_push_info_runs_lane_once(
     at_repo.install_nx_stub()
 
     result = _run(script_dir, at_repo, run_script, env=_LANE_ENV)
-    assert result.returncode == 0, result.stderr
-    assert len(_nx_calls(at_repo, "run-many")) == 1
-    assert _guard_values(at_repo) == ["unset"]
+    with allure.step(
+        "push 情報が無くてもレーンが 1 回動き、pm-guard が unset であることを確かめる"
+    ):
+        assert result.returncode == 0, result.stderr
+        assert len(_nx_calls(at_repo, "run-many")) == 1
+        assert _guard_values(at_repo) == ["unset"]
 
 
 def test_lane_mode_multiple_tips_run_lane_once_and_guard_is_one_if_any(
@@ -1919,10 +2002,11 @@ def test_lane_mode_multiple_tips_run_lane_once_and_guard_is_one_if_any(
         f"refs/heads/feature2 {feat2_sha} refs/heads/feature2 {at_repo.main_sha}\n"
     )
     result = _run(script_dir, at_repo, run_script, env=_LANE_ENV, stdin=stdin)
-    assert result.returncode == 0, result.stderr
-    assert len(_nx_calls(at_repo, "run-many")) == 1
-    assert _nx_calls(at_repo, "affected") == []
-    assert _guard_values(at_repo) == ["1"]
+    with allure.step("複数の tip でもレーンが 1 回で、pm-guard が 1 であることを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert len(_nx_calls(at_repo, "run-many")) == 1
+        assert _nx_calls(at_repo, "affected") == []
+        assert _guard_values(at_repo) == ["1"]
 
 
 def test_lane_mode_mixed_guard_and_fallback_tips_run_lane_once_without_guard(
@@ -1941,11 +2025,14 @@ def test_lane_mode_mixed_guard_and_fallback_tips_run_lane_once_without_guard(
         f"refs/heads/orphan {unresolvable} refs/heads/orphan {at_repo.main_sha}\n"
     )
     result = _run(script_dir, at_repo, run_script, env=_LANE_ENV, stdin=stdin)
-    assert result.returncode == 0, result.stderr
-    assert "全 project の test を実行します" in result.stderr
-    assert len(_nx_calls(at_repo, "run-many")) == 1
-    assert _nx_calls(at_repo, "affected") == []
-    assert _guard_values(at_repo) == ["unset"]
+    with allure.step(
+        "guard の tip とフォールバックの tip が両方あってもレーンが 1 回で、pm-guard が unset であることを確かめる"
+    ):
+        assert result.returncode == 0, result.stderr
+        assert "全 project の test を実行します" in result.stderr
+        assert len(_nx_calls(at_repo, "run-many")) == 1
+        assert _nx_calls(at_repo, "affected") == []
+        assert _guard_values(at_repo) == ["unset"]
 
 
 @pytest.mark.parametrize(
@@ -1978,10 +2065,11 @@ def test_lane_mode_rejects_invalid_lane_before_nx_run(
             "PRE_COMMIT_TO_REF": at_repo.feature_sha,
         },
     )
-    assert result.returncode == 1
-    assert "ERROR" in result.stderr
-    assert _nx_calls(at_repo, "run-many") == []
-    assert _nx_calls(at_repo, "affected") == []
+    with allure.step("終了コード 1・ERROR と、run-many・affected が呼ばれないことを確かめる"):
+        assert result.returncode == 1
+        assert "ERROR" in result.stderr
+        assert _nx_calls(at_repo, "run-many") == []
+        assert _nx_calls(at_repo, "affected") == []
 
 
 def test_lane_mode_fails_when_profile_has_no_task_of_the_lane(
@@ -2001,8 +2089,9 @@ def test_lane_mode_fails_when_profile_has_no_task_of_the_lane(
             "PRE_COMMIT_TO_REF": at_repo.feature_sha,
         },
     )
-    assert result.returncode == 1
-    assert "lane-two:test-cli の task を nx の profile で見つけられません" in result.stderr
+    with allure.step("終了コード 1 と profile に task が無いエラーを確かめる"):
+        assert result.returncode == 1
+        assert "lane-two:test-cli の task を nx の profile で見つけられません" in result.stderr
 
 
 @pytest.mark.parametrize("stub_env", ["STUB_NX_EMPTY_PROFILE", "STUB_NX_NO_PROFILE"])
@@ -2019,8 +2108,9 @@ def test_lane_mode_fails_when_profile_is_empty_or_missing(
         run_script,
         env={**_LANE_ENV, stub_env: "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 1
-    assert "task を nx の profile で見つけられません" in result.stderr
+    with allure.step("終了コード 1 と profile に task が無いエラーを確かめる"):
+        assert result.returncode == 1
+        assert "task を nx の profile で見つけられません" in result.stderr
 
 
 def test_lane_mode_propagates_nx_failure(
@@ -2036,7 +2126,8 @@ def test_lane_mode_propagates_nx_failure(
         run_script,
         env={**_LANE_ENV, "STUB_NX_EXIT": "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 1
+    with allure.step("レーンの run-many が失敗して終了コード 1 になることを確かめる"):
+        assert result.returncode == 1
 
 
 def test_lane_is_ignored_with_warn_without_ci_mode(
@@ -2052,11 +2143,12 @@ def test_lane_is_ignored_with_warn_without_ci_mode(
         run_script,
         env={"PECOT_NX_LANE": _LANE, "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 0, result.stderr
-    assert "WARN: PECOT_NX_LANE は PECOT_NX_CI=1 のときだけ読みます" in result.stderr
-    assert len(_nx_calls(at_repo, "affected")) == 1
-    assert _nx_calls(at_repo, "run-many") == []
-    assert "--nxBail" in _nx_calls(at_repo, "affected")[0]
+    with allure.step("CI モードが無いとレーンの指定が警告つきで無視されることを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert "WARN: PECOT_NX_LANE は PECOT_NX_CI=1 のときだけ読みます" in result.stderr
+        assert len(_nx_calls(at_repo, "affected")) == 1
+        assert _nx_calls(at_repo, "run-many") == []
+        assert "--nxBail" in _nx_calls(at_repo, "affected")[0]
 
 
 def test_empty_lane_env_is_not_lane_mode(
@@ -2072,6 +2164,7 @@ def test_empty_lane_env_is_not_lane_mode(
         run_script,
         env={"PECOT_NX_CI": "1", "PECOT_NX_LANE": "", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
-    assert result.returncode == 0, result.stderr
-    assert "PECOT_NX_LANE" not in result.stderr
-    assert len(_nx_calls(at_repo, "affected")) == 1
+    with allure.step("レーンの指定が空のとき lane モードにならず警告も出ないことを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert "PECOT_NX_LANE" not in result.stderr
+        assert len(_nx_calls(at_repo, "affected")) == 1

@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import config from '../vitest.config.js'
+import { stepSync } from '../../interface-spec/src/vitest/step.js'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -12,11 +13,15 @@ describe('coverage.include', () => {
   const include = config.test?.coverage?.include ?? []
 
   it('glob を 1 つ以上宣言している', () => {
-    expect(include.length).toBeGreaterThan(0)
+    stepSync('coverage.include の glob 数を比べる', () => {
+      expect(include.length).toBeGreaterThan(0)
+    })
   })
 
   it.each(include)('%s は実在するファイルに当たる', (pattern) => {
-    const matches = globSync(pattern, { cwd: root, exclude: name => name === 'node_modules' || name === 'dist' })
-    expect(matches.length).toBeGreaterThan(0)
+    const matches = stepSync('glob を展開する', () => globSync(pattern, { cwd: root, exclude: name => name === 'node_modules' || name === 'dist' }))
+    stepSync('当たったファイル数を比べる', () => {
+      expect(matches.length).toBeGreaterThan(0)
+    })
   })
 })

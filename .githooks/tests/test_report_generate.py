@@ -14,6 +14,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+import allure
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts/test_report"))
@@ -104,58 +105,68 @@ def _main(root: Path, *args: str, run: Recorder | None = None) -> tuple[int, Rec
 def test_local_names_missing_lanes_and_builds_from_the_rest(
     root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    alpha = _results(root, "alpha:test-unit")
+    with allure.step("一部のレーンだけに結果を置いて、ローカルで生成する"):
+        alpha = _results(root, "alpha:test-unit")
 
-    code, run = _main(root, "--local", "--output", str(tmp_path / "out"))
+        code, run = _main(root, "--local", "--output", str(tmp_path / "out"))
 
-    assert code == 0
-    assert len(run.calls) == 1
-    command = run.calls[0][0]
-    assert command[-1] == str(alpha)
-    assert str(root / _LANES[1]["results"]) not in command
-    assert "beta:test-cli" in capsys.readouterr().err
+    with allure.step("終了コードと allure の引数と欠けたレーンの出力を確かめる"):
+        assert code == 0
+        assert len(run.calls) == 1
+        command = run.calls[0][0]
+        assert command[-1] == str(alpha)
+        assert str(root / _LANES[1]["results"]) not in command
+        assert "beta:test-cli" in capsys.readouterr().err
 
 
 def test_local_counts_a_lane_without_result_files_as_missing(
     root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    _results(root, "alpha:test-unit")
-    empty = root / _LANES[1]["results"]
-    empty.mkdir(parents=True)
-    (empty / "x-container.json").write_text("{}", encoding="utf-8")
+    with allure.step("結果のファイルが無いレーンを混ぜて、ローカルで生成する"):
+        _results(root, "alpha:test-unit")
+        empty = root / _LANES[1]["results"]
+        empty.mkdir(parents=True)
+        (empty / "x-container.json").write_text("{}", encoding="utf-8")
 
-    code, run = _main(root, "--local", "--output", str(tmp_path / "out"))
+        code, run = _main(root, "--local", "--output", str(tmp_path / "out"))
 
-    assert code == 0
-    assert str(empty) not in run.calls[0][0]
-    assert "beta:test-cli" in capsys.readouterr().err
+    with allure.step("空のレーンが欠けとして数えられることを確かめる"):
+        assert code == 0
+        assert str(empty) not in run.calls[0][0]
+        assert "beta:test-cli" in capsys.readouterr().err
 
 
 def test_local_fails_when_no_lane_has_results(
     root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    code, run = _main(root, "--local", "--output", str(tmp_path / "out"))
+    with allure.step("結果が無い状態で、ローカルで生成する"):
+        code, run = _main(root, "--local", "--output", str(tmp_path / "out"))
 
-    assert code == 1
-    assert run.calls == []
-    err = capsys.readouterr().err
-    assert "alpha:test-unit" in err
-    assert "beta:test-cli" in err
+    with allure.step("終了コード 1 と allure を動かさないことと欠けたレーンの出力を確かめる"):
+        assert code == 1
+        assert run.calls == []
+        err = capsys.readouterr().err
+        assert "alpha:test-unit" in err
+        assert "beta:test-cli" in err
 
 
 def test_sources_run_fails_on_missing_lane_without_running_allure(
     root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    _results(root, "alpha:test-unit", commit=SHA_A)
-    empty = root / _LANES[1]["results"]
-    empty.mkdir(parents=True)
-    sources = _sources(tmp_path, [{"commit": SHA_A, "lanes": ["alpha:test-unit", "beta:test-cli"]}])
+    with allure.step("レーンの 1 つに結果が無い状態で、元の指定で生成する"):
+        _results(root, "alpha:test-unit", commit=SHA_A)
+        empty = root / _LANES[1]["results"]
+        empty.mkdir(parents=True)
+        sources = _sources(
+            tmp_path, [{"commit": SHA_A, "lanes": ["alpha:test-unit", "beta:test-cli"]}]
+        )
 
-    code, run = _main(root, "--sources", str(sources), "--output", str(tmp_path / "out"))
+        code, run = _main(root, "--sources", str(sources), "--output", str(tmp_path / "out"))
 
-    assert code == 1
-    assert run.calls == []
-    assert "beta:test-cli" in capsys.readouterr().err
+    with allure.step("終了コード 1 と allure を動かさないことを確かめる"):
+        assert code == 1
+        assert run.calls == []
+        assert "beta:test-cli" in capsys.readouterr().err
 
 
 # --- 起動の引数 ---
@@ -164,72 +175,84 @@ def test_sources_run_fails_on_missing_lane_without_running_allure(
 def test_command_lists_config_output_clean_and_results_in_lane_order(
     root: Path, tmp_path: Path
 ) -> None:
-    beta = _results(root, "beta:test-cli", commit=SHA_A)
-    alpha = _results(root, "alpha:test-unit", commit=SHA_A)
-    sources = _sources(tmp_path, [{"commit": SHA_A, "lanes": ["beta:test-cli", "alpha:test-unit"]}])
+    with allure.step("結果を置いて、元の指定で生成する"):
+        beta = _results(root, "beta:test-cli", commit=SHA_A)
+        alpha = _results(root, "alpha:test-unit", commit=SHA_A)
+        sources = _sources(
+            tmp_path, [{"commit": SHA_A, "lanes": ["beta:test-cli", "alpha:test-unit"]}]
+        )
 
-    code, run = _main(root, "--sources", str(sources), "--output", str(tmp_path / "out"))
+        code, run = _main(root, "--sources", str(sources), "--output", str(tmp_path / "out"))
 
-    assert code == 0
-    command, env = run.calls[0]
-    assert command == [
-        "pnpm", "exec", "allure", "generate",
-        "--config", str(_CONFIG),
-        "--output", str(tmp_path / "out"),
-        "--clean",
-        str(alpha), str(beta),
-    ]  # fmt: skip
-    assert generate.HISTORY_ENV not in env
+    with allure.step("allure の引数に設定・出力・clean・レーン順の結果が並ぶことを確かめる"):
+        assert code == 0
+        command, env = run.calls[0]
+        assert command == [
+            "pnpm", "exec", "allure", "generate",
+            "--config", str(_CONFIG),
+            "--output", str(tmp_path / "out"),
+            "--clean",
+            str(alpha), str(beta),
+        ]  # fmt: skip
+        assert generate.HISTORY_ENV not in env
 
 
 def test_relative_output_is_resolved_from_the_working_directory(
     root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    _results(root, "alpha:test-unit")
-    work = tmp_path / "work"
-    work.mkdir()
-    monkeypatch.chdir(work)
+    with allure.step("作業ディレクトリを移して、相対の出力先で生成する"):
+        _results(root, "alpha:test-unit")
+        work = tmp_path / "work"
+        work.mkdir()
+        monkeypatch.chdir(work)
 
-    _, run = _main(root, "--local", "--output", "report")
+        _, run = _main(root, "--local", "--output", "report")
 
-    command = run.calls[0][0]
-    assert command[command.index("--output") + 1] == str(work / "report")
+        command = run.calls[0][0]
+    with allure.step("出力先が作業ディレクトリからの絶対パスになることを確かめる"):
+        assert command[command.index("--output") + 1] == str(work / "report")
 
 
 def test_history_is_passed_by_env_as_an_absolute_path(
     root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    _results(root, "alpha:test-unit", commit=SHA_A)
-    sources = _sources(tmp_path, [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}])
-    monkeypatch.chdir(tmp_path)
+    with allure.step("履歴の相対パスを付けて、元の指定で生成する"):
+        _results(root, "alpha:test-unit", commit=SHA_A)
+        sources = _sources(tmp_path, [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}])
+        monkeypatch.chdir(tmp_path)
 
-    _, run = _main(
-        root, "--sources", str(sources), "--output", "out", "--history", "store/history.jsonl"
-    )
+        _, run = _main(
+            root, "--sources", str(sources), "--output", "out", "--history", "store/history.jsonl"
+        )
 
-    assert run.calls[0][1][generate.HISTORY_ENV] == str(tmp_path / "store/history.jsonl")
+    with allure.step("履歴が環境変数で絶対パスとして渡ることを確かめる"):
+        assert run.calls[0][1][generate.HISTORY_ENV] == str(tmp_path / "store/history.jsonl")
 
 
 def test_local_never_passes_history_from_the_parent_env(
     root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    _results(root, "alpha:test-unit")
-    monkeypatch.setenv(generate.HISTORY_ENV, str(tmp_path / "leaked.jsonl"))
+    with allure.step("親の環境に履歴のパスを置いて、ローカルで生成する"):
+        _results(root, "alpha:test-unit")
+        monkeypatch.setenv(generate.HISTORY_ENV, str(tmp_path / "leaked.jsonl"))
 
-    _, run = _main(root, "--local", "--output", str(tmp_path / "out"))
+        _, run = _main(root, "--local", "--output", str(tmp_path / "out"))
 
-    assert generate.HISTORY_ENV not in run.calls[0][1]
+    with allure.step("親の履歴のパスが渡らないことを確かめる"):
+        assert generate.HISTORY_ENV not in run.calls[0][1]
 
 
 def test_allure_failure_is_returned(
     root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    _results(root, "alpha:test-unit")
+    with allure.step("allure が失敗する状態で生成する"):
+        _results(root, "alpha:test-unit")
 
-    code, _ = _main(root, "--local", "--output", str(tmp_path / "out"), run=Recorder(code=3))
+        code, _ = _main(root, "--local", "--output", str(tmp_path / "out"), run=Recorder(code=3))
 
-    assert code == 3
-    assert "allure generate" in capsys.readouterr().err
+    with allure.step("終了コードと allure の失敗の出力を確かめる"):
+        assert code == 3
+        assert "allure generate" in capsys.readouterr().err
 
 
 # --- 履歴 ---
@@ -252,14 +275,16 @@ def _history_run(root: Path, tmp_path: Path, history: Path) -> tuple[int, Record
 def test_missing_history_is_passed_as_is_without_notice(
     root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    history = tmp_path / "history.jsonl"
+    with allure.step("履歴のファイルが無い状態で生成する"):
+        history = tmp_path / "history.jsonl"
 
-    code, run = _history_run(root, tmp_path, history)
+        code, run = _history_run(root, tmp_path, history)
 
-    assert code == 0
-    assert run.calls[0][1][generate.HISTORY_ENV] == str(history)
-    assert not history.exists()
-    assert "履歴" not in capsys.readouterr().err
+    with allure.step("終了コードと履歴の渡し方と通知が無いことを確かめる"):
+        assert code == 0
+        assert run.calls[0][1][generate.HISTORY_ENV] == str(history)
+        assert not history.exists()
+        assert "履歴" not in capsys.readouterr().err
 
 
 @pytest.mark.parametrize(
@@ -280,31 +305,35 @@ def test_unreadable_history_is_emptied_with_notice(
     monkeypatch: pytest.MonkeyPatch,
     bad: bytes,
 ) -> None:
-    history = tmp_path / "history.jsonl"
-    history.write_bytes(b'{"uuid": "1"}\n' + bad)
-    summary = tmp_path / "summary.md"
-    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    with allure.step("読めない行を含む履歴を置いて生成する"):
+        history = tmp_path / "history.jsonl"
+        history.write_bytes(b'{"uuid": "1"}\n' + bad)
+        summary = tmp_path / "summary.md"
+        monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
 
-    code, _ = _history_run(root, tmp_path, history)
+        code, _ = _history_run(root, tmp_path, history)
 
-    assert code == 0
-    assert history.read_bytes() == b""
-    assert "履歴" in capsys.readouterr().err
-    assert "履歴" in summary.read_text(encoding="utf-8")
+    with allure.step("終了コードと履歴が空になることと通知を確かめる"):
+        assert code == 0
+        assert history.read_bytes() == b""
+        assert "履歴" in capsys.readouterr().err
+        assert "履歴" in summary.read_text(encoding="utf-8")
 
 
 def test_readable_history_is_left_as_is(
     root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    history = tmp_path / "history.jsonl"
-    body = b'{"uuid": "1", "name": "a b"}\r\n\n  \n{"uuid": "2"}\n'
-    history.write_bytes(body)
+    with allure.step("読める履歴を置いて生成する"):
+        history = tmp_path / "history.jsonl"
+        body = b'{"uuid": "1", "name": "a b"}\r\n\n  \n{"uuid": "2"}\n'
+        history.write_bytes(body)
 
-    code, _ = _history_run(root, tmp_path, history)
+        code, _ = _history_run(root, tmp_path, history)
 
-    assert code == 0
-    assert history.read_bytes() == body
-    assert "履歴" not in capsys.readouterr().err
+    with allure.step("終了コードと履歴が変わらないことと通知が無いことを確かめる"):
+        assert code == 0
+        assert history.read_bytes() == body
+        assert "履歴" not in capsys.readouterr().err
 
 
 class HistoryWriter(Recorder):
@@ -317,37 +346,45 @@ class HistoryWriter(Recorder):
 
 
 def test_line_separators_that_allure_writes_are_escaped(root: Path, tmp_path: Path) -> None:
-    _results(root, "alpha:test-unit", commit=SHA_A)
-    sources = _sources(tmp_path, [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}])
-    history = tmp_path / "history.jsonl"
-    history.write_bytes(b'{"uuid": "1"}\n')
+    with allure.step("allure が書く行区切りの文字を含む履歴を作る"):
+        _results(root, "alpha:test-unit", commit=SHA_A)
+        sources = _sources(tmp_path, [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}])
+        history = tmp_path / "history.jsonl"
+        history.write_bytes(b'{"uuid": "1"}\n')
 
-    code, _ = _main(
-        root,
-        "--sources", str(sources),
-        "--output", str(tmp_path / "out"),
-        "--history", str(history),
-        run=HistoryWriter(),
-    )  # fmt: skip
+        code, _ = _main(
+            root,
+            "--sources", str(sources),
+            "--output", str(tmp_path / "out"),
+            "--history", str(history),
+            run=HistoryWriter(),
+        )  # fmt: skip
 
-    assert code == 0
-    assert history.read_bytes() == b'{"uuid": "1"}\n{"uuid": "2", "name": "a\\u2028b\\u2029c"}\n'
-    assert generate.read_history(history.read_bytes()) == []
-    assert json.loads(_entries(history)[1])["name"] == "a\u2028b\u2029c"
+    with allure.step("行区切りがエスケープされて履歴が読めることを確かめる"):
+        assert code == 0
+        assert (
+            history.read_bytes() == b'{"uuid": "1"}\n{"uuid": "2", "name": "a\\u2028b\\u2029c"}\n'
+        )
+        assert generate.read_history(history.read_bytes()) == []
+        assert json.loads(_entries(history)[1])["name"] == "a\u2028b\u2029c"
 
 
 def test_lone_carriage_return_splits_lines_like_node_readline() -> None:
-    assert generate.read_history(b'{"a": 1}\r{"b": 2}\n') == []
-    assert generate.read_history(b'{"a": 1}\r{oops\n') == [2]
-    # JSON.stringify は U+2028 をエスケープしないが、readline はそこで切る
-    assert generate.read_history('{"a": "x\u2028y"}\n'.encode()) == [1, 2]
+    with allure.step(
+        "単独の CR を含む履歴を読み、node の readline と同じ行の区切りになることを確かめる"
+    ):
+        assert generate.read_history(b'{"a": 1}\r{"b": 2}\n') == []
+        assert generate.read_history(b'{"a": 1}\r{oops\n') == [2]
+        # JSON.stringify は U+2028 をエスケープしないが、readline はそこで切る
+        assert generate.read_history('{"a": "x\u2028y"}\n'.encode()) == [1, 2]
 
 
 def test_blank_lines_are_those_js_trim_empties() -> None:
-    # JS の trim() は U+3000・U+FEFF を除き、\x1c・U+0085 を除かない（Python の strip() と違う）
-    assert generate.read_history('{"a": 1}\n\u3000\ufeff\n'.encode()) == []
-    assert generate.read_history(b'{"a": 1}\n\x1c\n') == [2]
-    assert generate.read_history('{"a": 1}\n\u0085\n'.encode()) == [2]
+    with allure.step("JS の trim が空にする行を含む履歴を読み、空行の扱いを確かめる"):
+        # JS の trim() は U+3000・U+FEFF を除き、\x1c・U+0085 を除かない（Python の strip() と違う）
+        assert generate.read_history('{"a": 1}\n\u3000\ufeff\n'.encode()) == []
+        assert generate.read_history(b'{"a": 1}\n\x1c\n') == [2]
+        assert generate.read_history('{"a": 1}\n\u0085\n'.encode()) == [2]
 
 
 # --- 材料（--sources） ---
@@ -356,15 +393,17 @@ def test_blank_lines_are_those_js_trim_empties() -> None:
 def test_sources_with_matching_source_json_build_only_the_listed_lanes(
     root: Path, tmp_path: Path
 ) -> None:
-    alpha = _results(root, "alpha:test-unit", commit=SHA_A)
-    _results(root, "beta:test-cli", commit=SHA_A)
-    sources = _sources(tmp_path, [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}])
+    with allure.step("元の指定に一致する source.json を置いて生成する"):
+        alpha = _results(root, "alpha:test-unit", commit=SHA_A)
+        _results(root, "beta:test-cli", commit=SHA_A)
+        sources = _sources(tmp_path, [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}])
 
-    code, run = _main(root, "--sources", str(sources), "--output", str(tmp_path / "out"))
+        code, run = _main(root, "--sources", str(sources), "--output", str(tmp_path / "out"))
 
-    assert code == 0
-    assert run.calls[0][0][-1] == str(alpha)
-    assert str(root / _LANES[1]["results"]) not in run.calls[0][0]
+    with allure.step("載せたレーンだけで作られることを確かめる"):
+        assert code == 0
+        assert run.calls[0][0][-1] == str(alpha)
+        assert str(root / _LANES[1]["results"]) not in run.calls[0][0]
 
 
 @pytest.mark.parametrize(
@@ -384,41 +423,47 @@ def test_source_mismatch_fails_naming_the_lane(
     source: object,
     expected: str,
 ) -> None:
-    alpha = _results(root, "alpha:test-unit")
-    if source == "not json":
-        (alpha.parent / "source.json").write_text("{", encoding="utf-8")
-    elif source is not None:
-        (alpha.parent / "source.json").write_text(json.dumps(source), encoding="utf-8")
-    _results(root, "beta:test-cli", commit=SHA_A)
-    sources = _sources(tmp_path, [{"commit": SHA_A, "lanes": ["alpha:test-unit", "beta:test-cli"]}])
+    with allure.step("食い違う source.json を置いて生成する"):
+        alpha = _results(root, "alpha:test-unit")
+        if source == "not json":
+            (alpha.parent / "source.json").write_text("{", encoding="utf-8")
+        elif source is not None:
+            (alpha.parent / "source.json").write_text(json.dumps(source), encoding="utf-8")
+        _results(root, "beta:test-cli", commit=SHA_A)
+        sources = _sources(
+            tmp_path, [{"commit": SHA_A, "lanes": ["alpha:test-unit", "beta:test-cli"]}]
+        )
 
-    code, run = _main(root, "--sources", str(sources), "--output", str(tmp_path / "out"))
+        code, run = _main(root, "--sources", str(sources), "--output", str(tmp_path / "out"))
 
-    assert code == 1
-    assert run.calls == []
-    err = capsys.readouterr().err
-    assert "alpha:test-unit" in err
-    assert expected in err
-    assert "  beta:test-cli:" not in err
+    with allure.step("終了コード 1 と食い違ったレーン名の出力を確かめる"):
+        assert code == 1
+        assert run.calls == []
+        err = capsys.readouterr().err
+        assert "alpha:test-unit" in err
+        assert expected in err
+        assert "  beta:test-cli:" not in err
 
 
 def test_lanes_of_several_runs_are_checked_against_their_own_commit(
     root: Path, tmp_path: Path
 ) -> None:
-    _results(root, "alpha:test-unit", commit=SHA_B)
-    _results(root, "beta:test-cli", commit=SHA_A)
-    sources = _sources(
-        tmp_path,
-        [
-            {"commit": SHA_A, "lanes": ["beta:test-cli"]},
-            {"commit": SHA_B, "lanes": ["alpha:test-unit"]},
-        ],
-    )
+    with allure.step("複数の run の結果を別々の commit で置いて生成する"):
+        _results(root, "alpha:test-unit", commit=SHA_B)
+        _results(root, "beta:test-cli", commit=SHA_A)
+        sources = _sources(
+            tmp_path,
+            [
+                {"commit": SHA_A, "lanes": ["beta:test-cli"]},
+                {"commit": SHA_B, "lanes": ["alpha:test-unit"]},
+            ],
+        )
 
-    code, run = _main(root, "--sources", str(sources), "--output", str(tmp_path / "out"))
+        code, run = _main(root, "--sources", str(sources), "--output", str(tmp_path / "out"))
 
-    assert code == 0
-    assert len(run.calls) == 1
+    with allure.step("終了コード 0 と allure が 1 回だけ動くことを確かめる"):
+        assert code == 0
+        assert len(run.calls) == 1
 
 
 @pytest.mark.parametrize(
@@ -446,15 +491,17 @@ def test_bad_sources_stop_with_a_message(
     runs: object,
     expected: str,
 ) -> None:
-    _results(root, "alpha:test-unit", commit=SHA_A)
-    path = tmp_path / "report-sources.json"
-    path.write_text(json.dumps({"side": "dev", "runs": runs, "missing": []}), encoding="utf-8")
+    with allure.step("不正な元の指定を書いて生成する"):
+        _results(root, "alpha:test-unit", commit=SHA_A)
+        path = tmp_path / "report-sources.json"
+        path.write_text(json.dumps({"side": "dev", "runs": runs, "missing": []}), encoding="utf-8")
 
-    code, run = _main(root, "--sources", str(path), "--output", str(tmp_path / "out"))
+        code, run = _main(root, "--sources", str(path), "--output", str(tmp_path / "out"))
 
-    assert code == 1
-    assert run.calls == []
-    assert expected in capsys.readouterr().err
+    with allure.step("終了コード 1 と allure を動かさないことと理由の出力を確かめる"):
+        assert code == 1
+        assert run.calls == []
+        assert expected in capsys.readouterr().err
 
 
 # --- 引数の誤り ---
@@ -473,13 +520,15 @@ def test_bad_sources_stop_with_a_message(
 def test_conflicting_arguments_stop_before_anything(
     root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, args: list[str]
 ) -> None:
-    _results(root, "alpha:test-unit", commit=SHA_A)
-    monkeypatch.chdir(tmp_path)
+    with allure.step("結果を置いて作業ディレクトリを移す"):
+        _results(root, "alpha:test-unit", commit=SHA_A)
+        monkeypatch.chdir(tmp_path)
 
-    with pytest.raises(SystemExit) as raised:
-        _main(root, "--output", "out", *args)
+    with allure.step("競合する引数で動かし、終了コード 2 で止まることを確かめる"):
+        with pytest.raises(SystemExit) as raised:
+            _main(root, "--output", "out", *args)
 
-    assert raised.value.code == 2
+        assert raised.value.code == 2
 
 
 # --- allurerc.mjs ---
@@ -510,31 +559,35 @@ def _config(env: dict[str, str]) -> dict[str, Any]:
 
 
 def test_config_values() -> None:
-    env = {k: v for k, v in os.environ.items() if k != generate.HISTORY_ENV}
+    with allure.step("allure の設定を読む"):
+        env = {k: v for k, v in os.environ.items() if k != generate.HISTORY_ENV}
 
-    config = _config(env)
+        config = _config(env)
 
-    assert config["raw"]["plugins"] == {
-        "awesome": {
-            "options": {
-                "groupBy": ["project", "lane", "parentSuite", "suite", "subSuite"],
-                "reportLanguage": "ja",
+    with allure.step("設定の値を確かめる"):
+        assert config["raw"]["plugins"] == {
+            "awesome": {
+                "options": {
+                    "groupBy": ["project", "lane", "parentSuite", "suite", "subSuite"],
+                    "reportLanguage": "ja",
+                }
             }
         }
-    }
-    assert config["resolved"] == {
-        "name": "pecot テストレポート",
-        "historyPath": None,
-        "historyLimit": 3,
-        "historyBaseUrl": None,
-        "flakyDetection": {"includePassedTests": True},
-    }
+        assert config["resolved"] == {
+            "name": "pecot テストレポート",
+            "historyPath": None,
+            "historyLimit": 3,
+            "historyBaseUrl": None,
+            "flakyDetection": {"includePassedTests": True},
+        }
 
 
 def test_config_takes_history_path_from_env(tmp_path: Path) -> None:
-    env = {**os.environ, generate.HISTORY_ENV: str(tmp_path / "history.jsonl")}
+    with allure.step("環境変数に履歴のパスを置いて設定を読む"):
+        env = {**os.environ, generate.HISTORY_ENV: str(tmp_path / "history.jsonl")}
 
-    assert _config(env)["resolved"]["historyPath"] == str(tmp_path / "history.jsonl")
+    with allure.step("履歴のパスが環境変数の値になることを確かめる"):
+        assert _config(env)["resolved"]["historyPath"] == str(tmp_path / "history.jsonl")
 
 
 # --- 本物の allure generate ---
@@ -602,15 +655,16 @@ _needs_pnpm = pytest.mark.skipif(shutil.which("pnpm") is None, reason="pnpm が�
 def test_real_allure_appends_a_line_per_report(
     real_build: tuple[Callable[[], int], Path], tmp_path: Path
 ) -> None:
-    build, history = real_build
+    with allure.step("実際の allure でレポートを 2 回作り、履歴に 1 行ずつ増えることを確かめる"):
+        build, history = real_build
 
-    assert build() == 0
-    assert (tmp_path / "report/index.html").is_file()
-    assert len(_entries(history)) == 1
-    assert json.loads(_entries(history)[0])["name"].startswith("pecot テストレポート")
+        assert build() == 0
+        assert (tmp_path / "report/index.html").is_file()
+        assert len(_entries(history)) == 1
+        assert json.loads(_entries(history)[0])["name"].startswith("pecot テストレポート")
 
-    assert build() == 0
-    assert len(_entries(history)) == 2
+        assert build() == 0
+        assert len(_entries(history)) == 2
 
 
 @_needs_pnpm
@@ -619,16 +673,17 @@ def test_real_allure_keeps_history_of_a_test_name_with_line_separator(
     real_build: tuple[Callable[[], int], Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    build, history = real_build
-    result = _allure_result("1") | {"name": "テスト\u2028続き"}
-    (root / _LANES[0]["results"] / "1-result.json").write_text(json.dumps(result), "utf-8")
+    with allure.step("行区切りを含むテスト名のレポートを 2 回作り、履歴が保たれることを確かめる"):
+        build, history = real_build
+        result = _allure_result("1") | {"name": "テスト\u2028続き"}
+        (root / _LANES[0]["results"] / "1-result.json").write_text(json.dumps(result), "utf-8")
 
-    assert build() == 0
-    capsys.readouterr()
-    assert build() == 0
+        assert build() == 0
+        capsys.readouterr()
+        assert build() == 0
 
-    assert "履歴" not in capsys.readouterr().err
-    assert len(_entries(history)) == 2
+        assert "履歴" not in capsys.readouterr().err
+        assert len(_entries(history)) == 2
 
 
 # Allure は空の行も historyLimit に数える。空の行は 1 つずつにする。
@@ -647,16 +702,17 @@ def test_real_allure_reads_what_generate_passes_as_readable(
     capsys: pytest.CaptureFixture[str],
     case: str,
 ) -> None:
-    build, history = real_build
-    assert build() == 0
-    history.write_bytes(f"{_entries(history)[0]}{_ENDINGS[case]}".encode())
-    before = len(_entries(history))
-    capsys.readouterr()
+    with allure.step("実際の allure が読める履歴を、generate も読める履歴として通すことを確かめる"):
+        build, history = real_build
+        assert build() == 0
+        history.write_bytes(f"{_entries(history)[0]}{_ENDINGS[case]}".encode())
+        before = len(_entries(history))
+        capsys.readouterr()
 
-    assert build() == 0
+        assert build() == 0
 
-    assert "履歴" not in capsys.readouterr().err
-    assert len(_entries(history)) == before + 1
+        assert "履歴" not in capsys.readouterr().err
+        assert len(_entries(history)) == before + 1
 
 
 @_needs_pnpm
@@ -668,13 +724,14 @@ def test_real_allure_reads_what_generate_passes_as_readable(
 def test_real_allure_builds_from_empty_history_after_unreadable_lines(
     real_build: tuple[Callable[[], int], Path], capsys: pytest.CaptureFixture[str], bad: str
 ) -> None:
-    build, history = real_build
-    assert build() == 0
-    with history.open("a", encoding="utf-8") as f:
-        f.write(f"{bad}\n")
-    capsys.readouterr()
+    with allure.step("読めない行のある履歴から、実際の allure が空の履歴で作り直すことを確かめる"):
+        build, history = real_build
+        assert build() == 0
+        with history.open("a", encoding="utf-8") as f:
+            f.write(f"{bad}\n")
+        capsys.readouterr()
 
-    assert build() == 0
+        assert build() == 0
 
-    assert "履歴" in capsys.readouterr().err
-    assert len(_entries(history)) == 1
+        assert "履歴" in capsys.readouterr().err
+        assert len(_entries(history)) == 1

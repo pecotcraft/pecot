@@ -9,6 +9,7 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
+import allure
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -134,71 +135,89 @@ def scene(env: Env) -> Scene:
 
 
 def test_outputs_pr_main_on_success(scene: Scene) -> None:
-    scene.good_run()
-    assert scene.go() == (f"pr_main={scene.m0}", "")
+    with allure.step("成功する run を用意して動かす"):
+        scene.good_run()
+    with allure.step("出力が pr_main であることを確かめる"):
+        assert scene.go() == (f"pr_main={scene.m0}", "")
 
 
 @pytest.mark.parametrize("prefix", ["refs/heads/", ""])
 def test_head_ref_forms(scene: Scene, prefix: str) -> None:
-    scene.good_run()
-    ref = f"{prefix}gh-readonly-queue/main/pr-7-{scene.base}"
-    assert scene.env.go(ref, scene.base, scene.q_head)[0] == f"pr_main={scene.m0}"
+    with allure.step("成功する run を用意して head の ref の形を変えて動かす"):
+        scene.good_run()
+        ref = f"{prefix}gh-readonly-queue/main/pr-7-{scene.base}"
+    with allure.step("出力が pr_main であることを確かめる"):
+        assert scene.env.go(ref, scene.base, scene.q_head)[0] == f"pr_main={scene.m0}"
 
 
 def test_picks_newer_run_that_passes(scene: Scene) -> None:
-    scene.env.runs(scene.pr_head, (100, "2026-11-01T00:00:00Z"), (110, "2026-11-02T00:00:00Z"))
-    scene.env.artifact(100, scene.m0, scene.pr_head)
-    scene.env.artifact(110, scene.base, scene.pr_head)
-    assert scene.go()[0] == f"pr_main={scene.base}"
+    with allure.step("新旧 2 つの run と artifact を用意する"):
+        scene.env.runs(scene.pr_head, (100, "2026-11-01T00:00:00Z"), (110, "2026-11-02T00:00:00Z"))
+        scene.env.artifact(100, scene.m0, scene.pr_head)
+        scene.env.artifact(110, scene.base, scene.pr_head)
+    with allure.step("新しい run の pr_main が選ばれることを確かめる"):
+        assert scene.go()[0] == f"pr_main={scene.base}"
 
 
 def test_falls_back_to_older_run_when_newer_fails_check(scene: Scene) -> None:
-    scene.env.runs(scene.pr_head, (100, "2026-11-01T00:00:00Z"), (110, "2026-11-02T00:00:00Z"))
-    scene.env.artifact(100, scene.m0, scene.pr_head)
-    scene.env.artifact(110, scene.m0, "f" * 40)
-    assert scene.go()[0] == f"pr_main={scene.m0}"
+    with allure.step("新しい run の verify が失敗する状態を用意する"):
+        scene.env.runs(scene.pr_head, (100, "2026-11-01T00:00:00Z"), (110, "2026-11-02T00:00:00Z"))
+        scene.env.artifact(100, scene.m0, scene.pr_head)
+        scene.env.artifact(110, scene.m0, "f" * 40)
+    with allure.step("古い run の pr_main に戻ることを確かめる"):
+        assert scene.go()[0] == f"pr_main={scene.m0}"
 
 
 def test_skips_run_of_other_pr(scene: Scene) -> None:
-    scene.env.runs(
-        scene.pr_head,
-        (100, "2026-11-01T00:00:00Z"),
-        run_entry(110, "2026-11-02T00:00:00Z", prs=(8,)),
-    )
-    scene.env.artifact(100, scene.m0, scene.pr_head)
-    scene.env.artifact(110, scene.base, scene.pr_head)
-    assert scene.go()[0] == f"pr_main={scene.m0}"
+    with allure.step("別の PR の run を混ぜた状態を用意する"):
+        scene.env.runs(
+            scene.pr_head,
+            (100, "2026-11-01T00:00:00Z"),
+            run_entry(110, "2026-11-02T00:00:00Z", prs=(8,)),
+        )
+        scene.env.artifact(100, scene.m0, scene.pr_head)
+        scene.env.artifact(110, scene.base, scene.pr_head)
+    with allure.step("別の PR の run が飛ばされることを確かめる"):
+        assert scene.go()[0] == f"pr_main={scene.m0}"
 
 
 def test_skips_run_of_other_event(scene: Scene) -> None:
-    scene.env.runs(
-        scene.pr_head,
-        (100, "2026-11-01T00:00:00Z"),
-        run_entry(110, "2026-11-02T00:00:00Z", event="push"),
-    )
-    scene.env.artifact(100, scene.m0, scene.pr_head)
-    scene.env.artifact(110, scene.base, scene.pr_head)
-    assert scene.go()[0] == f"pr_main={scene.m0}"
+    with allure.step("別のイベントの run を混ぜた状態を用意する"):
+        scene.env.runs(
+            scene.pr_head,
+            (100, "2026-11-01T00:00:00Z"),
+            run_entry(110, "2026-11-02T00:00:00Z", event="push"),
+        )
+        scene.env.artifact(100, scene.m0, scene.pr_head)
+        scene.env.artifact(110, scene.base, scene.pr_head)
+    with allure.step("別のイベントの run が飛ばされることを確かめる"):
+        assert scene.go()[0] == f"pr_main={scene.m0}"
 
 
 def test_only_run_of_other_pr_gives_reason(scene: Scene) -> None:
-    scene.env.runs(scene.pr_head, run_entry(110, "2026-11-02T00:00:00Z", prs=(8,)))
-    assert scene.go() == ("", "reason=run に PR が含まれない")
+    with allure.step("別の PR の run だけを用意して動かす"):
+        scene.env.runs(scene.pr_head, run_entry(110, "2026-11-02T00:00:00Z", prs=(8,)))
+    with allure.step("理由が「run に PR が含まれない」であることを確かめる"):
+        assert scene.go() == ("", "reason=run に PR が含まれない")
 
 
 def test_no_successful_run(scene: Scene) -> None:
-    scene.env.runs(scene.pr_head)
-    assert scene.go() == ("", "reason=成功した run なし")
+    with allure.step("成功した run が無い状態で動かす"):
+        scene.env.runs(scene.pr_head)
+    with allure.step("理由が「成功した run なし」であることを確かめる"):
+        assert scene.go() == ("", "reason=成功した run なし")
 
 
 def test_runs_for_other_head_are_not_returned(scene: Scene) -> None:
-    # PR の head と違う head_sha の run は、API が `workflow_runs: []` で返す
-    scene.env.api(
-        f"repos/{REPO}/actions/workflows/ci.yml/runs?event=pull_request&head_sha={scene.pr_head}&status=success&per_page=100",
-        {"workflow_runs": []},
-    )
-    scene.env.runs("e" * 40, (100, "2026-11-01T00:00:00Z"))
-    assert scene.go() == ("", "reason=成功した run なし")
+    with allure.step("別の head の run だけを返す API を用意する"):
+        # PR の head と違う head_sha の run は、API が `workflow_runs: []` で返す
+        scene.env.api(
+            f"repos/{REPO}/actions/workflows/ci.yml/runs?event=pull_request&head_sha={scene.pr_head}&status=success&per_page=100",
+            {"workflow_runs": []},
+        )
+        scene.env.runs("e" * 40, (100, "2026-11-01T00:00:00Z"))
+    with allure.step("理由が「成功した run なし」であることを確かめる"):
+        assert scene.go() == ("", "reason=成功した run なし")
 
 
 def _drop_artifact(scene: Scene) -> None:
@@ -236,68 +255,89 @@ _BREAKS = {
     ids=["missing", "pr_head_differs", "not_ancestor", "malformed"],
 )
 def test_bad_artifact_gives_reason(scene: Scene, broken: str, reason: str) -> None:
-    scene.good_run()
-    _BREAKS[broken](scene)
-    assert scene.go() == ("", f"reason={reason}")
+    with allure.step("読めない artifact を用意して動かす"):
+        scene.good_run()
+        _BREAKS[broken](scene)
+    with allure.step("読めない理由ごとの文言が出ることを確かめる"):
+        assert scene.go() == ("", f"reason={reason}")
 
 
 @pytest.mark.parametrize("missing", ["REPO", "QUEUE_BASE", "QUEUE_HEAD"])
 def test_missing_input(scene: Scene, missing: str) -> None:
-    scene.good_run()
-    args = {"REPO": REPO, "QUEUE_BASE": scene.base, "QUEUE_HEAD": scene.q_head}
-    args[missing] = ""
-    out = scene.env.go(scene.ref, args["QUEUE_BASE"], args["QUEUE_HEAD"], repo=args["REPO"])
-    assert out == ("", "reason=入力の不足")
+    with allure.step("入力の 1 つを空にして動かす"):
+        scene.good_run()
+        args = {"REPO": REPO, "QUEUE_BASE": scene.base, "QUEUE_HEAD": scene.q_head}
+        args[missing] = ""
+        out = scene.env.go(scene.ref, args["QUEUE_BASE"], args["QUEUE_HEAD"], repo=args["REPO"])
+    with allure.step("理由が「入力の不足」であることを確かめる"):
+        assert out == ("", "reason=入力の不足")
 
 
 def test_queue_head_parent_is_not_queue_base(scene: Scene) -> None:
-    scene.good_run()
-    out = scene.env.go(scene.ref, scene.m0, scene.q_head)
-    assert out == ("", "reason=queue の commit の親が base でない")
+    with allure.step("queue の commit の親が base と違う状態で動かす"):
+        scene.good_run()
+        out = scene.env.go(scene.ref, scene.m0, scene.q_head)
+    with allure.step("理由が「queue の commit の親が base でない」であることを確かめる"):
+        assert out == ("", "reason=queue の commit の親が base でない")
 
 
 def test_merge_tree_conflict(env: Env) -> None:
-    env.git("checkout", "-q", "-b", "main")
-    m0 = env.commit("f.txt", "m0")
-    base = env.commit("f.txt", "main side")
-    pr_head = env.commit("f.txt", "pr side", parent=m0)
-    q_head = env.commit("g.txt", "x", parent=base)
-    env.pull(7, pr_head)
-    env.runs(pr_head, (100, "2026-11-01T00:00:00Z"))
-    env.artifact(100, m0, pr_head)
-    ref = f"gh-readonly-queue/main/pr-7-{base}"
-    assert env.go(ref, base, q_head) == ("", "reason=merge-tree が失敗（衝突または commit なし）")
+    with allure.step("merge-tree が衝突する git のリポを用意して動かす"):
+        env.git("checkout", "-q", "-b", "main")
+        m0 = env.commit("f.txt", "m0")
+        base = env.commit("f.txt", "main side")
+        pr_head = env.commit("f.txt", "pr side", parent=m0)
+        q_head = env.commit("g.txt", "x", parent=base)
+        env.pull(7, pr_head)
+        env.runs(pr_head, (100, "2026-11-01T00:00:00Z"))
+        env.artifact(100, m0, pr_head)
+        ref = f"gh-readonly-queue/main/pr-7-{base}"
+    with allure.step("理由が merge-tree の失敗であることを確かめる"):
+        assert env.go(ref, base, q_head) == (
+            "",
+            "reason=merge-tree が失敗（衝突または commit なし）",
+        )
 
 
 def test_tree_differs_from_queue_head(env: Env) -> None:
-    env.git("checkout", "-q", "-b", "main")
-    m0 = env.commit("a.txt", "a")
-    base = env.commit("b.txt", "b")
-    pr_head = env.commit("pr.txt", "pr", parent=m0)
-    q_head = env.commit("pr.txt", "different", parent=base)
-    env.pull(7, pr_head)
-    env.runs(pr_head, (100, "2026-11-01T00:00:00Z"))
-    env.artifact(100, m0, pr_head)
-    ref = f"gh-readonly-queue/main/pr-7-{base}"
-    assert env.go(ref, base, q_head) == ("", "reason=tree 不一致")
+    with allure.step("tree が queue の commit と違う git のリポを用意して動かす"):
+        env.git("checkout", "-q", "-b", "main")
+        m0 = env.commit("a.txt", "a")
+        base = env.commit("b.txt", "b")
+        pr_head = env.commit("pr.txt", "pr", parent=m0)
+        q_head = env.commit("pr.txt", "different", parent=base)
+        env.pull(7, pr_head)
+        env.runs(pr_head, (100, "2026-11-01T00:00:00Z"))
+        env.artifact(100, m0, pr_head)
+        ref = f"gh-readonly-queue/main/pr-7-{base}"
+    with allure.step("理由が「tree 不一致」であることを確かめる"):
+        assert env.go(ref, base, q_head) == ("", "reason=tree 不一致")
 
 
 def test_pr_head_commit_missing_locally(scene: Scene) -> None:
-    scene.env.pull(7, "9" * 40)
-    out = scene.go()
-    assert out == ("", "reason=merge-tree が失敗（衝突または commit なし）")
+    with allure.step("手元に無い PR の head を指して動かす"):
+        scene.env.pull(7, "9" * 40)
+        out = scene.go()
+    with allure.step("理由が merge-tree の失敗であることを確かめる"):
+        assert out == ("", "reason=merge-tree が失敗（衝突または commit なし）")
 
 
 def test_fork_pr(scene: Scene) -> None:
-    scene.env.pull(7, scene.pr_head, head_repo="evil/r")
-    assert scene.go() == ("", "reason=fork の PR")
+    with allure.step("フォークの PR を用意して動かす"):
+        scene.env.pull(7, scene.pr_head, head_repo="evil/r")
+    with allure.step("理由が「fork の PR」であることを確かめる"):
+        assert scene.go() == ("", "reason=fork の PR")
 
 
 def test_unparsable_head_ref(scene: Scene) -> None:
-    out = scene.env.go("refs/heads/other", scene.base, scene.q_head)
-    assert out == ("", "reason=PR 番号不明")
+    with allure.step("読めない head の ref で動かす"):
+        out = scene.env.go("refs/heads/other", scene.base, scene.q_head)
+    with allure.step("理由が「PR 番号不明」であることを確かめる"):
+        assert out == ("", "reason=PR 番号不明")
 
 
 def test_pull_api_failure(scene: Scene) -> None:
-    (scene.env.fake / "repos_o_r_pulls_7").unlink()
-    assert scene.go() == ("", "reason=取得の失敗")
+    with allure.step("PR を取る API の応答を消して動かす"):
+        (scene.env.fake / "repos_o_r_pulls_7").unlink()
+    with allure.step("理由が「取得の失敗」であることを確かめる"):
+        assert scene.go() == ("", "reason=取得の失敗")

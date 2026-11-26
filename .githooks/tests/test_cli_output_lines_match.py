@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import allure
 import pytest
 
 _FILES = {
@@ -33,17 +34,21 @@ def root(script_dir: Path) -> Path:
 
 @pytest.mark.parametrize("kind", ["error", "warning"])
 def test_error_and_warning_cases_match_across_plugins(root: Path, kind: str) -> None:
-    by_plugin = _cases(root, kind)
-    for plugin, cases in by_plugin.items():
-        assert cases, f"{plugin} に kind={kind} の要素がありません"
-    reference = by_plugin["pecot-workflow"]
-    for plugin, cases in by_plugin.items():
-        assert cases == reference, f"{plugin} の kind={kind} が pecot-workflow と異なります"
+    with allure.step("3 プラグインの診断行の期待を集める"):
+        by_plugin = _cases(root, kind)
+    with allure.step("どのプラグインも pecot-workflow と同じ集合であることを確かめる"):
+        for plugin, cases in by_plugin.items():
+            assert cases, f"{plugin} に kind={kind} の要素がありません"
+        reference = by_plugin["pecot-workflow"]
+        for plugin, cases in by_plugin.items():
+            assert cases == reference, f"{plugin} の kind={kind} が pecot-workflow と異なります"
 
 
 def test_note_cases_match_across_files_that_have_them(root: Path) -> None:
-    with_notes = {p: c for p, c in _cases(root, "note").items() if c}
-    assert with_notes, "note の要素を持つファイルがありません"
-    first_plugin, first = next(iter(with_notes.items()))
-    for plugin, cases in with_notes.items():
-        assert cases == first, f"{plugin} の note が {first_plugin} と異なります"
+    with allure.step("note の期待を持つファイルを集める"):
+        with_notes = {p: c for p, c in _cases(root, "note").items() if c}
+    with allure.step("どのファイルも同じ集合であることを確かめる"):
+        assert with_notes, "note の要素を持つファイルがありません"
+        first_plugin, first = next(iter(with_notes.items()))
+        for plugin, cases in with_notes.items():
+            assert cases == first, f"{plugin} の note が {first_plugin} と異なります"

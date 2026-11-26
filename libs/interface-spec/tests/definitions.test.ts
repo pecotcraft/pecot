@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { validateDefinitions } from '../src/domain/validate.js'
 import type { PluginInput } from '../src/domain/validate.js'
 import { loadJson, loadYaml } from '../src/infra/load.js'
+import { step, stepSync } from '../src/vitest/step.js'
 
 const VALID = path.join(import.meta.dirname, 'fixtures', 'valid', 'plugins', 'pecot-workflow', 'interface')
 const AUTHORED = 'plugins/pecot-workflow/interface/authored.yaml'
@@ -60,155 +61,191 @@ function generatedEntry(data: Record<string, unknown>, index: number): Record<st
 
 describe('generated.json checks', () => {
   it('plugin 名がディレクトリと違い、接頭辞も不正だと、止める', async () => {
-    expect(await withGenerated((data) => {
-      data['plugin'] = 'other'
-      data['prefix'] = 'pw'
-    })).toContain(`${GENERATED}||plugin|"other" does not match the directory name "pecot-workflow"`)
+    await step('定義書を書き換えて検証し、指摘を比べる', async () => {
+      expect(await withGenerated((data) => {
+        data['plugin'] = 'other'
+        data['prefix'] = 'pw'
+      })).toContain(`${GENERATED}||plugin|"other" does not match the directory name "pecot-workflow"`)
+    })
   })
 
   it('id に接頭辞が無い、id が重複する、surface の無い項目があると、止める', async () => {
-    const lines = await withGenerated((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withGenerated((data) => {
       const first = generatedEntry(data, 0)
       first['id'] = 'XX-ISSUE-CREATE'
       first['surfaces'] = {}
       generatedEntry(data, 1)['id'] = 'XX-ISSUE-CREATE'
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${GENERATED}|XX-ISSUE-CREATE|id|must start with "PW-" and use only A-Z, 0-9 and "-"`)
+      expect(lines).toContain(`${GENERATED}|XX-ISSUE-CREATE|id|is defined more than once`)
+      expect(lines).toContain(`${GENERATED}|XX-ISSUE-CREATE|surfaces|must have cli or mcp`)
     })
-    expect(lines).toContain(`${GENERATED}|XX-ISSUE-CREATE|id|must start with "PW-" and use only A-Z, 0-9 and "-"`)
-    expect(lines).toContain(`${GENERATED}|XX-ISSUE-CREATE|id|is defined more than once`)
-    expect(lines).toContain(`${GENERATED}|XX-ISSUE-CREATE|surfaces|must have cli or mcp`)
   })
 
   it('接頭辞が小文字だと、止める', async () => {
-    expect(await withGenerated((data) => {
-      data['prefix'] = 'pw'
-    })).toContain(`${GENERATED}||prefix|"pw" must be upper-case letters and digits`)
+    await step('定義書を書き換えて検証し、指摘を比べる', async () => {
+      expect(await withGenerated((data) => {
+        data['prefix'] = 'pw'
+      })).toContain(`${GENERATED}||prefix|"pw" must be upper-case letters and digits`)
+    })
   })
 
   it('name・description・入力の説明に日本語があると、止める', async () => {
-    const lines = await withGenerated((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withGenerated((data) => {
       const first = generatedEntry(data, 0)
       first['description'] = '説明'
       record(record(first['input'])['properties'])['title'] = { type: 'string', description: '題名' }
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${GENERATED}|PW-ISSUE-CREATE|description|contains Japanese text (write English)`)
+      expect(lines).toContain(`${GENERATED}|PW-ISSUE-CREATE|input.properties.title.description|contains Japanese text (write English)`)
     })
-    expect(lines).toContain(`${GENERATED}|PW-ISSUE-CREATE|description|contains Japanese text (write English)`)
-    expect(lines).toContain(`${GENERATED}|PW-ISSUE-CREATE|input.properties.title.description|contains Japanese text (write English)`)
   })
 
   it('input に無い cli 名があると、止める', async () => {
-    const lines = await withGenerated((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withGenerated((data) => {
       generatedEntry(data, 1)['cli'] = { positional: ['nope'], flags: { gone: ['--gone'] } }
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${GENERATED}|PW-ISSUE-QUICK|cli.positional|unknown input name "nope"`)
+      expect(lines).toContain(`${GENERATED}|PW-ISSUE-QUICK|cli.flags|unknown input name "gone"`)
     })
-    expect(lines).toContain(`${GENERATED}|PW-ISSUE-QUICK|cli.positional|unknown input name "nope"`)
-    expect(lines).toContain(`${GENERATED}|PW-ISSUE-QUICK|cli.flags|unknown input name "gone"`)
   })
 })
 
 describe('authored.yaml checks', () => {
   it('plugin 名がディレクトリと違うと、止める', async () => {
-    expect(await withAuthored((data) => {
-      data['plugin'] = 'other'
-    })).toContain(`${AUTHORED}||plugin|"other" does not match the directory name "pecot-workflow"`)
+    await step('定義書を書き換えて検証し、指摘を比べる', async () => {
+      expect(await withAuthored((data) => {
+        data['plugin'] = 'other'
+      })).toContain(`${AUTHORED}||plugin|"other" does not match the directory name "pecot-workflow"`)
+    })
   })
 
   it('環境変数名が不正、または effect に日本語があると、止める', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['environment'] = [{ name: 'PECOT_*', effect: '効果' }, { name: 'ok name', effect: 'x' }]
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}||environment[0].name|"PECOT_*" is not a valid name (use A-Z, 0-9 and "_"; "*" may appear once, with fixed characters on both sides)`)
+      expect(lines).toContain(`${AUTHORED}||environment[0].effect|contains Japanese text (write English)`)
+      expect(lines).toContain(`${AUTHORED}||environment[1].name|"ok name" is not a valid name (use A-Z, 0-9 and "_"; "*" may appear once, with fixed characters on both sides)`)
     })
-    expect(lines).toContain(`${AUTHORED}||environment[0].name|"PECOT_*" is not a valid name (use A-Z, 0-9 and "_"; "*" may appear once, with fixed characters on both sides)`)
-    expect(lines).toContain(`${AUTHORED}||environment[0].effect|contains Japanese text (write English)`)
-    expect(lines).toContain(`${AUTHORED}||environment[1].name|"ok name" is not a valid name (use A-Z, 0-9 and "_"; "*" may appear once, with fixed characters on both sides)`)
   })
 
   it('requires か default_notes が、input に無い名前を持つと止める', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       const target = entry(data, 'PW-ISSUE-CREATE')
       target['constraints'] = [{ requires: { message: ['ttl'] } }]
       target['default_notes'] = { repo: 'x' }
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|constraints[0].requires|unknown input name "ttl"`)
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|default_notes|unknown input name "repo"`)
     })
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|constraints[0].requires|unknown input name "ttl"`)
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|default_notes|unknown input name "repo"`)
   })
 
   it('制約が conflicts でも requires でもないと、止める', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       entry(data, 'PW-ISSUE-CREATE')['constraints'] = [{ excludes: ['a'] }, 'text']
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|constraints[0]|must be an object with "conflicts" or "requires"`)
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|constraints[1]|must be an object with "conflicts" or "requires"`)
     })
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|constraints[0]|must be an object with "conflicts" or "requires"`)
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|constraints[1]|must be an object with "conflicts" or "requires"`)
   })
 
   it('exit_status が kind を持つと受け入れ、kind が無い要素（code だけの形を含む）を止める', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       entry(data, 'PW-ISSUE-CREATE')['exit_status'] = [{ kind: 'auth-expired', when: 'Authentication expired.' }, { code: 1, when: 'x' }, 7]
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|exit_status[1].kind|field is missing`)
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|exit_status[2]|must be an object with "kind"`)
+      expect(lines.some(line => line.includes('exit_status[0]'))).toBe(false)
     })
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|exit_status[1].kind|field is missing`)
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|exit_status[2]|must be an object with "kind"`)
-    expect(lines.some(line => line.includes('exit_status[0]'))).toBe(false)
   })
 
   it('behaviors が空、または behavior のフィールドが無いと、止める', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       entry(data, 'PW-ISSUE-QUICK')['behaviors'] = []
       const create = entry(data, 'PW-ISSUE-CREATE')
       create['behaviors'] = [{ id: 'PW-ISSUE-CREATE-01', statement: '常に、終わる' }]
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-QUICK|behaviors|must have at least 1 item(s)`)
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE-01|pattern|field is missing`)
     })
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-QUICK|behaviors|must have at least 1 item(s)`)
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE-01|pattern|field is missing`)
   })
 
   it('behavior がオブジェクトでないと、その項目の名前を出す', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       entry(data, 'PW-ISSUE-QUICK')['behaviors'] = ['x']
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-QUICK|behaviors[0]|expected object but got string`)
     })
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-QUICK|behaviors[0]|expected object but got string`)
   })
 
   it('共通の behavior に日本語が無いと、止める', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['common_behaviors'] = [{ id: 'PW-COMMON-01', pattern: 'event', statement: 'English only' }]
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toEqual([`${AUTHORED}|PW-COMMON-01|statement|has no Japanese text (write Japanese)`])
     })
-    expect(lines).toEqual([`${AUTHORED}|PW-COMMON-01|statement|has no Japanese text (write Japanese)`])
   })
 
   it('共通の behavior に未知のパターンがあると、止める', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['common_behaviors'] = [{ id: 'PW-COMMON-02', pattern: 'nope', statement: '常に、終わる' }]
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toEqual([`${AUTHORED}|PW-COMMON-02|pattern|unknown value "nope" (expected one of "ubiquitous", "event", "state", "unwanted", "optional")`])
     })
-    expect(lines).toEqual([`${AUTHORED}|PW-COMMON-02|pattern|unknown value "nope" (expected one of "ubiquitous", "event", "state", "unwanted", "optional")`])
   })
 
   it('entries がオブジェクトでない、または common_behaviors が無いと、ファイル単位で名前を出す', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['entries'] = []
       delete data['common_behaviors']
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}||entries|expected record but got array`)
+      expect(lines).toContain(`${AUTHORED}||common_behaviors|field is missing (write [] if none)`)
     })
-    expect(lines).toContain(`${AUTHORED}||entries|expected record but got array`)
-    expect(lines).toContain(`${AUTHORED}||common_behaviors|field is missing (write [] if none)`)
   })
 
   it('output が無い、または schema の無い json の output だと、止める', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       delete entry(data, 'PW-ISSUE-CREATE')['output']
       entry(data, 'PW-ISSUE-QUICK')['output'] = { format: 'json', description: 'x' }
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|output|field is missing (write "format: none" if nothing is printed)`)
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-QUICK|output.schema|field is missing`)
     })
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|output|field is missing (write "format: none" if nothing is printed)`)
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-QUICK|output.schema|field is missing`)
   })
 
   it('項目がオブジェクトでないと、報告する', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       record(data['entries'])['PW-ISSUE-QUICK'] = 'x'
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-QUICK|entry|expected object but got string`)
     })
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-QUICK|entry|expected object but got string`)
   })
 
   it('ファイルが無いと、報告する', async () => {
     const plugin = await validPlugin()
-    const lines = validateDefinitions([{ ...plugin, generated: { kind: 'missing' }, authored: { kind: 'syntax', problems: [{ message: 'broken' }] } }])
-    expect(lines).toEqual([
-      { file: AUTHORED, reason: 'broken' },
-      { file: GENERATED, reason: 'file is missing' },
-    ])
+    const lines = stepSync('定義書を書き換えて検証する', () => validateDefinitions([{ ...plugin, generated: { kind: 'missing' }, authored: { kind: 'syntax', problems: [{ message: 'broken' }] } }]))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toEqual([
+        { file: AUTHORED, reason: 'broken' },
+        { file: GENERATED, reason: 'file is missing' },
+      ])
+    })
   })
 })
 
@@ -233,16 +270,18 @@ describe('prose（人が書く欄の言語）', () => {
   const TEXT_FIELDS = ['details[0]', 'output.description', 'exit_status[0].when', 'effects[0].what', 'prerequisites[0]', 'examples[0].note', 'default_notes.title']
 
   it('prose: ja で、決まった値以外の欄に日本語があれば、通る', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['prose'] = 'ja'
       japanize(data)
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines.filter(line => line.includes('Japanese') && line.includes('|PW-ISSUE-CREATE|'))).toEqual([])
+      expect(lines).not.toContain(`${AUTHORED}||environment[0].effect|has no Japanese text (write Japanese)`)
     })
-    expect(lines.filter(line => line.includes('Japanese') && line.includes('|PW-ISSUE-CREATE|'))).toEqual([])
-    expect(lines).not.toContain(`${AUTHORED}||environment[0].effect|has no Japanese text (write Japanese)`)
   })
 
   it('prose: ja で、日本語の無い欄は止める（決まった値の stdin・diagnostics・on_error は止めない）', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['prose'] = 'ja'
       const target = japanize(data)
       target['details'] = ['English']
@@ -254,26 +293,30 @@ describe('prose（人が書く欄の言語）', () => {
       target['default_notes'] = { title: 'English' }
       target['environment'] = [{ name: 'PECOT_X', effect: 'English' }]
       data['environment'] = [{ name: 'PECOT_Y', effect: 'English' }]
-    })
+    }))
     const reason = 'has no Japanese text (write Japanese)'
-    for (const field of [...TEXT_FIELDS, 'environment[0].effect']) {
-      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|${field}|${reason}`)
-    }
-    expect(lines).toContain(`${AUTHORED}||environment[0].effect|${reason}`)
-    expect(lines.filter(line => line.endsWith(reason) && !line.includes('|PW-ISSUE-QUICK|'))).toHaveLength(TEXT_FIELDS.length + 2)
+    stepSync('指摘を比べる', () => {
+      for (const field of [...TEXT_FIELDS, 'environment[0].effect']) {
+        expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|${field}|${reason}`)
+      }
+      expect(lines).toContain(`${AUTHORED}||environment[0].effect|${reason}`)
+      expect(lines.filter(line => line.endsWith(reason) && !line.includes('|PW-ISSUE-QUICK|'))).toHaveLength(TEXT_FIELDS.length + 2)
+    })
   })
 
   it('prose: ja で、stdin・diagnostics・on_error が決まった値以外の英語だと、止める', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['prose'] = 'ja'
       const target = japanize(data)
       target['stdin'] = 'JSON from stdin'
       target['diagnostics'] = 'warning lines'
       target['on_error'] = 'nothing changes'
+    }))
+    stepSync('指摘を比べる', () => {
+      for (const field of ['stdin', 'diagnostics', 'on_error']) {
+        expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|${field}|has no Japanese text (write Japanese)`)
+      }
     })
-    for (const field of ['stdin', 'diagnostics', 'on_error']) {
-      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|${field}|has no Japanese text (write Japanese)`)
-    }
   })
 
   it('prose: ja でも、generated.json の欄は英語のまま', async () => {
@@ -283,78 +326,96 @@ describe('prose（人が書く欄の言語）', () => {
     authored['prose'] = 'ja'
     const generated = record(clone(plugin.generated.data))
     generatedEntry(generated, 0)['description'] = '日本語の説明'
-    const lines = validateDefinitions([{ ...plugin, authored: { kind: 'ok', data: authored }, generated: { kind: 'ok', data: generated } }])
-      .map(finding => `${finding.file}|${finding.scope ?? ''}|${finding.field ?? ''}|${finding.reason}`)
-    expect(lines).toContain(`${GENERATED}|PW-ISSUE-CREATE|description|contains Japanese text (write English)`)
+    const lines = stepSync('定義書を書き換えて検証する', () => validateDefinitions([{ ...plugin, authored: { kind: 'ok', data: authored }, generated: { kind: 'ok', data: generated } }])
+      .map(finding => `${finding.file}|${finding.scope ?? ''}|${finding.field ?? ''}|${finding.reason}`))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${GENERATED}|PW-ISSUE-CREATE|description|contains Japanese text (write English)`)
+    })
   })
 
   it('prose: ja でも、behavior の statement は日本語を求める', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['prose'] = 'ja'
       data['common_behaviors'] = [{ id: 'PW-COMMON-01', pattern: 'event', statement: 'English only' }]
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}|PW-COMMON-01|statement|has no Japanese text (write Japanese)`)
     })
-    expect(lines).toContain(`${AUTHORED}|PW-COMMON-01|statement|has no Japanese text (write Japanese)`)
   })
 
   it('prose: en と、prose を省いたときは、日本語の欄を止める', async () => {
-    for (const prose of [undefined, 'en']) {
-      const lines = await withAuthored((data) => {
-        if (prose !== undefined) data['prose'] = prose
-        entry(data, 'PW-ISSUE-CREATE')['prerequisites'] = ['認証済み']
-        entry(data, 'PW-ISSUE-CREATE')['stdin'] = 'none'
-      })
-      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|prerequisites[0]|contains Japanese text (write English)`)
-      expect(lines.filter(line => line.endsWith('(write English)'))).toHaveLength(1)
-    }
+    await step('定義書を書き換えて検証し、指摘を比べる', async () => {
+      for (const prose of [undefined, 'en']) {
+        const lines = await withAuthored((data) => {
+          if (prose !== undefined) data['prose'] = prose
+          entry(data, 'PW-ISSUE-CREATE')['prerequisites'] = ['認証済み']
+          entry(data, 'PW-ISSUE-CREATE')['stdin'] = 'none'
+        })
+        expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|prerequisites[0]|contains Japanese text (write English)`)
+        expect(lines.filter(line => line.endsWith('(write English)'))).toHaveLength(1)
+      }
+    })
   })
 
   it('prose: ja で CLI の面がある項目に help が無いと、止める', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['prose'] = 'ja'
       japanize(data)
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help|is missing (--help reads it; write details, examples and default_notes in English)`)
     })
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help|is missing (--help reads it; write details, examples and default_notes in English)`)
   })
 
   it('prose: ja で help が英語で、examples の run と default_notes の名前がそろっていれば、通る', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['prose'] = 'ja'
       japanize(data)['help'] = { details: ['Returns the result'], examples: [{ run: 'pecot x', note: 'An example' }], default_notes: { title: 'Empty by default' } }
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines.filter(line => line.includes('|PW-ISSUE-CREATE|help'))).toEqual([])
     })
-    expect(lines.filter(line => line.includes('|PW-ISSUE-CREATE|help'))).toEqual([])
   })
 
   it('help に日本語があるか、examples の run か default_notes の名前が本体と違うと、止める', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['prose'] = 'ja'
       japanize(data)['help'] = { details: ['結果を返す'], examples: [{ run: 'pecot y', note: 'An example' }], default_notes: {} }
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help.details[0]|contains Japanese text (write English)`)
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help.examples|must have the same run values, in the same order, as examples`)
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help.default_notes|must have the same input names as default_notes`)
     })
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help.details[0]|contains Japanese text (write English)`)
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help.examples|must have the same run values, in the same order, as examples`)
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help.default_notes|must have the same input names as default_notes`)
   })
 
   it('prose を省いた定義書に help があると、止める', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       entry(data, 'PW-ISSUE-CREATE')['help'] = { details: [], examples: [], default_notes: {} }
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help|is only for prose "ja" (remove it; --help reads details, examples and default_notes)`)
     })
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help|is only for prose "ja" (remove it; --help reads details, examples and default_notes)`)
   })
 
   it('prose が ja・en 以外だと、止める', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['prose'] = 'fr'
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines.some(line => line.startsWith(`${AUTHORED}||prose|`))).toBe(true)
     })
-    expect(lines.some(line => line.startsWith(`${AUTHORED}||prose|`))).toBe(true)
   })
 
   it('形が崩れた authored.yaml でも、prose: ja の environment の effect を確かめる', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       data['prose'] = 'ja'
       data['environment'] = [{ name: 'PECOT_Y', effect: 'English' }]
       data['common_behaviors'] = 'broken'
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}||environment[0].effect|has no Japanese text (write Japanese)`)
     })
-    expect(lines).toContain(`${AUTHORED}||environment[0].effect|has no Japanese text (write Japanese)`)
   })
 })
 
@@ -392,68 +453,84 @@ function mcpExamples(examples: unknown[]): (data: Record<string, unknown>) => vo
 
 describe('MCP の表示名と使用例', () => {
   it('MCP の面を持つ項目に mcp.title が無いと、止める', async () => {
-    const lines = await withBoth(withMcpSurface(true), mcpExamples([{ arguments: { title: 'x' }, note: 'An example' }]))
-    expect(lines).toContain(`${GENERATED}|PW-ISSUE-CREATE|mcp.title|is missing (give the tool a display name in English)`)
+    const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(true), mcpExamples([{ arguments: { title: 'x' }, note: 'An example' }])))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${GENERATED}|PW-ISSUE-CREATE|mcp.title|is missing (give the tool a display name in English)`)
+    })
   })
 
   it('MCP の面を持つ項目の使用例が arguments の形で、キーが input にあれば、通る', async () => {
-    const lines = await withBoth(withMcpSurface(true, TITLE), mcpExamples([{ arguments: { title: 'x', message: 'y' }, note: 'An example' }]))
-    expect(lines.filter(line => line.includes('|PW-ISSUE-CREATE|'))).toEqual([])
+    const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(true, TITLE), mcpExamples([{ arguments: { title: 'x', message: 'y' }, note: 'An example' }])))
+    stepSync('指摘を比べる', () => {
+      expect(lines.filter(line => line.includes('|PW-ISSUE-CREATE|'))).toEqual([])
+    })
   })
 
   it('MCP の面を持つ項目の使用例が run の形だと、止める', async () => {
-    const lines = await withBoth(withMcpSurface(true, TITLE), mcpExamples([{ run: 'pecot issue create a.md', note: 'An example' }]))
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0]|must be an MCP call (write arguments instead of run)`)
+    const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(true, TITLE), mcpExamples([{ run: 'pecot issue create a.md', note: 'An example' }])))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0]|must be an MCP call (write arguments instead of run)`)
+    })
   })
 
   it('使用例の arguments が input に無い名前を持つか、required が欠けると、止める', async () => {
-    const lines = await withBoth((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withBoth((data) => {
       withMcpSurface(true, TITLE)(data)
       record(generatedEntry(data, 0)['input'])['required'] = ['title']
-    }, mcpExamples([{ arguments: { mesage: 'y' }, note: 'An example' }]))
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0].arguments|unknown input name "mesage"`)
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0].arguments|is missing the required input "title"`)
+    }, mcpExamples([{ arguments: { mesage: 'y' }, note: 'An example' }])))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0].arguments|unknown input name "mesage"`)
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0].arguments|is missing the required input "title"`)
+    })
   })
 
   it('MCP の面の無い項目の使用例が arguments の形だと、止める', async () => {
-    const lines = await withAuthored((data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
       entry(data, 'PW-ISSUE-CREATE')['examples'] = [{ arguments: { title: 'x' }, note: 'An example' }]
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0]|must be a command line (write run instead of arguments; the entry has no MCP surface)`)
     })
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0]|must be a command line (write run instead of arguments; the entry has no MCP surface)`)
   })
 })
 
 describe('CLI の節と終了コード', () => {
   it('CLI の面の無い項目に cli_reference と終了コードがあると、止める', async () => {
-    const lines = await withBoth(withMcpSurface(false, TITLE), (data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(false, TITLE), (data) => {
       mcpExamples([{ arguments: { title: 'x' }, note: 'An example' }])(data)
       entry(data, 'PW-ISSUE-CREATE')['cli_reference'] = { examples: [{ run: 'pecot issue create a.md', note: 'An example' }] }
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|cli_reference|is only for entries with a CLI surface (remove it)`)
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|exit_status[0].code|is only for entries with a CLI surface (remove it)`)
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|exit_status[1].code|is only for entries with a CLI surface (remove it)`)
     })
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|cli_reference|is only for entries with a CLI surface (remove it)`)
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|exit_status[0].code|is only for entries with a CLI surface (remove it)`)
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|exit_status[1].code|is only for entries with a CLI surface (remove it)`)
   })
 
   it('cli_reference を持つ項目は、help.examples の run を cli_reference.examples と比べる', async () => {
-    const lines = await withBoth(withMcpSurface(true, TITLE), (data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(true, TITLE), (data) => {
       data['prose'] = 'ja'
       const target = japanize(data)
       target['examples'] = [{ arguments: { title: 'x' }, note: '例' }]
       target['mcp_output'] = { fields: {} }
       target['help'] = { details: ['Returns the result'], examples: [{ run: 'pecot y', note: 'An example' }], default_notes: { title: 'Empty by default' } }
       target['cli_reference'] = { examples: [{ run: 'pecot x', note: '例' }] }
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help.examples|must have the same run values, in the same order, as cli_reference.examples`)
     })
-    expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help.examples|must have the same run values, in the same order, as cli_reference.examples`)
   })
 
   it('cli_reference を持たない MCP の項目は、help.examples を比べない', async () => {
-    const lines = await withBoth(withMcpSurface(true, TITLE), (data) => {
+    const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(true, TITLE), (data) => {
       data['prose'] = 'ja'
       const target = japanize(data)
       target['examples'] = [{ arguments: { title: 'x' }, note: '例' }]
       target['mcp_output'] = { fields: {} }
       target['help'] = { details: ['Returns the result'], examples: [{ run: 'pecot y', note: 'An example' }], default_notes: { title: 'Empty by default' } }
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(lines.filter(line => line.includes('|help.examples|'))).toEqual([])
     })
-    expect(lines.filter(line => line.includes('|help.examples|'))).toEqual([])
   })
 })

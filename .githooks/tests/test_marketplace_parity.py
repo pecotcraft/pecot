@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import allure
 import pytest
 
 _CLAUDE = ".claude-plugin/marketplace.json"
@@ -25,17 +26,26 @@ def manifests(script_dir: Path) -> tuple[dict, dict]:
 
 
 def test_name_matches(manifests) -> None:
-    claude, copilot = manifests
-    assert claude["name"] == copilot["name"] == "pecot"
+    with allure.step("Claude 用と Copilot 用の marketplace.json を取り出す"):
+        claude, copilot = manifests
+
+    with allure.step("name が一致し、pecot であることを確かめる"):
+        assert claude["name"] == copilot["name"] == "pecot"
 
 
 def test_owner_matches(manifests) -> None:
-    claude, copilot = manifests
-    assert claude["owner"] == copilot["owner"]
-    assert claude["owner"]["name"] == "pecot"
+    with allure.step("Claude 用と Copilot 用の marketplace.json を取り出す"):
+        claude, copilot = manifests
+
+    with allure.step("owner が一致し、pecot であることを確かめる"):
+        assert claude["owner"] == copilot["owner"]
+        assert claude["owner"]["name"] == "pecot"
 
 
 def test_plugins_match(manifests) -> None:
-    claude, copilot = manifests
-    assert claude["plugins"] == copilot["plugins"]
-    assert [p["name"] for p in claude["plugins"]] == ["pecot-w", "pecot-v", "pecot-t"]
+    with allure.step("Claude 用と Copilot 用の marketplace.json を取り出す"):
+        claude, copilot = manifests
+
+    with allure.step("plugins が一致し、3 つのプラグインが並ぶことを確かめる"):
+        assert claude["plugins"] == copilot["plugins"]
+        assert [p["name"] for p in claude["plugins"]] == ["pecot-w", "pecot-v", "pecot-t"]

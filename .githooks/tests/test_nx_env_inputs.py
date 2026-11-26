@@ -49,6 +49,7 @@ import re
 import subprocess
 from pathlib import Path
 
+import allure
 import pytest
 
 # parents[0]=tests, [1]=.githooks, [2]=リポルート。
@@ -429,22 +430,25 @@ def repo_reads() -> dict[str, set[str]]:
 
 def test_every_env_read_is_declared_or_exempt(repo_reads: dict[str, set[str]]) -> None:
     """変数を読むファイルのあるプラグインの env か、共通の env に宣言されていること。"""
-    undeclared: dict[str, list[str]] = {}
-    for name, files in sorted(repo_reads.items()):
-        if name in _EXEMPT:
-            continue
-        missing = sorted(f for f in files if name not in _declared_for(_plugin_of(f)))
-        if missing:
-            undeclared[name] = missing[:3]
-    assert not undeclared, (
-        "次の環境変数が、どこにも宣言されていません。"
-        "宣言先は、読むファイルのあるプラグインの env、共通の env、_EXEMPT のどれかです。"
-        "プラグインの env は nx.json の pecotPluginEnv / pecotvPluginEnv を指します。"
-        "結果を左右するなら、そのプラグインの env へ載せてください。"
-        "全レーンに関わるなら、共通の env へ載せてください。"
-        "結果を左右しないなら、理由を添えて _EXEMPT へ載せてください:\n"
-        + "\n".join(f"  {name}: {files}" for name, files in undeclared.items())
-    )
+    with allure.step("読まれる環境変数のうち、宣言・免除の無いものを集める"):
+        undeclared: dict[str, list[str]] = {}
+        for name, files in sorted(repo_reads.items()):
+            if name in _EXEMPT:
+                continue
+            missing = sorted(f for f in files if name not in _declared_for(_plugin_of(f)))
+            if missing:
+                undeclared[name] = missing[:3]
+
+    with allure.step("宣言・免除の無い変数が無いことを確かめる"):
+        assert not undeclared, (
+            "次の環境変数が、どこにも宣言されていません。"
+            "宣言先は、読むファイルのあるプラグインの env、共通の env、_EXEMPT のどれかです。"
+            "プラグインの env は nx.json の pecotPluginEnv / pecotvPluginEnv を指します。"
+            "結果を左右するなら、そのプラグインの env へ載せてください。"
+            "全レーンに関わるなら、共通の env へ載せてください。"
+            "結果を左右しないなら、理由を添えて _EXEMPT へ載せてください:\n"
+            + "\n".join(f"  {name}: {files}" for name, files in undeclared.items())
+        )
 
 
 def test_common_env_is_only_what_every_plugin_reads(repo_reads: dict[str, set[str]]) -> None:
@@ -454,14 +458,17 @@ def test_common_env_is_only_what_every_plugin_reads(repo_reads: dict[str, set[st
     そのため、プラグインの env へ移す。
     node 自身が読む変数（NODE_OPTIONS 等）は走査では見えないため、読み取りが見えた変数だけを見る。
     """
-    narrow = {
-        name: sorted({_plugin_of(f) for f in repo_reads[name]} & set(_PLUGIN_ENV_INPUT))
-        for name in sorted(_declared_env())
-        if name in repo_reads
-        and len({_plugin_of(f) for f in repo_reads[name]} & set(_PLUGIN_ENV_INPUT))
-        < len(_PLUGIN_ENV_INPUT)
-    }
-    assert not narrow, f"共通の env にあるが、一部のプラグインしか読まない変数: {narrow}"
+    with allure.step("共通の env の変数ごとに、読むプラグインを集める"):
+        narrow = {
+            name: sorted({_plugin_of(f) for f in repo_reads[name]} & set(_PLUGIN_ENV_INPUT))
+            for name in sorted(_declared_env())
+            if name in repo_reads
+            and len({_plugin_of(f) for f in repo_reads[name]} & set(_PLUGIN_ENV_INPUT))
+            < len(_PLUGIN_ENV_INPUT)
+        }
+
+    with allure.step("一部のプラグインしか読まない変数が共通の env に無いことを確かめる"):
+        assert not narrow, f"共通の env にあるが、一部のプラグインしか読まない変数: {narrow}"
 
 
 @pytest.mark.parametrize("plugin", sorted(_PLUGIN_ENV_INPUT))
@@ -471,127 +478,156 @@ def test_plugin_env_is_mentioned_in_that_plugin(plugin: str) -> None:
     走査で見えない読み取り（hooks のテスト、monkeypatch 経由）を手で載せた変数が、
     別のプラグインのレーンを再実行する場所に紛れ込むのを防ぐ。
     """
-    pending = _named_env(_PLUGIN_ENV_INPUT[plugin])
-    for rel in _tracked_plugin_files():
-        if not pending:
-            break
-        if not rel.startswith(f"plugins/{plugin}/"):
-            continue
-        try:
-            text = (_REPO_ROOT / rel).read_text(encoding="utf-8")
-        except (UnicodeDecodeError, OSError):
-            continue
-        pending = {name for name in pending if name not in text}
-    absent = sorted(pending)
-    assert not absent, f"plugins/{plugin} のどのファイルにも出てこない変数: {absent}"
+    with allure.step("プラグインの env の変数が、そのプラグインのファイルに出てくるか探す"):
+        pending = _named_env(_PLUGIN_ENV_INPUT[plugin])
+        for rel in _tracked_plugin_files():
+            if not pending:
+                break
+            if not rel.startswith(f"plugins/{plugin}/"):
+                continue
+            try:
+                text = (_REPO_ROOT / rel).read_text(encoding="utf-8")
+            except (UnicodeDecodeError, OSError):
+                continue
+            pending = {name for name in pending if name not in text}
+        absent = sorted(pending)
+
+    with allure.step("どのファイルにも出てこない変数が無いことを確かめる"):
+        assert not absent, f"plugins/{plugin} のどのファイルにも出てこない変数: {absent}"
 
 
 @pytest.mark.parametrize("plugin", sorted(_PLUGIN_ENV_INPUT))
 def test_lane_globals_include_common_and_plugin_env(plugin: str) -> None:
-    nx_json = json.loads((_REPO_ROOT / "nx.json").read_text(encoding="utf-8"))
-    for globals_name in _PLUGIN_GLOBALS[plugin]:
-        entries = [e for e in nx_json["namedInputs"][globals_name] if isinstance(e, str)]
-        assert "env" in entries, f"{globals_name} に共通の env が無い"
-        assert _PLUGIN_ENV_INPUT[plugin] in entries, f"{globals_name} にプラグインの env が無い"
-        others = {v for k, v in _PLUGIN_ENV_INPUT.items() if k != plugin}
-        assert not others & set(entries), f"{globals_name} に他プラグインの env が入っている"
+    with allure.step("nx.json を読む"):
+        nx_json = json.loads((_REPO_ROOT / "nx.json").read_text(encoding="utf-8"))
+
+    with allure.step("レーンの globals に、共通の env とプラグインの env だけが入ることを確かめる"):
+        for globals_name in _PLUGIN_GLOBALS[plugin]:
+            entries = [e for e in nx_json["namedInputs"][globals_name] if isinstance(e, str)]
+            assert "env" in entries, f"{globals_name} に共通の env が無い"
+            assert _PLUGIN_ENV_INPUT[plugin] in entries, f"{globals_name} にプラグインの env が無い"
+            others = {v for k, v in _PLUGIN_ENV_INPUT.items() if k != plugin}
+            assert not others & set(entries), f"{globals_name} に他プラグインの env が入っている"
 
 
 def test_library_project_files_are_scanned_against_the_common_env() -> None:
     """libs/<name>/ の追跡ファイルも走査し、宣言済みとみなすのは共通の env だけにする。"""
-    files = _tracked_plugin_files()
-    assert "libs/text-rules/index.ts" in files
-    assert _plugin_of("libs/text-rules/index.ts") == "libs/text-rules"
-    assert _plugin_of("plugins/pecot-tools/cli/src/a.ts") == "pecot-tools"
-    assert _declared_for("libs/text-rules") == _declared_env()
+    with allure.step("追跡しているファイルの一覧を得る"):
+        files = _tracked_plugin_files()
+
+    with allure.step("libs 配下も走査し、宣言済みとみなすのが共通の env だけであることを確かめる"):
+        assert "libs/text-rules/index.ts" in files
+        assert _plugin_of("libs/text-rules/index.ts") == "libs/text-rules"
+        assert _plugin_of("plugins/pecot-tools/cli/src/a.ts") == "pecot-tools"
+        assert _declared_for("libs/text-rules") == _declared_env()
 
 
 def test_bundled_library_is_scanned_against_its_plugin_env() -> None:
     """プラグインに同梱するライブラリは、そのプラグインの env で宣言済みとみなす。lib の test-unit も同じ env を入力に持つ。"""
-    assert _plugin_of("libs/workflow-core/src/infra/paths.ts") == "pecot-workflow"
-    project = json.loads(
-        (_REPO_ROOT / "libs/workflow-core/project.json").read_text(encoding="utf-8")
-    )
-    assert "pecotPluginEnv" in project["targets"]["test-unit"]["inputs"]
+    with allure.step("同梱するライブラリの所属するプラグインを確かめる"):
+        assert _plugin_of("libs/workflow-core/src/infra/paths.ts") == "pecot-workflow"
+
+    with allure.step("libs/workflow-core の project.json を読む"):
+        project = json.loads(
+            (_REPO_ROOT / "libs/workflow-core/project.json").read_text(encoding="utf-8")
+        )
+
+    with allure.step("test-unit の入力にプラグインの env があることを確かめる"):
+        assert "pecotPluginEnv" in project["targets"]["test-unit"]["inputs"]
 
 
 def test_exempt_entries_are_still_read(repo_reads: dict[str, set[str]]) -> None:
     """読まれなくなった変数が _EXEMPT へ残り続けないようにする。"""
-    stale = sorted(name for name in _EXEMPT if name not in repo_reads)
-    assert not stale, f"_EXEMPT に残っているが、どこからも読まれていない変数: {stale}"
+    with allure.step("読まれていない _EXEMPT の項目を集める"):
+        stale = sorted(name for name in _EXEMPT if name not in repo_reads)
+
+    with allure.step("残っている項目が無いことを確かめる"):
+        assert not stale, f"_EXEMPT に残っているが、どこからも読まれていない変数: {stale}"
 
 
 def test_exempt_and_declared_do_not_overlap() -> None:
-    both = sorted(set(_EXEMPT) & _all_declared_env())
-    assert not both, f"env に宣言済みの変数が _EXEMPT にもある: {both}"
+    with allure.step("宣言済みの変数と _EXEMPT の重なりを集める"):
+        both = sorted(set(_EXEMPT) & _all_declared_env())
+
+    with allure.step("重なりが無いことを確かめる"):
+        assert not both, f"env に宣言済みの変数が _EXEMPT にもある: {both}"
 
 
 def test_exempt_reasons_are_not_empty() -> None:
-    assert all(reason.strip() for reason in _EXEMPT.values())
+    with allure.step("_EXEMPT の理由がすべて空でないことを確かめる"):
+        assert all(reason.strip() for reason in _EXEMPT.values())
 
 
 # --- 検出の仕組み自体を固定する。走査が対象を取りこぼさないことを確かめる ---
 
 
 def test_scan_finds_undeclared_variable_in_each_kind_of_file(tmp_path: Path) -> None:
-    files = {
-        "plugins/p/scripts/ci/run-tests.sh": 'echo "${UNDECLARED_SH:-x}"\n',
-        "plugins/p/scripts/ci/run-lint.sh": 'if [ -n "$UNDECLARED_LINT" ]; then :; fi\n',
-        "plugins/p/bin/wrapper": "echo $UNDECLARED_BIN\n",
-        "plugins/p/cli/package.json": json.dumps(
-            {"scripts": {"test": "vitest run $UNDECLARED_PKG"}}
-        ),
-        "plugins/p/cli/vitest.config.ts": "export default { x: process.env.UNDECLARED_VITEST }\n",
-        "plugins/p/cli/src/a.ts": "const v = process.env['UNDECLARED_SRC']\n",
-        "plugins/p/cli/tests/a.test.ts": "const v = process.env.UNDECLARED_TS_TEST\n",
-        "plugins/p/cli/core.py": 'import os\nv = os.environ.get("UNDECLARED_PY")\n',
-    }
-    for rel, text in files.items():
-        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
-        (tmp_path / rel).write_text(text, encoding="utf-8")
+    with allure.step("種類の違うファイルを書き、宣言の無い変数を走査する"):
+        files = {
+            "plugins/p/scripts/ci/run-tests.sh": 'echo "${UNDECLARED_SH:-x}"\n',
+            "plugins/p/scripts/ci/run-lint.sh": 'if [ -n "$UNDECLARED_LINT" ]; then :; fi\n',
+            "plugins/p/bin/wrapper": "echo $UNDECLARED_BIN\n",
+            "plugins/p/cli/package.json": json.dumps(
+                {"scripts": {"test": "vitest run $UNDECLARED_PKG"}}
+            ),
+            "plugins/p/cli/vitest.config.ts": "export default { x: process.env.UNDECLARED_VITEST }\n",
+            "plugins/p/cli/src/a.ts": "const v = process.env['UNDECLARED_SRC']\n",
+            "plugins/p/cli/tests/a.test.ts": "const v = process.env.UNDECLARED_TS_TEST\n",
+            "plugins/p/cli/core.py": 'import os\nv = os.environ.get("UNDECLARED_PY")\n',
+        }
+        for rel, text in files.items():
+            (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+            (tmp_path / rel).write_text(text, encoding="utf-8")
 
-    reads = scan_env_reads(tmp_path, list(files))
-    assert set(reads) == {
-        "UNDECLARED_SH",
-        "UNDECLARED_LINT",
-        "UNDECLARED_BIN",
-        "UNDECLARED_PKG",
-        "UNDECLARED_VITEST",
-        "UNDECLARED_SRC",
-        "UNDECLARED_TS_TEST",
-        "UNDECLARED_PY",
-    }
+        reads = scan_env_reads(tmp_path, list(files))
+
+    with allure.step("すべての変数が見つかることを確かめる"):
+        assert set(reads) == {
+            "UNDECLARED_SH",
+            "UNDECLARED_LINT",
+            "UNDECLARED_BIN",
+            "UNDECLARED_PKG",
+            "UNDECLARED_VITEST",
+            "UNDECLARED_SRC",
+            "UNDECLARED_TS_TEST",
+            "UNDECLARED_PY",
+        }
 
 
 def test_scan_ignores_variables_the_file_assigns_itself(tmp_path: Path) -> None:
-    files = {
-        "plugins/p/scripts/ci/run-tests.sh": 'LOCAL_SH=1\nexport EXPORTED_SH=2\necho "$LOCAL_SH $EXPORTED_SH"\n',
-        "plugins/p/cli/package.json": json.dumps(
-            {"scripts": {"test": "SET_PKG=1 vitest run $SET_PKG"}}
-        ),
-        "plugins/p/cli/src/a.test.ts": (
-            "process.env.SET_TS = 'x'\nconst v = process.env.SET_TS\n"
-            "vi.stubEnv('STUBBED', '1')\nconst w = process.env.STUBBED\n"
-        ),
-        "plugins/p/cli/t.py": (
-            'import os\nmonkeypatch.setenv("SET_PY", "1")\nv = os.environ.get("SET_PY")\n'
-        ),
-    }
-    for rel, text in files.items():
-        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
-        (tmp_path / rel).write_text(text, encoding="utf-8")
+    with allure.step("ファイル自身が代入する変数を読むファイルを書き、走査する"):
+        files = {
+            "plugins/p/scripts/ci/run-tests.sh": 'LOCAL_SH=1\nexport EXPORTED_SH=2\necho "$LOCAL_SH $EXPORTED_SH"\n',
+            "plugins/p/cli/package.json": json.dumps(
+                {"scripts": {"test": "SET_PKG=1 vitest run $SET_PKG"}}
+            ),
+            "plugins/p/cli/src/a.test.ts": (
+                "process.env.SET_TS = 'x'\nconst v = process.env.SET_TS\n"
+                "vi.stubEnv('STUBBED', '1')\nconst w = process.env.STUBBED\n"
+            ),
+            "plugins/p/cli/t.py": (
+                'import os\nmonkeypatch.setenv("SET_PY", "1")\nv = os.environ.get("SET_PY")\n'
+            ),
+        }
+        for rel, text in files.items():
+            (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+            (tmp_path / rel).write_text(text, encoding="utf-8")
 
-    assert scan_env_reads(tmp_path, list(files)) == {}
+    with allure.step("何も見つからないことを確かめる"):
+        assert scan_env_reads(tmp_path, list(files)) == {}
 
 
 def test_scan_skips_comments_and_shell_builtins(tmp_path: Path) -> None:
-    rel = "plugins/p/scripts/ci/run-tests.sh"
-    (tmp_path / rel).parent.mkdir(parents=True)
-    (tmp_path / rel).write_text(
-        '# NODE_V8_COVERAGE=\'\' bash run-tests.sh\nDIR="$(dirname "${BASH_SOURCE[0]}")"\ncd "$PWD"\n',
-        encoding="utf-8",
-    )
-    assert scan_env_reads(tmp_path, [rel]) == {}
+    with allure.step("コメントとシェル組み込みの変数だけのスクリプトを書き、走査する"):
+        rel = "plugins/p/scripts/ci/run-tests.sh"
+        (tmp_path / rel).parent.mkdir(parents=True)
+        (tmp_path / rel).write_text(
+            '# NODE_V8_COVERAGE=\'\' bash run-tests.sh\nDIR="$(dirname "${BASH_SOURCE[0]}")"\ncd "$PWD"\n',
+            encoding="utf-8",
+        )
+
+    with allure.step("何も見つからないことを確かめる"):
+        assert scan_env_reads(tmp_path, [rel]) == {}
 
 
 def _write_files(root: Path, files: dict[str, str]) -> list[str]:
@@ -606,30 +642,36 @@ def test_scan_counts_default_expansion_even_when_the_file_assigns_the_variable(
     tmp_path: Path, operator: str
 ) -> None:
     """`X="${X:-1}"` は外の値を読んでから代入する。代入があっても外の値の読み取りとして数える。"""
-    rels = _write_files(
-        tmp_path,
-        {
-            "plugins/p/scripts/ci/run-tests.sh": f'DEFAULTED_SH="${{DEFAULTED_SH{operator}1}}"\necho "$DEFAULTED_SH"\n'
-        },
-    )
-    assert set(scan_env_reads(tmp_path, rels)) == {"DEFAULTED_SH"}
+    with allure.step("既定値の展開で代入するスクリプトを書き、走査する"):
+        rels = _write_files(
+            tmp_path,
+            {
+                "plugins/p/scripts/ci/run-tests.sh": f'DEFAULTED_SH="${{DEFAULTED_SH{operator}1}}"\necho "$DEFAULTED_SH"\n'
+            },
+        )
+
+    with allure.step("代入があっても、外の値の読み取りとして数えることを確かめる"):
+        assert set(scan_env_reads(tmp_path, rels)) == {"DEFAULTED_SH"}
 
 
 def test_scan_counts_shell_reads_before_the_first_assignment(tmp_path: Path) -> None:
     """ファイルの後ろで代入していても、それより前の読み取りは外の値を読む。"""
-    rels = _write_files(
-        tmp_path,
-        {
-            "plugins/p/bin/wrapper": (
-                'if [ "${READ_FIRST:-}" != "1" ]; then :; fi\n'
-                "export READ_FIRST=1\n"
-                'echo "$READ_FIRST"\n'
-                "ASSIGNED_FIRST=0\n"
-                'echo "${ASSIGNED_FIRST:-x}"\n'
-            )
-        },
-    )
-    assert set(scan_env_reads(tmp_path, rels)) == {"READ_FIRST"}
+    with allure.step("代入の前に読むスクリプトを書き、走査する"):
+        rels = _write_files(
+            tmp_path,
+            {
+                "plugins/p/bin/wrapper": (
+                    'if [ "${READ_FIRST:-}" != "1" ]; then :; fi\n'
+                    "export READ_FIRST=1\n"
+                    'echo "$READ_FIRST"\n'
+                    "ASSIGNED_FIRST=0\n"
+                    'echo "${ASSIGNED_FIRST:-x}"\n'
+                )
+            },
+        )
+
+    with allure.step("最初の代入より前の読み取りだけを数えることを確かめる"):
+        assert set(scan_env_reads(tmp_path, rels)) == {"READ_FIRST"}
 
 
 @pytest.mark.parametrize("default", ["??", "||"])
@@ -637,71 +679,89 @@ def test_scan_counts_shell_reads_before_the_first_assignment(tmp_path: Path) -> 
 def test_scan_counts_js_default_reads_even_when_the_file_assigns_the_variable(
     tmp_path: Path, default: str, read: str
 ) -> None:
-    rels = _write_files(
-        tmp_path,
-        {
-            "plugins/p/cli/src/a.ts": (
-                f"process.env.DEFAULTED_JS = 'x'\nconst v = {read} {default} 'fallback'\n"
-            )
-        },
-    )
-    assert set(scan_env_reads(tmp_path, rels)) == {"DEFAULTED_JS"}
+    with allure.step("代入と既定値つきの読み取りを含む JS を書き、走査する"):
+        rels = _write_files(
+            tmp_path,
+            {
+                "plugins/p/cli/src/a.ts": (
+                    f"process.env.DEFAULTED_JS = 'x'\nconst v = {read} {default} 'fallback'\n"
+                )
+            },
+        )
+
+    with allure.step("代入があっても、既定値つきの読み取りを数えることを確かめる"):
+        assert set(scan_env_reads(tmp_path, rels)) == {"DEFAULTED_JS"}
 
 
 def test_scan_reads_shell_under_tests_but_not_under_hooks(tmp_path: Path) -> None:
     """レーンが直接実行する tests 配下の *.sh は走査する。hooks 配下は走査しない（docstring 参照）。"""
-    rels = _write_files(
-        tmp_path,
-        {
-            "plugins/p/cli/tests/bootstrap/run.sh": 'echo "${UNDECLARED_TESTS_SH:-}"\n',
-            "plugins/p/scripts/release/tests/audit.test.sh": 'echo "$UNDECLARED_RELEASE_TEST"\n',
-            "plugins/p/hooks/tests/session-start.test.sh": 'echo "$HOOKS_TEST_ONLY"\n',
-            "plugins/p/hooks/lib/core/dispatcher.sh": 'echo "$HOOKS_LIB_ONLY"\n',
-            "plugins/p/cli/src/helper.sh": 'echo "$NOT_IN_SCOPE_SH"\n',
-        },
-    )
-    assert set(scan_env_reads(tmp_path, rels)) == {"UNDECLARED_TESTS_SH", "UNDECLARED_RELEASE_TEST"}
+    with allure.step("tests・hooks・src の下にシェルを書き、走査する"):
+        rels = _write_files(
+            tmp_path,
+            {
+                "plugins/p/cli/tests/bootstrap/run.sh": 'echo "${UNDECLARED_TESTS_SH:-}"\n',
+                "plugins/p/scripts/release/tests/audit.test.sh": 'echo "$UNDECLARED_RELEASE_TEST"\n',
+                "plugins/p/hooks/tests/session-start.test.sh": 'echo "$HOOKS_TEST_ONLY"\n',
+                "plugins/p/hooks/lib/core/dispatcher.sh": 'echo "$HOOKS_LIB_ONLY"\n',
+                "plugins/p/cli/src/helper.sh": 'echo "$NOT_IN_SCOPE_SH"\n',
+            },
+        )
+
+    with allure.step("tests 配下だけが走査されることを確かめる"):
+        assert set(scan_env_reads(tmp_path, rels)) == {
+            "UNDECLARED_TESTS_SH",
+            "UNDECLARED_RELEASE_TEST",
+        }
 
 
 def test_scan_counts_interface_env_names_for_reads_by_a_constant(tmp_path: Path) -> None:
     """名前を定数で渡す読みは、直前の `interface-env:` の名前で数える。同じファイルの stub では引かない。"""
-    rels = _write_files(
-        tmp_path,
-        {
-            "plugins/p/cli/src/a.test.ts": (
-                "vi.stubEnv('A', '1')\n// interface-env: A B\nconst v = process.env[NAMES.a]\n"
-            ),
-            "plugins/p/cli/core.py": (
-                "import os\n# interface-env: C, D\nv = os.environ.get(name)\n"
-            ),
-        },
-    )
-    assert set(scan_env_reads(tmp_path, rels)) == {"A", "B", "C", "D"}
+    with allure.step("interface-env を添えた読み取りを書き、走査する"):
+        rels = _write_files(
+            tmp_path,
+            {
+                "plugins/p/cli/src/a.test.ts": (
+                    "vi.stubEnv('A', '1')\n// interface-env: A B\nconst v = process.env[NAMES.a]\n"
+                ),
+                "plugins/p/cli/core.py": (
+                    "import os\n# interface-env: C, D\nv = os.environ.get(name)\n"
+                ),
+            },
+        )
+
+    with allure.step("interface-env の名前で数えることを確かめる"):
+        assert set(scan_env_reads(tmp_path, rels)) == {"A", "B", "C", "D"}
 
 
 def test_scan_skips_interface_env_none_and_markers_inside_strings(tmp_path: Path) -> None:
-    rels = _write_files(
-        tmp_path,
-        {
-            "plugins/p/cli/src/a.test.ts": (
-                "// interface-env: none\n"
-                "  // interface-env: KEPT\n"
-                "const s = '// interface-env: E\\n'\n"
-                "const t = `x\\n// interface-env: F`\n"
-            ),
-            "plugins/p/cli/core.py": "# interface-env: none\ns = '# interface-env: G'\n",
-        },
-    )
-    assert set(scan_env_reads(tmp_path, rels)) == {"KEPT"}
+    with allure.step("interface-env: none と、文字列中の印を含むファイルを書き、走査する"):
+        rels = _write_files(
+            tmp_path,
+            {
+                "plugins/p/cli/src/a.test.ts": (
+                    "// interface-env: none\n"
+                    "  // interface-env: KEPT\n"
+                    "const s = '// interface-env: E\\n'\n"
+                    "const t = `x\\n// interface-env: F`\n"
+                ),
+                "plugins/p/cli/core.py": "# interface-env: none\ns = '# interface-env: G'\n",
+            },
+        )
+
+    with allure.step("文字列中の印と none を数えないことを確かめる"):
+        assert set(scan_env_reads(tmp_path, rels)) == {"KEPT"}
 
 
 def test_scan_keeps_only_valid_names_in_interface_env(tmp_path: Path) -> None:
-    rels = _write_files(
-        tmp_path,
-        {
-            "plugins/p/cli/src/a.ts": (
-                "/* interface-env: PECOT_GITHUB_*_TOKEN (see foo.bar) PLAIN_NAME */\n"
-            ),
-        },
-    )
-    assert set(scan_env_reads(tmp_path, rels)) == {"PECOT_GITHUB_*_TOKEN", "PLAIN_NAME"}
+    with allure.step("無効な語を含む interface-env を書き、走査する"):
+        rels = _write_files(
+            tmp_path,
+            {
+                "plugins/p/cli/src/a.ts": (
+                    "/* interface-env: PECOT_GITHUB_*_TOKEN (see foo.bar) PLAIN_NAME */\n"
+                ),
+            },
+        )
+
+    with allure.step("有効な名前だけが残ることを確かめる"):
+        assert set(scan_env_reads(tmp_path, rels)) == {"PECOT_GITHUB_*_TOKEN", "PLAIN_NAME"}

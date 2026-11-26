@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import allure
 import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -22,19 +23,25 @@ def _masked(path: str) -> str:
 
 
 def test_workflow_is_a_copy_of_the_template() -> None:
-    assert _masked(_COPY) == _masked(_TEMPLATE), (
-        f"{_COPY} が雛形と違う。`cp {_TEMPLATE} {_COPY}` で写し直し、action の版だけを写しの版に戻す"
-    )
+    with allure.step("写しと雛形を、版を伏せて読む"):
+        copy = _masked(_COPY)
+        template = _masked(_TEMPLATE)
+    with allure.step("写しが雛形と同じことを確かめる"):
+        assert copy == template, (
+            f"{_COPY} が雛形と違う。`cp {_TEMPLATE} {_COPY}` で写し直し、action の版だけを写しの版に戻す"
+        )
 
 
 @pytest.mark.parametrize("path", [_COPY, _TEMPLATE])
 def test_every_action_is_pinned_to_a_full_sha(path: str) -> None:
-    text = (_REPO_ROOT / path).read_text(encoding="utf-8")
-    uses = _USES_LINE.findall(text)
-    assert uses, (
-        f"{path} に `uses:` の行が無い。正規表現 _USES_LINE が当たらなくなっていないか確かめる"
-    )
-    unpinned = [u for u in uses if not _PINNED_USES.match(u)]
-    assert not unpinned, (
-        f"{path} の action が 40 桁の SHA で固定されていない: {unpinned}。`owner/repo@<40 桁の hex>` にそろえる"
-    )
+    with allure.step("ワークフローの uses の行を集める"):
+        text = (_REPO_ROOT / path).read_text(encoding="utf-8")
+        uses = _USES_LINE.findall(text)
+    with allure.step("すべての action が 40 桁の SHA で固定されていることを確かめる"):
+        assert uses, (
+            f"{path} に `uses:` の行が無い。正規表現 _USES_LINE が当たらなくなっていないか確かめる"
+        )
+        unpinned = [u for u in uses if not _PINNED_USES.match(u)]
+        assert not unpinned, (
+            f"{path} の action が 40 桁の SHA で固定されていない: {unpinned}。`owner/repo@<40 桁の hex>` にそろえる"
+        )
