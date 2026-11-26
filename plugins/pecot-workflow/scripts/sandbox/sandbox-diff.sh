@@ -141,7 +141,7 @@ read_workflows() {
     echo "$out"
 }
 
-# 比べるボードを指す設定ファイルの名前を、形に読み替える。番号と題はリポごとに違う。読めない JSON は、CLI と同じく飛ばす。
+# 比べるボードを指す設定ファイルの名前の形と、欄ごとの選択肢のキーを読む。番号・題・ID はリポごとに違う。読めない JSON は、CLI と同じく飛ばす。
 read_config_file() {
     local repo="$1" project="$2" label="repos/$1/contents/$CONFIG_DIR" list name file entries="[]"
     api "$label" "$label?ref=main"
@@ -160,10 +160,16 @@ read_config_file() {
                      elif ($c.workflow_suffix | type) == "string" and ($n | startswith($pre))
                           and ($n | endswith("_\($c.workflow_suffix).json")) then $legacy
                      else $n end) as $form
-                  | $acc + [{name: $n, form: $form}]
+                  | (try ($c.project.fields | to_entries
+                          | map({key, value: (.value.options | if type == "object" then keys else [] end)}) | from_entries)
+                     catch {}) as $options
+                  | $acc + [{name: $n, form: $form, options: $options}]
               else $acc end' <<< "$RESP")
     done < <(jq -r '.[] | select(.type == "file" and (.name | endswith(".json"))) | .name' <<< "$list")
-    jq -c 'if length == 0 then {} else {"config-file": (sort_by(.name) | map(.form) | join("、"))} end' <<< "$entries"
+    # 選択肢のキーは、ファイルが 1 つのときだけ出す。0 個か 2 個以上は config-file のずれとして出る
+    jq -c 'if length == 0 then {}
+           else {"config-file": (sort_by(.name) | map(.form) | join("、"))}
+                + (if length == 1 then {"config-options": .[0].options} else {} end) end' <<< "$entries"
 }
 
 snapshot() {
@@ -180,9 +186,14 @@ snapshot() {
         v=$(read_board_fields "$repo" "$project")
         snap=$(jq -c --argjson v "$v" '. + {"board-fields": $v}' <<< "$snap")
     fi
-    if compared config-file; then
+    if compared config-file || compared config-options; then
         v=$(read_config_file "$repo" "$project")
-        snap=$(jq -c --argjson v "$v" '. + {"config-file": $v}' <<< "$snap")
+        if compared config-file; then
+            snap=$(jq -c --argjson v "$v" '. + {"config-file": ($v | del(."config-options"))}' <<< "$snap")
+        fi
+        if compared config-options; then
+            snap=$(jq -c --argjson v "$v" '. + ($v | with_entries(select(.key == "config-options")))' <<< "$snap")
+        fi
     fi
     if compared workflows; then
         v=$(read_workflows "$repo")
@@ -223,6 +234,8 @@ jq -r -n --slurpfile a "$work/this.json" --slurpfile b "$work/sandbox.json" \
         rules_pairs($x.ruleset // {}; $y.ruleset // {}),
         pairs("board-fields / "; $x["board-fields"]; $y["board-fields"]),
         pairs(""; $x["config-file"]; $y["config-file"]),
+        (if ($x | has("config-options")) and ($y | has("config-options"))
+         then pairs("config-options / "; $x["config-options"]; $y["config-options"]) else empty end),
         pairs("workflows / "; $x.workflows; $y.workflows) ]
     | "\($count_head)\(length)\($count_tail)",
       (.[] | .name,

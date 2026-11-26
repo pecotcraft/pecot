@@ -24,6 +24,12 @@
     "ignore": []
   },
   {
+    "id": "FR-002",
+    "name": "config-options",
+    "compare": true,
+    "ignore": []
+  },
+  {
     "id": "FR-003",
     "name": "workflows",
     "compare": true,
