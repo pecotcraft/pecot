@@ -641,11 +641,7 @@ _ENDINGS = {
 
 
 @_needs_pnpm
-@pytest.mark.parametrize(
-    "case",
-    ["blank-line", "ideographic-space-line", "crlf", "lone-cr"],
-    ids=["blank-line", "ideographic-space-line", "crlf", "lone-cr"],
-)
+@pytest.mark.parametrize("case", list(_ENDINGS))
 def test_real_allure_reads_what_generate_passes_as_readable(
     real_build: tuple[Callable[[], int], Path],
     capsys: pytest.CaptureFixture[str],
