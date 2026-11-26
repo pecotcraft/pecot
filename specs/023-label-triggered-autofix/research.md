@@ -145,6 +145,14 @@ spec 023 が決めた仕組み（起動ラベル・`gate` と `run` の 2 つの
 - 同時実行は `concurrency.group: pecot-auto-<Issue番号>` と `cancel-in-progress: false` で止める（FR-026）。何も設定しなければ、待つ run は 1 つで、後から来た run が置き換える
 - 起動ラベルは、w-onboarding の導入の Step で作る。あるかは `workflow doctor auto` が確かめる。`workflow install` は、雛形を写すだけにする
 - 変数が空のとき（`gate` を飛ばす）と、App に権限が無いときは、足りない設定を Issue に書く経路が要る（FR-021）。この経路が届くかは、実装で確かめる
+  - 変数が空のときは、job `setup` が run のトークン（`GITHUB_TOKEN`、`issues: write`）で `setup-missing` を書く。App が無いので、App のトークンでは書けないためだ。ラベルを付けた人の権限は、`gate` と同じ判定で先に読む
+  - App に権限が無いときは、`gate` のトークンの発行が失敗する。発行の step を `continue-on-error: true` にし、失敗を出力 `token-failed` で `setup` に渡す。`setup` が、同じ `GITHUB_TOKEN` で、トークンを作れなかったことを書く
+
+結果（2026-11-26、検証用）:
+
+- 変数が空のときは、`setup` の job が `setup-missing` の結果のコメントを書き、起動ラベルを外した。`gate` と `run` は飛ばされた
+- App の持たない権限（Commit statuses）を `gate` のトークンに求めると、発行が `The permissions requested are not granted to this installation.` で失敗した。足す前の雛形では、知らせは届かない。足した後は、`gate` の Decide と `run` が飛ばされ、`setup` が結果のコメントを書き、起動ラベルを外した
+- 足した後も、変数があって発行できるときは `setup` が飛ばされ、`gate` が判定を書いた
 
 ## R5. 起動者の制限と、信頼できない入力
 
@@ -191,6 +199,12 @@ Issue の本文は、action のサニタイズを通らない。そこで次の 
 - 行末のコメントは `claude_args` に書かない。action が捨てるのは `#` で始まる行だけだ
 
 実装で確かめること: `Bash` を許した実行で、プラグインの `PreToolUse` の hook が止めないか。spec 027 では、`Bash` を拒んだので、この hook が動かなかった。
+
+結果（2026-11-26、検証用、claude-code-action v1.0.278、`--include-hook-events`）: 止めない。
+
+- `PreToolUse:Bash` の hook の結果は、どの呼び出しでも `outcome: success`・終了コード 0 だった
+- 許した `git` と、囲みに足したテストのコマンドは、そのまま動いた
+- 規則の無いコマンド（`cat`・`mkdir` など）は、`permission_denials` に入った。`default` のモードが拒んでいる
 
 ## R7. 待ちの値
 
@@ -296,11 +310,8 @@ Issue の本文は、action のサニタイズを通らない。そこで次の 
 |---|---|
 | ruleset の確かめ | main への push を止める ruleset があるかを、`workflow doctor auto` が確かめるか（FR-029） |
 
-実装で確かめることは、4 つが残る。
+実装で確かめることは、R3 の 1 つが残る。R2・R4・R6 は確かめ、結果を各節に書いた。
 
 | 確かめること | 場所 |
 |---|---|
-| `Bash` を許した実行で、`PreToolUse` の hook が止めないか | R6 |
 | fork の PR で、`pull_requests` が空になるか | R3 |
-| リポに絞って発行したトークンが、`permission-organization-projects: write` で organization のボードを書けるか | R2 |
-| 変数が空のとき・App に権限が無いときに、足りない設定を Issue に書く経路が届くか（FR-021）。届かなければ、`gate` のトークンで `setup-missing` を書く経路を足す | R4 |

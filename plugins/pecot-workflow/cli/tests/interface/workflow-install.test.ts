@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
+import { parse } from 'yaml'
 
 import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
 import { pluginRoot } from '../../src/version.js'
@@ -21,6 +22,31 @@ const OLD = BUNDLED.replace(/^# pecot-workflow-template: review \d+/u, '# pecot-
 const USER_LINE = '      - run: pnpm install --frozen-lockfile'
 const WITH_USER_LINE = BUNDLED.replace('      # pecot-review:prepare:end', () => `${USER_LINE}\n      # pecot-review:prepare:end`)
 const NO_FILES: Readonly<Record<string, string>> = {}
+
+const AUTO_DESTINATION = '.github/workflows/pecot-auto.yml'
+
+// 雛形が無くても、ほかのケースは流れるように、使うケースの中で読む
+function bundledAuto(): string {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同梱の雛形のパス
+  return readFileSync(path.join(pluginRoot(), 'cli/templates/workflow/pecot-auto.yml'), 'utf8')
+}
+
+function versionOfAuto(text: string): number {
+  return Number(/^# pecot-workflow-template: auto (\d+)/u.exec(text)?.[1])
+}
+
+// このリポの CI のワークフローの名前
+function ciWorkflowName(): string {
+  const ci = readFileSync(path.join(import.meta.dirname, '../../../../../.github/workflows/ci.yml'), 'utf8')
+  return /^name:[ \t]*(\S+)[ \t]*$/mu.exec(ci)?.[1] ?? ''
+}
+
+function stringScalars(node: unknown): readonly string[] {
+  if (typeof node === 'string') return [node]
+  if (Array.isArray(node)) return node.flatMap(item => stringScalars(item))
+  if (typeof node === 'object' && node !== null) return Object.entries(node).flatMap(([key, value]) => [key, ...stringScalars(value)])
+  return []
+}
 
 async function install(argumentsOfTool: Readonly<Record<string, unknown>>, files = NO_FILES): Promise<ToolResult> {
   return await runTool({ tool: 'workflow_install', arguments: { name: 'review', ...argumentsOfTool }, files, config: false, github: [] })
@@ -102,7 +128,74 @@ describe('workflow install', () => {
     expect(result.isError).toBe(true)
     expect(result.structured).toMatchObject({ kind: 'invalid-input' })
     expect(result.structured['detail']).toContain('unknown workflow template: deploy')
-    expect(result.structured['detail']).toContain('available: review, handoff')
+    expect(result.structured['detail']).toContain('available: review, handoff, auto')
+  })
+
+  it('name に auto を渡すと、自動処理の雛形を .github/workflows/pecot-auto.yml に書き出し、雛形の版を version に入れる', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-INSTALL-01')
+    await verifies(context, 'PW-WORKFLOW-INSTALL-02')
+    const bundled = bundledAuto()
+    const result = await install({ name: 'auto' })
+    expect(result.isError).toBe(false)
+    expect(result.read(AUTO_DESTINATION)).toBe(bundled)
+    expect(result.structured).toMatchObject({ written: true, path: AUTO_DESTINATION, version: versionOfAuto(bundled) })
+  })
+
+  it('auto で check を付けて呼び、版が同梱の雛形と同じなら、upToDate を true にして成功を返す', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-INSTALL-07')
+    const bundled = bundledAuto()
+    const result = await install({ name: 'auto', check: true }, { [AUTO_DESTINATION]: bundled })
+    expect(result.isError).toBe(false)
+    expect(result.structured).toMatchObject({ written: false, upToDate: true })
+  })
+
+  it('auto で check を付けて呼び、版が古いと、force の呼び方を detail に入れて not-ready の失敗を返す', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-INSTALL-08')
+    const old = bundledAuto().replace(/^# pecot-workflow-template: auto \d+/u, '# pecot-workflow-template: auto 0')
+    const result = await install({ name: 'auto', check: true }, { [AUTO_DESTINATION]: old })
+    expect(result.isError).toBe(true)
+    expect(result.structured).toMatchObject({ kind: 'not-ready', path: AUTO_DESTINATION, written: false, upToDate: false })
+    expect(result.structured['detail']).toContain('workflow template auto is outdated')
+    expect(result.structured['detail']).toContain('workflow_install with name: "auto", force: true')
+  })
+
+  it('auto で force を付けて呼び、利用者の足した行が囲みの中にあると、消える行を removedLines に入れる', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-INSTALL-06')
+    const bundled = bundledAuto()
+    const end = /^[ \t]*# pecot-auto:[\w-]+:end$/mu.exec(bundled)?.[0]
+    if (end === undefined) throw new Error('the auto template has no block marker')
+    const indent = /^[ \t]*/u.exec(end)?.[0] ?? ''
+    const userLine = `${indent}- run: pnpm install --frozen-lockfile`
+    const result = await install({ name: 'auto', force: true }, { [AUTO_DESTINATION]: bundled.replace(end, () => `${userLine}\n${end}`) })
+    expect(result.isError).toBe(false)
+    expect(result.read(AUTO_DESTINATION)).toBe(bundled)
+    expect(result.structured).toMatchObject({ written: true, removedLines: [userLine] })
+  })
+
+  it('auto を書き出すと、このリポの設定の名前と CI のワークフローの名前が、書き出したファイルに残らない', async () => {
+    const result = await install({ name: 'auto' })
+    const written = result.read(AUTO_DESTINATION) ?? ''
+    expect(written).not.toBe('')
+    // プラグインの配布元の marketplace だけは、このリポを指す
+    expect(written.replaceAll('https://github.com/pecotcraft/pecot.git', '')).not.toMatch(/pecotcraft/iu)
+    expect(written).not.toContain('github.com_pecotcraft')
+    const ciName = ciWorkflowName()
+    expect(ciName).not.toBe('')
+    expect(stringScalars(parse(written))).not.toContain(ciName)
+  })
+
+  it('CLI で auto を書き出すと、次にすることに App の変数と secret の設定を入れ、Claude の App の手順を入れない', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-INSTALL-14')
+    const result = await runCommand({ argv: ['workflow', 'install', 'auto'], config: false, github: [] })
+    expect(result.code).toBe(0)
+    expect(result.stdout).toBe([
+      'next:',
+      '  1. set variable PECOT_AGENT_APP_CLIENT_ID in Settings > Secrets and variables > Actions',
+      '  2. set secret PECOT_AGENT_APP_PRIVATE_KEY in Settings > Secrets and variables > Actions',
+      '  3. set secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_* in Settings > Secrets and variables > Actions',
+      '  4. check the settings with: pecot workflow doctor auto',
+      '',
+    ].join('\n'))
   })
 
   it('name に handoff を渡すと、引き継ぎの雛形を .github/workflows/pecot-handoff.yml に書き出す', async (context) => {

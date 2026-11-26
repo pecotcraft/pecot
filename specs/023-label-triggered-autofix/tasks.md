@@ -175,13 +175,13 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
 
 **前提**: 複数のボードに入ったリポでの指定は、#640（#660）で形が決まった。変数 `PECOT_AUTO_PROJECT` を、CLI には `--project`、スキルには `project=<名前>` で渡す
 
-- [ ] T026 [P] [US2] `p-w/cli/tests/auto-workflow-template.test.ts` に、雛形の失敗するテストを書く
+- [x] T026 [P] [US2] `p-w/cli/tests/auto-workflow-template.test.ts` に、雛形の失敗するテストを書く
   - 確かめることは `spec/contracts/workflow-template.md` の「テストで確かめること」の表のとおり
   - `workflow_run` の行は Phase 5 で足す
   - `review-workflow-template.test.ts` を手本にする
-- [ ] T027 [P] [US1] `p-w/cli/src/domain/tests/workflow-template.test.ts` に、一覧の `auto` の行の失敗するテストを足す。名前・雛形のファイル・置き先と、App の変数と secret の両方が要る設定であることを確かめる
-- [ ] T028 [US1] `p-w/cli/src/domain/workflow-template.ts` の `WORKFLOW_TEMPLATES` に、`auto` の行を足す。欄は `spec/data-model.md` の「雛形の一覧の `auto` の行」のうち、名前・雛形のファイル・置き先・要る変数と secret の 4 つ。残りの 3 つの欄は Phase 6 で足す
-- [ ] T029 [US1] 雛形 `p-w/cli/templates/workflow/pecot-auto.yml` を作る。このフェーズでは、契機は `issues: labeled` だけにする
+- [x] T027 [P] [US1] `p-w/cli/src/domain/tests/workflow-template.test.ts` に、一覧の `auto` の行の失敗するテストを足す。名前・雛形のファイル・置き先と、App の変数と secret の両方が要る設定であることを確かめる
+- [x] T028 [US1] `p-w/cli/src/domain/workflow-template.ts` の `WORKFLOW_TEMPLATES` に、`auto` の行を足す。欄は `spec/data-model.md` の「雛形の一覧の `auto` の行」のうち、名前・雛形のファイル・置き先・要る変数と secret の 4 つ。残りの 3 つの欄は Phase 6 で足す
+- [x] T029 [US1] 雛形 `p-w/cli/templates/workflow/pecot-auto.yml` を作る。このフェーズでは、契機は `issues: labeled` だけにする
   - 1 行目に版の目印 `# pecot-workflow-template: auto 1` を置く
   - 利用者が変える値は、リポの変数と式の `||` の既定値で読む。先頭の `env` に置かない
   - job `gate` と `run` を、`spec/contracts/workflow-template.md` の表のとおりに書く
@@ -196,24 +196,26 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
   - 後始末の step は、値を `env` で受けて引用符付きの引数で渡す。`gate`・自動処理・後始末の step の `env` に `PECOT_AUTO_LABEL` を渡す
   - action はすべて SHA で固定し、版をコメントに書く
   - 変数 `PECOT_AUTO_PROJECT` を、`gate`・後始末の step には `--project` で、`prompt` には空でないときだけ `project=<名前>` で渡す
-- [ ] T030 [US1] `pecot workflow install auto` と `--check`・`--force` のテストを `p-w/cli/tests/interface/workflow-install.test.ts` に足す。書き出した結果に、このリポ固有の名前が残らないことも確かめる
-- [ ] T031 [US1] `workflow install`・`workflow doctor` の定義書を直す。`p-w/interface/authored.yaml` の名前の一覧に `auto` を足し、`generated.json` を書き出し直す
-- [ ] T032 [US2] 検証用に導入する
+- [x] T030 [US1] `pecot workflow install auto` と `--check`・`--force` のテストを `p-w/cli/tests/interface/workflow-install.test.ts` に足す。書き出した結果に、このリポ固有の名前が残らないことも確かめる
+- [x] T031 [US1] `workflow install`・`workflow doctor` の定義書を直す。`p-w/interface/authored.yaml` の名前の一覧に `auto` を足し、`generated.json` を書き出し直す
+- [x] T032 [US2] 検証用に導入する
   - 検証用の自前の App の権限は、T019 で足してある
   - `pecot workflow install auto` で `.github/workflows/pecot-auto.yml` を書き出し、dist-tag を `@next` に替える
   - 起動ラベルを作る
-- [ ] T033 [US1] `spec/quickstart.md` の「ラベルから PR まで」の表を、検証用の Issue でたどる。結果を PR に貼る
-- [ ] T034 [US2] `spec/quickstart.md` の「安全策」の表を、検証用でたどる。結果を PR に貼る
+- [x] T033 [US1] `spec/quickstart.md` の「ラベルから PR まで」の表を、検証用の Issue でたどる。結果を PR に貼る
+- [x] T034 [US2] `spec/quickstart.md` の「安全策」の表を、検証用でたどる。結果を PR に貼る
   - 起票・コメント・本文の編集で起動しないことは、保守者のアカウントで確かめる。起動するかは操作の種類で決まる
   - 外部の人の本文に従わないことは、同じ文面の Issue を起票して確かめる
   - 書き込み権限の無い人のラベルは、実物で確かめない。`gate` の判定のテスト（T008）と、action の `src/github/validation/permissions.ts` を読んだ結果を PR に書く
-- [ ] T035 [US1] `spec/research.md` の R6 の「実装で確かめること」を確かめる。検証用の一時のワークフローで、`claude_args` に `--include-hook-events` を足して起動する。`Bash` を許した実行を、プラグインの `PreToolUse` の hook が止めないかを記録で見る。結果を R6 に書く
-- [ ] T036 [US3] `spec/quickstart.md` の「質問と起動し直し」の表を、検証用でラベルからたどる。Epic・Pending・ボードに無い Issue での `gate` の結果も見る。結果を PR に貼る
-- [ ] T037 [US1] `spec/research.md` の、足りない設定を Issue に書く経路の「実装で確かめること」を確かめる。変数が空のときと、App に権限が無いときに、Issue に結果のコメントが付くかを検証用で見る（FR-021）。届かなければ、`gate` のトークンで `setup-missing` を書く経路を足す
-- [ ] T038 [US2] 検証用で通った後に、このリポへ導入する。利用者の作業を先に頼む
+- [x] T035 [US1] `spec/research.md` の R6 の「実装で確かめること」を確かめる。検証用の一時のワークフローで、`claude_args` に `--include-hook-events` を足して起動する。`Bash` を許した実行を、プラグインの `PreToolUse` の hook が止めないかを記録で見る。結果を R6 に書く
+- [x] T036 [US3] `spec/quickstart.md` の「質問と起動し直し」の表を、検証用でラベルからたどる。Epic・Pending・ボードに無い Issue での `gate` の結果も見る。結果を PR に貼る
+- [x] T037 [US1] `spec/research.md` の、足りない設定を Issue に書く経路の「実装で確かめること」を確かめる。変数が空のときと、App に権限が無いときに、Issue に結果のコメントが付くかを検証用で見る（FR-021）
+  - 届かなければ、`gate` がトークンを作れなかったことを出力 `token-failed` で出し、`setup` が run のトークンで `setup-missing` を書くようにする
+- [ ] T038 [US2] 検証用で通った後に、このリポへ導入する。利用者の作業を先に頼む。急がないので、#779 に分けた
   - 利用者が、このリポで使う自前の App を用意し、変数 `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY` を登録する
   - `pecot workflow install auto` で書き出し、dist-tag を `@next` に替える。写しと雛形の一致を、`.githooks/tests/test_review_workflow_copy.py` と同じ形のテストで確かめる
   - `.claude/rules/github-workflows.md` のワークフローの一覧に足す
+  - `sandbox-diff.sh` の `COPIED_WORKFLOWS` と、`CONTRIBUTING.md` の比べる項目の表に `pecot-auto.yml` を足す。このリポに写しが無い間は、検証用だけにあるので比べない
 
 **Checkpoint**: 検証用で、起動ラベルを付けると PR ができる。外部のアカウントからは起動しない
 

@@ -20,7 +20,7 @@ function review(): NonNullable<ReturnType<typeof findWorkflowTemplate>> {
 
 describe('雛形の一覧', () => {
   it('review の行が、名前・雛形のファイル・置き先・要る変数と secret を持つ', () => {
-    expect(WORKFLOW_TEMPLATES.map(template => template.name)).toEqual(['review', 'handoff'])
+    expect(WORKFLOW_TEMPLATES.map(template => template.name)).toEqual(['review', 'handoff', 'auto'])
     const template = review()
     expect(template.templateFile).toBe('pecot-review.yml')
     expect(template.destination).toBe('.github/workflows/pecot-review.yml')
@@ -35,6 +35,19 @@ describe('雛形の一覧', () => {
     expect(template?.templateFile).toBe('pecot-handoff.yml')
     expect(template?.destination).toBe('.github/workflows/pecot-handoff.yml')
     expect(template?.requirements).toBe(review().requirements)
+  })
+
+  it('auto の行は、自動処理の雛形と置き先を持ち、App の変数と secret とモデルの認証を要り、Claude の App を使わない', () => {
+    const template = findWorkflowTemplate('auto')
+    expect(template?.templateFile).toBe('pecot-auto.yml')
+    expect(template?.destination).toBe('.github/workflows/pecot-auto.yml')
+    expect(template?.requirements.map(requirement => requirement.missing)).toEqual([
+      'variable PECOT_AGENT_APP_CLIENT_ID',
+      'secret PECOT_AGENT_APP_PRIVATE_KEY',
+      'secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*',
+    ])
+    expect(template?.requirements[2]).toBe(review().requirements[1])
+    expect(template?.claudeApp).toBe(false)
   })
 
   it('一覧に無い名前は undefined', () => {
@@ -126,5 +139,22 @@ describe('evaluateRequirements', () => {
 
   it('読めない一覧があっても、読めた一覧でそろえば ok にする', () => {
     expect(evaluateRequirements(requirements, names(undefined, anthropicVariables)).map(result => result.state)).toEqual(['ok'])
+  })
+})
+
+describe('evaluateRequirements（auto）', () => {
+  const requirements = findWorkflowTemplate('auto')?.requirements ?? []
+
+  it('変数と secret が 1 つも無ければ、App の変数と secret の両方を足りないとする', () => {
+    expect(evaluateRequirements(requirements, names([], []))).toEqual([
+      { name: 'variable PECOT_AGENT_APP_CLIENT_ID', state: 'missing' },
+      { name: 'secret PECOT_AGENT_APP_PRIVATE_KEY', state: 'missing' },
+      { name: 'secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*', state: 'missing' },
+    ])
+  })
+
+  it('App の変数と secret とトークンがそろえば、すべて ok にする', () => {
+    const ready = names(['PECOT_AGENT_APP_PRIVATE_KEY', 'CLAUDE_CODE_OAUTH_TOKEN'], ['PECOT_AGENT_APP_CLIENT_ID'])
+    expect(evaluateRequirements(requirements, ready).map(result => result.state)).toEqual(['ok', 'ok', 'ok'])
   })
 })
