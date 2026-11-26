@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -203,6 +204,16 @@ def _run_attached() -> Callable[..., subprocess.CompletedProcess]:
 # そのため fixture として公開し、各テストへ callable を注入する。
 
 
+_SHA = re.compile(r"[0-9a-f]{40}")
+
+
+def _step_arg(arg: str) -> str:
+    # 実行ごとに変わる値を step の名前から外す。SHA は伏せ、一時のパスは末尾の名前だけにする
+    if _SHA.fullmatch(arg):
+        return "<SHA>"
+    return Path(arg).name if os.path.isabs(arg) else arg
+
+
 @pytest.fixture
 def git() -> Callable[..., subprocess.CompletedProcess]:
     """`git <args...>` を repo_dir で実行して CompletedProcess を返す callable。"""
@@ -210,7 +221,7 @@ def git() -> Callable[..., subprocess.CompletedProcess]:
     run_attached = _run_attached()
 
     def _git(repo_dir: Path, *args: str) -> subprocess.CompletedProcess:
-        with allure.step(f"git {' '.join(args)} を打つ"):
+        with allure.step(f"git {' '.join(map(_step_arg, args))} を打つ"):
             return run_attached(
                 ["git", "-c", "commit.gpgsign=false", *args],
                 cwd=repo_dir,
@@ -272,7 +283,7 @@ def git_rev_parse() -> Callable[..., str]:
     """`git rev-parse <ref>` の結果（SHA）を返す callable。"""
 
     def _rev_parse(repo_dir: Path, ref: str = "HEAD") -> str:
-        with allure.step(f"{ref} のコミットを読む"):
+        with allure.step(f"{_step_arg(ref)} のコミットを読む"):
             return subprocess.run(
                 ["git", "rev-parse", ref],
                 cwd=repo_dir,
