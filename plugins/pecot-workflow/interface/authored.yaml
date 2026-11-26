@@ -9073,10 +9073,10 @@ entries:
         what: '`worktree-config.json` を読みます。'
       - target: file
         kind: write
-        what: 'シンボリックリンクを作ります。worktree に `.pecot/.gitignore` を書きます。'
+        what: 'シンボリックリンクを作ります。'
       - target: file
         kind: destructive
-        what: 'リンクのパスに既にあるシンボリックリンクは置き換えます。'
+        what: 'リンクのパスに既にあるシンボリックリンクは置き換えます。worktree の `.pecot/.gitignore` を書き、追跡していない既存のものは置き換えます。'
       - target: file
         kind: destructive
         what: 'リンクのパスにある実体のファイルかディレクトリを消します。消すのは、`force` で許したものです。'
