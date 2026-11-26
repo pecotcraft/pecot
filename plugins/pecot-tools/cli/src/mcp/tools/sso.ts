@@ -14,8 +14,8 @@ import { standardOutputSchema, toolOutputSchema } from '../output-schema.js'
 import { limitOutput, toCallToolResult, type ExecutionResult } from '../result.js'
 import type { ToolDefinition } from '../server.js'
 import {
-  COMMON_OUTPUT_SHAPE,
   PROFILE_INPUT_SHAPE,
+  toolOutputObject,
   type ToolOptions,
 } from './_shared.js'
 
@@ -33,18 +33,16 @@ const SSO_SESSION_OUTPUT_SHAPE = {
     .describe('Code to enter at verificationUrl (success only, once awscli has printed it)'),
 }
 
-const LOGIN_OUTPUT = z.strictObject({
+const LOGIN_OUTPUT = toolOutputObject('aws_sso_login', {
   ...SSO_SESSION_OUTPUT_SHAPE,
   profile: z.string().optional()
     .describe('Profile being authenticated. Empty when the awscli default resolution applies. Returned on success and on failed / timed-out'),
-  ...COMMON_OUTPUT_SHAPE,
 })
 
-const STATUS_OUTPUT = z.strictObject({
+const STATUS_OUTPUT = toolOutputObject('aws_sso_login_status', {
   ...SSO_SESSION_OUTPUT_SHAPE,
   output: z.string().optional()
     .describe('awscli output when the state is completed, only the beginning when it exceeds the limit'),
-  ...COMMON_OUTPUT_SHAPE,
 })
 
 // 成功は、開始なら state と profile、状態確認なら state を必ず返す。

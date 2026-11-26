@@ -71,7 +71,7 @@ export function toCallToolResult(result: Readonly<ToolResult>): CallToolResult {
 }
 
 /**
-CLI の `--json` の失敗の payload から、共通の項目と重なる reason・detail を外す。原因の名前は kind、全文は detail で返すため。
+CLI の `--json` の失敗の payload から reason・detail を外す。原因の名前は共通の kind、全文は共通の detail で返すため。
 */
 export function withoutCommonFailureFields(data: Readonly<Record<string, unknown>>): Record<string, unknown> {
   const { reason: _reason, detail: _detail, ...rest } = data
@@ -311,6 +311,9 @@ anyOf の枝で「成功の必須項目」か「kind と detail」を求める�
 // zod の型は readonly にできない。
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
 export function toolOutputSchema(output: z.ZodObject): Record<string, unknown> {
+  // 同じ名前だと outputSchema では共通の項目が勝ち、ツールの宣言が知らせなしに消える
+  const reserved = Object.keys(COMMON_OUTPUT_PROPERTIES).filter(key => Object.hasOwn(output.shape, key))
+  if (reserved.length > 0) throw new TypeError(`output keys reserved for the common fields of the MCP result: ${reserved.join(', ')}`)
   const generated = Object.entries(z.toJSONSchema(output, { io: 'output' })).filter(([key]) => key !== '$schema')
   const { required = [], properties = {}, ...rest } = JsonObjectSchema.parse(Object.fromEntries(generated))
   return {

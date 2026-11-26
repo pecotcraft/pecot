@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { compareStrings } from '../../../tests/parity/baseline.js'
+import { COMMON_OUTPUT_KEYS } from '../command-definition.js'
 import { commandNameViolations } from '../names.js'
 import { COMMANDS, defineCommand, findCommand, toolNameOf } from '../registry.js'
 import { capture, exitWith } from './support.js'
@@ -55,6 +56,13 @@ describe('コマンドの一覧', () => {
     const names = COMMANDS.map(command => command.toolName)
     expect(new Set(names).size).toBe(names.length)
     for (const command of COMMANDS) expect(command.toolName).toBe(toolNameOf(command.path))
+  })
+
+  it('どのコマンドの output も、最上位に MCP の結果の共通の項目の名前を持たない', () => {
+    const overlaps = COMMANDS.flatMap(command => COMMON_OUTPUT_KEYS
+      .filter(key => Object.hasOwn(command.output.shape, key))
+      .map(key => `${command.path.join(' ')}: ${key}`))
+    expect(overlaps).toEqual([])
   })
 })
 
@@ -273,7 +281,7 @@ describe('defineCommand', () => {
     })).toThrow(TypeError)
   })
 
-  it.for(['reason', 'detail', 'warnings', 'log'])('output が共通の項目の名前 %s を持つと作れない', (key) => {
+  it.for(['kind', 'detail', 'log', 'warnings'])('output が共通の項目の名前 %s を持つと作れない', (key) => {
     expect(() => defineCommand({
       path: ['x'],
       title: 'Test command',
@@ -284,6 +292,20 @@ describe('defineCommand', () => {
       interactive: false,
       run: async () => await exitWith(0),
     })).toThrow(new TypeError(`output の ${key} は MCP の結果の共通の項目の予約名です`))
+  })
+
+  it('output が共通の項目に無い名前 reason を持つと、作れる', () => {
+    const command = defineCommand({
+      path: ['x'],
+      title: 'Test command',
+      description: '',
+      input: z.object({}),
+      output: z.strictObject({ reason: z.string() }),
+      positional: [],
+      interactive: false,
+      run: async () => await exitWith(0),
+    })
+    expect(Object.keys(command.output.shape)).toEqual(['reason'])
   })
 })
 

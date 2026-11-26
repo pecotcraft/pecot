@@ -58,7 +58,7 @@ const RUN_JSON = z.strictObject({
   ci_attempts: z.int().describe('Number of CI fixes so far on the branch'),
 })
 
-// 実行の欄は run の中に入れる。kind と reason は、MCP の data の共通の項目と名前が重なる
+// 実行の欄は run の中に入れる。kind は、MCP の data の共通の項目と名前が重なる
 const OUTPUT = z.strictObject({
   run: RUN_JSON.describe('The run: the same fields as the JSON on stdout and GITHUB_OUTPUT'),
   result: z.enum(AUTO_RESULTS).optional().describe('Result written in the comment (absent when no comment was written)'),

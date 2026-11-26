@@ -67,10 +67,16 @@ export class CommandExit extends BaseError {
 }
 
 /**
+MCP の結果の structuredContent の最上位に、output と並べて置く共通の項目の名前
+*/
+// eslint-disable-next-line no-restricted-syntax -- 配列から型を作るための as const
+export const COMMON_OUTPUT_KEYS = ['kind', 'detail', 'log', 'warnings'] as const
+export type CommonOutputKey = typeof COMMON_OUTPUT_KEYS[number]
+
+/**
 グローバルの --repo を入力にしたもの。全コマンドの入力に足される
 */
 const GLOBAL_SHAPE = { repo: z.string().optional().describe('Target repository, given explicitly as \'owner/repo\'') }
-const RESERVED_OUTPUT_KEYS: readonly string[] = ['reason', 'detail', 'warnings', 'log']
 const GLOBAL_SCHEMA = z.object(GLOBAL_SHAPE)
 /**
 CLI だけが受け取る入力。MCP では、書き込みの前の確認をホストのツールの承認が担うので、予行を出さない
@@ -253,8 +259,8 @@ export function defineCommand<Input extends z.ZodObject, Output extends z.ZodObj
   if (hasOwnRepository && !hasRepositoryField) throw new TypeError('hasOwnRepo のコマンドは input に repo が要ります')
   // 定義書の data の成功の側を閉じた型（additionalProperties: false）にするため
   if (!(spec.output.def.catchall instanceof z.ZodNever)) throw new TypeError('output は z.strictObject で書きます')
-  // MCP の結果の data は共通の項目を extend で重ねるので、同じ名前は知らせなしに上書きされる
-  const reserved = RESERVED_OUTPUT_KEYS.filter(key => Object.hasOwn(spec.output.shape, key))
+  // 同じ名前だと outputSchema では共通の項目が、失敗の値では output が勝ち、結果が outputSchema に合わなくなる
+  const reserved = COMMON_OUTPUT_KEYS.filter(key => Object.hasOwn(spec.output.shape, key))
   if (reserved.length > 0) throw new TypeError(`output の ${reserved.join('・')} は MCP の結果の共通の項目の予約名です`)
   assertDistinctFlags(Object.keys(spec.input.shape), spec.positional, flagMap(spec.negations))
   const aliased = Object.keys(spec.aliases ?? {})

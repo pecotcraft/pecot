@@ -4,6 +4,7 @@ import { fromJsonSchema } from '@modelcontextprotocol/server'
 import type { CallToolResult, JsonSchemaType, StandardSchemaWithJSON } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
+import type { CommonOutputKey } from '../commands/command-definition.js'
 import type { FailureKind } from '../commands/failure-kind.js'
 import type { CommandIo } from '../commands/registry.js'
 import { USAGE_EXIT_CODE } from '../commands/usage-error.js'
@@ -120,7 +121,7 @@ export const COMMON_OUTPUT_PROPERTIES = {
   detail: { type: 'string', description: 'Full failure text: the error message and the guidance lines that follow it (failure only)' },
   log: { type: 'string', description: 'Raw output of a child process (failure only; omitted when not captured)' },
   warnings: { type: 'array', items: { type: 'string' }, description: 'Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)' },
-}
+} satisfies Record<CommonOutputKey, object>
 
 const FAILURE_REQUIRED: readonly string[] = ['kind', 'detail']
 

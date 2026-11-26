@@ -388,13 +388,26 @@ function successRequiredOf(spec: Readonly<AllowlistedToolSpec>): SuccessRequired
 ツール 1 件の outputSchema。AWS の応答のキー・pecot-tools が足す項目・共通の 4 項目を、閉じた object に並べる。
 */
 function outputSchemaOf(spec: Readonly<AllowlistedToolSpec>, responseShape: Readonly<Record<string, z.ZodType>>): StandardSchemaWithJSON {
-  const output = z.strictObject({
-    ...responseShape,
+  const output = toolOutputObject(spec.entry.toolName, responseShape, {
     ...AWSCLI_OUTPUT_SHAPE,
     ...(spec.entry.pagination === 'max-items' && { nextToken: NEXT_TOKEN_OUTPUT_SHAPE.nextToken }),
-    ...COMMON_OUTPUT_SHAPE,
   })
   return standardOutputSchema(toolOutputSchema(output, successRequiredOf(spec)))
+}
+
+/**
+ツールの項目・pecot-tools が足す項目・共通の 4 項目を、閉じた object に並べる。名前が重なると、後の項目が知らせなしに上書きするので止める
+*/
+export function toolOutputObject(
+  toolName: string,
+  shape: Readonly<z.ZodRawShape>,
+  added: Readonly<z.ZodRawShape> = {},
+): z.ZodObject {
+  const reserved = [...Object.keys(shape), ...Object.keys(added)].filter(key => Object.hasOwn(COMMON_OUTPUT_SHAPE, key))
+  if (reserved.length > 0) throw new TypeError(`${toolName}: output keys reserved for the common fields of the MCP result: ${reserved.join(', ')}`)
+  const overlapped = Object.keys(shape).filter(key => Object.hasOwn(added, key))
+  if (overlapped.length > 0) throw new TypeError(`${toolName}: output keys that overlap the fields pecot-tools adds: ${overlapped.join(', ')}`)
+  return z.strictObject({ ...shape, ...added, ...COMMON_OUTPUT_SHAPE })
 }
 
 /**
