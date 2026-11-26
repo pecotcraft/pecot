@@ -2,8 +2,6 @@ format: 1
 plugin: pecot-tools
 prose: ja
 environment:
-  - name: CLAUDE_PLUGIN_ROOT
-    effect: 'プラグインのディレクトリです。サーバは、報告する版をここから読みます。'
   - name: AWS_PROFILE
     effect: 'ツールの呼び出しが `profile` を渡さないときに使う、awscli のプロファイルです。awscli が読みます。'
   - name: AWS_REGION

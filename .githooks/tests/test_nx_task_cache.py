@@ -48,7 +48,6 @@ _COMMON_ENV_PROBE = "HOME"
 _PLUGIN_ENV_PROBES: dict[str, set[str]] = {
     "PECOT_HOOKS_CONFIG_PATH": {"lane-pecot"},
     "PECOTV_SINGLE_PASS": {"lane-pecotv"},
-    "PECOT_TOOLS_BOOTSTRAP_FORCE": {"lane-tools"},
 }
 
 _ANY_VERSION = re.compile(r"\d+\.\d+")
@@ -596,7 +595,6 @@ def _declared_targets() -> list[tuple[str, str, dict]]:
 _PLUGIN_ENV_INPUT = {
     "pecot-workflow": "pecotPluginEnv",
     "pecot-visual": "pecotvPluginEnv",
-    "pecot-tools": "pecotToolsPluginEnv",
 }
 
 

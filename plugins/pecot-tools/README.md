@@ -15,6 +15,8 @@
 ## MCP ツール
 
 MCP サーバ `pecot-tools` が、`aws_<service>_<subcommand>` のツールを 24 件公開します。
+プラグインは、プラグインと同じ版の npm のパッケージ `@pecot/tools-mcp` を `npx` で起動します。
+初回の起動で npm の registry からパッケージを取るので、少し時間がかかります。
 ツール名は、awscli の `<service> <subcommand>` の `-` を `_` に置き換えた形です。
 許可リストに無いコマンド・S3 へのアップロード方向の指定・Athena の変更系クエリは、
 awscli を起動する前に拒否します。
@@ -32,7 +34,8 @@ GitHub Copilot CLI では `pecot-tools-<ツール名>` です。
 ## 動作要件
 
 - Claude Code 2.1.141 以上、または GitHub Copilot CLI 1.0.97 以上
-- Node.js 24 系は 24.22.1 以上、26 系は 26.12.1 以上（脆弱性の修正を含まない版では起動しません）
+- Node.js 24 系は 24.22.1 以上、26 系は 26.12.1 以上（脆弱性の修正を含まない版では起動しません）と、同梱の `npx`
+- npm の registry（`registry.npmjs.org`）に届くこと
 - awscli v2（2.22 以上）が PATH にあること。それ未満は `awscli-missing` で拒否する
 
 インストール手順は[リポジトリルートの README](../../README.md) を参照してください。

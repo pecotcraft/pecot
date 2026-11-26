@@ -9,7 +9,8 @@
  *   - Copilot CLI: 3 プラグインとも、Agent Plugins 1.0 形式のルートの `plugin.json`（`$schema` 付き）。
  *     Copilot はこの形式では `.github/plugin/plugin.json` を読まない。
  *
- * Node の CLI は CLAUDE_PLUGIN_ROOT から plugin.json を直接読むので、package.json の version は bump しない。
+ * Node の CLI は自分の配布物の plugin.json から版を読むので、package.json の version は bump しない。
+ * project の直下の `.mcp.json`・`mcp.json` が npx で起動する `@pecot/<名前>-mcp@<版>` も、同じ版に書き換える。
  *
  * project.json で `manifestRootsToUpdate` に plugin.json を持つ root を列挙する。
  * 親クラスの init() が各 root で `validManifestFilenames=["plugin.json"]` を first-match で展開する。
@@ -19,6 +20,7 @@
  * 実際の 3 プラグインの project.json から init() を通して、manifest の展開と読み書きを単体で確かめる。
  */
 
+const path = require("node:path");
 const { VersionActions } = require("nx/src/command-line/release/version/version-actions");
 
 /** @typedef {import("nx/src/generators/tree").Tree} Tree */
@@ -104,6 +106,29 @@ class PecotVersionActions extends VersionActions {
       // manifest の末尾改行を維持
       tree.write(manifestPath, original.endsWith("\n") ? serialized + "\n" : serialized);
       logs.push(`Updated ${manifestPath} to ${newVersion}`);
+    }
+    logs.push(...this.updateMcpPackageVersion(tree, newVersion));
+    return logs;
+  }
+
+  /**
+   * JSON を parse して書き戻さず、版の文字列だけを置き換えて整形を保つ。
+   * @param {Tree} tree
+   * @param {string} newVersion
+   */
+  updateMcpPackageVersion(tree, newVersion) {
+    const { name, data } = this.projectGraphNode;
+    const packageName = `@pecot/${name.replace(/^pecot-/, "")}-mcp@`;
+    const pattern = new RegExp(`(${packageName.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")})[^"\\s]+`, "g");
+    const logs = [];
+    for (const file of [".mcp.json", "mcp.json"]) {
+      const filePath = path.posix.join(data.root, file);
+      if (!tree.exists(filePath)) continue;
+      const original = tree.read(filePath)?.toString() ?? "";
+      const updated = original.replace(pattern, `$1${newVersion}`);
+      if (updated === original) continue;
+      tree.write(filePath, updated);
+      logs.push(`Updated ${filePath} to ${newVersion}`);
     }
     return logs;
   }

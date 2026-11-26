@@ -32,7 +32,7 @@ description: PR の CI（checks (lint) や tests (<project>:<target>)）が落�
    ```
    plugins/pecot-workflow/scripts/ci/run-tests.sh --scope=<py|cli|hooks|skills>
    plugins/pecot-visual/scripts/ci/run-tests.sh --scope=<cli|bootstrap|slidev|hooks|release|compare|skills>
-   plugins/pecot-tools/scripts/ci/run-tests.sh --scope=<cli|bootstrap|release>
+   plugins/pecot-tools/scripts/ci/run-tests.sh --scope=<cli|release>
    ```
 
    - githooks は `.githooks/tests/run.sh <file>`。text-rules・workflow-core・interface-spec・nx-release には `run-tests.sh` が無いので、手順 3 の `nx run` を使う

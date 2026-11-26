@@ -3,19 +3,15 @@
 pecot-tools プラグインの MCP サーバ本体です。許可リストで限定した awscli コマンドを
 MCP ツールとして公開します。
 
-## コマンド
+## 起動
 
-CLI が持つのは次の 2 つだけです。
-
-| コマンド | 内容 |
-|:--------|:----|
-| `pecot-tools mcp` | stdio（stdin / stdout）で待ち受ける MCP サーバとして起動する。オプションは無い |
-| `pecot-tools --version` | プラグインの版を出力する（`.claude-plugin/plugin.json` を直読みする） |
+`dist/main.js`（npm の package では bin の `pecot-tools-mcp`）が、stdio（stdin / stdout）で待ち受ける MCP サーバを起動します。
+引数は読まず、版を出すオプションもありません。サーバの版は `initialize` の `serverInfo.version` で返ります。
 
 MCP サーバ名は `pecot-tools` です。`.mcp.json` の `mcpServers` の登録キーと揃えてあります。
 クライアント側のツール名の名前空間（`mcp__plugin_pecot-t_pecot-tools__*`）も、この名前から決まります。
 
-`mcp` 実行中の stdout は JSON-RPC が専有します。診断行はすべて stderr へ出ます。
+実行中の stdout は JSON-RPC が専有します。診断行はすべて stderr へ出ます。
 
 ## 上限と既定値
 
@@ -50,7 +46,7 @@ awscli の終了コードは、結果に入りません。秘匿化した awscli
 | awscli が PATH に無い、または最低版を満たさない | `awscli-missing` |
 
 サーバプロセス自体の終了コードは、これとは別の体系です。
-`pecot-tools mcp` は、正常終了で 0、起動失敗（transport 接続エラー・stdout への書き込み失敗）で 1 を返します。
+サーバは、正常終了で 0、起動失敗（transport 接続エラー・stdout への書き込み失敗）で 1 を返します。
 SIGTERM で 143、SIGINT で 130 を返します（`src/mcp/serve.ts`）。
 
 ## ツールと失敗種別

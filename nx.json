@@ -62,11 +62,6 @@
       { "env": "CLAUDE_PLUGIN_ROOT" },
       { "env": "CLAUDE_CONFIG_DIR" }
     ],
-    "pecotToolsPluginEnv": [
-      { "env": "PECOT_TOOLS_BOOTSTRAP_FORCE" },
-      { "env": "PECOT_TOOLS_BOOTSTRAP_SKIP" },
-      { "env": "CLAUDE_PLUGIN_ROOT" }
-    ],
     "githooksTestGlobals": [
       "runtime",
       "env",
@@ -159,35 +154,25 @@
     "pecotToolsPluginTestGlobals": [
       "runtime",
       "env",
-      "pecotToolsPluginEnv",
       { "runtime": "aws --version | cut -d' ' -f1" },
       "{workspaceRoot}/plugins/pecot-tools/.claude-plugin/plugin.json",
       "{workspaceRoot}/plugins/pecot-tools/plugin.json",
       "{workspaceRoot}/plugins/pecot-tools/mcp.json",
       "{workspaceRoot}/plugins/pecot-tools/**/package.json",
-      "{workspaceRoot}/plugins/pecot-tools/runtime-lock.yaml",
-      "{workspaceRoot}/plugins/pecot-tools/runtime-workspace.yaml",
       "{workspaceRoot}/plugins/pecot-tools/scripts/ci/run-tests.sh",
       "{workspaceRoot}/plugins/pecot-tools/scripts/ci/check-pm-scripts.sh",
       "{workspaceRoot}/plugins/pecot-visual/scripts/ci/pm-guard-lib.sh",
-      "{workspaceRoot}/plugins/pecot-tools/bin/_lib.sh",
-      "{workspaceRoot}/plugins/pecot-tools/bin/pecot-tools",
-      "{workspaceRoot}/plugins/pecot-tools/.mcp.json",
-      "{workspaceRoot}/plugins/pecot-tools/setup.sh"
+      "{workspaceRoot}/plugins/pecot-tools/scripts/ci/pnpm-lib.sh",
+      "{workspaceRoot}/plugins/pecot-tools/.mcp.json"
     ],
     "pecotToolsPluginLintGlobals": [
       "runtime",
       "env",
-      "pecotToolsPluginEnv",
       "{workspaceRoot}/plugins/pecot-tools/**/package.json",
-      "{workspaceRoot}/plugins/pecot-tools/runtime-lock.yaml",
-      "{workspaceRoot}/plugins/pecot-tools/runtime-workspace.yaml",
       "{workspaceRoot}/plugins/pecot-tools/.gitignore",
       "{workspaceRoot}/plugins/pecot-tools/scripts/ci/run-lint.sh",
-      "{workspaceRoot}/plugins/pecot-tools/bin/_lib.sh",
-      "{workspaceRoot}/plugins/pecot-tools/bin/pecot-tools",
-      "{workspaceRoot}/plugins/pecot-tools/.mcp.json",
-      "{workspaceRoot}/plugins/pecot-tools/setup.sh"
+      "{workspaceRoot}/plugins/pecot-tools/scripts/ci/pnpm-lib.sh",
+      "{workspaceRoot}/plugins/pecot-tools/.mcp.json"
     ]
   },
   "targetDefaults": {

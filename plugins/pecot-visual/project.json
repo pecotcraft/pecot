@@ -163,7 +163,6 @@
         "{projectRoot}/assets/slidev/tsconfig.build.json",
         "{projectRoot}/assets/slidev/scripts/build.mjs",
         "{workspaceRoot}/plugins/pecot-workflow/bin/_lib.sh",
-        "{workspaceRoot}/plugins/pecot-tools/bin/_lib.sh",
         "^production"
       ],
       "dependsOn": ["install", "check-pm-guard", "chromium-preflight"],

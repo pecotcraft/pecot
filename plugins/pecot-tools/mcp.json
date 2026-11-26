@@ -3,9 +3,11 @@
   "mcpServers": {
     "pecot-tools": {
       "type": "stdio",
-      "command": "./bin/pecot-tools",
+      "command": "npx",
       "args": [
-        "mcp"
+        "--prefix=${PLUGIN_DATA}",
+        "-y",
+        "@pecot/tools-mcp@3.1.0"
       ]
     }
   }

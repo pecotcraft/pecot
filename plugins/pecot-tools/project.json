@@ -34,7 +34,7 @@
     "test": {
       "executor": "nx:noop",
       "cache": false,
-      "dependsOn": ["test-cli", "test-bootstrap", "test-release"],
+      "dependsOn": ["test-cli", "test-release"],
       "metadata": {
         "description": "CI と manual の stage の nx-affected-tests が起動する起点の target。レーン（test-*）はそれぞれの inputs でキャッシュされ、入力の変わったレーンだけが実行される。"
       }
@@ -46,7 +46,6 @@
         "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/verifies.ts",
         "{projectRoot}/cli/**/*",
-        "!{projectRoot}/cli/tests/bootstrap/**",
         "{projectRoot}/interface/**/*",
         "{workspaceRoot}/libs/interface-spec/src/domain/diff.ts",
         "{workspaceRoot}/libs/interface-spec/src/domain/schema.ts",
@@ -59,28 +58,10 @@
       "dependsOn": ["install", "build-cli"],
       "outputs": ["{projectRoot}/cli/test-results/junit.xml", "{projectRoot}/test-results/test-cli/allure-results"],
       "metadata": {
-        "description": "install と cli/dist の build は、dependsOn 経由で実行ごとに 1 回だけ実行する (#1080)。run-tests.sh には PECOT_TOOLS_SKIP_INSTALL=1 を渡し、同じ処理の二重実行を止める。bootstrap の bash テスト（約 25 秒）は test-bootstrap に分けた。cli/src だけを変えた変更では実行しない (#1235)。plugin.json、.mcp.json、bin/ などの登録ファイルは、pecotToolsPluginTestGlobals が全レーンに引く。"
+        "description": "install と cli/dist の build は、dependsOn 経由で実行ごとに 1 回だけ実行する (#1080)。run-tests.sh には PECOT_TOOLS_SKIP_INSTALL=1 を渡し、同じ処理の二重実行を止める。plugin.json、.mcp.json、mcp.json などの登録ファイルは、pecotToolsPluginTestGlobals が全レーンに引く。"
       },
       "options": {
         "command": "rm -rf test-results/test-cli/allure-results && PECOT_TOOLS_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=cli",
-        "cwd": "plugins/pecot-tools"
-      }
-    },
-    "test-bootstrap": {
-      "executor": "nx:run-commands",
-      "inputs": [
-        "{projectRoot}/cli/tests/bootstrap/**/*",
-        "sharedGlobals",
-        "pecotToolsPluginTestGlobals",
-        "{projectRoot}/cli/tsconfig.json",
-        "{projectRoot}/cli/tsconfig.build.json"
-      ],
-      "dependsOn": ["install", "build-cli"],
-      "metadata": {
-        "description": "bin/pecot-tools の bootstrap と登録ファイルの bash テスト（run.sh、install-record、data-dir、manifest。約 25 秒）。test-cli から切り出した。cli/src だけを変えた変更では実行しない (#1235)。登録ファイルと wrapper は pecotToolsPluginTestGlobals が引く。対象は bin/pecot-tools、bin/_lib.sh、setup.sh、.mcp.json、mcp.json、plugin.json の 2 本。本レーン固有の入力は、cli/tests/bootstrap/ のスクリプトと、cli/tsconfig.json、cli/tsconfig.build.json。後の 2 つは、ミラーへ複製され、run.sh の CUJ 4 の実 build が使う。cli/src は入れない。ミラーの build が使う cli/src の型の確認は、build-cli が担う。build-cli を dependsOn に置くのは、run.sh の CUJ 2 が、本体の cli/dist/cli.js を書き換えていないことを mtime で確かめるため。build-cli が並行して動くと、dist の再生成を本体への書き込みと誤判定する。dependsOn なら、build-cli が済んでから動く。cli/src が変わらなければ、build-cli はキャッシュから戻る。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_TOOLS_SKIP_INSTALL=1 を渡す。"
-      },
-      "options": {
-        "command": "PECOT_TOOLS_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=bootstrap",
         "cwd": "plugins/pecot-tools"
       }
     },
@@ -100,7 +81,7 @@
       "dependsOn": ["install", "build-cli"],
       "//command-reason": "PECOT_RELEASE_TEST_NPM_CACHE は絶対パスで渡すため、cwd からの $PWD で組む (#1225)。",
       "metadata": {
-        "description": "MCP 単体配布の publish スクリプトの確認。cache: true (#1225)。publish のテストは、npm の依存解決で外部レジストリの状態を読む。その状態は入力ハッシュに表せない。それでもキャッシュするのは、cli/src の 1 行修正のたびに、本レーンを実行しないため。レジストリ側の変化は、リリース時の dry-run と監査で拾う。依存解決の npm キャッシュは PECOT_RELEASE_TEST_NPM_CACHE で永続化する。実行するときも、2 回目以降はレジストリに出さない。掃除は .pecot/tmp/release-npm-cache/pecot-tools を消す。packument の分だけ増え続けるため。test-cli との直列化 (parallelism: false, #1080) は外した。bootstrap の bash テストは test-bootstrap に分かれている。本体の cli/dist には書き込まず、stub のルートと一時のデータ置き場だけに作る。run.sh は、本体の cli/dist/cli.js の mtime が変わらないことを確かめる側。本レーンの publish は、--skip-build で共有の cli/dist を複製するだけ。そのため両者が並行して動いても、dist を奪い合わない (#1235)。"
+        "description": "MCP 単体配布の publish スクリプトの確認。cache: true (#1225)。publish のテストは npm の依存解決で外部レジストリの状態を読み、その状態は入力ハッシュに表せない。それでもキャッシュするのは、cli/src の 1 行修正のたびに本レーンを実行しないため。レジストリ側の変化は、リリース時の dry-run と監査で拾う。依存解決の npm キャッシュは PECOT_RELEASE_TEST_NPM_CACHE で永続化する。掃除は .pecot/tmp/release-npm-cache/pecot-tools を消す。本レーンの publish は --skip-build で共有の cli/dist を複製するだけなので、test-cli と並行して動いても dist を奪い合わない (#1235)。"
       },
       "options": {
         "command": "PECOT_TOOLS_SKIP_INSTALL=1 PECOT_RELEASE_TEST_NPM_CACHE=\"$PWD/../../.pecot/tmp/release-npm-cache/pecot-tools\" bash scripts/ci/run-tests.sh --scope=release",

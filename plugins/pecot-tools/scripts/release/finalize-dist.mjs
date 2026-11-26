@@ -20,7 +20,7 @@ const readJson = (file) => JSON.parse(readFileSync(file, 'utf8'))
 
 // cli/dist が bare import する外部パッケージ。バージョン指定は必ず cli/package.json から読む
 // （配布物だけが古いバージョンに取り残されるのを防ぐ）。
-const RUNTIME_DEPS = ['@modelcontextprotocol/server', 'commander', 'zod']
+const RUNTIME_DEPS = ['@modelcontextprotocol/server', 'zod']
 
 const pick = (source, names, origin) =>
   Object.fromEntries(
@@ -43,6 +43,13 @@ if (typeof engineNode !== 'string') {
   throw new Error('cli/package.json に engines.node がありません')
 }
 
+// 配布ツリーは cli/ の下に cli/dist を置くので、cli/package.json の bin の各値に cli/ を付ける。
+const cliBin = cliManifest.bin
+if (cliBin === null || typeof cliBin !== 'object' || Object.keys(cliBin).length === 0) {
+  throw new Error('cli/package.json に bin がありません')
+}
+const bin = Object.fromEntries(Object.entries(cliBin).map(([name, target]) => [name, path.posix.join('cli', target)]))
+
 // 配布物は npx が展開して bin を起動するだけで、build / test の script は持たない。
 const distManifest = {
   name: '@pecot/tools-mcp',
@@ -56,7 +63,7 @@ const distManifest = {
     url: 'git+https://github.com/pecotcraft/pecot.git',
     directory: 'plugins/pecot-tools'
   },
-  bin: { 'pecot-tools-mcp': 'bin/pecot-tools-mcp.mjs' },
+  bin,
   engines: { node: engineNode },
   dependencies: pick(cliManifest.dependencies, RUNTIME_DEPS, 'cli/package.json dependencies')
 }

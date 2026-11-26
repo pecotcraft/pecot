@@ -1,11 +1,7 @@
-/* eslint-disable security/detect-non-literal-fs-filename -- 触るのは mkdtemp で作った一時ディレクトリ配下のみ */
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { loadVersionFromPluginJson, pluginRoot, readVersion } from '../version.js'
 
@@ -23,35 +19,13 @@ function pluginFile(relativePath: string): string {
   return path.join(pluginRoot(), relativePath)
 }
 
-afterEach(() => {
-  vi.unstubAllEnvs()
-})
-
 describe('readVersion', () => {
   it('同梱 plugin.json の version を返す', () => {
     // リテラル固定にしない（リリースの bump でテストを壊さない）。
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', '')
     expect(readVersion()).toBe(loadVersionFromPluginJson(manifestPath))
   })
 
-  it('CLAUDE_PLUGIN_ROOT があればそちらの plugin.json を読む (cli がミラーから動いても版は本体のもの)', () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'pecot-tools-version-'))
-    try {
-      mkdirSync(path.join(root, '.claude-plugin'))
-      writeFileSync(path.join(root, '.claude-plugin', 'plugin.json'), JSON.stringify({ version: '9.8.7' }))
-      vi.stubEnv('CLAUDE_PLUGIN_ROOT', root)
-
-      expect(pluginRoot()).toBe(root)
-      expect(readVersion()).toBe('9.8.7')
-    }
-    finally {
-      rmSync(root, { recursive: true, force: true })
-    }
-  })
-
-  it('CLAUDE_PLUGIN_ROOT が空白のみなら source 相対に降りる', () => {
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', ' '.repeat(3))
-
+  it('plugin ルートは version.ts の置き場所から 2 階層上になる', () => {
     expect(pluginRoot()).toBe(path.resolve(path.dirname(manifestPath), '..'))
   })
 })

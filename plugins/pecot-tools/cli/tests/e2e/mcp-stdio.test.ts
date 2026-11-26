@@ -1,11 +1,9 @@
-// CUJ: MCP クライアントが `pecot-tools mcp` へ stdio で接続し、契約の 24 ツールを一覧して呼ぶ。
-//
-// 単体テストは InMemoryTransport 越しにしか見られない。
-// stdout 汚染（console.log の混入）と終了処理（stdin の EOF・SIGTERM）の退行を捕まえられるのは、
-// このテストだけになる。
+// CUJ: MCP クライアントが、npx と同じく引数なしで起動した `dist/main.js` へ stdio で接続し、24 ツールを一覧して呼ぶ。
+// stdout 汚染と終了処理（stdin の EOF・SIGTERM）の退行を実プロセスで捕まえるのは、このテストだけ。
 
 import { spawn } from 'node:child_process'
-import { existsSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { performance } from 'node:perf_hooks'
 
@@ -111,13 +109,13 @@ interface RawServer {
 }
 
 /**
-`pecot-tools mcp` を生 spawn する。
+`dist/main.js` を引数なしで生 spawn する。
 
 SDK Client 経由では非 JSON 行が捨てられて検出できない。
 stdout を丸ごと回収する場合は、この形にする（stdout 汚染と異常入力の扱いを見るのはここだけ）。
 */
 function spawnRawServer(environmentOverrides: Readonly<Record<string, string>> = {}): RawServer {
-  const child = spawn(process.execPath, [CLI_DIST, 'mcp'], {
+  const child = spawn(process.execPath, [CLI_DIST], {
     env: serverEnvironment(environmentOverrides),
     cwd: CLI_ROOT,
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -210,7 +208,7 @@ beforeAll(() => {
   }
 })
 
-describe('pecot-tools mcp (stdio)', () => {
+describe('pecot-tools-mcp (stdio)', () => {
   it('initialize が成功し serverInfo が MCP サーバ名 + plugin.json の版数を返す', async () => {
     const transport = makeTransport()
     const readStderr = drainStderr(transport.stderr)
@@ -238,6 +236,51 @@ describe('pecot-tools mcp (stdio)', () => {
 
   it('tools/list が契約表の 24 件を表の順で返す', async () => {
     const transport = makeTransport()
+    const readStderr = drainStderr(transport.stderr)
+    const client = new Client({ name: 'pecot-tools-e2e', version: '0.0.0' })
+
+    try {
+      await client.connect(transport, { timeout: REQUEST_TIMEOUT_MS })
+      const listed = await client.listTools(undefined, { timeout: REQUEST_TIMEOUT_MS })
+
+      expect(listed.tools.map(tool => tool.name), `子プロセス stderr: ${readStderr()}`)
+        .toEqual([...SSO_TOOL_NAMES, ...ALLOWLIST.map(entry => entry.toolName)])
+    }
+    finally {
+      await client.close()
+    }
+  }, 30_000)
+
+  it('npx と同じ node_modules/.bin の symlink から cli 外の cwd で起動しても、plugin.json の版数で応える', async () => {
+    // 直接起動の判定が argv[1] を realpath に揃えないと、サーバが起動せず無応答で終わる。
+    const linkRoot = mkdtempSync(path.join(tmpdir(), 'pecot-tools-e2e-bin-'))
+    const binDirectory = path.join(linkRoot, 'node_modules', '.bin')
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- mkdtemp で作った一時ディレクトリの配下
+    mkdirSync(binDirectory, { recursive: true })
+    const link = path.join(binDirectory, 'pecot-tools-mcp')
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- mkdtemp で作った一時ディレクトリの配下
+    symlinkSync(path.relative(binDirectory, CLI_DIST), link)
+    const transport = makeTransport({}, { entry: link, cwd: linkRoot })
+    const readStderr = drainStderr(transport.stderr)
+    const client = new Client({ name: 'pecot-tools-e2e', version: '0.0.0' })
+
+    try {
+      await client.connect(transport, { timeout: REQUEST_TIMEOUT_MS })
+
+      expect(client.getServerVersion(), `子プロセス stderr: ${readStderr()}`).toMatchObject({
+        name: MCP_SERVER_NAME,
+        version: loadVersionFromPluginJson(PLUGIN_MANIFEST),
+      })
+    }
+    finally {
+      await client.close()
+      rmSync(linkRoot, { recursive: true, force: true })
+    }
+  }, 30_000)
+
+  it('mcp を付けて起動しても引数を読まずに MCP のサーバとして tools/list に応える', async () => {
+    // `pecot-tools-mcp mcp` と書いた登録も、そのまま動かすため。
+    const transport = makeTransport({}, { extraArguments: ['mcp'] })
     const readStderr = drainStderr(transport.stderr)
     const client = new Client({ name: 'pecot-tools-e2e', version: '0.0.0' })
 

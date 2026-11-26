@@ -84,7 +84,7 @@ pecotv_fail_if_node_runtime_blocked() {
     exit 1
 }
 
-# --- data-dir: 3 本で逐語一致 ---
+# --- data-dir: 2 本で逐語一致 ---
 
 # 値が有効なデータ置き場（空でない絶対パスで、未展開のプレースホルダでないもの）なら、改行と CR を落として出し 0 を返す。実在は問わない。
 # 引数: $1 = 判定する値
@@ -138,7 +138,7 @@ plugin_data_dir_ensure() {
 
 # --- end data-dir ---
 
-# --- runtime-mirror: pecot-visual / pecot-tools で逐語一致 ---
+# --- runtime-mirror: pecot-workflow / pecot-visual で逐語一致 ---
 
 # 実行用ミラー（${DATA}/runtime/<deps-hash>-<src-hash>/）の準備。このブロックは両プラグインで逐語一致させる。
 # プラグイン側が plugin_runtime_{deps_files,src_files,build} と PLUGIN_RUNTIME_NAME を定める。

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# 3 プラグインの bin/_lib.sh で逐語一致させるブロックの一致確認（#1230）。
+# 2 プラグインの bin/_lib.sh で逐語一致させるブロックの一致確認（#1230）。
 #
 # プラグインは導入先へ単体でコピーされるため、他プラグインのファイルは source できない。そこで同じ処理を
 # 複数の _lib.sh に写す。写しが片側だけ直されると、解決順や既定の場所がプラグインごとに食い違うので、
 # マーカーで囲んだブロックの一致をここで押さえる。
-#   data-dir        pecot-workflow / pecot-visual / pecot-tools の 3 本。データ置き場の解決と作成。
-#   runtime-mirror  3 本。実行用ミラーの準備。
+#   data-dir        pecot-workflow / pecot-visual の 2 本。データ置き場の解決と作成。
+#   runtime-mirror  2 本。実行用ミラーの準備。
 #   tsc.mjs         pecot-visual cli を基準に 5 本。typescript7 の tsc の探索。
 # 食い違ったら、data-dir は pecot-workflow、runtime-mirror は pecot-visual の側を基準として写し直す。
 #
@@ -16,7 +16,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGINS="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 WORKFLOW="$PLUGINS/pecot-workflow/bin/_lib.sh"
 VISUAL="$PLUGINS/pecot-visual/bin/_lib.sh"
-TOOLS="$PLUGINS/pecot-tools/bin/_lib.sh"
 
 PASS=0
 FAIL=0
@@ -45,17 +44,17 @@ compare() {
   done
 }
 
-compare "data-dir" '# --- data-dir: 3 本で逐語一致 ---' '# --- end data-dir ---' "$WORKFLOW" "$VISUAL" "$TOOLS"
-compare "runtime-mirror" '# --- runtime-mirror: pecot-visual \/ pecot-tools で逐語一致 ---' '# --- end runtime-mirror ---' "$VISUAL" "$WORKFLOW" "$TOOLS"
+compare "data-dir" '# --- data-dir: 2 本で逐語一致 ---' '# --- end data-dir ---' "$WORKFLOW" "$VISUAL"
+compare "runtime-mirror" '# --- runtime-mirror: pecot-workflow \/ pecot-visual で逐語一致 ---' '# --- end runtime-mirror ---' "$VISUAL" "$WORKFLOW"
 
 # ブロックの数（マーカーの重複で片方が二重に入っていないこと）
-DATA_DIR_MARKER='# --- data-dir: 3 本で逐語一致 ---'
-for file in "$WORKFLOW" "$VISUAL" "$TOOLS"; do
+DATA_DIR_MARKER='# --- data-dir: 2 本で逐語一致 ---'
+for file in "$WORKFLOW" "$VISUAL"; do
   count="$(grep -c -x -F -- "$DATA_DIR_MARKER" "$file" || true)"
   relative="${file#"$PLUGINS"/}"
   if [ "$count" = 1 ]; then ok "data-dir: $relative にブロックが 1 つ"; else ng "data-dir: $relative のブロックが $count 個"; fi
 done
-for file in "$WORKFLOW" "$VISUAL" "$TOOLS"; do
+for file in "$WORKFLOW" "$VISUAL"; do
   count="$(grep -c '^# --- runtime-mirror: ' "$file" || true)"
   relative="${file#"$PLUGINS"/}"
   if [ "$count" = 1 ]; then ok "runtime-mirror: $relative にブロックが 1 つ"; else ng "runtime-mirror: $relative のブロックが $count 個"; fi

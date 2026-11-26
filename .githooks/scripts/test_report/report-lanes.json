@@ -79,12 +79,6 @@
   },
   {
     "project": "pecot-tools",
-    "target": "test-bootstrap",
-    "plugin": "pecot-tools",
-    "excluded": "bash の *.test.sh"
-  },
-  {
-    "project": "pecot-tools",
     "target": "test-release",
     "plugin": "pecot-tools",
     "excluded": "bash の *.test.sh"
