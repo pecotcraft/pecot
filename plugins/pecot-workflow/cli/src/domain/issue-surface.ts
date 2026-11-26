@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- graphql の AST と zod の型は変えられない */
-// GitHub の Issue の機能の写し（SDL と OpenAPI から抜く項目）と、担保の一覧との照らし合わせ。
+// GitHub の Issue の機能の写し（SDL と OpenAPI から抜く項目）と、担保の一覧との照らし合わせ・今のスキーマとの差の Issue の組み立て。
+import { createHash } from 'node:crypto'
+
 import type { ConstDirectiveNode, DefinitionNode, InputObjectTypeDefinitionNode, TypeNode } from 'graphql'
 import { Kind, parse } from 'graphql'
 import { z } from 'zod'
@@ -162,4 +164,116 @@ export function checkIssueCoverage(items: readonly string[], coverage: Readonly<
   return problems
     .toSorted(([leftId, left], [rightId, right]) => compareCodePoints(leftId, rightId) || compareCodePoints(left, right))
     .map(([id, problem]) => `${id}: ${problem}`)
+}
+
+/**
+写しと今の抜き出しの差。added は今にあって写しに無い id、removed は写しにあって今に無い id。どちらも符号位置の順
+*/
+export interface IssueSurfaceDiff {
+  readonly added: readonly string[]
+  readonly removed: readonly string[]
+}
+
+export function diffIssueSurface(snapshot: readonly string[], current: readonly string[]): IssueSurfaceDiff {
+  const before = new Set(snapshot)
+  const after = new Set(current)
+  return {
+    added: [...after].filter(id => !before.has(id)).toSorted(compareCodePoints),
+    removed: [...before].filter(id => !after.has(id)).toSorted(compareCodePoints),
+  }
+}
+
+export function hasIssueSurfaceDifference(diff: Readonly<IssueSurfaceDiff>): boolean {
+  return diff.added.length > 0 || diff.removed.length > 0
+}
+
+const MARKER_PATTERN = /^<!-- pecot-issue-surface: ([0-9a-f]{64}) -->\r?$/mu
+
+function surfaceHash(diff: Readonly<IssueSurfaceDiff>): string {
+  return createHash('sha256').update(JSON.stringify({ added: diff.added, removed: diff.removed })).digest('hex')
+}
+
+/**
+差の Issue の本文の末尾に置く印。hash は増えた・消えた id の一覧の JSON の SHA-256
+*/
+export function issueSurfaceMarker(diff: Readonly<IssueSurfaceDiff>): string {
+  return `<!-- pecot-issue-surface: ${surfaceHash(diff)} -->`
+}
+
+/**
+本文に載せる、比べに使った SDL と OpenAPI の出どころ（URL か、渡されたファイル）と REST の版
+*/
+export type IssueSurfaceSourceNames = Pick<IssueSurface['sources'], 'graphql' | 'rest' | 'rest_api_version'>
+
+export interface IssueSurfaceIssue {
+  readonly title: string
+  readonly body: string
+  readonly marker: string
+}
+
+function idList(ids: readonly string[]): string {
+  return ids.length === 0 ? 'なし' : ids.map(id => `- \`${id}\``).join('\n')
+}
+
+/**
+差の Issue の題と本文。本文の最後の行は印
+*/
+export function buildIssueSurfaceIssue(diff: Readonly<IssueSurfaceDiff>, sources: Readonly<IssueSurfaceSourceNames>): IssueSurfaceIssue {
+  const marker = issueSurfaceMarker(diff)
+  const title = `GitHub の Issue の機能に差がある: ${String(diff.added.length)} 件増・${String(diff.removed.length)} 件減`
+  const body = [
+    `GitHub の今のスキーマが、Issue の機能の写し（\`plugins/pecot-workflow/interface/${SURFACE_FILE}\`）と違います。`,
+    '',
+    '## 増えた項目',
+    '',
+    idList(diff.added),
+    '',
+    '## 消えた項目',
+    '',
+    idList(diff.removed),
+    '',
+    '## 比べたスキーマ',
+    '',
+    `- SDL: ${sources.graphql}`,
+    `- OpenAPI: ${sources.rest}`,
+    `- REST の版: ${sources.rest_api_version}`,
+    '',
+    '## 直し方',
+    '',
+    '`plugins/pecot-workflow/CONTRIBUTING.md` の「4. GitHub の Issue の機能の写しと担保の一覧」に従い、写しと担保の一覧を直します。その PR で、この Issue を閉じます。',
+    '',
+    marker,
+    '',
+  ].join('\n')
+  return { title, body, marker }
+}
+
+/**
+開いた Issue の番号と本文（null は空）
+*/
+export interface OpenIssue {
+  readonly number: number
+  readonly body: string
+}
+
+/**
+差と開いた差の Issue から決めた操作。番号は使う差の Issue、others はほかの開いた差の Issue（番号の順）
+*/
+export type IssueSurfacePlan
+  = | { readonly action: 'none' }
+    | { readonly action: 'create' }
+    | { readonly action: 'unchanged' | 'update', readonly number: number, readonly others: readonly number[] }
+
+/**
+差が無ければ none。印の行を持つ開いた Issue が無ければ create、あれば番号の最も小さいものの hash で unchanged か update
+*/
+export function planIssueSurfaceDrift(diff: Readonly<IssueSurfaceDiff>, openIssues: readonly Readonly<OpenIssue>[]): IssueSurfacePlan {
+  if (!hasIssueSurfaceDifference(diff)) return { action: 'none' }
+  const marked = openIssues
+    .map(issue => ({ number: issue.number, hash: MARKER_PATTERN.exec(issue.body)?.[1] }))
+    .filter((issue): issue is { number: number, hash: string } => issue.hash !== undefined)
+    .toSorted((left, right) => left.number - right.number)
+  const [target, ...others] = marked
+  if (target === undefined) return { action: 'create' }
+  return { action: target.hash === surfaceHash(diff) ? 'unchanged' : 'update', number: target.number, others: others.map(issue => issue.number) }
 }

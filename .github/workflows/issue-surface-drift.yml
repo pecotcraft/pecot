@@ -1,0 +1,61 @@
+# 機能の写し（SDL・OpenAPI）と Issue の担保の差を、ボードの Tracker に反映する。手で起動する。
+# 変数 SECURITY_APP_CLIENT_ID が空の間は job を飛ばす。トークンは GitHub App のものを使う。
+name: issue-surface-drift
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Compare only and write nothing
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: issue-surface-drift
+  cancel-in-progress: false
+
+jobs:
+  run:
+    if: ${{ vars.SECURITY_APP_CLIENT_ID != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.22.1"
+          package-manager-cache: false
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts --filter @pecot/pecot-workflow-cli
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          client-id: ${{ vars.SECURITY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SECURITY_APP_PRIVATE_KEY }}
+          permission-issues: write
+          permission-organization-projects: write
+
+      - name: Compare the issue surface
+        env:
+          PECOT_GITHUB_COM_TOKEN: ${{ steps.app-token.outputs.token }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          args=(--repo "$GITHUB_REPOSITORY")
+          if [ "$DRY_RUN" = "true" ]; then
+            args+=(--dry-run)
+          fi
+          pnpm --dir plugins/pecot-workflow/cli exec tsx scripts/github-surface/drift.ts "${args[@]}"

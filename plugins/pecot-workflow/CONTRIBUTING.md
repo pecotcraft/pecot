@@ -290,6 +290,7 @@ Claude Code では、Reconnect の後も、会話に読み込み済みのツー�
 | リリース（`release.yml`・`publish-npm.yml`） | `gh workflow run release.yml --ref main` の dry-run で案を見ます。配布ツリーは `publish-mcp-dist.sh --dry-run` で作ります。workflow の形は `.githooks/tests/test_release_workflow.py`・`test_publish_npm_workflow.py` |
 | 依存の更新と脆弱性の通知（`dependabot-*.yml`・`security-alerts.yml`） | `.githooks/tests/test_dependabot_commit_workflow.py`。Tracker を作る `pecot tracker sync` は検証用で実行できます |
 | workflow を外から起動する仕組み（`.github/board-sync/` の Lambda と Scheduler） | `.github/board-sync/handler.test.mjs`（`.githooks/tests/test_board_sync.py` から実行） |
+| Issue の機能の写しと今のスキーマの比べ（`issue-surface-drift.yml`） | workflow の形は `.githooks/tests/test_issue_surface_workflow.py`。比べと Issue の扱いは、「4. GitHub の Issue の機能の写しと担保の一覧」の「定期の確かめ」の打ち方で確かめます |
 | 公開サイト（`pages-build.yml`・`pages-deploy.yml`・保管ブランチ `pages-store`） | workflow の形と判定は `.githooks/tests/test_pages_*.py`。公開はマージの後に実物で確かめます。手順は `specs/028-pages-site/quickstart.md`、起動とやり直しは `.claude/rules/pages-site.md` |
 
 利用者へ配るもの（workflow・Lambda など）を新しく作ったときは、検証用に確かめる場所を作ります。
@@ -359,6 +360,32 @@ pnpm --dir plugins/pecot-workflow/cli exec tsx scripts/github-surface/extract.ts
 ```
 
 PR の CI は写しだけを読み、GitHub には取りに行きません。
+
+### 定期の確かめ
+
+`.github/workflows/issue-surface-drift.yml` が、GitHub の今のスキーマを写しと比べます。`.github/board-sync/` の Lambda の Scheduler が、毎時 dispatch します。
+
+差があると、このリポに題が `GitHub の Issue の機能に差がある: <増えた数> 件増・<消えた数> 件減` の Issue を 1 件作り、ボードの Backlog に載せます。本文の末尾には、差から決まる印 `<!-- pecot-issue-surface: <hash> -->` を置きます。
+
+| 差 | 開いた差の Issue | 動き |
+|:---|:---|:---|
+| 無い | 問わない | 何もしない |
+| ある | 無い | Issue を作り、ボードに載せる |
+| ある | 印が同じ | 何もしない |
+| ある | 印が違う | その Issue の題と本文を書き直す |
+
+差の Issue が来たら、「写しを作り直す」の手順で写しを作り直し、「網羅のテストが落ちたとき」の表で担保の一覧を直します。その PR で、差の Issue を閉じます。
+
+手元で比べの結果を見るときは、`--dry-run` を付けて打ちます。書き込まず、作る・書き直す予定の題と本文を出します。
+
+```bash
+pnpm --dir plugins/pecot-workflow/cli exec tsx scripts/github-surface/drift.ts --repo pecotcraft/pecot --dry-run
+```
+
+`--sdl <ファイル>`・`--openapi <ファイル>` を渡すと、そのファイルを GitHub の今のスキーマの代わりに読みます。
+
+書き込む確かめは、`--repo pecotcraft/pecot-sandbox` にして、検証用の clone を `CLAUDE_PROJECT_DIR` に渡して打ちます。
+題に `[cuj …]` が入らないので、`sandbox-sweep.sh` は片付けません。できた Issue を `gh issue close <番号> -R pecotcraft/pecot-sandbox` で閉じます。
 
 ### 網羅のテストが落ちたとき
 

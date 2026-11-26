@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest'
 
 import type { JsonValue } from '../python-format.js'
-import type { IssueCoverage } from '../issue-surface.js'
-import { checkIssueCoverage, extractIssueSurface, issueCoverageSchema } from '../issue-surface.js'
+import type { IssueCoverage, IssueSurfaceDiff } from '../issue-surface.js'
+import {
+  buildIssueSurfaceIssue,
+  checkIssueCoverage,
+  diffIssueSurface,
+  extractIssueSurface,
+  issueCoverageSchema,
+  issueSurfaceMarker,
+  planIssueSurfaceDrift,
+} from '../issue-surface.js'
 
 // 公開スキーマの SDL の抜粋。範囲の外の型・項目・mutation も混ぜる
 const SDL = `
@@ -217,5 +225,110 @@ describe('issueCoverageSchema', () => {
     { name: 'id の無い項目', entry: { status: 'excluded', reason: 'x' } },
   ])('$name を拒む', ({ entry }) => {
     expect(issueCoverageSchema.safeParse({ items: [entry] }).success).toBe(false)
+  })
+})
+
+const DIFF: IssueSurfaceDiff = { added: ['graphql:A.b'], removed: ['graphql:A.a'] }
+// JSON.stringify({ added: DIFF.added, removed: DIFF.removed }) の SHA-256
+const DIFF_HASH = '410d6478e41445311b4b8e28cff67f3ca733f6dd0eef2ea5d9dbbcbd20f642cb'
+const DIFF_MARKER = `<!-- pecot-issue-surface: ${DIFF_HASH} -->`
+const OTHER_MARKER = `<!-- pecot-issue-surface: ${'0'.repeat(64)} -->`
+
+const SOURCES = { graphql: 'https://example.com/schema.graphql', rest: 'openapi.json', rest_api_version: '2022-11-28' }
+
+describe('diffIssueSurface', () => {
+  it('今にあって写しに無い id を added に、写しにあって今に無い id を removed に、符号位置の順で返す', () => {
+    const snapshot = ['graphql:B.b', 'graphql:A.a', 'graphql:a.x']
+    const current = ['graphql:a.x', 'rest:POST /repos/{owner}/{repo}/issues#type', 'graphql:Z.z', 'graphql:C.c']
+    expect(diffIssueSurface(snapshot, current)).toEqual({
+      added: ['graphql:C.c', 'graphql:Z.z', 'rest:POST /repos/{owner}/{repo}/issues#type'],
+      removed: ['graphql:A.a', 'graphql:B.b'],
+    })
+  })
+
+  it('同じ集合なら、並びが違っても差を空で返す', () => {
+    expect(diffIssueSurface(['graphql:B.b', 'graphql:A.a'], ['graphql:A.a', 'graphql:B.b'])).toEqual({ added: [], removed: [] })
+  })
+})
+
+describe('issueSurfaceMarker', () => {
+  it('増えた・消えた id の一覧の JSON の SHA-256 を、16 進 64 文字で印に入れる', () => {
+    expect(issueSurfaceMarker(DIFF)).toBe(DIFF_MARKER)
+  })
+
+  it.for([
+    { name: '増えた id が違う', diff: { added: ['graphql:A.c'], removed: ['graphql:A.a'] } },
+    { name: '増えた id と消えた id が入れ替わる', diff: { added: ['graphql:A.a'], removed: ['graphql:A.b'] } },
+  ])('$name と、違う印になる', ({ diff }) => {
+    expect(issueSurfaceMarker(diff)).not.toBe(DIFF_MARKER)
+  })
+})
+
+describe('buildIssueSurfaceIssue', () => {
+  it('題に増えた数と消えた数を入れ、本文に一覧・比べたスキーマ・直し方を書き、最後の行に印を置く', () => {
+    const issue = buildIssueSurfaceIssue({ added: ['graphql:A.b', 'graphql:A.c'], removed: [] }, SOURCES)
+    const marker = issueSurfaceMarker({ added: ['graphql:A.b', 'graphql:A.c'], removed: [] })
+    expect(issue).toEqual({
+      title: 'GitHub の Issue の機能に差がある: 2 件増・0 件減',
+      marker,
+      body: [
+        'GitHub の今のスキーマが、Issue の機能の写し（`plugins/pecot-workflow/interface/github-issue-surface.json`）と違います。',
+        '',
+        '## 増えた項目',
+        '',
+        '- `graphql:A.b`',
+        '- `graphql:A.c`',
+        '',
+        '## 消えた項目',
+        '',
+        'なし',
+        '',
+        '## 比べたスキーマ',
+        '',
+        '- SDL: https://example.com/schema.graphql',
+        '- OpenAPI: openapi.json',
+        '- REST の版: 2022-11-28',
+        '',
+        '## 直し方',
+        '',
+        '`plugins/pecot-workflow/CONTRIBUTING.md` の「4. GitHub の Issue の機能の写しと担保の一覧」に従い、写しと担保の一覧を直します。その PR で、この Issue を閉じます。',
+        '',
+        marker,
+        '',
+      ].join('\n'),
+    })
+  })
+})
+
+describe('planIssueSurfaceDrift', () => {
+  it('差が無いと、開いた差の Issue があっても none を返す', () => {
+    expect(planIssueSurfaceDrift({ added: [], removed: [] }, [{ number: 3, body: OTHER_MARKER }])).toEqual({ action: 'none' })
+  })
+
+  it('差があり、印の行を持つ開いた Issue が無いと、create を返す', () => {
+    const issues = [
+      { number: 1, body: '' },
+      { number: 2, body: `本文の途中の ${DIFF_MARKER} は行でない` },
+      { number: 3, body: '<!-- pecot-issue-surface: short -->' },
+    ]
+    expect(planIssueSurfaceDrift(DIFF, issues)).toEqual({ action: 'create' })
+  })
+
+  it('差があり、開いた差の Issue の印が同じだと、unchanged を返す', () => {
+    expect(planIssueSurfaceDrift(DIFF, [{ number: 4, body: `本文\r\n\r\n${DIFF_MARKER}\r\n` }])).toEqual({ action: 'unchanged', number: 4, others: [] })
+  })
+
+  it('差があり、開いた差の Issue の印が違うと、update を返す', () => {
+    expect(planIssueSurfaceDrift(DIFF, [{ number: 4, body: `本文\n\n${OTHER_MARKER}\n` }])).toEqual({ action: 'update', number: 4, others: [] })
+  })
+
+  it('開いた差の Issue が 2 件以上あると、番号の最も小さいものの印で決め、ほかを番号の順で others に返す', () => {
+    const issues = [
+      { number: 9, body: DIFF_MARKER },
+      { number: 2, body: OTHER_MARKER },
+      { number: 5, body: DIFF_MARKER },
+      { number: 1, body: 'ほかの Issue' },
+    ]
+    expect(planIssueSurfaceDrift(DIFF, issues)).toEqual({ action: 'update', number: 2, others: [5, 9] })
   })
 })

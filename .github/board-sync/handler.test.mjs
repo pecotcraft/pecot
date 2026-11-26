@@ -29,6 +29,7 @@ const ENV = {
   DEPENDABOT_PRS_APP_INSTALLATION_ID: "888",
   DEPENDABOT_PRS_WORKFLOW_FILE: "dependabot-prs.yml",
   BOARD_SYNC_WORKFLOW_FILE: "pecot-board-sync.yml",
+  ISSUE_SURFACE_WORKFLOW_FILE: "issue-surface-drift.yml",
 };
 const SECURITY_WORKFLOW_URL =
   "https://api.github.com/repos/pecotcraft/pecot/actions/workflows/security-alerts.yml/dispatches";
@@ -36,7 +37,14 @@ const DEPENDABOT_WORKFLOW_URL =
   "https://api.github.com/repos/pecotcraft/pecot/actions/workflows/dependabot-prs.yml/dispatches";
 const BOARD_SYNC_WORKFLOW_URL =
   "https://api.github.com/repos/pecotcraft/pecot/actions/workflows/pecot-board-sync.yml/dispatches";
-const RUN_IDS = { "security-alerts.yml": 9001, "dependabot-prs.yml": 9002, "pecot-board-sync.yml": 9003 };
+const ISSUE_SURFACE_WORKFLOW_URL =
+  "https://api.github.com/repos/pecotcraft/pecot/actions/workflows/issue-surface-drift.yml/dispatches";
+const RUN_IDS = {
+  "security-alerts.yml": 9001,
+  "dependabot-prs.yml": 9002,
+  "pecot-board-sync.yml": 9003,
+  "issue-surface-drift.yml": 9004,
+};
 const SCHEDULER_EVENT = { source: "pecot-scheduler" };
 const NOW = Date.parse("2026-11-09T00:00:00Z");
 
@@ -483,16 +491,21 @@ test("片方の App の SSM が未設定でも、もう片方は動く", async (
   assert.equal(dispatchCalls(calls).length, 1);
 });
 
-test("Scheduler の固定の値で、署名なしに 3 つの workflow を起こす", async () => {
+test("Scheduler の固定の値で、署名なしに 4 つの workflow を起こす", async () => {
   const { deps, calls, logs } = makeDeps();
   const res = await createHandler(deps)(SCHEDULER_EVENT);
   assert.equal(res.statusCode, 200);
   // 同じ App の 2 本は token を待つ間に前後するので、順は問わない。
   assert.deepEqual(
     new Set(dispatchCalls(calls).map((c) => c.url)),
-    new Set([SECURITY_WORKFLOW_URL, DEPENDABOT_WORKFLOW_URL, BOARD_SYNC_WORKFLOW_URL]),
+    new Set([
+      SECURITY_WORKFLOW_URL,
+      DEPENDABOT_WORKFLOW_URL,
+      BOARD_SYNC_WORKFLOW_URL,
+      ISSUE_SURFACE_WORKFLOW_URL,
+    ]),
   );
-  assert.equal(dispatchCalls(calls).length, 3);
+  assert.equal(dispatchCalls(calls).length, 4);
   const dispatched = (app, workflow) => ({
     via: "scheduler",
     app,
@@ -503,6 +516,7 @@ test("Scheduler の固定の値で、署名なしに 3 つの workflow を起こ
   const byWorkflow = (a, b) => a.workflow.localeCompare(b.workflow);
   assert.deepEqual(logs.toSorted(byWorkflow), [
     dispatched("dependabot-prs", "dependabot-prs.yml"),
+    dispatched("security", "issue-surface-drift.yml"),
     dispatched("security", "pecot-board-sync.yml"),
     dispatched("security", "security-alerts.yml"),
   ]);
@@ -524,16 +538,16 @@ test("requestContext.http があれば、Scheduler の値でも webhook とし�
   assert.equal(calls.length, 0);
 });
 
-test("Scheduler の起動は 1 本が失敗しても、ほかの 2 本を起こしてから throw する", async () => {
+test("Scheduler の起動は 1 本が失敗しても、ほかの 3 本を起こしてから throw する", async () => {
   for (const failWorkflow of Object.keys(RUN_IDS)) {
     const { deps, calls, logs } = makeDeps({ failWorkflow });
     await assert.rejects(createHandler(deps)(SCHEDULER_EVENT), /dispatch failed/);
-    assert.equal(dispatchCalls(calls).length, 3);
+    assert.equal(dispatchCalls(calls).length, 4);
     assert.deepEqual(
       logs.filter((l) => l.result === "dispatch-error").map((l) => l.workflow),
       [failWorkflow],
     );
-    assert.equal(logs.filter((l) => l.result === "dispatched").length, 2);
+    assert.equal(logs.filter((l) => l.result === "dispatched").length, 3);
   }
 });
 
@@ -542,10 +556,10 @@ test("Scheduler は workflow の環境変数が無い行を起こさず、失敗
   const { BOARD_SYNC_WORKFLOW_FILE: _unset, ...env } = ENV;
   deps.env = env;
   await assert.rejects(createHandler(deps)(SCHEDULER_EVENT), /dispatch failed/);
-  assert.equal(dispatchCalls(calls).length, 2);
+  assert.equal(dispatchCalls(calls).length, 3);
   assert.deepEqual(
     new Set(logs.filter((l) => l.result === "dispatched").map((l) => l.workflow)),
-    new Set(["security-alerts.yml", "dependabot-prs.yml"]),
+    new Set(["security-alerts.yml", "dependabot-prs.yml", "issue-surface-drift.yml"]),
   );
   assert.deepEqual(
     logs.filter((l) => l.result === "dispatch-error"),
@@ -564,7 +578,7 @@ test("Scheduler は workflow の環境変数が無い行を起こさず、失敗
 test("Scheduler の起動で片方の App の SSM が未設定でも、もう片方は起こす", async () => {
   const expected = {
     security: [DEPENDABOT_WORKFLOW_URL],
-    "dependabot-prs": [SECURITY_WORKFLOW_URL, BOARD_SYNC_WORKFLOW_URL],
+    "dependabot-prs": [SECURITY_WORKFLOW_URL, BOARD_SYNC_WORKFLOW_URL, ISSUE_SURFACE_WORKFLOW_URL],
   };
   for (const [failSecretsFor, urls] of Object.entries(expected)) {
     const { deps, calls } = makeDeps({ failSecretsFor });
@@ -587,7 +601,7 @@ test("Scheduler の 1 回の起動で、security の App の SSM の読み出し
   ]);
 });
 
-test("security の 2 本が同じ失効した token で 401 を受けても、token の取り直しは 1 回だけ", async () => {
+test("security の 3 本が同じ失効した token で 401 を受けても、token の取り直しは 1 回だけ", async () => {
   const { deps, calls } = makeDeps();
   let issued = 0;
   const dispatchTokens = [];
@@ -608,8 +622,8 @@ test("security の 2 本が同じ失効した token で 401 を受けても、to
   assert.equal(res.statusCode, 200);
   const securityTokens = calls.filter((c) => c.url.endsWith("/777/access_tokens")).length;
   assert.equal(securityTokens, 2);
-  assert.equal(dispatchTokens.filter((t) => t === "Bearer ghs_token_sec_1").length, 2);
-  assert.equal(dispatchTokens.filter((t) => t.startsWith("Bearer ghs_token_sec_") && !t.endsWith("_1")).length, 2);
+  assert.equal(dispatchTokens.filter((t) => t === "Bearer ghs_token_sec_1").length, 3);
+  assert.equal(dispatchTokens.filter((t) => t.startsWith("Bearer ghs_token_sec_") && !t.endsWith("_1")).length, 3);
 });
 
 test("Scheduler でも webhook でもない event は、何もせずログだけ残す", async () => {
@@ -630,7 +644,7 @@ test("Scheduler のログにも token が出ない", async () => {
 
 const timeoutError = () => new DOMException("The operation timed out.", "TimeoutError");
 
-test("Scheduler は 3 つの workflow を並列に起こす", async () => {
+test("Scheduler は 4 つの workflow を並列に起こす", async () => {
   const { deps } = makeDeps();
   let active = 0;
   let peak = 0;
@@ -647,7 +661,7 @@ test("Scheduler は 3 つの workflow を並列に起こす", async () => {
   };
   const res = await createHandler(deps)(SCHEDULER_EVENT);
   assert.equal(res.statusCode, 200);
-  assert.equal(peak, 3);
+  assert.equal(peak, 4);
 });
 
 test("失敗のログに stage と数値の status が出て、token と message は出ない", async () => {
@@ -710,6 +724,13 @@ test("Scheduler の失敗のログにも stage と status が出る", async () =
       via: "scheduler",
       app: "security",
       workflow: "pecot-board-sync.yml",
+      result: "dispatch-error",
+      stage: "secrets",
+    },
+    {
+      via: "scheduler",
+      app: "security",
+      workflow: "issue-surface-drift.yml",
       result: "dispatch-error",
       stage: "secrets",
     },

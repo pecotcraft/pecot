@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
-  App の webhook と Scheduler を受け、3 つの workflow を workflow_dispatch で起こす Lambda（#175）
+  App の webhook と Scheduler を受け、4 つの workflow を workflow_dispatch で起こす Lambda（#175）
 
 Parameters:
   SecurityAppClientId:
@@ -33,6 +33,10 @@ Parameters:
   BoardSyncWorkflowFile:
     Type: String
     Default: pecot-board-sync.yml
+    Description: Scheduler だけが起こす。dispatch には security の App を使う
+  IssueSurfaceWorkflowFile:
+    Type: String
+    Default: issue-surface-drift.yml
     Description: Scheduler だけが起こす。dispatch には security の App を使う
   SecuritySsmPrivateKeyName:
     Type: String
@@ -138,6 +142,8 @@ Resources:
             Ref: DependabotPrsSsmWebhookSecretName
           BOARD_SYNC_WORKFLOW_FILE:
             Ref: BoardSyncWorkflowFile
+          ISSUE_SURFACE_WORKFLOW_FILE:
+            Ref: IssueSurfaceWorkflowFile
       # 仮のコード。deploy.sh が直後に handler.mjs へ差し替える前提で、これ自体は呼ばれない。
       Code:
         ZipFile: |
