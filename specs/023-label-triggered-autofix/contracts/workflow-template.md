@@ -144,7 +144,7 @@ workflows: ["CI"]
 | `BODY_NO_APP`・`BODY_NO_TOKEN` | 本文。式を持たない。`NO_APP` が `true` なら前者、ほかは後者を書く |
 
 `BODY_NO_APP` には、空の変数の名前、自前の App に要る変数 `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY` の置き場所、`pecot workflow doctor auto` で確かめることを書く。
-`BODY_NO_TOKEN` には、トークンを作れなかったこと、失敗の理由が `gate` の記録にあること、確かめる変数・secret・App の権限、直した後に起動ラベルを付け直すことを書く。
+`BODY_NO_TOKEN` には、トークンを作れなかったこと、失敗の理由が `gate` の記録にあること、確かめる変数と secret、App に要る権限の名前、直した後に起動ラベルを付け直すことを書く。
 どちらも、結果のコメントの書き方（段落の中で改行しない、プレースホルダを残さない）に従う。
 
 プロジェクトの設定を復元する step は置かない。ツールが、対象のリポから設定を決める（#579）。

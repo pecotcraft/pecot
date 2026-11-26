@@ -504,11 +504,11 @@ describe('auto のワークフローの雛形の step の中身', () => {
     expect(validateBodyStyle(body)).toEqual([])
   })
 
-  it('Report の本文は、変数があれば、トークンを作れなかったことと確かめる設定を書き、結果のコメントの書き方を守る', () => {
+  it('Report の本文は、変数があれば、トークンを作れなかったことと確かめる設定と権限を書き、書き方を守る', () => {
     expect(runStep(report, { ISSUE: '7', SENDER: 'alice', FAKE_ROLE: 'write', PECOT_AUTO_PROJECT: '', NO_APP: 'false' })).toBe(0)
     const body = (logged('body') ?? []).join('\n')
     expect(body).toContain('トークンを作れなかった')
-    for (const name of ['`PECOT_AGENT_APP_CLIENT_ID`', '`PECOT_AGENT_APP_PRIVATE_KEY`', '`gate`']) {
+    for (const name of ['`PECOT_AGENT_APP_CLIENT_ID`', '`PECOT_AGENT_APP_PRIVATE_KEY`', '`gate`', 'Contents: write', 'Issues: write', 'Pull requests: write', 'Actions: read', 'Projects: write']) {
       expect(body).toContain(name)
     }
     expect(body).not.toContain('`pecot workflow doctor auto`')
