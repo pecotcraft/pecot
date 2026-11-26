@@ -374,9 +374,3 @@ PR の CI は写しだけを読み、GitHub には取りに行きません。
 | `excluded must not have handler or tool` | 外す項目から `handler`・`tool` を消します。扱うなら `status` を `supported` にします |
 | `supported must not have a reason` | 扱う項目から `reason` を消します。外すなら `status` を `excluded` にします |
 | `listed more than once` | 重なった項目を 1 つにします |
-
-## 5. GitHub の機能の棚卸し
-
-GitHub Projects と Issue の機能ごとに、pecot の今の使い方と、使うか使わないかの判断と理由を [`docs/github-features.md`](docs/github-features.md) に残しています。GitHub が機能を足したときや、pecot が新しい機能を使い始めたときに、行を足すか直します。
-
-§4 の担保の一覧は Issue の機能を項目の単位で扱い、棚卸しは Projects も含めて機能の単位で扱います。Issue の機能の扱いは §4 の担保の一覧を正とし、棚卸しの一覧からはその `id` を挙げます。
