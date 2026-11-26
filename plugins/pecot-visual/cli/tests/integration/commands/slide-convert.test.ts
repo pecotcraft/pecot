@@ -59,11 +59,13 @@ import {
 } from '../../_helpers/pptx-compare.js'
 import { extractFromPptx } from '../../_helpers/xpath-extract.js'
 import { compareStrings } from '../../../src/domain/_shared/compare-strings.js'
-import { attachAtTestEnd, readOutput } from '../../_helpers/attach.js'
+import { readOutput } from '../../_helpers/attach.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
 import { rejectionOf } from '../../_helpers/rejection.js'
 import { verifies } from '../../_helpers/verifies.js'
 import { ensureTalkThemeLinked, linkedThemeDefaultDependencies } from '../../../src/commands/slidev-project/linked-theme.js'
+import { makeStream } from '../../_helpers/talk-directory.js'
+import type { CapturedStream } from '../../_helpers/talk-directory.js'
 
 // テーマの宣言（pecot-theme.json）の pptx を、テスト内の値で与える。テーマの固有値は本体に持たない。
 const TEST_LINK_COLOR = '4F46E5'
@@ -77,24 +79,6 @@ function themePorts(pptx: ResolvedThemeDeclaration['pptx']): Pick<SlideConvertDe
 }
 
 const THEME_PORTS = themePorts(TEST_PPTX)
-
-interface CapturedStream {
-  readonly chunks: string[]
-  write: (data: string) => boolean
-}
-
-function makeStream(name?: string): CapturedStream {
-  const chunks: string[] = []
-  // 名前を付けた stream は、テストが判定に使う出力なので、テストの終わりに添付する。
-  if (name !== undefined) attachAtTestEnd(name, () => chunks.join(''))
-  return {
-    chunks,
-    write(data: string): boolean {
-      chunks.push(data)
-      return true
-    },
-  }
-}
 
 // write メソッドを持つ stub を直接渡す。
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types

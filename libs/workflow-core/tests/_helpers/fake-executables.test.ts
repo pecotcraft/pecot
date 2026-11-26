@@ -3,6 +3,7 @@ import path from 'node:path'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { attachOutput } from '../../../interface-spec/src/vitest/attach.js'
 import { setEnvironment, useIsolatedEnvironment } from './environment.js'
 import { installFakeExecutable, installFakeGh, installFakeNx, prependToPath, readFakeCalls } from './fake-executables.js'
 import { makeTemporaryDirectory } from './temporary.js'
@@ -49,6 +50,7 @@ useIsolatedEnvironment()
 
 function run(command: string, arguments_: readonly string[]): { readonly stdout: string, readonly stderr: string, readonly status: number | null } {
   const result = spawnSync(command, [...arguments_], { encoding: 'utf8' })
+  attachOutput([command, ...arguments_].join(' '), result.status ?? result.signal ?? undefined, result.stdout, result.stderr)
   return { stdout: result.stdout, stderr: result.stderr, status: result.status }
 }
 

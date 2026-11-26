@@ -27,7 +27,9 @@ import { copyFixtureTheme as copyTheme } from '../../_helpers/theme-fixtures.js'
 import type { CopiedTheme, FixtureTheme } from '../../_helpers/theme-fixtures.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
 import { verifies } from '../../_helpers/verifies.js'
-import { attachAtTestEnd, readOutput } from '../../_helpers/attach.js'
+import { readOutput } from '../../_helpers/attach.js'
+import { makeStream } from '../../_helpers/talk-directory.js'
+import type { CapturedStream } from '../../_helpers/talk-directory.js'
 
 const HERE = import.meta.dirname
 // repo の plugins/pecot-visual が plugin-root（cli/.. = plugins/pecot-visual）。
@@ -35,24 +37,6 @@ const PLUGIN_ROOT = path.resolve(HERE, '..', '..', '..', '..')
 const DEPENDENCY_NODE_MODULES = path.resolve(PLUGIN_ROOT, '..', '..', 'node_modules')
 const DECLARED_THEME_NAME = 'slidev-theme-pecotv-test-declared'
 const BARE_THEME_NAME = 'slidev-theme-pecotv-test-bare'
-
-interface CapturedStream {
-  readonly chunks: string[]
-  write: (data: string) => boolean
-}
-
-function makeStream(name?: string): CapturedStream {
-  const chunks: string[] = []
-  // 名前を付けた stream は、テストが判定に使う出力なので、テストの終わりに添付する。
-  if (name !== undefined) attachAtTestEnd(name, () => chunks.join(''))
-  return {
-    chunks,
-    write(data: string): boolean {
-      chunks.push(data)
-      return true
-    },
-  }
-}
 
 // runSlideCreate / createSlideCreateCommand は NodeJS.WritableStream を期待するが
 // 実装が呼び出すのは write のみ。テストでは write のみを実装した stub を渡す。

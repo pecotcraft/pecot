@@ -169,6 +169,7 @@ describe('attach', () => {
     it.for([
       { file: 'slides.md', extension: '.md', contentType: 'text/markdown' },
       { file: 'result.json', extension: '.json', contentType: 'application/json' },
+      { file: 'diagram.svg', extension: '.svg', contentType: 'image/svg+xml' },
       { file: 'vite.config.ts', extension: '.txt', contentType: 'text/plain' },
     ])('readOutput に $file を渡すと、読んだ中身を返し、型 $contentType で残す', ({ file, extension, contentType }) => {
       const filePath = path.join(directory, file)

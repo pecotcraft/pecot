@@ -12,6 +12,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import run_attached  # noqa: E402
+
 _ATTACH = Path(__file__).resolve().parent / "attach.py"
 
 _HEADER = """\
@@ -36,7 +40,7 @@ def _run_pytest(tmp_path: Path, body: str, *args: str) -> subprocess.CompletedPr
     shutil.copy(_ATTACH, suite / "attach.py")
     (suite / "emit.sh").write_text(_EMIT, encoding="utf-8")
     (suite / "test_sample.py").write_text(_HEADER + body, encoding="utf-8")
-    return subprocess.run(
+    return run_attached(
         [
             sys.executable,
             "-m",
@@ -52,7 +56,6 @@ def _run_pytest(tmp_path: Path, body: str, *args: str) -> subprocess.CompletedPr
         cwd=tmp_path,
         capture_output=True,
         text=True,
-        check=False,
     )
 
 

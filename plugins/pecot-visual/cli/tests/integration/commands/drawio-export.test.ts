@@ -20,7 +20,9 @@ import {
 import { SOURCE_HASH_ATTRIBUTE, collectIconReferences, computeSourceHash, readSourceHash } from '../../../src/domain/drawio/export.js'
 import { createIconResolver } from '../../../src/infra/drawio/icons.js'
 import { compareStrings } from '../../../src/domain/_shared/compare-strings.js'
-import { attachAtTestEnd, readOutput } from '../../_helpers/attach.js'
+import { readOutput } from '../../_helpers/attach.js'
+import { makeStream } from '../../_helpers/talk-directory.js'
+import type { CapturedStream } from '../../_helpers/talk-directory.js'
 
 const HERE = import.meta.dirname
 const PLUGIN_ROOT = path.resolve(HERE, '..', '..', '..', '..')
@@ -32,24 +34,6 @@ const MINIMAL_FIXTURE = path.join(FIXTURES, 'minimal.drawio')
 
 // editor が返す SVG を模した最小応答。ルートに color-scheme: light dark を持つ。
 const EXPORTED_SVG = '<svg xmlns="http://www.w3.org/2000/svg" style="background: transparent; color-scheme: light dark;" width="840px"><g/></svg>'
-
-interface CapturedStream {
-  readonly chunks: string[]
-  write: (data: string) => boolean
-}
-
-function makeStream(name?: string): CapturedStream {
-  const chunks: string[] = []
-  // 名前を付けた stream は、テストが判定に使う出力なので、テストの終わりに添付する。
-  if (name !== undefined) attachAtTestEnd(name, () => chunks.join(''))
-  return {
-    chunks,
-    write(data: string): boolean {
-      chunks.push(data)
-      return true
-    },
-  }
-}
 
 // write メソッドを持つ stub を直接渡す。
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types

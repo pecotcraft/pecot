@@ -19,7 +19,7 @@ const CONTENT_TYPES: Readonly<Record<string, string>> = {
   '.md': 'text/markdown',
 }
 
-const TEXT_EXTENSIONS: ReadonlySet<string> = new Set(['.txt', '.json', '.md'])
+const TEXT_EXTENSIONS: ReadonlySet<string> = new Set(['.txt', '.json', '.md', '.svg'])
 
 const LABEL_LENGTH = 200
 

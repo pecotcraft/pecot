@@ -89,7 +89,7 @@ attachAtTestEnd(name: string, read: () => string): void
 - nx のレーンの外（Allure の reporter を足さないとき）は、何もしない
 - 中身は呼んだときに読んで渡す。テストが後で成果物を消しても、添付は残る
 - `attachOutput` は、空でない stdout・stderr を `<コマンド>（終了コード N） stdout` の名前で添付する。両方空なら空の stdout を 1 つ添付する。コマンドは先頭の 200 字。終了コードが無ければ名前に書かない
-- `readOutput` は UTF-8 で読み、ファイル名を名前にして添付してから中身を返す。`.txt`・`.json`・`.md` でない拡張子は `.txt` で添付する（`attachFile`・`attachContent` は表に無い拡張子で throw する）
+- `readOutput` は UTF-8 で読み、ファイル名を名前にして添付してから中身を返す。`.txt`・`.json`・`.md`・`.svg` でない拡張子は `.txt` で添付する（`attachFile`・`attachContent` は表に無い拡張子で throw する）
 
 pytest は `.githooks/tests/attach.py` を `sys.path.insert` で読む。
 

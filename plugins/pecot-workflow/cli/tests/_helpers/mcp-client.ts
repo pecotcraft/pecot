@@ -1,13 +1,14 @@
 // MCP のサーバを同じプロセスの中でクライアントにつなぐ。tools/list・tools/call の応答の形を、子プロセスなしで確かめる。
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- SDK の型は mutable */
-import { Client, InMemoryTransport } from '@modelcontextprotocol/client'
+import type { Client } from '@modelcontextprotocol/client'
+import { InMemoryTransport } from '@modelcontextprotocol/client'
 import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
 import type { CommandDefinition } from '../../src/commands/registry.js'
 import { standardOutputSchema } from '../../src/mcp/result.js'
 import { createMcpServer } from '../../src/mcp/server.js'
-import { attachJson, attachJsonInTest } from '../../../../../libs/interface-spec/src/vitest/attach.js'
+import { AttachingClient } from './attaching-client.js'
 
 const TextBlockSchema = z.looseObject({ type: z.literal('text'), text: z.string() })
 
@@ -71,26 +72,9 @@ export interface ConnectedClient {
   readonly close: () => Promise<void>
 }
 
-/**
-tools/call・tools/list の応答の全体を、受けた時点で添付するクライアント。判定で落ちても応答が残る。beforeAll の tools/list は、使うテストが添付する
-*/
-export class RecordingClient extends Client {
-  override async callTool(...arguments_: Parameters<Client['callTool']>): ReturnType<Client['callTool']> {
-    const result = await super.callTool(...arguments_)
-    attachJson(`${arguments_[0].name} の結果`, result)
-    return result
-  }
-
-  override async listTools(...arguments_: Parameters<Client['listTools']>): ReturnType<Client['listTools']> {
-    const result = await super.listTools(...arguments_)
-    attachJsonInTest('tools/list の結果', result)
-    return result
-  }
-}
-
 export async function connectInMemory(server: McpServer): Promise<ConnectedClient> {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
-  const client = new RecordingClient({ name: 'test-client', version: '0.0.0' })
+  const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
   await server.connect(serverTransport)
   await client.connect(clientTransport)
   return {

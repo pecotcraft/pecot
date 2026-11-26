@@ -12,10 +12,11 @@ import { childStdin, setChildStdin } from '@pecot/workflow-core/infra/child-stdi
 import { defineCommand } from '../../commands/registry.js'
 import { exitWith, failWith } from '../../commands/tests/support.js'
 import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
-import { outcomeOf, RecordingClient, structuredOf, toolOutcomeOf } from '../../../tests/_helpers/mcp-client.js'
+import { outcomeOf, structuredOf, toolOutcomeOf } from '../../../tests/_helpers/mcp-client.js'
 import { createMcpServer } from '../server.js'
 import { defaultDependencies, executeMcpServe, installStdoutGuard, runMcpServe } from '../serve.js'
 import type { McpServeDependencies, WritableTarget } from '../serve.js'
+import { AttachingClient } from '../../../tests/_helpers/attaching-client.js'
 
 interface FakeTarget extends WritableTarget {
   readonly chunks: string[]
@@ -183,7 +184,7 @@ describe('runMcpServe', () => {
   it('クライアントのツールの呼び出しに答える', async () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
     runMcpServe(dependenciesOver(new PassThrough(), fakeTarget(), serverTransport))
-    const client = new RecordingClient({ name: 'test-client', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
     const result = await client.callTool({ name: 'hello', arguments: {} })
     expect(toolOutcomeOf(result)).toEqual({ isError: false, text: 'hello', structured: {} })
@@ -211,7 +212,7 @@ describe('runMcpServe のプログラムの誤り', () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
     const stderr = fakeTarget()
     runMcpServe(dependenciesOver(new PassThrough(), stderr, serverTransport))
-    const client = new RecordingClient({ name: 'test-client', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
     const result = await client.callTool({ name: 'bug', arguments: {} })
     expect(result.isError).toBe(true)
@@ -225,7 +226,7 @@ describe('runMcpServe の途中までの出力', () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
     const stderr = fakeTarget()
     runMcpServe(dependenciesOver(new PassThrough(), stderr, serverTransport))
-    const client = new RecordingClient({ name: 'test-client', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
     await client.callTool({ name: 'noisy_bug', arguments: {} })
     const text = stderr.chunks.join('')
@@ -243,7 +244,7 @@ describe('runMcpServe の失敗', () => {
         throw new Error('no server')
       },
     })
-    const client = new RecordingClient({ name: 'test-client', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
     await expect(client.connect(clientTransport, { timeout: 2000 })).rejects.toThrow()
     expect(process.exitCode).toBe(1)
   })
@@ -326,7 +327,7 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
     const dependencies = { ...dependenciesOver(new PassThrough(), fakeTarget(), serverTransport), environment: environmentOf(pluginRoot, pluginRoot), cwd: () => process.cwd(), changeDirectory }
     expect(executeMcpServe(() => dependencies)).toBe(0)
-    const client = new RecordingClient({ name: 'test-client', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
     expect(changeDirectory).not.toHaveBeenCalled()
     expect(toolOutcomeOf(await client.callTool(hello))).toEqual({ isError: false, text: 'hello', structured: {} })
@@ -363,7 +364,7 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     expect(executeMcpServe(() => dependencies)).toBe(0)
     const reason = `cannot determine the target repository: the server was started in the plugin directory (${pluginRoot}) and the host passed no session directory (COPILOT_SESSION_CWD); upgrade GitHub Copilot CLI to 1.0.106 or later, or start the server in the target repository`
     expect(stderr.chunks).toEqual([`error: ${reason}\n`])
-    const client = new RecordingClient({ name: 'test-client', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
     const listed = await client.listTools()
     expect(listed.tools.map(tool => tool.name)).toEqual(['slow', 'hello', 'noisy_bug', 'bug'])
@@ -392,7 +393,7 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     expect(executeMcpServe(() => dependencies)).toBe(0)
     const reason = `cannot determine the target repository: COPILOT_SESSION_CWD is not a usable directory: ${session}: EACCES`
     expect(stderr.chunks).toEqual([`error: ${reason}\n`])
-    const client = new RecordingClient({ name: 'test-client', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
     expect(outcomeOf(await client.callTool(hello))).toEqual({ isError: true, detail: reason, warnings: [] })
   })
@@ -410,7 +411,7 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     }
     expect(executeMcpServe(() => dependencies)).toBe(0)
     expect(stderr.chunks).toEqual([`error: ${CWD_READ_REASON}\n`])
-    const client = new RecordingClient({ name: 'test-client', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
     await client.connect(clientTransport)
     expect(outcomeOf(await client.callTool(hello))).toEqual({ isError: true, detail: CWD_READ_REASON, warnings: [] })
     expect(changeDirectory).not.toHaveBeenCalled()

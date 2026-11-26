@@ -39,35 +39,18 @@ import type { SlideSyncDependencies } from '../../../src/commands/slidev-project
 import { runSlideCreate } from '../../../src/commands/slidev-project/create.js'
 import { ThemeFetchError, themeStoreDirectory } from '../../../src/domain/slidev-theme/store-layout.js'
 import { ensureTalkThemeLinked, linkedThemeDefaultDependencies } from '../../../src/commands/slidev-project/linked-theme.js'
-import { createLegacyTalkDirectory } from '../../_helpers/talk-directory.js'
+import { createLegacyTalkDirectory, makeStream } from '../../_helpers/talk-directory.js'
 import { copyFixtureTheme } from '../../_helpers/theme-fixtures.js'
 import { FIXTURE_THEME_NAME } from '../../_helpers/theme-repository.js'
 import { rejectionOf } from '../../_helpers/rejection.js'
 import { verifies } from '../../_helpers/verifies.js'
 import { themeErrorReason } from '../../../src/domain/slidev-theme/error-reason.js'
-import { attachAtTestEnd, readOutput } from '../../_helpers/attach.js'
+import { readOutput } from '../../_helpers/attach.js'
+import type { CapturedStream } from '../../_helpers/talk-directory.js'
 
 const HERE = import.meta.dirname
 const PLUGIN_ROOT = path.resolve(HERE, '..', '..', '..', '..')
 const DEPENDENCY_NODE_MODULES = path.resolve(PLUGIN_ROOT, '..', '..', 'node_modules')
-
-interface CapturedStream {
-  readonly chunks: string[]
-  write: (data: string) => boolean
-}
-
-function makeStream(name?: string): CapturedStream {
-  const chunks: string[] = []
-  // 名前を付けた stream は、テストが判定に使う出力なので、テストの終わりに添付する。
-  if (name !== undefined) attachAtTestEnd(name, () => chunks.join(''))
-  return {
-    chunks,
-    write(data: string): boolean {
-      chunks.push(data)
-      return true
-    },
-  }
-}
 
 // write を持つ stub をそのまま使う。
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types

@@ -12,11 +12,11 @@ import { expect, it } from 'vitest'
 import { createMcpServer } from '../../src/mcp/server.js'
 import { COMMANDS } from '../../src/commands/registry.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
-import { RecordingClient } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
 import { stateFile } from '../_helpers/workspace-inspect.js'
 import { finishPullRequestData, graphql, openWorkspace, rest } from '../_helpers/workspace.js'
 import type { Workspace } from '../_helpers/workspace.js'
+import { AttachingClient } from '../_helpers/attaching-client.js'
 
 useIsolatedEnvironment()
 
@@ -136,7 +136,7 @@ async function connectRecording(): Promise<RecordedConnection> {
     await sendFromClient(message, options)
   }
   const server = createMcpServer(COMMANDS)
-  const client = new RecordingClient({ name: 'test-client', version: '0.0.0' })
+  const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
   await server.connect(serverTransport)
   await client.connect(clientTransport)
   return {

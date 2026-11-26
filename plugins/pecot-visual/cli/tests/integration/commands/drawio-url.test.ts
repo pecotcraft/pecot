@@ -19,8 +19,10 @@ import {
 } from '../../../src/commands/drawio/url.js'
 import type { LintText } from '../../../src/domain/_shared/text-check.js'
 import { defaultLintText } from '../../../src/infra/text-lint.js'
-import { attachAtTestEnd, attachFile, readOutput } from '../../_helpers/attach.js'
+import { attachFile, readOutput } from '../../_helpers/attach.js'
 import { verifies } from '../../_helpers/verifies.js'
+import { makeStream } from '../../_helpers/talk-directory.js'
+import type { CapturedStream } from '../../_helpers/talk-directory.js'
 
 const failingLintText: LintText = () => Promise.reject(new Error('辞書を読めません'))
 
@@ -37,24 +39,6 @@ const ICON_UNRESOLVED_MULTI_FIXTURE = path.join(FIXTURES, 'icon-unresolved-multi
 // 生成 URL が 8,000 文字超になる大型 fixture（長大 URL の欠損検知用）。icon:// 13 件を含む。
 // スキルの samples は見た目の規範で入れ替わるため、サイズ条件はテスト専用 fixture で担保する。
 const LONG_URL_FIXTURE = path.join(FIXTURES, 'long-url.drawio')
-
-interface CapturedStream {
-  readonly chunks: string[]
-  write: (data: string) => boolean
-}
-
-function makeStream(name?: string): CapturedStream {
-  const chunks: string[] = []
-  // 名前を付けた stream は、テストが判定に使う出力なので、テストの終わりに添付する。
-  if (name !== undefined) attachAtTestEnd(name, () => chunks.join(''))
-  return {
-    chunks,
-    write(data: string): boolean {
-      chunks.push(data)
-      return true
-    },
-  }
-}
 
 const META_REFRESH_REGEX = /<meta http-equiv="refresh" content="0;url=([^"]*)">/
 const TARGET_ANCHOR_REGEX = /<a id="target" href="([^"]*)">/

@@ -306,7 +306,7 @@ FR-007a（画面・成果物の添付）の対象にしないものを次に並�
   | 補助 | 添付 |
   |---|---|
   | `libs/interface-spec/src/vitest/attach.ts` | `attachText`・`attachJson`・`attachJsonInTest`・`attachOutput`・`readOutput`・`attachReadText`・`attachAtTestEnd` |
-  | MCP のクライアント（pecot-workflow の `RecordingClient`、pecot-visual の `AttachingClient`、pecot-tools の `attachingClient`） | `callTool`・`listTools` が返した結果の全体 |
+  | MCP のクライアント（3 つのプラグインの `tests/_helpers/attaching-client.ts` の `AttachingClient`） | `callTool`・`listTools` が返した結果の全体 |
   | pecot-visual の統合テストの `makeStream(name)` | 名前を付けた stream の、テストの終わりの中身 |
   | `libs/workflow-core/tests/_helpers/captured-io.ts` の `capture()` | テストの終わりの `out`・`err`。`TestRunner.getCurrentTest()` があるときだけ `onTestFinished` で添付する |
   | pecot-workflow の `runCommand`・`runInProcess` | 標準出力・標準エラー（`capture({ attach: false })` で二重を避ける）。`read` は読んだ中身 |
@@ -314,6 +314,7 @@ FR-007a（画面・成果物の添付）の対象にしないものを次に並�
   | pecot-workflow の hook の `run` | 起動の失敗で throw する前の出力 |
   | `.githooks/tests/attach.py` | `run_attached`（`check`・timeout でも添付してから投げる）・`attach_output`・`read_output` |
 
+- **名前**: コマンドを動かさず、io を注入して `run` を同じプロセスで呼ぶテストは、argv が無い。workflow-core の `capture()` と pecot-visual の `makeStream(name)` は、stream の名前（`capture stdout`・`stdout` など）を名前にする。終了コードは `run` の戻り値で、テストが判定する
 - **Rationale**: 成功したテストが実際に何を出したかを、レポートから確かめるため。`subprocess.run` や `child_process` を全体で差し替える案は採らない。テスト対象が中で動かす子プロセスの出力まで添付され、判定に使ったものと見分けられない
 - **大きさ**: #809 の 2 本を足す前の 13 レーンを手元で動かして作ったレポートの `data/attachments/` は、14,209 個で 63 MB だった（2026-11-26）
   - 最も多いのは `githooks:test-nx-affected` の 27 MB で、nx が書き出して判定に使う graph の JSON（1 個 約 120 KB）が占める
