@@ -3,8 +3,8 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { ISSUE_CHECK_COMMANDS } from '../../src/commands/issue-check.js'
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import { writeTree } from '../../src/tests/_helpers/temporary.js'
+import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { writeTree } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import type { CliResult, RunningGithub } from '../_helpers/interface-case.js'
 import {

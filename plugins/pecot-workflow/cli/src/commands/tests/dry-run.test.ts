@@ -6,16 +6,16 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
-import { createGitRepository, gitForTest } from '../../tests/_helpers/git-repository.js'
+import { useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { createGitRepository, gitForTest } from '../../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import { compareStrings } from '../../../tests/parity/baseline.js'
-import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
+import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { CONFIG_FILE, DEFAULT_HOST, graphqlRule, projectConfig, requestLabels, restRule, runCommand } from '../../../tests/_helpers/command-harness.js'
 import type { CommandResult, CommandRun } from '../../../tests/_helpers/command-harness.js'
 import { commentFileContent, MERGE_DIFF_BODY } from '../../../tests/_helpers/issue-comment-case.js'
 import { verifies } from '../../../tests/_helpers/verifies.js'
-import { prerequisitesRule } from '../../../tests/_helpers/prerequisites.js'
-import type { ResponseRule } from '../../../tests/fake-github/server.js'
+import { prerequisitesRule } from '../../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
+import type { ResponseRule } from '../../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 
 useIsolatedEnvironment()
 

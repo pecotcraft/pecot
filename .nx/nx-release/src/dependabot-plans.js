@@ -34,6 +34,7 @@ const GROUP_PATHS = {
   "pecot-visual": "plugins/pecot-visual/",
   "pecot-tools": "plugins/pecot-tools/",
   "text-rules": "libs/text-rules/",
+  "workflow-core": "libs/workflow-core/",
 };
 // 上限は .githooks/pre-commit/check-version-plan-format.sh と同じ値
 const MAX_LINE_CHARS = 100;

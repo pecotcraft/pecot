@@ -4,9 +4,9 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import type { WorkflowTemplate } from '../domain/workflow-template.js'
+import type { WorkflowTemplate } from '@pecot/workflow-core/domain/workflow-template.js'
 import { templatesDirectory } from './template-store.js'
-import { readTextFile } from './text-file.js'
+import { readTextFile } from '@pecot/workflow-core/infra/text-file.js'
 
 /**
 同梱の雛形の中身

@@ -4,13 +4,13 @@
 import { closeSync, mkdirSync, openSync, statSync, unlinkSync, utimesSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { ProjectRootNotFoundError } from '../domain/errors.js'
-import { pythonStrip } from '../domain/python-format.js'
-import { FLAG_PECOT_BASE, FLAG_PECOT_SESSION_TITLE, formatBaseRecord, interpretBaseRecord, planWorkTarget, sessionTitleNumber, workDirectoryName } from '../domain/state.js'
-import type { BaseReading, BaseRecord } from '../domain/state.js'
-import { OsError, hasErrorCode, isFileNotFound } from './os-error.js'
-import { projectRoot, STATE_DIR, WORK_DIR } from './paths.js'
-import { readTextFile } from './text-file.js'
+import { ProjectRootNotFoundError } from '@pecot/workflow-core/domain/errors.js'
+import { pythonStrip } from '@pecot/workflow-core/domain/python-format.js'
+import { FLAG_PECOT_BASE, FLAG_PECOT_SESSION_TITLE, formatBaseRecord, interpretBaseRecord, planWorkTarget, sessionTitleNumber, workDirectoryName } from '@pecot/workflow-core/domain/state.js'
+import type { BaseReading, BaseRecord } from '@pecot/workflow-core/domain/state.js'
+import { OsError, hasErrorCode, isFileNotFound } from '@pecot/workflow-core/infra/os-error.js'
+import { projectRoot, STATE_DIR, WORK_DIR } from '@pecot/workflow-core/infra/paths.js'
+import { readTextFile } from '@pecot/workflow-core/infra/text-file.js'
 
 export interface StateDirectoryOptions {
   /**

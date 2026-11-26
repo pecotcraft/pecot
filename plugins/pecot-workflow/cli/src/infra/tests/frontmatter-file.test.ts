@@ -4,10 +4,10 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { FrontmatterError } from '../../domain/frontmatter.js'
-import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
+import { FrontmatterError } from '@pecot/workflow-core/domain/frontmatter.js'
+import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { parseCommentFile, parseIssueFile, parsePullRequestFile } from '../frontmatter-file.js'
-import { OsError } from '../os-error.js'
+import { OsError } from '@pecot/workflow-core/infra/os-error.js'
 
 function writeFile(name: string, content: string): string {
   const file = path.join(makeTemporaryDirectory(), name)

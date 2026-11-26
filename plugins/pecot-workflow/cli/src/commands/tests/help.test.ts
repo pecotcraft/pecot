@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { helpText } from '../help.js'
-import { cellLength } from '../rich-panel.js'
+import { cellLength } from '@pecot/workflow-core/commands-shared/rich-panel.js'
 import { defineCommand } from '../registry.js'
 import type { CommandDefinition } from '../registry.js'
 import { exitWith } from './support.js'

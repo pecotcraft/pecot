@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { bulletSection, definitionSection, examplesSection, HELP_OPTION, helpWidth, paragraph, usageLines } from '../help-layout.js'
-import { cellLength } from '../rich-panel.js'
+import { cellLength } from '@pecot/workflow-core/commands-shared/rich-panel.js'
 
 describe('definitionSection', () => {
   const rows = [

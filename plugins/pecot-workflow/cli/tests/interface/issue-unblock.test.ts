@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { ISSUE_DEPENDENCY_COMMANDS } from '../../src/commands/issue-dependency.js'
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { requestLabels, STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
@@ -9,8 +9,8 @@ import { runInProcess, setUpProject, startGithub } from '../_helpers/interface-c
 import type { RunningGithub } from '../_helpers/interface-case.js'
 import { bodyWritten, bothLinked, labelUpdated, prepareDependencyProject, removeBlockedByRule, targetReferences, WAITS_SECTION } from '../_helpers/issue-dependency-case.js'
 import { boardItems, fieldUpdated, linkedRepositories } from '../_helpers/board-issue-case.js'
-import { botResult, commentsFailure, commentsRule, humanResult, prerequisitesRule } from '../_helpers/prerequisites.js'
-import type { ResponseRule } from '../fake-github/server.js'
+import { botResult, commentsFailure, commentsRule, humanResult, prerequisitesRule } from '../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 

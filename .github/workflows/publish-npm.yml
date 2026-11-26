@@ -12,6 +12,7 @@ on:
       - "plugins/pecot-tools/**"
       - "plugins/pecot-workflow/**"
       - "libs/text-rules/**"
+      - "libs/workflow-core/**"
       - "pnpm-lock.yaml"
       - "package.json"
       - "pnpm-workspace.yaml"

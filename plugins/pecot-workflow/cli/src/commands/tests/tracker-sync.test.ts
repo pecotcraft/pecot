@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createOutput } from '../output.js'
+import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import { settle } from '../tracker-sync.js'
 
 function capture(isDryRun: boolean): string {

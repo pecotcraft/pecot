@@ -2,11 +2,11 @@
 // 偽サーバの応答ではこの例外を起こせないので、alert の収集を投げる関数に差し替える。
 import { describe, expect, it, vi } from 'vitest'
 
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { graphqlRule, runCommand, runTool } from '../_helpers/command-harness.js'
 import { verifies } from '../_helpers/verifies.js'
 
-vi.mock(import('../../src/commands/board-view.js'), async (importOriginal) => {
+vi.mock(import('@pecot/workflow-core/commands-shared/board-view.js'), async (importOriginal) => {
   const original = await importOriginal()
   return {
     ...original,

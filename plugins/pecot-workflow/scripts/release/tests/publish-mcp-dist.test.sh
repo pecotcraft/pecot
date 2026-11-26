@@ -146,6 +146,10 @@ mkdir -p "$TEST_REPO/.githooks/lib" || exit 1
 cp -a "$REPO_ROOT/.githooks/lib/mcp-publish-common.sh" "$TEST_REPO/.githooks/lib/" || exit 1
 # git 管理外の build 生成物は実体を持ち込む。
 cp -a "$WORKFLOW_ROOT/cli/dist" "$TEST_WORKFLOW/cli/dist" || exit 1
+# lib は vendor/workflow-core のリンクの先に置く。リンクと package.json は scripts/release と同じ理由で作業ツリーから写す。
+cp -a "$WORKFLOW_ROOT/vendor" "$TEST_WORKFLOW/vendor" || exit 1
+mkdir -p "$TEST_REPO/libs/workflow-core" || exit 1
+cp -a "$REPO_ROOT/libs/workflow-core/package.json" "$REPO_ROOT/libs/workflow-core/dist" "$TEST_REPO/libs/workflow-core/" || exit 1
 git -C "$TEST_REPO" add -A > /dev/null 2>&1 || exit 1
 git -C "$TEST_REPO" commit --quiet -m "test fixture" > /dev/null 2>&1 || exit 1
 git -C "$TEST_REPO" tag "$TEST_TAG" HEAD || exit 1
@@ -271,12 +275,25 @@ assert_eq "package.json に devEngines キーが無い" "false" "$(read_manifest
 assert_eq "package.json に scripts キーが無い" "false" "$(read_manifest hasScripts)"
 
 # 期待値を列挙で持つと finalize-dist.mjs の宣言を人手で写しただけになり、両方が同時に
-# 古くなって drift を検出できない。cli/package.json の dependencies と等値比較する。
+# 古くなって drift を検出できない。cli と lib の package.json の dependencies（lib そのものを除く）と等値比較する。
 cli_dep_set() {
-    node -e "process.stdout.write(Object.keys(require('$WORKFLOW_ROOT/cli/package.json').dependencies).sort().join(','))"
+    node -e "
+const cli = require('$WORKFLOW_ROOT/cli/package.json').dependencies, lib = require('$REPO_ROOT/libs/workflow-core/package.json').dependencies
+const names = new Set([...Object.keys(cli), ...Object.keys(lib)])
+names.delete('@pecot/workflow-core')
+process.stdout.write([...names].sort().join(','))"
 }
-assert_eq "配布 package.json の依存が cli/package.json の dependencies と一致する" \
+assert_eq "配布 package.json の依存が cli と lib の package.json の dependencies と一致する" \
     "$(cli_dep_set)" "$(read_manifest deps)"
+
+# cli/dist の lib の import は、配布ツリーの vendor/workflow-core/dist への相対パスに書き換わる。
+assert_eq "cli/dist に @pecot/workflow-core の import が残らない" "0" \
+    "$(grep -rlE '(from|import)[[:space:](]*.@pecot/workflow-core' "$DIST/cli/dist" | wc -l | tr -d ' ')"
+if [ -f "$DIST/vendor/workflow-core/dist/commands-shared/output.js" ]; then
+    pass "vendor/workflow-core/dist が配布ツリーにある"
+else
+    fail "vendor/workflow-core/dist が配布ツリーに無い"
+fi
 
 # 実行時に node が解決する bare import は、すべて配布 package.json で宣言されている必要がある。
 # 宣言が無いと、npm の hoisting 次第で解決できたりできなかったりする。
@@ -295,7 +312,7 @@ const packageOf = (specifier) => {
 const missing = new Set()
 let matchCount = 0
 // tsc の出力がダブルクォートに変わっても走査が無効化されないよう両方の引用符に対応する。
-for (const file of walk(path.join(dist, 'cli/dist'))) {
+for (const file of [...walk(path.join(dist, 'cli/dist')), ...walk(path.join(dist, 'vendor/workflow-core/dist'))]) {
   if (!file.endsWith('.js')) continue
   const source = fs.readFileSync(file, 'utf8')
   // 指定子は 1 行に収まる。行をまたぐ一致は、文字列の中の from の後ろを拾ったもの
@@ -311,7 +328,7 @@ process.stdout.write(JSON.stringify({ missing: [...missing].sort(), matchCount }
 " "$DIST")"
 UNDECLARED="$(node -e "process.stdout.write(JSON.parse(process.argv[1]).missing.join(','))" "$SCAN_RESULT")"
 IMPORT_MATCH_COUNT="$(node -e "process.stdout.write(String(JSON.parse(process.argv[1]).matchCount))" "$SCAN_RESULT")"
-assert_eq "cli/dist の bare import がすべて配布 package.json で宣言されている" "" "$UNDECLARED"
+assert_eq "cli/dist と vendor/workflow-core/dist の bare import がすべて配布 package.json で宣言されている" "" "$UNDECLARED"
 if [ "$IMPORT_MATCH_COUNT" -ge 1 ] 2> /dev/null; then
     pass "bare import の走査が 1 件以上を検出する（走査 0 件での無条件 pass を防ぐ）"
 else
@@ -394,7 +411,7 @@ assert_eq "README の登録例 3 件がサーバ名 pecot-workflow を使う" "3
 MISSING_LINKS="$(node -e "
 const fs = require('node:fs'), path = require('node:path')
 const [dist, base] = process.argv.slice(1)
-// 解決の起点は cli（配布 package.json の依存はすべて cli/package.json 由来）。
+// 解決の起点は cli（配布 package.json の依存は cli と lib の package.json 由来で、どちらも root の node_modules に届く）。
 // require.resolve はエントリのファイルを返すだけで package の実体ディレクトリを返さず、
 // exports に package.json を公開しないパッケージでは /package.json も引けない。そのため
 // node_modules を実際に辿って package の実体ディレクトリを引き当てる。

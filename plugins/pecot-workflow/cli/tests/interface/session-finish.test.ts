@@ -7,7 +7,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { COMMANDS } from '../../src/commands/registry.js'
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 import { AMBIGUOUS_MESSAGE, ambiguousWorkspaceFiles, NO_ACTIVE_FILES, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
@@ -17,9 +17,9 @@ import { filesOf, KIND_FAILURE, lines, operationsOf, restRequests, stateFile } f
 import { finishPullRequestData, graphql, HOST, issueKindData, openWorkspace, rest, rule } from '../_helpers/workspace.js'
 import type { FinishPullRequestSample, ResponseRuleList, Workspace, WorkspaceOptions } from '../_helpers/workspace.js'
 import { settleWithFakeDelays, useFakeDelays } from '../_helpers/interface-case.js'
-import { prerequisitesRule } from '../_helpers/prerequisites.js'
-import type { IssueSpec, TargetSpec } from '../_helpers/prerequisites.js'
-import type { ResponseRule } from '../fake-github/server.js'
+import { prerequisitesRule } from '../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
+import type { IssueSpec, TargetSpec } from '../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 
 useIsolatedEnvironment()
 
@@ -166,6 +166,27 @@ describe('session finish', () => {
     expect(result.code).toBe(0)
     expect(result.stderr).toMatch(/^count: Issues to close: 1\nunchanged: Issue #10 \(already closed\)\nclosed: Issue #12\n$/u)
     expect(restRequests(workspace, 'PATCH')).toMatchObject([{ path: '/repos/acme/demo/issues/12' }])
+  })
+
+  it('種別の読み取りと close が 404 の Issue は、warning を出して飛ばす', async () => {
+    // eslint-disable-next-line unicorn/no-null -- 応答の形（Issue が無いと null）
+    const missing = graphql('GetIssueKind', { repository: { issue: null } }, { variables: { number: 10 } })
+    const github = mergedRules({ closing: [10] }, [missing, rest('PATCH', '/repos/acme/demo/issues/10', 404, { message: 'Not Found' }), ...closedRules(12)])
+    const workspace = await openWorkspace({ github })
+    const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain('warning: Issue #10 not found; skipped\n')
+    expect(result.stderr).toContain('closed: Issue #12\n')
+  })
+
+  it('close が別の要求に先を越されたなら、unchanged の行を出す', async () => {
+    const raced = rest('PATCH', '/repos/acme/demo/issues/10', 422, { message: 'Validation Failed: closed by another request' })
+    const github = mergedRules({ closing: [10] }, [kindRule(10), raced, ...closedRules(12)])
+    const workspace = await openWorkspace({ github })
+    const result = await workspace.run([...CLEANUP, '--skip-local-cleanup'])
+    expect(result.code).toBe(0)
+    expect(result.stderr).toContain('unchanged: Issue #10 (already closed)\n')
+    expect(result.stderr).not.toContain('warning: closing Issue #10')
   })
 
   it('閉じた Issue があると、MCP の結果の skippedIssues に already-closed で入れる', async (context) => {

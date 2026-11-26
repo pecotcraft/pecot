@@ -2,9 +2,9 @@
 import { describe, expect, it } from 'vitest'
 
 import { ISSUE_ATTRIBUTES_COMMANDS } from '../../src/commands/issue-attributes.js'
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
-import type { ResponseRule } from '../fake-github/server.js'
+import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { connectionPage, definitionRules, definitionsData, issueFieldsProbeRule } from '../_helpers/attributes.js'
 import type { RunningGithub } from '../_helpers/interface-case.js'
 import { enterGitRepository, runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'

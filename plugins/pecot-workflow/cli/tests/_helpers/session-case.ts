@@ -2,8 +2,8 @@
 // session show のテストが共有する準備。
 import { realpathSync } from 'node:fs'
 
-import type { ResponseRule } from '../fake-github/server.js'
-import { createGitRepository, gitForTest } from '../../src/tests/_helpers/git-repository.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
+import { createGitRepository, gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import { developmentRecordOf } from './base-record.js'
 import type { BaseRecordOption } from './base-record.js'
 import { setUpProject } from './interface-case.js'

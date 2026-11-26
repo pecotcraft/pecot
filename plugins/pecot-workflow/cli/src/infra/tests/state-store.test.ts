@@ -4,11 +4,11 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { InvalidValueError, ProjectRootNotFoundError } from '../../domain/errors.js'
-import { createIssueReference } from '../../domain/reference-parser.js'
-import { createRepositoryReference } from '../../domain/repository-resolver.js'
-import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
-import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
+import { InvalidValueError, ProjectRootNotFoundError } from '@pecot/workflow-core/domain/errors.js'
+import { createIssueReference } from '@pecot/workflow-core/domain/reference-parser.js'
+import { createRepositoryReference } from '@pecot/workflow-core/domain/repository-resolver.js'
+import { setEnvironment, useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import {
   ensureWorkDirectory,
   hasFlag,

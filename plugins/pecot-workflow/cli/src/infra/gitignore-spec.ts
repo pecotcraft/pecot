@@ -14,8 +14,8 @@
 //
 // 範囲が逆（`[z-a]` など）のパターンは、Python では re.error、ここでは SyntaxError を投げる。
 
-import { InvalidValueError } from '../domain/errors.js'
-import { pythonRightStrip, pythonStringRepr, splitCodePoints } from '../domain/python-format.js'
+import { InvalidValueError } from '@pecot/workflow-core/domain/errors.js'
+import { pythonRightStrip, pythonStringRepr, splitCodePoints } from '@pecot/workflow-core/domain/python-format.js'
 
 const DIRECTORY_MARK = 'ps_d'
 const DIRECTORY_MARK_GROUP = `(?<${DIRECTORY_MARK}>/)`

@@ -3,9 +3,9 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { ISSUE_CREATE_COMMANDS } from '../../src/commands/issue-create.js'
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import { writeTree } from '../../src/tests/_helpers/temporary.js'
-import type { ResponseRule } from '../fake-github/server.js'
+import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { writeTree } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import type { CliResult, RunningGithub } from '../_helpers/interface-case.js'
 import {
@@ -36,8 +36,8 @@ import {
 import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
-import { prerequisitesRule } from '../_helpers/prerequisites.js'
-import type { IssueSpec } from '../_helpers/prerequisites.js'
+import { prerequisitesRule } from '../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
+import type { IssueSpec } from '../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -154,6 +154,41 @@ describe('issue create', () => {
       expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
       const post = github.requests().find(request => request.type === 'rest')
       expect(post).toMatchObject({ body: { title: '[Task] 一覧に状態を出す', body: TASK_BODY.trimEnd() } })
+    })
+
+    it('フロントマターに labels を書くと、Issue にそのラベルを付けて作る', async () => {
+      const project = setUpIssueProject()
+      writeTree(project.root, { 'a.md': taskFile('先頭', 'labels:', '  - bug') })
+      const github = await startGithub(fileRules())
+
+      const result = await create(path.join(project.root, 'a.md'))
+
+      expect(result.code).toBe(0)
+      expect(github.requests().find(request => request.type === 'rest')).toMatchObject({ body: { title: '[Task] 先頭', labels: ['bug'] } })
+    })
+
+    it('リポジトリを空にした Epic のファイルは、aggregation_repo に作る', async () => {
+      const project = setUpIssueProject({ aggregation: 'acme/demo' })
+      writeTree(project.root, { 'epic.md': rawFrontmatterFile(['type: epic', 'repository: ""', 'title: 大きな仕事', 'status: backlog'], EPIC_BODY) })
+      const github = await startGithub(fileRules())
+
+      const result = await create(path.join(project.root, 'epic.md'))
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toBe('created: Issue acme/demo/12 from epic.md\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status backlog\n')
+      expect(github.requests().find(request => request.type === 'rest')).toMatchObject({ path: '/repos/acme/demo/issues', body: { title: '[Epic] 大きな仕事' } })
+    })
+
+    it('aggregation_repo と違うリポジトリを書いた Epic のファイルは、warning の行を出してそのリポに作る', async () => {
+      const project = setUpIssueProject({ aggregation: 'acme/demo', otherRepositories: ['other'] })
+      writeTree(project.root, { 'epic.md': rawFrontmatterFile(['type: epic', 'repository: acme/other', 'title: 大きな仕事', 'status: backlog'], EPIC_BODY) })
+      await startGithub([linkedRepositories(1, ['demo', 'other']), createdIssue(12, { repository: 'other' }), issueNodeId(12, 1, 'other'), addedToProject(), updatedFields(1)])
+
+      const result = await create(path.join(project.root, 'epic.md'))
+
+      expect(result.code).toBe(0)
+      expect(result.stderr).toMatch(/^warning: .*differs from aggregation_repo \(acme\/demo\)\n/u)
+      expect(result.stderr).toContain('created: Issue acme/other/12 from epic.md\n')
     })
 
     it('ボードへの追加に失敗したとき、warning の行と Issue の URL を出し、次のファイルへ進んで終了コード 0 で終わる', async () => {

@@ -1,5 +1,5 @@
 // 層の規則が eslint.config.js から消えたら落とすテスト。
-// 規則: domain は infra・commands・mcp を import しない。domain は node:fs・node:child_process を import しない。
+// 規則: domain は infra・commands・mcp を import しない（lib の層も同じ）。domain は node:fs・node:child_process を import しない。
 // 実在する domain のファイルのパスで、中身だけ差し替えた文字列を lintText に渡す。
 import path from 'node:path'
 
@@ -7,9 +7,9 @@ import { ESLint } from 'eslint'
 import { beforeAll, describe, expect, it } from 'vitest'
 
 const projectDirectory = path.resolve(import.meta.dirname, '../..')
-const domainFile = path.join(projectDirectory, 'src', 'domain', 'errors.ts')
-const domainTestFile = path.join(projectDirectory, 'src', 'domain', 'tests', 'git-url.test.ts')
-const infraFile = path.join(projectDirectory, 'src', 'infra', 'git.ts')
+const domainFile = path.join(projectDirectory, 'src', 'domain', 'issue-surface.ts')
+const domainTestFile = path.join(projectDirectory, 'src', 'domain', 'tests', 'issue-surface.test.ts')
+const infraFile = path.join(projectDirectory, 'src', 'infra', 'worktree.ts')
 
 // 型情報付きの ESLint は、最初の lintText がプロジェクト全体の読み込みで重い（単体で約 1.5 秒）。
 // CI では他のレーンと並列に動き、その数倍になる。重い処理は beforeAll の 1 回に寄せ、
@@ -28,12 +28,21 @@ async function ruleIds(code: string, filePath: string): Promise<readonly string[
 
 describe('domain の依存方向', () => {
   it('domain から infra の import は import-x/no-restricted-paths に当たる', async () => {
-    const ids = await ruleIds('import { runGit } from \'../infra/git.js\'\n\nexport const used = runGit\n', domainFile)
+    const ids = await ruleIds('import { ensureDevcontainerEnvironment } from \'../infra/worktree.js\'\n\nexport const used = ensureDevcontainerEnvironment\n', domainFile)
     expect(ids).toContain('import-x/no-restricted-paths')
   })
 
+  it.each([
+    ['domain から lib の infra', '@pecot/workflow-core/infra/git.js', 'runGit', 'domain'],
+    ['domain から lib の commands-shared', '@pecot/workflow-core/commands-shared/output.js', 'createOutput', 'domain'],
+    ['infra から lib の commands-shared', '@pecot/workflow-core/commands-shared/output.js', 'createOutput', 'infra'],
+  ])('%s の import は no-restricted-imports に当たる', async (_name, source, name, layer) => {
+    const ids = await ruleIds(`import { ${name} } from '${source}'\n\nexport const used = ${name}\n`, layer === 'domain' ? domainFile : infraFile)
+    expect(ids).toContain('no-restricted-imports')
+  })
+
   it('infra から domain の import は違反にならない', async () => {
-    const ids = await ruleIds('import { PecotError } from \'../domain/errors.js\'\n\nexport const used = PecotError\n', infraFile)
+    const ids = await ruleIds('import { extractIssueSurface } from \'../domain/issue-surface.js\'\n\nexport const used = extractIssueSurface\n', infraFile)
     expect(ids).not.toContain('import-x/no-restricted-paths')
   })
 

@@ -1,7 +1,7 @@
 /* eslint-disable unicorn/no-null -- 偽サーバの応答に JSON の null を使う */
 // issue block / unblock のテストが共有する準備と、偽の GitHub の応答。
-import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
-import type { ResponseRule } from '../fake-github/server.js'
+import { gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { graphqlRule } from './command-harness.js'
 import { enterGitRepository, setUpProject } from './interface-case.js'
 import type { ProjectFixture } from './interface-case.js'

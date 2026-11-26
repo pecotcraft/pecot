@@ -5,7 +5,8 @@ PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 cd "${PLUGIN_ROOT}"
 
 # --scope で実行範囲を絞る（nx のレーン pecot-workflow:lint-cli から呼ぶ）。cli は tsc / eslint / knip と、スキルの scripts/*.cjs の eslint。引数なしは全部。
-# env PECOT_WORKFLOW_SKIP_INSTALL=1: install を飛ばす（nx 経由では pecot-workflow:install が 1 回だけ流す）。
+# env PECOT_WORKFLOW_SKIP_INSTALL=1: install と lib の build を飛ばす。
+#   nx 経由では、pecot-workflow:install と workflow-core:build が 1 回だけ流す。
 # 本ファイルや lock を足したら、nx.json の pecotPluginNodeInputs に足す。
 for arg in "$@"; do
     case "$arg" in
@@ -45,6 +46,10 @@ if [ "$SCRIPT_SKIP_INSTALL" = false ]; then
     ( cd "$PLUGIN_ROOT/../.." && $PNPM install --frozen-lockfile )
     echo "==> bash $PLUGIN_ROOT/scripts/ci/check-pm-scripts.sh"
     bash "$PLUGIN_ROOT/scripts/ci/check-pm-scripts.sh"
+    # cli の tsc は @pecot/workflow-core の型を libs/workflow-core/dist から読むので、先に build する。
+    echo "==> $PNPM --filter @pecot/workflow-core-src run build"
+    # shellcheck disable=SC2086
+    ( cd "$PLUGIN_ROOT/../.." && $PNPM --filter @pecot/workflow-core-src run build )
 fi
 # tsc --noEmit → eslint → knip
 echo "==> $PNPM --filter @pecot/pecot-workflow-cli run lint"

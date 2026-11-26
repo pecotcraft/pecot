@@ -1,5 +1,5 @@
 // issue のグループのコマンド。並びは help の一覧に出る順
-import type { CommandDefinition } from './command-definition.js'
+import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { ISSUE_ATTRIBUTES_COMMANDS } from './issue-attributes.js'
 import { ISSUE_CHECK_COMMANDS } from './issue-check.js'
 import { ISSUE_COMMENT_COMMANDS } from './issue-comment.js'

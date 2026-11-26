@@ -1,9 +1,9 @@
 // issue edit。Issue 1 件の機能の値を、名前で書き、変え、外す。
 import { z } from 'zod'
 
-import { readAttributeValues } from '../infra/github/attributes.js'
-import { describeApiError } from '../domain/api-error-detail.js'
-import { GitHubAPIError } from '../infra/github/errors.js'
+import { readAttributeValues } from '@pecot/workflow-core/infra/github/attributes.js'
+import { describeApiError } from '@pecot/workflow-core/domain/api-error-detail.js'
+import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
 import {
   ATTRIBUTE_CHANGE_JSON,
   ATTRIBUTE_ERROR_JSON,
@@ -21,14 +21,14 @@ import {
   writeProjectFields,
 } from './attribute-writes.js'
 import type { AttributeOutcome } from './attribute-writes.js'
-import { defineCommand } from './command-definition.js'
-import type { CommandDefinition } from './command-definition.js'
-import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
-import { kindOfFailure } from './failure.js'
-import { createAuthenticatedGitHubClient } from './github-client.js'
-import { ISSUE_REF_DESCRIPTION, issuePath, parseIssueReferenceOrExit, runWithExit } from './issue-shared.js'
-import { createOutput } from './output.js'
-import type { Operation, Output } from './output.js'
+import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { PROJECT_INPUT, requireConfigFor, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
+import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
+import { createAuthenticatedGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
+import { ISSUE_REF_DESCRIPTION, issuePath, parseIssueReferenceOrExit, runWithExit } from '@pecot/workflow-core/commands-shared/issue-shared.js'
+import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
+import type { Operation, Output } from '@pecot/workflow-core/commands-shared/output.js'
 
 const EDIT_PATH = ['issue', 'edit']
 

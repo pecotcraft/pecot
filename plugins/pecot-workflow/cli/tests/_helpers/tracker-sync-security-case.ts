@@ -1,8 +1,8 @@
 // tracker sync security のテストが共有する準備。alert の応答・Tracker の Issue・ボードの応答を組み立てる。
-import type { JsonObject } from '../../src/domain/json.js'
-import { renderTrackerBody } from '../../src/domain/security-tracker.js'
-import type { TrackerEntry } from '../../src/domain/security-tracker.js'
-import type { RecordedRequest, ResponseRule, ResponseSpec } from '../fake-github/server.js'
+import type { JsonObject } from '@pecot/workflow-core/domain/json.js'
+import { renderTrackerBody } from '@pecot/workflow-core/domain/security-tracker.js'
+import type { TrackerEntry } from '@pecot/workflow-core/domain/security-tracker.js'
+import type { RecordedRequest, ResponseRule, ResponseSpec } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { issueListRule } from './tracker-sync-case.js'
 
 export const TODAY_TITLE = '[Tracker] security alert — 2026-11-09'

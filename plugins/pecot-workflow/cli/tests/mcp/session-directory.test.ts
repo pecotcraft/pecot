@@ -2,7 +2,7 @@
 // session_show は directory を "." にして、サーバの cwd を見る。GitHub は呼ばない（ブランチ名の末尾に番号が無く、作業中の Issue が無い）。
 import { describe, expect, it } from 'vitest'
 
-import { createGitRepository, gitForTest } from '../../src/tests/_helpers/git-repository.js'
+import { createGitRepository, gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import { cliEntry, builtCliProblem } from '../parity/built-cli.js'
 import { runScenario } from '../parity/run.js'
 import type { Launcher, Outcome } from '../parity/run.js'

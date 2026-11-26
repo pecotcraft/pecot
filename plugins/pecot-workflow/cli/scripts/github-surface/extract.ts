@@ -5,11 +5,11 @@ import { fileURLToPath } from 'node:url'
 import process from 'node:process'
 import { parseArgs } from 'node:util'
 
-import { createOutput } from '../../src/commands/output.js'
+import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import type { CommandIo } from '../../src/commands/registry.js'
 import { extractIssueSurface } from '../../src/domain/issue-surface.js'
 import type { IssueSurface } from '../../src/domain/issue-surface.js'
-import { DEFAULT_API_VERSION } from '../../src/infra/github/client.js'
+import { DEFAULT_API_VERSION } from '@pecot/workflow-core/infra/github/client.js'
 import { fetchIssueSurfaceSources } from '../../src/infra/github/issue-surface.js'
 
 const USAGE = 'usage: extract.ts --out <file> [--api-version <version>]'

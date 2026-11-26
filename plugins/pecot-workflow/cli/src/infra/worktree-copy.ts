@@ -6,12 +6,12 @@
 // ディレクトリは、リンク先の中身を写す。
 // 写せないエントリがあっても残りを写し終えてから、まとめてエラーにする（copytree と同じ）。
 
-import { BaseError } from '../domain/errors.js'
+import { BaseError } from '@pecot/workflow-core/domain/errors.js'
 import { chmodSync, copyFileSync, existsSync, mkdirSync, readdirSync, statSync, utimesSync } from 'node:fs'
 import path from 'node:path'
 
-import { pythonStringRepr } from '../domain/python-format.js'
-import { toOsError } from './os-error.js'
+import { pythonStringRepr } from '@pecot/workflow-core/domain/python-format.js'
+import { toOsError } from '@pecot/workflow-core/infra/os-error.js'
 
 export interface CopyResult {
   readonly source: string

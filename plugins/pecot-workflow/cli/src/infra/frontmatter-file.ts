@@ -3,11 +3,11 @@
 
 import { existsSync } from 'node:fs'
 
-import { FrontmatterError, parseCommentContent, parseFrontmatter, parsePullRequestContent } from '../domain/frontmatter.js'
-import type { ParsedComment, ParsedIssue, ParsedPullRequest } from '../domain/frontmatter.js'
+import { FrontmatterError, parseCommentContent, parseFrontmatter, parsePullRequestContent } from '@pecot/workflow-core/domain/frontmatter.js'
+import type { ParsedComment, ParsedIssue, ParsedPullRequest } from '@pecot/workflow-core/domain/frontmatter.js'
 
-import { normalizePath } from './paths.js'
-import { readTextFile } from './text-file.js'
+import { normalizePath } from '@pecot/workflow-core/infra/paths.js'
+import { readTextFile } from '@pecot/workflow-core/infra/text-file.js'
 
 function readFrontmatterFile(file: string): string {
   if (!existsSync(file)) throw new FrontmatterError(`file not found: ${normalizePath(file)}`)

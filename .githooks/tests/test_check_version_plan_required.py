@@ -22,7 +22,7 @@ _IGNORE_GLOBS = json.loads((_REPO_ROOT / "nx.json").read_text())["release"]["ver
 def _nx_json(root_globs: list[str] | None = _IGNORE_GLOBS, group_vp: dict | None = None) -> str:
     """実 nx.json と同型の release.groups。root_globs が None なら root の versionPlans は true。"""
     groups = {}
-    for name in ("pecot-workflow", "pecot-visual", "pecot-tools", "text-rules"):
+    for name in ("pecot-workflow", "pecot-visual", "pecot-tools", "text-rules", "workflow-core"):
         groups[name] = {"projects": [name], "projectsRelationship": "fixed"}
         if group_vp and name in group_vp:
             groups[name]["versionPlans"] = group_vp[name]
@@ -39,6 +39,7 @@ _NX_ROOTS = """pecot-workflow=plugins/pecot-workflow
 pecot-visual=plugins/pecot-visual
 pecot-tools=plugins/pecot-tools
 text-rules=libs/text-rules
+workflow-core=libs/workflow-core
 nx-release=.nx/nx-release
 interface-spec=libs/interface-spec
 pecot-workflowx=plugins/pecot-workflowx"""

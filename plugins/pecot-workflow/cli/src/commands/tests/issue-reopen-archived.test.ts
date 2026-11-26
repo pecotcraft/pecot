@@ -1,11 +1,11 @@
 // issue reopen で、ボードのアイテムがアーカイブ済みなら、Status を書く前にアーカイブを解く
 import { describe, expect, it } from 'vitest'
 
-import { useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
+import { useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import type { CliResult } from '../../../tests/_helpers/interface-case.js'
 import { runInProcess, settleWithFakeDelays, startGithub, useFakeDelays } from '../../../tests/_helpers/interface-case.js'
 import { fieldUpdated, linkedRepositories, prepareProject, reopened } from '../../../tests/_helpers/board-issue-case.js'
-import type { RecordedRequest, ResponseRule } from '../../../tests/fake-github/server.js'
+import type { RecordedRequest, ResponseRule } from '../../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { ISSUE_REOPEN_COMMANDS } from '../issue-reopen.js'
 
 useIsolatedEnvironment()

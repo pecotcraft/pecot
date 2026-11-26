@@ -4,10 +4,10 @@ import path from 'node:path'
 
 import { describe, expect, it, vi } from 'vitest'
 
-import { CancelledError } from '../../domain/errors.js'
-import { useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
-import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
-import { OsError } from '../os-error.js'
+import { CancelledError } from '@pecot/workflow-core/domain/errors.js'
+import { useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
+import { OsError } from '@pecot/workflow-core/infra/os-error.js'
 import { runSetupCommand } from '../worktree-setup.js'
 
 useIsolatedEnvironment()

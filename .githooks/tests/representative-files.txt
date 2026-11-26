@@ -50,6 +50,10 @@ libs/text-rules/index.ts
 libs/text-rules/package.json
 libs/text-rules/project.json
 libs/text-rules/tests/index.test.ts
+libs/workflow-core/src/commands-shared/cell-table.ts
+libs/workflow-core/src/domain/config.ts
+libs/workflow-core/src/domain/tests/config.test.ts
+libs/workflow-core/tests/output/cases.json
 nx.json
 package.json
 plugins/pecot-tools/.claude-plugin/plugin.json
@@ -102,7 +106,6 @@ plugins/pecot-workflow/cli/templates/workflow/pecot-review.yml
 plugins/pecot-workflow/cli/tests/bootstrap/data-dir.sh
 plugins/pecot-workflow/cli/tests/bootstrap/install-record.sh
 plugins/pecot-workflow/cli/tests/hooks/baseline-scripts.test.ts
-plugins/pecot-workflow/cli/tests/output/cases.json
 plugins/pecot-workflow/cli/tests/parity/baseline.json
 plugins/pecot-workflow/com.github.copilot/hooks/hooks.json
 plugins/pecot-workflow/hooks/lib/core/pecot-gitignore-ensure.sh
@@ -121,4 +124,3 @@ pnpm-workspace.yaml
 pyproject.toml
 specs/026-pre-merge-test-env/spec.md
 uv.lock
-plugins/pecot-workflow/cli/src/commands/cell-table.ts

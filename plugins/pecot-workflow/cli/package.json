@@ -17,7 +17,7 @@
     "prebuild": "node --eval \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "node scripts/tsc.mjs -p tsconfig.build.json",
     "postbuild": "node --eval \"require('node:fs').writeFileSync('dist/package.json', JSON.stringify({type:'module'}))\"",
-    "lint": "node scripts/tsc.mjs --noEmit && eslint --max-warnings=0 . && knip",
+    "lint": "node scripts/tsc.mjs --noEmit && eslint --max-warnings=0 . && knip && knip --directory ../../.. --config plugins/pecot-workflow/cli/knip-workflow-core.json --tsConfig tsconfig.build.json --workspace libs/workflow-core",
     "test": "vitest run --coverage --project cli",
     "test:watch": "vitest",
     "dev": "tsx src/cli.ts",
@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.4.0",
+    "@pecot/workflow-core": "workspace:@pecot/workflow-core-src@*",
     "commander": "^15.1.0",
     "yaml": "^2.9.1",
     "zod": "^4.6.7"

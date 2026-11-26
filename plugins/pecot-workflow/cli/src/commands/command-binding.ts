@@ -4,8 +4,8 @@
 import { Command, CommanderError, Option } from 'commander'
 import { z } from 'zod'
 
-import { closeMatches } from '../domain/fuzzy.js'
-import { flagOf } from './names.js'
+import { closeMatches } from '@pecot/workflow-core/domain/fuzzy.js'
+import { flagOf } from '@pecot/workflow-core/commands-shared/names.js'
 import type { CommandDefinition, CommandIo, PreparedCommand } from './registry.js'
 import {
   invalidValueMessage,
@@ -15,8 +15,8 @@ import {
   optionRequiresArgumentMessage,
   optionTakesNoValueMessage,
   UsageError,
-} from './usage-error.js'
-import type { UsageContext } from './usage-error.js'
+} from '@pecot/workflow-core/commands-shared/usage-error.js'
+import type { UsageContext } from '@pecot/workflow-core/commands-shared/usage-error.js'
 import { convertValue, flagKindOf, valueTypeOf } from './value-types.js'
 import type { FlagKind, ValueType } from './value-types.js'
 

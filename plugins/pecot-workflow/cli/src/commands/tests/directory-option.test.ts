@@ -6,11 +6,11 @@ import process from 'node:process'
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
-import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
+import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { runDefinition } from '../command-binding.js'
 import { DIRECTORY_DESCRIPTION, directorySchema } from '../directory-option.js'
 import { defineCommand } from '../registry.js'
-import { UsageError } from '../usage-error.js'
+import { UsageError } from '@pecot/workflow-core/commands-shared/usage-error.js'
 import { capture, exitWith } from './support.js'
 
 const seen: unknown[] = []

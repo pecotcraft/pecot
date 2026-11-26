@@ -57,20 +57,21 @@ paths:
 `${}` を含むテンプレートリテラルの題と、文字列の連結（`'a' + x`）の題は、値が決まらないので止めません。
 変数や関数呼び出しの題は、規約の文言ではなく `Test title must be a string` で止まります。
 
-設定は次の 5 つに、同じ形で書いています。変えるときは 5 つとも変えます。
+設定は次の 6 つに、同じ形で書いています。変えるときは 6 つとも変えます。
 
 - `plugins/pecot-tools/cli/eslint.config.js`
 - `plugins/pecot-visual/cli/eslint.config.js`
 - `plugins/pecot-workflow/cli/eslint.config.js`
 - `libs/text-rules/eslint.config.js`
+- `libs/workflow-core/eslint.config.js`
 - `libs/interface-spec/eslint.config.js`
 
 `describe` の題の 2 行は、`tests/interface/**` にだけ当てます。規則は `libs/interface-spec/src/eslint/describe-title.ts` にあります。
-上の `eslint.config.js` のうち、interface-spec を除く 4 つが、`describeTitleConfig` で読み込んでいます。
+上の `eslint.config.js` のうち、interface-spec を除く 5 つが、`describeTitleConfig` で読み込んでいます。
 入れ子の `describe` と関数の中の `describe`、`describe` が無いファイルは止めません。`${}` の無いテンプレートリテラルは題として読みます。
-`libs/text-rules` は定義書を持たないので `definitions` が空で、`tests/interface/` に `describe` を足すと、どの題も止まります。
+`libs/text-rules`・`libs/workflow-core` は定義書を持たず、`definitions` が空です。`tests/interface/` に `describe` を足すと、どの題も止まります。
 
-`$` のキーの行は、5 つの `eslint.config.js` が `tableKeyConfig` で読み込みます。規則は `libs/interface-spec/src/eslint/table-key.ts` にあります。
+`$` のキーの行は、6 つの `eslint.config.js` が `tableKeyConfig` で読み込みます。規則は `libs/interface-spec/src/eslint/table-key.ts` にあります。
 見るのは、根が `it`・`test`・`describe`・`suite` の `.each(…)(題)` と `.for(…)(題)` です。入れ子の `describe` と関数の中も見ます。題は、文字列のリテラルと `${}` の無いテンプレートリテラルだけ読みます。
 行にキーが無いことは見ません。行が変数や関数の結果のことが多いためです。
 
@@ -84,7 +85,7 @@ vitest の setupFiles の `libs/interface-spec/src/vitest/unique-titles.ts` が�
 | 同じ名前が 2 回以上ある。ファイルが失敗になり、そのファイルのケースは skip として並ぶ | `同じ題のテストが重なる` と、重なった名前 |
 
 別の `describe` の中にある同じ題は、名前が違うので重なりとしません。
-setupFiles は、5 つの project の `vitest.config.ts` に書いています。pecot-workflow は、インラインの 3 つの project それぞれに書いています。
+setupFiles は、6 つの project の `vitest.config.ts` に書いています。pecot-workflow は、インラインの 3 つの project それぞれに書いています。
 pecot-tools・pecot-visual の `vitest.e2e.config.ts` にも書いています。vitest の設定を足すときは、これも足します。
 
 ## 項目へのつなぎ

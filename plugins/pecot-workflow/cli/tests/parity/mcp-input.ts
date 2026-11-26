@@ -5,7 +5,7 @@ import path from 'node:path'
 
 import { z } from 'zod'
 
-import { parseJson } from '../../src/tests/_helpers/json.js'
+import { parseJson } from '../../../../../libs/workflow-core/tests/_helpers/json.js'
 import { pluginRoot } from './setup.js'
 
 const Names = z.array(z.string())

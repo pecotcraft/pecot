@@ -3,15 +3,15 @@
 import { describe, expect, it } from 'vitest'
 
 import { ISSUE_SHOW_COMMANDS } from '../../src/commands/issue-show.js'
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
-import type { RecordedRequest, ResponseRule } from '../fake-github/server.js'
+import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
+import type { RecordedRequest, ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import type { RunningGithub } from '../_helpers/interface-case.js'
 import { enterGitRepository, runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { attributeRules, boardValue, issueAttributesData, issueFieldsProbeRule } from '../_helpers/attributes.js'
-import { prerequisitesRule } from '../_helpers/prerequisites.js'
+import { prerequisitesRule } from '../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
 import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
 
@@ -35,16 +35,17 @@ interface IssueFields {
   readonly branches?: readonly string[]
   readonly timeline?: readonly unknown[]
   readonly blockedByCount?: number
+  readonly state?: string
 }
 
 /**
 GetIssueSlim の 200 の応答
 */
 function issueRule(fields: Readonly<IssueFields> = {}): ResponseRule {
-  const { number = 7, title = '見本の Issue', body = '本文の 1 行目\n', parent, comments = { totalCount: 0, nodes: [] }, subIssues = [], branches = [], timeline = [], blockedByCount } = fields
+  const { number = 7, state = 'OPEN', title = '見本の Issue', body = '本文の 1 行目\n', parent, comments = { totalCount: 0, nodes: [] }, subIssues = [], branches = [], timeline = [], blockedByCount } = fields
   const issue = {
     number,
-    state: 'OPEN',
+    state,
     title,
     body,
     comments,
@@ -725,6 +726,26 @@ describe('issue show', () => {
 
       expect(JSON.parse(result.stdout)).toMatchObject({ blockedBy: [], readiness: { kind: 'startable', text: 'startable' } })
       expect(github.requests().map(request => request.type === 'graphql' ? request.operation : '')).toEqual(['GetIssueSlim', 'HasIssueFields', 'GetIssueAttributes'])
+    })
+
+    it('閉じた前提は、Blocked by の行に CLOSED で出す', async () => {
+      setUpProject()
+      await startGithub([issueRule(), prerequisitesRule({ number: 7, blockedBy: [{ number: 3, state: 'CLOSED', title: 'Base' }] }), ...attributeRules()])
+
+      const result = await read('acme/demo/7')
+
+      expect(result.code).toBe(0)
+      expect(result.stdout).toMatch(/\*\*Blocked by:\*\* #3 Base \(CLOSED, [^)]+\)\n/u)
+    })
+
+    it('前提の件数が 0 で sub-issue を持つ閉じた Issue を読むと、Epic として readiness を null にする', async () => {
+      setUpProject()
+      await startGithub([issueRule({ blockedByCount: 0, state: 'CLOSED', subIssues: [{ number: 8, state: 'OPEN', title: '子の Issue' }] }), ...attributeRules()])
+
+      const result = await read('acme/demo/7', '--json')
+
+      expect(result.code).toBe(0)
+      expect(JSON.parse(result.stdout)).toMatchObject({ state: 'CLOSED', blockedBy: [], readiness: null })
     })
 
     describe('MCP の呼び出し', () => {

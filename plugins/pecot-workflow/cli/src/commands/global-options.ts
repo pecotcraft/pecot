@@ -2,8 +2,8 @@
 //
 // 解析はコマンド名の手前で止まる。コマンド名より後ろの引数は、そのコマンドの解析に渡す。
 // ここでは値の検証はしない。--repo の形式と PECOT_GITHUB_API_URL は、呼び出す側が決まった順で検証する。
-import { closeMatches } from '../domain/fuzzy.js'
-import type { UsageContext } from './usage-error.js'
+import { closeMatches } from '@pecot/workflow-core/domain/fuzzy.js'
+import type { UsageContext } from '@pecot/workflow-core/commands-shared/usage-error.js'
 import {
   COMMAND_SYNOPSIS,
   invalidValueMessage,
@@ -11,7 +11,7 @@ import {
   optionRequiresArgumentMessage,
   optionTakesNoValueMessage,
   UsageError,
-} from './usage-error.js'
+} from '@pecot/workflow-core/commands-shared/usage-error.js'
 
 /**
 --repo の値が不正なときの文。detail は owner/repo の解析が投げた例外の文

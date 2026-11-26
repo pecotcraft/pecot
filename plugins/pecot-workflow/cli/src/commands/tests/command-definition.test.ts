@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { runDefinition } from '../command-binding.js'
-import { CommandExit, defineCommand, interfaceIdOf } from '../command-definition.js'
-import { BaseError } from '../../domain/errors.js'
-import { UsageError } from '../usage-error.js'
+import { CommandExit, defineCommand, interfaceIdOf } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { BaseError } from '@pecot/workflow-core/domain/errors.js'
+import { UsageError } from '@pecot/workflow-core/commands-shared/usage-error.js'
 import { capture, exitWith } from './support.js'
 
 describe('CommandExit', () => {

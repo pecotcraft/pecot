@@ -7,7 +7,7 @@ import { bulletSection, definitionSection, examplesSection, HELP_OPTION, helpWid
 import type { DefinitionRow } from './help-layout.js'
 import { isRecord, normalizeInput } from './input-schema.js'
 import type { InputSchema, JsonObject } from './input-schema.js'
-import { flagOf } from './names.js'
+import { flagOf } from '@pecot/workflow-core/commands-shared/names.js'
 import type { CommandDefinition } from './registry.js'
 import { describeRange } from './value-types.js'
 

@@ -1,15 +1,15 @@
 // グローバルの `--repo` と、今の git remote のリポジトリの食い違いを扱う（Python の `require_repo_match`）。
 // 判定は domain/repository-policy.ts の applyRepositoryPolicy に任せ、ここは git の解決と行の出力、止めるときの終了コードだけを行う。
-import { formatHinted } from '../domain/command-hint.js'
-import type { HintedText } from '../domain/command-hint.js'
-import { AMBIGUOUS_REPOSITORY_LINE, applyRepositoryPolicy } from '../domain/repository-policy.js'
-import type { PolicyMode } from '../domain/repository-policy.js'
-import { readCurrentGitRemote } from '../domain/repository-resolver.js'
-import type { RepositoryReference, ResolvedRepository, UnreadableRemote } from '../domain/repository-resolver.js'
-import { gitRunnerFor, listRemotes } from '../infra/git.js'
-import { CommandExit } from './command-definition.js'
-import type { CommandIo } from './command-definition.js'
-import { ERROR_PREFIX, WARNING_PREFIX } from './output.js'
+import { formatHinted } from '@pecot/workflow-core/domain/command-hint.js'
+import type { HintedText } from '@pecot/workflow-core/domain/command-hint.js'
+import { AMBIGUOUS_REPOSITORY_LINE, applyRepositoryPolicy } from '@pecot/workflow-core/domain/repository-policy.js'
+import type { PolicyMode } from '@pecot/workflow-core/domain/repository-policy.js'
+import { readCurrentGitRemote } from '@pecot/workflow-core/domain/repository-resolver.js'
+import type { RepositoryReference, ResolvedRepository, UnreadableRemote } from '@pecot/workflow-core/domain/repository-resolver.js'
+import { gitRunnerFor, listRemotes } from '@pecot/workflow-core/infra/git.js'
+import { CommandExit } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { CommandIo } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { ERROR_PREFIX, WARNING_PREFIX } from '@pecot/workflow-core/commands-shared/output.js'
 
 /**
 今の git remote を読む。git の外・remote 無しは undefined、URL から owner/repo を読めなければ UnreadableRemote

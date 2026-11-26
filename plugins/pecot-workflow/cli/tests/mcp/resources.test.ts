@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { COMMANDS } from '../../src/commands/registry.js'
 import { templateFile } from '../../src/infra/template-store.js'
-import { readTextFile } from '../../src/infra/text-file.js'
+import { readTextFile } from '@pecot/workflow-core/infra/text-file.js'
 import { createMcpServer, MCP_INSTRUCTIONS } from '../../src/mcp/server.js'
 import { connectInMemory } from '../_helpers/mcp-client.js'
 import type { ConnectedClient } from '../_helpers/mcp-client.js'

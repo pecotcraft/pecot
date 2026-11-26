@@ -6,35 +6,36 @@ import path from 'node:path'
 
 import { z } from 'zod'
 
-import { formatStackableChains, resolveBatch } from '../domain/batch-plan.js'
-import type { BatchFile, ResolvedPrerequisite } from '../domain/batch-plan.js'
-import { decideBoardMove } from '../domain/board-move.js'
-import type { BoardMove, BoardMoveInput, MovableColumn } from '../domain/board-move.js'
-import { getOptionId } from '../domain/config.js'
-import type { ProjectConfig } from '../domain/config.js'
-import { InternalError, InvalidValueError } from '../domain/errors.js'
-import { splitOwnerRepository, createRepositoryReference } from '../domain/repository-resolver.js'
-import type { RepositoryReference } from '../domain/repository-resolver.js'
-import { FrontmatterError, stripFrontmatter, stripLeadingHtmlComment } from '../domain/frontmatter.js'
-import type { IssueFrontmatter } from '../domain/frontmatter.js'
-import { findBatchDuplicate, planOrders } from '../domain/issue-order.js'
-import type { OrderRequest } from '../domain/issue-order.js'
-import { upsertWaitsForMerge } from '../domain/prerequisites.js'
-import { PYTHON_LINE_BREAK, compareStrings, pythonRightStrip, pythonStrip, pythonStringRepr, truncateCodePoints } from '../domain/python-format.js'
-import { createIssueReference, issueReferenceKey, issueReferenceToCliReference } from '../domain/reference-parser.js'
-import type { IssueReference } from '../domain/reference-parser.js'
-import { describeReadiness, displayReference, hasStarted, stackChains } from '../domain/readiness.js'
-import type { Progression } from '../domain/readiness.js'
+import { formatStackableChains, resolveBatch } from '@pecot/workflow-core/domain/batch-plan.js'
+import type { BatchFile, ResolvedPrerequisite } from '@pecot/workflow-core/domain/batch-plan.js'
+import { decideBoardMove } from '@pecot/workflow-core/domain/board-move.js'
+import type { BoardMove, BoardMoveInput, MovableColumn } from '@pecot/workflow-core/domain/board-move.js'
+import { getOptionId } from '@pecot/workflow-core/domain/config.js'
+import type { ProjectConfig } from '@pecot/workflow-core/domain/config.js'
+import { InternalError, InvalidValueError } from '@pecot/workflow-core/domain/errors.js'
+import { splitOwnerRepository, createRepositoryReference } from '@pecot/workflow-core/domain/repository-resolver.js'
+import type { RepositoryReference } from '@pecot/workflow-core/domain/repository-resolver.js'
+import { FrontmatterError, stripFrontmatter, stripLeadingHtmlComment } from '@pecot/workflow-core/domain/frontmatter.js'
+import type { IssueFrontmatter } from '@pecot/workflow-core/domain/frontmatter.js'
+import { findBatchDuplicate, planOrders } from '@pecot/workflow-core/domain/issue-order.js'
+import type { OrderRequest } from '@pecot/workflow-core/domain/issue-order.js'
+import { upsertWaitsForMerge } from '@pecot/workflow-core/domain/prerequisites.js'
+import { PYTHON_LINE_BREAK, compareStrings, pythonRightStrip, pythonStrip, pythonStringRepr, truncateCodePoints } from '@pecot/workflow-core/domain/python-format.js'
+import { createIssueReference, issueReferenceKey, issueReferenceToCliReference } from '@pecot/workflow-core/domain/reference-parser.js'
+import type { IssueReference } from '@pecot/workflow-core/domain/reference-parser.js'
+import { describeReadiness, displayReference, hasStarted, stackChains } from '@pecot/workflow-core/domain/readiness.js'
+import type { Progression } from '@pecot/workflow-core/domain/readiness.js'
 import { parseIssueFile } from '../infra/frontmatter-file.js'
-import { configSourcePath, projectNameOf } from '../infra/config-store.js'
-import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/errors.js'
-import { DEPENDENCIES_UNSUPPORTED } from '../infra/github/issues.js'
-import type { GitHubClient } from '../infra/github/index.js'
-import { normalizePath, resolveRealPath } from '../infra/paths.js'
-import { readTextFile } from '../infra/text-file.js'
-import type { AttributeDefinition, AttributeError, AttributeInput, AttributeWrite } from '../domain/attributes.js'
-import type { JsonObject } from '../domain/json.js'
-import { LANE_FIELD_NAME } from '../domain/lanes.js'
+import { templateFile } from '../infra/template-store.js'
+import { configSourcePath, projectNameOf } from '@pecot/workflow-core/infra/config-store.js'
+import { DependenciesUnsupportedError, GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
+import { DEPENDENCIES_UNSUPPORTED } from '@pecot/workflow-core/infra/github/issues.js'
+import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
+import { normalizePath, resolveRealPath } from '@pecot/workflow-core/infra/paths.js'
+import { readTextFile } from '@pecot/workflow-core/infra/text-file.js'
+import type { AttributeDefinition, AttributeError, AttributeInput, AttributeWrite } from '@pecot/workflow-core/domain/attributes.js'
+import type { JsonObject } from '@pecot/workflow-core/domain/json.js'
+import { LANE_FIELD_NAME } from '@pecot/workflow-core/domain/lanes.js'
 import {
   ATTRIBUTE_ERROR_JSON,
   ATTRIBUTE_FAILURE_JSON,
@@ -53,19 +54,19 @@ import {
   writeProjectFields,
 } from './attribute-writes.js'
 import type { AttributeErrorJson, AttributeOutcome, DefinitionsCache, IssueLocationTarget, RawAttributes } from './attribute-writes.js'
-import { CommandExit, defineCommand } from './command-definition.js'
-import type { CommandDefinition, CommandIo } from './command-definition.js'
+import { CommandExit, defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { CommandDefinition, CommandIo } from '@pecot/workflow-core/commands-shared/command-definition.js'
 
-import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from './command-hint.js'
-import type { CommandHint } from './command-hint.js'
-import { PROJECT_INPUT, requireBoardConfig, requireConfigFor, stopWith } from './command-stop.js'
-import { kindOfFailure } from './failure.js'
-import type { FieldHintState } from './field-write-failure.js'
-import { createGitHubClient } from './github-client.js'
-import { applyBoardMove } from './issue-board.js'
-import type { BoardItem } from './issue-board.js'
-import { createReadinessCache, readIssueReadiness } from './issue-readiness.js'
-import type { JudgedIssue, ReadinessCache } from './issue-readiness.js'
+import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import type { CommandHint } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import { PROJECT_INPUT, requireBoardConfig, requireConfigFor, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
+import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
+import type { FieldHintState } from '@pecot/workflow-core/commands-shared/field-write-failure.js'
+import { createGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
+import { applyBoardMove } from '@pecot/workflow-core/commands-shared/issue-board.js'
+import type { BoardItem } from '@pecot/workflow-core/commands-shared/issue-board.js'
+import { createReadinessCache, readIssueReadiness } from '@pecot/workflow-core/commands-shared/issue-readiness.js'
+import type { JudgedIssue, ReadinessCache } from '@pecot/workflow-core/commands-shared/issue-readiness.js'
 import {
   addToBoardOrWarn,
   buildIssueTitle,
@@ -88,11 +89,11 @@ import {
   validateIssueTemplate,
   validateStatusForType,
   warnEpicRepositoryException,
-} from './issue-shared.js'
-import type { IssueField, IssueType } from './issue-shared.js'
-import { createOutput } from './output.js'
-import type { Output } from './output.js'
-import { USAGE_EXIT_CODE } from './usage-error.js'
+} from '@pecot/workflow-core/commands-shared/issue-shared.js'
+import type { IssueField, IssueType } from '@pecot/workflow-core/commands-shared/issue-shared.js'
+import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
+import type { Output } from '@pecot/workflow-core/commands-shared/output.js'
+import { USAGE_EXIT_CODE } from '@pecot/workflow-core/commands-shared/usage-error.js'
 
 const FILES_SCHEMA = z.array(z.string()).optional().describe('Path of a Markdown file with frontmatter (several for a batch post)')
 const LABEL_SCHEMA = z.array(z.string()).optional().describe('Label (can be given several times)')
@@ -601,7 +602,7 @@ function readLocalFile(output: Output, config: ProjectConfig, file: string): Loc
   const [owner, repository] = fileTargetRepository(output, frontmatter, config)
   const home = createRepositoryReference(owner, repository)
 
-  validateIssueTemplate(output, frontmatter.template ?? frontmatter.type, parsed.body.replaceAll(PLACEHOLDER_PATTERN, '#1'))
+  validateIssueTemplate(output, templateFile('issue', frontmatter.template ?? frontmatter.type), parsed.body.replaceAll(PLACEHOLDER_PATTERN, '#1'))
   const hasPrerequisites = frontmatter.blocked_by.length > 0
   const declared = frontmatter.status ?? (hasPrerequisites ? 'blocked' : TYPE_DEFAULT_STATUS[frontmatter.type])
   validateStatusForType(output, frontmatter.type, declared, hasPrerequisites ? ['blocked'] : undefined)
@@ -987,7 +988,7 @@ async function createDirect(output: CreateOutput, options: Readonly<DirectOption
 
   const parentReference = parentReferenceOf(normalizeParentEpicCli(options.parentEpic), config, owner, repository)
   const title = buildIssueTitle(issueType, options.title, { parentEpic: parentReference?.number, order: options.order })
-  validateIssueTemplate(output, issueType, options.message)
+  validateIssueTemplate(output, templateFile('issue', issueType), options.message)
   const client = await clientForIssueCreate(output, config, owner, repository, options.repository, parentReference, options.order)
   const labels = options.labels !== undefined && options.labels.length > 0 ? options.labels : undefined
   const attributes = await checkDirectAttributes(output, client, config, { owner, repository, inputs: options.attributes, hasLabels: labels !== undefined, lane: options.lane, parent: parentReference })

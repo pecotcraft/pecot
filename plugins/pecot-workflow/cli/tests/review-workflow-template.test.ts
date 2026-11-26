@@ -7,7 +7,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
-import { stoppedMarker } from '../src/domain/review-finish.js'
+import { stoppedMarker } from '@pecot/workflow-core/domain/review-finish.js'
 import { markdownSection } from './_helpers/markdown-section.js'
 
 const pluginRoot = path.resolve(import.meta.dirname, '..', '..')

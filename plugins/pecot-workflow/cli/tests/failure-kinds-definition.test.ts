@@ -6,11 +6,11 @@ import { describe, expect, it } from 'vitest'
 import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
 
-import { KIND_BY_CLASS } from '../src/commands/failure.js'
-import { FAILURE_KINDS } from '../src/commands/failure-kind.js'
+import { KIND_BY_CLASS } from '@pecot/workflow-core/commands-shared/failure.js'
+import { FAILURE_KINDS } from '@pecot/workflow-core/commands-shared/failure-kind.js'
 import { COMMANDS } from '../src/commands/registry.js'
-import { interfaceIdOf } from '../src/commands/command-definition.js'
-import { compareStrings } from '../src/domain/python-format.js'
+import { interfaceIdOf } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { compareStrings } from '@pecot/workflow-core/domain/python-format.js'
 import { collectReturnedKinds, type ReturnedKind } from './_helpers/returned-kinds.js'
 
 const AUTHORED = path.resolve(import.meta.dirname, '../../interface/authored.yaml')

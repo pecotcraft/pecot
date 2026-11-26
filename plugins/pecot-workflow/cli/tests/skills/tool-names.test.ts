@@ -5,7 +5,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { COMMAND_GROUPS } from '../../src/commands/names.js'
+import { COMMAND_GROUPS } from '@pecot/workflow-core/commands-shared/names.js'
 import { COMMANDS } from '../../src/commands/registry.js'
 import { compareStrings } from '../parity/baseline.js'
 import { pluginRoot, readDocuments, toolInputs } from './_helpers/documents.js'

@@ -38,8 +38,12 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
+      # ... は依存先の libs/workflow-core も入れる。cli は @pecot/workflow-core をその dist から読むので、続けて build する。
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts --filter @pecot/pecot-workflow-cli
+        run: pnpm install --frozen-lockfile --ignore-scripts --filter @pecot/pecot-workflow-cli...
+
+      - name: Build workflow-core
+        run: pnpm --filter @pecot/workflow-core-src run build
 
       - name: Generate GitHub App token
         id: app-token

@@ -73,18 +73,29 @@ async function isDirectory(directory: string): Promise<boolean> {
   }
 }
 
+// git ls-files で読む範囲を、glob の固定の部分から決める
+function fixedDirectory(glob: string): string {
+  const parts = glob.split('/')
+  const end = parts.findIndex(part => /[*?[{]/u.test(part))
+  return parts.slice(0, end === -1 ? -1 : end).join('/')
+}
+
 // git に追跡されたファイルのうち、glob に当たるものを読む。node_modules や .gitignore のものは入らない。
+// glob はプラグインのディレクトリからの相対で書き、../../libs/<name>/ のようにプラグインが同梱するライブラリも指せる。
 export async function loadSources(root: string, plugin: string, globs: readonly string[]): Promise<SourceFile[]> {
   if (globs.length === 0) return []
+  const repositoryGlobs = globs.map(glob => path.posix.normalize(path.posix.join('plugins', plugin, glob)))
+  if (repositoryGlobs.some(glob => glob.startsWith('../'))) throw new LoadError(`${plugin}: a source glob points outside the repository`)
+  const directories = [...new Set([`plugins/${plugin}`, ...repositoryGlobs.map(glob => fixedDirectory(glob))])]
   let stdout: string
   try {
-    ;({ stdout } = await run('git', ['ls-files', '-z', '--', `plugins/${plugin}`], { cwd: root, maxBuffer: 64 * 1024 * 1024 }))
+    ;({ stdout } = await run('git', ['ls-files', '-z', '--', ...directories], { cwd: root, maxBuffer: 64 * 1024 * 1024 }))
   }
   catch {
     throw new LoadError(`${root}: git ls-files failed (is it a git repository?)`)
   }
-  const files = stdout.split('\0').filter(file => file !== '')
-    .filter(file => globs.some(glob => path.posix.matchesGlob(file.slice(`plugins/${plugin}/`.length), glob)))
+  const files = [...new Set(stdout.split('\0').filter(file => file !== ''))]
+    .filter(file => repositoryGlobs.some(glob => path.posix.matchesGlob(file, glob)))
     .toSorted((left, right) => compareText(left, right))
   // index に残って作業ツリーから消えたファイルは飛ばす。
   const read = await Promise.all(files.map(async file => ({ path: file, text: await readText(path.join(root, file)) })))

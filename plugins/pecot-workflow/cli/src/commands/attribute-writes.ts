@@ -2,19 +2,19 @@
 // issue_create・issue_edit の attributes。入力の形、定義との照らし合わせ、検証の後の書き込みと結果の組み立て。
 import { z } from 'zod'
 
-import { describeApiError } from '../domain/api-error-detail.js'
-import { JSON_NULL } from '../domain/json-null.js'
-import { ATTRIBUTE_ERROR_CODES, ATTRIBUTE_SOURCES, formatAttributeValue, validateAttributes } from '../domain/attributes.js'
-import type { AttributeError, AttributeInput, AttributeReading, AttributeValidation, AttributeValue, AttributeWrite, AttributeWriteTarget, BuiltinWrite } from '../domain/attributes.js'
-import type { ProjectConfig } from '../domain/config.js'
-import type { JsonObject } from '../domain/json.js'
-import { LANE_FIELD_NAME } from '../domain/lanes.js'
-import { readAttributeDefinitions } from '../infra/github/attributes.js'
-import { GitHubAPIError } from '../infra/github/errors.js'
-import type { GitHubClient } from '../infra/github/index.js'
-import { builtinValuesOfIssue, issueFieldRestId } from '../infra/github/issues.js'
-import type { CreateIssueExtras } from '../infra/github/issues.js'
-import type { Output } from './output.js'
+import { describeApiError } from '@pecot/workflow-core/domain/api-error-detail.js'
+import { JSON_NULL } from '@pecot/workflow-core/domain/json-null.js'
+import { ATTRIBUTE_ERROR_CODES, ATTRIBUTE_SOURCES, formatAttributeValue, validateAttributes } from '@pecot/workflow-core/domain/attributes.js'
+import type { AttributeError, AttributeInput, AttributeReading, AttributeValidation, AttributeValue, AttributeWrite, AttributeWriteTarget, BuiltinWrite } from '@pecot/workflow-core/domain/attributes.js'
+import type { ProjectConfig } from '@pecot/workflow-core/domain/config.js'
+import type { JsonObject } from '@pecot/workflow-core/domain/json.js'
+import { LANE_FIELD_NAME } from '@pecot/workflow-core/domain/lanes.js'
+import { readAttributeDefinitions } from '@pecot/workflow-core/infra/github/attributes.js'
+import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
+import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
+import { builtinValuesOfIssue, issueFieldRestId } from '@pecot/workflow-core/infra/github/issues.js'
+import type { CreateIssueExtras } from '@pecot/workflow-core/infra/github/issues.js'
+import type { Output } from '@pecot/workflow-core/commands-shared/output.js'
 
 const SOURCE_JSON = z.enum(ATTRIBUTE_SOURCES)
 

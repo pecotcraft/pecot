@@ -4,14 +4,14 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { InvalidValueError } from '../../domain/errors.js'
-import { ValidationFailure } from '../../domain/python-format.js'
-import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
-import { parseJson } from '../../tests/_helpers/json.js'
-import { createGitRepository, gitForTest } from '../../tests/_helpers/git-repository.js'
-import { makeTemporaryDirectory, writeTree } from '../../tests/_helpers/temporary.js'
-import { WORKTREE_IGNORE_FILENAME } from '../paths.js'
-import { OsError } from '../os-error.js'
+import { InvalidValueError } from '@pecot/workflow-core/domain/errors.js'
+import { ValidationFailure } from '@pecot/workflow-core/domain/python-format.js'
+import { setEnvironment, useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { parseJson } from '../../../../../../libs/workflow-core/tests/_helpers/json.js'
+import { createGitRepository, gitForTest } from '../../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
+import { makeTemporaryDirectory, writeTree } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
+import { WORKTREE_IGNORE_FILENAME } from '@pecot/workflow-core/infra/paths.js'
+import { OsError } from '@pecot/workflow-core/infra/os-error.js'
 import {
   pecotGitignoreEnsureScript,
   createSymlinks,
@@ -27,8 +27,8 @@ import {
   WorktreeConfigError,
 } from '../worktree-links.js'
 import type { LinkPlan, WorktreeConfig } from '../worktree-links.js'
-import { ignoredDiagnostics, recordDiagnostics } from './recording-diagnostics.js'
-import { worktreeConfigOutputs } from '../../tests/_helpers/python-output.js'
+import { ignoredDiagnostics, recordDiagnostics } from '../../../../../../libs/workflow-core/tests/_helpers/recording-diagnostics.js'
+import { worktreeConfigOutputs } from '../../../../../../libs/workflow-core/tests/_helpers/python-output.js'
 // 案内の文を描くには、コマンドの形の登録が要る
 import '../../commands/registry.js'
 

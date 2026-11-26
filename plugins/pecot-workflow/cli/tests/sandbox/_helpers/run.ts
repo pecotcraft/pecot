@@ -4,8 +4,8 @@ import { spawnSync } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { installFakeExecutable } from '../../../src/tests/_helpers/fake-executables.js'
-import { makeTemporaryDirectory } from '../../../src/tests/_helpers/temporary.js'
+import { installFakeExecutable } from '../../../../../../libs/workflow-core/tests/_helpers/fake-executables.js'
+import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { pluginRoot } from '../../skills/_helpers/documents.js'
 
 export const repositoryRoot = path.resolve(pluginRoot, '../..')

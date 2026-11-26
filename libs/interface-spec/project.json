@@ -62,6 +62,10 @@
         "{workspaceRoot}/plugins/pecot-workflow/cli/src/infra/*.ts",
         "{workspaceRoot}/plugins/pecot-workflow/cli/src/infra/github/*.ts",
         "{workspaceRoot}/plugins/pecot-workflow/cli/src/mcp/*.ts",
+        "{workspaceRoot}/libs/workflow-core/src/commands-shared/*.ts",
+        "{workspaceRoot}/libs/workflow-core/src/domain/*.ts",
+        "{workspaceRoot}/libs/workflow-core/src/infra/*.ts",
+        "{workspaceRoot}/libs/workflow-core/src/infra/github/*.ts",
         "{workspaceRoot}/plugins/pecot-workflow/skills/w-help/references/commands.md",
         "{workspaceRoot}/plugins/pecot-tools/cli/tests/**/*.ts",
         "{workspaceRoot}/plugins/pecot-tools/cli/src/**/tests/**/*.ts",
@@ -75,7 +79,7 @@
         "install"
       ],
       "metadata": {
-        "description": "plugins/*/interface/ の定義書が形式に合うかを確かめる。定義書に無い ID を書いたテストも止める（links）。w-help の commands.md が、generated.json から作り直したものと一致するかも確かめる。失敗は 1 件 1 行で標準エラーに出す。プラグインのソース（targets.json の sources）は inputs に足してある。プラグインを足すときは、その sources の glob も足す。tests の glob も inputs に足す。"
+        "description": "plugins/*/interface/ の定義書が形式に合うかを確かめる。定義書に無い ID を書いたテストも止める（links）。w-help の commands.md が、generated.json から作り直したものと一致するかも確かめる。失敗は 1 件 1 行で標準エラーに出す。プラグインのソース（targets.json の sources）は inputs に足してある。プラグインを足すときは、その sources の glob も足す。sources はプラグインからの相対で、../../libs/ の下の同梱するライブラリも指せる。tests の glob も inputs に足す。"
       },
       "options": {
         "command": "pnpm exec tsx src/cli.ts validate && pnpm exec tsx src/cli.ts links && pnpm exec tsx src/cli.ts commands-md --check",

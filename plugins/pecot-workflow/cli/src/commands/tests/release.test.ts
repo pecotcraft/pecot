@@ -2,12 +2,12 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { CommandExit } from '../command-definition.js'
+import { CommandExit } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { requireReleaseTargetRepository } from '../release.js'
-import { createOutput } from '../output.js'
-import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
-import { createGitRepository, gitForTest } from '../../tests/_helpers/git-repository.js'
-import { makeTemporaryDirectory } from '../../tests/_helpers/temporary.js'
+import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
+import { setEnvironment, useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { createGitRepository, gitForTest } from '../../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
+import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import '../registry.js'
 import { capture } from './support.js'
 

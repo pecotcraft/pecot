@@ -15,8 +15,10 @@
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import os
+import posixpath
 import re
 import shutil
 import subprocess
@@ -44,6 +46,7 @@ _EXPECTED_PROJECTS = {
     "pecot-visual",
     "pecot-workflow",
     "text-rules",
+    "workflow-core",
 }
 
 
@@ -147,6 +150,8 @@ def test_project_set_is_the_expected_one(nx_bin: Path) -> None:
         ("plugins/pecot-workflow/cli/src/cli.ts", {"pecot-workflow"}),
         ("plugins/pecot-visual/cli/src/cli.ts", {"pecot-visual"}),
         ("libs/text-rules/index.ts", {"text-rules"}),
+        # pecot-workflow は package.json の依存で workflow-core を読み、graph の辺でも affected になる。
+        ("libs/workflow-core/src/domain/config.ts", {"workflow-core", "pecot-workflow"}),
     ],
 )
 def test_plugin_source_affects_own_projects(
@@ -313,8 +318,8 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
         ),
         # 出力の行の期待値は、Node の出力のテストと githooks の一致のテストが読む (#205)。
         (
-            "plugins/pecot-workflow/cli/tests/output/cases.json",
-            {"pecot-workflow:test-cli", "githooks:test-checks"},
+            "libs/workflow-core/tests/output/cases.json",
+            {"workflow-core:test-unit", "githooks:test-checks"},
         ),
         # 診断行の期待は、3 プラグインの一致のテストが読む (#215)。
         (
@@ -337,6 +342,7 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
                 "pecot-workflow:test-hooks",
                 "pecot-workflow:test-skills",
                 "text-rules:test-unit",
+                "workflow-core:test-unit",
             },
         ),
         # verifies の本体。3 つのプラグインの _helpers/verifies.ts が re-export し、cli のテストだけが読む (#695)。
@@ -769,6 +775,19 @@ _PECOTV_TEST_LANES = {
                 "pecot-workflow:test-skills",
             },
         ),
+        # libs/workflow-core のソースは、dist を読む pecot-workflow の各レーンへ ^production で届く。
+        (
+            "libs/workflow-core/src/domain/config.ts",
+            {
+                "workflow-core:test-unit",
+                "pecot-workflow:test-cli",
+                "pecot-workflow:test-bootstrap",
+                "pecot-workflow:test-hooks",
+                "pecot-workflow:test-skills",
+                "pecot-workflow:test-release",
+            },
+        ),
+        ("libs/workflow-core/src/domain/tests/config.test.ts", {"workflow-core:test-unit"}),
         # baseline.json は test-cli の閾値と、test-hooks の起動スクリプトの実在確認と、test-skills の並べ替えの関数（baseline.ts と対）が読む。
         (
             "plugins/pecot-workflow/cli/tests/parity/baseline.json",
@@ -1012,7 +1031,7 @@ def test_gate_selects_only_the_lanes_the_change_reaches(
         ("plugins/pecot-visual/CHANGELOG.md", set()),
         ("plugins/pecot-visual/cli/src/infra/drawio/pdf.ts", set()),
         ("plugins/pecot-tools/cli/tests/bootstrap/run.sh", set()),
-        ("plugins/pecot-workflow/cli/src/commands/cell-table.ts", set()),
+        ("libs/workflow-core/src/commands-shared/cell-table.ts", set()),
     ],
 )
 def test_gate_selects_the_githooks_lanes_that_read_the_change(
@@ -1066,6 +1085,11 @@ def test_graph_lanes_read_every_workspace_package_json(
             "plugins/pecot-workflow/cli/tests/hooks/baseline-scripts.test.ts",
             {"pecot-workflow:lint-cli", "interface-spec:lint-defs"},
         ),
+        # libs/workflow-core のソースは、自分の lint と、dist を読む lint-cli と、環境変数を確かめる lint-defs に届く。
+        (
+            "libs/workflow-core/src/domain/config.ts",
+            {"workflow-core:lint", "pecot-workflow:lint-cli", "interface-spec:lint-defs"},
+        ),
         # libs/text-rules の lint は実体の target 1 つ。
         # pecot-visual の lint-slidev は、リンクで載せた libs/text-rules を inputs に持つ (#1297)。
         # lint-cli も text-rules:build に依存し、^production で libs/text-rules を取り込む (#1282)。
@@ -1112,7 +1136,7 @@ def test_graph_lanes_read_every_workspace_package_json(
             "plugins/pecot-visual/interface/generated.json",
             {"interface-spec:lint-defs", "pecot-visual:lint-cli"},
         ),
-        # describe の題の規則は、interface-spec の lint と、これを読む 4 つの lint に届く。
+        # describe の題の規則は、interface-spec の lint と、これを読む 5 つの lint に届く。
         (
             "libs/interface-spec/src/eslint/describe-title.ts",
             {
@@ -1122,6 +1146,7 @@ def test_graph_lanes_read_every_workspace_package_json(
                 "pecot-visual:lint-cli",
                 "pecot-workflow:lint-cli",
                 "text-rules:lint",
+                "workflow-core:lint",
             },
         ),
         (
@@ -1133,6 +1158,7 @@ def test_graph_lanes_read_every_workspace_package_json(
                 "pecot-visual:lint-cli",
                 "pecot-workflow:lint-cli",
                 "text-rules:lint",
+                "workflow-core:lint",
             },
         ),
         (
@@ -1222,24 +1248,33 @@ def test_lint_defs_inputs_cover_the_sources_and_tests_of_every_plugin() -> None:
         for key in ("sources", "tests"):
             for glob in plugin[key]:
                 # glob は plugins/<name>/ から、inputs はリポのルートから。
-                path = f"plugins/{name}/{glob}"
+                path = posixpath.normpath(f"plugins/{name}/{glob}")
                 assert path in inputs, f"{name} の {key} の {glob} が lint-defs の inputs に無い"
 
 
-def test_pecot_workflow_sources_list_every_directory_of_cli_node_src() -> None:
-    """cli/src の .ts を直下に持つディレクトリ（tests は除く）が、どれも sources の glob に載る。
+def _matches_by_segment(path: str, glob: str) -> bool:
+    """** を使わない glob を、/ で区切った段ごとに比べる。"""
+    parts, patterns = path.split("/"), glob.split("/")
+    return len(parts) == len(patterns) and all(map(fnmatch.fnmatchcase, parts, patterns))
+
+
+@pytest.mark.parametrize("src_dir", ["cli/src", "../../libs/workflow-core/src"])
+def test_pecot_workflow_sources_list_every_directory_of_cli_node_src(src_dir: str) -> None:
+    """cli/src と同梱する libs/workflow-core/src の .ts を直下に持つディレクトリ（tests は除く）が、どれも sources の glob に載る。
 
     sources は ** を使わずディレクトリを列挙するので、載らないと環境変数の確認から漏れる。
     """
     sources = json.loads((_REPO_ROOT / "libs/interface-spec/targets.json").read_text("utf-8"))[
         "plugins"
     ]["pecot-workflow"]["sources"]
-    plugin_root = _REPO_ROOT / "plugins/pecot-workflow"
-    src = plugin_root / "cli/src"
+    globs = [posixpath.normpath(f"plugins/pecot-workflow/{glob}") for glob in sources]
+    src = _REPO_ROOT / posixpath.normpath(f"plugins/pecot-workflow/{src_dir}")
     directories = {
         path.parent for path in src.rglob("*.ts") if "tests" not in path.relative_to(src).parts
     }
-    assert directories, "cli/src に .ts が無い"
+    assert directories, f"{src_dir} に .ts が無い"
     for directory in sorted(directories):
-        glob = f"{directory.relative_to(plugin_root).as_posix()}/*.ts"
-        assert glob in sources, f"{glob} が targets.json の pecot-workflow の sources に無い"
+        file = f"{directory.relative_to(_REPO_ROOT).as_posix()}/x.ts"
+        assert any(_matches_by_segment(file, glob) for glob in globs), (
+            f"{directory.relative_to(_REPO_ROOT).as_posix()} が targets.json の pecot-workflow の sources に無い"
+        )

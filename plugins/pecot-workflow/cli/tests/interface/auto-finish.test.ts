@@ -6,16 +6,16 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { AUTO_FINISH_COMMANDS } from '../../src/commands/auto-finish.js'
-import { useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
-import { makeTemporaryDirectory } from '../../src/tests/_helpers/temporary.js'
+import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { makeTemporaryDirectory } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { AUTO_COMMENT_URL, AUTO_POSTED, AUTO_TOKEN, autoResult, botResult, issueComments, ISSUE_COMMENTS, LABEL_PATH, labelRemoved, postedBody, prepareAuto, statusUpdated, writesOf } from '../_helpers/auto-case.js'
 import { boardItems } from '../_helpers/board-issue-case.js'
 import type { CliResult } from '../_helpers/interface-case.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
-import { prerequisitesRule } from '../_helpers/prerequisites.js'
+import { prerequisitesData, prerequisitesRule } from '../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
 import { verifies } from '../_helpers/verifies.js'
-import type { ResponseRule } from '../fake-github/server.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 
 useIsolatedEnvironment()
 
@@ -192,6 +192,26 @@ describe('auto finish', () => {
     expect(body).not.toContain('pecot-auto:')
     expect(body).toContain('分からない（`GITHUB_RUN_ID` が無い）')
     expect(github.requests().some(request => request.type === 'rest' && request.method === 'GET' && request.path === ISSUE_COMMENTS)).toBe(false)
+  })
+
+  it('GITHUB_RUN_ATTEMPT が無いと、1 回目の試行として書く', async () => {
+    prepareAuto({}, { GITHUB_RUN_ATTEMPT: undefined })
+    const github = await startGithub([issueComments(), ISSUE, boardItems(), AUTO_POSTED, statusUpdated('needs_attention'), labelRemoved()])
+
+    await finish(ensure('cancelled'))
+
+    expect(postedBody(github.requests())).toContain('run=500 attempt=1 ')
+  })
+
+  it('Issue の前提が部分エラーで読めないと、書かずにその理由で止まる', async () => {
+    prepareAuto()
+    const body = { data: prerequisitesData({ number: 7 }), errors: [{ message: 'denied', path: ['repository', 'issue', 'blockedBy'] }] }
+    const github = await startGithub([{ match: { operation: 'GetIssuePrerequisites' }, respond: { status: 200, body }, times: 1 }])
+
+    const outcome = await finish(['--result', 'failed'])
+
+    expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: could not read Issue acme/demo/7: blockedBy could not be read: denied\n' })
+    expect(writesOf(github.requests())).toEqual([])
   })
 
   it.for([

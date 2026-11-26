@@ -3,8 +3,8 @@
 import { AUTO_COMMANDS } from './auto.js'
 import { BOARD_COMMANDS } from './board.js'
 import { BRANCH_COMMANDS } from './branch.js'
-import type { CommandDefinition } from './command-definition.js'
-import { registerCommandHints } from './command-hint.js'
+import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { registerCommandHints } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import { ISSUE_COMMANDS } from './issue.js'
 import { PR_RESTACK_COMMANDS } from './pr-restack.js'
 import { REVIEW_COMMANDS } from './review-finish.js'
@@ -16,8 +16,8 @@ import { TRACKER_COMMANDS } from './tracker.js'
 import { WORKTREE_COMMANDS } from './worktree.js'
 import { WORKFLOW_COMMANDS } from './workflow.js'
 
-export { defineCommand, toolNameOf } from './command-definition.js'
-export type { CommandDefinition, CommandIo, PreparedCommand } from './command-definition.js'
+export { defineCommand, toolNameOf } from '@pecot/workflow-core/commands-shared/command-definition.js'
+export type { CommandDefinition, CommandIo, PreparedCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
 
 // 並びは help の一覧の順で、names.ts の COMMAND_GROUPS の順に合わせる
 export const COMMANDS: readonly CommandDefinition[] = [

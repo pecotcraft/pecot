@@ -4,16 +4,16 @@ import { setTimeout as delay } from 'node:timers/promises'
 
 import { z } from 'zod'
 
-import type { ProjectConfig } from '../domain/config.js'
-import { GitHubAPIError } from '../infra/github/errors.js'
-import type { GitHubClient } from '../infra/github/index.js'
-import { defineCommand } from './command-definition.js'
-import { hinted, inputNameHint } from './command-hint.js'
-import type { CommandDefinition } from './command-definition.js'
-import { isStatusConfigured, setIssueField } from './issue-board.js'
-import { stopWith, requireConfigFor, PROJECT_INPUT } from './command-stop.js'
-import { kindOfFailure } from './failure.js'
-import { fieldWriteFailure } from './field-write-failure.js'
+import type { ProjectConfig } from '@pecot/workflow-core/domain/config.js'
+import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
+import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
+import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { hinted, inputNameHint } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { isStatusConfigured, setIssueField } from '@pecot/workflow-core/commands-shared/issue-board.js'
+import { stopWith, requireConfigFor, PROJECT_INPUT } from '@pecot/workflow-core/commands-shared/command-stop.js'
+import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
+import { fieldWriteFailure } from '@pecot/workflow-core/commands-shared/field-write-failure.js'
 import {
   connectToProject,
   exitInvalidStatus,
@@ -23,9 +23,9 @@ import {
   parseIssueReferenceOrExit,
   runWithExit,
   VALID_STATUSES,
-} from './issue-shared.js'
-import { createOutput } from './output.js'
-import type { Output } from './output.js'
+} from '@pecot/workflow-core/commands-shared/issue-shared.js'
+import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
+import type { Output } from '@pecot/workflow-core/commands-shared/output.js'
 
 // Projects V2 の自動化が Issue をもう一度閉じることがあるため、status を設定した後に待つ
 const AUTOMATION_WAIT_MILLISECONDS = 3000

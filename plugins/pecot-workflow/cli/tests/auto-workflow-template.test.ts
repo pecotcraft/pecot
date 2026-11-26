@@ -9,7 +9,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
-import { validateBodyStyle } from '../src/domain/sections.js'
+import { validateBodyStyle } from '@pecot/workflow-core/domain/sections.js'
 
 const pluginRoot = path.resolve(import.meta.dirname, '..', '..')
 const templateDirectory = path.join(pluginRoot, 'cli/templates/workflow')

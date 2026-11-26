@@ -1,13 +1,13 @@
 // tracker sync と session finish が共有する出力の補助。
 import { z } from 'zod'
 
-import type { ProjectConfig } from '../domain/config.js'
-import type { TrackerIssue } from '../domain/tracker-body.js'
-import { TransportFailure } from '../infra/github/client.js'
-import { GitHubAPIError } from '../infra/github/errors.js'
-import type { GitHubClient } from '../infra/github/index.js'
-import { requireConfigFor } from './command-stop.js'
-import type { Operation, Output } from './output.js'
+import type { ProjectConfig } from '@pecot/workflow-core/domain/config.js'
+import type { TrackerIssue } from '@pecot/workflow-core/domain/tracker-body.js'
+import { TransportFailure } from '@pecot/workflow-core/infra/github/client.js'
+import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
+import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
+import { requireConfigFor } from '@pecot/workflow-core/commands-shared/command-stop.js'
+import type { Operation, Output } from '@pecot/workflow-core/commands-shared/output.js'
 import { requireReleaseTargetRepository } from './release.js'
 
 /**

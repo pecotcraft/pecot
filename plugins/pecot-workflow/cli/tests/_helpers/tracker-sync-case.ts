@@ -1,9 +1,9 @@
 // tracker sync security と tracker sync dependabot のテストが共有する準備。時計・設定・git・ボードの応答・Tracker の作成と Issue の一覧の応答を置く。
 import { vi } from 'vitest'
 
-import type { JsonObject } from '../../src/domain/json.js'
-import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
-import type { ResponseRule } from '../fake-github/server.js'
+import type { JsonObject } from '@pecot/workflow-core/domain/json.js'
+import { gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { enterGitRepository, setUpProject } from './interface-case.js'
 import type { ProjectFixture } from './interface-case.js'
 import { makeAmbiguous } from './project-selection.js'

@@ -83,16 +83,16 @@
 
 **Independent Test**: pecot-workflow の変更のあるレーンが通り、MCP のツールの一覧と各ツールの結果が移す前と同じ
 
-- [ ] T028 `libs/workflow-core/` の nx project を作る（`project.json`・`package.json`・`tsconfig.json`・`tsconfig.build.json`・`vitest.config.ts`）。形は `libs/text-rules/` に揃える
-- [ ] T029 `libs/workflow-core/eslint.config.js` に、層の向きと domain からの I/O の禁止を、`plugins/pecot-workflow/cli/eslint.config.js` と同じ決まりで置く
-- [ ] T030 `plugins/pecot-workflow/cli/src/domain/` を、テストと一緒に `libs/workflow-core/src/domain/` に移す
-- [ ] T031 `plugins/pecot-workflow/cli/src/infra/github/` を、テストと一緒に `libs/workflow-core/src/infra/github/` に移す
-- [ ] T032 R8 で挙げた共有の部品（`cli/src/commands/issue-shared.ts` など）を、テストと一緒に `libs/workflow-core/src/commands-shared/` に移す
-- [ ] T033 pecot-workflow の import を `libs/workflow-core` に向け、`plugins/pecot-workflow/cli` の build が `libs/workflow-core` を同梱するようにする
-- [ ] T034 `libs/workflow-core` の test・lint のレーンを足し、`.githooks/tests/test_nx_affected_mapping.py` と knip の対象に入れる
-- [ ] T035 `CLAUDE.md` のリポジトリ構成の表に `libs/workflow-core` を足す
-- [ ] T036 version plan を `.nx/version-plans/` に足す。pecot-workflow は動きを変えないので patch にする
-- [ ] T037 CUJ: 作業ツリーで build し、リポの外で MCP Inspector の `--cli`（版を固定）で `tools/list` を呼び、移す前と同じ 45 個のツールが出ることを確かめる
+- [x] T028 `libs/workflow-core/` の nx project を作る（`project.json`・`package.json`・`tsconfig.json`・`tsconfig.build.json`・`vitest.config.ts`）。形は `libs/text-rules/` に揃える
+- [x] T029 `libs/workflow-core/eslint.config.js` に、層の向きと domain からの I/O の禁止を、`plugins/pecot-workflow/cli/eslint.config.js` と同じ決まりで置く
+- [x] T030 `plugins/pecot-workflow/cli/src/domain/` を、テストと一緒に `libs/workflow-core/src/domain/` に移す
+- [x] T031 `plugins/pecot-workflow/cli/src/infra/github/` を、テストと一緒に `libs/workflow-core/src/infra/github/` に移す
+- [x] T032 R8 で挙げた共有の部品（`cli/src/commands/issue-shared.ts` など）を、テストと一緒に `libs/workflow-core/src/commands-shared/` に移す
+- [x] T033 pecot-workflow の import を `libs/workflow-core` に向け、`plugins/pecot-workflow/cli` の build が `libs/workflow-core` を同梱するようにする
+- [x] T034 `libs/workflow-core` の test・lint のレーンを足し、`.githooks/tests/test_nx_affected_mapping.py` と knip の対象に入れる
+- [x] T035 `CLAUDE.md` のリポジトリ構成の表に `libs/workflow-core` を足す
+- [x] T036 version plan を `.nx/version-plans/` に足す。pecot-workflow は動きを変えないので patch にする
+- [x] T037 CUJ: 作業ツリーで build し、リポの外で MCP Inspector の `--cli`（版を固定）で `tools/list` を呼び、移す前と同じ 45 個のツールが出ることを確かめる
 
 ---
 

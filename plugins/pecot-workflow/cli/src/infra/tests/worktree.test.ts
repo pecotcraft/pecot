@@ -5,12 +5,12 @@ import path from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { compileGitIgnoreSpec, GitIgnorePatternError } from '../gitignore-spec.js'
-import { OsError } from '../os-error.js'
+import { OsError } from '@pecot/workflow-core/infra/os-error.js'
 import { DEFAULT_WORKTREEIGNORE_CONTENT } from '../worktree-links.js'
-import { setEnvironment, useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
-import { installFakeExecutable, prependToPath } from '../../tests/_helpers/fake-executables.js'
-import { createGitRepository, gitForTest } from '../../tests/_helpers/git-repository.js'
-import { makeTemporaryDirectory, writeTree } from '../../tests/_helpers/temporary.js'
+import { setEnvironment, useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { installFakeExecutable, prependToPath } from '../../../../../../libs/workflow-core/tests/_helpers/fake-executables.js'
+import { createGitRepository, gitForTest } from '../../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
+import { makeTemporaryDirectory, writeTree } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import {
   claimedSetNames,
   createWorktree,
@@ -28,7 +28,7 @@ import {
   removeWorktree,
   WorktreeRuntimeError,
 } from '../worktree.js'
-import { ignoredDiagnostics, recordDiagnostics } from './recording-diagnostics.js'
+import { ignoredDiagnostics, recordDiagnostics } from '../../../../../../libs/workflow-core/tests/_helpers/recording-diagnostics.js'
 // 案内の文を描くには、コマンドの形の登録が要る
 import '../../commands/registry.js'
 

@@ -2,12 +2,12 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { runCommand } from '../../../tests/_helpers/command-harness.js'
-import { useIsolatedEnvironment } from '../../tests/_helpers/environment.js'
-import { mapWithLimit, pruneArchivedItems } from '../board-view.js'
-import { createOutput } from '../output.js'
+import { useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { mapWithLimit, pruneArchivedItems } from '@pecot/workflow-core/commands-shared/board-view.js'
+import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import { capture } from './support.js'
-import { parseProjectConfig } from '../../domain/config.js'
-import type { BoardItem } from '../../domain/format.js'
+import { parseProjectConfig } from '@pecot/workflow-core/domain/config.js'
+import type { BoardItem } from '@pecot/workflow-core/domain/format.js'
 
 useIsolatedEnvironment()
 

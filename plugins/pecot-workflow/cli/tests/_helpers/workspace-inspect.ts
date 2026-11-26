@@ -5,11 +5,12 @@ import path from 'node:path'
 
 import { rule } from './workspace.js'
 import type { Workspace } from './workspace.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 
 /**
 Issue の種別の問い合わせに 500 を返す応答
 */
-export const KIND_FAILURE = rule({ operation: 'GetIssueKind' }, { status: 500, body: { message: 'Server Error' } })
+export const KIND_FAILURE: ResponseRule = rule({ operation: 'GetIssueKind' }, { status: 500, body: { message: 'Server Error' } })
 
 /**
 空でない行

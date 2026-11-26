@@ -7,9 +7,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { run } from '../scripts/github-surface/extract.js'
 import type { CommandIo } from '../src/commands/registry.js'
 import { issueSurfaceSchema } from '../src/domain/issue-surface.js'
-import { DEFAULT_API_VERSION } from '../src/infra/github/client.js'
+import { DEFAULT_API_VERSION } from '@pecot/workflow-core/infra/github/client.js'
 import { GRAPHQL_SCHEMA_URL, restDescriptionUrl } from '../src/infra/github/issue-surface.js'
-import { makeTemporaryDirectory } from '../src/tests/_helpers/temporary.js'
+import { makeTemporaryDirectory } from '../../../../libs/workflow-core/tests/_helpers/temporary.js'
 
 const SDL = `
 enum IssueFieldDataType { TEXT DATE }

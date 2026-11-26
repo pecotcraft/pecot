@@ -1,6 +1,6 @@
 // board add・board move・issue reopen のテストが共有する準備。
-import type { ResponseRule } from '../fake-github/server.js'
-import { gitForTest } from '../../src/tests/_helpers/git-repository.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
+import { gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import { enterGitRepository, setUpProject } from './interface-case.js'
 import type { ProjectFixture } from './interface-case.js'
 

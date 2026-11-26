@@ -20,11 +20,11 @@ const SHARED = [
   '.github/workflows/publish-npm.yml',
 ]
 
-// プラグインごとのパス。text-rules は pecot-visual の配布物に同梱する。
+// プラグインごとのパス。text-rules は pecot-visual の、workflow-core は pecot-workflow の配布物に同梱する。
 const OWN = {
   'pecot-visual': ['plugins/pecot-visual/**', 'libs/text-rules/**'],
   'pecot-tools': ['plugins/pecot-tools/**'],
-  'pecot-workflow': ['plugins/pecot-workflow/**'],
+  'pecot-workflow': ['plugins/pecot-workflow/**', 'libs/workflow-core/**'],
 }
 
 const matches = (pattern, file) =>

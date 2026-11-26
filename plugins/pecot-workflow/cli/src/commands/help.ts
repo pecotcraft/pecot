@@ -4,7 +4,7 @@
 import { cliTextOf } from './command-help.js'
 import { definitionSection, HELP_OPTION, helpWidth, paragraph, usageLines } from './help-layout.js'
 import type { DefinitionRow } from './help-layout.js'
-import { COMMAND_GROUPS } from './names.js'
+import { COMMAND_GROUPS } from '@pecot/workflow-core/commands-shared/names.js'
 import type { CommandDefinition } from './registry.js'
 
 export const PROGRAM_DESCRIPTION = 'pecot-workflow CLI - work tracking on GitHub Projects'

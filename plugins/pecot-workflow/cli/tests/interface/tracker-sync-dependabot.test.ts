@@ -2,9 +2,9 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { TRACKER_COMMANDS } from '../../src/commands/tracker.js'
-import type { JsonObject } from '../../src/domain/json.js'
-import { JSON_NULL } from '../../src/domain/json-null.js'
-import { setEnvironment, useIsolatedEnvironment } from '../../src/tests/_helpers/environment.js'
+import type { JsonObject } from '@pecot/workflow-core/domain/json.js'
+import { JSON_NULL } from '@pecot/workflow-core/domain/json-null.js'
+import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import {
   failedRule,
   HOUR,
@@ -21,7 +21,7 @@ import {
 import type { PrOptions } from '../_helpers/tracker-sync-dependabot-case.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
 import type { CliResult, RunningGithub } from '../_helpers/interface-case.js'
-import type { ResponseRule } from '../fake-github/server.js'
+import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { boardRules, createdTracker, freezeClock, graphqlServerError, missingTokenStderr, prepareSync, WORKFLOW_FIELD } from '../_helpers/tracker-sync-case.js'

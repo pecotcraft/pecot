@@ -468,6 +468,7 @@ pecot_log() {
 }
 
 # 依存の入力（root で実在するもの）。package.json・runtime-lock.yaml・runtime-workspace.yaml・.npmrc と、workspace メンバーの package.json。
+# vendor/workflow-core の package.json は除く。
 plugin_runtime_deps_files() {
     local root="$1" file member
     (
@@ -481,13 +482,15 @@ plugin_runtime_deps_files() {
                 collecting && /^[^ ]/ { collecting = 0 }
                 collecting && /^  - / { sub(/^  - /, ""); gsub(/["\047 ]/, ""); print }
             ' runtime-workspace.yaml | while IFS= read -r member; do
+                # vendor/workflow-core は入れない。version がリリースのたびに変わり、全利用者の導入がやり直しになるため。src には載る。
+                [ "$member" != vendor/workflow-core ] || continue
                 [ ! -f "$member/package.json" ] || printf '%s\n' "$member/package.json"
             done
         fi
     )
 }
 
-# ソースの入力（build の入力でミラーへ同期する集合）。テストと生成物は含めない。
+# ソースの入力（build の入力でミラーへ同期する集合）。cli と vendor/workflow-core。テストと生成物は含めない。
 plugin_runtime_src_files() {
     local root="$1" file
     (
@@ -495,18 +498,25 @@ plugin_runtime_src_files() {
         printf '%s\n' cli/package.json cli/tsconfig.json cli/tsconfig.build.json cli/scripts/tsc.mjs
         find cli/src -type f ! -path '*/tests/*' ! -name '*.test.ts' ! -name '*.tsbuildinfo' \
             ! -path '*/node_modules/*' ! -path '*/dist/*' 2>/dev/null || true
+        # vendor/workflow-core はリンクなので -L で辿り、node_modules などは -prune する。*.md・project.json は外す（リリースでハッシュを動かさないため）。lint・テストの設定は build に要らないので外す。
+        find -L vendor/workflow-core \( -name node_modules -o -name dist -o -name coverage -o -name tests \) -prune -o \
+            -type f ! -name '*.test.ts' ! -name '*.tsbuildinfo' ! -name '*.md' ! -name project.json \
+            ! -name eslint.config.js ! -name vitest.config.ts ! -name '.*' -print 2>/dev/null || true
     ) | while IFS= read -r file; do
         if [ -f "$root/$file" ]; then printf '%s\n' "$file"; fi
     done
 }
 
-# ミラー内で cli を build する。状態ファイルの絶対パスが合わず verifyDepsBeforeRun が依存を削るため、--config.verify-deps-before-run=false を付ける。
+# ミラー内で lib と cli を build する。状態ファイルの絶対パスが合わず verifyDepsBeforeRun が依存を削るため、--config.verify-deps-before-run=false を付ける。
 # 引数: $1 = ミラーのディレクトリ、$2 = pnpm の起動コマンド
 plugin_runtime_build() {
     local dir="$1" pnpm="$2"
+    # lib を先に build する（cli の型解決が vendor/workflow-core/dist を読む）。
     # `$pnpm` は意図的に quote しない（"corepack pnpm" を 2 トークンに分割するため）
     # shellcheck disable=SC2086
-    ( cd "$dir" && plugin_runtime_pnpm_env && $pnpm --config.verify-deps-before-run=false --filter @pecot/pecot-workflow-cli run build )
+    ( cd "$dir" && plugin_runtime_pnpm_env && $pnpm --config.verify-deps-before-run=false --filter @pecot/workflow-core-src run build ) || return $?
+    # shellcheck disable=SC2086
+    ( cd "$dir" && plugin_runtime_pnpm_env && $pnpm --config.verify-deps-before-run=false --filter @pecot/pecot-workflow-cli run build ) || return $?
 }
 
 # install / build が失敗した後の診断。Node の下限の確認は持たないので、何もせず戻る。

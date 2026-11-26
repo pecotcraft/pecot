@@ -72,6 +72,8 @@
         "{workspaceRoot}/libs/text-rules/index.ts",
         "{workspaceRoot}/libs/text-rules/lib/**/*",
         "{workspaceRoot}/libs/text-rules/bin/**/*",
+        "{workspaceRoot}/libs/workflow-core/project.json",
+        "{workspaceRoot}/libs/workflow-core/package.json",
         "{workspaceRoot}/.githooks/pre-commit/check-version-plan-format.sh",
         "{workspaceRoot}/.githooks/pre-commit/check-text.sh",
         "{workspaceRoot}/.githooks/lib/text-rules-ready.sh",

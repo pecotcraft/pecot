@@ -5,17 +5,17 @@ import path from 'node:path'
 import { ESLint } from 'eslint'
 import { beforeAll, describe, expect, it } from 'vitest'
 
-import { COMMAND_GROUPS } from '../src/commands/names.js'
+import { COMMAND_GROUPS } from '@pecot/workflow-core/commands-shared/names.js'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
 const FIRST_PATH = path.join(ROOT, 'src', 'commands', 'project.ts')
 const PATHS: readonly (readonly [string, string])[] = [
   ['src/commands/project.ts', FIRST_PATH],
-  ['src/commands/output.ts', path.join(ROOT, 'src', 'commands', 'output.ts')],
+  ['src/commands/session.ts', path.join(ROOT, 'src', 'commands', 'session.ts')],
   ['src/infra/worktree.ts', path.join(ROOT, 'src', 'infra', 'worktree.ts')],
-  ['src/domain/work-start.ts', path.join(ROOT, 'src', 'domain', 'work-start.ts')],
+  ['src/domain/issue-surface.ts', path.join(ROOT, 'src', 'domain', 'issue-surface.ts')],
 ]
-const TEST_PATH = path.join(ROOT, 'src', 'commands', 'tests', 'command-hint.test.ts')
+const TEST_PATH = path.join(ROOT, 'src', 'commands', 'tests', 'flag-hint.test.ts')
 
 // 最初の lintText はプロジェクト全体の読み込みで重い。direct-output-lint.test.ts と同じく beforeAll の 1 回に寄せる
 const WARM_UP_TIMEOUT_MS = 120_000

@@ -1,11 +1,11 @@
 // git の remote のリポから、プロジェクトの設定を選ぶ。origin を先に、残りの remote を git remote の順に当てる
-import type { RemoteLocation } from '../domain/git-url.js'
-import { ValidationFailure } from '../domain/python-format.js'
-import { createRepositoryReference } from '../domain/repository-resolver.js'
-import type { RepositoryReference } from '../domain/repository-resolver.js'
-import { findConfigFor } from './config-store.js'
-import type { ConfigLookup, FoundConfig } from './config-store.js'
-import { listRemotes, remoteRepository } from './git.js'
+import type { RemoteLocation } from '@pecot/workflow-core/domain/git-url.js'
+import { ValidationFailure } from '@pecot/workflow-core/domain/python-format.js'
+import { createRepositoryReference } from '@pecot/workflow-core/domain/repository-resolver.js'
+import type { RepositoryReference } from '@pecot/workflow-core/domain/repository-resolver.js'
+import { findConfigFor } from '@pecot/workflow-core/infra/config-store.js'
+import type { ConfigLookup, FoundConfig } from '@pecot/workflow-core/infra/config-store.js'
+import { listRemotes, remoteRepository } from '@pecot/workflow-core/infra/git.js'
 
 export type RemoteConfigLookup
   = | { readonly kind: 'no-remote' }

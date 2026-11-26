@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { JsonValue } from '../python-format.js'
+import type { JsonValue } from '@pecot/workflow-core/domain/python-format.js'
 import type { IssueCoverage } from '../issue-surface.js'
 import {
   checkIssueCoverage,

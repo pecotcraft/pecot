@@ -4,7 +4,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { extractSectionsFromTemplate, validateBodyStyle, validateSections } from '../../src/domain/sections.js'
+import { extractSectionsFromTemplate, validateBodyStyle, validateSections } from '@pecot/workflow-core/domain/sections.js'
 import { templateFile } from '../../src/infra/template-store.js'
 import { pluginRoot, readPluginFile, toolInputs } from './_helpers/documents.js'
 

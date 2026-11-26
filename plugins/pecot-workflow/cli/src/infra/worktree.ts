@@ -9,25 +9,25 @@
 // ファイルのコピーは worktree-copy.ts、setup_command の実行は worktree-setup.ts にある。
 // このファイルがそれらを読む。逆向きの import は作らない（findWorktreeConfigFile と findMainWorktree をここに置くのはそのため）。
 
-import { BaseError } from '../domain/errors.js'
+import { BaseError } from '@pecot/workflow-core/domain/errors.js'
 import { existsSync, readdirSync, readFileSync, rmdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { commandHint, formatHinted, hinted, inputHint, inputNameHint, RUN, surfaceText } from '../domain/command-hint.js'
-import type { HintedText } from '../domain/command-hint.js'
-import { gitFailureText } from '../domain/git-output.js'
-import { getDevelopBranch } from '../domain/config.js'
-import type { ProjectConfig } from '../domain/config.js'
-import { pythonStrip } from '../domain/python-format.js'
-import type { RepositoryReference } from '../domain/repository-resolver.js'
-import { configLookupFailure } from './config-store.js'
+import { commandHint, formatHinted, hinted, inputHint, inputNameHint, RUN, surfaceText } from '@pecot/workflow-core/domain/command-hint.js'
+import type { HintedText } from '@pecot/workflow-core/domain/command-hint.js'
+import { gitFailureText } from '@pecot/workflow-core/domain/git-output.js'
+import { getDevelopBranch } from '@pecot/workflow-core/domain/config.js'
+import type { ProjectConfig } from '@pecot/workflow-core/domain/config.js'
+import { pythonStrip } from '@pecot/workflow-core/domain/python-format.js'
+import type { RepositoryReference } from '@pecot/workflow-core/domain/repository-resolver.js'
+import { configLookupFailure } from '@pecot/workflow-core/infra/config-store.js'
 import { findConfigForRemotes } from './remote-config.js'
-import type { Diagnostics } from './diagnostics.js'
+import type { Diagnostics } from '@pecot/workflow-core/infra/diagnostics.js'
 import { isDirectory } from './file-kind.js'
-import { GitCommandError, gitToplevel, runGit } from './git.js'
+import { GitCommandError, gitToplevel, runGit } from '@pecot/workflow-core/infra/git.js'
 import type { GitIgnoreSpec } from './gitignore-spec.js'
-import { toOsError } from './os-error.js'
-import { normalizePath, resolveRealPath, WORKTREE_CONFIG_FILENAME } from './paths.js'
+import { toOsError } from '@pecot/workflow-core/infra/os-error.js'
+import { normalizePath, resolveRealPath, WORKTREE_CONFIG_FILENAME } from '@pecot/workflow-core/infra/paths.js'
 import {
   createSymlinks,
   loadConfig,

@@ -15,24 +15,24 @@
 import { realpathSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
-import { InvalidValueError } from './domain/errors.js'
-import { AmbiguousRepositoryError, parseOwnerRepository, resolveRepository, UnreadableRemoteError } from './domain/repository-resolver.js'
+import { InvalidValueError } from '@pecot/workflow-core/domain/errors.js'
+import { AmbiguousRepositoryError, parseOwnerRepository, resolveRepository, UnreadableRemoteError } from '@pecot/workflow-core/domain/repository-resolver.js'
 import { readAuthoredNotes } from './infra/authored-notes.js'
-import { gitRunnerFor } from './infra/git.js'
-import { resolveApiUrlOverride } from './infra/github/client.js'
-import { hasErrorCode } from './infra/os-error.js'
+import { gitRunnerFor } from '@pecot/workflow-core/infra/git.js'
+import { resolveApiUrlOverride } from '@pecot/workflow-core/infra/github/client.js'
+import { hasErrorCode } from '@pecot/workflow-core/infra/os-error.js'
 import { extraArgumentsMessage, isHelpRequested, runDefinition } from './commands/command-binding.js'
 import { commandHelpText } from './commands/command-help.js'
-import { interfaceIdOf } from './commands/command-definition.js'
+import { interfaceIdOf } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { invalidRepositoryMessage, parseGlobalOptions, ROOT_USAGE } from './commands/global-options.js'
-import { exitCodeOfFailure } from './commands/failure.js'
-import { closeMatches } from './domain/fuzzy.js'
+import { exitCodeOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
+import { closeMatches } from '@pecot/workflow-core/domain/fuzzy.js'
 import { helpText } from './commands/help.js'
 import { COMMANDS, findCommand } from './commands/registry.js'
 import type { CommandDefinition, CommandIo } from './commands/registry.js'
-import { createOutput, createProcessIo } from './commands/output.js'
+import { createOutput, createProcessIo } from '@pecot/workflow-core/commands-shared/output.js'
 import { formatResolvedRepository } from './commands/repository-display.js'
-import { outputWidth } from './commands/rich-panel.js'
+import { outputWidth } from '@pecot/workflow-core/commands-shared/rich-panel.js'
 import {
   COMMAND_SYNOPSIS,
   MISSING_COMMAND_MESSAGE,
@@ -40,7 +40,7 @@ import {
   noSuchOptionMessage,
   USAGE_EXIT_CODE,
   UsageError,
-} from './commands/usage-error.js'
+} from '@pecot/workflow-core/commands-shared/usage-error.js'
 import { readVersion } from './version.js'
 
 export interface CliContext {
