@@ -14,6 +14,11 @@ unset PLUGIN_DATA PECOT_BOOTSTRAP_SKIP PECOT_BOOTSTRAP_FORCE
 GATE_PLUGIN_DATA="$(mktemp -d)"
 export CLAUDE_PLUGIN_DATA="$GATE_PLUGIN_DATA"
 
+# bash のテストは bt_run_files で動かし、nx のレーンなら確かめを Allure の結果に残す。
+# shellcheck source=../../../../.githooks/scripts/test_report/bash-test.sh
+. "$PLUGIN_ROOT/../../.githooks/scripts/test_report/bash-test.sh"
+PECOT_REPORT_RESULTS="$(bt_results_dir "$PLUGIN_ROOT")"
+
 SCOPE="all"
 for arg in "$@"; do
     case "$arg" in
@@ -122,10 +127,11 @@ if [ "$RUN_BOOTSTRAP" = true ]; then
     # data-dir.sh は、データ置き場の解決順。manifest.sh は、登録ファイルの整合。
     # install-record.sh は、stub pnpm でミラーを作り直す条件と世代削除を確かめる。
     # workflow-core-link.sh は、libs/workflow-core のリンクと、ミラーの入力に node_modules・dist・テストが入らないこと。
+    bootstrap_test_files=()
     for script in run.sh data-dir.sh manifest.sh install-record.sh workflow-core-link.sh; do
-        echo "==> bash cli/tests/bootstrap/$script"
-        bash "$PLUGIN_ROOT/cli/tests/bootstrap/$script"
+        bootstrap_test_files+=("$PLUGIN_ROOT/cli/tests/bootstrap/$script")
     done
+    bt_run_files "${bootstrap_test_files[@]}"
 fi
 
 if [ "$RUN_HOOKS" = true ]; then
@@ -182,10 +188,7 @@ if [ "$RUN_RELEASE" = true ]; then
         echo "ERROR: scripts/release/tests/ 配下に *.test.sh が見つかりません (消失 or find 失敗の疑い)。" >&2
         exit 1
     fi
-    for test_file in "${release_test_files[@]}"; do
-        echo "==> bash $test_file"
-        bash "$test_file"
-    done
+    bt_run_files "${release_test_files[@]}"
 fi
 
 echo "all checks passed"

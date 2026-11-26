@@ -1,18 +1,6 @@
 #!/bin/bash
-# runtime-manifest.mjs（監査対象とする永続層の依存集合）の検証 (#1071)。
-#
-# 永続層へ何を install するかの元データは、cli/src/infra/_shared/runtime-install.ts の runtimeInstallPlan()。
-# 監査側はビルド成果物に依存しないよう、同じ規則を .mjs へ写している。
-# 写しが元データとずれていないことを、ここで固定する。
-#
-# release レーンに置くのは、.mjs 側と TS 側のどちらの変更でも実行するため。
-# release レーン（pecot-visual:test-release）は、cache: false で動く。
-# pecot-visual が affected な push では、毎回実行される。
-# cli 側 vitest（test-cli）に置くと、test-cli の inputs に入らない .mjs 単独の変更が、チェックされずに通る。
-#
-# run-tests.sh の release レーンは RUN_CLI=false のとき cli を build するため、
-# cli/dist は本テストの実行時点で必ず存在する。ネットワーク不要。
-#
+# runtime-manifest.mjs（監査対象とする永続層の依存集合）が、元データの runtimeInstallPlan()（cli/dist）とずれていないことの検証 (#1071)。
+# .mjs と TS のどちらの変更でも動くよう、test-cli でなく release レーンに置く。cli/dist の build が前提。
 # `set -e` は使わない: 引数不足の非ゼロ終了を意図的に発生させるため。
 set -u
 
@@ -24,25 +12,8 @@ RUNTIME_INSTALL_JS="$PECOTV_ROOT/cli/dist/infra/_shared/runtime-install.js"
 RUNTIME_MANIFEST="$PECOTV_ROOT/assets/slidev/runtime/package.json"
 CATALOG_JS="$RELEASE_DIR/catalog.mjs"
 REPO_WORKSPACE_YAML="$(cd "$PECOTV_ROOT/../.." && pwd)/pnpm-workspace.yaml"
-
-PASS=0
-FAIL=0
-fail() {
-    echo "FAIL: $1"
-    FAIL=$((FAIL + 1))
-}
-pass() {
-    echo "PASS: $1"
-    PASS=$((PASS + 1))
-}
-assert_eq() {
-    local label="$1" expected="$2" actual="$3"
-    if [ "$expected" = "$actual" ]; then
-        pass "$label"
-    else
-        fail "$label (expected='$expected' actual='$actual')"
-    fi
-}
+# shellcheck source=../../../../../.githooks/scripts/test_report/bash-test.sh
+. "$PECOTV_ROOT/../../.githooks/scripts/test_report/bash-test.sh"
 
 TMP=$(mktemp -d)
 cleanup() {
@@ -59,17 +30,14 @@ fi
 
 MANIFEST_RC=0
 node "$MANIFEST_JS" "$PECOTV_ROOT" > "$TMP/manifest.json" 2> "$TMP/manifest.err" || MANIFEST_RC=$?
-assert_eq "直接起動が exit 0" "0" "$MANIFEST_RC"
+bt_eq "直接起動が exit 0" "0" "$MANIFEST_RC"
 
 MANIFEST_NAME="$(node -e 'const fs=require("node:fs");process.stdout.write(String(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).name))' \
     "$TMP/manifest.json" 2> /dev/null || echo "__INVALID_JSON__")"
-assert_eq "出力が有効な JSON で name は pecotv-runtime" "pecotv-runtime" "$MANIFEST_NAME"
+bt_eq "出力が有効な JSON で name は pecotv-runtime" "pecotv-runtime" "$MANIFEST_NAME"
 
 # --- 2. 元データ（cli/dist の runtimeInstallPlan）との同値 ---
-#
-# specs は `名前@range` の列、manifest は 名前 -> range の map。
-# 両方を同じ形へ並べ直して比べる。
-# 差分が出た場合は両者の列を出して、どの依存がずれたかを直接読めるようにする。
+# specs は `名前@range` の列、manifest は 名前 -> range の map。両方を同じ形へ並べ直して比べる。
 
 cat > "$TMP/compare.mjs" << 'COMPARE_EOF'
 import { readFileSync } from 'node:fs'
@@ -111,14 +79,14 @@ compare() {
 
 PLAN_SPECS="$(compare specs)"
 MANIFEST_DEPS="$(compare deps)"
-assert_eq "dependencies が runtimeInstallPlan の specs と一致" "$PLAN_SPECS" "$MANIFEST_DEPS"
+bt_eq "dependencies が runtimeInstallPlan の specs と一致" "$PLAN_SPECS" "$MANIFEST_DEPS"
 if [ -n "$PLAN_SPECS" ]; then
-    pass "specs が空でない（比較が無意味になっていない）"
+    bt_pass "specs が空でない（比較が無意味になっていない）"
 else
-    fail "specs が空（比較が無意味になっている）"
+    bt_fail "specs が空でない（比較が無意味になっていない）" "specs が空"
 fi
 
-assert_eq "overrides が runtimeInstallPlan と一致" "$(compare plan-overrides)" "$(compare manifest-overrides)"
+bt_eq "overrides が runtimeInstallPlan と一致" "$(compare plan-overrides)" "$(compare manifest-overrides)"
 
 # --- 3. 合成 root での同値 ---
 # 合成 root は runtime の manifest だけを持つ（固定版は @slidev/cli の版から読む）。
@@ -156,47 +124,51 @@ printf '%s\n' 'catalog:' '  vite: ^8.0.0' > "$SYNTH_WORKSPACE_YAML"
 
 SYNTH_MANIFEST_RC=0
 node "$MANIFEST_JS" "$SYNTH_ROOT" "$SYNTH_WORKSPACE_YAML" > "$TMP/synth-manifest.json" 2> "$TMP/synth-manifest.err" || SYNTH_MANIFEST_RC=$?
-assert_eq "合成 root への直接起動が exit 0" "0" "$SYNTH_MANIFEST_RC"
+bt_eq "合成 root への直接起動が exit 0" "0" "$SYNTH_MANIFEST_RC"
 
 compare_synth() {
     node "$TMP/compare.mjs" "$RUNTIME_INSTALL_JS" "$TMP/synth-manifest.json" "$SYNTH_RUNTIME_MANIFEST" "$1" "$CATALOG_JS" "$SYNTH_WORKSPACE_YAML"
 }
 SYNTH_PLAN_SPECS="$(compare_synth specs)"
 SYNTH_MANIFEST_DEPS="$(compare_synth deps)"
-assert_eq "合成 root でも dependencies が runtimeInstallPlan の specs と一致。link/file/portal 除外と @slidev/parser 重複畳み込みを含む" \
+bt_eq "合成 root でも dependencies が runtimeInstallPlan の specs と一致。link/file/portal 除外と @slidev/parser 重複畳み込みを含む" \
     "$SYNTH_PLAN_SPECS" "$SYNTH_MANIFEST_DEPS"
 if printf '%s\n' "$SYNTH_MANIFEST_DEPS" | grep -qxF '@slidev/parser@99.0.0' \
     && ! printf '%s\n' "$SYNTH_MANIFEST_DEPS" | grep -qF '@slidev/parser@^1.0.0'; then
-    pass "合成 root で @slidev/parser が @slidev/cli の版へ上書きされ 1 件に畳まれる"
+    bt_pass "合成 root で @slidev/parser が @slidev/cli の版へ上書きされ 1 件に畳まれる"
 else
-    fail "合成 root で @slidev/parser が 99.0.0 に上書きされていない: $SYNTH_MANIFEST_DEPS"
+    bt_fail "合成 root で @slidev/parser が @slidev/cli の版へ上書きされ 1 件に畳まれる" \
+        "99.0.0 に上書きされていない: $SYNTH_MANIFEST_DEPS"
 fi
 for CORE_PKG in '@slidev/client' '@slidev/types'; do
+    title="合成 root の .mjs で $CORE_PKG が @slidev/cli の版へ固定される"
     if printf '%s\n' "$SYNTH_MANIFEST_DEPS" | grep -qxF "${CORE_PKG}@99.0.0" \
         && ! printf '%s\n' "$SYNTH_MANIFEST_DEPS" | grep -qF "${CORE_PKG}@^1.0.0"; then
-        pass "合成 root の .mjs で $CORE_PKG が @slidev/cli の版へ固定される"
+        bt_pass "$title"
     else
-        fail "合成 root の .mjs で $CORE_PKG が 99.0.0 に固定されていない: $SYNTH_MANIFEST_DEPS"
+        bt_fail "$title" "99.0.0 に固定されていない: $SYNTH_MANIFEST_DEPS"
     fi
+    title="合成 root の TS で $CORE_PKG が @slidev/cli の版へ固定される"
     if printf '%s\n' "$SYNTH_PLAN_SPECS" | grep -qxF "${CORE_PKG}@99.0.0" \
         && ! printf '%s\n' "$SYNTH_PLAN_SPECS" | grep -qF "${CORE_PKG}@^1.0.0"; then
-        pass "合成 root の TS で $CORE_PKG が @slidev/cli の版へ固定される"
+        bt_pass "$title"
     else
-        fail "合成 root の TS で $CORE_PKG が 99.0.0 に固定されていない: $SYNTH_PLAN_SPECS"
+        bt_fail "$title" "99.0.0 に固定されていない: $SYNTH_PLAN_SPECS"
     fi
 done
 if printf '%s\n' "$SYNTH_MANIFEST_DEPS" | grep -qxF 'vite@^8.0.0' \
     && ! printf '%s\n' "$SYNTH_MANIFEST_DEPS" | grep -qF 'catalog:'; then
-    pass "合成 root で catalog: の vite が catalog の範囲に解決され、catalog: が残らない"
+    bt_pass "合成 root で catalog: の vite が catalog の範囲に解決され、catalog: が残らない"
 else
-    fail "合成 root で catalog: の vite が範囲に解決されていない: $SYNTH_MANIFEST_DEPS"
+    bt_fail "合成 root で catalog: の vite が catalog の範囲に解決され、catalog: が残らない" \
+        "範囲に解決されていない: $SYNTH_MANIFEST_DEPS"
 fi
 if [ -n "$SYNTH_PLAN_SPECS" ]; then
-    pass "合成 root の specs が空でない（比較が無意味になっていない）"
+    bt_pass "合成 root の specs が空でない（比較が無意味になっていない）"
 else
-    fail "合成 root の specs が空（比較が無意味になっている）"
+    bt_fail "合成 root の specs が空でない（比較が無意味になっていない）" "specs が空"
 fi
-assert_eq "合成 root でも overrides の入れ子が一致" "$(compare_synth plan-overrides)" "$(compare_synth manifest-overrides)"
+bt_eq "合成 root でも overrides の入れ子が一致" "$(compare_synth plan-overrides)" "$(compare_synth manifest-overrides)"
 
 # catalog: の異常系。合成 root の vite だけを差し替え、非ゼロ終了と stderr の文言を見る。
 expect_manifest_failure() {
@@ -212,18 +184,8 @@ fs.writeFileSync(dst, JSON.stringify(manifest))
 ' "$SYNTH_ROOT/assets/slidev/runtime/package.json" "$root/assets/slidev/runtime/package.json" "$vite_range"
     local rc=0
     node "$MANIFEST_JS" "$root" "$workspace_yaml" > "$TMP/abnormal-$label.out" 2> "$TMP/abnormal-$label.err" || rc=$?
-    if [ "$rc" -ne 0 ]; then
-        pass "$label で .mjs が非ゼロ終了"
-    else
-        fail "$label で .mjs が exit 0 になった"
-    fi
-    if grep -qF "$expected" "$TMP/abnormal-$label.err"; then
-        pass "$label で stderr に期待の文言を出す"
-    else
-        local tail_text
-        tail_text="$(tail -3 "$TMP/abnormal-$label.err" | tr '\n' ' ')"
-        fail "$label の stderr に期待の文言が無い。期待: $expected 実際: $tail_text"
-    fi
+    bt_ne "$label で .mjs が非ゼロ終了" "0" "$rc"
+    bt_contains "$label で stderr に期待の文言を出す" "$expected" "$(cat "$TMP/abnormal-$label.err")"
 }
 
 expect_manifest_failure "名前付き catalog" "catalog:named" "$SYNTH_WORKSPACE_YAML" "名前付き catalog"
@@ -238,27 +200,16 @@ mkdir -p "$NOCLI_ROOT/assets/slidev/runtime"
 printf '%s\n' '{"name":"nocli","dependencies":{"some-lib":"^1.2.3"}}' > "$NOCLI_ROOT/assets/slidev/runtime/package.json"
 NOCLI_RC=0
 node "$MANIFEST_JS" "$NOCLI_ROOT" > "$TMP/nocli.out" 2> "$TMP/nocli.err" || NOCLI_RC=$?
-if [ "$NOCLI_RC" -ne 0 ]; then
-    pass "@slidev/cli が無い manifest で .mjs が非ゼロ終了"
-else
-    fail "@slidev/cli が無い manifest で .mjs が exit 0 になった"
-fi
-if grep -qF "@slidev/cli の版指定がありません" "$TMP/nocli.err"; then
-    pass "@slidev/cli が無い manifest で stderr に版指定なしを出す"
-else
-    NOCLI_TAIL="$(tail -3 "$TMP/nocli.err" | tr '\n' ' ')"
-    fail "@slidev/cli が無い manifest で stderr に版指定なしを出さない: $NOCLI_TAIL"
-fi
+bt_ne "@slidev/cli が無い manifest で .mjs が非ゼロ終了" "0" "$NOCLI_RC"
+bt_contains "@slidev/cli が無い manifest で stderr に版指定なしを出す" "@slidev/cli の版指定がありません" "$(cat "$TMP/nocli.err")"
 
 # --- 4. runtime の manifest の物理パスが cli の RUNTIME_MANIFEST_DIRECTORY と一致する ---
-#
-# .mjs 側は、release スクリプトが cli/dist に依存しない設計を保つため、固定パスのままにしている。
-# ただし、二重管理している事実そのものが自明ではなかった (#1071 F-15)。
-# cli 側の元データ（runtime-install.ts の RUNTIME_MANIFEST_DIRECTORY）から導いたパスと一致することを、ここで固定する。
+
+# .mjs 側は cli/dist に依存しないよう固定パスで持つ。cli 側から導いたパスとの一致を固定する (#1071 F-15)。
 RESOLVED_RUNTIME_DIR="$(node -e "
 import('$RUNTIME_INSTALL_JS').then((m) => process.stdout.write(require('node:path').join(process.argv[1], m.RUNTIME_MANIFEST_DIRECTORY)))
 " "$PECOTV_ROOT")"
-assert_eq ".mjs の固定パスが cli の RUNTIME_MANIFEST_DIRECTORY の解決結果と一致" \
+bt_eq ".mjs の固定パスが cli の RUNTIME_MANIFEST_DIRECTORY の解決結果と一致" \
     "$(cd "$RESOLVED_RUNTIME_DIR" && pwd)" \
     "$(cd "$(dirname "$RUNTIME_MANIFEST")" && pwd)"
 
@@ -266,14 +217,7 @@ assert_eq ".mjs の固定パスが cli の RUNTIME_MANIFEST_DIRECTORY の解決�
 
 USAGE_RC=0
 node "$MANIFEST_JS" > "$TMP/usage.out" 2> "$TMP/usage.err" || USAGE_RC=$?
-assert_eq "引数不足で exit 1" "1" "$USAGE_RC"
-if grep -qF "usage: runtime-manifest.mjs" "$TMP/usage.err"; then
-    pass "引数不足で usage を出す"
-else
-    USAGE_ERR_TAIL="$(tail -3 "$TMP/usage.err" | tr '\n' ' ')"
-    fail "引数不足で usage を出さない: $USAGE_ERR_TAIL"
-fi
+bt_eq "引数不足で exit 1" "1" "$USAGE_RC"
+bt_contains "引数不足で usage を出す" "usage: runtime-manifest.mjs" "$(cat "$TMP/usage.err")"
 
-echo
-echo "PASS: $PASS / FAIL: $FAIL"
-[ "$FAIL" -eq 0 ] || exit 1
+bt_finish

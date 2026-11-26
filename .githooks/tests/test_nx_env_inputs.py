@@ -163,8 +163,6 @@ _EXEMPT: dict[str, str] = {
     "PLUGIN_RUNTIME_FORCE": "wrapper が PECOTV_BOOTSTRAP_FORCE から設定し、source した bin/_lib.sh が読むシェル変数",
     "PLUGIN_RUNTIME_NAME": "source した bin/_lib.sh が設定するシェル変数。環境変数ではない",
     # source した helper（stub-root.sh）が設定するシェル変数。環境変数ではない。
-    "PASS": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
-    "FAIL": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
     "BASE": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
     "ROOT": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
     "DATA": "source した stub-root.sh が設定するシェル変数。環境変数ではない",

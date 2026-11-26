@@ -1,23 +1,6 @@
 #!/bin/bash
-# hooks スクリプト（エントリポイント + lib 配下）と hooks 設定 command の `.sh` 参照が、実在することを確かめる。
-# #870 が起点で、pecot 側 #842 / #852 / #864 の参照実在ガードを pecotv へ横展開したもの。
-# 参照切れ（削除・改名）が、実行時の fail-open ではなく、テストの fail として露見する状態にする。
-#
-# 残存リスク（本テストが pass しても保証しない範囲）:
-# - 静的な pass は、runtime の 3 段解決が成功することを含意しない。
-#   3 段解決は、PLUGIN_HOOKS > CLAUDE_PLUGIN_ROOT > SCRIPT_DIR 逆算の順。
-# - 行末コメントの切り落としは、「語頭の `#`」だけを対象とする（`s/[[:space:]]#.*$//`）。
-#   bash パラメータ展開の `#` は、直前が空白でないため切り落とされない。
-#   例は `${ROOT#*/…}` 等で、plugin-update-notice.sh / eslint-check.sh に実在する。
-#   同一行に並ぶ実参照も、抽出対象に残る。
-# - `_HOOKS_ROOT` / `HOOKS_ROOT` のような条件分岐代入の変数は、参照トークンに現れない。
-#   そのため確認の対象外になる。参照側から基底を逆引きする方式による。
-#   これらを基底とする `.sh` 参照が将来追加された場合は、未知の基底として未解決 fail に倒れる。
-#
-# `set -e` は使わない。
-# パイプ末尾の grep がマッチ 0 件で rc 1 を返し、即死するためだ。
-# 参照 0 件のスクリプトが実在する。
-# 既存の pecotv hooks テストと同じ `set -u` だけを使う。
+# hooks スクリプト（エントリポイント + lib 配下）と hooks 設定 command の `.sh` 参照が実在することを確かめる（#870）。
+# 実行時の 3 段解決が通ることまでは保証しない。set -e は、grep の 0 件（rc 1）で止まるので使わない。
 
 # 本テストは `$SCRIPT_DIR` 等を「展開せずリテラル文字列として」扱うのが目的のため、
 # 単一引用符内の `$` は全て意図的（SC2016 はファイル全域で抑止する）。
@@ -26,19 +9,11 @@
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+# shellcheck source=../../../../.githooks/scripts/test_report/bash-test.sh
+. "$REPO_ROOT/.githooks/scripts/test_report/bash-test.sh"
 HOOKS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PLUGIN_ROOT="$(cd "$HOOKS_DIR/.." && pwd)"
-
-PASS=0
-FAIL=0
-fail() {
-    echo "FAIL: $1"
-    FAIL=$((FAIL + 1))
-}
-pass() {
-    echo "PASS: $1"
-    PASS=$((PASS + 1))
-}
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
@@ -54,17 +29,8 @@ PFX_LIB_BRACE='${LIB_DIR}/'
 PFX_LIB_PLAIN='$LIB_DIR/'
 
 # --- `.sh` / `.mjs` 参照トークンの抽出 ---
-# 本番列挙とセルフテストが共有する、唯一の実装。
-# 方式は、「語を欲張って取り、`.sh` / `.mjs` で終わらない語を捨てる」。
-# GNU grep の ERE では、PCRE の否定先読みが使えないためだ。
-# `foo.shellcheckrc` 等は、この篩で落ちる。
-# bracket expression は単一引用符で囲む（二重引用符では `$` `{` `}` が展開されて
-# 文字クラスが静かに変質する）。日本語コメント混在のため LC_ALL=C を明示する。
-#
-# `.mjs` を含めるのは hook が起動する node ヘルパー（layout-conventions.mjs）を
-# 参照実在ガードの対象にするため。ただし `start.mjs` は除外する。これは利用者の
-# talk-dir を判別するマーカーのファイル名であって plugin 内の資産ではなく、
-# 実在するかどうかは実行時にしか決まらない（静的に解決できる基底を持たない）。
+# 語を欲張って取り、`.sh` / `.mjs` で終わらない語を捨てる（ERE は否定先読みを使えない）。日本語のため LC_ALL=C。
+# `start.mjs` は利用者の talk-dir のマーカーで、plugin 内の資産ではないので外す。
 extract_sh_tokens() {
     LC_ALL=C sed -E -e '/^[[:space:]]*#/d' -e 's/[[:space:]]#.*$//' \
         | LC_ALL=C grep -oE '[A-Za-z0-9._/${}%*-]*\.(sh|mjs)[A-Za-z0-9_.-]*' \
@@ -88,18 +54,14 @@ resolve_lib_dir() {
     fi
 }
 
-# 1 スクリプトの `.sh` 参照を走査し、1 トークン 1 行で
-# `<OK|MISSING|UNRESOLVED><TAB><トークン><TAB><解決先>` を出力する。
-# 変数解決は、参照に現れた基底だけを逆引きする方式で、既知イディオム以外はすべて UNRESOLVED（fail-closed）。
-# 裸パス・未知変数・`%/*` 以外の `%` 修飾も、UNRESOLVED になる。
+# 1 スクリプトの `.sh` 参照を `<OK|MISSING|UNRESOLVED><TAB><トークン><TAB><解決先>` で 1 行ずつ出す。
+# 参照に現れた基底だけを逆引きし、既知のイディオム以外はすべて UNRESOLVED にする（fail-closed）。
 scan_file() {
     local file="$1" plugin_root="$2"
     local script_dir lib_dir has_script_dir tok base rest resolved status
     script_dir="$(cd "$(dirname "$file")" && pwd)"
     lib_dir="$(resolve_lib_dir "$file" "$script_dir")"
-    # SCRIPT_DIR 起点の参照は、当該ファイル内に SCRIPT_DIR の代入があることを要求する。
-    # `$0` 形・`${BASH_SOURCE[0]}` 形のどちらでもよい。
-    # 外部から与えられた SCRIPT_DIR へ暗黙に依存する参照を、通さないためだ。
+    # SCRIPT_DIR 起点の参照は、ファイル内に SCRIPT_DIR の代入（$0 形・BASH_SOURCE 形）があるときだけ解決する。
     if LC_ALL=C grep -qE '^[[:space:]]*SCRIPT_DIR=' "$file"; then
         has_script_dir=1
     else
@@ -165,14 +127,14 @@ TARGET_COUNT=$(wc -l < "$TARGETS")
 TESTS_HITS=$(LC_ALL=C grep -c '/tests/' "$TARGETS")
 
 if [ "$TESTS_HITS" -eq 0 ] && [ "$TARGET_COUNT" -ge 10 ]; then
-    pass "ガード対象を $TARGET_COUNT 本列挙（tests/ 配下 0 件）"
+    bt_pass "ガード対象を 10 本以上列挙（tests/ 配下 0 件）"
 else
-    fail "列挙が崩れている: count=$TARGET_COUNT tests_hits=$TESTS_HITS"
+    bt_fail "ガード対象を 10 本以上列挙（tests/ 配下 0 件）" "列挙が崩れている: count=$TARGET_COUNT tests_hits=$TESTS_HITS"
 fi
 
 # --- ケース2: 抽出トークン全件が解決でき、解決先が実在する ---
 REF_OK=0
-REF_BAD=0
+REF_BAD=""
 ENTRY_REFS="$TMP/entry-refs.txt"
 : > "$ENTRY_REFS"
 while IFS= read -r target; do
@@ -185,12 +147,10 @@ while IFS= read -r target; do
                 FILE_OK=$((FILE_OK + 1))
                 ;;
             MISSING)
-                fail "$REL: 参照先が存在しない: $tok -> $resolved"
-                REF_BAD=$((REF_BAD + 1))
+                REF_BAD+=$'\n'"$REL: 参照先が存在しない: $tok -> $resolved"
                 ;;
             *)
-                fail "$REL: 参照を解決できない（未知の基底・裸パス・未対応の変数修飾）: $tok"
-                REF_BAD=$((REF_BAD + 1))
+                REF_BAD+=$'\n'"$REL: 参照を解決できない（未知の基底・裸パス・未対応の変数修飾）: $tok"
                 ;;
         esac
     done < <(scan_file "$target" "$PLUGIN_ROOT")
@@ -201,40 +161,33 @@ while IFS= read -r target; do
     esac
 done < "$TARGETS"
 
-if [ "$REF_BAD" -eq 0 ]; then
-    pass "スクリプト内の .sh 参照 $REF_OK 件すべてが解決でき実在する"
-fi
+bt_eq "スクリプト内の .sh 参照すべてが解決でき実在する" "" "$REF_BAD"
 
 # --- ケース3: 解決済み参照の出現総数の下限（抽出器の空振り検知） ---
-# multiset 基準。distinct 基準にすると post-tool-use-{edit,write}.sh の
-# 参照が同時に全滅しても検知できない。
+# multiset 基準。distinct 基準にすると post-tool-use-{edit,write}.sh の参照が同時に全滅しても検知できない。
 if [ "$REF_OK" -ge 10 ]; then
-    pass "解決済み参照の出現総数が下限を満たす（$REF_OK >= 10）"
+    bt_pass "解決済み参照の出現総数が下限（10 件）を満たす"
 else
-    fail "解決済み参照の出現総数が少なすぎる（$REF_OK 件、下限は 10 件）。抽出器の空振りが原因の可能性がある"
+    bt_fail "解決済み参照の出現総数が下限（10 件）を満たす" "$REF_OK 件しかない。抽出器の空振りが原因の可能性がある"
 fi
 
 # --- ケース3b: エントリポイント各本が最低1件の解決済み参照を持つ ---
-# ケース3の総数下限だけでは、他ファイルの参照増で1本の参照全滅を隠せてしまう
-# （F-03）。ファイル単位で 0 件を検知する。
+# 総数の下限だけでは、他ファイルの参照増で 1 本の参照全滅を隠せる（F-03）。ファイル単位で 0 件を検知する。
 ENTRY_COUNT=$(wc -l < "$ENTRY_REFS")
-ENTRY_BAD=0
+ENTRY_BAD=""
 while IFS=$'\t' read -r rel cnt; do
     if [ "$cnt" -lt 1 ]; then
-        fail "$rel: 解決済み参照が 0 件（エントリポイントの参照全滅を検知）"
-        ENTRY_BAD=$((ENTRY_BAD + 1))
+        ENTRY_BAD+=$'\n'"$rel: 解決済み参照が 0 件（エントリポイントの参照全滅を検知）"
     fi
 done < "$ENTRY_REFS"
-
-if [ "$ENTRY_BAD" -eq 0 ] && [ "$ENTRY_COUNT" -eq 5 ]; then
-    pass "hooks/ 直下のエントリポイント全 $ENTRY_COUNT 本が最低1件の解決済み参照を持つ"
-elif [ "$ENTRY_COUNT" -ne 5 ]; then
-    fail "hooks/ 直下のエントリポイント数が想定と違う（$ENTRY_COUNT 本、想定は 5 本）"
+if [ "$ENTRY_COUNT" -ne 5 ]; then
+    ENTRY_BAD+=$'\n'"hooks/ 直下のエントリポイント数が想定と違う（$ENTRY_COUNT 本、想定は 5 本）"
 fi
+bt_eq "hooks/ 直下のエントリポイント全 5 本が最低1件の解決済み参照を持つ" "" "$ENTRY_BAD"
 
 # --- ケース4: hooks 設定（hooks*.json）の command ---
 if ! command -v jq >/dev/null 2>&1; then
-    fail "jq が無いため hooks 設定 command をチェックできない（skip は許容しない）"
+    bt_fail "hooks 設定の command を確かめる" "jq が無いため確かめられない（skip は許容しない）"
 else
     CFG_LIST="$TMP/hooks-configs.txt"
     # Claude 向けの hooks/hooks.json と、Copilot 向け（Agent Plugins 1.0 形式）の com.github.copilot/hooks/hooks.json
@@ -243,70 +196,61 @@ else
         find "$PLUGIN_ROOT/com.github.copilot/hooks" -maxdepth 1 -type f -name 'hooks*.json' 2>/dev/null
     } | LC_ALL=C sort > "$CFG_LIST"
     CFG_COUNT=$(wc -l < "$CFG_LIST")
-    if [ "$CFG_COUNT" -lt 2 ]; then
-        fail "hooks 設定ファイルの列挙が想定より少ない（$CFG_COUNT < 2）"
+    if [ "$CFG_COUNT" -ge 2 ]; then
+        bt_pass "hooks 設定ファイルを 2 本以上列挙"
+    else
+        bt_fail "hooks 設定ファイルを 2 本以上列挙" "列挙が想定より少ない（$CFG_COUNT < 2）"
     fi
 
     while IFS= read -r CFG_PATH; do
         CFG="${CFG_PATH#"$PLUGIN_ROOT"/}"
         WANT_CMDS=5
         CMDS="$TMP/cmds-${CFG//\//_}.txt"
-                if ! jq -r '.hooks | to_entries[] | .value[] | .hooks[] | .command' \
+        if ! jq -r '.hooks | to_entries[] | .value[] | .hooks[] | .command' \
             "$CFG_PATH" > "$CMDS" 2>/dev/null; then
-            fail "$CFG: jq による command 抽出に失敗した"
+            bt_fail "$CFG: command を $WANT_CMDS 件抽出" "jq による command 抽出に失敗した"
             continue
         fi
         CMD_COUNT=$(wc -l < "$CMDS")
-        if [ "$CMD_COUNT" -eq "$WANT_CMDS" ]; then
-            pass "$CFG: command を $WANT_CMDS 件抽出"
-        else
-            fail "$CFG: command 件数が想定と違う（$CMD_COUNT 件、想定は $WANT_CMDS 件）"
-        fi
+        bt_eq "$CFG: command を $WANT_CMDS 件抽出" "$WANT_CMDS" "$CMD_COUNT"
 
-        CMD_BAD=0
+        CMD_BAD=""
         while IFS= read -r cmd; do
             [ -n "$cmd" ] || continue
             # command は `"\"${CLAUDE_PLUGIN_ROOT}\"/hooks/x.sh"` のように変数をクォートする（#1229）。
             # クォートの有無は比較の対象外にして、取り除いてから抽出する
             toks="$(printf '%s\n' "${cmd//\"/}" | extract_sh_tokens)"
             if [ -z "$toks" ]; then
-                fail "$CFG: command に .sh 参照が無い: $cmd"
-                CMD_BAD=$((CMD_BAD + 1))
+                CMD_BAD+=$'\n'"command に .sh 参照が無い: $cmd"
                 continue
             fi
             while IFS= read -r tok; do
                 [ -n "$tok" ] || continue
                 rest="${tok#"$PFX_PLUGIN_BRACE"}"
                 if [ "$rest" = "$tok" ]; then
-                    fail "$CFG: command が \${CLAUDE_PLUGIN_ROOT}/ 起点でない: $tok"
-                    CMD_BAD=$((CMD_BAD + 1))
+                    CMD_BAD+=$'\n'"command が \${CLAUDE_PLUGIN_ROOT}/ 起点でない: $tok"
                     continue
                 fi
                 case "$rest" in
                     hooks/*) ;;
                     *)
-                        fail "$CFG: command が hooks/ 配下でない: $tok"
-                        CMD_BAD=$((CMD_BAD + 1))
+                        CMD_BAD+=$'\n'"command が hooks/ 配下でない: $tok"
                         continue
                         ;;
                 esac
                 case "${rest#hooks/}" in
                     */*)
-                        fail "$CFG: command が hooks/ 直下のエントリポイントでない: $tok"
-                        CMD_BAD=$((CMD_BAD + 1))
+                        CMD_BAD+=$'\n'"command が hooks/ 直下のエントリポイントでない: $tok"
                         continue
                         ;;
                 esac
                 if [ ! -f "$PLUGIN_ROOT/$rest" ]; then
-                    fail "$CFG: command の参照先が存在しない: $tok -> $PLUGIN_ROOT/$rest"
-                    CMD_BAD=$((CMD_BAD + 1))
+                    CMD_BAD+=$'\n'"command の参照先が存在しない: $tok -> $PLUGIN_ROOT/$rest"
                 fi
             done <<< "$toks"
         done < "$CMDS"
 
-        if [ "$CMD_BAD" -eq 0 ]; then
-            pass "$CFG: command 全件が \${CLAUDE_PLUGIN_ROOT}/hooks/ 直下の実在エントリポイント"
-        fi
+        bt_eq "$CFG: command 全件が \${CLAUDE_PLUGIN_ROOT}/hooks/ 直下の実在エントリポイント" "" "$CMD_BAD"
     done < "$CFG_LIST"
 fi
 
@@ -322,13 +266,13 @@ self_status() {
     scan_file "$1" "$SELF" | LC_ALL=C awk -F'\t' -v t="$2" '$2 == t { print $1 }'
 }
 
-assert_status() {
+expect_status() {
     local label="$1" script="$2" tok="$3" want="$4" got
     got=$(self_status "$script" "$tok")
     if [ "$got" = "$want" ]; then
-        pass "セルフテスト: $label"
+        bt_pass "セルフテスト: $label"
     else
-        fail "セルフテスト: $label（期待 $want / 実際 '${got:-（出力なし）}'）"
+        bt_fail "セルフテスト: $label" "期待 $want / 実際 '${got:-（出力なし）}'"
     fi
 }
 
@@ -337,7 +281,7 @@ cat > "$SELF/s-missing.sh" <<'EOF'
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 "$SCRIPT_DIR/does-not-exist.sh"
 EOF
-assert_status "実在しない .sh 参照は MISSING" \
+expect_status "実在しない .sh 参照は MISSING" \
     "$SELF/s-missing.sh" '$SCRIPT_DIR/does-not-exist.sh' MISSING
 
 cat > "$SELF/s-unknown-var.sh" <<'EOF'
@@ -345,7 +289,7 @@ cat > "$SELF/s-unknown-var.sh" <<'EOF'
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 "$FOO_DIR/probe.sh"
 EOF
-assert_status "未知の変数プレフィックスは UNRESOLVED" \
+expect_status "未知の変数プレフィックスは UNRESOLVED" \
     "$SELF/s-unknown-var.sh" '$FOO_DIR/probe.sh' UNRESOLVED
 
 cat > "$SELF/s-bare.sh" <<'EOF'
@@ -353,7 +297,7 @@ cat > "$SELF/s-bare.sh" <<'EOF'
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 bash lib/core/probe.sh
 EOF
-assert_status "変数プレフィックスなしの裸参照は UNRESOLVED" \
+expect_status "変数プレフィックスなしの裸参照は UNRESOLVED" \
     "$SELF/s-bare.sh" 'lib/core/probe.sh' UNRESOLVED
 
 cat > "$SELF/s-dollar0.sh" <<'EOF'
@@ -361,7 +305,7 @@ cat > "$SELF/s-dollar0.sh" <<'EOF'
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 "$SCRIPT_DIR/real-target.sh"
 EOF
-assert_status '$0 形の SCRIPT_DIR 代入で $SCRIPT_DIR 参照が解決される' \
+expect_status '$0 形の SCRIPT_DIR 代入で $SCRIPT_DIR 参照が解決される' \
     "$SELF/s-dollar0.sh" '$SCRIPT_DIR/real-target.sh' OK
 
 cat > "$SELF/s-bash-source.sh" <<'EOF'
@@ -369,7 +313,7 @@ cat > "$SELF/s-bash-source.sh" <<'EOF'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "${SCRIPT_DIR}/real-target.sh"
 EOF
-assert_status '${BASH_SOURCE[0]} 形の SCRIPT_DIR 代入でも解決される' \
+expect_status '${BASH_SOURCE[0]} 形の SCRIPT_DIR 代入でも解決される' \
     "$SELF/s-bash-source.sh" '${SCRIPT_DIR}/real-target.sh' OK
 
 cat > "$SELF/sub/s-parent.sh" <<'EOF'
@@ -377,7 +321,7 @@ cat > "$SELF/sub/s-parent.sh" <<'EOF'
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR%/*}/up-target.sh"
 EOF
-assert_status '${SCRIPT_DIR%/*} は 1 段上のディレクトリ起点で解決される' \
+expect_status '${SCRIPT_DIR%/*} は 1 段上のディレクトリ起点で解決される' \
     "$SELF/sub/s-parent.sh" '${SCRIPT_DIR%/*}/up-target.sh' OK
 
 cat > "$SELF/s-lib-dup.sh" <<'EOF'
@@ -387,14 +331,14 @@ LIB_DIR="$SCRIPT_DIR/a"
 LIB_DIR="$SCRIPT_DIR/b"
 "$LIB_DIR/real-target.sh"
 EOF
-assert_status 'LIB_DIR 代入がちょうど 1 件でなければ UNRESOLVED' \
+expect_status 'LIB_DIR 代入がちょうど 1 件でなければ UNRESOLVED' \
     "$SELF/s-lib-dup.sh" '$LIB_DIR/real-target.sh' UNRESOLVED
 
 cat > "$SELF/s-plugin-root.sh" <<'EOF'
 #!/bin/bash
 "${CLAUDE_PLUGIN_ROOT}/real-target.sh"
 EOF
-assert_status '${CLAUDE_PLUGIN_ROOT}/ 起点の参照は plugin_root から解決される' \
+expect_status '${CLAUDE_PLUGIN_ROOT}/ 起点の参照は plugin_root から解決される' \
     "$SELF/s-plugin-root.sh" '${CLAUDE_PLUGIN_ROOT}/real-target.sh' OK
 
 cat > "$SELF/s-lib-single.sh" <<'EOF'
@@ -403,14 +347,14 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LIB_DIR="$SCRIPT_DIR/libsub"
 "$LIB_DIR/lib-target.sh"
 EOF
-assert_status 'LIB_DIR 代入が 1 件のとき $LIB_DIR/ 参照が解決される' \
+expect_status 'LIB_DIR 代入が 1 件のとき $LIB_DIR/ 参照が解決される' \
     "$SELF/s-lib-single.sh" '$LIB_DIR/lib-target.sh' OK
 
 cat > "$SELF/s-no-script-dir.sh" <<'EOF'
 #!/bin/bash
 "$SCRIPT_DIR/real-target.sh"
 EOF
-assert_status 'SCRIPT_DIR 代入が無いファイルの $SCRIPT_DIR 参照は UNRESOLVED' \
+expect_status 'SCRIPT_DIR 代入が無いファイルの $SCRIPT_DIR 参照は UNRESOLVED' \
     "$SELF/s-no-script-dir.sh" '$SCRIPT_DIR/real-target.sh' UNRESOLVED
 
 printf '#!/usr/bin/env node\n' > "$SELF/real-helper.mjs"
@@ -420,7 +364,7 @@ cat > "$SELF/s-mjs-ok.sh" <<'EOF'
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 node "$SCRIPT_DIR/real-helper.mjs"
 EOF
-assert_status '.mjs 参照も実在チェックの対象になる' \
+expect_status '.mjs 参照も実在チェックの対象になる' \
     "$SELF/s-mjs-ok.sh" '$SCRIPT_DIR/real-helper.mjs' OK
 
 cat > "$SELF/s-mjs-missing.sh" <<'EOF'
@@ -428,12 +372,11 @@ cat > "$SELF/s-mjs-missing.sh" <<'EOF'
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 node "$SCRIPT_DIR/no-such-helper.mjs"
 EOF
-assert_status '実在しない .mjs 参照は MISSING' \
+expect_status '実在しない .mjs 参照は MISSING' \
     "$SELF/s-mjs-missing.sh" '$SCRIPT_DIR/no-such-helper.mjs' MISSING
 
 # talk-dir マーカーの start.mjs は plugin 内の資産ではないので抽出対象から外す。
-# 除外が外れると、基底を解決できない裸トークンとして UNRESOLVED になる。
-# その結果、talk-dir 探索を持つ hook 3 本が一斉に fail する。
+# 除外が外れると裸トークンとして UNRESOLVED になり、talk-dir 探索を持つ hook 3 本が一斉に失敗する。
 cat > "$SELF/s-marker.sh" <<'EOF'
 #!/bin/bash
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -442,10 +385,10 @@ if [ -f "$DIR/start.mjs" ]; then
 fi
 EOF
 if [ -z "$(extract_sh_tokens < "$SELF/s-marker.sh")" ]; then
-    pass "セルフテスト: talk-dir マーカーの start.mjs は抽出されない"
+    bt_pass "セルフテスト: talk-dir マーカーの start.mjs は抽出されない"
 else
     MSG_DETAIL_1="$(extract_sh_tokens < "$SELF/s-marker.sh" | tr '\n' ' ')"
-    fail "セルフテスト: start.mjs が抽出されている: $MSG_DETAIL_1"
+    bt_fail "セルフテスト: talk-dir マーカーの start.mjs は抽出されない" "start.mjs が抽出されている: $MSG_DETAIL_1"
 fi
 
 cat > "$SELF/s-percent-other.sh" <<'EOF'
@@ -453,11 +396,7 @@ cat > "$SELF/s-percent-other.sh" <<'EOF'
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR%/lib/*}/x.sh"
 EOF
-assert_status '${SCRIPT_DIR%/*} 以外の % 修飾は UNRESOLVED' \
+expect_status '${SCRIPT_DIR%/*} 以外の % 修飾は UNRESOLVED' \
     "$SELF/s-percent-other.sh" '${SCRIPT_DIR%/lib/*}/x.sh' UNRESOLVED
 
-echo
-echo "==================================="
-echo "Passed: $PASS / Failed: $FAIL"
-echo "==================================="
-[ $FAIL -eq 0 ]
+bt_finish

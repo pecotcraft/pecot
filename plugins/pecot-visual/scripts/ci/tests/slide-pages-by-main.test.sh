@@ -1,21 +1,12 @@
 #!/bin/bash
-# v-slidev のページを main が作り、サブエージェントに任せないことを検証する (#444)。
+# v-slidev のページを main が作り、サブエージェントに任せないことを確かめる (#444)。
 # 確かめるのは目印の文字列だけにする（text-violation-guidance.test.sh と同じ）。
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=../../../../../.githooks/scripts/test_report/bash-test.sh
+. "$(cd "$SCRIPT_DIR/../../../../.." && pwd)/.githooks/scripts/test_report/bash-test.sh"
 PECOTV_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-
-PASS=0
-FAIL=0
-fail() {
-    echo "FAIL: $1"
-    FAIL=$((FAIL + 1))
-}
-pass() {
-    echo "PASS: $1"
-    PASS=$((PASS + 1))
-}
 
 SKILL=skills/v-slidev/SKILL.md
 GUIDE=skills/v-slidev/references/implementation-guide.md
@@ -24,35 +15,33 @@ REMOVED_AGENT='v-slide-creator'
 
 for rel in "$SKILL" "$GUIDE"; do
     if grep -qF -- "$BY_MAIN" "$PECOTV_ROOT/$rel"; then
-        pass "$rel に「$BY_MAIN」がある"
+        bt_pass "$rel に「$BY_MAIN」がある"
     else
-        fail "$rel に「$BY_MAIN」が無い"
+        bt_fail "$rel に「$BY_MAIN」がある" "見つからない"
     fi
     if grep -qF -- "$REMOVED_AGENT" "$PECOTV_ROOT/$rel"; then
-        fail "$rel に $REMOVED_AGENT が残っている"
+        bt_fail "$rel に $REMOVED_AGENT が無い" "残っている"
     else
-        pass "$rel に $REMOVED_AGENT が無い"
+        bt_pass "$rel に $REMOVED_AGENT が無い"
     fi
 done
 
 if grep -qF -- 'slide_page' "$PECOTV_ROOT/$GUIDE"; then
-    pass "$GUIDE に slide_page の手順がある"
+    bt_pass "$GUIDE に slide_page の手順がある"
 else
-    fail "$GUIDE に slide_page の手順が無い"
+    bt_fail "$GUIDE に slide_page の手順がある" "slide_page が見つからない"
 fi
 
 if [ -e "$PECOTV_ROOT/agents/$REMOVED_AGENT.md" ]; then
-    fail "agents/$REMOVED_AGENT.md が残っている"
+    bt_fail "agents/$REMOVED_AGENT.md が無い" "残っている"
 else
-    pass "agents/$REMOVED_AGENT.md が無い"
+    bt_pass "agents/$REMOVED_AGENT.md が無い"
 fi
 
 if grep -qF -- 'v-diagram-creator' "$PECOTV_ROOT/$SKILL"; then
-    pass "$SKILL が図を v-diagram-creator に任せている"
+    bt_pass "$SKILL が図を v-diagram-creator に任せている"
 else
-    fail "$SKILL に v-diagram-creator が無い"
+    bt_fail "$SKILL が図を v-diagram-creator に任せている" "v-diagram-creator が見つからない"
 fi
 
-echo
-echo "PASS: $PASS / FAIL: $FAIL"
-[ "$FAIL" -eq 0 ] || exit 1
+bt_finish

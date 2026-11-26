@@ -5,30 +5,8 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 PECOTV_PLUGIN_ROOT="$REPO_ROOT/plugins/pecot-visual"
 cd "$PECOTV_PLUGIN_ROOT"
 
-# --scope で実行範囲を絞る。nx のレーン（pecot-visual:test-<scope>）から呼び分けるためのパラメータ。
-# scope ごとの内容は次のとおり。
-#   --scope=slidev    : v-slidev の build、build:test、test:coverage。
-#   --scope=cli       : cli の build / test / test:e2e。
-#   --scope=bootstrap : bin/pecotv と登録ファイルの bash テスト。
-#                       対象は cli/tests/bootstrap/ 配下の次のテスト。
-#                       host-deps-marker、install-record、data-dir、mirror-real-pnpm、manifest、lib-consistency、text-rules-link。
-#                       重い CUJ 一式の run.sh は、従来どおり手動実行とし、含めない。
-#                       cli/src だけを変えた push で動かさないよう、cli から分けた (#1235)。
-#   --scope=hooks     : pecotv hooks の *.test.sh。hooks/tests/ 配下を find | sort で再帰列挙し、順次実行する。
-#   --scope=release   : MCP 単体配布の publish スクリプトのテスト。scripts/release/tests/ 配下の *.test.sh。
-#   --scope=compare   : 前後比較スクリプトのテスト。pptx-compare と page-compare の tests/ 配下の *.test.sh。
-#   --scope=skills    : スキル配布ドキュメントの静的確認。scripts/ci/tests/ 配下の *.test.sh。
-#   引数なし          : 全部。手動実行用の既定。
-#
-# env PECOTV_SKIP_INSTALL=1 のとき、install / check-pm-guard / 各 lane 先頭の依存 build を飛ばす。
-# nx 経由（test-* target）専用のスイッチ。
-# これらは nx の別 target が dependsOn 経由で 1 push 1 回だけ実行する (#1080)。
-# 別 target は次の 4 つ。
-# pecot-visual:install、pecot-visual:check-pm-guard、pecot-visual:build-cli、pecot-visual:build-slidev。
-# lane 内でしか使わない build は飛ばさない。対象は slidev の build:test。
-# env 無しの手動実行では、従来どおり全部を本スクリプトが実行する。
-# lock / manifest / 本 CI スクリプトを追加・改名したときは、nx.json の pecotvPluginTestGlobals にも追記すること。
-# JSON はコメントを書けないため、この注意を本ファイルに残す。
+# --scope=slidev|cli|bootstrap|hooks|release|compare|skills でレーン（pecot-visual:test-<scope>）の範囲に絞る。引数なしは全部。
+# PECOTV_SKIP_INSTALL=1 は nx 専用で、install・check-pm-guard・build を飛ばす。本ファイルや lock を足したら nx.json の pecotvPluginTestGlobals に足す。
 SCOPE="all"
 for arg in "$@"; do
     case "$arg" in
@@ -72,6 +50,8 @@ esac
 . "$PECOTV_PLUGIN_ROOT/bin/_lib.sh"
 # shellcheck source=parallel-lib.sh
 . "$SCRIPT_DIR/parallel-lib.sh"
+# bash のテストは bt_run_file で動かし、nx のレーンなら確かめを Allure の結果に残す（parallel-lib.sh が bash-test.sh を読む）。
+PECOT_REPORT_RESULTS="$(bt_results_dir "$PECOTV_PLUGIN_ROOT")"
 
 PNPM="$(resolve_pnpm "$PECOTV_PLUGIN_ROOT")"
 if [ -z "$PNPM" ]; then
@@ -91,17 +71,8 @@ export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 # ただし、nx 経由の実行と直接の実行で挙動が割れる罠を予防的に塞ぐため、除去する。
 # pecot-workflow の run-tests.sh にある pytest pass 1 と対称の処理。
 unset FORCE_COLOR
-# 開発者の Claude セッションの子として動くと、次の変数を受け継ぐ。
-# クライアントが渡したデータ置き場（CLAUDE_PLUGIN_DATA）と、導入済みバージョンの実行用ミラーの変数（PECOTV_RUNTIME_DIR など）。
-# 確認の結果を、開発者の導入済み環境に依存させたくない。
-# worktree のテストが、bin/pecotv の準備先を導入済みバージョンの置き場に向けることも避けたい。
-# そのため、ミラーの変数は unset し、CLAUDE_PLUGIN_DATA は一時ディレクトリに固定する。
-# 空にするだけだと、隔離を忘れたテストが wrapper を呼んだとき、実ホームの既定の場所に install してしまう。
-# データ置き場を使うテスト（cli/tests/bootstrap/）は、自分で作る一時のデータ置き場を CLAUDE_PLUGIN_DATA に渡す。
-# 既定の場所を確かめるテストは、自分で CLAUDE_PLUGIN_DATA を空にして起動する。
-# vitest では、setupFiles が CLAUDE_PLUGIN_DATA を一時ディレクトリへ向ける。
-# 該当のファイルは cli/tests/_helpers/unset-plugin-data-environment.ts。
-# XDG_DATA_HOME は付け替えない（pnpm の store の置き場まで動くため）。
+# 開発者の導入済みのデータ置き場とミラーに依存しないよう、ミラーの変数を外し、CLAUDE_PLUGIN_DATA を一時ディレクトリに固定する。
+# 空にするだけだと、隔離を忘れたテストが実ホームの既定の場所へ install する。XDG_DATA_HOME は pnpm の store が動くので変えない。
 unset PLUGIN_DATA PECOTV_DEPENDENCY_ROOT PECOTV_RUNTIME_DIR
 GATE_PLUGIN_DATA="$(mktemp -d)"
 export CLAUDE_PLUGIN_DATA="$GATE_PLUGIN_DATA"
@@ -188,61 +159,23 @@ if [ "$RUN_CLI" = true ]; then
 fi
 
 if [ "$RUN_BOOTSTRAP" = true ]; then
-    # bin/pecotv の bootstrap にある、OS ライブラリ確認の分岐 (#1217)。
-    # 実 Chromium や apt を使わない stub の plugin root で動かすため、2 秒弱で終わる。
-    # 重い CUJ 一式の cli/tests/bootstrap/run.sh は、従来どおり手動実行のままとし、本レーンに含めない。
-    echo "==> bash cli/tests/bootstrap/host-deps-marker.sh (bootstrap の OS ライブラリ確認)"
-    bash "$PECOTV_PLUGIN_ROOT/cli/tests/bootstrap/host-deps-marker.sh"
-
-    # bin/pecotv が、実行用ミラー（データ置き場の runtime/<deps-hash>-<src-hash>/）をいつ作り直すかを確かめる。
-    # 同じ stub の plugin root で、pnpm を記録だけの stub に差し替える。
-    # そして、wrapper の固定行（installing dependencies / building）の数を数える。
-    # 確かめるケースは次のとおり。同一なら 0/0、バージョンだけなら 0/0、ソースだけなら 0/1、依存の変更なら 1/1、2 回目は 0/0。
-    # 失敗からの復帰、同時起動、世代の削除も確かめる。
-    echo "==> bash cli/tests/bootstrap/install-record.sh (ミラーの install / build の回数)"
-    bash "$PECOTV_PLUGIN_ROOT/cli/tests/bootstrap/install-record.sh"
-
-    # データ置き場の解決の順序を確かめる。順序は CLAUDE_PLUGIN_DATA、PLUGIN_DATA、既定の場所の順。
-    # HOME と XDG_DATA_HOME がどちらも有効でないときに止まることも確かめる。
-    echo "==> bash cli/tests/bootstrap/data-dir.sh (データ置き場の解決の順序と既定の場所)"
-    bash "$PECOTV_PLUGIN_ROOT/cli/tests/bootstrap/data-dir.sh"
-
-    # 実 pnpm と実 build で「複製してから build」の流れを実行する。
-    # 複製したミラーで pnpm が install を始めないこと（Packages: 行が出ず、.modules.yaml が変わらないこと）を確かめる。
-    echo "==> bash cli/tests/bootstrap/mirror-real-pnpm.sh (ハードリンクで複製してから build)"
-    bash "$PECOTV_PLUGIN_ROOT/cli/tests/bootstrap/mirror-real-pnpm.sh"
-
-    # Agent Plugins 1.0 形式（ルートの plugin.json / mcp.json）と従来形式の整合。
-    echo "==> bash cli/tests/bootstrap/manifest.sh (Agent Plugins 1.0 形式と従来形式の整合)"
-    bash "$PECOTV_PLUGIN_ROOT/cli/tests/bootstrap/manifest.sh"
-
-    # 3 プラグインの bin/_lib.sh で逐語一致させるブロックが、一致していること。
-    echo "==> bash cli/tests/bootstrap/lib-consistency.sh (bin/_lib.sh の逐語一致)"
-    bash "$PECOTV_PLUGIN_ROOT/cli/tests/bootstrap/lib-consistency.sh"
-
-    # libs/text-rules のリンクと、ミラーの入力に node_modules・dist・coverage が入らないこと。
-    echo "==> bash cli/tests/bootstrap/text-rules-link.sh (text-rules のリンクとミラーの入力)"
-    bash "$PECOTV_PLUGIN_ROOT/cli/tests/bootstrap/text-rules-link.sh"
+    # 重い CUJ 一式の cli/tests/bootstrap/run.sh は手で流すので、このレーンに入れない。
+    bootstrap_test_files=()
+    for script in host-deps-marker.sh install-record.sh data-dir.sh mirror-real-pnpm.sh manifest.sh lib-consistency.sh text-rules-link.sh; do
+        bootstrap_test_files+=("$PECOTV_PLUGIN_ROOT/cli/tests/bootstrap/$script")
+    done
+    bt_run_files "${bootstrap_test_files[@]}"
 fi
 
 if [ "$RUN_HOOKS" = true ]; then
-    # pecotv hooks の *.test.sh を、find で再帰列挙して順次実行する。project.json との二重管理は無い。
-    # post-tool-use/ のネストがあるため find で再帰列挙し、LC_ALL=C sort で順序を固定する。
-    # *.test.sh には、単体で bash 実行できるテスト本体だけを置く規約。
-    # source されるヘルパーは別の名前（例: *.helper.sh）にして、テストの実行対象に混ぜない。
-    # 各テストは SCRIPT_DIR を基準にして cwd に依存せず、別プロセス（bash <file>）で起動する set -u の設計。
-    # 実行順は sort の辞書順に依存する。ただし、各テストは独立していて、テスト間に実行順の依存を持たせない前提。
-    # find の起点が $PECOTV_PLUGIN_ROOT から始まるため、$test_file は絶対パスで返る。
+    # hooks/tests/ の *.test.sh を再帰で列挙して順に動かす。source される補助は *.test.sh にしない。
     echo "==> pecotv hooks 単体テスト (hooks/tests/ 配下の *.test.sh を、find | sort の順に実行)"
     mapfile -t test_files < <(find "$PECOTV_PLUGIN_ROOT/hooks/tests" -name '*.test.sh' | LC_ALL=C sort)
     if [ "${#test_files[@]}" -eq 0 ]; then
         echo "ERROR: hooks/tests/ 配下に *.test.sh が見つかりません (hooks/tests の消失か、find の失敗)。" >&2
         exit 1
     fi
-    for test_file in "${test_files[@]}"; do
-        echo "==> bash $test_file"
-        bash "$test_file"
-    done
+    bt_run_files "${test_files[@]}"
 fi
 
 if [ "$RUN_RELEASE" = true ]; then
@@ -261,11 +194,7 @@ if [ "$RUN_RELEASE" = true ]; then
         fi
     fi
 
-    # MCP 単体配布 (#982) の publish スクリプトのテスト。hooks lane と同じく find | sort で再帰列挙する。
-    # 各テストは bash 単体で実行でき、cwd に依存しない。
-    # 一時ディレクトリ、モックレジストリのポート、監査記録をテスト内に閉じている。
-    # そのため並行で実行し、lane の所要を最長の 1 本に縮める (#1225)。
-    # ログは並べ替えず、引数の順に 1 本ずつ出る（parallel-lib.sh）。
+    # publish のテストは一時ディレクトリ・ポート・監査記録をテスト内に閉じているので、並行で動かす (#1225)。
     echo "==> pecotv release 単体テスト (scripts/release/tests/ 配下の *.test.sh を、find | sort の順に並行して実行)"
     mapfile -t release_test_files < <(find "$PECOTV_PLUGIN_ROOT/scripts/release/tests" -name '*.test.sh' | LC_ALL=C sort)
     if [ "${#release_test_files[@]}" -eq 0 ]; then
@@ -288,9 +217,7 @@ if [ "$RUN_COMPARE" = true ]; then
         ( cd "$PECOTV_PLUGIN_ROOT" && $PNPM --filter @pecot/pecotv-cli run build )
     fi
 
-    # hooks / release lane と同じく、find | sort で再帰列挙して順次実行する。
-    # 各テストは bash 単体で実行でき、cwd に依存しない。生成物は mktemp -d 配下に閉じる。
-    # page-compare (#1341) は cli/dist を使わない。同じレーンで一緒に実行する。
+    # page-compare (#1341) は cli/dist を使わないが、同じレーンで一緒に動かす。
     echo "==> pecotv pptx-compare / page-compare 単体テスト (各 tests/ 配下の *.test.sh を、find | sort の順に実行)"
     for compare_tests_dir in pptx-compare page-compare; do
         if [ -z "$(find "$PECOTV_PLUGIN_ROOT/scripts/$compare_tests_dir/tests" -name '*.test.sh' 2> /dev/null)" ]; then
@@ -299,26 +226,18 @@ if [ "$RUN_COMPARE" = true ]; then
         fi
     done
     mapfile -t compare_test_files < <(find "$PECOTV_PLUGIN_ROOT/scripts/pptx-compare/tests" "$PECOTV_PLUGIN_ROOT/scripts/page-compare/tests" -name '*.test.sh' | LC_ALL=C sort)
-    for test_file in "${compare_test_files[@]}"; do
-        echo "==> bash $test_file"
-        bash "$test_file"
-    done
+    bt_run_files "${compare_test_files[@]}"
 fi
 
 if [ "$RUN_SKILLS" = true ]; then
     # スキル配布ドキュメント（SKILL.md / agents / references の DESIGN.md）の静的確認。
-    # hooks / release lane と同じく、find | sort で再帰列挙して順次実行する。
-    # 各テストは bash 単体で実行でき、cwd に依存しない。pnpm install の成果物にも依存しない。
     echo "==> pecotv skills 静的確認 (scripts/ci/tests/ 配下の *.test.sh を、find | sort の順に実行)"
     mapfile -t skills_test_files < <(find "$SCRIPT_DIR/tests" -name '*.test.sh' | LC_ALL=C sort)
     if [ "${#skills_test_files[@]}" -eq 0 ]; then
         echo "ERROR: scripts/ci/tests/ 配下に *.test.sh が見つかりません (消失か、find の失敗)。" >&2
         exit 1
     fi
-    for test_file in "${skills_test_files[@]}"; do
-        echo "==> bash $test_file"
-        bash "$test_file"
-    done
+    bt_run_files "${skills_test_files[@]}"
 fi
 
 echo "pecotv all checks passed"

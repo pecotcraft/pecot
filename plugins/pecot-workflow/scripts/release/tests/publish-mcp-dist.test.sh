@@ -14,26 +14,8 @@ RELEASE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$RELEASE_DIR/../../../.." && pwd)"
 WORKFLOW_ROOT="$REPO_ROOT/plugins/pecot-workflow"
 PUBLISH="$RELEASE_DIR/publish-mcp-dist.sh"
-
-PASS=0
-FAIL=0
-fail() {
-    echo "FAIL: $1"
-    FAIL=$((FAIL + 1))
-}
-pass() {
-    echo "PASS: $1"
-    PASS=$((PASS + 1))
-}
-# 期待値との一致を 1 行で判定する（不一致時に actual を必ず出す）。
-assert_eq() {
-    local label="$1" expected="$2" actual="$3"
-    if [ "$expected" = "$actual" ]; then
-        pass "$label"
-    else
-        fail "$label (expected='$expected' actual='$actual')"
-    fi
-}
+# shellcheck source=../../../../../.githooks/scripts/test_report/bash-test.sh
+. "$REPO_ROOT/.githooks/scripts/test_report/bash-test.sh"
 
 TMP=$(mktemp -d)
 cleanup() {
@@ -52,8 +34,7 @@ file_cat() {
     cat "$1"
 }
 
-# build 済み dist の存在を前提条件として先に確認する（無いまま進むと publish が途中で落ち、
-# 原因が build 未実行だと分からない出力になる）。
+# build 済み dist の存在を先に確かめる（無いと publish が途中で落ち、原因が分からない出力になる）。
 if [ ! -d "$WORKFLOW_ROOT/cli/dist" ]; then
     echo "ERROR: $WORKFLOW_ROOT/cli/dist がありません。build 済みの dist が前提です。" >&2
     echo "  bash plugins/pecot-workflow/scripts/ci/run-tests.sh --scope=release" >&2
@@ -159,52 +140,52 @@ TAGGED_PUBLISH="$TEST_WORKFLOW/scripts/release/publish-mcp-dist.sh"
 
 echo "==> dry-run で配布ツリーを構築"
 if bash "$PUBLISH" --dry-run --skip-build --out-dir="$DIST" > "$TMP/dryrun.log" 2>&1; then
-    pass "dry-run が正常終了する"
+    bt_pass "dry-run が正常終了する"
 else
-    fail "dry-run が失敗した (末尾ログ: $(log_tail dryrun.log 3))"
+    bt_fail "dry-run が正常終了する" "失敗した (末尾ログ: $(log_tail dryrun.log 3))"
     echo "--- dry-run log ---"
     cat "$TMP/dryrun.log"
-    echo "PASS: $PASS / FAIL: $FAIL"
+    bt_finish
     exit 1
 fi
 if grep -qF "dry-run=true" "$TMP/dryrun.log"; then
-    pass "dry-run であることをログに出す"
+    bt_pass "dry-run であることをログに出す"
 else
-    fail "dry-run であることをログに出さない ($(log_tail dryrun.log 2))"
+    bt_fail "dry-run であることをログに出す" "出さない ($(log_tail dryrun.log 2))"
 fi
 if grep -qF "dry-run のため gh は実行しません" "$TMP/dryrun.log"; then
-    pass "dry-run が gh を実行せず終わる"
+    bt_pass "dry-run が gh を実行せず終わる"
 else
-    fail "dry-run の終了メッセージが無い ($(log_tail dryrun.log 2))"
+    bt_fail "dry-run が gh を実行せず終わる" "終了メッセージが無い ($(log_tail dryrun.log 2))"
 fi
 # dry-run は npm pack まで実行する。tgz の名前と中身の一覧を出力に残す。
 if grep -qF "tgz: pecot-workflow-mcp-$PLUGIN_VERSION.tgz" "$TMP/dryrun.log"; then
-    pass "dry-run が tgz の名前を出力する"
+    bt_pass "dry-run が tgz の名前を出力する"
 else
-    fail "dry-run が tgz の名前を出力しない ($(log_tail dryrun.log 8))"
+    bt_fail "dry-run が tgz の名前を出力する" "出力しない ($(log_tail dryrun.log 8))"
 fi
 if grep -qE '^    LICENSE$' "$TMP/dryrun.log"; then
-    pass "dry-run の中身の一覧に LICENSE がある"
+    bt_pass "dry-run の中身の一覧に LICENSE がある"
 else
-    fail "dry-run の中身の一覧に LICENSE が無い"
+    bt_fail "dry-run の中身の一覧に LICENSE がある" "LICENSE が無い"
 fi
 if grep -E '^    ' "$TMP/dryrun.log" | grep -E '\.map$|cert' > /dev/null; then
-    fail "dry-run の中身の一覧に .map か cert を含むパスがある"
+    bt_fail "dry-run の中身の一覧に .map と cert を含むパスが無い" ".map か cert を含むパスがある"
 else
-    pass "dry-run の中身の一覧に .map と cert を含むパスが無い"
+    bt_pass "dry-run の中身の一覧に .map と cert を含むパスが無い"
 fi
 if grep -qE "gh release upload pecot-workflow-v$PLUGIN_VERSION pecot-workflow-mcp-$PLUGIN_VERSION.tgz --clobber -R [^ /]+/[^ /]+\$" "$TMP/dryrun.log" \
     && grep -qE "gh workflow run publish-npm.yml -f tag=pecot-workflow-v$PLUGIN_VERSION --ref pecot-workflow-v$PLUGIN_VERSION -R [^ /]+/[^ /]+\$" "$TMP/dryrun.log"; then
-    pass "dry-run が gh release upload と gh workflow run を表示する"
+    bt_pass "dry-run が gh release upload と gh workflow run を表示する"
 else
-    fail "dry-run が gh の表示を出さない ($(log_tail dryrun.log 4))"
+    bt_fail "dry-run が gh release upload と gh workflow run を表示する" "gh の表示を出さない ($(log_tail dryrun.log 4))"
 fi
-assert_eq "dry-run は gh を呼ばない" "0" "$(wc -l < "$GH_STUB_LOG" | tr -d ' ')"
+bt_eq "dry-run は gh を呼ばない" "0" "$(wc -l < "$GH_STUB_LOG" | tr -d ' ')"
 # dry-run の表示は、タグの版が nx の上げる前の値であることを添える。
 if grep -qF "版は version の段階より前の値です" "$TMP/dryrun.log"; then
-    pass "dry-run が、表示するタグの版は本実行で変わり得ると注記する"
+    bt_pass "dry-run が、表示するタグの版は本実行で変わり得ると注記する"
 else
-    fail "dry-run の表示に版の注記が無い ($(log_tail dryrun.log 3))"
+    bt_fail "dry-run が、表示するタグの版は本実行で変わり得ると注記する" "版の注記が無い ($(log_tail dryrun.log 3))"
 fi
 
 # F-04: forwardAllArgs: false のため、本番で dry-run が届くのは NX_DRY_RUN 環境変数だけ。
@@ -212,35 +193,35 @@ fi
 echo "==> NX_DRY_RUN=1 (フラグ無し) でも dry-run になる"
 if NX_DRY_RUN=1 bash "$PUBLISH" --skip-build --out-dir="$TMP/dist-nx-dry-run" \
     > "$TMP/nxdryrun.log" 2>&1; then
-    pass "NX_DRY_RUN=1 の実行が正常終了する"
+    bt_pass "NX_DRY_RUN=1 の実行が正常終了する"
 else
-    fail "NX_DRY_RUN=1 の実行が失敗した ($(log_tail nxdryrun.log 3))"
+    bt_fail "NX_DRY_RUN=1 の実行が正常終了する" "失敗した ($(log_tail nxdryrun.log 3))"
 fi
 if grep -qF "dry-run=true" "$TMP/nxdryrun.log"; then
-    pass "NX_DRY_RUN=1 が dry-run であることをログに出す"
+    bt_pass "NX_DRY_RUN=1 が dry-run であることをログに出す"
 else
-    fail "NX_DRY_RUN=1 で dry-run であることをログに出さない ($(log_tail nxdryrun.log 2))"
+    bt_fail "NX_DRY_RUN=1 が dry-run であることをログに出す" "出さない ($(log_tail nxdryrun.log 2))"
 fi
 if grep -qF "dry-run のため gh は実行しません" "$TMP/nxdryrun.log"; then
-    pass "NX_DRY_RUN=1 が gh を実行せず終わる"
+    bt_pass "NX_DRY_RUN=1 が gh を実行せず終わる"
 else
-    fail "NX_DRY_RUN=1 の終了メッセージが無い ($(log_tail nxdryrun.log 2))"
+    bt_fail "NX_DRY_RUN=1 が gh を実行せず終わる" "終了メッセージが無い ($(log_tail nxdryrun.log 2))"
 fi
-assert_eq "NX_DRY_RUN=1 でも gh を呼ばない" "0" "$(wc -l < "$GH_STUB_LOG" | tr -d ' ')"
+bt_eq "NX_DRY_RUN=1 でも gh を呼ばない" "0" "$(wc -l < "$GH_STUB_LOG" | tr -d ' ')"
 
 # F-17: forwardAllArgs: false を選んだ根拠そのもの。未対応引数は exit 1 になる。
 if bash "$PUBLISH" --dryRun=true --skip-build --out-dir="$TMP/dist-badflag" \
     > "$TMP/badflag.log" 2>&1; then
-    fail "--dryRun=true が exit 1 にならなかった"
+    bt_fail "--dryRun=true が exit 1 になる" "exit 1 にならなかった"
 else
-    pass "--dryRun=true が exit 1 になる"
+    bt_pass "--dryRun=true が exit 1 になる"
 fi
 # 配布先の上書き（--repo）は無い。
 if bash "$PUBLISH" --dry-run --skip-build --repo=acme-labs/example-repo --out-dir="$TMP/dist-repoflag" \
     > "$TMP/repoflag.log" 2>&1; then
-    fail "--repo が受け付けられた"
+    bt_fail "--repo は未対応の引数として exit 1 になる" "受け付けられた"
 else
-    pass "--repo は未対応の引数として exit 1 になる"
+    bt_pass "--repo は未対応の引数として exit 1 になる"
 fi
 
 # --- 2. 配布ツリーの中身 ---
@@ -261,21 +242,20 @@ else if (q === 'hasScripts') process.stdout.write(String('scripts' in m))
 " "$1"
 }
 
-assert_eq "package.json の name が配布パッケージ名" "@pecot/workflow-mcp" "$(read_manifest name)"
-assert_eq "package.json の version がプラグイン版と一致" "$PLUGIN_VERSION" "$(read_manifest version)"
-assert_eq "package.json の bin が shim を指す" '{"pecot-workflow-mcp":"bin/pecot-workflow-mcp.mjs"}' "$(read_manifest bin)"
-assert_eq "package.json の license が MIT" "MIT" "$(read_manifest license)"
-assert_eq "package.json の repository が公開リポを指す" \
+bt_eq "package.json の name が配布パッケージ名" "@pecot/workflow-mcp" "$(read_manifest name)"
+bt_eq "package.json の version がプラグイン版と一致" "$PLUGIN_VERSION" "$(read_manifest version)"
+bt_eq "package.json の bin が shim を指す" '{"pecot-workflow-mcp":"bin/pecot-workflow-mcp.mjs"}' "$(read_manifest bin)"
+bt_eq "package.json の license が MIT" "MIT" "$(read_manifest license)"
+bt_eq "package.json の repository が公開リポを指す" \
     '{"type":"git","url":"git+https://github.com/pecotcraft/pecot.git","directory":"plugins/pecot-workflow"}' "$(read_manifest repository)"
 # engines は node のみ。
-assert_eq "package.json の engines は node のみ" "node" "$(read_manifest engines)"
+bt_eq "package.json の engines は node のみ" "node" "$(read_manifest engines)"
 # devEngines に pnpm を写すと、npm が EBADDEVENGINES で止まり、npx 自身が起動しない。
-assert_eq "package.json に devEngines キーが無い" "false" "$(read_manifest hasDevEngines)"
+bt_eq "package.json に devEngines キーが無い" "false" "$(read_manifest hasDevEngines)"
 # 配布物は npx が展開するだけで、ビルド・テストの script は持たない。
-assert_eq "package.json に scripts キーが無い" "false" "$(read_manifest hasScripts)"
+bt_eq "package.json に scripts キーが無い" "false" "$(read_manifest hasScripts)"
 
-# 期待値を列挙で持つと finalize-dist.mjs の宣言を人手で写しただけになり、両方が同時に
-# 古くなって drift を検出できない。cli と lib の package.json の dependencies（lib そのものを除く）と等値比較する。
+# 期待値を列挙で持つと drift を検出できないので、cli と lib の package.json の dependencies（lib そのものを除く）と比べる。
 cli_dep_set() {
     node -e "
 const cli = require('$WORKFLOW_ROOT/cli/package.json').dependencies, lib = require('$REPO_ROOT/libs/workflow-core/package.json').dependencies
@@ -283,16 +263,16 @@ const names = new Set([...Object.keys(cli), ...Object.keys(lib)])
 names.delete('@pecot/workflow-core')
 process.stdout.write([...names].sort().join(','))"
 }
-assert_eq "配布 package.json の依存が cli と lib の package.json の dependencies と一致する" \
+bt_eq "配布 package.json の依存が cli と lib の package.json の dependencies と一致する" \
     "$(cli_dep_set)" "$(read_manifest deps)"
 
 # cli/dist の lib の import は、配布ツリーの vendor/workflow-core/dist への相対パスに書き換わる。
-assert_eq "cli/dist に @pecot/workflow-core の import が残らない" "0" \
+bt_eq "cli/dist に @pecot/workflow-core の import が残らない" "0" \
     "$(grep -rlE '(from|import)[[:space:](]*.@pecot/workflow-core' "$DIST/cli/dist" | wc -l | tr -d ' ')"
 if [ -f "$DIST/vendor/workflow-core/dist/commands-shared/output.js" ]; then
-    pass "vendor/workflow-core/dist が配布ツリーにある"
+    bt_pass "vendor/workflow-core/dist が配布ツリーにある"
 else
-    fail "vendor/workflow-core/dist が配布ツリーに無い"
+    bt_fail "vendor/workflow-core/dist が配布ツリーにある" "無い"
 fi
 
 # 実行時に node が解決する bare import は、すべて配布 package.json で宣言されている必要がある。
@@ -328,81 +308,81 @@ process.stdout.write(JSON.stringify({ missing: [...missing].sort(), matchCount }
 " "$DIST")"
 UNDECLARED="$(node -e "process.stdout.write(JSON.parse(process.argv[1]).missing.join(','))" "$SCAN_RESULT")"
 IMPORT_MATCH_COUNT="$(node -e "process.stdout.write(String(JSON.parse(process.argv[1]).matchCount))" "$SCAN_RESULT")"
-assert_eq "cli/dist と vendor/workflow-core/dist の bare import がすべて配布 package.json で宣言されている" "" "$UNDECLARED"
+bt_eq "cli/dist と vendor/workflow-core/dist の bare import がすべて配布 package.json で宣言されている" "" "$UNDECLARED"
 if [ "$IMPORT_MATCH_COUNT" -ge 1 ] 2> /dev/null; then
-    pass "bare import の走査が 1 件以上を検出する（走査 0 件での無条件 pass を防ぐ）"
+    bt_pass "bare import の走査が 1 件以上を検出する（走査 0 件での無条件 pass を防ぐ）"
 else
-    fail "bare import の走査が 0 件になった。正規表現が無効化されている疑い (matchCount=$IMPORT_MATCH_COUNT)"
+    bt_fail "bare import の走査が 1 件以上を検出する（走査 0 件での無条件 pass を防ぐ）" \
+        "0 件になった。正規表現が無効化されている疑い (matchCount=$IMPORT_MATCH_COUNT)"
 fi
 
-assert_eq "npm-shrinkwrap.json が lockfileVersion 3 で生成される" "3" \
+bt_eq "npm-shrinkwrap.json が lockfileVersion 3 で生成される" "3" \
     "$(node -e "process.stdout.write(String(require('$DIST/npm-shrinkwrap.json').lockfileVersion))" 2> /dev/null)"
-assert_eq ".claude-plugin/plugin.json が実版を持つ" "$PLUGIN_VERSION" \
+bt_eq ".claude-plugin/plugin.json が実版を持つ" "$PLUGIN_VERSION" \
     "$(node -e "process.stdout.write(require('$DIST/.claude-plugin/plugin.json').version)" 2> /dev/null)"
 
-# cli/dist は平坦なコピーではなくサブディレクトリを持つ。MCP サーバの起動に要る 4 点が
-# 階層ごと届いていることを見る（cp の -a 落ちや部分コピーの検出）。
+# MCP サーバの起動に要る 4 点が、cli/dist の階層ごと届いていることを見る（cp の -a 落ちや部分コピーの検出）。
 for entry in cli.js package.json infra/template-store.js mcp/server.js; do
     if [ -f "$DIST/cli/dist/$entry" ]; then
-        pass "cli/dist/$entry が配布ツリーにある"
+        bt_pass "cli/dist/$entry が配布ツリーにある"
     else
-        fail "cli/dist/$entry が配布ツリーに無い"
+        bt_fail "cli/dist/$entry が配布ツリーにある" "無い"
     fi
 done
 
 # サーバが実行時に dist の外から読むファイルが欠けると、起動はしても呼んだときに失敗する。
 # テンプレートは 1 本でなく、ソースの全ファイルの一覧が配布ツリーと一致することを見る。
 TEMPLATE_SOURCE_LIST="$(cd "$WORKFLOW_ROOT/cli/templates" && find . -type f | sort)"
-assert_eq "cli/templates の全ファイルが配布ツリーに同梱される" "$TEMPLATE_SOURCE_LIST" \
+bt_eq "cli/templates の全ファイルが配布ツリーに同梱される" "$TEMPLATE_SOURCE_LIST" \
     "$(cd "$DIST/cli/templates" && find . -type f | sort)"
-assert_eq "cli/templates の一覧が空でない（空同士の一致を防ぐ）" "yes" \
+bt_eq "cli/templates の一覧が空でない（空同士の一致を防ぐ）" "yes" \
     "$([ -n "$TEMPLATE_SOURCE_LIST" ] && echo yes || echo no)"
 if [ -f "$DIST/hooks/lib/core/pecot-gitignore-ensure.sh" ]; then
-    pass "hooks/lib/core/pecot-gitignore-ensure.sh が配布ツリーにある"
+    bt_pass "hooks/lib/core/pecot-gitignore-ensure.sh が配布ツリーにある"
 else
-    fail "hooks/lib/core/pecot-gitignore-ensure.sh が配布ツリーに無い"
+    bt_fail "hooks/lib/core/pecot-gitignore-ensure.sh が配布ツリーにある" "無い"
 fi
 
-assert_eq "配布ツリーに .gitignore が無い" "0" \
+bt_eq "配布ツリーに .gitignore が無い" "0" \
     "$(find "$DIST" -name '.gitignore' | wc -l | tr -d ' ')"
 # ソースマップは npm の配布物に入れない（spec 018 US4）。
-assert_eq "配布ツリーにソースマップ（*.map）が無い" "0" \
+bt_eq "配布ツリーにソースマップ（*.map）が無い" "0" \
     "$(find "$DIST" -name '*.map' -type f | wc -l | tr -d ' ')"
 
 # MIT は許諾表示の同梱を条件にする。ルートの LICENSE と同じ中身が配布ツリーに届く。
 if cmp -s "$REPO_ROOT/LICENSE" "$DIST/LICENSE"; then
-    pass "配布ツリーにルートの LICENSE が写る"
+    bt_pass "配布ツリーにルートの LICENSE が写る"
 else
-    fail "配布ツリーの LICENSE が無いか、ルートの LICENSE と違う"
+    bt_fail "配布ツリーにルートの LICENSE が写る" "LICENSE が無いか、ルートの LICENSE と違う"
 fi
-assert_eq "配布ツリーに cert を含むパスが無い" "0" \
+bt_eq "配布ツリーに cert を含むパスが無い" "0" \
     "$(find "$DIST" -iname '*cert*' | wc -l | tr -d ' ')"
 
 if [ -x "$DIST/bin/pecot-workflow-mcp.mjs" ]; then
-    pass "bin shim に実行権がある"
+    bt_pass "bin shim に実行権がある"
 else
-    fail "bin shim に実行権がない"
+    bt_fail "bin shim に実行権がある" "実行権がない"
 fi
 
 # --- 3. README の登録例 ---
 
 # 登録例は npm のパッケージ名を直に書く。URL のプレースホルダも git の URL も残らない。
 # 2 件 = npx 起動の登録例 + WSL 経由の登録例（bash -lc の行は引用符が付かず対象外）。
-assert_eq "README に git の URL が残っていない" "0" \
+bt_eq "README に git の URL が残っていない" "0" \
     "$(grep -c 'git+' "$DIST/README.md" | tr -d ' ')"
 # プレースホルダの名前は固定せず、`__` で囲んだ語が未置換で残っていないことを見る。
-assert_eq "README に未置換のプレースホルダ（__NAME__）が残っていない" "0" \
+bt_eq "README に未置換のプレースホルダ（__NAME__）が残っていない" "0" \
     "$(grep -cE '__[A-Za-z0-9_]+__' "$DIST/README.md" | tr -d ' ')"
-assert_eq "README の登録例 2 件が @pecot/workflow-mcp を指す" "2" \
+bt_eq "README の登録例 2 件が @pecot/workflow-mcp を指す" "2" \
     "$(grep -cF '"--prefix=/", "@pecot/workflow-mcp"]' "$DIST/README.md" | tr -d ' ')"
 # --package= で渡すと子に npm_config_package が残り、子の npx が別のパッケージを実行する。
-assert_eq "README の登録例が --package= で渡していない" "0" \
+bt_eq "README の登録例が --package= で渡していない" "0" \
     "$(grep -cF -- '--package=@' "$DIST/README.md" | tr -d ' ')"
-assert_eq "README の bash -lc の差し替え例が --prefix=/ を付ける" "1" \
+bt_eq "README の bash -lc の差し替え例が --prefix=/ を付ける" "1" \
     "$(grep -cF 'npx -y --prefix=/ @pecot/workflow-mcp' "$DIST/README.md" | tr -d ' ')"
 # 登録例のサーバ名は initialize の serverInfo.name に合わせる。
 # 3 件 = npx 起動 + 事前インストール後の直接起動 + WSL 経由。
-assert_eq "README の登録例 3 件がサーバ名 pecot-workflow を使う" "3" \
+bt_eq "README の登録例 3 件がサーバ名 pecot-workflow を使う" "3" \
     "$(grep -cF '"pecot-workflow":' "$DIST/README.md" | tr -d ' ')"
 
 # --- 4. 配布ツリーの起動 smoke ---
@@ -411,10 +391,7 @@ assert_eq "README の登録例 3 件がサーバ名 pecot-workflow を使う" "3
 MISSING_LINKS="$(node -e "
 const fs = require('node:fs'), path = require('node:path')
 const [dist, base] = process.argv.slice(1)
-// 解決の起点は cli（配布 package.json の依存は cli と lib の package.json 由来で、どちらも root の node_modules に届く）。
-// require.resolve はエントリのファイルを返すだけで package の実体ディレクトリを返さず、
-// exports に package.json を公開しないパッケージでは /package.json も引けない。そのため
-// node_modules を実際に辿って package の実体ディレクトリを引き当てる。
+// require.resolve は package の実体ディレクトリを返さないので、cli を起点に node_modules を実際に辿って引き当てる。
 const rootOf = (spec) => {
   let dir = path.resolve(base)
   for (;;) {
@@ -436,21 +413,11 @@ for (const spec of Object.keys(dependencies)) {
 }
 process.stdout.write(missing.join(','))
 " "$DIST" "$WORKFLOW_ROOT/cli")"
-assert_eq "配布 package.json の依存がすべてローカルに実体を持つ" "" "$MISSING_LINKS"
+bt_eq "配布 package.json の依存がすべてローカルに実体を持つ" "" "$MISSING_LINKS"
 
 cat > "$TMP/smoke.mjs" << 'SMOKE'
-// MCP サーバを stdio で起動し、initialize / tools/list を送って応答が揃うまで待つ。
-// 揃ったら要約（initialize の serverInfo.name・tools/list の件数・先頭ツール名・全ツール名・
-// 任意の tools/call 結果）を 1 行 JSON で返す。起動そのものに失敗したときだけ
-// `FAIL: <理由>` を返す。
-//
-// 使い方: node smoke.mjs <script> [args...]  （script は node で起動する）
-// 環境変数 SMOKE_TOOL_CALLS に [{"name":..,"arguments":{..}}, ...] の JSON を渡すと、
-// tools/list の後に続けて tools/call を送り、各応答の isError と出力（structuredContent）を
-// 返り値の calls 配列（呼び出し順）に載せる（配布ツリーが実際に起動して応答することの検証。
-// tools/list が緑のまま tools/call だけ壊れる回帰を拾うため）。
-// 環境変数 SMOKE_RESOURCE_READS に URI の JSON の配列を渡すと、続けて resources/read を送り、各応答の本文を reads 配列に載せる。
-// 環境変数 SMOKE_CWD があれば、それをサーバの cwd にする。
+// node smoke.mjs <script> [args...]: MCP サーバに initialize / tools/list（と SMOKE_TOOL_CALLS・SMOKE_RESOURCE_READS）を送り、要約を 1 行 JSON で返す。
+// 起動そのものに失敗したときだけ `FAIL: <理由>` を返す。SMOKE_CWD があれば、それをサーバの cwd にする。
 import { spawn } from 'node:child_process'
 
 const command = process.argv.slice(2)
@@ -561,34 +528,45 @@ smoke_node() {
         node "$TMP/smoke.mjs" "$@"
 }
 
-# 登録例と同じ引数なし起動と、`mcp` を明示した起動の双方を見る。前者は shim の argv 注入、
-# 後者は注入が無いときの素通しを担保する。
+# smoke の出力が要約の JSON でなければ、理由を SMOKE_BROKEN に入れて 1 を返す。
+smoke_broken() {
+    local out="$1" detail
+    SMOKE_BROKEN=""
+    case "$(head -c 5 "$out")" in
+        FAIL:)
+            detail="$(file_cat "$out")"
+            SMOKE_BROKEN="配布ツリーが MCP サーバとして起動しない ($detail)"
+            ;;
+        '')
+            detail="$(file_tail "$out.err" 3)"
+            SMOKE_BROKEN="smoke が何も出力しなかった ($detail)"
+            ;;
+    esac
+    [ -n "$SMOKE_BROKEN" ]
+}
+
+# 登録例と同じ引数なし起動（shim の argv 注入）と、`mcp` を明示した起動（注入が無いときの素通し）の双方を見る。
 run_smoke() {
     local label="$1" out="$2"
     shift 2
+    local count_title="$label で tools/list が $EXPECTED_TOOL_COUNT 件を返す"
+    local first_title="$label で tools/list の先頭が COMMANDS の順になる"
     smoke_node "$@" > "$out" 2> "$out.err"
-    case "$(head -c 5 "$out")" in
-        FAIL:)
-            smoke_output="$(file_cat "$out")"
-            fail "$label で配布ツリーが MCP サーバとして起動しない ($smoke_output)"
-            return 1
-            ;;
-        '')
-            smoke_err_tail="$(file_tail "$out.err" 3)"
-            fail "$label の smoke が何も出力しなかった ($smoke_err_tail)"
-            return 1
-            ;;
-    esac
-    local error
-    error="$(smoke_value "$out" error)"
-    if [ -n "$error" ]; then
-        fail "$label で tools/list がエラーを返した (error.message: $error)"
+    local reason=""
+    if smoke_broken "$out"; then
+        reason="$SMOKE_BROKEN"
+    else
+        local error
+        error="$(smoke_value "$out" error)"
+        [ -z "$error" ] || reason="tools/list がエラーを返した (error.message: $error)"
+    fi
+    if [ -n "$reason" ]; then
+        bt_fail "$count_title" "$reason"
+        bt_fail "$first_title" "$reason"
         return 1
     fi
-    assert_eq "$label で tools/list が $EXPECTED_TOOL_COUNT 件を返す" \
-        "$EXPECTED_TOOL_COUNT" "$(smoke_value "$out" toolCount)"
-    assert_eq "$label で tools/list の先頭が COMMANDS の順になる" \
-        "$EXPECTED_FIRST_TOOL" "$(smoke_value "$out" firstTool)"
+    bt_eq "$count_title" "$EXPECTED_TOOL_COUNT" "$(smoke_value "$out" toolCount)"
+    bt_eq "$first_title" "$EXPECTED_FIRST_TOOL" "$(smoke_value "$out" firstTool)"
 }
 
 run_smoke "引数なし起動" "$TMP/smoke-default.json" "$DIST/bin/pecot-workflow-mcp.mjs"
@@ -597,11 +575,11 @@ run_smoke "mcp を明示した起動" "$TMP/smoke-mcp.json" "$DIST/bin/pecot-wor
 # README のツール表（`| \`name\`` の行）が tools/list の名前列と順序込みで一致することを固定する。
 # ツールの追加・改名・順序変更で表だけが古くなっても緑のままになるのを防ぐ。
 README_TOOL_NAMES="$(grep -oE '^\| `[a-z][a-z0-9_]+`' "$DIST/README.md" | sed -E 's/^\| `//; s/`$//' | paste -sd, -)"
-assert_eq "README のツール表が tools/list の名前と順序込みで一致する" \
+bt_eq "README のツール表が tools/list の名前と順序込みで一致する" \
     "$README_TOOL_NAMES" "$(smoke_value "$TMP/smoke-default.json" toolNames)"
 
 # README の登録例のサーバ名（mcpServers のキー）が initialize の serverInfo.name と一致することを固定する。
-assert_eq "README の登録名が initialize の serverInfo.name と一致する" "pecot-workflow" \
+bt_eq "README の登録名が initialize の serverInfo.name と一致する" "pecot-workflow" \
     "$(smoke_value "$TMP/smoke-default.json" serverName)"
 
 # tools/list が緑でも、dist の外のファイルを読めないと tools/call は失敗する。
@@ -629,29 +607,26 @@ SMOKE_CWD="$CALL_REPO" \
     SMOKE_RESOURCE_READS='["pecot-template://comment/plan"]' \
     smoke_node "$DIST/bin/pecot-workflow-mcp.mjs" mcp \
     > "$SMOKE_CALLS_OUT" 2> "$SMOKE_CALLS_OUT.err"
-case "$(head -c 5 "$SMOKE_CALLS_OUT")" in
-    FAIL:)
-        smoke_output="$(file_cat "$SMOKE_CALLS_OUT")"
-        fail "tools/call smoke で配布ツリーが MCP サーバとして起動しない ($smoke_output)"
-        ;;
-    '')
-        smoke_err_tail="$(file_tail "$SMOKE_CALLS_OUT.err" 3)"
-        fail "tools/call smoke が何も出力しなかった ($smoke_err_tail)"
-        ;;
-    *)
-        assert_eq "session_show の tools/call が成功（isError が false）を返す" "false" \
-            "$(call_value "$SMOKE_CALLS_OUT" 0 isError)"
-        assert_eq "session_show が一時リポのブランチ名を branch に返す" "smoke-branch" \
-            "$(call_value "$SMOKE_CALLS_OUT" 0 branch)"
-        assert_eq "pecot-template://comment/plan の resources/read が成功する" "false" \
-            "$(call_value "$SMOKE_CALLS_OUT" 0 isError reads)"
-        if call_value "$SMOKE_CALLS_OUT" 0 text reads | grep -qxF '## Plan'; then
-            pass "resource で読んだテンプレートに同梱テンプレートの '## Plan' 節がある"
-        else
-            fail "resource で読んだテンプレートに '## Plan' 節が無い"
-        fi
-        ;;
-esac
+CALL_TITLES=(
+    "session_show の tools/call が成功（isError が false）を返す"
+    "session_show が一時リポのブランチ名を branch に返す"
+    "pecot-template://comment/plan の resources/read が成功する"
+    "resource で読んだテンプレートに同梱テンプレートの '## Plan' 節がある"
+)
+if smoke_broken "$SMOKE_CALLS_OUT"; then
+    for title in "${CALL_TITLES[@]}"; do
+        bt_fail "$title" "tools/call smoke: $SMOKE_BROKEN"
+    done
+else
+    bt_eq "${CALL_TITLES[0]}" "false" "$(call_value "$SMOKE_CALLS_OUT" 0 isError)"
+    bt_eq "${CALL_TITLES[1]}" "smoke-branch" "$(call_value "$SMOKE_CALLS_OUT" 0 branch)"
+    bt_eq "${CALL_TITLES[2]}" "false" "$(call_value "$SMOKE_CALLS_OUT" 0 isError reads)"
+    if call_value "$SMOKE_CALLS_OUT" 0 text reads | grep -qxF '## Plan'; then
+        bt_pass "${CALL_TITLES[3]}"
+    else
+        bt_fail "${CALL_TITLES[3]}" "'## Plan' 節が無い"
+    fi
+fi
 
 # worktree_link は pecot-gitignore-ensure.sh を呼んで .pecot/.gitignore を作る。同梱し忘れは警告で済んで link だけ通るので、生成物で確かめる。
 # <root>/base/repo（設定と link 先）と <root>/wt1/repo（link を張る側）の一時構成を、ネットワークなしで作る。
@@ -671,37 +646,36 @@ DEVCONTAINER=1 SMOKE_CWD="$LINK_WT" \
     SMOKE_TOOL_CALLS="[{\"name\":\"worktree_link\",\"arguments\":{\"directory\":\"$LINK_WT\"}}]" \
     smoke_node "$DIST/bin/pecot-workflow-mcp.mjs" mcp \
     > "$SMOKE_LINK_OUT" 2> "$SMOKE_LINK_OUT.err"
-assert_eq "worktree_link の tools/call が成功（isError が false）を返す" "false" \
+bt_eq "worktree_link の tools/call が成功（isError が false）を返す" "false" \
     "$(call_value "$SMOKE_LINK_OUT" 0 isError)"
 LINK_TEXT="$(call_value "$SMOKE_LINK_OUT" 0 text | tr '\n' ' ')"
 if [ -L "$LINK_WT/.pecot/work" ]; then
-    pass "worktree_link が worktree に symlink を張る"
+    bt_pass "worktree_link が worktree に symlink を張る"
 else
-    fail "worktree_link が symlink を張らなかった: $LINK_TEXT"
+    bt_fail "worktree_link が worktree に symlink を張る" "symlink を張らなかった: $LINK_TEXT"
 fi
 if [ -f "$LINK_WT/.pecot/.gitignore" ] && [ ! -L "$LINK_WT/.pecot/.gitignore" ] \
     && grep -qxF '!/config/worktree-config.json' "$LINK_WT/.pecot/.gitignore"; then
-    pass "worktree_link が同梱のスクリプトで .pecot/.gitignore を実ファイルで作る"
+    bt_pass "worktree_link が同梱のスクリプトで .pecot/.gitignore を実ファイルで作る"
 else
-    fail "worktree_link が .pecot/.gitignore を作らなかった: $LINK_TEXT"
+    bt_fail "worktree_link が同梱のスクリプトで .pecot/.gitignore を実ファイルで作る" ".pecot/.gitignore を作らなかった: $LINK_TEXT"
 fi
 
 # 引数がある起動は、そのまま commander へ渡す（argv 注入が --version を止めない）。
 VERSION_RC=0
 node "$DIST/bin/pecot-workflow-mcp.mjs" --version > "$TMP/version.out" 2> "$TMP/version.err" || VERSION_RC=$?
-assert_eq "--version が exit 0 で終わる" "0" "$VERSION_RC"
-assert_eq "--version が配布ツリーの plugin.json の版を返す" "pecot version $PLUGIN_VERSION" \
+bt_eq "--version が exit 0 で終わる" "0" "$VERSION_RC"
+bt_eq "--version が配布ツリーの plugin.json の版を返す" "pecot version $PLUGIN_VERSION" \
     "$(tr -d '\n' < "$TMP/version.out")"
 
 # 配布物の bin に引数を渡すと CLI として動く。GitHub Actions のワークフローは、この形で board sync を打つ。
 BOARD_HELP_RC=0
 node "$DIST/bin/pecot-workflow-mcp.mjs" board sync --help > "$TMP/board-help.out" 2> "$TMP/board-help.err" || BOARD_HELP_RC=$?
-assert_eq "board sync --help が exit 0 で終わる" "0" "$BOARD_HELP_RC"
+bt_eq "board sync --help が exit 0 で終わる" "0" "$BOARD_HELP_RC"
 
-# smoke 用に張った symlink は配布ツリーの一部ではない。以降の publish は $DIST を使わないが、
-# 消し残すと、「配布物に node_modules が無い」の判定が smoke の副作用に依存してしまう。
+# smoke 用に張った symlink は配布ツリーの一部ではないので消す。
 rm -rf "$DIST/node_modules"
-assert_eq "smoke 用の node_modules を配布ツリーに残さない" "0" \
+bt_eq "smoke 用の node_modules を配布ツリーに残さない" "0" \
     "$(find "$DIST" -maxdepth 1 -name 'node_modules' | wc -l | tr -d ' ')"
 
 # --- 5. 冪等性の確認と Release への添付 ---
@@ -720,69 +694,69 @@ tgz_names() {
 if publish_real bash "$PUBLISH" --version="$TEST_VERSION" --skip-build \
     --out-dir="$TMP/dist-gate" > "$TMP/gate.log" 2>&1; then
     if grep -q "スキップ" "$TMP/gate.log" && [ ! -d "$TMP/dist-gate" ]; then
-        pass "リリースタグが無いとき配布ツリーを作らず早期 return する"
+        bt_pass "リリースタグが無いとき配布ツリーを作らず早期 return する"
     else
-        fail "リリースタグが無いのに処理が進んだ ($(log_tail gate.log 2))"
+        bt_fail "リリースタグが無いとき配布ツリーを作らず早期 return する" "処理が進んだ ($(log_tail gate.log 2))"
     fi
 else
-    fail "タグ無しの実行が非ゼロ終了した ($(log_tail gate.log 2))"
+    bt_fail "リリースタグが無いとき配布ツリーを作らず早期 return する" "非ゼロ終了した ($(log_tail gate.log 2))"
 fi
-assert_eq "タグ無しの実行は gh を呼ばない" "0" "$(gh_lines)"
+bt_eq "タグ無しの実行は gh を呼ばない" "0" "$(gh_lines)"
 
 # 5-2. タグがある使い捨てリポ側のスクリプトを起動すると、tgz を Release に添えてワークフローを起動する。
 #      gh は PATH 先頭のスタブで、引数と順序を見る。
 if publish_real bash "$TAGGED_PUBLISH" --version="$TEST_VERSION" --skip-build \
     --out-dir="$TMP/dist-1" > "$TMP/publish1.log" 2>&1; then
-    pass "タグがあるとき publish が正常終了する"
+    bt_pass "タグがあるとき publish が正常終了する"
 else
-    fail "publish が失敗した ($(log_tail publish1.log 3))"
+    bt_fail "タグがあるとき publish が正常終了する" "失敗した ($(log_tail publish1.log 3))"
 fi
-assert_eq "gh の呼び出しが 3 回（view / upload / workflow run）" "3" "$(gh_lines)"
-assert_eq "1 番目は gh release view（-R の値は origin の owner/name）" \
+bt_eq "gh の呼び出しが 3 回（view / upload / workflow run）" "3" "$(gh_lines)"
+bt_eq "1 番目は gh release view（-R の値は origin の owner/name）" \
     "release view $TEST_TAG -R $TEST_SLUG" "$(gh_line 1)"
 case "$(gh_line 2)" in
     "release upload $TEST_TAG "*"/pecot-workflow-mcp-$TEST_VERSION.tgz --clobber -R $TEST_SLUG")
-        pass "2 番目は gh release upload（tgz・--clobber・-R 付き）"
+        bt_pass "2 番目は gh release upload（tgz・--clobber・-R 付き）"
         ;;
-    *) fail "gh release upload の引数が期待と違う: $(gh_line 2)" ;;
+    *) bt_fail "2 番目は gh release upload（tgz・--clobber・-R 付き）" "引数が期待と違う: $(gh_line 2)" ;;
 esac
-assert_eq "3 番目は gh workflow run（tag・--ref・-R 付き）" \
+bt_eq "3 番目は gh workflow run（tag・--ref・-R 付き）" \
     "workflow run publish-npm.yml -f tag=$TEST_TAG --ref $TEST_TAG -R $TEST_SLUG" "$(gh_line 3)"
 if grep -qF "tgz: pecot-workflow-mcp-$TEST_VERSION.tgz" "$TMP/publish1.log"; then
-    pass "publish が tgz の名前を出力する"
+    bt_pass "publish が tgz の名前を出力する"
 else
-    fail "publish が tgz の名前を出力しない ($(log_tail publish1.log 6))"
+    bt_fail "publish が tgz の名前を出力する" "出力しない ($(log_tail publish1.log 6))"
 fi
 
 # upload された tgz の中身。
-assert_eq "tgz の package.json の name" "@pecot/workflow-mcp" \
+bt_eq "tgz の package.json の name" "@pecot/workflow-mcp" \
     "$(tar -xzOf "$GH_STUB_DIR/uploaded.tgz" package/package.json 2> /dev/null | node -e "process.stdout.write(JSON.parse(require('fs').readFileSync(0,'utf8')).name)")"
-assert_eq "tgz の package.json の version" "$TEST_VERSION" \
+bt_eq "tgz の package.json の version" "$TEST_VERSION" \
     "$(tar -xzOf "$GH_STUB_DIR/uploaded.tgz" package/package.json 2> /dev/null | node -e "process.stdout.write(JSON.parse(require('fs').readFileSync(0,'utf8')).version)")"
 TREE="$TMP/tgz-list.txt"
 tgz_names > "$TREE"
 for entry in package/package.json package/npm-shrinkwrap.json package/README.md package/LICENSE \
     package/.claude-plugin/plugin.json package/cli/dist/cli.js package/cli/templates/comment/plan.md package/hooks/lib/core/pecot-gitignore-ensure.sh package/bin/pecot-workflow-mcp.mjs; do
     if grep -qxF "$entry" "$TREE"; then
-        pass "tgz に $entry が入る"
+        bt_pass "tgz に $entry が入る"
     else
-        fail "tgz に $entry が入っていない"
+        bt_fail "tgz に $entry が入る" "入っていない"
     fi
 done
-assert_eq "tgz の cli/templates が配布ツリーの全ファイルと一致する" \
+bt_eq "tgz の cli/templates が配布ツリーの全ファイルと一致する" \
     "$(cd "$WORKFLOW_ROOT/cli/templates" && find . -type f | sed 's|^\./|package/cli/templates/|' | sort)" \
     "$(grep '^package/cli/templates/' "$TREE" | grep -v '/$' | sort)"
 if grep -E '\.map$|cert' "$TREE" > /dev/null; then
     BAD_PATHS="$(grep -E '\.map$|cert' "$TREE" | head -3 | tr '\n' ' ')"
-    fail "tgz に .map か cert を含むパスがある: $BAD_PATHS"
+    bt_fail "tgz に .map と cert を含むパスが無い" "含むパスがある: $BAD_PATHS"
 else
-    pass "tgz に .map と cert を含むパスが無い"
+    bt_pass "tgz に .map と cert を含むパスが無い"
 fi
 for excluded in package/node_modules/ package/cli/src/ package/cli/tests/ package/.gitignore; do
     if grep -qF "$excluded" "$TREE"; then
-        fail "tgz に $excluded が混入している"
+        bt_fail "tgz に $excluded が入らない" "混入している"
     else
-        pass "tgz に $excluded が入らない"
+        bt_pass "tgz に $excluded が入らない"
     fi
 done
 
@@ -790,11 +764,11 @@ done
 gh_reset
 if publish_real bash "$TAGGED_PUBLISH" --version="$TEST_VERSION" --skip-build \
     --out-dir="$TMP/dist-2" > "$TMP/publish2.log" 2>&1; then
-    pass "同版の連続再実行が正常終了する"
+    bt_pass "同版の連続再実行が正常終了する"
 else
-    fail "同版の連続再実行が失敗した ($(log_tail publish2.log 3))"
+    bt_fail "同版の連続再実行が正常終了する" "失敗した ($(log_tail publish2.log 3))"
 fi
-assert_eq "同版の再実行でも gh を 3 回呼ぶ" "3" "$(gh_lines)"
+bt_eq "同版の再実行でも gh を 3 回呼ぶ" "3" "$(gh_lines)"
 
 # 5-3b. 版が上がる publish は、新しい版のタグと tgz で呼ぶ。
 TEST_VERSION_2="0.0.0-test$$-2"
@@ -814,13 +788,13 @@ git -C "$TEST_REPO" tag "$TEST_TAG_2" HEAD || exit 1
 gh_reset
 if publish_real bash "$TAGGED_PUBLISH" --version="$TEST_VERSION_2" --skip-build \
     --out-dir="$TMP/dist-3" > "$TMP/publish3.log" 2>&1; then
-    pass "版が上がる publish が正常終了する"
+    bt_pass "版が上がる publish が正常終了する"
 else
-    fail "版が上がる publish が失敗した ($(log_tail publish3.log 3))"
+    bt_fail "版が上がる publish が正常終了する" "失敗した ($(log_tail publish3.log 3))"
 fi
-assert_eq "版が上がると workflow run が新しいタグを指す" \
+bt_eq "版が上がると workflow run が新しいタグを指す" \
     "workflow run publish-npm.yml -f tag=$TEST_TAG_2 --ref $TEST_TAG_2 -R $TEST_SLUG" "$(gh_line 3)"
-assert_eq "版が上がると tgz の version が新版になる" "$TEST_VERSION_2" \
+bt_eq "版が上がると tgz の version が新版になる" "$TEST_VERSION_2" \
     "$(tar -xzOf "$GH_STUB_DIR/uploaded.tgz" package/package.json 2> /dev/null | node -e "process.stdout.write(JSON.parse(require('fs').readFileSync(0,'utf8')).version)")"
 
 # 5-3c. origin が ssh 形式でも owner/name を求められる。
@@ -828,13 +802,13 @@ git -C "$TEST_REPO" remote set-url origin "git@github.com:$TEST_SLUG.git"
 gh_reset
 publish_real bash "$TAGGED_PUBLISH" --version="$TEST_VERSION_2" --skip-build \
     --out-dir="$TMP/dist-ssh" > "$TMP/publish-ssh.log" 2>&1 || true
-assert_eq "origin が scp 形式でも -R が owner/name になる" \
+bt_eq "origin が scp 形式でも -R が owner/name になる" \
     "release view $TEST_TAG_2 -R $TEST_SLUG" "$(gh_line 1)"
 git -C "$TEST_REPO" remote set-url origin "ssh://git@github.com/$TEST_SLUG.git"
 gh_reset
 publish_real bash "$TAGGED_PUBLISH" --version="$TEST_VERSION_2" --skip-build \
     --out-dir="$TMP/dist-ssh2" > "$TMP/publish-ssh2.log" 2>&1 || true
-assert_eq "origin が ssh:// 形式でも -R が owner/name になる" \
+bt_eq "origin が ssh:// 形式でも -R が owner/name になる" \
     "release view $TEST_TAG_2 -R $TEST_SLUG" "$(gh_line 1)"
 git -C "$TEST_REPO" remote set-url origin "https://github.com/$TEST_SLUG.git"
 
@@ -843,12 +817,12 @@ gh_reset
 NORELEASE_RC=0
 GH_STUB_NO_RELEASE=1 publish_real bash "$TAGGED_PUBLISH" --version="$TEST_VERSION_2" --skip-build \
     --out-dir="$TMP/dist-norelease" > "$TMP/norelease.log" 2>&1 || NORELEASE_RC=$?
-assert_eq "Release が無いと非ゼロ終了" "1" "$NORELEASE_RC"
-assert_eq "Release が無いときは gh を view の 1 回しか呼ばない" "1" "$(gh_lines)"
+bt_eq "Release が無いと非ゼロ終了" "1" "$NORELEASE_RC"
+bt_eq "Release が無いときは gh を view の 1 回しか呼ばない" "1" "$(gh_lines)"
 if grep -qF "release not found" "$TMP/norelease.log"; then
-    pass "Release が無い理由を出す"
+    bt_pass "Release が無い理由を出す"
 else
-    fail "Release が無い理由を出さない ($(log_tail norelease.log 3))"
+    bt_fail "Release が無い理由を出す" "出さない ($(log_tail norelease.log 3))"
 fi
 
 # 5-4. 作業ツリーが HEAD と乖離していれば publish しない。HEAD は v2 なので、以降は v2 のタグを使う。
@@ -856,18 +830,18 @@ printf '\ndirty\n' >> "$TEST_WORKFLOW/scripts/release/mcp-dist-README.md"
 gh_reset
 if publish_real bash "$TAGGED_PUBLISH" --version="$TEST_VERSION_2" --skip-build \
     --out-dir="$TMP/dist-dirty" > "$TMP/dirty.log" 2>&1; then
-    fail "作業ツリーが HEAD と乖離していても publish が通った"
+    bt_fail "作業ツリーが HEAD と乖離しているとき publish を拒否する" "publish が通った"
 elif grep -q "未コミットの変更" "$TMP/dirty.log"; then
-    pass "作業ツリーが HEAD と乖離しているとき publish を拒否する"
+    bt_pass "作業ツリーが HEAD と乖離しているとき publish を拒否する"
 else
-    fail "乖離判定以外の理由で失敗した ($(log_tail dirty.log 2))"
+    bt_fail "作業ツリーが HEAD と乖離しているとき publish を拒否する" "乖離判定以外の理由で失敗した ($(log_tail dirty.log 2))"
 fi
-assert_eq "乖離時の実行は gh を呼ばない" "0" "$(gh_lines)"
+bt_eq "乖離時の実行は gh を呼ばない" "0" "$(gh_lines)"
 git -C "$TEST_REPO" checkout --quiet -- plugins/pecot-workflow/scripts/release/mcp-dist-README.md
 
-assert_eq "テストはリポジトリ本体に検証用タグ (版 1) を残さない" "0" \
+bt_eq "テストはリポジトリ本体に検証用タグ (版 1) を残さない" "0" \
     "$(git -C "$REPO_ROOT" tag -l "$TEST_TAG" | wc -l | tr -d ' ')"
-assert_eq "テストはリポジトリ本体に検証用タグ (版 2) を残さない" "0" \
+bt_eq "テストはリポジトリ本体に検証用タグ (版 2) を残さない" "0" \
     "$(git -C "$REPO_ROOT" tag -l "$TEST_TAG_2" | wc -l | tr -d ' ')"
 
 # --- 6. --out-dir ガード ---
@@ -877,9 +851,9 @@ reject_out_dir() {
     local label="$1" target="$2"
     if bash "$PUBLISH" --dry-run --skip-build --out-dir="$target" \
         > "$TMP/outdir.log" 2>&1; then
-        fail "--out-dir ガードが $label を通した ($target)"
+        bt_fail "--out-dir ガードが $label を弾く" "通した ($target)"
     else
-        pass "--out-dir ガードが $label を弾く"
+        bt_pass "--out-dir ガードが $label を弾く"
     fi
 }
 
@@ -895,7 +869,7 @@ reject_out_dir "symlink 経由でリポジトリ配下を指すパス" "$TMP/rep
 touch "$TMP/plain-file"
 reject_out_dir "ファイルを指すパス" "$TMP/plain-file"
 reject_out_dir "親ディレクトリが不在のパス" "$TMP/does-not-exist/child"
-assert_eq "ガードは対象ディレクトリを消さない" "1" \
+bt_eq "ガードは対象ディレクトリを消さない" "1" \
     "$(ls -A "$TMP/nonempty" | wc -l | tr -d ' ')"
 
 # REPO_ROOT は pwd -P で確定するので、symlink 経由の起動でも --out-dir の前方一致 (条件 a) が働く。起動パスだけ symlink にする。
@@ -903,13 +877,11 @@ SYMLINK_SCRIPT="$TMP/repo-link/plugins/pecot-workflow/scripts/release/publish-mc
 SYMLINK_LAUNCH_OUT="$REPO_ROOT/plugins/pecot-workflow/scripts/release/.f02-outdir-check-$$"
 if bash "$SYMLINK_SCRIPT" --dry-run --skip-build --out-dir="$SYMLINK_LAUNCH_OUT" \
     > "$TMP/symlink-launch.log" 2>&1; then
-    fail "symlink 経由の起動で --out-dir ガードがリポジトリ配下を通した ($SYMLINK_LAUNCH_OUT)"
+    bt_fail "symlink 経由の起動でも --out-dir ガードが条件 (a) の文言で拒否する" "リポジトリ配下を通した ($SYMLINK_LAUNCH_OUT)"
 elif grep -qF "の外を指定してください: $SYMLINK_LAUNCH_OUT" "$TMP/symlink-launch.log"; then
-    pass "symlink 経由の起動でも --out-dir ガードが条件 (a) の文言で拒否する"
+    bt_pass "symlink 経由の起動でも --out-dir ガードが条件 (a) の文言で拒否する"
 else
-    fail "symlink 経由の起動で条件 (a) 以外の理由で失敗した ($(log_tail symlink-launch.log 2))"
+    bt_fail "symlink 経由の起動でも --out-dir ガードが条件 (a) の文言で拒否する" "条件 (a) 以外の理由で失敗した ($(log_tail symlink-launch.log 2))"
 fi
 
-echo
-echo "PASS: $PASS / FAIL: $FAIL"
-[ "$FAIL" -eq 0 ] || exit 1
+bt_finish

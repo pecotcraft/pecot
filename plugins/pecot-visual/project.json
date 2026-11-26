@@ -147,6 +147,7 @@
     "test-bootstrap": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{projectRoot}/cli/tests/bootstrap/**/*",
         "sharedGlobals",
         "pecotvPluginTestGlobals",
@@ -166,11 +167,12 @@
         "^production"
       ],
       "dependsOn": ["install", "check-pm-guard", "chromium-preflight"],
+      "outputs": ["{projectRoot}/test-results/test-bootstrap/allure-results"],
       "metadata": {
         "description": "bin/pecotv の bootstrap と登録ファイルの bash テスト。対象は次の 7 本。host-deps-marker、install-record、data-dir、mirror-real-pnpm、manifest、lib-consistency、text-rules-link。約 21 秒かかる。test-cli から切り出し、cli/src だけを変えた変更では実行しない (#1235)。重い CUJ 一式の run.sh は従来どおり手動で実行し、本レーンには含めない。pnpm は stub を使うか、ミラーを実 build する mirror-real-pnpm.sh の実 pnpm を使う。本体の cli/dist は使わない。そのため build-cli には依存しない。chromium-preflight には依存する。mirror-real-pnpm.sh の bin/pecotv --version が、MCP 以外の起動で Chromium の取得と host-deps を試みることがある。install と check-pm-guard は、dependsOn 経由で実行ごとに 1 回だけ実行する。run-tests.sh には PECOTV_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
-        "command": "PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=bootstrap",
+        "command": "rm -rf test-results/test-bootstrap/allure-results && PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=bootstrap",
         "cwd": "plugins/pecot-visual"
       }
     },
@@ -205,6 +207,7 @@
     "test-hooks": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{projectRoot}/hooks/**/*",
         "sharedGlobals",
         "pecotvPluginTestGlobals",
@@ -218,17 +221,19 @@
         "^production"
       ],
       "dependsOn": ["install", "check-pm-guard", "build-slidev", { "projects": ["text-rules"], "target": "build" }],
+      "outputs": ["{projectRoot}/test-results/test-hooks/allure-results"],
       "metadata": {
         "description": "hooks/ 以外の inputs は、strace で棚卸しした実際の読み込みに従う (#1225)。hooks のテストは、fixture テーマ（cli/tests/fixtures/themes/with-declaration）の references を talk-dir へ複写して使う。実 eslint で本体の規則（slidev-pages-lint / text-constraints 等）を動かす。そのため inputs に 4 つを入れる。deck-lint.config.js、deck-lint.env.config.js、fixture の references/*.yaml、scripts/eslint/**（テスト以外）。テーマの宣言は mirror-helper.sh の stub CLI が返す。cli の node-runtime.ts も参照する。lint の図の幾何は scripts/eslint/_shared が持つ。validate-references-check.test.sh は scripts/eslint/validate-references の dist/index.js を起動する。dist が無いと SKIP して通る。dist は build-slidev が作るので dependsOn に載せ、ソース（テスト以外）を inputs に入れる。dist の無い worktree で SKIP して成功した結果が、共有キャッシュ経由で別の worktree へ再利用されるのを防ぐ。libs/text-rules の変更は、project graph の依存先として ^production が取り込む。text-lint-check.test.sh は libs/text-rules/dist の bin を起動するため、text-rules:build を dependsOn に明記する。"
       },
       "options": {
-        "command": "PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=hooks",
+        "command": "rm -rf test-results/test-hooks/allure-results && PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=hooks",
         "cwd": "plugins/pecot-visual"
       }
     },
     "test-compare": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{projectRoot}/scripts/pptx-compare/**/*",
         "{projectRoot}/scripts/page-compare/**/*",
         "sharedGlobals",
@@ -236,17 +241,19 @@
         "cliProduction"
       ],
       "dependsOn": ["install", "check-pm-guard", "build-cli"],
+      "outputs": ["{projectRoot}/test-results/test-compare/allure-results"],
       "metadata": {
         "description": "依存更新の前後比較スクリプト (#1073) の検証。ページ画像を画素で比べる page-compare (#1341) の検証も同じレーンで実行する。pptx-compare の被テストスクリプトは cli/dist の archive・xml-engine・preview-normalize を import する。fixture の合成にも同じ writer を使う。そのため cliProduction を inputs に入れる。入れないと cli/src の変更でキャッシュがヒットし、古い cli/dist に対する判定のまま緑になる。compare-cx-measure のテストは、scripts/pptx-compare/tests/fixtures の汎用の config.yml を読む。install と cli/dist の build は、dependsOn 経由で実行ごとに 1 回だけ実行する。レーン内で cli を再 build すると、prebuild の dist 削除が並行する test-cli の E2E から CLI を奪う。この現象は #1084 で、実際の実行での間欠的な失敗として観測した。"
       },
       "options": {
-        "command": "PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=compare",
+        "command": "rm -rf test-results/test-compare/allure-results && PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=compare",
         "cwd": "plugins/pecot-visual"
       }
     },
     "test-release": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{projectRoot}/scripts/release/**/*",
         "{workspaceRoot}/LICENSE",
         "{workspaceRoot}/.githooks/lib/mcp-publish-common.sh",
@@ -267,17 +274,19 @@
         { "projects": ["text-rules"], "target": "build" }
       ],
       "//command-reason": "PECOT_RELEASE_TEST_NPM_CACHE は絶対パスで渡すため、cwd からの $PWD で組む (#1225)。",
+      "outputs": ["{projectRoot}/test-results/test-release/allure-results"],
       "metadata": {
         "description": "MCP 単体配布の publish スクリプトの検証。cache: true (#1225)。publish のテストは、npm の依存解決で外部レジストリの状態を読む。その状態は入力ハッシュに表せない。それでもキャッシュするのは、cli/src や SKILL.md を 1 行直すたびに本レーンを実行しないためとなる。レジストリ側の変化は、リリース時の dry-run と監査で拾う。依存解決の npm キャッシュは PECOT_RELEASE_TEST_NPM_CACHE で永続化し、実行時にも 2 回目以降はレジストリへアクセスしない。audit のテストは常に使い捨てのキャッシュを使い、この永続キャッシュは使わない。掃除は .pecot/tmp/release-npm-cache/pecot-visual を消す。packument の分だけ増え続ける。"
       },
       "options": {
-        "command": "PECOTV_SKIP_INSTALL=1 PECOT_RELEASE_TEST_NPM_CACHE=\"$PWD/../../.pecot/tmp/release-npm-cache/pecot-visual\" bash scripts/ci/run-tests.sh --scope=release",
+        "command": "rm -rf test-results/test-release/allure-results && PECOTV_SKIP_INSTALL=1 PECOT_RELEASE_TEST_NPM_CACHE=\"$PWD/../../.pecot/tmp/release-npm-cache/pecot-visual\" bash scripts/ci/run-tests.sh --scope=release",
         "cwd": "plugins/pecot-visual"
       }
     },
     "test-skills": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{projectRoot}/skills/v-drawio/**/*",
         "{projectRoot}/skills/v-evidence/**/*",
         "{projectRoot}/skills/v-slidev/**/*",
@@ -287,11 +296,12 @@
         "{projectRoot}/scripts/ci/tests/**"
       ],
       "dependsOn": ["install", "check-pm-guard"],
+      "outputs": ["{projectRoot}/test-results/test-skills/allure-results"],
       "metadata": {
         "description": "SKILL.md / agents / references の DESIGN.md に現れる references/ パスの実在を、静的に確認する。agents/ と scripts/ci/tests/ も inputs に入れる。後者は run-tests.sh --scope=skills が実行する *.test.sh を含む。"
       },
       "options": {
-        "command": "PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=skills",
+        "command": "rm -rf test-results/test-skills/allure-results && PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=skills",
         "cwd": "plugins/pecot-visual"
       }
     },

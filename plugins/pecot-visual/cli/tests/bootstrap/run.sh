@@ -1,68 +1,28 @@
 #!/usr/bin/env bash
-# bin/pecotv self-bootstrap の bash 統合テスト。
-#
-# devcontainer rebuild 直後にユーザーが初めて `bin/pecotv` を叩いたシナリオを再現する。
-# 実行は 1 コマンド: `bash plugins/pecot-visual/cli/tests/bootstrap/run.sh`。
-#
-# - 一時 git worktree を作成し、データ置き場の runtime/ を消して clean state を組む。
-# - 隔離 HOME ($WORK_DIR/iso-home-*) を立てる。
-#   HOME 依存リソース (pnpm store / corepack tarball cache / ~/.cache/ms-playwright 等) を隔離した状態で pecotv を起動する。
-#   real HOME とは一切共有しない。
-# - 依存と build 成果物はプラグインのデータ置き場の実行用ミラー（$DATA_DIR/runtime/<hash>/）に作られる。
-#   cold 化は $DATA_DIR/runtime を消して行う（本体のワークツリーには node_modules・cli/dist を作らない）
-# - その上で CUJ 1-14 + 静的確認する。PECOTV_BOOTSTRAP_FORCE による強制再実行ルートと
-#   self-bootstrap 全体を first-time-user reproduction として観測する
-#
-# CI 組み込み時は CUJ 1 の chromium DL コスト(~120MB)を再評価のこと。
-# CUJ 6b / 6c は完全隔離下で corepack / pnpm tarball を毎回 DL するため、ネット瞬断で
-# flaky 化するリスクがある。CI 組み込み時は retry / skip-on-network-error の
-# 検討が必要。
-# CUJ 9b は slidev build による Vite bundle + chromium export pipeline で
-# 60〜90s 級の追加コストがかかる。harness 全体が分単位で延びるため CI 組み込み
-# 時は再評価。
-# CUJ 9c は PLAYWRIGHT_DOWNLOAD_HOST=http://127.0.0.1:1 で DL を強制失敗させるルート。
-# playwright 1.49 の DL 実装変更や別 CDN フォールバック導入で、flaky 化する可能性がある。
-# 失敗時は env strip 戦略への切替を検討する。
-# CUJ 10 は cold 化のため node_modules / cli/dist を消して、install + build を再実行させる。
-# chromium は ISO_HOME キャッシュ再利用で再 DL しない。
-# install/build 相当の追加コストがかかるため、CI 組み込み時は CUJ 1 との統合を検討する。
-# CUJ 12 も同じく cold 化して install + build を再走させる。chromium 未取得の ISO_HOME_C を
-# 使う。CUJ 12a / 12b / 13b は DL を PLAYWRIGHT_DOWNLOAD_HOST=http://127.0.0.1:1 で必ず失敗させる。
-# CUJ 9c と同じ前提のため、playwright 側の DL 実装変更で flaky 化するリスクも同じ。
-# 実 DL は標準では CUJ 1 の 1 本のみ。
-# runtime_setup ツール経由の実 DL（~120MB / 計測 33s）は、PECOTV_BOOTSTRAP_TEST_HEAVY=1 を立てたときだけ CUJ 13c で動く。
-# 標準では ISO_HOME のキャッシュを複製して、runtime_setup の冪等（skip）ルートを観測する。
-# 現状はローカル単発実行用途であり vitest e2e には混ぜない。
+# bin/pecotv の self-bootstrap を、一時 worktree と隔離した HOME で端から端まで確かめる手動の CUJ（レーンに入らない）。
+# 実 DL は CUJ 1 の chromium だけで、PECOTV_BOOTSTRAP_TEST_HEAVY=1 のときは CUJ 13c も取る。CUJ 6b / 6c はネットに依存する。
 set -euo pipefail
 
-# playwright 本体は PLAYWRIGHT_BROWSERS_PATH が立っていれば、bin/pecotv の chromium 検出ルートより優先する。
-# 検出ルートは ~/.cache/ms-playwright。
-# devcontainer 由来で同変数が export されていると、real HOME ルートに逃げて ISO_HOME 隔離が働かない。
-# そのため明示的に unset。
+# PLAYWRIGHT_BROWSERS_PATH があると、chromium の置き場が隔離した HOME の外へ逃げる。
 unset PLAYWRIGHT_BROWSERS_PATH PLAYWRIGHT_DOWNLOAD_HOST
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT_SRC="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 REPO_ROOT="$(cd "$PLUGIN_ROOT_SRC/../.." && pwd)"
+# shellcheck source=../../../../../.githooks/scripts/test_report/bash-test.sh
+. "$REPO_ROOT/.githooks/scripts/test_report/bash-test.sh"
 
-# .pecot/work/ 直下は Issue 番号のみ（CLAUDE.md「作業ファイルの置き場所」）。
-# そのためタスク非紐付けのテストハーネス scratch は、システム中間領域 .pecot/tmp/ に置く。
+# Issue に紐づかない scratch なので、.pecot/work/ でなく .pecot/tmp/ に置く。
 WORK_DIR="$REPO_ROOT/.pecot/tmp/bootstrap-test"
 mkdir -p "$WORK_DIR"
 TMP_WORKTREE="$WORK_DIR/wt-$$-$(date +%s)"
 TMP_BRANCH="bootstrap-test/$$-$(date +%s)"
 
-# 隔離 HOME: pnpm store / corepack tarball cache / ~/.cache/ms-playwright を含む HOME 依存リソースを隔離する。
-# real HOME とは一切共有しない。
-# first-time-user reproduction を優先し、symlink による暗黙の cache hit を意図的に避ける。
-# mkdir 失敗時にも部分作成された ISO_HOME を cleanup が拾えるよう、trap を mkdir
-# より先に設置する。
+# 隔離した HOME。ISO_HOME_C は chromium のキャッシュを持たない状態を保つ別の HOME。
 ISO_HOME="$WORK_DIR/iso-home-$$-$(date +%s)"
-# CUJ 9c 用の独立隔離 HOME。chromium キャッシュ無し状態を保つため ISO_HOME とは別 dir。
 ISO_HOME_C="$WORK_DIR/iso-home-c-$$-$(date +%s)"
-# プラグインのデータ置き場（実行用ミラーの置き場）。
+# プラグインのデータ置き場。DATA_DIR_11B はミラーを持たない状態を保つ。
 DATA_DIR="$WORK_DIR/data-$$-$(date +%s)"
-# CUJ 11b 用の独立したデータ置き場（ミラーを持たない状態を保つ）。
 DATA_DIR_11B="$WORK_DIR/data-11b-$$-$(date +%s)"
 
 cleanup() {
@@ -71,23 +31,24 @@ cleanup() {
     git -C "$REPO_ROOT" worktree remove --force "$TMP_WORKTREE" >/dev/null 2>&1 || true
   fi
   git -C "$REPO_ROOT" branch -D "$TMP_BRANCH" >/dev/null 2>&1 || true
-  rm -rf "$ISO_HOME" >/dev/null 2>&1 || true
-  rm -rf "$ISO_HOME_C" >/dev/null 2>&1 || true
-  rm -rf "$DATA_DIR" "$DATA_DIR_11B" >/dev/null 2>&1 || true
-  # 成功時は自分が WORK_DIR 直下へ書いた出力（cuj*・iso-bin-node*・minimal-slidev-9b）を消す。
-  # 失敗時は原因調査のため残す。stub-root.sh・mirror-real-pnpm.sh の mktemp 領域には触れない。
+  rm -rf "$ISO_HOME" "$ISO_HOME_C" "$DATA_DIR" "$DATA_DIR_11B" >/dev/null 2>&1 || true
+  # 出力は失敗の調査のため、成功したときだけ消す。stub-root.sh などの mktemp の領域には触れない。
   if [ "$exit_code" -eq 0 ]; then
-    rm -rf "$WORK_DIR"/cuj* "$WORK_DIR"/iso-bin-node* "$WORK_DIR/minimal-slidev-9b" >/dev/null 2>&1 || true
+    rm -rf "$WORK_DIR"/cuj* "$WORK_DIR"/iso-bin-node* "$WORK_DIR/minimal-slidev-9b" "$WORK_DIR/theme-9b" >/dev/null 2>&1 || true
   fi
   exit "$exit_code"
 }
 trap cleanup EXIT
 
+# 前提が崩れたら止める。bt_finish まで届かないので、broken として出る。
+die() {
+  echo "[bootstrap-test] $*" >&2
+  exit 1
+}
+
 mkdir -p "$ISO_HOME/.cache" "$ISO_HOME/.local/share"
 
-# プラグインのデータ置き場（実行用ミラーの置き場）。親シェルの値は使わず、一時ディレクトリを CLAUDE_PLUGIN_DATA に渡す。
-# XDG_DATA_HOME は付け替えない（pnpm の store の置き場まで動く）。既定の場所を確かめる CUJ 1b だけが
-# CLAUDE_PLUGIN_DATA を外して XDG_DATA_HOME / HOME を子プロセスに渡す。
+# 親シェルの置き場は使わない。XDG_DATA_HOME は pnpm の store の置き場まで動くので付け替えない。
 unset PECOTV_RUNTIME_DIR PECOTV_DEPENDENCY_ROOT PECOTV_BOOTSTRAP_SKIP PECOTV_BOOTSTRAP_FORCE PLUGIN_DATA
 mkdir -p "$DATA_DIR"
 export CLAUDE_PLUGIN_DATA="$DATA_DIR"
@@ -95,10 +56,7 @@ export CLAUDE_PLUGIN_DATA="$DATA_DIR"
 echo "[bootstrap-test] preparing temp worktree at $TMP_WORKTREE"
 git -C "$REPO_ROOT" worktree add -b "$TMP_BRANCH" "$TMP_WORKTREE" HEAD >/dev/null
 
-# git worktree add は HEAD の commit 内容で worktree を作るため、未 commit のローカル
-# 変更（本テストで検証したい当 PR の差分）が反映されない。源 worktree の plugins/pecot-visual
-# を rsync で上書きし、編集中の bin/pecotv 等が tmp worktree で実行されるようにする。
-# node_modules / cli/dist / lock は clean state を保つため除外。
+# worktree は HEAD から作られるので、未 commit の変更を rsync で写す。node_modules・cli/dist などは写さない。
 echo "[bootstrap-test] syncing working-tree changes (plugins/pecot-visual)"
 rsync -a --delete \
   --exclude '/node_modules' \
@@ -111,48 +69,136 @@ rsync -a --delete \
 PLUGIN_ROOT="$TMP_WORKTREE/plugins/pecot-visual"
 BIN_PECOTV="$PLUGIN_ROOT/bin/pecotv"
 
-assert_grep() {
-  local pattern="$1"; local file="$2"; local label="${3:-grep $pattern}"
-  if ! grep -qE "$pattern" "$file"; then
-    echo "[bootstrap-test] FAIL: $label" >&2
-    echo "  expected pattern: $pattern" >&2
-    echo "  file: $file" >&2
-    echo "  --- file content ---" >&2
-    sed -n '1,80p' "$file" >&2 || true
-    return 1
+# run_pecotv <stdout> <stderr> [env の引数 ...] -- <引数...>: bin/pecotv を動かし、終了コードを code に残す。
+code=0
+run_pecotv() {
+  local out="$1" err="$2" envs=()
+  shift 2
+  while [ "$#" -gt 0 ] && [ "$1" != "--" ]; do
+    envs+=("$1")
+    shift
+  done
+  shift
+  code=0
+  env "${envs[@]}" "$BIN_PECOTV" "$@" <"/dev/null" >"$out" 2>"$err" || code=$?
+}
+
+# initialize を送り、応答を待って stdin を閉じる。終了コードを code に残す。
+MCP_INIT_REQUEST='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"bootstrap-test","version":"0.0.0"}}}'
+# mcp_initialize <stdout> <stderr> <待つ秒> [env の引数 ...]
+mcp_initialize() {
+  local out="$1" err="$2" seconds="$3" fifo="$1.stdin.fifo" pid deadline
+  shift 3
+  rm -f "$fifo" "$out" "$err"
+  mkfifo "$fifo"
+  env "$@" "$BIN_PECOTV" mcp <"$fifo" >"$out" 2>"$err" &
+  pid=$!
+  # 書き手を開いたままにし、準備が済む前に EOF が届かないようにする。
+  exec 7>"$fifo"
+  printf '%s\n' "$MCP_INIT_REQUEST" >&7
+  deadline=$(($(date +%s) + seconds))
+  while [ ! -s "$out" ] && [ "$(date +%s)" -le "$deadline" ]; do
+    sleep 0.5
+  done
+  # 応答の 1 行を書き切ってから EOF を送る。
+  sleep 0.5
+  exec 7>&-
+  code=0
+  wait "$pid" || code=$?
+  rm -f "$fifo"
+}
+
+# expect_code <題> <期待> <stderr>: 終了コード（code）を比べる。落ちたら stderr の末尾を理由に添える。
+expect_code() {
+  if [ "$code" = "$2" ]; then
+    bt_pass "$1"
+  else
+    local tail_err
+    tail_err="$(tail -n 40 "$3" 2> /dev/null)"
+    bt_fail "$1" "期待 $2 / 実際 $code: $tail_err"
   fi
 }
 
-assert_no_grep() {
-  local pattern="$1"; local file="$2"; local label="${3:-no-grep $pattern}"
-  if grep -qE "$pattern" "$file"; then
-    echo "[bootstrap-test] FAIL: $label" >&2
-    echo "  unexpected pattern: $pattern" >&2
-    echo "  file: $file" >&2
-    return 1
-  fi
-}
-
-assert_exit_zero() {
-  local code="$1"; local label="${2:-exit code check}"
+# expect_failure <題> <stderr>: 終了コード（code）が 0 以外。
+expect_failure() {
   if [ "$code" -ne 0 ]; then
-    echo "[bootstrap-test] FAIL: $label (exit=$code)" >&2
-    return 1
+    bt_pass "$1"
+  else
+    local tail_err
+    tail_err="$(tail -n 40 "$2" 2> /dev/null)"
+    bt_fail "$1" "0 で終わった: $tail_err"
   fi
 }
 
-# `~/.cache/ms-playwright/chromium-*` 風のディレクトリ有無を判定する helper。
-# ディレクトリ不在は `ls` の stderr を握りつぶし grep miss → exit 1 (= 不在) として扱う。
-has_chromium_cache() {
-  ls "$1" 2>/dev/null | grep -q "^chromium-"
+# expect_grep <題> <正規表現> <ファイル...>
+expect_grep() {
+  local title="$1" pattern="$2" content
+  shift 2
+  if grep -qE -- "$pattern" "$@" 2> /dev/null; then
+    bt_pass "$title"
+  else
+    content="$(head -n 40 "$@" 2>&1)"
+    bt_fail "$title" "「$pattern」が無い: $content"
+  fi
 }
 
-# CUJ 6a/6b/11b 共通: nvm 配下では node / pnpm / corepack が同一ディレクトリに同居している。
-# PATH からディレクトリを除外する方式では node も同時に消えるため、必要な binary のみを
-# symlink した隔離 bindir を作って PATH を組み立てる。
+# expect_no_grep <題> <正規表現> <ファイル>
+expect_no_grep() {
+  local matched
+  if matched="$(grep -E -- "$2" "$3" 2> /dev/null)"; then
+    bt_fail "$1" "「$2」がある: $matched"
+  else
+    bt_pass "$1"
+  fi
+}
+
+# expect_node <題> <スクリプト> <引数...>: node -e のスクリプトが 0 で終わる。落ちたら標準エラーを理由にする。
+expect_node() {
+  local title="$1" script="$2" reason
+  shift 2
+  if reason="$(node -e "$script" "$@" 2>&1 > /dev/null)"; then
+    bt_pass "$title"
+  else
+    bt_fail "$title" "$reason"
+  fi
+}
+
+# stdout の全行が JSON-RPC で、initialize の結果を含む。
+JSON_RPC_INITIALIZED='
+  const fs = require("fs");
+  const lines = fs.readFileSync(process.argv[1], "utf8").split("\n").filter((l) => l !== "");
+  if (lines.length === 0) { console.error("stdout has no lines"); process.exit(1); }
+  let sawInitializeResult = false;
+  for (const line of lines) {
+    let message;
+    try { message = JSON.parse(line); }
+    catch { console.error("non-JSON line on stdout: " + line); process.exit(1); }
+    if (message.jsonrpc !== "2.0") { console.error("line lacks jsonrpc field: " + line); process.exit(1); }
+    if (message.id === 1 && message.result && message.result.serverInfo) sawInitializeResult = true;
+  }
+  if (!sawInitializeResult) { console.error("no initialize result on stdout"); process.exit(1); }
+'
+
+# MCP のツールの結果が成功（isError が無い）。
+TOOL_SUCCEEDED='
+  const fs = require("fs");
+  const result = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).result;
+  if (!result || result.isError !== undefined) {
+    console.error("expected success, got: " + JSON.stringify(result && result.structuredContent)); process.exit(1);
+  }
+'
+
+# yes / no を返す小さな確かめ。
+chromium_cache() { if compgen -G "$1/chromium-*" > /dev/null; then echo yes; else echo no; fi; }
+exists() { if [ -e "$1" ]; then echo yes; else echo no; fi; }
+nonempty() { if [ -s "$1" ]; then echo yes; else echo no; fi; }
+current_mirror() { readlink -f "$DATA_DIR/runtime/current" || true; }
+inode() { stat -c %i "$1" 2> /dev/null || echo "無い: $1"; }
+
+# nvm では node・pnpm・corepack が同じ dir にあるので、要るものだけを張った bin を PATH に置く。
 ISO_BIN_NODE_ONLY="$WORK_DIR/iso-bin-node"
 ISO_BIN_NODE_COREPACK="$WORK_DIR/iso-bin-node-corepack"
-# CUJ 6c 用: node + npm + npx のみ（Node.js 25 以降の corepack 非同梱環境を再現）。
+# Node.js 25 以降の、corepack を同梱しない環境を再現する。
 ISO_BIN_NODE_NPX="$WORK_DIR/iso-bin-node-npx"
 rm -rf "$ISO_BIN_NODE_ONLY" "$ISO_BIN_NODE_COREPACK" "$ISO_BIN_NODE_NPX"
 mkdir -p "$ISO_BIN_NODE_ONLY" "$ISO_BIN_NODE_COREPACK" "$ISO_BIN_NODE_NPX"
@@ -170,246 +216,113 @@ if [ -n "$NPM_PATH" ] && [ -n "$NPX_PATH" ]; then
   ln -s "$NPX_PATH" "$ISO_BIN_NODE_NPX/npx"
 fi
 
-# HOME isolation self-check: 観測ルートを ISO_HOME 側に倒せていることを CUJ 群の前に確認する。
 echo "[bootstrap-test] HOME isolation self-check"
-if [ -n "${PLAYWRIGHT_BROWSERS_PATH:-}" ]; then
-  echo "[bootstrap-test] FAIL: PLAYWRIGHT_BROWSERS_PATH must not be set" >&2
-  exit 1
-fi
-if [ -n "${PLAYWRIGHT_DOWNLOAD_HOST:-}" ]; then
-  echo "[bootstrap-test] FAIL: PLAYWRIGHT_DOWNLOAD_HOST must not be set" >&2
-  exit 1
-fi
-if has_chromium_cache "$ISO_HOME/.cache/ms-playwright"; then
-  echo "[bootstrap-test] FAIL: ISO_HOME unexpectedly has chromium cache" >&2
-  exit 1
-fi
-# real HOME 側の状態はログのみ（合否には使わない。real に chromium 有無どちらでも harness は動くべき）
-if has_chromium_cache "$HOME/.cache/ms-playwright"; then
+[ -z "${PLAYWRIGHT_BROWSERS_PATH:-}" ] || die "PLAYWRIGHT_BROWSERS_PATH must not be set"
+[ -z "${PLAYWRIGHT_DOWNLOAD_HOST:-}" ] || die "PLAYWRIGHT_DOWNLOAD_HOST must not be set"
+[ "$(chromium_cache "$ISO_HOME/.cache/ms-playwright")" = no ] || die "ISO_HOME unexpectedly has chromium cache"
+# 本物の HOME の状態は記録だけ（どちらでも動く）。
+if [ "$(chromium_cache "$HOME/.cache/ms-playwright")" = yes ]; then
   echo "[bootstrap-test] isolation diverges from real HOME (real HAS chromium-*, ISO_HOME does NOT)"
 else
   echo "[bootstrap-test] note: real HOME also lacks chromium-* (isolation still applied, divergence not observable here)"
 fi
 
-# CUJ 1: clean state で bin/pecotv --help が exit 0 で stderr に [pecotv bootstrap] が出る
 echo "[bootstrap-test] CUJ 1: clean clone bootstrap"
 STDERR1="$WORK_DIR/cuj1.stderr"
 rm -rf "$DATA_DIR/runtime"
-set +e
-HOME="$ISO_HOME" "$BIN_PECOTV" --help >/dev/null 2>"$STDERR1"
-code=$?
-set -e
-assert_exit_zero "$code" "CUJ 1 exit"
-assert_grep '\[pecotv runtime\]' "$STDERR1" "CUJ 1 stderr has bootstrap log"
-assert_grep '^pecotv: installing dependencies$' "$STDERR1" "CUJ 1 ran install"
-assert_grep 'ready \([0-9]+s\)' "$STDERR1" "CUJ 1 ready line"
-assert_grep 'running playwright install chromium' "$STDERR1" "CUJ 1 chromium install fired under ISO_HOME"
-if ! has_chromium_cache "$ISO_HOME/.cache/ms-playwright"; then
-  echo "[bootstrap-test] FAIL: CUJ 1 did not populate ISO_HOME chromium cache" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 1 pass"
+run_pecotv /dev/null "$STDERR1" HOME="$ISO_HOME" -- --help
+expect_code "CUJ 1: 0 で終わる" 0 "$STDERR1"
+expect_grep "CUJ 1: stderr に準備のログが出る" '\[pecotv runtime\]' "$STDERR1"
+expect_grep "CUJ 1: 依存を入れる" '^pecotv: installing dependencies$' "$STDERR1"
+expect_grep "CUJ 1: ready の行が出る" 'ready \([0-9]+s\)' "$STDERR1"
+expect_grep "CUJ 1: 隔離した HOME で chromium の取得を始める" 'running playwright install chromium' "$STDERR1"
+bt_eq "CUJ 1: 隔離した HOME に chromium のキャッシュができる" yes "$(chromium_cache "$ISO_HOME/.cache/ms-playwright")"
 
-# CUJ 1b: クライアントが置き場を渡さない起動（Bash から呼ぶ・単体配布）は既定の場所に依存を作る。
-# CLAUDE_PLUGIN_DATA / PLUGIN_DATA を外し、XDG_DATA_HOME を空にする。
-# これで ISO_HOME の ~/.local/share/pecot/pecot-visual を使わせる。
-# pnpm の store と chromium は CUJ 1 で ISO_HOME に入っているので、ここでは依存の導入と build だけが動く。
+# 置き場を渡さない起動（Bash から呼ぶ・単体配布）は、ISO_HOME の ~/.local/share/pecot/pecot-visual を使う。
 echo "[bootstrap-test] CUJ 1b: default data directory when no variable is given"
 STDERR1B="$WORK_DIR/cuj1b.stderr"
 DEFAULT_DATA="$ISO_HOME/.local/share/pecot/pecot-visual"
-set +e
-env -u CLAUDE_PLUGIN_DATA -u PLUGIN_DATA XDG_DATA_HOME= HOME="$ISO_HOME" "$BIN_PECOTV" --help >/dev/null 2>"$STDERR1B"
-code=$?
-set -e
-assert_exit_zero "$code" "CUJ 1b exit"
-assert_grep '^pecotv: installing dependencies$' "$STDERR1B" "CUJ 1b ran install"
-if [ ! -f "$DEFAULT_DATA/runtime/current/cli/dist/cli.js" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 1b did not build the mirror under $DEFAULT_DATA/runtime" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 1b pass"
+run_pecotv /dev/null "$STDERR1B" -u CLAUDE_PLUGIN_DATA -u PLUGIN_DATA XDG_DATA_HOME= HOME="$ISO_HOME" -- --help
+expect_code "CUJ 1b: 0 で終わる" 0 "$STDERR1B"
+expect_grep "CUJ 1b: 依存を入れる" '^pecotv: installing dependencies$' "$STDERR1B"
+bt_eq "CUJ 1b: 既定の置き場にミラーを build する" yes "$(exists "$DEFAULT_DATA/runtime/current/cli/dist/cli.js")"
 
-# CUJ 10: cold state の `bin/pecotv mcp` で stdout が JSON-RPC 専有のまま保たれる。
-# `.mcp.json` から stdio MCP サーバとして起動されるルートでは、bootstrap の子プロセスが stdout に 1 行でも書くと、
-# クライアントのパースが破損する。子プロセスは pnpm install / tsc build。
-# node 起動後は installStdoutGuard が守るため、ここで見たいのは node 起動前の bash 側。
-# CUJ 1 の直後に置いて、ISO_HOME の chromium キャッシュを再利用する。
-# cold 化のために node_modules / cli/dist は消すが、chromium の再 DL (~120MB) は発生しない。
+# .mcp.json からの起動では、node より前に bash が stdout へ何か書くと、クライアントは JSON-RPC を読めない。
 echo "[bootstrap-test] CUJ 10: cold pecotv mcp keeps stdout JSON-RPC only"
 STDERR10="$WORK_DIR/cuj10.stderr"
 STDOUT10="$WORK_DIR/cuj10.stdout"
-FIFO10="$WORK_DIR/cuj10.stdin.fifo"
 rm -rf "$DATA_DIR/runtime"
-rm -f "$FIFO10" "$STDOUT10" "$STDERR10"
-mkfifo "$FIFO10"
-# protocolVersion は SDK の LATEST_PROTOCOL_VERSION に追従させない。MCP サーバは未知の版を
-# 受けても自身が話せる版を result で返す仕様のため、リテラル固定でも initialize は成立する。
-MCP_INIT_REQUEST='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"bootstrap-test","version":"0.0.0"}}}'
-set +e
-HOME="$ISO_HOME" "$BIN_PECOTV" mcp <"$FIFO10" >"$STDOUT10" 2>"$STDERR10" &
-mcp_pid=$!
-# fd 7 を writer として保持し続けることで stdin の EOF を保留する。request を投げた直後に
-# 閉じると、bootstrap 完了前に EOF が届いて server が応答前に close する可能性がある。
-exec 7>"$FIFO10"
-printf '%s\n' "$MCP_INIT_REQUEST" >&7
-# cold bootstrap (install + build) 込みで応答を待つ。CUJ 1 で pnpm store が温まっている
-# 前提でも数十秒かかるため 300s のマージンを取る。
-mcp_deadline=$(( $(date +%s) + 300 ))
-while [ ! -s "$STDOUT10" ] && [ "$(date +%s)" -le "$mcp_deadline" ]; do
-  sleep 0.5
-done
-# 応答 1 行の write が途中で観測されないよう僅かに待ってから EOF を送る。
-sleep 0.5
-exec 7>&-
-wait "$mcp_pid"
-code=$?
-set -e
-rm -f "$FIFO10"
-assert_exit_zero "$code" "CUJ 10 exit"
-# ログが消えたのではなく stderr へ移ったことを確認する。
-assert_grep '\[pecotv runtime\]' "$STDERR10" "CUJ 10 bootstrap log moved to stderr"
-assert_grep '^pecotv: installing dependencies$' "$STDERR10" "CUJ 10 ran install (cold state)"
-# pnpm / playwright の代表的な stdout 出力痕跡が JSON-RPC チャネルに抜けていないこと。
-assert_no_grep 'Scope: all|Progress|postinstall|Downloading' "$STDOUT10" "CUJ 10 no pnpm output on stdout"
-if ! node -e '
-  const fs = require("fs");
-  const lines = fs.readFileSync(process.argv[1], "utf8").split("\n").filter((l) => l !== "");
-  if (lines.length === 0) { console.error("stdout has no lines"); process.exit(1); }
-  let sawInitializeResult = false;
-  for (const line of lines) {
-    let message;
-    try { message = JSON.parse(line); }
-    catch { console.error("non-JSON line on stdout: " + line); process.exit(1); }
-    if (message.jsonrpc !== "2.0") { console.error("line lacks jsonrpc field: " + line); process.exit(1); }
-    if (message.id === 1 && message.result && message.result.serverInfo) sawInitializeResult = true;
-  }
-  if (!sawInitializeResult) { console.error("no initialize result on stdout"); process.exit(1); }
-' "$STDOUT10"; then
-  echo "[bootstrap-test] FAIL: CUJ 10 stdout is not pure JSON-RPC" >&2
-  echo "  --- CUJ 10 stdout ---" >&2; sed -n '1,20p' "$STDOUT10" >&2
-  echo "  --- CUJ 10 stderr ---" >&2; sed -n '1,40p' "$STDERR10" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 10 pass"
+mcp_initialize "$STDOUT10" "$STDERR10" 300 HOME="$ISO_HOME"
+expect_code "CUJ 10: 0 で終わる" 0 "$STDERR10"
+expect_grep "CUJ 10: 準備のログは stderr に出る" '\[pecotv runtime\]' "$STDERR10"
+expect_grep "CUJ 10: 依存を入れる（cold）" '^pecotv: installing dependencies$' "$STDERR10"
+expect_no_grep "CUJ 10: stdout に pnpm の出力が出ない" 'Scope: all|Progress|postinstall|Downloading' "$STDOUT10"
+expect_node "CUJ 10: stdout は JSON-RPC だけで、initialize に答える" "$JSON_RPC_INITIALIZED" "$STDOUT10"
 
-# CUJ 11: SKIP（開発・pre-push 専用）で本体ツリーの cli/dist が無いときは、半端な出力を出さずに即死する。
-# PECOTV_BOOTSTRAP_SKIP=1 は本体ツリーの成果物を直接実行する（データ置き場は使わない）。
-# 一時 worktree の本体には cli/dist が無い（bootstrap は本体に build 成果物を作らない）。
-# そのため MCP クライアントから見て、「JSON-RPC でも何でもない文字列を stdout に流したまま生き続ける」ことがないのを確認する。
+# PECOTV_BOOTSTRAP_SKIP=1 は本体ツリーの成果物を直接動かす。本体に cli/dist が無ければ何も出さずに止まる。
 echo "[bootstrap-test] CUJ 11: SKIP without the tree's cli/dist fails fast without partial output"
 STDERR11="$WORK_DIR/cuj11.stderr"
 STDOUT11="$WORK_DIR/cuj11.stdout"
-set +e
-printf '' | PECOTV_BOOTSTRAP_SKIP=1 HOME="$ISO_HOME" "$BIN_PECOTV" mcp >"$STDOUT11" 2>"$STDERR11"
-code=$?
-set -e
-if [ "$code" -eq 0 ]; then
-  echo "[bootstrap-test] FAIL: CUJ 11 expected non-zero exit, got 0" >&2
-  exit 1
-fi
-if [ -s "$STDOUT11" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 11 wrote to stdout (must stay empty)" >&2
-  echo "  --- CUJ 11 stdout ---" >&2; sed -n '1,20p' "$STDOUT11" >&2
-  exit 1
-fi
-assert_grep 'build first' "$STDERR11" "CUJ 11 stderr guides to build"
-if [ -e "$PLUGIN_ROOT/cli/dist" ] || [ -e "$PLUGIN_ROOT/node_modules" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 11 / bootstrap created node_modules or cli/dist in the plugin root" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 11 pass (exit=$code)"
+run_pecotv "$STDOUT11" "$STDERR11" PECOTV_BOOTSTRAP_SKIP=1 HOME="$ISO_HOME" -- mcp
+expect_failure "CUJ 11: 0 以外で終わる" "$STDERR11"
+bt_eq "CUJ 11: stdout に何も書かない" "" "$(head -n 20 "$STDOUT11")"
+expect_grep "CUJ 11: stderr で build を促す" 'build first' "$STDERR11"
+bt_eq "CUJ 11: プラグインルートに node_modules・cli/dist を作らない" no \
+  "$([ -e "$PLUGIN_ROOT/cli/dist" ] || [ -e "$PLUGIN_ROOT/node_modules" ] && echo yes || echo no)"
 
-# CUJ 11b: 実利用者に起きる「bootstrap 不能」でも、stdout を汚さずに終了する。
-# CUJ 11 は PECOTV_BOOTSTRAP_SKIP=1（テスト専用の抜け道）で条件を作るため、実利用者の
-# 失敗形は通っていない。ここでは PATH から pnpm / corepack を外し、実行用ミラーを持たない
-# 独立のデータ置き場で `pecotv mcp` を起動する（準備が必要な状態）。MCP クライアントから
-# 見て「JSON-RPC でない文字列を stdout に流したまま生き続ける」ことがないのを直接観測する。
+# 利用者に起きる準備の不能（pnpm / corepack が無く、ミラーも無い）でも、stdout を汚さずに止まる。
 echo "[bootstrap-test] CUJ 11b: fail fast without partial output when pnpm/corepack are absent"
 STDERR11B="$WORK_DIR/cuj11b.stderr"
 STDOUT11B="$WORK_DIR/cuj11b.stdout"
 mkdir -p "$DATA_DIR_11B"
-set +e
-env -i CLAUDE_PLUGIN_DATA="$DATA_DIR_11B" HOME="$ISO_HOME" PATH="$ISO_BIN_NODE_ONLY:/usr/bin:/bin" \
-  "$BIN_PECOTV" mcp </dev/null >"$STDOUT11B" 2>"$STDERR11B"
-code=$?
-set -e
-if [ "$code" -eq 0 ]; then
-  echo "[bootstrap-test] FAIL: CUJ 11b expected non-zero exit, got 0" >&2
-  exit 1
-fi
-if [ -s "$STDOUT11B" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 11b wrote to stdout (must stay empty)" >&2
-  echo "  --- CUJ 11b stdout ---" >&2; sed -n '1,20p' "$STDOUT11B" >&2
-  exit 1
-fi
-assert_grep 'pnpm / corepack / npx not found' "$STDERR11B" "CUJ 11b explicit error on stderr"
-echo "[bootstrap-test] CUJ 11b pass (exit=$code)"
+run_pecotv "$STDOUT11B" "$STDERR11B" \
+  -i CLAUDE_PLUGIN_DATA="$DATA_DIR_11B" HOME="$ISO_HOME" PATH="$ISO_BIN_NODE_ONLY:/usr/bin:/bin" -- mcp
+expect_failure "CUJ 11b: 0 以外で終わる" "$STDERR11B"
+bt_eq "CUJ 11b: stdout に何も書かない" "" "$(head -n 20 "$STDOUT11B")"
+expect_grep "CUJ 11b: stderr に pnpm / corepack / npx が無いと出る" 'pnpm / corepack / npx not found' "$STDERR11B"
 
-# CUJ 2: 2 回目は skip。real < 1000ms 目安、`installing dependencies` 不在
 echo "[bootstrap-test] CUJ 2: skip on second invocation"
 STDERR2="$WORK_DIR/cuj2.stderr"
 TIMEFILE="$WORK_DIR/cuj2.time"
-set +e
-# LC_ALL=C で `time` の小数点を `.` 固定にする（カンマロケール環境での awk 計算崩れ対策）。
-{ LC_ALL=C TIMEFORMAT='%R'; time HOME="$ISO_HOME" "$BIN_PECOTV" --help >/dev/null 2>"$STDERR2"; } 2>"$TIMEFILE"
-code=$?
-set -e
-assert_exit_zero "$code" "CUJ 2 exit"
-assert_no_grep '^pecotv: installing dependencies$' "$STDERR2" "CUJ 2 no install"
-assert_no_grep '^pecotv: building$' "$STDERR2" "CUJ 2 no build"
+# LC_ALL=C で time の小数点を . にそろえる。
+{ LC_ALL=C TIMEFORMAT='%R'; time run_pecotv /dev/null "$STDERR2" HOME="$ISO_HOME" -- --help; } 2>"$TIMEFILE"
+expect_code "CUJ 2: 0 で終わる" 0 "$STDERR2"
+expect_no_grep "CUJ 2: 依存を入れない" '^pecotv: installing dependencies$' "$STDERR2"
+expect_no_grep "CUJ 2: build しない" '^pecotv: building$' "$STDERR2"
 real_ms=$(awk '{printf "%d", $1 * 1000}' "$TIMEFILE")
-# 計測 ~300ms (入力ファイルのハッシュ計算 ~100ms + 完成済みミラーの hit)。1000ms は環境差を許容するマージン。
-if [ "$real_ms" -gt 1000 ]; then
-  echo "[bootstrap-test] FAIL: CUJ 2 second invocation took ${real_ms}ms > 1000ms" >&2
-  exit 1
+# 計測は約 300ms（入力のハッシュ約 100ms と、完成済みのミラー）。1000ms は環境の差を見込んだ幅。
+if [ "$real_ms" -le 1000 ]; then
+  bt_pass "CUJ 2: 1000ms 以内に終わる"
+else
+  bt_fail "CUJ 2: 1000ms 以内に終わる" "${real_ms}ms かかった"
 fi
-echo "[bootstrap-test] CUJ 2 pass (real=${real_ms}ms)"
 
-# CUJ 3: 依存（runtime-lock.yaml）の更新時は、同じ deps-hash の donor が無いので install + build を行う
 echo "[bootstrap-test] CUJ 3: runtime-lock update triggers install + build into a new mirror"
 STDERR3="$WORK_DIR/cuj3.stderr"
-before_current="$(readlink -f "$DATA_DIR/runtime/current")"
+before_current="$(current_mirror)"
 printf '\n# cuj3 lock change\n' >> "$PLUGIN_ROOT/runtime-lock.yaml"
-set +e
-HOME="$ISO_HOME" "$BIN_PECOTV" --help >/dev/null 2>"$STDERR3"
-code=$?
-set -e
-assert_exit_zero "$code" "CUJ 3 exit"
-assert_grep '^pecotv: installing dependencies$' "$STDERR3" "CUJ 3 re-install"
-assert_grep '^pecotv: building$' "$STDERR3" "CUJ 3 re-build"
-if [ "$(readlink -f "$DATA_DIR/runtime/current")" = "$before_current" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 3 current did not move to the new mirror" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 3 pass"
+run_pecotv /dev/null "$STDERR3" HOME="$ISO_HOME" -- --help
+expect_code "CUJ 3: 0 で終わる" 0 "$STDERR3"
+expect_grep "CUJ 3: 依存を入れ直す" '^pecotv: installing dependencies$' "$STDERR3"
+expect_grep "CUJ 3: build し直す" '^pecotv: building$' "$STDERR3"
+bt_ne "CUJ 3: current が新しいミラーに切り替わる" "$before_current" "$(current_mirror)"
 
-# CUJ 4: cli/src/** の更新で、install なしの build だけが動き、node_modules は旧ミラーとハードリンクを共有する
 echo "[bootstrap-test] CUJ 4: src update triggers re-build only"
 STDERR4="$WORK_DIR/cuj4.stderr"
-before_current="$(readlink -f "$DATA_DIR/runtime/current")"
+before_current="$(current_mirror)"
 printf '\n// cuj4 source change\n' >> "$PLUGIN_ROOT/cli/src/cli.ts"
-set +e
-HOME="$ISO_HOME" "$BIN_PECOTV" --help >/dev/null 2>"$STDERR4"
-code=$?
-set -e
-assert_exit_zero "$code" "CUJ 4 exit"
-assert_grep '^pecotv: building$' "$STDERR4" "CUJ 4 re-build"
-assert_no_grep '^pecotv: installing dependencies$' "$STDERR4" "CUJ 4 no install"
-after_current="$(readlink -f "$DATA_DIR/runtime/current")"
-if [ "$after_current" = "$before_current" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 4 current did not move to the new mirror" >&2
-  exit 1
-fi
-if [ "$(stat -c %i "$before_current/node_modules/.modules.yaml")" != "$(stat -c %i "$after_current/node_modules/.modules.yaml")" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 4 node_modules is not hard-linked from the previous mirror" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 4 pass"
+run_pecotv /dev/null "$STDERR4" HOME="$ISO_HOME" -- --help
+expect_code "CUJ 4: 0 で終わる" 0 "$STDERR4"
+expect_grep "CUJ 4: build し直す" '^pecotv: building$' "$STDERR4"
+expect_no_grep "CUJ 4: 依存を入れない" '^pecotv: installing dependencies$' "$STDERR4"
+after_current="$(current_mirror)"
+bt_ne "CUJ 4: current が新しいミラーに切り替わる" "$before_current" "$after_current"
+bt_eq "CUJ 4: node_modules を旧ミラーとハードリンクで共有する" \
+  "$(inode "$before_current/node_modules/.modules.yaml")" "$(inode "$after_current/node_modules/.modules.yaml")"
 
-# CUJ 4b: version だけの更新（plugin.json と CHANGELOG）では、install と build のどちらも動かない
 echo "[bootstrap-test] CUJ 4b: version-only update does nothing"
 STDERR4B="$WORK_DIR/cuj4b.stderr"
-before_current="$(readlink -f "$DATA_DIR/runtime/current")"
+before_current="$(current_mirror)"
 node -e '
   const fs = require("fs");
   const p = process.argv[1];
@@ -418,199 +331,119 @@ node -e '
   fs.writeFileSync(p, JSON.stringify(j, null, 2) + "\n");
 ' "$PLUGIN_ROOT/.claude-plugin/plugin.json"
 printf '\n## 99.0.0\n' >> "$PLUGIN_ROOT/CHANGELOG.md"
-set +e
-HOME="$ISO_HOME" "$BIN_PECOTV" --version >"$WORK_DIR/cuj4b.stdout" 2>"$STDERR4B"
-code=$?
-set -e
-assert_exit_zero "$code" "CUJ 4b exit"
-assert_no_grep '^pecotv: (installing dependencies|building)$' "$STDERR4B" "CUJ 4b no install / build"
-if [ "$(readlink -f "$DATA_DIR/runtime/current")" != "$before_current" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 4b current moved" >&2
-  exit 1
-fi
-assert_grep '99\.0\.0' "$WORK_DIR/cuj4b.stdout" "CUJ 4b reports the new version"
-echo "[bootstrap-test] CUJ 4b pass"
+run_pecotv "$WORK_DIR/cuj4b.stdout" "$STDERR4B" HOME="$ISO_HOME" -- --version
+expect_code "CUJ 4b: 0 で終わる" 0 "$STDERR4B"
+expect_no_grep "CUJ 4b: 依存を入れず、build もしない" '^pecotv: (installing dependencies|building)$' "$STDERR4B"
+bt_eq "CUJ 4b: current は動かない" "$before_current" "$(current_mirror)"
+expect_grep "CUJ 4b: 新しい版を返す" '99\.0\.0' "$WORK_DIR/cuj4b.stdout"
 
-# CUJ 5: 並行起動で二重実行されない。
-# 備考: A を background 起動した直後に B を起動する形のため、短いウィンドウが理論上存在する。
-# そのウィンドウは、A が flock を取得する前に B が再判定 if へ進む区間。
-# 現状の foreground 実行で flaky 化は観測されていない。
-# CI 等で flaky になった場合は、A 起動後に sleep 0.05 を挟むことを検討する。
-# 実 sleep は入れていない（無条件待ちで全体時間が延びるため）。
+# A が flock を取る前に B が判定へ進む短い窓は残る。flaky になったら A の起動の後に sleep 0.05 を挟む。
 echo "[bootstrap-test] CUJ 5: concurrent invocations do not double-run"
 rm -rf "$DATA_DIR/runtime"
 STDERR5A="$WORK_DIR/cuj5a.stderr"
 STDERR5B="$WORK_DIR/cuj5b.stderr"
-set +e
 HOME="$ISO_HOME" "$BIN_PECOTV" --help >/dev/null 2>"$STDERR5A" &
 pid_a=$!
-# A が flock を取りに行くまで僅かに待ってから B を起動（同時実行性は保つ）
 HOME="$ISO_HOME" "$BIN_PECOTV" --help >/dev/null 2>"$STDERR5B" &
 pid_b=$!
-wait "$pid_a"; code_a=$?
-wait "$pid_b"; code_b=$?
-set -e
-assert_exit_zero "$code_a" "CUJ 5 process A exit"
-assert_exit_zero "$code_b" "CUJ 5 process B exit"
-
-install_count=$(grep -c '^pecotv: installing dependencies$' "$STDERR5A" "$STDERR5B" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
-build_count=$(grep -c '^pecotv: building$' "$STDERR5A" "$STDERR5B" 2>/dev/null | awk -F: '{sum += $2} END {print sum+0}')
-
-if [ "$install_count" -ne 1 ]; then
-  echo "[bootstrap-test] FAIL: CUJ 5 '^pecotv: installing dependencies$' total=$install_count (expected 1)" >&2
-  echo "  --- A stderr ---" >&2; sed -n '1,40p' "$STDERR5A" >&2
-  echo "  --- B stderr ---" >&2; sed -n '1,40p' "$STDERR5B" >&2
-  exit 1
+code=0
+wait "$pid_a" || code=$?
+expect_code "CUJ 5: 先に起動したプロセスが 0 で終わる" 0 "$STDERR5A"
+code=0
+wait "$pid_b" || code=$?
+expect_code "CUJ 5: 後から起動したプロセスが 0 で終わる" 0 "$STDERR5B"
+install_count=$(cat "$STDERR5A" "$STDERR5B" 2>/dev/null | grep -c '^pecotv: installing dependencies$' || true)
+build_count=$(cat "$STDERR5A" "$STDERR5B" 2>/dev/null | grep -c '^pecotv: building$' || true)
+if [ "$install_count" -eq 1 ]; then
+  bt_pass "CUJ 5: 依存を入れるのは 1 回だけ"
+else
+  CUJ5_LOGS="$(printf -- '--- A ---\n%s\n--- B ---\n%s' "$(head -n 40 "$STDERR5A")" "$(head -n 40 "$STDERR5B")")"
+  bt_fail "CUJ 5: 依存を入れるのは 1 回だけ" "${install_count} 回: $CUJ5_LOGS"
 fi
-if [ "$build_count" -ne 1 ]; then
-  echo "[bootstrap-test] FAIL: CUJ 5 '^pecotv: building$' total=$build_count (expected 1)" >&2
-  exit 1
-fi
-# 後発側に dedicated log が出ているか（waiting または skipping のいずれか）
-if ! grep -qE 'waiting for concurrent bootstrap|already bootstrapped by another process, skipping' "$STDERR5A" "$STDERR5B"; then
-  echo "[bootstrap-test] FAIL: CUJ 5 no follower-side log" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 5 pass (install_count=$install_count build_count=$build_count)"
+bt_eq "CUJ 5: build は 1 回だけ" 1 "$build_count"
+expect_grep "CUJ 5: 後の側が、待つか skip するログを出す" \
+  'waiting for concurrent bootstrap|already bootstrapped by another process, skipping' "$STDERR5A" "$STDERR5B"
 
-# CUJ 6a: pnpm / corepack 両方無しで明示エラー + exit 1
 echo "[bootstrap-test] CUJ 6a: missing pnpm and corepack"
 rm -rf "$DATA_DIR/runtime"
 STDERR6A="$WORK_DIR/cuj6a.stderr"
-set +e
-env -i CLAUDE_PLUGIN_DATA="$DATA_DIR" HOME="$ISO_HOME" PATH="$ISO_BIN_NODE_ONLY:/usr/bin:/bin" "$BIN_PECOTV" --help >/dev/null 2>"$STDERR6A"
-code=$?
-set -e
-if [ "$code" -eq 0 ]; then
-  echo "[bootstrap-test] FAIL: CUJ 6a expected non-zero exit, got 0" >&2
-  echo "  --- CUJ 6a stderr ---" >&2; sed -n '1,40p' "$STDERR6A" >&2
-  exit 1
-fi
-assert_grep 'pnpm / corepack / npx not found' "$STDERR6A" "CUJ 6a explicit error"
-echo "[bootstrap-test] CUJ 6a pass (exit=$code)"
+run_pecotv /dev/null "$STDERR6A" \
+  -i CLAUDE_PLUGIN_DATA="$DATA_DIR" HOME="$ISO_HOME" PATH="$ISO_BIN_NODE_ONLY:/usr/bin:/bin" -- --help
+expect_failure "CUJ 6a: 0 以外で終わる" "$STDERR6A"
+expect_grep "CUJ 6a: stderr に pnpm / corepack / npx が無いと出る" 'pnpm / corepack / npx not found' "$STDERR6A"
 
-# CUJ 6b: pnpm 無し / corepack あり (fallback 動作確認)。
-# 直前の CUJ 6a で runtime/ を rm している。
-# そのため install + build の両方が corepack 経由で完走する形になる。
-# Acceptance 6 後段の「pnpm が無くても corepack 経由で起動」を、強く検証するルート。
+# pnpm を外して corepack だけ置くと、corepack 経由で install と build を終える。
 echo "[bootstrap-test] CUJ 6b: corepack fallback"
 STDERR6B="$WORK_DIR/cuj6b.stderr"
 rm -rf "$DATA_DIR/runtime"
 if [ -z "$COREPACK_PATH" ]; then
-  echo "[bootstrap-test] CUJ 6b skipped: corepack not present in environment" >&2
+  bt_skip "CUJ 6b: corepack を使って 0 で終わる" "corepack が無い環境"
+  bt_skip "CUJ 6b: corepack 経由で build する" "corepack が無い環境"
 else
-  set +e
-  env -i CLAUDE_PLUGIN_DATA="$DATA_DIR" HOME="$ISO_HOME" PATH="$ISO_BIN_NODE_COREPACK:/usr/bin:/bin" COREPACK_ENABLE_DOWNLOAD_PROMPT=0 "$BIN_PECOTV" --help >/dev/null 2>"$STDERR6B"
-  code=$?
-  set -e
-  if [ "$code" -ne 0 ]; then
-    echo "[bootstrap-test] FAIL: CUJ 6b exit=$code (expected 0)" >&2
-    echo "  --- CUJ 6b stderr ---" >&2; sed -n '1,40p' "$STDERR6B" >&2
-    exit 1
-  fi
-  assert_grep '^pecotv: building$' "$STDERR6B" "CUJ 6b ran build via fallback"
-  echo "[bootstrap-test] CUJ 6b pass"
+  run_pecotv /dev/null "$STDERR6B" -i CLAUDE_PLUGIN_DATA="$DATA_DIR" HOME="$ISO_HOME" \
+    PATH="$ISO_BIN_NODE_COREPACK:/usr/bin:/bin" COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -- --help
+  expect_code "CUJ 6b: corepack を使って 0 で終わる" 0 "$STDERR6B"
+  expect_grep "CUJ 6b: corepack 経由で build する" '^pecotv: building$' "$STDERR6B"
 fi
 
-# CUJ 6c: pnpm 無し / corepack 無し / npx あり (Node.js 25 以降の corepack 非同梱環境)。
-# node_modules / cli/dist を消して install + build の両方が npx 経由の pnpm で完走する
-# ことを確認する。隔離 HOME のため npx は pnpm tarball を毎回取得する（CUJ 6b と同じく
-# ネット依存）。
+# pnpm と corepack を外して npx だけ置くと、npx の pnpm で install と build を終える。
 echo "[bootstrap-test] CUJ 6c: npx fallback (no pnpm, no corepack)"
 STDERR6C="$WORK_DIR/cuj6c.stderr"
 rm -rf "$DATA_DIR/runtime"
 if [ -z "$NPX_PATH" ]; then
-  echo "[bootstrap-test] CUJ 6c skipped: npx not present in environment" >&2
+  bt_skip "CUJ 6c: npx を使って 0 で終わる" "npx が無い環境"
+  bt_skip "CUJ 6c: npx 経由で依存を入れる" "npx が無い環境"
+  bt_skip "CUJ 6c: npx 経由で build する" "npx が無い環境"
 else
-  set +e
-  env -i CLAUDE_PLUGIN_DATA="$DATA_DIR" HOME="$ISO_HOME" PATH="$ISO_BIN_NODE_NPX:/usr/bin:/bin" "$BIN_PECOTV" --help >/dev/null 2>"$STDERR6C"
-  code=$?
-  set -e
-  if [ "$code" -ne 0 ]; then
-    echo "[bootstrap-test] FAIL: CUJ 6c exit=$code (expected 0)" >&2
-    echo "  --- CUJ 6c stderr ---" >&2; sed -n '1,40p' "$STDERR6C" >&2
-    exit 1
-  fi
-  assert_grep '^pecotv: installing dependencies$' "$STDERR6C" "CUJ 6c ran install via npx fallback"
-  assert_grep '^pecotv: building$' "$STDERR6C" "CUJ 6c ran build via npx fallback"
-  echo "[bootstrap-test] CUJ 6c pass"
+  run_pecotv /dev/null "$STDERR6C" \
+    -i CLAUDE_PLUGIN_DATA="$DATA_DIR" HOME="$ISO_HOME" PATH="$ISO_BIN_NODE_NPX:/usr/bin:/bin" -- --help
+  expect_code "CUJ 6c: npx を使って 0 で終わる" 0 "$STDERR6C"
+  expect_grep "CUJ 6c: npx 経由で依存を入れる" '^pecotv: installing dependencies$' "$STDERR6C"
+  expect_grep "CUJ 6c: npx 経由で build する" '^pecotv: building$' "$STDERR6C"
 fi
 
-# CUJ 7: clean state で skill loader を踏む subcommand
 echo "[bootstrap-test] CUJ 7: skill subcommand without prior setup.sh"
 rm -rf "$DATA_DIR/runtime"
 STDERR7="$WORK_DIR/cuj7.stderr"
 STDOUT7="$WORK_DIR/cuj7.stdout"
-set +e
-HOME="$ISO_HOME" "$BIN_PECOTV" slide --help >"$STDOUT7" 2>"$STDERR7"
-code=$?
-set -e
-assert_exit_zero "$code" "CUJ 7 exit"
-assert_grep 'slide' "$STDOUT7" "CUJ 7 slide help printed"
-echo "[bootstrap-test] CUJ 7 pass"
+run_pecotv "$STDOUT7" "$STDERR7" HOME="$ISO_HOME" -- slide --help
+expect_code "CUJ 7: 0 で終わる" 0 "$STDERR7"
+expect_grep "CUJ 7: slide の help を出す" 'slide' "$STDOUT7"
 
-# CUJ 8: 世代削除。ここまでに作ったミラーのうち、使用中でも current でもないものは直近 2 つを残して消える。
+# 使用中でなく current でもないミラーは、直近の 2 つを残して消える。
 echo "[bootstrap-test] CUJ 8: old mirror generations are pruned to the most recent two"
-mirror_count="$(find "$DATA_DIR/runtime" -mindepth 1 -maxdepth 1 -type d ! -name '.*' | wc -l | tr -d ' ')"
-if [ "$mirror_count" -gt 2 ]; then
-  echo "[bootstrap-test] FAIL: CUJ 8 mirror generations=$mirror_count (expected <= 2)" >&2
-  ls -la "$DATA_DIR/runtime" >&2
-  exit 1
+mirror_count="$({ find "$DATA_DIR/runtime" -mindepth 1 -maxdepth 1 -type d ! -name '.*' 2>/dev/null || true; } | wc -l | tr -d ' ')"
+if [ "$mirror_count" -le 2 ]; then
+  bt_pass "CUJ 8: ミラーの世代は 2 つ以下"
+else
+  MIRROR_LIST="$(ls -la "$DATA_DIR/runtime" 2>&1)"
+  bt_fail "CUJ 8: ミラーの世代は 2 つ以下" "${mirror_count} 世代: $MIRROR_LIST"
 fi
-if [ ! -f "$(readlink -f "$DATA_DIR/runtime/current")/.complete" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 8 current is not a complete mirror" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 8 pass (generations=$mirror_count)"
+bt_eq "CUJ 8: current は完成したミラー" yes "$(exists "$(current_mirror)/.complete")"
 
-# CUJ 9a: 初回 drawio url が ISO_HOME で成功する。
-# CUJ 1 で bootstrap 済 + chromium キャッシュが ISO_HOME に populated 済の状態を再利用する。
-# screenshot.ts の chromium.launch を実際に通す。
-# これで「初回ユーザーが drawio url を叩いて PNG が出る」CUJ を端から端まで検証する。
+# CUJ 1 で取った chromium を使い、drawio url が PNG まで書き出す。
 echo "[bootstrap-test] CUJ 9a: first-time drawio url succeeds under ISO_HOME"
 STDERR9A="$WORK_DIR/cuj9a.stderr"
-STDOUT9A="$WORK_DIR/cuj9a.stdout"
 DRAWIO_FIXTURE="$PLUGIN_ROOT/cli/tests/fixtures/drawio/minimal.drawio"
 CUJ9A_HTML="$WORK_DIR/cuj9a.drawio.html"
 CUJ9A_PNG="$WORK_DIR/cuj9a.drawio.png"
 rm -f "$CUJ9A_HTML" "$CUJ9A_PNG"
-set +e
-HOME="$ISO_HOME" "$BIN_PECOTV" drawio url "$DRAWIO_FIXTURE" --output "$CUJ9A_HTML" >"$STDOUT9A" 2>"$STDERR9A"
-code=$?
-set -e
-assert_exit_zero "$code" "CUJ 9a exit"
-assert_no_grep 'Playwright Chromium cannot launch' "$STDERR9A" "CUJ 9a no chromium launch failure"
-if [ ! -s "$CUJ9A_HTML" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 9a HTML not generated at $CUJ9A_HTML" >&2
-  exit 1
-fi
-if [ ! -s "$CUJ9A_PNG" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 9a PNG not generated at $CUJ9A_PNG" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 9a pass"
+run_pecotv "$WORK_DIR/cuj9a.stdout" "$STDERR9A" HOME="$ISO_HOME" -- drawio url "$DRAWIO_FIXTURE" --output "$CUJ9A_HTML"
+expect_code "CUJ 9a: 0 で終わる" 0 "$STDERR9A"
+expect_no_grep "CUJ 9a: Chromium の起動に失敗しない" 'Playwright Chromium cannot launch' "$STDERR9A"
+bt_eq "CUJ 9a: HTML を書き出す" yes "$(nonempty "$CUJ9A_HTML")"
+bt_eq "CUJ 9a: PNG を書き出す" yes "$(nonempty "$CUJ9A_PNG")"
 
-# CUJ 9b: 初回 slide convert (pptx) が ISO_HOME で成功する。
-# slidev build + chromium export のルートを踏み、pptx が生成されることを確認する。
-# 60-90s かかる可能性があるため timeout でラップせず素直に待つ。
+# slidev build と chromium の export を通り、pptx ができる（60〜90 秒かかる）。
 echo "[bootstrap-test] CUJ 9b: first-time slide convert (pptx) succeeds under ISO_HOME"
 STDERR9B="$WORK_DIR/cuj9b.stderr"
-STDOUT9B="$WORK_DIR/cuj9b.stdout"
 SLIDEV_SRC="$PLUGIN_ROOT/cli/tests/fixtures/minimal-slidev"
 SLIDEV_DST="$WORK_DIR/minimal-slidev-9b"
 CUJ9B_PPTX="$WORK_DIR/cuj9b.pptx"
 rm -rf "$SLIDEV_DST"
 rm -f "$CUJ9B_PPTX"
 cp -a "$SLIDEV_SRC" "$SLIDEV_DST"
-# slidev は theme/addon を slidev project の cwd から require する。
-# そのため、隔離した fixture 単体では依存を引けない。
-# 依存の実体は、bootstrap が作った実行用ミラー（$DATA_DIR/runtime/current/node_modules）にある。
-# 注意:
-# - ミラーの直下の項目を張るので、`pnpm-workspace.yaml` の `nodeLinker: hoisted` が前提になる。
-#   `isolated` 等へ切り替えたら、この CUJ も直す。
-# talk-dir はテーマを参照する形でなければ止まる（本体はテーマを持たない）。
-# 固定のテスト用テーマ（with-declaration と、その依存の theme-only-dep）を複製し、file: で参照する。
-# file: のテーマは install されないので、複製側の依存は、元の依存を指す symlink で用意する。
+# talk-dir はテーマの参照が要る。テスト用のテーマを複製して file: で指し、テーマの依存は元を指す symlink で置く。
 THEME9B_NAME="slidev-theme-pecotv-test-declared"
 THEME9B_ROOT="$WORK_DIR/theme-9b"
 rm -rf "$THEME9B_ROOT"
@@ -619,7 +452,8 @@ cp -a "$PLUGIN_ROOT/cli/tests/fixtures/themes/with-declaration" "$THEME9B_ROOT/$
 cp -a "$PLUGIN_ROOT/cli/tests/fixtures/themes/theme-only-dep" "$THEME9B_ROOT/theme-only-dep"
 mkdir -p "$THEME9B_ROOT/$THEME9B_NAME/node_modules"
 ln -sfn "$THEME9B_ROOT/theme-only-dep" "$THEME9B_ROOT/$THEME9B_NAME/node_modules/pecotv-test-theme-dep"
-# talk-dir の node_modules は、ミラーの依存を 1 つずつ張った実ディレクトリにし、テーマの張り先を足す。
+# slidev は依存を talk-dir の node_modules で探すので、ミラーの依存を 1 つずつ張る。
+# ミラーの直下を張るので、pnpm-workspace.yaml の nodeLinker: hoisted が前提。
 mkdir -p "$SLIDEV_DST/node_modules"
 for entry in "$DATA_DIR/runtime/current/node_modules"/* "$DATA_DIR/runtime/current/node_modules"/.bin; do
   [ -e "$entry" ] && ln -sfn "$entry" "$SLIDEV_DST/node_modules/$(basename "$entry")"
@@ -628,248 +462,109 @@ ln -sfn "$THEME9B_ROOT/$THEME9B_NAME" "$SLIDEV_DST/node_modules/$THEME9B_NAME"
 jq --arg n "$THEME9B_NAME" --arg p "file:$THEME9B_ROOT/$THEME9B_NAME" '.dependencies[$n] = $p | del(.dependencies["@slidev/theme-default"])' \
   "$SLIDEV_SRC/package.json" >"$SLIDEV_DST/package.json"
 sed -i "s|^theme: default$|theme: \"$THEME9B_NAME\"|" "$SLIDEV_DST/slides.md"
-set +e
-HOME="$ISO_HOME" "$BIN_PECOTV" slide convert "$SLIDEV_DST" --out "$CUJ9B_PPTX" >"$STDOUT9B" 2>"$STDERR9B"
-code=$?
-set -e
-assert_exit_zero "$code" "CUJ 9b exit"
-assert_no_grep 'Playwright Chromium cannot launch' "$STDERR9B" "CUJ 9b no chromium launch failure"
-if [ ! -s "$CUJ9B_PPTX" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 9b PPTX not generated at $CUJ9B_PPTX" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 9b pass"
+run_pecotv "$WORK_DIR/cuj9b.stdout" "$STDERR9B" HOME="$ISO_HOME" -- slide convert "$SLIDEV_DST" --out "$CUJ9B_PPTX"
+expect_code "CUJ 9b: 0 で終わる" 0 "$STDERR9B"
+expect_no_grep "CUJ 9b: Chromium の起動に失敗しない" 'Playwright Chromium cannot launch' "$STDERR9B"
+bt_eq "CUJ 9b: PPTX を書き出す" yes "$(nonempty "$CUJ9B_PPTX")"
 
-# CUJ 9d: 既存 chromium キャッシュがある環境で再 DL が動かない。
-# CUJ 9a/9b を通った ISO_HOME（chromium キャッシュ populated 済 + bootstrap 完走済）を使う。
-# drawio url を再実行し、playwright install chromium が再発火しないことを確認する。
-# CUJ 9c は node_modules を破壊するため、9c より前にこの CUJ を回す。
+# chromium のキャッシュがあれば取り直さない。9c がミラーを消すので、その前に回す。
 echo "[bootstrap-test] CUJ 9d: no re-DL when chromium cache exists"
 STDERR9D="$WORK_DIR/cuj9d.stderr"
-STDOUT9D="$WORK_DIR/cuj9d.stdout"
 CUJ9D_HTML="$WORK_DIR/cuj9d.drawio.html"
 CUJ9D_PNG="$WORK_DIR/cuj9d.drawio.png"
 rm -f "$CUJ9D_HTML" "$CUJ9D_PNG"
-set +e
-HOME="$ISO_HOME" "$BIN_PECOTV" drawio url "$DRAWIO_FIXTURE" --output "$CUJ9D_HTML" >"$STDOUT9D" 2>"$STDERR9D"
-code=$?
-set -e
-assert_exit_zero "$code" "CUJ 9d exit"
-assert_no_grep 'running playwright install chromium' "$STDERR9D" "CUJ 9d no chromium re-download"
-if [ ! -s "$CUJ9D_HTML" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 9d HTML not generated at $CUJ9D_HTML" >&2
-  exit 1
-fi
-if [ ! -s "$CUJ9D_PNG" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 9d PNG not generated at $CUJ9D_PNG" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 9d pass"
+run_pecotv "$WORK_DIR/cuj9d.stdout" "$STDERR9D" HOME="$ISO_HOME" -- drawio url "$DRAWIO_FIXTURE" --output "$CUJ9D_HTML"
+expect_code "CUJ 9d: 0 で終わる" 0 "$STDERR9D"
+expect_no_grep "CUJ 9d: chromium を取り直さない" 'running playwright install chromium' "$STDERR9D"
+bt_eq "CUJ 9d: HTML を書き出す" yes "$(nonempty "$CUJ9D_HTML")"
+bt_eq "CUJ 9d: PNG を書き出す" yes "$(nonempty "$CUJ9D_PNG")"
 
-# CUJ 9c: chromium DL 不能環境で bin/pecotv が fatal 化する。
-# clean state + 独立 ISO_HOME_C（chromium キャッシュ無し）で bootstrap を回す。
-# PLAYWRIGHT_DOWNLOAD_HOST=http://127.0.0.1:1 で DL を強制失敗させる。
-# bin/pecotv が非 0 exit + 明示エラー（error: chromium + ネットワーク誘導）で落ちることを確認する。
+# PLAYWRIGHT_DOWNLOAD_HOST=http://127.0.0.1:1 で取得を必ず失敗させる（12a・12b・13b も同じ）。
 echo "[bootstrap-test] CUJ 9c: bin/pecotv fatal when chromium DL fails"
 STDERR9C="$WORK_DIR/cuj9c.stderr"
-STDOUT9C="$WORK_DIR/cuj9c.stdout"
 mkdir -p "$ISO_HOME_C/.cache" "$ISO_HOME_C/.local/share"
 rm -rf "$DATA_DIR/runtime"
-set +e
-( PLAYWRIGHT_DOWNLOAD_HOST=http://127.0.0.1:1 HOME="$ISO_HOME_C" "$BIN_PECOTV" --help >"$STDOUT9C" 2>"$STDERR9C" )
-code=$?
-set -e
-if [ "$code" -eq 0 ]; then
-  echo "[bootstrap-test] FAIL: CUJ 9c expected non-zero exit, got 0" >&2
-  echo "  --- CUJ 9c stderr ---" >&2; sed -n '1,80p' "$STDERR9C" >&2
-  exit 1
-fi
-assert_grep 'running playwright install chromium' "$STDERR9C" "CUJ 9c chromium install fired"
-assert_grep 'error: chromium' "$STDERR9C" "CUJ 9c explicit chromium error"
-assert_grep 'PLAYWRIGHT_DOWNLOAD_HOST' "$STDERR9C" "CUJ 9c surface network/proxy guidance"
-if has_chromium_cache "$ISO_HOME_C/.cache/ms-playwright"; then
-  echo "[bootstrap-test] FAIL: CUJ 9c ISO_HOME_C unexpectedly has chromium cache after fatal" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 9c pass (exit=$code)"
+run_pecotv "$WORK_DIR/cuj9c.stdout" "$STDERR9C" PLAYWRIGHT_DOWNLOAD_HOST=http://127.0.0.1:1 HOME="$ISO_HOME_C" -- --help
+expect_failure "CUJ 9c: 0 以外で終わる" "$STDERR9C"
+expect_grep "CUJ 9c: chromium の取得を始める" 'running playwright install chromium' "$STDERR9C"
+expect_grep "CUJ 9c: stderr に error: chromium が出る" 'error: chromium' "$STDERR9C"
+expect_grep "CUJ 9c: stderr でネットワークの設定を案内する" 'PLAYWRIGHT_DOWNLOAD_HOST' "$STDERR9C"
+bt_eq "CUJ 9c: chromium のキャッシュを残さない" no "$(chromium_cache "$ISO_HOME_C/.cache/ms-playwright")"
 
 CHROMIUM_INSTALL_LOG="$DATA_DIR/runtime/.pecotv-chromium-install.log"
 CHROMIUM_INSTALL_LOCK="$DATA_DIR/runtime/.pecotv-chromium-install.lock"
 
-# CUJ 12: chromium 未取得の cold state でも `pecotv mcp` が接続でき、chromium は取りに行かない。
-# `.mcp.json` 経由の起動には Claude Code の MCP_TIMEOUT (標準 30000ms) がある。
-# bootstrap で chromium (~120MB, 3 本) を同期 DL していた頃は、真 cold の合計が 52s に達して接続そのものが失敗していた。
-# MCP ルートでは chromium を起動条件から外すことで、install + build だけで接続が成立する。
-# あわせて「標準ではモデルの呼ぶルートから 120MB を通知なしに取得しない」ことも見る。
-# CUJ 9c の直後に置き、chromium キャッシュを持たない ISO_HOME_C を再利用する。
+# MCP の起動は chromium を条件にしない。MCP_TIMEOUT（30 秒）の内に install と build だけで接続する。
 echo "[bootstrap-test] CUJ 12: cold pecotv mcp connects without fetching chromium"
 STDERR12="$WORK_DIR/cuj12.stderr"
 STDOUT12="$WORK_DIR/cuj12.stdout"
-FIFO12="$WORK_DIR/cuj12.stdin.fifo"
 rm -rf "$DATA_DIR/runtime"
-rm -f "$FIFO12" "$STDOUT12" "$STDERR12"
-mkfifo "$FIFO12"
-set +e
-HOME="$ISO_HOME_C" "$BIN_PECOTV" mcp <"$FIFO12" >"$STDOUT12" 2>"$STDERR12" &
-mcp12_pid=$!
-exec 7>"$FIFO12"
-printf '%s\n' "$MCP_INIT_REQUEST" >&7
-mcp_deadline=$(( $(date +%s) + 300 ))
-while [ ! -s "$STDOUT12" ] && [ "$(date +%s)" -le "$mcp_deadline" ]; do
-  sleep 0.5
-done
-sleep 0.5
-exec 7>&-
-wait "$mcp12_pid"
-code=$?
-set -e
-rm -f "$FIFO12"
-assert_exit_zero "$code" "CUJ 12 exit"
-assert_grep '^pecotv: installing dependencies$' "$STDERR12" "CUJ 12 ran install (cold state)"
-# 同期 DL の痕跡（fatal 化するルート）とバックグラウンド取得のどちらも、MCP 起動で動かないこと。
-assert_no_grep 'running playwright install chromium' "$STDERR12" "CUJ 12 no synchronous chromium install"
-assert_no_grep 'fetching it in the background' "$STDERR12" "CUJ 12 no background chromium fetch by default"
-assert_no_grep 'error: chromium' "$STDERR12" "CUJ 12 missing chromium is not fatal"
-if ! node -e '
-  const fs = require("fs");
-  const lines = fs.readFileSync(process.argv[1], "utf8").split("\n").filter((l) => l !== "");
-  if (lines.length === 0) { console.error("stdout has no lines"); process.exit(1); }
-  let sawInitializeResult = false;
-  for (const line of lines) {
-    let message;
-    try { message = JSON.parse(line); }
-    catch { console.error("non-JSON line on stdout: " + line); process.exit(1); }
-    if (message.id === 1 && message.result && message.result.serverInfo) sawInitializeResult = true;
-  }
-  if (!sawInitializeResult) { console.error("no initialize result on stdout"); process.exit(1); }
-' "$STDOUT12"; then
-  echo "[bootstrap-test] FAIL: CUJ 12 did not answer initialize on a JSON-RPC-only stdout" >&2
-  echo "  --- CUJ 12 stdout ---" >&2; sed -n '1,20p' "$STDOUT12" >&2
-  echo "  --- CUJ 12 stderr ---" >&2; sed -n '1,60p' "$STDERR12" >&2
-  exit 1
-fi
-if has_chromium_cache "$ISO_HOME_C/.cache/ms-playwright"; then
-  echo "[bootstrap-test] FAIL: CUJ 12 unexpectedly populated chromium cache" >&2
-  exit 1
-fi
-if [ -f "$CHROMIUM_INSTALL_LOG" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 12 started a background chromium fetch without opt-in" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 12 pass"
+mcp_initialize "$STDOUT12" "$STDERR12" 300 HOME="$ISO_HOME_C"
+expect_code "CUJ 12: 0 で終わる" 0 "$STDERR12"
+expect_grep "CUJ 12: 依存を入れる（cold）" '^pecotv: installing dependencies$' "$STDERR12"
+expect_no_grep "CUJ 12: chromium を同期で取得しない" 'running playwright install chromium' "$STDERR12"
+expect_no_grep "CUJ 12: opt-in が無ければバックグラウンドで chromium を取得しない" 'fetching it in the background' "$STDERR12"
+expect_no_grep "CUJ 12: chromium が無くても止まらない" 'error: chromium' "$STDERR12"
+expect_node "CUJ 12: stdout は JSON-RPC だけで、initialize に答える" "$JSON_RPC_INITIALIZED" "$STDOUT12"
+bt_eq "CUJ 12: chromium のキャッシュを作らない" no "$(chromium_cache "$ISO_HOME_C/.cache/ms-playwright")"
+bt_eq "CUJ 12: バックグラウンド取得のログを作らない" no "$(exists "$CHROMIUM_INSTALL_LOG")"
 
-# CUJ 12a: warm bootstrap + chromium 未取得の状態で、通常の CLI ルートが chromium を取りに行く。
-# `.mcp.json` 登録により、初回 bootstrap が MCP ルートになるのが標準になった。
-# そのため install / build は済んでいるが chromium だけ無い状態が、新しい定常状態になる。
-# chromium 取得の判定を bootstrap 要否ブロックの内側に置くと、marker が書かれた時点で通常の CLI ルートが二度とここへ到達しない。
-# すると #543 の Acceptance（初回 `drawio url` が chromium 不足で失敗しない）が破れる。
-# 直前の CUJ 12 が ISO_HOME_C で install + build を済ませ、chromium だけ無い状態を作っている。
-# DL は PLAYWRIGHT_DOWNLOAD_HOST=http://127.0.0.1:1 で必ず失敗させる。
-# 実 DL を待たずに、「取得が発火したこと」と「失敗すれば fatal であること」の両方を観測できる。
+# 準備が済み chromium だけ無い状態でも、CLI のルートは chromium を取りに行く（#543）。
 echo "[bootstrap-test] CUJ 12a: warm bootstrap still fetches chromium on the plain CLI path"
 STDERR12A="$WORK_DIR/cuj12a.stderr"
-STDOUT12A="$WORK_DIR/cuj12a.stdout"
 CUJ12A_HTML="$WORK_DIR/cuj12a.drawio.html"
 rm -f "$CUJ12A_HTML"
-set +e
-PLAYWRIGHT_DOWNLOAD_HOST=http://127.0.0.1:1 HOME="$ISO_HOME_C" \
-  "$BIN_PECOTV" drawio url "$DRAWIO_FIXTURE" --output "$CUJ12A_HTML" >"$STDOUT12A" 2>"$STDERR12A"
-code=$?
-set -e
-if [ "$code" -eq 0 ]; then
-  echo "[bootstrap-test] FAIL: CUJ 12a expected non-zero exit, got 0" >&2
-  echo "  --- CUJ 12a stderr ---" >&2; sed -n '1,80p' "$STDERR12A" >&2
-  exit 1
-fi
-assert_no_grep '^pecotv: installing dependencies$' "$STDERR12A" "CUJ 12a precondition: bootstrap is warm"
-assert_grep 'running playwright install chromium' "$STDERR12A" "CUJ 12a chromium fetch fires on warm bootstrap"
-assert_grep 'error: chromium' "$STDERR12A" "CUJ 12a chromium DL failure stays fatal"
-if has_chromium_cache "$ISO_HOME_C/.cache/ms-playwright"; then
-  echo "[bootstrap-test] FAIL: CUJ 12a ISO_HOME_C unexpectedly has chromium cache after fatal" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 12a pass (exit=$code)"
+run_pecotv "$WORK_DIR/cuj12a.stdout" "$STDERR12A" PLAYWRIGHT_DOWNLOAD_HOST=http://127.0.0.1:1 HOME="$ISO_HOME_C" \
+  -- drawio url "$DRAWIO_FIXTURE" --output "$CUJ12A_HTML"
+expect_failure "CUJ 12a: 0 以外で終わる" "$STDERR12A"
+expect_no_grep "CUJ 12a: 準備は済んでいる（依存を入れない）" '^pecotv: installing dependencies$' "$STDERR12A"
+expect_grep "CUJ 12a: 準備が済んでいても chromium の取得を始める" 'running playwright install chromium' "$STDERR12A"
+expect_grep "CUJ 12a: chromium の取得に失敗したら止まる" 'error: chromium' "$STDERR12A"
+bt_eq "CUJ 12a: chromium のキャッシュを残さない" no "$(chromium_cache "$ISO_HOME_C/.cache/ms-playwright")"
 
-# CUJ 12b: PECOTV_AUTO_INSTALL_BROWSER=1 のときだけ起動時のバックグラウンド取得が動く。
-# 取得は PLAYWRIGHT_DOWNLOAD_HOST=http://127.0.0.1:1 で必ず失敗させる。
-# 実 DL を待たずに済み、かつ「バックグラウンド取得が失敗しても serve は続く」ことまで同時に確認できる。
-# CUJ 12 で install / build 済みのため warm state で動く（判定は bootstrap 要否の外にある）。
+# PECOTV_AUTO_INSTALL_BROWSER=1 のときだけ、起動時にバックグラウンドで取得する。失敗しても serve は続く。
 echo "[bootstrap-test] CUJ 12b: opt-in env starts the background chromium fetch"
 STDERR12B="$WORK_DIR/cuj12b.stderr"
 STDOUT12B="$WORK_DIR/cuj12b.stdout"
-FIFO12B="$WORK_DIR/cuj12b.stdin.fifo"
-rm -f "$FIFO12B" "$STDOUT12B" "$STDERR12B" "$CHROMIUM_INSTALL_LOG"
-mkfifo "$FIFO12B"
-set +e
-PECOTV_AUTO_INSTALL_BROWSER=1 PLAYWRIGHT_DOWNLOAD_HOST=http://127.0.0.1:1 HOME="$ISO_HOME_C" \
-  "$BIN_PECOTV" mcp <"$FIFO12B" >"$STDOUT12B" 2>"$STDERR12B" &
-mcp12b_pid=$!
-exec 7>"$FIFO12B"
-printf '%s\n' "$MCP_INIT_REQUEST" >&7
-mcp_deadline=$(( $(date +%s) + 120 ))
-while [ ! -s "$STDOUT12B" ] && [ "$(date +%s)" -le "$mcp_deadline" ]; do
-  sleep 0.5
-done
-sleep 0.5
-exec 7>&-
-wait "$mcp12b_pid"
-code=$?
-set -e
-rm -f "$FIFO12B"
-assert_exit_zero "$code" "CUJ 12b exit"
-assert_grep 'fetching it in the background' "$STDERR12B" "CUJ 12b background fetch fired under opt-in"
-assert_no_grep 'error: chromium' "$STDERR12B" "CUJ 12b background DL failure is not fatal"
-assert_no_grep 'Downloading|Progress' "$STDOUT12B" "CUJ 12b background fetch output stays off stdout"
-# バックグラウンド取得のログが node_modules 配下（gitignore 済）に残ること。
-# 取得プロセスは MCP サーバの終了を待たずに動くため、ログ生成を短時間だけ待つ。
-log_deadline=$(( $(date +%s) + 30 ))
+rm -f "$CHROMIUM_INSTALL_LOG"
+mcp_initialize "$STDOUT12B" "$STDERR12B" 120 \
+  PECOTV_AUTO_INSTALL_BROWSER=1 PLAYWRIGHT_DOWNLOAD_HOST=http://127.0.0.1:1 HOME="$ISO_HOME_C"
+expect_code "CUJ 12b: 0 で終わる" 0 "$STDERR12B"
+expect_grep "CUJ 12b: opt-in でバックグラウンド取得を始める" 'fetching it in the background' "$STDERR12B"
+expect_no_grep "CUJ 12b: バックグラウンド取得の失敗で止まらない" 'error: chromium' "$STDERR12B"
+expect_no_grep "CUJ 12b: 取得の出力は stdout に出ない" 'Downloading|Progress' "$STDOUT12B"
+# 取得は MCP サーバの終了を待たずに動くので、ログができるまで少し待つ。
+log_deadline=$(($(date +%s) + 30))
 while [ ! -f "$CHROMIUM_INSTALL_LOG" ] && [ "$(date +%s)" -le "$log_deadline" ]; do
   sleep 0.5
 done
-if [ ! -f "$CHROMIUM_INSTALL_LOG" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 12b background chromium install log not found at $CHROMIUM_INSTALL_LOG" >&2
-  exit 1
-fi
-# 取得プロセスの完走を待ってから中身を見る。
-# 子シェルは `exec >"$LOG"` を先に実行する。
-# そのためログファイル自体は 1 バイトも書けなくても必ず作られ、存在確認だけでは見逃す不具合がある。
-# 見逃す例は、`--filter` の typo、cwd 誤り、pnpm 解決失敗。
-# ここで待てば、後続 CUJ（13c の runtime_setup が同じロックをブロッキングで取りに来る）との順序依存も消える。
-if command -v flock >/dev/null 2>&1; then
+bt_eq "CUJ 12b: バックグラウンド取得のログができる" yes "$(exists "$CHROMIUM_INSTALL_LOG")"
+# ログは取得の前に必ずできるので、完走を待ってから中身を見る（13c が同じロックを取る順序も決まる）。
+if [ -f "$CHROMIUM_INSTALL_LOG" ] && command -v flock >/dev/null 2>&1; then
   flock "$CHROMIUM_INSTALL_LOCK" true
 fi
-assert_grep '[Cc]hromium|[Pp]laywright' "$CHROMIUM_INSTALL_LOG" "CUJ 12b background fetch actually ran playwright"
-# 強制失敗させた DL 自体の失敗（ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL）は想定内なので除外する。
-# 弾くのは、workspace filter / cwd / pnpm 解決の失敗形だけ。
-assert_no_grep 'No projects matched|ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND|command not found' \
-  "$CHROMIUM_INSTALL_LOG" "CUJ 12b background fetch resolved the workspace filter and cwd"
-if has_chromium_cache "$ISO_HOME_C/.cache/ms-playwright"; then
-  echo "[bootstrap-test] FAIL: CUJ 12b unexpectedly populated chromium cache (DL was forced to fail)" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 12b pass"
+expect_grep "CUJ 12b: バックグラウンド取得が playwright を動かす" '[Cc]hromium|[Pp]laywright' "$CHROMIUM_INSTALL_LOG"
+# 強制した DL の失敗は想定のうちで、弾くのは filter・cwd・pnpm の解決の失敗だけ。
+expect_no_grep "CUJ 12b: バックグラウンド取得が workspace の filter と cwd を解決する" \
+  'No projects matched|ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND|command not found' "$CHROMIUM_INSTALL_LOG"
+bt_eq "CUJ 12b: chromium のキャッシュを作らない（取得は失敗させた）" no "$(chromium_cache "$ISO_HOME_C/.cache/ms-playwright")"
 
-# CUJ 13: chromium が要るツールの案内と、`runtime_setup` ツールによる復旧。
-# 未取得のまま drawio_export を呼ぶと、runtime_setup ツールを案内される。runtime_setup を呼ぶと実際に取得でき、
-# 同じ引数が通るようになる。この一連の導線を実プロセスで通す。
-# 13c は実 DL (~120MB / 計測 33s) を伴うため harness 全体が延びる。CI 組み込み時は再評価。
+# chromium が要るツールは runtime_setup を案内し、runtime_setup の後は同じ呼び出しが通る。
 export BIN_PECOTV
 MCP_CALL="$SCRIPT_DIR/mcp-call.mjs"
 
 echo "[bootstrap-test] CUJ 13a: chromium-dependent tool guides to the runtime_setup tool"
 RESULT13A="$WORK_DIR/cuj13a.json"
-set +e
+code=0
 HOME="$ISO_HOME_C" node "$MCP_CALL" drawio_export \
   "{\"input_path\":\"$DRAWIO_FIXTURE\",\"icons_dir\":\"$PLUGIN_ROOT/assets/drawio-icons\"}" \
-  >"$RESULT13A" 2>"$WORK_DIR/cuj13a.stderr"
-code=$?
-set -e
-assert_exit_zero "$code" "CUJ 13a exit"
-if ! node - "$RESULT13A" <<'NODE'
+  >"$RESULT13A" 2>"$WORK_DIR/cuj13a.stderr" || code=$?
+expect_code "CUJ 13a: 0 で終わる" 0 "$WORK_DIR/cuj13a.stderr"
+expect_node "CUJ 13a: runtime_setup ツールを案内する" '
   const fs = require("fs");
-  const message = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+  const message = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
   const result = message.result;
-  if (!result || result.isError !== true) { console.error("expected isError: true"); process.exit(1); }
+  if (!result || result.isError !== true) { console.error("expected isError: true: " + JSON.stringify(message)); process.exit(1); }
   const data = result.structuredContent;
   if (!data || data.kind !== "chromium-not-installed") {
     console.error("unexpected data: " + JSON.stringify(data)); process.exit(1);
@@ -877,26 +572,18 @@ if ! node - "$RESULT13A" <<'NODE'
   if (!String(data.detail).includes("`runtime_setup` tool")) {
     console.error("detail does not guide to the runtime_setup tool: " + data.detail); process.exit(1);
   }
-NODE
-then
-  echo "[bootstrap-test] FAIL: CUJ 13a did not return the runtime_setup guidance" >&2
-  sed -n '1,20p' "$RESULT13A" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 13a pass"
+' "$RESULT13A"
 
 echo "[bootstrap-test] CUJ 13b: runtime_setup surfaces the reason when the download is unreachable"
 RESULT13B="$WORK_DIR/cuj13b.json"
-set +e
+code=0
 PLAYWRIGHT_DOWNLOAD_HOST=http://127.0.0.1:1 HOME="$ISO_HOME_C" node "$MCP_CALL" runtime_setup \
-  >"$RESULT13B" 2>"$WORK_DIR/cuj13b.stderr"
-code=$?
-set -e
-assert_exit_zero "$code" "CUJ 13b exit"
-if ! node -e '
+  >"$RESULT13B" 2>"$WORK_DIR/cuj13b.stderr" || code=$?
+expect_code "CUJ 13b: 0 で終わる" 0 "$WORK_DIR/cuj13b.stderr"
+expect_node "CUJ 13b: 取得できない理由と、プロキシ・取得元の設定を返す" '
   const fs = require("fs");
   const result = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).result;
-  if (!result || result.isError !== true) { console.error("expected isError: true"); process.exit(1); }
+  if (!result || result.isError !== true) { console.error("expected isError: true: " + JSON.stringify(result)); process.exit(1); }
   const data = result.structuredContent;
   if (data.kind !== "chromium-install-failed") {
     console.error("unexpected kind: " + JSON.stringify(data)); process.exit(1);
@@ -906,18 +593,9 @@ if ! node -e '
       console.error("detail lacks " + hint + ": " + data.detail); process.exit(1);
     }
   }
-' "$RESULT13B"; then
-  echo "[bootstrap-test] FAIL: CUJ 13b did not surface the download failure" >&2
-  sed -n '1,20p' "$RESULT13B" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 13b pass"
+' "$RESULT13B"
 
-# CUJ 13c: runtime_setup がツールのブロックを解除する。
-# 標準では ISO_HOME（CUJ 1 で取得済み）の chromium キャッシュを複製し、
-# runtime_setup の冪等ルート（取得済みなら DL しない）を見る。実 DL を伴うルートは 2 本目の
-# ~120MB になるため PECOTV_BOOTSTRAP_TEST_HEAVY=1 の opt-in にする。どちらのルートでも
-# 「runtime_setup 後に 13a と同じ呼び出しが通る」ところまでは動く。
+# ふだんは ISO_HOME の chromium を写し、冪等（取らない）ルートを見る。HEAVY=1 では 2 本目の実 DL（約 120MB）をする。
 RESULT13C="$WORK_DIR/cuj13c.json"
 if [ "${PECOTV_BOOTSTRAP_TEST_HEAVY:-}" = "1" ]; then
   echo "[bootstrap-test] CUJ 13c: runtime_setup actually downloads chromium and unblocks the tool (heavy)"
@@ -930,12 +608,10 @@ else
   EXPECT13C_EVENT="setup.skipped"
   EXPECT13C_DOWNLOADED="false"
 fi
-set +e
-HOME="$ISO_HOME_C" node "$MCP_CALL" runtime_setup >"$RESULT13C" 2>"$WORK_DIR/cuj13c.stderr"
-code=$?
-set -e
-assert_exit_zero "$code" "CUJ 13c exit"
-if ! node -e '
+code=0
+HOME="$ISO_HOME_C" node "$MCP_CALL" runtime_setup >"$RESULT13C" 2>"$WORK_DIR/cuj13c.stderr" || code=$?
+expect_code "CUJ 13c: 0 で終わる" 0 "$WORK_DIR/cuj13c.stderr"
+expect_node "CUJ 13c: runtime_setup が $EXPECT13C_EVENT を返す" '
   const fs = require("fs");
   const result = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).result;
   if (!result || result.isError !== undefined) {
@@ -948,136 +624,56 @@ if ! node -e '
   if (data.event !== expectedEvent || chromium.installed !== true || chromium.downloaded !== expectedDownloaded) {
     console.error("unexpected data: " + JSON.stringify(data)); process.exit(1);
   }
-' "$RESULT13C" "$EXPECT13C_EVENT" "$EXPECT13C_DOWNLOADED"; then
-  echo "[bootstrap-test] FAIL: CUJ 13c runtime_setup did not report $EXPECT13C_EVENT" >&2
-  sed -n '1,20p' "$RESULT13C" >&2
-  exit 1
-fi
-if ! has_chromium_cache "$ISO_HOME_C/.cache/ms-playwright"; then
-  echo "[bootstrap-test] FAIL: CUJ 13c runtime_setup reported success but chromium cache is empty" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 13c pass"
+' "$RESULT13C" "$EXPECT13C_EVENT" "$EXPECT13C_DOWNLOADED"
+bt_eq "CUJ 13c: chromium のキャッシュがある" yes "$(chromium_cache "$ISO_HOME_C/.cache/ms-playwright")"
 
-# CUJ 13d: 取得後は 13a と同じ呼び出しが通る（案内どおりに復旧できる）。ガードを抜けた先で
-# 実際に Chromium が起動することまで見るため print_hash は使わず SVG を書き出す。
+# 案内どおりに直る。Chromium の起動まで見るため、print_hash でなく SVG を書き出す。
 echo "[bootstrap-test] CUJ 13d: drawio_export works again once runtime_setup has fetched chromium"
 RESULT13D="$WORK_DIR/cuj13d.json"
 CUJ13D_SVG="$WORK_DIR/cuj13d.svg"
 rm -f "$CUJ13D_SVG"
-set +e
+code=0
 HOME="$ISO_HOME_C" node "$MCP_CALL" drawio_export \
   "{\"input_path\":\"$DRAWIO_FIXTURE\",\"icons_dir\":\"$PLUGIN_ROOT/assets/drawio-icons\",\"out_path\":\"$CUJ13D_SVG\"}" \
-  >"$RESULT13D" 2>"$WORK_DIR/cuj13d.stderr"
-code=$?
-set -e
-assert_exit_zero "$code" "CUJ 13d exit"
-if ! node -e '
-  const fs = require("fs");
-  const result = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).result;
-  if (!result || result.isError !== undefined) {
-    console.error("expected success after runtime_setup: "
-      + JSON.stringify(result && result.structuredContent)); process.exit(1);
-  }
-' "$RESULT13D"; then
-  echo "[bootstrap-test] FAIL: CUJ 13d drawio_export still blocked after setup" >&2
-  sed -n '1,20p' "$RESULT13D" >&2
-  exit 1
-fi
-if [ ! -s "$CUJ13D_SVG" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 13d SVG not generated at $CUJ13D_SVG" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 13d pass"
+  >"$RESULT13D" 2>"$WORK_DIR/cuj13d.stderr" || code=$?
+expect_code "CUJ 13d: 0 で終わる" 0 "$WORK_DIR/cuj13d.stderr"
+expect_node "CUJ 13d: runtime_setup の後は drawio_export が通る" "$TOOL_SUCCEEDED" "$RESULT13D"
+bt_eq "CUJ 13d: SVG を書き出す" yes "$(nonempty "$CUJ13D_SVG")"
 
-# CUJ 13e: icons_dir を省略しても plugin-root 同梱のカタログで icon:// が解決され SVG が出る。
-# 単体配布ルート（npx）では展開先の hash が環境ごとに変わり、呼び出し側が icons_dir の
-# 絶対パスを組み立てられない。既定が働かないと icon-unresolved で必ず落ちるルート。
+# 単体配布（npx）では icons_dir を組み立てられないので、省いても同梱のカタログで icon:// を解決する。
 echo "[bootstrap-test] CUJ 13e: drawio_export resolves icon:// with the bundled catalog by default"
 DRAWIO_ICON_FIXTURE="$PLUGIN_ROOT/cli/tests/fixtures/drawio/icon-resolvable.drawio"
 RESULT13E="$WORK_DIR/cuj13e.json"
 CUJ13E_SVG="$WORK_DIR/cuj13e.svg"
 rm -f "$CUJ13E_SVG"
-set +e
+code=0
 HOME="$ISO_HOME_C" node "$MCP_CALL" drawio_export \
   "{\"input_path\":\"$DRAWIO_ICON_FIXTURE\",\"out_path\":\"$CUJ13E_SVG\"}" \
-  >"$RESULT13E" 2>"$WORK_DIR/cuj13e.stderr"
-code=$?
-set -e
-assert_exit_zero "$code" "CUJ 13e exit"
-if ! node -e '
-  const fs = require("fs");
-  const result = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).result;
-  if (!result || result.isError !== undefined) {
-    console.error("expected success without icons_dir: "
-      + JSON.stringify(result && result.structuredContent)); process.exit(1);
-  }
-' "$RESULT13E"; then
-  echo "[bootstrap-test] FAIL: CUJ 13e drawio_export failed without icons_dir" >&2
-  sed -n '1,20p' "$RESULT13E" >&2
-  exit 1
-fi
-if [ ! -s "$CUJ13E_SVG" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 13e SVG not generated at $CUJ13E_SVG" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 13e pass"
+  >"$RESULT13E" 2>"$WORK_DIR/cuj13e.stderr" || code=$?
+expect_code "CUJ 13e: 0 で終わる" 0 "$WORK_DIR/cuj13e.stderr"
+expect_node "CUJ 13e: icons_dir を省いても drawio_export が通る" "$TOOL_SUCCEEDED" "$RESULT13E"
+bt_eq "CUJ 13e: SVG を書き出す" yes "$(nonempty "$CUJ13E_SVG")"
 
-# CUJ 14: chromium 取得済みなら opt-in でも起動時のバックグラウンド取得は動かない。
-# CUJ 12b は強制失敗 DL しか通しておらず、PECOTV_AUTO_INSTALL_BROWSER=1 の「取得済みなら
-# 何もしない」側が未検証だった。判定基準が破損すると MCP 起動のたびに無用な install
-# サブプロセスが立ち、バックグラウンド取得ログが毎回 truncate される。
-# CUJ 13c 通過後の ISO_HOME_C は chromium 取得済みなので、追加 DL なしで観測できる。
+# chromium があれば、opt-in でもバックグラウンド取得を始めない（13c の後の ISO_HOME_C は取得済み）。
 echo "[bootstrap-test] CUJ 14: opt-in does not refetch chromium when it is already present"
 STDERR14="$WORK_DIR/cuj14.stderr"
 STDOUT14="$WORK_DIR/cuj14.stdout"
-FIFO14="$WORK_DIR/cuj14.stdin.fifo"
-rm -f "$FIFO14" "$STDOUT14" "$STDERR14" "$CHROMIUM_INSTALL_LOG"
-mkfifo "$FIFO14"
-set +e
-PECOTV_AUTO_INSTALL_BROWSER=1 HOME="$ISO_HOME_C" \
-  "$BIN_PECOTV" mcp <"$FIFO14" >"$STDOUT14" 2>"$STDERR14" &
-mcp14_pid=$!
-exec 7>"$FIFO14"
-printf '%s\n' "$MCP_INIT_REQUEST" >&7
-mcp_deadline=$(( $(date +%s) + 120 ))
-while [ ! -s "$STDOUT14" ] && [ "$(date +%s)" -le "$mcp_deadline" ]; do
-  sleep 0.5
-done
-sleep 0.5
-exec 7>&-
-wait "$mcp14_pid"
-code=$?
-set -e
-rm -f "$FIFO14"
-assert_exit_zero "$code" "CUJ 14 exit"
-assert_no_grep 'fetching it in the background' "$STDERR14" "CUJ 14 no background fetch when chromium is present"
-assert_no_grep 'running playwright install chromium' "$STDERR14" "CUJ 14 no synchronous chromium install"
-if [ -f "$CHROMIUM_INSTALL_LOG" ]; then
-  echo "[bootstrap-test] FAIL: CUJ 14 started a background chromium fetch despite an existing install" >&2
-  exit 1
-fi
-echo "[bootstrap-test] CUJ 14 pass"
+rm -f "$CHROMIUM_INSTALL_LOG"
+mcp_initialize "$STDOUT14" "$STDERR14" 120 PECOTV_AUTO_INSTALL_BROWSER=1 HOME="$ISO_HOME_C"
+expect_code "CUJ 14: 0 で終わる" 0 "$STDERR14"
+expect_no_grep "CUJ 14: chromium があればバックグラウンド取得を始めない" 'fetching it in the background' "$STDERR14"
+expect_no_grep "CUJ 14: chromium を同期で取得しない" 'running playwright install chromium' "$STDERR14"
+bt_eq "CUJ 14: バックグラウンド取得のログを作らない" no "$(exists "$CHROMIUM_INSTALL_LOG")"
 
-# 静的確認
 echo "[bootstrap-test] static checks"
 SETUP_SH="$PLUGIN_ROOT/setup.sh"
+expect_no_grep "静的: setup.sh は pnpm の build を呼ばない" 'pnpm --filter @pecot/pecotv-cli run build' "$SETUP_SH"
+expect_grep "静的: setup.sh は bin/pecotv に任せる" 'bin/pecotv' "$SETUP_SH"
+# chromium の取得の失敗は止める（warn だけへ戻さない）。error: chromium の行の後 5 行に exit 1 があるかで見る。
+if grep -A 5 'error: chromium' "$PLUGIN_ROOT/bin/pecotv" | grep -q 'exit 1'; then
+  bt_pass "静的: bin/pecotv は error: chromium の後に exit 1 で止まる"
+else
+  bt_fail "静的: bin/pecotv は error: chromium の後に exit 1 で止まる" "error: chromium の後 5 行に exit 1 が無い"
+fi
 
-if grep -q 'pnpm --filter @pecot/pecotv-cli run build' "$SETUP_SH"; then
-  echo "[bootstrap-test] FAIL: setup.sh still contains pnpm build invocation (should be shim'd to bin/pecotv)" >&2
-  exit 1
-fi
-if ! grep -q 'bin/pecotv' "$SETUP_SH"; then
-  echo "[bootstrap-test] FAIL: setup.sh does not delegate to bin/pecotv" >&2
-  exit 1
-fi
-# bin/pecotv に chromium install 失敗時の exit 1 ルートがあること（warn-only への退行防止）。
-# grep のマルチライン処理は難しいので、error: chromium 行の直近に exit 1 が居ることで代替する。
-# -A 5 は将来エラーメッセージを 1-2 行追加しても検知が抜けないためのマージン。
-if ! grep -A 5 'error: chromium' "$PLUGIN_ROOT/bin/pecotv" | grep -q 'exit 1'; then
-  echo "[bootstrap-test] FAIL: bin/pecotv lacks 'exit 1' near 'error: chromium' (chromium install must be fatal)" >&2
-  exit 1
-fi
-echo "[bootstrap-test] static checks pass"
-
-echo "[bootstrap-test] all CUJ passed"
+bt_finish
