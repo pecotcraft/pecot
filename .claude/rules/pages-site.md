@@ -45,6 +45,14 @@ paths:
 
   - 受ける run なら、artifact を `--out` の親の `pages-raw` に落とし（前の中身は消す）、`--out` に写す。`--out` は、上のように `.pecot/work/<Issue番号>/` の 1 段下にする
 
+- `pages-deploy.yml` の deploy の job が `No artifacts named "github-pages"` で落ちたら、失敗した job だけをやり直す。全 job をやり直すと upload が上げ直し、`github-pages` が 2 つになって落ちる
+
+  ```bash
+  gh run rerun <run> -R pecotcraft/pecot --failed
+  ```
+
+  - `github-pages` の artifact は 1 日で消える。過ぎたら `gh workflow run pages-deploy.yml --ref main` を打つ
+
 - 側を作る run は、テストの結果に左右されない。失敗するのは、`sphinx-build -W` が警告を出したときなど、サイトを作れなかったとき
 - artifact は、どの側のものも 7 日で消える。保管が終わっていれば、消えても公開は変わらない
 - 保管の job が落ち続けて artifact が消えたら、開発版とリリース版を上の起動で作り直す
@@ -77,6 +85,7 @@ paths:
 | 結果がそろってから公開が変わるまで（最後の tests の job の終わりから、`pages-deploy.yml` の deploy の job の終わりまで） | 2 分 57 秒〜5 分 35 秒 | 3 分 37 秒 |
 | `pages-deploy.yml` の deploy の job | 26 秒〜30 秒 | 46 秒 |
 
+- deploy の job の値は、upload と deploy が 1 つの job だったとき（#804 で分ける前）に測った
 - run の実行の時間が長いのは、どちらの側も `pecot-workflow:test-cli` の tests の job
 - 起動からの時間には、前の run の終わりを concurrency で待つ時間が入る
 - 結果がそろってから公開が変わるまでは、どの回も SC-008 の 30 分に収まる。開発版の長い回は、PR 版の保管と同時に動き、store の job が待った。リリース版の回は、ほとんど report・verify・store・deploy の job の時間で、job の間の空きは合わせて 27 秒だった

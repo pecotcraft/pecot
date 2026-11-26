@@ -132,19 +132,16 @@ jobs:
           fi
           python3 .githooks/scripts/pages_site/store.py publish "${args[@]}" >> "$GITHUB_STEP_SUMMARY"
 
-  deploy:
+  # 上げた直後の artifact は deploy-pages の照会に出ないことがある。starter workflow と同じく job を分ける（actions/deploy-pages#451）。
+  upload:
     needs: [verify, store]
     if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || needs.store.outputs.changed == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    # PR への push のたびに deploy が起きるので、待っている deploy を取り消さずに並べる。
+      pages: read
+    # deploy と同じ group に入れ、pages-store を取った順に公開する。
     concurrency:
       group: pages
       cancel-in-progress: false
@@ -164,6 +161,24 @@ jobs:
         with:
           path: .
 
+  deploy:
+    needs: upload
+    if: ${{ !cancelled() && needs.upload.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    # PR への push のたびに deploy が起きるので、待っている deploy を取り消さずに並べる。
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+      queue: max
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
