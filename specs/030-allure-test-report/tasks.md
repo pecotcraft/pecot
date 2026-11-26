@@ -207,7 +207,7 @@ description: "Task list for 030-allure-test-report"
 - [x] T039 [US3] 手元で、保管を実物に通す（T036 の後）。
   一時の git リポを `pages-store` に見立て、`store.py publish` に、手元で作ったレポートの tar を 2 回続けて渡す。2 回目の `history.jsonl` が 2 行になること、定義書の側を差し替えても残ることを確かめる
 
-**Checkpoint**: quickstart.md の 4 が通る。マージの後に、quickstart.md の 5（開発版のレポートが出て、2 回目の push で履歴が 2 件になる）を確かめる
+**Checkpoint**: quickstart.md の 4 が通る。マージの後に、quickstart.md の 5（開発版のレポートが出て、2 回目の push で `history.jsonl` が 2 行になる）を確かめる
 
 ---
 
@@ -239,7 +239,7 @@ description: "Task list for 030-allure-test-report"
 
 **Purpose**: 公開したレポートを実物で確かめ、起動・やり直しの手順をルールファイルに書く（FR-009c・FR-024）
 
-- [x] T048 quickstart.md の 5 を、公開サイトの開発版で確かめる。12 本のレーンのテストがあること、定義書の項目のリンクから、その ID のテストだけが出ること、テストの要件の ID のリンクから、開発版の定義書の項目へ戻れること、2 回目の main への push の後に履歴が 2 件になることを見る。
+- [x] T048 quickstart.md の 5 を、公開サイトの開発版で確かめる。12 本のレーンのテストがあること、定義書の項目のリンクから、その ID のテストだけが出ること、テストの要件の ID のリンクから、開発版の定義書の項目へ戻れること、2 回目の main への push の後に `history.jsonl` が 2 行になることを見る。
   `test-report.yml` の run の所要時間と、結果がそろってからレポートが変わるまでの時間を測り、30 分以内であることを確かめる（SC-008）。値を `.claude/rules/pages-site.md` に書く
   pages-deploy の deploy の step の所要時間を見て、Pages の 10 分の上限に余裕があることを確かめる（#698 で公開の中身が約 630 MB に増えた）
 - [x] T049 quickstart.md の 6 を確かめる。リリースの前は、リリース版のフッターにリンクが無く、`/pecot/test-report/` に案内のページがあること。

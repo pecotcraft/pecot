@@ -37,11 +37,13 @@ paths:
 - 同じ側の `pages-build.yml` の run は、後に起動したものだけが残る。手で起こした開発版は、その後の main への push の run に取り消される
 - リリース版は、プラグインごとの最新のタグ（プレリリースを除く）から作る
 - 公開されないときは、`pages-deploy.yml` の run の verify の job summary を読む。受けた run・側・採否と、捨てた理由が出る
-  - job summary は API で読めない。手元で読むときは、同じ判定を次のコマンドで出す（API を読むだけ）
+  - job summary は API で読めない。手元で読むときは、同じ判定を次のコマンドで出す
 
     ```bash
-    python3 .githooks/scripts/pages_site/verify.py --run-id <run> --repo pecotcraft/pecot --out <作業ディレクトリ>
+    python3 .githooks/scripts/pages_site/verify.py --run-id <run> --repo pecotcraft/pecot --out .pecot/work/<Issue番号>/verify
     ```
+
+  - 受ける run なら、artifact を `--out` の親の `pages-raw` に落とし（前の中身は消す）、`--out` に写す。`--out` は、上のように `.pecot/work/<Issue番号>/` の 1 段下にする
 
 - 側を作る run は、テストの結果に左右されない。失敗するのは、`sphinx-build -W` が警告を出したときなど、サイトを作れなかったとき
 - artifact は、どの側のものも 7 日で消える。保管が終わっていれば、消えても公開は変わらない
@@ -83,8 +85,10 @@ paths:
 | リリース版のレポートを作り直す | `gh workflow run test-report.yml --ref main -f side=release` |
 
 - どちらも main からだけ起動できる。コミットは指定できず、開発版は main の先頭、リリース版はプラグインごとの最新のタグで作る
-- 同じ側の run は、動いているものを取り消さず、後の run が待つ。待っている run は、さらに新しい run に置き換わる。待っている手での起動は、main への push の run に置き換わることがあるので、取り消されたら打ち直す
-- テストが落ちても run は成功で終わり、落ちたテストがレポートに載る。run が落ちるのは、結果を残さずに止まったレーンがあるときと、`allure generate` が失敗したとき
+- 同じ側の run は、動いているものを取り消さず、後の run が待つ。待っている run は、さらに新しい run に置き換わる。待っている手での起動は、開発版なら main への push の run に、リリース版なら `release.yml` が起こす run に置き換わることがある。取り消されたら打ち直す
+- テストが落ちても run は成功で終わり、落ちたテストがレポートに載る
+- run が落ちるのは、main 以外から起こしたとき、`release_sources.py` が材料を決められなかったとき、`allure generate` が失敗したとき
+- 結果を残さずに止まったレーンか、結果のコミットが材料と違うレーンがあるときも落ちる（ResultsCheck）
 - リリース版で、結果を出せるタグを持つプラグインが無いときは、side の job だけが動いて成功で終わる。レポートは作らず、公開も変わらない
 - 開発版は、保管中のレポートより古いコミットの run を保管しない
 
@@ -93,17 +97,17 @@ paths:
 | 読む所 | 分かること |
 |---|---|
 | `test-report.yml` の side の job summary | リリース版に入れないプラグインと、レポートを作らなかったこと |
-| `test-report.yml` の report の job のログ | 結果の欠けたレーンの名前（ResultsCheck） |
-| `test-report.yml` の report の job summary | `pages-store` を読めず、空の履歴で作ったこと |
+| `test-report.yml` の report の job のログ | 結果の欠けたレーンと、結果のコミットが材料と違うレーンの名前（ResultsCheck） |
+| `test-report.yml` の report の job summary | `pages-store` を読めなかったか、`history.jsonl` に読めない行があったので、空の履歴で作ったこと |
 | `pages-deploy.yml` の verify の job summary | 受けた run の種類（定義書かレポート）・側・採否と、捨てた理由 |
 
-- job summary は API で読めず、ログインしないと画面にも出ない。手元で同じ判定を出すときは、次のコマンドを打つ（どちらも読むだけ）
+- job summary は API で読めず、ログインしないと画面にも出ない。手元で同じ判定を出すときは、次のコマンドを打つ。`release_sources.py` は読むだけで、`verify.py` は上の「起動とやり直し」の節のとおり `pages-raw` に落とす
 
   ```bash
   # side の job と同じ判定（リリース版の材料）
   python3 .githooks/scripts/pages_site/release_sources.py --report release --main origin/main
   # verify の job と同じ判定
-  python3 .githooks/scripts/pages_site/verify.py --run-id <test-report.yml の run> --repo pecotcraft/pecot --out <作業ディレクトリ>
+  python3 .githooks/scripts/pages_site/verify.py --run-id <test-report.yml の run> --repo pecotcraft/pecot --out .pecot/work/<Issue番号>/verify
   ```
 
 - 保管の push は、`store.py` が出力を捨てるので、GitHub が出す 50 MB 超の警告はログに出ない。大きさは `git ls-tree -r -l origin/pages-store dev/test-report` で読む。`history.jsonl` は 3 行で約 64 MB
