@@ -54,6 +54,11 @@ Claude Code / GitHub Copilot CLI 向けプラグインの monorepo（nx workspac
 - `main` の trunk-based。`gh workflow run release.yml --ref main` で dry-run を起動して案を見てから、`-f dry-run=false -f sha=<SHA>` で本番を起動する。手元で `nx release` を打たない
 - 手順とやり直しは w-release スキル
 
+## 開発環境の設定
+
+- 権限・hook・MCP・プラグインの設定は、`.claude/settings.json` などリポが管理するファイルに書く。クラウドのスレッドは `~/.claude` と `.claude/settings.local.json` を読まない
+- `CLAUDE.local.md` と `settings.local.json` には、その端末だけの事情を書く
+
 ## 環境の既知事項
 
 - `base/pecot` だけに `.pnpm-store/`（約 1.6 GB）ができるのは正常（bind mount で filesystem が分かれるため。gitignore 済み）

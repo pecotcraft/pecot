@@ -16,7 +16,7 @@
 ## 決まり
 
 - pecot-w・pecot-c を使うリポは、Actions のプロジェクトを入れる。入っていなければ、w-onboarding と `workflow doctor` が案内する（FR-010）
-- プロジェクト指示は、固有の値だけを持つ（[contracts/project-instruction-values.md](contracts/project-instruction-values.md)）。判断と手順は pecot-c のスキルが持つ（FR-023〜FR-026）
+- プロジェクト指示は、固有の値だけを持つ（[contracts/project-instruction-values.md](contracts/project-instruction-values.md)）。coordinator の判断と手順は pecot-c のスキル、スレッドの手順は pecot-w のスキル、このリポの開発の決まりはリポの CLAUDE.md が持つ（FR-001・FR-023〜FR-026）
 - スレッドの GitHub の読み書きは、[contracts/github-io.md](contracts/github-io.md) の手で行う
 
 ## 処理の置き場所の移り変わり
@@ -28,6 +28,8 @@
 | 公式の MCP に手の無い操作 | pecot-workflow の CLI が GraphQL・REST を呼ぶ | `actions/` の `github-ops`。スキルが起動する |
 | リモートのブランチを消す | pecot-workflow が消す | リポの「head ブランチを自動で消す」設定 |
 | coordinator の判断と手順 | プロジェクト指示の文 | pecot-c のスキル |
+| スレッドの手順のうち、プロジェクト指示にある文 | プロジェクト指示の文 | pecot-w のスキル |
+| このリポの開発の決まり（開発環境の設定・標準とのズレ） | プロジェクト指示の文 | リポの CLAUDE.md |
 
 ## 版
 

@@ -25,15 +25,15 @@
 
 ## Phase 1: プロジェクト指示とプラグインの線を引く（US1, P1）
 
-**Goal**: 今のプロジェクト指示の文を 1 つずつ、スキルへ移すものと、固有の値として残すものに振り分ける（FR-001・FR-005・FR-006）
+**Goal**: 今のプロジェクト指示の文を 1 つずつ、スキルへ移すもの・固有の値として残すもの・リポの CLAUDE.md に送るものに振り分ける（FR-001・FR-005・FR-006）
 
 **Independent Test**: 振り分けの一覧に、行き先の無い文が 0 件で、スキルへ移す文に固有の名前が無い（SC-001）
 
-- [ ] T001 [US1] 今のプロジェクト指示の全文を、文ごとに 1 行にして `specs/031-pecot-coordinator/verification/project-instructions.md` に写す。写した日付を添える
-- [ ] T002 [US1] 各文に、行き先（スキルへ移す・固有の値）と理由を書く in `specs/031-pecot-coordinator/verification/project-instructions.md`
-- [ ] T003 [US1] スキルへ移す文から、このリポ・利用者・端末に固有の名前を抜き出して値に分け、文を書き直す in `specs/031-pecot-coordinator/verification/project-instructions.md`
-- [ ] T004 [US1] 値の一覧を確定する。「未定」の値（クラウドのスレッドの上限など）は利用者に確かめて決め、`specs/031-pecot-coordinator/contracts/project-instruction-values.md` に書く
-- [ ] T005 [US1] 行き先の無い文と、固有の名前が残るスキルへ移す文を数え、0 件であることを `specs/031-pecot-coordinator/verification/project-instructions.md` の末尾に書く
+- [x] T001 [US1] 今のプロジェクト指示の全文を、文ごとに 1 行にして `specs/031-pecot-coordinator/verification/project-instructions.md` に写す。写した日付を添える
+- [x] T002 [US1] 各文に、行き先（スキルへ移す・固有の値・リポの CLAUDE.md）と理由を書く in `specs/031-pecot-coordinator/verification/project-instructions.md`
+- [x] T003 [US1] スキルへ移す文から、このリポ・利用者・端末に固有の名前を抜き出して値に分け、文を書き直す in `specs/031-pecot-coordinator/verification/project-instructions.md`
+- [x] T004 [US1] 値の一覧を確定する。「未定」の値（クラウドのスレッドの上限など）は利用者に確かめて決め、`specs/031-pecot-coordinator/contracts/project-instruction-values.md` に書く
+- [x] T005 [US1] 行き先の無い文と、固有の名前が残るスキルへ移す文を数え、0 件であることを `specs/031-pecot-coordinator/verification/project-instructions.md` の末尾に書く
 
 ---
 
@@ -314,7 +314,7 @@
 
 - [ ] T158 [US7] `plugins/pecot-coordinator/` の nx project を作る（`project.json`・`package.json`・`vitest.config.ts`・`CHANGELOG.md`・`.claude-plugin/plugin.json`・`plugin.json`）。`CLAUDE.md` の表に足す
 - [ ] T159 [P] [US7] スキルの形のテストを書く（frontmatter の `name`・`description`・XML のタグが無い・参照の切れが無い） in `plugins/pecot-coordinator/tests/skills/`
-- [ ] T160 [P] [US7] スキルに固有の値（Phase 1 の値の一覧にある、このリポの名前・wt の名前・sandbox の名前など）が無いことのテストを書く in `plugins/pecot-coordinator/tests/skills/`
+- [ ] T160 [P] [US7] スキルに固有の値（Phase 1 の値の一覧にある、このリポの名前・wt の名前・sandbox の名前など）が無いことのテストを書く。探す語は、`specs/031-pecot-coordinator/verification/project-instructions.md` の「数え」の節で原文から拾った語も含める in `plugins/pecot-coordinator/tests/skills/`
 - [ ] T161 [P] [US7] プラグインがスキルとマニフェストだけを持ち、MCP のサーバと `bin/` を持たないことのテストを書く（FR-023） in `plugins/pecot-coordinator/tests/`
 
 ### Implementation for User Story 7
@@ -324,6 +324,9 @@
 - [ ] T164 [US7] `c-coordinate` に、Actions のプロジェクトが利用者のリポに入っていないときの案内（FR-010）と、claude.ai に入れたプラグインの版とリポの最新の版のずれを利用者に伝える手順を書く
 - [ ] T165 [US7] `c-coordinate` に、RC の wt とクラウドのスレッドを作業場所として扱い、同じ Issue を 2 か所に割り振らない手順を書く（FR-027）。クラウドのスレッドは pecot-workflow のスキルで進める（FR-028）
 - [ ] T166 [US7] `c-coordinate` に、スキルとプロジェクト指示が食い違うときはプロジェクト指示を優先し、食い違いを利用者に伝える手順を書く
+- [ ] T180 [US7] Phase 1 で pecot-w のスキルに「未記載」とした文（`specs/031-pecot-coordinator/verification/project-instructions.md` の 13・14）を書く。
+  承認を求めるときに続け方で auto を選ぶよう添えることと、実装の後に w-pr へ進むことを、`plugins/pecot-workflow/skills/w-active/SKILL.md` の Step 10・Step 11 に書く。
+  pecot-workflow の version plan を足す
 - [ ] T167 [US7] `plugins/pecot-coordinator/interface/authored.yaml` にスキルの項目を書き、テストの `verifies` と合わせる
 - [ ] T168 [US7] `plugins/pecot-coordinator/README.md` に、入れ方と、プロジェクト指示に書く値の一覧と例を書く（FR-026）
 - [ ] T169 [US7] `.claude-plugin/marketplace.json` に `pecot-c` を足し、`nx.json` の release と `claude plugin validate --strict` の対象に入れる
