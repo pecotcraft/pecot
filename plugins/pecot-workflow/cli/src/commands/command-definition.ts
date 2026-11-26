@@ -5,7 +5,7 @@ import { z } from 'zod'
 
 import { BaseError } from '../domain/errors.js'
 import type { FailureKind } from './failure-kind.js'
-import { flagOf } from './names.js'
+import { COMMAND_VERBS, flagOf } from './names.js'
 
 /**
 コマンドが出力を書く先。CLI は process の stdout・stderr、MCP は結果の文字列に集める
@@ -199,6 +199,10 @@ export interface CommandDefinition {
   readonly negations: ReadonlyMap<string, string>
   readonly interactive: boolean
   /**
+  動詞が読むだけの印（names.ts の readOnly）を持つか
+  */
+  readonly readOnly: boolean
+  /**
   検証の段。入力が不正なら ZodError を投げる。本体は呼ばない
   */
   readonly parse: (input: Readonly<Record<string, unknown>>) => PreparedCommand
@@ -295,6 +299,7 @@ export function defineCommand<Input extends z.ZodObject, Output extends z.ZodObj
     aliases: flagMap(spec.aliases),
     negations: flagMap(spec.negations),
     interactive: spec.interactive,
+    readOnly: COMMAND_VERBS.some(verb => verb.name === spec.path[1] && verb.readOnly === true),
     parse,
     run: async (raw, io) => await parse(raw).run(io),
   }

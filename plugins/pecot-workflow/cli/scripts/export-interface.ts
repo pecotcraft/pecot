@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import process from 'node:process'
 
 import { z } from 'zod'
+import type { ToolAnnotations } from '@modelcontextprotocol/server'
 
 import { diffGenerated, formatStale } from '../../../../libs/interface-spec/src/domain/diff.js'
 import { generatedFileSchema, type GeneratedFile, type Names } from '../../../../libs/interface-spec/src/domain/schema.js'
@@ -17,6 +18,7 @@ import type { InputSchema } from '../src/commands/input-schema.js'
 import { createOutput } from '../src/commands/output.js'
 import { COMMANDS } from '../src/commands/registry.js'
 import type { CommandDefinition, CommandIo } from '../src/commands/registry.js'
+import { toolAnnotationsOf } from '../src/mcp/annotations.js'
 import { toolOutputSchema } from '../src/mcp/result.js'
 import { TEMPLATE_MIME_TYPE, TEMPLATE_RESOURCES, templateResourceName, templateUri } from '../src/mcp/templates.js'
 
@@ -33,7 +35,7 @@ export interface InterfaceEntry {
     readonly flags: Readonly<Record<string, readonly string[]>>
     readonly only?: InputSchema['properties']
   }
-  readonly mcp: { readonly title: string, readonly output: unknown }
+  readonly mcp: { readonly title: string, readonly output: unknown, readonly annotations: Readonly<ToolAnnotations> }
 }
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
@@ -78,7 +80,7 @@ function entryOf(command: CommandDefinition): InterfaceEntry {
       flags: flagsOf(command, Object.keys(all.properties)),
       ...only.length > 0 && { only: Object.fromEntries(only) },
     },
-    mcp: { title: command.title, output: outputOf(command) },
+    mcp: { title: command.title, output: outputOf(command), annotations: toolAnnotationsOf(command) },
   }
 }
 
