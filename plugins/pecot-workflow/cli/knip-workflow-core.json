@@ -1,0 +1,15 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    "libs/workflow-core": {
+      "entry": ["tests/_helpers/**/*.ts"],
+      "project": ["src/**/*.ts", "tests/**/*.ts"],
+      "ignoreDependencies": ["typescript7"],
+      "includeEntryExports": true
+    }
+  },
+  "ignoreExportsUsedInFile": true,
+  "rules": {
+    "catalogReferences": "off"
+  }
+}
