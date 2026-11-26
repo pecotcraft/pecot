@@ -315,7 +315,7 @@ description: "Task list for 029-pecot-lane-issue-features"
 - [x] T073 [US6] `PW/docs/github-features.md` を作り、GitHub の公式の文書の Projects と Issues の目次から機能を拾って一覧にする（ビュー・レイアウト・Group by・Slice by・フィルタ・組み込みの自動化・Iteration・Insights・Issue fields・Issue type・sub-issue・依存 など）。
   各機能に、pecot の今の使い方・使うか使わないか・理由・関連する Issue を書く
 - [x] T074 [US6] 一覧で、GitHub の機能と同じ役割を pecot が独自に持っている仕組みを挙げ、pecot-workflow の MCP ツール `issue_create` で 1 件ずつ起票する（Epic #542 の下）。起票した番号を一覧に書く
-  #709 では、決めたときの記録を確かめ、理由のある 2 件は「意図して独自に持つ」とした。記録の無い 4 件は、利用者が承認した計画に沿って起票せず、一覧に「未決」と書いた
+  #709 では、決めたときの記録を確かめ、理由のある 2 件は「意図して独自に持つ」とした。記録の無い 4 件は利用者に判断を仰ぎ、4 件とも理由を書いて残すと決めたので、起票していない
 - [x] T075 [US6] 「使う」とした機能のうち、準備の操作に入るものは `PW/cli/src/commands/project.ts`・`project-sync.ts` の変更を、案内に入るものは `PW/skills/w-onboarding/SKILL.md` の変更を、それぞれ別の Issue として起票する。このフェーズでは実装しない
 - [x] T076 [US6] `PW/CONTRIBUTING.md` から一覧へリンクする
 

@@ -133,10 +133,10 @@ GitHub の機能と役割の重なる、pecot 独自の仕組みです。決め�
 | 仕組み | 重なる GitHub の機能 | 記録 | 扱い |
 |:---|:---|:---|:---|
 | 1. 進行の欄 `pecot-status` と、札としての `Status` | 既定の `Status` の欄 | `specs/024-issue-readiness-stacked-prs/spec.md` の Clarifications と FR の前提（2026-11-12 に利用者が決めた）。既定の Status は進み具合の軸で、着手の可否を混ぜない | 意図して独自に持つ |
-| 2. `Archived` の列と、`board_sync` が最新の 20 件を超えた分をボードから消す処理 | 項目のアーカイブ、自動でアーカイブする組み込みの自動化 | 理由の記録なし。最初のコミットからある。探した記録は specs の全部、`board-view.ts` のコメント、git の履歴 | 未決 |
+| 2. `Archived` の列と、`board_sync` が最新の 20 件を超えた分をボードから消す処理 | 項目のアーカイブ、自動でアーカイブする組み込みの自動化 | 利用者が #709 で示した（2026-11-26）。ボードは Issue が増えすぎると動作が非常に重くなるので、定期的に掃けさせるのが必須 | 意図して独自に持つ |
 | 3. `Blocked` の列 | 依存を持つ Issue に出る Blocked の印 | `specs/024-issue-readiness-stacked-prs/spec.md` と research R10。組み込みの自動化は、ほかの Issue の状態を条件にできず、進行の欄を動かせない。Blocked の印はそのまま出し、列で着手の可否を示す | 意図して独自に持つ |
-| 4. 題の接頭辞 `[Task]`・`[Epic]`・`[Tracker]`・`[Bug]` | Issue type | 理由の記録なし。Tracker の判定は接頭辞で行う（`cli/src/domain/readiness.ts`） | 未決 |
-| 5. 題の通し番号 `#<Epic>-<番号>:` | sub-issue の親と並び | `specs/024-issue-readiness-stacked-prs/` の FR-043 と R13 は番号の形を決めた記録で、sub-issue の並びを使わない理由は書かれていない | 未決 |
-| 6. `pecot-template://` の Issue の雛形 | リポの Issue テンプレート（`graphql:CreateIssueInput.issueTemplate`） | `issue-coverage.yaml` に扱いはあるが、リポの Issue テンプレートを使わない理由は書かれていない | 未決 |
+| 4. 題の接頭辞 `[Task]`・`[Epic]`・`[Tracker]`・`[Bug]` | Issue type | 利用者が #709 で示した（2026-11-26）。Issue type を使えなかった頃からの仕組みで、Issue type の無い個人のリポにも配るために残す。Tracker の判定は接頭辞で行う（`cli/src/domain/readiness.ts`） | 意図して独自に持つ |
+| 5. 題の通し番号 `#<Epic>-<番号>:` | sub-issue の親と並び | `specs/024-issue-readiness-stacked-prs/` の FR-043 と R13 が番号の形と振り方を決めた。sub-issue の並びは親の Issue の画面にしか出ず、ボードの項目や PR の題では順番を読めない（#709 で利用者が残すと決めた） | 意図して独自に持つ |
+| 6. `pecot-template://` の Issue の雛形 | リポの Issue テンプレート（`graphql:CreateIssueInput.issueTemplate`） | リポの Issue テンプレートは、GitHub の画面で Issue を作るときの入力欄にだけ使われ、API で書く本文を確かめられない。コメントと PR の本文にあたる機能も無い。エージェントは API で書くので、雛形と CLI の確かめが要る（#709 で利用者が残すと決めた） | 意図して独自に持つ |
 
-「未決」は、標準の形に直すか、理由を書いて残すかを、まだ決めていない仕組みです。#709 では、意図して持つ可能性を確かめないまま不適合と呼ばないよう、利用者が承認した計画に沿って、起票せずにこの表へ残しました。決めるときは Epic の下に起票し、残すならその Issue の計画に利用者の承認と理由を書きます（憲法の原則 IV）。
+6 件とも、意図して独自に持つ仕組みです。2・4・5・6 は決めたときの記録が無かったので、#709 で利用者に判断を仰ぎ、理由をこの表に書きました。新しく独自の仕組みを足すときも、この表に理由を書きます。
