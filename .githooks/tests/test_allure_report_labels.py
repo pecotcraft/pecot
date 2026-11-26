@@ -18,17 +18,17 @@ import pytest
 _REPO = Path(__file__).resolve().parents[2]
 _RUN_SH = _REPO / ".githooks/tests/run.sh"
 _CONFTESTS = [
-    _REPO / ".githooks/tests/conftest.py",
-    _REPO / "libs/interface-spec/docs/tests/conftest.py",
+    ".githooks/tests/conftest.py",
+    "libs/interface-spec/docs/tests/conftest.py",
 ]
 
 
 def _run_pytest(
-    tmp_path: Path, conftest: Path, test_body: str, *args: str
+    tmp_path: Path, conftest: str, test_body: str, *args: str
 ) -> subprocess.CompletedProcess[str]:
     suite = tmp_path / "suite"
     suite.mkdir()
-    shutil.copy(conftest, suite / "conftest.py")
+    shutil.copy(_REPO / conftest, suite / "conftest.py")
     (suite / "test_sample.py").write_text(test_body, encoding="utf-8")
     return subprocess.run(
         [
@@ -57,10 +57,8 @@ def _labels(results: Path) -> list[list[dict[str, Any]]]:
     ]
 
 
-@pytest.mark.parametrize(
-    "conftest", _CONFTESTS, ids=lambda path: path.relative_to(_REPO).as_posix()
-)
-def test_ini_labels_are_added_to_every_result(tmp_path: Path, conftest: Path) -> None:
+@pytest.mark.parametrize("conftest", _CONFTESTS)
+def test_ini_labels_are_added_to_every_result(tmp_path: Path, conftest: str) -> None:
     """-o でラベルを渡すと、どの結果にも project と lane のラベルが 1 つずつ付く。"""
     results = tmp_path / "allure-results"
     body = "def test_a() -> None:\n    pass\n\n\ndef test_b() -> None:\n    pass\n"
@@ -80,10 +78,8 @@ def test_ini_labels_are_added_to_every_result(tmp_path: Path, conftest: Path) ->
         ]
 
 
-@pytest.mark.parametrize(
-    "conftest", _CONFTESTS, ids=lambda path: path.relative_to(_REPO).as_posix()
-)
-def test_without_ini_labels_no_project_or_lane_label(tmp_path: Path, conftest: Path) -> None:
+@pytest.mark.parametrize("conftest", _CONFTESTS)
+def test_without_ini_labels_no_project_or_lane_label(tmp_path: Path, conftest: str) -> None:
     """-o を渡さないと、結果に project と lane のラベルを付けない。"""
     results = tmp_path / "allure-results"
     done = _run_pytest(
@@ -95,10 +91,8 @@ def test_without_ini_labels_no_project_or_lane_label(tmp_path: Path, conftest: P
     assert [label for label in labels[0] if label["name"] in {"project", "lane"}] == []
 
 
-@pytest.mark.parametrize(
-    "conftest", _CONFTESTS, ids=lambda path: path.relative_to(_REPO).as_posix()
-)
-def test_without_ini_labels_allure_is_not_imported(tmp_path: Path, conftest: Path) -> None:
+@pytest.mark.parametrize("conftest", _CONFTESTS)
+def test_without_ini_labels_allure_is_not_imported(tmp_path: Path, conftest: str) -> None:
     """-o を渡さないと、allure-pytest を外しても conftest は allure を読まずに通る。"""
     body = "import sys\n\n\ndef test_a() -> None:\n    assert 'allure' not in sys.modules\n"
     done = _run_pytest(tmp_path, conftest, body, "-p", "no:allure_pytest")
