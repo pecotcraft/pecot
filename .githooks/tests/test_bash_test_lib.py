@@ -219,6 +219,20 @@ def test_file_stopped_before_finish_is_broken(
     assert got == [("前", "passed"), ("最後まで動く", "broken")]
 
 
+def test_broken_has_the_tail_of_stderr(tmp_path: Path) -> None:
+    """broken の 1 件は、止まった原因の行を stderr の末尾として trace に持ち、stderr もそのまま流す。"""
+    test = _write_test(
+        tmp_path / "suite", 'echo "前提が崩れた" >&2\n: "$UNDEFINED_IN_TEST"\nbt_finish'
+    )
+    done = _run_file(tmp_path, test, results=tmp_path / "results")
+
+    [broken] = _results(tmp_path / "results")
+    trace = broken["statusDetails"]["trace"]
+    assert "前提が崩れた" in trace
+    assert "UNDEFINED_IN_TEST: unbound variable" in trace
+    assert "UNDEFINED_IN_TEST: unbound variable" in done.stderr
+
+
 def test_run_files_runs_every_file_and_lists_failures(tmp_path: Path) -> None:
     """bt_run_files は落ちたファイルの後も最後まで動かし、落ちたファイルの一覧を出して 1 を返す。"""
     first = _write_test(tmp_path / "a", 'bt_fail "落ちる" "理由"\nbt_finish')
@@ -255,7 +269,7 @@ def test_leaves_no_temporary_files(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
 @pytest.mark.skipif(shutil.which("pnpm") is None, reason="pnpm が要る")
 def test_real_allure_reads_the_results(tmp_path: Path) -> None:
-    """Allure 3 が書いた結果を読み、題・状態・理由をレポートに載せる。"""
+    """Allure 3 が書いた結果を読み、題・状態・理由・期待と実際・木の段のラベルをレポートに載せる。"""
     test = _write_test(tmp_path / "suite", 'bt_pass "通る"\nbt_eq "等しい" "a" "b"\nbt_finish')
     _run_file(tmp_path, test, results=tmp_path / "results")
     report = tmp_path / "report"
@@ -272,5 +286,19 @@ def test_real_allure_reads_the_results(tmp_path: Path) -> None:
         json.loads(path.read_text(encoding="utf-8"))
         for path in (report / "data/test-results").glob("*.json")
     ]
-    got = sorted((r["name"], r["status"], (r.get("error") or {}).get("message")) for r in read)
-    assert got == [("等しい", "failed", "期待 [a] / 実際 [b]"), ("通る", "passed", None)]
+    by_name = {r["name"]: r for r in read}
+    assert sorted(by_name) == ["等しい", "通る"]
+    assert by_name["通る"]["status"] == "passed"
+    assert by_name["等しい"]["status"] == "failed"
+    error = by_name["等しい"]["error"]
+    assert (error["message"], error["expected"], error["actual"]) == (
+        "期待 [a] / 実際 [b]",
+        "a",
+        "b",
+    )
+    labels = {label["name"]: label["value"] for label in by_name["通る"]["labels"]}
+    assert (labels["project"], labels["lane"], labels["parentSuite"]) == (
+        "pecot-visual",
+        "test-hooks",
+        "suite/sample.test.sh",
+    )

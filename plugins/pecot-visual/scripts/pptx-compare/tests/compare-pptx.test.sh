@@ -45,7 +45,7 @@ trap 'rm -rf "$TMP"' EXIT
 make_fixture() {
     local variant="$1"
     if ! node "$MAKE_FIXTURE" "$variant" "$TMP/$variant.pptx"; then
-        echo "ERROR: fixture 合成に失敗: $variant"
+        echo "ERROR: fixture 合成に失敗: $variant" >&2
         exit 1
     fi
 }

@@ -24,7 +24,7 @@ cleanup() {
 trap cleanup EXIT
 
 if [ ! -f "$CI_DIR/parallel-lib.sh" ]; then
-    echo "ERROR: $CI_DIR/parallel-lib.sh が無い"
+    echo "ERROR: $CI_DIR/parallel-lib.sh が無い" >&2
     exit 1
 fi
 # shellcheck source=../parallel-lib.sh

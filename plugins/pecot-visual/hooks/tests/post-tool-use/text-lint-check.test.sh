@@ -15,7 +15,7 @@ REAL_BIN="$REPO_ROOT/libs/text-rules/dist/bin/pecot-text-lint.js"
 . "$SCRIPT_DIR/mirror-helper.sh"
 
 # build 済みの bin が無いと全ケースが空振りする。skip にはせず止める（runner が broken にする）。
-[ -f "$REAL_BIN" ] || { echo "FAIL: bin が無い（先に text-rules を build すること）: $REAL_BIN"; exit 1; }
+[ -f "$REAL_BIN" ] || { echo "FAIL: bin が無い（先に text-rules を build すること）: $REAL_BIN" >&2; exit 1; }
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
@@ -26,7 +26,7 @@ BAD_STDOUT=""
 
 # 辞書の語から違反文を組み立てる（文字列として直書きしない）。
 WORD=$(node -e "import('$REPO_ROOT/libs/text-rules/tests/helpers/dictionary.ts').then(m => process.stdout.write(m.pickWord()))")
-[ -n "$WORD" ] || { echo "FAIL: 辞書から語を取れない"; exit 1; }
+[ -n "$WORD" ] || { echo "FAIL: 辞書から語を取れない" >&2; exit 1; }
 VIOLATION_LINE="${WORD}を使う。"
 CLEAN_LINE="今日は晴れです。"
 

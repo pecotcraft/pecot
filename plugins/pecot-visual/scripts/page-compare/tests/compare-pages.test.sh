@@ -54,7 +54,7 @@ put() {
     local variant="$1" path="$2"
     mkdir -p "$(dirname "$path")"
     if ! node "$MAKE_FIXTURE" "$variant" "$path"; then
-        echo "ERROR: fixture 合成に失敗: $variant -> $path"
+        echo "ERROR: fixture 合成に失敗: $variant -> $path" >&2
         exit 1
     fi
 }

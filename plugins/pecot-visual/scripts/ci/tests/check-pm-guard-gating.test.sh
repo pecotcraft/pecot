@@ -25,7 +25,7 @@ for tool in bash dirname basename node awk grep sed cat mktemp rm cp find sort t
     [ -n "$src" ] && ln -s "$src" "$TOOLS_BIN/$tool"
 done
 if [ ! -e "$TOOLS_BIN/node" ]; then
-    echo "ERROR: node が PATH に無いため check-pm-guard.sh の静的確認を起動できない"
+    echo "ERROR: node が PATH に無いため check-pm-guard.sh の静的確認を起動できない" >&2
     exit 1
 fi
 

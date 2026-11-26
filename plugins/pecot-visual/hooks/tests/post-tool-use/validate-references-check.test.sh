@@ -17,7 +17,7 @@ PLUGIN_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 # 初期値は「<talk>/references」だけ。
 REF_SRC="$PLUGIN_ROOT/cli/tests/fixtures/themes/with-declaration/references"
 # REF_SRC が無いのはリポの異常なので、skip にはせず止める（runner が broken にする）。
-[ -d "$REF_SRC" ] || { echo "FAIL: REF_SRC 不在: $REF_SRC"; exit 1; }
+[ -d "$REF_SRC" ] || { echo "FAIL: REF_SRC 不在: $REF_SRC" >&2; exit 1; }
 VALIDATOR="$PLUGIN_ROOT/assets/slidev/scripts/eslint/validate-references/dist/index.js"
 
 # macOS の mktemp は /private/var の symlink 配下を返すので、物理パスにそろえる。

@@ -82,6 +82,10 @@ _bt_write() {
     if [ "$#" -ge 8 ]; then
         details="${details:+$details,}\"expected\":$(_bt_json "$7"),\"actual\":$(_bt_json "$8")"
     fi
+    # bt_run_file が local で置く、止まったファイルの stderr の末尾。
+    if [ -n "${_bt_trace:-}" ]; then
+        details="${details:+$details,}\"trace\":$(_bt_json "$_bt_trace")"
+    fi
     labels="{\"name\":\"parentSuite\",\"value\":$(_bt_json "$rel")}"
     labels+=",{\"name\":\"host\",\"value\":$(_bt_json "${HOSTNAME:-}")}"
     labels+=",{\"name\":\"thread\",\"value\":$(_bt_json "$$")}"
@@ -192,14 +196,21 @@ bt_finish() {
 bt_run_file() (
     local file="$1"
     shift
-    local wd rc=0 start stop rel
+    local wd rc=0 start stop rel _bt_trace
     wd="$(mktemp -d)"
     trap 'rm -rf "$wd"' EXIT
     start="$(_bt_now_ms)"
-    BT_WORKDIR="$wd" BT_RESULTS="${PECOT_REPORT_RESULTS:-}" BT_FILE="$file" bash "$file" "$@" || rc=$?
+    # stderr はそのまま流し、broken の理由に添える写しを取る。subshell の中なので set +e は呼び出し元に響かない。
+    set +e
+    {
+        BT_WORKDIR="$wd" BT_RESULTS="${PECOT_REPORT_RESULTS:-}" BT_FILE="$file" \
+            bash "$file" "$@" 2>&1 1>&3 3>&- | tee "$wd/stderr" >&2 3>&-
+        rc="${PIPESTATUS[0]}"
+    } 3>&1
     if [ ! -e "$wd/finished" ]; then
         stop="$(_bt_now_ms)"
         rel="$(_bt_relpath "$file")"
+        _bt_trace="$(tail -n 20 "$wd/stderr" 2> /dev/null)"
         printf 'BROKEN: %s: bt_finish に届かず、終了コード %d で終わった\n' "$rel" "$rc"
         _bt_write "${PECOT_REPORT_RESULTS:-}" "$rel" broken "最後まで動く" \
             "bt_finish に届かず、終了コード $rc で終わった" "$start" "$stop"

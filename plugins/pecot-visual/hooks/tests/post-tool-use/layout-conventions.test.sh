@@ -19,8 +19,8 @@ ASSETS_DIR="$PLUGIN_ROOT/assets/slidev"
 # 初期値は「<talk>/references」だけ。
 REFERENCES_DIR="$PLUGIN_ROOT/cli/tests/fixtures/themes/with-declaration/references"
 # ASSETS_DIR / REFERENCES_DIR が無いのはリポの異常なので、skip にはせず止める（runner が broken にする）。
-[ -d "$ASSETS_DIR" ] || { echo "FAIL: ASSETS_DIR 不在: $ASSETS_DIR"; exit 1; }
-[ -d "$REFERENCES_DIR" ] || { echo "FAIL: REFERENCES_DIR 不在: $REFERENCES_DIR"; exit 1; }
+[ -d "$ASSETS_DIR" ] || { echo "FAIL: ASSETS_DIR 不在: $ASSETS_DIR" >&2; exit 1; }
+[ -d "$REFERENCES_DIR" ] || { echo "FAIL: REFERENCES_DIR 不在: $REFERENCES_DIR" >&2; exit 1; }
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT

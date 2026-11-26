@@ -44,7 +44,7 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 | `name` | 確かめの題 |
 | `fullName` | `<project>:<target> <ファイルのパス>#<題>`。2 つのレーンで動くファイルが、1 件の再実行にまとまらないようにレーンを入れる |
 | `status` | `passed`・`failed`・`skipped`。ファイルが `bt_finish` の前で終わったら、題「最後まで動く」の `broken` |
-| `statusDetails` | `message` に理由、`bt_eq`・`bt_ne` は `expected`・`actual` も |
+| `statusDetails` | `message` に理由、`bt_eq`・`bt_ne` は `expected`・`actual` も。broken は `trace` に stderr の末尾 20 行 |
 | `start`・`stop` | 整数のミリ秒。`start` は前の確かめの終わり |
 | ラベル `parentSuite` | リポのルートからのファイルのパス。vitest の結果と同じ段 |
 | ラベル `host`・`thread`・`language`・`framework` | `$HOSTNAME`・ファイルの PID・`bash`・`bash` |

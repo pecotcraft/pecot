@@ -18,8 +18,8 @@ ASSETS_DIR="$PLUGIN_ROOT/assets/slidev"
 # 参照 yaml は fixture テーマのものを talk-dir の references/ に複写して使う。
 FIXTURE_THEME="$PLUGIN_ROOT/cli/tests/fixtures/themes/with-declaration"
 # ASSETS_DIR が無いのはリポの異常なので、skip にはせず止める（runner が broken にする）。
-[ -d "$ASSETS_DIR" ] || { echo "FAIL: ASSETS_DIR 不在: $ASSETS_DIR"; exit 1; }
-[ -d "$FIXTURE_THEME/references" ] || { echo "FAIL: FIXTURE_THEME 不在: $FIXTURE_THEME"; exit 1; }
+[ -d "$ASSETS_DIR" ] || { echo "FAIL: ASSETS_DIR 不在: $ASSETS_DIR" >&2; exit 1; }
+[ -d "$FIXTURE_THEME/references" ] || { echo "FAIL: FIXTURE_THEME 不在: $FIXTURE_THEME" >&2; exit 1; }
 
 # mktemp の返り値を物理正規化する。macOS の mktemp は /var → /private/var の symlink
 # 配下を返すため、正規化しないとパリティケースが「物理パス」の対照群として機能しない。
