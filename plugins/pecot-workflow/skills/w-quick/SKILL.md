@@ -37,6 +37,8 @@ pecot-workflow の MCP ツール `issue_create` を使って、Issue を作る�
 - 固定設定: type=task。status は型の既定（`session_start` が active にする）
   - 起票時点が作業開始時点なので、Step 2 で active にする。詳細は [issue-flow-rules.md §4](../w-help/references/issue-flow-rules.md#起票時の既定-status)
 
+**分類（`pecot-lane`）:** 利用者が分類の値を言ったときだけ、`lane` に渡す。言っていなければ渡さず、尋ねもしない。
+
 **リポジトリの特定方法:**
 
 - pecot-workflow の MCP ツール `session_show` を使って、セッションの remote のリポを確かめ、それを `repo` にする

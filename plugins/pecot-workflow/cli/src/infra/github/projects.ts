@@ -9,7 +9,9 @@ import type { FieldOptionInput } from '../../domain/field-options.js'
 import { extractFieldValueById } from '../../domain/format.js'
 import type { BoardItem } from '../../domain/format.js'
 import { JSON_NULL } from '../../domain/json-null.js'
+import { isJsonArray } from '../../domain/python-format.js'
 import type { JsonValue } from '../../domain/python-format.js'
+import { LANE_FIELD_NAME } from '../../domain/lanes.js'
 import type { GraphqlOutcome, PathPredicate } from './client.js'
 import { asNotFoundError, GitHubAPIError, GitHubNotFoundError, isSchemaError } from './errors.js'
 import { asArray, asObject, isTruthy, requireString, truthyNodes } from './payload.js'
@@ -27,6 +29,7 @@ import {
   MUTATION_UPDATE_PROJECT_ITEM_FIELD,
   MUTATION_UPDATE_PROJECT_ITEM_FIELD_VALUE,
   QUERY_GET_ISSUE_BOARD_ITEM,
+  QUERY_GET_ISSUE_LANE,
   QUERY_GET_ISSUE_PROJECT_ITEMS,
   QUERY_GET_LINKED_REPOSITORIES_ORG,
   QUERY_GET_LINKED_REPOSITORIES_USER,
@@ -84,6 +87,20 @@ export interface ListProjectItemsOptions {
   Issue の依存関係に対応しない GHES で、足したフィールドを除いたクエリで読み直したときに呼ぶ
   */
   readonly onLegacy?: (() => void) | undefined
+  /**
+  pecot-lane の選択肢の名前を渡す。フィールドが無いか single select でなければ undefined
+  */
+  readonly onLaneOptions?: ((options: readonly string[] | undefined) => void) | undefined
+}
+
+// ProjectV2.field(name:) は、その名前のフィールドが無いと null と NOT_FOUND の errors を返す
+function isLaneFieldPath(path: readonly JsonValue[]): boolean {
+  return path.length === 2 && path[0] === 'node' && path[1] === 'laneField'
+}
+
+function laneOptionsOf(field: JsonValue | undefined): readonly string[] | undefined {
+  const options = jsonField(field, 'options')
+  return isJsonArray(options) ? options.map(option => jsonField(option, 'name')).filter(name => typeof name === 'string') : undefined
 }
 
 /**
@@ -201,7 +218,7 @@ export class ProjectsApi extends ReposApi {
   プロジェクトボードのアイテムを取得する（ページネーション対応）
   */
   async listProjectItems(projectId: string, options: Readonly<ListProjectItemsOptions> = {}): Promise<readonly JsonObject[]> {
-    const { limit, excludeArchived = false, workflowFieldId = '', onLegacy } = options
+    const { limit, excludeArchived = false, workflowFieldId = '', onLegacy, onLaneOptions } = options
     let query = QUERY_LIST_PROJECT_ITEMS
     let allItems: JsonValue[] = []
     let cursor: string | null = JSON_NULL
@@ -210,7 +227,8 @@ export class ProjectsApi extends ReposApi {
     for (;;) {
       let result: JsonObject
       try {
-        result = await this.executeGraphql(query, { projectId, cursor })
+        const outcome = await this.executeGraphqlTolerating(query, { projectId, cursor, laneFieldName: LANE_FIELD_NAME }, isLaneFieldPath)
+        result = outcome.data
       }
       catch (error: unknown) {
         // 古い GHES は blockedBy などを知らない。足す前のクエリで先頭から読み直す
@@ -224,6 +242,7 @@ export class ProjectsApi extends ReposApi {
       }
       const node = jsonField(result, 'node')
       if (!isTruthy(node)) break
+      if (cursor === JSON_NULL) onLaneOptions?.(laneOptionsOf(jsonField(node, 'laneField')))
 
       const itemsData = asObject(jsonField(node, 'items'))
       const nodes = asArray(jsonField(itemsData, 'nodes'))
@@ -415,6 +434,17 @@ export class ProjectsApi extends ReposApi {
         repository: `${requireString(jsonField(jsonField(owning, 'owner'), 'login'), 'issue.repository.owner.login')}/${requireString(jsonField(owning, 'name'), 'issue.repository.name')}`,
       },
     }
+  }
+
+  /**
+  Issue の、指定のプロジェクトの Item の pecot-lane の値。Issue・Item・値のどれかが無ければ undefined
+  */
+  async getIssueLane(projectId: string, owner: string, repository: string, issueNumber: number): Promise<string | undefined> {
+    const result = await this.executeGraphql(QUERY_GET_ISSUE_LANE, { owner, repo: repository, number: issueNumber, laneFieldName: LANE_FIELD_NAME })
+    const issue = jsonField(jsonField(result, 'repository'), 'issue')
+    const item = truthyNodes(jsonField(issue, 'projectItems')).find(node => jsonField(jsonField(node, 'project'), 'id') === projectId)
+    const name = jsonField(jsonField(item, 'lane'), 'name')
+    return typeof name === 'string' ? name : undefined
   }
 
   /**

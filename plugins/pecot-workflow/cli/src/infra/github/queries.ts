@@ -25,7 +25,7 @@ const ISSUE_READINESS_FIELDS = `
 
 // 一覧のクエリ。operationName が空なら無名。readinessFields は Issue の枝に足すフィールド
 function listProjectItemsQuery(operationName: string, readinessFields: string): string {
-  return `query${operationName === '' ? ' ' : ` ${operationName}`}($projectId: ID!, $cursor: String) {
+  return `query${operationName === '' ? ' ' : ` ${operationName}`}($projectId: ID!, $cursor: String, $laneFieldName: String!) {
   node(id: $projectId) {
     ... on ProjectV2 {
       items(first: 100, after: $cursor) {
@@ -43,6 +43,11 @@ function listProjectItemsQuery(operationName: string, readinessFields: string): 
                 }
                 name
               }
+            }
+          }
+          lane: fieldValueByName(name: $laneFieldName) {
+            ... on ProjectV2ItemFieldSingleSelectValue {
+              name
             }
           }
           content {
@@ -82,6 +87,13 @@ function listProjectItemsQuery(operationName: string, readinessFields: string): 
         pageInfo {
           hasNextPage
           endCursor
+        }
+      }
+      laneField: field(name: $laneFieldName) {
+        ... on ProjectV2SingleSelectField {
+          options {
+            name
+          }
         }
       }
     }
@@ -1189,6 +1201,26 @@ export const QUERY_GET_ISSUE_BOARD_ITEM = `query ($owner: String!, $repo: String
                 }
                 name
               }
+            }
+          }
+        }
+      }
+    }
+  }
+}`
+
+// Issue のボードの Item の pecot-lane の値。親の Epic の値を引き継ぐときに読む
+export const QUERY_GET_ISSUE_LANE = `query ($owner: String!, $repo: String!, $number: Int!, $laneFieldName: String!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      projectItems(first: 20, includeArchived: false) {
+        nodes {
+          project {
+            id
+          }
+          lane: fieldValueByName(name: $laneFieldName) {
+            ... on ProjectV2ItemFieldSingleSelectValue {
+              name
             }
           }
         }

@@ -13,11 +13,12 @@ import {
   issueNodeId,
   linkedRepositories,
   parentEpic,
+  parentLane,
   rawFrontmatterFile,
   setUpIssueProject,
   subIssuesPage,
 } from '../_helpers/issue-create-case.js'
-import { definitionRules } from '../_helpers/attributes.js'
+import { BOARD_FIELDS_WITH_LANE, definitionRules } from '../_helpers/attributes.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -68,7 +69,7 @@ describe('issue check', () => {
       'c.md': taskFile('3 番目', PARENT, ...blockedBy('b')),
       'd.md': taskFile('4 番目', PARENT, 'blocked_by:', '  - issue: c', '    wait: merge', '    reason: 既定のブランチから配られる'),
     })
-    const github = await startGithub([linkedRepositories(), blockedBySupported(), parentEpic(3, [EXISTING_SUB_ISSUE])])
+    const github = await startGithub([linkedRepositories(), blockedBySupported(), parentEpic(3, [EXISTING_SUB_ISSUE]), parentLane(3)])
 
     const result = await check(...inRoot(project.root, 'a.md', 'b.md', 'c.md', 'd.md'))
 
@@ -89,7 +90,7 @@ describe('issue check', () => {
         '',
       ].join('\n'),
     })
-    expect(operations(github)).toEqual(['GetLinkedRepositoriesUser', 'HasAddBlockedByInput', 'GetIssueSlim'])
+    expect(operations(github)).toEqual(['GetLinkedRepositoriesUser', 'HasAddBlockedByInput', 'GetIssueSlim', 'GetIssueLane'])
   })
 
   it('既存の Issue の表記は、一括の先頭のファイルのリポジトリを基準にそろえる', async (context) => {
@@ -129,6 +130,7 @@ describe('issue check', () => {
     await startGithub([
       linkedRepositories(),
       parentEpic(3, [EXISTING_SUB_ISSUE], 1, 'cursor1'),
+      parentLane(3),
       subIssuesPage([{ number: 30, state: 'OPEN', title: '#3-21: 2 ページ目の子' }]),
     ])
 
@@ -203,6 +205,32 @@ describe('issue check', () => {
     expect(writes(github)).toEqual([])
   })
 
+  it('フロントマターの lane がボードの pecot-lane の選択肢に無いとき、取りうる値を error の行に出し、終了コード 1 で終わる', async (context) => {
+    await verifies(context, 'PW-ISSUE-CHECK-05')
+    const project = setUpIssueProject()
+    writeTree(project.root, { 'a.md': taskFile('先頭', 'lane: web') })
+    const github = await startGithub([linkedRepositories(), ...definitionRules({ fields: BOARD_FIELDS_WITH_LANE })])
+
+    const result = await check(...inRoot(project.root, 'a.md'))
+
+    expect(result.code).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(result.stderr).toMatch(/^error: a\.md: invalid_value: pecot-lane \(project\); value "web"; expected one of: cli, docs\nerror: did not create any Issue: /u)
+    expect(writes(github)).toEqual([])
+  })
+
+  it('ボードに pecot-lane が無いとき、フロントマターの lane を error にせず、warning の行を出して表を出す', async (context) => {
+    await verifies(context, 'PW-ISSUE-CHECK-06')
+    const project = setUpIssueProject()
+    writeTree(project.root, { 'a.md': taskFile('先頭', 'lane: web') })
+    await startGithub([linkedRepositories(), ...definitionRules()])
+
+    const result = await check(...inRoot(project.root, 'a.md'))
+
+    expect(result.code).toBe(0)
+    expect(result.stderr).toBe('warning: the board has no single select field pecot-lane; Issues will be created without a lane\n')
+  })
+
   it('ファイルの引数が無いとき、終了コード 2 で終わる', async (context) => {
     await verifies(context, 'PW-ISSUE-CHECK-03')
     setUpIssueProject()
@@ -221,7 +249,7 @@ describe('issue check', () => {
         'b.md': taskFile('2 番目', PARENT, ...blockedBy('a')),
         'c.md': taskFile('3 番目', PARENT, 'blocked_by:', '  - issue: b', '    wait: merge', '    reason: 配られてから', '  - issue: acme/demo/12'),
       })
-      await startGithub([linkedRepositories(), blockedBySupported(), parentEpic(3, [EXISTING_SUB_ISSUE]), issueNodeId(12)])
+      await startGithub([linkedRepositories(), blockedBySupported(), parentEpic(3, [EXISTING_SUB_ISSUE]), parentLane(3), issueNodeId(12)])
 
       const outcome = await checkTool({ files: inRoot(project.root, 'a.md', 'b.md', 'c.md') })
 

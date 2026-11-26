@@ -88,6 +88,18 @@ github:
                 nodes:
                   - {name: demo, owner: {login: acme}}
   - match:
+      operation: GetIssueLane
+      variables: {owner: acme, repo: demo, number: 3}
+    respond:
+      status: 200
+      body:
+        data:
+          repository:
+            issue:
+              projectItems:
+                nodes:
+                  - {project: {id: PVT_1}, lane: null}
+  - match:
       operation: GetIssueSlim
       variables: {owner: acme, repo: demo, number: 3}
     respond:

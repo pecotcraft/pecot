@@ -28,6 +28,17 @@
         "commentLimit": 0
       },
       "auth": "token"
+    },
+    {
+      "type": "graphql",
+      "operation": "GetIssueLane",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "number": 3,
+        "laneFieldName": "pecot-lane"
+      },
+      "auth": "token"
     }
   ],
   "files": {

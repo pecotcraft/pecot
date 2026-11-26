@@ -64,6 +64,7 @@ pecot-workflow の MCP サーバの resource `pecot-template://issue/task-implem
 
 できた各ファイルを編集する。セクション構造（見出し）は変更せず、テンプレ冒頭コメントの `読者:`/`書き方:` に従って埋める。spec/plan の本文を転記しない（Artifacts のリンクで読者に届く）。
 `title` / `repository` / `parent_epic` を設定し、Step 2 の前提を `blocked_by` に写す。`order`・`parallel`・`status` は書かない。
+`lane` は、利用者が分類（`pecot-lane`）の値を言ったときだけ書く。言っていなければ空のままにし、尋ねもしない。
 
 `blocked_by` の写し方は次のとおり。
 

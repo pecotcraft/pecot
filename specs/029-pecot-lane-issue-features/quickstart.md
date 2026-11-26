@@ -29,20 +29,20 @@
 3. `project_init` を `lanes: ["gamma"]` で呼ぶ
    - 期待: 選択肢が alpha・beta・gamma になり、既存の Issue の値は消えない
 
-## A-3. 起票・同期・一覧（US2・US3）
+## A-3. 起票・一覧（US2・US3）
 
-1. w-quick で 1 件起票する
-   - 期待: 起票の内容から `pecot-lane` が決まって入る。`pecot-priority`・`pecot-size` を聞かれない
+1. w-quick で、分類（`pecot-lane` の値）を言って 1 件、言わずに 1 件起票する
+   - 期待: 言った Issue にはその値が入る。言わなかった Issue には入らず、分類を尋ねられない。`pecot-priority`・`pecot-size` も聞かれない
 2. `issue_create` を `lane: "delta"`（無い値）で呼ぶ
    - 期待: Issue を作らずに止まり、取りうる値が出る
 3. ボードの画面で `pecot-lane` に選択肢 `epsilon` を足し、`project_init` を呼ばずに `issue_create` を `lane: "epsilon"` で呼ぶ
    - 期待: 止まらずに起票でき、`epsilon` が入る（選択肢を設定に写さないので、画面の変更がすぐ使える）
 4. `pecot-lane` の入った Epic の下に、`lane` なしでタスクを起票する
    - 期待: タスクに親と同じ値が入る
-5. ボードの画面で `pecot-lane` の無い Issue を 1 件作り、`board_sync` を呼ぶ
-   - 期待: `missing_lane` にその Issue が出て、警告が 1 行出る。同期は終わる
+5. `pecot-lane` の無いボードで、`issue_create` を `lane` つきで呼ぶ
+   - 期待: 止まらずに起票でき、`pecot-lane` を書かなかったことが警告に 1 行出る
 6. `board_show` を呼び、w-active を始める
-   - 期待: `lanes` に alpha・beta・gamma・epsilon と値なしの組が、件数つきで出る。件数 0 の値も出る。w-active の候補が領域ごとに分かれる
+   - 期待: `lanes` に alpha・beta・gamma・epsilon と値なしの組が、件数つきで出る。件数 0 の値も出る。w-active の候補が値ごとに分かれる
 
 ## A-4. 新しいボード（US1・US4）
 
@@ -83,6 +83,6 @@
 PR がマージされ、リリースされた pecot-workflow で行う。
 
 1. このリポで `project_init` を `lanes: ["pecot-workflow", "pecot-visual", "pecot-tools", "repo"]` で呼ぶ
-2. 開いている Issue のすべてに `pecot-lane` を入れ、`board_sync` の `missing_lane` が空になることを確かめる
+2. 開いている Issue のすべてに `pecot-lane` を入れ、`board_show` の `lanes` に値の無い組（`name: null`）が無いことを確かめる
 3. 利用者の確認を取ってから、`confirm_delete: true` で `project_init` を呼ぶ
 4. `Lanes` のビューを開き、着手できるタスクの無い領域が分かることを確かめる（SC-001）

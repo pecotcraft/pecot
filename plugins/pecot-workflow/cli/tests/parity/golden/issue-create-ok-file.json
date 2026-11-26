@@ -24,6 +24,17 @@
       "auth": "token"
     },
     {
+      "type": "graphql",
+      "operation": "GetIssueLane",
+      "variables": {
+        "owner": "acme",
+        "repo": "demo",
+        "number": 3,
+        "laneFieldName": "pecot-lane"
+      },
+      "auth": "token"
+    },
+    {
       "type": "rest",
       "method": "POST",
       "path": "/repos/acme/demo/issues",

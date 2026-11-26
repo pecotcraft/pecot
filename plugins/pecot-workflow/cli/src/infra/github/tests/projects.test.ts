@@ -15,6 +15,11 @@ function page(nodes: readonly unknown[], hasNextPage: boolean, endCursor: unknow
   return { node: { items: { nodes, pageInfo: { hasNextPage, endCursor } } } }
 }
 
+// single select の pecot-lane（選択肢 alpha・beta）を持つボードの 1 ページ
+function lanePage(endCursor: unknown, hasNextPage: boolean): unknown {
+  return { node: { laneField: { options: [{ name: 'alpha' }, { name: 'beta' }] }, items: { nodes: [], pageInfo: { hasNextPage, endCursor } } } }
+}
+
 function archivedItem(id: string, status: string): unknown {
   return { id, fieldValues: { nodes: [{ field: { id: 'F_wf', name: 'pecot-status' }, name: status }] } }
 }
@@ -27,7 +32,7 @@ describe('listProjectItems', () => {
   it('1 ページ分を返す。最初の cursor は null', async () => {
     const { client, server } = await startClient([graphqlData('ListProjectItems', page([{ id: 'item1' }, { id: 'item2' }], false, JSON_NULL))])
     expect(await client.listProjectItems('PVT_test123')).toEqual([{ id: 'item1' }, { id: 'item2' }])
-    expect(graphqlRequests(server)).toEqual([{ operation: 'ListProjectItems', variables: { projectId: 'PVT_test123', cursor: JSON_NULL } }])
+    expect(graphqlRequests(server)).toEqual([{ operation: 'ListProjectItems', variables: { projectId: 'PVT_test123', cursor: JSON_NULL, laneFieldName: 'pecot-lane' } }])
   })
 
   it('hasNextPage の間、endCursor を次の cursor に送って辿る', async () => {
@@ -37,9 +42,39 @@ describe('listProjectItems', () => {
     ])
     expect(await client.listProjectItems('PVT_test123')).toEqual([{ id: 'item1' }, { id: 'item2' }])
     expect(graphqlRequests(server).map(({ variables }) => variables)).toEqual([
-      { projectId: 'PVT_test123', cursor: JSON_NULL },
-      { projectId: 'PVT_test123', cursor: 'cursor1' },
+      { projectId: 'PVT_test123', cursor: JSON_NULL, laneFieldName: 'pecot-lane' },
+      { projectId: 'PVT_test123', cursor: 'cursor1', laneFieldName: 'pecot-lane' },
     ])
+  })
+
+  it('1 ページ目の laneField の選択肢の名前を、onLaneOptions に 1 回だけ渡す', async () => {
+    const { client } = await startClient([graphqlData('ListProjectItems', lanePage('cursor1', true)), graphqlData('ListProjectItems', lanePage(JSON_NULL, false))])
+    const onLaneOptions = vi.fn()
+    await client.listProjectItems('PVT', { onLaneOptions })
+    expect(onLaneOptions.mock.calls).toEqual([[['alpha', 'beta']]])
+  })
+
+  it('laneField が無いと、onLaneOptions に undefined を渡す', async () => {
+    const { client } = await startClient([graphqlData('ListProjectItems', page([], false, JSON_NULL))])
+    const onLaneOptions = vi.fn()
+    await client.listProjectItems('PVT', { onLaneOptions })
+    expect(onLaneOptions.mock.calls).toEqual([[undefined]])
+  })
+
+  it('ボードに pecot-lane が無く、laneField が NOT_FOUND の部分エラーでも、Item を返し、onLaneOptions に undefined を渡す', async () => {
+    const data = { node: { laneField: JSON_NULL, items: { nodes: [{ id: 'a' }], pageInfo: { hasNextPage: false, endCursor: JSON_NULL } } } }
+    const errors = [{ type: 'NOT_FOUND', path: ['node', 'laneField'], message: 'Could not resolve to a Unions::ProjectV2FieldConfiguration with the name pecot-lane' }]
+    const { client } = await startClient([{ match: { operation: 'ListProjectItems' }, respond: { status: 200, body: { data, errors } }, times: 1 }])
+    const onLaneOptions = vi.fn()
+    expect(await client.listProjectItems('PVT', { onLaneOptions })).toEqual([{ id: 'a' }])
+    expect(onLaneOptions.mock.calls).toEqual([[undefined]])
+  })
+
+  it('laneField 以外の部分エラーは、今までどおり失敗にする', async () => {
+    const data = { node: { laneField: JSON_NULL, items: JSON_NULL } }
+    const errors = [{ type: 'NOT_FOUND', path: ['node', 'items'], message: 'boom' }]
+    const { client } = await startClient([{ match: { operation: 'ListProjectItems' }, respond: { status: 200, body: { data, errors } }, times: 1 }])
+    await expect(client.listProjectItems('PVT')).rejects.toThrow('boom')
   })
 
   it('limit に達したら次のページを取らずに切り詰める', async () => {

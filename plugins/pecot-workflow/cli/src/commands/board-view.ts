@@ -8,6 +8,8 @@ import type { DependabotAlertStatus } from '../domain/dependabot.js'
 import { fieldNameById, fieldNamesWithValues, formatItemsJson, readBoardProgress, transformItems } from '../domain/format.js'
 import type { BoardItem, BoardProgress } from '../domain/format.js'
 import { JSON_NULL } from '../domain/json-null.js'
+import { summarizeLanes } from '../domain/lanes.js'
+import type { LaneSummary } from '../domain/lanes.js'
 import { compareStrings } from '../domain/python-format.js'
 import { createDependabotSource } from '../infra/github/dependabot-source.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
@@ -141,6 +143,7 @@ const BOARD_CONTENT_JSON = z.strictObject({
 const BOARD_ITEM_JSON = z.strictObject({
   id: z.unknown().optional().describe('Project item ID'),
   workflow: z.string().nullable().optional().describe('Column (workflow field value) of the item'),
+  lane: z.string().nullable().optional().describe('Value of the pecot-lane field (null when the item has none or the board has no pecot-lane field)'),
   title: z.unknown().optional().describe('Title of the Issue or PR'),
   updatedAt: z.unknown().optional().describe('Last update time of the item'),
   content: BOARD_CONTENT_JSON.describe('Issue or PR on the card'),
@@ -163,8 +166,14 @@ const REPOSITORY_JSON = z.strictObject({
   packages: z.array(PACKAGE_JSON).describe('Packages of a monorepo (data only; empty when none)'),
   changelog_file: z.string().optional().describe('CHANGELOG path set for a repository without packages (data only; omitted when not set)'),
 })
+
+const LANE_SUMMARY_JSON = z.strictObject({
+  name: z.string().nullable().describe('Value of the pecot-lane field (null for the Issues without a value)'),
+  count: z.int().describe('Number of open Issues with this value'),
+  startable: z.int().describe('Number of those Issues in Ready whose readiness is startable'),
+})
 /**
-board show の MCP の data。project・repositories・board は --json と同じ。repositories の release_type・packages・changelog_file と mismatches は data にだけ足す
+board show の MCP の data。project・repositories・board・lanes は --json と同じ。repositories の release_type・packages・changelog_file と mismatches は data にだけ足す
 */
 export const BOARD_SHOW_OUTPUT = z.strictObject({
   project: z.strictObject({
@@ -178,6 +187,7 @@ export const BOARD_SHOW_OUTPUT = z.strictObject({
   board: z.strictObject({
     items: z.array(BOARD_ITEM_JSON).describe('Open items in Backlog, Pending, Blocked, Ready, Active and In Review'),
   }).describe('Board status'),
+  lanes: z.array(LANE_SUMMARY_JSON).describe('Open Issues of the board items counted per pecot-lane value, in the order of the field options (values without Issues count 0; Issues without a value come last). Empty when the board has no pecot-lane field'),
   mismatches: z.int().describe('Number of Ready or Blocked Issues whose column or Status may not match the judgment (data only)'),
 })
 
@@ -204,6 +214,10 @@ export interface BoardShowView {
   readonly config: ProjectConfig
   readonly projectName: string
   readonly statuses: readonly AlertStatus[]
+  /**
+  pecot-lane の選択肢の名前。ボードに pecot-lane が無ければ undefined
+  */
+  readonly laneOptions?: readonly string[] | undefined
 }
 
 /**
@@ -227,6 +241,19 @@ function itemJson(item: BoardItem): z.input<typeof BOARD_ITEM_JSON> {
   return { ...item, content: { ...item.content, labels: labels === undefined ? undefined : [...labels] } }
 }
 
+// board-judgment.ts の toTarget と同じく、URL で PR を見分ける
+function isPullRequestItem(item: BoardItem): boolean {
+  return typeof item.content.url === 'string' && item.content.url.includes('/pull/')
+}
+
+function laneSummaries(options: readonly string[] | undefined, items: readonly BoardItem[], readiness: ReadinessSource | undefined): LaneSummary[] {
+  const issues = items.filter(item => !isPullRequestItem(item)).map(item => ({
+    lane: item.lane ?? JSON_NULL,
+    isStartable: item.workflow === 'Ready' && readiness !== undefined && readiness(item)?.kind === 'startable',
+  }))
+  return [...summarizeLanes(options, issues)]
+}
+
 /**
 --json の標準出力と MCP の data の中身。キーを並べた順が --json の出力の順になる
 */
@@ -247,6 +274,7 @@ export function boardShowData(view: Readonly<BoardShowView>, items: readonly Boa
           const found = readiness(item)
           return { ...itemJson(item), readiness: found }
         }) },
+    lanes: laneSummaries(view.laneOptions, items, readiness),
   }
 }
 
@@ -303,10 +331,16 @@ function repositoryLines(view: Readonly<BoardShowView>): readonly string[] {
   return lines
 }
 
+function lanesSection(lanes: readonly LaneSummary[]): string | undefined {
+  if (lanes.length === 0) return undefined
+  const rows = lanes.map(lane => `| ${lane.name ?? '(none)'} | ${String(lane.count)} | ${String(lane.startable)} |`)
+  return ['## Lanes', '', '| Lane | Issues | Startable |', '|------|--------|-----------|', ...rows].join('\n')
+}
+
 /**
-info の Markdown の出力
+info の Markdown の出力。lanes が空でなければ、Board status の後に Lanes の節を足す
 */
-export function boardShowMarkdown(view: Readonly<BoardShowView>, effectiveRepository: string | undefined, boardOutput: string, chainsSection?: string): string {
+export function boardShowMarkdown(view: Readonly<BoardShowView>, effectiveRepository: string | undefined, boardOutput: string, chainsSection?: string, lanes: readonly LaneSummary[] = []): string {
   const { config, projectName } = view
   const aggregation = config.aggregation_repo === undefined || config.aggregation_repo === '' ? 'none' : `\`${config.aggregation_repo}\``
   return [
@@ -323,7 +357,7 @@ export function boardShowMarkdown(view: Readonly<BoardShowView>, effectiveReposi
     effectiveRepository === undefined || effectiveRepository === '' ? '## Board status' : `## Board status (filter: ${effectiveRepository})`,
     '',
     boardOutput,
-    ...(chainsSection === undefined ? [] : ['', chainsSection]),
+    ...[lanesSection(lanes), chainsSection].flatMap(section => section === undefined ? [] : ['', section]),
   ].join('\n')
 }
 
@@ -349,6 +383,10 @@ export interface BoardRead {
   pecot が使わないフィールド（UNUSED_FIELD_NAMES）のうち、どれかの Item に値が残るものの名前
   */
   readonly unusedFieldNames: readonly string[]
+  /**
+  pecot-lane の選択肢の名前。ボードに single select の pecot-lane が無ければ undefined
+  */
+  readonly laneOptions: readonly string[] | undefined
 }
 
 /**
@@ -356,14 +394,20 @@ export interface BoardRead {
 */
 export async function readBoard(client: Readonly<GitHubClient>, config: ProjectConfig, effectiveRepository: string | undefined): Promise<BoardRead> {
   const fieldId = workflowFieldId(config)
-  const state = { isLegacy: false }
-  const rawItems = await client.listProjectItems(config.project.id, { workflowFieldId: fieldId, onLegacy: () => {
-    state.isLegacy = true
-  } })
+  const state: { isLegacy: boolean, laneOptions: readonly string[] | undefined } = { isLegacy: false, laneOptions: undefined }
+  const rawItems = await client.listProjectItems(config.project.id, {
+    workflowFieldId: fieldId,
+    onLegacy: () => {
+      state.isLegacy = true
+    },
+    onLaneOptions: (options) => {
+      state.laneOptions = options
+    },
+  })
   const allItems = transformItems(rawItems, fieldId)
   const open = allItems.filter(item => item.content.state === 'OPEN' && typeof item.workflow === 'string' && DISPLAY_STATUSES.has(item.workflow))
   const items = effectiveRepository === undefined || effectiveRepository === '' ? open : open.filter(item => item.content.repository === effectiveRepository)
-  return { allItems, items, progress: readBoardProgress(rawItems, STATUS_FIELD_NAME), isLegacy: state.isLegacy, workflowFieldName: fieldNameById(rawItems, fieldId), unusedFieldNames: fieldNamesWithValues(rawItems, UNUSED_FIELD_NAMES) }
+  return { allItems, items, progress: readBoardProgress(rawItems, STATUS_FIELD_NAME), isLegacy: state.isLegacy, workflowFieldName: fieldNameById(rawItems, fieldId), unusedFieldNames: fieldNamesWithValues(rawItems, UNUSED_FIELD_NAMES), laneOptions: state.laneOptions }
 }
 
 /**

@@ -137,36 +137,35 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 ---
 
-## Phase 4: User Story 2 + 3 - 起票・同期・一覧で `pecot-lane` を扱う (Priority: P1・P2)
+## Phase 4: User Story 2 + 3 - 起票・一覧で `pecot-lane` を扱う (Priority: P1・P2)
 
-**Goal**: 起票で `pecot-lane` が入り、親の値を引き継ぎ、値の無い Issue を同期で知らせ、`board_show` と w-active が領域ごとの件数を出す（FR-004〜FR-007、research R6）
+**Goal**: 起票で、利用者が言った `pecot-lane` が入り、親の値を引き継ぐ。`board_show` と w-active が値ごとの件数を出す（FR-004〜FR-007、research R6）
 
 **Independent Test**: quickstart.md の A-3
 
 ### Tests for User Story 2 + 3
 
-- [ ] T032 [P] [US3] `PW/cli/src/domain/tests/lanes.test.ts` に、LaneSummary の集計のテストを先に書く。
-  確かめること: 値ごとの `count`・`startable`、選択肢にあって Item が 0 件の値も 0 件で並ぶ、値の無い組は `name: null`、`pecot-lane` の無いボードは空の配列
-- [ ] T033 [P] [US2] `PW/interface/authored.yaml` に起票と同期の振る舞いを足し、`PW/cli/tests/interface/issue-create.test.ts` と `PW/cli/tests/interface/board.test.ts` に先にテストを書く。
-  確かめること: `lane` が入る、無い値は Issue を作る前に止まり取りうる値を出す、`parent_epic` があり `lane` が無ければ親の値、`board_sync` の `missing_lane` と警告 1 行と終了コードが変わらないこと、`pecot-lane` の無いボードで今と同じ結果
-- [ ] T034 [P] [US3] `PW/cli/tests/interface/board.test.ts` に、`board_show` の `items[].lane` と `lanes` のテストを先に書く
+- [x] T032 [P] [US3] `PW/cli/src/domain/tests/lanes.test.ts` に、LaneSummary の集計のテストを先に書く。
+  確かめること: 値ごとの `count`・`startable`、選択肢にあって Issue が 0 件の値も 0 件で並ぶ、値の無い組は `name: null`、`pecot-lane` の無いボードは空の配列
+- [x] T033 [P] [US2] `PW/interface/authored.yaml` に起票の振る舞いを足し、`PW/cli/tests/interface/issue-create.test.ts` に先にテストを書く。
+  確かめること: `lane` が入る、無い値は Issue を作る前に止まり取りうる値を出す、`parent_epic` があり `lane` が無ければ親の値、`pecot-lane` の無いボードでは書かずに警告を出す
+- [x] T034 [P] [US3] `PW/cli/tests/interface/board.test.ts` に、`board_show` の `items[].lane` と `lanes` のテストを先に書く
 
 ### Implementation for User Story 2 + 3
 
-- [ ] T035 [US3] `PW/cli/src/domain/lanes.ts` を作る（T032 の後）
-- [ ] T036 [US3] `PW/cli/src/infra/github/queries.ts` の `listProjectItemsQuery` で `pecot-lane` の値を読む。
+- [x] T035 [US3] `PW/cli/src/domain/lanes.ts` を作る（T032 の後）
+- [x] T036 [US3] `PW/cli/src/infra/github/queries.ts` の `listProjectItemsQuery` で `pecot-lane` の値を読む。
   `PW/cli/src/domain/format.ts` の `transformItems` と `PW/cli/src/commands/board-view.ts` の `BOARD_ITEM_JSON`・`BOARD_SHOW_OUTPUT` に `lane`・`lanes` を足す
-- [ ] T037 [US2] `PW/cli/src/commands/issue-create.ts` と `PW/cli/src/commands/issue-shared.ts` の `setIssueFields` に `lane` を足す。
-  値は、そのときボードから読んだ `pecot-lane` の選択肢と、T026 の関数で照らす。
+- [x] T037 [US2] `PW/cli/src/commands/issue-create.ts` に `lane` を足す。`attributes` の `pecot-lane` を短く書く入力として扱い、照らし合わせと書き込みは Phase 6 の仕組みに任せる。
   親の値は `parent_epic` の Item から読む。`PW/cli/src/domain/frontmatter.ts` に `lane` を足す
-- [ ] T038 [US2] `PW/cli/src/commands/board-sync.ts` に `missing_lane` を足し、警告を `PW/cli/src/commands/board-judgment.ts` の `out.warning` と同じ形で出す
-- [ ] T039 [P] [US2] `PW/skills/w-quick/SKILL.md`・`PW/skills/w-ready/SKILL.md`・`PW/skills/w-issueize/SKILL.md`・`PW/skills/w-backlog/SKILL.md` に、
-  起票の内容から `lane` を決めて渡し、決められなければ利用者に確かめる手順を書く。値の一覧は `board_show` の `lanes` から読む
-- [ ] T040 [P] [US3] `PW/skills/w-active/SKILL.md` に、候補を `lanes` で領域ごとに出し、着手できるタスクの無い領域も示す手順を書く
-- [ ] T041 [US2] `PW/interface/generated.json` を作り直し、T032〜T034 のテストのファイルと、変えたスキルの `PW/cli/tests/skills/` のテストを動かす
-- [ ] T042 [US2] quickstart.md の A-3 を、検証用のボードで動かす
+- [x] T038 [US2] `board_sync` は変えない。値の無い Issue を挙げない（FR-005）
+- [x] T039 [P] [US2] `PW/skills/w-quick/SKILL.md`・`PW/skills/w-ready/SKILL.md`・`PW/skills/w-issueize/SKILL.md`・`PW/skills/w-backlog/SKILL.md` に、
+  利用者が分類を言ったときだけ `lane` を渡し、推し量らず尋ねない手順を書く
+- [x] T040 [P] [US3] `PW/skills/w-active/SKILL.md` に、候補を `pecot-lane` の値ごとに出し、着手できるタスクの無い値も示す手順を書く
+- [x] T041 [US2] `PW/interface/generated.json` を作り直し、T032〜T034 のテストのファイルと、変えたスキルの `PW/cli/tests/skills/` のテストを動かす
+- [x] T042 [US2] quickstart.md の A-3 を、検証用のボードで動かす
 
-**Checkpoint**: 起票・同期・一覧の全部が `pecot-lane` を扱い、`pecot-lane` の無いボードでは今と同じに動く
+**Checkpoint**: 起票・一覧の全部が `pecot-lane` を扱い、`pecot-lane` の無いボードでは今と同じに動く
 
 ---
 
@@ -332,7 +331,7 @@ description: "Task list for 029-pecot-lane-issue-features"
   `PW/scripts/sandbox/sandbox-diff-items.json` の FR-005 の `pecot-workflow-*` を `pecot-status` にする
   検証用のボード（3 番）も同じ時に `project_init` で移し、設定ファイル `github.com_pecotcraft_3.json` を検証用の `main` に入れる
   `PW/CONTRIBUTING.md` §3 の手順 2 の `git restore` と `.gitignore` の 2 行を外し、`specs/026-pre-merge-test-env/quickstart.md` の名前を確かめる
-- [ ] T078 開いている Issue のすべてに `pecot-lane` を入れ、`board_sync` の `missing_lane` が空になることを確かめる
+- [ ] T078 開いている Issue のすべてに `pecot-lane` を入れ、`board_show` の `lanes` に値の無い組（`name: null`）が無いことを確かめる
 - [ ] T079 消すフィールド（`pecot-priority`・`pecot-size`）を利用者に示して確認を取り、`confirm_delete: true` で `project_init` を呼ぶ
 - [ ] T080 `Lanes` のビューを開き、着手できるタスクの無い領域が分かることを確かめる（SC-001）
 
@@ -346,13 +345,13 @@ description: "Task list for 029-pecot-lane-issue-features"
 |---|---|---|---|
 | 2 | 1 | スタックできる | Phase 2 の `confirm_delete` は、Phase 1 の `project_init` の移行の予定と `migration` の出力に削除を足す |
 | 3 | 1 | スタックできる | Phase 3 のビューの作成が、Phase 1 で作る `pecot-status` の ID を `vertical_group_by` に使う |
-| 4 | 3 | スタックできる | Phase 4 の起票・同期・一覧が、Phase 3 で作る `pecot-lane` のフィールドと、選択肢を引く関数を使う |
+| 4 | 3 | スタックできる | Phase 4 の起票・一覧が、Phase 3 で作る `pecot-lane` のフィールドと、選択肢を引く関数を使う |
 | 6 | 5 | スタックできる | Phase 6 の検証が、Phase 5 で作る定義の読み込み（`infra/github/attributes.ts`）を使う |
 | 7 | 6 | スタックできる | Phase 7 の網羅のテストが、Phase 6 で作る `ATTRIBUTE_HANDLERS` と照らす |
 | 8 | 7 | スタックできる | Phase 8 の差の確かめが、Phase 7 で作る `extract.ts` と写しを使う |
 | 9 | 7 | スタックできる | Phase 9 の棚卸しの「pecot の今の使い方」が、Phase 7 の担保の一覧で決まる |
 | 10 | 2 | マージを待つ | このリポのボードは、配布された pecot-workflow で移す。廃止と移行の処理がリリースに入っていないと、`confirm_delete` の削除ができない |
-| 10 | 4 | マージを待つ | このリポのボードは、配布された pecot-workflow で移す。`pecot-lane` と起票・同期の処理がリリースに入っていないと、`missing_lane` を確かめられない |
+| 10 | 4 | マージを待つ | このリポのボードは、配布された pecot-workflow で移す。`pecot-lane` と起票・一覧の処理がリリースに入っていないと、値の無い組を `lanes` で確かめられない |
 
 ### User Story Dependencies
 

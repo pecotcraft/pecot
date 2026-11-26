@@ -130,7 +130,7 @@ plugins/pecot-workflow/
 │       ├── issue-attributes.ts     # 新規
 │       ├── issue-show.ts           # 変更: attributes
 │       ├── board-show.ts・board-view.ts  # 変更: lane・lanes
-│       ├── board-sync.ts           # 変更: missing_lane
+│       ├── board-sync.ts           # 変更: 旧い名前の警告
 │       ├── issue-board.ts          # 変更: putOnBoard の priority を消す
 │       └── tracker-sync-*.ts       # 変更: priority を消す
 ├── cli/templates/issue/*.md        # 変更: priority・size を消し、lane を足す
@@ -174,7 +174,7 @@ A と B は互いを待たない。各段は、前の段が無いと確かめら
 1. **`pecot-status` への改名と `suffix` の廃止**（US4b）: 設定の新しい形と旧い形の読み込み、`project_init` の改名と設定の移行、各操作の警告。検証用のボードで確かめられる
 2. **`pecot-priority`・`pecot-size` の廃止**（US4）: 作成・起票・トラッカー・テンプレート・スキルから消し、`project_init` の `confirm_delete`。1 の移行の出力に削除を足すので、1 にスタックする
 3. **`pecot-lane` とビュー**（US1）: `lanes` の入力、フィールドの作成と選択肢の追加、REST のビューの作成。1 の `pecot-status` の ID をビューに使うので、1 にスタックする
-4. **起票・同期・一覧**（US2・US3）: `issue_create` の `lane`、親の値の引き継ぎ、`missing_lane`、`lanes`、スキルの変更。3 にスタックする
+4. **起票・一覧**（US2・US3）: `issue_create` の `lane`、親の値の引き継ぎ、`lanes`、スキルの変更。3 にスタックする
 5. **このリポへの導入**: リリースされた pecot-workflow で、このリポのボードを移行する。1〜4 のマージとリリースを待つ
 
 **B. Issue の機能を使える担保**

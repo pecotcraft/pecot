@@ -5,6 +5,7 @@ repository: ""
 status: backlog
 labels: []
 parent_epic: ""
+lane: ""
 ---
 
 <!--
@@ -16,6 +17,7 @@ parent_epic: ""
 
 フィールド:
 - repository: `--repo owner/repo` 必須（Tracker は aggregation_repo へ寄せない）
+- lane: 分類したいときだけ、ボードの `pecot-lane` の値を書く
 - 起票ルール: skills/w-help/references/issue-flow-rules.md （投稿先の判定基準）
 
 例:

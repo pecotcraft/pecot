@@ -41,6 +41,11 @@ pecot-workflow の MCP ツール `board_show` を使って、いま着手でき�
 | #123 | Issue のタイトル |
 
 別の Issue の上にスタックして着手するものは、タイトルの後ろに「（#N の上にスタックする）」と添える。
+
+`board_show` の `lanes` が空でなければ、表を `lanes` の値ごとの節に分け、各 Issue を `pecot-lane` の値の節に入れる。
+値の無い Issue は「値なし」の節にまとめる。着手できる Issue の無い値も節を立て、表の代わりに「なし」と書く。
+`lanes` が空なら、1 つの表のままにする。
+
 表の後に、どれに着手するかを地の文で尋ねる。AskUserQuestion は使わない。
 
 利用者が選んだら、Skill ツールで `pecot-w:w-active` を、選んだ Issue を引数にして呼び直す。allowed-tools の許可は、スキルを呼んだターンの間だけ続くからだ。

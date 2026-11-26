@@ -42,10 +42,10 @@
 | 項目 | 内容 |
 |---|---|
 | `name` | `pecot-lane` の値。値の無い組は null |
-| `count` | 開いた Item の数 |
-| `startable` | 着手できる（Ready で readiness が startable）Item の数 |
+| `count` | 開いた Issue の数（PR は数えない） |
+| `startable` | 着手できる（Ready で readiness が startable）Issue の数 |
 
-ボードの選択肢のうち、Item が 0 件の値も 0 件として並べる（空の領域が分かる）。
+ボードの選択肢の順に並べ、Issue が 0 件の値も 0 件として並べる（空の値が分かる）。値の無い組は、1 件以上あるときだけ末尾に置く。`board_show` に `repo` を渡すと、そのリポの Issue で数える。
 
 ## B. Issue の機能
 
