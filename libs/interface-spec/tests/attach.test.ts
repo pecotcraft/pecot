@@ -5,8 +5,8 @@ import type { AttachmentOptions } from 'allure-js-commons'
 import type { RuntimeMessage } from 'allure-js-commons/sdk'
 import { getGlobalTestRuntime, MessageHolderTestRuntime, setGlobalTestRuntime } from 'allure-js-commons/sdk/runtime'
 import type { SyncTestRuntime, TestRuntime } from 'allure-js-commons/sdk/runtime'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { attachContent, attachFile, attachJson, attachOutput, attachText, readOutput } from '../src/vitest/attach.js'
+import { afterEach, beforeEach, describe, expect, it, TestRunner, vi } from 'vitest'
+import { attachContent, attachFile, attachJson, attachJsonInTest, attachOutput, attachText, readOutput } from '../src/vitest/attach.js'
 
 // allure-js-commons 3.15.0 の sync の型（undefined を含む）は、exactOptionalPropertyTypes の下で TestRuntime に合わない。
 // attachment は MessageHolderTestRuntime に無いので、allure-vitest の VitestTestRuntime と同じ形で送る。
@@ -129,6 +129,19 @@ describe('attach', () => {
       expect(attachments(runtime.messages())).toEqual([
         { name: '応答', content: '{\n  "isError": true\n}', contentType: 'application/json', fileExtension: '.json' },
       ])
+    })
+
+    it('attachJsonInTest は、動いているテストの中では attachJson と同じく残す', () => {
+      attachJsonInTest('tools/list の結果', { tools: [] })
+      expect(attachments(runtime.messages())).toEqual([
+        { name: 'tools/list の結果', content: '{\n  "tools": []\n}', contentType: 'application/json', fileExtension: '.json' },
+      ])
+    })
+
+    it('attachJsonInTest は、テストの外（beforeAll など）では何も残さない', () => {
+      vi.spyOn(TestRunner, 'getCurrentTest').mockReturnValue(undefined)
+      attachJsonInTest('tools/list の結果', { tools: [] })
+      expect(attachments(runtime.messages())).toEqual([])
     })
 
     it.for([
