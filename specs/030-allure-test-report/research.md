@@ -49,6 +49,7 @@
 - **Alternatives considered**:
   - `allure run -- <テストのコマンド>` で包む: nx のレーンの中のコマンドを書き換えることになり、カバレッジの判定の終了コードの扱いを確かめ直す必要がある
   - JUnit XML を Allure に読ませる: 失敗のスタックと添付、`verifies` のリンクを渡せない
+    - #809 で、Node の `--test-reporter=junit` の JUnit XML も確かめた。Allure 3.33.0 は 0 件と読み、ラベルも載らない。そこで `node --test` の 2 本は vitest に移す（R8）
 
 ## R3. pytest の結果を残す
 
@@ -83,21 +84,33 @@
 
 ## R5. 履歴
 
-- **Decision**: 履歴は、側ごとの 1 つのファイル `<側>/test-report/history.jsonl` として、保管ブランチ `pages-store` に置く。レポートを作る run が、保管ブランチのファイルを git で読んで `historyPath` に渡し、足された後のファイルを、レポートと一緒に artifact で渡す
-  - `historyLimit` は 3 にする（#698 で 20 から下げた）
+- **Decision**（2026-11-26 に改めた）: 履歴はリリース版だけが持つ。1 つのファイル `history.jsonl` として、S3 のバケットに置く。開発版は履歴を持たず、`historyPath` を渡さない
+  - レポートを作る run が、S3 のファイルを読んで `historyPath` に渡し、足された後のファイルを S3 に戻す。バケット・ロール・書く run は #822 で決める
+  - `historyLimit` は 10 にする。Allure のグラフの既定（`DEFAULT_CHART_HISTORY_LIMIT = 10`）と同じ回数
+  - Allure のアダプタが付ける自動のラベル（`host`・`thread` など）は落とさない。タイムラインがこの 2 つを使う
   - `historyBaseUrl` は設定しない
   - 不安定なテストの判定は、`flakyDetection: { includePassedTests: true }` にする。ほかの値（`historyDepth: 10`・`stabilizationPeriod: 5`）は既定のまま。既定では、最新の実行で落ちたテストにしか印が付かない
+    - `historyDepth` の 10 は、残す回数と同じになる
 - **Rationale**:
   - Allure 3 の履歴は、1 回の実行が 1 行の JSONL で、`historyPath` のファイルを読み、足す（文書の history-and-retries・how-it-works-history-files）。置き場所は自分で持ち越す。公式の GitHub Pages の手引きの Allure 3 の例は、履歴を持ち越していない
-  - `historyLimit` の既定は無制限。初めは Allure 2 が持つ数（20）に合わせたが、大きさが公開の上限を超えるので 3 にした
-    - main の結果（17,635 テスト）で測ると、履歴 1 件で `history.jsonl` が約 25 MB、レポートが約 30 MB 増える
-    - 20 件では 1 つの側が約 1.2 GB になり、GitHub の 1 ファイル 100 MB と Pages の 1 GB を超える
-    - 3 件では `history.jsonl` が約 67 MB、2 つの側のレポートと履歴で約 550 MB に収まる
-    - 不安定の判定が見る前の回は、既定の 10 件でなく、残っている 3 件になる
+  - 開発版のレポートは、マージキューの結果を寄せ集めたもので（R9）、PR の CI と見るものがほぼ同じになる。履歴の価値は、リリースをまたいだ推移と不安定なテストにあるので、リリース版にだけ持つ
+  - 大きさ（2026-11-26 に、1 つの側の 17,975 件で測った）
+    - 履歴 10 回で、レポートは約 440 MB、`history.jsonl` は約 225 MB。git の 1 ファイル 100 MB を超えるので、`pages-store` に置けない
+    - 自動のラベルを落とすと、レポートは約 353 MB になる。落とさずに、履歴を S3 に置いて収める
+    - 開発版は、履歴なしで約 134 MB。2 つの側のレポートを合わせても、Pages の 1 GB に収まる
+    - S3 の費用は、225 MB を置いて月 1 セント未満
   - `historyBaseUrl` は、過去のレポートへのリンクを作るための設定。このサイトは、レポートを側ごとに上書きし、過去のレポートを残さないので、設定しない
   - 前回との違い（New・Fixed・Regressed・Malfunctioned）と Flaky の印は、履歴があれば Allure が出す（文書の test-stability）
   - 履歴は、添付とステップを持たない。添付は、今の実行のレポートにだけある
+- **経緯**: `historyLimit` の既定は無制限。初めは Allure 2 が持つ数（20）に合わせ、#698 で、大きさが公開の上限を超えるので 3 に下げた。2026-11-26 に、置き場所を S3 に替えて 10 にした
+  - #698 のとき、main の結果（17,635 テスト）で測ると、履歴 1 件で `history.jsonl` が約 25 MB、レポートが約 30 MB 増えた
+  - 20 件では 1 つの側が約 1.2 GB になり、GitHub の 1 ファイル 100 MB と Pages の 1 GB を超えた
+  - 3 件では `history.jsonl` が約 67 MB、2 つの側のレポートと履歴で約 550 MB に収まったが、不安定の判定とグラフが見る前の回は 3 件に限られた
 - **Alternatives considered**:
+  - `pages-store` に置く（#698 から 2026-11-26 までの形）: 10 回の履歴が、git の 1 ファイル 100 MB を超える
+  - Release の添付に置く: 採らなかった。2026-11-26 に、利用者が S3 を選んだ
+  - 自動のラベルを落として小さくする: タイムラインが使う `host`・`thread` が無くなる
+  - Allure Report Storage（OSS）を自前で動かす: Allure の運営する置き場所は無く、Docker か Cloudflare Workers で動かし続けることになる
   - Actions の cache か artifact に置く: 期限で消える。028 が保管ブランチを足した理由と同じ
   - 履歴を保管の job で足す: 保管の job に Node と Allure が要る。保管の job は、中身を写すだけにしておく
 
@@ -143,34 +156,52 @@
   | 各プラグインの `test-bootstrap`・`test-release`、pecot-visual の `test-hooks`・`test-compare`・`test-skills` | bash の `*.test.sh` |
   | `pecot-visual:test-slidev`・`nx-release:test-unit` | `node --test` |
 
+- **2026-11-26 に改めた**: 上の「入れないレーン」も入れ、nx の `test-*` のレーンすべてをレポートに入れる（spec の FR-002）。上の 2 つの表は、改める前の記録として残す
+  - `node --test` の 2 本は、vitest に移し、`allure-vitest` で結果を残す（#809。R2 の Alternatives）
+  - bash の 9 本の結果の残し方は、#810 で決める
+
 - **Rationale**: `.githooks/tests` に、nx の `test-*` の target がこのファイルに全部あることを確かめるテストを置く。レーンが増えたとき、入れるか入れないかを書かないと CI が落ちる（FR-002）
 - **`junit-lanes.json` の扱い**: 消す。今の読み手は、合否を描く作り・CI の JUnit の artifact・リリース版の材料の 3 つで、どれもこの機能で無くなる。サイトに載せるプラグインの一覧は、定義書（`plugins/*/interface/`）を持つプラグインから決める
 
 ## R9. テストを動かす run と、公開の流れ
 
-- **Decision**: テストを動かしてレポートを作る workflow `test-report.yml` を足す。公開は、今の `pages-deploy.yml` が受ける
+- **Decision**: レポートを作る workflow `test-report.yml` を足す。公開は、今の `pages-deploy.yml` が受ける。開発版の材料は、2026-11-26 に、マージキューの結果の寄せ集めに改めた
 
   | job | すること | 権限 |
   |---|---|---|
-  | `side` | 側を決める。リリース版は、タグから材料（プラグインごとのコミットと、結果を出せるか）を決める | `contents: read` |
-  | `tests`（matrix） | レーンを 1 つずつ dev container で動かす。テストが落ちても、結果のディレクトリを artifact に上げる | `contents: read` |
-  | `report` | 全レーンの結果がそろったことを確かめる。保管ブランチ `pages-store` から履歴を取り、`allure generate` でレポートを作り、レポートと履歴を artifact `test-report-<側>` に上げる | `contents: read` |
+  | `side` | 側と材料を決める。リリース版は、タグから材料（プラグインごとのコミットと、結果を出せるか）を決める。開発版は、レーンの最新の結果があるかを見て、結果の無いレーンを決める | `contents: read` |
+  | `tests`（matrix） | レーンを 1 つずつ dev container で動かす。リリース版は全レーン、開発版は結果の無いレーンだけ。テストが落ちても、結果のディレクトリを artifact に上げる | `contents: read` |
+  | `report` | 全レーンの結果がそろったことを確かめ、`allure generate` でレポートを作り、artifact `test-report-<側>` に上げる。リリース版だけ、S3 から履歴を取って渡す | `contents: read`。S3 の履歴を扱う job は、OIDC のために `id-token: write` も持つ（#822） |
 
   - 契機: main への push（開発版）、`workflow_dispatch` の `side`（main からだけ）、`release.yml` の本番の land の後（リリース版）。`pull_request` は契機にしない
+  - `workflow_dispatch` の `side=dev` も、push と同じく、結果の無いレーンだけを流して寄せ集める
   - `pages-deploy.yml` は、`workflow_run` の対象に `test-report.yml` を足す。出どころの確かめ（`provenance.py`）に、この workflow のパスと、PR の run を受けない決まりを足す
   - 保管（`store.py`）は、レポートを `<側>/test-report/` に置く。定義書の側を差し替えるときは `test-report/` を残し、レポートを差し替えるときは定義書を残す
+- **開発版の材料**（2026-11-26 に改めた）: main では流し直さない
+  - マージキューの `ci.yml` の run が、流したレーンの結果を artifact に上げる。PR の run は上げない
+  - 使うのは、main に入ったコミットを試した run の結果だけ。マージされなかった run の結果は使わない
+  - レーンごとに最新の 1 回分を保管し、新しい結果で置き換える。マージキューが流さなかったレーンは、前の結果のまま使う。nx がこの変更で入力が変わっていないと判断したレーンなので、前の結果が今のコミットの結果でもある
+  - 結果がまだ無いレーン（足したばかりのレーン・保管の初回）だけを、`tests` の job が main で流す
+  - #821 の計画で決める事柄
+    - 保管の置き場所（`pages-store` か S3）と、そこへ書く run。028 の信頼の境界（FR-007・FR-026〜FR-028）に合わせる
+    - マージキューが試したコミットと、main に入ったコミットが同じ SHA になるか。コミットの確かめ方
+    - マージキューの結果の tms のリンクを、開発版のサイトに向ける渡し方。`PECOT_REPORT_SITE_URL` はテストを動かす時点で結果に書き込まれ、nx の入力でもある。マージキューは PR の run の nx キャッシュを取り込むので、渡し方とキャッシュの一致を合わせて決める
+    - nx のキャッシュから戻った結果を、そのレーンのその run の結果として数えるか
+    - レーンごとに、どのコミットの結果かをレポートで読める形（環境の情報など。#817 と合わせる）
 - **Rationale**:
   - 定義書の公開（`pages-build.yml`）と分けるので、定義書はテストを待たない（FR-011）
-  - 信頼の境界は 028 のまま使う。書き込みは `pages-deploy.yml` の store の job だけが行う（FR-014）
+  - 信頼の境界は 028 のまま使う。公開サイト（`pages-store`）に書くのは、`pages-deploy.yml` の store の job だけ（FR-014）。S3 の履歴を書く run は #822 で決める
   - 開発版は、古いコミットのレポートで新しいレポートを上書きしない（028 の `dev_is_newer` と同じ決まりを、レポートにも当てる）
+  - マージキューは、マージした後の状態をもう試している。main で同じものを流し直しても得るものが無い。#492 で ci の main での実行を消したのと同じ理由
 - **リリース版**: `release_sources.py` が、プラグインごとに最新のタグのコミットを決める。そのコミットに `report-lanes.json` があれば、結果を出せるタグと読む。`tests` の job は、そのコミットを取り出し、そのプラグインのレーンを動かす。libs と `.githooks` のレーンは、最も新しいタグのコミット（骨組み）で動かす
 - **同じ側の run の重なり**: concurrency は `test-report-<side>` で、`cancel-in-progress: false` にする。動いている run は取り消さず、後から来た run は待つ。待てるのは 1 つで、さらに来ると、待っていた run が新しい run に置き換わる（concurrency の既定の決まり）
-  - 全レーンの実行は、定義書のビルドより長い。取り消す形にすると、main への push が続く間、開発版のレポートが出ない
-  - 待っていた run が置き換わるので、すべてのコミットのレポートができるわけではない。履歴の行は、できたレポートの分だけ増える
-  - 前の run の保管（`pages-deploy.yml`）が終わる前に次の run が履歴を読むと、履歴の 1 行が抜ける。レポートは最新のコミットのものが残るので、受け入れる
-- **結果のコミット**: `tests` の job は、結果の artifact に、レーンと取り出したコミットを書いた `source.json` を入れる。`report` の job は、これを材料のコミットと比べる（FR-012）
+  - リリース版の全レーンの実行は、定義書のビルドより長い。取り消す形にすると、続けて起動したとき、レポートが出ない
+  - 待っていた run が置き換わるので、すべての起動のレポートができるわけではない。リリース版の履歴の行は、できたレポートの分だけ増える
+  - 前の run が履歴を S3 に戻す前に、次の run が履歴を読むと、履歴の 1 行が抜ける。レポートは最新のものが残るので、受け入れる
+- **結果のコミット**: `tests` の job は、結果の artifact に、レーンと取り出したコミットを書いた `source.json` を入れる。`report` の job は、リリース版では、これを材料のコミットと比べる（FR-012）。開発版では、レーンごとのコミットが main の祖先であることを確かめる（形は #821）
 - **Alternatives considered**:
-  - `ci.yml` の結果を使う: affected のレーンしか動かない（clarify の質問 1 で採らなかった）
+  - main への push のたびに、全レーンを流し直す（2026-11-23 から 2026-11-26 までの形）: マージキューと同じ試験を重ねて流す
+  - `ci.yml` の結果を使う: 2026-11-23 の clarify では、affected のレーンしか動かないので採らなかった。2026-11-26 に、流さなかったレーンを前の結果で埋める形で採った（上の開発版の材料）
   - `pages-build.yml` に足す: 定義書の公開がテストを待つ
 
 ## R10. サイトからのリンク
