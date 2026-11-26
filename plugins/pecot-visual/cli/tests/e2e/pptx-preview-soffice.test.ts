@@ -25,7 +25,7 @@ import {
 import { XmldomXmlEngine } from '../../src/infra/pptx-ooxml/xml-engine.js'
 import { YauzlYazlPptxArchive } from '../../src/infra/pptx-ooxml/archive.js'
 import { SofficePdfConverter } from '../../src/infra/pptx-ooxml/soffice.js'
-import { attachFile } from '../_helpers/attach.js'
+import { attachFile, attachOutput } from '../_helpers/attach.js'
 import {
   assertCliBuilt,
   createPecotvRunner,
@@ -231,6 +231,7 @@ pdftotext -bbox で対象テキストを含む word の最小 xMin を返す。�
 */
 function footerXMin(pdfPath: string, needle: string): number | undefined {
   const result = spawnSync('pdftotext', ['-bbox', pdfPath, '-'], { encoding: 'utf8' })
+  attachOutput('pdftotext -bbox', result.status ?? undefined, result.stdout, result.stderr)
   /* c8 ignore next -- pdftotext 失敗時の防御。probe で usability 確認済のため通常到達しない */
   if (result.status !== 0) return undefined
   const wordRegex
@@ -252,6 +253,7 @@ pdftotext 出力を改ページ (\f) で分割してページ本文を返す。p
 */
 function pdfPages(pdfPath: string): readonly string[] {
   const result = spawnSync('pdftotext', [pdfPath, '-'], { encoding: 'utf8' })
+  attachOutput('pdftotext', result.status ?? undefined, result.stdout, result.stderr)
   /* c8 ignore next -- pdftotext 失敗時の防御。probe で usability 確認済のため通常到達しない */
   if (result.status !== 0) return []
   const pages = result.stdout.split('\f')

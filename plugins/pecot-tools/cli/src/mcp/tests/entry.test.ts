@@ -2,7 +2,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { Client, InMemoryTransport } from '@modelcontextprotocol/client'
+import { InMemoryTransport } from '@modelcontextprotocol/client'
 import { serveStdio } from '@modelcontextprotocol/server/stdio'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -11,6 +11,7 @@ import { suggestedNodeVersion } from '../../node-runtime.js'
 import { mcpServeDefaultDependencies } from '../serve.js'
 import { allTools } from '../tools/index.js'
 import type * as MainModule from '../../main.js'
+import { AttachingClient } from '../../../tests/_helpers/attaching-client.js'
 
 const CLI_ROOT = path.resolve(import.meta.dirname, '../../..')
 
@@ -34,7 +35,7 @@ describe('サーバの起動ファイル', () => {
   it('既定の依存で作るサーバの tools/list が allTools の名前と一致する', async () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
     const handle = serveStdio(mcpServeDefaultDependencies().createServer, { transport: serverTransport })
-    const client = new Client({ name: 'entry-test', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'entry-test', version: '0.0.0' })
     try {
       await client.connect(clientTransport)
       const listed = await client.listTools()

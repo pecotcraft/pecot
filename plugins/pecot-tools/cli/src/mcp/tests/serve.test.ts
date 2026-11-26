@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- Node stream の write を模したフェイクを扱う */
 import { PassThrough, Writable } from 'node:stream'
 
-import { Client, InMemoryTransport } from '@modelcontextprotocol/client'
+import type { Client } from '@modelcontextprotocol/client'
+import { InMemoryTransport } from '@modelcontextprotocol/client'
 import { McpServer } from '@modelcontextprotocol/server'
 import { StdioServerTransport, type StdioServerHandle } from '@modelcontextprotocol/server/stdio'
 import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
@@ -19,6 +20,7 @@ import {
   type ProcessSignals,
 } from '../serve.js'
 import { createMcpServer, MCP_SERVER_NAME, type ToolDefinition } from '../server.js'
+import { AttachingClient } from '../../../tests/_helpers/attaching-client.js'
 
 type WriteCallback = (error?: Error | null) => void
 
@@ -205,7 +207,7 @@ function makeHarness(overrides: Partial<McpServeDependencies> = {}): Harness {
     deps: dependencies,
     servers,
     createServer,
-    client: new Client({ name: 'test-client', version: '0.0.0' }),
+    client: new AttachingClient({ name: 'test-client', version: '0.0.0' }),
     clientTransport,
     serverTransport,
     stdin,

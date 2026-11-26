@@ -4,9 +4,14 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import run_attached  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _SCRIPT = _REPO_ROOT / ".devcontainer" / "scripts" / "pecot-rc.sh"
@@ -39,7 +44,7 @@ def test_passes_worktree_plugins_and_args_from_subdirectory(tmp_path: Path) -> N
     sub = repo / "plugins"
     sub.mkdir()
 
-    result = subprocess.run(
+    result = run_attached(
         ["bash", str(_SCRIPT), "--spawn", "worktree", "--name", "a b"],
         cwd=sub,
         env=env,
@@ -68,7 +73,7 @@ def test_keeps_permission_mode_given_by_caller(tmp_path: Path, mode_args: list[s
     env = _fake_claude(tmp_path)
     repo = _git_repo(tmp_path / "wt")
 
-    result = subprocess.run(
+    result = run_attached(
         ["bash", str(_SCRIPT), "--spawn", "worktree", *mode_args],
         cwd=repo,
         env=env,
@@ -86,7 +91,7 @@ def test_stops_outside_git_worktree(tmp_path: Path) -> None:
     outside.mkdir()
     env["GIT_CEILING_DIRECTORIES"] = str(tmp_path)
 
-    result = subprocess.run(
+    result = run_attached(
         ["bash", str(_SCRIPT)], cwd=outside, env=env, capture_output=True, text=True
     )
 

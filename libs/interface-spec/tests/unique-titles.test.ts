@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { attachOutput } from '../src/vitest/attach.js'
 import { duplicateTitles } from '../src/vitest/unique-titles.js'
 
 const FIXTURES = path.join(import.meta.dirname, 'fixtures', 'unique-titles')
@@ -22,11 +23,13 @@ function suite(name: string, tasks: readonly Node[]): Node {
 }
 
 function runFixture(file: string) {
-  return spawnSync(process.execPath, [VITEST, 'run', '--config', path.join(FIXTURES, 'vitest.config.mjs'), file], {
+  const result = spawnSync(process.execPath, [VITEST, 'run', '--config', path.join(FIXTURES, 'vitest.config.mjs'), file], {
     cwd: FIXTURES,
     encoding: 'utf8',
     env: { ...process.env, CI: 'true', NO_COLOR: '1' },
   })
+  attachOutput(`vitest run ${file}`, result.status ?? undefined, result.stdout, result.stderr)
+  return result
 }
 
 describe('duplicateTitles', () => {

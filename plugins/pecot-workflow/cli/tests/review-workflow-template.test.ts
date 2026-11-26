@@ -8,11 +8,19 @@ import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
 import { stoppedMarker } from '@pecot/workflow-core/domain/review-finish.js'
+import { attachOutput } from '../../../../libs/interface-spec/src/vitest/attach.js'
 import { markdownSection } from './_helpers/markdown-section.js'
 
 const pluginRoot = path.resolve(import.meta.dirname, '..', '..')
 const template = readFileSync(path.join(pluginRoot, 'cli/templates/workflow/pecot-review.yml'), 'utf8')
 const documentPath = path.join(pluginRoot, 'skills/w-help/references/review-workflow.md')
+
+// ワークフローの jq の式を動かし、受けた出力を添付して返す。
+function runJq(arguments_: readonly string[], input: string): string {
+  const stdout = execFileSync('jq', [...arguments_], { input, encoding: 'utf8' })
+  attachOutput(`jq ${arguments_.join(' ').slice(0, 80)}`, 0, stdout, '')
+  return stdout
+}
 
 interface Step {
   'name'?: string
@@ -155,7 +163,7 @@ describe('review のワークフローの雛形', () => {
       { id: 4, user: { type: 'Bot' }, body: '## Resolution — 関係の無いコメント' },
       { id: 5, user: { type: 'User' }, body: stoppedMarker({ runId: '9', attempt: '1' }) },
     ]
-    const found = execFileSync('jq', ['-r', filter], { input: JSON.stringify(comments), encoding: 'utf8' })
+    const found = runJq(['-r', filter], JSON.stringify(comments))
     expect(found.trim().split('\n')).toEqual(['1', '2'])
   })
 
@@ -168,7 +176,7 @@ describe('review のワークフローの雛形', () => {
       { body: '<details>\n<summary>CUJ 1 のログ</summary>\n\n```text\n## Findings — ログの途中の行\n```\n\n</details>' },
       { body: 'ふつうのコメント' },
     ]
-    const found = execFileSync('jq', ['-r', filter], { input: JSON.stringify({ comments }), encoding: 'utf8' })
+    const found = runJq(['-r', filter], JSON.stringify({ comments }))
     expect(found.trim().split('\n')).toEqual(['## Findings — 先頭に改行がある', '## Resolution — 書き手の対応'])
   })
 
@@ -459,7 +467,7 @@ describe('review のワークフローの雛形', () => {
         { tool_name: 'Bash', tool_use_id: 't1', tool_input: { command: 'gh pr merge 1' } },
       ] },
     ]
-    const summary = execFileSync('jq', ['-r', '--arg', 'effort', 'high', filter], { input: JSON.stringify(execution), encoding: 'utf8' })
+    const summary = runJq(['-r', '--arg', 'effort', 'high', filter], JSON.stringify(execution))
     expect(summary).toContain('| `claude-opus-5-5` | `high` | `4` | `error_max_turns` |')
     expect(summary).toContain('| 1 | `Read` | `src/a\\|b.ts` |')
     expect(summary).toContain('| 2 | `mcp__pecot-workflow__issue_comment` | `o/r/1` |')
@@ -471,7 +479,7 @@ describe('review のワークフローの雛形', () => {
 
   it('記録の jq は、ツールの呼び出しと拒否が無いとき、None. を出す', () => {
     const filter = /jq -r --arg effort "\$effort" '([^']*)'/.exec(record.run ?? '')?.[1] ?? ''
-    const summary = execFileSync('jq', ['-r', '--arg', 'effort', 'unknown', filter], { input: '[]', encoding: 'utf8' })
+    const summary = runJq(['-r', '--arg', 'effort', 'unknown', filter], '[]')
     expect(summary).toContain('| `unknown` | `unknown` |  |  |')
     expect(summary.match(/^None\.$/gm)).toHaveLength(2)
   })

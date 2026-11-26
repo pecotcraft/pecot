@@ -4,6 +4,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
+import { attachAtTestEnd } from './attach.js'
+
 import { runSlideCreate } from '../../src/commands/slidev-project/create.js'
 import { writeGeneratedFiles, linkNodeModules } from '../../src/infra/slidev-project/fs.js'
 import { copyFixtureTheme, type CopiedTheme } from './theme-fixtures.js'
@@ -23,8 +25,10 @@ export interface CapturedStream {
   write: (data: string) => boolean
 }
 
-export function makeStream(): CapturedStream {
+export function makeStream(name?: string): CapturedStream {
   const chunks: string[] = []
+  // 名前を付けた stream は、テストが判定に使う出力なので、テストの終わりに添付する。
+  if (name !== undefined) attachAtTestEnd(name, () => chunks.join(''))
   return {
     chunks,
     write(data: string): boolean {

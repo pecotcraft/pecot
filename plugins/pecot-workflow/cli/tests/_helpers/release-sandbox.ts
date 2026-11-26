@@ -7,6 +7,7 @@ import path from 'node:path'
 import { expect } from 'vitest'
 
 import { runCli } from '../../src/cli.js'
+import { attachOutput } from '../../../../../libs/interface-spec/src/vitest/attach.js'
 import type { CliContext } from '../../src/cli.js'
 import { RELEASE_COMMANDS } from '../../src/commands/release.js'
 import { capture } from '../../src/commands/tests/support.js'
@@ -273,13 +274,14 @@ release の 3 個を、プロセス内で呼ぶ。偽サーバの応答は rules
 export async function runRelease(project: Readonly<Project>, argv: readonly string[], rules: readonly ResponseRule[] = [], options: Readonly<RunOptions> = {}): Promise<RunResult> {
   const server = await startFakeGithub(rules)
   setEnvironment({ PECOT_GITHUB_API_URL: server.url })
-  const io = capture()
+  const io = capture({ attach: false })
   const cwd = options.cwd ?? project.directory
   const context: CliContext = { commands: RELEASE_COMMANDS, io, cwd, environment: {}, terminalColumns: undefined }
   const original = process.cwd()
   try {
     process.chdir(cwd)
     const code = await runCli(argv, context)
+    attachOutput(['pecot', ...argv].join(' '), code, io.out.join(''), io.err.join(''))
     expect({ problems: server.problems(), unused: server.unused() }).toEqual({ problems: [], unused: [] })
     return { code, stdout: io.out.join(''), stderr: io.err.join(''), requests: server.requests() }
   }

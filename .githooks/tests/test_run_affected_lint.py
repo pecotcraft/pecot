@@ -14,10 +14,15 @@ _isolate_git_env autouse に委譲する。
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output  # noqa: E402
 
 # 記録型 nx スタブ（全引数を 1 行で $STUB_NX_LOG へ追記し STUB_NX_EXIT で終了）。
 #
@@ -115,7 +120,7 @@ def test_changed_files_run_affected_lint(
     )
     assert result.returncode == 0
 
-    log = nx_log.read_text()
+    log = read_output(nx_log)
     # 起点の `lint`（nx:noop）だけでなく、実体の `lint` と `lint-*` のレーンを名前で列挙する（#1232）。
     # `linter` のように `lint-` で始まらない名前は含めない。
     assert "affected -t lint,lint-docs,lint-src --files=" in log
@@ -137,7 +142,7 @@ def test_no_changed_files_skips_nx(
         env={"STUB_NX_LOG": str(nx_log)},
     )
     assert result.returncode == 0
-    assert nx_log.read_text() == ""
+    assert read_output(nx_log) == ""
 
 
 def test_lint_failure_propagates(
@@ -154,7 +159,7 @@ def test_lint_failure_propagates(
         env={"STUB_NX_LOG": str(nx_log), "STUB_NX_EXIT": "1"},
     )
     assert result.returncode == 1
-    assert "affected -t lint" in nx_log.read_text()
+    assert "affected -t lint" in read_output(nx_log)
 
 
 def test_nx_unresolved_fail_closed(
@@ -191,10 +196,10 @@ def test_lane_names_come_from_the_graph_each_run(
     )
     assert result.returncode == 0
 
-    graph_calls = Path(f"{nx_log}.graph").read_text().splitlines()
+    graph_calls = read_output(Path(f"{nx_log}.graph")).splitlines()
     assert len(graph_calls) == 1
     assert graph_calls[0].startswith("graph --file=")
-    affected = [ln for ln in nx_log.read_text().splitlines() if ln.startswith("affected ")]
+    affected = [ln for ln in read_output(nx_log).splitlines() if ln.startswith("affected ")]
     assert len(affected) == 1
     assert affected[0].split()[2] == "lint,lint-docs,lint-src"
 
@@ -229,4 +234,4 @@ def test_graph_unavailable_fail_closed(
     )
     assert result.returncode == 1
     assert "ERROR" in (result.stdout + result.stderr)
-    assert "affected" not in nx_log.read_text()
+    assert "affected" not in read_output(nx_log)

@@ -11,6 +11,10 @@ from typing import Any
 
 import pytest
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import run_attached  # noqa: E402
+
 _REPO = Path(__file__).resolve().parents[2]
 _REPORT_LANES = _REPO / ".githooks/scripts/test_report/report-lanes.json"
 _LANES = _REPO / ".githooks/scripts/test_report/lanes.py"
@@ -36,6 +40,7 @@ _INCLUDED = [
 
 
 def _project_files() -> list[str]:
+    # リポのファイルの一覧はテストの入力で、テスト対象の出力でないので添付しない。
     out = subprocess.run(
         ["git", "ls-files"], cwd=_REPO, capture_output=True, text=True, check=True
     ).stdout
@@ -154,7 +159,7 @@ def test_plugin_only_for_plugins(entry: dict[str, Any]) -> None:
 
 
 def _run(*args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    return run_attached(
         [sys.executable, str(_LANES), *args], capture_output=True, text=True, check=False
     )
 
@@ -165,7 +170,7 @@ def _js_slug(lanes: list[str]) -> list[str]:
     match = re.search(r"slug: (lane\.replace\(/.+?/g, \"-\"\))", source)
     assert match, "list-test-lanes.sh に slug の式が見つかりません"
     script = f"const lanes = JSON.parse(process.argv[1]); console.log(JSON.stringify(lanes.map((lane) => {match.group(1)})));"
-    out = subprocess.run(
+    out = run_attached(
         ["node", "-e", script, json.dumps(lanes)], capture_output=True, text=True, check=True
     )
     return json.loads(out.stdout)

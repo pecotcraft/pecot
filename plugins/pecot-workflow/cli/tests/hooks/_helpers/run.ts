@@ -6,6 +6,7 @@ import { writeFileSync } from 'node:fs'
 import { constants } from 'node:os'
 import path from 'node:path'
 
+import { attachOutput } from '../../../../../../libs/interface-spec/src/vitest/attach.js'
 import { scratchDirectory } from './environment.js'
 import type { EnvironmentOverrides, HookCase } from './environment.js'
 import { hooksDirectory } from './paths.js'
@@ -49,8 +50,11 @@ export function run(hookCase: HookCase, command: string, argv: readonly string[]
     killSignal: 'SIGKILL',
     maxBuffer: MAX_BUFFER,
   })
+  const exitCode = exitCodeOf(result.status, result.signal)
+  // 起動の失敗で throw する前に、受けた出力を添付する。
+  attachOutput(description(command, argv), exitCode, result.stdout, result.stderr)
   if (result.error) throw new Error(`起動に失敗しました（${description(command, argv)}）: ${result.error.message}`, { cause: result.error })
-  return { exitCode: exitCodeOf(result.status, result.signal), stdout: result.stdout, stderr: result.stderr }
+  return { exitCode, stdout: result.stdout, stderr: result.stderr }
 }
 
 // bash <script> [args...]

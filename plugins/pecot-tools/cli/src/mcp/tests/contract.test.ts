@@ -6,6 +6,7 @@ import path from 'node:path'
 import { describe, expect, it, beforeAll, afterAll } from 'vitest'
 
 import type { Tool } from '@modelcontextprotocol/client'
+import { attachJson } from '../../../../../../libs/interface-spec/src/vitest/attach.js'
 import { isRecord } from '../../../tests/_helpers/records.js'
 import { SSO_TOOL_NAMES } from '../../../tests/_helpers/sso-tool-names.js'
 import { ALLOWLIST } from '../../domain/allowlist.js'
@@ -77,12 +78,14 @@ function descriptionOf(property: unknown): unknown {
 }
 
 describe('MCP ツール契約 (tools/list)', () => {
+  let listedResult: unknown
   let listed: readonly Tool[] = []
   let connected: ConnectedMcp | undefined
 
   beforeAll(async () => {
     connected = await connectMcp(allTools())
     const result = await connected.client.listTools()
+    listedResult = result
     listed = result.tools
   })
 
@@ -90,16 +93,24 @@ describe('MCP ツール契約 (tools/list)', () => {
     if (connected !== undefined) await closeMcp(connected)
   })
 
+  // 全体を見るテストは tools/list の全体を、1 つのツールを見るテストはその項目だけを添付する。
+  function allListed(): readonly Tool[] {
+    attachJson('tools/list の結果', listedResult)
+    return listed
+  }
+
   function toolOf(name: string): Tool {
     const found = listed.find(tool => tool.name === name)
     if (found === undefined) throw new Error(`tools/list に ${name} が載っていません`)
+    attachJson(`${name} の tools/list の項目`, found)
     return found
   }
 
   it('tools/list のツール名の集合が generated.json の項目と一致する', () => {
     // 24 はツールを足す人が直す値。generated.json を書き出し直しても、直し忘れはここで止まる。
-    expect(listed).toHaveLength(24)
-    const listedNames = listed.map(tool => tool.name)
+    const all = allListed()
+    expect(all).toHaveLength(24)
+    const listedNames = all.map(tool => tool.name)
     const generatedNames = GENERATED_TOOLS.map(tool => tool.name)
 
     expect(sorted(listedNames)).toEqual(sorted(generatedNames))
@@ -107,7 +118,7 @@ describe('MCP ツール契約 (tools/list)', () => {
 
   it('許可リストの並びが tools/list の尾部と一致する', () => {
     // 許可リストは SSO の 2 件を持たず、tools/list は SSO の 2 件を先頭に置く。
-    const names = listed.map(tool => tool.name)
+    const names = allListed().map(tool => tool.name)
 
     expect(names.slice(0, SSO_TOOL_NAMES.length)).toEqual(SSO_TOOL_NAMES)
     expect(ALLOWLIST.map(entry => entry.toolName)).toEqual(names.slice(SSO_TOOL_NAMES.length))
@@ -189,7 +200,7 @@ describe('MCP ツール契約 (tools/list)', () => {
   })
 
   it('成功の必須項目の表が tools/list のツールに含まれる', () => {
-    const names = new Set(listed.map(tool => tool.name))
+    const names = new Set(allListed().map(tool => tool.name))
 
     expect(Object.keys(SUCCESS_REQUIRED).filter(name => !names.has(name))).toEqual([])
   })

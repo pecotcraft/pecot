@@ -5,11 +5,15 @@ from __future__ import annotations
 import json
 import os
 import re
-import subprocess
+import sys
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import run_attached  # noqa: E402
 
 REPO = "o/r"
 
@@ -55,9 +59,7 @@ class Env:
         self.script = script
 
     def git(self, *args: str) -> str:
-        r = subprocess.run(
-            ["git", *args], cwd=self.repo, check=True, capture_output=True, text=True
-        )
+        r = run_attached(["git", *args], cwd=self.repo, check=True, capture_output=True, text=True)
         return r.stdout.strip()
 
     def commit(self, name: str, content: str, parent: str | None = None) -> str:
@@ -95,9 +97,7 @@ class Env:
             "QUEUE_BASE": base,
             "QUEUE_HEAD": head,
         }
-        r = subprocess.run(
-            [str(self.script)], env=env, cwd=self.repo, capture_output=True, text=True
-        )
+        r = run_attached([str(self.script)], env=env, cwd=self.repo, capture_output=True, text=True)
         assert r.returncode == 0, r.stderr
         return r.stdout.strip(), r.stderr.strip()
 

@@ -31,11 +31,15 @@ pytest 版は _clean_push_env autouse で同等にする。
 from __future__ import annotations
 
 import re
-import subprocess
+import sys
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output, run_attached  # noqa: E402
 
 _ZERO_SHA = "0000000000000000000000000000000000000000"
 
@@ -391,7 +395,7 @@ class _AffectedTestsRepo:
     def build_feature(self, changed_path: str = "plugins/pecot-workflow/cli/probe.py") -> None:
         """feature を作り origin/main・origin/HEAD を擬似生成（base 解決成功系）。"""
         self.build_feature_no_remote("feature", changed_path)
-        self.from_sha = subprocess.run(
+        self.from_sha = run_attached(
             ["git", "merge-base", self.main_sha, self.feature_sha],
             cwd=self.repo,
             check=True,
@@ -437,7 +441,7 @@ def _add_second_feature(
     git(h.repo, "add", str(probe.relative_to(h.repo)))
     git(h.repo, "commit", "-q", "-m", f"feat(pecot-workflow): {branch}")
     tip_sha = git_rev_parse(h.repo, "HEAD")
-    from_sha = subprocess.run(
+    from_sha = run_attached(
         ["git", "merge-base", h.main_sha, tip_sha],
         cwd=h.repo,
         check=True,
@@ -468,7 +472,7 @@ def test_env_path_affected_with_merge_base(
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": at_repo.feature_sha})
     assert result.returncode == 0
 
-    log = at_repo.nx_log.read_text()
+    log = read_output(at_repo.nx_log)
     # 起点の `test`（nx:noop）ではなく、graph の test-* レーンを名前で列挙して要求する（#1232）。
     assert "affected -t test-cli,test-hooks,test-unit --base=" in log
     assert f"--base={at_repo.from_sha}" in log
@@ -494,7 +498,7 @@ def test_stdin_path_affected(script_dir: Path, at_repo: _AffectedTestsRepo, run_
     )
     assert result.returncode == 0
 
-    log = at_repo.nx_log.read_text()
+    log = read_output(at_repo.nx_log)
     assert "affected -t test" in log
     assert f"--base={at_repo.from_sha}" in log
     assert f"--head={at_repo.feature_sha}" in log
@@ -519,7 +523,7 @@ def test_version_plan_base_override(
     )
     assert result.returncode == 0
 
-    log = at_repo.nx_log.read_text()
+    log = read_output(at_repo.nx_log)
     assert f"--base={at_repo.from_sha}" in log
     assert f"--head={at_repo.feature_sha}" in log
 
@@ -533,7 +537,7 @@ def test_branch_delete_push_skips(
 
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": _ZERO_SHA})
     assert result.returncode == 0
-    assert at_repo.nx_log.read_text() == ""
+    assert read_output(at_repo.nx_log) == ""
 
 
 def test_from_equals_to_skips(script_dir: Path, at_repo: _AffectedTestsRepo, run_script) -> None:
@@ -545,7 +549,7 @@ def test_from_equals_to_skips(script_dir: Path, at_repo: _AffectedTestsRepo, run
 
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": at_repo.main_sha})
     assert result.returncode == 0
-    assert at_repo.nx_log.read_text() == ""
+    assert read_output(at_repo.nx_log) == ""
 
 
 def test_affected_test_failure_propagates(
@@ -562,7 +566,7 @@ def test_affected_test_failure_propagates(
         env={"STUB_NX_EXIT": "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
     assert result.returncode == 1
-    assert "affected -t test" in at_repo.nx_log.read_text()
+    assert "affected -t test" in read_output(at_repo.nx_log)
 
 
 def test_nx_unresolved_fail_closed(
@@ -591,7 +595,7 @@ def test_base_unresolved_run_many_fallback(
     assert result.returncode == 0
     assert "WARN" in (result.stdout + result.stderr)
 
-    log = at_repo.nx_log.read_text()
+    log = read_output(at_repo.nx_log)
     assert "run-many -t test" in log
     assert "--parallel=4" in log
     assert "--nxBail" in log
@@ -611,10 +615,10 @@ def test_lane_names_come_from_the_graph_each_run(
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": at_repo.feature_sha})
     assert result.returncode == 0
 
-    graph_calls = Path(f"{at_repo.nx_log}.graph").read_text().splitlines()
+    graph_calls = read_output(Path(f"{at_repo.nx_log}.graph")).splitlines()
     assert len(graph_calls) == 1
     assert graph_calls[0].startswith("graph --file=")
-    affected = [ln for ln in at_repo.nx_log.read_text().splitlines() if ln.startswith("affected ")]
+    affected = [ln for ln in read_output(at_repo.nx_log).splitlines() if ln.startswith("affected ")]
     assert len(affected) == 1
     assert affected[0].split()[2] == "test-cli,test-hooks,test-unit"
 
@@ -636,7 +640,7 @@ def test_affected_fails_closed_when_graph_cannot_be_computed(
     out = result.stdout + result.stderr
     assert "ERROR" in out
     assert "nx graph" in out
-    assert "affected" not in at_repo.nx_log.read_text()
+    assert "affected" not in read_output(at_repo.nx_log)
 
 
 def test_affected_fails_closed_when_graph_has_no_test_lane(
@@ -654,7 +658,7 @@ def test_affected_fails_closed_when_graph_has_no_test_lane(
     )
     assert result.returncode == 1
     assert "ERROR" in (result.stdout + result.stderr)
-    assert "affected" not in at_repo.nx_log.read_text()
+    assert "affected" not in read_output(at_repo.nx_log)
 
 
 def test_run_many_fallback_does_not_need_the_graph(
@@ -671,7 +675,7 @@ def test_run_many_fallback_does_not_need_the_graph(
         env={"PRE_COMMIT_TO_REF": at_repo.feature_sha, "STUB_NX_GRAPH_FAIL": "1"},
     )
     assert result.returncode == 0
-    assert "run-many -t test " in at_repo.nx_log.read_text()
+    assert "run-many -t test " in read_output(at_repo.nx_log)
     assert not Path(f"{at_repo.nx_log}.graph").exists()
 
 
@@ -689,7 +693,7 @@ def test_base_unresolved_run_many_failure_propagates(
         env={"STUB_NX_EXIT": "1", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
     assert result.returncode == 1
-    assert "run-many -t test" in at_repo.nx_log.read_text()
+    assert "run-many -t test" in read_output(at_repo.nx_log)
 
 
 def test_no_push_info_run_many_fallback(
@@ -703,7 +707,7 @@ def test_no_push_info_run_many_fallback(
     result = _run(script_dir, at_repo, run_script, stdin="")
     assert result.returncode == 0
     assert "WARN" in (result.stdout + result.stderr)
-    assert "run-many -t test" in at_repo.nx_log.read_text()
+    assert "run-many -t test" in read_output(at_repo.nx_log)
 
 
 def test_stdin_two_lines_two_affected(
@@ -723,7 +727,7 @@ def test_stdin_two_lines_two_affected(
     result = _run(script_dir, at_repo, run_script, stdin=stdin)
     assert result.returncode == 0
 
-    log = at_repo.nx_log.read_text()
+    log = read_output(at_repo.nx_log)
     # affected が tip ごとに 2 回実行され、run-many は呼ばれない。
     assert log.count("affected -t test") == 2
     assert f"--base={at_repo.from_sha}" in log
@@ -754,7 +758,7 @@ def test_annotated_tag_peeled(
     )
     assert result.returncode == 0
 
-    log = at_repo.nx_log.read_text()
+    log = read_output(at_repo.nx_log)
     assert "affected -t test" in log
     # peel 後の commit SHA が --head に渡る（tag object SHA ではない）。
     assert f"--head={at_repo.feature_sha}" in log
@@ -786,7 +790,7 @@ def test_multiple_tip_all_fallback_run_many_once(
     assert out.count("WARN") == 1
 
     # run-many が 1 回だけ実行される（フォールバックは集約され 1 回）。
-    assert at_repo.nx_log.read_text().count("run-many -t test") == 1
+    assert read_output(at_repo.nx_log).count("run-many -t test") == 1
 
 
 def test_node_unresolved_fail_closed(
@@ -834,7 +838,7 @@ def test_pm_guard_behavior_off_without_manifest_change(
 
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": at_repo.feature_sha})
     assert result.returncode == 0
-    assert "ENV PECOTV_PM_GUARD_BEHAVIOR=0" in at_repo.nx_log.read_text()
+    assert "ENV PECOTV_PM_GUARD_BEHAVIOR=0" in read_output(at_repo.nx_log)
 
 
 @pytest.mark.parametrize(
@@ -855,7 +859,7 @@ def test_pm_guard_behavior_on_with_manifest_change(
 
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": at_repo.feature_sha})
     assert result.returncode == 0
-    assert "ENV PECOTV_PM_GUARD_BEHAVIOR=1" in at_repo.nx_log.read_text()
+    assert "ENV PECOTV_PM_GUARD_BEHAVIOR=1" in read_output(at_repo.nx_log)
 
 
 # ====
@@ -900,7 +904,7 @@ def test_failure_reports_failed_lane_only_and_normalizes_exit(
     assert f"進行確認: tail -f {log}" in result.stderr
 
     # ログ側には全レーン分が残る。
-    log_text = log.read_text()
+    log_text = read_output(log)
     assert "LANE_ONE_BODY" in log_text
     assert "LANE_TWO_BODY" in log_text
 
@@ -938,7 +942,7 @@ def test_success_writes_log_and_keeps_terminal_quiet(
     result = _run(script_dir, at_repo, run_script, env={"PRE_COMMIT_TO_REF": at_repo.feature_sha})
     assert result.returncode == 0
 
-    log_text = _hook_log_path(at_repo).read_text()
+    log_text = read_output(_hook_log_path(at_repo))
     assert "LANE_ONE_BODY" in log_text
     assert "Successfully ran target test" in log_text
 
@@ -963,7 +967,7 @@ def test_fallback_run_many_failure_reports_failed_lane(
     )
     assert result.returncode == 1
 
-    args_log = at_repo.nx_log.read_text()
+    args_log = read_output(at_repo.nx_log)
     assert "run-many -t test" in args_log
     assert "--nxBail" in args_log
 
@@ -1004,7 +1008,7 @@ def test_failure_body_truncated_to_line_limit(
     assert "AssertionError: expected 1 to be 2" in result.stderr
     assert "lane-two: DOT1 ." not in result.stderr
     # ログ側には全量が残る。
-    assert "lane-two: DOT1 ." in _hook_log_path(at_repo).read_text()
+    assert "lane-two: DOT1 ." in read_output(_hook_log_path(at_repo))
 
 
 def test_failure_reports_only_current_nx_run(
@@ -1036,7 +1040,7 @@ def test_failure_reports_only_current_nx_run(
     assert "Successfully ran target test" not in result.stderr
 
     # ログには両方の実行分が残る。
-    log_text = _hook_log_path(at_repo).read_text()
+    log_text = read_output(_hook_log_path(at_repo))
     assert "CALL1_BODY" in log_text
     assert "CALL2_BODY" in log_text
 
@@ -1152,7 +1156,7 @@ def _timing_rows(h: _AffectedTestsRepo) -> list[list[str]]:
     path = h.repo / _TIMING_RELPATH
     if not path.exists():
         return []
-    rows = [line.split("\t") for line in path.read_text().splitlines()]
+    rows = [line.split("\t") for line in read_output(path).splitlines()]
     for row in rows:
         assert len(row) == 5, row
     return rows
@@ -1547,7 +1551,7 @@ def test_ci_mode_affected_uses_static_without_bail(
     )
     assert result.returncode == 0
 
-    affected = [ln for ln in at_repo.nx_log.read_text().splitlines() if ln.startswith("affected ")]
+    affected = [ln for ln in read_output(at_repo.nx_log).splitlines() if ln.startswith("affected ")]
     assert len(affected) == 1
     assert "--output-style=static" in affected[0]
     assert "--output-style=stream" not in affected[0]
@@ -1570,7 +1574,7 @@ def test_ci_mode_run_many_uses_static_without_bail(
     )
     assert result.returncode == 0
 
-    run_many = [ln for ln in at_repo.nx_log.read_text().splitlines() if ln.startswith("run-many ")]
+    run_many = [ln for ln in read_output(at_repo.nx_log).splitlines() if ln.startswith("run-many ")]
     assert len(run_many) == 1
     assert "--output-style=static" in run_many[0]
     assert "--nxBail" not in run_many[0]
@@ -1589,7 +1593,7 @@ def test_ci_mode_unset_or_other_value_keeps_stream_and_bail(
 
     result = _run(script_dir, at_repo, run_script, env=env)
     assert result.returncode == 0
-    lines = [ln for ln in at_repo.nx_log.read_text().splitlines() if ln.startswith("affected ")]
+    lines = [ln for ln in read_output(at_repo.nx_log).splitlines() if ln.startswith("affected ")]
     assert len(lines) == 1
     assert "--nxBail" in lines[0]
     assert "--output-style=stream" in lines[0]
@@ -1599,7 +1603,7 @@ def test_ci_mode_unset_or_other_value_keeps_stream_and_bail(
     at_repo.nx_log.write_text("")
     result = _run(script_dir, at_repo, run_script, env=dict(env, PRE_COMMIT_TO_REF=""), stdin="")
     assert result.returncode == 0
-    many = [ln for ln in at_repo.nx_log.read_text().splitlines() if ln.startswith("run-many ")]
+    many = [ln for ln in read_output(at_repo.nx_log).splitlines() if ln.startswith("run-many ")]
     assert len(many) == 1
     assert "--nxBail" in many[0]
     assert "--output-style=stream" in many[0]
@@ -1645,7 +1649,7 @@ def test_ci_mode_failure_reports_only_the_failed_task_chunk(
     assert f"全出力: {_hook_log_path(at_repo)}" in result.stderr
 
     # ログには全レーン分が残る。
-    log_text = _hook_log_path(at_repo).read_text()
+    log_text = read_output(_hook_log_path(at_repo))
     assert "STATIC_PASS_UNIT_BODY" in log_text
     assert "STATIC_PASS_HOOKS_BODY" in log_text
 
@@ -1766,7 +1770,7 @@ def test_nx_parallel_env_overrides_default(
         env={"PECOT_NX_PARALLEL": "2", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
     assert result.returncode == 0
-    log = at_repo.nx_log.read_text()
+    log = read_output(at_repo.nx_log)
     assert "--parallel=2" in log
     assert "--parallel=4" not in log
     assert "並列 2" in result.stdout
@@ -1788,7 +1792,7 @@ def test_nx_parallel_empty_uses_default(
         env={"PECOT_NX_PARALLEL": "", "PRE_COMMIT_TO_REF": at_repo.feature_sha},
     )
     assert result.returncode == 0
-    assert "--parallel=4" in at_repo.nx_log.read_text()
+    assert "--parallel=4" in read_output(at_repo.nx_log)
     assert "並列 4" in result.stdout
 
 
@@ -1808,7 +1812,7 @@ def test_nx_parallel_invalid_fails_before_nx(
     )
     assert result.returncode == 1
     assert f"ERROR: PECOT_NX_PARALLEL は正の整数です: {value}" in result.stderr
-    assert at_repo.nx_log.read_text() == ""
+    assert read_output(at_repo.nx_log) == ""
 
 
 # ====
@@ -1820,12 +1824,12 @@ _LANE_ENV = {"PECOT_NX_CI": "1", "PECOT_NX_LANE": _LANE}
 
 
 def _nx_calls(h: _AffectedTestsRepo, sub: str) -> list[str]:
-    return [ln for ln in h.nx_log.read_text().splitlines() if ln.startswith(f"{sub} ")]
+    return [ln for ln in read_output(h.nx_log).splitlines() if ln.startswith(f"{sub} ")]
 
 
 def _guard_values(h: _AffectedTestsRepo) -> list[str]:
     prefix = "ENV PECOTV_PM_GUARD_BEHAVIOR="
-    return [ln[len(prefix) :] for ln in h.nx_log.read_text().splitlines() if ln.startswith(prefix)]
+    return [ln[len(prefix) :] for ln in read_output(h.nx_log).splitlines() if ln.startswith(prefix)]
 
 
 def test_lane_mode_runs_one_lane_with_run_many(

@@ -17,6 +17,7 @@ import { lintText } from '@pecot/text-rules'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import type { CallToolResult } from '@modelcontextprotocol/server'
+import { attachOutput } from '../../../tests/_helpers/attach.js'
 import { buildPng } from '../../../tests/_helpers/image-fixture.js'
 import { isRecord } from '../../../tests/_helpers/records.js'
 import { redundantExpression } from '../../../tests/_helpers/redundant-expression.js'
@@ -323,6 +324,7 @@ describe('SC-002 止める場所ごとの規則名の一致', () => {
     writeFileSync(file, content, 'utf8')
 
     const result = spawnSync(process.execPath, [bin, ...options, file], { encoding: 'utf8' })
+    attachOutput(`pecot-text-lint ${options.join(' ')} ${name}`, result.status ?? undefined, result.stdout, result.stderr)
 
     // 出力行は「file:line:col ruleId message」
     const ruleIds = result.stdout.split('\n').filter(line => /^\S+:\d+:\d+ /.test(line)).map(line => line.split(' ', 2)[1])

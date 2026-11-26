@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url'
 import { RuleTester } from 'eslint'
 import { parser } from 'typescript-eslint'
 import { describe, expect, it } from 'vitest'
+import { attachOutput } from '../src/vitest/attach.js'
 import { invalidKeys, tableKeyConfig, tableKeyPlugin, tableKeyRule } from '../src/eslint/table-key.js'
 
 RuleTester.describe = describe
@@ -91,6 +92,7 @@ describe('規則のファイル', () => {
       ['--input-type=module', '--eval', `const m = await import(${JSON.stringify(url)}); console.log(typeof m.tableKeyConfig)`],
       { encoding: 'utf8' },
     )
+    attachOutput(`node --eval import ${path.basename(RULE_FILE)}`, 0, output, '')
     expect(output.trim()).toBe('function')
   })
 })

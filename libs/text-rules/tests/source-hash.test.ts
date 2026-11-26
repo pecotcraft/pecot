@@ -7,6 +7,7 @@ import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
+import { attachOutput } from '../../interface-spec/src/vitest/attach.js'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 const execFileAsync = promisify(execFile)
@@ -17,7 +18,8 @@ const scriptUrl = pathToFileURL(script).href
 // .mjs を TypeScript から直接 import すると型解決と lint が落ちるので、子プロセスで呼ぶ。
 async function evaluate(target: string, expression: string): Promise<string> {
   const code = `import { sourceFiles, sourceHash } from ${JSON.stringify(scriptUrl)}\nconst root = ${JSON.stringify(target)}\nconsole.log(${expression})`
-  const { stdout } = await execFileAsync(process.execPath, ['--input-type=module', '-e', code])
+  const { stdout, stderr } = await execFileAsync(process.execPath, ['--input-type=module', '-e', code])
+  attachOutput(`node --input-type=module -e ${expression}`, 0, stdout, stderr)
   return stdout.trim()
 }
 
@@ -117,7 +119,8 @@ describe('source-hash', () => {
   })
 
   it('直接実行は 64 桁の hex を 1 行で出し、実パッケージの値と一致する', async () => {
-    const { stdout } = await execFileAsync(process.execPath, [script])
+    const { stdout, stderr } = await execFileAsync(process.execPath, [script])
+    attachOutput('node scripts/source-hash.mjs', 0, stdout, stderr)
     expect(stdout).toMatch(/^[0-9a-f]{64}\n$/)
     expect(stdout.trim()).toBe(await hashOf(root))
   })

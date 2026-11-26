@@ -2,13 +2,15 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { normalizeInput } from '../../src/commands/input-schema.js'
 import { byName } from '@pecot/workflow-core/commands-shared/names.js'
 import { COMMANDS } from '../../src/commands/registry.js'
 import { createMcpServer } from '../../src/mcp/server.js'
+import type { Tool } from '@modelcontextprotocol/client'
+import { attachJson } from '../../../../../libs/interface-spec/src/vitest/attach.js'
 import { parseJson } from '../../../../../libs/workflow-core/tests/_helpers/json.js'
 import { connectInMemory, outcomeOf, structuredOf } from '../_helpers/mcp-client.js'
 import type { ConnectedClient } from '../_helpers/mcp-client.js'
@@ -67,6 +69,27 @@ afterEach(async () => {
 })
 
 describe('tools/list', () => {
+  let shared: ConnectedClient | undefined
+  let listed: readonly Tool[] = []
+
+  beforeAll(async () => {
+    shared = await connectInMemory(createMcpServer())
+    const { tools } = await shared.client.listTools()
+    listed = tools
+  })
+
+  afterAll(async () => {
+    await shared?.close()
+  })
+
+  // 1 つのツールを見るテストは、tools/list の全体でなく、そのツールの項目だけを添付する。
+  function toolOf(name: string): Tool {
+    const found = listed.find(tool => tool.name === name)
+    if (found === undefined) throw new Error(`tools/list に ${name} が載っていません`)
+    attachJson(`${name} の tools/list の項目`, found)
+    return found
+  }
+
   it('COMMANDS と同じ 45 個の名前を、同じ並びで返す', async () => {
     const { client } = await connect()
     const { tools } = await client.listTools()
@@ -103,14 +126,11 @@ describe('tools/list', () => {
     expect(flagged).toEqual([])
   })
 
-  it.for(COMMANDS.map(command => ({ name: command.toolName, command })))('$name の入力は、定義書の同じ項目の input に一致する', async ({ command }) => {
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    const tool = tools.find(entry => entry.name === command.toolName)
+  it.for(COMMANDS.map(command => ({ name: command.toolName, command })))('$name の入力は、定義書の同じ項目の input に一致する', ({ command }) => {
+    const tool = toolOf(command.toolName)
     const entry = generated.entries.find(item => item.surfaces.mcp.tool === command.toolName)
-    expect(tool).toBeDefined()
     expect(entry).toBeDefined()
-    expect(normalizeInput(tool?.inputSchema ?? {}, command.toolName, command.hasOwnRepo)).toEqual(entry?.input)
+    expect(normalizeInput(tool.inputSchema, command.toolName, command.hasOwnRepo)).toEqual(entry?.input)
   })
 
   it('全ツールが最上位の title を持ち、値は定義書の mcp.title に一致し、annotations に title を持たない', async () => {
@@ -144,10 +164,8 @@ describe('tools/list', () => {
     expect(outputs).toEqual(expected)
   })
 
-  it.for(COMMANDS.map(command => ({ name: command.toolName, command })))('$name の outputSchema は、最上位が type: object の閉じた型で、properties にツールの項目と共通の 4 項目を持ち、入れ物の名前を持たない', async ({ command }) => {
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    const schema = OutputSchemaShape.parse(tools.find(tool => tool.name === command.toolName)?.outputSchema)
+  it.for(COMMANDS.map(command => ({ name: command.toolName, command })))('$name の outputSchema は、最上位が type: object の閉じた型で、properties にツールの項目と共通の 4 項目を持ち、入れ物の名前を持たない', ({ command }) => {
+    const schema = OutputSchemaShape.parse(toolOf(command.toolName).outputSchema)
     const names = Object.keys(schema.properties)
     expect(names).toEqual([...Object.keys(command.output.shape), 'kind', 'detail', 'log', 'warnings'])
     expect(names.filter(name => ENVELOPE_NAMES.has(name))).toEqual([])
@@ -160,10 +178,8 @@ describe('tools/list', () => {
     { name: 'issue_check', required: ['plan'] },
     { name: 'pr_create', required: ['url', 'head', 'base', 'title', 'moves'] },
     { name: 'project_activate', required: ['configPath', 'change', 'config_moved'] },
-  ])('$name の outputSchema は、成功の結果の項目を anyOf で必須にする', async ({ name, required }) => {
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    const schema = tools.find(tool => tool.name === name)?.outputSchema
+  ])('$name の outputSchema は、成功の結果の項目を anyOf で必須にする', ({ name, required }) => {
+    const schema = toolOf(name).outputSchema
     expect(schema).toMatchObject({ anyOf: [{ required }, { required: ['kind', 'detail'] }] })
   })
 

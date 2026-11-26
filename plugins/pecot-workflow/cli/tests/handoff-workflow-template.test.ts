@@ -7,6 +7,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
+import { attachOutput } from '../../../../libs/interface-spec/src/vitest/attach.js'
 import { markdownSection } from './_helpers/markdown-section.js'
 
 const pluginRoot = path.resolve(import.meta.dirname, '..', '..')
@@ -212,6 +213,7 @@ describe('handoff のワークフローの雛形', () => {
       ] },
     ]
     const summary = execFileSync('jq', ['-r', '--arg', 'effort', 'medium', filter], { input: JSON.stringify(execution), encoding: 'utf8' })
+    attachOutput('jq（Handoff run の要約）', 0, summary, '')
     expect(summary).toContain('## Handoff run')
     expect(summary).toContain('| `claude-opus-5-5` | `medium` | `3` | `success` |')
     expect(summary).toContain(`| 1 | \`${pecot}pr_show\` | \`o/r/7\` |`)

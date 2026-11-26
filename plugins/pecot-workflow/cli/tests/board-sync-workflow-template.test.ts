@@ -7,6 +7,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
+import { attachOutput } from '../../../../libs/interface-spec/src/vitest/attach.js'
 import { markdownSection } from './_helpers/markdown-section.js'
 
 const pluginRoot = path.resolve(import.meta.dirname, '..', '..')
@@ -51,11 +52,13 @@ const finishStep = finish.steps.find(step => step.run !== undefined) ?? {}
 // finish の step の run を bash で動かし、npx の代わりに引数を出す関数で、打つ行を読む。
 function finishCommand(headReference: string): string {
   const script = `npx() { printf '%s\\n' "npx $*"; }\n${finishStep.run ?? ''}`
-  return execFileSync('bash', ['-e'], {
+  const stdout = execFileSync('bash', ['-e'], {
     input: script,
     env: { ...process.env, HEAD_REF: headReference, PR: '7', GITHUB_REPOSITORY: 'o/r' },
     encoding: 'utf8',
-  }).trim()
+  })
+  attachOutput('bash -e（finish の run）', 0, stdout, '')
+  return stdout.trim()
 }
 
 describe('board sync のワークフローの雛形', () => {

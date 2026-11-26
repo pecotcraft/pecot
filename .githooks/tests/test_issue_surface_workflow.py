@@ -6,12 +6,16 @@ workflow_dispatch は main に定義が入るまで動かせないため、形�
 from __future__ import annotations
 
 import os
-import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
 import pytest
 import yaml
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output, run_attached  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _WORKFLOW = _REPO_ROOT / ".github/workflows/issue-surface-drift.yml"
@@ -85,7 +89,7 @@ def test_compare_step_passes_repo_and_dry_run_only_when_true(
         "GITHUB_REPOSITORY": "owner/repo",
         "DRY_RUN": dry_run,
     }
-    result = subprocess.run(
+    result = run_attached(
         ["bash", "-e", "-c", step["run"]],
         cwd=tmp_path,
         env=env,
@@ -94,7 +98,7 @@ def test_compare_step_passes_repo_and_dry_run_only_when_true(
         check=False,
     )
     assert result.returncode == 0, result.stderr
-    args = out.read_text(encoding="utf-8").splitlines()
+    args = read_output(out).splitlines()
     assert args == [
         "--dir",
         "plugins/pecot-workflow/cli",

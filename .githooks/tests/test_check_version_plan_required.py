@@ -7,10 +7,15 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output, run_attached  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 # stub の nx.json も、実 nx.json の glob を使う（除外の正は nx.json の 1 か所）。
@@ -524,7 +529,7 @@ def test_38b_check_receives_base_and_head(script_dir: Path, vpr_repo: _VprRepo, 
     )
     result = _run(script_dir, vpr_repo, run_script, to_ref=sha)
     assert result.returncode == 0, result.stderr
-    argv = (vpr_repo.repo / "argv.txt").read_text()
+    argv = read_output(vpr_repo.repo / "argv.txt")
     assert argv == f"--check --base {vpr_repo.main_sha} --head {sha}"
 
 
@@ -1086,7 +1091,7 @@ process.stdout.write(files.filter((f) => ig.ignores(f)).join("\\n"));
 def _nx_ignored(files: list[str]) -> set[str]:
     if not files:
         return set()
-    out = subprocess.run(
+    out = run_attached(
         ["node", "-e", _NX_IGNORED_JS, str(_REPO_ROOT), json.dumps(_IGNORE_GLOBS)],
         input="\n".join(files),
         capture_output=True,
@@ -1101,7 +1106,7 @@ class _RealNx:
         self.probe = probe
 
     def git(self, *args: str) -> str:
-        return subprocess.run(
+        return run_attached(
             [
                 "git",
                 "-c",
@@ -1142,7 +1147,7 @@ class _RealNx:
         path.write_text(f"---\n{body}---\n\nprobe\n")
 
     def run_hook(self) -> subprocess.CompletedProcess:
-        return subprocess.run(
+        return run_attached(
             ["bash", str(_REPO_ROOT / ".githooks/pre-push/check-version-plan-required.sh")],
             cwd=self.probe,
             capture_output=True,
@@ -1152,7 +1157,7 @@ class _RealNx:
         )
 
     def affected(self) -> list[str]:
-        out = subprocess.run(
+        out = run_attached(
             [
                 str(_NX_BIN),
                 "show",
@@ -1179,7 +1184,7 @@ def real_nx(tmp_path_factory: pytest.TempPathFactory) -> Iterator[_RealNx]:
     workdir = tmp_path_factory.mktemp("real-nx")
     probe = workdir / "probe"
     # --no-hardlinks は必須（tmp_path はリポジトリと別マウントになり得る）。
-    subprocess.run(
+    run_attached(
         ["git", "clone", "--local", "--no-hardlinks", "-q", str(_REPO_ROOT), str(probe)],
         check=True,
         capture_output=True,
@@ -1278,7 +1283,7 @@ def test_real_06_pass_readme_only_and_plan_check_agrees(real_nx: _RealNx) -> Non
     try:
         for plan in plans:
             plan.unlink()
-        check = subprocess.run(
+        check = run_attached(
             [str(_NX_BIN), "release", "plan:check", "--base=base", "--head=HEAD"],
             cwd=real_nx.probe,
             capture_output=True,

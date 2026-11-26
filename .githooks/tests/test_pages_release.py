@@ -11,6 +11,10 @@ from pathlib import Path
 
 import pytest
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output, run_attached  # noqa: E402
+
 _REPO = Path(__file__).resolve().parents[2]
 _PAGES_SITE = _REPO / ".githooks/scripts/pages_site"
 _SOURCES = _PAGES_SITE / "release_sources.py"
@@ -137,7 +141,7 @@ def test_from_json_accepts_sources_without_lanes() -> None:
 
 
 def _git(repo: Path, *args: str) -> str:
-    return subprocess.run(
+    return run_attached(
         ["git", "-C", str(repo), *args], capture_output=True, text=True, check=True
     ).stdout.strip()
 
@@ -165,7 +169,7 @@ def repo(tmp_path: Path) -> Path:
 
 
 def _run_cli(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    return run_attached(
         [sys.executable, str(_SOURCES), "--root", str(repo), "--main", "main", *args],
         capture_output=True,
         text=True,
@@ -197,7 +201,7 @@ def test_cli_resolves_from_git_tags(repo: Path, tmp_path: Path) -> None:
     }
     # 標準出力は tags・commits・skeleton だけで、レーンの一覧を持たない。
     assert json.loads(result.stdout) == expected
-    assert json.loads(record.read_text(encoding="utf-8")) == expected
+    assert json.loads(read_output(record)) == expected
 
 
 def test_cli_fails_when_tag_is_off_main(repo: Path) -> None:
@@ -603,7 +607,7 @@ def test_build_runs_steps_in_order(
     ]
     assert runner.calls == expected
 
-    assert json.loads((out / "release-sources.json").read_text(encoding="utf-8")) == {
+    assert json.loads(read_output(out / "release-sources.json")) == {
         "tags": {"b": "b-v2.0.0", "a": "a-v1.0.0"},
         "commits": {"b": B, "a": A},
         "skeleton": B,

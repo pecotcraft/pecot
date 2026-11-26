@@ -12,11 +12,16 @@ import os
 import re
 import signal
 import subprocess
+import sys
 import time
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output, run_attached  # noqa: E402
 
 _LIB = Path(__file__).resolve().parents[1] / "lib" / "timing.sh"
 
@@ -60,7 +65,7 @@ def _rows(repo: Path) -> list[list[str]]:
     path = repo / _TIMING_RELPATH
     if not path.exists():
         return []
-    return [line.split("\t") for line in path.read_text().splitlines()]
+    return [line.split("\t") for line in read_output(path).splitlines()]
 
 
 @pytest.mark.parametrize("code", [0, 3])
@@ -140,7 +145,7 @@ def test_usage_error_without_child(script_dir: Path, run_script, repo: Path) -> 
 def test_wrapper_is_executable_in_git(script_dir: Path) -> None:
     """pre-commit は language: unsupported_script の entry を直接実行するため git mode 100755 が要る。"""
     repo_root = script_dir.parents[1]
-    staged = subprocess.run(
+    staged = run_attached(
         ["git", "ls-files", "-s", _WRAPPER_RELPATH],
         cwd=repo_root,
         check=True,
@@ -157,7 +162,7 @@ def test_wrapper_is_executable_in_git(script_dir: Path) -> None:
 @pytest.mark.parametrize("arg", ["", "abc", "12x", "-5"])
 def test_elapsed_sec_invalid_start_returns_zero(arg: str) -> None:
     """開始時刻が空・数字以外のときは算術展開に入れず 0.0 を返す。"""
-    result = subprocess.run(
+    result = run_attached(
         ["bash", "-c", 'source "$1"; timing_elapsed_sec "$2"', "x", str(_LIB), arg],
         capture_output=True,
         text=True,

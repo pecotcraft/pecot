@@ -10,10 +10,15 @@ import re
 import shutil
 import stat
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 import yaml
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output, run_attached  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _WORKFLOW = _REPO_ROOT / ".github/workflows/release.yml"
@@ -123,7 +128,7 @@ def test_pages_release_build_trigger_reads_land_log(
     gh.write_text(f'#!/bin/sh\necho "$*" >> {calls}\n', encoding="utf-8")
     gh.chmod(0o755)
     env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "REPO": "o/r"}
-    result = subprocess.run(
+    result = run_attached(
         ["bash", "-e", "-c", _step("Trigger pages release build")["run"]],
         cwd=tmp_path,
         env=env,
@@ -132,7 +137,7 @@ def test_pages_release_build_trigger_reads_land_log(
     )
     assert result.returncode == 0, result.stderr
     if called:
-        assert calls.read_text(encoding="utf-8") == (
+        assert read_output(calls) == (
             "workflow run pages-build.yml --repo o/r --ref main -f side=release\n"
         )
     else:
@@ -164,7 +169,7 @@ def _env(extra: dict[str, str] | None = None) -> dict[str, str]:
 def _git(
     cwd: Path, *args: str, env: dict[str, str] | None = None, check: bool = True
 ) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    return run_attached(
         ["git", *args], cwd=cwd, env=_env(env), text=True, capture_output=True, check=check
     )
 
@@ -211,7 +216,7 @@ class Scene:
         return _out(self.work, "rev-parse", "HEAD")
 
     def land(self, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(
+        return run_attached(
             ["bash", str(_LAND), self.base, self.branch],
             cwd=self.work,
             env=_env(env),
@@ -351,7 +356,7 @@ def test_land_gives_up_after_five_attempts(tmp_path: Path, scene: Scene) -> None
     scene.release()
     shim_env = _push_shim(tmp_path, scene, times=99)
     _assert_land_error(scene.land(shim_env), scene)
-    assert (tmp_path / "counter").read_text(encoding="utf-8").strip() == "5"
+    assert read_output(tmp_path / "counter").strip() == "5"
 
 
 def test_land_stops_at_once_when_remote_hook_rejects_even_if_it_says_fetch_first(
@@ -389,7 +394,7 @@ def test_land_does_not_depend_on_the_checked_out_branch(scene: Scene) -> None:
 
 
 def _run_step(name: str, cwd: Path, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    return run_attached(
         ["bash", "-e", "-c", _step(name)["run"]],
         cwd=cwd,
         env=_env(env),
@@ -502,7 +507,7 @@ class RunScene(Scene):
             "RUN_ATTEMPT": "1",
             **extra,
         }
-        return subprocess.run(
+        return run_attached(
             ["bash", "-c", cmd], cwd=self.root_dir, env=_env(env), text=True, capture_output=True
         )
 
@@ -516,7 +521,7 @@ def test_run_cmd_dry_run_only_plans(run_scene: RunScene) -> None:
     result = run_scene.run_cmd(dry_run=True)
     assert result.returncode == 0, result.stderr
     assert (run_scene.logs / "preflight.log").is_file()
-    assert "dry-run plan" in (run_scene.logs / "nx.log").read_text(encoding="utf-8")
+    assert "dry-run plan" in read_output(run_scene.logs / "nx.log")
     assert not (run_scene.logs / "land.log").exists()
     assert run_scene.origin_ref("refs/heads/main") == run_scene.base
     assert run_scene.origin_ref(f"refs/heads/{run_scene.branch}") == ""
@@ -529,7 +534,7 @@ def test_run_cmd_production_lands_release(run_scene: RunScene) -> None:
     assert released
     assert run_scene.origin_ref("refs/heads/main") == released
     assert run_scene.origin_ref(f"refs/heads/{run_scene.branch}") == ""
-    land_log = (run_scene.logs / "land.log").read_text(encoding="utf-8")
+    land_log = read_output(run_scene.logs / "land.log")
     assert land_log.startswith(f"landed: {released} (fast-forward)")
 
 
@@ -547,13 +552,13 @@ def test_run_cmd_nx_failure_after_push_still_lands_and_returns_nx_code(
     assert result.returncode == 3
     released = run_scene.origin_ref("refs/tags/v1.0.0^{commit}")
     assert run_scene.origin_ref("refs/heads/main") == released
-    assert (run_scene.logs / "land.log").read_text(encoding="utf-8").startswith("landed:")
+    assert read_output(run_scene.logs / "land.log").startswith("landed:")
 
 
 def test_run_cmd_ls_remote_failure_is_reported_in_land_log(run_scene: RunScene) -> None:
     result = run_scene.run_cmd(dry_run=False, NX_MODE="ok", LS_REMOTE_FAIL="1")
     assert result.returncode == 128
-    land_log = (run_scene.logs / "land.log").read_text(encoding="utf-8")
+    land_log = read_output(run_scene.logs / "land.log")
     assert land_log.startswith(
         f"error: git ls-remote failed with exit code 128 (branch: {run_scene.branch})"
     )
@@ -584,7 +589,7 @@ def _summary(tmp_path: Path, logs: dict[str, str], **env: str) -> str:
         GITHUB_STEP_SUMMARY=str(out),
     )
     base_env.update(env)
-    result = subprocess.run(
+    result = run_attached(
         ["bash", "-e", "-c", step["run"]],
         cwd=cwd,
         env=_env(base_env),
@@ -592,7 +597,7 @@ def _summary(tmp_path: Path, logs: dict[str, str], **env: str) -> str:
         capture_output=True,
     )
     assert result.returncode == 0, result.stderr
-    return out.read_text(encoding="utf-8")
+    return read_output(out)
 
 
 def _msg(name: str) -> str:

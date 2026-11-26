@@ -20,6 +20,9 @@ import {
 import { SOURCE_HASH_ATTRIBUTE, collectIconReferences, computeSourceHash, readSourceHash } from '../../../src/domain/drawio/export.js'
 import { createIconResolver } from '../../../src/infra/drawio/icons.js'
 import { compareStrings } from '../../../src/domain/_shared/compare-strings.js'
+import { readOutput } from '../../_helpers/attach.js'
+import { makeStream } from '../../_helpers/talk-directory.js'
+import type { CapturedStream } from '../../_helpers/talk-directory.js'
 
 const HERE = import.meta.dirname
 const PLUGIN_ROOT = path.resolve(HERE, '..', '..', '..', '..')
@@ -31,22 +34,6 @@ const MINIMAL_FIXTURE = path.join(FIXTURES, 'minimal.drawio')
 
 // editor が返す SVG を模した最小応答。ルートに color-scheme: light dark を持つ。
 const EXPORTED_SVG = '<svg xmlns="http://www.w3.org/2000/svg" style="background: transparent; color-scheme: light dark;" width="840px"><g/></svg>'
-
-interface CapturedStream {
-  readonly chunks: string[]
-  write: (data: string) => boolean
-}
-
-function makeStream(): CapturedStream {
-  const chunks: string[] = []
-  return {
-    chunks,
-    write(data: string): boolean {
-      chunks.push(data)
-      return true
-    },
-  }
-}
 
 // write メソッドを持つ stub を直接渡す。
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
@@ -121,7 +108,7 @@ describe('runDrawioExport', () => {
       buildDependencies(),
     )
 
-    const written = readFileSync(outputPath, 'utf8')
+    const written = readOutput(outputPath)
     const expectedSha = computeSourceHash(
       readFileSync(RESOLVABLE_FIXTURE, 'utf8'),
       createIconResolver(ICON_ROOT),
@@ -153,7 +140,7 @@ describe('runDrawioExport', () => {
     const summary = await runDrawioExport(inputPath, { icons: ICON_ROOT, output: undefined, printHash: false, pdf: true }, buildDependencies())
 
     expect(summary.outputFile).toBe(`${inputPath}.svg`)
-    expect(readFileSync(summary.outputFile, 'utf8')).toContain(SOURCE_HASH_ATTRIBUTE)
+    expect(readOutput(summary.outputFile)).toContain(SOURCE_HASH_ATTRIBUTE)
   })
 
   it('解決できない icon:// があれば export へ進まず fail する', async () => {
@@ -227,7 +214,7 @@ describe('runDrawioExport', () => {
 
 describe('createDrawioExportCommand', () => {
   it('--json 成功時に done イベントを stdout へ出す', async () => {
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
     const command = createDrawioExportCommand(() => buildDependencies({ stdout: asStream(stdout) }))
 
@@ -245,7 +232,7 @@ describe('createDrawioExportCommand', () => {
   })
 
   it('--json 無しの成功は stderr へ書き出し先を案内する', async () => {
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
     const command = createDrawioExportCommand(() => buildDependencies({ stderr: asStream(stderr) }))
 
@@ -258,7 +245,7 @@ describe('createDrawioExportCommand', () => {
   })
 
   it('--print-hash は stdout にハッシュ 1 行だけを出す（フックが変数に取る前提）', async () => {
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createDrawioExportCommand(() => buildDependencies({ stdout: asStream(stdout) }))
 
     await command.parseAsync([RESOLVABLE_FIXTURE, '--icons', ICON_ROOT, '--print-hash'], { from: 'user' })
@@ -270,7 +257,7 @@ describe('createDrawioExportCommand', () => {
   })
 
   it('--print-hash --json は hash イベントを出す', async () => {
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createDrawioExportCommand(() => buildDependencies({ stdout: asStream(stdout) }))
 
     await command.parseAsync(
@@ -285,7 +272,7 @@ describe('createDrawioExportCommand', () => {
   })
 
   it('--icons が空文字なら exit 2 の usage error になる', async () => {
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createDrawioExportCommand(() => buildDependencies({ stdout: asStream(stdout) }))
 
     await command.parseAsync(
@@ -300,7 +287,7 @@ describe('createDrawioExportCommand', () => {
   })
 
   it('runtime error は exit 1 で reason 付きの error イベントを出す', async () => {
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createDrawioExportCommand(() => buildDependencies({ stdout: asStream(stdout) }))
 
     await command.parseAsync(
@@ -316,7 +303,7 @@ describe('createDrawioExportCommand', () => {
   })
 
   it('--json 無しの runtime error は stderr へ出す', async () => {
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const command = createDrawioExportCommand(() => buildDependencies({ stderr: asStream(stderr) }))
 
     await command.parseAsync(
@@ -329,7 +316,7 @@ describe('createDrawioExportCommand', () => {
   })
 
   it('未知オプションは --json 時に invalid-option を stdout へ出す', async () => {
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createDrawioExportCommand(() => buildDependencies({ stdout: asStream(stdout) }))
     vi.spyOn(process, 'argv', 'get').mockReturnValue(['node', 'pecotv', '--json'])
 
@@ -344,7 +331,7 @@ describe('createDrawioExportCommand', () => {
   })
 
   it('未知オプションは --json 無しなら stderr へ出す', async () => {
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const command = createDrawioExportCommand(() => buildDependencies({ stderr: asStream(stderr) }))
     vi.spyOn(process, 'argv', 'get').mockReturnValue(['node', 'pecotv'])
 
@@ -376,7 +363,7 @@ describe('兄弟 PDF', () => {
     expect(exportPdf).toHaveBeenCalledTimes(1)
     expect(exportPdf.mock.calls[0]?.[1]).toBe(pdfPath)
     const passedSvg = exportPdf.mock.calls[0]?.[0] ?? ''
-    expect(passedSvg).toBe(readFileSync(outputPath, 'utf8'))
+    expect(passedSvg).toBe(readOutput(outputPath))
     expect(passedSvg).toContain(SOURCE_HASH_ATTRIBUTE)
     expect(passedSvg).toContain('color-scheme: light;')
     expect(summary).toMatchObject({ pdfFile: pdfPath, pdfFailed: false, warningCount: 0 })
@@ -406,7 +393,7 @@ describe('兄弟 PDF', () => {
   })
 
   it('PDF 生成に失敗しても SVG は残り、pdf: null / pdfFailed / warnings 1 / exit 3 になる', async () => {
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
 
     const execution = await executeDrawioExport(
@@ -448,7 +435,7 @@ describe('兄弟 PDF', () => {
   })
 
   it('前回の PDF を削除できなくても PDF 失敗 1 件に集約し、stderr だけで知らせる', async () => {
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
 
     const execution = await executeDrawioExport(
@@ -554,7 +541,7 @@ describe('兄弟 PDF', () => {
 
 describe('createDrawioExportCommand (PDF)', () => {
   it('--json の done に pdf / pdfFailed / warnings が載り、artifacts 相当の PDF パスが返る', async () => {
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
     const command = createDrawioExportCommand(() => buildDependencies({ stdout: asStream(stdout) }))
 
@@ -573,7 +560,7 @@ describe('createDrawioExportCommand (PDF)', () => {
   })
 
   it('--json 無しの成功は SVG に続けて PDF の書き出し先を stderr へ案内する', async () => {
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
     const command = createDrawioExportCommand(() => buildDependencies({ stderr: asStream(stderr) }))
 
@@ -584,7 +571,7 @@ describe('createDrawioExportCommand (PDF)', () => {
   })
 
   it('--no-pdf は exportPdf を呼ばず PDF の案内も出さない', async () => {
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const exportPdf = vi.fn<(svg: string, outputPath: string) => Promise<void>>(() => Promise.resolve())
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
     const command = createDrawioExportCommand(() => buildDependencies({ stderr: asStream(stderr), exportPdf }))
@@ -597,7 +584,7 @@ describe('createDrawioExportCommand (PDF)', () => {
   })
 
   it('PDF 失敗は stderr に warning を出して exit 3 にする', async () => {
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const outputPath = path.join(makeTemporaryDirectory(), 'out.svg')
     const command = createDrawioExportCommand(() => buildDependencies({
       stderr: asStream(stderr),
@@ -614,7 +601,7 @@ describe('createDrawioExportCommand (PDF)', () => {
   })
 
   it('-o diagram.pdf は exit 2 の invalid-output-extension で成果物を残さない', async () => {
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const directory = makeTemporaryDirectory()
     const outputPath = path.join(directory, 'diagram.pdf')
     const command = createDrawioExportCommand(() => buildDependencies({ stdout: asStream(stdout) }))

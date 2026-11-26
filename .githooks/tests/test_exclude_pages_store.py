@@ -4,8 +4,13 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import sys
 from collections.abc import Callable
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import run_attached  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _SCRIPT = _REPO_ROOT / ".devcontainer" / "scripts" / "exclude-pages-store.sh"
@@ -97,7 +102,7 @@ def test_leaves_repo_without_origin_unchanged(
     result = run_script(_SCRIPT, str(repo))
 
     assert result.returncode == 0, result.stderr
-    remotes = subprocess.run(
+    remotes = run_attached(
         ["git", "config", "--get-regexp", "^remote\\."], cwd=repo, capture_output=True, text=True
     )
     assert (remotes.returncode, remotes.stdout) == (1, "")

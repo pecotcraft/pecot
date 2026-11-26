@@ -5,10 +5,14 @@ from __future__ import annotations
 import json
 import os
 import re
-import subprocess
+import sys
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import run_attached  # noqa: E402
 
 REPO = "o/r"
 
@@ -41,7 +45,7 @@ def call(tmp_path: Path, githooks_dir: Path):
             "PATH": f"{gh.parent}:{os.environ['PATH']}",
             "FAKE_GH_DIR": str(fake),
         }
-        return subprocess.run(
+        return run_attached(
             ["bash", "-c", script], env=env, input=stdin, capture_output=True, text=True
         )
 

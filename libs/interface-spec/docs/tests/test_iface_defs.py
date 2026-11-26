@@ -52,6 +52,18 @@ Sample
 """
 
 
+def _attach(body: str, name: str, *, json: bool = False) -> None:
+    # 動いているテストの外では呼ばない。allure-pytest を入れない pytest では読めない。
+    if not os.environ.get("PYTEST_CURRENT_TEST"):
+        return
+    try:
+        import allure
+    except ImportError:
+        return
+    kind = allure.attachment_type.JSON if json else allure.attachment_type.TEXT
+    allure.attach(body, name=name, attachment_type=kind)
+
+
 class Built:
     def __init__(self, out: Path, code: int, warnings: str, stdout: str, stderr: str) -> None:
         self.out = out
@@ -61,12 +73,16 @@ class Built:
         self.stderr = stderr
         self.needs: dict[str, dict[str, Any]] = {}
         if (out / "needs.json").is_file():
-            data: dict[str, Any] = json.loads((out / "needs.json").read_text(encoding="utf-8"))
+            needs_text = (out / "needs.json").read_text(encoding="utf-8")
+            _attach(needs_text, "needs.json", json=True)
+            data: dict[str, Any] = json.loads(needs_text)
             versions: dict[str, Any] = data["versions"]
             self.needs = next(iter(versions.values()))["needs"]
 
     def html(self, page: str = "index.html") -> str:
-        return (self.out / page).read_text(encoding="utf-8")
+        text = (self.out / page).read_text(encoding="utf-8")
+        _attach(text, page)
+        return text
 
 
 def build(
@@ -105,6 +121,12 @@ def build(
     )
     captured = capfd.readouterr()
     text = warnings.read_text(encoding="utf-8") if warnings.exists() else ""
+    # Built の needs.json を読む処理より前に、判定に使う出力を残す。
+    _attach(captured.out, f"sphinx-build（終了コード {code}） stdout")
+    if captured.err:
+        _attach(captured.err, f"sphinx-build（終了コード {code}） stderr")
+    if text:
+        _attach(text, "sphinx の warnings")
     return Built(out, code, text, captured.out, captured.err)
 
 
@@ -287,9 +309,9 @@ def test_pages_are_written_and_stale_ones_removed(
         "half-entry.rst",
     }
     assert not (generated / "gone").exists()
-    assert ".. iface-defs:: sample SM-ONE" in (generated / "sample" / "one-run.rst").read_text(
-        encoding="utf-8"
-    )
+    one_run = (generated / "sample" / "one-run.rst").read_text(encoding="utf-8")
+    _attach(one_run, "one-run.rst")
+    assert ".. iface-defs:: sample SM-ONE" in one_run
 
 
 def test_pages_are_written_only_for_plugins_with_generated_json(

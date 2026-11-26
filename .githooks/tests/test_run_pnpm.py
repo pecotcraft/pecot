@@ -10,8 +10,12 @@ import json
 import os
 import re
 import shutil
-import subprocess
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import run_attached  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _SCRIPT = _REPO_ROOT / ".githooks" / "scripts" / "run-pnpm.sh"
@@ -39,7 +43,7 @@ def test_npx_branch_passes_pinned_version_dir_and_args(tmp_path: Path) -> None:
     version = re.match(r"pnpm@([^+]+)", manifest["packageManager"])
     assert version
 
-    result = subprocess.run(
+    result = run_attached(
         [str(bin_dir / "bash"), str(_SCRIPT), "install"],
         cwd=cwd,
         env={"PATH": str(bin_dir)},

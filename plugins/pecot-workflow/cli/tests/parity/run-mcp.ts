@@ -3,7 +3,8 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { Client, SdkError, SdkErrorCode } from '@modelcontextprotocol/client'
+import type { Client } from '@modelcontextprotocol/client'
+import { SdkError, SdkErrorCode } from '@modelcontextprotocol/client'
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
 import { z } from 'zod'
 
@@ -16,6 +17,7 @@ import type { ChildResult, Launcher } from './run.js'
 import { CHILD_TIMEOUT_MS } from './run.js'
 import type { Scenario } from './scenario.js'
 import { pluginRoot } from './setup.js'
+import { AttachingClient } from '../_helpers/attaching-client.js'
 
 const InputSchemaShape = z.looseObject({ type: z.literal('object') })
 const McpSurfaceSchema = z.object({ mcp: z.object({ tool: z.string() }) })
@@ -68,7 +70,7 @@ export async function runMcpChild(launcher: Launcher, scenario: Scenario, cwd: s
   transport.stderr?.on('data', (chunk: Buffer | string) => {
     serverStderr += String(chunk)
   })
-  const client = new Client({ name: 'parity', version: '0.0.0' })
+  const client = new AttachingClient({ name: 'parity', version: '0.0.0' })
   const failed = (error: unknown): ChildResult => {
     const message = messageOf(error)
     return { stdout: '', stderr: '', code: undefined, signal: undefined, spawnError: `${message}${serverStderr === '' ? '' : `\n${serverStderr}`}`, timedOut: SdkError.isInstance(error) && error.code === SdkErrorCode.RequestTimeout }

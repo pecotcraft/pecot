@@ -12,7 +12,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import type { Annotation } from '../../src/domain/evidence-xlsx/spec-schema.js'
 import { writeEvidenceWorkbook } from '../../src/infra/evidence-xlsx/workbook-writer.js'
 import { SofficePdfConverter } from '../../src/infra/pptx-ooxml/soffice.js'
-import { attachContent, attachFile } from '../_helpers/attach.js'
+import { attachContent, attachFile, attachOutput } from '../_helpers/attach.js'
 import { buildPng } from '../_helpers/image-fixture.js'
 import type { PixelRegion, PpmImage } from '../_helpers/raster.js'
 import { CONVERT_TIMEOUT_MS, colorBounds, countColorOutside, ppmToPng, rasterize, readPpm } from '../_helpers/raster.js'
@@ -133,6 +133,7 @@ async function canConvertWithCalc(): Promise<boolean> {
 
 function pdfText(pdfPath: string): string {
   const result = spawnSync('pdftotext', [pdfPath, '-'], { encoding: 'utf8' })
+  attachOutput('pdftotext', result.status ?? undefined, result.stdout, result.stderr)
   /* c8 ignore next -- probe で pdftotext の可用性を確認済みのため通常到達しない */
   return result.status === 0 ? result.stdout : ''
 }

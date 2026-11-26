@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // pecot-dir-init.sh のテスト。新規作成、CLAUDE_PROJECT_DIR ガード、mtime ガード、冪等性、hosts.json/.env 保護を確かめる。
 // gitignore-ensure は、コピーより前に .gitignore を更新する。
-import { cpSync, existsSync, mkdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -13,6 +13,7 @@ import { coreDirectory, hooksDirectory, pluginRoot } from '../_helpers/paths.js'
 import { run } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { splitLines } from '../_helpers/text.js'
+import { readOutput } from '../../../../../../libs/interface-spec/src/vitest/attach.js'
 
 const INIT_SCRIPT = path.join(coreDirectory, 'pecot-dir-init.sh')
 
@@ -76,7 +77,7 @@ describe('pecot-dir-init.sh', () => {
     expect(statSync(path.join(pecot, 'config', '.env')).isFile()).toBe(true)
     expect(statSync(path.join(pecot, 'state', '.plugin-sync-version')).isFile()).toBe(true)
 
-    const gitignoreLines = splitLines(readFileSync(path.join(pecot, '.gitignore'), 'utf8'))
+    const gitignoreLines = splitLines(readOutput(path.join(pecot, '.gitignore')))
     expect(gitignoreLines).toContain('*')
     expect(gitignoreLines).toContain('/config/*')
   })
@@ -147,8 +148,8 @@ describe('pecot-dir-init.sh', () => {
     expect(result.exitCode).toBe(0)
 
     // カスタム内容が保持されている。
-    expect(readFileSync(path.join(config, 'hosts.json'), 'utf8')).toBe('{"custom": true}')
-    expect(readFileSync(path.join(config, '.env'), 'utf8')).toBe('MY_CUSTOM_TOKEN=secret')
+    expect(readOutput(path.join(config, 'hosts.json'))).toBe('{"custom": true}')
+    expect(readOutput(path.join(config, '.env'))).toBe('MY_CUSTOM_TOKEN=secret')
   })
 
   it('旧内容の .gitignore を実 git リポに置いても、untracked が残らない', () => {

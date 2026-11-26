@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // git-sync.sh と、session-start.sh の出力の形のテスト。
 // git・code を stub にして PATH の先頭に置く。git の stub は、-C の値が FAKE_REPO_ROOT と違えば exit 99 で落とす。
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -15,6 +15,7 @@ import { hooksDirectory } from '../_helpers/paths.js'
 import { run } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { containing, jsonDumps, parseJson } from '../_helpers/text.js'
+import { readOutput } from '../../../../../../libs/interface-spec/src/vitest/attach.js'
 
 const SESSION_START_DIRECTORY = path.join(hooksDirectory, 'lib', 'session-start')
 const GIT_SYNC_SCRIPT = path.join(SESSION_START_DIRECTORY, 'git-sync.sh')
@@ -198,7 +199,7 @@ describe('session-start のロジックスクリプト', () => {
       hookCase.setEnv('GIT_SSH_COMMAND', row.preset)
       const result = runWithPath(hookCase, stubDirectory, environment)
       expect(result.exitCode).toBe(0)
-      expect(readFileSync(log, 'utf8').trim()).toBe(row.expected)
+      expect(readOutput(log).trim()).toBe(row.expected)
     })
 
     it('未コミットの変更があるとき、何も出力しない', () => {
@@ -355,7 +356,7 @@ describe('session-start のロジックスクリプト', () => {
       const result = runSessionStartEntry(hookCase, repository, { source: 'compact', transcript_path: '/t/c.jsonl' })
       expect(result.exitCode).toBe(0)
       expect(gitCallLog.count('pull')).toBe(0)
-      expect(readFileSync(path.join(repository, '.pecot', '.gitignore'), 'utf8')).toContain('!/config/')
+      expect(readOutput(path.join(repository, '.pecot', '.gitignore'))).toContain('!/config/')
       expect(result.stdout).not.toContain('sessionTitle')
 
       // 同じ条件の startup では sessionTitle が出る

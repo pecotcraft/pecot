@@ -12,6 +12,7 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { attachOutput } from '../../../../../../../libs/interface-spec/src/vitest/attach.js';
 
 const SLIDEV_ROOT = new URL('../../../', import.meta.url);
 /** 退行テストで壊す元にする、汎用の最小の DESIGN.md（lint が通る） */
@@ -40,6 +41,7 @@ const KNOWN_TARGETS = [
 
 function runLint(...files: string[]): { status: number | null; stdout: string } {
   const r = spawnSync(process.execPath, [SCRIPT, ...files], { cwd: fileURLToPath(SLIDEV_ROOT), encoding: 'utf-8' });
+  attachOutput(['lint-design.mjs', ...files].join(' '), r.status ?? r.signal ?? undefined, r.stdout, r.stderr);
   return { status: r.status, stdout: r.stdout };
 }
 

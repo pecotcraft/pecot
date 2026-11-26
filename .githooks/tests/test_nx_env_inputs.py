@@ -178,6 +178,7 @@ _EXEMPT: dict[str, str] = {
     "STUB_PNPM_DELAY": "テストが env に渡す stub pnpm の遅延秒数。外の値は読まれない",
     "STUB_BIN": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
     "STUB_NODE_MAJOR": "テストが env に渡す stub node の値。外の値は読まれない",
+    "PYTEST_CURRENT_TEST": "pytest がテストごとに設定する。添付するかどうかだけを決め、テストの成否を変えない",
 }
 
 _ENV_NAME = r"[A-Z][A-Z0-9_]{2,}"
@@ -351,6 +352,7 @@ def scan_env_reads(root: Path, rels: list[str]) -> dict[str, set[str]]:
 
 def _tracked_plugin_files() -> list[str]:
     """走査する追跡ファイル。プラグインと、プラグインではないライブラリ（libs/<name>/）。"""
+    # リポのファイルの一覧はテストの入力で、テスト対象の出力でないので添付しない。
     out = subprocess.run(
         ["git", "ls-files", "plugins", "libs"],
         cwd=_REPO_ROOT,

@@ -5,9 +5,14 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import run_attached  # noqa: E402
 
 _LANES = [
     {"lane": "p:test-cli", "slug": "p-test-cli"},
@@ -45,7 +50,7 @@ def run(githooks_dir: Path, tmp_path: Path):
             "CI_RESULT_JOBS_FILE": str(f),
             **env,
         }
-        return subprocess.run([str(script)], env=full, capture_output=True, text=True)
+        return run_attached([str(script)], env=full, capture_output=True, text=True)
 
     return _run
 

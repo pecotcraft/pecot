@@ -15,6 +15,10 @@ from types import ModuleType
 
 import pytest
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output, run_attached  # noqa: E402
+
 _REPO = Path(__file__).resolve().parents[2]
 _STORE = _REPO / ".githooks/scripts/pages_site/store.py"
 
@@ -259,7 +263,7 @@ def test_report_check_also_runs_side_check(tmp_path: Path) -> None:
 
 def test_check_cli_prints_markdown_and_fails(tmp_path: Path) -> None:
     tar = _tar(tmp_path, lambda t: _add_file(t, "./index.html", _page("gone.html")))
-    result = subprocess.run(
+    result = run_attached(
         [sys.executable, str(_STORE), "check", str(tar)], capture_output=True, text=True
     )
     assert (result.returncode, result.stdout) == (
@@ -281,7 +285,7 @@ def test_check_cli_chooses_the_check_by_kind_and_side(
     tmp_path: Path, args: tuple[str, ...], code: int
 ) -> None:
     tar = _tar(tmp_path, _with_report_links)
-    result = subprocess.run(
+    result = run_attached(
         [sys.executable, str(_STORE), "check", *args, str(tar)], capture_output=True, text=True
     )
     assert result.returncode == code, result.stdout + result.stderr
@@ -289,7 +293,7 @@ def test_check_cli_chooses_the_check_by_kind_and_side(
 
 def test_check_cli_report_uses_report_check(tmp_path: Path) -> None:
     tar = _tar(tmp_path, lambda t: _add_file(t, "./index.html", "<html></html>"))
-    result = subprocess.run(
+    result = run_attached(
         [sys.executable, str(_STORE), "check", "--kind", "report", "--side", "dev", str(tar)],
         capture_output=True,
         text=True,
@@ -790,7 +794,7 @@ def _run_git(cwd: Path, *args: str) -> str:
         GIT_CONFIG_GLOBAL=os.devnull,
         GIT_CONFIG_NOSYSTEM="1",
     )
-    return subprocess.run(
+    return run_attached(
         ["git", *args], cwd=cwd, env=env, capture_output=True, text=True, check=True
     ).stdout.strip()
 
@@ -964,7 +968,7 @@ def test_publish_cli_release_with_sources(scene: dict[str, Path | str]) -> None:
     sources = tmp / "release-sources.json"
     sources.write_text(json.dumps({"skeleton": scene["c2"]}), encoding="utf-8")
     tree = _tree(tmp, "rel", _BAND)
-    result = subprocess.run(
+    result = run_attached(
         [
             sys.executable,
             str(_STORE),
@@ -1019,7 +1023,7 @@ def _cli(scene: dict[str, Path | str], *args: str) -> tuple[subprocess.Completed
     tmp = Path(scene["tmp"])
     output = tmp / f"output-{len(list(tmp.glob('output-*')))}"
     output.write_text("", encoding="utf-8")
-    result = subprocess.run(
+    result = run_attached(
         [
             sys.executable,
             str(_STORE),
@@ -1040,7 +1044,7 @@ def _cli(scene: dict[str, Path | str], *args: str) -> tuple[subprocess.Completed
         text=True,
         env={**os.environ, "GITHUB_OUTPUT": str(output)},
     )
-    return result, output.read_text(encoding="utf-8")
+    return result, read_output(output)
 
 
 def test_publish_cli_takes_tar_and_writes_changed(scene: dict[str, Path | str]) -> None:

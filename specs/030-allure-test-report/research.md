@@ -141,12 +141,13 @@
 
 - **Decision**: `.githooks/scripts/test_report/report-lanes.json` を、レーンの 1 か所の定めにする。nx の `test-*` の target を全部並べ、レポートに入れるレーンには結果のディレクトリを、入れないレーンには理由を書く
 
-  | 入れるレーン（12） | 道具 |
+  | 入れるレーン（13） | 道具 |
   |---|---|
   | `pecot-workflow:test-cli`・`test-hooks`・`test-skills` | vitest |
   | `pecot-visual:test-cli`（e2e を含む） | vitest |
   | `pecot-tools:test-cli`（e2e を含む） | vitest |
   | `text-rules:test-unit` | vitest |
+  | `workflow-core:test-unit`（#791 で足した） | vitest |
   | `interface-spec:test-unit` | vitest と pytest |
   | `interface-spec:test-site` | vitest |
   | `githooks:test-nx-cache`・`test-nx-affected`・`test-ci`・`test-checks` | pytest |
@@ -270,7 +271,9 @@
 | `slidev-to-pptx-pipeline-smoke` | 3 | 2〜4: 変換した PPTX |
 | integration の `drawio-url`（capturePng smoke） | 1 | 書き出した PNG |
 
-| 対象にしないもの | 理由 |
+FR-007a（画面・成果物の添付）の対象にしないものを次に並べる。出力の文字列・MCP の応答で判定するものは、FR-007c の対象として出力を添付する（下の「出力の添付」）。
+
+| FR-007a の対象にしないもの | 理由 |
 |---|---|
 | `cache-warning-merge-failure` | 書き出しに失敗する run で、成果物が無い。テストは payload だけを見る |
 | `exit-code-contract`・`help`・`version`・`runner-unexpected-exit-log` | 終了コードと出力の文字列だけを見る |
@@ -283,6 +286,42 @@
 | integration の `drawio-url`（表示用 HTML の遷移 smoke） | 開く画面はテストが置いた stub で、遷移先の URL だけを見る |
 
 - 添付は、成果物を作った直後、どの判定よりも前に置く。判定で落ちたときも残る
+
+### 出力の添付（#816、FR-007c）
+
+- **Decision**: テスト対象を CLI・MCP のツール・hook・子プロセスとして動かすテストは、判定に使った出力を添付する。添付は、出力をテストへ返す補助が、返す値そのものから、判定より前に作る
+
+  | 対象 | 添付するもの |
+  |---|---|
+  | CLI をプロセス内か子プロセスで動かすテスト | 標準出力・標準エラー |
+  | MCP のツールをクライアントから呼ぶテスト | `tools/call`・`tools/list` が返した結果の全体（JSON） |
+  | hook・スクリプト・サーバを子プロセスで動かすテスト | 標準出力・標準エラー。HTTP で応答を読むものは、その状態と本文 |
+  | 上のテストのうち、書き出したファイルを読んで判定するもの | 読んだファイルの中身 |
+
+  - 標準出力・標準エラーは空でないものを添付し、両方空なら空の標準出力を 1 つ添付する。名前は、コマンド（先頭から 200 字）と終了コード
+  - 関数を直に呼ぶ単体テストの戻り値は添付しない。判定する値はテストのコードにあり、落ちたときは vitest・pytest が差分を出す
+  - 準備で動かすコマンドも、補助を通れば添付する。`beforeAll` で動かしたものは、allure-vitest が describe の中のテストの全部に付ける
+  - 対象のレーンは、レポートのレーンのうち `interface-spec:test-site` を除くすべて。#809 で足した `pecot-visual:test-slidev`・`nx-release:test-unit` も入る。`test-site` は画面の添付のまま
+
+  | 補助 | 添付 |
+  |---|---|
+  | `libs/interface-spec/src/vitest/attach.ts` | `attachText`・`attachJson`・`attachJsonInTest`・`attachOutput`・`readOutput`・`attachReadText`・`attachAtTestEnd` |
+  | MCP のクライアント（3 つのプラグインの `tests/_helpers/attaching-client.ts` の `AttachingClient`） | `callTool`・`listTools` が返した結果の全体 |
+  | pecot-visual の統合テストの `makeStream(name)` | 名前を付けた stream の、テストの終わりの中身 |
+  | `libs/workflow-core/tests/_helpers/captured-io.ts` の `capture()` | テストの終わりの `out`・`err`。`TestRunner.getCurrentTest()` があるときだけ `onTestFinished` で添付する |
+  | pecot-workflow の `runCommand`・`runInProcess` | 標準出力・標準エラー（`capture({ attach: false })` で二重を避ける）。`read` は読んだ中身 |
+  | pecot-workflow の `callToolOnce` | `toolOutcomeOf` で確かめる前の結果の全体 |
+  | pecot-workflow の hook の `run` | 起動の失敗で throw する前の出力 |
+  | `.githooks/tests/attach.py` | `run_attached`（`check`・timeout でも添付してから投げる）・`attach_output`・`read_output`・`attach_json` |
+
+- **名前**: コマンドを動かさず、io を注入して `run` を同じプロセスで呼ぶテストは、argv が無い。workflow-core の `capture()` と pecot-visual の `makeStream(name)` は、stream の名前（`capture stdout`・`stdout` など）を名前にする。終了コードは `run` の戻り値で、テストが判定する
+- **Rationale**: 成功したテストが実際に何を出したかを、レポートから確かめるため。`subprocess.run` や `child_process` を全体で差し替える案は採らない。テスト対象が中で動かす子プロセスの出力まで添付され、判定に使ったものと見分けられない
+- **大きさ**: #809 の 2 本を足す前の 13 レーンを手元で動かして作ったレポートの `data/attachments/` は、13,910 個で 21 MB だった（2026-11-26）
+  - nx の graph の JSON（1 個 約 120 KB）と `nx show target inputs` の出力（1 個 約 190 KB）は、テストがその一部だけで判定する。全体を添付すると、2 つの nx のレーンで 47 MB になった
+  - そこで、判定に使ったタスク名・依存・target の設定・ファイルだけを `attach_json` で添付する。2 つのレーンで 1.5 MB になる。nx が落ちたときは、出力の全体を添付する
+  - `beforeAll` で取った `tools/list` の結果は、describe のテストごとに複製される。そこで、全体は全体を見るテストだけが添付し、1 つのツールを見るテストはその項目だけを添付する
+  - リポのファイルの一覧（`git ls-files`）は、テストの入力なので添付しない
+  - `pages-store`（2026-11-26 に 535 MB）に開発版とリリース版の増えを足すと、約 565 MB と見込む。保管の job の知らせ（900 MB）に収まる
 - `attachmentPath` は使わず、中身を読んで `attachment` に渡す（contracts の「添付」）
   - `allure-vitest` 3.15.0 の reporter は、`attachmentPath` のパスを `onTestRunEnd` で読む。テストが `afterAll` や `finally` で消した成果物は抜ける
 - PPM の画素で判定するテストは、その画素をそのまま可逆の PNG に包んで添付する。判定に使った画素そのものから作るので、FR-007b に当たらない

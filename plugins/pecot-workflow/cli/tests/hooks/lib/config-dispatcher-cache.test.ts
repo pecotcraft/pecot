@@ -13,6 +13,7 @@ import { coreDirectory } from '../_helpers/paths.js'
 import { runShell } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { splitLines } from '../_helpers/text.js'
+import { readOutput } from '../../../../../../libs/interface-spec/src/vitest/attach.js'
 
 const DISPATCHER = path.join(coreDirectory, 'config-dispatcher.sh')
 
@@ -38,7 +39,7 @@ function runDispatcher(hookCase: HookCase, ...keys: readonly string[]): RunResul
 }
 
 function countCalls(log: string): number {
-  return existsSync(log) ? splitLines(readFileSync(log, 'utf8')).length : 0
+  return existsSync(log) ? splitLines(readOutput(log)).length : 0
 }
 
 describe('config-dispatcher.sh のキャッシュ', () => {

@@ -5,7 +5,8 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { Client, InMemoryTransport } from '@modelcontextprotocol/client'
+import type { Client } from '@modelcontextprotocol/client'
+import { InMemoryTransport } from '@modelcontextprotocol/client'
 import { expect, it } from 'vitest'
 
 import { createMcpServer } from '../../src/mcp/server.js'
@@ -15,6 +16,7 @@ import { verifies } from '../_helpers/verifies.js'
 import { stateFile } from '../_helpers/workspace-inspect.js'
 import { finishPullRequestData, graphql, openWorkspace, rest } from '../_helpers/workspace.js'
 import type { Workspace } from '../_helpers/workspace.js'
+import { AttachingClient } from '../_helpers/attaching-client.js'
 
 useIsolatedEnvironment()
 
@@ -134,7 +136,7 @@ async function connectRecording(): Promise<RecordedConnection> {
     await sendFromClient(message, options)
   }
   const server = createMcpServer(COMMANDS)
-  const client = new Client({ name: 'test-client', version: '0.0.0' })
+  const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
   await server.connect(serverTransport)
   await client.connect(clientTransport)
   return {

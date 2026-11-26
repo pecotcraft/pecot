@@ -11,6 +11,7 @@ import path from 'node:path'
 import { afterEach } from 'vitest'
 
 import { runCli } from '../../src/cli.js'
+import { attachOutput } from '../../../../../libs/interface-spec/src/vitest/attach.js'
 import { COMMANDS } from '../../src/commands/registry.js'
 import { capture } from '../../src/commands/tests/support.js'
 import { setEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
@@ -311,12 +312,15 @@ export async function openWorkspace(options: Readonly<WorkspaceOptions> = {}): P
     root: sandbox.root,
     server,
     run: async (argv, cwd = sandbox.repositoryDirectory) => {
-      const io = capture()
+      const io = capture({ attach: false })
       const previous = process.cwd()
       process.chdir(cwd)
       try {
         const code = await runCli(argv, { commands: COMMANDS, io, cwd, environment: { COLUMNS: '80' }, terminalColumns: undefined })
-        return { code, stdout: io.out.join(''), stderr: io.err.join('') }
+        const stdout = io.out.join('')
+        const stderr = io.err.join('')
+        attachOutput(['pecot', ...argv].join(' '), code, stdout, stderr)
+        return { code, stdout, stderr }
       }
       finally {
         process.chdir(previous)

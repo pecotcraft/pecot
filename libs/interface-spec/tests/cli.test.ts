@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
 import { describe, expect, it } from 'vitest'
+import { attachOutput } from '../src/vitest/attach.js'
 import { defaultRoot, run } from '../src/cli.js'
 import { BORROWED_MAP, POSIX_MAP } from '../src/domain/field-map.js'
 import process from 'node:process'
@@ -14,6 +15,20 @@ const exec = promisify(execFile)
 const PROJECT = path.join(import.meta.dirname, '..')
 // nx が入れる FORCE_COLOR が子プロセスの stderr に色や警告を混ぜないようにする。
 const CHILD_ENV = { ...process.env, FORCE_COLOR: undefined }
+
+// 子プロセスの失敗（終了コード 1）を値で受け、出力を添付してから確かめられるようにする。
+async function failureOf(child: Promise<unknown>): Promise<unknown> {
+  try {
+    await child
+  }
+  catch (error: unknown) {
+    if (error instanceof Error && 'code' in error && 'stdout' in error && 'stderr' in error && typeof error.stdout === 'string' && typeof error.stderr === 'string') {
+      attachOutput('pnpm exec tsx src/cli.ts validate', typeof error.code === 'number' ? error.code : undefined, error.stdout, error.stderr)
+    }
+    return error
+  }
+  return undefined
+}
 
 async function call(...argv: string[]): Promise<{ code: number, stdout: string, stderr: string }> {
   const stdout: string[] = []
@@ -96,7 +111,8 @@ describe('field-map', () => {
 describe('the command line', () => {
   it('lint-defs と同じく tsx から呼ぶと、欠けた欄を 1 行出して終了コード 1 で終わる', async () => {
     const root = await materialize('field-missing')
-    await expect(exec('pnpm', ['exec', 'tsx', 'src/cli.ts', 'validate', '--root', root], { cwd: PROJECT, env: CHILD_ENV })).rejects.toMatchObject({
+    const failure = await failureOf(exec('pnpm', ['exec', 'tsx', 'src/cli.ts', 'validate', '--root', root], { cwd: PROJECT, env: CHILD_ENV }))
+    expect(failure).toMatchObject({
       code: 1,
       stderr: 'error: plugins/pecot-workflow/interface/authored.yaml: PW-ISSUE-CREATE: on_error: field is missing (write "default" if nothing remains)\n',
     })

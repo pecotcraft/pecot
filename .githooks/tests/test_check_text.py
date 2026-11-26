@@ -16,10 +16,15 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output, run_attached  # noqa: E402
 
 _LONG_SENTENCE = "あ" * 101 + "。"
 _LIST_SOURCES = (
@@ -80,7 +85,7 @@ def _write_stamp(package_dir: Path) -> None:
 def _real_sources() -> list[str]:
     """dist の入力になるソースの相対パス。数え方は実リポの source-hash.mjs に任せる。"""
     real = _real_root() / "libs/text-rules"
-    out = subprocess.run(
+    out = run_attached(
         [
             "node",
             "--input-type=module",
@@ -123,11 +128,11 @@ def _copy_real_sources(repo: Path, link_node_modules: bool = True) -> Path:
 
 
 def _stamp(package_dir: Path) -> str:
-    return (package_dir / "dist/source-hash").read_text()
+    return read_output(package_dir / "dist/source-hash")
 
 
 def _expected_stamp(package_dir: Path) -> str:
-    out = subprocess.run(
+    out = run_attached(
         ["node", str(package_dir / "scripts/source-hash.mjs")],
         capture_output=True,
         text=True,
@@ -190,7 +195,7 @@ def _fake_pnpm(tmp_path: Path, *, restores: bool, link_real: bool = False) -> tu
 
 
 def _pnpm_calls(calls: Path) -> list[str]:
-    return calls.read_text().splitlines() if calls.exists() else []
+    return read_output(calls).splitlines() if calls.exists() else []
 
 
 def _assert_deps_guidance(result) -> None:

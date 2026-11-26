@@ -10,12 +10,17 @@ import json
 import os
 import shlex
 import subprocess
+import sys
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output, run_attached  # noqa: E402
 
 _REPO = "ghcr.io/example/img"
 
@@ -73,7 +78,7 @@ class Env:
     bin_dir: Path
 
     def run(self, *args: str, **extra: str) -> subprocess.CompletedProcess:
-        return subprocess.run(
+        return run_attached(
             ["bash", str(self.script), *args],
             env={**self.env, **extra},
             capture_output=True,
@@ -83,7 +88,7 @@ class Env:
         )
 
     def calls(self) -> list[str]:
-        return self.log.read_text().splitlines() if self.log.exists() else []
+        return read_output(self.log).splitlines() if self.log.exists() else []
 
     def calls_of(self, prefix: str) -> list[str]:
         return [c for c in self.calls() if c.startswith(prefix)]
@@ -136,7 +141,7 @@ def env(
 
 
 def _key(work: Path) -> str:
-    return subprocess.run(
+    return run_attached(
         "git ls-tree HEAD -- .devcontainer/Dockerfile .devcontainer/devcontainer.json"
         " .devcontainer/devcontainer-lock.json .devcontainer/features | git hash-object --stdin",
         shell=True,
@@ -148,7 +153,7 @@ def _key(work: Path) -> str:
 
 
 def _image_output(env: Env) -> str:
-    lines = [ln for ln in env.out.read_text().splitlines() if ln.startswith("image=")]
+    lines = [ln for ln in read_output(env.out).splitlines() if ln.startswith("image=")]
     assert len(lines) == 1
     return lines[0][len("image=") :]
 
@@ -170,7 +175,7 @@ def test_pull_failure_falls_back_to_build(env: Env) -> None:
     assert f"--cache-from {_REPO}:latest" in builds[0]
     assert _image_output(env) == "pecot-ci-local（PR の定義から build, sha256:localid）"
     assert (
-        json.loads((env.state / "override" / "devcontainer.json").read_text())["image"]
+        json.loads(read_output(env.state / "override" / "devcontainer.json"))["image"]
         == "pecot-ci-local"
     )
 
@@ -186,7 +191,7 @@ def test_up_uses_minimal_override_and_no_uid_update(env: Env) -> None:
     result = env.run("up")
     assert result.returncode == 0, result.stderr
     override = env.state / "override" / "devcontainer.json"
-    assert json.loads(override.read_text()) == {
+    assert json.loads(read_output(override)) == {
         "image": f"{_REPO}:def-{env.key}",
         "workspaceFolder": "/workspaces/pecot",
         "workspaceMount": "source=x,target=/workspaces/pecot,type=bind",
@@ -196,7 +201,7 @@ def test_up_uses_minimal_override_and_no_uid_update(env: Env) -> None:
     assert f"--override-config {override}" in ups[0]
     assert "--update-remote-user-uid-default never" in ups[0]
     assert env.calls_of("sudo") == [f"sudo chown -R 1000:1000 {env.work}"]
-    assert (env.state / "container-id").read_text().strip() == "cid123"
+    assert read_output(env.state / "container-id").strip() == "cid123"
 
 
 def test_up_fails_when_outcome_is_not_success(env: Env) -> None:
@@ -233,11 +238,11 @@ def test_only_non_empty_env_is_passed_as_remote_env(env: Env) -> None:
 def test_prefetch_then_up_pulls_once(env: Env) -> None:
     result = env.run("prefetch")
     assert result.returncode == 0, result.stderr
-    assert (env.state / "ref").read_text().strip() == f"{_REPO}:def-{env.key}"
+    assert read_output(env.state / "ref").strip() == f"{_REPO}:def-{env.key}"
     assert env.run("up").returncode == 0
     assert env.calls_of("docker pull") == [f"docker pull {_REPO}:def-{env.key}"]
-    assert (env.state / "pull.rc").read_text().strip() == "0"
-    assert (env.state / "pull.seconds").read_text().strip().isdigit()
+    assert read_output(env.state / "pull.rc").strip() == "0"
+    assert read_output(env.state / "pull.seconds").strip().isdigit()
 
 
 def test_restore_owner_chowns_to_current_user(env: Env) -> None:
@@ -260,7 +265,7 @@ def test_up_fails_without_container_id(env: Env) -> None:
 
 def test_up_takes_last_json_line_even_if_non_json_follows(env: Env) -> None:
     assert env.run("up", STUB_UP_MODE="trailing").returncode == 0
-    assert (env.state / "container-id").read_text().strip() == "cid123"
+    assert read_output(env.state / "container-id").strip() == "cid123"
 
 
 def test_up_fails_without_json_line(env: Env) -> None:

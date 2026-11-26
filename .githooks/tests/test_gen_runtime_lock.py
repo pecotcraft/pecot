@@ -7,10 +7,15 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 import yaml
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output, run_attached  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _TARGET_DIRS = (
@@ -73,7 +78,7 @@ def repo(tmp_path: Path) -> Path:
 
 
 def _check(repo: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    return run_attached(
         ["node", ".githooks/scripts/gen-runtime-lock.mjs", "--check"],
         cwd=repo,
         capture_output=True,
@@ -177,7 +182,7 @@ def test_importer_version_drift_from_root_lock_stops(repo: Path) -> None:
 
 
 def _write(repo: Path) -> None:
-    result = subprocess.run(
+    result = run_attached(
         ["node", ".githooks/scripts/gen-runtime-lock.mjs", "--write"],
         cwd=repo,
         capture_output=True,
@@ -197,16 +202,14 @@ def test_write_copies_referenced_catalog_only(repo: Path) -> None:
     _write(repo)
     expected = "catalogs:\n  default:\n    vite:\n      specifier: ^"
     for d in ("plugins/pecot-visual", "plugins/pecot-workflow"):
-        text = (repo / d / "runtime-lock.yaml").read_text(encoding="utf-8")
+        text = read_output(repo / d / "runtime-lock.yaml")
         assert expected in text, d
         assert "unreferenced-sample" not in text, d
 
 
 def test_write_omits_catalogs_for_target_without_reference(repo: Path) -> None:
     _write(repo)
-    assert "catalogs:" not in (repo / "libs/text-rules/runtime-lock.yaml").read_text(
-        encoding="utf-8"
-    )
+    assert "catalogs:" not in read_output(repo / "libs/text-rules/runtime-lock.yaml")
 
 
 def test_catalogs_missing_in_runtime_lock_stops(repo: Path) -> None:
@@ -245,7 +248,7 @@ def test_write_reproduces_committed_files_without_pnpm(repo: Path) -> None:
     empty_bin = repo / "empty-bin"
     empty_bin.mkdir()
     env = {**os.environ, "PATH": f"{empty_bin}:{Path(shutil.which('node') or '').parent}"}
-    result = subprocess.run(
+    result = run_attached(
         ["node", ".githooks/scripts/gen-runtime-lock.mjs", "--write"],
         cwd=repo,
         env=env,
@@ -257,9 +260,7 @@ def test_write_reproduces_committed_files_without_pnpm(repo: Path) -> None:
     for d in _TARGET_DIRS:
         for name in ("lock", "workspace"):
             file = f"{d}/runtime-{name}.yaml"
-            assert (repo / file).read_text(encoding="utf-8") == (_REPO_ROOT / file).read_text(
-                encoding="utf-8"
-            ), file
+            assert read_output(repo / file) == (_REPO_ROOT / file).read_text(encoding="utf-8"), file
     assert _check(repo).returncode == 0
 
 
@@ -314,7 +315,7 @@ def test_workflow_fails_after_push_when_plans_failed() -> None:
 
 def test_workflow_adds_only_generated_paths() -> None:
     """生成物の path に絞る。pathspec が runtime-lock.yaml の置き場に当たることも確かめる。"""
-    listed = subprocess.run(
+    listed = run_attached(
         ["git", "ls-files", "--", ":(glob)**/runtime-*.yaml"],
         cwd=_REPO_ROOT, capture_output=True, text=True, check=True,
     ).stdout.split()  # fmt: skip

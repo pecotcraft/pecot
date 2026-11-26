@@ -12,6 +12,7 @@ import shutil
 import signal
 import socket
 import subprocess
+import sys
 import threading
 import time
 import urllib.error
@@ -20,6 +21,10 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import attach_output, read_output, run_attached  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _SERVER = _REPO_ROOT / ".githooks" / "ci" / "nx-cache-server.mjs"
@@ -48,7 +53,8 @@ class _Server:
 
     def stop(self) -> str:
         self.proc.send_signal(signal.SIGTERM)
-        out, _ = self.proc.communicate(timeout=10)
+        out, err = self.proc.communicate(timeout=10)
+        attach_output(" ".join(map(str, self.proc.args)), out, err, self.proc.returncode)
         return out
 
 
@@ -178,7 +184,7 @@ def test_used_file_lists_hits_and_puts_only(tmp_path: Path) -> None:
     srv.request("PUT", "/v1/cache/new1", b"n")
     srv.request("PUT", "/v1/cache/old2", b"n")
     srv.stop()
-    assert sorted(used.read_text().splitlines()) == ["new1", "old1"]
+    assert sorted(read_output(used).splitlines()) == ["new1", "old1"]
     assert not list(tmp_path.glob("used.txt.tmp"))
 
 
@@ -195,7 +201,7 @@ def test_sigterm_exits_when_store_is_gone(server: _Server) -> None:
 
 
 def test_missing_args_exit_2() -> None:
-    result = subprocess.run(["node", str(_SERVER)], capture_output=True, text=True, timeout=10)
+    result = run_attached(["node", str(_SERVER)], capture_output=True, text=True, timeout=10)
     assert result.returncode == 2
 
 
@@ -236,7 +242,7 @@ def test_real_nx_puts_then_replays_from_remote(tmp_path: Path, git_repo, git) ->
                 "NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN": _TOKEN,
             }
             env.pop("NX_SKIP_NX_CACHE", None)
-            result = subprocess.run(
+            result = run_attached(
                 [str(nx_bin), "run", "fx:test", "--outputStyle=static"],
                 cwd=repo,
                 capture_output=True,

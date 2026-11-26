@@ -10,6 +10,7 @@ import path from 'node:path'
 
 import { beforeAll, describe, expect, it } from 'vitest'
 
+import { attachOutput } from '../_helpers/attach.js'
 import { assertCliBuilt } from '../_helpers/pecotv-e2e-run.js'
 
 const HERE = import.meta.dirname
@@ -34,11 +35,10 @@ function runPecotv(arguments_: readonly string[]): RunResult {
     encoding: 'utf8',
     timeout: 30_000,
   })
-  return {
-    status: result.status,
-    stdout: typeof result.stdout === 'string' ? result.stdout : '',
-    stderr: typeof result.stderr === 'string' ? result.stderr : '',
-  }
+  const stdout = typeof result.stdout === 'string' ? result.stdout : ''
+  const stderr = typeof result.stderr === 'string' ? result.stderr : ''
+  attachOutput(['pecotv', ...arguments_].join(' '), result.status ?? undefined, stdout, stderr)
+  return { status: result.status, stdout, stderr }
 }
 
 beforeAll(() => {

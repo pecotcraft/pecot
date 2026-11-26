@@ -72,6 +72,7 @@
       "sharedGlobals",
       "{projectRoot}/project.json",
       "{projectRoot}/tests/conftest.py",
+      "{projectRoot}/tests/attach.py",
       "{projectRoot}/tests/run.sh",
       "{projectRoot}/lib/**/*"
     ],

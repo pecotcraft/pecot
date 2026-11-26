@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { performance } from 'node:perf_hooks'
 
-import { Client, LATEST_PROTOCOL_VERSION } from '@modelcontextprotocol/client'
+import { LATEST_PROTOCOL_VERSION } from '@modelcontextprotocol/client'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -18,6 +18,7 @@ import {
   makeTransport,
   serverEnvironment,
 } from '../_helpers/mcp-stdio.js'
+import { AttachingClient } from '../_helpers/attaching-client.js'
 import { isReaped, isTerminated } from '../_helpers/process.js'
 import {
   FAKE_AWS_BIN_DIR,
@@ -26,6 +27,7 @@ import {
   readPidFile,
 } from '../_helpers/fake-aws.js'
 import { SSO_TOOL_NAMES } from '../_helpers/sso-tool-names.js'
+import { attachOutput } from '../../../../../libs/interface-spec/src/vitest/attach.js'
 import { ALLOWLIST } from '../../src/domain/allowlist.js'
 import { MCP_SERVER_NAME } from '../../src/mcp/server.js'
 import { loadVersionFromPluginJson } from '../../src/version.js'
@@ -133,6 +135,13 @@ function spawnRawServer(environmentOverrides: Readonly<Record<string, string>> =
     })
   })
 
+  // 終了を待った時点で、判定に使う標準出力・標準エラーを添付する。
+  const settled = async (): Promise<number | undefined> => {
+    const code = await exited
+    attachOutput('pecot-tools mcp（生 spawn）', code, stdout, readStderr())
+    return code
+  }
+
   return {
     send: (line: string) => {
       child.stdin.write(`${line}\n`)
@@ -141,11 +150,11 @@ function spawnRawServer(environmentOverrides: Readonly<Record<string, string>> =
     stderr: readStderr,
     finish: async () => {
       child.stdin.end()
-      return exited
+      return settled()
     },
     kill: async (signal: NodeJS.Signals) => {
       child.kill(signal)
-      return exited
+      return settled()
     },
   }
 }
@@ -217,7 +226,7 @@ describe('pecot-tools-mcp (stdio)', () => {
     transport.onerror = (error: Readonly<Error>) => {
       transportErrors.push(error)
     }
-    const client = new Client({ name: 'pecot-tools-e2e', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'pecot-tools-e2e', version: '0.0.0' })
 
     try {
       await client.connect(transport, { timeout: REQUEST_TIMEOUT_MS })
@@ -237,7 +246,7 @@ describe('pecot-tools-mcp (stdio)', () => {
   it('tools/list が契約表の 24 件を表の順で返す', async () => {
     const transport = makeTransport()
     const readStderr = drainStderr(transport.stderr)
-    const client = new Client({ name: 'pecot-tools-e2e', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'pecot-tools-e2e', version: '0.0.0' })
 
     try {
       await client.connect(transport, { timeout: REQUEST_TIMEOUT_MS })
@@ -262,7 +271,7 @@ describe('pecot-tools-mcp (stdio)', () => {
     symlinkSync(path.relative(binDirectory, CLI_DIST), link)
     const transport = makeTransport({}, { entry: link, cwd: linkRoot })
     const readStderr = drainStderr(transport.stderr)
-    const client = new Client({ name: 'pecot-tools-e2e', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'pecot-tools-e2e', version: '0.0.0' })
 
     try {
       await client.connect(transport, { timeout: REQUEST_TIMEOUT_MS })
@@ -282,7 +291,7 @@ describe('pecot-tools-mcp (stdio)', () => {
     // `pecot-tools-mcp mcp` と書いた登録も、そのまま動かすため。
     const transport = makeTransport({}, { extraArguments: ['mcp'] })
     const readStderr = drainStderr(transport.stderr)
-    const client = new Client({ name: 'pecot-tools-e2e', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'pecot-tools-e2e', version: '0.0.0' })
 
     try {
       await client.connect(transport, { timeout: REQUEST_TIMEOUT_MS })
@@ -302,7 +311,7 @@ describe('pecot-tools-mcp (stdio)', () => {
     const fake = fakeAwsEnvironment()
     const transport = makeTransport({ ...fake.env, PATH: fakeAwsPath() })
     const readStderr = drainStderr(transport.stderr)
-    const client = new Client({ name: 'pecot-tools-e2e', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'pecot-tools-e2e', version: '0.0.0' })
 
     try {
       await client.connect(transport, { timeout: REQUEST_TIMEOUT_MS })
@@ -329,7 +338,7 @@ describe('pecot-tools-mcp (stdio)', () => {
     const fake = fakeAwsEnvironment()
     const transport = makeTransport({ ...fake.env, PATH: fakeAwsPath() })
     const readStderr = drainStderr(transport.stderr)
-    const client = new Client({ name: 'pecot-tools-e2e', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'pecot-tools-e2e', version: '0.0.0' })
 
     try {
       await client.connect(transport, { timeout: REQUEST_TIMEOUT_MS })
@@ -399,7 +408,7 @@ describe('pecot-tools-mcp (stdio)', () => {
     const fake = fakeAwsEnvironment()
     const transport = makeTransport({ ...fake.env, PATH: fakeAwsPath() })
     const readStderr = drainStderr(transport.stderr)
-    const client = new Client(
+    const client = new AttachingClient(
       { name: 'pecot-tools-e2e', version: '0.0.0' },
       { versionNegotiation: { mode: { pin: MODERN_PROTOCOL_VERSION } } },
     )
@@ -437,7 +446,7 @@ describe('pecot-tools-mcp (stdio)', () => {
     const fake = fakeAwsEnvironment({ hang: true })
     const transport = makeTransport({ ...fake.env, PATH: fakeAwsPath() })
     const readStderr = drainStderr(transport.stderr)
-    const client = new Client(
+    const client = new AttachingClient(
       { name: 'pecot-tools-e2e', version: '0.0.0' },
       pinned === undefined ? {} : { versionNegotiation: { mode: { pin: pinned } } },
     )
@@ -535,7 +544,7 @@ describe('pecot-tools-mcp (stdio)', () => {
   it('client.close() で SIGTERM 待ちに入らず自力終了する', async () => {
     const transport = makeTransport()
     const readStderr = drainStderr(transport.stderr)
-    const client = new Client({ name: 'pecot-tools-e2e', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'pecot-tools-e2e', version: '0.0.0' })
     await client.connect(transport, { timeout: REQUEST_TIMEOUT_MS })
 
     const { pid } = transport

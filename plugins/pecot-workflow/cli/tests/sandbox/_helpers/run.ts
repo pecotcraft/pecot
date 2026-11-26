@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
+import { attachOutput } from '../../../../../../libs/interface-spec/src/vitest/attach.js'
 import { installFakeExecutable } from '../../../../../../libs/workflow-core/tests/_helpers/fake-executables.js'
 import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { pluginRoot } from '../../skills/_helpers/documents.js'
@@ -49,6 +50,7 @@ export function runScript(sandbox: Readonly<Sandbox>, script: string, argumentsL
     ...extraEnvironment,
   }
   const result = spawnSync(script, [...argumentsList], { cwd: sandbox.directory, env: environment, encoding: 'utf8' })
+  attachOutput(`${path.basename(script)} ${argumentsList.join(' ')}`, result.status ?? undefined, result.stdout, result.stderr)
   return { status: result.status, stdout: result.stdout, stderr: result.stderr }
 }
 

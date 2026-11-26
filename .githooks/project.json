@@ -103,6 +103,7 @@
         "{projectRoot}/tests/test_report_lanes.py",
         "{projectRoot}/tests/test_report_generate.py",
         "{projectRoot}/tests/test_allure_report_labels.py",
+        "{projectRoot}/tests/test_attach.py",
         "{workspaceRoot}/libs/interface-spec/docs/tests/conftest.py",
         "{projectRoot}/scripts/pages_site/**/*",
         "{projectRoot}/scripts/test_report/**/*",
@@ -126,7 +127,7 @@
         "description": "CI のスクリプト（run-pr-checks・run-affected-*・キャッシュ・dev-container・pages_site・test_report）のテスト。"
       },
       "options": {
-        "command": ".githooks/tests/run.sh .githooks/tests/test_run_pr_checks.py .githooks/tests/test_run_affected_tests.py .githooks/tests/test_run_affected_lint.py .githooks/tests/test_list_test_lanes.py .githooks/tests/test_fetch_pr_nx_cache.py .githooks/tests/test_find_pr_ci_base.py .githooks/tests/test_pr_run.py .githooks/tests/test_nx_cache_server.py .githooks/tests/test_dev_container.py .githooks/tests/test_check_ci_result.py .githooks/tests/test_with_timing.py .githooks/tests/test_push_range_env_isolation.py .githooks/tests/test_pages_provenance.py .githooks/tests/test_pages_release.py .githooks/tests/test_pages_store.py .githooks/tests/test_pages_verify.py .githooks/tests/test_report_lanes.py .githooks/tests/test_report_generate.py .githooks/tests/test_allure_report_labels.py",
+        "command": ".githooks/tests/run.sh .githooks/tests/test_run_pr_checks.py .githooks/tests/test_run_affected_tests.py .githooks/tests/test_run_affected_lint.py .githooks/tests/test_list_test_lanes.py .githooks/tests/test_fetch_pr_nx_cache.py .githooks/tests/test_find_pr_ci_base.py .githooks/tests/test_pr_run.py .githooks/tests/test_nx_cache_server.py .githooks/tests/test_dev_container.py .githooks/tests/test_check_ci_result.py .githooks/tests/test_with_timing.py .githooks/tests/test_push_range_env_isolation.py .githooks/tests/test_pages_provenance.py .githooks/tests/test_pages_release.py .githooks/tests/test_pages_store.py .githooks/tests/test_pages_verify.py .githooks/tests/test_report_lanes.py .githooks/tests/test_report_generate.py .githooks/tests/test_allure_report_labels.py .githooks/tests/test_attach.py",
         "cwd": "."
       }
     },

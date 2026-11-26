@@ -1,9 +1,10 @@
-// テストが判定に使った画面や成果物を、Allure の添付として残す。
+// テストが判定に使った画面・成果物・出力を、Allure の添付として残す。
 // interface-env: NX_TASK_TARGET_TARGET
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { attachment } from 'allure-js-commons'
+import { onTestFinished, TestRunner } from 'vitest'
 
 import { isAllureEnabled } from './allure-reporter.js'
 
@@ -13,7 +14,14 @@ const CONTENT_TYPES: Readonly<Record<string, string>> = {
   '.pdf': 'application/pdf',
   '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.txt': 'text/plain',
+  '.json': 'application/json',
+  '.md': 'text/markdown',
 }
+
+const TEXT_EXTENSIONS: ReadonlySet<string> = new Set(['.txt', '.json', '.md', '.svg'])
+
+const LABEL_LENGTH = 200
 
 function contentType(extension: string): string {
   const type = CONTENT_TYPES[extension]
@@ -35,4 +43,58 @@ export async function attachFile(name: string, filePath: string): Promise<void> 
   // ファイルが無いことは、テストに元からある判定が文言を出して落とす。
   if (!existsSync(filePath)) return
   await attachContent(name, await readFile(filePath), extension)
+}
+
+// allure-vitest の runtime は添付を同期で送るので、同期の補助からも待たずに呼べる。
+export function attachText(name: string, text: string, extension: string): void {
+  void attachContent(name, new TextEncoder().encode(text), extension)
+}
+
+export function attachJson(name: string, value: unknown): void {
+  attachText(name, JSON.stringify(value, undefined, 2), '.json')
+}
+
+/**
+動いているテストの中でだけ JSON を添付する。beforeAll の添付は describe のテストごとに複製されるので、そこでは添付しない
+*/
+export function attachJsonInTest(name: string, value: unknown): void {
+  if (TestRunner.getCurrentTest() === undefined) return
+  attachJson(name, value)
+}
+
+/**
+動かしたコマンドの出力を添付する。空でない stdout・stderr を残し、両方空なら空の stdout を 1 つ残す。終了コードが無ければ名前に書かない
+*/
+export function attachOutput(command: string, exitCode: number | string | undefined, stdout: string, stderr: string): void {
+  const label = `${command.slice(0, LABEL_LENGTH)}${exitCode === undefined ? '' : `（終了コード ${String(exitCode)}）`}`
+  if (stdout !== '' || stderr === '') attachText(`${label} stdout`, stdout, '.txt')
+  if (stderr !== '') attachText(`${label} stderr`, stderr, '.txt')
+}
+
+/**
+テスト対象が書き出したファイルを UTF-8 で読み、読んだ中身を添付して返す。型の無い拡張子は .txt で添付する
+*/
+export function readOutput(filePath: string): string {
+  const text = readFileSync(filePath, 'utf8')
+  attachReadText(path.basename(filePath), text)
+  return text
+}
+
+/**
+読んだファイルの中身を、ファイル名を名前にして添付する。型は名前の拡張子で決め、型の無い拡張子は .txt にする
+*/
+export function attachReadText(name: string, text: string): void {
+  const extension = path.extname(name)
+  attachText(name, text, TEXT_EXTENSIONS.has(extension) ? extension : '.txt')
+}
+
+/**
+テストが後から読む出力（注入した stream など）を、テストの終わりの中身で添付する。テストの外では何もしない
+*/
+export function attachAtTestEnd(name: string, read: () => string): void {
+  // テストの外で onTestFinished を呼ぶと vitest が throw する。
+  if (TestRunner.getCurrentTest() === undefined) return
+  onTestFinished(() => {
+    attachText(name, read(), '.txt')
+  })
 }

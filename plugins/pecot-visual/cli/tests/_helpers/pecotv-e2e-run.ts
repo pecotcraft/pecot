@@ -12,6 +12,8 @@ import { homedir } from 'node:os'
 import { performance } from 'node:perf_hooks'
 import path from 'node:path'
 
+import { attachOutput } from './attach.js'
+
 const HERE = import.meta.dirname
 const CLI_TS_ROOT = path.resolve(HERE, '..', '..')
 const PLUGIN_ROOT = path.resolve(CLI_TS_ROOT, '..')
@@ -141,6 +143,7 @@ export function createPecotvRunner(
     const elapsedMs = performance.now() - startedAt
     const stdout = typeof result.stdout === 'string' ? result.stdout : ''
     const stderr = typeof result.stderr === 'string' ? result.stderr : ''
+    attachOutput(['pecotv', ...arguments_].join(' '), result.status ?? undefined, stdout, stderr)
     console.info(`[${options.logPrefix}] ${label}: exit=${String(result.status)} ${(elapsedMs / 1000).toFixed(1)}s`)
     // spawnSync timeout（status null）と cli の想定外終了を分けるための一次情報を残す。
     if (options.isUnexpectedExit(result.status)) {

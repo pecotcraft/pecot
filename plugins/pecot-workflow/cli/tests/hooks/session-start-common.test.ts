@@ -2,7 +2,7 @@
 // session-start-common.sh のテスト。flock の排他制御と .pecot/.gitignore の生成を確かめる。
 // flock のケースは、ロックを持つ子プロセス（holder）を spawn で保持し、終了時に必ず止める。
 import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 
@@ -17,6 +17,7 @@ import { hooksDirectory } from './_helpers/paths.js'
 import { run, runShell, shellFile } from './_helpers/run.js'
 import type { RunResult } from './_helpers/run.js'
 import { splitLines } from './_helpers/text.js'
+import { readOutput } from '../../../../../libs/interface-spec/src/vitest/attach.js'
 
 const COMMON_SCRIPT = path.join(hooksDirectory, 'lib', 'session-start-common.sh')
 
@@ -102,7 +103,7 @@ describe('session-start-common.sh', () => {
 
     runCommon(hookCase, projectDirectory)
 
-    expect(readFileSync(environmentFile, 'utf8')).toBe('')
+    expect(readOutput(environmentFile)).toBe('')
   })
 
   // flock の排他制御。flock コマンド単体の相互排他だけを確かめる。本体の _LOCK_ID 配線は、本体を通すケースが確かめる。
@@ -229,7 +230,7 @@ describe('session-start-common.sh', () => {
 
     const gitignore = path.join(projectDirectory, '.pecot', '.gitignore')
     expect(isFile(gitignore)).toBe(true)
-    const lines = splitLines(readFileSync(gitignore, 'utf8'))
+    const lines = splitLines(readOutput(gitignore))
     expect(lines).toContain('*')
     expect(lines.at(lines.indexOf('*') + 1)).toBe('!/config/')
     expect(lines).toContain('!/config/projects/*.json')

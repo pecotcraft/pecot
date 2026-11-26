@@ -34,6 +34,7 @@ import { z } from 'zod'
 import type { Tool } from '@modelcontextprotocol/server'
 import { createChromiumCacheDirectory, removeChromiumCacheDirectory } from '../../../tests/_helpers/chromium-cache.js'
 import { allTools } from '../tools/index.js'
+import { attachJson } from '../../../tests/_helpers/attach.js'
 import { isRecord } from '../../../tests/_helpers/records.js'
 import { verifies } from '../../../tests/_helpers/verifies.js'
 import { closeMcp, connectMcp, type ConnectedMcp } from './_client.js'
@@ -415,6 +416,7 @@ function propertyOf(schema: Readonly<Record<string, unknown>> | undefined, name:
 }
 
 describe('MCP ツール契約 (tools/list)', () => {
+  let listedResult: unknown
   let listed: readonly Tool[] = []
   let connected: ConnectedMcp | undefined
   // 即失敗テーブルは、chromium 依存ツールも実処理へ入れて出力捕捉を観測する。
@@ -435,6 +437,7 @@ describe('MCP ツール契約 (tools/list)', () => {
     mkdirSync(convertedPath, { recursive: true })
     connected = await connectMcp(allTools())
     const result = await connected.client.listTools()
+    listedResult = result
     listed = result.tools
   })
 
@@ -458,15 +461,23 @@ describe('MCP ツール契約 (tools/list)', () => {
     return connected.client
   }
 
+  // 全体を見るテストは tools/list の全体を、1 つのツールを見るテストはその項目だけを添付する。
+  function allListed(): readonly Tool[] {
+    attachJson('tools/list の結果', listedResult)
+    return listed
+  }
+
   function toolOf(name: string): Tool {
     const found = listed.find(tool => tool.name === name)
     if (found === undefined) throw new Error(`tools/list に ${name} が載っていません`)
+    attachJson(`${name} の tools/list の項目`, found)
     return found
   }
 
   it('契約どおり 11 件のツールを公開する', () => {
-    expect(listed).toHaveLength(TOOL_CONTRACTS.length)
-    expect(sorted(listed.map(tool => tool.name))).toEqual(sorted(TOOL_CONTRACTS.map(contract => contract.name)))
+    const all = allListed()
+    expect(all).toHaveLength(TOOL_CONTRACTS.length)
+    expect(sorted(all.map(tool => tool.name))).toEqual(sorted(TOOL_CONTRACTS.map(contract => contract.name)))
   })
 
   it('CLAUDE_PLUGIN_ROOT 未設定でもサーバ生成と tools/list が成功する', async () => {

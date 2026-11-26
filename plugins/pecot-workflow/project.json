@@ -48,6 +48,7 @@
       "inputs": [
         "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/attach.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/verifies.ts",
         "{projectRoot}/cli/**/*",
         "{projectRoot}/skills/w-help/references/board-sync-workflow.md",
@@ -130,6 +131,7 @@
       "inputs": [
         "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/attach.ts",
         "{projectRoot}/skills/**/*",
         "{projectRoot}/agents/*.md",
         "{projectRoot}/hooks/templates/*.md",
@@ -167,6 +169,7 @@
       "inputs": [
         "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/attach.ts",
         "{projectRoot}/hooks/**/*",
         "sharedGlobals",
         "pecotPluginTestGlobals",
@@ -269,6 +272,7 @@
         "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
         "{workspaceRoot}/libs/interface-spec/src/eslint/table-key.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/attach.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/verifies.ts",
         "{projectRoot}/interface/generated.json",
         "{workspaceRoot}/libs/interface-spec/src/domain/diff.ts",

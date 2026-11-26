@@ -1,13 +1,14 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // テスト用の git のリポ・worktree 配置・呼び出しの記録。起動は run.ts と同じ env（PATH の mock-bin を含む）で行う。
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, readFileSync, symlinkSync, writeFileSync, existsSync } from 'node:fs'
+import { mkdirSync, symlinkSync, writeFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
 
 import type { HookCase } from './environment.js'
 import { mockBin } from './mock-bin.js'
 import { run, type RunResult } from './run.js'
 import { splitLines } from './text.js'
+import { readOutput } from '../../../../../../libs/interface-spec/src/vitest/attach.js'
 
 export function gitOrThrow(hookCase: HookCase, cwd: string, argv: readonly string[]): RunResult {
   const result = run(hookCase, 'git', argv, { cwd })
@@ -106,7 +107,7 @@ export function installGitCallLog(hookCase: HookCase): GitCallLog {
   hookCase.setEnv('REAL_GIT_FOR_SHIM', realGit())
   mockBin(hookCase).install('git', GIT_SHIM_BODY)
   const calls = (): string[][] => existsSync(log)
-    ? splitLines(readFileSync(log, 'utf8')).filter(line => line !== '').map(line => line.replace(/\t+$/u, '').split('\t'))
+    ? splitLines(readOutput(log)).filter(line => line !== '').map(line => line.replace(/\t+$/u, '').split('\t'))
     : []
   return {
     log,
