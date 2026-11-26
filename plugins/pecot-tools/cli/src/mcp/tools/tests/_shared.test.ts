@@ -626,7 +626,6 @@ describe('allowlistedTool', () => {
   }[] = [
     { kind: 'read', readOnlyHint: true, destructiveHint: false },
     { kind: 'execute', readOnlyHint: false, destructiveHint: false },
-    { kind: 'auth', readOnlyHint: false, destructiveHint: false },
   ]
 
   it.each(ANNOTATION_CASES)(

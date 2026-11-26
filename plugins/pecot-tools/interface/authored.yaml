@@ -1566,8 +1566,8 @@ entries:
         kind: write
         what: '`aws sso login --no-browser --use-device-code` をバックグラウンドで始めます。'
       - target: file
-        kind: write
-        what: ユーザーが承認した後で、awscli の SSO のトークンキャッシュを書きます。
+        kind: destructive
+        what: ユーザーが承認した後で、awscli の SSO のトークンキャッシュを書きます。同じ起動 URL のキャッシュが既にあると、上書きします。
     prerequisites:
       - '`PATH` にある awscli v2（2.22 以降）が要ります。'
       - 'プロファイルに、SSO の設定（`sso_start_url` と `sso_region`）が要ります。'

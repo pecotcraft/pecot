@@ -53,6 +53,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
 
       - name: Decide side
@@ -140,6 +141,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
 
       # dev container の取得と起動より前に替え、そのコミットの .devcontainer の定義で動かす。
@@ -205,12 +207,13 @@ jobs:
       SOURCES: ${{ needs.side.outputs.sources }}
       SIDE: ${{ needs.side.outputs.side }}
     steps:
-      # 履歴を origin/pages-store から読むので、全部のブランチを取る。
+      # 履歴を origin/pages-store から読むので、全部のブランチを取る。blob は読むものだけをその場で取る。
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
 
       # dev container の中からは GITHUB_STEP_SUMMARY に書けないので、ランナーで作る。
@@ -234,6 +237,7 @@ jobs:
           path: ${{ github.workspace }}
 
       # Pages の CDN は前の中身を返すことがあるので、公開元の pages-store から読む。ファイルが無ければ初めてとして空にする。
+      # checkout は blob:none なので、blob を取れないことがある。そのときも空の履歴で作り、job summary で知らせる（FR-021）。
       - name: Read stored history
         env:
           MSG_NO_STORE: "保管ブランチ pages-store を読めなかったので、空の履歴でレポートを作ります。"
@@ -248,8 +252,11 @@ jobs:
           : > "$history"
           if ! git rev-parse --verify --quiet origin/pages-store > /dev/null; then
             printf '\n> [!WARNING]\n> %s\n' "$MSG_NO_STORE" >> "$GITHUB_STEP_SUMMARY"
-          elif git cat-file -e "$stored" 2> /dev/null; then
-            git show "$stored" > "$history"
+          elif git rev-parse --verify --quiet "$stored" > /dev/null; then
+            if ! git show "$stored" > "$history"; then
+              : > "$history"
+              printf '\n> [!WARNING]\n> %s\n' "$MSG_NO_STORE" >> "$GITHUB_STEP_SUMMARY"
+            fi
           fi
 
       - name: Generate report

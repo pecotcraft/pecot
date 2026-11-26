@@ -100,6 +100,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
 
       # リリース版は、プラグインごとの最新のタグと骨組みのコミットで作る（data-model の ReleaseSources）。
@@ -141,6 +142,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
 
       - name: Start pulling dev container image

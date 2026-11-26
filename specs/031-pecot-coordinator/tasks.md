@@ -43,21 +43,21 @@
 
 **Independent Test**: リモート MCP だけで sandbox の Issue 1 件を起票から閉じるまで動かし、pecot-workflow で同じ操作をした Issue とボードの欄と比べる（SC-002）
 
-- [ ] T006 [US2] `plugins/pecot-workflow/CONTRIBUTING.md` の「3. 試験環境」に従って sandbox を揃える。確かめで作るものの題は `[cuj <Issue番号>-<4文字>]` の形にする
-- [ ] T007 [US2] クラウドのスレッドから `projects_write` の `add_project_item`・`update_project_item`・`delete_project_item` で、sandbox のボードの item を足し、進行の欄・single select・日付を書いて消す
-- [ ] T008 [US2] アーカイブした item を `projects_write` で外して足し直し、欄を書き直して、今の `issue_reopen` と同じ状態に戻るかを確かめる
-- [ ] T009 [US2] `projects_write` の `create_project`・`create_project_view` で sandbox の持ち主にボードとビューを作り、今の `project_create` の結果と比べる。片付けは CONTRIBUTING の手順に従う
-- [ ] T010 [US2] Insiders（`/insiders`）の `issue_dependency_write`・`issue_dependency_read` で blocked-by を付け・読み・外し、今の `issue_block`・`issue_unblock` の結果と比べる
-- [ ] T011 [US2] base に遅れた sandbox の PR で `update_pull_request_branch` を呼び、今の `pr_restack` と同じ結果になるかを確かめる
-- [ ] T012 [US2] PR を作った人と別の sandbox の collaborator を、`update_pull_request` の `reviewers` で頼み、今の `pr_create` と同じになるかを確かめる
-- [ ] T013 [US2] リモート MCP の actions の toolset の `actions_run_trigger` で sandbox の `workflow_dispatch` を起動し、`actions_get`・`actions_list` で job summary を読めるかを確かめる
-- [ ] T014 [US2] リポの「head ブランチを自動で消す」設定（`delete_branch_on_merge`）を公式の MCP で読めるかを確かめる。読めなければ、`github-ops` に読む operation を足すと記録する
-- [ ] T015 [US2] 手元の Claude Code が claude.ai のコネクタの GitHub 公式の MCP を使えること（PAT を使わない）と、Copilot CLI の組み込みの GitHub MCP で要る toolset を確かめる
-- [ ] T016 [US2] sandbox に `workflow_dispatch` の試しのワークフローを置き、Stacks API・`merge-async`・ボードの欄の作成・リポとボードのつなぎ込みを、`GITHUB_TOKEN` と App の token で試す
-- [ ] T017 [US2] 同じワークフローで、Actions の secret と variable の名前の一覧と、tracker-sync の書き込みを、`GITHUB_TOKEN` と App の token で試す
-- [ ] T018 [US2] リモート MCP だけで sandbox の Issue 1 件を起票から閉じるまで動かし、pecot-workflow で同じ操作をした Issue とボードの欄との差を `specs/031-pecot-coordinator/verification/github-io.md` に書く
-- [ ] T019 [US2] T007〜T017 の操作・結果・読んだ版と日付を `specs/031-pecot-coordinator/verification/github-io.md` に書く
-- [ ] T020 [US2] 結果で `specs/031-pecot-coordinator/contracts/github-io.md` の「未確認」の行と、`specs/031-pecot-coordinator/contracts/actions-interface.md` の「token」の列を埋める
+- [x] T006 [US2] `plugins/pecot-workflow/CONTRIBUTING.md` の「3. 試験環境」に従って sandbox を揃える。確かめで作るものの題は `[cuj <Issue番号>-<4文字>]` の形にする
+- [x] T007 [US2] クラウドのスレッドから `projects_write` の `add_project_item`・`update_project_item`・`delete_project_item` で、sandbox のボードの item を足し、進行の欄・single select・日付を書いて消す
+- [x] T008 [US2] アーカイブした item を `projects_write` で外して足し直し、欄を書き直して、今の `issue_reopen` と同じ状態に戻るかを確かめる
+- [x] T009 [US2] `projects_write` の `create_project`・`create_project_view` で sandbox の持ち主にボードとビューを作り、今の `project_create` の結果と比べる。片付けは CONTRIBUTING の手順に従う
+- [x] T010 [US2] Insiders（`/insiders`）の `issue_dependency_write`・`issue_dependency_read` で blocked-by を付け・読み・外し、今の `issue_block`・`issue_unblock` の結果と比べる
+- [x] T011 [US2] base に遅れた sandbox の PR で `update_pull_request_branch` を呼び、今の `pr_restack` と同じ結果になるかを確かめる
+- [x] T012 [US2] PR を作った人と別の sandbox の collaborator を、`update_pull_request` の `reviewers` で頼み、今の `pr_create` と同じになるかを確かめる
+- [x] T013 [US2] リモート MCP の actions の toolset の `actions_run_trigger` で sandbox の `workflow_dispatch` を起動し、`actions_get`・`actions_list` で job summary を読めるかを確かめる
+- [x] T014 [US2] リポの「head ブランチを自動で消す」設定（`delete_branch_on_merge`）を公式の MCP で読めるかを確かめる。読めなければ、`github-ops` に読む operation を足すと記録する
+- [x] T015 [US2] 手元の Claude Code が claude.ai のコネクタの GitHub 公式の MCP を使えること（PAT を使わない）と、Copilot CLI の組み込みの GitHub MCP で要る toolset を確かめる
+- [x] T016 [US2] sandbox に `workflow_dispatch` の試しのワークフローを置き、Stacks API・`merge-async`・ボードの欄の作成・リポとボードのつなぎ込みを、`GITHUB_TOKEN` と App の token で試す
+- [x] T017 [US2] 同じワークフローで、Actions の secret と variable の名前の一覧と、tracker-sync の書き込みを、`GITHUB_TOKEN` と App の token で試す
+- [x] T018 [US2] リモート MCP だけで sandbox の Issue 1 件を起票から閉じるまで動かし、pecot-workflow で同じ操作をした Issue とボードの欄との差を `specs/031-pecot-coordinator/verification/github-io.md` に書く
+- [x] T019 [US2] T007〜T017 の操作・結果・読んだ版と日付を `specs/031-pecot-coordinator/verification/github-io.md` に書く
+- [x] T020 [US2] 結果で `specs/031-pecot-coordinator/contracts/github-io.md` の「未確認」の行と、`specs/031-pecot-coordinator/contracts/actions-interface.md` の「token」の列を埋める
 
 ---
 
@@ -67,13 +67,13 @@
 
 **Independent Test**: スキルを 1 つだけ持つ試しのプラグインを claude.ai に入れ、coordinator とクラウドのスレッドがそのスキルを使う
 
-- [ ] T021 [US3] スキルを 1 つだけ持ち、`bin/` を持たない試しのプラグインと marketplace を `pecotcraft/pecot-sandbox` に置く
-- [ ] T022 [US3] 利用者に claude.ai の個人の Add marketplace で試しのプラグインを入れてもらう。手順は画面の場所とボタンの名前まで書いて渡す
-- [ ] T023 [US3] 経路ごとに入ったかと、止まったときの文を `specs/031-pecot-coordinator/verification/distribution.md` に書く
-- [ ] T024 [US3] coordinator とクラウドのスレッドに試しのスキルを使わせ、読まれたかを `specs/031-pecot-coordinator/verification/distribution.md` に書く
-- [ ] T025 [US3] 試しのプラグインの版を上げ、次に起動したスレッドに新しい版が届くかを `specs/031-pecot-coordinator/verification/distribution.md` に書く
-- [ ] T026 [US3] クラウドの VM で、`npx --prefix=<データ置き場> -y @pecot/workflow-mcp@9.0.0` が initialize に答えるかと、pnpm の install が npm に届くかを確かめて書く
-- [ ] T027 [US3] 結果が research の R3 と食い違う点と、後続のフェーズの形を変える点を `specs/031-pecot-coordinator/verification/distribution.md` に書く
+- [x] T021 [US3] スキルを 1 つだけ持ち、`bin/` を持たない試しのプラグインと marketplace を `pecotcraft/pecot-sandbox` に置く
+- [x] T022 [US3] 利用者に claude.ai の個人の Add marketplace で試しのプラグインを入れてもらう。手順は画面の場所とボタンの名前まで書いて渡す
+- [x] T023 [US3] 経路ごとに入ったかと、止まったときの文を `specs/031-pecot-coordinator/verification/distribution.md` に書く
+- [x] T024 [US3] coordinator とクラウドのスレッドに試しのスキルを使わせ、読まれたかを `specs/031-pecot-coordinator/verification/distribution.md` に書く
+- [x] T025 [US3] 試しのプラグインの版を上げ、次に起動したスレッドに新しい版が届くかを `specs/031-pecot-coordinator/verification/distribution.md` に書く
+- [x] T026 [US3] クラウドの VM で、`npx --prefix=<データ置き場> -y @pecot/workflow-mcp@9.0.0` が initialize に答えるかと、pnpm の install が npm に届くかを確かめて書く
+- [x] T027 [US3] 結果が research の R3 と食い違う点と、後続のフェーズの形を変える点を `specs/031-pecot-coordinator/verification/distribution.md` に書く
 
 ---
 
@@ -146,13 +146,13 @@
 **Independent Test**: sandbox の `pecot-github-ops.yml` を、GitHub 公式の MCP の `actions_run_trigger` で operation ごとに起動し、結果を読める
 
 - [ ] T066 [P] [US6] `github-ops` の operation ごとのテストを書く（[contracts/actions-interface.md](contracts/actions-interface.md) の 2 節と、Phase 2 で足したもの） in `actions/tests/github-ops/`
-- [ ] T067 [US6] operation ごとの処理を `actions/src/github-ops.ts` に書き、`libs/workflow-core/src/infra/github/` を呼ぶ。結果は job summary に JSON で出す
+- [ ] T067 [US6] operation ごとの処理を `actions/src/github-ops.ts` に書き、`libs/workflow-core/src/infra/github/` を呼ぶ。結果は job のログに `PECOT_RESULT` で始まる 1 行の JSON で出す
 - [ ] T068 [US6] `actions/github-ops/action.yml` を書く（`operation` と、operation ごとの `inputs`・`token`）。`dist/` を作って commit する
 - [ ] T069 [US6] `actions/templates/pecot-github-ops.yml` を書く（`workflow_dispatch` の `inputs`・`permissions`・Phase 2 で決めた token）
 - [ ] T070 [US6] このリポの `.github/workflows/pecot-github-ops.yml` を足し、`uses: ./actions/github-ops` で呼ぶ
 - [ ] T071 [US6] `actions/README.md` に、`pecot-github-ops.yml` の導入と、operation ごとの token を書く
 - [ ] T072 [US6] version plan を足す（`actions` は minor）
-- [ ] T073 [US6] CUJ: sandbox に `pecot-github-ops.yml` を置き（`uses:` は確かめるブランチの ref）、`actions_run_trigger` で operation ごとに起動して、`actions_get` で結果を読む
+- [ ] T073 [US6] CUJ: sandbox に `pecot-github-ops.yml` を置き（`uses:` は確かめるブランチの ref）、`actions_run_trigger` で operation ごとに起動して、`run-name` で run を探し、`get_job_logs` で結果を読む
 
 ---
 
@@ -243,7 +243,7 @@
 - [ ] T123 [P] [US6] `issue_comment` の計算のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
 - [ ] T124 [P] [US6] `issue_check`・`issue_show` の判定（公式の MCP で読んだ Issue とボードから、着手できるかを返す）のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
 - [ ] T125 [P] [US6] `issue_block`・`issue_unblock` の計算（`issue_dependency_write` に渡す中身）のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
-- [ ] T126 [P] [US6] `issue_reopen` の計算（`issue_write` で開き直し、アーカイブした item を `projects_write` で戻す手順）のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
+- [ ] T126 [P] [US6] `issue_reopen` の計算（アーカイブした item を `projects_write` で外して足し直し、`Status` を消して欄を書き直してから、`issue_write` で開き直す手順）のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
 - [ ] T127 [P] [US6] 計算のツールが `libs/workflow-core/src/infra/github/` と GitHub の client を import しないことのテストを書く（SC-005） in `plugins/pecot-workflow/cli/tests/`
 - [ ] T128 [P] [US6] Issue のまとまりのスキルが、計算の結果をどの公式の MCP のツールで書くかを示し、ツールの基本の使い方を書かないことのテストを書く（FR-015） in `plugins/pecot-workflow/cli/tests/skills/`
 
@@ -270,9 +270,9 @@
 - [ ] T136 [P] [US6] `board_add`・`board_move`・`board_show` の計算（`projects_write` に渡す中身・ボードの読み取りからの判定）のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
 - [ ] T137 [P] [US6] `session_start`・`session_show` の計算（`create_branch`・`github-ops` の `link-branch`・ボードの移動）のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
 - [ ] T138 [P] [US6] `session_finish` の計算（閉じる `state_reason`・手元の片付け。リモートのブランチを消さない）のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
-- [ ] T139 [P] [US6] `pr_create`・`pr_restack`・`pr_check`・`pr_show` の計算のテストを書く（本文・`stack-register`・`reviewers`・`update_pull_request_branch`） in `plugins/pecot-workflow/cli/src/commands/tests/`
-- [ ] T140 [P] [US6] `pr_merge` の計算のテストを書く（sandbox で画面のマージを再現する `merge-async`。マージは利用者が画面で行う） in `plugins/pecot-workflow/cli/src/commands/tests/`
-- [ ] T141 [P] [US6] `project_create`・`project_init`・`project_link`・`project_get`・`project_set`・`project_activate`・`project_list`・`project_search`・`project_unset` の計算のテストを書く（`create_project`・`owner-type`・`project-fields`・`project-link`）
+- [ ] T139 [P] [US6] `pr_create`・`pr_restack`・`pr_check`・`pr_show` の計算のテストを書く（本文・`stack-register`・`reviewers`。親のマージの後の載せ替えは GitHub が行う） in `plugins/pecot-workflow/cli/src/commands/tests/`
+- [ ] T140 [P] [US6] `pr_merge` の計算のテストを書く（マージは利用者が画面で行う。Actions の token は merge queue に入れられないので、`merge-async` は置かない） in `plugins/pecot-workflow/cli/src/commands/tests/`
+- [ ] T141 [P] [US6] `project_create`・`project_init`・`project_link`・`project_get`・`project_set`・`project_activate`・`project_list`・`project_search`・`project_unset` の計算のテストを書く（`create_project`・`get_me`・`project-fields`・`project-view`・`project-link`）
 - [ ] T142 [P] [US6] `release_check`・`release_create`・`release_merge` の計算のテストを書く（`list_releases`・`list_tags`・`list_commits`・`release-create`。ブランチを消さない）
 - [ ] T143 [P] [US6] このまとまりのスキルが、公式の MCP のツールと `pecot-github-ops.yml` の起動をどの場面で使うかを示し、利用者に起動を頼まないことのテストを書く in `plugins/pecot-workflow/cli/tests/skills/`
 

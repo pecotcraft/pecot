@@ -28,10 +28,20 @@
 
 | POSIX に節の無い欄 | 借りた先 |
 |---|---|
-| `effects`（相手が `github`・`aws`・`git`・`process` のもの）・`idempotent`・`mcp.annotations` | MCP の Tool の annotations（`readOnlyHint`・`destructiveHint`・`idempotentHint`・`openWorldHint`） |
+| `effects` の `kind`（相手を問わない）・`idempotent`・`mcp.annotations` | MCP の Tool の annotations（`readOnlyHint`・`destructiveHint`・`idempotentHint`・`openWorldHint`） |
 | `prerequisites` | 設計契約の事前条件。呼ぶ側が満たす |
 | `behaviors` | 要件の書き方（EARS）と、要件とテストの双方向の追跡 |
 | `hidden` | このリポの決め。利用者の一覧に出さない項目を表す |
+
+相手が `file` の effect が POSIX の INPUT FILES・OUTPUT FILES に対応するのは、ファイルの一覧としてだけだ。`kind` の意味は、相手を問わず MCP の annotations に従う。
+
+| `kind` | 意味 | annotations |
+|---|---|---|
+| `read` | 環境を変えない | 全部が `read` なら `readOnlyHint: true` |
+| `write` | 足すだけ。新しく作る・足す・空の欄に値を入れる | `destructive` が無ければ `destructiveHint: false` |
+| `destructive` | 既にあるものを書き換える・置き換える・消す。閉じる・マージするなど、状態を変えることも含む | 1 つでもあれば `destructiveHint: true` |
+
+足す操作と上書きを 1 つの操作で行うときは、effect を 2 つに分け、足す部分を `write`、上書きの部分を `destructive` にする。
 
 書くものと書かないものは、Diátaxis のリファレンスの決めに従う。定義書には記述だけを書く。使い方の手順・設計の理由・議論は書かない。
 

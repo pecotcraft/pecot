@@ -34,6 +34,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
 
       # artifact は作業ツリーの外に取り、中身は実行しない。
@@ -85,6 +86,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
 
       - name: Download verified side

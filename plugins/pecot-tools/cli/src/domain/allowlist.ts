@@ -115,7 +115,7 @@ export interface AllowlistEntry {
   readonly toolName: string
   readonly service: string
   readonly subcommand: string
-  readonly kind: 'read' | 'execute' | 'auth'
+  readonly kind: 'read' | 'execute'
   /**
   `--output json` を付与するか（`s3 ls` は高レベルコマンドのため false）。
   */

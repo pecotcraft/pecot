@@ -274,11 +274,12 @@ def _git_reader(root: Path, path: str) -> Callable[[str], object | None]:
     """コミットの path を JSON で読む。ファイルが無ければ None。"""
 
     def read(commit: str) -> object | None:
-        result = _git(root, "show", f"{commit}:{path}")
-        if result.returncode != 0:
+        # blob の無い clone では show が blob を取りに行くので、パスの有無は tree だけで引く。
+        if _git(root, "rev-parse", "--verify", "--quiet", f"{commit}:{path}").returncode != 0:
             return None
+        text = _git_out(root, "show", f"{commit}:{path}")
         try:
-            return json.loads(result.stdout)
+            return json.loads(text)
         except json.JSONDecodeError as error:
             raise ReleaseSourcesError(
                 f"{commit[:7]}:{path} を JSON として読めません: {error}"

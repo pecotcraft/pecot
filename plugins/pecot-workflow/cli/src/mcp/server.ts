@@ -18,6 +18,7 @@ import type { CommandDefinition, PreparedCommand } from '../commands/registry.js
 import { outputWidth } from '@pecot/workflow-core/commands-shared/rich-panel.js'
 import { UsageError } from '@pecot/workflow-core/commands-shared/usage-error.js'
 import { readVersion } from '../version.js'
+import { toolAnnotationsOf } from './annotations.js'
 import { collectIo, standardOutputSchema, toAbortedResult, toolOutputSchema, toRejectedResult, toToolResult } from './result.js'
 import type { CollectedIo } from './result.js'
 import { readTemplate, TEMPLATE_MIME_TYPE, TEMPLATE_RESOURCES, templateResourceName, templateUri } from './templates.js'
@@ -233,7 +234,7 @@ export function createMcpServer(commands: readonly CommandDefinition[] = COMMAND
   for (const definition of commands) {
     server.registerTool(
       definition.toolName,
-      { title: definition.title, description: definition.description, inputSchema: passthroughSchema(definition), outputSchema: standardOutputSchema(toolOutputSchema(definition.output)) },
+      { title: definition.title, description: definition.description, inputSchema: passthroughSchema(definition), outputSchema: standardOutputSchema(toolOutputSchema(definition.output)), annotations: toolAnnotationsOf(definition) },
       async (arguments_, serverContext) => await inSequence(serverContext.mcpReq.signal, options, async () => await invoke(definition, arguments_, options, serverContext.mcpReq.signal)),
     )
   }

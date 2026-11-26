@@ -110,7 +110,12 @@ paths:
   python3 .githooks/scripts/pages_site/verify.py --run-id <test-report.yml の run> --repo pecotcraft/pecot --out .pecot/work/<Issue番号>/verify
   ```
 
-- 保管の push は、`store.py` が出力を捨てるので、GitHub が出す 50 MB 超の警告はログに出ない。大きさは `git ls-tree -r -l origin/pages-store dev/test-report` で読む。`history.jsonl` は 3 行で約 64 MB
+- 保管の push は、`store.py` が出力を捨てるので、GitHub が出す 50 MB 超の警告はログに出ない。大きさは次のコマンドで読む。手元の clone は `pages-store` を取らないので、API で読む。`history.jsonl` は 3 行で約 64 MB
+
+  ```bash
+  sha=$(gh api 'repos/pecotcraft/pecot/contents/dev?ref=pages-store' --jq '.[] | select(.name=="test-report") | .sha')
+  gh api "repos/pecotcraft/pecot/git/trees/$sha?recursive=1" --jq '.tree[] | select(.type=="blob") | "\(.size)\t\(.path)"'
+  ```
 
 ### 手元でレポートを作る
 

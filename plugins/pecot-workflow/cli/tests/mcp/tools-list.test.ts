@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { normalizeInput } from '../../src/commands/input-schema.js'
+import { byName } from '@pecot/workflow-core/commands-shared/names.js'
 import { COMMANDS } from '../../src/commands/registry.js'
 import { createMcpServer } from '../../src/mcp/server.js'
 import { parseJson } from '../../../../../libs/workflow-core/tests/_helpers/json.js'
@@ -17,13 +18,15 @@ const ToolSchema = z.object({ tool: z.string() })
 const EntrySchema = z.object({
   surfaces: z.object({ mcp: ToolSchema }),
   input: z.looseObject({}),
-  mcp: z.object({ title: z.string(), output: z.looseObject({}) }),
+  mcp: z.object({ title: z.string(), output: z.looseObject({}), annotations: z.looseObject({}) }),
 })
 const GeneratedSchema = z.object({ entries: z.array(EntrySchema) })
 const RepositorySchema = z.looseObject({ type: z.literal('string') })
 const WithRepositorySchema = z.object({ properties: z.object({ repo: RepositorySchema }) })
 
 const OutputSchemaShape = z.looseObject({ type: z.literal('object'), properties: z.record(z.string(), z.unknown()), additionalProperties: z.unknown() })
+// Issue #771 の、interface/authored.yaml の effects がすべて read のツール
+const READ_ONLY_TOOLS = ['board_show', 'issue_attributes', 'issue_check', 'issue_show', 'pr_check', 'pr_show', 'project_get', 'project_list', 'project_search', 'release_check', 'session_show', 'workflow_doctor']
 const ENVELOPE_NAMES: ReadonlySet<string> = new Set(['ok', 'exitCode', 'data', 'artifacts', 'message', 'reason'])
 
 // CLI のフラグ（--name・-m）。前は行頭・空白・括弧・バッククォート
@@ -117,6 +120,20 @@ describe('tools/list', () => {
     expect(tools.map(tool => tool.title)).toEqual(expected)
     expect(expected.every(title => typeof title === 'string' && title !== '')).toBe(true)
     expect(tools.filter(tool => tool.annotations?.title !== undefined).map(tool => tool.name)).toEqual([])
+  })
+
+  it('readOnlyHint: true を返すのは読むだけの 12 個だけで、ほかのツールは false を返す', async () => {
+    const { client } = await connect()
+    const { tools } = await client.listTools()
+    expect(tools.filter(tool => tool.annotations?.readOnlyHint === true).map(tool => tool.name).toSorted(byName)).toEqual(READ_ONLY_TOOLS)
+    expect(tools.filter(tool => tool.annotations?.readOnlyHint !== true).every(tool => tool.annotations?.readOnlyHint === false)).toBe(true)
+  })
+
+  it('全ツールの annotations は、定義書の mcp.annotations に一致する', async () => {
+    const { client } = await connect()
+    const { tools } = await client.listTools()
+    const expected = tools.map(tool => generated.entries.find(item => item.surfaces.mcp.tool === tool.name)?.mcp.annotations)
+    expect(tools.map(tool => tool.annotations)).toEqual(expected)
   })
 
   it('全ツールの outputSchema は、$schema を除いて定義書の mcp.output に一致する', async () => {

@@ -111,7 +111,7 @@ entries:
         kind: read
         what: '`input_path` のファイル、同梱のアイコンのカタログ、テーマの宣言を読みます。テーマは、`theme` のものか、図の上にある talk-dir のものです。'
       - target: file
-        kind: write
+        kind: destructive
         what: '表示用の HTML を `out_path` に書きます。PNG の書き出し先は、拡張子を `.png` に替えたパスです。同じパスにファイルがあれば、置き換えます。'
       - target: process
         kind: write
@@ -218,7 +218,7 @@ entries:
         kind: read
         what: '`input_path` のファイルと、`icons_dir` の下のアイコンのカタログを読みます。'
       - target: file
-        kind: write
+        kind: destructive
         what: 'SVG を `out_path` に書きます。PDF の書き出し先は、拡張子を `.pdf` に替えたパスです。同じパスにファイルがあれば、置き換えます。`print_hash` を `true` にしたときは、何も書きません。'
       - target: process
         kind: write
@@ -308,7 +308,7 @@ entries:
         kind: read
         what: '`input_path` のファイルと、EvidenceSpec に書かれた画像のファイルを読みます。'
       - target: file
-        kind: write
+        kind: destructive
         what: 'xlsx を `out_path` に書きます。同じパスにファイルがあれば、置き換えます。'
     prerequisites: []
     idempotent: true
@@ -370,7 +370,7 @@ entries:
         kind: write
         what: 'npm を動かして実行時依存を入れ、Playwright を動かして Chromium をネットワークからダウンロードします。'
       - target: process
-        kind: write
+        kind: destructive
         what: 'Chromium の起動に要る OS のライブラリが足りず、パスワードなしで sudo を使えるときは、`sudo apt-get` で入れます。'
     prerequisites:
       - 'npm のレジストリと、Playwright のダウンロード元にネットワークで届くことが要ります。SSL を中継するプロキシの内側では、`NODE_EXTRA_CA_CERTS` にプロキシの CA を渡します。'
@@ -492,7 +492,7 @@ entries:
         kind: read
         what: '`project_dir` の `slides.md`・`pages/`・`public/`・テーマと、字間の JSON・ハイパーリンクの JSON を読みます。'
       - target: file
-        kind: write
+        kind: destructive
         what: 'PPTX を `out_path` に、差分のキャッシュを出力先のディレクトリに書きます。`project_dir` の `node_modules` を張り直し、`vite.config.ts` と `start.mjs` がプラグインのものと違えば書き直します。'
       - target: file
         kind: destructive
@@ -746,7 +746,7 @@ entries:
     on_error: '応答できるようにならなかったサーバは止めます。動いたまま残しません。'
     effects:
       - target: file
-        kind: write
+        kind: destructive
         what: '`dir` の `node_modules` を張り直し、`vite.config.ts` と `start.mjs` がテーマとプラグインのものと違えば書き直します。'
       - target: process
         kind: write
@@ -958,7 +958,10 @@ entries:
         what: 'テーマの宣言と、レイアウトの仕様の yaml を読みます。'
       - target: file
         kind: write
-        what: '`dir` の `pages/<file>.md` を書きます。既にあるページを置き換えるのは、`force` が `true` のときだけです。'
+        what: '`dir` の `pages/<file>.md` に、新しいページを書きます。'
+      - target: file
+        kind: destructive
+        what: '`force` が `true` のときは、既にある `pages/<file>.md` を置き換えます。'
     prerequisites:
       - '`dir` は、テーマを参照する talk-dir です。'
       - 'レイアウトの名前は、`slide_create` か `slide_sync` の `layouts` から選びます。'
@@ -1086,7 +1089,7 @@ entries:
         kind: destructive
         what: '移行前の talk-dir を移すときに、テンプレートから来たファイルを消します。作業の領域は残します。'
       - target: file
-        kind: write
+        kind: destructive
         what: '`dir` の `package.json`・`slides.md`・`vite.config.ts`・`start.mjs` と、`node_modules` のリンクを書き直します。取得したテーマは、`<data-dir>/themes` の下に置きます。'
       - target: process
         kind: write

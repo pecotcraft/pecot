@@ -130,9 +130,14 @@ describe('exportEntries', () => {
     ])
   })
 
-  it('mcp は、コマンド定義の title を output より先に持つ', () => {
+  it('mcp は、コマンド定義の title を output より先に持ち、annotations を最後に持つ', () => {
     expect(entries.map(entry => entry.mcp.title)).toStrictEqual(['Greet someone', 'Read files'])
-    expect(Object.keys(entries[0]?.mcp ?? {})).toStrictEqual(['title', 'output'])
+    expect(Object.keys(entries[0]?.mcp ?? {})).toStrictEqual(['title', 'output', 'annotations'])
+  })
+
+  it('mcp.annotations の readOnlyHint は、動詞が読むだけの印を持つときだけ true になる', () => {
+    const show = defineCommand({ path: ['alpha', 'show'], title: 'Show alpha', description: 'Show alpha.', input: z.strictObject({}), output: z.strictObject({}), positional: [], run: () => Promise.resolve(0), interactive: false })
+    expect(exportEntries([show, alpha]).map(entry => entry.mcp.annotations)).toStrictEqual([{ readOnlyHint: false }, { readOnlyHint: true }])
   })
 
   it('項目のキーは contracts の例の順', () => {
@@ -458,8 +463,8 @@ describe('main の --check', () => {
 
   it('定義書にだけある欄のキーは 1 を返し、removed の行を出す', () => {
     const file = fileOf(samples)
-    entryOf(file, 'PW-BETA')['mcp'] = { output: exportEntries([beta])[0]?.mcp.output, annotations: { readOnlyHint: true } }
-    expect(checkOf(file).error).toContain('  PW-BETA: mcp.annotations: removed\n')
+    entryOf(file, 'PW-BETA')['cli'] = { ...exportEntries([beta])[0]?.cli, only: { dry_run: { type: 'boolean' } } }
+    expect(checkOf(file).error).toContain('  PW-BETA: cli.only: removed\n')
   })
 
   describe('定義書を読めないとき', () => {

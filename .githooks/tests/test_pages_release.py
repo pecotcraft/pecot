@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 from collections.abc import Mapping, Sequence
@@ -431,6 +432,36 @@ def test_cli_report_release_without_report_lanes_has_empty_matrix(repo: Path) ->
         "sources": {"side": "release", "runs": [], "missing": ["a"]},
         "matrix": [],
     }
+
+
+def test_git_reader_returns_none_without_the_path(repo: Path) -> None:
+    head = _commit(repo, {"x.txt": "x"}, "first")
+    assert release_sources._git_reader(repo, _REPORT_LANES)(head) is None
+
+
+def _blobless_clone(repo: Path, tmp_path: Path) -> Path:
+    """repo を blob:none で clone し、取得元を消したリポ。blob を読むと取りに行って失敗する。"""
+    bare, clone = tmp_path / "bare.git", tmp_path / "clone"
+    _git(tmp_path, "clone", "-q", "--bare", str(repo), str(bare))
+    _git(bare, "config", "uploadpack.allowFilter", "true")
+    _git(
+        tmp_path, "clone", "-q", "--no-checkout", "--filter=blob:none", f"file://{bare}", str(clone)
+    )
+    shutil.rmtree(bare)
+    return clone
+
+
+def test_git_reader_tells_unreadable_blob_from_missing_path(repo: Path, tmp_path: Path) -> None:
+    head = _commit(repo, {_REPORT_LANES: "[]"}, "first")
+    clone = _blobless_clone(repo, tmp_path)
+    read = release_sources._git_reader(clone, _REPORT_LANES)
+
+    assert release_sources._git_reader(clone, "none.json")(head) is None
+    with pytest.raises(ReleaseSourcesError) as caught:
+        read(head)
+    message = str(caught.value)
+    assert message.startswith(f"git show {head}:{_REPORT_LANES} が失敗しました: ")
+    assert "promisor remote" in message
 
 
 @pytest.mark.parametrize(

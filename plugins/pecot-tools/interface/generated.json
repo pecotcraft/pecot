@@ -2758,7 +2758,7 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
+          "destructiveHint": true,
           "openWorldHint": true,
           "readOnlyHint": false
         },

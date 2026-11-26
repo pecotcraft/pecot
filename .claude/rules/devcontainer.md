@@ -39,3 +39,17 @@ paths:
 
 - `.devcontainer/Dockerfile` でネイティブ版を vscode ユーザーの持ち物で入れ、自動更新で最新に保つ
 - `npm install -g` や feature で入れ直さない。root の持ち物になり、自動更新が止まる
+
+## pages-store の取得
+
+- 公開サイトの保管ブランチ `pages-store` は大きく、開発では読まない
+- 起動のたびに `post-start.sh` が `exclude-pages-store.sh` を呼び、`git fetch` の対象から外す
+  - 取得の設定（`remote.origin.fetch`）に `^refs/heads/pages-store` を足し、残っている `origin/pages-store` を消す
+  - 負の refspec で外したブランチの追跡 ref は、`git fetch --prune` では消えない
+- 中身を読みたいときは、手元の clone で `git fetch origin pages-store` しない。`origin/pages-store` が作り直され、展開で数百 MB の中身が手元の pack に入る。`--depth` を付けると、手元の clone が浅い clone にも変わる
+- 別のディレクトリへ、1 本だけ浅く取る
+
+  ```bash
+  git clone --depth 1 --single-branch --branch pages-store \
+    https://github.com/pecotcraft/pecot.git .pecot/work/<Issue番号>/pages-store
+  ```
