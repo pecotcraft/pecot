@@ -29,7 +29,7 @@ spec の Clarifications（2026-11-10）の 3 点を前提にする。今の pyte
 | usage spec（KDL） | v7.3.0。3 か月で major が 4 回上がった | 知らないキーが parse error になり、副作用の相手・前提・振る舞いの項目を置けない。MCP ツールを表せない |
 | MCP の `tools/list` の形だけ | 安定 | CLI のコマンドの木と終了コードを表せない。引数の部分にだけ使う |
 
-usage spec の語（`effect` の read・write・destructive、`exit_code`、`conflicts`・`requires`）は、自前の項目名に借りる。
+usage spec の語（`effect` の read・write・destructive、`exit_code`、`conflicts`・`requires`）は、自前の項目名に借りる。`effect` の種類で借りるのは名前だけで、意味は MCP の annotations に合わせる（#785）。
 
 ## R2. 定義書を 2 つのファイルに分ける
 

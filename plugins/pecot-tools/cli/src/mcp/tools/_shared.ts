@@ -349,7 +349,7 @@ export async function executeAllowlisted(
 }
 
 /**
-annotations を許可リストの kind から導く。消す・上書きするツールは無いので、destructiveHint は false。
+annotations を許可リストの kind から導く。execute の項目は新しい結果を書くだけ（effects は write）なので、destructiveHint は false。
 */
 function annotationsOf(entry: Readonly<AllowlistEntry>): ToolAnnotations {
   return {
