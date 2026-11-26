@@ -49,6 +49,10 @@ describe('effects against mcp.annotations', () => {
       .toEqual(['PT-AWS-S3-LS: effects has no kind "write" or "destructive" but annotations.readOnlyHint is false'])
   })
 
+  it('作用が足すだけの書き込みなら、destructiveHint が false でも通す', async () => {
+    expect(await check('PT-AWS-S3-CP', { readOnlyHint: false, destructiveHint: false }, ['read', 'write'], true)).toEqual([])
+  })
+
   it('destructiveHint が作用と食い違うと、止める', async () => {
     expect(await check('PT-AWS-S3-CP', { destructiveHint: true }, ['write'], true))
       .toEqual(['PT-AWS-S3-CP: effects has no kind "destructive" but annotations.destructiveHint is true'])

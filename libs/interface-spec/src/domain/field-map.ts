@@ -50,7 +50,7 @@ export const POSIX_MAP: readonly PosixRow[] = [
 ]
 
 export const BORROWED_MAP: readonly BorrowedRow[] = [
-  { fields: ['effects', 'idempotent', 'mcp.annotations'], source: 'MCP の Tool の annotations（readOnlyHint・destructiveHint・idempotentHint・openWorldHint）' },
+  { fields: ['effects', 'idempotent', 'mcp.annotations'], source: 'MCP の Tool の annotations（readOnlyHint・destructiveHint・idempotentHint・openWorldHint）。effects の kind は相手を問わず対応する。read は環境を変えない。write は足すだけで、destructive は上書き・削除を含む' },
   { fields: ['prerequisites'], source: '設計契約の事前条件。呼ぶ側が満たす' },
   { fields: ['behaviors'], source: '要件の書き方（EARS）と、要件とテストの双方向の追跡' },
   { fields: ['hidden'], source: 'このリポの決め。利用者の一覧に出さない項目を表す' },

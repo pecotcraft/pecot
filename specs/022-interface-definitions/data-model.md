@@ -53,7 +53,7 @@
 | `environment` | 配列 | 英語 | `[]` | この項目だけが読む環境変数の名前と、変わる振る舞い。全項目に共通のものは、ファイルの先頭の `environment` に書く |
 | `exit_status` | 配列 | 英語 | 必ず書く | 失敗の種別と条件。終了コード（`code`）は CLI の面を持つ項目だけが書く |
 | `on_error` | 文字列 | 英語 | `default` | 失敗の後に残る状態。`default` は、何も作らず何も変えずに終わることを指す |
-| `effects` | 配列 | 英語 | `[]` | 外部への副作用。相手は `github`・`aws`・`git`・`file`・`process`、種類は `read`・`write`・`destructive` |
+| `effects` | 配列 | 英語 | `[]` | 外部への副作用。相手は `github`・`aws`・`git`・`file`・`process`、種類は `read`・`write`・`destructive`。種類の意味は MCP の annotations に従い、`write` は足すだけ、`destructive` は上書き・削除を含む（[definition-format.md](contracts/definition-format.md)） |
 | `prerequisites` | 文字列の配列 | 英語 | `[]` | 呼ぶ側が満たす事前条件（認証、設定ファイルなど） |
 | `idempotent` | 真偽値 | — | 必ず書く | 同じ入力で 2 回呼んだ結果が、1 回と同じなら真 |
 | `examples` | 配列 | 英語 | 必ず書く | 呼び出しの例と、その説明。MCP の面を持つ項目は `arguments`（`tools/call` の引数）、持たない項目は `run`（コマンドの行） |

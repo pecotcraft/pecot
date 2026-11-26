@@ -149,7 +149,10 @@ entries:
     effects:
       - target: github
         kind: write
-        what: 'Issue に結果のコメントを 1 つ書き、ボードの既定の Status を書き、起動ラベルを外します。'
+        what: 'Issue に結果のコメントを 1 つ書きます。'
+      - target: github
+        kind: destructive
+        what: 'ボードの既定の Status を書き、起動ラベルを外します。'
       - target: github
         kind: read
         what: 'Issue のブランチと PR、Issue のコメント、ボードの項目を読みます。'
@@ -341,7 +344,10 @@ entries:
         what: 'ラベルを付けた人の権限、Issue の進行の欄とブランチと PR、Issue のコメント、計画を書いた人の権限、ブランチの先頭の commit を読みます。'
       - target: github
         kind: write
-        what: '進めない理由を知らせるときと CI の結果を知らせるときに、Issue に結果のコメントを書き、Status と起動ラベルを書きます。'
+        what: '進めない理由を知らせるときと CI の結果を知らせるときに、Issue に結果のコメントを書きます。'
+      - target: github
+        kind: destructive
+        what: '同じときに、Status と起動ラベルを書きます。'
       - target: file
         kind: read
         what: 'イベントの JSON、テンプレート `auto-result`、プロジェクトの設定ファイルを読みます。'
@@ -511,7 +517,10 @@ entries:
         what: 'Issue の本文・進行の欄・Status・ブランチ・PR、Issue のコメント、コメントを書いた人の権限、ボードの項目を読みます。'
       - target: github
         kind: write
-        what: 'Issue をボードに載せて進行の欄を Ready にするか、既定の Status を Todo か In Progress に戻します。'
+        what: 'Issue をボードに載せます。'
+      - target: github
+        kind: destructive
+        what: '載せた Issue の進行の欄を Ready にするか、既定の Status を Todo か In Progress に戻します。'
       - target: file
         kind: read
         what: 'プロジェクトの設定ファイルを読みます。'
@@ -657,7 +666,10 @@ entries:
         what: 'プロジェクトにつながっているリポジトリと、Issue の node ID を読みます。'
       - target: github
         kind: write
-        what: 'Issue をプロジェクトのボードに足し、Status の欄を設定します。'
+        what: 'Issue をプロジェクトのボードに足します。'
+      - target: github
+        kind: destructive
+        what: 'Status の欄を設定します。'
       - target: file
         kind: read
         what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
@@ -834,7 +846,7 @@ entries:
         kind: read
         what: 'プロジェクトにつながっているリポジトリと、Issue のボードの項目を読みます。'
       - target: github
-        kind: write
+        kind: destructive
         what: 'ボードの項目の Status の欄を設定します。'
       - target: file
         kind: read
@@ -1210,7 +1222,7 @@ entries:
         kind: read
         what: 'ボードの項目を読みます。Blocked・Active・In Review の Issue と、前提のある Ready の Issue は、blocked-by・ブランチ・PR も読みます。そのうち札が `Needs Attention` で着手の跡の無い Issue は、コメントも読みます。GraphQL の rate limit も読みます。'
       - target: github
-        kind: write
+        kind: destructive
         what: '判定に合っていない Issue の列（pecot-workflow のフィールド）と Status を設定します。'
       - target: github
         kind: destructive
@@ -1739,7 +1751,10 @@ entries:
     effects:
       - target: github
         kind: write
-        what: 'blocked-by を付け、待つ側の Issue の本文を書き換え、そのボードの項目の列と Status の札を設定します。'
+        what: 'blocked-by を付けます。'
+      - target: github
+        kind: destructive
+        what: '待つ側の Issue の本文を書き換え、そのボードの項目の列と Status の札を設定します。'
       - target: github
         kind: read
         what: 'プロジェクトにつながっているリポジトリ、待つ側の Issue の blocked-by と本文、輪の探索、読み直した判定、ボードの項目を読みます。待つ側の Issue の札が `Needs Attention` で着手の跡が無いときは、そのコメントも読みます。'
@@ -2079,12 +2094,15 @@ entries:
     effects:
       - target: github
         kind: write
-        what: 'Issue にコメントを投稿します。または、`comment_url` のコメントを書き換えます。'
+        what: 'Issue にコメントを投稿します。'
+      - target: github
+        kind: destructive
+        what: '`comment_url` を渡したときは、そのコメントを書き換えます。'
       - target: github
         kind: read
         what: 'ファイルのときに、リポジトリがプロジェクトにつながっているかどうかを確かめます。'
       - target: file
-        kind: write
+        kind: destructive
         what: '投稿したファイルに、`comment_url` を書き戻します。'
       - target: file
         kind: read
@@ -2761,7 +2779,7 @@ entries:
         kind: read
         what: '設定のボードのフィールドと、リポの Issue fields・Issue type・ラベル・open のマイルストーンの定義を読みます。Issue の今の値と、`assignees` に渡したログイン名を担当にできるかも読みます。'
       - target: github
-        kind: write
+        kind: destructive
         what: 'Issue の担当者・マイルストーン・Issue type・ラベルと、Issue fields の値、設定のボードのフィールドの値を書きます。'
       - target: file
         kind: read
@@ -2931,7 +2949,10 @@ entries:
     effects:
       - target: github
         kind: write
-        what: 'Issue を開き直し、コメントを投稿します。ボードの項目は、アーカイブを解き、組み込みの `Status` の `Done` を消し、status のフィールドを設定します。'
+        what: 'Issue にコメントを投稿します。'
+      - target: github
+        kind: destructive
+        what: 'Issue を開き直します。ボードの項目は、アーカイブを解き、組み込みの `Status` の `Done` を消し、status のフィールドを設定します。'
       - target: github
         kind: read
         what: 'プロジェクトにつながっているリポジトリと、Issue のボードの項目を読みます。'
@@ -3344,7 +3365,7 @@ entries:
     on_error: '前提を外した後で本文の書き込みに失敗したときは、blocked-by は外れたままで、失敗を返します。ボードに書けないときは、blocked-by と本文は残り、`warnings` に入れるだけです。選択肢の ID が古くて書けないときは、ID を読み直す `project_activate` の案内を添えます。節かボードに関する `warnings` だけのときは、成功を返します。'
     effects:
       - target: github
-        kind: write
+        kind: destructive
         what: 'blocked-by を外し、待つ側の Issue の本文を書き換え、そのボードの項目の列と Status の札を設定します。'
       - target: github
         kind: read
@@ -3819,7 +3840,10 @@ entries:
     effects:
       - target: github
         kind: write
-        what: 'PR を作り、関連する Issue のボードの status を In Review にします。スタックした base の PR は、スタックに登録します。この PR を待っていた Issue の列を動かします。'
+        what: 'PR を作ります。スタックした base の PR は、スタックに登録します。'
+      - target: github
+        kind: destructive
+        what: '関連する Issue のボードの status を In Review にします。この PR を待っていた Issue の列を動かします。'
       - target: github
         kind: read
         what: '関連する Issue の種類と、そのボードの項目を読みます。スタックした base では、親 PR とスタックも読みます。待っている Issue とボードも読みます。待っている Issue の札が `Needs Attention` で着手の跡が無いときは、そのコメントも読みます。'
@@ -4178,7 +4202,7 @@ entries:
     on_error: 'マージが 60 秒で終わらないときは、要求は GitHub に残っています。PR の状態を確かめてから呼び直します。呼び直すと、残っている要求の結果を読み続けます。'
     effects:
       - target: github
-        kind: write
+        kind: destructive
         what: 'PR をマージするか、merge queue に入れます。'
       - target: github
         kind: read
@@ -4394,10 +4418,10 @@ entries:
         kind: read
         what: '親ブランチを head に持つ PR を読みます。'
       - target: github
-        kind: write
+        kind: destructive
         what: '開発ブランチへスタックし直した後、既定のブランチに向いたブランチの開いている PR を読み、本文を変えずに保存し直します。'
       - target: file
-        kind: write
+        kind: destructive
         what: '`.pecot/state/.pecot-base` を書き直します。衝突で止まる間は `.pecot/state/.pecot-restack` を置き、終わるか取りやめると消します。'
     prerequisites:
       - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `project` で選びます。'
@@ -4775,7 +4799,7 @@ entries:
         kind: read
         what: '所有者のプロジェクトと、そのフィールドと、つながっているリポジトリを読みます。'
       - target: file
-        kind: write
+        kind: destructive
         what: '`.pecot/config/projects/` の下の設定ファイルを作るか更新し、アクティブなプロジェクトを設定します。'
       - target: file
         kind: read
@@ -4977,7 +5001,10 @@ entries:
         what: '所有者、既にあるプロジェクト、フィールド、ビュー、つながっているリポジトリを読みます。'
       - target: file
         kind: write
-        what: '`.pecot/config/projects/` の下に設定ファイルを書き、アクティブなプロジェクトを設定します。'
+        what: '`.pecot/config/projects/` の下に設定ファイルを書きます。'
+      - target: file
+        kind: destructive
+        what: 'アクティブなプロジェクトを設定します。'
     prerequisites:
       - 'ホストの GitHub トークンと、所有者のプロジェクトを作る権限が要ります。'
     idempotent: false
@@ -5228,9 +5255,12 @@ entries:
         what: '所有者のプロジェクト、対象のプロジェクトのフィールドとビュー、つながっているリポジトリを読みます。'
       - target: github
         kind: write
-        what: 'プロジェクトに足りないフィールドを作り、旧い名前の進行の欄を改名します。既にあるフィールドには、Blocked と Needs Attention の選択肢を足します。`lanes` の値で `pecot-lane` を作るか値を足し、`Lanes` のビューを作ります。`confirm_delete` が `true` のときは、pecot が使わないフィールドを消します。'
+        what: 'プロジェクトに足りないフィールドを作ります。`lanes` の値で `pecot-lane` を作り、`Lanes` のビューを作ります。'
+      - target: github
+        kind: destructive
+        what: '旧い名前の進行の欄を改名します。既にあるフィールドの選択肢の一覧を置き換えて、Blocked と Needs Attention を足します。`lanes` の値で、既にある `pecot-lane` の選択肢の一覧を置き換えます。`confirm_delete` が `true` のときは、pecot が使わないフィールドを消します。'
       - target: file
-        kind: write
+        kind: destructive
         what: '`.pecot/config/projects/` の下に設定ファイルを書き、アクティブなプロジェクトを設定します。既にある設定ファイルが、ボードから作るものと同じときは書きません。同じプロジェクトを指す別の名前の設定ファイルは、新しい名前に移します。'
     prerequisites:
       - 'ホストの GitHub トークンと、プロジェクトを編集する権限が要ります。'
@@ -5485,7 +5515,7 @@ entries:
         kind: read
         what: 'アクティブな設定ファイルを読みます。'
       - target: file
-        kind: write
+        kind: destructive
         what: 'アクティブな設定ファイルに、リポジトリを足すか更新します。'
     prerequisites:
       - 'アクティブなプロジェクトが要ります（`project_activate` で決めます）。'
@@ -5784,7 +5814,7 @@ entries:
         kind: read
         what: 'アクティブな設定ファイルを読みます。'
       - target: file
-        kind: write
+        kind: destructive
         what: 'アクティブな設定ファイルに `aggregation_repo` を書きます。'
     prerequisites:
       - 'アクティブなプロジェクトが要ります（`project_activate` で決めます）。'
@@ -5881,7 +5911,7 @@ entries:
         kind: read
         what: 'アクティブな設定ファイルを読みます。'
       - target: file
-        kind: write
+        kind: destructive
         what: 'アクティブな設定ファイルから `aggregation_repo` を消します。'
     prerequisites:
       - 'アクティブなプロジェクトが要ります（`project_activate` で決めます）。'
@@ -6547,7 +6577,7 @@ entries:
         kind: read
         what: 'PR の状態、マージできるかどうかの状態、base ブランチ、head ブランチを読みます。'
       - target: github
-        kind: write
+        kind: destructive
         what: 'マージの方法 `merge` で PR をマージします。'
       - target: github
         kind: destructive
@@ -6973,7 +7003,7 @@ entries:
         kind: read
         what: 'PR と、関連する Issue それぞれの種類と状態を読みます。'
       - target: github
-        kind: write
+        kind: destructive
         what: '関連する Issue を閉じます。'
       - target: github
         kind: destructive
@@ -6982,7 +7012,7 @@ entries:
         kind: destructive
         what: '開発ブランチか、記録した `wtN`（記録が無ければ親ディレクトリの名前か `worktree-<name>`）のブランチを checkout して pull します。ローカルの head ブランチを `git branch -D` で削除します。'
       - target: file
-        kind: write
+        kind: destructive
         what: '`.pecot/state/` の下のフラグを消します。'
       - target: file
         kind: read
@@ -7485,13 +7515,19 @@ entries:
         what: '次のものを読みます。プロジェクトにつながっているリポジトリ。Issue の前提と、そのブランチの PR。Issue の node ID と題。分岐元のブランチの先頭のコミット。'
       - target: github
         kind: write
-        what: '紐づいたブランチを作り、ボード上の Issue の Status を `active` にします。'
+        what: '紐づいたブランチを作ります。'
+      - target: github
+        kind: destructive
+        what: 'ボード上の Issue の Status を `active` にします。'
       - target: file
         kind: read
         what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
       - target: file
         kind: write
-        what: '`.pecot/state/.pecot-session-title`・`.pecot/state/.pecot-base` を書きます。`.pecot/work/<N>/` も作ります。`.pecot/state/.pecot-active` は書きません。'
+        what: '`.pecot/work/<N>/` を作ります。'
+      - target: file
+        kind: destructive
+        what: '`.pecot/state/.pecot-session-title`・`.pecot/state/.pecot-base` を書きます。`.pecot/state/.pecot-active` は書きません。'
     prerequisites:
       - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `project` で選びます。'
       - 'ホストの GitHub トークンと、プロジェクトを編集する権限が要ります。'
@@ -7796,13 +7832,19 @@ entries:
         what: '`dependabot` では、リポジトリの open の Dependabot の PR と、`dependabot-pr` のラベルが付いた Issue の一覧を読みます。'
       - target: github
         kind: write
-        what: '`dependabot` では、Tracker の Issue を作り、本文を書き直し、閉じます。プロジェクトのボードに足し、Status を設定します。'
+        what: '`dependabot` では、Tracker の Issue を作り、プロジェクトのボードに足します。'
+      - target: github
+        kind: destructive
+        what: '`dependabot` では、Tracker の Issue の本文を書き直し、閉じます。ボードの項目の Status を設定します。'
       - target: github
         kind: read
         what: '`security` では、リポジトリの open の Dependabot・code scanning・secret scanning の alert の一覧を読みます。一覧を拒まれたときは、secret scanning と Dependabot の設定も読みます。`security-alert` のラベルが付いた Issue の一覧も読みます。'
       - target: github
         kind: write
-        what: '`security` では、Tracker の Issue を作り、本文を書き直します。プロジェクトのボードに足し、Status を設定します。'
+        what: '`security` では、Tracker の Issue を作り、プロジェクトのボードに足し、空の Status に値を入れます。'
+      - target: github
+        kind: destructive
+        what: '`security` では、Tracker の Issue の本文を書き直します。'
       - target: file
         kind: read
         what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
@@ -8367,7 +8409,10 @@ entries:
         what: '同梱の雛形と、リポのルートの下に置いてあるワークフローのファイルを読みます。'
       - target: file
         kind: write
-        what: 'リポのルートの下に、ワークフローのファイルを書きます。`force` のときは上書きします。'
+        what: 'リポのルートの下に、ワークフローのファイルを書きます。'
+      - target: file
+        kind: destructive
+        what: '`force` のときは、既にあるファイルを上書きします。'
     prerequisites: []
     idempotent: false
     examples:
@@ -8560,7 +8605,10 @@ entries:
     effects:
       - target: git
         kind: write
-        what: '古い worktree の管理情報を prune します。worktree とブランチ `wtN` を作り、upstream を設定します。worktree の git の管理ディレクトリに、`wtN` を記録します。'
+        what: 'worktree とブランチ `wtN` を作り、upstream を設定します。worktree の git の管理ディレクトリに、`wtN` を記録します。'
+      - target: git
+        kind: destructive
+        what: '古い worktree の管理情報を prune します。'
       - target: git
         kind: destructive
         what: '期待する upstream と合っていて、worktree の無い既存のローカルブランチ `wtN` を消します。'
@@ -8569,12 +8617,15 @@ entries:
         what: '`worktree-config.json`、`.worktreeignore`、アクティブな設定ファイルを読みます。'
       - target: file
         kind: write
-        what: 'シンボリックリンクを作り、既にあるシンボリックリンクは置き換えます。git が無視しているファイルをコピーし、新しい worktree に `.pecot/.gitignore` を書きます。'
+        what: 'シンボリックリンクを作ります。git が無視しているファイルをコピーし、新しい worktree に `.pecot/.gitignore` を書きます。'
+      - target: file
+        kind: destructive
+        what: '既にあるシンボリックリンクは置き換えます。'
       - target: file
         kind: destructive
         what: '新しい worktree のリンクのパスに既にある、実体のファイルかディレクトリを消します。'
       - target: process
-        kind: write
+        kind: destructive
         what: 'setup のコマンドをシェルを通して動かします。`.pecot/.gitignore` を書くスクリプトも動かします。'
     prerequisites:
       - 'devcontainer の中で動かします。'
@@ -9022,12 +9073,15 @@ entries:
         what: '`worktree-config.json` を読みます。'
       - target: file
         kind: write
-        what: 'シンボリックリンクを作り、既にあるものは置き換えます。worktree に `.pecot/.gitignore` を書きます。'
+        what: 'シンボリックリンクを作ります。worktree に `.pecot/.gitignore` を書きます。'
+      - target: file
+        kind: destructive
+        what: 'リンクのパスに既にあるシンボリックリンクは置き換えます。'
       - target: file
         kind: destructive
         what: 'リンクのパスにある実体のファイルかディレクトリを消します。消すのは、`force` で許したものです。'
       - target: process
-        kind: write
+        kind: destructive
         what: '`.pecot/.gitignore` を書くスクリプトを動かします。'
     prerequisites:
       - 'devcontainer の中で動かします。'

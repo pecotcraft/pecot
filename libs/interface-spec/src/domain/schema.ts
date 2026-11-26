@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 export const EFFECT_TARGETS = ['github', 'aws', 'git', 'file', 'process'] as const
+// 意味は MCP の ToolAnnotations に従う。write は足すだけ（destructiveHint: false）、destructive は上書き・削除を含む。
 export const EFFECT_KINDS = ['read', 'write', 'destructive'] as const
 export const PATTERNS = ['ubiquitous', 'event', 'state', 'unwanted', 'optional'] as const
 export const OUTPUT_FORMATS = ['text', 'json', 'none'] as const

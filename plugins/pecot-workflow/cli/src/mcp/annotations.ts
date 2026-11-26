@@ -4,7 +4,7 @@ import type { ToolAnnotations } from '@modelcontextprotocol/server'
 import type { CommandDefinition } from '../commands/registry.js'
 
 /**
-readOnlyHint だけを付ける。effects の destructive は MCP の destructiveHint より狭く、false を導くと上書きを「足すだけ」と偽るので、既定値の true に任せる
+readOnlyHint だけを付ける。effects の種類は MCP の annotations に合わせてある。destructiveHint は付けず、既定値に任せる
 */
 export function toolAnnotationsOf(definition: Readonly<Pick<CommandDefinition, 'readOnly'>>): ToolAnnotations {
   return { readOnlyHint: definition.readOnly }

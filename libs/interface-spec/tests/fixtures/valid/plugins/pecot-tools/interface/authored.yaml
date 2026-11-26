@@ -21,8 +21,8 @@ entries:
     on_error: default
     effects:
       - target: aws
-        kind: write
-        what: Writes the destination object.
+        kind: destructive
+        what: Writes the destination object, replacing an existing object at the same key.
     prerequisites:
       - An AWS profile with S3 access is configured.
     idempotent: true
