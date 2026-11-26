@@ -45,12 +45,20 @@ paths:
 
   - 受ける run なら、artifact を `--out` の親の `pages-raw` に落とし（前の中身は消す）、`--out` に写す。`--out` は、上のように `.pecot/work/<Issue番号>/` の 1 段下にする
 
-- `pages-deploy.yml` の deploy の job が `No artifacts named "github-pages"` で落ちたら、失敗した job だけをやり直す。全 job をやり直すと upload が上げ直し、`github-pages` が 2 つになって落ちる
+- `pages-deploy.yml` の deploy の job が `No artifacts named "github-pages"` で落ちたら、後の run の deploy が通っているかを見る
 
   ```bash
-  gh run rerun <run> -R pecotcraft/pecot --failed
+  gh run list -R pecotcraft/pecot -w pages-deploy.yml -L 5
   ```
 
+  - 後の run の deploy が通っていれば、公開は追いついているので、やり直さない。落ちた run が PR 版で、`pages / preview` が付いていなければ、その PR へ push する
+  - 後に通った run が無ければ、失敗した job だけをやり直す。全 job をやり直すと upload が上げ直し、`github-pages` が 2 つになって落ちる
+
+    ```bash
+    gh run rerun <run> -R pecotcraft/pecot --failed
+    ```
+
+  - 落ちた run の artifact は、upload の job が取った時点の `pages-store` なので、後の run の後にやり直すと古い中身を公開する
   - `github-pages` の artifact は 1 日で消える。過ぎたら `gh workflow run pages-deploy.yml --ref main` を打つ
 
 - 側を作る run は、テストの結果に左右されない。失敗するのは、`sphinx-build -W` が警告を出したときなど、サイトを作れなかったとき

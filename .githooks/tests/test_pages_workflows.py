@@ -254,7 +254,7 @@ def test_deploy_concurrency() -> None:
         "queue": "max",
     }
     # PR への push のたびに deploy が起きる。既定の queue: single では待っている deploy が取り消される。
-    # upload も同じ group に入れ、pages-store を取った順に公開する。
+    # upload も同じ group に入れ、deploy を upload を終えた順に並べる。
     for job in ("upload", "deploy"):
         assert _job(_DEPLOY, job)["concurrency"] == {
             "group": "pages",

@@ -141,7 +141,7 @@ jobs:
     permissions:
       contents: read
       pages: read
-    # deploy と同じ group に入れ、pages-store を取った順に公開する。
+    # deploy と同じ group に入れ、deploy を upload を終えた順に並べる。
     concurrency:
       group: pages
       cancel-in-progress: false

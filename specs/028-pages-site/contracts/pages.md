@@ -111,7 +111,7 @@ concurrency:
 | deploy | `group: pages`・`cancel-in-progress: false`（starter workflow の値）・`queue: max` |
 
 - deploy の `queue: max` は、PR への push のたびに deploy が起きるため。既定の `queue: single` では、待っている deploy が後から来た deploy に取り消され、その PR 版の status が付かない
-- upload も deploy と同じ group に入れる。deploy は自分の upload より後に並ぶので、公開の順は `pages-store` を取った順と同じになる
+- upload も deploy と同じ group に入れる。deploy は自分の upload が終わってから待ち始め、待ち始めた順（FIFO）に並ぶ。docs は実際に始まる順を保証しないので、順が入れ替われば、次の deploy まで古い中身が残る
 - `queue` は actionlint 1.7.12 が知らない。`.github/actionlint.yaml` の除外は path ごとなので、`paths` に `.github/workflows/pages-deploy.yml` を足し、publish-npm.yml と同じ除外を付ける。#529（除外を消す Issue）の対象にも加える
 
 commit status:
