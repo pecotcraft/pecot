@@ -210,7 +210,7 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
 - [x] T035 [US1] `spec/research.md` の R6 の「実装で確かめること」を確かめる。検証用の一時のワークフローで、`claude_args` に `--include-hook-events` を足して起動する。`Bash` を許した実行を、プラグインの `PreToolUse` の hook が止めないかを記録で見る。結果を R6 に書く
 - [x] T036 [US3] `spec/quickstart.md` の「質問と起動し直し」の表を、検証用でラベルからたどる。Epic・Pending・ボードに無い Issue での `gate` の結果も見る。結果を PR に貼る
 - [x] T037 [US1] `spec/research.md` の、足りない設定を Issue に書く経路の「実装で確かめること」を確かめる。変数が空のときと、App に権限が無いときに、Issue に結果のコメントが付くかを検証用で見る（FR-021）。届かなければ、`gate` のトークンで `setup-missing` を書く経路を足す
-- [ ] T038 [US2] 検証用で通った後に、このリポへ導入する。利用者の作業を先に頼む。急がないので、#714 から別の Issue に分けた
+- [ ] T038 [US2] 検証用で通った後に、このリポへ導入する。利用者の作業を先に頼む。急がないので、#779 に分けた
   - 利用者が、このリポで使う自前の App を用意し、変数 `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY` を登録する
   - `pecot workflow install auto` で書き出し、dist-tag を `@next` に替える。写しと雛形の一致を、`.githooks/tests/test_review_workflow_copy.py` と同じ形のテストで確かめる
   - `.claude/rules/github-workflows.md` のワークフローの一覧に足す
