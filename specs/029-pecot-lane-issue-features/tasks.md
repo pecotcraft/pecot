@@ -331,7 +331,7 @@ description: "Task list for 029-pecot-lane-issue-features"
 **Purpose**: リリースされた pecot-workflow で、このリポのボードを移行し、`pecot-lane` を入れる
 
 - [x] T077 このリポで `project_init` を `lanes: ["pecot-workflow", "pecot-visual", "pecot-tools", "repo"]` で呼び、`pecot-workflow-pecotcraft` が `pecot-status` になり、`Lanes` のビューができたことを確かめる
-  あわせて、設定ファイルの新しい名前に合わせて、`PW/CONTRIBUTING.md` の `project activate` の例と Actions の変数 `PECOT_REVIEW_PROJECT` を直す
+  あわせて、設定ファイルの新しい名前に合わせて、`PW/CONTRIBUTING.md` の `project activate` の例を直す。Actions の変数 `PECOT_REVIEW_PROJECT`・`PECOT_HANDOFF_PROJECT` は、置かれていれば直す（2 つのリポの変数と environment の変数に無いと確かめた。組織の変数は権限が無く見ていない）
   `PW/scripts/sandbox/sandbox-diff-items.json` の FR-005 の項目と、`sandbox-diff.sh` の読み替えの処理を消す
   検証用のボード（3 番）も同じ時に `project_init` で移し、設定ファイル `github.com_pecotcraft_3.json` を検証用の `main` に入れる
   `PW/CONTRIBUTING.md` §3 の手順 2 の `git restore` と `.gitignore` の 2 行を外し、`specs/026-pre-merge-test-env/quickstart.md` の名前を確かめる
