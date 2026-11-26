@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest'
 
 import type { JsonValue } from '../python-format.js'
 import type { IssueCoverage } from '../issue-surface.js'
-import { checkIssueCoverage, extractIssueSurface, issueCoverageSchema } from '../issue-surface.js'
+import {
+  checkIssueCoverage,
+  diffIssueSurface,
+  extractIssueSurface,
+  hasIssueSurfaceDifference,
+  issueCoverageSchema,
+} from '../issue-surface.js'
 
 // 公開スキーマの SDL の抜粋。範囲の外の型・項目・mutation も混ぜる
 const SDL = `
@@ -217,5 +223,30 @@ describe('issueCoverageSchema', () => {
     { name: 'id の無い項目', entry: { status: 'excluded', reason: 'x' } },
   ])('$name を拒む', ({ entry }) => {
     expect(issueCoverageSchema.safeParse({ items: [entry] }).success).toBe(false)
+  })
+})
+
+describe('diffIssueSurface', () => {
+  it('今にあって写しに無い id を added に、写しにあって今に無い id を removed に、符号位置の順で返す', () => {
+    const snapshot = ['graphql:B.b', 'graphql:A.a', 'graphql:a.x']
+    const current = ['graphql:a.x', 'rest:POST /repos/{owner}/{repo}/issues#type', 'graphql:Z.z', 'graphql:C.c']
+    expect(diffIssueSurface(snapshot, current)).toEqual({
+      added: ['graphql:C.c', 'graphql:Z.z', 'rest:POST /repos/{owner}/{repo}/issues#type'],
+      removed: ['graphql:A.a', 'graphql:B.b'],
+    })
+  })
+
+  it('同じ集合なら、並びが違っても差を空で返す', () => {
+    expect(diffIssueSurface(['graphql:B.b', 'graphql:A.a'], ['graphql:A.a', 'graphql:B.b'])).toEqual({ added: [], removed: [] })
+  })
+})
+
+describe('hasIssueSurfaceDifference', () => {
+  it.for([
+    { name: '増えた id だけ', diff: { added: ['graphql:A.a'], removed: [] }, expected: true },
+    { name: '消えた id だけ', diff: { added: [], removed: ['graphql:A.a'] }, expected: true },
+    { name: 'どちらも空', diff: { added: [], removed: [] }, expected: false },
+  ])('$name なら $expected を返す', ({ diff, expected }) => {
+    expect(hasIssueSurfaceDifference(diff)).toBe(expected)
   })
 })

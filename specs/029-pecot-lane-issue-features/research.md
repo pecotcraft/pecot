@@ -119,7 +119,7 @@
   - SDL は `https://docs.github.com/public/fpt/schema.docs.graphql` から取る。
     OpenAPI は、版の付いたファイル `descriptions/api.github.com/api.github.com.<版>.json` から取る。版の既定は、pecot が REST に送る版（`cli/src/infra/github/client.ts` の `DEFAULT_API_VERSION`）にする。写しの本文の項目を、pecot が Issue の作成で送る版のものに合わせるため
   - 抜き出しと差の計算は、domain の `plugins/pecot-workflow/cli/src/domain/issue-surface.ts` に置く。
-    SDL と OpenAPI の取得と、差の Issue の作成は infra に置く（憲章の I と VI）
+    SDL と OpenAPI の取得と、差を載せる Tracker の作成は infra に置く（憲章の I と VI）
   - `plugins/pecot-workflow/cli/scripts/github-surface/` の `extract.ts`（写しを作り直す）と `drift.ts`（定期の比べ）は、引数を読んで上を呼ぶだけにする。
     今の `export-interface.ts` が、比べる処理を `libs/interface-spec` の domain から呼ぶのと同じ形
   - 担保の一覧 `plugins/pecot-workflow/interface/issue-coverage.yaml` に、写しの各項目を `supported`（扱うコードの名前）か `excluded`（理由）として書く。

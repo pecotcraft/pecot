@@ -73,7 +73,7 @@ def test_function_environment_has_every_key_handler_reads() -> None:
         "WORKFLOW_FILE",
     ]
     scheduled = re.findall(r'workflowEnv: "([A-Z_]+)"', handler)
-    assert len(scheduled) == 3
+    assert len(scheduled) == 4
     expected = (
         {f"{p}{s}" for p in prefixes for s in suffixes}
         | set(scheduled)
@@ -91,7 +91,7 @@ def test_function_environment_has_every_key_handler_reads() -> None:
 def test_workflow_file_defaults_name_existing_workflows() -> None:
     parameters = _template()["Parameters"]
     names = [name for name in parameters if name.endswith("WorkflowFile")]
-    assert len(names) == 3
+    assert len(names) == 4
     for name in names:
         workflow = _REPO_ROOT / ".github/workflows" / parameters[name]["Default"]
         assert workflow.is_file(), name

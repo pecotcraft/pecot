@@ -24,6 +24,7 @@ const SCHEDULED = [
   { app: "security", workflowEnv: "SECURITY_WORKFLOW_FILE" },
   { app: "dependabot-prs", workflowEnv: "DEPENDABOT_PRS_WORKFLOW_FILE" },
   { app: "security", workflowEnv: "BOARD_SYNC_WORKFLOW_FILE" },
+  { app: "security", workflowEnv: "ISSUE_SURFACE_WORKFLOW_FILE" },
 ];
 const SCHEDULER_SOURCE = "pecot-scheduler";
 const DEPENDABOT_EVENTS = new Set(["pull_request", "workflow_run"]);

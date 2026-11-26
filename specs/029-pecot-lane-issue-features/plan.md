@@ -112,7 +112,8 @@ plugins/pecot-workflow/
 │   │   ├── lanes.ts                # 新規: LaneSummary の集計
 │   │   ├── lane-options.ts         # 新規: 選択肢の追加の計算、名前から選択肢を引く関数（A と B で共有）
 │   │   ├── attributes.ts           # 新規: 定義と値の照らし合わせ、ATTRIBUTE_HANDLERS
-│   │   ├── issue-surface.ts        # 新規: SDL と OpenAPI から写しの項目を抜く、写しとの差、差の Issue の組み立て
+│   │   ├── issue-surface.ts        # 新規: SDL と OpenAPI から写しの項目を抜く、写しとの差
+│   │   ├── issue-surface-tracker.ts # 新規: 差を載せる Tracker の題と本文
 │   │   ├── frontmatter.ts          # 変更: priority・size を読み捨て、lane・attributes を受ける
 │   │   ├── security-tracker.ts     # 変更: Priority の列を Severity に
 │   │   └── dependabot-pull-requests.ts  # 変更: PRIORITY を消す
@@ -142,7 +143,7 @@ plugins/pecot-workflow/
 │   └── issue-coverage.yaml         # 新規: 担保の一覧
 ├── cli/scripts/github-surface/
 │   ├── extract.ts                  # 新規: 写しを作り直す。引数を読んで domain・infra を呼ぶだけ
-│   └── drift.ts                    # 新規: 写しと比べ、差の Issue を作る。--dry-run・--sdl を読んで呼ぶだけ
+│   └── drift.ts                    # 新規: 写しと比べ、差を Tracker に書き直す。--dry-run・--sdl を読んで呼ぶだけ
 ├── hooks/lib/core/mcp-guidance.sh  # 変更: priority・size の文を消す
 ├── skills/
 │   ├── w-onboarding/SKILL.md       # 変更: suffix を消し、lanes の決め方とビュー

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- graphql の AST と zod の型は変えられない */
-// GitHub の Issue の機能の写し（SDL と OpenAPI から抜く項目）と、担保の一覧との照らし合わせ。
+// GitHub の Issue の機能の写し（SDL と OpenAPI から抜く項目）と、担保の一覧との照らし合わせ・今のスキーマとの差。
 import type { ConstDirectiveNode, DefinitionNode, InputObjectTypeDefinitionNode, TypeNode } from 'graphql'
 import { Kind, parse } from 'graphql'
 import { z } from 'zod'
@@ -162,4 +162,25 @@ export function checkIssueCoverage(items: readonly string[], coverage: Readonly<
   return problems
     .toSorted(([leftId, left], [rightId, right]) => compareCodePoints(leftId, rightId) || compareCodePoints(left, right))
     .map(([id, problem]) => `${id}: ${problem}`)
+}
+
+/**
+写しと今の抜き出しの差。added は今にあって写しに無い id、removed は写しにあって今に無い id。どちらも符号位置の順
+*/
+export interface IssueSurfaceDiff {
+  readonly added: readonly string[]
+  readonly removed: readonly string[]
+}
+
+export function diffIssueSurface(snapshot: readonly string[], current: readonly string[]): IssueSurfaceDiff {
+  const before = new Set(snapshot)
+  const after = new Set(current)
+  return {
+    added: [...after].filter(id => !before.has(id)).toSorted(compareCodePoints),
+    removed: [...before].filter(id => !after.has(id)).toSorted(compareCodePoints),
+  }
+}
+
+export function hasIssueSurfaceDifference(diff: Readonly<IssueSurfaceDiff>): boolean {
+  return diff.added.length > 0 || diff.removed.length > 0
 }

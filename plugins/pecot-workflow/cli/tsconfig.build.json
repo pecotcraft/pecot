@@ -5,6 +5,6 @@
     "noEmit": false
   },
   "include": ["src/**/*"],
-  // issue-surface は scripts/github-surface だけが使い、devDependencies の graphql を読むので配布に入れない
-  "exclude": ["dist", "coverage", "node_modules", "tests", "**/tests/**", "src/**/*.test.ts", "src/**/issue-surface.ts"]
+  // issue-surface と issue-surface-tracker は scripts/github-surface だけが使う。graphql を読むので配布に入れない
+  "exclude": ["dist", "coverage", "node_modules", "tests", "**/tests/**", "src/**/*.test.ts", "src/**/issue-surface.ts", "src/**/issue-surface-tracker.ts"]
 }

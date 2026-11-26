@@ -26,15 +26,28 @@ async function fetchText(url: string): Promise<string> {
 }
 
 /**
+公開スキーマの SDL を取る
+*/
+export async function fetchGraphqlSchema(): Promise<string> {
+  return fetchText(GRAPHQL_SCHEMA_URL)
+}
+
+/**
+apiVersion の版の OpenAPI を取る
+*/
+export async function fetchRestDescription(apiVersion: string): Promise<JsonValue> {
+  return parseJsonText(await fetchText(restDescriptionUrl(apiVersion)))
+}
+
+/**
 SDL と、apiVersion の版の OpenAPI を取る。sources には取った URL・版・取り始めの日時を入れる
 */
 export async function fetchIssueSurfaceSources(apiVersion: string): Promise<IssueSurfaceSources> {
   const fetchedAt = new Date().toISOString()
-  const rest = restDescriptionUrl(apiVersion)
-  const [sdl, openapiText] = await Promise.all([fetchText(GRAPHQL_SCHEMA_URL), fetchText(rest)])
+  const [sdl, openapi] = await Promise.all([fetchGraphqlSchema(), fetchRestDescription(apiVersion)])
   return {
     sdl,
-    openapi: parseJsonText(openapiText),
-    sources: { graphql: GRAPHQL_SCHEMA_URL, rest, rest_api_version: apiVersion, fetched_at: fetchedAt },
+    openapi,
+    sources: { graphql: GRAPHQL_SCHEMA_URL, rest: restDescriptionUrl(apiVersion), rest_api_version: apiVersion, fetched_at: fetchedAt },
   }
 }
