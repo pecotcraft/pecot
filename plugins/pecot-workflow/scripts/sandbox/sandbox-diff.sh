@@ -113,11 +113,9 @@ read_board_fields() {
 }'
     api "$label" graphql -f query="$query" -F owner="$owner" -F number="$number"
     require "$label" fields '.data.organization.projectV2.fields.nodes'
-    jq -c --argjson ign "$(ignore_of board-fields)" --argjson pats "$(match_of board_field_name)" "$STRIP"'
-        def glob($p): "^" + ($p | gsub("(?<c>[.+?^${}()|\\[\\]\\\\])"; "\\\(.c)") | gsub("\\*"; ".*")) + "$";
-        def renamed: . as $n | (first($pats[] | . as $p | select($n | test(glob($p)))) // $n);
+    jq -c --argjson ign "$(ignore_of board-fields)" "$STRIP"'
         [.data.organization.projectV2.fields.nodes[]
-            | {key: (.name | renamed), value: ({dataType, options: (.options // [])} | strip($ign))}]
+            | {key: .name, value: ({dataType, options: (.options // [])} | strip($ign))}]
         | from_entries' <<< "$RESP"
 }
 

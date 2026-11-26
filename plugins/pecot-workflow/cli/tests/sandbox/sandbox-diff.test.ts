@@ -72,8 +72,6 @@ function configFields(number: number): ConfigFields {
   })
   return {
     workflow: field('workflow', ['backlog', 'pending', 'blocked', 'ready', 'active', 'in_review', 'archived']),
-    priority: field('priority', ['high', 'medium', 'low']),
-    size: field('size', ['xs', 's', 'm', 'l']),
     status: field('status', ['todo', 'in_progress', 'needs_attention']),
   }
 }
@@ -141,7 +139,7 @@ function makeRuleset(id: number, repository: string): Ruleset {
   }
 }
 
-function makeBoard(workflowField: string): Board {
+function makeBoard(): Board {
   const single = (id: string, name: string, options: readonly string[]): Field => ({
     __typename: 'ProjectV2SingleSelectField',
     id,
@@ -152,9 +150,8 @@ function makeBoard(workflowField: string): Board {
   const nodes: Field[] = [
     { __typename: 'ProjectV2Field', id: 'F_title', name: 'Title', dataType: 'TITLE' },
     single('F_status', 'Status', ['Todo', 'In Progress', 'Done']),
-    single('F_wf', workflowField, ['Pending', 'Backlog', 'Blocked', 'Ready', 'Active', 'In Review', 'Archived']),
-    single('F_pri', 'pecot-priority', ['High', 'Medium', 'Low']),
-    single('F_size', 'pecot-size', ['XS', 'S', 'M', 'L']),
+    single('F_wf', 'pecot-status', ['Pending', 'Backlog', 'Blocked', 'Ready', 'Active', 'In Review', 'Archived']),
+    single('F_lane', 'pecot-lane', ['pecot-workflow', 'pecot-visual', 'pecot-tools', 'repo']),
   ]
   return { data: { organization: { projectV2: { fields: { nodes } } } } }
 }
@@ -184,9 +181,9 @@ class Side {
   // 生の中身で置く設定ファイル。undefined は、応答に content が無い
   readonly rawConfigs: Record<string, string | undefined> = {}
 
-  constructor(readonly repository: string, readonly project: number, rulesetId: number, workflowField: string, config: [string, ProjectConfig]) {
+  constructor(readonly repository: string, readonly project: number, rulesetId: number, config: [string, ProjectConfig]) {
     this.rulesets = [makeRuleset(rulesetId, repository)]
-    this.board = makeBoard(workflowField)
+    this.board = makeBoard()
     this.configs = Object.fromEntries([config])
   }
 
@@ -255,8 +252,8 @@ class Side {
 
 // このリポ（Projects 1 番）と検証用（Projects 3 番）が、比べる項目で同じ状態から始める
 class Scene {
-  readonly this = new Side(THIS, 1, 26_538_811, 'pecot-workflow-pecotcraft', legacyConfig('pecot-project', 'pecotcraft', 1))
-  readonly sandbox = new Side(SANDBOX, 3, 27_130_266, 'pecot-workflow-sandbox', legacyConfig('pecot-sandbox', 'sandbox', 3))
+  readonly this = new Side(THIS, 1, 26_538_811, currentConfig(1))
+  readonly sandbox = new Side(SANDBOX, 3, 27_130_266, currentConfig(3))
 
   constructor(readonly workspace: Sandbox) {}
 
@@ -351,20 +348,20 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
   })
 
   it('ボードの選択肢が 1 つ多いと、board-fields のずれに出す', () => {
-    const field = find(scene.sandbox.fields(), f => f.name === 'pecot-workflow-sandbox')
+    const field = find(scene.sandbox.fields(), f => f.name === 'pecot-status')
     const names = (field.options ?? []).map(option => ({ name: option.name }))
     const before = { dataType: 'SINGLE_SELECT', options: names }
     field.options?.push({ id: 'x', name: 'Done', color: 'GREEN', description: '' })
     const after = { dataType: 'SINGLE_SELECT', options: [...names, { name: 'Done' }] }
-    const expected = expectedDrifts(drift('board-fields / pecot-workflow-*', compact(before), compact(after)))
+    const expected = expectedDrifts(drift('board-fields / pecot-status', compact(before), compact(after)))
     expect(drifted(scene.run())).toStrictEqual(expected)
   })
 
   it('ボードの選択肢は順番まで比べる', () => {
-    find(scene.sandbox.fields(), f => f.name === 'pecot-priority').options?.reverse()
+    find(scene.sandbox.fields(), f => f.name === 'pecot-lane').options?.reverse()
     const result = scene.run()
     expect(result.status).toBe(1)
-    expect(splitLines(result.stdout).slice(0, 2)).toStrictEqual(['ずれは 1 件', 'board-fields / pecot-priority'])
+    expect(splitLines(result.stdout).slice(0, 2)).toStrictEqual(['ずれは 1 件', 'board-fields / pecot-lane'])
   })
 
   it('ID と日付だけが違うなら、ずれは 0 件', () => {
@@ -430,38 +427,38 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / ci.yml', 'あり', 'なし')))
   })
 
-  it('両方の設定ファイルが今の形なら、ずれは 0 件', () => {
-    scene.this.setConfigs(currentConfig(1))
-    scene.sandbox.setConfigs(currentConfig(3))
+  it('両方の設定ファイルが旧い形なら、ずれは 0 件', () => {
+    scene.this.setConfigs(legacyConfig('pecot-project', 'pecotcraft', 1))
+    scene.sandbox.setConfigs(legacyConfig('pecot-sandbox', 'sandbox', 3))
     const result = scene.run()
     expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
   })
 
-  it('検証用の設定ファイルだけが今の形だと、config-file のずれに両方の形を出す', () => {
-    scene.sandbox.setConfigs(currentConfig(3))
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', LEGACY_FORM, CURRENT_FORM)))
+  it('検証用の設定ファイルだけが旧い形だと、config-file のずれに両方の形を出す', () => {
+    scene.sandbox.setConfigs(legacyConfig('pecot-sandbox', 'sandbox', 3))
+    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, LEGACY_FORM)))
   })
 
   it('検証用に比べるボードの設定ファイルが無いと、検証用を「なし」としてずれに出す', () => {
     scene.sandbox.setConfigs()
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', LEGACY_FORM, 'なし')))
+    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, 'なし')))
   })
 
   it('別のボードを指す設定ファイルは比べない', () => {
-    scene.sandbox.setConfigs(legacyConfig('pecot-sandbox', 'sandbox', 3), currentConfig(9))
+    scene.sandbox.setConfigs(currentConfig(3), currentConfig(9))
     const result = scene.run()
     expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
   })
 
   it('同じボードの設定ファイルが 2 つあると、形を名前順につないでずれに出す', () => {
     scene.sandbox.setConfigs(legacyConfig('pecot-sandbox', 'sandbox', 3), currentConfig(3))
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', LEGACY_FORM, `${CURRENT_FORM}、${LEGACY_FORM}`)))
+    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, `${CURRENT_FORM}、${LEGACY_FORM}`)))
   })
 
   it('どちらの形にも合わない名前は、名前をそのまま出す', () => {
-    const [, config] = legacyConfig('pecot-sandbox', 'sandbox', 3)
+    const [, config] = currentConfig(3)
     scene.sandbox.setConfigs(['renamed.json', config])
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', LEGACY_FORM, 'renamed.json')))
+    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, 'renamed.json')))
   })
 
   it('検証用の設定の status に in_progress が無いと、config-options のずれに両方のキーを出す', () => {
@@ -472,32 +469,32 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect(drifted(scene.run())).toStrictEqual(expected)
   })
 
-  it('検証用だけ priority の選択肢のキーが 1 つ多いと、config-options / priority のずれに出す', () => {
-    const priority = scene.sandbox.configFields()['priority']
-    if (priority?.options === undefined) throw new Error('priority が無い')
-    priority.options['urgent'] = 'x'
-    const expected = expectedDrifts(drift('config-options / priority', compact(['high', 'low', 'medium']), compact(['high', 'low', 'medium', 'urgent'])))
+  it('検証用だけ workflow の選択肢のキーが 1 つ多いと、config-options / workflow のずれに出す', () => {
+    const workflow = scene.sandbox.configFields()['workflow']
+    if (workflow?.options === undefined) throw new Error('workflow が無い')
+    workflow.options['done'] = 'x'
+    const keys = compact(['active', 'archived', 'backlog', 'blocked', 'in_review', 'pending', 'ready'])
+    const added = compact(['active', 'archived', 'backlog', 'blocked', 'done', 'in_review', 'pending', 'ready'])
+    const expected = expectedDrifts(drift('config-options / workflow', keys, added))
     expect(drifted(scene.run())).toStrictEqual(expected)
   })
 
-  it('検証用の設定に欄 size が無いと、検証用を「なし」としてずれに出す', () => {
+  it('検証用の設定に欄 status が無いと、検証用を「なし」としてずれに出す', () => {
     const fields = scene.sandbox.configFields()
-    delete fields['size']
-    const expected = expectedDrifts(drift('config-options / size', compact(['l', 'm', 's', 'xs']), 'なし'))
+    delete fields['status']
+    const expected = expectedDrifts(drift('config-options / status', compact(['in_progress', 'needs_attention', 'todo']), 'なし'))
     expect(drifted(scene.run())).toStrictEqual(expected)
   })
 
   it('検証用の設定に project.fields が無いと、欄ごとに検証用を「なし」として終了コード 1 で終わる', () => {
-    const [name, config] = legacyConfig('pecot-sandbox', 'sandbox', 3)
+    const [name, config] = currentConfig(3)
     delete config.project.fields
     scene.sandbox.setConfigs([name, config])
     const result = scene.run()
     expect([result.status, result.stderr]).toStrictEqual([1, ''])
     const lines = splitLines(result.stdout)
     expect([lines[0], ...lines.filter(line => line.startsWith('config-options / '))]).toStrictEqual([
-      'ずれは 4 件',
-      'config-options / priority',
-      'config-options / size',
+      'ずれは 2 件',
       'config-options / status',
       'config-options / workflow',
     ])
@@ -516,7 +513,7 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     const [name, config] = legacyConfig('pecot-sandbox', 'sandbox', 3)
     delete config.project.fields
     scene.sandbox.setConfigs([name, config], currentConfig(3))
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', LEGACY_FORM, `${CURRENT_FORM}、${LEGACY_FORM}`)))
+    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, `${CURRENT_FORM}、${LEGACY_FORM}`)))
   })
 
   it('JSON として読めない設定ファイルは飛ばし、ずれは 0 件', () => {
@@ -539,17 +536,17 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect(splitLines(result.stderr)).toStrictEqual([`error: repos/${SANDBOX}/contents/${CONFIG_DIR} を読めません（gh が失敗しました）`])
   })
 
-  it('検証用の進行の欄だけが pecot-status だと、board-fields の 2 件のずれに出す', () => {
-    find(scene.sandbox.fields(), f => f.name === 'pecot-workflow-sandbox').name = 'pecot-status'
+  it('検証用の進行の欄だけが旧い名前だと、board-fields の 2 件のずれに出す', () => {
+    find(scene.sandbox.fields(), f => f.name === 'pecot-status').name = 'pecot-workflow-sandbox'
     const result = scene.run()
     expect(result.status).toBe(1)
     const lines = splitLines(result.stdout)
-    expect([lines[0], lines[1], lines[2], lines[4], lines[6], lines[7]]).toStrictEqual([
+    expect([lines[0], lines[1], lines[3], lines[4], lines[5], lines[7]]).toStrictEqual([
       'ずれは 2 件',
       'board-fields / pecot-status',
-      '  このリポ: なし',
-      'board-fields / pecot-workflow-*',
       '  検証用: なし',
+      'board-fields / pecot-workflow-sandbox',
+      '  このリポ: なし',
       undefined,
     ])
   })
