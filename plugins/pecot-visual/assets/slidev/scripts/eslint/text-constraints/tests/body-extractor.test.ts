@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { extractBody } from '../lib/utils/body-extractor.ts';
 
@@ -14,36 +14,36 @@ function extract(text: string) {
   return extractBody(text, commentsOf(text));
 }
 
-test('frontmatter のみなら本文は空でノートは 0 件', () => {
+test('frontmatter だけだと、本文は空でノートは 0 件にする', () => {
   const result = extract(['---', 'layout: cover', '---', ''].join('\n'));
   assert.equal(result.body.trim(), '');
   assert.deepEqual(result.notes, []);
 });
 
-test('frontmatter の後の本文は、終端の次行を開始行にする', () => {
+test('frontmatter の後に本文があると、終端の次の行を本文の開始行にする', () => {
   const result = extract(['---', 'layout: cover', 'title: a', '---', '本文です。', '二行目です。'].join('\n'));
   assert.equal(result.bodyStartLine, 5);
   assert.equal(result.body, '本文です。\n二行目です。');
 });
 
-test('frontmatter が無ければ全文が本文で開始行は 1', () => {
+test('frontmatter が無いと、全文を本文にして開始行を 1 にする', () => {
   const result = extract('本文です。\n二行目です。');
   assert.equal(result.bodyStartLine, 1);
   assert.equal(result.body, '本文です。\n二行目です。');
 });
 
-test('空の frontmatter（--- の直後に ---）も終端として扱う', () => {
+test('--- の直後に --- が続く空の frontmatter も、終端として扱う', () => {
   const result = extract(['---', '---', '本文です。'].join('\n'));
   assert.equal(result.bodyStartLine, 3);
   assert.equal(result.body, '本文です。');
 });
 
-test('終端の無い --- は frontmatter とみなさない', () => {
+test('終端の無い --- は、frontmatter とみなさない', () => {
   const result = extract(['---', 'layout: cover', '本文です。'].join('\n'));
   assert.equal(result.bodyStartLine, 1);
 });
 
-test('コメント 1 件は本文から消えてノートになり、開始行と桁を持つ', () => {
+test('コメントが 1 件あると、本文から消してノートにし、開始行と桁を持たせる', () => {
   const text = ['---', 'layout: cover', '---', '本文です。', '<!-- ノートです。 -->'].join('\n');
   const result = extract(text);
   assert.equal(result.body, '本文です。\n');
@@ -51,14 +51,14 @@ test('コメント 1 件は本文から消えてノートになり、開始行�
   assert.deepEqual(result.notes[0], { text: ' ノートです。 ', startLine: 5, startColumn: 5 });
 });
 
-test('複数行コメントは行数を保ったまま本文から消え、ノートは内側の開始位置を持つ', () => {
+test('複数行のコメントがあると、行数を保ったまま本文から消し、ノートに内側の開始位置を持たせる', () => {
   const text = ['---', '---', '前です。', '<!--', 'ノート一行目。', 'ノート二行目。', '-->', '後です。'].join('\n');
   const result = extract(text);
   assert.equal(result.body, '前です。\n\n\n\n\n後です。');
   assert.deepEqual(result.notes, [{ text: '\nノート一行目。\nノート二行目。\n', startLine: 4, startColumn: 5 }]);
 });
 
-test('段落内のコメントを消しても、後続の本文の行はずれない', () => {
+test('段落の中のコメントを消しても、後続の本文の行をずらさない', () => {
   const text = ['---', '---', '前の文です。<!-- メモ -->', '後の文です。'].join('\n');
   const result = extract(text);
   assert.equal(result.body, '前の文です。\n後の文です。');
@@ -66,33 +66,33 @@ test('段落内のコメントを消しても、後続の本文の行はずれ�
   assert.deepEqual(result.notes, [{ text: ' メモ ', startLine: 3, startColumn: 11 }]);
 });
 
-test('frontmatter の中のコメントはノートにしない', () => {
+test('frontmatter の中にコメントがあっても、ノートにしない', () => {
   const text = ['---', '# <!-- yaml のコメント -->', '---', '本文です。'].join('\n');
   const result = extract(text);
   assert.deepEqual(result.notes, []);
   assert.equal(result.body, '本文です。');
 });
 
-test('コメントが範囲へ入らない場合、コードブロック内の記述は本文として残り、ノートにならない', () => {
+test('コメントの範囲を渡さないと、コードブロックの中の記述を本文に残し、ノートにしない', () => {
   const text = ['---', '---', '```html', '<!-- コード -->', '```'].join('\n');
   const result = extractBody(text, []);
   assert.deepEqual(result.notes, []);
   assert.ok(result.body.includes('<!-- コード -->'));
 });
 
-test('閉じていないコメントは末尾までをノートにする', () => {
+test('コメントが閉じていないと、末尾までをノートにする', () => {
   const text = ['---', '---', '<!-- 閉じ忘れ'].join('\n');
   const result = extractBody(text, [{ start: text.indexOf('<!--'), end: text.length }]);
   assert.deepEqual(result.notes, [{ text: ' 閉じ忘れ', startLine: 3, startColumn: 5 }]);
 });
 
-test('CRLF の改行も保つ', () => {
+test('改行が CRLF だと、CRLF のまま保つ', () => {
   const text = ['---', '---', '前です。', '<!-- ノート -->', '後です。'].join('\r\n');
   const result = extract(text);
   assert.equal(result.body, '前です。\r\n\r\n後です。');
 });
 
-test('消したコメントの範囲を、ファイル行・元の桁・長さで返す', () => {
+test('コメントを消すと、消した範囲をファイルの行・元の桁・長さで返す', () => {
   const text = ['---', '---', '前です。<!-- メモ -->後です。', '<!--', '二行目', '-->末尾'].join('\n');
   const result = extract(text);
   assert.deepEqual(result.removed, [
@@ -103,7 +103,7 @@ test('消したコメントの範囲を、ファイル行・元の桁・長さ�
   ]);
 });
 
-test('frontmatter の終端行の判定は共有の抽出器に従う（開始行の空白・空行入りの frontmatter）', () => {
+test('開始行に空白があるか空行を含む frontmatter だと、共有の抽出器と同じ終端行で判定する', () => {
   const blankLine = extract(['---', '', '---', '本文です。'].join('\n'));
   assert.equal(blankLine.bodyStartLine, 4);
   assert.equal(blankLine.body, '本文です。');

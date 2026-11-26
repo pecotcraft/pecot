@@ -3,7 +3,7 @@
 // 規則本体の create() を mock context で呼ぶテストは、次の 2 つを通らない。
 // ESLint が実際に渡す context（sourceCode / filename）の形と、markdown 言語が作る root ノードの位置。
 // ここでは `language: 'markdown/commonmark'` で実 ESLint を起動し、報告の messageId と行を固定する。
-import { after, describe, it } from 'node:test';
+import { afterAll } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -23,10 +23,6 @@ import requireMatchingLength from '../lib/rules/require-matching-length.ts';
 import requireSlidesEntry from '../lib/rules/require-slides-entry.ts';
 import validateClicks from '../lib/rules/validate-clicks.ts';
 
-RuleTester.describe = describe;
-RuleTester.it = it;
-RuleTester.itOnly = it.only;
-
 // 規則テスト用の汎用の talk-dir（_shared/tests/fixtures/deck）
 const templateRoot = path.resolve(import.meta.dirname, '../../_shared/tests/fixtures/deck');
 
@@ -34,7 +30,7 @@ const templateRoot = path.resolve(import.meta.dirname, '../../_shared/tests/fixt
 // fixture deck の references を写した talk-dir を組む。RuleTester の case は定義時に
 // filename が要るので、同期で組んでから run を呼ぶ。
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'slidev-pages-lint-rt-'));
-after(() => {
+afterAll(() => {
   fs.rmSync(root, { recursive: true, force: true });
 });
 fs.cpSync(path.join(templateRoot, 'pages', '_references'), path.join(root, 'pages', '_references'), {
@@ -91,9 +87,10 @@ const end = (...extra: string[]): string =>
   doc('---', 'layout: end', "title: 'END'", "bridgeText: 'x'", ...extra, '---');
 
 ruleTester.run('one-slide-per-file', oneSlidePerFile, {
-  valid: [{ code: end(), filename: page('ok.md') }],
+  valid: [{ name: '1 ファイルに 1 枚だけのスライドがあると、報告しない', code: end(), filename: page('ok.md') }],
   invalid: [
     {
+      name: '1 ファイルにスライドが 2 枚あると、multipleSlides を 1 行目で報告する',
       code: doc(end().trimEnd(), '', end().trimEnd()),
       filename: page('ok.md'),
       errors: [{ messageId: 'multipleSlides', line: 1 }],
@@ -102,9 +99,10 @@ ruleTester.run('one-slide-per-file', oneSlidePerFile, {
 });
 
 ruleTester.run('no-content-before-frontmatter', noContentBeforeFrontmatter, {
-  valid: [{ code: end(), filename: page('ok.md') }],
+  valid: [{ name: 'frontmatter が先頭にあると、報告しない', code: end(), filename: page('ok.md') }],
   invalid: [
     {
+      name: 'frontmatter の前にコンテンツがあると、contentBeforeFrontmatter を 1 行目で報告する',
       code: doc('先頭にコンテンツがあります', end().trimEnd()),
       filename: page('ok.md'),
       errors: [{ messageId: 'contentBeforeFrontmatter', line: 1 }],
@@ -113,9 +111,10 @@ ruleTester.run('no-content-before-frontmatter', noContentBeforeFrontmatter, {
 });
 
 ruleTester.run('no-triple-hyphen-in-frontmatter', noTripleHyphenInFrontmatter, {
-  valid: [{ code: end(), filename: page('ok.md') }],
+  valid: [{ name: 'frontmatter に余分な --- が無いと、報告しない', code: end(), filename: page('ok.md') }],
   invalid: [
     {
+      name: 'frontmatter に余分な --- があると、tripleHyphenInFrontmatter を 1 行目で報告する',
       code: doc('---', 'layout: end', '---', "bridgeText: 'x'", '---'),
       filename: page('ok.md'),
       errors: [{ messageId: 'tripleHyphenInFrontmatter', line: 1 }],
@@ -126,12 +125,14 @@ ruleTester.run('no-triple-hyphen-in-frontmatter', noTripleHyphenInFrontmatter, {
 ruleTester.run('validate-clicks', validateClicks, {
   valid: [
     {
+      name: 'clicks の数が items の数に合っていると、報告しない',
       code: doc('---', 'layout: triad-triptych', 'clicks: 3', 'items:', '  - {}', '  - {}', '  - {}', '---'),
       filename: page('clicks-ok.md'),
     },
   ],
   invalid: [
     {
+      name: 'clicks の数が items の数に合っていないと、incorrectClicksCount を 1 行目で報告する',
       code: doc('---', 'layout: triad-triptych', 'clicks: 1', 'items:', '  - {}', '  - {}', '  - {}', '---'),
       filename: page('clicks-ok.md'),
       errors: [{ messageId: 'incorrectClicksCount', line: 1 }],
@@ -140,14 +141,16 @@ ruleTester.run('validate-clicks', validateClicks, {
 });
 
 ruleTester.run('no-unknown-props', noUnknownProps, {
-  valid: [{ code: end(), filename: page('ok.md') }],
+  valid: [{ name: '未知のキーが無いと、報告しない', code: end(), filename: page('ok.md') }],
   invalid: [
     {
+      name: 'トップレベルに未知のキーがあると、unknownProp を 1 行目で報告する',
       code: end("bogusTopLevel: 'x'"),
       filename: page('ok.md'),
       errors: [{ messageId: 'unknownProp', line: 1 }],
     },
     {
+      name: 'ネストした未知のキーがあると、unknownNestedProp を 1 行目で報告する',
       code: doc(
         '---',
         'layout: triad-triptych',
@@ -163,9 +166,10 @@ ruleTester.run('no-unknown-props', noUnknownProps, {
 });
 
 ruleTester.run('require-slides-entry', requireSlidesEntry, {
-  valid: [{ code: end(), filename: page('ok.md') }],
+  valid: [{ name: 'slides.md に載っているページだと、報告しない', code: end(), filename: page('ok.md') }],
   invalid: [
     {
+      name: 'slides.md に載っていないページだと、missingEntry を 1 行目で報告する',
       code: end(),
       filename: page('not-listed.md'),
       errors: [{ messageId: 'missingEntry', line: 1 }],
@@ -174,9 +178,10 @@ ruleTester.run('require-slides-entry', requireSlidesEntry, {
 });
 
 ruleTester.run('no-missing-page', noMissingPage, {
-  valid: [{ code: doc('---', 'src: ./pages/ok.md', '---'), filename: slides }],
+  valid: [{ name: '参照先のページが存在すると、報告しない', code: doc('---', 'src: ./pages/ok.md', '---'), filename: slides }],
   invalid: [
     {
+      name: '参照先のページが存在しないと、missingPage をその行で報告する',
       code: doc('---', 'src: ./pages/ok.md', '---', '', '---', 'src: ./pages/missing.md', '---'),
       filename: slides,
       errors: [{ messageId: 'missingPage', line: 6 }],
@@ -185,9 +190,10 @@ ruleTester.run('no-missing-page', noMissingPage, {
 });
 
 ruleTester.run('no-numeric-filename-prefix', noNumericFilenamePrefix, {
-  valid: [{ code: end(), filename: page('cover.md') }],
+  valid: [{ name: 'ファイル名が数字で始まらないと、報告しない', code: end(), filename: page('cover.md') }],
   invalid: [
     {
+      name: 'ファイル名が数字で始まると、numericFilenamePrefix を 1 行目で報告する',
       code: end(),
       filename: page('3-numeric-name.md'),
       errors: [{ messageId: 'numericFilenamePrefix', line: 1 }],
@@ -197,16 +203,18 @@ ruleTester.run('no-numeric-filename-prefix', noNumericFilenamePrefix, {
 
 ruleTester.run('no-numeric-asset-prefix', noNumericAssetPrefix, {
   valid: [
-    { code: end("logo: '/assets/logo/brand.png'", ''), filename: page('ok.md') },
-    { code: doc(end().trimEnd(), '', '![](https://example.com/2-body.png)'), filename: page('ok.md') },
+    { name: '数字で始まらない画像名の参照だと、報告しない', code: end("logo: '/assets/logo/brand.png'", ''), filename: page('ok.md') },
+    { name: '外部 URL の画像だと、数字で始まる名前でも報告しない', code: doc(end().trimEnd(), '', '![](https://example.com/2-body.png)'), filename: page('ok.md') },
   ],
   invalid: [
     {
+      name: 'frontmatter の画像名が数字で始まると、numericAssetPrefix をその行で報告する',
       code: end("logo: '/assets/logo/1-brand.png'"),
       filename: page('ok.md'),
       errors: [{ messageId: 'numericAssetPrefix', line: 5 }],
     },
     {
+      name: '本文の画像名が数字で始まると、numericAssetPrefix をその行で報告する',
       code: doc(end().trimEnd(), '', '![](2-body.png)'),
       filename: page('ok.md'),
       errors: [{ messageId: 'numericAssetPrefix', line: 7 }],
@@ -229,9 +237,10 @@ const statReadout = (itemsCount: number): string =>
   );
 
 ruleTester.run('require-matching-length', requireMatchingLength, {
-  valid: [{ code: statReadout(2), filename: page('ok.md') }],
+  valid: [{ name: 'rows と items の件数が一致していると、報告しない', code: statReadout(2), filename: page('ok.md') }],
   invalid: [
     {
+      name: 'rows と items の件数が一致しないと、lengthMismatch を 1 行目で報告する',
       code: statReadout(1),
       filename: page('ok.md'),
       errors: [{ messageId: 'lengthMismatch', line: 1 }],
@@ -251,9 +260,10 @@ const annotatedDiagram = (cell: string): string =>
   );
 
 ruleTester.run('no-missing-marker-cell', noMissingMarkerCell, {
-  valid: [{ code: annotatedDiagram('api-gateway'), filename: page('ok.md') }],
+  valid: [{ name: 'marker.cell が図に存在すると、報告しない', code: annotatedDiagram('api-gateway'), filename: page('ok.md') }],
   invalid: [
     {
+      name: 'marker.cell が図に存在しないと、invalidCell をその行で報告する',
       code: annotatedDiagram('no-such-cell'),
       filename: page('ok.md'),
       errors: [{ messageId: 'invalidCell', line: 6 }],
@@ -265,9 +275,10 @@ const mediaRightDiagram = (xmlSrc: string): string =>
   doc('---', 'layout: media-right-diagram', 'mediaContent:', `  xmlSrc: ${xmlSrc}`, '---');
 
 ruleTester.run('no-scaled-drawio', noScaledDrawio, {
-  valid: [{ code: mediaRightDiagram('/assets/diagrams/small.drawio'), filename: page('ok.md') }],
+  valid: [{ name: '図が表示枠に収まると、報告しない', code: mediaRightDiagram('/assets/diagrams/small.drawio'), filename: page('ok.md') }],
   invalid: [
     {
+      name: '図が表示枠より大きいと、scaled をその行で報告する',
       code: mediaRightDiagram('/assets/diagrams/big.drawio'),
       filename: page('ok.md'),
       errors: [{ messageId: 'scaled', line: 4 }],

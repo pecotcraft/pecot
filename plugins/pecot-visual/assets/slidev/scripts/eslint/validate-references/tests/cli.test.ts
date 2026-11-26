@@ -1,4 +1,4 @@
-import { describe, it } from 'node:test';
+import { describe, it } from 'vitest';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
@@ -15,20 +15,20 @@ function run(args: string[]): { status: number | null; stdout: string; stderr: s
 }
 
 describe('validate-references の起動', () => {
-  it('--dir が無ければ usage を出して exit 1 で終わる', () => {
+  it('--dir を渡さないと、usage を出して exit 1 で終わる', () => {
     const result = run([]);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /Usage: validate-references --dir/);
     assert.equal(result.stdout, '');
   });
 
-  it('--dir に値が無くても usage を出して exit 1 で終わる', () => {
+  it('--dir に値を渡さないと、usage を出して exit 1 で終わる', () => {
     const result = run(['--dir']);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /Usage: validate-references --dir/);
   });
 
-  it('--dir に fixture deck の references を渡すと、違反 0 件の exit 0 になる', () => {
+  it('--dir に fixture deck の references を渡すと、違反 0 件のまま exit 0 で終わる', () => {
     const result = run(['--dir', REFS_DIR]);
     assert.equal(result.status, 0, result.stdout);
     assert.match(result.stdout, /0 error\(s\) found\./);

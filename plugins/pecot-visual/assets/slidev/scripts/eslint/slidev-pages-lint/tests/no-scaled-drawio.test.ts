@@ -1,4 +1,4 @@
-import { test, after } from 'node:test';
+import { test, afterAll } from 'vitest';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -35,7 +35,7 @@ fs.writeFileSync(path.join(talkDir, 'slides.md'), '---\nsrc: ./pages/p.md\n---\n
 fs.mkdirSync(path.join(talkDir, 'pages'));
 fs.mkdirSync(path.join(talkDir, 'public', 'slides', 'diagrams'), { recursive: true });
 const pageFile = path.join(talkDir, 'pages', 'p.md');
-after(() => fs.rmSync(talkDir, { recursive: true, force: true }));
+afterAll(() => fs.rmSync(talkDir, { recursive: true, force: true }));
 
 /** 枠線なし（strokeColor=none）の矩形 1 つだけの図。外接矩形は width×height ちょうど */
 function writeDiagram(name: string, width: number, height: number, style = 'rounded=0;strokeColor=none;', x = 0): string {
@@ -62,15 +62,15 @@ function run(lines: string[], panels: Panels = deckPanels): Report[] {
 
 const topicIntro = (src: string) => ['layout: topic-intro', 'mediaContent:', `  xmlSrc: "${src}"`];
 
-test('no-scaled-drawio: meta.type が problem', () => {
+test('meta.type を読むと、problem を返す', () => {
   assert.strictEqual(noScaledDrawioRule.meta?.type, 'problem');
 });
 
-test('no-scaled-drawio: 上限ちょうどの図は報告しない（topic-intro 435×318）', () => {
+test('上限ちょうどの図（topic-intro 435×318）だと、報告しない', () => {
   assert.deepStrictEqual(run(topicIntro(writeDiagram('fit.drawio', 435, 318))), []);
 });
 
-test('no-scaled-drawio: 横が上限を超える図を指摘する', () => {
+test('横が上限を超える図だと、指摘する', () => {
   const reports = run(topicIntro(writeDiagram('wide.drawio', 436, 318)));
   assert.strictEqual(reports.length, 1);
   assert.strictEqual(reports[0].messageId, 'scaled');
@@ -86,19 +86,19 @@ test('no-scaled-drawio: 横が上限を超える図を指摘する', () => {
   assert.strictEqual(reports[0].loc?.line, 4);
 });
 
-test('no-scaled-drawio: 縦が上限を超える図を指摘する', () => {
+test('縦が上限を超える図だと、指摘する', () => {
   const reports = run(topicIntro(writeDiagram('tall.drawio', 400, 400)));
   assert.strictEqual(reports.length, 1);
   assert.strictEqual(reports[0].data?.height, '400');
 });
 
-test('no-scaled-drawio: 小数で上限を超える図は切り上げの寸法で指摘する', () => {
+test('小数で上限を超える図だと、切り上げの寸法で指摘する', () => {
   const reports = run(topicIntro(writeDiagram('frac.drawio', 435.2, 318)));
   assert.strictEqual(reports.length, 1);
   assert.strictEqual(reports[0].data?.width, '436');
 });
 
-test('no-scaled-drawio: media-right-diagram の上限は 435×288', () => {
+test('media-right-diagram だと、上限を 435×288 にする', () => {
   const lines = (src: string) => ['layout: media-right-diagram', 'mediaContent:', `  xmlSrc: "${src}"`];
   assert.deepStrictEqual(run(lines(writeDiagram('m-fit.drawio', 435, 288))), []);
   const reports = run(lines(writeDiagram('m-over.drawio', 435, 289)));
@@ -106,34 +106,34 @@ test('no-scaled-drawio: media-right-diagram の上限は 435×288', () => {
   assert.strictEqual(reports[0].data?.maxHeight, '288');
 });
 
-test('no-scaled-drawio: 線幅 2 で 434×318 の図は線幅を含めて上限を超え指摘する', () => {
+test('線幅 2 で 434×318 の図だと、線幅を含めて上限を超えるので指摘する', () => {
   const reports = run(topicIntro(writeDiagram('stroke.drawio', 434, 318, 'rounded=0;strokeColor=#000000;strokeWidth=2;')));
   assert.strictEqual(reports.length, 1);
   assert.strictEqual(reports[0].data?.width, '436');
   assert.strictEqual(reports[0].data?.height, '320');
 });
 
-test('no-scaled-drawio: x が小数・負でも上限内なら報告しない', () => {
+test('x が小数・負でも上限内だと、報告しない', () => {
   assert.deepStrictEqual(run(topicIntro(writeDiagram('neg.drawio', 435, 318, 'rounded=0;strokeColor=none;', -10.5))), []);
 });
 
-test('no-scaled-drawio: 図形の無い図は報告しない', () => {
+test('図形の無い図だと、報告しない', () => {
   const xml =
     '<mxfile><diagram name="p"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/></root></mxGraphModel></diagram></mxfile>';
   fs.writeFileSync(path.join(talkDir, 'public', 'slides', 'diagrams', 'empty.drawio'), xml);
   assert.deepStrictEqual(run(topicIntro('/slides/diagrams/empty.drawio')), []);
 });
 
-test('no-scaled-drawio: 不正な XML は報告しない', () => {
+test('不正な XML だと、報告しない', () => {
   fs.writeFileSync(path.join(talkDir, 'public', 'slides', 'diagrams', 'broken.drawio'), '<mxfile><diagram>');
   assert.deepStrictEqual(run(topicIntro('/slides/diagrams/broken.drawio')), []);
 });
 
-test('no-scaled-drawio: 図ファイルが無ければ報告しない', () => {
+test('図ファイルが無いと、報告しない', () => {
   assert.deepStrictEqual(run(topicIntro('/slides/diagrams/missing.drawio')), []);
 });
 
-test('no-scaled-drawio: annotated-diagram は diagramContent と steps[].diagram を確認する', () => {
+test('annotated-diagram だと、diagramContent と steps[].diagram を確認する', () => {
   const reports = run([
     'layout: annotated-diagram',
     'diagramContent:',
@@ -150,7 +150,7 @@ test('no-scaled-drawio: annotated-diagram は diagramContent と steps[].diagram
   assert.strictEqual(reports[0].data?.maxHeight, '330');
 });
 
-test('no-scaled-drawio: 同じ図は 1 回だけ指摘する', () => {
+test('同じ図が複数あると、1 回だけ指摘する', () => {
   const src = writeDiagram('dup.drawio', 600, 330);
   const reports = run([
     'layout: annotated-diagram',
@@ -164,11 +164,11 @@ test('no-scaled-drawio: 同じ図は 1 回だけ指摘する', () => {
   assert.strictEqual(reports.length, 1);
 });
 
-test('no-scaled-drawio: 図パネルを持たないレイアウトは確認しない', () => {
+test('図パネルを持たないレイアウトだと、確認しない', () => {
   assert.deepStrictEqual(run(['layout: cover', 'mediaContent:', `  xmlSrc: "${writeDiagram('big.drawio', 900, 900)}"`]), []);
 });
 
-test('no-scaled-drawio: fixture deck の見本頁は上限内に収まる', () => {
+test('fixture deck の見本頁を渡すと、上限内に収まっているので報告しない', () => {
   const templatesDir = path.resolve(import.meta.dirname, '../../_shared/tests/fixtures/deck');
   for (const layout of ['media-right-diagram', 'annotated-diagram']) {
     const file = path.join(templatesDir, 'pages', `${layout}.md`);
@@ -186,7 +186,7 @@ test('no-scaled-drawio: fixture deck の見本頁は上限内に収まる', () =
 
 // テーマの宣言（drawio.panels）が値の出どころであることを、テスト用テーマの値で固定する
 
-test('no-scaled-drawio: 宣言した枠の上限（400×300 の枠なら 340×240）で判定する', () => {
+test('宣言した枠が 400×300 だと、上限 340×240 で判定する', () => {
   const mediaContent = (src: string) => ['layout: panel', 'mediaContent:', `  xmlSrc: "${src}"`];
   assert.deepStrictEqual(run(mediaContent(writeDiagram('t-fit.drawio', 340, 240)), fixturePanels), []);
   const reports = run(mediaContent(writeDiagram('t-over.drawio', 341, 240)), fixturePanels);
@@ -196,21 +196,21 @@ test('no-scaled-drawio: 宣言した枠の上限（400×300 の枠なら 340×24
   assert.strictEqual(reports[0].data?.maxHeight, '240');
 });
 
-test('no-scaled-drawio: 宣言に無いレイアウトは、他のテーマで枠を持つレイアウト名でも確認しない', () => {
+test('宣言に無いレイアウトだと、他のテーマで枠を持つレイアウト名でも確認しない', () => {
   const big = writeDiagram('t-big.drawio', 900, 900);
   assert.deepStrictEqual(run(topicIntro(big), fixturePanels), []);
 });
 
-test('no-scaled-drawio: 宣言が空なら何も確認しない', () => {
+test('宣言が空だと、何も確認しない', () => {
   assert.deepStrictEqual(run(topicIntro(writeDiagram('t-empty.drawio', 900, 900)), {}), []);
 });
 
-test('no-scaled-drawio: layout が constructor でも prototype の値を拾わない', () => {
+test('layout が constructor だと、prototype の値を拾わない', () => {
   const lines = ['layout: constructor', 'mediaContent:', `  xmlSrc: "${writeDiagram('t-ctor.drawio', 900, 900)}"`];
   assert.deepStrictEqual(run(lines, fixturePanels), []);
 });
 
-test('no-scaled-drawio: xmlSrc の置き場所はレイアウトごとに決め打たず、frontmatter 全体から集める', () => {
+test('xmlSrc を置く場所がレイアウトごとに違っても、frontmatter 全体から集める', () => {
   const lines = [
     'layout: panel',
     'extra:',

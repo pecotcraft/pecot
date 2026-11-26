@@ -45,7 +45,7 @@
     "project": "pecot-visual",
     "target": "test-slidev",
     "plugin": "pecot-visual",
-    "excluded": "node --test"
+    "results": "plugins/pecot-visual/test-results/test-slidev/allure-results"
   },
   {
     "project": "pecot-visual",
@@ -132,6 +132,6 @@
   {
     "project": "nx-release",
     "target": "test-unit",
-    "excluded": "node --test"
+    "results": ".nx/nx-release/test-results/test-unit/allure-results"
   }
 ]

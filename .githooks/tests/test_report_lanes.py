@@ -23,8 +23,10 @@ _INCLUDED = [
     "githooks:test-nx-cache",
     "interface-spec:test-site",
     "interface-spec:test-unit",
+    "nx-release:test-unit",
     "pecot-tools:test-cli",
     "pecot-visual:test-cli",
+    "pecot-visual:test-slidev",
     "pecot-workflow:test-cli",
     "pecot-workflow:test-hooks",
     "pecot-workflow:test-skills",
@@ -102,7 +104,7 @@ def test_entry_has_either_results_or_excluded(entry: dict[str, Any]) -> None:
     assert isinstance(entry[kinds[0]], str) and entry[kinds[0]]
 
 
-def test_included_lanes_are_the_twelve() -> None:
+def test_included_lanes_match_the_list() -> None:
     included = sorted(f"{e['project']}:{e['target']}" for e in _entries() if "results" in e)
     assert included == _INCLUDED
 
@@ -111,11 +113,7 @@ def test_excluded_reasons() -> None:
     reasons = {
         f"{e['project']}:{e['target']}": e["excluded"] for e in _entries() if "excluded" in e
     }
-    node_test = {"pecot-visual:test-slidev", "nx-release:test-unit"}
-    assert {lane for lane, reason in reasons.items() if reason == "node --test"} == node_test
-    assert {reason for lane, reason in reasons.items() if lane not in node_test} == {
-        "bash の *.test.sh"
-    }
+    assert set(reasons.values()) == {"bash の *.test.sh"}
 
 
 @pytest.mark.parametrize(
@@ -173,7 +171,7 @@ def _js_slug(lanes: list[str]) -> list[str]:
     return json.loads(out.stdout)
 
 
-def test_real_lanes_make_twelve_jobs_on_one_line() -> None:
+def test_real_lanes_make_one_job_per_lane_on_one_line() -> None:
     result = _run()
     assert result.returncode == 0, result.stderr
     assert result.stdout.count("\n") == 1

@@ -1,14 +1,14 @@
-import { describe, it } from 'node:test';
+import { describe, it } from 'vitest';
 import assert from 'node:assert/strict';
 import { parseFieldPath, resolveFieldValues } from '@v-slidev/eslint-shared';
 
 describe('parseFieldPath', () => {
-  it('シンプルなプロパティ', () => {
+  it('単純なプロパティ名を渡すと、prop 1 件の配列を返す', () => {
     const result = parseFieldPath('coverTitle');
     assert.deepStrictEqual(result, [{ type: 'prop', name: 'coverTitle' }]);
   });
 
-  it('ネストしたプロパティ', () => {
+  it('ドットでつないだ名前を渡すと、prop を順に並べた配列を返す', () => {
     const result = parseFieldPath('titleContent.label');
     assert.deepStrictEqual(result, [
       { type: 'prop', name: 'titleContent' },
@@ -16,7 +16,7 @@ describe('parseFieldPath', () => {
     ]);
   });
 
-  it('配列要素のプロパティ', () => {
+  it('配列の要素のプロパティを渡すと、prop・array・prop の配列を返す', () => {
     const result = parseFieldPath('items[].section');
     assert.deepStrictEqual(result, [
       { type: 'prop', name: 'items' },
@@ -25,7 +25,7 @@ describe('parseFieldPath', () => {
     ]);
   });
 
-  it('配列直接（文字列配列）', () => {
+  it('配列そのものを渡すと、prop と array の配列を返す', () => {
     const result = parseFieldPath('details[]');
     assert.deepStrictEqual(result, [
       { type: 'prop', name: 'details' },
@@ -33,7 +33,7 @@ describe('parseFieldPath', () => {
     ]);
   });
 
-  it('深ネスト＋配列', () => {
+  it('ネストの途中に配列があると、prop と array を順に並べた配列を返す', () => {
     const result = parseFieldPath('leftContent.items[].title');
     assert.deepStrictEqual(result, [
       { type: 'prop', name: 'leftContent' },
@@ -43,31 +43,31 @@ describe('parseFieldPath', () => {
     ]);
   });
 
-  it('空文字列', () => {
+  it('空文字列を渡すと、空の配列を返す', () => {
     const result = parseFieldPath('');
     assert.deepStrictEqual(result, []);
   });
 
-  it('null入力', () => {
+  it('null を渡すと、空の配列を返す', () => {
     const result = parseFieldPath(null as unknown as string);
     assert.deepStrictEqual(result, []);
   });
 });
 
 describe('resolveFieldValues', () => {
-  it('シンプル: coverTitle', () => {
+  it('単純なプロパティを渡すと、その値とパスを返す', () => {
     const fm = { coverTitle: 'Hello' };
     const result = resolveFieldValues(fm, 'coverTitle');
     assert.deepStrictEqual(result, [{ value: 'Hello', path: 'coverTitle' }]);
   });
 
-  it('ネスト: titleContent.label', () => {
+  it('ネストしたプロパティを渡すと、その値とパスを返す', () => {
     const fm = { titleContent: { label: 'CONCEPT', title: 'Title' } };
     const result = resolveFieldValues(fm, 'titleContent.label');
     assert.deepStrictEqual(result, [{ value: 'CONCEPT', path: 'titleContent.label' }]);
   });
 
-  it('配列要素: items[].section', () => {
+  it('配列の要素のプロパティを渡すと、要素ごとの値と添字つきのパスを返す', () => {
     const fm = {
       items: [
         { section: 'Topic A', time: '10 min' },
@@ -81,7 +81,7 @@ describe('resolveFieldValues', () => {
     ]);
   });
 
-  it('配列直接: details[] (文字列配列)', () => {
+  it('文字列の配列を渡すと、要素ごとの値と添字つきのパスを返す', () => {
     const fm = {
       descriptionContent: {
         details: ['item1', 'item2', 'item3'],
@@ -95,7 +95,7 @@ describe('resolveFieldValues', () => {
     ]);
   });
 
-  it('深ネスト＋配列: leftContent.items[].title', () => {
+  it('ネストの途中に配列があると、要素ごとの値と添字つきのパスを返す', () => {
     const fm = {
       leftContent: {
         items: [
@@ -111,37 +111,37 @@ describe('resolveFieldValues', () => {
     ]);
   });
 
-  it('存在しないプロパティ → 空配列', () => {
+  it('存在しないプロパティだと、空の配列を返す', () => {
     const fm = { coverTitle: 'Hello' };
     const result = resolveFieldValues(fm, 'nonExistent');
     assert.deepStrictEqual(result, []);
   });
 
-  it('ネスト先が存在しない → 空配列', () => {
+  it('ネスト先が null だと、空の配列を返す', () => {
     const fm = { titleContent: null };
     const result = resolveFieldValues(fm, 'titleContent.label');
     assert.deepStrictEqual(result, []);
   });
 
-  it('配列プロパティが配列でない → 空配列', () => {
+  it('配列のはずのプロパティが配列でないと、空の配列を返す', () => {
     const fm = { items: 'not an array' };
     const result = resolveFieldValues(fm, 'items[].section');
     assert.deepStrictEqual(result, []);
   });
 
-  it('空の配列 → 空配列', () => {
+  it('配列が空だと、空の配列を返す', () => {
     const fm = { items: [] };
     const result = resolveFieldValues(fm, 'items[].section');
     assert.deepStrictEqual(result, []);
   });
 
-  it('null値のプロパティ → 値としてnullを返す', () => {
+  it('プロパティの値が null だと、値として null を返す', () => {
     const fm = { coverTitle: null };
     const result = resolveFieldValues(fm, 'coverTitle');
     assert.deepStrictEqual(result, [{ value: null, path: 'coverTitle' }]);
   });
 
-  it('空文字列のプロパティ → 値として空文字列を返す', () => {
+  it('プロパティの値が空文字列だと、値として空文字列を返す', () => {
     const fm = { coverTitle: '' };
     const result = resolveFieldValues(fm, 'coverTitle');
     assert.deepStrictEqual(result, [{ value: '', path: 'coverTitle' }]);

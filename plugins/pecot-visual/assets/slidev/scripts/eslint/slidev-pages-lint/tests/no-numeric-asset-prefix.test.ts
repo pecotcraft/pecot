@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert';
 import path from 'node:path';
 import noNumericAssetPrefixRule from '../lib/rules/no-numeric-asset-prefix.ts';
@@ -47,16 +47,16 @@ function frontmatter(body: string): string {
   return `---\n${body}\n---\n`;
 }
 
-test('no-numeric-asset-prefix: meta.type が problem', () => {
+test('meta.type を読むと、problem を返す', () => {
   assert.strictEqual(noNumericAssetPrefixRule.meta?.type, 'problem');
 });
 
-test('no-numeric-asset-prefix: numericAssetPrefix メッセージが定義されている', () => {
+test('メッセージを読むと、numericAssetPrefix が定義されている', () => {
   const meta = noNumericAssetPrefixRule.meta as { messages: Record<string, string> };
   assert.ok(meta.messages.numericAssetPrefix);
 });
 
-test('no-numeric-asset-prefix: create が root/Program/image ビジターを返す', () => {
+test('create を呼ぶと、root・Program・image のビジターを返す', () => {
   const visitors = noNumericAssetPrefixRule.create({
     filename: pageFile,
     sourceCode: { getText: () => '' },
@@ -66,14 +66,14 @@ test('no-numeric-asset-prefix: create が root/Program/image ビジターを返�
   assert.strictEqual(typeof visitors.image, 'function');
 });
 
-test('no-numeric-asset-prefix: frontmatter のトップレベル文字列を検出', () => {
+test('frontmatter のトップレベルの文字列が数字始まりだと、検出する', () => {
   const reports = runOnText(frontmatter("background: '/assets/04-lib-circleci-success.png'"));
   assert.strictEqual(reports.length, 1);
   assert.strictEqual(reports[0].messageId, 'numericAssetPrefix');
   assert.strictEqual(reports[0].data?.fileName, '04-lib-circleci-success.png');
 });
 
-test('no-numeric-asset-prefix: ネストした object / array 配下の参照も検出', () => {
+test('ネストした object・array 配下の参照が数字始まりでも、検出する', () => {
   const reports = runOnText(
     frontmatter(
       [
@@ -92,7 +92,7 @@ test('no-numeric-asset-prefix: ネストした object / array 配下の参照も
   );
 });
 
-test('no-numeric-asset-prefix: 区切り文字を伴わない数字始まりも検出', () => {
+test('区切り文字を伴わない数字始まりでも、検出する', () => {
   const reports = runOnText(
     frontmatter(
       [
@@ -108,7 +108,7 @@ test('no-numeric-asset-prefix: 区切り文字を伴わない数字始まりも�
   );
 });
 
-test('no-numeric-asset-prefix: 数字で始まらない名前は検出しない', () => {
+test('数字で始まらない名前だと、検出しない', () => {
   const reports = runOnText(
     frontmatter(
       [
@@ -121,7 +121,7 @@ test('no-numeric-asset-prefix: 数字で始まらない名前は検出しない'
   assert.strictEqual(reports.length, 0);
 });
 
-test('no-numeric-asset-prefix: 外部 URL は対象外', () => {
+test('外部 URL だと、対象外として検出しない', () => {
   const reports = runOnText(
     frontmatter(
       [
@@ -133,24 +133,24 @@ test('no-numeric-asset-prefix: 外部 URL は対象外', () => {
   assert.strictEqual(reports.length, 0);
 });
 
-test('no-numeric-asset-prefix: 画像以外の拡張子は対象外', () => {
+test('画像以外の拡張子だと、対象外として検出しない', () => {
   const reports = runOnText(
     frontmatter(["src: '01-cover.md'", "xmlSrc: '/slides/diagrams/02-flow.drawio'"].join('\n')),
   );
   assert.strictEqual(reports.length, 0);
 });
 
-test('no-numeric-asset-prefix: 文字列以外のスカラー値は無視する', () => {
+test('文字列以外のスカラー値だと、無視する', () => {
   const reports = runOnText(frontmatter(['clicks: 3', 'hide: false', 'title:'].join('\n')));
   assert.strictEqual(reports.length, 0);
 });
 
-test('no-numeric-asset-prefix: frontmatter が無いページは検出しない', () => {
+test('frontmatter が無い頁だと、検出しない', () => {
   const reports = runOnText('# 見出しのみ\n');
   assert.strictEqual(reports.length, 0);
 });
 
-test('no-numeric-asset-prefix: getText() が throw する場合は何もしない', () => {
+test('getText() が throw すると、何もしない', () => {
   const reports: Report[] = [];
   createVisitors(
     {
@@ -165,7 +165,7 @@ test('no-numeric-asset-prefix: getText() が throw する場合は何もしな�
   assert.strictEqual(reports.length, 0);
 });
 
-test('no-numeric-asset-prefix: 指摘位置は frontmatter の該当行', () => {
+test('数字始まりの参照があると、frontmatter の該当行を指摘位置にする', () => {
   const reports = runOnText(
     frontmatter(
       ['layout: annotated-image', 'imageContent:', "  src: 'assets/samples/04-x.png'"].join('\n'),
@@ -174,13 +174,13 @@ test('no-numeric-asset-prefix: 指摘位置は frontmatter の該当行', () => 
   assert.deepStrictEqual(reports[0].loc, { line: 4, column: 0 });
 });
 
-test('no-numeric-asset-prefix: raw 行に現れない値（quote 表記差）は 1 行目に寄せる', () => {
+test('raw 行に現れない値（quote 表記差）だと、1 行目を指摘位置にする', () => {
   const reports = runOnText(frontmatter(['layout: cover', "alt: '04''s-shot.png'"].join('\n')));
   assert.strictEqual(reports[0].data?.fileName, "04's-shot.png");
   assert.deepStrictEqual(reports[0].loc, { line: 1, column: 0 });
 });
 
-test('no-numeric-asset-prefix: _references/ 配下は frontmatter / 本文とも skip', () => {
+test('_references/ 配下だと、frontmatter と本文を skip する', () => {
   assert.strictEqual(
     runOnText(frontmatter("src: 'assets/samples/04-x.png'"), referencesPage).length,
     0,
@@ -188,17 +188,17 @@ test('no-numeric-asset-prefix: _references/ 配下は frontmatter / 本文とも
   assert.strictEqual(runOnImage({ url: '04-x.png' }, referencesPage).length, 0);
 });
 
-test('no-numeric-asset-prefix: 本文の image ノードを検出（位置はノード自身）', () => {
+test('本文の image ノードが数字始まりだと、ノード自身の位置で検出する', () => {
   const reports = runOnImage({ url: '05-lib-deploy-done.png' });
   assert.strictEqual(reports.length, 1);
   assert.strictEqual(reports[0].data?.fileName, '05-lib-deploy-done.png');
   assert.strictEqual(reports[0].loc, undefined);
 });
 
-test('no-numeric-asset-prefix: 本文の image ノードが場面ベース名なら検出しない', () => {
+test('本文の image ノードが場面ベース名だと、検出しない', () => {
   assert.strictEqual(runOnImage({ url: '/slides/images/lib-deploy-done.png' }).length, 0);
 });
 
-test('no-numeric-asset-prefix: url を持たない image ノードは無視する', () => {
+test('url を持たない image ノードだと、無視する', () => {
   assert.strictEqual(runOnImage({}).length, 0);
 });

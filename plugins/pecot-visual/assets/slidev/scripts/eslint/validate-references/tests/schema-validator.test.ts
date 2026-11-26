@@ -1,10 +1,10 @@
-import { describe, it } from 'node:test';
+import { describe, it } from 'vitest';
 import assert from 'node:assert/strict';
 import { validateSchema } from '../lib/schema-validator.ts';
 
 describe('schema-validator', () => {
   describe('layout files', () => {
-    it('should pass a valid layout file with all required fields', () => {
+    it('必須の項目がすべてそろったレイアウトのファイルを渡すと、検証を通す', () => {
       const data = {
         layout: 'cover',
         category: 'figure',
@@ -22,7 +22,7 @@ describe('schema-validator', () => {
       assert.equal(result.errors.length, 0);
     });
 
-    it('should pass a layout file with props', () => {
+    it('props を持つレイアウトのファイルを渡すと、検証を通す', () => {
       const data = {
         layout: 'cover',
         category: 'figure',
@@ -40,7 +40,7 @@ describe('schema-validator', () => {
       assert.equal(result.valid, true);
     });
 
-    it('should pass a layout file without props (like end.yaml)', () => {
+    it('props を持たないレイアウトのファイルを渡すと、検証を通す', () => {
       const data = {
         layout: 'end',
         category: 'figure',
@@ -57,7 +57,7 @@ describe('schema-validator', () => {
       assert.equal(result.valid, true);
     });
 
-    it('should fail when layout file is missing description', () => {
+    it('レイアウトのファイルに description が無いと、検証に失敗する', () => {
       const data = {
         layout: 'cover',
         category: 'figure',
@@ -74,7 +74,7 @@ describe('schema-validator', () => {
       assert.ok(result.errors.some((e) => e.message.includes('description')));
     });
 
-    it('should fail when layout file is missing includes', () => {
+    it('レイアウトのファイルに includes が無いと、検証に失敗する', () => {
       const data = {
         layout: 'cover',
         category: 'figure',
@@ -90,7 +90,7 @@ describe('schema-validator', () => {
       assert.equal(result.valid, false);
     });
 
-    it('should fail when clicks.supported is missing', () => {
+    it('clicks.supported が無いと、検証に失敗する', () => {
       const data = {
         layout: 'cover',
         category: 'figure',
@@ -107,7 +107,7 @@ describe('schema-validator', () => {
       assert.equal(result.valid, false);
     });
 
-    it('should fail when best_practices is empty', () => {
+    it('best_practices が空だと、検証に失敗する', () => {
       const data = {
         layout: 'cover',
         category: 'figure',
@@ -124,7 +124,7 @@ describe('schema-validator', () => {
       assert.equal(result.valid, false);
     });
 
-    it('should fail when layout file is missing category', () => {
+    it('レイアウトのファイルに category が無いと、検証に失敗する', () => {
       const data = {
         layout: 'cover',
         description: 'Cover slide',
@@ -141,7 +141,7 @@ describe('schema-validator', () => {
       assert.ok(result.errors.some((e) => e.message.includes('category')));
     });
 
-    it('should fail when category is an empty string', () => {
+    it('category が空文字列だと、検証に失敗する', () => {
       const data = {
         layout: 'cover',
         description: 'Cover slide',
@@ -158,7 +158,7 @@ describe('schema-validator', () => {
       assert.equal(result.valid, false);
     });
 
-    it('should pass a hidden layout file without category', () => {
+    it('category の無い hidden のレイアウトのファイルを渡すと、検証を通す', () => {
       const data = {
         layout: 'card-render-test',
         description: 'Rendering fixture',
@@ -176,7 +176,7 @@ describe('schema-validator', () => {
       assert.equal(result.errors.length, 0);
     });
 
-    it('should fail when a deprecated layout file is missing category', () => {
+    it('category の無い deprecated のレイアウトのファイルを渡すと、検証に失敗する', () => {
       const data = {
         layout: 'visual-left',
         description: 'Legacy layout',
@@ -194,7 +194,7 @@ describe('schema-validator', () => {
       assert.ok(result.errors.some((e) => e.message.includes('category')));
     });
 
-    it('should fail when examples item is missing name', () => {
+    it('examples の要素に name が無いと、検証に失敗する', () => {
       const data = {
         layout: 'cover',
         category: 'figure',
@@ -226,7 +226,7 @@ describe('schema-validator', () => {
       examples: [{ name: 'Basic', frontmatter: '---\nlayout: test\n---' }],
     };
 
-    it('should pass flat props with type, description, and default', () => {
+    it('type・description・default を持つ単純な props を渡すと、検証を通す', () => {
       const data = {
         ...baseLayout,
         props: {
@@ -238,7 +238,7 @@ describe('schema-validator', () => {
       assert.equal(result.errors.length, 0);
     });
 
-    it('should pass nested props with type Object and sub-props', () => {
+    it('type が Object で子の props を持つ props を渡すと、検証を通す', () => {
       const data = {
         ...baseLayout,
         props: {
@@ -256,7 +256,7 @@ describe('schema-validator', () => {
       assert.equal(result.errors.length, 0);
     });
 
-    it('should pass array props with type Array and items', () => {
+    it('type が Array で items を持つ props を渡すと、検証を通す', () => {
       const data = {
         ...baseLayout,
         props: {
@@ -274,7 +274,7 @@ describe('schema-validator', () => {
       assert.equal(result.errors.length, 0);
     });
 
-    it('should pass props with v-html, required, and enum fields', () => {
+    it('v-html・required・enum を持つ props を渡すと、検証を通す', () => {
       const data = {
         ...baseLayout,
         props: {
@@ -292,7 +292,7 @@ describe('schema-validator', () => {
       assert.equal(result.errors.length, 0);
     });
 
-    it('should fail props with children key (nested schema uses props/items)', () => {
+    it('props に children のキーがあると、検証に失敗する', () => {
       const data = {
         ...baseLayout,
         props: {
@@ -310,7 +310,7 @@ describe('schema-validator', () => {
       assert.ok(result.errors.length > 0);
     });
 
-    it('should fail props with element key (nested schema uses props/items)', () => {
+    it('props に element のキーがあると、検証に失敗する', () => {
       const data = {
         ...baseLayout,
         props: {
@@ -328,7 +328,7 @@ describe('schema-validator', () => {
       assert.ok(result.errors.length > 0);
     });
 
-    it('should pass props with note key', () => {
+    it('props に note のキーがあると、検証を通す', () => {
       const data = {
         ...baseLayout,
         props: {
@@ -344,7 +344,7 @@ describe('schema-validator', () => {
       assert.equal(result.errors.length, 0);
     });
 
-    it('should pass array props with same_length_as key', () => {
+    it('配列の props に same_length_as のキーがあると、検証を通す', () => {
       const data = {
         ...baseLayout,
         props: {
@@ -361,7 +361,7 @@ describe('schema-validator', () => {
       assert.equal(result.errors.length, 0);
     });
 
-    it('should fail props with non-string same_length_as value', () => {
+    it('same_length_as の値が文字列でないと、検証に失敗する', () => {
       const data = {
         ...baseLayout,
         props: {
@@ -377,7 +377,7 @@ describe('schema-validator', () => {
       assert.ok(result.errors.length > 0);
     });
 
-    it('should fail props with disallowed key', () => {
+    it('props に許可されていないキーがあると、検証に失敗する', () => {
       const data = {
         ...baseLayout,
         props: {
@@ -393,7 +393,7 @@ describe('schema-validator', () => {
       assert.ok(result.errors.length > 0);
     });
 
-    it('should fail props when type is missing', () => {
+    it('props に type が無いと、検証に失敗する', () => {
       const data = {
         ...baseLayout,
         props: {
@@ -405,7 +405,7 @@ describe('schema-validator', () => {
       assert.ok(result.errors.length > 0);
     });
 
-    it('should fail props when description is missing', () => {
+    it('props に description が無いと、検証に失敗する', () => {
       const data = {
         ...baseLayout,
         props: {
@@ -417,7 +417,7 @@ describe('schema-validator', () => {
       assert.ok(result.errors.length > 0);
     });
 
-    it('should fail props with invalid type value', () => {
+    it('props の type が不正な値だと、検証に失敗する', () => {
       const data = {
         ...baseLayout,
         props: {
@@ -429,7 +429,7 @@ describe('schema-validator', () => {
       assert.ok(result.errors.length > 0);
     });
 
-    it('should report nested prop violations at the YAML key path', () => {
+    it('ネストした props に違反があると、YAML のキーのパスで報告する', () => {
       const data = {
         ...baseLayout,
         props: { title: { type: 'Str' } },
@@ -454,7 +454,7 @@ describe('schema-validator', () => {
       examples: [{ name: 'Basic', frontmatter: '---\nlayout: test\n---' }],
     };
 
-    it('should pass text_constraints with min_chars and max_chars', () => {
+    it('min_chars と max_chars を持つ text_constraints を渡すと、検証を通す', () => {
       const data = {
         ...baseLayout,
         text_constraints: {
@@ -466,7 +466,7 @@ describe('schema-validator', () => {
       assert.equal(result.errors.length, 0);
     });
 
-    it('should pass text_constraints with note', () => {
+    it('note を持つ text_constraints を渡すと、検証を通す', () => {
       const data = {
         ...baseLayout,
         text_constraints: {
@@ -478,7 +478,7 @@ describe('schema-validator', () => {
       assert.equal(result.errors.length, 0);
     });
 
-    it('should pass text_constraints with max_items', () => {
+    it('max_items を持つ text_constraints を渡すと、検証を通す', () => {
       const data = {
         ...baseLayout,
         text_constraints: {
@@ -490,7 +490,7 @@ describe('schema-validator', () => {
       assert.equal(result.errors.length, 0);
     });
 
-    it('should pass text_constraints with min_items', () => {
+    it('min_items を持つ text_constraints を渡すと、検証を通す', () => {
       const data = {
         ...baseLayout,
         text_constraints: {
@@ -502,7 +502,7 @@ describe('schema-validator', () => {
       assert.equal(result.errors.length, 0);
     });
 
-    it('should fail text_constraints with invalid min_items (zero)', () => {
+    it('min_items が 0 だと、検証に失敗する', () => {
       const data = {
         ...baseLayout,
         text_constraints: {
@@ -514,7 +514,7 @@ describe('schema-validator', () => {
       assert.ok(result.errors.length > 0);
     });
 
-    it('should fail text_constraints with invalid min_items (negative)', () => {
+    it('min_items が負の数だと、検証に失敗する', () => {
       const data = {
         ...baseLayout,
         text_constraints: {
@@ -526,7 +526,7 @@ describe('schema-validator', () => {
       assert.ok(result.errors.length > 0);
     });
 
-    it('should fail text_constraints with invalid min_items (string)', () => {
+    it('min_items が文字列だと、検証に失敗する', () => {
       const data = {
         ...baseLayout,
         text_constraints: {
@@ -538,7 +538,7 @@ describe('schema-validator', () => {
       assert.ok(result.errors.length > 0);
     });
 
-    it('should pass text_constraints with bold_required', () => {
+    it('bold_required を持つ text_constraints を渡すと、検証を通す', () => {
       const data = {
         ...baseLayout,
         text_constraints: {
@@ -550,7 +550,7 @@ describe('schema-validator', () => {
       assert.equal(result.errors.length, 0);
     });
 
-    it('should fail text_constraints with invalid bold_required (string)', () => {
+    it('bold_required が文字列だと、検証に失敗する', () => {
       const data = {
         ...baseLayout,
         text_constraints: {
@@ -562,7 +562,7 @@ describe('schema-validator', () => {
       assert.ok(result.errors.length > 0);
     });
 
-    it('should fail text_constraints with invalid max_items (negative)', () => {
+    it('max_items が負の数だと、検証に失敗する', () => {
       const data = {
         ...baseLayout,
         text_constraints: {
@@ -574,7 +574,7 @@ describe('schema-validator', () => {
       assert.ok(result.errors.length > 0);
     });
 
-    it('should fail text_constraints with invalid max_items (string)', () => {
+    it('max_items が文字列だと、検証に失敗する', () => {
       const data = {
         ...baseLayout,
         text_constraints: {
@@ -586,7 +586,7 @@ describe('schema-validator', () => {
       assert.ok(result.errors.length > 0);
     });
 
-    it('should fail text_constraints with disallowed key', () => {
+    it('text_constraints に許可されていないキーがあると、検証に失敗する', () => {
       const data = {
         ...baseLayout,
         text_constraints: {
@@ -598,7 +598,7 @@ describe('schema-validator', () => {
       assert.ok(result.errors.length > 0);
     });
 
-    it('should fail text_constraints when max_chars is not a number', () => {
+    it('max_chars が数値でないと、検証に失敗する', () => {
       const data = {
         ...baseLayout,
         text_constraints: {
@@ -612,13 +612,13 @@ describe('schema-validator', () => {
   });
 
   describe('shared files', () => {
-    it('should pass a valid shared file with just description', () => {
+    it('description だけの共有ファイルを渡すと、検証を通す', () => {
       const data = { description: 'Common properties' };
       const result = validateSchema(data);
       assert.equal(result.valid, true);
     });
 
-    it('should pass a shared file with description and props', () => {
+    it('description と props を持つ共有ファイルを渡すと、検証を通す', () => {
       const data = {
         description: 'Header props',
         props: { minimalHeader: { type: 'Boolean', default: 'false' } },
@@ -627,7 +627,7 @@ describe('schema-validator', () => {
       assert.equal(result.valid, true);
     });
 
-    it('should pass a shared file with additional properties', () => {
+    it('追加のプロパティを持つ共有ファイルを渡すと、検証を通す', () => {
       const data = {
         description: 'Common properties',
         props: { sensitivity: {} },
@@ -637,7 +637,7 @@ describe('schema-validator', () => {
       assert.equal(result.valid, true);
     });
 
-    it('should pass a shared file with layout_categories', () => {
+    it('layout_categories を持つ共有ファイルを渡すと、検証を通す', () => {
       const data = {
         description: 'Common properties',
         layout_categories: [
@@ -650,7 +650,7 @@ describe('schema-validator', () => {
       assert.equal(result.errors.length, 0);
     });
 
-    it('should fail when a layout_categories item is missing question', () => {
+    it('layout_categories の要素に question が無いと、検証に失敗する', () => {
       const data = {
         description: 'Common properties',
         layout_categories: [{ id: 'figure', label: '図' }],
@@ -659,7 +659,7 @@ describe('schema-validator', () => {
       assert.equal(result.valid, false);
     });
 
-    it('should fail when a layout_categories item has an unknown key', () => {
+    it('layout_categories の要素に未知のキーがあると、検証に失敗する', () => {
       const data = {
         description: 'Common properties',
         layout_categories: [{ id: 'figure', label: '図', question: '図で見せる', note: 'x' }],
@@ -668,7 +668,7 @@ describe('schema-validator', () => {
       assert.equal(result.valid, false);
     });
 
-    it('should fail when layout_categories is not an array', () => {
+    it('layout_categories が配列でないと、検証に失敗する', () => {
       const data = {
         description: 'Common properties',
         layout_categories: { figure: '図' },
@@ -677,7 +677,7 @@ describe('schema-validator', () => {
       assert.equal(result.valid, false);
     });
 
-    it('should fail when shared file is missing description', () => {
+    it('共有ファイルに description が無いと、検証に失敗する', () => {
       const data = {
         props: { sensitivity: { type: 'String' } },
       };

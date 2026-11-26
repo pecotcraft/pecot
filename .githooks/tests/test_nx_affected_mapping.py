@@ -336,8 +336,27 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             {
                 "interface-spec:test-unit",
                 "interface-spec:test-site",
+                "nx-release:test-unit",
                 "pecot-tools:test-cli",
                 "pecot-visual:test-cli",
+                "pecot-visual:test-slidev",
+                "pecot-workflow:test-cli",
+                "pecot-workflow:test-hooks",
+                "pecot-workflow:test-skills",
+                "text-rules:test-unit",
+                "workflow-core:test-unit",
+            },
+        ),
+        # Allure の結果を残す reporter。題の重なりの setupFiles と同じ vitest のレーンに届く。
+        (
+            "libs/interface-spec/src/vitest/allure-reporter.ts",
+            {
+                "interface-spec:test-unit",
+                "interface-spec:test-site",
+                "nx-release:test-unit",
+                "pecot-tools:test-cli",
+                "pecot-visual:test-cli",
+                "pecot-visual:test-slidev",
                 "pecot-workflow:test-cli",
                 "pecot-workflow:test-hooks",
                 "pecot-workflow:test-skills",
@@ -1136,14 +1155,16 @@ def test_graph_lanes_read_every_workspace_package_json(
             "plugins/pecot-visual/interface/generated.json",
             {"interface-spec:lint-defs", "pecot-visual:lint-cli"},
         ),
-        # describe の題の規則は、interface-spec の lint と、これを読む 5 つの lint に届く。
+        # describe の題の規則は、interface-spec の lint と、これを読む 7 つの lint に届く。
         (
             "libs/interface-spec/src/eslint/describe-title.ts",
             {
                 "interface-spec:lint",
                 "interface-spec:lint-defs",
+                "nx-release:lint-eslint",
                 "pecot-tools:lint",
                 "pecot-visual:lint-cli",
+                "pecot-visual:lint-slidev",
                 "pecot-workflow:lint-cli",
                 "text-rules:lint",
                 "workflow-core:lint",
@@ -1154,8 +1175,10 @@ def test_graph_lanes_read_every_workspace_package_json(
             {
                 "interface-spec:lint",
                 "interface-spec:lint-defs",
+                "nx-release:lint-eslint",
                 "pecot-tools:lint",
                 "pecot-visual:lint-cli",
+                "pecot-visual:lint-slidev",
                 "pecot-workflow:lint-cli",
                 "text-rules:lint",
                 "workflow-core:lint",

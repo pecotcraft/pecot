@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -13,7 +13,7 @@ import {
 import { collectUnknownProps } from '../lib/utils/prop-tree-walker.ts';
 import noUnknownPropsRule, { SLIDEV_STANDARD_KEYS } from '../lib/rules/no-unknown-props.ts';
 
-test('getLayoutProps: propsセクションからキー一覧を取得', () => {
+test('props セクションがあると、キーの一覧を取得する', () => {
   const reference = {
     props: {
       sensitivity: { type: 'String', default: "'Internal'" },
@@ -24,29 +24,29 @@ test('getLayoutProps: propsセクションからキー一覧を取得', () => {
   assert.deepStrictEqual(result, ['sensitivity', 'titleContent']);
 });
 
-test('getLayoutProps: propsが null → 空配列', () => {
+test('props が null だと、空配列を返す', () => {
   assert.deepStrictEqual(getLayoutProps({ props: null }), []);
 });
 
-test('getLayoutProps: propsセクションなし → 空配列', () => {
+test('props セクションが無いと、空配列を返す', () => {
   assert.deepStrictEqual(getLayoutProps({}), []);
 });
 
-test('getLayoutProps: referenceが null → 空配列', () => {
+test('reference が null だと、空配列を返す', () => {
   assert.deepStrictEqual(getLayoutProps(null), []);
 });
 
-test('getLayoutProps: referenceが undefined → 空配列', () => {
+test('reference が undefined だと、空配列を返す', () => {
   assert.deepStrictEqual(getLayoutProps(undefined), []);
 });
 
-test('getLayoutProps: propsが文字列（不正） → 空配列', () => {
+test('props が文字列（不正）だと、空配列を返す', () => {
   assert.deepStrictEqual(getLayoutProps({ props: 'invalid' }), []);
 });
 
 const referencesDir = path.resolve(import.meta.dirname, '../../_shared/tests/fixtures/deck/pages/_references');
 
-test('getLayoutProps (includes): agenda は _common + _header + _footer のpropsを含む', () => {
+test('agenda を読むと、_common・_header・_footer の props を含める', () => {
   clearCache();
   const reference = {
     includes: ['_common', '_header', '_footer'],
@@ -63,7 +63,7 @@ test('getLayoutProps (includes): agenda は _common + _header + _footer のprops
   assert.ok(result.includes('items'), 'items from layout');
 });
 
-test('getLayoutProps (includes): referencesDir なしだと includes を無視', () => {
+test('referencesDir が無いと、includes を無視する', () => {
   const reference = {
     includes: ['_common', '_header'],
     props: { titleContent: { type: 'Object' } },
@@ -72,7 +72,7 @@ test('getLayoutProps (includes): referencesDir なしだと includes を無視',
   assert.deepStrictEqual(result, ['titleContent']);
 });
 
-test('getLayoutProps (includes): includes が空配列', () => {
+test('includes が空配列でも、props を返す', () => {
   const reference = {
     includes: [],
     props: { sensitivity: { type: 'String' } },
@@ -81,7 +81,7 @@ test('getLayoutProps (includes): includes が空配列', () => {
   assert.deepStrictEqual(result, ['sensitivity']);
 });
 
-test('getLayoutProps (includes): 存在しない共有YAMLは無視', () => {
+test('存在しない共有 YAML を includes に書くと、無視する', () => {
   clearCache();
   const reference = {
     includes: ['_nonexistent'],
@@ -91,23 +91,23 @@ test('getLayoutProps (includes): 存在しない共有YAMLは無視', () => {
   assert.deepStrictEqual(result, ['titleContent']);
 });
 
-test('SLIDEV_STANDARD_KEYS: layoutを含む', () => {
+test('SLIDEV_STANDARD_KEYS を読むと、layout を含む', () => {
   assert.ok(SLIDEV_STANDARD_KEYS.has('layout'));
 });
 
-test('SLIDEV_STANDARD_KEYS: clicksを含む', () => {
+test('SLIDEV_STANDARD_KEYS を読むと、clicks を含む', () => {
   assert.ok(SLIDEV_STANDARD_KEYS.has('clicks'));
 });
 
-test('SLIDEV_STANDARD_KEYS: titleを含む', () => {
+test('SLIDEV_STANDARD_KEYS を読むと、title を含む', () => {
   assert.ok(SLIDEV_STANDARD_KEYS.has('title'));
 });
 
-test('SLIDEV_STANDARD_KEYS: transitionを含む', () => {
+test('SLIDEV_STANDARD_KEYS を読むと、transition を含む', () => {
   assert.ok(SLIDEV_STANDARD_KEYS.has('transition'));
 });
 
-test('SLIDEV_STANDARD_KEYS: 全15キーが定義されている', () => {
+test('SLIDEV_STANDARD_KEYS を読むと、15 個のキーが定義されている', () => {
   const expected = [
     'layout', 'class', 'clicks', 'clicksStart', 'preload',
     'hide', 'disabled', 'hideInToc', 'title', 'level',
@@ -119,20 +119,20 @@ test('SLIDEV_STANDARD_KEYS: 全15キーが定義されている', () => {
   }
 });
 
-test('SLIDEV_STANDARD_KEYS: 未知のキーは含まない', () => {
+test('SLIDEV_STANDARD_KEYS に未知のキーを探すと、含まれない', () => {
   assert.ok(!SLIDEV_STANDARD_KEYS.has('sensitivity'));
   assert.ok(!SLIDEV_STANDARD_KEYS.has('coverTitle'));
   assert.ok(!SLIDEV_STANDARD_KEYS.has('debug'));
 });
 
-test('no-unknown-props: ルールオブジェクトが正しい構造を持つ', () => {
+test('ルールオブジェクトを読むと、問題の種類・メッセージ・create 関数を持つ', () => {
   const meta = noUnknownPropsRule.meta as { type: string; messages: Record<string, string> };
   assert.strictEqual(meta.type, 'problem');
   assert.ok(meta.messages.unknownProp);
   assert.strictEqual(typeof noUnknownPropsRule.create, 'function');
 });
 
-test('no-unknown-props: createがroot/Programビジターを返す', () => {
+test('create を呼ぶと、root と Program のビジターを返す', () => {
   const mockContext = {
     sourceCode: { getText: () => '' },
     filename: '/test.md',
@@ -142,14 +142,14 @@ test('no-unknown-props: createがroot/Programビジターを返す', () => {
   assert.strictEqual(typeof visitors.Program, 'function');
 });
 
-test('no-unknown-props: unknownNestedProp メッセージが定義されている', () => {
+test('メッセージを読むと、unknownNestedProp が定義されている', () => {
   const meta = noUnknownPropsRule.meta as { messages: Record<string, string> };
   assert.ok(meta.messages.unknownNestedProp);
 });
 
 // getLayoutPropTree
 
-test('getLayoutPropTree: ネスト schema をツリーとして取得', () => {
+test('ネストした schema を渡すと、ツリーとして取得する', () => {
   const reference = {
     props: {
       titleContent: { type: 'Object', props: { label: { type: 'String' } } },
@@ -174,7 +174,7 @@ test('getLayoutPropTree: ネスト schema をツリーとして取得', () => {
   assert.strictEqual(tree.checks.props, undefined);
 });
 
-test('getLayoutPropTree (includes): 実 _references をマージしネストを保持', () => {
+test('実 _references を includes ごとにマージすると、ネストを保ったまま取得する', () => {
   clearCache();
   const reference = {
     includes: ['_common', '_header', '_footer'],
@@ -189,7 +189,7 @@ test('getLayoutPropTree (includes): 実 _references をマージしネストを�
   assert.deepStrictEqual(Object.keys(tree.titleContent.props ?? {}), ['label']);
 });
 
-test('getLayoutPropTree: null / undefined / 不正型 → 空 map', () => {
+test('null・undefined・不正な型を渡すと、空の map を返す', () => {
   assert.deepStrictEqual(getLayoutPropTree(null), {});
   assert.deepStrictEqual(getLayoutPropTree(undefined), {});
   assert.deepStrictEqual(getLayoutPropTree({}), {});
@@ -197,7 +197,7 @@ test('getLayoutPropTree: null / undefined / 不正型 → 空 map', () => {
   assert.deepStrictEqual(getLayoutPropTree({ props: null }), {});
 });
 
-test('getLayoutPropTree: getLayoutProps は Object.keys(getLayoutPropTree) と等価', () => {
+test('getLayoutProps と Object.keys(getLayoutPropTree) を比べると、等しい', () => {
   clearCache();
   const pure = { props: { a: { type: 'String' }, b: { type: 'Object' } } };
   assert.deepStrictEqual(getLayoutProps(pure), Object.keys(getLayoutPropTree(pure)));
@@ -211,7 +211,7 @@ test('getLayoutPropTree: getLayoutProps は Object.keys(getLayoutPropTree) と�
   );
 });
 
-test('getLayoutPropTree: __proto__ 等の危険キーは prototype を汚染せず skip される', () => {
+test('__proto__ などの危険なキーがあると、prototype を汚染せず skip する', () => {
   // JSON.parse は __proto__ を「素の own プロパティ」として生成する
   // （YAML パーサ由来の汚染ペイロードを模倣）。
   const reference = JSON.parse(
@@ -236,7 +236,7 @@ function loadTree(layoutName: string): Record<string, unknown> {
   return getLayoutPropTree(reference, [referencesDir]) as unknown as Record<string, unknown>;
 }
 
-test('collectUnknownProps: Object 配下の typo を検出（パス付き）', () => {
+test('Object 配下に typo があると、パス付きで検出する', () => {
   const tree = { titleContent: { type: 'Object', props: { label: { type: 'String' } } } };
   const findings = collectUnknownProps(
     { titleContent: { labell: 'x' } },
@@ -248,7 +248,7 @@ test('collectUnknownProps: Object 配下の typo を検出（パス付き）', (
   assert.deepStrictEqual(findings[0].allowed, ['label']);
 });
 
-test('collectUnknownProps: annotated-image の廃止キーを実インデックスパスで検出', () => {
+test('annotated-image の廃止キーがあると、実インデックスのパスで検出する', () => {
   clearCache();
   const tree = loadTree('annotated-image');
   const findings = collectUnknownProps(
@@ -264,7 +264,7 @@ test('collectUnknownProps: annotated-image の廃止キーを実インデック�
   assert.ok(findings[0].allowed.includes('notes1'));
 });
 
-test('collectUnknownProps: 深いネスト（image.srcc NG / marker.px OK）', () => {
+test('深いネストだと、image.srcc を検出し、marker.px は検出しない', () => {
   clearCache();
   const tree = loadTree('annotated-image');
   const findings = collectUnknownProps(
@@ -277,7 +277,7 @@ test('collectUnknownProps: 深いネスト（image.srcc NG / marker.px OK）', (
   assert.deepStrictEqual(findings[0].allowed, ['src', 'alt', 'objectFit']);
 });
 
-test('collectUnknownProps: 標準キーは降下しない', () => {
+test('標準キーだと、降下しない', () => {
   clearCache();
   const tree = loadTree('annotated-image');
   const findings = collectUnknownProps(
@@ -288,7 +288,7 @@ test('collectUnknownProps: 標準キーは降下しない', () => {
   assert.deepStrictEqual(findings, []);
 });
 
-test('collectUnknownProps: items 宣言なし Array は skip', () => {
+test('items 宣言が無い Array だと、skip する', () => {
   const findings = collectUnknownProps(
     { radarIndicators: [{ foo: 1 }] },
     { radarIndicators: { type: 'Array' } },
@@ -297,7 +297,7 @@ test('collectUnknownProps: items 宣言なし Array は skip', () => {
   assert.deepStrictEqual(findings, []);
 });
 
-test('collectUnknownProps: Array<String>（スカラー配列）は skip', () => {
+test('Array<String>（スカラー配列）だと、skip する', () => {
   const findings = collectUnknownProps(
     { tags: ['a', 'b'] },
     { tags: { type: 'Array<String>' } },
@@ -306,7 +306,7 @@ test('collectUnknownProps: Array<String>（スカラー配列）は skip', () =>
   assert.deepStrictEqual(findings, []);
 });
 
-test('collectUnknownProps: props 宣言なし Object は skip', () => {
+test('props 宣言が無い Object だと、skip する', () => {
   const findings = collectUnknownProps(
     { meta: { anything: 1 } },
     { meta: { type: 'Object' } },
@@ -315,7 +315,7 @@ test('collectUnknownProps: props 宣言なし Object は skip', () => {
   assert.deepStrictEqual(findings, []);
 });
 
-test('collectUnknownProps: media-right-image の新表記（props/items）が機能', () => {
+test('media-right-image の新表記（props/items）だと、検出が機能する', () => {
   clearCache();
   const tree = loadTree('media-right-image');
   const findings = collectUnknownProps(
@@ -326,7 +326,7 @@ test('collectUnknownProps: media-right-image の新表記（props/items）が機
   assert.ok(findings.map((f) => f.path).includes('descriptionContent.items[0].titl'));
 });
 
-test('collectUnknownProps: agenda の新表記（items）が機能', () => {
+test('agenda の新表記（items）だと、検出が機能する', () => {
   clearCache();
   const tree = loadTree('agenda');
   const findings = collectUnknownProps(
@@ -337,7 +337,7 @@ test('collectUnknownProps: agenda の新表記（items）が機能', () => {
   assert.ok(findings.map((f) => f.path).includes('items[0].sectionn'));
 });
 
-test('collectUnknownProps: media-right-chart の descriptionContent.items[] 配下 typo を検出', () => {
+test('media-right-chart の descriptionContent.items[] 配下に typo があると、検出する', () => {
   clearCache();
   const tree = loadTree('media-right-chart');
   const findings = collectUnknownProps(
@@ -355,7 +355,7 @@ test('collectUnknownProps: media-right-chart の descriptionContent.items[] 配�
   assert.ok(finding.allowed.includes('description'));
 });
 
-test('collectUnknownProps: examples を持つ全レイアウトの examples は 0 件', () => {
+test('examples を持つ全レイアウトの examples を渡すと、未知のキーを 0 件にする', () => {
   // 配列のネストの形を 3 種含む。
   // - steps[].terminal.lines[] の 2 段配列
   // - tableContent.rows[].cells[] の Object > Array > Array<String>
@@ -408,7 +408,7 @@ function runRule(text: string, filename: string): CapturedReport[] {
   return reports;
 }
 
-test('rule: annotated-image の廃止キーで unknownNestedProp を report（負のコントロール）', () => {
+test('annotated-image の廃止キーがあると、unknownNestedProp を報告する（負のコントロール）', () => {
   clearCache();
   const text = [
     '---',
@@ -431,7 +431,7 @@ test('rule: annotated-image の廃止キーで unknownNestedProp を report（�
   assert.ok(nestedPaths.includes('steps[0].description'), `description missing: ${nestedPaths.join(', ')}`);
 });
 
-test('rule: pages 配下の全 *.md が report 0 件（正のコントロール）', () => {
+test('pages 配下の全 *.md を渡すと、報告しない（正のコントロール）', () => {
   clearCache();
   const pagesDir = path.dirname(referencesDir);
   const files = fs.readdirSync(pagesDir).filter((f) => f.endsWith('.md'));
@@ -473,7 +473,7 @@ function runWithReferences(text: string, referencesDirectories: string[]): Captu
   return reports;
 }
 
-test('rule: テーマが宣言した references の props で未知のキーを report する', () => {
+test('テーマが宣言した references の props に無いキーがあると、報告する', () => {
   clearCache();
   const text = ['---', 'layout: panel', 'heading: "見出し"', 'bogus: 1', '---', ''].join('\n');
   const reports = runWithReferences(text, [fixtureReferences]);
@@ -483,13 +483,13 @@ test('rule: テーマが宣言した references の props で未知のキーを 
   );
 });
 
-test('rule: テーマが宣言した references の props と includes に沿うキーは report しない', () => {
+test('テーマが宣言した references の props と includes に沿うキーだと、報告しない', () => {
   clearCache();
   const text = ['---', 'layout: panel', 'heading: "見出し"', 'caption: "説明"', '---', ''].join('\n');
   assert.deepStrictEqual(runWithReferences(text, [fixtureReferences]), []);
 });
 
-test('rule: talk-dir 側の references が先にあれば、テーマ側の同名のレイアウトより優先する', () => {
+test('talk-dir 側の references が先にあると、テーマ側の同名のレイアウトより優先する', () => {
   clearCache();
   const talkReferences = fs.mkdtempSync(path.join(os.tmpdir(), 'talk-references-'));
   try {
@@ -505,7 +505,7 @@ test('rule: talk-dir 側の references が先にあれば、テーマ側の同�
   }
 });
 
-test('rule: references の場所が settings に無ければ検証しない', () => {
+test('references の場所が settings に無いと、検証しない', () => {
   clearCache();
   const text = ['---', 'layout: panel', 'bogus: 1', '---', ''].join('\n');
   assert.deepStrictEqual(runWithReferences(text, []), []);

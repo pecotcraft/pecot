@@ -17,6 +17,7 @@ ruleTester.run(
     valid: [
       // 1. 子要素にborder-radiusあり（インラインstyle）
       {
+        name: '子要素にインライン style の border-radius があると、報告しない',
         code: `<template>
   <div style="overflow: hidden; border-radius: 8px">
     <div style="background: rgba(0,0,0,0.5); border-radius: 8px"></div>
@@ -26,6 +27,7 @@ ruleTester.run(
       },
       // 2. 子要素にborder-radiusあり（CSSクラス）
       {
+        name: '子要素に CSS クラスの border-radius があると、報告しない',
         code: `<template>
   <div style="overflow: hidden; border-radius: 8px">
     <div class="overlay"></div>
@@ -41,6 +43,7 @@ ruleTester.run(
       },
       // 3. 子要素にborder-radiusあり（:styleバインディング）
       {
+        name: '子要素に :style バインディングの borderRadius があると、報告しない',
         code: `<template>
   <div style="overflow: hidden; border-radius: 8px">
     <div :style="{ background: 'red', borderRadius: '8px' }"></div>
@@ -50,6 +53,7 @@ ruleTester.run(
       },
       // 4. 子要素にbackgroundなし
       {
+        name: '子要素に background が無いと、報告しない',
         code: `<template>
   <div style="overflow: hidden; border-radius: 8px">
     <div class="no-bg"></div>
@@ -59,6 +63,7 @@ ruleTester.run(
       },
       // 5. img要素はスキップ（require-image-border-radiusでカバー）
       {
+        name: '子要素が img なら、報告しない',
         code: `<template>
   <div style="overflow: hidden; border-radius: 8px">
     <img src="test.jpg" />
@@ -68,6 +73,7 @@ ruleTester.run(
       },
       // 6. 親にoverflow:hiddenなし
       {
+        name: '親に overflow: hidden が無いと、報告しない',
         code: `<template>
   <div style="border-radius: 8px">
     <div style="background: red"></div>
@@ -77,6 +83,7 @@ ruleTester.run(
       },
       // 7. 親にborder-radiusなし
       {
+        name: '親に border-radius が無いと、報告しない',
         code: `<template>
   <div style="overflow: hidden">
     <div style="background: red"></div>
@@ -86,6 +93,7 @@ ruleTester.run(
       },
       // 8. data-pptx-image祖先（スキップ）
       {
+        name: 'data-pptx-image の祖先の中なら、報告しない',
         code: `<template>
   <div data-pptx-image style="overflow: hidden; border-radius: 8px">
     <div style="background: rgba(0,0,0,0.5)"></div>
@@ -95,6 +103,7 @@ ruleTester.run(
       },
       // 9. 子要素の背景がtransparent（CSS）
       {
+        name: '子要素の background が transparent（CSS）なら、報告しない',
         code: `<template>
   <div style="overflow: hidden; border-radius: 8px">
     <div class="transparent-bg"></div>
@@ -109,6 +118,7 @@ ruleTester.run(
       },
       // 10. 子要素の背景がtransparent（インライン）
       {
+        name: '子要素の background が transparent（インライン）なら、報告しない',
         code: `<template>
   <div style="overflow: hidden; border-radius: 8px">
     <div style="background: transparent"></div>
@@ -118,6 +128,7 @@ ruleTester.run(
       },
       // 11. 子要素の背景がnone
       {
+        name: '子要素の background が none なら、報告しない',
         code: `<template>
   <div style="overflow: hidden; border-radius: 8px">
     <div style="background: none"></div>
@@ -127,6 +138,7 @@ ruleTester.run(
       },
       // 12. 子要素の背景がrgba(0,0,0,0)
       {
+        name: '子要素の background-color が rgba(0,0,0,0) なら、報告しない',
         code: `<template>
   <div style="overflow: hidden; border-radius: 8px">
     <div style="background-color: rgba(0,0,0,0)"></div>
@@ -136,6 +148,7 @@ ruleTester.run(
       },
       // 13. クラス名部分一致で誤検出しない
       {
+        name: 'クラス名の一部が同じだけの別のクラスの背景は、報告しない',
         code: `<template>
   <div class="detail-card">
     <div class="detail-header"></div>
@@ -157,6 +170,7 @@ ruleTester.run(
     invalid: [
       // 1. インラインstyle: 親overflow:hidden+border-radius、子background（テキストなし空div）
       {
+        name: '親に overflow: hidden と border-radius があり、子要素にインライン style の background があると、報告する',
         code: `<template>
   <div style="overflow: hidden; border-radius: 8px">
     <div style="background: rgba(0,0,0,0.5)"></div>
@@ -167,6 +181,7 @@ ruleTester.run(
       },
       // 2. CSSクラス: 親overflow:hidden+border-radius、子background-color（テキストなし空div）
       {
+        name: '親に overflow: hidden と border-radius があり、子要素に CSS クラスの background-color があると、報告する',
         code: `<template>
   <div style="overflow: hidden; border-radius: 8px">
     <div class="overlay"></div>
@@ -182,6 +197,7 @@ ruleTester.run(
       },
       // 3. 混合: 親:style border-radius+CSS overflow:hidden、子inline background
       {
+        name: '親の borderRadius が :style で、overflow: hidden が CSS でも、報告する',
         code: `<template>
   <div class="container" :style="{ borderRadius: '8px' }">
     <div style="background: rgba(0,0,0,0.5)"></div>
@@ -197,6 +213,7 @@ ruleTester.run(
       },
       // 4. 複合セレクタ: .caption-area.overlay-bottom パターン
       {
+        name: '子要素の背景が複合セレクタで指定されていても、報告する',
         code: `<template>
   <div class="image-block" style="overflow: hidden; border-radius: 8px">
     <div class="caption-area overlay-bottom"></div>
@@ -212,6 +229,7 @@ ruleTester.run(
       },
       // 5. テキスト含有子要素+background（既存ルールとの重複検出）
       {
+        name: '背景を持つ子要素にテキストがあっても、報告する',
         code: `<template>
   <div style="overflow: hidden; border-radius: 8px">
     <div style="background: rgba(0,0,0,0.5)"><p>text</p></div>
@@ -222,6 +240,7 @@ ruleTester.run(
       },
       // 6. MChatApp相当パターン: 親overflow:hidden+border-radius、子sidebar+背景
       {
+        name: '親に overflow: hidden と border-radius があり、背景を持つ子要素が複数あると、すべて報告する',
         code: `<template>
   <div class="chat-app">
     <div class="sidebar"></div>
@@ -248,8 +267,4 @@ ruleTester.run(
       },
     ],
   },
-);
-
-console.log(
-  'All no-overflow-hidden-with-bg-children tests passed!',
 );

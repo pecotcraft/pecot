@@ -1,8 +1,12 @@
-"use strict";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import { createRequire } from "node:module";
+import path from "node:path";
 
-const test = require("node:test");
-const assert = require("node:assert/strict");
+import { test } from "vitest";
 
+// src は CommonJS なので、Node の require で読む。
+const require = createRequire(import.meta.url);
 const { PecotVersionActions } = require("../src/version-actions");
 const { PecotPackageVersionActions } = require("../src/package-version-actions");
 
@@ -101,10 +105,7 @@ test("manifest を読めなければ throw する", async () => {
 
 // --- 実 project.json から init() 経由で manifest を展開する ---
 
-const fs = require("node:fs");
-const path = require("node:path");
-
-const REPO_ROOT = path.resolve(__dirname, "../../..");
+const REPO_ROOT = path.resolve(import.meta.dirname, "../../..");
 
 // 実ファイルに委ねる最小の Tree。init() は exists しか使わない。
 const fsTree = {

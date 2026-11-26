@@ -1,10 +1,10 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert';
 import noTripleHyphenInFrontmatter, {
   findExtraSeparators,
 } from '../lib/rules/no-triple-hyphen-in-frontmatter.ts';
 
-test('no-triple-hyphen-in-frontmatter: 正常なフロントマター（余分な---なし）', () => {
+test('余分な --- が無い正常な frontmatter だと、検出しない', () => {
   const code = `---
 layout: default
 ---
@@ -12,29 +12,29 @@ layout: default
   assert.deepStrictEqual(findExtraSeparators(code), []);
 });
 
-test('no-triple-hyphen-in-frontmatter: フロントマターなし（1行目が---でない）', () => {
+test('frontmatter が無い（1 行目が --- でない）と、検出しない', () => {
   const code = `# Hello
 `;
   assert.deepStrictEqual(findExtraSeparators(code), []);
 });
 
-test('no-triple-hyphen-in-frontmatter: 空文字列', () => {
+test('空文字列を渡すと、検出しない', () => {
   assert.deepStrictEqual(findExtraSeparators(''), []);
 });
 
-test('no-triple-hyphen-in-frontmatter: null/undefinedは空配列', () => {
+test('null と undefined を渡すと、空配列を返す', () => {
   assert.deepStrictEqual(findExtraSeparators(null as unknown as string), []);
   assert.deepStrictEqual(findExtraSeparators(undefined as unknown as string), []);
 });
 
-test('no-triple-hyphen-in-frontmatter: フロントマター未閉じ（---が1つだけ）', () => {
+test('frontmatter が閉じていない（--- が 1 つだけ）と、検出しない', () => {
   const code = `---
 layout: x
 `;
   assert.deepStrictEqual(findExtraSeparators(code), []);
 });
 
-test('no-triple-hyphen-in-frontmatter: 余分な---が1箇所（3個の---行）', () => {
+test('余分な --- が 1 箇所（3 個の --- 行）あると、その行を検出する', () => {
   const code = `---
 title: "test"
 ---
@@ -46,7 +46,7 @@ layout: default
   assert.strictEqual(result[0], 5);
 });
 
-test('no-triple-hyphen-in-frontmatter: 余分な---が2箇所（4個の---行）', () => {
+test('余分な --- が 2 箇所（4 個の --- 行）あると、2 箇所とも検出する', () => {
   const code = `---
 title: "test"
 ---
@@ -61,7 +61,7 @@ description: "more"
   assert.strictEqual(result[1], 7);
 });
 
-test('no-triple-hyphen-in-frontmatter: 末尾スペース付き "--- " も検出される', () => {
+test('末尾にスペースが付いた "--- " でも、検出する', () => {
   const code = `---
 title: "test"
 ---
@@ -73,7 +73,7 @@ layout: default
   assert.strictEqual(result[0], 5);
 });
 
-test('no-triple-hyphen-in-frontmatter: "----"（4ハイフン）は検出されない', () => {
+test('"----"（4 ハイフン）だと、検出しない', () => {
   const code = `---
 ----
 ---
@@ -81,7 +81,7 @@ test('no-triple-hyphen-in-frontmatter: "----"（4ハイフン）は検出され�
   assert.deepStrictEqual(findExtraSeparators(code), []);
 });
 
-test('no-triple-hyphen-in-frontmatter: ルールオブジェクトが正しい構造を持つ', () => {
+test('ルールオブジェクトを読むと、問題の種類・メッセージ・create 関数を持つ', () => {
   assert.strictEqual(noTripleHyphenInFrontmatter.meta?.type, 'problem');
   assert.ok((noTripleHyphenInFrontmatter.meta as { messages: Record<string, string> }).messages.tripleHyphenInFrontmatter);
   assert.strictEqual(typeof noTripleHyphenInFrontmatter.create, 'function');

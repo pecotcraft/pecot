@@ -14,6 +14,7 @@ ruleTester.run('require-absolute-last', requireAbsoluteLast, {
   valid: [
     // absolute要素が末尾: OK
     {
+      name: 'absolute の要素が末尾にあると、報告しない',
       code: `<template>
   <div class="card">
     <div class="body">Content</div>
@@ -28,6 +29,7 @@ ruleTester.run('require-absolute-last', requireAbsoluteLast, {
     },
     // absolute要素なし: OK
     {
+      name: 'absolute の要素が無いと、報告しない',
       code: `<template>
   <div class="card">
     <div class="body">Content</div>
@@ -42,6 +44,7 @@ ruleTester.run('require-absolute-last', requireAbsoluteLast, {
     },
     // 複数のabsolute要素が末尾にまとめられている: OK
     {
+      name: '複数の absolute の要素が末尾にまとまっていると、報告しない',
       code: `<template>
   <div class="card">
     <div class="body">Content</div>
@@ -57,11 +60,13 @@ ruleTester.run('require-absolute-last', requireAbsoluteLast, {
     },
     // styleブロックなし: OK
     {
+      name: 'style ブロックが無いと、報告しない',
       code: '<template><div><p>Text</p></div></template>',
       filename: 'test.vue',
     },
     // absolute要素のみ（非absolute兄弟なし）: OK
     {
+      name: 'absolute の要素だけで、absolute でない兄弟が無いと、報告しない',
       code: `<template>
   <div class="wrapper">
     <p class="overlay">Overlay</p>
@@ -74,6 +79,7 @@ ruleTester.run('require-absolute-last', requireAbsoluteLast, {
     },
     // position: relativeは対象外: OK
     {
+      name: 'position: relative なら、報告しない',
       code: `<template>
   <div class="wrapper">
     <p class="rel">First</p>
@@ -89,6 +95,7 @@ ruleTester.run('require-absolute-last', requireAbsoluteLast, {
     // SHeader/SFooter は L3 内部で position:absolute を持つ。
     // absolute 兄弟（.body-container）の前後どちらにあっても、false positive にしない。
     {
+      name: 'PascalCase の Vue コンポーネントは位置を判定できないので、前後にあっても報告しない',
       code: `<template>
   <div class="canvas">
     <SHeader />
@@ -103,6 +110,7 @@ ruleTester.run('require-absolute-last', requireAbsoluteLast, {
     },
     // <slot> も透過: OK
     {
+      name: 'slot は位置を判定できないので、前にあっても報告しない',
       code: `<template>
   <div class="wrapper">
     <slot name="title" />
@@ -118,6 +126,7 @@ ruleTester.run('require-absolute-last', requireAbsoluteLast, {
   invalid: [
     // absolute要素が非absolute兄弟より前: NG
     {
+      name: 'absolute の要素が absolute でない兄弟より前にあると、報告する',
       code: `<template>
   <div class="card">
     <p class="badge">POINT</p>
@@ -133,6 +142,7 @@ ruleTester.run('require-absolute-last', requireAbsoluteLast, {
     },
     // ネストされた構造でも検出
     {
+      name: '入れ子の構造の中でも、absolute の要素が absolute でない兄弟より前にあると、報告する',
       code: `<template>
   <div class="outer">
     <div class="inner">
@@ -149,6 +159,7 @@ ruleTester.run('require-absolute-last', requireAbsoluteLast, {
     },
     // 複数のabsolute要素のうち1つが非absoluteの前にある
     {
+      name: '複数の absolute の要素のうち 1 つが absolute でない兄弟より前にあると、報告する',
       code: `<template>
   <div class="card">
     <p class="badge-top">TOP</p>

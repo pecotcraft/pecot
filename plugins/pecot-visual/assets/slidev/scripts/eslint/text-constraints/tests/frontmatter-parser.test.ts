@@ -1,19 +1,19 @@
-import { describe, it } from 'node:test';
+import { describe, it } from 'vitest';
 import assert from 'node:assert/strict';
 import { parseFrontmatter } from '@v-slidev/eslint-shared';
 
 describe('parseFrontmatter', () => {
-  it('非 object YAML（string scalar）→ null', () => {
+  it('YAML の最上位が文字列だと、null を返す', () => {
     const result = parseFrontmatter('---\n"hello"\n---\n');
     assert.strictEqual(result, null);
   });
 
-  it('非 object YAML（array）→ null', () => {
+  it('YAML の最上位が配列だと、null を返す', () => {
     const result = parseFrontmatter('---\n- a\n- b\n---\n');
     assert.strictEqual(result, null);
   });
 
-  it('不正 YAML → null', () => {
+  it('YAML が不正だと、null を返す', () => {
     const result = parseFrontmatter('---\n: invalid\n---\n');
     assert.strictEqual(result, null);
   });

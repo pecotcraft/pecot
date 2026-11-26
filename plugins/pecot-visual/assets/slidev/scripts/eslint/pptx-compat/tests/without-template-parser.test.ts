@@ -12,7 +12,7 @@ const ruleTester = new RuleTester({
 
 for (const [name, rule] of Object.entries(plugin.rules)) {
   ruleTester.run(`${name} (テンプレート解析なし)`, rule as never, {
-    valid: [{ code: 'export default {}', filename: 'test.js' }],
+    valid: [{ name: 'vue-eslint-parser 以外のパーサでは、報告しない', code: 'export default {}', filename: 'test.js' }],
     invalid: [],
   });
 }

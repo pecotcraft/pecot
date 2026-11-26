@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert';
 import path from 'node:path';
 import { findSlidesFile, getSlidesEntries, clearSlidesCache } from '../lib/utils/slides-loader.ts';
@@ -17,25 +17,25 @@ const EXPECTED_PAGES = [
   'end.md',
 ];
 
-test('findSlidesFile: pages/配下のファイルから slides.md を発見', () => {
+test('pages/ 配下のファイルを渡すと、slides.md を発見する', () => {
   const filePath = path.join(pagesDir, 'cover.md');
   const result = findSlidesFile(filePath);
   assert.strictEqual(result, slidesFile);
 });
 
-test('findSlidesFile: pages/外のファイル → null', () => {
+test('pages/ 外のファイルを渡すと、null を返す', () => {
   const filePath = path.join(templatesDir, 'README.md');
   const result = findSlidesFile(filePath);
   assert.strictEqual(result, null);
 });
 
-test('findSlidesFile: slides.md が存在しないディレクトリ → null', () => {
+test('slides.md が存在しないディレクトリを渡すと、null を返す', () => {
   const filePath = '/nonexistent/pages/test.md';
   const result = findSlidesFile(filePath);
   assert.strictEqual(result, null);
 });
 
-test('getSlidesEntries: fixture deck の slides.md から全エントリを取得', () => {
+test('fixture deck の slides.md を読むと、全エントリを取得する', () => {
   clearSlidesCache();
   const entries = getSlidesEntries(slidesFile);
   assert.strictEqual(entries.size, EXPECTED_PAGES.length);
@@ -45,20 +45,20 @@ test('getSlidesEntries: fixture deck の slides.md から全エントリを取�
   }
 });
 
-test('getSlidesEntries: キャッシュを再利用すること', () => {
+test('slides.md を 2 回読むと、キャッシュを再利用する', () => {
   clearSlidesCache();
   const entries1 = getSlidesEntries(slidesFile);
   const entries2 = getSlidesEntries(slidesFile);
   assert.strictEqual(entries1, entries2, 'same reference (cached)');
 });
 
-test('getSlidesEntries: 存在しないファイル → 空Set', () => {
+test('存在しないファイルを読むと、空の Set を返す', () => {
   clearSlidesCache();
   const entries = getSlidesEntries('/nonexistent/slides.md');
   assert.strictEqual(entries.size, 0);
 });
 
-test('clearSlidesCache: キャッシュクリア後は別インスタンスを返す', () => {
+test('キャッシュをクリアすると、次の読み込みで別のインスタンスを返す', () => {
   clearSlidesCache();
   const entries1 = getSlidesEntries(slidesFile);
   clearSlidesCache();
@@ -67,16 +67,16 @@ test('clearSlidesCache: キャッシュクリア後は別インスタンスを�
   assert.deepStrictEqual(entries1, entries2, 'same content');
 });
 
-test('require-slides-entry: meta.type が problem', () => {
+test('meta.type を読むと、problem を返す', () => {
   assert.strictEqual(requireSlidesEntryRule.meta?.type, 'problem');
 });
 
-test('require-slides-entry: missingEntry メッセージが定義されている', () => {
+test('メッセージを読むと、missingEntry が定義されている', () => {
   const meta = requireSlidesEntryRule.meta as { messages: Record<string, string> };
   assert.ok(meta.messages.missingEntry);
 });
 
-test('require-slides-entry: create が root/Program ビジターを返す', () => {
+test('create を呼ぶと、root と Program のビジターを返す', () => {
   const mockContext = {
     sourceCode: { getText: () => '' },
     filename: '/test.md',
@@ -86,7 +86,7 @@ test('require-slides-entry: create が root/Program ビジターを返す', () =
   assert.strictEqual(typeof visitors.Program, 'function');
 });
 
-test('require-slides-entry: 既存ページファイルでエラーが出ないこと', () => {
+test('既存のページファイルを渡すと、報告しない', () => {
   clearSlidesCache();
   for (const page of EXPECTED_PAGES) {
     const reports: unknown[] = [];
@@ -104,7 +104,7 @@ test('require-slides-entry: 既存ページファイルでエラーが出ない�
   }
 });
 
-test('require-slides-entry: _references/ 配下のファイルはスキップ', () => {
+test('_references/ 配下のファイルだと、スキップする', () => {
   clearSlidesCache();
   const reports: unknown[] = [];
   const filePath = path.join(pagesDir, '_references', 'test.md');
@@ -120,7 +120,7 @@ test('require-slides-entry: _references/ 配下のファイルはスキップ', 
   assert.strictEqual(reports.length, 0, '_references/ should be skipped');
 });
 
-test('require-slides-entry: slides.md に含まれないファイルでエラーを報告', () => {
+test('slides.md に含まれないファイルを渡すと、missingEntry を報告する', () => {
   clearSlidesCache();
   const reports: Array<{ messageId?: string }> = [];
   const filePath = path.join(pagesDir, 'new-unreferenced-page.md');
@@ -137,7 +137,7 @@ test('require-slides-entry: slides.md に含まれないファイルでエラー
   assert.strictEqual(reports[0].messageId, 'missingEntry');
 });
 
-test('require-slides-entry: pages/ 外のファイルはスキップ（slides.md が見つからない）', () => {
+test('pages/ 外のファイルだと、slides.md が見つからないのでスキップする', () => {
   clearSlidesCache();
   const reports: unknown[] = [];
   const filePath = '/some/other/dir/file.md';

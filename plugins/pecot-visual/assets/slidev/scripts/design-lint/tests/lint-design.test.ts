@@ -5,7 +5,7 @@
  * フィクスチャは tests/fixtures/DESIGN.md のコピーを 1 箇所だけ壊したもので、一時ディレクトリに置く。
  */
 
-import { after, before, describe, it } from 'node:test';
+import { afterAll, beforeAll, describe, it } from 'vitest';
 import { strict as assert } from 'node:assert';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -58,14 +58,14 @@ describe('lint-design.mjs', () => {
     return path;
   };
 
-  before(() => {
+  beforeAll(() => {
     dir = mkdtempSync(join(tmpdir(), 'lint-design-'));
   });
-  after(() => {
+  afterAll(() => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it('引数なしでは v-drawio の references 配下の DESIGN.md をすべて確認し、どれも [OK] で exit 0', () => {
+  it('引数を渡さないと、v-drawio の references 配下の DESIGN.md をすべて確認し、どれも [OK] で exit 0 で終わる', () => {
     const targets = defaultTargets();
     assert.ok(targets.length > 1, `v-drawio の DESIGN.md が見つかりません: ${targets.join(', ')}`);
     const r = runLint();
@@ -76,7 +76,7 @@ describe('lint-design.mjs', () => {
     for (const target of targets) assert.ok(okLines.some((line) => line.startsWith(`[OK] ${target}: `)), `${target}\n${r.stdout}`);
   });
 
-  it('warning だけの定義でも exit 1 にする', () => {
+  it('warning だけの定義を渡すと、exit 1 で終わる', () => {
     // どのコンポーネントも参照しない色を 1 つ足す（orphaned-tokens の warning 1 件）
     const path = fixture('warning.md', replaceOnce(original, 'colors:\n', 'colors:\n  ghost: "#123456"\n'));
     const r = runLint(path);
@@ -85,14 +85,14 @@ describe('lint-design.mjs', () => {
     assert.match(r.stdout, /warning orphaned-tokens colors\.ghost/);
   });
 
-  it('error のある定義は exit 1 にする', () => {
+  it('error のある定義を渡すと、exit 1 で終わる', () => {
     const path = fixture('error.md', replaceOnce(original, 'textColor: "{colors.text-primary}"', 'textColor: "{colors.missing}"'));
     const r = runLint(path);
     assert.equal(r.status, 1, r.stdout);
     assert.match(r.stdout, /error broken-ref components\.title:/);
   });
 
-  it('本文の参照が front matter に解決しない定義は、公式 linter が通っても exit 1 にして未解決の参照を出す', () => {
+  it('本文の参照が front matter に解決しない定義を渡すと、公式 linter が通っても未解決の参照を出して exit 1 で終わる', () => {
     const path = fixture('body-ref.md', replaceOnce(original, '一色のインクと一点の差し色で組む。', '一色のインク `{colors.missing-ref}` と一点の差し色で組む。'));
     const r = runLint(path);
     assert.equal(r.status, 1, r.stdout);
@@ -101,7 +101,7 @@ describe('lint-design.mjs', () => {
     assert.ok(r.stdout.includes('{colors.missing-ref}'), r.stdout);
   });
 
-  it('読めないファイルは [NG] と「読めません」を出して exit 1 にし、残りのファイルも確認する', () => {
+  it('読めないファイルを渡すと、[NG] と「読めません」を出して exit 1 で終わり、残りのファイルも確認する', () => {
     const missing = join(dir, 'missing.md');
     const r = runLint(missing, fileURLToPath(DESIGN_MD));
     assert.equal(r.status, 1, r.stdout);

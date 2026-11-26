@@ -2,14 +2,12 @@
   =========================================================================
   Sync Impact Report
   =========================================================================
-  Version change: 4.0.0 → 5.0.0
+  Version change: 5.0.0 → 5.0.1
   Modified principles:
-    - II. CLI インタフェース → II. テキストのインタフェース（再定義。入口にコマンドライン・
-      MCP のツール・GitHub Actions の action を含め、プラグインは MCP のツールだけで公開する）
-  Reason: プラグインは MCP のツールだけで使い、Actions の処理は actions/ の action に移す（#755・#756）。
-    CLI と MCP の 2 つの入口を持つ形は、MCP の公式の文書に例が無い
-  Backward compatibility: 既存の計画の Constitution Check の II の行は、当時の版の判断として残す。
-    プラグインの CLI の入口は、#755 のフェーズで消す
+    - III. テスト優先（明確化。カバレッジの閾値の正から .c8rc.json を外し、
+      slidev のテストも vitest.config.ts の thresholds に置く）
+  Reason: slidev のテストを node:test と c8 から vitest に移した（#809）
+  Backward compatibility: 原則は変わらない
   Added principles: なし
   Removed principles: なし
   Templates requiring updates:
@@ -17,9 +15,8 @@
     - .specify/templates/spec-template.md ✅ 更新不要
     - .specify/templates/tasks-template.md ✅ 更新不要
     - .specify/templates/checklist-template.md ✅ 更新不要
-    - CLAUDE.md ✅ 更新不要（II を引いていない）
-  Follow-up TODOs:
-    - plugins/pecot-workflow/CONTRIBUTING.md の試験環境の手順を、MCP Inspector の --cli に書き換える（#755）
+    - CLAUDE.md ✅ 更新不要（閾値の置き場所を引いていない）
+  Follow-up TODOs: なし
   =========================================================================
 -->
 
@@ -72,8 +69,8 @@ Actions のプロジェクト（`actions/`）は action で公開する。
 **このリポジトリでは**:
 
 - 利用者の承認は、テストの方針を書いた計画の承認で兼ねる
-- カバレッジの閾値を下回ると、テストを失敗させる（MUST）。値の正は各 `vitest.config.ts` の `thresholds` と、
-  `plugins/pecot-visual/assets/slidev/.c8rc.json` とする。Python のテストには閾値を置いていない
+- カバレッジの閾値を下回ると、テストを失敗させる（MUST）。値の正は各 `vitest.config.ts` の `thresholds` とする。
+  Python のテストには閾値を置いていない
 - 公開面（コマンド・MCP ツール・hook）の振る舞いは、各プラグインの `interface/` の定義書に項目として書く（MUST）。
   項目を確かめるテストは、`verifies` で項目の ID を書く（MUST）
 - `interface-spec:lint-defs` は、テストに ID が出てこない項目・定義書に無い ID・空の欄を止める
@@ -196,4 +193,4 @@ Spec Kit の成果物（仕様・計画・タスク・チェックリスト）�
 - **版**: セマンティック バージョニング（MAJOR.MINOR.PATCH）に従う。
   MAJOR は原則の削除・再定義、MINOR は追加・拡張、PATCH は明確化・誤字の修正とする
 
-**Version**: 5.0.0 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-11-26
+**Version**: 5.0.1 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-11-26

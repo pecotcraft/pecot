@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -14,7 +14,7 @@ const referencesDir = path.resolve(import.meta.dirname, '../../_shared/tests/fix
 
 // collectMatchingLengthDeclarations
 
-test('collectMatchingLengthDeclarations: トップレベル prop の same_length_as を検出', () => {
+test('トップレベルの prop に same_length_as があると、検出する', () => {
   const tree = getLayoutPropTree({
     props: {
       rows: { type: 'Array' },
@@ -25,7 +25,7 @@ test('collectMatchingLengthDeclarations: トップレベル prop の same_length
   assert.deepStrictEqual(declarations, [{ path: 'items', target: 'rows' }]);
 });
 
-test('collectMatchingLengthDeclarations: ネストした Object 配下の same_length_as をドット区切りパスで検出', () => {
+test('ネストした Object 配下に same_length_as があると、ドット区切りのパスで検出する', () => {
   const tree = getLayoutPropTree({
     props: {
       statContent: { type: 'Object', props: { rows: { type: 'Array' } } },
@@ -39,14 +39,14 @@ test('collectMatchingLengthDeclarations: ネストした Object 配下の same_l
   assert.deepStrictEqual(declarations, [{ path: 'readout.items', target: 'statContent.rows' }]);
 });
 
-test('collectMatchingLengthDeclarations: same_length_as が無ければ空配列', () => {
+test('same_length_as が無いと、空配列を返す', () => {
   const tree = getLayoutPropTree({
     props: { rows: { type: 'Array' }, items: { type: 'Array' } },
   });
   assert.deepStrictEqual(collectMatchingLengthDeclarations(tree), []);
 });
 
-test('collectMatchingLengthDeclarations: 配列要素スキーマ（items）配下は辿らない', () => {
+test('配列要素のスキーマ（items）配下に same_length_as があっても、辿らない', () => {
   const tree = getLayoutPropTree({
     props: {
       rows: {
@@ -58,7 +58,7 @@ test('collectMatchingLengthDeclarations: 配列要素スキーマ（items）配�
   assert.deepStrictEqual(collectMatchingLengthDeclarations(tree), []);
 });
 
-test('collectMatchingLengthDeclarations: stat-readout の実 reference から readout.items → statContent.rows を検出', () => {
+test('stat-readout の実 reference を読むと、readout.items → statContent.rows を検出する', () => {
   clearCache();
   const reference = loadLayoutReference([referencesDir], 'stat-readout');
   const tree = getLayoutPropTree(reference, [referencesDir]);
@@ -114,7 +114,7 @@ function statReadoutFrontmatter(rowsCount: number, itemsCount: number): string {
   ].join('\n');
 }
 
-test('rule: rows と items の件数が一致していれば report 0 件', () => {
+test('rows と items の件数が一致していると、報告しない', () => {
   clearCache();
   const text = statReadoutFrontmatter(3, 3);
   const filename = path.join(referencesDir, '..', 'match.md');
@@ -122,7 +122,7 @@ test('rule: rows と items の件数が一致していれば report 0 件', () =
   assert.deepStrictEqual(reports, []);
 });
 
-test('rule: rows と items の件数が不一致なら lengthMismatch を report', () => {
+test('rows と items の件数が不一致だと、lengthMismatch を報告する', () => {
   clearCache();
   const text = statReadoutFrontmatter(3, 2);
   const filename = path.join(referencesDir, '..', 'mismatch.md');
@@ -135,7 +135,7 @@ test('rule: rows と items の件数が不一致なら lengthMismatch を report
   assert.strictEqual(reports[0].data.targetCount, '3');
 });
 
-test('rule: 片方の配列が欠落している場合は report しない（required の確認に委ねる）', () => {
+test('片方の配列が欠落していると、報告しない（required の確認に委ねる）', () => {
   clearCache();
   const text = [
     '---',
@@ -155,7 +155,7 @@ test('rule: 片方の配列が欠落している場合は report しない（req
   assert.deepStrictEqual(reports, []);
 });
 
-test('rule: same_length_as を宣言していないレイアウトでは report しない', () => {
+test('same_length_as を宣言していないレイアウトだと、報告しない', () => {
   clearCache();
   const text = ['---', 'layout: cover', 'title: "テスト"', '---', ''].join('\n');
   const filename = path.join(referencesDir, '..', 'no-declaration.md');
@@ -163,7 +163,7 @@ test('rule: same_length_as を宣言していないレイアウトでは report 
   assert.deepStrictEqual(reports, []);
 });
 
-test('rule: pages 配下の全 *.md が report 0 件（正のコントロール）', () => {
+test('pages 配下の全 *.md を渡すと、報告しない（正のコントロール）', () => {
   clearCache();
   const pagesDir = path.dirname(referencesDir);
   const files = fs.readdirSync(pagesDir).filter((f) => f.endsWith('.md'));

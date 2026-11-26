@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import { Linter } from 'eslint';
 import markdown from '@eslint/markdown';
 import assert from 'node:assert/strict';
@@ -48,7 +48,7 @@ function lint(lines: string[]): Reported[] {
 
 const FM = ['---', 'layout: cover', '---'];
 
-test('本文の違反は「本文 L<ファイル行>」で、ファイル行の位置に報告する', () => {
+test('本文に違反があると、ファイル行の位置に「body L<ファイル行>」で報告する', () => {
   const reported = lint([...FM, '', CLEAN, '', HYPE]);
   assert.equal(reported.length, 1, JSON.stringify(reported));
   assert.equal(reported[0]!.messageId, 'textlintBody');
@@ -56,7 +56,7 @@ test('本文の違反は「本文 L<ファイル行>」で、ファイル行の�
   assert.match(reported[0]!.message, new RegExp(`^body L7: .+ \\(${HYPE_ID}\\)$`));
 });
 
-test('発表者ノートの違反は「発表者ノート L<ファイル行>」で報告する', () => {
+test('発表者ノートに違反があると、「speaker notes L<ファイル行>」で報告する', () => {
   const reported = lint([...FM, CLEAN, '<!--', 'メモです。', HYPE, '-->']);
   assert.equal(reported.length, 1, JSON.stringify(reported));
   assert.equal(reported[0]!.messageId, 'textlintNotes');
@@ -64,7 +64,7 @@ test('発表者ノートの違反は「発表者ノート L<ファイル行>」�
   assert.match(reported[0]!.message, new RegExp(`^speaker notes L7: .+ \\(${HYPE_ID}\\)$`));
 });
 
-test('1 行のコメントの違反は、桁にコメント開始記号の分を加える', () => {
+test('1 行のコメントに違反があると、桁にコメント開始記号の分を加えて報告する', () => {
   const reported = lint([...FM, `<!-- ${HYPE} -->`]);
   assert.equal(reported.length, 1, JSON.stringify(reported));
   assert.equal(reported[0]!.messageId, 'textlintNotes');
@@ -73,37 +73,37 @@ test('1 行のコメントの違反は、桁にコメント開始記号の分を
   assert.equal(reported[0]!.column, 6);
 });
 
-test('本文とノートの両方が違反なら、それぞれを報告する', () => {
+test('本文とノートの両方に違反があると、それぞれを報告する', () => {
   const reported = lint([...FM, HYPE, '', `<!-- ${HYPE} -->`]);
   assert.deepEqual(reported.map((r) => `${r.messageId}:${r.line}`), ['textlintBody:4', 'textlintNotes:6']);
 });
 
-test('違反の無い本文とノートは報告しない', () => {
+test('本文とノートに違反が無いと、報告しない', () => {
   assert.deepEqual(lint([...FM, CLEAN, '', `<!-- ${CLEAN} -->`]), []);
 });
 
-test('frontmatter の違反は確認しない（結果として。除外そのものは body-extractor のテストが固定する）', () => {
+test('frontmatter に違反があっても、報告しない', () => {
   assert.deepEqual(lint(['---', 'layout: cover', `title: '${HYPE}'`, '---', CLEAN]), []);
 });
 
-test('本文は markdown モードで確認し、箇条書きの書式規則を本文行で報告する', () => {
+test('本文に箇条書きの書式の違反があると、markdown モードで確認して本文の行で報告する', () => {
   const reported = lint([...FM, CLEAN, '', ...LIST_LINES]);
   const list = reported.filter((r) => r.message.includes(` (${LIST_ID})`));
   assert.ok(list.length > 0, JSON.stringify(reported));
   assert.ok(list.every((r) => r.messageId === 'textlintBody' && r.line >= 6 && r.line <= 7), JSON.stringify(list));
 });
 
-test('コメントの後ろに本文が続く行は、本文として確認し、ノートにしない', () => {
+test('コメントの後ろに本文が続く行だと、本文として確認し、ノートにしない', () => {
   const reported = lint([...FM, `<!-- メモ --> ${HYPE}`]);
   assert.deepEqual(reported.map((r) => `${r.messageId}:${r.line}`), ['textlintBody:4']);
 });
 
-test('1 行に並ぶ 2 件のコメントは別々のノートとして確認する', () => {
+test('1 行に 2 件のコメントが並ぶと、別々のノートとして確認する', () => {
   const reported = lint([...FM, `<!-- ${CLEAN} --><!-- ${HYPE} -->`]);
   assert.deepEqual(reported.map((r) => `${r.messageId}:${r.line}`), ['textlintNotes:4']);
 });
 
-test('同じ行でコメントより後ろにある本文の違反は、元の桁で報告する', () => {
+test('同じ行のコメントより後ろの本文に違反があると、元の桁で報告する', () => {
   const prefix = '前置きです。<!-- メモ -->';
   const reported = lint([...FM, prefix + HYPE]);
   assert.equal(reported.length, 1, JSON.stringify(reported));
@@ -112,12 +112,12 @@ test('同じ行でコメントより後ろにある本文の違反は、元の�
   assert.equal(reported[0]!.column, prefix.length + 1);
 });
 
-test('空の frontmatter の後の本文も確認する', () => {
+test('空の frontmatter の後に本文があると、その本文も確認する', () => {
   const reported = lint(['---', '---', HYPE]);
   assert.deepEqual(reported.map((r) => `${r.messageId}:${r.line}`), ['textlintBody:3']);
 });
 
-test('コードフェンス・インラインコード・字下げコードの中の記述は、本文とノートのどちらにも報告しない', () => {
+test('コードフェンス・インラインコード・字下げコードの中の違反は、本文とノートのどちらにも報告しない', () => {
   const reported = lint([
     ...FM,
     CLEAN,
@@ -137,7 +137,7 @@ test('コードフェンス・インラインコード・字下げコードの�
   assert.deepEqual(reported, []);
 });
 
-test('本文とノートが空なら、worker を呼ばない', () => {
+test('本文とノートが空だと、worker を呼ばない', () => {
   // 呼ばれれば worker の起動失敗が textlintFailed として現れる
   useWorkerForTest(new URL('file:///nonexistent/worker.ts'));
   try {
@@ -148,7 +148,7 @@ test('本文とノートが空なら、worker を呼ばない', () => {
   }
 });
 
-test('worker を起動できないときは実行不能を 1 件だけ報告する', () => {
+test('worker を起動できないと、実行不能を 1 件だけ報告する', () => {
   useWorkerForTest(new URL('file:///nonexistent/worker.ts'));
   try {
     const reported = lint([...FM, CLEAN, '', `<!-- ${CLEAN} -->`]);
