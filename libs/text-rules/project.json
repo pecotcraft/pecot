@@ -81,6 +81,7 @@
         "{workspaceRoot}/libs/interface-spec/src/vitest/step.ts",
         "{workspaceRoot}/.githooks/scripts/test_report/step-gate.mjs",
         "{workspaceRoot}/.githooks/scripts/test_report/step-gate.sh",
+        "{workspaceRoot}/.githooks/scripts/run-pnpm.sh",
         "default",
         "runtime",
         "env"

@@ -85,6 +85,17 @@ describe('stepSync', () => {
     })
   })
 
+  it('レーンの中で本体が投げると、step を失敗で閉じ、同じ例外を投げる', async () => {
+    const thrown = new Error('本体が失敗した')
+    const fail = (): never => {
+      throw thrown
+    }
+    const result = await recorded('test-unit', () => stepSync('規則にかける', fail))
+    stepSync('送った step と例外を比べる', () => {
+      expect(result).toEqual({ error: thrown, steps: [{ type: 'step_start', name: '規則にかける' }, { type: 'step_stop', status: 'broken' }] })
+    })
+  })
+
   it('NX_TASK_TARGET_TARGET が空だと、step を送らずに本体の値を返す', async () => {
     const result = await recorded('', () => stepSync('規則にかける', () => 7))
     stepSync('値と、送った step が無いことを確かめる', () => {

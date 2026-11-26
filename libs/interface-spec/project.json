@@ -106,6 +106,7 @@
         "{workspaceRoot}/plugins/*/interface/generated.json",
         "{workspaceRoot}/.githooks/scripts/test_report/step-gate.mjs",
         "{workspaceRoot}/.githooks/scripts/test_report/step-gate.sh",
+        "{workspaceRoot}/.githooks/scripts/run-pnpm.sh",
         "env"
       ],
       "outputs": ["{projectRoot}/test-results/test-unit/allure-results"],
@@ -137,6 +138,7 @@
         "{projectRoot}/src/vitest/step.ts",
         "{workspaceRoot}/.githooks/scripts/test_report/step-gate.mjs",
         "{workspaceRoot}/.githooks/scripts/test_report/step-gate.sh",
+        "{workspaceRoot}/.githooks/scripts/run-pnpm.sh",
         "{workspaceRoot}/plugins/*/interface/generated.json",
         "{workspaceRoot}/plugins/*/interface/authored.yaml",
         "{workspaceRoot}/.github/assets/**/*",

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -50,10 +51,17 @@ def _write(results: Path, *entries: dict[str, Any]) -> None:
         (results / f"{entry['uuid']}-result.json").write_text(json.dumps(entry), "utf-8")
 
 
-def _gate(results: Path, cwd: Path) -> subprocess.CompletedProcess[str]:
+def _gate(
+    results: Path, cwd: Path, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     with allure.step("step-gate.sh を動かす"):
         return subprocess.run(
-            ["bash", str(_GATE), str(results)], cwd=cwd, capture_output=True, text=True, check=False
+            ["bash", str(_GATE), str(results)],
+            cwd=cwd,
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
         )
 
 
@@ -97,6 +105,22 @@ def test_fails_and_names_only_the_tests_without_named_steps(tmp_path: Path) -> N
         }
 
 
+def test_names_parametrized_rows_with_their_values(tmp_path: Path) -> None:
+    with allure.step("同じ名前で parameters だけが違う、step の無い 2 つの結果を書く"):
+        _write(
+            tmp_path / "results",
+            _result("1", "a", parameters=[{"name": "lane", "value": "test-ci"}]),
+            _result("2", "a", parameters=[{"name": "lane", "value": "test-checks"}]),
+        )
+    done = _gate(tmp_path / "results", tmp_path)
+    with allure.step("行ごとに値を添えた名前が並ぶことを確かめる"):
+        assert done.returncode != 0
+        assert _missing(done) == {
+            "alpha/sample.test.ts#a [lane=test-checks]",
+            "alpha/sample.test.ts#a [lane=test-ci]",
+        }
+
+
 def test_counts_a_named_step_nested_under_a_matcher_step(tmp_path: Path) -> None:
     with allure.step("自動の step の下に、名前の付いた step を持つ結果を書く"):
         _write(
@@ -117,10 +141,15 @@ def test_ignores_tests_that_did_not_pass(tmp_path: Path, status: str) -> None:
         assert done.returncode == 0, done.stdout + done.stderr
 
 
-def test_leaves_no_report_in_the_working_directory(tmp_path: Path) -> None:
-    with allure.step("step の無い結果を書く"):
+def test_writes_the_report_to_a_temporary_directory_and_removes_it(tmp_path: Path) -> None:
+    with allure.step("step の無い結果と、一時ディレクトリの置き場を用意する"):
         _write(tmp_path / "results", _result("1", "a"))
-    _gate(tmp_path / "results", tmp_path)
-    with allure.step("作業ディレクトリとリポのルートに allure-report が無いことを確かめる"):
-        assert not (tmp_path / "allure-report").exists()
-        assert not (_REPO / "allure-report").exists()
+        temp = tmp_path / "tmp"
+        temp.mkdir()
+        before = (_REPO / "allure-report").exists()
+    done = _gate(tmp_path / "results", tmp_path, env={**os.environ, "TMPDIR": str(temp)})
+    with allure.step("gate が動き、リポのルートが変わらず、一時ディレクトリが消えたことを確かめる"):
+        assert done.returncode != 0
+        assert (_REPO / "allure-report").exists() == before
+        # node は TMPDIR に node-compile-cache を残す。mktemp -d が作る tmp.* だけを見る
+        assert list(temp.glob("tmp.*")) == []

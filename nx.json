@@ -76,6 +76,7 @@
       "{projectRoot}/tests/run.sh",
       "{projectRoot}/scripts/test_report/step-gate.mjs",
       "{projectRoot}/scripts/test_report/step-gate.sh",
+      "{projectRoot}/scripts/run-pnpm.sh",
       "{projectRoot}/lib/**/*"
     ],
     "githooksGraphInputs": [
