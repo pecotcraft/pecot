@@ -312,11 +312,11 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 **Independent Test**: spec の US6 の Independent Test
 
-- [ ] T073 [US6] `PW/docs/github-features.md` を作り、GitHub の公式の文書の Projects と Issues の目次から機能を拾って一覧にする（ビュー・レイアウト・Group by・Slice by・フィルタ・組み込みの自動化・Iteration・Insights・Issue fields・Issue type・sub-issue・依存 など）。
+- [x] T073 [US6] `PW/docs/github-features.md` を作り、GitHub の公式の文書の Projects と Issues の目次から機能を拾って一覧にする（ビュー・レイアウト・Group by・Slice by・フィルタ・組み込みの自動化・Iteration・Insights・Issue fields・Issue type・sub-issue・依存 など）。
   各機能に、pecot の今の使い方・使うか使わないか・理由・関連する Issue を書く
-- [ ] T074 [US6] 一覧で、GitHub の機能と同じ役割を pecot が独自に持っている仕組みを挙げ、pecot-workflow の MCP ツール `issue_create` で 1 件ずつ起票する（Epic #542 の下）。起票した番号を一覧に書く
-- [ ] T075 [US6] 「使う」とした機能のうち、準備の操作に入るものは `PW/cli/src/commands/project.ts`・`project-sync.ts` の変更を、案内に入るものは `PW/skills/w-onboarding/SKILL.md` の変更を、それぞれ別の Issue として起票する。このフェーズでは実装しない
-- [ ] T076 [US6] `PW/CONTRIBUTING.md` から一覧へリンクする
+- [x] T074 [US6] 一覧で、GitHub の機能と同じ役割を pecot が独自に持っている仕組みを挙げ、pecot-workflow の MCP ツール `issue_create` で 1 件ずつ起票する（Epic #542 の下）。起票した番号を一覧に書く
+- [x] T075 [US6] 「使う」とした機能のうち、準備の操作に入るものは `PW/cli/src/commands/project.ts`・`project-sync.ts` の変更を、案内に入るものは `PW/skills/w-onboarding/SKILL.md` の変更を、それぞれ別の Issue として起票する。このフェーズでは実装しない
+- [x] T076 [US6] `PW/CONTRIBUTING.md` から一覧へリンクする
 
 **Checkpoint**: 棚卸しの一覧に、公式の文書の機能がすべて載り、判断と理由がある
 
