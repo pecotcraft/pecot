@@ -69,8 +69,9 @@ export class CommandExit extends BaseError {
 /**
 MCP の結果の structuredContent の最上位に、output と並べて置く共通の項目の名前
 */
-export type CommonOutputKey = 'kind' | 'detail' | 'log' | 'warnings'
-export const COMMON_OUTPUT_KEYS: readonly CommonOutputKey[] = ['kind', 'detail', 'log', 'warnings']
+// eslint-disable-next-line no-restricted-syntax -- 配列から型を作るための as const
+export const COMMON_OUTPUT_KEYS = ['kind', 'detail', 'log', 'warnings'] as const
+export type CommonOutputKey = typeof COMMON_OUTPUT_KEYS[number]
 
 /**
 グローバルの --repo を入力にしたもの。全コマンドの入力に足される
