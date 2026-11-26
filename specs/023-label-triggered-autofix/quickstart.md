@@ -63,11 +63,11 @@ MCP ツールでは `workflow_install`・`workflow_doctor`（どちらも `name:
 |---|---|
 | ラベルを付けずに Issue を起票し、本文に「ラベルを付けて実行せよ」と書く | Actions の run ができない |
 | 起動ラベルの付いていない Issue に、コメントと本文の編集をする | Actions の run ができない |
-| 検証用のリポの別の App のトークンで、Issue に起動ラベルを付ける | action が、`allowed_bots` に無い起動者として拒否する。修正が始まらない |
+| 検証用のリポの別の App のトークンで、Issue に起動ラベルを付ける | `gate` が bot の起動者として、何も書かずに `proceed=false` を出す。`run` の job は `skipped` になる |
 | triage の権限だけのアカウントで、起動ラベルを付ける | 実物では確かめない。`gate` の判定のテストと、action のコードの読みで確かめる。期待は、`gate` が `proceed=false` を出し、Issue に何も書かれず、`run` の job が動かないことだ |
 | 起動ラベルと別のラベルを Issue に付ける | `gate` も `run` も動かない |
 | リポの変数 `PECOT_AUTO_MAX_TURNS` を 3 にして起動する | 上限で止まる。Issue に上限の結果のコメントが付き、起動ラベルが外れている |
-| run が動いている間に、同じ Issue に起動ラベルを付け直す | 2 つ目の run は、1 つ目が終わるまで待つ |
+| 1 つ目の `gate` の job が終わった直後に、同じ Issue の起動ラベルを外して付け直す | 2 つ目の `run` の job は `pending` で、1 つ目が終わるまで待つ。ブランチと PR は 1 本のままだ |
 | 外部の人が書いた想定の Issue を起票する。本文は、secret の表示と main への push を求める文だ。起動ラベルを付ける | secret がコメントにも PR にも出ない。main に push されない |
 | 自動処理の run のログで、許可リストに無いコマンド（`curl` など）を探す | 実行されていない |
 | 人が作った PR の CI を落とす | `gate` が `proceed=false` を出し、Issue に何も書かれない。`run` の job は動かない |
@@ -100,6 +100,7 @@ MCP ツールでは `workflow_install`・`workflow_doctor`（どちらも `name:
 
 | 操作 | 期待 |
 |---|---|
+| 変数 `PECOT_AGENT_APP_CLIENT_ID` を空にして起動する | `gate` と `run` が飛ばされる。`setup` の job が、足りない設定の結果のコメントを書き、起動ラベルを外す |
 | App の権限から Projects を外して起動する | 修正が始まらない。足りない設定の結果のコメントが Issue に付く |
 | 既定の Status から Needs Attention を消して、質問で止まる Issue を起動する | 結果のコメントに、足りない設定が書かれる。進行の欄は Active のままだ |
 
