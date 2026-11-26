@@ -9,7 +9,6 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -20,6 +19,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts/test_report"))
 
 import generate  # noqa: E402
+from attach import run_attached  # noqa: E402
 
 _REPO = Path(__file__).resolve().parents[2]
 _CONFIG = _REPO / ".githooks/scripts/test_report/allurerc.mjs"
@@ -497,7 +497,7 @@ def _config(env: dict[str, str]) -> dict[str, Any]:
         "process.stdout.write('\\n' + JSON.stringify({ raw, resolved }));"
     )
     # -e の import は作業ディレクトリから解く。@allurereport/core は allure の依存なので、allure の実体から解く
-    done = subprocess.run(
+    done = run_attached(
         ["node", "--input-type=module", "-e", script],
         cwd=(_REPO / "node_modules/allure").resolve(),
         env=env,

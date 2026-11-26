@@ -46,10 +46,14 @@ from __future__ import annotations
 
 import json
 import re
-import subprocess
+import sys
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import run_attached  # noqa: E402
 
 # parents[0]=tests, [1]=.githooks, [2]=リポルート。
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -351,7 +355,7 @@ def scan_env_reads(root: Path, rels: list[str]) -> dict[str, set[str]]:
 
 def _tracked_plugin_files() -> list[str]:
     """走査する追跡ファイル。プラグインと、プラグインではないライブラリ（libs/<name>/）。"""
-    out = subprocess.run(
+    out = run_attached(
         ["git", "ls-files", "plugins", "libs"],
         cwd=_REPO_ROOT,
         capture_output=True,

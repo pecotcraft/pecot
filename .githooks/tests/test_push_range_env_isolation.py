@@ -16,9 +16,12 @@ env が残っていると hook は base を解決できず skip（exit 0）し�
 from __future__ import annotations
 
 import os
-import subprocess
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import run_attached  # noqa: E402
 
 # git に存在しない 40 桁の sha。
 _MISSING_SHA = "0123456789abcdef0123456789abcdef01234567"
@@ -30,7 +33,7 @@ def test_block_case_passes_with_push_range_env_set() -> None:
     """PECOT_VERSION_PLAN_BASE が親から引き継がれていても、block 系のケースが通る。"""
     tests_dir = Path(__file__).resolve().parent
     env = {**os.environ, "PECOT_VERSION_PLAN_BASE": _MISSING_SHA}
-    result = subprocess.run(
+    result = run_attached(
         [
             sys.executable,
             "-m",

@@ -15,6 +15,10 @@ from typing import Any
 
 import pytest
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output, run_attached  # noqa: E402
+
 _REPO = Path(__file__).resolve().parents[2]
 _RUN_SH = _REPO / ".githooks/tests/run.sh"
 _CONFTESTS = [
@@ -30,7 +34,7 @@ def _run_pytest(
     suite.mkdir()
     shutil.copy(_REPO / conftest, suite / "conftest.py")
     (suite / "test_sample.py").write_text(test_body, encoding="utf-8")
-    return subprocess.run(
+    return run_attached(
         [
             sys.executable,
             "-m",
@@ -52,8 +56,7 @@ def _run_pytest(
 
 def _labels(results: Path) -> list[list[dict[str, Any]]]:
     return [
-        json.loads(path.read_text(encoding="utf-8"))["labels"]
-        for path in sorted(results.glob("*-result.json"))
+        json.loads(read_output(path))["labels"] for path in sorted(results.glob("*-result.json"))
     ]
 
 
@@ -121,7 +124,7 @@ def test_run_sh_in_nx_lane_passes_alluredir_and_labels(
     )
     assert done.returncode == 0, done.stdout + done.stderr
     assert not results.exists()
-    args = (tmp_path / "uvx-args").read_text(encoding="utf-8").splitlines()
+    args = read_output(tmp_path / "uvx-args").splitlines()
     start = args.index("--alluredir")
     assert args[start : start + 6] == [
         "--alluredir",
@@ -141,6 +144,6 @@ def test_run_sh_outside_nx_passes_no_alluredir(
         run_sh_copy
     )  # NX_TASK_TARGET_* は conftest の autouse の fixture が外している
     assert done.returncode == 0, done.stdout + done.stderr
-    args = (tmp_path / "uvx-args").read_text(encoding="utf-8").splitlines()
+    args = read_output(tmp_path / "uvx-args").splitlines()
     assert "--alluredir" not in args
     assert "-o" not in args

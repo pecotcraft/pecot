@@ -9,18 +9,23 @@ import json
 import os
 import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
 import pytest
 import yaml
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import run_attached  # noqa: E402
+
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _BOARD_SYNC = _REPO_ROOT / ".github/board-sync"
 
 
 def test_handler_node_tests_pass() -> None:
-    result = subprocess.run(
+    result = run_attached(
         ["node", "--test", "--test-reporter=tap", ".github/board-sync/handler.test.mjs"],
         cwd=_REPO_ROOT,
         capture_output=True,
@@ -158,7 +163,7 @@ def test_deploy_env_keys_parse_from_template() -> None:
     )
     deploy = (_BOARD_SYNC / "deploy.sh").read_text(encoding="utf-8")
     assert "sed -n '/^        Variables:$/,/^      [^ ]/p'" in deploy
-    out = subprocess.run(
+    out = run_attached(
         ["bash", "-c", script, "_", str(_BOARD_SYNC / "template.yaml")],
         capture_output=True,
         text=True,
@@ -269,7 +274,7 @@ def _run_deploy(
     env.pop("FAKE_STS_ERROR", None)
     if sts_error:
         env["FAKE_STS_ERROR"] = sts_error
-    return subprocess.run(
+    return run_attached(
         ["bash", str(_BOARD_SYNC / "deploy.sh"), *args],
         env=env,
         stdin=subprocess.DEVNULL,

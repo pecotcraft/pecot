@@ -5,10 +5,14 @@ from __future__ import annotations
 import json
 import os
 import re
-import subprocess
+import sys
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output, run_attached  # noqa: E402
 
 REPO = "o/r"
 OWN_RUN = "900"
@@ -98,18 +102,18 @@ class Env:
             "NX_SOURCE_FILE": str(self.source),
             **extra,
         }
-        r = subprocess.run([str(self.script)], env=env, capture_output=True, text=True)
+        r = run_attached([str(self.script)], env=env, capture_output=True, text=True)
         assert r.returncode == 0, r.stderr
         return dict(line.split("=", 1) for line in self.source.read_text().splitlines())
 
     def run_id_output(self) -> str | None:
         if not self.output.exists():
             return None
-        m = re.search(r"^run_id=(.*)$", self.output.read_text(), re.M)
+        m = re.search(r"^run_id=(.*)$", read_output(self.output), re.M)
         return m.group(1) if m else None
 
     def calls(self) -> list[str]:
-        return (self.fake / "calls.log").read_text().splitlines()
+        return read_output(self.fake / "calls.log").splitlines()
 
 
 @pytest.fixture
@@ -343,7 +347,7 @@ def _download_failed(env: Env, tmp_path: Path) -> tuple[dict[str, str], Path]:
         "NX_SOURCE_FILE": str(env.source),
         "NX_REMOTE_DIR": str(remote),
     }
-    r = subprocess.run(
+    r = run_attached(
         [str(env.script), "--download-failed"], env=run_env, capture_output=True, text=True
     )
     assert r.returncode == 0, r.stderr

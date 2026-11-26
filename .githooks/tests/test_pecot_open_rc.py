@@ -6,10 +6,14 @@
 from __future__ import annotations
 
 import os
-import subprocess
+import sys
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output, run_attached  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _TMUX_DIR = _REPO_ROOT / ".devcontainer" / "tmux"
@@ -46,14 +50,14 @@ def _run(tmp_path: Path, script: str, args: list[str], *, existing: bool) -> tup
         FAKE_TMUX_LOG=str(log),
         FAKE_HAS_SESSION="0" if existing else "1",
     )
-    result = subprocess.run(
+    result = run_attached(
         ["bash", str(_TMUX_DIR / script), "--layout", "parallel-a", *args],
         env=env,
         capture_output=True,
         text=True,
         check=True,
     )
-    calls = log.read_text(encoding="utf-8").splitlines()
+    calls = read_output(log).splitlines()
     return [c.split(" send-keys ", 1)[1] for c in calls if " send-keys " in c], result.stderr
 
 

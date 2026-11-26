@@ -9,10 +9,15 @@ import json
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 import yaml
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import run_attached  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _WORKFLOW = _REPO_ROOT / ".github/workflows/publish-npm.yml"
@@ -213,7 +218,7 @@ def _dev_version(
 ) -> subprocess.CompletedProcess[str]:
     manifest = tmp_path / "plugin.json"
     manifest.write_text(json.dumps({"name": "pecot-w", "version": version}), encoding="utf-8")
-    return subprocess.run(
+    return run_attached(
         [_NODE, str(_DEV_VERSION), str(manifest), run_number],
         capture_output=True,
         text=True,
@@ -244,7 +249,7 @@ _DEV_SUPERSEDED = _REPO_ROOT / ".githooks/scripts/dev-superseded.mjs"
 
 
 def _dev_superseded(next_version: str, run_number: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    return run_attached(
         [_NODE, str(_DEV_SUPERSEDED), next_version, run_number],
         capture_output=True,
         text=True,
@@ -284,7 +289,7 @@ _ALL = ["pecot-visual", "pecot-tools", "pecot-workflow"]
 
 
 def _dev_targets(*args: str, files: str = "") -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    return run_attached(
         [_NODE, str(_DEV_TARGETS), *args],
         input=files,
         capture_output=True,

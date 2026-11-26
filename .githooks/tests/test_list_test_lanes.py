@@ -13,10 +13,15 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output, run_attached  # noqa: E402
 
 _NX_STUB = """#!/bin/bash
 printf '%s\\n' "$*" >> "$STUB_NX_LOG"
@@ -107,7 +112,7 @@ class _Env:
             "STUB_TASKS_GRAPH": str(self.tasks_graph),
             **env,
         }
-        return subprocess.run(
+        return run_attached(
             [str(self.script), *(opts or []), base or self.head, head or self.head],
             cwd=self.repo,
             env=full,
@@ -116,7 +121,7 @@ class _Env:
         )
 
     def calls(self) -> list[str]:
-        return [x for x in self.log.read_text().splitlines() if not x.startswith("ENV ")]
+        return [x for x in read_output(self.log).splitlines() if not x.startswith("ENV ")]
 
 
 @pytest.fixture
@@ -166,7 +171,7 @@ def test_affected_mode_passes_base_head_and_lane_names(env: _Env) -> None:
     assert not any(c.startswith("run-many") for c in env.calls())
     # 起点の test と依存の target は -t に入らない。
     assert "install" not in affected[0] and "build" not in affected[0]
-    log = env.log.read_text()
+    log = read_output(env.log)
     assert "NO_COLOR=1 LEGACY=unset" in log
 
 

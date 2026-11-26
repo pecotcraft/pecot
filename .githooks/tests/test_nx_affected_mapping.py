@@ -22,11 +22,16 @@ import posixpath
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
 import pytest
 import yaml
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import attach_output, read_output, run_attached  # noqa: E402
 
 # parents[0]=tests, [1]=.githooks, [2]=リポルート。
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -91,7 +96,7 @@ def _affected(nx_bin: Path, cwd: Path, *args: str, nx_state: Path | None = None)
         if nx_state
         else None
     )
-    result = subprocess.run(
+    result = run_attached(
         [str(nx_bin), "show", "projects", "--affected", "--json", *args],
         cwd=cwd,
         capture_output=True,
@@ -144,7 +149,7 @@ def test_outside_project_file_affects_only_the_root_project(
 
 def test_project_set_is_the_expected_one(nx_bin: Path) -> None:
     """project の集合を pin する。入れ子のメンバーが独立した project になると、レーンの選択が崩れる (#113)。"""
-    result = subprocess.run(
+    result = run_attached(
         [str(nx_bin), "show", "projects", "--json"],
         cwd=_REPO_ROOT,
         capture_output=True,
@@ -224,9 +229,11 @@ def _nx(nx_bin: Path, *args: str) -> str:
             timeout=180,
             env=_nx_env(),
         )
-        assert result.returncode == 0, f"nx 失敗: {result.stderr}"
         out.seek(0)
-        return out.read()
+        text = out.read()
+        attach_output(f"nx {' '.join(args)}", text, result.stderr, result.returncode)
+        assert result.returncode == 0, f"nx 失敗: {result.stderr}"
+        return text
 
 
 @pytest.fixture(scope="module")
@@ -234,7 +241,7 @@ def lane_input_files(nx_bin: Path, tmp_path_factory: pytest.TempPathFactory) -> 
     """全 project の test-* レーン（`project:target`）→ そのレーンの inputs に入るファイル。"""
     graph_file = tmp_path_factory.mktemp("graph") / "graph.json"
     _nx(nx_bin, "graph", f"--file={graph_file}")
-    nodes = json.loads(graph_file.read_text(encoding="utf-8"))["graph"]["nodes"]
+    nodes = json.loads(read_output(graph_file))["graph"]["nodes"]
     lanes = [
         f"{project}:{target}"
         for project, node in nodes.items()
@@ -395,13 +402,19 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
                     "pecot-workflow:test-cli",
                 },
             ),
-            # 判定に使った画面や成果物の添付。pecot-visual の _helpers/attach.ts と test-site が読む (#696)。
+            # 判定に使った出力や成果物の添付。各プラグイン・ライブラリの vitest の補助と test-site が読む (#696, #816)。
             (
                 "libs/interface-spec/src/vitest/attach.ts",
                 {
                     "interface-spec:test-unit",
                     "interface-spec:test-site",
                     "pecot-visual:test-cli",
+                    "pecot-tools:test-cli",
+                    "pecot-workflow:test-cli",
+                    "pecot-workflow:test-hooks",
+                    "pecot-workflow:test-skills",
+                    "text-rules:test-unit",
+                    "workflow-core:test-unit",
                 },
             ),
             # テストレポートを作るスクリプト。test-site は、このスクリプトが作るレポートを tag で絞り込めるかを確かめる (#695)。
@@ -484,7 +497,7 @@ def test_release_lane_is_cached_and_not_run_by_unrelated_changes(
     graph_file = tmp_path / "graph.json"
     _nx(nx_bin, "graph", f"--file={graph_file}")
     project, target = release_lane.split(":")
-    nodes = json.loads(graph_file.read_text(encoding="utf-8"))["graph"]["nodes"]
+    nodes = json.loads(read_output(graph_file))["graph"]["nodes"]
     assert nodes[project]["data"]["targets"][target].get("cache") is True
 
 
@@ -526,7 +539,7 @@ def test_nx_release_lane_follows_its_inputs(
 def test_pecotv_test_lanes_depend_on_shared_install_and_build(tmp_path: Path, nx_bin: Path) -> None:
     graph_file = tmp_path / "graph.json"
     _nx(nx_bin, "run-many", "-t", "test", "-p", "pecot-visual", f"--graph={graph_file}")
-    tasks = json.loads(graph_file.read_text(encoding="utf-8"))["tasks"]
+    tasks = json.loads(read_output(graph_file))["tasks"]
     # nx 24 の dependencies は、task id から `[{"id": <依存 task id>}]` への対応になる。
     # nx 22 では、id の文字列の配列だった。
     deps = {task: {dep["id"] for dep in entries} for task, entries in tasks["dependencies"].items()}
@@ -558,7 +571,7 @@ def test_pecot_visual_bootstrap_lane_waits_for_install_only(tmp_path: Path, nx_b
     """pecot-visual の bootstrap のレーン (#1235) は install を共有し、本体の cli/dist を使わないので build-cli に依存しない。"""
     graph_file = tmp_path / "graph.json"
     _nx(nx_bin, "run-many", "-t", "test", "-p", "pecot-visual", f"--graph={graph_file}")
-    tasks = json.loads(graph_file.read_text(encoding="utf-8"))["tasks"]
+    tasks = json.loads(read_output(graph_file))["tasks"]
     deps = {task: {dep["id"] for dep in entries} for task, entries in tasks["dependencies"].items()}
     assert "pecot-visual:install" in deps["pecot-visual:test-bootstrap"]
     assert "pecot-visual:build-cli" not in deps["pecot-visual:test-bootstrap"]
@@ -582,7 +595,7 @@ def test_lockfile_only_commit_affects_nothing_via_base_head(nx_bin: Path, tmp_pa
     # tmp_path はリポジトリと別マウントになり得る。
     # devcontainer の bind mount 構成では、実際に別デバイスになる。
     # その場合、既定のハードリンク複製は "Invalid cross-device link" で失敗する。
-    subprocess.run(
+    run_attached(
         ["git", "clone", "--local", "--no-hardlinks", "-q", str(_REPO_ROOT), str(probe)],
         check=True,
         capture_output=True,
@@ -591,7 +604,7 @@ def test_lockfile_only_commit_affects_nothing_via_base_head(nx_bin: Path, tmp_pa
     (probe / "node_modules").symlink_to(_REPO_ROOT / "node_modules")
 
     def git(*args: str) -> None:
-        subprocess.run(
+        run_attached(
             [
                 "git",
                 "-c",
@@ -614,7 +627,7 @@ def test_lockfile_only_commit_affects_nothing_via_base_head(nx_bin: Path, tmp_pa
         shutil.copyfile(_REPO_ROOT / name, probe / name)
     git("add", "-A")
     git("commit", "-q", "--allow-empty", "-m", "probe: sync nx config")
-    base = subprocess.run(
+    base = run_attached(
         ["git", "rev-parse", "HEAD"], cwd=probe, check=True, capture_output=True, text=True
     ).stdout.strip()
 
@@ -628,7 +641,7 @@ def test_lockfile_only_commit_affects_nothing_via_base_head(nx_bin: Path, tmp_pa
     lockfile.write_text(bumped, encoding="utf-8")
     git("add", "-A")
     git("commit", "-q", "-m", "probe: bump transitive lockfile version")
-    head = subprocess.run(
+    head = run_attached(
         ["git", "rev-parse", "HEAD"], cwd=probe, check=True, capture_output=True, text=True
     ).stdout.strip()
 
@@ -661,7 +674,7 @@ def _graph_lane_names(nx_bin: Path, tmp_path: Path, kind: str) -> list[str]:
     pattern = re.compile(r"^test(-|$)" if kind == "test" else r"^lint(-|$)")
     graph_file = tmp_path / f"graph-{kind}.json"
     _nx(nx_bin, "graph", f"--file={graph_file}")
-    nodes = json.loads(graph_file.read_text(encoding="utf-8"))["graph"]["nodes"]
+    nodes = json.loads(read_output(graph_file))["graph"]["nodes"]
     names = {
         target
         for node in nodes.values()
@@ -690,7 +703,7 @@ def _selected_lanes(nx_bin: Path, tmp_path: Path, lanes: list[str], changed_file
     )
     if not graph_file.exists():
         return set()
-    tasks = json.loads(graph_file.read_text(encoding="utf-8"))["tasks"]["tasks"]
+    tasks = json.loads(read_output(graph_file))["tasks"]["tasks"]
     wanted = set(lanes)
     return {task for task in tasks if task.split(":")[1] in wanted}
 
@@ -1076,7 +1089,7 @@ def test_graph_lanes_read_every_workspace_package_json(
     """graph を作る package.json は pnpm-workspace.yaml の packages で決まる。入力が過不足なく追随する。"""
     workspace = yaml.safe_load((_REPO_ROOT / "pnpm-workspace.yaml").read_text(encoding="utf-8"))
     expected = {f"{package}/package.json" for package in workspace["packages"]} | {"package.json"}
-    tracked = subprocess.run(
+    tracked = run_attached(
         ["git", "ls-files", "--", "*package.json"],
         cwd=_REPO_ROOT,
         capture_output=True,
@@ -1213,7 +1226,7 @@ def test_lint_gate_selects_only_the_lanes_the_change_reaches(
 def test_gate_lane_names_match_the_lib(nx_bin: Path, tmp_path: Path, kind: str) -> None:
     """lib/nx-lanes.sh が返すレーン名は、graph の定義から機械的に集めた名前と一致する。"""
     lib = _REPO_ROOT / ".githooks" / "lib" / "nx-lanes.sh"
-    result = subprocess.run(
+    result = run_attached(
         ["bash", "-c", f'source "{lib}" && nx_lane_targets "{nx_bin}" "{_REPO_ROOT}" {kind}'],
         capture_output=True,
         text=True,

@@ -21,10 +21,15 @@ import os
 import shutil
 import socket
 import subprocess
+import sys
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output, run_attached  # noqa: E402
 
 _STAGES = ["pre-commit", "pre-push", "manual"]
 
@@ -119,7 +124,7 @@ class _PrChecksRepo:
     def calls(self) -> list[dict[str, str]]:
         """偽の pre-commit の呼び出しを、順に dict へ読み戻す。"""
         rows = []
-        for line in self.pc_log.read_text().splitlines():
+        for line in read_output(self.pc_log).splitlines():
             rows.append(dict(item.split("=", 1) for item in line.split("|")))
         return rows
 
@@ -234,7 +239,7 @@ def test_unknown_part_exit_2(pr_repo: _PrChecksRepo, run_script) -> None:
     result = pr_repo.run(run_script, "--part=bogus", pr_repo.base, pr_repo.head)
     assert result.returncode == 2
     assert "使い方" in result.stderr
-    assert pr_repo.pc_log.read_text() == ""
+    assert read_output(pr_repo.pc_log) == ""
 
 
 def test_summary_without_lane_sections_for_non_test_part(
@@ -313,7 +318,7 @@ def test_lane_without_tests_part_exit_2(pr_repo: _PrChecksRepo, run_script, args
     result = pr_repo.run(run_script, *args, pr_repo.base, pr_repo.head)
     assert result.returncode == 2
     assert "使い方" in result.stderr
-    assert pr_repo.pc_log.read_text() == ""
+    assert read_output(pr_repo.pc_log) == ""
 
 
 def test_lane_summary_heading_and_artifact_name(pr_repo: _PrChecksRepo, run_script) -> None:
@@ -361,7 +366,7 @@ def test_failed_stage_does_not_stop_later_stages(
     for other in _STAGES:
         if other != failing:
             assert f"| {other} | 成功 |" in result.stdout
-    assert pr_repo.done().read_text().strip() == "1"
+    assert read_output(pr_repo.done()).strip() == "1"
 
 
 def _assert_all_lanes(pr_repo: _PrChecksRepo, result) -> None:
@@ -696,10 +701,10 @@ def test_upload_dir_holds_only_used_artifacts(
         "tested-tree.txt",
     ]
     assert (upload / "abc1.tar.gz").read_bytes() == b"abc1"
-    own_tree = subprocess.run(
+    own_tree = run_attached(
         ["git", "rev-parse", "HEAD^{tree}"], cwd=pr_repo.repo, capture_output=True, text=True
     ).stdout.strip()
-    assert (upload / "tested-tree.txt").read_text().strip() == own_tree
+    assert read_output(upload / "tested-tree.txt").strip() == own_tree
 
 
 def test_server_receives_used_file_path(
@@ -717,7 +722,7 @@ def test_server_receives_used_file_path(
         env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote")},
     )
     used = pr_repo.repo / ".pecot" / "tmp" / "ci" / "nx-used.txt"
-    assert f"--used-file={used}" in args_file.read_text()
+    assert f"--used-file={used}" in read_output(args_file)
 
 
 def test_upload_dir_is_empty_without_used_file(
@@ -745,7 +750,7 @@ def test_cache_inputs_are_logged_and_summarized(
     """取り込み元の tree と自分の tree、lock の hash、apt の一覧の hash を、ログと Summary に 1 行ずつ出す。"""
     (pr_repo.repo / "pnpm-lock.yaml").write_text("lock\n")
     own_tree = git_rev_parse(pr_repo.repo, "HEAD^{tree}")
-    lock_hash = subprocess.run(
+    lock_hash = run_attached(
         ["git", "hash-object", "pnpm-lock.yaml"], cwd=pr_repo.repo, capture_output=True, text=True
     ).stdout.strip()
     _write_source(pr_repo, "status=imported\nrun_id=1\npr=2\nhead_sha=abc\n")
@@ -825,7 +830,7 @@ def test_nx_fails_the_task_when_remote_cache_is_unreachable(tmp_path: Path) -> N
         "NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN": "x",
     }
     env.pop("NX_SKIP_NX_CACHE", None)
-    result = subprocess.run(
+    result = run_attached(
         [str(nx_bin), "run", "p:tgt"], cwd=ws, env=env, capture_output=True, text=True, timeout=20
     )
     assert result.returncode != 0
@@ -835,7 +840,7 @@ def test_nx_fails_the_task_when_remote_cache_is_unreachable(tmp_path: Path) -> N
     env["NX_SKIP_NX_CACHE"] = "true"
     for key in ("NX_SELF_HOSTED_REMOTE_CACHE_SERVER", "NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN"):
         env.pop(key)
-    skipped = subprocess.run(
+    skipped = run_attached(
         [str(nx_bin), "run", "p:tgt"], cwd=ws, env=env, capture_output=True, text=True, timeout=20
     )
     assert skipped.returncode == 0, skipped.stderr
@@ -983,7 +988,7 @@ def test_done_marker_written_on_success_and_replaces_stale(
     pr_repo.done().write_text("9\n")
     result = pr_repo.run(run_script)
     assert result.returncode == 0, result.stderr
-    assert pr_repo.done().read_text().strip() == "0"
+    assert read_output(pr_repo.done()).strip() == "0"
 
 
 def test_summary_goes_to_file_when_set(pr_repo: _PrChecksRepo, run_script) -> None:
@@ -991,7 +996,7 @@ def test_summary_goes_to_file_when_set(pr_repo: _PrChecksRepo, run_script) -> No
     summary = pr_repo.tmp / "deep" / "dir" / "summary.md"
     result = pr_repo.run(run_script, env={"PECOT_CI_SUMMARY": str(summary)})
     assert result.returncode == 0, result.stderr
-    text = summary.read_text()
+    text = read_output(summary)
     assert "### 範囲" in text
     assert "### レーン" in text
     assert "### 失敗" in text
@@ -1001,7 +1006,7 @@ def test_summary_goes_to_file_when_set(pr_repo: _PrChecksRepo, run_script) -> No
 
     summary.write_text("stale\n")
     pr_repo.run(run_script, env={"PECOT_CI_SUMMARY": str(summary)})
-    assert "stale" not in summary.read_text()
+    assert "stale" not in read_output(summary)
 
 
 def test_summary_goes_to_stdout_when_unset(pr_repo: _PrChecksRepo, run_script) -> None:
@@ -1035,7 +1040,7 @@ def test_missing_arguments_exit_2(pr_repo: _PrChecksRepo, run_script, args: tupl
     )
     assert result.returncode == 2
     assert "使い方" in result.stderr
-    assert pr_repo.pc_log.read_text() == ""
+    assert read_output(pr_repo.pc_log) == ""
 
 
 def test_explicit_pre_commit_env(pr_repo: _PrChecksRepo, run_script, mock_bin) -> None:
@@ -1093,11 +1098,11 @@ def test_unresolvable_base_falls_back_to_run_many(
     )
     assert result.returncode == 0, result.stderr
 
-    log = nx_log.read_text()
+    log = read_output(nx_log)
     assert "run-many -t test" in log
     assert "affected" not in log
     assert (
-        subprocess.run(
+        run_attached(
             ["git", "rev-parse", "--verify", "--quiet", "refs/pecot/ci-no-base"],
             cwd=repo,
             capture_output=True,
@@ -1111,7 +1116,7 @@ def test_unresolvable_base_falls_back_to_run_many(
 
 def _run_finish(githooks_dir: Path, work: Path, outcome: str) -> subprocess.CompletedProcess:
     summary = work / "summary.md"
-    return subprocess.run(
+    return run_attached(
         [str(githooks_dir / "ci" / "finish-ci-summary.sh")],
         cwd=work,
         env={"PATH": "/usr/bin:/bin", "UP_OUTCOME": outcome, "GITHUB_STEP_SUMMARY": str(summary)},
@@ -1134,7 +1139,7 @@ def test_finish_copies_summary_and_passes_on_done_0(githooks_dir: Path, tmp_path
     _write_ci_files(tmp_path, summary="## 検証の結果\n", done="0\n")
     result = _run_finish(githooks_dir, tmp_path, "success")
     assert result.returncode == 0
-    assert (tmp_path / "summary.md").read_text() == "## 検証の結果\n"
+    assert read_output(tmp_path / "summary.md") == "## 検証の結果\n"
 
 
 def test_finish_fails_on_nonzero_done(githooks_dir: Path, tmp_path: Path) -> None:
@@ -1146,19 +1151,19 @@ def test_finish_fails_without_done_marker(githooks_dir: Path, tmp_path: Path) ->
     _write_ci_files(tmp_path, summary=None, done=None)
     result = _run_finish(githooks_dir, tmp_path, "success")
     assert result.returncode == 1
-    assert "検証が完了していない" in (tmp_path / "summary.md").read_text()
+    assert "検証が完了していない" in read_output(tmp_path / "summary.md")
 
 
 def test_finish_reports_infra_failure(githooks_dir: Path, tmp_path: Path) -> None:
     _write_ci_files(tmp_path, summary=None, done=None)
     result = _run_finish(githooks_dir, tmp_path, "failure")
     assert result.returncode == 1
-    assert "基盤の失敗" in (tmp_path / "summary.md").read_text()
+    assert "基盤の失敗" in read_output(tmp_path / "summary.md")
 
 
 def test_finish_reports_image_on_infra_failure(githooks_dir: Path, tmp_path: Path) -> None:
     _write_ci_files(tmp_path, summary=None, done=None)
-    result = subprocess.run(
+    result = run_attached(
         [str(githooks_dir / "ci" / "finish-ci-summary.sh")],
         cwd=tmp_path,
         env={
@@ -1172,4 +1177,4 @@ def test_finish_reports_image_on_infra_failure(githooks_dir: Path, tmp_path: Pat
         check=False,
     )
     assert result.returncode == 1
-    assert "- イメージ: img:def-abc@sha256:123" in (tmp_path / "summary.md").read_text()
+    assert "- イメージ: img:def-abc@sha256:123" in read_output(tmp_path / "summary.md")

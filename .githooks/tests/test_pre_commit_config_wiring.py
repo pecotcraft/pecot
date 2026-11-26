@@ -11,9 +11,14 @@ from __future__ import annotations
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import run_attached  # noqa: E402
 
 _WRAPPED_HOOKS = [
     "check-text",
@@ -267,7 +272,7 @@ def _lint_with_textlintignore(
         target.write_text(
             f"# {_LONG_SENTENCE}\n" if target.suffix == ".md" else f'"{_LONG_SENTENCE}"\n'
         )
-    return subprocess.run(
+    return run_attached(
         ["node", str(root / "libs/text-rules/dist/bin/pecot-text-lint.js"), *paths],
         cwd=tmp_path,
         capture_output=True,

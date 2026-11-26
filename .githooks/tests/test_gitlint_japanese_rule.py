@@ -7,10 +7,14 @@ from __future__ import annotations
 
 import functools
 import re
-import subprocess
+import sys
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import run_attached  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -30,7 +34,7 @@ def _violates_uc1(tmp_path: Path, title: str, config: Path | None = None) -> boo
     msg = tmp_path / "msg.txt"
     msg.write_text(title + "\n", encoding="utf-8")
     # extra-path が cwd からの相対のため、cwd はリポのルートにする。
-    result = subprocess.run(
+    result = run_attached(
         [
             "uvx",
             "--python",

@@ -11,11 +11,16 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
 import pytest
 import yaml
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output, run_attached  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _REPORT = _REPO_ROOT / ".github/workflows/test-report.yml"
@@ -57,7 +62,7 @@ def _bash(
     script: str, cwd: Path, env: dict[str, str], bin_dir: Path | None = None
 ) -> subprocess.CompletedProcess[str]:
     path = os.environ["PATH"] if bin_dir is None else f"{bin_dir}:{os.environ['PATH']}"
-    return subprocess.run(
+    return run_attached(
         ["bash", "-e", "-c", script],
         cwd=cwd,
         env={**os.environ, **env, "PATH": path},
@@ -75,7 +80,7 @@ def _fake(bin_dir: Path, name: str, body: str) -> None:
 
 
 def _outputs(path: Path) -> dict[str, str]:
-    return dict(line.split("=", 1) for line in path.read_text(encoding="utf-8").splitlines())
+    return dict(line.split("=", 1) for line in read_output(path).splitlines())
 
 
 # ---------------------------------------------------------------- 契機・権限・concurrency
@@ -196,14 +201,14 @@ def test_side_passes_dev_commit_and_writes_matrix(tmp_path: Path) -> None:
     sources = {"side": "dev", "runs": [{"commit": _SHA, "lanes": ["p:test-cli"]}], "missing": []}
     jobs = [{"lane": "p:test-cli", "slug": "p-test-cli", "results": "r", "commit": _SHA}]
     calls, output, summary = _resolve_sources(tmp_path, "dev", {"sources": sources, "matrix": jobs})
-    assert calls.read_text(encoding="utf-8") == (
+    assert read_output(calls) == (
         f".githooks/scripts/pages_site/release_sources.py --report dev --commit {_SHA}\n"
     )
     out = _outputs(output)
     assert out["report"] == "true"
     assert json.loads(out["matrix"]) == jobs
     assert json.loads(out["sources"]) == sources
-    assert not summary.exists() or summary.read_text(encoding="utf-8") == ""
+    assert not summary.exists() or read_output(summary) == ""
 
 
 def test_side_skips_report_and_lists_missing_for_release(tmp_path: Path) -> None:
@@ -211,13 +216,13 @@ def test_side_skips_report_and_lists_missing_for_release(tmp_path: Path) -> None
     calls, output, summary = _resolve_sources(
         tmp_path, "release", {"sources": sources, "matrix": []}
     )
-    assert calls.read_text(encoding="utf-8") == (
+    assert read_output(calls) == (
         ".githooks/scripts/pages_site/release_sources.py --report release --main origin/main\n"
     )
     out = _outputs(output)
     assert out["report"] == "false"
     assert out["matrix"] == "[]"
-    text = summary.read_text(encoding="utf-8")
+    text = read_output(summary)
     env = _step("side", "Resolve report sources")["env"]
     assert env["MSG_MISSING"] in text
     assert env["MSG_NO_REPORT"] in text
@@ -306,7 +311,7 @@ def _stage_repo(tmp_path: Path) -> tuple[Path, str]:
         + ["commit", "-q", "-m", "x"],
         check=True,
     )
-    head = subprocess.run(
+    head = run_attached(
         [*git, "rev-parse", "HEAD"], capture_output=True, text=True, check=True
     ).stdout.strip()
     return repo, head
@@ -327,7 +332,7 @@ def test_stage_results_copies_results_and_writes_source(tmp_path: Path, with_res
 
     assert result.returncode == 0, result.stderr
     stage = temp / "test-report-results"
-    source = json.loads((stage / ".githooks/test-results/test-ci/source.json").read_text())
+    source = json.loads(read_output(stage / ".githooks/test-results/test-ci/source.json"))
     assert source == {"lane": "githooks:test-ci", "commit": head}
     assert (stage / results / "1-result.json").is_file() == with_results
 
@@ -393,7 +398,7 @@ def _store_repo(tmp_path: Path, files: dict[str, str] | None) -> Path:
     if files is None:
         return repo
     git = ["git", "-C", str(repo)]
-    branch = subprocess.run(
+    branch = run_attached(
         [*git, "symbolic-ref", "--short", "HEAD"], capture_output=True, text=True, check=True
     ).stdout.strip()
     subprocess.run([*git, "checkout", "-q", "--orphan", "store"], check=True)
@@ -442,8 +447,8 @@ def test_read_history_from_pages_store_of_the_side(
     result = _bash(step["run"], repo, env)
 
     assert result.returncode == 0, result.stderr
-    assert (temp / "test-report/history.jsonl").read_text(encoding="utf-8") == kept
-    text = summary.read_text(encoding="utf-8") if summary.exists() else ""
+    assert read_output(temp / "test-report/history.jsonl") == kept
+    text = read_output(summary) if summary.exists() else ""
     assert (step["env"]["MSG_NO_STORE"] in text) == warned
 
 
@@ -483,8 +488,8 @@ def test_read_history_warns_and_starts_empty_when_the_blob_cannot_be_fetched(
 
     assert result.returncode == 0, result.stderr
     assert "promisor remote" in result.stderr
-    assert (temp / "test-report/history.jsonl").read_text(encoding="utf-8") == ""
-    assert step["env"]["MSG_NO_STORE"] in (tmp_path / "summary").read_text(encoding="utf-8")
+    assert read_output(temp / "test-report/history.jsonl") == ""
+    assert step["env"]["MSG_NO_STORE"] in read_output(tmp_path / "summary")
 
 
 def test_report_steps_hand_history_sources_and_tree_to_each_other(tmp_path: Path) -> None:
@@ -514,13 +519,13 @@ def test_report_steps_hand_history_sources_and_tree_to_each_other(tmp_path: Path
         assert result.returncode == 0, f"{name}: {result.stderr}"
 
     out = temp / "test-report-artifact"
-    assert (out / "report-sources.json").read_text(encoding="utf-8") == sources
-    assert seen.read_text(encoding="utf-8") == sources
+    assert read_output(out / "report-sources.json") == sources
+    assert read_output(seen) == sources
     extract = tmp_path / "extract"
     extract.mkdir()
     subprocess.run(["tar", "-xf", str(out / "report.tar"), "-C", str(extract)], check=True)
     assert (extract / "index.html").is_file()
-    assert (extract / "history.jsonl").read_text(encoding="utf-8") == '{"d":1}\n{"new":1}\n'
+    assert read_output(extract / "history.jsonl") == '{"d":1}\n{"new":1}\n'
 
 
 def test_pack_report_puts_history_into_the_tree(tmp_path: Path) -> None:
@@ -536,7 +541,7 @@ def test_pack_report_puts_history_into_the_tree(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     out = temp / "test-report-artifact"
     assert sorted(p.name for p in out.iterdir()) == ["report-sources.json", "report.tar"]
-    listed = subprocess.run(
+    listed = run_attached(
         ["tar", "-tf", str(out / "report.tar")], capture_output=True, text=True, check=True
     ).stdout.split()
     assert sorted(listed) == ["./", "./history.jsonl", "./index.html"]
@@ -612,7 +617,7 @@ def test_release_test_report_trigger_reads_land_log(
 
     assert result.returncode == 0, result.stderr
     if called:
-        assert calls.read_text(encoding="utf-8") == (
+        assert read_output(calls) == (
             "workflow run test-report.yml --repo o/r --ref main -f side=release\n"
         )
     else:

@@ -4,9 +4,14 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from attach import read_output, run_attached  # noqa: E402
 
 # parents[0]=tests, [1]=.githooks, [2]=リポルート。
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -46,14 +51,14 @@ def _setup(repo: Path, lock: str, config: str) -> Path:
 
 
 def _run(repo: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(["node", _SCRIPT], cwd=repo, capture_output=True, text=True, check=False)
+    return run_attached(["node", _SCRIPT], cwd=repo, capture_output=True, text=True, check=False)
 
 
 def test_rewrites_only_the_version_and_keeps_comments(repo: Path) -> None:
     path = _setup(repo, _lock("1.65.0"), _CONFIG % "1.64.1")
     result = _run(repo)
     assert result.returncode == 0, result.stderr
-    assert path.read_text(encoding="utf-8") == _CONFIG % "1.65.0"
+    assert read_output(path) == _CONFIG % "1.65.0"
 
 
 def test_same_version_is_not_written(repo: Path) -> None:
@@ -61,7 +66,7 @@ def test_same_version_is_not_written(repo: Path) -> None:
     before = path.stat().st_mtime_ns
     result = _run(repo)
     assert result.returncode == 0, result.stderr
-    assert path.read_text(encoding="utf-8") == _CONFIG % "1.65.0"
+    assert read_output(path) == _CONFIG % "1.65.0"
     assert path.stat().st_mtime_ns == before
 
 
@@ -71,7 +76,7 @@ def test_lock_without_exactly_one_version_stops(repo: Path, versions: list[str])
     result = _run(repo)
     assert result.returncode == 1
     assert "1 版でない" in result.stderr
-    assert path.read_text(encoding="utf-8") == _CONFIG % "1.64.1"
+    assert read_output(path) == _CONFIG % "1.64.1"
 
 
 def test_config_without_the_feature_stops(repo: Path) -> None:
@@ -87,7 +92,7 @@ def test_lock_ignores_other_playwright_packages(repo: Path) -> None:
     path = _setup(repo, lock, _CONFIG % "1.64.1")
     result = _run(repo)
     assert result.returncode == 0, result.stderr
-    assert path.read_text(encoding="utf-8") == _CONFIG % "1.65.0"
+    assert read_output(path) == _CONFIG % "1.65.0"
 
 
 def test_missing_lock_stops_with_one_line_message(repo: Path) -> None:
