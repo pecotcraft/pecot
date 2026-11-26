@@ -187,7 +187,8 @@ def test_scheduler_trust_source_arn_is_the_schedule_group() -> None:
 _FAKE_AWS = """#!/usr/bin/env python3
 import json, os, sys
 cfg = json.loads(os.environ["FAKE_AWS_CONFIG"])
-args, profile, rest = sys.argv[1:], None, []
+args, rest = sys.argv[1:], []
+profile = os.environ.get("AWS_PROFILE") or os.environ.get("AWS_DEFAULT_PROFILE")
 i = 0
 while i < len(args):
     if args[i] in ("--region", "--profile"):
@@ -236,6 +237,7 @@ def _run_deploy(
     args: list[str],
     config: dict[str, dict[str, str]],
     sts_error: str | None = _EXPIRED,
+    extra_env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """偽の aws・gh を PATH の先頭に置いて deploy.sh を動かす (#776)。gh は呼ばれた印を残して止まる。"""
     bin_dir = tmp_path / "bin"
@@ -256,8 +258,12 @@ def _run_deploy(
             "AWS_REGION",
             "AWS_DEFAULT_REGION",
             "AWS_CONFIG_FILE",
+            "AWS_ACCESS_KEY_ID",
+            "AWS_SECRET_ACCESS_KEY",
+            "AWS_SESSION_TOKEN",
         )
     }
+    env.update(extra_env or {})
     env["PATH"] = f"{bin_dir}{os.pathsep}{env['PATH']}"
     env["FAKE_AWS_CONFIG"] = json.dumps(config)
     env.pop("FAKE_STS_ERROR", None)
@@ -333,3 +339,33 @@ def test_deploy_passes_the_check_when_credentials_work(tmp_path: Path) -> None:
     result = _run_deploy(tmp_path, ["--profile", "pecot"], _PECOT_CONFIG, sts_error=None)
     assert (tmp_path / "gh-called").exists(), result.stderr
     assert "aws login" not in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("extra_env", "expected"),
+    [
+        ({"AWS_PROFILE": "a"}, "--profile pecot"),
+        ({"AWS_DEFAULT_PROFILE": "other"}, "--profile other"),
+        ({"AWS_PROFILE": "a", "AWS_DEFAULT_PROFILE": "other"}, "--profile pecot"),
+    ],
+    ids=["aws-profile", "aws-default-profile", "aws-profile-wins"],
+)
+def test_deploy_starts_from_the_profile_aws_cli_uses(
+    tmp_path: Path, extra_env: dict[str, str], expected: str
+) -> None:
+    """aws-cli v2 は AWS_PROFILE を AWS_DEFAULT_PROFILE より先に読む（botocore の configprovider.py）。"""
+    config = {
+        "a": {"source_profile": "pecot"},
+        "other": {"login_session": _LOGIN_SESSION},
+        **_PECOT_CONFIG,
+    }
+    result = _run_deploy(tmp_path, [], config, extra_env=extra_env)
+    assert result.returncode == 1, result.stderr
+    assert _last_line(result) == f"aws login --remote {expected} --region ap-southeast-2"
+
+
+def test_deploy_does_not_suggest_aws_login_for_env_keys(tmp_path: Path) -> None:
+    result = _run_deploy(tmp_path, [], _PECOT_CONFIG, extra_env={"AWS_ACCESS_KEY_ID": "AKIAFAKE"})
+    assert result.returncode == 1, result.stderr
+    assert "aws login --remote" not in result.stderr
+    assert _last_line(result) == "ERROR: AWS の認証情報を得られません"

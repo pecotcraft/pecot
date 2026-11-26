@@ -100,6 +100,10 @@ fi
 login_profile() {
     local name="${PROFILE:-${AWS_PROFILE:-${AWS_DEFAULT_PROFILE:-default}}}" next
     local profiles
+    # --profile が無いと、環境変数の鍵が設定のプロファイルより先に使われ、aws login では直らない。
+    if [ -z "$PROFILE" ] && [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
+        return 1
+    fi
     profiles="$(aws configure list-profiles 2>/dev/null || true)"
     for _ in 1 2 3 4 5; do
         if ! grep -qxF -- "$name" <<<"$profiles"; then
