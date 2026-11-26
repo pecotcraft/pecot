@@ -6,16 +6,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { run } from '../scripts/github-surface/drift.js'
 import type { CommandIo } from '../src/commands/registry.js'
-import { diffIssueSurface, issueSurfaceMarker, issueSurfaceSchema } from '../src/domain/issue-surface.js'
-import { JSON_NULL } from '../src/domain/json-null.js'
+import { diffIssueSurface, issueSurfaceSchema } from '../src/domain/issue-surface.js'
+import { renderTrackerBody, SURFACE_LABEL } from '../src/domain/issue-surface-tracker.js'
+import type { JsonObject } from '../src/domain/json.js'
 import { setEnvironment, useIsolatedEnvironment } from '../src/tests/_helpers/environment.js'
 import { makeTemporaryDirectory, writeTree } from '../src/tests/_helpers/temporary.js'
 import { GRAPHQL_SCHEMA_URL, restDescriptionUrl } from '../src/infra/github/issue-surface.js'
 import { DEFAULT_API_VERSION } from '../src/infra/github/client.js'
 import type { RecordedRequest, ResponseRule } from './fake-github/server.js'
-import { isRecord } from './parity/baseline.js'
 import { setUpProject, startGithub } from './_helpers/interface-case.js'
-import { boardRules, WORKFLOW_FIELD } from './_helpers/tracker-sync-case.js'
+import { boardRules, createdTracker, freezeClock, issueListRule, WORKFLOW_FIELD } from './_helpers/tracker-sync-case.js'
 
 useIsolatedEnvironment()
 
@@ -126,23 +126,41 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-const LIST_OPERATION = 'ListOpenIssueBodies'
+const TITLE = '[Tracker] GitHub issue surface — 2026-11-09'
 
-function openIssues(nodes: readonly unknown[]): ResponseRule {
-  const data = { repository: { issues: { nodes, pageInfo: { hasNextPage: false, endCursor: JSON_NULL } } } }
-  return { match: { operation: LIST_OPERATION, variables: { owner: 'acme', repo: 'demo' } }, respond: { status: 200, body: { data } }, times: 1 }
+function trackers(...issues: readonly JsonObject[]): ResponseRule {
+  return issueListRule(SURFACE_LABEL, issues)
 }
 
-// 開いた Issue の一覧の読み出しを除いた要求
-function writes(requests: readonly RecordedRequest[]): readonly RecordedRequest[] {
-  return requests.filter(request => request.type === 'graphql' ? request.operation !== LIST_OPERATION : request.method !== 'GET')
+function trackerIssue(number: number, body: string, state = 'open'): JsonObject {
+  return { number, state, body }
+}
+
+function bodyOf(ids: readonly string[], sources: Readonly<Sources>, existing?: string): string {
+  const names = { graphql: sources.sdl, rest: sources.openapi, rest_api_version: DEFAULT_API_VERSION }
+  return renderTrackerBody(diffIssueSurface(SNAPSHOT.items, ids), names, existing)
+}
+
+function patched(body: unknown): ResponseRule {
+  return { match: { method: 'PATCH', path: `${ISSUES_PATH}/5`, body }, respond: { status: 200, body: { number: 5 } }, times: 1 }
+}
+
+// REST の書き込み（Issue の作成・本文・状態）
+function restWrites(requests: readonly RecordedRequest[]): readonly RecordedRequest[] {
+  return requests.filter(request => request.type === 'rest' && request.method !== 'GET')
 }
 
 const CHANGED = [...SNAPSHOT.items, ADDED]
-const MARKER = issueSurfaceMarker(diffIssueSurface(SNAPSHOT.items, CHANGED))
-const OTHER_MARKER = issueSurfaceMarker(diffIssueSurface(SNAPSHOT.items, [...CHANGED, ADDED_B]))
 
 describe('drift.ts', () => {
+  beforeEach(() => {
+    freezeClock()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it.for([
     { name: '--repo が無い', argv: [] },
     { name: '--repo が owner/repo の形でない', argv: ['--repo', 'acme'] },
@@ -156,23 +174,23 @@ describe('drift.ts', () => {
     expect(requested).toEqual([])
   })
 
-  it('--sdl と --openapi を渡して差が無いと、スキーマを取りに行かず、Issue も読まずに no difference を出す', async () => {
+  it('--sdl と --openapi を渡し、差と開いた Tracker が無いと、スキーマを取りに行かず、Tracker を作らない', async () => {
     const requested = recordFetch()
-    const github = await startGithub([])
-    const { io, stdout } = capture()
+    const github = await startGithub([trackers()])
+    const { io, stderr } = capture()
     const argv = argvOf(writeSources(SNAPSHOT.items))
     expect(await run(argv, io)).toBe(0)
-    expect(stdout()).toBe('no difference\n')
+    expect(stderr()).toBe('skipped: Tracker creation\n')
     expect(requested).toEqual([])
-    expect(github.requests()).toEqual([])
+    expect(restWrites(github.requests())).toEqual([])
   })
 
   it('--sdl だけを省くと、SDL だけを公開スキーマから取り、OpenAPI はファイルから読む', async () => {
     const sources = writeSources(SNAPSHOT.items)
     const requested = recordFetch(new Map([[GRAPHQL_SCHEMA_URL, readFileSync(sources.sdl, 'utf8')]]))
-    const { io, stdout } = capture()
+    await startGithub([trackers()])
+    const { io } = capture()
     expect(await run(['--repo', 'acme/demo', '--openapi', sources.openapi], io)).toBe(0)
-    expect(stdout()).toBe('no difference\n')
     expect(requested).toEqual([GRAPHQL_SCHEMA_URL])
   })
 
@@ -180,113 +198,128 @@ describe('drift.ts', () => {
     const sources = writeSources(SNAPSHOT.items)
     const rest = restDescriptionUrl(DEFAULT_API_VERSION)
     const requested = recordFetch(new Map([[rest, readFileSync(sources.openapi, 'utf8')]]))
-    const { io, stdout } = capture()
+    await startGithub([trackers()])
+    const { io } = capture()
     expect(await run(['--repo', 'acme/demo', '--sdl', sources.sdl], io)).toBe(0)
-    expect(stdout()).toBe('no difference\n')
     expect(requested).toEqual([rest])
   })
 
-  it('差があり開いた差の Issue が無いと、Issue を作ってボードの Backlog に載せ、created に URL を出す', async () => {
-    const requested = recordFetch()
+  it('差があって開いた Tracker が無いと、ラベル付きの Tracker を作ってボードの Backlog に載せる', async () => {
     const sources = writeSources(CHANGED)
-    const github = await startGithub([
-      openIssues([{ number: 1, body: JSON_NULL }, { number: 2, body: 'ほかの Issue' }]),
-      { match: { method: 'POST', path: ISSUES_PATH }, respond: { status: 201, body: { number: 12, html_url: 'https://github.com/acme/demo/issues/12' } }, times: 1 },
-      ...boardRules(12, { onlyIfEmpty: false }),
-    ])
+    const listing = trackers(trackerIssue(3, bodyOf(CHANGED, sources), 'closed'))
+    const github = await startGithub([listing, createdTracker(12), ...boardRules(12, { onlyIfEmpty: false })])
     const { io, stdout, stderr } = capture()
     expect(await run(argvOf(sources), io)).toBe(0)
-    expect(stdout()).toBe('created: https://github.com/acme/demo/issues/12\n')
-    expect(stderr()).toBe('')
-    expect(requested).toEqual([])
-    const created = github.requests().find(request => request.type === 'rest' && request.method === 'POST')
-    const sent = created?.type === 'rest' && isRecord(created.body) ? created.body : {}
-    expect(sent['title']).toBe('GitHub の Issue の機能に差がある: 1 件増・0 件減')
-    const body = typeof sent['body'] === 'string' ? sent['body'] : ''
-    expect(body).toContain(`- \`${ADDED}\``)
-    expect(body).toContain(`- SDL: ${sources.sdl}\n- OpenAPI: ${sources.openapi}\n- REST の版: ${DEFAULT_API_VERSION}`)
-    expect(body.endsWith(`\n${MARKER}\n`)).toBe(true)
+    expect(stdout()).toBe('')
+    expect(stderr()).toContain(`created: Tracker "${TITLE}"\n`)
+    expect(stderr()).not.toContain('error: ')
+    const [created] = restWrites(github.requests())
+    expect(created).toMatchObject({ method: 'POST', path: ISSUES_PATH, body: { title: TITLE, body: bodyOf(CHANGED, sources), labels: [SURFACE_LABEL] } })
+    expect(JSON.stringify(created)).toContain(`- \`${ADDED}\``)
   })
 
-  it('作った Issue のボードの列を書けないと、created を出した後に error の行を出して 1 で止まる', async () => {
+  it('作った Tracker のボードの列を書けないと、error の行を出して 1 で止まる', async () => {
     const rules = boardRules(12, { onlyIfEmpty: false }).filter(rule => rule.match.operation !== 'UpdateProjectItemField')
     await startGithub([
-      openIssues([]),
-      { match: { method: 'POST', path: ISSUES_PATH }, respond: { status: 201, body: { number: 12, html_url: 'https://github.com/acme/demo/issues/12' } }, times: 1 },
+      trackers(),
+      createdTracker(12),
       ...rules,
       { match: { operation: 'UpdateProjectItemField', variables: { fieldId: WORKFLOW_FIELD } }, respond: { status: 200, body: { errors: [{ message: 'boom' }] } }, times: 1 },
     ])
-    const { io, stdout, stderr } = capture()
+    const { io, stderr } = capture()
     const argv = argvOf(writeSources(CHANGED))
     expect(await run(argv, io)).toBe(1)
-    expect(stdout()).toBe('created: https://github.com/acme/demo/issues/12\n')
-    expect(stderr()).toMatch(/^error: could not set status backlog of Issue #12:/u)
+    expect(stderr()).toMatch(/error: could not set status backlog of Tracker #12:/u)
   })
 
-  it('差があり、開いた差の Issue の印が同じだと、書き込まずに unchanged を出す', async () => {
-    const github = await startGithub([openIssues([{ number: 5, body: `本文\n\n${MARKER}\n` }])])
-    const { io, stdout } = capture()
+  it('差があり、開いた Tracker の一覧が同じだと、本文を書かずに unchanged の行を出す', async () => {
+    const sources = writeSources(CHANGED)
+    const listing = trackers(trackerIssue(5, bodyOf(CHANGED, sources)))
+    const github = await startGithub([listing, ...boardRules(5, { onlyIfEmpty: true, filled: [WORKFLOW_FIELD] })])
+    const { io, stderr } = capture()
+    expect(await run(argvOf(sources), io)).toBe(0)
+    expect(stderr()).toBe('unchanged: Tracker #5\n')
+    expect(restWrites(github.requests())).toEqual([])
+  })
+
+  it('差が変わると、開いた Tracker の一覧の間だけを書き直し、外の文を残す', async () => {
+    const sources = writeSources(CHANGED)
+    const existing = bodyOf(CHANGED, sources).replace('一覧は毎時の実行が書き直します。', '人が足した文。')
+    const changed = [...CHANGED, ADDED_B]
+    const expected = bodyOf(changed, sources, existing)
+    const github = await startGithub([trackers(trackerIssue(5, existing)), patched({ body: expected }), ...boardRules(5, { onlyIfEmpty: true, filled: [WORKFLOW_FIELD] })])
+    const { io, stderr } = capture()
+    const argv = argvOf(writeSources(changed))
+    expect(await run(argv, io)).toBe(0)
+    expect(stderr()).toBe('updated: Tracker #5 body\n')
+    expect(expected).toContain('人が足した文。')
+    expect(expected).toContain(`- \`${ADDED_B}\``)
+    expect(restWrites(github.requests())).toHaveLength(1)
+  })
+
+  it('差が無くなると、開いた Tracker の一覧を none に書き直してから閉じる', async () => {
+    const sources = writeSources(SNAPSHOT.items)
+    const existing = bodyOf(CHANGED, sources)
+    const github = await startGithub([trackers(trackerIssue(5, existing)), patched({ body: bodyOf(SNAPSHOT.items, sources, existing) }), patched({ state: 'closed', state_reason: 'completed' })])
+    const { io, stderr } = capture()
+    expect(await run(argvOf(sources), io)).toBe(0)
+    expect(stderr()).toBe('updated: Tracker #5 body\nclosed: Tracker #5\n')
+    expect(restWrites(github.requests())).toHaveLength(2)
+  })
+
+  it('開いた Tracker が 2 件以上あると、番号の最も小さいものを使い、ほかを警告に挙げる', async () => {
+    const sources = writeSources(CHANGED)
+    const body = bodyOf(CHANGED, sources)
+    const github = await startGithub([trackers(trackerIssue(9, body), trackerIssue(5, body), trackerIssue(7, body)), ...boardRules(5, { onlyIfEmpty: true, filled: [WORKFLOW_FIELD] })])
+    const { io, stderr } = capture()
+    expect(await run(argvOf(sources), io)).toBe(0)
+    expect(stderr()).toBe('warning: multiple open Trackers; using #5 (lowest number) and leaving #7, #9 open\nunchanged: Tracker #5\n')
+    expect(restWrites(github.requests())).toEqual([])
+  })
+
+  it('開いた Tracker の一覧の印が 1 組でないと、書き込まずに error の行を出して 1 で止まる', async () => {
+    const github = await startGithub([trackers(trackerIssue(5, '<!-- pecot-issue-surface: tracker -->\n'))])
+    const { io, stderr } = capture()
     const argv = argvOf(writeSources(CHANGED))
-    expect(await run(argv, io)).toBe(0)
-    expect(stdout()).toBe('unchanged: #5\n')
-    expect(writes(github.requests())).toEqual([])
+    expect(await run(argv, io)).toBe(1)
+    expect(stderr()).toMatch(/^error: Tracker #5: cannot rewrite the list/u)
+    expect(restWrites(github.requests())).toEqual([])
   })
 
-  it('差があり、開いた差の Issue の印が違うと、その Issue の題と本文を書き直し、updated を出す', async () => {
-    const github = await startGithub([
-      openIssues([{ number: 5, body: `本文\n\n${MARKER}\n` }]),
-      { match: { method: 'PATCH', path: `${ISSUES_PATH}/5` }, respond: { status: 200, body: { number: 5 } }, times: 1 },
-    ])
-    const { io, stdout } = capture()
-    const argv = argvOf(writeSources([...CHANGED, ADDED_B]))
-    expect(await run(argv, io)).toBe(0)
-    expect(stdout()).toBe('updated: #5\n')
-    const [patched] = writes(github.requests())
-    expect(patched).toMatchObject({ method: 'PATCH', path: `${ISSUES_PATH}/5`, body: { title: 'GitHub の Issue の機能に差がある: 2 件増・0 件減' } })
-    expect(JSON.stringify(patched)).toContain(OTHER_MARKER)
-  })
-
-  it('開いた差の Issue が 2 件以上あると、番号の最も小さいものを使い、ほかを警告に挙げる', async () => {
-    const github = await startGithub([openIssues([{ number: 9, body: OTHER_MARKER }, { number: 5, body: MARKER }, { number: 7, body: MARKER }])])
-    const { io, stdout, stderr } = capture()
-    const argv = argvOf(writeSources(CHANGED))
-    expect(await run(argv, io)).toBe(0)
-    expect(stdout()).toBe('unchanged: #5\n')
-    expect(stderr()).toBe('warning: multiple open issue surface Issues; using #5 (lowest number) and leaving #7, #9 open\n')
-    expect(writes(github.requests())).toEqual([])
-  })
-
-  it('--dry-run で作るときは、書き込まずに題・本文・印を出し、最後の行を would create にする', async () => {
-    const github = await startGithub([openIssues([])])
-    const { io, stdout } = capture()
+  it('--dry-run で作るときは、書き込まずに作る予定の行を出す', async () => {
+    const github = await startGithub([trackers()])
+    const { io, stderr } = capture()
     const argv = argvOf(writeSources(CHANGED), '--dry-run')
     expect(await run(argv, io)).toBe(0)
-    const lines = stdout().split('\n')
-    expect(lines.slice(0, 2)).toEqual(['title: GitHub の Issue の機能に差がある: 1 件増・0 件減', 'body:'])
-    expect(stdout()).toContain(`- \`${ADDED}\``)
-    expect(lines.slice(-3)).toEqual([MARKER, 'would create', ''])
-    expect(writes(github.requests())).toEqual([])
+    expect(stderr()).toBe(`dry-run: would create Tracker "${TITLE}"\n`)
+    expect(restWrites(github.requests())).toEqual([])
   })
 
-  it('--dry-run で書き直すときは、書き込まずに新しい題・本文・印を出し、最後の行を would update にする', async () => {
-    const github = await startGithub([openIssues([{ number: 5, body: MARKER }])])
-    const { io, stdout } = capture()
-    const argv = argvOf(writeSources([...CHANGED, ADDED_B]), '--dry-run')
-    expect(await run(argv, io)).toBe(0)
-    const lines = stdout().split('\n')
-    expect(lines[0]).toBe('title: GitHub の Issue の機能に差がある: 2 件増・0 件減')
-    expect(lines.slice(-3)).toEqual([OTHER_MARKER, 'would update #5', ''])
-    expect(writes(github.requests())).toEqual([])
+  it('--dry-run で差が無くなったときは、書き込まずに書き直しと閉じる予定の行を出す', async () => {
+    const sources = writeSources(SNAPSHOT.items)
+    const listing = trackers(trackerIssue(5, bodyOf(CHANGED, sources)))
+    const github = await startGithub([listing])
+    const { io, stderr } = capture()
+    expect(await run(argvOf(sources, '--dry-run'), io)).toBe(0)
+    expect(stderr()).toBe('dry-run: would update Tracker #5 body\ndry-run: would close Tracker #5\n')
+    expect(restWrites(github.requests())).toEqual([])
   })
 
-  it('作るときにボードの設定が見つからないと、Issue を作らずに error の行を出して 1 で止まる', async () => {
-    setUpProject({ host: 'github.com', repositories: ['other'] })
-    const github = await startGithub([openIssues([])])
-    const { io, stdout, stderr } = capture()
+  it('Tracker の一覧を読めないと、error の行を出して 1 で止まる', async () => {
+    await startGithub([issueListRule(SURFACE_LABEL, [], 500)])
+    const { io, stderr } = capture()
     const argv = argvOf(writeSources(CHANGED))
     expect(await run(argv, io)).toBe(1)
-    expect(stdout()).toBe('')
+    expect(stderr()).toMatch(/^error: Tracker: /u)
+  })
+
+  it('ボードの設定が見つからないと、Tracker を読まずに error の行を出して 1 で止まる', async () => {
+    setUpProject({ host: 'github.com', repositories: ['other'] })
+    const github = await startGithub([])
+    const { io, stderr } = capture()
+    const argv = argvOf(writeSources(CHANGED))
+    expect(await run(argv, io)).toBe(1)
     expect(stderr()).toMatch(/^error: /u)
-    expect(writes(github.requests())).toEqual([])
+    expect(github.requests()).toEqual([])
   })
 })

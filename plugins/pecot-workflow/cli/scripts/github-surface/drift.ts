@@ -1,4 +1,4 @@
-// GitHub の今のスキーマを写し（interface/github-issue-surface.json）と比べ、差があれば差の Issue を 1 件だけ置く。
+// GitHub の今のスキーマを写し（interface/github-issue-surface.json）と比べ、差を Tracker 1 件に書き直す。差が無くなれば Tracker を閉じる。
 // 使い方: tsx scripts/github-surface/drift.ts --repo <owner/repo> [--sdl <ファイル>] [--openapi <ファイル>] [--dry-run]
 import { readFileSync, realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -6,19 +6,24 @@ import process from 'node:process'
 import { parseArgs } from 'node:util'
 
 import { CommandExit } from '../../src/commands/command-definition.js'
+import { makeClient } from '../../src/commands/github-client.js'
 import { createIssue, putOnBoard } from '../../src/commands/issue-board.js'
 import { createOutput } from '../../src/commands/output.js'
-import type { Output } from '../../src/commands/output.js'
+import type { Operation, Output } from '../../src/commands/output.js'
 import type { CommandIo } from '../../src/commands/registry.js'
-import { loadTarget } from '../../src/commands/tracker-sync.js'
-import { buildIssueSurfaceIssue, diffIssueSurface, extractIssueSurface, hasIssueSurfaceDifference, issueSurfaceSchema, planIssueSurfaceDrift } from '../../src/domain/issue-surface.js'
-import type { IssueSurfaceIssue, IssueSurfaceSourceNames } from '../../src/domain/issue-surface.js'
+import { apiErrorDetail, isBodyUnchanged, loadTarget, settle, todayUtc, warnExtraTrackers } from '../../src/commands/tracker-sync.js'
+import { diffIssueSurface, extractIssueSurface, hasIssueSurfaceDifference, issueSurfaceSchema } from '../../src/domain/issue-surface.js'
+import type { IssueSurfaceDiff } from '../../src/domain/issue-surface.js'
+import { buildTrackerTitle, IssueSurfaceTrackerError, renderTrackerBody, SURFACE_LABEL, TRACKER_PATTERN } from '../../src/domain/issue-surface-tracker.js'
+import type { IssueSurfaceSourceNames } from '../../src/domain/issue-surface-tracker.js'
 import { parseJsonText } from '../../src/domain/json.js'
 import type { JsonValue } from '../../src/domain/python-format.js'
+import { findTracker } from '../../src/domain/tracker-body.js'
+import type { TrackerIssue } from '../../src/domain/tracker-body.js'
 import { DEFAULT_API_VERSION } from '../../src/infra/github/client.js'
-import { GitHubClient } from '../../src/infra/github/index.js'
-import { fetchGraphqlSchema, fetchRestDescription, GRAPHQL_SCHEMA_URL, listOpenIssues, restDescriptionUrl, rewriteIssue } from '../../src/infra/github/issue-surface.js'
-import { requireNumber, requireString } from '../../src/infra/github/payload.js'
+import type { GitHubClient } from '../../src/infra/github/index.js'
+import { fetchGraphqlSchema, fetchRestDescription, GRAPHQL_SCHEMA_URL, restDescriptionUrl } from '../../src/infra/github/issue-surface.js'
+import { requireNumber } from '../../src/infra/github/payload.js'
 
 const USAGE = 'usage: drift.ts --repo <owner/repo> [--sdl <file>] [--openapi <file>] [--dry-run]'
 
@@ -30,7 +35,6 @@ const STANDARD_IO: CommandIo = {
 }
 
 interface Options {
-  readonly owner: string
   readonly repository: string
   readonly sdl: string | undefined
   readonly openapi: string | undefined
@@ -44,8 +48,8 @@ function optionsOf(argv: readonly string[]): Options | undefined {
       options: { 'repo': { type: 'string' }, 'sdl': { type: 'string' }, 'openapi': { type: 'string' }, 'dry-run': { type: 'boolean' } },
       strict: true,
     })
-    const [, owner, repository] = /^([^/]+)\/([^/]+)$/u.exec(values.repo ?? '') ?? []
-    return owner === undefined || repository === undefined ? undefined : { owner, repository, sdl: values.sdl, openapi: values.openapi, isDryRun: values['dry-run'] ?? false }
+    const repository = values.repo ?? ''
+    return /^[^/]+\/[^/]+$/u.test(repository) ? { repository, sdl: values.sdl, openapi: values.openapi, isDryRun: values['dry-run'] ?? false } : undefined
   }
   catch {
     return undefined
@@ -66,75 +70,101 @@ async function sourcesOf(options: Readonly<Options>): Promise<{ sdl: string, ope
   return { sdl, openapi, names }
 }
 
-function printPlanned(io: CommandIo, issue: Readonly<IssueSurfaceIssue>, line: string): void {
-  io.stdout(`title: ${issue.title}\nbody:\n${issue.body}${line}\n`)
+interface SyncContext {
+  readonly out: Readonly<Output>
+  readonly client: GitHubClient
+  readonly target: ReturnType<typeof loadTarget>
+  readonly diff: IssueSurfaceDiff
+  readonly names: IssueSurfaceSourceNames
+  readonly isDryRun: boolean
 }
 
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は可変
-async function create(output: Readonly<Output>, io: CommandIo, client: GitHubClient, options: Readonly<Options>, issue: Readonly<IssueSurfaceIssue>): Promise<number> {
-  let target
-  try {
-    target = loadTarget(output, `${options.owner}/${options.repository}`, undefined)
-  }
-  catch (error: unknown) {
-    if (error instanceof CommandExit) return error.exitCode
-    throw error
-  }
-  if (options.isDryRun) {
-    printPlanned(io, issue, 'would create')
+// 開いた Tracker が無いとき。差があれば作ってボードに載せる。
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient を渡す
+async function createTracker(context: Readonly<SyncContext>): Promise<number> {
+  const { out, client, target, diff, names, isDryRun } = context
+  if (!hasIssueSurfaceDifference(diff)) {
+    settle(out, { verb: 'skip', target: 'Tracker creation' })
     return 0
   }
-  const created = await createIssue(client, target.owner, target.repository, issue.title, issue.body, undefined)
-  const number = requireNumber(created['number'], 'number')
-  io.stdout(`created: ${requireString(created['html_url'], 'html_url')}\n`)
-  const failures = await putOnBoard(output, client, target.config, target.owner, target.repository, number, { onlyIfEmpty: false, noun: 'Issue' })
-  return failures > 0 ? 1 : 0
+  const title = buildTrackerTitle(todayUtc(new Date()))
+  const operation: Operation = { verb: 'create', target: `Tracker "${title}"` }
+  out.planned(operation)
+  if (isDryRun) return 0
+  const issue = await createIssue(client, target.owner, target.repository, title, renderTrackerBody(diff, names), [SURFACE_LABEL])
+  out.done(operation)
+  return await putOnBoard(out, client, target.config, target.owner, target.repository, requireNumber(issue['number'], 'number'), { onlyIfEmpty: false })
+}
+
+// 開いた Tracker があるとき。一覧を書き直し、差が無くなっていれば閉じる。
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient を渡す
+async function rewriteTracker(context: Readonly<SyncContext>, tracker: Readonly<TrackerIssue>): Promise<number> {
+  const { out, client, target, diff, names, isDryRun } = context
+  const label = `Tracker #${String(tracker.number)}`
+  let body
+  try {
+    body = renderTrackerBody(diff, names, tracker.body)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof IssueSurfaceTrackerError)) throw error
+    out.error(`${label}: ${error.message}`)
+    return 1
+  }
+  const isUnchanged = isBodyUnchanged(body, tracker.body)
+  const rewrite: Operation = isUnchanged ? { verb: 'unchanged', target: label } : { verb: 'update', target: `${label} body` }
+  const closing: Operation | undefined = hasIssueSurfaceDifference(diff) ? undefined : { verb: 'close', target: label }
+  out.planned(rewrite)
+  if (closing !== undefined) out.planned(closing)
+  if (isDryRun) return 0
+  if (!isUnchanged) await client.updateIssueBody(target.owner, target.repository, tracker.number, body)
+  out.done(rewrite)
+  if (closing !== undefined) {
+    await client.closeIssue(target.owner, target.repository, tracker.number, 'completed')
+    out.done(closing)
+    return 0
+  }
+  // 作った後にボード登録が失敗した実行を直す。Status は空のときだけ入れる
+  return await putOnBoard(out, client, target.config, target.owner, target.repository, tracker.number, { onlyIfEmpty: true })
+}
+
+async function sync(out: Readonly<Output>, options: Readonly<Options>, diff: Readonly<IssueSurfaceDiff>, names: Readonly<IssueSurfaceSourceNames>): Promise<number> {
+  const target = loadTarget(out, options.repository, undefined)
+  const client = await makeClient(out, target.config)
+  try {
+    const issues = await client.listIssuesByLabel(target.owner, target.repository, SURFACE_LABEL)
+    const { tracker, others } = findTracker(issues, TRACKER_PATTERN)
+    warnExtraTrackers(out, tracker, others)
+    const context: SyncContext = { out, client, target, diff, names, isDryRun: options.isDryRun }
+    return tracker === undefined ? await createTracker(context) : await rewriteTracker(context, tracker)
+  }
+  catch (error: unknown) {
+    const detail = apiErrorDetail(error)
+    if (detail === undefined) throw error
+    out.error(`Tracker: ${detail}`)
+    return 1
+  }
 }
 
 /**
-今のスキーマを写しと比べ、差の Issue を作る・書き直す。引数の誤りは 2、ボードの列を書けなければ 1
+今のスキーマを写しと比べ、Tracker を作る・書き直す・閉じる。引数の誤りは 2、API の失敗とボードの列を書けなかったときは 1
 */
 export async function run(argv: readonly string[], io: CommandIo = STANDARD_IO): Promise<number> {
-  const output = createOutput(false, io)
   const options = optionsOf(argv)
+  const out = createOutput(options?.isDryRun ?? false, io)
   if (options === undefined) {
-    output.error(USAGE)
+    out.error(USAGE)
     return 2
   }
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- 読むのはこのファイルからの相対で決まる写し
   const snapshot = issueSurfaceSchema.parse(parseJsonText(readFileSync(SURFACE_URL, 'utf8')))
   const { sdl, openapi, names } = await sourcesOf(options)
   const diff = diffIssueSurface(snapshot.items, extractIssueSurface(sdl, openapi))
-  // 差が無ければ、トークンを読むクライアントを作らず、Issue も読まない
-  const client = hasIssueSurfaceDifference(diff) ? new GitHubClient({ diagnostics: output }) : undefined
-  const plan = planIssueSurfaceDrift(diff, client === undefined ? [] : await listOpenIssues(client, options.owner, options.repository))
-  if (client === undefined || plan.action === 'none') {
-    io.stdout('no difference\n')
-    return 0
+  try {
+    return await sync(out, options, diff, names)
   }
-  const issue = buildIssueSurfaceIssue(diff, names)
-  switch (plan.action) {
-    case 'create': {
-      return create(output, io, client, options, issue)
-    }
-    case 'unchanged':
-    case 'update': {
-      if (plan.others.length > 0) {
-        const listed = plan.others.map(number => `#${String(number)}`).join(', ')
-        output.warning(`multiple open issue surface Issues; using #${String(plan.number)} (lowest number) and leaving ${listed} open`)
-      }
-      if (plan.action === 'unchanged') {
-        io.stdout(`unchanged: #${String(plan.number)}\n`)
-        return 0
-      }
-      if (options.isDryRun) {
-        printPlanned(io, issue, `would update #${String(plan.number)}`)
-        return 0
-      }
-      await rewriteIssue(client, options.owner, options.repository, plan.number, issue.title, issue.body)
-      io.stdout(`updated: #${String(plan.number)}\n`)
-      return 0
-    }
+  catch (error: unknown) {
+    if (error instanceof CommandExit) return error.exitCode
+    throw error
   }
 }
 

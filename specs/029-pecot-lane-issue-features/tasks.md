@@ -280,31 +280,31 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 ## Phase 8: User Story 5 - 定期の確かめ (Priority: P1)
 
-**Goal**: GitHub 側の Issue の機能の増減を、Lambda の Scheduler から dispatch する workflow が見つけて、Issue を 1 件作る（FR-023a、research R8）
+**Goal**: GitHub 側の Issue の機能の増減を、Lambda の Scheduler から dispatch する workflow が見つけて、Tracker を 1 件作る（FR-023a、research R8）
 
 **Independent Test**: quickstart.md の B-2 の 3・4
 
 ### Tests for User Story 5（定期）
 
-- [x] T067 [P] [US5] `PW/cli/src/domain/tests/issue-surface.test.ts` に、差と Issue の組み立てのテストを先に書く。
-  確かめること: 増えた・消えた `id`、題「`GitHub の Issue の機能に差がある: <増えた数> 件増・<消えた数> 件減`」、本文の末尾の印 `<!-- pecot-issue-surface: <差の hash> -->`、同じ印の開いた Issue があれば作らない、`--sdl` で GitHub に取りに行かない、`--dry-run` で作らない
-  あわせて、印が違えば開いた Issue の題と本文を書き直すことも確かめる
+- [x] T067 [P] [US5] `PW/cli/src/domain/tests/issue-surface.test.ts` に、差と Tracker の組み立てのテストを先に書く。
+  確かめること: 増えた・消えた `id`、dependabot と同じ形の Tracker（ラベル `issue-surface`、題 `[Tracker] GitHub issue surface — <立てた日>`）、一覧の間だけの書き直し、`--sdl` で GitHub に取りに行かない、`--dry-run` で作らない
+  あわせて、差が無くなれば Tracker を閉じることも確かめる
 - [x] T068 [P] [US5] `.githooks/tests/test_issue_surface_workflow.py` に、workflow の形のテストを先に書く。
   確かめること: 起動は `workflow_dispatch` だけ、権限は `contents: read` だけで、Issue とボードは App のトークンの `issues: write`・`organization-projects: write` で書く、concurrency で重ねて動かない
 
 ### Implementation for User Story 5（定期）
 
 - [x] T069 [US5] 差の確かめを、T061 と同じ分け方で作る（T067 の後）。
-  - `PW/cli/src/domain/issue-surface.ts`: 差、題と本文と印の組み立て、同じ印の開いた Issue があれば作らない判断
-  - infra: 開いた Issue の印の検索と、Issue の作成。作成は今の `PW/cli/src/infra/github/issues.ts` を使う
+  - `PW/cli/src/domain/issue-surface.ts`: 差。`issue-surface-tracker.ts`: Tracker の題と本文
+  - infra: Tracker の検索・作成・書き直し・閉じる操作は、今の `PW/cli/src/infra/github/issues.ts` を使う
   - `PW/cli/scripts/github-surface/drift.ts`: `--sdl`・`--dry-run` を読んで呼ぶだけにする
 - [x] T070 [US5] `.github/workflows/issue-surface-drift.yml` を作る
 - [x] T071 [US5] `.github/board-sync/handler.mjs` の dispatch の先に `issue-surface-drift.yml` を足し、その単体テストを直す。
   配備（`deploy.sh` の `update-function-code`）は、このフェーズのマージの後に、利用者の `pecot` プロファイルで行う。IAM は変えない
 - [x] T072 [US5] T067・T068 のテストのファイルを動かし、quickstart.md の B-2 の 3・4 を手元で行う。
-  マージと配備の後に、Scheduler を一時的に `at()` に書き換えて 1 回動かし、差が無ければ Issue ができないことを確かめてから戻す
+  マージと配備の後に、Scheduler を一時的に `at()` に書き換えて 1 回動かし、差が無ければ Tracker ができないことを確かめてから戻す
 
-**Checkpoint**: GitHub に機能が増えると、このリポに Issue が 1 件だけできる
+**Checkpoint**: GitHub に機能が増えると、このリポに Tracker が 1 件だけできる
 
 ---
 

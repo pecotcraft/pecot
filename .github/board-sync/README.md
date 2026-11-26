@@ -51,7 +51,7 @@ Scheduler は毎時 1 回、関数に固定の Input（`{"source":"pecot-schedul
 - 時間で決まる理由。30 分たって auto-merge が無い、24 時間たって検証が終わらない、といったもの。webhook は届かない
 - 配送の取りこぼし。GitHub は失敗した配送を自動で再送しない
 - `pecot-board-sync.yml` の契機に無い変化。blocked by の付け外し、手でのカードの移動、PR の本文を後から直した Issue との結び付け
-- GitHub のスキーマの変化。Issue の機能の写しと今のスキーマの差は、GitHub 側が通知しない。`issue-surface-drift.yml` が毎時比べ、差を Issue 1 件にする
+- GitHub のスキーマの変化。Issue の機能の写しと今のスキーマの差は、GitHub 側が通知しない。`issue-surface-drift.yml` が毎時比べ、差を Tracker 1 件に書き直す
 
 遅れの上限は次のとおり。
 

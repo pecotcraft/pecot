@@ -113,10 +113,11 @@
 | `sources` | 取った URL（`graphql`・`rest`）と日時（`fetched_at`）、REST の API の版（`rest_api_version`） |
 | `items` | 項目の `id` の一覧（符号位置の順に並べ替え済み） |
 
-### 差の Issue（定期の確かめが作る）
+### 差を載せる Tracker（定期の確かめが作る）
 
 | 項目 | 内容 |
 |---|---|
-| 題 | `GitHub の Issue の機能に差がある: <増えた数> 件増・<消えた数> 件減` |
-| 本文 | 増えた・消えた項目の `id`、比べたスキーマの出どころと REST の版、写しを作り直す手順 |
-| 印 | 本文の末尾の HTML コメント `<!-- pecot-issue-surface: <差の hash> -->`。同じ印の開いた Issue があれば作らない。印が違う開いた差の Issue があれば、その題と本文を書き直す |
+| ラベル | `issue-surface`。開いた Tracker は、このラベルで引く |
+| 題 | `[Tracker] GitHub issue surface — <立てた日>` |
+| 本文 | 先頭に `<!-- pecot-issue-surface: tracker -->`、比べたスキーマの出どころと REST の版、写しを直す手順。`list-begin`・`list-end` の印の間に `## Added`・`## Removed` の一覧 |
+| 書き直し | 印の間の一覧だけを替え、外の文は残す。一覧が `none` だけになったら閉じる。開いた Tracker が 2 件以上あれば、番号の小さいものを使う |
