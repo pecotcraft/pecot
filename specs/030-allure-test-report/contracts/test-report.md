@@ -26,7 +26,8 @@
 
 | 名前 | 渡す人 | 値 |
 |---|---|---|
-| `PECOT_REPORT_SITE_URL` | `test-report.yml` | 側の URL。渡さなければ `http://localhost:8000/` |
+| `PECOT_REPORT_SITE_URL` | `test-report.yml` | 側の URL。渡さなければ `http://localhost:8000/`。末尾に `/` が無ければ足す |
+| `PECOT_REPORT_HISTORY` | `generate.py` | `--history` を渡したときだけ、履歴のパス。Allure の設定（`allurerc.mjs`）が読む |
 
 - 終了コード・カバレッジの閾値の判定は、今のまま
 - `pecot-workflow:test-hooks` の 2 回目（`env -i`）の実行は、Allure の結果を残さない
@@ -67,7 +68,7 @@ attachContent(name: string, content: Uint8Array, extension: string): Promise<voi
 | `.xlsx` | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` |
 
 - 置き場所は `libs/interface-spec/src/vitest/attach.ts`。pecot-visual の `tests/_helpers/attach.ts` は re-export する
-- 表に無い拡張子は、拡張子を示して throw する
+- 表に無い拡張子は、拡張子を示して throw する。`attachFile` も、ファイルの有無より先に拡張子を確かめる
 - `attachFile` は、ファイルが無いと何もしない。無いことは、テストの元の判定が示す
 - nx のレーンの外（Allure の reporter を足さないとき）は、何もしない
 - 中身は呼んだときに読んで渡す。テストが後で成果物を消しても、添付は残る
@@ -86,7 +87,7 @@ attachContent(name: string, content: Uint8Array, extension: string): Promise<voi
 |---|---|
 | side | 側と ReportSources（data-model.md）を決める。リリース版で、結果を出せるプラグインが無ければ、後の job を飛ばして成功で終える |
 | tests | ReportSources の `runs` とレーンの matrix。そのコミットを取り出し、dev container で 1 つのレーンを動かす。テストが落ちても、結果のディレクトリと `source.json`（レーンと取り出したコミット）を artifact `allure-results-<slug>` に上げる |
-| report | 全レーンの artifact を取り、ResultsCheck で確かめる。保管ブランチ `pages-store` から、その側の履歴を取る。`generate.py` でレポートを作り、レポートと履歴と `report-sources.json` を artifact `test-report-<side>` に上げる |
+| report | 全レーンの artifact を取り、ResultsCheck で確かめる。保管ブランチ `pages-store` から、その側の履歴を取る（`pages-store` を読めないときは、空の履歴でレポートを作り、job summary に警告を出す）。`generate.py` でレポートを作り、レポートと履歴と `report-sources.json` を artifact `test-report-<side>` に上げる |
 
 出力:
 
@@ -128,6 +129,7 @@ store:
 - 定義書の側を差し替えるときは、その側の `test-report/` を残す
 - `test-report/` が無い側（リリース版と開発版）には、案内のページを置く
 - `.pecot-store.json` の `reports` に、run の ID とコミットを書く。リリース版は `report-sources.json` も `sources` に書く
+- 開発版のレポートは、run のコミットが保管中のレポートのコミット（`reports.dev.sha`）と同じか、その子孫のときだけ保管する。古い run は保管しない
 - 大きさの知らせ（900 MB）は、レポートも数える
 
 deploy と preview-status は変えない。
@@ -161,4 +163,10 @@ python3 .githooks/scripts/test_report/generate.py --local --output <出力のデ
 ```
 
 - 手元にある結果のディレクトリだけで作る。欠けたレーンの名前を出して続ける
-- 履歴は読まず、書かない
+- 結果のあるレーンが 1 つも無ければ、「結果のあるレーンが 1 つも無いので、レポートを作れません」で止まる（終了コード 1）
+- 履歴は読まず、書かない（`--history`・`--sources` と一緒には使えない）
+
+公開の run は `generate.py --sources <report-sources.json> --output <出力のディレクトリ> [--history <history.jsonl>]` と打つ。
+
+- `--local` でないときは `--sources` が要る。結果が欠けたレーンや、結果のコミットが材料と違うレーンがあれば、レーンの名前を出して止まる（終了コード 1）
+- `--history` は、`--output` の中に置けない。読めない行があれば、警告を出して空の履歴で作る

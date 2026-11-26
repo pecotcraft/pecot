@@ -88,8 +88,13 @@ python3 .githooks/scripts/test_report/generate.py --local --output .pecot/work/6
 期待:
 
 - レポートに、12 本のレーンのテストがある
-- 2 回目の main への push の後、テストの History のタブに 2 件が並ぶ。1 回目と状態が変わったテストに印が付く
-- 定義書の開発版は、テストの終わりを待たずに変わっている
+- 定義書の振る舞いの項目の「テスト」を押すと、その ID のテストだけが出る。テストの要件の ID のリンクから、開発版の定義書のその項目へ戻る
+- 2 回目の main への push の後、`dev/test-report/history.jsonl` が 2 行になる。テストの「履歴」のタブには、前の回の 1 件が並ぶ。タブは前の回までを並べ、今の回は並べない
+- 1 回目と状態が変わったテストに印が付く
+- 履歴は 3 回分までで、古い回から消える
+- 定義書の開発版は、テストの終わりを待たずに変わっている。`.pecot-store.json` の `dev.stored_at` が、`reports.dev.stored_at` より前になる
+
+Pages の応答は `cache-control: max-age=600` なので、deploy の後の 10 分ほどは、前の中身を返すことがある。開き直す前に、`index.html` の `last-modified` が deploy の後であることを見る。
 
 手で作り直すとき:
 
@@ -105,6 +110,7 @@ gh workflow run test-report.yml --ref main -f side=dev
 期待:
 
 - リリースする前は、リリース版にテストレポートのリンクが無い。`/pecot/test-report/` には案内のページがある
+- リリースする前に `gh workflow run test-report.yml --ref main -f side=release` で起こすと、side の job だけが動き、tests と report の job は飛ばされて成功で終わる。続く `pages-deploy.yml` の verify は、その run を受けない
 - リリースした後は、リンクがあり、そのプラグインのテストだけがレポートにある。まだリリースしていないプラグインの名前が、リンクのそばにある
 - 開発版のレポートと履歴は変わらない
 
