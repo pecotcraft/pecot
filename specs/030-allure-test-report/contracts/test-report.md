@@ -57,9 +57,16 @@ verifies(context: AnnotatingContext, id: string): Promise<void>
 ```ts
 attachFile(name: string, filePath: string): Promise<void>
 attachContent(name: string, content: Uint8Array, extension: string): Promise<void>
+attachText(name: string, text: string, extension: string): void
+attachJson(name: string, value: unknown): void
+attachOutput(command: string, exitCode: number | string | undefined, stdout: string, stderr: string): void
+readOutput(filePath: string): string
+attachReadText(name: string, text: string): void
 ```
 
 `attachFile` はファイルを読んで、`attachContent` は渡した中身を、そのまま Allure の添付にする。型は拡張子から決める。
+
+`attachText`・`attachJson`・`attachOutput`・`readOutput`・`attachReadText` は、出力の添付（FR-007c）に使う。allure-vitest の runtime は添付を同期で送るので、待たずに呼べる。
 
 | 拡張子 | 型 |
 |---|---|
@@ -68,12 +75,28 @@ attachContent(name: string, content: Uint8Array, extension: string): Promise<voi
 | `.pdf` | `application/pdf` |
 | `.pptx` | `application/vnd.openxmlformats-officedocument.presentationml.presentation` |
 | `.xlsx` | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` |
+| `.txt` | `text/plain` |
+| `.json` | `application/json` |
+| `.md` | `text/markdown` |
 
 - 置き場所は `libs/interface-spec/src/vitest/attach.ts`。pecot-visual の `tests/_helpers/attach.ts` は re-export する
 - 表に無い拡張子は、拡張子を示して throw する。`attachFile` も、ファイルの有無より先に拡張子を確かめる
 - `attachFile` は、ファイルが無いと何もしない。無いことは、テストの元の判定が示す
 - nx のレーンの外（Allure の reporter を足さないとき）は、何もしない
 - 中身は呼んだときに読んで渡す。テストが後で成果物を消しても、添付は残る
+- `attachOutput` は、空でない stdout・stderr を `<コマンド>（終了コード N） stdout` の名前で添付する。両方空なら空の stdout を 1 つ添付する。コマンドは先頭の 200 字。終了コードが無ければ名前に書かない
+- `readOutput` は UTF-8 で読み、ファイル名を名前にして添付してから中身を返す。`.txt`・`.json`・`.md` でない拡張子は `.txt` で添付する（`attachFile`・`attachContent` は表に無い拡張子で throw する）
+
+pytest は `.githooks/tests/attach.py` を `sys.path.insert` で読む。
+
+```python
+run_attached(args, *, check=False, **kwargs) -> subprocess.CompletedProcess
+attach_output(command: str, stdout, stderr, returncode: int | None) -> None
+read_output(path) -> str
+```
+
+- `run_attached` は `subprocess.run` と同じ引数で動かし、出力を添付してから結果を返す。`check=True` で終了コードが 0 でないときも、timeout のときも、添付してから例外を投げる
+- 添付の型は、出力が TEXT、`read_output` の `.json` が JSON。走っているテストの外（`PYTEST_CURRENT_TEST` が無い）と、allure-pytest を読めないときは何もしない
 
 ## `test-report.yml`（テストを動かし、レポートを作る）
 

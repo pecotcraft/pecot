@@ -7,6 +7,7 @@ import { z } from 'zod'
 import type { CommandDefinition } from '../../src/commands/registry.js'
 import { standardOutputSchema } from '../../src/mcp/result.js'
 import { createMcpServer } from '../../src/mcp/server.js'
+import { attachJson } from '../../../../../libs/interface-spec/src/vitest/attach.js'
 
 const TextBlockSchema = z.looseObject({ type: z.literal('text'), text: z.string() })
 
@@ -101,7 +102,10 @@ commands から MCP のサーバを作り、同じプロセスの中のクライ
 export async function callToolOnce(commands: readonly CommandDefinition[], name: string, arguments_: Readonly<Record<string, unknown>>, settle: Settle = awaitAsIs): Promise<ToolOutcome> {
   const connected = await connectInMemory(createMcpServer(commands))
   try {
-    const outcome = toolOutcomeOf(await settle(connected.client.callTool({ name, arguments: { ...arguments_ } }, settle === awaitAsIs ? undefined : { timeout: FAKE_DELAY_REQUEST_TIMEOUT })))
+    const result = await settle(connected.client.callTool({ name, arguments: { ...arguments_ } }, settle === awaitAsIs ? undefined : { timeout: FAKE_DELAY_REQUEST_TIMEOUT }))
+    // 形の確かめで落ちても残るよう、確かめる前に受けた結果の全体を添付する。
+    attachJson(`${name} の結果`, result)
+    const outcome = toolOutcomeOf(result)
     const detail = outcome.structured['detail']
     if (outcome.isError && (typeof detail !== 'string' || detail.trim() === '')) throw new Error(`${name}: 失敗の detail が空です`)
     if (typeof detail === 'string' && /^error: /mu.test(detail)) throw new Error(`${name}: detail の行が error: で始まります: ${detail}`)

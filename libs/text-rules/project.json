@@ -48,7 +48,8 @@
         "env",
         "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
         "{workspaceRoot}/libs/interface-spec/src/eslint/table-key.ts",
-        "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts"
+        "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/attach.ts"
       ],
       "dependsOn": [
         "install"
@@ -76,6 +77,7 @@
       "inputs": [
         "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/attach.ts",
         "default",
         "runtime",
         "env"

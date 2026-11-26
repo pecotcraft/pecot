@@ -10,6 +10,7 @@ import { afterEach, expect, vi } from 'vitest'
 import { runCli } from '../../src/cli.js'
 import type { CommandDefinition } from '../../src/commands/registry.js'
 import { capture } from '../../src/commands/tests/support.js'
+import { attachOutput } from '../../../../../libs/interface-spec/src/vitest/attach.js'
 import { installFakeGh, prependToPath } from '../../../../../libs/workflow-core/tests/_helpers/fake-executables.js'
 import { setEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { createGitRepository } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
@@ -47,9 +48,12 @@ export interface RunOptions {
 runCli をプロセス内で呼び、終了コードと出力を返す。commands は検証したいコマンドの定義
 */
 export async function runInProcess(argv: readonly string[], commands: readonly CommandDefinition[], options: Readonly<RunOptions> = {}): Promise<CliResult> {
-  const io = capture()
+  const io = capture({ attach: false })
   const code = await runCli(argv, { commands, io, cwd: options.cwd ?? process.cwd(), environment: {}, terminalColumns: undefined })
-  return { code, stdout: io.out.join(''), stderr: io.err.join('') }
+  const stdout = io.out.join('')
+  const stderr = io.err.join('')
+  attachOutput(['pecot', ...argv].join(' '), code, stdout, stderr)
+  return { code, stdout, stderr }
 }
 
 export interface ProjectFixtureOptions {

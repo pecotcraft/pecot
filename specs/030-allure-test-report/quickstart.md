@@ -66,6 +66,8 @@ python3 .githooks/scripts/test_report/generate.py --local --output .pecot/work/6
 
 期待: レポートで `test-site` の成功したテストを開くと、測ったページの画像がある。pecot-visual の e2e の成功したテストには、判定した PNG・PDF・PPTX がある。
 
+CLI・MCP のツール・hook・子プロセスを動かすテストには、判定に使った出力の添付がある（#816）。`pecot-workflow:test-cli` を動かしてレポートを作ると、`issue show` のテストに `pecot issue show …（終了コード N） stdout` の添付があり、MCP のツールのテストに `<ツール名> の結果` の JSON の添付がある。落ちたテストにも、同じ添付がある。
+
 ## 4. workflow の形とレーンの定め（PR の CI で動く）
 
 ```bash

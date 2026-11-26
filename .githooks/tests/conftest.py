@@ -15,6 +15,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
@@ -183,6 +184,16 @@ def git_repo(tmp_path: Path) -> Callable[..., Path]:
     return _make
 
 
+def _run_attached() -> Callable[..., subprocess.CompletedProcess]:
+    """attach.py の run_attached。fixture を使うときに読む（conftest だけを写して動かすテストがある）。"""
+    tests_dir = str(Path(__file__).resolve().parent)
+    if tests_dir not in sys.path:
+        sys.path.insert(0, tests_dir)
+    from attach import run_attached
+
+    return run_attached
+
+
 # git ヘルパ
 #
 # importlib import-mode 下では conftest を直接 import できない。
@@ -193,8 +204,10 @@ def git_repo(tmp_path: Path) -> Callable[..., Path]:
 def git() -> Callable[..., subprocess.CompletedProcess]:
     """`git <args...>` を repo_dir で実行して CompletedProcess を返す callable。"""
 
+    run_attached = _run_attached()
+
     def _git(repo_dir: Path, *args: str) -> subprocess.CompletedProcess:
-        return subprocess.run(
+        return run_attached(
             ["git", "-c", "commit.gpgsign=false", *args],
             cwd=repo_dir,
             check=True,
@@ -306,6 +319,8 @@ def run_script() -> Callable[..., subprocess.CompletedProcess]:
     GIT_* 再注入や PATH 喪失を防ぐ。
     """
 
+    run_attached = _run_attached()
+
     def _run(
         script: str | Path,
         *args: str,
@@ -316,7 +331,7 @@ def run_script() -> Callable[..., subprocess.CompletedProcess]:
         kwargs: dict = {}
         if env is not None:
             kwargs["env"] = {**os.environ, **env}
-        return subprocess.run(
+        return run_attached(
             ["bash", str(script), *args],
             input=stdin,
             capture_output=True,

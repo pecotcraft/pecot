@@ -6,7 +6,7 @@ import type { RuntimeMessage } from 'allure-js-commons/sdk'
 import { getGlobalTestRuntime, MessageHolderTestRuntime, setGlobalTestRuntime } from 'allure-js-commons/sdk/runtime'
 import type { SyncTestRuntime, TestRuntime } from 'allure-js-commons/sdk/runtime'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { attachContent, attachFile } from '../src/vitest/attach.js'
+import { attachContent, attachFile, attachJson, attachOutput, attachText, readOutput } from '../src/vitest/attach.js'
 
 // allure-js-commons 3.15.0 の sync の型（undefined を含む）は、exactOptionalPropertyTypes の下で TestRuntime に合わない。
 // attachment は MessageHolderTestRuntime に無いので、allure-vitest の VitestTestRuntime と同じ形で送る。
@@ -55,6 +55,9 @@ const TYPES = [
   { extension: '.pdf', contentType: 'application/pdf' },
   { extension: '.pptx', contentType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
   { extension: '.xlsx', contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+  { extension: '.txt', contentType: 'text/plain' },
+  { extension: '.json', contentType: 'application/json' },
+  { extension: '.md', contentType: 'text/markdown' },
 ] as const
 
 describe('attach', () => {
@@ -91,9 +94,9 @@ describe('attach', () => {
     })
 
     it('表に無い拡張子のファイルを渡すと、拡張子を含む文言で throw する', async () => {
-      const file = path.join(directory, 'artifact.txt')
+      const file = path.join(directory, 'artifact.csv')
       writeFileSync(file, '中身')
-      await expect(attachFile('作った成果物', file)).rejects.toThrow('.txt')
+      await expect(attachFile('作った成果物', file)).rejects.toThrow('.csv')
       expect(attachments(runtime.messages())).toEqual([])
     })
 
@@ -113,6 +116,60 @@ describe('attach', () => {
       await attachFile('作った成果物', path.join(directory, 'missing.png'))
       expect(attachments(runtime.messages())).toEqual([])
     })
+
+    it('attachText に文字列を渡すと、待たずにその文字列を拡張子の型で残す', () => {
+      attachText('出力', '{"a":1}', '.json')
+      expect(attachments(runtime.messages())).toEqual([
+        { name: '出力', content: '{"a":1}', contentType: 'application/json', fileExtension: '.json' },
+      ])
+    })
+
+    it('attachJson に値を渡すと、字下げした JSON で残す', () => {
+      attachJson('応答', { isError: true })
+      expect(attachments(runtime.messages())).toEqual([
+        { name: '応答', content: '{\n  "isError": true\n}', contentType: 'application/json', fileExtension: '.json' },
+      ])
+    })
+
+    it.for([
+      { name: 'stdout だけがある', stdout: '出た', stderr: '', expected: [['stdout', '出た']] },
+      { name: 'stderr だけがある', stdout: '', stderr: '誤り', expected: [['stderr', '誤り']] },
+      { name: '両方ある', stdout: '出た', stderr: '誤り', expected: [['stdout', '出た'], ['stderr', '誤り']] },
+      { name: '両方空', stdout: '', stderr: '', expected: [['stdout', '']] },
+    ])('attachOutput の出力が $name とき、名前にコマンドと終了コードを持つ添付を残す', ({ stdout, stderr, expected }) => {
+      attachOutput('pecot issue show 12', 1, stdout, stderr)
+      expect(attachments(runtime.messages())).toEqual(expected.map(([stream, content]) => (
+        { name: `pecot issue show 12（終了コード 1） ${String(stream)}`, content, contentType: 'text/plain', fileExtension: '.txt' }
+      )))
+    })
+
+    it('attachOutput に終了コードを渡さないと、名前に終了コードを書かない', () => {
+      attachOutput('capture', undefined, '出た', '')
+      expect(attachments(runtime.messages()).map(item => item.name)).toEqual(['capture stdout'])
+    })
+
+    it('attachOutput のコマンドが 200 字を超えると、先頭の 200 字を名前に使う', () => {
+      attachOutput('a'.repeat(300), 0, '出た', '')
+      expect(attachments(runtime.messages()).map(item => item.name)).toEqual([`${'a'.repeat(200)}（終了コード 0） stdout`])
+    })
+
+    it.for([
+      { file: 'slides.md', extension: '.md', contentType: 'text/markdown' },
+      { file: 'result.json', extension: '.json', contentType: 'application/json' },
+      { file: 'vite.config.ts', extension: '.txt', contentType: 'text/plain' },
+    ])('readOutput に $file を渡すと、読んだ中身を返し、型 $contentType で残す', ({ file, extension, contentType }) => {
+      const filePath = path.join(directory, file)
+      writeFileSync(filePath, `中身 ${file}`)
+      expect(readOutput(filePath)).toBe(`中身 ${file}`)
+      expect(attachments(runtime.messages())).toEqual([
+        { name: file, content: `中身 ${file}`, contentType, fileExtension: extension },
+      ])
+    })
+
+    it('readOutput のファイルが無いと、何も残さず読み込みの誤りを投げる', () => {
+      expect(() => readOutput(path.join(directory, 'missing.md'))).toThrow('ENOENT')
+      expect(attachments(runtime.messages())).toEqual([])
+    })
   })
 
   it('NX_TASK_TARGET_TARGET が空だと、何も残さず console.log も呼ばない', async () => {
@@ -122,6 +179,10 @@ describe('attach', () => {
     writeFileSync(file, '中身')
     await attachFile('作った成果物', file)
     await attachContent('撮った画面', new Uint8Array([1]), '.png')
+    attachText('出力', '出た', '.txt')
+    attachOutput('pecot', 0, '出た', '誤り')
+    writeFileSync(path.join(directory, 'slides.md'), '中身')
+    expect(readOutput(path.join(directory, 'slides.md'))).toBe('中身')
     expect(attachments(runtime.messages())).toEqual([])
     expect(log).not.toHaveBeenCalled()
   })

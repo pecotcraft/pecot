@@ -21,6 +21,7 @@ import { runCli } from '../../src/cli.js'
 import { COMMANDS } from '../../src/commands/registry.js'
 import type { CommandDefinition } from '../../src/commands/registry.js'
 import { capture } from '../../src/commands/tests/support.js'
+import { attachOutput, attachReadText } from '../../../../../libs/interface-spec/src/vitest/attach.js'
 import { getEnvironmentVariableName } from '@pecot/workflow-core/infra/github/auth.js'
 import { setEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { createGitRepository, gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
@@ -201,7 +202,11 @@ async function inSandbox<T>(run: Readonly<Omit<CommandRun, 'argv'>>, body: (dire
       problems: [...server.problems()],
       unused: [...server.unused()],
       directory,
-      read: relative => readIfExists(directory, relative),
+      read: (relative) => {
+        const text = readIfExists(directory, relative)
+        if (text !== undefined) attachReadText(relative, text)
+        return text
+      },
     }
   }
   finally {
@@ -217,7 +222,7 @@ async function inSandbox<T>(run: Readonly<Omit<CommandRun, 'argv'>>, body: (dire
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの規則は入れ子が深く、読むだけ
 export async function runCommand(run: Readonly<CommandRun>): Promise<CommandResult> {
   return await inSandbox(run, async (directory) => {
-    const io = capture()
+    const io = capture({ attach: false })
     const code = await runCli(run.argv, {
       commands: run.commands ?? COMMANDS,
       io,
@@ -225,7 +230,10 @@ export async function runCommand(run: Readonly<CommandRun>): Promise<CommandResu
       environment: {},
       terminalColumns: undefined,
     })
-    return { code, stdout: io.out.join(''), stderr: io.err.join('') }
+    const stdout = io.out.join('')
+    const stderr = io.err.join('')
+    attachOutput(['pecot', ...run.argv].join(' '), code, stdout, stderr)
+    return { code, stdout, stderr }
   })
 }
 
