@@ -1,12 +1,12 @@
-// 実 CLI（`bin/pecotv`）を子プロセスで起動する e2e の共通基盤。
+// 実サーバ（`dist/main.js`）を MCP のツール呼び出しで動かす e2e の共通基盤。
 //
 // 各 CUJ ファイルが持つべきなのは、「何を注入して何を主張するか」だけ。
-// そのため起動条件（env / spawnSync timeout / maxBuffer）と `--json` 行の読み方はここへ集約する。
+// そのため起動条件（env / spawnSync timeout / maxBuffer）と結果の JSON 行の読み方はここへ集約する。
 // timeout 階層の根拠は vitest.e2e.config.ts のコメントを基準とする。
 // 階層は it 引数 = testTimeout 660_000 > ここの spawnSync 600_000 = cli 内部の SLIDEV_BUILD_TIMEOUT_MS。
 
 /* eslint-disable security/detect-non-literal-fs-filename -- homedir 由来の Playwright cache を読むため */
-import { spawnSync } from 'node:child_process'
+import { spawnSync, type SpawnSyncOptionsWithStringEncoding, type SpawnSyncReturns } from 'node:child_process'
 import { existsSync, readdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { performance } from 'node:perf_hooks'
@@ -16,19 +16,101 @@ import { attachOutput } from './attach.js'
 
 const HERE = import.meta.dirname
 const CLI_TS_ROOT = path.resolve(HERE, '..', '..')
-const PLUGIN_ROOT = path.resolve(CLI_TS_ROOT, '..')
-/**
-実 CLI のエントリ。strace ルートなど runner を通さず直接起動する CUJ も参照する。
-*/
-export const BIN_PECOTV = path.resolve(PLUGIN_ROOT, 'bin', 'pecotv')
+const TOOL_CALL_SCRIPT = path.join(HERE, 'mcp-tool-call.ts')
+
+export interface ToolCommand {
+  readonly tool: string
+  readonly command: string
+  readonly arguments_: readonly string[]
+  /**
+  `process.env` に足す環境変数。
+  */
+  readonly environment: Readonly<Record<string, string>>
+}
+
+function flagValue(arguments_: readonly string[], ...flags: readonly string[]): string | undefined {
+  const index = arguments_.findIndex(argument => flags.includes(argument))
+  return index === -1 ? undefined : arguments_[index + 1]
+}
 
 /**
-build できる fixture テーマの指定を返す re-export。`slide create --theme` に渡す値。
+組み立てる MCP ツールの呼び出し。旧 CLI の引数の並び（`slide convert <dir> --out <path>` など）を受け、
+同じ意味のツールの引数へ写す。相対パスは `cwd` を基準に絶対パスへ直す。
+*/
+export function toolCommandOf(arguments_: readonly string[], cwd: string = process.cwd()): ToolCommand {
+  const [group, action, ...rest] = arguments_
+  const absolute = (value: string | undefined): string | undefined => value === undefined ? undefined : path.resolve(cwd, value)
+  const positional = absolute(rest[0])
+  let tool: string
+  let toolArguments: Record<string, unknown>
+  const environment: Record<string, string> = {}
+  if (group === 'slide' && action === 'create') {
+    tool = 'slide_create'
+    toolArguments = { project_dir: positional, theme: flagValue(rest, '--theme'), force: rest.includes('--force') }
+  }
+  else if (group === 'slide' && action === 'convert') {
+    tool = 'slide_convert'
+    toolArguments = {
+      project_dir: positional,
+      out_path: absolute(flagValue(rest, '--out')),
+      theme: flagValue(rest, '--theme'),
+      cache: !rest.includes('--no-cache'),
+    }
+    if (rest.includes('--no-single-pass')) environment['PECOTV_SINGLE_PASS'] = '0'
+  }
+  else if (group === 'drawio' && action === 'url') {
+    tool = 'drawio_create'
+    toolArguments = { input_path: positional, out_path: absolute(flagValue(rest, '-o', '--output')) }
+  }
+  else if (group === 'drawio' && action === 'export') {
+    tool = 'drawio_export'
+    toolArguments = { input_path: positional, icons_dir: absolute(flagValue(rest, '--icons')), out_path: absolute(flagValue(rest, '-o', '--output')) }
+  }
+  else if (group === 'evidence' && action === 'create') {
+    tool = 'evidence_create'
+    toolArguments = { input_path: absolute(flagValue(rest, '--input')), out_path: absolute(flagValue(rest, '--out')) }
+  }
+  else {
+    throw new Error(`未対応の呼び出し: ${arguments_.join(' ')}`)
+  }
+  const defined = Object.fromEntries(Object.entries(toolArguments).filter(([, value]) => value !== undefined))
+  return {
+    tool,
+    command: process.execPath,
+    arguments_: [TOOL_CALL_SCRIPT, JSON.stringify({ tool, arguments: defined })],
+    environment,
+  }
+}
+
+/**
+`toolCommandOf` の呼び出しを spawnSync で動かし、出力を添付する。結果は structuredContent の JSON 1 行を stdout に書く。
+*/
+export function spawnToolSync(
+  arguments_: readonly string[],
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- node の型が mutable
+  options: Readonly<SpawnSyncOptionsWithStringEncoding>,
+): SpawnSyncReturns<string> {
+  const call = toolCommandOf(arguments_, typeof options.cwd === 'string' ? options.cwd : undefined)
+  const result = spawnSync(call.command, [...call.arguments_], {
+    ...options,
+    env: { ...(options.env ?? process.env), ...call.environment },
+  })
+  attachOutput(
+    `${call.tool} の結果`,
+    result.status ?? undefined,
+    typeof result.stdout === 'string' ? result.stdout : '',
+    typeof result.stderr === 'string' ? result.stderr : '',
+  )
+  return result
+}
+
+/**
+build できる fixture テーマの指定を返す re-export。`slide_create` の `theme` に渡す値。
 `git+file://` の bare リポジトリを `workDirectory` 配下に作る（theme-repository.ts）。
 */
 export { createFixtureThemeSpec, FIXTURE_THEME_NAME } from './theme-repository.js'
 
-const CLI_TS_DIST = path.join(CLI_TS_ROOT, 'dist', 'cli.js')
+const CLI_TS_DIST = path.join(CLI_TS_ROOT, 'dist', 'main.js')
 
 /**
 dist 未ビルドで回すと CLI 起動失敗が CUJ の失敗に化けるため、beforeAll で先に落とす。
@@ -44,8 +126,7 @@ Chromium cache 不在環境の skip 判定（cold ダウンロードの所要が
 
 `chromium-*` ディレクトリの前方一致だけでは、DL 途中の半端な状態を取得済みと誤判定する。
 そのため Playwright が取得完了時に置く INSTALLATION_COMPLETE まで見る。
-判定基準は、次の 2 つに揃える。
-cli/src/infra/playwright/chromium.ts の isChromiumInstalled と、bin/pecotv の `_pecotv_has_chromium`。
+cli/src/infra/playwright/chromium.ts の isChromiumInstalled に揃える。
 */
 export function isChromiumCached(): boolean {
   const cacheRoot = path.join(homedir(), '.cache', 'ms-playwright')
@@ -78,7 +159,7 @@ export interface PecotvRunnerOptions {
 export const OUTPUT_TAIL_LIMIT = 2000
 
 /**
-想定外終了時にログへ残す stdout の末尾を切り出す。`--json` の失敗理由（`*.error` 行）は
+想定外終了時にログへ残す stdout の末尾を切り出す。ツールの失敗理由（`*.error` 行）は
 stdout の最後に出るため、末尾の行から枠に収まるだけ採り、枠を超えた時点でそれより古い行を
 丸ごと落とす。行の途中で切り詰めるのは、末尾の行（採用済みの行が無い状態）が単独で枠を
 超える場合だけで、そのときは行頭側を残す（`event` / `reason` / `detail` が行頭に並ぶため）。
@@ -123,19 +204,15 @@ export function formatOutputTails(stdout: string, stderr: string): string {
 }
 
 /**
-`bin/pecotv` を同期起動する runner を作る。stderr は runner 内の診断出力でだけ使い、
-主張はすべて `--json` の stdout から立てるため戻り値には含めない。
+ツールを同期起動する runner を作る。stderr は runner 内の診断出力でだけ使い、
+主張はすべて structuredContent の stdout から立てるため戻り値には含めない。
 */
 export function createPecotvRunner(
   options: Readonly<PecotvRunnerOptions>,
 ): (label: string, arguments_: readonly string[]) => PecotvRun {
   return (label, arguments_) => {
     const startedAt = performance.now()
-    const result = spawnSync(BIN_PECOTV, [...arguments_], {
-      // bin/pecotv の bootstrap は通過させ、本体ツリーの cli/dist を直接実行する。
-      // bootstrap はデータ置き場の実行用ミラー（依存の複製と build）を作る。
-      // そのため duration ceiling の計測区間に乗せず、bootstrap の CUJ（cli/tests/bootstrap/）に任せる（#753 の前例）。
-      env: { ...process.env, PECOTV_BOOTSTRAP_SKIP: '1' },
+    const result = spawnToolSync(arguments_, {
       encoding: 'utf8',
       timeout: 600_000,
       maxBuffer: 64 * 1024 * 1024,
@@ -143,9 +220,8 @@ export function createPecotvRunner(
     const elapsedMs = performance.now() - startedAt
     const stdout = typeof result.stdout === 'string' ? result.stdout : ''
     const stderr = typeof result.stderr === 'string' ? result.stderr : ''
-    attachOutput(['pecotv', ...arguments_].join(' '), result.status ?? undefined, stdout, stderr)
     console.info(`[${options.logPrefix}] ${label}: exit=${String(result.status)} ${(elapsedMs / 1000).toFixed(1)}s`)
-    // spawnSync timeout（status null）と cli の想定外終了を分けるための一次情報を残す。
+    // spawnSync timeout（status null）とサーバの想定外終了を分けるための一次情報を残す。
     if (options.isUnexpectedExit(result.status)) {
       console.error(
         `[${options.logPrefix}] ${label} が exit=${String(result.status)} で終了しました: ${arguments_.join(' ')}\n`
@@ -158,7 +234,7 @@ export function createPecotvRunner(
 
 export interface ConvertEvent {
   readonly event?: string
-  readonly reason?: string
+  readonly kind?: string
   readonly warnings?: readonly string[]
   /**
   warnings と同型（常時掲載・不在＝旧版）で slide.convert.error（#945）と

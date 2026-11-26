@@ -28,12 +28,13 @@ import path from 'node:path'
 import { loadConfigFromFile } from 'vite'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { isRecord, parseJsonRecord } from '../../_helpers/records.js'
+import { isRecord } from '../../_helpers/records.js'
 import { compareStrings } from '../../../src/domain/_shared/compare-strings.js'
 import { START_SCRIPT_SOURCE, viteConfigSource } from '../../../src/domain/slidev-project/generated-files.js'
 import {
-  createSlideSyncCommand,
-  runSlideSyncFromCli,
+  errorToReason,
+  executeSlideSync,
+  runSlideSyncDirectly,
 } from '../../../src/commands/slidev-project/sync.js'
 import type { SlideSyncDependencies } from '../../../src/commands/slidev-project/sync.js'
 import { runSlideCreate } from '../../../src/commands/slidev-project/create.js'
@@ -80,11 +81,15 @@ function themeSpec(): string {
   return `file:${state.themeDirectory}`
 }
 
+function plainDependencies(): SlideSyncDependencies {
+  return { pluginRoot: PLUGIN_ROOT, stdout: asStream(makeStream()), stderr: asStream(makeStream()) }
+}
+
 // 移行の取得先。実 git には出ず、置き場は一時 dir にする。
-function migrateDependencies(stdout: CapturedStream = makeStream()): SlideSyncDependencies {
+function migrateDependencies(): SlideSyncDependencies {
   return {
     pluginRoot: PLUGIN_ROOT,
-    stdout: asStream(stdout),
+    stdout: asStream(makeStream()),
     stderr: asStream(makeStream()),
     themeStoreRoot: () => path.join(state.temporaryRoot, 'store'),
   }
@@ -122,7 +127,7 @@ async function setupTalkDirectory(): Promise<string> {
   return await createLegacyTalkDirectory(state.temporaryRoot)
 }
 
-describe('runSlideSyncFromCli (smoke)', () => {
+describe('runSlideSyncDirectly (smoke)', () => {
   it('移行前の talk-dir に --theme を付けると、テンプレート由来の名前を消してテーマを参照する形へ移し、作品と生成物と .gitignore を残す', async (context) => {
     await verifies(context, 'PV-SLIDE-SYNC-02')
     const talk = await setupTalkDirectory()
@@ -145,7 +150,7 @@ describe('runSlideSyncFromCli (smoke)', () => {
     const namesBefore = new Set(readdirSync(talk))
     const slidesBefore = readOutput(path.join(talk, 'slides.md'))
 
-    const summary = await runSlideSyncFromCli(talk, { nodeModulesOnly: false, theme: themeSpec() }, migrateDependencies())
+    const summary = await runSlideSyncDirectly(talk, { nodeModulesOnly: false, theme: themeSpec() }, migrateDependencies())
 
     expect(summary.mode).toBe('migrate')
     // 消した名前は、移行前の写しにあった名前と一致する
@@ -204,7 +209,7 @@ describe('runSlideSyncFromCli (smoke)', () => {
     const before = snapshotOutsideNodeModules(talk)
     const nodeModulesLinkBefore = readlinkSync(path.join(talk, 'node_modules', 'vue'))
 
-    const thrown = await rejectionOf(runSlideSyncFromCli(talk, { nodeModulesOnly: false }, migrateDependencies()))
+    const thrown = await rejectionOf(runSlideSyncDirectly(talk, { nodeModulesOnly: false }, migrateDependencies()))
 
     expect(thrown).toMatchObject({ name: 'SlideSyncUsageError', reason: 'theme-required' })
     expect(snapshotOutsideNodeModules(talk)).toStrictEqual(before)
@@ -215,7 +220,7 @@ describe('runSlideSyncFromCli (smoke)', () => {
     const talk = await setupTalkDirectory()
     const before = snapshotOutsideNodeModules(talk)
 
-    const thrown = await rejectionOf(runSlideSyncFromCli(
+    const thrown = await rejectionOf(runSlideSyncDirectly(
       talk,
       { nodeModulesOnly: false, theme: `file:${path.join(state.temporaryRoot, 'no-such-theme')}` },
       migrateDependencies(),
@@ -236,7 +241,7 @@ describe('runSlideSyncFromCli (smoke)', () => {
     // node_modules を消した状態で sync を呼ぶ
     rmSync(path.join(talk, 'node_modules'), { recursive: true, force: true })
 
-    await runSlideSyncFromCli(talk, { nodeModulesOnly: true }, {
+    await runSlideSyncDirectly(talk, { nodeModulesOnly: true }, {
       pluginRoot: PLUGIN_ROOT,
       stdout: asStream(makeStream()),
       stderr: asStream(makeStream()),
@@ -259,7 +264,7 @@ describe('runSlideSyncFromCli (smoke)', () => {
     expect(lstatSync(path.join(talk, 'node_modules')).isSymbolicLink()).toBe(true)
 
     for (let run = 0; run < 2; run += 1) {
-      await runSlideSyncFromCli(talk, { nodeModulesOnly: true }, {
+      await runSlideSyncDirectly(talk, { nodeModulesOnly: true }, {
         pluginRoot: PLUGIN_ROOT,
         stdout: asStream(makeStream()),
         stderr: asStream(makeStream()),
@@ -276,14 +281,14 @@ describe('runSlideSyncFromCli (smoke)', () => {
 
   it('再 sync は冪等で、同じ項目が同じ向きに張り直される', async () => {
     const talk = await setupTalkDirectory()
-    await runSlideSyncFromCli(talk, { nodeModulesOnly: true }, {
+    await runSlideSyncDirectly(talk, { nodeModulesOnly: true }, {
       pluginRoot: PLUGIN_ROOT,
       stdout: asStream(makeStream()),
       stderr: asStream(makeStream()),
     })
     const target1 = readlinkSync(path.join(talk, 'node_modules', 'vue'))
     const items1 = readdirSync(path.join(talk, 'node_modules')).toSorted(compareStrings)
-    await runSlideSyncFromCli(talk, { nodeModulesOnly: true }, {
+    await runSlideSyncDirectly(talk, { nodeModulesOnly: true }, {
       pluginRoot: PLUGIN_ROOT,
       stdout: asStream(makeStream()),
       stderr: asStream(makeStream()),
@@ -296,16 +301,16 @@ describe('runSlideSyncFromCli (smoke)', () => {
   it('移行の 2 回目は張り直しだけで、node_modules のほかは変わらず、使わなかった --theme を警告に出す', async () => {
     const talk = await setupTalkDirectory()
     writeFileSync(path.join(talk, 'pages', '_user.md'), 'USER MARKER')
-    await runSlideSyncFromCli(talk, { nodeModulesOnly: false, theme: themeSpec() }, migrateDependencies())
+    await runSlideSyncDirectly(talk, { nodeModulesOnly: false, theme: themeSpec() }, migrateDependencies())
     const afterFirst = snapshotOutsideNodeModules(talk)
     const symlinkAfterFirst = readlinkSync(path.join(talk, 'node_modules', 'vue'))
 
-    const second = await runSlideSyncFromCli(talk, { nodeModulesOnly: false, theme: themeSpec() }, migrateDependencies())
+    const second = await runSlideSyncDirectly(talk, { nodeModulesOnly: false, theme: themeSpec() }, migrateDependencies())
 
     expect(second.mode).toBe('relink')
     expect(second.removed).toStrictEqual([])
     expect(second.warnings).toHaveLength(1)
-    expect(second.warnings[0]).toContain('--theme was not used')
+    expect(second.warnings[0]).toContain('theme was not used')
     expect(snapshotOutsideNodeModules(talk)).toStrictEqual(afterFirst)
     expect(readlinkSync(path.join(talk, 'node_modules', 'vue'))).toBe(symlinkAfterFirst)
     const themeLink = path.join(talk, 'node_modules', ...THEME_NAME.split('/'))
@@ -316,7 +321,7 @@ describe('runSlideSyncFromCli (smoke)', () => {
     const talk = await setupTalkDirectory()
     rmSync(path.join(talk, 'node_modules'), { recursive: true, force: true })
     symlinkSync('/abs/wrong', path.join(talk, 'node_modules'), 'dir')
-    await runSlideSyncFromCli(talk, { nodeModulesOnly: true }, {
+    await runSlideSyncDirectly(talk, { nodeModulesOnly: true }, {
       pluginRoot: PLUGIN_ROOT,
       stdout: asStream(makeStream()),
       stderr: asStream(makeStream()),
@@ -326,108 +331,53 @@ describe('runSlideSyncFromCli (smoke)', () => {
   })
 })
 
-describe('createSlideSyncCommand (smoke)', () => {
-  it('--json 成功時は slide.sync.done を stdout に出す', async () => {
+describe('executeSlideSync (smoke)', () => {
+  it('nodeModulesOnly の成功は slide.sync.done に dir と nodeModulesOnly を載せる', async () => {
     const talk = await setupTalkDirectory()
-    const stdout = makeStream('stdout')
-    const command = createSlideSyncCommand(() => ({
-      pluginRoot: PLUGIN_ROOT,
-      stdout: asStream(stdout),
-      stderr: asStream(makeStream()),
-    }))
-    await command.parseAsync(['--dir', talk, '--node-modules-only', '--json'], { from: 'user' })
-    const lines = stdout.chunks.join('').trim().split('\n')
-    expect(lines.length).toBe(1)
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-    const parsed = JSON.parse(lines[0] ?? '') as { event: string, dir: string, nodeModulesOnly: boolean }
-    expect(parsed.event).toBe('slide.sync.done')
-    expect(parsed.dir).toBe(talk)
-    expect(parsed.nodeModulesOnly).toBe(true)
+
+    const { data } = await executeSlideSync(
+      { dir: talk, nodeModulesOnly: true },
+      plainDependencies(),
+    )
+
+    expect(data).toMatchObject({ event: 'slide.sync.done', dir: talk, nodeModulesOnly: true })
   })
 
-  it('--json なしの移行は 1 行目に成否行を出し、消した名前を続ける', async () => {
-    const talk = await setupTalkDirectory()
-    const stdout = makeStream('stdout')
-    const command = createSlideSyncCommand(() => migrateDependencies(stdout))
-    const previousExitCode = process.exitCode
-    try {
-      await command.parseAsync(['--dir', talk, '--theme', themeSpec()], { from: 'user' })
-      const written = stdout.chunks.join('')
-      // deck lint の出力量に関わらず先頭行で成否が読めることを固定する。
-      expect(written.split('\n', 1)[0]).toBe(`slide sync: success (${talk})`)
-      expect(written).toContain(`theme: ${THEME_NAME} (file:${path.relative(talk, state.themeDirectory)})`)
-      expect(written).toContain('node_modules →')
-      expect(written).toContain('removed (')
-      expect(written).toContain('layouts')
-      expect(process.exitCode).toBe(previousExitCode)
-    }
-    finally {
-      process.exitCode = previousExitCode
-    }
+  it('存在しない dir は dir-not-found の失敗になる', async () => {
+    const error = await rejectionOf(executeSlideSync(
+      { dir: path.join(state.temporaryRoot, 'never-exists'), nodeModulesOnly: false },
+      plainDependencies(),
+    ))
+
+    expect(errorToReason(error)).toBe('dir-not-found')
   })
 
-  it('--json なし --node-modules-only も 1 行目に成否行を出す', async () => {
+  it('移行すると、data に移行後のレイアウトの一覧と移行の情報を載せる', async () => {
     const talk = await setupTalkDirectory()
-    const stdout = makeStream('stdout')
-    const command = createSlideSyncCommand(() => ({
-      pluginRoot: PLUGIN_ROOT,
-      stdout: asStream(stdout),
-      stderr: asStream(makeStream()),
-    }))
-    await command.parseAsync(['--dir', talk, '--node-modules-only'], { from: 'user' })
-    expect(stdout.chunks.join('').split('\n', 1)[0])
-      .toBe(`slide sync (node_modules only): success (${talk})`)
-  })
 
-  it('失敗時は stderr に成否語を出し exit code 1 になる', async () => {
-    const stderr = makeStream('stderr')
-    const command = createSlideSyncCommand(() => ({
-      pluginRoot: PLUGIN_ROOT,
-      stdout: asStream(makeStream()),
-      stderr: asStream(stderr),
-    }))
-    const previousExitCode = process.exitCode
-    try {
-      await command.parseAsync(['--dir', path.join(state.temporaryRoot, 'never-exists')], { from: 'user' })
-      expect(stderr.chunks.join('')).toContain('error: slide sync failed:')
-      expect(process.exitCode).toBe(1)
-    }
-    finally {
-      process.exitCode = previousExitCode
-    }
-  })
+    const { data } = await executeSlideSync({ dir: talk, theme: themeSpec(), nodeModulesOnly: false }, migrateDependencies())
 
-  it('--json の stdout は単一行 JSON で人間向け成否行が混在しない。移行後のレイアウトの一覧を返す', async () => {
-    const talk = await setupTalkDirectory()
-    const stdout = makeStream('stdout')
-    const command = createSlideSyncCommand(() => migrateDependencies(stdout))
-    await command.parseAsync(['--dir', talk, '--theme', themeSpec(), '--json'], { from: 'user' })
-    const lines = stdout.chunks.join('').trim().split('\n')
-    expect(lines.length).toBe(1)
-    const parsed = parseJsonRecord(lines[0] ?? '')
-    expect(parsed).toMatchObject({ event: 'slide.sync.done', theme: { name: THEME_NAME } })
-    const migration = parsed['migration']
+    expect(data).toMatchObject({ event: 'slide.sync.done', theme: { name: THEME_NAME } })
+    const migration = data['migration']
     const removed = isRecord(migration) ? migration['removed'] : undefined
     expect(Array.isArray(removed) ? removed : []).toStrictEqual(expect.arrayContaining(['layouts', 'pages/_references']))
     // 移行後はテーマを引けるので、一覧は空ではない。
-    expect(parsed['categories']).not.toHaveLength(0)
-    expect(parsed['layouts']).toHaveLength(FIXTURE_LAYOUT_COUNT)
+    expect(data['categories']).not.toHaveLength(0)
+    expect(data['layouts']).toHaveLength(FIXTURE_LAYOUT_COUNT)
   })
 
-  it('移行前の形のまま --node-modules-only を打つと、テーマを引けないため一覧は空で、stderr に理由を出す', async () => {
+  it('移行前の形のまま nodeModulesOnly を指すと、テーマを引けないため一覧は空で、stderr に理由を出す', async () => {
     const talk = await setupTalkDirectory()
-    const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
-    const command = createSlideSyncCommand(() => ({
-      pluginRoot: PLUGIN_ROOT,
-      stdout: asStream(stdout),
-      stderr: asStream(stderr),
-    }))
-    await command.parseAsync(['--dir', talk, '--node-modules-only', '--json'], { from: 'user' })
-    const parsed = parseJsonRecord(stdout.chunks.join('').trim())
-    expect(parsed['categories']).toEqual([])
-    expect(parsed['layouts']).toEqual([])
-    expect(parsed['migration']).toBeNull()
+
+    const { data } = await executeSlideSync(
+      { dir: talk, nodeModulesOnly: true },
+      { ...plainDependencies(), stderr: asStream(stderr) },
+    )
+
+    expect(data['categories']).toEqual([])
+    expect(data['layouts']).toEqual([])
+    expect(data['migration']).toBeNull()
     expect(stderr.chunks.join('')).toContain('cannot read layout catalog')
     expect(stderr.chunks.join('')).toContain('does not reference a theme')
   })
@@ -437,7 +387,7 @@ async function createThemedTalk(): Promise<string> {
   const talk = path.join(state.temporaryRoot, 'themed')
   await runSlideCreate(
     talk,
-    { theme: themeSpec(), force: false, emitCatalog: false },
+    { theme: themeSpec(), force: false },
     {
       pluginRoot: PLUGIN_ROOT,
       stdout: asStream(makeStream()),
@@ -449,52 +399,34 @@ async function createThemedTalk(): Promise<string> {
   return talk
 }
 
-describe('slide sync --node-modules-only (テーマを参照する talk-dir)', () => {
+describe('slide_sync の node_modules_only (テーマを参照する talk-dir)', () => {
   it('消えた node_modules を、package.json の spec のテーマ付きで張り直し、レイアウトの一覧を返す', async (context) => {
     await verifies(context, 'PV-SLIDE-SYNC-05')
     const talk = await createThemedTalk()
     rmSync(path.join(talk, 'node_modules'), { recursive: true, force: true })
-    const stdout = makeStream('stdout')
-    const command = createSlideSyncCommand(() => ({
-      pluginRoot: PLUGIN_ROOT,
-      stdout: asStream(stdout),
-      stderr: asStream(makeStream()),
-    }))
 
-    await command.parseAsync(['--dir', talk, '--node-modules-only', '--json'], { from: 'user' })
+    const { data } = await executeSlideSync(
+      { dir: talk, nodeModulesOnly: true },
+      plainDependencies(),
+    )
 
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-    const parsed = JSON.parse(stdout.chunks.join('').trim()) as { event: string, layouts: unknown[], nodeModulesOnly: boolean }
-    expect(parsed.event).toBe('slide.sync.done')
-    expect(parsed.nodeModulesOnly).toBe(true)
-    expect(parsed.layouts).toHaveLength(FIXTURE_LAYOUT_COUNT)
+    expect(data).toMatchObject({ event: 'slide.sync.done', nodeModulesOnly: true })
+    expect(data['layouts']).toHaveLength(FIXTURE_LAYOUT_COUNT)
     expect(realpathSync(path.join(talk, 'node_modules', FIXTURE_THEME_NAME))).toBe(realpathSync(state.themeDirectory))
     // 作品領域は触らない。
     expect(readOutput(path.join(talk, 'slides.md'))).toContain(`theme: ${THEME_NAME}`)
   })
 
-  it('テーマの取得に失敗したら、theme-<reason> と文言で止まり、exit code 1 になる', async () => {
+  it('テーマの取得に失敗したら、theme-<reason> と文言で止まる', async () => {
     const talk = await createThemedTalk()
-    const stdout = makeStream('stdout')
-    const command = createSlideSyncCommand(() => ({
-      pluginRoot: PLUGIN_ROOT,
-      stdout: asStream(stdout),
-      stderr: asStream(makeStream()),
-      ensureThemeLinked: () => Promise.reject(new ThemeFetchError('tag not found in the theme source: v9.9.9 (fix: check the tag name)', 'tag')),
-    }))
-    const previousExitCode = process.exitCode
-    try {
-      await command.parseAsync(['--dir', talk, '--node-modules-only', '--json'], { from: 'user' })
-      // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-      const parsed = JSON.parse(stdout.chunks.join('').trim()) as { event: string, reason: string, detail: string }
-      expect(parsed.event).toBe('slide.sync.error')
-      expect(parsed.reason).toBe('theme-tag')
-      expect(parsed.detail).toContain('check the tag name')
-      expect(process.exitCode).toBe(1)
-    }
-    finally {
-      process.exitCode = previousExitCode
-    }
+
+    const error = await rejectionOf(executeSlideSync(
+      { dir: talk, nodeModulesOnly: true },
+      { ...plainDependencies(), ensureThemeLinked: () => Promise.reject(new ThemeFetchError('tag not found in the theme source: v9.9.9 (fix: check the tag name)', 'tag')) },
+    ))
+
+    expect(errorToReason(error)).toBe('theme-tag')
+    expect(error instanceof Error ? error.message : '').toContain('check the tag name')
   })
 })
 
@@ -549,7 +481,7 @@ describe('slide sync (移行済みの talk-dir で、依存の版を替えて通
     const talk = path.join(state.temporaryRoot, 'versioned')
     await runSlideCreate(
       talk,
-      { theme: `git+${url}#v1.0.0`, force: false, emitCatalog: false },
+      { theme: `git+${url}#v1.0.0`, force: false },
       {
         pluginRoot: PLUGIN_ROOT,
         stdout: asStream(makeStream()),
@@ -561,15 +493,14 @@ describe('slide sync (移行済みの talk-dir で、依存の版を替えて通
     return talk
   }
 
-  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
-  function buildCommand(stdout: CapturedStream): ReturnType<typeof createSlideSyncCommand> {
-    return createSlideSyncCommand(() => ({
+  function buildDependencies(): SlideSyncDependencies {
+    return {
       pluginRoot: PLUGIN_ROOT,
-      stdout: asStream(stdout),
+      stdout: asStream(makeStream()),
       stderr: asStream(makeStream()),
       // 取得の置き場を create と揃える。
       ensureThemeLinked: directory => ensureTalkThemeLinked(directory, { ...linkedThemeDefaultDependencies(PLUGIN_ROOT), storeRoot }),
-    }))
+    }
   }
 
   /**
@@ -615,20 +546,20 @@ describe('slide sync (移行済みの talk-dir で、依存の版を替えて通
     writeFileSync(packagePath, readFileSync(packagePath, 'utf8').replace('#v1.0.0', '#v1.0.1'), 'utf8')
     const before = snapshotOutsideNodeModules(talk)
 
-    await buildCommand(makeStream()).parseAsync(['--dir', talk, '--json'], { from: 'user' })
+    await executeSlideSync({ dir: talk, nodeModulesOnly: false }, buildDependencies())
 
     expect(readFileSync(configPath).equals(configBefore)).toBe(true)
     expect(snapshotOutsideNodeModules(talk)).toStrictEqual(before)
     expect(await loadDedupe(talk)).toStrictEqual(['@slidev/client', 'vue', '@vueuse/core'])
   }, 120_000)
 
-  const REWRITE_CASES: readonly { name: string, flags: readonly string[], id: string }[] = [
-    { name: '通常の sync', flags: ['--json'], id: 'PV-SLIDE-SYNC-04' },
-    { name: '--node-modules-only', flags: ['--node-modules-only', '--json'], id: 'PV-SLIDE-SYNC-05' },
+  const REWRITE_CASES: readonly { name: string, nodeModulesOnly: boolean, id: string }[] = [
+    { name: '通常の sync', nodeModulesOnly: false, id: 'PV-SLIDE-SYNC-04' },
+    { name: '--node-modules-only', nodeModulesOnly: true, id: 'PV-SLIDE-SYNC-05' },
   ]
   it.for(REWRITE_CASES)('旧内容の生成ファイルを置いた移行済みの talk-dir は、$name で本体の今の内容に書き直す', { timeout: 120_000 }, async (row, context) => {
     await verifies(context, row.id)
-    const { flags } = row
+    const { nodeModulesOnly } = row
     const url = createThemeRepository()
     const talk = await createTalk(url)
     const configPath = path.join(talk, 'vite.config.ts')
@@ -638,7 +569,7 @@ describe('slide sync (移行済みの talk-dir で、依存の版を替えて通
     writeFileSync(startPath, 'OLD-START', { mode: 0o644 })
     const before = snapshotOutsideNodeModules(talk)
 
-    await buildCommand(makeStream()).parseAsync(['--dir', talk, ...flags], { from: 'user' })
+    await executeSlideSync({ dir: talk, nodeModulesOnly }, buildDependencies())
 
     expect(readOutput(configPath)).toBe(expectedConfig)
     expect(readOutput(startPath)).toBe(START_SCRIPT_SOURCE)
@@ -653,22 +584,15 @@ describe('slide sync (移行済みの talk-dir で、依存の版を替えて通
     const packagePath = path.join(talk, 'package.json')
     writeFileSync(packagePath, readFileSync(packagePath, 'utf8').replace('#v1.0.0', '#v1.0.1'), 'utf8')
     const before = snapshotOutsideNodeModules(talk)
-    const stdout = makeStream('stdout')
+    const { data } = await executeSlideSync({ dir: talk, nodeModulesOnly: false }, buildDependencies())
 
-    await buildCommand(stdout).parseAsync(['--dir', talk, '--json'], { from: 'user' })
-
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-    const parsed = JSON.parse(stdout.chunks.join('').trim()) as {
-      event: string
-      nodeModulesOnly: boolean
-      theme: { name: string, spec: string, directory: string }
-    }
-    expect(parsed.event).toBe('slide.sync.done')
-    expect(parsed.nodeModulesOnly).toBe(false)
-    expect(parsed.theme.name).toBe(FIXTURE_THEME_NAME)
-    expect(parsed.theme.spec.endsWith('#v1.0.1')).toBe(true)
+    // eslint-disable-next-line no-restricted-syntax -- data の theme を検証用に narrowing
+    const theme = data['theme'] as { name: string, spec: string, directory: string }
+    expect(data).toMatchObject({ event: 'slide.sync.done', nodeModulesOnly: false })
+    expect(theme.name).toBe(FIXTURE_THEME_NAME)
+    expect(theme.spec.endsWith('#v1.0.1')).toBe(true)
     const expectedDirectory = path.join(themeStoreDirectory(storeRoot(), { url, tag: 'v1.0.1' }), 'package')
-    expect(parsed.theme.directory).toBe(expectedDirectory)
+    expect(theme.directory).toBe(expectedDirectory)
     expect(realpathSync(path.join(talk, 'node_modules', FIXTURE_THEME_NAME))).toBe(realpathSync(expectedDirectory))
 
     // node_modules のほかは、内容と一覧が変わらない（自動 lint と一覧の読み取りを含む）。
@@ -685,19 +609,9 @@ describe('slide sync (移行済みの talk-dir で、依存の版を替えて通
     const broken = '{ "dependencies": { "x": "1" '
     writeFileSync(packagePath, broken, 'utf8')
     const before = snapshotOutsideNodeModules(talk)
-    const stdout = makeStream('stdout')
-    const previousExitCode = process.exitCode
-    try {
-      await buildCommand(stdout).parseAsync(['--dir', talk, '--json'], { from: 'user' })
-      // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-      const parsed = JSON.parse(stdout.chunks.join('').trim()) as { event: string, reason: string }
-      expect(parsed.event).toBe('slide.sync.error')
-      expect(parsed.reason).toBe('theme-unlinked')
-      expect(process.exitCode).toBe(1)
-    }
-    finally {
-      process.exitCode = previousExitCode
-    }
+    const error = await rejectionOf(executeSlideSync({ dir: talk, nodeModulesOnly: false }, buildDependencies()))
+
+    expect(errorToReason(error)).toBe('theme-unlinked')
     expect(readFileSync(packagePath, 'utf8')).toBe(broken)
     expect(existsSync(path.join(talk, 'layouts'))).toBe(false)
     expect(snapshotOutsideNodeModules(talk)).toStrictEqual(before)

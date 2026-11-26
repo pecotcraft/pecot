@@ -392,11 +392,11 @@ describe('START_SCRIPT_SOURCE', () => {
   })
 
   it('node_modules が無ければ sync の案内を stderr に出して exit 1 で終わる', () => {
-    expect(START_SCRIPT_SOURCE).toContain('pecotv slide sync --dir')
-    expect(START_SCRIPT_SOURCE).toContain('--node-modules-only')
+    expect(START_SCRIPT_SOURCE).toContain('slide_sync tool with dir:')
+    expect(START_SCRIPT_SOURCE).toContain('node_modules_only: true')
     expect(START_SCRIPT_SOURCE).toContain('console.error')
     expect(START_SCRIPT_SOURCE).toContain('console.error(\'error: @slidev/cli not found')
-    expect(START_SCRIPT_SOURCE).toContain('console.error(\'  run pecotv slide sync --dir')
+    expect(START_SCRIPT_SOURCE).toContain('console.error(\'  call the slide_sync tool with dir:')
     expect(START_SCRIPT_SOURCE).toContain('console.error(\'error: Failed to start Slidev:\'')
     expect(START_SCRIPT_SOURCE).toContain('process.exit(1)')
   })

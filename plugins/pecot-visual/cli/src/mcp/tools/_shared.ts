@@ -242,7 +242,7 @@ function expectedLocation(dependencies: Readonly<ChromiumDependencies>): string 
 }
 
 /**
-取得先とネットワークの設定を確認させる誘導。bin/pecotv の fatal メッセージと同じ内容に揃える。
+取得先とネットワークの設定を確認させる誘導。
 */
 const NETWORK_HINT
   = '; check network reachability, the proxy settings (HTTPS_PROXY / HTTP_PROXY) and PLAYWRIGHT_DOWNLOAD_HOST, then run again'
@@ -320,7 +320,7 @@ function chromiumFailureReason(result: Readonly<SpawnResult>): string {
 chromium を要するツールのハンドラ冒頭で使う実行時ガード (続行可否を ToolResult の有無で返す形)。
 続行してよければ undefined、諦めるなら失敗の ToolResult を返す。
 
-`pecotv mcp` は接続タイムアウト (Claude Code の MCP_TIMEOUT は 30000ms が初期値) に収めるため、
+MCP サーバは接続タイムアウト (Claude Code の MCP_TIMEOUT は 30000ms が初期値) に収めるため、
 起動時に chromium を取得しない。モデルから呼ばれるツールが 120MB のダウンロードを無断で始めないよう、
 初期状態では取得せず、`runtime_setup` ツールの呼び出しを案内する。
 PECOTV_AUTO_INSTALL_BROWSER=1 のときだけ、その場で取得してから処理を続行する。

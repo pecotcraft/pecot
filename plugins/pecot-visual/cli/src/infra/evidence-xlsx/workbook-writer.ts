@@ -53,7 +53,7 @@ import type { NormalizedEvidenceSpec } from '../../domain/evidence-xlsx/spec-sch
 export type EvidenceSkipReason = 'not-found' | 'unsupported-format' | 'unreadable'
 
 /**
-生成を中断する理由。CLI が --json の `reason` にそのまま載せる。
+生成を中断する理由。失敗の `reason` にそのまま載せる。
 */
 export type EvidenceWorkbookErrorReason = 'no-valid-images' | 'output-write-failed'
 

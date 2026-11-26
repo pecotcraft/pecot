@@ -216,7 +216,7 @@ TEST_OWNER_REPO="test-owner/test-repo"
 git -C "$TEST_REPO" remote add origin "https://github.com/$TEST_OWNER_REPO.git" || exit 1
 # 監査記録の HEAD は HEAD かその親に一致すれば通る。親の場合を再現できるよう、ベース commit を 1 本置く。
 git -C "$TEST_REPO" commit --quiet --allow-empty -m base > /dev/null 2>&1 || exit 1
-# git 管理の入力を ls-files で写す。bin は publish が pnpm の解決に bin/_lib.sh を source するために要る。
+# git 管理の入力を ls-files で写す。publish は pnpm を解決するため scripts/ci/pnpm-lib.sh を source する。
 (cd "$REPO_ROOT" && git ls-files -z -- \
     plugins/pecot-visual/assets/drawio-icons \
     plugins/pecot-visual/assets/slidev/runtime \
@@ -228,7 +228,7 @@ git -C "$TEST_REPO" commit --quiet --allow-empty -m base > /dev/null 2>&1 || exi
     plugins/pecot-visual/assets/slidev/scripts/eslint/text-constraints \
     plugins/pecot-visual/assets/slidev/scripts/eslint/validate-references \
     plugins/pecot-visual/.claude-plugin \
-    plugins/pecot-visual/bin \
+    plugins/pecot-visual/scripts/ci/pnpm-lib.sh \
     plugins/pecot-visual/cli/package.json \
     plugins/pecot-visual/scripts/release \
     libs/text-rules/package.json \
@@ -370,8 +370,8 @@ bt_eq "dry-run は tgz の名前を出力する" "1" \
     "$(grep -cxF "==> tgz: pecot-visual-mcp-$PLUGIN_VERSION.tgz" "$TMP/dryrun.log" | tr -d ' ')"
 bt_eq "dry-run は tgz の中身に LICENSE を出力する" "1" \
     "$(grep -cxF '    LICENSE' "$TMP/dryrun.log" | tr -d ' ')"
-bt_eq "dry-run は tgz の中身に shim を出力する" "1" \
-    "$(grep -cxF '    bin/pecot-visual-mcp.mjs' "$TMP/dryrun.log" | tr -d ' ')"
+bt_eq "dry-run は tgz の中身に起動ファイルを出力する" "1" \
+    "$(grep -cxF '    cli/dist/main.js' "$TMP/dryrun.log" | tr -d ' ')"
 bt_eq "dry-run の tgz の中身に .map を含むパスが無い" "0" \
     "$(grep -c '^    .*\.map$' "$TMP/dryrun.log" | tr -d ' ')"
 # 証明書の同梱を見る。extra-ca-certs.js や certificate.svg のような、実装と icon の名前は対象外。
@@ -519,7 +519,7 @@ else if (q === 'deps') process.stdout.write(Object.keys(m.dependencies).sort().j
 
 bt_eq "package.json の version がプラグイン版と一致" "$PLUGIN_VERSION" "$(read_manifest version)"
 bt_eq "package.json の name が公開名" "@pecot/visual-mcp" "$(read_manifest name)"
-bt_eq "package.json の bin が shim を指す" '{"pecot-visual-mcp":"bin/pecot-visual-mcp.mjs"}' "$(read_manifest bin)"
+bt_eq "package.json の bin が cli/dist/main.js を指す" '{"pecot-visual-mcp":"cli/dist/main.js"}' "$(read_manifest bin)"
 bt_eq "package.json の license が MIT" "MIT" "$(read_manifest license)"
 bt_eq "package.json の repository" \
     '{"type":"git","url":"git+https://github.com/pecotcraft/pecot.git","directory":"plugins/pecot-visual"}' \
@@ -809,10 +809,16 @@ process.stdout.write(path.join(path.dirname(require.resolve('eslint/package.json
 
 rule_ids() {
     # $1 = deck-lint.env.config.js、$2 = JSON レポート、$3 = talk-dir（省略時 $LINT_DIR）。rc は見ず、レポートの rule ID を返す。
-    # 解釈済みの lint（PECOTV_DECK_LINT）は、設定と同じ配布ルートの CLI（slide theme --json）に作らせる。
+    # 解釈済みの lint（PECOTV_DECK_LINT）は、設定と同じ配布ルートの cli/dist の executeSlideTheme に作らせる。
     local talk="${3:-$LINT_DIR}" lint_json root
     root="$(cd "$(dirname "$1")/../.." && pwd)"
-    lint_json="$(node "$root/cli/dist/cli.js" slide theme --dir "$talk" --json | jq -c .lint)"
+    lint_json="$(node --input-type=module -e "
+const [root, dir] = process.argv.slice(1)
+const { executeSlideTheme } = await import(root + '/cli/dist/commands/slidev-project/theme.js')
+const { NodeThemeFiles } = await import(root + '/cli/dist/infra/slidev-theme/fs.js')
+const { data } = await executeSlideTheme({ dir }, { files: new NodeThemeFiles() })
+process.stdout.write(JSON.stringify(data.lint))
+" "$root" "$talk")"
     (cd "$talk" && PECOTV_DECK_LINT="$lint_json" node "$ESLINT_BIN" --no-config-lookup --config "$1" -f json 'pages/**/*.md' 'slides.md' > "$2" 2> "$2.err")
     node -e "
 const fs = require('node:fs')
@@ -862,11 +868,8 @@ bt_eq "eslint プラグインの tests/ が配布ツリーに無い" "0" \
 # 登録例と同じ引数なしで起動し、drawio 系の tools/call まで往復させる。
 # drawio_export の icons_dir の既定（同梱のカタログ）が読めていることは、ハッシュの 3 点比較で確かめる。
 
-if [ -x "$DIST/bin/pecot-visual-mcp.mjs" ]; then
-    bt_pass "bin shim に実行権がある"
-else
-    bt_fail "bin shim に実行権がある" "bin shim に実行権がない"
-fi
+# tsc の出力は実行権を持たず、npm の bin-links が導入時に付ける。ここでは node の shebang を見る。
+bt_eq "起動ファイルの先頭が node の shebang" "#!/usr/bin/env node" "$(head -n 1 "$DIST/cli/dist/main.js")"
 
 cat > "$TMP/smoke.mjs" << 'SMOKE'
 // node smoke.mjs <requests.json> <script> [args...]: 要求を流し、id ごとの結果要約を 1 行 JSON で返す（起動の失敗だけ `FAIL: <理由>`）。
@@ -1037,7 +1040,7 @@ SMOKE_JSON="$TMP/smoke.json"
 mkdir -p "$TMP/home-smoke"
 env -u CLAUDE_PLUGIN_DATA -u PLUGIN_DATA -u XDG_DATA_HOME HOME="$TMP/home-smoke" \
     PLAYWRIGHT_BROWSERS_PATH="$FAKE_BROWSERS" PECOTV_FORCE_SVG_FAIL=1 \
-    node "$TMP/smoke.mjs" "$TMP/smoke-requests.json" "$DIST/bin/pecot-visual-mcp.mjs" \
+    node "$TMP/smoke.mjs" "$TMP/smoke-requests.json" "$DIST/cli/dist/main.js" \
     > "$SMOKE_JSON" 2> "$TMP/smoke.err"
 
 # 起動に失敗すると smoke_value が空を返し「非空なら PASS」の行が誤って通るので、起動できたときだけ応答の中身を見る。
@@ -1060,8 +1063,8 @@ if [ "$SMOKE_OK" = "0" ]; then
     echo "==> smoke が起動しなかったため応答内容の判定はスキップする"
 else
     # 一部の系統が import 失敗で欠けたままの tools/list を拾うため、件数まで固定する。
-    # 期待値 11 は allTools() が公開する数の写し（cli/tests/e2e/mcp-tools.test.ts の EXPECTED_TOOL_COUNT と同値）。
-    EXPECTED_TOOL_COUNT=11
+    # 期待値は allTools() が公開する数の写し（配布ツリーに TS ソースが無いため）。
+    EXPECTED_TOOL_COUNT=14
     SMOKE_TOOLS="$(smoke_value "$SMOKE_JSON" 2.tools)"
     SMOKE_TOOL_COUNT="$(smoke_value "$SMOKE_JSON" 2.toolCount)"
     LIST_TITLES=(
@@ -1123,16 +1126,17 @@ else
     fi
 fi
 
-# --- 8-2. CLAUDE_PLUGIN_ROOT が無い直叩き ---
-# 配布ツリーでの source 相対の fallback は、shim を通さないこの直叩きでしか通らない。
+# --- 8-2. CLAUDE_PLUGIN_ROOT が別の場所を指す起動 ---
+# npx の起動でも、Claude Code は導入済みのプラグインの置き場所を CLAUDE_PLUGIN_ROOT に渡す。サーバはそれを読まない。
+mkdir -p "$TMP/other-plugin-root"
 write_requests "$TMP/direct-requests.json" \
     tools/call "$(call_params drawio_export "{\"input_path\":\"$SMOKE_FIXTURE\",\"print_hash\":true}")" \
     || exit 1
 DIRECT_JSON="$TMP/direct.json"
-env -u CLAUDE_PLUGIN_DATA -u PLUGIN_DATA -u XDG_DATA_HOME HOME="$TMP/home-smoke" CLAUDE_PLUGIN_ROOT= \
+env -u CLAUDE_PLUGIN_DATA -u PLUGIN_DATA -u XDG_DATA_HOME HOME="$TMP/home-smoke" CLAUDE_PLUGIN_ROOT="$TMP/other-plugin-root" \
     node "$TMP/smoke.mjs" "$TMP/direct-requests.json" \
-    "$DIST/cli/dist/cli.js" mcp > "$DIRECT_JSON" 2> "$TMP/direct.err"
-DIRECT_TITLE="CLAUDE_PLUGIN_ROOT 無しの直叩きでも既定 icons root が配布ツリーを指す"
+    "$DIST/cli/dist/main.js" > "$DIRECT_JSON" 2> "$TMP/direct.err"
+DIRECT_TITLE="CLAUDE_PLUGIN_ROOT が別の場所を指しても、既定 icons root が配布ツリーを指す"
 case "$(head -c 5 "$DIRECT_JSON")" in
     FAIL:) bt_fail "$DIRECT_TITLE" "MCP サーバとして起動しない ($(log_cat direct.json) :: $(log_tail direct.err 3))" ;;
     '') bt_fail "$DIRECT_TITLE" "smoke が何も出力しなかった ($(log_tail direct.err 3))" ;;
@@ -1140,7 +1144,7 @@ case "$(head -c 5 "$DIRECT_JSON")" in
         if [ -n "$HASH_EXPLICIT" ]; then
             bt_eq "$DIRECT_TITLE" "$HASH_EXPLICIT" "$(smoke_value "$DIRECT_JSON" 2.call.data.sourceSha256)"
         else
-            bt_fail "$DIRECT_TITLE" "比較対象（icons_dir 明示のハッシュ）が shim 経由の smoke から取れていない"
+            bt_fail "$DIRECT_TITLE" "比較対象（icons_dir 明示のハッシュ）が smoke から取れていない"
         fi
         ;;
 esac
@@ -1234,7 +1238,7 @@ run_setup_smoke() {
         export PECOTV_TEST_PATCH_RECORD="$TMP/patch-record-$label.jsonl"
         export PLAYWRIGHT_BROWSERS_PATH="$FAKE_BROWSERS"
         export PLAYWRIGHT_DOWNLOAD_HOST=http://127.0.0.1:1
-        node "$TMP/smoke.mjs" "$TMP/setup-requests.json" "$DIST/bin/pecot-visual-mcp.mjs"
+        node "$TMP/smoke.mjs" "$TMP/setup-requests.json" "$DIST/cli/dist/main.js"
     ) > "$json" 2> "$TMP/setup-$label.err"
 }
 
@@ -1479,7 +1483,7 @@ bt_eq "添付された tgz の package.json の version" "$TEST_VERSION" \
     "$(tar -xzOf "$GH_UPLOAD_COPY" package/package.json 2> /dev/null | node -e "process.stdout.write(JSON.parse(require('fs').readFileSync(0, 'utf8')).version)" 2> /dev/null)"
 bt_eq "添付された tgz に LICENSE が入り、HEAD のものと一致する" "$(git -C "$TEST_REPO" show HEAD:LICENSE | cksum)" \
     "$(tar -xzOf "$GH_UPLOAD_COPY" package/LICENSE 2> /dev/null | cksum)"
-bt_eq "添付された tgz に shim が入る" "1" "$(grep -cx 'package/bin/pecot-visual-mcp.mjs' "$UPLOADED_LIST" | tr -d ' ')"
+bt_eq "添付された tgz に起動ファイルが入る" "1" "$(grep -cx 'package/cli/dist/main.js' "$UPLOADED_LIST" | tr -d ' ')"
 bt_eq "添付された tgz に npm-shrinkwrap.json が入る" "1" "$(grep -cx 'package/npm-shrinkwrap.json' "$UPLOADED_LIST" | tr -d ' ')"
 bt_eq "添付された tgz に eslint プラグイン dist が入る" "1" \
     "$(grep -cx 'package/assets/slidev/scripts/eslint/_shared/dist/index.js' "$UPLOADED_LIST" | tr -d ' ')"

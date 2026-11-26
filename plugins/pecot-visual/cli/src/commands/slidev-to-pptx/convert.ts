@@ -1,20 +1,18 @@
-// Phase 2 の `pecotv slide convert` 実装。
+// slide_convert ツールの実装。
 // Slidev プロジェクトディレクトリを `npx slidev build` でビルドする。
 // in-process pipeline で、単スライド PPTX 群 (slides/<prefix><N>.pptx) を取得する。
 // pipeline の実装は `infra/slidev-to-pptx/InProcessSlidevPptxPipeline`。
-// cli 側の純粋ロジック `domain/pptx-ooxml/merge.ts` で結合して --out に書き出す。
+// cli 側の純粋ロジック `domain/pptx-ooxml/merge.ts` で結合して出力パスに書き出す。
 // SlidevRunner / SlidevPptxPipeline は port 経由で DI される (tech-advisor B1)。
 
-// 出力 path / 中間 mkdir 先は CLI 引数由来で、リテラルではない。
-// 本コマンド自身が出力ディレクトリを生成する責務を持つ。
+// 出力 path / 中間 mkdir 先はツールの引数由来で、リテラルではない。
+// 本ファイル自身が出力ディレクトリを生成する責務を持つ。
 // そのため本ファイル全体で security/detect-non-literal-fs-filename を disable する。
 /* eslint-disable security/detect-non-literal-fs-filename */
 import type { FailureReason } from '../../domain/_shared/failure-kind.js'
 import { performance } from 'node:perf_hooks'
 import { access, readFile, mkdir, readdir, rm, stat } from 'node:fs/promises'
 import path from 'node:path'
-
-import { Command, Option } from 'commander'
 
 import type {
   PptxArchive,
@@ -50,14 +48,13 @@ import type { FontPolicy } from '../../domain/pptx-ooxml/font-policy.js'
 import { readThemeDeclaration } from '../../domain/slidev-theme/declaration.js'
 import type { ResolvedThemeDeclaration, ThemeDeclarationResult } from '../../domain/slidev-theme/declaration.js'
 import { sanitizeFilename } from '../../domain/slidev-to-pptx/slides-title.js'
-import { createDiagnostics, passthrough, writeData } from '../../diagnostics.js'
+import { createDiagnostics } from '../../diagnostics.js'
 import { readSlidesTitleFromFile } from '../../infra/slidev-to-pptx/slides-title-reader.js'
 import { ChildProcessSlidevRunner } from '../../infra/slidev-to-pptx/runner.js'
 import { InProcessSlidevPptxPipeline } from '../../infra/slidev-to-pptx/index.js'
 import { XmldomXmlEngine } from '../../infra/pptx-ooxml/xml-engine.js'
 import { YauzlYazlPptxArchive } from '../../infra/pptx-ooxml/archive.js'
 import { pluginDependencyRoot } from '../../infra/_shared/dependency-root.js'
-import { resolvePluginRoot } from '../../infra/_shared/plugin-root.js'
 import { NodeThemeFiles } from '../../infra/slidev-theme/fs.js'
 import { readVersion } from '../../version.js'
 import { ensureTalkThemeLinked, linkedThemeDefaultDependencies } from '../slidev-project/linked-theme.js'
@@ -70,20 +67,16 @@ import { NS_PACKAGE_RELATIONSHIPS } from '../../domain/_shared/ooxml-uris.js'
 type TransitionType = 'fade' | 'morph'
 type MorphOption = 'byObject' | 'byWord' | 'byChar'
 
-const TRANSITION_TYPES: readonly TransitionType[] = ['fade', 'morph']
-const MORPH_OPTIONS: readonly MorphOption[] = ['byObject', 'byWord', 'byChar']
-
 export interface SlideConvertOptions {
   readonly out: string
   readonly theme?: string
-  readonly json?: boolean
   /**
-  差分キャッシュを読むか。commander の `--no-cache` は既定 true / 指定時 false を入れる。
+  差分キャッシュを読むか。
   省略時は true 相当（キャッシュ利用）。false でも変換完了時のキャッシュ再構築は行う。
   */
   readonly cache?: boolean
   /**
-  1 パスのルートを使うか。commander の `--no-single-pass` は既定 true / 指定時 false を入れる。
+  1 パスのルートを使うか。
   false のときだけ現行ルートを強制し、それ以外は env `PECOTV_SINGLE_PASS` に従う（既定 on）。
   */
   readonly singlePass?: boolean
@@ -176,12 +169,12 @@ export interface SlideConvertResultSummary {
   readonly cache?: PipelineCacheSummary
   /**
   pipeline が積んだ警告（manifest 破損・キャッシュ再利用による要素診断のスキップ等）。
-  警告なしの run では空配列。`--json` の done payload へ常時載せる（#929）。
+  警告なしの run では空配列。done payload へ常時載せる（#929）。
   */
   readonly warnings: readonly string[]
   /**
   pipeline が積んだ変換エラー（スライド単位・要素単位）。warnings と同型で、
-  エラーなしの run では空配列。`--json` の done payload へ常時載せる（#949）。
+  エラーなしの run では空配列。done payload へ常時載せる（#949）。
   level=element のエラーは success を落とさないため、成功完走した run にも載る。
   キャッシュヒットしたステップの要素診断は再実行されないため、`errors: []` は
   デッキに要素エラーが無いことを意味しない（その旨は pipeline の警告として
@@ -191,14 +184,14 @@ export interface SlideConvertResultSummary {
   /**
   装飾 CSS animation 由来の `p:timing` を落としたスライド数（#1070）。明示指定のある
   スライドと、元から `p:timing` を持たないスライドは数えない。
-  件数が 0 でも `--json` の done payload へ常時載せる。
+  件数が 0 でも done payload へ常時載せる。
   warnings / errors と同じ理由で、tooling 側が「フィールドが無い＝旧版」と「除去なしの run」を区別できるようにする。
   */
   readonly animationTimingRemovedSlides: number
 }
 
 /**
-`slide convert` の区間別所要（ms）。`--json` の `timings.outer` に載る。
+slide_convert の区間別所要（ms）。結果の `timings.outer` に載る。
 */
 export interface OuterTiming {
   readonly cleanBuild: number
@@ -247,7 +240,7 @@ const THEME_PATTERN = /^[\w@/.-]+$/
 export function validateTheme(theme: string): void {
   if (!THEME_PATTERN.test(theme)) {
     throw new SlideConvertUsageError(
-      `--theme accepts only [a-zA-Z0-9@/_.-]: ${theme}`,
+      `theme accepts only [a-zA-Z0-9@/_.-]: ${theme}`,
       'invalid-theme',
     )
   }
@@ -370,7 +363,7 @@ export async function runSlideConvert(
   // テーマを今の値で張ってから、宣言の PPTX の値を取る。以降の build はこの node_modules で動く。
   const fontPolicy = await resolveFontPolicy(projectAbs, dependencies)
 
-  // 出力 PPTX 配置先 (--out) のディレクトリは存在保証する。in-process pipeline は
+  // 出力 PPTX 配置先のディレクトリは存在保証する。in-process pipeline は
   // outputDir 配下の slides/<prefix><N>.pptx 群を生成するため、cli 側で merge して outputAbs に書き出す。
   await mkdir(path.dirname(outputAbs), { recursive: true })
 
@@ -379,10 +372,8 @@ export async function runSlideConvert(
   await cleanBuildArtifacts(projectAbs)
   const cleanBuildMs = dependencies.now() - start
 
-  // capture/relay 切替: slidev build 子プロセスの stdout/stderr は --json 時に破棄する
-  // (tech-advisor B2)。--json でないときは、どちらも stderr へ中継する (stdout はデータだけ)。
+  // slidev build 子プロセスの stdout/stderr は、どちらも stderr へ中継する (stdout はデータだけ)。
   // in-process pipeline の人間可読ログは、常に stderr の診断行 (note / warning / error) で出る。
-  const isRelayEnabled = options.json !== true
   const buildOptions: {
     theme?: string
     timeoutMs: number
@@ -392,10 +383,8 @@ export async function runSlideConvert(
   } = { timeoutMs: SLIDEV_BUILD_TIMEOUT_MS }
   if (options.theme !== undefined) buildOptions.theme = options.theme
   if (dependencies.signal !== undefined) buildOptions.signal = dependencies.signal
-  if (isRelayEnabled) {
-    buildOptions.stdout = dependencies.stderr
-    buildOptions.stderr = dependencies.stderr
-  }
+  buildOptions.stdout = dependencies.stderr
+  buildOptions.stderr = dependencies.stderr
   const buildStart = dependencies.now()
   dependencies.onProgress?.('running slidev build')
   const buildResult = await dependencies.slidevRunner.build(projectAbs, buildOptions)
@@ -417,7 +406,7 @@ export async function runSlideConvert(
   // in-process pipeline は skipPostprocess 指定時、staging/slides/<prefix><N>.pptx のみを出力する。
   // Phase 2+3 は skip する。
   // 本コマンドは TS 側で merge を行う。
-  // そのため staging ディレクトリを作って単スライド PPTX を受け取り、--out に書き出す。
+  // そのため staging ディレクトリを作って単スライド PPTX を受け取り、出力パスに書き出す。
   const stagingDirectory = path.join(projectAbs, 'pptx')
   await mkdir(stagingDirectory, { recursive: true })
 
@@ -443,15 +432,15 @@ export async function runSlideConvert(
     skipPostprocess: true,
     // 差分キャッシュは標準で有効。読み書き先は staging 配下の pptx/cache/。
     cachePluginVersion: dependencies.pluginVersion(),
-    // --no-cache は読み取りだけを止める。保存は動くので次回以降は再びヒットする。
+    // cache: false は読み取りだけを止める。保存は動くので次回以降は再びヒットする。
     cacheSkipRead: options.cache === false,
   }
-  // --theme は envHash の材料にもなる (F-01)。テーマ切替後に旧描画のキャッシュが
+  // theme は envHash の材料にもなる (F-01)。テーマ切替後に旧描画のキャッシュが
   // 通知なしにヒットしないよう、slidev build に渡した値をそのまま pptxConverter にも渡す。
   if (options.theme !== undefined) convertOptions.theme = options.theme
   if (options.logLevel !== undefined) convertOptions.logLevel = options.logLevel
   if (dependencies.signal !== undefined) convertOptions.signal = dependencies.signal
-  // --no-single-pass は現行ルートを強制する。未指定はキーを置かず、pipeline 側が env に従う。
+  // singlePass: false は現行ルートを強制する。未指定はキーを置かず、pipeline 側が env に従う。
   if (options.singlePass === false) convertOptions.singlePass = false
   convertOptions.stderr = dependencies.stderr
   const report = dependencies.onProgress
@@ -513,7 +502,7 @@ export async function runSlideConvert(
     }
 
     // staging/slides/<prefix><N>.pptx 群を読み込み、TS 側 merge ロジックで結合する。
-    // staging から letter-spacing.json / href-map.json を auto-detect (priority: flag > staging > empty)。
+    // staging から letter-spacing.json / href-map.json を auto-detect (priority: 引数 > staging > empty)。
     const slidesDirectory = path.join(stagingDirectory, 'slides')
     const spacingMap = await resolveLetterSpacingMap(
       options.spacingJson,
@@ -562,7 +551,7 @@ export async function runSlideConvert(
     return summary
   }
   catch (error: unknown) {
-    // merge / 出力書き出しは生の Error（例: --out がディレクトリのときの EISDIR）を投げる。
+    // merge / 出力書き出しは生の Error（例: 出力パスがディレクトリのときの EISDIR）を投げる。
     // wrap しないと reason が unknown になり、利用者が原因を特定できない。
     const converted = error instanceof SlideConvertRuntimeError
       ? error
@@ -594,14 +583,14 @@ function withPipelineDiagnostics(
 }
 
 /**
-`--json` の error payload に載せる警告。pipeline 未到達の失敗では空配列。
+失敗時の data に載せる警告。pipeline 未到達の失敗では空配列。
 */
 function warningsOf(error: unknown): readonly string[] {
   return (error instanceof SlideConvertRuntimeError) ? error.warnings ?? [] : []
 }
 
 /**
-`--json` の error payload に載せる変換エラー。pipeline 未到達の失敗では空配列。
+失敗時の data に載せる変換エラー。pipeline 未到達の失敗では空配列。
 */
 function pipelineErrorsOf(error: unknown): readonly PipelineError[] {
   return (error instanceof SlideConvertRuntimeError) ? error.pipelineErrors ?? [] : []
@@ -651,7 +640,7 @@ async function readSidecarObject(
 }
 
 /**
-staging または CLI flag から letter-spacing.json を読み込んで Map 化する。
+staging または引数から letter-spacing.json を読み込んで Map 化する。
 priority: `flag > staging > empty`。
 */
 async function resolveLetterSpacingMap(
@@ -685,7 +674,7 @@ async function resolveLetterSpacingMap(
 }
 
 /**
-staging または CLI flag から href-map.json を読み込んで Map 化する。
+staging または引数から href-map.json を読み込んで Map 化する。
 priority: `flag > staging > empty`。
 */
 async function resolveHrefMap(
@@ -710,7 +699,7 @@ async function resolveHrefMap(
 
 /**
 staging から animation-policy.json を読み込み、`p:timing` を残す stepIndex の集合を
-返す（#1070）。CLI flag は持たない。
+返す（#1070）。引数では受けない。
 
 不在時は空集合で進む（= 全スライドの `p:timing` を除去する）。sidecar が「残す側」を
 列挙する形なのは、この既定を「全除去」に倒すため。「全保持」を既定にすると、読めなかった
@@ -793,7 +782,7 @@ chain は timing 除去 → sanitize → font fix → hyperlink fix → transiti
 
 `chainOptions.spacingMap` / `hrefMap` / `keepTimingSteps` は呼び出し側で解決済みの値を
 渡すこと。
-spacingMap / hrefMap は staging auto-detect と CLI flag から得る (priority: flag > staging > empty)。
+spacingMap / hrefMap は staging auto-detect と引数から得る (priority: 引数 > staging > empty)。
 keepTimingSteps は staging の animation-policy.json から得る (不在なら空集合 = 全スライドの timing を除去)。
 */
 async function mergeSingleSlidePptxesTo(
@@ -1021,21 +1010,14 @@ export function errorToReason(error: unknown): FailureReason {
   // テーマの張り直しの失敗 (テーマの名前の不一致など) は、原因ごとの reason を持つ。
   if (error instanceof SlideCreateRuntimeError) return error.reason
   // pipeline 到達後の生 Error（merge / 出力書き出し）は merge-failed へ wrap 済み。
-  // 到達前の生 Error（--out 親の mkdir、cleanBuildArtifacts の rm、slidevRunner.build の spawn 失敗）は wrap されない。
+  // 到達前の生 Error（出力パスの親の mkdir、cleanBuildArtifacts の rm、slidevRunner.build の spawn 失敗）は wrap されない。
   // それらはここへ届き、従来どおり unknown になる。
   // テーマの取得・宣言・指定・未参照の失敗は、theme-<reason> にする。
   return themeErrorReason(error) ?? 'unknown'
 }
 
 /**
-失敗時の exit code。usage error = 2、それ以外の実行失敗 = 1。
-*/
-export function toExitCode(error: unknown): number {
-  return error instanceof SlideConvertUsageError ? 2 : 1
-}
-
-/**
-`--json` の error payload に載せる pipeline 診断。CLI と MCP ツールで同形にする。
+失敗時の data に載せる pipeline 診断。
 */
 export function convertErrorDiagnostics(error: unknown): Readonly<{
   readonly warnings: readonly string[]
@@ -1051,33 +1033,7 @@ function formatError(error: unknown): string {
 /* c8 ignore stop */
 
 /**
-人間向けのキャッシュ判定出力。どのステップを変換したかが SC-001 の確認手段になるため、
-サマリ 1 行に続けてステップ別の判定も出す。
-
-全ステップを列挙すると多スライドデッキ（例: 51 ステップ）で 500 文字を超えて可読性を
-損なうため、miss（= 今回実際に変換したステップ）のみを列挙し、hit は件数集約する。
-全 hit なら miss 列挙自体を出さず件数のみ。
-*/
-function formatCacheSummary(cache: Readonly<PipelineCacheSummary>): string {
-  const summaryLine = `cache: ${String(cache.hits)} hits / ${String(cache.misses)} misses`
-    + ` (enabled: ${String(cache.enabled)}, invalidated: ${cache.invalidated})\n`
-  if (cache.perStep.length === 0) return summaryLine
-  const missSteps = cache.perStep.filter(entry => entry.cache === 'miss')
-  const hitCount = cache.perStep.length - missSteps.length
-  if (missSteps.length === 0) {
-    return `${summaryLine}cache steps: ${String(hitCount)} hit\n`
-  }
-  const missList = missSteps.map(entry => `#${entry.key}`).join(', ')
-  const hitSuffix = hitCount === 0 ? '' : ` (${String(hitCount)} more hit)`
-  return `${summaryLine}cache steps: miss ${missList}${hitSuffix}\n`
-}
-
-function doesArgvWantJson(argv: readonly string[]): boolean {
-  return argv.includes('--json')
-}
-
-/**
---out 省略時の既定出力パスを解決する。
+出力パス省略時の既定を解決する。
 `slides.md` の frontmatter title があれば、
 `<project-dir>/pptx/<sanitizeFilename(title)>.pptx` を返す。
 title 不在 (frontmatter 無し / キー無し / 空値 / 読取失敗) なら、
@@ -1118,13 +1074,13 @@ async function readSlidesTitleForDefault(
 export interface SlideConvertExecution {
   readonly summary: SlideConvertResultSummary
   /**
-  `--json` の `slide.convert.done` payload。MCP ツールの構造化データもこれをそのまま返す。
+  `slide.convert.done` の payload。MCP ツールの構造化データもこれをそのまま返す。
   */
   readonly data: Readonly<Record<string, unknown>>
 }
 
 /**
-`slide convert` の実処理と機械可読な結果組み立て。CLI action と MCP ツールの双方がここを通る。
+slide_convert の実処理と機械可読な結果組み立て。MCP ツールがここを通る。
 
 `options.out` は解決済みの出力パスを渡す（省略時の既定は `resolveDefaultOut`）。
 `slide.convert.start` は進捗イベントで結果ではないため、ここでは扱わない。
@@ -1199,244 +1155,6 @@ function buildConvertDoneData(
   return donePayload
 }
 
-export function createSlideConvertCommand(
-  buildDependencies: () => SlideConvertDependencies,
-): Command {
-  const command = new Command('convert')
-    .description('convert a Slidev project to PPTX')
-    .argument('<project-dir>', 'Slidev project directory')
-    .option('--out <path>', 'output .pptx path (default: <project-dir>/pptx/<slides.md title | basename>.pptx)')
-    .option('--theme <name>', 'name passed to slidev --theme (allowed characters: [a-zA-Z0-9@/_.-])')
-    .option('--spacing-json <path>', 'letter-spacing JSON path (default: auto-detect staging/slides/letter-spacing.json)')
-    .option('--href-json <path>', 'hyperlink JSON path (default: auto-detect staging/slides/href-map.json)')
-    .option('--transition-type <type>', 'transition type (fade|morph)')
-    .option('--transition-duration-ms <ms>', 'transition duration (ms)')
-    .option('--morph-option <option>', 'morph option (byObject|byWord|byChar)')
-    .option('--no-cache', 'convert all slides without reading the cache (the cache is rebuilt on completion)')
-    .option('--no-single-pass', 'convert with the per-step route that opens a page for each slide step, not the single-pass route')
-    .addOption(new Option('--log-level <level>', 'progress detail (verbose and debug write progress to stderr)').choices(['normal', 'verbose', 'debug']))
-    .option('--json', 'emit machine-readable progress on stdout', false)
-    .exitOverride()
-    .configureOutput({
-      writeOut: (string_: string) => {
-        writeData(buildDependencies().stdout, string_)
-      },
-      writeErr: (string_: string) => {
-        const dependencies = buildDependencies()
-        if (doesArgvWantJson(process.argv)) {
-          writeData(dependencies.stdout, JSON.stringify({
-            event: 'slide.convert.error',
-            reason: 'invalid-option',
-            detail: string_.replace(/^error:\s*/i, '').trim(),
-            // done payload と同じく常時載せる。option 解析で落ちた run は pipeline 未到達のため空配列。
-            warnings: [],
-            errors: [],
-          }))
-        }
-        else {
-          passthrough(dependencies.stderr, string_)
-        }
-      },
-    })
-    .action(async (projectDirectory: string, raw: Readonly<Record<string, unknown>>) => {
-      const dependencies = buildDependencies()
-      const isWantsJson = raw['json'] === true
-
-      let options: SlideConvertOptions
-      try {
-        const theme = optionalString(raw, 'theme')
-        const spacingJson = optionalString(raw, 'spacingJson')
-        const hrefJson = optionalString(raw, 'hrefJson')
-        const transitionType = optionalTransitionType(raw, 'transitionType')
-        const transitionDurationMs = optionalPositiveInt(raw, 'transitionDurationMs', 'invalid-transition-duration-ms')
-        const morphOption = optionalMorphOption(raw, 'morphOption')
-        const logLevel = optionalLogLevel(raw, 'logLevel')
-        const optionalsPart: {
-          theme?: string
-          spacingJson?: string
-          hrefJson?: string
-          transitionType?: TransitionType
-          transitionDurationMs?: number
-          morphOption?: MorphOption
-          logLevel?: 'normal' | 'verbose' | 'debug'
-        } = {}
-        if (theme !== undefined) optionalsPart.theme = theme
-        if (spacingJson !== undefined) optionalsPart.spacingJson = spacingJson
-        if (hrefJson !== undefined) optionalsPart.hrefJson = hrefJson
-        if (transitionType !== undefined) optionalsPart.transitionType = transitionType
-        if (transitionDurationMs !== undefined) optionalsPart.transitionDurationMs = transitionDurationMs
-        if (morphOption !== undefined) optionalsPart.morphOption = morphOption
-        if (logLevel !== undefined) optionalsPart.logLevel = logLevel
-        const outOption = optionalString(raw, 'out')
-        const resolvedProject = path.resolve(projectDirectory)
-        const out = outOption ?? await resolveDefaultOut(resolvedProject, dependencies.stderr)
-        options = {
-          out,
-          json: isWantsJson,
-          // commander は `--no-cache` の受け皿として raw['cache'] に既定 true を入れる。
-          cache: raw['cache'] !== false,
-          // `--no-single-pass` も同じく raw['singlePass'] に既定 true が入る。
-          singlePass: raw['singlePass'] !== false,
-          ...optionalsPart,
-        }
-      }
-      catch (error: unknown) {
-        const reason = errorToReason(error)
-        const detail = formatError(error)
-        if (isWantsJson) {
-          writeData(dependencies.stdout, JSON.stringify({
-            event: 'slide.convert.error',
-            reason,
-            detail,
-            warnings: [],
-            errors: [],
-          }))
-        }
-        else {
-          createDiagnostics(dependencies.stderr).error(detail)
-        }
-        process.exitCode = toExitCode(error)
-        return
-      }
-
-      try {
-        if (options.json === true) {
-          // event 順序保証: start → done (失敗時は start → error)。tooling 側 stream parser
-          // は start を進捗開始の signal として待つことができる。
-          writeData(dependencies.stdout, JSON.stringify({
-            event: 'slide.convert.start',
-            input: path.resolve(projectDirectory),
-            output: path.resolve(options.out),
-          }))
-        }
-        const { summary, data } = await executeSlideConvert(projectDirectory, options, dependencies)
-        if (options.json === true) {
-          writeData(dependencies.stdout, JSON.stringify(data))
-        }
-        else {
-          writeData(
-            dependencies.stdout,
-            `slide convert: ${summary.inputAbs} -> ${summary.outputAbs}`
-            + ` (${String(Math.round(summary.durationMs))}ms)`,
-          )
-          // 0 件のときは出さない（除去が起きなかった run で行数を増やさない）。
-          if (summary.animationTimingRemovedSlides > 0) {
-            writeData(
-              dependencies.stdout,
-              `animation: removed p:timing from ${String(summary.animationTimingRemovedSlides)} slides`
-              + ` (slides with an explicit setting are kept)`,
-            )
-          }
-          if (summary.cache !== undefined) {
-            writeData(dependencies.stdout, formatCacheSummary(summary.cache))
-          }
-        }
-      }
-      catch (error: unknown) {
-        const reason = errorToReason(error)
-        const detail = formatError(error)
-        if (options.json === true) {
-          writeData(dependencies.stdout, JSON.stringify({
-            event: 'slide.convert.error',
-            reason,
-            detail,
-            // 失敗した run でも pipeline が積んだ警告・変換エラーを観測できるようにする。
-            // pipeline 未到達なら空配列（done payload と同じく「不在＝旧版」と区別する）。
-            // detail 側 (formatPipelineErrors) は先頭 3 件に丸めるが、機械可読側は全件載せる。
-            ...convertErrorDiagnostics(error),
-          }))
-        }
-        else {
-          createDiagnostics(dependencies.stderr).error(detail)
-        }
-        process.exitCode = toExitCode(error)
-      }
-    })
-  return command
-}
-
-const LOG_LEVELS: readonly ('normal' | 'verbose' | 'debug')[] = ['normal', 'verbose', 'debug']
-
-function optionalLogLevel(raw: Readonly<Record<string, unknown>>, key: string): 'normal' | 'verbose' | 'debug' | undefined {
-  // eslint-disable-next-line security/detect-object-injection -- key は本ファイル内の固定文字列のみ
-  const value = raw[key]
-  return LOG_LEVELS.find(level => level === value)
-}
-
-function optionalString(raw: Readonly<Record<string, unknown>>, key: string): string | undefined {
-  // eslint-disable-next-line security/detect-object-injection -- key は本ファイル内の固定文字列のみ
-  const value = raw[key]
-  if (value === undefined) return undefined
-  /* c8 ignore next 3 -- commander が --opt <string> で先に validate するため到達不能 */
-  if (typeof value !== 'string') {
-    throw new SlideConvertUsageError(`option --${key} must be a string`, 'invalid-option')
-  }
-  return value
-}
-
-function optionalTransitionType(
-  raw: Readonly<Record<string, unknown>>,
-  key: string,
-): TransitionType | undefined {
-  const value = optionalString(raw, key)
-  if (value === undefined) return undefined
-  if (!isTransitionType(value)) {
-    throw new SlideConvertUsageError(
-      `option --${kebab(key)} accepts only ${TRANSITION_TYPES.join('|')}: ${value}`,
-      'invalid-transition-type',
-    )
-  }
-  return value
-}
-
-function optionalMorphOption(
-  raw: Readonly<Record<string, unknown>>,
-  key: string,
-): MorphOption | undefined {
-  const value = optionalString(raw, key)
-  if (value === undefined) return undefined
-  if (!isMorphOption(value)) {
-    throw new SlideConvertUsageError(
-      `option --${kebab(key)} accepts only ${MORPH_OPTIONS.join('|')}: ${value}`,
-      'invalid-morph-option',
-    )
-  }
-  return value
-}
-
-function optionalPositiveInt(
-  raw: Readonly<Record<string, unknown>>,
-  key: string,
-  reason: FailureReason,
-): number | undefined {
-  const value = optionalString(raw, key)
-  if (value === undefined) return undefined
-  const parsed = Math.trunc(Number(value))
-  if (!Number.isFinite(parsed) || parsed <= 0 || String(parsed) !== value.trim()) {
-    throw new SlideConvertUsageError(
-      `option --${kebab(key)} must be a positive integer: ${value}`,
-      reason,
-    )
-  }
-  return parsed
-}
-
-function isTransitionType(value: string): value is TransitionType {
-  // readonly TransitionType[] は readonly string[] と互換だが、includes に渡すため string[] へ widening が必要。
-  // eslint-disable-next-line no-restricted-syntax
-  return (TRANSITION_TYPES as readonly string[]).includes(value)
-}
-
-function isMorphOption(value: string): value is MorphOption {
-  // readonly MorphOption[] は readonly string[] と互換だが、includes に渡すため string[] へ widening が必要。
-  // eslint-disable-next-line no-restricted-syntax
-  return (MORPH_OPTIONS as readonly string[]).includes(value)
-}
-
-function kebab(camel: string): string {
-  return camel.replaceAll(/[A-Z]/g, m => `-${m.toLowerCase()}`)
-}
-
 export function slideConvertDefaultDependencies(): SlideConvertDependencies {
   return {
     slidevRunner: new ChildProcessSlidevRunner(),
@@ -1449,7 +1167,7 @@ export function slideConvertDefaultDependencies(): SlideConvertDependencies {
     pluginVersion: readVersion,
     ensureThemeLinked: (directory, context) => ensureTalkThemeLinked(
       directory,
-      linkedThemeDefaultDependencies(pluginDependencyRoot() ?? resolvePluginRoot(), context),
+      linkedThemeDefaultDependencies(pluginDependencyRoot(), context),
       { requireTheme: true },
     ),
     readThemeDeclaration: themeDirectory => readThemeDeclaration(new NodeThemeFiles(), themeDirectory),

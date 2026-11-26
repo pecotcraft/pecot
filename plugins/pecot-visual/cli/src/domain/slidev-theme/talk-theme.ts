@@ -34,17 +34,15 @@ export interface TalkTheme {
 
 const NO_THEME = 'none'
 
-// 失敗の文言に添える、復旧の案内。CLI と MCP のどちらから呼ばれても読めるよう、両方の手順を 1 か所で持つ。
+// 失敗の文言に添える、復旧の案内。
 function relinkAdvice(talkDirectory: string): string {
-  return `run slide sync --dir ${talkDirectory} --node-modules-only to relink`
-    + ` (MCP: slide_sync with dir: ${talkDirectory}, node_modules_only: true)`
+  return `call slide_sync with dir: ${talkDirectory}, node_modules_only: true to relink`
 }
 
 /**
-移行前の talk-dir を止めるときの案内。CLI と MCP のどちらから読んでも打てるよう、両方の手順を持つ。
+移行前の talk-dir を止めるときの案内。
 */
-export const MIGRATE_ADVICE = 'to migrate to a theme reference, run slide sync --theme <theme-spec>'
-  + ' (MCP: slide_sync with theme: <theme-spec>)'
+export const MIGRATE_ADVICE = 'to migrate to a theme reference, call slide_sync with theme: <theme-spec>'
 
 /**
 `<talk>/slides.md` の frontmatter `theme:` を読む。
@@ -234,7 +232,7 @@ export function themeRootMessage(directory: string): string {
 talk-dir がテーマをどう持つかを 3 通りに分ける。node_modules には触れない。
 - `migrated`: `theme:` がパッケージ名で、`dependencies` がそれを指す。
 - `theme-root`: `theme:` が none か未指定で、その dir 自身が `pecot-theme.json` を持つ。テーマの dir であり、talk-dir ではない。
-  移行前に入れると、`sync --theme` が layouts・components を消しうるため、別に分けて止める。
+  移行前に入れると、`slide_sync` の `theme` が layouts・components を消しうるため、別に分けて止める。
 - `legacy`: テンプレートのコピーを持つ移行前の形。`theme:` が none・未指定・パス形式で、`pecot-theme.json` が無い。
   パス形式は、`resolveTalkTheme` が `theme-none` で止める形と同じなので、ここに入れる。
 `theme:` がパッケージ名なのに `dependencies` に無ければ、`theme-unlinked` で止める。

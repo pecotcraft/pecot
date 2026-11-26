@@ -1,14 +1,5 @@
-// 起動する Node.js の版判定。既知の脆弱性の修正を含まない版では CLI と MCP サーバを起動しない。
-// MCP サーバの stderr は利用者の目に入らないため、警告ではなく起動拒否にする。
-// 層構成（domain ← infra ← mcp）のどこにも属さない起動前の確認なので src 直下に置く。
-//
-// このファイルは Node.js 24 の型除去（type stripping）でそのまま実行できる構文だけで書く。
-// enum・namespace・パラメータプロパティを使わず、他モジュールを import しない。
-// ランチャーと hook が node から直接読み込んで checkNodeRuntime を呼ぶため。
-//
-// 判定は cli.ts の main() で行う。CLI は nodeRuntimeGuidance の結果を診断行の共通の関数に渡す
-// （続きの行の字下げは共通の関数が付ける）。静的 import の評価後に動くため、import の段階で落ちる
-// 古い major（23 以前）では案内を出せないことがある。判定だけのエントリモジュールには分けない。
+// 起動する Node.js の版判定。既知の脆弱性の修正を含まない版では MCP サーバを起動しない（判定は main.ts）。
+// hook が node の型除去で直接読むので、enum・namespace・パラメータプロパティ・import を使わない。
 
 /**
 系列（major）ごとの最低版。2026-10-21 の Node.js セキュリティリリース
@@ -74,7 +65,7 @@ function guidance(version: string): string {
 
 /**
 起動してよい版なら undefined、止めるべき版なら字下げ無しの複数行の案内文を返す。
-CLI は診断行の共通の関数に渡し、続きの行の字下げはそちらが付ける。
+main.ts は診断行の共通の関数に渡し、続きの行の字下げはそちらが付ける。
 表に無い major は、表の最大 major より新しければ修正後のリリースとみなして許可し、
 それ以外（24 未満・サポート終了の 25 系）は止める。
 */
@@ -92,7 +83,7 @@ export function nodeRuntimeGuidance(version: string): string | undefined {
 }
 
 /**
-launcher と hook がそのまま書く形。続きの行の先頭に空白 2 つを付けた案内文を返す。
+hook がそのまま書く形。続きの行の先頭に空白 2 つを付けた案内文を返す。
 */
 export function checkNodeRuntime(version: string): string | undefined {
   return nodeRuntimeGuidance(version)?.split('\n').join('\n  ')

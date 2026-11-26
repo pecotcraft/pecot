@@ -31,7 +31,7 @@ description: PR の CI（checks (lint) や tests (<project>:<target>)）が落�
 
    ```
    plugins/pecot-workflow/scripts/ci/run-tests.sh --scope=<py|cli|hooks|skills>
-   plugins/pecot-visual/scripts/ci/run-tests.sh --scope=<cli|bootstrap|slidev|hooks|release|compare|skills>
+   plugins/pecot-visual/scripts/ci/run-tests.sh --scope=<cli|slidev|hooks|release|compare|skills>
    plugins/pecot-tools/scripts/ci/run-tests.sh --scope=<cli|release>
    ```
 

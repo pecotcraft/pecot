@@ -1,9 +1,8 @@
-// `pecotv slide sync` コマンドのファサード。
-// テンプレートのコピーを持つ移行前の talk-dir を、`--theme` でテーマを参照する形へ移す。
+// slide_sync ツールのファサード。
+// テンプレートのコピーを持つ移行前の talk-dir を、`theme` でテーマを参照する形へ移す。
 // 移行済みの talk-dir は、package.json の依存の版でテーマを取得して node_modules を張り直す。
 //
-// commander DI / exitOverride / configureOutput.writeErr / 二段例外型は、
-// slidev-project/create.ts を踏襲する。
+// DI と二段例外型は、slidev-project/create.ts を踏襲する。
 // 実体ロジックは domain/slidev-project/sync.ts、fs 操作は infra/slidev-project/fs.ts に分離している。
 
 /* eslint-disable security/detect-non-literal-fs-filename */
@@ -11,13 +10,11 @@ import type { FailureReason } from '../../domain/_shared/failure-kind.js'
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
-import { Command } from 'commander'
-
-import { createDiagnostics, passthrough, writeData } from '../../diagnostics.js'
+import { createDiagnostics } from '../../diagnostics.js'
 import type { LayoutCatalog } from '../../domain/slidev-theme/references.js'
 import { classifyTalkTheme } from '../../domain/slidev-theme/talk-theme.js'
 import { readThemeDeclaration } from '../../domain/slidev-theme/declaration.js'
-import { ThemeSpecError, parseThemeSpec } from '../../domain/slidev-theme/theme-spec.js'
+import { parseThemeSpec } from '../../domain/slidev-theme/theme-spec.js'
 import type { ThemeFiles } from '../../domain/slidev-theme/ports.js'
 import { NodeThemeFiles } from '../../infra/slidev-theme/fs.js'
 import { fetchTheme } from '../../infra/slidev-theme/store.js'
@@ -27,7 +24,6 @@ import { executeSlideTheme } from './theme.js'
 import {
   autoDeckLintJsonField,
   runAutoDeckLint,
-  writeAutoDeckLintReport,
 } from './lint.js'
 import type { AutoDeckLintReport } from './lint.js'
 import { absoluteSpec, packageSpec } from './theme-source.js'
@@ -47,6 +43,7 @@ import {
   SlideCreateUsageError,
 } from '../../domain/slidev-project/errors.js'
 import { pluginDependencyRoot, themeStoreRoot } from '../../infra/_shared/dependency-root.js'
+import { resolvePluginRoot } from '../../infra/_shared/plugin-root.js'
 import {
   assertDependencyRootAvailable,
   hasSlidesMd,
@@ -70,7 +67,7 @@ export interface SlideSyncOptions {
 
 export interface SlideSyncDependencies {
   /**
-  同梱アセットの起点。CLAUDE_PLUGIN_ROOT。
+  同梱アセットの起点（resolvePluginRoot）。
   */
   readonly pluginRoot: string
   /**
@@ -80,7 +77,7 @@ export interface SlideSyncDependencies {
   readonly stdout: NodeJS.WritableStream
   readonly stderr: NodeJS.WritableStream
   /**
-  `--node-modules-only` と、移行済みの talk-dir の通常の sync が、テーマの取得と張り直しを任せる port。
+  `nodeModulesOnly` と、移行済みの talk-dir の通常の sync が、テーマの取得と張り直しを任せる port。
   省略時は実装（git・pnpm・実ファイル）。
   */
   readonly ensureThemeLinked?: EnsureThemeLinkedPort
@@ -123,145 +120,26 @@ function buildFsAdapter(): SlideSyncFsAdapter {
   }
 }
 
-/**
-commander コマンドファクトリ。コマンド名は `sync`、`slide` グループ配下に登録する想定。
-
-受け付ける options を次に示す。
-- `--dir <path>` (必須): talk-dir 絶対パス。
-- `--theme <spec>`: 移行前の talk-dir を、このテーマを参照する形へ移す。
-- `--node-modules-only`: node_modules の張り直しのみ実行。
-- `--json`: machine-readable な JSON を stdout に出す。
-*/
-export function createSlideSyncCommand(
-  buildDependencies: () => SlideSyncDependencies,
-): Command {
-  const command = new Command('sync')
-    .description(
-      'sync a talk-dir; a pre-migration talk-dir that holds a template copy is moved to reference the theme given by --theme'
-      + ' (template-derived files are removed; slides.md, pages/*.md and public/slides/ are kept); '
-      + 'a migrated talk-dir fetches the theme at the version in package.json dependencies and rebuilds node_modules; '
-      + 'generated files (vite.config.ts, start.mjs) are aligned with the current plugin output; nothing else changes',
-    )
-    .requiredOption('--dir <path>', 'absolute path of the talk-dir to sync')
-    .option('--theme <spec>', 'theme referenced by a pre-migration talk-dir (git+https://<host>/<owner>/<repo>.git#<tag> or file:<path>)')
-    .option('--node-modules-only', 'rebuild node_modules only (a normal sync of a migrated talk-dir does the same)', false)
-    .option('--json', 'print machine-readable JSON to stdout', false)
-    .exitOverride()
-    .configureOutput({
-      writeErr: (string_: string) => {
-        const dependencies = buildDependencies()
-        if (doesArgvWantJson(process.argv)) {
-          writeData(dependencies.stdout, JSON.stringify({
-            event: 'slide.sync.error',
-            reason: 'invalid-option',
-            detail: string_.replace(/^error:[ \t]*/i, '').trim(),
-          }))
-        }
-        else {
-          passthrough(dependencies.stderr, string_)
-        }
-      },
-    })
-    .action(async (raw: Readonly<Record<string, unknown>>) => {
-      const dependencies = buildDependencies()
-      const isWantsJson = raw['json'] === true
-      const options: SlideSyncOptions = {
-        dir: requireString(raw, 'dir'),
-        nodeModulesOnly: raw['nodeModulesOnly'] === true,
-        theme: typeof raw['theme'] === 'string' ? raw['theme'] : undefined,
-      }
-
-      try {
-        const execution = await executeSlideSync(options, dependencies, (summary) => {
-          // 人間向けの成否行は lint より先に出す。deck lint の違反一覧が後続で流れても
-          // sync 自体の成否が先頭行に残る。
-          if (isWantsJson) return
-          writeSyncSummary(summary, dependencies.stdout)
-        })
-        if (isWantsJson) {
-          writeData(dependencies.stdout, JSON.stringify(execution.data))
-        }
-        else {
-          writeAutoDeckLintReport(execution.lint, execution.summary.directory, dependencies)
-        }
-      }
-      catch (error: unknown) {
-        const reason = errorToReason(error)
-        const detail = formatError(error)
-        if (isWantsJson) {
-          writeData(dependencies.stdout, JSON.stringify({
-            event: 'slide.sync.error',
-            reason,
-            detail,
-          }))
-        }
-        else {
-          createDiagnostics(dependencies.stderr).error(`slide sync failed: ${detail}`)
-        }
-        process.exitCode = toExitCode(error)
-      }
-    })
-  return command
-}
-
-/**
-人向けの成否行。形は 3 つ。
-- `--node-modules-only`: 「node_modules のみ」の行。テーマを張ったときは name と spec を添える。
-- 張り直しだけの通常の sync（移行済み）: テーマの name と spec、置き場、node_modules のほかは変えていないこと。
-- 移行: テーマの name と spec、消した名前の一覧、作品を残したこと。
-*/
-function writeSyncSummary(
-  summary: Readonly<SlideSyncResultSummary>,
-  // WritableStream の write は mutate。
-  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
-  stdout: NodeJS.WritableStream,
-): void {
-  const { theme } = summary
-  const themeLine = theme === undefined ? undefined : `  theme: ${theme.name} (${theme.spec})`
-  if (summary.nodeModulesOnly) {
-    writeData(stdout, `slide sync (node_modules only): success (${summary.directory})`)
-    if (themeLine !== undefined) writeData(stdout, themeLine)
-    writeData(stdout, `  node_modules → ${summary.nodeModulesTarget}`)
-    return
-  }
-  writeData(stdout, `slide sync: success (${summary.directory})`)
-  if (themeLine !== undefined) writeData(stdout, themeLine)
-  if (summary.mode === 'relink') {
-    if (theme !== undefined) writeData(stdout, `  location: ${theme.directory}`)
-    writeData(stdout, `  node_modules → ${summary.nodeModulesTarget}`)
-    writeData(stdout, '  nothing changed except node_modules')
-    return
-  }
-  writeData(stdout, `  node_modules → ${summary.nodeModulesTarget}`)
-  writeData(stdout, `  removed (${String(summary.removed.length)}): ${summary.removed.join(', ')}`)
-  writeData(stdout, '  kept slides.md, pages/*.md and public/slides/; rewrote theme: in slides.md and the dependency in package.json')
-}
-
 export interface SlideSyncExecution {
   readonly summary: SlideSyncResultSummary
   readonly lint: AutoDeckLintReport
   /**
-  `--json` の `slide.sync.done` payload。MCP ツールの構造化データもこれをそのまま返す。
+  `slide.sync.done` の payload。MCP ツールの構造化データもこれをそのまま返す。
   */
   readonly data: Readonly<Record<string, unknown>>
 }
 
 /**
-`slide sync` の実処理と機械可読な結果組み立て。CLI action と MCP ツールの双方がここを通る。
-
-@param onSynced 同期完了時点（deck lint より前）に呼ばれる。CLI は人間向けの成否行を
-  ここで書き、違反一覧より先に出す。MCP ツールは渡さない。
+slide_sync の実処理と機械可読な結果組み立て。MCP ツールがここを通る。
 */
 export async function executeSlideSync(
   options: Readonly<SlideSyncOptions>,
   // DI 経由の write は mutate メソッド。
   // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
   dependencies: SlideSyncDependencies,
-  onSynced?: (summary: Readonly<SlideSyncResultSummary>) => void,
 ): Promise<SlideSyncExecution> {
   const summary = await runSyncCore(options, dependencies)
   for (const warning of summary.warnings) createDiagnostics(dependencies.stderr).warning(warning)
-  onSynced?.(summary)
   // 同期後のデッキ全体 lint。違反があっても sync の成否は変えない。
   const lint = await runAutoDeckLint(summary.directory, dependencies)
   const catalog = await layoutCatalogOrEmpty(summary.directory, dependencies.stderr)
@@ -273,7 +151,7 @@ export async function executeSlideSync(
       dir: summary.directory,
       nodeModulesTarget: summary.nodeModulesTarget,
       nodeModulesOnly: summary.nodeModulesOnly,
-      // JSON の契約: テーマ無しは null。移行しなかったときの migration も null。
+      // 結果の契約: テーマ無しは null。移行しなかったときの migration も null。
       /* eslint-disable unicorn/no-null */
       theme: summary.theme === undefined
         ? null
@@ -400,7 +278,7 @@ export function errorToReason(error: unknown): FailureReason {
   if (error instanceof SlideSyncRuntimeError) return error.reason
   // infra/slidev-project/fs.ts は SlideCreate{Runtime,Usage}Error を投げる。
   // assertTalkDirectory のルートで、talkDirectoryExists / doesSlidesMdExist が EACCES 等を受けた場合。
-  // SlideCreateRuntimeError を投げ、そのまま CLI に届く。
+  // SlideCreateRuntimeError を投げ、そのまま呼び出し元に届く。
   // ENOENT のルートは SlideSyncRuntimeError に変換される。ここで拾う。
   if (error instanceof SlideCreateRuntimeError) return error.reason
   // テーマの取得・宣言・指定・未参照の失敗は theme-<reason>。
@@ -412,57 +290,26 @@ export function errorToReason(error: unknown): FailureReason {
   /* c8 ignore stop */
 }
 
-export function isUsageError(error: unknown): boolean {
-  return error instanceof SlideSyncUsageError || error instanceof SlideCreateUsageError || error instanceof ThemeSpecError
-}
-
-/**
-失敗時の exit code。usage error = 2、それ以外の実行失敗 = 1。
-*/
-export function toExitCode(error: unknown): number {
-  return isUsageError(error) ? 2 : 1
-}
-
 /* c8 ignore start -- 非 Error 例外 (string throw 等) は本実装範囲では未発生、防御網のみ */
 function formatError(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 /* c8 ignore stop */
 
-function doesArgvWantJson(argv: readonly string[]): boolean {
-  return argv.includes('--json')
-}
-
-function requireString(raw: Readonly<Record<string, unknown>>, key: string): string {
-  // eslint-disable-next-line security/detect-object-injection -- key は本ファイル内固定文字列
-  const value = raw[key]
-  /* c8 ignore next 3 -- commander の requiredOption で必ず string が入るため到達不能 */
-  if (typeof value !== 'string') {
-    throw new SlideSyncUsageError(`option --${key} is required`, 'missing-option')
-  }
-  return value
-}
-
 export function slideSyncDefaultDependencies(): SlideSyncDependencies {
-  const pluginRoot = process.env['CLAUDE_PLUGIN_ROOT']
-  /* c8 ignore next 3 -- bin/pecotv が CLAUDE_PLUGIN_ROOT を必ず export するため未設定ルートは実運用で発生しない */
-  if (pluginRoot === undefined || pluginRoot === '') {
-    throw new SlideSyncRuntimeError('CLAUDE_PLUGIN_ROOT is not set', 'unknown')
-  }
-  const dependencyRoot = pluginDependencyRoot()
   return {
-    pluginRoot,
-    ...(dependencyRoot !== undefined && { dependencyRoot }),
+    pluginRoot: resolvePluginRoot(),
+    dependencyRoot: pluginDependencyRoot(),
     stdout: process.stdout,
     stderr: process.stderr,
   }
 }
 
 /**
-commander を介さず同期本体だけを呼ぶ shortcut。deck lint を伴わないため、
+同期本体だけを呼ぶ shortcut。deck lint を伴わないため、
 同期そのものの結果を観測したいテストが使う（本番ルートは `executeSlideSync`）。
 */
-export async function runSlideSyncFromCli(
+export async function runSlideSyncDirectly(
   directory: string,
   options: Readonly<{ nodeModulesOnly: boolean, theme?: string | undefined }>,
   // DI 経由の write は mutate メソッド。

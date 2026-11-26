@@ -9,14 +9,13 @@ import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
-  createSlideThemeCommand,
   errorToReason,
   executeSlideTheme,
   slideThemeDefaultDependencies,
 } from '../../../src/commands/slidev-project/theme.js'
 import type { SlideThemeDependencies } from '../../../src/commands/slidev-project/theme.js'
-import { isRecord } from '../../../src/domain/_shared/json.js'
 import { NodeThemeFiles } from '../../../src/infra/slidev-theme/fs.js'
+import { rejectionOf } from '../../_helpers/rejection.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
 import { verifies } from '../../_helpers/verifies.js'
 
@@ -49,12 +48,12 @@ function asStream(chunks: string[]): NodeJS.WritableStream {
   return stub as unknown as NodeJS.WritableStream
 }
 
-function makeDependencies(currentDirectory = temporaryRoot()): { dependencies: SlideThemeDependencies, captured: Captured } {
+function makeDependencies(): { dependencies: SlideThemeDependencies, captured: Captured } {
   const stdout: string[] = []
   const stderr: string[] = []
   const dependencies: SlideThemeDependencies = {
     files: new NodeThemeFiles(),
-    currentDirectory,
+    currentDirectory: temporaryRoot(),
     stdout: asStream(stdout),
     stderr: asStream(stderr),
   }
@@ -83,29 +82,6 @@ function makeTalk(options: Readonly<TalkOptions> = {}): string {
     symlinkSync(themeRoot, path.join(talk, 'node_modules', themeName))
   }
   return talk
-}
-
-function dataOf(captured: Readonly<Captured>): Record<string, unknown> {
-  const parsed: unknown = JSON.parse(captured.stdout.join(''))
-  if (!isRecord(parsed)) throw new TypeError('stdout が JSON のオブジェクトではありません')
-  return parsed
-}
-
-async function runCommand(
-  argv: readonly string[],
-  // 出力先の stream は write で mutate する。
-  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
-  dependencies: SlideThemeDependencies,
-): Promise<number | string | undefined> {
-  const previous = process.exitCode
-  process.exitCode = undefined
-  try {
-    await createSlideThemeCommand(() => dependencies).parseAsync([...argv], { from: 'user' })
-    return process.exitCode
-  }
-  finally {
-    process.exitCode = previous
-  }
 }
 
 describe('executeSlideTheme（宣言のあるテーマ）', () => {
@@ -259,56 +235,27 @@ describe('executeSlideTheme の失敗', () => {
   })
 })
 
-describe('createSlideThemeCommand', () => {
-  it('--json で data を 1 行の JSON にして stdout に出す。exit code は 0', async () => {
-    const talk = makeTalk()
-    const { dependencies, captured } = makeDependencies()
-    expect(await runCommand(['--dir', talk, '--json'], dependencies)).toBeUndefined()
-    expect(captured.stdout).toHaveLength(1)
-    expect(captured.stdout[0]?.endsWith('\n')).toBe(true)
-    expect(dataOf(captured)['event']).toBe('slide.theme.done')
-    expect(captured.stderr).toEqual([])
-  })
-
-  it('--dir を省くとカレントの talk-dir を読む', async () => {
-    const talk = makeTalk()
-    const { dependencies, captured } = makeDependencies(talk)
-    await runCommand(['--json'], dependencies)
-    expect(dataOf(captured)['theme']).toMatchObject({ name: WITH_DECLARATION_NAME })
-  })
-
-  it('--json が無ければ、人間向けに名前・レイアウト・警告を出す', async () => {
-    const talk = makeTalk({ themeRoot: WITHOUT_DECLARATION, themeName: 'slidev-theme-pecotv-test-bare' })
-    const { dependencies, captured } = makeDependencies()
-    await runCommand(['--dir', talk], dependencies)
-    const text = captured.stdout.join('')
-    expect(text).toContain('slide theme: slidev-theme-pecotv-test-bare')
-    expect(text).toContain('declaration: absent')
-    expect(text).toContain('one')
-    // 警告は結果と分けて stderr に出る
-    expect(text).not.toContain('warning:')
-    expect(captured.stderr.join('')).toContain('warning: ')
-  })
-
-  it('theme-unlinked では exit 1 で、--json は reason と detail を出す', async () => {
+describe('executeSlideTheme の失敗の reason', () => {
+  it('テーマを張っていない talk-dir は theme-unlinked で、node_modules_only の syncを示す', async () => {
     const talk = makeTalk({ link: false })
-    const { dependencies, captured } = makeDependencies()
-    expect(await runCommand(['--dir', talk, '--json'], dependencies)).toBe(1)
-    const data = dataOf(captured)
-    expect(data['event']).toBe('slide.theme.error')
-    expect(data['reason']).toBe('theme-unlinked')
-    expect(data['detail']).toEqual(expect.stringContaining('--node-modules-only'))
+
+    const { dependencies } = makeDependencies()
+    const error = await rejectionOf(executeSlideTheme({ dir: talk }, dependencies))
+
+    expect(errorToReason(error)).toBe('theme-unlinked')
+    expect(error instanceof Error ? error.message : '').toEqual(expect.stringContaining('node_modules_only'))
   })
 
-  it('theme-none では exit 1 で、slide sync --theme を案内する', async () => {
+  it('theme: none の talk-dir は theme-none で、slide_sync の theme を案内する', async () => {
     const talk = temporaryRoot('legacy')
     mkdirSync(talk, { recursive: true })
     writeFileSync(path.join(talk, 'slides.md'), '---\ntheme: none\n---\n')
-    const { dependencies, captured } = makeDependencies()
-    expect(await runCommand(['--dir', talk, '--json'], dependencies)).toBe(1)
-    const data = dataOf(captured)
-    expect(data['reason']).toBe('theme-none')
-    expect(data['detail']).toEqual(expect.stringContaining('slide sync --theme <theme-spec>'))
+
+    const { dependencies } = makeDependencies()
+    const error = await rejectionOf(executeSlideTheme({ dir: talk }, dependencies))
+
+    expect(errorToReason(error)).toBe('theme-none')
+    expect(error instanceof Error ? error.message : '').toEqual(expect.stringContaining('slide_sync with theme: <theme-spec>'))
   })
 
   it('宣言の誤りは reason を theme-<reason> にする', async () => {
@@ -319,56 +266,18 @@ describe('createSlideThemeCommand', () => {
       JSON.stringify({ schema: 1, lint: { rules: { 'no-such/rule': 'error' } } }),
     )
     const talk = makeTalk({ themeRoot })
-    const { dependencies, captured } = makeDependencies()
-    expect(await runCommand(['--dir', talk, '--json'], dependencies)).toBe(1)
-    const data = dataOf(captured)
-    expect(data['reason']).toBe('theme-unknown-rule')
-    expect(data['detail']).toEqual(expect.stringContaining('no-such/rule'))
-  })
 
-  it('--json が無い失敗は stderr に 1 行出す', async () => {
-    const talk = makeTalk({ link: false })
-    const { dependencies, captured } = makeDependencies()
-    expect(await runCommand(['--dir', talk], dependencies)).toBe(1)
-    expect(captured.stdout).toEqual([])
-    expect(captured.stderr.join('')).toContain('error: slide theme failed:')
-  })
+    const { dependencies } = makeDependencies()
+    const error = await rejectionOf(executeSlideTheme({ dir: talk }, dependencies))
 
-  it('未知のオプションは exit 2 の usage error。--json なら invalid-option を stdout に出す', async () => {
-    const { dependencies, captured } = makeDependencies()
-    const previousArgv = process.argv
-    process.argv = ['node', 'cli.js', 'slide', 'theme', '--nope', '--json']
-    try {
-      await expect(runCommand(['--nope', '--json'], dependencies)).rejects.toThrow()
-    }
-    finally {
-      process.argv = previousArgv
-    }
-    const data = dataOf(captured)
-    expect(data['event']).toBe('slide.theme.error')
-    expect(data['reason']).toBe('invalid-option')
+    expect(errorToReason(error)).toBe('theme-unknown-rule')
+    expect(error instanceof Error ? error.message : '').toEqual(expect.stringContaining('no-such/rule'))
   })
 })
 
 describe('errorToReason', () => {
   it('解決・宣言以外の例外は unknown', () => {
     expect(errorToReason(new Error('x'))).toBe('unknown')
-  })
-})
-
-describe('createSlideThemeCommand の usage error', () => {
-  it('--json が無ければ、commander の英文を stderr に出す', async () => {
-    const { dependencies, captured } = makeDependencies()
-    const previousArgv = process.argv
-    process.argv = ['node', 'cli.js', 'slide', 'theme', '--nope']
-    try {
-      await expect(runCommand(['--nope'], dependencies)).rejects.toThrow()
-    }
-    finally {
-      process.argv = previousArgv
-    }
-    expect(captured.stderr.join('')).toContain('unknown option')
-    expect(captured.stdout).toEqual([])
   })
 })
 

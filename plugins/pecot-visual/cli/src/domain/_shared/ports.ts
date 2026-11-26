@@ -93,9 +93,8 @@ export interface PptxWriter {
 }
 
 /**
-PPTX を soffice (LibreOffice headless) 経由で PDF 化する port。
-`pecotv pptx preview` が、プレビュー正規化済みの一時 PPTX を PDF へレンダリングするときに
-利用する。fake 差し替えで command テストを soffice 非依存にする（SlidevRunner と同流儀）。
+OOXML ファイルを soffice (LibreOffice headless) 経由で PDF 化する port。
+e2e が xlsx を PDF へレンダリングして見た目を確かめるときに使う。
 
 実装は soffice の出力 PDF を outputDirectory/<inputStem>.pdf に書き出す。soffice が変換失敗でも
 exit 0 を返す既知挙動があるため、成否判定（PDF 実在・非空）は呼び出し元の責務とする。
@@ -152,7 +151,7 @@ Slidev 出力ディレクトリ (`dist/`) から PPTX を生成する port。
 
 `skipPostprocess: true` を渡すと、Phase 2+3 (旧 Python pptx-postprocess 相当の merge) を skip する。
 その場合は単スライド PPTX (slides/<prefix><N>.pptx) のみが生成される。
-pecotv slide convert はこちらを利用し、merge は cli 側 `domain/pptx-ooxml/merge.ts` で実施する。
+slide_convert はこちらを利用し、merge は cli 側 `domain/pptx-ooxml/merge.ts` で実施する。
 */
 export interface SlidevPptxPipeline {
   // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- stream は mutable 型

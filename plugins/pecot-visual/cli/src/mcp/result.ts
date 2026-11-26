@@ -71,7 +71,7 @@ export function toCallToolResult(result: Readonly<ToolResult>): CallToolResult {
 }
 
 /**
-CLI の `--json` の失敗の payload から reason・detail を外す。原因の名前は共通の kind、全文は共通の detail で返すため。
+失敗の payload から reason・detail を外す。原因の名前は共通の kind、全文は共通の detail で返すため。
 */
 export function withoutCommonFailureFields(data: Readonly<Record<string, unknown>>): Record<string, unknown> {
   const { reason: _reason, detail: _detail, ...rest } = data
@@ -323,6 +323,15 @@ export function toolOutputSchema(output: z.ZodObject): Record<string, unknown> {
     ...rest,
     ...required.length > 0 && { anyOf: [{ required }, { required: [...FAILURE_REQUIRED] }] },
   }
+}
+
+/**
+宣言をそのまま JSON Schema にする。フックが呼ぶツールは、共通の 4 項目を返さない
+*/
+// zod の型は readonly にできない。
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
+export function plainOutputSchema(output: z.ZodObject): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(z.toJSONSchema(output, { io: 'output' })).filter(([key]) => key !== '$schema'))
 }
 
 /**

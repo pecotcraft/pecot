@@ -1,4 +1,4 @@
-// evidence 系の MCP ツール定義 (evidence_create)。CLI の `--json` が出すオブジェクトをそのまま項目として返す。
+// evidence 系の MCP ツール定義 (evidence_create)。
 
 import path from 'node:path'
 
@@ -46,7 +46,7 @@ const evidenceCreateOutput = toolOutputFields(evidenceCreateShape, TEXT_VIOLATIO
 /**
 out_path 省略時の既定。
 
-CLI の既定 `./evidence.xlsx` は cwd 依存で、MCP サーバの cwd はクライアントの cwd と
+既定の `./evidence.xlsx` は cwd 依存で、MCP サーバの cwd はクライアントの cwd と
 一致する保証が無い (FR-011 が相対パスを弾く理由と同じ)。input_path と同じディレクトリに置く。
 */
 function defaultOutPath(inputPath: string): string {

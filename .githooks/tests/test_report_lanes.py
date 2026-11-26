@@ -31,7 +31,6 @@ _INCLUDED = [
     "nx-release:test-unit",
     "pecot-tools:test-cli",
     "pecot-tools:test-release",
-    "pecot-visual:test-bootstrap",
     "pecot-visual:test-cli",
     "pecot-visual:test-compare",
     "pecot-visual:test-hooks",

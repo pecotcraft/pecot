@@ -21,12 +21,12 @@ export class PipelineTimeoutError extends Error {
   public readonly lastProgress?: string
 
   /**
-  pipeline が中断までに積んだ警告。commands 層が `--json` の error payload へ載せる。
+  pipeline が中断までに積んだ警告。commands 層が失敗の結果へ載せる。
   */
   public readonly warnings?: readonly string[]
 
   /**
-  pipeline が中断までに積んだエラー。commands 層が `--json` の error payload へ載せる。
+  pipeline が中断までに積んだエラー。commands 層が失敗の結果へ載せる。
   */
   public readonly errors?: readonly PipelineError[]
 
@@ -59,12 +59,12 @@ export class PipelineTimeoutError extends Error {
 
 export class PipelineRuntimeError extends Error {
   /**
-  pipeline が失敗までに積んだ警告。commands 層が `--json` の error payload へ載せる。
+  pipeline が失敗までに積んだ警告。commands 層が失敗の結果へ載せる。
   */
   public readonly warnings?: readonly string[]
 
   /**
-  pipeline が失敗までに積んだエラー。commands 層が `--json` の error payload へ載せる。
+  pipeline が失敗までに積んだエラー。commands 層が失敗の結果へ載せる。
   */
   public readonly errors?: readonly PipelineError[]
 

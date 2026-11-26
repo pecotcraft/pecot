@@ -1,42 +1,35 @@
 // commands/drawio/url.ts の defaultDeps.writeFile が出力先の親ディレクトリを補完することを pin する。
-// 出力先は pecotv 利用検知 hook が作る前提。
-// hook が動かない環境（旧プラグイン・CLAUDE_PROJECT_DIR 未設定）では `.pecotv/work/drawio/` が存在しない。
-// 補完が無いと `pecotv drawio url -o` が output-write-failed (exit 2) になる（#662）。
+// 出力先は利用検知 hook が作る前提。
+// hook が動かない環境では `.pecotv/work/drawio/` が存在しない。
+// 補完が無いと drawio_url の出力が output-write-failed になる（#662）。
 
 /* eslint-disable security/detect-non-literal-fs-filename */
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { createDrawioUrlCommand, drawioUrlDefaultDependencies } from '../url.js'
+import { drawioUrlDefaultDependencies, executeDrawioUrl } from '../url.js'
 
-// === 統合テスト: createDrawioUrlCommand + defaultDependencies ===
-// url コマンド全体の接続退行を検知する（F-08）。
-// PNG キャプチャ（playwright）は --no-png で省略する。
-describe('createDrawioUrlCommand (integration)', () => {
+// executeDrawioUrl + 既定の依存の接続退行を検知する（F-08）。
+// PNG キャプチャ（playwright）は png: false で省略する。
+describe('executeDrawioUrl (integration)', () => {
   let workDirectory: string
 
   beforeEach(async () => {
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', path.resolve(__dirname, '../../../../../'))
     workDirectory = await mkdtemp(path.join(tmpdir(), 'pecotv-url-integration-test-'))
   })
 
   afterEach(async () => {
-    vi.unstubAllEnvs()
     await rm(workDirectory, { recursive: true, force: true })
-    // process.exitCode をリセットして後続テストに影響させない
-    process.exitCode = undefined
   })
 
-  it('-o で親ディレクトリ未作成のパスを指定してもファイルが生成される（接続退行テスト）', async () => {
+  it('output で親ディレクトリ未作成のパスを指定してもファイルが生成される（接続退行テスト）', async () => {
     const inputFile = path.resolve(__dirname, '../../../../tests/fixtures/drawio/minimal.drawio')
     const outputFile = path.join(workDirectory, 'nested', 'sub', 'output.drawio.html')
 
-    const command = createDrawioUrlCommand(() => drawioUrlDefaultDependencies())
-    // exitOverride() 済みのため、process.exit は CommanderError をスローする（exit code 0 はスローしない）
-    await command.parseAsync([inputFile, '-o', outputFile, '--no-png'], { from: 'user' })
+    const execution = await executeDrawioUrl(inputFile, { mode: 'view', png: false, output: outputFile }, drawioUrlDefaultDependencies())
 
     const written = await stat(outputFile)
     expect(written.isFile()).toBe(true)
@@ -47,8 +40,9 @@ describe('createDrawioUrlCommand (integration)', () => {
     expect(content).toContain('<meta http-equiv="refresh" content="0;url=https://app.diagrams.net/')
     expect(content).toContain('<a id="target" href="https://app.diagrams.net/')
 
-    // 警告なしなら exit code は 0 のまま（undefined）
-    expect(process.exitCode ?? 0).toBe(0)
+    // 警告なし
+    expect(execution.warningCount).toBe(0)
+    expect(execution.artifacts).toStrictEqual([outputFile])
   })
 })
 
@@ -56,12 +50,10 @@ describe('drawioUrlDefaultDependencies.writeFile', () => {
   let workDirectory: string
 
   beforeEach(async () => {
-    vi.stubEnv('CLAUDE_PLUGIN_ROOT', '/plugin-root-stub')
     workDirectory = await mkdtemp(path.join(tmpdir(), 'pecotv-url-test-'))
   })
 
   afterEach(async () => {
-    vi.unstubAllEnvs()
     await rm(workDirectory, { recursive: true, force: true })
   })
 

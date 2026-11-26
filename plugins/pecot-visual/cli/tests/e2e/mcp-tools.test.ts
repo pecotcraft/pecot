@@ -1,4 +1,4 @@
-// CUJ: MCP クライアントが `pecotv mcp` へ stdio 接続し、11 ツールを一覧して呼び出す。
+// CUJ: MCP クライアントが `node dist/main.js` へ stdio 接続し、全ツールを一覧して呼び出す。
 //
 // in-process の contract / errors テストが見ているのは、応答の形だけ。
 // 「実プロセスに登録されたツールが本当に一覧に出て、呼ぶと動くか」は、spawn しないと分からない。
@@ -37,6 +37,7 @@ import { parse } from 'yaml'
 import { isChromiumInstalled } from '../../src/infra/playwright/chromium.js'
 import { attachFile, attachOutput, readOutput } from '../_helpers/attach.js'
 import { AttachingClient } from '../_helpers/attaching-client.js'
+import { allTools } from '../../src/mcp/tools/index.js'
 import { createFixtureThemeSpec } from '../_helpers/pecotv-e2e-run.js'
 import { buildPng } from '../_helpers/image-fixture.js'
 import { CLI_DIST, CLI_ROOT, drainStderr, isReaped, makeTransport } from '../_helpers/mcp-stdio.js'
@@ -89,9 +90,9 @@ const DEV_SERVER_TIMEOUT_MS = 30_000
 const PORT_RELEASE_TIMEOUT_MS = 15_000
 
 /**
-契約で定めた公開ツール数 (内訳の検証は src/mcp/tests/contract.test.ts が持つ)。
+登録したツール数 (内訳の検証は src/mcp/tests/contract.test.ts が持つ)。
 */
-const EXPECTED_TOOL_COUNT = 11
+const EXPECTED_TOOL_COUNT = allTools().length
 
 /**
 127.0.0.1 の該当ポートに TCP で繋がるか。dev サーバの生存・解放の観測に使う。
@@ -182,7 +183,7 @@ async function withClient(
     await client.close()
     // 子の stderr は判定の失敗メッセージにだけ使うが、落ちた理由の手掛かりなので残す。
     const stderr = readStderr()
-    if (stderr !== '') attachOutput('pecotv mcp', undefined, '', stderr)
+    if (stderr !== '') attachOutput('MCP サーバ', undefined, '', stderr)
   }
 }
 
@@ -214,8 +215,8 @@ afterAll(() => {
   if (workDirectory() !== '') rmSync(workDirectory(), { recursive: true, force: true })
 })
 
-describe('pecotv mcp のツール (stdio)', () => {
-  it('tools/list が 11 件を description と inputSchema つきで返す', async () => {
+describe('MCP のツール (stdio)', () => {
+  it('tools/list が登録した件数を description と inputSchema つきで返す', async () => {
     await withClient(async (client, readStderr) => {
       const listed = await client.listTools(undefined, { timeout: REQUEST_TIMEOUT_MS })
 
@@ -590,7 +591,7 @@ describe('pecotv mcp のツール (stdio)', () => {
       expect(await isPortListening(leftRunningPort)).toBe(true)
     })
 
-    // withClient は client.close() まで済ませている。stdin の EOF で `pecotv mcp` が終わると、
+    // withClient は client.close() まで済ませている。stdin の EOF で サーバが終わると、
     // 預かっていた dev サーバも道連れになる (孤児を残さない)。
     await expectPortReleased(leftRunningPort)
   }, 120_000)
@@ -642,8 +643,8 @@ describe('pecotv mcp のツール (stdio)', () => {
   }, 120_000)
 
   it('chromium 未取得でも serve は続き、依存ツールは runtime_setup を案内する', async () => {
-    // `pecotv mcp` は接続を MCP_TIMEOUT に収めるため chromium を起動条件から外し、デフォルトでは
-    // 取得もしない (bin/pecotv)。未取得のまま呼ばれたときの見え方は、サーバプロセス側の
+    // サーバは接続を MCP_TIMEOUT に収めるため chromium を起動条件から外し、デフォルトでは
+    // 取得もしない (サーバ起動時)。未取得のまま呼ばれたときの見え方は、サーバプロセス側の
     // 環境でしか作れないのでここで観測する。空の browsers root を向けて未取得を作る。
     // 実ダウンロードを誘発しないよう opt-in の env は立てない。
     const emptyBrowsersRoot = mkdtempSync(path.join(tmpdir(), 'pecotv-test-e2e-nochromium-'))

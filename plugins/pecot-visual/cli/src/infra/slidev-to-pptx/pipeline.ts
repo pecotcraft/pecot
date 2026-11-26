@@ -1060,7 +1060,7 @@ export async function convertToPptx(
   }
   catch (error) {
     // 変換が失敗しても、それまでに積んだエラー・警告は、「一度だけ」の一元出力を維持したまま stderr に残す。
-    // 加えて PipelineRuntimeError に載せ、commands 層の --json 出力へ引き継ぐ。
+    // 加えて PipelineRuntimeError に載せ、commands 層の失敗の結果へ引き継ぐ。
     // 成功した場合とは排他のため、順序を揃えておけば重複出力は起きない。
     //
     // この run は `=== 変換結果サマリー ===` まで到達していない。

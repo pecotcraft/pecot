@@ -18,10 +18,6 @@ environment:
     effect: 'Playwright の Chromium を入れて探すディレクトリを変えます。`0` にすると、パッケージの中に置きます。'
   - name: NODE_EXTRA_CA_CERTS
     effect: 'SSL を中継するプロキシの CA を書いた PEM ファイルです。子プロセス（pnpm・npm・Chromium のダウンロード）に渡します。'
-  - name: PECOTV_DEPENDENCY_ROOT
-    effect: '依存を解決する起点にする、プラグインの実行用の写しです。`bin/pecotv` が渡し、`CLAUDE_PLUGIN_ROOT` より先に使います。'
-  - name: PECOTV_RUNTIME_DIR
-    effect: '`bin/pecotv` が渡す、動いているプラグインの写し（`runtime/<hash>`）です。その親に、Chromium のダウンロードのロックと、OS のライブラリを確かめた記録を置きます。'
   - name: PECOTV_AUTO_INSTALL_BROWSER
     effect: '`1` にすると、Chromium を使うツールが、その場で Chromium をダウンロードします。それ以外では、Chromium が無いときに `runtime_setup` の呼び出しを案内します。'
   - name: WSL_DISTRO_NAME
@@ -334,6 +330,168 @@ entries:
       - id: PV-EVIDENCE-CREATE-05
         pattern: unwanted
         statement: 'もし `input_path` のファイルが無いなら、`input-not-found` の失敗を返します'
+  PV-FILE-BRIEF:
+    summary: 編集したページの layout に当たる参照の YAML から、規約の節を原文のまま返します。PostToolUse のフックが呼びます。
+    arguments:
+      cwd: 'セッションの作業ディレクトリです。`file_path` が相対パスのときの起点にもなります。'
+      file_path: '書いたか編集したファイルの絶対パスです。フックが `tool_input.file_path` を渡します。'
+    constraints: []
+    details:
+      - 'talk-dir の `pages/` の下のページだけを見ます。ページの frontmatter の `layout` から参照の YAML を探し、`status`・`best_practices`・`anti_patterns` の節を写します。ページの良し悪しは判定しません。'
+      - '知らせることが無いときは `{}` を返します。知らせるときは、`hookSpecificOutput.additionalContext` に YAML のパスと節を載せます。3500 バイトを超えた分は省きます。'
+      - '失敗（`isError`）を返しません。テーマを読めないときも、知らせずに `{}` を返します。'
+      - 'ほかのツールの実行を待たずに動き、progress の通知を送りません。'
+    stdin: none
+    output:
+      format: none
+    mcp_output:
+      fields:
+        hookSpecificOutput: 'フックがエージェントへ渡す知らせです。`hookEventName` は `PostToolUse` で、`additionalContext` に文が入ります。知らせることが無いときは入りません。'
+    diagnostics: default
+    environment: []
+    exit_status: []
+    on_error: '失敗を返しません。処理の途中の例外も、`{}` を返して終えます。'
+    effects:
+      - target: file
+        kind: read
+        what: 'ページと、テーマの宣言・参照の YAML を読みます。'
+    prerequisites: []
+    idempotent: true
+    examples:
+      - arguments:
+          file_path: '/work/talk/pages/cover.md'
+        note: 'cover.md の layout に当たる参照の YAML から、規約の節を受け取ります。'
+    default_notes: {}
+    behaviors:
+      - id: PV-FILE-BRIEF-01
+        pattern: event
+        statement: 'talk-dir のページを渡すと、その `layout` の参照の YAML から規約の節を原文のまま写し、YAML のパスを添えて返します'
+      - id: PV-FILE-BRIEF-02
+        pattern: unwanted
+        statement: 'もしページに `layout` が無いか、参照の YAML が無いか、テーマを読めないなら、`{}` を返します'
+      - id: PV-FILE-BRIEF-03
+        pattern: event
+        statement: '`pages/` の下のページでないファイルを渡すと、`{}` を返します'
+      - id: PV-FILE-BRIEF-04
+        pattern: ubiquitous
+        statement: '常に、ファイルを書き換えず、失敗（`isError`）を返しません'
+      - id: PV-FILE-BRIEF-05
+        pattern: event
+        statement: 'ほかのツールの実行中に呼ぶと、キューで待たずに実行します'
+  PV-FILE-LINT:
+    summary: 書いたか編集したファイルを lint し、違反か lint しなかったことを知らせます。PostToolUse のフックが呼びます。
+    arguments:
+      cwd: 'セッションの作業ディレクトリです。git のリポジトリの外のファイルは、ここで文章の規則を動かし、ここの `.textlintignore` を読みます。`file_path` が相対パスのときの起点にもなります。'
+      file_path: '書いたか編集したファイルの絶対パスです。フックが `tool_input.file_path` を渡します。'
+    constraints: []
+    details:
+      - 'talk-dir の `pages/**/*.md` と `slides.md` は、テーマの規則で eslint を動かします。ファイルは直しません。'
+      - 'それ以外のファイルは、ファイルが属する git のリポジトリのルートで、文章の規則（pecot-text-lint）を動かします。リポジトリの外なら `cwd` で動かします。'
+      - '知らせることが無いときは `{}` を返します。違反と、lint しなかったことと理由は、`hookSpecificOutput.additionalContext` に載せます。eslint は 3500 バイト、文章の規則は 3000 バイトを超えた分を省き、省いた件数を最後の行に書きます。'
+      - 'eslint と pecot-text-lint を起動できない・時間切れ・異常終了のときも、失敗（`isError`）を返しません。'
+      - 'ほかのツールの実行を待たずに動き、progress の通知を送りません。'
+    stdin: none
+    output:
+      format: none
+    mcp_output:
+      fields:
+        hookSpecificOutput: 'フックがエージェントへ渡す知らせです。`hookEventName` は `PostToolUse` で、`additionalContext` に違反か、lint しなかったことと理由が入ります。知らせることが無いときは入りません。'
+    diagnostics: default
+    environment: []
+    exit_status: []
+    on_error: '失敗を返しません。処理の途中の例外も、lint しなかったことと理由を `additionalContext` に載せて返します。'
+    effects:
+      - target: file
+        kind: read
+        what: 'ファイルと、テーマの宣言を読みます。'
+      - target: process
+        kind: read
+        what: 'eslint か pecot-text-lint を動かし、その結果を読みます。ファイルは直さず、書きません。'
+    prerequisites: []
+    idempotent: true
+    examples:
+      - arguments:
+          file_path: '/work/talk/pages/cover.md'
+        note: 'ページをテーマの規則で lint します。'
+      - arguments:
+          file_path: '/work/repo/docs/guide.md'
+          cwd: '/work/repo'
+        note: 'ドキュメントを文章の規則で調べます。'
+    default_notes: {}
+    behaviors:
+      - id: PV-FILE-LINT-01
+        pattern: event
+        statement: 'talk-dir の `pages/**/*.md` か `slides.md` を渡すと、テーマの規則で eslint を動かし、違反を `additionalContext` に載せて返します'
+      - id: PV-FILE-LINT-02
+        pattern: event
+        statement: 'それ以外のファイルを渡すと、ファイルが属する git のリポジトリのルートで文章の規則を動かし、違反を `additionalContext` に載せて返します'
+      - id: PV-FILE-LINT-03
+        pattern: event
+        statement: '違反の無いファイルを渡すと、`{}` を返します'
+      - id: PV-FILE-LINT-04
+        pattern: unwanted
+        statement: 'もし lint を完走できない（起動できない・時間切れ・異常終了）なら、違反と言わずに lint しなかったことと理由を `additionalContext` に載せます'
+      - id: PV-FILE-LINT-05
+        pattern: unwanted
+        statement: 'もし違反の文が上限の大きさを超えたなら、上限までの行を残し、省いた件数を最後の行に書きます'
+      - id: PV-FILE-LINT-06
+        pattern: ubiquitous
+        statement: '常に、ファイルを書き換えず、失敗（`isError`）を返しません'
+      - id: PV-FILE-LINT-07
+        pattern: event
+        statement: 'ほかのツールの実行中に呼ぶと、キューで待たずに実行します'
+  PV-FILE-VALIDATE:
+    summary: 編集した参照の YAML がある dir を、参照のスキーマで検証します。PostToolUse のフックが呼びます。
+    arguments:
+      cwd: 'セッションの作業ディレクトリです。`file_path` が相対パスのときの起点にもなります。'
+      file_path: '書いたか編集したファイルの絶対パスです。フックが `tool_input.file_path` を渡します。'
+    constraints: []
+    details:
+      - 'テーマの `lint.referencesDirectories` にある dir の YAML だけを検証します。`_template.yaml` は検証しません。'
+      - 'validator は dir の直下の `*.yaml` 全体を検証します。結果は、編集したファイルの違反に限りません。'
+      - '知らせることが無いときは `{}` を返します。違反と、検証しなかったことと理由は、`hookSpecificOutput.additionalContext` に載せます。3000 バイトを超えた分は省きます。'
+      - 'validator を起動できない・時間切れ・異常終了のときも、失敗（`isError`）を返しません。'
+      - 'ほかのツールの実行を待たずに動き、progress の通知を送りません。'
+    stdin: none
+    output:
+      format: none
+    mcp_output:
+      fields:
+        hookSpecificOutput: 'フックがエージェントへ渡す知らせです。`hookEventName` は `PostToolUse` で、`additionalContext` に違反か、検証しなかったことと理由が入ります。知らせることが無いときは入りません。'
+    diagnostics: default
+    environment: []
+    exit_status: []
+    on_error: '失敗を返しません。処理の途中の例外も、検証しなかったことと理由を `additionalContext` に載せて返します。'
+    effects:
+      - target: file
+        kind: read
+        what: 'テーマの宣言と、参照の dir の YAML を読みます。'
+      - target: process
+        kind: read
+        what: 'validator を動かし、その結果を読みます。ファイルは書きません。'
+    prerequisites: []
+    idempotent: true
+    examples:
+      - arguments:
+          file_path: '/work/talk/node_modules/slidev-theme-example/references/cover.yaml'
+        note: 'テーマの参照の dir を検証します。'
+    default_notes: {}
+    behaviors:
+      - id: PV-FILE-VALIDATE-01
+        pattern: event
+        statement: 'テーマの参照の dir にある YAML を渡すと、その dir を参照のスキーマで検証し、違反を `additionalContext` に載せて返します'
+      - id: PV-FILE-VALIDATE-02
+        pattern: event
+        statement: '参照の dir の外の YAML、`_template.yaml`、YAML でないファイルを渡すと、検証せずに `{}` を返します'
+      - id: PV-FILE-VALIDATE-03
+        pattern: unwanted
+        statement: 'もし検証を完走できない（起動できない・時間切れ・異常終了）なら、違反と言わずに検証しなかったことと理由を `additionalContext` に載せます'
+      - id: PV-FILE-VALIDATE-04
+        pattern: ubiquitous
+        statement: '常に、ファイルを書き換えず、失敗（`isError`）を返しません'
+      - id: PV-FILE-VALIDATE-05
+        pattern: event
+        statement: 'ほかのツールの実行中に呼ぶと、キューで待たずに実行します'
   PV-RUNTIME-SETUP:
     summary: スライドと図のツールが使う実行時依存と Chromium を入れます。
     constraints: []
@@ -1213,7 +1371,7 @@ common_behaviors:
     statement: '最上位に宣言外のキーを渡すと、そのキーを無視して通常どおり実行します'
   - id: PV-COMMON-03
     pattern: unwanted
-    statement: 'もしパスを渡す入力が相対パスなら、処理を始めずに 失敗（`isError`）を返し、渡した値を `invalidPaths` に載せます'
+    statement: 'もしパスを渡す入力が相対パスなら、処理を始めずに 失敗（`isError`）を返し、渡した値を `invalidPaths` に載せます（フックが呼ぶ `file_*` のツールを除く）'
   - id: PV-COMMON-04
     pattern: event
     statement: 'Windows 形式のパスを渡すと、`/mnt/<ドライブ>/` の下か WSL の中の絶対パスに変換して処理します'
@@ -1228,7 +1386,7 @@ common_behaviors:
     statement: 'もし結果が失敗なら、`isError` を真にし、`kind` と `detail` を最上位に載せます'
   - id: PV-COMMON-08
     pattern: event
-    statement: '呼び出しが同時に届くと、1 件ずつ到着順に実行します'
+    statement: '呼び出しが同時に届くと、1 件ずつ到着順に実行します（フックが呼ぶ `file_*` のツールを除く）'
   - id: PV-COMMON-09
     pattern: event
     statement: '`progressToken` を付けて呼ぶと、キューでの待機中と実行中の 10 秒ごとに progress 通知を送ります'

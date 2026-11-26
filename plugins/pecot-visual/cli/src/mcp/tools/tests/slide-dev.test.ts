@@ -802,7 +802,7 @@ describe('slideDevTool', () => {
   })
 
   it('テーマを参照しない talk-dir (移行前の形) は theme-none で止まる', async () => {
-    const failure = new ThemeResolveError('テーマを参照していません。slide sync --theme を実行してください', 'theme-none')
+    const failure = new ThemeResolveError('テーマを参照していません。slide_sync の theme を渡してください', 'theme-none')
 
     const result = await toolWith(unusedRegistry(), () => Promise.reject(failure)).handler(
       { dir: talkDirectory, stop: false },

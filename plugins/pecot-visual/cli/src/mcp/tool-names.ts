@@ -18,6 +18,7 @@ export const TOOL_SUBJECTS: readonly ToolNameWord[] = [
   { word: 'evidence', meaning: 'evidence workbooks built from screenshots' },
   { word: 'slide', meaning: 'Slidev decks and talk directories' },
   { word: 'runtime', meaning: 'runtime dependencies and Playwright Chromium' },
+  { word: 'file', meaning: 'a file the agent just wrote or edited (called by hooks)' },
 ]
 
 /**
@@ -28,9 +29,11 @@ export const TOOL_VERBS: readonly ToolNameWord[] = [
   { word: 'export', meaning: 'write a diagram out as SVG and PDF' },
   { word: 'convert', meaning: 'convert a deck to PPTX' },
   { word: 'dev', meaning: 'start the dev server' },
-  { word: 'lint', meaning: 'list rule violations in a talk directory' },
+  { word: 'lint', meaning: 'list rule violations in a talk directory or a file' },
   { word: 'page', meaning: 'generate a page skeleton for a layout' },
   { word: 'sync', meaning: 'bring a talk directory in line with its theme' },
   { word: 'theme', meaning: 'return the theme declaration and its layouts' },
   { word: 'setup', meaning: 'download what other tools need at run time' },
+  { word: 'validate', meaning: 'check reference yaml against its schema' },
+  { word: 'brief', meaning: 'return the conventions that apply to a page' },
 ]

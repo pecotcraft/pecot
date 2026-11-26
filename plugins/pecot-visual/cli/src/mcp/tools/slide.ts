@@ -1,5 +1,5 @@
 // MCP ツール定義のうち slide 系 4 件 (slide_create / slide_convert / slide_sync / slide_lint)。
-// deps はハンドラ内で組み立てる (既定 deps は CLAUDE_PLUGIN_ROOT 未設定で throw し、top-level だと tools/list ごと落ちる)。
+// deps はハンドラ内で組み立てる。
 
 import path from 'node:path'
 
@@ -57,7 +57,7 @@ import {
 } from './_shared.js'
 
 /**
-失敗時の ToolResult。data は対応する CLI コマンドの `--json` error payload と同形にする。
+失敗時の ToolResult。
 */
 function failureResult(
   event: string,
@@ -228,7 +228,7 @@ const slideCreateInput = z.object({
 })
 
 /**
-`pecotv slide create` 相当。`theme` で指定したテーマを参照する Slidev プロジェクトを生成し、
+`theme` で指定したテーマを参照する Slidev プロジェクトを生成し、
 生成直後のデッキ全体 lint 結果を data に載せて返す (lint 違反は成否に影響しない)。
 */
 export function slideCreateTool(
@@ -275,13 +275,13 @@ export function slideCreateTool(
           input.project_dir,
           // 人間向けの catalog 整形出力は stdout を汚すので出さない。
           // 同じ元データは layouts に構造化して載る。
-          { theme: normalized.theme, force: input.force, emitCatalog: false },
+          { theme: normalized.theme, force: input.force },
           dependencies,
         )
         return output.finish({
           ok: true,
           data: execution.data,
-          message: `slide create: succeeded (${execution.summary.projectDirectory})`,
+          message: `slide_create: succeeded (${execution.summary.projectDirectory})`,
         })
       }
       catch (error: unknown) {
@@ -320,7 +320,7 @@ const slideConvertInput = z.object({
 })
 
 /**
-`pecotv slide convert` 相当。`slidev build` と in-process pipeline を起動するため、11 ツールの中で最も長時間かかる。
+`slidev build` と in-process pipeline を起動するため、11 ツールの中で最も長時間かかる。
 progress ハートビートは server.ts 側が一律で送り、文言は工程と変換の件数・割合に差し替える。
 */
 export function slideConvertTool(
@@ -362,7 +362,7 @@ export function slideConvertTool(
 
       const output = captureCommandOutput()
       try {
-        // json: false 相当で呼び、出力を捕捉する。warning の行は warnings、失敗のときの出力は log に入る。
+        // 出力を捕捉する。warning の行は warnings、失敗のときの出力は log に入る。
         const dependencies: SlideConvertDependencies = {
           ...buildDependencies(),
           stdout: output.stdout,
@@ -376,7 +376,6 @@ export function slideConvertTool(
           ?? await resolveDefaultOut(path.resolve(input.project_dir), output.stderr)
         const options: SlideConvertOptions = {
           out,
-          json: false,
           cache: input.cache,
           ...(input.theme !== undefined && { theme: input.theme }),
           ...(input.spacing_json_path !== undefined && { spacingJson: input.spacing_json_path }),
@@ -389,7 +388,7 @@ export function slideConvertTool(
         return output.finish({
           ok: true,
           data: execution.data,
-          message: `slide convert: ${execution.summary.inputAbs} -> ${execution.summary.outputAbs}`
+          message: `slide_convert: ${execution.summary.inputAbs} -> ${execution.summary.outputAbs}`
             + ` (${String(Math.round(execution.summary.durationMs))}ms)`,
         })
       }
@@ -417,7 +416,7 @@ const slideSyncInput = z.object({
 })
 
 /**
-`pecotv slide sync` 相当。移行前の talk-dir は、`theme` で指定したテーマを参照する形へ移す。
+移行前の talk-dir は、`theme` で指定したテーマを参照する形へ移す。
 テンプレート由来のファイルを消し、作品領域 (slides.md / pages/*.md / public/slides/) は残す。
 移行済みの talk-dir (`theme:` が依存のテーマを指す) は、package.json の依存の版でテーマを取得して node_modules を張り直す。
 本体の生成ファイル (vite.config.ts・start.mjs) は本体の今の内容にそろえ、ほかのファイルは変えない。
@@ -494,7 +493,7 @@ export function slideSyncTool(
 }
 
 function syncSuccessMessage(summary: Readonly<SlideSyncResultSummary>): string {
-  const base = `slide sync: succeeded (${summary.directory})`
+  const base = `slide_sync: succeeded (${summary.directory})`
   if (summary.theme === undefined) return base
   const themeText = `${base}; theme: ${summary.theme.name} (${summary.theme.spec})`
   return summary.mode === 'migrate'
@@ -508,7 +507,7 @@ const slideLintInput = z.object({
 })
 
 /**
-`pecotv slide lint` 相当。違反の検出は「報告が成果」なので、違反があっても成功で返す (CLI は exit 1)。
+違反の検出は「報告が成果」なので、違反があっても成功で返す。
 違反の有無は outcome の項目で読む。
 */
 export function slideLintTool(
@@ -543,9 +542,9 @@ export function slideLintTool(
           ok: true,
           data,
           message: hasViolations
-            ? `slide lint: violations found (${summary.directory}); ${String(summary.errorCount)} errors`
+            ? `slide_lint: violations found (${summary.directory}); ${String(summary.errorCount)} errors`
             + `; ${String(summary.warningCount)} warnings`
-            : `slide lint: succeeded (${summary.directory}); ${String(summary.lintedFileCount)} files linted`,
+            : `slide_lint: succeeded (${summary.directory}); ${String(summary.lintedFileCount)} files linted`,
         })
       }
       catch (error: unknown) {

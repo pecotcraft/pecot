@@ -1,6 +1,5 @@
 // commands/slidev-project/create.ts の integration test。
 // テーマは `file:` で指す。fixture テーマを一時ディレクトリへ写して使う（file: の取得は install しないため）。
-// CLAUDE_PLUGIN_ROOT = repo の plugins/pecot-visual を指す前提で動く。
 // plugin-root は pnpm install 済みでないと、node_modules の張り先が realpath で解決できない。
 // そのため test 自前で、plugins/pecot-visual に node_modules が存在することを期待する。
 
@@ -11,11 +10,11 @@ import {
 } from 'node:fs'
 import path from 'node:path'
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   SlideCreateUsageError,
-  createSlideCreateCommand,
+  errorToReason,
   executeSlideCreate,
   slideCreateDefaultDependencies,
   runSlideCreate,
@@ -23,9 +22,11 @@ import {
 import type { SlideCreateDependencies } from '../../../src/commands/slidev-project/create.js'
 import { compareStrings } from '../../../src/domain/_shared/compare-strings.js'
 import { START_SCRIPT_SOURCE, viteConfigSource } from '../../../src/domain/slidev-project/generated-files.js'
+import { resolvePluginRoot } from '../../../src/infra/_shared/plugin-root.js'
 import { copyFixtureTheme as copyTheme } from '../../_helpers/theme-fixtures.js'
 import type { CopiedTheme, FixtureTheme } from '../../_helpers/theme-fixtures.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
+import { rejectionOf } from '../../_helpers/rejection.js'
 import { verifies } from '../../_helpers/verifies.js'
 import { readOutput } from '../../_helpers/attach.js'
 import { makeStream } from '../../_helpers/talk-directory.js'
@@ -78,18 +79,15 @@ function readJson(file: string): Record<string, unknown> {
   return JSON.parse(readOutput(file)) as Record<string, unknown>
 }
 
-// catalog の stdout 出力は executeSlideCreate が持つ（収集を 1 回に束ねたため）。
-// 生成物の確認もここでまとめて行う。
 describe('executeSlideCreate (smoke)', () => {
   it('fixture テーマを file: で指して、生成するものだけを作る', async () => {
     const theme = declaredTheme()
     const projectDirectory = temporaryRoot('sample')
-    const stdout = makeStream('stdout')
     const stderr = makeStream('stderr')
-    const { summary } = await executeSlideCreate(
+    const { summary, data } = await executeSlideCreate(
       projectDirectory,
-      { theme: theme.spec, force: false, emitCatalog: true },
-      buildDependencies({ stdout: asStream(stdout), stderr: asStream(stderr) }),
+      { theme: theme.spec, force: false },
+      buildDependencies({ stderr: asStream(stderr) }),
     )
     const relativeTheme = path.relative(projectDirectory, theme.directory).split(path.sep).join('/')
     expect(summary.theme).toEqual({ name: DECLARED_THEME_NAME, spec: `file:${relativeTheme}` })
@@ -153,32 +151,27 @@ describe('executeSlideCreate (smoke)', () => {
     expect(realpathSync(path.join(nodeModulesPath, DECLARED_THEME_NAME))).toBe(realpathSync(theme.directory))
     expect(existsSync(path.join(nodeModulesPath, '.pecotv-link.json'))).toBe(true)
 
-    // layout catalog が stdout に出ていること（json でないモード）
-    const written = stdout.chunks.join('')
-    expect(written).toContain('Layout Catalog')
-    expect(written).toContain('- cover:')
+    // layout catalog は data に載る。hidden の scratch は現れない。
+    // eslint-disable-next-line no-restricted-syntax -- data の layouts / categories を検証用に narrowing
+    const layouts = data['layouts'] as readonly { layout: string, category: string, deprecated: boolean }[]
+    // eslint-disable-next-line no-restricted-syntax -- data の categories を検証用に narrowing
+    const categories = data['categories'] as readonly { id: string, label: string }[]
+    const names = layouts.map(entry => entry.layout)
+    expect(names).toContain('cover')
+    expect(names).not.toContain('scratch')
 
-    // hidden 検証: scratch は catalog 全体に現れない
-    expect(written).not.toMatch(/^- scratch:/m)
-    expect(written).not.toMatch(/\[deprecated\] scratch:/)
-
-    // 見せ方の分類ごとに群化され、見出しは `--- <label>: <question> ---` で出る。
     // 分類の並びは _common.yaml の layout_categories の宣言順。
-    const headings = written.matchAll(/^--- (.+?): .+ ---$/gm).map(match => match[1]).toArray()
-    expect(headings).toEqual(['文章', '図'])
+    expect(categories.map(category => category.label)).toEqual(['文章', '図'])
 
-    // deprecated 用の末尾セクションは廃止し、各群の中に [deprecated] 付きで残す。
-    expect(written).not.toContain('--- deprecated (use only if no alternative) ---')
-    const [, figureSection = ''] = written.split(/^--- 図: .+ ---$/m, 2)
-    expect(written).toContain('[deprecated] legacy-panel:')
-    // deprecated は所属分類（図）の群の中に出て、他の群には現れない。
-    expect(figureSection).toContain('[deprecated] legacy-panel:')
-    expect(written).not.toContain('\n- legacy-panel:')
+    // deprecated は所属分類（図）のまま残り、同じ群の中では stable が先。
+    const figureId = categories.find(category => category.label === '図')?.id
+    const figure = layouts.filter(entry => entry.category === figureId)
+    expect(figure.find(entry => entry.layout === 'legacy-panel')?.deprecated).toBe(true)
+    expect(figure.map(entry => entry.layout).indexOf('panel'))
+      .toBeLessThan(figure.map(entry => entry.layout).indexOf('legacy-panel'))
 
-    // 群内は stable が先、deprecated が後。
-    expect(figureSection.indexOf('- panel:'))
-      .toBeLessThan(figureSection.indexOf('[deprecated] legacy-panel:'))
-
+    // 分類を読み取れなかったときだけ出る warn が出ていないこと。
+    expect(stderr.chunks.join('')).not.toContain('cannot read the layout categories')
     // 分類を読み取れなかったときだけ出る warn が出ていないこと。
     expect(stderr.chunks.join('')).not.toContain('cannot read the layout categories')
   })
@@ -190,7 +183,7 @@ describe('executeSlideCreate (smoke)', () => {
 
     const { data } = await executeSlideCreate(
       projectDirectory,
-      { theme: theme.spec, force: false, emitCatalog: false },
+      { theme: theme.spec, force: false },
       buildDependencies({ stderr: asStream(stderr) }),
     )
 
@@ -228,7 +221,7 @@ describe('executeSlideCreate (smoke)', () => {
 
     const { data } = await executeSlideCreate(
       projectDirectory,
-      { theme: theme.spec, force: false, emitCatalog: false },
+      { theme: theme.spec, force: false },
       buildDependencies({ stderr: asStream(stderr) }),
     )
 
@@ -256,7 +249,7 @@ describe('executeSlideCreate (smoke)', () => {
     const dependencies = buildDependencies({ fetchTheme, stderr: asStream(stderr) })
     const { data } = await executeSlideCreate(
       projectDirectory,
-      { theme: theme.spec, force: false, emitCatalog: false },
+      { theme: theme.spec, force: false },
       dependencies,
     )
 
@@ -275,7 +268,7 @@ describe('executeSlideCreate (smoke)', () => {
 
     const { summary } = await executeSlideCreate(
       projectDirectory,
-      { theme: 'file:./bare-theme', force: false, emitCatalog: false },
+      { theme: 'file:./bare-theme', force: false },
       buildDependencies({ currentDirectory }),
     )
 
@@ -288,12 +281,12 @@ describe('executeSlideCreate (smoke)', () => {
     const projectDirectory = temporaryRoot('sample')
     await runSlideCreate(
       projectDirectory,
-      { theme: declaredTheme().spec, force: false, emitCatalog: true },
+      { theme: declaredTheme().spec, force: false },
       buildDependencies(),
     )
     await expect(runSlideCreate(
       projectDirectory,
-      { theme: declaredTheme().spec, force: false, emitCatalog: true },
+      { theme: declaredTheme().spec, force: false },
       buildDependencies(),
     )).rejects.toThrow(SlideCreateUsageError)
   })
@@ -303,7 +296,7 @@ describe('executeSlideCreate (smoke)', () => {
     const projectDirectory = temporaryRoot('sample')
     await runSlideCreate(
       projectDirectory,
-      { theme: declaredTheme().spec, force: false, emitCatalog: true },
+      { theme: declaredTheme().spec, force: false },
       buildDependencies(),
     )
     writeFileSync(path.join(projectDirectory, 'pages', 'stale.md'), '# 前回の生成物\n')
@@ -311,7 +304,7 @@ describe('executeSlideCreate (smoke)', () => {
     // ２回目を --force で実行しても成功する
     const result = await runSlideCreate(
       projectDirectory,
-      { theme: declaredTheme().spec, force: true, emitCatalog: true },
+      { theme: declaredTheme().spec, force: true },
       buildDependencies(),
     )
 
@@ -328,7 +321,7 @@ describe('executeSlideCreate (smoke)', () => {
     const dependencies = buildDependencies({ dependencyRoot: temporaryRoot('no-dependency-root') })
     await expect(runSlideCreate(
       projectDirectory,
-      { theme: theme.spec, force: false, emitCatalog: false },
+      { theme: theme.spec, force: false },
       dependencies,
     )).rejects.toMatchObject({ reason: 'symlink-failed' })
 
@@ -351,7 +344,7 @@ describe('executeSlideCreate (smoke)', () => {
 
     await expect(runSlideCreate(
       projectDirectory,
-      { theme: 'file:./whatever', force: true, emitCatalog: false },
+      { theme: 'file:./whatever', force: true },
       dependencies,
     )).rejects.toThrow()
 
@@ -366,195 +359,75 @@ describe('executeSlideCreate (smoke)', () => {
 
     const { data } = await executeSlideCreate(
       projectDirectory,
-      { theme: theme.spec, force: false, emitCatalog: false },
+      { theme: theme.spec, force: false },
       dependencies,
     )
 
     expect(data['warnings']).toEqual(expect.arrayContaining([expect.stringContaining('pptx.linkColor is omitted')]))
   })
-
-  it('emitCatalog: false では layout catalog を stdout に流さない', async () => {
-    const projectDirectory = temporaryRoot('sample')
-    const stdout = makeStream('stdout')
-    await executeSlideCreate(
-      projectDirectory,
-      { theme: declaredTheme().spec, force: false, emitCatalog: false },
-      buildDependencies({ stdout: asStream(stdout) }),
-    )
-    // layout catalog 出力が抑止されること
-    expect(stdout.chunks.join('')).not.toContain('Layout Catalog')
-  })
 })
 
-describe('createSlideCreateCommand', () => {
-  it('--json 成功時 stdout に slide.create.done を出す', async () => {
+describe('executeSlideCreate の結果と失敗', () => {
+  it('成功時の data に slide.create.done と projectDir・theme を載せ、template は載せない', async () => {
     const projectDirectory = temporaryRoot('sample-cmd')
-    const stdout = makeStream('stdout')
-    const command = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(stdout), stderr: asStream(makeStream()) }))
 
-    await command.parseAsync([projectDirectory, '--theme', declaredTheme().spec, '--json'], { from: 'user' })
-    const lines = stdout.chunks.join('').trim().split('\n').filter(l => l.length > 0)
-    const lastLine = lines.at(-1) ?? ''
-    // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-    const parsed = JSON.parse(lastLine) as { event: string, projectDir: string, theme: { name: string, spec: string }, template?: string }
-    expect(parsed.event).toBe('slide.create.done')
-    expect(parsed.projectDir).toBe(projectDirectory)
-    expect(parsed.theme.name).toBe(DECLARED_THEME_NAME)
-    expect(parsed).not.toHaveProperty('template')
+    const { data } = await executeSlideCreate(
+      projectDirectory,
+      { theme: declaredTheme().spec, force: false },
+      buildDependencies(),
+    )
+
+    expect(data['event']).toBe('slide.create.done')
+    expect(data['projectDir']).toBe(projectDirectory)
+    expect(data['theme']).toMatchObject({ name: DECLARED_THEME_NAME })
+    expect(data).not.toHaveProperty('template')
   })
 
-  it('--json なし成功時 stdout にテキスト + Layout Catalog を出す', async () => {
-    const projectDirectory = temporaryRoot('sample-cmd2')
-    const stdout = makeStream('stdout')
-    const command = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(stdout), stderr: asStream(makeStream()) }))
-
-    await command.parseAsync([projectDirectory, '--theme', declaredTheme().spec], { from: 'user' })
-    const written = stdout.chunks.join('')
-    expect(written).toContain(`slide create: success (${projectDirectory})`)
-    expect(written).toContain(`  theme=${DECLARED_THEME_NAME}, 0ms`)
-    expect(written).toContain('Layout Catalog')
-  })
-
-  it('既存ディレクトリ + --json で slide.create.error(dest-exists) + exit 2 (usage error)', async () => {
+  it('既存ディレクトリ + force=false は dest-exists の reason と文言を返す', async () => {
     const projectDirectory = temporaryRoot('sample-conflict')
-    const command1 = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(makeStream()), stderr: asStream(makeStream()) }))
-    await command1.parseAsync([projectDirectory, '--theme', declaredTheme().spec, '--json'], { from: 'user' })
+    await executeSlideCreate(projectDirectory, { theme: declaredTheme().spec, force: false }, buildDependencies())
 
-    const stdout2 = makeStream('stdout2')
-    const command2 = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(stdout2), stderr: asStream(makeStream()) }))
-    const previousExitCode = process.exitCode
-    try {
-      await command2.parseAsync([projectDirectory, '--theme', declaredTheme().spec, '--json'], { from: 'user' })
-      const lastLine = stdout2.chunks.join('').trim().split('\n').findLast(l => l.length > 0) ?? ''
-      // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-      const parsed = JSON.parse(lastLine) as { event: string, reason: string }
-      expect(parsed.event).toBe('slide.create.error')
-      expect(parsed.reason).toBe('dest-exists')
-      expect(process.exitCode).toBe(2)
-    }
-    finally {
-      process.exitCode = previousExitCode
-    }
+    const error = await rejectionOf(executeSlideCreate(
+      projectDirectory,
+      { theme: declaredTheme().spec, force: false },
+      buildDependencies(),
+    ))
+
+    expect(errorToReason(error)).toBe('dest-exists')
+    expect(error).toBeInstanceOf(Error)
   })
 
-  it('既存ディレクトリ + --json なしは stderr にメッセージ', async () => {
-    const projectDirectory = temporaryRoot('sample-conflict2')
-    const command1 = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(makeStream()), stderr: asStream(makeStream()) }))
-    await command1.parseAsync([projectDirectory, '--theme', declaredTheme().spec], { from: 'user' })
-
-    const stderr = makeStream('stderr')
-    const command2 = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(makeStream()), stderr: asStream(stderr) }))
-    const previousExitCode = process.exitCode
-    try {
-      await command2.parseAsync([projectDirectory, '--theme', declaredTheme().spec], { from: 'user' })
-      expect(stderr.chunks.join('')).toContain('error: slide create failed:')
-    }
-    finally {
-      process.exitCode = previousExitCode
-    }
-  })
-
-  it('テーマのディレクトリが無い file: は theme-unknown + exit 1 (runtime error)', async () => {
+  it('テーマのディレクトリが無い file: は theme-unknown で、生成先を作らない', async () => {
     const projectDirectory = temporaryRoot('sample-no-theme')
-    const stdout = makeStream('stdout')
-    const command = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(stdout), stderr: asStream(makeStream()) }))
-    const previousExitCode = process.exitCode
-    try {
-      await command.parseAsync([projectDirectory, '--theme', `file:${temporaryRoot('no-such-theme')}`, '--json'], { from: 'user' })
-      const lastLine = stdout.chunks.join('').trim().split('\n').findLast(l => l.length > 0) ?? ''
-      // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-      const parsed = JSON.parse(lastLine) as { event: string, reason: string, detail: string }
-      expect(parsed.event).toBe('slide.create.error')
-      expect(parsed.reason).toBe('theme-unknown')
-      expect(parsed.detail).toContain('package.json')
-      expect(process.exitCode).toBe(1)
-      expect(existsSync(projectDirectory)).toBe(false)
-    }
-    finally {
-      process.exitCode = previousExitCode
-    }
-  })
 
-  it('引数未指定 + --json で commander が slide.create.error(invalid-option) を stdout に出す', async () => {
-    const stdout = makeStream('stdout')
-    const stderr = makeStream('stderr')
-    const command = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(stdout), stderr: asStream(stderr) }))
-    const originalArgv = process.argv
-    process.argv = ['node', 'cli.js', 'slide', 'create', '--json']
-    try {
-      await expect(
-        command.parseAsync(['--json'], { from: 'user' }),
-      ).rejects.toThrow()
-      const written = stdout.chunks.join('').trim()
-      // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-      const parsed = JSON.parse(written) as { event: string, reason: string }
-      expect(parsed.event).toBe('slide.create.error')
-      expect(parsed.reason).toBe('invalid-option')
-      expect(stderr.chunks.length).toBe(0)
-    }
-    finally {
-      process.argv = originalArgv
-    }
-  })
+    const error = await rejectionOf(executeSlideCreate(
+      projectDirectory,
+      { theme: `file:${temporaryRoot('no-such-theme')}`, force: false },
+      buildDependencies(),
+    ))
 
-  it('引数未指定 + --json なしは commander が stderr に英文を出す (必須の --theme が先に挙がる)', async () => {
-    const stdout = makeStream('stdout')
-    const stderr = makeStream('stderr')
-    const command = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(stdout), stderr: asStream(stderr) }))
-    const originalArgv = process.argv
-    process.argv = ['node', 'cli.js', 'slide', 'create']
-    try {
-      await expect(
-        command.parseAsync([], { from: 'user' }),
-      ).rejects.toThrow()
-      expect(stderr.chunks.join('')).toContain('--theme')
-      expect(stdout.chunks.length).toBe(0)
-    }
-    finally {
-      process.argv = originalArgv
-    }
-  })
-
-  it('--theme 無しは commander が invalid-option で止める', async () => {
-    const stdout = makeStream('stdout')
-    const command = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(stdout), stderr: asStream(makeStream()) }))
-    const originalArgv = process.argv
-    process.argv = ['node', 'cli.js', 'slide', 'create', 'talk', '--json']
-    try {
-      await expect(command.parseAsync([temporaryRoot('talk'), '--json'], { from: 'user' })).rejects.toThrow()
-      // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-      const parsed = JSON.parse(stdout.chunks.join('').trim()) as { reason: string, detail: string }
-      expect(parsed.reason).toBe('invalid-option')
-      expect(parsed.detail).toContain('--theme')
-    }
-    finally {
-      process.argv = originalArgv
-    }
+    expect(errorToReason(error)).toBe('theme-unknown')
+    expect(error instanceof Error ? error.message : '').toContain('package.json')
+    expect(existsSync(projectDirectory)).toBe(false)
   })
 })
 
 describe('slideCreateDefaultDependencies', () => {
-  it('CLAUDE_PLUGIN_ROOT を読んで pluginRoot を構築する', () => {
-    const previous = process.env['CLAUDE_PLUGIN_ROOT']
-    process.env['CLAUDE_PLUGIN_ROOT'] = '/tmp/x'
+  it('CLAUDE_PLUGIN_ROOT があっても読まず、pluginRoot をサーバ自身の置き場所から求める', () => {
+    vi.stubEnv('CLAUDE_PLUGIN_ROOT', '/plugins/installed/pecot-visual')
     try {
       const dependencies = slideCreateDefaultDependencies()
-      expect(dependencies.pluginRoot).toBe('/tmp/x')
+      expect(dependencies.pluginRoot).toBe(resolvePluginRoot())
       expect(typeof dependencies.now()).toBe('number')
     }
     finally {
-      if (previous === undefined) {
-        delete process.env['CLAUDE_PLUGIN_ROOT']
-      }
-      else {
-        process.env['CLAUDE_PLUGIN_ROOT'] = previous
-      }
+      vi.unstubAllEnvs()
     }
   })
 })
 
 // 実ファイルの書き込みを避け、pages/ の再生成を見る。
-describe('pages/ の再生成 (slide create --force 経由)', () => {
+describe('pages/ の再生成 (slide_create の force 経由)', () => {
   it('pages/ は初期ページだけになり、テーマの参照は書き出さない', async () => {
     const projectDirectory = temporaryRoot('pages-test')
     mkdirSync(path.join(projectDirectory, 'pages'), { recursive: true })
@@ -562,7 +435,7 @@ describe('pages/ の再生成 (slide create --force 経由)', () => {
 
     await runSlideCreate(
       projectDirectory,
-      { theme: declaredTheme().spec, force: true, emitCatalog: false },
+      { theme: declaredTheme().spec, force: true },
       buildDependencies(),
     )
 

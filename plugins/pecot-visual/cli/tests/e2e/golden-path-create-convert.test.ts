@@ -35,9 +35,7 @@ import { attachFile, readOutput } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
-// 他 8 ファイルと同じく、runner は bin/pecotv の bootstrap を通さない。
-// 本体ツリーの cli/dist を直接実行する。
-// bootstrap はデータ置き場の実行用ミラーを作る処理で、その検証は cli/tests/bootstrap/ の CUJ が担う。
+// runner は本体ツリーの cli/dist を直接実行する。
 // 本 CUJ は、bootstrap 込みの計測から 45s の上限を引き継いでいる。
 // 計測では最悪が 9.2s で、マージン倍率 4.4 倍は 40.4s。
 // 性能目標ではなく、hang regression を SIGTERM kill (600s) より手前で落とすための上限。

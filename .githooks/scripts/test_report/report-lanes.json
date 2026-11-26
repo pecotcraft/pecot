@@ -37,12 +37,6 @@
   },
   {
     "project": "pecot-visual",
-    "target": "test-bootstrap",
-    "plugin": "pecot-visual",
-    "results": "plugins/pecot-visual/test-results/test-bootstrap/allure-results"
-  },
-  {
-    "project": "pecot-visual",
     "target": "test-slidev",
     "plugin": "pecot-visual",
     "results": "plugins/pecot-visual/test-results/test-slidev/allure-results"

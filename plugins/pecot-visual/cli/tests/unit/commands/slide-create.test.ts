@@ -9,11 +9,12 @@ import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
-  createSlideCreateCommand,
+  errorToReason,
   executeSlideCreate,
 } from '../../../src/commands/slidev-project/create.js'
 import type { SlideCreateDependencies } from '../../../src/commands/slidev-project/create.js'
 import { ThemeFetchError, gitFailureAdvice } from '../../../src/domain/slidev-theme/store-layout.js'
+import { rejectionOf } from '../../_helpers/rejection.js'
 import { seedDependencyRoot } from '../../_helpers/dependency-probes.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
 import { asStream, makeStream } from '../../_helpers/talk-directory.js'
@@ -25,7 +26,6 @@ const SPEC = 'git+https://example.com/org/theme.git#v1.0.0'
 const GIT_SPEC = { url: 'https://example.com/org/theme.git', tag: 'v1.0.0' }
 
 afterEach(() => {
-  process.exitCode = undefined
   rmSync(temporaryRoot(), { recursive: true, force: true })
 })
 
@@ -65,36 +65,27 @@ function themeWithDeclaration(declaration: string): FetchTheme {
 }
 
 interface ErrorPayload {
-  readonly event: string
   readonly reason: string
   readonly detail: string
 }
 
 /**
-`--json` で create を実行し、stdout 最終行の error payload と exit code を返す。
+create を実行し、失敗の reason と文言を返す。成功したらテストを落とす。
 */
-async function runJson(
+async function runFailing(
   projectDirectory: string,
   // port に関数を持つため readonly にできない。
   // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
   dependencies: Readonly<SlideCreateDependencies>,
-  extra: readonly string[] = [],
-): Promise<{ payload: ErrorPayload, exitCode: typeof process.exitCode }> {
-  const stdout = makeStream()
-  const command = createSlideCreateCommand(() => ({ ...dependencies, stdout: asStream(stdout) }))
-  await command.parseAsync([projectDirectory, '--theme', SPEC, ...extra, '--json'], { from: 'user' })
-  return { payload: lastPayload(stdout), exitCode: process.exitCode }
-}
-
-/**
-stdout 最終行の JSON を error payload として返す。
-*/
-// write を持つ stub
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types
-function lastPayload(stdout: Readonly<CapturedStream>): ErrorPayload {
-  const lastLine = stdout.chunks.join('').trim().split('\n').findLast(line => line.length > 0) ?? ''
-  // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-  return JSON.parse(lastLine) as ErrorPayload
+  options: Readonly<{ theme?: string, force?: boolean }> = {},
+): Promise<{ payload: ErrorPayload }> {
+  const error = await rejectionOf(executeSlideCreate(
+    projectDirectory,
+    { theme: options.theme ?? SPEC, force: options.force ?? false },
+    { ...dependencies },
+  ))
+  expect(error).toBeInstanceOf(Error)
+  return { payload: { reason: errorToReason(error), detail: error instanceof Error ? error.message : '' } }
 }
 
 // git の失敗の種類、reason、対処の文言の一部。
@@ -110,12 +101,10 @@ describe('slide create の失敗 (FR-013)', () => {
     const projectDirectory = temporaryRoot('talk')
     const failure = new ThemeFetchError(`${gitFailureAdvice(kind, GIT_SPEC)}\nfatal: stderr`, kind)
 
-    const { payload, exitCode } = await runJson(projectDirectory, dependenciesWith(rejecting(failure)))
+    const { payload } = await runFailing(projectDirectory, dependenciesWith(rejecting(failure)))
 
-    expect(payload.event).toBe('slide.create.error')
     expect(payload.reason).toBe(reason)
     expect(payload.detail).toContain(advice)
-    expect(exitCode).toBe(1)
     expect(existsSync(projectDirectory)).toBe(false)
   })
 
@@ -123,11 +112,10 @@ describe('slide create の失敗 (FR-013)', () => {
     const projectDirectory = temporaryRoot('talk')
     const failure = new ThemeFetchError('pnpm install が失敗しました\nERR_PNPM_FETCH', 'install')
 
-    const { payload, exitCode } = await runJson(projectDirectory, dependenciesWith(rejecting(failure)))
+    const { payload } = await runFailing(projectDirectory, dependenciesWith(rejecting(failure)))
 
     expect(payload.reason).toBe('theme-install')
     expect(payload.detail).toContain('pnpm install が失敗しました')
-    expect(exitCode).toBe(1)
     expect(existsSync(projectDirectory)).toBe(false)
   })
 
@@ -135,12 +123,11 @@ describe('slide create の失敗 (FR-013)', () => {
     const projectDirectory = temporaryRoot('talk')
     const declaration = JSON.stringify({ schema: 1, pptx: { linkColor: 'blue' } })
 
-    const { payload, exitCode } = await runJson(projectDirectory, dependenciesWith(themeWithDeclaration(declaration)))
+    const { payload } = await runFailing(projectDirectory, dependenciesWith(themeWithDeclaration(declaration)))
 
     expect(payload.reason).toBe('theme-invalid-shape')
     expect(payload.detail).toContain('pecot-theme.json')
     expect(payload.detail).toContain('pptx.linkColor')
-    expect(exitCode).toBe(1)
     expect(existsSync(projectDirectory)).toBe(false)
   })
 
@@ -148,29 +135,26 @@ describe('slide create の失敗 (FR-013)', () => {
     const projectDirectory = temporaryRoot('talk')
     const declaration = JSON.stringify({ schema: 1, lint: { rules: { 'no-such-plugin/no-such-rule': 'error' } } })
 
-    const { payload, exitCode } = await runJson(projectDirectory, dependenciesWith(themeWithDeclaration(declaration)))
+    const { payload } = await runFailing(projectDirectory, dependenciesWith(themeWithDeclaration(declaration)))
 
     expect(payload.reason).toBe('theme-unknown-rule')
     expect(payload.detail).toContain('lint.rules')
     expect(payload.detail).toContain('no-such-plugin/no-such-rule')
-    expect(exitCode).toBe(1)
     expect(existsSync(projectDirectory)).toBe(false)
   })
 
-  it('タグの無い git URL は取得に入らず、usage error (exit 2) で theme-tag-required を返す', async () => {
+  it('タグの無い git URL は取得に入らず、theme-tag-required を返す', async () => {
     const projectDirectory = temporaryRoot('talk')
     const fetchTheme = vi.fn<FetchTheme>().mockRejectedValue(new Error('呼ばれない'))
-    const stdout = makeStream()
-    const command = createSlideCreateCommand(() => ({
-      ...dependenciesWith(fetchTheme),
-      stdout: asStream(stdout),
-    }))
 
-    await command.parseAsync([projectDirectory, '--theme', 'git+https://example.com/org/theme.git', '--json'], { from: 'user' })
+    const { payload } = await runFailing(
+      projectDirectory,
+      dependenciesWith(fetchTheme),
+      { theme: 'git+https://example.com/org/theme.git' },
+    )
 
-    const payload = lastPayload(stdout)
     expect(payload.reason).toBe('theme-tag-required')
-    expect(process.exitCode).toBe(2)
+    expect(fetchTheme).not.toHaveBeenCalled()
     expect(fetchTheme).not.toHaveBeenCalled()
   })
 
@@ -180,7 +164,7 @@ describe('slide create の失敗 (FR-013)', () => {
     writeFileSync(path.join(projectDirectory, 'slides.md'), '# 既存\n')
     const failure = new ThemeFetchError(gitFailureAdvice('tag', GIT_SPEC), 'tag')
 
-    const { payload } = await runJson(projectDirectory, dependenciesWith(rejecting(failure)), ['--force'])
+    const { payload } = await runFailing(projectDirectory, dependenciesWith(rejecting(failure)), { force: true })
 
     expect(payload.reason).toBe('theme-tag')
     expect(readFileSync(path.join(projectDirectory, 'slides.md'), 'utf8')).toBe('# 既存\n')
@@ -197,7 +181,7 @@ describe('slide create の失敗 (FR-013)', () => {
     }
     vi.stubEnv('CLAUDE_PLUGIN_DATA', temporaryRoot('empty-data'))
 
-    const { payload } = await runJson(projectDirectory, dependencies, ['--force'])
+    const { payload } = await runFailing(projectDirectory, dependencies, { force: true })
 
     expect(payload.reason).toBe('symlink-failed')
     expect(fetchTheme).not.toHaveBeenCalled()
@@ -214,7 +198,7 @@ describe('slide create の失敗 (FR-013)', () => {
 
     await expect(executeSlideCreate(
       temporaryRoot('talk'),
-      { theme: SPEC, force: false, emitCatalog: false },
+      { theme: SPEC, force: false },
       dependencies,
     )).rejects.toBeInstanceOf(ThemeFetchError)
 
@@ -228,11 +212,10 @@ describe('slide create の失敗 (FR-013)', () => {
       themeStoreRoot: vi.fn<() => string | undefined>(),
     }
 
-    const { payload, exitCode } = await runJson(projectDirectory, dependencies)
+    const { payload } = await runFailing(projectDirectory, dependencies)
 
     expect(payload.reason).toBe('theme-unknown')
     expect(payload.detail).toContain('the data directory CLAUDE_PLUGIN_DATA')
-    expect(exitCode).toBe(1)
   })
 
   it('executeSlideCreate は取得の失敗を例外のまま返す (警告が無ければ stderr は空)', async () => {
@@ -242,7 +225,7 @@ describe('slide create の失敗 (FR-013)', () => {
     const dependencies = dependenciesWith(rejecting(failure), makeStream(), stderr)
     await expect(executeSlideCreate(
       temporaryRoot('talk'),
-      { theme: SPEC, force: false, emitCatalog: false },
+      { theme: SPEC, force: false },
       dependencies,
     )).rejects.toBe(failure)
     expect(stderr.chunks).toEqual([])

@@ -26,7 +26,7 @@ nx の task cache は、宣言した入力が変わらない限りレーンを�
 run-tests.sh / install.sh が外から読む変数は少ない。
 結果を左右する変数（PLAYWRIGHT_BROWSERS_PATH、PECOTV_SINGLE_PASS 等）は、テストコードと設定の側にある。
 シェルは scripts/ci/*.sh・bin/*・setup.sh に加え、レーンが直接実行する tests 配下の *.sh を走査する。
-tests 配下の例は plugins/pecot-visual/cli/tests/bootstrap/run.sh になる。
+tests 配下の例は plugins/pecot-workflow/cli/tests/bootstrap/run.sh になる。
 hooks 配下の *.sh（hooks/**/*.sh と hooks/tests/*.test.sh）は走査しない。
 hook スクリプトは、dispatcher や別のスクリプトが設定して渡す変数を大量に読む。
 HOOK_COMMAND、REPO_DIR、FILE_PATH 等がその例で、環境変数と見分けがつかない。
@@ -78,9 +78,7 @@ _EXEMPT: dict[str, str] = {
         "test-cli・test-hooks・lint-cli の command が 1 を渡す。PECOTV_SKIP_INSTALL と同じ。"
         "install を nx の別 target に分ける"
     ),
-    "PECOTV_REQUIRE_HOST_DEPS": "bin/pecotv が自分で設定して子へ渡す。外からの値はテストが上書きする",
     "PECOTV_TEST": "process.test.ts が子プロセスの env へ渡す値で、外の値は読まれない",
-    "BIN_PECOTV": "bootstrap の run.sh が export して mcp-call.mjs へ渡す。呼び出し元が必ず設定する",
     "PECOTV_PM_GUARD_BEHAVIOR": (
         "install target（cache: false）が pre-push フック経由で渡す。ガード単体の test は"
         "値を自分で env に渡し、source しただけでは読まれない"
@@ -88,9 +86,6 @@ _EXEMPT: dict[str, str] = {
     "PM_GUARD_TIMEOUT": (
         "挙動の確認を打ち切る秒数。値で結果が変わるのは時間切れの失敗だけで、失敗は nx がキャッシュしない。"
         "実行するのは cache: false の install"
-    ),
-    "PECOTV_BOOTSTRAP_TEST_HEAVY": (
-        "cli/tests/bootstrap/run.sh は手動実行専用。レーンが実行するのは host-deps-marker.sh だけ"
     ),
     "NODE_EXTRA_CA_CERTS": (
         "テストが vi.stubEnv で上書きする。null 合体演算子で `process.env.NODE_EXTRA_CA_CERTS` を読む箇所は、テストが書く偽の子プロセスの中にある"
@@ -143,14 +138,6 @@ _EXEMPT: dict[str, str] = {
         "一時ディレクトリへ向けるので、値は結果を左右しない。既定の場所を確かめるテストだけが子プロセスへ渡す。"
         "全体では付け替えない（pnpm の store と uv の Python の置き場まで動くため）"
     ),
-    "PECOTV_DEPENDENCY_ROOT": (
-        "scripts/ci/run-tests.sh が unset し、vitest の setupFiles（unset-plugin-data-environment.ts）も消す。"
-        "PLUGIN_DATA と同じ"
-    ),
-    "PECOTV_RUNTIME_DIR": (
-        "scripts/ci/run-tests.sh が unset し、vitest の setupFiles（unset-plugin-data-environment.ts）も消す。"
-        "PLUGIN_DATA と同じ"
-    ),
     "PECOT_GITHUB_*_TOKEN": (
         "nx の env は 1 つの名前しか取らず、`*` の名前を宣言できない。cli の読みは"
         "useIsolatedEnvironment が外して固定する。秘密の値をハッシュに入れない点も合う"
@@ -170,7 +157,6 @@ _EXEMPT: dict[str, str] = {
     "PNPM_XDG": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
     "OUT": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
     "ERR": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
-    "REV": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
     "NOFLOCK_BIN": "source した stub-root.sh の make_noflock_bin が設定するシェル変数。環境変数ではない",
     "LAX_MKDIR_BIN": "source した stub-root.sh の make_lax_mkdir_bin が設定するシェル変数。環境変数ではない",
     "RUN_ROOT": "install-record.sh が版の並走の再現で設定し、source した stub-root.sh が読むシェル変数。外の値は読まれない",

@@ -1,7 +1,7 @@
 // 本体の assets/slidev が持つ eslint を子プロセスで起動する EslintRunner 実装。
 //
 // standalone talk-dir には lint 資材を同梱しない方針のため、eslint 本体と flat config は本体の `assets/slidev` から借りる。
-// テーマの宣言の解釈結果（`slide theme` の lint）は、環境変数 PECOTV_DECK_LINT に JSON で渡す。
+// テーマの宣言の解釈結果（slide_theme の lint）は、環境変数 PECOTV_DECK_LINT に JSON で渡す。
 // PostToolUse hook (`hooks/lib/post-tool-use/eslint-check.sh`) と同じ供給機構。
 //
 // cwd は必ず talk-dir にする。
@@ -151,7 +151,7 @@ export class ChildProcessEslintRunner implements EslintRunner {
   /**
   `node <eslint-bin>` を、talk-dir を cwd にして起動する。
   引数は `--no-fix --config <本体の deck-lint.env.config.js> --format json` の 3 組。
-  環境変数 `PECOTV_DECK_LINT` に、`slide theme` が解釈した lint の 4 項目を JSON で渡す。
+  環境変数 `PECOTV_DECK_LINT` に、slide_theme が解釈した lint の 4 項目を JSON で渡す。
   さらに `--no-error-on-unmatched-pattern` と、対象 glob の `pages/**\/*.md slides.md` を渡す。
 
   - `--no-fix`: 対象ルールは全て `meta.fixable` 未宣言で、`--fix` は no-op。

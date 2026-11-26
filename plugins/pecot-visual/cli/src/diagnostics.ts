@@ -62,10 +62,3 @@ export function createDiagnostics(stderr: DiagnosticStream): Diagnostics {
 export function writeData(stdout: DiagnosticStream, text: string): void {
   stdout.write(text.endsWith('\n') ? text : `${text}\n`)
 }
-
-/**
-commander が組み立てた使い方エラー・ヘルプの枠を、手を加えずに書く。commander が `error: ` を付ける
-*/
-export function passthrough(stream: DiagnosticStream, text: string): void {
-  stream.write(text)
-}

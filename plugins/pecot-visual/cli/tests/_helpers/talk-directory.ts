@@ -65,7 +65,7 @@ export function copyThemeForTalk(root: string, name = 'theme'): CopiedTheme {
 }
 
 /**
-`slide create --theme file:<fixture の写し>` で `<root>/<name>` に talk-dir を作って、そのパスを返す。
+`slide_create` に `theme: file:<fixture の写し>` を渡して `<root>/<name>` に talk-dir を作って、そのパスを返す。
 テーマの写しは `<root>/<name>-theme` に置く。
 `extraLintRules` を渡すと、写しの pecot-theme.json の `lint.rules` に足す（fixture 自体は変えない）。
 */
@@ -85,7 +85,7 @@ export async function createTalkDirectory(
   }
   await runSlideCreate(
     projectDirectory,
-    { theme: theme.spec, force: false, emitCatalog: false },
+    { theme: theme.spec, force: false },
     {
       pluginRoot: PLUGIN_ROOT,
       stdout: asStream(makeStream()),

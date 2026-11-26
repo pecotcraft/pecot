@@ -31,10 +31,17 @@
 ## MCP ツール
 
 MCP サーバ `pecot-visual` が、スキルの実行部として次のツールを公開します。
+プラグインは、プラグインと同じ版の npm のパッケージ `@pecot/visual-mcp` を `npx` で起動します。
+初回の起動で npm の registry からパッケージを取るので、少し時間がかかります。
 
 - スライド系: `slide_create` / `slide_sync` / `slide_lint` / `slide_convert` / `slide_dev` / `slide_page` / `slide_theme`
 - ダイアグラム系: `drawio_create` / `drawio_export`
+- 編集の後の確認: `file_lint` / `file_validate` / `file_brief`
 - その他: `runtime_setup` / `evidence_create`
+
+編集の後の確認の 3 つは、Claude Code の PostToolUse のフックが、Write・Edit のたびに呼びます。
+スライドの文章の規則・draw.io の参照・レイアウトの決まりの違反を、次の手番のエージェントへ渡します。
+GitHub Copilot CLI のフックは MCP のツールを呼べないので、Copilot CLI ではこの確認は動きません。
 
 スライドの見た目は、本体の外にあるテーマが決めます。
 `slide_create` は `theme` に、テーマの指定（`git+https://<host>/<owner>/<repo>.git#<tag>` か `file:<絶対パス>`）を受けます。
@@ -67,7 +74,9 @@ npx -y @playwright/mcp@0.0.83 install-browser chromium
 ## 動作要件
 
 - Claude Code 2.1.141 以上、または GitHub Copilot CLI 1.0.97 以上
-- Node.js 24 系は 24.22.1 以上、26 系は 26.12.1 以上（脆弱性の修正を含まないバージョンでは起動しない）
+- Node.js 24 系は 24.22.1 以上、26 系は 26.12.1 以上（脆弱性の修正を含まないバージョンでは起動しない）と、同梱の `npx`
+  - 下限より古い Node（Claude Code on the web の既定の Node 22 など）では、MCP のサーバが起動しない。そのときは Write・Edit のたびに、編集の後の確認のフックが失敗を出す
+- npm の registry（`registry.npmjs.org`）に届くこと
 - 初回の起動で依存（約 1GB）を、クライアントが MCP に渡すデータ置き場へ取得する。プラグインを入れずに使う場合の置き場と指定方法は、npm のパッケージ `@pecot/visual-mcp` の README にある
 - PPTX 変換・PNG 出力に使う Chromium は、`runtime_setup` ツールで取得する。未取得のまま呼ぶと `runtime_setup` の案内が返る
 

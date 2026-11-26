@@ -20,7 +20,6 @@ from attach import read_output, run_attached  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _TARGET_DIRS = (
-    "plugins/pecot-visual",
     "plugins/pecot-workflow",
     "libs/text-rules",
 )
@@ -240,7 +239,7 @@ def test_write_copies_referenced_catalog_only(repo: Path) -> None:
 
     with allure.step("参照される項目だけが各 runtime-lock に写ることを確かめる"):
         expected = "catalogs:\n  default:\n    vite:\n      specifier: ^"
-        for d in ("plugins/pecot-visual", "plugins/pecot-workflow"):
+        for d in ("plugins/pecot-workflow",):
             text = read_output(repo / d / "runtime-lock.yaml")
             assert expected in text, d
             assert "unreferenced-sample" not in text, d

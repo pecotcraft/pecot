@@ -106,8 +106,8 @@ fi
 echo "==> @pecot/visual-mcp 配布ツリーを構築 (version=$VERSION / dry-run=$DRY_RUN)"
 
 # --- 3. build ---
-# shellcheck source=../../bin/_lib.sh
-. "$PECOTV_ROOT/bin/_lib.sh"
+# shellcheck source=../ci/pnpm-lib.sh
+. "$PECOTV_ROOT/scripts/ci/pnpm-lib.sh"
 
 # playwright のブラウザ DL を抑止する。--skip-build でも env を揃えるため、if の外に置く。
 export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
@@ -203,22 +203,6 @@ cp "$SCRIPT_DIR/mcp-dist-README.md" "$DIST/README.md"
 git -C "$REPO_ROOT" archive HEAD LICENSE | tar -x -C "$DIST"
 
 node "$SCRIPT_DIR/finalize-dist.mjs" "$DIST" "$VERSION" "$PECOTV_ROOT" "$REPO_ROOT"
-
-# bin shim。cli.js は import だけでは動かないので main() を呼び、引数なしの起動にも `mcp` を足す。
-mkdir -p "$DIST/bin"
-cat > "$DIST/bin/pecot-visual-mcp.mjs" << 'BIN_SHIM'
-#!/usr/bin/env node
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-process.env.CLAUDE_PLUGIN_ROOT = root
-// 配布物は MCP サーバ専用エントリ。登録例が引数なしでも mcp として起動させる。
-if (!process.argv.slice(2).includes('mcp')) process.argv.splice(2, 0, 'mcp')
-const { main } = await import(path.join(root, 'cli/dist/cli.js'))
-main()
-BIN_SHIM
-chmod +x "$DIST/bin/pecot-visual-mcp.mjs"
 
 mcp_publish_write_shrinkwrap "$DIST"
 

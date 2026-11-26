@@ -113,7 +113,7 @@ export interface SinglePassFallbackTiming {
 
 /**
 1 パス方式を試みた run の所要。変換した run はグループ別、run 全体を退避した run は理由と判定時間。
-`kind` で判別する（`slide convert --json` の `timings.singlePass` にもそのまま載る）。
+`kind` で判別する（slide_convert の `timings.singlePass` にもそのまま載る）。
 */
 export type SinglePassTiming = SinglePassGroupsTiming | SinglePassFallbackTiming
 

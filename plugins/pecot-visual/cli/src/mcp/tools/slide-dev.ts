@@ -1,5 +1,5 @@
 // slide_dev ツール。talk-dir の Slidev dev サーバを起動し、ブラウザで開ける URL を返す。
-// dev サーバの寿命が MCP サーバに紐づくため CLI を持たない。実処理は src/mcp/dev-server-registry.ts。
+// dev サーバの寿命が MCP サーバに紐づく。実処理は src/mcp/dev-server-registry.ts。
 
 // 参照するのは引数で受けた talk-dir と、その直下の固定名 (slides.md / node_modules) のみ。
 /* eslint-disable security/detect-non-literal-fs-filename */
@@ -19,7 +19,6 @@ import {
 } from '../../commands/slidev-project/linked-theme.js'
 import { failureKindOf, type FailureReason } from '../../domain/_shared/failure-kind.js'
 import { pluginDependencyRoot } from '../../infra/_shared/dependency-root.js'
-import { resolvePluginRoot } from '../../infra/_shared/plugin-root.js'
 import { devServerRegistry, type DevServerRegistry } from '../dev-server-registry.js'
 import { parsePathArguments, toCallToolResult } from '../result.js'
 import type { ToolResult } from '../result.js'
@@ -47,7 +46,7 @@ export type EnsureThemeLinked = (talkDirectory: string, context: ThemeLinkContex
 function ensureThemeLinkedWithDefaults(directory: string, context: ThemeLinkContext): Promise<EnsureThemeLinkedResult> {
   return ensureTalkThemeLinked(
     directory,
-    linkedThemeDefaultDependencies(pluginDependencyRoot() ?? resolvePluginRoot(), context),
+    linkedThemeDefaultDependencies(pluginDependencyRoot(), context),
     { requireTheme: true },
   )
 }
@@ -191,8 +190,8 @@ export function slideDevTool(
         },
         // 動いていないサーバへの停止要求は失敗にしない (呼び出しの目的は達成されている)。
         message: stopped.stopped
-          ? `slide dev: stopped (${input.dir})`
-          : `slide dev: no running server (${input.dir})`,
+          ? `slide_dev: stopped (${input.dir})`
+          : `slide_dev: no running server (${input.dir})`,
       })
     }
 
@@ -257,8 +256,8 @@ export function slideDevTool(
         ...(warnings.length > 0 && { warnings }),
       },
       message: started.reused
-        ? `slide dev: reusing the running server ${started.url}`
-        : `slide dev: started ${started.url}`,
+        ? `slide_dev: reusing the running server ${started.url}`
+        : `slide_dev: started ${started.url}`,
     })
   }
 

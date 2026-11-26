@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { NAMESPACES } from '../post-process.js'
-import {
-  applyPreviewNormalization,
-  detectPreviewDivergence,
-} from '../preview-normalize.js'
-import { parseTestXml, serializeTestXml } from '../../../../tests/unit/domain/_helpers/xmldom-engine.js'
+import { detectPreviewDivergence } from '../preview-normalize.js'
+import { parseTestXml } from '../../../../tests/unit/domain/_helpers/xmldom-engine.js'
 
 const SLIDE_NS_DECL = [
   'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"',
@@ -98,67 +94,5 @@ describe('detectPreviewDivergence', () => {
       { rule: 'spautofit-wrap-none', shapeName: 'a' },
       { rule: 'spautofit-wrap-none', shapeName: 'b' },
     ])
-  })
-})
-
-describe('applyPreviewNormalization', () => {
-  it('wrap を square に書き換え spAutoFit を noAutofit に置換する', () => {
-    const slide = parseTestXml(slideWithDivergentBodyPr({ shapeName: 's' }))
-    const result = applyPreviewNormalization(slide)
-    expect(result).toStrictEqual({ normalized: 1 })
-
-    const [bodyPr] = slide.selectNodes('//a:bodyPr[@wrap=\'square\']', NAMESPACES)
-    expect(bodyPr).toBeDefined()
-    expect(slide.selectNodes('//a:noAutofit', NAMESPACES)).toHaveLength(1)
-    expect(slide.selectNodes('//a:spAutoFit', NAMESPACES)).toHaveLength(0)
-  })
-
-  it('wrap=none / spAutoFit 単独出現は置換しない', () => {
-    const slide = parseTestXml(`
-      <p:sld ${SLIDE_NS_DECL}>
-        <p:cSld><p:spTree>
-          <p:sp><p:txBody>
-            <a:bodyPr wrap="none"/>
-            <a:p/>
-          </p:txBody></p:sp>
-          <p:sp><p:txBody>
-            <a:bodyPr wrap="square"><a:spAutoFit/></a:bodyPr>
-            <a:p/>
-          </p:txBody></p:sp>
-        </p:spTree></p:cSld>
-      </p:sld>`)
-    const result = applyPreviewNormalization(slide)
-    expect(result).toStrictEqual({ normalized: 0 })
-    // wrap=none の単独 bodyPr は touch されていない
-    expect(slide.selectNodes('//a:bodyPr[@wrap=\'none\']', NAMESPACES)).toHaveLength(1)
-    // spAutoFit 単独はそのまま残る
-    expect(slide.selectNodes('//a:spAutoFit', NAMESPACES)).toHaveLength(1)
-    expect(slide.selectNodes('//a:noAutofit', NAMESPACES)).toHaveLength(0)
-  })
-
-  it('bodyPr の他属性 (lIns 等) は保存される', () => {
-    const slide = parseTestXml(
-      slideWithDivergentBodyPr({ extraBodyPrAttrs: 'lIns="91440" rtlCol="0"' }),
-    )
-    applyPreviewNormalization(slide)
-    const [bodyPr] = slide.selectNodes('//a:bodyPr[@wrap=\'square\']', NAMESPACES)
-    expect(bodyPr?.getAttr('lIns')).toBe('91440')
-    expect(bodyPr?.getAttr('rtlCol')).toBe('0')
-  })
-
-  it('冪等 — 正規化済み slide を再適用しても 0 件で変化しない', () => {
-    const slide = parseTestXml(slideWithDivergentBodyPr({ shapeName: 's' }))
-    applyPreviewNormalization(slide)
-    const after1 = serializeTestXml(slide)
-
-    const second = applyPreviewNormalization(slide)
-    expect(second).toStrictEqual({ normalized: 0 })
-    expect(serializeTestXml(slide)).toBe(after1)
-  })
-
-  it('正規化後は detectPreviewDivergence が 0 件になる', () => {
-    const slide = parseTestXml(slideWithDivergentBodyPr({ shapeName: 's' }))
-    applyPreviewNormalization(slide)
-    expect(detectPreviewDivergence(slide)).toStrictEqual([])
   })
 })

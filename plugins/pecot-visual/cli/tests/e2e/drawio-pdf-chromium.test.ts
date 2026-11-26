@@ -1,4 +1,4 @@
-// CUJ: 利用者が `pecotv drawio export <input> --icons <dir> -o <out>.svg` を実行する。
+// CUJ: 利用者が drawio_export を呼ぶ。
 // SVG と、兄弟ファイルの PDF（拡張子を .pdf に置換）を受け取る。
 //
 // 守る対象は、src/infra/drawio/pdf.ts を実 chromium で通す処理。
@@ -24,7 +24,7 @@ import path from 'node:path'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { assertCliBuilt, BIN_PECOTV, formatOutputTails, isChromiumCached } from '../_helpers/pecotv-e2e-run.js'
+import { assertCliBuilt, formatOutputTails, isChromiumCached, spawnToolSync } from '../_helpers/pecotv-e2e-run.js'
 import { attachFile, attachOutput, readOutput } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
@@ -79,7 +79,7 @@ interface ExportDoneEvent {
   readonly file?: string
   readonly pdf?: string | null
   readonly pdfFailed?: boolean
-  readonly warnings?: number
+  readonly warnings?: readonly string[]
 }
 
 interface ExportRun {
@@ -126,12 +126,10 @@ function runExport(name: string, environment: Readonly<Record<string, string>> =
   writeFileSync(inputPath, JAPANESE_DIAGRAM, 'utf8')
 
   const startedAt = performance.now()
-  const result = spawnSync(
-    BIN_PECOTV,
-    ['drawio', 'export', inputPath, '--icons', ICONS_DIR, '-o', outputPath, '--json'],
+  const result = spawnToolSync(
+    ['drawio', 'export', inputPath, '--icons', ICONS_DIR, '-o', outputPath],
     {
-      // bootstrap の flock 待ちが ceiling 計測区間に乗らないよう、bootstrap をそのまま通す。
-      env: { ...process.env, PECOTV_BOOTSTRAP_SKIP: '1', ...environment },
+      env: { ...process.env, ...environment },
       encoding: 'utf8',
       timeout: SPAWN_TIMEOUT_MS,
       maxBuffer: 64 * 1024 * 1024,
@@ -140,7 +138,6 @@ function runExport(name: string, environment: Readonly<Record<string, string>> =
   const elapsedMs = performance.now() - startedAt
   const stdout = typeof result.stdout === 'string' ? result.stdout : ''
   const stderr = typeof result.stderr === 'string' ? result.stderr : ''
-  attachOutput('pecotv drawio export --json', result.status ?? undefined, stdout, stderr)
   console.info(`[drawio-pdf] ${name}: exit=${String(result.status)} ${(elapsedMs / 1000).toFixed(1)}s`)
   return { status: result.status, stdout, stderr, elapsedMs }
 }
@@ -190,7 +187,7 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio export が実 chromium で SVG �
     expect(done.file).toBe(svgPath)
     expect(path.isAbsolute(String(done.pdf))).toBe(true)
     expect(done.pdf).toBe(pdfPath)
-    expect(done.warnings).toBe(0)
+    expect(done.warnings).toBeUndefined()
 
     expect(existsSync(svgPath)).toBe(true)
     expect(existsSync(pdfPath)).toBe(true)
@@ -238,20 +235,19 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio export が実 chromium で SVG �
     expect(fontNames.some(name => name.includes(CJK_FONT_NAME)), `pdffonts:\n${listed.stdout}`).toBe(true)
   })
 
-  it('PDF 生成に失敗すると SVG を残して exit 3 で degrade する', async () => {
+  it('PDF 生成に失敗すると SVG を残し、pdfFailed と警告を返して degrade する', async () => {
     const run = runExport('degrade', { PECOTV_FORCE_PDF_FAIL: '1' })
     const caseDirectory = workDirectory('degrade')
     await attachFile('degrade で残った SVG', path.join(caseDirectory, 'out.svg'))
     // --json の失敗理由（SVG export の時間切れ等）は stdout に出るため、stderr と並べて残す。
-    expect(run.status, `stdout tail: ${run.stdout.slice(-2000)}\nstderr tail: ${run.stderr.slice(-2000)}`).toBe(3)
+    expect(run.status, `stdout tail: ${run.stdout.slice(-2000)}\nstderr tail: ${run.stderr.slice(-2000)}`).toBe(0)
 
     const done = parseDone(run.stdout)
     expect(done.event).toBe('drawio.export.done')
     expect(done.pdfFailed).toBe(true)
     // eslint-disable-next-line unicorn/no-null -- JSON の契約が `pdf: null`
     expect(done.pdf).toBe(null)
-    expect(done.warnings).toBe(1)
-    expect(run.stderr).toContain('warning: PDF export failed')
+    expect(done.warnings).toStrictEqual([expect.stringContaining('PDF export failed')])
     expect(existsSync(path.join(caseDirectory, 'out.svg'))).toBe(true)
     expect(existsSync(path.join(caseDirectory, 'out.pdf'))).toBe(false)
 

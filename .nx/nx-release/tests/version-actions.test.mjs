@@ -164,6 +164,21 @@ test("ほかの project の npm の指定は書き換えない", async () => {
   assert.deepEqual(logs, [`Updated ${visualClaude} to 0.68.0`]);
 });
 
+test("pecot-visual の @pecot/visual-mcp の版だけを書き換え、@playwright/mcp の版は残す", async () => {
+  const visualClaude = "plugins/pecot-visual/.claude-plugin/plugin.json";
+  const visualMcpBefore = `{"mcpServers":{"pecot-visual":{"command":"npx","args":["--prefix=\${CLAUDE_PLUGIN_DATA}","-y","@pecot/visual-mcp@3.1.0"]},"pecot-visual-playwright":{"command":"npx","args":["--prefix=\${CLAUDE_PLUGIN_DATA}","-y","@playwright/mcp@0.0.83"]}}}\n`;
+  const tree = makeTree({
+    [visualClaude]: '{"name":"pecot-v","version":"3.1.0"}\n',
+    "plugins/pecot-visual/.mcp.json": visualMcpBefore,
+  });
+  const logs = await makeActions([visualClaude], "pecot-visual").updateProjectVersion(tree, "4.0.0");
+  assert.equal(
+    tree.get("plugins/pecot-visual/.mcp.json"),
+    visualMcpBefore.replace("@pecot/visual-mcp@3.1.0", "@pecot/visual-mcp@4.0.0"),
+  );
+  assert.deepEqual(logs, [`Updated ${visualClaude} to 4.0.0`, "Updated plugins/pecot-visual/.mcp.json to 4.0.0"]);
+});
+
 test(".mcp.json・mcp.json が無ければ何もしない", async () => {
   const tree = makeTree({ [TOOLS_CLAUDE]: '{"name":"pecot-t","version":"3.1.0"}\n' });
   const logs = await makeActions([TOOLS_CLAUDE], "pecot-tools").updateProjectVersion(tree, "4.0.0");

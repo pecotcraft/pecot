@@ -19,7 +19,7 @@ export type ImageFormat = 'png' | 'jpeg'
 
 /**
 寸法読み取りの結果。1 件の失敗で xlsx 生成全体を落とさない (FR-006) ため、
-例外ではなく ok:false で返す。`message` は CLI がそのまま stderr に出せる文言。
+例外ではなく ok:false で返す。`message` はそのまま利用者に出せる文言。
 
 `not-found` は fs アクセスの結果であり infra 側の責務なので、ここには持たせない。
 */

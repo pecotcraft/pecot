@@ -10,12 +10,3 @@
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return value instanceof Object && !Array.isArray(value)
 }
-
-/**
-JSON 文字列を Record として読む。オブジェクトでなければ投げる。
-*/
-export function parseJsonRecord(text: string): Record<string, unknown> {
-  const parsed: unknown = JSON.parse(text)
-  if (!isRecord(parsed)) throw new TypeError(`JSON のオブジェクトではありません: ${text}`)
-  return parsed
-}

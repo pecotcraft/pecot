@@ -347,17 +347,9 @@ function createConvertTool(pipeline: SlidevPptxPipeline): ToolDefinition {
 }
 
 describe('slideTools', () => {
-  it('4 件を既定 deps で組み立てる (deps はハンドラ内生成なので評価時に throw しない)', () => {
-    const previous = process.env['CLAUDE_PLUGIN_ROOT']
-    // interface-env: none
-    Reflect.deleteProperty(process.env, 'CLAUDE_PLUGIN_ROOT')
-    try {
-      expect(slideTools().map(tool => tool.name))
-        .toEqual(['slide_create', 'slide_convert', 'slide_sync', 'slide_lint'])
-    }
-    finally {
-      if (previous !== undefined) process.env['CLAUDE_PLUGIN_ROOT'] = previous
-    }
+  it('4 件を既定 deps で組み立てる', () => {
+    expect(slideTools().map(tool => tool.name))
+      .toEqual(['slide_create', 'slide_convert', 'slide_sync', 'slide_lint'])
   })
 })
 
@@ -498,22 +490,6 @@ describe('slide_create', () => {
     })
     expect(structuredOf(forced)).not.toHaveProperty('kind')
   })
-
-  it('CLAUDE_PLUGIN_ROOT 未設定の既定 deps は実行失敗 (exitCode 1) として返る', async () => {
-    const previous = process.env['CLAUDE_PLUGIN_ROOT']
-    // interface-env: none
-    Reflect.deleteProperty(process.env, 'CLAUDE_PLUGIN_ROOT')
-    try {
-      const result = await call(slideCreateTool(), { project_dir: temporaryRoot('deck-noenv'), theme: makeThemeSpec() })
-      const structured = structuredOf(result)
-
-      expect(structured).toHaveProperty('kind')
-      expect(textOf(sentenceOf(result))).toContain('CLAUDE_PLUGIN_ROOT')
-    }
-    finally {
-      if (previous !== undefined) process.env['CLAUDE_PLUGIN_ROOT'] = previous
-    }
-  })
 })
 
 describe('slide_sync', () => {
@@ -558,7 +534,7 @@ describe('slide_sync', () => {
     const structured = structuredOf(result)
 
     expect(structured).not.toHaveProperty('kind')
-    expect(textOf(sentenceOf(result))).toBe(`slide sync: succeeded (${talk}); theme: ${THEME_NAME} (${spec})`)
+    expect(textOf(sentenceOf(result))).toBe(`slide_sync: succeeded (${talk}); theme: ${THEME_NAME} (${spec})`)
     expect(dataOf(result)).toMatchObject({
       event: 'slide.sync.done',
       nodeModulesOnly: false,

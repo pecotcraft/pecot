@@ -1,4 +1,4 @@
-// slide_theme ツール。talk-dir が参照するテーマの宣言とレイアウトの一覧を返す (`pecotv slide theme` 相当)。
+// slide_theme ツール。talk-dir が参照するテーマの宣言とレイアウトの一覧を返す。
 
 import type { CallToolResult } from '@modelcontextprotocol/server'
 import { z } from 'zod'
@@ -68,7 +68,6 @@ const slideThemeShape = {
 const slideThemeOutput = toolOutputFields(slideThemeShape, PATH_REJECTION_OUTPUT_SHAPE)
 
 /**
-`pecotv slide theme` 相当。
 `theme`（名前・指定・宣言の有無・root）、`declaration`、`layouts`、`categories`、`lint`、`warnings` を返す。
 */
 export function slideThemeTool(
@@ -96,7 +95,7 @@ export function slideThemeTool(
         return toCallToolResult({
           ok: true,
           data: { ...data },
-          message: `slide theme: ${data.theme.name} (${String(data.layouts.length)} layouts)`,
+          message: `slide_theme: ${data.theme.name} (${String(data.layouts.length)} layouts)`,
         })
       }
       catch (error: unknown) {

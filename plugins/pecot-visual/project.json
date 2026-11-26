@@ -45,7 +45,7 @@
       "cache": false,
       "dependsOn": ["install", "build-cli"],
       "metadata": {
-        "description": "Chromium を使うレーン (test-cli / test-bootstrap) の前提を本実行の前に 1 回だけ確かめる (#1217)。headless Chromium の起動を 1 回試し、OS のライブラリが足りなければ入れ、入れられない・起動できないならレーンを始めずに落とす。cache: false は install と同じ理由（結果が OS の状態に依存し outputs を宣言できない）。"
+        "description": "Chromium を使うレーン (test-cli) の前提を本実行の前に 1 回だけ確かめる (#1217)。headless Chromium の起動を 1 回試し、OS のライブラリが足りなければ入れ、入れられない・起動できないならレーンを始めずに落とす。cache: false は install と同じ理由（結果が OS の状態に依存し outputs を宣言できない）。"
       },
       "options": {
         "command": "bash scripts/ci/chromium-preflight.sh",
@@ -85,7 +85,6 @@
       "cache": false,
       "dependsOn": [
         "test-cli",
-        "test-bootstrap",
         "test-slidev",
         "test-hooks",
         "test-compare",
@@ -104,7 +103,6 @@
         "{workspaceRoot}/libs/interface-spec/src/vitest/verifies.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/attach.ts",
         "{projectRoot}/cli/**/*",
-        "!{projectRoot}/cli/tests/bootstrap/**",
         "{projectRoot}/interface/**/*",
         "{workspaceRoot}/libs/interface-spec/src/domain/diff.ts",
         "{workspaceRoot}/libs/interface-spec/src/domain/schema.ts",
@@ -112,9 +110,12 @@
         "{workspaceRoot}/libs/interface-spec/package.json",
         "sharedGlobals",
         "pecotvPluginTestGlobals",
-        "{projectRoot}/bin/pecotv",
         "{projectRoot}/.claude-plugin/plugin.json",
         "{projectRoot}/.mcp.json",
+        "{projectRoot}/plugin.json",
+        "{projectRoot}/mcp.json",
+        "{projectRoot}/com.github.copilot/**/*",
+        "{projectRoot}/agents/*.md",
         "{projectRoot}/assets/drawio-icons/**",
         "{projectRoot}/assets/slidev/deck-lint.config.js",
         "{projectRoot}/assets/slidev/deck-lint.env.config.js",
@@ -137,42 +138,10 @@
         "build-cli"
       ],
       "metadata": {
-        "description": "cli の build / test / test:e2e。install と cli/dist の build は、dependsOn 経由で実行ごとに 1 回だけ実行する (#1080)。run-tests.sh には PECOTV_SKIP_INSTALL=1 を渡し、同じ処理の二重実行を止める。bootstrap の bash テスト（約 21 秒）は test-bootstrap に分けた。cli/src だけを変えた変更では実行しない (#1235)。cli/ 以外の inputs は、strace で棚卸しした実際の読み込みに従う (#1225)。bin/pecotv、plugin.json、.mcp.json は、E2E が起動する実体になる。assets は、drawio の E2E が読むアイコンと証明書になる。skills の references は drawio の E2E が読む。pecot-tools の 3 ファイルと drift の確認は、node-runtime の同期テストが読む。assets/slidev から inputs に入れるのは 3 つだけとする。deck-lint.config.js、deck-lint.env.config.js、scripts/eslint/**（テスト以外）。slide lint 系のテスト（slide-lint.test.ts と mcp-tools.test.ts の slide_lint）が、子プロセスで起動するファイルを指す。eslint plugin の dist は build-slidev が作るので、dependsOn へ載せる。これでソースを変えた変更では、古い dist の成功が残らない。実行時依存の manifest は assets/slidev/runtime/package.json にある。runtime-install.test.ts と runtime-peers.test.ts が読む。pecotvPluginTestGlobals の **/package.json が拾うので、個別には入れない。上の 3 つ以外の assets/slidev（lint の補助スクリプトとそのテスト等）は、E2E が読まないので入れない。入れると、それらを変えるたびに本レーンが実行される（.claude/rules/nx-inputs.md）。"
+        "description": "cli の build / test / test:e2e。install と cli/dist の build は、dependsOn 経由で実行ごとに 1 回だけ実行する (#1080)。run-tests.sh には PECOTV_SKIP_INSTALL=1 を渡し、同じ処理の二重実行を止める。cli/ 以外の inputs は、strace で棚卸しした実際の読み込みに従う (#1225)。2 組の manifest・com.github.copilot・agents は plugin-manifests.test.ts が比べる。assets は、drawio の E2E が読むアイコンと証明書になる。skills の references は drawio の E2E が読む。pecot-tools の 3 ファイルと drift の確認は、node-runtime の同期テストが読む。assets/slidev から inputs に入れるのは 3 つだけとする。deck-lint.config.js、deck-lint.env.config.js、scripts/eslint/**（テスト以外）。slide lint 系のテスト（slide-lint.test.ts と mcp-tools.test.ts の slide_lint）が、子プロセスで起動するファイルを指す。eslint plugin の dist は build-slidev が作るので、dependsOn へ載せる。これでソースを変えた変更では、古い dist の成功が残らない。実行時依存の manifest は assets/slidev/runtime/package.json にある。runtime-install.test.ts と runtime-peers.test.ts が読む。pecotvPluginTestGlobals の **/package.json が拾うので、個別には入れない。上の 3 つ以外の assets/slidev（lint の補助スクリプトとそのテスト等）は、E2E が読まないので入れない。入れると、それらを変えるたびに本レーンが実行される（.claude/rules/nx-inputs.md）。"
       },
       "options": {
         "command": "rm -rf test-results/test-cli/allure-results && PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=cli",
-        "cwd": "plugins/pecot-visual"
-      }
-    },
-    "test-bootstrap": {
-      "executor": "nx:run-commands",
-      "inputs": [
-        "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
-        "{projectRoot}/cli/tests/bootstrap/**/*",
-        "sharedGlobals",
-        "pecotvPluginTestGlobals",
-        "{projectRoot}/bin/**/*",
-        "{projectRoot}/.claude-plugin/plugin.json",
-        "{projectRoot}/.mcp.json",
-        "{projectRoot}/plugin.json",
-        "{projectRoot}/mcp.json",
-        "{projectRoot}/com.github.copilot/**/*",
-        "{projectRoot}/agents/*.md",
-        "{projectRoot}/cli/tsconfig.json",
-        "{projectRoot}/cli/tsconfig.build.json",
-        "{projectRoot}/assets/slidev/tsconfig.base.json",
-        "{projectRoot}/assets/slidev/tsconfig.build.json",
-        "{projectRoot}/assets/slidev/scripts/build.mjs",
-        "{workspaceRoot}/plugins/pecot-workflow/bin/_lib.sh",
-        "^production"
-      ],
-      "dependsOn": ["install", "check-pm-guard", "chromium-preflight"],
-      "outputs": ["{projectRoot}/test-results/test-bootstrap/allure-results"],
-      "metadata": {
-        "description": "bin/pecotv の bootstrap と登録ファイルの bash テスト。対象は次の 7 本。host-deps-marker、install-record、data-dir、mirror-real-pnpm、manifest、lib-consistency、text-rules-link。約 21 秒かかる。test-cli から切り出し、cli/src だけを変えた変更では実行しない (#1235)。重い CUJ 一式の run.sh は従来どおり手動で実行し、本レーンには含めない。pnpm は stub を使うか、ミラーを実 build する mirror-real-pnpm.sh の実 pnpm を使う。本体の cli/dist は使わない。そのため build-cli には依存しない。chromium-preflight には依存する。mirror-real-pnpm.sh の bin/pecotv --version が、MCP 以外の起動で Chromium の取得と host-deps を試みることがある。install と check-pm-guard は、dependsOn 経由で実行ごとに 1 回だけ実行する。run-tests.sh には PECOTV_SKIP_INSTALL=1 を渡す。"
-      },
-      "options": {
-        "command": "rm -rf test-results/test-bootstrap/allure-results && PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=bootstrap",
         "cwd": "plugins/pecot-visual"
       }
     },
@@ -212,18 +181,12 @@
         "sharedGlobals",
         "pecotvPluginTestGlobals",
         "{projectRoot}/cli/src/node-runtime.ts",
-        "{projectRoot}/com.github.copilot/hooks/hooks.json",
-        "{projectRoot}/assets/slidev/deck-lint.config.js",
-        "{projectRoot}/assets/slidev/deck-lint.env.config.js",
-        "{projectRoot}/cli/tests/fixtures/themes/with-declaration/references/*.yaml",
-        "{projectRoot}/assets/slidev/scripts/eslint/**",
-        "!{projectRoot}/assets/slidev/scripts/eslint/**/tests/**",
-        "^production"
+        "{projectRoot}/com.github.copilot/hooks/hooks.json"
       ],
-      "dependsOn": ["install", "check-pm-guard", "build-slidev", { "projects": ["text-rules"], "target": "build" }],
+      "dependsOn": ["install", "check-pm-guard"],
       "outputs": ["{projectRoot}/test-results/test-hooks/allure-results"],
       "metadata": {
-        "description": "hooks/ 以外の inputs は、strace で棚卸しした実際の読み込みに従う (#1225)。hooks のテストは、fixture テーマ（cli/tests/fixtures/themes/with-declaration）の references を talk-dir へ複写して使う。実 eslint で本体の規則（slidev-pages-lint / text-constraints 等）を動かす。そのため inputs に 4 つを入れる。deck-lint.config.js、deck-lint.env.config.js、fixture の references/*.yaml、scripts/eslint/**（テスト以外）。テーマの宣言は mirror-helper.sh の stub CLI が返す。cli の node-runtime.ts も参照する。lint の図の幾何は scripts/eslint/_shared が持つ。validate-references-check.test.sh は scripts/eslint/validate-references の dist/index.js を起動する。dist が無いと SKIP して通る。dist は build-slidev が作るので dependsOn に載せ、ソース（テスト以外）を inputs に入れる。dist の無い worktree で SKIP して成功した結果が、共有キャッシュ経由で別の worktree へ再利用されるのを防ぐ。libs/text-rules の変更は、project graph の依存先として ^production が取り込む。text-lint-check.test.sh は libs/text-rules/dist の bin を起動するため、text-rules:build を dependsOn に明記する。"
+        "description": "hooks/ の *.test.sh。session-start の Node の版の案内は cli/src/node-runtime.ts を読む。hooks-json.test.sh は Copilot CLI 向けの hooks.json も読む。"
       },
       "options": {
         "command": "rm -rf test-results/test-hooks/allure-results && PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=hooks",
@@ -255,6 +218,7 @@
       "inputs": [
         "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{projectRoot}/scripts/release/**/*",
+        "{projectRoot}/scripts/ci/pnpm-lib.sh",
         "{workspaceRoot}/LICENSE",
         "{workspaceRoot}/.githooks/lib/mcp-publish-common.sh",
         "{workspaceRoot}/.githooks/scripts/attach-mcp-tgz.sh",

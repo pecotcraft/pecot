@@ -1,5 +1,5 @@
 {
-  "description": "pecot-visual plugin hooks: runs lint when MD or YAML files are edited in a Slidev talk-dir, initializes .pecotv and syncs README/CHANGELOG when pecotv use is detected, and notifies at SessionStart about tracking .pecotv/.gitignore in existing repos",
+  "description": "pecot-visual plugin hooks: initializes .pecotv and syncs README/CHANGELOG when pecotv use is detected, and notifies at SessionStart about tracking .pecotv/.gitignore in existing repos",
   "hooks": {
     "SessionStart": [
       {
@@ -31,28 +31,6 @@
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/pre-tool-use-skill.sh",
             "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/post-tool-use-write.sh",
-            "timeout": 80
-          }
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/post-tool-use-edit.sh",
-            "timeout": 80
           }
         ]
       }

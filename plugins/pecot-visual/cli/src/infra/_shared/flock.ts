@@ -5,8 +5,7 @@
 // 動き得るため、どちらも同じ primitive (flock(2)) で保護する。待ち方・上限・
 // 「ロック待ち超過」を取得失敗と区別する exit code を 1 か所に置き、2 系統で揃える。
 //
-// flock(1) は util-linux 前提で macOS 等には無い。無い環境ではロックなしで動く
-// (bin/pecotv の bootstrap も同じフォールバックを取る)。
+// flock(1) は util-linux 前提で macOS 等には無い。無い環境ではロックなしで動く。
 
 import { spawnSync } from 'node:child_process'
 

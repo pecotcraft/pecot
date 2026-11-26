@@ -31,7 +31,7 @@ consumer は `assets/slidev/deck-lint.config.js` や `assets/slidev/eslint.confi
    ビルド順は、各サブパッケージ tsconfig の `references` で `tsc -b` が解決する
 2. `pnpm -F @pecot/slidev-assets-dev lint` が `--no-cache` で pass
 3. dist 配下（`scripts/eslint/*/dist/`）は `.gitignore` で除外済みの **git 管理外**。
-   commit には含まれない。利用者環境では bin/pecotv の bootstrap が再生成する
+   commit には含まれない。利用者へは、npm の `@pecot/visual-mcp` に build 済みの dist が入る
 
 ## 揺れた時の切り分け
 

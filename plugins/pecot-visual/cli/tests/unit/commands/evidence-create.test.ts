@@ -1,17 +1,17 @@
 // commands/evidence-xlsx/create.ts の unit test。
-// fs は DI で差し替え、spec の読込・parse・検証の各失敗と --json ON/OFF の出力を pin する。
-// commander 自身の usage エラー (--input 未指定) は process.argv を触る必要がある。
-// そのため integration 側 (tests/integration/commands/evidence-create.test.ts) に置く。
+// fs は DI で差し替え、spec の読込・parse・検証の各失敗と成功時の結果を pin する。
 
 import { describe, expect, it, vi } from 'vitest'
 
 import type { EvidenceCreateDependencies } from '../../../src/commands/evidence-xlsx/create.js'
 import {
-  createEvidenceCreateCommand,
+  errorData,
   EvidenceCreateError,
+  executeEvidenceCreate,
   evidenceCreateDefaultDependencies,
   runEvidenceCreate,
 } from '../../../src/commands/evidence-xlsx/create.js'
+import { rejectionOf } from '../../_helpers/rejection.js'
 import type { EvidenceWriteResult } from '../../../src/infra/evidence-xlsx/workbook-writer.js'
 import { defaultLintText } from '../../../src/infra/text-lint.js'
 import { EvidenceWorkbookError, writeEvidenceWorkbook } from '../../../src/infra/evidence-xlsx/workbook-writer.js'
@@ -234,190 +234,92 @@ describe('runEvidenceCreate', () => {
   })
 })
 
-describe('createEvidenceCreateCommand — 成功時の出力', () => {
-  it('--json なしは絶対パス・項目数・注記数を stdout に出す', async () => {
-    const stdout = makeStream()
-    const command = createEvidenceCreateCommand(() => buildDependencies({ stdout: asStream(stdout) }))
-    const previousExit = process.exitCode
-    process.exitCode = undefined
-    try {
-      await command.parseAsync(['--input', 'spec.json'], { from: 'user' })
-      expect(stdout.chunks.join('')).toBe(
-        'created: /abs/evidence.xlsx\nitems: 1 / annotations: 0\n',
-      )
-      // 成功時は exitCode を触らない。
-      expect(process.exitCode).toBe(undefined)
-    }
-    finally {
-      process.exitCode = previousExit
-    }
-  })
-
-  it('--json なしの注記数は writeWorkbook の戻り値をそのまま出す', async () => {
-    const stdout = makeStream()
-    const command = createEvidenceCreateCommand(() => buildDependencies({
-      stdout: asStream(stdout),
-      writeWorkbook: () => Promise.resolve(writeResult({ items: 2, annotations: 5 })),
-    }))
-    await command.parseAsync(['--input', 'spec.json'], { from: 'user' })
-
-    expect(stdout.chunks.join('')).toBe(
-      'created: /abs/evidence.xlsx\nitems: 2 / annotations: 5\n',
+describe('executeEvidenceCreate — 成功時の結果', () => {
+  it('result イベントに絶対パス・項目数・注記数・除外の一覧を載せる', async () => {
+    const execution = await executeEvidenceCreate(
+      { input: 'spec.json', out: 'out.xlsx' },
+      buildDependencies({
+        writeWorkbook: () => Promise.resolve(writeResult({
+          items: 3,
+          annotations: 5,
+          skipped: [{ path: '/img/broken.png', reason: 'unreadable' }],
+        })),
+      }),
     )
+
+    expect(execution).toStrictEqual({
+      event: 'result',
+      outPath: '/abs/evidence.xlsx',
+      items: 3,
+      annotations: 5,
+      skipped: [{ path: '/img/broken.png', reason: 'unreadable' }],
+    })
   })
 
-  it('--json なしで除外があると理由付きの一覧も出す', async () => {
-    const stdout = makeStream()
-    const command = createEvidenceCreateCommand(() => buildDependencies({
-      stdout: asStream(stdout),
-      writeWorkbook: () => Promise.resolve(writeResult({
-        skipped: [
-          { path: '/img/missing.png', reason: 'not-found' },
-          { path: '/img/note.png', reason: 'unsupported-format' },
-        ],
-      })),
-    }))
-    await command.parseAsync(['--input', 'spec.json'], { from: 'user' })
-
-    expect(stdout.chunks.join('')).toBe(
-      'created: /abs/evidence.xlsx\n'
-      + 'items: 1 / annotations: 0\n'
-      + 'skipped: 2\n'
-      + '  - /img/missing.png (not-found)\n'
-      + '  - /img/note.png (unsupported-format)\n',
-    )
-  })
-
-  it('--json は result イベントを 1 行 JSON で出す', async () => {
-    const stdout = makeStream()
-    const command = createEvidenceCreateCommand(() => buildDependencies({
-      stdout: asStream(stdout),
-      writeWorkbook: () => Promise.resolve(writeResult({
-        items: 3,
-        skipped: [{ path: '/img/broken.png', reason: 'unreadable' }],
-      })),
-    }))
-    await command.parseAsync(['--input', 'spec.json', '--json'], { from: 'user' })
-
-    const written = stdout.chunks.join('')
-    expect(written.split('\n').filter(line => line.length > 0)).toHaveLength(1)
-    expect(written).toBe(
-      `${JSON.stringify({
-        event: 'result',
-        outPath: '/abs/evidence.xlsx',
-        items: 3,
-        annotations: 0,
-        skipped: [{ path: '/img/broken.png', reason: 'unreadable' }],
-      })}\n`,
-    )
-  })
-
-  it('--out 未指定でも既定の ./evidence.xlsx が絶対パスで writeWorkbook に渡る', async () => {
+  it('相対の out は cwd 基準の絶対パスで writeWorkbook に渡る', async () => {
     const writeWorkbook = vi.fn<EvidenceCreateDependencies['writeWorkbook']>(
       () => Promise.resolve(writeResult()),
     )
-    const command = createEvidenceCreateCommand(() => buildDependencies({ writeWorkbook }))
-    await command.parseAsync(['--input', 'spec.json'], { from: 'user' })
+    await executeEvidenceCreate({ input: 'spec.json', out: 'evidence.xlsx' }, buildDependencies({ writeWorkbook }))
 
     expect(writeWorkbook.mock.calls[0]?.[1]).toBe(`${process.cwd()}/evidence.xlsx`)
   })
 })
 
-describe('createEvidenceCreateCommand — 失敗時の出力', () => {
-  it('--json なしは stderr にメッセージ + exit 1', async () => {
-    const stdout = makeStream()
-    const stderr = makeStream()
-    const command = createEvidenceCreateCommand(() => buildDependencies({
-      stdout: asStream(stdout),
-      stderr: asStream(stderr),
-      writeWorkbook: () => Promise.reject(
-        new EvidenceWorkbookError('no images can be placed (all 2 items excluded)', 'no-valid-images'),
-      ),
-    }))
-    const previousExit = process.exitCode
-    process.exitCode = undefined
-    try {
-      await command.parseAsync(['--input', 'spec.json'], { from: 'user' })
-      expect(stderr.chunks.join('')).toBe(
-        'error: evidence create: no images can be placed (all 2 items excluded)\n',
-      )
-      expect(stdout.chunks.join('')).toBe('')
-      expect(process.exitCode).toBe(1)
-    }
-    finally {
-      process.exitCode = previousExit
-    }
+describe('errorData — 失敗時の data', () => {
+  it('xlsx に置ける画像が無いときは no-valid-images と detail を返す', async () => {
+    const error = await rejectionOf(executeEvidenceCreate(
+      { input: 'spec.json', out: 'out.xlsx' },
+      buildDependencies({
+        writeWorkbook: () => Promise.reject(
+          new EvidenceWorkbookError('no images can be placed (all 2 items excluded)', 'no-valid-images'),
+        ),
+      }),
+    ))
+
+    expect(errorData(error)).toStrictEqual({
+      event: 'evidence.create.error',
+      reason: 'no-valid-images',
+      detail: 'no images can be placed (all 2 items excluded)',
+    })
   })
 
-  it('--json は evidence.create.error を stdout に出す + exit 1', async () => {
-    const stdout = makeStream()
-    const stderr = makeStream()
-    const command = createEvidenceCreateCommand(() => buildDependencies({
-      stdout: asStream(stdout),
-      stderr: asStream(stderr),
-      readFile: () => Promise.reject(new Error('ENOENT: no such file')),
-    }))
-    const previousExit = process.exitCode
-    process.exitCode = undefined
-    try {
-      await command.parseAsync(['--input', 'spec.json', '--json'], { from: 'user' })
-      const last = stdout.chunks.join('').trim()
-      // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りを narrowing
-      const parsed = JSON.parse(last) as { event: string, reason: string, detail: string }
-      expect(parsed.event).toBe('evidence.create.error')
-      expect(parsed.reason).toBe('input-not-found')
-      expect(parsed.detail).toContain('cannot read spec JSON')
-      expect(stderr.chunks).toHaveLength(0)
-      expect(process.exitCode).toBe(1)
-    }
-    finally {
-      process.exitCode = previousExit
-    }
+  it('spec を読めないときは input-not-found を返す', async () => {
+    const error = await rejectionOf(executeEvidenceCreate(
+      { input: 'spec.json', out: 'out.xlsx' },
+      buildDependencies({ readFile: () => Promise.reject(new Error('ENOENT: no such file')) }),
+    ))
+
+    const data = errorData(error)
+    expect(data['reason']).toBe('input-not-found')
+    expect(data['detail']).toContain('cannot read spec JSON')
   })
 
-  it('--json で検証エラーは reason invalid-spec + detail に全件', async () => {
-    const stdout = makeStream()
-    const command = createEvidenceCreateCommand(() => buildDependencies({
-      stdout: asStream(stdout),
-      readFile: () => Promise.resolve(JSON.stringify({ title: 'T', createdDate: '2026-08-17', items: [] })),
-    }))
-    const previousExit = process.exitCode
-    process.exitCode = undefined
-    try {
-      await command.parseAsync(['--input', 'spec.json', '--json'], { from: 'user' })
-      // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りを narrowing
-      const parsed = JSON.parse(stdout.chunks.join('').trim()) as { reason: string, detail: string }
-      expect(parsed.reason).toBe('invalid-spec')
-      expect(parsed.detail).toContain('- items: must have at least one item')
-      expect(process.exitCode).toBe(1)
-    }
-    finally {
-      process.exitCode = previousExit
-    }
-  })
-})
+  it('検証エラーは invalid-spec と detail に全件を返す', async () => {
+    const error = await rejectionOf(executeEvidenceCreate(
+      { input: 'spec.json', out: 'out.xlsx' },
+      buildDependencies({
+        readFile: () => Promise.resolve(JSON.stringify({ title: 'T', createdDate: '2026-08-17', items: [] })),
+      }),
+    ))
 
-describe('createEvidenceCreateCommand — 文面の違反', () => {
-  it('--json は text-violation と violations の全件を出す + exit 1', async () => {
-    const stdout = makeStream()
-    const command = createEvidenceCreateCommand(() => buildDependencies({
-      stdout: asStream(stdout),
-      readFile: () => Promise.resolve(JSON.stringify({ ...VALID_SPEC, title: HYPE })),
-    }))
-    const previousExit = process.exitCode
-    process.exitCode = undefined
-    try {
-      await command.parseAsync(['--input', 'spec.json', '--json'], { from: 'user' })
-      // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りを narrowing
-      const parsed = JSON.parse(stdout.chunks.join('').trim()) as { event: string, reason: string, violations: { item: string }[] }
-      expect(parsed.event).toBe('evidence.create.error')
-      expect(parsed.reason).toBe('text-violation')
-      expect(parsed.violations.map(v => v.item)).toStrictEqual(['title'])
-      expect(process.exitCode).toBe(1)
-    }
-    finally {
-      process.exitCode = previousExit
-    }
+    const data = errorData(error)
+    expect(data['reason']).toBe('invalid-spec')
+    expect(data['detail']).toContain('- items: must have at least one item')
+  })
+
+  it('文面の違反は text-violation と violations の全件を返す', async () => {
+    const error = await rejectionOf(executeEvidenceCreate(
+      { input: 'spec.json', out: 'out.xlsx' },
+      buildDependencies({
+        readFile: () => Promise.resolve(JSON.stringify({ ...VALID_SPEC, title: HYPE })),
+      }),
+    ))
+
+    const data = errorData(error)
+    expect(data['reason']).toBe('text-violation')
+    // eslint-disable-next-line no-restricted-syntax -- violations の要素を検証用に narrowing
+    expect((data['violations'] as { item: string }[]).map(v => v.item)).toStrictEqual(['title'])
   })
 })
 

@@ -39,16 +39,11 @@ source "${SCRIPT_DIR}/lib/core/config-dispatcher.sh"
 # トップレベルの additionalContext は Copilot CLI 1.0.103 が読む。
 # Copilot は SessionStart では、素のテキストも hookSpecificOutput.additionalContext もモデルに渡さない。
 # Claude Code はトップレベルを読まないので、二重に入らない。
-# 起動中の node が脆弱性の修正を含まないバージョンなら、CLI と MCP サーバが起動を拒否する理由を案内する。
-# Claude Code 上では、MCP サーバが failed と見えるだけで理由が届かない。
-# そのため利用者には systemMessage（画面表示）、エージェントには additionalContext（コンテキスト）の
-# 両方へ渡す。何も出ないときは何も出力しない。
-# 判定は、CLI と同じ checkNodeRuntime（cli/src/node-runtime.ts）を node で読み込んで呼ぶ。
-# 判定を読めない場合と node が無い場合は、案内なしで exit 0 のまま終わる。
+# MCP のサーバが node の版で起動を拒むとき、Claude Code では failed と見えるだけなので、理由を systemMessage と additionalContext に出す。
 NODE_RUNTIME_MESSAGE=""
 if pecotv_hook_enabled "node-runtime-notice" true; then
-    # shellcheck source=../bin/_lib.sh
-    source "${SCRIPT_DIR}/../bin/_lib.sh"
+    # shellcheck source=lib/core/node-runtime-notice.sh
+    source "${SCRIPT_DIR}/lib/core/node-runtime-notice.sh"
     NODE_RUNTIME_MESSAGE="$(pecotv_node_runtime_message "$(cd "${SCRIPT_DIR}/.." && pwd)" || true)"
 fi
 _HOOK_BODY_FILE="$(mktemp)"

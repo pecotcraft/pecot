@@ -78,7 +78,7 @@ export const FAILURE_KINDS = [
 
 export type FailureKind = typeof FAILURE_KINDS[number]
 
-// CLI の引数の解釈と、MCP ツールの無いコマンド（pptx preview）だけが `--json` の reason に出す名前。
+// 引数の解釈だけが reason に出す名前。
 // MCP は引数を inputSchema と parsePathArguments で先に確かめるため、これらは返らない。
 // eslint-disable-next-line no-restricted-syntax -- 名前の一覧から型を作るため、要素をリテラルの型のまま残す
 export const CLI_ONLY_FAILURE_REASONS = [
@@ -97,7 +97,7 @@ export const CLI_ONLY_FAILURE_REASONS = [
 ] as const
 
 /**
-CLI の `--json` の `reason` に載る失敗の名前。MCP は failureKindOf で kind に写して返す。
+失敗の `reason` の名前。MCP は failureKindOf で kind に写して返す。
 */
 export type FailureReason = FailureKind | typeof CLI_ONLY_FAILURE_REASONS[number]
 
@@ -106,7 +106,7 @@ export function isFailureKind(reason: string): reason is FailureKind {
 }
 
 /**
-MCP の結果の `kind`。CLI だけの名前は MCP に届かないが、届いたときは `unknown` にする。
+MCP の結果の `kind`。引数の解釈だけの名前は MCP に届かないが、届いたときは `unknown` にする。
 */
 export function failureKindOf(reason: FailureReason): FailureKind {
   return isFailureKind(reason) ? reason : 'unknown'

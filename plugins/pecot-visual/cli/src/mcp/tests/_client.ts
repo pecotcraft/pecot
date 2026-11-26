@@ -103,7 +103,7 @@ export async function connectSpied(era: ProtocolEra = 'legacy'): Promise<SpiedMc
     ...tool,
     handler: (arguments_) => {
       calls.push({ name: tool.name, arguments: arguments_ })
-      return Promise.resolve(toCallToolResult(spyResultOf(tool.name)))
+      return Promise.resolve(spyCallResultOf(tool.name))
     },
   }))
   const connected = await connectMcp(spied, { era })
@@ -190,6 +190,14 @@ spy が返す成功結果。
 */
 export function spyResultOf(name: string): ToolResult {
   return { ok: true, data: spyDataOf(name), message: 'spy' }
+}
+
+/**
+spy が返す tools/call の結果。フックが呼ぶツールは、何も知らせないときの `{}` を返す。
+*/
+export function spyCallResultOf(name: string): CallToolResult {
+  const isForHook = allTools().find(tool => tool.name === name)?.isForHook === true
+  return isForHook ? { content: [{ type: 'text', text: '{}' }], structuredContent: {} } : toCallToolResult(spyResultOf(name))
 }
 
 /**

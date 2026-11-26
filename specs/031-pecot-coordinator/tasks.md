@@ -189,24 +189,24 @@
 
 **Independent Test**: スライドのファイルを Claude Code で編集すると、`mcp_tool` のフックが呼んだツールの結果がエージェントに届く
 
-- [ ] T092 [P] [US4] フックが呼ぶツール（eslint と text-lint の lint・参照の検証・テーマの読み取り）のテストを書く。結果は `hookSpecificOutput.additionalContext` in `plugins/pecot-visual/cli/src/mcp/tests/`
-- [ ] T093 [P] [US4] `hooks/hooks.json` の PostToolUse（Write・Edit）が `type: "mcp_tool"`・`server: "plugin:pecot-v:pecot-visual"` を使うことのテストを書く in `plugins/pecot-visual/hooks/tests/`
-- [ ] T094 [P] [US4] `.mcp.json` と `mcp.json` の形のテストを書く（`npx`・`--prefix` はデータ置き場・`@pecot/visual-mcp@<版>`） in `plugins/pecot-visual/cli/tests/`
-- [ ] T095 [US4] T092 の 3 つのツールを pecot-visual の MCP に足し、`plugins/pecot-visual/interface/authored.yaml` に項目を足す
-- [ ] T096 [US4] `plugins/pecot-visual/hooks/hooks.json` の PostToolUse を、`mcp_tool` で `input` に `${tool_input.file_path}` を渡す形に直す
-- [ ] T097 [US4] `hooks/post-tool-use-write.sh`・`post-tool-use-edit.sh`・`hooks/lib/post-tool-use/` と、`hooks/lib/core/hook-paths.sh` の実行用ミラーを読む部分を消す in `plugins/pecot-visual/`
-- [ ] T098 [US4] `plugins/pecot-visual/com.github.copilot/hooks/` から動かなくなる PostToolUse のフックを外し、`README.md` に Copilot CLI では動かないことを書く
-- [ ] T099 [US4] `plugins/pecot-visual/.mcp.json` と `mcp.json` を、`npx` で npm の版を起動する形に直す
-- [ ] T100 [US4] ツールをサーバに直に登録する形のテストを書き、CLI の入口が無いことを確かめる in `plugins/pecot-visual/cli/src/mcp/tests/`
-- [ ] T101 [US4] `plugins/pecot-visual/cli/src/cli.ts` を消し、ツールをサーバに直に登録する。`cli/package.json` の `bin` をサーバの入口にする
-- [ ] T102 [US4] `setup.sh` と Chromium の準備が `runtime_setup` とデータ置き場を使い、`bin/` を呼ばないことのテストを書く in `plugins/pecot-visual/cli/tests/`
-- [ ] T103 [US4] `plugins/pecot-visual/setup.sh` と Chromium の準備が `bin/` に頼る箇所を、`runtime_setup` のツールとデータ置き場に直す
-- [ ] T104 [US4] `plugins/pecot-visual/bin/`・`runtime-lock.yaml`・`runtime-workspace.yaml`・`cli/tests/bootstrap/`・`test-bootstrap` のレーンを消し、参照を直す
-- [ ] T105 [US4] リリースの版の書き換えを足し、`plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh` を直す
-- [ ] T106 [US4] スキル・`README.md` から、PATH のコマンドと `bin/` を前提にする箇所を消す in `plugins/pecot-visual/`
-- [ ] T107 [US4] version plan を足す（pecot-visual はメジャー）
-- [ ] T108 [US4] CUJ: プラグインを `.pecot/work/<Issue番号>/` に写し、`.mcp.json` を作業ツリーの build を `node` で起動する形にする。子の `claude -p --plugin-dir` でスライドを編集し、lint の結果が届くかを見る
-- [ ] T109 [US4] CUJ: `claude plugin validate --strict` を通し、リポの外で Inspector の `--cli` で `tools/list` と `tools/call` が通ることを確かめる
+- [x] T092 [P] [US4] フックが呼ぶツール（eslint と text-lint の lint・参照の検証・テーマの読み取り）のテストを書く。結果は `hookSpecificOutput.additionalContext` in `plugins/pecot-visual/cli/src/mcp/tests/`
+- [x] T093 [P] [US4] `hooks/hooks.json` の PostToolUse（Write・Edit）が `type: "mcp_tool"`・`server: "plugin:pecot-v:pecot-visual"` を使うことのテストを書く in `plugins/pecot-visual/hooks/tests/`
+- [x] T094 [P] [US4] `.mcp.json` と `mcp.json` の形のテストを書く（`npx`・`--prefix` はデータ置き場・`@pecot/visual-mcp@<版>`） in `plugins/pecot-visual/cli/tests/`
+- [x] T095 [US4] T092 の 3 つのツールを pecot-visual の MCP に足し、`plugins/pecot-visual/interface/authored.yaml` に項目を足す
+- [x] T096 [US4] `plugins/pecot-visual/hooks/hooks.json` の PostToolUse を、`mcp_tool` で `input` に `${tool_input.file_path}` を渡す形に直す
+- [x] T097 [US4] `hooks/post-tool-use-write.sh`・`post-tool-use-edit.sh`・`hooks/lib/post-tool-use/` と、`hooks/lib/core/hook-paths.sh` の実行用ミラーを読む部分を消す in `plugins/pecot-visual/`
+- [x] T098 [US4] `plugins/pecot-visual/com.github.copilot/hooks/` から動かなくなる PostToolUse のフックを外し、`README.md` に Copilot CLI では動かないことを書く
+- [x] T099 [US4] `plugins/pecot-visual/.mcp.json` と `mcp.json` を、`npx` で npm の版を起動する形に直す
+- [x] T100 [US4] ツールをサーバに直に登録する形のテストを書き、CLI の入口が無いことを確かめる in `plugins/pecot-visual/cli/src/mcp/tests/`
+- [x] T101 [US4] `plugins/pecot-visual/cli/src/cli.ts` を消し、ツールをサーバに直に登録する。`cli/package.json` の `bin` をサーバの入口にする
+- [x] T102 [US4] `setup.sh` と Chromium の準備が `runtime_setup` とデータ置き場を使い、`bin/` を呼ばないことのテストを書く in `plugins/pecot-visual/cli/tests/`
+- [x] T103 [US4] `plugins/pecot-visual/setup.sh` と Chromium の準備が `bin/` に頼る箇所を、`runtime_setup` のツールとデータ置き場に直す
+- [x] T104 [US4] `plugins/pecot-visual/bin/`・`runtime-lock.yaml`・`runtime-workspace.yaml`・`cli/tests/bootstrap/`・`test-bootstrap` のレーンを消し、参照を直す
+- [x] T105 [US4] リリースの版の書き換えを足し、`plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh` を直す
+- [x] T106 [US4] スキル・`README.md` から、PATH のコマンドと `bin/` を前提にする箇所を消す in `plugins/pecot-visual/`
+- [x] T107 [US4] version plan を足す（pecot-visual はメジャー）
+- [x] T108 [US4] CUJ: プラグインを `.pecot/work/<Issue番号>/` に写し、`.mcp.json` を作業ツリーの build を `node` で起動する形にする。子の `claude -p --plugin-dir` でスライドを編集し、lint の結果が届くかを見る
+- [x] T109 [US4] CUJ: `claude plugin validate --strict` を通し、リポの外で Inspector の `--cli` で `tools/list` と `tools/call` が通ることを確かめる
 
 ---
 
