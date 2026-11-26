@@ -9,7 +9,7 @@
     "project": "pecot-workflow",
     "target": "test-bootstrap",
     "plugin": "pecot-workflow",
-    "excluded": "bash の *.test.sh"
+    "results": "plugins/pecot-workflow/test-results/test-bootstrap/allure-results"
   },
   {
     "project": "pecot-workflow",
@@ -27,7 +27,7 @@
     "project": "pecot-workflow",
     "target": "test-release",
     "plugin": "pecot-workflow",
-    "excluded": "bash の *.test.sh"
+    "results": "plugins/pecot-workflow/test-results/test-release/allure-results"
   },
   {
     "project": "pecot-visual",
@@ -39,7 +39,7 @@
     "project": "pecot-visual",
     "target": "test-bootstrap",
     "plugin": "pecot-visual",
-    "excluded": "bash の *.test.sh"
+    "results": "plugins/pecot-visual/test-results/test-bootstrap/allure-results"
   },
   {
     "project": "pecot-visual",
@@ -51,25 +51,25 @@
     "project": "pecot-visual",
     "target": "test-hooks",
     "plugin": "pecot-visual",
-    "excluded": "bash の *.test.sh"
+    "results": "plugins/pecot-visual/test-results/test-hooks/allure-results"
   },
   {
     "project": "pecot-visual",
     "target": "test-compare",
     "plugin": "pecot-visual",
-    "excluded": "bash の *.test.sh"
+    "results": "plugins/pecot-visual/test-results/test-compare/allure-results"
   },
   {
     "project": "pecot-visual",
     "target": "test-release",
     "plugin": "pecot-visual",
-    "excluded": "bash の *.test.sh"
+    "results": "plugins/pecot-visual/test-results/test-release/allure-results"
   },
   {
     "project": "pecot-visual",
     "target": "test-skills",
     "plugin": "pecot-visual",
-    "excluded": "bash の *.test.sh"
+    "results": "plugins/pecot-visual/test-results/test-skills/allure-results"
   },
   {
     "project": "pecot-tools",
@@ -81,7 +81,7 @@
     "project": "pecot-tools",
     "target": "test-release",
     "plugin": "pecot-tools",
-    "excluded": "bash の *.test.sh"
+    "results": "plugins/pecot-tools/test-results/test-release/allure-results"
   },
   {
     "project": "text-rules",

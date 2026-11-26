@@ -1,14 +1,6 @@
 #!/usr/bin/env bash
-# 2 プラグインの bin/_lib.sh で逐語一致させるブロックの一致確認（#1230）。
-#
-# プラグインは導入先へ単体でコピーされるため、他プラグインのファイルは source できない。そこで同じ処理を
-# 複数の _lib.sh に写す。写しが片側だけ直されると、解決順や既定の場所がプラグインごとに食い違うので、
-# マーカーで囲んだブロックの一致をここで押さえる。
-#   data-dir        pecot-workflow / pecot-visual の 2 本。データ置き場の解決と作成。
-#   runtime-mirror  2 本。実行用ミラーの準備。
-#   tsc.mjs         pecot-visual cli を基準に 5 本。typescript7 の tsc の探索。
-# 食い違ったら、data-dir は pecot-workflow、runtime-mirror は pecot-visual の側を基準として写し直す。
-#
+# 2 プラグインの bin/_lib.sh に写したブロック（data-dir・runtime-mirror）と 5 本の tsc.mjs が逐語一致することの確認（#1230）。
+# 食い違ったら、data-dir は pecot-workflow、runtime-mirror と tsc.mjs は pecot-visual の側を基準として写し直す。
 #   bash plugins/pecot-visual/cli/tests/bootstrap/lib-consistency.sh
 set -euo pipefail
 
@@ -17,10 +9,8 @@ PLUGINS="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
 WORKFLOW="$PLUGINS/pecot-workflow/bin/_lib.sh"
 VISUAL="$PLUGINS/pecot-visual/bin/_lib.sh"
 
-PASS=0
-FAIL=0
-ok() { PASS=$((PASS + 1)); echo "ok   $1"; }
-ng() { FAIL=$((FAIL + 1)); echo "FAIL $1"; }
+# shellcheck source=../../../../../.githooks/scripts/test_report/bash-test.sh
+. "$PLUGINS/../.githooks/scripts/test_report/bash-test.sh"
 
 # block <file> <開始マーカー（行頭一致の正規表現）> <終了マーカー>: マーカー行を含めて出す
 block() { sed -n "/^$2\$/,/^$3\$/p" "$1"; }
@@ -30,16 +20,17 @@ compare() {
   shift 4
   local expected file actual
   expected="$(block "$reference" "$start" "$end")"
-  if [ -z "$expected" ]; then ng "$name: 基準のブロックが見つからない: $reference"; return; fi
   local relative reference_relative="${reference#"$PLUGINS"/}"
+  if [ -z "$expected" ]; then bt_fail "$name: 基準のブロックがある" "見つからない: $reference_relative"; return; fi
   for file in "$@"; do
     actual="$(block "$file" "$start" "$end")"
     relative="${file#"$PLUGINS"/}"
     if [ "$actual" = "$expected" ]; then
-      ok "$name: $relative は基準と逐語一致"
+      bt_pass "$name: $relative は基準と逐語一致"
     else
-      ng "$name: $relative が基準と食い違う。基準は $reference_relative"
-      diff <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") | head -n 20 | sed 's/^/     /' || true
+      local difference
+      difference="$(diff <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") | head -n 20 || true)"
+      bt_fail "$name: $relative は基準と逐語一致" "基準 $reference_relative と食い違う: $difference"
     fi
   done
 }
@@ -52,12 +43,12 @@ DATA_DIR_MARKER='# --- data-dir: 2 本で逐語一致 ---'
 for file in "$WORKFLOW" "$VISUAL"; do
   count="$(grep -c -x -F -- "$DATA_DIR_MARKER" "$file" || true)"
   relative="${file#"$PLUGINS"/}"
-  if [ "$count" = 1 ]; then ok "data-dir: $relative にブロックが 1 つ"; else ng "data-dir: $relative のブロックが $count 個"; fi
+  bt_eq "data-dir: $relative にブロックが 1 つ" 1 "$count"
 done
 for file in "$WORKFLOW" "$VISUAL"; do
   count="$(grep -c '^# --- runtime-mirror: ' "$file" || true)"
   relative="${file#"$PLUGINS"/}"
-  if [ "$count" = 1 ]; then ok "runtime-mirror: $relative にブロックが 1 つ"; else ng "runtime-mirror: $relative のブロックが $count 個"; fi
+  bt_eq "runtime-mirror: $relative にブロックが 1 つ" 1 "$count"
 done
 
 # typescript7 の tsc を探す scripts/tsc.mjs は、配布の都合でプラグインごと・ライブラリごとに持つ。5 本の逐語一致を押さえる。
@@ -69,8 +60,7 @@ for file in \
   "$PLUGINS/pecot-workflow/cli/scripts/tsc.mjs" \
   "$REPO/libs/text-rules/scripts/tsc.mjs"; do
   relative="${file#"$REPO"/}"
-  if cmp -s "$TSC_REFERENCE" "$file"; then ok "tsc.mjs: $relative は pecot-visual/cli と逐語一致"; else ng "tsc.mjs: $relative が pecot-visual/cli/scripts/tsc.mjs と食い違う"; fi
+  if cmp -s "$TSC_REFERENCE" "$file"; then bt_pass "tsc.mjs: $relative は pecot-visual/cli と逐語一致"; else bt_fail "tsc.mjs: $relative は pecot-visual/cli と逐語一致" "pecot-visual/cli/scripts/tsc.mjs と食い違う"; fi
 done
 
-echo "pass=$PASS fail=$FAIL"
-[ "$FAIL" -eq 0 ]
+bt_finish

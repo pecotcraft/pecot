@@ -1,35 +1,14 @@
-# bin/pecot の bash テストが共有する helper（source 専用。単体では実行しない）。
-#
-# 実 pnpm・実 build は使わない。
-# pnpm を、呼び出しを記録するだけの stub に差し替える。
-# その最小の plugin root を一時ディレクトリに組む。
-# データ置き場（CLAUDE_PLUGIN_DATA）を別の一時ディレクトリに向けて、bin/pecot を実行する。
-# 観測は 3 系統ある。
-#   wrapper の固定行（`pecot: installing dependencies` / `pecot: building`）の数。
-#   stub pnpm の呼び出し記録。
-#   データ置き場の runtime/ の中身。
-#
-# 使い方を次に示す。
-#   source "$SCRIPT_DIR/stub-root.sh"
-#   stub_root_init <名前> # ROOT / DATA / STUB_BIN / CALLS を作る。後始末は trap。
-#   stub_run [VAR=値 ...] -- <pecot の引数...>   # RC / OUT / ERR を埋める。
-#   count_events <正規表現> / count_calls <正規表現> / ok / ng で集計する。
+# bin/pecot の bash テストが共有する helper（source 専用）。
+# pnpm を記録だけの stub にした最小の plugin root を、stub_root_init <名前> で組む（ROOT / DATA / STUB_BIN / CALLS）。
+# stub_run [VAR=値 ...] -- <引数...> で wrapper を動かし、RC / OUT / ERR を埋める。
 
 PLUGIN_ROOT_SRC="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 REPO_ROOT="$(cd "$PLUGIN_ROOT_SRC/../.." && pwd)"
-PASS=0
-FAIL=0
+# shellcheck source=../../../../../.githooks/scripts/test_report/bash-test.sh
+. "$REPO_ROOT/.githooks/scripts/test_report/bash-test.sh"
 
-ok() { PASS=$((PASS + 1)); echo "ok   $1"; }
-ng() { FAIL=$((FAIL + 1)); echo "FAIL $1"; shift; [ "$#" -eq 0 ] || printf '     %s\n' "$@"; }
-
-# assert_eq <名前> <期待> <実際>
-assert_eq() {
-  if [ "$2" = "$3" ]; then ok "$1"; else ng "$1" "want [$2]" "got  [$3]"; fi
-}
-
-# 標準エラーを見せる（失敗時の診断）。
-show_err() { sed 's/^/     /' "$ERR" | head -n 30; }
+# 標準エラーの先頭（失敗の理由に添える）。
+show_err() { head -n 30 "$ERR"; }
 
 stub_root_init() {
   local name="$1"
@@ -110,15 +89,8 @@ SH
   chmod +x "$STUB_BIN/pnpm"
 }
 
-# 親シェルのデータ置き場、旧バージョンが配った *_DATA_DIR、実行用ミラーの変数、SKIP/FORCE は落とす。
-# *_DATA_DIR を落とすのは、wrapper が export しないことを見るため、継承分を外す必要があるから。
-# DATA を CLAUDE_PLUGIN_DATA に渡す。
-# XDG_DATA_HOME は外し（親の値を引き継がない）、HOME は $BASE/home に固定する。
-# 別の置き場や無効な値を試すには、CLAUDE_PLUGIN_DATA=<値> / PLUGIN_DATA=<値> / XDG_DATA_HOME=<値> / HOME=<値> を env に渡す。
-# 後に書いた方が勝つ。
-# stub_spawn <stdout の出力先> <stderr の出力先> [VAR=値 ...] -- <引数...>
-# 環境を整えて wrapper を 1 回起動する（終了コードはそのまま返す）。バックグラウンド起動にも使う。
-# RUN_ROOT があれば、ROOT の代わりにそのプラグインルートの wrapper を起動する（版の並走の再現）。
+# stub_spawn <stdout> <stderr> [VAR=値 ...] -- <引数...>: 親の置き場・*_DATA_DIR・SKIP/FORCE を落とし、wrapper を 1 回起動する。
+# DATA と $BASE/home を渡す。VAR=値 は後に書いた方が勝つ。RUN_ROOT があれば、そのルートの wrapper を起動する。
 stub_spawn() {
   local out="$1" err="$2"
   shift 2

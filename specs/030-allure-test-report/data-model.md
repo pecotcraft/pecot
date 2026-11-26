@@ -12,7 +12,7 @@
 | `target` | `test-hooks` | nx の target の名前。`test-` で始まる |
 | `plugin` | `pecot-workflow` | 配布するプラグインのレーンなら、その名前。libs と `.githooks` のレーンは持たない |
 | `results` | `plugins/pecot-workflow/test-results/test-hooks/allure-results` | レポートに入れるレーンだけが持つ。結果のディレクトリ。リポのルートからのパス |
-| `excluded` | `bash の *.test.sh` | レポートに入れないレーンだけが持つ。入れない理由 |
+| `excluded` | `node --test` | レポートに入れないレーンだけが持つ。入れない理由 |
 
 決まり:
 
@@ -24,11 +24,11 @@
 
 ## テストの結果のラベルとリンク
 
-Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。ほかの欄は、アダプタが付けるままにする。
+Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vitest と pytest のほかの欄は、アダプタが付けるままにする。
 
 | 種類 | 名前 | 値 | 付ける所 |
 |---|---|---|---|
-| ラベル | `project` | nx の project の名前 | vitest は reporter の `globalLabels`、pytest は `conftest.py` |
+| ラベル | `project` | nx の project の名前 | vitest は reporter の `globalLabels`、pytest は `conftest.py`、bash は `bash-test.sh` |
 | ラベル | `lane` | nx の target の名前 | 同上 |
 | ラベル | `tag` | 要件の ID（`PW-…-01` など） | `verifies` |
 | リンク（型 `tms`） | 名前は要件の ID | `<側の URL>permalink.html?id=<ID>` | `verifies` と、reporter の `links.tms.urlTemplate` |
@@ -37,6 +37,17 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。�
 - 1 つのテストが複数の ID を `verifies` で書いたら、tag とリンクを ID の数だけ持つ
 - 側の URL は、環境変数 `PECOT_REPORT_SITE_URL` で渡す。開発版は `https://pecotcraft.github.io/pecot/dev/`、リリース版は `https://pecotcraft.github.io/pecot/`。渡さなければ `http://localhost:8000/`
   - 開発版の材料になるマージキューの結果に、開発版の URL を渡す形は #821 で決める。この変数は nx の入力で、マージキューは PR の run の nx キャッシュを取り込むため
+- bash のテストにはアダプタが無いので、`.githooks/scripts/test_report/bash-test.sh` が結果のファイルを書く。上の `project`・`lane` のほかに書く欄は次のとおり
+
+| 欄 | 値 |
+|---|---|
+| `name` | 確かめの題 |
+| `fullName` | `<project>:<target> <ファイルのパス>#<題>`。2 つのレーンで動くファイルが、1 件の再実行にまとまらないようにレーンを入れる |
+| `status` | `passed`・`failed`・`skipped`。ファイルが `bt_finish` の前で終わったら、題「最後まで動く」の `broken` |
+| `statusDetails` | `message` に理由、`bt_eq`・`bt_ne` は `expected`・`actual` も |
+| `start`・`stop` | 整数のミリ秒。`start` は前の確かめの終わり |
+| ラベル `parentSuite` | リポのルートからのファイルのパス。vitest の結果と同じ段 |
+| ラベル `host`・`thread`・`language`・`framework` | `$HOSTNAME`・ファイルの PID・`bash`・`bash` |
 
 ## レポートの材料（ReportSources）
 

@@ -30,10 +30,18 @@ _INCLUDED = [
     "interface-spec:test-unit",
     "nx-release:test-unit",
     "pecot-tools:test-cli",
+    "pecot-tools:test-release",
+    "pecot-visual:test-bootstrap",
     "pecot-visual:test-cli",
+    "pecot-visual:test-compare",
+    "pecot-visual:test-hooks",
+    "pecot-visual:test-release",
+    "pecot-visual:test-skills",
     "pecot-visual:test-slidev",
+    "pecot-workflow:test-bootstrap",
     "pecot-workflow:test-cli",
     "pecot-workflow:test-hooks",
+    "pecot-workflow:test-release",
     "pecot-workflow:test-skills",
     "text-rules:test-unit",
     "workflow-core:test-unit",
@@ -131,8 +139,8 @@ def test_excluded_reasons() -> None:
         reasons = {
             f"{e['project']}:{e['target']}": e["excluded"] for e in _entries() if "excluded" in e
         }
-    with allure.step("除外の理由が bash の *.test.sh だけであることを確かめる"):
-        assert set(reasons.values()) == {"bash の *.test.sh"}
+    with allure.step("除外するレーンが無いことを確かめる"):
+        assert reasons == {}
 
 
 @pytest.mark.parametrize(

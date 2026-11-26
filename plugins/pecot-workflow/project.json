@@ -95,6 +95,7 @@
     "test-bootstrap": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{projectRoot}/cli/tests/bootstrap/**/*",
         "{projectRoot}/cli/src/**/*",
         "!{projectRoot}/cli/src/**/tests/**/*",
@@ -118,11 +119,12 @@
         "^production"
       ],
       "dependsOn": ["install", "build-cli", { "projects": ["workflow-core"], "target": "build" }],
+      "outputs": ["{projectRoot}/test-results/test-bootstrap/allure-results"],
       "metadata": {
         "description": "bin/pecot の bootstrap と登録ファイルの bash テスト（約 1 分）。対象は run.sh、data-dir、manifest、install-record、workflow-core-link だ。実 pnpm でミラーを build する run.sh は、cli/src と vendor/workflow-core をミラーに build し、tools/list のツールの件数を確かめる。そのため cli/src を入力に置き（テストは除く）、libs/workflow-core は ^production で取り込む。登録ファイルと wrapper は inputs に宣言する。install は dependsOn 経由で実行ごとに 1 回だけ実行し、run-tests.sh には PECOT_WORKFLOW_SKIP_INSTALL=1 を渡す。"
       },
       "options": {
-        "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=bootstrap",
+        "command": "rm -rf test-results/test-bootstrap/allure-results && PECOT_WORKFLOW_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=bootstrap",
         "cwd": "plugins/pecot-workflow"
       }
     },
@@ -221,6 +223,7 @@
     "test-release": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{projectRoot}/scripts/release/**/*",
         "{projectRoot}/cli/templates/**/*",
         "{projectRoot}/hooks/lib/core/pecot-gitignore-ensure.sh",
@@ -242,11 +245,12 @@
         "^production"
       ],
       "dependsOn": ["install", "build-cli", { "projects": ["workflow-core"], "target": "build" }],
+      "outputs": ["{projectRoot}/test-results/test-release/allure-results"],
       "metadata": {
         "description": "MCP 単体配布の publish スクリプトの確認。npm の依存解決でレジストリの状態を読むが、入力ハッシュには表せない。それでもキャッシュするのは、cli/src の 1 行修正のたびに実行しないため。レジストリ側の変化はリリース時の dry-run で拾う。ツールの一覧が決まる cli/src/commands・mcp/server.ts・template-store.ts だけを入力に置く。配布ツリーに同梱する libs/workflow-core は ^production で取り込み、dist は workflow-core:build が作る。dist は build-cli の dependsOn が用意する。npm の依存解決のキャッシュは PECOT_RELEASE_TEST_NPM_CACHE で永続化する。"
       },
       "options": {
-        "command": "PECOT_WORKFLOW_SKIP_INSTALL=1 PECOT_RELEASE_TEST_NPM_CACHE=\"$PWD/../../.pecot/tmp/release-npm-cache/pecot-workflow\" bash scripts/ci/run-tests.sh --scope=release",
+        "command": "rm -rf test-results/test-release/allure-results && PECOT_WORKFLOW_SKIP_INSTALL=1 PECOT_RELEASE_TEST_NPM_CACHE=\"$PWD/../../.pecot/tmp/release-npm-cache/pecot-workflow\" bash scripts/ci/run-tests.sh --scope=release",
         "cwd": "plugins/pecot-workflow"
       }
     },

@@ -444,6 +444,21 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
                 ".githooks/scripts/test_report/generate.py",
                 {"githooks:test-ci", "interface-spec:test-site"},
             ),
+            # bash のテストの確かめを Allure の結果にする関数。bash のテストを動かすレーンが読む (#810)。
+            (
+                ".githooks/scripts/test_report/bash-test.sh",
+                {
+                    "githooks:test-ci",
+                    "pecot-workflow:test-bootstrap",
+                    "pecot-workflow:test-release",
+                    "pecot-visual:test-bootstrap",
+                    "pecot-visual:test-hooks",
+                    "pecot-visual:test-compare",
+                    "pecot-visual:test-release",
+                    "pecot-visual:test-skills",
+                    "pecot-tools:test-release",
+                },
+            ),
         ]
     ),
 )

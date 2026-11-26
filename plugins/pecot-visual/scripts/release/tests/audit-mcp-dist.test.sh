@@ -1,17 +1,9 @@
 #!/bin/bash
-# audit-mcp-dist.sh（pecot-visual がリリースする依存ツリーを監査し、問題があれば止める処理）の検証 (#1050 / #1071)。
-#
-# 監査先レジストリをローカルの node http サーバに差し替えるので、ネットワークには依存しない。
-# 監査対象の 2 ツリーは、どちらも fixture を --dist / --runtime-dist で渡す。
-# 配布ツリーは fixtures/audit/ の lodash、永続層は fixtures/audit-runtime/ の image-size になる。
-# manifest の生成と npm install による依存解決は行わない。本テストの対象は判定と終了コードとなる。
-# 例外リストも全ケースで明示し、既定の audit-exceptions.json に合否を左右させない。
-#
-# `set -e` は使わない。監査失敗の検証で、非ゼロ終了を意図的に発生させる。
+# audit-mcp-dist.sh の検証 (#1050 / #1071)。監査先はローカルのモックで、2 ツリーとも fixture を渡す。
+# `set -e` は使わない。監査失敗の検証で、非ゼロ終了を意図的に起こす。
 set -u
 
-# git hook (pre-push の nx affected 等) から起動されると、git が GIT_DIR / GIT_INDEX_FILE を export する。
-# 被テストスクリプトの git env unset の効果を打ち消しかねないので、先頭で捨てる。
+# git hook から起動されると export される GIT_* が、被テストスクリプトの unset を打ち消すので捨てる。
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY \
     GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_PREFIX GIT_COMMON_DIR GIT_NAMESPACE
 
@@ -24,11 +16,10 @@ SUMMARY_JS="$RELEASE_DIR/audit-summary.mjs"
 RUNTIME_MANIFEST_JS="$RELEASE_DIR/runtime-manifest.mjs"
 FIXTURE="$SCRIPT_DIR/fixtures/audit"
 FIXTURE_RUNTIME="$SCRIPT_DIR/fixtures/audit-runtime"
+# shellcheck source=../../../../../.githooks/scripts/test_report/bash-test.sh
+. "$REPO_ROOT/.githooks/scripts/test_report/bash-test.sh"
 
-# 被テストスクリプトは、何も指定しなければリポジトリ本体の .nx/release-audit/ へ記録を書く。
-# --audit-record や env の渡し忘れで、開発者の記録に触れていないことを末尾で確かめる。
-# 実行前後の一致では見られない。同じ checkout で並行して動く別のリリース系コマンドの書き込みを拾い、
-# 偽の FAIL になる。そこで、テスト自身が書いたかどうかだけを見る。
+# 本体の記録に触れていないことを末尾で見る。並行する別コマンドの書き込みを拾わないよう、前後の一致は比べない。
 REAL_RECORD_FILE="$REPO_ROOT/.nx/release-audit/pecotv-audit.json"
 # 既定パスの記録の配布ツリー指紋。記録が無い・読めない・指紋を持たない場合は空を返す。
 real_record_fingerprint() {
@@ -43,52 +34,9 @@ process.stdout.write(typeof fp === "string" ? fp : "")
 ' "$REAL_RECORD_FILE" 2> /dev/null
 }
 
-PASS=0
-FAIL=0
-fail() {
-    echo "FAIL: $1"
-    FAIL=$((FAIL + 1))
-}
-pass() {
-    echo "PASS: $1"
-    PASS=$((PASS + 1))
-}
-# 期待値との一致を 1 行で判定する（不一致時に actual を必ず出す）。
-assert_eq() {
-    local label="$1" expected="$2" actual="$3"
-    if [ "$expected" = "$actual" ]; then
-        pass "$label"
-    else
-        fail "$label (expected='$expected' actual='$actual')"
-    fi
-}
-# 期待値と一致しないことを 1 行で判定する。
-assert_ne() {
-    local label="$1" unexpected="$2" actual="$3"
-    if [ "$unexpected" != "$actual" ]; then
-        pass "$label"
-    else
-        fail "$label (一致してはいけない値と一致した: '$actual')"
-    fi
-}
-# 出力ファイルに文字列が含まれることを判定する。
-assert_contains() {
-    local label="$1" needle="$2" file="$3"
-    if grep -qF -- "$needle" "$file"; then
-        pass "$label"
-    else
-        OUTPUT_TAIL="$(tail -5 "$file" | tr '\n' ' ')"
-        fail "$label (出力に '$needle' が無い: $OUTPUT_TAIL)"
-    fi
-}
-
 TMP=$(mktemp -d)
-# 監査記録の既定は <repo>/.nx/release-audit/pecotv-audit.json。テストは全ケースで
-# $TMP 配下へ向け、リポジトリ本体の記録に触れない。
 export PECOTV_AUDIT_RECORD="$TMP/audit-record.json"
-# npm audit は advisory の評価結果を cacache へ `security-advisory:<name>:<id>` で保存し、
-# キーに severity は含まれない。共有キャッシュ (~/.npm/_cacache) のままだと、同じ id を
-# 別 severity で評価済みのマシンで判定が変わり、合否がホームディレクトリの状態に左右される。
+# npm audit の cacache のキーに severity が入らないので、共有キャッシュでは合否がマシンの状態に左右される。
 export npm_config_cache="$TMP/npm-cache"
 MOCK_PID=""
 cleanup() {
@@ -98,10 +46,7 @@ cleanup() {
 trap cleanup EXIT
 
 # --- モックレジストリ ---
-# npm audit の bulk advisory エンドポイントだけを模す。
-#   argv[2]: 応答 JSON ファイル。"blackhole" なら受信しても応答を返さない
-#   argv[3]: 受信 1 件につき 1 行を追記するファイル（到達件数の検証用）
-# 待ち受けポートは stdout に 1 行で出す。
+# npm audit の bulk advisory だけを模す。argv[2] は応答 JSON か blackhole（応答しない）、argv[3] は到達の記録。
 MOCK="$TMP/mock-registry.mjs"
 cat > "$MOCK" << 'MOCK_EOF'
 import http from 'node:http'
@@ -132,22 +77,14 @@ server.listen(0, '127.0.0.1', () => {
 MOCK_EOF
 
 # --- モック応答の advisory ---
-# 被テストスクリプトは、本監査の前にカナリア監査（audit-canary/ の minimist）を行う。
-# 監査先が advisory を返すことを確かめるためで、「監査が成立する」応答には必ずカナリアの advisory を含める。
-# npm は、ツリーに存在しないパッケージの advisory を破棄する。
-# 根拠は @npmcli/arborist/lib/audit-report.js の nodes.size === 0 での delete となる。
-# そのため、カナリア分を混ぜても配布ツリー側の判定には出てこない。
-#
-# lodash の advisory id は、ケースごとに別の値にする。
-# 同一 id では先に評価した severity がキャッシュから返り、後続ケースの境界判定が意図した severity にならない。
+# 本監査の前にカナリア監査（minimist）を行うので、成立させる応答にはカナリアを含める。npm はツリーに無い advisory を捨てる。
+# lodash の advisory id はケースごとに変える。同じ id では、先に評価した severity が cacache から返る。
 CANARY_ADV='"minimist":[{"id":1097678,"url":"https://github.com/advisories/GHSA-xvch-5gv4-984h","title":"Prototype Pollution in minimist","severity":"critical","vulnerable_versions":">=1.0.0 <1.2.6","cwe":["CWE-1321"],"cvss":{"score":9.8,"vectorString":"CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"}}]'
 LODASH_HIGH='"lodash":[{"id":1523,"url":"https://github.com/advisories/GHSA-p6mc-m468-83gw","title":"Prototype Pollution in lodash","severity":"high","vulnerable_versions":"<4.17.19","cwe":["CWE-770"],"cvss":{"score":7.4,"vectorString":"CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N"}}]'
 LODASH_MODERATE='"lodash":[{"id":1065,"url":"https://github.com/advisories/GHSA-29mw-wpgm-hmr9","title":"Regular Expression Denial of Service (ReDoS) in lodash","severity":"moderate","vulnerable_versions":"<4.17.21","cwe":["CWE-1333"],"cvss":{"score":5.3,"vectorString":"CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L"}}]'
-# 実在の lodash advisory に critical は無いため severity だけ差し替えた合成応答。
-# 判定境界（critical 単独でも止まる）を固定するのが目的で、実在の評価の写しではない。
-# 永続層 fixture (image-size@1.2.1) 用の応答。
-# id・url・vulnerable_versions は実在の advisory の写しで、例外リストの突き合わせを実データと同じ形で確かめられる。
+# 永続層 fixture (image-size@1.2.1) 用。id・url・vulnerable_versions は実在の advisory の写し。
 IMAGE_SIZE_HIGH='"image-size":[{"id":1138808,"url":"https://github.com/advisories/GHSA-w3rx-r6r6-pgpr","title":"image-size: ICNS parser allows denial of service through an infinite loop","severity":"high","vulnerable_versions":"<=2.0.2","cwe":["CWE-835"],"cvss":{"score":7.5,"vectorString":"CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"}},{"id":1138809,"url":"https://github.com/advisories/GHSA-5p2g-fcmc-qvqq","title":"image-size: JXL and HEIF parsers allow denial of service through infinite loops","severity":"high","vulnerable_versions":"<=2.0.2","cwe":["CWE-835"],"cvss":{"score":7.5,"vectorString":"CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"}}]'
+# 実在の lodash の advisory に critical は無いので、severity だけ差し替えた合成応答。
 LODASH_CRITICAL='"lodash":[{"id":1673,"url":"https://github.com/advisories/GHSA-35jh-r3h4-6jhm","title":"Command Injection in lodash","severity":"critical","vulnerable_versions":"<4.17.21","cwe":["CWE-77"],"cvss":{"score":9.8,"vectorString":"CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"}}]'
 
 # advisory を 1 件も返さないレジストリ（bulk が 200 と `{}`）。カナリアも落ちる。
@@ -196,12 +133,7 @@ mock_requests() {
 }
 
 # --- 監査記録のヘルパー ---
-# 記録は JSON で、フィールドの取り出しは node で行う。jq は前提にしない。
-# 返す値は 3 通りある。
-# 記録そのものが無い場合は __ABSENT__ を返す。
-# JSON として読めない場合は __UNREADABLE__ を返す。
-# 記録は読めるがフィールドが無い場合は __MISSING__ を返す。
-# 3 つを取り違えると、「記録を消した」と「記録が破損した」が同じ結果になってしまう。
+# 記録の欠け・破損・フィールドの欠けを、__ABSENT__・__UNREADABLE__・__MISSING__ で分けて返す。
 record_field() {
     node -e '
 const fs = require("node:fs")
@@ -249,8 +181,7 @@ REPO_HEAD="$(git -C "$REPO_ROOT" rev-parse HEAD)"
 PLUGIN_VERSION="$(node -e "process.stdout.write(require('$REPO_ROOT/plugins/pecot-visual/.claude-plugin/plugin.json').version)")"
 
 # --- version plan の探索先 ---
-# 既定は <repo>/.nx/version-plans。テストは実リポの plan 有無に結果が左右されないよう
-# 常に --plans-dir で明示する。
+# 実リポの plan の有無に左右されないよう、常に --plans-dir で渡す。
 PLANS_PECOTV="$TMP/plans-pecotv"
 mkdir -p "$PLANS_PECOTV"
 cat > "$PLANS_PECOTV/1050-audit.md" << 'PLAN_EOF'
@@ -402,30 +333,30 @@ run_audit() {
 start_mock "$TMP/canary-only.json" case1
 CASE1_REGISTRY="http://127.0.0.1:$MOCK_PORT"
 run_audit case1 --dist="$(new_dist case1)" --runtime-dist="$(new_runtime_dist case1)" --exceptions="$EXC_EMPTY" --plans-dir="$PLANS_PECOTV" --registry="$CASE1_REGISTRY"
-assert_eq "脆弱性なしで exit 0" "0" "$RC"
-assert_contains "配布ツリーの要約行にパッケージ数が出る" "配布ツリー: 1 パッケージ" "$OUT"
-assert_contains "要約行に high 0 が出る" "high 0" "$OUT"
-assert_contains "永続層の要約行も同じレイアウトで出る" "永続層: 3 パッケージ" "$OUT"
-assert_contains "例外を適用していなければ 0 件と出る" "例外 0 件" "$OUT"
-assert_contains "要約行に監査先レジストリが出る" "registry $CASE1_REGISTRY" "$OUT"
-assert_contains "要約行に依存ツリーの指紋が出る" "指紋 " "$OUT"
-assert_contains "要約行は stderr にも出る" "配布ツリー: 1 パッケージ" "$ERR"
-assert_contains "pass のメッセージが出る" "監査 pass（high 以上なし）" "$OUT"
+bt_eq "脆弱性なしで exit 0" "0" "$RC"
+bt_contains "配布ツリーの要約行にパッケージ数が出る" "配布ツリー: 1 パッケージ" "$(cat "$OUT")"
+bt_contains "脆弱性なしなら要約行に high 0 が出る" "high 0" "$(cat "$OUT")"
+bt_contains "永続層の要約行も同じレイアウトで出る" "永続層: 3 パッケージ" "$(cat "$OUT")"
+bt_contains "例外を適用していなければ 0 件と出る" "例外 0 件" "$(cat "$OUT")"
+bt_contains "要約行に監査先レジストリが出る" "registry $CASE1_REGISTRY" "$(cat "$OUT")"
+bt_contains "要約行に依存ツリーの指紋が出る" "指紋 " "$(cat "$OUT")"
+bt_contains "要約行は stderr にも出る" "配布ツリー: 1 パッケージ" "$(cat "$ERR")"
+bt_contains "脆弱性なしなら pass のメッセージが出る" "監査 pass（high 以上なし）" "$(cat "$OUT")"
 
 # 記録は publish が読む。指紋が dist-fingerprint.mjs の値と一致し、
 # 監査時の HEAD が記録されていることを固定する。
 FIXTURE_FP="$(node "$FINGERPRINT" "$FIXTURE/npm-shrinkwrap.json")"
-assert_eq "記録の dist.fingerprint が dist-fingerprint.mjs の値と一致" "$FIXTURE_FP" "$(record_field dist.fingerprint)"
-assert_eq "記録の head が監査時の HEAD" "$REPO_HEAD" "$(record_field head)"
-assert_eq "記録の registry が監査先" "$CASE1_REGISTRY" "$(record_field registry)"
-assert_eq "記録の dist.vulnerabilities.high が 0" "0" "$(record_field dist.vulnerabilities.high)"
-assert_eq "記録の dist.total が fixture のパッケージ数" "1" "$(record_field dist.total)"
+bt_eq "記録の dist.fingerprint が dist-fingerprint.mjs の値と一致" "$FIXTURE_FP" "$(record_field dist.fingerprint)"
+bt_eq "記録の head が監査時の HEAD" "$REPO_HEAD" "$(record_field head)"
+bt_eq "記録の registry が監査先" "$CASE1_REGISTRY" "$(record_field registry)"
+bt_eq "記録の dist.vulnerabilities.high が 0" "0" "$(record_field dist.vulnerabilities.high)"
+bt_eq "記録の dist.total が fixture のパッケージ数" "1" "$(record_field dist.total)"
 FIXTURE_RUNTIME_FP="$(node "$FINGERPRINT" "$FIXTURE_RUNTIME/npm-shrinkwrap.json")"
-assert_eq "記録の runtime.fingerprint が永続層 fixture の指紋" "$FIXTURE_RUNTIME_FP" "$(record_field runtime.fingerprint)"
-assert_eq "記録の 2 ツリーの指紋は別値" "1" "$([ "$FIXTURE_FP" != "$FIXTURE_RUNTIME_FP" ] && echo 1 || echo 0)"
-assert_eq "記録の runtime.vulnerabilities.high が 0" "0" "$(record_field runtime.vulnerabilities.high)"
-assert_eq "記録の runtime.total が永続層 fixture のパッケージ数" "3" "$(record_field runtime.total)"
-assert_contains "要約行の指紋が記録と同じ値" "指紋 $FIXTURE_FP" "$OUT"
+bt_eq "記録の runtime.fingerprint が永続層 fixture の指紋" "$FIXTURE_RUNTIME_FP" "$(record_field runtime.fingerprint)"
+bt_eq "記録の 2 ツリーの指紋は別値" "1" "$([ "$FIXTURE_FP" != "$FIXTURE_RUNTIME_FP" ] && echo 1 || echo 0)"
+bt_eq "記録の runtime.vulnerabilities.high が 0" "0" "$(record_field runtime.vulnerabilities.high)"
+bt_eq "記録の runtime.total が永続層 fixture のパッケージ数" "3" "$(record_field runtime.total)"
+bt_contains "要約行の指紋が記録と同じ値" "指紋 $FIXTURE_FP" "$(cat "$OUT")"
 stop_mock
 
 # --- 2. high の advisory でリリースを止める ---
@@ -434,17 +365,17 @@ start_mock "$TMP/high.json" case2
 place_stale_record
 run_audit case2 --dist="$(new_dist case2)" --runtime-dist="$(new_runtime_dist case2)" --exceptions="$EXC_EMPTY" --plans-dir="$PLANS_PECOTV" \
     --registry="http://127.0.0.1:$MOCK_PORT"
-assert_eq "high 検出で exit 1" "1" "$RC"
-assert_contains "high 以上の件数を出す" "high 以上の脆弱なパッケージ 1 件" "$ERR"
-assert_contains "脆弱なパッケージ名を出す" "lodash (high)" "$ERR"
-assert_contains "advisory の title を出す" "Prototype Pollution in lodash" "$ERR"
-assert_contains "advisory の URL を出す" "https://github.com/advisories/GHSA-p6mc-m468-83gw" "$ERR"
-assert_contains "要約行も出る（判定条件がログに残る）" "配布ツリー: 1 パッケージ" "$ERR"
+bt_eq "high 検出で exit 1" "1" "$RC"
+bt_contains "high 検出で high 以上の件数を出す" "high 以上の脆弱なパッケージ 1 件" "$(cat "$ERR")"
+bt_contains "high 検出で脆弱なパッケージ名を出す" "lodash (high)" "$(cat "$ERR")"
+bt_contains "high 検出で advisory の title を出す" "Prototype Pollution in lodash" "$(cat "$ERR")"
+bt_contains "high 検出で advisory の URL を出す" "https://github.com/advisories/GHSA-p6mc-m468-83gw" "$(cat "$ERR")"
+bt_contains "要約行も出る（判定条件がログに残る）" "配布ツリー: 1 パッケージ" "$(cat "$ERR")"
 # 記録が残ると publish が「監査を通った」と読む。high での中止では消えていること。
 if [ -f "$PECOTV_AUDIT_RECORD" ]; then
-    fail "high 検出で中止したのに監査記録が残っている"
+    bt_fail "high 検出で中止したとき監査記録を残さない" "high 検出で中止したのに監査記録が残っている"
 else
-    pass "high 検出で中止したとき監査記録を残さない"
+    bt_pass "high 検出で中止したとき監査記録を残さない"
 fi
 stop_mock
 
@@ -453,17 +384,17 @@ stop_mock
 place_stale_record
 run_audit case3 --dist="$(new_dist case3)" --runtime-dist="$(new_runtime_dist case3)" --exceptions="$EXC_EMPTY" --plans-dir="$PLANS_PECOTV" \
     --registry="$CLOSED_REGISTRY"
-assert_eq "接続拒否で exit 1" "1" "$RC"
-assert_contains "未実施として中止する" "監査未実施のため中止" "$ERR"
+bt_eq "接続拒否で exit 1" "1" "$RC"
+bt_contains "接続拒否を未実施として中止する" "監査未実施のため中止" "$(cat "$ERR")"
 if grep -qF "監査 pass" "$OUT"; then
-    fail "不達なのに pass を出した"
+    bt_fail "不達時は pass を出さない" "不達なのに pass を出した"
 else
-    pass "不達時は pass を出さない"
+    bt_pass "不達時は pass を出さない"
 fi
 if [ -f "$PECOTV_AUDIT_RECORD" ]; then
-    fail "監査未実施で中止したのに監査記録が残っている"
+    bt_fail "監査未実施で中止したとき監査記録を残さない" "監査未実施で中止したのに監査記録が残っている"
 else
-    pass "監査未実施で中止したとき監査記録を残さない"
+    bt_pass "監査未実施で中止したとき監査記録を残さない"
 fi
 
 # --- 4. 無応答の監査エンドポイントで待ち上限が働く ---
@@ -473,20 +404,19 @@ START=$SECONDS
 run_audit case4 --dist="$(new_dist case4)" --runtime-dist="$(new_runtime_dist case4)" --exceptions="$EXC_EMPTY" --plans-dir="$PLANS_PECOTV" \
     --registry="http://127.0.0.1:$MOCK_PORT" --timeout=3
 ELAPSED=$((SECONDS - START))
-assert_eq "無応答で exit 1" "1" "$RC"
-assert_contains "未実施として中止する" "監査未実施のため中止" "$ERR"
-assert_contains "待ち上限の秒数を出す" "3 秒以内に応答なし" "$ERR"
+bt_eq "無応答で exit 1" "1" "$RC"
+bt_contains "無応答を未実施として中止する" "監査未実施のため中止" "$(cat "$ERR")"
+bt_contains "待ち上限の秒数を出す" "3 秒以内に応答なし" "$(cat "$ERR")"
 if [ "$ELAPSED" -le 6 ]; then
-    pass "--timeout=3 が 6 秒以内に打ち切る (${ELAPSED}s)"
+    bt_pass "--timeout=3 が 6 秒以内に打ち切る"
 else
-    fail "--timeout=3 が働いていない (${ELAPSED}s)"
+    bt_fail "--timeout=3 が 6 秒以内に打ち切る" "--timeout=3 が働いていない (${ELAPSED}s)"
 fi
 # 最初の npm 呼び出しはカナリア監査。そこで無応答になるので bulk への到達は 1 件。
-assert_eq "無応答サーバへは到達している" "1" "$(mock_requests)"
+bt_eq "無応答サーバへは到達している" "1" "$(mock_requests)"
 stop_mock
 
 # --- 5. --registry が npm_config_registry を上書きする ---
-#
 # env や ~/.npmrc の監査先が優先されると、`{}` を返す先に向いて偽の pass になる。
 
 start_mock "$TMP/canary-only.json" case5
@@ -500,18 +430,15 @@ npm_config_registry="$CLOSED_REGISTRY" \
     bash "$AUDIT" --dist="$CASE5_DIST" --runtime-dist="$CASE5_RUNTIME" \
     --exceptions="$EXC_EMPTY" --plans-dir="$PLANS_PECOTV" \
     --registry="http://127.0.0.1:$MOCK_PORT" > "$OUT" 2> "$ERR" || RC=$?
-assert_eq "--registry が env より優先されて exit 0" "0" "$RC"
+bt_eq "--registry が env より優先されて exit 0" "0" "$RC"
 # カナリア監査と 2 ツリーの監査で bulk へ 3 回投げる。
-assert_eq "モックレジストリに到達している" "3" "$(wc -l < "$MOCK5_COUNT" | tr -d ' ')"
-assert_contains "要約行の registry は --registry の値" "registry http://127.0.0.1:$MOCK_PORT" "$OUT"
+bt_eq "モックレジストリに到達している" "3" "$(wc -l < "$MOCK5_COUNT" | tr -d ' ')"
+bt_contains "要約行の registry は --registry の値" "registry http://127.0.0.1:$MOCK_PORT" "$(cat "$OUT")"
 stop_mock
 
 # --- 6. pecot-visual の version plan が無ければ監査せずスキップ ---
-#
-# pecot-workflow 単独のリリースでも、nx は pecot-visual group の pre-version command を起動する。
-#
-# HEAD のリリースタグは再監査の処理を開く。そのため、タグ無しの状態を env で固定する。
-# リポジトリ本体の HEAD にタグが付いているかで、結果が変わらないようにする。
+# 別のリリースでも pecot-visual の pre-version は動く。
+# HEAD のリリースタグは再監査を開くので、タグ無しを env で固定する。
 start_mock "$TMP/canary-only.json" case6
 MOCK6_COUNT="$MOCK_COUNT"
 OUT="$TMP/case6.out"
@@ -520,13 +447,13 @@ RC=0
 PECOTV_AUDIT_HEAD_TAGS="" bash "$AUDIT" --dist="$(new_dist case6)" --runtime-dist="$(new_runtime_dist case6)" --exceptions="$EXC_EMPTY" \
     --plans-dir="$PLANS_PECOT_ONLY" --registry="http://127.0.0.1:$MOCK_PORT" \
     > "$OUT" 2> "$ERR" || RC=$?
-assert_eq "pecot-visual 宣言が無ければ exit 0" "0" "$RC"
-assert_contains "スキップの理由を出す" "スキップ: pecot-visual の version plan が無いため" "$OUT"
-assert_eq "スキップ時はレジストリへ 1 件も投げない" "0" "$(wc -l < "$MOCK6_COUNT" | tr -d ' ')"
+bt_eq "pecot-visual 宣言が無ければ exit 0" "0" "$RC"
+bt_contains "pecot-visual 宣言が無ければスキップの理由を出す" "スキップ: pecot-visual の version plan が無いため" "$(cat "$OUT")"
+bt_eq "pecot-visual 宣言が無いスキップではレジストリへ 1 件も投げない" "0" "$(wc -l < "$MOCK6_COUNT" | tr -d ' ')"
 # publish はこの記録を読んで「監査していないリリース」と判定する。
-assert_eq "スキップ時の記録は skipped: true" "true" "$(record_field skipped)"
-assert_eq "スキップ時の記録に監査時 HEAD が入る" "$REPO_HEAD" "$(record_field head)"
-assert_eq "スキップ時の記録に dist セクションは無い" "__MISSING__" "$(record_field dist.fingerprint)"
+bt_eq "pecot-visual 宣言が無いスキップの記録は skipped: true" "true" "$(record_field skipped)"
+bt_eq "スキップ時の記録に監査時 HEAD が入る" "$REPO_HEAD" "$(record_field head)"
+bt_eq "スキップ時の記録に dist セクションは無い" "__MISSING__" "$(record_field dist.fingerprint)"
 stop_mock
 
 # --- 6b. --dev は version plan の探索先が無くても監査する（開発版の build）---
@@ -534,10 +461,10 @@ stop_mock
 start_mock "$TMP/moderate.json" case6b
 run_audit case6b --dist="$(new_dist case6b)" --runtime-dist="$(new_runtime_dist case6b)" --exceptions="$EXC_EMPTY" \
     --plans-dir="$TMP/no-such-plans" --dev --registry="http://127.0.0.1:$MOCK_PORT"
-assert_eq "--dev は plan が無くても exit 0" "0" "$RC"
-assert_contains "--dev は開発版として監査する旨を出す" "開発版: version plan とリリースタグを見ずに監査する" "$OUT"
-assert_contains "--dev でも監査の pass を出す" "監査 pass（high 以上なし）" "$OUT"
-assert_eq "--dev の記録は skipped ではない" "__MISSING__" "$(record_field skipped)"
+bt_eq "--dev は plan が無くても exit 0" "0" "$RC"
+bt_contains "--dev は開発版として監査する旨を出す" "開発版: version plan とリリースタグを見ずに監査する" "$(cat "$OUT")"
+bt_contains "--dev でも監査の pass を出す" "監査 pass（high 以上なし）" "$(cat "$OUT")"
+bt_eq "--dev の記録は skipped ではない" "__MISSING__" "$(record_field skipped)"
 stop_mock
 
 # --- 6c. --dev は high を警告にとどめ、件数を記録に残す (#658) ---
@@ -545,21 +472,21 @@ stop_mock
 start_mock "$TMP/image-size-high.json" case6c
 run_audit case6c --dist="$(new_dist case6c)" --runtime-dist="$(new_runtime_dist case6c)" --exceptions="$EXC_EMPTY" \
     --plans-dir="$TMP/no-such-plans" --dev --registry="http://127.0.0.1:$MOCK_PORT"
-assert_eq "--dev は high があっても exit 0" "0" "$RC"
-assert_contains "--dev は high を警告として出す" "WARNING: 永続層: high 以上の脆弱なパッケージ 1 件" "$ERR"
-assert_contains "--dev の警告に脆弱なパッケージ名を出す" "image-size (high)" "$ERR"
-assert_contains "--dev の警告に advisory の URL を出す" "https://github.com/advisories/GHSA-w3rx-r6r6-pgpr" "$ERR"
-assert_contains "--dev は high を残して続行した旨を出す" "開発版: high 以上 1 件を警告して続行" "$OUT"
-assert_eq "--dev の記録に永続層の high 件数が入る" "1" "$(record_field runtime.vulnerabilities.high)"
+bt_eq "--dev は high があっても exit 0" "0" "$RC"
+bt_contains "--dev は high を警告として出す" "WARNING: 永続層: high 以上の脆弱なパッケージ 1 件" "$(cat "$ERR")"
+bt_contains "--dev の警告に脆弱なパッケージ名を出す" "image-size (high)" "$(cat "$ERR")"
+bt_contains "--dev の警告に advisory の URL を出す" "https://github.com/advisories/GHSA-w3rx-r6r6-pgpr" "$(cat "$ERR")"
+bt_contains "--dev は high を残して続行した旨を出す" "開発版: high 以上 1 件を警告して続行" "$(cat "$OUT")"
+bt_eq "--dev の記録に永続層の high 件数が入る" "1" "$(record_field runtime.vulnerabilities.high)"
 stop_mock
 
 start_mock "$TMP/high.json" case6c-dist
 run_audit case6c-dist --dist="$(new_dist case6c-dist)" --runtime-dist="$(new_runtime_dist case6c-dist)" --exceptions="$EXC_EMPTY" \
     --plans-dir="$TMP/no-such-plans" --dev --registry="http://127.0.0.1:$MOCK_PORT"
-assert_eq "--dev は配布ツリーに high があっても exit 0" "0" "$RC"
-assert_contains "--dev は配布ツリーの high を警告として出す" "WARNING: 配布ツリー: high 以上の脆弱なパッケージ 1 件" "$ERR"
-assert_contains "--dev の配布ツリーの警告に脆弱なパッケージ名を出す" "lodash (high)" "$ERR"
-assert_eq "--dev の記録に配布ツリーの high 件数が入る" "1" "$(record_field dist.vulnerabilities.high)"
+bt_eq "--dev は配布ツリーに high があっても exit 0" "0" "$RC"
+bt_contains "--dev は配布ツリーの high を警告として出す" "WARNING: 配布ツリー: high 以上の脆弱なパッケージ 1 件" "$(cat "$ERR")"
+bt_contains "--dev の配布ツリーの警告に脆弱なパッケージ名を出す" "lodash (high)" "$(cat "$ERR")"
+bt_eq "--dev の記録に配布ツリーの high 件数が入る" "1" "$(record_field dist.vulnerabilities.high)"
 stop_mock
 
 # --- 6d. --dev でも、監査結果が得られなければ止める ---
@@ -567,9 +494,9 @@ stop_mock
 start_mock "$TMP/no-advisory.json" case6d
 run_audit case6d --dist="$(new_dist case6d)" --runtime-dist="$(new_runtime_dist case6d)" --exceptions="$EXC_EMPTY" \
     --plans-dir="$TMP/no-such-plans" --dev --registry="http://127.0.0.1:$MOCK_PORT"
-assert_eq "--dev でもカナリア不検出で exit 1" "1" "$RC"
-assert_contains "--dev でも未実施として中止する" "監査未実施のため中止" "$ERR"
-assert_eq "--dev の未実施では記録を残さない" "__ABSENT__" "$(record_field head)"
+bt_eq "--dev でもカナリア不検出で exit 1" "1" "$RC"
+bt_contains "--dev でも未実施として中止する" "監査未実施のため中止" "$(cat "$ERR")"
+bt_eq "--dev の未実施では記録を残さない" "__ABSENT__" "$(record_field head)"
 stop_mock
 
 # --- 7. moderate だけなら pass する（判定境界の下側）---
@@ -577,10 +504,10 @@ stop_mock
 start_mock "$TMP/moderate.json" case7
 run_audit case7 --dist="$(new_dist case7)" --runtime-dist="$(new_runtime_dist case7)" --exceptions="$EXC_EMPTY" --plans-dir="$PLANS_PECOTV" \
     --registry="http://127.0.0.1:$MOCK_PORT"
-assert_eq "moderate のみで exit 0" "0" "$RC"
-assert_contains "要約行に moderate 1 が出る" "moderate 1" "$OUT"
-assert_contains "要約行に high 0 が出る" "high 0" "$OUT"
-assert_contains "pass のメッセージが出る" "監査 pass（high 以上なし）" "$OUT"
+bt_eq "moderate のみで exit 0" "0" "$RC"
+bt_contains "要約行に moderate 1 が出る" "moderate 1" "$(cat "$OUT")"
+bt_contains "moderate だけなら要約行に high 0 が出る" "high 0" "$(cat "$OUT")"
+bt_contains "moderate だけなら pass のメッセージが出る" "監査 pass（high 以上なし）" "$(cat "$OUT")"
 stop_mock
 
 # --- 8. critical だけでも止める（判定境界の上側）---
@@ -588,42 +515,39 @@ stop_mock
 start_mock "$TMP/critical.json" case8
 run_audit case8 --dist="$(new_dist case8)" --runtime-dist="$(new_runtime_dist case8)" --exceptions="$EXC_EMPTY" --plans-dir="$PLANS_PECOTV" \
     --registry="http://127.0.0.1:$MOCK_PORT"
-assert_eq "critical のみで exit 1" "1" "$RC"
-assert_contains "high 以上の件数を出す" "high 以上の脆弱なパッケージ 1 件" "$ERR"
-assert_contains "severity に critical を出す" "lodash (critical)" "$ERR"
-assert_contains "advisory の title を出す" "Command Injection in lodash" "$ERR"
+bt_eq "critical のみで exit 1" "1" "$RC"
+bt_contains "critical のみで high 以上の件数を出す" "high 以上の脆弱なパッケージ 1 件" "$(cat "$ERR")"
+bt_contains "severity に critical を出す" "lodash (critical)" "$(cat "$ERR")"
+bt_contains "critical のみで advisory の title を出す" "Command Injection in lodash" "$(cat "$ERR")"
 stop_mock
 
 # --- 9. advisory を返さないレジストリはカナリアで検知して止める ---
-#
-# bulk が 200 と `{}` を返す先は、「脆弱性 0 件」と区別が付かない。
-# そのため、カナリアの advisory が返らない時点で監査未実施として中止する。
+# bulk が 200 と `{}` を返す先は「脆弱性 0 件」と区別が付かないので、カナリアで見分ける。
 
 start_mock "$TMP/no-advisory.json" case9
 run_audit case9 --dist="$(new_dist case9)" --runtime-dist="$(new_runtime_dist case9)" --exceptions="$EXC_EMPTY" --plans-dir="$PLANS_PECOTV" \
     --registry="http://127.0.0.1:$MOCK_PORT"
-assert_eq "カナリア不検出で exit 1" "1" "$RC"
-assert_contains "未実施として中止する" "監査未実施のため中止" "$ERR"
-assert_contains "advisory 未提供のレジストリとして理由を出す" "既知の advisory を返しません" "$ERR"
+bt_eq "カナリア不検出で exit 1" "1" "$RC"
+bt_contains "カナリア不検出を未実施として中止する" "監査未実施のため中止" "$(cat "$ERR")"
+bt_contains "advisory 未提供のレジストリとして理由を出す" "既知の advisory を返しません" "$(cat "$ERR")"
 if grep -qF "監査 pass" "$OUT"; then
-    fail "advisory 未提供なのに pass を出した"
+    bt_fail "advisory 未提供のレジストリでは pass を出さない" "advisory 未提供なのに pass を出した"
 else
-    pass "advisory 未提供のレジストリでは pass を出さない"
+    bt_pass "advisory 未提供のレジストリでは pass を出さない"
 fi
 stop_mock
 
 # --- 10. pecot-visual 宣言が解釈できない version plan は中止する ---
-#
-# スキップに倒すと、nx は実在の plan で bump するのに、監査だけが気付かれずに抜ける。
+# スキップに倒すと、bump されるのに監査だけが抜ける。
 
 start_mock "$TMP/canary-only.json" case10
 MOCK10_COUNT="$MOCK_COUNT"
 run_audit case10 --dist="$(new_dist case10)" --runtime-dist="$(new_runtime_dist case10)" --exceptions="$EXC_EMPTY" --plans-dir="$PLANS_PECOTV_QUOTED" \
     --registry="http://127.0.0.1:$MOCK_PORT"
-assert_eq "解釈できない pecot-visual 宣言で exit 1" "1" "$RC"
-assert_contains "未実施として中止する" "監査未実施のため中止" "$ERR"
-assert_contains "解釈できない plan のパスを出す" "998-quoted.md" "$ERR"
-assert_eq "中止時はレジストリへ 1 件も投げない" "0" "$(wc -l < "$MOCK10_COUNT" | tr -d ' ')"
+bt_eq "解釈できない pecot-visual 宣言で exit 1" "1" "$RC"
+bt_contains "解釈できない pecot-visual 宣言を未実施として中止する" "監査未実施のため中止" "$(cat "$ERR")"
+bt_contains "解釈できない plan のパスを出す" "998-quoted.md" "$(cat "$ERR")"
+bt_eq "中止時はレジストリへ 1 件も投げない" "0" "$(wc -l < "$MOCK10_COUNT" | tr -d ' ')"
 stop_mock
 
 # text-rules の宣言も同じ扱いにする。updateDependents: always により、text-rules の bump は pecot-visual のリリースになる。
@@ -631,10 +555,10 @@ start_mock "$TMP/canary-only.json" case10b
 MOCK10B_COUNT="$MOCK_COUNT"
 run_audit case10b --dist="$(new_dist case10b)" --runtime-dist="$(new_runtime_dist case10b)" --exceptions="$EXC_EMPTY" --plans-dir="$PLANS_TEXT_RULES_QUOTED" \
     --registry="http://127.0.0.1:$MOCK_PORT"
-assert_eq "解釈できない text-rules 宣言で exit 1" "1" "$RC"
-assert_contains "text-rules の宣言でも未実施として中止する" "監査未実施のため中止" "$ERR"
-assert_contains "解釈できない text-rules の plan のパスを出す" "996-quoted.md" "$ERR"
-assert_eq "text-rules の宣言で中止するときもレジストリへ 1 件も投げない" "0" "$(wc -l < "$MOCK10B_COUNT" | tr -d ' ')"
+bt_eq "解釈できない text-rules 宣言で exit 1" "1" "$RC"
+bt_contains "text-rules の宣言でも未実施として中止する" "監査未実施のため中止" "$(cat "$ERR")"
+bt_contains "解釈できない text-rules の plan のパスを出す" "996-quoted.md" "$(cat "$ERR")"
+bt_eq "text-rules の宣言で中止するときもレジストリへ 1 件も投げない" "0" "$(wc -l < "$MOCK10B_COUNT" | tr -d ' ')"
 stop_mock
 
 # 引用符付きのキーは宣言として読み、スキップせずに監査する。
@@ -647,9 +571,9 @@ for quoted_key_case in "10c:$PLANS_TEXT_RULES_QUOTED_KEY:text-rules" "10d:$PLANS
     QUOTED_COUNT="$MOCK_COUNT"
     run_audit "$case_id" --dist="$(new_dist "$case_id")" --runtime-dist="$(new_runtime_dist "$case_id")" --exceptions="$EXC_EMPTY" --plans-dir="$plans" \
         --registry="http://127.0.0.1:$MOCK_PORT"
-    assert_eq "引用符付きの $label キーでも exit 0" "0" "$RC"
-    assert_contains "引用符付きの $label キーでは監査を実際に行う" "監査 pass（high 以上なし）" "$TMP/$case_id.out"
-    assert_eq "引用符付きの $label キーでレジストリへ 3 件投げる" "3" "$(wc -l < "$QUOTED_COUNT" | tr -d ' ')"
+    bt_eq "引用符付きの $label キーでも exit 0" "0" "$RC"
+    bt_contains "引用符付きの $label キーでは監査を実際に行う" "監査 pass（high 以上なし）" "$(cat "$TMP/$case_id.out")"
+    bt_eq "引用符付きの $label キーでレジストリへ 3 件投げる" "3" "$(wc -l < "$QUOTED_COUNT" | tr -d ' ')"
     stop_mock
 done
 
@@ -657,22 +581,19 @@ done
 
 run_audit case11 --dist="$(new_dist case11)" --runtime-dist="$(new_runtime_dist case11)" --exceptions="$EXC_EMPTY" --plans-dir="$TMP/plans-missing" \
     --registry="$CLOSED_REGISTRY"
-assert_eq "探索先の不在で exit 1" "1" "$RC"
-assert_contains "探索先が無いことを理由に出す" "version plan の探索先がありません" "$ERR"
+bt_eq "探索先の不在で exit 1" "1" "$RC"
+bt_contains "探索先が無いことを理由に出す" "version plan の探索先がありません" "$(cat "$ERR")"
 
 # --- 12. --timeout=0 は待ち上限の無効化になるため弾く ---
 # coreutils の timeout は duration 0 を「上限なし」として扱う。
 
 run_audit case12 --dist="$(new_dist case12)" --runtime-dist="$(new_runtime_dist case12)" --exceptions="$EXC_EMPTY" --plans-dir="$PLANS_PECOTV" \
     --registry="$CLOSED_REGISTRY" --timeout=0
-assert_eq "--timeout=0 で exit 1" "1" "$RC"
-assert_contains "正の整数を要求する" "正の整数" "$ERR"
+bt_eq "--timeout=0 で exit 1" "1" "$RC"
+bt_contains "正の整数を要求する" "正の整数" "$(cat "$ERR")"
 
 # --- 13. dist-manifest.mjs の直接起動 ---
-# 配布 package.json の生成は、本番では直接起動で使われる。
-# argv 処理と stdout 出力が誤っていても、--dist 固定ツリーのケースでは検出できない。
-# そのため、ここで単体として確かめる。
-# ネットワーク不要。
+# --dist 固定ツリーのケースでは argv と stdout の誤りを拾えないので、単体で確かめる。
 
 MANIFEST_JS="$RELEASE_DIR/dist-manifest.mjs"
 PECOTV_PLUGIN_ROOT="$(cd "$RELEASE_DIR/../.." && pwd)"
@@ -681,12 +602,12 @@ MANIFEST_REPO_ROOT="$(cd "$PECOTV_PLUGIN_ROOT/../.." && pwd)"
 MANIFEST_RC=0
 node "$MANIFEST_JS" "$PECOTV_PLUGIN_ROOT" 0.0.0-test "$MANIFEST_REPO_ROOT" \
     > "$TMP/manifest.json" 2> "$TMP/manifest.err" || MANIFEST_RC=$?
-assert_eq "直接起動が exit 0" "0" "$MANIFEST_RC"
+bt_eq "dist-manifest.mjs の直接起動が exit 0" "0" "$MANIFEST_RC"
 
 # 出力が有効な JSON であること（不正なら node が非ゼロで返り、下の assert が落ちる）。
 MANIFEST_VERSION="$(node -e 'const fs=require("node:fs");process.stdout.write(String(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).version))' \
     "$TMP/manifest.json" 2> /dev/null || echo "__INVALID_JSON__")"
-assert_eq "出力が有効な JSON で version は引数どおり" "0.0.0-test" "$MANIFEST_VERSION"
+bt_eq "出力が有効な JSON で version は引数どおり" "0.0.0-test" "$MANIFEST_VERSION"
 
 DIRECT_DEPS="$(node -e 'const fs=require("node:fs");const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8")).dependencies||{};process.stdout.write(Object.keys(d).sort().join(","))' \
     "$TMP/manifest.json" 2> /dev/null || echo "__INVALID_JSON__")"
@@ -700,7 +621,7 @@ const deps = buildDistManifest(pecotvRoot, '0.0.0-test', repoRoot).dependencies
 process.stdout.write(Object.keys(deps).sort().join(','))
 IMPORT_EOF
 IMPORT_DEPS="$(node "$TMP/manifest-import.mjs" "$MANIFEST_JS" "$PECOTV_PLUGIN_ROOT" "$MANIFEST_REPO_ROOT")"
-assert_eq "直接起動の dependencies が import 経由と一致" "$IMPORT_DEPS" "$DIRECT_DEPS"
+bt_eq "直接起動の dependencies が import 経由と一致" "$IMPORT_DEPS" "$DIRECT_DEPS"
 # 同梱する text-rules の依存は libs/text-rules/package.json の dependencies から導く。名前を列挙せず、
 # その宣言と範囲まで比較する（配布 package.json に無い、または範囲が違う名前を列挙する）。
 TEXT_RULES_DEP_GAP="$(node -e '
@@ -710,25 +631,22 @@ const out = JSON.parse(fs.readFileSync(process.argv[2], "utf8")).dependencies
 const gap = Object.entries(textRules).filter(([name, range]) => out[name] !== range).map(([name]) => name)
 process.stdout.write(Object.keys(textRules).length === 0 ? "TEXT_RULES_HAS_NO_DEPENDENCIES" : gap.sort().join(","))
 ' "$MANIFEST_REPO_ROOT/libs/text-rules/package.json" "$TMP/manifest.json" 2> /dev/null || echo "__INVALID_JSON__")"
-assert_eq "直接起動の dependencies が libs/text-rules/package.json の dependencies を範囲ごと全部含む" "" "$TEXT_RULES_DEP_GAP"
+bt_eq "直接起動の dependencies が libs/text-rules/package.json の dependencies を範囲ごと全部含む" "" "$TEXT_RULES_DEP_GAP"
 if [ -n "$IMPORT_DEPS" ]; then
-    pass "dependencies が空でない"
+    bt_pass "dependencies が空でない"
 else
-    fail "dependencies が空（比較が無意味になっている）"
+    bt_fail "dependencies が空でない" "dependencies が空（比較が無意味になっている）"
 fi
 
 USAGE_RC=0
 node "$MANIFEST_JS" > "$TMP/manifest-usage.out" 2> "$TMP/manifest-usage.err" || USAGE_RC=$?
-assert_eq "引数不足で exit 1" "1" "$USAGE_RC"
-assert_contains "引数不足で usage を出す" "usage: dist-manifest.mjs" "$TMP/manifest-usage.err"
-assert_contains "usage が repo root の引数を示す" "<repo-root>" "$TMP/manifest-usage.err"
+bt_eq "dist-manifest.mjs は引数不足で exit 1" "1" "$USAGE_RC"
+bt_contains "dist-manifest.mjs は引数不足で usage を出す" "usage: dist-manifest.mjs" "$(cat "$TMP/manifest-usage.err")"
+bt_contains "usage が repo root の引数を示す" "<repo-root>" "$(cat "$TMP/manifest-usage.err")"
 
 # --- 14. version plan が無くても HEAD のリリースタグがあれば再監査する ---
-#
-# publish が指紋の不一致で止まった後に、release commit を checkout して記録を作り直す場合が対象になる。
-# plan は release commit で消費済みなので、この場合は存在しない。
-# HEAD のタグ一覧は、env PECOTV_AUDIT_HEAD_TAGS で差し替える。
-# tag は worktree 間で共有される ref なので、リポジトリ本体には検証用のタグを作らない。
+# publish が指紋の不一致で止まった後、release commit で記録を作り直す場合。plan は消費済みで無い。
+# タグは worktree 間で共有されるので作らず、PECOTV_AUDIT_HEAD_TAGS で差し替える。
 
 start_mock "$TMP/canary-only.json" case14
 MOCK14_COUNT="$MOCK_COUNT"
@@ -738,12 +656,12 @@ RC=0
 PECOTV_AUDIT_HEAD_TAGS="pecot-visual-v$PLUGIN_VERSION" bash "$AUDIT" --dist="$(new_dist case14)" --runtime-dist="$(new_runtime_dist case14)" --exceptions="$EXC_EMPTY" \
     --plans-dir="$PLANS_PECOT_ONLY" --registry="http://127.0.0.1:$MOCK_PORT" \
     > "$OUT" 2> "$ERR" || RC=$?
-assert_eq "リリースタグがあれば plan 無しでも exit 0" "0" "$RC"
-assert_contains "再監査として実行したことを出す" "再監査: HEAD に pecot-visual-v$PLUGIN_VERSION" "$OUT"
-assert_contains "監査を実際に行う" "監査 pass（high 以上なし）" "$OUT"
-assert_eq "再監査ではレジストリへ 3 件投げる" "3" "$(wc -l < "$MOCK14_COUNT" | tr -d ' ')"
-assert_eq "再監査の記録は skipped ではない" "__MISSING__" "$(record_field skipped)"
-assert_eq "再監査の記録に指紋が入る" "$(node "$FINGERPRINT" "$FIXTURE/npm-shrinkwrap.json")" \
+bt_eq "リリースタグがあれば plan 無しでも exit 0" "0" "$RC"
+bt_contains "再監査として実行したことを出す" "再監査: HEAD に pecot-visual-v$PLUGIN_VERSION" "$(cat "$OUT")"
+bt_contains "リリースタグがあれば監査を実際に行う" "監査 pass（high 以上なし）" "$(cat "$OUT")"
+bt_eq "再監査ではレジストリへ 3 件投げる" "3" "$(wc -l < "$MOCK14_COUNT" | tr -d ' ')"
+bt_eq "再監査の記録は skipped ではない" "__MISSING__" "$(record_field skipped)"
+bt_eq "再監査の記録に指紋が入る" "$(node "$FINGERPRINT" "$FIXTURE/npm-shrinkwrap.json")" \
     "$(record_field dist.fingerprint)"
 stop_mock
 
@@ -755,15 +673,12 @@ PECOTV_AUDIT_HEAD_TAGS="pecot-workflow-v1.0.0
 pecot-visual-v0.0.0-other" bash "$AUDIT" --dist="$(new_dist case14b)" --runtime-dist="$(new_runtime_dist case14b)" --exceptions="$EXC_EMPTY" \
     --plans-dir="$PLANS_PECOT_ONLY" --registry="http://127.0.0.1:$MOCK_PORT" \
     > "$OUT" 2> "$TMP/case14b.err" || RC=$?
-assert_eq "別版のリリースタグではスキップする" "0" "$RC"
-assert_contains "スキップの理由を出す" "スキップ: pecot-visual の version plan が無いため" "$OUT"
+bt_eq "別版のリリースタグではスキップする" "0" "$RC"
+bt_contains "別版のリリースタグではスキップの理由を出す" "スキップ: pecot-visual の version plan が無いため" "$(cat "$OUT")"
 stop_mock
 
 # --- 14c. 依存先の group だけの plan でも監査する (#1297) ---
-#
-# pecot-visual は text-rules を workspace: 依存で持つ。
-# text-rules の group は updateDependents: always を持つため、text-rules だけの plan でも nx は pecot-visual を上げる。
-# 判定が pecot-visual: の有無だけだと、pecot-visual のリリースなのに監査を飛ばし、skipped の記録で publish が止まる。
+# text-rules の group は updateDependents: always。text-rules だけの plan でも pecot-visual が上がる。
 start_mock "$TMP/canary-only.json" case14c
 MOCK14C_COUNT="$MOCK_COUNT"
 OUT="$TMP/case14c.out"
@@ -771,13 +686,13 @@ RC=0
 PECOTV_AUDIT_HEAD_TAGS="" bash "$AUDIT" --dist="$(new_dist case14c)" --runtime-dist="$(new_runtime_dist case14c)" --exceptions="$EXC_EMPTY" \
     --plans-dir="$PLANS_TEXT_RULES" --registry="http://127.0.0.1:$MOCK_PORT" \
     > "$OUT" 2> "$TMP/case14c.err" || RC=$?
-assert_eq "text-rules だけの plan でも exit 0" "0" "$RC"
-assert_contains "監査を実際に行う" "監査 pass（high 以上なし）" "$OUT"
+bt_eq "text-rules だけの plan でも exit 0" "0" "$RC"
+bt_contains "text-rules だけの plan でも監査を実際に行う" "監査 pass（high 以上なし）" "$(cat "$OUT")"
 SKIP_LINES=0
 grep -q 'スキップ' "$OUT" && SKIP_LINES=1
-assert_eq "text-rules だけの plan ではスキップの行が出ない" "0" "$SKIP_LINES"
-assert_eq "text-rules だけの plan でレジストリへ 3 件投げる" "3" "$(wc -l < "$MOCK14C_COUNT" | tr -d ' ')"
-assert_eq "記録は skipped ではない" "__MISSING__" "$(record_field skipped)"
+bt_eq "text-rules だけの plan ではスキップの行が出ない" "0" "$SKIP_LINES"
+bt_eq "text-rules だけの plan でレジストリへ 3 件投げる" "3" "$(wc -l < "$MOCK14C_COUNT" | tr -d ' ')"
+bt_eq "記録は skipped ではない" "__MISSING__" "$(record_field skipped)"
 stop_mock
 
 # 無関係な group だけの plan は、従来どおりスキップする。
@@ -788,16 +703,15 @@ RC=0
 PECOTV_AUDIT_HEAD_TAGS="" bash "$AUDIT" --dist="$(new_dist case14d)" --runtime-dist="$(new_runtime_dist case14d)" --exceptions="$EXC_EMPTY" \
     --plans-dir="$PLANS_WORKFLOW_ONLY" --registry="http://127.0.0.1:$MOCK_PORT" \
     > "$OUT" 2> "$TMP/case14d.err" || RC=$?
-assert_eq "pecot-workflow だけの plan でも exit 0" "0" "$RC"
-assert_contains "スキップの理由を出す" "スキップ: pecot-visual の version plan が無いため" "$OUT"
-assert_eq "スキップ時はレジストリへ 1 件も投げない" "0" "$(wc -l < "$MOCK14D_COUNT" | tr -d ' ')"
-assert_eq "スキップ時の記録は skipped: true" "true" "$(record_field skipped)"
+bt_eq "pecot-workflow だけの plan でも exit 0" "0" "$RC"
+bt_contains "pecot-workflow だけの plan ではスキップの理由を出す" "スキップ: pecot-visual の version plan が無いため" "$(cat "$OUT")"
+bt_eq "pecot-workflow だけの plan のスキップではレジストリへ 1 件も投げない" "0" "$(wc -l < "$MOCK14D_COUNT" | tr -d ' ')"
+bt_eq "pecot-workflow だけの plan のスキップの記録は skipped: true" "true" "$(record_field skipped)"
 stop_mock
 
 # --- 14e. release-groups.mjs: 依存先の group を workspace: 依存から求める ---
-#
 # 実リポジトリでは pecot-visual と text-rules の 2 つになる。
-assert_eq "実リポジトリの対象 group は pecot-visual と text-rules" "pecot-visual,text-rules" \
+bt_eq "実リポジトリの対象 group は pecot-visual と text-rules" "pecot-visual,text-rules" \
     "$(node "$RELEASE_DIR/release-groups.mjs" "$REPO_ROOT" | paste -sd ',' -)"
 
 # 別の workspace 依存が増えても、列挙し直さずに追従する。fixture で依存を 2 つにして確かめる。
@@ -819,7 +733,7 @@ cat > "$GROUPS_REPO/nx.json" << 'JSON_EOF'
   "gamma-group": { "projects": ["gamma-project"] }
 } } }
 JSON_EOF
-assert_eq "workspace: 依存の group だけが対象になる" "pecot-visual,alpha-group,beta-group" \
+bt_eq "workspace: 依存の group だけが対象になる" "pecot-visual,alpha-group,beta-group" \
     "$(node "$RELEASE_DIR/release-groups.mjs" "$GROUPS_REPO" | paste -sd ',' -)"
 
 # 依存先を含む group が nx.json に無ければ、静かに抜けず exit 1 で止める。
@@ -828,16 +742,14 @@ cat > "$GROUPS_REPO/nx.json" << 'JSON_EOF'
 JSON_EOF
 GROUPS_RC=0
 node "$RELEASE_DIR/release-groups.mjs" "$GROUPS_REPO" > "$TMP/groups.out" 2> "$TMP/groups.err" || GROUPS_RC=$?
-assert_eq "group を引けないときは exit 1" "1" "$GROUPS_RC"
-assert_contains "引けない project 名を出す" "alpha-project" "$TMP/groups.err"
+bt_eq "group を引けないときは exit 1" "1" "$GROUPS_RC"
+bt_contains "引けない project 名を出す" "alpha-project" "$(cat "$TMP/groups.err")"
 
 # --- 15. dist-fingerprint.mjs の単体 ---
-# 指紋はルート "" の version を除いた packages から取る。監査（bump 前）と
-# publish（bump 後）で同じ値になり、依存の変化では変わることを固定する。
-# ネットワーク不要。
+# 指紋はルート "" の version を除いて取る。監査（bump 前）と publish（bump 後）で同じ値になる。
 
 FP_BASE="$(node "$FINGERPRINT" "$FIXTURE/npm-shrinkwrap.json")"
-assert_eq "指紋は 64 桁 hex" "1" \
+bt_eq "指紋は 64 桁 hex" "1" \
     "$(printf '%s' "$FP_BASE" | grep -cE '^[0-9a-f]{64}$' | tr -d ' ')"
 
 # 変種の生成。ルート "" の version / ルートの dependencies 宣言 / 依存の version を
@@ -864,21 +776,21 @@ fs.writeFileSync(out, JSON.stringify(sw, null, 2) + "\n")
 }
 
 mutate_shrinkwrap "$TMP/sw-root-version.json" root-version
-assert_eq "ルートの version を変えても指紋は変わらない" "$FP_BASE" \
+bt_eq "ルートの version を変えても指紋は変わらない" "$FP_BASE" \
     "$(node "$FINGERPRINT" "$TMP/sw-root-version.json")"
 
 mutate_shrinkwrap "$TMP/sw-root-deps.json" root-deps
 if [ "$(node "$FINGERPRINT" "$TMP/sw-root-deps.json")" != "$FP_BASE" ]; then
-    pass "ルートの dependencies 宣言を変えると指紋が変わる"
+    bt_pass "ルートの dependencies 宣言を変えると指紋が変わる"
 else
-    fail "ルートの dependencies 宣言を変えても指紋が同じ"
+    bt_fail "ルートの dependencies 宣言を変えると指紋が変わる" "ルートの dependencies 宣言を変えても指紋が同じ"
 fi
 
 mutate_shrinkwrap "$TMP/sw-dep-version.json" dep-version
 if [ "$(node "$FINGERPRINT" "$TMP/sw-dep-version.json")" != "$FP_BASE" ]; then
-    pass "依存の version を変えると指紋が変わる"
+    bt_pass "依存の version を変えると指紋が変わる"
 else
-    fail "依存の version を変えても指紋が同じ"
+    bt_fail "依存の version を変えると指紋が変わる" "依存の version を変えても指紋が同じ"
 fi
 
 # キー順だけが違う入力は同じ指紋になる。再帰ソートが働いていることを確かめる。
@@ -891,50 +803,49 @@ sw.packages = flip(sw.packages)
 sw.packages["node_modules/lodash"] = flip(sw.packages["node_modules/lodash"])
 fs.writeFileSync(out, JSON.stringify(sw, null, 2) + "\n")
 ' "$FIXTURE/npm-shrinkwrap.json" "$TMP/sw-reordered.json"
-assert_eq "キー順だけの違いでは指紋が変わらない" "$FP_BASE" \
+bt_eq "キー順だけの違いでは指紋が変わらない" "$FP_BASE" \
     "$(node "$FINGERPRINT" "$TMP/sw-reordered.json")"
 
 mutate_shrinkwrap "$TMP/sw-no-packages.json" no-packages
 FP_RC=0
 node "$FINGERPRINT" "$TMP/sw-no-packages.json" > /dev/null 2> "$TMP/fp-nopkg.err" || FP_RC=$?
-assert_eq "packages が無い入力で非ゼロ終了" "1" "$FP_RC"
-assert_contains "packages が無い理由を出す" "packages がありません" "$TMP/fp-nopkg.err"
+bt_eq "packages が無い入力で非ゼロ終了" "1" "$FP_RC"
+bt_contains "packages が無い理由を出す" "packages がありません" "$(cat "$TMP/fp-nopkg.err")"
 
 # 依存解決が丸ごと失敗した shrinkwrap（packages にルート "" が無い）を有効な指紋として
 # 扱わない。
 mutate_shrinkwrap "$TMP/sw-empty-packages.json" empty-packages
 FP_EMPTY_RC=0
 node "$FINGERPRINT" "$TMP/sw-empty-packages.json" > /dev/null 2> "$TMP/fp-empty.err" || FP_EMPTY_RC=$?
-assert_eq "packages が空の入力で非ゼロ終了" "1" "$FP_EMPTY_RC"
-assert_contains "ルート \"\" が無い理由を出す" 'ルート "" がありません' "$TMP/fp-empty.err"
+bt_eq "packages が空の入力で非ゼロ終了" "1" "$FP_EMPTY_RC"
+bt_contains "ルート \"\" が無い理由を出す" 'ルート "" がありません' "$(cat "$TMP/fp-empty.err")"
 
 FP_USAGE_RC=0
 node "$FINGERPRINT" > "$TMP/fp-usage.out" 2> "$TMP/fp-usage.err" || FP_USAGE_RC=$?
-assert_eq "引数不足で exit 1" "1" "$FP_USAGE_RC"
-assert_contains "引数不足で usage を出す" "usage: dist-fingerprint.mjs" "$TMP/fp-usage.err"
+bt_eq "dist-fingerprint.mjs は引数不足で exit 1" "1" "$FP_USAGE_RC"
+bt_contains "dist-fingerprint.mjs は引数不足で usage を出す" "usage: dist-fingerprint.mjs" "$(cat "$TMP/fp-usage.err")"
 
 # --- 16. 永続層の high を例外で通す ---
-# 例外は、high 以上の判定を免れさせる唯一の仕組みとなる。
-# そのため、件数、免除した advisory の列挙、記録への残り方をまとめて固定する。
+# 例外は判定を免れる唯一の仕組みなので、件数・列挙・記録をまとめて固定する。
 
 start_mock "$TMP/image-size-high.json" case16
 run_audit case16 --dist="$(new_dist case16)" --runtime-dist="$(new_runtime_dist case16)" \
     --plans-dir="$PLANS_PECOTV" --registry="http://127.0.0.1:$MOCK_PORT" \
     --exceptions="$EXC_IMAGE_SIZE"
-assert_eq "永続層の例外 2 件で exit 0" "0" "$RC"
-assert_contains "永続層の要約行に例外件数が出る" "例外 2 件" "$OUT"
-assert_contains "免除した advisory を本文に列挙する (1 件目)" \
-    "永続層の例外適用: GHSA-w3rx-r6r6-pgpr image-size (high)" "$OUT"
-assert_contains "免除した advisory を本文に列挙する (2 件目)" \
-    "永続層の例外適用: GHSA-5p2g-fcmc-qvqq image-size (high)" "$OUT"
-assert_contains "例外の列挙は stderr にも出る" \
-    "永続層の例外適用: GHSA-w3rx-r6r6-pgpr image-size (high)" "$ERR"
-assert_contains "pass のメッセージが出る" "監査 pass（high 以上なし）" "$OUT"
-assert_eq "記録の runtime.excepted は 2 件" "2" "$(record_field runtime.excepted.length)"
-assert_eq "記録の runtime.excepted に severity が入る" "high" "$(record_field runtime.excepted.0.severity)"
-assert_eq "記録の runtime.excepted は advisory 順" "GHSA-5p2g-fcmc-qvqq" "$(record_field runtime.excepted.0.advisory)"
-assert_eq "例外を除いた runtime.vulnerabilities.high は 0" "0" "$(record_field runtime.vulnerabilities.high)"
-assert_eq "配布ツリー側の例外は 0 件" "0" "$(record_field dist.excepted.length)"
+bt_eq "永続層の例外 2 件で exit 0" "0" "$RC"
+bt_contains "永続層の要約行に例外件数が出る" "例外 2 件" "$(cat "$OUT")"
+bt_contains "免除した advisory を本文に列挙する (1 件目)" \
+    "永続層の例外適用: GHSA-w3rx-r6r6-pgpr image-size (high)" "$(cat "$OUT")"
+bt_contains "免除した advisory を本文に列挙する (2 件目)" \
+    "永続層の例外適用: GHSA-5p2g-fcmc-qvqq image-size (high)" "$(cat "$OUT")"
+bt_contains "例外の列挙は stderr にも出る" \
+    "永続層の例外適用: GHSA-w3rx-r6r6-pgpr image-size (high)" "$(cat "$ERR")"
+bt_contains "永続層の例外 2 件で pass のメッセージが出る" "監査 pass（high 以上なし）" "$(cat "$OUT")"
+bt_eq "記録の runtime.excepted は 2 件" "2" "$(record_field runtime.excepted.length)"
+bt_eq "記録の runtime.excepted に severity が入る" "high" "$(record_field runtime.excepted.0.severity)"
+bt_eq "記録の runtime.excepted は advisory 順" "GHSA-5p2g-fcmc-qvqq" "$(record_field runtime.excepted.0.advisory)"
+bt_eq "例外を除いた runtime.vulnerabilities.high は 0" "0" "$(record_field runtime.vulnerabilities.high)"
+bt_eq "配布ツリー側の例外は 0 件" "0" "$(record_field dist.excepted.length)"
 stop_mock
 
 # --- 17. 例外が無ければ永続層の high で止める ---
@@ -944,15 +855,15 @@ start_mock "$TMP/image-size-high.json" case17
 run_audit case17 --dist="$(new_dist case17)" --runtime-dist="$(new_runtime_dist case17)" \
     --plans-dir="$PLANS_PECOTV" --registry="http://127.0.0.1:$MOCK_PORT" \
     --exceptions="$EXC_EMPTY"
-assert_eq "例外なしの永続層 high で exit 1" "1" "$RC"
-assert_contains "どちらのツリーで止めたかを出す" "永続層: high 以上の脆弱なパッケージ 1 件" "$ERR"
-assert_contains "脆弱なパッケージ名を出す" "image-size (high)" "$ERR"
-assert_contains "advisory の URL を出す" "https://github.com/advisories/GHSA-w3rx-r6r6-pgpr" "$ERR"
-assert_contains "配布ツリーの要約行も出る" "配布ツリー: 1 パッケージ" "$ERR"
+bt_eq "例外なしの永続層 high で exit 1" "1" "$RC"
+bt_contains "どちらのツリーで止めたかを出す" "永続層: high 以上の脆弱なパッケージ 1 件" "$(cat "$ERR")"
+bt_contains "永続層の high で脆弱なパッケージ名を出す" "image-size (high)" "$(cat "$ERR")"
+bt_contains "永続層の high で advisory の URL を出す" "https://github.com/advisories/GHSA-w3rx-r6r6-pgpr" "$(cat "$ERR")"
+bt_contains "配布ツリーの要約行も出る" "配布ツリー: 1 パッケージ" "$(cat "$ERR")"
 if [ -f "$PECOTV_AUDIT_RECORD" ]; then
-    fail "永続層の high で中止したのに監査記録が残っている"
+    bt_fail "永続層の high で中止したとき監査記録を残さない" "永続層の high で中止したのに監査記録が残っている"
 else
-    pass "永続層の high で中止したとき監査記録を残さない"
+    bt_pass "永続層の high で中止したとき監査記録を残さない"
 fi
 stop_mock
 
@@ -962,29 +873,26 @@ start_mock "$TMP/image-size-high.json" case18
 run_audit case18 --dist="$(new_dist case18)" --runtime-dist="$(new_runtime_dist case18)" \
     --plans-dir="$PLANS_PECOTV" --registry="http://127.0.0.1:$MOCK_PORT" \
     --exceptions="$EXC_IMAGE_SIZE_ONE"
-assert_eq "例外 1 件だけでは exit 1" "1" "$RC"
-assert_contains "適用した例外は要約行に出る" "例外 1 件" "$ERR"
-assert_contains "残る advisory で止める" "永続層: high 以上の脆弱なパッケージ 1 件" "$ERR"
+bt_eq "例外 1 件だけでは exit 1" "1" "$RC"
+bt_contains "適用した例外は要約行に出る" "例外 1 件" "$(cat "$ERR")"
+bt_contains "残る advisory で止める" "永続層: high 以上の脆弱なパッケージ 1 件" "$(cat "$ERR")"
 stop_mock
 
 # --- 19. id は一致するが package が違う例外は陳腐化として中止する ---
-#
-# 「例外なし」に倒すと止まる方向なので安全に見える。
-# ただし、記載が実データと対応していない状態のまま運用が続く。
-# そこで、監査未実施として作業を止める。
+# 「例外なし」に倒すと、記載が実データと合わないまま運用が続くので、未実施として止める。
 
 start_mock "$TMP/image-size-high.json" case19
 run_audit case19 --dist="$(new_dist case19)" --runtime-dist="$(new_runtime_dist case19)" \
     --plans-dir="$PLANS_PECOTV" --registry="http://127.0.0.1:$MOCK_PORT" \
     --exceptions="$EXC_WRONG_PACKAGE"
-assert_eq "例外の陳腐化で exit 1" "1" "$RC"
-assert_contains "未実施として中止する" "監査未実施のため中止" "$ERR"
-assert_contains "どちらのツリーかを出す" "永続層" "$ERR"
-assert_contains "陳腐化した例外の id を出す" "GHSA-w3rx-r6r6-pgpr" "$ERR"
+bt_eq "例外の陳腐化で exit 1" "1" "$RC"
+bt_contains "例外の陳腐化を未実施として中止する" "監査未実施のため中止" "$(cat "$ERR")"
+bt_contains "どちらのツリーかを出す" "永続層" "$(cat "$ERR")"
+bt_contains "陳腐化した例外の id を出す" "GHSA-w3rx-r6r6-pgpr" "$(cat "$ERR")"
 if [ -f "$PECOTV_AUDIT_RECORD" ]; then
-    fail "例外の陳腐化で中止したのに監査記録が残っている"
+    bt_fail "例外の陳腐化で中止したとき監査記録を残さない" "例外の陳腐化で中止したのに監査記録が残っている"
 else
-    pass "例外の陳腐化で中止したとき監査記録を残さない"
+    bt_pass "例外の陳腐化で中止したとき監査記録を残さない"
 fi
 stop_mock
 
@@ -994,17 +902,16 @@ start_mock "$TMP/high.json" case20
 run_audit case20 --dist="$(new_dist case20)" --runtime-dist="$(new_runtime_dist case20)" \
     --plans-dir="$PLANS_PECOTV" --registry="http://127.0.0.1:$MOCK_PORT" \
     --exceptions="$EXC_LODASH"
-assert_eq "配布ツリーの例外で exit 0" "0" "$RC"
-assert_contains "免除した advisory を配布ツリー側でも列挙する" \
-    "配布ツリーの例外適用: GHSA-p6mc-m468-83gw lodash (high)" "$OUT"
-assert_contains "例外を除いた配布ツリーの high は 0" "配布ツリー: 1 パッケージ / critical 0 / high 0" "$OUT"
-assert_contains "pass のメッセージが出る" "監査 pass（high 以上なし）" "$OUT"
-assert_eq "記録の dist.excepted は 1 件" "1" "$(record_field dist.excepted.length)"
+bt_eq "配布ツリーの例外で exit 0" "0" "$RC"
+bt_contains "免除した advisory を配布ツリー側でも列挙する" \
+    "配布ツリーの例外適用: GHSA-p6mc-m468-83gw lodash (high)" "$(cat "$OUT")"
+bt_contains "例外を除いた配布ツリーの high は 0" "配布ツリー: 1 パッケージ / critical 0 / high 0" "$(cat "$OUT")"
+bt_contains "配布ツリーの例外で pass のメッセージが出る" "監査 pass（high 以上なし）" "$(cat "$OUT")"
+bt_eq "記録の dist.excepted は 1 件" "1" "$(record_field dist.excepted.length)"
 stop_mock
 
 # --- 21. 形の違う例外リストは監査未実施として中止する ---
-# 例外は判定を緩められる唯一の仕組みとなる。
-# そのため、読めない記載や形が違う記載を、「例外なし」に倒さない。
+# 例外は判定を緩める唯一の仕組みなので、読めない記載や形の違う記載を「例外なし」に倒さない。
 
 printf 'not json\n' > "$TMP/exceptions-broken.json"
 printf '{"exceptions": {}}\n' > "$TMP/exceptions-not-array.json"
@@ -1036,8 +943,8 @@ check_bad_exceptions() {
     local label="$1" file="$2" name="$3"
     run_audit "$name" --dist="$(new_dist "$name")" --runtime-dist="$(new_runtime_dist "$name")" \
         --plans-dir="$PLANS_PECOTV" --registry="$CASE21_REGISTRY" --exceptions="$file"
-    assert_eq "$label で exit 1" "1" "$RC"
-    assert_contains "$label を未実施として中止する" "監査未実施のため中止" "$ERR"
+    bt_eq "$label で exit 1" "1" "$RC"
+    bt_contains "$label を未実施として中止する" "監査未実施のため中止" "$(cat "$ERR")"
 }
 check_bad_exceptions "破損した JSON の例外リスト" "$TMP/exceptions-broken.json" case21a
 check_bad_exceptions "exceptions が配列でない例外リスト" "$TMP/exceptions-not-array.json" case21b
@@ -1052,27 +959,24 @@ stop_mock
 run_audit case21h --dist="$(new_dist case21h)" --runtime-dist="$(new_runtime_dist case21h)" \
     --plans-dir="$PLANS_PECOTV" --registry="$CLOSED_REGISTRY" \
     --exceptions="$TMP/exceptions-missing.json"
-assert_eq "明示した例外リストの不在で exit 1" "1" "$RC"
-assert_contains "指定した例外リストが無いことを理由に出す" "指定された例外リストがありません" "$ERR"
+bt_eq "明示した例外リストの不在で exit 1" "1" "$RC"
+bt_contains "指定した例外リストが無いことを理由に出す" "指定された例外リストがありません" "$(cat "$ERR")"
 
 # --- 22. --dist と --runtime-dist は対で渡す ---
-# 片方だけだと、もう一方は実レジストリで解決されたうえモックの `{}` 応答で 0 件 pass に
-# なる。失敗ではなく遅延として現れて気付けないため引数の時点で弾く。
+# 片方だけだと、もう一方がモックの `{}` で 0 件 pass になり気付けないので、引数の時点で弾く。
 
 run_audit case22a --dist="$(new_dist case22a)" --plans-dir="$PLANS_PECOTV" \
     --registry="$CLOSED_REGISTRY" --exceptions="$EXC_EMPTY"
-assert_eq "--dist だけの指定で exit 1" "1" "$RC"
-assert_contains "両方指定を要求する" "両方指定するか両方省略" "$ERR"
+bt_eq "--dist だけの指定で exit 1" "1" "$RC"
+bt_contains "--dist だけの指定では両方指定を要求する" "両方指定するか両方省略" "$(cat "$ERR")"
 
 run_audit case22b --runtime-dist="$(new_runtime_dist case22b)" --plans-dir="$PLANS_PECOTV" \
     --registry="$CLOSED_REGISTRY" --exceptions="$EXC_EMPTY"
-assert_eq "--runtime-dist だけの指定で exit 1" "1" "$RC"
-assert_contains "両方指定を要求する" "両方指定するか両方省略" "$ERR"
+bt_eq "--runtime-dist だけの指定で exit 1" "1" "$RC"
+bt_contains "--runtime-dist だけの指定では両方指定を要求する" "両方指定するか両方省略" "$(cat "$ERR")"
 
 # --- 23. 永続層に lockfile が無ければ監査未実施として中止する ---
-#
-# 中止の文言にツリー名が入ることを確かめる。
-# 2 ツリーを同じ関数で監査するので、label が無いと、どちらで止まったか見分けが付かない。
+# 2 ツリーを同じ関数で監査するので、中止の文言にツリー名が入ることを確かめる。
 
 CASE23_RUNTIME="$TMP/runtime-case23-nolock"
 rm -rf "$CASE23_RUNTIME"
@@ -1082,25 +986,23 @@ start_mock "$TMP/canary-only.json" case23
 run_audit case23 --dist="$(new_dist case23)" --runtime-dist="$CASE23_RUNTIME" \
     --plans-dir="$PLANS_PECOTV" --registry="http://127.0.0.1:$MOCK_PORT" \
     --exceptions="$EXC_EMPTY"
-assert_eq "永続層の lockfile 欠落で exit 1" "1" "$RC"
-assert_contains "永続層で止まったことを文言に残す" "監査未実施のため中止: 永続層:" "$ERR"
+bt_eq "永続層の lockfile 欠落で exit 1" "1" "$RC"
+bt_contains "永続層で止まったことを文言に残す" "監査未実施のため中止: 永続層:" "$(cat "$ERR")"
 if [ -f "$PECOTV_AUDIT_RECORD" ]; then
-    fail "永続層の未実施で中止したのに監査記録が残っている"
+    bt_fail "永続層の未実施で中止したとき監査記録を残さない" "永続層の未実施で中止したのに監査記録が残っている"
 else
-    pass "永続層の未実施で中止したとき監査記録を残さない"
+    bt_pass "永続層の未実施で中止したとき監査記録を残さない"
 fi
 stop_mock
 
 # --- 24. runtime-manifest.mjs の直接起動 ---
-# 監査対象の永続層 package.json は、本番では直接起動で生成される。
-# argv 処理と stdout 出力が誤っていても、--runtime-dist 固定ツリーのケースでは検出できない。
-# ネットワークは使わない。
-# cli の runtimeInstallPlan との同値は、runtime-manifest.test.sh が確かめる。
+# --runtime-dist 固定ツリーでは argv と stdout の誤りを拾えないので、単体で確かめる。
+# cli の runtimeInstallPlan との同値は runtime-manifest.test.sh が確かめる。
 
 RUNTIME_MANIFEST_RC=0
 node "$RUNTIME_MANIFEST_JS" "$PECOTV_PLUGIN_ROOT" \
     > "$TMP/runtime-manifest.json" 2> "$TMP/runtime-manifest.err" || RUNTIME_MANIFEST_RC=$?
-assert_eq "直接起動が exit 0" "0" "$RUNTIME_MANIFEST_RC"
+bt_eq "runtime-manifest.mjs の直接起動が exit 0" "0" "$RUNTIME_MANIFEST_RC"
 
 runtime_manifest_field() {
     node -e '
@@ -1115,43 +1017,41 @@ else process.stdout.write(deps[query] === undefined ? "__MISSING__" : String(dep
 ' "$TMP/runtime-manifest.json" "$1" 2> /dev/null || echo "__INVALID_JSON__"
 }
 
-assert_eq "出力が有効な JSON で name は pecotv-runtime" "pecotv-runtime" "$(runtime_manifest_field name)"
+bt_eq "出力が有効な JSON で name は pecotv-runtime" "pecotv-runtime" "$(runtime_manifest_field name)"
 
 CORE_PIN="$(node -e 'const fs=require("node:fs");process.stdout.write(String(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).dependencies["@slidev/cli"]))' \
     "$PECOTV_PLUGIN_ROOT/assets/slidev/runtime/package.json")"
-assert_eq "中核パッケージは runtime manifest の @slidev/cli の版で固定する" "$CORE_PIN" "$(runtime_manifest_field @slidev/cli)"
-assert_eq "@slidev/client も同じ pin で固定する" "$CORE_PIN" "$(runtime_manifest_field @slidev/client)"
-assert_eq "@slidev/parser を明示的に含む" "$CORE_PIN" "$(runtime_manifest_field @slidev/parser)"
-assert_ne "dom-to-pptx を含む" "__MISSING__" "$(runtime_manifest_field dom-to-pptx)"
-assert_eq "workspace: 等のローカル参照を含まない" "" "$(runtime_manifest_field workspace)"
-assert_eq "playwright は install 対象外なので含まない" "__MISSING__" "$(runtime_manifest_field playwright)"
+bt_eq "中核パッケージは runtime manifest の @slidev/cli の版で固定する" "$CORE_PIN" "$(runtime_manifest_field @slidev/cli)"
+bt_eq "@slidev/client も同じ pin で固定する" "$CORE_PIN" "$(runtime_manifest_field @slidev/client)"
+bt_eq "@slidev/parser を明示的に含む" "$CORE_PIN" "$(runtime_manifest_field @slidev/parser)"
+bt_ne "dom-to-pptx を含む" "__MISSING__" "$(runtime_manifest_field dom-to-pptx)"
+bt_eq "workspace: 等のローカル参照を含まない" "" "$(runtime_manifest_field workspace)"
+bt_eq "playwright は install 対象外なので含まない" "__MISSING__" "$(runtime_manifest_field playwright)"
 
 RUNTIME_OVERRIDES="$(node -e 'const fs=require("node:fs");process.stdout.write(JSON.stringify(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).overrides))' \
     "$PECOTV_PLUGIN_ROOT/assets/slidev/runtime/package.json")"
-assert_eq "overrides が runtime の manifest の写しになっている" "$RUNTIME_OVERRIDES" "$(runtime_manifest_field overrides)"
+bt_eq "overrides が runtime の manifest の写しになっている" "$RUNTIME_OVERRIDES" "$(runtime_manifest_field overrides)"
 
 # vite は catalog: で参照される。直接起動の出力では catalog の範囲に解決され、catalog: が残らない。
 CATALOG_VITE="$(cd "$REPO_ROOT" && node -e '
 const { parse } = require("yaml")
 const w = parse(require("node:fs").readFileSync("pnpm-workspace.yaml", "utf8"))
 process.stdout.write(String((w.catalog ?? w.catalogs?.default ?? {}).vite))')"
-assert_eq "vite が catalog の範囲に解決される" "$CATALOG_VITE" "$(runtime_manifest_field vite)"
+bt_eq "vite が catalog の範囲に解決される" "$CATALOG_VITE" "$(runtime_manifest_field vite)"
 if grep -qF 'catalog:' "$TMP/runtime-manifest.json"; then
-    fail "直接起動の出力に catalog: が残っている"
+    bt_fail "直接起動の出力に catalog: が残らない" "直接起動の出力に catalog: が残っている"
 else
-    pass "直接起動の出力に catalog: が残らない"
+    bt_pass "直接起動の出力に catalog: が残らない"
 fi
 
 RUNTIME_USAGE_RC=0
 node "$RUNTIME_MANIFEST_JS" > "$TMP/runtime-manifest-usage.out" 2> "$TMP/runtime-manifest-usage.err" \
     || RUNTIME_USAGE_RC=$?
-assert_eq "引数不足で exit 1" "1" "$RUNTIME_USAGE_RC"
-assert_contains "引数不足で usage を出す" "usage: runtime-manifest.mjs" "$TMP/runtime-manifest-usage.err"
+bt_eq "runtime-manifest.mjs は引数不足で exit 1" "1" "$RUNTIME_USAGE_RC"
+bt_contains "runtime-manifest.mjs は引数不足で usage を出す" "usage: runtime-manifest.mjs" "$(cat "$TMP/runtime-manifest-usage.err")"
 
 # --- 25. audit-summary.mjs の単体 ---
-# via の再帰・循環・例外適用は 2 ツリーの判定を決める中核だが、モックレジストリ経由の
-# ケースでは実データに現れる形しか通らない。合成入力で境界を直接固定する。
-# ネットワーク不要。
+# モック経由では実データに出る形しか通らないので、via の再帰・循環・例外適用の境界を合成入力で固定する。
 
 write_audit_fixture() {
     # node へ渡す JS は quote 付きの heredoc で渡し、${...} を展開させない。
@@ -1221,17 +1121,17 @@ summary_field() {
         --out="$TMP/unit-summary.json" | sed -n "$(($3 + 1))p"
 }
 
-assert_eq "via の文字列要素をたどって high が伝播する" "2" "$(summary_field "$TMP/unit-chain.json" "$EXC_EMPTY" 4)"
-assert_eq "伝播した分も blocking に数える" "2" "$(summary_field "$TMP/unit-chain.json" "$EXC_EMPTY" 9)"
-assert_eq "例外で葉の advisory が消えると伝播先も消える" "0" "$(summary_field "$TMP/unit-chain.json" "$TMP/exceptions-leaf.json" 4)"
-assert_eq "例外で消えた分は例外件数に出る" "1" "$(summary_field "$TMP/unit-chain.json" "$TMP/exceptions-leaf.json" 8)"
-assert_eq "総パッケージ数は metadata から取る" "42" "$(summary_field "$TMP/unit-chain.json" "$EXC_EMPTY" 2)"
-assert_eq "循環しても止まって high を数える" "2" "$(summary_field "$TMP/unit-cycle.json" "$EXC_EMPTY" 4)"
-assert_eq "参照先が報告に無ければ当該パッケージの severity へ倒す" "1" \
+bt_eq "via の文字列要素をたどって high が伝播する" "2" "$(summary_field "$TMP/unit-chain.json" "$EXC_EMPTY" 4)"
+bt_eq "伝播した分も blocking に数える" "2" "$(summary_field "$TMP/unit-chain.json" "$EXC_EMPTY" 9)"
+bt_eq "例外で葉の advisory が消えると伝播先も消える" "0" "$(summary_field "$TMP/unit-chain.json" "$TMP/exceptions-leaf.json" 4)"
+bt_eq "例外で消えた分は例外件数に出る" "1" "$(summary_field "$TMP/unit-chain.json" "$TMP/exceptions-leaf.json" 8)"
+bt_eq "総パッケージ数は metadata から取る" "42" "$(summary_field "$TMP/unit-chain.json" "$EXC_EMPTY" 2)"
+bt_eq "循環しても止まって high を数える" "2" "$(summary_field "$TMP/unit-cycle.json" "$EXC_EMPTY" 4)"
+bt_eq "参照先が報告に無ければ当該パッケージの severity へ倒す" "1" \
     "$(summary_field "$TMP/unit-orphan.json" "$EXC_EMPTY" 5)"
-assert_eq "使われなかった例外は件数に載らない" "0" \
+bt_eq "使われなかった例外は件数に載らない" "0" \
     "$(summary_field "$TMP/unit-chain.json" "$TMP/exceptions-unused.json" 8)"
-assert_eq "使われなかった例外があっても判定は変わらない" "2" \
+bt_eq "使われなかった例外があっても判定は変わらない" "2" \
     "$(summary_field "$TMP/unit-chain.json" "$TMP/exceptions-unused.json" 4)"
 
 # 一度も一致しなかった例外は excepted-out に「例外未適用」として 1 行残す (#1071 F-11)。
@@ -1240,73 +1140,66 @@ UNUSED_EXCEPTED_OUT="$TMP/unused-excepted-out.txt"
 node "$SUMMARY_JS" --audit="$TMP/unit-chain.json" --exceptions="$TMP/exceptions-unused.json" \
     --label=テスト --fingerprint=ffff --out="$TMP/unit-summary-unused.json" \
     --excepted-out="$UNUSED_EXCEPTED_OUT" > /dev/null
-assert_contains "未適用の例外を要約出力に 1 行残す" \
-    "テストの例外未適用: GHSA-zzzz-zzzz-zzzz nothing" "$UNUSED_EXCEPTED_OUT"
+bt_contains "未適用の例外を要約出力に 1 行残す" \
+    "テストの例外未適用: GHSA-zzzz-zzzz-zzzz nothing" "$(cat "$UNUSED_EXCEPTED_OUT")"
 
 # 循環グラフのキー順を逆転しても判定が変わらない (#1071 F-01)。
 # 修正前は Object.keys の列挙順に判定が依存し、high 件数が 2 件から 1 件へ減っていた。
-assert_eq "循環キー順 a,b で high 2 件になる" "2" "$(summary_field "$TMP/unit-cycle.json" "$EXC_EMPTY" 4)"
-assert_eq "循環キー順 b,a でも high 2 件になる（キー順に依存しない）" "2" \
+bt_eq "循環キー順 a,b で high 2 件になる" "2" "$(summary_field "$TMP/unit-cycle.json" "$EXC_EMPTY" 4)"
+bt_eq "循環キー順 b,a でも high 2 件になる（キー順に依存しない）" "2" \
     "$(summary_field "$TMP/unit-cycle-rev.json" "$EXC_EMPTY" 4)"
-assert_eq "循環キー順を逆転しても blocking 件数が変わらない" \
+bt_eq "循環キー順を逆転しても blocking 件数が変わらない" \
     "$(summary_field "$TMP/unit-cycle.json" "$EXC_EMPTY" 9)" "$(summary_field "$TMP/unit-cycle-rev.json" "$EXC_EMPTY" 9)"
 
-# 例外対象の advisory オブジェクトと未解決の文字列参照を併せ持つパッケージ。例外を適用
-# しても fallback で severity が復元され得るが、その理由を blocking の advisory 行として
-# 残す (#1071 F-02 / F-12)。
-assert_eq "例外を適用しても未解決参照の fallback で high が残る" "1" \
+# 例外対象の advisory と未解決の文字列参照を併せ持つパッケージ。
+# fallback で severity が戻る理由を blocking の advisory 行に残す (#1071 F-02 / F-12)。
+bt_eq "例外を適用しても未解決参照の fallback で high が残る" "1" \
     "$(summary_field "$TMP/unit-orphan-mix.json" "$TMP/exceptions-pkg.json" 4)"
-assert_eq "例外適用件数は 1 件と出る" "1" \
+bt_eq "例外適用件数は 1 件と出る" "1" \
     "$(summary_field "$TMP/unit-orphan-mix.json" "$TMP/exceptions-pkg.json" 8)"
 ORPHAN_MIX_BLOCKING="$TMP/orphan-mix-blocking.txt"
 node "$SUMMARY_JS" --audit="$TMP/unit-orphan-mix.json" --exceptions="$TMP/exceptions-pkg.json" \
     --label=テスト --fingerprint=ffff --out="$TMP/unit-summary-orphanmix.json" \
     --blocking-out="$ORPHAN_MIX_BLOCKING" > /dev/null
-assert_contains "fallback の理由を blocking の advisory 行に残す" \
-    "advisory の参照先 ghost が報告に載っていない" "$ORPHAN_MIX_BLOCKING"
+bt_contains "fallback の理由を blocking の advisory 行に残す" \
+    "advisory の参照先 ghost が報告に載っていない" "$(cat "$ORPHAN_MIX_BLOCKING")"
 
 # 同一 advisory id が異なる 2 パッケージへ跨る例外は、重複 throw にならず両方へ独立に
 # 適用される (#1071 F-03)。
-assert_eq "同一 advisory の 2 パッケージ登録で重複エラーにならず両方消える" "0" \
+bt_eq "同一 advisory の 2 パッケージ登録で重複エラーにならず両方消える" "0" \
     "$(summary_field "$TMP/unit-dualpkg.json" "$TMP/exceptions-dualpkg.json" 4)"
-assert_eq "両方適用した例外件数は 2 件" "2" \
+bt_eq "両方適用した例外件数は 2 件" "2" \
     "$(summary_field "$TMP/unit-dualpkg.json" "$TMP/exceptions-dualpkg.json" 8)"
 # id は一致するが登録 package が違う例外は、単一パッケージのケースと同様に、陳腐化として UNAVAILABLE になる。
 # advisory と package の組をキーにしても、通常の不一致検出が働くことを確かめる。
 STALE_STDOUT="$TMP/unit-summary-stale.stdout"
 node "$SUMMARY_JS" --audit="$TMP/unit-chain.json" --exceptions="$TMP/exceptions-stale-other.json" \
     --label=テスト --fingerprint=ffff --out="$TMP/unit-summary-stale.json" > "$STALE_STDOUT"
-assert_eq "登録 package と違う advisory id は UNAVAILABLE" "UNAVAILABLE" "$(sed -n '1p' "$STALE_STDOUT")"
-assert_contains "陳腐化の理由に advisory id を含む" "GHSA-aaaa-aaaa-aaaa" "$STALE_STDOUT"
+bt_eq "登録 package と違う advisory id は UNAVAILABLE" "UNAVAILABLE" "$(sed -n '1p' "$STALE_STDOUT")"
+bt_contains "陳腐化の理由に advisory id を含む" "GHSA-aaaa-aaaa-aaaa" "$(cat "$STALE_STDOUT")"
 
 SUMMARY_USAGE_RC=0
 node "$SUMMARY_JS" > "$TMP/summary-usage.out" 2> "$TMP/summary-usage.err" || SUMMARY_USAGE_RC=$?
-assert_eq "引数不足で exit 1" "1" "$SUMMARY_USAGE_RC"
-assert_contains "引数不足で usage を出す" "usage: audit-summary.mjs" "$TMP/summary-usage.err"
+bt_eq "audit-summary.mjs は引数不足で exit 1" "1" "$SUMMARY_USAGE_RC"
+bt_contains "audit-summary.mjs は引数不足で usage を出す" "usage: audit-summary.mjs" "$(cat "$TMP/summary-usage.err")"
 
 # --- 26. 両ツリーが同時に blocking のケース ---
-# 配布ツリー・永続層のどちらか一方だけの high しか固定していなかった (#1071 F-09)。
-# 両方に high がある応答で、2 つの ERROR ブロックが両方出ることを固定する。
+# 両方に high がある応答で、2 つの ERROR ブロックが両方出ることを固定する (#1071 F-09)。
 
 echo "{$CANARY_ADV,$LODASH_HIGH,$IMAGE_SIZE_HIGH}" > "$TMP/both-high.json"
 start_mock "$TMP/both-high.json" case26
 run_audit case26 --dist="$(new_dist case26)" --runtime-dist="$(new_runtime_dist case26)" \
     --plans-dir="$PLANS_PECOTV" --registry="http://127.0.0.1:$MOCK_PORT" --exceptions="$EXC_EMPTY"
-assert_eq "両ツリー同時 high で exit 1" "1" "$RC"
-assert_contains "配布ツリー側の ERROR ブロックが出る" "配布ツリー: high 以上の脆弱なパッケージ 1 件" "$ERR"
-assert_contains "配布ツリー側のパッケージ名を出す" "lodash (high)" "$ERR"
-assert_contains "永続層側の ERROR ブロックも出る" "永続層: high 以上の脆弱なパッケージ 1 件" "$ERR"
-assert_contains "永続層側のパッケージ名を出す" "image-size (high)" "$ERR"
+bt_eq "両ツリー同時 high で exit 1" "1" "$RC"
+bt_contains "配布ツリー側の ERROR ブロックが出る" "配布ツリー: high 以上の脆弱なパッケージ 1 件" "$(cat "$ERR")"
+bt_contains "配布ツリー側のパッケージ名を出す" "lodash (high)" "$(cat "$ERR")"
+bt_contains "永続層側の ERROR ブロックも出る" "永続層: high 以上の脆弱なパッケージ 1 件" "$(cat "$ERR")"
+bt_contains "永続層側のパッケージ名を出す" "image-size (high)" "$(cat "$ERR")"
 stop_mock
 
 # --- 27. 永続層の依存解決に失敗（npm install rc≠0）を検知する ---
-#
-# --dist と --runtime-dist を省略した実行で、resolve_tree() の npm install が失敗する場合は未検証だった (#1071 F-07)。
-# 実レジストリへ一切アクセスしないよう、npm install だけをスタブに差し替える。
-# install 以外は実 npm に委譲する。特に npm audit も実 npm を使うが、監査先は常に --registry で渡すモックレジストリになる。
-# そのため、実レジストリへはアクセスしない。
-# 配布ツリー側の install が先に実行されるので、呼び出し回数で挙動を分ける。
-# 1 回目（配布）は fixture の shrinkwrap をコピーして成功させ、2 回目（永続層）で失敗させる。
+# npm install だけをスタブにする。1 回目（配布）は成功、2 回目（永続層）は失敗させる (#1071 F-07)。
+# npm audit は実 npm だが、監査先は --registry のモックなので実レジストリへは出ない。
 
 CASE27_DIR="$TMP/case27-npm"
 mkdir -p "$CASE27_DIR"
@@ -1315,9 +1208,7 @@ echo 0 > "$CASE27_COUNT"
 REAL_NPM="$(command -v npm)"
 cat > "$CASE27_DIR/npm" << STUB_EOF
 #!/bin/bash
-# audit-mcp-dist.sh の resolve_tree() が呼ぶ npm install だけを差し替える。
-# それ以外（npm audit 等）は実 npm に委譲する。実 npm も監査先は常に --registry で
-# 渡されたモックレジストリのため、実レジストリへは一切出ない。
+# resolve_tree() の npm install だけを差し替え、ほかは実 npm に委譲する。
 if [ "\$1" != "install" ]; then
     exec "$REAL_NPM" "\$@"
 fi
@@ -1339,23 +1230,21 @@ CASE27_RC=0
 PATH="$CASE27_DIR:$PATH" bash "$AUDIT" --plans-dir="$PLANS_PECOTV" \
     --registry="http://127.0.0.1:$MOCK_PORT" --exceptions="$EXC_EMPTY" \
     > "$CASE27_OUT" 2> "$CASE27_ERR" || CASE27_RC=$?
-assert_eq "永続層の依存解決失敗で exit 1" "1" "$CASE27_RC"
-assert_contains "永続層で止まったことを理由に出す" \
-    "監査未実施のため中止: 永続層: 依存解決に失敗しました" "$CASE27_ERR"
-assert_contains "配布ツリー側は install が成功し監査まで進む" "配布ツリーの依存を監査" "$CASE27_OUT"
-assert_eq "npm install はちょうど 2 回呼ばれる（配布 成功→永続層 失敗）" "2" "$(cat "$CASE27_COUNT")"
+bt_eq "永続層の依存解決失敗で exit 1" "1" "$CASE27_RC"
+bt_contains "永続層で止まったことを理由に出す" \
+    "監査未実施のため中止: 永続層: 依存解決に失敗しました" "$(cat "$CASE27_ERR")"
+bt_contains "配布ツリー側は install が成功し監査まで進む" "配布ツリーの依存を監査" "$(cat "$CASE27_OUT")"
+bt_eq "npm install はちょうど 2 回呼ばれる（配布 成功→永続層 失敗）" "2" "$(cat "$CASE27_COUNT")"
 if [ -f "$PECOTV_AUDIT_RECORD" ]; then
-    fail "永続層の依存解決失敗で中止したのに監査記録が残っている"
+    bt_fail "永続層の依存解決失敗で中止したとき監査記録を残さない" "永続層の依存解決失敗で中止したのに監査記録が残っている"
 else
-    pass "永続層の依存解決失敗で中止したとき監査記録を残さない"
+    bt_pass "永続層の依存解決失敗で中止したとき監査記録を残さない"
 fi
 stop_mock
 
 # --- 29. release group の解決結果が空、または空要素を含むなら監査を始めずに止める ---
-#
-# 空の group 名は grep -qxF "" が空行に一致し、宣言なしの plan を宣言ありと誤判定させる。
-# release-groups.mjs だけを偽の node で差し替える。偽の node は作る時点で実 node のパスと出力を埋め込み、
-# テストの外の環境変数は読まない。release-groups.mjs 以外の呼び出しは実 node へ exec する。
+# 空の group 名は誤判定を招く。grep -qxF "" が空行に一致し、宣言なしの plan を宣言ありと読む。
+# release-groups.mjs だけを偽の node で差し替え、ほかの呼び出しは実 node へ exec する。
 
 REAL_NODE="$(command -v node)"
 make_fake_node() {
@@ -1389,19 +1278,18 @@ for variant in a b; do
     PATH="$case29_dir:$PATH" bash "$AUDIT" --dist="$(new_dist "case29$variant")" --runtime-dist="$(new_runtime_dist "case29$variant")" \
         --plans-dir="$PLANS_PECOTV" --registry="http://127.0.0.1:$MOCK_PORT" --exceptions="$EXC_EMPTY" \
         > "$CASE29_OUT" 2> "$CASE29_ERR" || CASE29_RC=$?
-    assert_ne "release group が$case29_label で exit 0 にならない" "0" "$CASE29_RC"
-    assert_contains "release group が$case29_label のとき監査未実施として中止する" "監査未実施のため中止: release group" "$CASE29_ERR"
-    assert_eq "release group が$case29_label のときレジストリへ問い合わせない" "0" "$(mock_requests)"
+    bt_ne "release group が$case29_label で exit 0 にならない" "0" "$CASE29_RC"
+    bt_contains "release group が$case29_label のとき監査未実施として中止する" "監査未実施のため中止: release group" "$(cat "$CASE29_ERR")"
+    bt_eq "release group が$case29_label のときレジストリへ問い合わせない" "0" "$(mock_requests)"
     if [ -f "$PECOTV_AUDIT_RECORD" ]; then
-        fail "release group が$case29_label で中止したのに監査記録が残っている"
+        bt_fail "release group が$case29_label で中止したとき監査記録を残さない" "release group が$case29_label で中止したのに監査記録が残っている"
     else
-        pass "release group が$case29_label で中止したとき監査記録を残さない"
+        bt_pass "release group が$case29_label で中止したとき監査記録を残さない"
     fi
     stop_mock
 done
 
 # --- 既定の audit-exceptions.json が、例外リストの形を満たす ---
-#
 # ほかのケースは一時ファイルの例外を渡すので、実在のファイルの書き損じはここでだけ止まる。
 REAL_EXC_RC=0
 REAL_EXC_OUT="$(SUMMARY_JS="$SUMMARY_JS" EXC="$RELEASE_DIR/audit-exceptions.json" node --input-type=module -e '
@@ -1409,19 +1297,19 @@ import { pathToFileURL } from "node:url"
 const { loadExceptions } = await import(pathToFileURL(process.env.SUMMARY_JS).href)
 loadExceptions(process.env.EXC)
 ' 2>&1)" || REAL_EXC_RC=$?
-assert_eq "既定の audit-exceptions.json を loadExceptions が読める ($REAL_EXC_OUT)" "0" "$REAL_EXC_RC"
-
-# --- 28. テストはリポジトリ本体の監査記録に触れない ---
-#
-# 既定パスの記録が、本テストの fixture 由来の指紋を持たないことだけを見る。
-# 記録の有無や内容そのものは、同じ checkout で開発者が実行したリリース系コマンドでも変わる。
-REAL_FP="$(real_record_fingerprint)"
-if [ -z "$REAL_FP" ]; then
-    pass "リポジトリ本体の既定パスに指紋付きの記録が無い"
+if [ "$REAL_EXC_RC" -eq 0 ]; then
+    bt_pass "既定の audit-exceptions.json を loadExceptions が読める"
 else
-    assert_ne "リポジトリ本体の既定パスの記録が本テスト由来でない" "$FIXTURE_FP" "$REAL_FP"
+    bt_fail "既定の audit-exceptions.json を loadExceptions が読める" "exit $REAL_EXC_RC: $REAL_EXC_OUT"
 fi
 
-echo
-echo "PASS: $PASS / FAIL: $FAIL"
-[ "$FAIL" -eq 0 ] || exit 1
+# --- 28. テストはリポジトリ本体の監査記録に触れない ---
+# 既定パスの記録が、本テストの fixture 由来の指紋を持たないことだけを見る（記録が無ければ通す）。
+REAL_FP="$(real_record_fingerprint)"
+if [ -z "$REAL_FP" ]; then
+    bt_pass "リポジトリ本体の既定パスの記録が本テスト由来でない"
+else
+    bt_ne "リポジトリ本体の既定パスの記録が本テスト由来でない" "$FIXTURE_FP" "$REAL_FP"
+fi
+
+bt_finish

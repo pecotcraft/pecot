@@ -1,19 +1,6 @@
 #!/bin/bash
-# text-lint-check.sh の単体テスト
-#
-# 検証の軸は 2 つ。
-#
-# 1. 分岐の分類。「確認していない」ことと「違反があった」ことを混同しない。
-#    対象外 (skip)、未実施 (not-checked)、pass、違反 (violation) を、それぞれ固定する。
-#    違反とするのは、exit 1 で出力があるときだけ。
-#    それ以外の非 0 と、exit 1 で出力が空のときは、未実施として扱う。
-# 2. 出力チャネル。model 向けの通知は stdout の JSON、開発者向けの trace は stderr に出す。
-#    stdout は全ての分岐で、空または妥当な JSON にする。
-#
-# bin は実物（libs/text-rules/dist/bin/pecot-text-lint.js）を使う。
-# 偽のミラーの node_modules/.bin/pecot-text-lint から、その実物へリンクする。
-# exit code の分類だけは、同じ位置に置いたスタブで再現する（timeout を実際の sleep で作らない）。
-# 違反文は、text-rules のテストと同じ辞書から組み立てる。辞書は ai-words-ja の最初の名詞。
+# text-lint-check.sh の単体テスト。対象外・未実施・pass・違反の分岐と、stdout の JSON・stderr の trace を確かめる。
+# bin は実物（libs/text-rules/dist）をミラーへリンクし、exit code の分類だけ同じ位置のスタブで再現する。
 
 set -u
 
@@ -21,23 +8,14 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 HOOK="$SCRIPT_DIR/../../lib/post-tool-use/text-lint-check.sh"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 REPO_ROOT="$(cd "$PLUGIN_ROOT/../.." && pwd)"
+# shellcheck source=../../../../../.githooks/scripts/test_report/bash-test.sh
+. "$REPO_ROOT/.githooks/scripts/test_report/bash-test.sh"
 REAL_BIN="$REPO_ROOT/libs/text-rules/dist/bin/pecot-text-lint.js"
 # shellcheck source=mirror-helper.sh
 . "$SCRIPT_DIR/mirror-helper.sh"
 
-# build 済みの bin が無いと全ケースが空振りする。skip にはせず FAIL にする。
+# build 済みの bin が無いと全ケースが空振りする。skip にはせず止める（runner が broken にする）。
 [ -f "$REAL_BIN" ] || { echo "FAIL: bin が無い（先に text-rules を build すること）: $REAL_BIN"; exit 1; }
-
-PASS=0
-FAIL=0
-fail() {
-    echo "FAIL: $1"
-    FAIL=$((FAIL + 1))
-}
-pass() {
-    echo "PASS: $1"
-    PASS=$((PASS + 1))
-}
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
@@ -95,9 +73,9 @@ ctx_of() {
 # 空出力の skip 系ケースの判定。$1 = 名前, $2 = stderr に含めるべき文字列
 expect_silent() {
     if [ $EXIT -eq 0 ] && [ -z "$OUT" ] && printf '%s\n' "$ERR" | grep -qF "$2"; then
-        pass "$1: exit 0 / stdout 空 / stderr に $2"
+        bt_pass "$1: exit 0 / stdout 空 / stderr に $2"
     else
-        fail "$1: exit=$EXIT stdout='$OUT' stderr='$ERR'"
+        bt_fail "$1: exit 0 / stdout 空 / stderr に $2" "exit=$EXIT stdout='$OUT' stderr='$ERR'"
     fi
 }
 
@@ -108,15 +86,15 @@ expect_not_checked() {
     local want
     want=$(printf 'warning: text lint not run: %s\n%s\nThe writing rules were not applied to this file, so no violations were detected.' "$3" "$2" | sed '2,$s/^/  /')
     if [ $EXIT -ne 0 ]; then
-        fail "$1: exit=$EXIT"
+        bt_fail "$1: 未実施通知（理由の行まで一致）" "exit=$EXIT"
     elif [ "$ctx" != "$want" ]; then
-        fail "$1: 通知が期待と違う
+        bt_fail "$1: 未実施通知（理由の行まで一致）" "通知が期待と違う
 want: $want
 got:  $ctx"
     elif ! printf '%s\n' "$ERR" | grep -q "\[text-lint-check\] not-checked"; then
-        fail "$1: stderr に not-checked trace が無い stderr='$ERR'"
+        bt_fail "$1: 未実施通知（理由の行まで一致）" "stderr に not-checked trace が無い stderr='$ERR'"
     else
-        pass "$1: 未実施通知（理由の行まで一致）"
+        bt_pass "$1: 未実施通知（理由の行まで一致）"
     fi
 }
 
@@ -131,17 +109,18 @@ CTX=$(ctx_of "$OUT")
 FIRST=$(printf '%s\n' "$CTX" | head -n 1)
 LAST=$(printf '%s\n' "$CTX" | tail -n 1)
 if [ "$FIRST" != "warning: text lint violations: $MD" ]; then
-    fail ".md の違反: 先頭行が違う first='$FIRST' stdout='$OUT'"
+    bt_fail ".md の違反: marker / 3 行目の no-ai-words / 結びの一文 / trace" "先頭行が違う first='$FIRST' stdout='$OUT'"
 elif ! printf '%s\n' "$CTX" | grep -q "^  $MD:3:1 no-ai-words "; then
-    fail ".md の違反: bin の出力の行（3 行目・規則名）が無い ctx='$CTX'"
+    bt_fail ".md の違反: marker / 3 行目の no-ai-words / 結びの一文 / trace" "bin の出力の行（3 行目・規則名）が無い ctx='$CTX'"
 elif [ "$LAST" != "  The text above does not satisfy the writing rules. The rules stay enabled." ]; then
-    fail ".md の違反: 結びの一文が違う last='$LAST'"
+    bt_fail ".md の違反: marker / 3 行目の no-ai-words / 結びの一文 / trace" "結びの一文が違う last='$LAST'"
 elif ! printf '%s\n' "$ERR" | grep -q "\[text-lint-check\] violation"; then
-    fail ".md の違反: stderr に violation trace が無い stderr='$ERR'"
+    bt_fail ".md の違反: marker / 3 行目の no-ai-words / 結びの一文 / trace" \
+        "stderr に violation trace が無い stderr='$ERR'"
 elif ! printf '%s\n' "$ERR" | grep -q "node_modules/.bin/pecot-text-lint"; then
-    fail ".md の違反: stderr に使った bin のパスが無い stderr='$ERR'"
+    bt_fail ".md の違反: marker / 3 行目の no-ai-words / 結びの一文 / trace" "stderr に使った bin のパスが無い stderr='$ERR'"
 else
-    pass ".md の違反: marker / 3 行目の no-ai-words / 結びの一文 / trace"
+    bt_pass ".md の違反: marker / 3 行目の no-ai-words / 結びの一文 / trace"
 fi
 
 # --- ケース2: 違反の無い .md → 無出力 / pass trace ---
@@ -153,9 +132,9 @@ mkdir -p "$TMP/outside/pages"
 write_md "$TMP/outside/pages/x.md" "$VIOLATION_LINE"
 MIRROR_TEXT_LINT_BIN="$REAL_BIN" run_hook "outside-pages" "$TMP/outside/pages/x.md"
 if printf '%s\n' "$(ctx_of "$OUT")" | head -n 1 | grep -q "^warning: text lint violations: $TMP/outside/pages/x.md\$"; then
-    pass "talk-dir の外の pages/x.md の違反: 検出する"
+    bt_pass "talk-dir の外の pages/x.md の違反: 検出する"
 else
-    fail "talk-dir の外の pages/x.md の違反: stdout='$OUT' stderr='$ERR'"
+    bt_fail "talk-dir の外の pages/x.md の違反: 検出する" "stdout='$OUT' stderr='$ERR'"
 fi
 
 # --- ケース4: talk-dir の README.md の違反（lint 対象パスでないので対象） ---
@@ -165,9 +144,9 @@ touch "$DECK/slides.md"
 write_md "$DECK/README.md" "$VIOLATION_LINE"
 MIRROR_TEXT_LINT_BIN="$REAL_BIN" run_hook "deck-readme" "$DECK/README.md"
 if printf '%s\n' "$(ctx_of "$OUT")" | head -n 1 | grep -q "^warning: text lint violations: $DECK/README.md\$"; then
-    pass "talk-dir の README.md の違反: 検出する"
+    bt_pass "talk-dir の README.md の違反: 検出する"
 else
-    fail "talk-dir の README.md の違反: stdout='$OUT' stderr='$ERR'"
+    bt_fail "talk-dir の README.md の違反: 検出する" "stdout='$OUT' stderr='$ERR'"
 fi
 
 # --- ケース5: talk-dir の pages/*.md と slides.md → 無出力（eslint-check の担当） ---
@@ -196,11 +175,11 @@ for CASE in "$TS_FILE:1:22" "$VUE_FILE:2:6" "$SETUP_FILE:2:15"; do
     MIRROR_TEXT_LINT_BIN="$REAL_BIN" run_hook "string-violation" "$CASE_FILE"
     CTX=$(ctx_of "$OUT")
     if [ "$(printf '%s\n' "$CTX" | head -n 1)" != "warning: text lint violations: $CASE_FILE" ]; then
-        fail "${CASE_FILE##*/} の文字列の違反: 先頭行が違う stdout='$OUT'"
+        bt_fail "${CASE_FILE##*/} の文字列の違反: ${POSITION} の no-ai-words を返す" "先頭行が違う stdout='$OUT'"
     elif ! printf '%s\n' "$CTX" | grep -q "^  $CASE no-ai-words "; then
-        fail "${CASE_FILE##*/} の文字列の違反: 位置と規則名の行が無い ctx='$CTX'"
+        bt_fail "${CASE_FILE##*/} の文字列の違反: ${POSITION} の no-ai-words を返す" "位置と規則名の行が無い ctx='$CTX'"
     else
-        pass "${CASE_FILE##*/} の文字列の違反: ${POSITION} の no-ai-words を返す"
+        bt_pass "${CASE_FILE##*/} の文字列の違反: ${POSITION} の no-ai-words を返す"
     fi
 done
 
@@ -251,9 +230,9 @@ MIRROR_TEXT_LINT_BIN="$REAL_BIN" run_hook_json "ignored-outside-git" "{\"cwd\":\
 expect_silent "git の外で、入力の cwd の .textlintignore で外したファイル" "[text-lint-check] pass"
 MIRROR_TEXT_LINT_BIN="$REAL_BIN" run_hook_json "not-ignored" "{\"cwd\":\"$REPO/docs\",\"tool_input\":{\"file_path\":\"$REPO/docs/note.md\"}}"
 if [ "$(ctx_of "$OUT" | head -n 1)" = "warning: text lint violations: $REPO/docs/note.md" ]; then
-    pass ".textlintignore に当たらないファイル: 違反を返す"
+    bt_pass ".textlintignore に当たらないファイル: 違反を返す"
 else
-    fail ".textlintignore に当たらないファイル: stdout='$OUT' stderr='$ERR'"
+    bt_fail ".textlintignore に当たらないファイル: 違反を返す" "stdout='$OUT' stderr='$ERR'"
 fi
 
 # --- 違反が多いとき: バイトの上限で切り、残りの件数を最後の行に書く ---
@@ -264,19 +243,17 @@ CTX=$(ctx_of "$OUT")
 SHOWN=$(printf '%s\n' "$CTX" | grep -c "^  $MANY_MD:")
 REST=$(printf '%s\n' "$CTX" | tail -n 1 | sed -nE 's/^ *Truncated at 3000 bytes: ([0-9]+) more violations not shown\.$/\1/p')
 if [ "$(printf '%s' "$CTX" | wc -c)" -le 3600 ] && [ -n "$REST" ] && [ $((SHOWN + REST)) -eq 120 ]; then
-    pass "違反 120 件: 上限に収まり、最後の行の N が残りの件数と合う 表示 $SHOWN 残り $REST"
+    bt_pass "違反 120 件: 上限に収まり、最後の行の N が残りの件数と合う"
 else
     LAST=$(printf '%s\n' "$CTX" | tail -n 1)
-    fail "違反 120 件: shown=$SHOWN rest='$REST' last='$LAST'"
+    bt_fail "違反 120 件: 上限に収まり、最後の行の N が残りの件数と合う" "shown=$SHOWN rest='$REST' last='$LAST'"
 fi
 
 # --- ガードレール: 全ケースで stdout が「空または妥当な JSON」 ---
 if [ -z "$BAD_STDOUT" ]; then
-    pass "ガードレール: 全ケースの stdout が空または妥当な JSON"
+    bt_pass "ガードレール: 全ケースの stdout が空または妥当な JSON"
 else
-    fail "ガードレール: stdout が非 JSON のケースがある: $BAD_STDOUT"
+    bt_fail "ガードレール: 全ケースの stdout が空または妥当な JSON" "stdout が非 JSON のケースがある: $BAD_STDOUT"
 fi
 
-echo ""
-echo "===== summary: PASS=$PASS FAIL=$FAIL ====="
-[ $FAIL -eq 0 ]
+bt_finish

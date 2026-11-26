@@ -35,6 +35,9 @@ esac
 
 # shellcheck source=pnpm-lib.sh
 . "$PLUGIN_ROOT/scripts/ci/pnpm-lib.sh"
+# shellcheck source=../../../../.githooks/scripts/test_report/bash-test.sh
+. "$PLUGIN_ROOT/../../.githooks/scripts/test_report/bash-test.sh"
+PECOT_REPORT_RESULTS="$(bt_results_dir "$PLUGIN_ROOT")"
 
 PNPM="$(resolve_pnpm "$PLUGIN_ROOT")"
 if [ -z "$PNPM" ]; then
@@ -86,8 +89,7 @@ if [ "$RUN_RELEASE" = true ]; then
         ( cd "$PLUGIN_ROOT" && $PNPM --filter @pecot/pecot-tools-cli run build )
     fi
 
-    # MCP 単体配布 (#1056) の publish スクリプト検証。scripts/release/tests/ 配下を find | sort で
-    # 再帰列挙して順次実行する。各テストは bash 単体で実行可能・cwd 非依存。
+    # MCP 単体配布 (#1056) の publish スクリプト検証。scripts/release/tests/ 配下を find | sort で列挙し、1 本ずつ最後まで動かす。
     echo "==> pecot-tools release 単体テスト (scripts/release/tests/ 配下の *.test.sh を find | sort で順次実行)"
     mapfile -t release_test_files < <(find "$PLUGIN_ROOT/scripts/release/tests" -name '*.test.sh' | LC_ALL=C sort)
     if [ "${#release_test_files[@]}" -eq 0 ]; then
@@ -97,10 +99,7 @@ if [ "$RUN_RELEASE" = true ]; then
     # publish が共通で使う attach-mcp-tgz.sh と mcp-publish-common.sh のテストも、このレーンで実行する。
     release_test_files+=("$PLUGIN_ROOT/../../.githooks/scripts/tests/attach-mcp-tgz.test.sh")
     release_test_files+=("$PLUGIN_ROOT/../../.githooks/scripts/tests/mcp-publish-common.test.sh")
-    for test_file in "${release_test_files[@]}"; do
-        echo "==> bash $test_file"
-        bash "$test_file"
-    done
+    bt_run_files "${release_test_files[@]}"
 fi
 
 echo "pecot-tools all checks passed"

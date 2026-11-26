@@ -31,6 +31,14 @@
 | `PECOT_REPORT_SITE_URL` | `test-report.yml`（リリース版と、結果の無いレーンを main で流す開発版）と、`ci.yml` のマージキューの run（開発版の URL。渡し方は #821） | 側の URL。渡さなければ `http://localhost:8000/`。末尾に `/` が無ければ足す |
 | `PECOT_REPORT_HISTORY` | `generate.py` | `--history` を渡したときだけ、履歴のパス。Allure の設定（`allurerc.mjs`）が読む。`--history` を渡すのはリリース版だけ |
 
+bash のテストのレーンは、各プラグインの `scripts/ci/run-tests.sh` が `.githooks/scripts/test_report/bash-test.sh` を読み、テストのファイルを `bt_run_files` で 1 本ずつ動かす。
+
+| 名前 | 置く人 | 値 |
+|---|---|---|
+| `PECOT_REPORT_RESULTS` | 各 `run-tests.sh`（シェルの変数。export しない） | nx のレーンから動いたときだけ、`<プラグイン>/test-results/<target>/allure-results`。`bt_run_file` が子のファイルに渡す |
+
+- テストのファイルは確かめを `bt_*` で書き、確かめ 1 つに結果のファイルを 1 つ書く。成功と失敗で同じ題にする
+- 落ちたファイルがあっても、レーンの最後のファイルまで動かす。レーンは落ちたファイルの一覧を出して 0 以外で終わる
 - 終了コード・カバレッジの閾値の判定は、今のまま
 - `pecot-workflow:test-hooks` の 2 回目（`env -i`）の実行は、Allure の結果を残さない
 

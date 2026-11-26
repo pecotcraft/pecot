@@ -1,38 +1,21 @@
 #!/bin/bash
-# plugin-update-notice.sh の単体テスト。
-# - installed プラグインと marketplace clone のバージョンを比較し、古い場合だけ更新導線を stdout へ案内する。
-# - Claude と Copilot の両レイアウトで、パス導出を検証する。
-#   Claude は <plugins ルート>/cache/<mp>/<name>/<ver> + known_marketplaces.json。
-#   Copilot は .copilot/installed-plugins と、自身の marketplace キャッシュ。
-# - 一致・dev パス（非対象レイアウト）・hooks-config 無効化では無出力
-# - session-start.sh 経由の配線でも通知が出る。配線は .pecotv 不在の project dir + フィクスチャ ROOT。
-#
-# フィクスチャはすべて mktemp 一時 dir 配下で自己完結させ、実環境の ~/.claude /
-# ~/.copilot を参照しない。
+# plugin-update-notice.sh の単体テスト。installed が marketplace clone より古いときだけ更新の案内を出すことを、
+# Claude と Copilot の両レイアウトで確かめる。フィクスチャは一時 dir の中で閉じ、実環境の ~/.claude を見ない。
 
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+# shellcheck source=../../../../.githooks/scripts/test_report/bash-test.sh
+. "$REPO_ROOT/.githooks/scripts/test_report/bash-test.sh"
 HOOK="$SCRIPT_DIR/../lib/session-start/plugin-update-notice.sh"
 SESSION_START="$SCRIPT_DIR/../session-start.sh"
-
-PASS=0
-FAIL=0
-fail() {
-    echo "FAIL: $1"
-    FAIL=$((FAIL + 1))
-}
-pass() {
-    echo "PASS: $1"
-    PASS=$((PASS + 1))
-}
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
-# GIT_* 環境変数のリークを避けるため、env -u で除去して隔離する（session-start.test.sh と同形）。
-# pre-push フック下では、GIT_DIR が親リポを指してリークする。
-# 実行環境の CLAUDE_CONFIG_DIR も除去し、設定するケースだけ引数で渡す。
+# 親リポの GIT_* と実行環境の CLAUDE_CONFIG_DIR を外して起動する（session-start.test.sh と同形）。
+# CLAUDE_CONFIG_DIR は、設定するケースだけ引数で渡す。
 _GIT_ISOLATE=(env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
     -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES -u CLAUDE_CONFIG_DIR)
 # フックを GIT_* 隔離下で起動する。VAR=val を引数前置きで渡せる（例: _run CLAUDE_PLUGIN_ROOT=...）。
@@ -43,13 +26,8 @@ _run_session() {
     "${_GIT_ISOLATE[@]}" "$@" bash "$SESSION_START"
 }
 
-# installed / latest のバージョンを持つ Claude レイアウトのフィクスチャを 1 つ作る。
-#
-# 引数: $1=ルート dir, $2=installed version, $3=latest version。
-#
-# 出力: stdout に CLAUDE_PLUGIN_ROOT として使うパスを返す。
-#
-# latest を空文字にすると、clone 側 plugin.json を生成しない（clone 不在の再現）。
+# Claude レイアウトのフィクスチャを作り、CLAUDE_PLUGIN_ROOT として使うパスを出す。
+# 引数: $1=ルート dir, $2=installed, $3=latest（空なら clone 側 plugin.json を作らない）。
 make_claude_fixture() {
     local base="$1" installed="$2" latest="$3"
     local root="$base/.claude/plugins/cache/pecot/pecot-v/$installed"
@@ -90,9 +68,9 @@ if [ $EXIT -eq 0 ] \
     && printf '%s' "$OUT1" | grep -q 'claude plugin update pecot-v@pecot' \
     && printf '%s' "$OUT1" | grep -q 'installed: 0.29.0' \
     && printf '%s' "$OUT1" | grep -q 'pecot-v 0.30.0'; then
-    pass "Claude 形 + installed 古い: claude plugin update と両バージョンが含まれる"
+    bt_pass "Claude 形 + installed 古い: claude plugin update と両バージョンが含まれる"
 else
-    fail "Claude 形 + installed 古い: exit=$EXIT out='$OUT1'"
+    bt_fail "Claude 形 + installed 古い: claude plugin update と両バージョンが含まれる" "exit=$EXIT out='$OUT1'"
 fi
 
 # --- ケース2: バージョン一致 → 無出力 ---
@@ -100,9 +78,9 @@ ROOT2=$(make_claude_fixture "$TMP/c2" "0.30.0" "0.30.0")
 OUT2=$(_run CLAUDE_PLUGIN_ROOT="$ROOT2")
 EXIT=$?
 if [ $EXIT -eq 0 ] && [ -z "$OUT2" ]; then
-    pass "一致: 無出力 exit 0"
+    bt_pass "一致: 無出力 exit 0"
 else
-    fail "一致: exit=$EXIT out='$OUT2'"
+    bt_fail "一致: 無出力 exit 0" "exit=$EXIT out='$OUT2'"
 fi
 
 # --- ケース3: Copilot 形 + installed が古い → copilot plugin update ---
@@ -111,9 +89,9 @@ OUT3=$(_run CLAUDE_PLUGIN_ROOT="$ROOT3")
 EXIT=$?
 if [ $EXIT -eq 0 ] \
     && printf '%s' "$OUT3" | grep -q 'copilot plugin update pecot-v@pecot'; then
-    pass "Copilot 形 + installed 古い: copilot plugin update pecot-v@pecot"
+    bt_pass "Copilot 形 + installed 古い: copilot plugin update pecot-v@pecot"
 else
-    fail "Copilot 形 + installed 古い: exit=$EXIT out='$OUT3'"
+    bt_fail "Copilot 形 + installed 古い: copilot plugin update pecot-v@pecot" "exit=$EXIT out='$OUT3'"
 fi
 
 # --- ケース4: dev パス形（どちらのレイアウトにも合致しない）→ skip 無出力 ---
@@ -123,9 +101,9 @@ printf '{"version":"0.29.0"}\n' > "$DEVROOT/.claude-plugin/plugin.json"
 OUT4=$(_run CLAUDE_PLUGIN_ROOT="$DEVROOT")
 EXIT=$?
 if [ $EXIT -eq 0 ] && [ -z "$OUT4" ]; then
-    pass "dev パス形: 非対象レイアウトは無出力 exit 0"
+    bt_pass "dev パス形: 非対象レイアウトは無出力 exit 0"
 else
-    fail "dev パス形: exit=$EXIT out='$OUT4'"
+    bt_fail "dev パス形: 非対象レイアウトは無出力 exit 0" "exit=$EXIT out='$OUT4'"
 fi
 
 # --- ケース5: hooks-config で無効化 → 無出力 ---
@@ -135,16 +113,14 @@ printf '{"plugin-update-notice": false}\n' > "$HOOKS_CFG5"
 OUT5=$(_run CLAUDE_PLUGIN_ROOT="$ROOT5" PECOTV_HOOKS_CONFIG_PATH="$HOOKS_CFG5")
 EXIT=$?
 if [ $EXIT -eq 0 ] && [ -z "$OUT5" ]; then
-    pass "hooks-config 無効化: installed が古くても無出力 exit 0"
+    bt_pass "hooks-config 無効化: installed が古くても無出力 exit 0"
 else
-    fail "hooks-config 無効化: exit=$EXIT out='$OUT5'"
+    bt_fail "hooks-config 無効化: installed が古くても無出力 exit 0" "exit=$EXIT out='$OUT5'"
 fi
 
 # --- ケース6: 配線 ---
-# .pecotv 不在の project dir とフィクスチャ ROOT で、session-start.sh 全体を起動する。
-# session-start.sh は CLAUDE_PROJECT_DIR を見る。
-# plugin-update-notice は CLAUDE_PLUGIN_ROOT だけを見る。
-# そのため、.pecotv 不在の project でも通知は出る。
+# .pecotv 不在の project で session-start.sh 全体を起動する。
+# plugin-update-notice は CLAUDE_PLUGIN_ROOT だけを見るので、通知は出る。
 ROOT6=$(make_claude_fixture "$TMP/c6" "0.29.0" "0.30.0")
 PROJ6="$TMP/proj6"
 mkdir -p "$PROJ6"
@@ -153,11 +129,11 @@ EXIT=$?
 if [ $EXIT -eq 0 ] \
     && printf '%s' "$OUT6" | grep -q 'claude plugin update pecot-v@pecot' \
     && [ ! -e "$PROJ6/.pecotv" ]; then
-    pass "配線: session-start.sh 経由で更新案内が stdout に出る（.pecotv 不在）"
+    bt_pass "配線: session-start.sh 経由で更新案内が stdout に出る（.pecotv 不在）"
 else
     CREATED=no
     [ -e "$PROJ6/.pecotv" ] && CREATED=yes
-    fail "配線: exit=$EXIT created=$CREATED out='$OUT6'"
+    bt_fail "配線: session-start.sh 経由で更新案内が stdout に出る（.pecotv 不在）" "exit=$EXIT created=$CREATED out='$OUT6'"
 fi
 
 # --- ケース7: installed が新しい（逆方向レース）→ 無出力 ---
@@ -165,18 +141,18 @@ ROOT7=$(make_claude_fixture "$TMP/c7" "0.30.0" "0.20.0")
 OUT7=$(_run CLAUDE_PLUGIN_ROOT="$ROOT7")
 EXIT=$?
 if [ $EXIT -eq 0 ] && [ -z "$OUT7" ]; then
-    pass "installed が新しい（clone 未 pull レース）: 無出力 exit 0"
+    bt_pass "installed が新しい（clone 未 pull レース）: 無出力 exit 0"
 else
-    fail "installed が新しい: exit=$EXIT out='$OUT7'"
+    bt_fail "installed が新しい（clone 未 pull レース）: 無出力 exit 0" "exit=$EXIT out='$OUT7'"
 fi
 
 # --- ケース8: CLAUDE_PLUGIN_ROOT 未設定 → 無出力 ---
 OUT8=$(_run env -u CLAUDE_PLUGIN_ROOT)
 EXIT=$?
 if [ $EXIT -eq 0 ] && [ -z "$OUT8" ]; then
-    pass "CLAUDE_PLUGIN_ROOT 未設定: 無出力 exit 0"
+    bt_pass "CLAUDE_PLUGIN_ROOT 未設定: 無出力 exit 0"
 else
-    fail "CLAUDE_PLUGIN_ROOT 未設定: exit=$EXIT out='$OUT8'"
+    bt_fail "CLAUDE_PLUGIN_ROOT 未設定: 無出力 exit 0" "exit=$EXIT out='$OUT8'"
 fi
 
 # --- ケース9: marketplace clone 不在（Copilot 単独環境の主な構成）→ 無出力 ---
@@ -184,9 +160,9 @@ ROOT9=$(make_claude_fixture "$TMP/c9" "0.29.0" "")
 OUT9=$(_run CLAUDE_PLUGIN_ROOT="$ROOT9")
 EXIT=$?
 if [ $EXIT -eq 0 ] && [ -z "$OUT9" ]; then
-    pass "marketplace clone 不在: 無出力 exit 0"
+    bt_pass "marketplace clone 不在: 無出力 exit 0"
 else
-    fail "marketplace clone 不在: exit=$EXIT out='$OUT9'"
+    bt_fail "marketplace clone 不在: 無出力 exit 0" "exit=$EXIT out='$OUT9'"
 fi
 
 # --- ケース10: installed 側 plugin.json の version 欠落 → 無出力 ---
@@ -195,9 +171,9 @@ printf '{}\n' > "$ROOT10/.claude-plugin/plugin.json"
 OUT10=$(_run CLAUDE_PLUGIN_ROOT="$ROOT10")
 EXIT=$?
 if [ $EXIT -eq 0 ] && [ -z "$OUT10" ]; then
-    pass "installed version 欠落: 無出力 exit 0"
+    bt_pass "installed version 欠落: 無出力 exit 0"
 else
-    fail "installed version 欠落: exit=$EXIT out='$OUT10'"
+    bt_fail "installed version 欠落: 無出力 exit 0" "exit=$EXIT out='$OUT10'"
 fi
 
 # --- ケース11: 末尾スラッシュ付き ROOT → 正常検知 ---
@@ -206,9 +182,9 @@ OUT11=$(_run CLAUDE_PLUGIN_ROOT="$ROOT11/")
 EXIT=$?
 if [ $EXIT -eq 0 ] \
     && printf '%s' "$OUT11" | grep -q 'claude plugin update pecot-v@pecot'; then
-    pass "末尾スラッシュ付き ROOT: 正常検知"
+    bt_pass "末尾スラッシュ付き ROOT: 正常検知"
 else
-    fail "末尾スラッシュ付き ROOT: exit=$EXIT out='$OUT11'"
+    bt_fail "末尾スラッシュ付き ROOT: 正常検知" "exit=$EXIT out='$OUT11'"
 fi
 
 # --- ケース12: marketplace.json に同名項目が無い（source 不一致）→ skip 無出力 ---
@@ -218,9 +194,9 @@ printf '{"plugins":[{"name":"other","source":"./plugins/pecot-visual"}]}\n' \
 OUT12=$(_run CLAUDE_PLUGIN_ROOT="$ROOT12")
 EXIT=$?
 if [ $EXIT -eq 0 ] && [ -z "$OUT12" ]; then
-    pass "source 不一致: 無出力 exit 0"
+    bt_pass "source 不一致: 無出力 exit 0"
 else
-    fail "source 不一致: exit=$EXIT out='$OUT12'"
+    bt_fail "source 不一致: 無出力 exit 0" "exit=$EXIT out='$OUT12'"
 fi
 
 # --- ケース13: source がオブジェクト形式 → skip 無出力 ---
@@ -230,9 +206,9 @@ printf '{"plugins":[{"name":"pecot-v","source":{"source":"github","repo":"a/b"}}
 OUT13=$(_run CLAUDE_PLUGIN_ROOT="$ROOT13")
 EXIT=$?
 if [ $EXIT -eq 0 ] && [ -z "$OUT13" ]; then
-    pass "オブジェクト形式 source: 無出力 exit 0"
+    bt_pass "オブジェクト形式 source: 無出力 exit 0"
 else
-    fail "オブジェクト形式 source: exit=$EXIT out='$OUT13'"
+    bt_fail "オブジェクト形式 source: 無出力 exit 0" "exit=$EXIT out='$OUT13'"
 fi
 
 # 汎用 assert: 出力に更新案内が含まれる / 無出力
@@ -241,22 +217,21 @@ expect_notice() {
     if [ "$exit_code" -eq 0 ] && printf '%s' "$out" | grep -q "$hint" \
         && printf '%s' "$out" | head -n 1 | grep -q '^note: ' \
         && printf '%s' "$out" | grep -q 'pecot-v 0.30.0'; then
-        pass "$label"
+        bt_pass "$label"
     else
-        fail "$label: exit=$exit_code out='$out'"
+        bt_fail "$label" "exit=$exit_code out='$out'"
     fi
 }
 expect_silent() {
     local label="$1" exit_code="$2" out="$3"
     if [ "$exit_code" -eq 0 ] && [ -z "$out" ]; then
-        pass "$label"
+        bt_pass "$label"
     else
-        fail "$label: exit=$exit_code out='$out'"
+        bt_fail "$label" "exit=$exit_code out='$out'"
     fi
 }
 
-# plugins ルート $1 の下に、Claude 形のレイアウトを作る。
-# Claude 形は、cache + 兄弟 marketplaces + known_marketplaces.json。
+# plugins ルート $1 の下に Claude 形（cache + 兄弟 marketplaces + known_marketplaces.json）を作る。
 # CLAUDE_PLUGIN_ROOT 用のパスを出力する。$2=installed。
 make_claude_at() {
     local plugins="$1" installed="$2"
@@ -344,8 +319,4 @@ printf '{"name":"other","plugins":[{"name":"pecot-v","source":"./plugins/pecot-v
 OUT24=$(_run CLAUDE_PLUGIN_ROOT="$ROOT23")
 expect_silent "Copilot キャッシュの名前不一致: 無出力 exit 0" $? "$OUT24"
 
-echo
-echo "==================================="
-echo "Passed: $PASS / Failed: $FAIL"
-echo "==================================="
-[ $FAIL -eq 0 ]
+bt_finish

@@ -1,33 +1,19 @@
 #!/bin/bash
-# pecotv-gitignore-ensure.sh の単体テスト。
-# - --print は書かずに定義を出す（CLAUDE_PROJECT_DIR 不要・cwd に .pecotv/ を作らない）
-# - ファイルが無ければ --print と同じ中身を書く
-# - 追跡していない旧い中身は書き換える
-# - 追跡しているファイルは書き換えない
-# - git 外のディレクトリでも書く
-# - 実 git で、生成物と設定が除外される
+# pecotv-gitignore-ensure.sh の単体テスト。--print・無いときの書き込み・旧い中身の書き換え・
+# 追跡中のファイルを書き換えないこと・git 外の書き込み・実 git の除外を確かめる。
 
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+# shellcheck source=../../../../.githooks/scripts/test_report/bash-test.sh
+. "$REPO_ROOT/.githooks/scripts/test_report/bash-test.sh"
 ENSURE="$SCRIPT_DIR/../lib/core/pecotv-gitignore-ensure.sh"
-
-PASS=0
-FAIL=0
-fail() {
-    echo "FAIL: $1"
-    FAIL=$((FAIL + 1))
-}
-pass() {
-    echo "PASS: $1"
-    PASS=$((PASS + 1))
-}
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
-# pre-push フック下では、GIT_DIR が親リポを指してリークする。
-# このリポは .pecotv/.gitignore を追跡するため、一時ディレクトリも追跡中と判定されてしまう。
+# 親リポの GIT_DIR が漏れると、このリポが追跡する .pecotv/.gitignore を一時ディレクトリも追跡中と判定する。
 # そのため git の操作もスクリプトの起動も、GIT_* を外して行う。
 _GIT_ISOLATE=(env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE \
     -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES)
@@ -47,9 +33,10 @@ OUT1=$(cd "$CWD1" && "${_GIT_ISOLATE[@]}" -u CLAUDE_PROJECT_DIR bash "$ENSURE" -
 EXIT=$?
 if [ $EXIT -eq 0 ] && [ "$OUT1" = "$DEFINITION" ] && printf '%s\n' "$OUT1" | grep -qx '\*' \
     && [ -z "$(ls -A "$CWD1")" ]; then
-    pass "--print: CLAUDE_PROJECT_DIR なしで定義を出し、何も作らない"
+    bt_pass "--print: CLAUDE_PROJECT_DIR なしで定義を出し、何も作らない"
 else
-    fail "--print: exit=$EXIT out='$OUT1' cwd='$(ls -A "$CWD1")'"
+    DETAIL="$(ls -A "$CWD1")"
+    bt_fail "--print: CLAUDE_PROJECT_DIR なしで定義を出し、何も作らない" "exit=$EXIT out='$OUT1' cwd='$DETAIL'"
 fi
 
 # --- ケース2: CLAUDE_PROJECT_DIR 未設定 → 何もせず exit 0 ---
@@ -58,10 +45,10 @@ mkdir -p "$CWD2"
 ( cd "$CWD2" && "${_GIT_ISOLATE[@]}" -u CLAUDE_PROJECT_DIR bash "$ENSURE" )
 EXIT=$?
 if [ $EXIT -eq 0 ] && [ -z "$(ls -A "$CWD2")" ]; then
-    pass "CLAUDE_PROJECT_DIR 未設定: 何もせず exit 0"
+    bt_pass "CLAUDE_PROJECT_DIR 未設定: 何もせず exit 0"
 else
     DETAIL="$(ls -A "$CWD2")"
-    fail "CLAUDE_PROJECT_DIR 未設定: exit=$EXIT cwd='$DETAIL'"
+    bt_fail "CLAUDE_PROJECT_DIR 未設定: 何もせず exit 0" "exit=$EXIT cwd='$DETAIL'"
 fi
 
 # --- ケース3: ファイルが無ければ --print と同じ中身を書く（git 外） ---
@@ -71,10 +58,10 @@ _run_ensure CLAUDE_PROJECT_DIR="$P3" GIT_CEILING_DIRECTORIES="$TMP"
 EXIT=$?
 if [ $EXIT -eq 0 ] && [ "$(cat "$P3/.pecotv/.gitignore")" = "$DEFINITION" ] \
     && [ "$(find "$P3/.pecotv" -mindepth 1 | wc -l)" -eq 1 ]; then
-    pass "ファイル無し・git 外: --print と同じ中身を書く（一時ファイルは残らない）"
+    bt_pass "ファイル無し・git 外: --print と同じ中身を書く（一時ファイルは残らない）"
 else
     DETAIL="$(cat "$P3/.pecotv/.gitignore" 2>/dev/null)"
-    fail "ファイル無し・git 外: exit=$EXIT content='$DETAIL'"
+    bt_fail "ファイル無し・git 外: --print と同じ中身を書く（一時ファイルは残らない）" "exit=$EXIT content='$DETAIL'"
 fi
 
 # --- ケース4: 追跡していない旧い中身は書き換える ---
@@ -85,10 +72,10 @@ printf 'state/\ntmp/\n/.gitignore\n' > "$P4/.pecotv/.gitignore"
 _run_ensure CLAUDE_PROJECT_DIR="$P4"
 EXIT=$?
 if [ $EXIT -eq 0 ] && [ "$(cat "$P4/.pecotv/.gitignore")" = "$DEFINITION" ]; then
-    pass "追跡していない旧い中身: 定義へ書き換える"
+    bt_pass "追跡していない旧い中身: 定義へ書き換える"
 else
     DETAIL="$(cat "$P4/.pecotv/.gitignore")"
-    fail "追跡していない旧い中身: exit=$EXIT content='$DETAIL'"
+    bt_fail "追跡していない旧い中身: 定義へ書き換える" "exit=$EXIT content='$DETAIL'"
 fi
 
 # --- ケース5: 追跡しているファイルは書き換えない ---
@@ -103,10 +90,10 @@ _git -C "$P5" commit -q -m "track"
 _run_ensure CLAUDE_PROJECT_DIR="$P5"
 EXIT=$?
 if [ $EXIT -eq 0 ] && [ "$(cat "$P5/.pecotv/.gitignore")" = "# local" ] && _git -C "$P5" diff --quiet; then
-    pass "追跡しているファイル: 書き換えない"
+    bt_pass "追跡しているファイル: 書き換えない"
 else
     DETAIL="$(cat "$P5/.pecotv/.gitignore")"
-    fail "追跡しているファイル: exit=$EXIT content='$DETAIL'"
+    bt_fail "追跡しているファイル: 書き換えない" "exit=$EXIT content='$DETAIL'"
 fi
 
 # --- ケース6: 実 git で生成物と設定が除外される ---
@@ -119,18 +106,15 @@ for f in work/drawio/x.drawio work/evidence/x.xlsx state/s.json tmp/t README.md 
     touch "$P6/.pecotv/$f"
 done
 STATUS6=$(_git -C "$P6" status --porcelain -uall)
-IGNORED_OK=1
+NOT_IGNORED=""
 for f in work/drawio/x.drawio work/evidence/x.xlsx state/ tmp/ README.md CHANGELOG.md config/hooks-config.json .gitignore; do
-    _git -C "$P6" check-ignore -q -- ".pecotv/$f" || { IGNORED_OK=0; echo "  not ignored: $f"; }
+    _git -C "$P6" check-ignore -q -- ".pecotv/$f" || NOT_IGNORED="$NOT_IGNORED $f"
 done
-if [ -z "$STATUS6" ] && [ $IGNORED_OK -eq 1 ]; then
-    pass "実 git: 生成物・設定・.gitignore 自身が除外され status が空"
+if [ -z "$STATUS6" ] && [ -z "$NOT_IGNORED" ]; then
+    bt_pass "実 git: 生成物・設定・.gitignore 自身が除外され status が空"
 else
-    fail "実 git: status='$STATUS6'"
+    bt_fail "実 git: 生成物・設定・.gitignore 自身が除外され status が空" \
+        "status='$STATUS6' not ignored:${NOT_IGNORED}"
 fi
 
-echo
-echo "==================================="
-echo "Passed: $PASS / Failed: $FAIL"
-echo "==================================="
-[ $FAIL -eq 0 ]
+bt_finish

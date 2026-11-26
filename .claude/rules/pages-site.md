@@ -67,7 +67,7 @@ paths:
 
 ## テストレポート
 
-テストレポートは Allure Report で、`test-report.yml` がレポートのレーンを動かして作る。レポートのレーンは、`.githooks/scripts/test_report/report-lanes.json` の `results` を持つ 15 本。
+テストレポートは Allure Report で、`test-report.yml` がレポートのレーンを動かして作る。レポートのレーンは、`.githooks/scripts/test_report/report-lanes.json` の `results` を持つ 24 本。
 決まりの正は `specs/030-allure-test-report/contracts/test-report.md`、確かめの手順は同じ場所の `quickstart.md`。
 
 | 側 | URL | 作られるとき |
@@ -166,6 +166,7 @@ pnpm exec allure open <作業ディレクトリ>
 | `.githooks/tests/test_report_generate.py` の `test_real_allure_keeps_history_of_a_test_name_with_line_separator` | 3.33.0 は、U+2028・U+2029 を含む履歴を次の回に読めない。`generate.py` がエスケープしている |
 | `generate.py` の `read_history`・`_LINE_BREAK`・`_JS_TRIM` | Allure の履歴の読み方（readline と `trim()`）を写している。`store.py` の確かめも使う |
 | `allurerc.mjs` の `groupBy`・`reportLanguage`・`historyLimit` | 木の段・画面の言葉・履歴の数が変わりうる |
+| `.githooks/scripts/test_report/bash-test.sh` と `.githooks/tests/test_bash_test_lib.py` の `test_real_allure_reads_the_results` | bash のテストの結果のファイルは手で書いている。Allure の読み手が読む欄が変わりうる |
 
 ## 管理者の設定
 

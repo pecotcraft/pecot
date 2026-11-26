@@ -1,24 +1,14 @@
 #!/bin/bash
 # lib/core/merge-hook-outputs.sh の単体テスト（#1229）。
-# SessionStart / PostToolUse では、additionalContext をトップレベルにも出す。
-# Copilot CLI 1.0.103 は、この 2 イベントでトップレベルの additionalContext だけをモデルに渡すためだ。
-# 他のイベントでは出さない。
+# SessionStart / PostToolUse でだけ additionalContext をトップレベルにも出す（Copilot CLI 1.0.103 が読む所）。
 
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+# shellcheck source=../../../../.githooks/scripts/test_report/bash-test.sh
+. "$REPO_ROOT/.githooks/scripts/test_report/bash-test.sh"
 MERGE="$SCRIPT_DIR/../lib/core/merge-hook-outputs.sh"
-
-PASS=0
-FAIL=0
-fail() {
-    echo "FAIL: $1"
-    FAIL=$((FAIL + 1))
-}
-pass() {
-    echo "PASS: $1"
-    PASS=$((PASS + 1))
-}
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
@@ -34,9 +24,9 @@ chmod +x "$SUB_CTX" "$SUB_EMPTY" "$SUB_MSG"
 for EVENT in SessionStart PostToolUse; do
     OUT=$(printf '{"hook_event_name":"%s"}' "$EVENT" | bash "$MERGE" "$SUB_CTX")
     if printf '%s' "$OUT" | jq -e '.additionalContext == "hello" and .hookSpecificOutput.additionalContext == "hello" and .hookSpecificOutput.hookEventName == "'"$EVENT"'"' >/dev/null 2>&1; then
-        pass "$EVENT: additionalContext がトップレベルにも出る"
+        bt_pass "$EVENT: additionalContext がトップレベルにも出る"
     else
-        fail "$EVENT: out='$OUT'"
+        bt_fail "$EVENT: additionalContext がトップレベルにも出る" "out='$OUT'"
     fi
 done
 
@@ -44,24 +34,24 @@ for EVENT in PreToolUse UserPromptSubmit Stop; do
     OUT=$(printf '{"hook_event_name":"%s"}' "$EVENT" | bash "$MERGE" "$SUB_CTX")
     if printf '%s' "$OUT" | jq -e 'has("additionalContext") | not' >/dev/null 2>&1 \
         && printf '%s' "$OUT" | jq -e '.hookSpecificOutput.additionalContext == "hello"' >/dev/null 2>&1; then
-        pass "$EVENT: トップレベルの additionalContext は出さない"
+        bt_pass "$EVENT: トップレベルの additionalContext は出さない"
     else
-        fail "$EVENT: out='$OUT'"
+        bt_fail "$EVENT: トップレベルの additionalContext は出さない" "out='$OUT'"
     fi
 done
 
 OUT=$(printf '{"hook_event_name":"SessionStart"}' | bash "$MERGE" "$SUB_EMPTY")
 if [ -z "$OUT" ]; then
-    pass "空の出力なら何も出さない"
+    bt_pass "空の出力なら何も出さない"
 else
-    fail "空の出力: out='$OUT'"
+    bt_fail "空の出力なら何も出さない" "out='$OUT'"
 fi
 
 OUT=$(printf '{"hook_event_name":"PostToolUse"}' | bash "$MERGE" "$SUB_MSG")
 if printf '%s' "$OUT" | jq -e '(has("additionalContext") | not) and .systemMessage == "only message"' >/dev/null 2>&1; then
-    pass "additionalContext が空ならトップレベルにも出さない（systemMessage のみ）"
+    bt_pass "additionalContext が空ならトップレベルにも出さない（systemMessage のみ）"
 else
-    fail "systemMessage のみ: out='$OUT'"
+    bt_fail "additionalContext が空ならトップレベルにも出さない（systemMessage のみ）" "out='$OUT'"
 fi
 
 SUB_DENY="$TMP/deny.sh"
@@ -69,9 +59,9 @@ printf '#!/bin/bash\ncat >/dev/null\necho %s\n' "'{\"hookSpecificOutput\":{\"per
 chmod +x "$SUB_DENY"
 OUT=$(printf '{"hook_event_name":"PreToolUse"}' | bash "$MERGE" "$SUB_DENY")
 if printf '%s' "$OUT" | jq -e '.hookSpecificOutput.permissionDecision == "deny" and .hookSpecificOutput.permissionDecisionReason == "blocked because" and (.hookSpecificOutput | has("reason") | not)' >/dev/null 2>&1; then
-    pass "deny と理由（permissionDecisionReason）が引き継がれる"
+    bt_pass "deny と理由（permissionDecisionReason）が引き継がれる"
 else
-    fail "deny の理由: out='$OUT'"
+    bt_fail "deny と理由（permissionDecisionReason）が引き継がれる" "out='$OUT'"
 fi
 
 # 合計の上限を超える文脈は、末尾を切って Truncated の行を付ける
@@ -81,13 +71,9 @@ for n in 1 2; do
 done
 OUT=$(printf '{"hook_event_name":"PostToolUse"}' | bash "$MERGE" "$TMP/big1.sh" "$TMP/big2.sh")
 if printf '%s' "$OUT" | jq -e '(.additionalContext | utf8bytelength) <= 8100 and .additionalContext == .hookSpecificOutput.additionalContext and (.additionalContext | split("\n") | last | test("^Truncated at 8000 bytes: [0-9]+ more lines not shown\\.$"))' >/dev/null 2>&1; then
-    pass "合計の上限を超えると切って最後の行が Truncated になる"
+    bt_pass "合計の上限を超えると切って最後の行が Truncated になる"
 else
-    fail "合計超過: out='${OUT:0:300}'"
+    bt_fail "合計の上限を超えると切って最後の行が Truncated になる" "out='${OUT:0:300}'"
 fi
 
-echo
-echo "==================================="
-echo "Passed: $PASS / Failed: $FAIL"
-echo "==================================="
-[ $FAIL -eq 0 ]
+bt_finish

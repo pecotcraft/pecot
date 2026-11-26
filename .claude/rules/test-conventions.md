@@ -2,6 +2,8 @@
 paths:
   - "**/*.test.ts"
   - ".nx/nx-release/tests/*.test.mjs"
+  - "**/*.test.sh"
+  - "plugins/*/cli/tests/bootstrap/*.sh"
 ---
 
 # テストの規約
@@ -167,6 +169,18 @@ passed のテストのうち、名前の付いた step を 1 つも持たない�
 - コマンドの場所は、bash の `command -v` でなく、Node で `PATH` を探して求める
 
 CodeQL は、`-c` を持つ引数の配列の全要素を、シェルが解釈する文字列とみなします。位置引数に置いた安全な値でも、パスなら alert になり、`code_scanning` のルールでマージが止まります。
+
+## bash のテスト
+
+`*.test.sh` と `cli/tests/bootstrap/` のテストは、確かめを `bt_*` の関数で書きます。関数は `.githooks/scripts/test_report/bash-test.sh` にあります。確かめ 1 つが、テストレポートの 1 件になります。
+
+| 決め | 例 |
+|---|---|
+| 成功と失敗で同じ題にする。題は確かめたいこと（成功の形）を書き、失敗の中身は理由に書く | `bt_fail "SKILL.md に手順がある" "見つからない"` |
+| 一時ディレクトリ・PID・時刻・ポートのような、実行ごとに変わる値を題に入れない。理由には入れてよい | — |
+| 1 つのファイルの中で同じ題を使わない。重なると、2 回目が failed になる | — |
+| ファイルの最後に `bt_finish` を置く。届かずに終わると、runner が「最後まで動く」を broken にする | — |
+| 自前の `pass`・`fail`・`check`・`assert_*` を作らない | — |
 
 ## 従う考え方
 

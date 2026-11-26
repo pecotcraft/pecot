@@ -69,6 +69,7 @@
     "test-release": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{projectRoot}/scripts/release/**/*",
         "{workspaceRoot}/LICENSE",
         "{workspaceRoot}/.githooks/lib/mcp-publish-common.sh",
@@ -81,11 +82,12 @@
       ],
       "dependsOn": ["install", "build-cli"],
       "//command-reason": "PECOT_RELEASE_TEST_NPM_CACHE は絶対パスで渡すため、cwd からの $PWD で組む (#1225)。",
+      "outputs": ["{projectRoot}/test-results/test-release/allure-results"],
       "metadata": {
         "description": "MCP 単体配布の publish スクリプトの確認。cache: true (#1225)。publish のテストは npm の依存解決で外部レジストリの状態を読み、その状態は入力ハッシュに表せない。それでもキャッシュするのは、cli/src の 1 行修正のたびに本レーンを実行しないため。レジストリ側の変化は、リリース時の dry-run と監査で拾う。依存解決の npm キャッシュは PECOT_RELEASE_TEST_NPM_CACHE で永続化する。掃除は .pecot/tmp/release-npm-cache/pecot-tools を消す。本レーンの publish は --skip-build で共有の cli/dist を複製するだけなので、test-cli と並行して動いても dist を奪い合わない (#1235)。"
       },
       "options": {
-        "command": "PECOT_TOOLS_SKIP_INSTALL=1 PECOT_RELEASE_TEST_NPM_CACHE=\"$PWD/../../.pecot/tmp/release-npm-cache/pecot-tools\" bash scripts/ci/run-tests.sh --scope=release",
+        "command": "rm -rf test-results/test-release/allure-results && PECOT_TOOLS_SKIP_INSTALL=1 PECOT_RELEASE_TEST_NPM_CACHE=\"$PWD/../../.pecot/tmp/release-npm-cache/pecot-tools\" bash scripts/ci/run-tests.sh --scope=release",
         "cwd": "plugins/pecot-tools"
       }
     },

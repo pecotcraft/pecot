@@ -1,35 +1,15 @@
 #!/bin/bash
 # hooks と bin が返す固定の文言が英語であることを確かめる（spec 021 FR-014 / SC-007）。
-# 範囲は hooks/**/*.sh・hooks/**/*.mjs・hooks/hooks.json・com.github.copilot/hooks/hooks.json。
-# bin/pecotv・bin/_lib.sh も調べる。
-# hooks/tests/ は外す。
-#
-# 調べる文字は U+3000-U+30FF・U+3400-U+9FFF・U+F900-U+FAFF・U+FF00-U+FFEF。
-# コメントは対象外にする。
-#   .sh  : 先頭の空白を除いて `#` で始まる行。ただし heredoc の中と、複数行にまたがる引用符の中の行は
-#          コメントとみなさない（その行は出力の本文になりうるため）
-#   .mjs : `//`・`/*`・`*` で始まる行
-#   .json: 全行を調べる
-#
-# grep の終了コードは、0 を「日本語あり」（fail）、1 を合格、2 以上をエラー（fail）に分ける。
-# エラーは合格にせず、必ず失敗にする。
+# コメント行は除く。ただし .sh の heredoc と複数行の引用符の中は出力の本文になりうるので調べる。
 
 set -u
 export LC_ALL=C.UTF-8
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-
-PASS=0
-FAIL=0
-fail() {
-    echo "FAIL: $1"
-    FAIL=$((FAIL + 1))
-}
-pass() {
-    echo "PASS: $1"
-    PASS=$((PASS + 1))
-}
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+# shellcheck source=../../../../.githooks/scripts/test_report/bash-test.sh
+. "$REPO_ROOT/.githooks/scripts/test_report/bash-test.sh"
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
@@ -107,34 +87,41 @@ find hooks -path hooks/tests -prune -o -type f -name '*.mjs' -print | LC_ALL=C s
 printf '%s\n' hooks/hooks.json com.github.copilot/hooks/hooks.json >"$FILES_JSON"
 
 for f in "$FILES_SH" "$FILES_MJS" "$FILES_JSON"; do
-    if [ ! -s "$f" ]; then
-        fail "調べるファイルの一覧が空: ${f##*/}"
+    if [ -s "$f" ]; then
+        bt_pass "調べるファイルの一覧が空でない: ${f##*/}"
+    else
+        bt_fail "調べるファイルの一覧が空でない: ${f##*/}" "一覧が空"
     fi
 done
 for f in hooks/hooks.json com.github.copilot/hooks/hooks.json bin/pecotv bin/_lib.sh; do
-    [ -f "$f" ] || fail "範囲のファイルが無い: $f"
+    if [ -f "$f" ]; then
+        bt_pass "範囲のファイルがある: $f"
+    else
+        bt_fail "範囲のファイルがある: $f" "ファイルが無い"
+    fi
 done
 
 CANDIDATES="$TMP/candidates.txt"
 : >"$CANDIDATES"
-ERR=0
+# 候補を作れなかったときは、日本語の有無を判定できないので落とす。
+ERRS=""
 
 if [ -s "$FILES_SH" ]; then
     # shellcheck disable=SC2046
     awk "$SH_AWK" $(cat "$FILES_SH") >>"$CANDIDATES"
     rc=$?
-    [ "$rc" -eq 0 ] || { fail "awk（.sh）がエラー: rc=$rc"; ERR=1; }
+    [ "$rc" -eq 0 ] || ERRS="${ERRS}awk（.sh）がエラー: rc=$rc; "
 fi
 if [ -s "$FILES_MJS" ]; then
     # shellcheck disable=SC2046
     awk "$MJS_AWK" $(cat "$FILES_MJS") >>"$CANDIDATES"
     rc=$?
-    [ "$rc" -eq 0 ] || { fail "awk（.mjs）がエラー: rc=$rc"; ERR=1; }
+    [ "$rc" -eq 0 ] || ERRS="${ERRS}awk（.mjs）がエラー: rc=$rc; "
 fi
 # shellcheck disable=SC2046
 awk '{ print FILENAME ":" FNR ":" $0 }' $(cat "$FILES_JSON") >>"$CANDIDATES"
 rc=$?
-[ "$rc" -eq 0 ] || { fail "awk（.json）がエラー: rc=$rc"; ERR=1; }
+[ "$rc" -eq 0 ] || ERRS="${ERRS}awk（.json）がエラー: rc=$rc; "
 
 HITS="$TMP/hits.txt"
 grep -P "$JA_RE" "$CANDIDATES" >"$HITS" 2>"$TMP/grep.err"
@@ -142,8 +129,11 @@ rc=$?
 
 if [ "$rc" -ge 2 ]; then
     GREP_ERR=$(cat "$TMP/grep.err")
-    fail "grep がエラー: rc=${rc}: ${GREP_ERR}"
-elif [ "$ERR" -eq 0 ]; then
+    ERRS="${ERRS}grep がエラー: rc=${rc}: ${GREP_ERR}; "
+fi
+if [ -n "$ERRS" ]; then
+    bt_fail "hooks と bin の非コメント行に日本語が無い" "$ERRS"
+else
     # 例外の行を、ファイルと行の内容で名指しして外す
     FILTERED="$TMP/filtered.txt"
     : >"$FILTERED"
@@ -159,13 +149,12 @@ elif [ "$ERR" -eq 0 ]; then
 
     if [ -s "$FILTERED" ]; then
         HIT_COUNT=$(wc -l <"$FILTERED")
-        fail "hooks と bin の非コメント行に日本語が残っている (${HIT_COUNT} 行)"
         # path:line: text の形で並べる
-        sed -E 's/^([^:]*):([0-9]+):/    \1:\2: /' "$FILTERED"
+        bt_fail "hooks と bin の非コメント行に日本語が無い" \
+            "日本語が残っている (${HIT_COUNT} 行)"$'\n'"$(sed -E 's/^([^:]*):([0-9]+):/    \1:\2: /' "$FILTERED")"
     else
-        pass "hooks と bin の非コメント行に日本語が無い"
+        bt_pass "hooks と bin の非コメント行に日本語が無い"
     fi
 fi
 
-echo "RESULT: PASS=$PASS FAIL=$FAIL"
-[ "$FAIL" -eq 0 ]
+bt_finish

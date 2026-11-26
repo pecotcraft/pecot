@@ -1,34 +1,13 @@
 #!/bin/bash
-# layout-conventions.sh の単体テスト。
-#
-# 検証の軸は 3 つ。
-#
-# 1. 分岐の分類: 提示する分岐としない分岐を固定する。
-#    次の場合は、すべて無音（stdout 空）であること。
-#    対象 MD でない / talk-dir 外 / 参照 YAML の dir 配下 / slides.md。
-#    layout 不明 / layout 値が不正 / 参照 YAML 不在 / 実行環境不足。
-# 2. 提示内容: 出典パス 1 行 + YAML 原文の抜粋だけであること。
-#    地の文・指示文・見出しマーカーが含まれないことを固定する。
-#    抜粋が出典ブロックを欠落なく含むことも固定する。
-#    本 hook は判定装置ではない。
-#    「修正してください」に類する文言が入った時点で、lint との区別が崩れる。
-# 3. 出力チャネル: model 向けは stdout の JSON、開発者診断 trace は stderr。
-#    stdout は全分岐で「空または妥当な JSON」であること。
-#    呼び出し元 merge-hook-outputs.sh が、非 JSON stdout を additionalContext に丸めるためだ。
-#
-# 全ケースで stdout と stderr を分離して捕捉する。
-# 2>&1 で混ぜると、trace 1 行が JSON パースを壊す。
-# その場合、上記 3 のチェック自体が成立しない。
-#
-# 併せて次を固定する:
-# - 出典パスが logical 絶対パスであること。
-#   symlink トポロジ A / B を経由しても、編集時に通ったパスのまま出る。
-# - 本番エントリポイントの post-tool-use-edit.sh と post-tool-use-write.sh を経由する。
-#   その場合、1 つの additionalContext に「抜粋 → ESLint 違反」の順で入ること。
+# layout-conventions.sh の単体テスト。提示する分岐・しない分岐と、提示の中身（出典パス + YAML 原文の抜粋だけ）、
+# stdout が空か妥当な JSON であることを確かめる。stdout と stderr は混ぜずに分けて取る。
 
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
+# shellcheck source=../../../../../.githooks/scripts/test_report/bash-test.sh
+. "$REPO_ROOT/.githooks/scripts/test_report/bash-test.sh"
 HOOKS_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 HOOK="$HOOKS_DIR/lib/post-tool-use/layout-conventions.sh"
 MERGE="$HOOKS_DIR/lib/core/merge-hook-outputs.sh"
@@ -39,22 +18,9 @@ ASSETS_DIR="$PLUGIN_ROOT/assets/slidev"
 # 参照 yaml は fixture テーマのもの。参照 dir の一覧は、ミラーの stub CLI（mirror-helper.sh）が返す。
 # 初期値は「<talk>/references」だけ。
 REFERENCES_DIR="$PLUGIN_ROOT/cli/tests/fixtures/themes/with-declaration/references"
-# ASSETS_DIR / REFERENCES_DIR 自体の不在は、リポジトリ内では常に異常（移動し損ねた状態）。
-# eslint の解決不能（bootstrap 前）と違い、SKIP にすると全ケースが通知なしで空振りする。
-# そのため FAIL にする。
+# ASSETS_DIR / REFERENCES_DIR が無いのはリポの異常なので、skip にはせず止める（runner が broken にする）。
 [ -d "$ASSETS_DIR" ] || { echo "FAIL: ASSETS_DIR 不在: $ASSETS_DIR"; exit 1; }
 [ -d "$REFERENCES_DIR" ] || { echo "FAIL: REFERENCES_DIR 不在: $REFERENCES_DIR"; exit 1; }
-
-PASS=0
-FAIL=0
-fail() {
-    echo "FAIL: $1"
-    FAIL=$((FAIL + 1))
-}
-pass() {
-    echo "PASS: $1"
-    PASS=$((PASS + 1))
-}
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
@@ -87,16 +53,16 @@ ctx_of() {
 
 # 無音であるべき分岐の共通 assert。stdout が空 + stderr が skip trace。
 # $1 = ラベル, $2 = trace に現れるべき理由の断片
-assert_silent() {
+expect_silent() {
     local label="$1" reason="$2"
     if [ "$EXIT" -ne 0 ]; then
-        fail "$label: exit が 0 でない (exit=$EXIT)"
+        bt_fail "$label: stdout 空 / stderr skip trace" "exit が 0 でない (exit=$EXIT)"
     elif [ -n "$OUT" ]; then
-        fail "$label: stdout が空でない stdout='$OUT'"
+        bt_fail "$label: stdout 空 / stderr skip trace" "stdout が空でない stdout='$OUT'"
     elif ! echo "$ERR" | grep -q "\[layout-conventions\] skip: $reason"; then
-        fail "$label: 期待する skip trace ('$reason') が無い stderr='$ERR'"
+        bt_fail "$label: stdout 空 / stderr skip trace" "期待する skip trace ('$reason') が無い stderr='$ERR'"
     else
-        pass "$label: stdout 空 / stderr skip trace"
+        bt_pass "$label: stdout 空 / stderr skip trace"
     fi
 }
 
@@ -112,25 +78,18 @@ count_block_lines() {
 }
 
 # 提示本文が「出典パス 1 行 + YAML 原文の抜粋」だけであることを確かめる。
-# 地の文の禁止は、語の denylist では確かめられない。
-# anti_patterns の原文に「確認」等が実在するため、denylist は原文そのものを弾いてしまう。
-# 代わりに、次の 4 点を確かめる。
-#   - 1 行目が出典 YAML の logical 絶対パス
-#   - 行の形が 出典パス / 抜粋キー行 / 字下げ継続行 / 空行 のいずれか
-#   - 2 行目以降の非空行がすべて出典 YAML に原文のまま存在する
-#   - 抜粋した各ブロックの行数が出典 YAML の当該ブロックと一致する（途中欠落の検知）
-# この 4 点で、hook が行を足していないことと、落としていないことを示す。
+# 語の denylist は原文も弾く。行の形・原文との一致・ブロックの行数で、足した行と落とした行が無いことを見る。
 # $1 = ラベル, $2 = additionalContext, $3 = 出典 YAML の期待パス
-assert_excerpt() {
+expect_excerpt() {
     local label="$1" ctx="$2" src="$3"
     local bad stray="" line src_text key n_ctx n_src
     if [ "$(printf '%s\n' "$ctx" | head -n 1)" != "$src:" ]; then
         MSG_DETAIL_1="$(printf '%s\n' "$ctx" | head -n 1)"
-        fail "$label: 1 行目が出典 YAML の絶対パスでない（期待 '$src:'）実際='$MSG_DETAIL_1'"
+        bt_fail "$label: 出典パス + YAML 原文の抜粋のみ（過不足なし）" "1 行目が出典 YAML の絶対パスでない（期待 '$src:'）実際='$MSG_DETAIL_1'"
         return
     fi
     if [ ! -f "$src" ]; then
-        fail "$label: 出典 YAML が存在しない ($src)"
+        bt_fail "$label: 出典パス + YAML 原文の抜粋のみ（過不足なし）" "出典 YAML が存在しない ($src)"
         return
     fi
     src_text=$(cat "$src")
@@ -144,15 +103,15 @@ assert_excerpt() {
 
     if [ -n "$bad" ]; then
         MSG_DETAIL_2="$(echo "$bad" | tr '\n' ' ')"
-        fail "$label: 抜粋以外の形の行がある（地の文混入の疑い）: $MSG_DETAIL_2"
+        bt_fail "$label: 出典パス + YAML 原文の抜粋のみ（過不足なし）" "抜粋以外の形の行がある（地の文混入の疑い）: $MSG_DETAIL_2"
         return
     fi
     if [ -n "$stray" ]; then
-        fail "$label: 出典 YAML に無い行がある（hook が文字列を足した疑い）: $stray"
+        bt_fail "$label: 出典パス + YAML 原文の抜粋のみ（過不足なし）" "出典 YAML に無い行がある（hook が文字列を足した疑い）: $stray"
         return
     fi
     if printf '%s\n' "$ctx" | grep -qE '^(error|warning|note): '; then
-        fail "$label: 見出しマーカーがある（判定装置の出力形式に寄っている）ctx='$ctx'"
+        bt_fail "$label: 出典パス + YAML 原文の抜粋のみ（過不足なし）" "見出しマーカーがある（判定装置の出力形式に寄っている）ctx='$ctx'"
         return
     fi
     for key in status best_practices anti_patterns; do
@@ -160,11 +119,11 @@ assert_excerpt() {
         [ "$n_ctx" -eq 0 ] && continue
         n_src=$(count_block_lines "$src_text" "$key")
         if [ "$n_ctx" -ne "$n_src" ]; then
-            fail "$label: $key ブロックの行数が出典と不一致（抜粋 $n_ctx / 出典 $n_src）"
+            bt_fail "$label: 出典パス + YAML 原文の抜粋のみ（過不足なし）" "$key ブロックの行数が出典と不一致（抜粋 $n_ctx / 出典 $n_src）"
             return
         fi
     done
-    pass "$label: 出典パス + YAML 原文の抜粋のみ（過不足なし）"
+    bt_pass "$label: 出典パス + YAML 原文の抜粋のみ（過不足なし）"
 }
 
 # talk-dir fixture。参照 YAML は fixture テーマから talk-dir の references/ に複製する。
@@ -183,16 +142,16 @@ write_page() {
 
 # --- ケース1: 対象 MD でない分岐 ---
 run_hook_json "no-file-path" '{}' "$PLUGIN_ROOT"
-assert_silent "file_path 空" "tool_input.file_path is empty"
+expect_silent "file_path 空" "tool_input.file_path is empty"
 
 run_hook "non-md" "$TALK/pages/foo.txt" "$PLUGIN_ROOT"
-assert_silent "非 .md" "not a .md file"
+expect_silent "非 .md" "not a .md file"
 
 NON_TALK="$TMP/non-talk"
 mkdir -p "$NON_TALK"
 echo "# foo" > "$NON_TALK/foo.md"
 run_hook "outside-talk" "$NON_TALK/foo.md" "$PLUGIN_ROOT"
-assert_silent "talk-dir 外" "talk-dir marker"
+expect_silent "talk-dir 外" "talk-dir marker"
 
 # 参照 YAML の dir 配下。case のパターンは `/` も `*` で食うため、pages/ の下に参照 dir があると
 # その中の MD が対象に紛れ込む。参照 dir の一覧（stub CLI が返す）と比べて外す。
@@ -200,48 +159,48 @@ mkdir -p "$TALK/pages/shared-refs"
 echo "# note" > "$TALK/pages/shared-refs/note.md"
 STUB_THEME_REFERENCES="$TALK/references,$TALK/pages/shared-refs" \
     run_hook "references-dir" "$TALK/pages/shared-refs/note.md" "$PLUGIN_ROOT"
-assert_silent "参照 YAML の dir 配下" "under a references YAML dir"
+expect_silent "参照 YAML の dir 配下" "under a references YAML dir"
 
 # slides.md は束ねる側。個別ページの layout 規約は持たない。
 printf -- '---\nlayout: plain\n---\n' > "$TALK/slides.md"
 run_hook "slides-md" "$TALK/slides.md" "$PLUGIN_ROOT"
-assert_silent "slides.md" "not an md file under pages"
+expect_silent "slides.md" "not an md file under pages"
 
 # talk-dir 内だが pages 配下でない MD
 echo "# readme" > "$TALK/README.md"
 run_hook "talk-readme" "$TALK/README.md" "$PLUGIN_ROOT"
-assert_silent "talk-dir 直下の README.md" "not an md file under pages"
+expect_silent "talk-dir 直下の README.md" "not an md file under pages"
 
 # --- ケース2: layout が取れない / 使えない分岐 ---
 run_hook "no-frontmatter" "$(write_page plain.md '# 見出しだけ
 ')" "$PLUGIN_ROOT"
-assert_silent "frontmatter 無し" "frontmatter or layout is missing"
+expect_silent "frontmatter 無し" "frontmatter or layout is missing"
 
 run_hook "no-layout" "$(write_page nolayout.md '---
 title: "layout を書いていない"
 ---
 ')" "$PLUGIN_ROOT"
-assert_silent "layout 未指定" "frontmatter or layout is missing"
+expect_silent "layout 未指定" "frontmatter or layout is missing"
 
 # パストラバーサル。`../` を通すと参照 dir の外の YAML を読み出せる。
 run_hook "traversal-layout" "$(write_page traversal.md '---
 layout: ../../etc/passwd
 ---
 ')" "$PLUGIN_ROOT"
-assert_silent "layout が ../ を含む" "layout value is invalid as a references YAML file name"
+expect_silent "layout が ../ を含む" "layout value is invalid as a references YAML file name"
 
 # `_` 始まりは layout として指定されない内部ファイル（_template / _common 等）。
 run_hook "underscore-layout" "$(write_page underscore.md '---
 layout: _template
 ---
 ')" "$PLUGIN_ROOT"
-assert_silent "layout が _ 始まり" "layout value is invalid as a references YAML file name"
+expect_silent "layout が _ 始まり" "layout value is invalid as a references YAML file name"
 
 run_hook "unknown-layout" "$(write_page unknown.md '---
 layout: no-such-layout
 ---
 ')" "$PLUGIN_ROOT"
-assert_silent "対応する参照 YAML 不在" "no matching references YAML"
+expect_silent "対応する参照 YAML 不在" "no matching references YAML"
 
 # 参照 YAML はあるが読めない場合。不在（綴り違い・テーマ側の欠落）と別分岐であること。
 printf 'layout: [broken\n  - yaml\n' > "$TALK/references/brokenlayout.yaml"
@@ -249,7 +208,7 @@ run_hook "broken-yaml" "$(write_page broken.md '---
 layout: brokenlayout
 ---
 ')" "$PLUGIN_ROOT"
-assert_silent "参照 YAML がパース不能" "references YAML cannot be read"
+expect_silent "参照 YAML がパース不能" "references YAML cannot be read"
 
 # 参照 YAML はあるが抜粋対象のキーが無い場合。
 cat > "$TALK/references/barelayout.yaml" <<'EOF'
@@ -263,7 +222,7 @@ run_hook "no-sections" "$(write_page bare.md '---
 layout: barelayout
 ---
 ')" "$PLUGIN_ROOT"
-assert_silent "抜粋対象が無い参照 YAML" "references YAML has none of status / best_practices / anti_patterns"
+expect_silent "抜粋対象が無い参照 YAML" "references YAML has none of status / best_practices / anti_patterns"
 
 # --- ケース3: 実行環境が不足する分岐（未実施通知を出さないこと） ---
 # 本 hook は判定装置ではないので、提示できなかったことを model に伝えない。
@@ -273,7 +232,7 @@ layout: plain
 ---
 ')
 run_hook "dist-missing" "$STEP1" "$TMP/no-such-plugin"
-assert_silent "_shared/dist 不在" "runtime environment is incomplete"
+expect_silent "_shared/dist 不在" "runtime environment is incomplete"
 
 # node 不在。PATH から node だけを外した最小 bin を組み、hook が必要とする他の
 # コマンドは実体への symlink で残す。
@@ -287,7 +246,7 @@ OUT=$(printf '%s' "{\"tool_input\":{\"file_path\":\"$STEP1\"}}" | \
 EXIT=$?
 ERR=$(cat "$ERRFILE")
 [ -n "$OUT" ] && BAD_STDOUT="${BAD_STDOUT}[no-node] "
-assert_silent "node 不在" "runtime environment is incomplete"
+expect_silent "node 不在" "runtime environment is incomplete"
 
 # 共有ライブラリは、hook の dir の 1 段上の core/ から source される。
 # 逆算不能を確かめたい。
@@ -306,7 +265,7 @@ OUT=$(printf '%s' "{\"tool_input\":{\"file_path\":\"$STEP1\"}}" | \
 EXIT=$?
 ERR=$(cat "$ERRFILE")
 [ -n "$OUT" ] && BAD_STDOUT="${BAD_STDOUT}[detached] "
-assert_silent "plugin root 解決不能" "plugin root cannot be resolved"
+expect_silent "plugin root 解決不能" "plugin root cannot be resolved"
 
 # 共有ライブラリ自体が無い配置。未定義関数のまま実行すると、talk-dir 外と区別できない
 # 無音 skip になるので、専用の trace で落ちること。
@@ -318,46 +277,47 @@ OUT=$(printf '%s' "{\"tool_input\":{\"file_path\":\"$STEP1\"}}" | \
 EXIT=$?
 ERR=$(cat "$ERRFILE")
 [ -n "$OUT" ] && BAD_STDOUT="${BAD_STDOUT}[nolib] "
-assert_silent "共有ライブラリ不在" "shared library cannot be resolved"
+expect_silent "共有ライブラリ不在" "shared library cannot be resolved"
 
 # --- ケース4: 提示分岐 ---
 run_hook "plain" "$STEP1" "$PLUGIN_ROOT"
 CTX=$(ctx_of "$OUT")
 if ! printf '%s\n' "$OUT" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUse"' > /dev/null 2>&1; then
-    fail "plain: hookEventName が PostToolUse でない stdout='$OUT'"
+    bt_fail "plain: 出典パス + anti_patterns 抜粋 + present trace" "hookEventName が PostToolUse でない stdout='$OUT'"
 elif ! echo "$CTX" | grep -q '^anti_patterns:$'; then
-    fail "plain: anti_patterns 行が無い ctx='$CTX'"
+    bt_fail "plain: 出典パス + anti_patterns 抜粋 + present trace" "anti_patterns 行が無い ctx='$CTX'"
 elif ! echo "$CTX" | grep -q '見出しに文章を書く'; then
-    fail "plain: anti_patterns の原文が抜粋されていない ctx='$CTX'"
+    bt_fail "plain: 出典パス + anti_patterns 抜粋 + present trace" "anti_patterns の原文が抜粋されていない ctx='$CTX'"
 elif ! echo "$ERR" | grep -q "\[layout-conventions\] present:"; then
-    fail "plain: stderr trace が present でない stderr='$ERR'"
+    bt_fail "plain: 出典パス + anti_patterns 抜粋 + present trace" "stderr trace が present でない stderr='$ERR'"
 else
-    pass "plain: 出典パス + anti_patterns 抜粋 + present trace"
+    bt_pass "plain: 出典パス + anti_patterns 抜粋 + present trace"
 fi
-assert_excerpt "plain" "$CTX" "$TALK/references/plain.yaml"
+expect_excerpt "plain" "$CTX" "$TALK/references/plain.yaml"
 
 # best_practices も抜粋対象。anti_patterns だけを見ていると落ちる。
 if echo "$CTX" | grep -q '^best_practices:$'; then
-    pass "plain: best_practices ブロックも抜粋される"
+    bt_pass "plain: best_practices ブロックも抜粋される"
 else
-    fail "plain: best_practices ブロックが無い ctx='$CTX'"
+    bt_fail "plain: best_practices ブロックも抜粋される" "best_practices ブロックが無い ctx='$CTX'"
 fi
 
 # ブロックの順序は出典 YAML の出現順（best_practices → anti_patterns）に従う。
 BP_LINE=$(printf '%s\n' "$CTX" | grep -n '^best_practices:$' | head -n 1 | cut -d: -f1)
 AP_LINE=$(printf '%s\n' "$CTX" | grep -n '^anti_patterns:$' | head -n 1 | cut -d: -f1)
 if [ -n "$BP_LINE" ] && [ -n "$AP_LINE" ] && [ "$BP_LINE" -lt "$AP_LINE" ]; then
-    pass "plain: ブロック順が出典 YAML の出現順（best_practices → anti_patterns）"
+    bt_pass "plain: ブロック順が出典 YAML の出現順（best_practices → anti_patterns）"
 else
-    fail "plain: ブロック順が出現順でない (best_practices=$BP_LINE anti_patterns=$AP_LINE)"
+    bt_fail "plain: ブロック順が出典 YAML の出現順（best_practices → anti_patterns）" \
+        "ブロック順が出現順でない (best_practices=$BP_LINE anti_patterns=$AP_LINE)"
 fi
 
 # trace には実体の絶対パスが入る。
 # 実セッションの transcript から、どの配置の hook が動いたかを特定するためだ。
 if echo "$ERR" | grep -qF "(self: $HOOK)"; then
-    pass "trace: 実行された実体の絶対パスを含む"
+    bt_pass "trace: 実行された実体の絶対パスを含む"
 else
-    fail "trace: 実体の絶対パスが無い stderr='$ERR'"
+    bt_fail "trace: 実行された実体の絶対パスを含む" "実体の絶対パスが無い stderr='$ERR'"
 fi
 
 # layout ごとに内容が変わること（YAML を読まずに固定文字列を返していないこと）
@@ -367,13 +327,13 @@ layout: panel
 ')" "$PLUGIN_ROOT"
 RADAR_CTX=$(ctx_of "$OUT")
 if ! echo "$RADAR_CTX" | grep -q '図の枠に収まらない画像を置く'; then
-    fail "panel: 当該 layout の anti_patterns が出ていない ctx='$RADAR_CTX'"
+    bt_fail "panel: layout ごとに内容が切り替わる" "当該 layout の anti_patterns が出ていない ctx='$RADAR_CTX'"
 elif echo "$RADAR_CTX" | grep -q '見出しに文章を書く'; then
-    fail "panel: 別 layout の anti_patterns が含まれている ctx='$RADAR_CTX'"
+    bt_fail "panel: layout ごとに内容が切り替わる" "別 layout の anti_patterns が含まれている ctx='$RADAR_CTX'"
 else
-    pass "panel: layout ごとに内容が切り替わる"
+    bt_pass "panel: layout ごとに内容が切り替わる"
 fi
-assert_excerpt "panel" "$RADAR_CTX" "$TALK/references/panel.yaml"
+expect_excerpt "panel" "$RADAR_CTX" "$TALK/references/panel.yaml"
 
 # deprecated / hidden は status 行を先頭ブロックに含める
 cat > "$TALK/references/legacy.yaml" <<'EOF'
@@ -393,15 +353,16 @@ DEP_CTX=$(ctx_of "$OUT")
 STATUS_LINE=$(printf '%s\n' "$DEP_CTX" | grep -n '^status:' | head -n 1 | cut -d: -f1)
 ANTI_LINE=$(printf '%s\n' "$DEP_CTX" | grep -n '^anti_patterns:$' | head -n 1 | cut -d: -f1)
 if [ -z "$STATUS_LINE" ]; then
-    fail "deprecated layout: status 行が無い ctx='$DEP_CTX'"
+    bt_fail "deprecated layout: status 行を anti_patterns の前に含める" "status 行が無い ctx='$DEP_CTX'"
 elif ! echo "$DEP_CTX" | grep -q "^status: 'deprecated'$"; then
-    fail "deprecated layout: status の原文が抜粋されていない ctx='$DEP_CTX'"
+    bt_fail "deprecated layout: status 行を anti_patterns の前に含める" "status の原文が抜粋されていない ctx='$DEP_CTX'"
 elif [ -z "$ANTI_LINE" ] || [ "$STATUS_LINE" -ge "$ANTI_LINE" ]; then
-    fail "deprecated layout: status が anti_patterns より先頭に無い ctx='$DEP_CTX'"
+    bt_fail "deprecated layout: status 行を anti_patterns の前に含める" \
+        "status が anti_patterns より先頭に無い ctx='$DEP_CTX'"
 else
-    pass "deprecated layout: status 行を anti_patterns の前に含める"
+    bt_pass "deprecated layout: status 行を anti_patterns の前に含める"
 fi
-assert_excerpt "deprecated layout" "$DEP_CTX" "$TALK/references/legacy.yaml"
+expect_excerpt "deprecated layout" "$DEP_CTX" "$TALK/references/legacy.yaml"
 
 # pages/ 直下でないページ。REL_FILE の case は `/` も `*` で食うので対象に入る。
 # 参照 dir は編集ファイルの隣ではなく talk root 直下を見る。
@@ -411,11 +372,11 @@ layout: plain
 ')" "$PLUGIN_ROOT"
 NESTED_CTX=$(ctx_of "$OUT")
 if echo "$ERR" | grep -q "\[layout-conventions\] present:.*pages/sub/step2.md"; then
-    pass "pages/sub 配下: 提示される（trace の相対パスは pages/sub/step2.md）"
+    bt_pass "pages/sub 配下: 提示される（trace の相対パスは pages/sub/step2.md）"
 else
-    fail "pages/sub 配下: present trace に相対パスが出ていない stderr='$ERR'"
+    bt_fail "pages/sub 配下: 提示される（trace の相対パスは pages/sub/step2.md）" "present trace に相対パスが出ていない stderr='$ERR'"
 fi
-assert_excerpt "pages/sub 配下" "$NESTED_CTX" "$TALK/references/plain.yaml"
+expect_excerpt "pages/sub 配下" "$NESTED_CTX" "$TALK/references/plain.yaml"
 
 # --- ケース5: ページ側の表記ゆれに対する頑健性 ---
 # frontmatter の解釈は、lint 側の実装に委ねている。
@@ -424,9 +385,9 @@ CRLF_PAGE="$TALK/pages/crlf.md"
 printf -- '--- \r\nlayout: plain\r\ntitle: "CRLF"\r\n---\r\n' > "$CRLF_PAGE"
 run_hook "crlf-page" "$CRLF_PAGE" "$PLUGIN_ROOT"
 if [ "$(ctx_of "$OUT" | head -n 1)" = "$TALK/references/plain.yaml:" ]; then
-    pass "CRLF ページ + 区切り行の末尾空白: 提示される"
+    bt_pass "CRLF ページ + 区切り行の末尾空白: 提示される"
 else
-    fail "CRLF ページ + 区切り行の末尾空白: 提示されない stdout='$OUT' stderr='$ERR'"
+    bt_fail "CRLF ページ + 区切り行の末尾空白: 提示される" "提示されない stdout='$OUT' stderr='$ERR'"
 fi
 
 run_hook "quoted-layout" "$(write_page quoted.md '---
@@ -434,9 +395,9 @@ layout: "plain"
 ---
 ')" "$PLUGIN_ROOT"
 if [ "$(ctx_of "$OUT" | head -n 1)" = "$TALK/references/plain.yaml:" ]; then
-    pass "クォート付き layout 値: 提示される"
+    bt_pass "クォート付き layout 値: 提示される"
 else
-    fail "クォート付き layout 値: 提示されない stdout='$OUT' stderr='$ERR'"
+    bt_fail "クォート付き layout 値: 提示される" "提示されない stdout='$OUT' stderr='$ERR'"
 fi
 
 # --- ケース6: 巨大な参照 YAML の切り詰め ---
@@ -458,36 +419,34 @@ BIG_SHOWN=$(printf '%s\n' "$BIG_CTX" | grep -c 'アンチパターン')
 BIG_REST=$(printf '%s\n' "$BIG_CTX" | tail -n 1 | sed -nE 's/^Truncated at 3500 bytes: ([0-9]+) more lines not shown\.$/\1/p')
 if ! printf '%s\n' "$OUT" | jq empty 2>/dev/null; then
     MSG_DETAIL_3="$(printf '%s' "$OUT" | head -c 200)"
-    fail "巨大な参照 YAML: stdout が妥当な JSON でない stdout（先頭）='$MSG_DETAIL_3'"
+    bt_fail "巨大な参照 YAML: 3500 バイトに切り詰め + 末尾の行の N が残りの数と合う + stdout は妥当な JSON" \
+        "stdout が妥当な JSON でない stdout（先頭）='$MSG_DETAIL_3'"
 elif [ "$BIG_BYTES" -gt 3600 ]; then
-    fail "巨大な参照 YAML: 3500 バイトに切り詰められていない（$BIG_BYTES バイト）"
+    bt_fail "巨大な参照 YAML: 3500 バイトに切り詰め + 末尾の行の N が残りの数と合う + stdout は妥当な JSON" \
+        "3500 バイトに切り詰められていない（$BIG_BYTES バイト）"
 elif [ -z "$BIG_REST" ] || [ $((BIG_SHOWN + BIG_REST)) -ne 250 ]; then
     BIG_LAST=$(printf '%s\n' "$BIG_CTX" | tail -n 1)
-    fail "巨大な参照 YAML: 末尾の行の N が残りの数と合わない shown=$BIG_SHOWN last='$BIG_LAST'"
+    bt_fail "巨大な参照 YAML: 3500 バイトに切り詰め + 末尾の行の N が残りの数と合う + stdout は妥当な JSON" \
+        "末尾の行の N が残りの数と合わない shown=$BIG_SHOWN last='$BIG_LAST'"
 else
-    pass "巨大な参照 YAML: 3500 バイトに切り詰め + 末尾の行の N が残りの数と合う + stdout は妥当な JSON"
+    bt_pass "巨大な参照 YAML: 3500 バイトに切り詰め + 末尾の行の N が残りの数と合う + stdout は妥当な JSON"
 fi
 
 # --- ケース7: symlink トポロジでも提示される ---
-# 期待は、symlink トポロジでも提示され、出典パスが logical のまま出ること。
-# A = pages/ 自体が talk-dir 外への symlink。
-# B = 祖先 dir が symlink（#836 の本番トリガー: worktree の .pecot/work → base）。
-# 探索を物理パスにすると、A は通知なしの skip になる。
-# 出典パスを物理パスにすると、編集時に通ったパスと食い違う。
-# その場合、model が別プロジェクトの規約と誤認する。
+# A は pages/ 自体が、B は祖先 dir が symlink（#836）。出典パスは編集時に通った logical のパスで出る。
 PAGE_BODY='---
 layout: plain
 ---
 '
-assert_topology() {
+expect_topology() {
     local label="$1" page="$2" expected_src="$3" ctx
     run_hook "topo-$label" "$page" "$PLUGIN_ROOT"
     ctx=$(ctx_of "$OUT")
     if [ -z "$ctx" ]; then
-        fail "トポロジ $label: 提示されない stdout='$OUT' stderr='$ERR'"
+        bt_fail "トポロジ $label: 出典パス + YAML 原文の抜粋のみ（過不足なし）" "提示されない stdout='$OUT' stderr='$ERR'"
         return
     fi
-    assert_excerpt "トポロジ $label" "$ctx" "$expected_src"
+    expect_excerpt "トポロジ $label" "$ctx" "$expected_src"
 }
 
 TOPO="$TMP/topo"
@@ -496,7 +455,7 @@ touch "$TOPO/A/talk/slides.md"
 printf '%s' "$PAGE_BODY" > "$TOPO/A/elsewhere/step.md"
 ln -s "$TOPO/A/elsewhere" "$TOPO/A/talk/pages"
 cp -r "$REFERENCES_DIR" "$TOPO/A/talk/references"
-assert_topology "A (pages 自体が symlink)" \
+expect_topology "A (pages 自体が symlink)" \
     "$TOPO/A/talk/pages/step.md" \
     "$TOPO/A/talk/references/plain.yaml"
 
@@ -505,7 +464,7 @@ touch "$TOPO/B/real/talk/slides.md"
 printf '%s' "$PAGE_BODY" > "$TOPO/B/real/talk/pages/step.md"
 cp -r "$REFERENCES_DIR" "$TOPO/B/real/talk/references"
 ln -s "$TOPO/B/real" "$TOPO/B/link"
-assert_topology "B (祖先 dir が symlink)" \
+expect_topology "B (祖先 dir が symlink)" \
     "$TOPO/B/link/talk/pages/step.md" \
     "$TOPO/B/link/talk/references/plain.yaml"
 
@@ -516,22 +475,17 @@ MERGE_IN="{\"hook_event_name\":\"PostToolUse\",\"tool_input\":{\"file_path\":\"$
 MERGE_OUT=$(printf '%s' "$MERGE_IN" | CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" CLAUDE_PLUGIN_DATA="$(mirror_data_for "$PLUGIN_ROOT")" bash "$MERGE" "$HOOK" 2>"$ERRFILE")
 MERGE_ERR=$(cat "$ERRFILE")
 if [ -n "$MERGE_OUT" ]; then
-    fail "merge 経由 (skip 分岐): stdout が空でない（trace が additionalContext に丸められた疑い）stdout='$MERGE_OUT'"
+    bt_fail "merge 経由 (skip 分岐): stdout が空 / stderr に trace がそのまま出る" \
+        "stdout が空でない（trace が additionalContext に丸められた疑い）stdout='$MERGE_OUT'"
 elif ! echo "$MERGE_ERR" | grep -q "\[layout-conventions\] skip:"; then
-    fail "merge 経由 (skip 分岐): stderr に trace がそのまま出ていない stderr='$MERGE_ERR'"
+    bt_fail "merge 経由 (skip 分岐): stdout が空 / stderr に trace がそのまま出る" \
+        "stderr に trace がそのまま出ていない stderr='$MERGE_ERR'"
 else
-    pass "merge 経由 (skip 分岐): stdout が空 / stderr に trace がそのまま出る"
+    bt_pass "merge 経由 (skip 分岐): stdout が空 / stderr に trace がそのまま出る"
 fi
 
 # --- ケース9: 本番エントリポイント経由の結合順 ---
-# post-tool-use-edit.sh / post-tool-use-write.sh が、merge に引数を渡す。
-# layout-conventions.sh を第 1 引数、eslint-check.sh を第 2 引数とする。
-# このテストはその順序に依存する。
-# テスト自身が引数順を組み立てると、エントリポイント側の並びが入れ替わっても検知できない。
-# 違反は、frontmatter を壊さない種類（text-constraints/max-chars）で作る。
-# no-content-before-frontmatter 系の fixture では layout 自体が取れず、抜粋側が出ない。
-# そのため、結合順のチェックにならない。
-# eslint-check.sh と同じ解決（assets/slidev 基準で eslint/package.json を引く）。
+# 引数順はエントリポイントのものを使う。違反は layout を壊さない max-chars で作る。
 if (cd "$ASSETS_DIR" && node -p "require.resolve('eslint/package.json')") > /dev/null 2>&1; then
     BOTH_PAGE="$TALK/pages/both.md"
     cat > "$BOTH_PAGE" <<'EOF'
@@ -549,19 +503,24 @@ EOF
             grep -nF "$TALK/references/plain.yaml:" | head -n 1 | cut -d: -f1)
         VIOLATION_LINE=$(printf '%s\n' "$ENTRY_CTX" | grep -n 'warning: eslint violations:' | head -n 1 | cut -d: -f1)
         if ! printf '%s\n' "$ENTRY_OUT" | jq empty 2>/dev/null; then
-            fail "$ENTRY 経由: stdout が妥当な JSON でない stdout='$ENTRY_OUT'"
+            bt_fail "$ENTRY 経由: 1 つの additionalContext に「抜粋 → 違反」の順で入る" \
+                "stdout が妥当な JSON でない stdout='$ENTRY_OUT'"
         elif [ -z "$EXCERPT_LINE" ]; then
-            fail "$ENTRY 経由: 抜粋が additionalContext に無い ctx='$ENTRY_CTX'"
+            bt_fail "$ENTRY 経由: 1 つの additionalContext に「抜粋 → 違反」の順で入る" \
+                "抜粋が additionalContext に無い ctx='$ENTRY_CTX'"
         elif [ -z "$VIOLATION_LINE" ]; then
-            fail "$ENTRY 経由: ESLint 違反が additionalContext に無い ctx='$ENTRY_CTX'"
+            bt_fail "$ENTRY 経由: 1 つの additionalContext に「抜粋 → 違反」の順で入る" \
+                "ESLint 違反が additionalContext に無い ctx='$ENTRY_CTX'"
         elif [ "$EXCERPT_LINE" -ge "$VIOLATION_LINE" ]; then
-            fail "$ENTRY 経由: 抜粋が違反より後にある (抜粋=$EXCERPT_LINE 違反=$VIOLATION_LINE)"
+            bt_fail "$ENTRY 経由: 1 つの additionalContext に「抜粋 → 違反」の順で入る" \
+                "抜粋が違反より後にある (抜粋=$EXCERPT_LINE 違反=$VIOLATION_LINE)"
         else
-            pass "$ENTRY 経由: 1 つの additionalContext に「抜粋 → 違反」の順で入る"
+            bt_pass "$ENTRY 経由: 1 つの additionalContext に「抜粋 → 違反」の順で入る"
         fi
     done
 else
-    echo "SKIP: $ASSETS_DIR から eslint を解決できないのでエントリポイント結合順ケースを skip"
+    bt_skip "エントリポイント経由: 1 つの additionalContext に「抜粋 → 違反」の順で入る" \
+        "$ASSETS_DIR から eslint を解決できない"
 fi
 
 # --- ケース10: テーマの宣言（slide theme）の結果で参照 dir を決める ---
@@ -572,7 +531,7 @@ layout: plain
 ')
 for reason in theme-unlinked theme-none crash; do
     STUB_THEME_FAIL="$reason" run_hook "theme-$reason" "$STEP2" "$PLUGIN_ROOT"
-    assert_silent "slide theme が失敗 ($reason)" "theme cannot be resolved"
+    expect_silent "slide theme が失敗 ($reason)" "theme cannot be resolved"
 done
 
 # 10b: 参照 dir の一覧は先頭が優先。talk-dir の references/ の yaml が、テーマ側の同名の yaml に勝つ。
@@ -589,9 +548,9 @@ printf -- '---\nlayout: plain\n---\n' > "$MULTI/pages/p.md"
 STUB_THEME_REFERENCES="$MULTI/references,$MULTI/theme-refs" run_hook "multi-first" "$MULTI/pages/p.md" "$PLUGIN_ROOT"
 CTX=$(ctx_of "$OUT")
 if [ "$(printf '%s\n' "$CTX" | head -n 1)" = "$MULTI/references/plain.yaml:" ] && echo "$CTX" | grep -q "talk-dir 側の上書き"; then
-    pass "参照 dir が複数: 先頭（talk-dir 側）の yaml を提示"
+    bt_pass "参照 dir が複数: 先頭（talk-dir 側）の yaml を提示"
 else
-    fail "参照 dir が複数: 先頭の yaml が提示されない stdout='$OUT' stderr='$ERR'"
+    bt_fail "参照 dir が複数: 先頭（talk-dir 側）の yaml を提示" "先頭の yaml が提示されない stdout='$OUT' stderr='$ERR'"
 fi
 
 # テーマ側にしか無い layout は 2 つ目の dir から提示する。
@@ -600,9 +559,10 @@ cp "$REFERENCES_DIR/panel.yaml" "$MULTI/theme-refs/panel.yaml"
 STUB_THEME_REFERENCES="$MULTI/references,$MULTI/theme-refs" run_hook "multi-second" "$MULTI/pages/q.md" "$PLUGIN_ROOT"
 CTX=$(ctx_of "$OUT")
 if [ "$(printf '%s\n' "$CTX" | head -n 1)" = "$MULTI/theme-refs/panel.yaml:" ]; then
-    pass "参照 dir が複数: 先頭に無い layout は 2 つ目の dir の yaml を提示"
+    bt_pass "参照 dir が複数: 先頭に無い layout は 2 つ目の dir の yaml を提示"
 else
-    fail "参照 dir が複数: 2 つ目の dir の yaml が提示されない stdout='$OUT' stderr='$ERR'"
+    bt_fail "参照 dir が複数: 先頭に無い layout は 2 つ目の dir の yaml を提示" \
+        "2 つ目の dir の yaml が提示されない stdout='$OUT' stderr='$ERR'"
 fi
 
 # 10b2: pages/ 配下の md でない編集は、slide theme を起こさない。
@@ -610,18 +570,18 @@ THEME_LOG="$TMP/theme-spawn.log"
 rm -f "$THEME_LOG"
 STUB_THEME_LOG="$THEME_LOG" run_hook "non-pages-no-theme" "$TALK/README.md" "$PLUGIN_ROOT"
 if [ -z "$OUT" ] && [ ! -e "$THEME_LOG" ]; then
-    pass "pages 配下でない md: slide theme を起こさない"
+    bt_pass "pages 配下でない md: slide theme を起こさない"
 else
     THEME_LOG_TEXT=$(cat "$THEME_LOG" 2>/dev/null)
-    fail "pages 配下でない md: slide theme を起こした stdout='$OUT' log='${THEME_LOG_TEXT:-}'"
+    bt_fail "pages 配下でない md: slide theme を起こさない" "slide theme を起こした stdout='$OUT' log='${THEME_LOG_TEXT:-}'"
 fi
 
 # 10b3: slide theme が落ちたとき、stderr の先頭 1 行を trace に添える。
 STUB_THEME_FAIL=crash STUB_THEME_STDERR="Node.js 24.22.1 以上が要ります" run_hook "theme-crash-stderr" "$STEP2" "$PLUGIN_ROOT"
 if [ -z "$OUT" ] && echo "$ERR" | grep -q "stderr: Node.js 24.22.1 以上が要ります"; then
-    pass "slide theme の stderr: 先頭 1 行を trace に添える（通知はしない）"
+    bt_pass "slide theme の stderr: 先頭 1 行を trace に添える（通知はしない）"
 else
-    fail "slide theme の stderr: trace に無い stdout='$OUT' stderr='$ERR'"
+    bt_fail "slide theme の stderr: 先頭 1 行を trace に添える（通知はしない）" "trace に無い stdout='$OUT' stderr='$ERR'"
 fi
 
 # 10c: マーカーは slides.md + pages/。start.mjs だけの dir は talk-dir とみなさない。
@@ -630,15 +590,13 @@ mkdir -p "$OLD_MARKER/pages"
 touch "$OLD_MARKER/start.mjs"
 printf -- '---\nlayout: plain\n---\n' > "$OLD_MARKER/pages/a.md"
 run_hook "old-marker" "$OLD_MARKER/pages/a.md" "$PLUGIN_ROOT"
-assert_silent "start.mjs だけの dir" "talk-dir marker (slides.md + pages/)"
+expect_silent "start.mjs だけの dir" "talk-dir marker (slides.md + pages/)"
 
 # --- ガードレール: 全分岐で stdout が「空または妥当な JSON」 ---
 if [ -z "$BAD_STDOUT" ]; then
-    pass "ガードレール: 全分岐の stdout が空または妥当な JSON"
+    bt_pass "ガードレール: 全分岐の stdout が空または妥当な JSON"
 else
-    fail "ガードレール: stdout が非 JSON の分岐がある: $BAD_STDOUT"
+    bt_fail "ガードレール: 全分岐の stdout が空または妥当な JSON" "stdout が非 JSON の分岐がある: $BAD_STDOUT"
 fi
 
-echo ""
-echo "===== summary: PASS=$PASS FAIL=$FAIL ====="
-[ $FAIL -eq 0 ]
+bt_finish

@@ -1,27 +1,24 @@
 #!/usr/bin/env bash
-# bin/pecotv の Chromium OS ライブラリ確認の軽量テスト。
-# 確認は、印があれば飛ばす。MCP 起動では飛ばす。失敗しても止めない。setup ルートでは止める。
-# 実 Chromium・apt・pnpm は使わない。pnpm を stub にし、cli/dist/cli.js を exit code を制御できる stub にする。
-# その最小の plugin root を一時ディレクトリに組んで実行する。
-# 印は、cli の runtimeStateDirectory (infra/_shared/dependency-root.ts) と同じ `${データ置き場}/runtime` に置く。
-# cli へは PECOTV_RUNTIME_DIR で渡り、その親が置き場になる。
-#
+# bin/pecotv の Chromium OS ライブラリ確認の分岐（印・MCP 起動・setup ルート）を、stub の pnpm と cli で確かめる。
+# 印は cli の runtimeStateDirectory と同じ `${データ置き場}/runtime` に置く。
 #   bash plugins/pecot-visual/cli/tests/bootstrap/host-deps-marker.sh
 set -euo pipefail
-
-if [ "$(uname -s)" != "Linux" ]; then
-  echo "skip: host-deps の確認は Linux のみ"
-  exit 0
-fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=stub-root.sh
 . "$SCRIPT_DIR/stub-root.sh"
+
+if [ "$(uname -s)" != "Linux" ]; then
+  bt_skip "host-deps の確認" "Linux のみで確かめる"
+  bt_finish
+  exit $?
+fi
+
 stub_root_init host-deps-marker
 
 # ミラーを 1 度作って完成させる（以降の起動は準備を飛ばし、確認の分岐だけを見る）。
 stub_run -- mcp
-[ "$RC" = 0 ] || { echo "FAIL ミラーの準備: exit=$RC"; show_err; exit 1; }
+[ "$RC" = 0 ] || { echo "ミラーの準備が失敗した: exit=$RC" >&2; show_err >&2; exit 1; }
 
 STAMP="$DATA/runtime/.pecotv-chromium-host-deps"
 
@@ -37,10 +34,10 @@ run_case() {
   local calls
   calls="$(grep -c '^host-deps$' "$CALLS" || true)"
   if [ "$RC" = "$want_rc" ] && [ "$calls" = "$want_calls" ]; then
-    ok "$name"
+    bt_pass "$name"
   else
-    ng "$name" "exit=$RC (want $want_rc) host-deps calls=$calls (want $want_calls)"
-    show_err
+    bt_fail "$name" "exit=$RC (want $want_rc) host-deps calls=$calls (want $want_calls)
+$(show_err)"
   fi
 }
 
@@ -65,8 +62,7 @@ run_case "setup ルート: ok の印なら飛ばす" "$REV ok $NOW" 2 0 0 PECOTV
 run_case "setup ルート: 成功すれば exit 0" - 0 0 1 PECOTV_REQUIRE_HOST_DEPS=1 -- --help
 
 # 印の置き場: ミラーの node_modules（ハードリンクで別世代と共有する）の中には置かない。
-assert_eq "印はミラーの node_modules の中に置かない" no \
+bt_eq "印はミラーの node_modules の中に置かない" no \
   "$(find "$DATA/runtime" -path '*/node_modules/.pecotv-chromium-host-deps' | head -n 1 | grep -q . && echo yes || echo no)"
 
-echo "pass=$PASS fail=$FAIL"
-[ "$FAIL" -eq 0 ]
+bt_finish
