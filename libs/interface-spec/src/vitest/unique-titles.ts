@@ -1,5 +1,5 @@
 // vitest の setupFiles。1 つのファイルの中で、JUnit の name（describe から it までの題を ` > ` でつないだもの）が重なれば止める。
-// 重なると、定義書のサイトのビルドが sphinx-test-reports の重複の警告で落ちる（.claude/rules/test-conventions.md）。
+// 重なると、テストレポートで同じ題のケースを見分けられない（.claude/rules/test-conventions.md）。
 import { beforeAll } from 'vitest'
 import type { RunnerTestFile } from 'vitest'
 

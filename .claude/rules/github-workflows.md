@@ -18,7 +18,7 @@ step 名は英語で、Actions でよく使う形にする。Actions の画面�
 
 - `ci.yml`: PR・merge queue で、変更が届いたレーンを devcontainer で検証する。`checks (lint)` とレーンごとの `tests` を `ci-result` にまとめ、`version-plan` も動かす
   - tests の job は job 内に nx リモートキャッシュのサーバを持ち、同じ PR の前の run で成功したレーンの結果だけを取り込む
-  - 同じリポの PR では、tests が合否のレーンの JUnit を artifact に残す。今は読む job が無く、テストレポートの載せ替え（#645）が使う。公開サイトは作らない
+  - 公開サイトは作らない
 - `devcontainer-image.yml`: CI 用の devcontainer イメージを GHCR に載せる（`.claude/rules/devcontainer.md`）
 - `release.yml`: 人が手で起動する。入力 `dry-run`（既定 `true`）では案だけを出す。本番は一時ブランチへ push してタグと Release を出し、その後で `main` を取り込んで push する
 - `publish-npm.yml`: MCP サーバの tgz を npm へ publish する。初回の公開は `.claude/rules/npm-publish.md`

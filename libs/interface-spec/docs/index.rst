@@ -5,8 +5,6 @@ pecot
 
 Claude Code 向けのプラグインのマーケットプレイスです。
 
-.. iface-overview::
-
 - :doc:`introduction`
 - :doc:`installation`
 - :doc:`guides/index`

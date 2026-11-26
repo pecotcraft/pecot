@@ -1,6 +1,5 @@
 """インタフェース定義書の HTML 表示の Sphinx 設定。"""
 
-import json
 import os
 import sys
 from pathlib import Path
@@ -9,7 +8,7 @@ DOCS = Path(__file__).resolve().parent
 ROOT = DOCS.parents[2]
 sys.path.insert(0, str(DOCS / "_ext"))
 
-from iface_defs import junit_lanes_table, load_junit_lanes  # noqa: E402
+from iface_defs import interface_plugins  # noqa: E402
 from site_stamp import site_stamp  # noqa: E402
 from sphinxawesome_theme.postprocess import Icons  # noqa: E402  # pyright: ignore[reportMissingTypeStubs]
 
@@ -22,17 +21,11 @@ language = "ja"
 html_search_language = "ja"
 extensions = [
     "sphinx_needs",
-    "sphinx_test_reports",
-    "sphinx_design",
     "sphinxawesome_theme",
     "iface_defs",
     "table_scroll",
 ]
-# テストの合否と、テストレポートのページ（development/）は、PECOT_SITE_RESULTS=1 のときだけ出す。公開のサイトを作る run は渡さない。
-iface_results = os.environ.get("PECOT_SITE_RESULTS") == "1"
-exclude_patterns = ["_build", "_generated/junit", ".venv", "tests", "_ext"]
-if not iface_results:
-    exclude_patterns.append("development")
+exclude_patterns = ["_build", ".venv", "tests", "_ext"]
 html_theme = "sphinxawesome_theme"
 # ヘッダーに置くものは、テーマが用意している設定項目だけで決める。
 _GITHUB_ICON = (
@@ -86,35 +79,14 @@ needs_types = [
 ]
 needs_links = {
     "belongs": {"incoming": "behaviors", "outgoing": "belongs to"},
-    "verifies": {"incoming": "verified by", "outgoing": "verifies"},
-}
-needs_fields = {
-    "outcome": {
-        "description": "Test outcome (not-run, no-test, failed, passed, skipped)",
-        "schema": {"type": "string"},
-    }
 }
 needs_build_json = True
 
-# 項目につながるテストの JUnit の property（verifies）を、need のリンクにする。
-tr_property_link_types = {"verifies": "verifies"}
-tr_suite_id_length = 8
-tr_case_id_length = 8
-
 # iface_defs 拡張の設定。テストはこれらを差し替える。
 iface_root = str(ROOT)
-# 合否のレーンは junit-lanes.json が正。リリース版は各タグから集めた一覧を PECOT_SITE_LANES（JSON）で渡す。
-_SITE_LANES = os.environ.get("PECOT_SITE_LANES")
-iface_junit = (
-    junit_lanes_table(json.loads(_SITE_LANES), ROOT, "PECOT_SITE_LANES")
-    if _SITE_LANES
-    else load_junit_lanes(DOCS / "junit-lanes.json", ROOT)
-)
-# 付けると、JUnit が無いか読めないレーンがあるときに止める。合否を出すときにだけ使う。
-iface_strict = os.environ.get("PECOT_SITE_STRICT") == "1"
 
 # 側の知らせ（_templates/header.html）とテストレポートへのリンク。公開のサイトを作る run は PECOT_SITE_* を渡す。
-_site = site_stamp(os.environ, sorted(iface_junit)).context()
+_site = site_stamp(os.environ, interface_plugins(ROOT)).context()
 html_context = {"site": _site}
 # 機能要件の表の「テスト」の列。url が None なら列を出さない。
 iface_report = {"url": _site["report_url"], "plugins": _site["report_plugins"]}

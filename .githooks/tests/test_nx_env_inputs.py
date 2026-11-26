@@ -73,15 +73,6 @@ _EXEMPT: dict[str, str] = {
     "PECOT_TOOLS_SKIP_INSTALL": "test target の command が 1 を渡す。PECOTV_SKIP_INSTALL と同じ",
     "NX_TASK_TARGET_PROJECT": "nx が task ごとに渡す project の名前。キャッシュの鍵のレーンで値が決まる",
     "NX_TASK_TARGET_TARGET": "NX_TASK_TARGET_PROJECT と同じく、nx が task ごとに渡す target の名前",
-    "PECOT_SITE_STRICT": (
-        "interface-spec の docs だけが読み、docs は cache しない。test-unit のビルドは conf.py の値を上書きする"
-    ),
-    "PECOT_SITE_LANES": (
-        "PECOT_SITE_STRICT と同じく docs だけが読む。test-unit のテストは外の PECOT_SITE_* を毎回外す"
-    ),
-    "PECOT_SITE_RESULTS": (
-        "PECOT_SITE_STRICT と同じく docs だけが読む。test-unit は conf.py の値を上書きし、test-site は外の PECOT_SITE_* を外す"
-    ),
     "PECOT_WORKFLOW_SKIP_INSTALL": (
         "test-cli・test-hooks・lint-cli の command が 1 を渡す。PECOTV_SKIP_INSTALL と同じ。"
         "install を nx の別 target に分ける"

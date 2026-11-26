@@ -29,14 +29,6 @@ from release_sources import (  # noqa: E402
 A, B, C = "a" * 40, "b" * 40, "c" * 40
 
 
-def _lane(plugin: str, name: str) -> dict[str, str]:
-    return {
-        "plugin": plugin,
-        "target": f"{plugin}:{name}",
-        "junit": f"plugins/{plugin}/cli/test-results/{name}.xml",
-    }
-
-
 # --- latest_tags ---
 
 
@@ -77,7 +69,6 @@ def test_latest_tags_fail_for_plugin_without_tag() -> None:
 def _resolve(
     commits: dict[str, str],
     ancestors: set[tuple[str, str]],
-    lanes_of: dict[str, object],
     main_ancestors: set[str] | None = None,
 ) -> release_sources.ReleaseSources:
     tag_to_commit = {f"{p}-v1.0.0": c for p, c in commits.items()}
@@ -93,73 +84,52 @@ def _resolve(
         list(commits),
         commit_of=lambda tag: tag_to_commit.get(tag, "0" * 40),
         is_ancestor=is_ancestor,
-        read_lanes=lambda commit: lanes_of.get(commit),
         main="origin/main",
     )
 
 
-def test_resolve_takes_skeleton_and_lanes_from_each_tag() -> None:
+def test_resolve_takes_skeleton_from_each_tag() -> None:
     # A <- B <- C の順に積まれ、C がほかのすべてを祖先に持つ。
-    lanes_a = [_lane("a", "test-cli"), _lane("b", "old-lane")]
-    lanes_b = [_lane("a", "test-new"), _lane("b", "test-cli"), _lane("b", "test-hooks")]
-    lanes_c = [_lane("c", "test-cli")]
-    sources = _resolve(
-        {"a": A, "b": B, "c": C},
-        {(A, B), (A, C), (B, C)},
-        {A: lanes_a, B: lanes_b, C: lanes_c},
-    )
+    sources = _resolve({"a": A, "b": B, "c": C}, {(A, B), (A, C), (B, C)})
     assert sources.skeleton == C
     assert sources.tags == {"a": "a-v1.0.0", "b": "b-v1.0.0", "c": "c-v1.0.0"}
     assert sources.commits == {"a": A, "b": B, "c": C}
-    assert sources.lanes == [
-        _lane("a", "test-cli"),
-        _lane("b", "test-cli"),
-        _lane("b", "test-hooks"),
-        _lane("c", "test-cli"),
-    ]
     assert sources.record() == {
         "tags": {"a": "a-v1.0.0", "b": "b-v1.0.0", "c": "c-v1.0.0"},
         "commits": {"a": A, "b": B, "c": C},
         "skeleton": C,
     }
+    assert sources.to_json() == sources.record()
 
 
 def test_resolve_accepts_tags_on_same_commit() -> None:
-    sources = _resolve({"a": A, "b": A}, set(), {A: [_lane("a", "t"), _lane("b", "t")]})
+    sources = _resolve({"a": A, "b": A}, set())
     assert sources.skeleton == A
 
 
 def test_resolve_fails_without_skeleton() -> None:
     # B と C が A から分かれ、どちらも他方を祖先に持たない。
     with pytest.raises(ReleaseSourcesError, match="祖先に持つタグがありません"):
-        _resolve({"a": A, "b": B, "c": C}, {(A, B), (A, C)}, {})
+        _resolve({"a": A, "b": B, "c": C}, {(A, B), (A, C)})
 
 
 def test_resolve_fails_when_tag_is_not_ancestor_of_main() -> None:
     with pytest.raises(
         ReleaseSourcesError, match=f"b-v1.0.0（{B}）が origin/main の祖先ではありません"
     ):
-        _resolve({"a": A, "b": B}, {(A, B)}, {}, main_ancestors={A})
-
-
-def test_resolve_fails_naming_tag_without_junit_lanes() -> None:
-    with pytest.raises(
-        ReleaseSourcesError,
-        match="a-v1.0.0 のコミットに libs/interface-spec/docs/junit-lanes.json がありません",
-    ):
-        _resolve({"a": A, "b": B}, {(A, B)}, {B: [_lane("b", "t")]})
-
-
-def test_resolve_fails_on_malformed_lanes() -> None:
-    with pytest.raises(
-        ReleaseSourcesError, match="b-v1.0.0:libs/interface-spec/docs/junit-lanes.json #1"
-    ):
-        _resolve({"a": A, "b": B}, {(A, B)}, {A: [_lane("a", "t")], B: [{"plugin": "b"}]})
+        _resolve({"a": A, "b": B}, {(A, B)}, main_ancestors={A})
 
 
 def test_from_json_reads_back_cli_output() -> None:
-    sources = _resolve({"a": A, "b": B}, {(A, B)}, {A: [_lane("a", "t")], B: [_lane("b", "t")]})
+    sources = _resolve({"a": A, "b": B}, {(A, B)})
     assert release_sources.from_json(json.loads(json.dumps(sources.to_json()))) == sources
+
+
+def test_from_json_accepts_sources_without_lanes() -> None:
+    data = {"tags": {"a": "a-v1.0.0"}, "commits": {"a": A}, "skeleton": A}
+    assert release_sources.from_json(data) == release_sources.ReleaseSources(
+        tags={"a": "a-v1.0.0"}, commits={"a": A}, skeleton=A
+    )
 
 
 # --- CLI（一時の git リポ） ---
@@ -203,65 +173,34 @@ def _run_cli(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 
 def test_cli_resolves_from_git_tags(repo: Path, tmp_path: Path) -> None:
-    lanes_file = "libs/interface-spec/docs/junit-lanes.json"
     manifests = {
         "plugins/a/.claude-plugin/plugin.json": "{}",
         "plugins/b/.claude-plugin/plugin.json": "{}",
     }
-    first = _commit(
-        repo,
-        {**manifests, lanes_file: json.dumps([_lane("a", "test-cli"), _lane("b", "test-old")])},
-        "first",
-    )
+    first = _commit(repo, manifests, "first")
     _git(repo, "tag", "a-v1.9.0")
     _git(repo, "tag", "b-v0.1.0")
-    second = _commit(
-        repo, {lanes_file: json.dumps([_lane("a", "test-new"), _lane("b", "test-cli")])}, "second"
-    )
+    second = _commit(repo, {"plugins/b/x.txt": "x"}, "second")
     _git(repo, "tag", "-a", "-m", "b", "b-v0.2.0")
     _git(repo, "tag", "a-v2.0.0-rc.1")
 
-    record, lanes = tmp_path / "out/release-sources.json", tmp_path / "out/junit-lanes.json"
-    result = _run_cli(repo, "--record", str(record), "--lanes", str(lanes))
+    record = tmp_path / "out/release-sources.json"
+    result = _run_cli(repo, "--record", str(record))
 
     assert result.returncode == 0, result.stderr
     assert result.stdout.count("\n") == 1
-    expected_lanes = [_lane("a", "test-cli"), _lane("b", "test-cli")]
-    assert json.loads(result.stdout) == {
-        "tags": {"a": "a-v1.9.0", "b": "b-v0.2.0"},
-        "commits": {"a": first, "b": second},
-        "skeleton": second,
-        "lanes": expected_lanes,
-    }
-    assert json.loads(record.read_text(encoding="utf-8")) == {
+    expected = {
         "tags": {"a": "a-v1.9.0", "b": "b-v0.2.0"},
         "commits": {"a": first, "b": second},
         "skeleton": second,
     }
-    assert json.loads(lanes.read_text(encoding="utf-8")) == expected_lanes
-
-
-def test_cli_fails_naming_tag_without_junit_lanes(repo: Path) -> None:
-    _commit(repo, {"plugins/a/.claude-plugin/plugin.json": "{}"}, "first")
-    _git(repo, "tag", "a-v8.0.0")
-
-    result = _run_cli(repo)
-
-    assert result.returncode == 1
-    assert result.stdout == ""
-    assert (
-        "ERROR: a-v8.0.0 のコミットに libs/interface-spec/docs/junit-lanes.json がありません"
-        in result.stderr
-    )
+    # 標準出力は tags・commits・skeleton だけで、レーンの一覧を持たない。
+    assert json.loads(result.stdout) == expected
+    assert json.loads(record.read_text(encoding="utf-8")) == expected
 
 
 def test_cli_fails_when_tag_is_off_main(repo: Path) -> None:
-    lanes_file = "libs/interface-spec/docs/junit-lanes.json"
-    _commit(
-        repo,
-        {"plugins/a/.claude-plugin/plugin.json": "{}", lanes_file: json.dumps([_lane("a", "t")])},
-        "first",
-    )
+    _commit(repo, {"plugins/a/.claude-plugin/plugin.json": "{}"}, "first")
     _git(repo, "checkout", "-q", "-b", "side")
     side = _commit(repo, {"x.txt": "x"}, "side")
     _git(repo, "tag", "a-v1.0.0")
@@ -511,8 +450,6 @@ def test_cli_report_rejects_wrong_arguments(repo: Path, args: list[str], message
 
 # --- release_build ---
 
-_LANES = [_lane("a", "test-cli"), _lane("a", "test-hooks"), _lane("b", "test-cli")]
-
 
 class FakeRunner:
     """外のコマンドを記録する。"""
@@ -557,7 +494,6 @@ def _sources_file(tmp_path: Path) -> Path:
                 "tags": {"b": "b-v2.0.0", "a": "a-v1.0.0"},
                 "commits": {"b": B, "a": A},
                 "skeleton": B,
-                "lanes": _LANES,
             }
         ),
         encoding="utf-8",
@@ -653,22 +589,17 @@ def test_build_passes_site_env_to_container(tmp_path: Path, workspace: Path) -> 
     docs = runner.calls.index(("exec", "pnpm exec nx run interface-spec:docs --skip-nx-cache"))
     env = runner.envs[docs]
     assert env["PECOT_SITE_SIDE"] == "release"
-    assert json.loads(env["PECOT_SITE_LANES"]) == _LANES
-    # 合否を出す env は渡さない。
-    assert "PECOT_SITE_STRICT" not in env
-    assert "PECOT_SITE_RESULTS" not in env
     assert env["DEVCONTAINER_ENV"].split() == [
         "PECOT_SITE_SIDE",
         "PECOT_SITE_PR",
-        "PECOT_SITE_LANES",
         "PECOT_SITE_REPORT_PLUGINS",
     ]
     # 消した版の値を、もう渡さない。
     assert "PECOT_SITE_SHA" not in env
     assert "PECOT_SITE_PLUGIN_COMMITS" not in env
-    # サイトを作る段の外では、レーンの一覧を足さない。
+    assert "PECOT_SITE_LANES" not in env
+    # サイトを作る段の外では、レポートに入るプラグインを足さない。
     others = [e for i, e in enumerate(runner.envs) if i != docs]
-    assert all("PECOT_SITE_LANES" not in e for e in others)
     assert all("PECOT_SITE_REPORT_PLUGINS" not in e for e in others)
 
 

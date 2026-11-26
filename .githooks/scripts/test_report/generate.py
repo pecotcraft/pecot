@@ -21,7 +21,7 @@ _HERE = Path(__file__).resolve().parent
 
 
 def _load_matrix() -> Callable[[object], list[dict[str, str]]]:
-    # pages_site にも lanes.py があり、同じ pytest の中で `import lanes` が取り違える。パスで読む
+    # store.py がこのファイルをパスで読むと、このディレクトリは sys.path に無い。lanes.py もパスで読む
     spec = importlib.util.spec_from_file_location("test_report_lanes", _HERE / "lanes.py")
     if spec is None or spec.loader is None:
         raise ImportError(f"{_HERE / 'lanes.py'} を読めません")

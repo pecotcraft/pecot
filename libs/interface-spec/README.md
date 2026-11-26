@@ -14,43 +14,21 @@ pnpm exec nx run interface-spec:docs
 python3 -m http.server -d libs/interface-spec/docs/_build
 ```
 
-何も付けなければ、公開サイトと同じく定義書だけを作り、JUnit は読みません。
-振る舞いの項目ごとのテストと合否も出すときは、JUnit を出してから `PECOT_SITE_RESULTS=1` を付けて作ります。
-
-```bash
-pnpm exec nx run-many -t test-cli test-hooks --projects=pecot-workflow,pecot-tools,pecot-visual
-PECOT_SITE_RESULTS=1 pnpm exec nx run interface-spec:docs
-```
-
-合否を出したときは、テストレポートのページが `development/index.html` にできます。ほかのページからのリンクは無いので、URL で開きます。
-
 作る HTML の構成は次のとおり。
 
 - トップ（`index.html`）: プラグインごとの一覧と、欄の対応表へのリンク
-- プラグインの一覧表: ツールごとに、表示名・ツール名・説明・型・振る舞いの合否の数を 1 行にする。表の下に、そのプラグインのテストの表を置く
+- プラグインの一覧表: ツールごとに、表示名・ツール名・説明・型を 1 行にする
   - 表示名は MCP の `title` で、ページへのリンクにする。型は MCP で、Actions から CLI でも呼ぶものは MCP・CLI
-  - 合否の数は「2 passed, 1 not run」の形
-- ツールごとのページ: 題は表示名で、その下にツール名を添える。本文は定義書の本文（POSIX の節の順）を MCP のツールの形（引数名・`tools/call` の使用例・結果の項目）で書き、その項目の振る舞いごとの合否・つながるテストケースを続ける。`_generated/<plugin>/<名前>.html` にできる
+- ツールごとのページ: 題は表示名で、その下にツール名を添える。本文は定義書の本文（POSIX の節の順）を MCP のツールの形（引数名・`tools/call` の使用例・結果の項目）で書き、その項目の機能要件の表を続ける。`_generated/<plugin>/<名前>.html` にできる
   - CLI の節（構文・フラグ・標準入出力）と終了コードの列は、定義書に `cli_reference` を持つツールにだけ出す。今は GitHub Actions から CLI で呼ぶ pecot-workflow の 4 つ
 - 共通の振る舞いのページ: 全コマンドに共通の振る舞い。`_generated/<plugin>/_common.html` にできる
 - 欄の対応表（`field-map.html`）: 定義書の欄と POSIX の節の対応
 
 `_generated/<plugin>/*.rst` は build のたびに定義書から書き直す。定義書から消えた項目のページは消える。
 
+サイトに載せるのは、`plugins/<名前>/interface/generated.json` を持つプラグインです。プラグインを足すときは、`docs/reference/tools/<plugin>*.rst` も足します。
+
 手元で作ったサイトは、どのページの上にも、ローカルでビルドしたことを伝える 1 行の知らせを出します。
-
-次の 4 つは、`PECOT_SITE_RESULTS=1` を付けたときの決まりです。合否の数・つながるテストケース・テストの表も、そのときだけ出ます。
-
-- JUnit が無くても作れる。JUnit の無いレーンを持つプラグインの項目は「未実行」になる
-- 読む JUnit は `docs/junit-lanes.json` に並べている。合否のレーンを足す・外すときは、このファイルを直す
-- 前に動かしたレーンの JUnit が残っていれば、それを読む。今の結果だけで作るときは、先に `junit-lanes.json` の `junit` のファイルを消す
-- 項目の ID を書いたテスト（`verifies`）だけが、項目につながる。定義書に無い ID のケースは落とす
-
-JUnit がそろっていることを確かめて作るときは、`PECOT_SITE_STRICT=1` も付けます。JUnit が無いか読めないレーンがあると、その名前を出して止まります。
-
-```bash
-PECOT_SITE_RESULTS=1 PECOT_SITE_STRICT=1 pnpm exec nx run interface-spec:docs
-```
 
 ### 見た目のテスト（`test-site`）
 
@@ -76,9 +54,7 @@ Chromium は pecot-visual と同じ版の playwright のものを使います。
 
 同じサイトを <https://pecotcraft.github.io/pecot/> で公開しています。公開の起動・やり直しと管理者の設定は `.claude/rules/pages-site.md` にあります。
 
-公開サイトは、合否を出しません。公開サイト（`pages-build.yml`）は、テストの結果を待たずに作ります。push の直後から PR 版を開けるようにするためです。
-JUnit 無しで合否を出すと、全項目が「未実行」と出て読む人を誤らせるので、公開サイトは定義書だけを載せます。
-テスト結果は Allure Report に替える予定です（#645）。
+開発版とリリース版では、機能要件の表の「テスト」の列から、その要件を確かめるテストをテストレポートで開けます。テストレポートの無い PR 版と手元のサイトには、この列を出しません。
 
 ## 名前の語彙（`names`）
 

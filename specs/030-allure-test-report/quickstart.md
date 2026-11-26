@@ -111,8 +111,8 @@ gh workflow run test-report.yml --ref main -f side=dev
 ## 7. 片付け（US4）
 
 ```bash
-grep -rn "sphinx-test-reports\|sphinx_test_reports\|PECOT_SITE_RESULTS\|junit-lanes" --include='*.py' --include='*.toml' --include='*.json' --include='*.yml' --include='*.md' . \
-  | grep -v node_modules | grep -v '^./specs/'
+git grep -n -E 'sphinx-test-reports|sphinx_test_reports|PECOT_SITE_RESULTS|junit-lanes' \
+  -- '*.py' '*.toml' '*.json' '*.yml' '*.md' ':!specs/'
 ls libs/interface-spec/docs/development 2>/dev/null
 ```
 

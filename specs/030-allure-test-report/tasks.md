@@ -217,19 +217,19 @@ description: "Task list for 030-allure-test-report"
 
 **Independent Test**: quickstart.md の 7。grep が何も出さず、`interface-spec:docs` が定義書だけのサイトを作る
 
-- [ ] T040 [US4] `libs/interface-spec/docs/tests/test_iface_defs.py` を先に直す。合否・JUnit・STRICT・`junit-lanes` のテスト（調査の一覧は `specs/030-allure-test-report/research.md` の R12）を消し、サイトに載せるプラグインの一覧が、定義書（`plugins/*/interface/`）を持つプラグインから決まることのテストを足す
-- [ ] T041 [US4] `libs/interface-spec/docs/_ext/iface_defs.py` から、JUnit を読む部分・合否を描く部分・`IfaceTests`・`IfaceOverview`・`check_strict`・`junit_lanes_table`・`iface-<状態>` の role を消す（T040 の後）。
+- [x] T040 [US4] `libs/interface-spec/docs/tests/test_iface_defs.py` を先に直す。合否・JUnit・STRICT・`junit-lanes` のテスト（調査の一覧は `specs/030-allure-test-report/research.md` の R12）を消し、サイトに載せるプラグインの一覧が、定義書（`plugins/*/interface/`）を持つプラグインから決まることのテストを足す
+- [x] T041 [US4] `libs/interface-spec/docs/_ext/iface_defs.py` から、JUnit を読む部分・合否を描く部分・`IfaceTests`・`IfaceOverview`・`check_strict`・`junit_lanes_table`・`iface-<状態>` の role を消す（T040 の後）。
   `write_pages` のプラグインの一覧を、定義書を持つプラグインから決める。`index.rst` の `.. iface-overview::` を消す
-- [ ] T042 [US4] `libs/interface-spec/docs/conf.py` から、`sphinx_test_reports`・`tr_*`・`PECOT_SITE_RESULTS`・`PECOT_SITE_STRICT`・`PECOT_SITE_LANES` を消す。
+- [x] T042 [US4] `libs/interface-spec/docs/conf.py` から、`sphinx_test_reports`・`tr_*`・`PECOT_SITE_RESULTS`・`PECOT_SITE_STRICT`・`PECOT_SITE_LANES` を消す。
   `libs/interface-spec/docs/pyproject.toml` から `sphinx-test-reports` を消して `uv.lock` を作り直す。`libs/interface-spec/docs/development/`・`junit-lanes.json`・`docs/tests/fixtures/junit/` を消す
-- [ ] T043 [P] [US4] `.githooks/scripts/pages_site/lanes.py`・`collect.py`・`dev_side.py` と、`.githooks/tests/test_pages_lanes.py`・`test_pages_collect.py` を消す。
+- [x] T043 [P] [US4] `.githooks/scripts/pages_site/lanes.py`・`collect.py`・`dev_side.py` と、`.githooks/tests/test_pages_lanes.py`・`test_pages_collect.py` を消す。
   `release_sources.py` が `junit-lanes.json` を読む部分と、`release_build.py` が `PECOT_SITE_LANES` を渡す部分を消し、`test_pages_release.py`・`test_pages_verify.py` を合わせて直す。
   `.githooks/project.json` の `test-ci` の入力と一覧、`test_nx_env_inputs.py` の `_EXEMPT` から、消したものを外す
-- [ ] T044 [P] [US4] `.github/workflows/ci.yml` の tests の job から、「Stage JUnit」「Upload JUnit」の step を消す。`.githooks/tests/test_pages_workflows.py` の、この 2 つの step と `junit-lanes` のテストを消す
-- [ ] T045 [P] [US4] 文書を直す。
+- [x] T044 [P] [US4] `.github/workflows/ci.yml` の tests の job から、「Stage JUnit」「Upload JUnit」の step を消す。`.githooks/tests/test_pages_workflows.py` の、この 2 つの step と `junit-lanes` のテストを消す
+- [x] T045 [P] [US4] 文書を直す。
   `libs/interface-spec/README.md` の合否の節、`libs/interface-spec/project.json` の `docs`・`test-unit` の description、`.claude/rules/pages-site.md` の `junit-lanes.json` と #645 に触れる文、`CLAUDE.md` の `docs` の説明
-- [ ] T046 [US4] `specs/028-pages-site/spec.md` に、この機能で取り下げた決まりを書く（FR-025）。FR-014〜FR-019 と、`PECOT_SITE_RESULTS` に触れる Clarifications に、030 で取り下げた旨と日付を足す。本文は消さない
-- [ ] T047 [US4] 実物で確かめる。quickstart.md の 7 の grep が何も出さないこと、`pnpm exec nx run interface-spec:docs` が警告なしで作れること、`pecot-workflow:test-hooks` の JUnit の比べ（`compare-junit.ts`）が今のまま通ることを確かめる
+- [x] T046 [US4] `specs/028-pages-site/spec.md` に、この機能で取り下げた決まりを書く（FR-025）。FR-014〜FR-019 と、`PECOT_SITE_RESULTS` に触れる Clarifications に、030 で取り下げた旨と日付を足す。本文は消さない
+- [x] T047 [US4] 実物で確かめる。quickstart.md の 7 の grep が何も出さないこと、`pnpm exec nx run interface-spec:docs` が警告なしで作れること、`pecot-workflow:test-hooks` の JUnit の比べ（`compare-junit.ts`）が今のまま通ることを確かめる
 
 **Checkpoint**: quickstart.md の 7 が通る。`bash .githooks/scripts/run-lint.sh` と knip が通る
 
