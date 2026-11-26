@@ -512,9 +512,10 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
   })
 
   it('同じボードの設定ファイルが 2 つあると、選択肢のキーが違っても config-options を出さない', () => {
-    const [name, config] = currentConfig(3)
+    // 欄の無いファイルを一覧の先頭に置く。先頭だけを読む形に崩れると、config-options のずれが出る
+    const [name, config] = legacyConfig('pecot-sandbox', 'sandbox', 3)
     delete config.project.fields
-    scene.sandbox.setConfigs(legacyConfig('pecot-sandbox', 'sandbox', 3), [name, config])
+    scene.sandbox.setConfigs([name, config], currentConfig(3))
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', LEGACY_FORM, `${CURRENT_FORM}、${LEGACY_FORM}`)))
   })
 
