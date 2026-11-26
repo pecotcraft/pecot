@@ -91,7 +91,7 @@
 
 ### User Story 4 - 既存のプラグインを claude.ai に入れられる (Priority: P1)
 
-利用者は、既存の 3 つのプラグインを claude.ai に入れられる。3 つは同じ形で、直下に `bin/` を持たない。Claude Code・GitHub Copilot CLI での動きは今と変わらない。
+利用者は、既存の 3 つのプラグインを claude.ai に入れられる。3 つは同じ形で、直下に `bin/` を持たない。Claude Code での動きは今と変わらない。GitHub Copilot CLI でも今と変わらないが、pecot-visual の編集の後のフックだけは動かなくなる。
 
 **Why this priority**: pecot-workflow が claude.ai に載らないと、クラウドのスレッドは pecot-workflow のスキルを使えない。
 
@@ -204,7 +204,8 @@ Issue・PR の本文とボードの欄は今と同じ形で、今ある機能は
 #### 既存のプラグイン
 
 - **FR-007**: 既存の 3 つのプラグインは、同じ形で、直下に `bin/` を持ってはならない。MCP のサーバは npm で公開した版を起動し、同じ機能の CLI の入口を持ってはならない
-- **FR-008**: 既存の 3 つのプラグインは、Claude Code と GitHub Copilot CLI で、MCP とフックが今どおり動かなければならない
+- **FR-008**: 既存の 3 つのプラグインは、Claude Code と GitHub Copilot CLI で、MCP とフックが今どおり動かなければならない。
+  ただし、pecot-visual の PostToolUse のフック（MCP のツールを呼ぶフック）は Claude Code だけで動き、Copilot CLI では動かなくてよい（2026-11-26 に利用者が許した）
 - **FR-009**: 既存の 3 つのプラグインのスキルと文書は、PATH に載ったコマンドを前提にしてはならない
 
 #### pecot-workflow
@@ -227,7 +228,7 @@ Issue・PR の本文とボードの欄は今と同じ形で、今ある機能は
 
 #### pecot-coordinator
 
-- **FR-023**: pecot-coordinator は、スキルとマニフェストだけを持たなければならない
+- **FR-023**: pecot-coordinator の部品は、スキルとマニフェストだけでなければならない。MCP のサーバ・フック・`bin/` を持ってはならない。nx project のファイルとテストは置いてよい
 - **FR-024**: pecot-coordinator のスキルは、coordinator の判断と手順（割り振り・スレッドの起動・利用者に上げる判断の範囲）を持たなければならない
 - **FR-025**: pecot-coordinator のスキルは、プロジェクト固有の値を持ってはならない。固有の値は、プロジェクト指示から読まなければならない
 - **FR-026**: pecot-coordinator は、プロジェクト指示に書く値の一覧と例を利用者に示さなければならない

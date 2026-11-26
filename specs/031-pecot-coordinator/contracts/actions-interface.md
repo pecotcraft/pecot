@@ -21,9 +21,10 @@
 |---|---|---|---|
 | `board-sync` | `board sync` | `pecot-board-sync.yml` | App か PAT（ボードに書く） |
 | `session-finish` | `session finish --skip-local-cleanup`（マージの後の片付け。スキルが使う `session_finish` は pecot-workflow に残す） | `pecot-board-sync.yml` | App か PAT。`--delete-branch` は外す（FR-018） |
-| `tracker-sync` | `tracker sync security`・`tracker sync dependabot` | 雛形は無い。このリポの `security-alerts.yml`・`dependabot-prs.yml` が呼ぶ | Phase 2 |
+| `tracker-sync` | `tracker sync security`・`tracker sync dependabot` | 雛形は無い。このリポの `security-alerts.yml`・`dependabot-prs.yml` が呼ぶ | App（今の `security-alerts.yml`・`dependabot-prs.yml` と同じ） |
 | `review-finish` | `review finish --ensure` | `pecot-review.yml` | App |
 | `auto-gate`・`auto-start`・`auto-finish` | `auto gate`・`auto start`・`auto finish` | 今は雛形が無い。自動処理の雛形を足すときは `actions/templates/` に置く | App |
+| `release-check` | `release check`（このリポの `release.yml` の preflight。スキルが使う `release_check` は pecot-workflow に残す） | 雛形は無い。このリポの `release.yml` が呼ぶ | App（今の `release.yml` と同じ） |
 
 `pecot-review.yml` と `pecot-handoff.yml` は、claude-code-action で pecot-workflow の w-review・w-handoff のスキルを動かす。雛形は `actions/templates/` に移す。スキルは pecot-workflow に残す。
 
