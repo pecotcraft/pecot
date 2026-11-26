@@ -12,6 +12,7 @@ Issue #790（T021〜T027）の記録。書き込みは検証用のリポ `pecotc
 | Claude Code のプラグインの読み込み | <https://code.claude.com/docs/en/plugins/loading> | 同上 |
 | marketplace の形 | <https://code.claude.com/docs/en/plugins/marketplace-reference> | 同上 |
 | クラウドの環境 | <https://code.claude.com/docs/en/cloud-environments> | 同上 |
+| MCP の版の扱い（Versioning and Compatibility） | <https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning> | 2026-07-28（`/specification/latest` と同じ中身）。2026-11-26 に読んだ |
 
 文書から読んだこと。
 
@@ -25,6 +26,7 @@ Issue #790（T021〜T027）の記録。書き込みは検証用のリポ `pecotc
 条件
 
 - 確かめた日は 2026-11-26（UTC）。claude.ai は利用者の個人の account
+- 利用者の claude.ai のプランと、marketplace の **Sync automatically** をオンにしたかは、利用者に尋ねたが答えを得られず、未確認
 - クラウドのスレッドの環境の Network access は Default（limited）で、Allow package managers と MCP servers がオン。追加の許可ホストは無い
 - Claude Code は、手元の検証もクラウドのスレッドも 2.1.332
 
@@ -54,7 +56,7 @@ Claude Code 2.1.332 の `claude plugin validate --strict` は、3 つとも通�
 | 組織の sync | 試していない。このリポも sandbox も public で、文書は private か internal のリポを求める | — |
 
 - `bin/` を持つプラグインは、止まる文を出さずに、marketplace の一覧から外される。利用者からは、プラグインが無いように見える
-- 版を上げたときは、利用者が何もしないうちに、マージから 4 秒で claude.ai の記録が更新された
+- 版を上げたときは、マージの後に利用者が **Check for updates** を押さないうちに、マージから 4 秒で claude.ai の記録が更新された。**Sync automatically** の状態は未確認
 - claude.ai の Add marketplace は、Claude Code の `owner/repo#ref` の形を受け付けない。個人の marketplace は、既定のブランチにマージした版を配る
 
 ## coordinator で読まれたか（T024）
@@ -117,7 +119,7 @@ coordinator に新しいクラウドのスレッドを起動させた（セッ�
 - `plugin.json` の `version` は `0.2.0`
 - Skill ツールで `pecot-probe:probe` を起動すると、合言葉 `pecot-probe-v2-enna5iba` を答えた
 
-マージの後に起動したスレッドには、利用者が何もしなくても新しい版が届いた。
+マージの後に起動したスレッドには、利用者が **Check for updates** を押さなくても新しい版が届いた。ただし **Sync automatically** をオンにしていたかは未確認で、オンだったから届いたのか、オフでも届くのかは分けられていない。
 
 ## R3 と食い違う点と、後続のフェーズの形を変える点（T027）
 
@@ -135,8 +137,14 @@ coordinator に新しいクラウドのスレッドを起動させた（セッ�
   - 今は `EBADENGINE` の警告だけで動くが、24 の機能を使えば止まる。`/opt/node24` はあるが PATH に無い
   - `engines.node` に 22 を含めるか、24 で起動する手段を、Phase 7 の計画で決める
 - Phase 7〜9（依存の install）: Network access が Default（limited）でも、npm の registry に届き、`devEngines` の pnpm v12.15.0 の取得と `pnpm install --frozen-lockfile` も通った。build の前の依存の install に、環境の追加の設定は要らない
-- Phase 7（MCP の版）: サーバは 2025-11-25 の lifecycle（initialize）で答えた。現行の MCP の仕様は 2026-07-28 で、initialize を持たない。移すかは Phase 7 の計画で判断する
+- Phase 7（MCP の版）: サーバは 2025-11-25 の lifecycle（initialize）で答えた。移すかは Phase 7 の計画で判断する
+  - 現行の MCP の仕様は 2026-07-28 で、Versioning and Compatibility の Terminology は次のように書く
+    「**Legacy**: protocol versions that establish a session with an `initialize` handshake (`2025-11-25` and earlier).」
+  - 同じページの Protocol Version Negotiation は「There is no negotiation handshake.」と書く
 - Phase 13（pecot-coordinator）: `bin/` を持つプラグインが同じ marketplace にあっても、pecot-coordinator は巻き添えにならない。このリポの marketplace に置いてよい
 - Phase 13・14（版の上げ方）: リリースの後、続いている coordinator の会話では pecot-coordinator のスキルが止まる。coordinator のスキルか手順に、リリースの後は新しい会話で始め直すことを書く必要がある
+- Phase 13・14（Sync automatically）: 新しい版が自動で届くのに **Sync automatically** が要るかは未確認。Phase 13 で利用者の手順を書くときに、オフの状態で版を上げて確かめる
+- Phase 14（SC-003 の数え方）: 個人の Add marketplace は、拒んだプラグインを、止まる文を出さずに一覧から外す。文書の `Plugin contains a top-level bin/ directory` も出ない
+  - 拒まれたかは、止まる文ではなく、marketplace の一覧と、クラウドのスレッドの `~/.claude/plugins/synced/<bucket>/manifest.json` に全部のプラグインがあるかで数える
 - Phase 14（既定のブランチ）: claude.ai は `owner/repo#ref` の形を受け付けず、既定のブランチにマージした版が届いた。tasks.md の「スタック不可」の前提（既定のブランチに無いと確かめられない）のとおりで、形は変わらない
 - 版を上げた PR のマージの直後から、利用者の account の全部の新しいスレッドに届く。sandbox の marketplace のように、確かめの途中の版を既定のブランチに入れると、そのまま届く
