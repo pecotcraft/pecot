@@ -146,7 +146,9 @@ describe('attach', () => {
     })
 
     it('attachText に文字列を渡すと、待たずにその文字列を拡張子の型で残す', async () => {
-      const { messages } = await recorded('test-unit', () => attachText('出力', '{"a":1}', '.json'))
+      const { messages } = await recorded('test-unit', () => {
+        attachText('出力', '{"a":1}', '.json')
+      })
       stepSync('残した添付を比べる', () => {
         expect(attachments(messages)).toEqual([
           { name: '出力', content: '{"a":1}', contentType: 'application/json', fileExtension: '.json' },
@@ -155,7 +157,9 @@ describe('attach', () => {
     })
 
     it('attachJson に値を渡すと、字下げした JSON で残す', async () => {
-      const { messages } = await recorded('test-unit', () => attachJson('応答', { isError: true }))
+      const { messages } = await recorded('test-unit', () => {
+        attachJson('応答', { isError: true })
+      })
       stepSync('残した添付を比べる', () => {
         expect(attachments(messages)).toEqual([
           { name: '応答', content: '{\n  "isError": true\n}', contentType: 'application/json', fileExtension: '.json' },
@@ -164,7 +168,9 @@ describe('attach', () => {
     })
 
     it('attachJsonInTest は、動いているテストの中では attachJson と同じく残す', async () => {
-      const { messages } = await recorded('test-unit', () => attachJsonInTest('tools/list の結果', { tools: [] }))
+      const { messages } = await recorded('test-unit', () => {
+        attachJsonInTest('tools/list の結果', { tools: [] })
+      })
       stepSync('残した添付を比べる', () => {
         expect(attachments(messages)).toEqual([
           { name: 'tools/list の結果', content: '{\n  "tools": []\n}', contentType: 'application/json', fileExtension: '.json' },
@@ -193,7 +199,9 @@ describe('attach', () => {
       { name: '両方ある', stdout: '出た', stderr: '誤り', expected: [['stdout', '出た'], ['stderr', '誤り']] },
       { name: '両方空', stdout: '', stderr: '', expected: [['stdout', '']] },
     ])('attachOutput の出力が $name とき、名前にコマンドと終了コードを持つ添付を残す', async ({ stdout, stderr, expected }) => {
-      const { messages } = await recorded('test-unit', () => attachOutput('pecot issue show 12', 1, stdout, stderr))
+      const { messages } = await recorded('test-unit', () => {
+        attachOutput('pecot issue show 12', 1, stdout, stderr)
+      })
       stepSync('残した添付を比べる', () => {
         expect(attachments(messages)).toEqual(expected.map(([stream, content]) => (
           { name: `pecot issue show 12（終了コード 1） ${String(stream)}`, content, contentType: 'text/plain', fileExtension: '.txt' }
@@ -202,14 +210,18 @@ describe('attach', () => {
     })
 
     it('attachOutput に終了コードを渡さないと、名前に終了コードを書かない', async () => {
-      const { messages } = await recorded('test-unit', () => attachOutput('capture', undefined, '出た', ''))
+      const { messages } = await recorded('test-unit', () => {
+        attachOutput('capture', undefined, '出た', '')
+      })
       stepSync('残した添付の名前を比べる', () => {
         expect(attachments(messages).map(item => item.name)).toEqual(['capture stdout'])
       })
     })
 
     it('attachOutput のコマンドが 200 字を超えると、先頭の 200 字を名前に使う', async () => {
-      const { messages } = await recorded('test-unit', () => attachOutput('a'.repeat(300), 0, '出た', ''))
+      const { messages } = await recorded('test-unit', () => {
+        attachOutput('a'.repeat(300), 0, '出た', '')
+      })
       stepSync('残した添付の名前を比べる', () => {
         expect(attachments(messages).map(item => item.name)).toEqual([`${'a'.repeat(200)}（終了コード 0） stdout`])
       })

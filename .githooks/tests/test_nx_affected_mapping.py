@@ -1049,7 +1049,8 @@ def test_gate_selects_only_the_lanes_the_change_reaches(
             # 当たる側。.githooks/ の外のファイルも、テストが読むなら、それを読むレーンが動く。
             (".githooks/ci/run-pr-checks.sh", {"githooks:test-ci"}),
             (".githooks/scripts/gen-runtime-lock.mjs", _GITHOOKS_CHECKS),
-            (".githooks/scripts/run-pnpm.sh", _GITHOOKS_CHECKS),
+            # run.sh が step-gate.sh を通して呼ぶので、githooks のすべてのレーンが読む。
+            (".githooks/scripts/run-pnpm.sh", _GITHOOKS_GRAPH | {"githooks:test-ci"}),
             (".github/board-sync/handler.mjs", _GITHOOKS_CHECKS),
             (".github/board-sync/template.yaml", _GITHOOKS_CHECKS),
             (".github/workflows/dependabot-commit.yml", _GITHOOKS_CHECKS),
