@@ -570,12 +570,12 @@ describe('allowlistedTool', () => {
 
   it.for(['kind', 'detail', 'log', 'warnings'])('responseShape が共通の項目の名前 %s を持つと、定義を作らずに例外を投げる', (key) => {
     expect(() => allowlistedTool({ entry: IDENTITY_ENTRY, ...BASE_SPEC, responseShape: { ...IDENTITY_RESPONSE_SHAPE, [key]: z.string() } }))
-      .toThrow(new TypeError(`aws_sts_get_caller_identity: output の ${key} は MCP の結果の共通の項目の予約名です`))
+      .toThrow(new TypeError(`aws_sts_get_caller_identity: output keys reserved for the common fields of the MCP result: ${key}`))
   })
 
   it.for(['lines', 'output', 'truncated'])('responseShape が pecot-tools の足す項目の名前 %s を持つと、定義を作らずに例外を投げる', (key) => {
     expect(() => allowlistedTool({ entry: IDENTITY_ENTRY, ...BASE_SPEC, responseShape: { ...IDENTITY_RESPONSE_SHAPE, [key]: z.string() } }))
-      .toThrow(new TypeError(`aws_sts_get_caller_identity: output の ${key} は pecot-tools が足す項目と重なります`))
+      .toThrow(new TypeError(`aws_sts_get_caller_identity: output keys that overlap the fields pecot-tools adds: ${key}`))
   })
 
   it('max-items のツールの responseShape が nextToken を持つと、定義を作らずに例外を投げる', () => {
@@ -585,7 +585,7 @@ describe('allowlistedTool', () => {
       description: 'Lists functions',
       inputSchema: z.object(COMMON_INPUT_SHAPE),
       responseShape: { Functions: z.array(z.looseObject({})), nextToken: z.string() },
-    })).toThrow(new TypeError('aws_lambda_list_functions: output の nextToken は pecot-tools が足す項目と重なります'))
+    })).toThrow(new TypeError('aws_lambda_list_functions: output keys that overlap the fields pecot-tools adds: nextToken'))
   })
 
   it('max-items のツールは NextToken と nextToken を足す', () => {

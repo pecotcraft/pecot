@@ -404,9 +404,9 @@ export function toolOutputObject(
   added: Readonly<z.ZodRawShape> = {},
 ): z.ZodObject {
   const reserved = [...Object.keys(shape), ...Object.keys(added)].filter(key => Object.hasOwn(COMMON_OUTPUT_SHAPE, key))
-  if (reserved.length > 0) throw new TypeError(`${toolName}: output の ${reserved.join('・')} は MCP の結果の共通の項目の予約名です`)
+  if (reserved.length > 0) throw new TypeError(`${toolName}: output keys reserved for the common fields of the MCP result: ${reserved.join(', ')}`)
   const overlapped = Object.keys(shape).filter(key => Object.hasOwn(added, key))
-  if (overlapped.length > 0) throw new TypeError(`${toolName}: output の ${overlapped.join('・')} は pecot-tools が足す項目と重なります`)
+  if (overlapped.length > 0) throw new TypeError(`${toolName}: output keys that overlap the fields pecot-tools adds: ${overlapped.join(', ')}`)
   return z.strictObject({ ...shape, ...added, ...COMMON_OUTPUT_SHAPE })
 }
 
