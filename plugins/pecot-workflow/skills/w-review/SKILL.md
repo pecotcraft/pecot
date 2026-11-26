@@ -28,10 +28,10 @@ PR が閉じる Issue（`pr_show` の `closing_issues`）があれば、pecot-wo
 
 `closing_issues` が空のときと、計画のコメントが見つからないときは、計画と照らす手順を飛ばしてレビューを続ける。
 
-前の自動レビューの `review-findings` は、次のコマンドで読む。PR のコメントには CUJ のログもあるので、`## Findings` で始まるコメントだけを出す。あれば、この実行は 2 巡目以降になる。
+前の自動レビューの `review-findings` と、書き手が対応を書いたコメント（`## Resolution`）は、次のコマンドで読む。PR のコメントには CUJ のログもあるので、`## Findings` か `## Resolution` で始まるコメントだけを出す。`review-findings` があれば、この実行は 2 巡目以降になる。
 
 ```bash
-gh pr view <PR番号> --repo <owner/repo> --json comments --jq '.comments[] | select(.body | test("^## Findings"; "m")) | .body'
+gh pr view <PR番号> --repo <owner/repo> --json comments --jq '.comments[] | select(.body | test("\\A\\s*## (Findings|Resolution)")) | .body'
 ```
 
 ### Step 2: 前の指摘が直ったかを見る（2 巡目以降）
