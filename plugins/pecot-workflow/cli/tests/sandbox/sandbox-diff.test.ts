@@ -61,16 +61,31 @@ interface Option { id: string, name: string, color: string, description: string 
 interface Field { __typename: string, id: string, name: string, dataType: string, options?: Option[] }
 interface Board { data: { organization: { projectV2: { fields: { nodes: Field[] } } | null } } }
 type Settings = Record<string, unknown>
-interface ProjectConfig { host: string, owner: string, workflow_suffix?: string, project: { number: number } }
+type ConfigFields = Record<string, { id: string, options?: Record<string, string> }>
+interface ProjectConfig { host: string, owner: string, workflow_suffix?: string, project: { number: number, fields?: ConfigFields } }
+
+// 今の実物と同じ欄と選択肢のキー。ID は番号ごとに変える
+function configFields(number: number): ConfigFields {
+  const field = (name: string, keys: readonly string[]) => ({
+    id: `F_${name}_${String(number)}`,
+    options: Object.fromEntries(keys.map((key, index) => [key, `${String(number)}-${String(index)}`])),
+  })
+  return {
+    workflow: field('workflow', ['backlog', 'pending', 'blocked', 'ready', 'active', 'in_review', 'archived']),
+    priority: field('priority', ['high', 'medium', 'low']),
+    size: field('size', ['xs', 's', 'm', 'l']),
+    status: field('status', ['todo', 'in_progress', 'needs_attention']),
+  }
+}
 
 // #701 の前の形の設定ファイル（<host>_<owner>_<題>_<suffix>.json）
 function legacyConfig(slug: string, suffix: string, number: number): [string, ProjectConfig] {
-  return [`github.com_pecotcraft_${slug}_${suffix}.json`, { host: 'github.com', owner: 'pecotcraft', workflow_suffix: suffix, project: { number } }]
+  return [`github.com_pecotcraft_${slug}_${suffix}.json`, { host: 'github.com', owner: 'pecotcraft', workflow_suffix: suffix, project: { number, fields: configFields(number) } }]
 }
 
 // 今の形の設定ファイル（<host>_<owner>_<number>.json）
 function currentConfig(number: number): [string, ProjectConfig] {
-  return [`github.com_pecotcraft_${String(number)}.json`, { host: 'github.com', owner: 'pecotcraft', project: { number } }]
+  return [`github.com_pecotcraft_${String(number)}.json`, { host: 'github.com', owner: 'pecotcraft', project: { number, fields: configFields(number) } }]
 }
 
 // jq -c と同じ形（キーの順は入力のまま）
@@ -177,6 +192,14 @@ class Side {
 
   setConfigs(...configs: readonly [string, ProjectConfig][]): void {
     this.configs = Object.fromEntries(configs)
+  }
+
+  // 設定ファイルが 1 つのときの、その欄
+  configFields(): ConfigFields {
+    const [config] = Object.values(this.configs ?? {})
+    const fields = config?.project.fields
+    if (fields === undefined) throw new Error('設定の欄が無い')
+    return fields
   }
 
   rules(): Rule[] {
@@ -441,6 +464,60 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', LEGACY_FORM, 'renamed.json')))
   })
 
+  it('検証用の設定の status に in_progress が無いと、config-options のずれに両方のキーを出す', () => {
+    const status = scene.sandbox.configFields()['status']
+    if (status?.options === undefined) throw new Error('status が無い')
+    delete status.options['in_progress']
+    const expected = expectedDrifts(drift('config-options / status', compact(['in_progress', 'needs_attention', 'todo']), compact(['needs_attention', 'todo'])))
+    expect(drifted(scene.run())).toStrictEqual(expected)
+  })
+
+  it('検証用だけ priority の選択肢のキーが 1 つ多いと、config-options / priority のずれに出す', () => {
+    const priority = scene.sandbox.configFields()['priority']
+    if (priority?.options === undefined) throw new Error('priority が無い')
+    priority.options['urgent'] = 'x'
+    const expected = expectedDrifts(drift('config-options / priority', compact(['high', 'low', 'medium']), compact(['high', 'low', 'medium', 'urgent'])))
+    expect(drifted(scene.run())).toStrictEqual(expected)
+  })
+
+  it('検証用の設定に欄 size が無いと、検証用を「なし」としてずれに出す', () => {
+    const fields = scene.sandbox.configFields()
+    delete fields['size']
+    const expected = expectedDrifts(drift('config-options / size', compact(['l', 'm', 's', 'xs']), 'なし'))
+    expect(drifted(scene.run())).toStrictEqual(expected)
+  })
+
+  it('検証用の設定に project.fields が無いと、欄ごとに検証用を「なし」として終了コード 1 で終わる', () => {
+    const [name, config] = legacyConfig('pecot-sandbox', 'sandbox', 3)
+    delete config.project.fields
+    scene.sandbox.setConfigs([name, config])
+    const result = scene.run()
+    expect([result.status, result.stderr]).toStrictEqual([1, ''])
+    const lines = splitLines(result.stdout)
+    expect([lines[0], ...lines.filter(line => line.startsWith('config-options / '))]).toStrictEqual([
+      'ずれは 4 件',
+      'config-options / priority',
+      'config-options / size',
+      'config-options / status',
+      'config-options / workflow',
+    ])
+  })
+
+  it('選択肢の ID とキーの並びだけが違うなら、ずれは 0 件', () => {
+    const status = scene.sandbox.configFields()['status']
+    if (status === undefined) throw new Error('status が無い')
+    status.options = { needs_attention: 'a', todo: 'b', in_progress: 'c' }
+    const result = scene.run()
+    expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+  })
+
+  it('同じボードの設定ファイルが 2 つあると、選択肢のキーが違っても config-options を出さない', () => {
+    const [name, config] = currentConfig(3)
+    delete config.project.fields
+    scene.sandbox.setConfigs(legacyConfig('pecot-sandbox', 'sandbox', 3), [name, config])
+    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', LEGACY_FORM, `${CURRENT_FORM}、${LEGACY_FORM}`)))
+  })
+
   it('JSON として読めない設定ファイルは飛ばし、ずれは 0 件', () => {
     scene.sandbox.rawConfigs['broken.json'] = '{'
     const result = scene.run()
@@ -559,7 +636,7 @@ describe('sandbox-diff-items.json', { timeout: 30_000 }, () => {
     expect(compared).toStrictEqual(['FR-001', 'FR-002', 'FR-003'])
     const reasons = Object.fromEntries(items.filter(item => !item.compare).map(item => [item.id, item.reason]))
     expect(reasons).toStrictEqual(specTable(spec, '同じにしなくてよいもの'))
-    expect(new Set(items.filter(item => item.compare).map(item => item.name))).toStrictEqual(new Set(['merge-settings', 'ruleset', 'board-fields', 'config-file', 'workflows']))
+    expect(new Set(items.filter(item => item.compare).map(item => item.name))).toStrictEqual(new Set(['merge-settings', 'ruleset', 'board-fields', 'config-file', 'config-options', 'workflows']))
     expect(items.filter(item => item.compare).every(item => Array.isArray(item.ignore))).toBe(true)
   })
 })
