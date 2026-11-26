@@ -5,10 +5,8 @@ description = "インタフェース定義書の HTML 表示（sphinx-needs）�
 requires-python = ">=3.13"
 dependencies = [
   "sphinx-needs==9.2.*",
-  "sphinx-test-reports==4.0.*",
   "pyyaml",
   "sphinxawesome-theme>=6.0.6",
-  "sphinx-design>=0.8.0",
 ]
 
 [dependency-groups]

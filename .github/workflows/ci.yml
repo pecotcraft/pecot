@@ -269,33 +269,6 @@ jobs:
 
       - *restore-owner
 
-      # 合否のレーンの JUnit を artifact に残す。今は読む job が無く、テストレポートの載せ替え（#645）が使う。
-      # JUnit は dev container の中で書かれるので、持ち主を戻した後に写す。写せなくても tests を落とさない。
-      - name: Stage JUnit
-        if: always()
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-          junit=$(python3 .githooks/scripts/pages_site/lanes.py | jq -r --arg lane "$CHECKS_LANE" '.[] | select(.lane == $lane) | .junit')
-          if [ -z "$junit" ] || [ ! -f "$junit" ]; then
-            echo "no JUnit to stage for $CHECKS_LANE"
-            exit 0
-          fi
-          mkdir -p "$RUNNER_TEMP/pages-junit/$(dirname "$junit")"
-          cp "$junit" "$RUNNER_TEMP/pages-junit/$junit"
-
-      # path はディレクトリにする。ファイル 1 つだと階層が消え、merge-multiple で junit.xml どうしがぶつかる。
-      - name: Upload JUnit
-        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        continue-on-error: true
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: pages-junit-${{ matrix.slug }}
-          path: ${{ runner.temp }}/pages-junit/
-          retention-days: 1
-          overwrite: true
-          if-no-files-found: ignore
-
       # チェックが途中で止まると完了の印が付かないため、印が無ければ失敗にする。
       - *job-summary
 

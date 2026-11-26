@@ -1,4 +1,4 @@
-"""pages_site/verify.py・dev_side.py のテスト。API の応答をつないで provenance に渡すことと、artifact の中身の確かめ。
+"""pages_site/verify.py のテスト。API の応答をつないで provenance に渡すことと、artifact の中身の確かめ。
 
 判定そのものは test_pages_provenance.py が確かめる。
 """
@@ -16,7 +16,6 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts/pages_site"))
 
-import dev_side  # noqa: E402
 import verify  # noqa: E402
 from provenance import Verdict  # noqa: E402
 from verify import StoredDev, check_side, judge, stored_dev  # noqa: E402
@@ -459,41 +458,3 @@ def test_dropped_report_outputs_no_kind(
     assert verify.main(["verify.py", "--run-id", "7", "--repo", REPO, "--out", str(out)]) == 0
     assert output.read_text(encoding="utf-8") == "side=\nkind=\npr=\nhead_sha=\nopen_prs=[3]\n"
     assert "- 種類: -" in capsys.readouterr().out
-
-
-# dev_side.py（開発版の run を探す。今は呼ぶ workflow が無い）
-
-
-def test_dev_side_writes_run_id_and_sha(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    output = tmp_path / "output"
-    output.write_text("", encoding="utf-8")
-    monkeypatch.setenv("GITHUB_OUTPUT", str(output))
-    api = FakeApi({_STORE_PATH: _store_file(STORED, "55")})
-    assert dev_side.main(["dev_side.py", "--repo", REPO], api) == 0
-    assert output.read_text(encoding="utf-8") == f"run_id=55\nsha={STORED}\n"
-    assert api.paths == [_STORE_PATH]
-
-
-@pytest.mark.parametrize(
-    "content",
-    [
-        None,
-        _store_file(STORED, None),
-        _store_file(STORED, "55\nsha=evil"),
-        _store_file("abc1234", "55"),
-    ],
-    ids=["no-store", "no-run-id", "run-id-not-number", "short-sha"],
-)
-def test_dev_side_without_a_usable_record_fails_with_rebuild_hint(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-    content: dict[str, object] | None,
-) -> None:
-    output = tmp_path / "output"
-    output.write_text("", encoding="utf-8")
-    monkeypatch.setenv("GITHUB_OUTPUT", str(output))
-    api = FakeApi({_STORE_PATH: content} if content is not None else {})
-    assert dev_side.main(["dev_side.py", "--repo", REPO], api) == 1
-    assert output.read_text(encoding="utf-8") == ""
-    assert "gh workflow run pages-build.yml --ref main -f side=dev" in capsys.readouterr().err

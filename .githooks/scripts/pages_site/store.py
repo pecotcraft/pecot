@@ -165,7 +165,7 @@ def side_check(tar_path: Path, *, report_links: bool = False) -> list[str]:
 
 
 def _load_read_history() -> Callable[[bytes], list[int]]:
-    # pages_site と test_report の lanes.py が同じ名前なので、release_sources.py と同じくパスで読む
+    # test_report のディレクトリは sys.path に無いので、release_sources.py と同じくパスで読む
     path = Path(__file__).resolve().parents[1] / "test_report/generate.py"
     spec = importlib.util.spec_from_file_location("test_report_generate", path)
     if spec is None or spec.loader is None:

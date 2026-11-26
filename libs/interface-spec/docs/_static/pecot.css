@@ -47,41 +47,6 @@
   white-space: nowrap;
 }
 
-/* 要件の表のテスト結果（「未実行」など）を折り返さない。 */
-#content table.iface-behaviors td:nth-child(3) {
-  white-space: nowrap;
-}
-
-/* 機能要件の状態。記号と文字で見分けられるので、色と線は補いにだけ使う。 */
-.iface-badge {
-  display: inline-block;
-  padding: 0 0.4em;
-  border: 1px solid hsl(var(--border));
-  border-radius: calc(var(--radius) / 2);
-  white-space: nowrap;
-}
-
-.iface-badge.iface-passed {
-  border-color: hsl(var(--ring));
-}
-
-.iface-badge.iface-failed {
-  background: hsl(var(--foreground));
-  border-color: hsl(var(--foreground));
-  color: hsl(var(--background));
-  font-weight: 600;
-}
-
-.iface-badge.iface-skipped,
-.iface-badge.iface-no-test,
-.iface-badge.iface-not-run {
-  color: hsl(var(--muted-foreground));
-}
-
-.iface-badge.iface-not-run {
-  border-style: dashed;
-}
-
 /* エラーの表の終了コードは、短い数なので列の中央に置く。 */
 #content table.iface-errors th:nth-child(3),
 #content table.iface-errors td:nth-child(3) {

@@ -91,7 +91,7 @@ else
     run_nx affected -t "$lane_names" --base="$base" --head="$head" --graph="$graph_pr"
 fi
 
-# slug の作り方は .githooks/scripts/pages_site/lanes.py の slug_of と同じにする。
+# slug の作り方は .githooks/scripts/test_report/lanes.py の slug_of と同じにする。
 # shellcheck disable=SC2016  # node へ渡す JS 本文
 js='
 const fs = require("fs");

@@ -1,11 +1,10 @@
-"""定義書と JUnit から sphinx-needs の need とテストの表を作る拡張。
+"""定義書から sphinx-needs の need とページを作る拡張。
 
-- ``iface-defs <plugin> [<項目の ID> | common]``: コマンド・ツールを cmd、振る舞いを behavior の need にし、
-  outcome を決める。2 つ目を渡すと、その項目とその振る舞いだけ（``common`` は共通の振る舞いだけ）を出す
-- ``iface-index <plugin>``: コマンド・ツールの一覧を、各ページへのリンクと状態ごとの数の表にする
+- ``iface-defs <plugin> [<項目の ID> | common]``: コマンド・ツールを cmd、振る舞いを behavior の need にする。
+  2 つ目を渡すと、その項目とその振る舞いだけ（``common`` は共通の振る舞いだけ）を出す
+- ``iface-index <plugin>``: コマンド・ツールの一覧を、各ページへのリンクの表にする
 - ``iface-common-output <plugin>``: すべての MCP ツールの実行結果に共通する項目の表を出す
-- ``iface-overview``: プラグインごとに、リファレンスのページへのリンクと状態ごとの数を 1 行で出す
-- ``iface-tests <plugin>``: 項目につながるケースだけの JUnit を書き、test-file で描く
+- ``iface-resources <plugin>``: MCP サーバが出す resource の表を出す
 
 定義書の形式は lint-defs が守る。ここでは欠けた欄を警告にして、その項目を飛ばす。
 """
@@ -15,23 +14,17 @@ from __future__ import annotations
 import json
 import re
 import shutil
-from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field, replace
+from collections.abc import Sequence
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
-from xml.etree import ElementTree as ET
 
 import yaml
 from docutils import nodes
-from sphinx.errors import ExtensionError
 from sphinx.util import logging
 from sphinx.util.docutils import SphinxDirective
-from sphinx_design import shared as sd_shared
 from sphinx_needs.api import InvalidNeedException, NeedItemSource, create_need
-from sphinx_needs.roles.need_incoming import NeedIncoming
 from sphinx_needs.utils import add_doc
-from ub_test_reports.errors import ReportReadError
-from ub_test_reports.junitparser import JUnitParser
 
 if TYPE_CHECKING:
     from sphinx.application import Sphinx
@@ -40,216 +33,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-NOT_RUN = "not-run"
-NO_TEST = "no-test"
-FAILED = "failed"
-PASSED = "passed"
-SKIPPED = "skipped"
-# data-model.md の Outcome の表の順。数を並べるときもこの順にする。
-OUTCOMES = (NOT_RUN, NO_TEST, FAILED, PASSED, SKIPPED)
-# 記号と文字。表示は両方を出し、色に頼らない（FR-015）。
-OUTCOME_LABELS = {
-    NOT_RUN: ("\N{QUESTION MARK}", "未実行"),
-    NO_TEST: ("\N{EN DASH}", "テストなし"),
-    FAILED: ("\N{BALLOT X}", "失敗"),
-    PASSED: ("\N{CHECK MARK}", "成功"),
-    SKIPPED: ("\N{MINUS SIGN}", "スキップ"),
-}
-
-_FAILED_RUBRIC = "失敗したテスト"
-_FAILING = frozenset({"failed", "error"})
-_SKIPPING = frozenset({"skipped", "disabled"})
-
-JUNIT_DIR = Path("_generated") / "junit"
 # encodeURIComponent が変えない文字。この形の ID は、そのまま URL の query に書ける。
 _URI_SAFE_ID = re.compile(r"[A-Za-z0-9\-_.!~*'()]+")
-
-
-# ---------------------------------------------------------------- JUnit
-
-
-@dataclass(frozen=True)
-class Case:
-    classname: str
-    name: str
-    time: float
-    result: str
-    message: str
-    text: str
-    type: str
-    ids: tuple[str, ...] = ()
-
-
-@dataclass(frozen=True)
-class Suite:
-    name: str
-    cases: tuple[Case, ...]
-
-
-def outcome_of(cases: list[Case], complete: bool) -> str:
-    """振る舞いの状態。complete は、そのプラグインのレーンの JUnit がすべて読めたこと。条件は data-model.md の表を上から当てる。"""
-    results = {c.result for c in cases}
-    if not complete:
-        return NOT_RUN
-    if not results:
-        return NO_TEST
-    if results & _FAILING:
-        return FAILED
-    return PASSED if "passed" in results else SKIPPED
-
-
-def _weight(c: Case) -> int:
-    return 2 if c.result in _FAILING else 1 if c.result == "passed" else 0
-
-
-def summary_of(c: Case) -> str:
-    """落ちたケースの要旨。message 属性、無ければ本文の先頭の 1 行。"""
-    # 読み手は、message の無い <error> に "unknown" を入れる。
-    absent = not c.message or (c.result == "error" and c.message == "unknown")
-    if not absent:
-        return c.message
-    return next((line.strip() for line in c.text.splitlines() if line.strip()), "")
-
-
-def _split_ids(value: str) -> tuple[str, ...]:
-    return tuple(part for part in (p.strip() for p in value.split(",")) if part)
-
-
-def _flatten(suites: list[dict[str, Any]]) -> list[Suite]:
-    out: list[Suite] = []
-    for suite in suites:
-        cases = tuple(
-            Case(
-                classname=str(c["classname"]),
-                name=str(c["name"]),
-                time=float(c["time"]),
-                result=str(c["result"]),
-                message=str(c["message"]),
-                text=str(c["text"]),
-                type=str(c["type"]),
-                ids=_split_ids(str(c["properties"].get("verifies", ""))),
-            )
-            for c in suite["testcases"]
-        )
-        out.append(Suite(name=str(suite["name"]), cases=cases))
-        out.extend(_flatten(suite["testsuite_nested"]))
-    return out
-
-
-def read_junit(path: Path) -> list[Suite]:
-    """JUnit を sphinx-test-reports と同じ読み手で読む。"""
-    return _flatten(JUnitParser(str(path)).parse())
-
-
-def filter_suites(suites: list[Suite], known: frozenset[str]) -> tuple[list[Suite], set[str]]:
-    """定義書の項目につながるケースだけを残す。残すケースの ID は定義書にあるものだけにする。落とした ID を返す。"""
-    unknown: set[str] = set()
-    kept: list[Suite] = []
-    for suite in suites:
-        cases: list[Case] = []
-        for c in suite.cases:
-            unknown.update(i for i in c.ids if i not in known)
-            ids = tuple(i for i in c.ids if i in known)
-            if ids:
-                cases.append(replace(c, ids=ids))
-        if cases:
-            kept.append(Suite(name=suite.name, cases=tuple(cases)))
-    return kept, unknown
-
-
-_RESULT_ELEMENT = {"failed": "failure", "error": "error", "skipped": "skipped"}
-
-
-def render_junit(suites: list[Suite]) -> str:
-    """絞ったケースを JUnit に書く。ケースごとに verifies を 1 つにまとめ、値を ID のカンマ区切りにする。
-
-    file・line は書かない。vitest の JUnit は持たず、pytest の表にだけ行が増えて列がそろわないため。
-    """
-    root = ET.Element("testsuites")
-    for suite in suites:
-        element = ET.SubElement(
-            root,
-            "testsuite",
-            {
-                "name": suite.name,
-                "tests": str(len(suite.cases)),
-                "failures": str(sum(c.result == "failed" for c in suite.cases)),
-                "errors": str(sum(c.result == "error" for c in suite.cases)),
-                "skipped": str(sum(c.result == "skipped" for c in suite.cases)),
-            },
-        )
-        for c in suite.cases:
-            attrs = {
-                "classname": c.classname,
-                "name": c.name,
-                "time": str(c.time),
-            }
-            if c.result == "disabled":
-                attrs["status"] = "notrun"
-            case = ET.SubElement(element, "testcase", attrs)
-            kind = _RESULT_ELEMENT.get(c.result)
-            if kind is not None:
-                child = ET.SubElement(case, kind, {"message": c.message, "type": c.type})
-                child.text = c.text
-            case_props = ET.SubElement(case, "properties")
-            ET.SubElement(case_props, "property", {"name": "verifies", "value": ",".join(c.ids)})
-    ET.indent(root)
-    return '<?xml version="1.0" encoding="utf-8"?>\n' + ET.tostring(root, encoding="unicode") + "\n"
-
-
-@dataclass
-class Collected:
-    """プラグインの JUnit を読んで絞った結果。"""
-
-    files: list[tuple[Path, list[Suite]]] = field(default_factory=lambda: [])
-    by_id: dict[str, list[Case]] = field(default_factory=lambda: {})
-    unknown: set[str] = field(default_factory=lambda: set())
-    unreadable: list[str] = field(default_factory=lambda: [])
-    # JUnit が無いか読めないレーンの名前。1 つでもあれば、そのプラグインの項目は未実行。
-    missing: list[str] = field(default_factory=lambda: [])
-
-    @property
-    def complete(self) -> bool:
-        return not self.missing
-
-    def outcome(self, behavior_id: str) -> str:
-        return outcome_of(self.by_id.get(behavior_id, []), self.complete)
-
-
-def collect(lanes: dict[str, Path], known: frozenset[str]) -> Collected:
-    """レーン名 → JUnit を読んで絞る。同じケース（classname と name）が重なれば 1 件にし、重い結果と両方の ID を残す。
-
-    1 件にするのは項目とのつなぎだけで、files（テストの表の元）には重なったケースが両方とも残る。
-    """
-    out = Collected()
-    merged: dict[tuple[str, str], Case] = {}
-    for lane, path in lanes.items():
-        if not path.is_file():
-            out.missing.append(lane)
-            continue
-        try:
-            kept, unknown = filter_suites(read_junit(path), known)
-        except ReportReadError as error:
-            out.missing.append(lane)
-            out.unreadable.append(f"{lane}: {error}")
-            continue
-        out.unknown |= unknown
-        if not kept:
-            continue
-        out.files.append((path, kept))
-        for suite in kept:
-            for c in suite.cases:
-                key = (c.classname, c.name)
-                seen = merged.get(key)
-                if seen is None:
-                    merged[key] = c
-                    continue
-                ids = tuple(dict.fromkeys((*seen.ids, *c.ids)))
-                merged[key] = replace(c if _weight(c) > _weight(seen) else seen, ids=ids)
-    for c in merged.values():
-        for i in c.ids:
-            out.by_id.setdefault(i, []).append(c)
-    return out
 
 
 # ---------------------------------------------------------------- 定義書
@@ -328,13 +113,6 @@ def _get(data: dict[str, Any], dotted: str) -> object:
 
 COMMON = "common"
 PAGES_DIR = Path("_generated")
-# iface-overview がリンクする、プラグインのリファレンスのページ。
-REFERENCE_DIR = "/reference/tools"
-
-
-def label(outcome: str) -> str:
-    """「✓ 成功」の形。"""
-    return " ".join(OUTCOME_LABELS[outcome])
 
 
 # 書くことが無いときの決まった値。この値の欄はページに出さない。
@@ -711,10 +489,6 @@ class Plan:
     common_output: list[list[str]] = field(default_factory=lambda: [])
     resources: list[list[str]] = field(default_factory=lambda: [])
 
-    @property
-    def ids(self) -> frozenset[str]:
-        return frozenset(b.id for b in self.behaviors)
-
 
 def _behavior(raw: object, belongs: str | None) -> Behavior:
     item = cast("dict[str, Any]", raw)
@@ -790,71 +564,11 @@ def _load_yaml(path: Path) -> Any:
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-# ---------------------------------------------------------------- 合否のレーン
-
-
-def _lane_outputs(root: Path, project: str, target: str) -> list[str]:
-    """``plugins/<project>/project.json`` の target の outputs。
-
-    nx.json の targetDefaults に outputs が無い前提で、そのまま読む（test_lane_targets_have_no_default_outputs）。
-    """
-    project_json = root / "plugins" / project / "project.json"
-    if not project_json.is_file():
-        raise ValueError(f"{project_json.relative_to(root)} がありません")
-    targets = cast("dict[str, dict[str, Any]]", _load_json(project_json).get("targets", {}))
-    if target not in targets:
-        raise ValueError(f"{project_json.relative_to(root)} に target {target} がありません")
-    outputs: object = targets[target].get("outputs", [])
-    if not isinstance(outputs, list):
-        raise ValueError(
-            f"{project_json.relative_to(root)} の {target} の outputs が配列ではありません"
-        )
-    resolved: list[str] = []
-    for output in cast("list[str]", outputs):
-        unknown = set(re.findall(r"\{[^}]*\}", output)) - {"{projectRoot}"}
-        if unknown:
-            raise ValueError(f"outputs の {', '.join(sorted(unknown))} を解けません")
-        resolved.append(output.replace("{projectRoot}", f"plugins/{project}"))
-    return resolved
-
-
-def load_junit_lanes(path: Path, root: Path) -> dict[str, dict[str, str]]:
-    """junit-lanes.json を読み、プラグインごとの「target → JUnit の絶対パス」にする。決まりに反したら ValueError。"""
-    return junit_lanes_table(_load_json(path), root, path.name)
-
-
-def junit_lanes_table(lanes: object, root: Path, name: str) -> dict[str, dict[str, str]]:
-    """junit-lanes.json と同じ形の値を load_junit_lanes と同じ決まりで読む。name はエラーの文に出す出どころ。"""
-    table: dict[str, dict[str, str]] = {}
-    seen_targets: set[str] = set()
-    seen_junits: set[str] = set()
-    if not isinstance(lanes, list):
-        raise ValueError(f"{name}: レーンの配列ではありません")
-    for i, raw in enumerate(cast("list[Any]", lanes), start=1):
-        lane = cast("dict[str, Any]", raw) if isinstance(raw, dict) else {}
-        plugin, target, junit = (lane.get(k) for k in ("plugin", "target", "junit"))
-        if not (isinstance(plugin, str) and isinstance(target, str) and isinstance(junit, str)):
-            raise ValueError(f"{name} #{i}: plugin・target・junit の文字列が要ります")
-        where = f"{name} #{i} {target} ({junit})"
-        project, sep, name = target.partition(":")
-        if not sep or not project or not name or ":" in name:
-            raise ValueError(f"{where}: target は <project>:<target> の形にします")
-        if plugin != project:
-            raise ValueError(f"{where}: plugin {plugin} が target の project と違います")
-        if target in seen_targets:
-            raise ValueError(f"{where}: 同じ target が 2 回あります")
-        if junit in seen_junits:
-            raise ValueError(f"{where}: 同じ junit が 2 回あります")
-        try:
-            outputs = _lane_outputs(root, project, name)
-        except ValueError as error:
-            raise ValueError(f"{where}: {error}") from error
-        if junit not in outputs:
-            raise ValueError(f"{where}: junit が target の outputs にありません")
-        seen_targets.add(target)
-        seen_junits.add(junit)
-        table.setdefault(plugin, {})[target] = str(root / junit)
-    return table
+def interface_plugins(root: Path) -> list[str]:
+    """``plugins/<名前>/interface/generated.json`` を持つプラグインの名前を、名前の順に返す。"""
+    return sorted(
+        p.parent.parent.name for p in (root / "plugins").glob("*/interface/generated.json")
+    )
 
 
 # ---------------------------------------------------------------- ディレクティブ
@@ -873,11 +587,6 @@ def report_cell(href: str) -> str:
     return f"`テスト <{target}>`__"
 
 
-def _config_junit(config: Config, plugin: str) -> dict[str, Path]:
-    table = cast("dict[str, dict[str, str]]", config.iface_junit)
-    return {lane: Path(p) for lane, p in table.get(plugin, {}).items()}
-
-
 class _Base(SphinxDirective):
     def _plan(self, plugin: str) -> Plan:
         interface = Path(self.config.iface_root) / "plugins" / plugin / "interface"
@@ -885,14 +594,6 @@ class _Base(SphinxDirective):
         self.env.note_dependency(str(generated))
         self.env.note_dependency(str(authored))
         return build_plan(_load_json(generated), _load_yaml(authored))
-
-    def _collect(self, plugin: str, known: frozenset[str]) -> Collected:
-        lanes = _config_junit(self.config, plugin)
-        if not self.config.iface_results:
-            return Collected(missing=list(lanes))
-        for path in lanes.values():
-            self.env.note_dependency(str(path))
-        return collect(lanes, known)
 
 
 class IfaceDefs(_Base):
@@ -905,7 +606,6 @@ class IfaceDefs(_Base):
         plugin = self.arguments[0]
         only = self.arguments[1] if len(self.arguments) > 1 else None
         plan = self._plan(plugin)
-        collected = self._collect(plugin, plan.ids)
         for message in plan.warnings:
             logger.warning(message, location=(self.env.docname, self.lineno))
         if only not in (None, COMMON) and only not in {c.id for c in plan.commands}:
@@ -928,26 +628,18 @@ class IfaceDefs(_Base):
             )
             behaviors = [b for b in plan.behaviors if b.belongs == command.id]
             for b in behaviors:
-                out += self._behavior(b, collected, source)
-            out += self._page(plugin, command, behaviors, collected, single)
+                out += self._behavior(b, source)
+            out += self._page(plugin, command, behaviors, single)
         if only in (None, COMMON):
             behaviors = [b for b in plan.behaviors if b.belongs is None]
             for b in behaviors:
-                out += self._behavior(b, collected, source)
-            lines = [
-                *self._behavior_table(behaviors, collected, plugin),
-                *self._case_notes(behaviors, collected),
-            ]
-            out += self._anchored(lines, behaviors, collected)
+                out += self._behavior(b, source)
+            parsed = self.parse_text_to_nodes("\n".join(self._behavior_table(behaviors, plugin)))
+            out += self._anchored_nodes(parsed, behaviors)
         return out
 
     def _page(
-        self,
-        plugin: str,
-        command: Command,
-        behaviors: list[Behavior],
-        collected: Collected,
-        single: bool,
+        self, plugin: str, command: Command, behaviors: list[Behavior], single: bool
     ) -> list[nodes.Node]:
         """1 項目の表示。need は隠してあるので、ここで ID のアンカーを置き、節を見出しとして描く。
 
@@ -980,12 +672,11 @@ class IfaceDefs(_Base):
                 "",
                 self._behavior_lead(behaviors),
                 "",
-                *self._behavior_table(behaviors, collected, plugin),
-                *self._case_notes(behaviors, collected),
+                *self._behavior_table(behaviors, plugin),
             ]
         parsed = self.parse_text_to_nodes("\n".join(lines), allow_section_headings=True)
         anchor = nodes.raw("", f'<span id="{command.id}"></span>', format="html")
-        return [anchor, *self._anchored_nodes(parsed, behaviors, collected)]
+        return [anchor, *self._anchored_nodes(parsed, behaviors)]
 
     def _behavior_lead(self, behaviors: list[Behavior]) -> str:
         """表の前の 1 文。使う人に、動作を機能要件として決め、テストで確かめていることを伝える。"""
@@ -1009,10 +700,7 @@ class IfaceDefs(_Base):
             return "     -"
         return f"     - {report_cell(href)}"
 
-    def _behavior_table(
-        self, behaviors: list[Behavior], collected: Collected, plugin: str
-    ) -> list[str]:
-        results = bool(self.config.iface_results)
+    def _behavior_table(self, behaviors: list[Behavior], plugin: str) -> list[str]:
         report = self._report_url(plugin)
         lines = [
             ".. list-table::",
@@ -1022,81 +710,16 @@ class IfaceDefs(_Base):
             "",
             "   * - ID",
             "     - 要件",
-            *(["     - テスト結果"] if results else []),
             *(["     - テスト"] if report else []),
         ]
         for b in behaviors:
             lines += [f"   * - {_lit(b.id)}", f"     - {_esc(b.statement)}"]
-            if results:
-                outcome = collected.outcome(b.id)
-                lines += [f"     - :iface-{outcome}:`{label(outcome)}`"]
             if report:
                 lines += [self._report_column(b, report)]
         return [*lines, ""]
 
-    def _case_notes(self, behaviors: list[Behavior], collected: Collected) -> list[str]:
-        """落ちたケースと、通った項目の飛ばしたケースの箇条書き。見出しは rubric で、目次は変わらない。
-
-        本文は _fold_details がノードで足す。rst に入れると、本文の記号が rst として読まれるため。
-        """
-        if not self.config.iface_results:
-            return []
-        failed = self._failed_cases(behaviors, collected)
-        skipped = [
-            (b.id, c)
-            for b in behaviors
-            if collected.outcome(b.id) == PASSED
-            for c in collected.by_id.get(b.id, [])
-            if c.result in _SKIPPING
-        ]
-        lines: list[str] = []
-        if failed:
-            lines += [f".. rubric:: {_FAILED_RUBRIC}", ""]
-            for behavior_id, c in failed:
-                summary = summary_of(c)
-                tail = f": {_esc(summary)}" if summary else ""
-                lines += [f"- {_lit(behavior_id)} {_esc(c.name)}（{_esc(c.classname)}）{tail}"]
-            lines += [""]
-        if skipped:
-            lines += [".. rubric:: スキップしたテスト", ""]
-            lines += [f"- {_lit(i)} {_esc(c.name)}（{_esc(c.classname)}）" for i, c in skipped]
-            lines += [""]
-        return lines
-
-    def _failed_cases(
-        self, behaviors: list[Behavior], collected: Collected
-    ) -> list[tuple[str, Case]]:
-        return [
-            (b.id, c)
-            for b in behaviors
-            if collected.outcome(b.id) == FAILED
-            for c in collected.by_id.get(b.id, [])
-            if c.result in _FAILING
-        ]
-
-    def _fold_details(
-        self, parsed: list[nodes.Node], behaviors: list[Behavior], collected: Collected
-    ) -> None:
-        """落ちたケースの箇条書きの各項目に、本文を折りたたんで足す。"""
-        failed = self._failed_cases(behaviors, collected)
-        for node in parsed:
-            for rubric in node.findall(nodes.rubric):
-                listing = rubric.next_node(nodes.bullet_list, descend=False, siblings=True)
-                if rubric.astext() != _FAILED_RUBRIC or listing is None:
-                    continue
-                for item, (_, c) in zip(listing.children, failed, strict=True):
-                    if c.text.strip():
-                        body = nodes.literal_block(c.text, c.text, language="text")
-                        cast("nodes.Element", item).append(_dropdown("本文", body))
-
-    def _anchored(
-        self, lines: list[str], behaviors: list[Behavior], collected: Collected
-    ) -> list[nodes.Node]:
-        parsed = self.parse_text_to_nodes("\n".join(lines))
-        return self._anchored_nodes(parsed, behaviors, collected)
-
     def _anchored_nodes(
-        self, parsed: list[nodes.Node], behaviors: list[Behavior], collected: Collected
+        self, parsed: list[nodes.Node], behaviors: list[Behavior]
     ) -> list[nodes.Node]:
         """表の行に、振る舞いの ID をそのまま id として付ける。テストからのリンクの先になる。"""
         tables = [
@@ -1110,21 +733,11 @@ class IfaceDefs(_Base):
         ]
         for b, row in zip(behaviors, rows, strict=False):
             row["ids"].append(b.id)
-        self._fold_details(parsed, behaviors, collected)
         return parsed
 
-    def _behavior(
-        self, b: Behavior, collected: Collected, source: NeedItemSource
-    ) -> list[nodes.Node]:
-        outcome = collected.outcome(b.id)
+    def _behavior(self, b: Behavior, source: NeedItemSource) -> list[nodes.Node]:
         return self._need(
-            "behavior",
-            b.statement,
-            b.id,
-            {"outcome": outcome, "tags": [b.pattern]},
-            b.belongs,
-            [],
-            source,
+            "behavior", b.statement, b.id, {"tags": [b.pattern]}, b.belongs, [], source
         )
 
     def _need(
@@ -1166,27 +779,15 @@ def _kind_order(tag: str) -> int:
     return 0 if tag == "mcp" else 1
 
 
-def _summary(outcomes: list[str]) -> str:
-    """振る舞いの状態を「✓ 通った 12・✗ 落ちた 1」の形に数える。0 件の状態は出さない。"""
-    parts = [f"{label(o)} {outcomes.count(o)}" for o in OUTCOMES if o in outcomes]
-    return "・".join(parts) or "—"
-
-
 class IfaceIndex(_Base):
-    """``iface-index <plugin>``。コマンド・ツールの一覧を、各ページへのリンクと状態ごとの数の表にする。"""
+    """``iface-index <plugin>``。コマンド・ツールの一覧を、各ページへのリンクの表にする。"""
 
     required_arguments = 1
 
     def run(self) -> list[nodes.Node]:
         plugin = self.arguments[0]
         plan = self._plan(plugin)
-        collected = self._collect(plugin, plan.ids)
-
-        def outcomes(belongs: str | None) -> list[str]:
-            return [collected.outcome(b.id) for b in plan.behaviors if b.belongs == belongs]
-
         base = f"/{PAGES_DIR.as_posix()}/{plugin}"
-        results = bool(self.config.iface_results)
         kinds = {"cli": "CLI", "mcp": "MCP"}
         rows: list[list[str]] = [
             [
@@ -1194,13 +795,11 @@ class IfaceIndex(_Base):
                 _lit(c.tool),
                 _esc(c.description),
                 _esc("・".join(kinds.get(t, t) for t in sorted(c.tags, key=_kind_order))),
-                *([_esc(_summary(outcomes(c.id)))] if results else []),
             ]
             for c in plan.commands
         ]
-        widths = "18 20 40 8 14" if results else "20 22 48 10"
-        head = ["表示名", "ツール名", "説明", "型", *(["状態"] if results else [])]
-        lines = [".. list-table::", "   :header-rows: 1", f"   :widths: {widths}", ""]
+        head = ["表示名", "ツール名", "説明", "型"]
+        lines = [".. list-table::", "   :header-rows: 1", "   :widths: 20 22 48 10", ""]
         for row in [head, *rows]:
             lines += [("   * - " if i == 0 else "     - ") + cell for i, cell in enumerate(row)]
         return self.parse_text_to_nodes("\n".join(lines))
@@ -1228,58 +827,16 @@ class IfaceResources(_Base):
         return self.parse_text_to_nodes("\n".join(lines))
 
 
-class IfaceOverview(_Base):
-    """``iface-overview``。iface_junit のプラグインごとに、リファレンスのページへのリンクと状態ごとの数を出す。
-
-    iface_results が偽のときは、何も出さない。
-    """
-
-    def run(self) -> list[nodes.Node]:
-        if not self.config.iface_results:
-            return []
-        lines = ["プラグインごとの、機能要件の状態ごとの数です。", ""]
-        lines += [".. list-table::", "   :header-rows: 1", "   :widths: auto", ""]
-        lines += ["   * - プラグイン", "     - 状態"]
-        # 版の帯と同じく、プラグインの名前の順に並べる。
-        for plugin in sorted(cast("dict[str, Any]", self.config.iface_junit)):
-            plan = self._plan(plugin)
-            collected = self._collect(plugin, plan.ids)
-            summary = _summary([collected.outcome(b.id) for b in plan.behaviors])
-            lines += [
-                f"   * - :doc:`{_esc(plugin)} <{REFERENCE_DIR}/{plugin}>`",
-                f"     - {_esc(summary)}",
-            ]
-        return self.parse_text_to_nodes("\n".join(lines))
-
-
-def check_strict(app: Sphinx) -> None:
-    """iface_strict のとき、JUnit が無いか読めないレーンがあれば、その名前を並べて止める。"""
-    if not app.config.iface_strict:
-        return
-    broken: list[str] = []
-    for plugin in cast("dict[str, Any]", app.config.iface_junit):
-        for lane, path in _config_junit(app.config, plugin).items():
-            if not path.is_file():
-                broken.append(lane)
-                continue
-            try:
-                read_junit(path)
-            except ReportReadError:
-                broken.append(lane)
-    if broken:
-        raise ExtensionError(f"次のレーンの JUnit が無いか読めません: {', '.join(broken)}")
-
-
 def write_pages(app: Sphinx) -> None:
     """コマンド・ツールごとの rst を ``_generated/<plugin>/`` に書く。定義書から消えた項目のページは消す。"""
     config = app.config
     if not config.iface_pages:
         return
-    plugins = cast("dict[str, Any]", config.iface_junit)
+    plugins = interface_plugins(Path(config.iface_root))
     root = Path(app.srcdir) / PAGES_DIR
     if root.is_dir():
         for stale_dir in root.iterdir():
-            if stale_dir.is_dir() and stale_dir.name not in {*plugins, JUNIT_DIR.name}:
+            if stale_dir.is_dir() and stale_dir.name not in plugins:
                 shutil.rmtree(stale_dir)
     for plugin in plugins:
         interface = Path(config.iface_root) / "plugins" / plugin / "interface"
@@ -1315,123 +872,16 @@ def write_pages(app: Sphinx) -> None:
                 target.write_text(text, encoding="utf-8")
 
 
-class IfaceTests(_Base):
-    required_arguments = 1
-
-    def run(self) -> list[nodes.Node]:
-        plugin = self.arguments[0]
-        collected = self._collect(plugin, self._plan(plugin).ids)
-        if collected.unknown:
-            logger.info(
-                "iface-tests %s: 定義書に無い ID のケースを落としました: %s",
-                plugin,
-                ", ".join(sorted(collected.unknown)),
-            )
-        # 読めないレーンは欠けたレーンと同じく未実行にする。手元では止めない（FR-019）ので警告にしない。
-        for message in collected.unreadable:
-            logger.info(
-                "JUnit を読めませんでした: %s", message, location=(self.env.docname, self.lineno)
-            )
-        out: list[nodes.Node] = []
-        if collected.missing:
-            out += self._message(
-                "次のレーンの JUnit が無いか読めません。このプラグインの項目は未実行です: "
-                + ", ".join(collected.missing)
-            )
-        elif not collected.files:
-            return self._message("項目につながるテストが無いため、テストの表は出しません。")
-        slug = re.sub(r"[^A-Z0-9]+", "_", plugin.upper())
-        for number, (_, suites) in enumerate(collected.files, start=1):
-            relative = JUNIT_DIR / f"{plugin}-{number}.xml"
-            target = Path(self.env.srcdir) / relative
-            text = render_junit(suites)
-            target.parent.mkdir(parents=True, exist_ok=True)
-            if not target.exists() or target.read_text(encoding="utf-8") != text:
-                target.write_text(text, encoding="utf-8")
-            lines = [
-                f".. test-file:: {_esc(plugin)} {number}",
-                f"   :id: TF_{slug}_{number}",
-                f"   :file: {relative.as_posix()}",
-                "   :auto_suites:",
-                "   :auto_cases:",
-                "",
-            ]
-            out += self.parse_text_to_nodes("\n".join(lines))
-        return out
-
-    def _message(self, text: str) -> list[nodes.Node]:
-        return [nodes.paragraph(text=text)]
-
-
-def _tests_role(
-    _name: str,
-    rawtext: str,
-    text: str,
-    _lineno: int,
-    _inliner: Any,
-    _options: Any = None,
-    _content: Any = None,
-) -> tuple[list[nodes.Node], list[nodes.system_message]]:
-    """振る舞いの ID から、つながるテストの need へのリンクを並べる。sphinx-needs の layout と同じノードを置く。"""
-    node = NeedIncoming(reftarget=text, link_type="verifies_back")
-    node.append(nodes.inline(text, text))
-    return [node], []
-
-
-def _class_role(name: str) -> Any:
-    """文字を、class を付けた inline にする role。合否と面のバッジに使う。"""
-
-    def role(
-        _name: str,
-        rawtext: str,
-        text: str,
-        _lineno: int,
-        _inliner: Any,
-        _options: Any = None,
-        _content: Any = None,
-    ) -> tuple[list[nodes.Node], list[nodes.system_message]]:
-        return [nodes.inline(rawtext, text, classes=["iface-badge", name])], []
-
-    return role
-
-
-def _dropdown(title: str, *body: nodes.Node) -> nodes.container:
-    """sphinx_design の dropdown（閉じた折りたたみ）。directive と同じ形のノードを作る。"""
-    # **attributes に型が無いので、pyright strict のために型を付ける。
-    create = cast("Callable[..., nodes.container]", getattr(sd_shared, "create_component"))  # noqa: B009
-    return create(
-        "dropdown",
-        opened=False,
-        type="dropdown",
-        has_title=True,
-        icon=None,
-        chevron=None,
-        container_classes=["sd-mb-3"],
-        title_classes=[],
-        body_classes=[],
-        children=[nodes.rubric(title, title), *body],
-    )
-
-
 def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_config_value("iface_root", "", "env", types=[str])
-    app.add_config_value("iface_junit", {}, "env", types=[dict])
     app.add_config_value("iface_pages", False, "env", types=[bool])
     app.add_config_value("iface_terms", {}, "env", types=[dict])
-    app.add_config_value("iface_strict", False, "env", types=[bool])
-    app.add_config_value("iface_results", False, "env", types=[bool])
     app.add_config_value("iface_report", {}, "env", types=[dict])
     app.connect("config-inited", _load_terms)
-    app.connect("builder-inited", check_strict)
     app.connect("builder-inited", write_pages)
-    app.add_role("iface-tests", _tests_role)
-    for name in ("iface-tag", *(f"iface-{o}" for o in OUTCOMES)):
-        app.add_role(name, _class_role(name))
     app.add_object_type(MCP_ARG, MCP_ARG, objname="MCP のツールの引数")
     app.add_directive("iface-defs", IfaceDefs)
     app.add_directive("iface-index", IfaceIndex)
     app.add_directive("iface-common-output", IfaceCommonOutput)
     app.add_directive("iface-resources", IfaceResources)
-    app.add_directive("iface-overview", IfaceOverview)
-    app.add_directive("iface-tests", IfaceTests)
     return {"parallel_read_safe": True, "parallel_write_safe": True}

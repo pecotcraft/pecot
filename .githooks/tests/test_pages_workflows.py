@@ -1,4 +1,4 @@
-"""公開サイトの workflow（pages-build.yml・pages-deploy.yml）・ci.yml の JUnit の残し方・ruleset の静的な確かめ。
+"""公開サイトの workflow（pages-build.yml・pages-deploy.yml）・ci.yml がサイトを作らないこと・ruleset の静的な確かめ。
 
 契機・権限・concurrency・artifact の決まりは specs/028-pages-site/contracts/pages.md にある。
 pages-deploy.yml は workflow_run で main の定義だけが動き、マージの後でないと確かめられないため、形をここで固定する。
@@ -21,9 +21,7 @@ _CI = _REPO_ROOT / ".github/workflows/ci.yml"
 _WORKFLOWS = _REPO_ROOT / ".github/workflows"
 _ACTIONLINT = _REPO_ROOT / ".github/actionlint.yaml"
 _RULESETS = _REPO_ROOT / ".github/rulesets"
-_JUNIT_LANES = _REPO_ROOT / "libs/interface-spec/docs/junit-lanes.json"
 
-_SAME_REPO = "github.event.pull_request.head.repo.full_name == github.repository"
 _PREVIEW_IF = (
     "${{ !cancelled() && needs.verify.outputs.side == 'pr' && needs.store.result == 'success'"
     " && (needs.deploy.result == 'success'"
@@ -146,8 +144,7 @@ def test_build_makes_the_site_without_running_tests() -> None:
     ]
     runs = "\n".join(s.get("run", "") for s in _all_steps(_BUILD))
     assert re.findall(r"nx run \S+", runs) == ["nx run interface-spec:docs"]
-    for word in ("lanes.py", "collect.py", "run-pr-checks.sh"):
-        assert word not in runs, word
+    assert "run-pr-checks.sh" not in runs
     release = _step(_BUILD, "build", "Build release side")
     assert release["if"] == "env.SIDE == 'release'"
     assert "release_build.py" in release["run"]
@@ -158,11 +155,6 @@ def test_build_passes_site_env_into_container() -> None:
     assert env["PECOT_SITE_SIDE"] == "${{ needs.side.outputs.side }}"
     assert env["PECOT_SITE_PR"] == "${{ needs.side.outputs.pr }}"
     assert env["DEVCONTAINER_ENV"].split() == ["PECOT_SITE_SIDE", "PECOT_SITE_PR"]
-    # 合否を出す env は、どの workflow も渡さない。
-    for path in (_BUILD, _CI, _DEPLOY):
-        text = path.read_text(encoding="utf-8")
-        assert "PECOT_SITE_STRICT" not in text, path.name
-        assert "PECOT_SITE_RESULTS" not in text, path.name
 
 
 def test_build_permissions_are_contents_read_only() -> None:
@@ -415,39 +407,9 @@ def test_actionlint_ignores_queue_for_pages_deploy() -> None:
 # ---------------------------------------------------------------- ci.yml
 
 
-def test_tests_stage_junit_after_restoring_owner() -> None:
-    names = [s.get("name") for s in _steps(_CI, "tests")]
-    assert names.index("Restore workspace owner") < names.index("Stage JUnit")
-    assert names.index("Stage JUnit") < names.index("Upload JUnit")
-    stage = _step(_CI, "tests", "Stage JUnit")
-    assert stage["if"] == "always()"
-    assert "lanes.py" in stage["run"]
-    assert '"$RUNNER_TEMP/pages-junit/$junit"' in stage["run"]
-
-
-def test_tests_upload_junit_as_directory_for_same_repo_prs() -> None:
-    upload = _step(_CI, "tests", "Upload JUnit")
-    assert upload["if"] == f"always() && github.event_name == 'pull_request' && {_SAME_REPO}"
-    # ファイル 1 つを渡すと階層が消え、merge-multiple で junit.xml どうしがぶつかる。
-    assert upload["with"]["path"] == "${{ runner.temp }}/pages-junit/"
-    assert upload["with"]["name"] == "pages-junit-${{ matrix.slug }}"
-    assert upload["with"]["retention-days"] == 1
-    assert upload["with"]["overwrite"] is True
-
-
 def test_ci_does_not_build_the_site() -> None:
     assert "pages-preview" not in _load(_CI)["jobs"]
     assert "interface-spec:docs" not in _CI.read_text(encoding="utf-8")
-
-
-def test_junit_lanes_are_nx_outputs() -> None:
-    # nx のキャッシュに当たったレーンでも、JUnit が作業ツリーに戻る前提を固定する。
-    for lane in json.loads(_JUNIT_LANES.read_text(encoding="utf-8")):
-        project = _REPO_ROOT / "plugins" / lane["plugin"]
-        targets = json.loads((project / "project.json").read_text(encoding="utf-8"))["targets"]
-        target = lane["target"].split(":", 1)[1]
-        relative = Path(lane["junit"]).relative_to(Path("plugins") / lane["plugin"]).as_posix()
-        assert f"{{projectRoot}}/{relative}" in targets[target].get("outputs", []), lane["target"]
 
 
 # ---------------------------------------------------------------- 共通

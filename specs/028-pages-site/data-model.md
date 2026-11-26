@@ -32,6 +32,8 @@
 
 ## 合否のレーン（JunitLane）
 
+2026-11-26 に 030（#699）で取り下げた。`junit-lanes.json` は消え、サイトに載せるプラグインは定義書（`plugins/*/interface/generated.json`）を持つものから決まる。
+
 `libs/interface-spec/docs/junit-lanes.json` の 1 項目。
 
 | 欄 | 例 | 決まり |
@@ -47,6 +49,8 @@
 - `target` の `outputs` に `junit` が入っていなければならない（`interface-spec:test-unit` で確かめる）
 
 ## 振る舞いの状態（Outcome）
+
+2026-11-26 に 030（#699）で取り下げた。サイトは状態を描かず、テストの結果は Allure Report が出す。下の FailureNote・OutcomeCount も同じ。
 
 振る舞いの項目 1 つの状態。つながるテストのケースの結果から決める。
 
@@ -92,7 +96,7 @@
 | `tags` | プラグインごとの最新のタグ。`<plugin>-v<semver>` のうち、プレリリースの接尾辞が無いものの semver の最大値。プラグインは main の `plugins/*/.claude-plugin/plugin.json` から決める |
 | `commits` | 各タグが指すコミット |
 | `skeleton` | `commits` のうち、ほかのすべてを祖先に持つもの。骨組み（`libs/interface-spec`）と骨組みの文書をここから取る |
-| `lanes` | 各プラグインのタグのコミットの `junit-lanes.json` のうち、そのプラグインのレーン |
+| `lanes` | 各プラグインのタグのコミットの `junit-lanes.json` のうち、そのプラグインのレーン（2026-11-26 に 030（#699）で取り下げた。タグのコミットに `junit-lanes.json` を求めない） |
 
 決まり:
 

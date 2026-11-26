@@ -1,7 +1,6 @@
 """リリース版の材料（ReleaseSources）を、プラグインごとの最新のタグから決める。
 
-標準出力に tags・commits・skeleton・lanes の JSON を出す。
---record に release-sources.json、--lanes に junit-lanes.json と同じ形のレーンの一覧を書く。
+標準出力に tags・commits・skeleton の JSON を出す。--record に release-sources.json を書く。
 --report {dev,release} のときは、テストレポートの材料（ReportSources）と matrix を出す。
 """
 
@@ -18,15 +17,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
-from lanes import matrix
-
-JUNIT_LANES = "libs/interface-spec/docs/junit-lanes.json"
 REPORT_LANES = ".githooks/scripts/test_report/report-lanes.json"
 _SHA = re.compile(r"[0-9a-f]{40}")
 
 
 def _load_report_matrix() -> Callable[[object], list[dict[str, str]]]:
-    # pages_site の lanes.py と名前がぶつかるので、generate.py と同じくパスで読む
+    # test_report のディレクトリは sys.path に無いので、generate.py と同じくパスで読む
     path = Path(__file__).resolve().parents[1] / "test_report/lanes.py"
     spec = importlib.util.spec_from_file_location("test_report_lanes", path)
     if spec is None or spec.loader is None:
@@ -48,13 +44,12 @@ class ReleaseSources:
     tags: dict[str, str]
     commits: dict[str, str]
     skeleton: str
-    lanes: list[dict[str, str]]
 
     def record(self) -> dict[str, object]:
         return {"tags": self.tags, "commits": self.commits, "skeleton": self.skeleton}
 
     def to_json(self) -> dict[str, object]:
-        return {**self.record(), "lanes": self.lanes}
+        return self.record()
 
 
 @dataclass(frozen=True)
@@ -82,21 +77,6 @@ def _str_map(data: dict[str, object], key: str) -> dict[str, str]:
     return cast("dict[str, str]", items)
 
 
-def _lane_list(value: object, where: str) -> list[dict[str, str]]:
-    if not isinstance(value, list):
-        raise ReleaseSourcesError(f"{where}: レーンの配列ではありません")
-    result: list[dict[str, str]] = []
-    for i, item in enumerate(cast("list[object]", value), start=1):
-        if not isinstance(item, dict):
-            raise ReleaseSourcesError(f"{where} #{i}: レーンがオブジェクトではありません")
-        entry = cast("dict[str, object]", item)
-        fields = {key: entry.get(key) for key in ("plugin", "target", "junit")}
-        if not all(isinstance(v, str) for v in fields.values()):
-            raise ReleaseSourcesError(f"{where} #{i}: plugin・target・junit の文字列が要ります")
-        result.append(cast("dict[str, str]", fields))
-    return result
-
-
 def from_json(data: object) -> ReleaseSources:
     """release_sources.py の標準出力の JSON を読み戻す。"""
     if not isinstance(data, dict):
@@ -109,7 +89,6 @@ def from_json(data: object) -> ReleaseSources:
         tags=_str_map(obj, "tags"),
         commits=_str_map(obj, "commits"),
         skeleton=skeleton,
-        lanes=_lane_list(obj.get("lanes"), "lanes"),
     )
     if set(sources.tags) != set(sources.commits) or not sources.tags:
         raise ReleaseSourcesError("tags と commits のプラグインがそろいません")
@@ -175,29 +154,12 @@ def resolve(
     *,
     commit_of: Callable[[str], str],
     is_ancestor: Callable[[str, str], bool],
-    read_lanes: Callable[[str], object | None],
     main: str,
 ) -> ReleaseSources:
     tags, commits, skeleton = resolve_tags(
         tag_names, plugins, commit_of=commit_of, is_ancestor=is_ancestor, main=main
     )
-    lanes: list[dict[str, str]] = []
-    for plugin, tag in tags.items():
-        data = read_lanes(commits[plugin])
-        if data is None:
-            raise ReleaseSourcesError(
-                f"{tag} のコミットに {JUNIT_LANES} がありません。"
-                "合否のレーンの一覧を持つタグが出るまで、リリース版は作れません"
-            )
-        own = [
-            lane for lane in _lane_list(data, f"{tag}:{JUNIT_LANES}") if lane["plugin"] == plugin
-        ]
-        lanes.extend(own)
-    try:
-        matrix(lanes)
-    except ValueError as error:
-        raise ReleaseSourcesError(str(error)) from error
-    return ReleaseSources(tags=tags, commits=commits, skeleton=skeleton, lanes=lanes)
+    return ReleaseSources(tags=tags, commits=commits, skeleton=skeleton)
 
 
 def _owned_by(plugin: str | None) -> Callable[[dict[str, object]], bool]:
@@ -336,7 +298,6 @@ def resolve_git(root: Path, main: str) -> ReleaseSources:
         plugins,
         commit_of=_git_commit_of(root),
         is_ancestor=_git_ancestor(root),
-        read_lanes=_git_reader(root, JUNIT_LANES),
         main=main,
     )
 
@@ -366,7 +327,6 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--main", default="origin/main")
     parser.add_argument("--root", type=Path, default=Path("."))
     parser.add_argument("--record", type=Path)
-    parser.add_argument("--lanes", type=Path)
     parser.add_argument(
         "--report", choices=["dev", "release"], help="テストレポートの材料と matrix を出す"
     )
@@ -376,8 +336,8 @@ def main(argv: list[str]) -> int:
         parser.error("--commit は --report dev だけで使えます")
     if args.report == "dev" and args.commit is None:
         parser.error("--report dev には --commit が要ります")
-    if args.report is not None and (args.record is not None or args.lanes is not None):
-        parser.error("--report は --record・--lanes と一緒に使えません")
+    if args.report is not None and args.record is not None:
+        parser.error("--report は --record と一緒に使えません")
     try:
         if args.report is not None:
             report = resolve_report_git(args.root, args.report, main=args.main, commit=args.commit)
@@ -389,8 +349,6 @@ def main(argv: list[str]) -> int:
         return 1
     if args.record is not None:
         _write_json(args.record, sources.record())
-    if args.lanes is not None:
-        _write_json(args.lanes, sources.lanes)
     print(json.dumps(sources.to_json(), ensure_ascii=False, separators=(",", ":")))
     return 0
 

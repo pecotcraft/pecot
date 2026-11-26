@@ -1,14 +1,14 @@
 """iface_defs 拡張のテスト。小さいリポジトリの形の fixture を Sphinx で実際にビルドし、needs.json・HTML・警告を読む。"""
 
-import fnmatch
 import html
 import json
 import os
 import re
 import runpy
+import shutil
 import sys
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import pytest
 from docutils import core as docutils_core
@@ -24,10 +24,8 @@ from iface_defs import (  # noqa: E402
     COMMON_OUTPUT_TITLE,
     MCP_FIELDS_EMPTY,
     PLUGIN_KEY,
-    Case,
     common_output_label,
-    load_junit_lanes,
-    outcome_of,
+    interface_plugins,
     render_sections,
     report_cell,
     report_href,
@@ -50,18 +48,8 @@ Sample
 .. iface-defs:: sample
 
 .. needtable::
-   :columns: id;title;outcome;verifies_back
-
-.. iface-tests:: sample
+   :columns: id;title
 """
-
-JUNIT_VITEST = FIXTURES / "junit" / "vitest.xml"
-JUNIT_PYTEST = FIXTURES / "junit" / "pytest.xml"
-JUNIT_NOTES = FIXTURES / "junit" / "vitest-notes.xml"
-JUNIT_OVERLAP = FIXTURES / "junit" / "vitest-overlap.xml"
-JUNIT_OVERLAP_IDS = FIXTURES / "junit" / "vitest-overlap-ids.xml"
-# 合否のレーン（target）→ JUnit。conf.py の iface_junit のプラグインごとの値と同じ形。
-LANES = {"sample:test-vitest": JUNIT_VITEST, "sample:test-pytest": JUNIT_PYTEST}
 
 
 class Built:
@@ -83,14 +71,12 @@ class Built:
 
 def build(
     tmp_path: Path,
-    junit: dict[str, Path],
     capfd: pytest.CaptureFixture[str],
     files: dict[str, str] | None = None,
     pages: bool = False,
-    strict: bool = False,
     site: dict[str, str] | None = None,
-    results: bool = True,
     plugins: tuple[str, ...] = ("sample",),
+    root: Path = FIXTURES / "repo",
 ) -> Built:
     src = tmp_path / "src"
     src.mkdir(exist_ok=True)
@@ -98,7 +84,6 @@ def build(
     for name, text in (files or {}).items():
         (src / name).parent.mkdir(parents=True, exist_ok=True)
         (src / name).write_text(text, encoding="utf-8")
-    junit_map = {"sample": {lane: str(p) for lane, p in junit.items()}}
     stamp = site_stamp(site or {}, plugins).context()
     context = {"site": stamp}
     report = {"url": stamp["report_url"], "plugins": stamp["report_plugins"]}
@@ -106,11 +91,8 @@ def build(
         "import runpy\n"
         f"_ns = runpy.run_path({str(DOCS / 'conf.py')!r})\n"
         "globals().update({k: v for k, v in _ns.items() if not k.startswith('__')})\n"
-        f"iface_root = {str(FIXTURES / 'repo')!r}\n"
-        f"iface_junit = {junit_map!r}\n"
+        f"iface_root = {str(root)!r}\n"
         f"iface_pages = {pages!r}\n"
-        f"iface_strict = {strict!r}\n"
-        f"iface_results = {results!r}\n"
         f"html_context = {context!r}\n"
         f"iface_report = {report!r}\n"
         f"templates_path = [{str(DOCS / '_templates')!r}]\n",
@@ -128,21 +110,7 @@ def build(
 
 @pytest.fixture
 def full(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> Built:
-    return build(tmp_path, LANES, capfd)
-
-
-def outcomes_of(built: Built) -> dict[str, str]:
-    return {
-        i: n["outcome"]
-        for i, n in built.needs.items()
-        if i.startswith("SM-") and n["type"] == "behavior"
-    }
-
-
-def broken_junit(tmp_path: Path) -> Path:
-    path = tmp_path / "broken.xml"
-    path.write_text("<testsuites><testsuite", encoding="utf-8")
-    return path
+    return build(tmp_path, capfd)
 
 
 def test_need_ids_from_definitions(full: Built) -> None:
@@ -209,7 +177,7 @@ def test_prerequisites_join_the_description_and_environment_is_not_shown(full: B
 def test_page_headings_run_through_requirements_in_one_order(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    built = build(tmp_path, LANES, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
+    built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
     assert built.code == 0
     # 定義書の behaviors は 1 件以上（schema.ts の min(1)）なので、どのページも「機能要件」で終わる。
     for page in ("one-run", "sample_two"):
@@ -242,110 +210,12 @@ def test_every_table_is_wrapped_in_a_scroll_region(full: Built) -> None:
     assert len([w for w in wrappers if all(a in w for a in expected)]) == tables
 
 
-def test_outcomes(full: Built) -> None:
-    # レーンがそろっているので、つながるケースが 0 件の項目は no-test、すべて skipped の項目は skipped。
-    assert outcomes_of(full) == {
-        "SM-ONE-01": "passed",
-        "SM-ONE-02": "passed",
-        "SM-ONE-03": "no-test",
-        "SM-TWO-01": "passed",
-        "SM-TWO-02": "failed",
-        "SM-TWO-03": "no-test",
-        "SM-COMMON-01": "skipped",
-    }
-
-
-def test_outcome_is_shown_with_symbol_and_text(full: Built) -> None:
-    html = full.html()
-    for label in ("✓ 成功", "✗ 失敗", "− スキップ", "– テストなし"):
-        assert label in html
-    assert re.search(r'class="[^"]*iface-no-test[^"]*">– テストなし<', html)
-
-
-def test_missing_lane_makes_every_item_not_run(
-    tmp_path: Path, capfd: pytest.CaptureFixture[str]
-) -> None:
-    lanes = {**LANES, "sample:test-gone": tmp_path / "missing.xml"}
-    built = build(tmp_path, lanes, capfd)
-    assert built.code == 0
-    assert set(outcomes_of(built).values()) == {"not-run"}
-    html = built.html()
-    assert (
-        "次のレーンの JUnit が無いか読めません。このプラグインの項目は未実行です: sample:test-gone"
-        in html
-    )
-    assert "\N{QUESTION MARK} 未実行" in html
-    # そろったレーンのテストの表は出す。
-    assert any(n["type"] == "testcase" for n in built.needs.values())
-
-
-def test_unreadable_lane_is_missing_too(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
-    lanes = {**LANES, "sample:test-broken": broken_junit(tmp_path)}
-    built = build(tmp_path, lanes, capfd)
-    assert built.code == 0
-    assert set(outcomes_of(built).values()) == {"not-run"}
-    assert "このプラグインの項目は未実行です: sample:test-broken" in built.html()
-
-
-def test_verifies_links_cases(full: Built) -> None:
-    def names(item: str) -> list[str]:
-        return sorted(full.needs[c]["title"] for c in full.needs[item]["verifies_back"])
-
-    assert names("SM-ONE-01") == ["test_normal"]
-    assert names("SM-ONE-02") == ["test_normal"]
-    assert names("SM-TWO-01") == ["sample_two > 呼ぶと、2 つを返す"]
-    assert names("SM-TWO-02") == ["test_broken"]
-    assert names("SM-ONE-03") == []
-
-
-def test_pytest_and_vitest_cases_have_same_fields(full: Built) -> None:
-    cases = [n for n in full.needs.values() if n["type"] == "testcase"]
-    assert {n["title"] for n in cases} >= {"test_normal", "sample_two > 呼ぶと、2 つを返す"}
-    assert all(not n.get("case_file") and not n.get("case_line") for n in cases)
-
-
-def test_cases_without_verifies_are_dropped(full: Built) -> None:
-    titles = {n["title"] for n in full.needs.values()}
-    assert "test_other" not in titles
-    assert "つながらないケース" not in titles
-
-
-def test_unknown_id_is_dropped_and_reported(full: Built) -> None:
-    titles = {n["title"] for n in full.needs.values()}
-    assert "消えた項目のケース" not in titles
-    assert "SM-GONE-01" in full.stdout
-    assert "SM-GONE-01" not in full.warnings
-
-
 def test_broken_entries_become_warnings_and_are_skipped(full: Built) -> None:
     assert "SM-BAD" in full.warnings
     assert "SM-HALF-01" in full.warnings
     assert "SM-BAD" not in full.needs
     assert "SM-HALF-01" not in full.needs
     assert full.code == 0
-
-
-def test_without_junit_everything_is_not_run(
-    tmp_path: Path, capfd: pytest.CaptureFixture[str]
-) -> None:
-    built = build(tmp_path, {"sample:test-cli": tmp_path / "missing.xml"}, capfd)
-    assert built.code == 0
-    assert set(outcomes_of(built).values()) == {"not-run"}
-    assert "このプラグインの項目は未実行です: sample:test-cli" in built.html()
-    assert not [n for n in built.needs.values() if n["type"] == "testcase"]
-
-
-def test_junit_without_connected_cases(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
-    plain = tmp_path / "plain.xml"
-    plain.write_text(
-        '<testsuites><testsuite name="s" tests="1" failures="0" errors="0" skipped="0">'
-        '<testcase classname="c" name="n" time="0.1"/></testsuite></testsuites>',
-        encoding="utf-8",
-    )
-    built = build(tmp_path, {"sample:test-cli": plain}, capfd)
-    assert built.code == 0
-    assert set(outcomes_of(built).values()) == {"no-test"}
-    assert "項目につながるテストが無い" in built.html()
 
 
 PAGES_INDEX = """\
@@ -359,160 +229,46 @@ Sample
    :glob:
 
    _generated/sample/*
-
-.. iface-tests:: sample
 """
 
 
-def test_index_table_links_and_counts(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
-    built = build(tmp_path, LANES, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
+def test_index_table_links_each_page(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
+    built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
     assert built.code == 0
-    html = built.html()
+    page = built.html()
+    (head,) = re.findall(r"<thead>(.*?)</thead>", page, flags=re.S)
+    assert re.findall(r"<th[^>]*><p>([^<]*)</p></th>", head) == ["表示名", "ツール名", "説明", "型"]
     rows = {
-        name: (href, counts)
-        for href, name, counts in re.findall(
-            r'<td><p><a class="reference internal" href="([^"]+)"><span[^>]*>([^<]+)</span></a></p></td>'
-            r"(?:\s*<td>.*?</td>){3}\s*<td><p>([^<]*)</p></td>",
-            html,
-            flags=re.S,
+        name: href
+        for href, name in re.findall(
+            r'<td><p><a class="reference internal" href="([^"]+)"><span[^>]*>([^<]+)</span></a></p></td>',
+            page,
         )
     }
-    # 並びは data-model.md の Outcome の表の順。0 件の状態は出さない。
     assert rows == {
-        "one run": ("_generated/sample/one-run.html", "– テストなし 1・✓ 成功 2"),
-        "Sample two": (
-            "_generated/sample/sample_two.html",
-            "– テストなし 1・✗ 失敗 1・✓ 成功 1",
-        ),
-        "half entry": ("_generated/sample/half-entry.html", "—"),
+        "one run": "_generated/sample/one-run.html",
+        "Sample two": "_generated/sample/sample_two.html",
+        "half entry": "_generated/sample/half-entry.html",
     }
-
-
-OVERVIEW_INDEX = """\
-Top
-===
-
-.. iface-overview::
-
-.. toctree::
-   :hidden:
-
-   reference/tools/sample
-"""
-
-
-def test_overview_counts_states_per_plugin(
-    tmp_path: Path, capfd: pytest.CaptureFixture[str]
-) -> None:
-    built = build(
-        tmp_path,
-        LANES,
-        capfd,
-        files={"index.rst": OVERVIEW_INDEX, "reference/tools/sample.rst": INDEX},
-    )
-    assert built.code == 0
-    rows = re.findall(
-        r'<td><p><a class="reference internal" href="([^"]+)"><span[^>]*>([^<]+)</span></a></p></td>'
-        r"\s*<td><p>([^<]*)</p></td>",
-        built.html(),
-        flags=re.S,
-    )
-    assert rows == [
-        (
-            "reference/tools/sample.html",
-            "sample",
-            "– テストなし 2・✗ 失敗 1・✓ 成功 3・− スキップ 1",
-        )
-    ]
 
 
 DEFS_ONLY = "Sample\n======\n\n.. iface-defs:: sample\n"
 
 
-# ---------------------------------------------------------------- iface_results が偽（公開のサイト）
-
-
-def test_without_results_requirement_tables_have_no_result_column(
+def test_requirement_tables_have_id_and_requirement_columns(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    # JUnit があっても読まない。
-    built = build(tmp_path, LANES, capfd, files={"index.rst": DEFS_ONLY}, results=False)
+    built = build(tmp_path, capfd, files={"index.rst": DEFS_ONLY})
     assert built.code == 0
-    html = built.html()
-    heads = re.findall(r"<thead>(.*?)</thead>", html, flags=re.S)
+    page = built.html()
+    heads = re.findall(r"<thead>(.*?)</thead>", page, flags=re.S)
     behaviors = [h for h in heads if "要件" in h]
     assert behaviors
     for head in behaviors:
         assert re.findall(r"<th[^>]*><p>([^<]*)</p></th>", head) == ["ID", "要件"]
     for word in ("テスト結果", "未実行", "成功", "失敗したテスト", "スキップしたテスト"):
-        assert word not in html, word
-    assert 'id="SM-ONE-01"' in html
-
-
-def test_without_results_index_and_overview_have_no_counts(
-    tmp_path: Path, capfd: pytest.CaptureFixture[str]
-) -> None:
-    index = OVERVIEW_INDEX.replace("Top\n===\n", "Top\n===\n\n.. iface-index:: sample\n")
-    built = build(
-        tmp_path,
-        LANES,
-        capfd,
-        files={"index.rst": index, "reference/tools/sample.rst": DEFS_ONLY},
-        pages=True,
-        results=False,
-    )
-    assert built.code == 0
-    html = built.html()
-    (head,) = re.findall(r"<thead>(.*?)</thead>", html, flags=re.S)
-    assert re.findall(r"<th[^>]*><p>([^<]*)</p></th>", head) == ["表示名", "ツール名", "説明", "型"]
-    for word in ("状態", "未実行", "機能要件の状態ごとの数"):
-        assert word not in html, word
-
-
-@pytest.mark.parametrize(("value", "excluded"), [(None, True), ("0", True), ("1", False)])
-def test_conf_shows_results_and_report_pages_only_with_env(
-    monkeypatch: pytest.MonkeyPatch, value: str | None, excluded: bool
-) -> None:
-    monkeypatch.delenv("PECOT_SITE_RESULTS", raising=False)
-    if value is not None:
-        monkeypatch.setenv("PECOT_SITE_RESULTS", value)
-    conf = runpy.run_path(str(DOCS / "conf.py"))
-    assert conf["iface_results"] is (not excluded)
-    assert ("development" in conf["exclude_patterns"]) is excluded
-
-
-def test_same_case_in_two_junits_counts_once_and_heavier_wins(
-    tmp_path: Path, capfd: pytest.CaptureFixture[str]
-) -> None:
-    lanes = {
-        **LANES,
-        "sample:test-overlap": JUNIT_OVERLAP,
-        "sample:test-overlap-again": JUNIT_OVERLAP,
-    }
-    built = build(tmp_path, lanes, capfd, files={"index.rst": DEFS_ONLY})
-    assert built.code == 0
-    got = outcomes_of(built)
-    # vitest.xml では passed・skipped のケースが、重なりの JUnit では failed・passed。重い方を残す。
-    assert got["SM-TWO-01"] == "failed"
-    assert got["SM-COMMON-01"] == "passed"
-    html = built.html()
-    assert _list_items(html, "失敗したテスト") == [
-        "SM-TWO-01 sample_two > 呼ぶと、2 つを返す（tests/sample.test.ts）: dup-fail",
-        "SM-TWO-02 test_broken（tests.test_one.TestTwo）: boom",
-    ]
-    assert "スキップしたテスト" not in html
-
-
-def test_same_case_with_different_ids_links_both_items(
-    tmp_path: Path, capfd: pytest.CaptureFixture[str]
-) -> None:
-    lanes = {**LANES, "sample:test-overlap-ids": JUNIT_OVERLAP_IDS}
-    built = build(tmp_path, lanes, capfd, files={"index.rst": DEFS_ONLY})
-    assert built.code == 0
-    got = outcomes_of(built)
-    # 同名のケースが SM-TWO-01 と SM-ONE-03 を別々に確かめる。どちらの項目にも結果がつながる。
-    assert got["SM-TWO-01"] == "passed"
-    assert got["SM-ONE-03"] == "passed"
+        assert word not in page, word
+    assert 'id="SM-ONE-01"' in page
 
 
 def test_pages_are_written_and_stale_ones_removed(
@@ -523,9 +279,7 @@ def test_pages_are_written_and_stale_ones_removed(
     (generated / "sample" / "old-name.rst").write_text("Old\n===\n", encoding="utf-8")
     (generated / "gone").mkdir()
     (generated / "gone" / "x.rst").write_text("X\n=\n", encoding="utf-8")
-    (generated / "junit").mkdir()
-    (generated / "junit" / "keep.xml").write_text("<testsuites/>", encoding="utf-8")
-    built = build(tmp_path, LANES, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
+    built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
     assert built.code == 0
     assert {p.name for p in (generated / "sample").glob("*.rst")} == {
         "one-run.rst",
@@ -533,16 +287,32 @@ def test_pages_are_written_and_stale_ones_removed(
         "half-entry.rst",
     }
     assert not (generated / "gone").exists()
-    assert (generated / "junit" / "keep.xml").is_file()
     assert ".. iface-defs:: sample SM-ONE" in (generated / "sample" / "one-run.rst").read_text(
         encoding="utf-8"
     )
 
 
+def test_pages_are_written_only_for_plugins_with_generated_json(
+    tmp_path: Path, capfd: pytest.CaptureFixture[str]
+) -> None:
+    root = tmp_path / "repo"
+    shutil.copytree(FIXTURES / "repo", root)
+    (root / "plugins" / "bare" / ".claude-plugin").mkdir(parents=True)
+    (root / "plugins" / "bare" / ".claude-plugin" / "plugin.json").write_text(
+        "{}", encoding="utf-8"
+    )
+    (root / "plugins" / "half" / "interface").mkdir(parents=True)
+    (root / "plugins" / "half" / "interface" / "authored.yaml").write_text("{}", encoding="utf-8")
+    built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True, root=root)
+    assert built.code == 0
+    assert interface_plugins(root) == ["sample"]
+    assert sorted(p.name for p in (tmp_path / "src" / "_generated").iterdir()) == ["sample"]
+
+
 def test_permalink_reaches_each_item_on_its_page(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    built = build(tmp_path, LANES, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
+    built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
     assert built.code == 0
     # permalink.html は needs.json を読み、項目の docname の HTML へ移る。
     assert "loadJSON('needs.json'" in built.html("permalink.html")
@@ -560,19 +330,9 @@ Page
 """
 
 
-def page_build(
-    tmp_path: Path,
-    capfd: pytest.CaptureFixture[str],
-    arg: str,
-    lanes: dict[str, Path] | None = None,
-) -> Built:
-    index = "Sample\n======\n\n.. toctree::\n\n   page\n\n.. iface-tests:: sample\n"
-    return build(
-        tmp_path,
-        lanes or LANES,
-        capfd,
-        files={"index.rst": index, "page.rst": PAGE_ONLY.format(arg=arg)},
-    )
+def page_build(tmp_path: Path, capfd: pytest.CaptureFixture[str], arg: str) -> Built:
+    index = "Sample\n======\n\n.. toctree::\n\n   page\n"
+    return build(tmp_path, capfd, files={"index.rst": index, "page.rst": PAGE_ONLY.format(arg=arg)})
 
 
 def behaviors_of(built: Built) -> set[str]:
@@ -606,139 +366,12 @@ def test_defs_with_unknown_id_warns(tmp_path: Path, capfd: pytest.CaptureFixture
     assert not {i for i in built.needs if i.startswith("SM-")}
 
 
-def test_requirement_rows_show_result_and_carry_the_id_without_test_ids(
-    tmp_path: Path, capfd: pytest.CaptureFixture[str]
-) -> None:
+def test_requirement_rows_carry_the_id(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
     built = page_build(tmp_path, capfd, "SM-TWO")
     assert built.code == 0
-    html = built.html("page.html")
-    assert "failed" in html
-    case_id = next(
-        i
-        for i in built.needs["SM-TWO-02"]["verifies_back"]
-        if built.needs[i]["title"] == "test_broken"
-    )
-    assert case_id not in html
-    assert re.search(r'<tr[^>]*id="SM-TWO-02"', html)
-    assert "<p>ID</p>" in html and "<p>テスト結果</p>" in html
-
-
-def _details(html: str) -> str:
-    return "\n".join(re.findall(r"<details[^>]*>.*?</details>", html, flags=re.S))
-
-
-def _list_items(page: str, rubric: str) -> list[str]:
-    """rubric の見出しの直後の箇条書きの項目の文字（タグを除く）。"""
-    after = page.split(f">{rubric}</p>", 1)[1]
-    listing = re.search(r"<ul[^>]*>(.*?)</ul>\s*(?:<p class=\"rubric|</section|$)", after, re.S)
-    assert listing is not None
-    items = re.findall(r"<li>(.*?)</li>", listing.group(1), flags=re.S)
-    texts = [re.sub(r"<details.*?</details>|<[^>]+>", "", i, flags=re.S) for i in items]
-    return [" ".join(html.unescape(t).split()) for t in texts]
-
-
-def test_failed_cases_show_summary_and_fold_the_body(
-    tmp_path: Path, capfd: pytest.CaptureFixture[str]
-) -> None:
-    built = page_build(tmp_path, capfd, "SM-TWO", {**LANES, "sample:test-notes": JUNIT_NOTES})
-    assert built.code == 0
-    # 本文のバッククォートと行頭の .. が rst として読まれると、警告が出る。
-    page_warnings = [
-        w
-        for w in built.warnings.splitlines()
-        if "page.rst" in w and "SM-BAD" not in w and "SM-HALF" not in w
-    ]
-    assert page_warnings == []
-    html = built.html("page.html")
-    items = _list_items(html, "失敗したテスト")
-    assert items == [
-        "SM-TWO-02 test_broken（tests.test_one.TestTwo）: boom",
-        "SM-TWO-02 sample_two > 読めないと、失敗を返す（tests/notes.test.ts）: expected ok to be ng",
-        "SM-TWO-02 sample_two > 要旨の無い失敗（tests/notes.test.ts）: Error: no message here",
-        "SM-TWO-02 sample_two > 要旨の無いエラー（tests/notes.test.ts）: TypeError: x is undefined",
-    ]
-    folded = _details(html)
-    assert ".. note:: not a directive" in folded
-    assert "❯ tests/notes.test.ts:12:5" in folded
-    assert "at write (src/two.ts:3:1)" in folded
-    assert "at read (src/two.ts:9:1)" in folded
-    assert "❯ tests/notes.test.ts:12:5" not in re.sub(
-        r"<details.*?</details>", "", html, flags=re.S
-    )
-
-
-def test_passed_item_lists_its_skipped_cases(
-    tmp_path: Path, capfd: pytest.CaptureFixture[str]
-) -> None:
-    built = page_build(tmp_path, capfd, "SM-TWO", {**LANES, "sample:test-notes": JUNIT_NOTES})
-    assert outcomes_of(built)["SM-TWO-01"] == "passed"
-    assert _list_items(built.html("page.html"), "スキップしたテスト") == [
-        "SM-TWO-01 sample_two > 後で確かめる（tests/notes.test.ts）"
-    ]
-
-
-def case(result: str) -> Case:
-    return Case(
-        classname="c",
-        name="n",
-        time=0.0,
-        result=result,
-        message="",
-        text="",
-        type="",
-    )
-
-
-@pytest.mark.parametrize(
-    ("complete", "results", "expected"),
-    [
-        (False, [], "not-run"),
-        (False, ["passed"], "not-run"),
-        (False, ["failed"], "not-run"),
-        (True, [], "no-test"),
-        (True, ["passed", "failed"], "failed"),
-        (True, ["error"], "failed"),
-        (True, ["skipped", "failed"], "failed"),
-        (True, ["passed"], "passed"),
-        (True, ["passed", "skipped"], "passed"),
-        (True, ["disabled", "passed"], "passed"),
-        (True, ["skipped"], "skipped"),
-        (True, ["skipped", "disabled"], "skipped"),
-    ],
-)
-def test_outcome_of(complete: bool, results: list[str], expected: str) -> None:
-    assert outcome_of([case(r) for r in results], complete) == expected
-
-
-# ---------------------------------------------------------------- iface_strict
-
-
-def test_strict_fails_naming_missing_and_unreadable_lanes(
-    tmp_path: Path, capfd: pytest.CaptureFixture[str]
-) -> None:
-    lanes = {
-        **LANES,
-        "sample:test-gone": tmp_path / "missing.xml",
-        "sample:test-broken": broken_junit(tmp_path),
-    }
-    built = build(tmp_path, lanes, capfd, strict=True)
-    assert built.code != 0
-    assert "sample:test-gone" in built.stderr
-    assert "sample:test-broken" in built.stderr
-    assert "sample:test-vitest" not in built.stderr
-
-
-def test_without_strict_missing_lanes_do_not_fail(
-    tmp_path: Path, capfd: pytest.CaptureFixture[str]
-) -> None:
-    lanes = {**LANES, "sample:test-gone": tmp_path / "missing.xml"}
-    assert build(tmp_path, lanes, capfd).code == 0
-
-
-def test_strict_passes_when_every_lane_is_read(
-    tmp_path: Path, capfd: pytest.CaptureFixture[str]
-) -> None:
-    assert build(tmp_path, LANES, capfd, strict=True).code == 0
+    page = built.html("page.html")
+    assert re.search(r'<tr[^>]*id="SM-TWO-02"', page)
+    assert behavior_heads(page) == [["ID", "要件"]]
 
 
 # ---------------------------------------------------------------- site_stamp
@@ -877,7 +510,7 @@ def test_local_page_has_notice_without_links(full: Built) -> None:
 
 
 def test_pr_notice_links_pr_and_release(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
-    built = build(tmp_path, LANES, capfd, site=PR_ENV)
+    built = build(tmp_path, capfd, site=PR_ENV)
     assert built.code == 0, built.warnings
     notice = notice_of(built)
     assert notice is not None
@@ -891,7 +524,7 @@ def test_pr_notice_links_pr_and_release(tmp_path: Path, capfd: pytest.CaptureFix
 
 
 def test_dev_notice_links_release(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
-    built = build(tmp_path, LANES, capfd, site={"PECOT_SITE_SIDE": "dev"})
+    built = build(tmp_path, capfd, site={"PECOT_SITE_SIDE": "dev"})
     assert built.code == 0, built.warnings
     notice = notice_of(built)
     assert notice is not None
@@ -901,7 +534,7 @@ def test_dev_notice_links_release(tmp_path: Path, capfd: pytest.CaptureFixture[s
 def test_release_has_no_notice_and_no_footer_values(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    built = build(tmp_path, LANES, capfd, site={"PECOT_SITE_SIDE": "release"})
+    built = build(tmp_path, capfd, site={"PECOT_SITE_SIDE": "release"})
     assert built.code == 0, built.warnings
     assert notice_of(built) is None
     assert "pecot-build" not in built.html("index.html")
@@ -956,12 +589,10 @@ def test_dev_links_footer_and_each_requirement_to_the_report(
 ) -> None:
     (tmp_path / "dev").mkdir()
     (tmp_path / "local").mkdir()
-    built = build(
-        tmp_path / "dev", LANES, capfd, files={"index.rst": DEFS_ONLY}, site=DEV, results=False
-    )
+    built = build(tmp_path / "dev", capfd, files={"index.rst": DEFS_ONLY}, site=DEV)
     assert built.code == 0, built.warnings
     # fixture がもともと出す警告のほかに、リンクの重複などの警告を出さない。
-    local = build(tmp_path / "local", LANES, capfd, files={"index.rst": DEFS_ONLY}, results=False)
+    local = build(tmp_path / "local", capfd, files={"index.rst": DEFS_ONLY})
     assert built.warnings.replace("/dev/", "/") == local.warnings.replace("/local/", "/")
     assert links_of(footer_of(built))["テストレポート"] == REPORT
     assert "含みません" not in footer_of(built)
@@ -974,20 +605,21 @@ def test_dev_links_footer_and_each_requirement_to_the_report(
     assert report_links(page) == {i: f"{REPORT}?tags={i}" for i in ids}
 
 
-def test_report_column_sits_beside_the_result_column(
+def test_report_column_sits_beside_the_requirement(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    built = build(tmp_path, LANES, capfd, files={"index.rst": DEFS_ONLY}, site=DEV)
+    built = build(tmp_path, capfd, files={"index.rst": DEFS_ONLY}, site=DEV)
     assert built.code == 0, built.warnings
     page = built.html()
-    assert all(head == ["ID", "要件", "テスト結果", "テスト"] for head in behavior_heads(page))
+    assert behavior_heads(page)
+    assert all(head == ["ID", "要件", "テスト"] for head in behavior_heads(page))
     assert report_links(page)["SM-TWO-02"] == f"{REPORT}?tags=SM-TWO-02"
 
 
 def test_report_links_on_generated_pages_point_to_the_side_root(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    built = build(tmp_path, LANES, capfd, files={"index.rst": PAGES_INDEX}, pages=True, site=DEV)
+    built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True, site=DEV)
     assert built.code == 0, built.warnings
     page = "_generated/sample/one-run.html"
     assert links_of(footer_of(built, page))["テストレポート"] == f"../../{REPORT}"
@@ -1002,11 +634,9 @@ def test_release_links_only_plugins_in_the_report_and_names_the_rest(
     site = {"PECOT_SITE_SIDE": "release", "PECOT_SITE_REPORT_PLUGINS": "sample"}
     built = build(
         tmp_path,
-        LANES,
         capfd,
         files={"index.rst": DEFS_ONLY},
         site=site,
-        results=False,
         plugins=("other", "pecot-x", "sample"),
     )
     assert built.code == 0, built.warnings
@@ -1022,11 +652,9 @@ def test_release_does_not_link_items_of_a_plugin_left_out_of_the_report(
     site = {"PECOT_SITE_SIDE": "release", "PECOT_SITE_REPORT_PLUGINS": "other"}
     built = build(
         tmp_path,
-        LANES,
         capfd,
         files={"index.rst": DEFS_ONLY},
         site=site,
-        results=False,
         plugins=("other", "sample"),
     )
     assert built.code == 0, built.warnings
@@ -1051,7 +679,7 @@ def test_release_does_not_link_items_of_a_plugin_left_out_of_the_report(
 def test_sides_without_report_show_neither_link(
     tmp_path: Path, capfd: pytest.CaptureFixture[str], site: dict[str, str]
 ) -> None:
-    built = build(tmp_path, LANES, capfd, files={"index.rst": DEFS_ONLY}, site=site, results=False)
+    built = build(tmp_path, capfd, files={"index.rst": DEFS_ONLY}, site=site)
     assert built.code == 0, built.warnings
     footer = footer_of(built)
     assert "テストレポート" not in footer
@@ -1241,7 +869,7 @@ def test_common_output_page_has_fields_and_is_linked_from_tool_page(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
     files = {"index.rst": PAGES_INDEX + "\n.. toctree::\n\n   common\n", "common.rst": COMMON_PAGE}
-    built = build(tmp_path, LANES, capfd, files=files, pages=True)
+    built = build(tmp_path, capfd, files=files, pages=True)
     assert built.code == 0, built.warnings
     section = text_of(built.html("common.html"))
     for name, text in {
@@ -1267,7 +895,7 @@ def test_resources_table_uses_summary_or_description(
         "index.rst": PAGES_INDEX + "\n.. toctree::\n\n   resources\n",
         "resources.rst": "Resources\n=========\n\n.. iface-resources:: sample\n",
     }
-    built = build(tmp_path, LANES, capfd, files=files, pages=True)
+    built = build(tmp_path, capfd, files=files, pages=True)
     assert built.code == 0, built.warnings
     page = built.html("resources.html")
     headers = re.findall(r'<th class="head"><p>(.*?)</p></th>', page)
@@ -1283,160 +911,26 @@ def test_resources_table_uses_summary_or_description(
     ]
 
 
-# ---------------------------------------------------------------- junit-lanes.json
+# ---------------------------------------------------------------- サイトに載せるプラグイン
 
 REPO = DOCS.parents[2]
 
 
-def test_real_junit_lanes_group_by_plugin() -> None:
-    table = load_junit_lanes(DOCS / "junit-lanes.json", REPO)
-    assert table == {
-        "pecot-workflow": {
-            "pecot-workflow:test-cli": str(
-                REPO / "plugins/pecot-workflow/cli/test-results/junit.xml"
-            ),
-            "pecot-workflow:test-hooks": str(
-                REPO / "plugins/pecot-workflow/cli/test-results/junit-hooks.xml"
-            ),
-        },
-        "pecot-tools": {
-            "pecot-tools:test-cli": str(REPO / "plugins/pecot-tools/cli/test-results/junit.xml")
-        },
-        "pecot-visual": {
-            "pecot-visual:test-cli": str(REPO / "plugins/pecot-visual/cli/test-results/junit.xml")
-        },
-    }
+def test_interface_plugins_are_the_plugins_in_targets_json() -> None:
+    targets = json.loads((DOCS.parent / "targets.json").read_text(encoding="utf-8"))
+    assert interface_plugins(REPO) == sorted(targets["plugins"])
 
 
-def _lane(target: str, junit: str, plugin: str | None = None) -> dict[str, str]:
-    return {"plugin": plugin or target.split(":")[0], "target": target, "junit": junit}
-
-
-def _lanes_repo(tmp_path: Path, lanes: list[Any], outputs: list[str] | None = None) -> Path:
-    project = tmp_path / "plugins" / "p"
-    project.mkdir(parents=True)
-    targets = {
-        "test-a": {"outputs": outputs or ["{projectRoot}/a.xml"]},
-        "test-b": {"outputs": ["{projectRoot}/b.xml"]},
-    }
-    (project / "project.json").write_text(json.dumps({"targets": targets}), encoding="utf-8")
-    path = tmp_path / "junit-lanes.json"
-    path.write_text(json.dumps(lanes), encoding="utf-8")
-    return path
-
-
-def test_junit_lanes_resolve_paths_from_outputs(tmp_path: Path) -> None:
-    path = _lanes_repo(
-        tmp_path, [_lane("p:test-a", "plugins/p/a.xml"), _lane("p:test-b", "plugins/p/b.xml")]
-    )
-    assert load_junit_lanes(path, tmp_path) == {
-        "p": {
-            "p:test-a": str(tmp_path / "plugins/p/a.xml"),
-            "p:test-b": str(tmp_path / "plugins/p/b.xml"),
-        }
-    }
-
-
-@pytest.mark.parametrize(
-    ("lanes", "outputs", "message"),
-    [
-        ([{"plugin": "p", "target": "p:test-a"}], None, "#1"),
-        ([_lane("p-test-a", "plugins/p/a.xml", "p")], None, "p-test-a"),
-        ([_lane("p:test-a", "plugins/p/a.xml", "q")], None, "p:test-a"),
-        (
-            [_lane("p:test-a", "plugins/p/a.xml"), _lane("p:test-a", "plugins/p/b.xml")],
-            None,
-            "#2 p:test-a",
-        ),
-        (
-            [_lane("p:test-a", "plugins/p/a.xml"), _lane("p:test-b", "plugins/p/a.xml")],
-            ["{projectRoot}/a.xml"],
-            "#2 p:test-b",
-        ),
-        ([_lane("q:test-a", "plugins/q/a.xml")], None, "q:test-a"),
-        ([_lane("p:test-z", "plugins/p/a.xml")], None, "p:test-z"),
-        ([_lane("p:test-a", "plugins/p/a.xml")], ["{options.out}/a.xml"], "{options.out}"),
-        ([_lane("p:test-a", "plugins/p/x.xml")], None, "plugins/p/x.xml"),
-    ],
-    ids=[
-        "missing-key",
-        "target-form",
-        "plugin-mismatch",
-        "duplicate-target",
-        "duplicate-junit",
-        "no-project",
-        "no-target",
-        "unknown-token",
-        "not-in-outputs",
-    ],
-)
-def test_junit_lanes_reject_broken_lanes(
-    tmp_path: Path, lanes: list[Any], outputs: list[str] | None, message: str
-) -> None:
-    path = _lanes_repo(tmp_path, lanes, outputs)
-    with pytest.raises(ValueError, match=re.escape(message)):
-        load_junit_lanes(path, tmp_path)
-
-
-def test_conf_takes_lanes_from_site_lanes_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    lanes = [_lane("pecot-tools:test-cli", "plugins/pecot-tools/cli/test-results/junit.xml")]
-    monkeypatch.setenv("PECOT_SITE_LANES", json.dumps(lanes))
+def test_conf_lists_the_interface_plugins_on_the_site(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PECOT_SITE_SIDE", "dev")
     conf = runpy.run_path(str(DOCS / "conf.py"))
-    assert conf["iface_junit"] == {
-        "pecot-tools": {
-            "pecot-tools:test-cli": str(REPO / "plugins/pecot-tools/cli/test-results/junit.xml")
-        }
-    }
-
-
-def test_conf_names_site_lanes_env_when_it_is_broken(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("PECOT_SITE_LANES", json.dumps({"lanes": []}))
-    with pytest.raises(ValueError, match="PECOT_SITE_LANES"):
-        runpy.run_path(str(DOCS / "conf.py"))
-
-
-def test_junit_lanes_reject_non_array_file(tmp_path: Path) -> None:
-    path = _lanes_repo(tmp_path, [])
-    path.write_text(json.dumps({"lanes": []}), encoding="utf-8")
-    with pytest.raises(ValueError, match="レーンの配列ではありません"):
-        load_junit_lanes(path, tmp_path)
-
-
-def test_junit_lanes_reject_non_array_outputs(tmp_path: Path) -> None:
-    path = _lanes_repo(tmp_path, [_lane("p:test-a", "plugins/p/a.xml")])
-    project_json = tmp_path / "plugins/p/project.json"
-    project_json.write_text(
-        json.dumps({"targets": {"test-a": {"outputs": "{projectRoot}/a.xml"}}}), encoding="utf-8"
-    )
-    with pytest.raises(
-        ValueError, match=re.escape("p:test-a (plugins/p/a.xml)") + ".*配列ではありません"
-    ):
-        load_junit_lanes(path, tmp_path)
-
-
-def test_lane_targets_have_no_default_outputs() -> None:
-    """load_junit_lanes は project.json の outputs だけを読むので、nx.json の targetDefaults が outputs を足さないことを確かめる。"""
-    defaults = cast(
-        "dict[str, dict[str, Any]]",
-        json.loads((REPO / "nx.json").read_text(encoding="utf-8"))["targetDefaults"],
-    )
-    for lane in json.loads((DOCS / "junit-lanes.json").read_text(encoding="utf-8")):
-        project, _, name = lane["target"].partition(":")
-        project_json = json.loads(
-            (REPO / "plugins" / project / "project.json").read_text(encoding="utf-8")
-        )
-        executor = project_json["targets"][name].get("executor")
-        for key, value in defaults.items():
-            if key == executor or fnmatch.fnmatchcase(name, key):
-                assert "outputs" not in value, (
-                    f"nx.json の targetDefaults['{key}'] が {lane['target']} に outputs を足す"
-                )
+    assert conf["_site"]["report_plugins"] == interface_plugins(REPO)
 
 
 def test_tool_page_title_is_the_display_name_with_the_tool_name_below(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    built = build(tmp_path, LANES, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
+    built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
     assert built.code == 0
     page = built.html("_generated/sample/sample_two.html")
     assert re.search(r"<h1>Sample two<a ", page)

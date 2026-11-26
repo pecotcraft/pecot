@@ -49,6 +49,7 @@ job:
 
 1. `skeleton` のコミットを取り出し、依存を入れ直す。各 `plugins/<name>/` をそのタグの中身に差し替える
 2. サイトを作る。`conf.py` は、各タグから集めたレーンの一覧を `PECOT_SITE_LANES`（junit-lanes.json と同じ形の JSON）で受け取る（`skeleton` の `junit-lanes.json` は使わない）。この一覧が、サイトに載せるプラグインを決める
+   - 2026-11-26 に 030（#699）で取り下げた。`PECOT_SITE_LANES` は無くなり、組み立てた作業ツリーで定義書を持つプラグインが載る
 
 出力:
 
@@ -73,6 +74,7 @@ tests の job が残すもの:
 
 - 合否のレーン（`junit-lanes.json` にあるもの）の JUnit を、`$RUNNER_TEMP/pages-junit/<junit のパス>` に写して、artifact `pages-junit-<slug>` に上げる。同じリポの PR でだけ上げる
 - 今は読む job が無い。テストレポートの載せ替え（#645）が使うか、片付ける
+- この節は 2026-11-26 に 030（#699）で取り下げた。tests の job は JUnit の artifact を上げない
 - 写すのは `Restore workspace owner` の後で、テストが落ちても写す（`if: always()`）
 - upload の `path` はディレクトリにする。ファイルを渡すと、upload-artifact が共通の親を根にして階層を消すため
 - `retention-days: 1`・`overwrite: true`
@@ -155,3 +157,4 @@ job summary:
 - 何も付けなければ、公開サイトと同じく定義書だけを作る。JUnit は読まない
 - `PECOT_SITE_RESULTS=1` を付けると、合否とテストレポートのページ（`development/`）も作る。JUnit が欠けたレーンのプラグインは「未実行」になる
 - `PECOT_SITE_RESULTS=1` と `PECOT_SITE_STRICT=1` を付けると、合否のレーンの JUnit が欠けたら失敗する
+- 上の 2 つは 2026-11-26 に 030（#699）で取り下げた。`PECOT_SITE_RESULTS`・`PECOT_SITE_STRICT` は無くなり、手元でも定義書だけを作る

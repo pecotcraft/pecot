@@ -20,8 +20,8 @@ paths:
 
 - リリース版・開発版がまだ無いときは、その URL に案内のページが出る
 - PR 版は、PR の checks の `pages / preview` の Details から開く。マージかクローズの後の保管で消える
-- 定義書は、どの側も `pages-build.yml` がテストを動かさずに作る。テストの合否は載せない（#648）
-- テストレポートは、`pages-deploy.yml` が `test-report.yml` の run を受けて、開発版・リリース版の `test-report/` に置く。PR 版には置かない（#698。保守の節は #645 の T050 で足す）
+- 定義書は、どの側も `pages-build.yml` がテストを動かさずに作る
+- テストレポートは、`pages-deploy.yml` が `test-report.yml` の run を受けて、開発版・リリース版の `test-report/` に置く。PR 版には置かない
 
 ## 起動とやり直し
 
@@ -33,7 +33,7 @@ paths:
 | PR 版を作り直す | その PR へ push する |
 
 - 同じ側の `pages-build.yml` の run は、後に起動したものだけが残る。手で起こした開発版は、その後の main への push の run に取り消される
-- リリース版は、プラグインごとの最新のタグ（プレリリースを除く）から作る。どれかのタグのコミットに `libs/interface-spec/docs/junit-lanes.json` が無いと、そのタグの名前を出して止まる
+- リリース版は、プラグインごとの最新のタグ（プレリリースを除く）から作る
 - 公開されないときは、`pages-deploy.yml` の run の verify の job summary を読む。受けた run・側・採否と、捨てた理由が出る
   - job summary は API で読めない。手元で読むときは、同じ判定を次のコマンドで出す（API を読むだけ）
 
