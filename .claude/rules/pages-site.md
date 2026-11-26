@@ -62,18 +62,28 @@ paths:
 - 定義書の振る舞いの項目の「テスト」は `test-report/index.html?tags=<ID>` を開き、その ID のテストだけを出す。レポートのテストの要件の ID は、その側の `permalink.html?id=<ID>` へ戻る
 - 履歴は側ごとに 3 回分（`allurerc.mjs` の `historyLimit`）で、`<側>/test-report/history.jsonl` に 1 回 1 行で残る
 - テストの「履歴」のタブは、前の回までを並べる。今の回は並ばない
-- レポートが無い側には「テストレポートはまだありません」の案内のページが出る。リリース版は、レポートのレーンを持つタグがリリースされるまで、この案内のまま
+- レポートが無い側には「テストレポートはまだありません」の案内のページが出る
+- リリース版では、結果を出せるタグの無いプラグインはレポートに入らず、その名前をフッターのリンクのそばに出す。そういうプラグインしか無いときの動きは、下の「起動とやり直し」の節にある
+  - 結果を出せるタグ: そのコミットの `report-lanes.json` に、そのプラグインのレーンで `results` を持つものがあるタグ
 
-### かかる時間
+### レポートが公開されるまでの時間
 
-2026-11-26 の開発版の 3 回（#698・#704 の push と、手での起動）で測った値。
+2026-11-26 に測った値。開発版は 3 回（#698・#704 の push と、手での起動）で測った。リリース版は、pecot-workflow v10.0.0 と pecot-visual・pecot-tools v3.1.0 のリリースの 1 回で測った。
 
-| 区間 | 値 |
-|---|---|
-| `test-report.yml` の run（最初の job の開始から最後の job の終わりまで） | 6 分 48 秒〜10 分 48 秒。長いのは `pecot-workflow:test-cli` の tests の job |
-| 同じ run の、起動から最後の job の終わりまで | 10 分 53 秒〜18 分 49 秒。前の run の終わりを concurrency で待つ時間が入る |
-| 結果がそろってから公開が変わるまで（最後の tests の job の終わりから、`pages-deploy.yml` の deploy の job の終わりまで） | 2 分 57 秒〜5 分 35 秒。SC-008 の 30 分に収まる。長い回は、PR 版の保管と同時に動き、store の job が待った |
-| `pages-deploy.yml` の deploy の job | 26 秒〜30 秒。`actions/deploy-pages` の `timeout` の既定（600000 ms）に余裕がある |
+| 区間 | 開発版 | リリース版 |
+|---|---|---|
+| `test-report.yml` の run（最初の job の開始から最後の job の終わりまで） | 6 分 48 秒〜10 分 48 秒 | 10 分 20 秒 |
+| 同じ run の、起動から最後の job の終わりまで | 10 分 53 秒〜18 分 49 秒 | 10 分 35 秒 |
+| 結果がそろってから公開が変わるまで（最後の tests の job の終わりから、`pages-deploy.yml` の deploy の job の終わりまで） | 2 分 57 秒〜5 分 35 秒 | 3 分 37 秒 |
+| `pages-deploy.yml` の deploy の job | 26 秒〜30 秒 | 46 秒 |
+
+- run の実行の時間が長いのは、どちらの側も `pecot-workflow:test-cli` の tests の job
+- 起動からの時間には、前の run の終わりを concurrency で待つ時間が入る
+- 結果がそろってから公開が変わるまでは、どの回も SC-008 の 30 分に収まる。開発版の長い回は、PR 版の保管と同時に動き、store の job が待った。リリース版の回は、ほとんど report・verify・store・deploy の job の時間で、job の間の空きは合わせて 27 秒だった
+- deploy の job は、`actions/deploy-pages` の `timeout` の既定（600000 ms）に余裕がある
+- リリース版で測った run
+  - `release.yml` が起こした `test-report.yml` の run 45750823897
+  - それを受けた `pages-deploy.yml` の run 45751913227
 
 - Pages の応答は `cache-control: max-age=600` なので、deploy の後の 10 分ほどは、前の中身を返すことがある。`index.html` の `last-modified` で、新しい中身かを見分ける
 
