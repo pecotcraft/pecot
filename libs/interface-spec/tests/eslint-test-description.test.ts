@@ -5,9 +5,11 @@ import { pathToFileURL } from 'node:url'
 import { RuleTester } from 'eslint'
 import { parser } from 'typescript-eslint'
 import { describe, expect, it } from 'vitest'
+import { attachOutput } from '../src/vitest/attach.js'
 import { testDescriptionConfig, testDescriptionPlugin, testDescriptionRule } from '../src/eslint/test-description.js'
 import { explains } from '../src/vitest/explains.js'
 import { useExplainedRuleTester } from '../src/vitest/rule-tester.js'
+import { stepSync } from '../src/vitest/step.js'
 
 useExplainedRuleTester(RuleTester)
 
@@ -57,17 +59,21 @@ typedTester.run('test-description の typescript-eslint の parser', testDescrip
 describe('testDescriptionConfig', () => {
   it('渡した files に、test-description/required を当てるブロックを返す', async () => {
     await explains('`testDescriptionConfig` が返す flat config のブロックのテストです。2 つの glob を渡した場合に、`files` が渡した順に並び、規則が error で有効になることを確認します。')
-    const block = testDescriptionConfig(['src/**/tests/**/*.ts', '**/*.test.ts'])
-    expect(block.files).toEqual(['src/**/tests/**/*.ts', '**/*.test.ts'])
-    expect(block.rules).toEqual({ 'test-description/required': 'error' })
-    expect(block.plugins['test-description'].rules.required).toBe(testDescriptionRule)
+    const block = stepSync('ブロックを作る', () => testDescriptionConfig(['src/**/tests/**/*.ts', '**/*.test.ts']))
+    stepSync('ブロックの内容を比べる', () => {
+      expect(block.files).toEqual(['src/**/tests/**/*.ts', '**/*.test.ts'])
+      expect(block.rules).toEqual({ 'test-description/required': 'error' })
+      expect(block.plugins['test-description'].rules.required).toBe(testDescriptionRule)
+    })
   })
 
   it('plugin が、名前と package.json の版を meta に持つ', async () => {
     await explains('plugin の `meta` のテストです。名前と namespace が `test-description` で、版が interface-spec の `package.json` の version と一致することを確認します。')
-    const packageJson: unknown = JSON.parse(readFileSync(PACKAGE_JSON, 'utf8'))
-    expect(packageJson).toMatchObject({ version: testDescriptionPlugin.meta.version })
-    expect(testDescriptionPlugin.meta).toMatchObject({ name: 'test-description', namespace: 'test-description' })
+    const packageJson: unknown = stepSync('package.json を読む', (): unknown => JSON.parse(readFileSync(PACKAGE_JSON, 'utf8')))
+    stepSync('meta の名前と版を比べる', () => {
+      expect(packageJson).toMatchObject({ version: testDescriptionPlugin.meta.version })
+      expect(testDescriptionPlugin.meta).toMatchObject({ name: 'test-description', namespace: 'test-description' })
+    })
   })
 })
 
@@ -75,11 +81,14 @@ describe('規則のファイル', () => {
   it('子プロセスの node が、型を除去して import できる', async () => {
     await explains('`eslint.config.js` と同じく、子プロセスの node で規則の `.ts` を直接 import するテストです。型の除去だけで読み込め、`testDescriptionConfig` を関数として取得できることを確認します。')
     const url = pathToFileURL(RULE_FILE).href
-    const output = execFileSync(
+    const output = stepSync('子プロセスで import する', () => execFileSync(
       process.execPath,
       ['--input-type=module', '--eval', `const m = await import(${JSON.stringify(url)}); console.log(typeof m.testDescriptionConfig)`],
       { encoding: 'utf8' },
-    )
-    expect(output.trim()).toBe('function')
+    ))
+    attachOutput(`node --eval import ${path.basename(RULE_FILE)}`, 0, output, '')
+    stepSync('結果を比べる', () => {
+      expect(output.trim()).toBe('function')
+    })
   })
 })

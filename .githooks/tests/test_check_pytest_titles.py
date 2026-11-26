@@ -45,8 +45,10 @@ def _check(tmp_path: Path, body: str) -> subprocess.CompletedProcess[str]:
 )
 def test_passes_when_title_and_docstring_exist(tmp_path: Path, body: str) -> None:
     """題と説明がそろったテスト関数や、テストではない関数を hook に渡すテストです。どの場合も、終了コード 0 で終わり、標準エラーに何も出力しないことを確認します。"""
-    result = _check(tmp_path, body)
-    assert (result.returncode, result.stderr) == (0, "")
+    with allure.step("hook を動かす"):
+        result = _check(tmp_path, body)
+    with allure.step("終了コードと標準エラーを比べる"):
+        assert (result.returncode, result.stderr) == (0, "")
 
 
 @allure.title("{reason}テストを、場所と理由を添えて止める")
@@ -99,20 +101,24 @@ def test_reports_missing_title_or_docstring(
     tmp_path: Path, body: str, reason: str, message: str
 ) -> None:
     """題か説明が欠けているテスト関数を hook に渡すテストです。終了コード 1 で終わり、`ファイル:行: 関数名: 理由` の形の行と、規約のファイルへの案内を出力することを確認します。"""
-    result = _check(tmp_path, body)
-    first = result.stderr.splitlines()[0]
-    assert result.returncode == 1
-    assert first.startswith(f"{tmp_path / 'test_sample.py'}:")
-    assert first.endswith(f": test_a: {message}")
-    assert ".claude/rules/test-conventions.md" in result.stderr
+    with allure.step("hook を動かす"):
+        result = _check(tmp_path, body)
+    with allure.step("終了コードと、場所と理由の行を比べる"):
+        first = result.stderr.splitlines()[0]
+        assert result.returncode == 1
+        assert first.startswith(f"{tmp_path / 'test_sample.py'}:")
+        assert first.endswith(f": test_a: {message}")
+        assert ".claude/rules/test-conventions.md" in result.stderr
 
 
 @allure.title("題と説明の両方が無いテストは、2 つの理由を 2 行で出す")
 def test_reports_each_problem_on_its_own_line(tmp_path: Path) -> None:
     """題と docstring の両方が欠けているテスト関数を hook に渡すテストです。題の欠けと説明の欠けを、この順に 1 行ずつ出力することを確認します。"""
-    result = _check(tmp_path, "def test_a() -> None:\n    pass\n")
-    lines = [line for line in result.stderr.splitlines() if ": test_a: " in line]
-    assert [line.split(": test_a: ")[1] for line in lines] == [
-        "文字列を渡す @allure.title（題）が無い",
-        "docstring（説明）が無い",
-    ]
+    with allure.step("hook を動かす"):
+        result = _check(tmp_path, "def test_a() -> None:\n    pass\n")
+    with allure.step("理由の行を順に比べる"):
+        lines = [line for line in result.stderr.splitlines() if ": test_a: " in line]
+        assert [line.split(": test_a: ")[1] for line in lines] == [
+            "文字列を渡す @allure.title（題）が無い",
+            "docstring（説明）が無い",
+        ]

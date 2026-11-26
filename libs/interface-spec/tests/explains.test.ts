@@ -4,6 +4,7 @@ import type { SyncTestRuntime, TestRuntime } from 'allure-js-commons/sdk/runtime
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as subject from '../src/vitest/explains.js'
 import { explains } from '../src/vitest/explains.js'
+import { stepSync } from '../src/vitest/step.js'
 
 // allure-js-commons 3.15.0 の sync の型（undefined を含む）は、exactOptionalPropertyTypes の下で TestRuntime に合わない。
 class HolderRuntime extends MessageHolderTestRuntime {
@@ -35,18 +36,24 @@ describe('explains', () => {
     return runtime
   }
 
-  afterEach(() => {
+  // step は本物の runtime とレーンの環境に戻してから書く。
+  function restoreRuntime(): void {
     if (previous !== undefined) setGlobalTestRuntime(previous)
     previous = undefined
     vi.unstubAllEnvs()
-  })
+  }
+
+  afterEach(restoreRuntime)
 
   it('nx のレーンの中では、渡した説明を Allure に 1 つだけ送る', async () => {
     await explains('nx のレーンの中で実行した場合（`NX_TASK_TARGET_TARGET` が設定されている場合）に、渡した説明を Allure へ 1 つだけ送信することを確認します。')
     const runtime = holdRuntime()
     vi.stubEnv('NX_TASK_TARGET_TARGET', 'test-unit')
     await subject.explains('説明の文です。')
-    expect(descriptions(runtime.messages())).toEqual(['説明の文です。'])
+    restoreRuntime()
+    stepSync('Allure に送った説明を比べる', () => {
+      expect(descriptions(runtime.messages())).toEqual(['説明の文です。'])
+    })
   })
 
   it('NX_TASK_TARGET_TARGET が空の場合は、説明を Allure に送らない', async () => {
@@ -54,6 +61,9 @@ describe('explains', () => {
     const runtime = holdRuntime()
     vi.stubEnv('NX_TASK_TARGET_TARGET', '')
     await subject.explains('説明の文です。')
-    expect(descriptions(runtime.messages())).toEqual([])
+    restoreRuntime()
+    stepSync('Allure に説明を送っていないことを比べる', () => {
+      expect(descriptions(runtime.messages())).toEqual([])
+    })
   })
 })
