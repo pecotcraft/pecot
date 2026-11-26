@@ -1,3 +1,20 @@
+## 3.1.0 (2026-11-26)
+
+### 🚀 Features
+
+- MCP のすべてのツールが、`tools/list` で表示名（`title`）を返します。 ([#674](https://github.com/pecotcraft/pecot/pull/674), [#643](https://github.com/pecotcraft/pecot/issues/643))
+
+### 🩹 Fixes
+
+- 開発版の MCP の配布は、依存の監査で high 以上が見つかっても警告を出して続ける。本番のリリースは今までどおり止まる。 ([#659](https://github.com/pecotcraft/pecot/pull/659), [#658](https://github.com/pecotcraft/pecot/issues/658))
+- 開発用の vitest の設定が、nx のレーンから動いたときに **Allure の結果** も残すようにした。プラグインの動作は変わらない。 ([#719](https://github.com/pecotcraft/pecot/pull/719), [#693](https://github.com/pecotcraft/pecot/issues/693))
+- 開発用のテストの `verifies` が、振る舞いの項目の ID を **Allure のリンクと tag** でも残すようにした。プラグインの動作は変わらない。 ([#727](https://github.com/pecotcraft/pecot/pull/727), [#695](https://github.com/pecotcraft/pecot/issues/695))
+- 開発用のテストが、判定に使った画面と成果物を **Allure の添付** で残す。プラグインの動作は変わらない。 ([#734](https://github.com/pecotcraft/pecot/pull/734), [#696](https://github.com/pecotcraft/pecot/issues/696))
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 3.0.2 (2026-11-18)
 
 ### 🩹 Fixes

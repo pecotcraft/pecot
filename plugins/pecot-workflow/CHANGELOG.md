@@ -1,3 +1,106 @@
+# 10.0.0 (2026-11-26)
+
+### 🚀 Features
+
+- 自動レビューは、Issue の計画と diff を照らして指摘します。 ([#667](https://github.com/pecotcraft/pecot/pull/667), [#657](https://github.com/pecotcraft/pecot/issues/657))
+  雛形（review 5）は Context7・WebSearch・WebFetch で外の公式の文書を引き、
+  変数 `PECOT_REVIEW_WEB_ACCESS` で止められます。
+
+- 自動レビューの雛形（review 7）は、変数が無いと Opus・effort high で動きます。 ([#689](https://github.com/pecotcraft/pecot/pull/689), [#686](https://github.com/pecotcraft/pecot/issues/686))
+  run の Summary に、使われたモデルと effort、呼んだツールと拒まれた呼び出しが出ます。
+
+- `project_init`・`project_create` の `lanes` で、`pecot-lane` と `Lanes` のビューを作ります。 ([#740](https://github.com/pecotcraft/pecot/pull/740), [#703](https://github.com/pecotcraft/pecot/issues/703))
+  `pecot-lane` が既にあれば足りない値だけを足し、ビューを作れなければ画面の手順を返します。
+
+- `issue_create` の `lane`（ファイルでは frontmatter の `lane`）で、Issue を `pecot-lane` の値に分類できます。 ([#765](https://github.com/pecotcraft/pecot/pull/765), [#704](https://github.com/pecotcraft/pecot/issues/704))
+  指定が無く親の Epic に値があれば、親と同じ値を入れます。
+  `board_show` は、各 Item の `lane` と、値ごとの件数の `lanes` を返します。w-active の候補は値ごとに分かれます。
+
+- 新しい MCP ツール `issue_attributes` で、Issue に付けられる機能の名前・種類・取りうる値を一覧にできます。 ([#725](https://github.com/pecotcraft/pecot/pull/725), [#705](https://github.com/pecotcraft/pecot/issues/705))
+  `issue_show` の結果に、値の入っている機能をすべて並べた `attributes` と、扱えない種類の `unsupported` が加わります。
+
+- `issue_create` の `attributes` と新しい `issue_edit` で、Issue の機能の値を名前で書き、変え、外せます。 ([#741](https://github.com/pecotcraft/pecot/pull/741), [#706](https://github.com/pecotcraft/pecot/issues/706))
+  機能は、ボードのフィールド・Issue fields・担当者・マイルストーン・Issue type・ラベルです。
+  書く前にすべての値を定義と照らし、1 つでも合わなければ何も書きません。
+
+- 設定の同期が、既定の Status の In Progress の ID を `status.options.in_progress` に書きます。 ([#726](https://github.com/pecotcraft/pecot/pull/726), [#711](https://github.com/pecotcraft/pecot/issues/711))
+  `board sync`・`issue block`・`issue unblock` は、自動処理が書いた `Needs Attention` を戻しません。
+
+- ラベルを契機にした自動処理のコマンド `pecot auto gate`・`start`・`finish` を足しました。 ([#745](https://github.com/pecotcraft/pecot/pull/745), [#712](https://github.com/pecotcraft/pecot/issues/712))
+  MCP ツール `auto_gate`・`auto_start`・`auto_finish` としても使えます。
+
+- スキル `w-auto` を足しました。自動処理のワークフローが起こし、起動ラベルの付いた Issue を、計画の投稿から PR の作成と結果のコメントまで、人を待たずに進めます。 ([#764](https://github.com/pecotcraft/pecot/pull/764), [#713](https://github.com/pecotcraft/pecot/issues/713))
+  直し方が決まらないときは、質問を結果のコメントに書いて止まり、答えを書いて起動し直すと続きから進めます。
+
+- w-pr は、レビューの指摘の採否を自分で決めて対応し、終わってから報告します。 ([#724](https://github.com/pecotcraft/pecot/pull/724), [#720](https://github.com/pecotcraft/pecot/issues/720))
+  直さない指摘には、根拠を添えた理由をスレッドに返信してから resolve します。
+
+- w-pr は、PR を出した後も GitHub の画面でのマージを待ち受けます。 ([#735](https://github.com/pecotcraft/pecot/pull/735), [#730](https://github.com/pecotcraft/pecot/issues/730))
+  マージされたら、その場で `session finish` の片付けまで済ませます。
+
+- `session start` が前の PR の後片付けの取りこぼしを警告し、w-active などがそれを片付けます。 ([#743](https://github.com/pecotcraft/pecot/pull/743), [#731](https://github.com/pecotcraft/pecot/issues/731))
+- マージ後の Epic・後続へのコメントは、新しい雛形 `pecot-handoff.yml` が Actions で書き、セッションは書きません。 ([#748](https://github.com/pecotcraft/pecot/pull/748), [#732](https://github.com/pecotcraft/pecot/issues/732))
+  `pecot-board-sync.yml` は、マージで閉じた PR の Issue を閉じ、head ブランチを消してからボードを直します。
+
+- Claude Code が作る worktree では、最初のセッション開始で `setup_command` を流します。 ([#759](https://github.com/pecotcraft/pecot/pull/759), [#751](https://github.com/pecotcraft/pecot/issues/751))
+  `session finish` は、この worktree では `worktree-<name>` のブランチに戻ります。
+
+- MCP のすべてのツールが、`tools/list` で表示名（`title`）を返します。 ([#674](https://github.com/pecotcraft/pecot/pull/674), [#643](https://github.com/pecotcraft/pecot/issues/643))
+
+### 🩹 Fixes
+
+- MCP のツールから、入力 `dry_run` と結果の `dryRun` を外しました。予行は CLI の `--dry-run` で行います。 ([#685](https://github.com/pecotcraft/pecot/pull/685), [#661](https://github.com/pecotcraft/pecot/issues/661))
+  予行のときだけ欠けていた結果の項目は、成功のときにいつも入ります。
+
+- MCP の `tools/list` の説明の文から、CLI のフラグ（`--repo` など）を外し、引数名で書きます。 ([#683](https://github.com/pecotcraft/pecot/pull/683), [#669](https://github.com/pecotcraft/pecot/issues/669))
+  CLI の `--help` は、同じ文の引数名をフラグの形にして出します。各ツールの `repo` の入力に説明を付けます。
+
+- MCP のツールの失敗の `detail` と `warnings` から、CLI の書式（`error:`・Usage の枠）を外します。 ([#676](https://github.com/pecotcraft/pecot/pull/676), [#671](https://github.com/pecotcraft/pecot/issues/671))
+  案内は `call pr_restack` のようにツール名で書き、git の出力の全文は `log` に入れます。
+
+- MCP のツール `review_finish` を `dry_run` で呼ぶと、書くはずのコメントの本文を結果の `body` に返します。 ([#678](https://github.com/pecotcraft/pecot/pull/678), [#672](https://github.com/pecotcraft/pecot/issues/672))
+  `session_show` は、作業中の Issue の本文を結果の `activeIssue.body` に返します。
+
+- MCP のツール `release_check` に `X.Y.Z` の形でない版を渡すと、alert を調べる前に止まり、`kind` が `invalid-input` の失敗を返します。 ([#692](https://github.com/pecotcraft/pecot/pull/692), [#673](https://github.com/pecotcraft/pecot/issues/673))
+- 開いた時点でコンフリクトしていた PR にも、自動レビューが付きます。 ([#684](https://github.com/pecotcraft/pecot/pull/684), [#682](https://github.com/pecotcraft/pecot/issues/682))
+  雛形（review 6）は push でも起動し、まだ自動レビューの付いていない PR だけをレビューします。
+  レビュー中に書いた `@pecotbot review` は、後の push で取り消されなくなります。
+
+- スキル・MCP ツールの説明・定義書で、スタック PR を表す語をそろえます。 ([#718](https://github.com/pecotcraft/pecot/pull/718), [#690](https://github.com/pecotcraft/pecot/issues/690))
+  「積める」は「スタックできる」に、「下の段」「上の段」は「親 PR」「子 PR」に、「載せ直す」は「スタックし直す」に変えます。
+  w-issueize は、前の版の w-breakdown が tasks.md に書いた「積める」も「スタックできる」と同じに扱います。
+
+- 開発用の vitest の設定が、nx のレーンから動いたときに **Allure の結果** も残すようにした。プラグインの動作は変わらない。 ([#719](https://github.com/pecotcraft/pecot/pull/719), [#693](https://github.com/pecotcraft/pecot/issues/693))
+- 開発用のテストの `verifies` が、振る舞いの項目の ID を **Allure のリンクと tag** でも残すようにした。プラグインの動作は変わらない。 ([#727](https://github.com/pecotcraft/pecot/pull/727), [#695](https://github.com/pecotcraft/pecot/issues/695))
+- GitHub の Issue の機能の写しと担保の一覧を置き、扱いの決まっていない項目があると開発用のテストが落ちるようにした。プラグインの動作は変わらない。 ([#761](https://github.com/pecotcraft/pecot/pull/761), [#707](https://github.com/pecotcraft/pecot/issues/707))
+- w-pr は、CI 待ちとマージの待ち受けが終わるたびに自分を呼び直し、待ちの後の操作で確認を出しません。 ([#760](https://github.com/pecotcraft/pecot/pull/760), [#738](https://github.com/pecotcraft/pecot/issues/738))
+  既定の権限で出るのは、スキルを使うかの確認だけで、一度許せば同じリポでは出ません。
+
+- 自動レビューの雛形（review 8）は、合言葉を書いた人の権限を `permission` の admin・write で比べます。 ([#768](https://github.com/pecotcraft/pecot/pull/768), [#746](https://github.com/pecotcraft/pecot/issues/746))
+  書き込みを基にしたカスタムロールの人が `@pecotbot review` と書いても、レビューが起動します。
+
+- 引き継ぎの雛形は、自前の App が無いと実行の `GITHUB_TOKEN` で動き、Claude の GitHub App を要しません。 ([#754](https://github.com/pecotcraft/pecot/pull/754), [#749](https://github.com/pecotcraft/pecot/issues/749))
+
+### ⚠️  Breaking Changes
+
+- テンプレートを MCP の resource（`pecot-template://`）で出し、`prepare` と `issue_create` の `dry_run` を外した。 ([#668](https://github.com/pecotcraft/pecot/pull/668), [#651](https://github.com/pecotcraft/pecot/issues/651))
+  予行は新しい `issue_check` で行い、`project_activate` の一覧は `project_search` の `initialized`・`active` で見る。
+
+- `/pecot-w:w-merge` を廃止しました。PR は GitHub の画面でマージし、w-pr が待ち受けて後片付けまで済ませます。 ([#753](https://github.com/pecotcraft/pecot/pull/753), [#733](https://github.com/pecotcraft/pecot/issues/733))
+  `session finish` は、マージされていない PR に、GitHub の画面でのマージを案内します。
+
+- `pecot-priority`・`pecot-size` を作らず、値も入れません。`issue_create` の `priority`・`size` を外しました。 ([#736](https://github.com/pecotcraft/pecot/pull/736), [#702](https://github.com/pecotcraft/pecot/issues/702))
+  既存の 2 つは、承認の後に `project_init` へ `confirm_delete` を付けて消します。
+  security の Tracker の列 Priority は Severity になりました。
+
+- 進行の欄の名前を `pecot-status` にし、`project_create`・`project_init` の入力 `suffix` を外しました。 ([#728](https://github.com/pecotcraft/pecot/pull/728), [#701](https://github.com/pecotcraft/pecot/issues/701))
+  既存のボードは、`project_init` が旧い名前の欄を改名し、設定ファイルを `<host>_<owner>_<番号>.json` に移します。
+  移した設定は旧い版で読めないので、共有する人と Actions の版をそろえてください。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 # 9.0.0 (2026-11-18)
 
 ### 🚀 Features

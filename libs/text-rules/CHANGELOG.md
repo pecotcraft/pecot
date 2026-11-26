@@ -1,3 +1,13 @@
+## 0.2.10 (2026-11-26)
+
+### 🩹 Fixes
+
+- 開発用の vitest の設定が、nx のレーンから動いたときに **Allure の結果** も残すようにした。プラグインの動作は変わらない。 ([#719](https://github.com/pecotcraft/pecot/pull/719), [#693](https://github.com/pecotcraft/pecot/issues/693))
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 0.2.9 (2026-11-18)
 
 ### 🩹 Fixes
