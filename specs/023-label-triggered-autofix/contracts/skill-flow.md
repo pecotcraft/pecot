@@ -8,7 +8,8 @@ Step の順は、`cli/tests/skills/skill-flow-structure.test.ts` で固定する
 
 | 項目 | 決め |
 |---|---|
-| 起動するもの | GitHub Actions の上の claude-code-action。`prompt` は `/pecot-w:w-auto <種類> <owner/repo/N>` |
+| 起動するもの | GitHub Actions の上の claude-code-action。`prompt` は `/pecot-w:w-auto <種類> <owner/repo/N>`。変数 `PECOT_AUTO_PROJECT` があるときだけ、後ろに `project=<名前>` を足す |
+| 引数の `project` | `project=<名前>` があれば、使う MCP ツールに `project` で渡す。w-review・w-handoff と同じ形だ（#640） |
 | 人が端末で起動する場合 | 想定しない。description に、手で進めるなら w-active を使うと書く |
 | 種類 | `start`・`resume`・`ci-fix`。MCP ツール `auto_gate` が決めた値をそのまま受ける |
 | 人を待つ箇所 | 無い。承認・質問の入力・プランモードを使わない |
@@ -27,16 +28,16 @@ Step の順は、`cli/tests/skills/skill-flow-structure.test.ts` で固定する
 
 | Step | 中身 | 止まる条件と結果 |
 |---|---|---|
-| 1 | `auto_start`（`issue: <Issue>`）で文脈を読む | 失敗したら `setup-missing` |
+| 1 | `auto_start`（`issue_ref: <Issue>`）で文脈を読む | 失敗したら `setup-missing` |
 | 2 | 対象かを確かめる。変更が導入先のリポで完結し、小さなタスクの範囲に収まるか | 収まらなければ `out-of-scope` |
-| 3 | ブランチを用意する。無ければ `session_start` で作り、fetch して checkout する。`base` は渡さない。あれば checkout する | — |
+| 3 | ブランチを用意する。無ければ `session_start` で作り、fetch して checkout する。`base` は渡さない。あれば checkout する | 設定が足りなければ `setup-missing`、前提が残れば `out-of-scope`、ほかは `failed` |
 | 4 | 変更対象と周辺のコードを読む | — |
 | 5 | 直し方が本文・コメント・コードから決まるかを確かめる | 決まらなければ、質問を書いて `question` |
-| 6 | 計画を書いて投稿する。`issue_comment` で、plan のテンプレートのファイルを作り（`prepare: true`・`template: "plan"`）、書いたファイルを投稿する。前回の計画があれば書き換える | 検証で止まれば直して打ち直す |
+| 6 | 計画を書いて投稿する。resource `pecot-template://comment/plan` を `.pecot/tmp/output/` に写して書き、`issue_comment` の `file` で投稿する。前回の計画があれば、それと答えを踏まえた計画を投稿し直す | 検証で止まれば直して打ち直す。通らなければ `failed` |
 | 7 | 実装する。テストを先に書く | — |
-| 8 | 変更箇所に絞ったテストを動かす | 直せなければ `failed` |
+| 8 | 変更箇所に絞ったテストを動かす | 直せなければ `failed`。テストのコマンドが許可に無く拒まれたら `setup-missing` |
 | 9 | コミットする。リポの commit 前の検証を通す | 直せなければ `failed` |
-| 10 | `pr_check` を通し、`pr_create` で PR を作る。`screenshot` の欄には、無人の実行である理由を書く | 検証で止まれば直して打ち直す |
+| 10 | push してから `pr_check` を通し、resource `pecot-template://pr/create` を写したファイルを `pr_create` に渡して PR を作る。`screenshot` の欄には、無人の実行である理由を書く | 検証で止まれば直して打ち直す。通らなければ `failed` |
 | 11 | `auto_finish`（`result: pr-created`） | — |
 
 `resume` は同じ手順をたどる。違いは次の 3 つだ。
@@ -67,7 +68,7 @@ Step の順は、`cli/tests/skills/skill-flow-structure.test.ts` で固定する
 
 | Step | 中身 | 止まる条件と結果 |
 |---|---|---|
-| 1 | `auto_start`（`issue: <Issue>`）で文脈を読む | 失敗したら `setup-missing` |
+| 1 | `auto_start`（`issue_ref: <Issue>`）で文脈を読む | 失敗したら `setup-missing` |
 | 2 | 落ちたチェックとログを読む。`gh pr checks` と `gh run view --log-failed` | — |
 | 3 | 失敗が変更と関係するかを確かめる | 関係しなければ、理由を書いて `failed` |
 | 4 | ブランチの先頭が、自動処理のコミットかを確かめる | 人のコミットが載っていれば、上書きせずに `failed` |
@@ -84,5 +85,5 @@ Step の順は、`cli/tests/skills/skill-flow-structure.test.ts` で固定する
 | `name` | `w-auto` |
 | `description` | 無人の実行のためのスキルであること、手で進めるなら w-active・w-quick を使うこと |
 | `when_to_use` | GitHub Actions が起動ラベルを契機に呼ぶとき |
-| `argument-hint` | `<種類> <owner/repo/N>`。種類は `start`・`resume`・`ci-fix` のどれか |
+| `argument-hint` | `<種類> <owner/repo/N> [project=<名前>]`。種類は `start`・`resume`・`ci-fix` のどれか |
 | `allowed-tools` | 書かない。許可は雛形の `--allowedTools` の 1 か所で決める |

@@ -141,26 +141,27 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
 **Independent Test**: 検証用の clone で、作業ツリーのプラグインを `--plugin-dir` で渡した Claude Code を起こし、検証用の Issue に `/pecot-w:w-auto start <owner/repo/N>` を打つ。
 承認も質問の入力も求められずに、計画のコメント・ブランチ・PR・結果のコメントができる。直し方が決まらない Issue では、PR ができず、質問の結果のコメントが付く
 
-- [ ] T020 [US1] `p-w/cli/tests/skills/skill-flow-structure.test.ts` に、w-auto の手順の、失敗するテストを足す
+- [x] T020 [US1] `p-w/cli/tests/skills/skill-flow-structure.test.ts` に、w-auto の手順の、失敗するテストを足す
   - `start` の Step の順が、`spec/contracts/skill-flow.md` の表の 1〜11 のとおり
   - `ci-fix` の節は、Phase 5 で足す。このフェーズでは無くてよい
-  - 本文に `EnterPlanMode`・`AskUserQuestion`・`--no-verify` が無い
+  - 本文に `EnterPlanMode`・`AskUserQuestion` が無い。`--no-verify` は、手順の節に無く、共通の決まりの禁止の文にだけある
   - 止まる手順のすべてに、`auto_finish` の呼び出しがある
-- [ ] T021 [US1] `p-w/skills/w-auto/SKILL.md` を書く
+- [x] T021 [US1] `p-w/skills/w-auto/SKILL.md` を書く
   - frontmatter は `spec/contracts/skill-flow.md` の「frontmatter」の表のとおり。`allowed-tools` は書かない
   - 「共通の決まり」の 7 つを、手順の前に置く
   - `start` と `resume` の手順を、表の Step の順で書く。手順は MCP ツールの名前で書く
   - ブランチは `session_start` で作る。`base` は渡さない。w-active と同じ規則だ
   - PR の `screenshot` の欄には、無人の実行である理由を書くと指示する
   - スキルの文には、どの MCP ツールを何のために使うかだけを書く。ツールの動作と結果の項目は書かない
-- [ ] T022 [US3] `p-w/skills/w-auto/SKILL.md` に、小さなタスクの範囲の目安と、質問の書き方を書く（FR-014）。中身は `spec/contracts/skill-flow.md` の 2 つの節のとおり
-- [ ] T023 [US1] スキルの一覧に w-auto を足す
+- [x] T022 [US3] `p-w/skills/w-auto/SKILL.md` に、小さなタスクの範囲の目安と、質問の書き方を書く（FR-014）。中身は `spec/contracts/skill-flow.md` の 2 つの節のとおり
+- [x] T023 [US1] スキルの一覧に w-auto を足す
   - `p-w/skills/w-help/references/skills.md`
-  - `p-w/skills/w-help/SKILL.md` の用途別の表
   - `p-w/README.md` のスキルの表
   - `p-w/cli/tests/skills/` の、スキルの一覧と名前を読むテストの期待
-- [ ] T024 [US1] 検証用で、直し方が決まる Issue に `start` を打つ。計画のコメント・PR・結果のコメントを確かめ、PR に貼る
-- [ ] T025 [US3] 検証用で、直し方が 2 通りある Issue に `start` を打つ。質問の結果のコメントを確かめる。答えを書いて `resume` を打ち、同じ質問が繰り返されず、ブランチが 1 本のままであることを確かめる
+- [x] T024 [US1] 検証用で、直し方が決まる Issue に `start` を打つ。計画のコメント・PR・結果のコメントを確かめ、PR に貼る
+- [x] T025 [US3] 検証用で、直し方が 2 通りある Issue に `start` を打つ。質問の結果のコメントを確かめる。答えを書いて `resume` を打ち、ブランチが 1 本のままであることを確かめる
+  - 手元の実行では、結果のコメントの書き手が人のアカウントになる。`auto_start` は bot の結果のコメントだけを区切りに読むので、手元の `resume` には答えが渡らない
+  - 答えを読んで同じ質問を繰り返さないことは、bot が結果を書く T036 で確かめる
 
 **Checkpoint**: 手元で打てば、Issue から PR までが人を待たずに進む
 
@@ -172,7 +173,7 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
 
 **Independent Test**: `spec/quickstart.md` の「ラベルから PR まで」と「安全策」の表を、検証用でたどる
 
-**前提**: #640 が、複数のボードに入ったリポでの指定の変数を決めている。決まっていなければ、変数を足すタスク（T029 の最後の項目）だけを #640 の後に回す
+**前提**: 複数のボードに入ったリポでの指定は、#640（#660）で形が決まった。変数 `PECOT_AUTO_PROJECT` を、CLI には `--project`、スキルには `project=<名前>` で渡す
 
 - [ ] T026 [P] [US2] `p-w/cli/tests/auto-workflow-template.test.ts` に、雛形の失敗するテストを書く
   - 確かめることは `spec/contracts/workflow-template.md` の「テストで確かめること」の表のとおり
@@ -194,7 +195,7 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
   - CLI は `npx -y --prefix=/ @pecot/workflow-mcp@latest` で打つ。最後の step は `if: always()` で `auto finish --ensure` を呼ぶ
   - 後始末の step は、値を `env` で受けて引用符付きの引数で渡す。`gate`・自動処理・後始末の step の `env` に `PECOT_AUTO_LABEL` を渡す
   - action はすべて SHA で固定し、版をコメントに書く
-  - #640 が決めた変数を、`gate` と `run` の `env` に足す
+  - 変数 `PECOT_AUTO_PROJECT` を、`gate`・後始末の step には `--project` で、`prompt` には空でないときだけ `project=<名前>` で渡す
 - [ ] T030 [US1] `pecot workflow install auto` と `--check`・`--force` のテストを `p-w/cli/tests/interface/workflow-install.test.ts` に足す。書き出した結果に、このリポ固有の名前が残らないことも確かめる
 - [ ] T031 [US1] `workflow install`・`workflow doctor` の定義書を直す。`p-w/interface/authored.yaml` の名前の一覧に `auto` を足し、`generated.json` を書き出し直す
 - [ ] T032 [US2] 検証用に導入する
@@ -323,7 +324,7 @@ description: "Issue にラベルを付けると、GitHub Actions が pecot の�
 | 1 | 無い | — |
 | 2 | 1 | `start` と `finish` が、設定の `fields.status` と `Needs Attention` を使う |
 | 3 | 2 | スキルが `auto_start`・`auto_finish` を呼ぶ |
-| 4 | 2・#640 | 雛形が `auto gate`・`auto finish --ensure` を呼ぶ。#640 が決める変数を雛形に足す |
+| 4 | 2 | 雛形が `auto gate`・`auto finish --ensure` を呼ぶ。#640 の形に合わせた変数 `PECOT_AUTO_PROJECT` を雛形に足す |
 | 5 | 3・4 | スキルと雛形の両方に、CI を直す種類を足す |
 | 6 | 4・5 | `doctor` が、置かれた雛形と起動ラベルを確かめる。CI の名前の確かめは、Phase 5 が足す囲みを読む |
 | 7 | 5・6 | 全部がそろってから通して確かめる |
