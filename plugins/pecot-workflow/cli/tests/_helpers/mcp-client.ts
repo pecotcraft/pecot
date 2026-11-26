@@ -71,9 +71,26 @@ export interface ConnectedClient {
   readonly close: () => Promise<void>
 }
 
+/**
+tools/call・tools/list の応答の全体を、受けた時点で添付するクライアント。判定で落ちても応答が残る
+*/
+export class RecordingClient extends Client {
+  override async callTool(...arguments_: Parameters<Client['callTool']>): ReturnType<Client['callTool']> {
+    const result = await super.callTool(...arguments_)
+    attachJson(`${arguments_[0].name} の結果`, result)
+    return result
+  }
+
+  override async listTools(...arguments_: Parameters<Client['listTools']>): ReturnType<Client['listTools']> {
+    const result = await super.listTools(...arguments_)
+    attachJson('tools/list の結果', result)
+    return result
+  }
+}
+
 export async function connectInMemory(server: McpServer): Promise<ConnectedClient> {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
-  const client = new Client({ name: 'test-client', version: '0.0.0' })
+  const client = new RecordingClient({ name: 'test-client', version: '0.0.0' })
   await server.connect(serverTransport)
   await client.connect(clientTransport)
   return {
@@ -103,8 +120,6 @@ export async function callToolOnce(commands: readonly CommandDefinition[], name:
   const connected = await connectInMemory(createMcpServer(commands))
   try {
     const result = await settle(connected.client.callTool({ name, arguments: { ...arguments_ } }, settle === awaitAsIs ? undefined : { timeout: FAKE_DELAY_REQUEST_TIMEOUT }))
-    // 形の確かめで落ちても残るよう、確かめる前に受けた結果の全体を添付する。
-    attachJson(`${name} の結果`, result)
     const outcome = toolOutcomeOf(result)
     const detail = outcome.structured['detail']
     if (outcome.isError && (typeof detail !== 'string' || detail.trim() === '')) throw new Error(`${name}: 失敗の detail が空です`)

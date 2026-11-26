@@ -9,6 +9,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
+import { attachOutput, readOutput } from '../../../../libs/interface-spec/src/vitest/attach.js'
 import { validateBodyStyle } from '@pecot/workflow-core/domain/sections.js'
 
 const pluginRoot = path.resolve(import.meta.dirname, '..', '..')
@@ -461,12 +462,13 @@ describe('auto のワークフローの雛形の step の中身', () => {
       env: { PATH: `${bin}:${process.env['PATH'] ?? ''}`, FAKE_LOG: log, RUNNER_TEMP: work, GITHUB_REPOSITORY: 'owner/repo', ...literal, ...environment },
       encoding: 'utf8',
     })
+    attachOutput(`bash step.sh（${step.name ?? ''}）`, result.status ?? undefined, result.stdout, result.stderr)
     return result.status ?? -1
   }
 
   function logged(name: string): string[] | undefined {
     const file = path.join(log, name)
-    return existsSync(file) ? readFileSync(file, 'utf8').split('\n').slice(0, -1) : undefined
+    return existsSync(file) ? readOutput(file).split('\n').slice(0, -1) : undefined
   }
 
   it('Decide は、変数 PECOT_AUTO_PROJECT が空なら、イベントと上限の 3 つの引数だけで auto gate を打つ', () => {

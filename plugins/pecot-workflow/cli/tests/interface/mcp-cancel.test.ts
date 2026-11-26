@@ -5,12 +5,14 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { Client, InMemoryTransport } from '@modelcontextprotocol/client'
+import type { Client } from '@modelcontextprotocol/client'
+import { InMemoryTransport } from '@modelcontextprotocol/client'
 import { expect, it } from 'vitest'
 
 import { createMcpServer } from '../../src/mcp/server.js'
 import { COMMANDS } from '../../src/commands/registry.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { RecordingClient } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
 import { stateFile } from '../_helpers/workspace-inspect.js'
 import { finishPullRequestData, graphql, openWorkspace, rest } from '../_helpers/workspace.js'
@@ -134,7 +136,7 @@ async function connectRecording(): Promise<RecordedConnection> {
     await sendFromClient(message, options)
   }
   const server = createMcpServer(COMMANDS)
-  const client = new Client({ name: 'test-client', version: '0.0.0' })
+  const client = new RecordingClient({ name: 'test-client', version: '0.0.0' })
   await server.connect(serverTransport)
   await client.connect(clientTransport)
   return {

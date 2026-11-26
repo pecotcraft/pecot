@@ -8,6 +8,7 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { attachOutput, attachText, readOutput } from '../../../../../libs/interface-spec/src/vitest/attach.js'
 import { makeTemporaryDirectory, writeTree } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { pluginRoot, readDocuments, readPluginFile } from './_helpers/documents.js'
 
@@ -17,6 +18,7 @@ function scriptPath(relative: string): string {
 
 function runScript(relative: string, cwd: string) {
   const result = spawnSync(process.execPath, [scriptPath(relative)], { cwd, encoding: 'utf8' })
+  attachOutput(`node ${relative}`, result.status ?? undefined, result.stdout, result.stderr)
   return { status: result.status, stdout: result.stdout, stderr: result.stderr }
 }
 
@@ -216,6 +218,15 @@ describe('w-onboarding の兄弟リポの検出', () => {
   })
 })
 
+// 状態・型・本文を、判定の前に添付する。
+async function get(port: number, requestPath: string): Promise<{ status: number, contentType: string | null, body: string }> {
+  const response = await fetch(`http://127.0.0.1:${String(port)}${requestPath}`)
+  const body = await response.text()
+  const contentType = response.headers.get('content-type')
+  attachText(`GET ${requestPath} の応答`, `${String(response.status)}\ncontent-type: ${contentType ?? ''}\n\n${body}`, '.txt')
+  return { status: response.status, contentType, body }
+}
+
 describe('w-pr のプレビューの配信', () => {
   const script = scriptPath('skills/w-pr/scripts/serve-preview.cjs')
   let server: ChildProcess | undefined
@@ -243,21 +254,21 @@ describe('w-pr のプレビューの配信', () => {
 
   it('.html を text/html で 200 を返す', async () => {
     const port = await serve()
-    const response = await fetch(`http://127.0.0.1:${String(port)}/index.html`)
+    const response = await get(port, '/index.html')
     expect(response.status).toBe(200)
-    expect(response.headers.get('content-type')).toContain('text/html')
-    expect(await response.text()).toContain('日本語')
+    expect(response.contentType).toContain('text/html')
+    expect(response.body).toContain('日本語')
   })
 
   it('..%2f で配信の起点の外を指すと、403 を返す', async () => {
     const port = await serve()
-    const response = await fetch(`http://127.0.0.1:${String(port)}/..%2f..%2f..%2fsecret.txt`)
+    const response = await get(port, '/..%2f..%2f..%2fsecret.txt')
     expect(response.status).toBe(403)
   })
 
   it('無いパスには、404 を返す', async () => {
     const port = await serve()
-    const response = await fetch(`http://127.0.0.1:${String(port)}/nope.html`)
+    const response = await get(port, '/nope.html')
     expect(response.status).toBe(404)
   })
 
@@ -272,6 +283,7 @@ describe('w-pr のプレビューの配信', () => {
     const repository = makeTemporaryDirectory()
     writeTree(repository, { '.pecot/work/399/index.html': '<p>x</p>\n' })
     const result = spawnSync(process.execPath, [script, '.pecot/work/399', port], { cwd: repository, encoding: 'utf8' })
+    attachOutput(`node serve-preview.cjs .pecot/work/399 ${port}`, result.status ?? undefined, result.stdout, result.stderr)
     expect(result.status).toBe(1)
     expect(result.stderr).toBe(`配信を立てられません: port が 0〜65535 の整数ではありません（${port}）\n`)
   })
@@ -299,8 +311,9 @@ describe('w-pr のマージの待ち受け', () => {
       encoding: 'utf8',
       env: { ...process.env, PATH: `${bin}${path.delimiter}${process.env['PATH'] ?? ''}` },
     })
+    attachOutput(`node wait-merge.cjs ${arguments_.join(' ')}`, result.status ?? undefined, result.stdout, result.stderr)
     const log = path.join(bin, 'calls.log')
-    const calls = existsSync(log) ? readFileSync(log, 'utf8').trim().split('\n').map(line => parseArguments(line)) : []
+    const calls = existsSync(log) ? readOutput(log).trim().split('\n').map(line => parseArguments(line)) : []
     return { status: result.status, stdout: result.stdout, stderr: result.stderr, calls }
   }
 

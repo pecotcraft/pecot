@@ -2,7 +2,7 @@
 // pecot-state-guard.sh のテスト。
 // .pecot 配下への書き込みガード（gitignore-before-write 規約）の単一実装を検証する。
 // pecot_state_dir_ensure を source して呼び、終了コードと副作用を観測する。
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -14,6 +14,7 @@ import { coreDirectory } from '../_helpers/paths.js'
 import { runShell } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { splitLines } from '../_helpers/text.js'
+import { readOutput } from '../../../../../../libs/interface-spec/src/vitest/attach.js'
 
 const GUARD_SCRIPT = path.join(coreDirectory, 'pecot-state-guard.sh')
 
@@ -56,7 +57,7 @@ describe('pecot-state-guard.sh', () => {
     expect(isFile(gitignore)).toBe(true)
     expect(isDirectory(path.join(pecot, 'state'))).toBe(true)
     // pecot-gitignore-ensure.sh の生成内容（許可の一覧）が含まれる
-    expect(splitLines(readFileSync(gitignore, 'utf8'))).toContain('*')
+    expect(splitLines(readOutput(gitignore))).toContain('*')
   })
 
   it('.pecot と .gitignore があるとき、既存の .gitignore の内容を変えない', () => {
@@ -68,7 +69,7 @@ describe('pecot-state-guard.sh', () => {
     const result = runEnsure(hookCase, path.join(pecot, 'state'))
     expect(result.exitCode).toBe(0)
 
-    expect(readFileSync(path.join(pecot, '.gitignore'), 'utf8')).toBe('sentinel-existing-content\n')
+    expect(readOutput(path.join(pecot, '.gitignore'))).toBe('sentinel-existing-content\n')
     expect(isDirectory(path.join(pecot, 'state'))).toBe(true)
   })
 

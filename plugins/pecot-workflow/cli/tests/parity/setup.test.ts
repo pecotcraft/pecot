@@ -5,6 +5,7 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { attachOutput } from '../../../../../libs/interface-spec/src/vitest/attach.js'
 import { compareStrings } from './baseline.js'
 import { parseScenario } from './scenario.js'
 import type { Sandbox } from './setup.js'
@@ -19,7 +20,9 @@ function make(yaml: string): Sandbox {
 }
 
 function run(sandbox: Sandbox, command: string, arguments_: readonly string[]): string {
-  return execFileSync(command, arguments_, { cwd: sandbox.repositoryDirectory, env: baseEnvironment(sandbox), encoding: 'utf8' })
+  const stdout = execFileSync(command, arguments_, { cwd: sandbox.repositoryDirectory, env: baseEnvironment(sandbox), encoding: 'utf8' })
+  attachOutput([command, ...arguments_].join(' '), 0, stdout, '')
+  return stdout
 }
 
 afterEach(() => {
@@ -131,7 +134,9 @@ describe('createSandbox', () => {
     const worktreeDirectory = path.join(sandbox.root, 'wt1', 'demo')
     expect(readFileSync(path.join(worktreeDirectory, '.pecot/state/flag'), 'utf8')).toBe('on')
     expect(lstatSync(path.join(worktreeDirectory, 'link')).isSymbolicLink()).toBe(true)
-    expect(execFileSync('git', ['status', '--porcelain'], { cwd: worktreeDirectory, env: baseEnvironment(sandbox), encoding: 'utf8' }).trim()).toBe('?? link')
+    const status = execFileSync('git', ['status', '--porcelain'], { cwd: worktreeDirectory, env: baseEnvironment(sandbox), encoding: 'utf8' })
+    attachOutput('git status --porcelain', 0, status, '')
+    expect(status.trim()).toBe('?? link')
   })
 
   it('一時 root がリポジトリの中にあっても、親をたどって実リポを読まない', () => {

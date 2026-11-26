@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // session-start-worktree-setup.sh のテスト。Claude Code が作る worktree（.claude/worktrees/<name>）でだけ setup を流す。
 // 流すのは main worktree の worktree-config.json の setup_command で、成功したら git の管理ディレクトリに印を置く。
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -11,6 +11,7 @@ import type { HookCase } from './_helpers/environment.js'
 import { gitOrThrow, gitRepository } from './_helpers/git.js'
 import { runHookEntry } from './_helpers/run.js'
 import type { RunResult } from './_helpers/run.js'
+import { readOutput } from '../../../../../libs/interface-spec/src/vitest/attach.js'
 
 const ENTRY = 'session-start-worktree-setup.sh'
 const COUNT_FILE = 'setup-count.txt'
@@ -47,7 +48,7 @@ function gitPath(hookCase: HookCase, worktree: string, name: string): string {
 
 function runCount(directory: string): number {
   const file = path.join(directory, COUNT_FILE)
-  return existsSync(file) ? readFileSync(file, 'utf8').split('\n').filter(line => line !== '').length : 0
+  return existsSync(file) ? readOutput(file).split('\n').filter(line => line !== '').length : 0
 }
 
 describe('session-start-worktree-setup.sh', () => {
@@ -88,7 +89,7 @@ describe('session-start-worktree-setup.sh', () => {
     expect(first.exitCode).toBe(0)
     expect(first.stdout).toContain('warning: the worktree setup command failed (exit 3)')
     expect(first.stdout).toContain(`log: ${log}`)
-    expect(readFileSync(log, 'utf8')).toContain('broken')
+    expect(readOutput(log)).toContain('broken')
     expect(existsSync(gitPath(hookCase, worktree, 'pecot-worktree-setup'))).toBe(false)
 
     startSession(hookCase, worktree, 'resume')

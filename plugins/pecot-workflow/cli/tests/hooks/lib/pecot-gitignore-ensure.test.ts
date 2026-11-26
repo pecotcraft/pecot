@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // pecot-gitignore-ensure.sh のテスト。
 // 中身は許可の一覧で、実 git リポで、除外されるパスと戻るパスを確かめる。
-import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -13,6 +13,7 @@ import { coreDirectory } from '../_helpers/paths.js'
 import { run } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { splitLines } from '../_helpers/text.js'
+import { readOutput } from '../../../../../../libs/interface-spec/src/vitest/attach.js'
 
 const ENSURE_SCRIPT = path.join(coreDirectory, 'pecot-gitignore-ensure.sh')
 
@@ -61,7 +62,7 @@ describe('pecot-gitignore-ensure.sh', () => {
 
     expect(runEnsure(hookCase, project).exitCode).toBe(0)
     const printed = run(hookCase, 'bash', [ENSURE_SCRIPT, '--print']).stdout
-    expect(readFileSync(path.join(project, '.pecot', '.gitignore'), 'utf8')).toBe(printed)
+    expect(readOutput(path.join(project, '.pecot', '.gitignore'))).toBe(printed)
   })
 
   it('許可の一覧は、生成物を除外し、config の一部を除外しない', () => {
@@ -119,7 +120,7 @@ describe('pecot-gitignore-ensure.sh', () => {
     writeFileSync(path.join(repository, '.pecot', '.gitignore'), 'state/\n/.gitignore\n')
 
     expect(runEnsure(hookCase, repository).exitCode).toBe(0)
-    const lines = splitLines(readFileSync(path.join(repository, '.pecot', '.gitignore'), 'utf8'))
+    const lines = splitLines(readOutput(path.join(repository, '.pecot', '.gitignore')))
     expect(lines).not.toContain('state/')
     expect(lines).not.toContain('/.gitignore')
     expect(lines).toContain('!/config/')
@@ -132,7 +133,7 @@ describe('pecot-gitignore-ensure.sh', () => {
     writeFileSync(path.join(project, '.pecot', '.gitignore'), 'stale\n')
 
     expect(runEnsure(hookCase, project).exitCode).toBe(0)
-    const lines = splitLines(readFileSync(path.join(project, '.pecot', '.gitignore'), 'utf8'))
+    const lines = splitLines(readOutput(path.join(project, '.pecot', '.gitignore')))
     expect(lines).not.toContain('stale')
   })
 
@@ -146,7 +147,7 @@ describe('pecot-gitignore-ensure.sh', () => {
     expect(isTracked(hookCase, repository)).toBe(true)
 
     expect(runEnsure(hookCase, repository).exitCode).toBe(0)
-    expect(readFileSync(path.join(repository, '.pecot', '.gitignore'), 'utf8')).toBe('stale\n')
+    expect(readOutput(path.join(repository, '.pecot', '.gitignore'))).toBe('stale\n')
     expect(git(hookCase, repository, 'status', '--porcelain').stdout).toBe('')
   })
 })

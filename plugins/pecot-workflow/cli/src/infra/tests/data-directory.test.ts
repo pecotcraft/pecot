@@ -5,6 +5,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { dataDirectory } from '@pecot/workflow-core/infra/paths.js'
+import { attachOutput } from '../../../../../../libs/interface-spec/src/vitest/attach.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { pluginRoot } from '../../version.js'
 
@@ -21,6 +22,7 @@ describe('dataDirectory は bin/_lib.sh の plugin_data_dir_resolve と同じ結
   function bashResolve(values: Readonly<Record<string, string>>): { readonly stdout: string, readonly status: number | null } {
     const environment: Record<string, string> = { PATH: process.env['PATH'] ?? '/usr/bin:/bin', ...values }
     const result = spawnSync('bash', [callFunction, libraryPath, 'plugin_data_dir_resolve', PROJECT_NAME], { env: environment, encoding: 'utf8' })
+    attachOutput('bash plugin_data_dir_resolve', result.status ?? undefined, result.stdout, result.stderr)
     return { stdout: result.stdout, status: result.status }
   }
 
@@ -52,7 +54,9 @@ describe('dataDirectory は bin/_lib.sh の plugin_data_dir_resolve と同じ結
   })
 
   it('bash の解決結果が実際に得られている（テストの前提）', () => {
-    expect(execFileSync('bash', [callFunction, libraryPath, 'plugin_data_dir_resolve', PROJECT_NAME], { env: { PATH: process.env['PATH'] ?? '', HOME: '/home/u' }, encoding: 'utf8' }))
+    const stdout = execFileSync('bash', [callFunction, libraryPath, 'plugin_data_dir_resolve', PROJECT_NAME], { env: { PATH: process.env['PATH'] ?? '', HOME: '/home/u' }, encoding: 'utf8' })
+    attachOutput('bash plugin_data_dir_resolve', 0, stdout, '')
+    expect(stdout)
       .toBe(`/home/u/.local/share/pecot/${PROJECT_NAME}\n`)
   })
 })

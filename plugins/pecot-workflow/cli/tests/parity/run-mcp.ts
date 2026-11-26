@@ -3,13 +3,14 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { Client, SdkError, SdkErrorCode } from '@modelcontextprotocol/client'
+import type { Client } from '@modelcontextprotocol/client'
+import { SdkError, SdkErrorCode } from '@modelcontextprotocol/client'
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
 import { z } from 'zod'
 
 import { toolNameOf } from '../../src/commands/registry.js'
 import { parseJson } from '../../../../../libs/workflow-core/tests/_helpers/json.js'
-import { outputSchemaIssues, toolOutcomeOf } from '../_helpers/mcp-client.js'
+import { outputSchemaIssues, RecordingClient, toolOutcomeOf } from '../_helpers/mcp-client.js'
 import { readToolShape, toolInputOf } from './mcp-input.js'
 import { renderMcpView } from './mcp-view.js'
 import type { ChildResult, Launcher } from './run.js'
@@ -68,7 +69,7 @@ export async function runMcpChild(launcher: Launcher, scenario: Scenario, cwd: s
   transport.stderr?.on('data', (chunk: Buffer | string) => {
     serverStderr += String(chunk)
   })
-  const client = new Client({ name: 'parity', version: '0.0.0' })
+  const client = new RecordingClient({ name: 'parity', version: '0.0.0' })
   const failed = (error: unknown): ChildResult => {
     const message = messageOf(error)
     return { stdout: '', stderr: '', code: undefined, signal: undefined, spawnError: `${message}${serverStderr === '' ? '' : `\n${serverStderr}`}`, timedOut: SdkError.isInstance(error) && error.code === SdkErrorCode.RequestTimeout }

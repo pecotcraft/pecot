@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
 // session-title.sh（Claude Code のセッション名）のテスト。
 // 番号はブランチ名と remote から求め、題名は .pecot-session-title から取る。session-title-sent の `<session_id>:<題名>` と違うときだけ出す。
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -13,6 +13,7 @@ import { coreDirectory } from '../_helpers/paths.js'
 import { runScript } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { parseJson } from '../_helpers/text.js'
+import { readOutput } from '../../../../../../libs/interface-spec/src/vitest/attach.js'
 
 const SCRIPT = path.join(coreDirectory, 'session-title.sh')
 
@@ -69,7 +70,7 @@ function activate(hookCase: HookCase, { project, state }: Project, branch = 'fea
 }
 
 function readSent(state: string): string {
-  return readFileSync(path.join(state, 'session-title-sent'), 'utf8')
+  return readOutput(path.join(state, 'session-title-sent'))
 }
 
 // 出さなかったときの期待は { exitCode: 0, stdout: '', sent: false }。
