@@ -85,13 +85,14 @@
 
 ## R7. Actions の token
 
-- **Decision**: `GITHUB_TOKEN` で動く処理（`link-branch`・`stack-register`・`repo-settings`・`release-create`）は、それで動かす。
-  組織のボードを触る処理（`project-fields`・`project-view`・`project-link`）と、secret と variable の名前を読む `workflow-doctor` は、GitHub App の token で動かす。
+- **Decision**: `GITHUB_TOKEN` で動き、利用者のリポのワークフローを起こさなくてよい処理（`link-branch`・`stack-register`・`repo-settings`）は、それで動かす。
+  組織のボードを触る処理（`project-fields`・`project-view`・`project-link`）、secret と variable の名前を読む `workflow-doctor`、`on: release` のワークフローを起こす `release-create` は、GitHub App の token で動かす。
   処理ごとの権限は [contracts/actions-interface.md](contracts/actions-interface.md) の 2 節に書く。
   画面のマージを再現する `merge-async` は、Actions の token では merge queue に入れられないので置かない
 - **Rationale**: `GITHUB_TOKEN` の権限の表に Projects の行が無い。文書は「If you need a token that requires permissions that aren't available in the `GITHUB_TOKEN`, create a GitHub App」と書く。
   2026-11-26 に sandbox で、`GITHUB_TOKEN`・ボードの同期の App・エージェントの App を同じ `workflow_dispatch` のワークフローの step に分けて試した（[verification/github-io.md](verification/github-io.md)）。
-  `GITHUB_TOKEN` からは組織のボードが見えず、Secrets・Variables の権限も無い。merge queue のある `main` には、どの token の `merge-async` も「Enqueuer is not authorized to merge」で入らなかった
+  `GITHUB_TOKEN` からは組織のボードが見えず、Secrets・Variables の権限も無い。merge queue のある `main` には、どの token の `merge-async` も「Enqueuer is not authorized to merge」で入らなかった。
+  `GITHUB_TOKEN` が起こすイベントは新しい run を作らない（GitHub Docs の「GITHUB_TOKEN」）ので、`GITHUB_TOKEN` で作ったリリースは `on: release` のワークフローを起こさない
 - **Alternatives considered**: すべての処理を App の token で動かす案は、`GITHUB_TOKEN` で通る処理にも App の秘密鍵を渡すことになるので外した
 
 ## R8. pecot-workflow と `actions/` が共有する部品

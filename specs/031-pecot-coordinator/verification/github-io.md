@@ -41,13 +41,13 @@ URL 1 つで指定できる toolset は 1 つだけなので（`docs/remote-serv
 | T008 | アーカイブした item を外して足し直す | 通った。ただし手順が 3 つ増える（下の T008） |
 | T009 | `create_project`・`create_project_view` | 通った。pecot の欄とビューの分け方は作れない（下の T009） |
 | T010 | `issue_dependency_write`・`issue_dependency_read` | 通った。付ける・読む・外す・付け直すのどれも |
-| T011 | `update_pull_request_branch` | スタック PR では 403 で断られた。親をマージすると、GitHub が子を自分で base に載せ替えた（下の T011） |
+| T011 | `update_pull_request_branch` | スタック PR では 403 で断られた。親をマージすると、GitHub が子を自分で base に載せ替えた。`pr_restack` を後に流しても変わらなかった（下の T011） |
 | T012 | `update_pull_request` の `reviewers` | 通った。App が作った PR に `kouhei0831` を頼めた |
 | T013 | `actions_run_trigger`・`actions_list`・`actions_get`・`get_job_logs` | 通った。結果はログから読む（下の T013） |
 | T014 | `delete_branch_on_merge` を公式の MCP で読む | 読めなかった。試しのワークフローでは読めた（下の T014） |
 | T015 | claude.ai のコネクタと Copilot CLI の GitHub MCP | 手元の Claude Code はコネクタを OAuth で使えた。Copilot CLI は文書で読んだ（下の T015） |
 | T016・T017 | token ごとの Actions の処理 | 下の「token ごとの結果」 |
-| T018 | 公式の MCP だけで Issue を起票から閉じる | pecot-workflow で同じ操作をした Issue と、欄がそろった（下の T018） |
+| T018 | 公式の MCP だけで Issue を起票から閉じる | pecot-workflow で同じ操作をした Issue と、ラベル・Issue type・Issue fields・カードの欄がそろった（下の T018） |
 
 ## T007: ボードの item を足し、欄を書いて消す
 
@@ -103,7 +103,19 @@ pecot-workflow の `issue_reopen` は、アーカイブを解き、`Status` の 
 - 親をマージすると、GitHub が子の base を `main` に変えた。子のブランチは `main` から 1 つ進み、遅れは 0 になった。差分は子のファイルだけだった
 - その子に `update_pull_request_branch` を呼ぶと、「Updating a stacked PR's branch via this endpoint is not supported」の 403 で断られた
 
-スタックに登録した PR は、GitHub が親のマージの後に子を載せ替える。`pr_restack` に当たる手は、公式の MCP にも `actions/` にも要らない。`pr_restack` を `bin/pecot` で流して比べることはしなかった。載せ替えの後の子は、`main` の上に子の commit だけが乗る形で、`pr_restack` の rebase の結果と同じ形になる。
+`bin/pecot` でも同じ形のスタックを作って比べた。
+
+- `issue block --wait stack` で子の Issue（#673）を親（#672）に待たせ、`session start` と `pr create` で親 PR（#674）と子 PR（#675）を作った。子の `pr create` が、子をスタックに登録した
+- `pr merge 674` で親をマージすると、こちらも GitHub が子の base を `main` に変えて載せ替えた
+- その後に子のブランチで `pr restack` を流すと、「synced with origin」と出て、ブランチは変わらなかった
+
+| | 公式の MCP（#663） | `bin/pecot`（#675、`pr restack` の後） |
+|---|---|---|
+| base | `main` | `main` |
+| `main` から進んだ数・遅れた数 | 1・0 | 1・0 |
+| PR のファイル | 子のファイル 1 つだけ | 子のファイル 1 つだけ |
+
+スタックに登録した PR は、GitHub が親のマージの後に子を載せ替える。`pr_restack` に当たる手は、公式の MCP にも `actions/` にも要らない。
 
 ## T012: レビュアーを頼む
 
@@ -123,7 +135,10 @@ pecot-workflow の `issue_reopen` は、アーカイブを解き、`Status` の 
 
 - `search_repositories`（`minimal_output: false`）の結果に `delete_branch_on_merge` が無かった。持ち主の種類（`owner.type`）も無い
 - 公式の MCP のソースでは、`Repositories.Get` を呼ぶのは `CreateBranch` などの内部だけで、リポの設定を返すツールは無い
-- 試しのワークフローの `repo-settings`（REST `GET /repos/{owner}/{repo}`）では、`GITHUB_TOKEN` とエージェントの App が `delete_branch_on_merge: true` を読めた。ボードの同期の App は、項目そのものが返らなかった（Contents: read だけの App には返らない）
+- 試しのワークフローの `repo-settings`（REST `GET /repos/{owner}/{repo}`）では、`GITHUB_TOKEN` とエージェントの App が `delete_branch_on_merge: true` を読めた。
+  ボードの同期の App は、項目そのものが返らなかった。
+  GitHub Docs の「Get a repository」は、merge の設定を読むのに `contents:read` と `contents:write` の両方を求める。
+  通った `GITHUB_TOKEN` は `contents: write` を持っていた
 
 `github-ops` に `repo-settings` を足す。
 
@@ -161,7 +176,8 @@ pecot-workflow の `issue_reopen` は、アーカイブを解き、`Status` の 
   公式の MCP の `merge_pull_request` も、「Changes must be made through the merge queue」の 405 で断られた。
   merge queue のあるリポでは、Actions の token と公式の MCP のどちらからもマージできない。
   利用者の token（`pecot pr merge`）では入った
-- `GITHUB_TOKEN` が起こすイベントは、新しい run を作らない（GitHub Docs の「GITHUB_TOKEN」）。上のとおり `GITHUB_TOKEN` ではマージできなかったので、マージの後の board-sync・handoff が動くかは見ていない
+- `GITHUB_TOKEN` が起こすイベントは、新しい run を作らない（GitHub Docs の「GITHUB_TOKEN」）。`release-create` を `GITHUB_TOKEN` で動かすと、利用者のリポの `on: release` のワークフローが動かないので、App の token にした。
+  マージは上のとおり `GITHUB_TOKEN` ではできなかったので、マージの後の board-sync・handoff が動くかは見ていない
 - `tracker-sync` は、npm の `@pecot/workflow-mcp@9.0.0` の CLI が今の設定ファイル（`workflow_suffix` を持たない）を読めず、3 つとも同じエラーで止まった。
   sandbox には Dependabot alert も Dependabot の PR も無く、書き込みは起きない。
   tracker-sync の token は、要る読み書き（alert を読む・Issue を作る・ボードに足す）が上の表でそろう App とした。
@@ -196,6 +212,19 @@ pecot-workflow の `issue_reopen` は、アーカイブを解き、`Status` の 
 | つながったブランチ | `cuj/789-8h2g/gt`・`cuj/789-8h2g/ag`（token の試しで作ったもの。作業のブランチはマージで消えた） | 無し（マージで消えた） |
 
 違ったのは、つながったブランチだけで、token を比べるために余分に作ったブランチが残ったことによる。Epic と前提の Issue のカードも、公式の MCP で `Backlog`・`Ready` を書くと、pecot-workflow のものとそろった。
+
+上の 6 件は、ラベル・Issue type・Issue fields を付けずに作った。そこで、同じ値を付けた Issue を 1 件ずつ作り直して比べた。
+
+- pecot-workflow（#670）: `issue create` の `--attribute` で、`Priority=High`・`Target date=2026-12-01`・`type=Task`・`labels=["documentation"]` を渡し、`--lane repo` を付けた
+- 公式の MCP（#671）: `issue_write`（create）の `type: "Task"`・`labels: ["documentation"]`・`issue_fields`（`Priority` は `field_option_name: "High"`、`Target date` は `value: "2026-12-01"`）で作った。
+  `projects_write` で `pecot-status=Ready`・`pecot-lane=repo` を書いた
+
+| | 公式の MCP（#671） | pecot-workflow（#670） |
+|---|---|---|
+| Issue type | `Task` | `Task` |
+| ラベル | `documentation` | `documentation` |
+| Issue fields | `Priority=High`・`Target date=2026-12-01` | `Priority=High`・`Target date=2026-12-01` |
+| カード | `pecot-status=Ready`・`pecot-lane=repo`・`Status=Todo` | `pecot-status=Ready`・`pecot-lane=repo`・`Status=Todo` |
 
 ## 片付け
 

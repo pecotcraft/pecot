@@ -22,7 +22,7 @@
 |---|---|---|---|
 | `board-sync` | `board sync` | `pecot-board-sync.yml` | App か PAT（ボードに書く） |
 | `session-finish` | `session finish --skip-local-cleanup`（マージの後の片付け。スキルが使う `session_finish` は pecot-workflow に残す） | `pecot-board-sync.yml` | App か PAT。`--delete-branch` は外す（FR-018） |
-| `tracker-sync` | `tracker sync security`・`tracker sync dependabot` | 雛形は無い。このリポの `security-alerts.yml`・`dependabot-prs.yml` が呼ぶ | App（Issues: write・Organization projects: write・Security events: read・Secret scanning alerts: read・Vulnerability alerts: read。今の `security-alerts.yml` と同じ） |
+| `tracker-sync` | `tracker sync security`・`tracker sync dependabot` | 雛形は無い。このリポの `security-alerts.yml`・`dependabot-prs.yml` が呼ぶ | App。`security` は Issues: write・Organization projects: write・Security events: read・Secret scanning alerts: read・Vulnerability alerts: read（今の `security-alerts.yml`）。`dependabot` は Issues: write・Organization projects: write・Contents: read・Pull requests: read・Checks: read・Statuses: read（今の `dependabot-prs.yml`） |
 | `review-finish` | `review finish --ensure` | `pecot-review.yml` | App |
 | `auto-gate`・`auto-start`・`auto-finish` | `auto gate`・`auto start`・`auto finish` | 今は雛形が無い。自動処理の雛形を足すときは `actions/templates/` に置く | App |
 | `release-check` | `release check`（このリポの `release.yml` の preflight。スキルが使う `release_check` は pecot-workflow に残す） | 雛形は無い。このリポの `release.yml` が呼ぶ | App（今の `release.yml` と同じ） |
@@ -35,18 +35,19 @@
 
 | `operation` | 中身 | 入力 | 呼ぶスキル | token |
 |---|---|---|---|---|
-| `link-branch` | ブランチと Issue をつなぐ（`createLinkedBranch`） | `issue`・`branch` | w-active・w-quick・w-breakdown | `GITHUB_TOKEN`（contents・issues の write） |
-| `stack-register` | スタック PR を登録する（Stacks API） | `pr`・`parent_pr` | w-pr | `GITHUB_TOKEN`（contents・pull-requests の write） |
+| `link-branch` | ブランチと Issue をつなぐ（`createLinkedBranch`） | `issue`・`branch` | w-active・w-quick・w-breakdown | `GITHUB_TOKEN`（試したときは contents・issues・pull-requests の write） |
+| `stack-register` | スタック PR を登録する（Stacks API） | `pr`・`parent_pr` | w-pr | `GITHUB_TOKEN`（試したときは contents・issues・pull-requests の write） |
 | `project-fields` | ボードのフィールドを作る・名前を変える・消す・選択肢を直す | `project`・設定のファイルの場所 | w-onboarding | App（Organization projects: write） |
 | `project-view` | ビューの列と行の分け方を決める（REST の views） | `project`・ビューの名前・列と行の欄 | w-onboarding | App（Organization projects: write） |
-| `project-link` | リポをボードにつなぐ | `project`・`repo` | w-onboarding・w-repo-add | App（Organization projects: write に加え、Contents・Issues・Pull requests の write） |
-| `repo-settings` | リポの `delete_branch_on_merge` を返す | なし | w-onboarding・w-repo-add | `GITHUB_TOKEN`（contents の read） |
+| `project-link` | リポをボードにつなぐ | `project`・`repo` | w-onboarding・w-repo-add | App（エージェントの App と同じ権限で通った。リポのどの write が要るかは切り分けていない） |
+| `repo-settings` | リポの `delete_branch_on_merge` を返す | なし | w-onboarding・w-repo-add | `GITHUB_TOKEN`（contents の write。merge の設定は read では返らない） |
 | `workflow-doctor` | Actions の secret と variable の名前を読み、足りないものを返す | なし | w-onboarding | App（Secrets: read・Variables: read） |
-| `release-create` | リリースを作る | `tag`・`sha`・本文のファイル | w-release | `GITHUB_TOKEN`（contents の write） |
+| `release-create` | リリースを作る | `tag`・`sha`・本文のファイル | w-release | App（Contents: write）。`GITHUB_TOKEN` で作ると、利用者のリポの `on: release` のワークフローが動かない |
 
 - `GITHUB_TOKEN` からは組織のボードが見えない（`projectV2` が null、ビューの作成は 403）。ボードを触る operation は App で動かす
-- `project-link` は、Organization projects: write だけの App では FORBIDDEN だった。リポの書き込みも持つ App では通った
+- `project-link` は、Organization projects: write とリポの read を持つ App では FORBIDDEN だった。リポの write も持つエージェントの App では通った
 - `workflow-doctor` は、`GITHUB_TOKEN` に Secrets・Variables の権限が無い。試した 2 つの App にも付いていなかったので、通るところは確かめていない
+- `GITHUB_TOKEN` が起こすイベントは、新しい run を作らない（`workflow_dispatch`・`repository_dispatch` を除く）。`link-branch` で作ったブランチは、利用者のリポの `create`・`push` のワークフローを起こさない
 - 持ち主の種類は、公式の MCP の `get_me` で決める（[contracts/github-io.md](github-io.md) の 1 節）。operation は置かない
 - 画面のマージを再現する `merge-async` は置かない。merge queue のあるリポでは、`GITHUB_TOKEN` と App の token のどちらも「Enqueuer is not authorized to merge」で入れられなかった
 - スキルは `actions_run_trigger` で起動する。起動は run の ID を返さないので、ワークフローの `run-name` に `operation` とスキルが作った `request_id` を入れ、`actions_list` の `list_workflow_runs` の `display_title` で run を探す
