@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert';
 import path from 'node:path';
 import noNumericFilenamePrefixRule from '../lib/rules/no-numeric-filename-prefix.ts';
@@ -32,16 +32,16 @@ const VIOLATING_NAMES = [
 ];
 const VALID_NAMES = ['cover.md', 'comparison-radar-3axis.md', 'summary-cards-4.md'];
 
-test('no-numeric-filename-prefix: meta.type が problem', () => {
+test('meta.type を読むと、problem を返す', () => {
   assert.strictEqual(noNumericFilenamePrefixRule.meta?.type, 'problem');
 });
 
-test('no-numeric-filename-prefix: numericFilenamePrefix メッセージが定義されている', () => {
+test('メッセージを読むと、numericFilenamePrefix が定義されている', () => {
   const meta = noNumericFilenamePrefixRule.meta as { messages: Record<string, string> };
   assert.ok(meta.messages.numericFilenamePrefix);
 });
 
-test('no-numeric-filename-prefix: create が root/Program ビジターを返す', () => {
+test('create を呼ぶと、root と Program のビジターを返す', () => {
   const visitors = noNumericFilenamePrefixRule.create({
     filename: '/test.md',
     sourceCode: { getText: () => '' },
@@ -50,7 +50,7 @@ test('no-numeric-filename-prefix: create が root/Program ビジターを返す'
   assert.strictEqual(typeof visitors.Program, 'function');
 });
 
-test('no-numeric-filename-prefix: 数字から始まるファイル名でエラーを報告', () => {
+test('数字から始まるファイル名を渡すと、numericFilenamePrefix を報告する', () => {
   for (const name of VIOLATING_NAMES) {
     const reports = runRule(path.join(pagesDir, name));
     assert.strictEqual(reports.length, 1, `expected error for ${name}`);
@@ -58,21 +58,21 @@ test('no-numeric-filename-prefix: 数字から始まるファイル名でエラ�
   }
 });
 
-test('no-numeric-filename-prefix: 数字を含む正当なファイル名でエラーが出ないこと', () => {
+test('数字を含む正当なファイル名を渡すと、報告しない', () => {
   for (const name of VALID_NAMES) {
     const reports = runRule(path.join(pagesDir, name));
     assert.strictEqual(reports.length, 0, `unexpected error for ${name}`);
   }
 });
 
-test('no-numeric-filename-prefix: 指摘位置はファイル全体でなく 1 行目の点指摘', () => {
+test('数字から始まるファイル名を渡すと、ファイル全体でなく 1 行目の点で指摘する', () => {
   const reports = runRule(path.join(pagesDir, '01-cover.md')) as Array<{
     loc?: { line: number; column: number };
   }>;
   assert.deepStrictEqual(reports[0].loc, { line: 1, column: 0 });
 });
 
-test('no-numeric-filename-prefix: _references/ 配下のファイルはスキップ', () => {
+test('_references/ 配下のファイルだと、スキップする', () => {
   const reports = runRule(path.join(pagesDir, '_references', '01-cover.md'));
   assert.strictEqual(reports.length, 0, '_references/ should be skipped');
 });

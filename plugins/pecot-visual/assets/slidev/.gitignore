@@ -4,6 +4,5 @@ node_modules/
 scripts/**/dist/
 **/*.tsbuildinfo
 
-# c8 coverage 成果物
+# vitest の coverage の成果物
 coverage/
-.nyc_output/

@@ -1,14 +1,14 @@
-import { describe, it } from 'node:test';
+import { describe, it } from 'vitest';
 import assert from 'node:assert/strict';
 
 import { readThemeSettings } from '../lib/theme-settings.ts';
 
 describe('readThemeSettings', () => {
-  it('settings が無ければ空の値を返す', () => {
+  it('settings が無いと、空の値を返す', () => {
     assert.deepEqual(readThemeSettings({}), { referencesDirectories: [], panels: {}, markerLayouts: [] });
   });
 
-  it("settings['slidev-theme'] の 3 項目を読む", () => {
+  it("settings['slidev-theme'] に 3 項目があると、3 項目とも読む", () => {
     const settings = readThemeSettings({
       settings: {
         'slidev-theme': {
@@ -23,7 +23,7 @@ describe('readThemeSettings', () => {
     assert.deepEqual(settings.markerLayouts, ['marked']);
   });
 
-  it('形の合わない値は読み飛ばす', () => {
+  it('形の合わない値があると、読み飛ばす', () => {
     const settings = readThemeSettings({
       settings: {
         'slidev-theme': {
@@ -38,7 +38,7 @@ describe('readThemeSettings', () => {
     assert.deepEqual(settings.markerLayouts, ['ok']);
   });
 
-  it('凍結された settings を書き換えず、返す値は元の配列と別のものになる', () => {
+  it('凍結された settings を渡すと、書き換えず、元の配列とは別の配列を返す', () => {
     const referencesDirectories = Object.freeze(['/a', '/b']);
     const context = {
       settings: Object.freeze({
@@ -50,7 +50,7 @@ describe('readThemeSettings', () => {
     assert.notStrictEqual(settings.referencesDirectories, referencesDirectories);
   });
 
-  it('panels が prototype のキーを持たない（layout: constructor を拾わない）', () => {
+  it('panels を読むと、prototype のキーを持たない値を返す', () => {
     const { panels } = readThemeSettings({ settings: { 'slidev-theme': { panels: { panel: { width: 1, height: 1 } } } } });
     assert.equal(Object.hasOwn(panels, 'constructor'), false);
     assert.equal(Object.hasOwn(panels, 'panel'), true);

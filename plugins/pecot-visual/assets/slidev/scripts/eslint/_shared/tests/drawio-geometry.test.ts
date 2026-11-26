@@ -1,4 +1,4 @@
-import { describe, it } from 'node:test';
+import { describe, it } from 'vitest';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -66,7 +66,7 @@ describe('drawioGeometry: 実図の viewer の計測値', () => {
     ['workflow-cycle', 910, 450],
   ];
   for (const [name, canvasWidth, canvasHeight] of cases) {
-    it(`${name}: キャンバスが W+60 / H+60、原点は (20, 20)`, () => {
+    it(`${name} の図を読むと、キャンバスを W+60 / H+60、原点を (20, 20) にする`, () => {
       const model = parseDrawio(readDiagram(name));
       assert.ok(model.bounds && model.visualBounds);
       assert.equal(model.bounds.width + 60, canvasWidth);
@@ -80,7 +80,7 @@ describe('drawioGeometry: 実図の viewer の計測値', () => {
     });
   }
 
-  it('pecotv-skills の badge 左上が 560×400 の枠で (402.41, 45.28) に描かれる', () => {
+  it('pecotv-skills を 560×400 の枠に収めると、badge の左上を (402.41, 45.28) に描く', () => {
     const model = parseDrawio(readDiagram('pecotv-skills'));
     const badge = resolveCellRect(model, 'badge');
     assert.deepEqual(badge, { x: 570, y: 14, width: 180, height: 36, crisp: 0.5 });
@@ -91,7 +91,7 @@ describe('drawioGeometry: 実図の viewer の計測値', () => {
     assertClose(p.y, 45.28, 0.01, 'y');
   });
 
-  it('cellCenterPercent は badge 中心をパネル比の百分率で返す', () => {
+  it('badge の中心を求めると、パネル比の百分率で返す', () => {
     const model = parseDrawio(readDiagram('pecotv-skills'));
     const s = 560 / 780;
     const { px, py } = cellCenterPercent(model, 'badge', PANEL_560x400);
@@ -101,7 +101,7 @@ describe('drawioGeometry: 実図の viewer の計測値', () => {
 });
 
 describe('drawioGeometry: フィットモデル', () => {
-  it('横長の図は幅で縮小し、縦方向に中央配置する', () => {
+  it('横長の図だと、幅に合わせて縮小し、縦方向の中央に置く', () => {
     const model = parseDrawio(wrap(vertex('a', 0, 0, 1000, 100)));
     const fit = fitDiagram(model.visualBounds!, PANEL);
     const s = 560 / 1060;
@@ -113,7 +113,7 @@ describe('drawioGeometry: フィットモデル', () => {
     assertClose((c.py / 100) * 390, (390 - 160 * s) / 2 + (50 + 20 + 0.5) * s, 1e-6);
   });
 
-  it('縦長の図は高さで縮小し、横方向に中央配置する', () => {
+  it('縦長の図だと、高さに合わせて縮小し、横方向の中央に置く', () => {
     const model = parseDrawio(wrap(vertex('a', 0, 0, 100, 1000)));
     const fit = fitDiagram(model.visualBounds!, PANEL);
     const s = 390 / 1060;
@@ -122,7 +122,7 @@ describe('drawioGeometry: フィットモデル', () => {
     assertClose(fit.offsetY, 0, 1e-9);
   });
 
-  it('パネルより小さい図は拡大せず (s = 1) 中央に置く', () => {
+  it('パネルより小さい図だと、拡大せず (s = 1) 中央に置く', () => {
     const model = parseDrawio(wrap(vertex('a', 0, 0, 200, 100)));
     const fit = fitDiagram(model.visualBounds!, PANEL);
     assert.equal(fit.scale, 1);
@@ -133,7 +133,7 @@ describe('drawioGeometry: フィットモデル', () => {
     assertClose((c.py / 100) * 390, 115 + 50 + 20.5, 1e-9);
   });
 
-  it('パネル端: 幅ちょうどの図は右端の図形が右から 40px（= 60 - 20）の位置に来る', () => {
+  it('幅がパネルちょうどの図だと、右端の図形を右から 40px（= 60 - 20）の位置に置く', () => {
     // W + 60 = 560 で s = 1、左右の余白は 20 / 40
     const model = parseDrawio(wrap(vertex('left', 0, 0, 10, 10) + vertex('right', 490, 0, 10, 10)));
     const fit = fitDiagram(model.visualBounds!, PANEL);
@@ -144,7 +144,7 @@ describe('drawioGeometry: フィットモデル', () => {
     assert.equal(toPanelPoint(fit, 500, 0).x, 520);
   });
 
-  it('端数の外接矩形は原点の平行移動を切り捨て、キャンバス寸法を切り上げる（計測 460×310 / tx -81）', () => {
+  it('外接矩形に端数があると、原点の平行移動を切り捨て、キャンバスの寸法を切り上げる', () => {
     const model = parseDrawio(wrap(vertex('a', 100.3, 100, 100, 50) + vertex('b', 400.4, 300, 100, 50)));
     const fit = fitDiagram(model.visualBounds!, PANEL);
     assert.equal(fit.tx, -81);
@@ -153,7 +153,7 @@ describe('drawioGeometry: フィットモデル', () => {
     assert.equal(fit.canvasHeight, 310);
   });
 
-  it('枠線のある図形は線幅の半分だけ外接矩形が広がる（計測: 線幅 4 と 3 で 464×314 / tx -78）', () => {
+  it('枠線のある図形だと、線幅の半分だけ外接矩形を広げる', () => {
     const model = parseDrawio(
       wrap(
         vertex('a', 100, 100, 100, 50, 'style="strokeWidth=4;"') +
@@ -169,7 +169,7 @@ describe('drawioGeometry: フィットモデル', () => {
     assert.equal(resolveCellRect(model, 'b').crisp, 0.5);
   });
 
-  it('text・image スタイルは枠線を持たない（計測 460×310）', () => {
+  it('text か image のスタイルの図形だと、枠線を持たないものとして扱う', () => {
     const model = parseDrawio(
       wrap(vertex('a', 100, 100, 100, 50) + vertex('b', 400, 300, 100, 50, 'style="text;html=1;"')),
     );
@@ -178,7 +178,7 @@ describe('drawioGeometry: フィットモデル', () => {
     assert.equal(fit.canvasHeight, 310);
   });
 
-  it('staticImageOrigin は export SVG の左上を viewer の線幅 1 の図形と同じ位置に置く', () => {
+  it('export した SVG の原点を求めると、viewer の線幅 1 の図形と同じ位置に置く', () => {
     const model = parseDrawio(wrap(vertex('a', 0, 0, 200, 100)));
     const fit = fitDiagram(model.visualBounds!, PANEL);
     const origin = staticImageOrigin(fit, model.visualBounds!);
@@ -188,7 +188,7 @@ describe('drawioGeometry: フィットモデル', () => {
 });
 
 describe('drawioGeometry: セル解決', () => {
-  it('入れ子 parent の offset を加算する（2 段）', () => {
+  it('parent が入れ子になっていると、2 段分の offset を加算する', () => {
     const xml = wrap(
       '<mxCell id="g" value="" style="group" vertex="1" connectable="0" parent="1">' +
         '<mxGeometry x="600" y="300" width="100" height="100" as="geometry"/></mxCell>' +
@@ -203,7 +203,7 @@ describe('drawioGeometry: セル解決', () => {
     assert.deepEqual(model.bounds, { x: 600, y: 300, width: 150, height: 100 });
   });
 
-  it('複数レイヤの図形を解決し、外接矩形に含める', () => {
+  it('複数のレイヤに図形があると、すべて解決して外接矩形に含める', () => {
     const xml = wrap(
       vertex('a', 0, 0, 10, 10) +
         '<mxCell id="layer2" parent="0"/>' +
@@ -216,7 +216,7 @@ describe('drawioGeometry: セル解決', () => {
     assertGeometryError(() => resolveCellRect(model, 'layer2'), 'not-vertex');
   });
 
-  it('visible="0" の図形と、非表示レイヤの子を除外する', () => {
+  it('visible="0" の図形と非表示のレイヤの子があると、除外する', () => {
     const xml = wrap(
       vertex('a', 0, 0, 10, 10) +
         vertex('hidden', 500, 500, 10, 10, 'visible="0"') +
@@ -230,7 +230,7 @@ describe('drawioGeometry: セル解決', () => {
     assertGeometryError(() => resolveCellRect(model, 'b'), 'hidden-cell');
   });
 
-  it('relative="1" の子は外接矩形に含めず、解決もしない', () => {
+  it('relative="1" の子があると、外接矩形に含めず、解決もしない', () => {
     const xml = wrap(
       vertex('a', 0, 0, 100, 100) +
         '<mxCell id="port" value="" vertex="1" parent="a">' +
@@ -241,7 +241,7 @@ describe('drawioGeometry: セル解決', () => {
     assertGeometryError(() => resolveCellRect(model, 'port'), 'relative-cell');
   });
 
-  it('edge の経由点と未接続の端点は外接矩形に入り、接続済みの端点は入らない', () => {
+  it('edge があると、経由点と未接続の端点を外接矩形に入れ、接続済みの端点は入れない', () => {
     // viewer の計測時と同じ枠線あり（線幅 1）の図形
     const base =
       vertex('a', 100, 100, 100, 50, 'style="rounded=0;"') +
@@ -274,12 +274,12 @@ describe('drawioGeometry: セル解決', () => {
     assert.deepEqual([freeFit.canvasWidth, freeFit.canvasHeight, freeFit.tx], [561, 362, 20]);
   });
 
-  it('属性値の実体参照を解く', () => {
+  it('属性値に実体参照があると、解いた値で ID を探す', () => {
     const model = parseDrawio(wrap(vertex('api&amp;gw', 0, 0, 10, 10)));
     assert.equal(resolveCellRect(model, 'api&gw').width, 10);
   });
 
-  it('未知の ID・edge の ID は明示エラー', () => {
+  it('未知の ID か edge の ID を渡すと、unknown-cell か edge-cell のエラーを投げる', () => {
     const model = parseDrawio(
       wrap(
         vertex('a', 0, 0, 10, 10) +
@@ -292,14 +292,14 @@ describe('drawioGeometry: セル解決', () => {
 });
 
 describe('drawioGeometry: 非対応形式', () => {
-  it('圧縮された <diagram>', () => {
+  it('<diagram> が圧縮されていると、compressed のエラーを投げる', () => {
     assertGeometryError(
       () => parseDrawio('<mxfile><diagram id="x" name="p">7VhNb9swDP01PnaIP+Kkx6RNhwEbUKCHbadBtRlbqyx5Mt0k+/WjbDmxa6fNsKbYgB0Ci0+kRPI9MbIdPym3HzWv8i8qBeH4s3Tr+Ld3vn8/C+jRALsWiL1ZC2Saw6oIB+CB/wJr2sCs5inUA0dUSiCvhmCipIQEBxjXWm2GbmslhrtWPIMR8JBwMUa/8hTzFl1Gs</diagram></mxfile>'),
       'compressed',
     );
   });
 
-  it('<object> / <UserObject> で包んだセル', () => {
+  it('セルを <object> や <UserObject> で包んでいると、wrapped-cell のエラーを投げる', () => {
     for (const tag of ['object', 'UserObject']) {
       const xml = wrap(
         `<${tag} label="API" id="api"><mxCell style="" vertex="1" parent="1">` +
@@ -309,19 +309,19 @@ describe('drawioGeometry: 非対応形式', () => {
     }
   });
 
-  it('複数ページ', () => {
+  it('ページが複数あると、multi-page のエラーを投げる', () => {
     const page = '<diagram name="p"><mxGraphModel><root><mxCell id="0"/></root></mxGraphModel></diagram>';
     assertGeometryError(() => parseDrawio(`<mxfile>${page}${page}</mxfile>`), 'multi-page');
   });
 
-  it('空文字列・mxGraphModel の無い XML', () => {
+  it('空文字列か mxGraphModel の無い XML だと、empty-xml か no-model のエラーを投げる', () => {
     assertGeometryError(() => parseDrawio(''), 'empty-xml');
     assertGeometryError(() => parseDrawio('<svg xmlns="http://www.w3.org/2000/svg"/>'), 'no-model');
   });
 });
 
 describe('drawioGeometry: XML コメント', () => {
-  it('コメントの中のセルは無視し、外のセルは読む', () => {
+  it('コメントの中にセルがあると、無視し、外のセルを読む', () => {
     const xml = wrap(
       '<!-- ' + vertex('hidden', 0, 0, 10, 10) + ' -->' + vertex('a', 100, 100, 50, 40),
     );
@@ -330,19 +330,19 @@ describe('drawioGeometry: XML コメント', () => {
     assert.throws(() => resolveCellRect(model, 'hidden'));
   });
 
-  it('連続するコメントを全て除く', () => {
+  it('コメントが連続していると、すべて除く', () => {
     const xml = wrap('<!--a--><!--b-->' + vertex('a', 0, 0, 30, 20) + '<!-- c -->');
     const model = parseDrawio(xml);
     assert.equal(resolveCellRect(model, 'a').width, 30);
   });
 
-  it('閉じないコメントは除かず、後続をそのまま残す', () => {
+  it('コメントが閉じていないと、除かずに後続をそのまま残す', () => {
     const xml = wrap(vertex('a', 0, 0, 30, 20) + '<!-- 閉じない');
     const model = parseDrawio(xml);
     assert.equal(resolveCellRect(model, 'a').width, 30);
   });
 
-  it('`<!-->` は閉じ記号を共有しない（`<!--` の直後 4 文字以降から探す）', () => {
+  it('`<!-->` で始まるコメントだと、閉じ記号を共有せず、直後の 4 文字より後ろから閉じ記号を探す', () => {
     const xml = wrap('<!-->' + vertex('hidden', 0, 0, 10, 10) + '-->' + vertex('a', 0, 0, 30, 20));
     const model = parseDrawio(xml);
     assert.equal(resolveCellRect(model, 'a').width, 30);

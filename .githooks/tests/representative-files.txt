@@ -42,6 +42,7 @@ libs/interface-spec/src/cli.ts
 libs/interface-spec/src/domain/diff.ts
 libs/interface-spec/src/eslint/describe-title.ts
 libs/interface-spec/src/eslint/table-key.ts
+libs/interface-spec/src/vitest/allure-reporter.ts
 libs/interface-spec/src/vitest/attach.ts
 libs/interface-spec/src/vitest/unique-titles.ts
 libs/interface-spec/src/vitest/verifies.ts

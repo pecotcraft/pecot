@@ -1,9 +1,9 @@
-import { describe, it } from 'node:test';
+import { describe, it } from 'vitest';
 import assert from 'node:assert/strict';
 import maxCharsRule from '../lib/rules/max-chars.ts';
 
 describe('max-chars ルール構造', () => {
-  it('meta が正しく定義されている', () => {
+  it('meta を読むと、type・docs・maxChars と emptyText のメッセージが定義されている', () => {
     const meta = maxCharsRule.meta as { type: string; docs: unknown; messages: Record<string, string> };
     assert.strictEqual(meta.type, 'problem');
     assert.ok(meta.docs);
@@ -11,17 +11,17 @@ describe('max-chars ルール構造', () => {
     assert.ok(meta.messages.emptyText);
   });
 
-  it('meta.messages.maxItems が定義されている', () => {
+  it('meta.messages を読むと、maxItems のメッセージが array items を含んで定義されている', () => {
     const meta = maxCharsRule.meta as { messages: Record<string, string> };
     assert.ok(meta.messages.maxItems);
     assert.ok(meta.messages.maxItems.includes('array items'));
   });
 
-  it('create が関数を返す', () => {
+  it('create を参照すると、関数を返す', () => {
     assert.strictEqual(typeof maxCharsRule.create, 'function');
   });
 
-  it('create が root と Program ビジターを返す', () => {
+  it('create を呼ぶと、root と Program のビジターを関数で返す', () => {
     const visitors = maxCharsRule.create({
       sourceCode: { getText: () => '' },
       filename: '/test/pages/test.md',
@@ -34,7 +34,7 @@ describe('max-chars ルール構造', () => {
 });
 
 describe('max-chars 実データ検証（統合テスト的）', () => {
-  it('constraint-loader の import が正しく動作する', async () => {
+  it('constraint-loader を import すると、parseFrontmatter と getTextConstraints が関数で取れる', async () => {
     const { parseFrontmatter, getTextConstraints } = await import(
       '../lib/utils/constraint-loader.ts'
     );
@@ -42,7 +42,7 @@ describe('max-chars 実データ検証（統合テスト的）', () => {
     assert.strictEqual(typeof getTextConstraints, 'function');
   });
 
-  it('parseFrontmatter で coverレイアウトをパースできる', async () => {
+  it('cover レイアウトの frontmatter を渡すと、layout と coverTitle を読み取る', async () => {
     const { parseFrontmatter } = await import('../lib/utils/constraint-loader.ts');
     const md = `---
 layout: cover
@@ -55,13 +55,13 @@ date: "February 2026"
     assert.strictEqual(fm.coverTitle, 'Presentation Title');
   });
 
-  it('getTextConstraints で空オブジェクトを正しく処理する', async () => {
+  it('text_constraints が空のオブジェクトだと、空のオブジェクトを返す', async () => {
     const { getTextConstraints } = await import('../lib/utils/constraint-loader.ts');
     const constraints = getTextConstraints({ text_constraints: {} });
     assert.deepStrictEqual(constraints, {});
   });
 
-  it('getTextConstraints でレイアウト固有の制約を取得する', async () => {
+  it('text_constraints にレイアウト固有の制約があると、その制約を返す', async () => {
     const { getTextConstraints } = await import('../lib/utils/constraint-loader.ts');
     const reference = {
       text_constraints: {
@@ -73,13 +73,13 @@ date: "February 2026"
     assert.strictEqual(constraints.coverTitle.max_chars, 9);
   });
 
-  it('getTextConstraints で text_constraints がない場合は空オブジェクト', async () => {
+  it('text_constraints が無いと、空のオブジェクトを返す', async () => {
     const { getTextConstraints } = await import('../lib/utils/constraint-loader.ts');
     const constraints = getTextConstraints({});
     assert.deepStrictEqual(constraints, {});
   });
 
-  it('getTextConstraints で includes の text_constraints もマージする', async () => {
+  it('includes が空でも、text_constraints のキーを返す', async () => {
     const { getTextConstraints } = await import('../lib/utils/constraint-loader.ts');
     const reference = {
       includes: [],

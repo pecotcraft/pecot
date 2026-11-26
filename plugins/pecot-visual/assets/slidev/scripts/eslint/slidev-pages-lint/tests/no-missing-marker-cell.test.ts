@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -58,16 +58,16 @@ function diagramPage(cells: string[], xmlSrc: string = XML_SRC): string[] {
   ];
 }
 
-test('no-missing-marker-cell: meta.type が problem', () => {
+test('meta.type を読むと、problem を返す', () => {
   assert.strictEqual(noMissingMarkerCellRule.meta?.type, 'problem');
 });
 
-test('no-missing-marker-cell: fixture deck の見本頁でエラーが出ない', () => {
+test('fixture deck の見本頁を渡すと、報告しない', () => {
   const reports = run(fs.readFileSync(pageFile, 'utf-8'));
   assert.deepStrictEqual(reports, []);
 });
 
-test('no-missing-marker-cell: 存在しない ID を指摘する（陰性対照 1）', () => {
+test('存在しない ID を渡すと、そのセルの行で invalidCell を報告する（陰性対照 1）', () => {
   const reports = run(page(diagramPage(['api-gateway', 'no-such-cell'])));
   assert.strictEqual(reports.length, 1);
   assert.strictEqual(reports[0].messageId, 'invalidCell');
@@ -78,14 +78,14 @@ test('no-missing-marker-cell: 存在しない ID を指摘する（陰性対照 
   assert.strictEqual(reports[0].loc?.line, 9);
 });
 
-test('no-missing-marker-cell: edge の ID を指摘する（陰性対照 2）', () => {
+test('edge の ID を渡すと、edge だと伝えて invalidCell を報告する（陰性対照 2）', () => {
   const reports = run(page(diagramPage(['e-gw-auth'])));
   assert.strictEqual(reports.length, 1);
   assert.strictEqual(reports[0].messageId, 'invalidCell');
   assert.match(reports[0].data?.reason ?? '', /is an edge/);
 });
 
-test('no-missing-marker-cell: xmlSrc の図が無ければ図ごとに 1 回だけ指摘する（陰性対照 3）', () => {
+test('xmlSrc の図が無いと、図ごとに 1 回だけ missingDiagram を報告する（陰性対照 3）', () => {
   const reports = run(page(diagramPage(['api-gateway', 'order-db'], '/assets/diagrams/missing.drawio')));
   assert.strictEqual(reports.length, 1);
   assert.strictEqual(reports[0].messageId, 'missingDiagram');
@@ -93,7 +93,7 @@ test('no-missing-marker-cell: xmlSrc の図が無ければ図ごとに 1 回だ�
   assert.strictEqual(reports[0].data?.filePath, path.join(templatesDir, 'public', 'assets', 'diagrams', 'missing.drawio'));
 });
 
-test('no-missing-marker-cell: steps[].diagram の図で解決する', () => {
+test('steps[].diagram の図があると、その図でセルを解決する', () => {
   const lines = [
     'layout: annotated-diagram',
     'diagramContent:',
@@ -107,14 +107,14 @@ test('no-missing-marker-cell: steps[].diagram の図で解決する', () => {
   assert.deepStrictEqual(run(page(lines)), []);
 });
 
-test('no-missing-marker-cell: 図の指定が無い marker.cell を指摘する', () => {
+test('図の指定が無い marker.cell を渡すと、noDiagram を報告する', () => {
   const reports = run(page(['layout: annotated-diagram', 'steps:', '  - marker: { cell: api-gateway }']));
   assert.strictEqual(reports.length, 1);
   assert.strictEqual(reports[0].messageId, 'noDiagram');
   assert.strictEqual(reports[0].data?.index, '0');
 });
 
-test('no-missing-marker-cell: 解析できない図（圧縮形式）を指摘する', () => {
+test('圧縮形式の図を指すと、invalidDiagram を報告する', () => {
   const talkDir = fs.mkdtempSync(path.join(os.tmpdir(), 'marker-cell-'));
   try {
     fs.writeFileSync(path.join(talkDir, 'slides.md'), '---\nsrc: ./pages/p.md\n---\n');
@@ -136,20 +136,20 @@ test('no-missing-marker-cell: 解析できない図（圧縮形式）を指摘�
   }
 });
 
-test('no-missing-marker-cell: annotated-diagram 以外のレイアウトは確認しない', () => {
+test('annotated-diagram 以外のレイアウトだと、確認しない', () => {
   const lines = diagramPage(['no-such-cell']);
   lines[0] = 'layout: annotated-image';
   assert.deepStrictEqual(run(page(lines)), []);
 });
 
-test('no-missing-marker-cell: _references 配下は確認しない', () => {
+test('_references 配下の頁だと、確認しない', () => {
   const referencesPage = path.join(templatesDir, 'pages', '_references', 'annotated-diagram.md');
   assert.deepStrictEqual(run(page(diagramPage(['no-such-cell'])), referencesPage), []);
 });
 
 // テーマの宣言（drawio.markerLayouts）が値の出どころであることを、テスト用テーマの値で固定する
 
-test('no-missing-marker-cell: 宣言した印のレイアウトで確認する', () => {
+test('宣言した印のレイアウトだと、そのレイアウトで確認する', () => {
   const lines = diagramPage(['no-such-cell']).map((line) => (line === 'layout: annotated-diagram' ? 'layout: marked' : line));
   const reports = run(page(lines), pageFile, fixtureMarkerLayouts);
   assert.strictEqual(reports.length, 1);
@@ -157,10 +157,10 @@ test('no-missing-marker-cell: 宣言した印のレイアウトで確認する',
   assert.strictEqual(reports[0].data?.cell, 'no-such-cell');
 });
 
-test('no-missing-marker-cell: 宣言に無いレイアウトは、annotated-diagram でも確認しない', () => {
+test('宣言に無いレイアウトだと、annotated-diagram でも確認しない', () => {
   assert.deepStrictEqual(run(page(diagramPage(['no-such-cell'])), pageFile, fixtureMarkerLayouts), []);
 });
 
-test('no-missing-marker-cell: 宣言が空なら何も確認しない', () => {
+test('宣言が空だと、何も確認しない', () => {
   assert.deepStrictEqual(run(page(diagramPage(['no-such-cell'])), pageFile, []), []);
 });

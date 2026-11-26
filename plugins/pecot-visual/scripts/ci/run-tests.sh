@@ -109,12 +109,6 @@ export CLAUDE_PLUGIN_DATA="$GATE_PLUGIN_DATA"
 cleanup() {
     rc=$?
     rm -rf "$GATE_PLUGIN_DATA"
-    # coverage/tmp は slidev lane（test:coverage の c8）だけが生成する。
-    # そのため、その lane を実行したときだけ掃除する。
-    # RUN_SLIDEV は trap の定義より前（SCOPE の解決時）に確定していて、trap の EXIT 発火時点では必ず参照できる。
-    if [ "$RUN_SLIDEV" = true ]; then
-        rm -rf assets/slidev/coverage/tmp
-    fi
     if [ "$rc" -ne 0 ]; then
         echo
         echo "Error: pecot-visual plugin の CI チェックに失敗しました (exit ${rc})." 1>&2
@@ -122,10 +116,8 @@ cleanup() {
         echo "  キャッシュが原因なら、dist/*.tsbuildinfo を削除して再実行する。" 1>&2
         echo "  例: rm -rf plugins/pecot-visual/assets/slidev/scripts/eslint/*/dist" 1>&2
         echo "  node_modules が原因なら、plugins/pecot-visual で bash scripts/ci/install.sh を実行する。" 1>&2
-        echo "  coverage の閾値割れなら、assets/slidev/.c8rc.json の閾値を確認する。" 1>&2
-        echo "  未カバーの行は、次のコマンドで特定する。" 1>&2
-        echo "  (pnpm || corepack pnpm) --filter @pecot/slidev-assets-dev run test:coverage -- --reporter=text-missing" 1>&2
-        echo "  coverage を一時 off にする: NODE_V8_COVERAGE='' bash plugins/pecot-visual/scripts/ci/run-tests.sh" 1>&2
+        echo "  coverage の閾値割れなら、cli/vitest.config.ts と assets/slidev/vitest.config.ts の thresholds を確認する。" 1>&2
+        echo "  未カバーの行は、上の coverage の表の Uncovered Line #s で読む。" 1>&2
     fi
 }
 trap cleanup EXIT
@@ -171,7 +163,7 @@ if [ "$RUN_SLIDEV" = true ]; then
     # shellcheck disable=SC2086
     ( cd "$PECOTV_PLUGIN_ROOT" && $PNPM --filter @pecot/slidev-assets-dev run build:test )
 
-    echo "==> $PNPM --filter @pecot/slidev-assets-dev run test:coverage (lint 規則と補助スクリプト。c8 の閾値を満たすこと)"
+    echo "==> $PNPM --filter @pecot/slidev-assets-dev run test:coverage (lint 規則と補助スクリプト。coverage の閾値を満たすこと)"
     # shellcheck disable=SC2086
     ( cd "$PECOTV_PLUGIN_ROOT" && $PNPM --filter @pecot/slidev-assets-dev run test:coverage )
 fi

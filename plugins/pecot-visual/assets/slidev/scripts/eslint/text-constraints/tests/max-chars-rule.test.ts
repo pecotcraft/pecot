@@ -1,4 +1,4 @@
-import { test, before, after } from 'node:test';
+import { test, beforeAll, afterAll } from 'vitest';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -118,7 +118,7 @@ const FIXTURES: Record<string, string> = {
   ].join('\n'),
 };
 
-before(() => {
+beforeAll(() => {
   fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'v-slidev-bold-required-'));
   pagesDir = path.join(fixtureRoot, 'pages');
   const referencesDir = path.join(pagesDir, '_references');
@@ -128,7 +128,7 @@ before(() => {
   }
 });
 
-after(() => {
+afterAll(() => {
   fs.rmSync(fixtureRoot, { recursive: true, force: true });
 });
 
@@ -179,7 +179,7 @@ function emPaths(reports: CapturedReport[]): (string | undefined)[] {
   return reports.filter((r) => r.messageId === 'emDisallowed').map((r) => r.data.fieldPath);
 }
 
-test('太字なしの description を boldRequired で報告する', () => {
+test('太字の無い description があると、boldRequired を報告する', () => {
   const reports = runRule([
     'layout: tc-bold',
     'items:',
@@ -188,7 +188,7 @@ test('太字なしの description を boldRequired で報告する', () => {
   assert.deepEqual(boldPaths(reports), ['items[0].description']);
 });
 
-test('<strong> があれば報告しない', () => {
+test('<strong> があると、報告しない', () => {
   const reports = runRule([
     'layout: tc-bold',
     'items:',
@@ -197,7 +197,7 @@ test('<strong> があれば報告しない', () => {
   assert.deepEqual(boldPaths(reports), []);
 });
 
-test('<b> だけでは太字強調とみなさない', () => {
+test('<b> だけだと、太字の強調とみなさず報告する', () => {
   const reports = runRule([
     'layout: tc-bold',
     'items:',
@@ -206,7 +206,7 @@ test('<b> だけでは太字強調とみなさない', () => {
   assert.deepEqual(boldPaths(reports), ['items[0].description']);
 });
 
-test('空の <strong></strong> は太字強調とみなさない', () => {
+test('<strong></strong> の中身が空だと、太字の強調とみなさず報告する', () => {
   const reports = runRule([
     'layout: tc-bold',
     'items:',
@@ -215,7 +215,7 @@ test('空の <strong></strong> は太字強調とみなさない', () => {
   assert.deepEqual(boldPaths(reports), ['items[0].description']);
 });
 
-test('エンティティ化された &lt;strong&gt; は太字強調とみなさない', () => {
+test('&lt;strong&gt; のようにエンティティになっていると、太字の強調とみなさず報告する', () => {
   const reports = runRule([
     'layout: tc-bold',
     'items:',
@@ -224,7 +224,7 @@ test('エンティティ化された &lt;strong&gt; は太字強調とみなさ�
   assert.deepEqual(boldPaths(reports), ['items[0].description']);
 });
 
-test('属性付きの <strong class="x"> を許容する', () => {
+test('<strong class="x"> のように属性が付いていても、太字の強調とみなして報告しない', () => {
   const reports = runRule([
     'layout: tc-bold',
     'items:',
@@ -233,7 +233,7 @@ test('属性付きの <strong class="x"> を許容する', () => {
   assert.deepEqual(boldPaths(reports), []);
 });
 
-test('大文字の <STRONG> を許容する', () => {
+test('<STRONG> のように大文字だと、太字の強調とみなして報告しない', () => {
   const reports = runRule([
     'layout: tc-bold',
     'items:',
@@ -242,7 +242,7 @@ test('大文字の <STRONG> を許容する', () => {
   assert.deepEqual(boldPaths(reports), []);
 });
 
-test('bold_required を宣言していないフィールドは検証しない', () => {
+test('bold_required を宣言していないフィールドだと、太字の検証をしない', () => {
   const reports = runRule([
     'layout: tc-bold',
     'items:',
@@ -252,7 +252,7 @@ test('bold_required を宣言していないフィールドは検証しない', 
   assert.deepEqual(boldPaths(reports), []);
 });
 
-test('配列要素ごとに違反箇所を報告する', () => {
+test('配列の要素に太字の無いものが複数あると、要素ごとに報告する', () => {
   const reports = runRule([
     'layout: tc-bold',
     'items:',
@@ -263,7 +263,7 @@ test('配列要素ごとに違反箇所を報告する', () => {
   assert.deepEqual(boldPaths(reports), ['items[0].description', 'items[2].description']);
 });
 
-test('max_chars を伴わない bold_required 単独宣言でも機能する', () => {
+test('max_chars を伴わず bold_required だけを宣言していても、太字の検証をする', () => {
   const reports = runRule(['layout: tc-bold-only', "summary: '太字のない要約'"]);
   assert.deepEqual(boldPaths(reports), ['summary']);
   assert.deepEqual(
@@ -272,7 +272,7 @@ test('max_chars を伴わない bold_required 単独宣言でも機能する', (
   );
 });
 
-test('max_items を併記した制約でもテキスト検証がスキップされない', () => {
+test('max_items を併記した制約でも、要素の太字を検証する', () => {
   const reports = runRule([
     'layout: tc-bold-items',
     'items:',
@@ -286,7 +286,7 @@ test('max_items を併記した制約でもテキスト検証がスキップさ�
   );
 });
 
-test('max_chars 違反と boldRequired を同時に報告する', () => {
+test('文字数の超過と太字の欠けが重なると、maxChars と boldRequired を同時に報告する', () => {
   const reports = runRule([
     'layout: tc-bold',
     'items:',
@@ -298,7 +298,7 @@ test('max_chars 違反と boldRequired を同時に報告する', () => {
   );
 });
 
-test('null / 空文字は emptyText のみを報告し boldRequired と二重報告しない', () => {
+test('値が null か空文字だと、emptyText だけを報告し、boldRequired を重ねて報告しない', () => {
   for (const literal of ['null', "''"]) {
     const reports = runRule([
       'layout: tc-bold',
@@ -313,12 +313,12 @@ test('null / 空文字は emptyText のみを報告し boldRequired と二重報
   }
 });
 
-test('includes 経由で継承した bold_required も適用される', () => {
+test('includes で継承した bold_required があると、継承したフィールドにも適用する', () => {
   const reports = runRule(['layout: tc-inherit', "sharedText: '太字のない共通テキスト'"]);
   assert.deepEqual(boldPaths(reports), ['sharedText']);
 });
 
-test('全文を <strong> で囲んだ値は要点強調なしとして報告する', () => {
+test('全文を <strong> で囲んだ値だと、要点の強調が無いとして報告する', () => {
   const reports = runRule([
     'layout: tc-bold',
     'items:',
@@ -327,7 +327,7 @@ test('全文を <strong> で囲んだ値は要点強調なしとして報告す�
   assert.deepEqual(boldPaths(reports), ['items[0].description']);
 });
 
-test('複数の <strong> で全文を覆った値も報告する', () => {
+test('複数の <strong> で全文を覆った値だと、報告する', () => {
   const reports = runRule([
     'layout: tc-bold',
     'items:',
@@ -337,7 +337,7 @@ test('複数の <strong> で全文を覆った値も報告する', () => {
 });
 
 // F-12: 空白のみの値
-test('空白のみの値は emptyText のみを報告する', () => {
+test('値が空白だけだと、emptyText だけを報告する', () => {
   const reports = runRule(['layout: tc-bold', 'items:', "  - description: '   '"]);
   assert.deepEqual(
     reports.map((r) => r.messageId),
@@ -345,7 +345,7 @@ test('空白のみの値は emptyText のみを報告する', () => {
   );
 });
 
-test('空白のみの値は minChars とも二重報告しない', () => {
+test('値が空白だけだと、minChars を重ねて報告しない', () => {
   const reports = runRule(['layout: tc-min', "summary: '  '"]);
   assert.deepEqual(
     reports.map((r) => r.messageId),
@@ -354,12 +354,12 @@ test('空白のみの値は minChars とも二重報告しない', () => {
 });
 
 // F-14: ドット区切りの非配列パス
-test('ドット区切りの非配列パスで太字なしを報告する', () => {
+test('ドット区切りで配列でないパスの値に太字が無いと、報告する', () => {
   const reports = runRule(['layout: tc-dotted', 'methodA:', "  details1: '太字のない要点'"]);
   assert.deepEqual(boldPaths(reports), ['methodA.details1']);
 });
 
-test('ドット区切りの非配列パスで <strong> があれば報告しない', () => {
+test('ドット区切りで配列でないパスの値に <strong> があると、報告しない', () => {
   const reports = runRule([
     'layout: tc-dotted',
     'methodA:',
@@ -368,7 +368,7 @@ test('ドット区切りの非配列パスで <strong> があれば報告しな�
   assert.deepEqual(boldPaths(reports), []);
 });
 
-test('ドット区切りで宣言の無い兄弟フィールドは検証しない', () => {
+test('ドット区切りで宣言の無い兄弟のフィールドだと、検証しない', () => {
   const reports = runRule([
     'layout: tc-dotted',
     'methodA:',
@@ -379,7 +379,7 @@ test('ドット区切りで宣言の無い兄弟フィールドは検証しな�
 });
 
 // F-16: [] の付かないパスに配列が来た場合
-test('[] の付かないパスの配列値を要素ごとに検証する', () => {
+test('[] の付かないパスに配列が渡されると、要素ごとに太字を検証する', () => {
   const reports = runRule([
     'layout: tc-bare-array',
     'bulletItems:',
@@ -390,7 +390,7 @@ test('[] の付かないパスの配列値を要素ごとに検証する', () =>
   assert.deepEqual(boldPaths(reports), ['bulletItems[0]', 'bulletItems[2]']);
 });
 
-test('[] の付かないパスの配列で非文字列・空白要素は飛ばす', () => {
+test('[] の付かないパスの配列に文字列でない要素や空白の要素があると、その要素を飛ばす', () => {
   const reports = runRule([
     'layout: tc-bare-array',
     'bulletItems:',
@@ -401,19 +401,19 @@ test('[] の付かないパスの配列で非文字列・空白要素は飛ば�
   assert.deepEqual(boldPaths(reports), ['bulletItems[2]']);
 });
 
-test('meta.messages.boldRequired が _shared の文言を使う', () => {
+test('meta.messages.boldRequired を読むと、_shared の文言を含む', () => {
   const meta = maxCharsRule.meta as { messages: Record<string, string> };
   assert.ok(meta.messages.boldRequired.includes(BOLD_REQUIRED_MESSAGE));
   assert.ok(meta.messages.boldRequired.includes('**'));
 });
 
 // F-03: <em> は強調記法として不可（強調は <strong> のみ）
-test('meta.messages.emDisallowed が _shared の文言を使う', () => {
+test('meta.messages.emDisallowed を読むと、_shared の文言を含む', () => {
   const meta = maxCharsRule.meta as { messages: Record<string, string> };
   assert.ok(meta.messages.emDisallowed.includes(EM_DISALLOWED_MESSAGE));
 });
 
-test('<em> を含む description を emDisallowed で報告する', () => {
+test('description が <em> を含むと、emDisallowed を報告する', () => {
   const reports = runRule([
     'layout: tc-bold',
     'items:',
@@ -422,7 +422,7 @@ test('<em> を含む description を emDisallowed で報告する', () => {
   assert.deepEqual(emPaths(reports), ['items[0].description']);
 });
 
-test('属性付き・大文字の <EM class="x"> も報告する', () => {
+test('<EM class="x"> のように属性が付いて大文字でも、emDisallowed を報告する', () => {
   const reports = runRule([
     'layout: tc-bold',
     'items:',
@@ -431,7 +431,7 @@ test('属性付き・大文字の <EM class="x"> も報告する', () => {
   assert.deepEqual(emPaths(reports), ['items[0].description']);
 });
 
-test('bold_required を伴わないフィールドでも <em> を報告する', () => {
+test('bold_required を伴わないフィールドでも、<em> があると報告する', () => {
   const reports = runRule([
     'layout: tc-bold',
     'items:',
@@ -441,7 +441,7 @@ test('bold_required を伴わないフィールドでも <em> を報告する', 
   assert.deepEqual(emPaths(reports), ['note']);
 });
 
-test('<em> がなければ emDisallowed を報告しない', () => {
+test('<em> が無いと、emDisallowed を報告しない', () => {
   const reports = runRule([
     'layout: tc-bold',
     'items:',
@@ -450,7 +450,7 @@ test('<em> がなければ emDisallowed を報告しない', () => {
   assert.deepEqual(emPaths(reports), []);
 });
 
-test('[] の付かないパスの配列値も要素ごとに <em> を検出する', () => {
+test('[] の付かないパスに配列が渡されると、要素ごとに <em> を検出する', () => {
   const reports = runRule([
     'layout: tc-bare-array',
     'bulletItems:',
@@ -462,7 +462,7 @@ test('[] の付かないパスの配列値も要素ごとに <em> を検出す�
 
 // 制約解決までのガード分岐（bold_required の追加で変えてはいけない既存挙動）
 
-test('sourceCode.getText が投げたら何も報告しない', () => {
+test('sourceCode.getText が例外を投げると、何も報告しない', () => {
   const reports: CapturedReport[] = [];
   runWithContext({
     sourceCode: {
@@ -476,16 +476,16 @@ test('sourceCode.getText が投げたら何も報告しない', () => {
   assert.deepEqual(reports, []);
 });
 
-test('layout の無い frontmatter は検証しない', () => {
+test('frontmatter に layout が無いと、検証しない', () => {
   assert.deepEqual(runRule(["summary: '太字のない要約'"]), []);
 });
 
-test('references の場所が settings に無ければ検証しない', () => {
+test('references の場所が settings に無いと、検証しない', () => {
   const page = path.join(pagesDir, 'case.md');
   assert.deepEqual(runRuleAt(['layout: tc-bold-only', "summary: '太字なし'"], page, []), []);
 });
 
-test('references の場所は settings の先頭から探し、先のディレクトリが勝つ', () => {
+test('同じ名前の reference が複数のディレクトリにあると、settings の先頭に近いものを使う', () => {
   const talkReferences = path.join(fixtureRoot, 'talk', 'references');
   fs.mkdirSync(talkReferences, { recursive: true });
   fs.writeFileSync(
@@ -508,23 +508,23 @@ test('references の場所は settings の先頭から探し、先のディレ�
   );
 });
 
-test('reference yaml の無い layout は検証しない', () => {
+test('layout に対応する reference yaml が無いと、検証しない', () => {
   assert.deepEqual(runRule(['layout: tc-missing', "summary: '太字なし'"]), []);
 });
 
-test('text_constraints が空の reference は検証しない', () => {
+test('reference の text_constraints が空だと、検証しない', () => {
   assert.deepEqual(runRule(['layout: tc-empty', "summary: '太字なし'"]), []);
 });
 
-test('frontmatter に存在しないフィールドは報告しない', () => {
+test('制約のあるフィールドが frontmatter に無いと、報告しない', () => {
   assert.deepEqual(runRule(['layout: tc-bold-only', "title: 'サマリ未設定'"]), []);
 });
 
-test('文字列でない値は検証しない', () => {
+test('値が文字列でないと、検証しない', () => {
   assert.deepEqual(runRule(['layout: tc-bold-only', 'summary:', '  nested: 1']), []);
 });
 
-test('max_items 超過を maxItems で報告する（要素に違反がなければ他は報告しない）', () => {
+test('要素の数が max_items を超えると、要素に違反が無ければ maxItems だけを報告する', () => {
   const reports = runRule([
     'layout: tc-items-limit',
     'chatMessages:',
@@ -560,7 +560,7 @@ function formatMessage(report: CapturedReport): string {
   return text;
 }
 
-test('min_items 未満を minItems で報告し note を添える', () => {
+test('要素の数が min_items に満たないと、note を添えて minItems を報告する', () => {
   const reports = runRule(tableRows(1));
   assert.deepEqual(
     reports.map((r) => ({ messageId: r.messageId, ...r.data })),
@@ -580,11 +580,11 @@ test('min_items 未満を minItems で報告し note を添える', () => {
   );
 });
 
-test('min_items ちょうどの配列は報告しない', () => {
+test('要素の数が min_items ちょうどだと、報告しない', () => {
   assert.deepEqual(itemReports(runRule(tableRows(3))), []);
 });
 
-test('min_items の境界: 下限 - 1 の 2 件は報告し、空配列 0 件も報告する', () => {
+test('要素の数が下限より 1 少ない 2 件か、空配列の 0 件だと、minItems を報告する', () => {
   const two = itemReports(runRule(tableRows(2)));
   assert.deepEqual(
     two.map((r) => [r.messageId, r.data.actual, r.data.limit]),
@@ -597,7 +597,7 @@ test('min_items の境界: 下限 - 1 の 2 件は報告し、空配列 0 件も
   );
 });
 
-test('max_items 超過の maxItems にも note を添える', () => {
+test('要素の数が max_items を超えると、note を添えて maxItems を報告する', () => {
   const reports = itemReports(runRule(tableRows(7)));
   assert.deepEqual(
     reports.map((r) => ({ messageId: r.messageId, ...r.data })),
@@ -617,7 +617,7 @@ test('max_items 超過の maxItems にも note を添える', () => {
   );
 });
 
-test('note が無い制約は句点も付けずに終わる', () => {
+test('note の無い制約で件数が範囲を外れると、note と区切りを付けないメッセージにする', () => {
   const rows = (n: number) => [
     'layout: tc-items-no-note',
     'table:',
@@ -632,7 +632,7 @@ test('note が無い制約は句点も付けずに終わる', () => {
   assert.equal(formatMessage(high[0]), 'table.rows: 5 array items (max: 4)');
 });
 
-test('min_items だけを宣言した制約は上限判定をしない', () => {
+test('min_items だけを宣言した制約だと、上限の判定をしない', () => {
   const rows = (n: number) => [
     'layout: tc-items-min-only',
     'table:',
@@ -646,14 +646,14 @@ test('min_items だけを宣言した制約は上限判定をしない', () => {
   );
 });
 
-test('配列でない値には件数判定をしない', () => {
+test('値が配列でないと、件数の判定をしない', () => {
   assert.deepEqual(
     itemReports(runRule(['layout: tc-items-min', 'table:', "  rows: '文字列'"])),
     [],
   );
 });
 
-test('min_items を持つフィールドがページに無ければ 0 件として報告する', () => {
+test('min_items を持つフィールドがページに無いと、0 件として minItems を報告する', () => {
   const reports = itemReports(runRule(['layout: tc-items-min', "title: 'x'"]));
   assert.deepEqual(
     reports.map((r) => [r.messageId, r.data.fieldPath, r.data.actual]),
@@ -661,7 +661,7 @@ test('min_items を持つフィールドがページに無ければ 0 件とし�
   );
 });
 
-test('[] を含むパスで要素が無い場合は件数を報告しない', () => {
+test('[] を含むパスの親の配列が空だと、件数を報告しない', () => {
   const reports = itemReports(
     runRule(['layout: tc-items-no-note', 'table:', "  rows: ['a','b','c']", 'cols: []']),
   );
@@ -669,7 +669,7 @@ test('[] を含むパスで要素が無い場合は件数を報告しない', ()
 });
 
 // fixture deck の実 reference（axis-table.yaml）を読む
-test('fixture deck の axis-table.yaml: 行 2 件・列 1 件で rows / columns の minItems を報告する', () => {
+test('fixture deck の axis-table.yaml で行を 2 件・列を 1 件にすると、rows と columns の minItems を報告する', () => {
   const realPage = path.resolve(
     import.meta.dirname,
     '../../_shared/tests/fixtures/deck/pages/axis-table-case.md',
@@ -698,7 +698,7 @@ test('fixture deck の axis-table.yaml: 行 2 件・列 1 件で rows / columns 
   );
 });
 
-test('fixture deck の axis-table.yaml: 行 3 件・列 2 件なら件数違反を報告しない', () => {
+test('fixture deck の axis-table.yaml で行を 3 件・列を 2 件にすると、件数の違反を報告しない', () => {
   const realPage = path.resolve(
     import.meta.dirname,
     '../../_shared/tests/fixtures/deck/pages/axis-table-case.md',
@@ -723,7 +723,7 @@ test('fixture deck の axis-table.yaml: 行 3 件・列 2 件なら件数違反�
   assert.deepEqual(reports, []);
 });
 
-test('max_items のみの制約でも要素ごとに <em> を検出する', () => {
+test('max_items だけの制約でも、要素に <em> があると要素ごとに検出する', () => {
   const reports = runRule([
     'layout: tc-items-limit',
     'chatMessages:',
@@ -736,7 +736,7 @@ test('max_items のみの制約でも要素ごとに <em> を検出する', () =
   );
 });
 
-test('min_chars 違反を minChars で報告する', () => {
+test('値が min_chars に満たないと、minChars を報告する', () => {
   const reports = runRule(['layout: tc-min', "summary: 'あい'"]);
   assert.deepEqual(
     reports.map((r) => r.messageId),
@@ -745,7 +745,7 @@ test('min_chars 違反を minChars で報告する', () => {
 });
 
 // テーマの宣言（layouts.references）が値の出どころであることを、テスト用テーマの references で固定する
-test('テーマが宣言した references の text_constraints で文字数を報告する', () => {
+test('テーマが宣言した references に text_constraints があると、その上限と下限で文字数を報告する', () => {
   const fixtureReferences = path.resolve(
     import.meta.dirname,
     '../../../../../../cli/tests/fixtures/themes/with-declaration/references',

@@ -1,10 +1,10 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert';
 import noContentBeforeFrontmatter, {
   hasContentBeforeFrontmatter,
 } from '../lib/rules/no-content-before-frontmatter.ts';
 
-test('no-content-before-frontmatter: frontmatterが先頭にある場合は正常', () => {
+test('frontmatter が先頭にあると、先頭に内容なしと判定する', () => {
   const code = `---
 layout: default
 title: "Slide"
@@ -15,7 +15,7 @@ title: "Slide"
   assert.strictEqual(hasContentBeforeFrontmatter(code), false);
 });
 
-test('no-content-before-frontmatter: frontmatterのみのファイルは正常', () => {
+test('frontmatter だけのファイルを渡すと、先頭に内容なしと判定する', () => {
   const code = `---
 layout: default
 ---
@@ -23,23 +23,23 @@ layout: default
   assert.strictEqual(hasContentBeforeFrontmatter(code), false);
 });
 
-test('no-content-before-frontmatter: frontmatterなしのファイルは対象外（正常）', () => {
+test('frontmatter が無いファイルを渡すと、対象外として先頭に内容なしと判定する', () => {
   const code = `# No frontmatter
 Just content.
 `;
   assert.strictEqual(hasContentBeforeFrontmatter(code), false);
 });
 
-test('no-content-before-frontmatter: 空ファイルは正常', () => {
+test('空ファイルを渡すと、先頭に内容なしと判定する', () => {
   assert.strictEqual(hasContentBeforeFrontmatter(''), false);
 });
 
-test('no-content-before-frontmatter: null/undefinedは正常', () => {
+test('null と undefined を渡すと、先頭に内容なしと判定する', () => {
   assert.strictEqual(hasContentBeforeFrontmatter(null as unknown as string), false);
   assert.strictEqual(hasContentBeforeFrontmatter(undefined as unknown as string), false);
 });
 
-test('no-content-before-frontmatter: HTMLコメント後にfrontmatterがある場合は違反', () => {
+test('HTML コメントの後に frontmatter があると、先頭に内容ありと判定する', () => {
   const code = `<!-- comment -->
 ---
 layout: default
@@ -48,7 +48,7 @@ layout: default
   assert.strictEqual(hasContentBeforeFrontmatter(code), true);
 });
 
-test('no-content-before-frontmatter: テキスト後にfrontmatterがある場合は違反', () => {
+test('テキストの後に frontmatter があると、先頭に内容ありと判定する', () => {
   const code = `some text
 ---
 layout: default
@@ -57,7 +57,7 @@ layout: default
   assert.strictEqual(hasContentBeforeFrontmatter(code), true);
 });
 
-test('no-content-before-frontmatter: 空行後にfrontmatterがある場合は違反', () => {
+test('空行の後に frontmatter があると、先頭に内容ありと判定する', () => {
   const code = `
 ---
 layout: default
@@ -66,7 +66,7 @@ layout: default
   assert.strictEqual(hasContentBeforeFrontmatter(code), true);
 });
 
-test('no-content-before-frontmatter: 複数行のコメント後にfrontmatterがある場合は違反', () => {
+test('複数行のコメントの後に frontmatter があると、先頭に内容ありと判定する', () => {
   const code = `<!--
   multi-line comment
 -->
@@ -77,7 +77,7 @@ layout: default
   assert.strictEqual(hasContentBeforeFrontmatter(code), true);
 });
 
-test('no-content-before-frontmatter: 空行複数行後にfrontmatterがある場合は違反', () => {
+test('複数の空行の後に frontmatter があると、先頭に内容ありと判定する', () => {
   const code = `
 
 
@@ -88,7 +88,7 @@ layout: default
   assert.strictEqual(hasContentBeforeFrontmatter(code), true);
 });
 
-test('no-content-before-frontmatter: ルールオブジェクトが正しい構造を持つ', () => {
+test('ルールオブジェクトを読むと、問題の種類・メッセージ・create 関数を持つ', () => {
   assert.strictEqual(noContentBeforeFrontmatter.meta?.type, 'problem');
   assert.ok((noContentBeforeFrontmatter.meta as { messages: Record<string, string> }).messages.contentBeforeFrontmatter);
   assert.strictEqual(typeof noContentBeforeFrontmatter.create, 'function');

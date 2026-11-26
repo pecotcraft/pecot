@@ -36,7 +36,9 @@
         "default",
         "runtime",
         "env",
-        { "runtime": "node -p \"require('eslint/package.json').version\"" }
+        { "runtime": "node -p \"require('eslint/package.json').version\"" },
+        "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
+        "{workspaceRoot}/libs/interface-spec/src/eslint/table-key.ts"
       ],
       "dependsOn": [{ "projects": ["pecot"], "target": "install" }],
       "metadata": {
@@ -82,13 +84,16 @@
         "{workspaceRoot}/plugins/pecot-visual/.claude-plugin/plugin.json",
         "{workspaceRoot}/plugins/pecot-visual/plugin.json",
         "{workspaceRoot}/plugins/pecot-tools/.claude-plugin/plugin.json",
-        "{workspaceRoot}/plugins/pecot-tools/plugin.json"
+        "{workspaceRoot}/plugins/pecot-tools/plugin.json",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts"
       ],
+      "outputs": ["{projectRoot}/test-results/test-unit/allure-results"],
       "metadata": {
         "description": "PecotVersionActions と dependabot-plans の単体テスト。inputs は、nx の実体の版を runtime 入力（node -p）で見る。root の pnpm-lock.yaml は .nxignore で入力から外れるため、lock ではなく実体を見る (#1225)。"
       },
       "options": {
-        "command": "node --test tests/*.test.js",
+        "command": "rm -rf test-results/test-unit/allure-results && vitest run",
         "cwd": ".nx/nx-release"
       }
     }

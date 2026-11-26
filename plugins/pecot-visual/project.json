@@ -178,6 +178,8 @@
     "test-slidev": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
         "{projectRoot}/assets/slidev/**/*",
         "{projectRoot}/cli/tests/fixtures/themes/**",
         "sharedGlobals",
@@ -186,6 +188,7 @@
         "{projectRoot}/skills/v-slidev/references/implementation-guide.md",
         "^production"
       ],
+      "outputs": ["{projectRoot}/test-results/test-slidev/allure-results"],
       "dependsOn": [
         "install",
         "check-pm-guard",
@@ -195,7 +198,7 @@
         "description": "libs/text-rules の変更は、project graph の依存先として ^production が取り込む。cli/tests/fixtures/themes/** は inputs に入れる。scripts/eslint の規則のテスト（slidev-pages-lint / text-constraints）が、テスト用テーマの宣言と references を読むため。規則のテスト用の fixture deck は assets/slidev/** に含まれる。"
       },
       "options": {
-        "command": "PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=slidev",
+        "command": "rm -rf test-results/test-slidev/allure-results && PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=slidev",
         "cwd": "plugins/pecot-visual"
       }
     },
@@ -332,6 +335,8 @@
     "lint-slidev": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
+        "{workspaceRoot}/libs/interface-spec/src/eslint/table-key.ts",
         "{projectRoot}/assets/slidev/**/*",
         "sharedGlobals",
         "pecotvPluginLintGlobals",

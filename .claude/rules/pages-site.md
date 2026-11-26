@@ -67,7 +67,7 @@ paths:
 
 ## テストレポート
 
-テストレポートは Allure Report で、`test-report.yml` がレポートのレーンを動かして作る。レポートのレーンは、`.githooks/scripts/test_report/report-lanes.json` の `results` を持つ 13 本。
+テストレポートは Allure Report で、`test-report.yml` がレポートのレーンを動かして作る。レポートのレーンは、`.githooks/scripts/test_report/report-lanes.json` の `results` を持つ 15 本。
 決まりの正は `specs/030-allure-test-report/contracts/test-report.md`、確かめの手順は同じ場所の `quickstart.md`。
 
 | 側 | URL | 作られるとき |

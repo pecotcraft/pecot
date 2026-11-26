@@ -15,7 +15,7 @@
  * 親クラスの init() が各 root で `validManifestFilenames=["plugin.json"]` を first-match で展開する。
  * この流れは標準の処理に乗る。
  *
- * 回帰テスト: `.nx/nx-release/tests/version-actions.test.js`。
+ * 回帰テスト: `.nx/nx-release/tests/version-actions.test.mjs`。
  * 実際の 3 プラグインの project.json から init() を通して、manifest の展開と読み書きを単体で確かめる。
  */
 

@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,16 +14,16 @@ interface MockReport {
   loc?: { line?: number };
 }
 
-test('no-missing-page: meta.type が problem', () => {
+test('meta.type を読むと、problem を返す', () => {
   assert.strictEqual(noMissingPageRule.meta?.type, 'problem');
 });
 
-test('no-missing-page: missingPage メッセージが定義されている', () => {
+test('メッセージを読むと、missingPage が定義されている', () => {
   const meta = noMissingPageRule.meta as { messages: Record<string, string> };
   assert.ok(meta.messages.missingPage);
 });
 
-test('no-missing-page: create が root/Program ビジターを返す', () => {
+test('create を呼ぶと、root と Program のビジターを返す', () => {
   const mockContext = {
     sourceCode: { getText: () => '' },
     filename: '/test/slides.md',
@@ -33,7 +33,7 @@ test('no-missing-page: create が root/Program ビジターを返す', () => {
   assert.strictEqual(typeof visitors.Program, 'function');
 });
 
-test('no-missing-page: fixture deck の slides.md でエラーが出ないこと', () => {
+test('fixture deck の slides.md を渡すと、報告しない', () => {
   const reports: MockReport[] = [];
   const mockContext = {
     filename: slidesFile,
@@ -47,7 +47,7 @@ test('no-missing-page: fixture deck の slides.md でエラーが出ないこと
   assert.strictEqual(reports.length, 0, `unexpected errors: ${JSON.stringify(reports)}`);
 });
 
-test('no-missing-page: 存在しないファイル参照でエラーを報告', () => {
+test('存在しないファイルを参照すると、missingPage を報告する', () => {
   const reports: MockReport[] = [];
   const content = [
     '---',
@@ -74,7 +74,7 @@ test('no-missing-page: 存在しないファイル参照でエラーを報告', 
   assert.strictEqual(reports[0].loc?.line, 7);
 });
 
-test('no-missing-page: 複数の存在しないファイル参照で複数エラー', () => {
+test('存在しないファイル参照が複数あると、参照ごとに報告する', () => {
   const reports: MockReport[] = [];
   const content = [
     '---',
@@ -102,7 +102,7 @@ test('no-missing-page: 複数の存在しないファイル参照で複数エラ
   assert.strictEqual(reports[1].loc?.line, 7);
 });
 
-test('no-missing-page: src: 行がないファイルはエラーなし', () => {
+test('src: 行が無いファイルを渡すと、報告しない', () => {
   const reports: MockReport[] = [];
   const content = [
     '---',
@@ -122,7 +122,7 @@ test('no-missing-page: src: 行がないファイルはエラーなし', () => {
   assert.strictEqual(reports.length, 0);
 });
 
-test('no-missing-page: getText 失敗時はスキップ', () => {
+test('getText が失敗すると、スキップする', () => {
   const reports: MockReport[] = [];
   const mockContext = {
     filename: slidesFile,

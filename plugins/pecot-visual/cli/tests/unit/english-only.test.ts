@@ -26,7 +26,13 @@ interface Allowed {
 }
 
 // 例外: エージェントへの文言でなく、利用者に渡す帳票（evidence の xlsx）の見出しのセルに入る中身。
-const ALLOWED: readonly Allowed[] = [{ file: 'cli/src/domain/evidence-xlsx/layout.ts', text: '作成日' }]
+// 例外: このリポのテストの題の規則（.claude/rules/test-conventions.md）。slidev の scripts のテストにだけ当たり、slide_lint を通らない。
+const ALLOWED: readonly Allowed[] = [
+  { file: 'cli/src/domain/evidence-xlsx/layout.ts', text: '作成日' },
+  { file: 'assets/slidev/eslint.config.js', text: '題に日本語が無い（.claude/rules/test-conventions.md）' },
+  { file: 'assets/slidev/eslint.config.js', text: '題が句点で終わる（.claude/rules/test-conventions.md）' },
+  { file: 'assets/slidev/eslint.config.js', text: '。$' },
+]
 
 interface Finding {
   readonly file: string
