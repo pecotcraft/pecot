@@ -217,21 +217,27 @@ def _main_sha_malformed(scene: Scene) -> None:
     scene.env.artifact(100, "main", scene.pr_head)
 
 
+_BREAKS = {
+    "missing": _drop_artifact,
+    "pr_head_differs": _artifact_of_other_head,
+    "not_ancestor": _main_sha_not_ancestor,
+    "malformed": _main_sha_malformed,
+}
+
+
 @pytest.mark.parametrize(
-    ("break_artifact", "reason"),
+    ("broken", "reason"),
     [
-        (_drop_artifact, "ci-base なし"),
-        (_artifact_of_other_head, "pr_head 不一致"),
-        (_main_sha_not_ancestor, "main_sha が base の祖先でない"),
-        (_main_sha_malformed, "main_sha が base の祖先でない"),
+        ("missing", "ci-base なし"),
+        ("pr_head_differs", "pr_head 不一致"),
+        ("not_ancestor", "main_sha が base の祖先でない"),
+        ("malformed", "main_sha が base の祖先でない"),
     ],
     ids=["missing", "pr_head_differs", "not_ancestor", "malformed"],
 )
-def test_bad_artifact_gives_reason(
-    scene: Scene, break_artifact: Callable[[Scene], None], reason: str
-) -> None:
+def test_bad_artifact_gives_reason(scene: Scene, broken: str, reason: str) -> None:
     scene.good_run()
-    break_artifact(scene)
+    _BREAKS[broken](scene)
     assert scene.go() == ("", f"reason={reason}")
 
 

@@ -45,9 +45,9 @@ _REUSED = {"local-cache", "local-cache-kept-existing"}
 # 値を変えても nx 自身や他ツールの動作を変えないものを選ぶ。env は全レーン共通、
 # プラグイン別の env はそのプラグインの Globals を使うレーンだけを再実行する。
 _COMMON_ENV_PROBE = "HOME"
-_PLUGIN_ENV_PROBES: dict[str, set[str]] = {
-    "PECOT_HOOKS_CONFIG_PATH": {"lane-pecot"},
-    "PECOTV_SINGLE_PASS": {"lane-pecotv"},
+_PLUGIN_ENV_PROBES: dict[str, tuple[str, ...]] = {
+    "PECOT_HOOKS_CONFIG_PATH": ("lane-pecot",),
+    "PECOTV_SINGLE_PASS": ("lane-pecotv",),
 }
 
 _ANY_VERSION = re.compile(r"\d+\.\d+")
@@ -472,7 +472,7 @@ def test_common_env_change_reruns_every_lane(ws: _Workspace, tmp_path: Path) -> 
 
 @pytest.mark.parametrize(("variable", "rerun_lanes"), sorted(_PLUGIN_ENV_PROBES.items()))
 def test_plugin_env_change_reruns_only_that_plugins_lanes(
-    ws: _Workspace, variable: str, rerun_lanes: set[str]
+    ws: _Workspace, variable: str, rerun_lanes: tuple[str, ...]
 ) -> None:
     """プラグイン別の env は、そのプラグインの Globals を使うレーンだけを再実行する (#1225)。"""
     assert ws.run_gate({variable: "a"})[0].returncode == 0
@@ -492,13 +492,13 @@ def test_plugin_env_change_reruns_only_that_plugins_lanes(
     ("tool", "rerun_lanes"),
     [
         # 全レーン共通の runtime。
-        ("node", set(_LANES)),
+        ("node", tuple(_LANES)),
         # レーン固有の runtime は、その Globals を使うレーンだけを再実行する。
-        ("aws", {"lane-tools"}),
+        ("aws", ("lane-tools",)),
     ],
 )
 def test_runtime_change_reruns_only_lanes_that_use_the_tool(
-    ws: _Workspace, tmp_path: Path, tool: str, rerun_lanes: set[str]
+    ws: _Workspace, tmp_path: Path, tool: str, rerun_lanes: tuple[str, ...]
 ) -> None:
     assert ws.run_gate()[0].returncode == 0
     ws.commit_empty()

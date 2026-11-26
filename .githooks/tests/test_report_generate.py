@@ -632,25 +632,28 @@ def test_real_allure_keeps_history_of_a_test_name_with_line_separator(
 
 
 # Allure は空の行も historyLimit に数える。空の行は 1 つずつにする。
+_ENDINGS = {
+    "blank-line": "\n   \n",
+    "ideographic-space-line": "\n\u3000\n",
+    "crlf": "\r\n",
+    "lone-cr": "\r",
+}
+
+
 @_needs_pnpm
 @pytest.mark.parametrize(
-    "extend",
-    [
-        lambda line: f"{line}\n   \n",
-        lambda line: f"{line}\n\u3000\n",
-        lambda line: f"{line}\r\n",
-        lambda line: f"{line}\r",
-    ],
+    "case",
+    ["blank-line", "ideographic-space-line", "crlf", "lone-cr"],
     ids=["blank-line", "ideographic-space-line", "crlf", "lone-cr"],
 )
 def test_real_allure_reads_what_generate_passes_as_readable(
     real_build: tuple[Callable[[], int], Path],
     capsys: pytest.CaptureFixture[str],
-    extend: Callable[[str], str],
+    case: str,
 ) -> None:
     build, history = real_build
     assert build() == 0
-    history.write_bytes(extend(_entries(history)[0]).encode())
+    history.write_bytes(f"{_entries(history)[0]}{_ENDINGS[case]}".encode())
     before = len(_entries(history))
     capsys.readouterr()
 
