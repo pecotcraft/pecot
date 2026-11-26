@@ -25,3 +25,7 @@ fi
 echo "==> pytest ${targets[*]}"
 uvx --python 3.12 --with pytest-xdist==3.8.0 --with packaging==26.3 --with pyyaml==6.0.3 --with allure-pytest==2.16.2 \
     pytest==9.2.0 "${targets[@]}" "${report[@]}" -q --import-mode=importlib -n auto -p no:cacheprovider
+
+if [ "${#report[@]}" -gt 0 ]; then
+    bash "$(dirname "$TESTS_DIR")/scripts/test_report/step-gate.sh" "$results"
+fi

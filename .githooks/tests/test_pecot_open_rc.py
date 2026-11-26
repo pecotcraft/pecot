@@ -9,6 +9,7 @@ import os
 import sys
 from pathlib import Path
 
+import allure
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -62,23 +63,31 @@ def _run(tmp_path: Path, script: str, args: list[str], *, existing: bool) -> tup
 
 
 def test_pc_sends_rc_to_every_new_pane(tmp_path: Path) -> None:
-    sent, _ = _run(tmp_path, "pecot-open.sh", ["--rc"], existing=False)
-    assert sent == [f"-t %{i} {_RC} Enter" for i in range(4)]
+    with allure.step("偽の docker で pecot-open.sh を --rc 付きで動かす"):
+        sent, _ = _run(tmp_path, "pecot-open.sh", ["--rc"], existing=False)
+    with allure.step("新しいペインのすべてに pecot-rc.sh を送ることを確かめる"):
+        assert sent == [f"-t %{i} {_RC} Enter" for i in range(4)]
 
 
 def test_mobile_sends_rc_to_every_new_session(tmp_path: Path) -> None:
-    sent, _ = _run(tmp_path, "pecot-open-mobile.sh", ["--rc"], existing=False)
-    assert sent == [f"-t =pecot-base-parallel-a_wt{i}-pecot: {_RC} Enter" for i in range(1, 5)]
+    with allure.step("偽の docker で pecot-open-mobile.sh を --rc 付きで動かす"):
+        sent, _ = _run(tmp_path, "pecot-open-mobile.sh", ["--rc"], existing=False)
+    with allure.step("新しいセッションのすべてに pecot-rc.sh を送ることを確かめる"):
+        assert sent == [f"-t =pecot-base-parallel-a_wt{i}-pecot: {_RC} Enter" for i in range(1, 5)]
 
 
 @pytest.mark.parametrize("script", ["pecot-open.sh", "pecot-open-mobile.sh"])
 def test_existing_session_gets_no_rc(tmp_path: Path, script: str) -> None:
-    sent, stderr = _run(tmp_path, script, ["--rc"], existing=True)
-    assert sent == []
-    assert "Remote Control を起動しません" in stderr
+    with allure.step("既存のセッションを置き、--rc 付きで動かす"):
+        sent, stderr = _run(tmp_path, script, ["--rc"], existing=True)
+    with allure.step("何も送らず、起動しない旨が stderr に出ることを確かめる"):
+        assert sent == []
+        assert "Remote Control を起動しません" in stderr
 
 
 @pytest.mark.parametrize("script", ["pecot-open.sh", "pecot-open-mobile.sh"])
 def test_without_rc_sends_nothing(tmp_path: Path, script: str) -> None:
-    sent, _ = _run(tmp_path, script, [], existing=False)
-    assert sent == []
+    with allure.step("--rc 無しで動かす"):
+        sent, _ = _run(tmp_path, script, [], existing=False)
+    with allure.step("何も送らないことを確かめる"):
+        assert sent == []

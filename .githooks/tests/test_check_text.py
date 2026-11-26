@@ -20,6 +20,7 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
+import allure
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -210,53 +211,70 @@ def _assert_deps_guidance(result) -> None:
 def test_check_text_reports_violation(
     script_dir: Path, repo_root: Path, work_dir: Path, run_script
 ) -> None:
-    _require_bin(repo_root)
-    target = work_dir / "bad.md"
-    target.write_text(f"# 見出し\n\n{_LONG_SENTENCE}\n")
-    result = run_script(script_dir / "check-text.sh", str(target), cwd=repo_root)
-    assert result.returncode == 1
-    lines = [line for line in result.stdout.splitlines() if line.startswith(f"{target}:3:")]
-    assert any("sentence-length" in line for line in lines), result.stdout
+    with allure.step("長い文を含む bad.md を書き、check-text.sh を動かす"):
+        _require_bin(repo_root)
+        target = work_dir / "bad.md"
+        target.write_text(f"# 見出し\n\n{_LONG_SENTENCE}\n")
+        result = run_script(script_dir / "check-text.sh", str(target), cwd=repo_root)
+
+    with allure.step("終了コード 1 と、sentence-length の違反を確かめる"):
+        assert result.returncode == 1
+        lines = [line for line in result.stdout.splitlines() if line.startswith(f"{target}:3:")]
+        assert any("sentence-length" in line for line in lines), result.stdout
 
 
 def test_check_text_passes_clean_file(
     script_dir: Path, repo_root: Path, work_dir: Path, run_script
 ) -> None:
-    _require_bin(repo_root)
-    target = work_dir / "ok.md"
-    target.write_text("# 見出し\n\n短い文を書く。\n")
-    result = run_script(script_dir / "check-text.sh", str(target), cwd=repo_root)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert result.stdout == ""
+    with allure.step("短い文だけの ok.md を書き、check-text.sh を動かす"):
+        _require_bin(repo_root)
+        target = work_dir / "ok.md"
+        target.write_text("# 見出し\n\n短い文を書く。\n")
+        result = run_script(script_dir / "check-text.sh", str(target), cwd=repo_root)
+
+    with allure.step("終了コード 0 で、出力が空であることを確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert result.stdout == ""
 
 
 def test_check_text_without_arguments_passes(script_dir: Path, repo_root: Path, run_script) -> None:
-    result = run_script(script_dir / "check-text.sh", cwd=repo_root)
-    assert result.returncode == 0
+    with allure.step("引数なしで check-text.sh を動かす"):
+        result = run_script(script_dir / "check-text.sh", cwd=repo_root)
+
+    with allure.step("終了コード 0 を確かめる"):
+        assert result.returncode == 0
 
 
 def test_check_text_errors_without_dist(
     script_dir: Path, git_repo: Callable[..., Path], run_script
 ) -> None:
-    repo = git_repo("nodist")
-    target = repo / "a.md"
-    target.write_text("# 見出し\n")
-    result = run_script(script_dir / "check-text.sh", str(target), cwd=repo)
-    assert result.returncode == 1
-    errors = [line for line in result.stderr.splitlines() if line.startswith("ERROR:")]
-    assert any("pnpm install --frozen-lockfile" in line for line in errors), result.stderr
+    with allure.step("dist の無いリポで check-text.sh を動かす"):
+        repo = git_repo("nodist")
+        target = repo / "a.md"
+        target.write_text("# 見出し\n")
+        result = run_script(script_dir / "check-text.sh", str(target), cwd=repo)
+
+    with allure.step("終了コード 1 と、pnpm install の案内を確かめる"):
+        assert result.returncode == 1
+        errors = [line for line in result.stderr.splitlines() if line.startswith("ERROR:")]
+        assert any("pnpm install --frozen-lockfile" in line for line in errors), result.stderr
 
 
 def test_check_text_errors_when_deps_cannot_be_restored(
     script_dir: Path, git_repo: Callable[..., Path], run_script, tmp_path: Path
 ) -> None:
-    repo = _repo_with_dist_only(git_repo)
-    env, calls = _fake_pnpm(tmp_path, restores=False)
-    target = repo / "a.md"
-    target.write_text("# 見出し\n")
-    result = run_script(script_dir / "check-text.sh", str(target), cwd=repo, env=env)
-    _assert_deps_guidance(result)
-    assert _pnpm_calls(calls) == ["install --frozen-lockfile"]
+    with allure.step(
+        "dist だけあるリポと、復旧できない偽の pnpm を用意して check-text.sh を動かす"
+    ):
+        repo = _repo_with_dist_only(git_repo)
+        env, calls = _fake_pnpm(tmp_path, restores=False)
+        target = repo / "a.md"
+        target.write_text("# 見出し\n")
+        result = run_script(script_dir / "check-text.sh", str(target), cwd=repo, env=env)
+        _assert_deps_guidance(result)
+
+    with allure.step("依存が欠けている案内と、pnpm の呼び出しを確かめる"):
+        assert _pnpm_calls(calls) == ["install --frozen-lockfile"]
 
 
 def test_check_text_restores_missing_deps(
@@ -266,181 +284,232 @@ def test_check_text_restores_missing_deps(
 
     次の commit を止めないよう、フックが root の frozen の install で戻してから文章規則を適用する。
     """
-    repo = _repo_with_dist_only(git_repo)
-    env, calls = _fake_pnpm(tmp_path, restores=True)
-    target = repo / "a.md"
-    target.write_text("# 見出し\n")
-    result = run_script(script_dir / "check-text.sh", str(target), cwd=repo, env=env)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert result.stdout == ""
-    assert _pnpm_calls(calls) == ["install --frozen-lockfile"]
-    assert "ERROR:" not in result.stderr
+    with allure.step("dist だけあるリポと、復旧できる偽の pnpm を用意して check-text.sh を動かす"):
+        repo = _repo_with_dist_only(git_repo)
+        env, calls = _fake_pnpm(tmp_path, restores=True)
+        target = repo / "a.md"
+        target.write_text("# 見出し\n")
+        result = run_script(script_dir / "check-text.sh", str(target), cwd=repo, env=env)
+
+    with allure.step("終了コード 0 と、install を 1 回呼んだことを確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert result.stdout == ""
+        assert _pnpm_calls(calls) == ["install --frozen-lockfile"]
+        assert "ERROR:" not in result.stderr
 
 
 def test_check_text_rebuilds_stale_dist(script_dir: Path, source_repo: Path, run_script) -> None:
     """lib/ が変わったのに dist が古いままなら、フックが作り直してから適用する (#1331)。"""
-    package_dir = source_repo / "libs/text-rules"
-    before = _stamp(package_dir)
-    _disable_all_rules(package_dir)
-    target = source_repo / "long.md"
-    target.write_text(f"# 見出し\n\n{_LONG_SENTENCE}\n")
-    result = run_script(script_dir / "check-text.sh", str(target), cwd=source_repo)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert result.stdout == ""
-    assert "作り直します" in result.stderr
-    assert _stamp(package_dir) != before
-    assert _stamp(package_dir).strip() == _expected_stamp(package_dir)
+    with allure.step("lib/ の規則を変えて dist を古くし、check-text.sh を動かす"):
+        package_dir = source_repo / "libs/text-rules"
+        before = _stamp(package_dir)
+        _disable_all_rules(package_dir)
+        target = source_repo / "long.md"
+        target.write_text(f"# 見出し\n\n{_LONG_SENTENCE}\n")
+        result = run_script(script_dir / "check-text.sh", str(target), cwd=source_repo)
+
+    with allure.step("dist が作り直され、stamp が更新されたことを確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert result.stdout == ""
+        assert "作り直します" in result.stderr
+        assert _stamp(package_dir) != before
+        assert _stamp(package_dir).strip() == _expected_stamp(package_dir)
 
 
 def test_check_text_restores_deps_then_builds_dist(
     script_dir: Path, git_repo: Callable[..., Path], run_script, tmp_path: Path
 ) -> None:
     """依存と dist の両方が無いと、ready は 20 のあとに 30 を返す。フックは両方を順に直す (#1331)。"""
-    repo = git_repo("fresh-clone")
-    package_dir = _copy_real_sources(repo, link_node_modules=False)
-    env, calls = _fake_pnpm(tmp_path, restores=True, link_real=True)
-    target = repo / "a.md"
-    target.write_text("# 見出し\n")
-    result = run_script(script_dir / "check-text.sh", str(target), cwd=repo, env=env)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert _pnpm_calls(calls) == ["install --frozen-lockfile"]
-    assert "依存が欠けている" in result.stderr
-    assert "作り直します" in result.stderr
-    assert _stamp(package_dir).strip() == _expected_stamp(package_dir)
+    with allure.step("依存・dist の無いリポで check-text.sh を動かす"):
+        repo = git_repo("fresh-clone")
+        package_dir = _copy_real_sources(repo, link_node_modules=False)
+        env, calls = _fake_pnpm(tmp_path, restores=True, link_real=True)
+        target = repo / "a.md"
+        target.write_text("# 見出し\n")
+        result = run_script(script_dir / "check-text.sh", str(target), cwd=repo, env=env)
+
+    with allure.step("依存の復旧と dist の作成が順に行われたことを確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert _pnpm_calls(calls) == ["install --frozen-lockfile"]
+        assert "依存が欠けている" in result.stderr
+        assert "作り直します" in result.stderr
+        assert _stamp(package_dir).strip() == _expected_stamp(package_dir)
 
 
 def test_check_text_errors_when_build_fails(
     script_dir: Path, source_repo: Path, run_script
 ) -> None:
     """tsc が落ちて dist を作れないとき、ERROR を出し、stamp を書かない (#1331)。"""
-    package_dir = source_repo / "libs/text-rules"
-    with (package_dir / "lib/findings.ts").open("a") as f:
-        f.write("\nconst broken: number = 'a'\n")
-    shutil.rmtree(package_dir / "dist")
-    target = source_repo / "ok.md"
-    target.write_text("# 見出し\n")
-    result = run_script(script_dir / "check-text.sh", str(target), cwd=source_repo)
-    assert result.returncode == 1
-    assert "作れません" in result.stderr
-    assert result.stdout == ""
-    assert not (package_dir / "dist/source-hash").exists()
+    with allure.step("ビルドが失敗して dist が無い状態で check-text.sh を動かす"):
+        package_dir = source_repo / "libs/text-rules"
+        with (package_dir / "lib/findings.ts").open("a") as f:
+            f.write("\nconst broken: number = 'a'\n")
+        shutil.rmtree(package_dir / "dist")
+        target = source_repo / "ok.md"
+        target.write_text("# 見出し\n")
+        result = run_script(script_dir / "check-text.sh", str(target), cwd=source_repo)
+
+    with allure.step("終了コード 1 と、stamp が書かれないことを確かめる"):
+        assert result.returncode == 1
+        assert "作れません" in result.stderr
+        assert result.stdout == ""
+        assert not (package_dir / "dist/source-hash").exists()
 
 
 def test_check_text_keeps_fresh_dist(script_dir: Path, source_repo: Path, run_script) -> None:
     """ソースが dist と同じなら、作り直さず stamp も動かさない (#1331)。"""
-    package_dir = source_repo / "libs/text-rules"
-    stamp_file = package_dir / "dist/source-hash"
-    before = (_stamp(package_dir), stamp_file.stat().st_mtime_ns)
-    target = source_repo / "ok.md"
-    target.write_text("# 見出し\n\n短い文を書く。\n")
-    result = run_script(script_dir / "check-text.sh", str(target), cwd=source_repo)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "作り直します" not in result.stderr
-    assert (_stamp(package_dir), stamp_file.stat().st_mtime_ns) == before
+    with allure.step("dist が新しい状態で check-text.sh を動かす"):
+        package_dir = source_repo / "libs/text-rules"
+        stamp_file = package_dir / "dist/source-hash"
+        before = (_stamp(package_dir), stamp_file.stat().st_mtime_ns)
+        target = source_repo / "ok.md"
+        target.write_text("# 見出し\n\n短い文を書く。\n")
+        result = run_script(script_dir / "check-text.sh", str(target), cwd=source_repo)
+
+    with allure.step("作り直さず、stamp が動かないことを確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "作り直します" not in result.stderr
+        assert (_stamp(package_dir), stamp_file.stat().st_mtime_ns) == before
 
 
 def test_check_text_builds_missing_dist(script_dir: Path, source_repo: Path, run_script) -> None:
     """dist が無くても、ソースがあればフックが作ってから適用する (#1331)。"""
-    package_dir = source_repo / "libs/text-rules"
-    shutil.rmtree(package_dir / "dist")
-    target = source_repo / "long.md"
-    target.write_text(f"# 見出し\n\n{_LONG_SENTENCE}\n")
-    result = run_script(script_dir / "check-text.sh", str(target), cwd=source_repo)
-    assert result.returncode == 1, result.stdout + result.stderr
-    assert "sentence-length" in result.stdout
-    assert (package_dir / "dist/bin/pecot-text-lint.js").is_file()
-    assert _stamp(package_dir).strip() == _expected_stamp(package_dir)
+    with allure.step("dist を消して check-text.sh を動かす"):
+        package_dir = source_repo / "libs/text-rules"
+        shutil.rmtree(package_dir / "dist")
+        target = source_repo / "long.md"
+        target.write_text(f"# 見出し\n\n{_LONG_SENTENCE}\n")
+        result = run_script(script_dir / "check-text.sh", str(target), cwd=source_repo)
+
+    with allure.step("dist が作られ、違反が出ることを確かめる"):
+        assert result.returncode == 1, result.stdout + result.stderr
+        assert "sentence-length" in result.stdout
+        assert (package_dir / "dist/bin/pecot-text-lint.js").is_file()
+        assert _stamp(package_dir).strip() == _expected_stamp(package_dir)
 
 
 def test_check_commit_text_reports_violation(
     script_dir: Path, repo_root: Path, work_dir: Path, run_script
 ) -> None:
-    _require_bin(repo_root)
-    message = work_dir / "COMMIT_EDITMSG"
-    message.write_text(f"test: 動作確認\n\n{_LONG_SENTENCE}\n")
-    result = run_script(
-        script_dir.parent / "commit-msg" / "check-commit-text.sh", str(message), cwd=repo_root
-    )
-    assert result.returncode == 1
-    assert f"{message}:3:" in result.stdout
-    assert "sentence-length" in result.stdout
+    with allure.step("長い文を含むコミットメッセージで check-commit-text.sh を動かす"):
+        _require_bin(repo_root)
+        message = work_dir / "COMMIT_EDITMSG"
+        message.write_text(f"test: 動作確認\n\n{_LONG_SENTENCE}\n")
+        result = run_script(
+            script_dir.parent / "commit-msg" / "check-commit-text.sh", str(message), cwd=repo_root
+        )
+
+    with allure.step("終了コード 1 と、違反の表示を確かめる"):
+        assert result.returncode == 1
+        assert f"{message}:3:" in result.stdout
+        assert "sentence-length" in result.stdout
 
 
 def test_check_commit_text_ignores_comment_lines(
     script_dir: Path, repo_root: Path, work_dir: Path, run_script
 ) -> None:
-    _require_bin(repo_root)
-    message = work_dir / "COMMIT_EDITMSG"
-    message.write_text(f"test: 動作確認\n\n# {_LONG_SENTENCE}\n")
-    result = run_script(
-        script_dir.parent / "commit-msg" / "check-commit-text.sh", str(message), cwd=repo_root
-    )
-    assert result.returncode == 0, result.stdout + result.stderr
+    with allure.step("コメント行だけが長いコミットメッセージで check-commit-text.sh を動かす"):
+        _require_bin(repo_root)
+        message = work_dir / "COMMIT_EDITMSG"
+        message.write_text(f"test: 動作確認\n\n# {_LONG_SENTENCE}\n")
+        result = run_script(
+            script_dir.parent / "commit-msg" / "check-commit-text.sh", str(message), cwd=repo_root
+        )
+
+    with allure.step("終了コード 0 を確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_check_commit_text_errors_without_dist(
     script_dir: Path, git_repo: Callable[..., Path], run_script
 ) -> None:
-    repo = git_repo("nodist")
-    message = repo / "COMMIT_EDITMSG"
-    message.write_text("test: 動作確認\n")
-    result = run_script(
-        script_dir.parent / "commit-msg" / "check-commit-text.sh", str(message), cwd=repo
-    )
-    assert result.returncode == 1
-    errors = [line for line in result.stderr.splitlines() if line.startswith("ERROR:")]
-    assert any("pnpm install --frozen-lockfile" in line for line in errors), result.stderr
+    with allure.step("dist の無いリポで check-commit-text.sh を動かす"):
+        repo = git_repo("nodist")
+        message = repo / "COMMIT_EDITMSG"
+        message.write_text("test: 動作確認\n")
+        result = run_script(
+            script_dir.parent / "commit-msg" / "check-commit-text.sh", str(message), cwd=repo
+        )
+
+    with allure.step("終了コード 1 と、pnpm install の案内を確かめる"):
+        assert result.returncode == 1
+        errors = [line for line in result.stderr.splitlines() if line.startswith("ERROR:")]
+        assert any("pnpm install --frozen-lockfile" in line for line in errors), result.stderr
 
 
 def test_check_commit_text_errors_when_deps_cannot_be_restored(
     script_dir: Path, git_repo: Callable[..., Path], run_script, tmp_path: Path
 ) -> None:
-    repo = _repo_with_dist_only(git_repo)
-    env, calls = _fake_pnpm(tmp_path, restores=False)
-    message = repo / "COMMIT_EDITMSG"
-    message.write_text("test: 動作確認\n")
-    result = run_script(
-        script_dir.parent / "commit-msg" / "check-commit-text.sh", str(message), cwd=repo, env=env
-    )
-    _assert_deps_guidance(result)
-    assert _pnpm_calls(calls) == ["install --frozen-lockfile"]
+    with allure.step(
+        "dist だけあるリポと、復旧できない偽の pnpm を用意して check-commit-text.sh を動かす"
+    ):
+        repo = _repo_with_dist_only(git_repo)
+        env, calls = _fake_pnpm(tmp_path, restores=False)
+        message = repo / "COMMIT_EDITMSG"
+        message.write_text("test: 動作確認\n")
+        result = run_script(
+            script_dir.parent / "commit-msg" / "check-commit-text.sh",
+            str(message),
+            cwd=repo,
+            env=env,
+        )
+
+    with allure.step("依存が欠けている案内と、pnpm の呼び出しを確かめる"):
+        _assert_deps_guidance(result)
+        assert _pnpm_calls(calls) == ["install --frozen-lockfile"]
 
 
 def test_check_commit_text_restores_missing_deps(
     script_dir: Path, git_repo: Callable[..., Path], run_script, tmp_path: Path
 ) -> None:
-    repo = _repo_with_dist_only(git_repo)
-    env, calls = _fake_pnpm(tmp_path, restores=True)
-    message = repo / "COMMIT_EDITMSG"
-    message.write_text("test: 動作確認\n")
-    result = run_script(
-        script_dir.parent / "commit-msg" / "check-commit-text.sh", str(message), cwd=repo, env=env
-    )
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert _pnpm_calls(calls) == ["install --frozen-lockfile"]
+    with allure.step(
+        "dist だけあるリポと、復旧できる偽の pnpm を用意して check-commit-text.sh を動かす"
+    ):
+        repo = _repo_with_dist_only(git_repo)
+        env, calls = _fake_pnpm(tmp_path, restores=True)
+        message = repo / "COMMIT_EDITMSG"
+        message.write_text("test: 動作確認\n")
+        result = run_script(
+            script_dir.parent / "commit-msg" / "check-commit-text.sh",
+            str(message),
+            cwd=repo,
+            env=env,
+        )
+
+    with allure.step("終了コード 0 と、install を 1 回呼んだことを確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert _pnpm_calls(calls) == ["install --frozen-lockfile"]
 
 
 def test_check_commit_text_rebuilds_stale_dist(
     script_dir: Path, source_repo: Path, run_script
 ) -> None:
-    package_dir = source_repo / "libs/text-rules"
-    before = _stamp(package_dir)
-    _disable_all_rules(package_dir)
-    message = source_repo / "COMMIT_EDITMSG"
-    message.write_text(f"test: 動作確認\n\n{_LONG_SENTENCE}\n")
-    result = run_script(
-        script_dir.parent / "commit-msg" / "check-commit-text.sh", str(message), cwd=source_repo
-    )
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert _stamp(package_dir) != before
+    with allure.step("lib/ の規則を変えて dist を古くし、check-commit-text.sh を動かす"):
+        package_dir = source_repo / "libs/text-rules"
+        before = _stamp(package_dir)
+        _disable_all_rules(package_dir)
+        message = source_repo / "COMMIT_EDITMSG"
+        message.write_text(f"test: 動作確認\n\n{_LONG_SENTENCE}\n")
+        result = run_script(
+            script_dir.parent / "commit-msg" / "check-commit-text.sh", str(message), cwd=source_repo
+        )
+
+    with allure.step("終了コード 0 と、stamp の更新を確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert _stamp(package_dir) != before
 
 
 def test_check_commit_text_without_argument_guides(
     script_dir: Path, repo_root: Path, run_script
 ) -> None:
-    result = run_script(script_dir.parent / "commit-msg" / "check-commit-text.sh", cwd=repo_root)
-    assert result.returncode == 1
-    assert "COMMIT_EDITMSG のパスを渡してください" in result.stderr
+    with allure.step("引数なしで check-commit-text.sh を動かす"):
+        result = run_script(
+            script_dir.parent / "commit-msg" / "check-commit-text.sh", cwd=repo_root
+        )
+
+    with allure.step("終了コード 1 と、COMMIT_EDITMSG の案内を確かめる"):
+        assert result.returncode == 1
+        assert "COMMIT_EDITMSG のパスを渡してください" in result.stderr
 
 
 class _PushRepo:
@@ -490,97 +559,127 @@ def _run_push(script_dir: Path, run_script, h: _PushRepo):
 def test_check_text_push_reports_violation_in_range(
     script_dir: Path, run_script, push_repo: _PushRepo
 ) -> None:
-    push_repo.write("docs-src/bad.md", f"# 見出し\n\n{_LONG_SENTENCE}\n")
-    push_repo.commit("feat: bad")
-    result = _run_push(script_dir, run_script, push_repo)
-    assert result.returncode == 1
-    assert "docs-src/bad.md:3:" in result.stdout, result.stdout
+    with allure.step("違反のある文書を commit して、push のチェックを動かす"):
+        push_repo.write("docs-src/bad.md", f"# 見出し\n\n{_LONG_SENTENCE}\n")
+        push_repo.commit("feat: bad")
+        result = _run_push(script_dir, run_script, push_repo)
+
+    with allure.step("終了コード 1 と、違反の行を確かめる"):
+        assert result.returncode == 1
+        assert "docs-src/bad.md:3:" in result.stdout, result.stdout
 
 
 def test_check_text_push_rebuilds_stale_dist(
     script_dir: Path, run_script, push_repo: _PushRepo
 ) -> None:
-    before = _stamp(push_repo.package_dir)
-    _disable_all_rules(push_repo.package_dir)
-    push_repo.write("docs-src/long.md", f"# 見出し\n\n{_LONG_SENTENCE}\n")
-    push_repo.commit("feat: long")
-    result = _run_push(script_dir, run_script, push_repo)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert _stamp(push_repo.package_dir) != before
+    with allure.step("規則を変えて dist を古くし、長い文を commit して push のチェックを動かす"):
+        before = _stamp(push_repo.package_dir)
+        _disable_all_rules(push_repo.package_dir)
+        push_repo.write("docs-src/long.md", f"# 見出し\n\n{_LONG_SENTENCE}\n")
+        push_repo.commit("feat: long")
+        result = _run_push(script_dir, run_script, push_repo)
+
+    with allure.step("終了コード 0 と、stamp の更新を確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert _stamp(push_repo.package_dir) != before
 
 
 def test_check_text_push_errors_without_deps(
     script_dir: Path, run_script, push_repo: _PushRepo
 ) -> None:
-    (push_repo.repo / "node_modules").unlink()
-    push_repo.write("docs-src/a.md", "# 見出し\n")
-    push_repo.commit("feat: add")
-    result = _run_push(script_dir, run_script, push_repo)
-    _assert_deps_guidance(result)
+    with allure.step("依存を消し、文書を commit して push のチェックを動かす"):
+        (push_repo.repo / "node_modules").unlink()
+        push_repo.write("docs-src/a.md", "# 見出し\n")
+        push_repo.commit("feat: add")
+        result = _run_push(script_dir, run_script, push_repo)
+
+    with allure.step("依存が欠けている案内を確かめる"):
+        _assert_deps_guidance(result)
 
 
 def test_check_text_push_ignores_violation_outside_range(
     script_dir: Path, run_script, push_repo: _PushRepo, git
 ) -> None:
     """main 側の既存違反は、main を取り込んだブランチの範囲に入らない。"""
-    git(push_repo.repo, "checkout", "-q", "main")
-    push_repo.write("old.md", f"# 見出し\n\n{_LONG_SENTENCE}\n")
-    push_repo.commit("chore: old violation on main")
-    git(push_repo.repo, "update-ref", "refs/remotes/origin/main", push_repo.head())
-    git(push_repo.repo, "checkout", "-q", "feature")
-    git(push_repo.repo, "rebase", "-q", "main")
-    push_repo.write("new.md", "# 見出し\n\n短い文を書く。\n")
-    push_repo.commit("feat: clean")
-    result = _run_push(script_dir, run_script, push_repo)
-    assert result.returncode == 0, result.stdout + result.stderr
+    with allure.step(
+        "main に違反を commit し、feature を rebase して違反の無い文書を足し、push のチェックを動かす"
+    ):
+        git(push_repo.repo, "checkout", "-q", "main")
+        push_repo.write("old.md", f"# 見出し\n\n{_LONG_SENTENCE}\n")
+        push_repo.commit("chore: old violation on main")
+        git(push_repo.repo, "update-ref", "refs/remotes/origin/main", push_repo.head())
+        git(push_repo.repo, "checkout", "-q", "feature")
+        git(push_repo.repo, "rebase", "-q", "main")
+        push_repo.write("new.md", "# 見出し\n\n短い文を書く。\n")
+        push_repo.commit("feat: clean")
+        result = _run_push(script_dir, run_script, push_repo)
+
+    with allure.step("終了コード 0（範囲外の違反は対象外）を確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_check_text_push_passes_without_text_targets(
     script_dir: Path, run_script, push_repo: _PushRepo
 ) -> None:
     """範囲内の変更が対象外の拡張子と生成物（CHANGELOG・golden）だけなら、違反があっても通る。"""
-    push_repo.write("logo.txt", _LONG_SENTENCE)
-    push_repo.write(
-        "plugins/pecot-workflow/cli/tests/parity/golden/x.md",
-        f"# 見出し\n\n{_LONG_SENTENCE}\n",
-    )
-    push_repo.write("pkg/CHANGELOG.md", f"# 見出し\n\n{_LONG_SENTENCE}\n")
-    push_repo.commit("feat: non targets")
-    result = _run_push(script_dir, run_script, push_repo)
-    assert result.returncode == 0, result.stdout + result.stderr
+    with allure.step("対象外の拡張子と生成物に違反を書いて commit し、push のチェックを動かす"):
+        push_repo.write("logo.txt", _LONG_SENTENCE)
+        push_repo.write(
+            "plugins/pecot-workflow/cli/tests/parity/golden/x.md",
+            f"# 見出し\n\n{_LONG_SENTENCE}\n",
+        )
+        push_repo.write("pkg/CHANGELOG.md", f"# 見出し\n\n{_LONG_SENTENCE}\n")
+        push_repo.commit("feat: non targets")
+        result = _run_push(script_dir, run_script, push_repo)
+
+    with allure.step("終了コード 0 を確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_check_text_push_skips_textlintignore(
     script_dir: Path, run_script, push_repo: _PushRepo
 ) -> None:
     """.textlintignore で外した specs/ の違反は通し、外していないファイルの違反は止める。"""
-    push_repo.write("specs/001-x/spec.md", f"# 見出し\n\n{_LONG_SENTENCE}\n")
-    push_repo.commit("docs: spec")
-    assert _run_push(script_dir, run_script, push_repo).returncode == 0
-    push_repo.write("docs-src/bad.md", f"# 見出し\n\n{_LONG_SENTENCE}\n")
-    push_repo.commit("feat: bad")
-    result = _run_push(script_dir, run_script, push_repo)
-    assert result.returncode == 1
-    assert "specs/001-x/spec.md" not in result.stdout, result.stdout
-    assert "docs-src/bad.md:3:" in result.stdout, result.stdout
+    with allure.step("specs/ に違反のある文書を commit する"):
+        push_repo.write("specs/001-x/spec.md", f"# 見出し\n\n{_LONG_SENTENCE}\n")
+        push_repo.commit("docs: spec")
+
+    with allure.step("push のチェックを動かし、終了コード 0 を確かめる"):
+        assert _run_push(script_dir, run_script, push_repo).returncode == 0
+
+    with allure.step("docs-src に違反のある文書を commit して、push のチェックを動かす"):
+        push_repo.write("docs-src/bad.md", f"# 見出し\n\n{_LONG_SENTENCE}\n")
+        push_repo.commit("feat: bad")
+        result = _run_push(script_dir, run_script, push_repo)
+
+    with allure.step("終了コード 1 と、違反の表示の有無を確かめる"):
+        assert result.returncode == 1
+        assert "specs/001-x/spec.md" not in result.stdout, result.stdout
+        assert "docs-src/bad.md:3:" in result.stdout, result.stdout
 
 
 def test_check_text_push_skips_deleted_files(
     script_dir: Path, run_script, push_repo: _PushRepo
 ) -> None:
-    push_repo.write("gone.md", "# 見出し\n")
-    push_repo.commit("feat: add")
-    (push_repo.repo / "gone.md").unlink()
-    push_repo.commit("feat: remove")
-    result = _run_push(script_dir, run_script, push_repo)
-    assert result.returncode == 0, result.stdout + result.stderr
+    with allure.step("ファイルを追加して削除し、push のチェックを動かす"):
+        push_repo.write("gone.md", "# 見出し\n")
+        push_repo.commit("feat: add")
+        (push_repo.repo / "gone.md").unlink()
+        push_repo.commit("feat: remove")
+        result = _run_push(script_dir, run_script, push_repo)
+
+    with allure.step("終了コード 0 を確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_check_text_push_without_push_info_warns_and_passes(
     script_dir: Path, run_script, push_repo: _PushRepo
 ) -> None:
-    result = run_script(
-        script_dir.parent / "pre-push" / "check-text-push.sh", stdin="", cwd=push_repo.repo
-    )
-    assert result.returncode == 0
-    assert "WARN" in result.stderr
+    with allure.step("push の情報なしで check-text-push.sh を動かす"):
+        result = run_script(
+            script_dir.parent / "pre-push" / "check-text-push.sh", stdin="", cwd=push_repo.repo
+        )
+
+    with allure.step("終了コード 0 と、WARN の表示を確かめる"):
+        assert result.returncode == 0
+        assert "WARN" in result.stderr

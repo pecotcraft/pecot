@@ -12,6 +12,7 @@ import json
 import re
 from pathlib import Path
 
+import allure
 import pytest
 
 # parents[0]=tests, [1]=.githooks, [2]=リポルート。
@@ -29,44 +30,50 @@ def root() -> dict:
 
 
 def test_root_is_a_private_nx_workspace(root: dict) -> None:
-    assert root["name"] == "pecot"
-    assert root["private"] is True
-    assert root["version"] == "0.0.0"
-    assert "nx" in root["devDependencies"]
-    assert "overrides" not in root
-    assert re.search(
-        r"^overrides:$", (_REPO_ROOT / "pnpm-workspace.yaml").read_text(encoding="utf-8"), re.M
-    )
+    with allure.step("root の package.json が private な nx workspace であることを確かめる"):
+        assert root["name"] == "pecot"
+        assert root["private"] is True
+        assert root["version"] == "0.0.0"
+        assert "nx" in root["devDependencies"]
+        assert "overrides" not in root
+        assert re.search(
+            r"^overrides:$", (_REPO_ROOT / "pnpm-workspace.yaml").read_text(encoding="utf-8"), re.M
+        )
 
 
 def test_root_does_not_distribute(root: dict) -> None:
-    for key in ("exports", "bin", "files", "dependencies"):
-        assert key not in root, key
+    with allure.step("root の package.json に配布用の項目が無いことを確かめる"):
+        for key in ("exports", "bin", "files", "dependencies"):
+            assert key not in root, key
 
 
 def test_root_has_no_prepare(root: dict) -> None:
     """lib の build は nx の text-rules:build が担うので、root に prepare を置かない。"""
-    assert "prepare" not in root.get("scripts", {})
+    with allure.step("root の scripts に prepare が無いことを確かめる"):
+        assert "prepare" not in root.get("scripts", {})
 
 
 def test_root_install_target_is_a_frozen_pnpm_install(root: dict) -> None:
-    install = root["nx"]["targets"]["install"]
-    assert install["cache"] is False
-    command = install["options"]["command"]
-    assert command.endswith(".githooks/scripts/run-pnpm.sh install --frozen-lockfile")
-    script = next(word for word in command.split() if word.endswith("run-pnpm.sh"))
-    assert (_REPO_ROOT / script).is_file(), script
+    with allure.step("install の target の設定を読む"):
+        install = root["nx"]["targets"]["install"]
+    with allure.step("lockfile を固定した pnpm install で、script が実在することを確かめる"):
+        assert install["cache"] is False
+        command = install["options"]["command"]
+        assert command.endswith(".githooks/scripts/run-pnpm.sh install --frozen-lockfile")
+        script = next(word for word in command.split() if word.endswith("run-pnpm.sh"))
+        assert (_REPO_ROOT / script).is_file(), script
 
 
 def test_package_manager_guard_is_kept(root: dict) -> None:
     """違うパッケージマネージャの install を止める宣言（devEngines）を弱めない。"""
-    # engines の npm / yarn の "<0.0.0" は使わない。止める役は devEngines.packageManager が持つ。
-    assert "engines" not in root
-    pm = root["devEngines"]["packageManager"]
-    assert pm["name"] == "pnpm"
-    assert pm["onFail"] == "download"
-    assert root["packageManager"].startswith(f"pnpm@{pm['version']}+")
-    lib = _load(_LIB_DIR / "package.json")
-    assert lib["devEngines"]["packageManager"] == {"name": "pnpm", "onFail": "error"}
-    assert "packageManager" not in lib
-    assert set(lib["engines"]) == {"node"}
+    with allure.step("違うパッケージマネージャを止める宣言が残っていることを確かめる"):
+        # engines の npm / yarn の "<0.0.0" は使わない。止める役は devEngines.packageManager が持つ。
+        assert "engines" not in root
+        pm = root["devEngines"]["packageManager"]
+        assert pm["name"] == "pnpm"
+        assert pm["onFail"] == "download"
+        assert root["packageManager"].startswith(f"pnpm@{pm['version']}+")
+        lib = _load(_LIB_DIR / "package.json")
+        assert lib["devEngines"]["packageManager"] == {"name": "pnpm", "onFail": "error"}
+        assert "packageManager" not in lib
+        assert set(lib["engines"]) == {"node"}

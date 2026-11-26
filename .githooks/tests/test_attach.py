@@ -12,6 +12,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import allure
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from attach import run_attached  # noqa: E402
@@ -85,13 +87,23 @@ def test_run() -> None:
     done = run_attached([*EMIT, "out", "err", "3"], capture_output=True, text=True)
     assert (done.returncode, done.stdout, done.stderr) == (3, "out", "err")
 """
-    results = tmp_path / "allure-results"
-    done = _run_pytest(tmp_path, body, "--alluredir", str(results))
-    assert done.returncode == 0, done.stdout + done.stderr
-    assert _attachments(results)["test_run"] == [
-        (f"bash {tmp_path}/suite/emit.sh out err 3（終了コード 3） stdout", "text/plain", "out"),
-        (f"bash {tmp_path}/suite/emit.sh out err 3（終了コード 3） stderr", "text/plain", "err"),
-    ]
+    with allure.step("run_attached を呼ぶテストを子の pytest で動かす"):
+        results = tmp_path / "allure-results"
+        done = _run_pytest(tmp_path, body, "--alluredir", str(results))
+    with allure.step("stdout と stderr の添付を比べる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert _attachments(results)["test_run"] == [
+            (
+                f"bash {tmp_path}/suite/emit.sh out err 3（終了コード 3） stdout",
+                "text/plain",
+                "out",
+            ),
+            (
+                f"bash {tmp_path}/suite/emit.sh out err 3（終了コード 3） stderr",
+                "text/plain",
+                "err",
+            ),
+        ]
 
 
 def test_run_attached_check_attaches_before_raising(tmp_path: Path) -> None:
@@ -100,13 +112,19 @@ def test_run_attached_check_attaches_before_raising(tmp_path: Path) -> None:
 def test_check() -> None:
     run_attached([*EMIT, "", "broken", "1"], capture_output=True, text=True, check=True)
 """
-    results = tmp_path / "allure-results"
-    done = _run_pytest(tmp_path, body, "--alluredir", str(results))
-    assert done.returncode == 1
-    assert "CalledProcessError" in done.stdout
-    assert _attachments(results)["test_check"] == [
-        (f"bash {tmp_path}/suite/emit.sh  broken 1（終了コード 1） stderr", "text/plain", "broken"),
-    ]
+    with allure.step("check=True で落ちるテストを子の pytest で動かす"):
+        results = tmp_path / "allure-results"
+        done = _run_pytest(tmp_path, body, "--alluredir", str(results))
+    with allure.step("CalledProcessError と stderr の添付を確かめる"):
+        assert done.returncode == 1
+        assert "CalledProcessError" in done.stdout
+        assert _attachments(results)["test_check"] == [
+            (
+                f"bash {tmp_path}/suite/emit.sh  broken 1（終了コード 1） stderr",
+                "text/plain",
+                "broken",
+            ),
+        ]
 
 
 def test_run_attached_timeout_attaches_partial_output(tmp_path: Path) -> None:
@@ -115,13 +133,19 @@ def test_run_attached_timeout_attaches_partial_output(tmp_path: Path) -> None:
 def test_timeout() -> None:
     run_attached([*EMIT, "started", "", "0", "5"], capture_output=True, text=True, timeout=1)
 """
-    results = tmp_path / "allure-results"
-    done = _run_pytest(tmp_path, body, "--alluredir", str(results))
-    assert done.returncode == 1
-    assert "TimeoutExpired" in done.stdout
-    assert _attachments(results)["test_timeout"] == [
-        (f"bash {tmp_path}/suite/emit.sh started  0 5（timeout） stdout", "text/plain", "started"),
-    ]
+    with allure.step("timeout で止まるテストを子の pytest で動かす"):
+        results = tmp_path / "allure-results"
+        done = _run_pytest(tmp_path, body, "--alluredir", str(results))
+    with allure.step("TimeoutExpired と途中までの出力の添付を確かめる"):
+        assert done.returncode == 1
+        assert "TimeoutExpired" in done.stdout
+        assert _attachments(results)["test_timeout"] == [
+            (
+                f"bash {tmp_path}/suite/emit.sh started  0 5（timeout） stdout",
+                "text/plain",
+                "started",
+            ),
+        ]
 
 
 def test_attach_output_and_read_output(tmp_path: Path) -> None:
@@ -134,14 +158,16 @@ def test_files(tmp_path: Path) -> None:
     assert read_output(tmp_path / "report.md") == "# Title\\n"
     assert read_output(tmp_path / "result.json") == '{"a": 1}'
 """
-    results = tmp_path / "allure-results"
-    done = _run_pytest(tmp_path, body, "--alluredir", str(results))
-    assert done.returncode == 0, done.stdout + done.stderr
-    assert _attachments(results)["test_files"] == [
-        ("server（終了コード 0） stdout", "text/plain", ""),
-        ("report.md", "text/plain", "# Title\n"),
-        ("result.json", "application/json", '{"a": 1}'),
-    ]
+    with allure.step("attach_output と read_output を呼ぶテストを子の pytest で動かす"):
+        results = tmp_path / "allure-results"
+        done = _run_pytest(tmp_path, body, "--alluredir", str(results))
+    with allure.step("出力とファイルの添付を比べる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert _attachments(results)["test_files"] == [
+            ("server（終了コード 0） stdout", "text/plain", ""),
+            ("report.md", "text/plain", "# Title\n"),
+            ("result.json", "application/json", '{"a": 1}'),
+        ]
 
 
 def test_without_alluredir_nothing_is_written(tmp_path: Path) -> None:
@@ -151,6 +177,8 @@ def test_run() -> None:
     done = run_attached([*EMIT, "out", "", "0"], capture_output=True, text=True, check=True)
     assert done.stdout == "out"
 """
-    done = _run_pytest(tmp_path, body)
-    assert done.returncode == 0, done.stdout + done.stderr
-    assert not (tmp_path / "allure-results").exists()
+    with allure.step("--alluredir を渡さずに子の pytest を動かす"):
+        done = _run_pytest(tmp_path, body)
+    with allure.step("通って、結果のディレクトリが無いことを確かめる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert not (tmp_path / "allure-results").exists()

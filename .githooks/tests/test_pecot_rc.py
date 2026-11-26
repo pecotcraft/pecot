@@ -7,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import allure
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -39,62 +40,74 @@ def _git_repo(path: Path) -> Path:
 
 
 def test_passes_worktree_plugins_and_args_from_subdirectory(tmp_path: Path) -> None:
-    env = _fake_claude(tmp_path)
-    repo = _git_repo(tmp_path / "wt")
-    sub = repo / "plugins"
-    sub.mkdir()
+    with allure.step("偽の claude を置き、サブディレクトリから pecot-rc.sh を動かす"):
+        env = _fake_claude(tmp_path)
+        repo = _git_repo(tmp_path / "wt")
+        sub = repo / "plugins"
+        sub.mkdir()
 
-    result = run_attached(
-        ["bash", str(_SCRIPT), "--spawn", "worktree", "--name", "a b"],
-        cwd=sub,
-        env=env,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+        result = run_attached(
+            ["bash", str(_SCRIPT), "--spawn", "worktree", "--name", "a b"],
+            cwd=sub,
+            env=env,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
 
-    lines = result.stdout.splitlines()
-    assert lines[:7] == [
-        "remote-control",
-        "--permission-mode",
-        "auto",
-        "--spawn",
-        "worktree",
-        "--name",
-        "a b",
-    ]
-    assert lines[7] == "DIRS=" + ":".join(
-        str(repo / "plugins" / name) for name in ("pecot-workflow", "pecot-tools", "pecot-visual")
-    )
+    with allure.step("引数と、作業ツリーのプラグインのパスが claude に渡ることを確かめる"):
+        lines = result.stdout.splitlines()
+        assert lines[:7] == [
+            "remote-control",
+            "--permission-mode",
+            "auto",
+            "--spawn",
+            "worktree",
+            "--name",
+            "a b",
+        ]
+        assert lines[7] == "DIRS=" + ":".join(
+            str(repo / "plugins" / name)
+            for name in ("pecot-workflow", "pecot-tools", "pecot-visual")
+        )
 
 
 @pytest.mark.parametrize("mode_args", [["--permission-mode", "plan"], ["--permission-mode=plan"]])
 def test_keeps_permission_mode_given_by_caller(tmp_path: Path, mode_args: list[str]) -> None:
-    env = _fake_claude(tmp_path)
-    repo = _git_repo(tmp_path / "wt")
+    with allure.step("偽の claude を置き、permission-mode を付けて pecot-rc.sh を動かす"):
+        env = _fake_claude(tmp_path)
+        repo = _git_repo(tmp_path / "wt")
 
-    result = run_attached(
-        ["bash", str(_SCRIPT), "--spawn", "worktree", *mode_args],
-        cwd=repo,
-        env=env,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+        result = run_attached(
+            ["bash", str(_SCRIPT), "--spawn", "worktree", *mode_args],
+            cwd=repo,
+            env=env,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
 
-    assert result.stdout.splitlines()[:-1] == ["remote-control", "--spawn", "worktree", *mode_args]
+    with allure.step("呼び出し側の permission-mode をそのまま渡すことを確かめる"):
+        assert result.stdout.splitlines()[:-1] == [
+            "remote-control",
+            "--spawn",
+            "worktree",
+            *mode_args,
+        ]
 
 
 def test_stops_outside_git_worktree(tmp_path: Path) -> None:
-    env = _fake_claude(tmp_path)
-    outside = tmp_path / "outside"
-    outside.mkdir()
-    env["GIT_CEILING_DIRECTORIES"] = str(tmp_path)
+    with allure.step("git の作業ツリーの外で pecot-rc.sh を動かす"):
+        env = _fake_claude(tmp_path)
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        env["GIT_CEILING_DIRECTORIES"] = str(tmp_path)
 
-    result = run_attached(
-        ["bash", str(_SCRIPT)], cwd=outside, env=env, capture_output=True, text=True
-    )
+        result = run_attached(
+            ["bash", str(_SCRIPT)], cwd=outside, env=env, capture_output=True, text=True
+        )
 
-    assert result.returncode == 1
-    assert "git の作業ツリーの中で打ってください" in result.stderr
-    assert result.stdout == ""
+    with allure.step("終了コード 1 で止まり、案内が stderr に出ることを確かめる"):
+        assert result.returncode == 1
+        assert "git の作業ツリーの中で打ってください" in result.stderr
+        assert result.stdout == ""

@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import allure
 import pytest
 from docutils import core as docutils_core
 from docutils import nodes as docutils_nodes
@@ -136,39 +137,43 @@ def full(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> Built:
 
 
 def test_need_ids_from_definitions(full: Built) -> None:
-    ids = {i for i in full.needs if i.startswith("SM-")}
-    assert ids == {
-        "SM-ONE",
-        "SM-ONE-01",
-        "SM-ONE-02",
-        "SM-ONE-03",
-        "SM-TWO",
-        "SM-TWO-01",
-        "SM-TWO-02",
-        "SM-TWO-03",
-        "SM-COMMON-01",
-        "SM-HALF",
-    }
+    with allure.step("need の ID を比べる"):
+        ids = {i for i in full.needs if i.startswith("SM-")}
+        assert ids == {
+            "SM-ONE",
+            "SM-ONE-01",
+            "SM-ONE-02",
+            "SM-ONE-03",
+            "SM-TWO",
+            "SM-TWO-01",
+            "SM-TWO-02",
+            "SM-TWO-03",
+            "SM-COMMON-01",
+            "SM-HALF",
+        }
 
 
 def test_behavior_belongs_to_its_command(full: Built) -> None:
-    assert full.needs["SM-ONE-02"]["belongs"] == ["SM-ONE"]
-    assert full.needs["SM-TWO-03"]["belongs"] == ["SM-TWO"]
-    assert full.needs["SM-COMMON-01"]["belongs"] == []
+    with allure.step("振る舞いの所属を比べる"):
+        assert full.needs["SM-ONE-02"]["belongs"] == ["SM-ONE"]
+        assert full.needs["SM-TWO-03"]["belongs"] == ["SM-TWO"]
+        assert full.needs["SM-COMMON-01"]["belongs"] == []
 
 
 def test_types(full: Built) -> None:
-    assert full.needs["SM-ONE"]["type"] == "cmd"
-    assert full.needs["SM-ONE-01"]["type"] == "behavior"
-    assert full.needs["SM-COMMON-01"]["type"] == "behavior"
-    assert full.needs["SM-ONE-01"]["title"] == "target を渡して打つと、対象を 1 回動かす"
+    with allure.step("need の型と題を比べる"):
+        assert full.needs["SM-ONE"]["type"] == "cmd"
+        assert full.needs["SM-ONE-01"]["type"] == "behavior"
+        assert full.needs["SM-COMMON-01"]["type"] == "behavior"
+        assert full.needs["SM-ONE-01"]["title"] == "target を渡して打つと、対象を 1 回動かす"
 
 
 def test_body_follows_page_section_order(full: Built) -> None:
-    content: str = full.needs["SM-ONE"]["content"]
-    description = content.index("Stops at the first failure.")
-    exit_status = content.index("The target is missing.")
-    assert description < content.index("Skip the check") < exit_status
+    with allure.step("本文の節の並びを比べる"):
+        content: str = full.needs["SM-ONE"]["content"]
+        description = content.index("Stops at the first failure.")
+        exit_status = content.index("The target is missing.")
+        assert description < content.index("Skip the check") < exit_status
 
 
 SECTION_TITLES = ["使用例", "引数", "出力", "エラー"]
@@ -179,65 +184,74 @@ def _heading(title: str) -> str:
 
 
 def test_sections_appear_in_order_and_empty_ones_are_left_out(full: Built) -> None:
-    content: str = full.needs["SM-ONE"]["content"]
-    positions = [content.index(_heading(title)) for title in SECTION_TITLES]
-    assert positions == sorted(positions)
-    body: str = full.needs["SM-TWO"]["content"]
-    assert "ありません。" not in body
-    for title in ("前提条件", "環境変数", "使用例"):
-        assert _heading(title) not in body, title
+    with allure.step("節の並びと空の節の有無を比べる"):
+        content: str = full.needs["SM-ONE"]["content"]
+        positions = [content.index(_heading(title)) for title in SECTION_TITLES]
+        assert positions == sorted(positions)
+        body: str = full.needs["SM-TWO"]["content"]
+        assert "ありません。" not in body
+        for title in ("前提条件", "環境変数", "使用例"):
+            assert _heading(title) not in body, title
 
 
 def test_prerequisites_join_the_description_and_environment_is_not_shown(full: Built) -> None:
-    content: str = full.needs["SM-ONE"]["content"]
-    assert content.index("Stops at the first failure.") < content.index("Needs the sample runtime.")
-    assert content.index("Needs the sample runtime.") < content.index(_heading("使用例"))
-    assert "SAMPLE_HOME" not in content
-    assert _heading("前提条件") not in content and _heading("環境変数") not in content
+    with allure.step("前提条件と環境変数の出方を比べる"):
+        content: str = full.needs["SM-ONE"]["content"]
+        assert content.index("Stops at the first failure.") < content.index(
+            "Needs the sample runtime."
+        )
+        assert content.index("Needs the sample runtime.") < content.index(_heading("使用例"))
+        assert "SAMPLE_HOME" not in content
+        assert _heading("前提条件") not in content and _heading("環境変数") not in content
 
 
 def test_page_headings_run_through_requirements_in_one_order(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
-    assert built.code == 0
-    # 定義書の behaviors は 1 件以上（schema.ts の min(1)）なので、どのページも「機能要件」で終わる。
-    for page in ("one-run", "sample_two"):
-        html = built.html(f"_generated/sample/{page}.html")
-        headings = re.findall(r"<h2>(.*?)<a ", html, flags=re.S)
-        present = [t for t in SECTION_TITLES if t in headings]
-        assert headings == [*present, "機能要件"], page
-    assert "使用例" in re.findall(
-        r"<h2>(.*?)<a ", built.html("_generated/sample/one-run.html"), flags=re.S
-    )
+    with allure.step("ドキュメントをビルドする"):
+        built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
+    with allure.step("ページの見出しの並びを比べる"):
+        assert built.code == 0
+        # 定義書の behaviors は 1 件以上（schema.ts の min(1)）なので、どのページも「機能要件」で終わる。
+        for page in ("one-run", "sample_two"):
+            html = built.html(f"_generated/sample/{page}.html")
+            headings = re.findall(r"<h2>(.*?)<a ", html, flags=re.S)
+            present = [t for t in SECTION_TITLES if t in headings]
+            assert headings == [*present, "機能要件"], page
+        assert "使用例" in re.findall(
+            r"<h2>(.*?)<a ", built.html("_generated/sample/one-run.html"), flags=re.S
+        )
 
 
 def test_failures_table_always_has_three_columns(full: Built) -> None:
-    filled: str = full.needs["SM-ONE"]["content"]
-    assert "エラー名" in filled and "終了コード" in filled
-    assert "target-missing" in filled
-    empty: str = full.needs["SM-TWO"]["content"]
-    assert "エラー名" not in empty
-    assert _heading("エラー") not in empty
+    with allure.step("エラーの表の列を比べる"):
+        filled: str = full.needs["SM-ONE"]["content"]
+        assert "エラー名" in filled and "終了コード" in filled
+        assert "target-missing" in filled
+        empty: str = full.needs["SM-TWO"]["content"]
+        assert "エラー名" not in empty
+        assert _heading("エラー") not in empty
 
 
 def test_every_table_is_wrapped_in_a_scroll_region(full: Built) -> None:
-    html = full.html()
-    tables = html.count("<table")
-    assert tables > 0
-    # テーマの後処理（BeautifulSoup）が属性の順を並べ替えるので、順を問わずに見る。
-    # 表の id の目印（空の span）が、包みと表の間に入ることがある。
-    wrappers = re.findall(r"<div([^>]*)>\s*(?:<span[^>]*></span>\s*)*<table", html)
-    expected = ['class="pecot-table-scroll"', 'role="region"', 'tabindex="0"', 'aria-label="']
-    assert len([w for w in wrappers if all(a in w for a in expected)]) == tables
+    with allure.step("表の包みを比べる"):
+        html = full.html()
+        tables = html.count("<table")
+        assert tables > 0
+        # テーマの後処理（BeautifulSoup）が属性の順を並べ替えるので、順を問わずに見る。
+        # 表の id の目印（空の span）が、包みと表の間に入ることがある。
+        wrappers = re.findall(r"<div([^>]*)>\s*(?:<span[^>]*></span>\s*)*<table", html)
+        expected = ['class="pecot-table-scroll"', 'role="region"', 'tabindex="0"', 'aria-label="']
+        assert len([w for w in wrappers if all(a in w for a in expected)]) == tables
 
 
 def test_broken_entries_become_warnings_and_are_skipped(full: Built) -> None:
-    assert "SM-BAD" in full.warnings
-    assert "SM-HALF-01" in full.warnings
-    assert "SM-BAD" not in full.needs
-    assert "SM-HALF-01" not in full.needs
-    assert full.code == 0
+    with allure.step("警告とスキップを比べる"):
+        assert "SM-BAD" in full.warnings
+        assert "SM-HALF-01" in full.warnings
+        assert "SM-BAD" not in full.needs
+        assert "SM-HALF-01" not in full.needs
+        assert full.code == 0
 
 
 PAGES_INDEX = """\
@@ -255,23 +269,30 @@ Sample
 
 
 def test_index_table_links_each_page(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
-    built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
-    assert built.code == 0
-    page = built.html()
-    (head,) = re.findall(r"<thead>(.*?)</thead>", page, flags=re.S)
-    assert re.findall(r"<th[^>]*><p>([^<]*)</p></th>", head) == ["表示名", "ツール名", "説明", "型"]
-    rows = {
-        name: href
-        for href, name in re.findall(
-            r'<td><p><a class="reference internal" href="([^"]+)"><span[^>]*>([^<]+)</span></a></p></td>',
-            page,
-        )
-    }
-    assert rows == {
-        "one run": "_generated/sample/one-run.html",
-        "Sample two": "_generated/sample/sample_two.html",
-        "half entry": "_generated/sample/half-entry.html",
-    }
+    with allure.step("ドキュメントをビルドする"):
+        built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
+    with allure.step("索引の表を比べる"):
+        assert built.code == 0
+        page = built.html()
+        (head,) = re.findall(r"<thead>(.*?)</thead>", page, flags=re.S)
+        assert re.findall(r"<th[^>]*><p>([^<]*)</p></th>", head) == [
+            "表示名",
+            "ツール名",
+            "説明",
+            "型",
+        ]
+        rows = {
+            name: href
+            for href, name in re.findall(
+                r'<td><p><a class="reference internal" href="([^"]+)"><span[^>]*>([^<]+)</span></a></p></td>',
+                page,
+            )
+        }
+        assert rows == {
+            "one run": "_generated/sample/one-run.html",
+            "Sample two": "_generated/sample/sample_two.html",
+            "half entry": "_generated/sample/half-entry.html",
+        }
 
 
 DEFS_ONLY = "Sample\n======\n\n.. iface-defs:: sample\n"
@@ -280,17 +301,19 @@ DEFS_ONLY = "Sample\n======\n\n.. iface-defs:: sample\n"
 def test_requirement_tables_have_id_and_requirement_columns(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    built = build(tmp_path, capfd, files={"index.rst": DEFS_ONLY})
-    assert built.code == 0
-    page = built.html()
-    heads = re.findall(r"<thead>(.*?)</thead>", page, flags=re.S)
-    behaviors = [h for h in heads if "要件" in h]
-    assert behaviors
-    for head in behaviors:
-        assert re.findall(r"<th[^>]*><p>([^<]*)</p></th>", head) == ["ID", "要件"]
-    for word in ("テスト結果", "未実行", "成功", "失敗したテスト", "スキップしたテスト"):
-        assert word not in page, word
-    assert 'id="SM-ONE-01"' in page
+    with allure.step("ドキュメントをビルドする"):
+        built = build(tmp_path, capfd, files={"index.rst": DEFS_ONLY})
+    with allure.step("要件の表の列を比べる"):
+        assert built.code == 0
+        page = built.html()
+        heads = re.findall(r"<thead>(.*?)</thead>", page, flags=re.S)
+        behaviors = [h for h in heads if "要件" in h]
+        assert behaviors
+        for head in behaviors:
+            assert re.findall(r"<th[^>]*><p>([^<]*)</p></th>", head) == ["ID", "要件"]
+        for word in ("テスト結果", "未実行", "成功", "失敗したテスト", "スキップしたテスト"):
+            assert word not in page, word
+        assert 'id="SM-ONE-01"' in page
 
 
 def test_pages_are_written_and_stale_ones_removed(
@@ -301,17 +324,19 @@ def test_pages_are_written_and_stale_ones_removed(
     (generated / "sample" / "old-name.rst").write_text("Old\n===\n", encoding="utf-8")
     (generated / "gone").mkdir()
     (generated / "gone" / "x.rst").write_text("X\n=\n", encoding="utf-8")
-    built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
-    assert built.code == 0
-    assert {p.name for p in (generated / "sample").glob("*.rst")} == {
-        "one-run.rst",
-        "sample_two.rst",
-        "half-entry.rst",
-    }
-    assert not (generated / "gone").exists()
-    one_run = (generated / "sample" / "one-run.rst").read_text(encoding="utf-8")
-    _attach(one_run, "one-run.rst")
-    assert ".. iface-defs:: sample SM-ONE" in one_run
+    with allure.step("ドキュメントをビルドする"):
+        built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
+    with allure.step("書き出したページと古いページの削除を比べる"):
+        assert built.code == 0
+        assert {p.name for p in (generated / "sample").glob("*.rst")} == {
+            "one-run.rst",
+            "sample_two.rst",
+            "half-entry.rst",
+        }
+        assert not (generated / "gone").exists()
+        one_run = (generated / "sample" / "one-run.rst").read_text(encoding="utf-8")
+        _attach(one_run, "one-run.rst")
+        assert ".. iface-defs:: sample SM-ONE" in one_run
 
 
 def test_pages_are_written_only_for_plugins_with_generated_json(
@@ -325,23 +350,27 @@ def test_pages_are_written_only_for_plugins_with_generated_json(
     )
     (root / "plugins" / "half" / "interface").mkdir(parents=True)
     (root / "plugins" / "half" / "interface" / "authored.yaml").write_text("{}", encoding="utf-8")
-    built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True, root=root)
-    assert built.code == 0
-    assert interface_plugins(root) == ["sample"]
-    assert sorted(p.name for p in (tmp_path / "src" / "_generated").iterdir()) == ["sample"]
+    with allure.step("ドキュメントをビルドする"):
+        built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True, root=root)
+    with allure.step("ページを書き出すプラグインを比べる"):
+        assert built.code == 0
+        assert interface_plugins(root) == ["sample"]
+        assert sorted(p.name for p in (tmp_path / "src" / "_generated").iterdir()) == ["sample"]
 
 
 def test_permalink_reaches_each_item_on_its_page(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
-    assert built.code == 0
-    # permalink.html は needs.json を読み、項目の docname の HTML へ移る。
-    assert "loadJSON('needs.json'" in built.html("permalink.html")
-    item = "SM-ONE-02"
-    docname = built.needs[item]["docname"]
-    assert docname != "index"
-    assert f'id="{item}"' in built.html(f"{docname}.html")
+    with allure.step("ドキュメントをビルドする"):
+        built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
+    with allure.step("permalink の行き先を比べる"):
+        assert built.code == 0
+        # permalink.html は needs.json を読み、項目の docname の HTML へ移る。
+        assert "loadJSON('needs.json'" in built.html("permalink.html")
+        item = "SM-ONE-02"
+        docname = built.needs[item]["docname"]
+        assert docname != "index"
+        assert f'id="{item}"' in built.html(f"{docname}.html")
 
 
 PAGE_ONLY = """\
@@ -364,36 +393,44 @@ def behaviors_of(built: Built) -> set[str]:
 def test_defs_with_item_builds_only_that_item(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    built = page_build(tmp_path, capfd, "SM-ONE")
-    assert built.code == 0
-    assert {i for i in built.needs if i.startswith("SM-")} == {
-        "SM-ONE",
-        "SM-ONE-01",
-        "SM-ONE-02",
-        "SM-ONE-03",
-    }
+    with allure.step("ドキュメントをビルドする"):
+        built = page_build(tmp_path, capfd, "SM-ONE")
+    with allure.step("対象の項目の need を比べる"):
+        assert built.code == 0
+        assert {i for i in built.needs if i.startswith("SM-")} == {
+            "SM-ONE",
+            "SM-ONE-01",
+            "SM-ONE-02",
+            "SM-ONE-03",
+        }
 
 
 def test_defs_common_builds_only_common_behaviors(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    built = page_build(tmp_path, capfd, "common")
-    assert built.code == 0
-    assert {i for i in built.needs if i.startswith("SM-")} == {"SM-COMMON-01"}
+    with allure.step("ドキュメントをビルドする"):
+        built = page_build(tmp_path, capfd, "common")
+    with allure.step("共通の振る舞いの need を比べる"):
+        assert built.code == 0
+        assert {i for i in built.needs if i.startswith("SM-")} == {"SM-COMMON-01"}
 
 
 def test_defs_with_unknown_id_warns(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
-    built = page_build(tmp_path, capfd, "SM-NOPE")
-    assert "SM-NOPE" in built.warnings
-    assert not {i for i in built.needs if i.startswith("SM-")}
+    with allure.step("ドキュメントをビルドする"):
+        built = page_build(tmp_path, capfd, "SM-NOPE")
+    with allure.step("警告と need の有無を比べる"):
+        assert "SM-NOPE" in built.warnings
+        assert not {i for i in built.needs if i.startswith("SM-")}
 
 
 def test_requirement_rows_carry_the_id(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
-    built = page_build(tmp_path, capfd, "SM-TWO")
-    assert built.code == 0
-    page = built.html("page.html")
-    assert re.search(r'<tr[^>]*id="SM-TWO-02"', page)
-    assert behavior_heads(page) == [["ID", "要件"]]
+    with allure.step("ドキュメントをビルドする"):
+        built = page_build(tmp_path, capfd, "SM-TWO")
+    with allure.step("行の ID と列を比べる"):
+        assert built.code == 0
+        page = built.html("page.html")
+        assert re.search(r'<tr[^>]*id="SM-TWO-02"', page)
+        assert behavior_heads(page) == [["ID", "要件"]]
 
 
 # ---------------------------------------------------------------- site_stamp
@@ -405,7 +442,8 @@ NO_REPORT: dict[str, object] = {"report_url": None, "report_plugins": [], "repor
 
 
 def test_site_stamp_defaults_to_local() -> None:
-    assert site_stamp({}) == SiteStamp(side="local", pr=None)
+    with allure.step("既定のスタンプを比べる"):
+        assert site_stamp({}) == SiteStamp(side="local", pr=None)
 
 
 @pytest.mark.parametrize(
@@ -458,7 +496,8 @@ def test_site_stamp_defaults_to_local() -> None:
     ],
 )
 def test_site_context_per_side(env: dict[str, str], expected: dict[str, object]) -> None:
-    assert site_stamp(env, PLUGINS).context() == expected
+    with allure.step("side ごとの context を比べる"):
+        assert site_stamp(env, PLUGINS).context() == expected
 
 
 @pytest.mark.parametrize(
@@ -478,20 +517,24 @@ def test_site_context_per_side(env: dict[str, str], expected: dict[str, object])
 def test_site_context_reads_report_plugins_on_release(
     value: str, url: str | None, plugins: list[str], missing: list[str]
 ) -> None:
-    env = {"PECOT_SITE_SIDE": "release", "PECOT_SITE_REPORT_PLUGINS": value}
-    context = site_stamp(env, PLUGINS).context()
-    assert (context["report_url"], context["report_plugins"], context["report_missing"]) == (
-        url,
-        plugins,
-        missing,
-    )
+    with allure.step("スタンプを作る"):
+        env = {"PECOT_SITE_SIDE": "release", "PECOT_SITE_REPORT_PLUGINS": value}
+        context = site_stamp(env, PLUGINS).context()
+    with allure.step("リリース版の context を比べる"):
+        assert (context["report_url"], context["report_plugins"], context["report_missing"]) == (
+            url,
+            plugins,
+            missing,
+        )
 
 
 @pytest.mark.parametrize("env", [{}, {"PECOT_SITE_SIDE": "dev"}, PR_ENV])
 def test_site_context_ignores_report_plugins_off_release(env: dict[str, str]) -> None:
-    plain = site_stamp(env, PLUGINS).context()
-    given = site_stamp({**env, "PECOT_SITE_REPORT_PLUGINS": "pecot-tools"}, PLUGINS).context()
-    assert given == plain
+    with allure.step("スタンプを 2 通り作る"):
+        plain = site_stamp(env, PLUGINS).context()
+        given = site_stamp({**env, "PECOT_SITE_REPORT_PLUGINS": "pecot-tools"}, PLUGINS).context()
+    with allure.step("context を比べる"):
+        assert given == plain
 
 
 @pytest.mark.parametrize(
@@ -503,8 +546,9 @@ def test_site_context_ignores_report_plugins_off_release(env: dict[str, str]) ->
     ],
 )
 def test_site_stamp_fails_on_bad_values(env: dict[str, str], names: str) -> None:
-    with pytest.raises(SiteStampError, match=names):
-        site_stamp(env)
+    with allure.step("不正な値での失敗を比べる"):
+        with pytest.raises(SiteStampError, match=names):
+            site_stamp(env)
 
 
 def notice_of(built: Built, page: str = "index.html") -> str | None:
@@ -524,56 +568,66 @@ def text_of(notice: str) -> str:
 
 
 def test_local_page_has_notice_without_links(full: Built) -> None:
-    assert full.code == 0, full.warnings
-    notice = notice_of(full)
-    assert notice is not None
-    assert text_of(notice) == "これはローカルでビルドしたドキュメントです。"
-    assert links_of(notice) == {}
+    with allure.step("お知らせを比べる"):
+        assert full.code == 0, full.warnings
+        notice = notice_of(full)
+        assert notice is not None
+        assert text_of(notice) == "これはローカルでビルドしたドキュメントです。"
+        assert links_of(notice) == {}
 
 
 def test_pr_notice_links_pr_and_release(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
-    built = build(tmp_path, capfd, site=PR_ENV)
-    assert built.code == 0, built.warnings
-    notice = notice_of(built)
-    assert notice is not None
-    assert text_of(notice) == (
-        "これはプルリクエスト #612 のプレビューです。 プルリクエストを開く 最新のリリース版を見る"
-    )
-    assert links_of(notice) == {
-        "プルリクエストを開く": "https://github.com/pecotcraft/pecot/pull/612",
-        "最新のリリース版を見る": "/pecot/",
-    }
+    with allure.step("ドキュメントをビルドする"):
+        built = build(tmp_path, capfd, site=PR_ENV)
+    with allure.step("お知らせを比べる"):
+        assert built.code == 0, built.warnings
+        notice = notice_of(built)
+        assert notice is not None
+        assert text_of(notice) == (
+            "これはプルリクエスト #612 のプレビューです。 プルリクエストを開く 最新のリリース版を見る"
+        )
+        assert links_of(notice) == {
+            "プルリクエストを開く": "https://github.com/pecotcraft/pecot/pull/612",
+            "最新のリリース版を見る": "/pecot/",
+        }
 
 
 def test_dev_notice_links_release(tmp_path: Path, capfd: pytest.CaptureFixture[str]) -> None:
-    built = build(tmp_path, capfd, site={"PECOT_SITE_SIDE": "dev"})
-    assert built.code == 0, built.warnings
-    notice = notice_of(built)
-    assert notice is not None
-    assert text_of(notice) == "これは開発中のバージョンのドキュメントです。 最新のリリース版を見る"
+    with allure.step("ドキュメントをビルドする"):
+        built = build(tmp_path, capfd, site={"PECOT_SITE_SIDE": "dev"})
+    with allure.step("お知らせを比べる"):
+        assert built.code == 0, built.warnings
+        notice = notice_of(built)
+        assert notice is not None
+        assert (
+            text_of(notice) == "これは開発中のバージョンのドキュメントです。 最新のリリース版を見る"
+        )
 
 
 def test_release_has_no_notice_and_no_footer_values(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    built = build(tmp_path, capfd, site={"PECOT_SITE_SIDE": "release"})
-    assert built.code == 0, built.warnings
-    assert notice_of(built) is None
-    assert "pecot-build" not in built.html("index.html")
+    with allure.step("ドキュメントをビルドする"):
+        built = build(tmp_path, capfd, site={"PECOT_SITE_SIDE": "release"})
+    with allure.step("お知らせとフッターを比べる"):
+        assert built.code == 0, built.warnings
+        assert notice_of(built) is None
+        assert "pecot-build" not in built.html("index.html")
 
 
 def test_footer_has_logo_links_and_copyright(full: Built) -> None:
-    assert full.code == 0, full.warnings
-    found = re.search(r"<footer[\s\S]*?</footer>", full.html("index.html"))
-    assert found
-    footer = found.group(0)
-    assert "pecot-icon-light.svg" in footer
-    assert links_of(footer) == {
-        "": "#",  # ロゴは画像だけのリンクで、トップでは自分を指す
-        "GitHub": "https://github.com/pecotcraft/pecot",
-        "ライセンス": "https://github.com/pecotcraft/pecot/blob/main/LICENSE",
-    }
-    assert "© 2026 pecotcraft" in text_of(footer)
+    with allure.step("フッターを比べる"):
+        assert full.code == 0, full.warnings
+        found = re.search(r"<footer[\s\S]*?</footer>", full.html("index.html"))
+        assert found
+        footer = found.group(0)
+        assert "pecot-icon-light.svg" in footer
+        assert links_of(footer) == {
+            "": "#",  # ロゴは画像だけのリンクで、トップでは自分を指す
+            "GitHub": "https://github.com/pecotcraft/pecot",
+            "ライセンス": "https://github.com/pecotcraft/pecot/blob/main/LICENSE",
+        }
+        assert "© 2026 pecotcraft" in text_of(footer)
 
 
 # ---------------------------------------------------------------- テストレポートへのリンク
@@ -611,81 +665,93 @@ def test_dev_links_footer_and_each_requirement_to_the_report(
 ) -> None:
     (tmp_path / "dev").mkdir()
     (tmp_path / "local").mkdir()
-    built = build(tmp_path / "dev", capfd, files={"index.rst": DEFS_ONLY}, site=DEV)
-    assert built.code == 0, built.warnings
-    # fixture がもともと出す警告のほかに、リンクの重複などの警告を出さない。
-    local = build(tmp_path / "local", capfd, files={"index.rst": DEFS_ONLY})
-    assert built.warnings.replace("/dev/", "/") == local.warnings.replace("/local/", "/")
-    assert links_of(footer_of(built))["テストレポート"] == REPORT
-    assert "含みません" not in footer_of(built)
-    page = built.html()
-    assert behavior_heads(page) and all(
-        head == ["ID", "要件", "テスト"] for head in behavior_heads(page)
-    )
-    ids = behaviors_of(built)
-    assert ids
-    assert report_links(page) == {i: f"{REPORT}?tags={i}" for i in ids}
+    with allure.step("開発版をビルドする"):
+        built = build(tmp_path / "dev", capfd, files={"index.rst": DEFS_ONLY}, site=DEV)
+    with allure.step("ビルドの成否を比べる"):
+        assert built.code == 0, built.warnings
+    with allure.step("比べる用にローカル版をビルドする"):
+        # fixture がもともと出す警告のほかに、リンクの重複などの警告を出さない。
+        local = build(tmp_path / "local", capfd, files={"index.rst": DEFS_ONLY})
+    with allure.step("警告・リンク・列を比べる"):
+        assert built.warnings.replace("/dev/", "/") == local.warnings.replace("/local/", "/")
+        assert links_of(footer_of(built))["テストレポート"] == REPORT
+        assert "含みません" not in footer_of(built)
+        page = built.html()
+        assert behavior_heads(page) and all(
+            head == ["ID", "要件", "テスト"] for head in behavior_heads(page)
+        )
+        ids = behaviors_of(built)
+        assert ids
+        assert report_links(page) == {i: f"{REPORT}?tags={i}" for i in ids}
 
 
 def test_report_column_sits_beside_the_requirement(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    built = build(tmp_path, capfd, files={"index.rst": DEFS_ONLY}, site=DEV)
-    assert built.code == 0, built.warnings
-    page = built.html()
-    assert behavior_heads(page)
-    assert all(head == ["ID", "要件", "テスト"] for head in behavior_heads(page))
-    assert report_links(page)["SM-TWO-02"] == f"{REPORT}?tags=SM-TWO-02"
+    with allure.step("ドキュメントをビルドする"):
+        built = build(tmp_path, capfd, files={"index.rst": DEFS_ONLY}, site=DEV)
+    with allure.step("テスト列の位置を比べる"):
+        assert built.code == 0, built.warnings
+        page = built.html()
+        assert behavior_heads(page)
+        assert all(head == ["ID", "要件", "テスト"] for head in behavior_heads(page))
+        assert report_links(page)["SM-TWO-02"] == f"{REPORT}?tags=SM-TWO-02"
 
 
 def test_report_links_on_generated_pages_point_to_the_side_root(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True, site=DEV)
-    assert built.code == 0, built.warnings
-    page = "_generated/sample/one-run.html"
-    assert links_of(footer_of(built, page))["テストレポート"] == f"../../{REPORT}"
-    assert report_links(built.html(page)) == {
-        i: f"../../{REPORT}?tags={i}" for i in ("SM-ONE-01", "SM-ONE-02", "SM-ONE-03")
-    }
+    with allure.step("ドキュメントをビルドする"):
+        built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True, site=DEV)
+    with allure.step("生成ページのリンクを比べる"):
+        assert built.code == 0, built.warnings
+        page = "_generated/sample/one-run.html"
+        assert links_of(footer_of(built, page))["テストレポート"] == f"../../{REPORT}"
+        assert report_links(built.html(page)) == {
+            i: f"../../{REPORT}?tags={i}" for i in ("SM-ONE-01", "SM-ONE-02", "SM-ONE-03")
+        }
 
 
 def test_release_links_only_plugins_in_the_report_and_names_the_rest(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
     site = {"PECOT_SITE_SIDE": "release", "PECOT_SITE_REPORT_PLUGINS": "sample"}
-    built = build(
-        tmp_path,
-        capfd,
-        files={"index.rst": DEFS_ONLY},
-        site=site,
-        plugins=("other", "pecot-x", "sample"),
-    )
-    assert built.code == 0, built.warnings
-    footer = footer_of(built)
-    assert links_of(footer)["テストレポート"] == REPORT
-    assert "テストレポート（other、pecot-x は含みません）" in plain_of(footer)
-    assert report_links(built.html()) == {i: f"{REPORT}?tags={i}" for i in behaviors_of(built)}
+    with allure.step("ドキュメントをビルドする"):
+        built = build(
+            tmp_path,
+            capfd,
+            files={"index.rst": DEFS_ONLY},
+            site=site,
+            plugins=("other", "pecot-x", "sample"),
+        )
+    with allure.step("リンクとフッターの文言を比べる"):
+        assert built.code == 0, built.warnings
+        footer = footer_of(built)
+        assert links_of(footer)["テストレポート"] == REPORT
+        assert "テストレポート（other、pecot-x は含みません）" in plain_of(footer)
+        assert report_links(built.html()) == {i: f"{REPORT}?tags={i}" for i in behaviors_of(built)}
 
 
 def test_release_does_not_link_items_of_a_plugin_left_out_of_the_report(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
     site = {"PECOT_SITE_SIDE": "release", "PECOT_SITE_REPORT_PLUGINS": "other"}
-    built = build(
-        tmp_path,
-        capfd,
-        files={"index.rst": DEFS_ONLY},
-        site=site,
-        plugins=("other", "sample"),
-    )
-    assert built.code == 0, built.warnings
-    footer = footer_of(built)
-    assert links_of(footer)["テストレポート"] == REPORT
-    assert "テストレポート（sample は含みません）" in plain_of(footer)
-    page = built.html()
-    assert report_links(page) == {}
-    assert all(head == ["ID", "要件"] for head in behavior_heads(page))
+    with allure.step("ドキュメントをビルドする"):
+        built = build(
+            tmp_path,
+            capfd,
+            files={"index.rst": DEFS_ONLY},
+            site=site,
+            plugins=("other", "sample"),
+        )
+    with allure.step("リンクとフッターの文言を比べる"):
+        assert built.code == 0, built.warnings
+        footer = footer_of(built)
+        assert links_of(footer)["テストレポート"] == REPORT
+        assert "テストレポート（sample は含みません）" in plain_of(footer)
+        page = built.html()
+        assert report_links(page) == {}
+        assert all(head == ["ID", "要件"] for head in behavior_heads(page))
 
 
 @pytest.mark.parametrize(
@@ -701,15 +767,17 @@ def test_release_does_not_link_items_of_a_plugin_left_out_of_the_report(
 def test_sides_without_report_show_neither_link(
     tmp_path: Path, capfd: pytest.CaptureFixture[str], site: dict[str, str]
 ) -> None:
-    built = build(tmp_path, capfd, files={"index.rst": DEFS_ONLY}, site=site)
-    assert built.code == 0, built.warnings
-    footer = footer_of(built)
-    assert "テストレポート" not in footer
-    assert "含みません" not in footer
-    page = built.html()
-    assert report_links(page) == {}
-    assert "test-report" not in page
-    assert all(head == ["ID", "要件"] for head in behavior_heads(page))
+    with allure.step("ドキュメントをビルドする"):
+        built = build(tmp_path, capfd, files={"index.rst": DEFS_ONLY}, site=site)
+    with allure.step("リンクが無いことを比べる"):
+        assert built.code == 0, built.warnings
+        footer = footer_of(built)
+        assert "テストレポート" not in footer
+        assert "含みません" not in footer
+        page = built.html()
+        assert report_links(page) == {}
+        assert "test-report" not in page
+        assert all(head == ["ID", "要件"] for head in behavior_heads(page))
 
 
 @pytest.mark.parametrize(
@@ -726,15 +794,18 @@ def test_sides_without_report_show_neither_link(
 def test_report_href_is_relative_to_the_page_and_takes_only_safe_ids(
     docname: str, behavior_id: str, expected: str | None
 ) -> None:
-    assert report_href(docname, REPORT, behavior_id) == expected
+    with allure.step("リンク先を求めて比べる"):
+        assert report_href(docname, REPORT, behavior_id) == expected
 
 
 def test_report_cell_keeps_a_trailing_underscore_in_the_url() -> None:
-    # 末尾の _ を打ち消さないと、docutils が URL を参照の名前と読み、未定義のリンクのエラーになる。
-    nodes = docutils_core.publish_doctree(report_cell(f"{REPORT}?tags=SM_ONE_"))
-    (reference,) = list(nodes.findall(docutils_nodes.reference))
-    assert reference["refuri"] == f"{REPORT}?tags=SM_ONE_"
-    assert reference.astext() == "テスト"
+    with allure.step("セルを docutils で解析する"):
+        # 末尾の _ を打ち消さないと、docutils が URL を参照の名前と読み、未定義のリンクのエラーになる。
+        nodes = docutils_core.publish_doctree(report_cell(f"{REPORT}?tags=SM_ONE_"))
+        (reference,) = list(nodes.findall(docutils_nodes.reference))
+    with allure.step("リンクの先と文字を比べる"):
+        assert reference["refuri"] == f"{REPORT}?tags=SM_ONE_"
+        assert reference.astext() == "テスト"
 
 
 _COMMON = {
@@ -766,29 +837,33 @@ def _output_section(entry: dict[str, Any]) -> str:
 
 
 def test_mcp_fields_table_uses_authored_text_and_skips_common_fields() -> None:
-    fields = {
-        "branch": {"type": "string", "description": "Branch created"},
-        "stackedOn": {
-            "anyOf": [{"type": "integer"}, {"type": "null"}],
-            "description": "Stacked",
-        },
-        "dryRun": {"type": "boolean", "const": True},
-    }
-    text = _output_section(_mcp_entry(fields, {"fields": {"branch": "作ったブランチ"}}))
-    assert "作ったブランチ" in text
-    assert "Branch created" not in text
-    assert "integer \\| null" in text
-    assert "     - true" in text
-    for name in ("kind", "detail", "log", "warnings", "artifacts"):
-        assert f"``{name}``" not in text
-    assert COMMON_OUTPUT_TITLE not in text
+    with allure.step("出力の節を描く"):
+        fields = {
+            "branch": {"type": "string", "description": "Branch created"},
+            "stackedOn": {
+                "anyOf": [{"type": "integer"}, {"type": "null"}],
+                "description": "Stacked",
+            },
+            "dryRun": {"type": "boolean", "const": True},
+        }
+        text = _output_section(_mcp_entry(fields, {"fields": {"branch": "作ったブランチ"}}))
+    with allure.step("節の文言を比べる"):
+        assert "作ったブランチ" in text
+        assert "Branch created" not in text
+        assert "integer \\| null" in text
+        assert "     - true" in text
+        for name in ("kind", "detail", "log", "warnings", "artifacts"):
+            assert f"``{name}``" not in text
+        assert COMMON_OUTPUT_TITLE not in text
 
 
 def test_mcp_without_tool_fields_says_there_is_nothing() -> None:
-    text = _output_section(_mcp_entry({}))
-    assert MCP_FIELDS_EMPTY == "ツールごとに返す項目はありません。"
-    assert MCP_FIELDS_EMPTY in text
-    assert "項目名" not in text
+    with allure.step("出力の節を描く"):
+        text = _output_section(_mcp_entry({}))
+    with allure.step("節の文言を比べる"):
+        assert MCP_FIELDS_EMPTY == "ツールごとに返す項目はありません。"
+        assert MCP_FIELDS_EMPTY in text
+        assert "項目名" not in text
 
 
 _BOTH = {"cli": {"path": ["sample", "run"]}, "mcp": {"tool": "sample_tool"}}
@@ -813,68 +888,82 @@ def _both_entry(**extra: Any) -> dict[str, Any]:
 
 
 def test_stdout_sentence_is_not_in_the_output_of_mcp_entries() -> None:
-    entry = _mcp_entry({"branch": {"type": "string"}})
-    assert "標準出力" not in _output_section(entry)
-    assert "標準出力" not in _output_section(_both_entry())
-    assert "標準出力" not in _output_section(_both_entry(cli_reference=_CLI_REFERENCE))
+    with allure.step("標準出力の文が無いことを比べる"):
+        entry = _mcp_entry({"branch": {"type": "string"}})
+        assert "標準出力" not in _output_section(entry)
+        assert "標準出力" not in _output_section(_both_entry())
+        assert "標準出力" not in _output_section(_both_entry(cli_reference=_CLI_REFERENCE))
 
 
 def test_mcp_arguments_use_mcparg_and_examples_are_tools_call_params() -> None:
-    sections = dict(render_sections(_both_entry()))
-    arguments = "\n".join(sections["引数"])
-    assert ".. mcparg:: target" in arguments and ".. mcparg:: force" in arguments
-    assert ".. option::" not in arguments
-    assert "--force" not in arguments
-    examples = "\n".join(sections["使用例"])
-    assert ".. code-block:: json" in examples
-    body = examples.split(".. code-block:: json", 1)[1]
-    assert json.loads(body) == {"name": "sample_tool", "arguments": {"target": "x", "force": True}}
+    with allure.step("節を描く"):
+        sections = dict(render_sections(_both_entry()))
+    with allure.step("引数と使用例の書き方を比べる"):
+        arguments = "\n".join(sections["引数"])
+        assert ".. mcparg:: target" in arguments and ".. mcparg:: force" in arguments
+        assert ".. option::" not in arguments
+        assert "--force" not in arguments
+        examples = "\n".join(sections["使用例"])
+        assert ".. code-block:: json" in examples
+        body = examples.split(".. code-block:: json", 1)[1]
+        assert json.loads(body) == {
+            "name": "sample_tool",
+            "arguments": {"target": "x", "force": True},
+        }
 
 
 def test_exit_code_column_and_command_section_are_only_for_cli_reference() -> None:
-    plain = dict(render_sections(_both_entry()))
-    assert "終了コード" not in "\n".join(plain["エラー"])
-    assert COMMAND_TITLE not in plain
-    referenced = dict(render_sections(_both_entry(cli_reference=_CLI_REFERENCE)))
-    assert "終了コード" in "\n".join(referenced["エラー"])
-    command = "\n".join(referenced[COMMAND_TITLE])
-    assert "pecot sample run <target> [options]" in command
-    assert ".. program:: pecot sample run" in command
-    assert ".. option:: --force, -f" in command and ".. option:: <target>" in command
-    assert "pecot sample run x --force" in command
-    assert "標準出力には何も出しません。" in command
-    titles = [title for title, _ in render_sections(_both_entry(cli_reference=_CLI_REFERENCE))]
-    assert titles[-1] == COMMAND_TITLE
+    with allure.step("終了コードの列とコマンドの節を比べる"):
+        plain = dict(render_sections(_both_entry()))
+        assert "終了コード" not in "\n".join(plain["エラー"])
+        assert COMMAND_TITLE not in plain
+        referenced = dict(render_sections(_both_entry(cli_reference=_CLI_REFERENCE)))
+        assert "終了コード" in "\n".join(referenced["エラー"])
+        command = "\n".join(referenced[COMMAND_TITLE])
+        assert "pecot sample run <target> [options]" in command
+        assert ".. program:: pecot sample run" in command
+        assert ".. option:: --force, -f" in command and ".. option:: <target>" in command
+        assert "pecot sample run x --force" in command
+        assert "標準出力には何も出しません。" in command
+        titles = [title for title, _ in render_sections(_both_entry(cli_reference=_CLI_REFERENCE))]
+        assert titles[-1] == COMMAND_TITLE
 
 
 def test_cli_only_options_show_their_description_and_are_not_mcp_arguments() -> None:
-    entry = _both_entry(
-        cli={
-            "positional": ["target"],
-            "flags": {"force": ["--force", "-f"], "dry_run": ["--dry-run", "-n"]},
-            "only": {"dry_run": {"type": "boolean"}},
-        },
-        cli_reference={**_CLI_REFERENCE, "options": {"dry_run": "何も書かずに、予定を出します。"}},
-    )
-    sections = dict(render_sections(entry))
-    assert "dry_run" not in "\n".join(sections["引数"])
-    command = sections[COMMAND_TITLE]
-    at = command.index(".. option:: --dry-run, -n")
-    assert command[at : at + 4] == [
-        ".. option:: --dry-run, -n",
-        "",
-        "   何も書かずに、予定を出します。",
-        "",
-    ]
-    assert "引数 \\ ``dry_run``\\  に当たります。" not in "\n".join(command)
-    assert "   引数 \\ ``force``\\  に当たります。" in command
+    with allure.step("節を描く"):
+        entry = _both_entry(
+            cli={
+                "positional": ["target"],
+                "flags": {"force": ["--force", "-f"], "dry_run": ["--dry-run", "-n"]},
+                "only": {"dry_run": {"type": "boolean"}},
+            },
+            cli_reference={
+                **_CLI_REFERENCE,
+                "options": {"dry_run": "何も書かずに、予定を出します。"},
+            },
+        )
+        sections = dict(render_sections(entry))
+    with allure.step("オプションの説明を比べる"):
+        assert "dry_run" not in "\n".join(sections["引数"])
+        command = sections[COMMAND_TITLE]
+        at = command.index(".. option:: --dry-run, -n")
+        assert command[at : at + 4] == [
+            ".. option:: --dry-run, -n",
+            "",
+            "   何も書かずに、予定を出します。",
+            "",
+        ]
+        assert "引数 \\ ``dry_run``\\  に当たります。" not in "\n".join(command)
+        assert "   引数 \\ ``force``\\  に当たります。" in command
 
 
 def test_mcp_output_links_to_common_fields_of_the_plugin() -> None:
-    entry = {**_mcp_entry({"branch": {"type": "string"}}), PLUGIN_KEY: "sample"}
-    text = _output_section(entry)
-    assert f":ref:`{COMMON_OUTPUT_TITLE} <{common_output_label('sample')}>`" in text
-    assert "型を閉じていません" not in text
+    with allure.step("出力の節を描く"):
+        entry = {**_mcp_entry({"branch": {"type": "string"}}), PLUGIN_KEY: "sample"}
+        text = _output_section(entry)
+    with allure.step("共通の項目へのリンクを比べる"):
+        assert f":ref:`{COMMON_OUTPUT_TITLE} <{common_output_label('sample')}>`" in text
+        assert "型を閉じていません" not in text
 
 
 COMMON_PAGE = """\
@@ -891,23 +980,25 @@ def test_common_output_page_has_fields_and_is_linked_from_tool_page(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
     files = {"index.rst": PAGES_INDEX + "\n.. toctree::\n\n   common\n", "common.rst": COMMON_PAGE}
-    built = build(tmp_path, capfd, files=files, pages=True)
-    assert built.code == 0, built.warnings
-    section = text_of(built.html("common.html"))
-    for name, text in {
-        "kind": "失敗の種別です。",
-        "detail": "失敗の文です。",
-        "log": "子プロセスの出力です。",
-        "warnings": "警告の文です。",
-    }.items():
-        assert name in section
-        assert text in section
-    page = built.html("_generated/sample/sample_two.html")
-    assert f'href="../../common.html#{common_output_label("sample")}"' in page
-    assert (
-        '<code class="docutils literal notranslate"><span class="pre">kind</span></code>'
-        not in page
-    )
+    with allure.step("ドキュメントをビルドする"):
+        built = build(tmp_path, capfd, files=files, pages=True)
+    with allure.step("共通の出力のページを比べる"):
+        assert built.code == 0, built.warnings
+        section = text_of(built.html("common.html"))
+        for name, text in {
+            "kind": "失敗の種別です。",
+            "detail": "失敗の文です。",
+            "log": "子プロセスの出力です。",
+            "warnings": "警告の文です。",
+        }.items():
+            assert name in section
+            assert text in section
+        page = built.html("_generated/sample/sample_two.html")
+        assert f'href="../../common.html#{common_output_label("sample")}"' in page
+        assert (
+            '<code class="docutils literal notranslate"><span class="pre">kind</span></code>'
+            not in page
+        )
 
 
 def test_resources_table_uses_summary_or_description(
@@ -917,20 +1008,22 @@ def test_resources_table_uses_summary_or_description(
         "index.rst": PAGES_INDEX + "\n.. toctree::\n\n   resources\n",
         "resources.rst": "Resources\n=========\n\n.. iface-resources:: sample\n",
     }
-    built = build(tmp_path, capfd, files=files, pages=True)
-    assert built.code == 0, built.warnings
-    page = built.html("resources.html")
-    headers = re.findall(r'<th class="head"><p>(.*?)</p></th>', page)
-    assert headers == ["URI", "名前", "説明", "MIME タイプ"]
-    rows = [
-        [text_of(cell) for cell in re.findall(r"<td><p>(.*?)</p></td>", row, re.S)]
-        for row in re.findall(r"<tr class=\"row-(?:odd|even)\">(.*?)</tr>", page, re.S)
-        if "<td>" in row
-    ]
-    assert rows == [
-        ["sample://note/one", "note-one", "1 つ目のメモです。", "text/markdown"],
-        ["sample://note/two", "note-two", "The second note.", "text/markdown"],
-    ]
+    with allure.step("ドキュメントをビルドする"):
+        built = build(tmp_path, capfd, files=files, pages=True)
+    with allure.step("resources の表を比べる"):
+        assert built.code == 0, built.warnings
+        page = built.html("resources.html")
+        headers = re.findall(r'<th class="head"><p>(.*?)</p></th>', page)
+        assert headers == ["URI", "名前", "説明", "MIME タイプ"]
+        rows = [
+            [text_of(cell) for cell in re.findall(r"<td><p>(.*?)</p></td>", row, re.S)]
+            for row in re.findall(r"<tr class=\"row-(?:odd|even)\">(.*?)</tr>", page, re.S)
+            if "<td>" in row
+        ]
+        assert rows == [
+            ["sample://note/one", "note-one", "1 つ目のメモです。", "text/markdown"],
+            ["sample://note/two", "note-two", "The second note.", "text/markdown"],
+        ]
 
 
 # ---------------------------------------------------------------- サイトに載せるプラグイン
@@ -939,25 +1032,31 @@ REPO = DOCS.parents[2]
 
 
 def test_interface_plugins_are_the_plugins_in_targets_json() -> None:
-    targets = json.loads((DOCS.parent / "targets.json").read_text(encoding="utf-8"))
-    assert interface_plugins(REPO) == sorted(targets["plugins"])
+    with allure.step("targets.json を読み込む"):
+        targets = json.loads((DOCS.parent / "targets.json").read_text(encoding="utf-8"))
+    with allure.step("プラグインの一覧を比べる"):
+        assert interface_plugins(REPO) == sorted(targets["plugins"])
 
 
 def test_conf_lists_the_interface_plugins_on_the_site(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("PECOT_SITE_SIDE", "dev")
-    conf = runpy.run_path(str(DOCS / "conf.py"))
-    assert conf["_site"]["report_plugins"] == interface_plugins(REPO)
+    with allure.step("conf.py を読み込む"):
+        monkeypatch.setenv("PECOT_SITE_SIDE", "dev")
+        conf = runpy.run_path(str(DOCS / "conf.py"))
+    with allure.step("プラグインの一覧を比べる"):
+        assert conf["_site"]["report_plugins"] == interface_plugins(REPO)
 
 
 def test_tool_page_title_is_the_display_name_with_the_tool_name_below(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
-    assert built.code == 0
-    page = built.html("_generated/sample/sample_two.html")
-    assert re.search(r"<h1>Sample two<a ", page)
-    assert re.search(r'<p class="iface-tool-name">.*sample_two', page)
-    # 表示名の無い CLI だけの項目は、name を題にして、添え書きを出さない
-    one = built.html("_generated/sample/one-run.html")
-    assert re.search(r"<h1>one run<a ", one)
-    assert "iface-tool-name" not in one
+    with allure.step("ドキュメントをビルドする"):
+        built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
+    with allure.step("ページの題を比べる"):
+        assert built.code == 0
+        page = built.html("_generated/sample/sample_two.html")
+        assert re.search(r"<h1>Sample two<a ", page)
+        assert re.search(r'<p class="iface-tool-name">.*sample_two', page)
+        # 表示名の無い CLI だけの項目は、name を題にして、添え書きを出さない
+        one = built.html("_generated/sample/one-run.html")
+        assert re.search(r"<h1>one run<a ", one)
+        assert "iface-tool-name" not in one

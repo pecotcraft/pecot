@@ -10,6 +10,7 @@ import re
 import sys
 from pathlib import Path
 
+import allure
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -67,11 +68,13 @@ def _violates_uc1(tmp_path: Path, title: str, config: Path | None = None) -> boo
     ],
 )
 def test_title_passes(tmp_path: Path, title: str) -> None:
-    assert not _violates_uc1(tmp_path, title)
+    with allure.step("gitlint でタイトルをチェックし、UC1 に違反しないことを確かめる"):
+        assert not _violates_uc1(tmp_path, title)
 
 
 def test_non_dependabot_english_title_fails(tmp_path: Path) -> None:
-    assert _violates_uc1(tmp_path, "build(pecot-tools): update deps")
+    with allure.step("gitlint で英語のタイトルをチェックし、UC1 に違反することを確かめる"):
+        assert _violates_uc1(tmp_path, "build(pecot-tools): update deps")
 
 
 @pytest.mark.parametrize(
@@ -82,16 +85,26 @@ def test_non_dependabot_english_title_fails(tmp_path: Path) -> None:
     ],
 )
 def test_near_miss_title_fails(tmp_path: Path, title: str) -> None:
-    assert _violates_uc1(tmp_path, title)
+    with allure.step(
+        "gitlint で dependabot に似たタイトルをチェックし、UC1 に違反することを確かめる"
+    ):
+        assert _violates_uc1(tmp_path, title)
 
 
 def test_dependabot_title_fails_when_option_disabled(tmp_path: Path) -> None:
-    config = tmp_path / "gitlint.ini"
-    text = (_REPO_ROOT / ".gitlint").read_text(encoding="utf-8")
-    assert "allow-dependabot = true" in text
-    config.write_text(
-        text.replace("allow-dependabot = true", "allow-dependabot = false"),
-        encoding="utf-8",
-    )
-    title = "build(pecot-tools): bump commander in /plugins/pecot-tools"
-    assert _violates_uc1(tmp_path, title, config)
+    with allure.step("元の .gitlint を読む"):
+        config = tmp_path / "gitlint.ini"
+        text = (_REPO_ROOT / ".gitlint").read_text(encoding="utf-8")
+
+    with allure.step("allow-dependabot が有効なことを確かめる"):
+        assert "allow-dependabot = true" in text
+
+    with allure.step("allow-dependabot を無効にした設定を書く"):
+        config.write_text(
+            text.replace("allow-dependabot = true", "allow-dependabot = false"),
+            encoding="utf-8",
+        )
+        title = "build(pecot-tools): bump commander in /plugins/pecot-tools"
+
+    with allure.step("gitlint でチェックし、UC1 に違反することを確かめる"):
+        assert _violates_uc1(tmp_path, title, config)

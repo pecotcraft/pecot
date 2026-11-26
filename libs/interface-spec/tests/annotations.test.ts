@@ -2,6 +2,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { validateDefinitions } from '../src/domain/validate.js'
 import { loadJson, loadYaml } from '../src/infra/load.js'
+import { step } from '../src/vitest/step.js'
 
 const VALID = path.join(import.meta.dirname, 'fixtures', 'valid', 'plugins', 'pecot-tools', 'interface')
 
@@ -36,36 +37,50 @@ async function check(id: string, hints: Record<string, unknown>, kinds: readonly
 
 describe('effects against mcp.annotations', () => {
   it('ヒントと作用が合っているとき、通す', async () => {
-    expect(await check('PT-AWS-S3-CP', { readOnlyHint: false, destructiveHint: true, idempotentHint: false }, ['write', 'destructive'], false)).toEqual([])
+    await step('ヒントと作用を比べ、出た問題を確かめる', async () => {
+      expect(await check('PT-AWS-S3-CP', { readOnlyHint: false, destructiveHint: true, idempotentHint: false }, ['write', 'destructive'], false)).toEqual([])
+    })
   })
 
   it('readOnlyHint が true なのに破壊の作用があると、止める', async () => {
-    expect(await check('PT-AWS-S3-LS', { readOnlyHint: true }, ['read', 'destructive'], true))
-      .toEqual(['PT-AWS-S3-LS: effects has kind "destructive" but annotations.readOnlyHint is true'])
+    await step('ヒントと作用を比べ、出た問題を確かめる', async () => {
+      expect(await check('PT-AWS-S3-LS', { readOnlyHint: true }, ['read', 'destructive'], true))
+        .toEqual(['PT-AWS-S3-LS: effects has kind "destructive" but annotations.readOnlyHint is true'])
+    })
   })
 
   it('書き込みも破壊の作用も無いのに readOnlyHint が false だと、止める', async () => {
-    expect(await check('PT-AWS-S3-LS', { readOnlyHint: false }, ['read'], true))
-      .toEqual(['PT-AWS-S3-LS: effects has no kind "write" or "destructive" but annotations.readOnlyHint is false'])
+    await step('ヒントと作用を比べ、出た問題を確かめる', async () => {
+      expect(await check('PT-AWS-S3-LS', { readOnlyHint: false }, ['read'], true))
+        .toEqual(['PT-AWS-S3-LS: effects has no kind "write" or "destructive" but annotations.readOnlyHint is false'])
+    })
   })
 
   it('作用が足すだけの書き込みなら、destructiveHint が false でも通す', async () => {
-    expect(await check('PT-AWS-S3-CP', { readOnlyHint: false, destructiveHint: false }, ['read', 'write'], true)).toEqual([])
+    await step('ヒントと作用を比べ、出た問題を確かめる', async () => {
+      expect(await check('PT-AWS-S3-CP', { readOnlyHint: false, destructiveHint: false }, ['read', 'write'], true)).toEqual([])
+    })
   })
 
   it('destructiveHint が作用と食い違うと、止める', async () => {
-    expect(await check('PT-AWS-S3-CP', { destructiveHint: true }, ['write'], true))
-      .toEqual(['PT-AWS-S3-CP: effects has no kind "destructive" but annotations.destructiveHint is true'])
-    expect(await check('PT-AWS-S3-CP', { destructiveHint: false }, ['write', 'destructive'], true))
-      .toEqual(['PT-AWS-S3-CP: effects has kind "destructive" but annotations.destructiveHint is false'])
+    await step('ヒントと作用を比べ、出た問題を確かめる', async () => {
+      expect(await check('PT-AWS-S3-CP', { destructiveHint: true }, ['write'], true))
+        .toEqual(['PT-AWS-S3-CP: effects has no kind "destructive" but annotations.destructiveHint is true'])
+      expect(await check('PT-AWS-S3-CP', { destructiveHint: false }, ['write', 'destructive'], true))
+        .toEqual(['PT-AWS-S3-CP: effects has kind "destructive" but annotations.destructiveHint is false'])
+    })
   })
 
   it('idempotentHint が idempotent と食い違うと、止める', async () => {
-    expect(await check('PT-AWS-S3-CP', { idempotentHint: true }, ['write'], false))
-      .toEqual(['PT-AWS-S3-CP: idempotent is false but annotations.idempotentHint is true'])
+    await step('ヒントと作用を比べ、出た問題を確かめる', async () => {
+      expect(await check('PT-AWS-S3-CP', { idempotentHint: true }, ['write'], false))
+        .toEqual(['PT-AWS-S3-CP: idempotent is false but annotations.idempotentHint is true'])
+    })
   })
 
   it('ヒントが無いとき、比べない', async () => {
-    expect(await check('PT-AWS-S3-CP', {}, ['write', 'destructive'], false)).toEqual([])
+    await step('ヒントと作用を比べ、出た問題を確かめる', async () => {
+      expect(await check('PT-AWS-S3-CP', {}, ['write', 'destructive'], false)).toEqual([])
+    })
   })
 })

@@ -7,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import allure
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -55,49 +56,63 @@ def _run(repo: Path) -> subprocess.CompletedProcess[str]:
 
 
 def test_rewrites_only_the_version_and_keeps_comments(repo: Path) -> None:
-    path = _setup(repo, _lock("1.65.0"), _CONFIG % "1.64.1")
-    result = _run(repo)
-    assert result.returncode == 0, result.stderr
-    assert read_output(path) == _CONFIG % "1.65.0"
+    with allure.step("lock と設定を置き、sync-playwright-deps.mjs を動かす"):
+        path = _setup(repo, _lock("1.65.0"), _CONFIG % "1.64.1")
+        result = _run(repo)
+    with allure.step("版だけが書き換わり、コメントが残ることを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert read_output(path) == _CONFIG % "1.65.0"
 
 
 def test_same_version_is_not_written(repo: Path) -> None:
-    path = _setup(repo, _lock("1.65.0"), _CONFIG % "1.65.0")
-    before = path.stat().st_mtime_ns
-    result = _run(repo)
-    assert result.returncode == 0, result.stderr
-    assert read_output(path) == _CONFIG % "1.65.0"
-    assert path.stat().st_mtime_ns == before
+    with allure.step("同じ版の lock と設定を置き、sync-playwright-deps.mjs を動かす"):
+        path = _setup(repo, _lock("1.65.0"), _CONFIG % "1.65.0")
+        before = path.stat().st_mtime_ns
+        result = _run(repo)
+    with allure.step("ファイルを書き換えていないことを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert read_output(path) == _CONFIG % "1.65.0"
+        assert path.stat().st_mtime_ns == before
 
 
 @pytest.mark.parametrize("versions", [[], ["1.64.1", "1.65.0"]])
 def test_lock_without_exactly_one_version_stops(repo: Path, versions: list[str]) -> None:
-    path = _setup(repo, _lock(*versions), _CONFIG % "1.64.1")
-    result = _run(repo)
-    assert result.returncode == 1
-    assert "1 版でない" in result.stderr
-    assert read_output(path) == _CONFIG % "1.64.1"
+    with allure.step("版が 1 つでない lock を置き、sync-playwright-deps.mjs を動かす"):
+        path = _setup(repo, _lock(*versions), _CONFIG % "1.64.1")
+        result = _run(repo)
+    with allure.step("終了コード 1 で止まり、設定が変わらないことを確かめる"):
+        assert result.returncode == 1
+        assert "1 版でない" in result.stderr
+        assert read_output(path) == _CONFIG % "1.64.1"
 
 
 def test_config_without_the_feature_stops(repo: Path) -> None:
-    _setup(repo, _lock("1.65.0"), '{ "features": {} }\n')
-    result = _run(repo)
-    assert result.returncode == 1
-    assert "playwright-deps" in result.stderr
+    with allure.step("feature の無い設定を置き、sync-playwright-deps.mjs を動かす"):
+        _setup(repo, _lock("1.65.0"), '{ "features": {} }\n')
+        result = _run(repo)
+    with allure.step("終了コード 1 で止まり、playwright-deps が stderr に出ることを確かめる"):
+        assert result.returncode == 1
+        assert "playwright-deps" in result.stderr
 
 
 def test_lock_ignores_other_playwright_packages(repo: Path) -> None:
-    # playwright-core と @playwright/test の行は版に数えない。
-    lock = _lock("1.65.0") + "  playwright-core@1.70.0:\n  '@playwright/test@1.71.0':\n"
-    path = _setup(repo, lock, _CONFIG % "1.64.1")
-    result = _run(repo)
-    assert result.returncode == 0, result.stderr
-    assert read_output(path) == _CONFIG % "1.65.0"
+    with allure.step(
+        "別の playwright 系の行を足した lock を置き、sync-playwright-deps.mjs を動かす"
+    ):
+        # playwright-core と @playwright/test の行は版に数えない。
+        lock = _lock("1.65.0") + "  playwright-core@1.70.0:\n  '@playwright/test@1.71.0':\n"
+        path = _setup(repo, lock, _CONFIG % "1.64.1")
+        result = _run(repo)
+    with allure.step("playwright の行だけから版が決まることを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert read_output(path) == _CONFIG % "1.65.0"
 
 
 def test_missing_lock_stops_with_one_line_message(repo: Path) -> None:
-    (repo / ".devcontainer/devcontainer.json").write_text(_CONFIG % "1.64.1", encoding="utf-8")
-    result = _run(repo)
-    assert result.returncode == 1
-    assert result.stderr.strip().count("\n") == 0
-    assert "pnpm-lock.yaml を読めない" in result.stderr
+    with allure.step("lock の無いリポで sync-playwright-deps.mjs を動かす"):
+        (repo / ".devcontainer/devcontainer.json").write_text(_CONFIG % "1.64.1", encoding="utf-8")
+        result = _run(repo)
+    with allure.step("終了コード 1 で止まり、1 行のメッセージが出ることを確かめる"):
+        assert result.returncode == 1
+        assert result.stderr.strip().count("\n") == 0
+        assert "pnpm-lock.yaml を読めない" in result.stderr

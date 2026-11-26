@@ -18,6 +18,7 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
+import allure
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -118,15 +119,16 @@ def test_changed_files_run_affected_lint(
         cwd=repo,
         env={"STUB_NX_LOG": str(nx_log)},
     )
-    assert result.returncode == 0
+    with allure.step("終了コードと nx の呼び出しを確かめる"):
+        assert result.returncode == 0
 
-    log = read_output(nx_log)
-    # 起点の `lint`（nx:noop）だけでなく、実体の `lint` と `lint-*` のレーンを名前で列挙する（#1232）。
-    # `linter` のように `lint-` で始まらない名前は含めない。
-    assert "affected -t lint,lint-docs,lint-src --files=" in log
-    assert "--files=plugins/pecot-workflow/cli/a.py,plugins/pecot-visual/cli/src/b.ts" in log
-    assert "--parallel=1" in log
-    assert "--output-style=stream" in log
+        log = read_output(nx_log)
+        # 起点の `lint`（nx:noop）だけでなく、実体の `lint` と `lint-*` のレーンを名前で列挙する（#1232）。
+        # `linter` のように `lint-` で始まらない名前は含めない。
+        assert "affected -t lint,lint-docs,lint-src --files=" in log
+        assert "--files=plugins/pecot-workflow/cli/a.py,plugins/pecot-visual/cli/src/b.ts" in log
+        assert "--parallel=1" in log
+        assert "--output-style=stream" in log
 
 
 def test_no_changed_files_skips_nx(
@@ -141,8 +143,9 @@ def test_no_changed_files_skips_nx(
         cwd=repo,
         env={"STUB_NX_LOG": str(nx_log)},
     )
-    assert result.returncode == 0
-    assert read_output(nx_log) == ""
+    with allure.step("終了コードと nx が呼ばれていないことを確かめる"):
+        assert result.returncode == 0
+        assert read_output(nx_log) == ""
 
 
 def test_lint_failure_propagates(
@@ -158,8 +161,9 @@ def test_lint_failure_propagates(
         cwd=repo,
         env={"STUB_NX_LOG": str(nx_log), "STUB_NX_EXIT": "1"},
     )
-    assert result.returncode == 1
-    assert "affected -t lint" in read_output(nx_log)
+    with allure.step("終了コードと nx の呼び出しを確かめる"):
+        assert result.returncode == 1
+        assert "affected -t lint" in read_output(nx_log)
 
 
 def test_nx_unresolved_fail_closed(
@@ -175,10 +179,11 @@ def test_nx_unresolved_fail_closed(
         cwd=repo,
         env={"STUB_NX_LOG": str(nx_log)},
     )
-    assert result.returncode == 1
-    out = result.stdout + result.stderr
-    assert "ERROR" in out
-    assert "nx" in out
+    with allure.step("終了コードとエラーの出力を確かめる"):
+        assert result.returncode == 1
+        out = result.stdout + result.stderr
+        assert "ERROR" in out
+        assert "nx" in out
 
 
 def test_lane_names_come_from_the_graph_each_run(
@@ -194,14 +199,15 @@ def test_lane_names_come_from_the_graph_each_run(
         cwd=repo,
         env={"STUB_NX_LOG": str(nx_log)},
     )
-    assert result.returncode == 0
+    with allure.step("nx graph の呼び出しと lint のレーン名を確かめる"):
+        assert result.returncode == 0
 
-    graph_calls = read_output(Path(f"{nx_log}.graph")).splitlines()
-    assert len(graph_calls) == 1
-    assert graph_calls[0].startswith("graph --file=")
-    affected = [ln for ln in read_output(nx_log).splitlines() if ln.startswith("affected ")]
-    assert len(affected) == 1
-    assert affected[0].split()[2] == "lint,lint-docs,lint-src"
+        graph_calls = read_output(Path(f"{nx_log}.graph")).splitlines()
+        assert len(graph_calls) == 1
+        assert graph_calls[0].startswith("graph --file=")
+        affected = [ln for ln in read_output(nx_log).splitlines() if ln.startswith("affected ")]
+        assert len(affected) == 1
+        assert affected[0].split()[2] == "lint,lint-docs,lint-src"
 
 
 def test_no_changed_files_does_not_compute_the_graph(
@@ -214,8 +220,9 @@ def test_no_changed_files_does_not_compute_the_graph(
     result = run_script(
         script_dir / "run-affected-lint.sh", cwd=repo, env={"STUB_NX_LOG": str(nx_log)}
     )
-    assert result.returncode == 0
-    assert not Path(f"{nx_log}.graph").exists()
+    with allure.step("nx graph が呼ばれていないことを確かめる"):
+        assert result.returncode == 0
+        assert not Path(f"{nx_log}.graph").exists()
 
 
 @pytest.mark.parametrize("stub_env", ["STUB_NX_GRAPH_FAIL", "STUB_NX_GRAPH_NO_LANES"])
@@ -232,6 +239,7 @@ def test_graph_unavailable_fail_closed(
         cwd=repo,
         env={"STUB_NX_LOG": str(nx_log), stub_env: "1"},
     )
-    assert result.returncode == 1
-    assert "ERROR" in (result.stdout + result.stderr)
-    assert "affected" not in read_output(nx_log)
+    with allure.step("終了コードとエラーの出力を確かめる"):
+        assert result.returncode == 1
+        assert "ERROR" in (result.stdout + result.stderr)
+        assert "affected" not in read_output(nx_log)

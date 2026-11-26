@@ -6,10 +6,10 @@ import { parser } from 'typescript-eslint'
 import { describe, expect, it } from 'vitest'
 import { attachOutput } from '../src/vitest/attach.js'
 import { describeTitleConfig, describeTitleRule } from '../src/eslint/describe-title.js'
+import { stepSync } from '../src/vitest/step.js'
+import { useVitestForRuleTester } from './helpers/rule-tester.js'
 
-RuleTester.describe = describe
-RuleTester.it = it
-RuleTester.itOnly = it.only
+useVitestForRuleTester()
 
 const FIXTURES = path.join(import.meta.dirname, 'fixtures', 'describe-title')
 const GENERATED = path.join(FIXTURES, 'generated.json')
@@ -137,41 +137,53 @@ typedTester.run('describe-title の typescript-eslint の parser', describeTitle
 
 describe('describeTitleConfig', () => {
   it('定義書のパスを rules の options に渡した flat config のブロックを返す', () => {
-    const block = describeTitleConfig([GENERATED])
-    expect(block.files).toEqual(['tests/interface/**/*.ts'])
-    expect(block.rules).toEqual({ 'interface-spec/describe-title': ['error', { definitions: [GENERATED] }] })
-    expect(block.plugins['interface-spec'].rules['describe-title']).toBe(describeTitleRule)
+    const block = stepSync('ブロックを作る', () => describeTitleConfig([GENERATED]))
+    stepSync('ブロックの内容を比べる', () => {
+      expect(block.files).toEqual(['tests/interface/**/*.ts'])
+      expect(block.rules).toEqual({ 'interface-spec/describe-title': ['error', { definitions: [GENERATED] }] })
+      expect(block.plugins['interface-spec'].rules['describe-title']).toBe(describeTitleRule)
+    })
   })
 
   it('定義書が無いパスを渡すと、パスを添えて throw する', () => {
     const missing = path.join(FIXTURES, 'missing.json')
-    expect(() => describeTitleConfig([missing])).toThrow(missing)
+    stepSync('throw を比べる', () => {
+      expect(() => describeTitleConfig([missing])).toThrow(missing)
+    })
   })
 
   it('定義書が JSON でないと、パスを添えて throw する', () => {
     const file = path.join(FIXTURES, 'invalid.json')
-    expect(() => describeTitleConfig([file])).toThrow(file)
+    stepSync('throw を比べる', () => {
+      expect(() => describeTitleConfig([file])).toThrow(file)
+    })
   })
 
   it('entries の形が違う定義書を渡すと、パスを添えて throw する', () => {
     const file = path.join(FIXTURES, 'bad-entries.json')
-    expect(() => describeTitleConfig([file])).toThrow(file)
+    stepSync('throw を比べる', () => {
+      expect(() => describeTitleConfig([file])).toThrow(file)
+    })
   })
 
   it('定義書を渡さなくても throw しない', () => {
-    expect(describeTitleConfig([]).rules['interface-spec/describe-title']).toEqual(['error', { definitions: [] }])
+    stepSync('定義書なしのブロックを比べる', () => {
+      expect(describeTitleConfig([]).rules['interface-spec/describe-title']).toEqual(['error', { definitions: [] }])
+    })
   })
 })
 
 describe('規則のファイル', () => {
   it('子プロセスの node が、型を除去して import できる', () => {
     const url = pathToFileURL(RULE_FILE).href
-    const output = execFileSync(
+    const output = stepSync('子プロセスで import する', () => execFileSync(
       process.execPath,
       ['--input-type=module', '--eval', `const m = await import(${JSON.stringify(url)}); console.log(typeof m.describeTitleConfig)`],
       { encoding: 'utf8' },
-    )
+    ))
     attachOutput(`node --eval import ${path.basename(RULE_FILE)}`, 0, output, '')
-    expect(output.trim()).toBe('function')
+    stepSync('結果を比べる', () => {
+      expect(output.trim()).toBe('function')
+    })
   })
 })

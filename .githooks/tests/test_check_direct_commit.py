@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
+import allure
 import pytest
 
 
@@ -52,54 +53,76 @@ def test_main_release_commit_allowed(
     script_dir: Path, direct_commit_repo: Path, run_script, git
 ) -> None:
     """main + chore(release): → 許可（単一ブランチ release commit, #648）。"""
-    result = _run_hook_on(
-        script_dir, direct_commit_repo, run_script, git, "main", "chore(release): publish"
-    )
-    assert result.returncode == 0
+    with allure.step("main で release のコミットメッセージをチェックする"):
+        result = _run_hook_on(
+            script_dir, direct_commit_repo, run_script, git, "main", "chore(release): publish"
+        )
+
+    with allure.step("許可（終了コード 0）を確かめる"):
+        assert result.returncode == 0
 
 
 def test_main_normal_commit_blocked(
     script_dir: Path, direct_commit_repo: Path, run_script, git
 ) -> None:
     """main + 通常コミット → block。"""
-    result = _run_hook_on(script_dir, direct_commit_repo, run_script, git, "main", "fix: something")
-    assert result.returncode != 0
-    assert "main への変更は feature branch からのPRのみ許可" in (result.stdout + result.stderr)
+    with allure.step("main で通常のコミットメッセージをチェックする"):
+        result = _run_hook_on(
+            script_dir, direct_commit_repo, run_script, git, "main", "fix: something"
+        )
+
+    with allure.step("block と案内の文を確かめる"):
+        assert result.returncode != 0
+        assert "main への変更は feature branch からのPRのみ許可" in (result.stdout + result.stderr)
 
 
 def test_develop_pecot_normal_commit_allowed(
     script_dir: Path, direct_commit_repo: Path, run_script, git
 ) -> None:
     """develop-aist + 通常コミット → 許可（保護対象から撤去済 #702）。"""
-    result = _run_hook_on(
-        script_dir, direct_commit_repo, run_script, git, "develop-aist", "fix: something"
-    )
-    assert result.returncode == 0
+    with allure.step("develop-aist で通常のコミットメッセージをチェックする"):
+        result = _run_hook_on(
+            script_dir, direct_commit_repo, run_script, git, "develop-aist", "fix: something"
+        )
+
+    with allure.step("許可（終了コード 0）を確かめる"):
+        assert result.returncode == 0
 
 
 def test_wtn_normal_commit_blocked(
     script_dir: Path, direct_commit_repo: Path, run_script, git
 ) -> None:
     """wtN + 通常コミット → block。"""
-    result = _run_hook_on(script_dir, direct_commit_repo, run_script, git, "wt1", "fix: something")
-    assert result.returncode != 0
+    with allure.step("wt1 で通常のコミットメッセージをチェックする"):
+        result = _run_hook_on(
+            script_dir, direct_commit_repo, run_script, git, "wt1", "fix: something"
+        )
+
+    with allure.step("block（終了コード 0 以外）を確かめる"):
+        assert result.returncode != 0
 
 
 def test_wtn_release_commit_allowed(
     script_dir: Path, direct_commit_repo: Path, run_script, git
 ) -> None:
     """wtN + chore(release): → 許可。"""
-    result = _run_hook_on(
-        script_dir, direct_commit_repo, run_script, git, "wt1", "chore(release): publish"
-    )
-    assert result.returncode == 0
+    with allure.step("wt1 で release のコミットメッセージをチェックする"):
+        result = _run_hook_on(
+            script_dir, direct_commit_repo, run_script, git, "wt1", "chore(release): publish"
+        )
+
+    with allure.step("許可（終了コード 0）を確かめる"):
+        assert result.returncode == 0
 
 
 def test_feature_branch_normal_commit_allowed(
     script_dir: Path, direct_commit_repo: Path, run_script, git
 ) -> None:
     """feature branch + 通常コミット → 許可。"""
-    result = _run_hook_on(
-        script_dir, direct_commit_repo, run_script, git, "feat/some-feature", "fix: something"
-    )
-    assert result.returncode == 0
+    with allure.step("feature branch で通常のコミットメッセージをチェックする"):
+        result = _run_hook_on(
+            script_dir, direct_commit_repo, run_script, git, "feat/some-feature", "fix: something"
+        )
+
+    with allure.step("許可（終了コード 0）を確かめる"):
+        assert result.returncode == 0

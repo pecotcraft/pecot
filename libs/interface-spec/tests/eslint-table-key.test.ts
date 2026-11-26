@@ -7,10 +7,10 @@ import { parser } from 'typescript-eslint'
 import { describe, expect, it } from 'vitest'
 import { attachOutput } from '../src/vitest/attach.js'
 import { invalidKeys, tableKeyConfig, tableKeyPlugin, tableKeyRule } from '../src/eslint/table-key.js'
+import { stepSync } from '../src/vitest/step.js'
+import { useVitestForRuleTester } from './helpers/rule-tester.js'
 
-RuleTester.describe = describe
-RuleTester.it = it
-RuleTester.itOnly = it.only
+useVitestForRuleTester()
 
 const RULE_FILE = path.join(import.meta.dirname, '..', 'src', 'eslint', 'table-key.ts')
 const PACKAGE_JSON = path.join(import.meta.dirname, '..', 'package.json')
@@ -65,34 +65,42 @@ typedTester.run('table-key の typescript-eslint の parser', tableKeyRule, {
 
 describe('invalidKeys', () => {
   it('キーとして読めない $キー だけを、出た順に返す', () => {
-    expect(invalidKeys('$ok、$ngだと、$0、$x.')).toEqual(['ngだと', 'x.'])
+    stepSync('読めないキーを集めて比べる', () => {
+      expect(invalidKeys('$ok、$ngだと、$0、$x.')).toEqual(['ngだと', 'x.'])
+    })
   })
 })
 
 describe('tableKeyConfig', () => {
   it('渡した files に、test-title/table-key を当てるブロックを返す', () => {
-    const block = tableKeyConfig(['src/**/tests/**/*.ts', '**/*.test.ts'])
-    expect(block.files).toEqual(['src/**/tests/**/*.ts', '**/*.test.ts'])
-    expect(block.rules).toEqual({ 'test-title/table-key': 'error' })
-    expect(block.plugins['test-title'].rules['table-key']).toBe(tableKeyRule)
+    const block = stepSync('ブロックを作る', () => tableKeyConfig(['src/**/tests/**/*.ts', '**/*.test.ts']))
+    stepSync('ブロックの内容を比べる', () => {
+      expect(block.files).toEqual(['src/**/tests/**/*.ts', '**/*.test.ts'])
+      expect(block.rules).toEqual({ 'test-title/table-key': 'error' })
+      expect(block.plugins['test-title'].rules['table-key']).toBe(tableKeyRule)
+    })
   })
 
   it('plugin が、名前と package.json の版を meta に持つ', () => {
-    const packageJson: unknown = JSON.parse(readFileSync(PACKAGE_JSON, 'utf8'))
-    expect(packageJson).toMatchObject({ version: tableKeyPlugin.meta.version })
-    expect(tableKeyPlugin.meta).toMatchObject({ name: 'test-title', namespace: 'test-title' })
+    const packageJson: unknown = stepSync<unknown>('package.json を読み込む', () => JSON.parse(readFileSync(PACKAGE_JSON, 'utf8')))
+    stepSync('plugin の meta を比べる', () => {
+      expect(packageJson).toMatchObject({ version: tableKeyPlugin.meta.version })
+      expect(tableKeyPlugin.meta).toMatchObject({ name: 'test-title', namespace: 'test-title' })
+    })
   })
 })
 
 describe('規則のファイル', () => {
   it('子プロセスの node が、型を除去して import できる', () => {
     const url = pathToFileURL(RULE_FILE).href
-    const output = execFileSync(
+    const output = stepSync('子プロセスで import する', () => execFileSync(
       process.execPath,
       ['--input-type=module', '--eval', `const m = await import(${JSON.stringify(url)}); console.log(typeof m.tableKeyConfig)`],
       { encoding: 'utf8' },
-    )
+    ))
     attachOutput(`node --eval import ${path.basename(RULE_FILE)}`, 0, output, '')
-    expect(output.trim()).toBe('function')
+    stepSync('結果を比べる', () => {
+      expect(output.trim()).toBe('function')
+    })
   })
 })

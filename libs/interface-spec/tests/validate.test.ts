@@ -4,6 +4,7 @@ import path from 'node:path'
 import { generatedFileSchema } from '../src/domain/schema.js'
 import { validateRepository } from '../src/validate-repository.js'
 import { materialize } from './helpers/repository.js'
+import { step, stepSync } from '../src/vitest/step.js'
 
 const PW = 'plugins/pecot-workflow/interface'
 const PT = 'plugins/pecot-tools/interface'
@@ -69,7 +70,9 @@ async function withCommon(plugin: string, replace: (text: string) => string): Pr
 
 describe('validateRepository', () => {
   it.each(CASES)('fixture %s を検証すると、失敗の行を過不足なく決まった順で返す', async (name, expected) => {
-    expect(await validateRepository(await materialize(name))).toEqual(expected)
+    await step('fixture を検証し、指摘を比べる', async () => {
+      expect(await validateRepository(await materialize(name))).toEqual(expected)
+    })
   })
 
   it('空白だけの欄も、空として止める', async () => {
@@ -78,15 +81,21 @@ describe('validateRepository', () => {
     const original = await readFile(file, 'utf8')
     const text = original.replace('    on_error: Issues created before the failing file remain on GitHub.\n', '    on_error: "  "\n')
     expect(text).not.toBe(original)
-    await writeFile(file, text)
-    expect(await validateRepository(root)).toEqual([
-      `error: ${PW}/authored.yaml: PW-ISSUE-CREATE: on_error: is empty (write "default" if nothing remains)`,
-    ])
+    await step('定義書を書き換える', async () => {
+      await writeFile(file, text)
+    })
+    await step('検証して結果を比べる', async () => {
+      expect(await validateRepository(root)).toEqual([
+        `error: ${PW}/authored.yaml: PW-ISSUE-CREATE: on_error: is empty (write "default" if nothing remains)`,
+      ])
+    })
   })
 
   it('実行のたびに、同じ行を同じ順で返す', async () => {
     const root = await materialize('behavior-id')
-    expect(await validateRepository(root)).toEqual(await validateRepository(root))
+    await step('検証を 2 回動かして比べる', async () => {
+      expect(await validateRepository(root)).toEqual(await validateRepository(root))
+    })
   })
 
   it('形のエラーとパターンの不一致を、同じ実行で報告する', async () => {
@@ -96,11 +105,15 @@ describe('validateRepository', () => {
     const text = original
       .replace('    on_error: Issues created before the failing file remain on GitHub.\n', '')
       .replace('もしフロントマターが不正なら、終了コード 1 で終わる', 'フロントマターが不正だと、終了コード 1 で終わる')
-    await writeFile(file, text)
-    expect(await validateRepository(root)).toEqual([
-      `error: ${PW}/authored.yaml: PW-ISSUE-CREATE: on_error: field is missing (write "default" if nothing remains)`,
-      `error: ${PW}/authored.yaml: PW-ISSUE-CREATE-01: statement does not match pattern "unwanted"`,
-    ])
+    await step('定義書を書き換える', async () => {
+      await writeFile(file, text)
+    })
+    await step('検証して結果を比べる', async () => {
+      expect(await validateRepository(root)).toEqual([
+        `error: ${PW}/authored.yaml: PW-ISSUE-CREATE: on_error: field is missing (write "default" if nothing remains)`,
+        `error: ${PW}/authored.yaml: PW-ISSUE-CREATE-01: statement does not match pattern "unwanted"`,
+      ])
+    })
   })
 
   it('別のフィールドの形が合わなくても、environment を確かめ behavior の id を集める', async () => {
@@ -110,11 +123,15 @@ describe('validateRepository', () => {
     const text = original
       .replace('    on_error: Issues created before the failing file remain on GitHub.\n', '')
       .replace('name: PECOT_GITHUB_API_URL', 'name: bad-name')
-    await writeFile(file, text)
-    const lines = await validateRepository(root)
-    expect(lines).toContain(`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: on_error: field is missing (write "default" if nothing remains)`)
-    expect(lines.some(line => line.includes('environment[0].name') && line.includes('"bad-name"'))).toBe(true)
-    expect(lines).toContain(`error: ${PW}/authored.yaml: PT-COMMON-01: id: is also defined in ${PT}/authored.yaml`)
+    await step('定義書を書き換える', async () => {
+      await writeFile(file, text)
+    })
+    const lines = await step('リポジトリを検証する', () => validateRepository(root))
+    stepSync('指摘を比べる', () => {
+      expect(lines).toContain(`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: on_error: field is missing (write "default" if nothing remains)`)
+      expect(lines.some(line => line.includes('environment[0].name') && line.includes('"bad-name"'))).toBe(true)
+      expect(lines).toContain(`error: ${PW}/authored.yaml: PT-COMMON-01: id: is also defined in ${PT}/authored.yaml`)
+    })
   })
 
   describe('mcp_output', () => {
@@ -150,41 +167,53 @@ describe('validateRepository', () => {
 
     it('fields のキーが最上位の properties（共通の 4 項目を除く）とそろうと、何も報告しない', async () => {
       const root = await withMcpOutput('    mcp_output:\n      fields:\n        lines: The listed keys.\n')
-      expect(await validateRepository(root)).toEqual([])
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(root)).toEqual([])
+      })
     })
 
     it('fields のキーが最上位の properties と食い違うと、足りないキーと余るキーを報告する', async () => {
       const root = await withMcpOutput('    mcp_output:\n      fields:\n        keys: The listed keys.\n        kind: The failure kind.\n')
-      expect(await validateRepository(root)).toEqual([
-        `error: ${PT}/authored.yaml: PT-AWS-S3-LS: mcp_output.fields: has "keys", "kind" not in mcp.output (remove it)`,
-        `error: ${PT}/authored.yaml: PT-AWS-S3-LS: mcp_output.fields: is missing "lines" (present in mcp.output)`,
-      ])
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(root)).toEqual([
+          `error: ${PT}/authored.yaml: PT-AWS-S3-LS: mcp_output.fields: has "keys", "kind" not in mcp.output (remove it)`,
+          `error: ${PT}/authored.yaml: PT-AWS-S3-LS: mcp_output.fields: is missing "lines" (present in mcp.output)`,
+        ])
+      })
     })
 
     it('MCP の面を持たない項目に書くと、消すよう報告する', async () => {
       const root = await withMcpOutput('    mcp_output:\n      fields:\n        url: The issue URL.\n', 'PW-ISSUE-CREATE', { type: 'object', properties: COMMON, additionalProperties: false })
-      expect(await validateRepository(root)).toEqual([
-        `error: ${PW}/authored.yaml: PW-ISSUE-CREATE: mcp_output: is only for entries with an MCP surface (remove it)`,
-      ])
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(root)).toEqual([
+          `error: ${PW}/authored.yaml: PW-ISSUE-CREATE: mcp_output: is only for entries with an MCP surface (remove it)`,
+        ])
+      })
     })
 
     it('MCP の面を持つ項目が mcp_output を書いていないと、書くよう報告する', async () => {
       const root = await withMcpOutput('')
-      expect(await validateRepository(root)).toEqual([
-        `error: ${PT}/authored.yaml: PT-AWS-S3-LS: mcp_output: is missing (write each tool field in mcp.output, or an empty fields when it returns none)`,
-      ])
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(root)).toEqual([
+          `error: ${PT}/authored.yaml: PT-AWS-S3-LS: mcp_output: is missing (write each tool field in mcp.output, or an empty fields when it returns none)`,
+        ])
+      })
     })
 
     const NOT_CLOSED = `error: ${PT}/generated.json: PT-AWS-S3-LS: mcp.output: is not a closed type (declare every field the tool returns and set additionalProperties to false)`
 
     it('最上位が閉じていない型の項目は、止める', async () => {
       const root = await withMcpOutput('    mcp_output:\n      fields:\n        lines: The listed keys.\n', 'PT-AWS-S3-LS', { type: 'object', properties: { lines: { type: 'array' }, ...COMMON } })
-      expect(await validateRepository(root)).toEqual([NOT_CLOSED])
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(root)).toEqual([NOT_CLOSED])
+      })
     })
 
     it('anyOf の枝だけが閉じていて、最上位が閉じていない型の項目は、止める', async () => {
       const root = await withMcpOutput(EMPTY_FIELDS, 'PT-AWS-S3-LS', { type: 'object', properties: COMMON, anyOf: [{ type: 'object', properties: { lines: { type: 'array' } }, additionalProperties: false }] })
-      expect(await validateRepository(root)).toEqual([NOT_CLOSED])
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(root)).toEqual([NOT_CLOSED])
+      })
     })
   })
 
@@ -193,31 +222,39 @@ describe('validateRepository', () => {
 
     it('MCP の面を持つ項目があるプラグインで欠けていると、書くよう報告する', async () => {
       const root = await withCommon(PT, text => text.replace(FIELDS, ''))
-      expect(await validateRepository(root)).toEqual([
-        `error: ${PT}/authored.yaml: common_mcp_output: is missing (write kind, detail, log and warnings in fields)`,
-      ])
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(root)).toEqual([
+          `error: ${PT}/authored.yaml: common_mcp_output: is missing (write kind, detail, log and warnings in fields)`,
+        ])
+      })
     })
 
     it('共通の 4 項目と食い違うと、足りないキーと余るキーを報告する', async () => {
       const root = await withCommon(PT, text => text.replace('    log: The raw output of the aws command.\n', '    lines: The listed keys.\n'))
-      expect(await validateRepository(root)).toEqual([
-        `error: ${PT}/authored.yaml: common_mcp_output.fields: has "lines" that is not a common field (remove it)`,
-        `error: ${PT}/authored.yaml: common_mcp_output.fields: is missing "log"`,
-      ])
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(root)).toEqual([
+          `error: ${PT}/authored.yaml: common_mcp_output.fields: has "lines" that is not a common field (remove it)`,
+          `error: ${PT}/authored.yaml: common_mcp_output.fields: is missing "log"`,
+        ])
+      })
     })
 
     it('説明の言語が prose と違うと、報告する', async () => {
       const root = await withCommon(PT, text => text.replace('The failure kind.', '失敗の種別です。'))
-      expect(await validateRepository(root)).toEqual([
-        `error: ${PT}/authored.yaml: common_mcp_output.fields.kind: contains Japanese text (write English)`,
-      ])
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(root)).toEqual([
+          `error: ${PT}/authored.yaml: common_mcp_output.fields.kind: contains Japanese text (write English)`,
+        ])
+      })
     })
 
     it('MCP の面を持つ項目が無いプラグインに書くと、消すよう報告する', async () => {
       const root = await withCommon(PW, text => `${text}${FIELDS}`)
-      expect(await validateRepository(root)).toEqual([
-        `error: ${PW}/authored.yaml: common_mcp_output: is only for plugins with an MCP surface (remove it)`,
-      ])
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(root)).toEqual([
+          `error: ${PW}/authored.yaml: common_mcp_output: is only for plugins with an MCP surface (remove it)`,
+        ])
+      })
     })
   })
 
@@ -244,34 +281,44 @@ describe('validateRepository', () => {
     const withReference = (text: string): string => text.replace('    default_notes: {}\n', () => `${REFERENCE}    default_notes: {}\n`)
 
     it('cli.flags の名前が cli.only にあり、cli_reference.options に説明があると、何も報告しない', async () => {
-      expect(await validateRepository(await withCliOnly(CLI, withReference))).toEqual([])
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(await withCliOnly(CLI, withReference))).toEqual([])
+      })
     })
 
     it('cli_reference を持たない項目は、cli_reference.options を求めない', async () => {
-      expect(await validateRepository(await withCliOnly())).toEqual([])
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(await withCliOnly())).toEqual([])
+      })
     })
 
     it('cli.flags と cli.positional の名前が input にも cli.only にも無いと、報告する', async () => {
       const root = await withCliOnly({ ...CLI, positional: ['source', 'target'], flags: { ...CLI.flags, force: ['--force'] } })
-      expect(await validateRepository(root)).toEqual([
-        `error: ${PT}/generated.json: PT-AWS-S3-CP: cli.flags: unknown input name "force"`,
-        `error: ${PT}/generated.json: PT-AWS-S3-CP: cli.positional: unknown input name "target"`,
-      ])
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(root)).toEqual([
+          `error: ${PT}/generated.json: PT-AWS-S3-CP: cli.flags: unknown input name "force"`,
+          `error: ${PT}/generated.json: PT-AWS-S3-CP: cli.positional: unknown input name "target"`,
+        ])
+      })
     })
 
     it('cli.only の名前が input にもあるか、cli.flags に無いと、報告する', async () => {
       const root = await withCliOnly({ ...CLI, flags: { source: ['--source'] }, only: { source: { type: 'string' }, dry_run: DRY_RUN } })
-      expect(await validateRepository(root)).toEqual([
-        `error: ${PT}/generated.json: PT-AWS-S3-CP: cli.only: "dry_run" is not in cli.flags (give the CLI-only input a flag)`,
-        `error: ${PT}/generated.json: PT-AWS-S3-CP: cli.only: "source" is also in input (remove it from one; input is the MCP input)`,
-      ])
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(root)).toEqual([
+          `error: ${PT}/generated.json: PT-AWS-S3-CP: cli.only: "dry_run" is not in cli.flags (give the CLI-only input a flag)`,
+          `error: ${PT}/generated.json: PT-AWS-S3-CP: cli.only: "source" is also in input (remove it from one; input is the MCP input)`,
+        ])
+      })
     })
 
     it('cli.only の説明の言語が英語でないと、報告する', async () => {
       const root = await withCliOnly({ ...CLI, only: { dry_run: { type: 'boolean', description: '予定だけを出します。' } } })
-      expect(await validateRepository(root)).toEqual([
-        `error: ${PT}/generated.json: PT-AWS-S3-CP: cli.only.dry_run.description: contains Japanese text (write English)`,
-      ])
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(root)).toEqual([
+          `error: ${PT}/generated.json: PT-AWS-S3-CP: cli.only.dry_run.description: contains Japanese text (write English)`,
+        ])
+      })
     })
 
     it('cli.only の名前を MCP の使用例・arguments・mcp_output.fields に書くと、報告する', async () => {
@@ -279,27 +326,33 @@ describe('validateRepository', () => {
         .replace('          destination: ./a\n', '          destination: ./a\n          dry_run: true\n')
         .replace('  PT-AWS-S3-CP:\n', '  PT-AWS-S3-CP:\n    arguments:\n      dry_run: Print the plan.\n')
         .replace('    mcp_output:\n      fields: {}\n    diagnostics: default\n    environment: []\n    exit_status:\n      - kind: aws-error\n        when: The aws command exited with a non-zero status.\n    on_error: default\n    effects:\n      - target: aws\n        kind: destructive', '    mcp_output:\n      fields:\n        dry_run: The plan.\n    diagnostics: default\n    environment: []\n    exit_status:\n      - kind: aws-error\n        when: The aws command exited with a non-zero status.\n    on_error: default\n    effects:\n      - target: aws\n        kind: destructive'))
-      expect(await validateRepository(root)).toEqual([
-        `error: ${PT}/authored.yaml: PT-AWS-S3-CP: arguments: "dry_run" is in cli.only (remove it; only the CLI takes it)`,
-        `error: ${PT}/authored.yaml: PT-AWS-S3-CP: examples[0].arguments: "dry_run" is in cli.only (remove it; only the CLI takes it)`,
-        `error: ${PT}/authored.yaml: PT-AWS-S3-CP: mcp_output.fields: "dry_run" is in cli.only (remove it; only the CLI takes it)`,
-        `error: ${PT}/authored.yaml: PT-AWS-S3-CP: mcp_output.fields: has "dry_run" not in mcp.output (remove it)`,
-      ])
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(root)).toEqual([
+          `error: ${PT}/authored.yaml: PT-AWS-S3-CP: arguments: "dry_run" is in cli.only (remove it; only the CLI takes it)`,
+          `error: ${PT}/authored.yaml: PT-AWS-S3-CP: examples[0].arguments: "dry_run" is in cli.only (remove it; only the CLI takes it)`,
+          `error: ${PT}/authored.yaml: PT-AWS-S3-CP: mcp_output.fields: "dry_run" is in cli.only (remove it; only the CLI takes it)`,
+          `error: ${PT}/authored.yaml: PT-AWS-S3-CP: mcp_output.fields: has "dry_run" not in mcp.output (remove it)`,
+        ])
+      })
     })
 
     it('cli_reference を持つ項目で、cli.only の説明が options に足りないか余ると、報告する', async () => {
       const root = await withCliOnly(CLI, text => withReference(text).replace('        dry_run: Print the plan and write nothing.\n', '        force: Overwrite.\n'))
-      expect(await validateRepository(root)).toEqual([
-        `error: ${PT}/authored.yaml: PT-AWS-S3-CP: cli_reference.options: has "force" not in cli.only (remove it)`,
-        `error: ${PT}/authored.yaml: PT-AWS-S3-CP: cli_reference.options: is missing "dry_run" (present in cli.only)`,
-      ])
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(root)).toEqual([
+          `error: ${PT}/authored.yaml: PT-AWS-S3-CP: cli_reference.options: has "force" not in cli.only (remove it)`,
+          `error: ${PT}/authored.yaml: PT-AWS-S3-CP: cli_reference.options: is missing "dry_run" (present in cli.only)`,
+        ])
+      })
     })
 
     it('cli_reference.options の説明の言語が prose と違うと、報告する', async () => {
       const root = await withCliOnly(CLI, text => withReference(text).replace('dry_run: Print the plan and write nothing.', 'dry_run: 予定だけを出します。'))
-      expect(await validateRepository(root)).toEqual([
-        `error: ${PT}/authored.yaml: PT-AWS-S3-CP: cli_reference.options.dry_run: contains Japanese text (write English)`,
-      ])
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(root)).toEqual([
+          `error: ${PT}/authored.yaml: PT-AWS-S3-CP: cli_reference.options.dry_run: contains Japanese text (write English)`,
+        ])
+      })
     })
   })
 
@@ -309,13 +362,19 @@ describe('validateRepository', () => {
     const original = await readFile(file, 'utf8')
     const text = original.replace('summary: The body of a task issue.', 'summary: タスクの Issue の本文です。')
     expect(text).not.toBe(original)
-    await writeFile(file, text)
-    expect(await validateRepository(root)).toEqual([
-      `error: ${PW}/authored.yaml: pecot-template://issue/task: summary: contains Japanese text (write English)`,
-    ])
+    await step('定義書を書き換える', async () => {
+      await writeFile(file, text)
+    })
+    await step('検証して結果を比べる', async () => {
+      expect(await validateRepository(root)).toEqual([
+        `error: ${PW}/authored.yaml: pecot-template://issue/task: summary: contains Japanese text (write English)`,
+      ])
+    })
   })
 
   it('targets.json が無いと、報告する', async () => {
-    expect(await validateRepository(await materialize('empty'))).toEqual(['error: libs/interface-spec/targets.json: file is missing'])
+    await step('検証して結果を比べる', async () => {
+      expect(await validateRepository(await materialize('empty'))).toEqual(['error: libs/interface-spec/targets.json: file is missing'])
+    })
   })
 })

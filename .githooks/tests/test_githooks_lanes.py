@@ -12,6 +12,7 @@ import json
 import shlex
 from pathlib import Path
 
+import allure
 import pytest
 
 _GITHOOKS_DIR = Path(__file__).resolve().parents[1]
@@ -45,25 +46,32 @@ _BROAD_INPUTS = {
 
 
 def test_test_entry_bundles_exactly_the_lanes() -> None:
-    entry = _PROJECT["targets"]["test"]
-    assert entry["executor"] == "nx:noop"
-    assert set(entry["dependsOn"]) == set(_LANES)
+    with allure.step("githooks の project.json から test target を読む"):
+        entry = _PROJECT["targets"]["test"]
+
+    with allure.step("nx:noop で、全レーンを依存に持つことを確かめる"):
+        assert entry["executor"] == "nx:noop"
+        assert set(entry["dependsOn"]) == set(_LANES)
 
 
 def test_every_test_file_is_in_exactly_one_lane() -> None:
-    on_disk = {path.name for path in (_GITHOOKS_DIR / "tests").glob("test_*.py")}
-    listed = [name for lane in _LANES.values() for name in _command_tests(lane)]
-    assert sorted(listed) == sorted(on_disk), (
-        f"載っていない: {sorted(on_disk - set(listed))}、"
-        f"二重に載っている: {sorted({n for n in listed if listed.count(n) > 1})}"
-    )
+    with allure.step("tests/ のファイルと、レーンの command のテストを集める"):
+        on_disk = {path.name for path in (_GITHOOKS_DIR / "tests").glob("test_*.py")}
+        listed = [name for lane in _LANES.values() for name in _command_tests(lane)]
+
+    with allure.step("すべてのテストがちょうど 1 つのレーンに載ることを確かめる"):
+        assert sorted(listed) == sorted(on_disk), (
+            f"載っていない: {sorted(on_disk - set(listed))}、"
+            f"二重に載っている: {sorted({n for n in listed if listed.count(n) > 1})}"
+        )
 
 
 @pytest.mark.parametrize("lane_name", sorted(_LANES))
 def test_command_names_the_full_path_of_each_test(lane_name: str) -> None:
-    for word in _command_words(_LANES[lane_name]):
-        assert word == f".githooks/tests/{Path(word).name}", f"{lane_name}: {word}"
-        assert (_GITHOOKS_DIR.parent / word).is_file(), f"{lane_name}: {word} が無い"
+    with allure.step("レーンの command が、実在するテストのフルパスを指すことを確かめる"):
+        for word in _command_words(_LANES[lane_name]):
+            assert word == f".githooks/tests/{Path(word).name}", f"{lane_name}: {word}"
+            assert (_GITHOOKS_DIR.parent / word).is_file(), f"{lane_name}: {word} が無い"
 
 
 @pytest.mark.parametrize("lane_name", sorted(_LANES))
@@ -72,31 +80,39 @@ def test_lane_declares_narrow_inputs(lane_name: str) -> None:
 
     例外は test-checks の tests/test_*.py だけで、新しいテストのファイルを拾う。
     """
-    inputs = _LANES[lane_name]["inputs"]
-    assert not _BROAD_INPUTS & {i for i in inputs if isinstance(i, str)}
-    assert (_TEST_GLOB in inputs) == (lane_name == _GLOB_LANE)
-    assert len(inputs) == len({json.dumps(i, sort_keys=True) for i in inputs}), "重複した入力"
-    if lane_name != _GLOB_LANE:
-        for name in _command_tests(_LANES[lane_name]):
-            assert f"{{projectRoot}}/tests/{name}" in inputs, (
-                f"{lane_name} の inputs に {name} が無い"
-            )
+    with allure.step("レーンの inputs を読む"):
+        inputs = _LANES[lane_name]["inputs"]
+
+    with allure.step("広い入力が無く、重複せず、テストごとの入力があることを確かめる"):
+        assert not _BROAD_INPUTS & {i for i in inputs if isinstance(i, str)}
+        assert (_TEST_GLOB in inputs) == (lane_name == _GLOB_LANE)
+        assert len(inputs) == len({json.dumps(i, sort_keys=True) for i in inputs}), "重複した入力"
+        if lane_name != _GLOB_LANE:
+            for name in _command_tests(_LANES[lane_name]):
+                assert f"{{projectRoot}}/tests/{name}" in inputs, (
+                    f"{lane_name} の inputs に {name} が無い"
+                )
 
 
 @pytest.mark.parametrize("lane_name", sorted(_LANES))
 def test_lane_waits_for_the_shared_install(lane_name: str) -> None:
-    assert {"projects": ["pecot"], "target": "install"} in _LANES[lane_name]["dependsOn"]
+    with allure.step("レーンが共有の install を待つことを確かめる"):
+        assert {"projects": ["pecot"], "target": "install"} in _LANES[lane_name]["dependsOn"]
 
 
 def test_checks_lane_waits_for_the_text_rules_build() -> None:
     """test_check_text.py が使う libs/text-rules/dist を、text-rules:build が用意する。"""
-    assert {"projects": ["text-rules"], "target": "build"} in _LANES["test-checks"]["dependsOn"]
+    with allure.step("test-checks が text-rules の build を待つことを確かめる"):
+        assert {"projects": ["text-rules"], "target": "build"} in _LANES["test-checks"]["dependsOn"]
 
 
 @pytest.mark.parametrize("lane_name", sorted(_LANES))
 def test_lane_uses_the_shared_inputs(lane_name: str) -> None:
-    inputs = _LANES[lane_name]["inputs"]
-    assert "githooksTestGlobals" in inputs
-    assert ("githooksGraphInputs" in inputs) == (
-        lane_name in {"test-nx-cache", "test-nx-affected", "test-checks"}
-    )
+    with allure.step("レーンの inputs を読む"):
+        inputs = _LANES[lane_name]["inputs"]
+
+    with allure.step("共通の入力を使うことを確かめる"):
+        assert "githooksTestGlobals" in inputs
+        assert ("githooksGraphInputs" in inputs) == (
+            lane_name in {"test-nx-cache", "test-nx-affected", "test-checks"}
+        )

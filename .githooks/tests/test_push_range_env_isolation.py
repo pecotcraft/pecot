@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-
+import allure
 from attach import run_attached  # noqa: E402
 
 # git に存在しない 40 桁の sha。
@@ -31,27 +31,29 @@ _BLOCK_CASE = "test_check_version_plan_required.py::test_01_block_no_plan"
 
 def test_block_case_passes_with_push_range_env_set() -> None:
     """PECOT_VERSION_PLAN_BASE が親から引き継がれていても、block 系のケースが通る。"""
-    tests_dir = Path(__file__).resolve().parent
-    env = {**os.environ, "PECOT_VERSION_PLAN_BASE": _MISSING_SHA}
-    result = run_attached(
-        [
-            sys.executable,
-            "-m",
-            "pytest",
-            str(tests_dir / _BLOCK_CASE),
-            "-q",
-            "--import-mode=importlib",
-            "-p",
-            "no:cacheprovider",
-            "-p",
-            "no:xdist",
-        ],
-        cwd=tests_dir,
-        env=env,
-        capture_output=True,
-        text=True,
-        timeout=120,
-        check=False,
-    )
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "1 passed" in result.stdout
+    with allure.step("PECOT_VERSION_PLAN_BASE を設定した環境で pytest を子として動かす"):
+        tests_dir = Path(__file__).resolve().parent
+        env = {**os.environ, "PECOT_VERSION_PLAN_BASE": _MISSING_SHA}
+        result = run_attached(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                str(tests_dir / _BLOCK_CASE),
+                "-q",
+                "--import-mode=importlib",
+                "-p",
+                "no:cacheprovider",
+                "-p",
+                "no:xdist",
+            ],
+            cwd=tests_dir,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+    with allure.step("終了コードと通過の件数を確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "1 passed" in result.stdout

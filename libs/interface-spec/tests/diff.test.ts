@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { diffGenerated, formatStale } from '../src/domain/diff.js'
 import { generatedFileSchema } from '../src/domain/schema.js'
 import type { GeneratedFile } from '../src/domain/schema.js'
+import { stepSync } from '../src/vitest/step.js'
 
 const NAMES = { separator: ' ', positions: [[{ word: 'issue', meaning: 'Issue' }], [{ word: 'show', meaning: 'show one', read_only: true }]], rest: false }
 
@@ -19,36 +20,46 @@ function entry(id: string, input: object, extra: object = {}): object {
 describe('diffGenerated', () => {
   it('同じ内容のファイルのとき、何も返さない', () => {
     const same = file([entry('PW-A', { a: { type: 'string' } })])
-    expect(diffGenerated(same, same)).toEqual([])
+    stepSync('差分を求めて比べる', () => {
+      expect(diffGenerated(same, same)).toEqual([])
+    })
   })
 
   it('プロパティの追加・default の変更・削除があると、それぞれ名前を出す', () => {
     const before = file([entry('PW-ISSUE-CREATE', { draft: { type: 'boolean', default: false }, gone: { type: 'string' } })])
     const after = file([entry('PW-ISSUE-CREATE', { draft: { type: 'boolean', default: true }, label: { type: 'string' } })])
-    expect(diffGenerated(before, after)).toEqual([
-      'PW-ISSUE-CREATE: input.properties.draft.default: false -> true',
-      'PW-ISSUE-CREATE: input.properties.gone: removed',
-      'PW-ISSUE-CREATE: input.properties.label: added',
-    ])
+    stepSync('差分を求めて比べる', () => {
+      expect(diffGenerated(before, after)).toEqual([
+        'PW-ISSUE-CREATE: input.properties.draft.default: false -> true',
+        'PW-ISSUE-CREATE: input.properties.gone: removed',
+        'PW-ISSUE-CREATE: input.properties.label: added',
+      ])
+    })
   })
 
   it('項目の追加と削除があると、id の順に名前を出す', () => {
     const before = file([entry('PW-B', {}), entry('PW-C', {})])
     const after = file([entry('PW-A', {}), entry('PW-B', {})])
-    expect(diffGenerated(before, after)).toEqual(['PW-A: entry: added', 'PW-C: entry: removed'])
+    stepSync('差分を求めて比べる', () => {
+      expect(diffGenerated(before, after)).toEqual(['PW-A: entry: added', 'PW-C: entry: removed'])
+    })
   })
 
   it('配列の要素を比べるとき、添字で対応づける', () => {
     const before = file([entry('PW-A', {}, { surfaces: { cli: { path: ['a', 'b'] } } })])
     const after = file([entry('PW-A', {}, { surfaces: { cli: { path: ['a', 'c', 'd'] } } })])
-    expect(diffGenerated(before, after)).toEqual(['PW-A: surfaces.cli.path[1]: "b" -> "c"', 'PW-A: surfaces.cli.path[2]: added'])
-    expect(diffGenerated(after, before)).toEqual(['PW-A: surfaces.cli.path[1]: "c" -> "b"', 'PW-A: surfaces.cli.path[2]: removed'])
+    stepSync('差分を求めて比べる', () => {
+      expect(diffGenerated(before, after)).toEqual(['PW-A: surfaces.cli.path[1]: "b" -> "c"', 'PW-A: surfaces.cli.path[2]: added'])
+      expect(diffGenerated(after, before)).toEqual(['PW-A: surfaces.cli.path[1]: "c" -> "b"', 'PW-A: surfaces.cli.path[2]: removed'])
+    })
   })
 
   it('値の型が変わると、報告する', () => {
     const before = file([entry('PW-A', { a: { type: 'string', default: 1 } })])
     const after = file([entry('PW-A', { a: { type: 'string', default: [1] } })])
-    expect(diffGenerated(before, after)).toEqual(['PW-A: input.properties.a.default: 1 -> [1]'])
+    stepSync('差分を求めて比べる', () => {
+      expect(diffGenerated(before, after)).toEqual(['PW-A: input.properties.a.default: 1 -> [1]'])
+    })
   })
 
   it('CLI だけの入力の増減と変更があると、cli.only の欄のパスで報告する', () => {
@@ -56,23 +67,31 @@ describe('diffGenerated', () => {
     const none = file([entry('PW-A', {}, cli(undefined))])
     const boolean = file([entry('PW-A', {}, cli({ dry_run: { type: 'boolean' } }))])
     const described = file([entry('PW-A', {}, cli({ dry_run: { type: 'boolean', description: 'Plan only.' } }))])
-    expect(diffGenerated(none, boolean)).toEqual(['PW-A: cli.only: added'])
-    expect(diffGenerated(boolean, none)).toEqual(['PW-A: cli.only: removed'])
-    expect(diffGenerated(boolean, described)).toEqual(['PW-A: cli.only.dry_run.description: added'])
+    stepSync('差分を求めて比べる', () => {
+      expect(diffGenerated(none, boolean)).toEqual(['PW-A: cli.only: added'])
+      expect(diffGenerated(boolean, none)).toEqual(['PW-A: cli.only: removed'])
+      expect(diffGenerated(boolean, described)).toEqual(['PW-A: cli.only.dry_run.description: added'])
+    })
     const two = file([entry('PW-A', {}, cli({ dry_run: { type: 'boolean' }, force: { type: 'boolean' } }))])
-    expect(diffGenerated(boolean, two)).toEqual(['PW-A: cli.only.force: added'])
+    stepSync('差分を求めて比べる', () => {
+      expect(diffGenerated(boolean, two)).toEqual(['PW-A: cli.only.force: added'])
+    })
   })
 
   it('ファイルの先頭部が変わると、報告する', () => {
-    expect(diffGenerated(file([]), file([], { prefix: 'PV' }))).toEqual(['file: prefix: "PW" -> "PV"'])
+    stepSync('差分を求めて比べる', () => {
+      expect(diffGenerated(file([]), file([], { prefix: 'PV' }))).toEqual(['file: prefix: "PW" -> "PV"'])
+    })
   })
 
   it('語彙の語の追加と読むだけの印の削除があると、names の欄のパスで報告する', () => {
     const after = { ...NAMES, positions: [[{ word: 'issue', meaning: 'Issue' }, { word: 'pr', meaning: 'PR' }], [{ word: 'show', meaning: 'show one' }]] }
-    expect(diffGenerated(file([]), file([], { names: after }))).toEqual([
-      'file: names.positions[0][1]: added',
-      'file: names.positions[1][0].read_only: removed',
-    ])
+    stepSync('差分を求めて比べる', () => {
+      expect(diffGenerated(file([]), file([], { names: after }))).toEqual([
+        'file: names.positions[0][1]: added',
+        'file: names.positions[1][0].read_only: removed',
+      ])
+    })
   })
 })
 
@@ -82,26 +101,32 @@ describe('diffGenerated の resources', () => {
   it('resources の追加・変更・削除を、file の行で報告する', () => {
     const before = file([], { resources: [RESOURCE] })
     const after = file([], { resources: [{ ...RESOURCE, mimeType: 'text/plain' }, { uri: 'pecot-template://pr/default', name: 'pr-default' }] })
-    expect(diffGenerated(before, after)).toEqual([
-      'file: resources[0].mimeType: "text/markdown" -> "text/plain"',
-      'file: resources[1]: added',
-    ])
-    expect(diffGenerated(before, file([]))).toEqual(['file: resources[0]: removed'])
-    expect(diffGenerated(file([]), before)).toEqual(['file: resources[0]: added'])
+    stepSync('差分を求めて比べる', () => {
+      expect(diffGenerated(before, after)).toEqual([
+        'file: resources[0].mimeType: "text/markdown" -> "text/plain"',
+        'file: resources[1]: added',
+      ])
+      expect(diffGenerated(before, file([]))).toEqual(['file: resources[0]: removed'])
+      expect(diffGenerated(file([]), before)).toEqual(['file: resources[0]: added'])
+    })
   })
 })
 
 describe('formatStale', () => {
   it('差の行を字下げして error の行と run の行で挟む', () => {
-    expect(formatStale('plugins/x/interface/generated.json', ['PW-A: entry: added', 'PW-B: entry: removed'], 'do --write')).toEqual([
-      'error: plugins/x/interface/generated.json is stale',
-      '  PW-A: entry: added',
-      '  PW-B: entry: removed',
-      '  run: do --write',
-    ])
+    stepSync('stale の行を整えて比べる', () => {
+      expect(formatStale('plugins/x/interface/generated.json', ['PW-A: entry: added', 'PW-B: entry: removed'], 'do --write')).toEqual([
+        'error: plugins/x/interface/generated.json is stale',
+        '  PW-A: entry: added',
+        '  PW-B: entry: removed',
+        '  run: do --write',
+      ])
+    })
   })
 
   it('差の行が無くても error の行と run の行を返す', () => {
-    expect(formatStale('f.json', [], 'cmd')).toEqual(['error: f.json is stale', '  run: cmd'])
+    stepSync('stale の行を整えて比べる', () => {
+      expect(formatStale('f.json', [], 'cmd')).toEqual(['error: f.json is stale', '  run: cmd'])
+    })
   })
 })

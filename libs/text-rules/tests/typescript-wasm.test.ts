@@ -4,6 +4,7 @@ import { buildDescriptor } from '../lib/descriptor.js'
 import { main } from '../lib/main.js'
 import type { IgnoreCheck, MainDependencies } from '../lib/main.js'
 import { typescriptStrings } from '../lib/plugins/typescript.js'
+import { step, stepSync } from '../../interface-spec/src/vitest/step.js'
 
 // wasm の置き場を解決できない環境を、comments plugin の package.json の解決だけを失敗させて作る。
 vi.mock('node:module', async (importOriginal) => {
@@ -23,12 +24,14 @@ vi.mock('node:module', async (importOriginal) => {
 
 describe('typescript plugin: wasm の置き場の解決', () => {
   it('解決はモジュールの読み込みでなく、最初の解析で行い、失敗は呼び出し側へ返す', async () => {
-    await expect(typescriptStrings('typescript')('const a = 1\n')).rejects.toThrow('wasm の置き場を解決できません')
+    await step('wasm の解決に失敗する解析を動かし、失敗を比べる', async () => {
+      await expect(typescriptStrings('typescript')('const a = 1\n')).rejects.toThrow('wasm の置き場を解決できません')
+    })
   })
 
   it('解決に失敗したら、違反ありの 1 ではなく実行失敗の 2 を返す', async () => {
     const stderr: string[] = []
-    const code = await main(['a.ts'], {
+    const code = await step('規則にかける', () => main(['a.ts'], {
       descriptor: buildDescriptor,
       readFile: () => Promise.resolve('const a = 1\n'),
       ignoreCheck: vi.fn<MainDependencies['ignoreCheck']>().mockResolvedValue(vi.fn<IgnoreCheck>().mockResolvedValue(false)),
@@ -36,9 +39,11 @@ describe('typescript plugin: wasm の置き場の解決', () => {
       stderr: (text) => {
         stderr.push(text)
       },
+    }))
+    stepSync('結果を比べる', () => {
+      expect(code).toBe(2)
+      expect(stderr).toHaveLength(1)
+      expect(stderr[0]).toMatch(/^pecot-text-lint: a\.ts: .*wasm の置き場を解決できません.*\n$/)
     })
-    expect(code).toBe(2)
-    expect(stderr).toHaveLength(1)
-    expect(stderr[0]).toMatch(/^pecot-text-lint: a\.ts: .*wasm の置き場を解決できません.*\n$/)
   })
 })

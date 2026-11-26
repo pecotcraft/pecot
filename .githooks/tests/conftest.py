@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -21,6 +22,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import cast
 
+import allure
 import pytest
 
 # pre-push 配下の GIT_* が temp repo の git 操作へ漏れるのを防ぐため、autouse の fixture が GIT_ 始まりを一括で剥がす。
@@ -85,8 +87,6 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     labels = {label: config.getini(name) for name, label in _REPORT_LABELS.items()}
     if not any(labels.values()):
         return
-    import allure  # run.sh が allure-pytest を入れたときだけ読む
-
     # allure.label は型を持たない。allure-pytest では pytest の印を返す。
     mark = cast("Callable[[str, str], pytest.MarkDecorator]", allure.label)  # pyright: ignore[reportUnknownMemberType]
     for item in items:
@@ -158,6 +158,10 @@ def git_repo(tmp_path: Path) -> Callable[..., Path]:
     """
 
     def _make(name: str = "repo", *, initial_branch: str | None = None) -> Path:
+        with allure.step(f"git のリポ {name} を用意する"):
+            return _init(name, initial_branch)
+
+    def _init(name: str, initial_branch: str | None) -> Path:
         repo_dir = tmp_path / name
         repo_dir.mkdir(parents=True, exist_ok=True)
         init_cmd = ["git", "init", "-q"]
@@ -200,6 +204,16 @@ def _run_attached() -> Callable[..., subprocess.CompletedProcess]:
 # そのため fixture として公開し、各テストへ callable を注入する。
 
 
+_SHA = re.compile(r"[0-9a-f]{40}")
+
+
+def _step_arg(arg: str) -> str:
+    # 実行ごとに変わる値を step の名前から外す。SHA は伏せ、一時のパスは末尾の名前だけにする
+    if _SHA.fullmatch(arg):
+        return "<SHA>"
+    return Path(arg).name if os.path.isabs(arg) else arg
+
+
 @pytest.fixture
 def git() -> Callable[..., subprocess.CompletedProcess]:
     """`git <args...>` を repo_dir で実行して CompletedProcess を返す callable。"""
@@ -207,13 +221,14 @@ def git() -> Callable[..., subprocess.CompletedProcess]:
     run_attached = _run_attached()
 
     def _git(repo_dir: Path, *args: str) -> subprocess.CompletedProcess:
-        return run_attached(
-            ["git", "-c", "commit.gpgsign=false", *args],
-            cwd=repo_dir,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
+        with allure.step(f"git {' '.join(map(_step_arg, args))} を打つ"):
+            return run_attached(
+                ["git", "-c", "commit.gpgsign=false", *args],
+                cwd=repo_dir,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
 
     return _git
 
@@ -268,13 +283,14 @@ def git_rev_parse() -> Callable[..., str]:
     """`git rev-parse <ref>` の結果（SHA）を返す callable。"""
 
     def _rev_parse(repo_dir: Path, ref: str = "HEAD") -> str:
-        return subprocess.run(
-            ["git", "rev-parse", ref],
-            cwd=repo_dir,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
+        with allure.step(f"{_step_arg(ref)} のコミットを読む"):
+            return subprocess.run(
+                ["git", "rev-parse", ref],
+                cwd=repo_dir,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
 
     return _rev_parse
 
@@ -331,14 +347,15 @@ def run_script() -> Callable[..., subprocess.CompletedProcess]:
         kwargs: dict = {}
         if env is not None:
             kwargs["env"] = {**os.environ, **env}
-        return run_attached(
-            ["bash", str(script), *args],
-            input=stdin,
-            capture_output=True,
-            text=True,
-            cwd=cwd,
-            timeout=25,
-            **kwargs,
-        )
+        with allure.step(f"{Path(script).name} を動かす"):
+            return run_attached(
+                ["bash", str(script), *args],
+                input=stdin,
+                capture_output=True,
+                text=True,
+                cwd=cwd,
+                timeout=25,
+                **kwargs,
+            )
 
     return _run

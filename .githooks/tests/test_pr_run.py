@@ -8,6 +8,7 @@ import re
 import sys
 from pathlib import Path
 
+import allure
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -61,14 +62,18 @@ def call(tmp_path: Path, githooks_dir: Path):
     ],
 )
 def test_pr_number_from_head_ref(call, head_ref: str) -> None:
-    r = call(f'pr_number_from_head_ref "{head_ref}"')
-    assert (r.returncode, r.stdout) == (0, "7\n")
+    with allure.step("シェルの関数 pr_number_from_head_ref を呼ぶ"):
+        r = call(f'pr_number_from_head_ref "{head_ref}"')
+    with allure.step("終了コードと PR 番号を確かめる"):
+        assert (r.returncode, r.stdout) == (0, "7\n")
 
 
 @pytest.mark.parametrize("head_ref", ["", "refs/heads/other", "gh-readonly-queue/main/pr-x-abc"])
 def test_pr_number_from_head_ref_unreadable(call, head_ref: str) -> None:
-    r = call(f'pr_number_from_head_ref "{head_ref}"')
-    assert (r.returncode, r.stdout) == (1, "")
+    with allure.step("シェルの関数 pr_number_from_head_ref を呼ぶ"):
+        r = call(f'pr_number_from_head_ref "{head_ref}"')
+    with allure.step("終了コードと空の出力を確かめる"):
+        assert (r.returncode, r.stdout) == (1, "")
 
 
 def _pull(sha: str, head_repo: str | None) -> dict:
@@ -76,25 +81,31 @@ def _pull(sha: str, head_repo: str | None) -> dict:
 
 
 def test_pr_load_head_same_repo(call) -> None:
-    r = call(
-        f'pr_load_head {REPO} 7; echo "$? $PR_HEAD_SHA $PR_HEAD_REPO"',
-        api={f"repos/{REPO}/pulls/7": _pull("abc", REPO)},
-    )
-    assert r.stdout == f"0 abc {REPO}\n"
+    with allure.step("偽の gh を使って pr_load_head を呼ぶ"):
+        r = call(
+            f'pr_load_head {REPO} 7; echo "$? $PR_HEAD_SHA $PR_HEAD_REPO"',
+            api={f"repos/{REPO}/pulls/7": _pull("abc", REPO)},
+        )
+    with allure.step("出力が同じリポの head であることを確かめる"):
+        assert r.stdout == f"0 abc {REPO}\n"
 
 
 @pytest.mark.parametrize("head_repo", ["evil/r", None])
 def test_pr_load_head_fork_or_deleted_repo(call, head_repo: str | None) -> None:
-    r = call(
-        'pr_load_head o/r 7; echo "$?"',
-        api={f"repos/{REPO}/pulls/7": _pull("abc", head_repo)},
-    )
-    assert r.stdout == "2\n"
+    with allure.step("偽の gh を使って pr_load_head を呼ぶ"):
+        r = call(
+            'pr_load_head o/r 7; echo "$?"',
+            api={f"repos/{REPO}/pulls/7": _pull("abc", head_repo)},
+        )
+    with allure.step("出力がフォークまたは削除済みを示すことを確かめる"):
+        assert r.stdout == "2\n"
 
 
 def test_pr_load_head_api_failure(call) -> None:
-    r = call('pr_load_head o/r 7; echo "$?"')
-    assert r.stdout == "1\n"
+    with allure.step("API が失敗する偽の gh で pr_load_head を呼ぶ"):
+        r = call('pr_load_head o/r 7; echo "$?"')
+    with allure.step("失敗を示す出力を確かめる"):
+        assert r.stdout == "1\n"
 
 
 @pytest.mark.parametrize(
@@ -109,5 +120,7 @@ def test_pr_load_head_api_failure(call) -> None:
     ],
 )
 def test_pr_run_is_for_pr(call, run: dict, expected: int) -> None:
-    r = call("pr_run_is_for_pr 7; echo $?", stdin=json.dumps(run))
-    assert r.stdout == f"{expected}\n"
+    with allure.step("標準入力の run の JSON で pr_run_is_for_pr を呼ぶ"):
+        r = call("pr_run_is_for_pr 7; echo $?", stdin=json.dumps(run))
+    with allure.step("終了コードの出力を期待値と比べる"):
+        assert r.stdout == f"{expected}\n"

@@ -11,6 +11,7 @@ import json
 from collections.abc import Callable
 from pathlib import Path
 
+import allure
 import pytest
 
 EXPECTED = "^24.22.1 || >=26.12.1"
@@ -39,56 +40,71 @@ def _make_pkg(git, repo: Path, rel: str, node_value: str) -> None:
 
 def test_all_expected_passes(script_dir: Path, drift_repo: Path, run_script, git) -> None:
     """(a) 全 package.json が期待値 → exit 0。"""
-    _make_pkg(git, drift_repo, "assets/slidev", EXPECTED)
-    _make_pkg(git, drift_repo, "assets/slidev/runtime", EXPECTED)
-    # glob は plugins/pecot-visual/** 全体。assets/ 配下に限らず、任意の深さの
-    # package.json が対象に含まれる（nested/deck は合成パス）。
-    _make_pkg(git, drift_repo, "nested/deck", EXPECTED)
-    result = run_script(script_dir / "check-engines-node-drift.sh", cwd=drift_repo)
-    assert result.returncode == 0
+    with allure.step("期待値の package.json を 3 つ用意して hook を動かす"):
+        _make_pkg(git, drift_repo, "assets/slidev", EXPECTED)
+        _make_pkg(git, drift_repo, "assets/slidev/runtime", EXPECTED)
+        # glob は plugins/pecot-visual/** 全体。assets/ 配下に限らず、任意の深さの
+        # package.json が対象に含まれる（nested/deck は合成パス）。
+        _make_pkg(git, drift_repo, "nested/deck", EXPECTED)
+        result = run_script(script_dir / "check-engines-node-drift.sh", cwd=drift_repo)
+
+    with allure.step("終了コード 0 を確かめる"):
+        assert result.returncode == 0
 
 
 def test_one_drift_fails_with_got(script_dir: Path, drift_repo: Path, run_script, git) -> None:
     """(b) 1 ファイル ">=22.6.0" → exit 1, got 表記を含む。"""
-    _make_pkg(git, drift_repo, "assets/slidev", ">=22.6.0")
-    _make_pkg(git, drift_repo, "assets/slidev/runtime", EXPECTED)
-    result = run_script(script_dir / "check-engines-node-drift.sh", cwd=drift_repo)
-    assert result.returncode == 1
-    out = result.stdout + result.stderr
-    assert (
-        f'plugins/pecot-visual/assets/slidev/package.json: expected "{EXPECTED}", got ">=22.6.0"'
-        in out
-    )
-    assert "allow-list 機構はありません" in out
+    with allure.step("1 つだけ違う版の package.json を用意して hook を動かす"):
+        _make_pkg(git, drift_repo, "assets/slidev", ">=22.6.0")
+        _make_pkg(git, drift_repo, "assets/slidev/runtime", EXPECTED)
+        result = run_script(script_dir / "check-engines-node-drift.sh", cwd=drift_repo)
+
+    with allure.step("終了コード 1 と got の表記を確かめる"):
+        assert result.returncode == 1
+        out = result.stdout + result.stderr
+        assert (
+            f'plugins/pecot-visual/assets/slidev/package.json: expected "{EXPECTED}", got ">=22.6.0"'
+            in out
+        )
+        assert "allow-list 機構はありません" in out
 
 
 def test_missing_engines_fails(script_dir: Path, drift_repo: Path, run_script, git) -> None:
     """(c) engines キー欠落 → exit 1, missing engines.node を含む。"""
-    _make_pkg(git, drift_repo, "assets/slidev", "MISSING")
-    result = run_script(script_dir / "check-engines-node-drift.sh", cwd=drift_repo)
-    assert result.returncode == 1
-    assert "missing engines.node" in (result.stdout + result.stderr)
+    with allure.step("engines の無い package.json を用意して hook を動かす"):
+        _make_pkg(git, drift_repo, "assets/slidev", "MISSING")
+        result = run_script(script_dir / "check-engines-node-drift.sh", cwd=drift_repo)
+
+    with allure.step("終了コード 1 と missing engines.node の表示を確かめる"):
+        assert result.returncode == 1
+        assert "missing engines.node" in (result.stdout + result.stderr)
 
 
 def test_two_violations_both_reported(script_dir: Path, drift_repo: Path, run_script, git) -> None:
     """(d) 2 ファイル違反 → exit 1, 両方が出力に含まれる。"""
-    _make_pkg(git, drift_repo, "assets/slidev", ">=22.6.0")
-    _make_pkg(git, drift_repo, "assets/slidev/runtime", ">=20.0.0")
-    result = run_script(script_dir / "check-engines-node-drift.sh", cwd=drift_repo)
-    assert result.returncode == 1
-    out = result.stdout + result.stderr
-    assert "plugins/pecot-visual/assets/slidev/package.json" in out
-    assert "plugins/pecot-visual/assets/slidev/runtime/package.json" in out
+    with allure.step("2 つの package.json を違う版にして hook を動かす"):
+        _make_pkg(git, drift_repo, "assets/slidev", ">=22.6.0")
+        _make_pkg(git, drift_repo, "assets/slidev/runtime", ">=20.0.0")
+        result = run_script(script_dir / "check-engines-node-drift.sh", cwd=drift_repo)
+
+    with allure.step("両方の違反が出力に出ることを確かめる"):
+        assert result.returncode == 1
+        out = result.stdout + result.stderr
+        assert "plugins/pecot-visual/assets/slidev/package.json" in out
+        assert "plugins/pecot-visual/assets/slidev/runtime/package.json" in out
 
 
 def test_node_modules_violation_ignored(
     script_dir: Path, drift_repo: Path, run_script, git
 ) -> None:
     """(e) node_modules/ 配下違反は exit 0（glob 対象外）。"""
-    _make_pkg(git, drift_repo, "assets/slidev", EXPECTED)
-    nm = drift_repo / "plugins/pecot-visual/assets/slidev/node_modules/foo/package.json"
-    nm.parent.mkdir(parents=True, exist_ok=True)
-    nm.write_text(json.dumps({"name": "foo", "engines": {"node": ">=18"}}, indent=2) + "\n")
-    git(drift_repo, "add", "-f", str(nm.relative_to(drift_repo)))
-    result = run_script(script_dir / "check-engines-node-drift.sh", cwd=drift_repo)
-    assert result.returncode == 0
+    with allure.step("node_modules 配下に違う版の package.json を置いて hook を動かす"):
+        _make_pkg(git, drift_repo, "assets/slidev", EXPECTED)
+        nm = drift_repo / "plugins/pecot-visual/assets/slidev/node_modules/foo/package.json"
+        nm.parent.mkdir(parents=True, exist_ok=True)
+        nm.write_text(json.dumps({"name": "foo", "engines": {"node": ">=18"}}, indent=2) + "\n")
+        git(drift_repo, "add", "-f", str(nm.relative_to(drift_repo)))
+        result = run_script(script_dir / "check-engines-node-drift.sh", cwd=drift_repo)
+
+    with allure.step("終了コード 0（対象外）を確かめる"):
+        assert result.returncode == 0

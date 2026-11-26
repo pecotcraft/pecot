@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { frontmatterOf, jsonStrings, pythonStrings, shellStrings, yamlStrings } from '../lib/plugins/scan.js'
 import type { Segment } from '../lib/plugins/scan.js'
+import { stepSync } from '../../interface-spec/src/vitest/step.js'
 
 type Scanner = (text: string) => readonly Segment[]
 
@@ -13,7 +14,9 @@ function bodiesOf(scanner: Scanner, text: string): string[] {
 
 function check(scanner: Scanner, rows: readonly Row[]): void {
   it.each(rows)('%s のとき、引用符を含まない本文だけを切り出す', (_name, input, bodies) => {
-    expect(bodiesOf(scanner, input)).toEqual(bodies)
+    stepSync('文字列の本文を切り出して比べる', () => {
+      expect(bodiesOf(scanner, input)).toEqual(bodies)
+    })
   })
 }
 
@@ -131,27 +134,39 @@ function split(text: string): { values: string[], rest: string } | undefined {
 
 describe('frontmatterOf', () => {
   it('値ごとに分け、閉じた --- より後を rest にする', () => {
-    expect(split('---\ntitle: あ\ntype: "い"\n---\n\n本文\n')).toEqual({ values: ['あ', 'い'], rest: '\n本文\n' })
+    stepSync('frontmatter を分けて比べる', () => {
+      expect(split('---\ntitle: あ\ntype: "い"\n---\n\n本文\n')).toEqual({ values: ['あ', 'い'], rest: '\n本文\n' })
+    })
   })
 
   it('キーは除く', () => {
-    expect(split('---\nあ: い\n---')).toEqual({ values: ['い'], rest: '' })
+    stepSync('frontmatter を分けて比べる', () => {
+      expect(split('---\nあ: い\n---')).toEqual({ values: ['い'], rest: '' })
+    })
   })
 
   it('インデントを除いて読み、複数行の値を元の位置で切り出す', () => {
-    expect(split('  ---\n  x: あ\n    い\n\n  y: う\n  ---\n')).toEqual({ values: ['あ\n    い', 'う'], rest: '' })
+    stepSync('frontmatter を分けて比べる', () => {
+      expect(split('  ---\n  x: あ\n    い\n\n  y: う\n  ---\n')).toEqual({ values: ['あ\n    い', 'う'], rest: '' })
+    })
   })
 
   it('先頭の空行を読み飛ばす', () => {
-    expect(split('\n\n---\nx: あ\n---\n')).toEqual({ values: ['あ'], rest: '' })
+    stepSync('frontmatter を分けて比べる', () => {
+      expect(split('\n\n---\nx: あ\n---\n')).toEqual({ values: ['あ'], rest: '' })
+    })
   })
 
   it('値のブロックスカラーは指示子の行を除いた本文を返す', () => {
-    expect(split('---\nx: |\n  あ\n---\n')).toEqual({ values: ['  あ'], rest: '' })
+    stepSync('frontmatter を分けて比べる', () => {
+      expect(split('---\nx: |\n  あ\n---\n')).toEqual({ values: ['  あ'], rest: '' })
+    })
   })
 
   it('空の frontmatter は値を持たず、後ろは rest にする', () => {
-    expect(split('---\n---\nあ')).toEqual({ values: [], rest: 'あ' })
+    stepSync('frontmatter を分けて比べる', () => {
+      expect(split('---\n---\nあ')).toEqual({ values: [], rest: 'あ' })
+    })
   })
 
   it.each([
@@ -160,6 +175,8 @@ describe('frontmatterOf', () => {
     ['空の本文', ''],
     ['構文エラー', ['---\nx: [', 'あ\n---\n'].join('')],
   ])('%s ときは undefined', (_name, text) => {
-    expect(split(text)).toBeUndefined()
+    stepSync('frontmatter を分け、undefined かを比べる', () => {
+      expect(split(text)).toBeUndefined()
+    })
   })
 })

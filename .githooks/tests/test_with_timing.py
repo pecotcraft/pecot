@@ -17,6 +17,7 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 
+import allure
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -72,10 +73,11 @@ def _rows(repo: Path) -> list[list[str]]:
 def test_propagates_child_exit_code(script_dir: Path, run_script, repo: Path, code: int) -> None:
     """子の exit code をそのまま返し、補足列にも rc=<n> で残す。"""
     result = _wrap(script_dir, run_script, repo, exit_code=code)
-    assert result.returncode == code
-    rows = _rows(repo)
-    assert len(rows) == 1
-    assert rows[0][4] == f"rc={code}"
+    with allure.step("終了コードと記録の行を確かめる"):
+        assert result.returncode == code
+        rows = _rows(repo)
+        assert len(rows) == 1
+        assert rows[0][4] == f"rc={code}"
 
 
 def test_passes_args_and_stdin_through(script_dir: Path, run_script, repo: Path) -> None:
@@ -83,29 +85,32 @@ def test_passes_args_and_stdin_through(script_dir: Path, run_script, repo: Path)
     result = _wrap(
         script_dir, run_script, repo, "probe-hook", "one", "two words", stdin="from-stdin\n"
     )
-    assert result.returncode == 0
-    assert result.stdout == "ARG:one\nARG:two words\nfrom-stdin\n"
+    with allure.step("終了コードと子の出力を確かめる"):
+        assert result.returncode == 0
+        assert result.stdout == "ARG:one\nARG:two words\nfrom-stdin\n"
 
 
 def test_hook_row_format(script_dir: Path, run_script, repo: Path) -> None:
     """hook 行は 5 列: 時刻 / hook / hook id / 秒（小数 1 桁）/ rc=<n>。"""
     _wrap(script_dir, run_script, repo, "nx-affected-lint")
     rows = _rows(repo)
-    assert len(rows) == 1
-    ts, kind, name, sec, detail = rows[0]
-    assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4}", ts)
-    assert kind == "hook"
-    assert name == "nx-affected-lint"
-    assert re.fullmatch(r"\d+\.\d", sec)
-    assert detail == "rc=0"
+    with allure.step("記録の行の各列の形を確かめる"):
+        assert len(rows) == 1
+        ts, kind, name, sec, detail = rows[0]
+        assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4}", ts)
+        assert kind == "hook"
+        assert name == "nx-affected-lint"
+        assert re.fullmatch(r"\d+\.\d", sec)
+        assert detail == "rc=0"
 
 
 def test_one_row_per_invocation(script_dir: Path, run_script, repo: Path) -> None:
     """起動 1 回につき 1 行だけ追記する（2 回で 2 行）。"""
     _wrap(script_dir, run_script, repo, "first")
-    assert [r[2] for r in _rows(repo)] == ["first"]
-    _wrap(script_dir, run_script, repo, "second", exit_code=1)
-    assert [(r[2], r[4]) for r in _rows(repo)] == [("first", "rc=0"), ("second", "rc=1")]
+    with allure.step("1 回目の記録の行を確かめる"):
+        assert [r[2] for r in _rows(repo)] == ["first"]
+        _wrap(script_dir, run_script, repo, "second", exit_code=1)
+        assert [(r[2], r[4]) for r in _rows(repo)] == [("first", "rc=0"), ("second", "rc=1")]
 
 
 def test_unwritable_record_keeps_exit_code(script_dir: Path, run_script, repo: Path) -> None:
@@ -113,10 +118,11 @@ def test_unwritable_record_keeps_exit_code(script_dir: Path, run_script, repo: P
     (repo / ".pecot").mkdir()
     (repo / ".pecot" / "tmp").write_text("blocker\n")
     result = _wrap(script_dir, run_script, repo, exit_code=3, stdin="x\n")
-    assert result.returncode == 3
-    assert result.stdout == "x\n"
-    assert result.stderr == ""
-    assert (repo / ".pecot" / "tmp").is_file()
+    with allure.step("終了コードと出力と塞いだファイルを確かめる"):
+        assert result.returncode == 3
+        assert result.stdout == "x\n"
+        assert result.stderr == ""
+        assert (repo / ".pecot" / "tmp").is_file()
 
 
 def test_outside_git_keeps_exit_code(script_dir: Path, run_script, tmp_path: Path) -> None:
@@ -130,47 +136,53 @@ def test_outside_git_keeps_exit_code(script_dir: Path, run_script, tmp_path: Pat
         exit_code=3,
         env={"GIT_CEILING_DIRECTORIES": str(tmp_path)},
     )
-    assert result.returncode == 3
-    assert not (plain / _TIMING_RELPATH).exists()
+    with allure.step("終了コードと記録が無いことを確かめる"):
+        assert result.returncode == 3
+        assert not (plain / _TIMING_RELPATH).exists()
 
 
 def test_usage_error_without_child(script_dir: Path, run_script, repo: Path) -> None:
     """子のコマンドが無い呼び出しは usage を出して exit 2（記録しない）。"""
     result = run_script(script_dir.parent / "lib" / "with-timing.sh", "probe-hook", cwd=repo)
-    assert result.returncode == 2
-    assert "usage" in result.stderr
-    assert _rows(repo) == []
+    with allure.step("終了コードと usage の出力と記録が無いことを確かめる"):
+        assert result.returncode == 2
+        assert "usage" in result.stderr
+        assert _rows(repo) == []
 
 
 def test_wrapper_is_executable_in_git(script_dir: Path) -> None:
     """pre-commit は language: unsupported_script の entry を直接実行するため git mode 100755 が要る。"""
-    repo_root = script_dir.parents[1]
-    staged = run_attached(
-        ["git", "ls-files", "-s", _WRAPPER_RELPATH],
-        cwd=repo_root,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout
-    if staged:
-        assert staged.split()[0] == "100755"
-    else:
-        # commit 前（未追跡）の作業ツリーでは、追加時に 100755 で記録される実行ビットを見る。
-        assert os.access(repo_root / _WRAPPER_RELPATH, os.X_OK)
+    with allure.step("git の実行権限を調べる"):
+        repo_root = script_dir.parents[1]
+        staged = run_attached(
+            ["git", "ls-files", "-s", _WRAPPER_RELPATH],
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    with allure.step("実行権限の形式を確かめる"):
+        if staged:
+            assert staged.split()[0] == "100755"
+        else:
+            # commit 前（未追跡）の作業ツリーでは、追加時に 100755 で記録される実行ビットを見る。
+            assert os.access(repo_root / _WRAPPER_RELPATH, os.X_OK)
 
 
 @pytest.mark.parametrize("arg", ["", "abc", "12x", "-5"])
 def test_elapsed_sec_invalid_start_returns_zero(arg: str) -> None:
     """開始時刻が空・数字以外のときは算術展開に入れず 0.0 を返す。"""
-    result = run_attached(
-        ["bash", "-c", 'source "$1"; timing_elapsed_sec "$2"', "x", str(_LIB), arg],
-        capture_output=True,
-        text=True,
-        timeout=25,
-    )
-    assert result.returncode == 0
-    assert result.stdout == "0.0\n"
-    assert result.stderr == ""
+    with allure.step("不正な開始時刻で経過秒の関数を呼ぶ"):
+        result = run_attached(
+            ["bash", "-c", 'source "$1"; timing_elapsed_sec "$2"', "x", str(_LIB), arg],
+            capture_output=True,
+            text=True,
+            timeout=25,
+        )
+    with allure.step("終了コードと 0.0 の出力を確かめる"):
+        assert result.returncode == 0
+        assert result.stdout == "0.0\n"
+        assert result.stderr == ""
 
 
 def _start_blocking_child(script_dir: Path, repo: Path, tmp_path: Path):
@@ -203,17 +215,21 @@ def test_sigint_to_process_group_records_rc_130(
     script_dir: Path, repo: Path, tmp_path: Path
 ) -> None:
     """プロセスグループへ SIGINT が届いても hook 行を rc=130 で残し、同じ code で終わる。"""
-    proc, _ = _start_blocking_child(script_dir, repo, tmp_path)
-    os.killpg(proc.pid, signal.SIGINT)
-    assert proc.wait(timeout=20) == 130
-    rows = _rows(repo)
-    assert [(r[1], r[2], r[4]) for r in rows] == [("hook", "sig-hook", "rc=130")]
+    with allure.step("子を起動してプロセスグループへ SIGINT を送る"):
+        proc, _ = _start_blocking_child(script_dir, repo, tmp_path)
+        os.killpg(proc.pid, signal.SIGINT)
+    with allure.step("終了コードと rc=130 の記録を確かめる"):
+        assert proc.wait(timeout=20) == 130
+        rows = _rows(repo)
+        assert [(r[1], r[2], r[4]) for r in rows] == [("hook", "sig-hook", "rc=130")]
 
 
 def test_sigterm_to_child_records_rc_143(script_dir: Path, repo: Path, tmp_path: Path) -> None:
     """子だけが SIGTERM で終了しても hook 行を rc=143 で残し、同じ code で終わる。"""
-    proc, child_pid = _start_blocking_child(script_dir, repo, tmp_path)
-    os.kill(child_pid, signal.SIGTERM)
-    assert proc.wait(timeout=20) == 143
-    rows = _rows(repo)
-    assert [(r[1], r[2], r[4]) for r in rows] == [("hook", "sig-hook", "rc=143")]
+    with allure.step("子を起動して子へ SIGTERM を送る"):
+        proc, child_pid = _start_blocking_child(script_dir, repo, tmp_path)
+        os.kill(child_pid, signal.SIGTERM)
+    with allure.step("終了コードと rc=143 の記録を確かめる"):
+        assert proc.wait(timeout=20) == 143
+        rows = _rows(repo)
+        assert [(r[1], r[2], r[4]) for r in rows] == [("hook", "sig-hook", "rc=143")]

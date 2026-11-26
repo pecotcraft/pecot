@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import allure
 import pytest
 
 SCRIPT = "check-release-group-changelog.sh"
@@ -70,69 +71,84 @@ def repo(git_repo) -> Path:
 
 def test_all_groups_satisfied_passes(script_dir: Path, repo: Path, run_script) -> None:
     """正例: 全 group の CHANGELOG が存在・非空・末尾改行なら exit 0。"""
-    result = run_script(script_dir / SCRIPT, cwd=repo)
-    assert result.returncode == 0, result.stdout + result.stderr
+    with allure.step("全 group の CHANGELOG がそろった状態で hook を動かす"):
+        result = run_script(script_dir / SCRIPT, cwd=repo)
+
+    with allure.step("終了コード 0 を確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_missing_file_fails_with_group_and_seed_hint(
     script_dir: Path, repo: Path, run_script
 ) -> None:
     """負例: group を追加して CHANGELOG を置かないと exit 1。group 名と seed 手順を出す。"""
-    _write_nx_json(
-        repo,
-        {
-            "pecot-workflow": _group("plugins/pecot-workflow/CHANGELOG.md"),
-            "pecot-visual": _group("plugins/pecot-visual/CHANGELOG.md"),
-            "pecot-tools": _group("plugins/pecot-tools/CHANGELOG.md"),
-        },
-    )
-    result = run_script(script_dir / SCRIPT, cwd=repo)
-    out = result.stdout + result.stderr
-    assert result.returncode == 1
-    assert "pecot-tools" in out
-    assert "plugins/pecot-tools/CHANGELOG.md" in out
-    assert "printf" in out
+    with allure.step("CHANGELOG の無い group を足して hook を動かす"):
+        _write_nx_json(
+            repo,
+            {
+                "pecot-workflow": _group("plugins/pecot-workflow/CHANGELOG.md"),
+                "pecot-visual": _group("plugins/pecot-visual/CHANGELOG.md"),
+                "pecot-tools": _group("plugins/pecot-tools/CHANGELOG.md"),
+            },
+        )
+        result = run_script(script_dir / SCRIPT, cwd=repo)
+        out = result.stdout + result.stderr
+
+    with allure.step("終了コード 1 と、group 名・seed の手順の表示を確かめる"):
+        assert result.returncode == 1
+        assert "pecot-tools" in out
+        assert "plugins/pecot-tools/CHANGELOG.md" in out
+        assert "printf" in out
 
 
 def test_empty_file_fails(script_dir: Path, repo: Path, run_script) -> None:
     """負例: 空ファイルは Nx の CREATE 処理と同じ結果になるため exit 1。"""
-    _write_changelog(repo, "plugins/pecot-visual/CHANGELOG.md", "")
-    result = run_script(script_dir / SCRIPT, cwd=repo)
-    out = result.stdout + result.stderr
-    assert result.returncode == 1
-    assert "pecot-visual" in out
-    assert "空" in out
+    with allure.step("CHANGELOG を空にして hook を動かす"):
+        _write_changelog(repo, "plugins/pecot-visual/CHANGELOG.md", "")
+        result = run_script(script_dir / SCRIPT, cwd=repo)
+        out = result.stdout + result.stderr
+
+    with allure.step("終了コード 1 と、group 名・「空」の表示を確かめる"):
+        assert result.returncode == 1
+        assert "pecot-visual" in out
+        assert "空" in out
 
 
 def test_missing_trailing_newline_fails(script_dir: Path, repo: Path, run_script) -> None:
     """負例: 末尾改行がないと end-of-file-fixer が commit を落とすため exit 1。"""
-    _write_changelog(repo, "plugins/pecot-workflow/CHANGELOG.md", "# pecot-workflow")
-    result = run_script(script_dir / SCRIPT, cwd=repo)
-    out = result.stdout + result.stderr
-    assert result.returncode == 1
-    assert "plugins/pecot-workflow/CHANGELOG.md" in out
-    assert "改行" in out
+    with allure.step("末尾改行の無い CHANGELOG を置いて hook を動かす"):
+        _write_changelog(repo, "plugins/pecot-workflow/CHANGELOG.md", "# pecot-workflow")
+        result = run_script(script_dir / SCRIPT, cwd=repo)
+        out = result.stdout + result.stderr
+
+    with allure.step("終了コード 1 と、パス・「改行」の表示を確かめる"):
+        assert result.returncode == 1
+        assert "plugins/pecot-workflow/CHANGELOG.md" in out
+        assert "改行" in out
 
 
 def test_directory_path_fails_with_not_a_file_message(
     script_dir: Path, repo: Path, run_script
 ) -> None:
     """負例: パスがディレクトリなら「存在しません」ではなく「ファイルではありません」。"""
-    _write_nx_json(
-        repo,
-        {
-            "pecot-workflow": _group("plugins/pecot-workflow/CHANGELOG.md"),
-            "pecot-visual": _group("plugins/pecot-visual/CHANGELOG.md"),
-            "pecot-tools": _group("plugins/pecot-tools/CHANGELOG.md"),
-        },
-    )
-    (repo / "plugins/pecot-tools/CHANGELOG.md").mkdir(parents=True)
-    result = run_script(script_dir / SCRIPT, cwd=repo)
-    out = result.stdout + result.stderr
-    assert result.returncode == 1
-    assert "pecot-tools" in out
-    assert "ファイルではありません" in out
-    assert "リポジトリルートからの相対パス" in out
+    with allure.step("CHANGELOG のパスをディレクトリにして hook を動かす"):
+        _write_nx_json(
+            repo,
+            {
+                "pecot-workflow": _group("plugins/pecot-workflow/CHANGELOG.md"),
+                "pecot-visual": _group("plugins/pecot-visual/CHANGELOG.md"),
+                "pecot-tools": _group("plugins/pecot-tools/CHANGELOG.md"),
+            },
+        )
+        (repo / "plugins/pecot-tools/CHANGELOG.md").mkdir(parents=True)
+        result = run_script(script_dir / SCRIPT, cwd=repo)
+        out = result.stdout + result.stderr
+
+    with allure.step("終了コード 1 と、「ファイルではありません」の表示を確かめる"):
+        assert result.returncode == 1
+        assert "pecot-tools" in out
+        assert "ファイルではありません" in out
+        assert "リポジトリルートからの相対パス" in out
 
 
 @pytest.mark.parametrize(
@@ -146,17 +162,20 @@ def test_disabled_project_changelog_is_silently_skipped(
     script_dir: Path, repo: Path, run_script, changelog: object
 ) -> None:
     """project CHANGELOG を無効化した group は生成物が無いので WARN も出さない。"""
-    _write_nx_json(
-        repo,
-        {
-            "pecot-workflow": _group("plugins/pecot-workflow/CHANGELOG.md"),
-            "pecot-visual": _group("plugins/pecot-visual/CHANGELOG.md"),
-            "nofile": _group_changelog(changelog),
-        },
-    )
-    result = run_script(script_dir / SCRIPT, cwd=repo)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "nofile" not in result.stderr
+    with allure.step("CHANGELOG を無効にした group を足して hook を動かす"):
+        _write_nx_json(
+            repo,
+            {
+                "pecot-workflow": _group("plugins/pecot-workflow/CHANGELOG.md"),
+                "pecot-visual": _group("plugins/pecot-visual/CHANGELOG.md"),
+                "nofile": _group_changelog(changelog),
+            },
+        )
+        result = run_script(script_dir / SCRIPT, cwd=repo)
+
+    with allure.step("終了コード 0 で、WARN が出ないことを確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "nofile" not in result.stderr
 
 
 @pytest.mark.parametrize(
@@ -171,18 +190,21 @@ def test_non_string_changelog_file_warns_and_skips(
     script_dir: Path, repo: Path, run_script, changelog: object
 ) -> None:
     """既定パスが有効な（= 文字列でない）group は確認できないので WARN + exit 0。"""
-    _write_nx_json(
-        repo,
-        {
-            "pecot-workflow": _group("plugins/pecot-workflow/CHANGELOG.md"),
-            "pecot-visual": _group("plugins/pecot-visual/CHANGELOG.md"),
-            "nofile": _group_changelog(changelog),
-        },
-    )
-    result = run_script(script_dir / SCRIPT, cwd=repo)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "WARN" in result.stderr
-    assert "nofile" in result.stderr
+    with allure.step("file が文字列でない group を足して hook を動かす"):
+        _write_nx_json(
+            repo,
+            {
+                "pecot-workflow": _group("plugins/pecot-workflow/CHANGELOG.md"),
+                "pecot-visual": _group("plugins/pecot-visual/CHANGELOG.md"),
+                "nofile": _group_changelog(changelog),
+            },
+        )
+        result = run_script(script_dir / SCRIPT, cwd=repo)
+
+    with allure.step("終了コード 0 と、WARN の表示を確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "WARN" in result.stderr
+        assert "nofile" in result.stderr
 
 
 @pytest.mark.parametrize(
@@ -196,62 +218,77 @@ def test_interpolated_changelog_file_warns_and_skips(
     script_dir: Path, repo: Path, run_script, file_value: str
 ) -> None:
     """nx の補間トークンを含むパスは解決しないので exit 1 にせず WARN + exit 0。"""
-    _write_nx_json(
-        repo,
-        {
-            "pecot-workflow": _group("plugins/pecot-workflow/CHANGELOG.md"),
-            "pecot-visual": _group("plugins/pecot-visual/CHANGELOG.md"),
-            "interp": _group(file_value),
-        },
-    )
-    result = run_script(script_dir / SCRIPT, cwd=repo)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "WARN" in result.stderr
-    assert "interp" in result.stderr
+    with allure.step("補間トークンを含む file の group を足して hook を動かす"):
+        _write_nx_json(
+            repo,
+            {
+                "pecot-workflow": _group("plugins/pecot-workflow/CHANGELOG.md"),
+                "pecot-visual": _group("plugins/pecot-visual/CHANGELOG.md"),
+                "interp": _group(file_value),
+            },
+        )
+        result = run_script(script_dir / SCRIPT, cwd=repo)
+
+    with allure.step("終了コード 0 と、WARN の表示を確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "WARN" in result.stderr
+        assert "interp" in result.stderr
 
 
 def test_root_project_changelogs_warns_and_skips(script_dir: Path, repo: Path, run_script) -> None:
     """root の projectChangelogs は既定パスを有効化するだけなので WARN + exit 0。"""
-    (repo / "nx.json").write_text(
-        json.dumps(
-            {
-                "release": {
-                    "groups": {"pecot-workflow": _group("plugins/pecot-workflow/CHANGELOG.md")},
-                    "changelog": {"workspaceChangelog": False, "projectChangelogs": True},
-                }
-            },
-            ensure_ascii=False,
+    with allure.step("projectChangelogs を有効にした nx.json で hook を動かす"):
+        (repo / "nx.json").write_text(
+            json.dumps(
+                {
+                    "release": {
+                        "groups": {"pecot-workflow": _group("plugins/pecot-workflow/CHANGELOG.md")},
+                        "changelog": {"workspaceChangelog": False, "projectChangelogs": True},
+                    }
+                },
+                ensure_ascii=False,
+            )
         )
-    )
-    result = run_script(script_dir / SCRIPT, cwd=repo)
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "projectChangelogs" in result.stderr
+        result = run_script(script_dir / SCRIPT, cwd=repo)
+
+    with allure.step("終了コード 0 と、WARN の表示を確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "projectChangelogs" in result.stderr
 
 
 def test_missing_nx_json_skips(script_dir: Path, git_repo, run_script) -> None:
     """fail-open: nx.json 不在は WARN + exit 0。"""
-    r = git_repo("nonx")
-    result = run_script(script_dir / SCRIPT, cwd=r)
-    assert result.returncode == 0
-    assert "WARN" in result.stderr
+    with allure.step("nx.json の無いリポで hook を動かす"):
+        r = git_repo("nonx")
+        result = run_script(script_dir / SCRIPT, cwd=r)
+
+    with allure.step("終了コード 0 と、WARN の表示を確かめる"):
+        assert result.returncode == 0
+        assert "WARN" in result.stderr
 
 
 def test_broken_nx_json_skips(script_dir: Path, repo: Path, run_script) -> None:
     """fail-open: nx.json が不正で解析できない場合も WARN + exit 0。"""
-    (repo / "nx.json").write_text("{ not json")
-    result = run_script(script_dir / SCRIPT, cwd=repo)
-    assert result.returncode == 0
-    assert "WARN" in result.stderr
+    with allure.step("読めない nx.json で hook を動かす"):
+        (repo / "nx.json").write_text("{ not json")
+        result = run_script(script_dir / SCRIPT, cwd=repo)
+
+    with allure.step("終了コード 0 と、WARN の表示を確かめる"):
+        assert result.returncode == 0
+        assert "WARN" in result.stderr
 
 
 def test_no_release_groups_passes(script_dir: Path, git_repo, run_script) -> None:
     """release.groups が無い nx.json は検証対象ゼロで exit 0。"""
-    r = git_repo("nogroups")
-    (r / "nx.json").write_text(
-        json.dumps({"release": {"versionPlans": {"ignorePatternsForPlanCheck": ["README.md"]}}})
-    )
-    result = run_script(script_dir / SCRIPT, cwd=r)
-    assert result.returncode == 0, result.stdout + result.stderr
+    with allure.step("release.groups の無い nx.json で hook を動かす"):
+        r = git_repo("nogroups")
+        (r / "nx.json").write_text(
+            json.dumps({"release": {"versionPlans": {"ignorePatternsForPlanCheck": ["README.md"]}}})
+        )
+        result = run_script(script_dir / SCRIPT, cwd=r)
+
+    with allure.step("終了コード 0 を確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
 
 
 def _hook_entry_lines(config_text: str, hook_id: str) -> list[str]:
@@ -285,12 +322,15 @@ def test_pre_commit_config_wiring_catches_deletions(script_dir: Path) -> None:
     `fail_fast: true` は後続の nx affected lint（数分）を実行させないための配線。
     いずれもスクリプト単体テストでは守れない。
     """
-    repo_root = script_dir.parents[1]
-    block = _hook_entry_lines(
-        (repo_root / ".pre-commit-config.yaml").read_text(),
-        "check-release-group-changelog",
-    )
-    stripped = [line.strip() for line in block]
-    assert "always_run: true" in stripped
-    assert "fail_fast: true" in stripped
-    assert not [line for line in stripped if line.startswith("files:")]
+    with allure.step("pre-commit の設定から hook のエントリを切り出す"):
+        repo_root = script_dir.parents[1]
+        block = _hook_entry_lines(
+            (repo_root / ".pre-commit-config.yaml").read_text(),
+            "check-release-group-changelog",
+        )
+        stripped = [line.strip() for line in block]
+
+    with allure.step("always_run と fail_fast があり、files が無いことを確かめる"):
+        assert "always_run: true" in stripped
+        assert "fail_fast: true" in stripped
+        assert not [line for line in stripped if line.startswith("files:")]

@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-
+import allure
 from attach import run_attached  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -36,32 +36,37 @@ def _minimal_path(tmp_path: Path) -> Path:
 
 
 def test_npx_branch_passes_pinned_version_dir_and_args(tmp_path: Path) -> None:
-    bin_dir = _minimal_path(tmp_path)
-    cwd = tmp_path / "work"
-    cwd.mkdir()
-    manifest = json.loads((_REPO_ROOT / "package.json").read_text(encoding="utf-8"))
-    version = re.match(r"pnpm@([^+]+)", manifest["packageManager"])
-    assert version
+    with allure.step("偽の npx だけの PATH を作り、run-pnpm.sh を動かす"):
+        bin_dir = _minimal_path(tmp_path)
+        cwd = tmp_path / "work"
+        cwd.mkdir()
+        manifest = json.loads((_REPO_ROOT / "package.json").read_text(encoding="utf-8"))
+        version = re.match(r"pnpm@([^+]+)", manifest["packageManager"])
+        assert version
 
-    result = run_attached(
-        [str(bin_dir / "bash"), str(_SCRIPT), "install"],
-        cwd=cwd,
-        env={"PATH": str(bin_dir)},
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+        result = run_attached(
+            [str(bin_dir / "bash"), str(_SCRIPT), "install"],
+            cwd=cwd,
+            env={"PATH": str(bin_dir)},
+            capture_output=True,
+            text=True,
+            check=False,
+        )
 
-    assert result.returncode == 0, result.stderr
-    assert result.stdout.splitlines() == [
-        "--yes",
-        f"pnpm@{version.group(1)}",
-        "--dir",
-        str(cwd.resolve()),
-        "install",
-        "/",
-    ]
+    with allure.step(
+        "終了コードが 0 で、固定した版・ディレクトリ・引数が npx に渡ることを確かめる"
+    ):
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.splitlines() == [
+            "--yes",
+            f"pnpm@{version.group(1)}",
+            "--dir",
+            str(cwd.resolve()),
+            "install",
+            "/",
+        ]
 
 
 def test_script_is_executable() -> None:
-    assert os.access(_SCRIPT, os.X_OK)
+    with allure.step("run-pnpm.sh が実行できることを確かめる"):
+        assert os.access(_SCRIPT, os.X_OK)

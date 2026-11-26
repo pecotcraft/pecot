@@ -13,6 +13,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import allure
 import pytest
 
 _TARGETS = ["plugins/pecot-workflow", "plugins/pecot-visual", "plugins/pecot-tools"]
@@ -75,46 +76,56 @@ def test_fails_without_claude(
     PATH は bash と git だけを symlink した専用ディレクトリにする。/usr/bin:/bin 固定だと
     claude が /usr/bin にある環境で「無い」状態を作れない。
     """
-    bin_dir = tmp_path / "bin"
-    bin_dir.mkdir()
-    for cmd in ("bash", "git"):
-        found = shutil.which(cmd)
-        assert found is not None
-        (bin_dir / cmd).symlink_to(found)
-    result = run_script(
-        script_dir / "plugin-validate.sh",
-        cwd=repo_root,
-        env={"PATH": str(bin_dir)},
-    )
-    assert result.returncode != 0
-    assert "claude" in result.stderr
-    assert "not found" in result.stderr
+    with allure.step("PATH を bash と git だけにして plugin-validate.sh を動かす"):
+        bin_dir = tmp_path / "bin"
+        bin_dir.mkdir()
+        for cmd in ("bash", "git"):
+            found = shutil.which(cmd)
+            assert found is not None
+            (bin_dir / cmd).symlink_to(found)
+        result = run_script(
+            script_dir / "plugin-validate.sh",
+            cwd=repo_root,
+            env={"PATH": str(bin_dir)},
+        )
+    with allure.step("終了コードが 0 でなく、claude が無い旨を stderr に出すことを確かめる"):
+        assert result.returncode != 0
+        assert "claude" in result.stderr
+        assert "not found" in result.stderr
 
 
 @requires_claude
 def test_current_repo_passes(script_dir: Path, repo_root: Path, run_script) -> None:
     """(b) 現リポの 4 対象 → exit 0。"""
-    result = run_script(script_dir / "plugin-validate.sh", cwd=repo_root)
-    assert result.returncode == 0, result.stdout + result.stderr
+    with allure.step("現リポで plugin-validate.sh を動かす"):
+        result = run_script(script_dir / "plugin-validate.sh", cwd=repo_root)
+    with allure.step("終了コードが 0 であることを確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
 
 
 @requires_claude
 def test_fixture_repo_passes(script_dir: Path, run_script, tmp_path: Path) -> None:
     """(c の前提) 壊す前の最小構成は exit 0。失敗の原因が壊した SKILL.md だけであることを保証する。"""
-    _make_marketplace_repo(tmp_path)
-    result = run_script(script_dir / "plugin-validate.sh", cwd=tmp_path)
-    assert result.returncode == 0, result.stdout + result.stderr
+    with allure.step("最小構成のリポを作り、plugin-validate.sh を動かす"):
+        _make_marketplace_repo(tmp_path)
+        result = run_script(script_dir / "plugin-validate.sh", cwd=tmp_path)
+    with allure.step("終了コードが 0 であることを確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
 
 
 @requires_claude
 def test_broken_skill_frontmatter_fails(script_dir: Path, run_script, tmp_path: Path) -> None:
     """(c) 1 プラグインの SKILL.md の frontmatter が閉じていない → 非 0。失敗した対象だけ出す。"""
-    _make_marketplace_repo(tmp_path)
-    skill = tmp_path / "plugins" / "pecot-visual" / "skills" / "pecot-visual-skill" / "SKILL.md"
-    skill.write_text("---\nname: pecot-visual-skill\ndescription: |\n  不正な frontmatter\n\n# x\n")
-    result = run_script(script_dir / "plugin-validate.sh", cwd=tmp_path)
-    assert result.returncode != 0
-    output = result.stdout + result.stderr
-    assert "plugins/pecot-visual" in output
-    assert "frontmatter" in output
-    assert "plugins/pecot-workflow" not in output
+    with allure.step("SKILL.md の frontmatter を壊し、plugin-validate.sh を動かす"):
+        _make_marketplace_repo(tmp_path)
+        skill = tmp_path / "plugins" / "pecot-visual" / "skills" / "pecot-visual-skill" / "SKILL.md"
+        skill.write_text(
+            "---\nname: pecot-visual-skill\ndescription: |\n  不正な frontmatter\n\n# x\n"
+        )
+        result = run_script(script_dir / "plugin-validate.sh", cwd=tmp_path)
+    with allure.step("失敗した対象だけが出力に出ることを確かめる"):
+        assert result.returncode != 0
+        output = result.stdout + result.stderr
+        assert "plugins/pecot-visual" in output
+        assert "frontmatter" in output
+        assert "plugins/pecot-workflow" not in output

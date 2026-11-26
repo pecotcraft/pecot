@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import allure
 import pytest
 import yaml
 
@@ -25,19 +26,22 @@ _BOARD_SYNC = _REPO_ROOT / ".github/board-sync"
 
 
 def test_handler_node_tests_pass() -> None:
-    result = run_attached(
-        ["node", "--test", "--test-reporter=tap", ".github/board-sync/handler.test.mjs"],
-        cwd=_REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert result.returncode == 0, result.stdout + result.stderr
-    count = re.search(r"^# tests (\d+)$", result.stdout, flags=re.M)
-    assert count, result.stdout
-    assert int(count.group(1)) >= 1
-    for name in ("fail", "skipped", "todo"):
-        assert re.search(rf"^# {name} 0$", result.stdout, flags=re.M), result.stdout
+    with allure.step("handler.test.mjs を node --test で動かす"):
+        result = run_attached(
+            ["node", "--test", "--test-reporter=tap", ".github/board-sync/handler.test.mjs"],
+            cwd=_REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    with allure.step("終了コード 0 と、テスト数・失敗 0 を確かめる"):
+        assert result.returncode == 0, result.stdout + result.stderr
+        count = re.search(r"^# tests (\d+)$", result.stdout, flags=re.M)
+        assert count, result.stdout
+        assert int(count.group(1)) >= 1
+        for name in ("fail", "skipped", "todo"):
+            assert re.search(rf"^# {name} 0$", result.stdout, flags=re.M), result.stdout
 
 
 def _template() -> dict[str, Any]:
@@ -56,79 +60,107 @@ def _permissions() -> list[dict[str, Any]]:
 
 def test_public_invoke_function_requires_function_url() -> None:
     # 条件が無いと、誰でも Invoke API で Scheduler と同じ event を渡せる。
-    props = [p for p in _permissions() if p["Action"] == "lambda:InvokeFunction"]
-    assert len(props) == 1
-    assert props[0]["InvokedViaFunctionUrl"] is True
+    with allure.step("lambda:InvokeFunction の Permission を template から集める"):
+        props = [p for p in _permissions() if p["Action"] == "lambda:InvokeFunction"]
+
+    with allure.step("InvokedViaFunctionUrl が True の 1 件だけであることを確かめる"):
+        assert len(props) == 1
+        assert props[0]["InvokedViaFunctionUrl"] is True
 
 
 def test_public_invoke_function_url_is_auth_none_only() -> None:
-    props = [p for p in _permissions() if p["Action"] == "lambda:InvokeFunctionUrl"]
-    assert len(props) == 1
-    assert props[0]["FunctionUrlAuthType"] == "NONE"
+    with allure.step("lambda:InvokeFunctionUrl の Permission を template から集める"):
+        props = [p for p in _permissions() if p["Action"] == "lambda:InvokeFunctionUrl"]
+
+    with allure.step("認証が NONE の 1 件だけであることを確かめる"):
+        assert len(props) == 1
+        assert props[0]["FunctionUrlAuthType"] == "NONE"
 
 
 def test_function_environment_has_every_key_handler_reads() -> None:
-    handler = _handler_text()
-    prefixes = re.findall(r'prefix: "([A-Z_]+_)"', handler)
-    assert prefixes == ["SECURITY_", "DEPENDABOT_PRS_"]
-    suffixes = re.findall(r"\$\{prefix\}([A-Z_]+)`", handler)
-    assert sorted(set(suffixes)) == [
-        "APP_CLIENT_ID",
-        "APP_INSTALLATION_ID",
-        "SSM_PRIVATE_KEY_NAME",
-        "SSM_WEBHOOK_SECRET_NAME",
-        "WORKFLOW_FILE",
-    ]
-    scheduled = re.findall(r'workflowEnv: "([A-Z_]+)"', handler)
-    assert len(scheduled) == 4
-    expected = (
-        {f"{p}{s}" for p in prefixes for s in suffixes}
-        | set(scheduled)
-        | {
-            "GITHUB_REPOSITORY_ID",
-            "GITHUB_REPOSITORY",
-            "DISPATCH_REF",
-            "CONFIG_VERSION",
-        }
-    )
-    variables = _template()["Resources"]["Function"]["Properties"]["Environment"]["Variables"]
-    assert set(variables) == expected
+    with allure.step("handler.mjs から prefix を取り出す"):
+        handler = _handler_text()
+        prefixes = re.findall(r'prefix: "([A-Z_]+_)"', handler)
+
+    with allure.step("prefix が 2 つであることを確かめる"):
+        assert prefixes == ["SECURITY_", "DEPENDABOT_PRS_"]
+
+    with allure.step("handler.mjs から環境変数の接尾辞を取り出す"):
+        suffixes = re.findall(r"\$\{prefix\}([A-Z_]+)`", handler)
+
+    with allure.step("接尾辞の一覧を確かめる"):
+        assert sorted(set(suffixes)) == [
+            "APP_CLIENT_ID",
+            "APP_INSTALLATION_ID",
+            "SSM_PRIVATE_KEY_NAME",
+            "SSM_WEBHOOK_SECRET_NAME",
+            "WORKFLOW_FILE",
+        ]
+
+    with allure.step("定期実行の環境変数を取り出す"):
+        scheduled = re.findall(r'workflowEnv: "([A-Z_]+)"', handler)
+
+    with allure.step("定期実行の環境変数が 4 つであることを確かめる"):
+        assert len(scheduled) == 4
+
+    with allure.step("期待する環境変数の集合を組み、template の Variables と比べて確かめる"):
+        expected = (
+            {f"{p}{s}" for p in prefixes for s in suffixes}
+            | set(scheduled)
+            | {
+                "GITHUB_REPOSITORY_ID",
+                "GITHUB_REPOSITORY",
+                "DISPATCH_REF",
+                "CONFIG_VERSION",
+            }
+        )
+        variables = _template()["Resources"]["Function"]["Properties"]["Environment"]["Variables"]
+        assert set(variables) == expected
 
 
 def test_workflow_file_defaults_name_existing_workflows() -> None:
-    parameters = _template()["Parameters"]
-    names = [name for name in parameters if name.endswith("WorkflowFile")]
-    assert len(names) == 4
-    for name in names:
-        workflow = _REPO_ROOT / ".github/workflows" / parameters[name]["Default"]
-        assert workflow.is_file(), name
+    with allure.step("template の WorkflowFile のパラメータを集める"):
+        parameters = _template()["Parameters"]
+        names = [name for name in parameters if name.endswith("WorkflowFile")]
+
+    with allure.step("4 つあり、既定のワークフローが実在することを確かめる"):
+        assert len(names) == 4
+        for name in names:
+            workflow = _REPO_ROOT / ".github/workflows" / parameters[name]["Default"]
+            assert workflow.is_file(), name
 
 
 def test_schedule_input_source_matches_handler() -> None:
-    source = re.search(r'const SCHEDULER_SOURCE = "([^"]+)"', _handler_text())
-    assert source
-    target = _template()["Resources"]["Schedule"]["Properties"]["Target"]
-    assert yaml.safe_load(target["Input"]) == {"source": source.group(1)}
+    with allure.step("handler.mjs の SCHEDULER_SOURCE を読む"):
+        source = re.search(r'const SCHEDULER_SOURCE = "([^"]+)"', _handler_text())
+
+    with allure.step("Schedule の Input が handler の source と一致することを確かめる"):
+        assert source
+        target = _template()["Resources"]["Schedule"]["Properties"]["Target"]
+        assert yaml.safe_load(target["Input"]) == {"source": source.group(1)}
 
 
 def test_deploy_ssm_paths_match_template_defaults() -> None:
-    deploy = (_BOARD_SYNC / "deploy.sh").read_text(encoding="utf-8")
-    prefix = re.search(r'^SSM_PREFIX="([^"]+)"$', deploy, flags=re.M)
-    assert prefix
-    leaves = re.findall(r'_PARAM="\$SSM_PREFIX/\$PUT_APP/([a-z-]+)"', deploy)
-    assert leaves == ["app-private-key", "webhook-secret"]
-    parameters = _template()["Parameters"]
-    defaults = {
-        parameters[f"{app}Ssm{kind}Name"]["Default"]
-        for app in ("Security", "DependabotPrs")
-        for kind in ("PrivateKey", "WebhookSecret")
-    }
-    expected = {
-        f"{prefix.group(1)}/{app}/{leaf}"
-        for app in ("security", "dependabot-prs")
-        for leaf in leaves
-    }
-    assert defaults == expected
+    with allure.step("deploy.sh から SSM の prefix とパスを読む"):
+        deploy = (_BOARD_SYNC / "deploy.sh").read_text(encoding="utf-8")
+        prefix = re.search(r'^SSM_PREFIX="([^"]+)"$', deploy, flags=re.M)
+
+    with allure.step("SSM のパスが template の既定値と一致することを確かめる"):
+        assert prefix
+        leaves = re.findall(r'_PARAM="\$SSM_PREFIX/\$PUT_APP/([a-z-]+)"', deploy)
+        assert leaves == ["app-private-key", "webhook-secret"]
+        parameters = _template()["Parameters"]
+        defaults = {
+            parameters[f"{app}Ssm{kind}Name"]["Default"]
+            for app in ("Security", "DependabotPrs")
+            for kind in ("PrivateKey", "WebhookSecret")
+        }
+        expected = {
+            f"{prefix.group(1)}/{app}/{leaf}"
+            for app in ("security", "dependabot-prs")
+            for leaf in leaves
+        }
+        assert defaults == expected
 
 
 def _agent_denies() -> dict[str, dict[str, Any]]:
@@ -138,55 +170,76 @@ def _agent_denies() -> dict[str, dict[str, Any]]:
 
 def test_agent_decrypt_deny_exempts_only_lambda() -> None:
     """Deny が Lambda 経由の復号まで拒むと、デプロイが環境変数を書き換えない (#487)。"""
-    deny = _agent_denies()["NoDecryptOutsideLambda"]
-    assert deny["Action"] == "kms:Decrypt"
-    assert deny["Resource"] == "*"
-    assert deny["Condition"] == {
-        "StringNotEquals": {"kms:ViaService": "lambda.<REGION>.amazonaws.com"}
-    }
+    with allure.step("agent の policy から NoDecryptOutsideLambda の Deny を読む"):
+        deny = _agent_denies()["NoDecryptOutsideLambda"]
+
+    with allure.step("Lambda 経由以外の復号だけを拒むことを確かめる"):
+        assert deny["Action"] == "kms:Decrypt"
+        assert deny["Resource"] == "*"
+        assert deny["Condition"] == {
+            "StringNotEquals": {"kms:ViaService": "lambda.<REGION>.amazonaws.com"}
+        }
 
 
 def test_agent_secret_reads_stay_denied_unconditionally() -> None:
-    deny = _agent_denies()["NoSecretReads"]
-    assert "Condition" not in deny
-    assert deny["Resource"] == "*"
-    assert {"ssm:GetParameter", "ssm:GetParameters", "secretsmanager:GetSecretValue"} <= set(
-        deny["Action"]
-    )
+    with allure.step("agent の policy から NoSecretReads の Deny を読む"):
+        deny = _agent_denies()["NoSecretReads"]
+
+    with allure.step("条件なしで secret の読み出しを拒むことを確かめる"):
+        assert "Condition" not in deny
+        assert deny["Resource"] == "*"
+        assert {"ssm:GetParameter", "ssm:GetParameters", "secretsmanager:GetSecretValue"} <= set(
+            deny["Action"]
+        )
 
 
 def test_deploy_env_keys_parse_from_template() -> None:
     """deploy.sh が反映を確かめる名前の取り出しが、template の環境変数と一致する (#487)。"""
-    script = (
-        "sed -n '/^        Variables:$/,/^      [^ ]/p' \"$1\" | "
-        "sed -n 's/^          \\([A-Z_][A-Z0-9_]*\\):$/\\1/p'"
-    )
-    deploy = (_BOARD_SYNC / "deploy.sh").read_text(encoding="utf-8")
-    assert "sed -n '/^        Variables:$/,/^      [^ ]/p'" in deploy
-    out = run_attached(
-        ["bash", "-c", script, "_", str(_BOARD_SYNC / "template.yaml")],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.split()
-    variables = _template()["Resources"]["Function"]["Properties"]["Environment"]["Variables"]
-    assert out == list(variables)
+    with allure.step("環境変数名を取り出すコマンドと deploy.sh を用意する"):
+        script = (
+            "sed -n '/^        Variables:$/,/^      [^ ]/p' \"$1\" | "
+            "sed -n 's/^          \\([A-Z_][A-Z0-9_]*\\):$/\\1/p'"
+        )
+        deploy = (_BOARD_SYNC / "deploy.sh").read_text(encoding="utf-8")
+
+    with allure.step("deploy.sh に同じ取り出しのコマンドがあることを確かめる"):
+        assert "sed -n '/^        Variables:$/,/^      [^ ]/p'" in deploy
+
+    with allure.step("取り出しのコマンドを template に当てて、環境変数名を得る"):
+        out = run_attached(
+            ["bash", "-c", script, "_", str(_BOARD_SYNC / "template.yaml")],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.split()
+        variables = _template()["Resources"]["Function"]["Properties"]["Environment"]["Variables"]
+
+    with allure.step("取り出した名前が template の Variables と一致することを確かめる"):
+        assert out == list(variables)
 
 
 def test_both_roles_carry_the_permissions_boundary() -> None:
-    resources = _template()["Resources"]
-    for name in ("Role", "SchedulerRole"):
-        boundary = resources[name]["Properties"]["PermissionsBoundary"]
-        assert boundary["Fn::Sub"].endswith(":policy/pecot-board-sync-boundary"), name
+    with allure.step("template の Resources を読む"):
+        resources = _template()["Resources"]
+
+    with allure.step("2 つの role に permissions boundary が付くことを確かめる"):
+        for name in ("Role", "SchedulerRole"):
+            boundary = resources[name]["Properties"]["PermissionsBoundary"]
+            assert boundary["Fn::Sub"].endswith(":policy/pecot-board-sync-boundary"), name
 
 
 def test_scheduler_trust_source_arn_is_the_schedule_group() -> None:
     # Scheduler は aws:SourceArn に schedule ではなく schedule group の ARN を渡す
-    resources = _template()["Resources"]
-    group = resources["Schedule"]["Properties"].get("GroupName", "default")
-    statement = resources["SchedulerRole"]["Properties"]["AssumeRolePolicyDocument"]["Statement"][0]
-    source_arn = statement["Condition"]["ArnEquals"]["aws:SourceArn"]["Fn::Sub"]
-    assert source_arn.endswith(f":schedule-group/{group}")
+    with allure.step("Scheduler の trust policy から SourceArn を読む"):
+        resources = _template()["Resources"]
+        group = resources["Schedule"]["Properties"].get("GroupName", "default")
+        statement = resources["SchedulerRole"]["Properties"]["AssumeRolePolicyDocument"][
+            "Statement"
+        ][0]
+        source_arn = statement["Condition"]["ArnEquals"]["aws:SourceArn"]["Fn::Sub"]
+
+    with allure.step("SourceArn が schedule group の ARN で終わることを確かめる"):
+        assert source_arn.endswith(f":schedule-group/{group}")
 
 
 _FAKE_AWS = """#!/usr/bin/env python3
@@ -310,40 +363,52 @@ def _last_line(result: subprocess.CompletedProcess[str]) -> str:
 def test_deploy_shows_runnable_login_command_when_credentials_fail(
     tmp_path: Path, args: list[str], config: dict[str, dict[str, str]], expected: str
 ) -> None:
-    result = _run_deploy(tmp_path, args, config)
-    assert result.returncode == 1, result.stderr
-    assert _EXPIRED in result.stderr
-    assert _last_line(result) == f"aws login --remote {expected}"
-    assert not (tmp_path / "gh-called").exists()
+    with allure.step("認証情報が失敗する状態で deploy.sh を動かす"):
+        result = _run_deploy(tmp_path, args, config)
+
+    with allure.step("終了コード 1 と、実行できる aws login の案内を確かめる"):
+        assert result.returncode == 1, result.stderr
+        assert _EXPIRED in result.stderr
+        assert _last_line(result) == f"aws login --remote {expected}"
+        assert not (tmp_path / "gh-called").exists()
 
 
 def test_deploy_does_not_suggest_aws_login_for_other_credentials(tmp_path: Path) -> None:
-    config = {"sso": {"sso_session": "corp", "sso_account_id": "111111111111"}}
-    result = _run_deploy(
-        tmp_path, ["--profile", "sso"], config, sts_error="aws: [ERROR]: Token has expired"
-    )
-    assert result.returncode == 1, result.stderr
-    assert "aws login" not in result.stderr
-    assert _last_line(result) == "ERROR: AWS の認証情報を得られません"
-    assert not (tmp_path / "gh-called").exists()
+    with allure.step("SSO の設定で認証が失敗する状態で deploy.sh を動かす"):
+        config = {"sso": {"sso_session": "corp", "sso_account_id": "111111111111"}}
+        result = _run_deploy(
+            tmp_path, ["--profile", "sso"], config, sts_error="aws: [ERROR]: Token has expired"
+        )
+
+    with allure.step("aws login を案内せず、エラーで止まることを確かめる"):
+        assert result.returncode == 1, result.stderr
+        assert "aws login" not in result.stderr
+        assert _last_line(result) == "ERROR: AWS の認証情報を得られません"
+        assert not (tmp_path / "gh-called").exists()
 
 
 def test_deploy_stops_before_secret_prompt(tmp_path: Path) -> None:
-    key = tmp_path / "key.pem"
-    key.write_text("dummy\n", encoding="utf-8")
-    result = _run_deploy(
-        tmp_path, ["--profile", "pecot", "--put-secrets", "security", str(key)], _PECOT_CONFIG
-    )
-    assert result.returncode == 1, result.stderr
-    assert "webhook の secret" not in result.stderr
-    assert "初回は" not in result.stderr
-    assert _last_line(result) == "aws login --remote --profile pecot --region ap-southeast-2"
+    with allure.step("鍵ファイルを用意し、認証が失敗する状態で deploy.sh を動かす"):
+        key = tmp_path / "key.pem"
+        key.write_text("dummy\n", encoding="utf-8")
+        result = _run_deploy(
+            tmp_path, ["--profile", "pecot", "--put-secrets", "security", str(key)], _PECOT_CONFIG
+        )
+
+    with allure.step("secret の入力を求める前に止まることを確かめる"):
+        assert result.returncode == 1, result.stderr
+        assert "webhook の secret" not in result.stderr
+        assert "初回は" not in result.stderr
+        assert _last_line(result) == "aws login --remote --profile pecot --region ap-southeast-2"
 
 
 def test_deploy_passes_the_check_when_credentials_work(tmp_path: Path) -> None:
-    result = _run_deploy(tmp_path, ["--profile", "pecot"], _PECOT_CONFIG, sts_error=None)
-    assert (tmp_path / "gh-called").exists(), result.stderr
-    assert "aws login" not in result.stderr
+    with allure.step("認証が通る状態で deploy.sh を動かす"):
+        result = _run_deploy(tmp_path, ["--profile", "pecot"], _PECOT_CONFIG, sts_error=None)
+
+    with allure.step("gh が呼ばれ、aws login を案内しないことを確かめる"):
+        assert (tmp_path / "gh-called").exists(), result.stderr
+        assert "aws login" not in result.stderr
 
 
 @pytest.mark.parametrize(
@@ -359,18 +424,26 @@ def test_deploy_starts_from_the_profile_aws_cli_uses(
     tmp_path: Path, extra_env: dict[str, str], expected: str
 ) -> None:
     """aws-cli v2 は AWS_PROFILE を AWS_DEFAULT_PROFILE より先に読む（botocore の configprovider.py）。"""
-    config = {
-        "a": {"source_profile": "pecot"},
-        "other": {"login_session": _LOGIN_SESSION},
-        **_PECOT_CONFIG,
-    }
-    result = _run_deploy(tmp_path, [], config, extra_env=extra_env)
-    assert result.returncode == 1, result.stderr
-    assert _last_line(result) == f"aws login --remote {expected} --region ap-southeast-2"
+    with allure.step("環境変数でプロファイルを指して deploy.sh を動かす"):
+        config = {
+            "a": {"source_profile": "pecot"},
+            "other": {"login_session": _LOGIN_SESSION},
+            **_PECOT_CONFIG,
+        }
+        result = _run_deploy(tmp_path, [], config, extra_env=extra_env)
+
+    with allure.step("案内の aws login が、期待するプロファイルを使うことを確かめる"):
+        assert result.returncode == 1, result.stderr
+        assert _last_line(result) == f"aws login --remote {expected} --region ap-southeast-2"
 
 
 def test_deploy_does_not_suggest_aws_login_for_env_keys(tmp_path: Path) -> None:
-    result = _run_deploy(tmp_path, [], _PECOT_CONFIG, extra_env={"AWS_ACCESS_KEY_ID": "AKIAFAKE"})
-    assert result.returncode == 1, result.stderr
-    assert "aws login --remote" not in result.stderr
-    assert _last_line(result) == "ERROR: AWS の認証情報を得られません"
+    with allure.step("環境変数のアクセスキーで認証が失敗する状態で deploy.sh を動かす"):
+        result = _run_deploy(
+            tmp_path, [], _PECOT_CONFIG, extra_env={"AWS_ACCESS_KEY_ID": "AKIAFAKE"}
+        )
+
+    with allure.step("aws login を案内せず、エラーで止まることを確かめる"):
+        assert result.returncode == 1, result.stderr
+        assert "aws login --remote" not in result.stderr
+        assert _last_line(result) == "ERROR: AWS の認証情報を得られません"

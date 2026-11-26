@@ -121,6 +121,42 @@ it.for([
 | 全ツールに共通の振る舞い | 共通の振る舞いの項目（`<接頭辞>-COMMON-NN`）につなぐ。ツールの数だけ項目を作らない |
 | どの項目も確かめないテスト | つながなくてよい。振る舞いの一覧には出ない |
 
+## step
+
+テストの本体を、名前の付いた Allure の step に分けます。テストレポートで、落ちたテストがどの操作で落ちたか、通ったテストがどの手順を通ったかを読むためです。
+
+| テスト | 書き方 |
+|---|---|
+| vitest（本体が async） | `await step('CLI を動かす', async () => { … })` |
+| vitest（本体が同期） | `stepSync('出力を比べる', () => { … })` |
+| pytest | `with allure.step("出力を比べる"):` |
+
+`step`・`stepSync` は `libs/interface-spec/src/vitest/step.ts` にあります。nx のレーンの外では Allure を呼ばず、本体を呼ぶだけです。
+
+| 決め | 内容 |
+|---|---|
+| 名前 | 「何を・どうする」の日本語にする。例:「pre-commit の check-root-entries.sh を動かす」「標準出力を比べる」「git のリポを用意する」 |
+| 分け方 | 操作（準備・動かす・呼ぶ）と確かめを、分けられるなら別の step にする。1 行のテストは 1 つの step でよい |
+| 確かめ | `expect`・`assert` は確かめの step の中に置く。allure-vitest が `expect()` から作る自動の step は、その下に入る |
+| 名前に入れないもの | 実行ごとに変わる値（一時のパス・時刻） |
+| 共通の関数 | テストが共通で呼ぶ関数は、関数の中に step を持つ。`.githooks/tests/conftest.py` の `run_script`・`git`・`git_rev_parse`・`git_repo` が返す関数がそうなっている |
+
+pytest の fixture の準備の中で呼んだ step は、レポートの「セットアップ」に出て、テストの step に数えません。テストの本体にも step を書きます。
+Allure の runtime を差し替えて確かめるテストでは、差し替えの間の step が本物の reporter に届きません。step は差し替えの外で書きます。
+
+### step の無いテストを止める
+
+レーンの最後で、`.githooks/scripts/test_report/step-gate.sh` が Allure の quality gate（`step-gate.mjs`）をかけます。
+passed のテストのうち、名前の付いた step を 1 つも持たないものがあれば、レーンが落ちます。
+
+| 起きること | 出る文言 |
+|---|---|
+| 名前の付いた step を持たない passed のテストがある | `名前の付いた step を持たない passed のテストが N 件あります` と、テストの完全な名前（parametrize の行は値を添える） |
+
+- 数えるのは、名前が `expect(` で始まらない step で、入れ子の中も数える。添付は数えない
+- 落ちたテストと skip は見ない。最初の step の前で止まることがあり、欠けと見分けられないため
+- gate を置いたレーンは、githooks の 4 本（`run.sh`）、`text-rules:test-unit`、`interface-spec:test-unit`・`test-site`。ほかのレーンは、テストに step を書き終えたら、コマンドの最後に gate を足す
+
 ## テストから bash を呼ぶ
 
 `bash -c` に値を渡しません。スクリプトの文字列に埋め込むことも、`-c` の後ろの位置引数に並べることもしません。

@@ -25,6 +25,7 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
+import allure
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -175,33 +176,35 @@ def pr_repo(
 def test_stages_run_in_order_with_range(pr_repo: _PrChecksRepo, run_script) -> None:
     """3 stage を pre-commit → pre-push → manual の順に、base と head の範囲で呼ぶ。"""
     result = pr_repo.run(run_script)
-    assert result.returncode == 0, result.stderr
+    with allure.step("3 つの stage が順に、base と head の範囲で呼ばれることを確かめる"):
+        assert result.returncode == 0, result.stderr
 
-    calls = pr_repo.calls()
-    assert [c["stage"] for c in calls] == _STAGES
-    for call in calls:
-        assert f"--from-ref {pr_repo.base} --to-ref {pr_repo.head}" in call["args"]
-        assert "--show-diff-on-failure" in call["args"]
-        assert "--color=never" in call["args"]
-        assert "--all-files" not in call["args"]
-        assert call["NXC"] == "true"
-        assert call["NXCI"] == "1"
+        calls = pr_repo.calls()
+        assert [c["stage"] for c in calls] == _STAGES
+        for call in calls:
+            assert f"--from-ref {pr_repo.base} --to-ref {pr_repo.head}" in call["args"]
+            assert "--show-diff-on-failure" in call["args"]
+            assert "--color=never" in call["args"]
+            assert "--all-files" not in call["args"]
+            assert call["NXC"] == "true"
+            assert call["NXCI"] == "1"
 
 
 def test_skip_and_plan_base_per_stage(pr_repo: _PrChecksRepo, run_script) -> None:
     """SKIP は全 stage に version plan の判定だけを入れる。"""
     result = pr_repo.run(run_script)
-    assert result.returncode == 0, result.stderr
+    with allure.step("stage ごとの SKIP と version plan の base を確かめる"):
+        assert result.returncode == 0, result.stderr
 
-    by_stage = {c["stage"]: c for c in pr_repo.calls()}
-    assert by_stage["pre-commit"]["SKIP"] == "check-version-plan-required"
-    assert by_stage["pre-push"]["SKIP"] == "check-version-plan-required"
-    assert by_stage["manual"]["SKIP"] == "check-version-plan-required"
-    assert by_stage["pre-commit"]["PVB"] == "unset"
-    assert by_stage["pre-push"]["PVB"] == pr_repo.base
-    assert by_stage["manual"]["PVB"] == pr_repo.base
-    # PRE_COMMIT_TO_REF は pre-commit が --to-ref から立てる。通常は渡さない。
-    assert {c["TO"] for c in by_stage.values()} == {"unset"}
+        by_stage = {c["stage"]: c for c in pr_repo.calls()}
+        assert by_stage["pre-commit"]["SKIP"] == "check-version-plan-required"
+        assert by_stage["pre-push"]["SKIP"] == "check-version-plan-required"
+        assert by_stage["manual"]["SKIP"] == "check-version-plan-required"
+        assert by_stage["pre-commit"]["PVB"] == "unset"
+        assert by_stage["pre-push"]["PVB"] == pr_repo.base
+        assert by_stage["manual"]["PVB"] == pr_repo.base
+        # PRE_COMMIT_TO_REF は pre-commit が --to-ref から立てる。通常は渡さない。
+        assert {c["TO"] for c in by_stage.values()} == {"unset"}
 
 
 @pytest.mark.parametrize(
@@ -220,26 +223,29 @@ def test_part_selects_stages_and_skip(
 ) -> None:
     """--part は流す stage と、manual の stage で飛ばす hook を決める。"""
     result = pr_repo.run(run_script, f"--part={part}", pr_repo.base, pr_repo.head)
-    assert result.returncode == 0, result.stderr
+    with allure.step("part に応じた stage と SKIP を確かめる"):
+        assert result.returncode == 0, result.stderr
 
-    calls = pr_repo.calls()
-    assert [c["stage"] for c in calls] == stages
-    assert [c["SKIP"] for c in calls] == skips
+        calls = pr_repo.calls()
+        assert [c["stage"] for c in calls] == stages
+        assert [c["SKIP"] for c in calls] == skips
 
 
 def test_part_option_may_follow_positionals(pr_repo: _PrChecksRepo, run_script) -> None:
     """--part は位置引数の後ろに置いてもよい。"""
     result = pr_repo.run(run_script, pr_repo.base, pr_repo.head, "--part=lint")
-    assert result.returncode == 0, result.stderr
-    assert [c["stage"] for c in pr_repo.calls()] == ["pre-commit", "pre-push"]
+    with allure.step("位置引数の後ろの --part でも stage が選ばれることを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert [c["stage"] for c in pr_repo.calls()] == ["pre-commit", "pre-push"]
 
 
 def test_unknown_part_exit_2(pr_repo: _PrChecksRepo, run_script) -> None:
     """不明な --part は、使い方を stderr へ出して exit 2。pre-commit は呼ばない。"""
     result = pr_repo.run(run_script, "--part=bogus", pr_repo.base, pr_repo.head)
-    assert result.returncode == 2
-    assert "使い方" in result.stderr
-    assert read_output(pr_repo.pc_log) == ""
+    with allure.step("終了コード 2 と使い方の出力と pre-commit が呼ばれないことを確かめる"):
+        assert result.returncode == 2
+        assert "使い方" in result.stderr
+        assert read_output(pr_repo.pc_log) == ""
 
 
 def test_summary_without_lane_sections_for_non_test_part(
@@ -248,20 +254,22 @@ def test_summary_without_lane_sections_for_non_test_part(
     """lint の Summary は、見出しに part を書き、レーン・失敗・skip の欄を出さない。"""
     result = pr_repo.run(run_script, "--part=lint", pr_repo.base, pr_repo.head)
     out = result.stdout
-    assert "## 検証の結果（lint）\n" in out
-    assert "### 範囲" in out
-    assert "### 環境" in out
-    for heading in ("### レーン", "### 失敗", "### skip"):
-        assert heading not in out
+    with allure.step("lint の Summary の見出しと欄を確かめる"):
+        assert "## 検証の結果（lint）\n" in out
+        assert "### 範囲" in out
+        assert "### 環境" in out
+        for heading in ("### レーン", "### 失敗", "### skip"):
+            assert heading not in out
 
 
 def test_summary_with_lane_sections_for_tests_part(pr_repo: _PrChecksRepo, run_script) -> None:
     """tests の Summary は見出しに part を書き、レーン・失敗・skip の欄を出す。"""
     result = pr_repo.run(run_script, "--part=tests", pr_repo.base, pr_repo.head)
     out = result.stdout
-    assert "## 検証の結果（tests）\n" in out
-    for heading in ("### レーン", "### 失敗", "### skip"):
-        assert heading in out
+    with allure.step("tests の Summary の見出しと欄を確かめる"):
+        assert "## 検証の結果（tests）\n" in out
+        for heading in ("### レーン", "### 失敗", "### skip"):
+            assert heading in out
 
 
 def test_summary_without_part_has_plain_heading_and_lane_sections(
@@ -269,9 +277,10 @@ def test_summary_without_part_has_plain_heading_and_lane_sections(
 ) -> None:
     """--part を省くと、見出しは part なしで、全ての欄を出す。"""
     out = pr_repo.run(run_script).stdout
-    assert "## 検証の結果\n" in out
-    for heading in ("### レーン", "### 失敗", "### skip"):
-        assert heading in out
+    with allure.step("part なしの Summary の見出しと欄を確かめる"):
+        assert "## 検証の結果\n" in out
+        for heading in ("### レーン", "### 失敗", "### skip"):
+            assert heading in out
 
 
 def test_failure_guide_names_part_artifact(pr_repo: _PrChecksRepo, run_script) -> None:
@@ -283,27 +292,30 @@ def test_failure_guide_names_part_artifact(pr_repo: _PrChecksRepo, run_script) -
         pr_repo.head,
         env={"STUB_NX_LOG_SRC": str(pr_repo.write("nx-failed.log", _NX_LOG_FAILED))},
     )
-    assert "artifact `ci-logs-tests`" in result.stdout
-    assert "artifact `ci-logs`" not in result.stdout
+    with allure.step("失敗の案内の artifact 名を確かめる"):
+        assert "artifact `ci-logs-tests`" in result.stdout
+        assert "artifact `ci-logs`" not in result.stdout
 
 
 def test_lane_is_passed_to_pre_commit_env(pr_repo: _PrChecksRepo, run_script) -> None:
     """--lane は PECOT_NX_LANE として pre-commit へ渡る。--lane が無ければ渡らない。"""
     lane = "pecot-visual:test-cli"
     result = pr_repo.run(run_script, "--part=tests", f"--lane={lane}", pr_repo.base, pr_repo.head)
-    assert result.returncode == 0, result.stderr
-    assert [c["LANE"] for c in pr_repo.calls()] == [lane]
+    with allure.step("--lane が pre-commit の環境変数に渡り、無いと渡らないことを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert [c["LANE"] for c in pr_repo.calls()] == [lane]
 
-    pr_repo.pc_log.write_text("")
-    pr_repo.run(run_script, "--part=tests", pr_repo.base, pr_repo.head)
-    assert [c["LANE"] for c in pr_repo.calls()] == ["unset"]
+        pr_repo.pc_log.write_text("")
+        pr_repo.run(run_script, "--part=tests", pr_repo.base, pr_repo.head)
+        assert [c["LANE"] for c in pr_repo.calls()] == ["unset"]
 
 
 def test_lane_option_may_follow_positionals(pr_repo: _PrChecksRepo, run_script) -> None:
     """--lane は位置引数の後ろに置いてもよい。"""
     result = pr_repo.run(run_script, pr_repo.base, pr_repo.head, "--part=tests", "--lane=a:test-b")
-    assert result.returncode == 0, result.stderr
-    assert [c["LANE"] for c in pr_repo.calls()] == ["a:test-b"]
+    with allure.step("位置引数の後ろの --lane でも渡ることを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert [c["LANE"] for c in pr_repo.calls()] == ["a:test-b"]
 
 
 @pytest.mark.parametrize(
@@ -316,9 +328,10 @@ def test_lane_option_may_follow_positionals(pr_repo: _PrChecksRepo, run_script) 
 def test_lane_without_tests_part_exit_2(pr_repo: _PrChecksRepo, run_script, args: tuple) -> None:
     """--lane は --part=tests と組み合わせたときだけ。違えば使い方を出して exit 2。"""
     result = pr_repo.run(run_script, *args, pr_repo.base, pr_repo.head)
-    assert result.returncode == 2
-    assert "使い方" in result.stderr
-    assert read_output(pr_repo.pc_log) == ""
+    with allure.step("終了コード 2 と使い方の出力と pre-commit が呼ばれないことを確かめる"):
+        assert result.returncode == 2
+        assert "使い方" in result.stderr
+        assert read_output(pr_repo.pc_log) == ""
 
 
 def test_lane_summary_heading_and_artifact_name(pr_repo: _PrChecksRepo, run_script) -> None:
@@ -331,8 +344,9 @@ def test_lane_summary_heading_and_artifact_name(pr_repo: _PrChecksRepo, run_scri
         pr_repo.head,
         env={"STUB_NX_LOG_SRC": str(pr_repo.write("nx-failed.log", _NX_LOG_FAILED))},
     )
-    assert "## 検証の結果（tests: pecot-visual:test-cli）\n" in result.stdout
-    assert "artifact `ci-logs-tests-pecot-visual-test-cli`" in result.stdout
+    with allure.step("Summary の見出しと失敗の案内の artifact 名にレーンが入ることを確かめる"):
+        assert "## 検証の結果（tests: pecot-visual:test-cli）\n" in result.stdout
+        assert "artifact `ci-logs-tests-pecot-visual-test-cli`" in result.stdout
 
 
 def test_lane_summary_artifact_name_prefers_checks_slug(pr_repo: _PrChecksRepo, run_script) -> None:
@@ -340,17 +354,19 @@ def test_lane_summary_artifact_name_prefers_checks_slug(pr_repo: _PrChecksRepo, 
     nx_log = {"STUB_NX_LOG_SRC": str(pr_repo.write("nx-failed.log", _NX_LOG_FAILED))}
     args = ("--part=tests", "--lane=@scope/pkg:test-cli", pr_repo.base, pr_repo.head)
     result = pr_repo.run(run_script, *args, env=nx_log)
-    assert "artifact `ci-logs-tests--scope-pkg-test-cli`" in result.stdout
-    result = pr_repo.run(run_script, *args, env={**nx_log, "CHECKS_SLUG": "custom-slug"})
-    assert "artifact `ci-logs-tests-custom-slug`" in result.stdout
+    with allure.step("CHECKS_SLUG があるときとないときの artifact 名を確かめる"):
+        assert "artifact `ci-logs-tests--scope-pkg-test-cli`" in result.stdout
+        result = pr_repo.run(run_script, *args, env={**nx_log, "CHECKS_SLUG": "custom-slug"})
+        assert "artifact `ci-logs-tests-custom-slug`" in result.stdout
 
 
 def test_existing_skip_is_kept(pr_repo: _PrChecksRepo, run_script) -> None:
     """env に SKIP があれば、連結して引き継ぐ。"""
     result = pr_repo.run(run_script, env={"SKIP": "other-hook"})
-    assert result.returncode == 0, result.stderr
-    for call in pr_repo.calls():
-        assert call["SKIP"].startswith("other-hook,check-version-plan-required")
+    with allure.step("元の SKIP が連結されて引き継がれることを確かめる"):
+        assert result.returncode == 0, result.stderr
+        for call in pr_repo.calls():
+            assert call["SKIP"].startswith("other-hook,check-version-plan-required")
 
 
 @pytest.mark.parametrize("failing", _STAGES)
@@ -359,14 +375,15 @@ def test_failed_stage_does_not_stop_later_stages(
 ) -> None:
     """stage が落ちても後ろの stage を動かし、最後に非 0 で終える。"""
     result = pr_repo.run(run_script, env={"STUB_FAIL_STAGE": failing})
-    assert result.returncode == 1
+    with allure.step("終了コードと後ろの stage が動くことと失敗の表示を確かめる"):
+        assert result.returncode == 1
 
-    assert [c["stage"] for c in pr_repo.calls()] == _STAGES
-    assert f"| {failing} | 失敗（exit 1） |" in result.stdout
-    for other in _STAGES:
-        if other != failing:
-            assert f"| {other} | 成功 |" in result.stdout
-    assert read_output(pr_repo.done()).strip() == "1"
+        assert [c["stage"] for c in pr_repo.calls()] == _STAGES
+        assert f"| {failing} | 失敗（exit 1） |" in result.stdout
+        for other in _STAGES:
+            if other != failing:
+                assert f"| {other} | 成功 |" in result.stdout
+        assert read_output(pr_repo.done()).strip() == "1"
 
 
 def _assert_all_lanes(pr_repo: _PrChecksRepo, result) -> None:
@@ -385,8 +402,9 @@ def _assert_all_lanes(pr_repo: _PrChecksRepo, result) -> None:
 
 def test_no_prev_runs_all_lanes(pr_repo: _PrChecksRepo, run_script) -> None:
     """NO_PREV=true のときは、base が履歴にあっても全レーンのモードにする。"""
-    result = pr_repo.run(run_script, env={"NO_PREV": "true"})
-    _assert_all_lanes(pr_repo, result)
+    with allure.step("NO_PREV=true で動かして全レーンのモードになることを確かめる"):
+        result = pr_repo.run(run_script, env={"NO_PREV": "true"})
+        _assert_all_lanes(pr_repo, result)
 
 
 def test_unknown_base_runs_all_lanes(pr_repo: _PrChecksRepo, run_script) -> None:
@@ -394,15 +412,17 @@ def test_unknown_base_runs_all_lanes(pr_repo: _PrChecksRepo, run_script) -> None
     missing = "1" * 40
     result = pr_repo.run(run_script, missing, pr_repo.head)
     _assert_all_lanes(pr_repo, result)
-    assert missing in result.stdout
+    with allure.step("履歴に無い base で動かして全レーンのモードになることを確かめる"):
+        assert missing in result.stdout
 
 
 def test_normal_mode_is_reported(pr_repo: _PrChecksRepo, run_script) -> None:
     """通常のモードでは範囲の欄に base と head の SHA とモードを書く。"""
     result = pr_repo.run(run_script)
-    assert f"- base: `{pr_repo.base}`" in result.stdout
-    assert f"- head: `{pr_repo.head}`（PR では head は merge commit）" in result.stdout
-    assert "モード: 通常" in result.stdout
+    with allure.step("範囲の欄の base・head と、通常のモードを確かめる"):
+        assert f"- base: `{pr_repo.base}`" in result.stdout
+        assert f"- head: `{pr_repo.head}`（PR では head は merge commit）" in result.stdout
+        assert "モード: 通常" in result.stdout
 
 
 def test_lane_table_marks_cache_hits(pr_repo: _PrChecksRepo, run_script) -> None:
@@ -415,10 +435,11 @@ def test_lane_table_marks_cache_hits(pr_repo: _PrChecksRepo, run_script) -> None
     )
     result = pr_repo.run(run_script, env={"STUB_TSV_APPEND": str(pr_repo.write("tsv", tsv))})
     out = result.stdout
-    assert "| proj-a:test-cli | 成功（キャッシュ） | 1.0s |" in out
-    assert "| proj-a:test-hooks | 成功（キャッシュ） | 1.0s |" in out
-    assert "| proj-a:test-py | 成功（キャッシュ） | 1.0s |" in out
-    assert "| proj-a:test-skills | 成功 | 1.0s |" in out
+    with allure.step("レーンの表がキャッシュの成功と実行の成功を区別することを確かめる"):
+        assert "| proj-a:test-cli | 成功（キャッシュ） | 1.0s |" in out
+        assert "| proj-a:test-hooks | 成功（キャッシュ） | 1.0s |" in out
+        assert "| proj-a:test-py | 成功（キャッシュ） | 1.0s |" in out
+        assert "| proj-a:test-skills | 成功 | 1.0s |" in out
 
 
 # ====
@@ -444,13 +465,14 @@ def test_tests_part_with_nx_cache_uses_remote_cache(
         pr_repo.head,
         env={"PECOT_CI_NX_CACHE": str(cache)},
     )
-    assert result.returncode == 0, result.stderr
-    call = _manual_call(pr_repo)
-    assert call["NXC"] == "unset"
-    assert call["NXCF"] == "unset"
-    assert call["SRV"].startswith("http://127.0.0.1:")
-    assert "取り込み済み 1 件" in result.stderr
-    assert "nx-cache-server: GET hit=0 miss=0 PUT=0" in result.stderr
+    with allure.step("終了コードとキャッシュサーバの環境と取り込みの表示を確かめる"):
+        assert result.returncode == 0, result.stderr
+        call = _manual_call(pr_repo)
+        assert call["NXC"] == "unset"
+        assert call["NXCF"] == "unset"
+        assert call["SRV"].startswith("http://127.0.0.1:")
+        assert "取り込み済み 1 件" in result.stderr
+        assert "nx-cache-server: GET hit=0 miss=0 PUT=0" in result.stderr
 
 
 def test_other_parts_with_nx_cache_skip_the_cache(
@@ -463,19 +485,21 @@ def test_other_parts_with_nx_cache_skip_the_cache(
         pr_repo.head,
         env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote")},
     )
-    assert result.returncode == 0, result.stderr
-    for call in pr_repo.calls():
-        assert call["NXC"] == "true"
-        assert call["SRV"] == "unset"
-        assert call["NXCF"] == "unset"
-    assert "キャッシュ:" not in result.stdout
+    with allure.step("tests 以外の part でキャッシュを使わないことを確かめる"):
+        assert result.returncode == 0, result.stderr
+        for call in pr_repo.calls():
+            assert call["NXC"] == "true"
+            assert call["SRV"] == "unset"
+            assert call["NXCF"] == "unset"
+        assert "キャッシュ:" not in result.stdout
 
 
 def test_tests_part_without_nx_cache_skips_the_cache(pr_repo: _PrChecksRepo, run_script) -> None:
     result = pr_repo.run(run_script, "--part=tests", pr_repo.base, pr_repo.head)
     call = _manual_call(pr_repo)
-    assert (call["NXC"], call["SRV"], call["NXCF"]) == ("true", "unset", "unset")
-    assert "キャッシュ:" not in result.stdout
+    with allure.step("保存先が無いとキャッシュを使わないことを確かめる"):
+        assert (call["NXC"], call["SRV"], call["NXCF"]) == ("true", "unset", "unset")
+        assert "キャッシュ:" not in result.stdout
 
 
 def test_server_start_failure_falls_back_to_skip(
@@ -491,10 +515,11 @@ def test_server_start_failure_falls_back_to_skip(
         pr_repo.head,
         env={"PECOT_CI_NX_CACHE": str(blocker / "nx-remote")},
     )
-    assert result.returncode == 0, result.stderr
-    call = _manual_call(pr_repo)
-    assert (call["NXC"], call["SRV"]) == ("true", "unset")
-    assert "WARN:" in result.stderr
+    with allure.step("終了コードと警告とキャッシュを使わないことを確かめる"):
+        assert result.returncode == 0, result.stderr
+        call = _manual_call(pr_repo)
+        assert (call["NXC"], call["SRV"]) == ("true", "unset")
+        assert "WARN:" in result.stderr
 
 
 def _write_source(pr_repo: _PrChecksRepo, text: str) -> None:
@@ -526,7 +551,8 @@ def test_summary_reports_nx_cache_source(
         pr_repo.head,
         env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote")},
     )
-    assert expected in result.stdout.splitlines()
+    with allure.step("Summary に nx のキャッシュの出どころが出ることを確かめる"):
+        assert expected in result.stdout.splitlines()
 
 
 def _install_fake_node(mock_bin, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, mode: str = ""):
@@ -579,18 +605,19 @@ def test_missing_node_falls_back_to_skip(
         if found:
             (only / name).symlink_to(found)
     monkeypatch.setenv("PATH", str(only))
-    assert shutil.which("node") is None
-    result = pr_repo.run(
-        run_script,
-        "--part=tests",
-        pr_repo.base,
-        pr_repo.head,
-        env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote")},
-    )
-    assert result.returncode == 0, result.stderr
-    assert "WARN: node が無いため" in result.stderr
-    call = _manual_call(pr_repo)
-    assert (call["NXC"], call["SRV"]) == ("true", "unset")
+    with allure.step("終了コードと警告とキャッシュを使わないことを確かめる"):
+        assert shutil.which("node") is None
+        result = pr_repo.run(
+            run_script,
+            "--part=tests",
+            pr_repo.base,
+            pr_repo.head,
+            env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote")},
+        )
+        assert result.returncode == 0, result.stderr
+        assert "WARN: node が無いため" in result.stderr
+        call = _manual_call(pr_repo)
+        assert (call["NXC"], call["SRV"]) == ("true", "unset")
 
 
 @pytest.mark.parametrize("mode", ["silent", "exit-before-port"])
@@ -615,12 +642,13 @@ def test_server_without_port_falls_back_to_skip(
         pr_repo.head,
         env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote"), "PECOT_CI_NX_CACHE_WAIT_TICKS": "5"},
     )
-    assert result.returncode == 0, result.stderr
-    assert "WARN: nx のキャッシュサーバが起動しませんでした" in result.stderr
-    call = _manual_call(pr_repo)
-    assert (call["NXC"], call["SRV"]) == ("true", "unset")
-    if pid_file.exists():
-        assert not _pid_alive(pid_file)
+    with allure.step("終了コードと警告とキャッシュを使わないことを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert "WARN: nx のキャッシュサーバが起動しませんでした" in result.stderr
+        call = _manual_call(pr_repo)
+        assert (call["NXC"], call["SRV"]) == ("true", "unset")
+        if pid_file.exists():
+            assert not _pid_alive(pid_file)
 
 
 def test_server_dead_before_manual_stage_falls_back_to_skip(
@@ -635,10 +663,11 @@ def test_server_dead_before_manual_stage_falls_back_to_skip(
         pr_repo.head,
         env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote")},
     )
-    assert result.returncode == 0, result.stderr
-    call = _manual_call(pr_repo)
-    assert (call["NXC"], call["SRV"]) == ("true", "unset")
-    assert "キャッシュサーバが落ちている" in result.stderr
+    with allure.step("終了コードと警告とキャッシュを使わないことを確かめる"):
+        assert result.returncode == 0, result.stderr
+        call = _manual_call(pr_repo)
+        assert (call["NXC"], call["SRV"]) == ("true", "unset")
+        assert "キャッシュサーバが落ちている" in result.stderr
 
 
 def test_server_is_stopped_by_trap_when_script_is_terminated(
@@ -653,10 +682,11 @@ def test_server_is_stopped_by_trap_when_script_is_terminated(
         pr_repo.head,
         env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote"), "STUB_KILL_PARENT_STAGE": "manual"},
     )
-    assert result.returncode != 0
-    assert pid_file.exists()
-    assert not _pid_alive(pid_file)
-    assert pr_repo.done().exists()
+    with allure.step("終了コードとサーバが止まったことと完了の印を確かめる"):
+        assert result.returncode != 0
+        assert pid_file.exists()
+        assert not _pid_alive(pid_file)
+        assert pr_repo.done().exists()
 
 
 def test_failed_stage_stops_the_server(
@@ -671,8 +701,9 @@ def test_failed_stage_stops_the_server(
         pr_repo.head,
         env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote"), "STUB_FAIL_STAGE": "manual"},
     )
-    assert result.returncode == 1
-    assert not _pid_alive(pid_file)
+    with allure.step("終了コードとサーバが止まったことを確かめる"):
+        assert result.returncode == 1
+        assert not _pid_alive(pid_file)
 
 
 def test_upload_dir_holds_only_used_artifacts(
@@ -693,18 +724,19 @@ def test_upload_dir_holds_only_used_artifacts(
         pr_repo.head,
         env={"PECOT_CI_NX_CACHE": str(cache)},
     )
-    assert result.returncode == 0, result.stderr
-    upload = pr_repo.repo / ".pecot" / "tmp" / "ci" / "nx-upload"
-    assert sorted(p.name for p in upload.iterdir()) == [
-        "abc1.tar.gz",
-        "def2.tar.gz",
-        "tested-tree.txt",
-    ]
-    assert (upload / "abc1.tar.gz").read_bytes() == b"abc1"
-    own_tree = run_attached(
-        ["git", "rev-parse", "HEAD^{tree}"], cwd=pr_repo.repo, capture_output=True, text=True
-    ).stdout.strip()
-    assert read_output(upload / "tested-tree.txt").strip() == own_tree
+    with allure.step("終了コードと上げる場所に使った成果物だけが写ることを確かめる"):
+        assert result.returncode == 0, result.stderr
+        upload = pr_repo.repo / ".pecot" / "tmp" / "ci" / "nx-upload"
+        assert sorted(p.name for p in upload.iterdir()) == [
+            "abc1.tar.gz",
+            "def2.tar.gz",
+            "tested-tree.txt",
+        ]
+        assert (upload / "abc1.tar.gz").read_bytes() == b"abc1"
+        own_tree = run_attached(
+            ["git", "rev-parse", "HEAD^{tree}"], cwd=pr_repo.repo, capture_output=True, text=True
+        ).stdout.strip()
+        assert read_output(upload / "tested-tree.txt").strip() == own_tree
 
 
 def test_server_receives_used_file_path(
@@ -722,7 +754,8 @@ def test_server_receives_used_file_path(
         env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote")},
     )
     used = pr_repo.repo / ".pecot" / "tmp" / "ci" / "nx-used.txt"
-    assert f"--used-file={used}" in read_output(args_file)
+    with allure.step("サーバに使ったキーのファイルの path が渡ることを確かめる"):
+        assert f"--used-file={used}" in read_output(args_file)
 
 
 def test_upload_dir_is_empty_without_used_file(
@@ -741,7 +774,8 @@ def test_upload_dir_is_empty_without_used_file(
         env={"PECOT_CI_NX_CACHE": str(cache)},
     )
     upload = pr_repo.repo / ".pecot" / "tmp" / "ci" / "nx-upload"
-    assert list(upload.iterdir()) == []
+    with allure.step("上げる場所が空であることを確かめる"):
+        assert list(upload.iterdir()) == []
 
 
 def test_cache_inputs_are_logged_and_summarized(
@@ -768,14 +802,18 @@ def test_cache_inputs_are_logged_and_summarized(
         f"キャッシュの入力: 取り込み元の tree srctree99、自分の tree {own_tree}",
         f"キャッシュの入力: pnpm-lock.yaml の hash {lock_hash}",
     ]
-    for line in expected:
-        assert line in result.stderr.splitlines()
-        assert f"- {line}" in result.stdout.splitlines()
-    deb = [ln for ln in result.stdout.splitlines() if "apt のパッケージ一覧の hash" in ln]
-    assert len(deb) == 1
-    assert (
-        len([ln for ln in result.stderr.splitlines() if "apt のパッケージ一覧の hash" in ln]) == 1
-    )
+    with allure.step(
+        "取り込み元の tree と lock の hash と apt の一覧の hash がログと Summary に出ることを確かめる"
+    ):
+        for line in expected:
+            assert line in result.stderr.splitlines()
+            assert f"- {line}" in result.stdout.splitlines()
+        deb = [ln for ln in result.stdout.splitlines() if "apt のパッケージ一覧の hash" in ln]
+        assert len(deb) == 1
+        assert (
+            len([ln for ln in result.stderr.splitlines() if "apt のパッケージ一覧の hash" in ln])
+            == 1
+        )
 
 
 def test_cache_inputs_use_dash_without_sources(
@@ -789,17 +827,19 @@ def test_cache_inputs_use_dash_without_sources(
         pr_repo.head,
         env={"PECOT_CI_NX_CACHE": str(tmp_path / "nx-remote")},
     )
-    assert "- キャッシュの入力: pnpm-lock.yaml の hash -" in result.stdout.splitlines()
-    assert any(
-        ln.startswith("- キャッシュの入力: 取り込み元の tree -、自分の tree ")
-        for ln in result.stdout.splitlines()
-    )
+    with allure.step("キャッシュの入力が「-」で出ることを確かめる"):
+        assert "- キャッシュの入力: pnpm-lock.yaml の hash -" in result.stdout.splitlines()
+        assert any(
+            ln.startswith("- キャッシュの入力: 取り込み元の tree -、自分の tree ")
+            for ln in result.stdout.splitlines()
+        )
 
 
 def test_cache_inputs_absent_without_nx_cache(pr_repo: _PrChecksRepo, run_script) -> None:
     """PECOT_CI_NX_CACHE が無ければ、入力の行は出さない。"""
     result = pr_repo.run(run_script, "--part=tests", pr_repo.base, pr_repo.head)
-    assert "キャッシュの入力" not in result.stdout + result.stderr
+    with allure.step("キャッシュの入力の行が出ないことを確かめる"):
+        assert "キャッシュの入力" not in result.stdout + result.stderr
 
 
 def test_nx_fails_the_task_when_remote_cache_is_unreachable(tmp_path: Path) -> None:
@@ -807,52 +847,70 @@ def test_nx_fails_the_task_when_remote_cache_is_unreachable(tmp_path: Path) -> N
 
     そのため run-pr-checks.sh は、manual の stage の前にサーバが生きているかを確かめる。
     """
-    nx_bin = Path(__file__).resolve().parents[2] / "node_modules" / ".bin" / "nx"
-    if not nx_bin.exists():
-        pytest.skip("node_modules/.bin/nx が無い（npm ci 前）ため実 nx テストを skip する")
-    ws = tmp_path / "ws"
-    (ws / "p").mkdir(parents=True)
-    (ws / "nx.json").write_text('{"targetDefaults": {"tgt": {"cache": true}}}')
-    (ws / "package.json").write_text('{"name": "x", "version": "1.0.0"}')
-    (ws / "p" / "project.json").write_text(
-        '{"name": "p", "targets": {"tgt": {"command": "touch ran-the-task", "cache": true}}}'
-    )
-    (ws / "node_modules").symlink_to(nx_bin.parents[1])
-    with socket.socket() as sock:
-        sock.bind(("127.0.0.1", 0))
-        port = sock.getsockname()[1]
-    env = {
-        **os.environ,
-        "NX_DAEMON": "false",
-        "NX_CACHE_DIRECTORY": str(tmp_path / "cache"),
-        "NX_WORKSPACE_DATA_DIRECTORY": str(tmp_path / "data"),
-        "NX_SELF_HOSTED_REMOTE_CACHE_SERVER": f"http://127.0.0.1:{port}",
-        "NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN": "x",
-    }
-    env.pop("NX_SKIP_NX_CACHE", None)
-    result = run_attached(
-        [str(nx_bin), "run", "p:tgt"], cwd=ws, env=env, capture_output=True, text=True, timeout=20
-    )
-    assert result.returncode != 0
-    assert "Failed to send request" in result.stdout + result.stderr
-    assert not (ws / "ran-the-task").exists()
+    with allure.step(
+        "実 nx の一時のワークスペースを用意して、待ち受けの無い remote cache へ向けて動かす"
+    ):
+        nx_bin = Path(__file__).resolve().parents[2] / "node_modules" / ".bin" / "nx"
+        if not nx_bin.exists():
+            pytest.skip("node_modules/.bin/nx が無い（npm ci 前）ため実 nx テストを skip する")
+        ws = tmp_path / "ws"
+        (ws / "p").mkdir(parents=True)
+        (ws / "nx.json").write_text('{"targetDefaults": {"tgt": {"cache": true}}}')
+        (ws / "package.json").write_text('{"name": "x", "version": "1.0.0"}')
+        (ws / "p" / "project.json").write_text(
+            '{"name": "p", "targets": {"tgt": {"command": "touch ran-the-task", "cache": true}}}'
+        )
+        (ws / "node_modules").symlink_to(nx_bin.parents[1])
+        with socket.socket() as sock:
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+        env = {
+            **os.environ,
+            "NX_DAEMON": "false",
+            "NX_CACHE_DIRECTORY": str(tmp_path / "cache"),
+            "NX_WORKSPACE_DATA_DIRECTORY": str(tmp_path / "data"),
+            "NX_SELF_HOSTED_REMOTE_CACHE_SERVER": f"http://127.0.0.1:{port}",
+            "NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN": "x",
+        }
+        env.pop("NX_SKIP_NX_CACHE", None)
+        result = run_attached(
+            [str(nx_bin), "run", "p:tgt"],
+            cwd=ws,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+    with allure.step("task が失敗し、skip を付けると通ることを確かめる"):
+        assert result.returncode != 0
+        assert "Failed to send request" in result.stdout + result.stderr
+        assert not (ws / "ran-the-task").exists()
 
-    env["NX_SKIP_NX_CACHE"] = "true"
-    for key in ("NX_SELF_HOSTED_REMOTE_CACHE_SERVER", "NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN"):
-        env.pop(key)
-    skipped = run_attached(
-        [str(nx_bin), "run", "p:tgt"], cwd=ws, env=env, capture_output=True, text=True, timeout=20
-    )
-    assert skipped.returncode == 0, skipped.stderr
-    assert (ws / "ran-the-task").exists()
+        env["NX_SKIP_NX_CACHE"] = "true"
+        for key in (
+            "NX_SELF_HOSTED_REMOTE_CACHE_SERVER",
+            "NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN",
+        ):
+            env.pop(key)
+        skipped = run_attached(
+            [str(nx_bin), "run", "p:tgt"],
+            cwd=ws,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        assert skipped.returncode == 0, skipped.stderr
+        assert (ws / "ran-the-task").exists()
 
 
 def test_lane_option_emits_summary_with_environment(pr_repo: _PrChecksRepo, run_script) -> None:
     """--lane 付きでも、Summary に範囲・レーン・環境の欄が出る。"""
     result = pr_repo.run(run_script, "--part=tests", "--lane=a:test-b", pr_repo.base, pr_repo.head)
-    assert result.returncode == 0, result.stderr
-    for heading in ("### 範囲", "### レーン", "### 失敗", "### skip", "### 環境"):
-        assert heading in result.stdout
+    with allure.step("終了コードと Summary の欄を確かめる"):
+        assert result.returncode == 0, result.stderr
+        for heading in ("### 範囲", "### レーン", "### 失敗", "### skip", "### 環境"):
+            assert heading in result.stdout
 
 
 _TSV_OLD = "2026-11-06T00:00:00+0000\ttask\told-project:test-cli\t9.0\tstatus=success\n"
@@ -873,15 +931,16 @@ def test_lane_table_reads_only_rows_after_start(pr_repo: _PrChecksRepo, run_scri
     result = pr_repo.run(
         run_script, env={"STUB_TSV_APPEND": str(pr_repo.write("tsv-new", _TSV_NEW))}
     )
-    assert result.returncode == 0, result.stderr
+    with allure.step("終了コードとレーンの表が開始後の test の行だけであることを確かめる"):
+        assert result.returncode == 0, result.stderr
 
-    out = result.stdout
-    assert "| proj-a:test-cli | 成功 | 12.3s |" in out
-    assert "| proj-b:test-unit:ci | 失敗 | 4.0s |" in out
-    assert "old-project" not in out
-    assert "proj-a:install" not in out
-    assert "proj-a:test |" not in out
-    assert "対象なし（成功）" not in out
+        out = result.stdout
+        assert "| proj-a:test-cli | 成功 | 12.3s |" in out
+        assert "| proj-b:test-unit:ci | 失敗 | 4.0s |" in out
+        assert "old-project" not in out
+        assert "proj-a:install" not in out
+        assert "proj-a:test |" not in out
+        assert "対象なし（成功）" not in out
 
 
 def test_lane_table_without_lanes(pr_repo: _PrChecksRepo, run_script) -> None:
@@ -889,7 +948,8 @@ def test_lane_table_without_lanes(pr_repo: _PrChecksRepo, run_script) -> None:
     pr_repo.tsv().parent.mkdir(parents=True)
     pr_repo.tsv().write_text(_TSV_OLD)
     result = pr_repo.run(run_script)
-    assert "対象なし（成功）" in result.stdout
+    with allure.step("レーンの表が「対象なし」になることを確かめる"):
+        assert "対象なし（成功）" in result.stdout
 
 
 _NX_LOG_FAILED = """\
@@ -919,10 +979,11 @@ def test_failure_section_lists_failed_lanes(pr_repo: _PrChecksRepo, run_script) 
         run_script, env={"STUB_NX_LOG_SRC": str(pr_repo.write("nx-failed.log", _NX_LOG_FAILED))}
     )
     out = result.stdout
-    assert "- proj-a:test-cli\n- proj-b:test-unit\n" in out
-    assert out.count("- proj-a:test-cli") == 1
-    assert "artifact `ci-logs`" in out
-    assert "=== 失敗レーン: ... ===" in out
+    with allure.step("失敗の欄が失敗したレーンを重複なしで出すことを確かめる"):
+        assert "- proj-a:test-cli\n- proj-b:test-unit\n" in out
+        assert out.count("- proj-a:test-cli") == 1
+        assert "artifact `ci-logs`" in out
+        assert "=== 失敗レーン: ... ===" in out
 
 
 def test_failure_section_ignores_log_from_earlier_run(pr_repo: _PrChecksRepo, run_script) -> None:
@@ -931,8 +992,9 @@ def test_failure_section_ignores_log_from_earlier_run(pr_repo: _PrChecksRepo, ru
     log.parent.mkdir(parents=True)
     log.write_text(_NX_LOG_FAILED)
     result = pr_repo.run(run_script)
-    assert "proj-b:test-unit" not in result.stdout
-    assert "### 失敗\n\nなし" in result.stdout
+    with allure.step("古いログの失敗が失敗の欄に出ないことを確かめる"):
+        assert "proj-b:test-unit" not in result.stdout
+        assert "### 失敗\n\nなし" in result.stdout
 
 
 # static 出力の task の塊。見出しに ::group:: や [local cache] が付く形も混ぜる。
@@ -966,18 +1028,20 @@ def test_skip_counts_per_lane(pr_repo: _PrChecksRepo, run_script) -> None:
         run_script, env={"STUB_NX_LOG_SRC": str(pr_repo.write("nx-skips.log", _NX_LOG_SKIPS))}
     )
     out = result.stdout
-    # proj-a:test-cli は 2 つの塊の合計（2 + 3 + 1）。Test Files 行は数えない。
-    assert "| proj-a:test-cli | 6 |" in out
-    # proj-b:test-unit は pytest の 2 形式の合計（4 + 2）。NX 行の後ろは数えない。
-    assert "| proj-b:test-unit | 6 |" in out
-    # test-* でない target の塊は数えない。
-    assert "proj-a:install" not in out.split("### skip")[1]
+    with allure.step("レーンごとの skip の件数を確かめる"):
+        # proj-a:test-cli は 2 つの塊の合計（2 + 3 + 1）。Test Files 行は数えない。
+        assert "| proj-a:test-cli | 6 |" in out
+        # proj-b:test-unit は pytest の 2 形式の合計（4 + 2）。NX 行の後ろは数えない。
+        assert "| proj-b:test-unit | 6 |" in out
+        # test-* でない target の塊は数えない。
+        assert "proj-a:install" not in out.split("### skip")[1]
 
 
 def test_skip_section_without_log(pr_repo: _PrChecksRepo, run_script) -> None:
     """nx のログが無ければ、skip の欄は「なし」。"""
     result = pr_repo.run(run_script)
-    assert "### skip\n\nなし" in result.stdout
+    with allure.step("ログが無いと skip の欄が「なし」になることを確かめる"):
+        assert "### skip\n\nなし" in result.stdout
 
 
 def test_done_marker_written_on_success_and_replaces_stale(
@@ -987,32 +1051,35 @@ def test_done_marker_written_on_success_and_replaces_stale(
     pr_repo.done().parent.mkdir(parents=True)
     pr_repo.done().write_text("9\n")
     result = pr_repo.run(run_script)
-    assert result.returncode == 0, result.stderr
-    assert read_output(pr_repo.done()).strip() == "0"
+    with allure.step("終了コードと完了の印が新しくなることを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert read_output(pr_repo.done()).strip() == "0"
 
 
 def test_summary_goes_to_file_when_set(pr_repo: _PrChecksRepo, run_script) -> None:
     """PECOT_CI_SUMMARY があれば、親ディレクトリを作って上書きで書き、stdout には出さない。"""
     summary = pr_repo.tmp / "deep" / "dir" / "summary.md"
     result = pr_repo.run(run_script, env={"PECOT_CI_SUMMARY": str(summary)})
-    assert result.returncode == 0, result.stderr
-    text = read_output(summary)
-    assert "### 範囲" in text
-    assert "### レーン" in text
-    assert "### 失敗" in text
-    assert "### skip" in text
-    assert "### 環境" in text
-    assert "### 範囲" not in result.stdout
+    with allure.step("終了コードと Summary のファイルの内容と上書きを確かめる"):
+        assert result.returncode == 0, result.stderr
+        text = read_output(summary)
+        assert "### 範囲" in text
+        assert "### レーン" in text
+        assert "### 失敗" in text
+        assert "### skip" in text
+        assert "### 環境" in text
+        assert "### 範囲" not in result.stdout
 
-    summary.write_text("stale\n")
-    pr_repo.run(run_script, env={"PECOT_CI_SUMMARY": str(summary)})
-    assert "stale" not in read_output(summary)
+        summary.write_text("stale\n")
+        pr_repo.run(run_script, env={"PECOT_CI_SUMMARY": str(summary)})
+        assert "stale" not in read_output(summary)
 
 
 def test_summary_goes_to_stdout_when_unset(pr_repo: _PrChecksRepo, run_script) -> None:
     """PECOT_CI_SUMMARY が無ければ、Summary を標準出力へ出す。"""
     result = pr_repo.run(run_script)
-    assert "## 検証の結果" in result.stdout
+    with allure.step("Summary が標準出力に出ることを確かめる"):
+        assert "## 検証の結果" in result.stdout
 
 
 def test_environment_section(pr_repo: _PrChecksRepo, run_script, mock_bin) -> None:
@@ -1020,16 +1087,18 @@ def test_environment_section(pr_repo: _PrChecksRepo, run_script, mock_bin) -> No
     mock_bin.install("actionlint", "echo 'actionlint-1.2.3'\necho second-line\n")
     result = pr_repo.run(run_script, env={"PECOT_CI_IMAGE": "ghcr.io/example/image:tag"})
     out = result.stdout
-    assert "- イメージ: ghcr.io/example/image:tag" in out
-    assert "- actionlint: actionlint-1.2.3" in out
-    assert "second-line" not in out
-    assert "- node: " in out
+    with allure.step("環境の欄のイメージ名とツールの版を確かめる"):
+        assert "- イメージ: ghcr.io/example/image:tag" in out
+        assert "- actionlint: actionlint-1.2.3" in out
+        assert "second-line" not in out
+        assert "- node: " in out
 
 
 def test_environment_section_defaults(pr_repo: _PrChecksRepo, run_script) -> None:
     """PECOT_CI_IMAGE が無ければイメージは「-」。"""
     result = pr_repo.run(run_script)
-    assert "- イメージ: -\n" in result.stdout
+    with allure.step("イメージが「-」になることを確かめる"):
+        assert "- イメージ: -\n" in result.stdout
 
 
 @pytest.mark.parametrize("args", [(), ("only-base",), ("", "head")])
@@ -1038,17 +1107,19 @@ def test_missing_arguments_exit_2(pr_repo: _PrChecksRepo, run_script, args: tupl
     result = run_script(
         pr_repo.script, *args, cwd=pr_repo.repo, env={"STUB_PC_LOG": str(pr_repo.pc_log)}
     )
-    assert result.returncode == 2
-    assert "使い方" in result.stderr
-    assert read_output(pr_repo.pc_log) == ""
+    with allure.step("終了コード 2 と使い方の出力と pre-commit が呼ばれないことを確かめる"):
+        assert result.returncode == 2
+        assert "使い方" in result.stderr
+        assert read_output(pr_repo.pc_log) == ""
 
 
 def test_explicit_pre_commit_env(pr_repo: _PrChecksRepo, run_script, mock_bin) -> None:
     """PECOT_PRE_COMMIT で実行ファイルを明示できる。"""
     other = mock_bin.install("other-pre-commit", _PRE_COMMIT_STUB)
     result = pr_repo.run(run_script, env={"PECOT_PRE_COMMIT": str(other)})
-    assert result.returncode == 0, result.stderr
-    assert [c["stage"] for c in pr_repo.calls()] == _STAGES
+    with allure.step("終了コードと明示した pre-commit で stage が呼ばれることを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert [c["stage"] for c in pr_repo.calls()] == _STAGES
 
 
 # FR-029: 解決できない base のとき、run-affected-tests.sh は全 project の run-many へ落ちる。
@@ -1096,19 +1167,20 @@ def test_unresolvable_base_falls_back_to_run_many(
             "PECOT_VERSION_PLAN_BASE": "refs/pecot/ci-no-base",
         },
     )
-    assert result.returncode == 0, result.stderr
+    with allure.step("終了コードと run-many で動き affected を使わないことを確かめる"):
+        assert result.returncode == 0, result.stderr
 
-    log = read_output(nx_log)
-    assert "run-many -t test" in log
-    assert "affected" not in log
-    assert (
-        run_attached(
-            ["git", "rev-parse", "--verify", "--quiet", "refs/pecot/ci-no-base"],
-            cwd=repo,
-            capture_output=True,
-        ).returncode
-        != 0
-    )
+        log = read_output(nx_log)
+        assert "run-many -t test" in log
+        assert "affected" not in log
+        assert (
+            run_attached(
+                ["git", "rev-parse", "--verify", "--quiet", "refs/pecot/ci-no-base"],
+                cwd=repo,
+                capture_output=True,
+            ).returncode
+            != 0
+        )
 
 
 # --- finish-ci-summary.sh（ホストの runner で Summary を書き写す） ---
@@ -1136,45 +1208,55 @@ def _write_ci_files(work: Path, *, summary: str | None, done: str | None) -> Non
 
 
 def test_finish_copies_summary_and_passes_on_done_0(githooks_dir: Path, tmp_path: Path) -> None:
-    _write_ci_files(tmp_path, summary="## 検証の結果\n", done="0\n")
-    result = _run_finish(githooks_dir, tmp_path, "success")
-    assert result.returncode == 0
-    assert read_output(tmp_path / "summary.md") == "## 検証の結果\n"
+    with allure.step("完了の印が 0 の状態で完了処理を動かす"):
+        _write_ci_files(tmp_path, summary="## 検証の結果\n", done="0\n")
+        result = _run_finish(githooks_dir, tmp_path, "success")
+    with allure.step("終了コードと Summary がコピーされることを確かめる"):
+        assert result.returncode == 0
+        assert read_output(tmp_path / "summary.md") == "## 検証の結果\n"
 
 
 def test_finish_fails_on_nonzero_done(githooks_dir: Path, tmp_path: Path) -> None:
-    _write_ci_files(tmp_path, summary="x\n", done="1\n")
-    assert _run_finish(githooks_dir, tmp_path, "success").returncode == 1
+    with allure.step("完了の印が 0 でない状態を用意する"):
+        _write_ci_files(tmp_path, summary="x\n", done="1\n")
+    with allure.step("完了処理の終了コードが 1 になることを確かめる"):
+        assert _run_finish(githooks_dir, tmp_path, "success").returncode == 1
 
 
 def test_finish_fails_without_done_marker(githooks_dir: Path, tmp_path: Path) -> None:
-    _write_ci_files(tmp_path, summary=None, done=None)
-    result = _run_finish(githooks_dir, tmp_path, "success")
-    assert result.returncode == 1
-    assert "検証が完了していない" in read_output(tmp_path / "summary.md")
+    with allure.step("完了の印が無い状態で完了処理を動かす"):
+        _write_ci_files(tmp_path, summary=None, done=None)
+        result = _run_finish(githooks_dir, tmp_path, "success")
+    with allure.step("終了コード 1 と「検証が完了していない」の Summary を確かめる"):
+        assert result.returncode == 1
+        assert "検証が完了していない" in read_output(tmp_path / "summary.md")
 
 
 def test_finish_reports_infra_failure(githooks_dir: Path, tmp_path: Path) -> None:
-    _write_ci_files(tmp_path, summary=None, done=None)
-    result = _run_finish(githooks_dir, tmp_path, "failure")
-    assert result.returncode == 1
-    assert "基盤の失敗" in read_output(tmp_path / "summary.md")
+    with allure.step("基盤が失敗した状態で完了処理を動かす"):
+        _write_ci_files(tmp_path, summary=None, done=None)
+        result = _run_finish(githooks_dir, tmp_path, "failure")
+    with allure.step("終了コード 1 と「基盤の失敗」の Summary を確かめる"):
+        assert result.returncode == 1
+        assert "基盤の失敗" in read_output(tmp_path / "summary.md")
 
 
 def test_finish_reports_image_on_infra_failure(githooks_dir: Path, tmp_path: Path) -> None:
-    _write_ci_files(tmp_path, summary=None, done=None)
-    result = run_attached(
-        [str(githooks_dir / "ci" / "finish-ci-summary.sh")],
-        cwd=tmp_path,
-        env={
-            "PATH": "/usr/bin:/bin",
-            "UP_OUTCOME": "failure",
-            "PECOT_CI_IMAGE": "img:def-abc@sha256:123",
-            "GITHUB_STEP_SUMMARY": str(tmp_path / "summary.md"),
-        },
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert result.returncode == 1
-    assert "- イメージ: img:def-abc@sha256:123" in read_output(tmp_path / "summary.md")
+    with allure.step("基盤が失敗した状態で、イメージ付きで完了処理を動かす"):
+        _write_ci_files(tmp_path, summary=None, done=None)
+        result = run_attached(
+            [str(githooks_dir / "ci" / "finish-ci-summary.sh")],
+            cwd=tmp_path,
+            env={
+                "PATH": "/usr/bin:/bin",
+                "UP_OUTCOME": "failure",
+                "PECOT_CI_IMAGE": "img:def-abc@sha256:123",
+                "GITHUB_STEP_SUMMARY": str(tmp_path / "summary.md"),
+            },
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    with allure.step("終了コード 1 と Summary のイメージを確かめる"):
+        assert result.returncode == 1
+        assert "- イメージ: img:def-abc@sha256:123" in read_output(tmp_path / "summary.md")
