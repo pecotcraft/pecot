@@ -8,10 +8,12 @@ import {
   createOutputCapture,
   parsePathArguments,
   toCallToolResult,
+  toolOutputSchema,
   truncateCapturedText,
   withoutCommonFailureFields,
   type ToolResult,
 } from '../result.js'
+import { allTools } from '../tools/index.js'
 
 /**
 createOutputCapture が保持する上限 (src/mcp/result.ts の OUTPUT_CAPTURE_LIMIT_BYTES と同値)。
@@ -86,6 +88,19 @@ describe('withoutCommonFailureFields', () => {
   it('CLI の失敗の payload から reason と detail を外し、ほかの項目を残す', () => {
     expect(withoutCommonFailureFields({ event: 'x.error', reason: 'invalid-theme', detail: 'broken', file: '/a' }))
       .toStrictEqual({ event: 'x.error', file: '/a' })
+  })
+})
+
+describe('toolOutputSchema', () => {
+  it.for(['kind', 'detail', 'log', 'warnings'])('output が共通の項目の名前 %s を持つと、例外を投げる', (key) => {
+    expect(() => toolOutputSchema(z.strictObject({ file: z.string(), [key]: z.string() })))
+      .toThrow(new TypeError(`output の ${key} は MCP の結果の共通の項目の予約名です`))
+  })
+
+  it('全ツールの output は、共通の項目の名前を持たず、例外を投げない', () => {
+    const outputs = allTools().flatMap(tool => tool.config.outputSchema === undefined ? [] : [tool.config.outputSchema])
+    expect(outputs).toHaveLength(allTools().length)
+    for (const output of outputs) expect(() => toolOutputSchema(output)).not.toThrow()
   })
 })
 

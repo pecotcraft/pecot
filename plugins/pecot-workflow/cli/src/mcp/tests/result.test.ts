@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { COMMON_OUTPUT_KEYS } from '../../commands/command-definition.js'
 import { createOutput } from '../../commands/output.js'
 import { outputSchemaIssues } from '../../../tests/_helpers/mcp-client.js'
 import { z } from 'zod'
@@ -145,6 +146,11 @@ describe('toolOutputSchema', () => {
 
   it('$schema を持たない', () => {
     expect(toolOutputSchema(OUTPUT)).not.toHaveProperty('$schema')
+  })
+
+  it('共通の項目は、コマンドの定義が予約名にする名前と同じ集合になる', () => {
+    expect(new Set(Object.keys(COMMON_OUTPUT_PROPERTIES))).toEqual(new Set(COMMON_OUTPUT_KEYS))
+    expect(COMMON_OUTPUT_KEYS).toHaveLength(new Set(COMMON_OUTPUT_KEYS).size)
   })
 })
 
