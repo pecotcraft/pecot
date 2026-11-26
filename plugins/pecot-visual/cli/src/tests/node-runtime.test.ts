@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
+import { attachOutput } from '../../tests/_helpers/attach.js'
 import { checkNodeRuntime, MINIMUM_NODE_VERSIONS, nodeRuntimeGuidance, suggestedNodeVersion } from '../node-runtime.js'
 
 function readRelative(relativePath: string): string {
@@ -102,7 +103,9 @@ describe('最低版の記述の整合', () => {
     // ルート扱いになって列挙の基準がずれる。GIT_* を外して cwd から解決させる。
     // interface-env: none
     const gitEnvironment = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')))
-    const files = execFileSync('git', ['ls-files', '--', '*package.json'], { cwd: root, encoding: 'utf8', env: gitEnvironment })
+    const listed = execFileSync('git', ['ls-files', '--', '*package.json'], { cwd: root, encoding: 'utf8', env: gitEnvironment })
+    attachOutput('git ls-files -- *package.json', 0, listed, '')
+    const files = listed
       .split('\n')
       .filter(file => file !== '' && !file.includes('node_modules/'))
     expect(files).toContain('package.json')

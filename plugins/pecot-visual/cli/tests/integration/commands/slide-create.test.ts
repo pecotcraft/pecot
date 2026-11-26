@@ -27,6 +27,7 @@ import { copyFixtureTheme as copyTheme } from '../../_helpers/theme-fixtures.js'
 import type { CopiedTheme, FixtureTheme } from '../../_helpers/theme-fixtures.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
 import { verifies } from '../../_helpers/verifies.js'
+import { attachAtTestEnd, readOutput } from '../../_helpers/attach.js'
 
 const HERE = import.meta.dirname
 // repo の plugins/pecot-visual が plugin-root（cli/.. = plugins/pecot-visual）。
@@ -40,8 +41,10 @@ interface CapturedStream {
   write: (data: string) => boolean
 }
 
-function makeStream(): CapturedStream {
+function makeStream(name?: string): CapturedStream {
   const chunks: string[] = []
+  // 名前を付けた stream は、テストが判定に使う出力なので、テストの終わりに添付する。
+  if (name !== undefined) attachAtTestEnd(name, () => chunks.join(''))
   return {
     chunks,
     write(data: string): boolean {
@@ -88,7 +91,7 @@ function copyFixtureTheme(fixture: FixtureTheme, name: string): CopiedTheme {
 
 function readJson(file: string): Record<string, unknown> {
   // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
-  return JSON.parse(readFileSync(file, 'utf8')) as Record<string, unknown>
+  return JSON.parse(readOutput(file)) as Record<string, unknown>
 }
 
 // catalog の stdout 出力は executeSlideCreate が持つ（収集を 1 回に束ねたため）。
@@ -97,8 +100,8 @@ describe('executeSlideCreate (smoke)', () => {
   it('fixture テーマを file: で指して、生成するものだけを作る', async () => {
     const theme = declaredTheme()
     const projectDirectory = temporaryRoot('sample')
-    const stdout = makeStream()
-    const stderr = makeStream()
+    const stdout = makeStream('stdout')
+    const stderr = makeStream('stderr')
     const { summary } = await executeSlideCreate(
       projectDirectory,
       { theme: theme.spec, force: false, emitCatalog: true },
@@ -127,11 +130,11 @@ describe('executeSlideCreate (smoke)', () => {
     // fixture は agenda を持たない。
     expect(readdirSync(path.join(projectDirectory, 'pages')).toSorted(compareStrings)).toEqual(['cover.md', 'end.md', 'section.md'])
     for (const name of ['cover', 'section', 'end']) {
-      expect(readFileSync(path.join(projectDirectory, 'pages', `${name}.md`), 'utf8').startsWith(`---\nlayout: ${name}\n`)).toBe(true)
+      expect(readOutput(path.join(projectDirectory, 'pages', `${name}.md`)).startsWith(`---\nlayout: ${name}\n`)).toBe(true)
     }
 
     // slides.md: theme: はパッケージ名。テーマの headmatter は書かない。
-    const slidesMd = readFileSync(path.join(projectDirectory, 'slides.md'), 'utf8')
+    const slidesMd = readOutput(path.join(projectDirectory, 'slides.md'))
     expect(slidesMd).toBe(
       `---\ntheme: ${DECLARED_THEME_NAME}\ntitle: Sample\nsrc: ./pages/cover.md\n---\n<!-- markdownlint-disable -->\n`
       + '\n---\nsrc: ./pages/section.md\n---\n'
@@ -149,8 +152,8 @@ describe('executeSlideCreate (smoke)', () => {
     })
 
     // vite.config.ts と start.mjs は本体が生成した中身であること
-    expect(readFileSync(path.join(projectDirectory, 'vite.config.ts'), 'utf8')).toBe(viteConfigSource({ themeName: DECLARED_THEME_NAME }))
-    expect(readFileSync(path.join(projectDirectory, 'start.mjs'), 'utf8')).toBe(START_SCRIPT_SOURCE)
+    expect(readOutput(path.join(projectDirectory, 'vite.config.ts'))).toBe(viteConfigSource({ themeName: DECLARED_THEME_NAME }))
+    expect(readOutput(path.join(projectDirectory, 'start.mjs'))).toBe(START_SCRIPT_SOURCE)
 
     // node_modules が実ディレクトリで、項目ごとに依存ルートの node_modules へ相対 symlink を張っていること
     const nodeModulesPath = path.join(projectDirectory, 'node_modules')
@@ -199,7 +202,7 @@ describe('executeSlideCreate (smoke)', () => {
   it('fixture テーマ: 宣言の examples から初期ページを作り、生成する vite.config.ts はテーマの name だけで決まる', async () => {
     const theme = copyFixtureTheme('with-declaration', 'declared-theme')
     const projectDirectory = temporaryRoot('declared-talk')
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
 
     const { data } = await executeSlideCreate(
       projectDirectory,
@@ -209,13 +212,13 @@ describe('executeSlideCreate (smoke)', () => {
 
     // fixture は cover・section・end が 4 つの候補に当たる。各 examples の雛形がそのまま入る。
     expect(readdirSync(path.join(projectDirectory, 'pages')).toSorted(compareStrings)).toEqual(['cover.md', 'end.md', 'section.md'])
-    expect(readFileSync(path.join(projectDirectory, 'pages', 'cover.md'), 'utf8'))
+    expect(readOutput(path.join(projectDirectory, 'pages', 'cover.md')))
       .toBe('---\nlayout: cover\nheading: 発表タイトル\nsubtitle: 副題の例\n---\n')
-    expect(readFileSync(path.join(projectDirectory, 'slides.md'), 'utf8'))
+    expect(readOutput(path.join(projectDirectory, 'slides.md')))
       .toBe(`---\ntheme: ${DECLARED_THEME_NAME}\ntitle: Declared Talk\nsrc: ./pages/cover.md\n---\n<!-- markdownlint-disable -->\n`
         + '\n---\nsrc: ./pages/section.md\n---\n'
         + '\n---\nsrc: ./pages/end.md\n---\n')
-    expect(readFileSync(path.join(projectDirectory, 'vite.config.ts'), 'utf8'))
+    expect(readOutput(path.join(projectDirectory, 'vite.config.ts')))
       .toBe(viteConfigSource({ themeName: DECLARED_THEME_NAME }))
 
     // 一覧の出どころはテーマの宣言。レイアウト名・分類・並びが宣言どおり。
@@ -237,7 +240,7 @@ describe('executeSlideCreate (smoke)', () => {
   it('宣言の無いテーマ: layout だけの初期ページ 1 つと警告', async () => {
     const theme = copyFixtureTheme('without-declaration', 'bare-theme')
     const projectDirectory = temporaryRoot('bare-talk')
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
 
     const { data } = await executeSlideCreate(
       projectDirectory,
@@ -246,8 +249,8 @@ describe('executeSlideCreate (smoke)', () => {
     )
 
     expect(readdirSync(path.join(projectDirectory, 'pages'))).toEqual(['one.md'])
-    expect(readFileSync(path.join(projectDirectory, 'pages', 'one.md'), 'utf8')).toBe('---\nlayout: one\n---\n')
-    expect(readFileSync(path.join(projectDirectory, 'slides.md'), 'utf8'))
+    expect(readOutput(path.join(projectDirectory, 'pages', 'one.md'))).toBe('---\nlayout: one\n---\n')
+    expect(readOutput(path.join(projectDirectory, 'slides.md')))
       .toContain(`theme: ${BARE_THEME_NAME}\n`)
     const warnings = stderr.chunks.join('')
     expect(warnings).toContain('warning: ')
@@ -265,7 +268,7 @@ describe('executeSlideCreate (smoke)', () => {
       return Promise.resolve({ name: BARE_THEME_NAME, directory: theme.directory, reused: false })
     }
 
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const dependencies = buildDependencies({ fetchTheme, stderr: asStream(stderr) })
     const { data } = await executeSlideCreate(
       projectDirectory,
@@ -277,7 +280,7 @@ describe('executeSlideCreate (smoke)', () => {
     // 接頭辞は create が 1 回だけ付ける。
     expect(stderr.chunks.join('')).toContain('warning: 取得中の警告\n')
     expect(stderr.chunks.join('')).not.toContain('warning: warning:')
-    expect(readFileSync(path.join(projectDirectory, 'vite.config.ts'), 'utf8'))
+    expect(readOutput(path.join(projectDirectory, 'vite.config.ts')))
       .toBe(viteConfigSource({ themeName: BARE_THEME_NAME }))
   })
 
@@ -388,7 +391,7 @@ describe('executeSlideCreate (smoke)', () => {
 
   it('emitCatalog: false では layout catalog を stdout に流さない', async () => {
     const projectDirectory = temporaryRoot('sample')
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     await executeSlideCreate(
       projectDirectory,
       { theme: declaredTheme().spec, force: false, emitCatalog: false },
@@ -402,7 +405,7 @@ describe('executeSlideCreate (smoke)', () => {
 describe('createSlideCreateCommand', () => {
   it('--json 成功時 stdout に slide.create.done を出す', async () => {
     const projectDirectory = temporaryRoot('sample-cmd')
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(stdout), stderr: asStream(makeStream()) }))
 
     await command.parseAsync([projectDirectory, '--theme', declaredTheme().spec, '--json'], { from: 'user' })
@@ -418,7 +421,7 @@ describe('createSlideCreateCommand', () => {
 
   it('--json なし成功時 stdout にテキスト + Layout Catalog を出す', async () => {
     const projectDirectory = temporaryRoot('sample-cmd2')
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(stdout), stderr: asStream(makeStream()) }))
 
     await command.parseAsync([projectDirectory, '--theme', declaredTheme().spec], { from: 'user' })
@@ -433,7 +436,7 @@ describe('createSlideCreateCommand', () => {
     const command1 = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(makeStream()), stderr: asStream(makeStream()) }))
     await command1.parseAsync([projectDirectory, '--theme', declaredTheme().spec, '--json'], { from: 'user' })
 
-    const stdout2 = makeStream()
+    const stdout2 = makeStream('stdout2')
     const command2 = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(stdout2), stderr: asStream(makeStream()) }))
     const previousExitCode = process.exitCode
     try {
@@ -455,7 +458,7 @@ describe('createSlideCreateCommand', () => {
     const command1 = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(makeStream()), stderr: asStream(makeStream()) }))
     await command1.parseAsync([projectDirectory, '--theme', declaredTheme().spec], { from: 'user' })
 
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const command2 = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(makeStream()), stderr: asStream(stderr) }))
     const previousExitCode = process.exitCode
     try {
@@ -469,7 +472,7 @@ describe('createSlideCreateCommand', () => {
 
   it('テーマのディレクトリが無い file: は theme-unknown + exit 1 (runtime error)', async () => {
     const projectDirectory = temporaryRoot('sample-no-theme')
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(stdout), stderr: asStream(makeStream()) }))
     const previousExitCode = process.exitCode
     try {
@@ -489,8 +492,8 @@ describe('createSlideCreateCommand', () => {
   })
 
   it('引数未指定 + --json で commander が slide.create.error(invalid-option) を stdout に出す', async () => {
-    const stdout = makeStream()
-    const stderr = makeStream()
+    const stdout = makeStream('stdout')
+    const stderr = makeStream('stderr')
     const command = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(stdout), stderr: asStream(stderr) }))
     const originalArgv = process.argv
     process.argv = ['node', 'cli.js', 'slide', 'create', '--json']
@@ -511,8 +514,8 @@ describe('createSlideCreateCommand', () => {
   })
 
   it('引数未指定 + --json なしは commander が stderr に英文を出す (必須の --theme が先に挙がる)', async () => {
-    const stdout = makeStream()
-    const stderr = makeStream()
+    const stdout = makeStream('stdout')
+    const stderr = makeStream('stderr')
     const command = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(stdout), stderr: asStream(stderr) }))
     const originalArgv = process.argv
     process.argv = ['node', 'cli.js', 'slide', 'create']
@@ -529,7 +532,7 @@ describe('createSlideCreateCommand', () => {
   })
 
   it('--theme 無しは commander が invalid-option で止める', async () => {
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createSlideCreateCommand(() => buildDependencies({ stdout: asStream(stdout), stderr: asStream(makeStream()) }))
     const originalArgv = process.argv
     process.argv = ['node', 'cli.js', 'slide', 'create', 'talk', '--json']

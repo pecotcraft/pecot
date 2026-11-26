@@ -29,6 +29,7 @@ import {
 import { readZipEntries } from '../../_helpers/zip-entries.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
 import { verifies } from '../../_helpers/verifies.js'
+import { attachAtTestEnd } from '../../_helpers/attach.js'
 
 interface CapturedStream {
   readonly chunks: string[]
@@ -59,6 +60,8 @@ const stderr = makeStream()
 beforeEach(() => {
   stdout.chunks.length = 0
   stderr.chunks.length = 0
+  attachAtTestEnd('stdout', () => stdout.chunks.join(''))
+  attachAtTestEnd('stderr', () => stderr.chunks.join(''))
 })
 
 afterEach(() => {

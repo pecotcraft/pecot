@@ -329,8 +329,8 @@ describe('symlink 経由の talk-dir', () => {
     mkdirSync(external)
     symlinkSync(external, path.join(talk, 'pages', 'sub'), 'dir')
 
-    const stdout = makeStream()
-    const stderr = makeStream()
+    const stdout = makeStream('stdout')
+    const stderr = makeStream('stderr')
     const command = createSlideLintCommand(() => lintDependencies(stdout, stderr))
     await command.parseAsync(['--dir', talk], { from: 'user' })
     // 文言も lock する。symlink 先が talk-dir 内実体・空 dir・md 非対象のケースでは、
@@ -349,8 +349,8 @@ describe('symlink 経由の talk-dir', () => {
     // eslint に 0 件を返させるには、slides.md を md を含まないディレクトリにするしかない。
     // それではテストが検知すべき eslint の引数展開仕様を、前提に使ってしまう。
     // そこで summary を直接組んで、警告が no-target の早期 return より前にあることを固定する。
-    const stdout = makeStream()
-    const stderr = makeStream()
+    const stdout = makeStream('stdout')
+    const stderr = makeStream('stderr')
     writeAutoDeckLintReport(
       {
         summary: {
@@ -378,7 +378,7 @@ describe('symlink 経由の talk-dir', () => {
     mkdirSync(external)
     symlinkSync(external, path.join(talk, 'pages', 'sub'), 'dir')
 
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createSlideLintCommand(() => lintDependencies(stdout, makeStream()))
     await command.parseAsync(['--dir', talk, '--json'], { from: 'user' })
     // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
@@ -398,7 +398,7 @@ describe('symlink 経由の talk-dir', () => {
     mkdirSync(external)
     symlinkSync(external, path.join(talk, 'pages', 'sub'), 'dir')
 
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const dependencies = lintDependencies(makeStream(), stderr)
     const report = await runAutoDeckLint(talk, dependencies)
     writeAutoDeckLintReport(report, talk, dependencies)
@@ -447,7 +447,7 @@ describe('テーマの宣言で動く lint (実 eslint)', () => {
   it('テーマを張っていない talk-dir は theme-unlinked の失敗になる', async () => {
     const talk = await setupTalkDirectory('unlinked')
     rmSync(path.join(talk, 'node_modules'), { recursive: true, force: true })
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const previousExitCode = process.exitCode
     try {
       const command = createSlideLintCommand(() => lintDependencies(stdout, makeStream()))
@@ -468,7 +468,7 @@ describe('テーマの宣言で動く lint (実 eslint)', () => {
     await verifies(context, 'PV-SLIDE-LINT-06')
     const talk = await setupTalkDirectory('legacy')
     writeFileSync(path.join(talk, 'slides.md'), '---\ntheme: none\n---\n', 'utf8')
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const previousExitCode = process.exitCode
     try {
       const eslint = countingEslint()
@@ -476,7 +476,7 @@ describe('テーマの宣言で動く lint (実 eslint)', () => {
       await command.parseAsync(['--dir', talk], { from: 'user' })
       expect(stderr.chunks.join('')).toContain('slide sync --theme <theme-spec>')
       expect(process.exitCode).toBe(1)
-      const stdout = makeStream()
+      const stdout = makeStream('stdout')
       const jsonCommand = createSlideLintCommand(() => ({ ...lintDependencies(stdout, makeStream()), eslint: eslint.runner }))
       await jsonCommand.parseAsync(['--dir', talk, '--json'], { from: 'user' })
       // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
@@ -503,7 +503,7 @@ describe('テーマの宣言で動く lint (実 eslint)', () => {
 describe('createSlideLintCommand', () => {
   it('clean な talk-dir は人間向けに件数を出し exit code を変えない', async () => {
     const talk = await setupTalkDirectory()
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const previousExitCode = process.exitCode
     try {
       const command = createSlideLintCommand(() => lintDependencies(stdout, makeStream()))
@@ -522,7 +522,7 @@ describe('createSlideLintCommand', () => {
   it('違反ありは違反一覧を出して exit 1', async () => {
     const talk = await setupTalkDirectory()
     appendFileSync(slidesPathOf(talk), '\n---\nsrc: ./pages/__ghost.md\n---\n', 'utf8')
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const previousExitCode = process.exitCode
     try {
       const command = createSlideLintCommand(() => lintDependencies(stdout, makeStream()))
@@ -546,7 +546,7 @@ describe('createSlideLintCommand', () => {
     writeFileSync(path.join(talk, 'pages', '01-prefixed.md'), '---\nlayout: plain\nheading: 見出し\n---\n', 'utf8')
     appendFileSync(slidesPathOf(talk), '\n---\nsrc: ./pages/01-prefixed.md\n---\n', 'utf8')
     const before = snapshotFiles(talk)
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const previousExitCode = process.exitCode
     try {
       const command = createSlideLintCommand(() => lintDependencies(stdout, makeStream()))
@@ -573,7 +573,7 @@ describe('createSlideLintCommand', () => {
   it('--json は本文とノートの違反をファイル行付きで slide.lint.violations に載せる', async () => {
     const talk = await setupTalkDirectory()
     addBodyNotePage(talk)
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const previousExitCode = process.exitCode
     try {
       const command = createSlideLintCommand(() => lintDependencies(stdout, makeStream()))
@@ -597,7 +597,7 @@ describe('createSlideLintCommand', () => {
 
   it('--json clean は slide.lint.done を出す', async () => {
     const talk = await setupTalkDirectory()
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createSlideLintCommand(() => lintDependencies(stdout, makeStream()))
     await command.parseAsync(['--dir', talk, '--json'], { from: 'user' })
     // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
@@ -607,7 +607,7 @@ describe('createSlideLintCommand', () => {
   })
 
   it('相対 --dir は slide.lint.error(relative-dir) + exit 2', async () => {
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const previousExitCode = process.exitCode
     try {
       const command = createSlideLintCommand(() => lintDependencies(stdout, makeStream()))
@@ -624,8 +624,8 @@ describe('createSlideLintCommand', () => {
   })
 
   it('相対 --dir + --json なしは stderr に "error: slide lint 失敗:" が出る（exit 2 は据え置き）', async () => {
-    const stdout = makeStream()
-    const stderr = makeStream()
+    const stdout = makeStream('stdout')
+    const stderr = makeStream('stderr')
     const previousExitCode = process.exitCode
     try {
       const command = createSlideLintCommand(() => lintDependencies(stdout, stderr))
@@ -641,8 +641,8 @@ describe('createSlideLintCommand', () => {
 
   it('slides.md が無い dir は slide.lint.error(not-talk-dir) + exit 1', async (context) => {
     await verifies(context, 'PV-SLIDE-LINT-05')
-    const stdout = makeStream()
-    const stderr = makeStream()
+    const stdout = makeStream('stdout')
+    const stderr = makeStream('stderr')
     const previousExitCode = process.exitCode
     try {
       const eslint = countingEslint()
@@ -651,7 +651,7 @@ describe('createSlideLintCommand', () => {
       expect(stderr.chunks.join('')).toContain('error: slide lint failed:')
       expect(stderr.chunks.join('')).toContain('slides.md')
       expect(process.exitCode).toBe(1)
-      const jsonOut = makeStream()
+      const jsonOut = makeStream('jsonOut')
       const jsonCommand = createSlideLintCommand(() => ({ ...lintDependencies(jsonOut, makeStream()), eslint: eslint.runner }))
       await jsonCommand.parseAsync(['--dir', state.temporaryRoot, '--json'], { from: 'user' })
       // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
@@ -665,8 +665,8 @@ describe('createSlideLintCommand', () => {
   })
 
   it('--dir 未指定 + --json は commander が slide.lint.error(invalid-option) を stdout に出す', async () => {
-    const stdout = makeStream()
-    const stderr = makeStream()
+    const stdout = makeStream('stdout')
+    const stderr = makeStream('stderr')
     const command = createSlideLintCommand(() => lintDependencies(stdout, stderr))
     const originalArgv = process.argv
     process.argv = ['node', 'cli.js', 'slide', 'lint', '--json']
@@ -684,8 +684,8 @@ describe('createSlideLintCommand', () => {
   })
 
   it('--dir 未指定 + --json なしは commander が stderr に英文を出す', async () => {
-    const stdout = makeStream()
-    const stderr = makeStream()
+    const stdout = makeStream('stdout')
+    const stderr = makeStream('stderr')
     const command = createSlideLintCommand(() => lintDependencies(stdout, stderr))
     const originalArgv = process.argv
     process.argv = ['node', 'cli.js', 'slide', 'lint']
@@ -703,7 +703,7 @@ describe('createSlideLintCommand', () => {
 describe('create / sync 末尾の自動 deck lint', () => {
   it('slide create は deck lint 要約を stdout に出す', async () => {
     const projectDirectory = path.join(state.temporaryRoot, 'auto-create')
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createSlideCreateCommand(() => ({
       pluginRoot: PLUGIN_ROOT,
       stdout: asStream(stdout),
@@ -718,7 +718,7 @@ describe('create / sync 末尾の自動 deck lint', () => {
 
   it('slide create の成功行は deck lint 要約より先に出る', async () => {
     const projectDirectory = path.join(state.temporaryRoot, 'auto-create-order')
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createSlideCreateCommand(() => ({
       pluginRoot: PLUGIN_ROOT,
       stdout: asStream(stdout),
@@ -739,7 +739,7 @@ describe('create / sync 末尾の自動 deck lint', () => {
   it('slide create --json は slide.create.done に lint 要約を載せる', async (context) => {
     await verifies(context, 'PV-SLIDE-CREATE-03')
     const projectDirectory = path.join(state.temporaryRoot, 'auto-create-json')
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createSlideCreateCommand(() => ({
       pluginRoot: PLUGIN_ROOT,
       stdout: asStream(stdout),
@@ -780,7 +780,7 @@ describe('create / sync 末尾の自動 deck lint', () => {
     await verifies(context, 'PV-SLIDE-SYNC-06')
     const talk = await setupTalkDirectory('auto-sync-json')
     appendFileSync(slidesPathOf(talk), '\n---\nsrc: ./pages/__ghost.md\n---\n', 'utf8')
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const previousExitCode = process.exitCode
     try {
       const command = createSlideSyncCommand(() => syncDependencies(talk, stdout, makeStream()))
@@ -805,7 +805,7 @@ describe('create / sync 末尾の自動 deck lint', () => {
     await verifies(context, 'PV-SLIDE-SYNC-06')
     const talk = await setupTalkDirectory('auto-sync')
     appendFileSync(slidesPathOf(talk), '\n---\nsrc: ./pages/__ghost.md\n---\n', 'utf8')
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const previousExitCode = process.exitCode
     try {
       // ensureThemeLinked を差し替えているため、張り直しだけの --node-modules-only で自動 lint を確かめる。
@@ -835,7 +835,7 @@ describe('create / sync 末尾の自動 deck lint', () => {
   it('slide sync --node-modules-only でも deck lint 要約を出す', async (context) => {
     await verifies(context, 'PV-SLIDE-SYNC-06')
     const talk = await setupTalkDirectory('auto-sync-nm')
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createSlideSyncCommand(() => syncDependencies(talk, stdout, makeStream()))
     await command.parseAsync(['--dir', talk, '--node-modules-only'], { from: 'user' })
     const written = stdout.chunks.join('')
@@ -850,8 +850,8 @@ describe('create / sync 末尾の自動 deck lint', () => {
     // --node-modules-only は template をコピーしないため、この plugin root でも sync 自体は成功する。
     const brokenRoot = path.join(state.temporaryRoot, 'broken-plugin-root')
     seedDependencyRoot(brokenRoot)
-    const stdout = makeStream()
-    const stderr = makeStream()
+    const stdout = makeStream('stdout')
+    const stderr = makeStream('stderr')
     const previousExitCode = process.exitCode
     try {
       const command = createSlideSyncCommand(() => syncDependencies(talk, stdout, stderr, brokenRoot))
@@ -868,7 +868,7 @@ describe('create / sync 末尾の自動 deck lint', () => {
 
   it('template が解決できない場合は警告に留め、呼び出し元を失敗させない', async () => {
     const talk = await setupTalkDirectory('auto-lint-skip')
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     // eslint 資材を持たない plugin root を渡し、自動 lint だけが失敗する状況を作る。
     const brokenDependencies = {
       pluginRoot: path.join(state.temporaryRoot, 'no-such-plugin-root'),

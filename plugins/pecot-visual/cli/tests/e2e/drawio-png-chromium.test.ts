@@ -31,7 +31,7 @@ import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { assertCliBuilt, formatOutputTails, isChromiumCached } from '../_helpers/pecotv-e2e-run.js'
-import { attachFile } from '../_helpers/attach.js'
+import { attachFile, attachOutput } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
@@ -132,6 +132,7 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio url が実 chromium で PNG を�
     const elapsedMs = performance.now() - startedAt
     const stdout = typeof result.stdout === 'string' ? result.stdout : ''
     const stderr = typeof result.stderr === 'string' ? result.stderr : ''
+    attachOutput('pecotv drawio url --json', result.status ?? undefined, stdout, stderr)
     console.info(`[drawio-png] url: exit=${String(result.status)} ${(elapsedMs / 1000).toFixed(1)}s`)
     await attachFile('書き出した PNG', expectedPngPath)
     // PNG 生成失敗は warn として stderr に出るだけで、exit と stdout のどちらにも理由が載らない。

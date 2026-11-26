@@ -62,11 +62,12 @@ attachJson(name: string, value: unknown): void
 attachOutput(command: string, exitCode: number | string | undefined, stdout: string, stderr: string): void
 readOutput(filePath: string): string
 attachReadText(name: string, text: string): void
+attachAtTestEnd(name: string, read: () => string): void
 ```
 
 `attachFile` はファイルを読んで、`attachContent` は渡した中身を、そのまま Allure の添付にする。型は拡張子から決める。
 
-`attachText`・`attachJson`・`attachOutput`・`readOutput`・`attachReadText` は、出力の添付（FR-007c）に使う。allure-vitest の runtime は添付を同期で送るので、待たずに呼べる。
+`attachText`・`attachJson`・`attachOutput`・`readOutput`・`attachReadText`・`attachAtTestEnd` は、出力の添付（FR-007c）に使う。`attachAtTestEnd` は、テストが後から読む出力（注入した stream）を、テストの終わりの中身で添付する。allure-vitest の runtime は添付を同期で送るので、待たずに呼べる。
 
 | 拡張子 | 型 |
 |---|---|

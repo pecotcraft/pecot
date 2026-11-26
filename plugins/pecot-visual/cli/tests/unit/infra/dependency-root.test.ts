@@ -34,6 +34,7 @@ import {
   stateFileDirectory,
 } from '../../../src/infra/_shared/dependency-root.js'
 import { resolvePluginRoot } from '../../../src/infra/_shared/plugin-root.js'
+import { attachOutput } from '../../_helpers/attach.js'
 import { seedDependencyRoot } from '../../_helpers/dependency-probes.js'
 import { stubNoDataDirectory } from '../../_helpers/no-data-directory.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
@@ -491,6 +492,7 @@ describe('dataDirectory: bin/_lib.sh の plugin_data_dir_resolve と同じ結果
         [CALL_FUNCTION, LIB, 'plugin_data_dir_resolve', 'pecot-visual'],
         { env: { PATH: process.env['PATH'] ?? '/usr/bin:/bin', ...environment }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
       )
+      attachOutput('bash plugin_data_dir_resolve', 0, output, '')
       return output.replace(/\n$/u, '')
     }
     catch {

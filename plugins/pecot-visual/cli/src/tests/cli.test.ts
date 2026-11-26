@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { createProgram, main } from '../cli.js'
+import { attachOutput } from '../../tests/_helpers/attach.js'
 import { suggestedNodeVersion } from '../node-runtime.js'
 import { loadVersionFromPluginJson, readVersion } from '../version.js'
 
@@ -57,6 +58,20 @@ function withEnvironment(value: string | undefined, function_: () => void): void
   }
 }
 
+function joinWrites(calls: readonly (readonly unknown[])[]): string {
+  return calls.map(call => String(call[0])).join('')
+}
+
+// process.stdout / stderr の spy が受けた書き込みを、判定より前に添付する。
+function attachWrites(
+  command: string,
+  exitCode: number | string | undefined,
+  stdout: readonly (readonly unknown[])[],
+  stderr: readonly (readonly unknown[])[],
+): void {
+  attachOutput(command, exitCode, joinWrites(stdout), joinWrites(stderr))
+}
+
 const GROUPS: readonly string[] = ['pptx', 'slide', 'drawio', 'evidence']
 
 describe('pecotv CLI', () => {
@@ -70,6 +85,7 @@ describe('pecotv CLI', () => {
     const program = createProgram()
     program.exitOverride()
     program.parse(['node', 'cli.js', 'hello'])
+    attachWrites('pecotv hello', undefined, isWriteSpy.mock.calls, [])
 
     expect(isWriteSpy).toHaveBeenCalledWith('hello from pecotv (ts)\n')
   })
@@ -86,6 +102,7 @@ describe('pecotv CLI', () => {
         catch {
           // commander throws on --version with exitOverride
         }
+        attachWrites('pecotv --version', undefined, isWriteSpy.mock.calls, [])
         const calls = isWriteSpy.mock.calls.map(call => call[0]).join('')
         expect(calls.trim()).toBe('9.9.9')
       }
@@ -107,6 +124,7 @@ describe('pecotv CLI', () => {
     process.argv = ['node', 'cli.js', 'hello']
     try {
       main('24.20.0')
+      attachOutput('pecotv hello（Node.js 24.20.0）', process.exitCode ?? undefined, '', writes.join(''))
       expect(process.exitCode).toBe(1)
       expect(writes.join('')).toContain('error: Node.js 24.20.0 does not include fixes for known vulnerabilities')
       expect(isStdoutSpy).not.toHaveBeenCalled()
@@ -131,6 +149,7 @@ describe('pecotv CLI', () => {
     process.argv = ['node', 'cli.js', 'hello']
     try {
       main('24.20.0')
+      attachOutput('pecotv hello（Node.js 24.20.0）', process.exitCode ?? undefined, '', writes.join(''))
       const lines = writes.join('').trimEnd().split('\n')
       expect(lines.length).toBeGreaterThanOrEqual(3)
       for (const line of lines.slice(1)) expect(line).toMatch(/^ {2}\S/)
@@ -153,6 +172,7 @@ describe('pecotv CLI', () => {
     finally {
       process.argv = originalArgv
     }
+    attachWrites('pecotv hello', process.exitCode ?? undefined, isWriteSpy.mock.calls, [])
     expect(isWriteSpy).toHaveBeenCalledWith('hello from pecotv (ts)\n')
   })
 
@@ -181,6 +201,7 @@ describe('pecotv CLI', () => {
       // group の --help は CommanderError (exitCode 0) として main() に捕捉される。
       // 素の process.exit ルートへ退行すると main() が exit 2 に変換してしまう。
       main(allowedNodeVersion)
+      attachWrites('pecotv slide --help', process.exitCode, isWriteSpy.mock.calls, [])
       expect(process.exitCode).toBe(0)
       const out = isWriteSpy.mock.calls.map(c => c[0]).join('')
       expect(out).toContain('Usage:')
@@ -205,6 +226,7 @@ describe('pecotv CLI', () => {
     process.exitCode = undefined
     try {
       main(allowedNodeVersion)
+      attachWrites(`pecotv ${group} bogus`, process.exitCode, [], isErrorSpy.mock.calls)
       expect(process.exitCode).toBe(2)
       const errorOutput = isErrorSpy.mock.calls.map(c => String(c[0])).join('')
       expect(errorOutput).toContain('unknown command \'bogus\'')
@@ -226,6 +248,7 @@ describe('pecotv CLI', () => {
     catch {
       // commander throws on --help with exitOverride
     }
+    attachWrites('pecotv --help', undefined, isWriteSpy.mock.calls, isErrorSpy.mock.calls)
     const out = isWriteSpy.mock.calls.map(c => c[0]).join('')
     expect(out).toContain('Usage:')
     expect(out).toContain('hello')
@@ -243,6 +266,7 @@ describe('pecotv CLI', () => {
     catch {
       // commander throws on --help with exitOverride
     }
+    attachWrites('pecotv --help', undefined, isWriteSpy.mock.calls, isErrorSpy.mock.calls)
     const out = isWriteSpy.mock.calls.map(c => c[0]).join('')
     expect(out).toContain('evidence')
     expect(out).toContain('operate on evidence xlsx files')

@@ -13,6 +13,7 @@ import path from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
 
 import { loadVersionFromPluginJson } from '../../src/version.js'
+import { attachOutput } from '../_helpers/attach.js'
 
 import type { SpawnSyncReturns } from 'node:child_process'
 
@@ -25,7 +26,9 @@ const expectedVersion = loadVersionFromPluginJson(path.join(pluginRoot, '.claude
 function runNode(entry: string): Readonly<SpawnSyncReturns<string>> {
   const environment = { ...process.env }
   delete environment['CLAUDE_PLUGIN_ROOT']
-  return spawnSync(process.execPath, [entry, '--version'], { env: environment, encoding: 'utf8', timeout: 30_000 })
+  const result = spawnSync(process.execPath, [entry, '--version'], { env: environment, encoding: 'utf8', timeout: 30_000 })
+  attachOutput(`node ${entry} --version`, result.status ?? undefined, result.stdout, result.stderr)
+  return result
 }
 
 // プラグインルートへの symlink を一時ディレクトリに作り、callback へ渡して終わったら消す。
@@ -68,6 +71,7 @@ describe('pecotv --version', () => {
       encoding: 'utf8',
       timeout: 30_000,
     }))
+    attachOutput('bin/pecotv --version（symlink 経由）', result.status ?? undefined, result.stdout, result.stderr)
     expect(result.error).toBeUndefined()
     expect(result.status).toBe(0)
     expect(result.stdout.trim()).toBe(expectedVersion)

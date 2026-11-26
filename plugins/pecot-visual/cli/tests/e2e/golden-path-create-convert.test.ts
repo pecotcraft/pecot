@@ -31,7 +31,7 @@ import {
   createFixtureThemeSpec,
 } from '../_helpers/pecotv-e2e-run.js'
 import { YauzlYazlPptxArchive } from '../../src/infra/pptx-ooxml/archive.js'
-import { attachFile } from '../_helpers/attach.js'
+import { attachFile, readOutput } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
@@ -87,11 +87,11 @@ describe.skipIf(!isChromiumReady)('CUJ 1: 黄金パス (slide create → convert
     expect(existsSync(path.join(projectDirectory, 'public', 'slides', 'diagrams'))).toBe(true)
     expect(existsSync(path.join(projectDirectory, 'public', 'slides', 'html'))).toBe(true)
 
-    const packageJsonText = readFileSync(path.join(projectDirectory, 'package.json'), 'utf8')
+    const packageJsonText = readOutput(path.join(projectDirectory, 'package.json'))
     expect(packageJsonText).not.toMatch(/"eslint[-/]/)
     expect(packageJsonText).not.toMatch(/"prettier[-/]/)
 
-    const slidesMdText = readFileSync(path.join(projectDirectory, 'slides.md'), 'utf8')
+    const slidesMdText = readOutput(path.join(projectDirectory, 'slides.md'))
     expect(slidesMdText).toContain('src: ./pages/cover.md')
 
     // 2.5. 画像メディアを伴うページを 2 件追加 (section は画像 1 枚を描く)

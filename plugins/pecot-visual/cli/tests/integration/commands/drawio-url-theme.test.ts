@@ -62,8 +62,8 @@ const state = { root: '', stderr: makeStream(), stdout: makeStream() }
 
 beforeEach(() => {
   state.root = mkdtempSync(path.join(tmpdir(), 'pecotv-drawio-theme-'))
-  state.stderr = makeStream()
-  state.stdout = makeStream()
+  state.stderr = makeStream('stderr')
+  state.stdout = makeStream('stdout')
 })
 
 afterEach(() => {

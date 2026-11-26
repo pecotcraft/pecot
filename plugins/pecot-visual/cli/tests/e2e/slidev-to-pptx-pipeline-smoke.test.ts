@@ -25,7 +25,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { XmldomXmlEngine } from '../../src/infra/pptx-ooxml/xml-engine.js'
 import { YauzlYazlPptxArchive } from '../../src/infra/pptx-ooxml/archive.js'
 import { CONTAINER_APPEAR_TIMEOUT_MS } from '../../src/infra/slidev-to-pptx/single-pass-worker.js'
-import { attachFile } from '../_helpers/attach.js'
+import { attachFile, attachOutput } from '../_helpers/attach.js'
 import {
   expectConvertRouteFromEnvironment,
   singlePassFallbackWarnings,
@@ -187,6 +187,7 @@ describe('Issue #491 — slidev-to-pptx in-process pipeline smoke', () => {
       timeout: 240_000,
     })
     await attachFile('変換した PPTX', outputPath)
+    attachOutput('pecotv slide convert --json', result.status ?? undefined, result.stdout, result.stderr)
 
     expect(result.status).toBe(0)
     expect(existsSync(outputPath)).toBe(true)
@@ -276,6 +277,7 @@ describe('Issue #491 — slidev-to-pptx in-process pipeline smoke', () => {
       timeout: 240_000,
     })
     await attachFile('変換した PPTX', outputPath)
+    attachOutput('pecotv slide convert --json --no-single-pass', result.status ?? undefined, result.stdout, result.stderr)
 
     expect(result.status).toBe(0)
     const doneEvent = doneEventOf(result.stdout)
@@ -318,6 +320,7 @@ describe('Issue #491 — slidev-to-pptx in-process pipeline smoke', () => {
       timeout: 240_000,
     })
     await attachFile('変換した PPTX', outputPath)
+    attachOutput('pecotv slide convert --json', result.status ?? undefined, result.stdout, result.stderr)
 
     expect(result.status).toBe(0)
     const doneEvent = doneEventOf(result.stdout)

@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { attachment } from 'allure-js-commons'
+import { onTestFinished, TestRunner } from 'vitest'
 
 import { isAllureEnabled } from './allure-reporter.js'
 
@@ -77,4 +78,15 @@ export function readOutput(filePath: string): string {
 export function attachReadText(name: string, text: string): void {
   const extension = path.extname(name)
   attachText(name, text, TEXT_EXTENSIONS.has(extension) ? extension : '.txt')
+}
+
+/**
+テストが後から読む出力（注入した stream など）を、テストの終わりの中身で添付する。テストの外では何もしない
+*/
+export function attachAtTestEnd(name: string, read: () => string): void {
+  // テストの外で onTestFinished を呼ぶと vitest が throw する。
+  if (TestRunner.getCurrentTest() === undefined) return
+  onTestFinished(() => {
+    attachText(name, read(), '.txt')
+  })
 }

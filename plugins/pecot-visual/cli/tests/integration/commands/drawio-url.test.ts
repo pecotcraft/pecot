@@ -19,7 +19,7 @@ import {
 } from '../../../src/commands/drawio/url.js'
 import type { LintText } from '../../../src/domain/_shared/text-check.js'
 import { defaultLintText } from '../../../src/infra/text-lint.js'
-import { attachFile } from '../../_helpers/attach.js'
+import { attachAtTestEnd, attachFile, readOutput } from '../../_helpers/attach.js'
 import { verifies } from '../../_helpers/verifies.js'
 
 const failingLintText: LintText = () => Promise.reject(new Error('辞書を読めません'))
@@ -43,8 +43,10 @@ interface CapturedStream {
   write: (data: string) => boolean
 }
 
-function makeStream(): CapturedStream {
+function makeStream(name?: string): CapturedStream {
   const chunks: string[] = []
+  // 名前を付けた stream は、テストが判定に使う出力なので、テストの終わりに添付する。
+  if (name !== undefined) attachAtTestEnd(name, () => chunks.join(''))
   return {
     chunks,
     write(data: string): boolean {
@@ -133,7 +135,7 @@ describe('runDrawioUrl', () => {
   })
 
   it('HTML 警告は stderr に流れ、warningCount に反映される', async () => {
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const summary = await runDrawioUrl(
       MINIMAL_FIXTURE,
       { mode: 'view', json: false, png: true },
@@ -148,7 +150,7 @@ describe('runDrawioUrl', () => {
   })
 
   it('whiteSpace=wrap 抜け XML で stderr に [warn] を出し、warningCount に反映される', async () => {
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const wrapMissingXml = `<root><mxCell id="cellA" vertex="1" style="rounded=1;fillColor=#fff;fontFamily=sans-serif;" value="日本語テキスト"/></root>`
     const summary = await runDrawioUrl(
       MINIMAL_FIXTURE,
@@ -164,7 +166,7 @@ describe('runDrawioUrl', () => {
   })
 
   it('whiteSpace=wrap 付き XML では wrap 警告が出ない', async () => {
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const wrapPresentXml = `<root><mxCell id="cellA" vertex="1" style="rounded=1;whiteSpace=wrap;fillColor=#fff;fontFamily=sans-serif;" value="日本語テキスト"/></root>`
     const summary = await runDrawioUrl(
       MINIMAL_FIXTURE,
@@ -179,7 +181,7 @@ describe('runDrawioUrl', () => {
   })
 
   it('icon が見つからない時は stderr に警告を出し、warningCount に反映される', async () => {
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const summary = await runDrawioUrl(
       ICON_INCLUDED_FIXTURE,
       { mode: 'view', json: false, png: true },
@@ -191,7 +193,7 @@ describe('runDrawioUrl', () => {
   })
 
   it('未解決 icon の警告はアイコン 1 種につき 1 件に畳まれる', async () => {
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const summary = await runDrawioUrl(
       ICON_UNRESOLVED_MULTI_FIXTURE,
       { mode: 'view', json: false, png: true },
@@ -214,7 +216,7 @@ describe('runDrawioUrl', () => {
 
 describe('createDrawioUrlCommand', () => {
   it('--json 成功時に drawio.url.done を stdout に出す', async () => {
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createDrawioUrlCommand(() => buildDependencies({ stdout: asStream(stdout) }))
     await command.parseAsync([MINIMAL_FIXTURE, '--json'], { from: 'user' })
     const lines = stdout.chunks.join('').trim().split('\n').filter(l => l.length > 0)
@@ -226,7 +228,7 @@ describe('createDrawioUrlCommand', () => {
   })
 
   it('--json なしでは URL を 1 行で stdout に出す', async () => {
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createDrawioUrlCommand(() => buildDependencies({ stdout: asStream(stdout) }))
     await command.parseAsync([MINIMAL_FIXTURE], { from: 'user' })
     const written = stdout.chunks.join('')
@@ -235,7 +237,7 @@ describe('createDrawioUrlCommand', () => {
   })
 
   it('--mode edit でも 0 終了する', async () => {
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createDrawioUrlCommand(() => buildDependencies({ stdout: asStream(stdout) }))
     const previousExit = process.exitCode
     // テスト前に exitCode をリセットして、前のテストの遺残を観測しないようにする
@@ -251,7 +253,7 @@ describe('createDrawioUrlCommand', () => {
   })
 
   it('不正 mode + --json で drawio.url.error(invalid-mode) + exit 2', async () => {
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createDrawioUrlCommand(() => buildDependencies({ stdout: asStream(stdout) }))
     const previousExit = process.exitCode
     try {
@@ -269,8 +271,8 @@ describe('createDrawioUrlCommand', () => {
   })
 
   it('不正 mode + --json なしは stderr にメッセージ + exit 2', async () => {
-    const stdout = makeStream()
-    const stderr = makeStream()
+    const stdout = makeStream('stdout')
+    const stderr = makeStream('stderr')
     const command = createDrawioUrlCommand(() => buildDependencies({
       stdout: asStream(stdout),
       stderr: asStream(stderr),
@@ -287,7 +289,7 @@ describe('createDrawioUrlCommand', () => {
   })
 
   it('入力ファイル不存在 + --json で drawio.url.error(input-not-found) + exit 1', async () => {
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createDrawioUrlCommand(() => buildDependencies({ stdout: asStream(stdout) }))
     const previousExit = process.exitCode
     try {
@@ -305,7 +307,7 @@ describe('createDrawioUrlCommand', () => {
   })
 
   it('入力ファイル不存在 + --json なしは stderr に流れる + exit 1', async () => {
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const command = createDrawioUrlCommand(() => buildDependencies({ stderr: asStream(stderr) }))
     const previousExit = process.exitCode
     try {
@@ -320,7 +322,7 @@ describe('createDrawioUrlCommand', () => {
 
   it('文面の違反 + --json で text-violation と violations の全件を出し、HTML を書かず exit 1', async () => {
     const directory = mkdtempSync(path.join(tmpdir(), 'pecotv-drawio-text-'))
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const previousExit = process.exitCode
     try {
       const input = path.join(directory, 'd.drawio')
@@ -346,7 +348,7 @@ describe('createDrawioUrlCommand', () => {
 
   it('文面の違反 + --json なしは stderr に違反を列挙し exit 1', async () => {
     const directory = mkdtempSync(path.join(tmpdir(), 'pecotv-drawio-text-'))
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const previousExit = process.exitCode
     try {
       const input = path.join(directory, 'd.drawio')
@@ -378,8 +380,8 @@ describe('createDrawioUrlCommand', () => {
   })
 
   it('argument 未指定 + --json で commander が drawio.url.error(invalid-option) を stdout に出す', async () => {
-    const stdout = makeStream()
-    const stderr = makeStream()
+    const stdout = makeStream('stdout')
+    const stderr = makeStream('stderr')
     const command = createDrawioUrlCommand(() => buildDependencies({
       stdout: asStream(stdout),
       stderr: asStream(stderr),
@@ -401,8 +403,8 @@ describe('createDrawioUrlCommand', () => {
   })
 
   it('argument 未指定 + --json なしは commander が stderr に英文を出す', async () => {
-    const stdout = makeStream()
-    const stderr = makeStream()
+    const stdout = makeStream('stdout')
+    const stderr = makeStream('stderr')
     const command = createDrawioUrlCommand(() => buildDependencies({
       stdout: asStream(stdout),
       stderr: asStream(stderr),
@@ -423,8 +425,8 @@ describe('createDrawioUrlCommand', () => {
     const WARN_XML = `<root><mxCell id="x" style="fontFamily=sans-serif;" value="&lt;font weight=&quot;bold&quot;&gt;X&lt;/font&gt;"/></root>`
 
     it('警告ありの XML で stdout ルートでは exit 3', async () => {
-      const stdout = makeStream()
-      const stderr = makeStream()
+      const stdout = makeStream('stdout')
+      const stderr = makeStream('stderr')
       const command = createDrawioUrlCommand(() => buildDependencies({
         stdout: asStream(stdout),
         stderr: asStream(stderr),
@@ -444,7 +446,7 @@ describe('createDrawioUrlCommand', () => {
     })
 
     it('警告ありの XML で --json ルートでは warnings:1 + exit 3', async () => {
-      const stdout = makeStream()
+      const stdout = makeStream('stdout')
       const command = createDrawioUrlCommand(() => buildDependencies({
         stdout: asStream(stdout),
         readFile: () => Promise.resolve(WARN_XML),
@@ -468,8 +470,8 @@ describe('createDrawioUrlCommand', () => {
     it('警告ありの XML で -o ルートではファイル書き出し成功 + exit 3', async () => {
       const workDirectory = mkdtempSync(path.join(tmpdir(), 'drawio-url-warn-test-'))
       const outPath = path.join(workDirectory, 'out.drawio.html')
-      const stdout = makeStream()
-      const stderr = makeStream()
+      const stdout = makeStream('stdout')
+      const stderr = makeStream('stderr')
       const command = createDrawioUrlCommand(() => buildDependencies({
         stdout: asStream(stdout),
         stderr: asStream(stderr),
@@ -479,7 +481,7 @@ describe('createDrawioUrlCommand', () => {
       process.exitCode = undefined
       try {
         await command.parseAsync([MINIMAL_FIXTURE, '-o', outPath], { from: 'user' })
-        const written = readFileSync(outPath, 'utf8')
+        const written = readOutput(outPath)
         for (const url of extractUrls(written)) {
           expect(url.startsWith('https://app.diagrams.net/')).toBe(true)
         }
@@ -493,8 +495,8 @@ describe('createDrawioUrlCommand', () => {
 
     it('whiteSpace=wrap 抜け XML で exit 3 + stderr に [warn]', async () => {
       const wrapMissingXml = `<root><mxCell id="cellA" vertex="1" style="rounded=1;fillColor=#fff;fontFamily=sans-serif;" value="日本語テキスト"/></root>`
-      const stdout = makeStream()
-      const stderr = makeStream()
+      const stdout = makeStream('stdout')
+      const stderr = makeStream('stderr')
       const command = createDrawioUrlCommand(() => buildDependencies({
         stdout: asStream(stdout),
         stderr: asStream(stderr),
@@ -515,7 +517,7 @@ describe('createDrawioUrlCommand', () => {
 
     it('whiteSpace=wrap 抜け XML で --json ルートでは warnings:1 + exit 3', async () => {
       const wrapMissingXml = `<root><mxCell id="cellA" vertex="1" style="rounded=1;fillColor=#fff;fontFamily=sans-serif;" value="日本語テキスト"/></root>`
-      const stdout = makeStream()
+      const stdout = makeStream('stdout')
       const command = createDrawioUrlCommand(() => buildDependencies({
         stdout: asStream(stdout),
         readFile: () => Promise.resolve(wrapMissingXml),
@@ -537,7 +539,7 @@ describe('createDrawioUrlCommand', () => {
     })
 
     it('警告無しの正常系では exit code を変更しない (regression 防止)', async () => {
-      const stdout = makeStream()
+      const stdout = makeStream('stdout')
       const command = createDrawioUrlCommand(() => buildDependencies({ stdout: asStream(stdout) }))
       const previousExit = process.exitCode
       process.exitCode = undefined
@@ -551,7 +553,7 @@ describe('createDrawioUrlCommand', () => {
     })
 
     it('--json 警告無しでも warnings:0 が JSON に常時含まれる', async () => {
-      const stdout = makeStream()
+      const stdout = makeStream('stdout')
       const command = createDrawioUrlCommand(() => buildDependencies({ stdout: asStream(stdout) }))
       const previousExit = process.exitCode
       process.exitCode = undefined
@@ -585,8 +587,8 @@ describe('createDrawioUrlCommand', () => {
     it('-o 指定時 stdout は空、stderr に created、ファイルは表示用 HTML', async () => {
       workDirectory = mkdtempSync(path.join(tmpdir(), 'drawio-url-test-'))
       const outPath = path.join(workDirectory, 'out.drawio.html')
-      const stdout = makeStream()
-      const stderr = makeStream()
+      const stdout = makeStream('stdout')
+      const stderr = makeStream('stderr')
       const command = createDrawioUrlCommand(() => buildDependencies({
         stdout: asStream(stdout),
         stderr: asStream(stderr),
@@ -594,7 +596,7 @@ describe('createDrawioUrlCommand', () => {
       await command.parseAsync([MINIMAL_FIXTURE, '-o', outPath], { from: 'user' })
       expect(stdout.chunks.join('')).toBe('')
       expect(stderr.chunks.join('')).toBe(`created: ${outPath}\n`)
-      const written = readFileSync(outPath, 'utf8')
+      const written = readOutput(outPath)
       expect(written.startsWith('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n')).toBe(true)
       for (const url of extractUrls(written)) {
         expect(url.startsWith('https://app.diagrams.net/?viewbox=')).toBe(true)
@@ -606,7 +608,7 @@ describe('createDrawioUrlCommand', () => {
     it('-o + --json 指定時 stdout に {event,file} (url キーなし)、ファイルは表示用 HTML', async () => {
       workDirectory = mkdtempSync(path.join(tmpdir(), 'drawio-url-test-'))
       const outPath = path.join(workDirectory, 'out.drawio.html')
-      const stdout = makeStream()
+      const stdout = makeStream('stdout')
       const command = createDrawioUrlCommand(() => buildDependencies({ stdout: asStream(stdout) }))
       await command.parseAsync([MINIMAL_FIXTURE, '-o', outPath, '--json'], { from: 'user' })
       const written = stdout.chunks.join('').trim()
@@ -615,7 +617,7 @@ describe('createDrawioUrlCommand', () => {
       expect(parsed['event']).toBe('drawio.url.done')
       expect(parsed['file']).toBe(outPath)
       expect(Object.prototype.hasOwnProperty.call(parsed, 'url')).toBe(false)
-      const fileContent = readFileSync(outPath, 'utf8')
+      const fileContent = readOutput(outPath)
       for (const url of extractUrls(fileContent)) {
         expect(url.startsWith('https://app.diagrams.net/?viewbox=')).toBe(true)
       }
@@ -625,7 +627,7 @@ describe('createDrawioUrlCommand', () => {
     it('-o の拡張子が .html でないと exit 2 で落ち、ファイルを書き出さない', async () => {
       workDirectory = mkdtempSync(path.join(tmpdir(), 'drawio-url-test-'))
       const outPath = path.join(workDirectory, 'out.txt')
-      const stderr = makeStream()
+      const stderr = makeStream('stderr')
       const command = createDrawioUrlCommand(() => buildDependencies({ stderr: asStream(stderr) }))
       const previousExit = process.exitCode
       process.exitCode = undefined
@@ -646,7 +648,7 @@ describe('createDrawioUrlCommand', () => {
     it('旧規約の -o *.drawio.url は exit 2 で弾かれ .url を残さない', async () => {
       workDirectory = mkdtempSync(path.join(tmpdir(), 'drawio-url-test-'))
       const outPath = path.join(workDirectory, 'out.drawio.url')
-      const stderr = makeStream()
+      const stderr = makeStream('stderr')
       const command = createDrawioUrlCommand(() => buildDependencies({ stderr: asStream(stderr) }))
       const previousExit = process.exitCode
       process.exitCode = undefined
@@ -679,7 +681,7 @@ describe('createDrawioUrlCommand', () => {
     it('--json 併用時の拡張子エラーは reason invalid-output-extension で stdout に出る', async () => {
       workDirectory = mkdtempSync(path.join(tmpdir(), 'drawio-url-test-'))
       const outPath = path.join(workDirectory, 'out.drawio.url')
-      const stdout = makeStream()
+      const stdout = makeStream('stdout')
       const command = createDrawioUrlCommand(() => buildDependencies({ stdout: asStream(stdout) }))
       const previousExit = process.exitCode
       process.exitCode = undefined
@@ -699,7 +701,7 @@ describe('createDrawioUrlCommand', () => {
     it('-o の拡張子が .html なら拡張子由来の [warn] は出ない', async () => {
       workDirectory = mkdtempSync(path.join(tmpdir(), 'drawio-url-test-'))
       const outPath = path.join(workDirectory, 'out.drawio.html')
-      const stderr = makeStream()
+      const stderr = makeStream('stderr')
       const command = createDrawioUrlCommand(() => buildDependencies({ stderr: asStream(stderr) }))
       const previousExit = process.exitCode
       process.exitCode = undefined
@@ -721,8 +723,8 @@ describe('createDrawioUrlCommand', () => {
       await shortCommand.parseAsync([MINIMAL_FIXTURE, '-o', shortPath], { from: 'user' })
       const longCommand = createDrawioUrlCommand(() => buildDependencies())
       await longCommand.parseAsync([MINIMAL_FIXTURE, '--output', longPath], { from: 'user' })
-      const shortContent = readFileSync(shortPath, 'utf8')
-      const longContent = readFileSync(longPath, 'utf8')
+      const shortContent = readOutput(shortPath)
+      const longContent = readOutput(longPath)
       expect(longContent).toBe(shortContent)
     })
 
@@ -737,7 +739,7 @@ describe('createDrawioUrlCommand', () => {
       const command = createDrawioUrlCommand(() => buildDependencies())
       await command.parseAsync([LONG_URL_FIXTURE, '-o', outPath, '--no-png'], { from: 'user' })
 
-      const written = readFileSync(outPath, 'utf8')
+      const written = readOutput(outPath)
       // meta refresh と可視リンクの両方が生成 URL と byte 一致する（途中欠損が無い）ことを pin する。
       const [metaUrl, anchorUrl] = extractUrls(written)
       expect(metaUrl).toBe(summary.url)
@@ -748,7 +750,7 @@ describe('createDrawioUrlCommand', () => {
     it('書き込み不能な path 指定時 exit 1 / reason output-write-failed', async () => {
       workDirectory = mkdtempSync(path.join(tmpdir(), 'drawio-url-test-'))
       const badPath = path.join(workDirectory, 'nonexistent-dir', 'out.drawio.html')
-      const stdout = makeStream()
+      const stdout = makeStream('stdout')
       const command = createDrawioUrlCommand(() => buildDependencies({ stdout: asStream(stdout) }))
       const previousExit = process.exitCode
       process.exitCode = undefined
@@ -861,8 +863,8 @@ describe('createDrawioUrlCommand', () => {
     it('capturePng reject 時 表示用 HTML は生成・stderr に warning・exit 3・--json で pngFailed:true / png:null', async () => {
       workDirectory = mkdtempSync(path.join(tmpdir(), 'drawio-url-png-test-'))
       const outPath = path.join(workDirectory, 'out.drawio.html')
-      const stdout = makeStream()
-      const stderr = makeStream()
+      const stdout = makeStream('stdout')
+      const stderr = makeStream('stderr')
       const capturePng = vi.fn<(xmlString: string, outputPath: string, fonts: readonly string[]) => Promise<void>>(
         () => Promise.reject(new Error('chromium 未インストール')),
       )
@@ -876,7 +878,7 @@ describe('createDrawioUrlCommand', () => {
       try {
         await command.parseAsync([MINIMAL_FIXTURE, '-o', outPath, '--json'], { from: 'user' })
         expect(capturePng).toHaveBeenCalledTimes(1)
-        const written = readFileSync(outPath, 'utf8')
+        const written = readOutput(outPath)
         for (const url of extractUrls(written)) {
           expect(url.startsWith('https://app.diagrams.net/')).toBe(true)
         }
@@ -903,7 +905,7 @@ describe('createDrawioUrlCommand', () => {
       workDirectory = mkdtempSync(path.join(tmpdir(), 'drawio-url-png-test-'))
       const outPath = path.join(workDirectory, 'out.drawio.html')
       const expectedPngPath = path.join(workDirectory, 'out.drawio.png')
-      const stdout = makeStream()
+      const stdout = makeStream('stdout')
       const capturePng = vi.fn<(xmlString: string, outputPath: string, fonts: readonly string[]) => Promise<void>>(() => Promise.resolve())
       const command = createDrawioUrlCommand(() => buildDependencies({
         stdout: asStream(stdout),
@@ -923,7 +925,7 @@ describe('createDrawioUrlCommand', () => {
     it('-o + --no-png + --json では png / pngFailed キーが省略される', async () => {
       workDirectory = mkdtempSync(path.join(tmpdir(), 'drawio-url-png-test-'))
       const outPath = path.join(workDirectory, 'out.drawio.html')
-      const stdout = makeStream()
+      const stdout = makeStream('stdout')
       const command = createDrawioUrlCommand(() => buildDependencies({ stdout: asStream(stdout) }))
       await command.parseAsync([MINIMAL_FIXTURE, '-o', outPath, '--no-png', '--json'], { from: 'user' })
       const last = stdout.chunks.join('').trim().split('\n').findLast(l => l.length > 0) ?? ''
@@ -1063,7 +1065,7 @@ describe('talk-dir の外で --theme 無し（本体の既定値）', () => {
   </root></mxGraphModel></diagram></mxfile>`
 
   it('既定値の書体（sans-serif）と等幅の並びは、52px や 14px でも警告 0（サイズは確かめない）', async () => {
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const summary = await runDrawioUrl(
       MINIMAL_FIXTURE,
       { mode: 'view', json: false, png: true },
@@ -1075,7 +1077,7 @@ describe('talk-dir の外で --theme 無し（本体の既定値）', () => {
   })
 
   it('書体指定なし（draw.io 既定の Helvetica）は既定値でも警告する', async () => {
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const xml = OFF_STEPS_XML.replace('fontFamily=sans-serif;', '')
     const summary = await runDrawioUrl(
       MINIMAL_FIXTURE,
@@ -1088,7 +1090,7 @@ describe('talk-dir の外で --theme 無し（本体の既定値）', () => {
   })
 
   it('同梱の poster swimlane-flow 見本は警告 0', async () => {
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const summary = await runDrawioUrl(
       SWIMLANE_SAMPLE,
       { mode: 'view', json: false, png: true },

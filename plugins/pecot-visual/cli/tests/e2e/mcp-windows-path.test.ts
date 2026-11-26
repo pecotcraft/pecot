@@ -18,7 +18,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } f
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { Client } from '@modelcontextprotocol/client'
+import { AttachingClient } from '../_helpers/attaching-client.js'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { MOUNT_ROOT_ENV } from '../../src/mcp/windows-path.js'
@@ -82,7 +82,7 @@ describe('pecotv mcp が Windows 形式のパス引数を変換する (stdio)', 
 
     const transport = makeTransport({ [MOUNT_ROOT_ENV]: mountRoot(), WSL_DISTRO_NAME: DISTRO })
     const readStderr = drainStderr(transport.stderr)
-    const client = new Client({ name: 'pecotv-e2e-windows-path', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'pecotv-e2e-windows-path', version: '0.0.0' })
     try {
       await client.connect(transport, { timeout: REQUEST_TIMEOUT_MS })
       const called = await client.callTool(
@@ -142,7 +142,7 @@ describe('pecotv mcp が Windows 形式のパス引数を変換する (stdio)', 
 
     const transport = makeTransport()
     const readStderr = drainStderr(transport.stderr)
-    const client = new Client({ name: 'pecotv-e2e-windows-path-spec-boundary', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'pecotv-e2e-windows-path-spec-boundary', version: '0.0.0' })
     try {
       await client.connect(transport, { timeout: REQUEST_TIMEOUT_MS })
       const called = await client.callTool(

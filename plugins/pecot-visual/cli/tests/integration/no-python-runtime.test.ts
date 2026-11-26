@@ -17,6 +17,8 @@ import path from 'node:path'
 
 import { beforeAll, describe, expect, it } from 'vitest'
 
+import { attachOutput } from '../_helpers/attach.js'
+
 const HERE = import.meta.dirname
 const CLI_ROOT = path.resolve(HERE, '..', '..')
 const PLUGIN_ROOT = path.resolve(CLI_ROOT, '..')
@@ -41,6 +43,7 @@ function grepHits(pattern: string, options: { readonly scope?: string, readonly 
     encoding: 'utf8',
     timeout: 30_000,
   })
+  attachOutput(`git grep ${flags} -e ${pattern}`, result.status ?? undefined, result.stdout, result.stderr)
   // git grep exit: 0 = ヒットあり / 1 = ヒットなし / その他 = エラー
   if (result.status === 1) return []
   if (result.status === 0) {
@@ -114,6 +117,7 @@ describe('Phase 4 acceptance: Python ランタイム痕跡ゼロ件', () => {
       encoding: 'utf8',
       timeout: 30_000,
     })
+    attachOutput('env -i bin/pecotv --help（PATH 制限）', result.status ?? undefined, result.stdout, result.stderr)
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('Usage:')
   })

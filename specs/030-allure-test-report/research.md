@@ -305,7 +305,10 @@ FR-007a（画面・成果物の添付）の対象にしないものを次に並�
 
   | 補助 | 添付 |
   |---|---|
-  | `libs/interface-spec/src/vitest/attach.ts` | `attachText`・`attachJson`・`attachOutput`・`readOutput`・`attachReadText` |
+  | `libs/interface-spec/src/vitest/attach.ts` | `attachText`・`attachJson`・`attachOutput`・`readOutput`・`attachReadText`・`attachAtTestEnd` |
+
+| MCP のクライアント（pecot-workflow の `RecordingClient`、pecot-visual の `AttachingClient`、pecot-tools の `attachingClient`） | `callTool`・`listTools` が返した結果の全体 |
+| pecot-visual の統合テストの `makeStream(name)` | 名前を付けた stream の、テストの終わりの中身 |
   | `libs/workflow-core/tests/_helpers/captured-io.ts` の `capture()` | テストの終わりの `out`・`err`。`TestRunner.getCurrentTest()` があるときだけ `onTestFinished` で添付する |
   | pecot-workflow の `runCommand`・`runInProcess` | 標準出力・標準エラー（`capture({ attach: false })` で二重を避ける）。`read` は読んだ中身 |
   | pecot-workflow の `callToolOnce` | `toolOutcomeOf` で確かめる前の結果の全体 |

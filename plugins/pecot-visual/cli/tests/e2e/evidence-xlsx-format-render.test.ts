@@ -31,7 +31,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } f
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { Client } from '@modelcontextprotocol/client'
+import { AttachingClient } from '../_helpers/attaching-client.js'
 import type { TestContext } from 'vitest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
@@ -285,7 +285,7 @@ describe('固定書式のレンダリング', () => {
 
     const transport = makeTransport()
     const readStderr = drainStderr(transport.stderr)
-    const client = new Client({ name: 'pecotv-e2e-evidence-format', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'pecotv-e2e-evidence-format', version: '0.0.0' })
     try {
       await client.connect(transport, { timeout: REQUEST_TIMEOUT_MS })
       const called = await client.callTool(

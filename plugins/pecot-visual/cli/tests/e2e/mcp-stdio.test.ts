@@ -13,7 +13,7 @@ import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { performance } from 'node:perf_hooks'
 
-import { Client } from '@modelcontextprotocol/client'
+import { AttachingClient } from '../_helpers/attaching-client.js'
 import { LATEST_PROTOCOL_VERSION } from '@modelcontextprotocol/server'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
@@ -27,6 +27,7 @@ import {
   makeTransport,
   serverEnvironment,
 } from '../_helpers/mcp-stdio.js'
+import { attachOutput } from '../_helpers/attach.js'
 import { MCP_SERVER_NAME } from '../../src/mcp/server.js'
 import { loadVersionFromPluginJson } from '../../src/version.js'
 import { isRecord } from '../_helpers/records.js'
@@ -85,7 +86,7 @@ describe('pecotv mcp (stdio)', () => {
     transport.onerror = (error: Readonly<Error>) => {
       transportErrors.push(error)
     }
-    const client = new Client({ name: 'pecotv-e2e', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'pecotv-e2e', version: '0.0.0' })
 
     try {
       await client.connect(transport, { timeout: REQUEST_TIMEOUT_MS })
@@ -108,7 +109,7 @@ describe('pecotv mcp (stdio)', () => {
     // そこで、pin した 2026-07-28 のクライアントで、実プロセスへの接続を別に確かめる。
     const transport = makeTransport()
     const readStderr = drainStderr(transport.stderr)
-    const client = new Client(
+    const client = new AttachingClient(
       { name: 'pecotv-e2e-2026', version: '0.0.0' },
       { versionNegotiation: { mode: { pin: '2026-07-28' } } },
     )
@@ -132,7 +133,7 @@ describe('pecotv mcp (stdio)', () => {
   it('client.close() で SIGTERM 待ちに入らず自力終了する', async () => {
     const transport = makeTransport()
     const readStderr = drainStderr(transport.stderr)
-    const client = new Client({ name: 'pecotv-e2e', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'pecotv-e2e', version: '0.0.0' })
     await client.connect(transport, { timeout: REQUEST_TIMEOUT_MS })
 
     const { pid } = transport
@@ -190,6 +191,7 @@ describe('pecotv mcp (stdio)', () => {
     finally {
       child.stdin.end()
       exitCode = await exited
+      attachOutput('pecotv mcp（生の stdin 入力）', exitCode, stdout, readStderr())
     }
 
     // serve.ts の exit code 規約は、0 が正常終了。
@@ -273,6 +275,7 @@ describe('pecotv mcp (stdio)', () => {
       finally {
         child.stdin.end()
         exitCode = await exited
+        attachOutput('pecotv mcp（server/discover と initialize）', exitCode, JSON.stringify(responses.values().toArray(), undefined, 2), readStderr())
       }
       expect(exitCode, `子プロセス stderr: ${readStderr()}`).toBe(0)
     }, 30_000)

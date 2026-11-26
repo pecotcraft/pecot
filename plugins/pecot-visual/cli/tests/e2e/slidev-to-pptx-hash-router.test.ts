@@ -29,7 +29,7 @@ import type { Logger } from '../../src/domain/slidev-to-pptx/logger.js'
 import type { PipelineConfig } from '../../src/domain/slidev-to-pptx/config.js'
 import { convertToPptx } from '../../src/infra/slidev-to-pptx/pipeline.js'
 import { YauzlYazlPptxArchive } from '../../src/infra/pptx-ooxml/archive.js'
-import { attachFile } from '../_helpers/attach.js'
+import { attachFile, attachOutput } from '../_helpers/attach.js'
 import { formatOutputTails } from '../_helpers/pecotv-e2e-run.js'
 import { expectConvertRouteFromEnvironment } from '../_helpers/single-pass-route.js'
 import { compareStrings } from '../../src/domain/_shared/compare-strings.js'
@@ -221,6 +221,7 @@ describe('Issue #971 — routerMode: hash デッキの PPTX 変換', () => {
 
     const stdout = typeof result.stdout === 'string' ? result.stdout : ''
     const stderr = typeof result.stderr === 'string' ? result.stderr : ''
+    attachOutput('pecotv slide convert --json --log-level verbose', result.status ?? undefined, stdout, stderr)
     // 異常終了は一次情報（--json の失敗理由が載る stdout と stderr）が無いと原因を特定できない。
     // spawnSync timeout（status null）と cli の異常終了（非 0）のどちらでも tail を残す。
     if (result.status !== 0) {

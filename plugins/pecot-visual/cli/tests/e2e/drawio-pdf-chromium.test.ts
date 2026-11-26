@@ -25,7 +25,7 @@ import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { assertCliBuilt, BIN_PECOTV, formatOutputTails, isChromiumCached } from '../_helpers/pecotv-e2e-run.js'
-import { attachFile } from '../_helpers/attach.js'
+import { attachFile, attachOutput, readOutput } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
 
@@ -140,6 +140,7 @@ function runExport(name: string, environment: Readonly<Record<string, string>> =
   const elapsedMs = performance.now() - startedAt
   const stdout = typeof result.stdout === 'string' ? result.stdout : ''
   const stderr = typeof result.stderr === 'string' ? result.stderr : ''
+  attachOutput('pecotv drawio export --json', result.status ?? undefined, stdout, stderr)
   console.info(`[drawio-pdf] ${name}: exit=${String(result.status)} ${(elapsedMs / 1000).toFixed(1)}s`)
   return { status: result.status, stdout, stderr, elapsedMs }
 }
@@ -200,7 +201,7 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio export が実 chromium で SVG �
     // `/Pages` を拾わないよう語境界で切る。空白の 2 ページ目が付く回帰をここで検出する。
     expect(pdf.match(/\/Type\s*\/Page\b/g) ?? []).toHaveLength(1)
 
-    const size = readSvgSize(readFileSync(svgPath, 'utf8'))
+    const size = readSvgSize(readOutput(svgPath))
     expect(size.width).toBeGreaterThan(0)
     expect(size.height).toBeGreaterThan(0)
     const boxes = readMediaBoxes(pdf)
@@ -218,6 +219,7 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio export が実 chromium で SVG �
     expect(successPdfPath, '成功ケースの PDF が無い（先行 it の失敗を参照）').not.toBe('')
     await attachFile('書き出した PDF', successPdfPath)
     const extracted = spawnSync('pdftotext', [successPdfPath, '-'], { encoding: 'utf8' })
+    attachOutput('pdftotext', extracted.status ?? undefined, extracted.stdout, extracted.stderr)
     expect(extracted.status, `pdftotext stderr: ${extracted.stderr}`).toBe(0)
     // pdftotext は折り返し位置で改行を入れるため、空白を除いてから比較する。
     const text = extracted.stdout.replaceAll(/\s+/g, '')
@@ -229,6 +231,7 @@ describe.skipIf(!isChromiumReady)('CUJ: drawio export が実 chromium で SVG �
     expect(successPdfPath, '成功ケースの PDF が無い（先行 it の失敗を参照）').not.toBe('')
     await attachFile('書き出した PDF', successPdfPath)
     const listed = spawnSync('pdffonts', [successPdfPath], { encoding: 'utf8' })
+    attachOutput('pdffonts', listed.status ?? undefined, listed.stdout, listed.stderr)
     expect(listed.status, `pdffonts stderr: ${listed.stderr}`).toBe(0)
     // 1, 2 行目は見出しと罫線。各行の先頭列がフォント名。
     const fontNames = listed.stdout.split('\n').slice(2).map(line => line.split(/\s+/, 1)[0] ?? '').filter(name => name !== '')

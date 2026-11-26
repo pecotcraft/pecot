@@ -7,6 +7,7 @@ import path from 'node:path'
 
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
+import { attachOutput } from '../../_helpers/attach.js'
 import { applyExitOverrideRecursively, createProgram } from '../../../src/cli.js'
 
 const HERE = import.meta.dirname
@@ -81,6 +82,7 @@ describe('cli-surface.md §3 廃止リスト: 全件 commander エラーで拒�
       catch (error: unknown) {
         thrown = error
       }
+      attachOutput(`pecotv ${testCase.argv.join(' ')}`, undefined, stdout.chunks.join(''), stderr.chunks.join(''))
       expect(thrown).toBeDefined()
       // CommanderError の code / exitCode を直接確認する。
       // bin/pecotv 経由の main() では exitCode > 0 を 2 にマップする。

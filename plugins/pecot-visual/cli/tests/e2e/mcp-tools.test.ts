@@ -30,12 +30,13 @@ import { connect, createServer, type Server } from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { Client } from '@modelcontextprotocol/client'
+import type { Client } from '@modelcontextprotocol/client'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { parse } from 'yaml'
 
 import { isChromiumInstalled } from '../../src/infra/playwright/chromium.js'
-import { attachFile } from '../_helpers/attach.js'
+import { attachFile, attachOutput, readOutput } from '../_helpers/attach.js'
+import { AttachingClient } from '../_helpers/attaching-client.js'
 import { createFixtureThemeSpec } from '../_helpers/pecotv-e2e-run.js'
 import { buildPng } from '../_helpers/image-fixture.js'
 import { CLI_DIST, CLI_ROOT, drainStderr, isReaped, makeTransport } from '../_helpers/mcp-stdio.js'
@@ -172,13 +173,16 @@ async function withClient(
 ): Promise<void> {
   const transport = makeTransport(environmentOverrides)
   const readStderr = drainStderr(transport.stderr)
-  const client = new Client({ name: 'pecotv-e2e-tools', version: '0.0.0' })
+  const client = new AttachingClient({ name: 'pecotv-e2e-tools', version: '0.0.0' })
   try {
     await client.connect(transport, { timeout: REQUEST_TIMEOUT_MS })
     await scenario(client, readStderr)
   }
   finally {
     await client.close()
+    // 子の stderr は判定の失敗メッセージにだけ使うが、落ちた理由の手掛かりなので残す。
+    const stderr = readStderr()
+    if (stderr !== '') attachOutput('pecotv mcp', undefined, '', stderr)
   }
 }
 
@@ -260,7 +264,7 @@ describe('pecotv mcp のツール (stdio)', () => {
 
       expect(called.isError, `子プロセス stderr: ${readStderr()}`).toBeUndefined()
       expect(dataOf(called)).toEqual({ event: 'drawio.url.done', file: outPath, theme: { source: 'default', fonts: { body: ['sans-serif'] } } })
-      const written = readFileSync(outPath, 'utf8')
+      const written = readOutput(outPath)
       expect(written.startsWith('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n')).toBe(true)
       expect(written).toContain('<meta http-equiv="refresh" content="0;url=https://app.diagrams.net/')
       expect(written).toContain('<a id="target" href="https://app.diagrams.net/')
@@ -417,7 +421,7 @@ describe('pecotv mcp のツール (stdio)', () => {
         })
 
         // 実プロセス経由でも欠損なく届き、貼れば書き始められる形になっていること。
-        const written = readFileSync(target, 'utf8')
+        const written = readOutput(target)
         expect(written.startsWith('---\n'), `layout: ${layout}`).toBe(true)
         expect(written.endsWith('---\n'), `layout: ${layout}`).toBe(true)
         expect(written, `layout: ${layout}`).toContain(`layout: ${layout}`)
@@ -443,14 +447,14 @@ describe('pecotv mcp のツール (stdio)', () => {
       )
       expect(refused.isError).toBe(true)
       expect(dataOf(refused)['kind']).toBe('file-exists')
-      expect(readFileSync(existing, 'utf8')).toContain('layout: cover')
+      expect(readOutput(existing)).toContain('layout: cover')
 
       const overwritten = await client.callTool(
         { name: 'slide_page', arguments: { layout: 'section', dir: talkDirectory, file: 'e2e-cover', force: true } },
         { timeout: REQUEST_TIMEOUT_MS },
       )
       expect(overwritten.isError).toBeUndefined()
-      expect(readFileSync(existing, 'utf8')).toContain('layout: section')
+      expect(readOutput(existing)).toContain('layout: section')
 
       // 生成したページを全件 slides.md へ登録して lint する。examples から取った雛形が
       // そのままで lint クリーンであることは、slide_page が「貼れば書き始められる形」を
@@ -600,7 +604,7 @@ describe('pecotv mcp のツール (stdio)', () => {
     const talkDirectory = workDirectory('sigterm-talk')
     const transport = makeTransport()
     const readStderr = drainStderr(transport.stderr)
-    const client = new Client({ name: 'pecotv-e2e-sigterm', version: '0.0.0' })
+    const client = new AttachingClient({ name: 'pecotv-e2e-sigterm', version: '0.0.0' })
 
     try {
       await client.connect(transport, { timeout: REQUEST_TIMEOUT_MS })

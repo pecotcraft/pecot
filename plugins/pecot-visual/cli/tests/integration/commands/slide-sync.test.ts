@@ -45,6 +45,7 @@ import { FIXTURE_THEME_NAME } from '../../_helpers/theme-repository.js'
 import { rejectionOf } from '../../_helpers/rejection.js'
 import { verifies } from '../../_helpers/verifies.js'
 import { themeErrorReason } from '../../../src/domain/slidev-theme/error-reason.js'
+import { attachAtTestEnd, readOutput } from '../../_helpers/attach.js'
 
 const HERE = import.meta.dirname
 const PLUGIN_ROOT = path.resolve(HERE, '..', '..', '..', '..')
@@ -55,8 +56,10 @@ interface CapturedStream {
   write: (data: string) => boolean
 }
 
-function makeStream(): CapturedStream {
+function makeStream(name?: string): CapturedStream {
   const chunks: string[] = []
+  // 名前を付けた stream は、テストが判定に使う出力なので、テストの終わりに添付する。
+  if (name !== undefined) attachAtTestEnd(name, () => chunks.join(''))
   return {
     chunks,
     write(data: string): boolean {
@@ -155,9 +158,9 @@ describe('runSlideSyncFromCli (smoke)', () => {
     // 生成ファイルの手直し
     writeFileSync(path.join(talk, 'vite.config.ts'), '// USER PATCH')
     writeFileSync(path.join(talk, 'start.mjs'), '// USER PATCH')
-    const gitignore = readFileSync(path.join(talk, '.gitignore'), 'utf8')
+    const gitignore = readOutput(path.join(talk, '.gitignore'))
     const namesBefore = new Set(readdirSync(talk))
-    const slidesBefore = readFileSync(path.join(talk, 'slides.md'), 'utf8')
+    const slidesBefore = readOutput(path.join(talk, 'slides.md'))
 
     const summary = await runSlideSyncFromCli(talk, { nodeModulesOnly: false, theme: themeSpec() }, migrateDependencies())
 
@@ -184,13 +187,13 @@ describe('runSlideSyncFromCli (smoke)', () => {
     expect(readdirSync(path.join(talk, 'public'))).toStrictEqual(['slides'])
     expect(readFileSync(path.join(talk, 'public', 'slides', 'images', '_user.png'), 'utf8')).toBe('PNG')
     expect(readFileSync(path.join(talk, 'pptx', 'cache', 'manifest.json'), 'utf8')).toBe('{"envHash":"DECK"}')
-    expect(readFileSync(path.join(talk, '.gitignore'), 'utf8')).toBe(gitignore)
+    expect(readOutput(path.join(talk, '.gitignore'))).toBe(gitignore)
     // slides.md は theme: の行だけが変わる
-    expect(readFileSync(path.join(talk, 'slides.md'), 'utf8')).toBe(
+    expect(readOutput(path.join(talk, 'slides.md'))).toBe(
       slidesBefore.replace('theme: none', () => `theme: ${THEME_NAME}`),
     )
     // package.json は talk-dir の名前と、テーマ 1 つだけの依存
-    const migratedPackage: unknown = JSON.parse(readFileSync(path.join(talk, 'package.json'), 'utf8'))
+    const migratedPackage: unknown = JSON.parse(readOutput(path.join(talk, 'package.json')))
     expect(migratedPackage).toStrictEqual({
       name: 'demo',
       version: '0.0.0',
@@ -199,8 +202,8 @@ describe('runSlideSyncFromCli (smoke)', () => {
       dependencies: { [THEME_NAME]: `file:${path.relative(talk, state.themeDirectory)}` },
     })
     // 生成ファイルは、手直しがあっても本体の生成物で書き直される。/theme/ の配信を含む
-    expect(readFileSync(path.join(talk, 'vite.config.ts'), 'utf8')).toBe(viteConfigSource({ themeName: THEME_NAME }))
-    expect(readFileSync(path.join(talk, 'start.mjs'), 'utf8')).toBe(START_SCRIPT_SOURCE)
+    expect(readOutput(path.join(talk, 'vite.config.ts'))).toBe(viteConfigSource({ themeName: THEME_NAME }))
+    expect(readOutput(path.join(talk, 'start.mjs'))).toBe(START_SCRIPT_SOURCE)
     // node_modules が実ディレクトリで、項目ごとの相対 symlink が依存ルートとテーマを指す
     const nodeModules = path.join(talk, 'node_modules')
     expect(lstatSync(nodeModules).isDirectory()).toBe(true)
@@ -245,7 +248,7 @@ describe('runSlideSyncFromCli (smoke)', () => {
     // 生成ファイルを改変して、書き直されないことを見る
     writeFileSync(path.join(talk, 'vite.config.ts'), '// USER PATCH')
     writeFileSync(path.join(talk, 'start.mjs'), '// USER START')
-    const viteBefore = readFileSync(path.join(talk, 'vite.config.ts'), 'utf8')
+    const viteBefore = readOutput(path.join(talk, 'vite.config.ts'))
     const pagesBefore = readdirSync(path.join(talk, 'pages')).toSorted(compareStrings)
     // node_modules を消した状態で sync を呼ぶ
     rmSync(path.join(talk, 'node_modules'), { recursive: true, force: true })
@@ -256,7 +259,7 @@ describe('runSlideSyncFromCli (smoke)', () => {
       stderr: asStream(makeStream()),
     })
 
-    expect(readFileSync(path.join(talk, 'vite.config.ts'), 'utf8')).toBe(viteBefore)
+    expect(readOutput(path.join(talk, 'vite.config.ts'))).toBe(viteBefore)
     expect(readdirSync(path.join(talk, 'pages')).toSorted(compareStrings)).toStrictEqual(pagesBefore)
     expect(readFileSync(path.join(talk, 'vite.config.ts'), 'utf8')).toBe('// USER PATCH')
     expect(readFileSync(path.join(talk, 'start.mjs'), 'utf8')).toBe('// USER START')
@@ -343,7 +346,7 @@ describe('runSlideSyncFromCli (smoke)', () => {
 describe('createSlideSyncCommand (smoke)', () => {
   it('--json 成功時は slide.sync.done を stdout に出す', async () => {
     const talk = await setupTalkDirectory()
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createSlideSyncCommand(() => ({
       pluginRoot: PLUGIN_ROOT,
       stdout: asStream(stdout),
@@ -361,7 +364,7 @@ describe('createSlideSyncCommand (smoke)', () => {
 
   it('--json なしの移行は 1 行目に成否行を出し、消した名前を続ける', async () => {
     const talk = await setupTalkDirectory()
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createSlideSyncCommand(() => migrateDependencies(stdout))
     const previousExitCode = process.exitCode
     try {
@@ -382,7 +385,7 @@ describe('createSlideSyncCommand (smoke)', () => {
 
   it('--json なし --node-modules-only も 1 行目に成否行を出す', async () => {
     const talk = await setupTalkDirectory()
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createSlideSyncCommand(() => ({
       pluginRoot: PLUGIN_ROOT,
       stdout: asStream(stdout),
@@ -394,7 +397,7 @@ describe('createSlideSyncCommand (smoke)', () => {
   })
 
   it('失敗時は stderr に成否語を出し exit code 1 になる', async () => {
-    const stderr = makeStream()
+    const stderr = makeStream('stderr')
     const command = createSlideSyncCommand(() => ({
       pluginRoot: PLUGIN_ROOT,
       stdout: asStream(makeStream()),
@@ -413,7 +416,7 @@ describe('createSlideSyncCommand (smoke)', () => {
 
   it('--json の stdout は単一行 JSON で人間向け成否行が混在しない。移行後のレイアウトの一覧を返す', async () => {
     const talk = await setupTalkDirectory()
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createSlideSyncCommand(() => migrateDependencies(stdout))
     await command.parseAsync(['--dir', talk, '--theme', themeSpec(), '--json'], { from: 'user' })
     const lines = stdout.chunks.join('').trim().split('\n')
@@ -430,8 +433,8 @@ describe('createSlideSyncCommand (smoke)', () => {
 
   it('移行前の形のまま --node-modules-only を打つと、テーマを引けないため一覧は空で、stderr に理由を出す', async () => {
     const talk = await setupTalkDirectory()
-    const stdout = makeStream()
-    const stderr = makeStream()
+    const stdout = makeStream('stdout')
+    const stderr = makeStream('stderr')
     const command = createSlideSyncCommand(() => ({
       pluginRoot: PLUGIN_ROOT,
       stdout: asStream(stdout),
@@ -468,7 +471,7 @@ describe('slide sync --node-modules-only (テーマを参照する talk-dir)', (
     await verifies(context, 'PV-SLIDE-SYNC-05')
     const talk = await createThemedTalk()
     rmSync(path.join(talk, 'node_modules'), { recursive: true, force: true })
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createSlideSyncCommand(() => ({
       pluginRoot: PLUGIN_ROOT,
       stdout: asStream(stdout),
@@ -484,12 +487,12 @@ describe('slide sync --node-modules-only (テーマを参照する talk-dir)', (
     expect(parsed.layouts).toHaveLength(FIXTURE_LAYOUT_COUNT)
     expect(realpathSync(path.join(talk, 'node_modules', FIXTURE_THEME_NAME))).toBe(realpathSync(state.themeDirectory))
     // 作品領域は触らない。
-    expect(readFileSync(path.join(talk, 'slides.md'), 'utf8')).toContain(`theme: ${THEME_NAME}`)
+    expect(readOutput(path.join(talk, 'slides.md'))).toContain(`theme: ${THEME_NAME}`)
   })
 
   it('テーマの取得に失敗したら、theme-<reason> と文言で止まり、exit code 1 になる', async () => {
     const talk = await createThemedTalk()
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const command = createSlideSyncCommand(() => ({
       pluginRoot: PLUGIN_ROOT,
       stdout: asStream(stdout),
@@ -647,15 +650,15 @@ describe('slide sync (移行済みの talk-dir で、依存の版を替えて通
     const talk = await createTalk(url)
     const configPath = path.join(talk, 'vite.config.ts')
     const startPath = path.join(talk, 'start.mjs')
-    const expectedConfig = readFileSync(configPath, 'utf8')
+    const expectedConfig = readOutput(configPath)
     writeFileSync(configPath, 'export default {} // OLD', 'utf8')
     writeFileSync(startPath, 'OLD-START', { mode: 0o644 })
     const before = snapshotOutsideNodeModules(talk)
 
     await buildCommand(makeStream()).parseAsync(['--dir', talk, ...flags], { from: 'user' })
 
-    expect(readFileSync(configPath, 'utf8')).toBe(expectedConfig)
-    expect(readFileSync(startPath, 'utf8')).toBe(START_SCRIPT_SOURCE)
+    expect(readOutput(configPath)).toBe(expectedConfig)
+    expect(readOutput(startPath)).toBe(START_SCRIPT_SOURCE)
     expect(statSync(startPath).mode & 0o777).toBe(0o755)
     expect(withoutGeneratedFiles(snapshotOutsideNodeModules(talk))).toStrictEqual(withoutGeneratedFiles(before))
   })
@@ -667,7 +670,7 @@ describe('slide sync (移行済みの talk-dir で、依存の版を替えて通
     const packagePath = path.join(talk, 'package.json')
     writeFileSync(packagePath, readFileSync(packagePath, 'utf8').replace('#v1.0.0', '#v1.0.1'), 'utf8')
     const before = snapshotOutsideNodeModules(talk)
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
 
     await buildCommand(stdout).parseAsync(['--dir', talk, '--json'], { from: 'user' })
 
@@ -699,7 +702,7 @@ describe('slide sync (移行済みの talk-dir で、依存の版を替えて通
     const broken = '{ "dependencies": { "x": "1" '
     writeFileSync(packagePath, broken, 'utf8')
     const before = snapshotOutsideNodeModules(talk)
-    const stdout = makeStream()
+    const stdout = makeStream('stdout')
     const previousExitCode = process.exitCode
     try {
       await buildCommand(stdout).parseAsync(['--dir', talk, '--json'], { from: 'user' })
