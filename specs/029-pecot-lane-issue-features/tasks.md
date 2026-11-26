@@ -288,8 +288,9 @@ description: "Task list for 029-pecot-lane-issue-features"
 
 - [x] T067 [P] [US5] `PW/cli/src/domain/tests/issue-surface.test.ts` に、差と Issue の組み立てのテストを先に書く。
   確かめること: 増えた・消えた `id`、題「`GitHub の Issue の機能に差がある: <増えた数> 件増・<消えた数> 件減`」、本文の末尾の印 `<!-- pecot-issue-surface: <差の hash> -->`、同じ印の開いた Issue があれば作らない、`--sdl` で GitHub に取りに行かない、`--dry-run` で作らない
+  あわせて、印が違えば開いた Issue の題と本文を書き直すことも確かめる
 - [x] T068 [P] [US5] `.githooks/tests/test_issue_surface_workflow.py` に、workflow の形のテストを先に書く。
-  確かめること: 起動は `workflow_dispatch` だけ、権限は `contents: read` と `issues: write` だけ、concurrency で重ねて動かない
+  確かめること: 起動は `workflow_dispatch` だけ、権限は `contents: read` だけで、Issue とボードは App のトークンの `issues: write`・`organization-projects: write` で書く、concurrency で重ねて動かない
 
 ### Implementation for User Story 5（定期）
 

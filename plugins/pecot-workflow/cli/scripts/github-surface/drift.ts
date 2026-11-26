@@ -87,7 +87,7 @@ async function create(output: Readonly<Output>, io: CommandIo, client: GitHubCli
   const created = await createIssue(client, target.owner, target.repository, issue.title, issue.body, undefined)
   const number = requireNumber(created['number'], 'number')
   io.stdout(`created: ${requireString(created['html_url'], 'html_url')}\n`)
-  const failures = await putOnBoard(output, client, target.config, target.owner, target.repository, number, { onlyIfEmpty: false })
+  const failures = await putOnBoard(output, client, target.config, target.owner, target.repository, number, { onlyIfEmpty: false, noun: 'Issue' })
   return failures > 0 ? 1 : 0
 }
 

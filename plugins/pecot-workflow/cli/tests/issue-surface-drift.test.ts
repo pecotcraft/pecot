@@ -220,7 +220,7 @@ describe('drift.ts', () => {
     const argv = argvOf(writeSources(CHANGED))
     expect(await run(argv, io)).toBe(1)
     expect(stdout()).toBe('created: https://github.com/acme/demo/issues/12\n')
-    expect(stderr()).toMatch(/^error: could not set status backlog of Tracker #12: /u)
+    expect(stderr()).toMatch(/^error: could not set status backlog of Issue #12:/u)
   })
 
   it('差があり、開いた差の Issue の印が同じだと、書き込まずに unchanged を出す', async () => {

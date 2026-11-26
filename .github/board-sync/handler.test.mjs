@@ -495,7 +495,7 @@ test("Scheduler の固定の値で、署名なしに 4 つの workflow を起こ
   const { deps, calls, logs } = makeDeps();
   const res = await createHandler(deps)(SCHEDULER_EVENT);
   assert.equal(res.statusCode, 200);
-  // 同じ App の 2 本は token を待つ間に前後するので、順は問わない。
+  // 同じ App の 3 本は token を待つ間に前後するので、順は問わない。
   assert.deepEqual(
     new Set(dispatchCalls(calls).map((c) => c.url)),
     new Set([

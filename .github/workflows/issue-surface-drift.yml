@@ -1,5 +1,6 @@
-# 機能の写し（SDL・OpenAPI）と Issue の担保の差を、ボードの Tracker に反映する。手で起動する。
-# 変数 SECURITY_APP_CLIENT_ID が空の間は job を飛ばす。トークンは GitHub App のものを使う。
+# GitHub の今のスキーマ（SDL・OpenAPI）を Issue の機能の写しと比べ、差を Issue 1 件にしてボードに載せる。
+# .github/board-sync/ の Lambda の Scheduler が毎時 dispatch する。変数 SECURITY_APP_CLIENT_ID が空の間は job を飛ばす。
+# GITHUB_TOKEN は org の Projects を書けないため、GitHub App のトークンを使う。
 name: issue-surface-drift
 
 on:

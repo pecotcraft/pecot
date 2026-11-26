@@ -111,6 +111,10 @@ export interface PutOnBoardOptions {
   真なら、ボード項目の Status が空のときだけ入れる。人が動かした Status を戻さない
   */
   readonly onlyIfEmpty: boolean
+  /**
+  失敗の文で Issue を呼ぶ名前。既定は Tracker
+  */
+  readonly noun?: string
 }
 
 /**
@@ -135,7 +139,7 @@ export async function putOnBoard(
   catch (error: unknown) {
     if (!(error instanceof GitHubAPIError)) throw error
     const hintState: FieldHintState = { hasHinted: false }
-    out.error(fieldWriteFailure(`could not set status ${BOARD_STATUS} of Tracker #${String(issueNumber)}: ${error.message}`, error, config, hintState))
+    out.error(fieldWriteFailure(`could not set status ${BOARD_STATUS} of ${options.noun ?? 'Tracker'} #${String(issueNumber)}: ${error.message}`, error, config, hintState))
     return 1
   }
   return 0
