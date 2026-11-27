@@ -34,7 +34,7 @@ describe('GitHubAPIError', () => {
 })
 
 describe('継承', () => {
-  it.each([
+  it.each<[string, GitHubAPIError]>([
     ['GitHubAuthError', new GitHubAuthError('認証エラー')],
     ['GitHubNotFoundError', new GitHubNotFoundError('リソースが見つかりません')],
     ['GitHubRateLimitError', new GitHubRateLimitError('レート制限')],
