@@ -139,6 +139,7 @@ run_publish() {
     assert_equal "$(log_field cache)" "$PERSISTENT"
     mkdir -p "$PERSISTENT" && : > "$PERSISTENT/marker"
     run_publish optin3 --dry-run --skip-build --out-dir="$TMP/dist-optin3"
+    assert_equal "$(log_field cache)" "$PERSISTENT"
     [ -f "$PERSISTENT/marker" ] || fail "永続キャッシュが消えた"
 }
 

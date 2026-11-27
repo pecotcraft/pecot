@@ -167,10 +167,10 @@ run_dryrun_chain() {
     printf '{"private":true}\n' > "$SMOKE_ROOT/package.json"
     rc=0
     {
-        tgz_name="$(cd "$SF" && "$REAL_NPM" pack "$DIST" --ignore-scripts --pack-destination "$SF/smoke-pack" 2> "$SF/smoke-pack.err" | tail -n 1)"
+        tgz_name="$(cd "$SF" && "$REAL_NPM" pack "$DIST" --ignore-scripts --pack-destination "$SF/smoke-pack" 2> "$SF/smoke-pack-stderr.txt" | tail -n 1)"
         [ -n "$tgz_name" ] && (cd "$SMOKE_ROOT" && "$REAL_NPM" install "$SF/smoke-pack/$tgz_name" \
             --no-audit --no-fund --fetch-timeout=30000 --fetch-retries=1 \
-            "--cache=$NPM_PERSIST_CACHE" --prefer-offline > "$SF/smoke-install.log" 2>&1)
+            "--cache=$NPM_PERSIST_CACHE" --prefer-offline > "$SF/smoke-install.txt" 2>&1)
     } || rc=$?
     echo "$rc" > "$SF/smoke-install.rc"
 }
@@ -562,8 +562,10 @@ SCAN_JS
     explains "配布ツリーを pack した tgz を、リポの外で \`npm install\` するテストです。導入が成功し、\`node_modules/.bin/pecot-workflow-mcp\` が実行できる形で張られることを確認します。"
     local rc pack_err install_log
     rc="$(read_output "$SF/smoke-install.rc")"
-    pack_err="$(tail -n 3 "$SF/smoke-pack.err" | tr '\n' ' ')"
-    install_log="$(tail -n 3 "$SF/smoke-install.log" 2> /dev/null | tr '\n' ' ')"
+    attach_file "$SF/smoke-pack-stderr.txt"
+    attach_file "$SF/smoke-install.txt"
+    pack_err="$(tail -n 3 "$SF/smoke-pack-stderr.txt" | tr '\n' ' ')"
+    install_log="$(tail -n 3 "$SF/smoke-install.txt" 2> /dev/null | tr '\n' ' ')"
     [ "$rc" = 0 ] || fail "npm install が失敗した: $pack_err $install_log"
     [ -x "$SMOKE_BIN" ] || fail "node_modules/.bin/pecot-workflow-mcp が無いか、実行できない"
 }
