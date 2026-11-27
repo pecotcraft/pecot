@@ -1,4 +1,4 @@
-# compare-cx-measure.test.sh が --config に渡す、汎用の小さな cx の下限の設定。
+# compare-cx-measure.bats が --config に渡す、汎用の小さな cx の下限の設定。
 # 形は cx assertion の config.yml と同じ（`- id:` と `min_cx_emu:` を 1 spec につき 1 組ずつ並べる）。
 spec:
   - id: footer-note

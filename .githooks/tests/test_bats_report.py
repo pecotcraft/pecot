@@ -166,6 +166,55 @@ def test_labels_and_times(tmp_path: Path) -> None:
         assert 1_000_000_000_000 < result["start"] <= result["stop"]
 
 
+@allure.title("test-layers.txt で層が決まると、結果に層と場所から決まる重大度のラベルを付ける")
+def test_layer_and_default_severity(tmp_path: Path) -> None:
+    """project の `test-layers.txt` が bats のファイルに当たる場合の、層と重大度のラベルのテストです。表の層が `layer` に入り、`severity` に場所から決まる `normal` が 1 つだけ入ることを確認します。"""
+    with allure.step("project.json と層の表を置く"):
+        (tmp_path / "plugins/p").mkdir(parents=True)
+        (tmp_path / "plugins/p/project.json").write_text("{}", encoding="utf-8")
+        (tmp_path / "plugins/p/test-layers.txt").write_text(
+            "unit tests/\nintegration tests/sample.bats\n", encoding="utf-8"
+        )
+    test = _write_test(tmp_path / "plugins/p/tests", _case("通る", 'explains "通るテストです。"'))
+    _run(tmp_path, test, results=tmp_path / "results")
+    [result] = _results(tmp_path / "results").values()
+
+    with allure.step("layer と severity のラベルを比べる"):
+        assert _label(result, "layer") == ["integration"]
+        assert _label(result, "severity") == ["normal"]
+
+
+@allure.title("@test の本体で severity を呼ぶと、その @test だけ書いた段階になる")
+def test_severity_overrides_only_that_test(tmp_path: Path) -> None:
+    """`severity trivial` を呼ぶ `@test` と呼ばない `@test` を並べたテストです。呼んだ `@test` だけが `trivial` になり、次の `@test` は場所から決まる `normal` に戻ることを確認します。"""
+    test = _write_test(
+        tmp_path / "suite",
+        _case("書く", 'explains "書くテストです。"', "severity trivial"),
+        _case("書かない", 'explains "書かないテストです。"'),
+    )
+    _run(tmp_path, test, results=tmp_path / "results")
+    results = _results(tmp_path / "results")
+
+    with allure.step("それぞれの severity のラベルを比べる"):
+        assert _label(results["書く"], "severity") == ["trivial"]
+        assert _label(results["書かない"], "severity") == ["normal"]
+
+
+@allure.title("severity に 5 つの段階のほかの値を渡すと、その @test を失敗にする")
+def test_severity_rejects_unknown_level(tmp_path: Path) -> None:
+    """`severity` に Allure の段階に無い値を渡した `@test` のテストです。`severity` が理由を出して失敗し、その `@test` が failed になることを確認します。"""
+    test = _write_test(
+        tmp_path / "suite",
+        _case("誤った段階", 'explains "誤った段階のテストです。"', "severity high"),
+    )
+    _run(tmp_path, test, results=tmp_path / "results")
+    [result] = _results(tmp_path / "results").values()
+
+    with allure.step("状態と trace を比べる"):
+        assert result["status"] == "failed"
+        assert "渡された値: high" in result["statusDetails"]["trace"]
+
+
 @allure.title("説明の無い passed の @test があると、ファイルと題を並べてレーンを止める")
 def test_missing_description_fails_the_run(tmp_path: Path) -> None:
     """`explains` を呼ばない `@test` を持つファイルを、結果のディレクトリを指定して実行するテストです。passed の `@test` だけを説明の抜けとして表示し、bats が通っても終了コード 1 で終わることを確認します。"""

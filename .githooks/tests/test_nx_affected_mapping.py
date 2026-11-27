@@ -462,7 +462,6 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
                 ".githooks/scripts/test_report/allure-result.sh",
                 {
                     "githooks:test-ci",
-                    "pecot-workflow:test-bootstrap",
                     "pecot-workflow:test-release",
                     "pecot-visual:test-hooks",
                     "pecot-visual:test-compare",
