@@ -1041,7 +1041,8 @@ def test_gate_selects_only_the_lanes_the_change_reaches(
             ("plugins/pecot-workflow/scripts/ci/run-lint.sh", _GITHOOKS_CHECKS),
             ("pyproject.toml", _GITHOOKS_CHECKS),
             ("uv.lock", _GITHOOKS_CHECKS),
-            ("pnpm-workspace.yaml", _GITHOOKS_GRAPH),
+            # nx 24.0.7 から、差分の無い --files の pnpm-workspace.yaml は overrides を読めず、全 project を選ぶ。
+            ("pnpm-workspace.yaml", _GITHOOKS_GRAPH | {"githooks:test-ci"}),
             ("nx.json", _GITHOOKS_GRAPH | {"githooks:test-ci"}),
             (".nxignore", _GITHOOKS_GRAPH | {"githooks:test-ci"}),
             # test-ci の test_report_lanes.py は、全部の project.json の target と outputs を読む。
