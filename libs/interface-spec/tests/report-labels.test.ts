@@ -226,11 +226,14 @@ describe('reportLabelsListener', () => {
   })
 
   it.for([
-    { name: 'ID を持つ', ids: ['PT-AWS-S3-LS-03'], expected: Severity.CRITICAL },
-    { name: 'ID を持たない', ids: [], expected: Severity.NORMAL },
-  ])('severity の無い結果が $name とき、project・レーン・ID から決めた段階を 1 つ足す', async ({ name, ids, expected }) => {
-    await explains(`結果を書き出す前に呼ぶ \`reportLabelsListener\` のテストです。severity の無い、${name}結果に、project とレーンと ID から決めた \`${expected}\` が 1 つ付くことを確認します。`)
-    const result = stepSync('pecot-tools の test-cli の結果を作る', () => testResult(PARENT_SUITE, ids, LANE_LABELS))
+    { name: 'pecot-tools の test-cli で ID を持つ', project: 'pecot-tools', lane: 'test-cli', ids: ['PT-AWS-S3-LS-03'], expected: Severity.CRITICAL },
+    { name: 'pecot-tools の test-cli で ID を持たない', project: 'pecot-tools', lane: 'test-cli', ids: [], expected: Severity.NORMAL },
+    { name: 'nx-release の test-unit で ID を持たない', project: 'nx-release', lane: 'test-unit', ids: [], expected: Severity.BLOCKER },
+    { name: 'githooks の test-ci で ID を持つ', project: 'githooks', lane: 'test-ci', ids: ['PT-AWS-S3-LS-03'], expected: Severity.MINOR },
+    { name: 'pecot-tools の test-release で ID を持つ', project: 'pecot-tools', lane: 'test-release', ids: ['PT-AWS-S3-LS-03'], expected: Severity.BLOCKER },
+  ])('severity の無い結果が $name とき、結果の project・レーンと ID から決めた段階を 1 つ足す', async ({ name, project, lane, ids, expected }) => {
+    await explains(`結果を書き出す前に呼ぶ \`reportLabelsListener\` のテストです。severity の無い、${name}結果に、結果のラベルから読んだ project とレーンで決めた \`${expected}\` が 1 つ付くことを確認します。`)
+    const result = stepSync('project とレーンのラベルを持つ結果を作る', () => testResult(PARENT_SUITE, ids, [{ name: 'project', value: project }, { name: 'lane', value: lane }]))
     stepSync('listener を呼ぶ', () => {
       reportLabelsListener().beforeTestResultWrite?.(result)
     })
@@ -407,10 +410,10 @@ describe('子の vitest の結果', () => {
     const result = spawnSync(process.execPath, [VITEST, 'run', '--config', path.join(FIXTURES, 'vitest.config.mjs')], {
       cwd: FIXTURES,
       encoding: 'utf8',
-      env: { ...process.env, CI: 'true', NO_COLOR: '1', NX_TASK_TARGET_PROJECT: 'fixture-project', NX_TASK_TARGET_TARGET: 'test-fixture', REPORT_LABELS_ROOT: root },
+      env: { ...process.env, CI: 'true', NO_COLOR: '1', NX_TASK_TARGET_PROJECT: 'fixture-project', NX_TASK_TARGET_TARGET: 'test-release', REPORT_LABELS_ROOT: root },
     })
     attachOutput('vitest run（report-labels の fixture）', result.status ?? undefined, result.stdout, result.stderr)
-    const directory = path.join(root, 'test-results', 'test-fixture', 'allure-results')
+    const directory = path.join(root, 'test-results', 'test-release', 'allure-results')
     child.results = readdirSync(directory)
       .filter(file => file.endsWith('-result.json'))
       .map(file => readChildResult(path.join(directory, file)))
@@ -457,11 +460,11 @@ describe('子の vitest の結果', () => {
   })
 
   it.for([
-    { name: '通る', expected: Severity.NORMAL },
-    { name: '落ちる', expected: Severity.NORMAL },
-    { name: '本体で skip する', expected: Severity.NORMAL },
-    { name: 'beforeAll の後に動く', expected: Severity.NORMAL },
-    { name: 'COMMON の ID の後に項目の ID を持つ', expected: Severity.CRITICAL },
+    { name: '通る', expected: Severity.BLOCKER },
+    { name: '落ちる', expected: Severity.BLOCKER },
+    { name: '本体で skip する', expected: Severity.BLOCKER },
+    { name: 'beforeAll の後に動く', expected: Severity.BLOCKER },
+    { name: 'COMMON の ID の後に項目の ID を持つ', expected: Severity.BLOCKER },
     { name: 'テストに段階を書く', expected: Severity.TRIVIAL },
   ])('「$name」の結果は、severity を 1 つだけ持つ', async ({ name, expected }) => {
     await explains(`子の vitest を Allure の reporter 付きで実行したときの結果のテストです。「${name}」の結果が、severity のラベルを \`${expected}\` の 1 つだけ持つことを確認します。`)
