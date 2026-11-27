@@ -879,6 +879,11 @@ _PECOTV_TEST_LANES = {
                     *_GITHOOKS_GRAPH,
                 },
             ),
+            # pecot-tools の node-runtime.ts は、2 つの複製の一致を確かめる pecot-visual:test-cli も読む。
+            (
+                "plugins/pecot-tools/cli/src/node-runtime.ts",
+                {"pecot-tools:test-cli", "pecot-visual:test-cli"},
+            ),
             # pnpm の解決のファイルは pecotPluginNodeInputs が引くレーンに届く。
             (
                 "plugins/pecot-workflow/scripts/ci/pnpm-lib.sh",
