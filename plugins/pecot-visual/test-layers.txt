@@ -53,6 +53,6 @@ integration hooks/
 unit hooks/tests/english-only.test.sh
 unit hooks/tests/hooks-json.test.sh
 integration scripts/
-unit scripts/ci/tests/slide-pages-by-main.test.sh
-unit scripts/ci/tests/text-violation-guidance.test.sh
+unit scripts/ci/tests/slide-pages-by-main.bats
+unit scripts/ci/tests/text-violation-guidance.bats
 unit scripts/pptx-compare/tests/usage-comment.bats

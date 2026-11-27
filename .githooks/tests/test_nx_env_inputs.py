@@ -93,6 +93,9 @@ _EXEMPT: dict[str, str] = {
         "test-release の command が必ず絶対パスで渡し、レーンの外からは値が変わらない"
     ),
     "NPM_STUB_LOG": "テストが export し、heredoc で書く npm スタブが実行時に読む。外の値は読まれない",
+    "FAKE_PNPM_CALLS": "dev-install-lib.bats が export し、heredoc で書く偽の pnpm が実行時に読む。外の値は読まれない",
+    "FAKE_PNPM_CWD": "FAKE_PNPM_CALLS と同じ",
+    "FAKE_PNPM_RC": "dev-install-lib.bats が失敗の @test でだけ export する偽の pnpm の終了コード。外の値は読まれない",
     "GH_STUB_DIR": "release テストが export し、heredoc で書く gh スタブが実行時に読む。外の値は読まれない",
     "GH_STUB_LOG": "release テストが export し、gh スタブが呼び出しを記録する先。外の値は読まれない",
     "GH_STUB_NO_RELEASE": "release テストが env に渡す gh スタブの失敗注入。外の値は読まれない",
@@ -100,8 +103,6 @@ _EXEMPT: dict[str, str] = {
     "REMOTE_CONTAINERS": "ensureDevcontainerEnvironment だけが読み、そのテストが毎回外す。外の値は結果を左右しない",
     "CODESPACES": "ensureDevcontainerEnvironment だけが読み、そのテストが毎回外す。外の値は結果を左右しない",
     "DEVCONTAINER": "ensureDevcontainerEnvironment だけが読み、そのテストが毎回外す。外の値は結果を左右しない",
-    "PECOTV_PLUGIN_ROOT": "source した check-pm-guard.sh が設定するシェル変数。環境変数ではない",
-    "REPO_ROOT": "source した check-pm-guard.sh が設定するシェル変数。環境変数ではない",
     # --- #1230 プラグインのデータ置き場 ---
     "GITHUB_RUN_ID": (
         "review-finish の action が目印に入れる。vitest の useIsolatedEnvironment が外し、review-finish のテストが自分で渡す"

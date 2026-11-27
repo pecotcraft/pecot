@@ -88,7 +88,7 @@ plugins/pecot-visual/mcp.json
 plugins/pecot-visual/plugin.json
 plugins/pecot-visual/scripts/ci/pnpm-lib.sh
 plugins/pecot-visual/scripts/ci/run-lint.sh
-plugins/pecot-visual/scripts/ci/tests/references-path-existence.test.sh
+plugins/pecot-visual/scripts/ci/tests/references-path-existence.bats
 plugins/pecot-visual/scripts/release/audit-canary/package.json
 plugins/pecot-visual/skills/v-slidev/SKILL.md
 plugins/pecot-workflow/agents/w-plan-reviewer.md
