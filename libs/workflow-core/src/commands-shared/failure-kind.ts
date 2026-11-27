@@ -24,6 +24,7 @@ export const FAILURE_KINDS = [
   'guard-blocked',
   'not-ready',
   'dependency-unreadable',
+  'order-conflict',
   'content-invalid',
   'preflight-failed',
   'pr-state',
