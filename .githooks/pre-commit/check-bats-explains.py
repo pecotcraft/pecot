@@ -12,17 +12,29 @@ from pathlib import Path
 
 CONVENTION = ".claude/rules/test-conventions.md"
 
-_TEST = re.compile(r"""^\s*@test\s+(?P<q>["'])(?P<title>.*)(?P=q)\s*\{\s*$""")
+# @test と読む形は、bats-preprocess の BATS_TEST_PATTERN・BATS_TEST_PATTERN_COMMENT に合わせる。
+_TEST = re.compile(r"^[ \t]*@test[ \t]+(?P<title>.*[^ \t])[ \t]+\{(?P<rest>.*)$")
+_TEST_COMMENT = re.compile(
+    r"^[ \t]*(?P<title>[^ \t()]+)[ \t]*\(?\)?[ \t]+\{[ \t]+#[ \t]*@test[ \t]*$"
+)
 _DYNAMIC = re.compile(r"^\s*bats_test_function\b.*?\s--\s+(?P<function>[A-Za-z_][\w-]*)")
 _FUNCTION = r"^\s*(?:function\s+)?{name}\s*(?:\(\s*\))?\s*\{{\s*$"
 _EXPLAINS = re.compile(r"""^\s*explains(?:\s|$)""")
 _EXPLAINS_LITERAL = re.compile(
-    r"""^\s*explains\s+(?:"(?P<d>(?:[^"\\$`]|\\.)+)"|'(?P<s>[^']+)')\s*$"""
+    r"""^\s*explains\s+(?:"(?P<d>(?:[^"\\$`]|\\.)+)"|'(?P<s>[^']+)')\s*(?:;.*)?$"""
 )
 
 
-def _first_command(lines: list[str], start: int) -> tuple[int, str] | None:
-    """start 行より後の、空行とコメントを除いた最初の行（1 始まりの行番号と中身）。"""
+def _title(raw: str) -> str:
+    if len(raw) >= 2 and raw[0] == raw[-1] and raw[0] in "\"'":
+        return raw[1:-1]
+    return raw
+
+
+def _first_command(lines: list[str], start: int, rest: str = "") -> tuple[int, str] | None:
+    """@test の行の残り（rest）か、start 行より後の、空行とコメントを除いた最初のコマンド（1 始まりの行番号と中身）。"""
+    if rest.strip() and not rest.strip().startswith("#"):
+        return start, rest
     for index in range(start, len(lines)):
         stripped = lines[index].strip()
         if stripped and not stripped.startswith("#"):
@@ -45,11 +57,12 @@ def problems(path: Path) -> list[str]:
     lines = path.read_text(encoding="utf-8").splitlines()
     found: list[str] = []
     for number, line in enumerate(lines, start=1):
-        test = _TEST.match(line)
+        test = _TEST.match(line) or _TEST_COMMENT.match(line)
         if test:
-            problem = _explains_problem(_first_command(lines, number))
+            rest = test.groupdict().get("rest") or ""
+            problem = _explains_problem(_first_command(lines, number, rest))
             if problem is not None:
-                found.append(f"{path}:{number}: {test.group('title')}: {problem}")
+                found.append(f"{path}:{number}: {_title(test.group('title'))}: {problem}")
             continue
         dynamic = _DYNAMIC.match(line)
         if dynamic:

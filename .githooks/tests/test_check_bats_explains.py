@@ -35,6 +35,8 @@ def _check(tmp_path: Path, body: str) -> subprocess.CompletedProcess[str]:
         'function check_two {\n    explains "動的なテストの説明です。"\n}\n'
         "bats_test_function --tags a -- check_two\n",
         "helper() {\n    true\n}\n",
+        '@test "題です" { explains "説明です。"; true; }\n',
+        'check_three() { # @test\n    explains "コメントで印を付けたテストの説明です。"\n}\n',
     ],
     ids=[
         "double-quote",
@@ -43,6 +45,8 @@ def _check(tmp_path: Path, body: str) -> subprocess.CompletedProcess[str]:
         "dynamic",
         "dynamic-function",
         "no-test",
+        "one-line",
+        "test-comment",
     ],
 )
 def test_passes_when_explains_comes_first(tmp_path: Path, body: str) -> None:
@@ -87,8 +91,27 @@ def test_passes_when_explains_comes_first(tmp_path: Path, body: str) -> None:
             "説明が改行を含む",
             "explains に、1 行で書いた空でない文字列のリテラルを渡していない",
         ),
+        (
+            '@test "題です" { true; }\n',
+            "1 行の本体で explains の無い",
+            "本体の最初のコマンドが explains（説明）でない",
+        ),
+        (
+            '@test "題です" {  # 前置きのコメント\n    true\n}\n',
+            "題の後ろにコメントがあり、explains の無い",
+            "本体の最初のコマンドが explains（説明）でない",
+        ),
     ],
-    ids=["missing", "not-first", "empty-body", "empty", "variable", "newline"],
+    ids=[
+        "missing",
+        "not-first",
+        "empty-body",
+        "empty",
+        "variable",
+        "newline",
+        "one-line",
+        "comment-after-brace",
+    ],
 )
 def test_reports_test_without_explains(
     tmp_path: Path, body: str, reason: str, message: str
@@ -102,7 +125,7 @@ def test_reports_test_without_explains(
         assert ".claude/rules/test-conventions.md" in result.stderr
 
 
-@allure.title("bats_test_function の関数が explains で始まらないと、関数名を添えて止める")
+@allure.title("関数で作るテストの本体が explains で始まらないと、関数名を添えて止める")
 @pytest.mark.parametrize(
     ("body", "message"),
     [
@@ -114,11 +137,15 @@ def test_reports_test_without_explains(
             'bats_test_function --description "題" -- check_one\n',
             "bats_test_function の関数の定義が無い",
         ),
+        (
+            "check_one() { # @test\n    true\n}\n",
+            "本体の最初のコマンドが explains（説明）でない",
+        ),
     ],
-    ids=["no-explains", "no-definition"],
+    ids=["no-explains", "no-definition", "test-comment"],
 )
 def test_reports_dynamic_test_without_explains(tmp_path: Path, body: str, message: str) -> None:
-    """`bats_test_function` で作るテストを hook に渡すテストです。呼ぶ関数の本体が `explains` で始まらない場合と、関数の定義が無い場合に、関数名と理由を添えて終了コード 1 で止めることを確認します。"""
+    """`bats_test_function` と `# @test` の印で、関数から作るテストを hook に渡すテストです。関数の本体が `explains` で始まらない場合と、定義が無い場合に、関数名と理由を添えて終了コード 1 で止めることを確認します。"""
     with allure.step("hook を動かす"):
         result = _check(tmp_path, body)
     with allure.step("終了コードと理由の行を比べる"):
