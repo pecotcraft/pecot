@@ -12,6 +12,7 @@ import { parse, parseAllDocuments } from 'yaml'
 import { compareStrings } from '../../../src/domain/_shared/compare-strings.js'
 import { isRecord } from '../../../src/domain/_shared/json.js'
 import { caretRangeOutside, caretRangeViolation } from '../../_helpers/caret-range.js'
+import { explains } from '../../_helpers/explains.js'
 
 // tests/unit/infra → cli/
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..', '..')
@@ -82,7 +83,8 @@ function catalogViteOutside(catalogVite: string, slidevVite: string): string | u
 }
 
 describe('固定対象の単一版 (#1233)', () => {
-  it('shiki / @shikijs/* / vite が lock でパッケージごとに 1 版', () => {
+  it('ロックファイルでは、shiki・@shikijs/*・vite が、パッケージごとに 1 つの版だけになる', async () => {
+    await explains('`pnpm-lock.yaml` の `packages` を調べるテストです。`shiki`・`vite`・`@shikijs/` で始まるパッケージのそれぞれについて、版が 1 つだけであることを確認します。')
     const versions = pinnedVersionsByPackage()
 
     // チェックが空振りしていないこと (キーの切り方が破損すると全件 0 件で通ってしまう)
@@ -95,7 +97,8 @@ describe('固定対象の単一版 (#1233)', () => {
     expect(split, `版が割れているパッケージ:\n${split.join('\n')}`).toEqual([])
   })
 
-  it('固定した shiki 系の版が @slidev/cli の宣言範囲を満たす', () => {
+  it('固定した shiki 系の版が、@slidev/cli の宣言する範囲に収まる', async () => {
+    await explains('実行時の依存の `package.json` のテストです。`shiki`・`@shikijs/langs`・`@shikijs/themes` の版が、`@slidev/cli` が宣言する `shiki` の範囲に収まることを確認します。')
     // 永続層は lock なしの npm install で、shiki と兄弟は互いを同版の完全一致で引く。
     // manifest はテーマの peer に合わせて完全一致で固定するため、Slidev の宣言範囲の外へ出ると版が割れる。
     // 期待側が未宣言なら不一致として扱い、undefined 同士の比較で通らないようにする。
@@ -126,7 +129,8 @@ function readWorkspace(): { readonly packages: unknown, readonly catalogVite: un
 }
 
 describe('vite の範囲の一元化 (#170)', () => {
-  it('workspace の全メンバーで vite は catalog: 参照', () => {
+  it('workspace のすべてのメンバーで、vite は catalog: で参照する', async () => {
+    await explains('`pnpm-workspace.yaml` の `packages` に含まれる各メンバーの `package.json` のテストです。`vite` の範囲が、`catalog:` の参照のみであることを確認します。')
     const { packages } = readWorkspace()
     expect(Array.isArray(packages), 'pnpm-workspace.yaml に packages がない').toBe(true)
     const members = Array.isArray(packages) ? packages : []
@@ -145,7 +149,8 @@ describe('vite の範囲の一元化 (#170)', () => {
     expect(violations, `vite の範囲は pnpm-workspace.yaml の catalog.vite に置き、ここは catalog: とする:\n${violations.join('\n')}`).toEqual([])
   })
 
-  it('catalog.vite が @slidev/cli の vite の範囲の中', () => {
+  it('catalog の vite が、@slidev/cli の宣言する vite の範囲に収まる', async () => {
+    await explains('`pnpm-workspace.yaml` の `catalog.vite` のテストです。`@slidev/cli` が宣言する `vite` の範囲に、`catalog.vite` が収まることを確認します。')
     // 期待側が未宣言、または catalog.vite が文字列でないときは落とす。
     const expected = readManifestField(SLIDEV_CLI_MANIFEST, 'dependencies').get('vite')
     const { catalogVite } = readWorkspace()
@@ -160,19 +165,23 @@ describe('vite の範囲の一元化 (#170)', () => {
 })
 
 describe('catalogViteOutside', () => {
-  it('catalog.vite の下限が @slidev/cli の範囲以上なら中', () => {
+  it('catalog の vite の下限が @slidev/cli の範囲以上なら、範囲に収まると判定する', async () => {
+    await explains('`catalogViteOutside` のテストです。`^8.3.7` を `@slidev/cli` の `^8.3.6` と比較した場合に、範囲に収まるものとして `undefined` を返すことを確認します。')
     expect(catalogViteOutside('^8.3.7', '^8.3.6')).toBeUndefined()
   })
 
-  it('下限が同じなら中', () => {
+  it('下限が同じなら、範囲に収まると判定する', async () => {
+    await explains('`catalogViteOutside` のテストです。`^8.3.6` を `@slidev/cli` の `^8.3.6` と比較した場合に、範囲に収まるものとして `undefined` を返すことを確認します。')
     expect(catalogViteOutside('^8.3.6', '^8.3.6')).toBeUndefined()
   })
 
-  it('catalog.vite の下限が @slidev/cli より低いと外', () => {
+  it('catalog の vite の下限が @slidev/cli より低ければ、範囲の外と判定する', async () => {
+    await explains('`catalogViteOutside` のテストです。`^8.3.5` を `@slidev/cli` の `^8.3.6` と比較した場合に、範囲の外であることを示す理由を返すことを確認します。')
     expect(catalogViteOutside('^8.3.5', '^8.3.6')).toBeDefined()
   })
 
-  it('引数を逆にすると外になる', () => {
+  it('2 つの引数を逆にして渡すと、範囲の外と判定する', async () => {
+    await explains('`catalogViteOutside` のテストです。引数の順序が catalog の値、`@slidev/cli` の値の順であるため、`^8.3.6` と `^8.3.7` を逆にして渡すと、範囲の外であることを示す理由を返すことを確認します。')
     expect(catalogViteOutside('^8.3.6', '^8.3.7')).toBeDefined()
   })
 })

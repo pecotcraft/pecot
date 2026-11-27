@@ -18,6 +18,7 @@ import { NodeThemeFiles } from '../../../src/infra/slidev-theme/fs.js'
 import { rejectionOf } from '../../_helpers/rejection.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
 import { verifies } from '../../_helpers/verifies.js'
+import { explains } from '../../_helpers/explains.js'
 
 const THEMES = path.resolve(import.meta.dirname, '..', '..', 'fixtures', 'themes')
 const WITH_DECLARATION = path.join(THEMES, 'with-declaration')
@@ -85,8 +86,9 @@ function makeTalk(options: Readonly<TalkOptions> = {}): string {
 }
 
 describe('executeSlideTheme（宣言のあるテーマ）', () => {
-  it('theme・declaration・layouts・categories・lint・warnings を返す', async (context) => {
+  it('宣言ファイルを持つテーマを指定すると、テーマの情報と宣言の内容をすべて返す', async (context) => {
     await verifies(context, 'PV-SLIDE-THEME-01')
+    await explains('`slide theme` が、`pecot-theme.json` を持つテーマを読んだときの結果のテストです。テーマ名・宣言・レイアウトの一覧・カテゴリ・lint の設定が宣言どおりに返り、警告が空であることを確認します。')
     const talk = makeTalk()
     const themeRoot = path.join(talk, 'node_modules', WITH_DECLARATION_NAME)
     const { dependencies } = makeDependencies()
@@ -132,14 +134,16 @@ describe('executeSlideTheme（宣言のあるテーマ）', () => {
     expect(data.warnings).toEqual([])
   })
 
-  it('theme: が短い名前でも、解決した完全な名前を返す', async () => {
+  it('slides.md の theme に短い名前を書いても、解決した完全な名前を返す', async () => {
+    await explains('`slides.md` の `theme` に `pecotv-test-declared` のような短い名前を書いた場合のテストです。`slidev-theme-` から始まる完全なテーマ名に解決して返すことを確認します。')
     const talk = makeTalk({ themeField: 'pecotv-test-declared' })
     const { dependencies } = makeDependencies()
     const { data } = await executeSlideTheme({ dir: talk }, dependencies)
     expect(data.theme).toMatchObject({ name: WITH_DECLARATION_NAME })
   })
 
-  it('talk-dir の references/ の宣言が、テーマの同名の宣言に勝つ', async () => {
+  it('talk-dir の references に同名のレイアウト宣言があると、テーマ側の宣言より優先する', async () => {
+    await explains('talk-dir の `references/` に、テーマと同じ名前のレイアウト宣言がある場合のテストです。レイアウトの説明と非推奨の指定が talk-dir 側の内容になることを確認します。')
     const talk = makeTalk()
     mkdirSync(path.join(talk, 'references'))
     writeFileSync(
@@ -157,7 +161,8 @@ describe('executeSlideTheme（宣言のあるテーマ）', () => {
     })
   })
 
-  it('pptx.linkColor が無い宣言では、リンクは変換されない旨を warnings に載せる', async () => {
+  it('宣言に pptx.linkColor が存在しないと、リンクが PPTX に変換されない旨の警告を返す', async () => {
+    await explains('`pecot-theme.json` に `pptx.linkColor` が指定されていない場合の警告のテストです。リンクが PPTX に変換されないことと、設定の修正方法を示す警告が 1 件だけ返ることを確認します。')
     const themeRoot = temporaryRoot('theme-without-link-color')
     cpSync(WITH_DECLARATION, themeRoot, { recursive: true })
     writeFileSync(
@@ -172,7 +177,8 @@ describe('executeSlideTheme（宣言のあるテーマ）', () => {
     ])
   })
 
-  it('宣言の警告は warnings の先頭に来る', async () => {
+  it('宣言に警告がある場合は、その警告を warnings の先頭に並べる', async () => {
+    await explains('宣言の `schema` が未対応の新しい版である場合の警告のテストです。宣言に関する警告が `warnings` の先頭に並び、全体で 2 件になることを確認します。')
     const themeRoot = temporaryRoot('theme-future-schema')
     cpSync(WITH_DECLARATION, themeRoot, { recursive: true })
     writeFileSync(path.join(themeRoot, 'pecot-theme.json'), JSON.stringify({ schema: 2 }))
@@ -186,7 +192,8 @@ describe('executeSlideTheme（宣言のあるテーマ）', () => {
 })
 
 describe('executeSlideTheme（宣言の無いテーマ）', () => {
-  it('declared: false で、既定値と vue 由来の一覧を返し、警告を積む', async () => {
+  it('宣言ファイルを持たないテーマを指定すると、declared を false にして既定値の一覧と警告を返す', async () => {
+    await explains('`pecot-theme.json` を持たないテーマを読んだ場合のテストです。`declared` が `false` になり、`.vue` ファイルから作ったレイアウト一覧と未分類のカテゴリを返すことと、宣言が存在しない旨の警告を含むことを確認します。')
     const talk = makeTalk({ themeRoot: WITHOUT_DECLARATION, themeName: 'slidev-theme-pecotv-test-bare' })
     const { dependencies } = makeDependencies()
     const { data } = await executeSlideTheme({ dir: talk }, dependencies)
@@ -207,7 +214,8 @@ describe('executeSlideTheme（宣言の無いテーマ）', () => {
 })
 
 describe('executeSlideTheme（pecot-theme.json を持つ dir）', () => {
-  it('theme: none で dir 自身に pecot-theme.json があっても、テーマとして読まず theme-none で止める', async () => {
+  it('theme に none を指定した dir に pecot-theme.json があっても、テーマとして読まず theme-none で失敗する', async () => {
+    await explains('`theme: none` と書かれた `slides.md` の dir に、`pecot-theme.json` が置かれている場合のテストです。その dir をテーマとして扱わず、理由が `theme-none` の例外が発生することを確認します。')
     const talk = temporaryRoot('theme-root')
     cpSync(WITH_DECLARATION, talk, { recursive: true })
     writeFileSync(path.join(talk, 'slides.md'), '---\ntheme: none\n---\n\n# 見本\n')
@@ -218,14 +226,16 @@ describe('executeSlideTheme（pecot-theme.json を持つ dir）', () => {
 })
 
 describe('executeSlideTheme の失敗', () => {
-  it('テーマを張っていなければ theme-unlinked の例外を投げる', async () => {
+  it('テーマが node_modules にリンクされていないと、theme-unlinked の例外が発生する', async () => {
+    await explains('`node_modules` にテーマのリンクが存在しない talk-dir を指定した場合のテストです。理由が `theme-unlinked` の例外が発生することを確認します。')
     const talk = makeTalk({ link: false })
     const { dependencies } = makeDependencies()
     await expect(executeSlideTheme({ dir: talk }, dependencies)).rejects.toMatchObject({ reason: 'theme-unlinked' })
   })
 
-  it('宣言の形が誤っていれば invalid-shape の例外を投げる', async (context) => {
+  it('宣言の形式が誤っていると、invalid-shape の例外が発生する', async (context) => {
     await verifies(context, 'PV-SLIDE-THEME-05')
+    await explains('`pecot-theme.json` の `slide.width` に負の値を指定した場合のテストです。理由が `invalid-shape` の例外が発生することを確認します。')
     const themeRoot = temporaryRoot('theme-broken')
     cpSync(WITH_DECLARATION, themeRoot, { recursive: true })
     writeFileSync(path.join(themeRoot, 'pecot-theme.json'), JSON.stringify({ schema: 1, slide: { width: -1, height: 1 } }))
@@ -237,6 +247,7 @@ describe('executeSlideTheme の失敗', () => {
 
 describe('executeSlideTheme の失敗の reason', () => {
   it('テーマを張っていない talk-dir は theme-unlinked で、node_modules_only の syncを示す', async () => {
+    await explains('`executeSlideTheme` のテーマの検証のテストです。テーマを張っていない talk-dir の場合に、理由が `theme-unlinked` の例外が発生し、メッセージで `node_modules_only` の同期を案内することを確認します。')
     const talk = makeTalk({ link: false })
 
     const { dependencies } = makeDependencies()
@@ -247,6 +258,7 @@ describe('executeSlideTheme の失敗の reason', () => {
   })
 
   it('theme: none の talk-dir は theme-none で、slide_sync の theme を案内する', async () => {
+    await explains('`executeSlideTheme` のテーマの検証のテストです。`slides.md` の `theme` が `none` の talk-dir の場合に、理由が `theme-none` の例外が発生し、`slide_sync` の `theme` の指定を案内することを確認します。')
     const talk = temporaryRoot('legacy')
     mkdirSync(talk, { recursive: true })
     writeFileSync(path.join(talk, 'slides.md'), '---\ntheme: none\n---\n')
@@ -258,7 +270,8 @@ describe('executeSlideTheme の失敗の reason', () => {
     expect(error instanceof Error ? error.message : '').toEqual(expect.stringContaining('slide_sync with theme: <theme-spec>'))
   })
 
-  it('宣言の誤りは reason を theme-<reason> にする', async () => {
+  it('宣言に誤りがあると、reason を theme- で始まる値にして表示する', async () => {
+    await explains('`pecot-theme.json` が存在しない lint の規則を指定している場合のテストです。終了コードが 1 になり、`reason` が `theme-unknown-rule` になることと、`detail` に規則名 `no-such/rule` が含まれることを確認します。')
     const themeRoot = temporaryRoot('theme-unknown-rule')
     cpSync(WITH_DECLARATION, themeRoot, { recursive: true })
     writeFileSync(
@@ -276,13 +289,15 @@ describe('executeSlideTheme の失敗の reason', () => {
 })
 
 describe('errorToReason', () => {
-  it('解決・宣言以外の例外は unknown', () => {
+  it('テーマの解決や宣言に由来しない例外は、reason を unknown にする', async () => {
+    await explains('`errorToReason` が、通常の `Error` を受け取った場合のテストです。テーマの解決や宣言に由来しない例外は、`unknown` を返すことを確認します。')
     expect(errorToReason(new Error('x'))).toBe('unknown')
   })
 })
 
 describe('slideThemeDefaultDependencies', () => {
-  it('実 fs の port と process の入出力を返す', () => {
+  it('既定の依存には、実際のファイル読み取りとプロセスの入出力を使う', async () => {
+    await explains('`slideThemeDefaultDependencies` が返す既定の依存のテストです。ファイル読み取りに `NodeThemeFiles`、カレントディレクトリに `process.cwd()`、出力先に `process.stdout` と `process.stderr` を使うことを確認します。')
     const dependencies = slideThemeDefaultDependencies()
     expect(dependencies.files).toBeInstanceOf(NodeThemeFiles)
     expect(dependencies.currentDirectory).toBe(process.cwd())

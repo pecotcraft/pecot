@@ -4,6 +4,8 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { explains } from '../../../tests/_helpers/explains.js'
+
 import { CancelledError } from '@pecot/workflow-core/domain/errors.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { installFakeExecutable, prependToPath, readFakeCalls } from '../../../../../../libs/workflow-core/tests/_helpers/fake-executables.js'
@@ -66,7 +68,8 @@ function installGraphNx(toplevel: string, graphText: string, options: { readonly
 }
 
 describe('resolveNx', () => {
-  it('<toplevel>/node_modules/.bin/nx を PATH 上の nx より優先する', () => {
+  it('リポジトリ内の node_modules/.bin/nx と PATH 上の nx が両方存在する場合は、リポジトリ内の nx を使う', async () => {
+    await explains('実行する nx を探す `resolveNx` のテストです。`<toplevel>/node_modules/.bin/nx` と PATH 上の `nx` の両方が存在する場合に、前者のパスを返すことを確認します。')
     const toplevel = makeTemporaryDirectory()
     const local = installLocalNx(toplevel, 'exit 0\n')
     const bin = makeTemporaryDirectory()
@@ -75,14 +78,16 @@ describe('resolveNx', () => {
     expect(resolveNx(toplevel)).toBe(local)
   })
 
-  it('ローカルに無ければ PATH 上の nx', () => {
+  it('リポジトリ内に nx が存在しない場合は、PATH 上の nx を使う', async () => {
+    await explains('実行する nx を探す `resolveNx` のテストです。リポジトリ内に `nx` が存在せず PATH 上にだけ存在する場合に、PATH 上の `nx` のパスを返すことを確認します。')
     const bin = makeTemporaryDirectory()
     const found = installFakeExecutable(bin, 'nx', 'exit 0\n')
     prependToPath(bin)
     expect(resolveNx(makeTemporaryDirectory())).toBe(found)
   })
 
-  it('実行権限の無い nx は使わない。ディレクトリも使わない', () => {
+  it('実行権限のない nx とディレクトリは、nx として使わない', async () => {
+    await explains('実行する nx を探す `resolveNx` のテストです。実行権限のない `nx` と、`nx` という名前のディレクトリしか存在しない場合に、`undefined` を返すことを確認します。')
     const toplevel = makeTemporaryDirectory()
     const local = installLocalNx(toplevel, 'exit 0\n')
     chmodSync(local, 0o644)
@@ -92,19 +97,22 @@ describe('resolveNx', () => {
     expect(resolveNx(toplevel)).toBeUndefined()
   })
 
-  it('どこにも無ければ undefined', () => {
+  it('nx がどこにも存在しない場合は、undefined を返す', async () => {
+    await explains('実行する nx を探す `resolveNx` のテストです。リポジトリ内と PATH 上のどちらにも `nx` が存在しない場合に、`undefined` を返すことを確認します。')
     setEnvironment({ PATH: makeTemporaryDirectory() })
     expect(resolveNx(makeTemporaryDirectory())).toBeUndefined()
   })
 
-  it('PATH が未設定でも落ちない', () => {
+  it('PATH が設定されていない場合でも、例外が発生せず undefined を返す', async () => {
+    await explains('実行する nx を探す `resolveNx` のテストです。環境変数 `PATH` が設定されていない場合でも、例外が発生せずに `undefined` を返すことを確認します。')
     setEnvironment({ PATH: undefined })
     expect(resolveNx(makeTemporaryDirectory())).toBeUndefined()
   })
 })
 
 describe('nxProjects', () => {
-  it('graph ファイルから root と scope の tag を読む。nx は toplevel を作業ディレクトリにして、デーモン無しで呼ぶ', async () => {
+  it('graph ファイルから root と scope の tag を読み込み、nx は toplevel を作業ディレクトリにしてデーモンなしで実行する', async () => {
+    await explains('nx のプロジェクト一覧を取得する `nxProjects` のテストです。graph ファイルからプロジェクトごとの `root` と `scope` を返し、`NX_DAEMON=false` で `nx` を実行することを確認します。')
     const toplevel = makeTemporaryDirectory()
     const info = path.join(makeTemporaryDirectory(), 'info')
     const nx = installLocalNx(toplevel, writeGraphBody(graphOf(GRAPH), info))
@@ -115,14 +123,16 @@ describe('nxProjects', () => {
     expect(call?.[1]?.startsWith(`--file=${path.join(toplevel, '.pecot', 'tmp')}${path.sep}nx-scope.`)).toBe(true)
   })
 
-  it('graph ファイルは .pecot/tmp の下に作り、終わったら消す', async () => {
+  it('graph ファイルは .pecot/tmp の下に作成し、処理が終わったら削除する', async () => {
+    await explains('nx のプロジェクト一覧を取得する `nxProjects` のテストです。処理が終わった後に、`.pecot/tmp` の下に graph ファイルが残っていないことを確認します。')
     const toplevel = makeTemporaryDirectory()
     installGraphNx(toplevel, graphOf(GRAPH))
     await nxProjects(toplevel)
     expect(readdirSync(path.join(toplevel, '.pecot', 'tmp'))).toEqual([])
   })
 
-  it('root が . のプロジェクトは . のまま。末尾の / は落とし、空になれば .', async () => {
+  it('root が . のプロジェクトは . のままにし、末尾の / は取り除き、空になる場合は . にする', async () => {
+    await explains('nx のプロジェクト一覧を取得する `nxProjects` のテストです。`root` が `.` の場合はそのまま、`packages/lib/` は末尾の `/` を取り除き、`/` は `.` にして返すことを確認します。')
     const toplevel = makeTemporaryDirectory()
     const graph = graphOf({ root: ['.', []], lib: ['packages/lib/', []], slash: ['/', []] })
     installGraphNx(toplevel, graph)
@@ -139,14 +149,16 @@ describe('nxProjects', () => {
     ['値が空の scope: だけ', ['scope:']],
     ['tags が配列でない', 'scope:x'],
     ['scope: で始まらない tag だけ', ['type:lib', 'xscope:x']],
-  ])('scope の tag が使えなければ、プロジェクト名を scope にする（%s）', async (_title, tags) => {
+  ])('scope の tag が使えない場合（%s）は、プロジェクト名を scope にする', async (_title, tags) => {
+    await explains('nx のプロジェクト一覧を取得する `nxProjects` のテストです。`tags` が存在しない場合や、`scope:` で始まる有効な tag がない場合に、プロジェクト名を `scope` として返すことを確認します。')
     const toplevel = makeTemporaryDirectory()
     const data = tags === undefined ? { root: 'a' } : { root: 'a', tags }
     installGraphNx(toplevel, JSON.stringify({ graph: { nodes: { 'a-b': { name: 'a-b', data } } } }))
     expect(await nxProjects(toplevel)).toEqual(new Map([['a-b', { root: 'a', scope: 'a-b' }]]))
   })
 
-  it('scope の tag が複数あれば、先頭のものを使う。文字列でない tag は飛ばす', async () => {
+  it('scope の tag が複数ある場合は先頭のものを使い、文字列でない tag は無視する', async () => {
+    await explains('nx のプロジェクト一覧を取得する `nxProjects` のテストです。`tags` に数値と複数の `scope:` の tag が含まれる場合に、先頭の `scope:first` の値 `first` を返すことを確認します。')
     const toplevel = makeTemporaryDirectory()
     const data = { root: 'a', tags: [1, 'scope:first', 'scope:second'] }
     installGraphNx(toplevel, JSON.stringify({ graph: { nodes: { a: { data } } } }))
@@ -154,38 +166,44 @@ describe('nxProjects', () => {
     expect(projects?.get('a')?.scope).toBe('first')
   })
 
-  it('nx が無ければ undefined', async () => {
+  it('nx が存在しない場合は、undefined を返す', async () => {
+    await explains('nx のプロジェクト一覧を取得する `nxProjects` のテストです。`nx` が存在しない場合に、`undefined` を返すことを確認します。')
     setEnvironment({ PATH: makeTemporaryDirectory() })
     expect(await nxProjects(makeTemporaryDirectory())).toBeUndefined()
   })
 
-  it('PATH 上の偽の nx も使える', async () => {
+  it('PATH 上に nx がある場合は、その nx で graph を取得できる', async () => {
+    await explains('nx のプロジェクト一覧を取得する `nxProjects` のテストです。PATH 上の `nx`（テスト用の実行ファイル）が書いた graph から、プロジェクトの一覧を取得できることを確認します。')
     const bin = makeTemporaryDirectory()
     installFakeExecutable(bin, 'nx', writeGraphBody(graphOf(GRAPH), path.join(bin, 'info')))
     prependToPath(bin)
     expect(await nxProjects(makeTemporaryDirectory())).toEqual(PROJECTS)
   })
 
-  it('終了コードが 0 でなければ undefined', async () => {
+  it('nx の終了コードが 0 以外の場合は、undefined を返す', async () => {
+    await explains('nx のプロジェクト一覧を取得する `nxProjects` のテストです。`nx` が終了コード 1 で終了した場合に、`undefined` を返すことを確認します。')
     const toplevel = makeTemporaryDirectory()
     installGraphNx(toplevel, graphOf(GRAPH), { exitCode: 1 })
     expect(await nxProjects(toplevel)).toBeUndefined()
   })
 
-  it('部分 graph（stderr に Showing partial graph）なら undefined', async () => {
+  it('標準エラー出力に Showing partial graph が含まれる場合は、undefined を返す', async () => {
+    await explains('nx のプロジェクト一覧を取得する `nxProjects` のテストです。`nx` が標準エラー出力に `Showing partial graph` を出力した場合に、`undefined` を返すことを確認します。')
     const toplevel = makeTemporaryDirectory()
     installGraphNx(toplevel, graphOf(GRAPH), { stderr: 'Showing partial graph (errors)' })
     expect(await nxProjects(toplevel)).toBeUndefined()
   })
 
-  it('timeout を超えたら undefined。graph ファイルは消す', async () => {
+  it('時間制限を超えた場合は undefined を返し、graph ファイルは削除する', async () => {
+    await explains('nx のプロジェクト一覧を取得する `nxProjects` のテストです。`timeoutSeconds` を超えた場合に、`undefined` を返し、`.pecot/tmp` に graph ファイルが残らないことを確認します。')
     const toplevel = makeTemporaryDirectory()
     installLocalNx(toplevel, 'sleep 5\n')
     expect(await nxProjects(toplevel, { timeoutSeconds: 0.3 })).toBeUndefined()
     expect(readdirSync(path.join(toplevel, '.pecot', 'tmp'))).toEqual([])
   })
 
-  it('取り消すと、nx を止めて CancelledError を投げ、graph ファイルを消す', async () => {
+  it('処理を取り消した場合は、nx を停止して CancelledError を送出し、graph ファイルを削除する', async () => {
+    await explains('nx のプロジェクト一覧を取得する `nxProjects` のテストです。`AbortController` で取り消した場合は、`CancelledError` が発生し、`.pecot/tmp` に graph ファイルが残らないことを確認します。')
     const toplevel = makeTemporaryDirectory()
     const pidFile = path.join(makeTemporaryDirectory(), 'nx.pid')
     installLocalNx(toplevel, `echo $$ > '${pidFile}'\nexec sleep 30\n`)
@@ -197,7 +215,8 @@ describe('nxProjects', () => {
     expect(readdirSync(path.join(toplevel, '.pecot', 'tmp'))).toEqual([])
   })
 
-  it.skipIf(process.getuid?.() === 0)('後始末の rm が失敗しても、読めた結果を返す', async () => {
+  it.skipIf(process.getuid?.() === 0)('graph ファイルの削除に失敗した場合でも、取得できた結果を返す', async () => {
+    await explains('nx のプロジェクト一覧を取得する `nxProjects` のテストです。graph を書いた後で作業ディレクトリが書き込み不可になり、削除に失敗した場合でも、プロジェクトの一覧を返すことを確認します。')
     const toplevel = makeTemporaryDirectory()
     const info = path.join(makeTemporaryDirectory(), 'info')
     // graph を書いた後、作業ディレクトリを書き込み不可にして、中身を消せなくする
@@ -212,7 +231,8 @@ describe('nxProjects', () => {
     }
   })
 
-  it('nx が起動できなければ undefined', async () => {
+  it('nx を起動できない場合は、undefined を返す', async () => {
+    await explains('nx のプロジェクト一覧を取得する `nxProjects` のテストです。実行形式として不正な `nx` を起動できない場合に、`undefined` を返すことを確認します。')
     const toplevel = makeTemporaryDirectory()
     const nx = installLocalNx(toplevel, 'exit 0\n')
     writeFileSync(nx, '\0\0 not executable format')
@@ -220,13 +240,15 @@ describe('nxProjects', () => {
     expect(await nxProjects(toplevel)).toBeUndefined()
   })
 
-  it('graph ファイルが書かれなければ undefined', async () => {
+  it('nx が graph ファイルを書き込まなかった場合は、undefined を返す', async () => {
+    await explains('nx のプロジェクト一覧を取得する `nxProjects` のテストです。`nx` が正常終了しても graph ファイルを書き込まなかった場合に、`undefined` を返すことを確認します。')
     const toplevel = makeTemporaryDirectory()
     installLocalNx(toplevel, 'exit 0\n')
     expect(await nxProjects(toplevel)).toBeUndefined()
   })
 
-  it('.pecot/tmp を作れなければ undefined', async () => {
+  it('.pecot/tmp を作成できない場合は、undefined を返す', async () => {
+    await explains('nx のプロジェクト一覧を取得する `nxProjects` のテストです。`.pecot` がファイルとして存在し、`.pecot/tmp` を作成できない場合に、`undefined` を返すことを確認します。')
     const toplevel = makeTemporaryDirectory()
     installLocalNx(toplevel, 'exit 0\n')
     writeFileSync(path.join(toplevel, '.pecot'), 'a file')
@@ -243,13 +265,15 @@ describe('nxProjects', () => {
     ['nodes が空', '{"graph": {"nodes": {}}}'],
     ['data が文字列', '{"graph": {"nodes": {"a": {"data": "x"}}}}'],
     ['node が配列', '{"graph": {"nodes": {"a": []}}}'],
-  ])('graph が解釈できなければ undefined（%s）', async (_title, text) => {
+  ])('graph を解釈できない場合（%s）は、undefined を返す', async (_title, text) => {
+    await explains('nx のプロジェクト一覧を取得する `nxProjects` のテストです。JSON として不正な内容や、`graph.nodes` の形が期待と異なる内容の場合に、`undefined` を返すことを確認します。')
     const toplevel = makeTemporaryDirectory()
     installGraphNx(toplevel, text)
     expect(await nxProjects(toplevel)).toBeUndefined()
   })
 
-  it('root が文字列でなくても Python の str() と同じ文字列にする', async () => {
+  it('root が文字列でない場合は、Python の str() と同じ文字列に変換する', async () => {
+    await explains('nx のプロジェクト一覧を取得する `nxProjects` のテストです。`root` が数値 `5`・真偽値 `true`・`null` の場合に、`5`・`True`・`None` の文字列に変換して返すことを確認します。')
     const toplevel = makeTemporaryDirectory()
     const graph = '{"graph": {"nodes": {"n": {"data": {"root": 5}}, "b": {"data": {"root": true}}, "z": {"data": {"root": null}}}}}'
     installGraphNx(toplevel, graph)
@@ -281,12 +305,14 @@ function repositoryWithBranch(): string {
 }
 
 describe('changedFiles（実 git）', () => {
-  it('NUL 区切りで分け、非 ASCII のパスも引用符なしで返す。rename は移動元も出す。三点 diff で base 側だけの変更は含まない', () => {
+  it('NUL 区切りで分割し、非 ASCII のパスは引用符なしで返し、rename は移動元も含め、base 側だけの変更は含めない', async () => {
+    await explains('実際の git リポジトリで変更ファイルを取得する `changedFiles` のテストです。日本語のパスを含むブランチの変更について、移動元を含めた変更ファイルの一覧を返し、`main` にだけ入った変更は含まれないことを確認します。')
     const repository = repositoryWithBranch()
     expect(changedFiles(repository, 'main', 'feat/x/1')).toEqual(['README.md', 'a/b.py', 'new-name.txt', 'old/name.txt', '日本語/c.md'])
   })
 
-  it('起点にコミットの SHA を渡すと、親 PR が squash でマージされた後も、その位置から head までの変更だけを返す', () => {
+  it('起点にコミットの SHA を指定すると、親 PR が squash マージされた後も、その位置から head までの変更だけを返す', async () => {
+    await explains('実際の git リポジトリで変更ファイルを取得する `changedFiles` のテストです。起点に `main` を指定した場合は親 PR の `lower.txt` も含まれ、親 PR の SHA を指定した場合は `upper.txt` だけを返すことを確認します。')
     const repository = createGitRepository({ 'README.md': 'x' })
     gitForTest(repository, ['checkout', '-q', '-b', 'feat/a/11'])
     writeFileSync(path.join(repository, 'lower.txt'), 'lower')
@@ -306,22 +332,26 @@ describe('changedFiles（実 git）', () => {
     expect(changedFiles(repository, recorded, 'feat/b/12')).toEqual(['upper.txt'])
   })
 
-  it('差分が無ければ空の一覧', () => {
+  it('差分が存在しない場合は、空の一覧を返す', async () => {
+    await explains('実際の git リポジトリで変更ファイルを取得する `changedFiles` のテストです。`main` と `HEAD` に差分が存在しない場合に、空の配列を返すことを確認します。')
     const repository = createGitRepository()
     expect(changedFiles(repository, 'main', 'HEAD')).toEqual([])
   })
 
-  it('base か head が解決できなければ undefined', () => {
+  it('base または head を解決できない場合は、undefined を返す', async () => {
+    await explains('実際の git リポジトリで変更ファイルを取得する `changedFiles` のテストです。存在しない `origin/main` や `no-such-ref` を指定した場合に、`undefined` を返すことを確認します。')
     const repository = createGitRepository()
     expect(changedFiles(repository, 'origin/main', 'HEAD')).toBeUndefined()
     expect(changedFiles(repository, 'main', 'no-such-ref')).toBeUndefined()
   })
 
-  it('git リポジトリでなければ undefined', () => {
+  it('git リポジトリではない場合は、undefined を返す', async () => {
+    await explains('実際の git で変更ファイルを取得する `changedFiles` のテストです。git リポジトリではないディレクトリを指定した場合に、`undefined` を返すことを確認します。')
     expect(changedFiles(makeTemporaryDirectory(), 'main', 'HEAD')).toBeUndefined()
   })
 
-  it('git を実行できなければ（権限なし）握り潰さず例外にする', () => {
+  it('git を実行できない場合（実行権限がない場合）は、無視せずに OsError を送出する', async () => {
+    await explains('実際の git で変更ファイルを取得する `changedFiles` のテストです。PATH 上の `git` に実行権限がなく実行できない場合に、`undefined` を返さず `OsError` が発生することを確認します。')
     const repository = createGitRepository()
     const bin = makeTemporaryDirectory()
     const git = installFakeExecutable(bin, 'git', 'exit 0\n')
@@ -332,7 +362,8 @@ describe('changedFiles（実 git）', () => {
     expect(() => changedFiles(repository, 'main', 'HEAD')).toThrow(OsError)
   })
 
-  it('git が無ければ undefined', () => {
+  it('git が存在しない場合は、undefined を返す', async () => {
+    await explains('実際の git で変更ファイルを取得する `changedFiles` のテストです。PATH 上に `git` が存在しない場合は、`undefined` を返すことを確認します。')
     const repository = createGitRepository()
     setEnvironment({ PATH: makeTemporaryDirectory('pecot-nogit-') })
     expect(changedFiles(repository, 'main', 'HEAD')).toBeUndefined()
@@ -344,58 +375,70 @@ function projectsOf(roots: Readonly<Record<string, string>>): ReadonlyMap<string
 }
 
 describe('expectedScope', () => {
-  it('差分が 1 つのプロジェクトだけに属するとき、その scope だけを返す', () => {
+  it('差分が 1 つのプロジェクトだけに属する場合は、その scope だけを返す', async () => {
+    await explains('変更ファイルから commit の scope を求める `expectedScope` のテストです。変更ファイルがすべて `pecot-workflow` に属する場合は、`p-w` のみを返すことを確認します。')
     expect(expectedScope(['plugins/pecot-workflow/cli/a.py', 'plugins/pecot-workflow/README.md'], PROJECTS)).toEqual(['p-w'])
   })
 
-  it('複数のプロジェクトは scope の昇順', () => {
+  it('複数のプロジェクトに属する場合は、scope の昇順で返す', async () => {
+    await explains('変更ファイルから commit の scope を求める `expectedScope` のテストです。`pecot-workflow` と `pecot-visual` に属するファイルがある場合に、`p-v` と `p-w` を昇順で返すことを確認します。')
     expect(expectedScope(['plugins/pecot-workflow/a.py', 'plugins/pecot-visual/b.ts'], PROJECTS)).toEqual(['p-v', 'p-w'])
   })
 
-  it('持ち主は project root との最長一致で決める', () => {
+  it('ファイルが属するプロジェクトは、project root が最も長く一致するものにする', async () => {
+    await explains('変更ファイルから commit の scope を求める `expectedScope` のテストです。`plugins/x` と `plugins/x/sub` の 2 つのプロジェクトがある場合に、ファイルは最も長く一致する root のプロジェクトに属することを確認します。')
     const projects = projectsOf({ outer: 'plugins/x', inner: 'plugins/x/sub' })
     expect(expectedScope(['plugins/x/sub/f.py'], projects)).toEqual(['inner'])
     expect(expectedScope(['plugins/x/other.py'], projects)).toEqual(['outer'])
   })
 
-  it('ディレクトリ名の前方一致は一致とみなさない', () => {
+  it('ディレクトリ名が前方一致するだけの場合は、そのプロジェクトに属さないものとして扱う', async () => {
+    await explains('変更ファイルから commit の scope を求める `expectedScope` のテストです。`plugins/pecot-workflow-extra/` は名前の先頭が root と一致するだけなので、プロジェクトに属さず、`repo` として扱われることを確認します。')
     expect(expectedScope(['plugins/pecot-workflow-extra/a.py'], PROJECTS)).toEqual(['repo'])
   })
 
-  it('どのプロジェクトにも属さないファイルがあれば、末尾に repo を加える', () => {
+  it('どのプロジェクトにも属さないファイルがある場合は、末尾に repo を加える', async () => {
+    await explains('変更ファイルから commit の scope を求める `expectedScope` のテストです。`CLAUDE.md` のようにどのプロジェクトにも属さないファイルがある場合に、`p-w` の後ろに `repo` を加えることを確認します。')
     expect(expectedScope(['plugins/pecot-workflow/a.py', 'CLAUDE.md'], PROJECTS)).toEqual(['p-w', 'repo'])
     expect(expectedScope(['.githooks/pre-commit/x.sh'], PROJECTS)).toEqual(['repo'])
   })
 
-  it('root が . のプロジェクトは全てを持つ', () => {
+  it('root が . のプロジェクトには、すべてのファイルが属する', async () => {
+    await explains('変更ファイルから commit の scope を求める `expectedScope` のテストです。`root` が `.` のプロジェクトがある場合に、ほかのプロジェクトに属さないファイルがそのプロジェクトに属することを確認します。')
     const projects = projectsOf({ root: '.', lib: 'packages/lib' })
     expect(expectedScope(['README.md', 'packages/lib/a.ts'], projects)).toEqual(['lib', 'root'])
   })
 
-  it('.nx/version-plans/ 配下は数えない。それだけなら空', () => {
+  it('.nx/version-plans/ 配下のファイルは対象にせず、それだけの場合は空の一覧を返す', async () => {
+    await explains('変更ファイルから commit の scope を求める `expectedScope` のテストです。`.nx/version-plans/` の下のファイルは scope に含めず、そのファイルだけの場合は空の配列を返すことを確認します。')
     expect(expectedScope(['plugins/pecot-workflow/a.py', '.nx/version-plans/1-x.md'], PROJECTS)).toEqual(['p-w'])
     expect(expectedScope(['.nx/version-plans/1-x.md'], PROJECTS)).toEqual([])
   })
 
-  it('.nx/nx-release のプロジェクトは version-plans ではない', () => {
+  it('.nx/nx-release のファイルは version-plans として扱わず、プロジェクトの scope を返す', async () => {
+    await explains('変更ファイルから commit の scope を求める `expectedScope` のテストです。`.nx/nx-release/` の下のファイルは `version-plans` の対象にならず、そのプロジェクトの scope `repo` を返すことを確認します。')
     expect(expectedScope(['.nx/nx-release/src/x.js'], PROJECTS)).toEqual(['repo'])
   })
 
-  it('差分が空なら空', () => {
+  it('差分が空の場合は、空の一覧を返す', async () => {
+    await explains('変更ファイルから commit の scope を求める `expectedScope` のテストです。変更ファイルの一覧が空の場合に、空の配列を返すことを確認します。')
     expect(expectedScope([], PROJECTS)).toEqual([])
   })
 
-  it('同じ scope の tag を持つ複数のプロジェクトは 1 つにまとまる', () => {
+  it('同じ scope の tag を持つ複数のプロジェクトは、1 つの scope にまとめる', async () => {
+    await explains('変更ファイルから commit の scope を求める `expectedScope` のテストです。`text-rules` と `slide-kit` のように同じ scope `libs` を持つプロジェクトの変更を、`libs` の 1 つにまとめることを確認します。')
     const files = ['libs/text-rules/a.ts', 'libs/slide-kit/b.ts', 'plugins/pecot-workflow/c.py']
     expect(expectedScope(files, PROJECTS)).toEqual(['libs', 'p-w'])
   })
 
-  it('scope が repo のプロジェクトを、昇順の並びから外して末尾へ置く', () => {
+  it('scope が repo のプロジェクトは、昇順に並べず、末尾へ置く', async () => {
+    await explains('変更ファイルから commit の scope を求める `expectedScope` のテストです。scope が `repo` のプロジェクトの変更と、`CLAUDE.md` の変更がある場合に、`repo` を重複させず末尾に置くことを確認します。')
     const files = ['.nx/nx-release/src/x.js', 'plugins/pecot-workflow/c.py', 'CLAUDE.md']
     expect(expectedScope(files, PROJECTS)).toEqual(['p-w', 'repo'])
   })
 
-  it('scope の tag が無いプロジェクトは、プロジェクト名を使う', () => {
+  it('scope の tag が存在しないプロジェクトは、プロジェクト名を scope にする', async () => {
+    await explains('変更ファイルから commit の scope を求める `expectedScope` のテストです。`scope:` の tag を持たないプロジェクトのファイルを変更した場合に、プロジェクト名 `no-tag` を返すことを確認します。')
     expect(expectedScope(['tools/no-tag/a.sh'], PROJECTS)).toEqual(['no-tag'])
   })
 })
@@ -412,7 +455,8 @@ describe('parseTitleScope', () => {
     ['(a): x', undefined],
     ['plain title', undefined],
     ['', undefined],
-  ])('タイトル %j のとき、scope を期待の配列か undefined で返す', (title, expected) => {
+  ])('タイトル %j の場合は、scope の配列か undefined を返す', async (title, expected) => {
+    await explains('コミットのタイトルから scope を取り出す `parseTitleScope` のテストです。`feat(a,b): #1 x` のように括弧の中に scope がある場合は配列を返し、括弧が存在しない場合や空の場合は `undefined` を返すことを確認します。')
     expect(parseTitleScope(title)).toEqual(expected)
   })
 })
@@ -421,7 +465,8 @@ describe('実 nx の契約（graph の出力形式）', () => {
   // plugin ルートの 2 つ上がリポジトリルート
   const repositoryRoot = path.resolve(pluginRoot(), '..', '..')
 
-  it.skipIf(!existsSync(path.join(repositoryRoot, 'node_modules', '.bin', 'nx')))('リポジトリ実体の nx の graph から plugin の root を読める', async () => {
+  it.skipIf(!existsSync(path.join(repositoryRoot, 'node_modules', '.bin', 'nx')))('リポジトリ本体の nx の graph から、plugin の root を取得できる', async () => {
+    await explains('実際の nx が出力する graph の形式のテストです。`nx graph` から `pecot-workflow` と `pecot-visual` の `root` を取得でき、`p-w` の scope が求められることを確認します。')
     const projects = await nxProjects(repositoryRoot)
     expect(projects?.get('pecot-workflow')?.root).toBe('plugins/pecot-workflow')
     expect(projects?.get('pecot-visual')?.root).toBe('plugins/pecot-visual')

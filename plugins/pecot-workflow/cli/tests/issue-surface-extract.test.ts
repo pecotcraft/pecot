@@ -10,6 +10,7 @@ import { issueSurfaceSchema } from '../src/domain/issue-surface.js'
 import { DEFAULT_API_VERSION } from '@pecot/workflow-core/infra/github/client.js'
 import { GRAPHQL_SCHEMA_URL, restDescriptionUrl } from '../src/infra/github/issue-surface.js'
 import { makeTemporaryDirectory } from '../../../../libs/workflow-core/tests/_helpers/temporary.js'
+import { explains } from './_helpers/explains.js'
 
 const SDL = `
 enum IssueFieldDataType { TEXT DATE }
@@ -47,9 +48,10 @@ afterEach(() => {
 
 describe('extract.ts', () => {
   it.for([
-    { name: '--out が無い', argv: [] },
-    { name: '知らない引数がある', argv: ['--out', 'x.json', '--sdl', 'y'] },
-  ])('$name と、usage を出して 2 で止まり、取りに行かない', async ({ argv }) => {
+    { name: '--out を指定しない', argv: [] },
+    { name: '未定義の引数を指定する', argv: ['--out', 'x.json', '--sdl', 'y'] },
+  ])('$name と、usage を出力して終了コード 2 で終了し、取得しない', async ({ argv }) => {
+    await explains('`--out` を指定しない場合と、未定義の引数を指定した場合の、`extract.ts` のテストです。どちらの場合も、使い方（usage）を標準エラーに出力して終了コード 2 で終了し、取得しないことを確認します。')
     const requested = stubSources()
     const { io, error } = capture()
     expect(await run(argv, io)).toBe(2)
@@ -57,7 +59,8 @@ describe('extract.ts', () => {
     expect(requested).toEqual([])
   })
 
-  it('--api-version が無いと、DEFAULT_API_VERSION の OpenAPI を取り、並べ替え済みの写しを書く', async () => {
+  it('--api-version を指定しないと、DEFAULT_API_VERSION の OpenAPI を取得し、並べ替え済みの写しを書く', async () => {
+    await explains('`--api-version` を指定せずに `extract.ts` を実行した場合の、写しの作成のテストです。既定の版（`DEFAULT_API_VERSION`）の OpenAPI を取得し、並べ替え済みの項目を持つ写しを書き出すことを確認します。')
     const requested = stubSources()
     const out = path.join(makeTemporaryDirectory(), 'surface.json')
     const { io } = capture()
@@ -77,7 +80,8 @@ describe('extract.ts', () => {
     })
   })
 
-  it('--api-version を渡すと、その版の OpenAPI を取り、写しの版に書く', async () => {
+  it('--api-version を渡すと、その版の OpenAPI を取得し、写しの版に書き込む', async () => {
+    await explains('`--api-version` を指定して `extract.ts` を実行した場合の、写しの作成のテストです。指定した版の OpenAPI を取得し、写しの `rest_api_version` に指定した版が書き込まれることを確認します。')
     const requested = stubSources()
     const out = path.join(makeTemporaryDirectory(), 'surface.json')
     const { io } = capture()
@@ -86,7 +90,8 @@ describe('extract.ts', () => {
     expect(JSON.parse(readFileSync(out, 'utf8'))).toMatchObject({ sources: { rest_api_version: '2026-03-10' } })
   })
 
-  it('取りに行けないと、写しを書かずに例外を投げる', async () => {
+  it('取得先が 503 を返すと、写しを書き出さずに例外を発生させる', async () => {
+    await explains('取得先がエラーを返す場合の、`extract.ts` のテストです。取得先が 503 を返したときに、例外が発生し、写しのファイルが作成されないことを確認します。')
     vi.stubGlobal('fetch', () => Promise.resolve(new Response('', { status: 503, statusText: 'Service Unavailable' })))
     const out = path.join(makeTemporaryDirectory(), 'surface.json')
     await expect(run(['--out', out], capture().io)).rejects.toThrow(/failed: 503 Service Unavailable/u)

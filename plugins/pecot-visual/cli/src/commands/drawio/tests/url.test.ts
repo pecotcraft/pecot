@@ -11,6 +11,7 @@ import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { drawioUrlDefaultDependencies, executeDrawioUrl } from '../url.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 // executeDrawioUrl + 既定の依存の接続退行を検知する（F-08）。
 // PNG キャプチャ（playwright）は png: false で省略する。
@@ -25,7 +26,8 @@ describe('executeDrawioUrl (integration)', () => {
     await rm(workDirectory, { recursive: true, force: true })
   })
 
-  it('output で親ディレクトリ未作成のパスを指定してもファイルが生成される（接続退行テスト）', async () => {
+  it('output に親ディレクトリが存在しないパスを指定した場合でも、出力ファイルを作成する', async () => {
+    await explains('draw.io の表示用 HTML を出力する `executeDrawioUrl` を、既定の依存関係のまま実行するテストです。`output` に親ディレクトリが存在しないパスを指定した場合に、ディレクトリを作成して出力ファイルを書き込み、警告が 0 件であることを確認します。')
     const inputFile = path.resolve(__dirname, '../../../../tests/fixtures/drawio/minimal.drawio')
     const outputFile = path.join(workDirectory, 'nested', 'sub', 'output.drawio.html')
 
@@ -57,7 +59,8 @@ describe('drawioUrlDefaultDependencies.writeFile', () => {
     await rm(workDirectory, { recursive: true, force: true })
   })
 
-  it('親ディレクトリ未作成でも書き込みが成功する', async () => {
+  it('親ディレクトリが存在しない場合でも、ファイルの書き込みに成功する', async () => {
+    await explains('出力先のファイルを書き込む `drawioUrlDefaultDependencies.writeFile` のテストです。親ディレクトリが存在しない場合でも、ディレクトリを作成して書き込みに成功することを確認します。')
     const dependencies = drawioUrlDefaultDependencies()
     const target = path.join(workDirectory, '.pecotv', 'work', 'drawio', 'test.drawio.html')
 
@@ -66,7 +69,8 @@ describe('drawioUrlDefaultDependencies.writeFile', () => {
     await expect(readFile(target, 'utf8')).resolves.toBe('https://example.com\n')
   })
 
-  it('親ディレクトリ既存時は従来どおり上書きできる', async () => {
+  it('親ディレクトリが既に存在する場合は、同じパスのファイルを上書きできる', async () => {
+    await explains('出力先のファイルを書き込む `drawioUrlDefaultDependencies.writeFile` のテストです。親ディレクトリが既に存在する場合に、同じパスへ 2 回書き込むと、2 回目の内容で上書きされることを確認します。')
     const dependencies = drawioUrlDefaultDependencies()
     const target = path.join(workDirectory, 'test.drawio.html')
 

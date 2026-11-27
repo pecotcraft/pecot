@@ -4,6 +4,8 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { explains } from '../../../tests/_helpers/explains.js'
+
 import { useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { makeTemporaryDirectory, writeTree } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { copyFiles } from '../worktree-copy.js'
@@ -11,7 +13,8 @@ import { copyFiles } from '../worktree-copy.js'
 useIsolatedEnvironment()
 
 describe('copyFiles', () => {
-  it('ファイルをコピーする。親ディレクトリも作る', () => {
+  it('ファイルをコピーし、コピー先の親ディレクトリも作成する', async () => {
+    await explains('ファイルをコピーする `copyFiles` のテストです。`a.txt` と `sub/b.txt` を指定した場合に、どちらも `copied` として結果に含まれ、コピー先に同じ内容のファイルが作成されることを確認します。')
     const source = makeTemporaryDirectory()
     const destination = makeTemporaryDirectory()
     writeTree(source, { 'a.txt': 'hello', 'sub/b.txt': 'world' })
@@ -22,12 +25,14 @@ describe('copyFiles', () => {
     expect(readFileSync(path.join(destination, 'sub', 'b.txt'), 'utf8')).toBe('world')
   })
 
-  it('ソースが無ければ skipped', () => {
+  it('コピー元のファイルが存在しない場合は、skipped として結果に含める', async () => {
+    await explains('ファイルをコピーする `copyFiles` のテストです。コピー元に存在しない `missing.txt` を指定した場合に、`skipped` と `source file does not exist` のメッセージを返すことを確認します。')
     const results = copyFiles(makeTemporaryDirectory(), makeTemporaryDirectory(), ['missing.txt'])
     expect(results[0]).toMatchObject({ action: 'skipped', message: 'source file does not exist' })
   })
 
-  it('更新時刻と実行権限を保つ（shutil.copy2 と同じ）', () => {
+  it('コピー先でも、更新時刻と実行権限を維持する（shutil.copy2 と同じ）', async () => {
+    await explains('ファイルをコピーする `copyFiles` のテストです。更新時刻を過去に変え、実行権限（`755`）を付けたファイルをコピーした場合に、コピー先でも同じ更新時刻と権限になることを確認します。')
     const source = makeTemporaryDirectory()
     const destination = makeTemporaryDirectory()
     writeTree(source, { 'run.sh': '#!/bin/sh\n' })
@@ -40,7 +45,8 @@ describe('copyFiles', () => {
     expect(stat.mode & 0o777).toBe(0o755)
   })
 
-  it('シンボリックリンクはリンク先の中身をコピーする', () => {
+  it('シンボリックリンクは、リンク先の内容をコピーする', async () => {
+    await explains('ファイルをコピーする `copyFiles` のテストです。シンボリックリンクを指定した場合に、コピー先はシンボリックリンクではなく通常のファイルとなり、リンク先と同じ内容になることを確認します。')
     const source = makeTemporaryDirectory()
     const destination = makeTemporaryDirectory()
     writeTree(source, { 'real.txt': 'content' })
@@ -50,7 +56,8 @@ describe('copyFiles', () => {
     expect(readFileSync(path.join(destination, 'link.txt'), 'utf8')).toBe('content')
   })
 
-  it('ディレクトリは中身ごとコピーする。既存のコピー先にも重ねる', () => {
+  it('ディレクトリは中身ごとコピーし、コピー先に既存のディレクトリがある場合は上書きして統合する', async () => {
+    await explains('ディレクトリをコピーする `copyFiles` のテストです。コピー先に同名のディレクトリが存在する場合に、同名のファイルは上書きし、コピー元に存在しない既存のファイルは残すことを確認します。')
     const source = makeTemporaryDirectory()
     const destination = makeTemporaryDirectory()
     writeTree(source, { 'dir/a.txt': 'new', 'dir/deep/b.txt': 'deep' })
@@ -62,7 +69,8 @@ describe('copyFiles', () => {
     expect(readFileSync(path.join(destination, 'dir', 'keep.txt'), 'utf8')).toBe('keep')
   })
 
-  it('OS のエラーは error として結果に載せ、続きをコピーする。message は Python の OSError と同じ文', () => {
+  it('OS のエラーは error として結果に含め、残りのファイルのコピーを続ける。メッセージは Python の OSError と同じ文にする', async () => {
+    await explains('ファイルをコピーする `copyFiles` のテストです。コピー先の親がファイルでコピーできない場合は、`error` と `[Errno 17] File exists` のメッセージを返し、後続の `ok.txt` は `copied` になることを確認します。')
     const source = makeTemporaryDirectory()
     const destination = makeTemporaryDirectory()
     writeTree(source, { 'blocked/a.txt': 'a', 'ok.txt': 'ok' })
@@ -72,7 +80,8 @@ describe('copyFiles', () => {
     expect(results[1]?.action).toBe('copied')
   })
 
-  it('更新時刻はミリ秒でなく、Python の copy2 に近い精度で写す', () => {
+  it('更新時刻はミリ秒ではなく、Python の copy2 に近い精度でコピーする', async () => {
+    await explains('ファイルとディレクトリをコピーする `copyFiles` のテストです。小数秒の更新時刻を持つファイルをコピーした場合に、コピー先との更新時刻の差が 1 マイクロ秒未満になることを確認します。')
     const source = makeTemporaryDirectory()
     const destination = makeTemporaryDirectory()
     writeTree(source, { 'f.txt': 'x', 'dir/g.txt': 'y' })
@@ -88,7 +97,8 @@ describe('copyFiles', () => {
     }
   })
 
-  it('ディレクトリの中にリンク切れの symlink があっても、残りを写し終えてからまとめてエラーにする', () => {
+  it('ディレクトリ内にリンク切れのシンボリックリンクがある場合は、残りをコピーしてから、まとめてエラーにする', async () => {
+    await explains('ディレクトリをコピーする `copyFiles` のテストです。リンク切れのシンボリックリンクを含む場合に、ほかのファイルはコピーされ、結果は `error` と Python 形式のエラーの一覧になることを確認します。')
     const source = makeTemporaryDirectory()
     const destination = makeTemporaryDirectory()
     writeTree(source, { 'dir/a.txt': 'a', 'dir/z.txt': 'z' })
@@ -103,7 +113,8 @@ describe('copyFiles', () => {
     expect(results[1]?.action).toBe('copied')
   })
 
-  it('入れ子のディレクトリのエラーも、1 つの一覧にまとまる', () => {
+  it('入れ子のディレクトリで発生したエラーも、1 つの一覧にまとめる', async () => {
+    await explains('ディレクトリをコピーする `copyFiles` のテストです。`dir` と `dir/sub` の両方にリンク切れのシンボリックリンクがある場合に、2 件のエラーが 1 つのメッセージに含まれ、正常なファイルはコピーされることを確認します。')
     const source = makeTemporaryDirectory()
     const destination = makeTemporaryDirectory()
     writeTree(source, { 'dir/sub/ok.txt': 'ok' })

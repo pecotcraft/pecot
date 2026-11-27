@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { isRecord } from '../../../../tests/_helpers/records.js'
 import { verifies } from '../../../../tests/_helpers/verifies.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 import { snapshotTree } from './tree-snapshot.js'
 import { useTemporaryDirectory } from '../../../../tests/_helpers/temporary-directory.js'
 import { slideThemeDefaultDependencies } from '../../../commands/slidev-project/theme.js'
@@ -63,7 +64,8 @@ function sentenceOf(result: { readonly content?: unknown }): string {
 }
 
 describe('slide_theme の定義', () => {
-  it('名前・description の 3 文・注釈を持つ', () => {
+  it('ツールの定義が、名前・3 文の description・読み取り専用の注釈を持つ', async () => {
+    await explains('`slide_theme` ツールの定義のテストです。名前が `slide_theme` で、`description` が決まった 3 文であり、注釈が読み取り専用であることを確認します。')
     expect(tool.name).toBe('slide_theme')
     expect(tool.config.description).toBe(
       'Returns the theme declaration referenced by a talk-dir and the list of layouts. '
@@ -77,6 +79,7 @@ describe('slide_theme の定義', () => {
 describe('slide_theme の成功', () => {
   it('theme・declaration・layouts・warnings と lint を返す', async (context) => {
     await verifies(context, 'PV-SLIDE-THEME-01')
+    await explains('`slide_theme` ツールの成功時の結果のテストです。テーマを張った talk-dir を渡した場合に、`theme`・`declaration`・`layouts`・`lint` を返し、`warnings` が空であることを確認します。')
     const talk = makeTalk()
     const result = await tool.handler({ dir: talk }, CALL)
 
@@ -130,6 +133,7 @@ describe('slide_theme の成功', () => {
 
   it('呼んでも talk-dir のファイルは変わらない', async (context) => {
     await verifies(context, 'PV-SLIDE-THEME-02')
+    await explains('`slide_theme` ツールが talk-dir を変更しないことのテストです。ツールを呼び出した場合に、talk-dir 内のファイルの構成と内容が呼び出しの前後で変わらないことを確認します。')
     const talk = makeTalk()
     const before = snapshotTree(talk)
 
@@ -143,6 +147,7 @@ describe('slide_theme の成功', () => {
 describe('slide_theme の失敗', () => {
   it('テーマを張っていなければ theme-unlinked で、slide_sync の案内を含む', async (context) => {
     await verifies(context, 'PV-SLIDE-THEME-02')
+    await explains('`slide_theme` ツールのテーマが張られていない場合のテストです。`node_modules` にテーマがないときに、`theme-unlinked` のエラーと `slide_sync` の案内を返し、talk-dir を変更しないことを確認します。')
     await verifies(context, 'PV-SLIDE-THEME-04')
     const talk = makeTalk({ link: false })
     const before = snapshotTree(talk)
@@ -162,6 +167,7 @@ describe('slide_theme の失敗', () => {
 
   it('theme: none で宣言も無ければ theme-none で、slide_sync の theme を案内する', async (context) => {
     await verifies(context, 'PV-SLIDE-THEME-03')
+    await explains('`slide_theme` ツールのテーマが指定されていない場合のテストです。`theme: none` で宣言もないときに、`theme-none` のエラーと `slide sync --theme` の案内を返すことを確認します。')
     const talk = makeTalk({ theme: 'none' })
     const result = await tool.handler({ dir: talk }, CALL)
 
@@ -171,7 +177,8 @@ describe('slide_theme の失敗', () => {
     expect(data['detail']).toEqual(expect.stringContaining('slide_sync with theme: <theme-spec>'))
   })
 
-  it('宣言の誤りは theme-<reason> で返す', async () => {
+  it('宣言に未知の lint ルールがあると、theme-unknown-rule のエラーを返す', async () => {
+    await explains('`slide_theme` ツールのテーマの宣言の検証のテストです。宣言の `lint.rules` に存在しないルールが含まれる場合に、`kind` が `theme-unknown-rule` のエラーを返すことを確認します。')
     const talk = makeTalk()
     const broken = temporaryRoot('broken-theme')
     mkdirSync(broken)
@@ -186,6 +193,7 @@ describe('slide_theme の失敗', () => {
 
   it('宣言の形が決まった形でなければ theme-invalid-shape で返す', async (context) => {
     await verifies(context, 'PV-SLIDE-THEME-05')
+    await explains('`slide_theme` ツールのテーマの宣言の形式の検証のテストです。`slide.width` に負の値を指定した宣言の場合に、`theme-invalid-shape` のエラーを返すことを確認します。')
     const talk = makeTalk()
     const broken = temporaryRoot('broken-shape-theme')
     mkdirSync(broken)
@@ -201,6 +209,7 @@ describe('slide_theme の失敗', () => {
   })
 
   it('相対パスの dir は invalid-path で拒む', async () => {
+    await explains('`slide_theme` ツールの入力パスの検証のテストです。`dir` に相対パスを指定した場合に、`invalid-path` のエラーを返すことを確認します。')
     const result = await tool.handler({ dir: 'relative/talk' }, CALL)
     expect(structuredOf(result)['kind']).toBe('invalid-path')
   })

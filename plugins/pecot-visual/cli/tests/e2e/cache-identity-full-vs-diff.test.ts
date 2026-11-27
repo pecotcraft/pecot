@@ -51,6 +51,7 @@ import {
 import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
+import { explains } from '../_helpers/explains.js'
 
 // hang regression を spawnSync の SIGTERM kill（600s）より手前で落とすための上限。
 // テスト末尾で経過時間を assert する事後チェックであり、性能目標でも SLA でもない
@@ -101,7 +102,8 @@ afterAll(() => {
 const isChromiumReady = isChromiumCached()
 
 describe.skipIf(externalPair === undefined && !isChromiumReady)('CUJ: 差分変換の出力 = 全変換の出力', () => {
-  it('中央 1 枚を編集した差分変換の出力が、同一ソースの全変換の出力と XPath 抽出値レベルで一致する', async () => {
+  it('中央 1 枚を編集した差分変換の PPTX が、全変換の PPTX と XPath で抽出した値の水準で一致する', async () => {
+    await explains('スライド変換のキャッシュの同一性のテストです。実際の Chromium で 1 枚だけ編集して差分変換した PPTX が、キャッシュなしの全変換の PPTX と、抽出した値の水準で一致することを確認します。')
     if (externalPair !== undefined) {
       await attachFile('比較した PPTX（A）', externalPair.a)
       await attachFile('比較した PPTX（B）', externalPair.b)

@@ -32,7 +32,9 @@ def _masked(path: str) -> str:
     return _mask_npx_tag(_mask_refs((_REPO_ROOT / path).read_text(encoding="utf-8")))
 
 
+@allure.title("action の参照の版だけを置き換え、ほかの行は変えない")
 def test_ignores_only_the_ref_of_an_action() -> None:
+    """action の `uses:` の行を比較用に置き換える `_mask_refs` のテストです。`uses: owner/repo@版` の行と行頭に `- ` が付く行では版だけが `<ref>` に置き換わり、`run:` の行は変わらないことを確認します。"""
     with allure.step("action の行の版の部分を伏せる"):
         line = "        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1\n"
         dashed = "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n"
@@ -46,7 +48,9 @@ def test_ignores_only_the_ref_of_an_action() -> None:
         assert masked_run == run
 
 
+@allure.title("npx のパッケージの dist-tag だけを置き換え、ほかの行は変えない")
 def test_ignores_only_the_dist_tag_of_the_npx_package() -> None:
+    """`@pecot/workflow-mcp` の dist-tag を比較用に置き換える `_mask_npx_tag` のテストです。`npx` の行では `@next` が `@<tag>` に置き換わり、`uses:` の行は変わらないことを確認します。"""
     with allure.step("npx の行の dist-tag の部分を伏せる"):
         run = "        run: npx -y --prefix=/ @pecot/workflow-mcp@next review finish\n"
         uses = "        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n"
@@ -59,7 +63,9 @@ def test_ignores_only_the_dist_tag_of_the_npx_package() -> None:
         assert masked_uses == uses
 
 
+@allure.title("自動レビューのワークフローは、版と dist-tag を除いて雛形と一致する")
 def test_workflow_is_a_copy_of_the_template() -> None:
+    """`.github/workflows/pecot-review.yml` と配布する雛形を比較するテストです。action の版と npx の dist-tag を置き換えたうえで、両方の内容が一致することを確認します。"""
     with allure.step("写しと雛形を、版と dist-tag を伏せて読む"):
         copy = _masked(_COPY)
         template = _masked(_TEMPLATE)
@@ -69,11 +75,13 @@ def test_workflow_is_a_copy_of_the_template() -> None:
         )
 
 
+@allure.title("{path} の npx の行は、dist-tag に {tag} を指定している")
 @pytest.mark.parametrize(
     ("path", "tag"),
     [(_COPY, "next"), (_TEMPLATE, "latest")],
 )
 def test_npx_takes_the_expected_dist_tag(path: str, tag: str) -> None:
+    """自動レビューのワークフローとその雛形で、`@pecot/workflow-mcp` を呼ぶ行のテストです。npx の行が 1 つだけあり、リポジトリの写しでは `next`、雛形では `latest` を指定していることを確認します。"""
     with allure.step("ワークフローを読む"):
         text = (_REPO_ROOT / path).read_text(encoding="utf-8")
     with allure.step("npx の行が 1 つで、dist-tag が期待どおりか確かめる"):
@@ -81,8 +89,10 @@ def test_npx_takes_the_expected_dist_tag(path: str, tag: str) -> None:
         assert f"@pecot/workflow-mcp@{tag} review finish" in text, f"{path} は @{tag} を取る"
 
 
+@allure.title("{path} のすべての action は、40 桁の SHA で固定されている")
 @pytest.mark.parametrize("path", [_COPY, _TEMPLATE])
 def test_every_action_is_pinned_to_a_full_sha(path: str) -> None:
+    """自動レビューのワークフローとその雛形に書かれた、すべての `uses:` の行のテストです。1 件以上の `uses:` が存在し、すべての参照が 40 桁の SHA で固定されていることを確認します。"""
     with allure.step("ワークフローの uses の行を集める"):
         text = (_REPO_ROOT / path).read_text(encoding="utf-8")
         uses = _USES_LINE.findall(text)

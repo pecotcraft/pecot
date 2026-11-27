@@ -31,6 +31,7 @@ import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { FIXTURE_THEMES } from '../_helpers/theme-fixtures.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
+import { explains } from '../_helpers/explains.js'
 
 const HERE = import.meta.dirname
 const CLI_TS_ROOT = path.resolve(HERE, '..', '..')
@@ -88,7 +89,8 @@ afterAll(() => {
 const isChromiumReady = isChromiumCached()
 
 describe.skipIf(!isChromiumReady)('CUJ 2: --force 再生成 + hyperlink 包括', () => {
-  it('link layout に hyperlink を追加し、--force で再生成 → convert', async () => {
+  it('リンクのレイアウトにハイパーリンクを加え、`--force` で再生成してから変換すると、PPTX にリンクが反映される', async () => {
+    await explains('ハイパーリンクの変換のテストです。リンクのレイアウトを加えて `--force` で再生成し、変換した場合に、PPTX に宣言した東アジア文字のフォントとリンク先が含まれ、画面切り替えの効果は含まれないことを確認します。')
     const itT0 = performance.now()
     const projectDirectory = temporaryRoot('sample-cuj2')
     const pptxOut = temporaryRoot('cuj2.pptx')

@@ -31,6 +31,7 @@ import { MCP_SERVER_NAME } from '../../src/mcp/server.js'
 import { allTools } from '../../src/mcp/tools/index.js'
 import { loadVersionFromPluginJson } from '../../src/version.js'
 import { isRecord } from '../_helpers/records.js'
+import { explains } from '../_helpers/explains.js'
 
 /**
 SDK の request timeout。既定の 60s だと hang したときに it の timeout まで待たされる。
@@ -78,7 +79,8 @@ const DISCOVER_THEN_INITIALIZE: readonly (readonly [label: string, waitForDiscov
 
 describe('MCP サーバ (stdio)', () => {
   // 2025 系の握手 (initialize) を直接見るテスト。2026-07-28 での接続は下の別ケースが担う。
-  it('initialize が成功し serverInfo がサーバ名と plugin.json の版数を返す', async () => {
+  it('`initialize` が成功し、サーバー情報に `pecotv` の名前と `plugin.json` の版を返す', async () => {
+    await explains('`pecotv mcp` の標準入出力での接続のテストです。クライアントが接続して `initialize` を送った場合に、サーバー情報の名前が `pecotv`、版が `plugin.json` の `version` と一致することを確認します。')
     const transport = makeTransport()
     const readStderr = drainStderr(transport.stderr)
     const transportErrors: Readonly<Error>[] = []
@@ -103,7 +105,8 @@ describe('MCP サーバ (stdio)', () => {
     }
   }, 30_000)
 
-  it('2026-07-28 で接続でき、tools/list が登録したツールの件数を返す', async () => {
+  it('プロトコルの版 `2026-07-28` で接続でき、`tools/list` が登録したツールの件数を返す', async () => {
+    await explains('`pecotv mcp` のプロトコルの版の指定のテストです。`2026-07-28` を指定して接続した場合に、その版で接続でき、`tools/list` が登録したツールの件数を返すことを確認します。')
     // serveStdio は、2025 系と 2026-07-28 系の両方に応答する。
     // 上の initialize のテストは 2025 系の握手専用。
     // そこで、pin した 2026-07-28 のクライアントで、実プロセスへの接続を別に確かめる。
@@ -130,7 +133,8 @@ describe('MCP サーバ (stdio)', () => {
     }
   }, 30_000)
 
-  it('client.close() で SIGTERM 待ちに入らず自力終了する', async () => {
+  it('`client.close()` を呼ぶと、`SIGTERM` を待たずにサーバーが自分で終了する', async () => {
+    await explains('`pecotv mcp` の終了のテストです。クライアントが `client.close()` を呼んだ場合に、`SIGTERM` を待たず、制限時間内にサーバーのプロセスが終了することを確認します。')
     const transport = makeTransport()
     const readStderr = drainStderr(transport.stderr)
     const client = new AttachingClient({ name: 'pecotv-e2e', version: '0.0.0' })
@@ -150,8 +154,9 @@ describe('MCP サーバ (stdio)', () => {
   }, 30_000)
 
   // initialize を生で送る 2025 系専用のテスト (2026-07-28 は initialize を使わない)。
-  it('stdout に JSON-RPC 以外が混入しない', async () => {
+  it('標準出力に JSON-RPC 以外の文字列を出さない', async () => {
     // SDK Client 経由では非 JSON 行が捨てられて検出できないため、生 spawn で stdout を丸ごと回収する。
+    await explains('`pecotv mcp` の標準出力のテストです。`initialize` を送った場合に、標準出力の各行がすべて `jsonrpc: 2.0` を持つ JSON として読め、終了コードが 0 であることを確認します。')
     const child = spawn(process.execPath, [CLI_DIST], {
       env: serverEnvironment(),
       cwd: CLI_ROOT,
@@ -212,7 +217,8 @@ describe('MCP サーバ (stdio)', () => {
   // Claude Code は server/discover の応答が待ち時間を超えると、同じ接続で initialize (2025-11-25) を送る。
   // 2026-07-28 の探索で始まった接続でも、2025 系の握手と tools/call に応答できなければならない。
   describe.each(DISCOVER_THEN_INITIALIZE)('server/discover に続けて同じ接続で initialize が来る (%s)', (_label, waitForDiscover) => {
-    it('initialize と tools/call に応答する', async () => {
+    it('`server/discover` の直後に同じ接続から `initialize` が来ても、`initialize` と `tools/call` に応答する', async () => {
+      await explains('`pecotv mcp` の接続の手順のテストです。`server/discover` の応答を待つ場合と待たない場合の両方で、続く `initialize` と `tools/call` に応答し、終了コード 0 で終わることを確認します。')
       const child = spawn(process.execPath, [CLI_DIST], {
         env: serverEnvironment(),
         cwd: CLI_ROOT,

@@ -38,7 +38,8 @@
         "env",
         { "runtime": "node -p \"require('eslint/package.json').version\"" },
         "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
-        "{workspaceRoot}/libs/interface-spec/src/eslint/table-key.ts"
+        "{workspaceRoot}/libs/interface-spec/src/eslint/table-key.ts",
+        "{workspaceRoot}/libs/interface-spec/src/eslint/test-description.ts"
       ],
       "dependsOn": [{ "projects": ["pecot"], "target": "install" }],
       "metadata": {
@@ -86,7 +87,8 @@
         "{workspaceRoot}/plugins/pecot-tools/.claude-plugin/plugin.json",
         "{workspaceRoot}/plugins/pecot-tools/plugin.json",
         "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
-        "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts"
+        "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/explains.ts"
       ],
       "outputs": ["{projectRoot}/test-results/test-unit/allure-results"],
       "metadata": {

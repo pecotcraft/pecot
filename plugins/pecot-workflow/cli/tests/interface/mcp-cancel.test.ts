@@ -12,6 +12,7 @@ import { expect, it } from 'vitest'
 import { createMcpServer } from '../../src/mcp/server.js'
 import { COMMANDS } from '../../src/commands/registry.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
 import { stateFile } from '../_helpers/workspace-inspect.js'
 import { finishPullRequestData, graphql, openWorkspace, rest } from '../_helpers/workspace.js'
@@ -224,6 +225,7 @@ async function pingAndCancel(hang: Readonly<Hang>): Promise<Observed> {
 it('pr_restack が fetch を待つ間、ping に答え、取り消すとリモートの接続を止める', { timeout: 30_000 }, async (context) => {
   await verifies(context, 'PW-COMMON-24')
   await verifies(context, 'PW-COMMON-25')
+  await explains('`pr_restack` が `git fetch` の完了を待っている間の、MCP サーバの応答のテストです。リモートへの接続が応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すと接続のプロセスが終了し、状態が変化しないことを確認します。')
   const workspace = await openStacked()
   const sleeper = hangRemote(workspace)
   expect(await pingAndCancel({ name: 'pr_restack', arguments: {}, sleeper, directory: workspace.directory, state: () => readFileSync(path.join(workspace.directory, stateFile('.pecot-base')), 'utf8') + workspace.git(['rev-parse', 'HEAD']) })).toEqual(RESPONSIVE)
@@ -232,6 +234,7 @@ it('pr_restack が fetch を待つ間、ping に答え、取り消すとリモ�
 it('pr_check が ls-remote を待つ間、ping に答え、取り消すとリモートの接続を止める', { timeout: 30_000 }, async (context) => {
   await verifies(context, 'PW-COMMON-24')
   await verifies(context, 'PW-COMMON-25')
+  await explains('`pr_check` が `git ls-remote` の完了を待っている間の、MCP サーバの応答のテストです。リモートへの接続が応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すと接続のプロセスが終了し、取り消した要求に応答を返さないことを確認します。')
   const workspace = await openStacked()
   workspace.git(['push', '-q', '-u', 'origin', UPPER])
   const sleeper = hangRemote(workspace)
@@ -241,6 +244,7 @@ it('pr_check が ls-remote を待つ間、ping に答え、取り消すとリモ
 it('session_finish が git pull を待つ間、ping に答え、取り消すとリモートの接続を止める', { timeout: 30_000 }, async (context) => {
   await verifies(context, 'PW-COMMON-24')
   await verifies(context, 'PW-COMMON-25')
+  await explains('`session_finish` が `git pull` の完了を待っている間の、MCP サーバの応答のテストです。リモートへの接続が応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すとプロセスが終了し、ブランチの状態が変化しないことを確認します。')
   const github = [
     graphql('GetPullRequestForFinish', finishPullRequestData()),
     graphql('GetIssueKind', { repository: { issue: { number: 12, state: 'OPEN', issueType: undefined, subIssues: { totalCount: 0 } } } }, { variables: { number: 12 } }),
@@ -255,6 +259,7 @@ it('session_finish が git pull を待つ間、ping に答え、取り消すと�
 it('pr_create の題の scope の確認が nx graph を待つ間、ping に答え、取り消すと nx を止める', { timeout: 30_000 }, async (context) => {
   await verifies(context, 'PW-COMMON-24')
   await verifies(context, 'PW-COMMON-25')
+  await explains('`pr_create` が題の scope を確認するために `nx graph` を待っている間の、MCP サーバの応答のテストです。`nx` が応答しない場合は、`ping` へ時間内に答え、呼び出しを取り消すと `nx` のプロセスが終了し、次の呼び出しにすぐ答えることを確認します。')
   const workspace = await openWorkspace({ config: { releaseType: 'nx' }, files: { 'nx.json': '{}\n' }, branch: UPPER, branches: [{ name: UPPER, commits: [{ message: 'change', files: { 'feature.txt': 'x\n' } }] }] })
   const sleeper = writeSleeper(path.join(workspace.directory, 'node_modules', '.bin'), 'nx')
   const arguments_ = { message: 'body\n\nCloses #12\n', title: 'feat(demo): #12 変更', base: 'main', repo: 'acme/demo', screenshot: '撮らない' }
@@ -264,6 +269,7 @@ it('pr_create の題の scope の確認が nx graph を待つ間、ping に答�
 it('トークンの無い issue_show が gh auth token を待つ間、ping に答え、取り消すと gh を止める', { timeout: 30_000 }, async (context) => {
   await verifies(context, 'PW-COMMON-24')
   await verifies(context, 'PW-COMMON-25')
+  await explains('トークンが設定されていない `issue_show` が `gh auth token` を待っている間の、MCP サーバの応答のテストです。`gh` が応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すと `gh` のプロセスが終了することを確認します。')
   const workspace = await openWorkspace({ env: { PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: undefined } })
   const bin = path.join(workspace.root, 'bin')
   const sleeper = writeSleeper(bin, 'gh')
@@ -274,6 +280,7 @@ it('トークンの無い issue_show が gh auth token を待つ間、ping に�
 it('worktree_add が setup_command を待つ間、ping に答え、取り消すとシェルの下のコマンドも止める', { timeout: 30_000 }, async (context) => {
   await verifies(context, 'PW-COMMON-24')
   await verifies(context, 'PW-COMMON-25')
+  await explains('`worktree_add` が `setup_command` の完了を待っている間の、MCP サーバの応答のテストです。セットアップのコマンドが応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すとシェルの下で動くコマンドも終了することを確認します。')
   const workspace = await openWorkspace({ files: { '.pecot/config/worktree-config.json': '{"version": 3, "links": []}\n', '.pecot/config/.worktreeignore': '.git/\n.pecot/\n' } })
   setEnvironment({ DEVCONTAINER: '1', REMOTE_CONTAINERS: undefined, CODESPACES: undefined })
   const sleeper = writeSleeper(path.join(workspace.root, 'hang'), 'setup')

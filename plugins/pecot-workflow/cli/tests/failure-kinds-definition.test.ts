@@ -8,6 +8,7 @@ import { z } from 'zod'
 
 import { KIND_BY_CLASS } from '@pecot/workflow-core/commands-shared/failure.js'
 import { FAILURE_KINDS } from '@pecot/workflow-core/commands-shared/failure-kind.js'
+import { explains } from './_helpers/explains.js'
 import { COMMANDS } from '../src/commands/registry.js'
 import { interfaceIdOf } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { compareStrings } from '@pecot/workflow-core/domain/python-format.js'
@@ -58,40 +59,47 @@ function pairsOf(id: string): ReadonlySet<string> {
 }
 
 describe('FAILURE_KINDS', () => {
-  it('定義書の exit_status に出る kind の集合と一致する', () => {
+  it('定義書の exit_status に出る kind の集合と一致する', async () => {
+    await explains('失敗の種別 `FAILURE_KINDS` のテストです。定義書の `exit_status` に出てくる `kind` の集合が、`FAILURE_KINDS` と一致することを確認します。')
     expect(definedKinds).toEqual(new Set(FAILURE_KINDS))
   })
 
-  it('名前に重複が無い', () => {
+  it('名前に重複が存在しない', async () => {
+    await explains('失敗の種別 `FAILURE_KINDS` のテストです。`FAILURE_KINDS` の名前に重複がなく、すべて異なる名前であることを確認します。')
     expect(new Set(FAILURE_KINDS).size).toBe(FAILURE_KINDS.length)
   })
 })
 
 describe('項目ごとの exit_status', () => {
-  it('どのツールでも返りうる名前を、全項目が持つ', () => {
+  it('どのツールでも返りうる名前を、すべての項目が持つ', async () => {
+    await explains('定義書の項目ごとの `exit_status` のテストです。`other`・`invalid-input`・`session-directory-unresolved` の 3 つの名前と終了コードを、すべての項目が持つことを確認します。')
     const missing = entries.flatMap(([id]) => UNIVERSAL.filter(({ kind, code }) => !pairsOf(id).has(`${kind}:${String(code)}`)).map(({ kind, code }) => `${id} ${kind}:${String(code)}`))
     expect(missing).toEqual([])
   })
 
-  it('ソースから全コマンドの run を見つける', () => {
+  it('ソースから、全コマンドの run を見つける', async () => {
+    await explains('定義書の項目ごとの `exit_status` のテストです。ソースから集めた `run` の項目が、登録済みのコマンドの項目と一致することを確認します。')
     expect([...returned].map(([id]) => id).toSorted(compareStrings)).toEqual(COMMANDS.map(command => interfaceIdOf(command.path)).toSorted(compareStrings))
   })
 
-  it('コマンドが stopWith・CommandExit に渡す名前と終了コードを、その項目が持つ', () => {
+  it('コマンドが stopWith・CommandExit に渡す名前と終了コードを、その項目が持つ', async () => {
+    await explains('定義書の項目ごとの `exit_status` のテストです。コマンドが `stopWith` や `CommandExit` に渡す失敗の名前と終了コードが、対応する項目の `exit_status` に含まれることを確認します。')
     const missing = [...returned].flatMap(([id, kinds]) => [...new Set(kinds.filter(returnedKind => !isUnreachable(id, returnedKind)).map(({ kind, code }) => `${kind}:${code === undefined ? '?' : String(code)}`))]
       .filter(pair => !pairsOf(id).has(pair))
       .map(pair => `${id} ${pair}`))
     expect(missing.toSorted(compareStrings)).toEqual([])
   })
 
-  it('返らないとみなす所は、どれもソースに残っている', () => {
+  it('返らないとみなす箇所は、どれもソースに残っている', async () => {
+    await explains('定義書の項目ごとの `exit_status` のテストです。実際には返らないものとして除外している箇所が、いずれもソースに実在し、古くなっていないことを確認します。')
     const stale = UNREACHABLE.flatMap(row => row.ids.flatMap(id => row.kinds
       .filter(kind => (returned.get(id) ?? []).every(returnedKind => returnedKind.kind !== kind || !isUnreachable(id, returnedKind)))
       .map(kind => `${row.file} ${id} ${kind}`)))
     expect(stale).toEqual([])
   })
 
-  it('例外から決まらない名前は、コマンドがどこかで返す', () => {
+  it('例外から決まらない名前は、コマンドがどこかで返す', async () => {
+    await explains('定義書の項目ごとの `exit_status` のテストです。例外のクラスから決まらない失敗の名前が、定義書にあるものはすべて、いずれかのコマンドの実装で返されることを確認します。')
     const unused = entries.flatMap(([id, entry]) => {
       const kinds = new Set((returned.get(id) ?? []).map(({ kind }) => kind))
       return [...new Set(entry.exit_status.map(row => row.kind))]

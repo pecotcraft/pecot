@@ -38,8 +38,9 @@ def _make_pkg(git, repo: Path, rel: str, node_value: str) -> None:
     git(repo, "add", str(path.relative_to(repo)))
 
 
+@allure.title("すべての package.json の engines.node が期待値なら、成功で終わる")
 def test_all_expected_passes(script_dir: Path, drift_repo: Path, run_script, git) -> None:
-    """(a) 全 package.json が期待値 → exit 0。"""
+    """`plugins/pecot-visual` 配下の `package.json` の `engines.node` を対象にする、`check-engines-node-drift.sh` のテストです。任意の深さにある 3 件がすべて期待値の場合に、終了コード 0 で終わることを確認します。"""
     with allure.step("期待値の package.json を 3 つ用意して hook を動かす"):
         _make_pkg(git, drift_repo, "assets/slidev", EXPECTED)
         _make_pkg(git, drift_repo, "assets/slidev/runtime", EXPECTED)
@@ -52,8 +53,9 @@ def test_all_expected_passes(script_dir: Path, drift_repo: Path, run_script, git
         assert result.returncode == 0
 
 
+@allure.title("1 件の engines.node が期待値と異なると、期待値と実際の値を出力して失敗で終わる")
 def test_one_drift_fails_with_got(script_dir: Path, drift_repo: Path, run_script, git) -> None:
-    """(b) 1 ファイル ">=22.6.0" → exit 1, got 表記を含む。"""
+    """1 件の `engines.node` が `>=22.6.0` で、期待値と異なる場合のテストです。終了コード 1 で終わり、期待値と実際の値を並べたメッセージと、許可リストの機構が存在しない旨を出力することを確認します。"""
     with allure.step("1 つだけ違う版の package.json を用意して hook を動かす"):
         _make_pkg(git, drift_repo, "assets/slidev", ">=22.6.0")
         _make_pkg(git, drift_repo, "assets/slidev/runtime", EXPECTED)
@@ -69,8 +71,9 @@ def test_one_drift_fails_with_got(script_dir: Path, drift_repo: Path, run_script
         assert "allow-list 機構はありません" in out
 
 
+@allure.title("engines.node が存在しない package.json があると、理由を出力して失敗で終わる")
 def test_missing_engines_fails(script_dir: Path, drift_repo: Path, run_script, git) -> None:
-    """(c) engines キー欠落 → exit 1, missing engines.node を含む。"""
+    """`package.json` に `engines` のキーが存在しない場合のテストです。終了コード 1 で終わり、`missing engines.node` を出力することを確認します。"""
     with allure.step("engines の無い package.json を用意して hook を動かす"):
         _make_pkg(git, drift_repo, "assets/slidev", "MISSING")
         result = run_script(script_dir / "check-engines-node-drift.sh", cwd=drift_repo)
@@ -80,8 +83,9 @@ def test_missing_engines_fails(script_dir: Path, drift_repo: Path, run_script, g
         assert "missing engines.node" in (result.stdout + result.stderr)
 
 
+@allure.title("2 件の package.json が違反していると、両方のパスを出力して失敗で終わる")
 def test_two_violations_both_reported(script_dir: Path, drift_repo: Path, run_script, git) -> None:
-    """(d) 2 ファイル違反 → exit 1, 両方が出力に含まれる。"""
+    """2 件の `package.json` の `engines.node` が、どちらも期待値と異なる場合のテストです。終了コード 1 で終わり、2 件のパスをどちらも出力することを確認します。"""
     with allure.step("2 つの package.json を違う版にして hook を動かす"):
         _make_pkg(git, drift_repo, "assets/slidev", ">=22.6.0")
         _make_pkg(git, drift_repo, "assets/slidev/runtime", ">=20.0.0")
@@ -94,10 +98,11 @@ def test_two_violations_both_reported(script_dir: Path, drift_repo: Path, run_sc
         assert "plugins/pecot-visual/assets/slidev/runtime/package.json" in out
 
 
+@allure.title("node_modules の中の package.json は、違反していても対象にしない")
 def test_node_modules_violation_ignored(
     script_dir: Path, drift_repo: Path, run_script, git
 ) -> None:
-    """(e) node_modules/ 配下違反は exit 0（glob 対象外）。"""
+    """`node_modules` の中に、期待値と異なる `engines.node` の `package.json` がある場合のテストです。対象外のため、終了コード 0 で終わることを確認します。"""
     with allure.step("node_modules 配下に違う版の package.json を置いて hook を動かす"):
         _make_pkg(git, drift_repo, "assets/slidev", EXPECTED)
         nm = drift_repo / "plugins/pecot-visual/assets/slidev/node_modules/foo/package.json"

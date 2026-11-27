@@ -4,6 +4,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { explains } from '../_helpers/explains.js'
 import { cliEntry, builtCliProblem } from './built-cli.js'
 import { hasCliOnlyInput, readToolShape, toolInputOf } from './mcp-input.js'
 import { mcpViewOfStderr } from './mcp-view.js'
@@ -116,11 +117,13 @@ function mcpStderr(): Readonly<Record<string, string>> {
 const COMPLETED = { spawnError: undefined, signal: undefined, timedOut: false, problems: [], unused: [] }
 
 describe('前後比較', () => {
-  it('Node の CLI がビルドされている', () => {
+  it('Node の CLI がビルドされていると、ビルドの問題を報告しない', async () => {
+    await explains('前後比較の前提のテストです。Node の CLI のビルド成果物が存在し、`builtCliProblem` がビルドの問題を報告しないことを確認します。')
     expect(builtCliProblem()).toBeUndefined()
   })
 
-  it.for(scenarioIds())('シナリオ %s を動かすと、golden と同じ出力になる（help の 4 件は stdout を除く）', { timeout: TEST_TIMEOUT_MS }, async (id) => {
+  it.for(scenarioIds())('シナリオ %s を動かすと、期待出力（golden）と同じ出力になる（help の 4 件は stdout を除く）', { timeout: TEST_TIMEOUT_MS }, async (id) => {
+    await explains('シナリオを Node の CLI で実行したときの出力のテストです。標準出力・標準エラー・終了コード・ファイルが保存済みの期待出力（golden）と一致することを確認し、help の 4 件は標準出力を比較から除きます。')
     const isNodeHelp = SCENARIOS_WITH_NODE_HELP.has(id)
     const { outcome, actual, expected } = await compareWithGolden(id, node, isNodeHelp)
     expect(outcome).toMatchObject(COMPLETED)
@@ -129,7 +132,8 @@ describe('前後比較', () => {
     expect(outcome.golden.stdout === readGolden(id).stdout).toBe(!isNodeHelp)
   })
 
-  it('mcp-stderr.json の id は、MCP へ写せるシナリオで、CLI の golden と違う stderr だけを持つ', () => {
+  it('mcp-stderr.json の id は、MCP に変換できるシナリオのうち、CLI の期待出力と標準エラーが異なるものだけを持つ', async () => {
+    await explains('`mcp-stderr.json` の内容のテストです。記載された id がすべて実在し、MCP のツール呼び出しに変換できるシナリオであり、標準エラーが CLI の期待出力と異なるものだけであることを確認します。')
     const entries = Object.entries(mcpStderr())
     expect(entries.length).toBeGreaterThan(0)
     expect(entries.filter(([id]) => scenarioIds().includes(id) && !isMcpMappable(id))).toEqual([])
@@ -137,13 +141,15 @@ describe('前後比較', () => {
     expect(entries.filter(([id, stderr]) => stderr === readGolden(id).stderr)).toEqual([])
   })
 
-  it('標準入力が空でないシナリオは、MCP へ写せない 3 件の中にある', () => {
+  it('標準入力が空でないシナリオは、MCP へ変換できない 3 件の一覧に含まれる', async () => {
+    await explains('標準入力を使うシナリオのテストです。標準入力を渡すシナリオはすべて、MCP のツール呼び出しへ変換できない 3 件の一覧に含まれることを確認します。')
     const withStdin = scenarioIds().filter(id => readScenario(id).stdin !== '')
     expect(withStdin.filter(id => !MCP_UNMAPPABLE_STDIN.has(id))).toEqual([])
     expect(withStdin.length).toBeGreaterThan(0)
   })
 
-  it.for(scenarioIds().filter(id => isMcpMappable(id)))('MCP 経由でシナリオ %s を動かすと、golden と同じ成否・要求・ファイルと、stderr と同じ warning・detail になる', { timeout: TEST_TIMEOUT_MS }, async (id) => {
+  it.for(scenarioIds().filter(id => isMcpMappable(id)))('MCP 経由でシナリオ %s を動かすと、期待出力と同じ成否・要求・ファイルになり、warning と detail が標準エラーの内容と一致する', { timeout: TEST_TIMEOUT_MS }, async (id) => {
+    await explains('シナリオを MCP のツール呼び出し経由で実行したときの結果のテストです。成否・偽サーバへの要求・ファイルが期待出力と一致し、警告と失敗の詳細が標準エラーから取り出した内容と一致し、要約の文が表の行で始まらないことを確認します。')
     const { outcome, actual, expected } = await compareWithGolden(id, nodeMcp, false)
     expect(outcome).toMatchObject(COMPLETED)
     expect(actual).toEqual(expected)
@@ -151,28 +157,33 @@ describe('前後比較', () => {
     expect(outcome.text?.startsWith('|') ?? false).toBe(false)
   })
 
-  it.for(TABLE_SUMMARIES)('表を出すシナリオ $id を MCP 経由で動かすと、要約の文が結果の行になる', { timeout: TEST_TIMEOUT_MS }, async ({ id, summary }) => {
+  it.for(TABLE_SUMMARIES)('表を出力するシナリオ $id を MCP 経由で動かすと、結果の本文が要約の 1 行になる', { timeout: TEST_TIMEOUT_MS }, async ({ id, summary }) => {
+    await explains(`表を標準出力に出すシナリオを MCP 経由で実行したときの、結果のテストです。結果の本文が表ではなく、要約の文（\`${summary}\`）だけになることを確認します。`)
     const outcome = await runScenario(readScenario(id), nodeMcp)
     expect(outcome).toMatchObject(COMPLETED)
     expect(outcome.text).toBe(summary)
   })
 
-  it('要約の期待値を持つシナリオは、MCP へ写せる実在のシナリオだけ', () => {
+  it('要約の期待値は、実在し MCP に変換できるシナリオだけが持つ', async () => {
+    await explains('要約の期待値の一覧のテストです。一覧の id がすべて実在するシナリオで、MCP のツール呼び出しに変換できることを確認します。')
     expect(TABLE_SUMMARIES.map(({ id }) => id).filter(id => !scenarioIds().includes(id) || !isMcpMappable(id))).toEqual([])
   })
 
-  it('MCP 経由で除く usage の一覧は、実在する usage のシナリオだけで、残りの usage は流す', () => {
+  it('MCP 経由の比較から除く usage の一覧は実在するシナリオだけで、残りの usage シナリオは実行する', async () => {
+    await explains('MCP 経由の比較から除外する usage シナリオの一覧のテストです。一覧の id がすべて実在する usage シナリオであり、一覧に含まれない usage シナリオが 1 件以上実行されることを確認します。')
     const usageIds = scenarioIds().filter(id => id.includes('usage') && !id.startsWith('global-'))
     expect([...excludedBy('unmappable'), ...excludedBy('rejected')].filter(id => !usageIds.includes(id))).toEqual([])
     expect(usageIds.filter(id => isMcpMappable(id)).length).toBeGreaterThan(0)
   })
 
-  it.for(excludedBy('unmappable'))('usage のシナリオ %s は、argv を入力に写せず、例外になる', (id) => {
+  it.for(excludedBy('unmappable'))('usage のシナリオ %s は、引数をツールの入力に変換できず、例外が発生する', async (id) => {
+    await explains(`MCP のツールの入力に変換できない usage シナリオのテストです。\`${id}\` の引数を入力へ変換しようとすると、例外が発生することを確認します。`)
     const { command } = readScenario(id)
     expect(() => toolInputOf(readToolShape(command.path), command.args)).toThrow()
   })
 
-  it.for(excludedBy('rejected'))('usage のシナリオ %s は、MCP が入力の検証で断り、本体を呼ばない', { timeout: TEST_TIMEOUT_MS }, async (id) => {
+  it.for(excludedBy('rejected'))('usage のシナリオ %s を MCP 経由で動かすと、入力の検証で拒否され、コマンド本体を呼ばない', { timeout: TEST_TIMEOUT_MS }, async (id) => {
+    await explains(`入力の検証で拒否される usage シナリオのテストです。\`${id}\` を MCP 経由で実行すると、\`invalid input:\` で始まるメッセージを返し、偽サーバに要求が届かないことを確認します。`)
     const { command } = readScenario(id)
     expect(() => toolInputOf(readToolShape(command.path), command.args)).not.toThrow()
     const outcome = await runScenario(readScenario(id), nodeMcp)

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { PecotError } from '@pecot/workflow-core/domain/errors.js'
+import { explains } from '../../../tests/_helpers/explains.js'
 import { BOARD_ADD_COMMANDS } from '../../commands/board-add.js'
 import { createOutput, isConfirmed } from '@pecot/workflow-core/commands-shared/output.js'
 import { defineCommand } from '../../commands/registry.js'
@@ -188,7 +189,8 @@ afterEach(async () => {
 })
 
 describe('ツールの呼び出し', () => {
-  it('終了コード 0 なら、stdout・stderr を載せずに、結果の行の文と structuredContent と同じ JSON の 2 つの text にし、isError を付けずに返す', async () => {
+  it('終了コードが 0 なら、stdout と stderr を載せず、文と JSON の 2 つの text にして、isError を付けずに返す', async () => {
+    await explains('MCP サーバーのツール呼び出しのテストです。コマンドが終了コード 0 で終わる場合に、結果の行の文と `structuredContent` と同じ JSON の 2 つの `text` だけを返し、`isError` を付けないことを確認します。')
     const result = await call('echo', { text: 'hi', count: 2 })
     expect(result.isError).toBeUndefined()
     expect(result.structuredContent).toEqual({})
@@ -197,17 +199,20 @@ describe('ツールの呼び出し', () => {
   })
 
   it('終了コードが 0 でなければ、isError を付けて、kind と detail を返す', async () => {
+    await explains('MCP サーバーのツール呼び出しのテストです。コマンドが 0 以外の終了コードで終わる場合に、`isError` を付けて、`kind` が `other` の失敗を返すことを確認します。')
     const result = await call('exit_three')
     expect(result.isError).toBe(true)
     expect(structuredOf(result)).toEqual({ kind: 'other', detail: '' })
   })
 
-  it('確認が要るのに入力が無いと、detail が Aborted. の失敗を返す', async () => {
+  it('確認が要るのに入力が存在しないと、detail が Aborted. の失敗を返す', async () => {
+    await explains('MCP サーバーのツール呼び出しのテストです。確認を求めるコマンドで、確認の入力を受け取れない場合に、`detail` が `Overwrite?` と `Aborted.` の失敗を返すことを確認します。')
     const result = await call('ask')
     expect(outcomeOf(result)).toEqual({ isError: true, detail: 'Overwrite?\nAborted.', warnings: [] })
   })
 
-  it('本体が使い方の誤りを投げると、CLI の Usage と枠を付けず、例外の文だけを detail にして invalid-input の失敗にする', async () => {
+  it('コマンドの本体が使い方の誤りを投げると、CLI の Usage を付けず、例外の文だけを detail にして invalid-input の失敗にする', async () => {
+    await explains('MCP サーバーのツール呼び出しのテストです。コマンドの本体が使い方の誤りを投げた場合に、CLI 用の `Usage` を付けずに例外の文を `detail` にし、`kind` を `invalid-input` にすることを確認します。')
     const result = await call('bad_parameter')
     const structured = outcomeOf(result)
     expect(structured.isError).toBe(true)
@@ -215,13 +220,15 @@ describe('ツールの呼び出し', () => {
     expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
   })
 
-  it('報告できる失敗は、error: の行の文を detail と文の text に入れる', async () => {
+  it('報告できる失敗は、error の行の文を detail と text に入れる', async () => {
+    await explains('MCP サーバーのツール呼び出しのテストです。コマンドが報告できる失敗を投げた場合に、その文を `detail` と文の `text` に入れ、`kind` が `other` になることを確認します。')
     const result = await call('pecot_failure')
     expect(outcomeOf(result)).toEqual({ isError: true, detail: 'ルートがありません', warnings: [] })
     expect(toolOutcomeOf(result)).toMatchObject({ text: 'ルートがありません', structured: { kind: 'other' } })
   })
 
-  it('プログラムの誤りは、kind が other の JSON の結果にして、報告先にも伝える', async () => {
+  it('想定外の例外は、kind が other の JSON の結果にして、報告先にも通知する', async () => {
+    await explains('MCP サーバーのツール呼び出しのテストです。コマンドが想定外の例外を投げた場合に、`kind` が `other` の結果を返し、報告先にも例外を 1 件通知することを確認します。')
     const result = await call('bug')
     expect(result.isError).toBe(true)
     expect(structuredOf(result)).toEqual({ kind: 'other', detail: 'boom' })
@@ -230,18 +237,21 @@ describe('ツールの呼び出し', () => {
     expect(unexpected[0]).toBeInstanceOf(Error)
   })
 
-  it('報告先が無くても、プログラムの誤りは isError の結果になる', async () => {
+  it('報告先が存在しなくても、想定外の例外は isError の結果になる', async () => {
+    await explains('MCP サーバーのツール呼び出しのテストです。報告先を指定せずにコマンドが想定外の例外を投げた場合に、`isError` が付いた結果を返すことを確認します。')
     const { client } = await open(COMMANDS)
     const result = await client.callTool({ name: 'bug', arguments: {} })
     expect(result.isError).toBe(true)
   })
 
-  it('自分の repo を持つコマンドの repo は、コマンド自身の入力として届く', async () => {
+  it('独自の repo を持つコマンドの repo は、コマンド自身の入力として渡す', async () => {
+    await explains('MCP サーバーのツール呼び出しのテストです。独自の `repo` の入力を持つコマンドを呼んだ場合に、`repo` をグローバルの入力として扱わず、コマンド自身の入力として渡すことを確認します。')
     const result = await call('own_repo', { repo: 'acme/demo' })
     expect(toolOutcomeOf(result)).toEqual({ isError: false, text: 'acme/demo', structured: {} })
   })
 
-  it('呼び出しは並行に来ても、1 件ずつ順に実行する', async () => {
+  it('呼び出しが並行に来ても、1 件ずつ順に実行する', async () => {
+    await explains('MCP サーバーのツール呼び出しのテストです。時間のかかるコマンドを 2 件同時に呼んだ場合に、1 件目が終わってから 2 件目を開始する順に実行することを確認します。')
     const { client } = await connect()
     const results = await Promise.all([
       client.callTool({ name: 'slow', arguments: { name: 'first' } }),
@@ -251,7 +261,8 @@ describe('ツールの呼び出し', () => {
     expect(calls).toEqual(['start first', 'end first', 'start second', 'end second'])
   })
 
-  it('前の呼び出しがプログラムの誤りで終わっても、次の呼び出しが動く', async () => {
+  it('想定外の例外で終わった呼び出しの後でも、次の呼び出しは実行される', async () => {
+    await explains('MCP サーバーのツール呼び出しのテストです。1 件目が想定外の例外で失敗した場合でも、続けて呼んだ 2 件目が正常に実行されることを確認します。')
     const { client } = await connect()
     const [broken, fine] = await Promise.all([
       client.callTool({ name: 'bug', arguments: {} }),
@@ -263,7 +274,8 @@ describe('ツールの呼び出し', () => {
 })
 
 describe('PECOT_GITHUB_API_URL', () => {
-  it('ループバックの http でなければ、入力の検証より先に失敗を返し、detail は error: の行の文になる', async () => {
+  it('ループバックの http でなければ、入力の検証より先に失敗を返し、detail は error の行の文にする', async () => {
+    await explains('環境変数 `PECOT_GITHUB_API_URL` のテストです。`https://example.com` のようにループバックの http でない値を設定した場合に、入力の検証より先に失敗を返し、コマンドを実行しないことを確認します。')
     setEnvironment({ PECOT_GITHUB_API_URL: 'https://example.com' })
     const result = await call('echo', { unknown: true })
     expect(outcomeOf(result)).toEqual({
@@ -275,6 +287,7 @@ describe('PECOT_GITHUB_API_URL', () => {
   })
 
   it('ループバックの http なら、そのまま実行する', async () => {
+    await explains('環境変数 `PECOT_GITHUB_API_URL` のテストです。`http://127.0.0.1` のループバックの URL を設定した場合に、コマンドをそのまま実行することを確認します。')
     setEnvironment({ PECOT_GITHUB_API_URL: 'http://127.0.0.1:9' })
     const result = await call('echo', { text: 'hi' })
     expect(toolOutcomeOf(result)).toMatchObject({ isError: false, text: 'echo hi' })
@@ -282,14 +295,16 @@ describe('PECOT_GITHUB_API_URL', () => {
 })
 
 describe('入力の検証の誤り', () => {
-  it('定義に無いキーが複数あると、全部を名指しして、本体を呼ばない', async () => {
+  it('定義に存在しないキーが複数あると、すべてを名指しして、コマンドの本体を実行しない', async () => {
+    await explains('ツールの入力の検証のテストです。入力の定義にないキーを 2 つ渡した場合に、すべてのキーを示す `invalid-input` の失敗を返し、コマンドの本体を実行しないことを確認します。')
     const result = await call('echo', { text: 'hi', one: 1, two: 2 })
     expect(result.isError).toBe(true)
     expect(structuredOf(result)).toEqual({ kind: 'invalid-input', detail: 'invalid input: unknown keys \'one\', \'two\'' })
     expect(calls).toEqual([])
   })
 
-  it('グローバルの repo の形が owner/repo でないと、本体を呼ばない', async () => {
+  it('グローバルの repo が owner/repo の形でないと、コマンドの本体を実行しない', async () => {
+    await explains('ツールの入力の検証のテストです。グローバルの `repo` に `owner/repo` の形でない値を渡した場合に、`invalid-input` の失敗を返し、コマンドの本体を実行しないことを確認します。')
     const result = await call('echo', { text: 'hi', repo: 'nope' })
     expect(result.isError).toBe(true)
     expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
@@ -297,13 +312,15 @@ describe('入力の検証の誤り', () => {
     expect(calls).toEqual([])
   })
 
-  it('グローバルの repo が owner/repo なら受け付ける', async () => {
+  it('グローバルの repo が owner/repo の形なら受け付ける', async () => {
+    await explains('ツールの入力の検証のテストです。グローバルの `repo` に `owner/repo` の形の値を渡した場合に、検証を通り、コマンドの本体にその値を渡すことを確認します。')
     const result = await call('echo', { text: 'hi', repo: 'acme/demo' })
     expect(result.isError).toBeUndefined()
     expect(calls).toEqual([{ text: 'hi', repo: 'acme/demo' }])
   })
 
-  it('型の違いは、入力の名前を添えて断る', async () => {
+  it('型が違う入力は、入力の名前を添えて拒否する', async () => {
+    await explains('ツールの入力の検証のテストです。真偽値の入力に文字列を渡した場合に、入力の名前を含む `invalid-input` の失敗を返し、コマンドの本体を実行しないことを確認します。')
     const result = await call('echo', { text: 'hi', flag: 'true' })
     expect(result.isError).toBe(true)
     expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
@@ -311,12 +328,14 @@ describe('入力の検証の誤り', () => {
     expect(calls).toEqual([])
   })
 
-  it('必須の入力が無いと、入力の名前を添えて断る', async () => {
+  it('必須の入力が存在しないと、入力の名前を添えて拒否する', async () => {
+    await explains('ツールの入力の検証のテストです。必須の入力を渡さなかった場合に、入力の名前を含む `invalid-input` の失敗を返すことを確認します。')
     const result = await call('echo')
     expect(outcomeOf(result).detail).toContain('invalid input: text: ')
   })
 
-  it('検証の途中で投げたプログラムの誤りは、isError の結果にして、報告先にも伝える', async () => {
+  it('検証の途中で想定外の例外が発生しても、isError の結果にして、報告先にも通知する', async () => {
+    await explains('ツールの入力の検証のテストです。入力の検証の途中で想定外の例外が発生した場合に、`isError` の結果を返し、報告先にも例外を 1 件通知することを確認します。')
     const broken = defineCommand({
       path: ['broken'],
       title: 'Test command',
@@ -338,7 +357,8 @@ describe('入力の検証の誤り', () => {
     expect(unexpected).toHaveLength(1)
   })
 
-  it('待っている間にキャンセルされた呼び出しは、本体を呼ばない', async () => {
+  it('待機中にキャンセルされた呼び出しは、コマンドの本体を実行しない', async () => {
+    await explains('ツールのキャンセルのテストです。先行する呼び出しの完了を待っている間にキャンセルした場合は、その呼び出しは拒否され、コマンドの本体を実行しないことを確認します。')
     const { client } = await connect()
     const first = client.callTool({ name: 'slow', arguments: { name: 'first' } })
     const controller = new AbortController()
@@ -357,7 +377,8 @@ describe('入力の検証の誤り', () => {
     expect(calls).toEqual(['start first', 'end first'])
   })
 
-  it('動いている呼び出しがキャンセルされると、コマンドが受けた io の signal が中断される', async () => {
+  it('実行中の呼び出しがキャンセルされると、コマンドが受け取った io の signal が中断される', async () => {
+    await explains('ツールのキャンセルのテストです。実行中の呼び出しをキャンセルした場合に、コマンドが受け取った `io.signal` の `abort` が発火し、呼び出しが拒否されることを確認します。')
     const started = Promise.withResolvers<boolean>()
     const aborted = Promise.withResolvers<boolean>()
     const waiting = defineCommand({
@@ -387,7 +408,8 @@ describe('入力の検証の誤り', () => {
     expect(results.map(entry => entry.status)).toEqual(['rejected'])
   })
 
-  it('順番を待つ間に取り消された呼び出しは、コマンドを動かさず、取り消しの理由を伝える', async () => {
+  it('順番を待つ間に取り消された呼び出しは、コマンドを実行せず、取り消しの理由を通知する', async () => {
+    await explains('ツールのキャンセルのテストです。順番待ちの呼び出しを理由つきで取り消した場合に、そのコマンドを実行せず、`reportCancelled` に取り消しの理由を渡すことを確認します。')
     const started = Promise.withResolvers<boolean>()
     const release = Promise.withResolvers<boolean>()
     const ran: string[] = []
@@ -441,7 +463,8 @@ describe('入力の検証の誤り', () => {
     expect(ran).toEqual([])
   })
 
-  it('プログラムの誤りのとき、それまでに集めた出力も伝える', async () => {
+  it('想定外の例外のときは、それまでに集めた出力も通知する', async () => {
+    await explains('ツールの入力の検証のテストです。出力を書いた後でコマンドが想定外の例外を投げた場合に、報告先へそれまでに集めた標準出力と標準エラー出力を渡し、`kind` が `other` の結果を返すことを確認します。')
     const noisy = defineCommand({
       path: ['noisy'],
       title: 'Test command',
@@ -465,13 +488,15 @@ describe('入力の検証の誤り', () => {
     expect(structuredOf(result)).toEqual({ kind: 'other', detail: 'boom' })
   })
 
-  it('引数が無くても、空の入力として検証する', async () => {
+  it('引数が存在しなくても、空の入力として検証する', async () => {
+    await explains('ツールの入力の検証のテストです。`arguments` を省略して呼んだ場合に、空の入力として検証し、コマンドの終了コードに従った結果を返すことを確認します。')
     const { client } = await connect()
     const result = await client.callTool({ name: 'exit_three' })
     expect(toolOutcomeOf(result)).toMatchObject({ isError: true, structured: { kind: 'other' } })
   })
 
   it('入力の全体を見る検証の誤りは、名前を付けずに文だけを返す', async () => {
+    await explains('ツールの入力の検証のテストです。複数の入力にまたがる検証を満たさない場合は、入力の名前を付けず、検証の文だけを含む `invalid-input` の失敗を返すことを確認します。')
     const refined = defineCommand({
       path: ['refined'],
       title: 'Test command',
@@ -491,7 +516,8 @@ describe('入力の検証の誤り', () => {
 describe('対象のリポを決められなかったとき', () => {
   const reason = 'cannot determine the target repository: test'
 
-  it('どのツールもコマンドを呼ばず、理由を detail に持つ失敗を返す', async () => {
+  it('どのツールもコマンドを実行せず、理由を detail に持つ失敗を返す', async () => {
+    await explains('対象のリポジトリを決められなかったときのテストです。理由を指定してサーバーを作成した場合に、どのツールを呼んでもコマンドを実行せず、`session-directory-unresolved` の失敗を返すことを確認します。')
     const { client } = await open(COMMANDS, { unavailableReason: reason })
     for (const name of ['echo', 'own_repo', 'bug']) {
       const result = await client.callTool({ name, arguments: {} })
@@ -501,13 +527,15 @@ describe('対象のリポを決められなかったとき', () => {
     expect(calls).toEqual([])
   })
 
-  it('入力が誤りでも、入力の検証より先に理由を返す', async () => {
+  it('入力が誤っていても、入力の検証より先に理由を返す', async () => {
+    await explains('対象のリポジトリを決められなかったときのテストです。定義にない入力を渡した場合でも、入力の検証より先に理由を `detail` として返すことを確認します。')
     const { client } = await open(COMMANDS, { unavailableReason: reason })
     const result = await client.callTool({ name: 'echo', arguments: { unknown: 1 } })
     expect(outcomeOf(result).detail).toBe(reason)
   })
 
-  it('tools/list は変わらない', async () => {
+  it('理由を指定しても、tools/list の結果は変わらない', async () => {
+    await explains('対象のリポジトリを決められなかったときのテストです。理由を指定したサーバーと指定しないサーバーで、`tools/list` が返すツールの一覧が同じになることを確認します。')
     const available = await open(COMMANDS)
     const unavailable = await open(COMMANDS, { unavailableReason: reason })
     const [expected, actual] = await Promise.all([available.client.listTools(), unavailable.client.listTools()])
@@ -517,6 +545,7 @@ describe('対象のリポを決められなかったとき', () => {
 
 describe('失敗の原因の名前', () => {
   it('board_add でボードが定義していない status を渡すと、kind を status-not-configured にする', async () => {
+    await explains('失敗の種別のテストです。`board_add` にプロジェクトのボードが定義していない `status` を渡した場合に、`kind` が `status-not-configured` の失敗を返すことを確認します。')
     prepareProject({ missingStatus: 'active' })
     const { client } = await open(BOARD_ADD_COMMANDS)
     const result = await client.callTool({ name: 'board_add', arguments: { issue_ref: 'acme/demo/7', status: 'active' } })
@@ -535,19 +564,22 @@ async function callTyped(mode: string): Promise<Awaited<ReturnType<ConnectedClie
 }
 
 describe('結果の項目', () => {
-  it('result・warning で渡した値を、structuredContent の最上位の項目と warnings に入れる', async () => {
+  it('result と warning で渡した値を、structuredContent の最上位の項目と warnings に入れる', async () => {
+    await explains('ツールの結果の項目のテストです。コマンドが `result` と `warning` を出力した場合に、`structuredContent` の最上位の項目と `warnings` に入れ、`isError` を付けないことを確認します。')
     const result = await callTyped('ok')
     expect(result.isError).toBeUndefined()
     expect(result.structuredContent).toEqual({ name: 'a', warnings: ['slow API'] })
     expect(result.content).toEqual([{ type: 'text', text: JSON.stringify(result.structuredContent) }])
   })
 
-  it('result を何度も呼ぶと、項目を浅く重ねて後の値を残す', async () => {
+  it('result を複数回呼ぶと、項目を浅く重ねて後の値を残す', async () => {
+    await explains('ツールの結果の項目のテストです。コマンドが `result` を 2 回出力した場合に、項目を浅く重ねて、後から渡した値を残すことを確認します。')
     const result = await callTyped('twice')
     expect(structuredOf(result)).toEqual({ name: 'b', count: 3, warnings: ['slow API'] })
   })
 
-  it('終了コード 0 で項目が output に合わないと、省略可の形に合う項目を残した other の失敗にし、呼び直さないよう detail で伝えて、報告先に伝える', async () => {
+  it('終了コード 0 で項目が output に合わないと、再実行しないよう detail で伝える失敗にし、報告先にも通知する', async () => {
+    await explains('ツールの結果の項目のテストです。終了コード 0 で出力の項目がスキーマと一致しない場合は、失敗の種別を `other` にし、再実行しないことを `detail` で伝えて、一致する項目だけを残して報告先へ通知することを確認します。')
     const result = await callTyped('wrong')
     expect(result.isError).toBe(true)
     const detail = 'the command finished, but its data does not match the output schema: name: Invalid input: expected string, received undefined; the operation may already be done, so do not call it again'
@@ -556,14 +588,16 @@ describe('結果の項目', () => {
     expect(unexpected[0]).toBeInstanceOf(z.ZodError)
   })
 
-  it('失敗では、kind・detail と、途中まで進んだ項目を最上位に入れ、reason を入れない', async () => {
+  it('失敗では、kind・detail・途中まで進んだ項目を最上位に入れ、reason を入れない', async () => {
+    await explains('ツールの結果の項目のテストです。コマンドが項目を出力してから失敗した場合に、`kind`・`detail` と途中までの項目を最上位に入れ、`reason` を入れないことを確認します。')
     const result = await callTyped('fail')
     expect(result.isError).toBe(true)
     expect(result.structuredContent).toEqual({ kind: 'github-api', detail: 'half done\n  hint: retry', name: 'x', count: 2, warnings: ['slow API'] })
     expect(unexpected).toEqual([])
   })
 
-  it('失敗で項目が output の省略可の形に合わないと、kind・detail を保ってツールの項目を捨て、報告先に伝える', async () => {
+  it('失敗で項目がスキーマに合わないと、kind と detail を保ってツールの項目を除き、報告先にも通知する', async () => {
+    await explains('ツールの結果の項目のテストです。失敗した結果の項目がスキーマに一致しない場合は、`kind` と `detail` を残してツールの項目を除き、報告先に通知することを確認します。')
     const result = await callTyped('fail-wrong')
     expect(result.isError).toBe(true)
     expect(result.structuredContent).toEqual({ kind: 'github-api', detail: 'half done\n  hint: retry', warnings: ['slow API'] })
@@ -571,14 +605,16 @@ describe('結果の項目', () => {
     expect(unexpected[0]).toBeInstanceOf(z.ZodError)
   })
 
-  it('プログラムの誤りで終わると、途中まで集めた項目を other の失敗に載せる', async () => {
+  it('想定外の例外で終わると、途中まで集めた項目を other の失敗に載せる', async () => {
+    await explains('ツールの結果の項目のテストです。項目を出力してから想定外の例外が発生した場合に、`kind` が `other` の失敗に途中までの項目を載せ、報告先に通知することを確認します。')
     const result = await callTyped('crash')
     expect(result.structuredContent).toEqual({ kind: 'other', detail: 'boom', count: 4, warnings: ['slow API'] })
     expect(unexpected).toHaveLength(1)
     expect(unexpected[0]).toBeInstanceOf(Error)
   })
 
-  it('プログラムの誤りで終わり、途中の項目も output の省略可の形に合わないと、ツールの項目を捨てる', async () => {
+  it('想定外の例外で終わり、途中の項目もスキーマに合わなければ、ツールの項目を除く', async () => {
+    await explains('ツールの結果の項目のテストです。想定外の例外が発生し、途中までの項目もスキーマに一致しない場合は、ツールの項目を除いた `other` の失敗を返し、報告先に 2 件通知することを確認します。')
     const result = await callTyped('crash-wrong')
     expect(result.structuredContent).toEqual({ kind: 'other', detail: 'boom', warnings: ['slow API'] })
     expect(unexpected).toHaveLength(2)
@@ -586,13 +622,15 @@ describe('結果の項目', () => {
   })
 
   it.for(['ok', 'twice', 'wrong', 'fail', 'fail-wrong', 'crash', 'crash-wrong'])('mode %s の structuredContent は、tools/list の outputSchema に合う', async (mode) => {
+    await explains(`ツールの結果の項目のテストです。\`mode\` が \`${mode}\` の呼び出しで返す \`structuredContent\` が、\`tools/list\` の \`outputSchema\` に一致することを確認します。`)
     const { client } = await open([TYPED])
     const { tools } = await client.listTools()
     const result = await callTyped(mode)
     expect(await outputSchemaIssues(SchemaShape.parse(tools[0]?.outputSchema), result.structuredContent)).toEqual([])
   })
 
-  it('tools/list の outputSchema は、最上位の properties にツールの項目と共通の 4 項目を並べ、anyOf で成功の必須項目か kind と detail を求める', async () => {
+  it('tools/list の outputSchema は、ツールの項目と共通の 4 項目を並べ、成功の必須項目か kind と detail を求める', async () => {
+    await explains('ツールの結果の項目のテストです。`tools/list` の `outputSchema` が、`properties` にツールの項目と共通の項目を並べ、`anyOf` で成功の必須項目か `kind` と `detail` を求めることを確認します。')
     const { client } = await open([TYPED])
     const { tools } = await client.listTools()
     const schema = SchemaShape.parse(tools[0]?.outputSchema)
@@ -600,7 +638,8 @@ describe('結果の項目', () => {
     expect(schema).toMatchObject({ additionalProperties: false, anyOf: [{ required: ['name'] }, { required: ['kind', 'detail'] }] })
   })
 
-  it('成功の必須項目が無いツールの outputSchema に、anyOf が無い', async () => {
+  it('成功の必須項目が存在しないツールの outputSchema には、anyOf を置かない', async () => {
+    await explains('ツールの結果の項目のテストです。成功の必須項目がないツールの場合に、`outputSchema` に `anyOf` が含まれないことを確認します。')
     const { client } = await open(COMMANDS.slice(0, 1))
     const { tools } = await client.listTools()
     expect(SchemaShape.parse(tools[0]?.outputSchema).anyOf).toBeUndefined()

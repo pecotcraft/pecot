@@ -4,6 +4,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 import { setEnvironment } from '../../../tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../../tests/_helpers/temporary.js'
@@ -19,13 +20,15 @@ function started(): { readonly io: ReturnType<typeof capture>, readonly output: 
 }
 
 describe('stopWith', () => {
-  it('error の行を出して、原因の名前と既定の終了コード 1 で止める', () => {
+  it('エラーの行を標準エラー出力へ表示し、原因の種類と既定の終了コード 1 で処理を止める', async () => {
+    await explains('コマンドをエラーで止める関数（`stopWith`）のテストです。終了コードを省略した場合に、`error: boom` の行を表示し、終了コード 1 と指定した原因の種類を持つ例外が発生することを確認します。')
     const { io, output } = started()
     expect(() => stopWith(output, 'boom', 'other')).toThrow(expect.objectContaining({ exitCode: 1, kind: 'other' }))
     expect(io.err).toEqual(['error: boom\n'])
   })
 
-  it('終了コードを渡せる', () => {
+  it('終了コードを指定した場合は、その終了コードで処理を止める', async () => {
+    await explains('`stopWith` に終了コード 2 を指定した場合のテストです。指定した終了コードと原因の種類を持つ例外が発生し、エラーの行を表示することを確認します。')
     const { io, output } = started()
     expect(() => stopWith(output, 'bad usage', 'invalid-input', 2)).toThrow(expect.objectContaining({ exitCode: 2, kind: 'invalid-input' }))
     expect(io.err).toEqual(['error: bad usage\n'])
@@ -33,7 +36,8 @@ describe('stopWith', () => {
 })
 
 describe('requireActiveConfig', () => {
-  it('アクティブなプロジェクトが無ければ、activate の案内を添えて終了コード 1', () => {
+  it('アクティブなプロジェクトが存在しない場合は、activate の案内を表示して終了コード 1 で止める', async () => {
+    await explains('アクティブなプロジェクトの設定を取得する関数（`requireActiveConfig`）のテストです。アクティブなプロジェクトが存在しない場合に、`pecot project activate` の案内付きのエラーを表示し、終了コード 1 の例外が発生することを確認します。')
     setEnvironment({ CLAUDE_PROJECT_DIR: makeTemporaryDirectory() })
     const { io, output } = started()
     expect(() => requireActiveConfig(output)).toThrow(expect.objectContaining({ exitCode: 1, kind: 'no-active-project' }))
@@ -65,27 +69,31 @@ const TARGET = { owner: 'acme', repository: 'app' }
 const PATH = ['board', 'sync']
 
 describe('requireConfigFor', () => {
-  it('対象のリポを含む設定が 1 つなら、.active が無くてもそれを返す', () => {
+  it('対象のリポジトリを含む設定が 1 つだけの場合は、.active が存在しなくてもその設定を返す', async () => {
+    await explains('リポジトリからプロジェクトの設定を選ぶ関数（`requireConfigFor`）のテストです。対象のリポジトリを含む設定が 1 つだけの場合は、`.active` ファイルが存在しなくても、その設定が返ることを確認します。')
     useProjects({ board: ['acme/app'], other: ['acme/lib'] })
     const { output } = started()
     expect(requireConfigFor(output, TARGET, undefined, PATH).name).toBe('board')
   })
 
-  it('含む設定が無ければ、どのプロジェクトにも入っていないと出して repo-not-in-project', () => {
+  it('対象のリポジトリを含む設定が存在しない場合は、どのプロジェクトにも含まれないと表示して repo-not-in-project で止める', async () => {
+    await explains('対象のリポジトリを含む設定が存在しない場合のテストです。`acme/app is not in any project config` と候補の一覧を表示し、種類が `repo-not-in-project` の例外が発生することを確認します。')
     useProjects({ other: ['acme/lib'] })
     const { io, output } = started()
     expect(() => requireConfigFor(output, TARGET, undefined, PATH)).toThrow(expect.objectContaining({ exitCode: 1, kind: 'repo-not-in-project' }))
     expect(io.err).toEqual(['error: acme/app is not in any project config\n  available: other\n'])
   })
 
-  it('含む設定が 2 つで .active がその 1 つを指せば、それを返す', () => {
+  it('対象のリポジトリを含む設定が 2 つあり、.active がそのうちの 1 つを指す場合は、その設定を返す', async () => {
+    await explains('同じリポジトリを含む設定が 2 つ存在する場合のテストです。`.active` の指す設定を返すことを確認します。')
     const projects = useProjects({ a: ['acme/app'], b: ['acme/app'] })
     writeFileSync(path.join(projects, '.active'), 'b.json\n')
     const { output } = started()
     expect(requireConfigFor(output, TARGET, undefined, PATH).name).toBe('b')
   })
 
-  it('含む設定が 2 つで選べなければ、候補と project の案内を出して no-active-project', () => {
+  it('設定が 2 つあり .active でも選べない場合は、候補と project の案内を表示して no-active-project で止める', async () => {
+    await explains('対象のリポジトリを含む設定が 2 つあり、`.active` が別の設定を指している場合のテストです。候補の一覧と `--project` の指定方法を表示し、種類が `no-active-project` の例外が発生することを確認します。')
     const projects = useProjects({ a: ['acme/app'], b: ['acme/app'], c: ['acme/lib'] })
     writeFileSync(path.join(projects, '.active'), 'c.json\n')
     const { io, output } = started()
@@ -93,27 +101,31 @@ describe('requireConfigFor', () => {
     expect(io.err).toEqual(['error: acme/app is in 2 project configs\n  choose one with --project <NAME>\n  available: a, b\n'])
   })
 
-  it('project を渡せば、候補が 2 つでもその設定を返す', () => {
+  it('project を指定した場合は、候補が 2 つあっても指定した設定を返す', async () => {
+    await explains('対象のリポジトリを含む設定が 2 つある場合に、`project` を指定したときのテストです。指定した設定（`b`）が返ることを確認します。')
     useProjects({ a: ['acme/app'], b: ['acme/app'] })
     const { output } = started()
     expect(requireConfigFor(output, TARGET, 'b.json', PATH).name).toBe('b')
   })
 
-  it('project の名前の設定が無ければ project-not-found', () => {
+  it('指定した project の設定が存在しない場合は、project-not-found で止める', async () => {
+    await explains('存在しない `project` の名前を指定した場合のテストです。`project config not found: missing` と候補の一覧を表示し、種類が `project-not-found` の例外が発生することを確認します。')
     useProjects({ a: ['acme/app'] })
     const { io, output } = started()
     expect(() => requireConfigFor(output, TARGET, 'missing', PATH)).toThrow(expect.objectContaining({ exitCode: 1, kind: 'project-not-found' }))
     expect(io.err).toEqual(['error: project config not found: missing\n  available: a\n'])
   })
 
-  it('project の設定が対象のリポを含まなければ repo-not-in-project', () => {
+  it('指定した project の設定に対象のリポジトリが含まれない場合は、repo-not-in-project で止める', async () => {
+    await explains('指定した `project` の設定が、対象のリポジトリを含まない場合のテストです。`acme/app is not in project config c` を表示し、種類が `repo-not-in-project` の例外が発生することを確認します。')
     useProjects({ a: ['acme/app'], c: ['acme/lib'] })
     const { io, output } = started()
     expect(() => requireConfigFor(output, TARGET, 'c', PATH)).toThrow(expect.objectContaining({ exitCode: 1, kind: 'repo-not-in-project' }))
     expect(io.err).toEqual(['error: acme/app is not in project config c\n'])
   })
 
-  it('形の誤った設定があれば、関係が無くても、そのパスを出して止める', () => {
+  it('設定ファイルの形式が不正な場合は、対象と無関係でもそのパスを示して止める', async () => {
+    await explains('形式が不正な設定ファイル（`broken.json`）が存在する場合のテストです。対象のリポジトリと無関係な設定でも、そのファイルのパスを含む例外が発生することを確認します。')
     const projects = useProjects({ a: ['acme/app'] })
     writeFileSync(path.join(projects, 'broken.json'), '{}')
     const { output } = started()

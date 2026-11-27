@@ -42,6 +42,7 @@ import { CLI_DIST, drainStderr, makeTransport } from '../_helpers/mcp-stdio.js'
 import { CONVERT_TIMEOUT_MS, ppmToPng, rasterize, readPpm } from '../_helpers/raster.js'
 import type { PpmImage } from '../_helpers/raster.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { explains } from '../_helpers/explains.js'
 
 const REQUEST_TIMEOUT_MS = 60_000
 
@@ -242,7 +243,8 @@ afterAll(() => {
 })
 
 describe('固定書式のレンダリング', () => {
-  it('MCP evidence_create の出力に帯・罫線・画像枠が描かれる', { timeout: 600_000 }, async (context) => {
+  it('MCP の `evidence_create` が書き出した xlsx を PDF にすると、帯・罫線・画像の枠が描かれる', { timeout: 600_000 }, async (context) => {
+    await explains('エビデンスの xlsx の固定書式の描画のテストです。MCP の `evidence_create` が書き出した xlsx を PDF にして画像化した場合に、帯と罫線の色や画像が描かれ、帯が画像より広く、ページ幅に収まることを確認します。')
     skipWithoutRenderPipeline(context)
 
     // 代表セットを 1 ブックに集約する。寸法・注記・キャプション長・extraHeaders を

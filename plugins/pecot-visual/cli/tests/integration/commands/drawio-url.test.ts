@@ -26,6 +26,7 @@ import { rejectionOf } from '../../_helpers/rejection.js'
 import { verifies } from '../../_helpers/verifies.js'
 import { makeStream } from '../../_helpers/talk-directory.js'
 import type { CapturedStream } from '../../_helpers/talk-directory.js'
+import { explains } from '../../_helpers/explains.js'
 
 const failingLintText: LintText = () => Promise.reject(new Error('辞書を読めません'))
 
@@ -95,7 +96,8 @@ function buildDependencies(overrides: Partial<{
 }
 
 describe('runDrawioUrl', () => {
-  it('minimal fixture から URL を生成する (view)', async () => {
+  it('最小の図から、`view` の URL を生成する', async () => {
+    await explains('`runDrawioUrl` の URL の生成のテストです。最小の図を `view` で渡した場合に、`https://app.diagrams.net/?viewbox=` で始まる URL を返し、URL に `#R` が含まれることを確認します。')
     const summary = await runDrawioUrl(
       MINIMAL_FIXTURE,
       { mode: 'view', png: true },
@@ -107,13 +109,15 @@ describe('runDrawioUrl', () => {
     expect(summary.inputFile).toBe(MINIMAL_FIXTURE)
   })
 
-  it('mode は view と edit で同一 URL を返す（no-op）', async () => {
+  it('`mode` が `view` でも `edit` でも、同じ URL を返す', async () => {
+    await explains('`runDrawioUrl` の `mode` のテストです。同じ図を `view` と `edit` で渡した場合に、どちらも同じ URL を返すことを確認します。')
     const view = await runDrawioUrl(MINIMAL_FIXTURE, { mode: 'view', png: true }, buildDependencies())
     const edit = await runDrawioUrl(MINIMAL_FIXTURE, { mode: 'edit', png: true }, buildDependencies())
     expect(view.url).toBe(edit.url)
   })
 
-  it('入力ファイル不存在で DrawioUrlRuntimeError(input-not-found) を投げる', async () => {
+  it('入力ファイルが存在しなければ、`input-not-found` の `DrawioUrlRuntimeError` を投げる', async () => {
+    await explains('`runDrawioUrl` の入力の検証のテストです。存在しない入力ファイルを渡した場合に、`DrawioUrlRuntimeError` の例外が発生することを確認します。')
     await expect(runDrawioUrl(
       '/nonexistent/path/file.drawio',
       { mode: 'view', png: true },
@@ -121,7 +125,8 @@ describe('runDrawioUrl', () => {
     )).rejects.toThrow(DrawioUrlRuntimeError)
   })
 
-  it('HTML 警告は stderr に流れ、warningCount に反映される', async () => {
+  it('HTML の警告は標準エラー出力へ出し、`warningCount` に数える', async () => {
+    await explains('`runDrawioUrl` の HTML の警告のテストです。対応しない `<font>` の属性を含む図を渡した場合に、標準エラー出力へ警告を表示し、`warningCount` が 1 になることを確認します。')
     const stderr = makeStream('stderr')
     const summary = await runDrawioUrl(
       MINIMAL_FIXTURE,
@@ -136,7 +141,8 @@ describe('runDrawioUrl', () => {
     expect(summary.warningCount).toBe(1)
   })
 
-  it('whiteSpace=wrap 抜け XML で stderr に [warn] を出し、warningCount に反映される', async () => {
+  it('`whiteSpace=wrap` がない図は、標準エラー出力へ警告を出し、`warningCount` に数える', async () => {
+    await explains('`runDrawioUrl` の折り返しの警告のテストです。`whiteSpace=wrap` を持たないセルを含む図の場合に、標準エラー出力へそのセルの `id` を含む警告を表示し、`warningCount` が 1 になることを確認します。')
     const stderr = makeStream('stderr')
     const wrapMissingXml = `<root><mxCell id="cellA" vertex="1" style="rounded=1;fillColor=#fff;fontFamily=sans-serif;" value="日本語テキスト"/></root>`
     const summary = await runDrawioUrl(
@@ -152,7 +158,8 @@ describe('runDrawioUrl', () => {
     expect(summary.warningCount).toBe(1)
   })
 
-  it('whiteSpace=wrap 付き XML では wrap 警告が出ない', async () => {
+  it('`whiteSpace=wrap` がある図は、折り返しの警告を出さない', async () => {
+    await explains('`runDrawioUrl` の折り返しの警告のテストです。`whiteSpace=wrap` を持つセルだけの図の場合に、標準エラー出力へ警告を表示せず、`warningCount` が 0 になることを確認します。')
     const stderr = makeStream('stderr')
     const wrapPresentXml = `<root><mxCell id="cellA" vertex="1" style="rounded=1;whiteSpace=wrap;fillColor=#fff;fontFamily=sans-serif;" value="日本語テキスト"/></root>`
     const summary = await runDrawioUrl(
@@ -167,7 +174,8 @@ describe('runDrawioUrl', () => {
     expect(summary.warningCount).toBe(0)
   })
 
-  it('icon が見つからない時は stderr に警告を出し、warningCount に反映される', async () => {
+  it('`icon` が見つからない場合は、標準エラー出力へ警告を出し、`warningCount` に数える', async () => {
+    await explains('`runDrawioUrl` の `icon://` の警告のテストです。見つからない `icon://` を含む図の場合に、標準エラー出力へ `icon not found` の警告を 1 件表示し、`warningCount` が 1 になることを確認します。')
     const stderr = makeStream('stderr')
     const summary = await runDrawioUrl(
       ICON_INCLUDED_FIXTURE,
@@ -179,7 +187,8 @@ describe('runDrawioUrl', () => {
     expect(summary.warningCount).toBe(1)
   })
 
-  it('未解決 icon の警告はアイコン 1 種につき 1 件に畳まれる', async () => {
+  it('解決できない `icon` の警告は、アイコン 1 種類につき 1 件にまとめる', async () => {
+    await explains('`runDrawioUrl` の `icon://` の警告のテストです。解決できない `icon://` を複数含む図の場合に、同じ種類は 1 件にまとめ、警告が 2 件で `warningCount` も 2 になることを確認します。')
     const stderr = makeStream('stderr')
     const summary = await runDrawioUrl(
       ICON_UNRESOLVED_MULTI_FIXTURE,
@@ -191,7 +200,8 @@ describe('runDrawioUrl', () => {
     expect(summary.warningCount).toBe(2)
   })
 
-  it('警告無しの正常系では warningCount が 0', async () => {
+  it('警告がない場合は、`warningCount` が 0 になる', async () => {
+    await explains('`runDrawioUrl` の警告の件数のテストです。警告のない最小の図の場合に、`warningCount` が 0 になることを確認します。')
     const summary = await runDrawioUrl(
       MINIMAL_FIXTURE,
       { mode: 'view', png: true },
@@ -234,6 +244,7 @@ describe('executeDrawioUrl', () => {
 
   describe('output なし', () => {
     it('data に drawio.url.done と URL を載せ、ファイルを書かず、警告 0 で終える', async () => {
+      await explains('`drawio url` コマンドの成功時の結果のテストです。URL の表示だけを行う場合に、`drawio.url.done` のイベントへ URL が含まれ、ファイルは書き出さず、警告が 0 件であることを確認します。')
       const execution = await executeDrawioUrl(MINIMAL_FIXTURE, { mode: 'view', png: true }, buildDependencies())
       expect(execution.data).toMatchObject({ event: 'drawio.url.done', warnings: 0 })
       expect(execution.data['url']).toBe(execution.url)
@@ -243,12 +254,14 @@ describe('executeDrawioUrl', () => {
     })
 
     it('mode edit でも成功し、view と同じ URL を返す', async () => {
+      await explains('`drawio url` コマンドの `mode` のテストです。`mode` に `edit` を指定した場合に、成功し、`view` と同じ URL を返すことを確認します。')
       const view = await executeDrawioUrl(MINIMAL_FIXTURE, { mode: 'view', png: true }, buildDependencies())
       const edit = await executeDrawioUrl(MINIMAL_FIXTURE, { mode: 'edit', png: true }, buildDependencies())
       expect(edit.url).toBe(view.url)
     })
 
     it('capturePng を呼ばない (PNG は output の兄弟ファイルなので抑止)', async () => {
+      await explains('`drawio url` コマンドの PNG の撮影のテストです。出力先を指定せずに実行した場合は、PNG が出力先の兄弟のファイルになるため、`capturePng` を呼び出さないことを確認します。')
       const capturePng = pngSpy()
       await executeDrawioUrl(MINIMAL_FIXTURE, { mode: 'view', png: true }, buildDependencies({ capturePng }))
       expect(capturePng).not.toHaveBeenCalled()
@@ -257,11 +270,13 @@ describe('executeDrawioUrl', () => {
 
   describe('失敗', () => {
     it('入力ファイル不存在は input-not-found の errorData になる', async () => {
+      await explains('`drawio url` コマンドの入力ファイルの検証のテストです。存在しない入力ファイルを指定した場合に、エラーのイベントの理由が `input-not-found` になることを確認します。')
       const failure = await rejectionOf(executeDrawioUrl('/no/such/file.drawio', { mode: 'view', png: true }, buildDependencies()))
       expect(errorData(failure)).toMatchObject({ event: 'drawio.url.error', reason: 'input-not-found' })
     })
 
     it('文面の違反は text-violation と violations の全件を errorData に載せ、HTML を書かない', async () => {
+      await explains('`drawio url` コマンドの文面の検証のテストです。文面の規則に違反する図の場合は、理由が `text-violation` のエラーのイベントへ違反をすべて含め、HTML を書き出さないことを確認します。')
       const directory = temporaryWorkDirectory()
       const input = path.join(directory, 'd.drawio')
       await fsWriteFile(input, violatingDrawio(), 'utf8')
@@ -278,6 +293,7 @@ describe('executeDrawioUrl', () => {
     })
 
     it('判定器が失敗したら text-lint-failed になり、HTML を書かない', async () => {
+      await explains('`drawio url` コマンドの文面の検証の失敗のテストです。判定器が失敗した場合は、エラーのイベントの理由が `text-lint-failed` になり、HTML を書き出さないことを確認します。')
       const directory = temporaryWorkDirectory()
       const input = path.join(directory, 'd.drawio')
       await fsWriteFile(input, violatingDrawio(), 'utf8')
@@ -290,6 +306,7 @@ describe('executeDrawioUrl', () => {
     })
 
     it('書き込み不能な path は output-write-failed になる', async () => {
+      await explains('`drawio url` コマンドの出力先の検証のテストです。書き込みできないパスを `output` へ指定した場合は、エラーのイベントの理由が `output-write-failed` になることを確認します。')
       const badPath = path.join(temporaryWorkDirectory(), 'nonexistent-dir', 'out.drawio.html')
       const failure = await rejectionOf(executeDrawioUrl(MINIMAL_FIXTURE, { mode: 'view', png: false, output: badPath }, buildDependencies()))
       expect(errorData(failure)).toMatchObject({ event: 'drawio.url.error', reason: 'output-write-failed' })
@@ -298,6 +315,7 @@ describe('executeDrawioUrl', () => {
 
   describe('警告', () => {
     it('警告ありの XML は warningCount と data.warnings が 1 で、stderr に warning を出し、URL は返す', async () => {
+      await explains('`drawio url` コマンドの警告のテストです。警告の対象になる XML の場合に、警告が 1 件になり、標準エラー出力へ `warning:` を表示し、URL は返すことを確認します。')
       const stderr = makeStream('stderr')
       const execution = await executeDrawioUrl(
         MINIMAL_FIXTURE,
@@ -311,6 +329,7 @@ describe('executeDrawioUrl', () => {
     })
 
     it('警告ありの XML でも output にはファイルを書き出す', async () => {
+      await explains('`drawio url` コマンドの警告と書き出しのテストです。警告の対象になる XML でも `output` を指定した場合に、ファイルを書き出し、警告が 1 件になることを確認します。')
       const outPath = path.join(temporaryWorkDirectory(), 'out.drawio.html')
       const execution = await executeDrawioUrl(
         MINIMAL_FIXTURE,
@@ -325,6 +344,7 @@ describe('executeDrawioUrl', () => {
     })
 
     it('whiteSpace=wrap 抜け XML は warningCount が 1 で、stderr に whiteSpace=wrap の warning を出す', async () => {
+      await explains('`drawio url` コマンドの `whiteSpace=wrap` の検証のテストです。`whiteSpace=wrap` が指定されていない XML の場合は、警告が 1 件になり、標準エラー出力へ該当の警告を表示することを確認します。')
       const stderr = makeStream('stderr')
       const execution = await executeDrawioUrl(
         MINIMAL_FIXTURE,
@@ -338,6 +358,7 @@ describe('executeDrawioUrl', () => {
     })
 
     it('警告無しでも warnings: 0 が data に常時含まれる', async () => {
+      await explains('`drawio url` コマンドの警告の件数のテストです。警告がない場合でも、結果のイベントに `warnings: 0` が含まれることを確認します。')
       const execution = await executeDrawioUrl(MINIMAL_FIXTURE, { mode: 'view', png: true }, buildDependencies())
       expect(execution.data['warnings']).toBe(0)
       expect(execution.warningCount).toBe(0)
@@ -346,6 +367,7 @@ describe('executeDrawioUrl', () => {
 
   describe('output', () => {
     it('指定時は data に {event,file} (url キーなし) を載せ、stdout は空、ファイルは表示用 HTML', async () => {
+      await explains('`drawio url` コマンドの `output` のテストです。`output` を指定した場合に、結果のイベントへ `file` を含めて `url` は含めず、標準出力は空で、書き出したファイルが表示用の HTML になることを確認します。')
       const outPath = path.join(temporaryWorkDirectory(), 'out.drawio.html')
       const stdout = makeStream('stdout')
       const execution = await executeDrawioUrl(MINIMAL_FIXTURE, { mode: 'view', png: true, output: outPath }, buildDependencies({ stdout: asStream(stdout) }))
@@ -369,6 +391,7 @@ describe('executeDrawioUrl', () => {
       { label: '旧規約の *.drawio.url', fileName: 'out.drawio.url' },
       { label: '拡張子なし', fileName: 'foo' },
     ])('output が $label なら invalid-output-extension で弾き、ファイルを書き出さない', async ({ fileName }) => {
+      await explains('`drawio url` コマンドの出力先の拡張子の検証のテストです。`output` が `.html` 以外の場合は、`DrawioUrlUsageError` が発生し、理由が `invalid-output-extension` になり、ファイルは書き出さないことを確認します。')
       const outPath = path.join(temporaryWorkDirectory(), fileName)
       const failure = await rejectionOf(executeDrawioUrl(MINIMAL_FIXTURE, { mode: 'view', png: false, output: outPath }, buildDependencies()))
       expect(failure).toBeInstanceOf(DrawioUrlUsageError)
@@ -378,6 +401,7 @@ describe('executeDrawioUrl', () => {
     })
 
     it('output の拡張子が .html なら警告は出ない', async () => {
+      await explains('`drawio url` コマンドの出力先の拡張子のテストです。`output` の拡張子が `.html` の場合に、警告を表示せず、警告が 0 件であることを確認します。')
       const outPath = path.join(temporaryWorkDirectory(), 'out.drawio.html')
       const stderr = makeStream('stderr')
       const execution = await executeDrawioUrl(MINIMAL_FIXTURE, { mode: 'view', png: false, output: outPath }, buildDependencies({ stderr: asStream(stderr) }))
@@ -385,7 +409,8 @@ describe('executeDrawioUrl', () => {
       expect(execution.warningCount).toBe(0)
     })
 
-    it('長大 URL (8,000 文字超) でも表示用 HTML の 2 箇所に欠損なく書き出される', async () => {
+    it('8,000 文字を超える長い URL も、表示用の HTML の 2 か所へ欠けずに書き出す', async () => {
+      await explains('`drawio url` コマンドの長い URL のテストです。URL が 8,000 文字を超える図を `-o` で書き出した場合に、HTML の 2 か所に書かれた URL が、どちらも生成した URL と一致することを確認します。')
       const outPath = path.join(temporaryWorkDirectory(), 'long-url.drawio.html')
 
       // 書き出し先ファイルと同じ生成ロジック (generateDrawioUrl) を通して URL 本体を取得する。
@@ -406,6 +431,7 @@ describe('executeDrawioUrl', () => {
   describe('png / PNG 出力', () => {
     it('output + 既定 (png: true) で capturePng が <output 拡張子置換>.png 引数で呼ばれる', async (context) => {
       await verifies(context, 'PV-DRAWIO-CREATE-03')
+      await explains('`drawio url` コマンドの PNG の撮影のテストです。`output` を指定して PNG を有効にした場合は、`capturePng` を 1 回呼び出し、拡張子を `.png` へ置き換えた出力先のパスを渡すことを確認します。')
       const outPath = path.join(temporaryWorkDirectory(), 'out.drawio.html')
       const expectedPngPath = path.join(workDirectory, 'out.drawio.png')
       const capturePng = pngSpy()
@@ -419,6 +445,7 @@ describe('executeDrawioUrl', () => {
     })
 
     it('output diagram.drawio.html は diagram.drawio.png に拡張子置換される（最後の拡張子のみ置換）', async () => {
+      await explains('`drawio url` コマンドの PNG の出力先のテストです。`output` が `diagram.drawio.html` の場合に、最後の拡張子だけを置き換えた `diagram.drawio.png` を `capturePng` に渡すことを確認します。')
       const outPath = path.join(temporaryWorkDirectory(), 'diagram.drawio.html')
       const expectedPngPath = path.join(workDirectory, 'diagram.drawio.png')
       const capturePng = pngSpy()
@@ -428,6 +455,7 @@ describe('executeDrawioUrl', () => {
     })
 
     it('output 指定時に capturePng へ渡る XML は icon:// が data URI に解決済 (回帰防止)', async () => {
+      await explains('`drawio url` コマンドの PNG の撮影のテストです。`icon://` を含む図で `output` を指定した場合に、`capturePng` に渡す XML の `icon://` が data URI に解決済みであることを確認します。')
       // embed.diagrams.net editor は pecotv 独自スキーム `icon://` を解決できない。
       // このため capturePng へ渡す前の段階で、resolveIconsInStyle が data URI に変換する必要がある。
       // 変換し忘れると、editor 側で fallback アイコン (緑の画像破損マーク) が出る。
@@ -444,6 +472,7 @@ describe('executeDrawioUrl', () => {
     })
 
     it('拡張子ガードで弾かれた output では capturePng も呼ばれない', async () => {
+      await explains('`drawio url` コマンドの PNG の撮影のテストです。拡張子の検証で弾かれた `output` の場合に、`DrawioUrlUsageError` が発生し、`capturePng` を呼び出さないことを確認します。')
       // PNG は表示用 HTML の兄弟ファイルなので、HTML を書かない実行では PNG も作らない。
       const outPath = path.join(temporaryWorkDirectory(), 'out.tar.gz')
       const capturePng = pngSpy()
@@ -454,6 +483,7 @@ describe('executeDrawioUrl', () => {
 
     it('output + png: false で capturePng が呼ばれず、data に png / pngFailed キーが無い', async (context) => {
       await verifies(context, 'PV-DRAWIO-CREATE-04')
+      await explains('`drawio url` コマンドの PNG の無効化のテストです。`output` を指定して PNG を無効にした場合は、`capturePng` を呼び出さず、結果のイベントへ `png` と `pngFailed` を含めないことを確認します。')
       const outPath = path.join(temporaryWorkDirectory(), 'out.drawio.html')
       const capturePng = pngSpy()
       const execution = await executeDrawioUrl(MINIMAL_FIXTURE, { mode: 'view', png: false, output: outPath }, buildDependencies({ capturePng }))
@@ -464,6 +494,7 @@ describe('executeDrawioUrl', () => {
     })
 
     it('capturePng reject 時は表示用 HTML を生成し、stderr に warning、data に pngFailed: true / png: null / warnings: 1', async () => {
+      await explains('`drawio url` コマンドの PNG の撮影に失敗した場合のテストです。`capturePng` が失敗しても、表示用の HTML は書き出し、標準エラー出力へ警告を表示し、結果へ `pngFailed: true`・`png: null`・警告 1 件が含まれることを確認します。')
       const outPath = path.join(temporaryWorkDirectory(), 'out.drawio.html')
       const stderr = makeStream('stderr')
       const capturePng = pngSpy(() => Promise.reject(new Error('chromium 未インストール')))
@@ -492,6 +523,7 @@ describe('executeDrawioUrl', () => {
 
     it('png 成功時は data に png:<拡張子置換後> + pngFailed:false を載せる', async (context) => {
       await verifies(context, 'PV-DRAWIO-CREATE-03')
+      await explains('`drawio url` コマンドの PNG の撮影に成功した場合のテストです。`output` を指定して撮影が成功した場合は、結果のイベントへ拡張子を置き換えた PNG のパスと `pngFailed: false` が含まれることを確認します。')
       const outPath = path.join(temporaryWorkDirectory(), 'out.drawio.html')
       const expectedPngPath = path.join(workDirectory, 'out.drawio.png')
       const execution = await executeDrawioUrl(MINIMAL_FIXTURE, { mode: 'view', png: true, output: outPath }, buildDependencies({ capturePng: pngSpy() }))
@@ -507,13 +539,15 @@ describe('executeDrawioUrl', () => {
 })
 
 describe('drawioUrlDefaultDependencies', () => {
-  it('pluginRoot をサーバ自身の置き場所から求める', () => {
+  it('pluginRoot をサーバ自身の置き場所から求める', async () => {
+    await explains('`drawioUrlDefaultDependencies` の `pluginRoot` のテストです。既定の依存を作成した場合に、`pluginRoot` がサーバ自身の置き場所から求めた値になり、`now` が数値を返すことを確認します。')
     const dependencies = drawioUrlDefaultDependencies()
     expect(dependencies.pluginRoot).toBe(resolvePluginRoot())
     expect(typeof dependencies.now()).toBe('number')
   })
 
-  it('readFile が実ファイルを読める', async () => {
+  it('`readFile` は、実際のファイルを読める', async () => {
+    await explains('`drawioUrlDefaultDependencies` の `readFile` のテストです。実際の `.drawio` のファイルを渡した場合に、その内容を読み取り、`<mxfile>` が含まれることを確認します。')
     const dependencies = drawioUrlDefaultDependencies()
     const text = await dependencies.readFile(MINIMAL_FIXTURE)
     expect(text).toContain('<mxfile>')
@@ -522,13 +556,15 @@ describe('drawioUrlDefaultDependencies', () => {
 
 // 例外型がコンストラクタ経由で reason を保持することを pin
 describe('error types', () => {
-  it('DrawioUrlUsageError は reason を保持する', () => {
+  it('`DrawioUrlUsageError` は、`reason` を保持する', async () => {
+    await explains('`DrawioUrlUsageError` のテストです。メッセージと `invalid-mode` を渡して作った場合に、`reason` が `invalid-mode` で、`name` が `DrawioUrlUsageError` になることを確認します。')
     const error = new DrawioUrlUsageError('m', 'invalid-mode')
     expect(error.reason).toBe('invalid-mode')
     expect(error.name).toBe('DrawioUrlUsageError')
   })
 
-  it('DrawioUrlRuntimeError は reason を保持する', () => {
+  it('`DrawioUrlRuntimeError` は、`reason` を保持する', async () => {
+    await explains('`DrawioUrlRuntimeError` のテストです。メッセージと `input-not-found` を渡した場合に、`reason` が `input-not-found`、`name` が `DrawioUrlRuntimeError` になることを確認します。')
     const error = new DrawioUrlRuntimeError('m', 'input-not-found')
     expect(error.reason).toBe('input-not-found')
     expect(error.name).toBe('DrawioUrlRuntimeError')
@@ -541,7 +577,8 @@ const IS_PLAYWRIGHT_AVAILABLE = process.env['PECOTV_PLAYWRIGHT_AVAILABLE'] === '
 const playwrightOnlyDescribe = IS_PLAYWRIGHT_AVAILABLE ? describe : describe.skip
 
 playwrightOnlyDescribe('capturePng smoke (実 embed.diagrams.net)', () => {
-  it('日本語入り .drawio から PNG が生成され、非白ピクセル比率 > 1%', async () => {
+  it('日本語を含む `.drawio` から PNG を生成し、PNG に図の元データが埋め込まれる', async () => {
+    await explains('`capturePng` の実際の `embed.diagrams.net` での生成のテストです。日本語を含む図を渡した場合に、PNG のシグネチャを持つ 10,000 バイトを超えるファイルを書き出し、図の元データが埋め込まれることを確認します。')
     const { capturePng } = await import('../../../src/infra/drawio/screenshot.js')
     const workDirectory = mkdtempSync(path.join(tmpdir(), 'drawio-png-smoke-'))
     try {
@@ -600,7 +637,8 @@ playwrightOnlyDescribe('表示用 HTML の遷移 smoke (実 Chromium・file://)'
     { label: 'JS 有効 (location.replace)', javaScriptEnabled: true },
     // MOTW 等で JS が止まる環境でも meta refresh のフォールバック層が働くことを見る。
     { label: 'JS 無効 (meta refresh)', javaScriptEnabled: false },
-  ])('$label で生成 URL へ byte 一致のまま遷移する', async ({ javaScriptEnabled }) => {
+  ])('`$label` の場合に、生成した URL へバイト単位で一致したまま遷移する', async ({ javaScriptEnabled }) => {
+    await explains('表示用の HTML の遷移のテストです。実際の Chromium で HTML を開いた場合に、JavaScript の有効と無効のどちらでも、遷移先の URL が生成した URL とバイト単位で一致することを確認します。')
     const smokeDirectory = mkdtempSync(path.join(tmpdir(), 'drawio-redirect-smoke-'))
     try {
       const outPath = path.join(smokeDirectory, 'smoke.drawio.html')
@@ -624,7 +662,8 @@ describe('talk-dir の外で --theme 無し（本体の既定値）', () => {
     <mxCell id="mono" vertex="1" parent="1" value="node" style="text;html=1;fontFamily='Noto Sans Mono', monospace;fontSize=14;"><mxGeometry width="100" height="40" as="geometry"/></mxCell>
   </root></mxGraphModel></diagram></mxfile>`
 
-  it('既定値の書体（sans-serif）と等幅の並びは、52px や 14px でも警告 0（サイズは確かめない）', async () => {
+  it('既定の書体の `sans-serif` と等幅の並びは、52px や 14px でも警告を出さない', async () => {
+    await explains('`runDrawioUrl` の talk-dir の外での既定の宣言のテストです。`sans-serif` の 52px と等幅の 14px を含む図の場合に、文字サイズは判定せず、警告が 0 件で、`theme` が既定の書体だけになることを確認します。')
     const stderr = makeStream('stderr')
     const summary = await runDrawioUrl(
       MINIMAL_FIXTURE,
@@ -636,7 +675,8 @@ describe('talk-dir の外で --theme 無し（本体の既定値）', () => {
     expect(summary.theme).toEqual({ source: 'default', fonts: { body: ['sans-serif'] } })
   })
 
-  it('書体指定なし（draw.io 既定の Helvetica）は既定値でも警告する', async () => {
+  it('書体の指定がない図は、既定の宣言でも警告する', async () => {
+    await explains('`runDrawioUrl` の talk-dir の外での既定の宣言のテストです。書体を指定しないセルを含む図の場合に、draw.io の既定の `Helvetica` が既定の書体と異なるとして警告を 1 件出すことを確認します。')
     const stderr = makeStream('stderr')
     const xml = OFF_STEPS_XML.replace('fontFamily=sans-serif;', '')
     const summary = await runDrawioUrl(
@@ -649,7 +689,8 @@ describe('talk-dir の外で --theme 無し（本体の既定値）', () => {
     expect(stderr.chunks.join('')).toContain('the default font')
   })
 
-  it('同梱の poster swimlane-flow 見本は警告 0', async () => {
+  it('同梱の poster の `swimlane-flow` の見本は、警告を出さない', async () => {
+    await explains('`runDrawioUrl` の同梱の見本のテストです。poster の `swimlane-flow` の見本を渡した場合に、標準エラー出力へ何も書かず、警告が 0 件になることを確認します。')
     const stderr = makeStream('stderr')
     const summary = await runDrawioUrl(
       SWIMLANE_SAMPLE,

@@ -14,6 +14,7 @@ import { coreDirectory, pluginRoot } from '../_helpers/paths.js'
 import { run, runHookEntry } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { parseJson } from '../_helpers/text.js'
+import { explains } from '../../_helpers/explains.js'
 
 const ENTRY = 'pre-tool-use-bash.sh'
 
@@ -49,7 +50,8 @@ function rowsOf(commands: readonly string[]): { readonly label: string }[] {
 }
 
 describe('統合: エントリ', () => {
-  it('Claude Code のエントリで gh pr create を送るとき、deny を返す', () => {
+  it('Claude Code のエントリで gh pr create を送るとき、deny を返す', async () => {
+    await explains('エントリ（`pre-tool-use-bash.sh`）を通した統合テストです。Claude Code のエントリに `gh pr create` を渡した場合に、`deny` の判定を返し、トップレベルの `decision` は出力しないことを確認します。')
     const hookCase = createHookCase()
     setUpEmptyProject(hookCase)
     const result = runEntry(hookCase, { tool_input: { command: 'gh pr create' } })
@@ -58,7 +60,8 @@ describe('統合: エントリ', () => {
     expect(result.stdout).not.toContain('"decision"')
   })
 
-  it('Claude Code のエントリで設定の無いまま --no-verify を送るとき、何も出力しない', () => {
+  it('Claude Code のエントリで設定の無いまま --no-verify を送るとき、何も出力しない', async () => {
+    await explains('エントリ（`pre-tool-use-bash.sh`）を通した統合テストです。設定ファイルがない状態で Claude Code のエントリに `git commit --no-verify` を渡した場合に、標準出力に何も出力しないことを確認します。')
     const hookCase = createHookCase()
     setUpEmptyProject(hookCase)
     const result = runEntry(hookCase, { tool_input: { command: 'git commit --no-verify' } })
@@ -66,7 +69,8 @@ describe('統合: エントリ', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('Claude Code のエントリで git-no-verify-check を有効にして --no-verify を送るとき、deny を返す', () => {
+  it('Claude Code のエントリで git-no-verify-check を有効にして --no-verify を送るとき、deny を返す', async () => {
+    await explains('エントリ（`pre-tool-use-bash.sh`）を通した統合テストです。`git-no-verify-check` を有効にして `git commit --no-verify` を渡した場合に、`deny` の判定と、`--no-verify` を含む理由を返すことを確認します。')
     const hookCase = createHookCase()
     setUpEmptyProject(hookCase)
     hooksConfig(hookCase).write({ 'git-no-verify-check': true })
@@ -77,7 +81,8 @@ describe('統合: エントリ', () => {
     expect(result.stdout).toContain('--no-verify')
   })
 
-  it('Claude Code のエントリで許可されるコマンドを送るとき、何も出力しない', () => {
+  it('Claude Code のエントリで許可されるコマンドを送るとき、何も出力しない', async () => {
+    await explains('エントリ（`pre-tool-use-bash.sh`）を通した統合テストです。Claude Code のエントリに許可されるコマンド（`git status`）を渡した場合に、標準出力に何も出力しないことを確認します。')
     const hookCase = createHookCase()
     setUpEmptyProject(hookCase)
     const result = runEntry(hookCase, { tool_input: { command: 'git status' } })
@@ -86,7 +91,8 @@ describe('統合: エントリ', () => {
   })
 
   // 入力 JSON の cwd で対象リポジトリを解決する。
-  it('入力 JSON の cwd が保護ブランチの checkout を指すとき、セッション起点が feature でも deny を返す', () => {
+  it('入力 JSON の cwd が保護ブランチの checkout を指すとき、セッション起点が feature でも deny を返す', async () => {
+    await explains('エントリ（`pre-tool-use-bash.sh`）を通した統合テストです。入力 JSON の `cwd` が保護ブランチ（`wt7`）のリポジトリを指す場合に、セッションの起点が feature ブランチでも、`deny` の判定を返すことを確認します。')
     const hookCase = createHookCase()
     const session = gitRepository(hookCase, 'session')
     checkout(hookCase, session, 'feat/session-work')
@@ -99,7 +105,8 @@ describe('統合: エントリ', () => {
     expect(result.stdout).toContain('\'wt7\'')
   })
 
-  it('入力 JSON の cwd が feature ブランチの checkout を指すとき、セッション起点が保護ブランチでも許可する', () => {
+  it('入力 JSON の cwd が feature ブランチの checkout を指すとき、セッション起点が保護ブランチでも許可する', async () => {
+    await explains('エントリ（`pre-tool-use-bash.sh`）を通した統合テストです。入力 JSON の `cwd` が feature ブランチのリポジトリを指す場合に、セッションの起点が保護ブランチでも、何も出力せず許可することを確認します。')
     const hookCase = createHookCase()
     const session = gitRepository(hookCase, 'session')
     checkout(hookCase, session, 'wt7')
@@ -121,7 +128,8 @@ describe('統合: エントリ', () => {
     '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" issue show 1',
   ]))(
     'Claude Code のエントリでコマンドが $label のとき、何も出力しない',
-    (row) => {
+    async (row) => {
+      await explains(`エントリ（\`pre-tool-use-bash.sh\`）を通した統合テストです。Claude Code のエントリにコマンド \`${row.label}\` を渡した場合に、止めずに標準出力へ何も出力しないことを確認します。`)
       const hookCase = createHookCase()
       setUpEmptyProject(hookCase)
       const result = runEntry(hookCase, { tool_input: { command: row.label } })
@@ -131,7 +139,8 @@ describe('統合: エントリ', () => {
   )
 
   // ガードを通さずに素通しする。/tmp を含めると tmp-path-warner がコマンドを読み直して警告するので含めない。
-  it('Claude Code のエントリでコマンドが上限のバイト数を超えるとき、何も出力しない', () => {
+  it('Claude Code のエントリでコマンドが上限のバイト数を超えるとき、何も出力しない', async () => {
+    await explains('エントリ（`pre-tool-use-bash.sh`）を通した統合テストです。コマンドがバイト数の上限（約 70,000 バイト）を超える場合に、ガードを通さず、標準出力に何も出力しないことを確認します。')
     const hookCase = createHookCase()
     setUpEmptyProject(hookCase)
     const command = `echo ${'x'.repeat(70_000)}`
@@ -143,7 +152,8 @@ describe('統合: エントリ', () => {
   // 撤廃の前の版が作った免除のフラグは、どの判定にも使われない（FR-004）。
   it.for(rowsOf(['gh pr merge 810', 'pecot issue quick -m x -r owner/repo', 'gh pr create']))(
     '免除のフラグを残したまま $label を送っても、結果は変わらない',
-    (row) => {
+    async (row) => {
+      await explains(`エントリ（\`pre-tool-use-bash.sh\`）を通した統合テストです。撤廃前の版が作った免除のフラグのファイルが残っていても、コマンド \`${row.label}\` の標準出力が、フラグのない場合と同じになることを確認します。`)
       const withoutFlags = createHookCase()
       setUpEmptyProject(withoutFlags)
       const expected = runEntry(withoutFlags, { tool_input: { command: row.label } })
@@ -161,7 +171,8 @@ describe('統合: エントリ', () => {
     },
   )
 
-  it('Copilot CLI のエントリで git-no-verify-check を有効にして --no-verify を送るとき、トップレベルの decision を使わず deny を返す', () => {
+  it('Copilot CLI のエントリで git-no-verify-check を有効にして --no-verify を送るとき、トップレベルの decision を使わず deny を返す', async () => {
+    await explains('エントリ（`pre-tool-use-bash.sh`）を通した統合テストです。Copilot CLI のエントリに `git commit --no-verify` を渡した場合に、トップレベルの `decision` を使わず、`deny` の判定を返すことを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
@@ -174,7 +185,8 @@ describe('統合: エントリ', () => {
     expect(result.stdout).toContain('git-no-verify-check')
   })
 
-  it('Copilot CLI のエントリで許可されるコマンドを送るとき、何も出力しない', () => {
+  it('Copilot CLI のエントリで許可されるコマンドを送るとき、何も出力しない', async () => {
+    await explains('エントリ（`pre-tool-use-bash.sh`）を通した統合テストです。Copilot CLI のエントリに許可されるコマンド（`git status`）を渡した場合に、標準出力に何も出力しないことを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
@@ -183,7 +195,8 @@ describe('統合: エントリ', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('Copilot CLI のエントリで gh pr create を送るとき、deny を返す', () => {
+  it('Copilot CLI のエントリで gh pr create を送るとき、deny を返す', async () => {
+    await explains('エントリ（`pre-tool-use-bash.sh`）を通した統合テストです。Copilot CLI のエントリに `gh pr create` を渡した場合に、`deny` の判定を返し、メッセージに `gh-pr-create-check` を含めることを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
@@ -193,7 +206,8 @@ describe('統合: エントリ', () => {
     expect(result.stdout).toContain('gh-pr-create-check')
   })
 
-  it('Copilot CLI のエントリで Bash 以外のツールを送るとき、何も出力しない', () => {
+  it('Copilot CLI のエントリで Bash 以外のツールを送るとき、何も出力しない', async () => {
+    await explains('エントリ（`pre-tool-use-bash.sh`）を通した統合テストです。Copilot CLI のエントリに Bash 以外のツール（`report_intent`）の入力を渡した場合に、標準出力に何も出力しないことを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
@@ -208,7 +222,8 @@ describe('統合: エントリ', () => {
 
   it.for(rowsOf(['gh pr merge 810', 'pecot pr create ./x.md', 'pecot issue quick -m x -r owner/repo', 'pecot pr create x.md --dry-run']))(
     'Copilot CLI のエントリでコマンドが $label のとき、何も出力しない',
-    (row) => {
+    async (row) => {
+      await explains(`エントリ（\`pre-tool-use-bash.sh\`）を通した統合テストです。Copilot CLI のエントリにコマンド \`${row.label}\` を渡した場合に、止めずに標準出力へ何も出力しないことを確認します。`)
       const hookCase = createHookCase()
       const repository = gitRepository(hookCase)
       hookCase.setEnv('CLAUDE_PROJECT_DIR', repository)
@@ -218,7 +233,8 @@ describe('統合: エントリ', () => {
     },
   )
 
-  it('Claude Code のエントリで wt ブランチから commit するとき、deny を返す', () => {
+  it('Claude Code のエントリで wt ブランチから commit するとき、deny を返す', async () => {
+    await explains('エントリ（`pre-tool-use-bash.sh`）を通した統合テストです。Claude Code のエントリで `wt3` ブランチから `git commit` を実行しようとした場合に、`deny` の判定を返すことを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, 'wt3')
@@ -232,7 +248,8 @@ describe('統合: エントリ', () => {
     expect(result.stdout).not.toContain('"decision"')
   })
 
-  it('Copilot CLI のエントリで wt ブランチから commit するとき、protected branch を示して deny を返す', () => {
+  it('Copilot CLI のエントリで wt ブランチから commit するとき、protected branch を示して deny を返す', async () => {
+    await explains('エントリ（`pre-tool-use-bash.sh`）を通した統合テストです。Copilot CLI のエントリで `wt4` ブランチから `git commit` を実行しようとした場合に、`protected branch` を示して `deny` の判定を返すことを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     // エントリポイントの project-root.sh が揃える基準ディレクトリを再現する。
@@ -317,7 +334,8 @@ function allowedKeys(event: string): string[] {
 }
 
 describe('統合: 撤廃したリマインダーと自動 push', () => {
-  it.for(HOOK_INPUTS)('$label を両方の定義のエントリに流すとき、文脈を足さず、状態のファイルを作らない', (row) => {
+  it.for(HOOK_INPUTS)('$label を両方の定義のエントリに流すとき、文脈を足さず、状態のファイルを作らない', async (row) => {
+    await explains(`撤廃したリマインダーと自動 push のテストです。${row.label} の入力を、2 つの定義のエントリへ流した場合に、\`additionalContext\` を出力せず、状態のファイルを作成しないことを確認します。`)
     const hookCase = createHookCase()
     const repository = setUpLegacyRepository(hookCase)
     const state = path.join(repository, '.pecot', 'state')
@@ -359,7 +377,8 @@ const COPILOT_GUARD_ROWS: readonly CopilotGuardRow[] = [
 ]
 
 describe('統合: Copilot CLI の定義', () => {
-  it.for(COPILOT_GUARD_ROWS)('Copilot CLI の定義のエントリに $label を流すとき、残る判定を返す', (row) => {
+  it.for(COPILOT_GUARD_ROWS)('Copilot CLI の定義のエントリに $label を流すとき、残る判定を返す', async (row) => {
+    await explains(`Copilot CLI 向けの定義のテストです。エントリに ${row.label} を流した場合に、期待する判定（\`deny\` か \`allow\`）と理由を返し、トップレベルの \`decision\` は出力しないことを確認します。`)
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, row.branch)

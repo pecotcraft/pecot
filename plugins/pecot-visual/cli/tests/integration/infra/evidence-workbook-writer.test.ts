@@ -16,6 +16,7 @@ import {
 import { buildJpeg, buildPng, buildTruncatedPng } from '../../_helpers/image-fixture.js'
 import { entryText, readZipEntries } from '../../_helpers/zip-entries.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
+import { explains } from '../../_helpers/explains.js'
 
 const EXPECTED_PART_ORDER: readonly string[] = [
   '[Content_Types].xml',
@@ -83,7 +84,8 @@ function outPath(): string {
 }
 
 describe('writeEvidenceWorkbook — 正常系', () => {
-  it('パーツを固定順で並べ media を無加工格納する', async () => {
+  it('xlsx のパーツを決まった順に並べ、画像を加工せずに格納する', async () => {
+    await explains('`writeEvidenceWorkbook` が書き出す xlsx のテストです。画像 2 枚を渡した場合に、パーツが決まった順に並び、媒体 `image1.png` と `image2.png` が元の画像と一致し、シートに `No.1` と `No.2` が含まれることを確認します。')
     const first = buildPng(1920, 1080)
     const second = buildPng(800, 600, [10, 20, 30])
     const out = outPath()
@@ -108,7 +110,8 @@ describe('writeEvidenceWorkbook — 正常系', () => {
     expect(entryText(entries, 'xl/workbook.xml')).toContain('name="Evidence"')
   })
 
-  it('annotations には有効画像に配置した注記図形の実数を返す', async () => {
+  it('結果の annotations は、有効な画像に配置した注記図形の数を返し、除外された画像の注記は数えない', async () => {
+    await explains('`writeEvidenceWorkbook` の結果のテストです。注記を持つ画像・注記のない画像・存在しない画像を渡した場合に、`annotations` が有効な画像の注記 2 件になり、`drawing1.xml` の図形も 2 件であることを確認します。')
     const out = outPath()
     const annotated: NormalizedEvidenceItem = {
       imagePath: place('01.png', buildPng(1920, 1080)),
@@ -142,7 +145,8 @@ describe('writeEvidenceWorkbook — 正常系', () => {
     expect(entryText(entries, 'xl/drawings/drawing1.xml').match(/<xdr:sp>/g)).toHaveLength(2)
   })
 
-  it('PNG / JPEG 混在では両方の Default を宣言し拡張子を分ける', async () => {
+  it('PNG と JPEG が混在する場合は、両方の Default を宣言し、拡張子を分けて格納する', async () => {
+    await explains('画像の形式が混在する場合の、`writeEvidenceWorkbook` のテストです。`[Content_Types].xml` に `png` と `jpeg` の `Default` が宣言され、媒体が `image1.png` と `image2.jpeg` になることを確認します。')
     const png = buildPng(400, 300)
     const jpeg = buildJpeg(640, 480)
     const out = outPath()
@@ -161,7 +165,8 @@ describe('writeEvidenceWorkbook — 正常系', () => {
       .toContain('Target="../media/image2.jpeg"')
   })
 
-  it('拡張子が偽装されていてもシグネチャ判定の拡張子で格納する', async () => {
+  it('拡張子が実際の形式と異なる画像は、判定した形式の拡張子で格納する', async () => {
+    await explains('拡張子と中身の形式が異なる画像の、`writeEvidenceWorkbook` のテストです。中身が JPEG で、ファイル名が `.png` の画像を渡した場合に、`xl/media/image1.jpeg` として格納され、`image1.png` は格納されないことを確認します。')
     const out = outPath()
     // 中身は JPEG、ファイル名は .png。
     await writeItems([placedItem('fake.png', buildJpeg(100, 50))], out)
@@ -171,7 +176,8 @@ describe('writeEvidenceWorkbook — 正常系', () => {
     expect(entries.keys().toArray()).not.toContain('xl/media/image1.png')
   })
 
-  it('同一パスを 2 件並べても dedup せず item 単位で連番になる', async () => {
+  it('同じパスの画像を 2 件並べても、重複を除かず、項目ごとに連番で格納する', async () => {
+    await explains('同じ画像を 2 件渡した場合の、`writeEvidenceWorkbook` のテストです。結果の `items` が 2 になり、`xl/media/image1.png` と `image2.png` の 2 件が格納されることを確認します。')
     const png = buildPng(200, 100)
     const imagePath = place('same.png', png)
     const out = outPath()
@@ -186,7 +192,8 @@ describe('writeEvidenceWorkbook — 正常系', () => {
     ])
   })
 
-  it('同一 --out へ連続 2 回書いても上書きされる (残骸が混在しない)', async () => {
+  it('同じ出力先へ続けて 2 回書き出すと、上書きされ、前回の内容は混在しない', async () => {
+    await explains('出力先のファイルへの上書きのテストです。画像 2 件と画像 1 件を同じ出力先へ続けて書き出した場合に、2 回目のファイルが小さくなり、媒体が `image1.png` の 1 件だけになることを確認します。')
     const out = outPath()
     const png = buildPng(400, 300)
     const imagePath = place('01.png', png)
@@ -247,7 +254,8 @@ function twoImageLayout(): ReturnType<typeof buildEvidenceLayout> {
 }
 
 describe('writeEvidenceWorkbook — 書式が出力まで届く', () => {
-  it('帯の装飾専用セルが期待行に期待の書式で出る', async () => {
+  it('帯の装飾専用のセルが、期待する行に期待する書式で出力される', async () => {
+    await explains('`sheet1.xml` のセルの書式のテストです。タイトル帯とキャプション帯の装飾専用のセルが、値を持たない要素として決まった書式で出力され、ヘッダー表の値のセルは罫線付きの書式になることを確認します。')
     const sheet = entryText(await writeTwoImageWorkbook(), 'xl/worksheets/sheet1.xml')
 
     // タイトル帯 (行 1) とキャプション帯 (行 6 / 行 37) の値列。値なしの空要素で、
@@ -260,7 +268,8 @@ describe('writeEvidenceWorkbook — 書式が出力まで届く', () => {
     expect(sheet).toContain('<c r="C2" s="4" t="inlineStr">')
   })
 
-  it('layout が返した全セルが sheet1.xml に過不足なく現れる', async () => {
+  it('レイアウトが返したすべてのセルが、sheet1.xml に過不足なく出力される', async () => {
+    await explains('`sheet1.xml` のセルの出力のテストです。レイアウトが返したセルのすべてが `sheet1.xml` に出力され、セルの数がレイアウトの数と一致することを確認します。')
     const sheet = entryText(await writeTwoImageWorkbook(), 'xl/worksheets/sheet1.xml')
     const cells = twoImageLayout().rows.flatMap(row => row.cells)
 
@@ -272,7 +281,8 @@ describe('writeEvidenceWorkbook — 書式が出力まで届く', () => {
     expect(sheet.match(/<c r="/g)).toHaveLength(cells.length)
   })
 
-  it('drawing1.xml の cNvPr id は一意で、注記の数だけ sp が出る', async () => {
+  it('drawing1.xml の cNvPr の id は一意で、注記の数だけ図形が出力される', async () => {
+    await explains('`drawing1.xml` の要素のテストです。グループ 1 つ・画像 2 枚・注記 2 件を書き出した場合に、`cNvPr` の `id` が 5 件とも異なり、`sp` が注記の数、`pic` が 2 件、グレーの枠が 2 件になることを確認します。')
     const drawing = entryText(await writeTwoImageWorkbook(), 'xl/drawings/drawing1.xml')
     const ids = drawing.matchAll(/<xdr:cNvPr id="(\d+)"/g).map(match => match[1]).toArray()
 
@@ -287,7 +297,8 @@ describe('writeEvidenceWorkbook — 書式が出力まで届く', () => {
 })
 
 describe('writeEvidenceWorkbook — skip 分類', () => {
-  it('ENOENT は not-found', async () => {
+  it('存在しないファイルは、除外理由 not-found として除外する', async () => {
+    await explains('除外の分類のテストです。存在しない画像のパスを含めた場合に、`skipped` に理由 `not-found` でそのパスだけが含まれることを確認します。')
     const out = outPath()
     const result = await writeItems([placedItem('01.png', buildPng(100, 100)), missingItem('missing.png')], out)
     expect(result.skipped).toStrictEqual([
@@ -295,26 +306,30 @@ describe('writeEvidenceWorkbook — skip 分類', () => {
     ])
   })
 
-  it('ディレクトリ指定 (EISDIR) は unreadable', async () => {
+  it('ディレクトリを指定すると、除外理由 unreadable として除外する', async () => {
+    await explains('除外の分類のテストです。画像のパスにディレクトリを指定した場合に、`skipped` に理由 `unreadable` でそのパスだけが含まれることを確認します。')
     const directoryPath = workDirectory('shots')
     mkdirSync(directoryPath)
     const result = await writeItems([placedItem('01.png', buildPng(100, 100)), item(directoryPath)], outPath())
     expect(result.skipped).toStrictEqual([{ path: directoryPath, reason: 'unreadable' }])
   })
 
-  it('PNG / JPEG いずれのシグネチャでもないものは unsupported-format', async () => {
+  it('PNG でも JPEG でもないファイルは、除外理由 unsupported-format として除外する', async () => {
+    await explains('除外の分類のテストです。画像ではないテキストのファイルを指定した場合に、`skipped` に理由 `unsupported-format` でそのパスだけが含まれることを確認します。')
     const textPath = place('note.png', Buffer.from('これは画像ではありません', 'utf8'))
     const result = await writeItems([placedItem('01.png', buildPng(100, 100)), item(textPath)], outPath())
     expect(result.skipped).toStrictEqual([{ path: textPath, reason: 'unsupported-format' }])
   })
 
-  it('シグネチャのみに切り詰めた PNG は unreadable', async () => {
+  it('先頭の署名だけに切り詰めた PNG は、除外理由 unreadable として除外する', async () => {
+    await explains('除外の分類のテストです。PNG の署名だけに切り詰めたファイルを指定した場合に、`skipped` に理由 `unreadable` でそのパスだけが含まれることを確認します。')
     const truncatedPath = place('cut.png', buildTruncatedPng())
     const result = await writeItems([placedItem('01.png', buildPng(100, 100)), item(truncatedPath)], outPath())
     expect(result.skipped).toStrictEqual([{ path: truncatedPath, reason: 'unreadable' }])
   })
 
-  it('混在入力では skip 後の有効 item だけで No. と media を再採番する', async () => {
+  it('除外した項目が混在する場合は、有効な項目だけで No. と media を採番し直す', async () => {
+    await explains('一部の画像を除外する場合の、`writeEvidenceWorkbook` のテストです。存在しない画像・形式が不正な画像・ディレクトリを含めた場合に、除外理由が順に並び、有効な 1 枚が `No.1` になり、媒体と画像が 1 件になることを確認します。')
     const directoryPath = workDirectory('shots')
     mkdirSync(directoryPath)
     const out = outPath()
@@ -346,7 +361,8 @@ describe('writeEvidenceWorkbook — skip 分類', () => {
 })
 
 describe('writeEvidenceWorkbook — 失敗ルート', () => {
-  it('有効画像 0 件では書き出しに触れず既存 --out を残す', async () => {
+  it('有効な画像が 0 件の場合は、書き出さず、既存の出力先を残す', async () => {
+    await explains('有効な画像が 1 枚もない場合の、`writeEvidenceWorkbook` のテストです。存在しない画像だけを渡した場合に、理由 `no-valid-images` の `EvidenceWorkbookError` が発生し、既存の出力先のファイルが変更されないことを確認します。')
     const out = outPath()
     const existing = Buffer.from('既存の xlsx 相当のバイト列', 'utf8')
     writeFileSync(out, existing)
@@ -363,7 +379,8 @@ describe('writeEvidenceWorkbook — 失敗ルート', () => {
     expect(readFileSync(out).equals(existing)).toBe(true)
   })
 
-  it('書き込めない出力先では output-write-failed になる', async () => {
+  it('書き込めない出力先を指定すると、output-write-failed のエラーになる', async () => {
+    await explains('書き込めない出力先の、`writeEvidenceWorkbook` のテストです。存在しないディレクトリの下を出力先とした場合に、理由 `output-write-failed` の `EvidenceWorkbookError` が発生することを確認します。')
     const out = workDirectory('no-such-directory', 'evidence.xlsx')
     let caught: unknown
     try {

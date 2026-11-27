@@ -463,10 +463,13 @@ def _run(script_dir: Path, h: _AffectedTestsRepo, run_script, **kwargs):
     )
 
 
+@allure.title(
+    "環境変数で push 先を渡すと、merge-base に一致する `--base` と `--head` で affected を実行する"
+)
 def test_env_path_affected_with_merge_base(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """1. env 経由: affected -t test を merge-base 一致の --base / --head で実行。"""
+    """環境変数 `PRE_COMMIT_TO_REF` で push 先を渡した場合のテストです。`nx affected` が、merge-base に一致する `--base` と、push 先に一致する `--head` で起動され、終了コードが 0 になることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -487,8 +490,9 @@ def test_env_path_affected_with_merge_base(
         assert "ENV NO_COLOR=1" in log
 
 
+@allure.title("標準入力で push 情報を渡すと、local_sha を `--head` にして affected を実行する")
 def test_stdin_path_affected(script_dir: Path, at_repo: _AffectedTestsRepo, run_script) -> None:
-    """2. stdin 経由: pre-push stdin の local_sha で affected を実行。"""
+    """pre-push の標準入力で push 情報を渡した場合のテストです。標準入力の local_sha が `--head` に渡された状態で `nx affected` が起動され、終了コードが 0 になることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -507,10 +511,11 @@ def test_stdin_path_affected(script_dir: Path, at_repo: _AffectedTestsRepo, run_
         assert f"--head={at_repo.feature_sha}" in log
 
 
+@allure.title("`PECOT_VERSION_PLAN_BASE` を指定すると、指定した base の merge-base を使う")
 def test_version_plan_base_override(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """3. PECOT_VERSION_PLAN_BASE override → 指定 base の merge-base を使う。"""
+    """`PECOT_VERSION_PLAN_BASE` で比較元のブランチを指定した場合のテストです。既定のブランチではなく、指定したブランチとの merge-base が `--base` に渡されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
     at_repo.fake_remote_ref("custom-base", at_repo.main_sha)
@@ -532,10 +537,11 @@ def test_version_plan_base_override(
         assert f"--head={at_repo.feature_sha}" in log
 
 
+@allure.title("ブランチを削除する push では、nx を起動せずに終了コード 0 で終了する")
 def test_branch_delete_push_skips(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """4. ブランチ削除 push（to=ZERO_SHA）→ skip / nx 未起動 / exit 0。"""
+    """push 先が 0 だけの SHA になる、ブランチ削除の push のテストです。`nx` が起動されず、終了コードが 0 になることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -545,8 +551,9 @@ def test_branch_delete_push_skips(
         assert read_output(at_repo.nx_log) == ""
 
 
+@allure.title("push 元と push 先が同じ場合は、nx を起動せずに終了コード 0 で終了する")
 def test_from_equals_to_skips(script_dir: Path, at_repo: _AffectedTestsRepo, run_script) -> None:
-    """5. from==to（push が default の祖先 / no-op）→ skip / nx 未起動 / exit 0。"""
+    """push 元と push 先の SHA が一致する、変更のない push のテストです。`nx` が起動されず、終了コードが 0 になることを確認します。"""
     at_repo.install_nx_stub()
     # feature を作らず main の tip をそのまま渡すと merge-base == tip。
     at_repo.fake_remote_ref("main", at_repo.main_sha)
@@ -558,10 +565,11 @@ def test_from_equals_to_skips(script_dir: Path, at_repo: _AffectedTestsRepo, run
         assert read_output(at_repo.nx_log) == ""
 
 
+@allure.title("affected のテストが失敗すると、終了コード 1 で終了して push を止める")
 def test_affected_test_failure_propagates(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """6. affected のテスト失敗（nx exit 1）→ exit 1 で伝播 / push ブロック。"""
+    """`nx affected` がテストの失敗で終了した場合のテストです。スクリプトの終了コードが 1 になり、push が止まることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -576,10 +584,11 @@ def test_affected_test_failure_propagates(
         assert "affected -t test" in read_output(at_repo.nx_log)
 
 
+@allure.title("nx を解決できない場合は、復旧手順を添えたエラーを出して終了コード 1 で終了する")
 def test_nx_unresolved_fail_closed(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """7. nx 未解決 → fail-closed（exit 1 / 復旧手順入り ERROR）。"""
+    """`nx` の実行ファイルを解決できない環境のテストです。終了コードが 1 になり、標準エラー出力に復旧手順を含むエラーが表示されることを確認します。"""
     # install_nx_stub を呼ばない: node_modules と PATH のどちらにも nx は無い。
     at_repo.build_feature()
 
@@ -591,10 +600,13 @@ def test_nx_unresolved_fail_closed(
         assert "nx" in out
 
 
+@allure.title(
+    "base を解決できない場合は、警告を出して全 project の run-many に切り替え、完走すれば終了コード 0 で終了する"
+)
 def test_base_unresolved_run_many_fallback(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """8. base 未解決 → WARN + run-many フォールバック / 完走で exit 0。"""
+    """merge-base を解決できないブランチを push した場合のテストです。警告が表示され、`nx affected` ではなく `nx run-many` が実行されて、終了コードが 0 になることを確認します。"""
     at_repo.install_nx_stub()
     # origin/HEAD を設定しない & PECOT_VERSION_PLAN_BASE なし → base 解決失敗。
     at_repo.build_feature_no_remote()
@@ -614,10 +626,11 @@ def test_base_unresolved_run_many_fallback(
         assert "ENV PECOTV_PM_GUARD_BEHAVIOR=unset" in log
 
 
+@allure.title("レーン名は固定せず、実行のたびに `nx graph` から集め、起点の `test` は含めない")
 def test_lane_names_come_from_the_graph_each_run(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """レーン名は固定せず、実行ごとに `nx graph --file` で集める。起点の `test` は含めない（#1232）。"""
+    """`nx affected` に渡す target の一覧のテストです。実行のたびに `nx graph --file` の結果から `test-*` のレーン名を集め、束ねる起点の `test` が含まれないことを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -635,10 +648,11 @@ def test_lane_names_come_from_the_graph_each_run(
         assert affected[0].split()[2] == "test-cli,test-hooks,test-unit"
 
 
+@allure.title("graph を取得できない場合は、nx を起動せずにエラーで止まる")
 def test_affected_fails_closed_when_graph_cannot_be_computed(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """graph が取れないとレーン名を決められない。空の -t で nx を起動せず、ERROR で止まる（fail-closed）。"""
+    """`nx graph` が失敗してレーン名を決められない場合のテストです。空の `-t` で `nx` を起動せず、標準エラー出力にエラーが表示されて終了コード 1 になることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -656,10 +670,11 @@ def test_affected_fails_closed_when_graph_cannot_be_computed(
         assert "affected" not in read_output(at_repo.nx_log)
 
 
+@allure.title("graph に `test-*` のレーンが 1 つもない場合は、エラーで止まる")
 def test_affected_fails_closed_when_graph_has_no_test_lane(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """test-* のレーンが 1 つも無い graph は、テストを通さないため止める。"""
+    """取得した graph に `test-*` のレーンが存在しない場合のテストです。テストを通さずに push を許可しないよう、エラーが表示されて終了コード 1 になることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -675,10 +690,11 @@ def test_affected_fails_closed_when_graph_has_no_test_lane(
         assert "affected" not in read_output(at_repo.nx_log)
 
 
+@allure.title("全 project の run-many は、graph を読まずに起点の `test` を指定して実行する")
 def test_run_many_fallback_does_not_need_the_graph(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """全 project のフォールバックは起点の `test` を要求する（noop の inputs に左右されない）。graph は読まない。"""
+    """base を解決できず、全 project にフォールバックした場合のテストです。`nx graph` が呼ばれず、`nx run-many` に起点の `test` が渡されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature_no_remote()
 
@@ -694,10 +710,11 @@ def test_run_many_fallback_does_not_need_the_graph(
         assert not Path(f"{at_repo.nx_log}.graph").exists()
 
 
+@allure.title("base を解決できない場合の run-many が失敗すると、終了コード 1 で終了する")
 def test_base_unresolved_run_many_failure_propagates(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """9. base 未解決 → run-many フォールバックのテスト失敗（非 0）も伝播。"""
+    """フォールバックの `nx run-many` がテストの失敗で終了した場合のテストです。スクリプトの終了コードが 0 以外になり、失敗が伝わることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature_no_remote()
 
@@ -712,10 +729,13 @@ def test_base_unresolved_run_many_failure_propagates(
         assert "run-many -t test" in read_output(at_repo.nx_log)
 
 
+@allure.title(
+    "push 情報が環境変数と標準入力のどちらにもない場合は、全 project の run-many に切り替える"
+)
 def test_no_push_info_run_many_fallback(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """10. push 情報なし（env と stdin のどちらも無し）→ run-many フォールバック。"""
+    """環境変数と標準入力のどちらにも push 情報がない場合のテストです。`nx affected` ではなく `nx run-many` が実行されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -727,10 +747,11 @@ def test_no_push_info_run_many_fallback(
         assert "run-many -t test" in read_output(at_repo.nx_log)
 
 
+@allure.title("標準入力が 2 行（2 ブランチ）の場合は、それぞれの head で affected を 2 回実行する")
 def test_stdin_two_lines_two_affected(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script, git, git_rev_parse
 ) -> None:
-    """11. stdin 2 行（2 ブランチ）→ affected が各 head で 2 回実行。"""
+    """2 つのブランチを同時に push した場合のテストです。標準入力の 2 行それぞれの head で `nx affected` が 1 回ずつ、合わせて 2 回実行されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()  # feature (feature_sha / from_sha) + origin/main, origin/HEAD
 
@@ -755,10 +776,11 @@ def test_stdin_two_lines_two_affected(
         assert "run-many" not in log
 
 
+@allure.title("annotated tag を push すると、参照先の commit の SHA を `--head` に渡す")
 def test_annotated_tag_peeled(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script, git, git_rev_parse
 ) -> None:
-    """12. annotated tag tip → peel された commit SHA が --head に渡る。"""
+    """annotated tag を push した場合のテストです。tag オブジェクトの SHA ではなく、参照先の commit の SHA が `--head` に渡されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -787,10 +809,11 @@ def test_annotated_tag_peeled(
         assert f"--head={tag_obj}" not in log
 
 
+@allure.title("複数の tip がすべてフォールバックになる場合は、run-many を 1 回だけ実行する")
 def test_multiple_tip_all_fallback_run_many_once(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script, git
 ) -> None:
-    """13. 複数 tip 全フォールバック → run-many は 1 回だけ。"""
+    """複数のブランチを push し、どの tip も base を解決できない場合のテストです。`nx run-many` が重複せずに 1 回だけ実行されることを確認します。"""
     at_repo.install_nx_stub()
     # origin/HEAD を作らない → 各 tip が base 解決失敗 (rc=11) でフォールバック。
     at_repo.build_feature_no_remote("feature")
@@ -815,10 +838,11 @@ def test_multiple_tip_all_fallback_run_many_once(
         assert read_output(at_repo.nx_log).count("run-many -t test") == 1
 
 
+@allure.title("node を解決できない場合は、復旧手順を添えたエラーを出して終了コード 1 で終了する")
 def test_node_unresolved_fail_closed(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """14. node 未解決 → fail-closed（exit 1 / 復旧手順入り ERROR）。"""
+    """`node` の実行ファイルを解決できない環境のテストです。終了コードが 1 になり、標準エラー出力に復旧手順を含むエラーが表示されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -852,10 +876,13 @@ def test_node_unresolved_fail_closed(
         assert "node" in out
 
 
+@allure.title(
+    "push 範囲に pm-guard の対象の変更がない場合は、`PECOTV_PM_GUARD_BEHAVIOR` を 0 にして nx を実行する"
+)
 def test_pm_guard_behavior_off_without_manifest_change(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """15. push range に pm-guard 対象の変更なし → PECOTV_PM_GUARD_BEHAVIOR=0 を export。"""
+    """パッケージマネージャーの設定を変更しない push のテストです。`nx` の起動時に `PECOTV_PM_GUARD_BEHAVIOR=0` が環境変数として渡されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()  # plugins/pecot-workflow/cli/probe.py のみ
 
@@ -865,6 +892,9 @@ def test_pm_guard_behavior_off_without_manifest_change(
         assert "ENV PECOTV_PM_GUARD_BEHAVIOR=0" in read_output(at_repo.nx_log)
 
 
+@allure.title(
+    "push 範囲で {changed_path} を変更すると、`PECOTV_PM_GUARD_BEHAVIOR` を 1 にして nx を実行する"
+)
 @pytest.mark.parametrize(
     "changed_path",
     [
@@ -877,7 +907,7 @@ def test_pm_guard_behavior_off_without_manifest_change(
 def test_pm_guard_behavior_on_with_manifest_change(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script, changed_path: str
 ) -> None:
-    """16. push range に pm-guard 対象の変更あり → PECOTV_PM_GUARD_BEHAVIOR=1 を export。"""
+    """パッケージマネージャーの設定に関わるファイルを変更した push のテストです。`package.json` や `.npmrc` などの変更がある場合に、`nx` の起動時に `PECOTV_PM_GUARD_BEHAVIOR=1` が環境変数として渡されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature(changed_path=changed_path)
 
@@ -892,10 +922,13 @@ def test_pm_guard_behavior_on_with_manifest_change(
 # ====
 
 
+@allure.title(
+    "nx が bail 由来の終了コード 130 で失敗すると、終了コードを 1 にそろえ、失敗したレーンだけを表示する"
+)
 def test_failure_reports_failed_lane_only_and_normalizes_exit(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """17. nx 失敗（bail 由来 exit 130）→ exit 1 に正規化し失敗レーンだけ stderr へ。"""
+    """`nx` が `--nxBail` による中断で失敗した場合のテストです。終了コードが 1 に正規化され、標準エラー出力には失敗したレーンの出力だけが表示されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -935,10 +968,11 @@ def test_failure_reports_failed_lane_only_and_normalizes_exit(
         assert "LANE_TWO_BODY" in log_text
 
 
+@allure.title("要約が出る前に nx が終了した場合は、ログの末尾を表示する")
 def test_failure_without_summary_falls_back_to_log_tail(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """18. 要約無しの失敗（タスク開始前に終了する nx）→ ログ末尾へフォールバック。"""
+    """タスクの開始前に `nx` が終了し、要約が存在しない場合のテストです。失敗したレーンを特定できないため、標準エラー出力にログの末尾が表示されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -959,10 +993,11 @@ def test_failure_without_summary_falls_back_to_log_tail(
         assert f"全出力: {_hook_log_path(at_repo)}" in result.stderr
 
 
+@allure.title("成功した場合は、ログを保存し、nx の出力を端末に流さない")
 def test_success_writes_log_and_keeps_terminal_quiet(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """19. 成功時 → ログは生成されるが nx 本文は端末へ流れない。"""
+    """テストが成功した場合のテストです。ログファイルが作成され、`nx` の本文が端末に表示されないことを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -980,10 +1015,11 @@ def test_success_writes_log_and_keeps_terminal_quiet(
         assert "全出力:" not in out
 
 
+@allure.title("run-many に切り替えた場合も、ログへの保存と失敗したレーンの表示が有効になる")
 def test_fallback_run_many_failure_reports_failed_lane(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """20. run-many フォールバックでも bail・ログ化・失敗レーン表示が有効になる。"""
+    """base を解決できず、`nx run-many` で失敗した場合のテストです。`affected` と同様に、ログが保存され、失敗したレーンの見出しが表示されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature_no_remote()
 
@@ -1005,14 +1041,11 @@ def test_fallback_run_many_failure_reports_failed_lane(
         assert f"全出力: {_hook_log_path(at_repo)}" in result.stderr
 
 
+@allure.title("失敗したレーンの出力が 400 行を超える場合は、先頭を省略して末尾の 400 行を表示する")
 def test_failure_body_truncated_to_line_limit(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """21. 失敗レーン本文は末尾 400 行までに切り詰める（進捗ドット列で端末を埋め尽くさない）。
-
-    pytest レーンは nx の擬似端末で進捗ドットが `<project>: .` として 1 行ずつ出るため、
-    byte 上限（64 KiB）だけでは未達のまま数千行が端末へ流れる。行数上限で頭を落とす。
-    """
+    """1 つのレーンが 1000 行を超える出力をして失敗した場合のテストです。表示が 400 行に収まり、省略した行数が案内され、原因が読める末尾は残る一方で、ログには全体が残ることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1041,10 +1074,13 @@ def test_failure_body_truncated_to_line_limit(
         assert "lane-two: DOT1 ." in read_output(_hook_log_path(at_repo))
 
 
+@allure.title(
+    "複数の tip で失敗した場合は、失敗した nx の実行分だけを表示し、先に成功した実行の同名レーンを混ぜない"
+)
 def test_failure_reports_only_current_nx_run(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script, git, git_rev_parse
 ) -> None:
-    """22. 複数 tip: 報告は失敗した nx 実行分に限り、先行実行の同名レーンを混ぜない。"""
+    """2 つのブランチを push し、2 回目の `nx` だけが失敗する場合のテストです。標準エラー出力には失敗した 2 回目の出力だけが表示され、ログには両方の実行分が残ることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
     feature2_sha, _ = _add_second_feature(at_repo, git, git_rev_parse)
@@ -1076,13 +1112,11 @@ def test_failure_reports_only_current_nx_run(
         assert "CALL2_BODY" in log_text
 
 
+@allure.title("失敗した project を特定できない場合も、要約のブロックを含めてログの末尾を表示する")
 def test_failure_fallback_keeps_summary_block(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """23. 失敗 project 不明のフォールバックでも、要約ブロック以降を必ず含める。
-
-    要約の後ろに無関係レーンの出力が続くと、ログ末尾 80 行だけでは要約が押し出される。
-    """
+    """要約に失敗したタスクが含まれない場合のテストです。要約の後ろに別のレーンの出力が続いても、要約のブロックと末尾の行がどちらも表示され、profile の場所の行は表示されないことを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1108,10 +1142,11 @@ def test_failure_fallback_keeps_summary_block(
         assert "Performance Profile" not in result.stderr
 
 
+@allure.title("失敗したレーンが 2 件ある場合は、両方を要約の順に表示し、出力を混ぜない")
 def test_failure_reports_multiple_lanes_in_summary_order(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """24. 失敗レーンが 2 件 → 両方の見出しと本文が要約の順で出て、本文が混線しない。"""
+    """2 つのレーンが同時に失敗した場合のテストです。見出しが要約と同じ順で並び、それぞれの本文が自分のレーンの節だけに表示されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1143,14 +1178,13 @@ def test_failure_reports_multiple_lanes_in_summary_order(
         assert "LANE_TWO_BODY" not in section_one
 
 
+@allure.title(
+    "失敗の出力がバイト数の上限を超える場合は、行の境界で切り、マルチバイト文字を分断しない"
+)
 def test_failure_body_truncated_at_line_boundary_by_byte_limit(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """25. byte 上限も行境界で当てる（マルチバイト文字を分断しない）。
-
-    1 行 48 KiB のマルチバイト行を 3 行出すと 64 KiB 上限には末尾 1 行しか入らない。
-    `tail -c` だと途中で切れて端末が文字化けするため、行単位で落とすことを pin する。
-    """
+    """1 行が約 48 KiB のマルチバイト文字の行を 3 行出力して失敗した場合のテストです。上限に収まる末尾の 1 行だけが表示され、文字化けを示す置換文字が含まれないことを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1202,10 +1236,11 @@ def _rows_of(h: _AffectedTestsRepo, kind: str) -> list[list[str]]:
     return [row for row in _timing_rows(h) if row[1] == kind]
 
 
+@allure.title("成功した場合は、標準出力に合計の 1 行だけを表示する")
 def test_success_prints_one_summary_line(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """26. 成功時 → stdout は合計行 1 行だけ。profile は repo root 相対の固定パスに書かれる。"""
+    """テストが成功した場合の標準出力のテストです。合計の所要時間、最長のレーン、並列数、レーン数を含む 1 行だけが表示され、profile が決まったパスに保存されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1224,10 +1259,11 @@ def test_success_prints_one_summary_line(
         assert (at_repo.repo / _PROFILE_RELPATH).is_file()
 
 
+@allure.title("成功した場合は、task の行 3 本と nx の行 1 本を記録する")
 def test_success_records_task_and_nx_rows(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """27. 成功時 → task 行 3 本（install を含む）と nx 行 1 本を記録する。"""
+    """成功した場合の所要時間の記録のテストです。install を含む 3 つの task の行と、`affected` の nx の行が 1 本だけ記録され、hook の行は記録されないことを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1251,10 +1287,11 @@ def test_success_records_task_and_nx_rows(
         assert _rows_of(at_repo, "hook") == []
 
 
+@allure.title("複数の tip で nx を 2 回実行しても、合計の行は 1 行で、レーンは重複して数えない")
 def test_multiple_tips_aggregate_lanes_without_duplicates(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script, git, git_rev_parse
 ) -> None:
-    """28. 複数 tip（nx 2 回）→ nx 行 2 本・task 行 6 本、合計行は 1 行でレーンは重複除外。"""
+    """2 つのブランチを push して `nx` が 2 回実行される場合のテストです。nx の行が 2 本、task の行が 6 本記録され、標準出力の合計の行は 1 行でレーン数が重複しないことを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
     feature2_sha, _ = _add_second_feature(at_repo, git, git_rev_parse)
@@ -1275,10 +1312,11 @@ def test_multiple_tips_aggregate_lanes_without_duplicates(
         assert "レーン 2" in lines[0]
 
 
+@allure.title("run-many に切り替えた場合は、nx の行の名前を run-many にして合計の行も表示する")
 def test_fallback_records_run_many(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """29. run-many フォールバック → nx 行の名前は run-many。合計行も出る。"""
+    """base を解決できず、`nx run-many` で成功した場合のテストです。nx の行の名前が `run-many` になり、標準出力に合計の行が 1 行表示されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature_no_remote()
 
@@ -1293,10 +1331,11 @@ def test_fallback_records_run_many(
         assert "レーン 2" in result.stdout
 
 
+@allure.title("push 情報がなくて run-many に切り替えた場合も、合計の行を 1 行表示する")
 def test_no_push_info_fallback_prints_summary(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """30. push 情報なしのフォールバックでも合計行を 1 行出す。"""
+    """push 情報がなく、`nx run-many` にフォールバックした場合のテストです。標準出力に合計の行が 1 行だけ表示され、nx の行の名前が `run-many` になることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1309,10 +1348,11 @@ def test_no_push_info_fallback_prints_summary(
         assert [r[2] for r in _rows_of(at_repo, "nx")] == ["run-many"]
 
 
+@allure.title("affected の対象が 0 件で profile が空の場合は、レーン 0 と表示し、警告を出さない")
 def test_empty_profile_reports_zero_lanes_without_warn(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """31. affected 0 件（profile が `[]`）→ 最長 - / レーン 0、WARN なし。"""
+    """profile が空の配列になる、affected の対象がない場合のテストです。合計の行に最長なしとレーン 0 が表示され、警告が出力されないことを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1335,10 +1375,13 @@ def test_empty_profile_reports_zero_lanes_without_warn(
         assert nx_rows[0][4].startswith("parallel=4 lanes=0 longest=- rec=")
 
 
+@allure.title(
+    "profile が存在しない場合は、警告を出すが終了コード 0 のままにして、レーン 0 と表示する"
+)
 def test_missing_profile_warns_and_keeps_exit_code(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """32. profile が無い → WARN を stderr に出すが exit 0、合計行はレーン 0。"""
+    """`nx` が profile を出力しなかった場合のテストです。標準エラー出力に警告が表示されるものの、終了コードは 0 のままで、合計の行にレーン 0 が表示されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1361,10 +1404,11 @@ def test_missing_profile_warns_and_keeps_exit_code(
         assert nx_rows[0][4].startswith("parallel=4 lanes=0 longest=- rec=")
 
 
+@allure.title("ブランチ削除の push では、標準出力に何も表示せず、記録のファイルも作らない")
 def test_skip_push_prints_nothing_and_records_nothing(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """33. ブランチ削除 push（nx 未起動）→ stdout 空・記録ファイルも作らない。"""
+    """`nx` を起動しないブランチ削除の push のテストです。標準出力が空になり、所要時間の記録ファイルが作成されないことを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1375,10 +1419,11 @@ def test_skip_push_prints_nothing_and_records_nothing(
         assert not (at_repo.repo / _TIMING_RELPATH).exists()
 
 
+@allure.title("テストが失敗した場合は、終了コード 1 のまま task の行を記録し、合計の行は表示しない")
 def test_failure_records_tasks_without_summary_line(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """34. テスト失敗 push → exit 1 のまま task 行は記録し、合計行は出さない。"""
+    """テストが失敗した push のテストです。合計の行が表示されず、失敗したレーンの見出しと要約が表示される一方で、task の行には成功と失敗の状態が記録されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1401,10 +1446,11 @@ def test_failure_records_tasks_without_summary_line(
         assert len(_rows_of(at_repo, "nx")) == 1
 
 
+@allure.title("nx が profile を出力する前に失敗した場合は、二次的な警告を出さない")
 def test_failure_before_profile_does_not_warn(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """35. nx が profile を書く前に終了した（rc が非 0 かつ profile 無し）→ 二次的な WARN を出さない。"""
+    """`nx` が非 0 で終了し、profile も存在しない場合のテストです。profile が存在しないことへの警告は表示されず、エラーの終了コードだけが案内されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1427,10 +1473,13 @@ def test_failure_before_profile_does_not_warn(
         assert nx_rows[0][4].startswith("parallel=4 lanes=0 longest=- rec=")
 
 
+@allure.title(
+    "profile が途中で途切れた JSON の場合は、警告を出すが終了コード 0 のままにして、レーン 0 と表示する"
+)
 def test_broken_profile_warns_and_keeps_exit_code(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """36. 途中まで書かれた JSON（nx 中断時）→ WARN を stderr に出すが exit 0、レーン 0。"""
+    """`nx` の中断で、profile の JSON が途中までしか書かれていない場合のテストです。警告が表示されるものの終了コードは 0 のままで、合計の行にレーン 0 が表示されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1454,10 +1503,11 @@ def test_broken_profile_warns_and_keeps_exit_code(
         assert nx_rows[0][4].startswith("parallel=4 lanes=0 longest=- rec=")
 
 
+@allure.title("所要時間が負の値になる場合は、0.0 秒に丸めて合計の行を 1 行表示する")
 def test_negative_duration_is_clamped_to_zero(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """37. 壁時計差で dur が負 → 0.0 に丸め、exit 0 のまま合計行 1 行を出す。"""
+    """壁時計の差で task の所要時間が負になる場合のテストです。負の値が 0.0 に丸められ、終了コード 0 のまま合計の行が 1 行表示されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1479,14 +1529,11 @@ def test_negative_duration_is_clamped_to_zero(
         assert tasks["lane-one:test-unit"] == "0.0"
 
 
+@allure.title("configuration 付きの test の task も、レーンとして数える")
 def test_configured_test_task_counts_as_lane(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """38. configuration 付き task（id が lane-two:test-unit:ci、args.target.target は test-unit）もレーンに数える。
-
-    レーン名は `<project>:<target>`（lane-two:test-unit）で、同名の別 task とは重複除外される。
-    最長の名前は task id のまま。
-    """
+    """task の id が `lane-two:test-unit:ci` のように configuration を含む場合のテストです。レーン名が `<project>:<target>` として数えられ、最長の名前は task の id のまま表示されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1507,13 +1554,11 @@ def test_configured_test_task_counts_as_lane(
         assert nx_rows[0][4].startswith("parallel=4 lanes=2 longest=lane-two:test-unit:ci rec=")
 
 
+@allure.title("同じ project の 2 つのレーンは、2 レーンとして数える")
 def test_two_lanes_of_the_same_project_count_as_two(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """38a. 同じ project の 2 レーン（lane-one:test-unit と lane-one:test-hooks）は 2 レーンに数える。
-
-    重複除外のキーは `<project>:<target>`。project だけをキーにすると 1 レーンに潰れる。
-    """
+    """`lane-one:test-unit` と `lane-one:test-hooks` のように、同じ project に 2 つのレーンがある場合のテストです。重複を除く単位が `<project>:<target>` となり、レーン数が 2 になることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1533,10 +1578,11 @@ def test_two_lanes_of_the_same_project_count_as_two(
         assert " lanes=2 " in nx_rows[0][4]
 
 
+@allure.title("レーンを束ねる起点の `test` は、レーン数にも最長の判定にも含めない")
 def test_aggregator_test_target_is_not_a_lane(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """38b. レーンを束ねる起点 `test`（nx:noop）はレーンの数にも最長の判定にも数えない。"""
+    """`nx:noop` の起点の task が profile に含まれる場合のテストです。レーン数と最長のレーンの判定から外れ、task の行には記録されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1557,10 +1603,11 @@ def test_aggregator_test_target_is_not_a_lane(
         assert "lane-one:test" in tasks
 
 
+@allure.title("2 回目の nx だけ別の task が最長になる場合は、実行をまたいで最長のレーンを選ぶ")
 def test_multiple_tips_pick_longest_across_runs(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script, git, git_rev_parse
 ) -> None:
-    """39. 2 回目の nx だけ別の task が最長 → push 全体の最長は起動をまたいで選ばれる。"""
+    """2 つのブランチを push し、2 回目の `nx` の task のほうが長い場合のテストです。push 全体の最長として、2 回目の task が合計の行に表示されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
     feature2_sha, _ = _add_second_feature(at_repo, git, git_rev_parse)
@@ -1588,10 +1635,13 @@ def test_multiple_tips_pick_longest_across_runs(
 # ====
 
 
+@allure.title(
+    "`PECOT_NX_CI=1` の場合は、affected を `--output-style=static` で実行し、`--nxBail` を付けない"
+)
 def test_ci_mode_affected_uses_static_without_bail(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """PECOT_NX_CI=1 → affected は --output-style=static で、--nxBail を付けない。"""
+    """CI のモードで `nx affected` を実行した場合のテストです。起動の引数に `--output-style=static` と `--parallel=4` が含まれ、`--nxBail` が含まれないことを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1614,10 +1664,11 @@ def test_ci_mode_affected_uses_static_without_bail(
         assert "--parallel=4" in affected[0]
 
 
+@allure.title("`PECOT_NX_CI=1` の場合は、run-many も static の出力で実行し、`--nxBail` を付けない")
 def test_ci_mode_run_many_uses_static_without_bail(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """PECOT_NX_CI=1 → run-many フォールバックも static で、--nxBail を付けない。"""
+    """CI のモードで `nx run-many` にフォールバックした場合のテストです。起動の引数に `--output-style=static` が含まれ、`--nxBail` が含まれないことを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature_no_remote()
 
@@ -1638,11 +1689,12 @@ def test_ci_mode_run_many_uses_static_without_bail(
         assert "--nxBail" not in run_many[0]
 
 
+@allure.title("`PECOT_NX_CI` が {value} の場合は、stream の出力と `--nxBail` のままにする")
 @pytest.mark.parametrize("value", [None, "", "0", "true"])
 def test_ci_mode_unset_or_other_value_keeps_stream_and_bail(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script, value: str | None
 ) -> None:
-    """未設定・1 以外の値 → 今までどおり stream と --nxBail（affected と run-many の両方）。"""
+    """`PECOT_NX_CI` を未設定にした場合や、1 以外の値にした場合のテストです。`affected` と `run-many` のどちらも、`--output-style=stream` と `--nxBail` で起動され、static にならないことを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
     env = {"PRE_COMMIT_TO_REF": at_repo.feature_sha}
@@ -1672,14 +1724,11 @@ def test_ci_mode_unset_or_other_value_keeps_stream_and_bail(
         assert "--output-style=stream" in many[0]
 
 
+@allure.title("CI のモードで失敗した場合は、失敗した task の塊だけを標準エラー出力に表示する")
 def test_ci_mode_failure_reports_only_the_failed_task_chunk(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """static の失敗 → 失敗レーンの塊だけを stderr へ出し、他のレーンの塊は出さない。
-
-    見出しは `::group::❌ > nx run p:test-cli  [local cache]` 形式。
-    `p:test-cli-x` は `p:test-cli` の前方一致だが、別の task なので出さない。
-    """
+    """static の出力で `p:test-cli` が失敗した場合のテストです。失敗したレーンの本文と要約が表示され、前方一致する `p:test-cli-x` を含む他のレーンの塊は表示されず、ログには全レーン分が残ることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1720,10 +1769,11 @@ def test_ci_mode_failure_reports_only_the_failed_task_chunk(
         assert "STATIC_PASS_HOOKS_BODY" in log_text
 
 
+@allure.title("CI のモードで終了コード 130 で失敗しても、終了コードを 1 にそろえる")
 def test_ci_mode_failure_normalizes_exit_130(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """static でも exit 130 → 1 の正規化は残る。"""
+    """static の出力で `nx` が終了コード 130 で失敗した場合のテストです。スクリプトの終了コードが 1 に正規化され、元の終了コードが標準エラー出力に案内されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1750,11 +1800,14 @@ def _lane_headings(stderr: str) -> list[str]:
     return [ln for ln in stderr.splitlines() if ln.startswith("=== 失敗レーン:")]
 
 
+@allure.title(
+    "stream の出力で性能レポートの推奨（{shape}）が続いても、失敗したレーンとして拾わない"
+)
 @pytest.mark.parametrize("shape", _RECOMMEND_SHAPES)
 def test_failure_ignores_performance_report_recommendations_in_stream(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script, shape: str
 ) -> None:
-    """性能レポートの推奨（`    - Cache: …`）を失敗レーンとして拾わない（stream）。"""
+    """`nx` の性能レポートに推奨の行（`    - Cache: …` の形）が続く場合のテストです。stream の出力で、失敗したレーンの見出しが `lane-two` の 1 つだけになり、推奨の行は要約として表示されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1774,11 +1827,14 @@ def test_failure_ignores_performance_report_recommendations_in_stream(
         assert "Cache: drop" in result.stderr  # 要約としては出る
 
 
+@allure.title(
+    "static の出力で性能レポートの推奨（{shape}）が続いても、失敗したレーンとして拾わない"
+)
 @pytest.mark.parametrize("shape", _RECOMMEND_SHAPES)
 def test_failure_ignores_performance_report_recommendations_in_static(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script, shape: str
 ) -> None:
-    """性能レポートの推奨を失敗レーンとして拾わない（static）。"""
+    """`nx` の性能レポートに推奨の行が続く場合のテストです。static の出力で、失敗したレーンの見出しが `p:test-cli` の 1 つだけになることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1799,11 +1855,14 @@ def test_failure_ignores_performance_report_recommendations_in_static(
         assert _lane_headings(result.stderr) == ["=== 失敗レーン: p:test-cli ==="]
 
 
+@allure.title(
+    "失敗が 2 件で推奨が続く場合も、2 件とも拾い、推奨は拾わない（static が {static} の場合）"
+)
 @pytest.mark.parametrize("static", [False, True])
 def test_failure_with_two_lanes_and_recommendations_reports_both(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script, static: bool
 ) -> None:
-    """失敗が 2 件で推奨が続いても、2 件とも拾い、推奨は拾わない。"""
+    """2 つのレーンが失敗し、その後に性能レポートの推奨が続く場合のテストです。stream と static のどちらでも、失敗したレーンの見出しが 2 つだけ表示され、推奨の行は含まれないことを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1826,10 +1885,13 @@ def test_failure_with_two_lanes_and_recommendations_reports_both(
         assert _lane_headings(result.stderr) == expected
 
 
+@allure.title(
+    "`PECOT_NX_PARALLEL=2` を指定すると、nx に `--parallel=2` を渡し、表示と記録も並列 2 にする"
+)
 def test_nx_parallel_env_overrides_default(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """PECOT_NX_PARALLEL=2 → nx へ --parallel=2、要約は「並列 2」、timing の nx 行は parallel=2。"""
+    """`PECOT_NX_PARALLEL` で並列数を指定した場合のテストです。`nx` に渡す引数、標準出力の合計の行、所要時間の記録のすべてで、既定の 4 ではなく指定した 2 が使われることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1849,10 +1911,11 @@ def test_nx_parallel_env_overrides_default(
         assert nx_rows[0][4].startswith("parallel=2 ")
 
 
+@allure.title("`PECOT_NX_PARALLEL` が空文字列の場合は、既定の 4 を使う")
 def test_nx_parallel_empty_uses_default(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """PECOT_NX_PARALLEL= （空文字列）→ 既定の 4。"""
+    """`PECOT_NX_PARALLEL` に空文字列を指定した場合のテストです。`nx` に `--parallel=4` が渡され、標準出力の合計の行にも並列 4 が表示されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1868,11 +1931,14 @@ def test_nx_parallel_empty_uses_default(
         assert "並列 4" in result.stdout
 
 
+@allure.title(
+    "`PECOT_NX_PARALLEL` が {value} のように正の整数でない場合は、nx を起動せずにエラーで終了する"
+)
 @pytest.mark.parametrize("value", ["0", "abc", "-1", "2.5", "04", "2 3"])
 def test_nx_parallel_invalid_fails_before_nx(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script, value: str
 ) -> None:
-    """PECOT_NX_PARALLEL が正の整数でない → nx を起動せず exit 1 で ERROR を出す。"""
+    """`PECOT_NX_PARALLEL` に、0・負の値・小数・先頭が 0 の数・空白を含む値などを指定した場合のテストです。終了コードが 1 になり、値を示すエラーが表示され、`nx` が起動されないことを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1905,10 +1971,11 @@ def _guard_values(h: _AffectedTestsRepo) -> list[str]:
     return [ln[len(prefix) :] for ln in read_output(h.nx_log).splitlines() if ln.startswith(prefix)]
 
 
+@allure.title("lane モードでは、affected を呼ばず、指定したレーンの run-many を 1 回だけ実行する")
 def test_lane_mode_runs_one_lane_with_run_many(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """lane モード → affected を呼ばず、run-many -t <target> -p <project> を 1 回だけ呼ぶ。"""
+    """`PECOT_NX_LANE` にレーンを指定して CI のモードで実行した場合のテストです。`nx affected` が呼ばれず、`nx run-many` が指定したレーンだけで 1 回実行され、pm-guard の環境変数が 0 になることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1933,10 +2000,13 @@ def test_lane_mode_runs_one_lane_with_run_many(
         assert _guard_values(at_repo) == ["0"]
 
 
+@allure.title(
+    "lane モードでは、ブランチ削除の push でもレーンを 1 回実行し、pm-guard の環境変数は設定しない"
+)
 def test_lane_mode_skip_tip_still_runs_lane_without_guard(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """skip の tip（ブランチ削除）でもレーンは 1 回動かし、pm-guard の env は unset。"""
+    """lane モードでブランチ削除の push を受けた場合のテストです。`nx run-many` が 1 回だけ実行され、`nx affected` は呼ばれず、`PECOTV_PM_GUARD_BEHAVIOR` が未設定になることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -1950,10 +2020,13 @@ def test_lane_mode_skip_tip_still_runs_lane_without_guard(
         assert _guard_values(at_repo) == ["unset"]
 
 
+@allure.title(
+    "lane モードでは、base を解決できない場合もレーンを 1 回だけ実行し、pm-guard の環境変数は設定しない"
+)
 def test_lane_mode_fallback_runs_lane_once_without_guard(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """base を解決できないフォールバックでも、レーンを 1 回だけ動かし、pm-guard は unset。"""
+    """lane モードで base を解決できないフォールバックになった場合のテストです。指定したレーンの `nx run-many` が 1 回だけ実行され、`PECOTV_PM_GUARD_BEHAVIOR` が未設定になることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature_no_remote("feature", "plugins/pecot-visual/cli/package.json")
 
@@ -1973,10 +2046,13 @@ def test_lane_mode_fallback_runs_lane_once_without_guard(
         assert _guard_values(at_repo) == ["unset"]
 
 
+@allure.title(
+    "lane モードでは、push 情報がなくてもレーンを 1 回実行し、pm-guard の環境変数は設定しない"
+)
 def test_lane_mode_without_push_info_runs_lane_once(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """push 情報が無くてもレーンを 1 回動かし、pm-guard は unset。"""
+    """lane モードで push 情報が存在しない場合のテストです。`nx run-many` が 1 回だけ実行され、`PECOTV_PM_GUARD_BEHAVIOR` が未設定になることを確認します。"""
     at_repo.install_nx_stub()
 
     result = _run(script_dir, at_repo, run_script, env=_LANE_ENV)
@@ -1988,10 +2064,13 @@ def test_lane_mode_without_push_info_runs_lane_once(
         assert _guard_values(at_repo) == ["unset"]
 
 
+@allure.title(
+    "lane モードでは、複数の tip でもレーンを 1 回だけ実行し、1 つでも pm-guard の対象があれば 1 にする"
+)
 def test_lane_mode_multiple_tips_run_lane_once_and_guard_is_one_if_any(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script, git, git_rev_parse
 ) -> None:
-    """複数 tip でもレーンは 1 回。1 つでも pm-guard 対象の変更があれば 1。"""
+    """lane モードで 2 つのブランチを push し、一方に pm-guard の対象の変更がある場合のテストです。`nx run-many` が 1 回だけ実行され、`PECOTV_PM_GUARD_BEHAVIOR` が 1 になることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature(changed_path="plugins/pecot-visual/cli/package.json")
     feat1_sha = at_repo.feature_sha
@@ -2009,10 +2088,13 @@ def test_lane_mode_multiple_tips_run_lane_once_and_guard_is_one_if_any(
         assert _guard_values(at_repo) == ["1"]
 
 
+@allure.title(
+    "lane モードでは、pm-guard の対象の tip とフォールバックの tip が並んでも、レーンを 1 回だけ実行し、pm-guard は設定しない"
+)
 def test_lane_mode_mixed_guard_and_fallback_tips_run_lane_once_without_guard(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script, git, git_rev_parse
 ) -> None:
-    """guard=1 の tip とフォールバックの tip が並んでも、レーンは 1 回で pm-guard は unset。"""
+    """lane モードで、pm-guard の対象になる tip と、base を解決できない tip を同時に push した場合のテストです。全 project の実行を案内する警告が表示され、`nx run-many` が 1 回だけ実行されて、`PECOTV_PM_GUARD_BEHAVIOR` が未設定になることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature(changed_path="plugins/pecot-visual/cli/package.json")
     # main と履歴がつながらない commit。merge-base を取れず、フォールバックになる。
@@ -2035,6 +2117,7 @@ def test_lane_mode_mixed_guard_and_fallback_tips_run_lane_once_without_guard(
         assert _guard_values(at_repo) == ["unset"]
 
 
+@allure.title("lane に {bad_lane} を指定すると、run-many を呼ばずにエラーで終了する")
 @pytest.mark.parametrize(
     "bad_lane",
     [
@@ -2051,7 +2134,7 @@ def test_lane_mode_mixed_guard_and_fallback_tips_run_lane_once_without_guard(
 def test_lane_mode_rejects_invalid_lane_before_nx_run(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script, bad_lane: str
 ) -> None:
-    """集合に無い target・まとめ役・不正な形は ERROR で exit 1。run-many は呼ばない。"""
+    """`PECOT_NX_LANE` に、存在しない target・束ねる起点・test 以外のレーン・不正な形の値を指定した場合のテストです。終了コードが 1 になり、エラーが表示されて、`nx run-many` と `nx affected` のどちらも呼ばれないことを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -2072,10 +2155,13 @@ def test_lane_mode_rejects_invalid_lane_before_nx_run(
         assert _nx_calls(at_repo, "affected") == []
 
 
+@allure.title(
+    "指定したレーンの task が profile に存在しない場合は、成功とせずに終了コード 1 で終了する"
+)
 def test_lane_mode_fails_when_profile_has_no_task_of_the_lane(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """集合にある target でも、profile にそのレーンの task が無ければ（0 件で成功）exit 1。"""
+    """集合に含まれる target であっても、profile にそのレーンの task が存在しない場合のテストです。0 件のまま成功と見なさず、終了コードが 1 になり、task を見つけられないというエラーが表示されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -2094,11 +2180,14 @@ def test_lane_mode_fails_when_profile_has_no_task_of_the_lane(
         assert "lane-two:test-cli の task を nx の profile で見つけられません" in result.stderr
 
 
+@allure.title(
+    "profile が {stub_env} の状態の場合は、レーンの task を確認できないため、終了コード 1 で終了する"
+)
 @pytest.mark.parametrize("stub_env", ["STUB_NX_EMPTY_PROFILE", "STUB_NX_NO_PROFILE"])
 def test_lane_mode_fails_when_profile_is_empty_or_missing(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script, stub_env: str
 ) -> None:
-    """profile が空配列・無いときも、レーンの task を確かめられないので exit 1。"""
+    """profile が空の配列である場合と、profile が存在しない場合のテストです。レーンの task を確認できないため、終了コードが 1 になり、task を見つけられないというエラーが表示されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -2113,10 +2202,11 @@ def test_lane_mode_fails_when_profile_is_empty_or_missing(
         assert "task を nx の profile で見つけられません" in result.stderr
 
 
+@allure.title("レーンの run-many が失敗すると、終了コード 1 で終了する")
 def test_lane_mode_propagates_nx_failure(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """レーンの run-many が失敗したら exit 1。"""
+    """lane モードで `nx run-many` が失敗した場合のテストです。スクリプトの終了コードが 1 になることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -2130,10 +2220,13 @@ def test_lane_mode_propagates_nx_failure(
         assert result.returncode == 1
 
 
+@allure.title(
+    "`PECOT_NX_CI=1` がないと、`PECOT_NX_LANE` を警告つきで無視し、従来どおり affected を実行する"
+)
 def test_lane_is_ignored_with_warn_without_ci_mode(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """PECOT_NX_CI=1 が無いと PECOT_NX_LANE は WARN を出して無視し、これまでどおり affected を動かす。"""
+    """`PECOT_NX_CI=1` を指定せず、`PECOT_NX_LANE` だけを指定した場合のテストです。警告が表示され、`nx affected` が `--nxBail` つきで 1 回実行されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 
@@ -2151,10 +2244,11 @@ def test_lane_is_ignored_with_warn_without_ci_mode(
         assert "--nxBail" in _nx_calls(at_repo, "affected")[0]
 
 
+@allure.title("`PECOT_NX_LANE` が空の場合は、lane モードにせず、警告も出さない")
 def test_empty_lane_env_is_not_lane_mode(
     script_dir: Path, at_repo: _AffectedTestsRepo, run_script
 ) -> None:
-    """PECOT_NX_LANE が空なら lane モードにならず、WARN も出さない。"""
+    """`PECOT_NX_CI=1` で `PECOT_NX_LANE` が空文字列の場合のテストです。`PECOT_NX_LANE` に触れる出力が表示されず、`nx affected` が 1 回実行されることを確認します。"""
     at_repo.install_nx_stub()
     at_repo.build_feature()
 

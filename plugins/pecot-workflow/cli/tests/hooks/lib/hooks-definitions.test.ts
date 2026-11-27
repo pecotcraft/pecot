@@ -10,6 +10,7 @@ import { isFile } from '../_helpers/files.js'
 import { toArray, toRecord } from '../_helpers/json.js'
 import { projectRoot } from '../_helpers/paths.js'
 import { parseJson } from '../_helpers/text.js'
+import { explains } from '../../_helpers/explains.js'
 
 const WORKFLOW = 'pecot-workflow'
 const VISUAL = 'pecot-visual'
@@ -170,7 +171,8 @@ function isExecutable(target: string): boolean {
 
 // 全定義共通。
 describe('全定義共通', () => {
-  it.for(DEFINITIONS)('$label の全 hook が、期待の timeout を持つ', (row) => {
+  it.for(DEFINITIONS)('$label の全 hook が、期待の timeout を持つ', async (row) => {
+    await explains(`hook の定義（\`${row.label}\`）のテストです。すべての hook に \`timeout\` が設定され、イベントとスクリプトごとに決めた期待する値と一致することを確認します。`)
     const hooks = load(row.plugin, row.name)
     let seen = 0
     for (const { event, matcher, hook } of allHooks(hooks)) {
@@ -181,7 +183,8 @@ describe('全定義共通', () => {
     expect(seen).toBeGreaterThan(0)
   })
 
-  it.for(DEFINITIONS)('$label の command は、プラグインルートの変数をクォートする', (row) => {
+  it.for(DEFINITIONS)('$label の command は、プラグインルートの変数をクォートする', async (row) => {
+    await explains(`hook の定義（\`${row.label}\`）のテストです。\`command\` 形式の hook の \`command\` が、\`CLAUDE_PLUGIN_ROOT\` をクォートした \`hooks\` 配下のファイルの形であることを確認します。`)
     const flat = allHooks(load(row.plugin, row.name)).filter(({ hook }) => isCommand(hook))
     for (const { event, matcher, hook } of flat) {
       expect(hook.type).toBe('command')
@@ -189,7 +192,8 @@ describe('全定義共通', () => {
     }
   })
 
-  it.for(DEFINITIONS)('$label の command が指すファイルは、実在し実行できる', (row) => {
+  it.for(DEFINITIONS)('$label の command が指すファイルは、実在し実行できる', async (row) => {
+    await explains(`hook の定義（\`${row.label}\`）のテストです。\`command\` 形式の hook の指すファイルが、実在し、実行権限を持つことを確認します。`)
     const flat = allHooks(load(row.plugin, row.name)).filter(({ hook }) => isCommand(hook))
     for (const { event, matcher, hook } of flat) {
       const target = path.join(pluginsDirectory, row.plugin, 'hooks', fileOf(hook))
@@ -198,7 +202,8 @@ describe('全定義共通', () => {
     }
   })
 
-  it.for(DEFINITIONS)('$label の PreToolUse は、すべて matcher を持つ', (row) => {
+  it.for(DEFINITIONS)('$label の PreToolUse は、すべて matcher を持つ', async (row) => {
+    await explains(`hook の定義（\`${row.label}\`）のテストです。PreToolUse のすべてのエントリが、\`matcher\` を持つことを確認します。`)
     const entries = entriesOf(load(row.plugin, row.name), 'PreToolUse')
     for (const entry of entries) {
       expect(entry.matcher, `matcher 無しの PreToolUse: ${JSON.stringify(entry)}`).toBeTruthy()
@@ -206,7 +211,8 @@ describe('全定義共通', () => {
   })
 
   // camelCase のイベント名は camelCase の入力を送る形式になり、hooks が読めない。
-  it.for(COPILOT_DEFINITIONS)('$label のイベント名は、PascalCase になっている', (row) => {
+  it.for(COPILOT_DEFINITIONS)('$label のイベント名は、PascalCase になっている', async (row) => {
+    await explains(`Copilot 向けの hook の定義（\`${row.label}\`）のテストです。すべてのイベント名が、PascalCase の一覧に含まれることを確認します。`)
     const events = eventsOf(load(row.plugin, row.name))
     expect(events.filter(event => !PASCAL_CASE_EVENTS.has(event))).toEqual([])
   })
@@ -222,7 +228,8 @@ describe('撤廃したエントリ', () => {
   it.for([
     { label: 'Claude', name: 'hooks.json' },
     { label: 'Copilot', name: COPILOT_HOOKS },
-  ])('$label の PreToolUse の matcher に、Edit 系と WebSearch が無い', (row) => {
+  ])('$label の PreToolUse の matcher に、Edit 系と WebSearch が無い', async (row) => {
+    await explains(`pecot-workflow の hook の定義（${row.label}）のテストです。PreToolUse の \`matcher\` に、撤廃した Edit 系のツールと \`WebSearch\` が含まれないことを確認します。`)
     const tools = entriesOf(load(WORKFLOW, row.name), 'PreToolUse').flatMap(entry => toolsOf(entry.matcher))
     expect(tools.filter(tool => REMOVED_PRE_TOOLS.has(tool))).toEqual([])
   })
@@ -230,7 +237,8 @@ describe('撤廃したエントリ', () => {
   it.for([
     { label: 'Claude', name: 'hooks.json' },
     { label: 'Copilot', name: COPILOT_HOOKS },
-  ])('$label の PostToolUse の matcher に、Skill と Bash が無い', (row) => {
+  ])('$label の PostToolUse の matcher に、Skill と Bash が無い', async (row) => {
+    await explains(`pecot-workflow の hook の定義（${row.label}）のテストです。PostToolUse の \`matcher\` に、撤廃した \`Skill\` と \`Bash\` が含まれないことを確認します。`)
     const tools = entriesOf(load(WORKFLOW, row.name), 'PostToolUse').flatMap(entry => toolsOf(entry.matcher))
     expect(tools.filter(tool => REMOVED_POST_TOOLS.has(tool))).toEqual([])
   })
@@ -238,7 +246,8 @@ describe('撤廃したエントリ', () => {
   it.for([
     { label: 'Claude', name: 'hooks.json' },
     { label: 'Copilot', name: COPILOT_HOOKS },
-  ])('$label の定義に、Stop と Notification のエントリが無い', (row) => {
+  ])('$label の定義に、Stop と Notification のエントリが無い', async (row) => {
+    await explains(`pecot-workflow の hook の定義（${row.label}）のテストです。\`Stop\` と \`Notification\` のイベントが、定義に含まれないことを確認します。`)
     const events = eventsOf(load(WORKFLOW, row.name))
     expect(events.filter(event => event === 'Stop' || event === 'Notification')).toEqual([])
   })
@@ -246,7 +255,8 @@ describe('撤廃したエントリ', () => {
   it.for([
     { label: 'Claude', name: 'hooks.json' },
     { label: 'Copilot', name: COPILOT_HOOKS },
-  ])('$label の定義の description に、通知の言及が無い', (row) => {
+  ])('$label の定義の description に、通知の言及が無い', async (row) => {
+    await explains(`pecot-workflow の hook の定義（${row.label}）のテストです。定義の \`description\` に、通知（\`notification\`）への言及が含まれないことを確認します。`)
     const text = readFileSync(definitionPath(WORKFLOW, row.name), 'utf8')
     const root = toRecord(parseJson(text), '定義')
     expect(String(root['description'])).not.toMatch(/notification/iu)
@@ -258,7 +268,8 @@ describe('撤廃したエントリ', () => {
 const WORKTREE_SETUP_ENTRY = 'session-start-worktree-setup.sh'
 
 describe('SessionStart', () => {
-  it.for(CLAUDE_DEFINITIONS)('$label の Claude 定義は、SessionStart を 1 エントリにまとめ、pecot-workflow だけ setup のエントリを別に持つ', (row) => {
+  it.for(CLAUDE_DEFINITIONS)('$label の Claude 定義は、SessionStart を 1 エントリにまとめ、pecot-workflow だけ setup のエントリを別に持つ', async (row) => {
+    await explains(`Claude Code 向けの hook の定義（\`${row.label}\`）のテストです。SessionStart を \`session-start.sh\` の 1 つのエントリにまとめ、pecot-workflow だけが setup のエントリを別に持つことを確認します。`)
     const entries = entriesOf(load(row.plugin, row.name), 'SessionStart')
     const expected = row.plugin === WORKFLOW ? 'startup|clear|resume|fork|compact' : 'startup|clear|resume'
     expect(entries.at(0)?.matcher).toBe(expected)
@@ -268,25 +279,29 @@ describe('SessionStart', () => {
   })
 
   // データ置き場は wrapper が決めるので、CLAUDE_ENV_FILE へ書く hook は無い（#1258）。
-  it.for(DEFINITIONS)('$label に、データ置き場を受け渡す hook は無い', (row) => {
+  it.for(DEFINITIONS)('$label に、データ置き場を受け渡す hook は無い', async (row) => {
+    await explains(`hook の定義（\`${row.label}\`）のテストです。データ置き場を受け渡す hook（\`session-start-data-dir\` と \`CLAUDE_ENV_FILE\`）が、定義に含まれないことを確認します。`)
     const text = readFileSync(definitionPath(row.plugin, row.name), 'utf8')
     expect(text).not.toContain('session-start-data-dir')
     expect(text).not.toContain('CLAUDE_ENV_FILE')
   })
 
-  it('pecot-tools は、hooks ディレクトリを持たない', () => {
+  it('pecot-tools は、hooks ディレクトリを持たない', async () => {
+    await explains('hook の配置のテストです。pecot-tools のプラグインに `hooks` ディレクトリが存在しないことを確認します。')
     expect(existsSync(path.join(pluginsDirectory, 'pecot-tools', 'hooks'))).toBe(false)
   })
 
   // sessionTitle は Claude Code 専用の出力項目なので、com.github.copilot/hooks/hooks.json には載せない。
-  it('セッション名のエントリは、Claude の定義にだけ置く', () => {
+  it('セッション名のエントリは、Claude の定義にだけ置く', async () => {
+    await explains('セッション名のエントリのテストです。`user-prompt-submit-title.sh` が Claude Code 向けの定義にだけ登録され、Copilot 向けの定義には含まれないことを確認します。')
     const claude = entriesOf(load(WORKFLOW, 'hooks.json'), 'UserPromptSubmit').flatMap(entry => entry.hooks.map(hook => fileOf(hook)))
     expect(claude).toEqual(['user-prompt-submit.sh', 'user-prompt-submit-title.sh'])
     const copilot = entriesOf(load(WORKFLOW, COPILOT_HOOKS), 'UserPromptSubmit').flatMap(entry => entry.hooks.map(hook => fileOf(hook)))
     expect(copilot).not.toContain('user-prompt-submit-title.sh')
   })
 
-  it.for(COPILOT_DEFINITIONS)('$label の Copilot 定義は、matcher の無い SessionStart を持ち、pecot-workflow だけ setup のエントリを別に持つ', (row) => {
+  it.for(COPILOT_DEFINITIONS)('$label の Copilot 定義は、matcher の無い SessionStart を持ち、pecot-workflow だけ setup のエントリを別に持つ', async (row) => {
+    await explains(`Copilot 向けの hook の定義（\`${row.label}\`）のテストです。\`matcher\` を持たない SessionStart を持ち、pecot-workflow だけが setup のエントリを別に持つことを確認します。`)
     const entries = entriesOf(load(row.plugin, row.name), 'SessionStart')
     expect(entries.every(entry => !entry.hasMatcher)).toBe(true)
     const files = entries.map(entry => entry.hooks.map(hook => fileOf(hook)))
@@ -300,21 +315,25 @@ function matchersOf(hooks: Hooks, entryFile: string): (string | undefined)[] {
 }
 
 describe('Copilot CLI の matcher', () => {
-  it('pecot-workflow の PreToolUse の skill の matcher は、生の tool 名を含む', () => {
+  it('pecot-workflow の PreToolUse の skill の matcher は、生の tool 名を含む', async () => {
+    await explains('Copilot 向けの hook の `matcher` のテストです。pecot-workflow の PreToolUse で skill を扱うエントリの `matcher` が、`Skill|skill` であることを確認します。')
     expect(matchersOf(load(WORKFLOW, COPILOT_HOOKS), 'pre-tool-use-skill.sh')).toEqual(['Skill|skill'])
   })
 
-  it('pecot-workflow の 2 つの定義は、PostToolUse のキーを持たない', () => {
+  it('pecot-workflow の 2 つの定義は、PostToolUse のキーを持たない', async () => {
+    await explains('Copilot 向けと Claude Code 向けの hook の定義のテストです。pecot-workflow の 2 つの定義が、どちらも PostToolUse のイベントを持たないことを確認します。')
     expect(eventsOf(load(WORKFLOW, COPILOT_HOOKS))).not.toContain('PostToolUse')
     expect(eventsOf(load(WORKFLOW, 'hooks.json'))).not.toContain('PostToolUse')
   })
 
-  it('pecot-visual の skill の matcher は、生の tool 名を含む', () => {
+  it('pecot-visual の skill の matcher は、生の tool 名を含む', async () => {
+    await explains('Copilot 向けの hook の `matcher` のテストです。pecot-visual の PreToolUse で skill を扱うエントリの `matcher` が、`Skill|skill` であることを確認します。')
     const matchers = matchersOf(load(VISUAL, COPILOT_VISUAL), 'pre-tool-use-skill.sh')
     expect(matchers).toEqual(['Skill|skill'])
   })
 
-  it('Claude の skill の matcher は、変えない', () => {
+  it('Claude の skill の matcher は、変えない', async () => {
+    await explains('Claude Code 向けの hook の `matcher` のテストです。pecot-workflow と pecot-visual の PreToolUse で skill を扱うエントリの `matcher` が、どちらも `Skill` のままであることを確認します。')
     const workflow = load(WORKFLOW, 'hooks.json')
     expect(matchersOf(workflow, 'pre-tool-use-skill.sh')).toEqual(['Skill'])
     expect(matchersOf(load(VISUAL, 'hooks.json'), 'pre-tool-use-skill.sh')).toEqual(['Skill'])
@@ -343,18 +362,21 @@ const CONFIG_KEYS = [
 ]
 
 describe('残すフックの一覧', () => {
-  it.for([...REGISTERED_SCRIPTS].map(([name, scripts]) => ({ name, scripts })))('$name に登録したスクリプトは、一覧と同じ集合になる', (row) => {
+  it.for([...REGISTERED_SCRIPTS].map(([name, scripts]) => ({ name, scripts })))('$name に登録したスクリプトは、一覧と同じ集合になる', async (row) => {
+    await explains(`pecot-workflow の hook の定義（\`${row.name}\`）のテストです。登録されているスクリプトの集合が、残すと決めた一覧と一致することを確認します。`)
     const files = new Set(allHooks(load(WORKFLOW, row.name)).map(({ hook }) => fileOf(hook)))
     expect([...files].toSorted(compareStrings)).toEqual(row.scripts)
   })
 
-  it('sample の設定キーは、一覧と同じ集合になる', () => {
+  it('sample の設定キーは、一覧と同じ集合になる', async () => {
+    await explains('設定ファイルの見本のテストです。`hooks-config.json.sample` に存在する設定キーの集合が、残すと決めた一覧と一致することを確認します。')
     const text = readFileSync(path.join(pluginsDirectory, WORKFLOW, 'hooks', 'hooks-config.json.sample'), 'utf8')
     const sample = toRecord(parseJson(text), 'sample')
     expect(Object.keys(sample).toSorted(compareStrings)).toEqual(CONFIG_KEYS)
   })
 
-  it('Copilot 定義の Bash の PreToolUse は、Claude と同じエントリを指す', () => {
+  it('Copilot 定義の Bash の PreToolUse は、Claude と同じエントリを指す', async () => {
+    await explains('Copilot 向けの hook の定義のテストです。Bash の PreToolUse が、Claude Code 向けと同じ `pre-tool-use-bash.sh` を `Bash` の `matcher` で指すことを確認します。')
     expect(matchersOf(load(WORKFLOW, COPILOT_HOOKS), 'pre-tool-use-bash.sh')).toEqual(['Bash'])
   })
 })
@@ -364,7 +386,8 @@ describe('MCP の PreToolUse', () => {
   it.for([
     { label: 'Claude Code', file: 'hooks.json' },
     { label: 'Copilot CLI', file: COPILOT_HOOKS },
-  ])('$label の pecot-workflow の定義に、MCP ツールに当たる PreToolUse のエントリが無い', (row) => {
+  ])('$label の pecot-workflow の定義に、MCP ツールに当たる PreToolUse のエントリが無い', async (row) => {
+    await explains(`pecot-workflow の hook の定義（${row.label}）のテストです。MCP ツールに当たる PreToolUse のエントリが存在せず、\`pre-tool-use-mcp.sh\` を指すエントリも存在しないことを確認します。`)
     const matchers = entriesOf(load(WORKFLOW, row.file), 'PreToolUse').map(entry => entry.matcher ?? '')
     expect(matchers.filter(matcher => /mcp__|create_pull_request|pecot-workflow-/u.test(matcher))).toEqual([])
     expect(matchersOf(load(WORKFLOW, row.file), 'pre-tool-use-mcp.sh')).toEqual([])

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { explains } from '../../../tests/_helpers/explains.js'
 import type { DependabotResult, DependabotSource } from '../dependabot-source.js'
 
 // 取得元の契約: 結果は kind で判別でき、失敗の kind は失敗の情報（network は message）を持つ。
@@ -15,13 +16,15 @@ function memorySource(results: {
 }
 
 describe('DependabotSource', () => {
-  it('ok は value を持つ', async () => {
+  it('取得に成功した場合は、結果が kind と value を持つ', async () => {
+    await explains('Dependabot の alert の取得元（`DependabotSource`）が返す、成功の結果のテストです。alert の一覧と有効かどうかのどちらも、`kind` が `ok` で、`value` に取得した値を持つことを確認します。')
     const source = memorySource({ alerts: { kind: 'ok', value: ['a', 'b'] }, enabled: { kind: 'ok', value: true } })
     await expect(source.listOpenAlerts('o', 'r')).resolves.toEqual({ kind: 'ok', value: ['a', 'b'] })
     await expect(source.isAlertsEnabled('o', 'r')).resolves.toEqual({ kind: 'ok', value: true })
   })
 
-  it('forbidden・rateLimited・failure は failure を、network は message を持つ', async () => {
+  it('取得に失敗した場合は、forbidden・rateLimited・failure が failure を、network が message を持つ', async () => {
+    await explains('Dependabot の alert の取得元（`DependabotSource`）が返す、失敗の結果のテストです。`forbidden`・`rateLimited`・`failure` は失敗の情報を、`network` は `message` を持ち、渡した結果がそのまま返ることを確認します。')
     const failure = { message: 'x', statusCode: 403, responseBody: undefined }
     const kinds: readonly DependabotResult<boolean>[] = [
       { kind: 'forbidden', failure },

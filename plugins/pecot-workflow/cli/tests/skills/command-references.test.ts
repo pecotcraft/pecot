@@ -4,6 +4,7 @@
 // - w-release の release-multi.md が、board_show の repositories の packages の項目名で読む
 import { describe, expect, it } from 'vitest'
 
+import { explains } from '../_helpers/explains.js'
 import { COMMANDS } from '../../src/commands/registry.js'
 import { boardShowData, boardShowResult } from '@pecot/workflow-core/commands-shared/board-view.js'
 import { parseProjectConfig } from '@pecot/workflow-core/domain/config.js'
@@ -85,25 +86,29 @@ function invalidCalls(text: string, file: string): readonly string[] {
 }
 
 describe('本文のツールの呼び出し', () => {
-  it('入力名が、そのツールの入力に実在する', () => {
+  it('入力名が、そのツールの入力に実在する', async () => {
+    await explains('スキルなどの本文に書かれたツール呼び出しのテストです。本文のインラインの記述と `text` ブロックに書かれた入力名が、そのツールの入力としてすべて存在することを確認します。')
     const invalid = readDocuments().flatMap(({ file, text }) => invalidCalls(text, file))
     expect(invalid).toEqual([])
   })
 
-  it('本文に書いたテンプレートの resource の URI は、サーバが出す resource にある', () => {
+  it('本文に書いたテンプレートの resource の URI は、サーバが提供する resource に存在する', async () => {
+    await explains('本文に書かれたテンプレートの URI のテストです。`pecot-template://` で始まる URI が 1 件以上あり、すべてサーバが提供する resource に存在することを確認します。')
     const known = new Set(TEMPLATE_RESOURCES.map(template => templateUri(template)))
     const references = readDocuments().flatMap(({ file, text }) => (text.match(TEMPLATE_URI) ?? []).map(uri => ({ file, uri })))
     expect(references.length).toBeGreaterThan(0)
     expect(references.filter(({ uri }) => !known.has(uri)).map(({ file, uri }) => `${file} ${uri}`)).toEqual([])
   })
 
-  it('呼び出しを 85 件以上拾う（拾えない呼び出しがあれば失敗する）', () => {
+  it('本文から 85 件以上のツール呼び出しを抽出できる', async () => {
+    await explains('ツール呼び出しの抽出のテストです。本文から抽出できる呼び出しが 85 件以上あることを確認します。')
     const tools = new Set(toolInputs().keys())
     const count = readDocuments().reduce((sum, { text }) => sum + collectCalls(text, tools).length, 0)
     expect(count).toBeGreaterThanOrEqual(COUNT_FLOOR)
   })
 
-  it('コードフェンスが開いたまま終わる文書は無い', () => {
+  it('閉じていないコードフェンスを持つ文書が存在しない', async () => {
+    await explains('本文のコードフェンスのテストです。どの文書にも、閉じずに終わるコードフェンスが存在しないことを確認します。')
     const tools = new Set(toolInputs().keys())
     const unclosed = readDocuments()
       .map(({ file, text }) => ({ file, line: scan(text, tools).unclosedFence }))
@@ -112,35 +117,41 @@ describe('本文のツールの呼び出し', () => {
     expect(unclosed).toEqual([])
   })
 
-  it('コードフェンスが開いたまま終わる見本の文書を検出する', () => {
+  it('閉じていないコードフェンスを持つ見本の文書から、開始行を検出する', async () => {
+    await explains('閉じていないコードフェンスの検出処理のテストです。閉じていない見本では開始行（1 行目）を返し、閉じている見本では `undefined` を返すことを確認します。')
     const text = ['```text', 'pr_create', '  title: "t"'].join('\n')
     expect(scan(text, new Set(['pr_create'])).unclosedFence).toBe(1)
     expect(scan(['```text', 'x', '```'].join('\n'), new Set()).unclosedFence).toBeUndefined()
   })
 
-  it('存在しない入力名を書いたインラインの呼び出しを検出する', () => {
+  it('存在しない入力名を書いたインラインの呼び出しを検出する', async () => {
+    await explains('インラインの呼び出しの検証処理のテストです。`pr_create` に存在しない入力名 `no_such_input` を渡した記述が、行番号つきの違反として報告されることを確認します。')
     const text = '`pr_create` を `no_such_input: "x"` で呼ぶ'
     expect(invalidCalls(text, 'sample.md')).toEqual(['sample.md:1 pr_create に入力 no_such_input が無い'])
   })
 
-  it('存在しない入力名を書いた text ブロックの呼び出しを検出する', () => {
+  it('存在しない入力名を書いた text ブロックの呼び出しを検出する', async () => {
+    await explains('`text` ブロックの呼び出しの検証処理のテストです。`pr_create` のブロックに存在しない入力名を書いた行が、行番号つきの違反として報告されることを確認します。')
     const text = ['```text', 'pr_create', '  no_such_input: "x"', '  title: "t"', '```'].join('\n')
     expect(invalidCalls(text, 'sample.md')).toEqual(['sample.md:3 pr_create に入力 no_such_input が無い'])
   })
 
-  it('ブロックの閉じフェンスより後の行は、呼び出しに数えない', () => {
+  it('ブロックの閉じフェンスより後の行は、呼び出しとして扱わない', async () => {
+    await explains('`text` ブロックの終わりの判定のテストです。閉じフェンスより後に書かれた入力名は、呼び出しの入力として扱われず、違反にならないことを確認します。')
     const text = ['```text', 'pr_create', '```', '  no_such_input: "x"'].join('\n')
     expect(invalidCalls(text, 'sample.md')).toEqual([])
   })
 
-  it('ブロックの中で、message の本文の深い字下げは入力に数えない', () => {
+  it('ブロックの中で、message の本文の深い字下げは入力として扱わない', async () => {
+    await explains('`message` の本文の扱いのテストです。`message: |` の下に深く字下げして書かれた行は、入力名として扱われず、違反にならないことを確認します。')
     const text = ['```text', 'pr_create', '  message: |', '    summary: x', '```'].join('\n')
     expect(invalidCalls(text, 'sample.md')).toEqual([])
   })
 })
 
 describe('commands.md', () => {
-  it('COMMANDS の全コマンドが載っている', () => {
+  it('commands.md に COMMANDS の全コマンドが記載されている', async () => {
+    await explains('w-help の `commands.md` のテストです。`COMMANDS` に登録されたすべてのコマンドの path が、バッククォートで囲んで記載されていることを確認します。')
     const document = readPluginFile('skills/w-help/references/commands.md')
     const missing = COMMANDS.map(command => command.path.join(' ')).filter(path => !document.includes(`\`${path}\``))
     expect(missing).toEqual([])
@@ -148,7 +159,8 @@ describe('commands.md', () => {
 })
 
 describe('release-multi.md', () => {
-  it('package は、対象リポの package の一覧から選ぶ', () => {
+  it('release-multi.md は、対象リポジトリの package の一覧から package を選ぶ書き方になっている', async () => {
+    await explains('w-release の `release-multi.md` のテストです。`board_show` の結果の `repositories` に含まれる `packages` の項目名で読む記述があり、古い `package: NAME` の書き方が含まれないことを確認します。')
     const config = parseProjectConfig({
       host: 'github.com',
       owner: 'demo',

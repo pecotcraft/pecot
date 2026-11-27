@@ -31,6 +31,7 @@ import { verifies } from '../../_helpers/verifies.js'
 import { readOutput } from '../../_helpers/attach.js'
 import { makeStream } from '../../_helpers/talk-directory.js'
 import type { CapturedStream } from '../../_helpers/talk-directory.js'
+import { explains } from '../../_helpers/explains.js'
 
 const HERE = import.meta.dirname
 // repo の plugins/pecot-visual が plugin-root（cli/.. = plugins/pecot-visual）。
@@ -80,7 +81,8 @@ function readJson(file: string): Record<string, unknown> {
 }
 
 describe('executeSlideCreate (smoke)', () => {
-  it('fixture テーマを file: で指して、生成するものだけを作る', async () => {
+  it('fixture のテーマを file: で指定すると、決まったファイルだけを生成し、レイアウトの一覧を標準出力に表示する', async () => {
+    await explains('`slide create` の実行結果のテストです。fixture のテーマを `file:` で指定した場合に、`slides.md`・`package.json`・`pages` などが生成されることを確認します。')
     const theme = declaredTheme()
     const projectDirectory = temporaryRoot('sample')
     const stderr = makeStream('stderr')
@@ -176,7 +178,8 @@ describe('executeSlideCreate (smoke)', () => {
     expect(stderr.chunks.join('')).not.toContain('cannot read the layout categories')
   })
 
-  it('fixture テーマ: 宣言の examples から初期ページを作り、生成する vite.config.ts はテーマの name だけで決まる', async () => {
+  it('宣言を持つテーマでは、宣言の examples から初期ページを作成し、vite.config.ts はテーマの name だけで決まる', async () => {
+    await explains('宣言を持つテーマに対する、`slide create` のテストです。宣言の `examples` から初期ページと `slides.md` が作成され、結果のイベントにレイアウトの名前・分類・並びが宣言どおりに含まれることを確認します。')
     const theme = copyFixtureTheme('with-declaration', 'declared-theme')
     const projectDirectory = temporaryRoot('declared-talk')
     const stderr = makeStream('stderr')
@@ -214,7 +217,8 @@ describe('executeSlideCreate (smoke)', () => {
     expect(stderr.chunks.join('')).not.toContain('warning:')
   })
 
-  it('宣言の無いテーマ: layout だけの初期ページ 1 つと警告', async () => {
+  it('宣言を持たないテーマでは、layout だけの初期ページを 1 つ作成し、警告を表示する', async () => {
+    await explains('宣言を持たないテーマに対する、`slide create` のテストです。初期ページが `one.md` の 1 つだけ作成され、`examples` に関する警告が標準エラーと結果の `warnings` に含まれることを確認します。')
     const theme = copyFixtureTheme('without-declaration', 'bare-theme')
     const projectDirectory = temporaryRoot('bare-talk')
     const stderr = makeStream('stderr')
@@ -235,7 +239,8 @@ describe('executeSlideCreate (smoke)', () => {
     expect(data['warnings']).toEqual(expect.arrayContaining([expect.stringContaining('examples')]))
   })
 
-  it('取得中の警告を結果の warnings に載せ、package.json が JSON でないテーマでも進む', async () => {
+  it('テーマの取得中に警告が出ると結果の warnings に含め、package.json が JSON でないテーマでも生成を続ける', async () => {
+    await explains('テーマの取得中に警告が発生した場合の、`slide create` のテストです。警告が `warnings` に含まれ、標準エラーには `warning:` の接頭辞が 1 回だけ付いて表示され、生成が最後まで進むことを確認します。')
     const theme = copyFixtureTheme('without-declaration', 'broken-manifest-theme')
     const projectDirectory = temporaryRoot('broken-manifest-talk')
     // fetchTheme の port が name と directory を返す。テーマの package.json は JSON として読めない。
@@ -261,7 +266,8 @@ describe('executeSlideCreate (smoke)', () => {
       .toBe(viteConfigSource({ themeName: BARE_THEME_NAME }))
   })
 
-  it('相対の file: は cwd 基準で絶対化し、package.json には talk-dir からの相対で書く', async () => {
+  it('相対パスの file: は現在のディレクトリを基準に絶対パスへ変換し、package.json には talk-dir からの相対パスで書く', async () => {
+    await explains('相対パスで指定したテーマの扱いのテストです。`file:./bare-theme` を指定した場合に、`package.json` へ相対パス `file:../../bare-theme` が書かれることを確認します。')
     const theme = copyFixtureTheme('without-declaration', 'bare-theme')
     const projectDirectory = temporaryRoot('nested', 'talk')
     const currentDirectory = temporaryRoot()
@@ -277,7 +283,8 @@ describe('executeSlideCreate (smoke)', () => {
     expect(realpathSync(path.join(projectDirectory, 'node_modules', BARE_THEME_NAME))).toBe(realpathSync(theme.directory))
   })
 
-  it('既存ディレクトリ + force=false は SlideCreateUsageError(dest-exists) を投げる', async () => {
+  it('出力先のディレクトリが存在し force が false の場合は、dest-exists の SlideCreateUsageError が発生する', async () => {
+    await explains('出力先がすでに存在する場合の、`runSlideCreate` のテストです。生成した後で、同じ出力先へ `force: false` で再度実行した場合に、`SlideCreateUsageError` の例外が発生することを確認します。')
     const projectDirectory = temporaryRoot('sample')
     await runSlideCreate(
       projectDirectory,
@@ -293,6 +300,7 @@ describe('executeSlideCreate (smoke)', () => {
 
   it('--force で既存ディレクトリを上書きし、前の生成物を残さない', async (context) => {
     await verifies(context, 'PV-SLIDE-CREATE-05')
+    await explains('`--force` を指定した場合の、`runSlideCreate` のテストです。生成済みの出力先に前回の生成物 `stale.md` がある状態で再実行した場合に、成功し、`stale.md` が削除されて初期ページが作成されることを確認します。')
     const projectDirectory = temporaryRoot('sample')
     await runSlideCreate(
       projectDirectory,
@@ -313,7 +321,8 @@ describe('executeSlideCreate (smoke)', () => {
     expect(existsSync(path.join(projectDirectory, 'pages', 'stale.md'))).toBe(false)
   })
 
-  it('生成の途中で失敗したら、生成途中の talk-dir を消す', async () => {
+  it('生成の途中で失敗すると、生成途中の talk-dir を削除する', async () => {
+    await explains('生成が途中で失敗した場合の、`runSlideCreate` のテストです。依存のルートに `node_modules` が存在せず、`symlink-failed` で失敗した場合に、生成途中の出力先が残らないことを確認します。')
     const theme = copyFixtureTheme('without-declaration', 'bare-theme')
     const projectDirectory = temporaryRoot('half-made')
 
@@ -328,8 +337,9 @@ describe('executeSlideCreate (smoke)', () => {
     expect(existsSync(projectDirectory)).toBe(false)
   })
 
-  it('--force で、生成の途中 (node_modules の組み立て) に失敗しても、既存の生成先は残り、一時 dir は残らない', async (context) => {
+  it('--force を指定した生成の途中で node_modules の組み立てに失敗しても、既存の出力先を残し、一時ディレクトリを残さない', async (context) => {
     await verifies(context, 'PV-SLIDE-CREATE-05')
+    await explains('`--force` を指定した生成が途中で失敗した場合の、`runSlideCreate` のテストです。テーマのディレクトリが存在せず、例外で失敗した場合に、既存の `slides.md` は元の内容のまま残り、一時ディレクトリも残らないことを確認します。')
     await verifies(context, 'PV-SLIDE-CREATE-10')
     const projectDirectory = temporaryRoot('forced', 'talk')
     mkdirSync(projectDirectory, { recursive: true })
@@ -353,6 +363,7 @@ describe('executeSlideCreate (smoke)', () => {
   })
 
   it('テーマの宣言に pptx.linkColor が無ければ、警告を結果に載せる', async () => {
+    await explains('テーマの宣言に関する警告のテストです。宣言を持たないテーマで生成した場合に、`pptx.linkColor` が省略されることを知らせる警告が、結果の `warnings` に含まれることを確認します。')
     const theme = copyFixtureTheme('without-declaration', 'no-link-color-theme')
     const projectDirectory = temporaryRoot('no-link-color-talk')
     const dependencies = buildDependencies({ stderr: asStream(makeStream()) })
@@ -369,6 +380,7 @@ describe('executeSlideCreate (smoke)', () => {
 
 describe('executeSlideCreate の結果と失敗', () => {
   it('成功時の data に slide.create.done と projectDir・theme を載せ、template は載せない', async () => {
+    await explains('`executeSlideCreate` の成功時の結果のテストです。テーマを指定して生成が成功した場合は、`slide.create.done` のイベントへ `projectDir` と `theme` が含まれ、`template` は含まれないことを確認します。')
     const projectDirectory = temporaryRoot('sample-cmd')
 
     const { data } = await executeSlideCreate(
@@ -384,6 +396,7 @@ describe('executeSlideCreate の結果と失敗', () => {
   })
 
   it('既存ディレクトリ + force=false は dest-exists の reason と文言を返す', async () => {
+    await explains('`executeSlideCreate` の生成先の検証のテストです。既存のディレクトリへ `force: false` で生成した場合に、例外が発生し、理由が `dest-exists` になることを確認します。')
     const projectDirectory = temporaryRoot('sample-conflict')
     await executeSlideCreate(projectDirectory, { theme: declaredTheme().spec, force: false }, buildDependencies())
 
@@ -398,6 +411,7 @@ describe('executeSlideCreate の結果と失敗', () => {
   })
 
   it('テーマのディレクトリが無い file: は theme-unknown で、生成先を作らない', async () => {
+    await explains('`executeSlideCreate` のテーマの検証のテストです。ディレクトリが存在しないテーマを `file:` で指定した場合に、理由が `theme-unknown` の例外が発生し、生成先を作成しないことを確認します。')
     const projectDirectory = temporaryRoot('sample-no-theme')
 
     const error = await rejectionOf(executeSlideCreate(
@@ -413,7 +427,8 @@ describe('executeSlideCreate の結果と失敗', () => {
 })
 
 describe('slideCreateDefaultDependencies', () => {
-  it('CLAUDE_PLUGIN_ROOT があっても読まず、pluginRoot をサーバ自身の置き場所から求める', () => {
+  it('CLAUDE_PLUGIN_ROOT があっても読まず、pluginRoot をサーバ自身の置き場所から求める', async () => {
+    await explains('`slideCreateDefaultDependencies` の `pluginRoot` のテストです。環境変数 `CLAUDE_PLUGIN_ROOT` を設定していても、`pluginRoot` はサーバ自身の置き場所から求めた値になり、`now` が数値を返すことを確認します。')
     vi.stubEnv('CLAUDE_PLUGIN_ROOT', '/plugins/installed/pecot-visual')
     try {
       const dependencies = slideCreateDefaultDependencies()
@@ -428,7 +443,8 @@ describe('slideCreateDefaultDependencies', () => {
 
 // 実ファイルの書き込みを避け、pages/ の再生成を見る。
 describe('pages/ の再生成 (slide_create の force 経由)', () => {
-  it('pages/ は初期ページだけになり、テーマの参照は書き出さない', async () => {
+  it('--force で再生成すると、pages には初期ページだけが残り、テーマの参照は書き出さない', async () => {
+    await explains('`pages` ディレクトリの再生成のテストです。古い `old.md` がある出力先へ `force: true` で生成した場合に、`pages` が `cover.md`・`end.md`・`section.md` だけになることを確認します。')
     const projectDirectory = temporaryRoot('pages-test')
     mkdirSync(path.join(projectDirectory, 'pages'), { recursive: true })
     writeFileSync(path.join(projectDirectory, 'pages', 'old.md'), '# 旧\n')

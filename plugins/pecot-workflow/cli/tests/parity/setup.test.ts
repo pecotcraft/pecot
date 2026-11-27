@@ -10,6 +10,7 @@ import { compareStrings } from './baseline.js'
 import { parseScenario } from './scenario.js'
 import type { Sandbox } from './setup.js'
 import { baseEnvironment, createSandbox, destroySandbox, pluginRoot } from './setup.js'
+import { explains } from '../_helpers/explains.js'
 
 const sandboxes: Sandbox[] = []
 
@@ -30,7 +31,8 @@ afterEach(() => {
 })
 
 describe('createSandbox', () => {
-  it('origin は git@host:owner/repo.git の形で、偽 ssh 経由で bare に届く', () => {
+  it('origin は git@host:owner/repo.git の形で、偽 ssh 経由で ベアリポジトリに届く', async () => {
+    await explains('サンドボックスのリポジトリの作成のテストです。`origin` の URL が `git@ghes.example.com:o/r.git` の形になり、ブランチとコミットが指定どおりで、push と fetch が成功することを確認します。')
     const sandbox = make(`setup:
   repo:
     owner: o
@@ -50,14 +52,16 @@ describe('createSandbox', () => {
     run(sandbox, 'git', ['fetch', '-q', 'origin'])
   })
 
-  it('同じ入力ならコミットの SHA が同じになる', () => {
+  it('同じ入力ならコミットの SHA が同じになる', async () => {
+    await explains('コミットの再現性のテストです。同じ入力でサンドボックスを 2 回作成した場合に、`HEAD` のコミットの SHA が一致することを確認します。')
     const yaml = 'setup:\n  repo:\n    commits: [{ message: m, files: { a.txt: A } }]\n'
     const first = run(make(yaml), 'git', ['rev-parse', 'HEAD'])
     const second = run(make(yaml), 'git', ['rev-parse', 'HEAD'])
     expect(first).toBe(second)
   })
 
-  it('files はコミットせず作業ツリーに置き、symlink も置ける。data はデータ置き場に置く', () => {
+  it('files はコミットせず作業ツリーに配置し、symlink も配置できる。data はデータ用のディレクトリに配置する', async () => {
+    await explains('サンドボックスのファイル配置のテストです。`files` がコミットされず作業ツリーに置かれ（symlink を含む）、`data` がデータ用のディレクトリに置かれることを確認します。')
     const sandbox = make(`setup:
   repo:
     files: { .pecot/state/flag: on, link: { symlink: .pecot/state/flag } }
@@ -69,21 +73,24 @@ describe('createSandbox', () => {
     expect(run(sandbox, 'git', ['status', '--porcelain']).trim()).toBe('?? link')
   })
 
-  it('gh stub は token があれば auth token で返し、無ければ exit 1', () => {
+  it('gh のスタブは、token を指定すると auth token で返し、指定しないと終了コード 1 で終了する', async () => {
+    await explains('偽の `gh` コマンドのテストです。`token` を指定した場合は `gh auth token` がその値を出力し、指定しない場合は失敗（終了コード 1）になることを確認します。')
     const withToken = make('setup:\n  gh: { token: abc }\n')
     expect(run(withToken, 'gh', ['auth', 'token']).trim()).toBe('abc')
     const without = make('')
     expect(() => run(without, 'gh', ['auth', 'token'])).toThrow()
   })
 
-  it('雛形に依存せず、info/exclude は固定の中身で hooks も無い', () => {
+  it('雛形に依存せず、info/exclude は固定の内容になり、hooks ディレクトリは作成されない', async () => {
+    await explains('サンドボックスの git 設定のテストです。`.git/info/exclude` が固定の内容で、作業リポジトリとリモートの両方に `hooks` ディレクトリが存在しないことを確認します。')
     const sandbox = make('')
     expect(readFileSync(path.join(sandbox.repositoryDirectory, '.git/info/exclude'), 'utf8')).toBe('# parity fixed exclude\n')
     expect(existsSync(path.join(sandbox.repositoryDirectory, '.git/hooks'))).toBe(false)
     expect(existsSync(path.join(sandbox.root, 'remotes/acme/demo.git/hooks'))).toBe(false)
   })
 
-  it('ブランチごとにコミットを積んで push し、HEAD は branch のまま', () => {
+  it('ブランチごとにコミットを作成して push し、HEAD は指定したブランチのままになる', async () => {
+    await explains('ブランチ指定つきのサンドボックスの作成のテストです。`release` ブランチに積んだコミットが `origin/release` に push され、現在のブランチは `feat/1` のままで、そのファイルが作業ツリーに存在しないことを確認します。')
     const sandbox = make(`setup:
   repo:
     branch: feat/1
@@ -98,7 +105,8 @@ describe('createSandbox', () => {
     expect(existsSync(path.join(sandbox.repositoryDirectory, 'r.txt'))).toBe(false)
   })
 
-  it('タグは at のブランチか HEAD に付き、push: true なら origin にも出る', () => {
+  it('タグは at で指定したブランチか HEAD に付き、push: true のタグだけ origin にも送られる', async () => {
+    await explains('タグの作成のテストです。`at` を省略したタグは `main` に、`at: release` のタグは `release` に付き、`push: true` のタグだけが `origin` に存在することを確認します。')
     const sandbox = make(`setup:
   repo:
     branches: [{ name: release, commits: [{ message: m, files: { r.txt: R } }] }]
@@ -113,7 +121,8 @@ describe('createSandbox', () => {
     expect(remote).not.toContain('refs/tags/v0.2.0')
   })
 
-  it('worktrees は本物の git worktree で、list に出る', () => {
+  it('worktrees は実際の git worktree として作成され、git worktree list に表示される', async () => {
+    await explains('ワークツリーの作成のテストです。`worktrees` に指定した `wt1` と `wt2` が `git worktree list` に表示され、ブランチと `README.md` が指定どおりに存在することを確認します。')
     const sandbox = make(`setup:
   repo:
     worktrees: [{ name: wt1 }, { name: wt2, branch: feat/x }]
@@ -124,7 +133,8 @@ describe('createSandbox', () => {
     expect(existsSync(path.join(sandbox.root, 'wt2', 'demo', 'README.md'))).toBe(true)
   })
 
-  it('worktrees の files は worktree を作った後に置き、コミットしない', () => {
+  it('worktrees の files は worktree を作成した後に配置し、コミットしない', async () => {
+    await explains('ワークツリーのファイル配置のテストです。`worktrees` の `files` が作成後のワークツリーに置かれ（symlink を含む）、コミットされないことを確認します。')
     const sandbox = make(`setup:
   repo:
     worktrees:
@@ -139,7 +149,8 @@ describe('createSandbox', () => {
     expect(status.trim()).toBe('?? link')
   })
 
-  it('一時 root がリポジトリの中にあっても、親をたどって実リポを読まない', () => {
+  it('一時ディレクトリがリポジトリの中にあっても、親のディレクトリをたどって実際のリポジトリを参照しない', async () => {
+    await explains('サンドボックスの分離のテストです。`TMPDIR` をリポジトリ内に指定しても、親のディレクトリをたどった実際のリポジトリを `git rev-parse` が参照せず、失敗することを確認します。')
     const previous = process.env['TMPDIR']
     const outer = path.join(pluginRoot, '..', '..', '.pecot', 'work', '1314')
     mkdirSync(outer, { recursive: true })
@@ -160,7 +171,8 @@ describe('createSandbox', () => {
     }
   })
 
-  it('作成の途中で失敗したら、一時ディレクトリを消して投げ直す', () => {
+  it('作成の途中で失敗した場合は、一時ディレクトリを削除して例外を再送出する', async () => {
+    await explains('サンドボックスの作成に失敗した場合のテストです。存在しない ref にタグを付ける指定で例外が発生し、一時ディレクトリが削除されて空になることを確認します。')
     const previous = process.env['TMPDIR']
     const outer = path.join(pluginRoot, '..', '..', '.pecot', 'work', '1314', 'A-fail')
     rmSync(outer, { recursive: true, force: true })
@@ -178,7 +190,8 @@ describe('createSandbox', () => {
     }
   })
 
-  it('destroySandbox で一時 root が消える', () => {
+  it('destroySandbox を呼ぶと、一時ディレクトリが削除される', async () => {
+    await explains('サンドボックスの削除のテストです。`destroySandbox` を呼ぶと、一時ディレクトリが存在しなくなることを確認します。')
     const sandbox = createSandbox(parseScenario('issue-read-ok', 'id: issue-read-ok\ncommand: { path: [issue, read] }\n'))
     expect(existsSync(sandbox.root)).toBe(true)
     destroySandbox(sandbox)

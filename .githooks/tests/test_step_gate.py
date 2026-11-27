@@ -71,7 +71,9 @@ def _missing(done: subprocess.CompletedProcess[str]) -> set[str]:
     return {line.strip().split("    ")[0] for line in lines if line.startswith("   alpha/")}
 
 
+@allure.title("成功したすべてのテストに名前の付いた step がある場合は、gate が成功で終わる")
 def test_passes_when_every_passed_test_has_a_named_step(tmp_path: Path) -> None:
+    """`step-gate.sh` が Allure の結果を判定するときのテストです。成功したテストのすべてに名前の付いた step が存在する場合に、終了コード 0 で終わることを確認します。"""
     with allure.step("名前の付いた step を持つ結果を書く"):
         _write(tmp_path / "results", _result("1", "a", steps=[_step("CLI を動かす")]))
     done = _gate(tmp_path / "results", tmp_path)
@@ -79,7 +81,11 @@ def test_passes_when_every_passed_test_has_a_named_step(tmp_path: Path) -> None:
         assert done.returncode == 0, done.stdout + done.stderr
 
 
+@allure.title(
+    "名前の付いた step が存在しないテストがあると、gate は失敗で終わり、そのテストの名前だけを出力する"
+)
 def test_fails_and_names_only_the_tests_without_named_steps(tmp_path: Path) -> None:
+    """名前の付いた step が存在しないテストが含まれている場合のテストです。step がないテスト、`expect` の自動の step だけのテスト、添付だけのテストの名前が出力され、step のあるテストは出力されないことを確認します。"""
     with allure.step("step の有る結果と無い結果を書く"):
         _write(
             tmp_path / "results",
@@ -105,7 +111,11 @@ def test_fails_and_names_only_the_tests_without_named_steps(tmp_path: Path) -> N
         }
 
 
+@allure.title(
+    "step の存在しないテストが parametrize の行である場合は、行ごとの値を添えた名前を出力する"
+)
 def test_names_parametrized_rows_with_their_values(tmp_path: Path) -> None:
+    """名前が同じで `parameters` だけが異なる、step のない 2 つの結果を渡した場合のテストです。gate が失敗で終わり、出力される名前に `[lane=test-ci]` のように行ごとの値が付くことを確認します。"""
     with allure.step("同じ名前で parameters だけが違う、step の無い 2 つの結果を書く"):
         _write(
             tmp_path / "results",
@@ -121,7 +131,9 @@ def test_names_parametrized_rows_with_their_values(tmp_path: Path) -> None:
         }
 
 
+@allure.title("自動の step の下に名前の付いた step がある場合は、名前の付いた step として扱う")
 def test_counts_a_named_step_nested_under_a_matcher_step(tmp_path: Path) -> None:
+    """`expect(x).toBe(1)` のような自動の step の下に、名前の付いた step が入れ子になっている場合のテストです。名前の付いた step が存在するものとして扱われ、gate が成功で終わることを確認します。"""
     with allure.step("自動の step の下に、名前の付いた step を持つ結果を書く"):
         _write(
             tmp_path / "results",
@@ -132,8 +144,10 @@ def test_counts_a_named_step_nested_under_a_matcher_step(tmp_path: Path) -> None
         assert done.returncode == 0, done.stdout + done.stderr
 
 
+@allure.title("step が存在しなくても、状態が {status} のテストは判定の対象にしない")
 @pytest.mark.parametrize("status", ["failed", "broken", "skipped"])
 def test_ignores_tests_that_did_not_pass(tmp_path: Path, status: str) -> None:
+    """成功しなかったテストの結果を渡した場合のテストです。状態が `failed`・`broken`・`skipped` のテストは step が存在しなくても対象外となり、gate が終了コード 0 で終わることを確認します。"""
     with allure.step(f"step の無い {status} の結果を書く"):
         _write(tmp_path / "results", _result("1", "a", status=status))
     done = _gate(tmp_path / "results", tmp_path)
@@ -141,7 +155,9 @@ def test_ignores_tests_that_did_not_pass(tmp_path: Path, status: str) -> None:
         assert done.returncode == 0, done.stdout + done.stderr
 
 
+@allure.title("gate はレポートを一時ディレクトリに作成して、終了時に削除する")
 def test_writes_the_report_to_a_temporary_directory_and_removes_it(tmp_path: Path) -> None:
+    """`step-gate.sh` がレポートを作成する場所のテストです。リポのルートの `allure-report` ディレクトリは変更されず、`TMPDIR` に作成された一時ディレクトリが終了後に残らないことを確認します。"""
     with allure.step("step の無い結果と、一時ディレクトリの置き場を用意する"):
         _write(tmp_path / "results", _result("1", "a"))
         temp = tmp_path / "tmp"

@@ -7,6 +7,8 @@ import path from "node:path";
 
 import { onTestFinished, test } from "vitest";
 
+import { explains } from "../../../libs/interface-spec/src/vitest/explains.js";
+
 // src は CommonJS なので、Node の require で読む。
 const require = createRequire(import.meta.url);
 const { parseCommit, parseUvLock, resolveGroups, renderPlan, main } = require("../src/dependabot-plans");
@@ -45,7 +47,8 @@ const emptyCtx = (overrides = {}) => ({
 const decl = (file, section, changed = true) => ({ path: file, section, changed });
 const update = (name, type = "direct:production", version = "2.0.0") => ({ name, version, type, from: "1.0.0" });
 
-test("単独の PR の本文から、directory・依存と旧版を読む", () => {
+test("単独の PR の本文から、directory・依存と旧版を読む", async () => {
+  await explains("dependabot の commit を解析する `parseCommit` のテストです。単独の依存を更新する PR の場合に、directory と、依存名・新版・種類・旧版を読み取ることを確認します。");
   const real = realCommits.find((commit) => commit.subject.endsWith("(#5)"));
   assert.deepEqual(parseCommit(real.subject, real.body), {
     directory: "/plugins/pecot-tools",
@@ -53,7 +56,8 @@ test("単独の PR の本文から、directory・依存と旧版を読む", () =
   });
 });
 
-test("group の PR の本文から、directory と複数の依存を読む", () => {
+test("group の PR の本文から、directory と複数の依存を読む", async () => {
+  await explains("dependabot の commit を解析する `parseCommit` のテストです。複数の依存をまとめて更新する group の PR の場合に、directory と、すべての依存の名前・旧版・新版・種類を読み取ることを確認します。");
   const real = realCommits.find((commit) => commit.subject.endsWith("(#6)"));
   const parsed = parseCommit(real.subject, real.body);
   assert.equal(parsed.directory, "/plugins/pecot-workflow/cli");
@@ -72,7 +76,8 @@ test("group の PR の本文から、directory と複数の依存を読む", () 
 const squashOf = (pr) => squashCommits.find((commit) => commit.pr === pr);
 
 // #120（単独）の実物。dependabot と runtime-lock の 2 commit の本文が連なる。
-test("#113 の後の squash の本文（単独）を読む。directory が無ければ / とみなす", () => {
+test("#113 の後の squash の本文（単独）を読む。directory が無ければ / とみなす", async () => {
+  await explains("merge queue の squash の commit を解析する `parseCommit` のテストです。単独の PR（#120）の実物の場合に、directory が書かれていなくても `/` として扱い、依存を 1 件読み取ることを確認します。");
   const real = squashOf(120);
   assert.deepEqual(parseCommit(real.subject, real.body), {
     directory: "/",
@@ -81,7 +86,8 @@ test("#113 の後の squash の本文（単独）を読む。directory が無け
 });
 
 // #151（group）の実物。依存名の引用符と、本文の in the / directory を読む。
-test("#113 の後の squash の本文（group）を読む", () => {
+test("#113 の後の squash の本文（group）を読む", async () => {
+  await explains("merge queue の squash の commit を解析する `parseCommit` のテストです。group の PR（#151）の実物の場合に、引用符付きの依存名を含む 28 件の依存と、directory を読み取ることを確認します。");
   const real = squashOf(151);
   const parsed = parseCommit(real.subject, real.body);
   assert.equal(parsed.directory, "/");
@@ -90,12 +96,14 @@ test("#113 の後の squash の本文（group）を読む", () => {
   assert.deepEqual(parsed.updates.slice(0, 1).map((u) => u.name), [real.body.match(/dependency-name: "?([^"\n]+)/)[1]]);
 });
 
-test("旧版が本文から読めないときは from を null にする", () => {
+test("旧版が本文から読めないときは from を null にする", async () => {
+  await explains("dependabot の commit を解析する `parseCommit` のテストです。本文から旧版を読み取れない場合に、`from` が `null` になることを確認します。");
   const body = "---\nupdated-dependencies:\n- dependency-name: foo\n  dependency-version: 2.0.0\n  dependency-type: direct:production\n...";
   assert.equal(parseCommit("build: bump foo", body).updates[0].from, null);
 });
 
-test("updated-dependencies が読めない本文は throw する", () => {
+test("updated-dependencies が読めない本文は throw する", async () => {
+  await explains("dependabot の commit を解析する `parseCommit` のテストです。`updated-dependencies` を読み取れない本文の場合に、項目がない場合と項目を読み取れない場合を含め、それぞれ例外が発生することを確認します。");
   assert.throws(() => parseCommit("build: bump foo", "本文なし"), /updated-dependencies/);
   assert.throws(() => parseCommit("build: bump foo", "updated-dependencies:\n..."), /項目がありません/);
   assert.throws(
@@ -104,7 +112,8 @@ test("updated-dependencies が読めない本文は throw する", () => {
   );
 });
 
-test("dependencies の宣言は、group の path の前方一致で plan の対象にする", () => {
+test("dependencies の宣言は、group の path の前方一致で plan の対象にする", async () => {
+  await explains("依存の宣言から plan の対象を決める `resolveGroups` のテストです。`dependencies` と `optionalDependencies` の宣言は、`package.json` のパスが group のパスで始まる場合に、その group を対象とすることを確認します。");
   const ctx = emptyCtx({
     declarations: {
       commander: [decl("plugins/pecot-tools/cli/package.json", "dependencies")],
@@ -115,7 +124,8 @@ test("dependencies の宣言は、group の path の前方一致で plan の対�
   assert.deepEqual(resolveGroups(update("zod"), ctx), { groups: ["text-rules"], reason: null });
 });
 
-test("devDependencies だけの宣言は「開発用」で、pecot-visual は配布物の依存名なら対象にする", () => {
+test("devDependencies だけの宣言は「開発用」で、pecot-visual は配布物の依存名なら対象にする", async () => {
+  await explains("依存の宣言から plan の対象を決める `resolveGroups` のテストです。`devDependencies` だけの宣言は開発用として対象から外し、pecot-visual は配布物の依存名の場合だけ対象とすることを確認します。");
   const ctx = emptyCtx({
     declarations: {
       vitest: [decl("plugins/pecot-tools/cli/package.json", "devDependencies")],
@@ -128,7 +138,8 @@ test("devDependencies だけの宣言は「開発用」で、pecot-visual は配
   assert.deepEqual(resolveGroups(update("knip"), ctx), { groups: [], reason: "dev" });
 });
 
-test("root と tests/ の下の宣言は、どの package にも当たらない", () => {
+test("root と tests/ の下の宣言は、どの package にも当たらない", async () => {
+  await explains("依存の宣言から plan の対象を決める `resolveGroups` のテストです。ルートの `package.json` と `tests/` 配下の宣言、および宣言のない依存は、どの package にも当たらないものとして扱うことを確認します。");
   const ctx = emptyCtx({
     declarations: {
       nx: [decl("package.json", "dependencies")],
@@ -140,7 +151,8 @@ test("root と tests/ の下の宣言は、どの package にも当たらない"
   assert.deepEqual(resolveGroups(update("unknown"), ctx), { groups: [], reason: "none" });
 });
 
-test("版の割れた @types/node は、指定の変わった package だけに作る", () => {
+test("版の割れた @types/node は、指定の変わった package だけに作る", async () => {
+  await explains("依存の宣言から plan の対象を決める `resolveGroups` のテストです。版が package ごとに異なる `@types/node` の場合に、指定が変更された package だけを対象とすることを確認します。");
   const ctx = emptyCtx({
     declarations: {
       "@types/node": [
@@ -153,7 +165,8 @@ test("版の割れた @types/node は、指定の変わった package だけに�
   assert.deepEqual(resolveGroups(update("@types/node"), ctx), { groups: ["pecot-tools"], reason: null });
 });
 
-test("lock だけが変わったときは、宣言している package.json の全部を根拠にする", () => {
+test("lock だけが変わったときは、宣言している package.json の全部を根拠にする", async () => {
+  await explains("依存の宣言から plan の対象を決める `resolveGroups` のテストです。lock だけが変更された場合に、その依存を宣言しているすべての `package.json` の group を対象とすることを確認します。");
   const ctx = emptyCtx({
     declarations: {
       yaml: [
@@ -165,7 +178,8 @@ test("lock だけが変わったときは、宣言している package.json の�
   assert.deepEqual(resolveGroups(update("yaml"), ctx).groups.sort(), ["pecot-tools", "text-rules"]);
 });
 
-test("uv は directory の group と YAML の dependency-type で決める", () => {
+test("uv は directory の group と YAML の dependency-type で決める", async () => {
+  await explains("uv の依存から plan の対象を決める `resolveGroups` のテストです。directory に対応する group と依存の種類に応じて、対象になる場合、開発用として外れる場合、どの package にも当たらない場合に分かれることを確認します。");
   const ctx = emptyCtx({ uv: true, directory: "/plugins/pecot-workflow/cli" });
   assert.deepEqual(resolveGroups(update("typer"), ctx), { groups: ["pecot-workflow"], reason: null });
   assert.deepEqual(resolveGroups(update("pytest", "direct:development"), ctx), { groups: [], reason: "dev" });
@@ -248,7 +262,8 @@ version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
 `;
 
-test("uv の indirect は、プロジェクトの本番の依存から届くときだけ作る。dev からだけなら「開発用」", () => {
+test("uv の indirect は、プロジェクトの本番の依存から届くときだけ作る。dev からだけなら「開発用」", async () => {
+  await explains("uv の間接依存から plan の対象を決める `resolveGroups` のテストです。本番の依存から届く間接依存は対象とし、開発用の依存からだけ届く間接依存は開発用として外すことを確認します。");
   const uvLock = parseUvLock(UV_LOCK);
   assert.deepEqual(uvLock.packages.filter((pkg) => pkg.project).map((pkg) => pkg.name), ["app"]);
   const ctx = emptyCtx({ uv: true, directory: "/plugins/pecot-workflow/cli", uvLock });
@@ -261,7 +276,8 @@ test("uv の indirect は、プロジェクトの本番の依存から届くと�
   assert.deepEqual(resolve("click", "9.0.0"), { groups: [], reason: "none" });
 });
 
-test("uv の indirect で uv.lock を読めていないときは throw する", () => {
+test("uv の indirect で uv.lock を読めていないときは throw する", async () => {
+  await explains("uv の間接依存から plan の対象を決める `resolveGroups` のテストです。`uv.lock` を読み込んでいない場合に、`uv.lock` に関する例外が発生することを確認します。");
   const ctx = emptyCtx({ uv: true, directory: "/plugins/pecot-workflow/cli" });
   assert.throws(() => resolveGroups(update("click", "indirect"), ctx), /uv\.lock/);
 });
@@ -269,7 +285,8 @@ test("uv の indirect で uv.lock を読めていないときは throw する", 
 const lockOf = (importers, snapshots) => ({ importers, snapshots });
 const dep = (version) => ({ version });
 
-test("indirect は、group の本番の依存から辿って新版へ届くとき作る", () => {
+test("indirect は、group の本番の依存から辿って新版へ届くとき作る", async () => {
+  await explains("pnpm の間接依存から plan の対象を決める `resolveGroups` のテストです。group の本番の依存を辿って新しい版へ届く場合は、届いたすべての group を対象とすることを確認します。");
   const lock = lockOf(
     { "plugins/pecot-tools/cli": { dependencies: { a: dep("1.0.0") } }, "libs/text-rules": { dependencies: { z: dep("1.0.0") } } },
     {
@@ -284,7 +301,8 @@ test("indirect は、group の本番の依存から辿って新版へ届くと�
   assert.deepEqual(resolveGroups(update("b", "indirect", "2.0.0"), ctx), { groups: ["pecot-tools"], reason: null });
 });
 
-test("indirect が dev の依存からしか届かないときと、どこにも届かないときは作らない", () => {
+test("indirect が dev の依存からしか届かないときと、どこにも届かないときは作らない", async () => {
+  await explains("pnpm の間接依存から plan の対象を決める `resolveGroups` のテストです。開発用の依存からだけ届く場合は開発用、どこにも届かない場合や lock がない場合はどの package にも当たらないものとして扱うことを確認します。");
   const lock = lockOf(
     { "plugins/pecot-tools/cli": { devDependencies: { vitest: dep("5.0.0") }, dependencies: { a: dep("1.0.0") } } },
     { "vitest@5.0.0": { dependencies: { d: "1.0.0" } }, "d@1.0.0": {}, "a@1.0.0": {}, "e@1.0.0": {} },
@@ -295,7 +313,8 @@ test("indirect が dev の依存からしか届かないときと、どこにも
   assert.deepEqual(resolveGroups(update("d", "indirect", "1.0.0"), emptyCtx()), { groups: [], reason: "none" });
 });
 
-test("pecot-visual の配布物の dev 依存から届く indirect は作る", () => {
+test("pecot-visual の配布物の dev 依存から届く indirect は作る", async () => {
+  await explains("pnpm の間接依存から plan の対象を決める `resolveGroups` のテストです。pecot-visual の配布物の開発用の依存から届く間接依存は対象とし、配布物ではない依存から届くものは開発用として外すことを確認します。");
   const lock = lockOf(
     { "plugins/pecot-visual/assets/slidev": { devDependencies: { eslint: dep("10.0.0"), knip: dep("6.0.0") } } },
     { "eslint@10.0.0": { dependencies: { f: "1.0.0" } }, "f@1.0.0": {}, "knip@6.0.0": { dependencies: { g: "1.0.0" } }, "g@1.0.0": {} },
@@ -305,7 +324,8 @@ test("pecot-visual の配布物の dev 依存から届く indirect は作る", (
   assert.deepEqual(resolveGroups(update("g", "indirect", "1.0.0"), ctx), { groups: [], reason: "dev" });
 });
 
-test("1 件は「`名前` を 旧版 から 新版 に更新。」の 1 行で、(#N) は付けない", () => {
+test("1 件は「`名前` を 旧版 から 新版 に更新。」の 1 行で、(#N) は付けない", async () => {
+  await explains("plan の本文を作成する `renderPlan` のテストです。依存が 1 件の場合に、旧版がある場合とない場合のそれぞれで、1 行の本文になり、PR 番号が付かないことを確認します。");
   assert.equal(
     renderPlan("pecot-tools", [{ name: "commander", from: "14.0.3", version: "15.0.0" }]),
     "---\npecot-tools: patch\n---\n\n`commander` を 14.0.3 から 15.0.0 に更新。\n",
@@ -316,7 +336,8 @@ test("1 件は「`名前` を 旧版 から 新版 に更新。」の 1 行で�
   );
 });
 
-test("2 件は件数の行の後に 1 件 1 行で並べる", () => {
+test("2 件は件数の行の後に 1 件 1 行で並べる", async () => {
+  await explains("plan の本文を作成する `renderPlan` のテストです。依存が 2 件の場合に、件数の行の後に、1 件ずつ 1 行で並ぶことを確認します。");
   const text = renderPlan("pecot-tools", [
     { name: "commander", from: "14.0.3", version: "15.0.0" },
     { name: "foo", from: null, version: "2.0.0" },
@@ -327,7 +348,8 @@ test("2 件は件数の行の後に 1 件 1 行で並べる", () => {
   );
 });
 
-test("3 件以上は 2 件まで載せ「ほか N 件」で締め、形式の上限に収める", () => {
+test("3 件以上は 2 件まで載せ「ほか N 件」で締め、形式の上限に収める", async () => {
+  await explains("plan の本文を作成する `renderPlan` のテストです。依存が 3 件以上の場合に、2 件までを載せて「ほか N 件」で締め、長い名前でも 1 行 100 字以内・全体 200 字以内に収まることを確認します。");
   const short = renderPlan(
     "pecot-visual",
     ["a", "b", "c", "d", "e"].map((name) => ({ name, from: "1.0.0", version: "1.1.0" })),
@@ -442,6 +464,7 @@ const sumSummary = (results) =>
   }, {});
 
 test("実物の 11 件から作るのは #5・#6・#10・#16 の 4 件で、作った plan が 2 つの確認を通る", async () => {
+  await explains("実物の dependabot の commit 11 件を順に通す `main` のテストです。plan を作成するのは #5・#6・#10・#16 の 4 件で、作成した plan の本文と集計の行が期待どおりであることを確認します。");
   const dir = makeRepo();
   onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
   const results = await replayRealCommits(dir);
@@ -469,6 +492,7 @@ test("実物の 11 件から作るのは #5・#6・#10・#16 の 4 件で、作�
 });
 
 test("--dry-run は .nx/version-plans に書かず、パスと中身を出す", async () => {
+  await explains("`--dry-run` を指定した `main` のテストです。実物の dependabot の commit を順に通した場合に、`.nx/version-plans` に書き込まず、plan のパスと本文を出力することを確認します。");
   const dir = makeRepo();
   onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
   const results = await replayRealCommits(dir, ["--dry-run"]);
@@ -482,6 +506,7 @@ test("--dry-run は .nx/version-plans に書かず、パスと中身を出す", 
 });
 
 test("引数の誤りはコード 2、読めない本文はコード 1", async () => {
+  await explains("`main` の引数と本文の検証のテストです。誤った引数の組み合わせの場合は使い方を出力して終了コード 2、読み取れない本文の場合は終了コード 1 で終了することを確認します。");
   const dir = makeRepo();
   onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
   commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^1.0.0") }, "chore: init");
@@ -511,6 +536,7 @@ test("引数の誤りはコード 2、読めない本文はコード 1", async (
 });
 
 test("件名に (#N) が無い commit からも、--pr の番号で plan を作る", async () => {
+  await explains("`--pr` を指定した `main` のテストです。件名に `(#N)` がない commit の場合でも、`--pr` の番号を使って plan を作成することを確認します。");
   const dir = makeRepo();
   onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
   commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^1.0.0") }, "chore: init");
@@ -525,6 +551,7 @@ test("件名に (#N) が無い commit からも、--pr の番号で plan を作�
 });
 
 test("2 つの group に届く PR は、group ごとに別のファイルにする", async () => {
+  await explains("複数の group に届く PR を扱う `main` のテストです。2 つの group に影響する PR の場合に、group ごとに別のファイルとして plan を作成することを確認します。");
   const dir = makeRepo();
   onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
   commit(
@@ -550,6 +577,7 @@ test("2 つの group に届く PR は、group ごとに別のファイルにす�
 });
 
 test("--base で範囲を決める。base が HEAD なら commit が無く、plan を作らない", async () => {
+  await explains("`--base` を指定した `main` のテストです。`--base` が `HEAD` の場合は対象の commit がなく plan を作成せず、`HEAD~1` の場合は plan を作成することを確認します。");
   const dir = makeRepo();
   onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
   commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^1.0.0") }, "chore: init");
@@ -561,6 +589,7 @@ test("--base で範囲を決める。base が HEAD なら commit が無く、pla
 });
 
 test("同じ名前の plan が既にあるときは上書きしない", async () => {
+  await explains("既存の plan がある場合の `main` のテストです。同じ名前の plan がすでに存在する場合に、上書きせず、集計の「既にある」に数えることを確認します。");
   const dir = makeRepo();
   onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
   commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^1.0.0") }, "chore: init");
@@ -579,6 +608,7 @@ test("同じ名前の plan が既にあるときは上書きしない", async ()
 });
 
 test("#113 の後の squash（#120・#151 の実物）から、root に uv.lock があっても group ごとの plan を作る", async () => {
+  await explains("merge queue の squash の commit（#120・#151 の実物）を扱う `main` のテストです。ルートに `uv.lock` がある場合でも、group ごとの plan を作成することを確認します。");
   const dir = makeRepo();
   onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
   for (const real of squashCommits) {
@@ -610,6 +640,7 @@ const actionsBody = [
 ].join("\n");
 
 test("github-actions の PR は plan を作らず、「どの package にも当たらない」に数える", async () => {
+  await explains("github-actions の PR を扱う `main` のテストです。plan を作成せず、集計の「どの package にも当たらない」に数えることを確認します。");
   const dir = makeRepo();
   onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
   commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^1.0.0") }, "chore: init");
@@ -625,6 +656,7 @@ test("github-actions の PR は plan を作らず、「どの package にも当�
 const indirectBody = dependabotBody("c", "3.0.0", "indirect", "2.0.0");
 
 test("lock を読めない indirect は、sha を添えて throw する（コード 1）", async () => {
+  await explains("間接依存の PR を扱う `main` のテストです。lock を読み取れない場合に、commit の sha を添えた例外が発生し、終了コード 1 で終了することを確認します。lock が存在しない場合と、形式が不正な場合の両方を対象とします。");
   const dir = makeRepo();
   onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
   commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^1.0.0") }, "chore: init");
@@ -648,6 +680,7 @@ test("lock を読めない indirect は、sha を添えて throw する（コー
 });
 
 test("例外のときは、書いた plan を残さない", async () => {
+  await explains("例外が発生した場合の `main` のテストです。複数の PR の途中で例外が発生した場合に、すでに書き込んだ plan を残さないことを確認します。");
   const dir = makeRepo();
   onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
   commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^1.0.0") }, "chore: init");
@@ -663,6 +696,7 @@ test("例外のときは、書いた plan を残さない", async () => {
 });
 
 test("検証を通らない plan は消す。dry-run では .pecot/tmp に残した旨を出す", async () => {
+  await explains("plan の検証のテストです。検証を通らない plan は削除し、`--dry-run` の場合は `.pecot/tmp/dependabot-plans` に残した旨を出力して、いずれも終了コード 1 で終了することを確認します。");
   const dir = makeRepo();
   onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
   commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^1.0.0") }, "chore: init");
@@ -686,6 +720,7 @@ test("検証を通らない plan は消す。dry-run では .pecot/tmp に残し
 });
 
 test("同じ PR の同じ group に届く 2 commit は、1 つの plan に集約する", async () => {
+  await explains("同じ PR の同じ group に届く複数の commit を扱う `main` のテストです。3 件の commit の場合に、重複を除いて 1 つの plan に集約し、更新の行が順に並ぶことを確認します。");
   const dir = makeRepo();
   onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
   commit(dir, { "plugins/pecot-tools/package.json": toolsPackage("^1.0.0") }, "chore: init");
@@ -704,6 +739,7 @@ test("同じ PR の同じ group に届く 2 commit は、1 つの plan に集約
 });
 
 test("同じ PR で別の group に届く 2 commit は、group ごとの名前で 1 つずつ作る", async () => {
+  await explains("同じ PR で別の group に届く複数の commit を扱う `main` のテストです。2 件の commit の場合に、group ごとの名前で plan を 1 つずつ作成することを確認します。");
   const dir = makeRepo();
   onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
   commit(
@@ -733,6 +769,7 @@ async function checkRepo(plan) {
 }
 
 test("--check: plan が足されていれば 0", async () => {
+  await explains("`--check` のテストです。dependabot の commit が届く group を覆う plan が追加されている場合に、何も出力せず、終了コード 0 で終了することを確認します。");
   const dir = await checkRepo("---\npecot-tools: patch\n---\n\n依存を更新した。\n");
   const result = await run(dir, ["--check", "--base", "HEAD~2"]);
   assert.equal(result.code, 0, result.errors.join("\n"));
@@ -742,6 +779,7 @@ test("--check: plan が足されていれば 0", async () => {
 });
 
 test("--check: plan が欠けていれば 1 で、sha と group 名を stderr に出す。plan は書かない", async () => {
+  await explains("`--check` のテストです。plan が不足している場合に、commit の sha と group 名を標準エラーに出力して終了コード 1 で終了し、plan を書き込まないことを確認します。");
   const dir = await checkRepo();
   const sha = git(dir, "rev-parse", "--short=7", "HEAD").trim();
   const result = await run(dir, ["--check", "--base", "HEAD~1"]);
@@ -754,6 +792,7 @@ test("--check: plan が欠けていれば 1 で、sha と group 名を stderr �
 });
 
 test("--check: plan の要らない PR（開発用だけ・github-actions・dependabot の commit なし）は 0", async () => {
+  await explains("`--check` のテストです。plan が不要な PR（開発用の依存だけ・github-actions・dependabot の commit がない場合）は、終了コード 0 で終了することを確認します。");
   const dir = makeRepo();
   onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
   commit(dir, { "plugins/pecot-tools/package.json": pkg({ name: "tools", devDependencies: { vitest: "^1.0.0" } }) }, "chore: init");
@@ -770,6 +809,7 @@ test("--check: plan の要らない PR（開発用だけ・github-actions・depe
 });
 
 test("updated-dependencies を文中で触れるだけの commit は、対象に選ばない", async () => {
+  await explains("dependabot の commit の抽出のテストです。本文で `updated-dependencies` の語に触れるだけの commit は、対象に選ばず、終了コード 0 で終了することを確認します。");
   const dir = makeRepo();
   onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
   commit(dir, {}, "chore: init");
@@ -779,12 +819,14 @@ test("updated-dependencies を文中で触れるだけの commit は、対象に
 });
 
 test("--check: --head の範囲だけを見る。HEAD が先へ進んでいて plan がそこにあっても、head に無ければ 1", async () => {
+  await explains("`--check` と `--head` のテストです。`--head` で指定した範囲だけを対象とし、HEAD が先に進んで plan が追加されていても、指定した範囲に plan がなければ終了コード 1 になることを確認します。");
   const dir = await checkRepo("---\npecot-tools: patch\n---\n\n依存を更新した。\n");
   assert.equal((await run(dir, ["--check", "--base", "HEAD~2", "--head", "HEAD~1"])).code, 1);
   assert.equal((await run(dir, ["--check", "--base", "HEAD~2", "--head", "HEAD"])).code, 0);
 });
 
 test("--check: CRLF の frontmatter と、引用符付きのキーを読む。bump の種類は問わない", async () => {
+  await explains("`--check` の plan の解析のテストです。改行が CRLF の frontmatter と、引用符付きのキーを読み取り、bump の種類にかかわらず終了コード 0 で終了することを確認します。");
   const dir = await checkRepo('---\r\n"pecot-tools": minor\r\n---\r\n\r\n依存を更新した。\r\n');
   const result = await run(dir, ["--check", "--base", "HEAD~2"]);
   assert.equal(result.code, 0, result.errors.join("\n"));
@@ -802,12 +844,14 @@ async function squashCheckRepo(withPlan) {
 }
 
 test("--check: merge queue の squash に plan が入っていれば 0", async () => {
+  await explains("`--check` のテストです。依存の更新と plan が 1 つの commit に入る merge queue の squash の場合に、plan が含まれていれば終了コード 0 で終了することを確認します。");
   const dir = await squashCheckRepo(true);
   const result = await run(dir, ["--check", "--base", "HEAD~1"]);
   assert.equal(result.code, 0, result.errors.join("\n"));
 });
 
 test("--check: merge queue の squash に plan が無ければ 1", async () => {
+  await explains("`--check` のテストです。依存の更新だけが入る merge queue の squash の場合に、pecot-visual の plan が不足している旨を出力して終了コード 1 で終了することを確認します。");
   const dir = await squashCheckRepo(false);
   const result = await run(dir, ["--check", "--base", "HEAD~1"]);
   assert.equal(result.code, 1);

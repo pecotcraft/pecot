@@ -38,7 +38,9 @@ A, B, C = "a" * 40, "b" * 40, "c" * 40
 # --- latest_tags ---
 
 
+@allure.title("最新のタグは、プレリリースを除き、版を数値として比べた最大のものを選ぶ")
 def test_latest_tags_take_numeric_max_without_prerelease() -> None:
+    """`release_sources.py` の `latest_tags` のテストです。`1.9.0` と `1.10.0` を数値として比較して後者を選び、`rc` や `beta` のタグと、対象外のプラグインのタグは選ばないことを確認します。"""
     with allure.step("タグの一覧を用意する"):
         tags = [
             "pecot-visual-v1.9.0",
@@ -56,7 +58,9 @@ def test_latest_tags_take_numeric_max_without_prerelease() -> None:
         }
 
 
+@allure.title("最新のタグは、名前が長い別のプラグインのタグを、同じプラグインのものとして扱わない")
 def test_latest_tags_do_not_take_tags_of_plugin_with_longer_name() -> None:
+    """`pecot-visual` と `pecot-visual-x` のように、一方の名前が他方の接頭辞になっている場合のテストです。`latest_tags` が、それぞれのプラグインのタグだけから最新を選ぶことを確認します。"""
     with allure.step("名前が長い別のプラグインのタグを混ぜた一覧を用意する"):
         tags = ["pecot-visual-v1.0.0", "pecot-visual-x-v9.0.0", "pecot-visual-x-v1.0.0"]
     with allure.step("名前が長いプラグインのタグを取らないことを確かめる"):
@@ -66,7 +70,9 @@ def test_latest_tags_do_not_take_tags_of_plugin_with_longer_name() -> None:
         }
 
 
+@allure.title("プラグインにリリースのタグが存在しないと、最新のタグの選択で例外が発生する")
 def test_latest_tags_fail_for_plugin_without_tag() -> None:
+    """`pecot-tools` に、プレリリースのタグしか存在しない場合のテストです。`ReleaseSourcesError` が発生し、メッセージにプラグイン名が含まれることを確認します。"""
     with allure.step("タグの無いプラグインがあると失敗することを確かめる"):
         with pytest.raises(ReleaseSourcesError, match="pecot-tools のリリースのタグ"):
             latest_tags(
@@ -100,7 +106,9 @@ def _resolve(
     )
 
 
+@allure.title("骨組みは、すべてのタグの commit を祖先に持つ commit から選ぶ")
 def test_resolve_takes_skeleton_from_each_tag() -> None:
+    """`resolve` に、`A`、`B`、`C` の順に積まれた 3 つのタグの commit を渡す場合のテストです。`C` が骨組みになり、`tags`、`commits`、`record()` と `to_json()` の内容が期待どおりであることを確認します。"""
     with allure.step("祖先の関係があるタグを解決する"):
         # A <- B <- C の順に積まれ、C がほかのすべてを祖先に持つ。
         sources = _resolve({"a": A, "b": B, "c": C}, {(A, B), (A, C), (B, C)})
@@ -116,21 +124,27 @@ def test_resolve_takes_skeleton_from_each_tag() -> None:
         assert sources.to_json() == sources.record()
 
 
+@allure.title("複数のタグが同じ commit を指していても、その commit を骨組みにする")
 def test_resolve_accepts_tags_on_same_commit() -> None:
+    """2 つのタグが、同じ commit `A` を指す場合のテストです。`resolve` の結果の `skeleton` が `A` であることを確認します。"""
     with allure.step("同じ commit のタグを解決する"):
         sources = _resolve({"a": A, "b": A}, set())
     with allure.step("骨組みがその commit になることを確かめる"):
         assert sources.skeleton == A
 
 
+@allure.title("すべてのタグの commit を祖先に持つ commit が存在しないと、例外が発生する")
 def test_resolve_fails_without_skeleton() -> None:
+    """`B` と `C` が `A` から分岐していて、どちらも他方を祖先に持たない場合のテストです。`ReleaseSourcesError` が発生し、祖先に持つタグが存在しない旨のメッセージが含まれることを確認します。"""
     with allure.step("骨組みになるタグが無いと解決が失敗することを確かめる"):
         # B と C が A から分かれ、どちらも他方を祖先に持たない。
         with pytest.raises(ReleaseSourcesError, match="祖先に持つタグがありません"):
             _resolve({"a": A, "b": B, "c": C}, {(A, B), (A, C)})
 
 
+@allure.title("タグの commit が main の祖先でないと、そのタグ名と commit を示す例外が発生する")
 def test_resolve_fails_when_tag_is_not_ancestor_of_main() -> None:
+    """タグ `b-v1.0.0` の commit が、`origin/main` の祖先ではない場合のテストです。`ReleaseSourcesError` が発生し、タグ名と commit を含むメッセージになることを確認します。"""
     with allure.step("main の祖先でないタグがあると解決が失敗することを確かめる"):
         with pytest.raises(
             ReleaseSourcesError, match=f"b-v1.0.0（{B}）が origin/main の祖先ではありません"
@@ -138,14 +152,18 @@ def test_resolve_fails_when_tag_is_not_ancestor_of_main() -> None:
             _resolve({"a": A, "b": B}, {(A, B)}, main_ancestors={A})
 
 
+@allure.title("from_json は、to_json の出力を読み戻して、元の内容に戻す")
 def test_from_json_reads_back_cli_output() -> None:
+    """`resolve` の結果を JSON にして、読み込み直す場合のテストです。`from_json` の戻り値が、元の `ReleaseSources` と一致することを確認します。"""
     with allure.step("解決の結果を JSON にして読み戻す"):
         sources = _resolve({"a": A, "b": B}, {(A, B)})
     with allure.step("元の結果と同じになることを確かめる"):
         assert release_sources.from_json(json.loads(json.dumps(sources.to_json()))) == sources
 
 
+@allure.title("from_json は、レーンの一覧が存在しない材料も読み込める")
 def test_from_json_accepts_sources_without_lanes() -> None:
+    """`tags`、`commits`、`skeleton` だけを持つ辞書を渡す場合のテストです。`from_json` が、同じ値の `ReleaseSources` を返すことを確認します。"""
     with allure.step("レーンの無い JSON を読み込む"):
         data = {"tags": {"a": "a-v1.0.0"}, "commits": {"a": A}, "skeleton": A}
     with allure.step("読み込めてレーンが空になることを確かめる"):
@@ -194,7 +212,9 @@ def _run_cli(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+@allure.title("CLI は、git のタグから各プラグインの最新の版と骨組みを決めて出力する")
 def test_cli_resolves_from_git_tags(repo: Path, tmp_path: Path) -> None:
+    """一時の git リポジトリに、2 つのプラグインのタグを付けて `release_sources.py` を実行する場合のテストです。標準出力が `tags`、`commits`、`skeleton` だけの 1 行の JSON で、`--record` のファイルも同じ内容になることを確認します。"""
     with allure.step("タグを打った git のリポで CLI を動かす"):
         manifests = {
             "plugins/a/.claude-plugin/plugin.json": "{}",
@@ -223,7 +243,9 @@ def test_cli_resolves_from_git_tags(repo: Path, tmp_path: Path) -> None:
         assert json.loads(read_output(record)) == expected
 
 
+@allure.title("CLI は、タグが main の祖先でないと、終了コード 1 で終わる")
 def test_cli_fails_when_tag_is_off_main(repo: Path) -> None:
+    """`main` から分岐したブランチの commit に、タグを付ける場合のテストです。終了コード 1 で終わり、タグ名と commit を含むエラーを標準エラーに出力することを確認します。"""
     with allure.step("main の外にタグがある git のリポで CLI を動かす"):
         _commit(repo, {"plugins/a/.claude-plugin/plugin.json": "{}"}, "first")
         _git(repo, "checkout", "-q", "-b", "side")
@@ -294,7 +316,11 @@ def _report(
     )
 
 
+@allure.title(
+    "リリース版のレポートは、各プラグインのレーンを、そのタグの commit の report-lanes.json から選ぶ"
+)
 def test_report_release_takes_each_plugins_lanes_from_its_tag() -> None:
+    """`report_release` に、複数のプラグインのタグと、commit ごとのレーンの一覧を渡す場合のテストです。`runs` と `missing` が期待どおりで、`jobs` の `results` がレーンを入れた commit の値になることを確認します。"""
     with allure.step("プラグインごとのタグのレーンを用意して release のレポートを作る"):
         # A・C・D は B の祖先で、B が骨組み。C には report-lanes.json が無く、D には入れるレーンが無い。
         a_cli = _rlane("a", "test-cli", "a", results="plugins/a/old/allure-results")
@@ -336,7 +362,11 @@ def test_report_release_takes_each_plugins_lanes_from_its_tag() -> None:
         ]
 
 
+@allure.title(
+    "どの commit にも report-lanes.json が存在しないと、リリース版のレポートの run は 0 件になる"
+)
 def test_report_release_without_report_lanes_makes_no_runs() -> None:
+    """どの commit からも、レーンの一覧を読めない場合のテストです。`runs` と `jobs` が空で、すべてのプラグインが `missing` に入ることを確認します。"""
     with allure.step("レポートのレーンが無い状態で release のレポートを作る"):
         sources = _report({"a": A, "b": B}, {(A, B)}, {})
     with allure.step("run が空で missing に全プラグインが入ることを確かめる"):
@@ -344,7 +374,11 @@ def test_report_release_without_report_lanes_makes_no_runs() -> None:
         assert sources.jobs == []
 
 
+@allure.title(
+    "骨組みに report-lanes.json が存在しないと、共通のレーンはリリース版のレポートに含めない"
+)
 def test_report_release_leaves_out_shared_lanes_when_skeleton_has_no_report_lanes() -> None:
+    """骨組みの commit にレーンの一覧が存在せず、プラグインの commit にだけ存在する場合のテストです。プラグインのレーンだけが `runs` に入り、`githooks` のレーンは含まれないことを確認します。"""
     with allure.step("骨組みにレポートのレーンが無い状態を用意する"):
         # 骨組みの B に report-lanes.json が無いので、A のファイルにある githooks のレーンは入れない。
         a_cli = _rlane("a", "test-cli", "a")
@@ -358,7 +392,9 @@ def test_report_release_leaves_out_shared_lanes_when_skeleton_has_no_report_lane
         assert sources.jobs == [_job(a_cli, A)]
 
 
+@allure.title("プラグインのレーンが 1 つも残らないと、共通のレーンだけのレポートは作らない")
 def test_report_release_makes_no_runs_when_only_shared_lanes_remain() -> None:
+    """プラグインのレーンがすべて除外対象で、共通の `githooks` のレーンだけが残る場合のテストです。`runs` と `jobs` が空になり、プラグインが `missing` に入ることを確認します。"""
     with allure.step("共有のレーンだけが残る状態を用意する"):
         # どのプラグインも結果を出せなければ、骨組みのレーンだけのレポートは作らない。
         lanes = [_excluded("a", "test-bootstrap", "a"), _rlane("githooks", "test-ci")]
@@ -368,7 +404,9 @@ def test_report_release_makes_no_runs_when_only_shared_lanes_remain() -> None:
         assert sources.jobs == []
 
 
+@allure.title("リリース版のレポートは、タグの検証に失敗すると、材料の決定と同じ例外が発生する")
 def test_report_release_fails_like_release_sources() -> None:
+    """タグの commit が `main` の祖先でない場合と、骨組みが存在しない場合のテストです。`report_release` が、どちらも `ReleaseSourcesError` を発生することを確認します。"""
     with allure.step("release のレポートが release_sources と同じ失敗をすることを確かめる"):
         with pytest.raises(
             ReleaseSourcesError, match=f"b-v1.0.0（{B}）が origin/main の祖先ではありません"
@@ -378,13 +416,17 @@ def test_report_release_fails_like_release_sources() -> None:
             _report({"a": A, "b": B, "c": C}, {(A, B), (A, C)}, {})
 
 
+@allure.title("report-lanes.json の形が不正だと、そのタグ名を示す例外が発生する")
 def test_report_release_fails_naming_tag_of_malformed_report_lanes() -> None:
+    """タグの commit の `report-lanes.json` の要素に、必須の項目が存在しない場合のテストです。`ReleaseSourcesError` が発生し、タグ名と要素の番号をメッセージに含むことを確認します。"""
     with allure.step("読めないレポートのレーンがあると、失敗の文にタグが入ることを確かめる"):
         with pytest.raises(ReleaseSourcesError, match=f"b-v1.0.0:{_REPORT_LANES}: .*#1"):
             _report({"a": A, "b": B}, {(A, B)}, {B: [{"project": "b"}]})
 
 
+@allure.title("開発版のレポートは、commit の report-lanes.json のレーンをすべて選ぶ")
 def test_report_dev_takes_every_report_lane_of_the_commit() -> None:
+    """`report_dev` に、除外対象のレーンを含む一覧を持つ commit を渡す場合のテストです。除外対象を除いたレーンが、1 つの run にまとまり、`jobs` にも同じレーンが入ることを確認します。"""
     with allure.step("レポートのレーンを持つ commit の dev のレポートを作る"):
         cli, ci = _rlane("p", "test-cli", "p"), _rlane("githooks", "test-ci")
         sources = report_dev(
@@ -402,19 +444,25 @@ def test_report_dev_takes_every_report_lane_of_the_commit() -> None:
         assert sources.jobs == [_job(ci, A), _job(cli, A)]
 
 
+@allure.title("commit に report-lanes.json が存在しないと、開発版のレポートは例外が発生する")
 def test_report_dev_fails_without_report_lanes() -> None:
+    """`report_dev` に、レーンの一覧を読めない commit を渡す場合のテストです。`ReleaseSourcesError` が発生し、commit の短縮形と `report-lanes.json` が存在しない旨がメッセージに含まれることを確認します。"""
     with allure.step("レポートのレーンが無い commit の dev のレポートが失敗することを確かめる"):
         with pytest.raises(ReleaseSourcesError, match=f"{A[:7]} に {_REPORT_LANES} がありません"):
             report_dev(A, read_lanes=lambda commit: None)
 
 
+@allure.title("開発版のレポートは、40 桁の SHA 以外を渡すと例外が発生する")
 def test_report_dev_requires_full_sha() -> None:
+    """`report_dev` に、`HEAD` という名前を渡す場合のテストです。`ReleaseSourcesError` が発生し、40 桁の SHA ではない旨のメッセージが含まれることを確認します。"""
     with allure.step("40 桁でない SHA の dev のレポートが失敗することを確かめる"):
         with pytest.raises(ReleaseSourcesError, match="40 桁の SHA ではありません: HEAD"):
             report_dev("HEAD", read_lanes=lambda commit: [])
 
 
+@allure.title("CLI は、--report dev で、材料とジョブの一覧を 1 行の JSON で出力する")
 def test_cli_report_dev_prints_sources_and_matrix(repo: Path) -> None:
+    """一時の git リポジトリで、`release_sources.py --report dev --commit` を実行する場合のテストです。終了コード 0 で終わり、`sources` と `matrix` を含む JSON を出力することを確認します。"""
     with allure.step("レポートのレーンを持つ git のリポで dev のレポートの CLI を動かす"):
         cli, ci = _rlane("a", "test-cli", "a"), _rlane("githooks", "test-ci")
         head = _commit(
@@ -441,7 +489,9 @@ def test_cli_report_dev_prints_sources_and_matrix(repo: Path) -> None:
         }
 
 
+@allure.title("CLI は、--report release で、git のタグからレポートの材料とジョブの一覧を決める")
 def test_cli_report_release_resolves_from_git_tags(repo: Path) -> None:
+    """一時の git リポジトリで、`release_sources.py --report release` を実行する場合のテストです。プラグインごとの最新のタグから `runs` と `matrix` を作り、レーンの一覧を持たないプラグインは `missing` に入ることを確認します。"""
     with allure.step("タグを打った git のリポで release のレポートの CLI を動かす"):
         manifests = {
             "plugins/a/.claude-plugin/plugin.json": "{}",
@@ -473,7 +523,11 @@ def test_cli_report_release_resolves_from_git_tags(repo: Path) -> None:
         }
 
 
+@allure.title(
+    "report-lanes.json が存在しないと、CLI の --report release は空のジョブの一覧を出力する"
+)
 def test_cli_report_release_without_report_lanes_has_empty_matrix(repo: Path) -> None:
+    """レーンの一覧が存在しない一時の git リポジトリで、`--report release` を実行する場合のテストです。終了コード 0 で終わり、`runs` と `matrix` が空で、プラグインが `missing` に入ることを確認します。"""
     with allure.step("レポートのレーンが無い git のリポで release のレポートの CLI を動かす"):
         _commit(repo, {"plugins/a/.claude-plugin/plugin.json": "{}"}, "first")
         _git(repo, "tag", "a-v1.0.0")
@@ -488,7 +542,9 @@ def test_cli_report_release_without_report_lanes_has_empty_matrix(repo: Path) ->
         }
 
 
+@allure.title("git のリーダーは、指定のパスが存在しない commit に対して、None を返す")
 def test_git_reader_returns_none_without_the_path(repo: Path) -> None:
+    """`_git_reader` に、存在しないパスを持つ commit を渡す場合のテストです。例外を発生させず、`None` を返すことを確認します。"""
     with allure.step("path の無い commit を用意する"):
         head = _commit(repo, {"x.txt": "x"}, "first")
     with allure.step("読み込みが None を返すことを確かめる"):
@@ -507,7 +563,9 @@ def _blobless_clone(repo: Path, tmp_path: Path) -> Path:
     return clone
 
 
+@allure.title("git のリーダーは、パスが存在しない場合と、blob を読めない場合を区別する")
 def test_git_reader_tells_unreadable_blob_from_missing_path(repo: Path, tmp_path: Path) -> None:
+    """`blob:none` で clone して、取得元を消したリポジトリのテストです。存在しないパスには `None` を返し、blob を読めないときは `git show` が失敗した旨と `promisor remote` を含む例外が発生することを確認します。"""
     with allure.step("blob を持たない clone を用意する"):
         head = _commit(repo, {_REPORT_LANES: "[]"}, "first")
         clone = _blobless_clone(repo, tmp_path)
@@ -522,6 +580,7 @@ def test_git_reader_tells_unreadable_blob_from_missing_path(repo: Path, tmp_path
         assert "promisor remote" in message
 
 
+@allure.title("CLI は、引数が {args} だと、終了コード 2 で終わり、{message} を出力する")
 @pytest.mark.parametrize(
     ("args", "message"),
     [
@@ -532,6 +591,7 @@ def test_git_reader_tells_unreadable_blob_from_missing_path(repo: Path, tmp_path
     ],
 )
 def test_cli_report_rejects_wrong_arguments(repo: Path, args: list[str], message: str) -> None:
+    """`--report`、`--commit`、`--record` の、誤った組み合わせを渡す場合のテストです。終了コード 2 で終わり、その理由を標準エラーに出力することを確認します。"""
     with allure.step("誤った引数で CLI を動かす"):
         result = _run_cli(repo, *args)
     with allure.step("終了コード 2 とエラーの出力を確かめる"):
@@ -635,9 +695,11 @@ def _main(
     return rc, temp, out
 
 
+@allure.title("リリース版の build は、骨組みの取得からサイトの作成、梱包までを決まった順に実行する")
 def test_build_runs_steps_in_order(
     tmp_path: Path, workspace: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """`release_build.main` を、外部のコマンドを記録する `FakeRunner` で実行する場合のテストです。骨組みの取得、タグの重ね合わせ、サイトの作成、梱包の順にコマンドを実行し、`release-sources.json` が作られることを確認します。"""
     with allure.step("偽の runner で build を動かす"):
         runner = FakeRunner(workspace)
         rc, temp, out = _main(tmp_path, workspace, runner)
@@ -674,7 +736,9 @@ def test_build_runs_steps_in_order(
         assert (temp / "pages-release-tools/dev-container.sh").is_file()
 
 
+@allure.title("リリース版の build は、サイトを作る段のコンテナに、サイトの環境変数だけを渡す")
 def test_build_passes_site_env_to_container(tmp_path: Path, workspace: Path) -> None:
+    """`interface-spec:docs` を実行する段の環境のテストです。`PECOT_SITE_SIDE` などを渡し、廃止した変数は渡さず、レポートに入るプラグインの変数はこの段にだけ渡すことを確認します。"""
     with allure.step("偽の runner で build を動かす"):
         runner = FakeRunner(workspace)
         rc, _, _ = _main(tmp_path, workspace, runner)
@@ -698,6 +762,9 @@ def test_build_passes_site_env_to_container(tmp_path: Path, workspace: Path) -> 
         assert all("PECOT_SITE_REPORT_PLUGINS" not in e for e in others)
 
 
+@allure.title(
+    "リリース版の build は、レポートに入るプラグインを、{param_id} の場合の値でコンテナに渡す"
+)
 @pytest.mark.parametrize(
     ("missing", "expected"),
     [([], "a,b"), (["b"], "a"), (["a", "b"], "")],
@@ -706,6 +773,7 @@ def test_build_passes_site_env_to_container(tmp_path: Path, workspace: Path) -> 
 def test_build_passes_plugins_in_the_report_to_container(
     tmp_path: Path, workspace: Path, missing: list[str], expected: str
 ) -> None:
+    """レポートの材料の `missing` を変えて、`release_build.main` を実行する場合のテストです。`PECOT_SITE_REPORT_PLUGINS` に、`missing` を除いたプラグインがカンマ区切りで入ることを確認します。"""
     with allure.step("レポートの記録を付けて build を動かす"):
         runner = FakeRunner(workspace)
         rc, _, _ = _main(tmp_path, workspace, runner, _report_record(missing))
@@ -718,6 +786,9 @@ def test_build_passes_plugins_in_the_report_to_container(
         assert "PECOT_SITE_REPORT_PLUGINS" in env["DEVCONTAINER_ENV"].split()
 
 
+@allure.title(
+    "リリース版の build は、レポートの材料の形が不正だと、{param_id} の場合に終了コード 1 で終わる"
+)
 @pytest.mark.parametrize(
     "record",
     [
@@ -732,6 +803,7 @@ def test_build_passes_plugins_in_the_report_to_container(
 def test_build_rejects_malformed_report_sources(
     tmp_path: Path, workspace: Path, record: object, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """`report-sources.json` の形が不正な場合のテストです。終了コード 1 で終わり、`report-sources.json` を含むエラーを出力して、外部のコマンドを 1 つも実行しないことを確認します。"""
     with allure.step("読めないレポートの記録で build を動かす"):
         runner = FakeRunner(workspace)
         rc, _, _ = _main(tmp_path, workspace, runner, record)
@@ -742,6 +814,9 @@ def test_build_rejects_malformed_report_sources(
         assert runner.calls == []
 
 
+@allure.title(
+    "リリース版の build は、{fail} のコマンドが失敗すると、そこで止まって終了コード 1 で終わる"
+)
 @pytest.mark.parametrize(
     ("fail", "last"),
     [
@@ -757,6 +832,7 @@ def test_build_stops_on_host_or_install_or_site_failure(
     last: tuple[str, ...],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
+    """checkout、`pnpm install`、`interface-spec:docs` のいずれかが、終了コード 2 で失敗する場合のテストです。そのコマンドが最後の呼び出しになり、終了コード 1 で終わって、失敗の旨を標準エラーに出力することを確認します。"""
     with allure.step("手順の 1 つが失敗する runner で build を動かす"):
         runner = FakeRunner(workspace, fail={fail: 2})
         rc, _, _ = _main(tmp_path, workspace, runner)
@@ -767,7 +843,11 @@ def test_build_stops_on_host_or_install_or_site_failure(
         assert "が 2 で終わりました" in capsys.readouterr().err
 
 
+@allure.title(
+    "リリース版の build は、GITHUB_WORKSPACE と RUNNER_TEMP が存在しないと、終了コード 1 で終わる"
+)
 def test_build_requires_runner_env(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """環境変数を空にして `release_build.main` を実行する場合のテストです。終了コード 1 で終わり、2 つの環境変数が必要である旨を標準エラーに出力することを確認します。"""
     with allure.step("runner の環境変数を渡さずに build を動かす"):
         rc = release_build.main(
             [

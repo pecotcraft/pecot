@@ -19,6 +19,7 @@ import type { CallToolResult } from '@modelcontextprotocol/server'
 
 import { isRecord } from '../../../../tests/_helpers/records.js'
 import { verifies } from '../../../../tests/_helpers/verifies.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 import { snapshotTree } from './tree-snapshot.js'
 import type { ToolCallContext } from '../../server.js'
 import { slideDevTool } from '../slide-dev.js'
@@ -63,11 +64,13 @@ function fakeRuntimeDependencies(
 }
 
 describe('ensureRuntimeDependencies', () => {
-  it('解決できるなら undefined を返し、実処理を止めない', () => {
+  it('解決できるなら undefined を返し、実処理を止めない', async () => {
+    await explains('実行時依存の有無を確認する `ensureRuntimeDependencies` のテストです。実行時依存が解決できる場合に、`undefined` を返し、実処理を止めないことを確認します。')
     expect(ensureRuntimeDependencies('slide_convert', fakeRuntimeDependencies(true))).toBeUndefined()
   })
 
-  it('未取得なら取得を試みず、kind 付きで runtime_setup を案内する', () => {
+  it('未取得なら取得を試みず、kind 付きで runtime_setup を案内する', async () => {
+    await explains('実行時依存の有無を確認する `ensureRuntimeDependencies` のテストです。実行時依存が取得されていない場合に、取得を試みず、`runtime-dependencies-not-installed` のエラーと `setup` の案内を返すことを確認します。')
     // 600MB 級の npm install は、モデルが呼ぶツールの側から通知なしに始めてよい規模ではない。
     const result = ensureRuntimeDependencies('slide_convert', fakeRuntimeDependencies(false))
 
@@ -80,7 +83,8 @@ describe('ensureRuntimeDependencies', () => {
     expect(String(result?.detail)).toContain('setup')
   })
 
-  it('取得先を特定できなくても期待場所を文言で示す', () => {
+  it('取得先を特定できなくても期待場所を文言で示す', async () => {
+    await explains('実行時依存の有無を確認する `ensureRuntimeDependencies` のテストです。取得先を特定できない場合でも、期待する場所の代わりにプレースホルダが `expectedAt` に入ることを確認します。')
     // eslint-disable-next-line unicorn/no-useless-undefined -- root は場所を特定できないとき undefined を返す契約
     const dependencies = fakeRuntimeDependencies(false, () => undefined)
     const result = ensureRuntimeDependencies('slide_convert', dependencies)
@@ -104,6 +108,7 @@ describe('slide_create / slide_sync / slide_dev への接続', () => {
 
   it('slide_create は生成を始めず ToolResult 契約で返す', async (context) => {
     await verifies(context, 'PV-SLIDE-CREATE-09')
+    await explains('`slide_create` ツールの実行時依存の確認のテストです。実行時依存が取得されていない場合に、生成を始めず、`runtime_setup` を案内するエラーを返し、作成途中のディレクトリを残さないことを確認します。')
     // ガードが実処理の後ろにあると、テーマの取得 (git) を終えた後で symlink-failed になり、
     // runtime_setup を案内する kind が返らない。
     const projectDirectory = path.join(CLI_ROOT, 'tests', 'fixtures', 'not-created-yet')
@@ -120,6 +125,7 @@ describe('slide_create / slide_sync / slide_dev への接続', () => {
 
   it('slide_sync も同じ kind / event で返す', async (context) => {
     await verifies(context, 'PV-SLIDE-SYNC-09')
+    await explains('`slide_sync` ツールの実行時依存の確認のテストです。実行時依存が取得されていない場合に、`slide_create` と同じ `kind`・`event` のエラーを返し、対象のディレクトリが変更されないことを確認します。')
     const tool = slideSyncTool(buildFailingDependencies, () => fakeRuntimeDependencies(false))
 
     const talk = path.join(CLI_ROOT, 'tests', 'fixtures', 'minimal-slidev')
@@ -136,6 +142,7 @@ describe('slide_create / slide_sync / slide_dev への接続', () => {
 
   it('slide_dev はレジストリに触れず同じ kind / event で返す', async (context) => {
     await verifies(context, 'PV-SLIDE-DEV-09')
+    await explains('`slide_dev` ツールの実行時依存の確認のテストです。実行時依存が取得されていない場合に、レジストリに接続せず、`slide_create` と同じ `kind`・`event` のエラーを返すことを確認します。')
     // ガードが後ろにあると、@slidev/cli を解決できない環境で子プロセスの起動エラーに化ける。
     const tool = slideDevTool(buildFailingDependencies, () => fakeRuntimeDependencies(false))
 
@@ -148,6 +155,7 @@ describe('slide_create / slide_sync / slide_dev への接続', () => {
   })
 
   it('4 ツールの応答はツール名だけが違う同じ形になる', async () => {
+    await explains('実行時依存が取得されていない場合の、4 つのツールの応答のテストです。`slide_create`・`slide_convert`・`slide_sync`・`slide_dev` が、ツール名を除いて同じ文言のエラーを返すことを確認します。')
     const calls: readonly [string, Record<string, unknown>][] = [
       ['slide_create', { project_dir: path.join(CLI_ROOT, 'tests', 'fixtures', 'not-created-yet'), theme: THEME_SPEC }],
       ['slide_convert', { project_dir: path.join(CLI_ROOT, 'tests', 'fixtures', 'minimal-slidev') }],
@@ -182,6 +190,7 @@ describe('slide_convert への接続', () => {
 
   it('実行時依存が未取得なら変換を始めず ToolResult 契約で返す', async (context) => {
     await verifies(context, 'PV-SLIDE-CONVERT-06')
+    await explains('`slide_convert` ツールの実行時依存の確認のテストです。実行時依存が取得されていない場合に、変換を始めず、`runtime-dependencies-not-installed` のエラーと `runtime_setup` の案内を返すことを確認します。')
     // 静的 import のままだと、@slidev/parser が無い環境では本モジュールの読み込み時点で
     // 落ちる。動的 import 化 + ガードで「例外」ではなく「理由付きの応答」になる。
     const tool = slideConvertTool(
@@ -199,6 +208,7 @@ describe('slide_convert への接続', () => {
   })
 
   it('相対パスの拒否はガードより先に働く', async () => {
+    await explains('`slide_convert` ツールの検証の順序のテストです。`project_dir` に相対パスを指定した場合に、実行時依存の確認より先に、`invalid-path` のエラーと `invalidPaths` を返すことを確認します。')
     // 引数の検証を飛ばして依存の話に倒すと、どちらが原因か分からない応答になる。
     const tool = slideConvertTool(
       () => {

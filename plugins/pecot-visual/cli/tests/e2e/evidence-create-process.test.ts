@@ -18,6 +18,7 @@ import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { attachFile } from '../_helpers/attach.js'
+import { explains } from '../_helpers/explains.js'
 import { spawnToolSync } from '../_helpers/pecotv-e2e-run.js'
 import { buildPng } from '../_helpers/image-fixture.js'
 import {
@@ -93,7 +94,8 @@ afterAll(() => {
 })
 
 describe('evidence_create の実プロセス実行', () => {
-  it('指定順・caption 混在・複数ヘッダーの xlsx を out に書き出す', async () => {
+  it('画像の指定順と、キャプションの有無が混在し、ヘッダーが複数ある場合も、作業ディレクトリ基準の `out` へ xlsx を書き出す', async () => {
+    await explains('`evidence_create` の実際のプロセスでの書き出しのテストです。3 枚の画像を指定順に並べ、キャプションの有無が混在する場合に、xlsx の文字列と画像の順序が指定どおりで、元の画像のバイト列と一致することを確認します。')
     // caption は 2 件目だけファイル名の stem と異なる文言を明示し、明示と補完 (FR-004) を
     // 判別できるようにする。
     const shots = [

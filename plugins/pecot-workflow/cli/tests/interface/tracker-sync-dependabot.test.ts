@@ -27,6 +27,7 @@ import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { boardRules, createdTracker, freezeClock, graphqlServerError, missingTokenStderr, prepareSync, WORKFLOW_FIELD } from '../_helpers/tracker-sync-case.js'
 import type { SyncSetup } from '../_helpers/tracker-sync-case.js'
 import { verifies } from '../_helpers/verifies.js'
+import { explains } from '../_helpers/explains.js'
 import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 
 useIsolatedEnvironment()
@@ -84,6 +85,7 @@ async function createNewTracker(): Promise<Run> {
 describe('tracker sync', () => {
   it('open の Tracker が無く、判断を待つ PR があると、label が dependabot-pr の Tracker の Issue を作る', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-01')
+    await explains('CLI で、open の Tracker は存在せず、判断を待つ PR（人の判断を要する dependabot の PR）が存在する場合のテストです。ラベル `dependabot-pr` を付けた Tracker の Issue を、PR の表を含む本文で作成することを確認します。')
     const { result, github } = await createNewTracker()
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('')
@@ -96,6 +98,7 @@ describe('tracker sync', () => {
 
   it('Tracker の Issue を作ると、ボードに足す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-02')
+    await explains('Tracker の Issue を作成した場合のテストです。作成した Issue をボードに追加することを確認します。')
     const { github } = await createNewTracker()
     expect(labelsOf(github)).toEqual([...READS, 'POST /repos/acme/demo/issues', 'GetIssueNodeId', 'AddToProject', 'UpdateProjectItemField'])
     expect(github.requests()[4]).toMatchObject({ operation: 'AddToProject', variables: { projectId: 'PVT_1', contentId: 'I_100' } })
@@ -103,12 +106,14 @@ describe('tracker sync', () => {
 
   it('Tracker の Issue を作ると、Status を Backlog にする', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-03')
+    await explains('Tracker の Issue を作成した場合のテストです。ボード上の Status を `Backlog` にすることを確認します。')
     const { github } = await createNewTracker()
     expect(github.requests()).toContainEqual(expect.objectContaining({ operation: 'UpdateProjectItemField', variables: { projectId: 'PVT_1', itemId: 'PVTI_100', fieldId: WORKFLOW_FIELD, optionId: 'o1' } }))
   })
 
   it('Tracker の Issue を作ると、ボードの欄は Status だけを入れ、Priority を入れない', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-04')
+    await explains('Tracker の Issue を作成した場合のテストです。ボードの欄は Status だけを設定し、Priority は設定しないことを確認します。')
     const { result, github } = await createNewTracker()
     expect(result.code).toBe(0)
     const updates = github.requests().filter(request => request.type === 'graphql' && request.operation === 'UpdateProjectItemField')
@@ -117,6 +122,7 @@ describe('tracker sync', () => {
 
   it('open の Tracker が無く、判断を待つ PR も無いと、Tracker の Issue を作らない', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-05')
+    await explains('open の Tracker も判断を待つ PR も存在しない場合のテストです。Tracker の Issue を作成しないことを確認します。')
     const { result, github } = await sync(listings([pullRequest({ number: 3, name: 'lodash' })]))
     expect(result.code).toBe(0)
     expect(labelsOf(github)).toEqual(READS)
@@ -124,12 +130,14 @@ describe('tracker sync', () => {
 
   it('open の Tracker が無く、判断を待つ PR も無いと、skipped の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-06')
+    await explains('open の Tracker も判断を待つ PR も存在しない場合のテストです。件数の行に続けて、`skipped: Tracker creation` の行を標準エラーに出力することを確認します。')
     const { result } = await sync(listings([pullRequest({ number: 3, name: 'lodash' })]))
     expect(result.stderr).toBe('count: open dependabot PRs: 1\ncount: PRs awaiting a decision: 0\ncount: PRs awaiting a decision without check results: 0\nskipped: Tracker creation\n')
   })
 
   it('open の Tracker があると、list-begin と list-end の間の表を、判断を待つ PR の行に書き直す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-07')
+    await explains('open の Tracker が存在する場合のテストです。本文の `list-begin` と `list-end` の間の表を、判断を待つ PR の行に書き換え、前後の文は残すことを確認します。')
     const existing = trackerBody([[1, 'Bump old', 'failed']], '\n人の注記\n')
     const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, existing)]), patched(9, { body: trackerBody([[2, 'Bump left-pad', 'passed']], '\n人の注記\n') }), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })]
     const { result, github } = await sync(rules)
@@ -159,6 +167,7 @@ describe('tracker sync', () => {
     { name: '自動マージの対象で、待つ理由が無い', pr: {}, reason: undefined, id: 'PW-TRACKER-SYNC-14' },
   ] satisfies readonly { name: string, pr: PrOptions, reason: string | undefined, id: string }[])('$name PR は、理由 $reason で扱う', async (row, context) => {
     await verifies(context, row.id)
+    await explains('PR の状態ごとの、判断を待つ PR かどうかの判定のテストです。`major` の更新や検証の失敗など、人の判断を要する理由を持つ PR だけを、その理由とともに追加予定として `--dry-run` の出力に含めることを確認します。')
     const { result } = await sync(listings([pullRequest({ number: 2, ...row.pr })]), ['--dry-run'])
     expect(result.code).toBe(0)
     const expected = row.reason === undefined
@@ -169,6 +178,7 @@ describe('tracker sync', () => {
 
   it('PR の一覧を取れ、Tracker の本文の印が正しいと、PR の数と判断を待つ PR の数と検証の結果が無い PR の数の count の行を出す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-15')
+    await explains('`--dry-run` で、PR の一覧を取得でき、Tracker の本文の印も正しい場合のテストです。open の dependabot PR の数、判断を待つ PR の数、検証の結果がない PR の数を、`count:` の行に出力することを確認します。')
     const nodes = [
       pullRequest({ number: 2, ...MAJOR, rollup: JSON_NULL }),
       pullRequest({ number: 3, ...MAJOR }),
@@ -181,6 +191,7 @@ describe('tracker sync', () => {
 
   it('表に PR を足すと、added の行を理由とともに標準エラーに出す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-16')
+    await explains('表に PR を追加した場合のテストです。`added:` の行を、理由とともに標準エラーに出力することを確認します。')
     const nodes = [pullRequest({ number: 2, ...MAJOR }), pullRequest({ number: 6, rollup: 'FAILURE', mergeable: 'CONFLICTING', age: 2 * HOUR })]
     const rules = [...listings(nodes, [trackerIssue(9, trackerBody([[2, 'Bump left-pad', 'passed']]))]), patched(9), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })]
     const { result } = await sync(rules)
@@ -189,6 +200,7 @@ describe('tracker sync', () => {
 
   it('表から PR を外すと、removed の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-17')
+    await explains('表から PR を削除した場合のテストです。`removed:` の行を標準エラーに出力することを確認します。')
     const existing = trackerBody([[1, 'Bump old', 'failed'], [2, 'Bump left-pad', 'passed']])
     const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, existing)]), patched(9), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })]
     const { result } = await sync(rules)
@@ -199,6 +211,7 @@ describe('tracker sync', () => {
 
   it('行の足し外しが無く本文だけが変わると、本文を書き直す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-18')
+    await explains('PR の行は増減せず、本文だけが変わる場合のテストです。Tracker の本文を更新することを確認します。')
     const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, CHECKS_CHANGED)]), patched(9, { body: trackerBody([[2, 'Bump left-pad', 'passed']]) }), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })]
     const { result, github } = await sync(rules)
     expect(result.code).toBe(0)
@@ -207,6 +220,7 @@ describe('tracker sync', () => {
 
   it('行の足し外しが無く本文だけが変わると、updated の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-19')
+    await explains('PR の行は増減せず、本文だけが変わる場合のテストです。`updated:` の行を標準エラーに出力し、標準出力には何も出力しないことを確認します。')
     const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, CHECKS_CHANGED)]), patched(9), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })]
     const { result } = await sync(rules)
     expect(result.stdout).toBe('')
@@ -220,6 +234,7 @@ describe('tracker sync', () => {
     { name: 'CRLF', body: SAME.replaceAll('\n', '\r\n') },
   ])('書き直した本文が今の本文（$name）と同じだと、本文を書き直さない', async (row, context) => {
     await verifies(context, 'PW-TRACKER-SYNC-20')
+    await explains(`書き換えた後の本文が、今の本文（改行が \`${row.name}\`）と同じ場合のテストです。本文を更新しないことを確認します。`)
     const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, row.body)]), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })]
     const { result, github } = await sync(rules)
     expect(result.code).toBe(0)
@@ -228,6 +243,7 @@ describe('tracker sync', () => {
 
   it('書き直した本文が今の本文と同じだと、unchanged の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-21')
+    await explains('書き換えた後の本文が今の本文と同じ場合のテストです。`unchanged: Tracker #9` の行を標準エラーに出力することを確認します。')
     const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, SAME)]), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })]
     const { result } = await sync(rules)
     expect(stderrAfterCounts(result)).toBe('unchanged: Tracker #9\n')
@@ -237,6 +253,7 @@ describe('tracker sync', () => {
   const CLOSING = [patched(9, { body: trackerBody([]) }), patched(9, { state: 'closed', state_reason: 'completed' })]
   it('判断を待つ PR が無く open の Tracker があると、表を none に書き直す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-22')
+    await explains('判断を待つ PR が存在せず、open の Tracker がある場合のテストです。Tracker の本文の表を `none` に書き換えることを確認します。')
     const { result, github } = await sync([...listings([], CLOSING_ISSUES), ...CLOSING])
     expect(result.code).toBe(0)
     expect(writtenBodies(github)[0]).toEqual({ body: trackerBody([]) })
@@ -244,12 +261,14 @@ describe('tracker sync', () => {
 
   it('表を none に書き直すと、Tracker を completed の理由で閉じる', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-23')
+    await explains('表を `none` に書き換えた場合のテストです。Tracker を、理由 `completed` で閉じることを確認します。')
     const { github } = await sync([...listings([], CLOSING_ISSUES), ...CLOSING])
     expect(writtenBodies(github)[1]).toEqual({ state: 'closed', state_reason: 'completed' })
   })
 
   it('Tracker を閉じると、closed の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-24')
+    await explains('Tracker を閉じた場合のテストです。`closed:` の行を標準エラーに出力することを確認します。')
     const { result } = await sync([...listings([], CLOSING_ISSUES), ...CLOSING])
     expect(result.stderr).toBe(`${OTHER_WARNING}${NO_PRS_COUNTS}removed: PR #1 from Tracker #9\nclosed: Tracker #9\n`)
   })
@@ -258,6 +277,7 @@ describe('tracker sync', () => {
 
   it('表が既に none の open の Tracker があると、本文を書き直さない', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-25')
+    await explains('表が既に `none` の open の Tracker がある場合のテストです。本文を書き換えないことを確認します。')
     const { result, github } = await sync([...listings([], EMPTY_ISSUES), patched(9, { state: 'closed' })])
     expect(result.code).toBe(0)
     expect(writtenBodies(github)).toEqual([{ state: 'closed', state_reason: 'completed' }])
@@ -265,6 +285,7 @@ describe('tracker sync', () => {
 
   it('表が既に none の open の Tracker があると、Tracker を閉じる', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-26')
+    await explains('表が既に `none` の open の Tracker がある場合のテストです。Tracker を閉じて、`closed:` の行を標準エラーに出力することを確認します。')
     const { result } = await sync([...listings([], EMPTY_ISSUES), patched(9, { state: 'closed', state_reason: 'completed' })])
     expect(result.stderr).toBe(`${OTHER_WARNING}${NO_PRS_COUNTS}closed: Tracker #9\n`)
   })
@@ -274,6 +295,7 @@ describe('tracker sync', () => {
     { name: 'Status が埋まっている', filled: [WORKFLOW_FIELD], updated: [] },
   ])('閉じない open の Tracker の $name と、Status が空のときだけ Backlog を入れ、Priority を入れない', async (row, context) => {
     await verifies(context, 'PW-TRACKER-SYNC-27')
+    await explains('閉じない open の Tracker をボードに登録する場合のテストです。Status が空のときだけ `Backlog` を設定し、Priority は設定しないことを確認します。')
     const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, SAME)]), ...boardRules(9, { onlyIfEmpty: true, filled: row.filled })]
     const { github } = await sync(rules)
     const updates = github.requests().filter(request => request.type === 'graphql' && request.operation === 'UpdateProjectItemField')
@@ -295,6 +317,7 @@ describe('tracker sync', () => {
 
   it('open の Tracker が複数あると、番号が最小のものを使う', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-28')
+    await explains('open の Tracker が複数ある場合のテストです。番号が最も小さい Tracker を使うことを確認します。')
     const { result, github } = await syncWithTwoTrackers()
     expect(result.code).toBe(0)
     expect(labelsOf(github)).toContain('PATCH /repos/acme/demo/issues/9')
@@ -302,18 +325,21 @@ describe('tracker sync', () => {
 
   it('open の Tracker が複数あると、使わないものを閉じない', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-29')
+    await explains('open の Tracker が複数ある場合のテストです。使わない Tracker を閉じないことを確認します。')
     const { github } = await syncWithTwoTrackers()
     expect(labelsOf(github).filter(label => label.startsWith('PATCH'))).toEqual(['PATCH /repos/acme/demo/issues/9'])
   })
 
   it('open の Tracker が複数あると、warning の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-30')
+    await explains('open の Tracker が複数ある場合のテストです。警告の行を標準エラーに出力することを確認します。')
     const { result } = await syncWithTwoTrackers()
     expect(result.stderr).toBe(`${OTHER_WARNING}${COUNTS_ONE}added: PR #2 to Tracker #9 (major)\nremoved: PR #1 from Tracker #9\n`)
   })
 
   it('--dry-run を付けて打つと、GitHub への書き込みをしない', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-31')
+    await explains('`--dry-run` を指定した場合のテストです。Tracker を閉じる場合と作成する場合のどちらでも、GitHub へ書き込まないことを確認します。')
     const closing = await sync(listings([], [trackerIssue(9, OLD_ROW)]), ['--dry-run'])
     expect(labelsOf(closing.github)).toEqual(READS)
     const creating = await sync(listings([pullRequest({ number: 2, ...MAJOR })]), ['--dry-run'])
@@ -322,6 +348,7 @@ describe('tracker sync', () => {
 
   it('--dry-run を付けて打つと、予定の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-32')
+    await explains('`--dry-run` を指定した場合のテストです。予定の行（`dry-run: would ...`）を標準エラーに出力することを確認します。')
     const { result } = await sync(listings([], [trackerIssue(9, OLD_ROW)]), ['--dry-run'])
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('')
@@ -330,6 +357,7 @@ describe('tracker sync', () => {
 
   it('対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないと、候補の名前と project の案内を detail に入れて失敗を返す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-33')
+    await explains('MCP の `tracker_sync` で、対象のリポジトリを含む設定が 2 つ以上あり、アクティブなプロジェクトがどれも指していない場合のテストです。候補の名前と `project` の案内を含む `detail` で失敗を返し、GitHub へ要求を送らないことを確認します。')
     const { outcome, github } = await syncToolRun([], {}, { ambiguous: true })
     expect(outcome.isError).toBe(true)
     expect(outcome.structured['detail']).toContain('acme/demo is in 2 project configs')
@@ -339,6 +367,7 @@ describe('tracker sync', () => {
 
   it('対象のリポを含む設定が無いと、repo-not-in-project の失敗を返す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-95')
+    await explains('MCP の `tracker_sync` で、対象のリポジトリを含む設定が存在しない場合のテストです。`repo-not-in-project` の失敗を返し、GitHub へ要求を送らないことを確認します。')
     const { outcome, github } = await syncToolRun([], {}, { repositories: ['other'] })
     expect(outcome.isError).toBe(true)
     expect(outcome.structured).toMatchObject({ kind: 'repo-not-in-project', detail: 'acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme' })
@@ -347,12 +376,14 @@ describe('tracker sync', () => {
 
   it('project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-96')
+    await explains('MCP の `tracker_sync` に `project` で設定の名前を指定した場合のテストです。対象のリポジトリを含む設定が 2 つ以上あっても、指定した設定を使って成功することを確認します。')
     const { outcome } = await syncToolRun(listings([], []), { project: 'second' }, { ambiguous: true })
     expect(outcome.isError).toBe(false)
   })
 
   it('repo を省いて git の remote のリポジトリを読めないと、git-unresolved の失敗を返す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-34')
+    await explains('MCP の `tracker_sync` で、`repo` を省略し、git remote のリポジトリを読み取れない場合のテストです。`git-unresolved` の失敗を返し、GitHub へ要求を送らないことを確認します。')
     const { outcome, github } = await syncToolRun([], {}, { hasRemote: false })
     expect(outcome.isError).toBe(true)
     expect(outcome.structured).toMatchObject({ kind: 'git-unresolved', detail: 'could not read the repository from the git remote' })
@@ -369,6 +400,7 @@ describe('tracker sync', () => {
 
   it('GitHub のトークンが見つからないと、error の行を標準エラーに出す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-35')
+    await explains('GitHub のトークンが見つからない場合のテストです。CLI が `error:` の行を標準エラーに出力し、標準出力には何も出力しないことを確認します。')
     const { result, root } = await syncWithoutToken()
     expect(result.stderr).toBe(missingTokenStderr(root))
     expect(result.stdout).toBe('')
@@ -377,6 +409,7 @@ describe('tracker sync', () => {
   it('GitHub のトークンが見つからないと、理由を detail に入れて github-auth の失敗を返す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-35')
     await verifies(context, 'PW-TRACKER-SYNC-36')
+    await explains('GitHub のトークンが見つからない場合のテストです。MCP が、理由を含む `detail` で `github-auth` の失敗を返し、GitHub へ要求を送らないことを確認します。')
     const project = prepareSync()
     setEnvironment({ [project.tokenVariable]: undefined })
     const github = await startGithub([])
@@ -394,6 +427,7 @@ describe('tracker sync', () => {
     { name: 'Issue の一覧', rules: [pullRequestList([pullRequest({ number: 2, ...MAJOR })]), failedRule({ method: 'GET', path: '/repos/acme/demo/issues' })], reads: READS, message: () => 'GitHub API error: 500' },
   ])('$name を取れないと、何も書かない', async (row, context) => {
     await verifies(context, 'PW-TRACKER-SYNC-37')
+    await explains('PR の一覧と Issue の一覧のそれぞれを取得できない場合のテストです。どちらの場合も、エラーを標準エラーに出力し、GitHub へ書き込まないことを確認します。')
     const { result, github } = await sync(row.rules)
     expect(result.stderr).toBe(`error: could not list pull requests or issues: ${row.message(github.url)}\n`)
     expect(labelsOf(github)).toEqual(row.reads)
@@ -404,6 +438,7 @@ describe('tracker sync', () => {
     { name: 'Issue の一覧', rules: [pullRequestList([pullRequest({ number: 2, ...MAJOR })]), failedRule({ method: 'GET', path: '/repos/acme/demo/issues' })] },
   ])('$name を取れないと、失敗を返す', async (row, context) => {
     await verifies(context, 'PW-TRACKER-SYNC-38')
+    await explains('MCP の `tracker_sync` で、PR の一覧と Issue の一覧のそれぞれを取得できない場合のテストです。どちらの場合も、`detail` が `could not list pull requests or issues:` で始まる失敗を返すことを確認します。')
     const { outcome } = await syncToolRun(row.rules)
     expect(outcome.isError).toBe(true)
     expect(outcome.structured['detail']).toMatch(/^could not list pull requests or issues: /u)
@@ -414,15 +449,17 @@ describe('tracker sync', () => {
     return await sync(listings([pullRequest({ number: 2, ...MAJOR })], [broken]))
   }
 
-  it('使う Tracker の本文に list-begin と list-end の印が 1 組だけ無いと、何も書かない', async (context) => {
+  it('使う Tracker の本文に list-begin と list-end の印が 1 組そろっていないと、何も書かない', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-39')
+    await explains('CLI で、使う Tracker の本文に `list-begin` と `list-end` の印が 1 組そろっていない場合のテストです。GitHub へ書き込まずに、エラーを標準エラーに出力することを確認します。')
     const { result, github } = await syncWithBrokenMarkers()
     expect(result.stderr).toBe('error: Tracker #9: cannot rewrite the list: the Tracker body does not have exactly one pair of list-begin / list-end markers\n')
     expect(labelsOf(github)).toEqual(READS)
   })
 
-  it('使う Tracker の本文に list-begin と list-end の印が 1 組だけ無いと、content-invalid の失敗を返す', async (context) => {
+  it('使う Tracker の本文に list-begin と list-end の印が 1 組そろっていないと、content-invalid の失敗を返す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-40')
+    await explains('MCP の `tracker_sync` で、使う Tracker の本文に `list-begin` と `list-end` の印が 1 組そろっていない場合のテストです。`content-invalid` の失敗を返すことを確認します。')
     const { outcome } = await syncToolRun(listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, '<!-- pecot-dependabot-pr: tracker -->')]))
     expect(outcome.isError).toBe(true)
     expect(outcome.structured).toMatchObject({ kind: 'content-invalid' })
@@ -434,6 +471,7 @@ describe('tracker sync', () => {
 
   it('Tracker の本文の書き直しに失敗すると、Tracker を閉じない', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-41')
+    await explains('Tracker の本文の書き換えに失敗した場合のテストです。エラーを標準エラーに出力し、Tracker は閉じないことを確認します。')
     const { result, github } = await syncWithFailedRewrite()
     expect(result.stderr).toBe(`${OTHER_WARNING}${NO_PRS_COUNTS}error: could not update Tracker #9 body: GitHub API error: 422\n`)
     expect(labelsOf(github).filter(label => label.startsWith('PATCH'))).toEqual(['PATCH /repos/acme/demo/issues/9'])
@@ -441,6 +479,7 @@ describe('tracker sync', () => {
 
   it('Tracker の本文の書き直しに失敗すると、partial-failure の失敗を返す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-42')
+    await explains('MCP の `tracker_sync` で、Tracker の本文の書き換えに失敗した場合のテストです。`closed` が `false` の `partial-failure` の失敗を返すことを確認します。')
     const { outcome } = await syncToolRun([...listings([], withOthers(TRACKER_WITH_OLD_ROW)), failedRule({ method: 'PATCH', path: '/repos/acme/demo/issues/9' }, 422)])
     expect(outcome.isError).toBe(true)
     expect(outcome.structured).toMatchObject({ kind: 'partial-failure', detail: 'could not update Tracker #9 body: GitHub API error: 422', closed: false })
@@ -452,6 +491,7 @@ describe('tracker sync', () => {
   }
 
   it('CLI で、表を none に書き直した後で Tracker を閉じられないと、次の実行でやり直す旨の error の行を出して終了コード 1 で終わる', async () => {
+    await explains('CLI で、表を `none` に書き換えた後、Tracker を閉じられない場合のテストです。次の実行でやり直すことを示すエラーを標準エラーへ出力し、終了コード 1 で終了することを確認します。')
     const { result } = await syncWithFailedClose()
     expect(result.code).toBe(FAILURE_CODE)
     expect(result.stderr).toBe(`${OTHER_WARNING}${NO_PRS_COUNTS}removed: PR #1 from Tracker #9\nerror: could not close Tracker #9 after setting its list to none; will retry on the next run: GitHub API error: 500\n`)
@@ -464,6 +504,7 @@ describe('tracker sync', () => {
   }
 
   it('CLI で、Tracker の作成かボードへの追加に失敗すると、Tracker の error の行を標準エラーに出す', async () => {
+    await explains('CLI で、Tracker の作成かボードへの追加に失敗した場合のテストです。`error: Tracker:` の行を標準エラーに出力することを確認します。')
     const created = await syncWithFailedBoard()
     expect(stderrAfterCounts(created.result)).toBe(`created: Tracker "${TODAY_TITLE}"\nadded: PR #2 to new Tracker (major)\nerror: Tracker: ${graphqlServerError(created.github.url)}\n`)
     const creation = await sync([...listings([pullRequest({ number: 2, ...MAJOR })]), failedRule({ method: 'POST', path: '/repos/acme/demo/issues' })])
@@ -473,6 +514,7 @@ describe('tracker sync', () => {
   it('Tracker の作成かボードへの追加に失敗すると、Tracker の失敗の文を detail に入れて partial-failure の失敗を返す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-45')
     await verifies(context, 'PW-TRACKER-SYNC-46')
+    await explains('MCP の `tracker_sync` で、Tracker の作成かボードへの追加に失敗した場合のテストです。失敗の文を `detail` に含めた `partial-failure` の失敗を返すことを確認します。')
     const [nodeId] = boardRules(100, { onlyIfEmpty: false })
     const board = await syncToolRun([...listings([pullRequest({ number: 2, ...MAJOR })]), createdTracker(100), ...nodeId === undefined ? [] : [nodeId], failedRule({ operation: 'AddToProject' })])
     expect(board.outcome.isError).toBe(true)
@@ -483,6 +525,7 @@ describe('tracker sync', () => {
 
   it('選択肢の ID が古くて Status を書けないと、書けなかった欄と ID を読み直す案内を detail に入れて partial-failure の失敗を返す', async (context) => {
     await verifies(context, 'PW-TRACKER-SYNC-93')
+    await explains('MCP の `tracker_sync` で、選択肢の ID が古く Status を設定できない場合のテストです。`partial-failure` の失敗を返し、`detail` に設定できなかった欄と ID を読み直す案内が含まれることを確認します。')
     const added = boardRules(100, { onlyIfEmpty: false }).filter(rule => rule.match.operation !== 'UpdateProjectItemField')
     const { outcome } = await syncToolRun([...listings([pullRequest({ number: 2, ...MAJOR })]), createdTracker(100), ...added, staleOptionUpdate()])
     expect(outcome.isError).toBe(true)
@@ -494,6 +537,7 @@ describe('tracker sync', () => {
   })
 
   it('CLI で、選択肢の ID が古くて Status を書けないと、error の行と ID を読み直す案内を出す', async () => {
+    await explains('CLI で、選択肢の ID が古く Status を設定できない場合のテストです。`error:` の行と ID を読み直す案内を標準エラーに出力し、終了コード 1 で終了することを確認します。')
     const added = boardRules(100, { onlyIfEmpty: false }).filter(rule => rule.match.operation !== 'UpdateProjectItemField')
     const { result } = await sync([...listings([pullRequest({ number: 2, ...MAJOR })]), createdTracker(100), ...added, staleOptionUpdate()])
     expect(result.code).toBe(FAILURE_CODE)
@@ -507,6 +551,7 @@ describe('tracker sync', () => {
   })
 
   it('CLI で、open の Tracker のボード登録に失敗すると、error の行を出して終了コード 1 で終わる', async () => {
+    await explains('CLI で、open の Tracker のボードへの登録に失敗した場合のテストです。`error:` の行を標準エラーに出力して、終了コード 1 で終了することを確認します。')
     const [nodeId] = boardRules(9, { onlyIfEmpty: true })
     const rules = [...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, SAME)]), ...nodeId === undefined ? [] : [nodeId], failedRule({ operation: 'AddToProject' })]
     const { result, github } = await sync(rules)
@@ -515,6 +560,7 @@ describe('tracker sync', () => {
   })
 
   it('Issue の一覧にラベルと state=all を付けて要求する', async () => {
+    await explains('Issue の一覧を取得する要求のテストです。ラベル `dependabot-pr` と `state=all` を指定して要求することを確認します。')
     const { github } = await sync([pullRequestList([]), issueList([])])
     expect(github.requests()[1]).toMatchObject({ method: 'GET', query: { labels: 'dependabot-pr', state: 'all', per_page: '100' } })
   })
@@ -523,6 +569,7 @@ describe('tracker sync', () => {
     const PR_2 = { kind: 'pull-request', number: 2 }
 
     it('Tracker を作ると、その番号と足した PR を返す', async () => {
+      await explains('MCP の `tracker_sync` で、Tracker を作成した場合のテストです。作成した Tracker の番号と、追加した PR が `data` に含まれることを確認します。')
       const nodes = [pullRequest({ number: 2, ...MAJOR }), pullRequest({ number: 3, name: 'lodash' })]
       const data = await syncTool([...listings(nodes), createdTracker(100), ...boardRules(100, { onlyIfEmpty: false })])
       expect(data).toEqual({ source: 'dependabot', tracker: 100, created: true, added: [PR_2], removed: [], closed: false })
@@ -530,6 +577,7 @@ describe('tracker sync', () => {
 
     it('open の Tracker も判断を待つ PR も無いと、tracker を入れずに created を false にして成功を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-06')
+      await explains('MCP の `tracker_sync` で、open の Tracker も判断を待つ PR も存在しない場合のテストです。`tracker` を含めず、`created` が `false` の成功の結果を返すことを確認します。')
       const { outcome } = await syncToolRun(listings([pullRequest({ number: 3, name: 'lodash' })]))
       expect(outcome.isError).toBe(false)
       expect(outcome.structured).toEqual({ source: 'dependabot', created: false, added: [], removed: [], closed: false })
@@ -537,6 +585,7 @@ describe('tracker sync', () => {
 
     it('行の足し外しが無く本文だけが変わると、added と removed を空にして成功を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-19')
+      await explains('MCP の `tracker_sync` で、PR の行は増減せず、本文だけが変わる場合のテストです。`added` と `removed` が空の成功の結果を返すことを確認します。')
       const { outcome } = await syncToolRun([...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, CHECKS_CHANGED)]), patched(9), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })])
       expect(outcome.isError).toBe(false)
       expect(outcome.structured).toEqual({ source: 'dependabot', tracker: 9, created: false, added: [], removed: [], closed: false })
@@ -544,6 +593,7 @@ describe('tracker sync', () => {
 
     it('書き直した本文が今の本文と同じだと、added と removed を空にして成功を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-21')
+      await explains('MCP の `tracker_sync` で、書き換えた後の本文が今の本文と同じ場合のテストです。`added` と `removed` が空の成功の結果を返すことを確認します。')
       const { outcome } = await syncToolRun([...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, SAME)]), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })])
       expect(outcome.isError).toBe(false)
       expect(outcome.structured).toEqual({ source: 'dependabot', tracker: 9, created: false, added: [], removed: [], closed: false })
@@ -552,6 +602,7 @@ describe('tracker sync', () => {
     it('表の行を足し外すと、足した PR を added に、外した PR を removed に入れる', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-16')
       await verifies(context, 'PW-TRACKER-SYNC-17')
+      await explains('MCP の `tracker_sync` で、表の行を追加して削除した場合のテストです。追加した PR が `added` に、削除した PR が `removed` に含まれることを確認します。')
       const existing = trackerBody([[1, 'Bump old', 'failed']])
       const data = await syncTool([...listings([pullRequest({ number: 2, ...MAJOR })], [trackerIssue(9, existing)]), patched(9), ...boardRules(9, { onlyIfEmpty: true, filled: STATUS_FILLED })])
       expect(data).toEqual({ source: 'dependabot', tracker: 9, created: false, added: [PR_2], removed: [{ kind: 'pull-request', number: 1 }], closed: false })
@@ -560,6 +611,7 @@ describe('tracker sync', () => {
     it('表が none になって Tracker を閉じると、closed を true にし、open の Tracker が複数あれば warnings に 1 つ入れる', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-24')
       await verifies(context, 'PW-TRACKER-SYNC-30')
+      await explains('MCP の `tracker_sync` で、表が `none` になって Tracker を閉じた場合のテストです。`closed` が `true` になり、open の Tracker が複数あれば警告が `warnings` に 1 つだけ含まれることを確認します。')
       const data = await syncTool([...listings([], CLOSING_ISSUES), ...CLOSING])
       expect(data).toEqual({ source: 'dependabot', tracker: 9, created: false, added: [], removed: [{ kind: 'pull-request', number: 1 }], closed: true, warnings: ['multiple open Trackers; using #9 (lowest number) and leaving #12 open'] })
     })
@@ -568,6 +620,7 @@ describe('tracker sync', () => {
       await verifies(context, 'PW-COMMON-18')
       await verifies(context, 'PW-TRACKER-SYNC-43')
       await verifies(context, 'PW-TRACKER-SYNC-44')
+      await explains('MCP の `tracker_sync` で、表を書き換えた後に Tracker を閉じられない場合のテストです。削除した PR を `data` に残し、`closed` が `false` の `partial-failure` の失敗を返すことを確認します。')
       const rules = [...listings([], withOthers(TRACKER_WITH_OLD_ROW)), patched(9, { body: trackerBody([]) }), failedRule({ method: 'PATCH', path: '/repos/acme/demo/issues/9', body: { state: 'closed' } })]
       const data = await syncTool(rules)
       expect(data).toEqual({

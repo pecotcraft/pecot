@@ -43,6 +43,7 @@ import {
 import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
+import { explains } from '../_helpers/explains.js'
 
 // hang regression を spawnSync の SIGTERM kill（600s）より手前で落とすための上限。
 // 性能目標ではない。
@@ -72,7 +73,8 @@ afterAll(() => {
 const isChromiumReady = isChromiumCached()
 
 describe.skipIf(!isChromiumReady)('CUJ: キャッシュ系警告が --json payload から観測できる', () => {
-  it('CUJ-A: 掃除が throw する manifest 破損は done payload に警告 2 件 + all:error として出る', async () => {
+  it('キャッシュの掃除に失敗する manifest の破損があっても、done の結果に警告 2 件と `all:error` を含める', async () => {
+    await explains('キャッシュの警告の出力のテストです。manifest が不正で、掃除が失敗する場合に、終了コード 0 のまま、done の結果へ警告 2 件と `all:error` を含めることを確認します。')
     const itT0 = performance.now()
     const warmOut = temporaryRoot('warning-warm.pptx')
     const brokenOut = temporaryRoot('warning-broken.pptx')

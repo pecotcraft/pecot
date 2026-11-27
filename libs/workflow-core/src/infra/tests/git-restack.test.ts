@@ -26,6 +26,7 @@ import {
   resetHardTo,
   resolveCommit,
 } from '../git.js'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 useIsolatedEnvironment()
 
@@ -157,7 +158,8 @@ function createConflictingStack(): Stack {
 }
 
 describe('rebaseOnto', () => {
-  it('親ブランチにコミットを足すと、子ブランチを記録の位置から親ブランチの新しい先頭へスタックし直す', () => {
+  it('親ブランチにコミットを追加すると、子ブランチを記録した位置から親ブランチの新しい先頭へスタックし直す', async () => {
+    await explains('子ブランチを親ブランチの上に載せ直す `rebaseOnto` のテストです。親ブランチにコミットを追加した場合に、`done` を返し、子ブランチの 2 つのコミットが親ブランチの新しい先頭の上に載ることを確認します。')
     const stack = createStack()
     const newLower = commitFile(stack.lower, 'lower2.txt', 'l2\n', 'L2')
 
@@ -167,7 +169,8 @@ describe('rebaseOnto', () => {
     expect(subjects(stack.upper, 'lower..HEAD')).toEqual(['U2', 'U1'])
   })
 
-  it('親ブランチを squash で開発ブランチへ入れた後、子ブランチを開発ブランチへ載せ、親ブランチのコミットを落とす', async () => {
+  it('親ブランチを squash で開発ブランチに統合した後は、子ブランチを開発ブランチの上に載せ、親ブランチのコミットを除外する', async () => {
+    await explains('`rebaseOnto` のテストです。親ブランチを squash で開発ブランチへ統合した場合に、子ブランチのコミットだけを `origin/main` の上に載せ、親ブランチのコミットは含めないことを確認します。')
     const stack = createStack()
     squashLowerIntoMain(stack)
     expect(await fetchRemote(stack.upper, 'origin')).toMatchObject({ succeeded: true })
@@ -179,7 +182,8 @@ describe('rebaseOnto', () => {
     expect(readFileSync(path.join(stack.upper, 'lower.txt'), 'utf8')).toBe('l1\n')
   })
 
-  it('もう一方の作業ディレクトリの、未コミットの変更とブランチの位置を変えない', () => {
+  it('親ブランチの作業ディレクトリの未コミットの変更とブランチの位置を、変更しない', async () => {
+    await explains('`rebaseOnto` のテストです。親ブランチの作業ディレクトリに未コミットの変更と未追跡のファイルがある場合に、スタックし直した後も、その状態とブランチの位置が変わらないことを確認します。')
     const stack = createStack()
     commitFile(stack.lower, 'lower2.txt', 'l2\n', 'L2')
     writeFileSync(path.join(stack.lower, 'lower.txt'), 'edited\n')
@@ -194,7 +198,8 @@ describe('rebaseOnto', () => {
     expect(readFileSync(path.join(stack.lower, 'lower.txt'), 'utf8')).toBe('edited\n')
   })
 
-  it('rebase.updateRefs を true にしていても、範囲の中を指す別のローカルブランチを書き換えない', () => {
+  it('rebase.updateRefs を true に設定していても、範囲内の別のローカルブランチを更新しない', async () => {
+    await explains('`rebaseOnto` のテストです。`rebase.updateRefs` を `true` に設定し、範囲内のコミットを指す別のブランチ（`marker`）がある場合に、スタックし直した後も `marker` の位置が変わらないことを確認します。')
     const stack = createStack()
     gitForTest(stack.upper, ['config', 'rebase.updateRefs', 'true'])
     gitForTest(stack.upper, ['branch', 'marker', 'HEAD~1'])
@@ -207,7 +212,8 @@ describe('rebaseOnto', () => {
     expect(sha(stack.upper, 'HEAD~2')).toBe(sha(stack.upper, 'lower'))
   })
 
-  it('衝突すると conflict を返し、conflictedFiles が衝突したファイルを返す', () => {
+  it('衝突すると conflict を返し、conflictedFiles が衝突したファイルを返す', async () => {
+    await explains('`rebaseOnto` と `conflictedFiles` のテストです。子ブランチと親ブランチが同じ行を変更している場合に、`rebaseOnto` が `conflict` を返し、`conflictedFiles` が `base.txt` を返すことを確認します。')
     const stack = createConflictingStack()
 
     expect(rebaseOnto(stack.upper, 'lower', stack.recordedBase)).toBe('conflict')
@@ -215,13 +221,15 @@ describe('rebaseOnto', () => {
     expect(conflictedFiles(stack.upper)).toEqual(['base.txt'])
   })
 
-  it('衝突以外で失敗すると GitCommandError を投げる', () => {
+  it('衝突以外で失敗すると、GitCommandError を発生させる', async () => {
+    await explains('`rebaseOnto` のテストです。存在しないブランチを指定するなど、衝突以外の原因で失敗した場合に、`GitCommandError` が発生し、スタックし直しが途中で残らないことを確認します。')
     const stack = createStack()
     expect(() => rebaseOnto(stack.upper, 'no-such-branch', stack.recordedBase)).toThrow(GitCommandError)
     expect(isRebaseInProgress(stack.upper)).toBe(false)
   })
 
-  it('既に rebase の途中なら、衝突と読まずに GitCommandError を投げる', () => {
+  it('既にスタックし直しの途中の場合は、衝突とは扱わず GitCommandError を発生させる', async () => {
+    await explains('`rebaseOnto` のテストです。衝突でスタックし直しが途中で止まっている状態で再度実行した場合に、`conflict` ではなく `GitCommandError` が発生し、途中の状態が残ることを確認します。')
     const stack = createConflictingStack()
     expect(rebaseOnto(stack.upper, 'lower', stack.recordedBase)).toBe('conflict')
 
@@ -231,7 +239,8 @@ describe('rebaseOnto', () => {
 })
 
 describe('abortRebase と continueRebase', () => {
-  it('衝突の後に abortRebase すると、スタックし直す前の位置に戻る', () => {
+  it('衝突の後に abortRebase を呼ぶと、スタックし直す前の位置に戻る', async () => {
+    await explains('`abortRebase` のテストです。衝突で止まったスタックし直しを中止した場合に、子ブランチの先頭がスタックし直す前の位置に戻り、ブランチ `upper` に戻ることを確認します。')
     const stack = createConflictingStack()
     const before = sha(stack.upper, 'HEAD')
     expect(rebaseOnto(stack.upper, 'lower', stack.recordedBase)).toBe('conflict')
@@ -242,7 +251,8 @@ describe('abortRebase と continueRebase', () => {
     expect(gitForTest(stack.upper, ['rev-parse', '--abbrev-ref', 'HEAD']).trim()).toBe('upper')
   })
 
-  it('衝突を解かずに continueRebase すると、conflict を返す', () => {
+  it('衝突を解決せずに continueRebase を呼ぶと、conflict を返す', async () => {
+    await explains('`continueRebase` のテストです。衝突を解決せずに続行した場合は、`conflict` を返し、スタックし直しが途中の状態のまま残ることを確認します。')
     const stack = createConflictingStack()
     expect(rebaseOnto(stack.upper, 'lower', stack.recordedBase)).toBe('conflict')
 
@@ -250,7 +260,8 @@ describe('abortRebase と continueRebase', () => {
     expect(isRebaseInProgress(stack.upper)).toBe(true)
   })
 
-  it('衝突を解いて continueRebase すると、エディタを開かずに done を返す', () => {
+  it('衝突を解決して continueRebase を呼ぶと、エディタを開かずに done を返す', async () => {
+    await explains('`continueRebase` のテストです。衝突を解決してファイルを追加した後に続行した場合は、エディタを開かずに `done` を返し、スタックし直しを完了することを確認します。')
     const stack = createConflictingStack()
     expect(rebaseOnto(stack.upper, 'lower', stack.recordedBase)).toBe('conflict')
     writeFileSync(path.join(stack.upper, 'base.txt'), 'resolved\n')
@@ -266,7 +277,8 @@ describe('abortRebase と continueRebase', () => {
 })
 
 describe('isRebaseInProgress', () => {
-  it('.git がファイルの worktree でも、衝突中は true、取りやめた後と前は false を返す', () => {
+  it('.git がファイルの worktree でも、衝突中は true を返し、衝突の前と中止した後は false を返す', async () => {
+    await explains('スタックし直しが途中かを判定する `isRebaseInProgress` のテストです。`.git` がファイルの worktree で、衝突中は `true`、衝突の前と中止した後は `false` を返すことを確認します。')
     const stack = createConflictingStack()
     expect(statSync(path.join(stack.upper, '.git')).isFile()).toBe(true)
     expect(isRebaseInProgress(stack.upper)).toBe(false)
@@ -281,7 +293,8 @@ describe('isRebaseInProgress', () => {
 })
 
 describe('hasSameTree と resetHardTo', () => {
-  it('スタックし直した木が origin の子ブランチと同じなら true を返し、resetHardTo の後は origin と同じ SHA になる', async () => {
+  it('スタックし直した結果が origin の子ブランチと同じ内容の場合は true を返し、resetHardTo の後は origin と同じ SHA になる', async () => {
+    await explains('`hasSameTree` と `resetHardTo` のテストです。スタックし直した結果が `origin/upper` と同じ内容の場合に `true` を返し、`resetHardTo` の後に `origin/upper` と同じ SHA になることを確認します。')
     const stack = createStack()
     squashLowerIntoMain(stack)
     rewriteRemoteUpperOntoMain(stack)
@@ -296,7 +309,8 @@ describe('hasSameTree と resetHardTo', () => {
     expect(gitForTest(stack.upper, ['rev-parse', '--abbrev-ref', 'HEAD']).trim()).toBe('upper')
   })
 
-  it('木が違えば false を返す', () => {
+  it('内容が異なる場合は、hasSameTree が false を返す', async () => {
+    await explains('`hasSameTree` のテストです。スタックし直した結果と `origin/upper` の内容が異なる場合に、`false` を返すことを確認します。')
     const stack = createStack()
     commitFile(stack.lower, 'lower2.txt', 'l2\n', 'L2')
     expect(rebaseOnto(stack.upper, 'lower', stack.recordedBase)).toBe('done')
@@ -304,14 +318,16 @@ describe('hasSameTree と resetHardTo', () => {
     expect(hasSameTree(stack.upper, 'HEAD', 'origin/upper')).toBe(false)
   })
 
-  it('比べる ref が無ければ GitCommandError を投げる', () => {
+  it('比較する ref が存在しない場合は、GitCommandError を発生させる', async () => {
+    await explains('`hasSameTree` のテストです。存在しない ref（`origin/no-such-branch`）を指定した場合に、`GitCommandError` が発生することを確認します。')
     const stack = createStack()
     expect(() => hasSameTree(stack.upper, 'HEAD', 'origin/no-such-branch')).toThrow(GitCommandError)
   })
 })
 
 describe('pushWithLease', () => {
-  it('期待の SHA が remote と同じなら push し、remote が手元の SHA になる', async () => {
+  it('期待する SHA が remote と同じ場合は、push して remote を手元の SHA にする', async () => {
+    await explains('`pushWithLease` のテストです。期待する SHA が remote の先頭と同じ場合に、`pushed` が `true` の結果を返し、remote の子ブランチが手元の先頭と同じ SHA になることを確認します。')
     const stack = createStack()
     commitFile(stack.lower, 'lower2.txt', 'l2\n', 'L2')
     const expected = sha(stack.upper, 'origin/upper')
@@ -322,7 +338,8 @@ describe('pushWithLease', () => {
     expect(sha(stack.origin, 'upper')).toBe(sha(stack.upper, 'HEAD'))
   })
 
-  it('期待の SHA が remote の先頭に一致しなければ拒まれ、remote を変えない', async () => {
+  it('期待する SHA が remote の先頭と一致しない場合は、push を拒否し、remote を変更しない', async () => {
+    await explains('`pushWithLease` のテストです。期待する SHA が remote の先頭と一致しない場合に、`rejected` として拒否され、標準エラーに `stale info` を含み、remote が変更されないことを確認します。')
     const stack = createStack()
     const remoteBefore = sha(stack.origin, 'upper')
     commitFile(stack.upper, 'local.txt', 'x\n', 'local')
@@ -334,7 +351,8 @@ describe('pushWithLease', () => {
     expect(sha(stack.origin, 'upper')).toBe(remoteBefore)
   })
 
-  it('pre-push のフックが時間切れを超えると、フックごと git を止めてすぐに timed-out を返し、remote を変えない', async () => {
+  it('pre-push のフックが時間切れを超えると、フックごと git を停止してすぐに timed-out を返し、remote を変更しない', async () => {
+    await explains('`pushWithLease` のテストです。`pre-push` のフックが指定した時間を超えて動き続ける場合に、フックごと git を停止し、`timed-out` を短時間で返し、remote が変更されないことを確認します。')
     const stack = createStack()
     const remoteBefore = sha(stack.origin, 'upper')
     commitFile(stack.upper, 'local.txt', 'x\n', 'local')
@@ -349,7 +367,8 @@ describe('pushWithLease', () => {
     await expect.poll(() => isRunning(hook.pid())).toBe(false)
   })
 
-  it('push を待つ間に取り消されると、フックごと git を止めてすぐに CancelledError を投げ、remote を変えない', async () => {
+  it('push の待機中に取り消されると、フックごと git を停止してすぐに CancelledError を発生させ、remote を変更しない', async () => {
+    await explains('`pushWithLease` のテストです。`pre-push` のフックの実行中に取り消した場合は、フックごと git を停止して `CancelledError` を発生させ、remote を変更しないことを確認します。')
     const stack = createStack()
     const remoteBefore = sha(stack.origin, 'upper')
     commitFile(stack.upper, 'local.txt', 'x\n', 'local')
@@ -398,7 +417,8 @@ function isRunning(pid: number | undefined): boolean {
 }
 
 describe('remoteOnlyChanges', () => {
-  it('GitHub が書き換えた子ブランチのコミットと、親ブランチ・開発ブランチのコミットは一覧に入れない', async () => {
+  it('GitHub が書き換えた子ブランチのコミットと、親ブランチ・開発ブランチのコミットは、一覧に含めない', async () => {
+    await explains('remote にだけ存在するコミットを返す `remoteOnlyChanges` のテストです。GitHub が子ブランチを書き換えただけの場合に、書き換えたコミットと親・開発ブランチのコミットを除いた、空の一覧を返すことを確認します。')
     const stack = createStack()
     squashLowerIntoMain(stack)
     rewriteRemoteUpperOntoMain(stack)
@@ -407,7 +427,8 @@ describe('remoteOnlyChanges', () => {
     expect(remoteOnlyChanges(stack.upper, 'HEAD', 'origin/upper', [stack.recordedBase, 'origin/main'])).toEqual([])
   })
 
-  it('親ブランチの直しが子ブランチの変更の近くに入ると、書き換えたコミットはスタックし直す前の HEAD とは合わず、スタックし直した後の HEAD とは合う', async () => {
+  it('親ブランチの修正が子ブランチの変更の近くに入った場合は、書き換えたコミットはスタックし直す前の HEAD とは一致せず、スタックし直した後の HEAD とは一致する', async () => {
+    await explains('`remoteOnlyChanges` のテストです。親ブランチの修正が子ブランチの変更に近い場合は、スタックし直す前の HEAD では書き換えたコミットが 1 件残り、直した後の HEAD では空の一覧を返すことを確認します。')
     const initial = createStack()
     commitFile(initial.lower, 'f.txt', numbered({}), 'L2')
     gitForTest(initial.upper, ['rebase', '-q', 'lower'])
@@ -426,7 +447,8 @@ describe('remoteOnlyChanges', () => {
     expect(remoteOnlyChanges(stack.upper, 'HEAD', 'origin/upper', excluded)).toEqual([])
   })
 
-  it('remote の子ブランチにだけ足されたコミットを一覧に入れる', async () => {
+  it('remote の子ブランチにだけ追加されたコミットは、一覧に含める', async () => {
+    await explains('`remoteOnlyChanges` のテストです。GitHub の書き換えに加えて、remote の子ブランチにだけコミット（`apply suggestion`）が追加された場合に、そのコミットだけを返すことを確認します。')
     const stack = createStack()
     squashLowerIntoMain(stack)
     const suggestion = rewriteRemoteUpperOntoMain(stack, 'apply suggestion')
@@ -435,7 +457,8 @@ describe('remoteOnlyChanges', () => {
     expect(remoteOnlyChanges(stack.upper, 'HEAD', 'origin/upper', [stack.recordedBase, 'origin/main'])).toEqual([suggestion])
   })
 
-  it('書き換えの無い remote の子ブランチにだけ足されたコミットを一覧に入れ、親ブランチの新しいコミットは入れない', async () => {
+  it('書き換えがない remote の子ブランチにだけ追加されたコミットは、一覧に含め、親ブランチの新しいコミットは含めない', async () => {
+    await explains('`remoteOnlyChanges` のテストです。書き換えがなく remote の子ブランチにだけコミットが追加された場合に、そのコミットだけを返し、親ブランチの新しいコミットを含めないことを確認します。')
     const stack = createStack()
     commitFile(stack.lower, 'lower2.txt', 'l2\n', 'L2')
     gitForTest(stack.lower, ['push', '-q', 'origin', 'lower'])
@@ -451,14 +474,16 @@ describe('remoteOnlyChanges', () => {
 })
 
 describe('fetchRemote', () => {
-  it('remote が無ければ、失敗と stderr を返す', async () => {
+  it('remote が存在しない場合は、失敗と標準エラーを返す', async () => {
+    await explains('remote から取得する `fetchRemote` のテストです。存在しない remote を指定した場合に、`succeeded` が `false` の結果と、remote 名を含む標準エラーを返すことを確認します。')
     const stack = createStack()
     const result = await fetchRemote(stack.upper, 'no-such-remote')
     expect(result.succeeded).toBe(false)
     expect(result.stderr).toContain('no-such-remote')
   })
 
-  it('取り消すと、待っている upload-pack ごと止めて CancelledError を投げる', async () => {
+  it('取り消すと、待機中の upload-pack ごと停止し、CancelledError を発生させる', async () => {
+    await explains('`fetchRemote` のテストです。`upload-pack` が応答しない状態で `AbortSignal` により取り消した場合に、`upload-pack` のプロセスも停止し、`CancelledError` が発生することを確認します。')
     const stack = createStack()
     const hang = hangUploadPack(stack.upper)
     const controller = new AbortController()
@@ -471,24 +496,28 @@ describe('fetchRemote', () => {
 })
 
 describe('remoteBranchHead', () => {
-  it('remote にブランチがあれば、その先頭の SHA を返す', async () => {
+  it('remote にブランチが存在する場合は、その先頭の SHA を返す', async () => {
+    await explains('remote のブランチの先頭を返す `remoteBranchHead` のテストです。remote にブランチが存在する場合に、`isReachable` が `true` で、その先頭の SHA を返すことを確認します。')
     const stack = createStack()
     expect(await remoteBranchHead(stack.upper, 'origin', 'lower')).toEqual({ isReachable: true, sha: stack.recordedBase })
   })
 
-  it('remote にブランチが無ければ、sha が undefined', async () => {
+  it('remote にブランチが存在しない場合は、sha が undefined の結果を返す', async () => {
+    await explains('`remoteBranchHead` のテストです。remote に指定したブランチが存在しない場合に、`isReachable` が `true` で `sha` が `undefined` の結果を返すことを確認します。')
     const stack = createStack()
     expect(await remoteBranchHead(stack.upper, 'origin', 'no-such-branch')).toEqual({ isReachable: true, sha: undefined })
   })
 
-  it('remote に届かなければ、isReachable が false', async () => {
+  it('remote に接続できない場合は、isReachable が false の結果を返す', async () => {
+    await explains('`remoteBranchHead` のテストです。存在しない remote を指定した場合に、`isReachable` が `false` の結果を返すことを確認します。')
     const stack = createStack()
     expect(await remoteBranchHead(stack.upper, 'no-such-remote', 'lower')).toEqual({ isReachable: false })
   })
 })
 
 describe('remoteTagExists', () => {
-  it('remote にタグがあれば isFound が true、無ければ false', async () => {
+  it('remote にタグが存在する場合は isFound が true、存在しない場合は false を返す', async () => {
+    await explains('remote のタグを確認する `remoteTagExists` のテストです。タグ `v1.0.0` を push した場合に `isFound` が `true`、存在しない `v2.0.0` の場合に `false` を返すことを確認します。')
     const stack = createStack()
     gitForTest(stack.lower, ['tag', 'v1.0.0'])
     gitForTest(stack.lower, ['push', '-q', 'origin', 'v1.0.0'])
@@ -496,13 +525,15 @@ describe('remoteTagExists', () => {
     expect(await remoteTagExists(stack.upper, 'origin', 'v2.0.0')).toEqual({ isFound: false })
   })
 
-  it('remote に届かなければ、failure に git の stderr を返す', async () => {
+  it('remote に接続できない場合は、failure に git の標準エラーを返す', async () => {
+    await explains('`remoteTagExists` のテストです。存在しない remote を指定した場合に、`failure` に remote 名を含む標準エラーを返すことを確認します。')
     const stack = createStack()
     const result = await remoteTagExists(stack.upper, 'no-such-remote', 'v1.0.0')
     expect('failure' in result && result.failure).toContain('no-such-remote')
   })
 
-  it('取り消すと、待っている upload-pack ごと止めて CancelledError を投げる', async () => {
+  it('取り消すと、待機中の upload-pack ごと停止し、CancelledError を発生させる', async () => {
+    await explains('`remoteTagExists` のテストです。`upload-pack` が応答しない状態で `AbortSignal` により取り消した場合に、`upload-pack` のプロセスも停止し、`CancelledError` が発生することを確認します。')
     const stack = createStack()
     const hang = hangUploadPack(stack.upper)
     const controller = new AbortController()
@@ -515,13 +546,15 @@ describe('remoteTagExists', () => {
 })
 
 describe('resolveCommit と mergeBase', () => {
-  it('ref の SHA を返し、無い ref は undefined を返す', () => {
+  it('ref の SHA を返し、存在しない ref は undefined を返す', async () => {
+    await explains('ref を SHA に解決する `resolveCommit` のテストです。存在する ref の場合に SHA を返し、存在しない ref の場合に `undefined` を返すことを確認します。')
     const stack = createStack()
     expect(resolveCommit(stack.upper, 'lower')).toBe(stack.recordedBase)
     expect(resolveCommit(stack.upper, 'no-such-branch')).toBeUndefined()
   })
 
-  it('2 つの ref の merge-base を返し、共通の祖先が無ければ undefined を返す', () => {
+  it('2 つの ref の merge-base を返し、共通の祖先がない場合は undefined を返す', async () => {
+    await explains('`mergeBase` のテストです。共通の祖先を持つ 2 つの ref の場合に merge-base の SHA を返し、孤立したブランチで共通の祖先がない場合に `undefined` を返すことを確認します。')
     const stack = createStack()
     expect(mergeBase(stack.upper, 'upper', 'main')).toBe(sha(stack.upper, 'main'))
     gitForTest(stack.upper, ['switch', '-q', '--orphan', 'orphan'])

@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest'
 
 import { DECK_LINT_RULE_IDS, REFERENCE_FREE_RULE_IDS } from '../../../src/domain/slidev-theme/deck-lint-rules.js'
 import { DEFAULT_THEME_DECLARATION } from '../../../src/domain/slidev-theme/defaults.js'
+import { explains } from '../../_helpers/explains.js'
 
 // tests/unit/domain → plugins/pecot-visual
 const PLUGIN_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..')
@@ -47,7 +48,8 @@ function isReadingSettings(id: string): boolean {
 }
 
 describe('DECK_LINT_RULE_IDS', () => {
-  it('本体のプラグインが持つ 15 本の規則と一致する', () => {
+  it('テーマの宣言で指定できる規則の一覧が、本体の lint プラグインの 15 個の規則と一致する', async () => {
+    await explains('`DECK_LINT_RULE_IDS` のテストです。本体の `slidev-pages-lint` と `text-constraints` の推奨設定から読み取った 15 個の規則名と、一覧の内容が順序を除いて一致することを確認します。')
     const fromPlugins = ['slidev-pages-lint', 'text-constraints'].flatMap((plugin) => {
       const text = readFileSync(path.join(ESLINT_PLUGINS, plugin, 'index.ts'), 'utf8')
       const recommended = text.slice(text.indexOf('configs.recommended'))
@@ -58,11 +60,13 @@ describe('DECK_LINT_RULE_IDS', () => {
     expect(DECK_LINT_RULE_IDS.toSorted(compare)).toEqual(fromPlugins.toSorted(compare))
   })
 
-  it('重複しない', () => {
+  it('規則の一覧に、同じ規則名が重複して含まれない', async () => {
+    await explains('`DECK_LINT_RULE_IDS` に同じ規則名が 2 回以上含まれないことを確認するテストです。')
     expect(new Set(DECK_LINT_RULE_IDS).size).toBe(DECK_LINT_RULE_IDS.length)
   })
 
-  it('deck-lint.config.js は固定の規則を持たず、受けた rules を置く', () => {
+  it('deck-lint.config.js は固定の規則を持たず、受け取った rules を設定に使う', async () => {
+    await explains('`deck-lint.config.js` のソースを読んで検証するテストです。規則の指定が書かれておらず、`defineDeckLintConfig` だけを公開し、`pecot-theme.json` に依存しないことを確認します。')
     const text = readFileSync(CONFIG_PATH, 'utf8')
     expect(text.matchAll(RULE_LINE).toArray()).toEqual([])
     expect(text).toContain('export function defineDeckLintConfig')
@@ -72,30 +76,35 @@ describe('DECK_LINT_RULE_IDS', () => {
 })
 
 describe('REFERENCE_FREE_RULE_IDS', () => {
-  it('宣言の無いテーマの既定値は、この 9 本を error にしたもの', () => {
+  it('宣言ファイルを持たないテーマの既定値は、設定を読まない 9 個の規則を、すべて error とした設定になる', async () => {
+    await explains('`DEFAULT_THEME_DECLARATION` の lint の規則のテストです。`REFERENCE_FREE_RULE_IDS` の 9 個の規則が、すべて `error` として指定されていることを確認します。')
     expect(REFERENCE_FREE_RULE_IDS).toHaveLength(9)
     expect(DEFAULT_THEME_DECLARATION.lint.rules).toEqual(
       Object.fromEntries(REFERENCE_FREE_RULE_IDS.map(id => [id, 'error'])),
     )
   })
 
-  it('15 本のうち、設定の項目を読む 6 本を除いたものと一致する', () => {
+  it('設定を読まない規則の一覧は、全 15 個から設定を読む 6 個を除いたものと一致する', async () => {
+    await explains('`REFERENCE_FREE_RULE_IDS` のテストです。`DECK_LINT_RULE_IDS` の 15 個から、設定の項目を読む 6 個を除いた規則名と、順序を除いて一致することを確認します。')
     const rest = DECK_LINT_RULE_IDS.filter(id => !SIX_READERS.has(id))
     expect(REFERENCE_FREE_RULE_IDS.toSorted(compare)).toEqual(rest.toSorted(compare))
   })
 
-  it('6 本の実装は、設定の項目（referencesDirectories・panels・markerLayouts）を読む', () => {
+  it('設定を読むと定めた 6 個の規則は、実装でも設定の項目を読み込んでいる', async () => {
+    await explains('`no-unknown-props` や `max-chars` など、設定を読むと定めた 6 個の規則の実装を調べるテストです。ソースに `readThemeSettings` などの読み込み関数が含まれていることを確認します。')
     const six = [...SIX_READERS]
     expect(six.map(id => [id, isReadingSettings(id)])).toEqual(six.map(id => [id, true]))
   })
 
-  it('textlint 以外の 8 本の実装は、設定の項目を読まない', () => {
+  it('設定を読まない規則のうち textlint を除く 8 個は、実装でも設定の項目を読み込まない', async () => {
+    await explains('`REFERENCE_FREE_RULE_IDS` から `text-constraints/textlint` を除いた 8 個の規則の実装を調べるテストです。ソースに設定を読み込む関数が含まれていないことを確認します。')
     const others = REFERENCE_FREE_RULE_IDS.filter(entry => entry !== 'text-constraints/textlint')
     expect(others).toHaveLength(8)
     expect(others.map(id => [id, isReadingSettings(id)])).toEqual(others.map(id => [id, false]))
   })
 
-  it('textlint は項目の宣言を読むが、referencesDirectories が空なら何も報告しない', () => {
+  it('textlint 規則は項目の宣言を読むが、referencesDirectories が空の場合は何も報告しない', async () => {
+    await explains('`text-constraints/textlint` の実装を調べるテストです。設定の読み込み関数を使っていることと、`referencesDirectories` が空の場合に `null` を返す処理がソースに含まれていることを確認します。')
     expect(isReadingSettings('text-constraints/textlint')).toBe(true)
     const loader = readFileSync(path.join(ESLINT_PLUGINS, 'text-constraints', 'lib', 'utils', 'constraint-loader.ts'), 'utf8')
     expect(loader).toMatch(/referencesDirectories\.length === 0\)\s*\{\s*return null/u)

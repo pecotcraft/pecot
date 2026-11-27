@@ -8,6 +8,7 @@ import type { SyncTestRuntime, TestRuntime } from 'allure-js-commons/sdk/runtime
 import { afterEach, beforeEach, describe, expect, it, TestRunner, vi } from 'vitest'
 import { attachContent, attachFile, attachJson, attachJsonInTest, attachOutput, attachText, readOutput } from '../src/vitest/attach.js'
 import { stepSync } from '../src/vitest/step.js'
+import { explains } from '../src/vitest/explains.js'
 
 // allure-js-commons 3.15.0 の sync の型（undefined を含む）は、exactOptionalPropertyTypes の下で TestRuntime に合わない。
 // attachment は MessageHolderTestRuntime に無いので、allure-vitest の VitestTestRuntime と同じ形で送る。
@@ -99,7 +100,8 @@ describe('attach', () => {
   })
 
   describe('Allure の reporter が動くレーンの中', () => {
-    it.for(TYPES)('拡張子 $extension のファイルを渡すと、中身と型 $contentType と拡張子を持つ添付を 1 つ残す', async ({ extension, contentType }) => {
+    it.for(TYPES)('attachFile に拡張子 $extension のファイルを渡すと、中身と拡張子と型 $contentType を持つ添付を 1 つ追加する', async ({ extension, contentType }) => {
+      await explains(`ファイルを Allure の添付として追加する \`attachFile\` のテストです。拡張子 \`${extension}\` のファイルを渡した場合に、ファイルの中身と型 \`${contentType}\` と拡張子を持つ添付が 1 つだけ追加されることを確認します。`)
       const file = path.join(directory, `artifact${extension}`)
       writeFileSync(file, `中身 ${extension}`)
       const { messages } = await recorded('test-unit', () => attachFile('作った成果物', file))
@@ -110,7 +112,8 @@ describe('attach', () => {
       })
     })
 
-    it('表に無い拡張子のファイルを渡すと、拡張子を含む文言で throw する', async () => {
+    it('対応表にない拡張子のファイルを渡すと、拡張子を含むメッセージで例外が発生する', async () => {
+      await explains('ファイルを Allure の添付として追加する `attachFile` のテストです。`.txt` のように型の対応表にない拡張子のファイルを渡した場合に、拡張子を含むメッセージの例外が発生し、添付が追加されないことを確認します。')
       const file = path.join(directory, 'artifact.csv')
       writeFileSync(file, '中身')
       const { messages, error } = await recorded('test-unit', () => attachFile('作った成果物', file))
@@ -120,7 +123,8 @@ describe('attach', () => {
       })
     })
 
-    it('attachContent に中身と拡張子を渡すと、その中身を拡張子の型で残す', async () => {
+    it('attachContent に中身と拡張子を渡すと、その中身を拡張子に対応する型で添付に追加する', async () => {
+      await explains('バイト列を Allure の添付として追加する `attachContent` のテストです。中身と `.png` を渡した場合に、その中身が `image/png` の添付として 1 つ追加されることを確認します。')
       const { messages } = await recorded('test-unit', () => attachContent('撮った画面', new TextEncoder().encode('画素'), '.png'))
       stepSync('残した添付を比べる', () => {
         expect(attachments(messages)).toEqual([
@@ -129,7 +133,8 @@ describe('attach', () => {
       })
     })
 
-    it('表に無い拡張子で attachContent を呼ぶと、拡張子を含む文言で throw する', async () => {
+    it('対応表にない拡張子で attachContent を呼ぶと、拡張子を含むメッセージで例外が発生する', async () => {
+      await explains('バイト列を Allure の添付として追加する `attachContent` のテストです。`.jpg` のように型の対応表にない拡張子を渡した場合に、拡張子を含むメッセージの例外が発生し、添付が追加されないことを確認します。')
       const { messages, error } = await recorded('test-unit', () => attachContent('撮った画面', new Uint8Array(), '.jpg'))
       stepSync('throw の文言と残した添付を比べる', () => {
         expect(String(error)).toContain('.jpg')
@@ -137,7 +142,8 @@ describe('attach', () => {
       })
     })
 
-    it('ファイルが無いと、何も残さず throw しない', async () => {
+    it('渡したファイルが存在しないと、添付を追加せず、例外も発生しない', async () => {
+      await explains('ファイルを Allure の添付として追加する `attachFile` のテストです。存在しないファイルを渡した場合に、添付を追加せず、例外も発生しないことを確認します。')
       const { messages, error } = await recorded('test-unit', () => attachFile('作った成果物', path.join(directory, 'missing.png')))
       stepSync('throw しないことと残した添付を比べる', () => {
         expect(error).toBeUndefined()
@@ -146,6 +152,7 @@ describe('attach', () => {
     })
 
     it('attachText に文字列を渡すと、待たずにその文字列を拡張子の型で残す', async () => {
+      await explains('文字列を Allure の添付として追加する `attachText` のテストです。nx のレーンの中で文字列と拡張子 `.json` を渡した場合に、その文字列が `application/json` の添付として 1 つ追加されることを確認します。')
       const { messages } = await recorded('test-unit', () => {
         attachText('出力', '{"a":1}', '.json')
       })
@@ -157,6 +164,7 @@ describe('attach', () => {
     })
 
     it('attachJson に値を渡すと、字下げした JSON で残す', async () => {
+      await explains('値を JSON の添付として追加する `attachJson` のテストです。nx のレーンの中でオブジェクトを渡した場合に、字下げした JSON 文字列が `application/json` の添付として 1 つ追加されることを確認します。')
       const { messages } = await recorded('test-unit', () => {
         attachJson('応答', { isError: true })
       })
@@ -168,6 +176,7 @@ describe('attach', () => {
     })
 
     it('attachJsonInTest は、動いているテストの中では attachJson と同じく残す', async () => {
+      await explains('テストの中で JSON の添付を追加する `attachJsonInTest` のテストです。動作中のテストの中で呼んだ場合に、`attachJson` と同じ内容の添付が 1 つ追加されることを確認します。')
       const { messages } = await recorded('test-unit', () => {
         attachJsonInTest('tools/list の結果', { tools: [] })
       })
@@ -179,6 +188,7 @@ describe('attach', () => {
     })
 
     it('attachJsonInTest は、テストの外（beforeAll など）では何も残さない', async () => {
+      await explains('テストの中で JSON の添付を追加する `attachJsonInTest` のテストです。`beforeAll` のようにテストの外で呼んだ場合に、添付が追加されないことを確認します。')
       const { messages } = await recorded('test-unit', () => {
         const current = vi.spyOn(TestRunner, 'getCurrentTest').mockReturnValue(undefined)
         try {
@@ -198,7 +208,8 @@ describe('attach', () => {
       { name: 'stderr だけがある', stdout: '', stderr: '誤り', expected: [['stderr', '誤り']] },
       { name: '両方ある', stdout: '出た', stderr: '誤り', expected: [['stdout', '出た'], ['stderr', '誤り']] },
       { name: '両方空', stdout: '', stderr: '', expected: [['stdout', '']] },
-    ])('attachOutput の出力が $name とき、名前にコマンドと終了コードを持つ添付を残す', async ({ stdout, stderr, expected }) => {
+    ])('attachOutput の出力が $name とき、名前にコマンドと終了コードを持つ添付を残す', async ({ name, stdout, stderr, expected }) => {
+      await explains(`コマンドの出力を Allure の添付として追加する \`attachOutput\` のテストです。出力が「${name}」の場合に、コマンドと終了コードを名前に持つ添付が、出力ごとに追加されることを確認します。`)
       const { messages } = await recorded('test-unit', () => {
         attachOutput('pecot issue show 12', 1, stdout, stderr)
       })
@@ -210,6 +221,7 @@ describe('attach', () => {
     })
 
     it('attachOutput に終了コードを渡さないと、名前に終了コードを書かない', async () => {
+      await explains('コマンドの出力を Allure の添付として追加する `attachOutput` のテストです。終了コードを渡さなかった場合に、添付の名前に終了コードが含まれないことを確認します。')
       const { messages } = await recorded('test-unit', () => {
         attachOutput('capture', undefined, '出た', '')
       })
@@ -219,6 +231,7 @@ describe('attach', () => {
     })
 
     it('attachOutput のコマンドが 200 字を超えると、先頭の 200 字を名前に使う', async () => {
+      await explains('コマンドの出力を Allure の添付として追加する `attachOutput` のテストです。コマンドが 200 字を超える場合に、添付の名前にはコマンドの先頭 200 字だけが使われることを確認します。')
       const { messages } = await recorded('test-unit', () => {
         attachOutput('a'.repeat(300), 0, '出た', '')
       })
@@ -233,6 +246,7 @@ describe('attach', () => {
       { file: 'diagram.svg', extension: '.svg', contentType: 'image/svg+xml' },
       { file: 'vite.config.ts', extension: '.txt', contentType: 'text/plain' },
     ])('readOutput に $file を渡すと、読んだ中身を返し、型 $contentType で残す', async ({ file, extension, contentType }) => {
+      await explains(`ファイルを読んで Allure の添付として追加する \`readOutput\` のテストです。\`${file}\` を渡した場合に、読み込んだ中身を返し、型 \`${contentType}\` の添付が 1 つ追加されることを確認します。`)
       const filePath = path.join(directory, file)
       writeFileSync(filePath, `中身 ${file}`)
       const { messages, value } = await recorded('test-unit', () => readOutput(filePath))
@@ -245,6 +259,7 @@ describe('attach', () => {
     })
 
     it('readOutput のファイルが無いと、何も残さず読み込みの誤りを投げる', async () => {
+      await explains('ファイルを読んで Allure の添付として追加する `readOutput` のテストです。存在しないファイルを渡した場合に、添付が追加されず、読み込みの例外が発生することを確認します。')
       const { messages, error } = await recorded('test-unit', () => readOutput(path.join(directory, 'missing.md')))
       stepSync('投げた誤りと残した添付を比べる', () => {
         expect(String(error)).toContain('ENOENT')
@@ -253,7 +268,8 @@ describe('attach', () => {
     })
   })
 
-  it('NX_TASK_TARGET_TARGET が空だと、何も残さず console.log も呼ばない', async () => {
+  it('NX_TASK_TARGET_TARGET が空だと、添付を追加せず、console.log も呼び出さない', async () => {
+    await explains('nx のレーンの外（`NX_TASK_TARGET_TARGET` が空）では、`attachFile` と `attachContent` が添付を追加せず、`console.log` も呼ばないことを確認します。')
     const log = vi.spyOn(console, 'log')
     const file = path.join(directory, 'artifact.png')
     writeFileSync(file, '中身')

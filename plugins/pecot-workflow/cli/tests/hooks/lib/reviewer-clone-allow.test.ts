@@ -10,6 +10,7 @@ import { adapterDirectory, coreDirectory } from '../_helpers/paths.js'
 import { run, runHookScript } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { jsonDumps } from '../_helpers/text.js'
+import { explains } from '../../_helpers/explains.js'
 
 const ENVELOPE_CMD = 'git clone --depth 1 https://github.com/foo/bar .pecot/work/788/reviewer/bar'
 const ALLOW_SCRIPT = path.join(coreDirectory, 'reviewer-clone-allow.sh')
@@ -34,7 +35,8 @@ function setUpCore(hookCase: HookCase): void {
 
 describe('reviewer-clone-allow.sh', () => {
   describe('core: 定型の clone を許可する', () => {
-    it('https の URL を渡すと、exit 10 で自動許可の文言を返す', () => {
+    it('https の URL を渡すと、exit 10 で自動許可の文言を返す', async () => {
+      await explains('`reviewer-clone-allow.sh`（レビューの定型の `git clone` を自動で許可するスクリプト）のテストです。https の URL を渡した場合に、終了コード 10 で、標準出力に `allowed automatically` を含む文言を返すことを確認します。')
       const hookCase = createHookCase()
       setUpCore(hookCase)
       const result = runCore(hookCase, ENVELOPE_CMD)
@@ -42,28 +44,32 @@ describe('reviewer-clone-allow.sh', () => {
       expect(result.stdout).toContain('allowed automatically')
     })
 
-    it('git@ 形式の URL を渡すと、exit 10 を返す', () => {
+    it('git@ 形式の URL を渡すと、exit 10 を返す', async () => {
+      await explains('`reviewer-clone-allow.sh` のテストです。`git@` 形式の URL を渡した場合に、自動許可を表す終了コード 10 を返すことを確認します。')
       const hookCase = createHookCase()
       setUpCore(hookCase)
       const result = runCore(hookCase, 'git clone git@github.com:foo/bar.git .pecot/work/12/reviewer/bar')
       expect(result.exitCode).toBe(10)
     })
 
-    it('オプションが無いとき、exit 10 を返す', () => {
+    it('オプションが無いとき、exit 10 を返す', async () => {
+      await explains('`reviewer-clone-allow.sh` のテストです。オプションを付けない `git clone` の場合に、自動許可を表す終了コード 10 を返すことを確認します。')
       const hookCase = createHookCase()
       setUpCore(hookCase)
       const result = runCore(hookCase, 'git clone https://github.com/foo/bar .pecot/work/3/reviewer/bar')
       expect(result.exitCode).toBe(10)
     })
 
-    it('末尾のスラッシュと名前のドットがあっても、exit 10 を返す', () => {
+    it('末尾のスラッシュと名前のドットがあっても、exit 10 を返す', async () => {
+      await explains('`reviewer-clone-allow.sh` のテストです。clone 先の末尾にスラッシュがあり、名前にドットを含む場合でも、自動許可を表す終了コード 10 を返すことを確認します。')
       const hookCase = createHookCase()
       setUpCore(hookCase)
       const result = runCore(hookCase, 'git clone https://github.com/foo/bar.js .pecot/work/788/reviewer/bar.js/')
       expect(result.exitCode).toBe(10)
     })
 
-    it('等号つきのオプションでも、exit 10 を返す', () => {
+    it('等号つきのオプションでも、exit 10 を返す', async () => {
+      await explains('`reviewer-clone-allow.sh` のテストです。`--depth=1` のように等号で値を指定したオプションを付けた場合でも、自動許可を表す終了コード 10 を返すことを確認します。')
       const hookCase = createHookCase()
       setUpCore(hookCase)
       const command = 'git clone --depth=1 --branch=v1.0 https://github.com/foo/bar .pecot/work/788/reviewer/bar'
@@ -81,7 +87,8 @@ describe('reviewer-clone-allow.sh', () => {
       { label: '--filter の等号つき', command: 'git clone --filter=blob:none https://github.com/foo/bar .pecot/work/788/reviewer/bar' },
       { label: '--filter の空白区切り', command: 'git clone --filter tree:0 https://github.com/foo/bar .pecot/work/788/reviewer/bar' },
       { label: '--depth と --single-branch の併用', command: 'git clone --depth 1 --single-branch https://github.com/foo/bar .pecot/work/788/reviewer/bar' },
-    ])('許可リスト内のオプション（$label）を付けても、exit 10 を返す', (row) => {
+    ])('許可リスト内のオプション（$label）を付けても、exit 10 を返す', async (row) => {
+      await explains(`\`reviewer-clone-allow.sh\` のテストです。許可リスト内のオプション（${row.label}）を付けた場合に、自動許可を表す終了コード 10 を返すことを確認します。`)
       const hookCase = createHookCase()
       setUpCore(hookCase)
       const result = runCore(hookCase, row.command)
@@ -96,7 +103,8 @@ describe('reviewer-clone-allow.sh', () => {
       { label: '--separate-git-dir', command: 'git clone --separate-git-dir=/tmp/x https://github.com/foo/bar .pecot/work/788/reviewer/bar' },
       { label: '--recurse-submodules', command: 'git clone --recurse-submodules https://github.com/foo/bar .pecot/work/788/reviewer/bar' },
       { label: '許可リストにない --verbose', command: 'git clone --verbose https://github.com/foo/bar .pecot/work/788/reviewer/bar' },
-    ])('許可リスト外のオプション（$label）を付けると、許可せず何も出力しない', (row) => {
+    ])('許可リスト外のオプション（$label）を付けると、許可せず何も出力しない', async (row) => {
+      await explains(`\`reviewer-clone-allow.sh\` のテストです。許可リスト外のオプション（${row.label}）を付けた場合に、許可せず、標準出力に何も出力しないことを確認します。`)
       const hookCase = createHookCase()
       setUpCore(hookCase)
       const result = runCore(hookCase, row.command)
@@ -106,14 +114,16 @@ describe('reviewer-clone-allow.sh', () => {
   })
 
   describe('core: clone 先の書き方', () => {
-    it('clone 先が ./ で始まるとき、exit 10 を返す', () => {
+    it('clone 先が ./ で始まるとき、exit 10 を返す', async () => {
+      await explains('`reviewer-clone-allow.sh` のテストです。clone 先が `./` で始まる場合に、自動許可を表す終了コード 10 を返すことを確認します。')
       const hookCase = createHookCase()
       setUpCore(hookCase)
       const result = runCore(hookCase, 'git clone https://github.com/foo/bar ./.pecot/work/788/reviewer/bar')
       expect(result.exitCode).toBe(10)
     })
 
-    it('clone 先がプロジェクト配下の絶対パスのとき、exit 10 を返す', () => {
+    it('clone 先がプロジェクト配下の絶対パスのとき、exit 10 を返す', async () => {
+      await explains('`reviewer-clone-allow.sh` のテストです。clone 先がプロジェクト配下の絶対パスの場合に、自動許可を表す終了コード 10 を返すことを確認します。')
       const hookCase = createHookCase()
       setUpCore(hookCase)
       const command = 'git clone https://github.com/foo/bar /workspaces/proj/.pecot/work/788/reviewer/bar'
@@ -121,7 +131,8 @@ describe('reviewer-clone-allow.sh', () => {
       expect(result.exitCode).toBe(10)
     })
 
-    it('clone 先がプロジェクトの外の絶対パスのとき、許可せず何も出力しない', () => {
+    it('clone 先がプロジェクトの外の絶対パスのとき、許可せず何も出力しない', async () => {
+      await explains('`reviewer-clone-allow.sh` のテストです。clone 先がプロジェクト外の絶対パスの場合に、許可せず、標準出力に何も出力しないことを確認します。')
       const hookCase = createHookCase()
       setUpCore(hookCase)
       const command = 'git clone https://github.com/foo/bar /tmp/.pecot/work/788/reviewer/bar'
@@ -142,7 +153,8 @@ describe('reviewer-clone-allow.sh', () => {
       { label: 'clone 先に .. を含む', command: 'git clone https://github.com/foo/bar .pecot/work/788/reviewer/../escape' },
       { label: 'Issue 番号が数字でない', command: 'git clone https://github.com/foo/bar .pecot/work/abc/reviewer/bar' },
       { label: 'clone 以外のコマンド', command: 'git checkout main' },
-    ])('コマンドが定型の外（$label）のとき、許可せず何も出力しない', (row) => {
+    ])('コマンドが定型の外（$label）のとき、許可せず何も出力しない', async (row) => {
+      await explains(`\`reviewer-clone-allow.sh\` のテストです。コマンドが定型の外（${row.label}）の場合に、許可せず、標準出力に何も出力しないことを確認します。`)
       const hookCase = createHookCase()
       setUpCore(hookCase)
       const result = runCore(hookCase, row.command)
@@ -150,7 +162,8 @@ describe('reviewer-clone-allow.sh', () => {
       expect(result.stdout).toBe('')
     })
 
-    it('コマンドが複数行のとき、許可せず何も出力しない', () => {
+    it('コマンドが複数行のとき、許可せず何も出力しない', async () => {
+      await explains('`reviewer-clone-allow.sh` のテストです。コマンドが複数行の場合に、許可せず、標準出力に何も出力しないことを確認します。')
       const hookCase = createHookCase()
       setUpCore(hookCase)
       const result = runCore(hookCase, `${ENVELOPE_CMD}\nrm -rf important`)
@@ -160,7 +173,8 @@ describe('reviewer-clone-allow.sh', () => {
   })
 
   describe('core: HOOK_COMMAND と設定', () => {
-    it('HOOK_COMMAND が空文字のとき、exit 2 で必須の旨を stderr に出す', () => {
+    it('HOOK_COMMAND が空文字のとき、exit 2 で必須の旨を stderr に出す', async () => {
+      await explains('`reviewer-clone-allow.sh` のテストです。環境変数 `HOOK_COMMAND` が空文字の場合に、終了コード 2 で終了し、標準エラー出力へ必須である旨を出力することを確認します。')
       const hookCase = createHookCase()
       setUpCore(hookCase)
       const result = runCore(hookCase, '')
@@ -169,7 +183,8 @@ describe('reviewer-clone-allow.sh', () => {
       expect(result.stderr).toContain('HOOK_COMMAND environment variable is required')
     })
 
-    it('HOOK_COMMAND が未設定のとき、exit 2 で必須の旨を stderr に出す', () => {
+    it('HOOK_COMMAND が未設定のとき、exit 2 で必須の旨を stderr に出す', async () => {
+      await explains('`reviewer-clone-allow.sh` のテストです。環境変数 `HOOK_COMMAND` が設定されていない場合に、終了コード 2 で終了し、標準エラー出力へ必須である旨を出力することを確認します。')
       const hookCase = createHookCase()
       setUpCore(hookCase)
       const result = run(hookCase, 'bash', [ALLOW_SCRIPT], { env: { HOOK_COMMAND: undefined } })
@@ -177,7 +192,8 @@ describe('reviewer-clone-allow.sh', () => {
       expect(result.stderr).toContain('HOOK_COMMAND environment variable is required')
     })
 
-    it('設定で無効にしたとき、許可せず何も出力しない', () => {
+    it('設定で無効にしたとき、許可せず何も出力しない', async () => {
+      await explains('`reviewer-clone-allow.sh` のテストです。設定で `reviewer-clone-allow` が `false` の場合は、許可せず、標準出力に何も出力しないことを確認します。')
       const hookCase = createHookCase()
       hooksConfig(hookCase).write({ 'reviewer-clone-allow': false })
       const result = runCore(hookCase, ENVELOPE_CMD)
@@ -187,7 +203,8 @@ describe('reviewer-clone-allow.sh', () => {
   })
 
   describe('claude-bash-guards: allow JSON と deny ガード', () => {
-    it('定型の clone のとき、allow を返す', () => {
+    it('定型の clone のとき、allow を返す', async () => {
+      await explains('`claude-bash-guards.sh` 経由の自動許可のテストです。レビューの定型の `git clone` を渡した場合に、`allow` の判定と `PreToolUse` のイベント名を出力することを確認します。')
       const hookCase = createHookCase()
       claudeProjectDirectory(hookCase)
       setUpCore(hookCase)
@@ -197,7 +214,8 @@ describe('reviewer-clone-allow.sh', () => {
       expect(result.stdout).toContain('"hookEventName": "PreToolUse"')
     })
 
-    it('git-no-verify-check を有効にして --no-verify つきの commit のとき、deny が優先され allow は出ない', () => {
+    it('git-no-verify-check を有効にして --no-verify つきの commit のとき、deny が優先され allow は出ない', async () => {
+      await explains('`claude-bash-guards.sh` 経由の自動許可のテストです。`git-no-verify-check` を有効にして `--no-verify` つきの `git commit` を渡した場合に、`deny` の判定を優先し、`allow` は出力しないことを確認します。')
       const hookCase = createHookCase()
       claudeProjectDirectory(hookCase)
       hooksConfig(hookCase).write({ 'git-no-verify-check': true })
@@ -207,7 +225,8 @@ describe('reviewer-clone-allow.sh', () => {
       expect(result.stdout).not.toContain('"permissionDecision": "allow"')
     })
 
-    it('無害なコマンドのとき、何も出力しない', () => {
+    it('無害なコマンドのとき、何も出力しない', async () => {
+      await explains('`claude-bash-guards.sh` 経由の自動許可のテストです。無害なコマンド（`ls -la`）を渡した場合に、標準出力に何も出力しないことを確認します。')
       const hookCase = createHookCase()
       claudeProjectDirectory(hookCase)
       setUpCore(hookCase)
@@ -216,7 +235,8 @@ describe('reviewer-clone-allow.sh', () => {
       expect(result.stdout).toBe('')
     })
 
-    it('定型の形に && が付くと、allow が出ない', () => {
+    it('定型の形に && が付くと、allow が出ない', async () => {
+      await explains('`claude-bash-guards.sh` 経由の自動許可のテストです。定型の `git clone` に `&& rm -rf important` を連結した場合に、`allow` の判定を出力しないことを確認します。')
       const hookCase = createHookCase()
       claudeProjectDirectory(hookCase)
       setUpCore(hookCase)
@@ -227,7 +247,8 @@ describe('reviewer-clone-allow.sh', () => {
   })
 
   describe('Copilot CLI の snake_case の入力', () => {
-    it('定型の clone のとき、allow を返す', () => {
+    it('定型の clone のとき、allow を返す', async () => {
+      await explains('Copilot CLI の入力（snake_case のキー）のテストです。レビューの定型の `git clone` を渡した場合に、`allow` の判定を出力することを確認します。')
       const hookCase = createHookCase()
       claudeProjectDirectory(hookCase)
       setUpCore(hookCase)
@@ -236,7 +257,8 @@ describe('reviewer-clone-allow.sh', () => {
       expect(result.stdout).toContain('"permissionDecision": "allow"')
     })
 
-    it('git-no-verify-check を有効にして --no-verify つきの commit のとき、deny が優先される', () => {
+    it('git-no-verify-check を有効にして --no-verify つきの commit のとき、deny が優先される', async () => {
+      await explains('Copilot CLI の入力（snake_case のキー）のテストです。`git-no-verify-check` を有効にして `--no-verify` つきの `git commit` を渡した場合に、`deny` の判定を優先することを確認します。')
       const hookCase = createHookCase()
       claudeProjectDirectory(hookCase)
       hooksConfig(hookCase).write({ 'git-no-verify-check': true })

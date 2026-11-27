@@ -10,6 +10,7 @@ import { defaultExportToPptxOptions, timeouts, type ExportToPptxOptions } from '
 import { convertSlide, injectDomToPptx } from '../dom-converter.js'
 import { FakePage } from './support/fake-playwright.js'
 import { makeLogger } from './support/logger.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 describe('injectDomToPptx', () => {
   afterEach(() => {
@@ -17,7 +18,8 @@ describe('injectDomToPptx', () => {
     vi.useRealTimers()
   })
 
-  it('addScriptTag の後に evaluate で 1 回だけ定義を確かめ、waitForFunction は使わない', async () => {
+  it('スクリプトを注入した後は、evaluate で定義の有無を 1 回だけ確認し、waitForFunction を使わない', async () => {
+    await explains('dom-to-pptx のスクリプトをページへ注入する `injectDomToPptx` のテストです。注入の直後に `window.domToPptx` が定義されている場合に、`evaluate` を 1 回だけ呼び、`waitForFunction` は呼ばないことを確認します。')
     const page = new FakePage()
     page.scriptInjectionTriggers.push(() => {
       vi.stubGlobal('domToPptx', { exportToPptx: () => Promise.resolve() })
@@ -29,7 +31,8 @@ describe('injectDomToPptx', () => {
     expect(waitForFunction).not.toHaveBeenCalled()
   })
 
-  it('注入後に window.domToPptx が無い場合は、待たずに例外とする', async () => {
+  it('注入後に window.domToPptx が存在しない場合は、待機せずに例外を発生させる', async () => {
+    await explains('スクリプトを注入しても `window.domToPptx` が定義されない場合のテストです。待機せずに、定義されていないことを示すメッセージの例外が発生し、`evaluate` が 1 回だけ呼ばれることを確認します。')
     const page = new FakePage()
     await expect(injectDomToPptx(page.asPage(), '/lib.js')).rejects.toThrow(
       'dom-to-pptx was injected but window.domToPptx is not defined (an exception in the script, or it was registered through AMD define)',
@@ -37,7 +40,8 @@ describe('injectDomToPptx', () => {
     expect(page.evaluateCalls).toHaveLength(1)
   })
 
-  it('ページが応答しなければ timeouts.domToPptxInject で打ち切る', async () => {
+  it('ページが応答しない場合は、timeouts.domToPptxInject で処理を打ち切る', async () => {
+    await explains('ページが応答しない場合の、注入処理のタイムアウトのテストです。上限の時間（`timeouts.domToPptxInject`）の 1 ミリ秒前までは失敗せず、上限に達した時点で 30 秒を超えた旨の例外が発生し、タイマーが残らないことを確認します。')
     vi.useFakeTimers()
     const page = new FakePage()
     page.evaluate = async () => new Promise<never>(() => { /* 返らない */ })
@@ -58,7 +62,8 @@ describe('injectDomToPptx', () => {
     expect(vi.getTimerCount()).toBe(0)
   })
 
-  it('成功・失敗どちらでも上限のタイマーを残さない', async () => {
+  it('注入が成功した場合と失敗した場合のどちらでも、タイムアウト用のタイマーを残さない', async () => {
+    await explains('注入処理が終わった後のタイマーのテストです。注入に失敗した場合と成功した場合のどちらでも、保留中のタイマーが 0 件になることを確認します。')
     vi.useFakeTimers()
     const page = new FakePage()
     await expect(injectDomToPptx(page.asPage(), '/lib.js')).rejects.toThrow('window.domToPptx is not defined')
@@ -97,7 +102,8 @@ describe('convertSlide', () => {
     vi.unstubAllGlobals()
   })
 
-  it('letter-spacing 持つテキストと http href を収集して PPTX を書き出す', async () => {
+  it('letter-spacing を持つテキストと http のリンクを収集し、PPTX ファイルを書き出す', async () => {
+    await explains('スライドを PPTX に変換する `convertSlide` のテストです。`letter-spacing` を持つ文字列と `https` のリンクを収集して結果に含め、`#` から始まるリンクは除外して、PPTX ファイルを書き出すことを確認します。')
     document.body.innerHTML = `
       <div class="slidev-page" style="display:block">
         <p style="letter-spacing: 1.4px; font-size: 14px;">spaced text</p>
@@ -118,7 +124,8 @@ describe('convertSlide', () => {
     expect(logger.verbose).toHaveBeenCalledWith(expect.stringContaining('href-map'))
   })
 
-  it('targetSelector 指定時は最初の可視スライドでなく指定要素を exportToPptx と hrefMap に使う (#1141)', async () => {
+  it('targetSelector を指定した場合は、最初の可視スライドではなく指定した要素を変換する', async () => {
+    await explains('変換対象のスライドを `targetSelector` で指定する場合のテストです。最初のスライドではなく指定した要素が `exportToPptx` に渡され、`hrefMap` にも指定した要素のリンクだけが入ることを確認します。')
     document.body.innerHTML = `
       <div class="print-slide-container" id="001-01"><div class="slidev-page" id="first" style="display:block"><a href="https://first.example">FIRST</a></div></div>
       <div class="print-slide-container" id="002-01"><div class="slidev-page" id="second" style="display:block"><a href="https://second.example">SECOND</a></div></div>
@@ -138,14 +145,16 @@ describe('convertSlide', () => {
     expect(result.hrefMap).toStrictEqual({ SECOND: 'https://second.example' })
   })
 
-  it('targetSelector の要素が無ければセレクタを含むエラーで失敗する (#1141)', async () => {
+  it('targetSelector に一致する要素が存在しない場合は、セレクタを含むエラーで失敗する', async () => {
+    await explains('`targetSelector` に一致する要素が存在しない場合のテストです。セレクタを含むメッセージの例外が発生することを確認します。')
     document.body.innerHTML = '<div class="slidev-page" style="display:block"><span></span></div>'
     await expect(convertSlide(new FakePage().asPage(), 301, 'slide-', outDir, makeLogger(), defaultExportToPptxOptions, {
       targetSelector: '[id="003-01"] .slidev-page',
     })).rejects.toThrow('slide #301: target slide not found: [id="003-01"] .slidev-page')
   })
 
-  it('exportOptions を fileName / skipDownload と併せて exportToPptx へ渡す', async () => {
+  it('exportOptions に fileName と skipDownload を加えて、exportToPptx へ渡す', async () => {
+    await explains('`convertSlide` に渡した出力オプション（`exportOptions`）の扱いのテストです。疑似要素やフォント埋め込みの設定に、`fileName` と `skipDownload: true` を加えた内容が `exportToPptx` に 1 回渡されることを確認します。')
     // 疑似要素・フォント埋め込みの設定は page.evaluate の引数に載せて渡す。ここが落ちると
     // envHash だけが変わって出力は変わらない (= キャッシュ全ミスなのに結果が同じ) 状態になる。
     const received: Record<string, unknown>[] = []
@@ -174,7 +183,8 @@ describe('convertSlide', () => {
     })
   })
 
-  it('exportOptions に skipDownload が紛れても skipDownload: true が後勝ちになる', async () => {
+  it('exportOptions に skipDownload: false が含まれていても、skipDownload は true になる', async () => {
+    await explains('出力オプションに `skipDownload: false` と別の `fileName` が含まれている場合のテストです。`exportToPptx` には `skipDownload: true` と、変換結果に合わせた `fileName` が渡されることを確認します。')
     // ExportToPptxOptions 型の変数経由では、excess property check が働かない。
     // そのため spread が後ろにあると、ページ側でダウンロードが始まる。
     // 後勝ちを固定する。
@@ -200,7 +210,8 @@ describe('convertSlide', () => {
     expect(received[0]?.['fileName']).toBe('slide-7.pptx')
   })
 
-  it('5 件超の letter-spacing entry は debug ログで preview する', async () => {
+  it('letter-spacing の項目が 5 件を超える場合は、詳細を debug ログに出力する', async () => {
+    await explains('`letter-spacing` を持つ要素が 7 件ある場合のテストです。`letter-spacing details` を含むメッセージが `debug` ログに出力されることを確認します。')
     const items = Array.from({ length: 7 }, (_, i) => `<p style="letter-spacing: 1.0px;" id="t${i.toString()}">t${i.toString()}</p>`).join('')
     document.body.innerHTML = `<div class="slidev-page" style="display:block">${items}</div>`
     const page = new FakePage()
@@ -290,14 +301,16 @@ describe('convertSlide', () => {
       '<div>x</div>',
       false,
     ],
-  ])('$0 のとき、明示ありの判定が $2 になる', async (_name, markup, expected) => {
+  ])('$0 の場合は、明示的なアニメーション指定の有無が $2 になる', async (_name, markup, expected) => {
+    await explains(`\`slidev-page\` に「${_name}」の要素がある場合のテストです。\`convertSlide\` の結果の \`hasExplicitAnimation\` が \`${expected.toString()}\` になることを確認します。`)
     document.body.innerHTML = `<div class="slidev-page" style="display:block">${markup}</div>`
     const page = new FakePage()
     const result = await convertSlide(page.asPage(), 600, 'slide-', outDir, makeLogger(), defaultExportToPptxOptions)
     expect(result.hasExplicitAnimation).toBe(expected)
   })
 
-  it('スライドのルート要素自身に付いたマーカーを拾う', async () => {
+  it('スライドのルート要素自身にアニメーションの指定がある場合も、明示指定として検出する', async () => {
+    await explains('アニメーションの指定（`data-pptx-animation`）をスライドのルート要素自身に付けた場合のテストです。子要素に指定がなくても、`hasExplicitAnimation` が `true` になることを確認します。')
     // 走査対象はスライド自身 + 子孫。マーカーを子要素にしか置かないケースだけでは
     // 走査の先頭（スライド自身）を落とす退行を捕らえられない。
     document.body.innerHTML = '<div class="slidev-page" style="display:block" data-pptx-animation="zoom-in"><span>x</span></div>'
@@ -306,7 +319,8 @@ describe('convertSlide', () => {
     expect(result.hasExplicitAnimation).toBe(true)
   })
 
-  it('スライド外の祖先に設定したカスタムプロパティは継承されて明示ありになる', async () => {
+  it('スライドの外側の要素にカスタムプロパティを指定した場合も、継承して明示指定として検出する', async () => {
+    await explains('スライドの外側の祖先要素に `--pptx-animation-name` を指定した場合のテストです。カスタムプロパティが継承されるため、`hasExplicitAnimation` が `true` になることを確認します。')
     // カスタムプロパティは継承するため、スライドの外側で宣言しても getComputedStyle から
     // 読める。上流 dom-to-pptx も同じ値を見て効果を付けるので、明示ありは意図した結果。
     document.body.innerHTML = `
@@ -319,7 +333,8 @@ describe('convertSlide', () => {
     expect(result.hasExplicitAnimation).toBe(true)
   })
 
-  it('明示指定と装飾が混在するスライドは明示ありと判定する', async () => {
+  it('アニメーションの明示指定と装飾が混在するスライドは、明示指定ありと判定する', async () => {
+    await explains('明示的なアニメーションの指定と、装飾用のクラスだけの要素が同じスライドにある場合のテストです。`hasExplicitAnimation` が `true` になることを確認します。')
     // 粒度はスライド単位。混在時は p:timing をまるごと残すため、装飾分の効果も残る。
     document.body.innerHTML = `
       <div class="slidev-page" style="display:block">
@@ -332,14 +347,16 @@ describe('convertSlide', () => {
     expect(result.hasExplicitAnimation).toBe(true)
   })
 
-  it('表示中の slide が見つからなければ Error を throw', async () => {
+  it('表示中のスライドが存在しない場合は、例外が発生する', async () => {
+    await explains('すべてのスライドが `display:none` の場合のテストです。`no visible slide found` を含むメッセージの例外が発生することを確認します。')
     document.body.innerHTML = '<div class="slidev-page" style="display:none"><span></span></div>'
     const page = new FakePage()
     await expect(convertSlide(page.asPage(), 1, 'slide-', outDir, makeLogger(), defaultExportToPptxOptions))
       .rejects.toThrow('no visible slide found')
   })
 
-  it('href が無ければ hrefMap は空、href-map ログは出ない', async () => {
+  it('リンクが存在しない場合は、hrefMap が空になり、href-map のログを出力しない', async () => {
+    await explains('リンクを含まないスライドを変換する場合のテストです。`hrefMap` が空になり、`href-map:` を含む `verbose` ログが出力されないことを確認します。')
     document.body.innerHTML = '<div class="slidev-page" style="display:block"><span>no link</span></div>'
     const page = new FakePage()
     const logger = makeLogger()
@@ -349,7 +366,8 @@ describe('convertSlide', () => {
     expect(verboseMessages.some(m => m.includes('href-map:'))).toBe(false)
   })
 
-  it('href と letter-spacing が無い slide では preview ログを出さない', async () => {
+  it('リンクと letter-spacing のどちらも存在しない場合は、2 つのマップが空になる', async () => {
+    await explains('リンクと `letter-spacing` のどちらも含まないスライドを変換する場合のテストです。`letterSpacingMap` と `hrefMap` の両方が空になることを確認します。')
     document.body.innerHTML = '<div class="slidev-page" style="display:block"><span>plain</span></div>'
     const page = new FakePage()
     const logger = makeLogger()

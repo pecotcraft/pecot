@@ -5,6 +5,7 @@ import zlib from 'node:zlib'
 import { describe, expect, it } from 'vitest'
 
 import { ppmToPng } from '../../_helpers/raster.js'
+import { explains } from '../../_helpers/explains.js'
 
 interface DecodedPng {
   readonly width: number
@@ -41,7 +42,8 @@ function decodePng(png: Readonly<Buffer>): DecodedPng {
 }
 
 describe('ppmToPng', () => {
-  it('PPM の寸法と画素を、そのまま 8bit truecolor の PNG に写す', () => {
+  it('PPM の寸法と画素を、そのまま 8bit のフルカラーの PNG に変換する', async () => {
+    await explains('PPM の画素を添付用の PNG に変換する `ppmToPng` のテストです。幅 3、高さ 2 の画素を渡した場合に、PNG を読み取り直した寸法と画素が元と一致し、ビット深度が 8、カラータイプが 2 になることを確認します。')
     const width = 3
     const height = 2
     const pixels = Buffer.from([
@@ -54,7 +56,8 @@ describe('ppmToPng', () => {
     expect(decoded).toStrictEqual({ width, height, bitDepth: 8, colorType: 2, pixels })
   })
 
-  it('画素列が寸法の RGB に足りなければ、寸法を含む文言で throw する', () => {
+  it('画素のデータが寸法に対して不足している場合は、寸法を含むメッセージで例外が発生する', async () => {
+    await explains('PPM の画素を添付用の PNG に変換する `ppmToPng` のテストです。幅 2、高さ 2 に対して 11 バイトしかない画素を渡した場合に、メッセージに `2x2` が含まれる例外が発生することを確認します。')
     expect(() => ppmToPng({ width: 2, height: 2, pixels: Buffer.alloc(11) })).toThrow('2x2')
   })
 })

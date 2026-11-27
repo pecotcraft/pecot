@@ -37,7 +37,11 @@ def _step(name: str) -> dict[str, Any]:
     return step
 
 
+@allure.title(
+    "issue-surface-drift.yml は、workflow_dispatch だけで動き、dry-run の既定値は false にする"
+)
 def test_triggers_only_on_workflow_dispatch_with_dry_run_default_false() -> None:
+    """`.github/workflows/issue-surface-drift.yml` のトリガーのテストです。`workflow_dispatch` だけを持ち、入力の `dry-run` が boolean で、既定値が `false` であることを確認します。"""
     with allure.step("workflow の on を読む"):
         # PyYAML は on を True に読む
         on = _load()[True]
@@ -48,13 +52,19 @@ def test_triggers_only_on_workflow_dispatch_with_dry_run_default_false() -> None
         assert dry_run["default"] is False
 
 
+@allure.title("issue-surface-drift.yml の権限は、トップレベルの contents: read だけにする")
 def test_permissions_are_contents_read_only_at_top() -> None:
+    """ワークフローの権限のテストです。トップレベルが `contents: read` だけで、ジョブの側に `permissions` を持たないことを確認します。"""
     with allure.step("トップの権限が contents の read だけで、job に権限が無いことを確かめる"):
         assert _load()["permissions"] == {"contents": "read"}
         assert "permissions" not in _job()
 
 
+@allure.title(
+    "GitHub App のトークンの権限は、issues と organization の projects の write だけにする"
+)
 def test_app_token_permissions_are_issues_and_projects_write_only() -> None:
+    """`Generate GitHub App token` の step のテストです。`permission-` で始まる入力が、`permission-issues` と `permission-organization-projects` の `write` だけであることを確認します。"""
     with allure.step("App token の step の権限を読む"):
         with_ = _step("Generate GitHub App token")["with"]
         perms = {k: v for k, v in with_.items() if k.startswith("permission-")}
@@ -62,7 +72,9 @@ def test_app_token_permissions_are_issues_and_projects_write_only() -> None:
         assert perms == {"permission-issues": "write", "permission-organization-projects": "write"}
 
 
+@allure.title("issue-surface-drift.yml は、実行中のジョブを取り消さない")
 def test_concurrency_does_not_cancel_in_progress() -> None:
+    """ワークフローの `concurrency` のテストです。group が `issue-surface-drift` で、`cancel-in-progress` が `false` であることを確認します。"""
     with allure.step("concurrency の設定を読む"):
         concurrency = _load()["concurrency"]
     with allure.step("実行中のものを止めない設定であることを確かめる"):
@@ -70,20 +82,28 @@ def test_concurrency_does_not_cancel_in_progress() -> None:
         assert concurrency["cancel-in-progress"] is False
 
 
+@allure.title("issue-surface-drift.yml のジョブには、timeout を設定する")
 def test_job_has_timeout() -> None:
+    """`run` ジョブの `timeout-minutes` のテストです。整数の値が設定されていることを確認します。"""
     with allure.step("job に timeout-minutes があることを確かめる"):
         assert isinstance(_job()["timeout-minutes"], int)
 
 
+@allure.title("チェックアウトの step は、認証情報を残さない")
 def test_checkout_does_not_persist_credentials() -> None:
+    """`Checkout` の step のテストです。`persist-credentials` が `false` であることを確認します。"""
     with allure.step("checkout が認証情報を残さないことを確かめる"):
         assert _step("Checkout")["with"]["persist-credentials"] is False
 
 
+@allure.title(
+    "DRY_RUN が {dry_run} のとき、比較の step は --repo を渡し、--dry-run は true の場合だけ渡す"
+)
 @pytest.mark.parametrize(("dry_run", "expect_flag"), [("true", True), ("false", False)])
 def test_compare_step_passes_repo_and_dry_run_only_when_true(
     tmp_path: Path, dry_run: str, expect_flag: bool
 ) -> None:
+    """比較の step の `run` のシェルを、偽の `pnpm` を `PATH` に置いて実行するテストです。`--repo owner/repo` を渡し、`DRY_RUN` が `true` の場合だけ `--dry-run` を渡すことを確認します。"""
     with allure.step("偽の pnpm を置き、比べの step の run を動かす"):
         step = _step(_COMPARE)
         assert "${{" not in step["run"]

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { parseThemeSpec, ThemeSpecError } from '../theme-spec.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 const OK_CASES: readonly (readonly [string, string, unknown])[] = [
   ['git+https とタグ', 'git+https://git.example.com/acme/theme.git#1.2.3', { kind: 'git', url: 'https://git.example.com/acme/theme.git', tag: '1.2.3' }],
@@ -39,21 +40,25 @@ function thrownBy(text: string): unknown {
 }
 
 describe('parseThemeSpec', () => {
-  it.each(OK_CASES)('%s を解釈する', (_label, text, expected) => {
+  it.each(OK_CASES)('テーマの指定が「%s」の形の場合は、種類と url またはパスに分解する', async (_label, text, expected) => {
+    await explains(`テーマの指定の文字列を解析する \`parseThemeSpec\` のテストです。「${_label}」の形（\`${text}\`）を渡した場合に、期待した種類・url・タグまたはパスに分解されることを確認します。`)
     expect(parseThemeSpec(text)).toEqual(expected)
   })
 
-  it.each(REJECT_CASES)('%s を拒む', (_label, text, reason) => {
+  it.each(REJECT_CASES)('テーマの指定が「%s」の場合は、エラーを返す', async (_label, text, reason) => {
+    await explains(`テーマの指定の文字列を解析する \`parseThemeSpec\` のテストです。「${_label}」（\`${text}\`）を渡した場合に、理由 \`${reason}\` の \`ThemeSpecError\` が発生することを確認します。`)
     expect(thrownBy(text)).toMatchObject({ name: 'ThemeSpecError', reason })
   })
 
-  it('タグの書式でないものは文言を統一する', () => {
+  it('タグの書式でない指定は、どれも同じ invalid tag format のメッセージで拒否する', async () => {
+    await explains('テーマの指定の文字列を解析する `parseThemeSpec` のテストです。ブランチ名・短縮 SHA・40 桁の SHA をタグとして渡した場合に、どれも `invalid tag format` を含む例外が発生することを確認します。')
     for (const tag of ['main', 'a1b2c3d', '0123456789abcdef0123456789abcdef01234567']) {
       expect(() => parseThemeSpec(`git+https://git.example.com/acme/theme.git#${tag}`)).toThrow('invalid tag format')
     }
   })
 
-  it('git でも file でもない指定を拒む', () => {
+  it('git でも file でもない指定は、ThemeSpecError で拒否する', async () => {
+    await explains('テーマの指定の文字列を解析する `parseThemeSpec` のテストです。`^1.0.0` や `git+` のない `https://` の url を渡した場合に、`ThemeSpecError` が発生することを確認します。')
     expect(() => parseThemeSpec('^1.0.0')).toThrow(ThemeSpecError)
     expect(() => parseThemeSpec('https://git.example.com/acme/theme.git#1.0.0')).toThrow(ThemeSpecError)
   })

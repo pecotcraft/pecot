@@ -57,7 +57,9 @@ def _job_names(ci_yml: str) -> set[str]:
     return names
 
 
+@allure.title("必須のステータスチェックは、ci.yml に存在する job の名前と一致する")
 def test_required_contexts_are_ci_job_names(repo_root: Path, rules: dict[str, dict]) -> None:
+    """`.github/rulesets/main.json` の必須のステータスチェックのテストです。`ci-result` と `version-plan` の 2 つだけが指定され、どちらも `ci.yml` の job に存在することを確認します。"""
     with allure.step("ruleset の必須の check と ci.yml の job 名を読む"):
         contexts = {c["context"] for c in rules["required_status_checks"]["required_status_checks"]}
     with allure.step("必須の check が ci.yml の job 名に含まれることを確かめる"):
@@ -66,7 +68,9 @@ def test_required_contexts_are_ci_job_names(repo_root: Path, rules: dict[str, di
         assert contexts <= jobs, f"ci.yml に無い job: {contexts - jobs}"
 
 
+@allure.title("pull_request の規則は、必須の項目を持ち、承認数 0 と squash だけを指定する")
 def test_pull_request_has_required_keys(rules: dict[str, dict]) -> None:
+    """ruleset の `pull_request` の規則のテストです。レビューに関する 5 つの項目が存在し、必要な承認数が 0、許可するマージ方法が `squash` だけであることを確認します。"""
     with allure.step("pull_request のルールの項目を読む"):
         params = rules["pull_request"]
     with allure.step("必須の項目がそろい、承認数とマージ方法が決めた値であることを確かめる"):
@@ -75,7 +79,9 @@ def test_pull_request_has_required_keys(rules: dict[str, dict]) -> None:
         assert params["allowed_merge_methods"] == ["squash"]
 
 
+@allure.title("merge_queue の規則は、7 つの項目をすべて持ち、SQUASH と ALLGREEN を指定する")
 def test_merge_queue_has_all_seven_keys(rules: dict[str, dict]) -> None:
+    """ruleset の `merge_queue` の規則のテストです。パラメータが 7 つの項目だけで構成され、マージ方法が `SQUASH`、グループ化の方法が `ALLGREEN` であることを確認します。"""
     with allure.step("merge_queue のルールの項目を読む"):
         params = rules["merge_queue"]
     with allure.step("7 項目がそろい、マージ方法と grouping が決めた値であることを確かめる"):
@@ -84,7 +90,9 @@ def test_merge_queue_has_all_seven_keys(rules: dict[str, dict]) -> None:
         assert params["grouping_strategy"] == "ALLGREEN"
 
 
+@allure.title("ルールを迂回できるのは、リリース用の GitHub App だけに限る")
 def test_bypass_is_release_app_only(repo_root: Path) -> None:
+    """ruleset の `bypass_actors` のテストです。迂回できる対象が Integration 1 件だけで、`bypass_mode` が `always` であることを確認します。"""
     with allure.step("ruleset の JSON を読む"):
         data = json.loads((repo_root / ".github/rulesets/main.json").read_text())
     with allure.step("bypass できるのがリリース用の App だけであることを確かめる"):

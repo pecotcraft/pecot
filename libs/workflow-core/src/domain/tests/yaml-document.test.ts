@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 import { JSON_NULL } from '../json-null.js'
 import { parseYamlDocument } from '../yaml-document.js'
@@ -125,24 +126,29 @@ const PYTHON_ERRORS: readonly string[] = [
 ]
 
 describe('parseYamlDocument', () => {
-  it.each(PYTHON_RESULTS)('%j は Python と同じ値になる', (source, expected) => {
+  it.each(PYTHON_RESULTS)('%j は Python と同じ値になる', async (source, expected) => {
+    await explains('YAML の文書を読み取る関数のテストです。真偽値・数値・日付・`null` などのさまざまな書き方が、Python の YAML ライブラリ（`safe_load`）の実際の出力と同じ値になることを確認します。')
     expect(parseYamlDocument(source)).toEqual(expected)
   })
 
-  it.each(PYTHON_ERRORS)('%j は Python と同じくエラーになる', (source) => {
+  it.each(PYTHON_ERRORS)('%j は、Python と同じく例外が発生する', async (source) => {
+    await explains('YAML の文書を読み取る関数のテストです。構文が誤っている文書（`v: =` や閉じていない `[1, 2` など）を渡した場合に、Python と同様に例外が発生することを確認します。')
     expect(() => parseYamlDocument(source)).toThrow(Error)
   })
 
-  it('重複キーは後のものが勝つ', () => {
+  it('重複したキーがある場合は、後に書いた値を採用する', async () => {
+    await explains('YAML の文書を読み取る関数のテストです。キーが重複している文書を渡した場合に、後に書いた値が採用されることを確認します。')
     expect(parseYamlDocument('type: task\ntype: bug\n')).toEqual({ type: 'bug' })
   })
 
-  it('空の文書は null', () => {
+  it('空の文書とコメントだけの文書は、null を表す値を返す', async () => {
+    await explains('YAML の文書を読み取る関数のテストです。空の文書とコメントだけの文書を渡した場合に、`null` を表す値を返すことを確認します。')
     expect(parseYamlDocument('')).toBe(JSON_NULL)
     expect(parseYamlDocument('# コメントだけ\n')).toBe(JSON_NULL)
   })
 
-  it('-0 の整数は 0 になる', () => {
+  it('-0 を渡すと、整数の 0 を返す', async () => {
+    await explains('YAML の文書を読み取る関数のテストです。`-0` を渡した場合に、負のゼロでなく、整数の 0 として読み取ることを確認します。')
     expect(Object.is(parseYamlDocument('-0'), 0)).toBe(true)
   })
 
@@ -159,7 +165,8 @@ describe('parseYamlDocument', () => {
     ['a: !!bool yEs', { a: true }],
     ['a: !!null x', { a: JSON_NULL }],
     ['a: !!timestamp 2026-10-30', { a: new Date('2026-10-30T00:00:00.000Z') }],
-  ])('明示タグは値の形に依らず、タグの型で読む（Python の実出力）: %j', (source, expected) => {
+  ])('明示的なタグを付けた場合は、値の形に依らず、タグの型で読み取る（Python の実際の出力）: %j', async (source, expected) => {
+    await explains('YAML の明示的なタグのテストです。`!!float` や `!!int` などのタグを付けた場合に、値の形でなくタグの型に従って読み取り、Python の実際の出力と同じ値になることを確認します。')
     expect(parseYamlDocument(source)).toEqual(expected)
   })
 
@@ -177,19 +184,23 @@ describe('parseYamlDocument', () => {
     '<<: 1',
     '? [a, b]\n: 1',
     '? {a: 1}\n: 1',
-  ])('Python が ConstructorError か ValueError で失敗する入力はエラーにする: %j', (source) => {
+  ])('Python が ConstructorError か ValueError で失敗する入力は、例外が発生する: %j', async (source) => {
+    await explains('YAML の誤った入力のテストです。タグの型と値が合わない場合や未知のタグなど、Python が `ConstructorError` か `ValueError` で失敗する入力に対して、例外が発生することを確認します。')
     expect(() => parseYamlDocument(source)).toThrow(Error)
   })
 
-  it.each(['a: \'<<\'', 'a: "<<"', 'a: !!str <<'])('引用符付きの << と、str タグ付きの << は文字列: %s', (source) => {
+  it.each(['a: \'<<\'', 'a: "<<"', 'a: !!str <<'])('引用符で囲んだ << と、str タグを付けた << は、文字列として読み取る: %s', async (source) => {
+    await explains('YAML の `<<`（マージキー）のテストです。引用符で囲んだ `<<` と、`!!str` を付けた `<<` を渡した場合に、文字列の `<<` として読み取ることを確認します。')
     expect(parseYamlDocument(source)).toEqual({ a: '<<' })
   })
 
-  it('文字列でないキーは文字列にして読む（Python は int・真偽値・None のキー。検証後の結果は同じ）', () => {
+  it('文字列でないキーは文字列にして読む（Python は int・真偽値・None のキー。検証後の結果は同じ）', async () => {
+    await explains('YAML のキーのテストです。文字列でないキー（`1`・`yes`・`null` など）を渡した場合に、文字列のキーに変換して読み取ることを確認します。')
     expect(parseYamlDocument('1: a\nyes: b\nnull: c')).toEqual({ 1: 'a', true: 'b', null: 'c' })
   })
 
-  it('存在しない日付はエラーにする', () => {
+  it('存在しない日付と時刻を渡すと、例外が発生する', async () => {
+    await explains('YAML の日付のテストです。`2026-02-30` のように存在しない日付や、`25:00:00` のように存在しない時刻を渡した場合に、例外が発生することを確認します。')
     expect(() => parseYamlDocument('v: 2026-02-30')).toThrow(Error)
     expect(() => parseYamlDocument('v: 2026-10-30 25:00:00')).toThrow(Error)
   })

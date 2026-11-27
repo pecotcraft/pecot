@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { hooksDirectory, pluginRoot } from './_helpers/paths.js'
 import { resolveDirectoryVariables } from './_helpers/script-references.js'
 import { comparePathParts, splitLines } from './_helpers/text.js'
+import { explains } from '../_helpers/explains.js'
 
 const entryPoints = globSync('*.sh', { cwd: hooksDirectory }).toSorted(comparePathParts)
 const libraryScripts = globSync('lib/**/*.sh', { cwd: hooksDirectory })
@@ -33,12 +34,14 @@ function offendingLines(relative: string, pattern: Readonly<RegExp>): string[] {
 }
 
 describe('hooks の基準ディレクトリの規約', () => {
-  it('エントリポイントと lib のスクリプトを下限以上の数で列挙できる', () => {
+  it('エントリポイントと lib のスクリプトを下限以上の数で列挙できる', async () => {
+    await explains('hooks の基準ディレクトリ（`CLAUDE_PROJECT_DIR`）の規約の静的なテストです。エントリポイントと lib のスクリプトを列挙した場合に、件数が下限（6 件と 20 件）以上であることを確認します。')
     expect(entryPoints.length).toBeGreaterThanOrEqual(6)
     expect(libraryScripts.length).toBeGreaterThanOrEqual(20)
   })
 
-  it.for(entryPoints.map(label => ({ label })))('$label は、INPUT=$(cat) の直後に入力 JSON を引数にして project-root.sh を source する', (row) => {
+  it.for(entryPoints.map(label => ({ label })))('$label は、INPUT=$(cat) の直後に入力 JSON を引数にして project-root.sh を source する', async (row) => {
+    await explains(`hooks の基準ディレクトリの規約の静的なテストです。エントリポイント \`${row.label}\` を読んだ場合に、\`INPUT=$(cat)\` の直後で \`project-root.sh\` を source していることを確認します。`)
     const text = readFileSync(path.join(hooksDirectory, row.label), 'utf8')
     const lines = splitLines(text).map(line => line.trim())
     expect(lines.filter(line => line === INPUT_LINE), `${row.label}: \`${INPUT_LINE}\` が 1 行ではありません`).toHaveLength(1)
@@ -55,24 +58,28 @@ describe('hooks の基準ディレクトリの規約', () => {
     expect(path.join(base ?? '', core, 'project-root.sh')).toBe(path.join(hooksDirectory, 'lib', 'core', 'project-root.sh'))
   })
 
-  it.for(libraryScripts.map(label => ({ label })))('$label に CLAUDE_PROJECT_DIR の独自の fallback は無い', (row) => {
+  it.for(libraryScripts.map(label => ({ label })))('$label に CLAUDE_PROJECT_DIR の独自の fallback は無い', async (row) => {
+    await explains(`hooks の基準ディレクトリの規約の静的なテストです。lib のスクリプト \`${row.label}\` を読んだ場合に、\`CLAUDE_PROJECT_DIR\` の独自の fallback が無いことを確認します。`)
     const offending = offendingLines(row.label, FALLBACK_PATTERN)
     expect(offending, `${row.label}: CLAUDE_PROJECT_DIR の独自 fallback があります。基準ディレクトリはエントリポイントの project-root.sh が決めます`).toEqual([])
   })
 
-  it('fallback の検出パターンは既知の形を検出し、空の既定値の形は検出しない', () => {
+  it('fallback の検出パターンは既知の形を検出し、空の既定値の形は検出しない', async () => {
+    await explains('hooks の基準ディレクトリの規約の静的なテストです。fallback の検出パターンに既知の形と空の既定値の形を当てた場合に、既知の形だけを検出することを確認します。')
     expect(FALLBACK_PATTERN.test('PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"')).toBe(true)
     expect(FALLBACK_PATTERN.test('X="${CLAUDE_PROJECT_DIR-/tmp}"')).toBe(true)
     expect(FALLBACK_PATTERN.test('[[ -z "${CLAUDE_PROJECT_DIR:-}" ]] && exit 0')).toBe(false)
     expect(FALLBACK_PATTERN.test('STATE_DIR="${CLAUDE_PROJECT_DIR}/.pecot/state"')).toBe(false)
   })
 
-  it.for(libraryScripts.map(label => ({ label })))('$label はプロセスの cwd を基準にした git rev-parse --show-toplevel を呼ばない', (row) => {
+  it.for(libraryScripts.map(label => ({ label })))('$label はプロセスの cwd を基準にした git rev-parse --show-toplevel を呼ばない', async (row) => {
+    await explains(`hooks の基準ディレクトリの規約の静的なテストです。lib のスクリプト \`${row.label}\` を読んだ場合に、プロセスの cwd 基準の \`git rev-parse --show-toplevel\` を呼ばないことを確認します。`)
     const offending = offendingLines(row.label, CWD_TOPLEVEL_PATTERN)
     expect(offending, `${row.label}: プロセス cwd 基準の \`git rev-parse --show-toplevel\` があります。別ディレクトリを調べるときは \`git -C <dir>\` で対象を明示してください`).toEqual([])
   })
 
-  it('cwd 基準の toplevel の検出パターンは既知の形を検出し、-C 付きの形は検出しない', () => {
+  it('cwd 基準の toplevel の検出パターンは既知の形を検出し、-C 付きの形は検出しない', async () => {
+    await explains('hooks の基準ディレクトリの規約の静的なテストです。toplevel の検出パターンに既知の形と `-C` 付きの形を当てた場合に、cwd 基準の形だけを検出することを確認します。')
     expect(CWD_TOPLEVEL_PATTERN.test('REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)')).toBe(true)
     expect(CWD_TOPLEVEL_PATTERN.test('if ! t=$(git rev-parse --show-toplevel 2>/dev/null); then')).toBe(true)
     expect(CWD_TOPLEVEL_PATTERN.test('P=$(git rev-parse --show-toplevel 2>/dev/null || pwd)')).toBe(true)

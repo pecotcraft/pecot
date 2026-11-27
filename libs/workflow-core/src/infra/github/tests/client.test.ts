@@ -11,6 +11,7 @@ import { createServer } from 'node:http'
 import path from 'node:path'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 import { createOutput } from '../../../commands-shared/output.js'
 import { isAvoidedPort, startFakeGithub } from '../../../../tests/_helpers/fake-github/server.js'
@@ -143,7 +144,8 @@ async function startRawServer(handler: (request: RawRequest, response: ServerRes
 }
 
 describe('resolveApiUrlOverride', () => {
-  it.each([undefined, ''])('未設定・空文字（%j）は undefined', (value) => {
+  it.each([undefined, ''])('未設定・空文字（%j）は undefined', async (value) => {
+    await explains('`PECOT_GITHUB_API_URL` を読み取る関数のテストです。未設定の場合と空文字の場合に、`undefined` を返すことを確認します。')
     setEnvironment({ PECOT_GITHUB_API_URL: value })
     expect(resolveApiUrlOverride()).toBeUndefined()
   })
@@ -166,7 +168,8 @@ describe('resolveApiUrlOverride', () => {
     ['\thttp://127.0.0.1', '\thttp://127.0.0.1'],
     ['ht\ttp://127.0.0.1', 'ht\ttp://127.0.0.1'],
     ['http://127.0.0.1\n:80', 'http://127.0.0.1\n:80'],
-  ])('%j は受け付けて、末尾の / を落とす', (value, expected) => {
+  ])('%j を受け付け、末尾の / を取り除いて返す', async (value, expected) => {
+    await explains('`PECOT_GITHUB_API_URL` を読み取る関数のテストです。`http://127.0.0.1` や `http://localhost` の URL を受け付け、末尾の `/` を取り除いて返すことを確認します。')
     setEnvironment({ PECOT_GITHUB_API_URL: value })
     expect(resolveApiUrlOverride()).toBe(expected)
   })
@@ -203,19 +206,22 @@ describe('resolveApiUrlOverride', () => {
     'http://localhost.',
     'http://evil.example',
     'http://127.0.0.1.evil.example',
-  ])('%j は ValueError と同じ文で拒否する', (value) => {
+  ])('%j を渡すと、ValueError と同じ文の InvalidValueError が発生する', async (value) => {
+    await explains('`PECOT_GITHUB_API_URL` を読み取る関数のテストです。`http://127.0.0.1` と `http://localhost` 以外の URL の場合に、`InvalidValueError` が発生することを確認します。')
     setEnvironment({ PECOT_GITHUB_API_URL: value })
     expect(() => resolveApiUrlOverride()).toThrow(new InvalidValueError(`PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: ${value}`))
   })
 
-  it('不正な値はクライアントの構築で InvalidValueError になる', () => {
+  it('不正な値を指定すると、クライアントの構築で InvalidValueError が発生する', async () => {
+    await explains('`PECOT_GITHUB_API_URL` を読み取る関数のテストです。不正な値を指定した場合に、クライアントの構築で `InvalidValueError` が発生することを確認します。')
     setEnvironment({ PECOT_GITHUB_API_URL: 'http://127.1:8080' })
     expect(() => new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })).toThrow(InvalidValueError)
   })
 })
 
 describe('初期化の URL', () => {
-  it('host が github.com のとき、API と GraphQL の URL を github.com のものにする', () => {
+  it('host が github.com のとき、API と GraphQL の URL を github.com のものにする', async () => {
+    await explains('GitHub クライアントの URL のテストです。host が `github.com` の場合に、API と GraphQL の URL が `github.com` のものになり、タイムアウトの既定値が 30 秒になることを確認します。')
     const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com', token: 'test_token' })
     expect(client.host).toBe('github.com')
     expect(client.token).toBe('test_token')
@@ -224,17 +230,20 @@ describe('初期化の URL', () => {
     expect(client.timeoutMilliseconds).toBe(30_000)
   })
 
-  it('host の既定は github.com', () => {
+  it('host の既定は github.com', async () => {
+    await explains('GitHub クライアントの URL のテストです。host を省略した場合に、既定の host が `github.com` になることを確認します。')
     expect(new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).host).toBe('github.com')
   })
 
-  it('GitHub Enterprise Server は /api/v3 と /api/graphql', () => {
+  it('GitHub Enterprise Server は /api/v3 と /api/graphql', async () => {
+    await explains('GitHub クライアントの URL のテストです。GitHub Enterprise Server の host の場合に、API の URL が `/api/v3`、GraphQL の URL が `/api/graphql` になることを確認します。')
     const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'ghes.example.com', token: 'test_token' })
     expect(client.apiUrl).toBe('https://ghes.example.com/api/v3')
     expect(client.graphqlUrl).toBe('https://ghes.example.com/api/graphql')
   })
 
-  it.each(['127.0.0.1', 'localhost'])('PECOT_GITHUB_API_URL に %s を指定すると、host が GHE でも REST と GraphQL の URL を組み立てる', (host) => {
+  it.each(['127.0.0.1', 'localhost'])('PECOT_GITHUB_API_URL に %s を指定すると、host が GHE でも REST と GraphQL の URL を組み立てる', async (host) => {
+    await explains('GitHub クライアントの URL のテストです。`PECOT_GITHUB_API_URL` に `localhost` などを指定した場合に、host の種類によらず、その URL が REST と GraphQL の基準になることを確認します。')
     setEnvironment({ PECOT_GITHUB_API_URL: `http://${host}:8123` })
     const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'ghes.example.com', token: 't' })
     expect(client.apiUrl).toBe(`http://${host}:8123`)
@@ -242,7 +251,8 @@ describe('初期化の URL', () => {
     expect(client.host).toBe('ghes.example.com')
   })
 
-  it('PECOT_GITHUB_API_URL の指定で、REST の base と GraphQL の URL を差し替える', () => {
+  it('PECOT_GITHUB_API_URL の指定で、REST の base と GraphQL の URL を差し替える', async () => {
+    await explains('GitHub クライアントの URL のテストです。`PECOT_GITHUB_API_URL` を指定した場合に、REST のベース URL と GraphQL の URL を差し替え、指定したタイムアウトを保持することを確認します。')
     setEnvironment({ PECOT_GITHUB_API_URL: 'http://127.0.0.1:8080/api/v3/' })
     const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'ghes.example.com', token: 't', timeoutMilliseconds: 5 })
     expect(client.apiUrl).toBe('http://127.0.0.1:8080/api/v3')
@@ -252,7 +262,8 @@ describe('初期化の URL', () => {
 })
 
 describe('トークンの取得', () => {
-  it('config/.env の環境変数名が hosts.json の env_var に従う（環境変数にあればそれを使う）', async () => {
+  it('hosts.json の env_var が示す環境変数にトークンが存在する場合は、それを使い、gh を呼び出さない', async () => {
+    await explains('トークンの取得のテストです。`hosts.json` の `env_var` が示す環境変数にトークンが存在する場合に、そのトークンを使い、`gh` を呼び出さないことを確認します。')
     useProject({ 'ghes.example.com': { env_var: 'PECOT_GITHUB_GHES_TOKEN', token_url: 'https://ghes.example.com/settings/tokens' } })
     setEnvironment({ PECOT_GITHUB_GHES_TOKEN: 'env_token_from_test' })
     const bin = useFakeGh('gh_token')
@@ -260,7 +271,8 @@ describe('トークンの取得', () => {
     expect(readFakeCalls(bin, 'gh')).toEqual([])
   })
 
-  it('config/.env のファイルから取り、process.env も書き換える', async () => {
+  it('config/.env のファイルからトークンを取得し、process.env にも設定する', async () => {
+    await explains('トークンの取得のテストです。`config/.env` ファイルにトークンがある場合に、そのトークンを使い、`process.env` にも設定することを確認します。')
     const { config } = useProject({ 'github.com': { env_var: 'PECOT_GITHUB_COM_TOKEN', token_url: 'https://github.com/settings/tokens' } })
     vi.stubEnv('PECOT_GITHUB_COM_TOKEN', undefined)
     writeFileSync(path.join(config, '.env'), 'PECOT_GITHUB_COM_TOKEN=token_from_env_file\n')
@@ -270,13 +282,15 @@ describe('トークンの取得', () => {
     expect(readFakeCalls(bin, 'gh')).toEqual([])
   })
 
-  it('config/.env に無ければ、ルート .env の GITHUB_COM_TOKEN', async () => {
+  it('config/.env にトークンが存在しない場合は、ルートの .env の GITHUB_COM_TOKEN を使う', async () => {
+    await explains('トークンの取得のテストです。`config/.env` にトークンが存在しない場合に、ルートの `.env` の `GITHUB_COM_TOKEN` を使うことを確認します。')
     const { root } = useProject()
     writeFileSync(path.join(root, '.env'), 'GITHUB_COM_TOKEN=root_token\n')
     expect(await tokenOf({ diagnostics: ignoredDiagnostics, host: 'github.com' })).toBe('root_token')
   })
 
   it('config/.env のトークンがルート .env より優先される', async () => {
+    await explains('トークンの取得のテストです。`config/.env` とルートの `.env` の両方にトークンがある場合に、`config/.env` のトークンを優先することを確認します。')
     const { root, config } = useProject({ 'github.com': { env_var: 'PECOT_GITHUB_COM_TOKEN', token_url: 'https://github.com/settings/tokens' } })
     writeFileSync(path.join(config, '.env'), 'PECOT_GITHUB_COM_TOKEN=config_token\n')
     writeFileSync(path.join(root, '.env'), 'GITHUB_COM_TOKEN=root_token\n')
@@ -284,6 +298,7 @@ describe('トークンの取得', () => {
   })
 
   it('ルート .env のトークンが gh auth token より優先される（gh は呼ばれない）', async () => {
+    await explains('トークンの取得のテストです。ルートの `.env` にトークンがある場合に、`gh auth token` より優先し、`gh` を呼び出さないことを確認します。')
     const { root } = useProject({ 'github.com': { env_var: 'PECOT_GITHUB_COM_TOKEN', token_url: 'https://github.com/settings/tokens' } })
     writeFileSync(path.join(root, '.env'), 'GITHUB_COM_TOKEN=root_com_token\n')
     const bin = useFakeGh('gh_token_should_not_be_used')
@@ -292,6 +307,7 @@ describe('トークンの取得', () => {
   })
 
   it('ルート .env の値が空なら gh にフォールバックする', async () => {
+    await explains('トークンの取得のテストです。ルートの `.env` のトークンの値が空の場合に、`gh auth token` の結果にフォールバックすることを確認します。')
     const { root } = useProject()
     writeFileSync(path.join(root, '.env'), 'GITHUB_COM_TOKEN=\n')
     useFakeGh('gh_token')
@@ -299,6 +315,7 @@ describe('トークンの取得', () => {
   })
 
   it('ルート .env に対応しないホストは gh auth token -h <host> にフォールバックする', async () => {
+    await explains('トークンの取得のテストです。ルートの `.env` に対応しないホストの場合に、`gh auth token -h <host>` にフォールバックすることを確認します。')
     const { root } = useProject()
     writeFileSync(path.join(root, '.env'), 'SOME_TOKEN=unused\n')
     const bin = useFakeGh('gh_fallback_token')
@@ -307,6 +324,7 @@ describe('トークンの取得', () => {
   })
 
   it('github.com は gh auth token（-h なし）', async () => {
+    await explains('トークンの取得のテストです。host が `github.com` の場合に、`-h` を付けない `gh auth token` でトークンを取得することを確認します。')
     useProject()
     const bin = useFakeGh('gh_token_123')
     expect(await tokenOf({ diagnostics: ignoredDiagnostics, host: 'github.com' })).toBe('gh_token_123')
@@ -314,6 +332,7 @@ describe('トークンの取得', () => {
   })
 
   it('GHES は gh auth token -h ghes.example.com', async () => {
+    await explains('トークンの取得のテストです。host が GitHub Enterprise Server の場合に、`gh auth token -h ghes.example.com` でトークンを取得することを確認します。')
     useProject()
     const bin = useFakeGh('ghes_token_456')
     expect(await tokenOf({ diagnostics: ignoredDiagnostics, host: 'ghes.example.com' })).toBe('ghes_token_456')
@@ -321,13 +340,15 @@ describe('トークンの取得', () => {
   })
 
   it('token に空文字を渡したときは、指定なしと同じに取得する', async () => {
+    await explains('トークンの取得のテストです。`token` に空文字を指定した場合に、指定しなかった場合と同じ方法でトークンを取得することを確認します。')
     useProject()
     useFakeGh('gh_token')
     expect(await tokenOf({ diagnostics: ignoredDiagnostics, host: 'github.com', token: '' })).toBe('gh_token')
   })
 
   // 期待値は Python の _build_auth_error_message の出力
-  it('gh が失敗したら誘導つきの GitHubAuthError を投げ、.env を生成する', async () => {
+  it('gh が失敗した場合は、手順を案内する GitHubAuthError が発生し、.env を生成する', async () => {
+    await explains('トークンを取得できない場合のテストです。`gh` が失敗した場合に、手順を案内するメッセージの `GitHubAuthError` が発生し、`.env` を生成することを確認します。')
     const { root, config } = useProject({
       'ghes.example.com': {
         env_var: 'PECOT_GITHUB_GHES_TOKEN',
@@ -352,7 +373,8 @@ describe('トークンの取得', () => {
     )
   })
 
-  it('設定ディレクトリが無いときは、.env を作らずに gh auth login と起動前の環境変数を案内する', async () => {
+  it('設定ディレクトリが存在しない場合は、.env を作成せずに gh auth login と起動前の環境変数を案内する', async () => {
+    await explains('トークンを取得できない場合のテストです。設定ディレクトリが存在しない場合に、`.env` を作成せず、`gh auth login` と起動前に環境変数を設定する方法を案内することを確認します。')
     const root = makeTemporaryDirectory()
     setEnvironment({ CLAUDE_PROJECT_DIR: root })
     useFakeGh()
@@ -366,7 +388,8 @@ describe('トークンの取得', () => {
     expect(existsSync(path.join(root, '.pecot'))).toBe(false)
   })
 
-  it('スコープが無いホストは、スコープ行が空行になる', async () => {
+  it('スコープを持たないホストは、案内のスコープの行が空行になる', async () => {
+    await explains('トークンを取得できない場合のテストです。スコープを持たないホストの場合に、案内するメッセージのスコープの行が空行になることを確認します。')
     const { config } = useProject()
     useFakeGh()
     const file = path.join(config, '.env')
@@ -377,7 +400,8 @@ describe('トークンの取得', () => {
     )
   })
 
-  it('gh が見つからないときも、誘導つきの GitHubAuthError と .env を出す', async () => {
+  it('gh が見つからない場合も、手順を案内する GitHubAuthError が発生し、.env を生成する', async () => {
+    await explains('トークンを取得できない場合のテストです。`gh` が見つからない場合にも、手順を案内するメッセージの `GitHubAuthError` が発生し、`.env` を生成することを確認します。')
     const { config } = useProject({ 'github.com': { env_var: 'PECOT_GITHUB_COM_TOKEN', token_url: 'https://github.com/settings/tokens', description: 'GitHub.com', scopes: ['repo'] } })
     // gh を含まない PATH にする
     setEnvironment({ PATH: makeTemporaryDirectory() })
@@ -387,7 +411,8 @@ describe('トークンの取得', () => {
     expect(content).toContain('# 必要なスコープ: repo')
   })
 
-  it('gh が空の token を出したら、gh が失敗したときと同じ誘導つきの GitHubAuthError と .env を出す', async () => {
+  it('gh が空のトークンを出力した場合は、gh が失敗した場合と同じ GitHubAuthError が発生し、.env を生成する', async () => {
+    await explains('トークンを取得できない場合のテストです。`gh` が空のトークンを出力した場合に、`gh` が失敗した場合と同じメッセージの `GitHubAuthError` が発生し、`.env` を生成することを確認します。')
     const { config } = useProject()
     const bin = makeTemporaryDirectory()
     installFakeGh(bin, { token: '' })
@@ -397,7 +422,8 @@ describe('トークンの取得', () => {
     expect(existsSync(path.join(config, '.env'))).toBe(true)
   })
 
-  it('gh が空白だけを出したときも同じ', async () => {
+  it('gh が空白だけを出力した場合も、GitHubAuthError が発生する', async () => {
+    await explains('トークンを取得できない場合のテストです。`gh` が空白だけを出力した場合にも、`GitHubAuthError` が発生することを確認します。')
     useProject()
     const bin = makeTemporaryDirectory()
     installFakeExecutable(bin, 'gh', 'printf \'  \\n\'\n')
@@ -405,7 +431,8 @@ describe('トークンの取得', () => {
     await expect(ensured({ diagnostics: ignoredDiagnostics, host: 'github.com' })).rejects.toThrow(GitHubAuthError)
   })
 
-  it('gh が時間切れになったら、gh が失敗したときと同じ誘導つきの GitHubAuthError', async () => {
+  it('gh が時間切れになった場合は、gh が失敗した場合と同じ GitHubAuthError が発生する', async () => {
+    await explains('トークンを取得できない場合のテストです。`gh` が時間切れになった場合は、指定した時間で打ち切り、`gh` が失敗した場合と同じ `GitHubAuthError` が発生することを確認します。')
     useProject()
     const bin = makeTemporaryDirectory()
     // exec で sleep に置き換え、時間切れの kill で出力の管も閉じるようにする
@@ -416,7 +443,8 @@ describe('トークンの取得', () => {
     expect(Date.now() - started).toBeLessThan(3000)
   })
 
-  it('環境にトークンが無くても、構築では gh を呼ばず認証エラーも投げない', () => {
+  it('環境にトークンが存在しなくても、構築では gh を呼び出さず、認証エラーも発生しない', async () => {
+    await explains('クライアントの構築のテストです。環境にトークンが存在しない場合でも、構築の時点では `gh` を呼び出さず、認証エラーも発生しないことを確認します。')
     useProject()
     const bin = useFakeGh()
     expect(new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com' }).token).toBe('')
@@ -424,6 +452,7 @@ describe('トークンの取得', () => {
   })
 
   it('ensureToken を重ねて呼んでも、gh auth token は 1 回だけ読む', async () => {
+    await explains('`ensureToken` のテストです。重ねて呼び出した場合でも、`gh auth token` の読み取りが 1 回だけになることを確認します。')
     useProject()
     const bin = useFakeGh('gh_token')
     const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com' })
@@ -434,6 +463,7 @@ describe('トークンの取得', () => {
   })
 
   it('ensureToken を呼ばずに要求すると、要求の前に gh のトークンを読んでヘッダに付ける', async () => {
+    await explains('REST の要求のテストです。`ensureToken` を呼ばないまま要求した場合は、要求の前に `gh` のトークンを取得し、`Authorization` ヘッダへ設定することを確認します。')
     useProject()
     useFakeGh('gh_token')
     const raw = await startRawServer((_request, response) => {
@@ -444,7 +474,8 @@ describe('トークンの取得', () => {
     expect(raw.requests.map(request => request.headers.authorization)).toEqual(['Bearer gh_token'])
   })
 
-  it('gh を待つ間に取り消すと、GitHubAuthError でなく CancelledError を投げ、.env を作らない', async () => {
+  it('gh を待つ間に取り消すと、GitHubAuthError でなく CancelledError が発生し、.env を作成しない', async () => {
+    await explains('トークンの取得のテストです。`gh` の完了を待つ間の取り消しでは、`GitHubAuthError` ではなく `CancelledError` が発生し、`.env` を作成しないことを確認します。')
     const { config } = useProject()
     const bin = makeTemporaryDirectory()
     installFakeExecutable(bin, 'gh', 'exec sleep 5\n')
@@ -479,44 +510,51 @@ describe('handleHttpError', () => {
     return undefined
   }
 
-  it('401 は GitHubAuthError', () => {
+  it('401 は GitHubAuthError', async () => {
+    await explains('HTTP エラーの変換のテストです。401 の場合に、`GitHubAuthError` に変換し、状態コードと本文を保持することを確認します。')
     const error = failure(responseOf(401, 'Unauthorized'))
     expect(error).toBeInstanceOf(GitHubAuthError)
     expect(error).toMatchObject({ message: 'authentication failed: check the token', statusCode: 401, responseBody: 'Unauthorized' })
   })
 
-  it('404 は URL を含む GitHubNotFoundError', () => {
+  it('404 は URL を含む GitHubNotFoundError', async () => {
+    await explains('HTTP エラーの変換のテストです。404 の場合は、要求した URL をメッセージに含む `GitHubNotFoundError` へ変換することを確認します。')
     const error = failure(responseOf(404, 'Not Found'))
     expect(error).toBeInstanceOf(GitHubNotFoundError)
     expect(error).toMatchObject({ message: 'resource not found: https://api.github.com/repos/test/test', statusCode: 404, responseBody: 'Not Found' })
   })
 
-  it('403 で本文に rate limit があれば GitHubRateLimitError。大文字小文字は区別しない', () => {
+  it('403 で本文に rate limit があれば GitHubRateLimitError。大文字小文字は区別しない', async () => {
+    await explains('HTTP エラーの変換のテストです。403 で本文に `rate limit` を含む場合に、大文字と小文字を区別せず `GitHubRateLimitError` に変換することを確認します。')
     const error = failure(responseOf(403, 'API Rate Limit exceeded'))
     expect(error).toBeInstanceOf(GitHubRateLimitError)
     expect(error).toMatchObject({ message: 'API rate limit reached', statusCode: 403 })
   })
 
-  it('429 は GitHubRateLimitError（本文は問わない）', () => {
+  it('429 は GitHubRateLimitError（本文は問わない）', async () => {
+    await explains('HTTP エラーの変換のテストです。429 の場合は、本文の内容によらず `GitHubRateLimitError` へ変換することを確認します。')
     const error = failure(responseOf(429, 'Too Many Requests'))
     expect(error).toBeInstanceOf(GitHubRateLimitError)
     expect(error).toMatchObject({ message: 'API rate limit reached', statusCode: 429, responseBody: 'Too Many Requests' })
   })
 
-  it('403 以外の状態で本文に rate limit があっても、レート制限にはしない', () => {
+  it('403 以外の状態で本文に rate limit があっても、レート制限にはしない', async () => {
+    await explains('HTTP エラーの変換のテストです。403 以外の状態コードでは、本文に `rate limit` を含んでいても `GitHubRateLimitError` に変換しないことを確認します。')
     const error = failure(responseOf(500, 'rate limit'))
     expect(error).not.toBeInstanceOf(GitHubRateLimitError)
     expect(error).toMatchObject({ message: 'GitHub API error: 500' })
   })
 
-  it('403 のそれ以外は GitHubAPIError（サブクラスではない）', () => {
+  it('403 のそれ以外は GitHubAPIError（サブクラスではない）', async () => {
+    await explains('HTTP エラーの変換のテストです。403 で本文にレート制限を含まない場合に、`GitHubRateLimitError` ではない `GitHubAPIError` に変換することを確認します。')
     const error = failure(responseOf(403, 'Forbidden'))
     expect(error).toBeInstanceOf(GitHubAPIError)
     expect(error).not.toBeInstanceOf(GitHubRateLimitError)
     expect(error).toMatchObject({ message: 'access denied', statusCode: 403, responseBody: 'Forbidden' })
   })
 
-  it.each([500, 301, 422])('%i は GitHub API error: <status code>', (statusCode) => {
+  it.each([500, 301, 422])('%i は GitHub API error: <status code>', async (statusCode) => {
+    await explains('HTTP エラーの変換のテストです。500・301・422 の場合に、メッセージが `GitHub API error: <状態コード>` の `GitHubAPIError` に変換することを確認します。')
     const error = failure(responseOf(statusCode, 'x'))
     expect(error).toBeInstanceOf(GitHubAPIError)
     expect(error).toMatchObject({ message: `GitHub API error: ${String(statusCode)}`, statusCode, responseBody: 'x' })
@@ -524,7 +562,8 @@ describe('handleHttpError', () => {
 })
 
 describe('REST の要求', () => {
-  it('POST は JSON の本文を送り、Bearer で認証する（github.com）', async () => {
+  it('POST は JSON の本文を送信し、Bearer で認証する（github.com）', async () => {
+    await explains('REST の要求のテストです。POST の場合に、JSON の本文を送信し、`Bearer` で認証する（github.com の場合）ことを確認します。')
     const server = await serve([rule({ method: 'POST', path: '/repos/owner/repo/issues' }, { status: 201, body: { number: 124 } })])
     const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'github.com', token: 't' })
     const response = await client.restRequest('POST', '/repos/owner/repo/issues', { json: { title: 'New Issue', body: 'Body', labels: ['bug'] } })
@@ -538,6 +577,7 @@ describe('REST の要求', () => {
   })
 
   it('GHE は token で認証し、base の /api/v3 を保ったまま path を連結する', async () => {
+    await explains('REST の要求のテストです。GitHub Enterprise Server の場合に、`token` で認証し、ベース URL の `/api/v3` を保ったまま path を連結することを確認します。')
     const server = await serve([rule({ method: 'GET', path: '/api/v3/user' }, { status: 200, body: { login: 'u' } })], '/api/v3/')
     const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, host: 'ghes.example.com', token: 't' })
     expect(client.apiUrl).toBe(`${server.url}/api/v3`)
@@ -546,6 +586,7 @@ describe('REST の要求', () => {
   })
 
   it('先頭の / が無い path も同じ URL になる', async () => {
+    await explains('REST の要求のテストです。先頭の `/` がない path でも、同じ URL に要求することを確認します。')
     const server = await serve([rule({ path: '/api/v3/user' }, { status: 200, body: {} }, 2)], '/api/v3')
     const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     await client.restRequest('GET', 'user')
@@ -556,6 +597,7 @@ describe('REST の要求', () => {
 
   // 期待値は httpx の build_request が作る URL
   it('params を httpx と同じ表記のクエリにする（真偽値は小文字、undefined と空白は httpx の表記、予約文字は %XX）', async () => {
+    await explains('REST の要求のテストです。`params` から作成するクエリ文字列が、httpx と同じ表記（真偽値は小文字、予約文字は `%XX`）になることを確認します。')
     const server = await serve([rule({ method: 'GET', path: '/x' }, { status: 200, body: {} })])
     const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     await client.restRequest('GET', '/x', { params: { 'a': true, 'b': false, 'c': undefined, 'd 1': 'é~*!x y&=', 'e': 1.5, 'f': 100 } })
@@ -569,6 +611,7 @@ describe('REST の要求', () => {
   })
 
   it('params を指定すると、URL に書かれたクエリは置き換わる（httpx と同じ）。空の params は URL のクエリを消す', async () => {
+    await explains('REST の要求のテストです。`params` を指定した場合に、URL に書いたクエリを置き換え、空の `params` では URL のクエリを消すことを確認します（httpx と同じ）。')
     const server = await serve([rule({ path: '/x' }, { status: 200, body: {} }, 2)])
     const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     await client.restRequest('GET', '/x?y=1', { params: { z: 2 } })
@@ -577,6 +620,7 @@ describe('REST の要求', () => {
   })
 
   it('絶対 URL は base を付けずにそのまま使う', async () => {
+    await explains('REST の要求のテストです。絶対 URL を指定した場合に、ベース URL を付けずにそのまま使うことを確認します。')
     const server = await serve([rule({ path: '/other/page', query: { after: 'abc' } }, { status: 200, body: ['page2'] })], '/api/v3')
     const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     const response = await client.restRequest('GET', `${server.url}/other/page?after=abc`)
@@ -589,6 +633,7 @@ describe('REST の要求', () => {
     ['同じホストの別のポート', 'http://127.0.0.1:1/x'],
     ['同じホストの別のスキーム', 'https://127.0.0.1/x'],
   ])('絶対 URL が API と同じ origin でなければ（%s）、Authorization を送らず GitHubAPIError', async (_name, target) => {
+    await explains('REST の要求のテストです。絶対 URL が API と同じ origin でない場合（別のホスト・別のポート・別のスキーム）に、`Authorization` を送信せず `GitHubAPIError` が発生することを確認します。')
     const server = await serve([])
     const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     await expect(client.restRequest('GET', target)).rejects.toThrow(
@@ -599,6 +644,7 @@ describe('REST の要求', () => {
 
   // 期待値は httpx の Response.links
   it('Link ヘッダの next を、次の要求の絶対 URL に使える', async () => {
+    await explains('ページ送りのテストです。`Link` ヘッダの `next` の URL を、次の要求の絶対 URL として使えることを確認します。')
     const server = await serve([
       rule({ path: '/repos/o/r/dependabot/alerts', query: { state: 'open', per_page: '100' } }, {
         status: 200,
@@ -631,12 +677,14 @@ describe('REST の要求', () => {
     ['<https://x/a>; rel="next", <https://x/b>; rel="next"', { next: { url: 'https://x/b', rel: 'next' } }],
     ['<https://x/a>; rel=""', { 'https://x/a': { url: 'https://x/a', rel: '' } }],
     ['<https://x/a>; a=b=c; rel=next', { 'https://x/a': { url: 'https://x/a' } }],
-  ])('Link ヘッダ %j の読み方は httpx と同じ', (header, expected) => {
+  ])('Link ヘッダ %j の読み方は httpx と同じ', async (header, expected) => {
+    await explains('`Link` ヘッダを解析するテストです。`rel` の有無や引用符、複数の項目などのさまざまな書き方が、httpx と同じ読み取り結果になることを確認します。')
     const response = new RestResponse({ statusCode: 200, statusText: 'OK', url: 'u', text: '', headers: new Map([['link', header]]) })
     expect(Object.fromEntries(response.links)).toEqual(expected)
   })
 
-  it('Link ヘッダが無ければ links は空。header() は大文字小文字を区別しない', () => {
+  it('Link ヘッダが無ければ links は空。header() は大文字小文字を区別しない', async () => {
+    await explains('`Link` ヘッダを解析するテストです。`Link` ヘッダが存在しない場合は `links` が空になり、`header()` が大文字小文字を区別しないことを確認します。')
     const response = new RestResponse({ statusCode: 200, statusText: 'OK', url: 'u', text: '', headers: new Map([['x-test', 'v']]) })
     expect(response.links.size).toBe(0)
     expect(response.header('X-Test')).toBe('v')
@@ -644,6 +692,7 @@ describe('REST の要求', () => {
   })
 
   it('リダイレクトは辿らず、そのまま返す。失敗として扱う', async () => {
+    await explains('REST の要求のテストです。リダイレクトの応答を、辿らずにそのまま返し、失敗として扱うことを確認します。')
     const server = await serve([rule({ path: '/old' }, { status: 301, body: {}, headers: { Location: '/new' } })])
     const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     const response = await client.restRequest('GET', '/old')
@@ -661,6 +710,7 @@ describe('REST の要求', () => {
     [404, GitHubNotFoundError, 'resource not found: {{URL}}/repos/test/test'],
     [500, GitHubAPIError, 'GitHub API error: 500'],
   ])('%i の応答を handleHttpError に渡すと対応する例外になる', async (status, errorClass, message) => {
+    await explains('REST の要求のテストです。401・404・500 の応答を `handleHttpError` に渡した場合は、対応する例外が発生することを確認します。')
     const server = await serve([rule({ path: '/repos/test/test' }, { status, text: 'body text' })])
     // 401 でも gh には切り替えない
     useFakeGh()
@@ -680,12 +730,14 @@ describe('REST の要求', () => {
   })
 
   it('JSON でない本文を json() で読むと InvalidValueError', async () => {
+    await explains('REST の要求のテストです。JSON でない本文を `json()` で読み取った場合に、`InvalidValueError` が発生することを確認します。')
     await serve([rule({ path: '/x' }, { status: 200, text: 'not json' })])
     const response = await new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).restRequest('GET', '/x')
     expect(() => response.json()).toThrow(InvalidValueError)
   })
 
-  it('認証ユーザーの情報を取る', async () => {
+  it('認証ユーザーの情報を取得する', async () => {
+    await explains('認証ユーザーの取得のテストです。ユーザーの情報（`login`・`id`・`name`・`email`）を返すことを確認します。')
     const server = await serve([rule({ method: 'GET', path: '/user' }, { status: 200, body: { login: 'test-user', id: 12_345, name: 'Test User', email: 'test@example.com' } })])
     const user = await new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).getAuthenticatedUser()
     expect(user).toEqual({ login: 'test-user', id: 12_345, name: 'Test User', email: 'test@example.com' })
@@ -693,6 +745,7 @@ describe('REST の要求', () => {
   })
 
   it('認証ユーザーの取得で 401 なら GitHubAuthError', async () => {
+    await explains('認証ユーザーの取得のテストです。401 が返った場合に、`GitHubAuthError` が発生し、状態コードと本文を保持することを確認します。')
     useProject()
     useFakeGh()
     await serve([rule({ path: '/user' }, { status: 401, text: 'Unauthorized' })])
@@ -703,7 +756,8 @@ describe('REST の要求', () => {
     })
   })
 
-  it('Authorization・Accept・X-GitHub-Api-Version を付け、JSON の本文は compact で Content-Type を付ける', async () => {
+  it('Authorization・Accept・X-GitHub-Api-Version を付け、JSON の本文は余分な空白を含まない形にして Content-Type を付ける', async () => {
+    await explains('REST の要求のヘッダのテストです。`Authorization`・`Accept`・`X-GitHub-Api-Version` を付け、JSON の本文は余分な空白を含まない形で、`Content-Type` を付けて送信することを確認します。')
     const raw = await startRawServer((_request, response) => {
       response.writeHead(200, { 'content-type': 'application/json' }).end('{}')
     })
@@ -721,6 +775,7 @@ describe('REST の要求', () => {
   })
 
   it.each(['ghes.example.com', 'ghe.example.org'])('GHE（%s）の認証ヘッダは token <値>', async (host) => {
+    await explains('REST の要求のヘッダのテストです。GitHub Enterprise Server の host の場合に、認証ヘッダが `token <値>` の形になることを確認します。')
     const raw = await startRawServer((_request, response) => {
       response.writeHead(200).end('{}')
     })
@@ -730,6 +785,7 @@ describe('REST の要求', () => {
   })
 
   it('接続できないときは TransportFailure（Python の ConnectError の文）', async () => {
+    await explains('REST の要求のテストです。接続できない場合に、Python の `ConnectError` と同じ文の `TransportFailure` が発生することを確認します。')
     const closed = await startFakeGithub([])
     await closed.close()
     setEnvironment({ PECOT_GITHUB_API_URL: closed.url })
@@ -739,6 +795,7 @@ describe('REST の要求', () => {
   })
 
   it('時間切れは TransportFailure（Python の ReadTimeout の文）', async () => {
+    await explains('REST の要求のテストです。時間切れの場合に、Python の `ReadTimeout` と同じ文の `TransportFailure` が発生することを確認します。')
     const raw = await startRawServer(() => {
       // 応答しない
     })
@@ -749,7 +806,8 @@ describe('REST の要求', () => {
 })
 
 describe('401 のときの gh auth token への切り替え', () => {
-  it('REST: 1 回だけ gh のトークンに切り替え、警告を受け口に渡して再試行する', async () => {
+  it('REST: 1 回だけ gh のトークンに切り替え、警告を診断の出力先に渡して再試行する', async () => {
+    await explains('401 の応答のテストです。REST の要求が 401 の場合に、1 回だけ `gh` のトークンに切り替え、警告を出力して再試行することを確認します。')
     useProject()
     const bin = useFakeGh('gh_new_token')
     const recorded = recordDiagnostics()
@@ -765,7 +823,8 @@ describe('401 のときの gh auth token への切り替え', () => {
     expect(server.requests()).toHaveLength(2)
   })
 
-  it('受け口に createOutput を渡すと、stderr に変更前と同じ 2 行の警告が出る', async () => {
+  it('診断の出力先に createOutput を渡すと、stderr に変更前と同じ 2 行の警告を出力する', async () => {
+    await explains('401 の応答のテストです。診断の出力先に `createOutput` を渡した場合に、stderr に変更前と同じ 2 行の警告を出力することを確認します。')
     useProject()
     useFakeGh('gh_new_token')
     const stderr: string[] = []
@@ -786,6 +845,7 @@ describe('401 のときの gh auth token への切り替え', () => {
   })
 
   it('切り替えは 1 回だけ。再試行も 401 なら、そのまま 401 を返し、以後 gh は呼ばない', async () => {
+    await explains('401 の応答のテストです。切り替えは 1 回だけであり、再試行も 401 の場合に、そのまま 401 を返し、以後 `gh` を呼び出さないことを確認します。')
     useProject()
     const bin = useFakeGh('gh_new_token')
     const recorded = recordDiagnostics()
@@ -799,7 +859,8 @@ describe('401 のときの gh auth token への切り替え', () => {
     expect(recorded.lines).toEqual([`warning: ${FALLBACK_WARNING}`])
   })
 
-  it('gh のトークンが今のトークンと同じなら、再試行せず警告も出さない', async () => {
+  it('gh のトークンが現在のトークンと同じ場合は、再試行せず、警告も出力しない', async () => {
+    await explains('401 の応答のテストです。`gh` のトークンが現在のトークンと同じ場合に、再試行せず、警告も出力しないことを確認します。')
     useProject()
     const bin = useFakeGh('same_token')
     const recorded = recordDiagnostics()
@@ -811,7 +872,8 @@ describe('401 のときの gh auth token への切り替え', () => {
     expect(recorded.lines).toEqual([])
   })
 
-  it('gh が使えなければ再試行せず、.env を作らずに 401 を返す', async () => {
+  it('gh が使えない場合は、再試行せず、.env を作成せずに 401 を返す', async () => {
+    await explains('401 の応答のテストです。`gh` が使えない場合に、再試行せず、`.env` を作成せずに 401 を返すことを確認します。')
     const { config } = useProject()
     useFakeGh()
     const recorded = recordDiagnostics()
@@ -824,6 +886,7 @@ describe('401 のときの gh auth token への切り替え', () => {
   })
 
   it('GraphQL: 401 のあと gh のトークンで成功する', async () => {
+    await explains('401 の応答のテストです。GraphQL の要求が 401 の場合に、`gh` のトークンに切り替えて再試行し、成功することを確認します。')
     useProject()
     const bin = useFakeGh('gh_new_token')
     const recorded = recordDiagnostics()
@@ -847,6 +910,7 @@ describe('401 のときの gh auth token への切り替え', () => {
     ['500', { status: 500, text: 'boom' }, GitHubAPIError, `GraphQL query error: ${statusSentence('Server error', 500, 'Internal Server Error')}`],
     ['rate limit', { status: 200, body: { errors: [{ message: 'API rate limit exceeded' }] } }, GitHubRateLimitError, 'GraphQL rate limit error: {\'message\': \'API rate limit exceeded\'}'],
   ])('GraphQL: 再試行の失敗（%s）も同じ規則で分類する', async (_name, retry, errorClass, message) => {
+    await explains('401 の応答のテストです。GraphQL の再試行が失敗した場合（401 のまま・500・レート制限）に、通常と同じ規則で例外に分類することを確認します。')
     useProject()
     useFakeGh('gh_new_token')
     const server = await serve([
@@ -859,6 +923,7 @@ describe('401 のときの gh auth token への切り替え', () => {
   })
 
   it('GraphQL: errors の文言に 401 があるだけの失敗では、gh に切り替えない', async () => {
+    await explains('401 の応答のテストです。GraphQL の `errors` のメッセージに 401 を含むだけの失敗では、`gh` のトークンに切り替えないことを確認します。')
     useProject()
     const bin = useFakeGh('gh_new_token')
     const recorded = recordDiagnostics()
@@ -871,6 +936,7 @@ describe('401 のときの gh auth token への切り替え', () => {
   })
 
   it('GraphQL: 切り替えられないとき（gh 失敗）は最初の失敗の文で認証エラーにする', async () => {
+    await explains('401 の応答のテストです。GraphQL で `gh` のトークンへ切り替えられない場合は、最初の失敗のメッセージを持つ認証エラーが発生することを確認します。')
     useProject()
     useFakeGh()
     const server = await serve([rule({ operation: 'GetUserNodeId' }, { status: 401, text: 'Unauthorized' })])
@@ -955,16 +1021,19 @@ describe('executeGraphqlTolerating', () => {
     useFakeGh()
   })
 
-  it('すべての errors が許す道筋なら、data と errors を返す', async () => {
+  it('すべての errors が許容する道筋の場合は、data と errors を返す', async () => {
+    await explains('許容する道筋を指定した GraphQL の実行のテストです。すべての `errors` が許容する道筋の場合に、`data` と `errors` を返すことを確認します。')
     const errors = [{ message: 'a', path: ['user', 'id'] }, { message: 'b', path: ['user', 'x', 0] }]
     expect(await runTolerating({ data: { user: JSON_NULL }, errors })).toEqual({ data: { user: JSON_NULL }, errors })
   })
 
-  it('errors が無ければ、errors は空', async () => {
+  it('errors が存在しない場合は、errors は空になる', async () => {
+    await explains('許容する道筋を指定した GraphQL の実行のテストです。`errors` が存在しない場合に、`errors` を空の配列として返すことを確認します。')
     expect(await runTolerating({ data: { user: { id: 'U' } } })).toEqual({ data: { user: { id: 'U' } }, errors: [] })
   })
 
-  it('許さない道筋の errors が 1 つでもあれば、executeGraphql と同じ例外', async () => {
+  it('許容しない道筋の errors が 1 つでもある場合は、executeGraphql と同じ例外が発生する', async () => {
+    await explains('許容する道筋を指定した GraphQL の実行のテストです。許容しない道筋の `errors` が 1 つでもある場合に、`executeGraphql` と同じ例外が発生することを確認します。')
     const errors = [{ message: 'a', path: ['user', 'id'] }, { message: 'b', path: ['organization'] }]
     await expect(runTolerating({ data: { user: JSON_NULL }, errors })).rejects.toBeInstanceOf(GitHubAPIError)
   })
@@ -973,11 +1042,13 @@ describe('executeGraphqlTolerating', () => {
     ['path が無い', [{ message: 'a' }]],
     ['path が配列でない', [{ message: 'a', path: 'user' }]],
     ['errors の要素が辞書でない', ['a']],
-  ])('%s errors は例外', async (_name, errors) => {
+  ])('%s の errors の場合は、例外が発生する', async (_name, errors) => {
+    await explains('許容する道筋を指定した GraphQL の実行のテストです。`path` が存在しない場合、`path` が配列でない場合、`errors` の要素がオブジェクトでない場合に、例外が発生することを確認します。')
     await expect(runTolerating({ data: { user: JSON_NULL }, errors })).rejects.toBeInstanceOf(GitHubAPIError)
   })
 
-  it('data が無ければ、許す道筋の errors でも例外', async () => {
+  it('data が存在しない場合は、許容する道筋の errors でも例外が発生する', async () => {
+    await explains('許容する道筋を指定した GraphQL の実行のテストです。`data` が存在しない場合に、許容する道筋の `errors` だけでも例外が発生することを確認します。')
     await expect(runTolerating({ errors: [{ message: 'a', path: ['user'] }] })).rejects.toBeInstanceOf(GitHubAPIError)
   })
 })
@@ -990,13 +1061,15 @@ describe('executeGraphql', () => {
   })
 
   it.each(GRAPHQL_SUCCESSES)('$name のとき、data を返す', async ({ respond, data }) => {
+    await explains('GraphQL の実行のテストです。成功の応答（`data` が空のリストの場合や、`errors` が空や `null` の場合を含む）に対して、`data` を返すことを確認します。')
     const server = await serve([rule({ operation: 'GetUserNodeId' }, respond)])
     const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     expect(await client.executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })).toEqual(data)
     expect(server.problems()).toEqual([])
   })
 
-  it.each(GRAPHQL_FAILURES)('$name のとき、$expected.error.name を投げる', async ({ respond, expected }) => {
+  it.each(GRAPHQL_FAILURES)('$name のとき、$expected.error.name が発生する', async ({ respond, expected }) => {
+    await explains('GraphQL の実行のテストです。失敗の応答（状態コード・`errors`・本文の形ごとの失敗）を、Python と同じクラスとメッセージの例外に分類することを確認します。')
     const server = await serve([rule({ operation: 'GetUserNodeId' }, respond)])
     const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
     const execution = client.executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })
@@ -1005,20 +1078,23 @@ describe('executeGraphql', () => {
     expect(server.problems()).toEqual([])
   })
 
-  it('変数を省くと空のオブジェクトを送る', async () => {
+  it('変数を省略すると、空のオブジェクトを送信する', async () => {
+    await explains('GraphQL の実行のテストです。変数を省略した場合に、空のオブジェクトを送信することを確認します。')
     const server = await serve([rule({ operation: 'GetUserNodeId' }, { status: 200, body: { data: { user: { id: 'U' } } } })])
     await new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).executeGraphql(QUERY_GET_USER_NODE_ID)
     expect(server.requests()).toEqual([{ type: 'graphql', operation: 'GetUserNodeId', variables: {}, auth: 'Bearer' }])
   })
 
-  it('null の変数をそのまま送る', async () => {
+  it('null の変数をそのまま送信する', async () => {
+    await explains('GraphQL の実行のテストです。`null` の変数を、そのまま送信することを確認します。')
     const server = await serve([rule({ operation: 'GetUserNodeId' }, { status: 200, body: { data: { user: JSON_NULL } } })])
     const result = await new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).executeGraphql(QUERY_GET_USER_NODE_ID, { login: JSON_NULL })
     expect(result).toEqual({ user: JSON_NULL })
     expect(server.requests()).toEqual([{ type: 'graphql', operation: 'GetUserNodeId', variables: { login: JSON_NULL }, auth: 'Bearer' }])
   })
 
-  it('GraphQL の要求は POST で、query と variables を JSON で送る', async () => {
+  it('GraphQL の要求は POST で、query と variables を JSON で送信する', async () => {
+    await explains('GraphQL の実行のテストです。要求が POST で、`query` と `variables` を JSON で送信し、URL とヘッダが正しいことを確認します。')
     const raw = await startRawServer((_request, response) => {
       response.writeHead(200, { 'content-type': 'application/json' }).end('{"data":{}}')
     })
@@ -1034,6 +1110,7 @@ describe('executeGraphql', () => {
   })
 
   it('接続できないときは Python と同じ文（[Errno 111] Connection refused）で GraphQLクエリ実行エラー', async () => {
+    await explains('GraphQL の実行のテストです。接続できない場合に、Python と同じ文（`[Errno 111] Connection refused`）の GraphQL クエリ実行エラーが発生することを確認します。')
     const closed = await startFakeGithub([])
     await closed.close()
     setEnvironment({ PECOT_GITHUB_API_URL: closed.url })
@@ -1043,6 +1120,7 @@ describe('executeGraphql', () => {
   })
 
   it('時間切れは Python と同じ文（timed out）で GraphQLクエリ実行エラー', async () => {
+    await explains('GraphQL の実行のテストです。時間切れの場合に、Python と同じ文（`timed out`）の GraphQL クエリ実行エラーが発生することを確認します。')
     const raw = await startRawServer(() => {
       // 応答しない
     })
@@ -1052,6 +1130,7 @@ describe('executeGraphql', () => {
   })
 
   it('要求の応答を待つ間に取り消すと、GraphQL の失敗に包まず CancelledError を投げる', async () => {
+    await explains('GraphQL の実行のテストです。応答を待つ間の取り消しでは、GraphQL の失敗に包まず `CancelledError` が発生することを確認します。')
     const raw = await startRawServer(() => {
       // 応答しない
     })
@@ -1066,6 +1145,7 @@ describe('executeGraphql', () => {
   })
 
   it('時間切れは、signal を渡していても取り消しでなく timed out の失敗にする', async () => {
+    await explains('GraphQL の実行のテストです。`signal` を渡していても、時間切れの場合は取り消しではなく `timed out` の失敗になることを確認します。')
     const raw = await startRawServer(() => {
       // 応答しない
     })

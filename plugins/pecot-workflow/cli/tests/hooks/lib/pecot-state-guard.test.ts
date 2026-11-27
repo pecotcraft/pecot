@@ -15,6 +15,7 @@ import { runShell } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { splitLines } from '../_helpers/text.js'
 import { readOutput } from '../../../../../../libs/interface-spec/src/vitest/attach.js'
+import { explains } from '../../_helpers/explains.js'
 
 const GUARD_SCRIPT = path.join(coreDirectory, 'pecot-state-guard.sh')
 
@@ -36,7 +37,8 @@ function setUpAbsentPecot(hookCase: HookCase): string {
 }
 
 describe('pecot-state-guard.sh', () => {
-  it('.pecot が無いとき、失敗し、.pecot を新規作成しない', () => {
+  it('.pecot が無いとき、失敗し、.pecot を新規作成しない', async () => {
+    await explains('`pecot-state-guard.sh`（`.pecot` 配下へ書き込む前の確認）のテストです。`.pecot` が存在しない場合に、失敗して終了コード 0 以外を返し、`.pecot` を作成しないことを確認します。')
     const hookCase = createHookCase()
     const pecot = setUpAbsentPecot(hookCase)
     const result = runEnsure(hookCase, path.join(pecot, 'state'))
@@ -44,7 +46,8 @@ describe('pecot-state-guard.sh', () => {
     expect(isDirectory(pecot)).toBe(false)
   })
 
-  it('.pecot があり .gitignore が無いとき、.gitignore を生成してからディレクトリを作る', () => {
+  it('.pecot があり .gitignore が無いとき、.gitignore を生成してからディレクトリを作る', async () => {
+    await explains('`pecot-state-guard.sh` のテストです。`.pecot` はあるが `.gitignore` が存在しない場合に、先に `.gitignore` を生成し、そのあとで対象のディレクトリを作成することを確認します。')
     const hookCase = createHookCase()
     const pecot = setUpAbsentPecot(hookCase)
     mkdirSync(pecot, { recursive: true })
@@ -60,7 +63,8 @@ describe('pecot-state-guard.sh', () => {
     expect(splitLines(readOutput(gitignore))).toContain('*')
   })
 
-  it('.pecot と .gitignore があるとき、既存の .gitignore の内容を変えない', () => {
+  it('.pecot と .gitignore があるとき、既存の .gitignore の内容を変えない', async () => {
+    await explains('`pecot-state-guard.sh` のテストです。`.pecot` と `.gitignore` が既に存在する場合に、`.gitignore` の内容を変更せず、対象のディレクトリを作成することを確認します。')
     const hookCase = createHookCase()
     const pecot = setUpAbsentPecot(hookCase)
     mkdirSync(pecot, { recursive: true })
@@ -73,7 +77,8 @@ describe('pecot-state-guard.sh', () => {
     expect(isDirectory(path.join(pecot, 'state'))).toBe(true)
   })
 
-  it('深いディレクトリを渡しても、作成する', () => {
+  it('深いディレクトリを渡しても、作成する', async () => {
+    await explains('`pecot-state-guard.sh` のテストです。`tmp/debug` のように深いディレクトリを渡した場合に、途中のディレクトリを含めて作成することを確認します。')
     const hookCase = createHookCase()
     const pecot = setUpAbsentPecot(hookCase)
     mkdirSync(pecot, { recursive: true })
@@ -84,7 +89,8 @@ describe('pecot-state-guard.sh', () => {
     expect(isDirectory(path.join(pecot, 'tmp', 'debug'))).toBe(true)
   })
 
-  it('CLAUDE_PROJECT_DIR が未設定のとき、失敗し、何も作らない', () => {
+  it('CLAUDE_PROJECT_DIR が未設定のとき、失敗し、何も作らない', async () => {
+    await explains('`pecot-state-guard.sh` のテストです。環境変数 `CLAUDE_PROJECT_DIR` が設定されていない場合に、失敗して終了コード 0 以外を返し、ディレクトリを作成しないことを確認します。')
     const hookCase = createHookCase()
     // claude_project_dir で .pecot を隔離するが、このケースは unset を別途指定する
     claudeProjectDirectory(hookCase)

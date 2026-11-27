@@ -13,6 +13,7 @@ import { gitRepository } from '../_helpers/git.js'
 import { pluginRoot } from '../_helpers/paths.js'
 import { runHookEntry } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
+import { explains } from '../../_helpers/explains.js'
 
 // CLAUDE_PROJECT_DIR を git リポに向け、スキルの実在確認に使う CLAUDE_PLUGIN_ROOT を設定する。
 function setUpProject(hookCase: HookCase): string {
@@ -42,7 +43,8 @@ describe('pre-tool-use-skill.sh', () => {
   it.for([
     { label: '名前空間なし', skill: 'w-help' },
     { label: '名前空間付き', skill: 'pecot-w:w-help' },
-  ])('自プラグインのスキル（$label）のとき、何も出力せず、.pecot を初期化する', (row) => {
+  ])('自プラグインのスキル（$label）のとき、何も出力せず、.pecot を初期化する', async (row) => {
+    await explains(`Copilot CLI の Skill 入力に対する、\`pre-tool-use-skill.sh\` のテストです。自プラグインのスキル（${row.label}）の場合に、標準出力に何も出力せず、\`.pecot\` ディレクトリを初期化することを確認します。`)
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     expect(existsSync(path.join(project, '.pecot'))).toBe(false)
@@ -62,7 +64,8 @@ describe('pre-tool-use-skill.sh', () => {
     // 他の名前空間
     { label: '他の名前空間', skill: 'pecot-v:v-slidev' },
     { label: '空文字', skill: '' },
-  ])('このプラグインのものでないスキル（$label）のとき、何も出力せず、.pecot も作らない', (row) => {
+  ])('このプラグインのものでないスキル（$label）のとき、何も出力せず、.pecot も作らない', async (row) => {
+    await explains(`Copilot CLI の Skill 入力に対する、\`pre-tool-use-skill.sh\` のテストです。このプラグインのものでないスキル（${row.label}）の場合に、標準出力に何も出力せず、\`.pecot\` ディレクトリを作成しないことを確認します。`)
     const hookCase = createHookCase()
     const project = setUpProject(hookCase)
     const result = runEntry(hookCase, row.skill, project)

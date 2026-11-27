@@ -15,6 +15,7 @@ import {
   shutdownLoginRegistry,
 } from '../login-registry.js'
 import { useLoginRegistry } from '../../../../tests/_helpers/login-registry.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 import { verifies } from '../../../../tests/_helpers/verifies.js'
 import { useTemporaryDirectories } from '../../../../tests/_helpers/temporary-directory.js'
 
@@ -43,7 +44,8 @@ async function waitForTermination(pid: number): Promise<void> {
 }
 
 describe('createLoginRegistry', () => {
-  it('URL とコードが揃った時点で pending を返し、子は生かしたままにする', async () => {
+  it('URL とコードが揃った時点で pending の状態を返し、awscli のプロセスは終了させない', async () => {
+    await explains('SSO ログインの開始（`start`）のテストです。偽の awscli が URL とコードを出力した場合は、状態が `pending` で URL とコードを含む結果を返し、プロセスは終了しないことを確認します。')
     const fake = fakeAws.install({ exitWhenFile: true })
     const registry = newRegistry()
 
@@ -61,7 +63,8 @@ describe('createLoginRegistry', () => {
     expect(fake.callLog()).toEqual([['sso', 'login', '--no-browser', '--use-device-code']])
   })
 
-  it('profile は --profile=<value> の 1 トークンで渡す', async () => {
+  it('profile を指定してログインを開始すると、--profile=値 の 1 つの引数で awscli に渡す', async () => {
+    await explains('SSO ログインの開始（`start`）のテストです。profile に `stg1-login` を指定した場合に、awscli へ `--profile=stg1-login` の 1 つの引数で渡されることを確認します。')
     const fake = fakeAws.install({ exitWhenFile: true })
     const registry = newRegistry()
 
@@ -72,8 +75,9 @@ describe('createLoginRegistry', () => {
     ])
   })
 
-  it('pending の同一キーへの再 start は新規起動せず既存の値を返す', async (context) => {
+  it('同じ profile の pending のログインがあるときの再度の開始は、新しく起動せず、既存の結果を返す', async (context) => {
     await verifies(context, 'PT-AWS-SSO-LOGIN-02')
+    await explains('SSO ログインの開始（`start`）のテストです。状態が `pending` の同じ profile で 2 回目に開始した場合は、1 回目と同じ結果を返し、awscli の起動回数が 1 回のままであることを確認します。')
     const fake = fakeAws.install({ exitWhenFile: true })
     const registry = newRegistry()
 
@@ -84,7 +88,8 @@ describe('createLoginRegistry', () => {
     expect(fake.callLog()).toHaveLength(1)
   })
 
-  it('確定前の同時 start でも子は 1 本しか起こさない', async () => {
+  it('結果が確定する前に同時に開始しても、awscli のプロセスは 1 つだけ起動する', async () => {
+    await explains('SSO ログインの開始（`start`）のテストです。2 回の開始を同時に行った場合に、どちらも同じ結果を返し、awscli を起動する回数が 1 回であることを確認します。')
     const fake = fakeAws.install({ exitWhenFile: true })
     const registry = newRegistry()
 
@@ -94,7 +99,8 @@ describe('createLoginRegistry', () => {
     expect(fake.callLog()).toHaveLength(1)
   })
 
-  it('認証が完了すると completed になり output には prompt と成功行の両方が残る', async () => {
+  it('認証が完了すると completed になり、output には案内の出力と成功の行の両方が残る', async () => {
+    await explains('SSO ログインの状態遷移のテストです。認証の完了を偽の awscli へ伝えた場合は、状態が `completed` になり、`output` に認証コードと成功の行の両方が含まれることを確認します。')
     const fake = fakeAws.install({ exitWhenFile: true })
     const registry = newRegistry()
 
@@ -111,8 +117,9 @@ describe('createLoginRegistry', () => {
     expect(session?.verificationUrl).toBe('https://example.awsapps.com/start/#/device')
   })
 
-  it('URL を出さずに exit 0 で終わったときは completed', async (context) => {
+  it('URL を出力せずに終了コード 0 で終了したときは、completed の状態にする', async (context) => {
     await verifies(context, 'PT-AWS-SSO-LOGIN-05')
+    await explains('SSO ログインの開始（`start`）のテストです。認証済みで URL を出力せず終了コード 0 で終了した場合は、状態が `completed` で `verificationUrl` が未設定になり、`output` に成功の行が含まれることを確認します。')
     // `--use-device-code` は毎回デバイスフローに入るため未観測の場面。防御として completed にする。
     fakeAws.install({ fixture: 'sso-login.cached' })
     const registry = newRegistry()
@@ -124,7 +131,8 @@ describe('createLoginRegistry', () => {
     expect(session.output).toContain('Successfully logged into Start URL')
   })
 
-  it('SSO 設定の無い profile は failed + auth-missing', async () => {
+  it('SSO の設定がない profile でログインを開始すると、failed の状態で auth-missing を返す', async () => {
+    await explains('SSO ログインの開始（`start`）のテストです。SSO の設定がない profile を指定した場合に、状態が `failed`、種類が `auth-missing` で、終了コード `253` と設定不足のメッセージを返すことを確認します。')
     fakeAws.install({ fixture: 'sso-login.no-config' })
     const registry = newRegistry()
 
@@ -137,7 +145,8 @@ describe('createLoginRegistry', () => {
     expect(session.output).toContain('Missing the following required SSO configuration values')
   })
 
-  it('awscli が PATH に無いときは failed + awscli-missing', async () => {
+  it('awscli が見つからない場合の SSO ログイン開始は、failed の状態で awscli-missing を返す', async () => {
+    await explains('SSO ログインの開始（`start`）のテストです。PATH に awscli が存在しない場合は、状態が `failed` で、種類が `awscli-missing` の結果を返すことを確認します。')
     fakeAws.withoutAws()
     const registry = newRegistry()
 
@@ -147,7 +156,8 @@ describe('createLoginRegistry', () => {
     expect(session.kind).toBe('awscli-missing')
   })
 
-  it('制限時間を過ぎると timed-out にして子を落とす', async () => {
+  it('ログインの制限時間を過ぎると、timed-out の状態にして awscli のプロセスを終了する', async () => {
+    await explains('SSO ログインの状態の遷移のテストです。制限時間を 1 秒にして `pending` のまま待った場合に、状態が `timed-out` になり、awscli のプロセスが終了することを確認します。')
     const fake = fakeAws.install({ exitWhenFile: true })
     const registry = newRegistry({ timeoutMs: 1000 })
 
@@ -161,7 +171,8 @@ describe('createLoginRegistry', () => {
     await waitForTermination(pid)
   })
 
-  it('URL が出ないまま上限を過ぎたら failed(timeout) にして子を落とす', async () => {
+  it('URL が出力されないまま上限を過ぎたときは、種類が timeout の failed にして、awscli のプロセスを終了する', async () => {
+    await explains('SSO ログインの開始（`start`）のテストです。URL とコードを出力しないまま案内を待つ上限を過ぎた場合に、状態が `failed`、種類が `timeout` になり、awscli のプロセスが終了することを確認します。')
     // 出力を持たない fixture 名で、URL / コードが永久に確定しない状態を作る。
     const fake = fakeAws.install({ fixture: 'sso-login.silent', hang: true })
     const registry = newRegistry({ promptTimeoutMs: 200 })
@@ -173,7 +184,8 @@ describe('createLoginRegistry', () => {
     await waitForTermination(livePid(fake))
   })
 
-  it('終端状態のセッションは次の start で新しい子に置き換わる', async () => {
+  it('ログインが終了した状態のセッションは、次の開始で新しいプロセスに置き換える', async () => {
+    await explains('SSO ログインの開始（`start`）のテストです。失敗で終了した後に再度開始した場合は、awscli を 2 回起動し、2 回目の開始時刻が 1 回目以降であることを確認します。')
     const fake = fakeAws.install({ fixture: 'sso-login.no-config' })
     const registry = newRegistry()
 
@@ -186,7 +198,8 @@ describe('createLoginRegistry', () => {
     expect(fake.callLog()).toHaveLength(2)
   })
 
-  it('autofill 行を出さないフローは pending でも verificationUrlComplete を持たない', async () => {
+  it('自動入力用の URL を出力しないログインは、pending の状態でも verificationUrlComplete を持たない', async () => {
+    await explains('SSO ログインの開始（`start`）のテストです。出力に自動入力用の URL の行がない場合は、状態が `pending` になり、`verificationUrlComplete` は含まれないことを確認します。')
     // promptData（mcp/tools/sso.ts）は未確定のキーを data から落とす。
     // autofill 行は URL・コードより後の chunk で届くことがある。
     // そのため、揃う前の pending 応答にこのキーが無いのは正しい。
@@ -211,7 +224,8 @@ describe('createLoginRegistry', () => {
     expect('verificationUrlComplete' in session).toBe(false)
   })
 
-  it('shutdown 後の start は spawn せず failed を返す', async () => {
+  it('シャットダウン後にログインを開始すると、awscli を起動せず failed を返す', async () => {
+    await explains('SSO ログインの開始（`start`）のテストです。`shutdown` を呼んだ後で開始した場合は、状態が `failed`、種類が `other` になり、awscli は一度も起動されないことを確認します。')
     const fake = fakeAws.install({ exitWhenFile: true })
     const registry = newRegistry()
 
@@ -223,7 +237,8 @@ describe('createLoginRegistry', () => {
     expect(fake.callLog()).toEqual([])
   })
 
-  it('終端後は capture を手放し、確定した output を返し続ける', async () => {
+  it('ログインが終了した後は、出力の取り込みを止め、確定した output を返し続ける', async () => {
+    await explains('SSO ログインの状態の取得（`get`）のテストです。失敗で終了した後に `output` を 2 回取得した場合に、どちらも同じ内容で、設定の不足を示すメッセージを含むことを確認します。')
     fakeAws.install({ fixture: 'sso-login.no-config' })
     const registry = newRegistry()
 
@@ -235,7 +250,8 @@ describe('createLoginRegistry', () => {
     expect(first).toContain('Missing the following required SSO configuration values')
   })
 
-  it('profile が違えば別セッションとして並行に持つ', async () => {
+  it('profile が異なるログインは、別のセッションとして並行して保持する', async () => {
+    await explains('SSO ログインの開始（`start`）のテストです。`alpha` と `beta` の 2 つの profile で開始した場合は、awscli が 2 回起動され、それぞれの profile のセッションを取得できることを確認します。')
     const fake = fakeAws.install({ exitWhenFile: true })
     const registry = newRegistry()
 
@@ -248,7 +264,8 @@ describe('createLoginRegistry', () => {
     expect(registry.get()).toBeUndefined()
   })
 
-  it('output に資格情報らしき文字列を残さない', async () => {
+  it('output に、資格情報と判断できる文字列を残さない', async () => {
+    await explains('SSO ログインの出力の取り扱いのテストです。stderr にアクセスキー ID と `aws_session_token` を含む出力があった場合に、`output` にそれらの値が含まれず、`[redacted]` に置き換わることを確認します。')
     const generatedFixtures = makeFixtureDirectory('pecot-tools-sso-redact-')
     writeFileSync(
       path.join(generatedFixtures, 'sso-login.stderr'),
@@ -266,7 +283,8 @@ describe('createLoginRegistry', () => {
     expect(session.output).toContain('[redacted]')
   })
 
-  it('shutdown で生存中の子を全て落とし、以後 get は undefined', async () => {
+  it('シャットダウンすると、動作中の awscli のプロセスをすべて終了し、以後の get は undefined を返す', async () => {
+    await explains('SSO ログインの終了処理（`shutdown`）のテストです。2 つの profile でログインを開始して `shutdown` を呼んだ場合に、2 つのプロセスがどちらも終了し、`get` が `undefined` を返すことを確認します。')
     const fake = fakeAws.install({ exitWhenFile: true })
     const registry = newRegistry()
 
@@ -286,7 +304,8 @@ describe('createLoginRegistry', () => {
 })
 
 describe('loginRegistry', () => {
-  it('共有インスタンスは同一で、未開始でも shutdown は throw しない', () => {
+  it('共有のレジストリは常に同じインスタンスで、開始していなくてもシャットダウンで例外が発生しない', async () => {
+    await explains('共有のレジストリ（`loginRegistry`）のテストです。`loginRegistry` を 2 回呼んだ結果が同じインスタンスであり、ログインを開始していなくても `shutdownLoginRegistry` が例外を発生させないことを確認します。')
     // ツールと終了配線が同じインスタンスを見ないと、開始したフローを status が引けない。
     expect(() => {
       shutdownLoginRegistry()

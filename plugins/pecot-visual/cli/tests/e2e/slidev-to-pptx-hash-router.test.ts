@@ -33,6 +33,7 @@ import { formatOutputTails, spawnToolSync } from '../_helpers/pecotv-e2e-run.js'
 import { expectConvertRouteFromEnvironment } from '../_helpers/single-pass-route.js'
 import { compareStrings } from '../../src/domain/_shared/compare-strings.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { explains } from '../_helpers/explains.js'
 
 const HERE = import.meta.dirname
 const CLI_ROOT = path.resolve(HERE, '..', '..')
@@ -204,7 +205,8 @@ afterAll(() => {
 })
 
 describe('Issue #971 — routerMode: hash デッキの PPTX 変換', () => {
-  it('full scan: 全ステップが個別スライドとして出力される (Chromium 必須)', { timeout: 240_000 }, async (context) => {
+  it('全走査で変換すると、すべてのステップを個別のスライドとして出力する', { timeout: 240_000 }, async (context) => {
+    await explains('`routerMode: hash` の deck の変換のテストです。全ステップを走査して変換した場合に、終了コード 0 でエラーがなく、すべてのステップが個別のスライドとして出力されることを確認します。')
     if (!isChromiumCached()) context.skip(CHROMIUM_SKIP_NOTE)
 
     const outputPath = temporaryRoot('hash.pptx')
@@ -250,7 +252,8 @@ describe('Issue #971 — routerMode: hash デッキの PPTX 変換', () => {
     expect(texts.filter(text => text.includes(SLIDE_MARKERS.three))).toHaveLength(1)
   })
 
-  it('onlySteps: 指定スライドだけを hash URL で変換する (Chromium 必須)', { timeout: 240_000 }, async (context) => {
+  it('`onlySteps` を指定すると、指定したスライドだけを hash の URL で変換する', { timeout: 240_000 }, async (context) => {
+    await explains('`onlySteps` を指定した変換のテストです。2 番目と 3 番目のステップだけを指定した場合に、その 2 枚だけを変換し、各スライドの本文に対応する目印が含まれることを確認します。')
     if (!isChromiumCached()) context.skip(CHROMIUM_SKIP_NOTE)
     requireFixtureDistribution()
 
@@ -271,7 +274,8 @@ describe('Issue #971 — routerMode: hash デッキの PPTX 変換', () => {
     expect(await stepText(result.slidesDirectory, 300)).toContain(SLIDE_MARKERS.three)
   })
 
-  it('onlySlide: click 段を走査して該当スライドの全ステップを変換する (Chromium 必須)', { timeout: 240_000 }, async (context) => {
+  it('`onlySlide` を指定すると、クリックの段を走査して、そのスライドの全ステップを変換する', { timeout: 240_000 }, async (context) => {
+    await explains('`onlySlide` を指定した変換のテストです。スライド 2 だけを指定し、クリックの位置を指定しない場合に、クリックの段を走査して、そのスライドの 2 つのステップを変換することを確認します。')
     if (!isChromiumCached()) context.skip(CHROMIUM_SKIP_NOTE)
     requireFixtureDistribution()
 

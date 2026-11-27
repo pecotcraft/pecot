@@ -4,6 +4,7 @@ import globals from "globals";
 
 import { describeTitleConfig } from "../../libs/interface-spec/src/eslint/describe-title.ts";
 import { tableKeyConfig } from "../../libs/interface-spec/src/eslint/table-key.ts";
+import { testDescriptionConfig } from "../../libs/interface-spec/src/eslint/test-description.ts";
 
 const testFiles = ["tests/**/*.test.mjs"];
 const JA = String.raw`[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]`;
@@ -32,4 +33,5 @@ export default [
   // nx-release は定義書を持たないので、tests/interface/ に describe を足すと、どの題も止まる。
   describeTitleConfig([]),
   tableKeyConfig(testFiles),
+  testDescriptionConfig(testFiles),
 ];

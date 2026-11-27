@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest'
 import { compareStrings, isRecord } from '../parity/baseline.js'
 import { hooksDirectory } from './_helpers/paths.js'
 import { comparePathParts, jsonDumps, parseJson, splitLines } from './_helpers/text.js'
+import { explains } from '../_helpers/explains.js'
 
 // 意図的に sample の値をスクリプトの既定から離すキー。足すときは離す理由をコメントで残す。
 const ALLOWED_VALUE_DIVERGENCE: ReadonlySet<string> = new Set()
@@ -130,26 +131,30 @@ function difference(left: ReadonlySet<string>, right: ReadonlySet<string>): stri
 }
 
 describe('hooks の設定キー', () => {
-  it('すべての pecot_hook_enabled の呼び出しが、既定の値を明示している', () => {
+  it('すべての pecot_hook_enabled の呼び出しが、既定の値を明示している', async () => {
+    await explains('hooks のシェルスクリプトが呼ぶ `pecot_hook_enabled` の、既定の値のテストです。すべての呼び出しが、既定の値（`true` か `false`）を省略せずに指定していることを確認します。')
     const missing = hookEnabledCalls().filter(call => call.default === undefined)
     expect(missing.map(call => `${call.location} キー \`${call.key}\``), '既定の値（true / false）を明示していない pecot_hook_enabled の呼び出しがあります').toEqual([])
   })
 
-  it('sample のキーは、スクリプトが gate するキーと双方向に一致する', () => {
+  it('sample のキーは、スクリプトが gate するキーと双方向に一致する', async () => {
+    await explains('hooks の設定ファイルの見本（`hooks-config.json.sample`）と、スクリプトが参照する設定キーのテストです。見本に存在するキーの集合と、スクリプトで `pecot_hook_enabled` に渡すキーの集合は、過不足なく一致することを確認します。')
     const sample = new Set(sampleConfig().keys())
     const scripts = scriptKeys()
     expect(difference(scripts, sample), 'スクリプトに存在するが sample に無いキー（sample への追記抜け）').toEqual([])
     expect(difference(sample, scripts), 'sample に存在するがスクリプトから呼ばれていないキー（削除抜け）').toEqual([])
   })
 
-  it('README の設定キー一覧のキーは、スクリプトが gate するキーと双方向に一致する', () => {
+  it('README の設定キー一覧のキーは、スクリプトが gate するキーと双方向に一致する', async () => {
+    await explains('README の設定キー一覧と、スクリプトが参照する設定キーのテストです。一覧の表に存在するキーの集合と、スクリプトで `pecot_hook_enabled` に渡すキーの集合は、過不足なく一致することを確認します。')
     const readme = readmeKeys()
     const scripts = scriptKeys()
     expect(difference(scripts, readme), 'スクリプトに存在するが README 設定キー一覧に無いキー（README への追記抜け）').toEqual([])
     expect(difference(readme, scripts), 'README 設定キー一覧に存在するがスクリプトから呼ばれていないキー（削除抜け）').toEqual([])
   })
 
-  it('sample の値は、スクリプトの既定の値と一致する', () => {
+  it('sample の値は、スクリプトの既定の値と一致する', async () => {
+    await explains('設定ファイルの見本の値と、スクリプトの既定の値のテストです。`hooks-config.json.sample` の各キーの値が、スクリプトが指定する既定の値と一致することを確認します。')
     const defaults = scriptDefaults()
     const mismatches = [...sampleConfig()]
       .filter(([key, value]) => defaults.has(key) && !ALLOWED_VALUE_DIVERGENCE.has(key) && jsonDumps(value) !== defaults.get(key))

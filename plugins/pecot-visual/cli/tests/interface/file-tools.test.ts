@@ -15,6 +15,7 @@ import { spawnPromise } from '../../src/infra/_shared/process.js'
 import { resetPluginRoot, stubPluginRoot } from '../_helpers/plugin-root-stub.js'
 import { assertTemplatePluginsBuilt, createTalkDirectory } from '../_helpers/talk-directory.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
 import type { ToolDefinition } from '../../src/mcp/server.js'
 import { fileBriefTool, fileLintTool, fileValidateTool } from '../../src/mcp/tools/file.js'
@@ -161,6 +162,7 @@ function gitRepository(directory: string): string {
 describe('file_lint', () => {
   it('talk-dir のページに違反があると、eslint の違反を知らせる', async (context) => {
     await verifies(context, 'PV-FILE-LINT-01')
+    await explains('フックが呼ぶ `file_lint` の、talk-dir のページの lint のテストです。見出しが長すぎるページを渡した場合に、`eslint` の違反（`text-constraints/max-chars`）を通知することを確認します。')
     const page = writePage(shared.talk, 'long.md', ['layout: plain', `heading: ${LONG_HEADING}`])
 
     const notice = await callHook('file_lint', { file_path: page })
@@ -173,6 +175,7 @@ describe('file_lint', () => {
 
   it('違反の無いページを渡すと、空のオブジェクトを返す', async (context) => {
     await verifies(context, 'PV-FILE-LINT-03')
+    await explains('フックが呼ぶ `file_lint` の、talk-dir のページの lint のテストです。違反のないページを渡した場合に、通知を返さないことを確認します。')
     const page = writePage(shared.talk, 'clean.md', ['layout: plain', 'heading: 短い見出し'])
 
     expect(await callHook('file_lint', { file_path: page })).toBeUndefined()
@@ -185,6 +188,7 @@ describe('file_lint', () => {
     { name: '編集したファイル自体がリンク', kind: 'file' },
   ])('$name のときも、違反を知らせる', async ({ kind }, context) => {
     await verifies(context, 'PV-FILE-LINT-01')
+    await explains('フックが呼ぶ `file_lint` の、シンボリックリンクを含む配置のテストです。`pages` や祖先のディレクトリ、ファイル自体がリンクの場合も、違反のあるページに対して `eslint` の違反を通知することを確認します。')
     const root = workDirectory('topology', kind)
     const real = await createTalkDirectory(root, 'talk')
     const outside = path.join(root, 'outside')
@@ -225,6 +229,7 @@ describe('file_lint', () => {
 
   it('テーマが node_modules に張られていないと、lint しなかったことと slide_sync の案内を返す', async (context) => {
     await verifies(context, 'PV-FILE-LINT-04')
+    await explains('フックが呼ぶ `file_lint` の、テーマが未リンクの場合のテストです。`node_modules` にテーマが存在しないときに、`eslint` を実行しなかったことと `slide_sync` の案内を通知することを確認します。')
     const unlinked = await createTalkDirectory(workDirectory('unlinked'), 'talk')
     rmSync(path.join(unlinked, 'node_modules', THEME_PACKAGE), { force: true })
     const page = writePage(unlinked, 'cover.md', ['layout: plain', 'heading: 見出し'])
@@ -239,6 +244,7 @@ describe('file_lint', () => {
 
   it('eslint と設定が無いと、lint しなかったことと runtime_setup の案内を返す', async (context) => {
     await verifies(context, 'PV-FILE-LINT-04')
+    await explains('フックが呼ぶ `file_lint` の、実行環境が不完全な場合のテストです。`eslint` と設定が存在しないときに、`eslint` を実行しなかったことと `runtime_setup` の案内を通知することを確認します。')
     stubPluginRoot(workDirectory('empty-root'))
     const page = writePage(shared.talk, 'cover.md', ['layout: plain', 'heading: 見出し'])
 
@@ -250,6 +256,7 @@ describe('file_lint', () => {
 
   it.for(ESLINT_ENDINGS)('eslint の終わり方が $name なら、違反と言わずに lint しなかったことを返す', async ({ result, expected }, context) => {
     await verifies(context, 'PV-FILE-LINT-04')
+    await explains('フックが呼ぶ `file_lint` の、`eslint` が異常終了した場合のテストです。時間切れやクラッシュなどで終了したときに、違反とは通知せず、実行しなかったことと終わり方に応じた理由を通知することを確認します。')
     interceptSpawn('eslint.js', () => Promise.resolve(spawnResult(result)))
     const page = writePage(shared.talk, 'cover.md', ['layout: plain', 'heading: 見出し'])
 
@@ -261,6 +268,7 @@ describe('file_lint', () => {
 
   it('eslint が base path の外と判定すると、lint を飛ばしたことを返す', async (context) => {
     await verifies(context, 'PV-FILE-LINT-04')
+    await explains('フックが呼ぶ `file_lint` の、`eslint` が対象をlint しなかった場合のテストです。`eslint` が基準のパスの外と判定したときに、lint を省略したことを通知することを確認します。')
     interceptSpawn('eslint.js', () => Promise.resolve(spawnResult({ stdout: 'File ignored because outside of base path.' })))
     const page = writePage(shared.talk, 'cover.md', ['layout: plain', 'heading: 見出し'])
 
@@ -272,6 +280,7 @@ describe('file_lint', () => {
 
   it('違反の文が上限を超えると、3500 バイトで切って残りの件数を書く', async (context) => {
     await verifies(context, 'PV-FILE-LINT-05')
+    await explains('フックが呼ぶ `file_lint` の、通知の長さの上限のテストです。`eslint` の違反が多数ある場合に、通知を 3500 バイトで切り、表示しなかった違反の件数を末尾に書くことを確認します。')
     const violations = Array.from({ length: 120 }, (_, index) => `  ${String(index + 1)}:1  error  too long  text-constraints/max-chars`)
     interceptSpawn('eslint.js', () => Promise.resolve(spawnResult({ exitCode: 1, stdout: ['', '/talk/pages/x.md', ...violations].join('\n') })))
     const page = writePage(shared.talk, 'cover.md', ['layout: plain', 'heading: 見出し'])
@@ -283,6 +292,7 @@ describe('file_lint', () => {
 
   it('git のリポジトリの中のファイルに文章の違反があると、pecot-text-lint の違反を知らせる', async (context) => {
     await verifies(context, 'PV-FILE-LINT-02')
+    await explains('フックが呼ぶ `file_lint` の、git のリポジトリ内のファイルの lint のテストです。文章の規則に違反するファイルを渡した場合に、`pecot-text-lint` の違反（`no-ai-hype-expressions`）を通知することを確認します。')
     const repository = gitRepository(workDirectory('repository'))
     const note = writeFile(path.join(repository, 'docs', 'note.md'), `# 見出し\n\n${HYPE}\n`)
 
@@ -296,6 +306,7 @@ describe('file_lint', () => {
 
   it('talk-dir の README は、eslint でなく文章の規則で調べる', async (context) => {
     await verifies(context, 'PV-FILE-LINT-02')
+    await explains('フックが呼ぶ `file_lint` の、talk-dir の `README.md` の lint のテストです。`eslint` ではなく文章の規則で lint し、違反を `pecot-text-lint` の違反として通知することを確認します。')
     const readme = writeFile(path.join(shared.talk, 'README.md'), `# 見出し\n\n${HYPE}\n`)
 
     const notice = await callHook('file_lint', { file_path: readme })
@@ -305,6 +316,7 @@ describe('file_lint', () => {
 
   it('リポのルートの .textlintignore で外したファイルは、cwd がサブディレクトリでも空のオブジェクトを返す', async (context) => {
     await verifies(context, 'PV-FILE-LINT-02')
+    await explains('フックが呼ぶ `file_lint` の、`.textlintignore` の扱いのテストです。リポジトリのルートの `.textlintignore` で除外したファイルは、`cwd` がサブディレクトリでもlint せず、通知を返さないことを確認します。')
     const repository = gitRepository(workDirectory('ignored-repository'))
     writeFile(path.join(repository, '.textlintignore'), 'specs/**\n')
     const spec = writeFile(path.join(repository, 'specs', '001', 'spec.md'), `# 見出し\n\n${HYPE}\n`)
@@ -314,6 +326,7 @@ describe('file_lint', () => {
 
   it('git の外のファイルは、cwd の .textlintignore を読む', async (context) => {
     await verifies(context, 'PV-FILE-LINT-02')
+    await explains('フックが呼ぶ `file_lint` の、`.textlintignore` の扱いのテストです。git のリポジトリの外のファイルを渡した場合に、`cwd` の `.textlintignore` で除外されたファイルをlint せず、通知を返さないことを確認します。')
     const plain = workDirectory('plain')
     writeFile(path.join(plain, '.textlintignore'), 'specs/**\n')
     const spec = writeFile(path.join(plain, 'specs', 'spec.md'), `# 見出し\n\n${HYPE}\n`)
@@ -323,6 +336,7 @@ describe('file_lint', () => {
 
   it('文章の違反の無いファイルを渡すと、空のオブジェクトを返す', async (context) => {
     await verifies(context, 'PV-FILE-LINT-03')
+    await explains('フックが呼ぶ `file_lint` の、文章の規則の lint のテストです。違反のないファイルを渡した場合に、通知を返さないことを確認します。')
     const note = writeFile(workDirectory('clean', 'note.md'), '# 見出し\n\n処理の流れを説明します。\n')
 
     expect(await callHook('file_lint', { file_path: note })).toBeUndefined()
@@ -330,6 +344,7 @@ describe('file_lint', () => {
 
   it('pecot-text-lint が無いと、調べなかったことと runtime_setup の案内を返す', async (context) => {
     await verifies(context, 'PV-FILE-LINT-04')
+    await explains('フックが呼ぶ `file_lint` の、`pecot-text-lint` が存在しない場合のテストです。実行ファイルが見つからないときに、lint を実行しなかったことと `runtime_setup` の案内を通知することを確認します。')
     stubPluginRoot(workDirectory('empty-root'))
     const note = writeFile(workDirectory('missing-bin', 'note.md'), '# 見出し\n')
 
@@ -347,6 +362,7 @@ describe('file_lint', () => {
     { name: '出力の無い exit 1', script: 'process.exit(1)\n', expected: ['  pecot-text-lint failed (exit 1):'] },
   ])('pecot-text-lint が $name で終わると、違反と言わずに調べなかったことを返す', async ({ script, expected }, context) => {
     await verifies(context, 'PV-FILE-LINT-04')
+    await explains('フックが呼ぶ `file_lint` の、`pecot-text-lint` が異常終了した場合のテストです。終了コードが 2 の場合と、出力のない終了コード 1 の場合に、違反とは通知せず、実行しなかったことと終了コードを通知することを確認します。')
     stubTextLintBin(script)
     const note = writeFile(workDirectory('stub-exit', 'note.md'), '# 見出し\n')
 
@@ -358,6 +374,7 @@ describe('file_lint', () => {
 
   it('pecot-text-lint が時間切れになると、20 秒を超えたことを返す', async (context) => {
     await verifies(context, 'PV-FILE-LINT-04')
+    await explains('フックが呼ぶ `file_lint` の、`pecot-text-lint` の時間切れのテストです。実行が時間切れとなった場合に、20 秒を超えたことを通知することを確認します。')
     interceptSpawn('pecot-text-lint.js', () => Promise.resolve(spawnResult(TIMED_OUT)))
     const note = writeFile(workDirectory('timeout', 'note.md'), '# 見出し\n')
 
@@ -368,6 +385,7 @@ describe('file_lint', () => {
 
   it('文章の違反が上限を超えると、3000 バイトで切って残りの件数を書く', async (context) => {
     await verifies(context, 'PV-FILE-LINT-05')
+    await explains('フックが呼ぶ `file_lint` の、通知の長さの上限のテストです。文章の違反が多数ある場合に、通知を 3000 バイトで切り、表示しなかった違反の件数を末尾に書くことを確認します。')
     stubTextLintBin('for (let i = 1; i <= 200; i++) console.log(`  note.md:${i}:1 no-ai-words 違反の例です`)\nprocess.exit(1)\n')
     const note = writeFile(workDirectory('many', 'note.md'), '# 見出し\n')
 
@@ -378,6 +396,7 @@ describe('file_lint', () => {
 
   it('調べる途中で例外が起きても、失敗にせず調べなかったことを返す', async (context) => {
     await verifies(context, 'PV-FILE-LINT-06')
+    await explains('フックが呼ぶ `file_lint` の、lint の途中で例外が発生した場合のテストです。失敗として返さず、lint を実行しなかったことと例外の内容を通知することを確認します。')
     interceptSpawn('pecot-text-lint.js', () => Promise.reject(new Error('spawn exploded')))
     const note = writeFile(workDirectory('exception', 'note.md'), '# 見出し\n')
 
@@ -389,6 +408,7 @@ describe('file_lint', () => {
 
   it('調べても、ファイルを書き換えない', async (context) => {
     await verifies(context, 'PV-FILE-LINT-06')
+    await explains('フックが呼ぶ `file_lint` の、ファイルの保全のテストです。違反のあるページをlint した後も、ページの内容がlint の前と変わらないことを確認します。')
     const page = writePage(shared.talk, 'untouched.md', ['layout: plain', `heading: ${LONG_HEADING}`])
     const before = readFileSync(page, 'utf8')
 
@@ -399,11 +419,13 @@ describe('file_lint', () => {
 
   it('ほかのツールの実行中に呼ぶと、キューで待たずに返る', async (context) => {
     await verifies(context, 'PV-FILE-LINT-07')
+    await explains('フックが呼ぶ `file_lint` の、並行して実行する場合のテストです。ほかのツールの実行中に呼んだ場合は、キューで待たずに応答を返すことを確認します。')
     expect(await callWhileAnotherToolRuns(fileLintTool.name)).toEqual({})
   })
 
   it('空の file_path を渡すと、空のオブジェクトを返す', async (context) => {
     await verifies(context, 'PV-FILE-LINT-03')
+    await explains('フックが呼ぶ `file_lint` の、入力の検証のテストです。`file_path` に空の文字列を渡した場合に、通知を返さないことを確認します。')
 
     expect(await callHook('file_lint', { file_path: '' })).toBeUndefined()
   })
@@ -412,6 +434,7 @@ describe('file_lint', () => {
 describe('file_validate', () => {
   it('参照の yaml に違反があると、参照の dir 全体の検証の結果を知らせる', async (context) => {
     await verifies(context, 'PV-FILE-VALIDATE-01')
+    await explains('フックが呼ぶ `file_validate` の、参照の yaml の検証のテストです。違反のある yaml を渡した場合に、参照のディレクトリ全体の検証の結果と、違反の内容を通知することを確認します。')
     const violated = await createTalkDirectory(workDirectory('violated'), 'talk')
     const yaml = writeFile(path.join(referencesDirectory(violated), 'plain.yaml'), '- title: x\n  bogus_key: 1\n')
 
@@ -426,6 +449,7 @@ describe('file_validate', () => {
 
   it('category の無い yaml には、語彙の元と slide_sync の案内を添える', async (context) => {
     await verifies(context, 'PV-FILE-VALIDATE-01')
+    await explains('フックが呼ぶ `file_validate` の、`category` が存在しない yaml のテストです。必須の項目が不足している違反とともに、`layout_categories` の参照元と `slide_sync` の案内を通知することを確認します。')
     const noCategory = await createTalkDirectory(workDirectory('no-category'), 'talk')
     const yaml = path.join(referencesDirectory(noCategory), 'plain.yaml')
     writeFile(yaml, readFileSync(yaml, 'utf8').split('\n').filter(line => !line.startsWith('category:')).join('\n'))
@@ -439,6 +463,7 @@ describe('file_validate', () => {
 
   it('正しい参照の yaml を渡すと、空のオブジェクトを返す', async (context) => {
     await verifies(context, 'PV-FILE-VALIDATE-01')
+    await explains('フックが呼ぶ `file_validate` の、参照の yaml の検証のテストです。正しい yaml を渡した場合に、通知を返さないことを確認します。')
     const yaml = path.join(referencesDirectory(shared.talk), 'plain.yaml')
 
     expect(await callHook('file_validate', { file_path: yaml })).toBeUndefined()
@@ -450,6 +475,7 @@ describe('file_validate', () => {
     { name: 'yaml でないファイル', file: 'node_modules/slidev-theme-pecotv-test-declared/references/notes.md' },
   ])('$name を渡すと、検証せずに空のオブジェクトを返す', async ({ file }, context) => {
     await verifies(context, 'PV-FILE-VALIDATE-02')
+    await explains('フックが呼ぶ `file_validate` の、検証の対象外のファイルのテストです。`_template.yaml`、参照のディレクトリの外の yaml、yaml でないファイルを渡した場合に、検証せず、通知を返さないことを確認します。')
     const target = writeFile(path.join(shared.talk, file), '- title: x\n')
 
     expect(await callHook('file_validate', { file_path: target })).toBeUndefined()
@@ -457,6 +483,7 @@ describe('file_validate', () => {
 
   it('テーマが node_modules に張られていないと、検証しなかったことと slide_sync の案内を返す', async (context) => {
     await verifies(context, 'PV-FILE-VALIDATE-03')
+    await explains('フックが呼ぶ `file_validate` の、テーマが未リンクの場合のテストです。`node_modules` にテーマが存在しないときに、検証しなかったことと `slide_sync` の案内を通知することを確認します。')
     const unlinked = await createTalkDirectory(workDirectory('validate-unlinked'), 'talk')
     rmSync(path.join(unlinked, 'node_modules', THEME_PACKAGE), { force: true })
     const yaml = writeFile(path.join(unlinked, 'references', 'plain.yaml'), 'layout: plain\n')
@@ -472,6 +499,7 @@ describe('file_validate', () => {
 
   it('validator が無いと、検証しなかったことと runtime_setup の案内を返す', async (context) => {
     await verifies(context, 'PV-FILE-VALIDATE-03')
+    await explains('フックが呼ぶ `file_validate` の、実行環境が不完全な場合のテストです。検証用のスクリプトが存在しないときに、検証しなかったことと `runtime_setup` の案内を通知することを確認します。')
     stubPluginRoot(workDirectory('empty-root'))
     const yaml = path.join(referencesDirectory(shared.talk), 'plain.yaml')
 
@@ -483,6 +511,7 @@ describe('file_validate', () => {
 
   it('validator が時間切れになると、30 秒を超えたことを返す', async (context) => {
     await verifies(context, 'PV-FILE-VALIDATE-03')
+    await explains('フックが呼ぶ `file_validate` の、時間切れのテストです。検証が時間切れとなった場合に、30 秒を超えたことを通知することを確認します。')
     interceptSpawn('index.js', () => Promise.resolve(spawnResult(TIMED_OUT)))
     const yaml = path.join(referencesDirectory(shared.talk), 'plain.yaml')
 
@@ -493,6 +522,7 @@ describe('file_validate', () => {
 
   it('検証しても、参照の yaml を書き換えない', async (context) => {
     await verifies(context, 'PV-FILE-VALIDATE-04')
+    await explains('フックが呼ぶ `file_validate` の、ファイルの保全のテストです。違反のある yaml を検証した後も、yaml の内容が検証の前と変わらないことを確認します。')
     const untouched = await createTalkDirectory(workDirectory('validate-untouched'), 'talk')
     const yaml = writeFile(path.join(referencesDirectory(untouched), 'plain.yaml'), '- title: x\n  bogus_key: 1\n')
 
@@ -503,11 +533,13 @@ describe('file_validate', () => {
 
   it('ほかのツールの実行中に呼ぶと、キューで待たずに返る', async (context) => {
     await verifies(context, 'PV-FILE-VALIDATE-05')
+    await explains('フックが呼ぶ `file_validate` の、並行して実行する場合のテストです。ほかのツールの実行中に呼んだ場合は、キューで待たずに応答を返すことを確認します。')
     expect(await callWhileAnotherToolRuns(fileValidateTool.name)).toEqual({})
   })
 
   it('空の file_path を渡すと、空のオブジェクトを返す', async (context) => {
     await verifies(context, 'PV-FILE-VALIDATE-02')
+    await explains('フックが呼ぶ `file_validate` の、入力の検証のテストです。`file_path` に空の文字列を渡した場合に、通知を返さないことを確認します。')
 
     expect(await callHook('file_validate', { file_path: '' })).toBeUndefined()
   })
@@ -516,6 +548,7 @@ describe('file_validate', () => {
 describe('file_brief', () => {
   it('ページの layout の参照の yaml から、規約の節を原文のまま返す', async (context) => {
     await verifies(context, 'PV-FILE-BRIEF-01')
+    await explains('フックが呼ぶ `file_brief` の、規約の通知のテストです。ページの `layout` に対応する参照の yaml がある場合に、`best_practices` と `anti_patterns` の節を原文のまま通知することを確認します。')
     const page = writePage(shared.talk, 'brief.md', ['layout: plain', 'heading: 見出し'])
     const yaml = path.join(shared.talk, 'node_modules', THEME_PACKAGE, 'references', 'plain.yaml')
 
@@ -538,6 +571,7 @@ describe('file_brief', () => {
     { name: 'パスを含む layout', file: 'path-layout.md', frontmatter: ['layout: ../plain'] },
   ])('$name を渡すと、空のオブジェクトを返す', async ({ file, frontmatter }, context) => {
     await verifies(context, 'PV-FILE-BRIEF-02')
+    await explains('フックが呼ぶ `file_brief` の、規約を通知しない場合のテストです。`layout` がないページ、参照の yaml がない `layout`、パスを含む `layout` の場合に、通知を返さないことを確認します。')
     const page = writePage(shared.talk, file, frontmatter)
 
     expect(await callHook('file_brief', { file_path: page })).toBeUndefined()
@@ -545,6 +579,7 @@ describe('file_brief', () => {
 
   it('テーマが node_modules に張られていないと、空のオブジェクトを返す', async (context) => {
     await verifies(context, 'PV-FILE-BRIEF-02')
+    await explains('フックが呼ぶ `file_brief` の、テーマが未リンクの場合のテストです。`node_modules` にテーマが存在しないときに、通知を返さないことを確認します。')
     const unlinked = await createTalkDirectory(workDirectory('brief-unlinked'), 'talk')
     rmSync(path.join(unlinked, 'node_modules', THEME_PACKAGE), { force: true })
     const page = writePage(unlinked, 'cover.md', ['layout: plain'])
@@ -557,12 +592,14 @@ describe('file_brief', () => {
     { name: 'talk-dir の README', file: 'README.md' },
   ])('$name を渡すと、空のオブジェクトを返す', async ({ file }, context) => {
     await verifies(context, 'PV-FILE-BRIEF-03')
+    await explains('フックが呼ぶ `file_brief` の、規約を通知しない場合のテストです。`slides.md` と talk-dir の `README.md` を渡した場合に、通知を返さないことを確認します。')
 
     expect(await callHook('file_brief', { file_path: path.join(shared.talk, file) })).toBeUndefined()
   })
 
   it('規約を返しても、ページを書き換えない', async (context) => {
     await verifies(context, 'PV-FILE-BRIEF-04')
+    await explains('フックが呼ぶ `file_brief` の、ファイルの保全のテストです。規約を通知した後も、ページの内容が呼び出しの前と変わらないことを確認します。')
     const page = writePage(shared.talk, 'brief-untouched.md', ['layout: plain', 'heading: 見出し'])
     const before = readFileSync(page, 'utf8')
 
@@ -573,11 +610,13 @@ describe('file_brief', () => {
 
   it('ほかのツールの実行中に呼ぶと、キューで待たずに返る', async (context) => {
     await verifies(context, 'PV-FILE-BRIEF-05')
+    await explains('フックが呼ぶ `file_brief` の、並行して実行する場合のテストです。ほかのツールの実行中に呼んだ場合は、キューで待たずに応答を返すことを確認します。')
     expect(await callWhileAnotherToolRuns(fileBriefTool.name)).toEqual({})
   })
 
   it('空の file_path を渡すと、空のオブジェクトを返す', async (context) => {
     await verifies(context, 'PV-FILE-BRIEF-03')
+    await explains('フックが呼ぶ `file_brief` の、入力の検証のテストです。`file_path` に空の文字列を渡した場合に、通知を返さないことを確認します。')
 
     expect(await callHook('file_brief', { file_path: '' })).toBeUndefined()
   })

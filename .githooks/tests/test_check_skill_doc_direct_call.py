@@ -27,8 +27,9 @@ def _make_skill(git, repo: Path, rel: str, content: str) -> None:
     git(repo, "add", str(path.relative_to(repo)))
 
 
+@allure.title("SKILL.md が pecotv の CLI だけを使っていると、成功で終わる")
 def test_pecotv_cli_only_passes(script_dir: Path, skill_repo: Path, run_script, git) -> None:
-    """(a) pecotv slidev create のみ → exit 0。"""
+    """`check-skill-doc-direct-call.sh` の、SKILL.md に `pecotv slidev create` だけを書いた場合のテストです。終了コード 0 で終わることを確認します。"""
     with allure.step("pecotv の CLI だけを書いた SKILL.md を用意して hook を動かす"):
         _make_skill(
             git,
@@ -42,8 +43,9 @@ def test_pecotv_cli_only_passes(script_dir: Path, skill_repo: Path, run_script, 
         assert result.returncode == 0
 
 
+@allure.title("SKILL.md が python3 でプラグインのスクリプトを直接呼んでいると、失敗で終わる")
 def test_python3_abs_path_fails(script_dir: Path, skill_repo: Path, run_script, git) -> None:
-    """(b) python3 plugins/pecot-visual/skills/.../create_presentation.py → exit 1。"""
+    """SKILL.md に `python3 plugins/pecot-visual/skills/` から始まるパスで、スクリプトを直接呼ぶ記述がある場合のテストです。終了コード 1 で終わり、SKILL.md のパスと該当の記述、許可リストの機構が存在しない旨を出力することを確認します。"""
     with allure.step("python3 で絶対パスの script を呼ぶ SKILL.md を用意して hook を動かす"):
         _make_skill(
             git,
@@ -61,8 +63,9 @@ def test_python3_abs_path_fails(script_dir: Path, skill_repo: Path, run_script, 
         assert "allow-list 機構はありません" in out
 
 
+@allure.title("SKILL.md が python3 で scripts の相対パスのスクリプトを呼んでいると、失敗で終わる")
 def test_python3_rel_path_fails(script_dir: Path, skill_repo: Path, run_script, git) -> None:
-    """(c) python3 scripts/...py 相対形式 → exit 1。"""
+    """SKILL.md に `python3 scripts/drawio-url.py` の形の記述がある場合のテストです。終了コード 1 で終わり、該当の記述を出力することを確認します。"""
     with allure.step("python3 で相対パスの script を呼ぶ SKILL.md を用意して hook を動かす"):
         _make_skill(
             git,
@@ -77,8 +80,9 @@ def test_python3_rel_path_fails(script_dir: Path, skill_repo: Path, run_script, 
         assert "python3 scripts/drawio-url.py" in (result.stdout + result.stderr)
 
 
+@allure.title("SKILL.md に uv run の記述があると、失敗で終わる")
 def test_uv_run_fails(script_dir: Path, skill_repo: Path, run_script, git) -> None:
-    """(d) 任意 uv run XXX → exit 1。"""
+    """SKILL.md に `uv run` でスクリプトを実行する記述がある場合のテストです。終了コード 1 で終わり、`uv run` を含むメッセージを出力することを確認します。"""
     with allure.step("uv run を書いた SKILL.md を用意して hook を動かす"):
         _make_skill(git, skill_repo, "v-slidev", "uv run --directory /x do_something\n")
         result = run_script(script_dir / "check-skill-doc-direct-call.sh", cwd=skill_repo)
@@ -88,13 +92,9 @@ def test_uv_run_fails(script_dir: Path, skill_repo: Path, run_script, git) -> No
         assert "uv run" in (result.stdout + result.stderr)
 
 
+@allure.title("CHANGELOG.md の中の違反の表記は、対象にしない")
 def test_changelog_out_of_scope(script_dir: Path, skill_repo: Path, run_script, git) -> None:
-    """(e) CHANGELOG.md 内表記は対象外（glob 範囲外）。
-
-    正常な SKILL.md を 1 つ用意して hook の走査対象を非ゼロにしたうえで、別途
-    CHANGELOG.md に違反表記を入れる。glob が CHANGELOG.md を除外しているからこそ
-    exit 0 となる構成（対象 0 件で偶然 PASS するケースを排除）。
-    """
+    """正常な SKILL.md を 1 件用意したうえで、`CHANGELOG.md` に `python3 scripts/` や `uv run` の記述を入れた場合のテストです。`CHANGELOG.md` は対象の範囲外のため、終了コード 0 で終わることを確認します。"""
     with allure.step("正常な SKILL.md と、違反表記のある CHANGELOG.md を用意して hook を動かす"):
         _make_skill(
             git,

@@ -19,6 +19,7 @@ import { FakeBrowser, FakePage } from './support/fake-playwright.js'
 import { makeLogger, type MockLogger } from './support/logger.js'
 import { compareStrings } from '../../../domain/_shared/compare-strings.js'
 import { rejectionOf } from '../../../../tests/_helpers/rejection.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 function fakeServer(): Server {
   return { close: () => { /* noop */ }, address: () => null } as unknown as Server
@@ -69,12 +70,14 @@ describe('convertToPptx', () => {
     document.getAnimations = (): Animation[] => []
   })
 
-  it('presDir が相対パスなら Error を throw', async () => {
+  it('presDir が相対パスの場合は、絶対パスが必要であるエラーで失敗する', async () => {
+    await explains('変換パイプライン `convertToPptx` の、入力の検証のテストです。`presDir` に相対パスを渡した場合に、`presDir must be an absolute path` を含むメッセージの例外が発生することを確認します。')
     const config = { ...baseConfig(presDir), presDir: 'relative' }
     await expect(convertToPptx(config)).rejects.toThrow('presDir must be an absolute path')
   })
 
-  it('onlySteps 指定で各 step を slideWorkerRunner で変換し、result.success=true', async () => {
+  it('onlySteps を指定した場合は、指定したステップをサーバーの実際のポートの URL で変換して成功する', async () => {
+    await explains('変換するステップを `onlySteps` で指定した場合のテストです。指定した 2 つのステップが、実際のポートの URL で変換され、成功の結果と `letter-spacing.json` などが出力されることを確認します。')
     const config: PipelineConfig = { ...baseConfig(presDir), onlySteps: [1, 2] }
     const browser = new FakeBrowser({ pages: [new FakePage(), new FakePage()] })
     // config.port (4001) ではなく address() の実ポートで baseUrl が組まれることを見る
@@ -108,7 +111,8 @@ describe('convertToPptx', () => {
     expect(JSON.parse(href)).toMatchObject({ 's1-link': 'https://example.com' })
   })
 
-  it('onlySlide.click 指定 (>0) で buildOnlySteps を 1 step で実行', async () => {
+  it('onlySlide に click を指定した場合は、1 ステップだけを変換して成功する', async () => {
+    await explains('変換対象を `onlySlide`（スライド番号とクリック数）で指定した場合のテストです。ステップが 1 つだけ変換され、`success` が `true`、`slideCount` が 1 になることを確認します。')
     const config: PipelineConfig = {
       ...baseConfig(presDir),
       onlySlide: { slide: 5, click: 3 },
@@ -126,6 +130,7 @@ describe('convertToPptx', () => {
   })
 
   it('onlySlide の click が null のとき、走査したページの step を変換して成功を返す', async () => {
+    await explains('`onlySlide` のクリック数を `null` にした場合のテストです。ページを走査して得たステップが変換され、`success` が `true`、`slideCount` が 1 以上になることを確認します。')
     const config: PipelineConfig = {
       ...baseConfig(presDir),
       onlySlide: { slide: 3, click: null },
@@ -147,7 +152,8 @@ describe('convertToPptx', () => {
     expect(result.slideCount).toBeGreaterThanOrEqual(1)
   })
 
-  it('全 slide scan: scanSlideSteps で複数 step 取得 → 全 step 変換', async () => {
+  it('全スライドを走査する場合は、見つけたすべてのステップを変換する', async () => {
+    await explains('`onlySlide` と `onlySteps` のどちらも指定しない場合のテストです。走査で 2 つのステップが見つかり、すべてが変換されて `slideCount` が 2、`success` が `true` になることを確認します。')
     const config: PipelineConfig = { ...baseConfig(presDir) }
     const scanPage = new FakePage({ url: 'http://127.0.0.1:4001/1' })
     scanPage.urlQueue = ['http://127.0.0.1:4001/2'] // 2 step に
@@ -164,6 +170,7 @@ describe('convertToPptx', () => {
   })
 
   it('root への goto が `#/` へリダイレクトされたら router=hash と判定する', async () => {
+    await explains('ルータの方式の判定のテストです。ルートが `#/1` へリダイレクトされる場合は、`router=hash` をログに出力し、3 つのステップを別々に変換することを確認します。')
     // hash ルータのデッキは、root goto が `#/1` に落ち着く。
     // 判定を誤ると、以降の URL 解析が全ステップを slide 1 にまとめる。
     // すると stepIndex が衝突して、1 枚に上書きされる (#971)。
@@ -190,7 +197,8 @@ describe('convertToPptx', () => {
     expect(steps.map(step => [step.slideNumber, step.clickStep])).toStrictEqual([[1, null], [2, null], [2, 1]])
   })
 
-  it('リダイレクトが起きなければ router=history と判定し、URL をパス形式で組み立てる', async () => {
+  it('リダイレクトが起きない場合は、history ルータと判定し、URL をパス形式で作成する', async () => {
+    await explains('リダイレクトが起きない場合の、ルータの方式の判定のテストです。`router=history` とサーバー起動のログを出力し、ステップの URL が `http://127.0.0.1:4001/3` の形になることを確認します。')
     const config: PipelineConfig = { ...baseConfig(presDir), onlySteps: [3] }
     const browser = new FakeBrowser({ pages: [new FakePage()] })
     const logger = makeLogger()
@@ -213,7 +221,8 @@ describe('convertToPptx', () => {
     expect(steps[0]?.url).toBe('http://127.0.0.1:4001/3')
   })
 
-  it('hash ルータの onlySteps はフラグメント形式で URL を組み立てる', async () => {
+  it('hash ルータで onlySteps を指定した場合は、URL をフラグメント形式で作成する', async () => {
+    await explains('hash ルータと判定された状態で、`onlySteps` を指定した場合のテストです。ステップの URL が `http://127.0.0.1:4001/#/3` の形になり、判定に使ったページが閉じられることを確認します。')
     const config: PipelineConfig = { ...baseConfig(presDir), onlySteps: [3] }
     const routerPage = new FakePage({ gotoRedirect: url => `${url}/#/1` })
     const browser = new FakeBrowser({ pages: [routerPage] })
@@ -235,7 +244,8 @@ describe('convertToPptx', () => {
     expect(routerPage.closed).toBe(true)
   })
 
-  it('worker が reject すると errors[] に level=slide entry が追加され success=false', async () => {
+  it('worker が失敗した場合は、errors に level が slide のエラーを追加し、success を false にする', async () => {
+    await explains('スライドを変換する worker が失敗した場合のテストです。`errors` にスライドのエラーが追加され、`success` が `false` になり、`slide conversion failed` を含む警告をログに出力することを確認します。')
     const config: PipelineConfig = { ...baseConfig(presDir), onlySteps: [1, 2] }
     const browser = new FakeBrowser({ pages: [new FakePage(), new FakePage()] })
     const logger = makeLogger()
@@ -255,7 +265,8 @@ describe('convertToPptx', () => {
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('slide conversion failed'))
   })
 
-  it('onProgress はスキャンの各ステップと、成功・失敗どちらの worker 完了でも呼ばれる (#1097)', async () => {
+  it('onProgress は、スキャンの各ステップと、worker の成功・失敗のどちらの完了でも呼ばれる', async () => {
+    await explains('進捗を報告する `onProgress` のテストです。スキャンで見つけた各ステップと、worker が成功した場合・失敗した場合のどちらも、それぞれ別のラベルで報告されることを確認します。')
     const config: PipelineConfig = { ...baseConfig(presDir) }
     const scanPage = new FakePage({ url: 'http://127.0.0.1:4001/1' })
     scanPage.urlQueue = ['http://127.0.0.1:4001/2'] // 2 step に
@@ -284,7 +295,8 @@ describe('convertToPptx', () => {
     ])
   })
 
-  it('onStepProgress はスキャン後に 0/総数、以降は成功・失敗どちらの完了でも 1 ずつ報告する (#1160)', async () => {
+  it('onStepProgress は、スキャン後に 0 件完了を報告し、以降は成功・失敗のどちらでも 1 件ずつ完了を報告する', async () => {
+    await explains('ステップ単位の進捗を報告する `onStepProgress` のテストです。スキャン後に完了数 0 と総数 2 を報告し、その後は worker の成功・失敗にかかわらず完了数を 1 ずつ増やして報告することを確認します。')
     const config: PipelineConfig = { ...baseConfig(presDir) }
     const scanPage = new FakePage({ url: 'http://127.0.0.1:4001/1' })
     scanPage.urlQueue = ['http://127.0.0.1:4001/2']
@@ -304,7 +316,8 @@ describe('convertToPptx', () => {
     expect(reports).toStrictEqual([[0, 2], [1, 2], [2, 2]])
   })
 
-  it('prerenderResults の失敗が level=element で errors に追加される', async () => {
+  it('プリレンダの結果に失敗がある場合は、level が element のエラーを errors に追加する', async () => {
+    await explains('worker が返したプリレンダの結果に、失敗が含まれる場合のテストです。失敗した要素のエラーが `errors` に追加され、`success` は `true` のままであることを確認します。')
     const config: PipelineConfig = { ...baseConfig(presDir), onlySteps: [1] }
     const browser = new FakeBrowser({ pages: [new FakePage()] })
     const deps: PipelineDependencies = {
@@ -329,7 +342,8 @@ describe('convertToPptx', () => {
     expect(result.success).toBe(true)
   })
 
-  it('成功時の集約出力にスライド失敗・要素エラーの内訳が出る', async () => {
+  it('変換が終わった後の集計ログに、スライドの失敗と要素のエラーの内訳を出力する', async () => {
+    await explains('スライドの失敗と要素のエラーが両方ある場合の、集計ログのテストです。失敗したスライドの件数、要素のエラーの件数と、それぞれの詳細が出力され、`no errors or warnings` は出力されないことを確認します。')
     // この書式は、throw した場合にも引き継がれる対象 (#945)。
     // 抽出の前後で同一であることを、確定した文字列で固定する。
     const config: PipelineConfig = { ...baseConfig(presDir), onlySteps: [1, 2] }
@@ -364,7 +378,8 @@ describe('convertToPptx', () => {
     expect(logger.info).not.toHaveBeenCalledWith('no errors or warnings')
   })
 
-  it('resolveDomToPptx 省略時は createRequire 経由 (本物の dom-to-pptx) で解決', async () => {
+  it('resolveDomToPptx を指定しない場合は、インストール済みの dom-to-pptx を解決して変換に成功する', async () => {
+    await explains('`resolveDomToPptx` を指定しない場合のテストです。インストール済みの本物の `dom-to-pptx` が使われ、変換が成功することを確認します。')
     // dom-to-pptx パッケージは cli 配下に install 済 (Step 2 で追加)
     const config: PipelineConfig = { ...baseConfig(presDir), onlySteps: [1] }
     const browser = new FakeBrowser({ pages: [new FakePage()] })
@@ -377,7 +392,8 @@ describe('convertToPptx', () => {
     expect(result.success).toBe(true)
   })
 
-  it('logLevel が "" のとき createLogger("normal") にフォールバック', async () => {
+  it('logLevel が空文字の場合は、normal のロガーを使って変換に成功する', async () => {
+    await explains('`logLevel` が空文字の場合のテストです。`normal` のロガーに切り替わって、変換が成功することを確認します。')
     const config: PipelineConfig = { ...baseConfig(presDir), onlySteps: [1], logLevel: '' }
     const browser = new FakeBrowser({ pages: [new FakePage()] })
     const deps: PipelineDependencies = {
@@ -391,6 +407,7 @@ describe('convertToPptx', () => {
   })
 
   it('templatePath と outputDir が絶対パスのとき、変換に成功する', async () => {
+    await explains('`templatePath` と `outputDir` に絶対パスを指定した場合のテストです。変換が成功することを確認します。')
     const config: PipelineConfig = {
       ...baseConfig(presDir),
       templatePath: path.join(presDir, 'dist'),
@@ -408,7 +425,8 @@ describe('convertToPptx', () => {
     expect(r.success).toBe(true)
   })
 
-  it('slides.md の title が無くても slidesDirectory は <outputDir>/slides を返す', async () => {
+  it('slides.md に title が存在しない場合も、slidesDirectory に outputDir 配下の slides を返す', async () => {
+    await explains('`slides.md` に `title` が存在しないデッキを変換する場合のテストです。結果の `slidesDirectory` が、出力先ディレクトリの下の `slides` になることを確認します。')
     const otherDir = await mkdtemp(path.join(tmpdir(), 'pecotv-pipeline-no-title-'))
     await mkdir(path.join(otherDir, 'dist'), { recursive: true })
     try {
@@ -433,7 +451,8 @@ describe('convertToPptx', () => {
     }
   })
 
-  it('signal が abort 済の状態で呼ぶと早期 throw + browser/server は閉じられる', async () => {
+  it('signal が中断済みの場合は、ブラウザとサーバーを起動せずに失敗する', async () => {
+    await explains('中断済みの `signal` を渡して `convertToPptx` を呼んだ場合のテストです。`aborted` を含むメッセージの例外が発生し、ブラウザとサーバーのどちらも起動されないことを確認します。')
     const config: PipelineConfig = { ...baseConfig(presDir), onlySteps: [1] }
     const browser = new FakeBrowser({ pages: [new FakePage()] })
     let isServerClosed = false
@@ -453,7 +472,8 @@ describe('convertToPptx', () => {
     expect(isServerClosed).toBe(false)
   })
 
-  it('signal が Phase 1 開始後に abort されると AbortError を throw し、cleanup も行う', async () => {
+  it('signal が変換の開始後に中断された場合は、失敗し、ブラウザとサーバーを閉じる', async () => {
+    await explains('変換の途中で `signal` が中断された場合のテストです。`aborted` を含むメッセージの例外が発生し、ブラウザとサーバーが閉じられることを確認します。')
     const config: PipelineConfig = { ...baseConfig(presDir), onlySteps: [1, 2, 3] }
     const browser = new FakeBrowser({ pages: [new FakePage(), new FakePage(), new FakePage()] })
     let isServerClosed = false
@@ -726,7 +746,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     }
   })
 
-  it('初回は全 miss で manifest を作る (invalidated=none)', async () => {
+  it('初回の変換では、すべてのステップが miss になり、manifest とキャッシュの成果物を作成する', async () => {
+    await explains('差分キャッシュの初回の変換のテストです。2 つのステップがともに `miss` になって変換され、`invalidated` が `none` で、manifest と各ステップの成果物がキャッシュに保存されることを確認します。')
     const deck = await setupCacheDeck()
     const { result, calls } = await runCached(deck)
 
@@ -749,7 +770,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     ])
   })
 
-  it('無変更の 2 回目は全 hit で slideWorkerRunner を呼ばず、成果物とマップを復元する', async () => {
+  it('内容を変更せずに 2 回目を実行すると、すべてのステップが hit になり、worker を呼ばずに成果物とマップを復元する', async () => {
+    await explains('内容を変更せずに 2 回続けて変換する場合のテストです。2 回目はすべてのステップが `hit` になり、worker を呼ばずに、成果物と `letter-spacing.json`・`href-map.json` が復元され、進捗も報告されることを確認します。')
     const deck = await setupCacheDeck()
     await runCached(deck)
     const labels: string[] = []
@@ -796,7 +818,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(href).toStrictEqual({ 's1-link': 'https://example.com', 's2-link': 'https://example.com' })
   })
 
-  it('hit したステップがあれば「要素診断を再実行していない」旨を warnings に積む (F-09)', async () => {
+  it('hit したステップがある場合は、要素の診断を再実行していない旨を warnings に追加する', async () => {
+    await explains('キャッシュを再利用して変換する場合の、警告のテストです。1 回目は警告がなく、2 回目は 2 ステップ分のキャッシュを再利用したため、要素の診断を再実行していない旨が `warnings` に追加されることを確認します。')
     // hit したステップは worker/prerender を再実行しないため要素エラーが再検出されない。
     // 出さないと再実行のたびに「エラー・警告なし」と誤認する。
     const deck = await setupCacheDeck()
@@ -807,7 +830,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(second.result.warnings).toStrictEqual(['element diagnostics were not re-run for 2 steps because their cache was reused'])
   })
 
-  it('1 ブロックだけ変更すると変換されるのは該当ステップのみ (invalidated=partial)', async () => {
+  it('スライドを 1 つだけ変更した場合は、変更したステップだけを変換する', async () => {
+    await explains('2 つのスライドのうち、2 つ目だけを変更して再変換する場合のテストです。変更した 2 つ目のステップだけが変換され、1 つ目は `hit` になり、`invalidated` が `partial` になることを確認します。')
     const deck = await setupCacheDeck()
     await runCached(deck)
     await writeDeck(deck.dir, ['# スライド1', '# スライド2 を修正'])
@@ -821,7 +845,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     ])
   })
 
-  it('letterSpacingMap の後勝ち集約はステップ順を維持し、hit/miss の組み合わせで結果が変わらない (F-07, SC-003)', async () => {
+  it('同じキーが複数のスライドにある場合は、hit と miss の組み合わせにかかわらず、後のスライドの値を採用する', async () => {
+    await explains('同じキーを持つ `letterSpacingMap` が複数のスライドにある場合のテストです。すべて `miss` の場合も、片方だけ `hit` の場合も、スライド 2 の値が採用されることを確認します。')
     // 集約は plan（ステップ）順の Object.assign による後勝ちで、テキスト内容がキーのため
     // スライド 2 が常に勝つはず。fake のキーがスライドごとにユニークだと衝突が発生せず、
     // 集約順を hit/miss で分けて壊しても全テストが pass してしまう（元の finding の再現条件）。
@@ -856,7 +881,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(await letterSpacingOf(slide2HitDeck)).toStrictEqual(expectedWinner)
   })
 
-  it('キー算出に失敗したら警告して全変換し、manifest を書かない (invalidated=all:key)', async () => {
+  it('キャッシュのキーを算出できない場合は、警告を出力してすべてを変換し、manifest を書き込まない', async () => {
+    await explains('キャッシュのキーを算出できない場合（dom-to-pptx のバンドルが存在しない場合）のテストです。すべてのステップを変換して警告を 1 件記録し、`invalidated` を `all:key` にして、manifest を書き込まないことを確認します。')
     const deck = await setupCacheDeck()
     const { result, calls, logger } = await runCached(deck, {
       bundlePath: path.join(deck.dir, 'lib', 'missing.bundle.js'),
@@ -880,7 +906,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(await doesManifestExist(deck)).toBe(false)
   })
 
-  it('computeDeckCacheKeys が予期せず throw したら警告して全変換にフォールバックする (F-05, SC-004 最終防波堤)', async () => {
+  it('キーの算出で想定外の例外が発生した場合は、警告を出力してすべてを変換する', async () => {
+    await explains('キーの算出処理が想定外の例外で失敗した場合のテストです。警告が 1 件だけ記録されてすべてのステップが変換され、`invalidated` が `all:error` になり、manifest が書き込まれないことを確認します。')
     // computeDeckCacheKeys の ok:false は、想定内の失敗。
     // それとは別に、prepareCache/decideSteps の呼び出し全体を包む外側 catch を、決定論的に通す。
     // 外側 catch は、cache-store 由来の予期しない throw の最終防波堤になる。
@@ -906,7 +933,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(await doesManifestExist(deck)).toBe(false)
   })
 
-  it('manifest 破損の掃除で throw しても、manifest 警告と外側 catch の警告が両方残る (#931)', async () => {
+  it('manifest が破損していて、掃除でも例外が発生した場合は、manifest の警告とキャッシュを使えない旨の警告をどちらも残す', async () => {
+    await explains('manifest が破損していて、既存の成果物の掃除も失敗する場合のテストです。manifest を読めない旨の警告と、キャッシュを使えない旨の警告の 2 件が記録され、`invalidated` が `all:error` になることを確認します。')
     // clearOrphanedCacheArtifacts は、既知パターンのファイルを rm する。
     // 同名のディレクトリを置くと、rm が EISDIR で throw する。
     // すると readCacheState の途中から、外側 catch（3 番目の分岐）へ移る。
@@ -930,7 +958,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(result.cache).toMatchObject({ enabled: false, hits: 0, misses: 2, invalidated: 'all:error' })
   })
 
-  it('materializeCacheEntry が throw したら警告して当該ステップを miss に降格する (F-05)', async () => {
+  it('キャッシュの復元で例外が発生した場合は、警告を出力して該当のステップを miss として変換する', async () => {
+    await explains('キャッシュからの成果物の復元が例外で失敗する場合のテストです。2 つのステップについて復元失敗の警告が 1 件ずつ記録され、どちらも `miss` として変換されることを確認します。')
     const deck = await setupCacheDeck()
     await runCached(deck)
     const { result, calls, logger } = await runCached(deck, {
@@ -953,7 +982,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(result.cache).toMatchObject({ hits: 0, misses: 2, invalidated: 'partial' })
   })
 
-  it('envHash が一致しなければ全 miss (invalidated=all:env)', async () => {
+  it('環境のハッシュ（envHash）が一致しない場合は、すべてのステップを miss として変換する', async () => {
+    await explains('manifest に保存された `envHash` が、今回の環境と一致しない場合のテストです。すべてのステップが `miss` になり、`invalidated` が `all:env` で、新しい `envHash` で manifest が書き直されることを確認します。')
     const deck = await setupCacheDeck()
     await runCached(deck)
     const manifestPath = path.join(cacheDirOf(deck), 'manifest.json')
@@ -972,7 +1002,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(rewritten?.envHash).not.toBe('f'.repeat(64))
   })
 
-  it('キャッシュ成果物が欠けていれば該当ステップだけ miss (invalidated=partial)', async () => {
+  it('キャッシュの成果物が存在しないステップだけを、miss として変換する', async () => {
+    await explains('キャッシュの成果物（`slide-200.pptx`）を削除した場合のテストです。成果物が存在しない 2 つ目のステップだけが `miss` として変換され、`invalidated` が `partial` になることを確認します。')
     const deck = await setupCacheDeck()
     await runCached(deck)
     await rm(path.join(cacheDirOf(deck), 'slide-200.pptx'), { force: true })
@@ -982,7 +1013,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(second.result.cache).toMatchObject({ hits: 1, misses: 1, invalidated: 'partial' })
   })
 
-  it('manifest が不正なら全 miss (invalidated=all:manifest。不在と区別する)', async () => {
+  it('manifest が不正な場合は、すべてのステップを miss として変換し、警告を記録する', async () => {
+    await explains('manifest が破損した JSON の場合のテストです。すべてのステップが `miss` になり、`invalidated` が `all:manifest` で、manifest を読めない旨の警告が 1 回だけ出力されることを確認します。')
     const deck = await setupCacheDeck()
     await runCached(deck)
     await writeFile(path.join(cacheDirOf(deck), 'manifest.json'), '{"schemaVersion":1,"envHash":', 'utf8')
@@ -1008,7 +1040,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     )
   })
 
-  it('--no-cache × throw を伴わない manifest 破損では invalidated は none のまま警告だけ積む', async () => {
+  it('--no-cache を指定して manifest が破損している場合は、invalidated を none のまま、警告だけを記録する', async () => {
+    await explains('`skipRead`（`--no-cache`）を指定し、かつ manifest が破損している場合のテストです。`invalidated` は `none` のままで、manifest を読めない旨の警告だけが記録されることを確認します。')
     // invalidated からの導出では表現できない組み合わせ。--no-cache は判定を飛ばすため
     // 種別が none に倒れるが、manifest 破損自体は起きており警告は出す必要がある (#929)。
     // none への切り捨てはキャッシュ層が throw しなかった run に限られる（次テスト参照）。
@@ -1023,7 +1056,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     ])
   })
 
-  it('--no-cache でもキャッシュ層の例外で退避した run は all:error を報告する (#931)', async () => {
+  it('--no-cache を指定しても、キャッシュの処理で例外が発生した場合は、invalidated を all:error にする', async () => {
+    await explains('`skipRead` を指定し、キーの算出が例外で失敗する場合のテストです。警告が記録され、`invalidated` が `all:error` になり、manifest が書き込まれないことを確認します。')
     // skipRead が none へ倒すのは prepareCache が正常に返った run だけで、外側 catch は
     // skipRead を見ない。`--no-cache` の enabled: false と同じ表示になっても、invalidated で
     // 「読まなかった」(none) と「例外で退避した」(all:error) を区別できる。
@@ -1044,7 +1078,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(await doesManifestExist(deck)).toBe(false)
   })
 
-  it('manifest 破損時は既知パターンの旧成果物を掃除し、削除済みスライドの孤児が残留しない (F-03)', async () => {
+  it('manifest が破損している場合は、削除済みのスライドの成果物を掃除し、キャッシュに残さない', async () => {
+    await explains('manifest が破損していて、すでに存在しないステップ（999）の成果物が残っている場合のテストです。再変換の後で、その成果物がキャッシュから削除され、manifest には 2 つのステップだけが記録されることを確認します。')
     // FR-010: manifest が読めないと previous:undefined になり、prune と孤児削除が行われない。
     // 今は無い stepIndex 999（削除済みスライド相当）の残骸を使う。
     // この残骸が manifest 破損後も、cache/ の中で永久に生き残らないことを検証する。
@@ -1062,7 +1097,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(await manifestEntryKeys(deck)).toStrictEqual(['100', '200'])
   })
 
-  it('末尾にスライドを足しても既存は hit、新規のみ miss で invalidated=none', async () => {
+  it('スライドを末尾に追加した場合は、既存のステップが hit になり、追加したステップだけを変換する', async () => {
+    await explains('2 つのスライドに 3 つ目を追加して再変換する場合のテストです。既存の 2 つは `hit`、追加した 3 つ目だけが変換され、`invalidated` が `none` で、manifest に 3 つのステップが記録されることを確認します。')
     const deck = await setupCacheDeck()
     await runCached(deck)
     await writeDeck(deck.dir, ['# スライド1', '# スライド2', '# スライド3'])
@@ -1073,7 +1109,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(await manifestEntryKeys(deck)).toStrictEqual(['100', '200', '300'])
   })
 
-  it('スライドを削除した再変換では prune が manifest エントリと成果物を実際に消す (F-08)', async () => {
+  it('スライドを削除して再変換した場合は、削除したステップの manifest のエントリと成果物を削除する', async () => {
+    await explains('3 つのスライドから 3 つ目を削除して再変換する場合のテストです。残った 2 つは `hit` で変換せず、3 つ目の manifest のエントリと成果物がキャッシュから削除されることを確認します。')
     // 既存テストは追加系（末尾追加）のみで、削除（ステップ数減少）で prune が実際に
     // エントリ・成果物を消すことを踏むテストが無かった。
     const deck = await setupCacheDeck(['# スライド1', '# スライド2', '# スライド3'])
@@ -1097,7 +1134,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(afterDeletion).not.toContain('slide-300.pptx')
   })
 
-  it('変換に失敗したステップはエントリを作らず、旧エントリを引き継ぐ', async () => {
+  it('変換に失敗したステップは新しいエントリを作成せず、以前のエントリを引き継ぐ', async () => {
+    await explains('スライドを変更したうえで、2 つ目のスライドの変換が失敗する場合のテストです。`success` が `false` になり、manifest に 2 つ目の以前のエントリがそのまま残ることを確認します。')
     const deck = await setupCacheDeck()
     await runCached(deck)
     const before = await readManifest(deck)
@@ -1110,7 +1148,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(after?.entries['200']).toStrictEqual(before?.entries['200'])
   })
 
-  it('--no-cache でも変換に失敗したステップは旧エントリと成果物を引き継ぐ', async () => {
+  it('--no-cache を指定しても、変換に失敗したステップは以前のエントリと成果物を引き継ぐ', async () => {
+    await explains('`skipRead`（`--no-cache`）を指定して、2 つ目のスライドの変換が失敗する場合のテストです。manifest の 2 つ目のエントリと成果物（`slide-200.pptx`）が、削除されずに残ることを確認します。')
     // skipRead は hit 判定だけを飛ばし、reusable（前回エントリが今回の envHash 下で有効か）は
     // 据え置く。ここを reusable: false へ倒すと、失敗ステップの新エントリが作られないまま
     // 旧エントリも引き継がれず、removeUnreferencedArtifacts が生きている成果物を消す。
@@ -1129,7 +1168,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(await listCacheDir(deck)).toContain('slide-200.pptx')
   })
 
-  it('prerender の枚数が減った再変換で、参照されなくなった旧ファイルを消す', async () => {
+  it('プリレンダの画像の枚数が減った場合は、参照されなくなった以前のファイルを削除する', async () => {
+    await explains('プリレンダのファイルが 2 枚から 1 枚に減る場合のテストです。変更したステップの余分なファイルが削除され、`hit` したステップのファイルは残ることを確認します。')
     const deck = await setupCacheDeck()
     await runCached(deck, { prerenderCount: 2 })
     const initial = await listCacheDir(deck)
@@ -1149,6 +1189,7 @@ describe('convertToPptx の差分キャッシュ', () => {
   })
 
   it('onlySteps 指定時はキャッシュを読み書きしない', async () => {
+    await explains('`onlySteps` を指定した場合のテストです。キャッシュの結果（`result.cache`）が `undefined` になり、manifest が書き込まれないことを確認します。')
     const deck = await setupCacheDeck()
     const { result, calls } = await runCached(deck, { onlySteps: [1, 2] })
 
@@ -1157,7 +1198,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(await doesManifestExist(deck)).toBe(false)
   })
 
-  it('スキャン結果とパーサのスライド数が食い違う run では manifest を書き換えない', async () => {
+  it('スキャンで得たステップ数と slides.md のスライド数が食い違う場合は、manifest を書き込まない', async () => {
+    await explains('`slides.md` が 2 枚なのに、スキャンが 3 ステップを返す場合のテストです。3 ステップとも変換され、manifest とキャッシュの成果物が保存されないことを確認します。')
     const deck = await setupCacheDeck()
     // slides.md は 2 枚だがスキャンは 3 ステップ返す（3 枚目の slideHash が引けない）
     const { result, calls } = await runCached(deck, { scanSteps: 3 })
@@ -1169,7 +1211,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     await expect(listCacheDir(deck)).rejects.toThrow('ENOENT')
   })
 
-  it('cache ディレクトリを作れなくても変換は成功し、警告のみ出す', async () => {
+  it('cache ディレクトリを作成できない場合も、変換は成功し、警告だけを出力する', async () => {
+    await explains('`cache` の位置にファイルがあり、ディレクトリを作成できない場合のテストです。変換は成功し、manifest の読み取り・成果物の保存・manifest の更新の失敗が、警告として 4 件記録されることを確認します。')
     const deck = await setupCacheDeck()
     // cache/ の位置にファイルを置き、保存・manifest 書換えの双方を失敗させる
     await mkdir(path.join(deck.dir, 'pptx'), { recursive: true })
@@ -1191,7 +1234,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     expect(logger.info).not.toHaveBeenCalledWith('no errors or warnings')
   })
 
-  it('警告を積んだ後に throw する run でも、警告を出力し PipelineRuntimeError に載せる (#931)', async () => {
+  it('警告を記録した後に失敗する場合も、警告を出力し、PipelineRuntimeError に含める', async () => {
+    await explains('警告が記録された後に、処理の中断で失敗する場合のテストです。`PipelineRuntimeError` の `warnings` に警告が含まれ、警告が成功時と同じ形で 1 回だけ出力されることを確認します。')
     // 変換が失敗したときに警告ごと失われると、`--json` 側と stderr 側のどちらも原因を観測できない。
     // 3 番目の分岐の警告を積ませる。
     // そのうえで、worker 実行中に abort させ、Phase 2 の直前で throw させる。
@@ -1221,7 +1265,8 @@ describe('convertToPptx の差分キャッシュ', () => {
     )
   })
 
-  it('エラーを積んだ後に throw する run でも、内訳を出力し PipelineRuntimeError に載せる (#945)', async () => {
+  it('エラーを記録した後に失敗する場合も、内訳を出力し、PipelineRuntimeError に含める', async () => {
+    await explains('スライドの失敗と要素のエラーが記録された後に、処理の中断で失敗する場合のテストです。`PipelineRuntimeError` の `errors` に両方が含まれ、内訳が `=== conversion errors ===` の見出し付きで 1 回だけ出力されることを確認します。')
     // 変換が失敗したときに errors ごと失われると、どのスライド・要素が落ちたのかを観測できない。
     // 観測できないのは、stderr 側と `--json` 側の両方。
     // slide と element の双方を積ませる。
@@ -1340,7 +1385,8 @@ describe('convertToPptx の 1 パス変換 (#1141)', () => {
     document.getAnimations = (): Animation[] => []
   })
 
-  it('config.singlePass かつ全走査なら 1 パス変換の結果を使い、現行 worker を呼ばない', async () => {
+  it('全スライドを走査する場合に singlePass が有効なら、1 パス変換の結果を使い、ステップごとの worker を呼ばない', async () => {
+    await explains('`singlePass` が有効で全スライドを走査する場合のテストです。1 パス変換に全ステップと同時実行数が渡され、ステップごとの worker は呼ばれず、`timing` に 1 パス変換の情報が載ることを確認します。')
     const requests: SinglePassRequest[] = []
     const runner: SinglePassRunner = async (request) => {
       requests.push(request)
@@ -1369,7 +1415,8 @@ describe('convertToPptx の 1 パス変換 (#1141)', () => {
     expect(result.warnings).toStrictEqual([])
   })
 
-  it('1 パス変換で終えたステップを現行方式でやり直しても onStepProgress は二重に数えない (#1160)', async () => {
+  it('1 パス変換で完了したステップをやり直しても、onStepProgress は完了を二重に数えない', async () => {
+    await explains('1 パス変換が 1 つ目のステップの完了後に失敗し、ステップごとの変換でやり直す場合のテストです。2 つのステップが再変換されても、`onStepProgress` の報告が `0/2`・`1/2`・`2/2` の 3 回だけになることを確認します。')
     const reports: [number, number][] = []
     const { deps, workerCalls } = singlePassDeps(fullScanBrowser(), makeLogger(), firstStepThenBrokenRunner)
     await convertToPptx(
@@ -1381,7 +1428,8 @@ describe('convertToPptx の 1 パス変換 (#1141)', () => {
     expect(reports).toStrictEqual([[0, 2], [1, 2], [2, 2]])
   })
 
-  it('config.singlePass が無ければ 1 パス変換を呼ばず、timing.singlePass も載らない', async () => {
+  it('singlePass が無効な場合は、1 パス変換を呼ばず、timing に singlePass を含めない', async () => {
+    await explains('`singlePass` を指定しない場合のテストです。1 パス変換は呼ばれず、2 つのステップがステップごとの worker で変換され、`timing` に `singlePass` が含まれないことを確認します。')
     const { deps, workerCalls } = singlePassDeps(fullScanBrowser(), makeLogger(), notCalledRunner)
     const result = await convertToPptx(baseConfig(presDir), deps)
 
@@ -1390,7 +1438,8 @@ describe('convertToPptx の 1 パス変換 (#1141)', () => {
     expect(result.timing.perSlidePhases).toStrictEqual({ 1: workerPhases, 2: workerPhases })
   })
 
-  it('グループ単位の退避は警告として積み、1 パス変換の結果と timing はそのまま使う', async () => {
+  it('グループ単位で 1 パス変換を退避した場合は、警告を記録し、1 パス変換の結果と timing をそのまま使う', async () => {
+    await explains('1 パス変換が、グループ単位でステップごとの変換へ切り替えた旨を報告する場合のテストです。警告が `warnings` とログに記録され、再変換は行われず、結果の `timing` が 1 パス変換の値のままになることを確認します。')
     const logger = makeLogger()
     const { deps, workerCalls } = singlePassDeps(fullScanBrowser(), logger, fallbackRunner)
     const result = await convertToPptx({ ...baseConfig(presDir), singlePass: true }, deps)
@@ -1403,7 +1452,8 @@ describe('convertToPptx の 1 パス変換 (#1141)', () => {
     expect(result.timing.singlePass).toStrictEqual(singlePassTimingWithFallback)
   })
 
-  it('config.singlePassConcurrency があればそれをグループ数として渡す', async () => {
+  it('singlePassConcurrency を指定した場合は、その値を 1 パス変換のグループ数として渡す', async () => {
+    await explains('`singlePassConcurrency` を 1 に指定した場合のテストです。1 パス変換に渡す同時実行数が、`concurrency` ではなく指定した値の 1 になることを確認します。')
     const requests: SinglePassRequest[] = []
     const runner: SinglePassRunner = async (request) => {
       requests.push(request)
@@ -1415,7 +1465,8 @@ describe('convertToPptx の 1 パス変換 (#1141)', () => {
     expect(requests[0]?.concurrency).toBe(1)
   })
 
-  it('hash ルータのデッキもルータ判定の結果を渡して 1 パス変換で変換する (#1147)', async () => {
+  it('hash ルータのデッキでも、ルータの判定結果を渡して、1 パス変換で変換する', async () => {
+    await explains('hash ルータのデッキで `singlePass` が有効な場合のテストです。URL の形式として `hash: true` が 1 パス変換に渡され、ステップごとの worker は呼ばれず、警告も記録されないことを確認します。')
     const requests: SinglePassRequest[] = []
     const runner: SinglePassRunner = async (request) => {
       requests.push(request)
@@ -1437,7 +1488,8 @@ describe('convertToPptx の 1 パス変換 (#1141)', () => {
     expect(result.timing.singlePass).toStrictEqual(singlePassTiming)
   })
 
-  it('print ルートの不在の印を受けたら警告を 1 回だけ出し、全 miss を現行方式で変換して timing に理由と判定時間を載せる (#1147)', async () => {
+  it('print ルートが存在しない場合は、警告を 1 回だけ出力し、ステップごとの worker で変換して、timing に理由と判定時間を載せる', async () => {
+    await explains('1 パス変換が、デッキに print ルートが存在しない旨を返す場合のテストです。警告が 1 回だけ出力され、すべてのステップがステップごとの worker で変換され、`slide_sync` の案内が含まれることを確認します。')
     const missing = { kind: 'printRouteMissing' as const, fallback: 'the deck build has no print route', detectMs: 12 }
     const runner = vi.fn<SinglePassRunner>(async () => ({ kind: 'printRouteMissing', timing: missing }))
     const logger = makeLogger()
@@ -1454,7 +1506,8 @@ describe('convertToPptx の 1 パス変換 (#1141)', () => {
     expect(result.timing.perSlidePhases).toStrictEqual({ 1: workerPhases, 2: workerPhases })
   })
 
-  it('print ルートの判定の時間切れはグループ単位の退避として警告し、slide_sync の案内を付けない (#1147)', async () => {
+  it('print ルートの判定が時間切れになった場合は、グループ単位の退避として警告し、slide_sync の案内を含めない', async () => {
+    await explains('print ルートの判定が時間切れで、グループ単位に切り替わる場合のテストです。時間切れの理由を含む警告が記録され、再変換は行われず、警告に `slide_sync` の案内が含まれないことを確認します。')
     const reason = 'slide 1,2: cannot detect the print route; #print-container, #page-root did not appear within 5 s'
     const timing = { kind: 'converted' as const, groups: [{ slides: [1, 2], steps: 2, fallback: reason.slice('slide 1,2: '.length) }], fallbackSteps: ['1', '2'] }
     const runner: SinglePassRunner = async request => ({
@@ -1473,7 +1526,8 @@ describe('convertToPptx の 1 パス変換 (#1141)', () => {
     expect(result.timing.singlePass).toStrictEqual(timing)
   })
 
-  it('全走査でない run (onlySteps) では 1 パス変換を呼ばずに警告する', async () => {
+  it('全スライドを走査しない場合（onlySteps を指定した場合）は、1 パス変換を呼ばずに警告を記録する', async () => {
+    await explains('`singlePass` を有効にして `onlySteps` を指定した場合のテストです。1 パス変換は呼ばれず、指定したステップがステップごとの worker で変換され、全走査ではない旨の警告が記録されることを確認します。')
     const runner = vi.fn<SinglePassRunner>()
     const { deps, workerCalls } = singlePassDeps(new FakeBrowser({ pages: [new FakePage()] }), makeLogger(), runner)
     const result = await convertToPptx({ ...baseConfig(presDir), singlePass: true, onlySteps: [3] }, deps)
@@ -1483,7 +1537,8 @@ describe('convertToPptx の 1 パス変換 (#1141)', () => {
     expect(result.warnings).toStrictEqual(['not using single-pass conversion; converting with the current method: not a full-scan run (e.g. --only)'])
   })
 
-  it('1 パス変換が例外を投げたら途中の成果物を消して現行方式で変換し直す', async () => {
+  it('1 パス変換で例外が発生した場合は、途中の成果物を削除して、ステップごとの worker で変換し直す', async () => {
+    await explains('1 パス変換が成果物を一部書き出した後に、例外で失敗する場合のテストです。途中の成果物が削除され、すべてのステップがステップごとの worker で変換し直され、失敗の理由を示す警告が記録されることを確認します。')
     const runner: SinglePassRunner = async (request) => {
       await writeFile(path.join(request.slidesDir, 'prerender-slide100-3.png'), 'partial')
       throw new Error('unexpected')
@@ -1497,7 +1552,8 @@ describe('convertToPptx の 1 パス変換 (#1141)', () => {
     expect(names).not.toContain('prerender-slide100-3.png')
   })
 
-  it('abort 後に 1 パス変換が throw したら現行方式へ退避せずに打ち切る', async () => {
+  it('中断された後に 1 パス変換が例外を発生させた場合は、ステップごとの変換へ切り替えずに打ち切る', async () => {
+    await explains('1 パス変換の途中で `signal` が中断され、例外が発生する場合のテストです。`aborted` を含むメッセージの例外が発生し、ステップごとの worker は呼ばれないことを確認します。')
     const controller = new AbortController()
     const runner: SinglePassRunner = async () => {
       controller.abort()
@@ -1540,7 +1596,8 @@ describe('convertToPptx の 1 パス変換と差分キャッシュ (#1141)', () 
     document.getAnimations = (): Animation[] => []
   })
 
-  it('一部 hit の run では miss のステップだけを渡し、コンテナ数の確認に使う総数は hit を含む全ステップ数にする', async () => {
+  it('一部のステップだけ hit した場合は、miss のステップだけを 1 パス変換に渡し、ステップの総数には hit も含める', async () => {
+    await explains('1 パス変換とキャッシュを併用し、2 つ目のスライドだけを変更した場合のテストです。1 パス変換に渡すステップは 2 つ目だけで、ステップの総数（`totalSteps`）は `hit` を含む 2 になることを確認します。')
     const deck = await setupCacheDeck()
     // 変換方式は envHash の材料なので、1 回目も 1 パス変換で保存する
     await runCached(deck, { singlePassRunner: recordingSinglePassRunner([]) })
@@ -1560,7 +1617,8 @@ describe('convertToPptx の 1 パス変換と差分キャッシュ (#1141)', () 
     expect(second.result.warnings.filter(warning => warning.startsWith('not using single-pass'))).toStrictEqual([])
   })
 
-  it('全件 hit の run では 1 パス変換を呼ばない', async () => {
+  it('すべてのステップが hit した場合は、1 パス変換を呼ばない', async () => {
+    await explains('1 パス変換とキャッシュを併用し、内容を変更せずに再変換した場合のテストです。2 つのステップがともに `hit` になり、1 パス変換が呼ばれず、`timing` に `singlePass` が含まれないことを確認します。')
     const deck = await setupCacheDeck()
     await runCached(deck, { singlePassRunner: recordingSinglePassRunner([]) })
     const runner = vi.fn<SinglePassRunner>()
@@ -1574,7 +1632,8 @@ describe('convertToPptx の 1 パス変換と差分キャッシュ (#1141)', () 
     expect(second.result.timing).not.toHaveProperty('singlePass')
   })
 
-  it('変換方式を切り替えた run は envHash が変わり、全変換になる (#1147)', async () => {
+  it('変換方式をステップごとの変換と 1 パス変換で切り替えた場合は、envHash が変わり、すべてのステップを変換する', async () => {
+    await explains('ステップごとの変換と 1 パス変換を交互に実行する場合のテストです。方式を切り替えた回は `invalidated` が `all:env` になり、同じ方式で続けた回は `hit` になることを確認します。')
     const deck = await setupCacheDeck()
     const perStep = await runCached(deck)
     const singlePass = await runCached(deck, { singlePassRunner: recordingSinglePassRunner([]) })
@@ -1587,7 +1646,8 @@ describe('convertToPptx の 1 パス変換と差分キャッシュ (#1141)', () 
     expect(backToPerStep.result.cache).toMatchObject({ hits: 0, misses: 2, invalidated: 'all:env' })
   })
 
-  it('ステップ単位の退避も警告として積む', async () => {
+  it('ステップ単位で 1 パス変換を退避した場合も、警告を記録する', async () => {
+    await explains('1 パス変換が、ステップ単位でステップごとの変換へ切り替えた旨を報告する場合のテストです。その理由を含む警告が `warnings` に記録されることを確認します。')
     const deck = await setupCacheDeck()
 
     const { result } = await runCached(deck, { singlePassRunner: stepFallbackSinglePassRunner })

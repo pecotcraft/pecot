@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { mergePptxFiles, type MergeInput } from '../merge.js'
 import { XmldomXmlEngine } from '../../../infra/pptx-ooxml/xml-engine.js'
 import { compareStrings } from '../../_shared/compare-strings.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 const engine = new XmldomXmlEngine()
 
@@ -89,11 +90,13 @@ function makeFiles(
 }
 
 describe('mergePptxFiles', () => {
-  it('入力 0 件は Error を throw', () => {
+  it('入力が 0 件の場合は、例外が発生する', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、入力のテストです。スライドを 1 件も渡さなかった場合に、`no input` を含む例外が発生することを確認します。')
     expect(() => mergePptxFiles([], engine)).toThrow(/no input/i)
   })
 
-  it('slideNumber が 1..N の連番でなければ Error を throw (歯抜け検出)', () => {
+  it('slideNumber が 1 から N までの連番でない場合は、欠番を検出して例外が発生する', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、スライドの番号のテストです。1 番の次が 3 番のように番号が飛んでいる場合に、`1..N consecutive` を含む例外が発生することを確認します。')
     const inputs: MergeInput[] = [
       { slideNumber: 1, files: makeFiles('a', { withMedia: false, includeBaseStructure: true }) },
       // slide 2 を欠いて slide 3 にジャンプ → 歯抜け
@@ -102,14 +105,16 @@ describe('mergePptxFiles', () => {
     expect(() => mergePptxFiles(inputs, engine)).toThrow(/1\.\.N consecutive/i)
   })
 
-  it('slideNumber が 2 から始まると Error (1 から始まらない)', () => {
+  it('slideNumber が 1 から始まらない場合は、例外が発生する', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、スライドの番号のテストです。`slideNumber` が 2 だけの入力を渡した場合に、`1..N consecutive` を含む例外が発生することを確認します。')
     const inputs: MergeInput[] = [
       { slideNumber: 2, files: makeFiles('s2', { withMedia: false, includeBaseStructure: true }) },
     ]
     expect(() => mergePptxFiles(inputs, engine)).toThrow(/1\.\.N consecutive/i)
   })
 
-  it('merge 後の presentation.xml に standalone="yes" が含まれる (Python 版との byte 等価性)', () => {
+  it('統合後の XML の宣言に standalone="yes" を含める', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、XML の宣言のテストです。2 枚のスライドを統合した場合に、出力する 3 つの XML のすべてに `standalone="yes"` が含まれることを確認します。')
     const inputs: MergeInput[] = [
       { slideNumber: 1, files: makeFiles('a', { withMedia: false, includeBaseStructure: true }) },
       { slideNumber: 2, files: makeFiles('b', { withMedia: false, includeBaseStructure: false }) },
@@ -124,7 +129,8 @@ describe('mergePptxFiles', () => {
     expect(ct).toContain('standalone="yes"')
   })
 
-  it('スライド 1 のベース構造を採用し、N 件分の slideX.xml を生成する', () => {
+  it('スライド 1 の基本の構造を使い、スライドの数だけ slideX.xml を作成する', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、統合の結果のテストです。3 枚のスライドを統合した場合に、スライド数が 3 になり、`slide1.xml` から `slide3.xml` までが出力されることを確認します。')
     const inputs: MergeInput[] = [
       { slideNumber: 1, files: makeFiles('s1', { withMedia: true, includeBaseStructure: true }) },
       { slideNumber: 2, files: makeFiles('s2', { withMedia: true, includeBaseStructure: false }) },
@@ -143,7 +149,8 @@ describe('mergePptxFiles', () => {
     expect(partMap.has('[Content_Types].xml')).toBe(true)
   })
 
-  it('メディアファイルがスライド番号付きにリネームされ、rels も書き換わる', () => {
+  it('メディアファイルの名前にスライド番号を付け、rels の参照も書き換える', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、メディアファイルのテストです。画像を持つ 2 枚のスライドを統合した場合に、`image1.png` が `image1-s1.png` と `image1-s2.png` に改名され、`Target` も改名後の名前を指すことを確認します。')
     const inputs: MergeInput[] = [
       { slideNumber: 1, files: makeFiles('a', { withMedia: true, includeBaseStructure: true }) },
       { slideNumber: 2, files: makeFiles('b', { withMedia: true, includeBaseStructure: false }) },
@@ -165,7 +172,8 @@ describe('mergePptxFiles', () => {
     expect(rels2).toContain('Target="../media/image1-s2.png"')
   })
 
-  it('presentation.xml の sldIdLst が N 件の sldId に rebuild される', () => {
+  it('presentation.xml の sldIdLst を、スライドの数だけの sldId で作り直す', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、`presentation.xml` のテストです。3 枚のスライドを統合した場合に、`sldId` が 3 件になり、`id` が 256 から、`r:id` が `rId101` から連番になることを確認します。')
     const inputs: MergeInput[] = [
       { slideNumber: 1, files: makeFiles('a', { withMedia: false, includeBaseStructure: true }) },
       { slideNumber: 2, files: makeFiles('b', { withMedia: false, includeBaseStructure: false }) },
@@ -186,7 +194,8 @@ describe('mergePptxFiles', () => {
     expect(sldIdMatches.length).toBe(3)
   })
 
-  it('presentation.xml.rels の type=slide だけが rebuild され、他 type は保たれる', () => {
+  it('presentation.xml.rels は、種類が slide の関係だけを作り直し、ほかの種類の関係は残す', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、`presentation.xml.rels` のテストです。2 枚のスライドを統合した場合に、`slideMaster` の関係が元のまま残り、`slide` の関係が `rId101` と `rId102` の 2 件になることを確認します。')
     const inputs: MergeInput[] = [
       { slideNumber: 1, files: makeFiles('a', { withMedia: false, includeBaseStructure: true }) },
       { slideNumber: 2, files: makeFiles('b', { withMedia: false, includeBaseStructure: false }) },
@@ -203,7 +212,8 @@ describe('mergePptxFiles', () => {
     expect(relsXml).toContain('Target="slides/slide2.xml"')
   })
 
-  it('[Content_Types].xml の slide Override が rebuild される', () => {
+  it('[Content_Types].xml の slide の Override を作り直す', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、`[Content_Types].xml` のテストです。3 枚のスライドを統合した場合に、`presentation.xml` の `Override` が残り、各スライドの `Override` が出力されることを確認します。')
     const inputs: MergeInput[] = [
       { slideNumber: 1, files: makeFiles('a', { withMedia: false, includeBaseStructure: true }) },
       { slideNumber: 2, files: makeFiles('b', { withMedia: false, includeBaseStructure: false }) },
@@ -220,7 +230,8 @@ describe('mergePptxFiles', () => {
     expect(ct).toContain('PartName="/ppt/slides/slide3.xml"')
   })
 
-  it('slideNumber が降順で渡されても 1 を base にする (toSorted で正規化)', () => {
+  it('slideNumber が降順で渡された場合でも、1 番を基本の構造にする', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、スライドの順序のテストです。2 番、1 番の順にスライドを渡した場合に、昇順に並べ替えて 1 番を基本の構造とし、2 件のスライドを出力することを確認します。')
     const inputs: MergeInput[] = [
       { slideNumber: 2, files: makeFiles('B', { withMedia: false, includeBaseStructure: false }) },
       { slideNumber: 1, files: makeFiles('A', { withMedia: false, includeBaseStructure: true }) },
@@ -232,7 +243,8 @@ describe('mergePptxFiles', () => {
     expect(partMap.has('ppt/slides/slide2.xml')).toBe(true)
   })
 
-  it('media に不要な空 prefix エントリ "ppt/media/" は無視される', () => {
+  it('media の空のディレクトリのエントリ ppt/media/ は、無視する', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、メディアファイルのテストです。zip に含まれることがある、名前が `ppt/media/` だけのエントリを渡した場合に、出力へ含めないことを確認します。')
     const files = makeFiles('a', { withMedia: false, includeBaseStructure: true })
     files.set('ppt/media/', buffer('')) // zip に偶発する dir entry のシミュレート
     const result = mergePptxFiles([{ slideNumber: 1, files }], engine)
@@ -242,7 +254,8 @@ describe('mergePptxFiles', () => {
     expect(renamedKeys).toEqual([])
   })
 
-  it('rels の ../media/ 以外 Target / rename map に無いメディアは書き換えない', () => {
+  it('rels の Target が ../media/ 以外の場合と、改名の対象にないメディアの場合は、書き換えない', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、メディアの参照のテストです。改名の対象にない `image-uncatalogued.png` や、`../slideLayouts/` への参照がある場合に、改名した画像の参照だけを書き換え、ほかの参照は元のまま残すことを確認します。')
     // slide rels に、../media/ への参照だが rename map に無い image2.png を含める。
     // ../slideLayouts/ への参照 (../media/ で始まらない) も含める。
     const customSlideRels = buffer(
@@ -272,7 +285,8 @@ describe('mergePptxFiles', () => {
     expect(rels).toContain('Target="../slideLayouts/slideLayout1.xml"')
   })
 
-  it('拡張子の無いメディアファイル名でもスライド番号が付く', () => {
+  it('拡張子がないメディアファイルにも、スライド番号を付ける', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、メディアファイルのテストです。`binary-blob` のように拡張子がないメディアファイルの場合に、名前の末尾にスライド番号を付けた `binary-blob-s1` になることを確認します。')
     const files = new Map<string, Buffer>([
       ['ppt/slides/slide1.xml', slideXml('noext')],
       ['ppt/media/binary-blob', buffer('blob-data')],
@@ -282,7 +296,8 @@ describe('mergePptxFiles', () => {
     expect(partMap.has('ppt/media/binary-blob-s1')).toBe(true)
   })
 
-  it('Content_Types に slide 系 Override が無いベースでも slideX.xml の Override が追加される', () => {
+  it('基本の [Content_Types].xml に slide の Override がない場合でも、slideX.xml の Override を追加する', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、`[Content_Types].xml` のテストです。`slide` の `Override` を持たない `[Content_Types].xml` を渡した場合でも、`slide1.xml` の `Override` が追加されることを確認します。')
     const noSlideOverrideContentTypes = buffer(
       `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`
       + `<Types xmlns="${NS_CONTENT_TYPES}">`
@@ -302,7 +317,8 @@ describe('mergePptxFiles', () => {
     expect(ct).toContain('PartName="/ppt/slides/slide1.xml"')
   })
 
-  it('slide1.xml と rels が無い (base のみ) の単スライド入力は、スライドコピーをスキップする', () => {
+  it('slide1.xml と rels がなく、基本の構造だけの入力の場合は、スライドを複製しない', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、入力が基本の構造だけの場合のテストです。`slide1.xml` を持たない 1 件の入力を渡した場合に、`presentation.xml` は出力し、存在しない `slide1.xml` は出力しないことを確認します。')
     // Python 版 merge_pptx は `if src_slide in files:` で防御している分岐
     const files = new Map<string, Buffer>([
       ['ppt/presentation.xml', basePresentationXml()],
@@ -317,7 +333,8 @@ describe('mergePptxFiles', () => {
     expect(partMap.has('ppt/slides/slide1.xml')).toBe(false)
   })
 
-  it('base 構造に rels / content-types / presentation のいずれかが無い場合は、何も言わずスキップ', () => {
+  it('基本の構造に rels、content-types、presentation のいずれかがない場合は、エラーにせず、処理を省略する', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、基本の構造が不足している場合のテストです。`slide1.xml` だけを持つ入力を渡した場合に、例外が発生せず、スライド数が 1 になり、`presentation.xml` は出力しないことを確認します。')
     // presentation.xml と rels が無いベース (一部のミニマル fixture)
     const files = new Map<string, Buffer>([
       ['ppt/slides/slide1.xml', slideXml('only')],
@@ -329,7 +346,8 @@ describe('mergePptxFiles', () => {
     expect(partMap.has('ppt/presentation.xml')).toBe(false)
   })
 
-  it('10+ 枚連番でも rId / Content_Types / sldIdLst が連続して並ぶ (off-by-one 検出)', () => {
+  it('スライドが 10 枚以上でも、rId、Content_Types、sldIdLst が連続して並ぶ', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、スライドの数が多い場合のテストです。12 枚のスライドを統合した場合に、`rId101` から `rId112` までと、`sldId` の `id`、`Content_Types` の `Override` が欠けず、順に並ぶことを確認します。')
     const total = 12 // 10+ で桁またぎ (rId101..rId112) を確認
     const inputs: MergeInput[] = Array.from({ length: total }, (_, index) => ({
       slideNumber: index + 1,
@@ -428,7 +446,8 @@ function makeFilesWithFonts(
 }
 
 describe('mergePptxFiles: 埋め込みフォントの統合', () => {
-  it('スライド 1 に無い書体も全スライドの和集合で残す', () => {
+  it('スライド 1 にない書体も、すべてのスライドの和集合として残す', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、埋め込みフォントの統合のテストです。スライドごとに埋め込まれた書体が異なる場合に、すべての書体を残し、書体ごとに `p:embeddedFont` を 1 つにまとめ、字形が `regular`、`bold` の順になることを確認します。')
     // dom-to-pptx は、そのスライドで描画に使われた書体だけを埋め込む。
     // そのため埋め込み集合は、スライドごとに違う。
     // #1062 の計測では、実デッキ 51 枚が 2 通りの集合に割れた。
@@ -465,7 +484,8 @@ describe('mergePptxFiles: 埋め込みフォントの統合', () => {
     expect(data.toSorted(compareStrings)).toEqual(['DISPLAY-BOLD', 'DISPLAY-REGULAR', 'INTER-REGULAR'])
   })
 
-  it('rels / Content_Types / fonts part を重複なく作り直す', () => {
+  it('rels、Content_Types、fonts の part を、重複なく作り直す', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、埋め込みフォントの統合のテストです。同じ書体と字形が別のスライドに重複して埋め込まれている場合に、1 つにまとめ、元の part 名を残さず、関係の ID と `Content_Types` の宣言が 1 つだけになることを確認します。')
     const inputs: MergeInput[] = [
       {
         slideNumber: 1,
@@ -506,7 +526,8 @@ describe('mergePptxFiles: 埋め込みフォントの統合', () => {
     expect(ct).toContain('ContentType="application/x-fontdata"')
   })
 
-  it('どのスライドにも埋め込みフォントが無ければ、fonts part と embeddedFontLst を作らない', () => {
+  it('どのスライドにも埋め込みフォントがない場合は、fonts の part と embeddedFontLst を作成しない', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、埋め込みフォントの統合のテストです。埋め込みフォントが 1 件もない場合に、`embeddedFontLst` と `embedTrueTypeFonts` などの属性、`fntdata` の宣言を出力せず、警告もないことを確認します。')
     const inputs: MergeInput[] = [
       { slideNumber: 1, files: makeFiles('s1', { withMedia: false, includeBaseStructure: true }) },
       { slideNumber: 2, files: makeFiles('s2', { withMedia: false, includeBaseStructure: false }) },
@@ -525,7 +546,8 @@ describe('mergePptxFiles: 埋め込みフォントの統合', () => {
     expect(result.warnings).toEqual([])
   })
 
-  it('スライド 1 が無埋め込みでも embedTrueTypeFonts / saveSubsetFonts を付ける', () => {
+  it('スライド 1 に埋め込みフォントがなくても、embedTrueTypeFonts と saveSubsetFonts を付ける', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、埋め込みフォントの統合のテストです。スライド 1 に埋め込みフォントがなく、スライド 2 にある場合は、両方の属性を `true` で出力し、スライド 2 の書体を `embeddedFontLst` に含めることを確認します。')
     // F-01: 両属性は dom-to-pptx が埋め込みを行ったスライドにしか付けない
     // （dist/dom-to-pptx.cjs 231-232 が "true" で setAttribute）。ベースに採るスライド 1 が
     // 無埋め込みだと属性が無いまま embeddedFontLst だけが載り、PowerPoint が埋め込みを使わない。
@@ -555,7 +577,8 @@ describe('mergePptxFiles: 埋め込みフォントの統合', () => {
     expect(ct).toContain('ContentType="application/x-fontdata"')
   })
 
-  it('typeface の & と二重引用符を属性値としてエスケープする', () => {
+  it('typeface に含まれる & や二重引用符を、属性値としてエスケープする', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、埋め込みフォントの統合のテストです。書体名に `&`、二重引用符、`<` が含まれる場合に、属性値としてエスケープして出力し、再び解析すると元の書体名に戻る、妥当な XML であることを確認します。')
     // F-10(2): typeface は CSS の font-family 由来。XML 属性に直書きすると不正な XML になる。
     const typeface = 'A&B "Quoted" <C>'
     const inputs: MergeInput[] = [
@@ -580,7 +603,8 @@ describe('mergePptxFiles: 埋め込みフォントの統合', () => {
     expect(fontNode?.getAttr('typeface')).toBe(typeface)
   })
 
-  it('同一 (typeface, 字形) で実体が違えばスライド 1 側を残し warning を積む', () => {
+  it('同じ書体と字形で内容が異なる場合は、スライド 1 のものを残し、警告を記録する', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、埋め込みフォントの統合のテストです。スライド 1 と 2 が同じ書体と字形で異なる内容を持つ場合に、スライド 1 のものだけを残し、書体名と字形を含む警告を 1 件記録することを確認します。')
     // F-04 / F-10(3): 将来ライブラリがスライド単位のサブセット化を入れると、後続スライド固有のグリフが気づかれずに欠ける。
     // 先勝ちは変えず、判別できるよう warning にする。
     const inputs: MergeInput[] = [
@@ -610,7 +634,8 @@ describe('mergePptxFiles: 埋め込みフォントの統合', () => {
     expect(result.warnings[0]).toContain('regular')
   })
 
-  it('4 字形が別スライドに散っていても regular → bold → italic → boldItalic に並べる', () => {
+  it('4 つの字形が別のスライドに分かれていても、regular、bold、italic、boldItalic の順に並べる', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、埋め込みフォントの統合のテストです。同じ書体の 4 つの字形が 4 枚のスライドに分かれて埋め込まれている場合に、入力の順によらず、`regular`、`bold`、`italic`、`boldItalic` の順に並び、警告がないことを確認します。')
     // F-10(4): 並び順は ECMA-376 CT_EmbeddedFontDataId の sequence。入力の出現順に依存しない。
     const inputs: MergeInput[] = [
       {
@@ -678,7 +703,8 @@ function childOrderOf(buffer: Readonly<Buffer> | undefined): string[] {
 }
 
 describe('mergePptxFiles: p:presentation の要素順の正規化', () => {
-  it('sldIdLst が notesMasterIdLst より前でも CT_Presentation の sequence 順に直す', () => {
+  it('sldIdLst が notesMasterIdLst より前にある場合でも、規格の順序（CT_Presentation の sequence）に並べ直す', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、`p:presentation` の子要素の順序のテストです。`sldIdLst` が `notesMasterIdLst` より前にある `presentation.xml` を渡した場合に、規格の順序に並べ直し、規格にない要素を末尾に元の順序で残すことを確認します。')
     // F-18: pptxgenjs 由来で単スライドの時点から逸脱している。merge はスライド 1 の
     // presentation.xml をそのまま受け継ぐため、統合後に一度並べ直す。
     const files = makeFiles('s1', { withMedia: false, includeBaseStructure: true })
@@ -700,7 +726,8 @@ describe('mergePptxFiles: p:presentation の要素順の正規化', () => {
     ])
   })
 
-  it('既に規格順なら並びを動かさない', () => {
+  it('すでに規格の順序になっている場合は、並びを変更しない', async () => {
+    await explains('スライドごとの PPTX を 1 つに統合する `mergePptxFiles` の、`p:presentation` の子要素の順序のテストです。埋め込みフォントを持つ規格の順序の `presentation.xml` を渡した場合に、子要素の並びが変わらないことを確認します。')
     const files = makeFilesWithFonts('s1', [
       { typeface: 'Inter', style: 'regular', data: 'INTER-REGULAR' },
     ], { includeBaseStructure: true })

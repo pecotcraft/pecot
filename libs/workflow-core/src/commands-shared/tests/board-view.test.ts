@@ -1,6 +1,7 @@
 /* eslint-disable unicorn/no-null -- 偽サーバの応答と JSON の出力に null を使う */
 // board show の表示・Archived の整理・Dependabot alert の収集。GitHub は偽サーバにする。
 import { describe, expect, it } from 'vitest'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 import { capture } from '../../../tests/_helpers/captured-io.js'
 import type { JsonObject } from '../../domain/json.js'
@@ -64,6 +65,7 @@ function page(nodes: readonly Json[], laneOptions?: readonly string[]): Json {
 
 describe('mapWithLimit', () => {
   it('並列の数を limit までにし、結果を入力の順で返す', async () => {
+    await explains('並列の実行数を制限して非同期の処理を回す関数（`mapWithLimit`）のテストです。上限が 2 の場合は、同時に実行する処理が 2 件を超えず、結果が入力と同じ順序で返ることを確認します。')
     let running = 0
     let peak = 0
     const result = await mapWithLimit([30, 10, 20, 0], 2, async (value) => {
@@ -78,27 +80,31 @@ describe('mapWithLimit', () => {
 })
 
 describe('pruneArchivedItems', () => {
-  it('20 件以下なら何もしない', async () => {
+  it('Archived 列の項目が 20 件以下の場合は、何も削除しない', async () => {
+    await explains('ボードの `Archived` 列の項目を整理する処理（`pruneArchivedItems`）のテストです。項目が 20 件の場合に、API を呼び出さず、削除した件数と失敗した件数がどちらも 0 になることを確認します。')
     const { client } = await startClient([])
     const out = createOutput(false, capture())
     expect(await pruneArchivedItems(out, client, config(), archivedItems().slice(2), false)).toEqual({ deleted: 0, failed: 0 })
   })
 
-  it('dry-run では消す予定の件数を出す', async () => {
+  it('dry-run の場合は、削除せず、削除する予定の件数を表示する', async () => {
+    await explains('`Archived` 列の項目が 22 件ある状態で、`dry-run` を指定した場合のテストです。削除は行わず、古い 2 件を削除する予定であることを標準エラー出力に表示することを確認します。')
     const { client } = await startClient([])
     const io = capture()
     const result = await pruneArchivedItems(createOutput(true, io), client, config(), archivedItems(), true)
     expect({ result, err: io.err.join('') }).toEqual({ result: { deleted: 2, failed: 0 }, err: 'dry-run: would delete 2 archived items\n' })
   })
 
-  it('古いものから消し、消せなかった件数と ID の無い件数を warning で出す', async () => {
+  it('削除に失敗した項目と ID が文字列でない項目の件数を、警告として表示する', async () => {
+    await explains('古い 2 件の削除がどちらも失敗する場合のテストです。1 件は API が HTTP 500 を返し、もう 1 件は ID が文字列でないため、失敗が 2 件になり、その件数を警告として表示することを確認します。')
     const { client } = await startClient([deletion('PVTI_2', false)])
     const io = capture()
     const result = await pruneArchivedItems(createOutput(false, io), client, config(), archivedItems(archived(1, 5)), false)
     expect({ result, err: io.err.join('') }).toEqual({ result: { deleted: 0, failed: 2 }, err: 'warning: failed to delete 2 archived items\n' })
   })
 
-  it('消せた件数を出す', async () => {
+  it('削除に成功した場合は、削除した件数を表示する', async () => {
+    await explains('古い 2 件の削除がどちらも成功する場合のテストです。削除した件数が 2 件になり、その件数を標準エラー出力に表示することを確認します。')
     const { client } = await startClient([deletion('PVTI_1'), deletion('PVTI_2')])
     const io = capture()
     const result = await pruneArchivedItems(createOutput(false, io), client, config(), archivedItems(), false)
@@ -107,7 +113,8 @@ describe('pruneArchivedItems', () => {
 })
 
 describe('collectAlertStatuses', () => {
-  it('リポジトリごとの状態を登録の順で返し、取れなかったリポジトリは理由の文字列にする', async () => {
+  it('リポジトリごとの状態を登録した順に返し、取得に失敗したリポジトリはエラーの文字列で返す', async () => {
+    await explains('登録したリポジトリの Dependabot alert の状態を収集する処理のテストです。1 件目は取得に成功して状態を返し、2 件目は HTTP 500 で失敗してエラーの文字列を返すことを、登録した順に確認します。')
     const { client } = await startClient([
       restResponse('GET', '/repos/acme/a/dependabot/alerts', { status: 200, body: [] }),
       restResponse('GET', '/repos/acme/b/dependabot/alerts', { status: 500, text: 'x' }),
@@ -136,7 +143,8 @@ describe('board show の表示', () => {
     { id: 'PVTI_2', workflow: 'Active', lane: null, title: 'T2', content: { number: 2, url: 'https://github.com/acme/a/pull/2', repository: 'acme/a' } },
   ]
 
-  it('判定を引けるときは、アイテムに判定を添え、Ready の着手できる Issue を Lane ごとに数える', () => {
+  it('判定を取得できる場合は、項目に判定を付け、着手できる Ready の Issue を Lane ごとに集計する', async () => {
+    await explains('`board show` の表示用データを作成する処理のテストです。判定を渡した場合に、項目へ判定が付き、Lane ごとの件数と着手できる件数が集計され、リポジトリの alert とプロジェクトの情報が含まれることを確認します。')
     const data = boardShowData(view, items, item => item.content.number === 1 ? { kind: 'startable', stackOn: null, reason: null, text: 'ok' } : null)
     expect({ items: data.board.items.map(item => item.readiness), lanes: data.lanes, repositories: data.repositories.map(repository => repository.dependabot_alerts), project: data.project }).toEqual({
       items: [{ kind: 'startable', stackOn: null, reason: null, text: 'ok' }, null],
@@ -146,18 +154,21 @@ describe('board show の表示', () => {
     })
   })
 
-  it('判定が無いときは、readiness を付けず、着手できる数を 0 にする', () => {
+  it('判定と Lane の情報を渡さない場合は、項目に readiness を付けず、Lane の一覧を空にする', async () => {
+    await explains('`board show` の表示用データのテストです。判定と Lane の情報を渡さない場合に、項目に `readiness` が付かず、Lane の一覧が空になり、JSON の出力が表示用データと同じ内容になることを確認します。')
     const data = boardShowData({ ...view, laneOptions: undefined }, items)
     const json: unknown = JSON.parse(boardShowJson(data))
     const hasReadiness = data.board.items.some(item => Object.hasOwn(item, 'readiness'))
     expect({ hasReadiness, lanes: data.lanes, json }).toEqual({ hasReadiness: false, lanes: [], json: structuredClone(data) })
   })
 
-  it('取得結果の数が登録のリポジトリより少なければ投げる', () => {
+  it('取得した状態の数が登録したリポジトリの数より少ない場合は、例外が発生する', async () => {
+    await explains('Dependabot alert の状態の数が、登録したリポジトリの数より不足している場合のテストです。`no Dependabot alert status for repository #0` というメッセージの例外が発生することを確認します。')
     expect(() => boardShowData({ ...view, statuses: [] }, items)).toThrow('no Dependabot alert status for repository #0')
   })
 
-  it('MCP の data に、リリースの種類・パッケージ・CHANGELOG と食い違いの件数を足す', () => {
+  it('MCP の data に、リリースの種類・パッケージ・CHANGELOG のファイルと、不一致の件数を追加する', async () => {
+    await explains('MCP ツールが返す `data` を作成する処理のテストです。リポジトリごとにリリースの種類・パッケージ・CHANGELOG のファイル名が追加され、渡した不一致の件数 4 が `mismatches` に入ることを確認します。')
     const result = boardShowResult(view, boardShowData(view, items), 4)
     expect({ extras: result.repositories.map(({ release_type, packages, changelog_file }) => ({ release_type, packages, changelog_file })), mismatches: result.mismatches }).toEqual({
       extras: [
@@ -169,7 +180,8 @@ describe('board show の表示', () => {
     })
   })
 
-  it('Markdown に、リポジトリの枝・リリース・alert・パッケージと、Lanes と後ろの節を並べる', () => {
+  it('Markdown に、リポジトリのブランチ・リリース・alert・パッケージの情報と、Lanes の表、後続の節を出力する', async () => {
+    await explains('`board show` の Markdown を作成する処理のテストです。登録した 3 件のリポジトリの情報、絞り込みを示す見出し、Lanes の表、渡した後続の節が、定められた順序で出力されることを確認します。')
     expect(boardShowMarkdown(view, 'acme/a', '(board)', '## Chains', [{ name: 'fe', count: 1, startable: 1 }, { name: null, count: 2, startable: 0 }])).toBe([
       '# Project info',
       '',
@@ -207,7 +219,8 @@ describe('board show の表示', () => {
     ].join('\n'))
   })
 
-  it('リポジトリと絞り込みが無ければ、none と絞り込みの無い見出しにする', () => {
+  it('リポジトリが登録されておらず絞り込みも指定しない場合は、none を表示し、見出しに絞り込みを含めない', async () => {
+    await explains('リポジトリが登録されていない場合の、Markdown のテストです。ロードマップのリポジトリと登録済みのリポジトリが `none` と表示され、見出しに絞り込みが含まれないことを確認します。')
     expect(boardShowMarkdown({ config: config(), projectName: 'board', statuses: [] }, undefined, '(board)')).toBe([
       '# Project info',
       '',
@@ -228,7 +241,8 @@ describe('board show の表示', () => {
 })
 
 describe('readBoard', () => {
-  it('表示する列の OPEN のアイテムに絞り、リポジトリの指定でさらに絞る', async () => {
+  it('表示する列の OPEN の項目に絞り込み、リポジトリを指定した場合はそのリポジトリの項目にさらに絞り込む', async () => {
+    await explains('ボードの項目を読み込む処理（`readBoard`）のテストです。`Archived` 列の項目、CLOSED の Issue、指定したリポジトリ以外の項目が除外され、`Ready` 列の OPEN の項目だけが残ることを確認します。')
     const nodes = [node('PVTI_1', 1, 'Ready'), node('PVTI_2', 2, 'Archived'), node('PVTI_3', 3, 'Ready', { state: 'CLOSED' }), node('PVTI_4', 4, 'Active', { repository: 'other' })]
     const { client } = await startClient([graphqlData('ListProjectItems', page(nodes, ['fe']))])
     const read = await readBoard(client, config(), 'acme/demo')
@@ -243,7 +257,8 @@ describe('readBoard', () => {
     })
   })
 
-  it('依存関係を知らない GHES では、足す前のクエリで読み直す', async () => {
+  it('依存関係に対応していない GHES の場合は、依存関係を含まない旧形式のクエリで読み込み直す', async () => {
+    await explains('GitHub Enterprise Server が `blockedBy` に対応していない場合のテストです。最初のクエリがエラーとなった場合は、旧形式のクエリで読み込み直し、旧いフィールド名と使われていないフィールドを取得できることを確認します。')
     const legacy = page([node('PVTI_1', 1, 'Ready', { field: 'pecot-workflow-acme', others: ['pecot-priority'] })])
     const { client } = await startClient([graphqlError('ListProjectItems', 'Field \'blockedBy\' doesn\'t exist on type \'Issue\''), graphqlData('ListProjectItemsLegacy', legacy)])
     const read = await readBoard(client, config(), undefined)
@@ -255,10 +270,11 @@ describe('warnOldFieldName', () => {
   const read = (workflowFieldName: string | undefined, unusedFieldNames: readonly string[]): BoardRead => ({ allItems: [], items: [], progress: new Map(), isLegacy: false, workflowFieldName, unusedFieldNames, laneOptions: undefined })
 
   it.for([
-    { name: '今の名前で、使わないフィールドが無い', workflowFieldName: 'pecot-status', unused: [], expected: '' },
-    { name: '旧い名前で、使わないフィールドもある', workflowFieldName: 'pecot-workflow-acme', unused: ['pecot-priority', 'pecot-size'], expected: 'warning: this board uses the old field name pecot-workflow-acme and still has fields pecot does not use: pecot-priority, pecot-size\n  run: pecot project init acme <name> --host github.com\n' },
-    { name: '値が無い', workflowFieldName: undefined, unused: ['pecot-size'], expected: 'warning: this board still has fields pecot does not use: pecot-size\n  run: pecot project init acme <name> --host github.com\n' },
-  ])('$name とき、移行の手順を 1 つの warning で出すかを決める', ({ workflowFieldName, unused, expected }) => {
+    { name: '現在のフィールド名で不要なフィールドも存在しなければ表示しない', workflowFieldName: 'pecot-status', unused: [], expected: '' },
+    { name: '旧いフィールド名で不要なフィールドも存在すれば両方を知らせる', workflowFieldName: 'pecot-workflow-acme', unused: ['pecot-priority', 'pecot-size'], expected: 'warning: this board uses the old field name pecot-workflow-acme and still has fields pecot does not use: pecot-priority, pecot-size\n  run: pecot project init acme <name> --host github.com\n' },
+    { name: 'ワークフローのフィールドが見つからない場合は、不要なフィールドだけを知らせる', workflowFieldName: undefined, unused: ['pecot-size'], expected: 'warning: this board still has fields pecot does not use: pecot-size\n  run: pecot project init acme <name> --host github.com\n' },
+  ])('移行の警告は、$name', async ({ name, workflowFieldName, unused, expected }) => {
+    await explains(`ボードのフィールド名に関する、移行の警告のテストです。移行の警告は、${name}ことを確認します。`)
     const io = capture()
     warnOldFieldName(createOutput(false, io), config(), read(workflowFieldName, unused))
     expect(io.err.join('')).toBe(expected)

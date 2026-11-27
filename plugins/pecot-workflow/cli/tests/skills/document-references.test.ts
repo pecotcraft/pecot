@@ -9,6 +9,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { explains } from '../_helpers/explains.js'
 import { compareStrings } from '../parity/baseline.js'
 import { pluginRoot, readPluginFile } from './_helpers/documents.js'
 
@@ -131,7 +132,8 @@ function missingRulesTargets(label: string, text: string): readonly string[] {
 }
 
 describe('skills の相対リンク', () => {
-  it('skills/**/*.md の相対 markdown リンクと anchor が実在する', () => {
+  it('skills/**/*.md の相対 markdown リンクと anchor が実在する', async () => {
+    await explains('スキルの Markdown のリンクのテストです。`skills` 配下の相対リンクの参照先のファイルと anchor がすべて存在することを確認し、リンクが 10 件を超えることも確認します。')
     const offenders: string[] = []
     let checked = 0
     for (const file of glob('skills/**/*.md')) {
@@ -158,14 +160,16 @@ describe('skills の相対リンク', () => {
 })
 
 describe('起票ルールの参照', () => {
-  it('freeform の本文のフッターが指すパスと anchor が実在する', () => {
+  it('freeform の本文のフッターが指すパスと anchor が実在する', async () => {
+    await explains('`issue-create.ts` の `FREEFORM_FOOTER` のテストです。フッターが指す `skills/` 配下のパスと anchor が存在することを確認します。')
     const source = readPluginFile(FREEFORM_SOURCE)
     const footer = /const FREEFORM_FOOTER = '([^']*)'/u.exec(source)?.[1]
     expect(footer).toContain('skills/')
     expect(missingRulesTargets('FREEFORM_FOOTER', footer ?? '')).toEqual([])
   })
 
-  it('issue テンプレート内の skills/...md のパスと anchor が実在する', () => {
+  it('issue テンプレート内の skills/...md のパスと anchor が実在する', async () => {
+    await explains('Issue のテンプレートのテストです。テンプレートの本文にある `skills/` 配下の Markdown のパスと anchor が、すべて存在することを確認します。')
     const offenders: string[] = []
     for (const file of glob('cli/templates/issue/*.md')) {
       const lines = nonFencedLines(readPluginFile(file))
@@ -176,7 +180,8 @@ describe('起票ルールの参照', () => {
     expect(offenders).toEqual([])
   })
 
-  it('issue テンプレートの冒頭のコメントに「読者:」と「例:」のラベルがある', () => {
+  it('issue テンプレートの冒頭のコメントに「読者:」と「例:」のラベルがある', async () => {
+    await explains('Issue のテンプレートの冒頭のコメントのテストです。すべてのテンプレートに「読者:」と「例:」のラベルが含まれることを確認します。')
     const files = glob('cli/templates/issue/*.md')
     expect(files.length).toBeGreaterThan(0)
     const offenders: string[] = []
@@ -188,7 +193,8 @@ describe('起票ルールの参照', () => {
     expect(offenders).toEqual([])
   })
 
-  it('issue-flow-rules のパスの近くの §N が、`## N.` の見出しと対応し、anchor の節と一致する', () => {
+  it('issue-flow-rules のパスの近くの §N が、`## N.` の見出しと対応し、anchor の節と一致する', async () => {
+    await explains('`issue-flow-rules.md` の節番号の参照のテストです。パスの近くに書かれた `§N` が `## N.` の見出しに対応し、同じ行の anchor が同じ番号の節に属することを確認します。')
     const numbers = headingNumbers(RULES_DOC)
     const sectionOf = slugToSection(RULES_DOC)
     // hooks のテンプレートと agent 定義も §N で本体を参照する。
@@ -232,7 +238,8 @@ describe('起票ルールの参照', () => {
 })
 
 describe('スキルの参照', () => {
-  it('配布する文書とソースの /pecot-w:<スキル名> が、skills/<スキル名>/SKILL.md として在る', () => {
+  it('配布する文書とソースの /pecot-w:<スキル名> が、skills/<スキル名>/SKILL.md として存在する', async () => {
+    await explains('スキルの参照のテストです。配布する文書とソースに書かれた `/pecot-w:<スキル名>` が、すべて `skills/<スキル名>/SKILL.md` として存在することを確認します。')
     const skills = new Set(glob('skills/*/SKILL.md').map(file => path.basename(path.dirname(file))))
     const sources = [
       'README.md',

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import { timeouts, type OnlySlideSpec, type PipelineConfig } from '../config.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 describe('timeouts', () => {
-  it('Slidev pipeline 内部の固定 timeout 値を保持する', () => {
+  it('Slidev の変換処理で使う固定のタイムアウト値を、定めた値のまま保持する', async () => {
+    await explains('変換処理の設定 `timeouts` のテストです。`slidevReady`・`slideVisibility`・`fontsReady` などの各値が、定めた値と一致することを確認します。')
     expect(timeouts).toStrictEqual({
       slidevReady: 30_000,
       scanStepNavigation: 5000,
@@ -18,7 +20,8 @@ describe('timeouts', () => {
     })
   })
 
-  it('ms 値はすべて非負の有限数', () => {
+  it('タイムアウトの値は、すべて 0 以上の有限の数になる', async () => {
+    await explains('変換処理の設定 `timeouts` のテストです。すべての値が有限の数で、0 以上であることを確認します。')
     for (const value of Object.values(timeouts)) {
       expect(Number.isFinite(value)).toBe(true)
       expect(value).toBeGreaterThanOrEqual(0)
@@ -27,7 +30,8 @@ describe('timeouts', () => {
 })
 
 describe('PipelineConfig 型', () => {
-  it('必須フィールドをすべて入れた設定を作ると、presDir と onlySlide が入れた値のままになる', () => {
+  it('必須の項目をすべて指定した設定は、presDir と onlySlide が指定した値のままになる', async () => {
+    await explains('変換処理の設定の型 `PipelineConfig` のテストです。必須の項目をすべて指定した場合に、`presDir` が指定した値で、`onlySlide` が `null` になることを確認します。')
     const config: PipelineConfig = {
       presDir: '/abs/pres',
       templatePath: 'dist',
@@ -43,7 +47,8 @@ describe('PipelineConfig 型', () => {
     expect(config.onlySlide).toBeNull()
   })
 
-  it('onlySlide / onlySteps / skipPostprocess の optional / nullable を許容する', () => {
+  it('onlySlide・onlySteps・skipPostprocess は、省略できる項目として受け付ける', async () => {
+    await explains('変換処理の設定の型 `PipelineConfig` のテストです。`onlySlide`・`onlySteps`・`skipPostprocess` を指定した設定が作成でき、指定した値がそのまま読み取れることを確認します。')
     const onlySlide: OnlySlideSpec = { slide: 5, click: 3 }
     const config: PipelineConfig = {
       presDir: '/abs',

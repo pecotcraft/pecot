@@ -27,6 +27,7 @@ import type { SlideConvertResult, SlideWorkerRunner } from '../slide-worker.js'
 import { FakeBrowser, FakeElementHandle, FakePage } from './support/fake-playwright.js'
 import { makeLogger } from './support/logger.js'
 import { compareStrings } from '../../../domain/_shared/compare-strings.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 const BASE_URL = 'http://localhost:4001'
 
@@ -112,20 +113,24 @@ function makeResult(step: Readonly<SlideStep>): SlideConvertResult {
 }
 
 describe('printContainerId / containerScopeSelector', () => {
-  it('clickStep null は先頭の段 (01)、N は N+1 になり、スライド番号は 3 桁で埋める', () => {
+  it('print ページのコンテナの id は、スライド番号を 3 桁で表し、末尾はクリック数が null なら 01、N なら N+1 にする', async () => {
+    await explains('print ページのコンテナの id を求める `printContainerId` のテストです。クリック数が `null` の場合は `001-01`、スライド 12 のクリック 2 の場合は `012-03` になることを確認します。')
     expect(printContainerId({ slideNumber: 1, clickStep: null, url: '' })).toBe('001-01')
     expect(printContainerId({ slideNumber: 12, clickStep: 2, url: '' })).toBe('012-03')
   })
 
-  it('数字始まりの id を属性セレクタで指す', () => {
+  it('数字で始まる id は、属性セレクタで指定する', async () => {
+    await explains('コンテナを指定するセレクタを作成する `containerScopeSelector` のテストです。数字で始まる id（`005-02`）を、`[id="005-02"]` の属性セレクタで指定することを確認します。')
     expect(containerScopeSelector('005-02')).toBe('[id="005-02"]')
   })
 
-  it('グループのコンテナを :is() で束ねて指す', () => {
+  it('グループに含まれるコンテナを、:is() でまとめて指定する', async () => {
+    await explains('複数のコンテナをまとめて指定する `groupScopeSelector` のテストです。2 つのコンテナの id を、`:is()` を使った 1 つのセレクタにまとめることを確認します。')
     expect(groupScopeSelector(['001-01', '002-02'])).toBe(':is([id="001-01"], [id="002-02"])')
   })
 
-  it('otherContainersHiddenCss はグループ外のコンテナだけを display: none にする規則を返す (#1161)', () => {
+  it('グループに含まれないコンテナだけを display: none にする CSS を返す', async () => {
+    await explains('グループ以外のコンテナを隠す `otherContainersHiddenCss` のテストです。返された CSS のセレクタが、グループに含まれないコンテナだけに一致することを確認します。')
     const css = otherContainersHiddenCss(['001-01', '002-02'])
     expect(css).toBe('.print-slide-container:not([id="001-01"], [id="002-02"]) { display: none !important; }')
     document.body.innerHTML = printDom([{ id: '001-01' }, { id: '002-01' }, { id: '002-02' }, { id: '003-01' }])
@@ -153,12 +158,14 @@ function slidesOfGroups(groups: readonly (readonly SlideStep[])[]): number[][] {
 }
 
 describe('partitionStepsBySlide', () => {
-  it('K=1 なら全ステップを入力順のまま 1 グループにする', () => {
+  it('グループ数が 1 の場合は、すべてのステップを入力の順のまま 1 つのグループにする', async () => {
+    await explains('ステップをスライド単位のグループに分ける `partitionStepsBySlide` のテストです。グループ数を 1 にすると、すべてのステップが入力の順のまま 1 つのグループになることを確認します。')
     const input = stepsOf([1, 3, 2])
     expect(partitionStepsBySlide(input, 1)).toStrictEqual([input])
   })
 
-  it('スライド順の連続区間に分け、ステップ数で均等に近くする', () => {
+  it('スライド順の連続した区間に分け、グループごとのステップ数をほぼ均等にする', async () => {
+    await explains('グループ数を指定してステップを分ける場合のテストです。スライド順の連続した区間に分かれ、グループごとのステップ数ができるだけ均等になることを確認します。')
     const eightSlides = Array.from({ length: 8 }, () => 1)
     const evenGroups = partitionStepsBySlide(stepsOf(eightSlides), 4)
     expect(slidesOfGroups(evenGroups))
@@ -169,27 +176,31 @@ describe('partitionStepsBySlide', () => {
     expect(groups.map(group => group.length)).toStrictEqual([5, 5])
   })
 
-  it('同じスライドのステップは分けず、各グループ内のステップ順は入力のまま', () => {
+  it('同じスライドのステップは同じグループに入れ、グループ内の順序は入力のままにする', async () => {
+    await explains('1 つのスライドに複数のステップがある場合のテストです。同じスライドのステップが別のグループに分かれず、グループ内の順序が入力のままになることを確認します。')
     const input = stepsOf([1, 5, 1])
     const groups = partitionStepsBySlide(input, 3)
     expect(slidesOfGroups(groups)).toStrictEqual([[1], [2], [3]])
     expect(groups.flat()).toStrictEqual(input)
   })
 
-  it('大きいスライドが先にあっても、スライド数が足りる限り K 個にする', () => {
+  it('ステップ数の多いスライドが先頭や末尾にあっても、スライド数が足りる限り指定したグループ数にする', async () => {
+    await explains('ステップ数の多いスライドが先頭にある場合と、末尾にある場合のテストです。どちらも、スライド数が足りる限り、指定したグループ数（3）に分かれることを確認します。')
     const bigFirst = partitionStepsBySlide(stepsOf([10, 1, 1]), 3)
     const bigLast = partitionStepsBySlide(stepsOf([1, 1, 10]), 3)
     expect(slidesOfGroups(bigFirst)).toStrictEqual([[1], [2], [3]])
     expect(slidesOfGroups(bigLast)).toStrictEqual([[1], [2], [3]])
   })
 
-  it('グループ数はスライド数を超えず、K が 1 未満なら 1 とみなす', () => {
+  it('グループ数はスライド数を超えず、1 未満を指定した場合は 1 として扱う', async () => {
+    await explains('グループ数の上限と下限のテストです。スライド数より多いグループ数を指定するとスライド数のグループになり、0 を指定すると 1 グループになり、ステップが空なら結果も空になることを確認します。')
     expect(partitionStepsBySlide(stepsOf([2, 1]), 4)).toHaveLength(2)
     expect(partitionStepsBySlide(stepsOf([2, 1]), 0)).toHaveLength(1)
     expect(partitionStepsBySlide([], 4)).toStrictEqual([])
   })
 
-  it('同じ入力には同じ分け方を返す', () => {
+  it('同じ入力には同じ分け方を返す', async () => {
+    await explains('同じ入力を 2 回渡した場合のテストです。2 回とも同じグループの分け方になることを確認します。')
     const input = stepsOf([2, 1, 4, 1, 1, 3, 1])
     expect(partitionStepsBySlide(input, 3)).toStrictEqual(partitionStepsBySlide(input, 3))
   })
@@ -337,6 +348,7 @@ describe('convertStepsSinglePass', () => {
   }
 
   it('prerender 対象が無ければページ A だけを開き、goto / addScriptTag 各 1 回で全ステップを順に変換する', async () => {
+    await explains('prerender の対象がない場合に、`convertStepsSinglePass` が行う変換のテストです。ページ A だけを開いてページ遷移とスクリプトの追加を 1 回ずつ行い、3 つのステップを順に変換することを確認します。')
     document.body.innerHTML = printDom(plainContainers)
     const pageA = new FakePage()
     const browser = new FakeBrowser({ pages: [pageA] })
@@ -385,6 +397,7 @@ describe('convertStepsSinglePass', () => {
   })
 
   it('prerender 対象があればページ B を dsf 5 で 1 回だけ開き、selectorState の待ちは対象を含むコンテナごと・fixed の待ちは 1 回にまとめる', async () => {
+    await explains('prerender の対象がある場合に、高解像度のページ B を開く処理のテストです。ページ B を倍率 5 で 1 回だけ開き、対象を含むコンテナだけで読み込みの完了を待つことと、撮影した画像のメタ情報が正しいことを確認します。')
     document.body.innerHTML = printDom([
       { id: '001-01' },
       { id: '002-01', inner: '<div class="point-number">1</div>' },
@@ -447,6 +460,7 @@ describe('convertStepsSinglePass', () => {
   })
 
   it('対象のセレクタリストはリスト全体をグループのコンテナ内に限って検出する', async () => {
+    await explains('prerender の対象に `.x, .y` のように複数のセレクタを指定した場合のテストです。コンテナの外にだけ存在する `.y` は検出されず、ページ B を開かないことを確認します。')
     // `.x, .y` の `.y` はコンテナの外にだけある
     document.body.innerHTML = printDom(plainContainers) + '<div class="y"></div>'
     const browser = new FakeBrowser({ pages: [new FakePage()] })
@@ -458,7 +472,8 @@ describe('convertStepsSinglePass', () => {
     expect(outcome.results.map(r => r.status)).toStrictEqual(['fulfilled', 'fulfilled', 'fulfilled'])
   })
 
-  it('print ルートはあるが print コンテナが 5 秒以内に出なければグループごと現行 worker に回し、ページを閉じる', async () => {
+  it('print ルートはあるが print コンテナが 5 秒以内に表示されない場合は、グループ全体を従来の worker で変換し、ページを閉じる', async () => {
+    await explains('print ルートは存在するが、print コンテナが 5 秒以内に表示されない場合のテストです。グループ全体のステップを従来の worker で変換し、ページを閉じることを確認します。')
     document.body.innerHTML = '<div id="page-root"><div id="print-container"></div></div>'
     const pageA = new FakePage()
     // 1: print ルートの判定 / 2: コンテナ出現（時間切れ）
@@ -477,7 +492,8 @@ describe('convertStepsSinglePass', () => {
     expect(outcome.timing.fallbackSteps).toStrictEqual(['1', '2', '2/1'])
   })
 
-  it('コンテナ数が期待ステップ数と合わなければ退避する', async () => {
+  it('コンテナ数がステップ数と一致しない場合は、従来の worker で変換する', async () => {
+    await explains('print ページのコンテナ数がステップ数と一致しない場合のテストです。コンテナ数 2、ステップ数 3 の場合は、その内容を理由として、従来の worker で変換することを確認します。')
     document.body.innerHTML = printDom([{ id: '001-01' }, { id: '002-01' }])
     const browser = new FakeBrowser({ pages: [new FakePage()] })
 
@@ -486,7 +502,8 @@ describe('convertStepsSinglePass', () => {
     expect(outcome.fallbacks).toStrictEqual([expect.stringContaining('2 containers, 3 steps')])
   })
 
-  it('コンテナの id がステップと対応しなければ退避する', async () => {
+  it('コンテナの id がステップに対応しない場合は、従来の worker で変換する', async () => {
+    await explains('コンテナの数は合っているが、id がステップに対応しない場合のテストです。存在しない `002-02` を理由として、従来の worker で変換することを確認します。')
     document.body.innerHTML = printDom([{ id: '001-01' }, { id: '002-01' }, { id: '003-01' }])
     const browser = new FakeBrowser({ pages: [new FakePage()] })
 
@@ -495,7 +512,8 @@ describe('convertStepsSinglePass', () => {
     expect(outcome.fallbacks).toStrictEqual([expect.stringContaining('002-02')])
   })
 
-  it('スライドの読み込みが終わらなければ退避する', async () => {
+  it('スライドの読み込みが完了しない場合は、従来の worker で変換する', async () => {
+    await explains('スライドの読み込みが完了しない場合のテストです。時間切れになった場合は、読み込みが完了しなかった旨を理由として、従来の worker で変換することを確認します。')
     document.body.innerHTML = printDom(plainContainers)
     const pageA = new FakePage()
     // 1: print ルートの判定 / 2: コンテナ出現 / 3: 期待数到達 / 4: .slidev-slide-loading の消滅
@@ -507,7 +525,8 @@ describe('convertStepsSinglePass', () => {
     expect(outcome.fallbacks).toStrictEqual([expect.stringContaining('slide did not finish loading within')])
   })
 
-  it('高解像度ページでコンテナが揃わなければ、prerender 対象を持つステップだけ現行 worker に回し、両ページを閉じる', async () => {
+  it('高解像度ページにコンテナが表示されない場合は、prerender の対象を持つステップだけを従来の worker で変換し、両方のページを閉じる', async () => {
+    await explains('高解像度ページ（ページ B）にコンテナが表示されない場合のテストです。prerender の対象を持つステップだけを従来の worker で変換し、ほかのステップは 1 パスのまま変換して、両方のページを閉じることを確認します。')
     document.body.innerHTML = printDom([{ id: '001-01', inner: '<div class="point-number">1</div>' }, { id: '002-01' }, { id: '002-02' }])
     const pageA = new FakePage()
     const pageB = new FakePage()
@@ -529,7 +548,8 @@ describe('convertStepsSinglePass', () => {
     expect(pageB.closed).toBe(true)
   })
 
-  it('高解像度ページを開く途中の例外も、prerender 対象を持つステップだけを現行 worker に回す', async () => {
+  it('高解像度ページを開く途中で例外が発生した場合も、prerender の対象を持つステップだけを従来の worker で変換する', async () => {
+    await explains('高解像度ページを開く途中で例外が発生した場合のテストです。prerender の対象を持つステップだけを従来の worker で変換し、その理由を警告として表示することを確認します。')
     document.body.innerHTML = printDom([{ id: '001-01' }, { id: '002-01', inner: '<div class="point-number">1</div>' }, { id: '002-02' }])
     const pageB = new FakePage()
     pageB.goto = async () => { throw new Error('page crashed') }
@@ -544,7 +564,8 @@ describe('convertStepsSinglePass', () => {
     expect(logger.warn).toHaveBeenCalledWith('single-pass: cannot prepare the hiRes page: page crashed; steps with prerender targets are converted with the current method')
   })
 
-  it('ページの用意で例外が出たら退避する', async () => {
+  it('print ページの準備中に例外が発生した場合は、従来の worker で変換する', async () => {
+    await explains('print ページの準備中にページ遷移が失敗した場合のテストです。失敗の内容を理由として、従来の worker で変換し、ページを閉じることを確認します。')
     const pageA = new FakePage()
     pageA.goto = async () => { throw new Error('net::ERR_CONNECTION_REFUSED') }
     const browser = new FakeBrowser({ pages: [pageA] })
@@ -555,7 +576,8 @@ describe('convertStepsSinglePass', () => {
     expect(pageA.closed).toBe(true)
   })
 
-  it('init script はグループ外のコンテナを隠すスタイルシートを document.adoptedStyleSheets に足す (#1161)', async () => {
+  it('init script は、グループ外のコンテナを隠すスタイルシートを document.adoptedStyleSheets に追加する', async () => {
+    await explains('ページに登録する init script のテストです。実行すると、すでにあるスタイルシートを残したまま、グループ外のコンテナを隠すスタイルシートが `document.adoptedStyleSheets` に追加されることを確認します。')
     document.body.innerHTML = printDom(plainContainers)
     const existing = new CSSStyleSheet()
     document.adoptedStyleSheets = [existing]
@@ -577,6 +599,7 @@ describe('convertStepsSinglePass', () => {
   })
 
   it('各グループは range なしで print ページを開き、グループ外のコンテナを隠して自グループのコンテナだけを変換する', async () => {
+    await explains('並列数を 2 にして、ステップを 2 つのグループに分けて変換する場合のテストです。各グループが自分のコンテナだけを変換し、ほかのグループのコンテナを隠した状態で、すべてのステップが 1 回ずつ変換されることを確認します。')
     document.body.innerHTML = printDom(plainContainers)
     const pageGroup1 = new FakePage()
     const pageGroup2 = new FakePage()
@@ -615,7 +638,8 @@ describe('convertStepsSinglePass', () => {
     expect(request.logger.info).toHaveBeenCalledWith('single-pass: converting 3 steps in 2 groups')
   })
 
-  it('1 グループが退避しても、他のグループは 1 パスで変換を続ける', async () => {
+  it('1 つのグループが従来の worker に切り替わっても、ほかのグループは 1 パスで変換を続ける', async () => {
+    await explains('並列数を 2 にして、一方のグループだけ print コンテナが表示されない場合のテストです。そのグループのステップだけが従来の worker で変換され、もう一方のグループは 1 パスのまま変換されることを確認します。')
     document.body.innerHTML = printDom(plainContainers)
     const pageGroup1 = new FakePage()
     // 1: print ルートの判定 / 2: コンテナ出現（時間切れ）
@@ -636,7 +660,8 @@ describe('convertStepsSinglePass', () => {
     expect(outcome.timing.fallbackSteps).toStrictEqual(['1'])
   })
 
-  it('コンテナ数は miss のステップ数でなく、全走査のステップ総数と比べる', async () => {
+  it('コンテナ数は、変換するステップ数ではなく、全体のステップ総数と比較する', async () => {
+    await explains('キャッシュを使い、一部のステップだけを変換する場合のテストです。print ページのコンテナ数を変換対象のステップ数ではなく全体のステップ総数と比較し、キャッシュ済みのスライドのコンテナを隠すことを確認します。')
     document.body.innerHTML = printDom(plainContainers)
     const pageA = new FakePage()
     const browser = new FakeBrowser({ pages: [pageA] })
@@ -652,7 +677,8 @@ describe('convertStepsSinglePass', () => {
     expect(pageA.viewportSizeValue).toStrictEqual({ width: 960, height: 540 * 2 })
   })
 
-  it('コンテナ数が全走査のステップ総数と合わなければ退避する', async () => {
+  it('コンテナ数が全体のステップ総数と一致しない場合は、従来の worker で変換する', async () => {
+    await explains('コンテナ数が、全体のステップ総数と一致しない場合のテストです。コンテナ数 3、ステップ総数 4 の場合は、その内容を理由として、従来の worker で変換することを確認します。')
     document.body.innerHTML = printDom(plainContainers)
     const browser = new FakeBrowser({ pages: [new FakePage()] })
 
@@ -661,7 +687,8 @@ describe('convertStepsSinglePass', () => {
     expect(outcome.fallbacks).toStrictEqual([expect.stringContaining('print container count does not match the step count of the full scan: 3 containers, 4 steps')])
   })
 
-  it('自グループのステップの id が欠けたグループだけ退避し、他のグループは続ける', async () => {
+  it('自分のステップの id に対応するコンテナが存在しないグループだけ従来の worker で変換し、ほかのグループは 1 パスで続ける', async () => {
+    await explains('並列数を 2 にして、一方のグループのコンテナの id が存在しない場合のテストです。そのグループだけが従来の worker で変換され、ほかのグループは 1 パスのまま変換されることを確認します。')
     // 総数は合うが 002-02 が無い
     document.body.innerHTML = printDom([{ id: '001-01' }, { id: '002-01' }, { id: '099-01' }])
     const browser = new FakeBrowser({ pages: [new FakePage(), new FakePage()] })
@@ -675,7 +702,8 @@ describe('convertStepsSinglePass', () => {
     expect(outcome.timing.fallbackSteps).toStrictEqual(['2', '2/1'])
   })
 
-  it('グループの全コンテナでスライド本体が描かれるまで、prerender 対象の検出に進まない', async () => {
+  it('グループのすべてのコンテナでスライドが描画されるまで、prerender の対象の検出に進まない', async () => {
+    await explains('スライドの描画の完了を判定する処理のテストです。スライドが描画されていないコンテナがある間は、prerender の対象の検出に進まず、子要素のないスライドや読み込み中の表示があるコンテナは未完了と判定することを確認します。')
     // 002-02 は .slidev-page に子が無い（非同期コンポーネントの未マウント）
     document.body.innerHTML = printDom([{ id: '001-01' }, { id: '002-01', inner: '<div class="point-number">1</div>' }])
     document.querySelector('#print-container')!.insertAdjacentHTML('beforeend', '<div class="print-slide-container" id="002-02"><div class="slidev-page" style="display:block"></div></div>')
@@ -707,7 +735,8 @@ describe('convertStepsSinglePass', () => {
     expect(judge()).toBe(true)
   })
 
-  it('高解像度ページでスライド本体が描かれなければ、待ちの失敗内容を理由に付けて該当ステップを現行 worker に回す', async () => {
+  it('高解像度ページでスライドが描画されない場合は、失敗の内容を理由として、該当するステップを従来の worker で変換する', async () => {
+    await explains('高解像度ページ（ページ B）でスライドが描画されない場合のテストです。待機の失敗内容を理由として、prerender の対象を持つステップを従来の worker で変換することを確認します。')
     document.body.innerHTML = printDom([{ id: '001-01', inner: '<div class="point-number">1</div>' }, { id: '002-01' }, { id: '002-02' }])
     const pageB = new FakePage()
     pageB.waitForFunctionResolves = [true, true, false]
@@ -720,7 +749,8 @@ describe('convertStepsSinglePass', () => {
     ])
   })
 
-  it('用意の時点で対象を検出できなくても、ステップのコンテナに対象があれば、高解像度ページを遅延オープンして撮る', async () => {
+  it('準備の時点で対象を検出できなくても、コンテナに対象があれば、高解像度ページを後から開いて撮影する', async () => {
+    await explains('準備の時点では prerender の対象が検出できず、変換の途中でコンテナに対象が見つかった場合のテストです。高解像度ページ（ページ B）をその時点で開き、画像を撮影してメタ情報を保存することを確認します。')
     document.body.innerHTML = printDom([{ id: '001-01' }, { id: '002-01', inner: '<div class="point-number">1</div>' }, { id: '002-02' }])
     const pageA = new FakePage()
     missFirstGroupDetection(pageA)
@@ -743,7 +773,8 @@ describe('convertStepsSinglePass', () => {
     expect(outcome.fallbacks).toStrictEqual([])
   })
 
-  it('遅延オープンに失敗したら該当ステップを現行 worker に回し、以後は開き直さない', async () => {
+  it('高解像度ページを後から開くのに失敗した場合は、該当するステップを従来の worker で変換し、再度は開かない', async () => {
+    await explains('高解像度ページ（ページ B）を後から開くのに失敗した場合のテストです。該当するステップを従来の worker で変換し、以降のステップでは開き直さないことを確認します。')
     document.body.innerHTML = printDom([
       { id: '001-01' },
       { id: '002-01', inner: '<div class="point-number">1</div>' },
@@ -770,7 +801,8 @@ describe('convertStepsSinglePass', () => {
     ])
   })
 
-  it('失敗したステップだけ現行 worker に回し、除外目印と差し替えは失敗時も戻す', async () => {
+  it('変換に失敗したステップだけを従来の worker で変換し、失敗した場合も除外の属性と差し替えを元に戻す', async () => {
+    await explains('1 つのステップの変換が失敗した場合のテストです。そのステップだけを従来の worker で変換し、除外の属性と差し替えた画像が元に戻り、前回の撮影画像が削除されることを確認します。')
     document.body.innerHTML = printDom([
       { id: '001-01' },
       { id: '002-01', inner: '<img data-prerender-img="true" src="x.png"><div data-prerender-hidden="true" style="display:none"></div>' },
@@ -804,7 +836,8 @@ describe('convertStepsSinglePass', () => {
     expect(outcome.fallbacks).toStrictEqual(['slide #2: export failed: 002-01'])
   })
 
-  it('後始末が失敗しても残りの後始末をし、元の失敗を退避理由にする', async () => {
+  it('後処理の一部が失敗しても、残りの後処理を実行し、元の失敗を従来の worker へ切り替える理由とする', async () => {
+    await explains('ステップの変換が失敗し、さらに除外の属性の解除も失敗した場合のテストです。残りの後処理（画像の差し替えの復元）を実行し、元の変換の失敗を従来の worker に切り替える理由として記録することを確認します。')
     document.body.innerHTML = printDom([
       { id: '001-01' },
       { id: '002-01', inner: '<img data-prerender-img="true" src="x.png">' },
@@ -829,7 +862,8 @@ describe('convertStepsSinglePass', () => {
     expect(document.querySelectorAll('[data-prerender-img]')).toHaveLength(0)
   })
 
-  it('現行 worker でも失敗したステップは rejected として返す', async () => {
+  it('従来の worker でも失敗したステップは、rejected として返す', async () => {
+    await explains('1 パスの変換と従来の worker の両方で失敗したステップのテストです。そのステップの結果が `rejected` になり、進捗に失敗が表示されることを確認します。')
     document.body.innerHTML = printDom(plainContainers)
     failContainer = '002-02'
     const browser = new FakeBrowser({ pages: [new FakePage()] })
@@ -843,6 +877,7 @@ describe('convertStepsSinglePass', () => {
   })
 
   it('onStepDone は 1 パスで終えたステップと現行 worker で終えたステップを 1 回ずつ報告し、1 パスでの失敗では呼ばない (#1160)', async () => {
+    await explains('ステップの完了を通知する `onStepDone` のテストです。1 パスで変換したステップと従来の worker で変換したステップを 1 回ずつ通知し、1 パスで失敗したステップについては通知しないことを確認します。')
     document.body.innerHTML = printDom(plainContainers)
     failContainer = '002-02'
     const browser = new FakeBrowser({ pages: [new FakePage()] })
@@ -855,7 +890,8 @@ describe('convertStepsSinglePass', () => {
     expect(done.toSorted(compareStrings)).toStrictEqual(['1', '2', '2/1'])
   })
 
-  it('hash ルータのデッキはフラグメントの前に print=clicks を置いた URL で print ページを開く', async () => {
+  it('hash ルータを使うデッキは、フラグメントの前に print=clicks を置いた URL で print ページを開く', async () => {
+    await explains('hash ルータを使うデッキのテストです。フラグメントの前に `print=clicks` を付けた URL（`/?print=clicks#/print`）で print ページを開くことを確認します。')
     document.body.innerHTML = printDom(plainContainers)
     const pageA = new FakePage()
     const browser = new FakeBrowser({ pages: [pageA] })
@@ -867,7 +903,8 @@ describe('convertStepsSinglePass', () => {
     expect(outcome.fallbacks).toStrictEqual([])
   })
 
-  it('print ルートが無ければ各グループが #page-root の出現で即時に判定し、何も変換せず不在の印を返す', async () => {
+  it('print ルートが存在しない場合は、各グループが即時に判定し、何も変換せずに不在を示す結果を返す', async () => {
+    await explains('デッキのビルドに print ルートが存在しない場合のテストです。各グループが `#page-root` の表示で判定し、変換せずに `printRouteMissing` を返してページを閉じることを確認します。')
     document.body.innerHTML = PLAY_DOM
     const pageGroup1 = new FakePage()
     const pageGroup2 = new FakePage()
@@ -892,7 +929,8 @@ describe('convertStepsSinglePass', () => {
     expect(exportCalls).toHaveLength(0)
   })
 
-  it('print ルートの判定要素が 5 秒以内に出なければ不在とみなさず、グループ単位で現行 worker に回す', async () => {
+  it('print ルートの判定に使う要素が 5 秒以内に表示されない場合は、不在と判定せず、グループ単位で従来の worker で変換する', async () => {
+    await explains('print ルートの判定に使う要素が 5 秒以内に表示されない場合のテストです。print ルートが存在しないとは判定せず、グループ全体を従来の worker で変換することを確認します。')
     document.body.replaceChildren()
     const pageA = new FakePage()
     pageA.waitForFunctionResolves = [false]
@@ -909,7 +947,8 @@ describe('convertStepsSinglePass', () => {
     expect(pageA.closed).toBe(true)
   })
 
-  it('一部のグループだけが print ルートの不在を判定したら、そのグループのステップを現行 worker に回す', async () => {
+  it('一部のグループだけが print ルートの不在と判定した場合は、そのグループのステップを従来の worker で変換する', async () => {
+    await explains('並列数を 2 にして、一方のグループだけ print ルートが存在しないと判定した場合のテストです。そのグループのステップだけを従来の worker で変換し、もう一方のグループは 1 パスのまま変換することを確認します。')
     document.body.innerHTML = printDom(plainContainers)
     const pageGroup1 = new FakePage()
     const original = pageGroup1.evaluate.bind(pageGroup1)
@@ -929,7 +968,8 @@ describe('convertStepsSinglePass', () => {
     expect(outcome.timing.fallbackSteps).toStrictEqual(['1'])
   })
 
-  it('ウォームアップは、遅延ロードする要素を含むコンテナごとに、viewport 先頭へ入れたまま overlay の消滅を待つ', async () => {
+  it('事前の読み込みでは、遅延ロードする要素を含むコンテナごとに、先頭へスクロールした状態でオーバーレイが消えるのを待つ', async () => {
+    await explains('遅延ロードする要素を含むコンテナの、事前の読み込みのテストです。コンテナごとに表示領域の先頭へスクロールし、オーバーレイが消えるまで待ってから次へ進むことと、撮影前にも同じ待機を繰り返すことを確認します。')
     document.body.innerHTML = printDom(lazyDiagramContainers)
     const pageA = new FakePage()
     const pageB = new FakePage()
@@ -965,7 +1005,8 @@ describe('convertStepsSinglePass', () => {
     expect(exportCalls.map(call => call.container)).toStrictEqual(['001-01', '002-01', '002-02'])
   })
 
-  it('overlay が消えないコンテナは撮影せずに現行 worker へ回し、コンテナ id 付きで警告する', async () => {
+  it('オーバーレイが消えないコンテナは撮影せず、従来の worker で変換し、コンテナの id を付けて警告する', async () => {
+    await explains('遅延ロードのオーバーレイが消えないコンテナのテストです。読み込み中の状態を撮影せず、該当するステップだけを従来の worker で変換し、コンテナの id を付けた警告を表示することを確認します。')
     document.body.innerHTML = printDom(lazyDiagramContainers)
     const pageA = new FakePage()
     const pageB = new FakePage()
@@ -995,7 +1036,8 @@ describe('convertStepsSinglePass', () => {
     expect(readdirSyncSafe(slidesDir).filter(name => /^prerender-slide20[01]-/.test(name))).toStrictEqual([])
   })
 
-  it('ウォームアップで時間切れになったコンテナは、撮影前の再待ちを短い上限（2 秒）に縮める', async () => {
+  it('事前の読み込みで時間切れになったコンテナは、撮影前の再待機の上限を 2 秒に短縮する', async () => {
+    await explains('事前の読み込みでオーバーレイが消えず、時間切れになった場合のテストです。撮影前の再待機の上限が、戦略の設定（15 秒）ではなく 2 秒になることを確認します。')
     document.body.innerHTML = printDom(lazyDiagramContainers)
     const pageA = new FakePage()
     const pageB = new FakePage()
@@ -1024,7 +1066,8 @@ describe('convertStepsSinglePass', () => {
     expect(vi.mocked(request.fallbackRunner).mock.calls.map(call => call[1])).toStrictEqual([steps[1], steps[2]])
   })
 
-  it('ウォームアップで時間切れでも撮影前の再待ちで読み込みが終われば、1 パスのまま撮影する', async () => {
+  it('事前の読み込みで時間切れになっても、撮影前の再待機で読み込みが完了すれば、1 パスのまま撮影する', async () => {
+    await explains('事前の読み込みでは時間切れになるが、撮影前の再待機でオーバーレイが消える場合のテストです。従来の worker に切り替えず、1 パスのまま撮影することを確認します。')
     // 遅延ロードする要素は 002-01 だけ。
     // ウォームアップの 1 回目の待ちは時間切れになり、撮影前の 2 回目で消える
     document.body.innerHTML = printDom([
@@ -1054,7 +1097,8 @@ describe('convertStepsSinglePass', () => {
     expect(second?.status === 'fulfilled' ? second.value.prerenderResults.map(r => r.success) : []).toStrictEqual([true])
   })
 
-  it('selectorState 戦略の対象を含まないコンテナは待たない', async () => {
+  it('selectorState 戦略の対象を含まないコンテナでは、読み込みを待たない', async () => {
+    await explains('`selectorState` 戦略の対象を含むコンテナと含まないコンテナがある場合のテストです。対象を含むコンテナだけで読み込みの完了を待ち、含まないコンテナでは待たないことを確認します。')
     // 002-01 は fixed 戦略の対象（.point-number）だけ、002-02 は selectorState 戦略の対象を持つ
     document.body.innerHTML = printDom([
       { id: '001-01' },
@@ -1074,7 +1118,8 @@ describe('convertStepsSinglePass', () => {
     expect(pageB.waitForTimeoutCalls).toStrictEqual([300])
   })
 
-  it('abort 済みなら変換を始めずに throw し、ページを閉じる', async () => {
+  it('signal が中断済みの場合は、変換を始めずに例外を発生させ、ページを閉じる', async () => {
+    await explains('`signal` が中断済みの状態で `convertStepsSinglePass` を呼び出した場合のテストです。変換せずに `aborted` の例外が発生し、ページが閉じられることを確認します。')
     document.body.innerHTML = printDom(plainContainers)
     const pageA = new FakePage()
     const browser = new FakeBrowser({ pages: [pageA] })
@@ -1086,7 +1131,8 @@ describe('convertStepsSinglePass', () => {
     expect(exportCalls).toHaveLength(0)
   })
 
-  it('1 パス失敗ステップを回す前に abort されたら throw する', async () => {
+  it('1 パスで失敗したステップを従来の worker で変換する前に中断された場合は、例外を発生させる', async () => {
+    await explains('1 パスで失敗したステップを従来の worker で変換する前に、`signal` が中断された場合のテストです。`aborted` の例外が発生し、従来の worker が呼び出されないことを確認します。')
     document.body.innerHTML = printDom(plainContainers)
     failContainer = '002-02'
     const controller = new AbortController()

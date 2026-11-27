@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { frontmatterOf, jsonStrings, pythonStrings, shellStrings, yamlStrings } from '../lib/plugins/scan.js'
 import type { Segment } from '../lib/plugins/scan.js'
 import { stepSync } from '../../interface-spec/src/vitest/step.js'
+import { explains } from './helpers/explains.js'
 
 type Scanner = (text: string) => readonly Segment[]
 
@@ -13,7 +14,8 @@ function bodiesOf(scanner: Scanner, text: string): string[] {
 }
 
 function check(scanner: Scanner, rows: readonly Row[]): void {
-  it.each(rows)('%s のとき、引用符を含まない本文だけを切り出す', (_name, input, bodies) => {
+  it.each(rows)('%s のとき、引用符を含まない本文だけを切り出す', async (name, input, bodies) => {
+    await explains(`文字列の本文を切り出す \`${scanner.name}\` のテストです。入力が「${name}」の場合に、引用符を含まない本文だけが切り出され、期待した本文の一覧と一致することを確認します。`)
     stepSync('文字列の本文を切り出して比べる', () => {
       expect(bodiesOf(scanner, input)).toEqual(bodies)
     })
@@ -133,37 +135,43 @@ function split(text: string): { values: string[], rest: string } | undefined {
 }
 
 describe('frontmatterOf', () => {
-  it('値ごとに分け、閉じた --- より後を rest にする', () => {
+  it('frontmatter を値ごとに分け、閉じた --- より後ろを本文として残す', async () => {
+    await explains('先頭の frontmatter を切り出す `frontmatterOf` のテストです。`---` で囲んだ frontmatter と本文を渡した場合に、キーを除いた値が値ごとに分かれ、閉じた `---` より後ろの部分が本文として残ることを確認します。')
     stepSync('frontmatter を分けて比べる', () => {
       expect(split('---\ntitle: あ\ntype: "い"\n---\n\n本文\n')).toEqual({ values: ['あ', 'い'], rest: '\n本文\n' })
     })
   })
 
-  it('キーは除く', () => {
+  it('frontmatter のキーは除き、値だけを返す', async () => {
+    await explains('先頭の frontmatter を切り出す `frontmatterOf` のテストです。キーと値を持つ frontmatter を渡した場合に、キーは含まれず、値だけが返ることを確認します。')
     stepSync('frontmatter を分けて比べる', () => {
       expect(split('---\nあ: い\n---')).toEqual({ values: ['い'], rest: '' })
     })
   })
 
-  it('インデントを除いて読み、複数行の値を元の位置で切り出す', () => {
+  it('字下げを除いて読み、複数行の値を元の位置のまま切り出す', async () => {
+    await explains('先頭の frontmatter を切り出す `frontmatterOf` のテストです。字下げのある frontmatter を渡した場合に、字下げを除いて読み、複数行の値が元の位置のまま 1 つの値として切り出されることを確認します。')
     stepSync('frontmatter を分けて比べる', () => {
       expect(split('  ---\n  x: あ\n    い\n\n  y: う\n  ---\n')).toEqual({ values: ['あ\n    い', 'う'], rest: '' })
     })
   })
 
-  it('先頭の空行を読み飛ばす', () => {
+  it('frontmatter の前に空行があっても、読み飛ばして値を切り出す', async () => {
+    await explains('先頭の frontmatter を切り出す `frontmatterOf` のテストです。先頭に空行がある frontmatter を渡した場合に、空行を読み飛ばして値を切り出すことを確認します。')
     stepSync('frontmatter を分けて比べる', () => {
       expect(split('\n\n---\nx: あ\n---\n')).toEqual({ values: ['あ'], rest: '' })
     })
   })
 
-  it('値のブロックスカラーは指示子の行を除いた本文を返す', () => {
+  it('値がブロックスカラーの場合は、指示子の行を除いた本文を返す', async () => {
+    await explains('先頭の frontmatter を切り出す `frontmatterOf` のテストです。値がブロックスカラーの frontmatter を渡した場合に、指示子の行を除いた本文を値として返すことを確認します。')
     stepSync('frontmatter を分けて比べる', () => {
       expect(split('---\nx: |\n  あ\n---\n')).toEqual({ values: ['  あ'], rest: '' })
     })
   })
 
-  it('空の frontmatter は値を持たず、後ろは rest にする', () => {
+  it('中身が空の frontmatter は、値を持たず、後ろの部分を本文として残す', async () => {
+    await explains('先頭の frontmatter を切り出す `frontmatterOf` のテストです。中身が空の frontmatter を渡した場合に、値の一覧が空になり、後ろの部分が本文として残ることを確認します。')
     stepSync('frontmatter を分けて比べる', () => {
       expect(split('---\n---\nあ')).toEqual({ values: [], rest: 'あ' })
     })
@@ -174,7 +182,8 @@ describe('frontmatterOf', () => {
     ['--- で始まらない', 'x\n---\ny: あ\n---\n'],
     ['空の本文', ''],
     ['構文エラー', ['---\nx: [', 'あ\n---\n'].join('')],
-  ])('%s ときは undefined', (_name, text) => {
+  ])('%s ときは undefined を返す', async (name, text) => {
+    await explains(`先頭の frontmatter を切り出す \`frontmatterOf\` のテストです。入力が「${name}」の場合に、frontmatter とみなせないので \`undefined\` を返すことを確認します。`)
     stepSync('frontmatter を分け、undefined かを比べる', () => {
       expect(split(text)).toBeUndefined()
     })

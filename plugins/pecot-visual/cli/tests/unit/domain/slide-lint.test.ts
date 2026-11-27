@@ -18,6 +18,7 @@ import {
   runSlideLint,
   toRelativePath,
 } from '../../../src/domain/slidev-project/lint.js'
+import { explains } from '../../_helpers/explains.js'
 
 const TALK_DIR = '/tmp/talk'
 const ASSETS_DIR = '/plugin/assets/slidev'
@@ -69,7 +70,8 @@ function dependencies(
 }
 
 describe('runSlideLint 集計', () => {
-  it('違反なしは outcome=clean で lint 対象件数を返す', async () => {
+  it('違反がなければ、outcome を clean にして、lint した件数を返す', async () => {
+    await explains('スライドを lint する `runSlideLint` のテストです。eslint の結果が、2 つのファイルでどちらもエラーと警告が 0 件の場合に、`outcome` が `clean` になり、`lintedFileCount` が 2、違反の一覧が空になることを確認します。')
     const stdout = JSON.stringify([
       { filePath: `${TALK_DIR}/pages/cover.md`, errorCount: 0, warningCount: 0, messages: [] },
       { filePath: `${TALK_DIR}/slides.md`, errorCount: 0, warningCount: 0, messages: [] },
@@ -81,7 +83,8 @@ describe('runSlideLint 集計', () => {
     expect(summary.violations).toStrictEqual([])
   })
 
-  it('違反ありは outcome=violations で talk-dir 相対パスの一覧を返す', async () => {
+  it('違反があれば、outcome を violations にして、talk-dir からの相対パスで違反の一覧を返す', async () => {
+    await explains('スライドを lint する `runSlideLint` のテストです。eslint の結果にエラーと警告がある場合に、`outcome` が `violations` になり、違反が相対パスで返ることを確認します。')
     const stdout = JSON.stringify([
       {
         filePath: `${TALK_DIR}/pages/01-intro.md`,
@@ -117,7 +120,8 @@ describe('runSlideLint 集計', () => {
     ])
   })
 
-  it('件数フィールドを欠く report entry は 0 件 / 違反なしとして扱う', async () => {
+  it('eslint の結果に件数の項目がなければ、0 件で違反なしとして扱う', async () => {
+    await explains('スライドを lint する `runSlideLint` のテストです。eslint の結果が `[{}]` のように件数の項目を持たない場合に、`lintedFileCount` が 1、エラーと警告が 0 件、`outcome` が `clean` になることを確認します。')
     const summary = await runSlideLint(
       { directory: TALK_DIR },
       dependencies(spawnResult({ stdout: '[{}]' })),
@@ -128,14 +132,16 @@ describe('runSlideLint 集計', () => {
     expect(summary.outcome).toBe('clean')
   })
 
-  it('lint 対象 0 件は違反 0 件と区別して outcome=no-target を返す', async () => {
+  it('lint の対象のファイルが 0 件なら、違反が 0 件の場合と区別して、outcome を no-target にする', async () => {
+    await explains('スライドを lint する `runSlideLint` のテストです。eslint の結果が空の配列の場合に、`outcome` が `no-target` になり、`lintedFileCount` とエラーの件数が 0 になることを確認します。')
     const summary = await runSlideLint({ directory: TALK_DIR }, dependencies(spawnResult({ stdout: '[]' })))
     expect(summary.outcome).toBe('no-target')
     expect(summary.lintedFileCount).toBe(0)
     expect(summary.errorCount).toBe(0)
   })
 
-  it('symlink dir の検出結果は summary に載るが outcome を動かさない', async () => {
+  it('シンボリックリンクのディレクトリを見つけた場合は、結果に載せるが、outcome は変えない', async () => {
+    await explains('スライドを lint する `runSlideLint` のテストです。シンボリックリンクの `pages/sub` がある場合に、結果の `skippedSymlinkDirectories` に載せることを確認します。')
     const fs = fakeFs({
       // eslint-disable-next-line @typescript-eslint/require-await -- fake adapter は同期実装で十分
       listSkippedSymlinkPageDirectories: async () => ['pages/sub'],
@@ -151,7 +157,8 @@ describe('runSlideLint 集計', () => {
     expect(summary.outcome).toBe('clean')
   })
 
-  it('lint 対象 0 件でも symlink dir の検出結果は保持する', async () => {
+  it('lint の対象のファイルが 0 件でも、見つけたシンボリックリンクのディレクトリを結果に載せる', async () => {
+    await explains('スライドを lint する `runSlideLint` のテストです。eslint の結果が空で `pages/sub` のシンボリックリンクがある場合に、`outcome` が `no-target` になることを確認します。')
     const fs = fakeFs({
       // eslint-disable-next-line @typescript-eslint/require-await -- 同上
       listSkippedSymlinkPageDirectories: async () => ['pages/sub'],
@@ -164,7 +171,8 @@ describe('runSlideLint 集計', () => {
     expect(summary.skippedSymlinkDirectories).toStrictEqual(['pages/sub'])
   })
 
-  it('EslintRunner に talk-dir・assets dir・deck lint 設定・解釈済みの lint を渡す', async () => {
+  it('eslint の実行には、talk-dir・assets のディレクトリ・deck lint の設定・読み取った lint の設定を渡す', async () => {
+    await explains('スライドを lint する `runSlideLint` のテストです。eslint の実行に渡す引数として、`talkDirectory`・`assetsDirectory`・`deckLintConfig`・`lint` を、指定した値で 1 回だけ渡すことを確認します。')
     const seen: EslintRunArguments[] = []
     await runSlideLint({ directory: TALK_DIR }, {
       assetsDirectory: ASSETS_DIR,
@@ -187,7 +195,8 @@ describe('runSlideLint 集計', () => {
 })
 
 describe('runSlideLint の eslint 実行失敗の分岐', () => {
-  it('timeout は eslint-timeout（exitCode:null より先に判定する）', async () => {
+  it('eslint が時間切れになった場合は、終了コードが null でも、時間切れの例外を発生させる', async () => {
+    await explains('スライドを lint する `runSlideLint` のテストです。`timedOut` が `true` で終了コードが `null` の場合に、`SlideLintRuntimeError` が発生することを確認します。')
     // eslint-disable-next-line unicorn/no-null -- SIGTERM 終了時の SpawnResult 契約
     const result = spawnResult({ exitCode: null, timedOut: true, stderr: '' })
     await expect(runSlideLint({ directory: TALK_DIR }, dependencies(result)))
@@ -196,33 +205,38 @@ describe('runSlideLint の eslint 実行失敗の分岐', () => {
       .rejects.toThrow('(no stderr)')
   })
 
-  it('起動失敗 (exitCode:null) は eslint-not-launched', async () => {
+  it('eslint を起動できなかった場合は、理由が eslint-not-launched の例外を発生させる', async () => {
+    await explains('スライドを lint する `runSlideLint` のテストです。終了コードが `null` で、標準エラーに `spawn ENOENT` がある場合に、理由が `eslint-not-launched` の例外が発生することを確認します。')
     // eslint-disable-next-line unicorn/no-null -- 起動失敗時の SpawnResult 契約
     const result = spawnResult({ exitCode: null, stderr: 'spawn ENOENT' })
     await expect(runSlideLint({ directory: TALK_DIR }, dependencies(result)))
       .rejects.toMatchObject({ reason: 'eslint-not-launched' })
   })
 
-  it('eslint の exit 2 は eslint-failed に変換し usage error (exit 2) と衝突させない', async () => {
+  it('eslint が終了コード 2 で終了した場合は、使い方の誤りと区別して、理由が eslint-failed の例外を発生させる', async () => {
+    await explains('スライドを lint する `runSlideLint` のテストです。eslint の終了コードが 2 で、標準出力が空の場合に、理由が `eslint-failed` の例外が発生することを確認します。')
     const result = spawnResult({ exitCode: 2, stdout: '', stderr: 'Oops! Something went wrong!' })
     await expect(runSlideLint({ directory: TALK_DIR }, dependencies(result)))
       .rejects.toMatchObject({ reason: 'eslint-failed' })
   })
 
-  it('長い stderr は抜粋して報告する', async () => {
+  it('標準エラーが長い場合は、一部を抜粋してメッセージに載せる', async () => {
+    await explains('スライドを lint する `runSlideLint` のテストです。標準エラーが 1000 文字の `x` の場合に、発生する例外のメッセージに省略を表す `...` が含まれることを確認します。')
     // eslint-disable-next-line unicorn/no-null -- 起動失敗時の SpawnResult 契約
     const result = spawnResult({ exitCode: null, stderr: 'x'.repeat(1000) })
     await expect(runSlideLint({ directory: TALK_DIR }, dependencies(result)))
       .rejects.toThrow('...')
   })
 
-  it('JSON として解析できない stdout は invalid-report', async () => {
+  it('標準出力が JSON として読み取れない場合は、理由が invalid-report の例外を発生させる', async () => {
+    await explains('スライドを lint する `runSlideLint` のテストです。eslint の標準出力が `not json` の場合に、理由が `invalid-report` の例外が発生することを確認します。')
     const result = spawnResult({ stdout: 'not json' })
     await expect(runSlideLint({ directory: TALK_DIR }, dependencies(result)))
       .rejects.toMatchObject({ reason: 'invalid-report' })
   })
 
-  it('配列でない JSON は invalid-report', async () => {
+  it('標準出力が配列ではない JSON の場合も、理由が invalid-report の例外を発生させる', async () => {
+    await explains('スライドを lint する `runSlideLint` のテストです。eslint の標準出力が `{"a":1}` のように配列ではない JSON の場合に、理由が `invalid-report` の例外が発生することを確認します。')
     const result = spawnResult({ stdout: '{"a":1}' })
     await expect(runSlideLint({ directory: TALK_DIR }, dependencies(result)))
       .rejects.toMatchObject({ reason: 'invalid-report' })
@@ -230,13 +244,15 @@ describe('runSlideLint の eslint 実行失敗の分岐', () => {
 })
 
 describe('runSlideLint の talk-dir 検証', () => {
-  it('相対パスは usage error (relative-dir)', async () => {
+  it('talk-dir に相対パスを指定すると、使い方の誤りの例外が発生する', async () => {
+    await explains('スライドを lint する `runSlideLint` のテストです。`directory` に `relative/talk` のような相対パスを渡した場合に、`SlideLintUsageError` が発生することを確認します。')
     const dependencies_ = dependencies(spawnResult({}))
     await expect(runSlideLint({ directory: 'relative/talk' }, dependencies_))
       .rejects.toThrow(SlideLintUsageError)
   })
 
-  it('存在しない dir は dir-not-found', async () => {
+  it('talk-dir が存在しない場合は、理由が dir-not-found の例外を発生させる', async () => {
+    await explains('スライドを lint する `runSlideLint` のテストです。指定したディレクトリが存在しない場合に、理由が `dir-not-found` の例外が発生することを確認します。')
     // eslint-disable-next-line @typescript-eslint/require-await -- fake adapter は同期実装で十分
     const fs = fakeFs({ talkDirectoryExists: async () => ({ exists: false, isDirectory: false }) })
     const dependencies_ = dependencies(spawnResult({}), fs)
@@ -244,7 +260,8 @@ describe('runSlideLint の talk-dir 検証', () => {
       .rejects.toMatchObject({ reason: 'dir-not-found' })
   })
 
-  it('ディレクトリでない path は not-a-directory', async () => {
+  it('talk-dir にディレクトリではないパスを指定すると、理由が not-a-directory の例外が発生する', async () => {
+    await explains('スライドを lint する `runSlideLint` のテストです。指定したパスが存在するがディレクトリではない場合に、理由が `not-a-directory` の例外が発生することを確認します。')
     // eslint-disable-next-line @typescript-eslint/require-await -- 同上
     const fs = fakeFs({ talkDirectoryExists: async () => ({ exists: true, isDirectory: false }) })
     const dependencies_ = dependencies(spawnResult({}), fs)
@@ -252,7 +269,8 @@ describe('runSlideLint の talk-dir 検証', () => {
       .rejects.toMatchObject({ reason: 'not-a-directory' })
   })
 
-  it('slides.md が無い dir は not-talk-dir', async () => {
+  it('slides.md が存在しないディレクトリを指定すると、理由が not-talk-dir の例外が発生する', async () => {
+    await explains('スライドを lint する `runSlideLint` のテストです。`slides.md` が存在しないディレクトリを指定した場合に、理由が `not-talk-dir` の例外が発生することを確認します。')
     // eslint-disable-next-line @typescript-eslint/require-await -- 同上
     const fs = fakeFs({ doesSlidesMdExist: async () => false })
     const dependencies_ = dependencies(spawnResult({}), fs)
@@ -262,15 +280,18 @@ describe('runSlideLint の talk-dir 検証', () => {
 })
 
 describe('toRelativePath', () => {
-  it('talk-dir 配下は相対パスに畳む', () => {
+  it('talk-dir の配下のパスは、talk-dir からの相対パスにして返す', async () => {
+    await explains('`toRelativePath` のテストです。`/a/b` の配下の `/a/b/pages/x.md` を渡した場合に、`pages/x.md` を返すことを確認します。')
     expect(toRelativePath('/a/b', '/a/b/pages/x.md')).toBe('pages/x.md')
   })
 
-  it('talk-dir 外 (realpath 解決差) は絶対パスのまま返す', () => {
+  it('talk-dir の外のパスは、絶対パスのまま返す', async () => {
+    await explains('`toRelativePath` のテストです。`/a/b` の外にある `/other/pages/x.md` を渡した場合に、変換せずにそのまま返すことを確認します。')
     expect(toRelativePath('/a/b', '/other/pages/x.md')).toBe('/other/pages/x.md')
   })
 
-  it('talk-dir 自身と空文字はそのまま返す', () => {
+  it('talk-dir 自身を指すパスと空文字は、そのまま返す', async () => {
+    await explains('`toRelativePath` のテストです。`/a/b` 自身と空文字を渡した場合に、どちらも変換せずにそのまま返すことを確認します。')
     expect(toRelativePath('/a/b', '/a/b')).toBe('/a/b')
     expect(toRelativePath('/a/b', '')).toBe('')
   })

@@ -34,6 +34,7 @@ import { YauzlYazlPptxArchive } from '../../src/infra/pptx-ooxml/archive.js'
 import { attachFile, readOutput } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
+import { explains } from '../_helpers/explains.js'
 
 // runner は本体ツリーの cli/dist を直接実行する。
 // 本 CUJ は、bootstrap 込みの計測から 45s の上限を引き継いでいる。
@@ -68,7 +69,8 @@ afterAll(() => {
 const isChromiumReady = isChromiumCached()
 
 describe.skipIf(!isChromiumReady)('CUJ 1: 黄金パス (slide create → convert)', () => {
-  it('quickstart §2 の 3 ステップが 0 終了し、中間ファイルを作り、画像メディアを連番に rename する', async () => {
+  it('クイックスタートの `slide create` と `slide convert` が成功し、中間ファイルを作り、画像のメディアに連番を付けた名前へ変える', async () => {
+    await explains('スライドの作成から PPTX への変換までの基本の流れのテストです。`slide create` の後で `slide convert` した場合に、どちらも終了コード 0 で、雛形のファイルが作られ、PPTX の画像のメディアが連番つきの名前になることを確認します。')
     const itT0 = performance.now()
     const projectDirectory = temporaryRoot('sample-cuj1')
     const pptxOut = temporaryRoot('cuj1.pptx')

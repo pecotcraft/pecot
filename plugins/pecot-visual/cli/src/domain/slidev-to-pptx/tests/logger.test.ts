@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { Logger } from '../logger.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 describe('Logger interface', () => {
-  it('info / verbose / debug / warn / error の 5 メソッドを持つ実装を受け入れる', () => {
+  it('info・verbose・debug・warn・error の 5 つのメソッドを持つ実装を、Logger として受け付ける', async () => {
+    await explains('ログ出力の型 `Logger` のテストです。5 つのメソッドを持つオブジェクトを `Logger` として使い、それぞれを呼び出した場合に、渡した引数どおりに呼び出されることを確認します。')
     const logger: Logger = {
       info: vi.fn(),
       verbose: vi.fn(),

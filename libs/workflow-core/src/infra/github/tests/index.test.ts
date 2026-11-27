@@ -1,6 +1,7 @@
 // GitHubClient の合成のテスト。各 API のクラスの操作が 1 つのクライアントで呼べることと、
 // RepositoryMembership（domain/config.ts）を満たすことを確かめる。
 import { describe, expect, it } from 'vitest'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 import { isRepositoryInProject, parseProjectConfig } from '../../../domain/config.js'
 import { JSON_NULL } from '../../../domain/json-null.js'
@@ -17,6 +18,7 @@ useFakeGithub()
 
 describe('GitHubClient', () => {
   it('基底 → repos → projects → issues → pulls の順に継承し、全 API の操作を持つ', async () => {
+    await explains('GitHub クライアントの合成のテストです。クライアントが、基底・repos・projects・issues・pulls の順に継承したクラスで、全 API の操作を関数として持つことを確認します。')
     const { client } = await startClient([])
     expect(client).toBeInstanceOf(PullsApi)
     expect(client).toBeInstanceOf(IssuesApi)
@@ -28,12 +30,14 @@ describe('GitHubClient', () => {
     }
   })
 
-  it('コンストラクタに host を渡せる（GitHubClientBase と同じ）', () => {
+  it('コンストラクタに host を渡すと、その host の API の URL になる（GitHubClientBase と同じ）', async () => {
+    await explains('GitHub クライアントの合成のテストです。コンストラクタに `host` を渡した場合は、`GitHubClientBase` と同じ API の URL（`https://ghes.example.com/api/v3`）になることを確認します。')
     const client = new GitHubClient({ host: 'ghes.example.com', token: 't', diagnostics: ignoredDiagnostics })
     expect(client.apiUrl).toBe('https://ghes.example.com/api/v3')
   })
 
   it('isRepositoryInProject に RepositoryMembership として渡せる', async () => {
+    await explains('`isRepositoryInProject` のテストです。クライアントを `RepositoryMembership` として渡した場合に、ボードに含まれるリポジトリは `true`、含まれないものは `false` を返すことを確認します。')
     const { client, server } = await startClient([
       graphqlData('GetLinkedRepositoriesUser', { user: { projectV2: { repositories: { nodes: [{ owner: { login: 'acme' }, name: 'widgets' }, JSON_NULL] } } } }),
     ])

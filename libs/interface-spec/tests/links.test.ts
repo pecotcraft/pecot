@@ -8,6 +8,7 @@ import { checkLinks, scanBehaviorIds } from '../src/domain/links.js'
 import { linkRepository } from '../src/links-repository.js'
 import { materialize } from './helpers/repository.js'
 import { step, stepSync } from '../src/vitest/step.js'
+import { explains } from '../src/vitest/explains.js'
 
 async function call(...argv: string[]): Promise<{ code: number, stdout: string, stderr: string }> {
   const stdout: string[] = []
@@ -27,7 +28,8 @@ const TOOLS_FILE = 'plugins/pecot-tools/cli/tests/a.txt'
 const WORKFLOW_FILE = 'plugins/pecot-workflow/cli/tests/b.txt'
 
 describe('scanBehaviorIds', () => {
-  it('行ごとに ID と行番号を返し、コメントの中も数える', () => {
+  it('行ごとに ID と行番号を返し、コメントの中の ID も含める', async () => {
+    await explains('テストのソースから振る舞いの項目の ID を探す `scanBehaviorIds` のテストです。複数の ID を含むソースの場合に、ID と行番号の組を出現順に返し、コメントの中の ID も含まれることを確認します。')
     const found = stepSync('ID を走査する', () => scanBehaviorIds({ path: 'a.test.ts', text: `verifies(ctx, 'PT-AWS-S3-LS-01')\n// PW-ISSUE-CREATE-02 と PV-DRAWIO-01\n` }))
     stepSync('結果を比べる', () => {
       expect(found).toEqual([
@@ -38,14 +40,16 @@ describe('scanBehaviorIds', () => {
     })
   })
 
-  it('境界の外の ID（桁が多い・前に文字が付く）を拾わない', () => {
+  it('桁が多い ID や、前後に文字が付いた ID は、拾わない', async () => {
+    await explains('テストのソースから振る舞いの項目の ID を探す `scanBehaviorIds` のテストです。`PT-X-011` や `xPW-A-01` のように、桁が多い ID と前後に文字が付いた ID だけを含むソースの場合に、空の配列を返すことを確認します。')
     const text = 'PT-X-011 xPW-A-01 a_PW-A-01 -PW-A-01 PW-A-01x PW-A-01_ PW-A-01-\n'
     stepSync('ID を走査して比べる', () => {
       expect(scanBehaviorIds({ path: 'a.test.ts', text })).toEqual([])
     })
   })
 
-  it('記号や空白に挟まれた ID は拾う', () => {
+  it('記号や空白に挟まれた ID は、拾って返す', async () => {
+    await explains('テストのソースから振る舞いの項目の ID を探す `scanBehaviorIds` のテストです。`("PW-A-01"),[PW-B-02]` のように記号に挟まれた ID を含むソースの場合に、2 つの ID を返すことを確認します。')
     stepSync('ID を走査して比べる', () => {
       expect(scanBehaviorIds({ path: 'a.test.ts', text: '("PW-A-01"),[PW-B-02]' }).map(item => item.id)).toEqual(['PW-A-01', 'PW-B-02'])
     })
@@ -53,13 +57,15 @@ describe('scanBehaviorIds', () => {
 })
 
 describe('checkLinks', () => {
-  it('coverage が off のとき、テストの無い項目を出さない', () => {
+  it('coverage が off だと、テストが無い項目を報告しない', async () => {
+    await explains('定義書の ID とテストの ID のつなぎを検証する `checkLinks` のテストです。`coverage` が `off` の場合に、テストが 1 件もない項目があっても、エラーを返さないことを確認します。')
     stepSync('リンクを確かめて比べる', () => {
       expect(checkLinks([{ name: 'pecot-tools', coverage: 'off', ids: ['PT-A-01'], tests: [] }])).toEqual([])
     })
   })
 
-  it('ファイル・行・ID の順に並べ、続けてテストの無い項目を ID の順に並べる', () => {
+  it('エラーをファイル・行・ID の順に並べ、続けてテストが無い項目を ID の順に並べて返す', async () => {
+    await explains('定義書の ID とテストの ID のつなぎを検証する `checkLinks` のテストです。定義書に存在しない ID と、テストのない項目が複数ある場合に、前者をファイル・行・ID の順、後者を ID の順に並べ、前者を先にして返すことを確認します。')
     const lines = stepSync('リンクを確かめる', () => checkLinks([{
       name: 'pecot-tools',
       coverage: 'on',
@@ -83,7 +89,8 @@ describe('checkLinks', () => {
 })
 
 describe('linkRepository', () => {
-  it('定義書に無い ID をファイルと行つきで出し、別のプラグインの ID も止める', async () => {
+  it('定義書に存在しない ID を、ファイルと行を付けて報告し、別の plugin の ID も存在しない扱いにする', async () => {
+    await explains('リポジトリのテストから、定義書に存在しない ID を探す `linkRepository` のテストです。ファイルと行を付けて報告し、別の plugin の ID を使っている場合も存在しないものとして報告することを確認します。')
     const lines = await step('リポジトリのリンクを確かめる', async () => await linkRepository(await materialize('links-coverage-off')))
     stepSync('結果を比べる', () => {
       expect(lines).toEqual([
@@ -93,7 +100,8 @@ describe('linkRepository', () => {
     })
   })
 
-  it('coverage が on のとき、どのテストにも無い項目を出す', async () => {
+  it('coverage が on だと、どのテストからも参照されていない項目も報告する', async () => {
+    await explains('リポジトリのテストから、定義書に存在しない ID を探す `linkRepository` のテストです。`coverage` が `on` の場合に、存在しない ID に加えて、どのテストからも参照されていない項目を `has no test` として報告することを確認します。')
     const lines = await step('リポジトリのリンクを確かめる', async () => await linkRepository(await materialize('links')))
     stepSync('結果を比べる', () => {
       expect(lines).toEqual([
@@ -106,7 +114,8 @@ describe('linkRepository', () => {
     })
   })
 
-  it('statement が空の振る舞いの項目でも ID を集め、テストに書いた ID を定義書に無いと言わない', async () => {
+  it('statement が空の項目の ID も定義書の ID として扱い、テストに書いた同じ ID を存在しないと報告しない', async () => {
+    await explains('リポジトリのテストから、定義書に存在しない ID を探す `linkRepository` のテストです。`statement` が空の項目も定義書の ID に含まれ、テストに書いた同じ ID が、存在しないと報告されないことを確認します。')
     const root = await materialize('field-empty')
     await step('targets.json を書く', async () => {
       await writeFile(path.join(root, 'libs/interface-spec/targets.json'), JSON.stringify({
@@ -128,7 +137,8 @@ describe('linkRepository', () => {
     })
   })
 
-  it('git が追跡しないファイルは読まない', async () => {
+  it('git が追跡していないファイルは、テストとして読み込まない', async () => {
+    await explains('リポジトリのテストから、定義書に存在しない ID を探す `linkRepository` のテストです。`git add` していないファイルに存在しない ID が書かれていても、報告に含まれないことを確認します。')
     const root = await materialize('links-coverage-off')
     await step('追跡されないファイルを書く', async () => {
       await writeFile(path.join(root, 'plugins/pecot-tools/cli/tests/untracked.txt'), 'PT-UNTRACKED-01\n')
@@ -139,7 +149,8 @@ describe('linkRepository', () => {
     })
   })
 
-  it('targets.json の形が崩れていると、その行を返す', async () => {
+  it('targets.json の形式が不正だと、targets.json のエラーだけを返す', async () => {
+    await explains('リポジトリのテストから、定義書に存在しない ID を探す `linkRepository` のテストです。形式の不正な `targets.json` を渡した場合に、エラーが 1 件以上返り、すべて `libs/interface-spec/targets.json` に関するものであることを確認します。')
     const lines = await step('リポジトリのリンクを確かめる', async () => await linkRepository(await materialize('targets-invalid')))
     stepSync('結果を比べる', () => {
       expect(lines.length).toBeGreaterThan(0)
@@ -147,7 +158,8 @@ describe('linkRepository', () => {
     })
   })
 
-  it('authored.yaml が読めないプラグインは、ID が空として扱う', async () => {
+  it('authored.yaml が存在しない plugin は、定義書の ID を持たないものとして扱う', async () => {
+    await explains('リポジトリのテストから、定義書に存在しない ID を探す `linkRepository` のテストです。`authored.yaml` が存在しない plugin を含む場合に、エラーが返らないことを確認します。')
     const lines = await step('リポジトリのリンクを確かめる', async () => await linkRepository(await materialize('interface-missing')))
     stepSync('結果を比べる', () => {
       expect(lines).toEqual([])
@@ -156,13 +168,15 @@ describe('linkRepository', () => {
 })
 
 describe('links', () => {
-  it('つながっているとき、何も出さず 0 で終わる', async () => {
+  it('定義書とテストの ID がつながっていると、何も出力せず 0 で終了する', async () => {
+    await explains('`interface-spec links` コマンドのテストです。定義書とテストの ID が整合している場合に、何も出力せず、終了コード 0 で終了することを確認します。')
     await step('リンクの確認を動かし、出力を比べる', async () => {
       expect(await call('links', '--root', await materialize('valid'))).toEqual({ code: 0, stdout: '', stderr: '' })
     })
   })
 
-  it('失敗があると、1 件ごとに 1 行を標準エラーに出して 1 で終わる', async () => {
+  it('エラーがあると、1 件ごとに 1 行を標準エラーに出力し、1 で終了する', async () => {
+    await explains('`interface-spec links` コマンドのテストです。定義書に存在しない ID が 2 件ある場合、1 件ごとに 1 行を標準エラーへ出力し、終了コード 1 で終了することを確認します。')
     await step('リンクの確認を動かし、出力を比べる', async () => {
       expect(await call('links', '--root', await materialize('links-coverage-off'))).toEqual({
         code: 1,
@@ -172,7 +186,8 @@ describe('links', () => {
     })
   })
 
-  it('git リポジトリでない root だと、2 で終わる', async () => {
+  it('root が git リポジトリでないと、エラーを出力し、2 で終了する', async () => {
+    await explains('`interface-spec links` コマンドのテストです。`--root` に git リポジトリでないディレクトリを指定した場合に、`git ls-files` の失敗を示すエラーを出力し、終了コード 2 で終了することを確認します。')
     const root = await mkdtemp(path.join(tmpdir(), 'interface-spec-nogit-'))
     await step('git でない root の確認を動かし、出力を比べる', async () => {
       try {
@@ -189,7 +204,8 @@ describe('links', () => {
     })
   })
 
-  it('--root の値が無いと、使い方を出して 2 で終わる', async () => {
+  it('--root の値が指定されていないと、使い方を出力し、2 で終了する', async () => {
+    await explains('`interface-spec links` コマンドのテストです。`--root` に値を指定しなかった場合に、使い方を標準エラーへ出力し、終了コード 2 で終了することを確認します。')
     const result = await step('CLI を動かす', () => call('links', '--root'))
     stepSync('結果を比べる', () => {
       expect(result.code).toBe(2)

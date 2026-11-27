@@ -20,6 +20,7 @@ import { INVALID_DIRECTORY_CASES, isRoot, unlock } from '../_helpers/directory-o
 import { CONFIG_FILE, issueFailure, issueResponse, prepareSession, separateRepository } from '../_helpers/session-case.js'
 import { makeAmbiguous, removeActive, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { verifies } from '../_helpers/verifies.js'
+import { explains } from '../_helpers/explains.js'
 
 useIsolatedEnvironment()
 
@@ -95,6 +96,7 @@ function failingOn(operation: string): ResponseRule {
 describe('session show', () => {
   it('--directory を渡すと、ブランチ・リポジトリ・remote とブランチ名から求めた作業中の Issue を標準出力に出し、フラグの表を出さない', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-01')
+    await explains('CLI の `session show -D` を実行した場合のテストです。ブランチ名と remote から求めた作業中の Issue を標準出力に表示し、フラグの表を表示しないことを確認します。')
     const { repository } = prepareSession()
     await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
 
@@ -105,6 +107,7 @@ describe('session show', () => {
 
   it('作業中の Issue を、読んだ Issue の番号・題名・状態と本文で Active Issue の節に出す', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-06')
+    await explains('作業中の Issue の表示のテストです。GitHub から読み取った Issue の番号・題名・状態と本文が、`Active Issue` の節に表示されることを確認します。')
     const { repository } = prepareSession()
     const github = await startGithub([issueResponse({ number: 7, title: '見本の Issue', body: '本文の 1 行目\n本文の 2 行目\n' }), stackedAbove()])
 
@@ -120,6 +123,7 @@ describe('session show', () => {
   })
 
   it('本文が空の Issue は、題名の行までで Active Issue の節を終える', async () => {
+    await explains('本文が空の Issue を作業中の Issue にした場合のテストです。`Active Issue` の節が、題名と状態の行で終わることを確認します。')
     const { repository } = prepareSession()
     await startGithub([issueResponse({ number: 7, title: '題名だけ', state: 'CLOSED' }), stackedAbove()])
 
@@ -130,6 +134,7 @@ describe('session show', () => {
 
   it('別の番号の古い .pecot-active が残っていても読まず、ブランチ名の番号の Issue を出す', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-31')
+    await explains('別の番号の古い `.pecot-active` が残っている場合のテストです。そのファイルは読み取らず、ブランチ名の番号（`7`）の Issue が表示されることを確認します。')
     const { repository } = prepareSession({ files: { '.pecot/state/.pecot-active': 'acme/demo/99\n' } })
     const github = await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
 
@@ -141,6 +146,7 @@ describe('session show', () => {
 
   it('ブランチ名を読めないとき、Branch の行に unknown を出して続ける', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-08')
+    await explains('Git リポジトリの外のディレクトリを指定した場合のテストです。`Branch` と `Repository` の行に `unknown` を、`Active Issue` の行に `none` を表示し、処理を続行することを確認します。')
     prepareSession()
     const outsideGit = makeTemporaryDirectory('pecot-plain-')
 
@@ -152,6 +158,7 @@ describe('session show', () => {
 
   it('origin も他の remote も無いとき、Repository の行に unknown を、Active Issue の行に none を出して続ける', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-10')
+    await explains('origin も他の remote も存在しない場合のテストです。`Repository` の行に `unknown` を、`Active Issue` の行に `none` を表示し、処理を続行することを確認します。')
     const { repository } = prepareSession({ remotes: {} })
 
     const result = await status(repository)
@@ -160,6 +167,7 @@ describe('session show', () => {
   })
 
   it('remote の URL の形が合わないとき、Active Issue の行に none を出す', async () => {
+    await explains('remote の URL の形式が不正な場合のテストです。`Active Issue` の行に `none` が表示され、終了コード 0 で終了することを確認します。')
     const { repository } = prepareSession({ remotes: { origin: 'not-a-url' } })
 
     const result = await status(repository)
@@ -170,6 +178,7 @@ describe('session show', () => {
 
   it('origin が無くても、最初の remote のリポジトリを出し、そのリポジトリの Issue を作業中の Issue にする', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-01')
+    await explains('origin が存在せず、別の remote だけがある場合のテストです。最初の remote のリポジトリが表示され、そのリポジトリの Issue が作業中の Issue になることを確認します。')
     const { repository } = prepareSession({ remotes: { upstream: 'https://ghes.example.com/acme/other.git' }, repositories: ['other'] })
     const github = await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
 
@@ -186,6 +195,7 @@ describe('session show', () => {
     { branch: 'wt4' },
   ])('ブランチ名 $branch の末尾が番号でないとき、Active Issue の行に none を出して続ける', async ({ branch }, context) => {
     await verifies(context, 'PW-SESSION-SHOW-12')
+    await explains(`ブランチ名が \`${branch}\` の場合のテストです。末尾が番号でないため、\`Active Issue\` の行に \`none\` を表示し、\`Active Issue\` の節は表示しないことを確認します。`)
     const { repository } = prepareSession({ branch })
 
     const result = await status(repository)
@@ -196,6 +206,7 @@ describe('session show', () => {
   })
 
   it('作業中の Issue があるのに、そのリポを含む設定が 2 つあり .active も選べないとき、節を出さずに warning を標準エラーに出す', async () => {
+    await explains('そのリポジトリを含むプロジェクトの設定が 2 つあり、`.active` でも選べない場合のテストです。`Active Issue` の節を表示せず、警告を標準エラーに出力して終了コード 0 で終了することを確認します。')
     const { project, repository } = prepareSession()
     makeAmbiguous(project)
 
@@ -207,6 +218,7 @@ describe('session show', () => {
   })
 
   it('作業中の Issue があるのに、そのリポを含む設定が無いとき、節を出さずに warning を標準エラーに出して終了コード 0 で終わる', async () => {
+    await explains('そのリポジトリを含むプロジェクトの設定が存在しない場合のテストです。`Active Issue` の節を表示せず、警告を標準エラーに出力して終了コード 0 で終了することを確認します。')
     const { repository } = prepareSession({ repositories: ['other'] })
 
     const result = await status(repository)
@@ -218,6 +230,7 @@ describe('session show', () => {
 
   it('--project を渡すと、そのリポを含む設定が 2 つあってもその設定で作業中の Issue を読む', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-40')
+    await explains('`--project` を指定した場合のテストです。そのリポジトリを含む設定が 2 つあっても、指定した設定で作業中の Issue を読み取り、警告が出力されないことを確認します。')
     const { project, repository } = prepareSession()
     makeAmbiguous(project)
     await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
@@ -230,6 +243,7 @@ describe('session show', () => {
   })
 
   it('.active が無くても、そのリポを含む設定が 1 つならその設定で作業中の Issue を読む', async () => {
+    await explains('`.active` が存在しない場合のテストです。そのリポジトリを含む設定が 1 つだけなら、その設定で作業中の Issue を読み取り、警告が出力されないことを確認します。')
     const { project, repository } = prepareSession()
     removeActive(project)
     await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
@@ -242,6 +256,7 @@ describe('session show', () => {
   })
 
   it('作業中の Issue があるのに Issue を GitHub から読めないとき、節を出さずに warning を標準エラーに出す', async () => {
+    await explains('作業中の Issue を GitHub から取得できない（HTTP 502 を返す）場合のテストです。`Active Issue` の節を表示せず、`502` を含む警告を標準エラーに出力することを確認します。')
     const { repository } = prepareSession()
     await startGithub([issueFailure(502)])
 
@@ -253,6 +268,7 @@ describe('session show', () => {
   })
 
   it('--directory を省くと、終了コード 2 で終わる', async () => {
+    await explains('`--directory` を省略した場合のテストです。`Missing option` のエラーが出力され、終了コード 2 で終了することを確認します。')
     const result = await runInProcess(['session', 'show'], SESSION_COMMANDS)
 
     expect(result.code).toBe(2)
@@ -260,6 +276,7 @@ describe('session show', () => {
   })
 
   it.for(INVALID_DIRECTORY_CASES)('--directory が存在するディレクトリでないとき（$name）、終了コード 2 で終わる', async ({ reason, locked, prepare }, context) => {
+    await explains('`--directory` に、存在するディレクトリではない値を指定した場合のテストです。`Invalid value` のエラーを標準エラーに出力して終了コード 2 で終了し、標準出力には何も出力しないことを確認します。')
     if (locked && isRoot()) context.skip()
     const { repository } = prepareSession()
     const target = prepare(repository)
@@ -277,6 +294,7 @@ describe('session show', () => {
   })
 
   it('--directory が空文字のとき、cwd を対象にして終了コード 0 で終わる', async () => {
+    await explains('`--directory` に空文字を指定した場合のテストです。現在のディレクトリを対象にして、終了コード 0 でセッションの状態を表示することを確認します。')
     prepareSession()
     await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
 
@@ -288,6 +306,7 @@ describe('session show', () => {
   })
 
   it('--directory がファイルとディレクトリのどちらでもないパスのとき、Usage ではなく error の 1 行を出して終了コード 1 で終わる', async () => {
+    await explains('`--directory` に、ファイルとディレクトリのどちらにも該当しないパス（`/dev/null`）を指定した場合のテストです。Usage ではなく `error:` で始まる 1 行を標準エラーに出力して、終了コード 1 で終了することを確認します。')
     prepareSession()
 
     const result = await status('/dev/null')
@@ -299,6 +318,7 @@ describe('session show', () => {
   })
 
   it('アクティブな設定ファイルの形式が不正なとき、warning を標準エラーに出して終了コード 0 で終わる', async () => {
+    await explains('アクティブな設定ファイルの形式が不正な場合のテストです。`Active Issue` の節を表示せず、警告を標準エラーに出力して終了コード 0 で終了することを確認します。')
     const { repository } = prepareSession({ files: { [`.pecot/config/projects/${CONFIG_FILE}`]: '{"host":"github.com"}' } })
 
     const result = await status(repository)
@@ -313,6 +333,7 @@ describe('session show', () => {
     const STACKED = { '.pecot/state/.pecot-base': `feat/3 ${SHA} acme/demo#3\n` }
     const inReview = { number: 3, column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, head: 'feat/3' }] }
     it('スタックして着手した作業ディレクトリでは、スタック先の Issue と PR を Stack の節に出す', async () => {
+      await explains('スタックして着手した作業ディレクトリでのテストです。スタック先の Issue と PR が `Stack` の節に表示され、`readiness:` の行は表示されないことを確認します。')
       const { repository } = prepareSession({ files: STACKED })
       await startGithub(rules({ blockedBy: [inReview] }, pullRequest(30, 'OPEN')))
 
@@ -331,6 +352,7 @@ describe('session show', () => {
       { name: '親 PR がマージ済みで、ブランチが開発ブランチの上に載り終えていて記録だけが古い', scene: 'rebased', state: 'MERGED', expected: 'no', id: 'PW-SESSION-SHOW-34' },
     ])('$name と、Stack の節に needs restack: $expected の行を出し、MCP の stack の needsRestack も合わせる', async (row, context) => {
       await verifies(context, row.id)
+      await explains(`親ブランチの remote の状態と親 PR の状態を変えた場合のテストです。\`Stack\` の節に \`needs restack: ${row.expected}\` の行を表示し、MCP の \`stack\` の \`needsRestack\` も同じ結果になることを確認します。`)
       const bare = sshOrigin()
       const { project, repository } = prepareSession({ remotes: { origin: 'git@ghes.example.com:acme/demo.git' } })
       gitForTest(repository, ['push', '-q', bare, 'HEAD:refs/heads/feat/3'])
@@ -361,6 +383,7 @@ describe('session show', () => {
     })
 
     it('open の PR が無ければ fork でない最新の PR を、PR が無ければ no PR を出す', async () => {
+      await explains('スタック先のブランチに、open の PR が存在しない場合のテストです。fork ではない最新の PR を表示し、PR が 1 つもない場合は `no PR` を表示することを確認します。')
       const { repository } = prepareSession({ files: STACKED })
       await startGithub(rules({ blockedBy: [inReview] }, pullRequest(32, 'OPEN', true), pullRequest(31, 'MERGED'), pullRequest(29, 'CLOSED')))
       const merged = await status(repository)
@@ -372,6 +395,7 @@ describe('session show', () => {
     })
 
     it('着手中の Issue の判定が blocked なら、readiness の行を足す', async () => {
+      await explains('着手中の Issue の判定が `blocked` の場合のテストです。`Stack` の節に `readiness` の行が追加されることを確認します。')
       const { repository } = prepareSession({ files: STACKED })
       await startGithub(rules({ blockedBy: [{ number: 3, title: '未着手' }] }, pullRequest(30, 'CLOSED')))
 
@@ -381,6 +405,7 @@ describe('session show', () => {
     })
 
     it('PR を読めなければ warning を出し、PR unknown と出す', async () => {
+      await explains('スタック先のブランチの PR を取得できない場合のテストです。警告を標準エラーに出力し、`Stack` の節に `PR unknown` と表示することを確認します。')
       const { repository } = prepareSession({ files: STACKED })
       const failing: ResponseRule = { match: { operation: 'ListPullRequestsByHead' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
       await startGithub([issueResponse({ number: 7, title: 't' }), failing, prerequisitesRule({ number: 7, blockedBy: [inReview] }), stackedAbove()])
@@ -393,6 +418,7 @@ describe('session show', () => {
     })
 
     it('.pecot-base の形が誤っていると、warning を出し、Stack の節を出さない', async () => {
+      await explains('`.pecot-base` の形式が不正な場合のテストです。警告を標準エラーに出力し、`Stack` の節を表示しないことを確認します。')
       const { repository } = prepareSession({ files: { '.pecot/state/.pecot-base': 'garbage\n' } })
       await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
 
@@ -403,6 +429,7 @@ describe('session show', () => {
     })
 
     it('判定を読めないとき、warning を出し、Stack の節の base の行は残す', async () => {
+      await explains('着手中の Issue の判定を取得できない場合のテストです。警告を標準エラーに出力し、`Stack` の節の `base` の行は表示することを確認します。')
       const { repository } = prepareSession({ files: STACKED })
       const failing: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
       await startGithub([issueResponse({ number: 7, title: 't' }), pullRequests(pullRequest(30, 'OPEN')), failing, stackedAbove()])
@@ -416,6 +443,7 @@ describe('session show', () => {
     })
 
     it('依存関係に対応しない GHES では、readiness の行と warning を出さず、base の行は残す', async () => {
+      await explains('Issue の依存関係に対応しない GHES の場合のテストです。`readiness` の行と警告を出力せず、`Stack` の節の `base` の行は表示することを確認します。')
       const { repository } = prepareSession({ files: STACKED })
       const unsupported: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }
       await startGithub([issueResponse({ number: 7, title: 't' }), pullRequests(pullRequest(30, 'OPEN')), unsupported, stackedAbove()])
@@ -431,6 +459,7 @@ describe('session show', () => {
       { name: '開発ブランチから着手した', files: { '.pecot/state/.pecot-base': `main ${SHA}\n` } },
       { name: '.pecot-base の形が誤っている', files: { '.pecot/state/.pecot-base': 'garbage\n' } },
     ])('$name ときは、Stack の節を出さず、判定も読まない', async ({ files }) => {
+      await explains('開発ブランチから着手した場合と、`.pecot-base` の形式が不正な場合のテストです。どちらも `Stack` の節を表示せず、判定を取得しないことを確認します。')
       const { repository } = prepareSession({ files })
       const github = await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
 
@@ -441,6 +470,7 @@ describe('session show', () => {
     })
 
     it('作業中の Issue が無ければ、.pecot-base があっても Stack の節を出さない', async () => {
+      await explains('作業中の Issue が存在しない場合のテストです。`.pecot-base` があっても、`Stack` の節を表示しないことを確認します。')
       const { repository } = prepareSession({ branch: 'feat/no-number', files: STACKED })
 
       const result = await status(repository)
@@ -449,6 +479,7 @@ describe('session show', () => {
     })
 
     it('--directory の toplevel がプロジェクトのルートと違うと、.pecot-base のスタックの記録を Stack の節に出さず、判定から求め、子 PR は出す', async () => {
+      await explains('`--directory` の toplevel がプロジェクトのルートと異なる場合のテストです。`.pecot-base` の記録は使わず、判定から `Stack` の節を求め、子 PR（今のブランチを base にした PR）を表示することを確認します。')
       prepareSession({ files: STACKED })
       const clone = separateRepository()
       const github = await startGithub([issueResponse({ number: 7, title: 't' }), prerequisitesRule({ number: 7 }), stackedAbove(above(40, 'feat/demo/8'))])
@@ -461,6 +492,7 @@ describe('session show', () => {
     })
 
     it('--directory の toplevel がプロジェクトのルートと違っても、その worktree にスタックの記録があれば、判定から求めずにその記録を Stack の節に出す', async () => {
+      await explains('`--directory` の toplevel がプロジェクトのルートと異なり、その worktree にスタックの記録がある場合のテストです。判定は求めず、その記録を `Stack` の節に表示することを確認します。')
       prepareSession()
       const clone = separateRepository()
       mkdirSync(path.join(clone, '.pecot/state'), { recursive: true })
@@ -476,6 +508,7 @@ describe('session show', () => {
 
     describe('記録が無い作業ディレクトリ', () => {
       it('判定が stackable で親ブランチの上にあると、Stack の節に求めた base を出し、判定を 1 回だけ読む', async () => {
+        await explains('記録がない作業ディレクトリで、判定が `stackable` で、ブランチが親ブランチの上にある場合のテストです。求めた base を `Stack` の節に表示し、判定の取得は 1 回だけであることを確認します。')
         const repository = prepareLower(true)
         const github = await startGithub(rules({ blockedBy: [inReview] }, pullRequest(30, 'OPEN')))
 
@@ -488,6 +521,7 @@ describe('session show', () => {
       })
 
       it('判定が blocked なら、warning を出し、Stack の節を出さない', async () => {
+        await explains('記録がない作業ディレクトリで、判定が `blocked` の場合のテストです。警告を標準エラーに出力し、`Stack` の節を表示しないことを確認します。')
         const repository = prepareLower(true)
         await startGithub([issueResponse({ number: 7, title: 't' }), prerequisitesRule({ number: 7, blockedBy: [{ number: 3 }] }), stackedAbove()])
 
@@ -502,6 +536,7 @@ describe('session show', () => {
         { name: '判定が startable', isStackable: false },
         { name: '判定が stackable でも、ブランチが親ブランチの変更を持たない', isStackable: true },
       ])('$name ときは、Stack の節を出さない', async (row) => {
+        await explains('記録がない作業ディレクトリで、判定が `startable` の場合と、`stackable` でもブランチが親ブランチの変更を持たない場合のテストです。どちらも `Stack` の節を表示しないことを確認します。')
         const repository = prepareLower(false)
         await startGithub([issueResponse({ number: 7, title: 't' }), prerequisitesRule({ number: 7, ...row.isStackable && { blockedBy: [inReview] } }), stackedAbove()])
 
@@ -518,6 +553,7 @@ describe('session show', () => {
     const STACKED = { '.pecot/state/.pecot-base': `feat/3 ${SHA} acme/demo#3\n` }
 
     it('今のブランチを base にした開いている PR があれば、スタックの記録が無くても Stack の節に PR ごとの stacked above の行を出す', async () => {
+      await explains('今のブランチを base にした開いている PR（子 PR）がある場合のテストです。スタックの記録がなくても、PR ごとの `stacked above` の行を `Stack` の節に表示し、fork の PR は表示しないことを確認します。')
       const { repository } = prepareSession()
       const github = await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove(above(40, 'feat/demo/8'), above(41, 'feat/other/9', true), above(42, 'feat/demo/10'))])
 
@@ -530,6 +566,7 @@ describe('session show', () => {
     })
 
     it('スタックの記録もあるとき、base と readiness の行の後に stacked above の行を並べる', async () => {
+      await explains('スタックの記録と子 PR の両方がある場合のテストです。`Stack` の節で、`base` と `readiness` の行の後に `stacked above` の行が並ぶことを確認します。')
       const { repository } = prepareSession({ files: STACKED })
       await startGithub([issueResponse({ number: 7, title: 't' }), pullRequests(pullRequest(30, 'CLOSED')), prerequisitesRule({ number: 7, blockedBy: [{ number: 3, title: '未着手' }] }), stackedAbove(above(40, 'feat/demo/8'))])
 
@@ -539,6 +576,7 @@ describe('session show', () => {
     })
 
     it('fork の PR しか無ければ、子 PR が無いものとして Stack の節を出さない', async () => {
+      await explains('fork の PR しか存在しない場合のテストです。子 PR がないものとして扱い、`Stack` の節を表示しないことを確認します。')
       const { repository } = prepareSession()
       await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove(above(41, 'feat/other/9', true))])
 
@@ -549,6 +587,7 @@ describe('session show', () => {
     })
 
     it('子 PR を読めなければ、warning を出し、stacked above の行を省いて base の行は残す', async () => {
+      await explains('スタックの記録があり、子 PR を取得できない場合のテストです。警告を標準エラーに出力し、`stacked above` の行は表示せず、`base` の行は表示することを確認します。')
       const { repository } = prepareSession({ files: STACKED })
       const failing: ResponseRule = { match: { operation: 'ListPullRequestsByBase' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
       const inReview = { number: 3, column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, head: 'feat/3' }] }
@@ -562,6 +601,7 @@ describe('session show', () => {
     })
 
     it('スタックの記録が無く子 PR を読めなければ、warning を出し、Stack の節を出さない', async () => {
+      await explains('スタックの記録がなく、子 PR を取得できない場合のテストです。警告を標準エラーに出力し、`Stack` の節を表示しないことを確認します。')
       const { repository } = prepareSession()
       await startGithub([issueResponse({ number: 7, title: 't' }), { match: { operation: 'ListPullRequestsByBase' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
 
@@ -573,6 +613,7 @@ describe('session show', () => {
     })
 
     it('remote が無いとき、作業中の Issue と子 PR を読まない', async () => {
+      await explains('remote が存在しない場合のテストです。作業中の Issue と子 PR を GitHub から取得せず、`Stack` の節も表示しないことを確認します。')
       const { repository } = prepareSession({ remotes: {}, files: STACKED })
       const github = await startGithub([])
 
@@ -584,6 +625,7 @@ describe('session show', () => {
     })
 
     it('アクティブな Issue を読めないとき、子 PR を読まない', async () => {
+      await explains('作業中の Issue を取得できない場合のテストです。子 PR を取得せず、Issue の取得だけを GitHub へ要求することを確認します。')
       const { repository } = prepareSession()
       const github = await startGithub([issueFailure(502)])
 
@@ -596,6 +638,7 @@ describe('session show', () => {
   describe('MCP の data', () => {
     it('子 PR があれば、stackedAbove に PR の番号とブランチを返す', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-29')
+      await explains('MCP の `session_show` で、子 PR がある場合のテストです。`stackedAbove` に、PR の番号とブランチが格納されることを確認します。')
       const { repository } = prepareSession()
       await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove(above(40, 'feat/demo/8'), above(42, 'feat/demo/10'))])
 
@@ -611,6 +654,7 @@ describe('session show', () => {
 
     it('子 PR を読めなければ、stackedAbove を省いて warning を返す', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-30')
+      await explains('MCP の `session_show` で、子 PR を取得できない場合のテストです。`stackedAbove` を含めず、警告を `warnings` に含めることを確認します。')
       const { repository } = prepareSession()
       await startGithub([issueResponse({ number: 7, title: 't' }), { match: { operation: 'ListPullRequestsByBase' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
 
@@ -623,6 +667,7 @@ describe('session show', () => {
     it('作業中の Issue が無いとき、ブランチとリポジトリだけを data に返し、activeIssue を省く', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-11')
       await verifies(context, 'PW-SESSION-SHOW-12')
+      await explains('MCP の `session_show` で、作業中の Issue が存在しない場合のテストです。ブランチとリポジトリだけが `data` に含まれ、`activeIssue` は含まれないことを確認します。')
       const { repository } = prepareSession({ branch: 'feat/no-number', files: { '.pecot/state/.pecot-active': 'acme/demo/7\n' } })
 
       const outcome = await showTool(repository)
@@ -635,6 +680,7 @@ describe('session show', () => {
       await verifies(context, 'PW-SESSION-SHOW-15')
       await verifies(context, 'PW-SESSION-SHOW-16')
       await verifies(context, 'PW-SESSION-SHOW-39')
+      await explains('MCP の `session_show` で、そのリポジトリを含む設定が存在しない場合のテストです。`activeIssue` には `reference` だけが含まれ、警告が `warnings` に含まれることを確認します。')
       const { repository } = prepareSession({ repositories: ['other'] })
 
       const outcome = await showTool(repository)
@@ -651,6 +697,7 @@ describe('session show', () => {
     it('スタックして着手した作業ディレクトリでは、アクティブな Issue とスタック先を data に返す', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-23')
       await verifies(context, 'PW-SESSION-SHOW-24')
+      await explains('MCP の `session_show` を、スタックして着手した作業ディレクトリで呼び出した場合のテストです。作業中の Issue とスタック先の情報が `stack` に含まれることを確認します。')
       const SHA = '0123456789abcdef0123456789abcdef01234567'
       const { repository } = prepareSession({ files: { '.pecot/state/.pecot-base': `feat/3 ${SHA} acme/demo#3\n` } })
       await startGithub(rules({ blockedBy: [{ number: 3, title: '未着手' }] }, pullRequest(30, 'CLOSED')))
@@ -671,6 +718,7 @@ describe('session show', () => {
     ])('Issue の取得が $name で失敗すると、activeIssue の title と state を省いて reference を返し、warning を返す', async (row, context) => {
       await verifies(context, 'PW-SESSION-SHOW-17')
       await verifies(context, 'PW-SESSION-SHOW-18')
+      await explains(`MCP の \`session_show\` で、Issue の取得が失敗する（HTTP ${String(row.status)} を返す）場合のテストです。\`activeIssue\` には \`reference\` だけが含まれ、警告が \`warnings\` に含まれることを確認します。`)
       const { repository } = prepareSession()
       await startGithub([issueFailure(row.status)])
 
@@ -684,6 +732,7 @@ describe('session show', () => {
     it('Issue が閉じていると、activeIssue の state を CLOSED で返す', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-02')
       await verifies(context, 'PW-SESSION-SHOW-05')
+      await explains('MCP の `session_show` で、Issue が閉じている場合のテストです。`activeIssue` の `state` が `CLOSED` で返ることを確認します。')
       const { repository } = prepareSession()
       await startGithub([issueResponse({ number: 7, title: '閉じた Issue', state: 'CLOSED' }), stackedAbove()])
 
@@ -703,6 +752,7 @@ describe('session show', () => {
     it('directory を渡すと、ブランチ・リポジトリ・作業中の Issue を返し、Issue の本文を activeIssue の body に入れる', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-01')
       await verifies(context, 'PW-SESSION-SHOW-06')
+      await explains('MCP の `session_show` に `directory` を指定した場合のテストです。ブランチ・リポジトリ・作業中の Issue が返り、Issue の本文が `activeIssue` の `body` に含まれることを確認します。')
       const { repository } = prepareSession()
       await startGithub([issueResponse({ number: 7, title: '見本の Issue', body: '本文の 1 行目\n本文の 2 行目\n' }), stackedAbove()])
 
@@ -714,6 +764,7 @@ describe('session show', () => {
     it('ブランチ名を読めないと、branch を入れずに続ける', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-07')
       await verifies(context, 'PW-SESSION-SHOW-08')
+      await explains('MCP の `session_show` で、ブランチ名を取得できない場合のテストです。`branch` を含めず、成功の結果として空の `data` を返すことを確認します。')
       prepareSession()
 
       const outcome = await showTool(makeTemporaryDirectory('pecot-plain-'))
@@ -726,6 +777,7 @@ describe('session show', () => {
       await verifies(context, 'PW-SESSION-SHOW-09')
       await verifies(context, 'PW-SESSION-SHOW-10')
       await verifies(context, 'PW-SESSION-SHOW-33')
+      await explains('MCP の `session_show` で、origin も他の remote も存在しない場合のテストです。`repository` と `activeIssue` を含めず、成功の結果を返すことを確認します。')
       const { repository } = prepareSession({ remotes: {} })
 
       const outcome = await showTool(repository)
@@ -737,6 +789,7 @@ describe('session show', () => {
 
     it('remote の URL の形が合わないと、activeIssue を入れない', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-33')
+      await explains('MCP の `session_show` で、remote の URL の形式が不正な場合のテストです。`activeIssue` を含めず、成功の結果を返すことを確認します。')
       const { repository } = prepareSession({ remotes: { origin: 'not-a-url' } })
 
       const outcome = await showTool(repository)
@@ -747,6 +800,7 @@ describe('session show', () => {
 
     it('directory を省くと、kind が invalid-input の失敗を返す', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-19')
+      await explains('MCP の `session_show` を、`directory` を省略して呼び出した場合のテストです。`kind` が `invalid-input` の失敗が返ることを確認します。')
 
       const outcome = await callToolOnce(SESSION_COMMANDS, 'session_show', {})
 
@@ -755,6 +809,7 @@ describe('session show', () => {
 
     it.for(INVALID_DIRECTORY_CASES)('directory が存在するディレクトリでないと（$name）、kind が invalid-input の失敗を返す', async ({ locked, prepare }, context) => {
       await verifies(context, 'PW-SESSION-SHOW-20')
+      await explains('MCP の `session_show` で、`directory` に存在するディレクトリではない値を指定した場合のテストです。`kind` が `invalid-input` の失敗が返ることを確認します。')
       if (locked && isRoot()) context.skip()
       const { repository } = prepareSession()
       const target = prepare(repository)
@@ -772,6 +827,7 @@ describe('session show', () => {
     it('作業中の Issue があり、選んだ設定ファイルの形式が不正だと、warnings に 1 つ入れて成功を返す', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-21')
       await verifies(context, 'PW-SESSION-SHOW-22')
+      await explains('MCP の `session_show` で、選んだ設定ファイルの形式が不正な場合のテストです。警告が `warnings` に 1 つだけ含まれ、成功の結果が返ることを確認します。')
       const { repository } = prepareSession({ files: { [`.pecot/config/projects/${CONFIG_FILE}`]: '{"host":"github.com"}' } })
 
       const outcome = await showTool(repository)
@@ -782,6 +838,7 @@ describe('session show', () => {
 
     it('base のブランチの PR を読めないと、warnings に 1 つ入れ、stack に pullRequest を入れない', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-25')
+      await explains('MCP の `session_show` で、base のブランチの PR を取得できない場合のテストです。警告が `warnings` に 1 つだけ含まれ、`stack` に `pullRequest` が含まれないことを確認します。')
       const { repository } = prepareSession({ files: STACKED })
       await startGithub([issueResponse({ number: 7, title: 't' }), failingOn('ListPullRequestsByHead'), prerequisitesRule({ number: 7, blockedBy: [inReview] }), stackedAbove()])
 
@@ -793,6 +850,7 @@ describe('session show', () => {
 
     it('.pecot-base の形が誤っていると、warnings に 1 つ入れ、stack を入れない', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-26')
+      await explains('MCP の `session_show` で、`.pecot-base` の形式が不正な場合のテストです。警告が `warnings` に 1 つだけ含まれ、`stack` が含まれないことを確認します。')
       const { repository } = prepareSession({ files: { '.pecot/state/.pecot-base': 'garbage\n' } })
       await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
 
@@ -804,6 +862,7 @@ describe('session show', () => {
 
     it('着手中の Issue の判定を読めないと、warnings に 1 つ入れ、stack の base のブランチは入れる', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-27')
+      await explains('MCP の `session_show` で、着手中の Issue の判定を取得できない場合のテストです。警告が `warnings` に 1 つだけ含まれ、`stack` の base のブランチは含まれることを確認します。')
       const { repository } = prepareSession({ files: STACKED })
       await startGithub([issueResponse({ number: 7, title: 't' }), pullRequests(pullRequest(30, 'OPEN')), failingOn('GetIssuePrerequisites'), stackedAbove()])
 
@@ -815,6 +874,7 @@ describe('session show', () => {
 
     it('directory の toplevel がプロジェクトのルートと違うと、.pecot-base のスタックの記録を stack に使わない', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-32')
+      await explains('MCP の `session_show` で、`directory` の toplevel がプロジェクトのルートと異なる場合のテストです。`.pecot-base` の記録を `stack` に使わず、子 PR を `stackedAbove` に含めることを確認します。')
       prepareSession({ files: STACKED })
       const clone = separateRepository()
       await startGithub([issueResponse({ number: 7, title: 't' }), prerequisitesRule({ number: 7 }), stackedAbove(above(40, 'feat/demo/8'))])
@@ -827,6 +887,7 @@ describe('session show', () => {
 
     it('directory の worktree にスタックの記録があると、toplevel がプロジェクトのルートと違っても、その記録で stack を入れる', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-38')
+      await explains('MCP の `session_show` で、`directory` の worktree にスタックの記録がある場合のテストです。toplevel がプロジェクトのルートと異なっても、その記録から `stack` を求めることを確認します。')
       prepareSession()
       const clone = separateRepository()
       mkdirSync(path.join(clone, '.pecot/state'), { recursive: true })
@@ -840,6 +901,7 @@ describe('session show', () => {
 
     it('記録が無く、判定が stackable で親ブランチの変更を持つと、求めた base を stack に入れる', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-35')
+      await explains('MCP の `session_show` で、記録がなく、判定が `stackable` かつ親ブランチの変更を持つ場合のテストです。求めた base を `stack` に含めることを確認します。')
       const repository = prepareLower(true)
       await startGithub(rules({ blockedBy: [inReview] }, pullRequest(30, 'OPEN')))
 
@@ -850,6 +912,7 @@ describe('session show', () => {
 
     it('記録が無く、判定が blocked だと、cannot infer the stacked base の知らせを warnings に入れ、stack を入れない', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-36')
+      await explains('MCP の `session_show` で、記録がなく、判定が `blocked` の場合のテストです。`cannot infer the stacked base` の警告を `warnings` に含め、`stack` は含めないことを確認します。')
       const repository = prepareLower(true)
       await startGithub([issueResponse({ number: 7, title: 't' }), prerequisitesRule({ number: 7, blockedBy: [{ number: 3 }] }), stackedAbove()])
 
@@ -861,6 +924,7 @@ describe('session show', () => {
 
     it('記録が無く、判定は stackable でも親ブランチの変更をブランチに持たないと、stack を入れない', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-37')
+      await explains('MCP の `session_show` で、記録がなく、判定は `stackable` でもブランチが親ブランチの変更を持たない場合のテストです。`stack` を含めないことを確認します。')
       const repository = prepareLower(false)
       await startGithub([issueResponse({ number: 7, title: 't' }), prerequisitesRule({ number: 7, blockedBy: [inReview] }), stackedAbove()])
 

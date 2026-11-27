@@ -10,6 +10,7 @@ import type { HookCase } from '../_helpers/environment.js'
 import { gitRepository } from '../_helpers/git.js'
 import { runHookEntry } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
+import { explains } from '../../_helpers/explains.js'
 
 const ENTRY = 'user-prompt-submit.sh'
 
@@ -35,7 +36,8 @@ describe('user-prompt-submit.sh', () => {
     { label: '/w-ready', prompt: '/w-ready' },
     { label: '/pecot-w:w-active', prompt: '/pecot-w:w-active' },
     { label: '通常の文', prompt: 'hello world' },
-  ])('プロンプトが $label のとき、何も出さず、起票待ちのフラグを作らない', (row) => {
+  ])('プロンプトが $label のとき、何も出さず、起票待ちのフラグを作らない', async (row) => {
+    await explains(`\`user-prompt-submit.sh\`（エントリ）のテストです。プロンプトが \`${row.label}\` の場合に、何も出力せず、起票待ちのフラグ（\`issue-pending\`）を作成しないことを確認します。`)
     const hookCase = createHookCase()
     const repository = setUpRepository(hookCase)
     const result = runEntry(hookCase, repository, row.prompt)

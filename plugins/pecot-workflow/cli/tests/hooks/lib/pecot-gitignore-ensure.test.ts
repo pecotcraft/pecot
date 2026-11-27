@@ -14,6 +14,7 @@ import { run } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { splitLines } from '../_helpers/text.js'
 import { readOutput } from '../../../../../../libs/interface-spec/src/vitest/attach.js'
+import { explains } from '../../_helpers/explains.js'
 
 const ENSURE_SCRIPT = path.join(coreDirectory, 'pecot-gitignore-ensure.sh')
 
@@ -36,7 +37,8 @@ function isTracked(hookCase: HookCase, repository: string): boolean {
 }
 
 describe('pecot-gitignore-ensure.sh', () => {
-  it('--print は、書き込まずに定義を出力する', () => {
+  it('--print は、書き込まずに定義を出力する', async () => {
+    await explains('`pecot-gitignore-ensure.sh` のテストです。`--print` を指定した場合に、ファイルへ書き込まず、`.gitignore` に書く許可の一覧（8 行）を標準出力に出力することを確認します。')
     const hookCase = createHookCase()
     hookCase.setEnv('CLAUDE_PROJECT_DIR', undefined)
     const result = run(hookCase, 'bash', [ENSURE_SCRIPT, '--print'])
@@ -55,7 +57,8 @@ describe('pecot-gitignore-ensure.sh', () => {
     expect(existsSync(path.join(hookCase.temporaryPath, '.pecot'))).toBe(false)
   })
 
-  it('.pecot が無くても .gitignore を書き、--print の出力と一致する', () => {
+  it('.pecot が無くても .gitignore を書き、--print の出力と一致する', async () => {
+    await explains('`pecot-gitignore-ensure.sh` のテストです。`.pecot` ディレクトリが存在しない場合でも、`.gitignore` を書き込み、その内容が `--print` の出力と一致することを確認します。')
     const hookCase = createHookCase()
     const project = path.join(hookCase.temporaryPath, 'proj')
     mkdirSync(project)
@@ -65,7 +68,8 @@ describe('pecot-gitignore-ensure.sh', () => {
     expect(readOutput(path.join(project, '.pecot', '.gitignore'))).toBe(printed)
   })
 
-  it('許可の一覧は、生成物を除外し、config の一部を除外しない', () => {
+  it('許可の一覧は、生成物を除外し、config の一部を除外しない', async () => {
+    await explains('`pecot-gitignore-ensure.sh` のテストです。実際の git リポジトリで、生成物（`tmp/` や `state/` など）は無視され、共有する設定ファイル（`config/worktree-config.json` など）は無視されないことを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase, 'repo')
     expect(runEnsure(hookCase, repository).exitCode).toBe(0)
@@ -101,7 +105,8 @@ describe('pecot-gitignore-ensure.sh', () => {
     expect(keptExitCodes, `${kept.join(', ')} は ignore されないはず`).toEqual(kept.map(() => 1))
   })
 
-  it('追跡している .gitignore を書き換えると、差分が変更として現れる', () => {
+  it('追跡している .gitignore を書き換えると、差分が変更として現れる', async () => {
+    await explains('`pecot-gitignore-ensure.sh` のテストです。追跡している `.gitignore` を書き換えた場合に、`git status` で差分が変更（` M `）として表示されることを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase, 'repo')
     expect(runEnsure(hookCase, repository).exitCode).toBe(0)
@@ -113,7 +118,8 @@ describe('pecot-gitignore-ensure.sh', () => {
     expect(status.stdout.startsWith(' M ')).toBe(true)
   })
 
-  it('追跡していない既存の古い内容は、上書きする', () => {
+  it('追跡していない既存の古い内容は、上書きする', async () => {
+    await explains('`pecot-gitignore-ensure.sh` のテストです。追跡していない古い内容の `.gitignore` が存在する場合に、古い行（`state/` など）を取り除き、`!/config/` を含む新しい内容に上書きすることを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase, 'repo')
     mkdirSync(path.join(repository, '.pecot'))
@@ -126,7 +132,8 @@ describe('pecot-gitignore-ensure.sh', () => {
     expect(lines).toContain('!/config/')
   })
 
-  it('git リポでないディレクトリの既存の内容も、上書きする', () => {
+  it('git リポでないディレクトリの既存の内容も、上書きする', async () => {
+    await explains('`pecot-gitignore-ensure.sh` のテストです。git リポジトリでないディレクトリに古い内容の `.gitignore` が存在する場合に、その内容を上書きすることを確認します。')
     const hookCase = createHookCase()
     const project = path.join(hookCase.temporaryPath, 'plain')
     mkdirSync(path.join(project, '.pecot'), { recursive: true })
@@ -137,7 +144,8 @@ describe('pecot-gitignore-ensure.sh', () => {
     expect(lines).not.toContain('stale')
   })
 
-  it('追跡している .gitignore には触らない', () => {
+  it('追跡している .gitignore には触らない', async () => {
+    await explains('`pecot-gitignore-ensure.sh` のテストです。追跡している `.gitignore` が存在する場合に、内容を書き換えず、`git status` に変更が表示されないことを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase, 'repo')
     mkdirSync(path.join(repository, '.pecot'))

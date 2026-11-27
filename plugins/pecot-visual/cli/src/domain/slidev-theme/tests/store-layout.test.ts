@@ -8,16 +8,19 @@ import {
   ThemeFetchError,
   themeStoreDirectory,
 } from '../store-layout.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 const SPEC = { url: 'https://git.example.com/acme/theme.git', tag: 'v1.0.0' }
 
 describe('themeStoreDirectory', () => {
-  it('url の sha256 先頭 16 桁とタグで置き場を決める', () => {
+  it('テーマの置き場は、url の sha256 の先頭 16 桁とタグで決まる', async () => {
+    await explains('テーマの保存先を決める `themeStoreDirectory` のテストです。url とタグ `v1.0.0` を渡した場合に、保存先が `/data/themes/379eb4ca106477b8/v1.0.0` になることを確認します。')
     // sha256('https://git.example.com/acme/theme.git') の先頭 16 桁
     expect(themeStoreDirectory('/data/themes', SPEC)).toBe('/data/themes/379eb4ca106477b8/v1.0.0')
   })
 
-  it('url が違えば別の置き場になり、タグが違えば同じ階層の別ディレクトリになる', () => {
+  it('url が違う場合は別の置き場になり、タグだけが違う場合は同じ階層の別ディレクトリになる', async () => {
+    await explains('テーマの保存先を決める `themeStoreDirectory` のテストです。url だけを変えると保存先が変わり、タグだけを変えると、上位の階層が同じで末尾のタグだけが違う保存先になることを確認します。')
     const other = themeStoreDirectory('/data/themes', { ...SPEC, url: 'https://git.example.com/acme/other.git' })
     expect(other).not.toBe(themeStoreDirectory('/data/themes', SPEC))
     const next = themeStoreDirectory('/data/themes', { ...SPEC, tag: 'v1.0.1' })
@@ -28,19 +31,23 @@ describe('themeStoreDirectory', () => {
 describe('computeInputsHash', () => {
   const digests = [{ file: 'a+1.0.0.patch', hash: 'aaa' }]
 
-  it('同じ入力なら同じ値を返す', () => {
+  it('package.json と patch の内容が同じ場合は、同じハッシュを返す', async () => {
+    await explains('テーマの入力のハッシュを求める `computeInputsHash` のテストです。同じ `package.json` の内容と patch の一覧を 2 回渡した場合に、同じ値が返ることを確認します。')
     expect(computeInputsHash('{"name":"t"}', digests)).toBe(computeInputsHash('{"name":"t"}', digests))
   })
 
-  it('package.json が変われば変わる', () => {
+  it('package.json の内容が違う場合は、違うハッシュを返す', async () => {
+    await explains('テーマの入力のハッシュを求める `computeInputsHash` のテストです。`package.json` の内容だけを変えた場合に、返る値が変わることを確認します。')
     expect(computeInputsHash('{"name":"t"}', digests)).not.toBe(computeInputsHash('{"name":"u"}', digests))
   })
 
-  it('patch の内容ハッシュが変われば変わる', () => {
+  it('patch の内容のハッシュが違う場合は、違うハッシュを返す', async () => {
+    await explains('テーマの入力のハッシュを求める `computeInputsHash` のテストです。patch の内容のハッシュだけを変えた場合に、返る値が変わることを確認します。')
     expect(computeInputsHash('{}', digests)).not.toBe(computeInputsHash('{}', [{ file: 'a+1.0.0.patch', hash: 'bbb' }]))
   })
 
-  it('patch の有無で変わる', () => {
+  it('patch が存在する場合と存在しない場合で、違うハッシュを返す', async () => {
+    await explains('テーマの入力のハッシュを求める `computeInputsHash` のテストです。patch の一覧が空の場合と、patch が 1 件ある場合で、返る値が変わることを確認します。')
     expect(computeInputsHash('{}', [])).not.toBe(computeInputsHash('{}', digests))
   })
 })
@@ -48,7 +55,8 @@ describe('computeInputsHash', () => {
 describe('parseThemeStamp', () => {
   const valid = { spec: SPEC, fetchedAt: '2026-11-02T00:00:00.000Z', inputsHash: 'abc' }
 
-  it('正しい形の JSON を渡すと、その内容をスタンプとして返す', () => {
+  it('正しい形の JSON を渡すと、その内容をスタンプとして返す', async () => {
+    await explains('テーマの取得記録（スタンプ）を読み込む `parseThemeStamp` のテストです。`spec`・`fetchedAt`・`inputsHash` を持つ正しい形の JSON を渡した場合に、その内容がそのまま返ることを確認します。')
     expect(parseThemeStamp(JSON.stringify(valid))).toEqual(valid)
   })
 
@@ -58,7 +66,8 @@ describe('parseThemeStamp', () => {
     ['spec が無い', JSON.stringify({ fetchedAt: 'x', inputsHash: 'y' })],
     ['inputsHash が文字列でない', JSON.stringify({ ...valid, inputsHash: 1 })],
     ['tag が文字列でない', JSON.stringify({ ...valid, spec: { url: 'u', tag: 1 } })],
-  ])('%s は undefined', (_label, text) => {
+  ])('スタンプの内容が「%s」の場合は、undefined を返す', async (_label, text) => {
+    await explains(`テーマの取得記録（スタンプ）を読み込む \`parseThemeStamp\` のテストです。内容が「${_label}」の場合に、スタンプとして読めないため \`undefined\` を返すことを確認します。`)
     expect(parseThemeStamp(text)).toBeUndefined()
   })
 })
@@ -82,31 +91,37 @@ const FAILURES: readonly (readonly [string, string, string])[] = [
 ]
 
 describe('classifyGitFailure', () => {
-  it.each(FAILURES)('%s を分ける', (_label, stderr, expected) => {
+  it.each(FAILURES)('git の失敗の出力が「%s」の場合は、原因の種類に分類する', async (_label, stderr, expected) => {
+    await explains(`git の失敗の出力を分類する \`classifyGitFailure\` のテストです。標準エラー出力が「${_label}」の場合に、原因の種類が \`${expected}\` に分類されることを確認します。`)
     expect(classifyGitFailure(stderr)).toBe(expected)
   })
 })
 
 describe('gitFailureAdvice', () => {
-  it('接続の失敗は http.sslCAInfo を示す', () => {
+  it('接続の失敗では、対処として http.sslCAInfo を案内する', async () => {
+    await explains('git の失敗の対処を案内する `gitFailureAdvice` のテストです。原因が `connection` の場合に、案内の文に `http.sslCAInfo` が含まれることを確認します。')
     expect(gitFailureAdvice('connection', SPEC)).toContain('http.sslCAInfo')
   })
 
-  it('認証の失敗は認証情報の設定を示す', () => {
+  it('認証の失敗では、対処として認証情報の設定を案内する', async () => {
+    await explains('git の失敗の対処を案内する `gitFailureAdvice` のテストです。原因が `auth` の場合に、案内の文に `set up git credentials` が含まれることを確認します。')
     expect(gitFailureAdvice('auth', SPEC)).toContain('set up git credentials')
   })
 
-  it('タグの失敗はタグ名を示す', () => {
+  it('タグの失敗では、対処として指定したタグ名を案内する', async () => {
+    await explains('git の失敗の対処を案内する `gitFailureAdvice` のテストです。原因が `tag` の場合に、案内の文に指定したタグ `v1.0.0` が含まれることを確認します。')
     expect(gitFailureAdvice('tag', SPEC)).toContain('v1.0.0')
   })
 
-  it('分類できない失敗も url を示す', () => {
+  it('分類できない失敗でも、対処として url を案内する', async () => {
+    await explains('git の失敗の対処を案内する `gitFailureAdvice` のテストです。原因が `unknown` の場合に、案内の文にテーマの url が含まれることを確認します。')
     expect(gitFailureAdvice('unknown', SPEC)).toContain(SPEC.url)
   })
 })
 
 describe('ThemeFetchError', () => {
-  it('reason を持つ', () => {
+  it('テーマ取得のエラーは、渡した reason とメッセージを保持する', async () => {
+    await explains('テーマの取得に失敗したことを表す `ThemeFetchError` のテストです。メッセージと `install` を渡して作成した場合に、`name` が `ThemeFetchError` になり、`reason` とメッセージがそのまま保持されることを確認します。')
     const error = new ThemeFetchError('失敗', 'install')
     expect(error).toMatchObject({ name: 'ThemeFetchError', reason: 'install', message: '失敗' })
   })

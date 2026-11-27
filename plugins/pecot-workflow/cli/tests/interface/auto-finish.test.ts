@@ -16,6 +16,7 @@ import { callToolOnce } from '../_helpers/mcp-client.js'
 import { prerequisitesData, prerequisitesRule } from '../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
 import { verifies } from '../_helpers/verifies.js'
 import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
+import { explains } from '../_helpers/explains.js'
 
 useIsolatedEnvironment()
 
@@ -45,6 +46,7 @@ describe('auto finish', () => {
   it('結果が question なら、結果のコメントを書き、Status を Needs Attention にして起動ラベルを外し、URL を標準出力に出す', async (context) => {
     await verifies(context, 'PW-AUTO-FINISH-01')
     await verifies(context, 'PW-AUTO-FINISH-15')
+    await explains('`auto finish` のテストです。結果が `question` の場合に、結果のコメントを書き、Status を `Needs Attention` にして起動ラベルを外し、コメントの URL を標準出力へ出すことを確認します。')
     prepareAuto()
     const file = textFile('body.md', '形式を残すか、移すかを決めてください。')
     const github = await startGithub([ISSUE, boardItems(), AUTO_POSTED, statusUpdated('needs_attention'), labelRemoved()])
@@ -62,6 +64,7 @@ describe('auto finish', () => {
 
   it('PR を開いたブランチが Development のブランチから外れていても、目印のブランチに開いた PR の head を書く', async (context) => {
     await verifies(context, 'PW-AUTO-FINISH-16')
+    await explains('`auto finish` のテストです。PR を開いたブランチが Development のブランチから外れている場合でも、目印のブランチに開いた PR の head を結果のコメントへ書くことを確認します。')
     prepareAuto()
     const file = textFile('body.md', 'PR を作った。')
     const github = await startGithub([prerequisitesRule({ number: 7, column: 'Active', pullRequests: [{ number: 11, head: BRANCH }] }), AUTO_POSTED, labelRemoved()])
@@ -79,6 +82,7 @@ describe('auto finish', () => {
     { result: 'ci-passed', writes: [POST], lines: '' },
   ])('結果が $result なら、Status を書かない', async ({ result, writes, lines }, context) => {
     await verifies(context, 'PW-AUTO-FINISH-02')
+    await explains(`\`auto finish\` のテストです。結果が \`${result}\` の場合に、Status を書かず、期待する行を標準エラー出力へ出し、期待する書き込みだけを行うことを確認します。`)
     prepareAuto()
     const rules = writes.includes(DELETE) ? [ISSUE, AUTO_POSTED, labelRemoved()] : [ISSUE, AUTO_POSTED]
     const github = await startGithub(rules)
@@ -91,6 +95,7 @@ describe('auto finish', () => {
 
   it('起動ラベルが既に外れていても、unchanged の行を出して成功する', async (context) => {
     await verifies(context, 'PW-AUTO-FINISH-03')
+    await explains('`auto finish` のテストです。起動ラベルがすでに外れている場合でも、`unchanged` の行を出して成功することを確認します。')
     prepareAuto()
     await startGithub([ISSUE, AUTO_POSTED, labelRemoved(404)])
 
@@ -102,6 +107,7 @@ describe('auto finish', () => {
 
   it('PECOT_AUTO_LABEL があると、その名前のラベルを外す', async (context) => {
     await verifies(context, 'PW-AUTO-FINISH-04')
+    await explains('`auto finish` のテストです。環境変数 `PECOT_AUTO_LABEL` を設定した場合に、その名前のラベルを外すことを確認します。')
     prepareAuto({}, { PECOT_AUTO_LABEL: 'my-auto' })
     const removed: ResponseRule = { match: { method: 'DELETE', path: '/repos/acme/demo/issues/7/labels/my-auto' }, respond: { status: 200, body: [] }, times: 1 }
     const github = await startGithub([ISSUE, AUTO_POSTED, removed])
@@ -116,6 +122,7 @@ describe('auto finish', () => {
     { name: '設定に Needs Attention が無い', missingStatus: 'needs_attention', board: boardItems(), missing: 'Status option Needs Attention', warning: 'warning: the board has no option Needs Attention for Status; the Status stays as it is\n  run: pecot project init\n' },
   ])('$name と、Status を書かずに足りない設定をコメントに足し、warning の行を出して成功する', async ({ missingStatus, board, missing, warning }, context) => {
     await verifies(context, 'PW-AUTO-FINISH-05')
+    await explains('`auto finish` のテストです。ボードに Issue が存在しない場合と、`Needs Attention` が設定にない場合は、Status を書かずに不足している設定をコメントへ追加することを確認します。')
     prepareAuto({ missingStatus })
     const github = await startGithub([ISSUE, board, AUTO_POSTED, labelRemoved()])
 
@@ -130,6 +137,7 @@ describe('auto finish', () => {
   describe('--ensure', () => {
     it('job が成功なら、何も読まずに skipped の行を出す', async (context) => {
       await verifies(context, 'PW-AUTO-FINISH-06')
+      await explains('`auto finish --ensure` のテストです。job が成功した場合に、何も読まず、`skipped` の行を出して終わることを確認します。')
       prepareAuto()
       const github = await startGithub([])
 
@@ -145,6 +153,7 @@ describe('auto finish', () => {
       { name: 'ほかの失敗', argv: ensure('failure'), lines: [{ type: 'result', subtype: 'error_during_execution', is_error: true }], expected: 'failed' },
     ])('$name なら、$expected の結果のコメントを書く', async ({ argv, lines, expected }, context) => {
       await verifies(context, 'PW-AUTO-FINISH-07')
+      await explains(`\`auto finish --ensure\` のテストです。job が \`cancelled\` や失敗で終わった場合に、実行の記録から \`${expected}\` の結果のコメントを書くことを確認します。`)
       prepareAuto()
       const file = textFile('execution.json', JSON.stringify(lines))
       const github = await startGithub([issueComments([botResult('question', '400')]), ISSUE, boardItems(), AUTO_POSTED, statusUpdated('needs_attention'), labelRemoved()])
@@ -157,6 +166,7 @@ describe('auto finish', () => {
 
     it('同じ run・同じ試行の結果のコメントがあると、コメントを書かずに Status とラベルを書き直す', async (context) => {
       await verifies(context, 'PW-AUTO-FINISH-08')
+      await explains('`auto finish --ensure` のテストです。同じ run と同じ試行の結果のコメントがすでにある場合に、コメントを書かず、Status とラベルを書き直すことを確認します。')
       prepareAuto()
       const github = await startGithub([issueComments([botResult('question', '500')]), boardItems(), statusUpdated('needs_attention'), labelRemoved(404)])
 
@@ -172,6 +182,7 @@ describe('auto finish', () => {
 
     it('人が書いた同じ目印は数えず、書く', async (context) => {
       await verifies(context, 'PW-AUTO-FINISH-08')
+      await explains('`auto finish --ensure` のテストです。人が書いた同じ目印のコメントがある場合に、それを数えず、結果のコメントを書くことを確認します。')
       prepareAuto()
       const github = await startGithub([issueComments([{ body: autoResult('question', BRANCH, '500') }]), ISSUE, boardItems(), AUTO_POSTED, statusUpdated('needs_attention'), labelRemoved()])
 
@@ -183,6 +194,7 @@ describe('auto finish', () => {
 
   it('GITHUB_RUN_ID が無いと、目印を付けずに書き、コメントを読まない', async (context) => {
     await verifies(context, 'PW-AUTO-FINISH-09')
+    await explains('`auto finish` のテストです。`GITHUB_RUN_ID` が無い場合に、目印を付けずにコメントを書き、既存のコメントを読まないことを確認します。')
     prepareAuto({}, { GITHUB_RUN_ID: undefined })
     const github = await startGithub([ISSUE, boardItems(), AUTO_POSTED, statusUpdated('needs_attention'), labelRemoved()])
 
@@ -195,6 +207,7 @@ describe('auto finish', () => {
   })
 
   it('GITHUB_RUN_ATTEMPT が無いと、1 回目の試行として書く', async () => {
+    await explains('`auto finish` のテストです。`GITHUB_RUN_ATTEMPT` が無い場合に、1 回目の試行としてコメントを書くことを確認します。')
     prepareAuto({}, { GITHUB_RUN_ATTEMPT: undefined })
     const github = await startGithub([issueComments(), ISSUE, boardItems(), AUTO_POSTED, statusUpdated('needs_attention'), labelRemoved()])
 
@@ -204,6 +217,7 @@ describe('auto finish', () => {
   })
 
   it('Issue の前提が部分エラーで読めないと、書かずにその理由で止まる', async () => {
+    await explains('`auto finish` のテストです。Issue の前提が部分エラーで読めない場合に、何も書かず、その理由を示して終了コード 1 で止まることを確認します。')
     prepareAuto()
     const body = { data: prerequisitesData({ number: 7 }), errors: [{ message: 'denied', path: ['repository', 'issue', 'blockedBy'] }] }
     const github = await startGithub([{ match: { operation: 'GetIssuePrerequisites' }, respond: { status: 200, body }, times: 1 }])
@@ -222,6 +236,7 @@ describe('auto finish', () => {
     { name: '--ensure に --body-file', argv: [...ensure('failure'), '--body-file', 'x.md'], message: 'error: --body-file is only for --result\n' },
   ])('$name を渡すと、何も読まずに終了コード 1 で終わる', async ({ argv, message }, context) => {
     await verifies(context, 'PW-AUTO-FINISH-10')
+    await explains('`auto finish` のテストです。`--result` と `--ensure` の指定が誤っている場合に、何も読まず、期待するエラーを出して終了コード 1 で終わることを確認します。')
     prepareAuto()
     const github = await startGithub([])
 
@@ -233,6 +248,7 @@ describe('auto finish', () => {
 
   it('--dry-run なら、書くはずの本文を標準出力に出し、コメント・Status・ラベルを書かない', async (context) => {
     await verifies(context, 'PW-AUTO-FINISH-11')
+    await explains('`auto finish` のテストです。`--dry-run` を付けた場合に、書くはずの本文を標準出力へ出し、コメント・Status・ラベルを書かないことを確認します。')
     prepareAuto()
     const github = await startGithub([ISSUE, boardItems()])
 
@@ -246,6 +262,7 @@ describe('auto finish', () => {
 
   it('設定に fields.status が無いと、何も読まずに project init を案内して止まる', async (context) => {
     await verifies(context, 'PW-AUTO-FINISH-12')
+    await explains('`auto finish` のテストです。設定に `fields.status` が無い場合に、何も読まず、`project init` を案内して終了コード 1 で止まることを確認します。')
     prepareAuto({ hasStatus: false })
     const github = await startGithub([])
 
@@ -257,6 +274,7 @@ describe('auto finish', () => {
 
   it('--body-file のファイルが無いと、何も読まずに入力の誤りで止まる', async (context) => {
     await verifies(context, 'PW-AUTO-FINISH-10')
+    await explains('`auto finish` のテストです。`--body-file` のファイルが存在しない場合に、何も読まず、入力の誤りとして終了コード 1 で止まることを確認します。')
     prepareAuto()
     const file = path.join(makeTemporaryDirectory('pecot-auto-finish-'), 'missing.md')
     const github = await startGithub([])
@@ -270,6 +288,7 @@ describe('auto finish', () => {
   describe('MCP の data', () => {
     it('コメントを書くと、結果と URL を返す', async (context) => {
       await verifies(context, 'PW-AUTO-FINISH-13')
+      await explains('MCP の `auto_finish` のテストです。結果を `pr-created` にして呼び出した場合に、コメントを書き、結果とコメントの URL を返すことを確認します。')
       prepareAuto()
       await startGithub([ISSUE, AUTO_POSTED, labelRemoved()])
 
@@ -281,6 +300,7 @@ describe('auto finish', () => {
 
     it('ensure で job が成功なら、書かずに skipped を返す', async (context) => {
       await verifies(context, 'PW-AUTO-FINISH-14')
+      await explains('MCP の `auto_finish` のテストです。`ensure` を指定して job が成功した場合に、何も書かず、`skipped` を返すことを確認します。')
       prepareAuto()
       await startGithub([])
 

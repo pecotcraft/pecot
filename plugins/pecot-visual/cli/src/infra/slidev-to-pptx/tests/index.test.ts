@@ -12,6 +12,7 @@ import {
 import type { PipelineResult } from '../../../domain/slidev-to-pptx/types.js'
 import { InProcessSlidevPptxPipeline, type ConvertToPptxRunner } from '../index.js'
 import { rejectionOf } from '../../../../tests/_helpers/rejection.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 function makeResult(): PipelineResult {
   return {
@@ -58,7 +59,8 @@ const abortAwareRunner: ConvertToPptxRunner = (_config, dependencies) => new Pro
 })
 
 describe('InProcessSlidevPptxPipeline', () => {
-  it('convertToPptx の戻り値をそのまま返す (success)', async () => {
+  it('runner が成功した場合は、その戻り値をそのまま返す', async () => {
+    await explains('変換処理の runner が成功した場合の、`InProcessSlidevPptxPipeline.convert` のテストです。runner の戻り値（`success` と `slideCount`）が、そのまま返されることを確認します。')
     const pipeline = new InProcessSlidevPptxPipeline({ convertToPptxRunner: successRunner })
 
     const result = await pipeline.convert({
@@ -73,7 +75,8 @@ describe('InProcessSlidevPptxPipeline', () => {
     expect(result.slideCount).toBe(1)
   })
 
-  it('PipelineConfig が args から組み立てられ runner に渡される', async () => {
+  it('引数から PipelineConfig を組み立てて、runner に渡す', async () => {
+    await explains('`convert` に渡した引数から、runner へ渡す設定（`PipelineConfig`）を作成する処理のテストです。`skipPostprocess`・`slidePrefix` と各ディレクトリのパスが、設定に反映されることを確認します。')
     let receivedConfig: PipelineConfig | undefined
     const captureRunner: ConvertToPptxRunner = (config) => {
       receivedConfig = config
@@ -97,7 +100,8 @@ describe('InProcessSlidevPptxPipeline', () => {
     expect(receivedConfig?.outputDir).toBe('/tmp/out')
   })
 
-  it('config.singlePass は既定 on で、env PECOTV_SINGLE_PASS=0 のときだけ false になる (#1147)', async () => {
+  it('環境変数 PECOTV_SINGLE_PASS が 0 の場合だけ config.singlePass が false になり、それ以外は true になる', async () => {
+    await explains('環境変数 `PECOTV_SINGLE_PASS` に応じた、`config.singlePass` の設定のテストです。未設定・`1`・空文字の場合は `true`、`0` の場合だけ `false` になることを確認します。')
     const received: (boolean | undefined)[] = []
     const captureRunner: ConvertToPptxRunner = (config) => {
       received.push(config.singlePass)
@@ -126,7 +130,8 @@ describe('InProcessSlidevPptxPipeline', () => {
     expect(received).toStrictEqual([true, true, true, false])
   })
 
-  it('arguments_.singlePass === false（--no-single-pass）は env より優先して config.singlePass を false にする (#1147)', async () => {
+  it('引数の singlePass が false の場合は、環境変数の値にかかわらず config.singlePass を false にする', async () => {
+    await explains('引数で `singlePass` を `false`（`--no-single-pass`）にした場合のテストです。環境変数 `PECOTV_SINGLE_PASS` が `1` の場合も未設定の場合も、`config.singlePass` が `false` になることを確認します。')
     const received: (boolean | undefined)[] = []
     const captureRunner: ConvertToPptxRunner = (config) => {
       received.push(config.singlePass)
@@ -153,7 +158,8 @@ describe('InProcessSlidevPptxPipeline', () => {
     expect(received).toStrictEqual([false, false])
   })
 
-  it('env PECOTV_SINGLE_PASS_CONCURRENCY は 1 以上の整数だけ config.singlePassConcurrency に写す (#1141)', async () => {
+  it('環境変数 PECOTV_SINGLE_PASS_CONCURRENCY が 1 以上の整数の場合だけ、config.singlePassConcurrency に反映する', async () => {
+    await explains('環境変数 `PECOTV_SINGLE_PASS_CONCURRENCY` に応じた、`config.singlePassConcurrency` の設定のテストです。`3` や `1` の場合は設定に反映され、`0`・`abc`・`2.5`・空文字の場合は `undefined` になることを確認します。')
     const received: (number | undefined)[] = []
     const captureRunner: ConvertToPptxRunner = (config) => {
       received.push(config.singlePassConcurrency)
@@ -178,7 +184,8 @@ describe('InProcessSlidevPptxPipeline', () => {
     expect(received).toStrictEqual([3, 1, undefined, undefined, undefined, undefined])
   })
 
-  it('skipPostprocess 未指定時は false で渡る', async () => {
+  it('skipPostprocess を指定しない場合は、false を runner に渡す', async () => {
+    await explains('`skipPostprocess` を指定せずに `convert` を呼んだ場合に、runner へ渡す設定の `skipPostprocess` が `false` になることを確認します。')
     let receivedConfig: PipelineConfig | undefined
     const captureRunner: ConvertToPptxRunner = (config) => {
       receivedConfig = config
@@ -196,7 +203,8 @@ describe('InProcessSlidevPptxPipeline', () => {
     expect(receivedConfig?.skipPostprocess).toBe(false)
   })
 
-  it('runner が例外を throw すると PipelineRuntimeError に wrap される', async () => {
+  it('runner が例外を発生させた場合は、PipelineRuntimeError に包んで失敗する', async () => {
+    await explains('runner が通常のエラーで失敗した場合のテストです。`convert` が `PipelineRuntimeError` で失敗することを確認します。')
     const pipeline = new InProcessSlidevPptxPipeline({ convertToPptxRunner: failingRunner })
 
     await expect(pipeline.convert({
@@ -207,11 +215,12 @@ describe('InProcessSlidevPptxPipeline', () => {
     })).rejects.toBeInstanceOf(PipelineRuntimeError)
   })
 
-  it('controller.signal.aborted=true 観測時に PipelineTimeoutError を throw する', async () => {
+  it('タイムアウトで中断された場合は、PipelineTimeoutError で失敗する', async () => {
     // 本実装の setTimeout(controller.abort, idleTimeoutMs) が発火した後を考える。
     // runner が signal.aborted を検知して reject する。
     // その reject を pipeline.convert が PipelineTimeoutError に wrap して再 throw する。
     // この流れを観測する。
+    await explains('無通信の上限（`idleTimeoutMs`）を過ぎて中断された場合のテストです。runner が中断を検知して失敗したときに、`convert` が `PipelineTimeoutError` で失敗することを確認します。')
     const pipeline = new InProcessSlidevPptxPipeline({ convertToPptxRunner: abortAwareRunner })
 
     await expect(pipeline.convert({
@@ -222,7 +231,8 @@ describe('InProcessSlidevPptxPipeline', () => {
     })).rejects.toBeInstanceOf(PipelineTimeoutError)
   })
 
-  it('呼び出し元の signal を abort すると runner の signal も abort され、タイムアウトではなく通常の失敗になる (#1228)', async () => {
+  it('呼び出し元の signal を中断した場合は、runner の signal も中断し、タイムアウトではなく通常の失敗にする', async () => {
+    await explains('呼び出し元が渡した `signal` を中断した場合のテストです。runner の `signal` も中断され、`convert` がタイムアウトではなく `PipelineRuntimeError` で失敗することを確認します。')
     const external = new AbortController()
     let runnerSignal: AbortSignal | undefined
     const runner: ConvertToPptxRunner = (_config, dependencies) => new Promise<PipelineResult>((_resolve, reject) => {
@@ -247,7 +257,8 @@ describe('InProcessSlidevPptxPipeline', () => {
     expect(error).not.toBeInstanceOf(PipelineTimeoutError)
   })
 
-  it('呼び出し元の signal が abort 済みなら、runner は abort 済みの signal を受け取る (#1228)', async () => {
+  it('呼び出し元の signal が中断済みの場合は、中断済みの signal を runner に渡す', async () => {
+    await explains('中断済みの `signal` を渡して `convert` を呼んだ場合に、runner が受け取る `signal` も中断済みになっていることを確認します。')
     let runnerSignal: AbortSignal | undefined
     const runner: ConvertToPptxRunner = (_config, dependencies) => {
       runnerSignal = dependencies.signal
@@ -266,11 +277,12 @@ describe('InProcessSlidevPptxPipeline', () => {
     expect(runnerSignal?.aborted).toBe(true)
   })
 
-  it('deps.onProgress が idle 上限内に呼ばれ続ける間は abort されず、止まると abort される (#1097)', async () => {
+  it('進捗が上限時間内に報告され続ける間は中断せず、報告が止まった時点で中断する', async () => {
     // 合計時間は idle 上限 (200ms) を大きく超える (進捗 6 回 × 50ms = 300ms) が、進捗のたびに
     // 計時をやり直すため打ち切られない。進捗を止めた後は 200ms で abort される。
     // tick 間隔 (50ms) と idle 上限 (200ms) の間に 4 倍のマージンを取り、実タイマー依存の
     // スケジューリング遅延で早期 abort が誤発火しないようにする (F-09)。
+    await explains('無通信の上限（`idleTimeoutMs`）を使った、中断の判定のテストです。進捗が上限内に報告され続ける間は中断せず、報告が止まって上限を過ぎた時点で `PipelineTimeoutError` で失敗することを確認します。')
     let isAborted = false
     let progressCount = 0
     const runner: ConvertToPptxRunner = (_config, dependencies) => new Promise<PipelineResult>((_resolve, reject) => {
@@ -306,10 +318,11 @@ describe('InProcessSlidevPptxPipeline', () => {
     expect(timeoutError.message).toContain('last progress: スライド #6 変換完了')
   })
 
-  it('abort 後に遅れて届く onProgress は無視され、タイマーが再武装されない (#1097 F-04)', async () => {
+  it('中断した後に届いた進捗の報告は無視し、タイマーを再設定しない', async () => {
     // index.ts の onProgress は、`if (controller.signal.aborted) return` で abort 後の遅延報告を無視する。
     // ガードが無いと、abort 後もタイマーが再武装され続け、setTimeout が残り続ける。
     // 実運用では、Phase 1 の実行中タスクが abort 後も最後まで動き、完了時に onProgress を呼ぶ。
+    await explains('タイムアウトで中断した後に、runner が進捗を報告した場合のテストです。報告が無視され、タイマー（`setTimeout`）が再設定されないことを確認します。')
     vi.useFakeTimers()
     try {
       let onProgressReference: ((label: string) => void) | undefined
@@ -342,7 +355,8 @@ describe('InProcessSlidevPptxPipeline', () => {
     }
   })
 
-  it('進捗が 1 件も無いまま abort されると lastProgress は undefined (#1097)', async () => {
+  it('進捗が 1 件もない状態で中断された場合は、lastProgress が undefined になる', async () => {
+    await explains('進捗が一度も報告されないまま、タイムアウトで中断された場合のテストです。`PipelineTimeoutError` の `lastProgress` が `undefined` になり、メッセージにスキャン開始前であることを示す文言が含まれることを確認します。')
     const pipeline = new InProcessSlidevPptxPipeline({ convertToPptxRunner: abortAwareRunner })
 
     const error = await rejectionOf(pipeline.convert({
@@ -357,9 +371,10 @@ describe('InProcessSlidevPptxPipeline', () => {
     expect((error as PipelineTimeoutError).message).toContain('before the scan started')
   })
 
-  it('timeout で打ち切っても pipeline が積んだ警告を PipelineTimeoutError に引き継ぐ (#931)', async () => {
+  it('タイムアウトで中断した場合も、runner が記録した警告を PipelineTimeoutError に引き継ぐ', async () => {
     // pipeline は中断時 PipelineRuntimeError に warnings を載せて throw する。ここで捨てると
     // timeout した run だけ警告が観測できなくなる。
+    await explains('runner が警告を持つ `PipelineRuntimeError` で失敗した状態で、タイムアウトによって中断された場合のテストです。`PipelineTimeoutError` の `warnings` に、runner の警告がそのまま引き継がれることを確認します。')
     const warnings = ['キャッシュ manifest が読めません（既存の成果物を掃除して作り直します）']
     const runner: ConvertToPptxRunner = (_config, dependencies) => new Promise<PipelineResult>((_resolve, reject) => {
       dependencies.signal?.addEventListener('abort', () => {
@@ -379,9 +394,10 @@ describe('InProcessSlidevPptxPipeline', () => {
     expect((error as PipelineTimeoutError).warnings).toStrictEqual(warnings)
   })
 
-  it('timeout で打ち切っても pipeline が積んだ errors を PipelineTimeoutError に引き継ぐ (#945)', async () => {
+  it('タイムアウトで中断した場合も、runner が記録した変換エラーを PipelineTimeoutError に引き継ぐ', async () => {
     // 変換エラーは失敗の原因そのもの。timeout した run で捨てると、どのスライド・要素が
     // 落ちていたのかが commands 層から観測できなくなる。
+    await explains('runner が変換エラーを持つ `PipelineRuntimeError` で失敗した状態で、タイムアウトによって中断された場合のテストです。`PipelineTimeoutError` の `errors` に、runner の変換エラーがそのまま引き継がれることを確認します。')
     const errors = [
       { level: 'slide', slideNumber: 2, message: 'worker-failed' },
       { level: 'element', slideNumber: 1, selector: '.chart', message: 'pr-fail' },
@@ -404,7 +420,8 @@ describe('InProcessSlidevPptxPipeline', () => {
     expect((error as PipelineTimeoutError).errors).toStrictEqual(errors)
   })
 
-  it('PipelineRuntimeError を throw する runner は二重 wrap されずそのまま再 throw される', async () => {
+  it('runner が PipelineRuntimeError で失敗した場合は、包み直さずにそのまま失敗する', async () => {
+    await explains('runner が `PipelineRuntimeError` で失敗した場合のテストです。`convert` が同じエラーのインスタンスをそのまま発生させ、別のエラーで包み直さないことを確認します。')
     const original = new PipelineRuntimeError('inner already-wrapped error')
     const wrappingRunner: ConvertToPptxRunner = () => Promise.reject(original)
     const pipeline = new InProcessSlidevPptxPipeline({ convertToPptxRunner: wrappingRunner })
@@ -417,7 +434,8 @@ describe('InProcessSlidevPptxPipeline', () => {
     })).rejects.toBe(original)
   })
 
-  it('SlidevPptxConvertArguments の port/concurrency/logLevel を PipelineConfig に反映する', async () => {
+  it('port・concurrency・logLevel を指定した場合は、PipelineConfig に反映する', async () => {
+    await explains('`convert` の引数に `port`・`concurrency`・`logLevel` を指定した場合のテストです。runner に渡す設定の同名の項目に、指定した値が反映されることを確認します。')
     let receivedConfig: PipelineConfig | undefined
     const captureRunner: ConvertToPptxRunner = (config) => {
       receivedConfig = config
@@ -440,7 +458,8 @@ describe('InProcessSlidevPptxPipeline', () => {
     expect(receivedConfig?.logLevel).toBe('verbose')
   })
 
-  it('警告を process.stdout ではなく stderr の warning: 行に出す (標準出力を汚さない)', async () => {
+  it('stderr を渡した場合は、警告を渡した stderr に warning: の行として出力し、process.stdout には出力しない', async () => {
+    await explains('出力先の `stderr` を渡した場合の、警告の出力のテストです。runner が出した警告が `warning:` の行として渡した `stderr` にだけ出力され、標準出力には書き込まれないことを確認します。')
     const stderr = makeStream()
     const isProcessStdoutWrite = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     try {
@@ -462,7 +481,8 @@ describe('InProcessSlidevPptxPipeline', () => {
     }
   })
 
-  it('stderr を渡さないときは、警告を process.stderr の warning: 行に出す', async () => {
+  it('stderr を渡さない場合は、警告を process.stderr に warning: の行として出力する', async () => {
+    await explains('出力先の `stderr` を渡さない場合の、警告の出力のテストです。警告が `warning:` の行として `process.stderr` に出力され、`process.stdout` には書き込まれないことを確認します。')
     const isProcessStdoutWrite = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     const isProcessStderrWrite = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     try {

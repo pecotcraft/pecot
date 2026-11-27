@@ -84,12 +84,16 @@ def server(tmp_path: Path) -> Iterator[_Server]:
         srv.proc.communicate()
 
 
+@allure.title("存在しない hash を GET すると、404 を返す")
 def test_get_miss_is_404(server: _Server) -> None:
+    """`nx-cache-server.mjs` の `GET /v1/cache/{hash}` のテストです。保存されていない hash を指定した場合に、ステータス 404 を返すことを確認します。"""
     with allure.step("存在しないキーの取得が 404 になることを確かめる"):
         assert server.request("GET", "/v1/cache/abc123")[0] == 404
 
 
+@allure.title("PUT した内容を GET すると、同じバイト列を返す")
 def test_put_then_get_returns_stored_bytes(server: _Server) -> None:
+    """`PUT /v1/cache/{hash}` で保存した内容の、読み出しのテストです。同じ hash の `GET` が 200 と保存したバイト列を返し、ストアに `abc123.tar.gz` の 1 ファイルだけが残ることを確認します。"""
     with allure.step("保存して取得し、保存したバイト列を確かめる"):
         assert server.request("PUT", "/v1/cache/abc123", b"tarball")[0] == 200
         status, body = server.request("GET", "/v1/cache/abc123")
@@ -98,7 +102,9 @@ def test_put_then_get_returns_stored_bytes(server: _Server) -> None:
         assert [p.name for p in server.dir.iterdir()] == ["abc123.tar.gz"]
 
 
+@allure.title("すでに存在する hash を PUT すると、409 を返し、元の内容を保つ")
 def test_put_existing_is_409_and_keeps_content(server: _Server) -> None:
+    """同じ hash に 2 回 `PUT` するテストです。2 回目が 409 を返し、`GET` の結果は 1 回目の内容のままであることを確認します。"""
     with allure.step("先に 1 回保存する"):
         server.request("PUT", "/v1/cache/abc123", b"first")
     with allure.step("2 回目の保存が 409 で、中身が最初のままであることを確かめる"):
@@ -106,16 +112,20 @@ def test_put_existing_is_409_and_keeps_content(server: _Server) -> None:
         assert server.request("GET", "/v1/cache/abc123")[1] == b"first"
 
 
+@allure.title("トークンが {token} のとき、GET と PUT の両方で 401 を返し、何も保存しない")
 @pytest.mark.parametrize("token", [None, "wrong"])
 def test_bad_token_is_401(server: _Server, token: str | None) -> None:
+    """`Authorization` のトークンがない場合と、誤っている場合のテストです。`GET` と `PUT` のどちらも 401 を返し、ストアに何も保存しないことを確認します。"""
     with allure.step("不正なトークンでの取得と保存が 401 になり、何も保存されないことを確かめる"):
         assert server.request("GET", "/v1/cache/abc123", token=token)[0] == 401
         assert server.request("PUT", "/v1/cache/abc123", b"x", token=token)[0] == 401
         assert not list(server.dir.iterdir())
 
 
+@allure.title("hash に {bad} のような英数字以外の文字があると、400 を返し、何も保存しない")
 @pytest.mark.parametrize("bad", ["a.b", "..", "a%2Fb", "a-b"])
 def test_non_alphanumeric_hash_is_400(server: _Server, bad: str) -> None:
+    """hash に `.` や `-`、エンコードしたスラッシュなど、英数字以外の文字を含める場合のテストです。`GET` と `PUT` のどちらも 400 を返し、ストアに何も保存しないことを確認します。"""
     with allure.step(
         "英数字でないハッシュの取得と保存が 400 になり、何も保存されないことを確かめる"
     ):
@@ -124,7 +134,9 @@ def test_non_alphanumeric_hash_is_400(server: _Server, bad: str) -> None:
         assert not list(server.dir.iterdir())
 
 
+@allure.title("SIGTERM を受けると、GET と PUT の件数を 1 行で出力して終了する")
 def test_summary_line_on_sigterm(server: _Server) -> None:
+    """`GET` の命中と未命中、`PUT` を実行したあとに、SIGTERM を送るテストです。標準出力に `GET hit=1 miss=1 PUT=1 conflict=0 保存=1` の 1 行を出力することを確認します。"""
     with allure.step("保存と取得を何回か行う"):
         server.request("PUT", "/v1/cache/abc123", b"x")
         server.request("GET", "/v1/cache/abc123")
@@ -133,7 +145,9 @@ def test_summary_line_on_sigterm(server: _Server) -> None:
         assert "GET hit=1 miss=1 PUT=1 conflict=0 保存=1" in server.stop()
 
 
+@allure.title("POST と DELETE は、405 を返し、何も保存しない")
 def test_other_methods_are_405(server: _Server) -> None:
+    """`POST` と `DELETE` で `/v1/cache/abc123` を呼ぶテストです。どちらも 405 を返し、ストアに何も保存しないことを確認します。"""
     with allure.step("POST と DELETE が 405 になり、何も保存されないことを確かめる"):
         for method in ("POST", "DELETE"):
             assert (
@@ -143,14 +157,18 @@ def test_other_methods_are_405(server: _Server) -> None:
         assert not list(server.dir.iterdir())
 
 
+@allure.title("{path} のようなキャッシュ以外のパスは、GET と PUT の両方で 404 を返す")
 @pytest.mark.parametrize("path", ["/", "/v1/other/abc", "/v1/cache/", "/v1/cache/a/b"])
 def test_other_paths_are_404(server: _Server, path: str) -> None:
+    """`/v1/cache/{hash}` の形ではないパスを呼ぶテストです。`GET` と `PUT` のどちらも 404 を返すことを確認します。"""
     with allure.step("想定外のパスの取得と保存が 404 になることを確かめる"):
         assert server.request("GET", path)[0] == 404
         assert server.request("PUT", path, b"x")[0] == 404
 
 
+@allure.title("同じ hash への PUT が同時に 8 件あっても、成功するのは 1 件だけにする")
 def test_concurrent_puts_one_wins(server: _Server) -> None:
+    """同じ hash に、1 MB の内容を 8 件同時に `PUT` するテストです。200 が 1 件、409 が 7 件で、ストアに `race.tar.gz` の 1 ファイルだけが残ることを確認します。"""
     with allure.step("同じキーへ 8 本のスレッドで同時に保存する"):
         codes: list[int] = []
         body = b"x" * 1_000_000
@@ -168,7 +186,9 @@ def test_concurrent_puts_one_wins(server: _Server) -> None:
         assert [p.name for p in server.dir.iterdir()] == ["race.tar.gz"]
 
 
+@allure.title("PUT の途中で接続を切っても、一時ファイルを残さない")
 def test_aborted_put_leaves_no_temp_file(server: _Server) -> None:
+    """`Content-Length` が 100 のリクエストを、5 バイトだけ送って切断するテストです。ストアに、一時ファイルを含めて何も残らないことを確認します。"""
     with allure.step("ソケットで保存を途中まで送って切る"):
         port = int(server.url.rsplit(":", 1)[1])
         with socket.create_connection(("127.0.0.1", port)) as s:
@@ -181,8 +201,10 @@ def test_aborted_put_leaves_no_temp_file(server: _Server) -> None:
         assert not list(server.dir.iterdir())
 
 
+@allure.title("ストアに書き込めないと、PUT は 409 ではなく 500 を返す")
 @pytest.mark.skipif(os.geteuid() == 0, reason="root は書き込み権限を無視する")
 def test_unwritable_store_is_500_not_409(server: _Server) -> None:
+    """ストアのディレクトリの権限を `500`（書き込み不可）にして、`PUT` するテストです。ステータスが 409 ではなく 500 になることを確認します。"""
     with allure.step("保存先を書き込み不可にする"):
         server.dir.chmod(0o500)
     with allure.step("保存が 409 でなく 500 になることを確かめる"):
@@ -192,7 +214,9 @@ def test_unwritable_store_is_500_not_409(server: _Server) -> None:
             server.dir.chmod(0o700)
 
 
+@allure.title("--used-file には、GET で命中した hash と PUT で保存した hash だけを書く")
 def test_used_file_lists_hits_and_puts_only(tmp_path: Path) -> None:
+    """`--used-file` を指定して起動し、`GET` の命中と未命中、新規と既存の hash への `PUT` を実行するテストです。終了後のファイルに、命中した `old1` と新規に保存した `new1` だけが 1 回ずつ書かれ、一時ファイルが残らないことを確認します。"""
     with allure.step("取得と保存を重ねて行い、サーバを止める"):
         used = tmp_path / "used.txt"
         srv = _start(tmp_path / "store", tmp_path / "port", used)
@@ -210,7 +234,9 @@ def test_used_file_lists_hits_and_puts_only(tmp_path: Path) -> None:
         assert not list(tmp_path.glob("used.txt.tmp"))
 
 
+@allure.title("--used-file を指定しないと、used のファイルを作らない")
 def test_no_used_file_without_arg(server: _Server, tmp_path: Path) -> None:
+    """`--used-file` を指定せずに起動して、`PUT` したあとに終了するテストです。`used` で始まるファイルが作られないことを確認します。"""
     with allure.step("引数なしで保存してサーバを止める"):
         server.request("PUT", "/v1/cache/abc123", b"x")
         server.stop()
@@ -218,7 +244,9 @@ def test_no_used_file_without_arg(server: _Server, tmp_path: Path) -> None:
         assert not any(p.name.startswith("used") for p in tmp_path.iterdir())
 
 
+@allure.title("ストアのディレクトリが存在しなくても、SIGTERM を受けると終了コード 0 で終了する")
 def test_sigterm_exits_when_store_is_gone(server: _Server) -> None:
+    """ストアのディレクトリを削除してから、SIGTERM を送るテストです。サーバが終了コード 0 で終了することを確認します。"""
     with allure.step("保存先を消してサーバを止める"):
         shutil.rmtree(server.dir)
         server.stop()
@@ -226,14 +254,18 @@ def test_sigterm_exits_when_store_is_gone(server: _Server) -> None:
         assert server.proc.returncode == 0
 
 
+@allure.title("必須の引数を渡さずに起動すると、終了コード 2 で終了する")
 def test_missing_args_exit_2() -> None:
+    """`nx-cache-server.mjs` を引数なしで起動するテストです。終了コード 2 で終了することを確認します。"""
     with allure.step("引数なしでサーバを動かす"):
         result = run_attached(["node", str(_SERVER)], capture_output=True, text=True, timeout=10)
     with allure.step("終了コードが 2 であることを確かめる"):
         assert result.returncode == 2
 
 
+@allure.title("実際の nx は、1 回目の結果を PUT し、ローカルを分けた 2 回目はリモートから再生する")
 def test_real_nx_puts_then_replays_from_remote(tmp_path: Path, git_repo, git) -> None:
+    """実際の `nx` を一時リポジトリで 2 回実行するテストです。1 回目の結果がサーバに `PUT` され、ローカルのキャッシュを分けた 2 回目の出力に `remote cache` が含まれることを確認します。"""
     nx_bin = _REPO_ROOT / "node_modules" / ".bin" / "nx"
     if not nx_bin.exists():
         pytest.skip("node_modules/.bin/nx が無い（npm ci 前）")

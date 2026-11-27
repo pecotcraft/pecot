@@ -18,6 +18,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { attachContent } from '../_helpers/attach.js'
 import { isChromiumCached } from '../_helpers/pecotv-e2e-run.js'
+import { explains } from '../_helpers/explains.js'
 
 const EMBED_URL_PATTERN = 'https://embed.diagrams.net/**'
 const HANDSHAKE_DELAY_MS = 4000
@@ -79,6 +80,7 @@ function mockLaunchWithSlowHandshake(): void {
 
 describe.skipIf(!isChromiumCached())('exportViaEmbed の handshake', () => {
   it('handshake の設置が遅れても、先に届いた init を取りこぼさず SVG を返す', async () => {
+    await explains('`exportViaEmbed` の埋め込み画面との初期通信のテストです。Node.js 側の受信の準備が 4 秒遅れても、先に届いた `init` を取りこぼさず、期待どおりの SVG を制限時間内に返すことを確認します。')
     mockLaunchWithSlowHandshake()
     const { exportViaEmbed } = await import('../../src/infra/drawio/screenshot.js')
 

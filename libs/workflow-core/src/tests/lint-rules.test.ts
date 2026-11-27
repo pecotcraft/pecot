@@ -5,6 +5,7 @@ import path from 'node:path'
 
 import { ESLint } from 'eslint'
 import { beforeAll, describe, expect, it } from 'vitest'
+import { explains } from '../../tests/_helpers/explains.js'
 
 const projectDirectory = path.resolve(import.meta.dirname, '../..')
 const domainFile = path.join(projectDirectory, 'src', 'domain', 'errors.ts')
@@ -27,72 +28,86 @@ async function ruleIds(code: string, filePath: string): Promise<readonly string[
 }
 
 describe('domain の依存方向', () => {
-  it('domain から infra の import は import-x/no-restricted-paths に当たる', async () => {
+  it('domain から infra を import すると、import-x/no-restricted-paths の違反になる', async () => {
+    await explains('ESLint の層の規則のテストです。`domain` のファイルから `infra` を import した場合に、`import-x/no-restricted-paths` の違反として検出されることを確認します。')
     const ids = await ruleIds('import { runGit } from \'../infra/git.js\'\n\nexport const used = runGit\n', domainFile)
     expect(ids).toContain('import-x/no-restricted-paths')
   })
 
-  it('infra から commands-shared の import は import-x/no-restricted-paths に当たる', async () => {
+  it('infra から commands-shared を import すると、import-x/no-restricted-paths の違反になる', async () => {
+    await explains('ESLint の層の規則のテストです。`infra` のファイルから `commands-shared` を import した場合に、`import-x/no-restricted-paths` の違反として検出されることを確認します。')
     const ids = await ruleIds('import { createOutput } from \'../commands-shared/output.js\'\n\nexport const used = createOutput\n', infraFile)
     expect(ids).toContain('import-x/no-restricted-paths')
   })
 
-  it('自分の package 名の import は no-restricted-imports に当たる', async () => {
+  it('自分の package 名で import すると、no-restricted-imports の違反になる', async () => {
+    await explains('ESLint の層の規則のテストです。自分の package 名（`@pecot/workflow-core`）で import した場合に、`no-restricted-imports` の違反として検出されることを確認します。')
     const ids = await ruleIds('import { runGit } from \'@pecot/workflow-core/infra/git.js\'\n\nexport const used = runGit\n', infraFile)
     expect(ids).toContain('no-restricted-imports')
   })
 
-  it('infra から domain の import は違反にならない', async () => {
+  it('infra から domain を import しても、違反にならない', async () => {
+    await explains('ESLint の層の規則のテストです。`infra` のファイルから `domain` を import した場合に、`import-x/no-restricted-paths` の違反として検出されないことを確認します。')
     const ids = await ruleIds('import { PecotError } from \'../domain/errors.js\'\n\nexport const used = PecotError\n', infraFile)
     expect(ids).not.toContain('import-x/no-restricted-paths')
   })
 
-  it('domain から node:fs の import は no-restricted-imports に当たる', async () => {
+  it('domain から node:fs を import すると、no-restricted-imports の違反になる', async () => {
+    await explains('ESLint の層の規則のテストです。`domain` のファイルから `node:fs` を import した場合に、`no-restricted-imports` の違反として検出されることを確認します。')
     const ids = await ruleIds('import { readFileSync } from \'node:fs\'\n\nexport const used = readFileSync\n', domainFile)
     expect(ids).toContain('no-restricted-imports')
   })
 
-  it('domain から node:fs/promises と fs の import も当たる', async () => {
+  it('domain から node:fs/promises と fs を import しても、no-restricted-imports の違反になる', async () => {
+    await explains('ESLint の層の規則のテストです。`domain` のファイルから `node:fs/promises` と `fs` を import した場合も、どちらも `no-restricted-imports` の違反として検出されることを確認します。')
     expect(await ruleIds('import { readFile } from \'node:fs/promises\'\n\nexport const used = readFile\n', domainFile)).toContain('no-restricted-imports')
     expect(await ruleIds('import { readFileSync } from \'fs\'\n\nexport const used = readFileSync\n', domainFile)).toContain('no-restricted-imports')
   })
 
-  it.each(['node:os', 'node:net', 'node:http', 'node:https', 'node:process'])('domain から %s の import は no-restricted-imports に当たる', async (name) => {
+  it.each(['node:os', 'node:net', 'node:http', 'node:https', 'node:process'])('domain から %s を import すると、no-restricted-imports の違反になる', async (name) => {
+    await explains(`ESLint の層の規則のテストです。\`domain\` のファイルから \`${name}\` を import した場合に、\`no-restricted-imports\` の違反として検出されることを確認します。`)
     const ids = await ruleIds(`import * as used from '${name}'\n\nexport const value = used\n`, domainFile)
     expect(ids).toContain('no-restricted-imports')
   })
 
-  it('domain でグローバルの fetch と process は no-restricted-globals に当たる', async () => {
+  it('domain でグローバルの fetch と process を参照すると、no-restricted-globals の違反になる', async () => {
+    await explains('ESLint の層の規則のテストです。`domain` のファイルでグローバルの `fetch` と `process` を参照した場合に、`no-restricted-globals` の違反が 2 件検出されることを確認します。')
     const ids = await ruleIds('export const call = fetch\nexport const environment = process.env\n', domainFile)
     expect(ids.filter(id => id === 'no-restricted-globals')).toHaveLength(2)
   })
 
-  it('domain で globalThis.fetch は no-restricted-properties に当たる', async () => {
+  it('domain で globalThis.fetch を参照すると、no-restricted-properties の違反になる', async () => {
+    await explains('ESLint の層の規則のテストです。`domain` のファイルで `globalThis.fetch` を参照した場合に、`no-restricted-properties` の違反として検出されることを確認します。')
     const ids = await ruleIds('export const call = globalThis.fetch\n', domainFile)
     expect(ids).toContain('no-restricted-properties')
   })
 
-  it('infra ではグローバルの fetch と process を許す', async () => {
+  it('infra でグローバルの fetch と process を参照しても、違反にならない', async () => {
+    await explains('ESLint の層の規則のテストです。`infra` のファイルでグローバルの `fetch` と `process` を参照した場合に、`no-restricted-globals` の違反として検出されないことを確認します。')
     const ids = await ruleIds('export const call = fetch\nexport const environment = process.env\n', infraFile)
     expect(ids).not.toContain('no-restricted-globals')
   })
 
-  it('domain から node:child_process の import は no-restricted-imports に当たる', async () => {
+  it('domain から node:child_process を import すると、no-restricted-imports の違反になる', async () => {
+    await explains('ESLint の層の規則のテストです。`domain` のファイルから `node:child_process` を import した場合に、`no-restricted-imports` の違反として検出されることを確認します。')
     const ids = await ruleIds('import { spawnSync } from \'node:child_process\'\n\nexport const used = spawnSync\n', domainFile)
     expect(ids).toContain('no-restricted-imports')
   })
 
-  it('domain から node:path の import は許す', async () => {
+  it('domain から node:path を import しても、違反にならない', async () => {
+    await explains('ESLint の層の規則のテストです。`domain` のファイルから `node:path` を import した場合に、`no-restricted-imports` の違反として検出されないことを確認します。')
     const ids = await ruleIds('import path from \'node:path\'\n\nexport const used = path.sep\n', domainFile)
     expect(ids).not.toContain('no-restricted-imports')
   })
 
-  it('infra から node:fs の import は許す', async () => {
+  it('infra から node:fs を import しても、違反にならない', async () => {
+    await explains('ESLint の層の規則のテストです。`infra` のファイルから `node:fs` を import した場合に、`no-restricted-imports` の違反として検出されないことを確認します。')
     const ids = await ruleIds('import { readFileSync } from \'node:fs\'\n\nexport const used = readFileSync\n', infraFile)
     expect(ids).not.toContain('no-restricted-imports')
   })
 
-  it('domain のテストからの node:fs の import は許す', async () => {
+  it('domain のテストから node:fs を import しても、違反にならない', async () => {
+    await explains('ESLint の層の規則のテストです。`domain` のテストファイルから `node:fs` を import した場合に、`no-restricted-imports` の違反として検出されないことを確認します。')
     const ids = await ruleIds('import { readFileSync } from \'node:fs\'\n\nexport const used = readFileSync\n', domainTestFile)
     expect(ids).not.toContain('no-restricted-imports')
   })

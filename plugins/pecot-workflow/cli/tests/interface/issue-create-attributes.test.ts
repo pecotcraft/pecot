@@ -13,6 +13,7 @@ import { BOARD_FIELDS_WITH_LANE, definitionRules, definitionsData, issueFieldsPr
 import { addedToProject, ISSUE_URL_BASE, issueNodeId, linkedRepositories, parentLane, rawFrontmatterFile, setUpIssueProject, subIssueAdded, TASK_BODY, updatedFields } from '../_helpers/issue-create-case.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
+import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -75,8 +76,9 @@ function laneWrite(optionId: string): Record<string, unknown> {
 
 describe('issue create', () => {
   describe('attributes', () => {
-    it('attributes を付けて呼ぶと、組み込みを起票の要求で送り、Issue fields を起票の後で、ボードのフィールドをボードへ足した後で書く', async (context) => {
+    it('attributes を付けて呼ぶと、組み込みを起票の要求で送り、Issue fields を起票の後で、ボードのフィールドをボードへ追加した後で書く', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-79')
+      await explains('MCP ツール `issue_create` の `attributes` のテストです。`attributes` を付けた場合に、組み込みの機能は起票の要求で送り、Issue fields は起票の後で、ボードのフィールドはボードへ追加した後で書くことを確認します。')
       setUpIssueProject()
       const github = await startGithub([
         linkedRepositories(),
@@ -120,6 +122,7 @@ describe('issue create', () => {
 
     it('フロントマターに attributes があると、そのファイルから作る Issue に値を書き、set の行に出す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-80')
+      await explains('`issue create` のフロントマターの `attributes` のテストです。フロントマターに `attributes` がある場合に、そのファイルから作る Issue へ値を書き、`set` の行として出力することを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', ...attributeLines(['Area', 'docs'], ['Effort', '3'])) })
       const github = await startGithub([linkedRepositories(), ...definitionRules(), created(), issueNodeId(12), addedToProject(), updatedFields(1), fieldValuesAdded(), boardWritten()])
@@ -133,6 +136,7 @@ describe('issue create', () => {
 
     it('一括のファイルの値が 1 つでも定義に合わないと、どの Issue も作らずに、合わないものをすべて errors に入れて invalid-input の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-81')
+      await explains('MCP ツール `issue_create` の `files` の値の検証のテストです。一括のファイルの値が 1 つでも定義と合わない場合に、どの Issue も作らず、合わない値をすべて `errors` へ入れて `invalid-input` の失敗を返すことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, {
         'a.md': taskFile('先頭', ...attributeLines(['Area', 'docs'])),
@@ -156,6 +160,7 @@ describe('issue create', () => {
 
     it('attributes を省いて呼ぶと、機能の定義を読まずに、今までと同じ要求で Issue を作る', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-82')
+      await explains('MCP ツール `issue_create` の `attributes` を省いた場合のテストです。`attributes` を省いた場合に、機能の定義は読まず、従来と同じ要求で Issue を作ることを確認します。')
       setUpIssueProject()
       const github = await startGithub([linkedRepositories(), created(), addedToProject(), updatedFields(1)])
 
@@ -168,6 +173,7 @@ describe('issue create', () => {
 
     it('Issue fields と組み込みの機能を書けないと、その機能と理由を failed と warnings に入れ、ほかの機能を書いて成功を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-83')
+      await explains('MCP ツール `issue_create` の書き込みが失敗した場合のテストです。Issue fields や組み込みの機能を書けなかった場合に、その機能と理由を `failed` と `warnings` に入れ、ほかの機能は書いて成功を返すことを確認します。')
       setUpIssueProject()
       await startGithub([linkedRepositories(), ...definitionRules(), created(), addedToProject(), updatedFields(1), fieldValuesAdded(403), boardWritten()])
 
@@ -184,6 +190,7 @@ describe('issue create', () => {
 
     it('label と attributes の labels を両方渡すと、Issue を作らずに、ambiguous_attribute を errors に入れて失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-84')
+      await explains('MCP ツール `issue_create` の `label` の検証のテストです。`label` と `attributes` の `labels` を両方渡した場合に、Issue は作らず、`ambiguous_attribute` を `errors` に入れて失敗を返すことを確認します。')
       setUpIssueProject()
       const github = await startGithub([linkedRepositories(), ...definitionRules()])
 
@@ -196,6 +203,7 @@ describe('issue create', () => {
 
     it('フロントマターに labels と attributes の labels を両方書くと、Issue を作らずに ambiguous_attribute を file 付きで返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-84')
+      await explains('MCP ツール `issue_create` の `files` の検証のテストです。フロントマターで `labels` と `attributes` の `labels` を両方書いた場合に、Issue は作らず、`file` 付きの `ambiguous_attribute` を返すことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', 'labels: [bug]', 'attributes:', '  - name: labels', '    value: [bug]') })
       const github = await startGithub([linkedRepositories(), ...definitionRules()])
@@ -209,6 +217,7 @@ describe('issue create', () => {
 
     it('--attribute をファイルと一緒に渡すと、使い方の誤りで終了コード 2 を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-85')
+      await explains('`issue create` の引数の検証のテストです。`--attribute` とファイルを両方渡した場合は、使い方の誤りとして終了コード 2 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭') })
       const github = await startGithub([])
@@ -220,8 +229,9 @@ describe('issue create', () => {
       expect(github.requests()).toStrictEqual([])
     })
 
-    it('value が null の機能は、書かずに飛ばす', async (context) => {
+    it('value が null の機能は、書き込まずに除く', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-86')
+      await explains('MCP ツール `issue_create` の `attributes` のテストです。`value` が `null` の機能を渡した場合に、書き込まずに除き、失敗にも入れないことを確認します。')
       setUpIssueProject()
       const github = await startGithub([linkedRepositories(), ...definitionRules(), created(), addedToProject(), updatedFields(1)])
 
@@ -240,6 +250,7 @@ describe('issue create', () => {
 
     it('lane を付けて呼ぶと、Issue を作り、ボードの pecot-lane にその値を書く', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-89')
+      await explains('MCP ツール `issue_create` の `lane` のテストです。`lane` を付けた場合に、Issue を作り、ボードの `pecot-lane` にその値を書くことを確認します。')
       setUpIssueProject()
       const github = await startGithub([linkedRepositories(), ...laneDefinitions(), created(), addedToProject(), updatedFields(1), boardWritten()])
 
@@ -253,6 +264,7 @@ describe('issue create', () => {
     it('lane が選択肢と大文字と小文字で違うと、Issue を作らずに、invalid_value と取りうる値を errors に入れて invalid-input の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-89')
       await verifies(context, 'PW-ISSUE-CREATE-90')
+      await explains('MCP ツール `issue_create` の `lane` の検証のテストです。`lane` が選択肢と大文字小文字だけ違う場合に、Issue は作らず、`invalid_value` と取りうる値を `errors` に入れて `invalid-input` の失敗を返すことを確認します。')
       setUpIssueProject()
       const github = await startGithub([linkedRepositories(), ...laneDefinitions()])
 
@@ -265,6 +277,7 @@ describe('issue create', () => {
 
     it('lane と attributes の pecot-lane を両方渡すと、Issue を作らずに、ambiguous_attribute を 1 件だけ errors に入れて失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-91')
+      await explains('MCP ツール `issue_create` の `lane` の検証のテストです。`lane` と `attributes` の `pecot-lane` を両方渡した場合に、Issue は作らず、`ambiguous_attribute` を 1 件だけ返すことを確認します。')
       setUpIssueProject()
       const github = await startGithub([linkedRepositories(), ...laneDefinitions()])
 
@@ -277,6 +290,7 @@ describe('issue create', () => {
 
     it('parent_epic を付けて lane を省くと、親の Epic の pecot-lane の値を書く', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-92')
+      await explains('MCP ツール `issue_create` の `parent_epic` のテストです。`parent_epic` を付けて `lane` を省いた場合に、親の Epic の `pecot-lane` の値を書くことを確認します。')
       setUpIssueProject()
       const github = await startGithub([linkedRepositories(), parentLane(3, 'cli'), ...laneDefinitions(), created(), addedToProject(), updatedFields(1), boardWritten(), issueNodeId(3), subIssueAdded()])
 
@@ -289,6 +303,7 @@ describe('issue create', () => {
 
     it('Issue fields を読めないリポでも、親の Epic の値を引き継いで起票し、warnings に Issue fields の 1 行だけを入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-92')
+      await explains('MCP ツール `issue_create` の Issue fields を読めない場合のテストです。Issue fields を読めないリポジトリでも、親の Epic の値を引き継いで起票し、`warnings` へ Issue fields の 1 行だけを入れることを確認します。')
       setUpIssueProject()
       const errors = [{ type: 'FORBIDDEN', path: ['repository', 'issueFields'], message: 'Resource not accessible by integration' }]
       const unreadableIssueFields: ResponseRule = { match: { operation: 'GetIssueAttributeDefinitions' }, respond: { status: 200, body: { data: definitionsData({ fields: BOARD_FIELDS_WITH_LANE, issueFields: null }), errors } }, times: 1 }
@@ -303,6 +318,7 @@ describe('issue create', () => {
 
     it('parent_epic と lane を付けると、親の値を読まずに lane の値を書く', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-92')
+      await explains('MCP ツール `issue_create` の `lane` と `parent_epic` のテストです。`parent_epic` と `lane` を両方付けた場合に、親の値は読まず、`lane` の値を書くことを確認します。')
       setUpIssueProject()
       const github = await startGithub([linkedRepositories(), ...laneDefinitions(), created(), addedToProject(), updatedFields(1), boardWritten(), issueNodeId(3), subIssueAdded()])
 
@@ -313,8 +329,9 @@ describe('issue create', () => {
       expect(laneWrites(github)).toMatchObject([laneWrite('O_lane_docs')])
     })
 
-    it('親の Epic に pecot-lane の値が無いと、機能の定義を読まずに、pecot-lane を書かない', async (context) => {
+    it('親の Epic に pecot-lane の値が存在しないと、機能の定義を読まずに、pecot-lane を書かない', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-92')
+      await explains('MCP ツール `issue_create` の `parent_epic` のテストです。親の Epic に `pecot-lane` の値が存在しない場合に、機能の定義は読まず、`pecot-lane` を書かないことを確認します。')
       setUpIssueProject()
       const github = await startGithub([linkedRepositories(), parentLane(3), created(), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
 
@@ -325,8 +342,9 @@ describe('issue create', () => {
       expect(laneWrites(github)).toStrictEqual([])
     })
 
-    it('ボードに single select の pecot-lane が無いと、lane を書かずに Issue を作り、warnings に入れて成功を返す', async (context) => {
+    it('ボードに single select の pecot-lane が存在しないと、lane を書かずに Issue を作り、warnings に入れて成功を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-93')
+      await explains('MCP ツール `issue_create` の `lane` のテストです。ボードに single select の `pecot-lane` が存在しない場合に、`lane` は書かずに Issue を作り、理由を `warnings` に入れて成功を返すことを確認します。')
       setUpIssueProject()
       const github = await startGithub([linkedRepositories(), ...definitionRules(), created(), addedToProject(), updatedFields(1)])
 
@@ -340,6 +358,7 @@ describe('issue create', () => {
 
     it('フロントマターに lane があると、そのファイルから作る Issue に値を書き、set の行に出す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-94')
+      await explains('`issue create` のフロントマターの `lane` のテストです。フロントマターに `lane` がある場合に、そのファイルから作る Issue へ値を書き、`set` の行として出力することを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', 'lane: docs') })
       const github = await startGithub([linkedRepositories(), ...laneDefinitions(), created(), issueNodeId(12), addedToProject(), updatedFields(1), boardWritten()])
@@ -353,6 +372,7 @@ describe('issue create', () => {
 
     it('--lane をファイルと一緒に渡すと、使い方の誤りで終了コード 2 を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-95')
+      await explains('`issue create` の引数の検証のテストです。`--lane` とファイルを両方渡した場合は、使い方の誤りとして終了コード 2 で終わることを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭') })
       const github = await startGithub([])
@@ -367,6 +387,7 @@ describe('issue create', () => {
 
     it('lane を files と一緒に渡すと、invalid-input の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-95')
+      await explains('MCP ツール `issue_create` の引数の検証のテストです。`lane` と `files` を両方渡した場合は、`kind` が `invalid-input` の失敗を返すことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭') })
       await startGithub([])

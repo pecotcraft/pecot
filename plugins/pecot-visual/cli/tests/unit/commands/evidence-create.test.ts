@@ -15,6 +15,7 @@ import { rejectionOf } from '../../_helpers/rejection.js'
 import type { EvidenceWriteResult } from '../../../src/infra/evidence-xlsx/workbook-writer.js'
 import { defaultLintText } from '../../../src/infra/text-lint.js'
 import { EvidenceWorkbookError, writeEvidenceWorkbook } from '../../../src/infra/evidence-xlsx/workbook-writer.js'
+import { explains } from '../../_helpers/explains.js'
 
 interface CapturedStream {
   readonly chunks: string[]
@@ -70,7 +71,8 @@ function buildDependencies(overrides: Partial<EvidenceCreateDependencies> = {}):
 }
 
 describe('runEvidenceCreate', () => {
-  it('検証を通った spec と outPath で writeWorkbook を呼ぶ (caption は補完済み)', async () => {
+  it('検証を通った spec と出力先で writeWorkbook を呼び出し、caption は補完した値を渡す', async () => {
+    await explains('`runEvidenceCreate` が `writeWorkbook` を呼び出すときの引数のテストです。有効な spec と出力先を渡した場合に、`caption` がファイル名から補完され、`annotations` が空の配列で渡されることを確認します。')
     const writeWorkbook = vi.fn<EvidenceCreateDependencies['writeWorkbook']>(
       () => Promise.resolve(writeResult()),
     )
@@ -91,7 +93,8 @@ describe('runEvidenceCreate', () => {
     expect(writeWorkbook.mock.calls[0]?.[1]).toBe('/abs/out.xlsx')
   })
 
-  it('spec が読めないと input-not-found', async () => {
+  it('spec を読み込めない場合は、input-not-found の EvidenceCreateError が発生する', async () => {
+    await explains('spec の読み込みに失敗した場合のテストです。`readFile` が `ENOENT` で失敗した場合に、`reason` が `input-not-found` の `EvidenceCreateError` が発生することを確認します。')
     await expect(runEvidenceCreate(
       '/abs/spec.json',
       '/abs/out.xlsx',
@@ -99,7 +102,8 @@ describe('runEvidenceCreate', () => {
     )).rejects.toMatchObject({ name: 'EvidenceCreateError', reason: 'input-not-found' })
   })
 
-  it('JSON として破損していると invalid-json', async () => {
+  it('spec が JSON として不正な場合は、invalid-json の EvidenceCreateError が発生する', async () => {
+    await explains('spec の JSON の解析に失敗した場合のテストです。内容が途中で終わった JSON を渡した場合に、`reason` が `invalid-json` の `EvidenceCreateError` が発生することを確認します。')
     await expect(runEvidenceCreate(
       '/abs/spec.json',
       '/abs/out.xlsx',
@@ -107,7 +111,8 @@ describe('runEvidenceCreate', () => {
     )).rejects.toMatchObject({ name: 'EvidenceCreateError', reason: 'invalid-json' })
   })
 
-  it('検証エラーは invalid-spec でパス付き全件をメッセージに載せる', async () => {
+  it('spec の検証に失敗した場合は、invalid-spec の例外のメッセージに、パス付きですべてのエラーを含める', async () => {
+    await explains('spec の検証エラーの報告のテストです。`title` が空で、日付が暦に存在せず、注記の箱が範囲を超える場合に、3 件すべてがパス付きでメッセージに含まれることを確認します。')
     const broken = {
       title: '',
       createdDate: '2026-02-31',
@@ -135,7 +140,8 @@ describe('runEvidenceCreate', () => {
     expect(message).toContain('- items[0].annotations[0].box.w: x + w exceeds 1')
   })
 
-  it('ルート自身のエラーはパスを (root) と表示する', async () => {
+  it('spec 全体が不正な場合は、エラーのパスを (root) と表示する', async () => {
+    await explains('spec の最上位の形式が不正な場合のテストです。spec が配列だった場合に、メッセージに `- (root): EvidenceSpec must be an object` が含まれることを確認します。')
     let caught: unknown
     try {
       await runEvidenceCreate(
@@ -152,7 +158,8 @@ describe('runEvidenceCreate', () => {
     expect(message).toContain('- (root): EvidenceSpec must be an object')
   })
 
-  it('文面の違反は text-violation で全件を載せ、writeWorkbook を呼ばない', async () => {
+  it('文面に違反がある場合は、text-violation ですべての違反を含め、writeWorkbook を呼び出さない', async () => {
+    await explains('文面の確認のテストです。`title` と `caption` の両方に禁止の表現を含む場合に、2 件の違反を含む `text-violation` の例外が発生し、`writeWorkbook` が呼び出されないことを確認します。')
     const writeWorkbook = vi.fn<EvidenceCreateDependencies['writeWorkbook']>(
       () => Promise.resolve(writeResult()),
     )
@@ -178,8 +185,9 @@ describe('runEvidenceCreate', () => {
     expect(writeWorkbook).not.toHaveBeenCalled()
   })
 
-  it('省略した caption（ファイル名で補う分）は確認しない', async () => {
+  it('caption を省略した場合は、補完したファイル名を文面の確認の対象にしない', async () => {
     // 拡張子を除いた basename が違反になる imagePath。補った caption も確認されるなら例外になる
+    await explains('`caption` の補完と文面の確認のテストです。違反となる語を含むファイル名の画像で `caption` を省略した場合に、補完した値は確認されず、利用者が同じ語を書いた場合にだけ違反になることを確認します。')
     const imagePath = `/img/${HYPE_WORDS}.png`
     const writeWorkbook = vi.fn<EvidenceCreateDependencies['writeWorkbook']>(
       () => Promise.resolve(writeResult()),
@@ -203,7 +211,8 @@ describe('runEvidenceCreate', () => {
     expect(writeWorkbook).toHaveBeenCalledTimes(1)
   })
 
-  it('確認器が失敗したら text-lint-failed を投げ、writeWorkbook を呼ばない', async () => {
+  it('文面の確認器が失敗した場合は、text-lint-failed の例外が発生し、writeWorkbook を呼び出さない', async () => {
+    await explains('文面の確認器の失敗のテストです。`lintText` が失敗した場合は、違反の一覧を持たない `text-lint-failed` の例外が発生し、`writeWorkbook` が呼び出されないことを確認します。')
     const writeWorkbook = vi.fn<EvidenceCreateDependencies['writeWorkbook']>(
       () => Promise.resolve(writeResult()),
     )
@@ -223,7 +232,8 @@ describe('runEvidenceCreate', () => {
     expect(writeWorkbook).not.toHaveBeenCalled()
   })
 
-  it('writeWorkbook の EvidenceWorkbookError はそのまま伝播する', async () => {
+  it('writeWorkbook が EvidenceWorkbookError で失敗した場合は、同じ例外をそのまま送出する', async () => {
+    await explains('書き出しの失敗の扱いのテストです。`writeWorkbook` が `no-valid-images` の `EvidenceWorkbookError` で失敗した場合に、変換されずに同じ種類の例外が発生することを確認します。')
     await expect(runEvidenceCreate(
       '/abs/spec.json',
       '/abs/out.xlsx',
@@ -236,6 +246,7 @@ describe('runEvidenceCreate', () => {
 
 describe('executeEvidenceCreate — 成功時の結果', () => {
   it('result イベントに絶対パス・項目数・注記数・除外の一覧を載せる', async () => {
+    await explains('`executeEvidenceCreate` の成功時の結果のテストです。xlsx の作成が成功した場合は、`result` のイベントへ絶対パス・項目数・注記数・除外した画像の一覧が含まれることを確認します。')
     const execution = await executeEvidenceCreate(
       { input: 'spec.json', out: 'out.xlsx' },
       buildDependencies({
@@ -257,6 +268,7 @@ describe('executeEvidenceCreate — 成功時の結果', () => {
   })
 
   it('相対の out は cwd 基準の絶対パスで writeWorkbook に渡る', async () => {
+    await explains('`executeEvidenceCreate` の出力先のテストです。相対パスの `out` を指定した場合に、カレントディレクトリを基準にした絶対パスを `writeWorkbook` へ渡すことを確認します。')
     const writeWorkbook = vi.fn<EvidenceCreateDependencies['writeWorkbook']>(
       () => Promise.resolve(writeResult()),
     )
@@ -268,6 +280,7 @@ describe('executeEvidenceCreate — 成功時の結果', () => {
 
 describe('errorData — 失敗時の data', () => {
   it('xlsx に置ける画像が無いときは no-valid-images と detail を返す', async () => {
+    await explains('`errorData` のエラーの分類のテストです。xlsx に配置できる画像がない場合に、理由が `no-valid-images` で、`detail` に説明を含むエラーのデータを返すことを確認します。')
     const error = await rejectionOf(executeEvidenceCreate(
       { input: 'spec.json', out: 'out.xlsx' },
       buildDependencies({
@@ -285,6 +298,7 @@ describe('errorData — 失敗時の data', () => {
   })
 
   it('spec を読めないときは input-not-found を返す', async () => {
+    await explains('`errorData` のエラーの分類のテストです。仕様の JSON を読み込めない場合に、理由が `input-not-found` で、`detail` に読み込めない旨が含まれることを確認します。')
     const error = await rejectionOf(executeEvidenceCreate(
       { input: 'spec.json', out: 'out.xlsx' },
       buildDependencies({ readFile: () => Promise.reject(new Error('ENOENT: no such file')) }),
@@ -296,6 +310,7 @@ describe('errorData — 失敗時の data', () => {
   })
 
   it('検証エラーは invalid-spec と detail に全件を返す', async () => {
+    await explains('`errorData` のエラーの分類のテストです。仕様の JSON の検証が失敗した場合は、理由が `invalid-spec` で、`detail` へ違反がすべて含まれることを確認します。')
     const error = await rejectionOf(executeEvidenceCreate(
       { input: 'spec.json', out: 'out.xlsx' },
       buildDependencies({
@@ -309,6 +324,7 @@ describe('errorData — 失敗時の data', () => {
   })
 
   it('文面の違反は text-violation と violations の全件を返す', async () => {
+    await explains('`errorData` のエラーの分類のテストです。仕様の文面が規則に違反する場合は、理由が `text-violation` で、`violations` へ違反がすべて含まれることを確認します。')
     const error = await rejectionOf(executeEvidenceCreate(
       { input: 'spec.json', out: 'out.xlsx' },
       buildDependencies({
@@ -324,7 +340,8 @@ describe('errorData — 失敗時の data', () => {
 })
 
 describe('evidenceCreateDefaultDependencies', () => {
-  it('stdout / stderr / readFile / writeWorkbook が実体に接続される', async () => {
+  it('既定の依存は、標準出力・標準エラー・書き出し関数・文面の確認器に実物を接続する', async () => {
+    await explains('`evidenceCreateDefaultDependencies` のテストです。既定の依存の `stdout` と `stderr` が `process` の実物と一致し、`writeWorkbook` と `lintText` が実装の関数と一致することを確認します。')
     const dependencies = evidenceCreateDefaultDependencies()
 
     expect(dependencies.stdout).toBe(process.stdout)

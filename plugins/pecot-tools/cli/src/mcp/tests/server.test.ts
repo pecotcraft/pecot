@@ -10,6 +10,7 @@ import { createMcpServer, MCP_SERVER_NAME, type ToolCallContext, type ToolDefini
 import { readVersion } from '../../version.js'
 import { isRecord } from '../../../tests/_helpers/records.js'
 import { closeMcp, connectMcp, PROTOCOL_ERAS, waitIntervals } from './_client.js'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 /**
 text ブロック 1 件だけを返す最小のツール定義。
@@ -23,7 +24,8 @@ function echoTool(name: string, text: string): ToolDefinition {
 }
 
 describe('createMcpServer', () => {
-  it('サーバ名とプラグイン版数を serverInfo として公開する', async () => {
+  it('サーバ名とプラグインの版を、serverInfo として公開する', async () => {
+    await explains('MCP サーバを作る `createMcpServer` のテストです。クライアントを接続した場合に、`serverInfo` の名前が `MCP_SERVER_NAME`、版が `readVersion()` の値と一致することを確認します。')
     const connected = await connectMcp()
     try {
       // 版数はリテラル固定にしない（リリースの bump でテストを壊さない）。
@@ -37,7 +39,8 @@ describe('createMcpServer', () => {
     }
   })
 
-  it('サーバ名が .mcp.json の登録キーと一致する', () => {
+  it('サーバ名は、.mcp.json に登録したキーと一致する', async () => {
+    await explains('MCP サーバを作る `createMcpServer` のテストです。`MCP_SERVER_NAME` が、プラグインの `.mcp.json` の `mcpServers` のキーに含まれることを確認します。')
     // initialize の serverInfo.name と .mcp.json のキーが食い違うと、クライアント側の表示が合わなくなる。
     // ツール名の名前空間 (mcp__plugin_pecot-t_<サーバ名>__*) も同様。
     // src/mcp/tests → src/mcp → src → cli → plugins/pecot-tools
@@ -50,11 +53,13 @@ describe('createMcpServer', () => {
     expect(Object.keys(servers)).toContain(MCP_SERVER_NAME)
   })
 
-  it('呼び出しごとに新しいインスタンスを返す (singleton 化していない)', () => {
+  it('呼び出すたびに、新しいサーバのインスタンスを返す', async () => {
+    await explains('MCP サーバを作る `createMcpServer` のテストです。`createMcpServer` を 2 回呼び出した場合に、返される 2 つのインスタンスが異なることを確認します。')
     expect(createMcpServer()).not.toBe(createMcpServer())
   })
 
-  it('ツール 0 件でも tools/list が空配列を返す', async () => {
+  it('ツールが 0 件でも、tools/list は空の配列を返す', async () => {
+    await explains('MCP サーバを作る `createMcpServer` のテストです。ツールを登録しない場合に、`tools` の capability が空のオブジェクトで、`tools/list` の応答が空の配列になることを確認します。')
     // 0 件の McpServer は tools capability と一覧ハンドラを持たず -32601 を返す。
     // そこで 0 件専用の明示登録でこの応答を作っている。v2 の Client は tools capability を持たない
     // サーバへ listTools の要求を送らず空振りする。そのため、要求を直接発行して応答を見る。
@@ -69,7 +74,8 @@ describe('createMcpServer', () => {
     }
   })
 
-  it('渡したツール定義が registerTool 経由で tools/list に載る', async () => {
+  it('渡したツール定義は registerTool を経由して tools/list に載り、呼び出せる', async () => {
+    await explains('MCP サーバを作る `createMcpServer` のテストです。1 件のツール定義を渡した場合に、`tools/list` にそのツール名だけが載り、呼び出すと定義した `text` が返ることを確認します。')
     const connected = await connectMcp([echoTool('dummy', 'ok')])
     try {
       const listed = await connected.client.listTools()
@@ -83,7 +89,8 @@ describe('createMcpServer', () => {
     }
   })
 
-  it('outputSchema と annotations を tools/list へ通す', async () => {
+  it('ツール定義の outputSchema と annotations を、tools/list に反映する', async () => {
+    await explains('MCP サーバを作る `createMcpServer` のテストです。`outputSchema` と `annotations` を持つツール定義を渡した場合は、`tools/list` の結果にもそれらが含まれることを確認します。')
     const annotated: ToolDefinition = {
       name: 'annotated',
       config: {
@@ -112,7 +119,8 @@ describe('createMcpServer', () => {
     }
   })
 
-  it('ハンドラへ signal を含む呼び出し文脈を渡す', async () => {
+  it('ハンドラに、signal を含む呼び出しの情報を渡す', async () => {
+    await explains('MCP サーバを作る `createMcpServer` のテストです。ツールを呼び出した場合に、ハンドラが受け取る呼び出しの情報に `AbortSignal` が含まれ、中断されていない状態であることを確認します。')
     let received: ToolCallContext | undefined
     const probe: ToolDefinition = {
       name: 'probe',
@@ -134,7 +142,8 @@ describe('createMcpServer', () => {
     }
   })
 
-  it.each(PROTOCOL_ERAS)('クライアントのキャンセルでハンドラの signal が abort される [%s]', async (era) => {
+  it.each(PROTOCOL_ERAS)('クライアントがキャンセルしたときは、ハンドラの signal を中断する [%s]', async (era) => {
+    await explains('MCP サーバを作る `createMcpServer` のテストです。実行中のツールの呼び出しをクライアントが中断した場合に、呼び出しが拒否され、ハンドラの `signal` が中断状態になることを、プロトコルの版ごとに確認します。')
     const started: PromiseWithResolvers<AbortSignal> = Promise.withResolvers()
     const hanging: ToolDefinition = {
       name: 'hanging',
@@ -168,7 +177,8 @@ describe('createMcpServer', () => {
     }
   })
 
-  it('並行して届いた tools/call を 4 件までしか同時に実行しない', async () => {
+  it('並行して届いた tools/call は、同時に 4 件までしか実行しない', async () => {
+    await explains('MCP サーバを作る `createMcpServer` のテストです。5 件の呼び出しを同時に送った場合に、4 件だけが開始され、1 件が完了した後で 5 件目が開始し、同時に実行した最大の数が 4 であることを確認します。')
     // 上限は createMcpServer 側の実行器で構造的に保証する。
     // ハンドラ側で待ち合わせない (= ツール実装の善意に依存しない) ことがこのテストの主眼。
     const gates: PromiseWithResolvers<void>[] = []
@@ -214,7 +224,8 @@ describe('createMcpServer', () => {
     }
   })
 
-  it('toCallToolResult の変換結果が client.callTool まで往復する', async () => {
+  it('toCallToolResult で変換した結果が、client.callTool まで同じ内容で届く', async () => {
+    await explains('MCP サーバを作る `createMcpServer` のテストです。`permission-denied` の失敗を返すツールを呼び出した場合は、`isError` が真になり、`kind` と `detail` が含まれることを確認します。')
     const failing: ToolDefinition = {
       name: 'failing',
       config: { title: 'Test tool', description: 'ExecutionResult 変換の往復検証', inputSchema: z.object({}) },
@@ -245,7 +256,8 @@ describe('createMcpServer の progress ハートビート', () => {
   */
   const INTERVAL_MS = 5
 
-  it('progressToken 付きの呼び出しへ待機中と実行中の通知を送る', async () => {
+  it('progressToken を付けた呼び出しには、待機中と実行中の通知を送る', async () => {
+    await explains('ツールの実行中に進捗を通知する仕組み（progress のハートビート）のテストです。周期を短くして `progressToken` 付きで呼び出した場合は、進捗が `gated: queued`、`gated: running` の順に連番で届くことを確認します。')
     const received: Progress[] = []
     // ハンドラはここが解放するまで返らない。解放条件が「3 発受信」なので、
     // 実時間の待ち合わせを入れずにハートビートの反復を観測できる。
@@ -278,7 +290,8 @@ describe('createMcpServer の progress ハートビート', () => {
     }
   })
 
-  it.each(PROTOCOL_ERAS)('キャンセル後は progress 通知を送らない [%s]', async (era) => {
+  it.each(PROTOCOL_ERAS)('キャンセルした後は、progress の通知を送らない [%s]', async (era) => {
+    await explains('ツールの実行中に進捗を通知する仕組み（progress のハートビート）のテストです。ツールの実行中に呼び出しを中断してから周期の 20 回分を待った場合に、破棄済みのトークン宛の通知が届かず、クライアントの `errors` が空であることを、プロトコルの版ごとに確認します。')
     const firstProgress: PromiseWithResolvers<void> = Promise.withResolvers()
     // ハンドラは abort 後も返らない。ハートビートが abort で止まらなければ、
     // 破棄済みのトークン宛の通知がクライアントの onerror に届く。
@@ -316,7 +329,8 @@ describe('createMcpServer の progress ハートビート', () => {
     }
   })
 
-  it('progressToken の無い呼び出しには通知を送らない', async () => {
+  it('progressToken を付けない呼び出しには、通知を送らない', async () => {
+    await explains('ツールの実行中に進捗を通知する仕組み（progress のハートビート）のテストです。`progressToken` を付けずに呼び出した場合は、クライアントの `errors` が空で、`isError` が未設定であることを確認します。')
     const probe: ToolDefinition = {
       name: 'probe',
       config: { title: 'Test tool', description: 'progressToken 不在時の検証', inputSchema: z.object({}) },
@@ -337,7 +351,8 @@ describe('createMcpServer の progress ハートビート', () => {
     }
   })
 
-  it.each(PROTOCOL_ERAS)('ツールの呼び出しより先にキャンセルが届いた場合は progress 通知を 1 発も送らない [%s]', async (era) => {
+  it.each(PROTOCOL_ERAS)('ツールの呼び出しより先にキャンセルが届いたときは、progress の通知を 1 回も送らない [%s]', async (era) => {
+    await explains('ツールの実行中に進捗を通知する仕組み（progress のハートビート）のテストです。入力の検証を止めている間に呼び出しを中断し、検証の再開後に周期の 20 回分を待った場合に、クライアントの `errors` が空であることを、プロトコルの版ごとに確認します。')
     // 入力の検証はツールの呼び出しより前に実行される。検証を止めておけば、キャンセルを呼び出しの前に確実に届けられる。
     const validating: PromiseWithResolvers<void> = Promise.withResolvers()
     const releaseValidation: PromiseWithResolvers<void> = Promise.withResolvers()

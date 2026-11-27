@@ -6,6 +6,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
+import { explains } from '../_helpers/explains.js'
 
 // tests/unit → cli/src
 const SOURCE_ROOT = path.resolve(import.meta.dirname, '..', '..', 'src')
@@ -22,7 +23,8 @@ function productionSources(): readonly string[] {
 }
 
 describe('文章規則パッケージの参照', () => {
-  it('テストを除く cli/src で、パッケージ名を含むのは infra/text-lint.ts だけ', () => {
+  it('テストを除く cli/src の中で、文章規則のパッケージ名を含むファイルは infra/text-lint.ts だけにする', async () => {
+    await explains('`cli/src` の本番のソースを走査するテストです。テストを除くソースのうち、`@pecot/text-rules` を参照するファイルが `infra/text-lint.ts` だけであることを確認します。')
     const referencing = productionSources()
       .filter(file => readFileSync(file, 'utf8').includes(PACKAGE_NAME))
       .map(file => path.relative(SOURCE_ROOT, file).split(path.sep).join('/'))

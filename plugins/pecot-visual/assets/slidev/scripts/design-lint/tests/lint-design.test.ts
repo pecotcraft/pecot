@@ -13,6 +13,7 @@ import { tmpdir } from 'node:os';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { attachOutput } from '../../../../../../../libs/interface-spec/src/vitest/attach.js';
+import { explains } from '../../../../../../../libs/interface-spec/src/vitest/explains.js';
 
 const SLIDEV_ROOT = new URL('../../../', import.meta.url);
 /** 退行テストで壊す元にする、汎用の最小の DESIGN.md（lint が通る） */
@@ -67,7 +68,8 @@ describe('lint-design.mjs', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it('引数を渡さないと、v-drawio の references 配下の DESIGN.md をすべて確認し、どれも [OK] で exit 0 で終わる', () => {
+  it('引数を渡さないと、v-drawio の references 配下の DESIGN.md をすべて確認し、どれも [OK] で exit 0 で終わる', async () => {
+    await explains('`lint-design.mjs` を引数なしで実行するテストです。引数を渡さない場合に、v-drawio の `references` 配下の `DESIGN.md` がすべて `[OK]` と判定され、終了コード 0 で終わることを確認します。');
     const targets = defaultTargets();
     assert.ok(targets.length > 1, `v-drawio の DESIGN.md が見つかりません: ${targets.join(', ')}`);
     const r = runLint();
@@ -78,7 +80,8 @@ describe('lint-design.mjs', () => {
     for (const target of targets) assert.ok(okLines.some((line) => line.startsWith(`[OK] ${target}: `)), `${target}\n${r.stdout}`);
   });
 
-  it('warning だけの定義を渡すと、exit 1 で終わる', () => {
+  it('warning だけの定義を渡すと、exit 1 で終わる', async () => {
+    await explains('`lint-design.mjs` が warning だけの定義を扱うテストです。公式 linter では warning だけでは終了コード 0 になる定義を渡した場合に、終了コード 1 で終わることを確認します。');
     // どのコンポーネントも参照しない色を 1 つ足す（orphaned-tokens の warning 1 件）
     const path = fixture('warning.md', replaceOnce(original, 'colors:\n', 'colors:\n  ghost: "#123456"\n'));
     const r = runLint(path);
@@ -87,14 +90,16 @@ describe('lint-design.mjs', () => {
     assert.match(r.stdout, /warning orphaned-tokens colors\.ghost/);
   });
 
-  it('error のある定義を渡すと、exit 1 で終わる', () => {
+  it('error のある定義を渡すと、exit 1 で終わる', async () => {
+    await explains('`lint-design.mjs` が error のある定義を扱うテストです。存在しない色を参照する定義を渡した場合に、`broken-ref` が出力され、終了コード 1 で終わることを確認します。');
     const path = fixture('error.md', replaceOnce(original, 'textColor: "{colors.text-primary}"', 'textColor: "{colors.missing}"'));
     const r = runLint(path);
     assert.equal(r.status, 1, r.stdout);
     assert.match(r.stdout, /error broken-ref components\.title:/);
   });
 
-  it('本文の参照が front matter に解決しない定義を渡すと、公式 linter が通っても未解決の参照を出して exit 1 で終わる', () => {
+  it('本文の参照が front matter に解決しない定義を渡すと、公式 linter が通っても未解決の参照を出して exit 1 で終わる', async () => {
+    await explains('`lint-design.mjs` が本文の未解決の参照を検出するテストです。本文に front matter で解決できない参照がある場合に、公式 linter が通っても `[NG]` で未解決の参照が出力され、終了コード 1 で終わることを確認します。');
     const path = fixture('body-ref.md', replaceOnce(original, '一色のインクと一点の差し色で組む。', '一色のインク `{colors.missing-ref}` と一点の差し色で組む。'));
     const r = runLint(path);
     assert.equal(r.status, 1, r.stdout);
@@ -103,7 +108,8 @@ describe('lint-design.mjs', () => {
     assert.ok(r.stdout.includes('{colors.missing-ref}'), r.stdout);
   });
 
-  it('読めないファイルを渡すと、[NG] と「読めません」を出して exit 1 で終わり、残りのファイルも確認する', () => {
+  it('読めないファイルを渡すと、[NG] と「読めません」を出して exit 1 で終わり、残りのファイルも確認する', async () => {
+    await explains('`lint-design.mjs` が読み込めないファイルを扱うテストです。存在しないファイルと正しいファイルを渡した場合に、前者に `[NG]` と「読めません」が出力され、後者も検証されて終了コード 1 で終わることを確認します。');
     const missing = join(dir, 'missing.md');
     const r = runLint(missing, fileURLToPath(DESIGN_MD));
     assert.equal(r.status, 1, r.stdout);

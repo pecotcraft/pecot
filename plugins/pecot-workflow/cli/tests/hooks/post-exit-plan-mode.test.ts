@@ -14,6 +14,7 @@ import { hooksDirectory } from './_helpers/paths.js'
 import { run } from './_helpers/run.js'
 import type { RunResult } from './_helpers/run.js'
 import { jsonDumps, parseJson } from './_helpers/text.js'
+import { explains } from '../_helpers/explains.js'
 
 const HOOK_SCRIPT = path.join(hooksDirectory, 'post-tool-use-exit-plan-mode.sh')
 const EXIT_PLAN = jsonDumps({ tool_name: 'ExitPlanMode' })
@@ -70,7 +71,8 @@ function additionalContext(result: RunResult): string {
 }
 
 describe('post-tool-use-exit-plan-mode.sh', () => {
-  it('作業中の Issue が無いとき、.pecot-active があっても何も出力しない', () => {
+  it('作業中の Issue が無いとき、.pecot-active があっても何も出力しない', async () => {
+    await explains('`post-tool-use-exit-plan-mode.sh` のテストです。作業中の Issue が無いブランチで、`.pecot-active` が存在する場合でも、終了コード 0 で何も出力しないことを確認します。')
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     checkoutWorkBranch(hookCase, context.project, 'main')
@@ -80,7 +82,8 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('pecot を使っていないリポジトリ（.pecot が無い）では、作業中の Issue のブランチでも、何も出さず .pecot も作らない', () => {
+  it('pecot を使っていないリポジトリ（.pecot が無い）では、作業中の Issue のブランチでも、何も出さず .pecot も作らない', async () => {
+    await explains('`post-tool-use-exit-plan-mode.sh` のテストです。`.pecot` ディレクトリが無い pecot 未使用のリポで、作業中の Issue のブランチを使う場合は、何も出力せず、`.pecot` を作らないことを確認します。')
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     checkoutWorkBranch(hookCase, context.project, 'x/1')
@@ -91,7 +94,8 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(existsSync(path.join(context.project, '.pecot'))).toBe(false)
   })
 
-  it('共有モードでは、コメントの更新と implementer への引き継ぎを案内する', () => {
+  it('共有モードでは、コメントの更新と implementer への引き継ぎを案内する', async () => {
+    await explains('`post-tool-use-exit-plan-mode.sh` のテストです。`--mode=active` で `ExitPlanMode` の後に実行した場合は、コメントの更新と implementer への引き継ぎを案内し、`team_name` を含めないことを確認します。')
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     activate(hookCase, context)
@@ -105,7 +109,8 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(text).not.toContain('team_name')
   })
 
-  it('implementer への引き継ぎは、計画の作業単位のモデルを渡すよう案内し、Copilot CLI では省くよう示す', () => {
+  it('implementer への引き継ぎは、計画の作業単位のモデルを渡すよう案内し、Copilot CLI では省くよう示す', async () => {
+    await explains('`post-tool-use-exit-plan-mode.sh` のテストです。implementer への引き継ぎを案内する場合に、計画の作業単位のモデルを渡すよう示し、Copilot CLI では `model` を省くよう示すことを確認します。')
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     activate(hookCase, context)
@@ -116,7 +121,8 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(text).toContain('In GitHub Copilot CLI, omit `model`.')
   })
 
-  it('implementer への引き継ぎは、委譲する条件の置き場を示し、条件に当たらない単位を main が実装すると案内する', () => {
+  it('implementer への引き継ぎは、委譲する条件の置き場を示し、条件に当たらない単位を main が実装すると案内する', async () => {
+    await explains('`post-tool-use-exit-plan-mode.sh` のテストです。implementer への引き継ぎを案内する場合に、委譲する条件の置き場を示し、条件外の単位は main が実装すると案内することを確認します。')
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     activate(hookCase, context)
@@ -126,7 +132,8 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(text).toContain('Do not spawn an agent for such a unit.')
   })
 
-  it('Copilot の tool 名 exit_plan_mode では、何も出力しない', () => {
+  it('Copilot の tool 名 exit_plan_mode では、何も出力しない', async () => {
+    await explains('`post-tool-use-exit-plan-mode.sh` のテストです。Copilot のツール名 `exit_plan_mode` が入力された場合に、終了コード 0 で何も出力しないことを確認します。')
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     activate(hookCase, context)
@@ -135,7 +142,8 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('exit_plan のような別の tool 名では、何も出力しない', () => {
+  it('exit_plan のような別の tool 名では、何も出力しない', async () => {
+    await explains('`post-tool-use-exit-plan-mode.sh` のテストです。`exit_plan` のように別のツール名が入力された場合に、何も出力せず、`.pecot-quick-mode` を消さないことを確認します。')
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     activate(hookCase, context)
@@ -146,7 +154,8 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(existsSync(context.quickMode)).toBe(true)
   })
 
-  it('--mode=quick では、コメントの更新だけを案内し、実装の引き継ぎを足さない', () => {
+  it('--mode=quick では、コメントの更新だけを案内し、実装の引き継ぎを足さない', async () => {
+    await explains('`post-tool-use-exit-plan-mode.sh` のテストです。`--mode=quick` で実行した場合に、コメントの更新だけを案内し、実装の引き継ぎの案内を含めないことを確認します。')
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     activate(hookCase, context)
@@ -157,7 +166,8 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(text).not.toContain('Implementation handoff')
   })
 
-  it.for(['active', 'quick'])('--mode=%s では、承認の後に止まらず実装へ進むよう案内する', (mode) => {
+  it.for(['active', 'quick'])('--mode=%s では、承認の後に止まらず実装へ進むよう案内する', async (mode) => {
+    await explains(`\`post-tool-use-exit-plan-mode.sh\` のテストです。\`--mode=${mode}\` で実行した場合に、承認の後に止まらず、同じターンで実装へ進むよう案内することを確認します。`)
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     activate(hookCase, context)
@@ -166,7 +176,8 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(text).toContain('do not stop to ask')
   })
 
-  it('.pecot-quick-mode があっても、--mode=active では引き継ぎを案内し、ファイルを読まず消さない', () => {
+  it('.pecot-quick-mode があっても、--mode=active では引き継ぎを案内し、ファイルを読まず消さない', async () => {
+    await explains('`post-tool-use-exit-plan-mode.sh` のテストです。`.pecot-quick-mode` が存在していても `--mode=active` で実行した場合に、引き継ぎを案内し、そのファイルを読まず消さないことを確認します。')
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     activate(hookCase, context)
@@ -177,7 +188,8 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(existsSync(context.quickMode)).toBe(true)
   })
 
-  it.for([{ label: '無い', mode: '' }, { label: '不正', mode: 'both' }])('--mode が $label とき、終了コード 1 で stdout は空', ({ mode }) => {
+  it.for([{ label: '無い', mode: '' }, { label: '不正', mode: 'both' }])('--mode が $label とき、終了コード 1 で stdout は空', async ({ mode }) => {
+    await explains('`post-tool-use-exit-plan-mode.sh` のテストです。`--mode` が無いか不正な場合に、終了コード 1 で終了し、標準出力を空にして、使い方を標準エラー出力へ出すことを確認します。')
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     activate(hookCase, context)
@@ -187,7 +199,8 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(result.stderr).toContain('exit-plan-remind: --mode must be active or quick')
   })
 
-  it('出力のトップレベルに additionalContext が無い（merge を通さない）', () => {
+  it('出力のトップレベルに additionalContext が無い（merge を通さない）', async () => {
+    await explains('`post-tool-use-exit-plan-mode.sh` のテストです。案内を出力した場合に、最上位に `additionalContext` を持たず、`hookEventName` が `PostToolUse` になることを確認します。')
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     activate(hookCase, context)
@@ -196,7 +209,8 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(property(property(parsed, 'hookSpecificOutput'), 'hookEventName')).toBe('PostToolUse')
   })
 
-  it('解決したルートの hooks-config.json で exit-plan-remind が false なら、何も出力しない', () => {
+  it('解決したルートの hooks-config.json で exit-plan-remind が false なら、何も出力しない', async () => {
+    await explains('`post-tool-use-exit-plan-mode.sh` のテストです。解決したルートの `hooks-config.json` で `exit-plan-remind` が `false` の場合に、何も出力しないことを確認します。')
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     activate(hookCase, context)
@@ -214,7 +228,8 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(result.stdout).toBe('')
   })
 
-  it('bin/pecot があっても、ExitPlanMode の後に Issue へ投稿しない', () => {
+  it('bin/pecot があっても、ExitPlanMode の後に Issue へ投稿しない', async () => {
+    await explains('`post-tool-use-exit-plan-mode.sh` のテストです。`bin/pecot` が存在する場合でも、`ExitPlanMode` の後に Issue へ投稿せず、投稿用の一時ファイルも作らないことを確認します。')
     const hookCase = createHookCase()
     const context = setUpContext(hookCase)
     activate(hookCase, context)
@@ -224,7 +239,8 @@ describe('post-tool-use-exit-plan-mode.sh', () => {
     expect(existsSync(path.join(context.project, '.pecot', 'tmp', 'plan-post'))).toBe(false)
   })
 
-  it('cwd が base の .pecot/work/N でも、セッションの worktree のブランチで判定する', () => {
+  it('cwd が base の .pecot/work/N でも、セッションの worktree のブランチで判定する', async () => {
+    await explains('`post-tool-use-exit-plan-mode.sh` のテストです。入力の `cwd` が base の `.pecot/work/N` の場合でも、セッションの worktree のブランチで判定し、コメント更新を案内することを確認します。')
     const hookCase = createHookCase()
     setUpContext(hookCase)
     const layout = workLayout(hookCase)

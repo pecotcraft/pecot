@@ -11,11 +11,13 @@ import { checkoutWorkBranch, gitRepository } from './_helpers/git.js'
 import { hooksDirectory } from './_helpers/paths.js'
 import { run } from './_helpers/run.js'
 import { jsonDumps } from './_helpers/text.js'
+import { explains } from '../_helpers/explains.js'
 
 const EXIT_PLAN_MODE_ENTRY = path.join(hooksDirectory, 'post-tool-use-exit-plan-mode.sh')
 
 describe('post-tool-use-exit-plan-mode.sh の状態の置き場', () => {
-  it('CLAUDE_PROJECT_DIR でなく、ツールの cwd の git toplevel のブランチと設定で案内を出す', () => {
+  it('CLAUDE_PROJECT_DIR でなく、ツールの cwd の git toplevel のブランチと設定で案内を出す', async () => {
+    await explains('`post-tool-use-exit-plan-mode.sh` の状態の置き場のテストです。`CLAUDE_PROJECT_DIR` とツールの `cwd` の git toplevel が別の場合に、`cwd` 側のブランチと設定を使って案内を出すことを確認します。')
     const hookCase = createHookCase()
     hooksConfig(hookCase).write({})
     // .pecot と Issue の番号付きのブランチを持つ git リポジトリと、そのサブディレクトリ

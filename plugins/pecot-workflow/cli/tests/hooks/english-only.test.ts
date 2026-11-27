@@ -7,6 +7,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { explains } from '../_helpers/explains.js'
 import { compareStrings } from '../parity/baseline.js'
 import { hooksDirectory } from './_helpers/paths.js'
 import { comparePathParts, splitLines } from './_helpers/text.js'
@@ -162,20 +163,23 @@ function violations(): string[] {
 }
 
 describe('hooks がエージェントへ返す文言', () => {
-  it('走査の対象に、代表的なスクリプト・設定・テンプレが含まれる', () => {
+  it('走査の対象に、代表的なスクリプト・設定・テンプレが含まれる', async () => {
+    await explains('hooks の文言の走査対象のテストです。走査対象に、`gh-command-check.sh`・`hooks.json`・`exit-plan-comment-update.md` が含まれることを確認します。')
     const names = new Set(targets().map(relative => path.basename(relative)))
     expect(names.has('gh-command-check.sh')).toBe(true)
     expect(names.has('hooks.json')).toBe(true)
     expect(names.has('exit-plan-comment-update.md')).toBe(true)
   })
 
-  it('コメントの判定は、heredoc と複数行の引用符の中を本文として扱う', () => {
+  it('コメントの判定は、heredoc と複数行の引用符の中を本文として扱う', async () => {
+    await explains('走査の前処理のテストです。シェルスクリプトでは、heredoc と複数行の引用符の中を本文として扱い、Markdown では HTML コメントだけをコメントとして除外することを確認します。')
     const sh = '# 日本語\necho a # 日本語\ncat <<EOF\n# 日本語\nEOF\nx="a\n# 日本語"\n'
     expect(shLines(sh).map(([lineNumber]) => lineNumber)).toEqual([2, 3, 4, 5, 6, 7])
     expect(mdLines('<!-- 日本語 -->\n# 見出し\n')).toEqual([[2, '# 見出し']])
   })
 
-  it('日本語を含む行が無い', () => {
+  it('日本語を含む行が存在しない', async () => {
+    await explains('hooks がエージェントへ返す文言のテストです。hooks のスクリプト・設定・テンプレートに、例外の行を除いて日本語を含む行が存在しないことを確認します。')
     const found = violations()
     expect(found, `${String(found.length)} lines contain Japanese:\n${found.join('\n')}`).toEqual([])
   })

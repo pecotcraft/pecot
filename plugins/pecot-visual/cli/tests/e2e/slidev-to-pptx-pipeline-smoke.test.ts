@@ -31,6 +31,7 @@ import {
   singlePassFallbackWarnings,
 } from '../_helpers/single-pass-route.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { explains } from '../_helpers/explains.js'
 
 function walkJsFiles(root: string): string[] {
   const out: string[] = []
@@ -155,10 +156,11 @@ afterEach(() => {
 })
 
 describe('Issue #491 — slidev-to-pptx in-process pipeline smoke', () => {
-  it('cli/dist/ 配下の全 .js ファイルに旧 subprocess 方式 (convert-slidev-to-pptx) が含まれない', () => {
+  it('`cli/dist/` 配下の `.js` に、旧い子プロセス方式の `convert-slidev-to-pptx` が含まれない', async () => {
     // Step 6 で旧 sub-package を撤去し、cli は in-process pipeline 経由のみで動作する。
     // dist 任意 .js に "convert-slidev-to-pptx" 痕跡が残っていれば回帰の兆候。
     // tsc bundle ではなく per-file 出力のため commands/*.js / infra/**/*.js を walk する。
+    await explains('ビルド成果物のテストです。`cli/dist/` 配下のすべての `.js` を読んだ場合に、旧い子プロセス方式の名前 `convert-slidev-to-pptx` を含むファイルが存在しないことを確認します。')
     const distributionRoot = path.dirname(CLI_DIST)
     const jsFiles = walkJsFiles(distributionRoot)
     const offenders: string[] = []
@@ -171,7 +173,8 @@ describe('Issue #491 — slidev-to-pptx in-process pipeline smoke', () => {
     expect(offenders).toEqual([])
   })
 
-  it('slide_convert で minimal Slidev project から PPTX 生成 (Chromium 必須)', { timeout: 240_000 }, async (context) => {
+  it('最小の Slidev のプロジェクトを `slide_convert` すると、PPTX を生成する (Chromium 必須)', { timeout: 240_000 }, async (context) => {
+    await explains('`slide_convert` の実際の Chromium での変換のテストです。最小の Slidev のプロジェクトを変換した場合に、終了コード 0 で PPTX を書き出し、開始と完了のイベントと所要時間を出力し、1 枚目のスライドを含むことを確認します。')
     if (!isChromiumCached()) context.skip(CHROMIUM_SKIP_NOTE)
 
     // fixture は元位置で実行する (afterEach で staging artifact を cleanup)。
@@ -260,7 +263,8 @@ describe('Issue #491 — slidev-to-pptx in-process pipeline smoke', () => {
     }
   })
 
-  it('--no-single-pass は env によらず現行の方式で全走査して変換する (Chromium 必須, #1147)', { timeout: 240_000 }, async (context) => {
+  it('`--no-single-pass` は環境変数にかかわらず、ステップごとの方式で全体を変換する', { timeout: 240_000 }, async (context) => {
+    await explains('`--no-single-pass` のテストです。環境変数 `PECOTV_SINGLE_PASS` が 1 の場合でも、ステップごとの方式で全ステップを変換し、`timings` に `singlePass` が含まれず、警告が出ないことを確認します。')
     if (!isChromiumCached()) context.skip(CHROMIUM_SKIP_NOTE)
 
     const outputPath = temporaryRoot('no-single-pass.pptx')
@@ -286,7 +290,8 @@ describe('Issue #491 — slidev-to-pptx in-process pipeline smoke', () => {
     expect(await slideCountOf(outputPath)).toBe(FIXTURE_STEP_COUNT)
   })
 
-  it('print ルートの無い deck は 1 パス方式を即時にやめ、warning 1 件で現行の方式に変換する (Chromium 必須, #1147)', { timeout: 240_000 }, async (context) => {
+  it('印刷用のルートがない deck では、1 パス方式をすぐにやめて警告を 1 件出し、ステップごとの方式で変換する', { timeout: 240_000 }, async (context) => {
+    await explains('1 パス方式の退避のテストです。印刷用のルートを持たない deck を変換した場合に、1 パス方式をすぐにやめ、警告を 1 件出して、ステップごとの方式で全ステップを変換することを確認します。')
     if (!isChromiumCached()) context.skip(CHROMIUM_SKIP_NOTE)
 
     // fixture を tmp へ複製し、print ルートを有効にする vite 設定を除く（未同期の旧 deck 相当）。

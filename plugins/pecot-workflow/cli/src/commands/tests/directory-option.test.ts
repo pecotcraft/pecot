@@ -4,6 +4,8 @@ import path from 'node:path'
 import process from 'node:process'
 
 import { describe, expect, it } from 'vitest'
+
+import { explains } from '../../../tests/_helpers/explains.js'
 import { z } from 'zod'
 
 import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
@@ -53,7 +55,8 @@ function fixture(): { root: string, real: string } {
 }
 
 describe('directorySchema', () => {
-  it('在るディレクトリは絶対パスにして本体へ渡す', async () => {
+  it('存在するディレクトリは、絶対パスにして run に渡す', async () => {
+    await explains('ディレクトリを受け取る `directorySchema` のテストです。存在するディレクトリを `-D` と `--directory` で渡した場合に、どちらも絶対パスにして `run` に渡すことを確認します。')
     const { real } = fixture()
     seen.length = 0
     expect(await runDefinition(preflight, ['-D', real], capture())).toBe(0)
@@ -61,51 +64,59 @@ describe('directorySchema', () => {
     expect(seen).toEqual([realpathSync(real), realpathSync(real)])
   })
 
-  it('相対パスは cwd からの絶対パスにする', async () => {
+  it('相対パスは、カレントディレクトリからの絶対パスにする', async () => {
+    await explains('ディレクトリを受け取る `directorySchema` のテストです。`-D .` のように相対パスを渡した場合に、カレントディレクトリの絶対パスにして `run` に渡すことを確認します。')
     seen.length = 0
     await runDefinition(preflight, ['-D', '.'], capture())
     expect(seen).toEqual([realpathSync(process.cwd())])
   })
 
-  it('symlink は実体のパスにする', async () => {
+  it('シンボリックリンクは、リンク先の実体のパスにする', async () => {
+    await explains('ディレクトリを受け取る `directorySchema` のテストです。シンボリックリンクを渡した場合に、リンク先の実体のパスにして `run` に渡すことを確認します。')
     const { root, real } = fixture()
     seen.length = 0
     await runDefinition(preflight, ['-D', path.join(root, 'link')], capture())
     expect(seen).toEqual([realpathSync(real)])
   })
 
-  it('空文字は cwd にする', async () => {
+  it('空文字は、カレントディレクトリにする', async () => {
+    await explains('ディレクトリを受け取る `directorySchema` のテストです。`-D` に空文字を渡した場合に、カレントディレクトリの絶対パスにして `run` に渡すことを確認します。')
     seen.length = 0
     await runDefinition(preflight, ['-D', ''], capture())
     expect(seen).toEqual([realpathSync(process.cwd())])
   })
 
-  it('ファイルとディレクトリのどちらでもないパス（/dev/null）は検証を通す', async () => {
+  it('/dev/null のように、ファイルとディレクトリのどちらでもないパスは、検証を通過する', async () => {
+    await explains('ディレクトリを受け取る `directorySchema` のテストです。`/dev/null` のように、ファイルとディレクトリのどちらでもないパスを渡した場合に、検証を通過し、そのままのパスを `run` に渡すことを確認します。')
     seen.length = 0
     expect(await runDefinition(preflight, ['-D', '/dev/null'], capture())).toBe(0)
     expect(seen).toEqual(['/dev/null'])
   })
 
-  it('無いパスは does not exist。値は入力のまま repr で出す', async () => {
+  it('存在しないパスは does not exist の使い方の誤りにし、渡した値をそのまま表示する', async () => {
+    await explains('存在しないパスを渡した場合のテストです。`Directory \'…\' does not exist.` の使い方の誤りになり、渡した値が Python の `repr` と同じ引用符の形でそのまま表示されることを確認します。')
     const { root } = fixture()
     const missing = path.join(root, 'it\'s-missing')
     expect(await messageOf(['-D', missing])).toBe(`Invalid value for '--directory' / '-D': Directory "${missing}" does not exist.`)
     expect(await messageOf(['-D', 'no-such-dir'])).toBe('Invalid value for \'--directory\' / \'-D\': Directory \'no-such-dir\' does not exist.')
   })
 
-  it('指す先の無い symlink も does not exist', async () => {
+  it('リンク先が存在しないシンボリックリンクも、does not exist の使い方の誤りにする', async () => {
+    await explains('リンク先が存在しないシンボリックリンクを渡した場合のテストです。`Directory \'…\' does not exist.` の使い方の誤りになることを確認します。')
     const { root } = fixture()
     const dangling = path.join(root, 'dangling')
     expect(await messageOf(['-D', dangling])).toBe(`Invalid value for '--directory' / '-D': Directory '${dangling}' does not exist.`)
   })
 
-  it('ファイルは is a file', async () => {
+  it('ファイルを渡すと、is a file の使い方の誤りにする', async () => {
+    await explains('ディレクトリでなくファイルを渡した場合のテストです。`Directory \'…\' is a file.` の使い方の誤りになることを確認します。')
     const { root } = fixture()
     const file = path.join(root, 'file.txt')
     expect(await messageOf(['-D', file])).toBe(`Invalid value for '--directory' / '-D': Directory '${file}' is a file.`)
   })
 
-  it.skipIf(process.getuid?.() === 0)('読めないディレクトリは is not readable', async () => {
+  it.skipIf(process.getuid?.() === 0)('読み取れないディレクトリを渡すと、is not readable の使い方の誤りにする', async () => {
+    await explains('権限を `000` にしたディレクトリを渡した場合のテストです。`Directory \'…\' is not readable.` の使い方の誤りになることを確認します。')
     const { root } = fixture()
     const locked = path.join(root, 'locked')
     mkdirSync(locked)
@@ -118,11 +129,13 @@ describe('directorySchema', () => {
     }
   })
 
-  it('値が無いと Missing option', async () => {
+  it('ディレクトリを指定しないと、Missing option の使い方の誤りにする', async () => {
+    await explains('必須のディレクトリを指定しなかった場合のテストです。`Missing option \'--directory\' / \'-D\'.` の使い方の誤りになることを確認します。')
     expect(await messageOf([])).toBe('Missing option \'--directory\' / \'-D\'.')
   })
 
-  it('JSON Schema は string のまま、description を保ち、必須', () => {
+  it('JSON Schema では、description を持つ必須の文字列として表す', async () => {
+    await explains('`directorySchema` を JSON Schema に変換した結果のテストです。型が `string`、`description` が `DIRECTORY_DESCRIPTION` のままで、必須の項目になっていることを確認します。')
     const schema = z.toJSONSchema(z.object({ directory: directorySchema }), { io: 'input' })
     expect(schema.properties?.['directory']).toEqual({ type: 'string', description: DIRECTORY_DESCRIPTION })
     expect(schema.required).toEqual(['directory'])

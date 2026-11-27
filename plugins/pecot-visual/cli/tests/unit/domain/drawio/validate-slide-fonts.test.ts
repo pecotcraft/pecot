@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import { validateSlideFonts } from '../../../../src/domain/drawio/url.js'
 import type { DrawioFinding, ThemeFonts } from '../../../../src/domain/drawio/url.js'
+import { explains } from '../../../_helpers/explains.js'
 
 // 主な宣言: 本文が 2 書体で、和文の書体も宣言したテーマ。
 const TWO_FONTS: ThemeFonts = { body: ['Inter', 'Noto Sans JP'], eastAsian: 'Noto Sans JP' }
@@ -33,7 +34,8 @@ function wrapped(tag: string, style: string, label: string): string {
 }
 
 describe('validateSlideFonts', () => {
-  it('Fira Code → 警告 1（理由と直し方を含む）', () => {
+  it('宣言にない書体（Fira Code）を指定したセルには、理由と直し方を示す警告を 1 件返す', async () => {
+    await explains('図の書体を判定する `validateSlideFonts` のテストです。`fontFamily=Fira Code` のセルを渡した場合に、警告が 1 件だけ返り、メッセージに対象のセルと修正方法が含まれることを確認します。')
     const warnings = check(wrap('rounded=1;fontFamily=Fira Code;', 'node --version'))
     expect(warnings.length).toBe(1)
     expect(warnings[0]?.severity).toBe('warning')
@@ -44,71 +46,83 @@ describe('validateSlideFonts', () => {
     expect(warnings[0]?.message).toContain('node --version')
   })
 
-  it('Inter 単独 + 和文 → Noto Sans JP 欠落の警告 1', () => {
+  it('書体が Inter だけで和文を含むセルには、Noto Sans JP が不足している警告を 1 件返す', async () => {
+    await explains('図の書体を判定する `validateSlideFonts` のテストです。`fontFamily=Inter` のセルに和文の文字列を入れた場合に、警告が 1 件だけ返り、メッセージに `has no Noto Sans JP` とセルの文字列が含まれることを確認します。')
     const warnings = check(wrap('fontFamily=Inter;', '道筋 1'))
     expect(warnings.length).toBe(1)
     expect(warnings[0]?.message).toContain('has no Noto Sans JP')
     expect(warnings[0]?.message).toContain('道筋 1')
   })
 
-  it('Inter 単独 + 英数のみ → 警告 0', () => {
+  it('書体が Inter だけで英数字だけのセルには、警告を返さない', async () => {
+    await explains('図の書体を判定する `validateSlideFonts` のテストです。`fontFamily=Inter` のセルに英数字だけの文字列を入れた場合に、和文用の書体が不要なため警告を返さないことを確認します。')
     expect(check(wrap('fontFamily=Inter;', 'v24.22.1'))).toEqual([])
   })
 
-  it('書体指定なし → Helvetica の警告 1（和文なら欠落の警告も加わり 2）', () => {
+  it('書体を指定していないセルは Helvetica として扱って警告を 1 件返し、和文を含む場合は書体不足の警告を加えて 2 件にする', async () => {
+    await explains('図の書体を判定する `validateSlideFonts` のテストです。style に `fontFamily` が存在しないセルを渡した場合に、英数字だけなら警告が 1 件、和文を含むなら和文用の書体が不足している警告が加わって 2 件になることを確認します。')
     const latin = check(wrap('rounded=1;', 'Hello'))
     expect(latin.length).toBe(1)
     expect(latin[0]?.message).toContain('Helvetica')
     expect(check(wrap('rounded=1;', '道筋')).length).toBe(2)
   })
 
-  it('Helvetica 明示 → 警告 1', () => {
+  it('書体に Helvetica を明示したセルには、警告を 1 件返す', async () => {
+    await explains('図の書体を判定する `validateSlideFonts` のテストです。`fontFamily=Helvetica` のセルを渡した場合に、警告が 1 件だけ返り、メッセージに `helvetica` が含まれることを確認します。')
     const warnings = check(wrap('fontFamily=Helvetica;', 'Hello'))
     expect(warnings.length).toBe(1)
     expect(warnings[0]?.message).toContain('helvetica')
   })
 
-  it('文字を持たないセル（空 value・タグだけ）は警告 0', () => {
+  it('表示する文字が存在しないセルは、警告を返さない', async () => {
+    await explains('図の書体を判定する `validateSlideFonts` のテストです。`value` が空のセルと、`<br>` と `&nbsp;` だけのセルを渡した場合に、どちらも警告を返さないことを確認します。')
     expect(check(wrap('rounded=1;', ''))).toEqual([])
     expect(check(wrap('rounded=1;', '&lt;br&gt;&nbsp;'))).toEqual([])
   })
 
-  it('Inter, Noto Sans JP + 和文 → 警告 0', () => {
+  it('書体が Inter と Noto Sans JP で和文を含むセルには、警告を返さない', async () => {
+    await explains('図の書体を判定する `validateSlideFonts` のテストです。`fontFamily=Inter, Noto Sans JP` のセルに和文の文字列を入れた場合に、宣言どおりの書体なので警告を返さないことを確認します。')
     expect(check(wrap('fontFamily=Inter, Noto Sans JP;', '道筋 1'))).toEqual([])
   })
 
-  it('Display Extended 先頭の見出し → 書体の警告 1 件', () => {
+  it('先頭の書体が Display Extended の見出しには、書体の警告を 1 件だけ返す', async () => {
+    await explains('図の書体を判定する `validateSlideFonts` のテストです。先頭を `Display Extended` にしたセルを渡した場合に、警告を 1 件だけ返し、`first font display extended` を含めることを確認します。')
     const warnings = check(wrap('fontFamily=Display Extended, Inter, Noto Sans JP;', '見出し 01'))
     expect(warnings).toHaveLength(1)
     expect(warnings[0]?.message).toContain('first font display extended')
     expect(warnings[0]?.message).not.toContain('heading')
   })
 
-  it('value 内 div の style font-family が Fira Code → 警告 1', () => {
+  it('value の HTML にある div の style が Fira Code を指定していると、警告を 1 件返す', async () => {
+    await explains('図の書体を判定する `validateSlideFonts` のテストです。セル本体は宣言どおりで、`<div>` の style にだけ `font-family` で Fira Code を指定した場合に、警告が 1 件だけ返ることを確認します。')
     const value = '&lt;div style=&quot;font-family: &amp;quot;Fira Code&amp;quot;&quot;&gt;0ed4268&lt;/div&gt;'
     const warnings = check(wrap('fontFamily=Inter, Noto Sans JP;html=1;', value))
     expect(warnings.length).toBe(1)
     expect(warnings[0]?.message).toContain('0ed4268')
   })
 
-  it('入れ子の font face が内側だけ上書きし、閉じた後は外側の書体に戻る', () => {
+  it('入れ子の font タグの face は内側の文字にだけ適用し、閉じた後の文字は外側の書体で判定する', async () => {
+    await explains('図の書体を判定する `validateSlideFonts` のテストです。`value` の途中に `<font face="Fira Code">` を入れた場合に、警告が 1 件だけ返り、メッセージの対象が `code` だけになることを確認します。')
     const value = '日本語&lt;font face=&quot;Fira Code&quot;&gt;code&lt;/font&gt;のあと'
     const warnings = check(wrap('fontFamily=Inter, Noto Sans JP;html=1;', value))
     expect(warnings.length).toBe(1)
     expect(warnings[0]?.message).toContain('"code"')
   })
 
-  it('外側が Fira Code でも内側の font face が正しければ内側の文字は警告 0', () => {
+  it('セルの書体が Fira Code でも、内側の font タグの face が宣言どおりなら、内側の文字には警告を返さない', async () => {
+    await explains('図の書体を判定する `validateSlideFonts` のテストです。セルが `fontFamily=Fira Code` で、`value` 全体を宣言どおりの書体の `<font face>` で囲んだ場合に、警告を返さないことを確認します。')
     const value = '&lt;font face=&quot;Inter, Noto Sans JP&quot;&gt;道筋&lt;/font&gt;'
     expect(check(wrap('fontFamily=Fira Code;html=1;', value))).toEqual([])
   })
 
-  it('不正 XML は警告 0 で確認を省くする', () => {
+  it('XML として正しくない文字列を渡した場合は、判定を省略して警告を返さない', async () => {
+    await explains('図の書体を判定する `validateSlideFonts` のテストです。`<mxfile>` のように閉じていない XML を渡した場合に、例外を発生させず、警告を返さないことを確認します。')
     expect(check('<mxfile>')).toEqual([])
   })
 
   describe('object / UserObject に包まれたセル (F-04)', () => {
-    it.each(['object', 'UserObject'])('<%s label> の文字と子 mxCell の style の書体を確かめる', (tag) => {
+    it.each(['object', 'UserObject'])('%s で包んだセルでも、子の mxCell の style の書体を判定する', async (tag) => {
+      await explains(`\`<${tag}>\` タグで包んだセルの書体のテストです。子の \`mxCell\` に \`fontFamily=Fira Code\` がある場合に、警告を 1 件だけ返し、メッセージに包んだタグの id と書体と文字列が含まれることを確認します。`)
       const warnings = check(wrapped(tag, 'fontFamily=Fira Code;fontSize=14;', 'node --version'))
       expect(warnings.length).toBe(1)
       expect(warnings[0]?.message).toContain('mxCell id=obj1')
@@ -116,24 +130,28 @@ describe('validateSlideFonts', () => {
       expect(warnings[0]?.message).toContain('node --version')
     })
 
-    it('規定の書体なら警告 0', () => {
+    it('object で包んだセルの書体が宣言どおりなら、警告を返さない', async () => {
+      await explains('図の書体を判定する `validateSlideFonts` のテストです。`<object>` で包んだセルの `fontFamily` が `Inter` で、文字列が英数字だけの場合に、警告を返さないことを確認します。')
       expect(check(wrapped('object', 'fontFamily=Inter;', 'v24'))).toEqual([])
     })
   })
 
   describe('CSS の font 一括指定 (F-06)', () => {
-    it('font: 20px Fira Code の書体を読んで警告する', () => {
+    it('CSS の font の一括指定が宣言にない書体（Fira Code）を含む場合は、その書体について警告を返す', async () => {
+      await explains('図の書体を判定する `validateSlideFonts` のテストです。`value` の HTML に `font: 20px Fira Code` と書いた場合に、警告が 1 件だけ返り、メッセージに `first font fira code` が含まれることを確認します。')
       const warnings = check(wrap('fontFamily=Inter;', '&lt;span style=&quot;font: 20px Fira Code&quot;&gt;code&lt;/span&gt;'))
       expect(warnings.length).toBe(1)
       expect(warnings[0]?.message).toContain('first font fira code')
     })
 
-    it('font: 12px/1.5 Inter, Noto Sans JP は警告 0', () => {
+    it('CSS の font の一括指定が宣言どおりの書体なら、警告を返さない', async () => {
+      await explains('図の書体を判定する `validateSlideFonts` のテストです。`value` の HTML に `font: bold 12px/1.5 Inter, \'Noto Sans JP\'` と書いた場合に、宣言どおりの書体として扱い、警告を返さないことを確認します。')
       const value = '&lt;span style=&quot;font: bold 12px/1.5 Inter, &#39;Noto Sans JP&#39;&quot;&gt;道筋&lt;/span&gt;'
       expect(check(wrap('fontFamily=Inter, Noto Sans JP;', value))).toEqual([])
     })
 
-    it('読めない一括指定は使わないよう警告する', () => {
+    it('CSS の font の一括指定が読み取れない場合は、font-family と font-size を分けて指定するよう警告する', async () => {
+      await explains('図の書体を判定する `validateSlideFonts` のテストです。`value` の HTML に `font: inherit` と書いた場合に、警告が 1 件だけ返り、メッセージに `CSS font shorthand` が含まれることを確認します。')
       const warnings = check(wrap('fontFamily=Inter;', '&lt;span style=&quot;font: inherit&quot;&gt;x&lt;/span&gt;'))
       expect(warnings.length).toBe(1)
       expect(warnings[0]?.message).toContain('font: inherit')
@@ -143,20 +161,23 @@ describe('validateSlideFonts', () => {
   })
 
   describe('直し方の案内 (F-07)', () => {
-    it('value の HTML 由来の規定外書体は value 内の指定を消すよう案内する', () => {
+    it('value の HTML に由来する規定外の書体には、value 内の指定を削除するよう案内する', async () => {
+      await explains('図の書体を判定する `validateSlideFonts` のテストです。`value` の HTML に `font-family:Fira Code` を書いた場合に、警告が 1 件だけ返り、`font-family` の削除を案内することを確認します。')
       const warnings = check(wrap('fontFamily=Inter;', '&lt;span style=&quot;font-family:Fira Code&quot;&gt;code&lt;/span&gt;'))
       expect(warnings.length).toBe(1)
       expect(warnings[0]?.message).toContain('remove font-family in value')
       expect(warnings[0]?.message).toContain('leave the font to fontFamily=')
     })
 
-    it('value の HTML 由来の Noto Sans JP 欠落も value 内の指定を案内する', () => {
+    it('value の HTML の font タグが和文用の書体を含まない場合も、value 内の指定を削除するよう案内する', async () => {
+      await explains('図の書体を判定する `validateSlideFonts` のテストです。`value` の `<font face="Inter">` に和文を入れた場合に、警告が 1 件だけ返り、`remove font-family in value` で案内することを確認します。')
       const warnings = check(wrap('fontFamily=Inter, Noto Sans JP;', '&lt;font face=&quot;Inter&quot;&gt;道筋&lt;/font&gt;'))
       expect(warnings.length).toBe(1)
       expect(warnings[0]?.message).toContain('remove font-family in value')
     })
 
-    it('セル style 由来の規定外書体は style を直すよう案内する', () => {
+    it('セルの style に由来する規定外の書体には、style に宣言どおりの fontFamily を追加するよう案内する', async () => {
+      await explains('図の書体を判定する `validateSlideFonts` のテストです。`Fira Code` のセルについて、style への書体の追加を案内し、`value` の指定の削除は案内しないことを確認します。')
       const warnings = check(wrap('fontFamily=Fira Code;', 'code'))
       expect(warnings[0]?.message).toContain('add fontFamily=Inter, Noto Sans JP, sans-serif to style')
       expect(warnings[0]?.message).not.toContain('remove font-family in value')
@@ -166,19 +187,22 @@ describe('validateSlideFonts', () => {
   describe('宣言ごとの許す書体 (T051)', () => {
     const TEST_SANS: ThemeFonts = { body: ['Test Sans'], eastAsian: 'Test Sans JP' }
 
-    it('宣言の書体なら警告 0、宣言に無い書体は外れとして警告する', () => {
+    it('宣言にある書体には警告を返さず、宣言にない書体には警告を返す', async () => {
+      await explains('宣言の本文の書体が `Test Sans` の場合のテストです。`fontFamily=Test Sans` のセルには警告を返さず、`fontFamily=Inter` のセルには警告を 1 件返して `first font inter` を含めることを確認します。')
       expect(check(wrap('fontFamily=Test Sans;', 'Hello'), TEST_SANS)).toEqual([])
       const warnings = check(wrap('fontFamily=Inter;', 'Hello'), TEST_SANS)
       expect(warnings).toHaveLength(1)
       expect(warnings[0]?.message).toContain('first font inter')
     })
 
-    it('許す先頭書体は fonts.body と eastAsian の和集合（eastAsian の書体が先頭でもよい）', () => {
+    it('先頭に使える書体は、宣言の本文の書体と和文の書体の両方にする', async () => {
+      await explains('テーマの宣言の `fonts.body` と `eastAsian` を合わせた書体が、先頭に使えるかのテストです。`Test Sans JP` を先頭にしたセルと、`Noto Sans JP` を先頭にしたセルのどちらにも、警告を返さないことを確認します。')
       expect(check(wrap('fontFamily=Test Sans JP;', 'Hello'), TEST_SANS)).toEqual([])
       expect(check(wrap('fontFamily=Noto Sans JP, Inter;', 'Hello'))).toEqual([])
     })
 
-    it('直し方は body と eastAsian の重複を除いて組む', () => {
+    it('直し方に示す書体の並びは、本文の書体と和文の書体で重複するものを除いて組み立てる', async () => {
+      await explains('規定外の書体に対する警告の、直し方のテストです。宣言が `Test Sans` と `Test Sans JP` の場合は、その 2 つに `sans-serif` を加えて案内し、主な宣言では `Noto Sans JP` を重複させないことを確認します。')
       const warnings = check(wrap('fontFamily=Fira Code;', 'code'), TEST_SANS)
       expect(warnings[0]?.message).toContain('add fontFamily=Test Sans, Test Sans JP, sans-serif to style')
       const same = check(wrap('fontFamily=Fira Code;', 'code'))
@@ -186,7 +210,8 @@ describe('validateSlideFonts', () => {
       expect(same[0]?.message).not.toContain('Noto Sans JP, Noto Sans JP')
     })
 
-    it('直し方の末尾に総称の書体を足す。宣言が総称で終わるなら足さない', () => {
+    it('直し方の並びは sans-serif で終え、宣言がすでに総称の書体で終わる場合は追加しない', async () => {
+      await explains('規定外の書体に対する警告の、直し方のテストです。宣言が総称の書体を含まないときは末尾に `sans-serif` を追加し、`cursive` や `sans-serif` で終わる宣言では追加しないことを確認します。')
       const cell = check(wrap('fontFamily=Fira Code;', 'code'), TEST_SANS)[0]?.message
       expect(cell).toContain('add fontFamily=Test Sans, Test Sans JP, sans-serif to style')
       const html = check(wrap('fontFamily=Inter;', '&lt;span style=&quot;font-family:Fira Code&quot;&gt;x&lt;/span&gt;'), TEST_SANS)[0]?.message
@@ -197,27 +222,32 @@ describe('validateSlideFonts', () => {
       expect(fallback).toContain('add fontFamily=sans-serif to style')
     })
 
-    it('末尾に sans-serif を足した並びは、先頭書体と和文の確認を通る', () => {
+    it('末尾に sans-serif を加えた書体の並びは、先頭の書体と和文用の書体の確認を満たす', async () => {
+      await explains('図の書体を判定する `validateSlideFonts` のテストです。`fontFamily=Test Sans, Test Sans JP, sans-serif` のセルに和文を入れた場合に、警告を返さないことを確認します。')
       expect(check(wrap('fontFamily=Test Sans, Test Sans JP, sans-serif;', '道筋 Hello'), TEST_SANS)).toEqual([])
     })
 
-    it('書体名は大文字小文字と引用符を無視して照らす', () => {
+    it('書体名は、大文字と小文字の違いや引用符の有無にかかわらず、宣言の書体と一致するものとして扱う', async () => {
+      await explains('図の書体を判定する `validateSlideFonts` のテストです。`fontFamily=\'TEST SANS\'` のように、大文字で引用符付きの書体名を渡した場合に、宣言の `Test Sans` と一致するものとして警告を返さないことを確認します。')
       expect(check(wrap('fontFamily=\'TEST SANS\';', 'Hello'), TEST_SANS)).toEqual([])
     })
 
-    it('和文は eastAsian が並びに無ければ警告し、案内に eastAsian の書体を含める', () => {
+    it('和文を含むセルの書体の並びに和文用の書体がなければ、警告を返し、案内にその書体を含める', async () => {
+      await explains('図の書体を判定する `validateSlideFonts` のテストです。宣言の `eastAsian` が `Test Sans JP` で、セルの書体が `Test Sans` だけの場合に、`has no Test Sans JP` を含む警告が 1 件返ることを確認します。')
       const warnings = check(wrap('fontFamily=Test Sans;', '道筋'), TEST_SANS)
       expect(warnings).toHaveLength(1)
       expect(warnings[0]?.message).toContain('has no Test Sans JP')
       expect(check(wrap('fontFamily=Test Sans, Test Sans JP;', '道筋'), TEST_SANS)).toEqual([])
     })
 
-    it('eastAsian を宣言していないテーマは、和文の確認をしない', () => {
+    it('宣言に和文用の書体がない場合は、和文を含むセルでも和文用の書体を確認しない', async () => {
+      await explains('図の書体を判定する `validateSlideFonts` のテストです。`eastAsian` を宣言していないテーマで、和文を含むセルを渡した場合に、宣言にある書体のセルは警告を返さず、宣言にない `Inter` のセルは書体の警告を 1 件返すことを確認します。')
       expect(check(wrap('fontFamily=Caveat;', '道筋'), { body: ['Caveat'] })).toEqual([])
       expect(check(wrap('fontFamily=Inter;', '道筋'), { body: ['Caveat'] })).toHaveLength(1)
     })
 
-    it('既定の宣言（sans-serif だけ）では sans-serif を許し、Inter は外れる', () => {
+    it('既定の宣言（sans-serif だけ）では sans-serif を許可し、Inter は規定外として警告を返す', async () => {
+      await explains('図の書体を判定する `validateSlideFonts` のテストです。本文の書体が `sans-serif` だけの宣言で、`fontFamily=sans-serif` のセルには警告を返さず、`fontFamily=Inter` のセルには警告を 1 件返すことを確認します。')
       const fallback: ThemeFonts = { body: ['sans-serif'] }
       expect(check(wrap('fontFamily=sans-serif;', '道筋 Hello'), fallback)).toEqual([])
       expect(check(wrap('fontFamily=Inter;', 'Hello'), fallback)).toHaveLength(1)
@@ -225,24 +255,28 @@ describe('validateSlideFonts', () => {
   })
 
   describe('等幅の並び', () => {
-    it('monospace を含む並びは書体の確認を飛ばす', () => {
+    it('書体の並びに monospace を含むセルは、書体の判定を省略する', async () => {
+      await explains('図の書体を判定する `validateSlideFonts` のテストです。`\'Noto Sans Mono\', monospace` のように、`monospace` を含む並びのセルを渡した場合に、大文字小文字を区別せず、警告を返さないことを確認します。')
       expect(check(wrap('fontFamily=\'Noto Sans Mono\', monospace;', 'node --version'))).toEqual([])
       expect(check(wrap('fontFamily=Fira Code, MONOSPACE;', '道筋'))).toEqual([])
     })
 
-    it('value の HTML 内の等幅の並びも飛ばし、外側の書体は確かめ続ける', () => {
+    it('value の HTML に monospace を含む並びがあれば判定を省略するが、外側の書体は引き続き判定する', async () => {
+      await explains('図の書体を判定する `validateSlideFonts` のテストです。`value` の HTML の一部に `font-family: Fira Code, monospace` を指定した場合に、外側が宣言どおりなら警告を返さないことを確認します。')
       const value = '日本語&lt;span style=&quot;font-family: Fira Code, monospace&quot;&gt;code&lt;/span&gt;'
       expect(check(wrap('fontFamily=Inter, Noto Sans JP;html=1;', value))).toEqual([])
       expect(check(wrap('fontFamily=Fira Code;html=1;', value)).length).toBeGreaterThan(0)
     })
 
-    it('monospace を含まない等幅の書体名は飛ばさない', () => {
+    it('monospace を含まない等幅の書体名（Fira Code）は、判定を省略しない', async () => {
+      await explains('図の書体を判定する `validateSlideFonts` のテストです。`fontFamily=Fira Code` のセルを渡した場合に、書体の名前が等幅でも `monospace` が並びにないため、警告を 1 件返すことを確認します。')
       expect(check(wrap('fontFamily=Fira Code;', 'code'))).toHaveLength(1)
     })
   })
 
   describe('文言のテーマ名', () => {
-    it('テーマ名を渡すと「テーマの書体（名前）」、渡さないと「既定の書体」と書く', () => {
+    it('警告のメッセージは、テーマ名を渡すとテーマの書体、渡さなければ既定の書体として表現する', async () => {
+      await explains('警告のメッセージの文言のテストです。テーマ名 `my-theme` を渡すと `the theme font (my-theme)` と表現し、渡さない場合は `the default font` と表現することを確認します。')
       const named = check(wrap('fontFamily=Fira Code;', 'code'), TWO_FONTS, 'my-theme')
       expect(named[0]?.message).toContain('the theme font (my-theme)')
       expect(named[0]?.message).not.toContain('the default font')

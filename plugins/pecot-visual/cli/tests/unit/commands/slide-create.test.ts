@@ -19,6 +19,7 @@ import { seedDependencyRoot } from '../../_helpers/dependency-probes.js'
 import { useTemporaryDirectory } from '../../_helpers/temporary-directory.js'
 import { asStream, makeStream } from '../../_helpers/talk-directory.js'
 import type { CapturedStream } from '../../_helpers/talk-directory.js'
+import { explains } from '../../_helpers/explains.js'
 
 const temporaryRoot = useTemporaryDirectory('pecotv-slide-create-unit-')
 
@@ -97,7 +98,8 @@ const GIT_FAILURE_CASES: readonly (readonly ['connection' | 'auth' | 'tag' | 'un
 ]
 
 describe('slide create の失敗 (FR-013)', () => {
-  it.each(GIT_FAILURE_CASES)('取得が %s で失敗すると reason %s と対処の文言を返す', async (kind, reason, advice) => {
+  it.each(GIT_FAILURE_CASES)('取得が %s で失敗した場合は、reason %s と対処の文言を返し、生成先を作成しない', async (kind, reason, advice) => {
+    await explains('テーマの取得の失敗のテストです。`connection`・`auth`・`tag`・`unknown` の各失敗の場合に、対応する `reason` と対処の文言が出力され、終了コードが 1 で、生成先が作成されないことを確認します。')
     const projectDirectory = temporaryRoot('talk')
     const failure = new ThemeFetchError(`${gitFailureAdvice(kind, GIT_SPEC)}\nfatal: stderr`, kind)
 
@@ -108,7 +110,8 @@ describe('slide create の失敗 (FR-013)', () => {
     expect(existsSync(projectDirectory)).toBe(false)
   })
 
-  it('pnpm install などの失敗は theme-install で、取得側の文言をそのまま返す', async () => {
+  it('pnpm install などの失敗は、theme-install として、取得側の文言をそのまま返す', async () => {
+    await explains('依存のインストールの失敗のテストです。`install` の `ThemeFetchError` が発生した場合に、`reason` が `theme-install` で、`detail` に元の文言が含まれ、生成先が作成されないことを確認します。')
     const projectDirectory = temporaryRoot('talk')
     const failure = new ThemeFetchError('pnpm install が失敗しました\nERR_PNPM_FETCH', 'install')
 
@@ -119,7 +122,8 @@ describe('slide create の失敗 (FR-013)', () => {
     expect(existsSync(projectDirectory)).toBe(false)
   })
 
-  it('宣言の形の誤りは theme-invalid-shape で、誤った項目名を示す', async () => {
+  it('宣言の形が誤っている場合は、theme-invalid-shape として、誤った項目名を示す', async () => {
+    await explains('`pecot-theme.json` の形式の誤りのテストです。`pptx.linkColor` が不正な宣言の場合に、`reason` が `theme-invalid-shape` で、`detail` にファイル名と項目名が含まれることを確認します。')
     const projectDirectory = temporaryRoot('talk')
     const declaration = JSON.stringify({ schema: 1, pptx: { linkColor: 'blue' } })
 
@@ -131,7 +135,8 @@ describe('slide create の失敗 (FR-013)', () => {
     expect(existsSync(projectDirectory)).toBe(false)
   })
 
-  it('宣言の知らない規則名は theme-unknown-rule で、規則名を示す', async () => {
+  it('宣言に未知の規則名がある場合は、theme-unknown-rule として、規則名を示す', async () => {
+    await explains('`pecot-theme.json` の規則名の誤りのテストです。存在しない規則名を `lint.rules` へ書いた場合に、`reason` が `theme-unknown-rule` で、`detail` に規則名が含まれることを確認します。')
     const projectDirectory = temporaryRoot('talk')
     const declaration = JSON.stringify({ schema: 1, lint: { rules: { 'no-such-plugin/no-such-rule': 'error' } } })
 
@@ -144,6 +149,7 @@ describe('slide create の失敗 (FR-013)', () => {
   })
 
   it('タグの無い git URL は取得に入らず、theme-tag-required を返す', async () => {
+    await explains('`slide_create` のテーマの指定の検証のテストです。タグのない `git+` の URL を指定した場合に、テーマの取得を呼び出さず、理由が `theme-tag-required` になることを確認します。')
     const projectDirectory = temporaryRoot('talk')
     const fetchTheme = vi.fn<FetchTheme>().mockRejectedValue(new Error('呼ばれない'))
 
@@ -158,7 +164,8 @@ describe('slide create の失敗 (FR-013)', () => {
     expect(fetchTheme).not.toHaveBeenCalled()
   })
 
-  it('取得に失敗しても、--force で指した既存の生成先は消さない', async () => {
+  it('取得に失敗した場合も、--force で指定した既存の生成先を削除しない', async () => {
+    await explains('既存の生成先の保護のテストです。`--force` を指定して取得が失敗した場合に、`reason` が `theme-tag` で、既存の `slides.md` の内容が変わらないことを確認します。')
     const projectDirectory = temporaryRoot('talk')
     mkdirSync(projectDirectory, { recursive: true })
     writeFileSync(path.join(projectDirectory, 'slides.md'), '# 既存\n')
@@ -170,7 +177,8 @@ describe('slide create の失敗 (FR-013)', () => {
     expect(readFileSync(path.join(projectDirectory, 'slides.md'), 'utf8')).toBe('# 既存\n')
   })
 
-  it('依存ルートの実体が無ければ、取得と生成先のどちらにも触れず止まる (--force の既存を消さない)', async () => {
+  it('依存ルートの実体が存在しない場合は、取得も生成先の変更もせず、symlink-failed で止まる', async () => {
+    await explains('依存ルートの事前の確認のテストです。`node_modules` が存在しない状態で `--force` を指定した場合に、止まり、`fetchTheme` が呼び出されず、`slides.md` が残ることを確認します。')
     const projectDirectory = temporaryRoot('talk')
     mkdirSync(projectDirectory, { recursive: true })
     writeFileSync(path.join(projectDirectory, 'slides.md'), '# 既存\n')
@@ -188,7 +196,8 @@ describe('slide create の失敗 (FR-013)', () => {
     expect(readFileSync(path.join(projectDirectory, 'slides.md'), 'utf8')).toBe('# 既存\n')
   })
 
-  it('失敗したとき、失敗の前に出た取得中の警告を stderr に流す', async () => {
+  it('取得に失敗した場合は、失敗の前に出た取得中の警告を標準エラーに出力する', async () => {
+    await explains('取得中の警告の出力のテストです。`fetchTheme` が警告を出してから失敗した場合に、標準エラーが `warning:` で始まるその警告の 1 行になることを確認します。')
     const stderr = makeStream()
     const fetchTheme = vi.fn<FetchTheme>().mockImplementation((_spec, options) => {
       options.warn?.('取得中の警告')
@@ -205,7 +214,8 @@ describe('slide create の失敗 (FR-013)', () => {
     expect(stderr.chunks.join('')).toBe('warning: 取得中の警告\n')
   })
 
-  it('テーマの置き場を決められなければ、取得に入らず theme-unknown で止まる', async () => {
+  it('テーマの保管場所を決定できない場合は、取得を始めず、theme-unknown で止まる', async () => {
+    await explains('テーマの保管場所の決定のテストです。`themeStoreRoot` が `undefined` を返す場合に、`theme-unknown` の `reason` が出力され、`CLAUDE_PLUGIN_DATA` が含まれることを確認します。')
     const projectDirectory = temporaryRoot('talk')
     const dependencies: SlideCreateDependencies = {
       ...dependenciesWith(rejecting(new Error('呼ばれない'))),
@@ -218,7 +228,8 @@ describe('slide create の失敗 (FR-013)', () => {
     expect(payload.detail).toContain('the data directory CLAUDE_PLUGIN_DATA')
   })
 
-  it('executeSlideCreate は取得の失敗を例外のまま返す (警告が無ければ stderr は空)', async () => {
+  it('executeSlideCreate は、取得に失敗した場合は、その例外をそのまま送出し、警告がなければ標準エラーが空になる', async () => {
+    await explains('`executeSlideCreate` の例外の扱いのテストです。`ThemeFetchError` で失敗した場合に、同じ例外が発生し、標準エラーが空であることを確認します。')
     const stderr = makeStream()
     const failure = new ThemeFetchError(gitFailureAdvice('connection', GIT_SPEC), 'connection')
 

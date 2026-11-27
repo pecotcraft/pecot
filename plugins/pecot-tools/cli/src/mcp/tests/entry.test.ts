@@ -12,6 +12,7 @@ import { mcpServeDefaultDependencies } from '../serve.js'
 import { allTools } from '../tools/index.js'
 import type * as MainModule from '../../main.js'
 import { AttachingClient } from '../../../tests/_helpers/attaching-client.js'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 const CLI_ROOT = path.resolve(import.meta.dirname, '../../..')
 
@@ -22,17 +23,20 @@ function readPackageJson(): Readonly<Record<string, unknown>> {
 }
 
 describe('サーバの起動ファイル', () => {
-  it('package.json の bin は pecot-tools-mcp だけで dist/main.js を指す', () => {
+  it('package.json の bin は pecot-tools-mcp だけで dist/main.js を指す', async () => {
+    await explains('`package.json` の `bin` 項目のテストです。コマンド名が `pecot-tools-mcp` の 1 つだけで、`dist/main.js` を指していることを確認します。')
     expect(readPackageJson()['bin']).toStrictEqual({ 'pecot-tools-mcp': 'dist/main.js' })
   })
 
-  it('CLI の起動ファイルを持たず commander に依存しない', () => {
+  it('CLI の起動ファイルを持たず commander に依存しない', async () => {
+    await explains('CLI の廃止後の構成のテストです。`commander` が依存関係に含まれず、`src/cli.ts` が存在しないことを確認します。')
     const dependencies = readPackageJson()['dependencies']
     expect(isRecord(dependencies) && Object.hasOwn(dependencies, 'commander')).toBe(false)
     expect(existsSync(path.join(CLI_ROOT, 'src/cli.ts'))).toBe(false)
   })
 
   it('既定の依存で作るサーバの tools/list が allTools の名前と一致する', async () => {
+    await explains('既定の依存で作成した MCP のサーバのテストです。メモリ内の transport でクライアントを接続した場合に、`tools/list` のツール名が `allTools` の名前と同じ順序で一致することを確認します。')
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
     const handle = serveStdio(mcpServeDefaultDependencies().createServer, { transport: serverTransport })
     const client = new AttachingClient({ name: 'entry-test', version: '0.0.0' })
@@ -75,6 +79,7 @@ describe('main', () => {
   })
 
   it('修正版未満の Node.js では SDK を読み込まずに案内を stderr に出し exitCode 1 で終える', async () => {
+    await explains('サーバの起動処理 `main` のテストです。修正版未満の Node.js の場合に、SDK を読み込まず、標準エラーへ案内を出力して終了コード 1 で終了することを確認します。')
     const writes: string[] = []
     vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
       writes.push(String(chunk))
@@ -93,6 +98,7 @@ describe('main', () => {
   })
 
   it('修正版未満の Node.js では案内の 2 行目以降が空白 2 つで始まる', async () => {
+    await explains('サーバの起動処理 `main` のテストです。修正版未満の Node.js の場合に、標準エラーへ出力する案内が 3 行以上あり、2 行目以降が空白 2 つで始まることを確認します。')
     const writes: string[] = []
     vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
       writes.push(String(chunk))
@@ -108,6 +114,7 @@ describe('main', () => {
   })
 
   it('許可される Node.js では引数に関わらず既定の依存でサーバを起動する', async () => {
+    await explains('サーバの起動処理 `main` のテストです。許可される Node.js の場合に、引数の内容にかかわらず既定の依存でサーバを 1 回だけ起動し、終了コードを書き換えないことを確認します。')
     const { main } = await importMain()
     const previousArgv = process.argv
     process.argv = ['node', 'main.js', 'mcp']

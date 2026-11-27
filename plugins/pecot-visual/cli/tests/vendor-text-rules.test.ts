@@ -5,12 +5,15 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { explains } from './_helpers/explains.js'
+
 const PLUGIN_ROOT = path.resolve(import.meta.dirname, '../..')
 const REPO_ROOT = path.resolve(PLUGIN_ROOT, '../..')
 const LINK = path.join(PLUGIN_ROOT, 'vendor/text-rules')
 
 describe('vendor/text-rules', () => {
-  it('git の index ではリンク（mode 120000）の 1 件だけで、実ディレクトリのファイルが入らない', () => {
+  it('git の index ではリンク（mode 120000）の 1 件だけで、実ディレクトリのファイルが入らない', async () => {
+    await explains('`vendor/text-rules` の git での扱いのテストです。git の index に、リンク（mode `120000`）の 1 件だけが登録され、実ディレクトリのファイルが含まれないことを確認します。')
     const entries = execFileSync('git', ['ls-files', '--stage', '--', 'vendor/text-rules'], { cwd: PLUGIN_ROOT, encoding: 'utf8' })
       .split('\n')
       .filter(line => line !== '')
@@ -18,7 +21,8 @@ describe('vendor/text-rules', () => {
     expect(entries.map(line => line.split(' ', 1)[0])).toEqual(['120000'])
   })
 
-  it('リンク先は ../../../libs/text-rules で、repo 共通のライブラリの実体を指す', () => {
+  it('リンク先は ../../../libs/text-rules で、repo 共通のライブラリの実体を指す', async () => {
+    await explains('`vendor/text-rules` のリンク先のテストです。リンク先が `../../../libs/text-rules` で、リポジトリ共通のライブラリの実体を指していることを確認します。')
     expect(readlinkSync(LINK)).toBe('../../../libs/text-rules')
     expect(realpathSync(LINK)).toBe(realpathSync(path.join(REPO_ROOT, 'libs/text-rules')))
   })

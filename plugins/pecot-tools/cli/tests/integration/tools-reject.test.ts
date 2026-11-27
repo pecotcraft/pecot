@@ -8,6 +8,7 @@ import { closeMcp, connectMcp, type ConnectedMcp } from '../../src/mcp/tests/_cl
 import { allTools } from '../../src/mcp/tools/index.js'
 import { useFakeAws } from '../_helpers/fake-aws.js'
 import { isRecord } from '../_helpers/records.js'
+import { explains } from '../../tests/_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
 
 /**
@@ -91,23 +92,26 @@ describe('Athena の変更系・複文（research R6）', () => {
     ['SELECT 1; DROP TABLE orders', 'PT-AWS-ATHENA-START-QUERY-EXECUTION-03'],
   ]
 
-  it.for(NOT_ALLOWED)('%j を not-allowed で拒否する', async ([query, id], context) => {
+  it.for(NOT_ALLOWED)('Athena のクエリ %j は、not-allowed として拒否し、awscli を起動しない', async ([query, id], context) => {
     await verifies(context, id)
+    await explains('`aws_athena_start_query_execution` の入力検証のテストです。変更系の文（`DROP TABLE` や `INSERT` など）または複数の文を含むクエリを指定した場合に、失敗の種類が `not-allowed` になり、awscli が起動されないことを確認します。')
     const structured = await expectIsError('aws_athena_start_query_execution', { query_string: query })
 
     expect(structured['kind']).toBe('not-allowed')
   })
 
-  it('参照だけの文でも複数あれば not-allowed で拒否する', async (context) => {
+  it('参照だけの文でも複数含む場合は、not-allowed として拒否する', async (context) => {
     await verifies(context, 'PT-AWS-ATHENA-START-QUERY-EXECUTION-03')
+    await explains('`aws_athena_start_query_execution` の入力検証のテストです。`SELECT 1; SELECT 2` のように参照だけの文を複数指定した場合に、失敗の種類が `not-allowed` で、詳細に `Multiple statements` が含まれることを確認します。')
     const structured = await expectIsError('aws_athena_start_query_execution', { query_string: 'SELECT 1; SELECT 2' })
 
     expect(structured['kind']).toBe('not-allowed')
     expect(structured['detail']).toContain('Multiple statements')
   })
 
-  it('参照クエリは拒否しない', async (context) => {
+  it('参照だけの単一のクエリは、拒否せずに実行する', async (context) => {
     await verifies(context, 'PT-AWS-ATHENA-START-QUERY-EXECUTION-01')
+    await explains('`aws_athena_start_query_execution` の入力検証のテストです。`SELECT 1` を指定した場合は、拒否されずに実行されることを確認します。')
     const result = await client().callTool({
       name: 'aws_athena_start_query_execution',
       arguments: { query_string: 'SELECT 1' },
@@ -116,8 +120,9 @@ describe('Athena の変更系・複文（research R6）', () => {
     expect(result.isError).toBeUndefined()
   })
 
-  it('shorthand の項目に , を含めると invalid-input で拒否する', async (context) => {
+  it('shorthand 形式に使う項目の値に , を含む場合は、invalid-input として拒否する', async (context) => {
     await verifies(context, 'PT-AWS-ATHENA-START-QUERY-EXECUTION-05')
+    await explains('`aws_athena_start_query_execution` の入力検証のテストです。`database` に `analytics,Catalog=injected` のように別のキーを継ぎ足せる値を指定した場合は、`invalid-input` で拒否されることを確認します。')
     // 素通しすると `Database=a,Catalog=x` のように契約外のキーを注入できる。
     const structured = await expectIsError('aws_athena_start_query_execution', {
       query_string: 'SELECT 1',
@@ -134,8 +139,9 @@ describe('Athena の変更系・複文（research R6）', () => {
     { name: 'database', char: '}', args: { database: 'a}b' } },
     { name: 'catalog', char: ',', args: { database: 'analytics', catalog: 'x,y' } },
     { name: 'output_location', char: '{', args: { output_location: 's3://b/p{x}' } },
-  ])('$name に $char を含むとき、invalid-input で拒否する', async (row, context) => {
+  ])('$name の値に $char を含む場合は、invalid-input として拒否する', async (row, context) => {
     await verifies(context, 'PT-AWS-ATHENA-START-QUERY-EXECUTION-05')
+    await explains(`\`aws_athena_start_query_execution\` の入力検証のテストです。\`${row.name}\` に構文として解釈される \`${row.char}\` を含む値を指定した場合は、\`invalid-input\` で拒否されることを確認します。`)
     const structured = await expectIsError('aws_athena_start_query_execution', {
       query_string: 'SELECT 1',
       ...row.args,
@@ -145,8 +151,9 @@ describe('Athena の変更系・複文（research R6）', () => {
     expect(structured['detail']).toContain(row.name)
   })
 
-  it('output_location に別キーを継ぎ足す注入も invalid-input で拒否する', async (context) => {
+  it('output_location に別のキーを継ぎ足す値を指定した場合は、invalid-input として拒否する', async (context) => {
     await verifies(context, 'PT-AWS-ATHENA-START-QUERY-EXECUTION-05')
+    await explains('`aws_athena_start_query_execution` の入力検証のテストです。`output_location` に別のキーをカンマ区切りで追加した値を指定した場合は、`invalid-input` で拒否されることを確認します。')
     // --result-configuration に実際に注入される形。`OutputLocation=s3://b/p,ExpectedBucketOwner=…` を
     // 実 awscli は受理するため、組み立て前に項目側で落とす。
     const structured = await expectIsError('aws_athena_start_query_execution', {
@@ -158,8 +165,9 @@ describe('Athena の変更系・複文（research R6）', () => {
     expect(structured['detail']).toContain('output_location')
   })
 
-  it('catalog の単独指定を invalid-input で拒否する', async (context) => {
+  it('database を指定せずに catalog だけを指定した場合は、invalid-input として拒否する', async (context) => {
     await verifies(context, 'PT-AWS-ATHENA-START-QUERY-EXECUTION-04')
+    await explains('`aws_athena_start_query_execution` の入力検証のテストです。`catalog` だけを指定した場合に、失敗の種類が `invalid-input` で、詳細に `database` が含まれ、awscli が起動されないことを確認します。')
     // Database 無しの QueryExecutionContext を実 Athena API が受けるか未確認なので、組み立て前に拒否する。
     const structured = await expectIsError('aws_athena_start_query_execution', {
       query_string: 'SELECT 1',
@@ -172,16 +180,18 @@ describe('Athena の変更系・複文（research R6）', () => {
 })
 
 describe('`-` 始まりの値（research R3）', () => {
-  it('位置引数は `--flag=value` の逃がし先が無いので拒否する', async (context) => {
+  it('位置引数の値が - で始まる場合は、invalid-input として拒否する', async (context) => {
     await verifies(context, 'PT-COMMON-05')
+    await explains('`aws_s3_ls` の入力検証のテストです。位置引数の `s3_uri` に `--endpoint-url` のように `-` で始まる値を指定した場合に、失敗の種類が `invalid-input` で、詳細に `-` が含まれることを確認します。')
     const structured = await expectIsError('aws_s3_ls', { s3_uri: '--endpoint-url' })
 
     expect(structured['kind']).toBe('invalid-input')
     expect(structured['detail']).toContain('\'-\'')
   })
 
-  it('配列の要素も同じ規則で拒否する', async (context) => {
+  it('配列の要素の値が - で始まる場合も、invalid-input として拒否する', async (context) => {
     await verifies(context, 'PT-COMMON-05')
+    await explains('`aws_logs_filter_log_events` の入力検証のテストです。`log_stream_names` の要素に `--debug` のように `-` で始まる値を含めた場合に、詳細に `-` が含まれる失敗として拒否されることを確認します。')
     // string-list は nargs が貪欲で 1 トークン形へ畳めない。
     const structured = await expectIsError('aws_logs_filter_log_events', {
       log_group_name: 'g',
@@ -191,7 +201,8 @@ describe('`-` 始まりの値（research R3）', () => {
     expect(structured['detail']).toContain('\'-\'')
   })
 
-  it('フラグで渡す string は拒否せず `--flag=value` の 1 トークンにする', async () => {
+  it('フラグで渡す文字列の値が - で始まる場合は、拒否せず --flag=value の 1 つの引数にして実行する', async () => {
+    await explains('`aws_logs_filter_log_events` の引数の組み立てのテストです。`filter_pattern` に除外を表す `-INFO` を指定した場合に、エラーにならず、awscli へ `--filter-pattern=-INFO` の 1 つの引数で渡されることを確認します。')
     // CloudWatch Logs の除外パターン（-INFO）。実 awscli 2.36.40 が受理することを確認している。
     const result = await client().callTool({
       name: 'aws_logs_filter_log_events',
@@ -214,7 +225,8 @@ describe('shorthand-list の項目値', () => {
   */
   const SYNTAX_CHARACTERS: readonly string[] = [',', '=', '{', '}']
 
-  it.each(SYNTAX_CHARACTERS)('通常項目の %j を受理して JSON にエスケープして載せる', async (character) => {
+  it.each(SYNTAX_CHARACTERS)('通常の項目の値に構文の文字 %j を含む場合も、拒否せず JSON にエスケープして実行する', async (character) => {
+    await explains('`aws_ec2_describe_instances` の引数の組み立てのテストです。shorthand で構文として解釈される文字を `filters` の名前へ含めた場合は、JSON の文字列として awscli へ渡されることを確認します。')
     const result = await client().callTool({
       name: 'aws_ec2_describe_instances',
       arguments: { filters: [{ name: `instance-state-name${character}x`, values: ['running'] }] },
@@ -229,7 +241,8 @@ describe('shorthand-list の項目値', () => {
     ]])
   })
 
-  it.each(SYNTAX_CHARACTERS)('list 項目の %j を受理して JSON にエスケープして載せる', async (character) => {
+  it.each(SYNTAX_CHARACTERS)('配列の項目の値に構文の文字 %j を含む場合も、拒否せず JSON にエスケープして実行する', async (character) => {
+    await explains('`aws_ec2_describe_instances` の引数の組み立てのテストです。shorthand で構文として解釈される文字を `values` へ含めた場合は、JSON の文字列として awscli へ渡されることを確認します。')
     const result = await client().callTool({
       name: 'aws_ec2_describe_instances',
       arguments: { filters: [{ name: 'instance-state-name', values: [`running${character}x`] }] },
@@ -244,7 +257,8 @@ describe('shorthand-list の項目値', () => {
     ]])
   })
 
-  it('項目値の空文字は invalid-input で拒否する', async () => {
+  it('項目の値が空文字の場合は、invalid-input として拒否する', async () => {
+    await explains('`aws_ec2_describe_instances` の入力検証のテストです。`filters` の名前に空文字を指定した場合に、失敗の種類が `invalid-input` で、詳細に空であってはならない旨（`must not be empty`）が含まれることを確認します。')
     // 空文字は awscli が空値として解釈する。通常項目と list 項目の双方で弾く。
     const normal = await expectIsError('aws_ec2_describe_instances', {
       filters: [{ name: '', values: ['running'] }],
@@ -254,7 +268,8 @@ describe('shorthand-list の項目値', () => {
     expect(normal['detail']).toContain('must not be empty')
   })
 
-  it('項目を 1 つも持たない要素は invalid-input で拒否する', async () => {
+  it('項目を 1 つも持たない要素を指定した場合は、invalid-input として拒否する', async () => {
+    await explains('`aws_ecr_describe_images` の入力検証のテストです。`image_ids` に空のオブジェクトを指定した場合に、失敗の種類が `invalid-input` で、詳細に `image_ids` が含まれることを確認します。')
     // 空の要素を渡すと awscli が空トークンを受け取り、意図しない絞り込みになる。
     const structured = await expectIsError('aws_ecr_describe_images', {
       repository_name: 'order-api',
@@ -265,7 +280,8 @@ describe('shorthand-list の項目値', () => {
     expect(structured['detail']).toContain('image_ids')
   })
 
-  it('宣言外のキーは入力検証エラーになる', async () => {
+  it('要素に宣言されていないキーを含む場合は、入力検証エラーになる', async () => {
+    await explains('`aws_ec2_describe_instances` の入力検証のテストです。`filters` の要素に宣言されていない `Extra` を含めた場合に、ハンドラが実行される前に `Input validation error` で拒否され、awscli が起動されないことを確認します。')
     // 要素の型は z.strictObject で、JSON Schema の items.additionalProperties: false になる。
     // z.object だと余分なキーは削られるだけで、拒否の記録は残らない。
     expect(await expectSchemaError('aws_ec2_describe_instances', {
@@ -273,14 +289,16 @@ describe('shorthand-list の項目値', () => {
     })).toContain(INVALID_PARAMS_TEXT)
   })
 
-  it('list 項目の空配列は入力検証エラーになる', async () => {
+  it('配列の項目が空の配列の場合は、入力検証エラーになる', async () => {
+    await explains('`aws_ec2_describe_instances` の入力検証のテストです。`filters` の要素の `values` に空の配列を指定した場合に、ハンドラが実行される前に `Input validation error` で拒否され、awscli が起動されないことを確認します。')
     // 要素の中の values は zod の minItems で落ちる（配列そのものの空とは層が違う）。
     expect(await expectSchemaError('aws_ec2_describe_instances', {
       filters: [{ name: 'instance-state-name', values: [] }],
     })).toContain(INVALID_PARAMS_TEXT)
   })
 
-  it('空配列はフラグごと省いて実行する', async () => {
+  it('空の配列を指定した場合は、そのオプションを付けずに実行する', async () => {
+    await explains('`aws_ec2_describe_instances` の引数の組み立てのテストです。`filters` に空の配列を指定した場合に、エラーにならず、awscli の引数に `--filters` が含まれないことを確認します。')
     const result = await client().callTool({
       name: 'aws_ec2_describe_instances',
       arguments: { filters: [] },
@@ -294,8 +312,9 @@ describe('shorthand-list の項目値', () => {
 })
 
 describe('排他指定', () => {
-  it('log_stream_names と log_stream_name_prefix の併用を拒否する', async (context) => {
+  it('log_stream_names と log_stream_name_prefix を同時に指定した場合は、invalid-input として拒否する', async (context) => {
     await verifies(context, 'PT-AWS-LOGS-FILTER-LOG-EVENTS-02')
+    await explains('`aws_logs_filter_log_events` の入力検証のテストです。排他の関係にある 2 つの入力を同時に指定した場合に、失敗の種類が `invalid-input` で、詳細に併用できない旨（`cannot be combined`）が含まれることを確認します。')
     const structured = await expectIsError('aws_logs_filter_log_events', {
       log_group_name: 'g',
       log_stream_names: ['a'],
@@ -306,8 +325,9 @@ describe('排他指定', () => {
     expect(structured['detail']).toContain('cannot be combined')
   })
 
-  it('image_ids と starting_token の併用を拒否する', async (context) => {
+  it('image_ids と starting_token を同時に指定した場合は、invalid-input として拒否する', async (context) => {
     await verifies(context, 'PT-AWS-ECR-DESCRIBE-IMAGES-03')
+    await explains('`aws_ecr_describe_images` の入力検証のテストです。ECR の API が受け付けない組み合わせを指定した場合に、失敗の種類が `invalid-input` で、詳細に併用できない旨（`cannot be combined`）が含まれることを確認します。')
     // ECR の API は imageIds 指定時に nextToken を受け付けない。
     const structured = await expectIsError('aws_ecr_describe_images', {
       repository_name: 'order-api',
@@ -319,8 +339,9 @@ describe('排他指定', () => {
     expect(structured['detail']).toContain('cannot be combined')
   })
 
-  it('start_time と duration の併用を拒否する', async (context) => {
+  it('start_time と duration を同時に指定した場合は、invalid-input として拒否する', async (context) => {
     await verifies(context, 'PT-AWS-RDS-DESCRIBE-EVENTS-02')
+    await explains('`aws_rds_describe_events` の入力検証のテストです。意味が重なる 2 つの入力を同時に指定した場合に、失敗の種類が `invalid-input` で、詳細に併用できない旨（`cannot be combined`）が含まれることを確認します。')
     // duration は現在から遡る分数で、start_time / end_time と意味が重なる。
     const structured = await expectIsError('aws_rds_describe_events', {
       start_time: '2026-09-01T00:00:00Z',
@@ -333,8 +354,9 @@ describe('排他指定', () => {
 })
 
 describe('inputSchema 段階で落ちる違反', () => {
-  it.for(['ec2_terminate_instances', 'aws_sso_logout'])('許可リストに無いツール名 %s は JSON-RPC エラー -32602 になる', async (name, context) => {
+  it.for(['ec2_terminate_instances', 'aws_sso_logout'])('許可リストに存在しないツール名 %s を指定した場合は、JSON-RPC のエラー -32602 になる', async (name, context) => {
     await verifies(context, 'PT-COMMON-04')
+    await explains('許可リストに存在しないツール名の呼び出しのテストです。`ec2_terminate_instances` などを指定した場合は、`not-allowed` ではなく JSON-RPC のエラー `-32602` で失敗することを確認します。')
     // 許可リスト外は not-allowed ではなく「そのツールが無い」。ハンドラに到達しない。
     // 公開しているツールの近縁な名前 (aws_sso_logout) でも、載っていなければ同じ扱いになる。
     // client と server は別バンドルなので、エラー型は instanceof ではなく code で見る。
@@ -342,24 +364,27 @@ describe('inputSchema 段階で落ちる違反', () => {
     expect(callLog(), `${name} で awscli が起動した`).toEqual([])
   })
 
-  it('profile の書式違反は入力検証エラーになる', async (context) => {
+  it('profile の形式が誤っている場合は、入力検証エラーになる', async (context) => {
     await verifies(context, 'PT-COMMON-01')
+    await explains('`aws_sts_get_caller_identity` の入力検証のテストです。`profile` に空白を含む `dev account` を指定した場合に、`Input validation error` で拒否され、メッセージに `profile` が含まれることを確認します。')
     const text = await expectSchemaError('aws_sts_get_caller_identity', { profile: 'dev account' })
 
     expect(text).toContain(INVALID_PARAMS_TEXT)
     expect(text).toContain('profile')
   })
 
-  it('region の書式違反は入力検証エラーになる', async (context) => {
+  it('region の形式が誤っている場合は、入力検証エラーになる', async (context) => {
     await verifies(context, 'PT-COMMON-01')
+    await explains('`aws_sts_get_caller_identity` の入力検証のテストです。`region` に `tokyo` を指定した場合に、`Input validation error` で拒否され、メッセージに `region` が含まれることを確認します。')
     const text = await expectSchemaError('aws_sts_get_caller_identity', { region: 'tokyo' })
 
     expect(text).toContain(INVALID_PARAMS_TEXT)
     expect(text).toContain('region')
   })
 
-  it('数値の範囲違反は入力検証エラーになる', async (context) => {
+  it('数値が許可する範囲の外にある場合は、入力検証エラーになる', async (context) => {
     await verifies(context, 'PT-COMMON-01')
+    await explains('数値の入力検証のテストです。`max_items` に `0` を、`limit` に上限を超える値を指定した場合は、どちらも `Input validation error` で拒否されることを確認します。')
     expect(await expectSchemaError('aws_lambda_list_functions', { max_items: 0 }))
       .toContain(INVALID_PARAMS_TEXT)
     expect(await expectSchemaError('aws_logs_get_log_events', {
@@ -369,21 +394,24 @@ describe('inputSchema 段階で落ちる違反', () => {
     })).toContain(INVALID_PARAMS_TEXT)
   })
 
-  it('必須入力の欠落は入力検証エラーになる', async (context) => {
+  it('必須の入力を指定しない場合は、入力検証エラーになる', async (context) => {
     await verifies(context, 'PT-COMMON-01')
+    await explains('`aws_lambda_get_function_configuration` の入力検証のテストです。必須の `function_name` を指定しない場合は、`Input validation error` で拒否されることを確認します。')
     expect(await expectSchemaError('aws_lambda_get_function_configuration', {}))
       .toContain(INVALID_PARAMS_TEXT)
   })
 
-  it('列挙外の値は入力検証エラーになる', async (context) => {
+  it('選択肢にない値を指定した場合は、入力検証エラーになる', async (context) => {
     await verifies(context, 'PT-COMMON-01')
+    await explains('`aws_logs_describe_log_streams` の入力検証のテストです。`order_by` へ選択肢にない `Other` を指定した場合は、`Input validation error` で拒否されることを確認します。')
     expect(await expectSchemaError('aws_logs_describe_log_streams', {
       log_group_name: 'g',
       order_by: 'Other',
     })).toContain(INVALID_PARAMS_TEXT)
   })
 
-  it('not-allowed を返すのは Athena のクエリ判定だけ', async () => {
+  it('not-allowed を返すのは Athena のクエリの判定だけで、ほかの拒否は invalid-input になる', async () => {
+    await explains('失敗の種類の使い分けのテストです。Athena の変更系のクエリは `not-allowed`、`aws_s3_ls` の誤った `s3_uri` は `invalid-input` になることを確認します。')
     // 「許可リスト外 = not-allowed」ではない。許可リスト外はツールとして存在しないので
     // JSON-RPC エラー -32602 になり、not-allowed は公開済みツールの中で内容を見て拒否する場合にだけ出る。
     const notAllowed = await expectIsError('aws_athena_start_query_execution', {
@@ -423,15 +451,17 @@ describe('許可リストの書式の規則', () => {
       args: { s3_uri: 'example-bucket/logs/' },
       ids: ['PT-COMMON-14', 'PT-AWS-S3-LS-03'],
     },
-  ])('$name、invalid-input で拒否し awscli を起動しない', async (row, context) => {
+  ])('$name、invalid-input として拒否し、awscli を起動しない', async (row, context) => {
+    await explains(`許可リストが定める入力の書式のテストです。「${row.name}」の入力を指定した場合に、失敗の種類が \`invalid-input\` になり、awscli が起動されないことを確認します。`)
     for (const id of row.ids) await verifies(context, id)
     const structured = await expectIsError(row.tool, row.args)
 
     expect(structured['kind']).toBe('invalid-input')
   })
 
-  it('値に制御文字を含むとき、invalid-input で拒否し awscli を起動しない', async (context) => {
+  it('値に制御文字を含む場合は、invalid-input として拒否し、awscli を起動しない', async (context) => {
     await verifies(context, 'PT-COMMON-06')
+    await explains('`aws_lambda_get_function_configuration` の入力検証のテストです。`function_name` に制御文字 `U+0001` を含む値を指定した場合に、失敗の種類が `invalid-input` になり、awscli が起動されないことを確認します。')
     const structured = await expectIsError('aws_lambda_get_function_configuration', { function_name: 'a\u{1}b' })
 
     expect(structured['kind']).toBe('invalid-input')

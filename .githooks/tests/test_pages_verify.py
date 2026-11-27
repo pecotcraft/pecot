@@ -76,12 +76,16 @@ def _responses(run: dict[str, object], **extra: object) -> dict[str, object]:
 _STORE_PATH = f"repos/{REPO}/contents/.pecot-store.json?ref=pages-store"
 
 
+@allure.title(
+    "pages-store の `.pecot-store.json` の run_id が {run_id} のとき、定義書の開発版の記録を読み取る"
+)
 @pytest.mark.parametrize(
     ("run_id", "expected"), [("55", "55"), (55, "55"), (None, None), (True, None)]
 )
 def test_stored_dev_reads_pecot_store_json_on_pages_store(
     run_id: object, expected: str | None
 ) -> None:
+    """`stored_dev` が、`pages-store` ブランチの `.pecot-store.json` から定義書の開発版の記録を読み取る場合のテストです。sha はそのまま取得し、`run_id` は文字列または整数なら文字列で、`None` や真偽値なら `None` で返すことを確認します。"""
     with allure.step("偽の API に保存済みの記録を置く"):
         api = FakeApi({_STORE_PATH: _store_file(STORED, run_id)})
     with allure.step("保存済みの dev の run と SHA を読めることを確かめる"):
@@ -91,7 +95,9 @@ def test_stored_dev_reads_pecot_store_json_on_pages_store(
 REPORT_SHA = "5" * 40
 
 
+@allure.title("定義書とレポートの記録が両方存在すると、指定した種類の記録を返す")
 def test_stored_dev_reads_the_record_of_its_kind() -> None:
+    """`.pecot-store.json` に定義書の開発版とレポートの開発版の両方が記録されている場合のテストです。`site` を指定すると定義書の記録を、`report` を指定するとレポートの記録を返すことを確認します。"""
     with allure.step("サイトとレポートの記録を持つ保存済みの記録を置く"):
         reports = {"dev": {"sha": REPORT_SHA, "run_id": "45627254351"}, "release": None}
         api = FakeApi({_STORE_PATH: _store_file(STORED, "55", reports)})
@@ -100,8 +106,10 @@ def test_stored_dev_reads_the_record_of_its_kind() -> None:
         assert stored_dev(api, REPO, "report") == StoredDev(run_id="45627254351", sha=REPORT_SHA)
 
 
+@allure.title("レポートの記録が {reports} のとき、レポートの開発版の記録は空になる")
 @pytest.mark.parametrize("reports", [None, {}, {"dev": None}, []], ids=str)
 def test_stored_dev_report_without_record_is_empty(reports: object) -> None:
+    """`.pecot-store.json` にレポートの開発版の記録が存在しない場合の、`stored_dev` のテストです。`report` を指定したときに、定義書の記録を使わず、`run_id` と `sha` が `None` になることを確認します。"""
     with allure.step("レポートの記録が無い保存済みの記録を置く"):
         meta: dict[str, object] = {"release": None, "dev": {"sha": STORED}, "pr": {}}
         if reports is not None:
@@ -113,7 +121,9 @@ def test_stored_dev_report_without_record_is_empty(reports: object) -> None:
         assert stored_dev(api, REPO, "report") == StoredDev(run_id=None, sha=None)
 
 
+@allure.title("開発版の記録が存在しないと、定義書の開発版の記録は空になる")
 def test_stored_dev_without_record_is_empty() -> None:
+    """`.pecot-store.json` が存在しない場合と、開発版の記録が `null` の場合の、`stored_dev` のテストです。どちらも `run_id` と `sha` が `None` になることを確認します。"""
     with allure.step(
         "記録が無い、または dev が空の保存済みの記録から読んで、空になることを確かめる"
     ):
@@ -123,7 +133,11 @@ def test_stored_dev_without_record_is_empty() -> None:
         assert stored_dev(api, REPO, "site") == StoredDev(run_id=None, sha=None)
 
 
+@allure.title(
+    "保管した開発版より新しい push の run は、開発版として採用し、開いている PR の番号を返す"
+)
 def test_judge_compares_the_stored_dev_with_the_head() -> None:
+    """`pages-store` に保管した開発版の sha より、run の head が進んでいる場合の `judge` のテストです。判定の側が `dev`、head の sha と artifact の名前が期待どおりで、開いている PR の番号が返ることを確認します。"""
     with allure.step("保存済みの dev がある偽の API で判定する"):
         api = FakeApi(
             _responses(
@@ -140,7 +154,9 @@ def test_judge_compares_the_stored_dev_with_the_head() -> None:
         assert opened == [3]
 
 
+@allure.title("保管した開発版より古い push の run は、採用しない")
 def test_judge_drops_an_older_dev_run() -> None:
+    """run の head が、保管した開発版の sha より遅れている場合の `judge` のテストです。判定の側が `None` になることを確認します。"""
     with allure.step("保存済みの dev より新しい状態の偽の API を用意する"):
         api = FakeApi(
             _responses(
@@ -159,8 +175,12 @@ def _report_run(event: str = "push") -> dict[str, object]:
     return _run(event, path=".github/workflows/test-report.yml", name="test-report")
 
 
+@allure.title(
+    "レポートの run が保管したレポートより {status} のとき、レポートの採用の可否を判定する"
+)
 @pytest.mark.parametrize(("status", "side"), [("ahead", "dev"), ("behind", None)])
 def test_judge_compares_a_report_run_with_the_stored_report(status: str, side: str | None) -> None:
+    """テストレポートの run を `judge` で判定する場合のテストです。定義書の開発版ではなく、保管したレポートの開発版と比較し、進んでいれば `report` の `dev` として採用し、遅れていれば採用しないことを確認します。"""
     with allure.step("保存済みのレポートがある偽の API でレポートの run を判定する"):
         # 定義書の開発版（STORED）でなく、レポートの開発版（REPORT_SHA）と比べる。
         reports = {"dev": {"sha": REPORT_SHA, "run_id": "9"}}
@@ -182,7 +202,9 @@ def test_judge_compares_a_report_run_with_the_stored_report(status: str, side: s
         assert f"repos/{REPO}/compare/{STORED}...{HEAD}" not in api.paths
 
 
+@allure.title("保管したレポートが存在しない最初のレポートの run は、比較せずに採用する")
 def test_judge_takes_a_first_report_without_stored_report() -> None:
+    """保管したレポートの記録が存在しない状態で、テストレポートの run を `judge` で判定した場合のテストです。種類が `report`、側が `dev`、artifact が `test-report-dev` になり、定義書の開発版とは比較しないことを確認します。"""
     with allure.step("保存済みのレポートが無い偽の API でレポートの run を判定する"):
         api = FakeApi(
             _responses(
@@ -205,7 +227,9 @@ def test_judge_takes_a_first_report_without_stored_report() -> None:
         assert not any(p.startswith(f"repos/{REPO}/compare/{STORED}") for p in api.paths)
 
 
+@allure.title("pull_request の run では、main と保管ブランチを参照しない")
 def test_judge_does_not_ask_main_or_the_store_for_pull_request_runs() -> None:
+    """`pull_request` イベントの run を `judge` で判定した場合のテストです。API の呼び出しに、main との比較と `pecot-store` の取得が含まれないことを確認します。"""
     with allure.step("pull_request の run を判定する"):
         api = FakeApi(_responses(_run("pull_request")))
         judge(api, REPO, "7")
@@ -231,10 +255,12 @@ def _verdict(side: str, kind: str = "site") -> Verdict:
     return Verdict(side=side, pr=None, head_sha=HEAD, artifact=artifact, reason="", kind=kind)
 
 
+@allure.title("{side} の定義書が、テストレポートへのリンクを含むとき、検証の結果は {ok} になる")
 @pytest.mark.parametrize(("side", "ok"), [("dev", True), ("release", True), ("pr", False)])
 def test_check_side_lets_dev_and_release_link_to_their_report(
     tmp_path: Path, side: str, ok: bool
 ) -> None:
+    """定義書にテストレポートへのリンクが含まれる場合の `check_side` のテストです。`dev` と `release` では問題が検出されず、`pr` ではレポートへのリンクが問題として検出されることを確認します。"""
     with allure.step("レポートへのリンクを持つサイトの tar を用意して側を verify する"):
         _tar(
             tmp_path / "site.tar",
@@ -255,7 +281,9 @@ _REPORT_SOURCES = {
 _REPORT_TREE = {"./index.html": "<html></html>", "./history.jsonl": '{"uuid":"a"}\n'}
 
 
+@allure.title("レポートの run の artifact に report.tar が存在しないと、問題として報告する")
 def test_check_side_report_needs_report_tar(tmp_path: Path) -> None:
+    """定義書の `site.tar` だけを含む artifact を、レポートの run として `check_side` で検証した場合のテストです。「artifact に report.tar がありません」という問題が報告されることを確認します。"""
     with allure.step("サイトの tar だけを置く"):
         # 定義書の site.tar があっても、レポートの run では使わない。
         _tar(tmp_path / "site.tar", {"./index.html": "x"})
@@ -265,7 +293,9 @@ def test_check_side_report_needs_report_tar(tmp_path: Path) -> None:
         ]
 
 
+@allure.title("report.tar の history.jsonl が読めないと、問題として報告する")
 def test_check_side_report_runs_report_check(tmp_path: Path) -> None:
+    """`history.jsonl` に Allure が読めない行を含む `report.tar` を、`check_side` で検証した場合のテストです。「`history.jsonl` の 1 行目を Allure が読めません」という問題が報告されることを確認します。"""
     with allure.step("履歴に不正な値のあるレポートの tar を置く"):
         _tar(tmp_path / "report.tar", {"./index.html": "x", "./history.jsonl": "NaN\n"})
     with allure.step("レポートの側を verify して、問題が出ることを確かめる"):
@@ -274,7 +304,9 @@ def test_check_side_report_runs_report_check(tmp_path: Path) -> None:
         ]
 
 
+@allure.title("開発版のレポートは、材料を求め直さずに検証を通す")
 def test_check_side_dev_report_passes_without_comparing_sources(tmp_path: Path) -> None:
+    """正しい構成の `report.tar` を、開発版のレポートとして `check_side` で検証した場合のテストです。問題が検出されず、材料を求め直す関数が 1 度も呼ばれないことを確認します。"""
     with allure.step("dev のレポートの tar を置く"):
         _tar(tmp_path / "report.tar", _REPORT_TREE)
         seen: list[str] = []
@@ -288,6 +320,9 @@ def test_check_side_dev_report_passes_without_comparing_sources(tmp_path: Path) 
         assert seen == []
 
 
+@allure.title(
+    "リリース版のレポートの report-sources.json が {param_id} のとき、求め直した値と比較して検証する"
+)
 @pytest.mark.parametrize(
     ("sources", "expected"),
     [
@@ -303,6 +338,7 @@ def test_check_side_dev_report_passes_without_comparing_sources(tmp_path: Path) 
 def test_check_side_compares_release_report_sources_with_the_recomputed_ones(
     tmp_path: Path, sources: dict[str, object] | None, expected: list[str]
 ) -> None:
+    """リリース版のレポートの `report-sources.json` を、`check_side` が求め直した値と比較する場合のテストです。値が一致すれば問題なし、異なれば不一致、ファイルが存在しなければ存在しない旨が、問題として報告されることを確認します。"""
     with allure.step("release のレポートの tar と記録を置いて側を verify する"):
         _tar(tmp_path / "report.tar", _REPORT_TREE)
         # 定義書の release-sources.json はレポートの確かめに使わない。
@@ -316,9 +352,11 @@ def test_check_side_compares_release_report_sources_with_the_recomputed_ones(
         assert problems == expected
 
 
+@allure.title("`report_record` は、`release_sources.py --report release` の出力から材料を取り出す")
 def test_report_record_is_the_sources_of_release_sources_report(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """`report_record` が `release_sources.py` を呼ぶ場合のテストです。サブプロセスの実行を置き換え、`--report release --main origin/main` の引数で呼ばれ、出力の `sources` の値が返ることを確認します。"""
     with allure.step("子の実行を差し替えて release のレポートの記録を読む"):
         calls: list[list[str]] = []
 
@@ -339,27 +377,36 @@ def test_report_record_is_the_sources_of_release_sources_report(
         assert args[2:] == ["--report", "release", "--main", "origin/main"]
 
 
+@allure.title("定義書の artifact に site.tar が存在しないと、問題として報告する")
 def test_check_side_needs_site_tar(tmp_path: Path) -> None:
+    """`site.tar` を含まない artifact を、`check_side` で検証した場合のテストです。「artifact に site.tar がありません」という問題が報告されることを確認します。"""
     with allure.step("サイトの tar が無いと、verify で tar が要ると出ることを確かめる"):
         assert check_side(_verdict("dev"), tmp_path, "origin/main", lambda _: {}) == [
             "artifact に site.tar がありません"
         ]
 
 
+@allure.title("問題のない開発版の定義書は、検証を通す")
 def test_check_side_passes_a_clean_dev_side(tmp_path: Path) -> None:
+    """リンク切れのない `site.tar` を、開発版として `check_side` で検証した場合のテストです。問題が 1 件も検出されないことを確認します。"""
     with allure.step("問題の無い dev のサイトの tar を置く"):
         _tar(tmp_path / "site.tar", {"./index.html": "<a href='a.html'>a</a>", "./a.html": "a"})
     with allure.step("dev の側を verify して、問題が出ないことを確かめる"):
         assert check_side(_verdict("dev"), tmp_path, "origin/main", lambda _: {}) == []
 
 
+@allure.title("site.tar に展開先の外を指すファイルが含まれると、問題として報告する")
 def test_check_side_reports_unsafe_members(tmp_path: Path) -> None:
+    """`../escape.html` のように展開先の外へ出るファイルを含む `site.tar` を、`check_side` で検証した場合のテストです。問題が報告されることを確認します。"""
     with allure.step("危険な名前の入ったサイトの tar を置く"):
         _tar(tmp_path / "site.tar", {"../escape.html": "x"})
     with allure.step("dev の側を verify して、問題が出ることを確かめる"):
         assert check_side(_verdict("dev"), tmp_path, "origin/main", lambda _: {})
 
 
+@allure.title(
+    "リリース版の release-sources.json が {param_id} のとき、求め直した値と比較して検証する"
+)
 @pytest.mark.parametrize(
     ("sources", "ok"),
     [(_RELEASE, True), ({**_RELEASE, "skeleton": "4" * 40}, False), (None, False)],
@@ -368,6 +415,7 @@ def test_check_side_reports_unsafe_members(tmp_path: Path) -> None:
 def test_check_side_compares_release_sources_with_the_recomputed_ones(
     tmp_path: Path, sources: dict[str, object] | None, ok: bool
 ) -> None:
+    """リリース版の定義書の `release-sources.json` を、`check_side` が求め直した値と比較する場合のテストです。一致するときだけ問題が報告されず、異なる場合と存在しない場合は問題が報告され、ファイルがあれば求め直しが 1 回行われることを確認します。"""
     with allure.step("release のサイトの tar と記録を置いて側を verify する"):
         _tar(tmp_path / "site.tar", {"./index.html": "x"})
         if sources is not None:
@@ -400,9 +448,11 @@ def _pr_build_run() -> dict[str, object]:
     )
 
 
+@allure.title("PR の定義書の run は、artifact をダウンロードして検証し、結果を出力する")
 def test_pr_side_is_downloaded_checked_and_output(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """PR のビルドの run を `verify.main` で処理した場合のテストです。対象の artifact だけがダウンロードされ、`site.tar` が出力先に置かれ、`GITHUB_OUTPUT` と標準出力に側・種類・PR 番号が書かれることを確認します。"""
     with allure.step("偽の API とダウンロードを差し替えて PR 側を検証する"):
         api = FakeApi(
             _responses(
@@ -447,9 +497,11 @@ def test_pr_side_is_downloaded_checked_and_output(
         assert "- 種類: 定義書" in printed
 
 
+@allure.title("リリース版のレポートの run は、artifact をダウンロードして検証し、結果を出力する")
 def test_release_report_is_downloaded_checked_and_output(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """手動で起動したリリース版のレポートの run を `verify.main` で処理した場合のテストです。定義書の材料を求め直さず、`report.tar` と `report-sources.json` が出力先に置かれ、`GITHUB_OUTPUT` に側と種類が書かれることを確認します。"""
     with allure.step("偽の API とダウンロードを差し替えて release のレポートを検証する"):
         api = FakeApi(
             _responses(
@@ -495,9 +547,11 @@ def test_release_report_is_downloaded_checked_and_output(
         assert "- 種類: レポート" in printed
 
 
+@allure.title("採用しないレポートの run は、側と種類を空にして出力する")
 def test_dropped_report_outputs_no_kind(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """`pull_request` イベントのレポートの run を `verify.main` で処理した場合のテストです。終了コードが 0 になり、`GITHUB_OUTPUT` の側と種類が空で、標準出力の種類が `-` になることを確認します。"""
     with allure.step("捨てられるレポートの run を検証する"):
         api = FakeApi(_responses(_report_run("pull_request")))
         monkeypatch.setattr(verify, "gh_api", api)

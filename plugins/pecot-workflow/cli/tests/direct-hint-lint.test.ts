@@ -5,6 +5,8 @@ import path from 'node:path'
 import { ESLint } from 'eslint'
 import { beforeAll, describe, expect, it } from 'vitest'
 
+import { explains } from './_helpers/explains.js'
+
 import { COMMAND_GROUPS } from '@pecot/workflow-core/commands-shared/names.js'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
@@ -40,16 +42,18 @@ async function flagMessages(code: string, filePath = FIRST_PATH): Promise<readon
 }
 
 describe('案内の文字列を止める lint', () => {
-  describe.each(PATHS)('%s のパス', (_name, filePath) => {
+  describe.each(PATHS)('%s のパス', (name, filePath) => {
     it.each([
       ['文字列', 'export const text = \'run: pecot project init\'\n'],
       ['テンプレートの固定部分', 'declare const name: string\nexport const text = `run pecot issue block ${name} to fix`\n'],
-    ])('%s の案内は止まる', async (_kind, code) => {
+    ])('%s でコマンドの案内を書くと、lint が 1 件報告する', async (kind, code) => {
+      await explains(`コマンドの案内を禁止する lint のテストです。\`${name}\` のファイルに、${kind}で \`pecot\` のコマンドの案内を書いたコードを渡した場合は、違反が 1 件報告されることを確認します。`)
       expect(await hintMessages(code, filePath)).toHaveLength(1)
     })
   })
 
-  it.each(COMMAND_GROUPS.map(group => group.name))('グループ %s の案内は止まる', async (group) => {
+  it.each(COMMAND_GROUPS.map(group => group.name))('グループ %s のコマンドの案内を書くと、lint が 1 件報告する', async (group) => {
+    await explains(`コマンドの案内を禁止する lint のテストです。\`pecot ${group} x\` というコマンドの案内を書いたコードを渡した場合は、違反が 1 件報告されることを確認します。`)
     expect(await hintMessages(`export const text = 'pecot ${group} x'\n`, FIRST_PATH)).toHaveLength(1)
   })
 
@@ -58,17 +62,19 @@ describe('案内の文字列を止める lint', () => {
     ['グループの語で終わる文', 'export const text = \'not registered in the active pecot project\\nto add it to the pecot project:\'\n'],
     ['コメントの中', '// pecot project init を案内する\nexport const text = 1\n'],
     ['.pecot のパス', 'export const text = \'.pecot/work\'\n'],
-  ])('%s は止まらない', async (_kind, code) => {
+  ])('%s なら、案内の lint は報告しない', async (kind, code) => {
+    await explains(`コマンドの案内を禁止する lint のテストです。コマンドの案内に当たらない書き方（${kind}）のコードを渡した場合は、違反が報告されないことを確認します。`)
     expect(await hintMessages(code, FIRST_PATH)).toEqual([])
   })
 
-  it('テストのファイルでは止まらない', async () => {
+  it('テストのファイルでは、コマンドの案内を書いても報告しない', async () => {
+    await explains('コマンドの案内を禁止する lint のテストです。テストのファイルに `pecot project init` と書いた場合に、違反が報告されないことを確認します。')
     expect(await hintMessages('export const text = \'pecot project init\'\n', TEST_PATH)).toEqual([])
   })
 })
 
 describe('フラグ名の文字列を止める lint', () => {
-  describe.each(PATHS)('%s のパス', (_name, filePath) => {
+  describe.each(PATHS)('%s のパス', (name, filePath) => {
     it.each([
       ['呼び出しの引数の文字列', 'declare function stop(text: string): void\nstop(\'--reason is required with --wait merge\')\n'],
       ['new の引数の文字列', 'throw new Error(\'pass --repo to fix\')\n'],
@@ -79,7 +85,8 @@ describe('フラグ名の文字列を止める lint', () => {
       ['引数の null 合体演算子の右側のテンプレート', 'declare function stop(text: string): void\ndeclare const text: string | undefined\ndeclare const name: string\nstop(text ?? `pass --repo ${name}`)\n'],
       ['テンプレートの中の三項演算子の文字列', 'declare function stop(text: string): void\ndeclare const flag: boolean\nstop(`run it again${flag ? \' with --force\' : \'\'}`)\n'],
       ['テンプレートの中の三項演算子のテンプレート', 'declare function stop(text: string): void\ndeclare const flag: boolean\ndeclare const name: string\nstop(`run it again${flag ? ` with --force ${name}` : \'\'}`)\n'],
-    ])('%s のフラグ名は止まる', async (_kind, code) => {
+    ])('%s にフラグ名を書くと、lint が 1 件報告する', async (kind, code) => {
+      await explains(`フラグ名の文字列を禁止する lint のテストです。\`${name}\` のファイルで、${kind}にフラグ名を含む文を書いたコードを渡した場合は、違反が 1 件報告されることを確認します。`)
       expect(await flagMessages(code, filePath)).toHaveLength(1)
     })
   })
@@ -92,7 +99,8 @@ describe('フラグ名の文字列を止める lint', () => {
     ['return の文', 'export function text(): string {\n  return \'pass --repo to fix\'\n}\n'],
     ['短いオプション', 'declare function stop(text: string): void\nstop(\'check it with: git remote -v\')\n'],
     ['コメントの中', '// --repo を案内する\nexport const text = 1\n'],
-  ])('%s は止まらない', async (_kind, code) => {
+  ])('%s なら、フラグ名の lint は報告しない', async (kind, code) => {
+    await explains(`フラグ名の文字列を禁止する lint のテストです。フラグ名を含んでいても対象外の書き方（${kind}）のコードを渡した場合は、違反が報告されないことを確認します。`)
     expect(await flagMessages(code)).toEqual([])
   })
 })

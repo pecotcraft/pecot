@@ -22,6 +22,7 @@ import { fetchTheme } from '../../src/infra/slidev-theme/store.js'
 import { ChildProcessSlidevRunner } from '../../src/infra/slidev-to-pptx/runner.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { createThemeRepository, FIXTURE_THEME_NAME } from '../_helpers/theme-repository.js'
+import { explains } from '../_helpers/explains.js'
 
 // tests/e2e → cli/ → plugins/pecot-visual
 const CLI_ROOT = path.resolve(import.meta.dirname, '..', '..')
@@ -106,7 +107,8 @@ function javascriptSources(directory: string): string {
 }
 
 describe('テーマの版の違う talk-dir を続けて描画する', () => {
-  it('それぞれ自分の版の印だけが dist に入り、同じ版の再取得は置き場を再利用する', async () => {
+  it('それぞれの版の印だけが出力に入り、同じ版の再取得は置き場を再利用する', async () => {
+    await explains('テーマの版が違う talk-dir を続けて描画するテストです。`v1.0.0` と `v1.0.1` で続けて描画した場合に、それぞれの版の印だけが出力に含まれ、同じ版の再取得は置き場を再利用することを確認します。')
     const url = createRepository(['v1.0.0', 'v1.0.1'])
 
     const first = await buildWithTheme(url, 'v1.0.0', createTalkDirectory('talk-first'))

@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createHookCase } from './_helpers/environment.js'
 import { runShell } from './_helpers/run.js'
+import { explains } from '../_helpers/explains.js'
 
 const guidanceScript = path.resolve(import.meta.dirname, '../../../hooks/lib/core/mcp-guidance.sh')
 
@@ -30,27 +31,32 @@ function guidanceOf(shellFunction: string): string {
 }
 
 describe('mcp-guidance', () => {
-  it.for(guidances)('$shellFunction は、$start で始まり、対応するツール名を案内する', ({ shellFunction, start, tools }) => {
+  it.for(guidances)('$shellFunction は、$start で始まり、対応するツール名を案内する', async ({ shellFunction, start, tools }) => {
+    await explains(`移行後の案内文（\`mcp-guidance.sh\`）のテストです。\`${shellFunction}\` の出力を取得した場合に、決めた書き出しで始まり、対応する MCP ツール名をすべて含むことを確認します。`)
     const text = guidanceOf(shellFunction)
     expect(text.startsWith(start)).toBe(true)
     for (const tool of tools) expect(text).toContain(tool)
   })
 
-  it('mcp_guidance_gh_stack は、マージを画面のマージボタンに案内し、pr_merge を案内しない', () => {
+  it('mcp_guidance_gh_stack は、マージを画面のマージボタンに案内し、pr_merge を案内しない', async () => {
+    await explains('移行後の案内文（`mcp-guidance.sh`）のテストです。`mcp_guidance_gh_stack` の出力を取得した場合に、マージを GitHub の画面のボタンへ案内し、`pr_merge` を案内しないことを確認します。')
     const text = guidanceOf('mcp_guidance_gh_stack')
     expect(text).toContain('the merge button on the GitHub page')
     expect(text).not.toContain('pr_merge')
   })
 
-  it.for(guidances)('$shellFunction の出力は、決めた全文と一致する', ({ shellFunction, text }) => {
+  it.for(guidances)('$shellFunction の出力は、決めた全文と一致する', async ({ shellFunction, text }) => {
+    await explains(`移行後の案内文（\`mcp-guidance.sh\`）のテストです。\`${shellFunction}\` の出力を取得した場合に、決めた全文と一致することを確認します。`)
     expect(guidanceOf(shellFunction)).toBe(text)
   })
 
-  it.for(guidances)('$shellFunction の出力に、pecot の起動形が無い', ({ shellFunction }) => {
+  it.for(guidances)('$shellFunction の出力に、pecot の起動形が無い', async ({ shellFunction }) => {
+    await explains(`移行後の案内文（\`mcp-guidance.sh\`）のテストです。\`${shellFunction}\` の出力を取得した場合に、\`pecot\` コマンドの起動形が含まれないことを確認します。`)
     expect(guidanceOf(shellFunction)).not.toMatch(launcherForm)
   })
 
-  it('起動形の検出は、元の案内文の形を拾う', () => {
+  it('起動形の検出は、元の案内文の形を拾う', async () => {
+    await explains('移行後の案内文のテストです。元の案内文にあった `pecot` の起動形の 2 つの例を検出用の正規表現へ通した場合は、どちらも一致することを確認します。')
     expect('/opt/plugin/bin/pecot branch delete <owner/repo> <branch>').toMatch(launcherForm)
     expect('Run `pecot issue quick` or `pecot issue create` first.').toMatch(launcherForm)
   })

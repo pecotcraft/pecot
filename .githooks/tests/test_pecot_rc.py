@@ -39,7 +39,9 @@ def _git_repo(path: Path) -> Path:
     return path.resolve()
 
 
+@allure.title("サブディレクトリから実行すると、作業ツリーのプラグインと引数を claude に渡す")
 def test_passes_worktree_plugins_and_args_from_subdirectory(tmp_path: Path) -> None:
+    """作業ツリーのサブディレクトリから `pecot-rc.sh` を実行した場合のテストです。偽の `claude` が `remote-control`・`--permission-mode auto` と指定した引数を受け取ることを確認します。あわせて、`CLAUDE_CODE_PLUGIN_DIRS` に 3 つのプラグインのパスが設定されることも確認します。"""
     with allure.step("偽の claude を置き、サブディレクトリから pecot-rc.sh を動かす"):
         env = _fake_claude(tmp_path)
         repo = _git_repo(tmp_path / "wt")
@@ -72,8 +74,10 @@ def test_passes_worktree_plugins_and_args_from_subdirectory(tmp_path: Path) -> N
         )
 
 
+@allure.title("呼び出し側が {mode_args} を指定すると、既定の `--permission-mode auto` を追加しない")
 @pytest.mark.parametrize("mode_args", [["--permission-mode", "plan"], ["--permission-mode=plan"]])
 def test_keeps_permission_mode_given_by_caller(tmp_path: Path, mode_args: list[str]) -> None:
+    """呼び出し側が `--permission-mode` を指定して `pecot-rc.sh` を実行した場合のテストです。既定の `--permission-mode auto` が追加されず、指定した引数がそのまま `claude` に渡されることを確認します。"""
     with allure.step("偽の claude を置き、permission-mode を付けて pecot-rc.sh を動かす"):
         env = _fake_claude(tmp_path)
         repo = _git_repo(tmp_path / "wt")
@@ -96,7 +100,9 @@ def test_keeps_permission_mode_given_by_caller(tmp_path: Path, mode_args: list[s
         ]
 
 
+@allure.title("git の作業ツリーの外で実行すると、終了コード 1 で終了し、案内を表示する")
 def test_stops_outside_git_worktree(tmp_path: Path) -> None:
+    """git の作業ツリーの外で `pecot-rc.sh` を実行した場合のテストです。終了コードが 1 になり、標準エラー出力に作業ツリーの中で実行するよう案内する文が表示され、標準出力が空であることを確認します。"""
     with allure.step("git の作業ツリーの外で pecot-rc.sh を動かす"):
         env = _fake_claude(tmp_path)
         outside = tmp_path / "outside"

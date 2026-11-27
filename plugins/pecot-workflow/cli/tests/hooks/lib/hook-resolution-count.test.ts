@@ -12,6 +12,7 @@ import { gitOrThrow, gitRepository, installGitCallLog, workLayout } from '../_he
 import { runHookEntry } from '../_helpers/run.js'
 import type { RunResult } from '../_helpers/run.js'
 import { containing, parseJson } from '../_helpers/text.js'
+import { explains } from '../../_helpers/explains.js'
 
 const BRANCH = 'feat/count/1229'
 
@@ -47,7 +48,8 @@ function countOf(counts: Readonly<Record<string, number>>, key: string): number 
 }
 
 describe('リポジトリ解決回数', () => {
-  it('ls は、Pre で 1 回解決する', () => {
+  it('ls を実行するとき、PreToolUse でリポジトリのルートを 1 回だけ解決する', async () => {
+    await explains('Bash の PreToolUse フック（`pre-tool-use-bash.sh`）が、リポジトリのルートを解決する回数のテストです。`ls` を実行する場合に、`git rev-parse --show-toplevel` を 1 回だけ呼び出すことを確認します。')
     const hookCase = createHookCase()
     const repository = setUpRepository(hookCase)
     const gitCallLog = installGitCallLog(hookCase)
@@ -59,7 +61,8 @@ describe('リポジトリ解決回数', () => {
   it.for([
     { label: 'git commit -m x' },
     { label: 'pecot issue create .pecot/work/1229/issue.md' },
-  ])('$label は、Pre で 1 回解決する', (row) => {
+  ])('$label を実行するとき、PreToolUse でリポジトリのルートを 1 回だけ解決する', async (row) => {
+    await explains(`Bash の PreToolUse フック（\`pre-tool-use-bash.sh\`）が、リポジトリのルートを解決する回数のテストです。コマンドが \`${row.label}\` の場合に、\`git rev-parse --show-toplevel\` を 1 回だけ呼び出すことを確認します。`)
     const hookCase = createHookCase()
     const repository = setUpRepository(hookCase)
     const gitCallLog = installGitCallLog(hookCase)
@@ -68,7 +71,8 @@ describe('リポジトリ解決回数', () => {
     expect(countOf(gitCallLog.revParseCounts(), '--show-toplevel')).toBe(1)
   })
 
-  it('worktree の .pecot/work 配下の cwd でも、--show-toplevel は 1 回', () => {
+  it('worktree の .pecot/work 配下の cwd でも、--show-toplevel は 1 回', async () => {
+    await explains('Bash の PreToolUse フック（`pre-tool-use-bash.sh`）が、リポジトリのルートを解決する回数のテストです。worktree の `.pecot/work` 配下がカレントディレクトリの場合に、`--show-toplevel` を 1 回だけ呼び出すことを確認します。')
     // work は base への symlink
     const hookCase = createHookCase()
     const layout = workLayout(hookCase)
@@ -78,7 +82,8 @@ describe('リポジトリ解決回数', () => {
     expect(gitCallLog.revParseCounts()).toEqual({ '--show-toplevel': 1 })
   })
 
-  it('別リポの .pecot/work 配下は判定が外れ、セッションの toplevel と cwd の 2 回解決する', () => {
+  it('別リポの .pecot/work 配下は判定が外れ、セッションの toplevel と cwd の 2 回解決する', async () => {
+    await explains('Bash の PreToolUse フック（`pre-tool-use-bash.sh`）が、リポジトリのルートを解決する回数のテストです。別のリポジトリの `.pecot/work` 配下がカレントディレクトリの場合に、セッションのルートとカレントディレクトリのルートを 1 回ずつ、計 2 回呼び出すことを確認します。')
     const hookCase = createHookCase()
     const layout = workLayout(hookCase)
     const gitCallLog = installGitCallLog(hookCase)
@@ -90,7 +95,8 @@ describe('リポジトリ解決回数', () => {
     expect(gitCallLog.revParseCounts()).toEqual({ '--show-toplevel': 2 })
   })
 
-  it('.pecot/work 配下の入れ子のリポは判定が外れ、セッションの toplevel と cwd の 2 回解決する', () => {
+  it('.pecot/work 配下の入れ子のリポは判定が外れ、セッションの toplevel と cwd の 2 回解決する', async () => {
+    await explains('Bash の PreToolUse フック（`pre-tool-use-bash.sh`）が、リポジトリのルートを解決する回数のテストです。`.pecot/work` 配下の入れ子のリポジトリがカレントディレクトリの場合に、セッションのルートとカレントディレクトリのルートを 1 回ずつ、計 2 回呼び出すことを確認します。')
     const hookCase = createHookCase()
     const layout = workLayout(hookCase)
     const gitCallLog = installGitCallLog(hookCase)
@@ -112,7 +118,8 @@ function bigCommand(head: string): string {
 }
 
 describe('上限を超えるコマンド', () => {
-  it('Pre では、ガードを通さずに素通しし、何も返さない', () => {
+  it('上限を超えるコマンドは、PreToolUse でガードを通さずに素通しし、何も返さない', async () => {
+    await explains('サイズの上限を超えるコマンド（約 130KiB）を、Bash の PreToolUse フックに渡した場合のテストです。`git commit --no-verify` を含んでいても、ガードを通さず、標準出力に何も出力しないことを確認します。')
     const hookCase = createHookCase()
     const repository = setUpRepository(hookCase)
     hooksConfig(hookCase).write({ 'git-no-verify-check': true })
@@ -122,7 +129,8 @@ describe('上限を超えるコマンド', () => {
     expect(result.stdout.trim()).toBe('')
   })
 
-  it('/tmp のリマインダーは、上限を超えても出す', () => {
+  it('上限を超えるコマンドでも、/tmp を使う警告は出力する', async () => {
+    await explains('サイズの上限を超えるコマンド（約 130KiB）を、Bash の PreToolUse フックに渡した場合のテストです。`/tmp/` のパスを使うコマンドでは、`additionalContext` に警告を載せ、`permissionDecision` は含めないことを確認します。')
     const hookCase = createHookCase()
     const repository = setUpRepository(hookCase)
     const result = runHookEntry(hookCase, 'pre-tool-use-bash.sh', pre(bigCommand('cat /tmp/x-1229'), repository))
@@ -131,7 +139,8 @@ describe('上限を超えるコマンド', () => {
     expect(hookSpecificOutput(result)).not.toHaveProperty('permissionDecision')
   })
 
-  it('上限ぎりぎりのコマンドは、コアのガードが止める', () => {
+  it('上限ぎりぎりのコマンドは、コアのガードが止める', async () => {
+    await explains('上限ぎりぎりのサイズ（約 50KB）のコマンドを、Bash の PreToolUse フックに渡した場合のテストです。`git commit --no-verify` を含む場合に、コアのガードが `deny`（拒否）の判定を返すことを確認します。')
     const hookCase = createHookCase()
     const repository = setUpRepository(hookCase)
     hooksConfig(hookCase).write({ 'git-no-verify-check': true })
@@ -141,7 +150,8 @@ describe('上限を超えるコマンド', () => {
   })
 
   // トークンごとに残りを複製すると、長さの 2 乗で遅くなり PreToolUse の 10 秒を超える。
-  it('上限未満で単語の多いコマンドも、コアのガードが数秒以内に止める', () => {
+  it('上限未満で単語の多いコマンドも、コアのガードが数秒以内に止める', async () => {
+    await explains('上限未満で単語の多いコマンド（約 10,000 語）を、Bash の PreToolUse フックに渡した場合のテストです。`git commit --no-verify` を含む場合に、5 秒以内に `deny`（拒否）の判定を返すことを確認します。')
     const hookCase = createHookCase()
     const repository = setUpRepository(hookCase)
     hooksConfig(hookCase).write({ 'git-no-verify-check': true })

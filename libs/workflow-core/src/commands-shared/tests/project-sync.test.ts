@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 import { setEnvironment } from '../../../tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../../tests/_helpers/temporary.js'
@@ -108,14 +109,16 @@ describe('textOf', () => {
     { name: 'undefined', value: undefined, expected: 'None' },
     { name: '文字列', value: 'x', expected: 'x' },
     { name: '数', value: 3, expected: '3' },
-    { name: '真偽', value: true, expected: 'True' },
-  ])('$name を Python の str() と同じ文字列にする', ({ value, expected }) => {
+    { name: '真偽値', value: true, expected: 'True' },
+  ])('$name を指定すると、Python の str() と同じ文字列に変換する', async ({ name, value, expected }) => {
+    await explains(`値を文字列に変換する関数（\`textOf\`）のテストです。${name}を指定した場合に、Python の \`str()\` と同じ文字列（\`${expected}\`）になることを確認します。`)
     expect(textOf(value)).toBe(expected)
   })
 })
 
 describe('failApi', () => {
-  it('状態コードがあれば添え、無ければ添えずに止める', () => {
+  it('API のエラーに状態コードがある場合はメッセージに付け、ない場合は付けずに止める', async () => {
+    await explains('API の失敗を報告して止める関数（`failApi`）のテストです。HTTP の状態コードを持つエラーでは `(status 502)` を付け、持たないエラーでは付けずに、`CommandExit` が発生することを確認します。')
     const withStatus = captured()
     expect(() => failApi(withStatus.out, 'read the board', new GitHubAPIError('boom', { statusCode: 502 }))).toThrow(CommandExit)
     const withoutStatus = captured()
@@ -128,7 +131,8 @@ describe('failApi', () => {
 })
 
 describe('進行の欄の判定', () => {
-  it('選択肢を持つフィールドの名前から、使う・改名する・作るを決める', () => {
+  it('選択肢を持つフィールドの名前から、そのまま使う・改名する・新規に作成する、のいずれかを決める', async () => {
+    await explains('ワークフローのフィールドの扱いを決める関数（`planWorkflowFieldOf`）のテストです。現在の名前のフィールドはそのまま使い、旧い名前のフィールドは改名し、どちらも存在しなければ新規に作成すると判定することを確認します。')
     expect([
       planWorkflowFieldOf([workflowField()]),
       planWorkflowFieldOf([workflowField(WORKFLOW_NAMES, 'pecot-workflow-acme'), { name: 'Title' }]),
@@ -140,7 +144,8 @@ describe('進行の欄の判定', () => {
     ])
   })
 
-  it('今の名前か旧い名前の欄があるときだけ、進行の欄があるとする', () => {
+  it('現在の名前か旧い名前のフィールドが存在する場合だけ、ワークフローのフィールドが存在すると判定する', async () => {
+    await explains('ワークフローのフィールドが存在するかを判定する関数（`hasWorkflowField`）のテストです。現在の名前（`pecot-status`）か旧い名前のフィールドがあれば `true`、関係のないフィールドだけなら `false` を返すことを確認します。')
     expect([
       hasWorkflowField([{ name: 'pecot-status' }]),
       hasWorkflowField([{ name: 'pecot-workflow-acme' }]),
@@ -148,11 +153,13 @@ describe('進行の欄の判定', () => {
     ]).toEqual([true, true, false])
   })
 
-  it('fields.nodes を取り、無ければ空にする', () => {
+  it('fields.nodes を取り出し、存在しない場合は空の配列にする', async () => {
+    await explains('プロジェクトからフィールドの一覧を取り出す関数（`fieldNodesOf`）のテストです。`fields.nodes` が存在する場合はその配列を返し、存在しない場合は空の配列を返すことを確認します。')
     expect([fieldNodesOf({ fields: { nodes: [{ name: 'a' }] } }), fieldNodesOf({})]).toEqual([[{ name: 'a' }], []])
   })
 
-  it('同じ名前の選択肢を持つフィールドが複数あれば後のものを返し、選択肢の無いものは選ばない', () => {
+  it('同じ名前で選択肢を持つフィールドが複数ある場合は後のものを返し、選択肢を持たないフィールドは選ばない', async () => {
+    await explains('名前でフィールドを探す関数（`lastFieldNamed`）のテストです。同じ名前で選択肢を持つフィールドが 2 つある場合は後のものを返し、選択肢を持たないフィールドは選ばず `undefined` を返すことを確認します。')
     const later = { name: 'Status', options: [], id: 'later' }
     expect([
       lastFieldNamed([{ name: 'Status', options: [], id: 'first' }, later], 'Status'),
@@ -160,7 +167,8 @@ describe('進行の欄の判定', () => {
     ]).toEqual([later, undefined])
   })
 
-  it('必須の選択肢の欠けを、大文字と小文字を区別せずに要る順で返す', () => {
+  it('必須の選択肢の不足を、大文字と小文字を区別せず、必要な順に返す', async () => {
+    await explains('不足している必須の選択肢を求める関数（`missingRequiredOptions`）のテストです。`backlog` や `READY` のように大文字と小文字が違う名前は存在するものとして扱い、不足分を必要な順に返すことを確認します。')
     expect([
       missingRequiredOptions({ options: options(['backlog', 'READY', 'Active']) }),
       missingRequiredOptions({ options: [{ id: 'x' }] }),
@@ -172,19 +180,22 @@ describe('進行の欄の判定', () => {
 })
 
 describe('buildRepository', () => {
-  it('モデルの定義の順のキーで作る', () => {
+  it('リポジトリの設定は、モデルで定義した順のキーで作成する', async () => {
+    await explains('リポジトリの設定を作成する関数（`buildRepository`）のテストです。渡した順序に関係なく、キーが `owner`・`name`・`develop_branch` など、モデルで定義した順序に並ぶことを確認します。')
     expect(Object.keys(buildRepository({ release_type: 'nx', name: 'r', owner: 'o' }))).toEqual(['owner', 'name', 'develop_branch', 'release_branch', 'changelog_file', 'packages', 'release_type'])
   })
 })
 
 describe('placeProjectConfig', () => {
-  it('同じボードの旧い名前のファイルが 1 つなら、移す元にする', () => {
+  it('同じボードを指す旧い名前の設定ファイルが 1 つの場合は、移動元にする', async () => {
+    await explains('設定ファイルの置き場所を決める関数（`placeProjectConfig`）のテストです。同じボードを指す旧い名前のファイルが 1 つだけの場合に、新しい名前（`github.com_acme_1.json`）への移動元として返すことを確認します。')
     const directory = useProjectRoot()
     writeConfig(directory, 'old.json', boardConfig())
     expect(placeProjectConfig(captured().out, { host: HOST, owner: 'acme', number: 1 })).toEqual({ configPath: path.join(directory, 'github.com_acme_1.json'), movedFrom: path.join(directory, 'old.json') })
   })
 
-  it('同じボードの旧い名前のファイルが 2 つ以上なら、名前を並べて止める', () => {
+  it('同じボードを指す旧い名前の設定ファイルが 2 つ以上の場合は、ファイル名を並べて止める', async () => {
+    await explains('同じボードを指す設定ファイルが 2 つ存在する場合のテストです。移動元を決められないため、ファイル名を並べたエラーを表示し、`CommandExit` が発生することを確認します。')
     const directory = useProjectRoot()
     writeConfig(directory, 'a.json', boardConfig())
     writeConfig(directory, 'b.json', boardConfig())
@@ -195,7 +206,8 @@ describe('placeProjectConfig', () => {
 })
 
 describe('reportConfigMove', () => {
-  it('移す元が無ければ何も出さず、dry-run では予定の行で出す', () => {
+  it('移動元が存在しない場合は何も表示せず、dry-run の場合は予定の行を表示する', async () => {
+    await explains('設定ファイルの移動を報告する関数（`reportConfigMove`）のテストです。移動元が存在しない場合は何も表示せず、`dry-run` の場合は移動の予定と、新しい名前に関する警告を表示することを確認します。')
     const none = captured()
     reportConfigMove(none.out, { configPath: '/p/new.json', movedFrom: undefined }, false)
     const planned = captured(true)
@@ -208,7 +220,8 @@ describe('reportConfigMove', () => {
 })
 
 describe('syncProjectConfig', () => {
-  it('設定ファイルが無ければ、ボードの値から作ってアクティブにする', async () => {
+  it('設定ファイルが存在しない場合は、ボードの値から作成してアクティブにする', async () => {
+    await explains('プロジェクトの設定ファイルを同期する関数（`syncProjectConfig`）のテストです。設定ファイルが存在しない場合に、ボードのフィールド・選択肢・リポジトリから新規に作成し、アクティブなプロジェクトに設定することを確認します。')
     const directory = useProjectRoot()
     const { client } = await startClient([listProjects('board'), projectFields([{ id: 'PVTF_title', name: 'Title' }, workflowField([...WORKFLOW_NAMES, 'Blocked']), statusField]), linked('demo', 'demo')])
     const { io, out } = captured()
@@ -235,7 +248,8 @@ describe('syncProjectConfig', () => {
     expect(io.err.join('')).toBe(`created: config file ${configPath}\nset: active project to github.com_acme_1\n`)
   })
 
-  it('ビューが無ければ、絞り込みだけの URL にし、既存の設定のリポジトリの順と値を残す', async () => {
+  it('ビューが存在しない場合は、絞り込みだけの URL にし、既存の設定のリポジトリの順序と値を引き継ぐ', async () => {
+    await explains('ボードにビューが存在せず、設定ファイルが既に存在する場合のテストです。URL は絞り込みだけの形になり、既存のリポジトリの順序と値が引き継がれて、存在しなくなったリポジトリが除外されることを確認します。')
     const directory = useProjectRoot()
     const configPath = writeConfig(directory, 'github.com_acme_1.json', { ...boardConfig([{ owner: 'acme', name: 'gone' }, { owner: 'acme', name: 'kept', develop_branch: 'develop' }]), aggregation_repo: 'acme/roadmap' })
     const { client } = await startClient([listProjects('board'), projectFields([workflowField()], []), linked('new', 'kept')])
@@ -262,7 +276,8 @@ describe('syncProjectConfig', () => {
     expect(io.err.join('')).toBe(`updated: config file ${configPath}\nset: active project to github.com_acme_1\n`)
   })
 
-  it('旧い名前の設定ファイルを新しい名前に移し、旧いファイルを消す', async () => {
+  it('旧い名前の設定ファイルを新しい名前へ移動し、旧いファイルを削除する', async () => {
+    await explains('旧い名前の設定ファイルが存在する場合のテストです。内容を新しい名前のファイルへ移して旧いファイルを削除し、移動と警告のメッセージを表示することを確認します。')
     const directory = useProjectRoot()
     const old = writeConfig(directory, 'old.json', boardConfig([{ owner: 'acme', name: 'demo', release_branch: 'main' }]))
     const { client } = await startClient([listProjects('board'), projectFields([workflowField()]), linked('demo')])
@@ -287,7 +302,8 @@ describe('syncProjectConfig', () => {
     ].join('\n'))
   })
 
-  it('dry-run では書かず、予定の行を出す', async () => {
+  it('dry-run の場合は、設定ファイルを書かず、予定の行を表示する', async () => {
+    await explains('`dry-run` を指定した場合のテストです。設定ファイルを書き込まず、作成とアクティブ化の予定を表示することを確認します。')
     const directory = useProjectRoot()
     const { client } = await startClient([listProjects('board'), projectFields([workflowField()]), linked()])
     const { io, out } = captured(true)
@@ -301,10 +317,11 @@ describe('syncProjectConfig', () => {
 
   describe('内容が同じとき', () => {
     it.for([
-      { name: 'アクティブにしない', extra: {}, expected: { second: { configPath: 'github.com_acme_1.json', change: 'unchanged', activeProject: undefined, movedFrom: undefined }, err: '', isActivated: false } },
-      { name: 'activateIfUnchanged でアクティブにする', extra: { activateIfUnchanged: true }, expected: { second: { configPath: 'github.com_acme_1.json', change: 'unchanged', activeProject: 'github.com_acme_1', movedFrom: undefined }, err: 'set: active project to github.com_acme_1\n', isActivated: true } },
-      { name: 'dry-run では、アクティブにする予定を出す', extra: { activateIfUnchanged: true, isDryRun: true }, expected: { second: { configPath: 'github.com_acme_1.json', change: 'unchanged', activeProject: 'github.com_acme_1', movedFrom: undefined }, err: 'dry-run: would leave config file <dir>/github.com_acme_1.json unchanged\ndry-run: would set active project to github.com_acme_1\n', isActivated: false } },
-    ])('設定ファイルを書かず、$name', async ({ extra, expected }) => {
+      { name: 'アクティブなプロジェクトを変更しない', extra: {}, expected: { second: { configPath: 'github.com_acme_1.json', change: 'unchanged', activeProject: undefined, movedFrom: undefined }, err: '', isActivated: false } },
+      { name: 'activateIfUnchanged を指定するとアクティブにする', extra: { activateIfUnchanged: true }, expected: { second: { configPath: 'github.com_acme_1.json', change: 'unchanged', activeProject: 'github.com_acme_1', movedFrom: undefined }, err: 'set: active project to github.com_acme_1\n', isActivated: true } },
+      { name: 'dry-run の場合はアクティブにする予定を表示する', extra: { activateIfUnchanged: true, isDryRun: true }, expected: { second: { configPath: 'github.com_acme_1.json', change: 'unchanged', activeProject: 'github.com_acme_1', movedFrom: undefined }, err: 'dry-run: would leave config file <dir>/github.com_acme_1.json unchanged\ndry-run: would set active project to github.com_acme_1\n', isActivated: false } },
+    ])('設定の内容が変わらない場合は、設定ファイルを書き込まず、$name', async ({ name, extra, expected }) => {
+      await explains(`ボードの内容が前回と同じ場合の同期のテストです。設定ファイルを書き込まず、${name}ことを確認します。`)
       expect(await syncTwice(extra)).toEqual(expected)
     })
   })
@@ -312,26 +329,27 @@ describe('syncProjectConfig', () => {
   describe('止まるとき', () => {
     it.for([
       {
-        name: '同じタイトルのプロジェクトが無い',
+        name: '同じタイトルのプロジェクトが存在しない',
         rules: [listProjects('other')],
         message: 'error: project not found: board\n  available projects:\n  - other\n',
       },
       {
-        name: 'プロジェクトのフィールドを読めない',
+        name: 'プロジェクトのフィールドを取得できない',
         rules: [listProjects('board'), graphqlData('GetProjectFieldsUser', { user: { projectV2: null } }), graphqlData('GetProjectFieldsOrg', { organization: { projectV2: null } })],
         message: 'error: could not read project fields: board\n',
       },
       {
-        name: '進行の欄が無い',
+        name: 'ワークフローのフィールドが存在しない',
         rules: [listProjects('board'), projectFields([statusField])],
         message: 'error: project "board" has no pecot-status field\n  required field: pecot-status (Backlog/Pending/Ready/Active/In Review/Archived)\n  run: pecot project init acme board --host github.com\n',
       },
       {
-        name: '進行の欄の必須の選択肢が欠ける',
+        name: 'ワークフローのフィールドで必須の選択肢が不足している',
         rules: [listProjects('board'), projectFields([workflowField(['Backlog', 'Ready'])])],
         message: 'error: pecot-status field is missing options: Pending, Active, In Review, Archived\n  required options: Backlog / Pending / Ready / Active / In Review / Archived\n',
       },
-    ])('$name なら、error の行を出して止める', async ({ rules, message }) => {
+    ])('$name 場合は、エラーの行を表示して止める', async ({ name, rules, message }) => {
+      await explains(`設定ファイルを同期できない場合のテストです。${name}場合は、エラーの行を表示して、例外（\`CommandExit\`）で止まることを確認します。`)
       useProjectRoot()
       const { client } = await startClient(rules)
       const { io, out } = captured()

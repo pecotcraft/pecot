@@ -46,6 +46,7 @@ import {
 import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
+import { explains } from '../_helpers/explains.js'
 
 // hang regression を spawnSync の SIGTERM kill（600s）より手前で落とすための上限。
 // 性能目標ではない。
@@ -74,7 +75,8 @@ afterAll(() => {
 const isChromiumReady = isChromiumCached()
 
 describe.skipIf(!isChromiumReady)('CUJ: キャッシュ系警告が --json payload から観測できる', () => {
-  it('CUJ-B: 保存先が作れない run は保存・更新の失敗が done payload に出る (all:manifest)', async () => {
+  it('キャッシュの保存先が作れない場合、保存と更新の失敗を done の結果に含め、`all:manifest` にする', async () => {
+    await explains('キャッシュの警告の出力のテストです。キャッシュの保存先を作れない場合に、終了コード 0 のまま、保存と更新の失敗の警告を done の結果へ含め、`invalidated` は `all:manifest` になることを確認します。')
     const itT0 = performance.now()
     const saveFailOut = temporaryRoot('warning-save-fail.pptx')
 

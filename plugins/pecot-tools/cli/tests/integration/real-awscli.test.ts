@@ -228,7 +228,8 @@ describe('実 awscli', () => {
     rmSync(isolatedHome(), { recursive: true, force: true })
   })
 
-  it('ensureAwscli が実 awscli の版を ok で返す', async (context) => {
+  it('実際の awscli がある環境では、ensureAwscli が版を取得して ok を返す', async (context) => {
+    await explains('資格情報とプロファイルに到達しない隔離した環境で、実際の awscli を起動する統合のテストです。`ensureAwscli` を実行した場合に、`ok` が真で、版が `数字.数字.数字` の形であることを確認します。')
     skipWithoutAwscli(context)
 
     const probe = await ensureAwscli()
@@ -237,7 +238,8 @@ describe('実 awscli', () => {
     expect(probe.ok ? probe.version : '').toMatch(/^\d+\.\d+\.\d+$/)
   })
 
-  it('必須オプションを欠いた呼び出しを exit 252 の invalid-input にする', async (context) => {
+  it('必須のオプションを指定しない呼び出しは、終了コード 252 で終了し、invalid-input と判定する', async (context) => {
+    await explains('資格情報とプロファイルに到達しない隔離した環境で、実際の awscli を起動する統合のテストです。`--function-name` なしで `lambda get-function-configuration` を実行した場合は、`252` で終了し `invalid-input` になることを確認します。')
     skipWithoutAwscli(context)
 
     const result = await runAwscli(
@@ -250,7 +252,8 @@ describe('実 awscli', () => {
     expect(categorize(result)).toBe('invalid-input')
   })
 
-  it('資格情報が無い呼び出しを exit 253 の auth-missing にする', async (context) => {
+  it('資格情報がない呼び出しは、終了コード 253 で終了し、auth-missing と判定する', async (context) => {
+    await explains('資格情報とプロファイルに到達しない隔離した環境で、実際の awscli を起動する統合のテストです。資格情報のない環境で `sts get-caller-identity` を実行した場合は、終了コードが `253` で、`auth-missing` と判定されることを確認します。')
     skipWithoutAwscli(context)
 
     const result = await runAwscli(
@@ -263,7 +266,8 @@ describe('実 awscli', () => {
     expect(categorize(result)).toBe('auth-missing')
   })
 
-  it('存在しないプロファイル指定を exit 255 の auth-missing にする', async (context) => {
+  it('存在しない profile を指定した呼び出しは、終了コード 255 で終了し、auth-missing と判定する', async (context) => {
+    await explains('資格情報とプロファイルに到達しない隔離した環境で、実際の awscli を起動する統合のテストです。存在しない `nosuch` を `--profile` へ指定した場合は、終了コードが `255` で、`auth-missing` と判定されることを確認します。')
     skipWithoutAwscli(context)
 
     const result = await runAwscli(
@@ -276,7 +280,8 @@ describe('実 awscli', () => {
     expect(categorize(result)).toBe('auth-missing')
   })
 
-  it('logs describe-log-streams の並び替え・ページング指定を構文エラーにしない', async (context) => {
+  it('logs describe-log-streams の並び替えとページ分割の指定は、構文エラーにならない', async (context) => {
+    await explains('資格情報とプロファイルに到達しない隔離した環境で、実際の awscli を起動する統合のテストです。許可リストが組み立てる並びで `logs describe-log-streams` を実行した場合は、`252` ではなく `253` で終了し、`auth-missing` と判定されることを確認します。')
     skipWithoutAwscli(context)
 
     // 許可リストが組み立てる引数の並び（フラグ + 共通オプション）を実 awscli が受け取るか。
@@ -299,7 +304,8 @@ describe('実 awscli', () => {
     expect(categorize(result)).toBe('auth-missing')
   })
 
-  it('`-` で始まる値の --flag=value 形を構文エラーにしない', async (context) => {
+  it('先頭が - の値を --flag=value の形で渡すと、構文エラーにならない', async (context) => {
+    await explains('資格情報とプロファイルに到達しない隔離した環境で、実際の awscli を起動する統合のテストです。`--filter-pattern=-INFO` を指定して `logs filter-log-events` を実行した場合は、`252` ではなく `auth-missing` と判定されることを確認します。')
     skipWithoutAwscli(context)
 
     // CloudWatch Logs の除外パターン。`--filter-pattern -INFO` は 252 になるが、
@@ -320,7 +326,8 @@ describe('実 awscli', () => {
     expect(categorize(result), `stderr: ${result.stderr}`).toBe('auth-missing')
   })
 
-  it('代表引数の表が許可リストと 1:1 で対応する', () => {
+  it('代表的な引数の表のツール名は、許可リストのツール名と過不足なく一致する', async () => {
+    await explains('資格情報とプロファイルに到達しない隔離した環境で、実際の awscli を起動する統合のテストです。代表的な引数の表のキーが、`ALLOWLIST` のツール名と一致することを確認します。')
     expect(Object.keys(representativeArguments()).toSorted(compareStrings))
       .toEqual(ALLOWLIST.map(entry => entry.toolName).toSorted(compareStrings))
   })
@@ -329,7 +336,8 @@ describe('実 awscli', () => {
   // 各ケースを独立した it として登録する必要があるため、ループで展開する。
   const toolNames = ALLOWLIST.map(entry => entry.toolName)
   for (const toolName of toolNames) {
-    it(`${toolName} の引数並びを実 awscli が構文として受理する`, async (context) => {
+    it(`ツール ${toolName} の引数の並びは、実際の awscli が構文として受理する`, async (context) => {
+      await explains(`資格情報とプロファイルに到達しない隔離した環境で、実際の awscli を起動する統合のテストです。\`${toolName}\` の代表的な引数から組み立てた並びを実行した場合に、終了コードが構文エラーの \`252\` ではなく、\`invalid-input\` と判定されないことを確認します。`)
       skipWithoutAwscli(context)
 
       // 終了コードは 253（低レベル API）と 1（高レベル s3 コマンド）が混在する。値では固定せず、
@@ -352,3 +360,4 @@ describe('実 awscli', () => {
 
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { compareStrings } from '../_helpers/compare-strings.js'
+import { explains } from '../../tests/_helpers/explains.js'

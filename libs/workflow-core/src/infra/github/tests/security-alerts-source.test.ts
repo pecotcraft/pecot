@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { fetchCodeScanningStatus, fetchSecretScanningStatus } from '../../../domain/security-alerts.js'
 import { createScanAlertSource } from '../security-alerts-source.js'
 import { restRequests, restResponse, startClient, useFakeGithub } from './fake-client.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 useFakeGithub()
 
@@ -13,7 +14,8 @@ const SECRET = '/repos/owner/repo/secret-scanning/alerts'
 const REPOSITORY = '/repos/owner/repo'
 
 describe('code scanning', () => {
-  it('取得できたら、応答の alert をそのまま返す', async () => {
+  it('code scanning の alert を取得できた場合は、応答の alert をそのまま返す', async () => {
+    await explains('code scanning の alert 一覧を取得する `listOpenAlerts` のテストです。GitHub が 200 を返した場合に、応答の内容を変更せず `ok` として返すことを確認します。')
     const { client } = await startClient([restResponse('GET', CODE, { status: 200, body: [{ number: 3 }, { number: 'x' }, {}, 5] })])
     expect(await createScanAlertSource(client).listOpenAlerts('code-scanning', 'owner', 'repo')).toEqual({ kind: 'ok', alerts: [{ number: 3 }, { number: 'x' }, {}, 5] })
   })
@@ -21,12 +23,14 @@ describe('code scanning', () => {
   it.each([
     ['Advanced Security must be enabled for this repository to use code scanning.'],
     ['Code scanning is not enabled for this repository'],
-  ])('403 で本文が %j なら disabled', async (message) => {
+  ])('403 で本文が %j の場合は、code scanning が無効であると判定する', async (message) => {
+    await explains(`code scanning が無効なリポジトリのテストです。ステータスが 403 で、本文のメッセージが \`${message}\` の場合に、\`disabled\` を返すことを確認します。`)
     const { client } = await startClient([restResponse('GET', CODE, { status: 403, text: JSON.stringify({ message }) })])
     expect(await createScanAlertSource(client).listOpenAlerts('code-scanning', 'owner', 'repo')).toEqual({ kind: 'disabled' })
   })
 
-  it('403 で本文が無効を示さない（権限不足）なら failure', async () => {
+  it('403 で本文が無効を示さない場合（権限不足など）は、失敗として返す', async () => {
+    await explains('code scanning の `listOpenAlerts` のテストです。ステータスが 403 で、本文が `Resource not accessible by integration` のように無効を示さない場合に、`failure` とエラーメッセージを返すことを確認します。')
     const { client } = await startClient([restResponse('GET', CODE, { status: 403, text: '{"message":"Resource not accessible by integration"}' })])
     expect(await createScanAlertSource(client).listOpenAlerts('code-scanning', 'owner', 'repo')).toEqual({
       kind: 'failure',
@@ -34,22 +38,26 @@ describe('code scanning', () => {
     })
   })
 
-  it('レート制限の 403 は、本文が not enabled を含んでも failure', async () => {
+  it('レート制限による 403 は、本文に not enabled を含んでいても失敗として返す', async () => {
+    await explains('code scanning の `listOpenAlerts` のテストです。レート制限による 403 の本文に `not enabled` が含まれる場合でも、`disabled` ではなく `failure` を返すことを確認します。')
     const { client } = await startClient([restResponse('GET', CODE, { status: 403, text: 'API rate limit exceeded: not enabled' })])
     expect(await createScanAlertSource(client).listOpenAlerts('code-scanning', 'owner', 'repo')).toMatchObject({ kind: 'failure' })
   })
 
-  it('404 で本文が no analysis found なら、alert 0 件の ok', async () => {
+  it('404 で本文が No analysis found の場合は、alert が 0 件の成功として返す', async () => {
+    await explains('code scanning の `listOpenAlerts` のテストです。解析がまだ存在しないリポジトリで 404 が返った場合に、alert が 0 件の `ok` を返すことを確認します。')
     const { client } = await startClient([restResponse('GET', CODE, { status: 404, text: '{"message":"No analysis found"}' })])
     expect(await createScanAlertSource(client).listOpenAlerts('code-scanning', 'owner', 'repo')).toEqual({ kind: 'ok', alerts: [] })
   })
 
-  it('404 で本文が別の文なら failure', async () => {
+  it('404 で本文が別の文の場合は、失敗として返す', async () => {
+    await explains('code scanning の `listOpenAlerts` のテストです。404 の本文が `Not Found` のように解析の不在を示さない場合に、`failure` を返すことを確認します。')
     const { client } = await startClient([restResponse('GET', CODE, { status: 404, text: '{"message":"Not Found"}' })])
     expect(await createScanAlertSource(client).listOpenAlerts('code-scanning', 'owner', 'repo')).toMatchObject({ kind: 'failure' })
   })
 
-  it('接続できなければ network', async () => {
+  it('サーバに接続できない場合は、ネットワークの失敗として返す', async () => {
+    await explains('code scanning の `listOpenAlerts` のテストです。サーバを停止して接続できない場合に、`network` を返すことを確認します。')
     const { client, server } = await startClient([])
     await server.close()
     expect(await createScanAlertSource(client).listOpenAlerts('code-scanning', 'owner', 'repo')).toMatchObject({ kind: 'network' })
@@ -57,12 +65,14 @@ describe('code scanning', () => {
 })
 
 describe('secret scanning', () => {
-  it('取得できたら応答の alert を返す', async () => {
+  it('secret scanning の alert を取得できた場合は、応答の alert を返す', async () => {
+    await explains('secret scanning の alert 一覧を取得する `listOpenAlerts` のテストです。GitHub が 200 を返した場合に、応答の alert を `ok` として返すことを確認します。')
     const { client } = await startClient([restResponse('GET', SECRET, { status: 200, body: [{ number: 9 }] })])
     expect(await createScanAlertSource(client).listOpenAlerts('secret-scanning', 'owner', 'repo')).toEqual({ kind: 'ok', alerts: [{ number: 9 }] })
   })
 
-  it('404 でリポの状態が disabled なら disabled', async () => {
+  it('404 でリポジトリの secret scanning が無効な場合は、無効として返す', async () => {
+    await explains('secret scanning の `listOpenAlerts` のテストです。404 が返り、リポジトリの設定が `disabled` の場合に、`disabled` を返し、2 件の要求を順に送信することを確認します。')
     const { client, server } = await startClient([
       restResponse('GET', SECRET, { status: 404, text: 'x' }),
       restResponse('GET', REPOSITORY, { status: 200, body: { security_and_analysis: { secret_scanning: { status: 'disabled' } } } }),
@@ -74,17 +84,20 @@ describe('secret scanning', () => {
   it.each([
     ['enabled', { security_and_analysis: { secret_scanning: { status: 'enabled' } } }],
     ['状態が載っていない', {}],
-  ])('404 でリポの状態が %s なら unconfirmed', async (_name, body) => {
+  ])('404 で、リポジトリの状態に関する応答が「%s」の場合は、unconfirmed を返す', async (_name, body) => {
+    await explains(`secret scanning の \`listOpenAlerts\` のテストです。404 が返り、リポジトリの応答が「${_name}」の場合に、無効と確認できないため \`unconfirmed\` を返すことを確認します。`)
     const { client } = await startClient([restResponse('GET', SECRET, { status: 404, text: 'x' }), restResponse('GET', REPOSITORY, { status: 200, body })])
     expect(await createScanAlertSource(client).listOpenAlerts('secret-scanning', 'owner', 'repo')).toEqual({ kind: 'unconfirmed' })
   })
 
-  it('404 の後にリポの状態を読めなければ、その失敗を failure にする', async () => {
+  it('404 の後にリポジトリの情報を取得できない場合は、その失敗を返す', async () => {
+    await explains('secret scanning の `listOpenAlerts` のテストです。404 の後のリポジトリ情報の取得が 500 で失敗した場合に、`GitHub API error: 500` を持つ `failure` を返すことを確認します。')
     const { client } = await startClient([restResponse('GET', SECRET, { status: 404, text: 'x' }), restResponse('GET', REPOSITORY, { status: 500, text: 'boom' })])
     expect(await createScanAlertSource(client).listOpenAlerts('secret-scanning', 'owner', 'repo')).toEqual({ kind: 'failure', message: 'GitHub API error: 500' })
   })
 
-  it('404 以外の失敗は、リポの状態を読まずに failure', async () => {
+  it('404 以外の失敗の場合は、リポジトリの情報を取得せずに失敗として返す', async () => {
+    await explains('secret scanning の `listOpenAlerts` のテストです。ステータスが 403 の場合に、`failure` を返し、要求が alert 一覧の 1 回だけであることを確認します。')
     const { client, server } = await startClient([restResponse('GET', SECRET, { status: 403, text: 'x' })])
     expect(await createScanAlertSource(client).listOpenAlerts('secret-scanning', 'owner', 'repo')).toMatchObject({ kind: 'failure' })
     expect(restRequests(server)).toHaveLength(1)
@@ -92,12 +105,14 @@ describe('secret scanning', () => {
 })
 
 describe('domain の判定につないだとき', () => {
-  it('code scanning の open の alert を、番号の昇順で数える', async () => {
+  it('code scanning の未解決の alert を、件数と番号の昇順で集計する', async () => {
+    await explains('domain 層の `fetchCodeScanningStatus` に実装をつないだテストです。alert が 2 件の場合に、有効で件数が 2、番号が昇順（4 と 12）の状態を返すことを確認します。')
     const { client } = await startClient([restResponse('GET', CODE, { status: 200, body: [{ number: 12 }, { number: 4 }] })])
     expect(await fetchCodeScanningStatus(createScanAlertSource(client), 'github.com', 'owner', 'repo')).toMatchObject({ enabled: true, openCount: 2, openNumbers: [4, 12] })
   })
 
-  it('secret scanning の 404 が無効と確かめられないなら SecurityAlertError', async () => {
+  it('secret scanning の 404 が無効と確認できない場合は、SecurityAlertError を発生させる', async () => {
+    await explains('domain 層の `fetchSecretScanningStatus` に実装をつないだテストです。404 が返りリポジトリの状態からも無効と確認できない場合に、一覧を取得できないことを示す `SecurityAlertError` が発生することを確認します。')
     const { client } = await startClient([restResponse('GET', SECRET, { status: 404, text: 'x' }), restResponse('GET', REPOSITORY, { status: 200, body: {} })])
     await expect(fetchSecretScanningStatus(createScanAlertSource(client), 'github.com', 'owner', 'repo')).rejects.toThrow('owner/repo: cannot fetch the secret scanning list')
   })

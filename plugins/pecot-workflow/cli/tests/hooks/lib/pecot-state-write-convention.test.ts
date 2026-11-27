@@ -7,11 +7,13 @@ import { createHookCase } from '../_helpers/environment.js'
 import { hooksDirectory, projectRoot } from '../_helpers/paths.js'
 import { run } from '../_helpers/run.js'
 import { splitLines } from '../_helpers/text.js'
+import { explains } from '../../_helpers/explains.js'
 
 const ALLOWLIST = new Set(['pecot-dir-init.sh', 'pecot-gitignore-ensure.sh', 'pecot-state-guard.sh'])
 
 describe('.pecot 書き込み規約', () => {
-  it('mkdir を直接含む .sh は、許可した 3 ファイルだけにする', () => {
+  it('mkdir を直接含む .sh は、許可した 3 ファイルだけにする', async () => {
+    await explains('`.pecot` への書き込み規約のテストです。`hooks/lib` 配下の `.sh` のうち、`mkdir` を直接含むものが、許可した 3 ファイルだけであることを確認します。')
     const hookCase = createHookCase()
     const libraryDirectory = path.join(hooksDirectory, 'lib')
     // 手前に # が無い行の mkdir のみ一致させる。コメント行は除外し、-l でファイル名だけを返す。

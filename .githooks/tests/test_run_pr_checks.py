@@ -173,8 +173,11 @@ def pr_repo(
     return _PrChecksRepo(repo, pc_log, base, head, script)
 
 
+@allure.title(
+    "3 つの stage を pre-commit・pre-push・manual の順に、base と head の範囲を指定して呼ぶ"
+)
 def test_stages_run_in_order_with_range(pr_repo: _PrChecksRepo, run_script) -> None:
-    """3 stage を pre-commit → pre-push → manual の順に、base と head の範囲で呼ぶ。"""
+    """`run-pr-checks.sh` を既定の引数で実行した場合のテストです。偽の `pre-commit` が 3 つの stage の順に呼ばれ、どの呼び出しにも `--from-ref` と `--to-ref` が渡され、`--all-files` は含まれないことを確認します。"""
     result = pr_repo.run(run_script)
     with allure.step("3 つの stage が順に、base と head の範囲で呼ばれることを確かめる"):
         assert result.returncode == 0, result.stderr
@@ -190,8 +193,11 @@ def test_stages_run_in_order_with_range(pr_repo: _PrChecksRepo, run_script) -> N
             assert call["NXCI"] == "1"
 
 
+@allure.title(
+    "`SKIP` には全 stage で version plan の判定だけを指定し、`PECOT_VERSION_PLAN_BASE` は pre-push と manual にだけ渡す"
+)
 def test_skip_and_plan_base_per_stage(pr_repo: _PrChecksRepo, run_script) -> None:
-    """SKIP は全 stage に version plan の判定だけを入れる。"""
+    """`pre-commit` に渡す環境変数のテストです。`SKIP` に `check-version-plan-required` が指定されます。`PECOT_VERSION_PLAN_BASE` は、pre-commit では未設定で、pre-push と manual では base になることを確認します。"""
     result = pr_repo.run(run_script)
     with allure.step("stage ごとの SKIP と version plan の base を確かめる"):
         assert result.returncode == 0, result.stderr
@@ -207,6 +213,7 @@ def test_skip_and_plan_base_per_stage(pr_repo: _PrChecksRepo, run_script) -> Non
         assert {c["TO"] for c in by_stage.values()} == {"unset"}
 
 
+@allure.title("`--part={part}` を指定すると、流す stage と飛ばす hook が変わる")
 @pytest.mark.parametrize(
     ("part", "stages", "skips"),
     [
@@ -221,7 +228,7 @@ def test_skip_and_plan_base_per_stage(pr_repo: _PrChecksRepo, run_script) -> Non
 def test_part_selects_stages_and_skip(
     pr_repo: _PrChecksRepo, run_script, part: str, stages: list[str], skips: list[str]
 ) -> None:
-    """--part は流す stage と、manual の stage で飛ばす hook を決める。"""
+    """`--part` に lint と tests を指定した場合のテストです。lint では pre-commit と pre-push、tests では manual の stage だけが呼ばれ、`SKIP` の値が期待どおりになることを確認します。"""
     result = pr_repo.run(run_script, f"--part={part}", pr_repo.base, pr_repo.head)
     with allure.step("part に応じた stage と SKIP を確かめる"):
         assert result.returncode == 0, result.stderr
@@ -231,16 +238,18 @@ def test_part_selects_stages_and_skip(
         assert [c["SKIP"] for c in calls] == skips
 
 
+@allure.title("`--part` は、位置引数の後ろに置いても指定できる")
 def test_part_option_may_follow_positionals(pr_repo: _PrChecksRepo, run_script) -> None:
-    """--part は位置引数の後ろに置いてもよい。"""
+    """`--part=lint` を base と head の後ろに置いた場合のテストです。オプションが認識され、pre-commit と pre-push の 2 つの stage だけが呼ばれることを確認します。"""
     result = pr_repo.run(run_script, pr_repo.base, pr_repo.head, "--part=lint")
     with allure.step("位置引数の後ろの --part でも stage が選ばれることを確かめる"):
         assert result.returncode == 0, result.stderr
         assert [c["stage"] for c in pr_repo.calls()] == ["pre-commit", "pre-push"]
 
 
+@allure.title("不明な `--part` を指定すると、使い方を表示して終了コード 2 で終了する")
 def test_unknown_part_exit_2(pr_repo: _PrChecksRepo, run_script) -> None:
-    """不明な --part は、使い方を stderr へ出して exit 2。pre-commit は呼ばない。"""
+    """`--part=bogus` のように存在しない part を指定した場合のテストです。終了コードが 2 になり、標準エラー出力に使い方が表示され、`pre-commit` が呼ばれないことを確認します。"""
     result = pr_repo.run(run_script, "--part=bogus", pr_repo.base, pr_repo.head)
     with allure.step("終了コード 2 と使い方の出力と pre-commit が呼ばれないことを確かめる"):
         assert result.returncode == 2
@@ -248,10 +257,11 @@ def test_unknown_part_exit_2(pr_repo: _PrChecksRepo, run_script) -> None:
         assert read_output(pr_repo.pc_log) == ""
 
 
+@allure.title("lint の Summary は、見出しに part を書き、レーン・失敗・skip の欄を表示しない")
 def test_summary_without_lane_sections_for_non_test_part(
     pr_repo: _PrChecksRepo, run_script
 ) -> None:
-    """lint の Summary は、見出しに part を書き、レーン・失敗・skip の欄を出さない。"""
+    """`--part=lint` で実行した場合の Summary のテストです。見出しに part が含まれ、範囲と環境の欄は表示される一方で、レーン・失敗・skip の欄が存在しないことを確認します。"""
     result = pr_repo.run(run_script, "--part=lint", pr_repo.base, pr_repo.head)
     out = result.stdout
     with allure.step("lint の Summary の見出しと欄を確かめる"):
@@ -262,8 +272,9 @@ def test_summary_without_lane_sections_for_non_test_part(
             assert heading not in out
 
 
+@allure.title("tests の Summary は、見出しに part を書き、レーン・失敗・skip の欄を表示する")
 def test_summary_with_lane_sections_for_tests_part(pr_repo: _PrChecksRepo, run_script) -> None:
-    """tests の Summary は見出しに part を書き、レーン・失敗・skip の欄を出す。"""
+    """`--part=tests` で実行した場合の Summary のテストです。見出しに part が含まれ、レーン・失敗・skip の欄がすべて表示されることを確認します。"""
     result = pr_repo.run(run_script, "--part=tests", pr_repo.base, pr_repo.head)
     out = result.stdout
     with allure.step("tests の Summary の見出しと欄を確かめる"):
@@ -272,10 +283,11 @@ def test_summary_with_lane_sections_for_tests_part(pr_repo: _PrChecksRepo, run_s
             assert heading in out
 
 
+@allure.title("`--part` を省略すると、見出しに part を含めず、すべての欄を表示する")
 def test_summary_without_part_has_plain_heading_and_lane_sections(
     pr_repo: _PrChecksRepo, run_script
 ) -> None:
-    """--part を省くと、見出しは part なしで、全ての欄を出す。"""
+    """`--part` を指定せずに実行した場合の Summary のテストです。見出しが part なしの形になり、レーン・失敗・skip の欄がすべて表示されることを確認します。"""
     out = pr_repo.run(run_script).stdout
     with allure.step("part なしの Summary の見出しと欄を確かめる"):
         assert "## 検証の結果\n" in out
@@ -283,8 +295,9 @@ def test_summary_without_part_has_plain_heading_and_lane_sections(
             assert heading in out
 
 
+@allure.title("`--part=tests` の失敗の案内は、artifact の名前を `ci-logs-tests` にする")
 def test_failure_guide_names_part_artifact(pr_repo: _PrChecksRepo, run_script) -> None:
-    """--part=tests の失敗の案内は、artifact 名を ci-logs-tests にする。"""
+    """`--part=tests` で nx のログに失敗が含まれる場合のテストです。失敗の案内に、`ci-logs-tests` の artifact が表示され、part なしの `ci-logs` が表示されないことを確認します。"""
     result = pr_repo.run(
         run_script,
         "--part=tests",
@@ -297,8 +310,11 @@ def test_failure_guide_names_part_artifact(pr_repo: _PrChecksRepo, run_script) -
         assert "artifact `ci-logs`" not in result.stdout
 
 
+@allure.title(
+    "`--lane` を指定すると `PECOT_NX_LANE` として `pre-commit` に渡し、指定しなければ渡さない"
+)
 def test_lane_is_passed_to_pre_commit_env(pr_repo: _PrChecksRepo, run_script) -> None:
-    """--lane は PECOT_NX_LANE として pre-commit へ渡る。--lane が無ければ渡らない。"""
+    """`--lane` の指定の有無で、`pre-commit` に渡る環境変数が変わるかのテストです。`--lane` を指定した場合は `PECOT_NX_LANE` にそのレーンが入り、指定しない場合は未設定になることを確認します。"""
     lane = "pecot-visual:test-cli"
     result = pr_repo.run(run_script, "--part=tests", f"--lane={lane}", pr_repo.base, pr_repo.head)
     with allure.step("--lane が pre-commit の環境変数に渡り、無いと渡らないことを確かめる"):
@@ -310,14 +326,18 @@ def test_lane_is_passed_to_pre_commit_env(pr_repo: _PrChecksRepo, run_script) ->
         assert [c["LANE"] for c in pr_repo.calls()] == ["unset"]
 
 
+@allure.title("`--lane` は、位置引数の後ろに置いても指定できる")
 def test_lane_option_may_follow_positionals(pr_repo: _PrChecksRepo, run_script) -> None:
-    """--lane は位置引数の後ろに置いてもよい。"""
+    """`--part=tests` と `--lane` を base と head の後ろに置いた場合のテストです。オプションが認識され、`PECOT_NX_LANE` に指定したレーンが渡されることを確認します。"""
     result = pr_repo.run(run_script, pr_repo.base, pr_repo.head, "--part=tests", "--lane=a:test-b")
     with allure.step("位置引数の後ろの --lane でも渡ることを確かめる"):
         assert result.returncode == 0, result.stderr
         assert [c["LANE"] for c in pr_repo.calls()] == ["a:test-b"]
 
 
+@allure.title(
+    "`--lane` を {args} のように `--part=tests` なしで指定すると、使い方を表示して終了コード 2 で終了する"
+)
 @pytest.mark.parametrize(
     "args",
     [
@@ -326,7 +346,7 @@ def test_lane_option_may_follow_positionals(pr_repo: _PrChecksRepo, run_script) 
     ],
 )
 def test_lane_without_tests_part_exit_2(pr_repo: _PrChecksRepo, run_script, args: tuple) -> None:
-    """--lane は --part=tests と組み合わせたときだけ。違えば使い方を出して exit 2。"""
+    """`--lane` を、`--part` なしで指定した場合と、`--part=lint` と組み合わせた場合のテストです。終了コードが 2 になり、標準エラー出力に使い方が表示され、`pre-commit` が呼ばれないことを確認します。"""
     result = pr_repo.run(run_script, *args, pr_repo.base, pr_repo.head)
     with allure.step("終了コード 2 と使い方の出力と pre-commit が呼ばれないことを確かめる"):
         assert result.returncode == 2
@@ -334,8 +354,11 @@ def test_lane_without_tests_part_exit_2(pr_repo: _PrChecksRepo, run_script, args
         assert read_output(pr_repo.pc_log) == ""
 
 
+@allure.title(
+    "`--lane` を指定すると、Summary の見出しにレーンを書き、失敗の案内の artifact の名前にレーンの slug を付ける"
+)
 def test_lane_summary_heading_and_artifact_name(pr_repo: _PrChecksRepo, run_script) -> None:
-    """--lane 指定の Summary は見出しにレーンを書き、失敗の案内の artifact 名にレーンの slug を付ける。"""
+    """`--part=tests` と `--lane=pecot-visual:test-cli` を指定した場合のテストです。見出しにレーンが含まれ、artifact の名前が `ci-logs-tests-pecot-visual-test-cli` になることを確認します。"""
     result = pr_repo.run(
         run_script,
         "--part=tests",
@@ -349,8 +372,11 @@ def test_lane_summary_heading_and_artifact_name(pr_repo: _PrChecksRepo, run_scri
         assert "artifact `ci-logs-tests-pecot-visual-test-cli`" in result.stdout
 
 
+@allure.title(
+    "環境変数 `CHECKS_SLUG` があれば artifact の名前に使い、なければ記号を `-` に置き換える"
+)
 def test_lane_summary_artifact_name_prefers_checks_slug(pr_repo: _PrChecksRepo, run_script) -> None:
-    """env CHECKS_SLUG があれば、それを artifact 名に使う。無ければ英数字と ._- 以外を - にする。"""
+    """`@scope/pkg:test-cli` のように記号を含むレーンを指定した場合のテストです。`CHECKS_SLUG` がないときは英数字と `.`・`_`・`-` 以外が `-` に置き換わり、`CHECKS_SLUG` があるときはその値が artifact の名前に使われることを確認します。"""
     nx_log = {"STUB_NX_LOG_SRC": str(pr_repo.write("nx-failed.log", _NX_LOG_FAILED))}
     args = ("--part=tests", "--lane=@scope/pkg:test-cli", pr_repo.base, pr_repo.head)
     result = pr_repo.run(run_script, *args, env=nx_log)
@@ -360,8 +386,9 @@ def test_lane_summary_artifact_name_prefers_checks_slug(pr_repo: _PrChecksRepo, 
         assert "artifact `ci-logs-tests-custom-slug`" in result.stdout
 
 
+@allure.title("環境変数 `SKIP` がすでに設定されている場合は、連結して引き継ぐ")
 def test_existing_skip_is_kept(pr_repo: _PrChecksRepo, run_script) -> None:
-    """env に SKIP があれば、連結して引き継ぐ。"""
+    """`SKIP=other-hook` を指定して実行した場合のテストです。どの呼び出しでも、`SKIP` が `other-hook` で始まり、`check-version-plan-required` が連結されることを確認します。"""
     result = pr_repo.run(run_script, env={"SKIP": "other-hook"})
     with allure.step("元の SKIP が連結されて引き継がれることを確かめる"):
         assert result.returncode == 0, result.stderr
@@ -369,11 +396,14 @@ def test_existing_skip_is_kept(pr_repo: _PrChecksRepo, run_script) -> None:
             assert call["SKIP"].startswith("other-hook,check-version-plan-required")
 
 
+@allure.title(
+    "{failing} の stage が失敗しても、後ろの stage を実行し、最後に終了コード 1 で終了する"
+)
 @pytest.mark.parametrize("failing", _STAGES)
 def test_failed_stage_does_not_stop_later_stages(
     pr_repo: _PrChecksRepo, run_script, failing: str
 ) -> None:
-    """stage が落ちても後ろの stage を動かし、最後に非 0 で終える。"""
+    """3 つの stage のいずれかが失敗する場合のテストです。失敗した stage の後ろも実行され、Summary に失敗と成功が stage ごとに表示されて、完了の印に 1 が書かれることを確認します。"""
     result = pr_repo.run(run_script, env={"STUB_FAIL_STAGE": failing})
     with allure.step("終了コードと後ろの stage が動くことと失敗の表示を確かめる"):
         assert result.returncode == 1
@@ -400,15 +430,17 @@ def _assert_all_lanes(pr_repo: _PrChecksRepo, result) -> None:
     assert "モード: 全レーン" in result.stdout
 
 
+@allure.title("`NO_PREV=true` の場合は、base が履歴にあっても全レーンのモードにする")
 def test_no_prev_runs_all_lanes(pr_repo: _PrChecksRepo, run_script) -> None:
-    """NO_PREV=true のときは、base が履歴にあっても全レーンのモードにする。"""
+    """環境変数 `NO_PREV` を `true` にして実行した場合のテストです。範囲ではなく `--all-files` で全 stage が呼ばれ、Summary に全レーンのモードと表示されることを確認します。"""
     with allure.step("NO_PREV=true で動かして全レーンのモードになることを確かめる"):
         result = pr_repo.run(run_script, env={"NO_PREV": "true"})
         _assert_all_lanes(pr_repo, result)
 
 
+@allure.title("base が履歴に存在しない場合は、全レーンのモードにする")
 def test_unknown_base_runs_all_lanes(pr_repo: _PrChecksRepo, run_script) -> None:
-    """base が履歴に無いときは、全レーンのモードにする。"""
+    """履歴に存在しない SHA を base に指定した場合のテストです。全 stage が `--all-files` で呼ばれ、Summary に全レーンのモードと、指定した base の SHA が表示されることを確認します。"""
     missing = "1" * 40
     result = pr_repo.run(run_script, missing, pr_repo.head)
     _assert_all_lanes(pr_repo, result)
@@ -416,8 +448,9 @@ def test_unknown_base_runs_all_lanes(pr_repo: _PrChecksRepo, run_script) -> None
         assert missing in result.stdout
 
 
+@allure.title("通常のモードでは、範囲の欄に base と head の SHA とモードを書く")
 def test_normal_mode_is_reported(pr_repo: _PrChecksRepo, run_script) -> None:
-    """通常のモードでは範囲の欄に base と head の SHA とモードを書く。"""
+    """base が履歴にある通常の実行のテストです。Summary の範囲の欄に、base と head の SHA に加えて、通常のモードであることが表示されることを確認します。"""
     result = pr_repo.run(run_script)
     with allure.step("範囲の欄の base・head と、通常のモードを確かめる"):
         assert f"- base: `{pr_repo.base}`" in result.stdout
@@ -425,8 +458,11 @@ def test_normal_mode_is_reported(pr_repo: _PrChecksRepo, run_script) -> None:
         assert "モード: 通常" in result.stdout
 
 
+@allure.title(
+    "キャッシュから返ったレーンは「成功（キャッシュ）」、実行したレーンは「成功」と表示する"
+)
 def test_lane_table_marks_cache_hits(pr_repo: _PrChecksRepo, run_script) -> None:
-    """キャッシュから返ったレーンは「成功（キャッシュ）」、実行したレーンは「成功」。"""
+    """所要時間の記録に、ローカルとリモートのキャッシュ由来の状態と、実行した状態が並んでいる場合のテストです。レーンの表で、キャッシュ由来のレーンだけが「成功（キャッシュ）」と表示されることを確認します。"""
     tsv = (
         "2026-11-06T01:00:01+0000\ttask\tproj-a:test-cli\t1.0\tstatus=local-cache\n"
         "2026-11-06T01:00:02+0000\ttask\tproj-a:test-hooks\t1.0\tstatus=remote-cache\n"
@@ -451,10 +487,13 @@ def _manual_call(pr_repo: _PrChecksRepo) -> dict[str, str]:
     return next(c for c in pr_repo.calls() if c["stage"] == "manual")
 
 
+@allure.title(
+    "tests の part で保存先を指定すると、サーバを起動してキャッシュを使い、失敗の再生はしない"
+)
 def test_tests_part_with_nx_cache_uses_remote_cache(
     pr_repo: _PrChecksRepo, run_script, tmp_path: Path
 ) -> None:
-    """tests の part で保存先があると、サーバを立ててキャッシュを使い、失敗の再生もしない。"""
+    """`--part=tests` で `PECOT_CI_NX_CACHE` に保存先を指定した場合のテストです。manual の stage に `http://127.0.0.1:` で始まるサーバの URL が渡され、`NX_SKIP_NX_CACHE` は未設定になり、取り込み件数が表示されることを確認します。"""
     cache = tmp_path / "nx-remote"
     cache.mkdir()
     (cache / "abc123.tar.gz").write_bytes(b"x")
@@ -475,9 +514,11 @@ def test_tests_part_with_nx_cache_uses_remote_cache(
         assert "nx-cache-server: GET hit=0 miss=0 PUT=0" in result.stderr
 
 
+@allure.title("tests 以外の part では、保存先を指定してもキャッシュを使わない")
 def test_other_parts_with_nx_cache_skip_the_cache(
     pr_repo: _PrChecksRepo, run_script, tmp_path: Path
 ) -> None:
+    """`--part=lint` で `PECOT_CI_NX_CACHE` に保存先を指定した場合のテストです。どの stage でも `NX_SKIP_NX_CACHE` が `true` のままで、サーバの URL が渡されず、Summary にキャッシュの行が表示されないことを確認します。"""
     result = pr_repo.run(
         run_script,
         "--part=lint",
@@ -494,7 +535,9 @@ def test_other_parts_with_nx_cache_skip_the_cache(
         assert "キャッシュ:" not in result.stdout
 
 
+@allure.title("tests の part でも、保存先を指定しなければキャッシュを使わない")
 def test_tests_part_without_nx_cache_skips_the_cache(pr_repo: _PrChecksRepo, run_script) -> None:
+    """`PECOT_CI_NX_CACHE` を指定せずに `--part=tests` で実行した場合のテストです。manual の stage で `NX_SKIP_NX_CACHE` が `true` になり、サーバの URL が渡されず、Summary にキャッシュの行が表示されないことを確認します。"""
     result = pr_repo.run(run_script, "--part=tests", pr_repo.base, pr_repo.head)
     call = _manual_call(pr_repo)
     with allure.step("保存先が無いとキャッシュを使わないことを確かめる"):
@@ -502,10 +545,13 @@ def test_tests_part_without_nx_cache_skips_the_cache(pr_repo: _PrChecksRepo, run
         assert "キャッシュ:" not in result.stdout
 
 
+@allure.title(
+    "保存先を作れずにサーバを起動できない場合は、警告を表示して、従来どおりキャッシュを使わない"
+)
 def test_server_start_failure_falls_back_to_skip(
     pr_repo: _PrChecksRepo, run_script, tmp_path: Path
 ) -> None:
-    """保存先を作れずサーバが起動しないときは、警告を出して今までどおりキャッシュを使わない。"""
+    """保存先のパスの途中がファイルになっていて、ディレクトリを作成できない場合のテストです。警告が表示されるものの終了コードは 0 のままで、manual の stage ではキャッシュを使わない設定になることを確認します。"""
     blocker = tmp_path / "blocker"
     blocker.write_text("file\n")
     result = pr_repo.run(
@@ -538,10 +584,14 @@ _SOURCE_CASES = [
 ]
 
 
+@allure.title(
+    "キャッシュの取り込み元の記録が変わると、Summary のキャッシュの行は「{expected}」になる"
+)
 @pytest.mark.parametrize(("source", "expected"), _SOURCE_CASES)
 def test_summary_reports_nx_cache_source(
     pr_repo: _PrChecksRepo, run_script, tmp_path: Path, source: str | None, expected: str
 ) -> None:
+    """取り込み元の記録が、取り込みあり・取り込みなし・記録なしのそれぞれの場合のテストです。Summary のキャッシュの行に、run の番号や理由を含む期待どおりの文が表示されることを確認します。"""
     if source is not None:
         _write_source(pr_repo, source)
     result = pr_repo.run(
@@ -571,10 +621,11 @@ def _pid_alive(pid_file: Path) -> bool:
     return True
 
 
+@allure.title("node が存在しない場合は、警告を表示して、キャッシュを使わずに実行する")
 def test_missing_node_falls_back_to_skip(
     pr_repo: _PrChecksRepo, run_script, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """node が無いときは警告を出し、キャッシュを使わずに動く。"""
+    """`PATH` から `node` を取り除いて実行した場合のテストです。標準エラー出力に警告が表示され、終了コードは 0 のままで、manual の stage ではキャッシュを使わない設定になることを確認します。"""
     only = tmp_path / "no-node-bin"
     only.mkdir()
     for name in (
@@ -620,6 +671,9 @@ def test_missing_node_falls_back_to_skip(
         assert (call["NXC"], call["SRV"]) == ("true", "unset")
 
 
+@allure.title(
+    "サーバが port を書かない場合（{mode}）は、待ち切って止め、キャッシュを使わずに実行する"
+)
 @pytest.mark.parametrize("mode", ["silent", "exit-before-port"])
 def test_server_without_port_falls_back_to_skip(
     pr_repo: _PrChecksRepo,
@@ -629,7 +683,7 @@ def test_server_without_port_falls_back_to_skip(
     tmp_path: Path,
     mode: str,
 ) -> None:
-    """port を書かないサーバは待ち切って止め、キャッシュを使わずに動く。"""
+    """サーバが port を書かずに待ち続ける場合と、port を書く前に終了する場合のテストです。待機の上限に達すると警告が表示され、サーバのプロセスが残らず、manual の stage ではキャッシュを使わない設定になることを確認します。"""
     if mode == "silent":
         pid_file = _install_fake_node(mock_bin, monkeypatch, tmp_path, "silent")
     else:
@@ -651,10 +705,11 @@ def test_server_without_port_falls_back_to_skip(
             assert not _pid_alive(pid_file)
 
 
+@allure.title("manual の stage の前にサーバが終了していた場合は、キャッシュを使わずに実行する")
 def test_server_dead_before_manual_stage_falls_back_to_skip(
     pr_repo: _PrChecksRepo, run_script, mock_bin, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """起動後に止まったサーバへは nx が接続できず task が失敗する（F-19）。manual の前に確かめ、キャッシュなしにする。"""
+    """起動の直後にサーバが終了する場合のテストです。nx がつながらずに task が失敗するのを避けるため、manual の前に生存を確認して、キャッシュを使わない設定になり、標準エラー出力にサーバが落ちている旨が表示されることを確認します。"""
     _install_fake_node(mock_bin, monkeypatch, tmp_path, "exit")
     result = pr_repo.run(
         run_script,
@@ -670,10 +725,11 @@ def test_server_dead_before_manual_stage_falls_back_to_skip(
         assert "キャッシュサーバが落ちている" in result.stderr
 
 
+@allure.title("stage の実行中にスクリプトが SIGTERM を受けた場合も、trap でサーバを停止する")
 def test_server_is_stopped_by_trap_when_script_is_terminated(
     pr_repo: _PrChecksRepo, run_script, mock_bin, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """stage の途中でスクリプトが SIGTERM を受けても、trap でサーバを止める。"""
+    """manual の stage で、スクリプトの親プロセスに SIGTERM が送られる場合のテストです。終了コードが 0 以外になり、サーバのプロセスが残らず、完了の印が書かれることを確認します。"""
     pid_file = _install_fake_node(mock_bin, monkeypatch, tmp_path)
     result = pr_repo.run(
         run_script,
@@ -689,10 +745,11 @@ def test_server_is_stopped_by_trap_when_script_is_terminated(
         assert pr_repo.done().exists()
 
 
+@allure.title("stage が失敗した場合も、サーバを停止する")
 def test_failed_stage_stops_the_server(
     pr_repo: _PrChecksRepo, run_script, mock_bin, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """stage が失敗しても、サーバは止める。"""
+    """manual の stage が失敗した場合のテストです。終了コードが 1 になり、起動したサーバのプロセスが残らないことを確認します。"""
     pid_file = _install_fake_node(mock_bin, monkeypatch, tmp_path)
     result = pr_repo.run(
         run_script,
@@ -706,10 +763,13 @@ def test_failed_stage_stops_the_server(
         assert not _pid_alive(pid_file)
 
 
+@allure.title(
+    "upload 用の場所には、`nx-used.txt` に書かれた hash の成果物だけをコピーし、hash は英数字だけを受け付ける"
+)
 def test_upload_dir_holds_only_used_artifacts(
     pr_repo: _PrChecksRepo, run_script, mock_bin, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """upload 用の場所には、nx-used.txt の hash の成果物だけが写る。hash は英数字だけを受ける。"""
+    """`nx-used.txt` に、実在する hash、存在しない hash、`../evil` のような不正な hash が並んでいる場合のテストです。upload 用の場所に、使われた 2 つの成果物と `tested-tree.txt` だけが入り、自分の tree の値が書かれることを確認します。"""
     _install_fake_node(mock_bin, monkeypatch, tmp_path)
     monkeypatch.setenv("FAKE_USED", "abc1\n../evil\ndef2\nmissing\n")
     cache = tmp_path / "nx-remote"
@@ -739,10 +799,11 @@ def test_upload_dir_holds_only_used_artifacts(
         assert read_output(upload / "tested-tree.txt").strip() == own_tree
 
 
+@allure.title("サーバには、`--used-file` として CI の作業用ディレクトリの `nx-used.txt` を渡す")
 def test_server_receives_used_file_path(
     pr_repo: _PrChecksRepo, run_script, mock_bin, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """サーバへ --used-file=<ci_dir>/nx-used.txt を渡す。"""
+    """`--part=tests` でキャッシュを使う場合のテストです。サーバの起動の引数に、`.pecot/tmp/ci/nx-used.txt` を指す `--used-file` が含まれることを確認します。"""
     _install_fake_node(mock_bin, monkeypatch, tmp_path)
     args_file = tmp_path / "node.args"
     monkeypatch.setenv("FAKE_NODE_ARGS", str(args_file))
@@ -758,10 +819,11 @@ def test_server_receives_used_file_path(
         assert f"--used-file={used}" in read_output(args_file)
 
 
+@allure.title("サーバが一覧を書かなかった場合は、取り込み済みの成果物も upload しない")
 def test_upload_dir_is_empty_without_used_file(
     pr_repo: _PrChecksRepo, run_script, mock_bin, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """サーバが一覧を書かなかったときは、取り込み済みの成果物も上げない。"""
+    """サーバが `nx-used.txt` を書かずに終了する場合のテストです。保存先に成果物があっても、upload 用の場所が空のままになることを確認します。"""
     _install_fake_node(mock_bin, monkeypatch, tmp_path, "exit")
     cache = tmp_path / "nx-remote"
     cache.mkdir()
@@ -778,10 +840,13 @@ def test_upload_dir_is_empty_without_used_file(
         assert list(upload.iterdir()) == []
 
 
+@allure.title(
+    "キャッシュの入力（取り込み元と自分の tree、lock の hash、apt の一覧の hash）を、ログと Summary に 1 行ずつ表示する"
+)
 def test_cache_inputs_are_logged_and_summarized(
     pr_repo: _PrChecksRepo, run_script, git_rev_parse, tmp_path: Path
 ) -> None:
-    """取り込み元の tree と自分の tree、lock の hash、apt の一覧の hash を、ログと Summary に 1 行ずつ出す。"""
+    """キャッシュの入力を記録するテストです。取り込み元と自分の tree、lock の hash が標準エラー出力と Summary に表示され、apt の一覧の hash の行は 1 行だけであることを確認します。"""
     (pr_repo.repo / "pnpm-lock.yaml").write_text("lock\n")
     own_tree = git_rev_parse(pr_repo.repo, "HEAD^{tree}")
     lock_hash = run_attached(
@@ -816,10 +881,13 @@ def test_cache_inputs_are_logged_and_summarized(
         )
 
 
+@allure.title(
+    "取り込んだ `tested-tree.txt` と lock が存在しない場合は、キャッシュの入力に `-` を表示する"
+)
 def test_cache_inputs_use_dash_without_sources(
     pr_repo: _PrChecksRepo, run_script, tmp_path: Path
 ) -> None:
-    """取り込んだ tested-tree.txt が無く lock も無いときは「-」を出す。"""
+    """取り込み元の `tested-tree.txt` と `pnpm-lock.yaml` が存在しない場合のテストです。Summary のキャッシュの入力の行で、該当する値が `-` と表示されることを確認します。"""
     result = pr_repo.run(
         run_script,
         "--part=tests",
@@ -835,18 +903,17 @@ def test_cache_inputs_use_dash_without_sources(
         )
 
 
+@allure.title("`PECOT_CI_NX_CACHE` を指定しない場合は、キャッシュの入力の行を表示しない")
 def test_cache_inputs_absent_without_nx_cache(pr_repo: _PrChecksRepo, run_script) -> None:
-    """PECOT_CI_NX_CACHE が無ければ、入力の行は出さない。"""
+    """`PECOT_CI_NX_CACHE` を指定せずに `--part=tests` で実行した場合のテストです。標準出力と標準エラー出力のどちらにも、キャッシュの入力の行が表示されないことを確認します。"""
     result = pr_repo.run(run_script, "--part=tests", pr_repo.base, pr_repo.head)
     with allure.step("キャッシュの入力の行が出ないことを確かめる"):
         assert "キャッシュの入力" not in result.stdout + result.stderr
 
 
+@allure.title("リモートキャッシュにつながらない場合は、実 nx が task を実行せずに失敗する")
 def test_nx_fails_the_task_when_remote_cache_is_unreachable(tmp_path: Path) -> None:
-    """F-19 の事実。誰も待ち受けない port を向けると、実 nx は task を実行せずに失敗する。
-
-    そのため run-pr-checks.sh は、manual の stage の前にサーバが生きているかを確かめる。
-    """
+    """誰も待ち受けない port をリモートキャッシュとして指定し、実際の `nx` を起動する場合のテストです。task が実行されずに失敗する一方で、`NX_SKIP_NX_CACHE` を指定した場合は task が実行されて成功することを確認します。`node_modules/.bin/nx` が存在しない場合は skip します。"""
     with allure.step(
         "実 nx の一時のワークスペースを用意して、待ち受けの無い remote cache へ向けて動かす"
     ):
@@ -904,8 +971,9 @@ def test_nx_fails_the_task_when_remote_cache_is_unreachable(tmp_path: Path) -> N
         assert (ws / "ran-the-task").exists()
 
 
+@allure.title("`--lane` を指定した場合も、Summary に範囲・レーン・失敗・skip・環境の欄を表示する")
 def test_lane_option_emits_summary_with_environment(pr_repo: _PrChecksRepo, run_script) -> None:
-    """--lane 付きでも、Summary に範囲・レーン・環境の欄が出る。"""
+    """`--part=tests` と `--lane` を指定して実行した場合のテストです。Summary に 5 つの欄の見出しがすべて表示されることを確認します。"""
     result = pr_repo.run(run_script, "--part=tests", "--lane=a:test-b", pr_repo.base, pr_repo.head)
     with allure.step("終了コードと Summary の欄を確かめる"):
         assert result.returncode == 0, result.stderr
@@ -924,8 +992,11 @@ _TSV_NEW = (
 )
 
 
+@allure.title(
+    "レーンの表には、開始より後ろの task の行のうち、target が `test-*` のものだけを表示する"
+)
 def test_lane_table_reads_only_rows_after_start(pr_repo: _PrChecksRepo, run_script) -> None:
-    """レーンの表は、開始時より後ろの task 行のうち target が test-* のものだけ。"""
+    """所要時間の記録に、開始前の行と、install や起点の `test` の行が並んでいる場合のテストです。開始後の `test-*` の task だけが成功と失敗の状態つきで表示され、それ以外の行は含まれないことを確認します。"""
     pr_repo.tsv().parent.mkdir(parents=True)
     pr_repo.tsv().write_text(_TSV_OLD)
     result = pr_repo.run(
@@ -943,8 +1014,9 @@ def test_lane_table_reads_only_rows_after_start(pr_repo: _PrChecksRepo, run_scri
         assert "対象なし（成功）" not in out
 
 
+@allure.title("`test-*` の task の行が 0 件の場合は、「対象なし（成功）」と表示する")
 def test_lane_table_without_lanes(pr_repo: _PrChecksRepo, run_script) -> None:
-    """test-* の task 行が 0 件のときは「対象なし（成功）」と書く。"""
+    """開始後の task の行が存在しない場合のテストです。レーンの欄に、「対象なし（成功）」と表示されることを確認します。"""
     pr_repo.tsv().parent.mkdir(parents=True)
     pr_repo.tsv().write_text(_TSV_OLD)
     result = pr_repo.run(run_script)
@@ -973,8 +1045,9 @@ Failed tasks:
 """
 
 
+@allure.title("失敗の欄には、nx のログの `Failed tasks:` 以降のレーンを、重複を除いて表示する")
 def test_failure_section_lists_failed_lanes(pr_repo: _PrChecksRepo, run_script) -> None:
-    """失敗の欄は、nx のログの `Failed tasks:` 以降のレーンを重複なしで出す。"""
+    """同じレーンが 2 回現れる失敗のログを渡した場合のテストです。失敗の欄に、失敗した 2 つのレーンが 1 回ずつ表示され、`ci-logs` の artifact の案内が含まれることを確認します。"""
     result = pr_repo.run(
         run_script, env={"STUB_NX_LOG_SRC": str(pr_repo.write("nx-failed.log", _NX_LOG_FAILED))}
     )
@@ -986,8 +1059,9 @@ def test_failure_section_lists_failed_lanes(pr_repo: _PrChecksRepo, run_script) 
         assert "=== 失敗レーン: ... ===" in out
 
 
+@allure.title("この run で書かれていない古いログの失敗は、失敗の欄に表示しない")
 def test_failure_section_ignores_log_from_earlier_run(pr_repo: _PrChecksRepo, run_script) -> None:
-    """この run で書かれていない古いログの失敗は、失敗の欄に出さない。"""
+    """以前の実行で残った、失敗を含む nx のログがある場合のテストです。失敗の欄が「なし」になり、古いログのレーンが表示されないことを確認します。"""
     log = pr_repo.repo / ".pecot" / "tmp" / "pre-push" / "nx-affected-tests.log"
     log.parent.mkdir(parents=True)
     log.write_text(_NX_LOG_FAILED)
@@ -1022,8 +1096,11 @@ _NX_LOG_SKIPS = """\
 """
 
 
+@allure.title(
+    "skip の件数は、レーンごとに、vitest と pytest の要約の行を、task の塊の中だけで合計する"
+)
 def test_skip_counts_per_lane(pr_repo: _PrChecksRepo, run_script) -> None:
-    """skip はレーンごとに、vitest の Tests 行と pytest の要約行を塊の中だけ足す。"""
+    """vitest の `Tests` の行と pytest の要約の行が、複数の task の塊に含まれる場合のテストです。同じレーンの塊は合計され、`Test Files` の行や `test-*` ではない target の塊は数えられないことを確認します。"""
     result = pr_repo.run(
         run_script, env={"STUB_NX_LOG_SRC": str(pr_repo.write("nx-skips.log", _NX_LOG_SKIPS))}
     )
@@ -1037,17 +1114,19 @@ def test_skip_counts_per_lane(pr_repo: _PrChecksRepo, run_script) -> None:
         assert "proj-a:install" not in out.split("### skip")[1]
 
 
+@allure.title("nx のログがない場合は、skip の欄を「なし」と表示する")
 def test_skip_section_without_log(pr_repo: _PrChecksRepo, run_script) -> None:
-    """nx のログが無ければ、skip の欄は「なし」。"""
+    """nx のログが存在しない場合のテストです。Summary の skip の欄が、「なし」と表示されることを確認します。"""
     result = pr_repo.run(run_script)
     with allure.step("ログが無いと skip の欄が「なし」になることを確かめる"):
         assert "### skip\n\nなし" in result.stdout
 
 
+@allure.title("成功した場合も完了の印を書き、開始時に古い印を消す")
 def test_done_marker_written_on_success_and_replaces_stale(
     pr_repo: _PrChecksRepo, run_script
 ) -> None:
-    """完了の印は成功でも書く。開始時に古い印を消す。"""
+    """完了の印に古い値が残っている状態で、成功する実行をした場合のテストです。終了コードが 0 になり、完了の印が古い値ではなく 0 に書き換わることを確認します。"""
     pr_repo.done().parent.mkdir(parents=True)
     pr_repo.done().write_text("9\n")
     result = pr_repo.run(run_script)
@@ -1056,8 +1135,11 @@ def test_done_marker_written_on_success_and_replaces_stale(
         assert read_output(pr_repo.done()).strip() == "0"
 
 
+@allure.title(
+    "`PECOT_CI_SUMMARY` を指定すると、親ディレクトリを作ってファイルに上書きし、標準出力には表示しない"
+)
 def test_summary_goes_to_file_when_set(pr_repo: _PrChecksRepo, run_script) -> None:
-    """PECOT_CI_SUMMARY があれば、親ディレクトリを作って上書きで書き、stdout には出さない。"""
+    """`PECOT_CI_SUMMARY` に、まだ存在しないディレクトリの中のパスを指定した場合のテストです。Summary がそのファイルに書かれ、標準出力には表示されず、既存の内容が上書きされることを確認します。"""
     summary = pr_repo.tmp / "deep" / "dir" / "summary.md"
     result = pr_repo.run(run_script, env={"PECOT_CI_SUMMARY": str(summary)})
     with allure.step("終了コードと Summary のファイルの内容と上書きを確かめる"):
@@ -1075,15 +1157,17 @@ def test_summary_goes_to_file_when_set(pr_repo: _PrChecksRepo, run_script) -> No
         assert "stale" not in read_output(summary)
 
 
+@allure.title("`PECOT_CI_SUMMARY` を指定しない場合は、Summary を標準出力に表示する")
 def test_summary_goes_to_stdout_when_unset(pr_repo: _PrChecksRepo, run_script) -> None:
-    """PECOT_CI_SUMMARY が無ければ、Summary を標準出力へ出す。"""
+    """`PECOT_CI_SUMMARY` を指定せずに実行した場合のテストです。標準出力に Summary の見出しが表示されることを確認します。"""
     result = pr_repo.run(run_script)
     with allure.step("Summary が標準出力に出ることを確かめる"):
         assert "## 検証の結果" in result.stdout
 
 
+@allure.title("環境の欄には、イメージ名と各ツールの版の 1 行目を表示する")
 def test_environment_section(pr_repo: _PrChecksRepo, run_script, mock_bin) -> None:
-    """環境の欄は、イメージ名と各ツールの版の 1 行目。無いツールは「なし」。"""
+    """`PECOT_CI_IMAGE` を指定し、複数行を出力する偽の `actionlint` を用意した場合のテストです。イメージ名と、ツールの版が 1 行目だけ表示され、2 行目以降は含まれないことを確認します。"""
     mock_bin.install("actionlint", "echo 'actionlint-1.2.3'\necho second-line\n")
     result = pr_repo.run(run_script, env={"PECOT_CI_IMAGE": "ghcr.io/example/image:tag"})
     out = result.stdout
@@ -1094,16 +1178,18 @@ def test_environment_section(pr_repo: _PrChecksRepo, run_script, mock_bin) -> No
         assert "- node: " in out
 
 
+@allure.title("`PECOT_CI_IMAGE` を指定しない場合は、イメージを `-` と表示する")
 def test_environment_section_defaults(pr_repo: _PrChecksRepo, run_script) -> None:
-    """PECOT_CI_IMAGE が無ければイメージは「-」。"""
+    """`PECOT_CI_IMAGE` を指定せずに実行した場合のテストです。環境の欄のイメージの行が、`-` と表示されることを確認します。"""
     result = pr_repo.run(run_script)
     with allure.step("イメージが「-」になることを確かめる"):
         assert "- イメージ: -\n" in result.stdout
 
 
+@allure.title("引数が {args} のように不足している場合は、使い方を表示して終了コード 2 で終了する")
 @pytest.mark.parametrize("args", [(), ("only-base",), ("", "head")])
 def test_missing_arguments_exit_2(pr_repo: _PrChecksRepo, run_script, args: tuple) -> None:
-    """引数が足りなければ、使い方を stderr へ出して exit 2。pre-commit は呼ばない。"""
+    """引数がない場合と、base だけの場合と、base が空文字列の場合のテストです。終了コードが 2 になり、標準エラー出力に使い方が表示され、`pre-commit` が呼ばれないことを確認します。"""
     result = run_script(
         pr_repo.script, *args, cwd=pr_repo.repo, env={"STUB_PC_LOG": str(pr_repo.pc_log)}
     )
@@ -1113,8 +1199,9 @@ def test_missing_arguments_exit_2(pr_repo: _PrChecksRepo, run_script, args: tupl
         assert read_output(pr_repo.pc_log) == ""
 
 
+@allure.title("`PECOT_PRE_COMMIT` を指定すると、その実行ファイルを `pre-commit` として使う")
 def test_explicit_pre_commit_env(pr_repo: _PrChecksRepo, run_script, mock_bin) -> None:
-    """PECOT_PRE_COMMIT で実行ファイルを明示できる。"""
+    """`PECOT_PRE_COMMIT` に別名の実行ファイルを指定した場合のテストです。指定した実行ファイルが 3 つの stage の順に呼ばれ、終了コードが 0 になることを確認します。"""
     other = mock_bin.install("other-pre-commit", _PRE_COMMIT_STUB)
     result = pr_repo.run(run_script, env={"PECOT_PRE_COMMIT": str(other)})
     with allure.step("終了コードと明示した pre-commit で stage が呼ばれることを確かめる"):
@@ -1136,6 +1223,7 @@ exit 0
 """
 
 
+@allure.title("base を解決できない場合は、`run-affected-tests.sh` が全 project の run-many を呼ぶ")
 def test_unresolvable_base_falls_back_to_run_many(
     git_repo: Callable[..., Path],
     git,
@@ -1145,7 +1233,7 @@ def test_unresolvable_base_falls_back_to_run_many(
     run_script,
     nx_stub_graph_branch: Callable[[dict, dict], str],
 ) -> None:
-    """run-pr-checks.sh が全レーンのモードで渡す env で、run-affected-tests.sh が run-many を呼ぶ。"""
+    """`run-pr-checks.sh` が全レーンのモードで渡す環境変数を、`run-affected-tests.sh` に指定した場合のテストです。`nx run-many -t test` が呼ばれて `affected` は呼ばれず、`refs/pecot/ci-no-base` の参照が残らないことを確認します。"""
     repo = git_repo("repo", initial_branch="main")
     (repo / "node_modules" / ".bin").mkdir(parents=True)
     (repo / "README.md").write_text("head\n")
@@ -1207,7 +1295,9 @@ def _write_ci_files(work: Path, *, summary: str | None, done: str | None) -> Non
         (ci / "done").write_text(done)
 
 
+@allure.title("完了の印が 0 の場合は、Summary を書き写して終了コード 0 で終了する")
 def test_finish_copies_summary_and_passes_on_done_0(githooks_dir: Path, tmp_path: Path) -> None:
+    """`finish-ci-summary.sh` を、完了の印が 0 で outcome が成功の状態で実行した場合のテストです。終了コードが 0 になり、CI の Summary のファイルに元の内容が書き写されることを確認します。"""
     with allure.step("完了の印が 0 の状態で完了処理を動かす"):
         _write_ci_files(tmp_path, summary="## 検証の結果\n", done="0\n")
         result = _run_finish(githooks_dir, tmp_path, "success")
@@ -1216,14 +1306,20 @@ def test_finish_copies_summary_and_passes_on_done_0(githooks_dir: Path, tmp_path
         assert read_output(tmp_path / "summary.md") == "## 検証の結果\n"
 
 
+@allure.title("完了の印が 0 以外の場合は、終了コード 1 で終了する")
 def test_finish_fails_on_nonzero_done(githooks_dir: Path, tmp_path: Path) -> None:
+    """`finish-ci-summary.sh` を、完了の印が 1 の状態で実行した場合のテストです。outcome が成功でも、終了コードが 1 になることを確認します。"""
     with allure.step("完了の印が 0 でない状態を用意する"):
         _write_ci_files(tmp_path, summary="x\n", done="1\n")
     with allure.step("完了処理の終了コードが 1 になることを確かめる"):
         assert _run_finish(githooks_dir, tmp_path, "success").returncode == 1
 
 
+@allure.title(
+    "完了の印がない場合は、検証が完了していないと Summary に書き、終了コード 1 で終了する"
+)
 def test_finish_fails_without_done_marker(githooks_dir: Path, tmp_path: Path) -> None:
+    """`finish-ci-summary.sh` を、完了の印と Summary がどちらも存在しない状態で実行した場合のテストです。終了コードが 1 になり、Summary に検証が完了していない旨が書かれることを確認します。"""
     with allure.step("完了の印が無い状態で完了処理を動かす"):
         _write_ci_files(tmp_path, summary=None, done=None)
         result = _run_finish(githooks_dir, tmp_path, "success")
@@ -1232,7 +1328,9 @@ def test_finish_fails_without_done_marker(githooks_dir: Path, tmp_path: Path) ->
         assert "検証が完了していない" in read_output(tmp_path / "summary.md")
 
 
+@allure.title("outcome が失敗の場合は、基盤の失敗と Summary に書き、終了コード 1 で終了する")
 def test_finish_reports_infra_failure(githooks_dir: Path, tmp_path: Path) -> None:
+    """`finish-ci-summary.sh` を、outcome が失敗で完了の印がない状態で実行した場合のテストです。終了コードが 1 になり、Summary に基盤の失敗である旨が書かれることを確認します。"""
     with allure.step("基盤が失敗した状態で完了処理を動かす"):
         _write_ci_files(tmp_path, summary=None, done=None)
         result = _run_finish(githooks_dir, tmp_path, "failure")
@@ -1241,7 +1339,9 @@ def test_finish_reports_infra_failure(githooks_dir: Path, tmp_path: Path) -> Non
         assert "基盤の失敗" in read_output(tmp_path / "summary.md")
 
 
+@allure.title("基盤の失敗の場合は、Summary にイメージ名も書く")
 def test_finish_reports_image_on_infra_failure(githooks_dir: Path, tmp_path: Path) -> None:
+    """`finish-ci-summary.sh` を、outcome が失敗で、`PECOT_CI_IMAGE` を指定した状態で実行した場合のテストです。終了コードが 1 になり、Summary にイメージ名の行が含まれることを確認します。"""
     with allure.step("基盤が失敗した状態で、イメージ付きで完了処理を動かす"):
         _write_ci_files(tmp_path, summary=None, done=None)
         result = run_attached(

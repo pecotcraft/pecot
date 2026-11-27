@@ -7,6 +7,7 @@ import path from 'node:path'
 
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { explains } from '../_helpers/explains.js'
 import { readFakeCalls } from '../../../../../libs/workflow-core/tests/_helpers/fake-executables.js'
 import { fixtureName, makeSandbox, pluginScript, runScript, splitLines, type Result, type Sandbox } from './_helpers/run.js'
 
@@ -140,7 +141,8 @@ describe('sandbox-sweep.sh', { timeout: 30_000 }, () => {
   })
 
   describe('契約の 6 つの場合', () => {
-    it('形に合う PR・ブランチ・Issue を、この順で片付ける', () => {
+    it('形式に合う PR・ブランチ・Issue を、PR・ブランチ・Issue の順に片付ける', async () => {
+      await explains('`sandbox-sweep.sh` が検証用リポジトリを片付ける動作のテストです。`cuj 456-ab12` の形式に合う PR・ブランチ・Issue が、PR・ブランチ・Issue の順に閉じられるか削除されることを確認します。')
       environment.refs('cuj/456-ab12')
       environment.issues([issue(11, '[Task] [cuj 456-ab12] 直す'), issue(12, '[cuj 456-ab12] 直す', { pr: true })])
       const result = environment.run()
@@ -157,7 +159,8 @@ describe('sandbox-sweep.sh', { timeout: 30_000 }, () => {
       ])
     })
 
-    it('形に合わない名前は、そのまま残す', () => {
+    it('形式に合わない名前の PR・ブランチ・Issue は、変更せずに残す', async () => {
+      await explains('形式に合わない名前の扱いのテストです。`cuj/notes` や `[cuj 456]` などの名前は変更せず、形式に合う `cuj/456-ab12` と Issue #16 だけを片付けることを確認します。')
       environment.refs('main', 'cuj/notes', 'fix/ci', 'cuj/456-ab12', 'cuj/456-ab12x', 'cuj/456-AB12')
       environment.issues([
         issue(14, 'ci.yml を直す', { pr: true }),
@@ -172,7 +175,8 @@ describe('sandbox-sweep.sh', { timeout: 30_000 }, () => {
       ])
     })
 
-    it('--issue を付けると、その番号のものだけを片付ける', () => {
+    it('--issue で番号を指定すると、その番号のものだけを片付ける', async () => {
+      await explains('`--issue 456` を指定した場合のテストです。番号 456 の PR・ブランチ・Issue だけが書き換えられ、457 と 4560 のものは書き換えられないことを確認します。')
       fullScene(environment)
       const result = environment.run('--issue', '456')
       expect(result.status).toBe(0)
@@ -183,7 +187,8 @@ describe('sandbox-sweep.sh', { timeout: 30_000 }, () => {
       expect(` ${joined} `).not.toContain(' 15 ')
     })
 
-    it('--dry-run は、書き換えずに一覧だけを出す', () => {
+    it('--dry-run を指定すると、書き換えずに一覧だけを表示する', async () => {
+      await explains('`--dry-run` を指定した場合のテストです。片付ける対象の一覧と「6 件を書き換えていない」の行を表示し、書き込みの呼び出しが 1 件も存在しないことを確認します。')
       fullScene(environment)
       const result = environment.run('--dry-run', '--issue', '456')
       expect(result.status).toBe(0)
@@ -200,14 +205,16 @@ describe('sandbox-sweep.sh', { timeout: 30_000 }, () => {
       expect(environment.writes()).toStrictEqual([])
     })
 
-    it('片付けるものが無ければ、0 件と出して何も書き換えない', () => {
+    it('片付ける対象が存在しない場合は、0 件と表示して何も書き換えない', async () => {
+      await explains('片付ける対象が存在しない場合のテストです。「片付けるものは 0 件」と表示して正常終了し、書き込みの呼び出しが存在しないことを確認します。')
       environment.refs('main')
       const result = environment.run()
       expect([result.status, result.stdout, result.stderr]).toStrictEqual([0, '片付けるものは 0 件\n', ''])
       expect(environment.writes()).toStrictEqual([])
     })
 
-    it('ブランチを 1 つ消せなくても、残りを続けて片付ける', () => {
+    it('ブランチを 1 つ削除できなくても、残りの対象を続けて片付け、終了コード 1 で終了する', async () => {
+      await explains('ブランチの削除に失敗した場合のテストです。失敗したブランチの分を標準エラーに表示して終了コード 1 になり、PR・Issue・カード・リリースの残りの書き込みは続けて行われることを確認します。')
       fullScene(environment)
       environment.fail = 'git/refs/heads/cuj/456-ab12/7'
       const result = environment.run('--issue', '456')
@@ -226,7 +233,8 @@ describe('sandbox-sweep.sh', { timeout: 30_000 }, () => {
   })
 
   describe('足した 5 つの場合', () => {
-    it('リリースとそのタグを消す', () => {
+    it('--issue に対応するリリースを、タグごと削除する', async () => {
+      await explains('リリースの削除のテストです。`--issue 456` の場合に、`cuj/456-ab12-tgz` のリリースだけが `--cleanup-tag` つきで削除され、`v1.0.0` や 457 のリリースは削除されないことを確認します。')
       environment.releases('cuj/456-ab12-tgz', 'cuj/457-cd34-tgz', 'v1.0.0', 'cuj/456-ab12')
       const result = environment.run('--issue', '456')
       expect(result.status).toBe(0)
@@ -234,7 +242,8 @@ describe('sandbox-sweep.sh', { timeout: 30_000 }, () => {
       expect(environment.writes()).toStrictEqual([`release delete cuj/456-ab12-tgz --cleanup-tag --yes -R ${SANDBOX}`])
     })
 
-    it('題の途中にある cuj のタグを見つけ、閉じた Issue のカードもアーカイブする', () => {
+    it('題の途中にある cuj のタグを検出し、閉じた Issue のカードもアーカイブする', async () => {
+      await explains('題の途中に `[cuj 456-ab12]` がある Issue とボードのカードのテストです。Issue を閉じ、その Issue と閉じた Issue のカードをアーカイブし、アーカイブ済みのカードには何もしないことを確認します。')
       environment.issues([issue(21, '[Task] [cuj 456-ab12] 題の途中にある')])
       environment.cards(
         [card('PVTI_20', 20, '[Task] [cuj 456-ab12] 閉じた Issue のカード')],
@@ -252,7 +261,8 @@ describe('sandbox-sweep.sh', { timeout: 30_000 }, () => {
       ])
     })
 
-    it('セッションの接尾辞の付いたブランチを拾い、番号の境目で別の番号と分ける', () => {
+    it('セッションの番号が付いたブランチ（cuj/456-ab12/7）を対象にし、別の Issue 番号（4560）のブランチと区別する', async () => {
+      await explains('ブランチ名の判定のテストです。`--issue 456` では `cuj/456-ab12/7` だけを削除し、引数を省略すると `cuj/4560-ab12` などの番号の長いブランチも合わせて 3 件を削除することを確認します。')
       environment.refs('cuj/456-ab12/7', 'cuj/4560-ab12', 'cuj/4560-ab12/9')
       const first = environment.run('--issue', '456')
       expect(first.status).toBe(0)
@@ -263,7 +273,8 @@ describe('sandbox-sweep.sh', { timeout: 30_000 }, () => {
       expect(environment.writes()).toHaveLength(3)
     })
 
-    it('どの呼び出しも検証用のリポとボードだけを指す', () => {
+    it('すべての gh の呼び出しが、検証用のリポジトリとボードだけを指す', async () => {
+      await explains('gh の呼び出しの宛先のテストです。すべての呼び出しが検証用リポジトリかボード（番号 3）だけを指し、一覧の取得に `--paginate` が付くことを確認します。')
       fullScene(environment)
       const result = environment.run()
       expect(result.status).toBe(0)
@@ -279,7 +290,8 @@ describe('sandbox-sweep.sh', { timeout: 30_000 }, () => {
       expect(calls.every(call => !call.includes('--delete-branch'))).toBe(true)
     })
 
-    it('PR を閉じてからブランチを消す', () => {
+    it('PR を閉じてからブランチを削除する', async () => {
+      await explains('書き込みの順序のテストです。書き込みの呼び出しが PR・ブランチ・Issue・ボード・リリースの順に並び、先頭が PR を閉じる呼び出しであることを確認します。')
       fullScene(environment)
       const result = environment.run()
       expect(result.status).toBe(0)
@@ -291,7 +303,8 @@ describe('sandbox-sweep.sh', { timeout: 30_000 }, () => {
   })
 
   describe('引数と読めない場合', () => {
-    it('一覧がまだ開いたままと返す、閉じた直後の Issue と PR は飛ばす', () => {
+    it('一覧が開いたままと返しても、閉じた直後の Issue と PR は対象から除く', async () => {
+      await explains('一覧の API が、閉じた直後の Issue を開いたままと返す場合のテストです。個別に取得した状態が `closed` の Issue と PR は対象から除き、開いている Issue #13 だけを閉じることを確認します。')
       environment.issues([
         issue(11, '[Task] [cuj 456-ab12] 閉じた直後', { state: 'closed' }),
         issue(12, '[cuj 456-ab12] 閉じた直後', { pr: true, state: 'closed' }),
@@ -303,7 +316,8 @@ describe('sandbox-sweep.sh', { timeout: 30_000 }, () => {
       expect(environment.writes()).toStrictEqual([`issue close 13 -R ${SANDBOX}`])
     })
 
-    it('閉じた直後のものしか無ければ、0 件になる', () => {
+    it('閉じた直後のものしか存在しない場合は、0 件になる', async () => {
+      await explains('閉じた直後の Issue だけが残っている場合のテストです。「片付けるものは 0 件」と表示し、書き込みの呼び出しが存在しないことを確認します。')
       environment.issues([issue(11, '[Task] [cuj 456-ab12] 閉じた直後', { state: 'closed' })])
       const result = environment.run()
       expect(result.status).toBe(0)
@@ -311,7 +325,8 @@ describe('sandbox-sweep.sh', { timeout: 30_000 }, () => {
       expect(environment.writes()).toStrictEqual([])
     })
 
-    it('片付けた後の検証用では、もう一度動かしても 0 件', () => {
+    it('片付けた後の検証用リポジトリで再び実行しても、0 件になる', async () => {
+      await explains('片付けた後にもう一度実行する場合のテストです。アーカイブ済みのカードと `cuj/notes` だけが残る状態で、「片付けるものは 0 件」と表示して正常終了することを確認します。')
       environment.refs('cuj/notes')
       environment.cards([card('PVTI_11', 11, '[Task] [cuj 456-ab12] 1 行直す', true)])
       const result = environment.run('--issue', '456')
@@ -325,14 +340,16 @@ describe('sandbox-sweep.sh', { timeout: 30_000 }, () => {
       ['--repo', 'pecotcraft/pecot'],
       ['-R', 'pecotcraft/pecot'],
       ['extra'],
-    ].map(argumentList => ({ argumentList })))('許さない引数 $argumentList は、gh を呼ばずに終了コード 2 で断る', ({ argumentList }) => {
+    ].map(argumentList => ({ argumentList })))('許可しない引数 $argumentList を渡すと、gh を呼ばずに終了コード 2 で終了する', async ({ argumentList }) => {
+      await explains(`許可しない引数のテストです。\`${argumentList.join(' ')}\` を渡すと、\`error: \` で始まるメッセージを標準エラーに表示し、gh を呼ばずに終了コード 2 で終了することを確認します。`)
       const result = environment.run(...argumentList)
       expect(result.status).toBe(2)
       expect(result.stderr.startsWith('error: ')).toBe(true)
       expect(environment.calls()).toStrictEqual([])
     })
 
-    it('読む呼び出しが失敗したら、書き換える前に終了コード 2 で止まる', () => {
+    it('読み取りの呼び出しが失敗すると、書き換える前に終了コード 2 で止まる', async () => {
+      await explains('リリースの一覧の取得に失敗した場合のテストです。「リリースの一覧を読めない」と標準エラーに表示して終了コード 2 になり、書き込みの呼び出しが存在しないことを確認します。')
       fullScene(environment)
       environment.fail = 'releases?per_page=100'
       const result = environment.run()

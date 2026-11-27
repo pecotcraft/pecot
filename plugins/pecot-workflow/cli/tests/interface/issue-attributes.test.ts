@@ -10,6 +10,7 @@ import type { RunningGithub } from '../_helpers/interface-case.js'
 import { enterGitRepository, runInProcess, setUpProject, startGithub } from '../_helpers/interface-case.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
+import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
@@ -70,6 +71,7 @@ const MARKDOWN = [
 
 describe('issue attributes', () => {
   it('呼ぶと、機能の定義を 1 行ずつの Markdown の箇条書きで標準出力に出す', async () => {
+    await explains('`issue attributes` の出力形式のテストです。呼び出した場合に、機能の定義を 1 行ずつの Markdown の箇条書きとして標準出力に出力することを確認します。')
     setUp()
     const github = await startGithub(definitionRules())
 
@@ -83,6 +85,7 @@ describe('issue attributes', () => {
   })
 
   it('--json を渡すと、MCP の結果と同じ attributes と unsupported を JSON で出す', async () => {
+    await explains('`issue attributes --json` のテストです。`--json` を指定した場合に、MCP ツールの結果と同じ `attributes` と `unsupported` を JSON で出力することを確認します。')
     setUp()
     await startGithub([...definitionRules(), ...definitionRules()])
 
@@ -96,6 +99,7 @@ describe('issue attributes', () => {
   describe('MCP の呼び出し', () => {
     it('呼ぶと、ボードのフィールドを source が project の定義にし、選択肢と Iteration の開始日を options に入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-ATTRIBUTES-01')
+      await explains('MCP ツール `issue_attributes` のボードのフィールドのテストです。呼び出した場合に、ボードのフィールドを `source` が `project` の定義として返し、選択肢と Iteration の開始日を `options` に入れることを確認します。')
       setUp()
       await startGithub(definitionRules())
 
@@ -113,6 +117,7 @@ describe('issue attributes', () => {
 
     it('呼ぶと、リポの Issue fields を source が issue_field の定義にする', async (context) => {
       await verifies(context, 'PW-ISSUE-ATTRIBUTES-02')
+      await explains('MCP ツール `issue_attributes` の Issue fields のテストです。呼び出した場合に、リポジトリの Issue fields を `source` が `issue_field` の定義として返すことを確認します。')
       setUp()
       await startGithub(definitionRules())
 
@@ -126,6 +131,7 @@ describe('issue attributes', () => {
 
     it('呼ぶと、組み込みの機能を source が issue の定義にし、マイルストーン・Issue type・ラベルを options に入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-ATTRIBUTES-03')
+      await explains('MCP ツール `issue_attributes` の組み込みの機能のテストです。呼び出した場合に、組み込みの機能を `source` が `issue` の定義として返し、マイルストーン・Issue type・ラベルを `options` に入れることを確認します。')
       setUp()
       await startGithub(definitionRules())
 
@@ -143,6 +149,7 @@ describe('issue attributes', () => {
 
     it('組み込みの機能を写すボードのフィールドと Issue field を写したボードのフィールドを、source が project の定義に入れない', async (context) => {
       await verifies(context, 'PW-ISSUE-ATTRIBUTES-04')
+      await explains('MCP ツール `issue_attributes` のボードのフィールドのテストです。組み込みの機能を写したフィールド（`Assignees`）と Issue field を写したフィールド（`Priority`）を、`source` が `project` の定義に入れないことを確認します。')
       setUp()
       await startGithub(definitionRules())
 
@@ -155,6 +162,7 @@ describe('issue attributes', () => {
 
     it('進行の欄・組み込みの Status・parent・blocked_by を、writable が false の定義にする', async (context) => {
       await verifies(context, 'PW-ISSUE-ATTRIBUTES-05')
+      await explains('MCP ツール `issue_attributes` の書き込みの可否のテストです。進行の欄・組み込みの Status・`parent`・`blocked_by` を、`writable` が `false` の定義として返すことを確認します。')
       setUp()
       await startGithub(definitionRules())
 
@@ -166,6 +174,7 @@ describe('issue attributes', () => {
 
     it('GitHub が計算するフィールドと知らない種類のフィールドを、unsupported の定義にし、unsupported にも入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-ATTRIBUTES-06')
+      await explains('MCP ツール `issue_attributes` の未対応のフィールドのテストです。GitHub が計算するフィールドと種類が不明なフィールドを、`unsupported` の定義として返し、結果の `unsupported` にも入れることを確認します。')
       setUp()
       const fields = [
         { id: 'F_progress', name: 'Sub-issues progress', dataType: 'SUB_ISSUES_PROGRESS', isIssueField: false },
@@ -189,6 +198,7 @@ describe('issue attributes', () => {
 
     it('Issue fields を読めない部分エラーでは、warnings に入れ、ほかの定義を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-ATTRIBUTES-07')
+      await explains('MCP ツール `issue_attributes` の部分エラーのテストです。Issue fields を読み取れない部分エラーが起きた場合に、理由を `warnings` に入れ、ほかの定義は返すことを確認します。')
       setUp()
       const errors = [{ type: 'FORBIDDEN', path: ['repository', 'issueFields'], message: 'Resource not accessible by integration' }]
       await startGithub([issueFieldsProbeRule(), respond('GetIssueAttributeDefinitions', { data: definitionsData({ issueFields: null }), errors })])
@@ -203,6 +213,7 @@ describe('issue attributes', () => {
 
     it('ボードを読めない部分エラーでは、warnings に入れ、リポの定義を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-ATTRIBUTES-07')
+      await explains('MCP ツール `issue_attributes` の部分エラーのテストです。ボードを読み取れない部分エラーが起きた場合に、理由を `warnings` に入れ、リポジトリの定義は返すことを確認します。')
       setUp()
       const errors = [{ type: 'INSUFFICIENT_SCOPES', path: ['project'], message: 'Your token has not been granted the required scopes' }]
       await startGithub([issueFieldsProbeRule(), respond('GetIssueAttributeDefinitions', { data: { ...definitionsData(), project: null }, errors })])
@@ -217,6 +228,7 @@ describe('issue attributes', () => {
 
     it('Issue fields の無い GitHub Enterprise Server では、Issue fields と type を除いた定義を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-ATTRIBUTES-08')
+      await explains('MCP ツール `issue_attributes` の GitHub Enterprise Server のテストです。Issue fields に対応していない場合に、Issue fields と `type` を除いた定義を返し、専用のクエリを使うことを確認します。')
       setUp()
       const data = { project: { fields: connectionPage([]) }, repository: { labels: connectionPage([]), milestones: connectionPage([]) } }
       const github = await startGithub([issueFieldsProbeRule(false), respond('GetIssueAttributeDefinitionsWithoutIssueFields', { data })])
@@ -229,6 +241,7 @@ describe('issue attributes', () => {
 
     it('ラベルとマイルストーンに続きのページがあると、続きも読んで options に入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-ATTRIBUTES-09')
+      await explains('MCP ツール `issue_attributes` のページ送りのテストです。ラベルとマイルストーンに続きのページがある場合に、続きも取得して `options` に入れることを確認します。')
       setUp()
       const github = await startGithub([
         ...definitionRules({ labels: pageWithMore([{ name: 'bug' }], 'L1'), milestones: pageWithMore([{ title: 'v1' }], 'M1') }),
@@ -250,6 +263,7 @@ describe('issue attributes', () => {
 
     it('json を付けて呼んでも、付けないときと同じ結果を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-ATTRIBUTES-10')
+      await explains('MCP ツール `issue_attributes` の `json` のテストです。`json` を指定して呼び出した場合も、指定しない場合と同じ結果を返すことを確認します。')
       setUp()
       await startGithub([...definitionRules(), ...definitionRules()])
 
@@ -260,10 +274,11 @@ describe('issue attributes', () => {
     })
 
     it.for([
-      { name: 'repo を渡す', withRepo: true },
-      { name: 'repo を省く', withRepo: false },
-    ])('$name と、そのリポの定義を読む', async ({ withRepo }, context) => {
+      { name: 'repo を渡した', withRepo: true },
+      { name: 'repo を省いた', withRepo: false },
+    ])('$name とき、そのリポの定義を読む', async ({ withRepo }, context) => {
       await verifies(context, 'PW-ISSUE-ATTRIBUTES-11')
+      await explains('MCP ツール `issue_attributes` の `repo` のテストです。`repo` を渡した場合と省略した場合のどちらでも、対象のリポジトリの定義を取得することを確認します。')
       setUp()
       const github = await startGithub(definitionRules())
 
@@ -275,6 +290,7 @@ describe('issue attributes', () => {
 
     it('repo を省いて git の remote のリポを読めないと、kind が git-unresolved の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-ATTRIBUTES-12')
+      await explains('MCP ツール `issue_attributes` の `repo` のテストです。`repo` を省略し、git の remote からリポジトリを決められない場合に、`kind` が `git-unresolved` の失敗を返し、GitHub へは要求しないことを確認します。')
       setUpProject()
       enterGitRepository()
       const github = await startGithub([])
@@ -288,6 +304,7 @@ describe('issue attributes', () => {
 
     it('対象のリポを含む設定が無いと、kind が repo-not-in-project の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-ATTRIBUTES-13')
+      await explains('MCP ツール `issue_attributes` のプロジェクトの設定のテストです。対象のリポジトリを含む設定が存在しない場合に、`kind` が `repo-not-in-project` の失敗を返すことを確認します。')
       setUp({ repositories: ['other'] })
 
       const outcome = await attributes()
@@ -298,6 +315,7 @@ describe('issue attributes', () => {
 
     it('GitHub API がエラーを返すと、kind が github-api の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-ATTRIBUTES-14')
+      await explains('MCP ツール `issue_attributes` の GitHub API のエラーのテストです。GitHub API がエラーを返した場合に、`github-api` の失敗を返し、`detail` に `could not read the attributes` で始まる理由を入れることを確認します。')
       setUp()
       await startGithub([issueFieldsProbeRule(), { match: { operation: 'GetIssueAttributeDefinitions' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
 

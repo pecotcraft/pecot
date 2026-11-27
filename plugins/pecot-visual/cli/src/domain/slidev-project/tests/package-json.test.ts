@@ -3,9 +3,11 @@
 import { describe, expect, it } from 'vitest'
 
 import { talkPackageJsonSource } from '../package-json.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 describe('talkPackageJsonSource', () => {
-  it('name・version・private・type と、テーマ 1 つだけの dependencies を書く', () => {
+  it('name・version・private・type と、テーマ 1 つだけの dependencies を書く', async () => {
+    await explains('talk-dir の `package.json` を作成する `talkPackageJsonSource` のテストです。名前とテーマを渡した場合に、`name`・`version`・`private`・`type` と、テーマ 1 つだけの `dependencies` を持つ JSON が作成されることを確認します。')
     const result = talkPackageJsonSource({
       name: 'my-talk',
       themeName: 'slidev-theme-sample',
@@ -20,7 +22,8 @@ describe('talkPackageJsonSource', () => {
     }, undefined, 2)}\n`)
   })
 
-  it('scope 付きのテーマ名も dependencies のキーにそのまま使う', () => {
+  it('scope 付きのテーマ名も dependencies のキーにそのまま使う', async () => {
+    await explains('talk-dir の `package.json` を作成する `talkPackageJsonSource` のテストです。`@scope/slidev-theme-x` のようにスコープ付きのテーマ名を渡した場合に、その名前が変わらずに `dependencies` のキーとして使われることを確認します。')
     const result = talkPackageJsonSource({ name: 't', themeName: '@scope/slidev-theme-x', themeSpec: 'file:../theme' })
     // eslint-disable-next-line no-restricted-syntax -- JSON.parse 戻りの narrowing
     const parsed = JSON.parse(result) as { dependencies: Record<string, string> }

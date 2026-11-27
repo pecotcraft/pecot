@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { attachOutput } from '../../../../../../../../libs/interface-spec/src/vitest/attach.js';
+import { explains } from '../../../../../../../../libs/interface-spec/src/vitest/explains.js';
 
 // 自己実行の判定は argv[1] の実体とモジュールの URL を比べる。ソースをそのまま起動して確かめる。
 const ENTRY = join(import.meta.dirname, '../index.ts');
@@ -17,20 +18,23 @@ function run(args: string[]): { status: number | null; stdout: string; stderr: s
 }
 
 describe('validate-references の起動', () => {
-  it('--dir を渡さないと、usage を出して exit 1 で終わる', () => {
+  it('--dir を渡さないと、usage を出して exit 1 で終わる', async () => {
+    await explains('`validate-references` の CLI の起動のテストです。`--dir` を渡さない場合に、usage が標準エラー出力に表示され、終了コード 1 で終了することを確認します。');
     const result = run([]);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /Usage: validate-references --dir/);
     assert.equal(result.stdout, '');
   });
 
-  it('--dir に値を渡さないと、usage を出して exit 1 で終わる', () => {
+  it('--dir に値を渡さないと、usage を出して exit 1 で終わる', async () => {
+    await explains('`--dir` に値を渡さない場合に、usage が表示され、終了コード 1 で終了することを確認します。');
     const result = run(['--dir']);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /Usage: validate-references --dir/);
   });
 
-  it('--dir に fixture deck の references を渡すと、違反 0 件のまま exit 0 で終わる', () => {
+  it('--dir に fixture deck の references を渡すと、違反 0 件のまま exit 0 で終わる', async () => {
+    await explains('`--dir` に fixture deck の references を渡した場合に、違反が 0 件のまま、終了コード 0 で終了することを確認します。');
     const result = run(['--dir', REFS_DIR]);
     assert.equal(result.status, 0, result.stdout);
     assert.match(result.stdout, /0 error\(s\) found\./);

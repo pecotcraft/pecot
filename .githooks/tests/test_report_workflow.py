@@ -87,7 +87,9 @@ def _outputs(path: Path) -> dict[str, str]:
 # ---------------------------------------------------------------- 契機・権限・concurrency
 
 
+@allure.title("test-report は、main への push と手動の起動だけで動く")
 def test_triggers_are_push_to_main_and_dispatch_only() -> None:
+    """`test-report.yml` の契機のテストです。`push` と `workflow_dispatch` の 2 つだけが存在し、`push` は main に限り、手動の起動では `release` と `dev` から側を選べることを確認します。"""
     with allure.step("test-report.yml の on を読む"):
         on = _load(_REPORT)[True]
     with allure.step("main への push と dispatch だけであることを確かめる"):
@@ -99,7 +101,9 @@ def test_triggers_are_push_to_main_and_dispatch_only() -> None:
         assert inputs["side"]["options"] == ["release", "dev"]
 
 
+@allure.title("main 以外のブランチから手動で起動すると、最初の step で失敗する")
 def test_dispatch_outside_main_fails_before_anything_else() -> None:
+    """`side` の job の最初の step のテストです。`workflow_dispatch` かつ main 以外のブランチのときだけ動き、`exit 1` で終了することを確認します。"""
     with allure.step("side の job の最初の step を読む"):
         first = _steps("side")[0]
     with allure.step("main の外の dispatch を最初に失敗させることを確かめる"):
@@ -109,14 +113,18 @@ def test_dispatch_outside_main_fails_before_anything_else() -> None:
         assert "exit 1" in first["run"]
 
 
+@allure.title("test-report の権限は、contents の読み取りだけに限る")
 def test_permissions_are_contents_read_only() -> None:
+    """`test-report.yml` の権限のテストです。workflow に `contents: read` だけが指定され、job ごとの権限の指定が存在しないことを確認します。"""
     with allure.step("権限が contents の read だけで、job に権限が無いことを確かめる"):
         assert _load(_REPORT)["permissions"] == {"contents": "read"}
         for name, job in _load(_REPORT)["jobs"].items():
             assert "permissions" not in job, name
 
 
+@allure.title("同じ側の run は、取り消さず、順番に待つ")
 def test_concurrency_waits_per_side_without_cancelling() -> None:
+    """`test-report.yml` の `concurrency` のテストです。グループが側ごとに分かれ、`cancel-in-progress` が `false` であることを確認します。"""
     with allure.step("concurrency が side ごとに待ち、止めない設定であることを確かめる"):
         assert _load(_REPORT)["concurrency"] == {
             "group": "test-report-${{ inputs.side || 'dev' }}",
@@ -124,7 +132,9 @@ def test_concurrency_waits_per_side_without_cancelling() -> None:
         }
 
 
+@allure.title("環境変数は ci.yml と同じ値にし、側ごとの URL は 1 か所だけに書く")
 def test_env_matches_ci_and_holds_side_urls_once() -> None:
+    """`test-report.yml` の環境変数のテストです。`PECOT_NX_CI` と `PECOTV_E2E_CEILING_SCALE` が `ci.yml` の値と一致することを確認します。開発版とリリース版のサイトの URL は、1 つずつだけ書かれています。"""
     with allure.step("test-report.yml と ci.yml の env を読む"):
         env, ci_env = _load(_REPORT)["env"], _load(_CI)["env"]
     with allure.step("env が ci.yml と合い、side の URL を 1 回ずつ持つことを確かめる"):
@@ -138,7 +148,9 @@ def test_env_matches_ci_and_holds_side_urls_once() -> None:
 # ---------------------------------------------------------------- side
 
 
+@allure.title("job は side・tests・report の順に、前の job を待って実行する")
 def test_jobs_are_side_tests_report() -> None:
+    """`test-report.yml` の job の構成のテストです。3 つの job が決まった順に存在し、`tests` は `side` を、`report` は `side` と `tests` を待つことを確認します。"""
     with allure.step("test-report.yml の job を読む"):
         jobs = _load(_REPORT)["jobs"]
     with allure.step("side・tests・report の順で needs がつながることを確かめる"):
@@ -147,7 +159,9 @@ def test_jobs_are_side_tests_report() -> None:
         assert jobs["report"]["needs"] == ["side", "tests"]
 
 
+@allure.title("side の job は、レポートの材料を求めて出力する")
 def test_side_resolves_report_sources() -> None:
+    """`Resolve report sources` の step のテストです。`release_sources.py --report` を呼び、環境変数に側とコミットが渡され、job の出力に側・URL・材料・matrix が含まれることを確認します。"""
     with allure.step("report の元を決める step を読む"):
         step = _step("side", "Resolve report sources")
     with allure.step("env と output が決めた形であることを確かめる"):
@@ -164,6 +178,9 @@ def test_side_resolves_report_sources() -> None:
         }
 
 
+@allure.title(
+    "{event} で側の入力が {input_side} のとき、側を {side} に、サイトの URL を {url} に決める"
+)
 @pytest.mark.parametrize(
     ("event", "input_side", "side", "url"),
     [
@@ -175,6 +192,7 @@ def test_side_resolves_report_sources() -> None:
 def test_side_decides_side_and_site_url(
     tmp_path: Path, event: str, input_side: str, side: str, url: str
 ) -> None:
+    """`Decide side` の step を、イベントと入力を変えて実行した場合のテストです。push では `dev` に、手動の起動では入力どおりの側に決まり、側に応じたサイトの URL が出力されることを確認します。"""
     with allure.step("side を決める step の env を読み、イベントと入力を渡して run を動かす"):
         step = _step("side", "Decide side")
         assert step["env"] == {
@@ -212,7 +230,9 @@ def _resolve_sources(tmp_path: Path, side: str, stdout: dict[str, Any]) -> tuple
     return calls, output, summary
 
 
+@allure.title("開発版では、コミットを `release_sources.py` に渡し、matrix を出力する")
 def test_side_passes_dev_commit_and_writes_matrix(tmp_path: Path) -> None:
+    """`Resolve report sources` の step を `dev` で実行した場合のテストです。`--report dev --commit` でコミットが渡され、`report` が `true` で、matrix と材料が JSON で出力されることを確認します。"""
     with allure.step("dev の元を返す偽の script で、report の元を決める step を動かす"):
         sources = {
             "side": "dev",
@@ -234,7 +254,9 @@ def test_side_passes_dev_commit_and_writes_matrix(tmp_path: Path) -> None:
         assert not summary.exists() or read_output(summary) == ""
 
 
+@allure.title("リリース版でレポートの材料が不足すると、レポートを作らず、不足を一覧で表示する")
 def test_side_skips_report_and_lists_missing_for_release(tmp_path: Path) -> None:
+    """`Resolve report sources` の step を `release` で実行し、対象の run が存在しない場合のテストです。`report` が `false`、matrix が `[]` になり、サマリーに不足したプラグインの一覧が表示されることを確認します。"""
     with allure.step("不足のある release の元で、report の元を決める step を動かす"):
         sources = {"side": "release", "runs": [], "missing": ["pecot-tools", "pecot-visual"]}
         calls, output, summary = _resolve_sources(
@@ -257,7 +279,9 @@ def test_side_skips_report_and_lists_missing_for_release(tmp_path: Path) -> None
 # ---------------------------------------------------------------- tests
 
 
+@allure.title("tests の job は、レーンがあるときだけ動き、1 つが失敗しても続ける")
 def test_tests_run_only_with_lanes_and_keep_going() -> None:
+    """`tests` の job のテストです。`report` が `true` のときだけ実行され、名前にレーンが入り、タイムアウトが ci.yml と同じで、`fail-fast` が `false` の matrix を使うことを確認します。"""
     with allure.step("tests の job を読む"):
         job = _job("tests")
     with allure.step("レーンがあるときだけ動き、1 つの失敗で止まらないことを確かめる"):
@@ -270,7 +294,9 @@ def test_tests_run_only_with_lanes_and_keep_going() -> None:
         }
 
 
+@allure.title("tests の job は、開発用のコンテナを起動する前に、レポートのコミットへ切り替える")
 def test_tests_switch_to_report_commit_before_the_dev_container() -> None:
+    """`tests` の job の step の並びのテストです。`Check out report commit` がコンテナの起動の前にあり、`git checkout --force` に `COMMIT` を渡すことを確認します。"""
     with allure.step("tests の step の名前を読む"):
         names = [s["name"] for s in _steps("tests")]
     with allure.step("dev container の前に report の commit へ切り替えることを確かめる"):
@@ -289,7 +315,9 @@ def test_tests_switch_to_report_commit_before_the_dev_container() -> None:
         assert _job("tests")["env"]["COMMIT"] == "${{ matrix.commit }}"
 
 
+@allure.title("tests の job は、1 つのレーンを実行し、テストが失敗しても job は失敗させない")
 def test_tests_run_one_lane_without_failing_the_job() -> None:
+    """`Run tests` の step のテストです。`continue-on-error` が `true` で、`nx run` に `CHECKS_LANE` を渡し、後始末の 3 つの step が `always()` で実行されることを確認します。"""
     with allure.step("テストを動かす step を読む"):
         step = _step("tests", "Run tests")
     with allure.step("1 レーンを動かし、失敗しても job を落とさないことを確かめる"):
@@ -304,7 +332,9 @@ def test_tests_run_one_lane_without_failing_the_job() -> None:
         )
 
 
+@allure.title("サイトの URL とブラウザの設定を、開発用のコンテナに渡す")
 def test_tests_pass_site_url_and_browser_into_container() -> None:
+    """`tests` の job の環境変数のテストです。`PECOT_REPORT_SITE_URL` と `PECOT_CI_BROWSER` が設定され、`DEVCONTAINER_ENV` に 3 つの変数が並ぶことを確認します。"""
     with allure.step("tests の job の env を読む"):
         env = _job("tests")["env"]
     with allure.step("サイトの URL とブラウザをコンテナへ渡すことを確かめる"):
@@ -317,7 +347,9 @@ def test_tests_pass_site_url_and_browser_into_container() -> None:
         ]
 
 
+@allure.title("テスト結果は、隠しファイルを含めて artifact としてアップロードする")
 def test_tests_upload_results_with_hidden_files() -> None:
+    """`Upload results` の step のテストです。名前・パス・保存期間 1 日・上書きの許可・`include-hidden-files`・ファイルが存在しないときのエラーが、期待どおりであることを確認します。"""
     with allure.step("結果の upload の step を読む"):
         (upload,) = _uses("tests", "actions/upload-artifact")
     with allure.step("隠しファイルも含めて upload することを確かめる"):
@@ -352,8 +384,12 @@ def _stage_repo(tmp_path: Path) -> tuple[Path, str]:
     return repo, head
 
 
+@allure.title(
+    "テスト結果の状態が {param_id} のとき、結果を集める場所に source.json を作成し、結果があればコピーする"
+)
 @pytest.mark.parametrize("with_results", [True, False], ids=["results", "no-results"])
 def test_stage_results_copies_results_and_writes_source(tmp_path: Path, with_results: bool) -> None:
+    """`Stage results` の step を一時的な git リポジトリで実行した場合のテストです。`source.json` にレーンと HEAD のコミットが書かれ、テスト結果は存在するときだけコピーされることを確認します。"""
     with allure.step("結果と ref の元になるリポを用意し、結果を集める step の run を動かす"):
         repo, head = _stage_repo(tmp_path)
         results = ".githooks/test-results/test-ci/allure-results"
@@ -377,12 +413,16 @@ def test_stage_results_copies_results_and_writes_source(tmp_path: Path, with_res
 # ---------------------------------------------------------------- report
 
 
+@allure.title("report の job は、取り消されていなければ、レポートがあるときに動く")
 def test_report_runs_unless_cancelled() -> None:
+    """`report` の job の条件のテストです。取り消されておらず、`side` の `report` の出力が `true` であることを確認します。"""
     with allure.step("report の job が、取り消されないかぎり動く条件であることを確かめる"):
         assert _job("report")["if"] == "${{ !cancelled() && needs.side.outputs.report == 'true' }}"
 
 
+@allure.title("report の job は、version-plan と同じ手順で Node.js をセットアップする")
 def test_report_installs_node_on_the_runner_like_version_plan() -> None:
+    """`report` の job の step のテストです。最初の 4 つの step の設定が、ci.yml の `version-plan` と同じであることを確認します。その後に、レポートを生成する step が続きます。"""
     with allure.step("report の step の名前を読む"):
         names = [s["name"] for s in _steps("report")]
         expected = ["Checkout", "Set up Node.js", "Enable Corepack", "Install dependencies"]
@@ -402,7 +442,9 @@ def test_report_installs_node_on_the_runner_like_version_plan() -> None:
         ]
 
 
+@allure.title("report の job は、すべてのテスト結果をリポジトリのルートにダウンロードする")
 def test_report_downloads_all_results_into_the_repo_root() -> None:
+    """`actions/download-artifact` の設定のテストです。パターンが `allure-results-*` で、`merge-multiple` が有効で、保存先が `github.workspace` であることを確認します。"""
     with allure.step("結果の download の step を読む"):
         (download,) = _uses("report", "actions/download-artifact")
     with allure.step("すべての結果をリポのルートへ集めることを確かめる"):
@@ -413,7 +455,9 @@ def test_report_downloads_all_results_into_the_repo_root() -> None:
         }
 
 
+@allure.title("レポートは、材料と履歴を指定して生成する")
 def test_report_generates_with_sources_and_history() -> None:
+    """`Generate report` の step のテストです。`generate.py` に `--sources`・`--output`・`--history` を渡し、`SOURCES` の環境変数に `side` の出力が設定されることを確認します。"""
     with allure.step("report を作る step の run を読む"):
         step = _step("report", "Generate report")
         run = step["run"]
@@ -424,7 +468,9 @@ def test_report_generates_with_sources_and_history() -> None:
         assert _job("report")["env"]["SOURCES"] == "${{ needs.side.outputs.sources }}"
 
 
+@allure.title("レポートは、側ごとの名前で 7 日間保存する")
 def test_report_uploads_report_for_seven_days() -> None:
+    """`Upload report` の step のテストです。名前に側が入り、パス・保存期間 7 日・上書きの許可・ファイルが存在しないときのエラーが、期待どおりであることを確認します。"""
     with allure.step("report の upload の step を読む"):
         (upload,) = _uses("report", "actions/upload-artifact")
     with allure.step("7 日間 upload することを確かめる"):
@@ -466,6 +512,7 @@ def _store_repo(tmp_path: Path, files: dict[str, str] | None) -> Path:
 _STORED = {"test-report/history.jsonl": '{"r":1}\n', "dev/test-report/history.jsonl": '{"d":1}\n'}
 
 
+@allure.title("側が {side}、保管ブランチの状態が {param_id} のとき、保管された履歴を読み込む")
 @pytest.mark.parametrize(
     ("side", "files", "kept", "warned"),
     [
@@ -479,6 +526,7 @@ _STORED = {"test-report/history.jsonl": '{"r":1}\n', "dev/test-report/history.js
 def test_read_history_from_pages_store_of_the_side(
     tmp_path: Path, side: str, files: dict[str, str] | None, kept: str, warned: bool
 ) -> None:
+    """`Read stored history` の step を、保管ブランチの状態を変えて実行した場合のテストです。側ごとの履歴の内容が読み込まれ、履歴や保管ブランチが存在しないときは空になり、保管ブランチが存在しないときだけ警告が表示されることを確認します。"""
     with allure.step("保管した pages-store のリポを用意し、履歴を読む step の run を動かす"):
         repo = _store_repo(tmp_path, files)
         summary, temp = tmp_path / "summary", tmp_path / "runner-temp"
@@ -500,7 +548,9 @@ def test_read_history_from_pages_store_of_the_side(
         assert (step["env"]["MSG_NO_STORE"] in text) == warned
 
 
+@allure.title("履歴の確認では、blob を取得せずに保管ブランチの参照だけを調べる")
 def test_read_history_looks_up_the_path_without_reading_the_blob() -> None:
+    """`Read stored history` の step のテストです。checkout が `blob:none` のため、`cat-file` を使わず、`git rev-parse --verify` で参照を確認することを確認します。"""
     with allure.step("履歴を読む step の run を読む"):
         # checkout は blob:none なので、cat-file -e は blob を取りに行き、取れないと「無い」と読む。
         run = _step("report", "Read stored history")["run"]
@@ -509,9 +559,11 @@ def test_read_history_looks_up_the_path_without_reading_the_blob() -> None:
         assert 'elif git rev-parse --verify --quiet "$stored" > /dev/null; then' in run
 
 
+@allure.title("blob を取得できないとき、履歴を空にして続け、サマリーで警告する")
 def test_read_history_warns_and_starts_empty_when_the_blob_cannot_be_fetched(
     tmp_path: Path,
 ) -> None:
+    """保管ブランチの blob を取得できない clone で `Read stored history` を実行した場合のテストです。終了コードが 0 で、履歴が空になり、サマリーに履歴を取得できなかった旨の警告が書かれることを確認します。"""
     with allure.step("blob を取れない clone を用意し、履歴を読む step の run を動かす"):
         # FR-021: 履歴を取れないときも、空の履歴でレポートを作り、job summary で知らせる。
         src = _store_repo(tmp_path, _STORED)
@@ -554,7 +606,9 @@ def test_read_history_warns_and_starts_empty_when_the_blob_cannot_be_fetched(
         assert step["env"]["MSG_NO_STORE"] in read_output(tmp_path / "summary")
 
 
+@allure.title("レポートの 3 つの step は、履歴・材料・サイトのファイルを順に引き継ぐ")
 def test_report_steps_hand_history_sources_and_tree_to_each_other(tmp_path: Path) -> None:
+    """`Read stored history`・`Generate report`・`Pack report` を続けて実行した場合のテストです。材料が `report-sources.json` に保存され、`report.tar` に `index.html` と、追記された `history.jsonl` が含まれることを確認します。"""
     with allure.step("保管のリポと偽の python3 を用意する"):
         repo = _store_repo(tmp_path, _STORED)
         temp, bin_dir, seen = tmp_path / "runner-temp", tmp_path / "bin", tmp_path / "seen-sources"
@@ -592,7 +646,9 @@ def test_report_steps_hand_history_sources_and_tree_to_each_other(tmp_path: Path
         assert read_output(extract / "history.jsonl") == '{"d":1}\n{"new":1}\n'
 
 
+@allure.title("レポートを梱包するとき、履歴をサイトのファイルと同じ場所に含める")
 def test_pack_report_puts_history_into_the_tree(tmp_path: Path) -> None:
+    """`Pack report` の step のテストです。出力先に `report.tar` と `report-sources.json` が作られ、`report.tar` の内容が `index.html` と `history.jsonl` だけであることを確認します。"""
     with allure.step("report の木と履歴を置き、report を固める step の run を動かす"):
         temp = tmp_path / "runner-temp"
         work = temp / "test-report"
@@ -616,7 +672,9 @@ def test_pack_report_puts_history_into_the_tree(tmp_path: Path) -> None:
 # ---------------------------------------------------------------- 共通
 
 
+@allure.title("すべての checkout は、github の参照で全履歴を取得する")
 def test_checkouts_use_github_ref_with_full_history() -> None:
+    """`test-report.yml` の `actions/checkout` のテストです。3 つの checkout すべてで、`ref` が `github.sha`、`fetch-depth` が 0、`filter` が `blob:none` で、認証情報を残さないことを確認します。"""
     with allure.step("checkout の step を集める"):
         # step の出力の SHA を checkout すると、CodeQL の actions/cache-poisoning が止める。
         checkouts = [
@@ -633,14 +691,18 @@ def test_checkouts_use_github_ref_with_full_history() -> None:
             }
 
 
+@allure.title("すべての action は、40 桁の SHA で固定する")
 def test_every_action_is_pinned_to_a_full_sha() -> None:
+    """`test-report.yml` のすべての `uses` のテストです。参照が `owner/repo@<40 桁の 16 進数>` の形であることを確認します。"""
     with allure.step("すべての action が 40 桁の sha で固定されていることを確かめる"):
         for job, step in _all_steps():
             if "uses" in step:
                 assert re.fullmatch(r"[^@\s]+@[0-9a-f]{40}", step["uses"]), (job, step["uses"])
 
 
+@allure.title("シェルのスクリプトに、式と日本語を書かない")
 def test_shell_has_no_expressions_or_japanese() -> None:
+    """`test-report.yml` の `run` のテストです。すべての step で `${{` が含まれず、ASCII 以外の文字も含まれないことを確認します。"""
     with allure.step("すべての run に式と日本語が無いことを確かめる"):
         for job, step in _all_steps():
             run = step.get("run", "")
@@ -651,7 +713,9 @@ def test_shell_has_no_expressions_or_japanese() -> None:
 # ---------------------------------------------------------------- release.yml
 
 
+@allure.title("リリースの workflow は、サイトのビルドの直後に、同じ条件でレポートの run を起動する")
 def test_release_triggers_test_report_like_pages_build() -> None:
+    """`release.yml` の `Trigger test report release run` の step のテストです。サイトのビルドを起動する step の直後にあり、条件と環境変数が同じで、`land.log` を確認して `test-report.yml` を `side=release` で起動することを確認します。"""
     with allure.step("release.yml の step を読む"):
         names = [s.get("name") for s in _steps("release", _RELEASE)]
         pages = _step("release", "Trigger pages release build", _RELEASE)
@@ -669,6 +733,7 @@ def test_release_triggers_test_report_like_pages_build() -> None:
         )
 
 
+@allure.title("land.log が {param_id} のとき、レポートの run を起動するかを決める")
 @pytest.mark.parametrize(
     ("land_log", "called"),
     [
@@ -681,6 +746,7 @@ def test_release_triggers_test_report_like_pages_build() -> None:
 def test_release_test_report_trigger_reads_land_log(
     tmp_path: Path, land_log: str | None, called: bool
 ) -> None:
+    """偽の `gh` を使って `Trigger test report release run` の step を実行した場合のテストです。`land.log` が `landed:` で始まる場合だけ `gh workflow run` が呼ばれることを確認します。"""
     with allure.step("land.log と偽の gh を置き、report を起こす step の run を動かす"):
         if land_log is not None:
             (tmp_path / ".pecot/tmp/release").mkdir(parents=True)

@@ -16,6 +16,7 @@ import { callToolOnce } from '../_helpers/mcp-client.js'
 import { prerequisitesRule } from '../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
 import { verifies } from '../_helpers/verifies.js'
 import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
+import { explains } from '../_helpers/explains.js'
 
 useIsolatedEnvironment()
 
@@ -62,6 +63,7 @@ describe('auto gate', () => {
     it('書き込み権限を持つ人が Ready の Issue にラベルを付けると、kind が start で proceed が真の JSON を出し、何も書かない', async (context) => {
       await verifies(context, 'PW-AUTO-GATE-01')
       await verifies(context, 'PW-AUTO-GATE-14')
+      await explains('`auto gate` の `issues` イベントのテストです。書き込み権限を持つ人が `Ready` の Issue にラベルを付けた場合に、`kind` が `start` で `proceed` が真の JSON を出し、何も書かないことを確認します。')
       prepareAuto()
       const github = await startGithub([permissionOf('alice', 'write'), prerequisitesRule({ number: 7, column: 'Ready' }), issueComments()])
 
@@ -74,6 +76,7 @@ describe('auto gate', () => {
 
     it('GITHUB_OUTPUT があると、同じ値を key=value の行で足す', async (context) => {
       await verifies(context, 'PW-AUTO-GATE-02')
+      await explains('`auto gate` のテストです。環境変数 `GITHUB_OUTPUT` を設定した場合に、JSON と同じ値を `key=value` の行にして、そのファイルの末尾へ追加することを確認します。')
       prepareAuto()
       const file = path.join(makeTemporaryDirectory('pecot-auto-gate-'), 'output')
       writeFileSync(file, 'earlier=1\n', 'utf8')
@@ -87,6 +90,7 @@ describe('auto gate', () => {
 
     it('計画のコメントとブランチが無く、開いた PR だけがある Issue は、kind を resume にして、その PR を出す', async (context) => {
       await verifies(context, 'PW-AUTO-GATE-16')
+      await explains('`auto gate` の `issues` イベントのテストです。計画のコメントとブランチが無く、開いた PR だけがある Issue の場合に、`kind` を `resume` にして、その PR を出力することを確認します。')
       prepareAuto()
       await startGithub([permissionOf('alice', 'write'), prerequisitesRule({ number: 7, column: 'Ready', pullRequests: [{ number: 11, head: BRANCH }] }), issueComments()])
 
@@ -100,6 +104,7 @@ describe('auto gate', () => {
       { name: 'triage', permission: 'triage', reason: 'the sender has no write permission' },
     ])('ラベルを付けた人の権限が $name なら、Issue を読まずに proceed が偽の JSON と skipped の行を出す', async ({ permission, reason }, context) => {
       await verifies(context, 'PW-AUTO-GATE-03')
+      await explains(`\`auto gate\` の \`issues\` イベントのテストです。ラベルを付けた人の権限が \`${permission}\` の場合に、Issue を読まず、\`proceed\` が偽の JSON と \`skipped\` の行を出すことを確認します。`)
       prepareAuto()
       const github = await startGithub([permissionOf('alice', permission)])
 
@@ -111,6 +116,7 @@ describe('auto gate', () => {
 
     it('ラベルを付けた人が [bot] なら、権限を読まず、proceed を偽にする', async (context) => {
       await verifies(context, 'PW-AUTO-GATE-03')
+      await explains('`auto gate` の `issues` イベントのテストです。ラベルを付けた人が `[bot]` の場合に、権限を読まず、`proceed` を偽にすることを確認します。')
       prepareAuto()
       const github = await startGithub([])
 
@@ -122,6 +128,7 @@ describe('auto gate', () => {
 
     it('Backlog の Issue なら、out-of-scope の結果のコメントを書いて起動ラベルを外し、proceed が偽の JSON を出して成功する', async (context) => {
       await verifies(context, 'PW-AUTO-GATE-04')
+      await explains('`auto gate` の `issues` イベントのテストです。`Backlog` の Issue の場合に、`out-of-scope` の結果のコメントを書き、起動ラベルを外して、`proceed` が偽の JSON を出し成功することを確認します。')
       prepareAuto()
       const github = await startGithub([permissionOf('alice', 'write'), prerequisitesRule({ number: 7, column: 'Backlog' }), issueComments(), AUTO_POSTED, labelRemoved()])
 
@@ -140,6 +147,7 @@ describe('auto gate', () => {
 
     it('--dry-run なら、書くはずの本文を JSON の comment に入れ、コメントとラベルを書かない', async (context) => {
       await verifies(context, 'PW-AUTO-GATE-10')
+      await explains('`auto gate` の `issues` イベントのテストです。`--dry-run` を付けた場合に、書くはずの本文を JSON の `comment` に入れ、コメントとラベルを書かないことを確認します。')
       prepareAuto()
       const github = await startGithub([permissionOf('alice', 'write'), prerequisitesRule({ number: 7, column: 'Backlog' }), issueComments()])
 
@@ -157,6 +165,7 @@ describe('auto gate', () => {
   describe('workflow_run のイベント', () => {
     it('自動処理が PR を作ったブランチの CI が落ちると、kind が ci-fix で proceed が真の JSON を出す', async (context) => {
       await verifies(context, 'PW-AUTO-GATE-05')
+      await explains('`auto gate` の `workflow_run` イベントのテストです。自動処理が PR を作ったブランチの CI が落ちた場合に、`kind` が `ci-fix` で `proceed` が真の JSON を出すことを確認します。')
       prepareAuto()
       const github = await startGithub([issueComments([botResult('pr-created')]), branchSha()])
 
@@ -168,6 +177,7 @@ describe('auto gate', () => {
 
     it('CI が通ると、ci-passed の結果のコメントを書き、ラベルと Status は書かない', async (context) => {
       await verifies(context, 'PW-AUTO-GATE-06')
+      await explains('`auto gate` の `workflow_run` イベントのテストです。CI が通った場合に、`ci-passed` の結果のコメントを書き、ラベルと Status は書かないことを確認します。')
       prepareAuto()
       const github = await startGithub([issueComments([botResult('pr-created')]), branchSha(), headRuns(['success', undefined]), AUTO_POSTED])
 
@@ -180,6 +190,7 @@ describe('auto gate', () => {
 
     it('CI を直した回数が上限に達していると、limit の結果のコメントを書き、Status を Needs Attention にして起動ラベルを外す', async (context) => {
       await verifies(context, 'PW-AUTO-GATE-07')
+      await explains('`auto gate` の `workflow_run` イベントのテストです。CI を直した回数が上限に達している場合に、`limit` の結果のコメントを書き、Status を `Needs Attention` にして起動ラベルを外すことを確認します。')
       prepareAuto()
       const comments = [botResult('pr-created'), botResult('ci-fix-pushed')]
       const github = await startGithub([issueComments(comments), branchSha(), boardItems(), AUTO_POSTED, statusUpdated('needs_attention'), labelRemoved()])
@@ -196,6 +207,7 @@ describe('auto gate', () => {
       { name: '末尾が Issue 番号でないブランチ', values: { head_branch: 'renovate/x' }, reason: 'the branch renovate/x does not end with an Issue number' },
     ])('$name の CI なら、何も読まず、proceed を偽にする', async ({ values, reason }, context) => {
       await verifies(context, 'PW-AUTO-GATE-08')
+      await explains('`auto gate` の `workflow_run` イベントのテストです。fork のブランチなど処理の対象外の CI の場合に、何も読まず、`proceed` を偽にして理由を出すことを確認します。')
       prepareAuto()
       const github = await startGithub([])
 
@@ -212,6 +224,7 @@ describe('auto gate', () => {
       { name: 'CI が通った後に人が push した', comments: [botResult('pr-created'), bot(autoResult('ci-passed'), '2026-11-24T08:00:00Z')], sha: HEAD, reason: `${BRANCH} was pushed by a person after the CI passed` },
     ])('$name ブランチの CI なら、何も書かず、proceed を偽にする', async ({ comments, sha, reason }, context) => {
       await verifies(context, 'PW-AUTO-GATE-09')
+      await explains('`auto gate` の `workflow_run` イベントのテストです。自動処理の PR が無いなど処理の対象外のブランチの CI の場合に、何も書かず、`proceed` を偽にして理由を出すことを確認します。')
       prepareAuto()
       const github = await startGithub([issueComments(comments), branchSha(sha)])
 
@@ -224,6 +237,7 @@ describe('auto gate', () => {
 
     it('CI が通っても、同じ commit のほかの run が落ちていれば、ci-passed を書かず、proceed を偽にする', async (context) => {
       await verifies(context, 'PW-AUTO-GATE-15')
+      await explains('`auto gate` の `workflow_run` イベントのテストです。CI が通っても同じ commit のほかの run が落ちている場合は、`ci-passed` を書かず、`proceed` を偽にすることを確認します。')
       prepareAuto()
       const github = await startGithub([issueComments([botResult('pr-created')]), branchSha(), headRuns(['success', 'failure'])])
 
@@ -235,6 +249,7 @@ describe('auto gate', () => {
 
     it('同じ push の CI でもう ci-passed を書いていれば、ci-passed を重ねて書かない', async (context) => {
       await verifies(context, 'PW-AUTO-GATE-15')
+      await explains('`auto gate` の `workflow_run` イベントのテストです。同じ push の CI で `ci-passed` をすでに書いている場合に、`ci-passed` を重ねて書かず、`proceed` を偽にすることを確認します。')
       prepareAuto()
       const comments = [botResult('pr-created'), bot(autoResult('ci-passed'), '2026-11-24T10:00:00Z')]
       const github = await startGithub([issueComments(comments), branchSha(), headRuns()])
@@ -248,6 +263,7 @@ describe('auto gate', () => {
 
   it('設定に fields.status が無いと、何も読まずに project init を案内して止まる', async (context) => {
     await verifies(context, 'PW-AUTO-GATE-11')
+    await explains('`auto gate` のテストです。設定に `fields.status` が無い場合に、何も読まず、`project init` を案内して終了コード 1 で止まることを確認します。')
     prepareAuto({ hasStatus: false })
     const github = await startGithub([])
 
@@ -261,6 +277,7 @@ describe('auto gate', () => {
 
   it('イベントのファイルが無いと、何も読まずに入力の誤りで止まる', async (context) => {
     await verifies(context, 'PW-AUTO-GATE-12')
+    await explains('`auto gate` のテストです。イベントのファイルが存在しない場合に、何も読まず、入力の誤りとして終了コード 1 で止まることを確認します。')
     prepareAuto()
     const file = path.join(makeTemporaryDirectory('pecot-auto-gate-'), 'missing.json')
     const github = await startGithub([])
@@ -273,6 +290,7 @@ describe('auto gate', () => {
 
   it('イベントのファイルが JSON でないと、入力の誤りで止まる', async (context) => {
     await verifies(context, 'PW-AUTO-GATE-12')
+    await explains('`auto gate` のテストです。イベントのファイルが JSON でない場合に、入力の誤りとして終了コード 1 で止まることを確認します。')
     prepareAuto()
     const file = path.join(makeTemporaryDirectory('pecot-auto-gate-'), 'broken.json')
     writeFileSync(file, '{', 'utf8')
@@ -290,6 +308,7 @@ describe('auto gate', () => {
       { name: 'issue.state of open or closed', event: { issue: { number: 7 }, sender: { login: 'alice' }, repository: REPOSITORY } },
     ])('issues のイベントに $name が無いと、何も読まずに入力の誤りで止まる', async ({ name, event }, context) => {
       await verifies(context, 'PW-AUTO-GATE-12')
+      await explains(`\`auto gate\` の \`issues\` イベントのテストです。イベントに \`${name}\` が無い場合に、何も読まず、入力の誤りとして終了コード 1 で止まることを確認します。`)
       prepareAuto()
       const github = await startGithub([])
 
@@ -300,6 +319,7 @@ describe('auto gate', () => {
     })
 
     it('ラベルを付けた人の権限を読めないと、Issue を読まずに proceed を偽にする', async () => {
+      await explains('`auto gate` の `issues` イベントのテストです。ラベルを付けた人の権限を読めない場合に、Issue を読まず、`proceed` を偽にすることを確認します。')
       prepareAuto()
       const github = await startGithub([{ match: { method: 'GET', path: '/repos/acme/demo/collaborators/alice/permission' }, respond: { status: 404, body: { message: 'Not Found' } }, times: 1 }])
 
@@ -311,6 +331,7 @@ describe('auto gate', () => {
     })
 
     it('Issue の読み取りが GitHub の失敗で止まると、Issue を示して止まる', async () => {
+      await explains('`auto gate` の `issues` イベントのテストです。Issue の読み取りが GitHub の失敗で止まる場合に、Issue を示すエラーを出して終了コード 1 で止まることを確認します。')
       prepareAuto()
       const github = await startGithub([permissionOf('alice', 'write'), { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
 
@@ -322,6 +343,7 @@ describe('auto gate', () => {
     })
 
     it('Blocked の Issue の前提を判定できないと、前提を blocked とだけ書いて、proceed を偽にする', async () => {
+      await explains('`auto gate` の `issues` イベントのテストです。`Blocked` の Issue の前提を判定できない場合に、前提を `blocked` とだけ書き、`proceed` を偽にすることを確認します。')
       prepareAuto()
       const blocker = { number: 3, column: 'In Review', branch: 'feat/3', pullRequests: [{ number: 30, base: 'feat/2' }] }
       const github = await startGithub([
@@ -341,6 +363,7 @@ describe('auto gate', () => {
     })
 
     it('Blocked の Issue なら、残る前提を本文に書いて、proceed を偽にする', async () => {
+      await explains('`auto gate` の `issues` イベントのテストです。`Blocked` の Issue の場合に、残る前提を本文に書き、`proceed` を偽にすることを確認します。')
       prepareAuto()
       const github = await startGithub([
         permissionOf('alice', 'write'),
@@ -357,6 +380,7 @@ describe('auto gate', () => {
     })
 
     it('終わっていない run の conclusion が null で、PR が無いと、何も読まず、PR の番号を 0 にする', async () => {
+      await explains('`auto gate` の `workflow_run` イベントのテストです。`conclusion` が `null` で PR が無い場合に、何も読まず、PR の番号を 0 にして `proceed` を偽にすることを確認します。')
       prepareAuto()
       const github = await startGithub([])
 
@@ -368,6 +392,7 @@ describe('auto gate', () => {
     })
 
     it('CI のブランチがもう無いと、proceed を偽にする', async () => {
+      await explains('`auto gate` の `workflow_run` イベントのテストです。CI のブランチがすでに存在しない場合に、`proceed` を偽にし、何も書かないことを確認します。')
       prepareAuto()
       const github = await startGithub([issueComments([botResult('pr-created')]), { match: { method: 'GET', path: `/repos/acme/demo/git/ref/heads/${BRANCH}` }, respond: { status: 404, body: { message: 'Not Found' } }, times: 1 }])
 
@@ -378,6 +403,7 @@ describe('auto gate', () => {
     })
 
     it('CI のブランチの読み取りが GitHub の失敗で止まると、ブランチを示して止まる', async () => {
+      await explains('`auto gate` の `workflow_run` イベントのテストです。CI のブランチの読み取りが GitHub の失敗で止まる場合に、ブランチを示すエラーを出して終了コード 1 で止まることを確認します。')
       prepareAuto()
       await startGithub([issueComments([botResult('pr-created')]), { match: { method: 'GET', path: `/repos/acme/demo/git/ref/heads/${BRANCH}` }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }])
 
@@ -391,6 +417,7 @@ describe('auto gate', () => {
   describe('MCP の data', () => {
     it('結果のコメントを書くと、実行の欄を run に入れ、結果と URL を足して返す', async (context) => {
       await verifies(context, 'PW-AUTO-GATE-13')
+      await explains('MCP の `auto_gate` のテストです。結果のコメントを書いた場合に、実行の欄を `run` に入れ、結果とコメントの URL を追加して返すことを確認します。')
       prepareAuto()
       await startGithub([permissionOf('alice', 'write'), prerequisitesRule({ number: 7, column: 'Backlog' }), issueComments(), AUTO_POSTED, labelRemoved()])
 

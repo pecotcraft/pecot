@@ -13,6 +13,7 @@ import { capture } from '../../src/commands/tests/support.js'
 import { templateFile } from '../../src/infra/template-store.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
+import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
 import type { CliResult } from '../_helpers/interface-case.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
@@ -86,6 +87,7 @@ describe('review finish', () => {
   it('--ensure と job の failure で同じ実行のコメントが無いと、failed のコメントを 1 つ書き、URL を標準出力に出す', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-01')
     await verifies(context, 'PW-REVIEW-FINISH-14')
+    await explains('`review finish` が停止を知らせるコメントを作成する基本の動作のテストです。`--ensure` と job の `failure` を指定し、同じ実行のコメントが存在しない場合に、`failed` のコメントを 1 件作成することを確認します。')
     prepare()
     const file = executionFile([{ type: 'result', subtype: 'error_during_execution', is_error: true }])
     const github = await startGithub([pullRequest(), comments(), POSTED])
@@ -100,8 +102,9 @@ describe('review finish', () => {
     expect(`${outcome.stdout}${outcome.stderr}${body}`).not.toContain(TOKEN)
   })
 
-  it('同じ実行・同じ試行の目印を持つ bot のコメントがあると、書かずに skipped の行を出して 0 で終わる', async (context) => {
+  it('同じ実行・同じ試行を示すコメントを bot が既に書いていると、コメントを書かずに skipped の行を出して終了コード 0 で終わる', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-02')
+    await explains('`review finish` の重複防止のテストです。同じ実行・同じ試行を示す `<!-- pecot-review-stopped … -->` を持つ bot のコメントが存在する場合に、`skipped` の行を表示することを確認します。')
     prepare()
     const github = await startGithub([pullRequest(), comments([{ body: 'x\n<!-- pecot-review-stopped run=500 attempt=1 -->', user: { type: 'Bot' } }])])
 
@@ -111,8 +114,9 @@ describe('review finish', () => {
     expect(hasPosted(github.requests())).toBe(false)
   })
 
-  it('re-run で試行の番号が違うと、前の試行の目印があっても書く', async (context) => {
+  it('re-run で試行の番号が違うと、前の試行を示すコメントが存在しても、新しいコメントを書く', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-02')
+    await explains('`review finish` の重複防止のテストです。re-run で試行の番号が前回と異なる場合に、前回の試行を示すコメントが存在しても、新しい試行の番号を付けたコメントを作成することを確認します。')
     prepare({ GITHUB_RUN_ATTEMPT: '2' })
     const github = await startGithub([pullRequest(), comments([{ body: '<!-- pecot-review-stopped run=500 attempt=1 -->', user: { type: 'Bot' } }]), POSTED])
 
@@ -122,8 +126,9 @@ describe('review finish', () => {
     expect(postedBody(github.requests())).toContain('<!-- pecot-review-stopped run=500 attempt=2 -->')
   })
 
-  it('人が書いた目印は数えず、書く', async (context) => {
+  it('人が書いたコメントに同じ実行を示す文字列があっても、重複とみなさずコメントを書く', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-02')
+    await explains('`review finish` の重複防止のテストです。人が書いたコメントに同じ実行を示す `<!-- pecot-review-stopped … -->` が含まれていても、重複とみなさずコメントを作成することを確認します。')
     prepare()
     const github = await startGithub([pullRequest(), comments([{ body: '<!-- pecot-review-stopped run=500 attempt=1 -->', user: { type: 'User' } }]), POSTED])
 
@@ -134,6 +139,7 @@ describe('review finish', () => {
 
   it('--ensure と job の cancelled で打つと、limit のコメントを書く', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-03')
+    await explains('`review finish` の `limit` のテストです。`--ensure` と job の `cancelled` を指定した場合に、ターンまたは時間の上限で止まったことを示す `limit` のコメントを作成することを確認します。')
     prepare()
     const github = await startGithub([pullRequest(), comments(), POSTED])
 
@@ -145,6 +151,7 @@ describe('review finish', () => {
 
   it('実行のファイルの最後の result が error_max_turns だと、limit のコメントを書く', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-04')
+    await explains('`review finish` の `limit` のテストです。実行ファイルの最後の `result` が `error_max_turns` の場合に、`limit` のコメントを作成することを確認します。')
     prepare()
     const file = executionFile([{ type: 'result', subtype: 'error_max_turns', is_error: true, terminal_reason: 'max_turns' }])
     const github = await startGithub([pullRequest(), comments(), POSTED])
@@ -156,6 +163,7 @@ describe('review finish', () => {
 
   it('実行のファイルの最後の result が api_error の認証の失敗だと、トークンを作り直す手順を添えた failed のコメントを書く', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-05')
+    await explains('`review finish` の認証失敗のテストです。実行ファイルの最後の `result` が `api_error` の認証失敗の場合に、トークンを作り直す手順を含む `failed` のコメントを作成することを確認します。')
     prepare()
     const file = executionFile([{ type: 'result', subtype: 'success', is_error: true, terminal_reason: 'api_error', result: 'API Error: Token exchange failed with status 401: {"error":{"type":"authentication_error"}}' }])
     const github = await startGithub([pullRequest(), comments(), POSTED])
@@ -169,6 +177,7 @@ describe('review finish', () => {
 
   it('自動レビューの step が failure で github_token が無いと、App を入れる手順を添えた setup-missing のコメントを書く', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-06')
+    await explains('`review finish` の `setup-missing` のテストです。step が `failure` で `github_token` が存在しない場合に、GitHub App の導入手順を含む `setup-missing` のコメントを作成することを確認します。')
     prepare()
     const github = await startGithub([pullRequest(), comments(), POSTED])
 
@@ -181,6 +190,7 @@ describe('review finish', () => {
 
   it('Claude Code が動かずに step が落ち、起動した人が write の権限を持たないと、書かずに skipped の行を出す', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-07')
+    await explains('`review finish` の権限判定のテストです。Claude Code が未起動で step が失敗し、起動した人が `write` の権限を持たない場合に、コメントを作成せず `skipped` の行を表示することを確認します。')
     prepare()
     const github = await startGithub([pullRequest(), permission('read')])
 
@@ -192,6 +202,7 @@ describe('review finish', () => {
 
   it('Claude Code が動かずに step が落ち、起動した人が write の権限を持つと、failed のコメントを書く', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-07')
+    await explains('`review finish` の権限判定のテストです。Claude Code が起動せずに step が失敗し、起動した人が `write` の権限を持つ場合に、`failed` のコメントを作成することを確認します。')
     prepare()
     const github = await startGithub([pullRequest(), permission('write'), comments(), POSTED])
 
@@ -202,6 +213,7 @@ describe('review finish', () => {
 
   it('起動した人の権限を読めないと、warning の行を出して書く', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-17')
+    await explains('`review finish` の権限取得に失敗した場合のテストです。起動した人の権限を取得できない場合に、`warning` の行を表示したうえで、コメントを作成することを確認します。')
     prepare()
     const denied: ResponseRule = { match: { method: 'GET', path: '/repos/acme/demo/collaborators/alice/permission' }, respond: { status: 403, body: { message: 'Resource not accessible by integration' } }, times: 1 }
     const github = await startGithub([pullRequest(), denied, comments(), POSTED])
@@ -215,6 +227,7 @@ describe('review finish', () => {
 
   it('起動した人の名前が [bot] で終わると、権限を読まずに書く', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-07')
+    await explains('`review finish` の権限判定のテストです。起動した人の名前が `[bot]` で終わる場合に、権限を取得せずにコメントを作成することを確認します。')
     prepare({ GITHUB_ACTOR: 'renovate[bot]' })
     const github = await startGithub([pullRequest(), comments(), POSTED])
 
@@ -226,6 +239,7 @@ describe('review finish', () => {
 
   it('--result reviewed で打つと、PR を読まずに、書かずに skipped の行を出す', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-08')
+    await explains('`review finish` の `--result reviewed` のテストです。レビューが完了した場合に、PR を取得せず、コメントも作成せずに `skipped` の行を表示することを確認します。')
     prepare()
     const github = await startGithub([])
 
@@ -237,6 +251,7 @@ describe('review finish', () => {
 
   it('--ensure と job の success で打つと、PR を読まずに、書かずに skipped の行を出す', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-09')
+    await explains('`review finish` の `--ensure` のテストです。job が `success` の場合に、PR を取得せず、コメントも作成せずに `skipped` の行を表示することを確認します。')
     prepare()
     const github = await startGithub([])
 
@@ -248,6 +263,7 @@ describe('review finish', () => {
 
   it('自動レビューの step が成功で conclusion が空だと、雛形の食い違いの理由を添えて、書かずに skipped の行を出す', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-19')
+    await explains('`review finish` のワークフローファイルの不一致を検出するテストです。自動レビューの step が成功なのに conclusion が空の場合に、ワークフローファイルがデフォルトブランチと異なることを示す理由を添えて、`skipped` の行を表示することを確認します。')
     prepare()
     const github = await startGithub([])
 
@@ -259,6 +275,7 @@ describe('review finish', () => {
 
   it('PR が閉じていると、書かずに skipped の行を出す', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-10')
+    await explains('`review finish` の PR の状態のテストです。PR が閉じている場合に、コメントを作成せず `skipped` の行を表示することを確認します。')
     prepare()
     const github = await startGithub([pullRequest('closed')])
 
@@ -270,6 +287,7 @@ describe('review finish', () => {
 
   it('--since より後に F-NN で始まるインラインコメントがあると、止まった場所をインラインコメントを投稿した後と書く', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-11')
+    await explains('`review finish` の止まった場所の判定のテストです。`--since` より後に `F-NN` で始まるインラインコメントが存在する場合に、止まった場所を「インラインコメントを投稿した後」と記載することを確認します。')
     prepare()
     const github = await startGithub([pullRequest(), comments(), reviewComments([{ body: '**F-01** [tech] 型が違う', created_at: '2026-11-17T10:05:00Z' }]), POSTED])
 
@@ -280,6 +298,7 @@ describe('review finish', () => {
 
   it('--since より後に指摘のインラインコメントが無いと、止まった場所を指摘を投稿する前と書く', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-11')
+    await explains('`review finish` の止まった場所の判定のテストです。`--since` より後に指摘のインラインコメントが存在しない場合に、止まった場所を「指摘を投稿する前」と記載することを確認します。')
     prepare()
     const github = await startGithub([pullRequest(), comments(), reviewComments([{ body: '**F-01** [tech] 前の実行', created_at: '2026-11-17T09:00:00Z' }]), POSTED])
 
@@ -290,6 +309,7 @@ describe('review finish', () => {
 
   it('--since が空だと、止まった場所を分からないと書く', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-18')
+    await explains('`review finish` の止まった場所の判定のテストです。`--since` が空文字の場合に、止まった場所を「分からない」と記載することを確認します。')
     prepare()
     const github = await startGithub([pullRequest(), comments(), POSTED])
 
@@ -299,8 +319,9 @@ describe('review finish', () => {
     expect(postedBody(github.requests())).toContain('- 止まった場所 — 分からない')
   })
 
-  it('GITHUB_RUN_ID が無いと、目印を付けず、PR のコメントを読まない', async (context) => {
+  it('GITHUB_RUN_ID が存在しないと、実行を示す文字列を本文に付けず、PR のコメントを取得しない', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-12')
+    await explains('`review finish` の実行 ID のテストです。環境変数 `GITHUB_RUN_ID` が存在しない場合に、重複判定用のコメントを付けず、PR のコメント一覧も取得しないことを確認します。')
     prepare({ GITHUB_RUN_ID: undefined })
     const github = await startGithub([pullRequest(), POSTED])
 
@@ -312,6 +333,7 @@ describe('review finish', () => {
 
   it('--dry-run を付けると、PR を読み、書くはずの本文を標準出力に出し、コメントを書かない', async (context) => {
     await verifies(context, 'PW-REVIEW-FINISH-16')
+    await explains('`review finish` の `--dry-run` のテストです。`--dry-run` を指定した場合に、PR は取得するが、作成するはずの本文を標準出力に表示し、コメントは作成しないことを確認します。')
     prepare()
     const github = await startGithub([pullRequest(), comments()])
 
@@ -323,7 +345,8 @@ describe('review finish', () => {
     expect(hasPosted(github.requests())).toBe(false)
   })
 
-  it('合言葉の環境変数があると、次にすることの文にその合言葉を書く', async () => {
+  it('再起動の文言を指定する環境変数があると、次の手順の文にその文言を書く', async () => {
+    await explains('`review finish` の再起動の案内のテストです。環境変数 `PECOT_REVIEW_TRIGGER_PHRASE` を設定した場合に、次の手順の文にそのトリガーの文言が含まれることを確認します。')
     prepare({ PECOT_REVIEW_TRIGGER_PHRASE: '@my-bot review' })
     const github = await startGithub([pullRequest(), comments(), POSTED])
 
@@ -343,6 +366,7 @@ describe('review finish', () => {
     { name: 'ISO 8601 でない --since', argv: [...FAILED_RUN, '--since', 'yesterday'], message: 'error: --since is not an ISO 8601 time: yesterday\n' },
   ])('$name を渡すと、何も読まずに終了コード 1 で終わる', async (row, context) => {
     await verifies(context, 'PW-REVIEW-FINISH-13')
+    await explains('`review finish` の引数検証のテストです。不正な引数の組み合わせを指定した場合に、GitHub を一切呼び出さず、原因を示すエラーを表示して終了コード 1 で終わることを確認します。')
     prepare()
     const github = await startGithub([])
 
@@ -353,9 +377,10 @@ describe('review finish', () => {
   })
 
   it.for([
-    { name: '無い', file: (): string => path.join(makeTemporaryDirectory('pecot-review-finish-'), 'missing.json') },
-    { name: 'ディレクトリで読めない', file: (): string => makeTemporaryDirectory('pecot-review-finish-') },
+    { name: '存在しない', file: (): string => path.join(makeTemporaryDirectory('pecot-review-finish-'), 'missing.json') },
+    { name: 'ディレクトリで読み込めない', file: (): string => makeTemporaryDirectory('pecot-review-finish-') },
   ])('実行のファイルが $name と、理由の分からない failed のコメントを書く', async ({ file }) => {
+    await explains('`review finish` の実行ファイルが読み込めない場合のテストです。実行ファイルが存在しない場合やディレクトリの場合に、理由が不明な `failed` のコメントを作成することを確認します。')
     prepare()
     const github = await startGithub([pullRequest(), comments(), POSTED])
 
@@ -365,7 +390,8 @@ describe('review finish', () => {
     expect(postedBody(github.requests())).toContain('- 結果 — `failed`')
   })
 
-  it('GITHUB_RUN_ATTEMPT が無いと、目印の試行を 1 にする', async () => {
+  it('GITHUB_RUN_ATTEMPT が存在しないと、試行の番号を 1 にする', async () => {
+    await explains('`review finish` の試行番号のテストです。環境変数 `GITHUB_RUN_ATTEMPT` が存在しない場合に、重複判定用のコメントの試行番号を 1 にすることを確認します。')
     prepare({ GITHUB_RUN_ATTEMPT: undefined })
     const github = await startGithub([pullRequest(), comments(), POSTED])
 
@@ -375,6 +401,7 @@ describe('review finish', () => {
   })
 
   it('インラインコメントの本文と日時が文字列でなければ、指摘として数えない', async () => {
+    await explains('`review finish` の止まった場所の判定のテストです。インラインコメントの本文と日時が文字列でない場合に、指摘として扱わず、止まった場所を「指摘を投稿する前」と記載することを確認します。')
     prepare()
     const github = await startGithub([pullRequest(), comments(), reviewComments([{ body: 1, created_at: 2 }]), POSTED])
 
@@ -387,6 +414,7 @@ describe('review finish', () => {
     { name: 'PR の読み取り', rules: [{ match: { method: 'GET', path: PR }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }], line: 'could not read PR acme/demo#11: ' },
     { name: 'コメントの作成', rules: [pullRequest(), comments(), { match: { method: 'POST', path: COMMENTS }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }], line: 'could not create a comment on PR acme/demo#11: ' },
   ])('$name が GitHub の失敗で止まると、PR を示して止まる', async ({ rules, line }) => {
+    await explains('`review finish` の GitHub API の失敗のテストです。PR の取得またはコメントの作成が GitHub の失敗で止まった場合に、対象の PR を示すエラーを表示して終了コード 1 で終わることを確認します。')
     prepare()
     await startGithub(rules)
 
@@ -397,6 +425,7 @@ describe('review finish', () => {
   })
 
   it('埋めた本文が、テンプレートの検証を通る', async () => {
+    await explains('`review finish` が作成するコメント本文のテストです。`setup-missing` のコメントを作成した場合に、本文がテンプレートの検証を通過することを確認します。')
     prepare()
     const github = await startGithub([pullRequest(), comments(), POSTED])
     await finish(['--result', 'setup-missing', '--detail', 'secret <X>'])
@@ -410,6 +439,7 @@ describe('review finish', () => {
   describe('MCP の data', () => {
     it('result の reviewed で呼ぶと、書かずに skipped を data に返す', async (context) => {
       await verifies(context, 'PW-REVIEW-FINISH-15')
+      await explains('`review finish` の MCP の結果のテストです。`review_finish` に `result` として `reviewed` を指定して呼び出した場合に、コメントを作成せず、`skipped` を含む data を返すことを確認します。')
       prepare()
       await startGithub([])
 
@@ -420,6 +450,7 @@ describe('review finish', () => {
     })
 
     it('コメントを書くと、結果・止まった場所・URL を data に返す', async () => {
+      await explains('`review finish` の MCP の結果のテストです。`review_finish` がコメントを作成した場合に、結果・止まった場所・コメントの URL を含む data を返すことを確認します。')
       prepare()
       await startGithub([pullRequest(), comments(), POSTED])
 

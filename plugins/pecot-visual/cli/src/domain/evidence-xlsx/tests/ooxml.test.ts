@@ -35,6 +35,7 @@ import {
   VALUE_COLUMN_WIDTH,
   XML_DECLARATION,
 } from '../ooxml.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 const NS_MAIN = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'
 const NS_OFFICE_REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
@@ -77,19 +78,22 @@ describe('buildContentTypesXml', () => {
       + `<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>`
       + `</Types>`
 
-  it('png のみでは png の Default だけを宣言する', () => {
+  it('画像の形式が png だけの場合は、png の Default だけを宣言する', async () => {
+    await explains('xlsx の `[Content_Types].xml` を作成する `buildContentTypesXml` のテストです。画像の形式が `png` だけの場合に、`png` の `Default` だけを宣言し、drawing などの `Override` を含めることを確認します。')
     expect(buildContentTypesXml(['png', 'png'])).toBe(
       `${HEAD}<Default Extension="png" ContentType="image/png"/>${OVERRIDES}`,
     )
   })
 
-  it('jpeg のみでは jpeg の Default だけを宣言する', () => {
+  it('画像の形式が jpeg だけの場合は、jpeg の Default だけを宣言する', async () => {
+    await explains('xlsx の `[Content_Types].xml` を作成する `buildContentTypesXml` のテストです。画像の形式が `jpeg` だけの場合に、`jpeg` の `Default` だけを宣言することを確認します。')
     expect(buildContentTypesXml(['jpeg'])).toBe(
       `${HEAD}<Default Extension="jpeg" ContentType="image/jpeg"/>${OVERRIDES}`,
     )
   })
 
-  it('混在では png → jpeg の固定順で両方宣言する', () => {
+  it('画像の形式が混在している場合は、png、jpeg の固定の順に、両方を宣言する', async () => {
+    await explains('xlsx の `[Content_Types].xml` を作成する `buildContentTypesXml` のテストです。`jpeg` と `png` を渡した場合に、渡した順によらず、`png`、`jpeg` の順に両方の `Default` を宣言することを確認します。')
     expect(buildContentTypesXml(['jpeg', 'png'])).toBe(
       `${HEAD}<Default Extension="png" ContentType="image/png"/>`
       + `<Default Extension="jpeg" ContentType="image/jpeg"/>${OVERRIDES}`,
@@ -98,7 +102,8 @@ describe('buildContentTypesXml', () => {
 })
 
 describe('rels パーツ', () => {
-  it('_rels/.rels は workbook を officeDocument として指す', () => {
+  it('_rels/.rels は、workbook を officeDocument として指す', async () => {
+    await explains('xlsx のルートの関係を作成する `buildRootRelsXml` のテストです。`xl/workbook.xml` を、種類が `officeDocument` の関係として指すことを確認します。')
     expect(buildRootRelsXml()).toBe(
       `${DECL}<Relationships xmlns="${NS_PACKAGE_REL}">`
       + `<Relationship Id="rId1" Type="${NS_OFFICE_REL}/officeDocument" Target="xl/workbook.xml"/>`
@@ -106,7 +111,8 @@ describe('rels パーツ', () => {
     )
   })
 
-  it('workbook.xml.rels は worksheet と styles を持つ (theme は持たない)', () => {
+  it('workbook.xml.rels は、worksheet と styles だけを持ち、theme を持たない', async () => {
+    await explains('xlsx の workbook の関係を作成する `buildWorkbookRelsXml` のテストです。`worksheet` と `styles` への関係だけを持ち、`theme` への関係を含まないことを確認します。')
     expect(buildWorkbookRelsXml()).toBe(
       `${DECL}<Relationships xmlns="${NS_PACKAGE_REL}">`
       + `<Relationship Id="rId1" Type="${NS_OFFICE_REL}/worksheet" Target="worksheets/sheet1.xml"/>`
@@ -115,7 +121,8 @@ describe('rels パーツ', () => {
     )
   })
 
-  it('sheet1.xml.rels は drawing を相対パスで指す', () => {
+  it('sheet1.xml.rels は、drawing を相対パスで指す', async () => {
+    await explains('xlsx のシートの関係を作成する `buildSheetRelsXml` のテストです。`../drawings/drawing1.xml` を、種類が `drawing` の関係として相対パスで指すことを確認します。')
     expect(buildSheetRelsXml()).toBe(
       `${DECL}<Relationships xmlns="${NS_PACKAGE_REL}">`
       + `<Relationship Id="rId1" Type="${NS_OFFICE_REL}/drawing" Target="../drawings/drawing1.xml"/>`
@@ -123,7 +130,8 @@ describe('rels パーツ', () => {
     )
   })
 
-  it('drawing1.xml.rels は media を ../media/ 参照で並び順どおり張る', () => {
+  it('drawing1.xml.rels は、画像を ../media/ の参照で、渡した順に関係づける', async () => {
+    await explains('xlsx の drawing の関係を作成する `buildDrawingRelsXml` のテストです。2 つの画像のパスを渡した場合に、`../media/` を指す関係が渡した順に `rId1` と `rId2` になることを確認します。')
     expect(buildDrawingRelsXml(['xl/media/image1.png', 'xl/media/image2.jpeg'])).toBe(
       `${DECL}<Relationships xmlns="${NS_PACKAGE_REL}">`
       + `<Relationship Id="rId1" Type="${NS_OFFICE_REL}/image" Target="../media/image1.png"/>`
@@ -134,7 +142,8 @@ describe('rels パーツ', () => {
 })
 
 describe('buildWorkbookXml', () => {
-  it('シートは 1 枚だけで name はレイアウトのシート名', () => {
+  it('シートは 1 枚だけで、name にレイアウトのシート名を使う', async () => {
+    await explains('xlsx の `workbook.xml` を作成する `buildWorkbookXml` のテストです。シート名 `Evidence` を渡した場合に、`sheet` が 1 つだけで、`name` がそのシート名になることを確認します。')
     expect(buildWorkbookXml('Evidence')).toBe(
       `${DECL}<workbook xmlns="${NS_MAIN}" xmlns:r="${NS_OFFICE_REL}">`
       + `<sheets><sheet name="Evidence" sheetId="1" r:id="rId1"/></sheets>`
@@ -144,7 +153,8 @@ describe('buildWorkbookXml', () => {
 })
 
 describe('buildSheetXml', () => {
-  it('要素順・シート体裁・列幅・行高・inline string を具体値で pin する', () => {
+  it('要素の順序、シートの体裁、列の幅、行の高さ、インライン文字列を、具体的な値どおりに出力する', async () => {
+    await explains('シートの XML を作成する `buildSheetXml` のテストです。画像が 1 枚のレイアウトを渡した場合に、要素の順序、ページ設定、列の幅、行の高さ、インライン文字列のセルが、想定した XML と一致することを確認します。')
     expect(buildSheetXml(singleImageLayout())).toBe(
       `${DECL}<worksheet xmlns="${NS_MAIN}" xmlns:r="${NS_OFFICE_REL}">`
       // fitToPage を宣言しないと pageSetup の fitToWidth が無視される。
@@ -177,7 +187,8 @@ describe('buildSheetXml', () => {
     )
   })
 
-  it('extraHeaders 0 件ではヘッダーが 2 行になり item 開始行が繰り上がる', () => {
+  it('extraHeaders がない場合は、ヘッダーが 2 行になり、項目の開始行が 1 行上がる', async () => {
+    await explains('シートの XML を作成する `buildSheetXml` のテストです。`extraHeaders` が空の場合に、キャプションの行が 6 行目から 5 行目に上がり、`dimension` の終端が `C33` になることを確認します。')
     // 作成者 1 件を持つ上のケースとの差は「3 行目の追加ヘッダーが無い」ことだけ。
     // キャプション行が 6 → 5、dimension の終端が 34 → 33 へ 1 行ぶん上がる。
     const xml = buildSheetXml(buildEvidenceLayout({
@@ -202,7 +213,8 @@ describe('buildSheetXml', () => {
     )
   })
 
-  it('extraHeaders は宣言順に行 3・行 4 の B 列 (label) / C 列 (value) へ写る', () => {
+  it('extraHeaders は、宣言した順に、3 行目と 4 行目の B 列にラベル、C 列に値として配置する', async () => {
+    await explains('シートの XML を作成する `buildSheetXml` のテストです。2 件の `extraHeaders` を渡した場合に、3 行目と 4 行目の B 列にラベル、C 列に値を配置し、`dimension` の終端が `C4` になることを確認します。')
     const xml = buildSheetXml(buildEvidenceLayout({
       title: 'ログイン機能 動作確認エビデンス',
       createdDate: '2026-08-17',
@@ -224,7 +236,8 @@ describe('buildSheetXml', () => {
     expect(xml).toContain(`<dimension ref="B1:C4"/>`)
   })
 
-  it('行は昇順・同一行のセルは列の昇順で並ぶ', () => {
+  it('行は昇順に、同じ行のセルは列の昇順に並べる', async () => {
+    await explains('シートの XML を作成する `buildSheetXml` のテストです。ヘッダーと画像が 2 枚あるレイアウトを渡した場合に、`row` が昇順に並び、同じ行では B 列のセルが C 列より前に出力されることを確認します。')
     const xml = buildSheetXml(buildEvidenceLayout({
       title: 'T',
       createdDate: '2026-08-17',
@@ -237,7 +250,8 @@ describe('buildSheetXml', () => {
     expect(xml.indexOf('r="B2"')).toBeLessThan(xml.indexOf('r="C2"'))
   })
 
-  it('すべてのセルが s 属性を持つ (既定書式のままのセルを作らない)', () => {
+  it('すべてのセルが s 属性を持ち、既定の書式のままのセルを作らない', async () => {
+    await explains('シートの XML を作成する `buildSheetXml` のテストです。出力したすべてのセルが `s` 属性（書式の番号）を持つことを確認します。')
     const xml = buildSheetXml(singleImageLayout())
     const cells = xml.matchAll(/<c r="[A-Z]\d+"([^>/]*)/g).map(match => match[1] ?? '').toArray()
 
@@ -245,7 +259,8 @@ describe('buildSheetXml', () => {
     expect(cells.every(attributes => attributes.includes(' s="'))).toBe(true)
   })
 
-  it('5 文字のエスケープと空値セルを扱う', () => {
+  it('XML の 5 つの特殊文字をエスケープし、値が空のセルは値なしのセルにする', async () => {
+    await explains('シートの XML を作成する `buildSheetXml` のテストです。タイトルに `&`、`<`、`>`、`"`、`\'` を含む場合に、それぞれエスケープし、値が空の `extraHeaders` は、空の文字列を持たない値なしのセルになることを確認します。')
     const xml = buildSheetXml(buildEvidenceLayout({
       title: `A&B <tag> "q" 'a'`,
       createdDate: '2026-08-17',
@@ -259,7 +274,8 @@ describe('buildSheetXml', () => {
     expect(xml).not.toContain(`<is><t></t></is>`)
   })
 
-  it('前後に空白を持つ値は xml:space="preserve" を付ける', () => {
+  it('前後に空白がある値には、xml:space="preserve" を付ける', async () => {
+    await explains('シートの XML を作成する `buildSheetXml` のテストです。値の前後に空白がある場合に、`xml:space="preserve"` を付け、空白がない値には付けないことを確認します。')
     const xml = buildSheetXml(buildEvidenceLayout({
       title: 'T',
       createdDate: '2026-08-17',
@@ -271,7 +287,8 @@ describe('buildSheetXml', () => {
     expect(xml).toContain(`<t>担当</t>`)
   })
 
-  it('XML 1.0 で表現できない制御文字を除去する', () => {
+  it('XML 1.0 で表現できない制御文字を取り除き、タブは残す', async () => {
+    await explains('シートの XML を作成する `buildSheetXml` のテストです。タイトルに `\\0` などの制御文字が含まれる場合に取り除き、XML 1.0 で表現できるタブは残すことを確認します。')
     const xml = buildSheetXml(buildEvidenceLayout({
       title: ['タイト', '\0', 'ル', '\u{1F}', 'です', '\b'].join(''),
       createdDate: '2026-08-17',
@@ -315,7 +332,8 @@ describe('buildStylesXml', () => {
     + `<diagonal/>`
     + `</border>`
 
-  it('フォント・塗り・罫線・cellXfs を具体値で pin する', () => {
+  it('フォント、塗りつぶし、罫線、cellXfs を、具体的な値どおりに出力する', async () => {
+    await explains('スタイルの XML を作成する `buildStylesXml` のテストです。フォント、塗りつぶし、罫線、`cellXfs` の定義が、想定した XML と一致することを確認します。')
     expect(buildStylesXml()).toBe(
       `${DECL}<styleSheet xmlns="${NS_MAIN}">`
       + `<fonts count="3">`
@@ -369,7 +387,8 @@ describe('buildStylesXml', () => {
     )
   })
 
-  it('count 属性を持つ全リストで count が実子要素数と一致する', () => {
+  it('count 属性を持つすべてのリストで、count が子要素の数と一致する', async () => {
+    await explains('スタイルの XML を作成する `buildStylesXml` のテストです。`fonts` や `cellXfs` など、`count` 属性を持つすべてのリストで、宣言した `count` が実際の子要素の数と一致することを確認します。')
     // count と実体がずれると Excel は修復を出さずに書式だけを落とす。数え直しを
     // テスト側でも手で書かず、宣言と実体の突き合わせだけを見る。
     const lists = buildStylesXml().matchAll(
@@ -391,14 +410,16 @@ describe('buildStylesXml', () => {
     }
   })
 
-  it('cellXfs は既定 xf 1 件ぶんだけ CellStyle より多い', () => {
+  it('cellXfs の数は、セルの書式の種類の数より、既定の xf の 1 件だけ多い', async () => {
+    await explains('スタイルの XML を作成する `buildStylesXml` のテストです。`cellXfs` の `count` が、`CELL_STYLE_ORDER` の要素の数に既定の `xf` の 1 件を加えた値になることを確認します。')
     // index の対応が 1 つずれると、全セルの書式が隣へずれる。
     // CELL_STYLE_ORDER を増減したときに、cellXfs 側が追従していない状態をここで見つける。
     const count = /<cellXfs count="(\d+)">/.exec(buildStylesXml())?.[1]
     expect(Number(count)).toBe(CELL_STYLE_ORDER.length + 1)
   })
 
-  it('CELL_STYLE_ORDER は cellXfs の並び契約そのもので、重複や欠落がない', () => {
+  it('CELL_STYLE_ORDER は、cellXfs の並びと対応する順序で、重複や欠落がない', async () => {
+    await explains('セルの書式の並びを表す `CELL_STYLE_ORDER` のテストです。要素が `cellXfs` の並びに対応する、想定した順序で並び、重複がないことを確認します。')
     // 並び順が s 属性の値になるため、順序ごとリテラルで pin する。
     // CellStyle を増やしたとき、CELL_XF_DEFINITIONS 側の不足は Record の型が教える。
     // この配列側の不足は、ここで見つかる。
@@ -413,7 +434,8 @@ describe('buildStylesXml', () => {
     expect(new Set(CELL_STYLE_ORDER).size).toBe(CELL_STYLE_ORDER.length)
   })
 
-  it('border は全辺を left → right → top → bottom → diagonal の順で持つ', () => {
+  it('border は、すべての辺を left、right、top、bottom、diagonal の順に持つ', async () => {
+    await explains('スタイルの XML を作成する `buildStylesXml` のテストです。すべての `border` が、5 つの辺の要素を `left`、`right`、`top`、`bottom`、`diagonal` の順に持つことを確認します。')
     const borders = /<borders count="\d+">(.*?)<\/borders>/s.exec(buildStylesXml())?.[1] ?? ''
     for (const border of borders.matchAll(/<border>(.*?)<\/border>/gs)) {
       const sides = (border[1] ?? '').matchAll(/<(left|right|top|bottom|diagonal)[ />]/g)
@@ -422,7 +444,8 @@ describe('buildStylesXml', () => {
     }
   })
 
-  it('帯の左右は塗りが同じで、内側に面する辺の罫線だけが落ちている', () => {
+  it('帯の左右のセルは、塗りが同じで、内側に面する辺の罫線だけがない', async () => {
+    await explains('スタイルの XML を作成する `buildStylesXml` のテストです。タイトルとキャプションの帯の、左右のセルの書式が、フォントと塗りが同じで、内側に面する辺の罫線だけがないことを確認します。')
     // 帯が「罫線で仕切られた 2 セルの表」に見えるかどうかを分ける条件。
     // リテラル pin とは別に、左右の差が borderId だけであることを構造として当てる。
     const cellXfs = /<cellXfs count="\d+">(.*?)<\/cellXfs>/s.exec(buildStylesXml())?.[1] ?? ''
@@ -447,14 +470,16 @@ describe('buildStylesXml', () => {
 })
 
 describe('列幅換算', () => {
-  it('ラベル列と値列の幅の和は 1 列 960px ぶんの幅と一致する', () => {
+  it('ラベルの列と値の列の幅の合計が、1 列で 960 ピクセルの幅と一致する', async () => {
+    await explains('列の幅の換算のテストです。ラベルの列と値の列の幅の合計が、画像の表示幅の上限（960 ピクセル）の列幅と一致し、帯の右端が画像の右端に揃うことを確認します。')
     // 帯の右端を画像の最大右端に揃える設計の前提。140 が 7 の倍数でないと丸め損失で
     // 和が縮み、帯が画像より狭く出る。
     expect(LABEL_COLUMN_WIDTH + VALUE_COLUMN_WIDTH).toBe(columnWidth(DISPLAY_WIDTH_PX))
     expect(LABEL_COLUMN_WIDTH_PX + VALUE_COLUMN_WIDTH_PX).toBe(DISPLAY_WIDTH_PX)
   })
 
-  it('Excel の逆換算式で px へ戻すと、宣言どおりの px になる', () => {
+  it('Excel の逆換算の式でピクセルに戻した場合は、宣言したピクセル数になる', async () => {
+    await explains('列の幅の換算のテストです。Excel が列の幅をピクセルへ戻す式で換算した場合に、ラベルの列、値の列、960 ピクセルの列のいずれも、宣言したピクセル数に戻ることを確認します。')
     // 往復で元の px に戻らない幅を選ぶと、宣言値と実際の表示幅がずれる。
     expect(columnWidthToPixels(LABEL_COLUMN_WIDTH)).toBe(LABEL_COLUMN_WIDTH_PX)
     expect(columnWidthToPixels(VALUE_COLUMN_WIDTH)).toBe(VALUE_COLUMN_WIDTH_PX)
@@ -463,7 +488,8 @@ describe('列幅換算', () => {
 })
 
 describe('buildStylesXml — theme 非依存', () => {
-  it('theme 参照を持たない (色は 8 桁 ARGB か indexed のみ)', () => {
+  it('theme を参照せず、色には 8 桁の ARGB だけを使う', async () => {
+    await explains('スタイルの XML を作成する `buildStylesXml` のテストです。XML に `theme` の参照を含まず、`rgb` で指定したすべての色が 8 桁の 16 進数であることを確認します。')
     const xml = buildStylesXml()
 
     // theme1.xml を同梱しないので theme 参照は禁止。
@@ -475,7 +501,8 @@ describe('buildStylesXml — theme 非依存', () => {
 })
 
 describe('buildDrawingXml', () => {
-  it('oneCellAnchor の子要素順と EMU を具体値で pin する', () => {
+  it('oneCellAnchor の子要素の順序と EMU を、具体的な値どおりに出力する', async () => {
+    await explains('drawing の XML を作成する `buildDrawingXml` のテストです。注記のない画像が 1 枚の場合に、`oneCellAnchor` の子要素の順序、画像の位置、EMU の大きさ、枠線が、想定した XML と一致することを確認します。')
     expect(buildDrawingXml(singleImageLayout().placements)).toBe(
       `${DECL}<xdr:wsDr xmlns:xdr="${NS_SPREADSHEET_DRAWING}" xmlns:a="${NS_DRAWINGML}" xmlns:r="${NS_OFFICE_REL}">`
       + `<xdr:oneCellAnchor>`
@@ -498,7 +525,8 @@ describe('buildDrawingXml', () => {
     )
   })
 
-  it('複数画像では shape id と rId が並び順どおり一意に振られる', () => {
+  it('複数の画像がある場合は、shape の id と rId を、渡した順に重複なく振る', async () => {
+    await explains('drawing の XML を作成する `buildDrawingXml` のテストです。画像が 2 枚の場合に、`cNvPr` の id が 2 と 3、`r:embed` が `rId1` と `rId2` になり、注記がないため `xdr:sp` を含まないことを確認します。')
     const layout = buildEvidenceLayout({
       title: 'T',
       createdDate: '2026-08-17',
@@ -516,7 +544,8 @@ describe('buildDrawingXml', () => {
     expect(xml).not.toContain('<xdr:sp>')
   })
 
-  it('画像の枠線は注記の枠線と別色で、画像ごとに 1 本ずつ引かれる', () => {
+  it('画像の枠線は、注記の枠線とは別の色にし、画像ごとに 1 本ずつ引く', async () => {
+    await explains('drawing の XML を作成する `buildDrawingXml` のテストです。画像が 2 枚で、注記が 1 件ある場合に、画像の枠線の色が 2 件、注記の枠線の色が 1 件、別々に出力されることを確認します。')
     const layout = buildEvidenceLayout({
       title: 'T',
       createdDate: '2026-08-17',
@@ -537,7 +566,8 @@ describe('buildDrawingXml', () => {
     expect(xml.match(/<a:srgbClr val="FF0000"\/>/g)).toHaveLength(1)
   })
 
-  it('画像 0 件では anchor を持たない wsDr になる', () => {
+  it('画像がない場合は、アンカーを持たない wsDr を出力する', async () => {
+    await explains('drawing の XML を作成する `buildDrawingXml` のテストです。画像の配置が空の場合は、子要素を持たない `xdr:wsDr` だけを出力することを確認します。')
     expect(buildDrawingXml([])).toBe(
       `${DECL}<xdr:wsDr xmlns:xdr="${NS_SPREADSHEET_DRAWING}" xmlns:a="${NS_DRAWINGML}" xmlns:r="${NS_OFFICE_REL}"></xdr:wsDr>`,
     )
@@ -558,7 +588,8 @@ describe('buildDrawingXml — 注記図形', () => {
     { type: 'arrow', from: { x: 0.4, y: 0.6 }, to: { x: 0.25, y: 0.5 } },
   ]
 
-  it('注記付きの画像は、画像と注記を 1 つの grpSp にまとめ、id をグループ・画像・注記の順に振る', () => {
+  it('注記付きの画像は、画像と注記を 1 つの grpSp にまとめ、id をグループ、画像、注記の順に振る', async () => {
+    await explains('drawing の XML を作成する `buildDrawingXml` の、注記図形のテストです。`callout`、`highlight`、`arrow` を持つ画像を渡した場合に、画像と 3 つの注記を 1 つの `grpSp` にまとめ、図形の XML が想定どおりに一致することを確認します。')
     expect(buildDrawingXml(singleImageLayout(ANNOTATIONS).placements)).toBe(
       `${DECL}<xdr:wsDr xmlns:xdr="${NS_SPREADSHEET_DRAWING}" xmlns:a="${NS_DRAWINGML}" xmlns:r="${NS_OFFICE_REL}">`
       + `<xdr:oneCellAnchor>`
@@ -625,7 +656,8 @@ describe('buildDrawingXml — 注記図形', () => {
     )
   })
 
-  it('注記付きの drawing では、どのアンカーの colOff も B 列の幅を、rowOff も行の高さを超えない', () => {
+  it('注記付きの drawing では、どのアンカーの colOff も B 列の幅を超えず、rowOff も行の高さを超えない', async () => {
+    await explains('drawing の XML を作成する `buildDrawingXml` の、注記図形のテストです。注記付きの画像が 2 枚ある場合に、アンカーの `colOff` が B 列の幅以下で、`rowOff` が行の高さ以下になることを確認します。')
     const layout = buildEvidenceLayout({
       title: 'T',
       createdDate: '2026-08-17',
@@ -649,7 +681,8 @@ describe('buildDrawingXml — 注記図形', () => {
     }
   })
 
-  it('アンカーの ext・グループの ext と chExt・画像の ext が等しく、chOff は原点になる', () => {
+  it('アンカーの ext、グループの ext と chExt、画像の ext が同じ大きさで、chOff が原点になる', async () => {
+    await explains('drawing の XML を作成する `buildDrawingXml` の、注記図形のテストです。注記付きの画像の場合に、アンカー、グループ、画像の大きさが同じで、子の座標系の原点 `chOff` が 0 になることを確認します。')
     const xml = buildDrawingXml(singleImageLayout(ANNOTATIONS).placements)
     const size = 'cx="9144000" cy="5143500"'
 
@@ -660,7 +693,8 @@ describe('buildDrawingXml — 注記図形', () => {
       + `<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext ${size}/></a:xfrm>`)
   })
 
-  it('注記の a:off は layout の offsetXEmu / offsetYEmu と一致する', () => {
+  it('注記の a:off は、レイアウトで求めた位置（offsetXEmu、offsetYEmu）と一致する', async () => {
+    await explains('drawing の XML を作成する `buildDrawingXml` の、注記図形のテストです。各注記の `a:off` の値が、レイアウトで求めた `offsetXEmu`、`offsetYEmu` の値と一致することを確認します。')
     const { placements } = singleImageLayout(ANNOTATIONS)
     const xml = buildDrawingXml(placements)
     const offsets = xml.matchAll(/<xdr:sp>.*?<a:off x="(\d+)" y="(\d+)"\/>/g)
@@ -672,7 +706,8 @@ describe('buildDrawingXml — 注記図形', () => {
     )
   })
 
-  it('注記の無い画像は grpSp を持たず、pic だけをアンカーに置く', () => {
+  it('注記のない画像は、grpSp を持たず、pic だけをアンカーに配置する', async () => {
+    await explains('drawing の XML を作成する `buildDrawingXml` の、注記図形のテストです。注記のない画像の場合に、`grpSp` を含まず、`oneCellAnchor` の中に `pic` だけを配置することを確認します。')
     const xml = buildDrawingXml(singleImageLayout([]).placements)
 
     expect(xml).not.toContain('grpSp')
@@ -680,14 +715,16 @@ describe('buildDrawingXml — 注記図形', () => {
     expect(xml).toContain('<xdr:cNvPr id="2" name="Picture 1"/>')
   })
 
-  it('theme 参照を持たない (色はすべて rgb 明示)', () => {
+  it('theme を参照せず、すべての色を rgb で明示する', async () => {
+    await explains('drawing の XML を作成する `buildDrawingXml` の、注記図形のテストです。XML に `schemeClr` と `xdr:style` を含まないことを確認します。')
     const xml = buildDrawingXml(singleImageLayout(ANNOTATIONS).placements)
 
     expect(xml).not.toContain('schemeClr')
     expect(xml).not.toContain('<xdr:style>')
   })
 
-  it('既定の向きの arrow では flip 属性そのものを出さない', () => {
+  it('向きが既定の arrow には、flip の属性を出力しない', async () => {
+    await explains('drawing の XML を作成する `buildDrawingXml` の、注記図形のテストです。左上から右下へ向かう `arrow` の場合に、`flipH` と `flipV` を出力しないことを確認します。')
     const xml = buildDrawingXml(singleImageLayout([
       { type: 'arrow', from: { x: 0.2, y: 0.2 }, to: { x: 0.6, y: 0.6 } },
     ]).placements)
@@ -696,7 +733,8 @@ describe('buildDrawingXml — 注記図形', () => {
     expect(xml).not.toContain('flip')
   })
 
-  it('callout の文言も制御文字除去とエスケープの 2 段を通る', () => {
+  it('callout の文章は、制御文字の除去と、XML のエスケープを両方行う', async () => {
+    await explains('drawing の XML を作成する `buildDrawingXml` の、注記図形のテストです。`callout` の文章に `&`、`<`、`>`、`"`、`\'` と制御文字が含まれる場合に、制御文字を取り除き、特殊文字をエスケープして `a:t` に出力することを確認します。')
     const xml = buildDrawingXml(singleImageLayout([{
       type: 'callout',
       text: `A&B <tag> "q" 'a'\0`,
@@ -707,7 +745,8 @@ describe('buildDrawingXml — 注記図形', () => {
     expect(xml).toContain(`<a:t>A&amp;B &lt;tag&gt; &quot;q&quot; &apos;a&apos;</a:t>`)
   })
 
-  it('callout の文言のタブは a:t に生のまま残る', () => {
+  it('callout の文章に含まれるタブは、そのまま a:t に残す', async () => {
+    await explains('drawing の XML を作成する `buildDrawingXml` の、注記図形のテストです。`callout` の文章にタブが含まれる場合に、取り除かず、そのまま `a:t` に出力することを確認します。')
     const xml = buildDrawingXml(singleImageLayout([{
       type: 'callout',
       text: 'ログイン\tボタン',
@@ -719,7 +758,8 @@ describe('buildDrawingXml — 注記図形', () => {
     expect(xml).toContain(`<a:t>ログイン\tボタン</a:t>`)
   })
 
-  it('callout の文言の前後の空白は xml:space="preserve" で保つ', () => {
+  it('callout の文章の前後の空白は、xml:space="preserve" で保持する', async () => {
+    await explains('drawing の XML を作成する `buildDrawingXml` の、注記図形のテストです。文章の前後に空白がある場合に、`a:t` に `xml:space="preserve"` を付け、空白がない文章には付けないことを確認します。')
     const xml = buildDrawingXml(singleImageLayout([{
       type: 'callout',
       text: '  ログインボタン  ',
@@ -738,7 +778,8 @@ describe('buildDrawingXml — 注記図形', () => {
     }]).placements)).toContain(`<a:t>ログインボタン</a:t>`)
   })
 
-  it('複数画像に注記が付いても cNvPr の id は drawing 全体で一意になる', () => {
+  it('複数の画像に注記が付いている場合でも、cNvPr の id が drawing 全体で一意になる', async () => {
+    await explains('drawing の XML を作成する `buildDrawingXml` の、注記図形のテストです。注記を持つ画像が 2 枚ある場合は、グループ、画像、注記の `cNvPr` の id が、drawing 全体で重複せず連番になることを確認します。')
     const layout = buildEvidenceLayout({
       title: 'T',
       createdDate: '2026-08-17',
@@ -786,7 +827,8 @@ describe('buildDrawingXml — 注記図形', () => {
 })
 
 describe('mediaPartName', () => {
-  it('拡張子はシグネチャ判定結果に従う', () => {
+  it('画像パーツの拡張子は、形式の判定結果に従う', async () => {
+    await explains('画像のパーツ名を作成する `mediaPartName` のテストです。番号と形式 `png` や `jpeg` を渡した場合に、`xl/media/image1.png` のように、形式に合った拡張子を付けた名前を返すことを確認します。')
     expect(mediaPartName(1, 'png')).toBe('xl/media/image1.png')
     expect(mediaPartName(2, 'jpeg')).toBe('xl/media/image2.jpeg')
   })

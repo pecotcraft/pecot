@@ -12,6 +12,7 @@ import { frontmatter } from '../skills/_helpers/frontmatter.js'
 import { toArray, toRecord } from './_helpers/json.js'
 import { hooksDirectory, pluginRoot } from './_helpers/paths.js'
 import { parseJson, splitLines } from './_helpers/text.js'
+import { explains } from '../_helpers/explains.js'
 
 // 表の「lib ディスパッチ」列に現れる総称表記。lib 名の突合の対象から外す。ここに無い非 lib 名のトークンは落とす。
 const GENERIC_LIB_LABELS: ReadonlySet<string> = new Set(['コアガード群'])
@@ -296,14 +297,16 @@ function libsOf(libsByScript: ReadonlyMap<string, ReadonlySet<string>>, name: st
 }
 
 describe('README のフロー表', () => {
-  it('表の第 2 列のスクリプトは、hooks.json の command の basename と集合として一致する', () => {
+  it('表の第 2 列のスクリプトは、hooks.json の command の basename と集合として一致する', async () => {
+    await explains('README のフロー表のテストです。表の第 2 列のスクリプトと `hooks.json` の `command` の basename を比較した場合に、集合として一致し、片方だけに存在するものがないことを確認します。')
     const table = new Set(flowRows().flatMap(row => expandPattern(row.scriptPattern)))
     const configured = new Set(hooksJsonEntries().map(entry => entry.name))
     expect(difference(table, configured), 'README フロー表にあるが hooks.json に登録されていないスクリプト（表の削除抜け、または hooks.json への追記抜け）').toEqual([])
     expect(difference(configured, table), 'hooks.json に登録されているが README フロー表に無いスクリプト（表への追記抜け）').toEqual([])
   })
 
-  it('表の (トリガー, スクリプト) の対応は、hooks.json の対応と 3 要素の組で一致する', () => {
+  it('表の (トリガー, スクリプト) の対応は、hooks.json の対応と 3 要素の組で一致する', async () => {
+    await explains('README のフロー表のテストです。表の（トリガー, スクリプト）の対応と `hooks.json` の対応を比較した場合に、イベント・matcher・スクリプトの 3 要素の組で一致することを確認します。')
     const rows = flowRows()
     const patterns = rows.map(row => row.scriptPattern)
     const table = new Set(rows.flatMap(row => row.matchers.map(matcher => tripleKey(row.event, matcher, row.scriptPattern))))
@@ -312,7 +315,8 @@ describe('README のフロー表', () => {
     expect(difference(configured, table), 'hooks.json にあるが README フロー表に無い (イベント, matcher, スクリプト) の対応').toEqual([])
   })
 
-  it('表の lib ディスパッチ列は、エントリスクリプトの実呼び出しと行単位で一致する', () => {
+  it('表の lib ディスパッチ列は、エントリスクリプトの実呼び出しと行単位で一致する', async () => {
+    await explains('README のフロー表のテストです。表の lib ディスパッチ列とエントリスクリプトの実際の呼び出しを比較した場合に、行ごとに一致し、表と実体の過不足がないことを確認します。')
     const expected = new Map<string, ReadonlySet<string>>()
     for (const row of flowRows()) {
       for (const name of expandPattern(row.scriptPattern)) expected.set(name, row.libs)
@@ -338,7 +342,8 @@ describe('README のフロー表', () => {
     expect(mismatches, 'README フロー表の lib ディスパッチとスクリプト実体の不一致（スクリプト、表側の差分、実体側の差分）').toEqual([])
   })
 
-  it('表の中継先 lib は、中継元ディスパッチャの実呼び出しと一致する', () => {
+  it('表の中継先 lib は、中継元ディスパッチャの実呼び出しと一致する', async () => {
+    await explains('README のフロー表のテストです。表の中継先 lib と中継元ディスパッチャの実際の呼び出しを比較した場合に、過不足なく一致することを確認します。')
     const relayRows: { row: FlowRow, relayVia: string }[] = []
     for (const row of flowRows()) {
       if (row.relayVia !== undefined) relayRows.push({ row, relayVia: row.relayVia })

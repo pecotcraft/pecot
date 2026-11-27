@@ -27,6 +27,7 @@ import {
   type DeckCacheKeys,
 } from '../cache-store.js'
 import { compareStrings } from '../../../domain/_shared/compare-strings.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 const slidesMd = [
   '---',
@@ -208,7 +209,8 @@ afterAll(async () => {
 })
 
 describe('@slidev/parser のバージョン固定', () => {
-  it('完全固定した版と @slidev/cli が要求する版が一致し、同一実体に解決される', async () => {
+  it('@slidev/parser の固定した版が @slidev/cli の要求する版と一致し、同じ実体へ解決される', async () => {
+    await explains('`@slidev/parser` の版を固定するテストです。本パッケージで固定した版は `@slidev/cli` の要求する版と一致し、どちらから解決しても同じ実体になることを確認します。')
     const requireFromHere = createRequire(import.meta.url)
     const ownPackageJson = JSON.parse(
       await readFile(path.join(import.meta.dirname, '..', '..', '..', '..', 'package.json'), 'utf8'),
@@ -228,19 +230,22 @@ describe('@slidev/parser のバージョン固定', () => {
 })
 
 describe('cacheDirectoryOf', () => {
-  it('staging と同じ基準で <outDir>/cache を返す', () => {
+  it('出力ディレクトリを渡した場合は、その配下の cache ディレクトリを返す', async () => {
+    await explains('`cacheDirectoryOf` のテストです。`/tmp/deck/pptx` を渡した場合に、`/tmp/deck/pptx/cache` を返すことを確認します。')
     expect(cacheDirectoryOf('/tmp/deck/pptx')).toBe(path.join('/tmp/deck/pptx', 'cache'))
   })
 })
 
 describe('computeDeckCacheKeys', () => {
-  it('envHash と全スライドの slideHash を返す', async () => {
+  it('デッキの環境全体のハッシュ envHash と、全スライドの slideHash を返す', async () => {
+    await explains('環境全体のハッシュ `envHash` とスライド単位のハッシュ `slideHash` を算出するテストです。3 枚のデッキで、`envHash` が 64 桁の 16 進数になり、`slideHash` を 3 枚すべての分だけ返すことを確認します。')
     const keys = await deckKeys()
     expect(keys.envHash).toMatch(/^[\da-f]{64}$/)
     expect(keys.slideHashes.keys().toArray()).toStrictEqual([1, 2, 3])
   })
 
-  it('同じファイル群なら作成順とディレクトリ位置が違っても同一 envHash になる', async () => {
+  it('同じファイル群なら、作成順とディレクトリの位置が違っても、envHash が一致する', async () => {
+    await explains('環境ハッシュ `envHash` のテストです。同じ内容のファイルを逆順に作成し、別のディレクトリに置いた場合も、`envHash` が一致することを確認します。')
     const first = await envHashOf()
     const otherDeck = path.join(root, 'deck-reordered')
     await buildDeck(otherDeck, deckFiles.toReversed())
@@ -251,7 +256,8 @@ describe('computeDeckCacheKeys', () => {
     expect(second).toBe(first)
   })
 
-  it('node_modules / dist / pptx 配下は材料に入らない', async () => {
+  it('node_modules・dist・pptx の配下にファイルを追加しても、envHash は変わらない', async () => {
+    await explains('`node_modules`、`dist`、`pptx` の配下にファイルを追加するテストです。環境ハッシュ `envHash` の材料から除外され、追加前と同じ値になることを確認します。')
     const before = await envHashOf()
     await writeInto(deckDirectory, 'components/node_modules/pkg/index.ts', 'export const x = 1\n')
     await writeInto(deckDirectory, 'components/dist/bundle.js', 'console.log(1)\n')
@@ -261,7 +267,8 @@ describe('computeDeckCacheKeys', () => {
     expect(await envHashOf()).toBe(before)
   })
 
-  it('symlink は追わない', async () => {
+  it('デッキ内に symlink を作成しても、その先の内容は envHash に影響しない', async () => {
+    await explains('デッキ内に、デッキ外のディレクトリとファイルを指す symlink を作成するテストです。symlink の先は辿られず、環境ハッシュ `envHash` が作成前と同じ値になることを確認します。')
     const before = await envHashOf()
     const outside = path.join(root, 'outside')
     await writeInto(outside, 'huge.vue', '<template><div /></template>\n')
@@ -270,7 +277,8 @@ describe('computeDeckCacheKeys', () => {
     expect(await envHashOf()).toBe(before)
   })
 
-  it('layouts 配下は *.vue のみ材料にする', async () => {
+  it('layouts 配下は、拡張子が .vue のファイルだけを材料にする', async () => {
+    await explains('`layouts` 配下の扱いのテストです。`README.md` の変更では `envHash` が変わらず、`.vue` ファイルの変更では変わることを確認します。')
     const before = await envHashOf()
     await writeInto(deckDirectory, 'layouts/README.md', '説明を書き換えても影響しない\n')
     expect(await envHashOf()).toBe(before)
@@ -287,18 +295,21 @@ describe('computeDeckCacheKeys', () => {
     ['vite.config.ts の変更', 'vite.config.ts', 'export default { base: "/" }\n'],
     ['デッキ設定（canvasWidth）の変更', 'slides.md', slidesMd.replace('canvasWidth: 960', 'canvasWidth: 1280')],
   ])('%s で envHash が変わる', async (_name, relativePath, content) => {
+    await explains(`デッキの材料のひとつである \`${relativePath}\` を変更するテストです。環境ハッシュ \`envHash\` が変更前と異なる値になることを確認します。`)
     const before = await envHashOf()
     await writeInto(deckDirectory, relativePath, content)
     expect(await envHashOf()).not.toBe(before)
   })
 
-  it('共有ファイルの追加で envHash が変わる', async () => {
+  it('共有ファイルを追加した場合は、envHash が変わる', async () => {
+    await explains('`components` に新しい `.vue` ファイルを追加するテストです。環境ハッシュ `envHash` が追加前と異なる値になることを確認します。')
     const before = await envHashOf()
     await writeInto(deckDirectory, 'components/LNew.vue', '<template><span /></template>\n')
     expect(await envHashOf()).not.toBe(before)
   })
 
-  it('ロックファイル（pnpm-lock.yaml / package-lock.json）の変更で envHash が変わる（依存バージョンドリフト検知）', async () => {
+  it('ロックファイルを変更した場合は、envHash が変わる（依存の版の変化を検出する）', async () => {
+    await explains('`pnpm-lock.yaml` の解決済みの版だけを変更するテストです。`package.json` は変更しなくても、環境ハッシュ `envHash` が変更前と異なる値になることを確認します。')
     // package.json はキャレット範囲宣言のため据え置きのまま、ロックファイルの
     // 解決済みバージョンだけが変わるケース（`pnpm install` 相当）を再現する。
     await writeInto(deckDirectory, 'pnpm-lock.yaml', 'lockfileVersion: 9.0\npackages:\n  foo@1.0.0: {}\n')
@@ -308,14 +319,16 @@ describe('computeDeckCacheKeys', () => {
     expect(await envHashOf()).not.toBe(before)
   })
 
-  it('ロックファイルが無くても失敗せず、材料 0 件として扱う', async () => {
+  it('ロックファイルが存在しない場合も、失敗せずに envHash を算出する', async () => {
+    await explains('デッキにロックファイルが存在しない場合のテストです。失敗せず、`envHash` が 64 桁の 16 進数で返ることを確認します。')
     // 無いファイルは材料 0 件として扱う（sha256OfFile の undefined は読み飛ばす）。
     // 存在確認だけで失敗しない。
     const keys = await deckKeys()
     expect(keys.envHash).toMatch(/^[\da-f]{64}$/)
   })
 
-  it('bundle 実体・Chromium バージョン・プラグインバージョンで envHash が変わる', async () => {
+  it('bundle の実体、Chromium の版、プラグインの版が変わった場合は、envHash が変わる', async () => {
+    await explains('`dom-to-pptx` の bundle ファイル、Chromium の版、プラグインの版を、それぞれ変更するテストです。どの場合も環境ハッシュ `envHash` が変更前と異なる値になることを確認します。')
     const before = await envHashOf()
     expect(await envHashOf({ chromiumVersion: '142.0.0.1' })).not.toBe(before)
     expect(await envHashOf({ pluginVersion: '2.6.0' })).not.toBe(before)
@@ -324,7 +337,8 @@ describe('computeDeckCacheKeys', () => {
     expect(await envHashOf()).not.toBe(before)
   })
 
-  it('--theme の変更で envHash が変わり、同一テーマなら envHash が一致する', async () => {
+  it('--theme を変更した場合は envHash が変わり、同じテーマなら一致する', async () => {
+    await explains('`--theme` の指定を変えたときの、環境ハッシュ `envHash` のテストです。`theme-a` を 2 回算出した値は一致することと、`theme-b` やテーマなしの値が異なることを確認します。')
     // --theme は、slides.md の headmatter と共有クロージャのどちらにも現れない。
     // buildOptions を材料に含めないと、テーマ切替後も旧描画のキャッシュがヒットしてしまう (F-01)。
     const withThemeA = await envHashOf({ buildOptions: { theme: 'theme-a' } })
@@ -337,7 +351,8 @@ describe('computeDeckCacheKeys', () => {
     expect(withoutTheme).not.toBe(withThemeA)
   })
 
-  it('exportToPptx オプションの変更で envHash が変わり、同一設定なら envHash が一致する', async () => {
+  it('exportToPptx のオプションを変更した場合は envHash が変わり、同じ設定なら一致する', async () => {
+    await explains('`exportToPptx` のオプション（疑似要素やフォントの埋め込みなど）を変えたときの、`envHash` のテストです。同じ設定の値が一致し、疑似要素の無効化とフォントの追加で異なる値になることを確認します。')
     // 疑似要素・フォント埋め込みの設定は、slides.md、共有クロージャ、bundle 実体のどれにも現れない。
     // 材料に含めないと、設定を変えても旧設定で作った pptx がヒットする。
     const base = defaultExportToPptxOptions
@@ -354,7 +369,8 @@ describe('computeDeckCacheKeys', () => {
     expect(withFont).not.toBe(withoutPseudo)
   })
 
-  it('変換方式（route）の変更で envHash が変わり、同じ方式なら envHash が一致する (#1147)', async () => {
+  it('変換方式 route を変更した場合は envHash が変わり、同じ方式なら一致する', async () => {
+    await explains('変換方式 `route` を変えたときの、環境ハッシュ `envHash` のテストです。`single-pass` を 2 回算出した値は一致し、`per-step` の値が異なることを確認します。')
     const singlePass = await envHashOf({ route: 'single-pass' })
     const singlePassAgain = await envHashOf({ route: 'single-pass' })
     const perStep = await envHashOf({ route: 'per-step' })
@@ -363,7 +379,8 @@ describe('computeDeckCacheKeys', () => {
     expect(perStep).not.toBe(singlePass)
   })
 
-  it('表紙の src 差し替えは全キャッシュを無効化せず、スライド 1 だけをミスにする', async () => {
+  it('表紙の src を差し替えた場合は、全キャッシュを無効にせず、スライド 1 だけが変わる', async () => {
+    await explains('表紙の `src:` 指定を別のファイルへ差し替えるテストです。`envHash` と 2・3 枚目の `slideHash` は変わらず、1 枚目の `slideHash` だけが変わることを確認します。')
     // headmatter はデッキ設定とスライド 1 の frontmatter を兼ねるため、src のような
     // スライド単位のキーを envHash に含めると表紙の差し替えだけで全変換になってしまう。
     const before = await deckKeys()
@@ -377,13 +394,15 @@ describe('computeDeckCacheKeys', () => {
     expect(after.slideHashes.get(3)).toBe(before.slideHashes.get(3))
   })
 
-  it('headmatter のスライド単位キー（clicks 等）は envHash に影響しない', async () => {
+  it('headmatter のスライド単位のキー（clicks など）を変更しても、envHash は変わらない', async () => {
+    await explains('先頭スライドの設定（headmatter）に、スライド単位の `clicks: 3` を追加するテストです。デッキ全体の設定ではないため、`envHash` が変わらないことを確認します。')
     const before = await envHashOf()
     await writeInto(deckDirectory, 'slides.md', slidesMd.replace('src: ./pages/cover.md', 'src: ./pages/cover.md\nclicks: 3'))
     expect(await envHashOf()).toBe(before)
   })
 
-  it('デッキ設定として意味を持つキー（テーマ独自キー含む）の変更は全無効化する', async () => {
+  it('テーマ独自のキーを含むデッキ設定のキーを変更した場合は、envHash が変わる', async () => {
+    await explains('`slides.md` の設定に、テーマ独自の未知のキー `sensitivity` を追加するテストです。どのスライドからも読めるため、`envHash` が変わることを確認します。')
     // テーマは $slidev.configs.<任意キー> で独自キーを全スライドから読めるため、
     // 未知のキーは材料に残す（allowlist にしない）。
     const before = await envHashOf()
@@ -391,7 +410,8 @@ describe('computeDeckCacheKeys', () => {
     expect(await envHashOf()).not.toBe(before)
   })
 
-  it('src 分離スライドの本文編集は当該スライドの slideHash だけを変える', async () => {
+  it('src で分離したスライドの本文を編集した場合は、そのスライドの slideHash だけが変わる', async () => {
+    await explains('`pages/detail.md` の本文を編集するテストです。2 枚目の `slideHash` だけが変わり、`envHash` と他のスライドの `slideHash` は変わらないことを確認します。')
     const before = await deckKeys()
     await writeInto(deckDirectory, 'pages/detail.md', detailMd.replace('# 詳細ページ', '# 詳細ページ（改訂）'))
     const after = await deckKeys()
@@ -401,7 +421,8 @@ describe('computeDeckCacheKeys', () => {
     expect(after.slideHashes.get(3)).toBe(before.slideHashes.get(3))
   })
 
-  it('末尾へのスライド追加では既存スライドの slideHash が変わらない', async () => {
+  it('末尾にスライドを追加した場合も、既存のスライドの slideHash は変わらない', async () => {
+    await explains('`slides.md` の末尾に 4 枚目のスライドを追加するテストです。スライド数が 4 になり、既存の 3 枚の `slideHash` が変わらないことを確認します。')
     const before = await deckKeys()
     await writeInto(deckDirectory, 'slides.md', `${slidesMd}\n---\nlayout: default\n---\n\n# 追加ページ\n`)
     const after = await deckKeys()
@@ -411,7 +432,8 @@ describe('computeDeckCacheKeys', () => {
     }
   })
 
-  it('コードフェンス内の --- はスライド区切りにならず、編集は当該スライドだけを無効化する', async () => {
+  it('コードフェンス内の --- はスライドの区切りにならず、編集はそのスライドの slideHash だけを変える', async () => {
+    await explains('コードフェンスの中に `---` を含むスライドのテストです。`---` は区切りとして扱われず、スライド数が 4 のまま、編集した 4 枚目の `slideHash` だけが変わることを確認します。')
     const fenced = [
       slidesMd,
       '',
@@ -444,7 +466,8 @@ describe('computeDeckCacheKeys', () => {
     expect(after.slideHashes.get(4)).not.toBe(before.slideHashes.get(4))
   })
 
-  it('layouts / patches 等が無い最小構成でも成功する', async () => {
+  it('layouts や patches が存在しない最小構成でも成功する', async () => {
+    await explains('`slides.md` だけの最小構成のデッキのテストです。算出に成功し、`slideHash` を 1 件だけ返すことを確認します。')
     const minimal = path.join(root, 'minimal')
     await buildDeck(minimal, [['slides.md', '---\ntheme: none\n---\n\n# 1 枚だけ\n']])
     const keys = await deckKeys({
@@ -455,7 +478,8 @@ describe('computeDeckCacheKeys', () => {
     expect(keys.slideHashes.size).toBe(1)
   })
 
-  it('slides.md が読めなければ failure=slides-load-failed', async () => {
+  it('slides.md を読み込めない場合は、failure が slides-load-failed になる', async () => {
+    await explains('存在しない `missing.md` を指定した場合のテストです。算出に失敗し、`failure` は `slides-load-failed` になり、メッセージにファイル名が含まれることを確認します。')
     const result = await computeDeckCacheKeys(keyOptions({
       slidesPath: path.join(deckDirectory, 'missing.md'),
     }))
@@ -465,7 +489,8 @@ describe('computeDeckCacheKeys', () => {
     expect(result.message).toContain('missing.md')
   })
 
-  it('src 先が存在しない slides.md は failure=slides-has-errors', async () => {
+  it('src の参照先が存在しない slides.md の場合は、failure が slides-has-errors になる', async () => {
+    await explains('`src:` の参照先 `pages/nope.md` が存在しない場合のテストです。算出に失敗し、`failure` は `slides-has-errors` になり、メッセージにファイル名が含まれることを確認します。')
     // load() は parse エラーを throw せず errors に積み、当該スライドを通知なしで落とす。
     await writeInto(deckDirectory, 'slides.md', `${slidesMd}\n---\nsrc: ./pages/nope.md\n---\n`)
     const result = await computeDeckCacheKeys(keyOptions())
@@ -475,7 +500,8 @@ describe('computeDeckCacheKeys', () => {
     expect(result.message).toContain('nope.md')
   })
 
-  it('デッキ外を src: で参照しても拒否されない（allowedRoots 省略の結果を固定する）', async () => {
+  it('デッキの外を src で参照した場合も、拒否されずに算出できる', async () => {
+    await explains('デッキの外にあるファイルを `src:` で参照する場合のテストです。拒否されず、算出に成功し、4 枚分の `slideHash` が返ることを確認します。')
     // load() に allowedRoots を渡すと、解決範囲がビルド側より狭くなるため省略している。
     // cache-store.ts の load() 呼び出し前のコメントを参照。
     // その結果として、projectDirectory の外の src: も errors に積まれず読めることを固定する。
@@ -490,7 +516,8 @@ describe('computeDeckCacheKeys', () => {
     expect(result.keys.slideHashes.keys().toArray()).toStrictEqual([1, 2, 3, 4])
   })
 
-  it('bundle 実体が読めなければ failure=bundle-unreadable', async () => {
+  it('bundle の実体を読み込めない場合は、failure が bundle-unreadable になる', async () => {
+    await explains('存在しない bundle ファイルを指定した場合のテストです。算出に失敗し、`failure` が `bundle-unreadable` になることを確認します。')
     const result = await computeDeckCacheKeys(keyOptions({
       domToPptxBundlePath: path.join(root, 'lib', 'missing.bundle.js'),
     }))
@@ -503,7 +530,8 @@ describe('computeDeckCacheKeys', () => {
     ['chromiumVersion が空', { chromiumVersion: '' }],
     ['chromiumVersion が空白のみ', { chromiumVersion: '  ' }],
     ['pluginVersion が空', { pluginVersion: '' }],
-  ])('%s なら failure=invalid-environment（材料が欠けたままキャッシュを使わない）', async (_name, overrides) => {
+  ])('%s の場合は、failure が invalid-environment になる（環境の情報が欠けたままキャッシュを使わない）', async (_name, overrides) => {
+    await explains(`環境の版として \`${JSON.stringify(overrides)}\` を指定した場合のテストです。算出に失敗し、\`failure\` が \`invalid-environment\` になることを確認します。`)
     const result = await computeDeckCacheKeys(keyOptions(overrides))
     expect(result.ok).toBe(false)
     if (result.ok) throw new Error('unreachable')
@@ -523,23 +551,27 @@ describe('manifest の読み書き', () => {
     hasExplicitAnimation: false,
   }
 
-  it('write → read で往復する', async () => {
+  it('manifest を書き込んだ後に読み込むと、同じ内容を取得できる', async () => {
+    await explains('`writeCacheManifest` と `readCacheManifest` のテストです。書き込んだ manifest を読み込むと、状態 `ok` で同じ内容が返ることを確認します。')
     const manifest = createCacheManifest('e'.repeat(64), new Map([[100, entry]]))
     await writeCacheManifest(cacheDirectory, manifest)
     expect(await readCacheManifest(cacheDirectory)).toStrictEqual({ status: 'ok', manifest })
   })
 
-  it('manifest.json が無ければ status=missing', async () => {
+  it('manifest.json が存在しない場合は、status が missing になる', async () => {
+    await explains('`manifest.json` が存在しない場合のテストです。`readCacheManifest` が状態 `missing` を返すことを確認します。')
     expect(await readCacheManifest(cacheDirectory)).toStrictEqual({ status: 'missing' })
   })
 
-  it('manifest.json が不正なら status=invalid（不在と区別する）', async () => {
+  it('manifest.json の内容が不正な場合は、存在しない場合と区別して status が invalid になる', async () => {
+    await explains('`manifest.json` が途中で切れた不正な JSON になっている場合のテストです。`readCacheManifest` が `missing` ではなく、状態 `invalid` を返すことを確認します。')
     await mkdir(cacheDirectory, { recursive: true })
     await writeFile(path.join(cacheDirectory, 'manifest.json'), '{"schemaVersion":1,"envHash":')
     expect(await readCacheManifest(cacheDirectory)).toStrictEqual({ status: 'invalid' })
   })
 
-  it('rename 失敗時は旧 manifest が保たれ、最終パスに部分 JSON も残らない', async () => {
+  it('rename に失敗した場合は、旧 manifest を保ち、最終パスに途中までの JSON を残さない', async () => {
+    await explains('`writeCacheManifest` で名前の変更（`rename`）に失敗する場合のテストです。例外が発生し、旧 manifest の内容は変わらず、一時ファイルも残らないことを確認します。')
     const old = createCacheManifest('old'.repeat(20), new Map([[100, entry]]))
     await writeCacheManifest(cacheDirectory, old)
     const oldText = await readFile(path.join(cacheDirectory, 'manifest.json'), 'utf8')
@@ -559,7 +591,8 @@ describe('manifest の読み書き', () => {
     expect(remaining.filter(name => name.startsWith('manifest.json.tmp-'))).toStrictEqual([])
   })
 
-  it('書き込み失敗時も一時ファイルを残さず、旧 manifest を壊さない', async () => {
+  it('書き込みに失敗した場合も、一時ファイルを残さず、旧 manifest を変更しない', async () => {
+    await explains('`writeCacheManifest` が途中まで書いて失敗する場合のテストです。例外が発生し、一時ファイルを残さず、旧 manifest の内容も変わらないことを確認します。')
     const old = createCacheManifest('old'.repeat(20), new Map([[100, entry]]))
     await writeCacheManifest(cacheDirectory, old)
 
@@ -576,7 +609,8 @@ describe('manifest の読み書き', () => {
     expect(await readCacheManifest(cacheDirectory)).toStrictEqual({ status: 'ok', manifest: old })
   })
 
-  it('一時ファイルの残骸があっても次回の読み取りは成功する', async () => {
+  it('一時ファイルが残っていても、次回の読み込みは成功する', async () => {
+    await explains('`manifest.json.tmp-leftover` という一時ファイルが残っている場合のテストです。`readCacheManifest` が、状態 `ok` で正しい内容を返すことを確認します。')
     const manifest = createCacheManifest('e'.repeat(64), new Map([[100, entry]]))
     await writeCacheManifest(cacheDirectory, manifest)
     await writeFile(path.join(cacheDirectory, 'manifest.json.tmp-leftover'), '{"schemaVersion":1,"envHash":')
@@ -585,7 +619,8 @@ describe('manifest の読み書き', () => {
 })
 
 describe('saveSlideToCache / materializeCacheEntry', () => {
-  it('明示指定アニメーションのフラグが save → materialize で往復する', async () => {
+  it('明示指定のアニメーションのフラグを保存して復元すると、同じ値で往復する', async () => {
+    await explains('`saveSlideToCache` と `materializeCacheEntry` のテストです。明示的に指定したアニメーションのフラグ `hasExplicitAnimation` が、保存して復元した後も `true` のままであることを確認します。')
     // #1070: ヒットしたステップでも p:timing の除去判定に使うため、エントリに載って復元される。
     await stageSlideArtifacts(400, [])
     const entry = await saveSlideToCache(saveOptions(400, 4, null, true))
@@ -599,7 +634,8 @@ describe('saveSlideToCache / materializeCacheEntry', () => {
     expect(materialized?.hasExplicitAnimation).toBe(true)
   })
 
-  it('PNG + meta の対を往復できる', async () => {
+  it('PNG と meta の対を保存して復元すると、同じ内容が往復する', async () => {
+    await explains('PNG 画像とそのメタ情報（`.meta.json`）の対を保存して復元するテストです。保存した内容が `slides` ディレクトリに元の名前で復元され、`letterSpacingMap` と `hrefMap` も一致することを確認します。')
     await stageSlideArtifacts(100, ['prerender-slide100-0.png', 'prerender-slide100-0.meta.json'])
     const entry = await saveSlideToCache(saveOptions(100, 1, null))
     expect(entry?.pptxFile).toBe('slide-100.pptx')
@@ -623,7 +659,8 @@ describe('saveSlideToCache / materializeCacheEntry', () => {
     ])
   })
 
-  it('PNG のみ（meta 無し）でも往復できる', async () => {
+  it('meta がなく PNG だけの場合も、保存して復元できる', async () => {
+    await explains('メタ情報がなく、PNG 画像だけを用意した場合のテストです。PNG のみが保存され、復元後の `slides` ディレクトリにも PNG と pptx だけが存在することを確認します。')
     // boundingBox が null の要素では PNG だけが書かれる。
     await stageSlideArtifacts(200, ['prerender-slide200-0.png'])
     const entry = await saveSlideToCache(saveOptions(200, 2, null))
@@ -640,7 +677,8 @@ describe('saveSlideToCache / materializeCacheEntry', () => {
     ])
   })
 
-  it('prerender 0 件でも往復できる', async () => {
+  it('prerender の画像が 0 件の場合も、保存して復元できる', async () => {
+    await explains('スライドの描画済み画像（prerender）が 0 件の場合のテストです。`prerenderFiles` が空になり、復元後の `slides` ディレクトリに pptx だけが存在することを確認します。')
     await stageSlideArtifacts(300)
     const entry = await saveSlideToCache(saveOptions(300, 3, null))
     expect(entry?.prerenderFiles).toStrictEqual([])
@@ -653,7 +691,8 @@ describe('saveSlideToCache / materializeCacheEntry', () => {
     expect(await listDirectory(slidesDirectory)).toStrictEqual(['slide-300.pptx'])
   })
 
-  it('宛先ファイル名は当該実行の slidePrefix で決まる', async () => {
+  it('復元先のファイル名は、復元時に指定した slidePrefix で決まる', async () => {
+    await explains('保存時とは異なる `slidePrefix`（`page-`）を指定して復元するテストです。復元先のファイル名が `page-100.pptx` になることを確認します。')
     await stageSlideArtifacts(100)
     const entry = await saveSlideToCache(saveOptions(100, 1, null))
     await rm(slidesDirectory, { recursive: true, force: true })
@@ -664,7 +703,8 @@ describe('saveSlideToCache / materializeCacheEntry', () => {
     expect(await listDirectory(slidesDirectory)).toStrictEqual(['page-100.pptx'])
   })
 
-  it('prerender の判定は区切りまで含めるので、スライド 5 と 50 を取り違えない', async () => {
+  it('prerender の判定は区切りまで含めるため、スライド 5 と 50 を取り違えない', async () => {
+    await explains('`stepIndex` が 500 と 5000 のように、同じ数字で始まるファイルが存在する場合のテストです。それぞれのエントリが、自分の番号の prerender 画像だけを含むことを確認します。')
     await stageSlideArtifacts(500, ['prerender-slide500-0.png'])
     await writeFile(path.join(slidesDirectory, 'slide-5000.pptx'), 'pptx-5000')
     await writeFile(path.join(slidesDirectory, 'prerender-slide5000-0.png'), 'data-5000')
@@ -675,18 +715,21 @@ describe('saveSlideToCache / materializeCacheEntry', () => {
     expect(entry5000?.prerenderFiles).toStrictEqual(['prerender-slide5000-0.png'])
   })
 
-  it('slides/ に pptx が無ければ保存しない', async () => {
+  it('slides ディレクトリに pptx が存在しない場合は、保存しない', async () => {
+    await explains('`slides` ディレクトリに pptx が存在しない場合のテストです。`saveSlideToCache` が `undefined` を返し、保存しないことを確認します。')
     await mkdir(slidesDirectory, { recursive: true })
     expect(await saveSlideToCache(saveOptions(100, 1, null))).toBeUndefined()
   })
 
-  it('slides/ の pptx が 0 バイトなら保存しない', async () => {
+  it('slides ディレクトリの pptx が 0 バイトの場合は、保存しない', async () => {
+    await explains('`slides` ディレクトリの pptx のサイズが 0 バイトの場合のテストです。`saveSlideToCache` が `undefined` を返すことを確認します。')
     await mkdir(slidesDirectory, { recursive: true })
     await writeFile(path.join(slidesDirectory, 'slide-100.pptx'), '')
     expect(await saveSlideToCache(saveOptions(100, 1, null))).toBeUndefined()
   })
 
-  it('保存が中断しても既存キャッシュは保たれ、書きかけも残らない', async () => {
+  it('保存が中断された場合も、既存のキャッシュを保ち、書きかけのファイルを残さない', async () => {
+    await explains('既存のキャッシュを上書き保存する途中で、`rename` が失敗する場合のテストです。`undefined` を返し、既存のファイルの内容が変わらず、書きかけのファイルも残らないことを確認します。')
     // 1 回目の保存を成功させ、2 回目（上書き）を rename 直前で失敗させる。
     await stageSlideArtifacts(100, ['prerender-slide100-0.png'])
     const first = await saveSlideToCache(saveOptions(100, 1, null))
@@ -708,7 +751,8 @@ describe('saveSlideToCache / materializeCacheEntry', () => {
     ])
   })
 
-  it('prerender 複製の途中で失敗した保存は、書いた分を撤去して undefined を返す', async () => {
+  it('prerender の複製の途中で失敗した場合は、書き込み済みのファイルを撤去して undefined を返す', async () => {
+    await explains('pptx の複製だけ成功し、prerender の 1 枚目で失敗する場合のテストです。`undefined` を返し、キャッシュに書いた分が残らないことを確認します。')
     await stageSlideArtifacts(100, ['prerender-slide100-0.png', 'prerender-slide100-1.png'])
     // pptx の複製だけ成功させ、prerender の 1 枚目で失敗させる。
     const saved = await saveSlideToCache(saveOptions(100, 1, null), {
@@ -722,7 +766,8 @@ describe('saveSlideToCache / materializeCacheEntry', () => {
     ['pptx のみ削除', 'slide-100.pptx'],
     ['PNG を 1 つ削除', 'prerender-slide100-1.png'],
     ['meta のみ削除', 'prerender-slide100-0.meta.json'],
-  ])('キャッシュ実体の欠損（%s）はミス扱いにする', async (_name, removedName) => {
+  ])('キャッシュの実体が欠けている場合（%s）は、キャッシュを使わない扱いにする', async (_name, removedName) => {
+    await explains(`キャッシュに保存した \`${removedName}\` を削除した場合のテストです。\`materializeCacheEntry\` が \`undefined\` を返し、\`slides\` ディレクトリは作成されないことを確認します。`)
     await stageSlideArtifacts(100, [
       'prerender-slide100-0.png',
       'prerender-slide100-0.meta.json',
@@ -739,7 +784,8 @@ describe('saveSlideToCache / materializeCacheEntry', () => {
     expect(await isExists(slidesDirectory)).toBe(false)
   })
 
-  it('キャッシュ実体が 0 バイトでもミス扱いにする', async () => {
+  it('キャッシュの実体が 0 バイトの場合も、キャッシュを使わない扱いにする', async () => {
+    await explains('キャッシュに保存した PNG 画像を 0 バイトにした場合のテストです。`materializeCacheEntry` が `undefined` を返すことを確認します。')
     await stageSlideArtifacts(100, ['prerender-slide100-0.png'])
     const entry = await saveSlideToCache(saveOptions(100, 1, null))
     await writeFile(path.join(cacheDirectory, 'prerender-slide100-0.png'), '')
@@ -751,7 +797,8 @@ describe('saveSlideToCache / materializeCacheEntry', () => {
     )).toBeUndefined()
   })
 
-  it('復元の途中で失敗したら部分復元を残さずミス扱いにする', async () => {
+  it('復元の途中で失敗した場合は、部分的な復元を残さず、ヒットしない扱いにする', async () => {
+    await explains('復元の途中（3 件のうち 2 件の複製の後）で失敗する場合のテストです。`undefined` を返し、`slides` ディレクトリにファイルが残らないことを確認します。')
     // 部分復元を残すと、再変換で生成される枚数が少ない場合に、古い prerender が残る。
     // 古い prerender は findPrerenderImages の連番走査に拾われ、気づかれないまま取り込まれる。
     await stageSlideArtifacts(100, ['prerender-slide100-0.png', 'prerender-slide100-1.png'])
@@ -767,7 +814,8 @@ describe('saveSlideToCache / materializeCacheEntry', () => {
     expect(await listDirectory(slidesDirectory)).toStrictEqual([])
   })
 
-  it('並列 save の後に終端 1 回で書いた manifest へ全エントリが揃う', async () => {
+  it('並列で保存した後に manifest を 1 回書くと、全エントリが含まれる', async () => {
+    await explains('4 件のスライドを並列に保存し、最後に `manifest.json` を 1 回だけ書き込むテストです。読み込んだ manifest は 4 件すべてのエントリを含み、各ファイルがキャッシュのディレクトリに揃っていることを確認します。')
     const steps = [100, 200, 300, 401]
     for (const stepIndex of steps) {
       await stageSlideArtifacts(stepIndex, [`prerender-slide${String(stepIndex)}-0.png`])
@@ -802,7 +850,8 @@ describe('saveSlideToCache / materializeCacheEntry', () => {
 })
 
 describe('clearOrphanedCacheArtifacts', () => {
-  it('slide-*.pptx / prerender-slide*-* の既知パターンだけを消し、manifest.json と *.tmp-* は残す', async () => {
+  it('既知の命名のファイルだけを削除し、manifest.json と一時ファイルは残す', async () => {
+    await explains('`clearOrphanedCacheArtifacts` のテストです。`slide-100.pptx` や `prerender-slide100-0.png` などの既知の名前だけを削除し、`manifest.json` と `.tmp-` を含む一時ファイルは残すことを確認します。')
     await mkdir(cacheDirectory, { recursive: true })
     await writeFile(path.join(cacheDirectory, 'slide-100.pptx'), 'pptx-100')
     await writeFile(path.join(cacheDirectory, 'prerender-slide100-0.png'), 'png-100')
@@ -820,13 +869,15 @@ describe('clearOrphanedCacheArtifacts', () => {
     ])
   })
 
-  it('cache/ が無くても失敗しない', async () => {
+  it('cache ディレクトリが存在しない場合も、失敗しない', async () => {
+    await explains('`cache` ディレクトリが存在しない場合のテストです。`clearOrphanedCacheArtifacts` が例外を発生させずに完了することを確認します。')
     await expect(clearOrphanedCacheArtifacts(cacheDirectory)).resolves.toBeUndefined()
   })
 })
 
 describe('pruneCache', () => {
-  it('スキャン結果に無いエントリの成果物だけを消す', async () => {
+  it('スキャン結果に存在しないエントリの成果物だけを削除する', async () => {
+    await explains('`pruneCache` のテストです。生存する `stepIndex` として 100 だけを渡し、200 のエントリと成果物だけが削除され、100 の分は残ることを確認します。')
     await stageSlideArtifacts(100, ['prerender-slide100-0.png'])
     await stageSlideArtifacts(200, ['prerender-slide200-0.png', 'prerender-slide200-0.meta.json'])
     const kept = await saveSlideToCache(saveOptions(100, 1, null))
@@ -846,7 +897,8 @@ describe('pruneCache', () => {
     expect(await readCacheManifest(cacheDirectory)).toStrictEqual({ status: 'ok', manifest: pruned })
   })
 
-  it('全 stepIndex が生存していれば何も消さない', async () => {
+  it('すべての stepIndex が生存している場合は、何も削除しない', async () => {
+    await explains('`pruneCache` に、保存済みのすべての `stepIndex` を生存として渡す場合のテストです。manifest が変わらず、ファイルも削除されないことを確認します。')
     await stageSlideArtifacts(100, ['prerender-slide100-0.png'])
     const entry = await saveSlideToCache(saveOptions(100, 1, null))
     const manifest = createCacheManifest('e'.repeat(64), new Map([[100, entry!]]))
@@ -859,7 +911,8 @@ describe('pruneCache', () => {
     ])
   })
 
-  it('渡した集合の差はすべて消える（部分スキャン結果を渡してはならない理由）', async () => {
+  it('渡した集合に存在しない stepIndex はすべて削除する（部分的なスキャン結果を渡してはならない）', async () => {
+    await explains('`pruneCache` に、`stepIndex` として 200 だけを渡す場合のテストです。渡した集合にない 100 のエントリと成果物がすべて削除されることを確認します。')
     // これは仕様。
     // `--only` / `--onlySteps` の結果で呼ぶと、キャッシュがほぼ全消去される。
     // そのため呼び出し側には、型（FullScanSteps の fullScan: true）で全走査であることを明示させている。

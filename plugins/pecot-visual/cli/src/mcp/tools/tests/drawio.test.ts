@@ -23,6 +23,7 @@ import { withOutputCheck } from './_output.js'
 import { compareStrings } from '../../../domain/_shared/compare-strings.js'
 import { decodeData } from '../../../domain/drawio/url.js'
 import { verifies } from '../../../../tests/_helpers/verifies.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 const drawioCreateTool = withOutputCheck(drawioCreateDefinition)
 const drawioExportTool = withOutputCheck(drawioExportDefinition)
@@ -99,6 +100,7 @@ function makeThemeDirectory(): string {
 describe('drawio_create', () => {
   it('相対パスは実処理を呼ばずに invalid-path で返す', async () => {
     // 存在しない相対パスを渡す。実処理まで進めば input-not-found が返る。invalid-path なら、実行前に弾いている。
+    await explains('`drawio_create` の入力パスの検証のテストです。`input_path` に相対パスを指定した場合に、実処理に進まず `invalid-path` のエラーと、該当する指定の一覧を返すことを確認します。')
     const result = await drawioCreateTool.handler({ input_path: 'tests/fixtures/drawio/minimal.drawio' }, CALL)
     const structured = structuredOf(result)
 
@@ -108,6 +110,7 @@ describe('drawio_create', () => {
   })
 
   it('out_path だけが相対でも弾く', async () => {
+    await explains('`drawio_create` の出力先パスの検証のテストです。`input_path` が絶対パスで `out_path` だけが相対パスの場合に、`invalid-path` のエラーを返し、`invalidPaths` に `out_path` の指定が入ることを確認します。')
     const result = await drawioCreateTool.handler({ input_path: MINIMAL, out_path: 'out/diagram.drawio.html' }, CALL)
 
     expect(structuredOf(result)['kind']).toBe('invalid-path')
@@ -116,6 +119,7 @@ describe('drawio_create', () => {
 
   it('out_path 省略時は URL だけを返し、file を持たない', async (context) => {
     await verifies(context, 'PV-DRAWIO-CREATE-01')
+    await explains('`drawio_create` の出力先を省略した場合のテストです。`out_path` を省略したときに、`file` を含まず `event`・`theme`・`url` だけを持つ結果を返し、既定のテーマが使われることを確認します。')
     const result = await drawioCreateTool.handler({ input_path: MINIMAL }, CALL)
     const structured = structuredOf(result)
 
@@ -130,6 +134,7 @@ describe('drawio_create', () => {
 
   it('icon:// を含む入力は、URL に載る図の XML で icon がデータ URI に解決される', async (context) => {
     await verifies(context, 'PV-DRAWIO-CREATE-01')
+    await explains('`drawio_create` が `icon://` を解決するテストです。`icon://` を含む図を渡した場合に、URL に埋め込まれた図の XML で、アイコンが `data:image/svg+xml` の URL に置き換えられることを確認します。')
     const result = await drawioCreateTool.handler({ input_path: ICON_RESOLVABLE }, CALL)
     const url = dataOf(result)['url']
     if (typeof url !== 'string') throw new TypeError('url が文字列ではありません')
@@ -141,6 +146,7 @@ describe('drawio_create', () => {
 
   it('入力ファイルが無いと、kind input-not-found で返す', async (context) => {
     await verifies(context, 'PV-DRAWIO-CREATE-09')
+    await explains('`drawio_create` の入力ファイルの検証のテストです。`input_path` で存在しないファイルを指定した場合に、`input-not-found` のエラーと `pecotv drawio url:` で始まる文を返すことを確認します。')
     const result = await drawioCreateTool.handler(
       { input_path: path.join(makeTemporaryDirectory(), 'missing.drawio') },
       CALL,
@@ -152,6 +158,7 @@ describe('drawio_create', () => {
   })
 
   it('警告のある入力は、成功のまま警告本文を warnings に載せる', async () => {
+    await explains('`drawio_create` の警告の扱いのテストです。解決できない `icon://` を含む入力の場合に、エラーにはせず成功のまま、警告の本文を `warnings` に載せ、`1 warnings` を含む文を返すことを確認します。')
     const result = await drawioCreateTool.handler({ input_path: ICON_INCLUDED }, CALL)
     const structured = structuredOf(result)
 
@@ -166,6 +173,7 @@ describe('drawio_create', () => {
 
   describe('theme', () => {
     it('theme 無しは既定値で書体だけを確かめる（52px は警告にしない）', async () => {
+      await explains('`drawio_create` の `theme` を省略した場合の検証のテストです。`theme` を省略すると既定値で書体だけが検証され、52px の文字サイズは警告にならず、警告が 1 件だけ返ることを確認します。')
       const result = await drawioCreateTool.handler({ input_path: writePoster() }, CALL)
       expect(structuredOf(result)['warnings']).not.toEqual([])
       expect(dataOf(result)['warnings']).toHaveLength(1)
@@ -173,6 +181,7 @@ describe('drawio_create', () => {
     })
 
     it('theme にテーマのパスを渡すと、その宣言で書体とサイズを確かめる', async () => {
+      await explains('`drawio_create` の `theme` でテーマのパスを指定した場合のテストです。テーマの宣言で書体と文字サイズの両方が検証され、警告が 2 件になり、結果の `theme` に指定したテーマの名前が入ることを確認します。')
       const result = await drawioCreateTool.handler({ input_path: writePoster(), theme: makeThemeDirectory() }, CALL)
       expect(structuredOf(result)['warnings']).not.toEqual([])
       expect(dataOf(result)['warnings']).toHaveLength(2)
@@ -182,17 +191,20 @@ describe('drawio_create', () => {
     })
 
     it('theme の file: に相対パスを渡すと実処理を呼ばずに invalid-option で弾く', async () => {
+      await explains('`drawio_create` の `theme` の形式の検証のテストです。`theme` に `file:` つきの相対パスを指定した場合に、実処理に進まず `invalid-option` のエラーを返すことを確認します。')
       const result = await drawioCreateTool.handler({ input_path: MINIMAL, theme: 'file:relative/theme' }, CALL)
       expect(result.isError).toBe(true)
       expect(structuredOf(result)).toMatchObject({ event: 'drawio.url.error', kind: 'invalid-option' })
     })
 
     it('theme のパスが相対なら弾く（MCP サーバの作業ディレクトリは呼び出し元と異なる）', async () => {
+      await explains('`drawio_create` の `theme` のパスの検証のテストです。MCP サーバの作業ディレクトリは呼び出し元と異なるため、相対パスを指定した場合に `invalid-option` のエラーを返すことを確認します。')
       const result = await drawioCreateTool.handler({ input_path: MINIMAL, theme: 'relative/theme' }, CALL)
       expect(structuredOf(result)).toMatchObject({ event: 'drawio.url.error', kind: 'invalid-option' })
     })
 
     it('解けないテーマは invalid-theme で返す', async () => {
+      await explains('`drawio_create` のテーマの解決のテストです。テーマの宣言を持たない空のディレクトリを `theme` で指定した場合に、`invalid-theme` のエラーを返すことを確認します。')
       const empty = makeTemporaryDirectory()
       const result = await drawioCreateTool.handler({ input_path: MINIMAL, theme: empty }, CALL)
       expect(structuredOf(result)).toMatchObject({ event: 'drawio.url.error', kind: 'invalid-theme' })
@@ -201,6 +213,7 @@ describe('drawio_create', () => {
 
   it('png:false 指定の out_path は表示用 HTML だけを file に載せ、png を持たない', async (context) => {
     await verifies(context, 'PV-DRAWIO-CREATE-02')
+    await explains('`drawio_create` の PNG を出力しない指定のテストです。`png: false` と `out_path` を指定した場合に、表示用の HTML だけが書き出され、結果の `file` にそのパスが入り、`png` を含まないことを確認します。')
     await verifies(context, 'PV-DRAWIO-CREATE-04')
     const outPath = path.join(makeTemporaryDirectory(), 'out.drawio.html')
     const result = await drawioCreateTool.handler({ input_path: MINIMAL, out_path: outPath, png: false }, CALL)
@@ -218,6 +231,7 @@ describe('drawio_create', () => {
 
   it('.html 以外の out_path は invalid-output-extension で弾く', async (context) => {
     await verifies(context, 'PV-DRAWIO-CREATE-08')
+    await explains('`drawio_create` の出力先の拡張子の検証のテストです。`out_path` の拡張子が `.html` 以外の場合に、`invalid-output-extension` のエラーを返し、ファイルを書き出さないことを確認します。')
     const directory = makeTemporaryDirectory()
     const outPath = path.join(directory, 'out.drawio.url')
     const result = await drawioCreateTool.handler(
@@ -233,6 +247,7 @@ describe('drawio_create', () => {
   it('PNG 生成が失敗しても表示用 HTML は残り、png:null / pngFailed:true になる', async (context) => {
     await verifies(context, 'PV-DRAWIO-CREATE-06')
     // 実 Chromium を起こさずに PNG 失敗ルートへ入るための失敗注入。
+    await explains('`drawio_create` の PNG の生成に失敗した場合のテストです。`PECOTV_FORCE_PNG_FAIL=1` を指定すると、表示用の HTML は書き出され、`png` が `null`、`pngFailed` が `true` になり、警告が載ることを確認します。')
     vi.stubEnv('PECOTV_FORCE_PNG_FAIL', '1')
     const directory = makeTemporaryDirectory()
     const outPath = path.join(directory, 'out.drawio.html')
@@ -258,6 +273,7 @@ describe('drawio_create', () => {
 
 describe('drawio_export', () => {
   it('icons_dir が相対なら invalid-path で弾く', async () => {
+    await explains('`drawio_export` のアイコンのディレクトリの検証のテストです。`icons_dir` に相対パスを指定した場合に、`invalid-path` のエラーと、該当する指定の一覧を返すことを確認します。')
     const result = await drawioExportTool.handler(
       { input_path: ICON_RESOLVABLE, icons_dir: 'assets/drawio-icons' },
       CALL,
@@ -270,6 +286,7 @@ describe('drawio_export', () => {
   })
 
   it('icons_dir が空文字なら、invalid-path で弾き、missing-icons-root は返さない', async () => {
+    await explains('`drawio_export` のアイコンのディレクトリの検証のテストです。`icons_dir` が空文字の場合に、`invalid-path` のエラーを返し、`missing-icons-root` は返さないことを確認します。')
     const result = await drawioExportTool.handler({ input_path: ICON_RESOLVABLE, icons_dir: '' }, CALL)
     const structured = structuredOf(result)
 
@@ -282,6 +299,7 @@ describe('drawio_export', () => {
 
   it('icons_dir 省略時は plugin-root 同梱のカタログを既定に使う', async () => {
     // 標準の指す先が別の root なら、解決できる icon の集合が変わり、合成ハッシュがずれる。
+    await explains('`drawio_export` のアイコンのディレクトリの既定値のテストです。`icons_dir` を省略した場合に、プラグインに同梱されたカタログが使われ、明示した場合と同じ `sourceSha256` になることを確認します。')
     const explicit = await drawioExportTool.handler(
       { input_path: ICON_RESOLVABLE, icons_dir: ICON_ROOT, print_hash: true },
       CALL,
@@ -297,6 +315,7 @@ describe('drawio_export', () => {
 
   it('icons_dir を明示すれば既定より優先される', async () => {
     // 空ディレクトリでは icon が 1 件も解決できず、合成ハッシュが既定と一致しない。
+    await explains('`drawio_export` のアイコンのディレクトリの優先順位のテストです。`icons_dir` を明示した場合に既定のカタログより優先され、空のディレクトリを指定するとアイコンは解決されず、`sourceSha256` の値が変わることを確認します。')
     const empty = await drawioExportTool.handler(
       { input_path: ICON_RESOLVABLE, icons_dir: makeTemporaryDirectory(), print_hash: true },
       CALL,
@@ -311,6 +330,7 @@ describe('drawio_export', () => {
   })
 
   it('CLAUDE_PLUGIN_ROOT を別ルートへ向けても、既定の icons root は同梱のまま', async () => {
+    await explains('`drawio_export` の既定のアイコンのディレクトリのテストです。`CLAUDE_PLUGIN_ROOT` がカタログを持たない別のディレクトリを指す場合も、同梱のカタログが使われ、既定の場合と同じ `sourceSha256` になることを確認します。')
     // npx で起動したサーバに渡る CLAUDE_PLUGIN_ROOT は、アセットを持たない入れたプラグインのディレクトリを指す。
     const bundled = await drawioExportTool.handler(
       { input_path: ICON_RESOLVABLE, print_hash: true },
@@ -328,6 +348,7 @@ describe('drawio_export', () => {
 
   it('print_hash:true は export と書き出しのどちらも行わずハッシュだけを返す', async (context) => {
     await verifies(context, 'PV-DRAWIO-EXPORT-03')
+    await explains('`drawio_export` のハッシュだけを求める指定のテストです。`print_hash: true` を指定した場合に、書き出しを行わず、`event`・`file`・`icons`・`sourceSha256` だけを持つ結果を返すことを確認します。')
     const outPath = path.join(makeTemporaryDirectory(), 'out.svg')
     const result = await drawioExportTool.handler(
       { input_path: ICON_RESOLVABLE, icons_dir: ICON_ROOT, out_path: outPath, print_hash: true },
@@ -348,6 +369,7 @@ describe('drawio_export', () => {
   })
 
   it('解決できない icon:// があると、kind icon-unresolved で返す', async () => {
+    await explains('`drawio_export` のアイコンの検証のテストです。解決できない `icon://` を含む入力の場合に、`icon-unresolved` のエラーを返すことを確認します。')
     const result = await drawioExportTool.handler(
       { input_path: ICON_INCLUDED, icons_dir: ICON_ROOT, out_path: path.join(makeTemporaryDirectory(), 'out.svg') },
       CALL,
@@ -358,6 +380,7 @@ describe('drawio_export', () => {
   })
 
   it('入力ファイルが無いと、kind input-not-found で返す', async () => {
+    await explains('`drawio_export` の入力ファイルの検証のテストです。`input_path` で存在しないファイルを指定した場合に、`input-not-found` のエラーを返すことを確認します。')
     const result = await drawioExportTool.handler(
       { input_path: path.join(makeTemporaryDirectory(), 'missing.drawio'), icons_dir: ICON_ROOT },
       CALL,
@@ -369,6 +392,7 @@ describe('drawio_export', () => {
   it('export が失敗すると、kind export-failed で返す', async (context) => {
     await verifies(context, 'PV-DRAWIO-EXPORT-05')
     // 実 Chromium / embed.diagrams.net を起こさずに export 失敗ルートへ入るための失敗注入。
+    await explains('`drawio_export` の書き出しに失敗した場合のテストです。`PECOTV_FORCE_SVG_FAIL=1` を指定した場合に、`export-failed` のエラーを返し、SVG を書き出さないことを確認します。')
     vi.stubEnv('PECOTV_FORCE_SVG_FAIL', '1')
     const outPath = path.join(makeTemporaryDirectory(), 'out.svg')
     const result = await drawioExportTool.handler(

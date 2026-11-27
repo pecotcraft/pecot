@@ -4,6 +4,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { explains } from '../_helpers/explains.js'
 import { extractSectionsFromTemplate, validateBodyStyle, validateSections } from '@pecot/workflow-core/domain/sections.js'
 import { templateFile } from '../../src/infra/template-store.js'
 import { pluginRoot, readPluginFile, toolInputs } from './_helpers/documents.js'
@@ -43,11 +44,13 @@ function extractPrCreateExample(text: string): PrCreateExample | undefined {
 describe.each(['release-single.md', 'release-multi.md'])('%s の docs PR の例', (name) => {
   const example = extractPrCreateExample(readPluginFile(`skills/w-release/references/${name}`))
 
-  it('pr_create の message が見つかる', () => {
+  it('pr_create の例から、message を取り出せる', async () => {
+    await explains(`w-release の \`${name}\` の docs PR の例のテストです。\`pr_create\` のブロックから \`message\` の本文を取り出せることを確認します。`)
     expect(example).toBeDefined()
   })
 
-  it('message が create.md の必須の節と書式の規約を満たす', () => {
+  it('message が create.md の必須の節と書式の規約を満たす', async () => {
+    await explains(`\`${name}\` の例の \`message\` のテストです。PR のテンプレート \`create.md\` の必須の節がそろい、本文の書式の規約に違反していないことを確認します。`)
     const template = readPluginFile(path.relative(pluginRoot, templateFile('pr', 'create')))
     const sections = extractSectionsFromTemplate(template)
     expect(sections.length).toBeGreaterThan(0)
@@ -55,11 +58,13 @@ describe.each(['release-single.md', 'release-multi.md'])('%s の docs PR の例'
     expect(validateBodyStyle(example?.message ?? '')).toEqual([])
   })
 
-  it('画像を入れない理由を screenshot で、message より前に渡す', () => {
+  it('screenshot で画像を入れない理由を渡し、message より前に置く', async () => {
+    await explains(`\`${name}\` の例の入力の順序のテストです。画像を入れない理由を渡す \`screenshot\` が、\`message\` より前に指定されていることを確認します。`)
     expect(example?.inputsBeforeMessage).toContain('screenshot')
   })
 
-  it('pr_create の入力名が、ツールの入力に実在する', () => {
+  it('pr_create の入力名が、ツールの入力に実在する', async () => {
+    await explains(`\`${name}\` の例の入力名のテストです。例に書かれた入力名が、\`pr_create\` ツールの入力としてすべて存在することを確認します。`)
     const inputs = toolInputs().get('pr_create')
     const unknown = (example?.inputsBeforeMessage ?? []).filter(input => inputs?.has(input) !== true)
     expect(unknown).toEqual([])

@@ -27,6 +27,7 @@ import {
 import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
+import { explains } from '../_helpers/explains.js'
 
 // vitest.e2e.config.ts の maxWorkers 構成で、並列に計測した。N=6 の 7 run 全体から最悪を取る。
 // 本 CUJ の最悪は 8.9s。マージン倍率 4.4 倍（39.2s）を取り、40s へ切り上げる。
@@ -51,7 +52,8 @@ afterAll(() => {
 const isChromiumReady = isChromiumCached()
 
 describe.skipIf(!isChromiumReady)('CUJ 1b: --out 省略時', () => {
-  it('--out 省略時は slides.md の title 由来の既定パスが生成される', async () => {
+  it('`--out` を省略すると、`slides.md` の `title` から決めた既定のパスへ PPTX を書き出す', async () => {
+    await explains('`slide convert` の出力先の既定値のテストです。`--out` を省略した場合に、`slides.md` の `title` から決めた `pptx/` 配下のパスへ書き出し、プロジェクト名由来の旧い名前では書き出さないことを確認します。')
     const itT0 = performance.now()
     const projectDirectory = temporaryRoot('sample-cuj1b')
     const themeSpec = createFixtureThemeSpec(temporaryRoot('theme-cuj1b'))

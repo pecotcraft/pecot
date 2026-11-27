@@ -61,9 +61,12 @@ def _labels(results: Path) -> list[list[dict[str, Any]]]:
     ]
 
 
+@allure.title(
+    "-o でラベルを指定すると、{param_id} の conftest はすべての結果に project と lane のラベルを 1 つずつ付ける"
+)
 @pytest.mark.parametrize("conftest", _CONFTESTS)
 def test_ini_labels_are_added_to_every_result(tmp_path: Path, conftest: str) -> None:
-    """-o でラベルを渡すと、どの結果にも project と lane のラベルが 1 つずつ付く。"""
+    """pytest を `--alluredir` と `-o` を指定して実行したときに、Allure の結果ファイルに付くラベルのテストです。2 件のテストのどちらの結果にも、指定した project と lane のラベルが 1 つずつだけ付いていることを確認します。"""
     with allure.step("2 つのテストを -o のラベル付きで pytest に動かす"):
         results = tmp_path / "allure-results"
         body = "def test_a() -> None:\n    pass\n\n\ndef test_b() -> None:\n    pass\n"
@@ -84,9 +87,12 @@ def test_ini_labels_are_added_to_every_result(tmp_path: Path, conftest: str) -> 
             ]
 
 
+@allure.title(
+    "-o を指定しないと、{param_id} の conftest は結果に project と lane のラベルを付けない"
+)
 @pytest.mark.parametrize("conftest", _CONFTESTS)
 def test_without_ini_labels_no_project_or_lane_label(tmp_path: Path, conftest: str) -> None:
-    """-o を渡さないと、結果に project と lane のラベルを付けない。"""
+    """`-o` を指定せずに pytest を実行したときに、Allure の結果ファイルに付くラベルのテストです。結果に `project` と `lane` のラベルが 1 つも付いていないことを確認します。"""
     with allure.step("-o を渡さずに pytest を動かす"):
         results = tmp_path / "allure-results"
         done = _run_pytest(
@@ -99,8 +105,11 @@ def test_without_ini_labels_no_project_or_lane_label(tmp_path: Path, conftest: s
         assert [label for label in labels[0] if label["name"] in {"project", "lane"}] == []
 
 
+@allure.title(
+    "-o を指定しないと、allure-pytest を無効にしても docs の conftest は allure を読み込まずに成功する"
+)
 def test_without_ini_labels_docs_conftest_does_not_import_allure(tmp_path: Path) -> None:
-    """-o を渡さないと、allure-pytest を外しても docs の conftest は allure を読まずに通る。"""
+    """`-o` を指定せず、`-p no:allure_pytest` で allure-pytest を無効にして実行したときの、docs の conftest のテストです。テストが成功し、`allure` モジュールが読み込まれていないことを確認します。"""
     with allure.step("allure-pytest を外して docs の conftest で pytest を動かす"):
         body = "import sys\n\n\ndef test_a() -> None:\n    assert 'allure' not in sys.modules\n"
         done = _run_pytest(tmp_path, _CONFTESTS[1], body, "-p", "no:allure_pytest")
@@ -121,10 +130,13 @@ def run_sh_copy(tmp_path: Path, mock_bin: Any) -> Path:
     return tests_dir / "run.sh"
 
 
+@allure.title(
+    "nx のレーンから run.sh を実行すると、前回の結果を削除し、--alluredir と project・lane の -o を pytest に渡す"
+)
 def test_run_sh_in_nx_lane_passes_alluredir_and_labels(
     tmp_path: Path, run_sh_copy: Path, run_script: Callable[..., subprocess.CompletedProcess[str]]
 ) -> None:
-    """nx のレーンから動くと、前の結果を消し、--alluredir と project・lane の -o を pytest に渡す。"""
+    """nx のレーン（`NX_TASK_TARGET_TARGET` を指定した場合）で `run.sh` を実行したときのテストです。前回の結果のディレクトリを削除し、`pytest` に `--alluredir` と project・lane の `-o` を渡し、結果を step の gate に渡すことを確認します。"""
     results = tmp_path / ".githooks/test-results/test-ci/allure-results"
     results.mkdir(parents=True)
     (results / "stale-result.json").write_text("{}", encoding="utf-8")
@@ -148,10 +160,11 @@ def test_run_sh_in_nx_lane_passes_alluredir_and_labels(
         assert gate_args == [str(results)]
 
 
+@allure.title("nx の外で run.sh を実行すると、pytest に --alluredir と -o を渡さない")
 def test_run_sh_outside_nx_passes_no_alluredir(
     tmp_path: Path, run_sh_copy: Path, run_script: Callable[..., subprocess.CompletedProcess[str]]
 ) -> None:
-    """nx の外で動くと、pytest に --alluredir と -o を渡さない。"""
+    """nx の外（`NX_TASK_TARGET_*` を指定しない場合）で `run.sh` を実行したときのテストです。`pytest` へ `--alluredir` と `-o` を渡さず、step の gate も実行しないことを確認します。"""
     done = run_script(
         run_sh_copy
     )  # NX_TASK_TARGET_* は conftest の autouse の fixture が外している

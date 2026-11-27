@@ -9,6 +9,7 @@ import tseslint from 'typescript-eslint'
 import vitest from '@vitest/eslint-plugin'
 import { describeTitleConfig } from '../../../../libs/interface-spec/src/eslint/describe-title.ts'
 import { tableKeyConfig } from '../../../../libs/interface-spec/src/eslint/table-key.ts'
+import { testDescriptionConfig } from '../../../../libs/interface-spec/src/eslint/test-description.ts'
 import { defineDeckLintConfig } from './deck-lint.config.js'
 
 const tsFiles = ['scripts/**/*.ts']
@@ -86,6 +87,7 @@ export default defineConfig(
   // slidev は定義書を持たないので、tests/interface/ に describe を足すと、どの題も止まる。
   describeTitleConfig([]),
   tableKeyConfig(testFiles),
+  testDescriptionConfig(testFiles),
   { ...prettierConfig, files: ['**/*.{js,mjs,cjs}', ...tsFiles] },
   {
     // fixture deck の pages/*.md と slides.md を、配布先のデッキと同じ規則で守る。

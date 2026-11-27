@@ -11,6 +11,7 @@ import { captureAndReplaceElements } from '../prerender-capture.js'
 import type { PrerenderConfig, PrerenderTarget } from '../prerender-config.js'
 import { FakeElementHandle, FakePage, applyDomReplacementOn } from './support/fake-playwright.js'
 import { makeLogger } from './support/logger.js'
+import { explains } from '../../../../tests/_helpers/explains.js'
 
 const baseConfig: PrerenderConfig = {
   targets: [],
@@ -34,7 +35,8 @@ describe('captureAndReplaceElements', () => {
     document.body.replaceChildren()
   })
 
-  it('通常 capture: hiRes screenshot → 画像 + meta.json 出力 + DOM 置換', async () => {
+  it('通常の撮影では、高解像度のスクリーンショットから画像と meta.json を出力する', async () => {
+    await explains('プリレンダの撮影処理 `captureAndReplaceElements` の、通常の流れのテストです。1 つの要素について、画像（`.png`）と `.meta.json` が出力され、エラーがなく、`meta.json` に `selector` が記録されることを確認します。')
     const target: PrerenderTarget = { selector: '.foo' }
     document.body.innerHTML = '<div class="foo">orig</div>'
     const elementOnPage = document.querySelector('.foo')!
@@ -76,7 +78,8 @@ describe('captureAndReplaceElements', () => {
     expect(meta['selector']).toBe('.foo')
   })
 
-  it('origin を渡すと meta.json の left / top がその原点基準になる (#1141)', async () => {
+  it('origin を渡した場合の meta.json は、left と top が原点基準の値になる', async () => {
+    await explains('撮影時に原点（`origin`）を渡した場合のテストです。`meta.json` の `left` と `top` が、渡した原点を基準にした値（25 と 20）になることを確認します。')
     const target: PrerenderTarget = { selector: '.origin' }
     const elementHandle = new FakeElementHandle({ boundingBoxes: [{ x: 25, y: 1100, width: 80, height: 60 }] })
     const hiResHandle = new FakeElementHandle({ boundingBoxes: [{ x: 25, y: 20, width: 80, height: 60 }] })
@@ -98,7 +101,8 @@ describe('captureAndReplaceElements', () => {
     expect(meta).toMatchObject({ left: 25, top: 20, width: 160, height: 120 })
   })
 
-  it('clipPadding 有り: clip 計算込みで screenshot を呼ぶ', async () => {
+  it('clipPadding を指定した場合は、余白を含めた範囲を指定して撮影する', async () => {
+    await explains('対象に `clipPadding` を指定した場合のテストです。要素の位置に余白を加えた範囲（`clip`）を指定して、スクリーンショットが撮影されることを確認します。')
     document.body.innerHTML = '<div class="foo"></div>'
     const elementOnPage = document.querySelector('.foo')!
     const elementHandle = new FakeElementHandle({
@@ -128,7 +132,8 @@ describe('captureAndReplaceElements', () => {
     expect(hiResPage.screenshotCalls[0]?.clip).toMatchObject({ x: 6, y: 6, width: 108, height: 88 })
   })
 
-  it('boundingBox 取得失敗で警告、results に error が含まれる', async () => {
+  it('boundingBox の取得に失敗した場合は、警告を出力し、results にエラーを 1 件だけ含める', async () => {
+    await explains('要素の位置（`boundingBox`）の取得が例外で失敗する場合のテストです。`boundingBox lookup failed` を含む警告が出力され、`results` に同じ要素の失敗が重複せず 1 件だけ記録されることを確認します。')
     const failingHandle = new FakeElementHandle()
     failingHandle.boundingBox = async () => { throw new Error('bbox-fail') }
     const hiResHandle = new FakeElementHandle({ boundingBoxes: [{ x: 0, y: 0, width: 50, height: 50 }] })
@@ -155,7 +160,8 @@ describe('captureAndReplaceElements', () => {
     expect(result.results[0]?.error).toBe('boundingBox lookup failed: bbox-fail')
   })
 
-  it('hiRes screenshot 失敗で警告、screenshots[i] = null で skip される', async () => {
+  it('高解像度のスクリーンショットに失敗した場合は、警告を出力し、その要素を処理しない', async () => {
+    await explains('高解像度のスクリーンショットの撮影が例外で失敗する場合のテストです。`hiRes screenshot failed` を含む警告が出力され、処理に成功した要素の数が 0 になることを確認します。')
     document.body.innerHTML = '<div class="x"></div>'
     const elementHandle = new FakeElementHandle({ boundingBoxes: [{ x: 0, y: 0, width: 50, height: 50 }] })
     const hiResHandle = new FakeElementHandle({ boundingBoxes: [{ x: 0, y: 0, width: 50, height: 50 }] })
@@ -178,7 +184,8 @@ describe('captureAndReplaceElements', () => {
     expect(result.count).toBe(0)
   })
 
-  it('オフスクリーン要素で transform を一時解除して capture する', async () => {
+  it('要素が表示領域の外にある場合は、transform を一時的に解除して撮影する', async () => {
+    await explains('要素が表示領域の外にあり、祖先に `transform` がある場合のテストです。`transform` を一時的に解除した後に撮影が成功し、描画を待つために 100 ミリ秒待機することを確認します。')
     document.body.innerHTML = `
       <div style="transform: translateX(10px); overflow: hidden">
         <div class="x">offscreen</div>
@@ -232,7 +239,8 @@ describe('captureAndReplaceElements', () => {
     expect(hiResPage.waitForTimeoutCalls).toContain(100)
   })
 
-  it('オフスクリーン + clipPadding ありで clip パラメータが計算される', async () => {
+  it('要素が表示領域の外にあり、clipPadding を指定した場合は、移動後の位置に余白を加えた範囲で撮影する', async () => {
+    await explains('要素が表示領域の外にあり、`clipPadding` を指定した場合のテストです。一時的に移動した後の位置に余白を加えた範囲（`clip`）で、スクリーンショットが撮影されることを確認します。')
     document.body.innerHTML = `<div class="x"></div>`
     const elementOnPage = document.querySelector('.x')!
     const elementHandle = new FakeElementHandle({ boundingBoxes: [{ x: 0, y: 0, width: 50, height: 50 }] })
@@ -262,7 +270,8 @@ describe('captureAndReplaceElements', () => {
     expect(hiResPage.screenshotCalls[0]?.clip).toMatchObject({ x: 8, y: 8, width: 54, height: 54 })
   })
 
-  it('Phase 3 で DOM 置換時の例外を catch して errors に追加', async () => {
+  it('DOM の置き換えで例外が発生した場合は、errors にエラーを追加する', async () => {
+    await explains('撮影後の DOM の置き換えが例外で失敗する場合のテストです。`errors` にエラーが追加され、`results` に `replace-fail` を含む失敗が記録されることを確認します。')
     document.body.innerHTML = '<div class="x"></div>'
     const elementHandle = new FakeElementHandle({ boundingBoxes: [{ x: 0, y: 0, width: 50, height: 50 }] })
     elementHandle.evaluate = async <R>(_fn: any, _arg?: unknown): Promise<R> => {
@@ -288,7 +297,8 @@ describe('captureAndReplaceElements', () => {
     expect(result.results.some(r => r.error?.includes('replace-fail'))).toBe(true)
   })
 
-  it('hiRes boundingBox が null なら screenshot を呼ばずに不可視として失敗を積む', async () => {
+  it('高解像度側の boundingBox が null の場合は、撮影せずに、非表示の要素として失敗を記録する', async () => {
+    await explains('高解像度側の要素の位置（`boundingBox`）が `null` の場合のテストです。スクリーンショットを撮影せずに、`element is not visible` を含む失敗が記録され、警告が出力されることを確認します。')
     document.body.innerHTML = '<div class="x"></div>'
     const elementHandle = new FakeElementHandle({ boundingBoxes: [{ x: 0, y: 0, width: 50, height: 50 }] })
     const hiResHandle = new FakeElementHandle({ boundingBoxes: [null] })
@@ -319,7 +329,8 @@ describe('captureAndReplaceElements', () => {
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('hiRes screenshot failed'))
   })
 
-  it('オフスクリーン要素の再計測が null でも savedTransforms を復元してから失敗にする', async () => {
+  it('要素の移動後の再計測が null になった場合も、解除した transform を元に戻してから失敗にする', async () => {
+    await explains('表示領域の外にある要素を一時的に移動しても、位置が取得できない場合のテストです。撮影せずに失敗を記録し、解除した `transform` を元に戻す処理が 1 回呼ばれることを確認します。')
     document.body.innerHTML = '<div class="x"></div>'
     const elementHandle = new FakeElementHandle({ boundingBoxes: [{ x: 0, y: 0, width: 50, height: 50 }] })
     const hiResHandle = new FakeElementHandle({
@@ -362,7 +373,8 @@ describe('captureAndReplaceElements', () => {
     expect(result.results.some(r => r.error === 'hiRes screenshot failed: element is not visible (boundingBox is null)')).toBe(true)
   })
 
-  it('オフスクリーン要素の screenshot が throw しても savedTransforms を復元する', async () => {
+  it('移動後の撮影で例外が発生した場合も、解除した transform を元に戻す', async () => {
+    await explains('表示領域の外にある要素を一時的に移動した後の撮影が、例外で失敗する場合のテストです。解除した `transform` を元に戻す処理が 1 回呼ばれ、失敗の理由（`shot-fail`）が記録されることを確認します。')
     document.body.innerHTML = '<div class="x"></div>'
     const elementHandle = new FakeElementHandle({ boundingBoxes: [{ x: 0, y: 0, width: 50, height: 50 }] })
     const hiResHandle = new FakeElementHandle({
@@ -400,7 +412,8 @@ describe('captureAndReplaceElements', () => {
     expect(result.count).toBe(0)
     expect(result.results.some(r => r.error?.includes('shot-fail'))).toBe(true)
   })
-  it('撮影中だけ .marker-overlay を隠し、撮影後に元の visibility へ戻す (#1159)', async () => {
+  it('撮影中だけ .marker-overlay を非表示にし、撮影後に元の表示状態へ戻す', async () => {
+    await explains('ページに `.marker-overlay` の要素がある場合のテストです。撮影の間だけ `visibility` が `hidden` になり、撮影後に元の `visible` へ戻り、一時的に記録した値も残らないことを確認します。')
     document.body.innerHTML = '<div class="diagram-bare">図</div><div class="marker-overlay" style="visibility: visible">1</div>'
     const overlay = document.querySelector<HTMLElement>('.marker-overlay')!
     const elementHandle = new FakeElementHandle({ boundingBoxes: [{ x: 5, y: 5, width: 80, height: 60 }] })
@@ -431,7 +444,8 @@ describe('captureAndReplaceElements', () => {
     expect(overlay.dataset['prerenderOverlayVisibility']).toBeUndefined()
   })
 
-  it('撮影が throw しても隠した .marker-overlay を戻す (#1159)', async () => {
+  it('撮影で例外が発生した場合も、非表示にした .marker-overlay を元に戻す', async () => {
+    await explains('撮影が例外で失敗する場合の `.marker-overlay` のテストです。非表示にした `visibility` が元の値に戻り、一時的に記録した値も残らないことを確認します。')
     document.body.innerHTML = '<div class="diagram-bare">図</div><div class="marker-overlay">1</div>'
     const overlay = document.querySelector<HTMLElement>('.marker-overlay')!
     const elementHandle = new FakeElementHandle({ boundingBoxes: [{ x: 5, y: 5, width: 80, height: 60 }] })

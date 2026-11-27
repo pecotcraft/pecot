@@ -39,6 +39,7 @@ import { isRecord } from '../../../tests/_helpers/records.js'
 import { verifies } from '../../../tests/_helpers/verifies.js'
 import { closeMcp, connectMcp, type ConnectedMcp } from './_client.js'
 import { compareStrings } from '../../domain/_shared/compare-strings.js'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 /**
 JSON Schema の scalar 型 (契約表の「型」列)。integer は z.number().int() が落ちる先。
@@ -475,13 +476,15 @@ describe('MCP ツール契約 (tools/list)', () => {
     return found
   }
 
-  it('契約どおりの 11 件と、フックが呼ぶ 3 件のツールを公開する', () => {
+  it('契約どおりの 11 件と、フックが呼ぶ 3 件のツールを公開する', async () => {
+    await explains('MCP サーバーが公開するツールの一覧（`tools/list`）のテストです。契約の表に定めた 11 件と、フックが呼ぶ 3 件のツールが過不足なく公開されることを確認します。')
     const all = allListed()
     expect(all).toHaveLength(TOOL_CONTRACTS.length + HOOK_TOOL_NAMES.length)
     expect(sorted(all.map(tool => tool.name))).toEqual(sorted([...TOOL_CONTRACTS.map(contract => contract.name), ...HOOK_TOOL_NAMES]))
   })
 
-  it.each(TOOL_CONTRACTS)('$name の inputSchema が契約表と一致する', (contract) => {
+  it.each(TOOL_CONTRACTS)('$name の inputSchema が契約表と一致する', async (contract) => {
+    await explains('ツールの入力スキーマ（`inputSchema`）のテストです。パラメーターの名前、型、必須かどうか、選択肢が契約の表と一致し、すべてのパラメーターに説明があることを確認します。')
     const tool = toolOf(contract.name)
     const properties = tool.inputSchema.properties
 
@@ -501,7 +504,8 @@ describe('MCP ツール契約 (tools/list)', () => {
     }
   })
 
-  it.each(TOOL_CONTRACTS)('$name の inputSchema が契約表どおりの既定値を持つ', (contract) => {
+  it.each(TOOL_CONTRACTS)('$name の inputSchema が契約表どおりの既定値を持つ', async (contract) => {
+    await explains('ツールの入力スキーマ（`inputSchema`）の既定値のテストです。既定値を持つパラメーターの名前と値が、契約の表と一致することを確認します。')
     const properties = toolOf(contract.name).inputSchema.properties ?? {}
 
     // 契約表に無いパラメータが既定値を持ってしまう退行も見たいので、集合として比べる。
@@ -515,7 +519,8 @@ describe('MCP ツール契約 (tools/list)', () => {
     }
   })
 
-  it.each(TOOL_CONTRACTS)('$name のパス型パラメータが絶対パス必須だと description に書いてある', (contract) => {
+  it.each(TOOL_CONTRACTS)('$name のパスを指定するパラメータの description に、絶対パスが必要であることと Windows 形式も使えることが書いてある', async (contract) => {
+    await explains('パスを指定するパラメーターの説明文のテストです。説明文に、絶対パスが必要であることと、Windows 形式のパスも指定できることが書かれていることを確認します。')
     const properties = toolOf(contract.name).inputSchema.properties
     for (const name of contract.pathParameters) {
       expect(propertyOf(properties, name)['description']).toContain('Absolute path')
@@ -524,11 +529,12 @@ describe('MCP ツール契約 (tools/list)', () => {
     }
   })
 
-  it.for(TOOL_CONTRACTS)('$name のパス型パラメータは相対パスなら実処理前に invalid-path で弾く', async (contract, context) => {
+  it.for(TOOL_CONTRACTS)('$name のパスを指定するパラメータに相対パスを渡すと、実際の処理の前に invalid-path で失敗する', async (contract, context) => {
     await verifies(context, 'PV-COMMON-03')
     // 必須パラメータは絶対パスで埋め、対象の 1 件だけを相対パスにする。
     // 実処理まで進めば、結果は「入力不在」の失敗。
     // invalid-path を返すこと自体が、実行前の拒否の証拠となる (FR-011)。
+    await explains('パスを指定するパラメーターに相対パスを渡した場合のテストです。実際の処理へ進む前に、`invalid-path` の失敗となり、対象のパラメーター名と絶対パスの必要性を示すメッセージが返ることを確認します。')
     const absoluteRequired = Object.fromEntries(contract.required.map(name => [name, ABSOLUTE_PATH]))
 
     for (const name of contract.pathParameters) {
@@ -547,7 +553,8 @@ describe('MCP ツール契約 (tools/list)', () => {
     }
   })
 
-  it('Windows 形式の検証がパス型パラメータを持つ全ツールを覆う', () => {
+  it('Windows 形式のパスのテストは、パスを指定するパラメータを持つすべてのツールを対象にしている', async () => {
+    await explains('Windows 形式のパスを検証する対象のテストです。検証の対象が、パスを指定するパラメーターを持つすべてのツールと一致することを確認します。')
     expect(sorted([...SINGLE_PATH_CONTRACTS, ...MULTI_PATH_CONTRACTS].map(contract => contract.name)))
       .toEqual(sorted(TOOL_CONTRACTS
         .filter(contract => contract.pathParameters.length > 0)
@@ -557,6 +564,7 @@ describe('MCP ツール契約 (tools/list)', () => {
   it.for(SINGLE_PATH_CONTRACTS)('$name は Windows 形式のパスを変換して下流へ渡す', async (contract, context) => {
     await verifies(context, 'PV-COMMON-04')
     // パス引数が 1 件のツールは、変換後の値がそのまま下流へ渡るので応答 (detail やツールの項目) に現れる。
+    await explains('パスを 1 つだけ指定するツールに、Windows 形式のパスを渡した場合のテストです。パスが変換されて処理に渡され、応答に変換後のパスが含まれることと、`invalid-path` にならないことを確認します。')
     const base = windowsBaseArgumentsOf(contract.name)
 
     for (const windowsPath of WINDOWS_PATHS) {
@@ -588,6 +596,7 @@ describe('MCP ツール契約 (tools/list)', () => {
     // そこで 2 点で引数ごとに変換を観測する。
     // 1 点目は、受理されること (invalidPaths が無いこと)。
     // 2 点目は、別のパス引数を相対パスにして拒否させたときの convertedPaths (元値 → 変換後)。
+    await explains('パスを複数指定するツールに、Windows 形式のパスを渡した場合のテストです。パスが受理されることと、別のパスを相対パスにして拒否させたときに、変換前後のパスが応答に含まれることを確認します。')
     const base = windowsBaseArgumentsOf(contract.name)
 
     for (const windowsPath of WINDOWS_PATHS) {
@@ -616,12 +625,13 @@ describe('MCP ツール契約 (tools/list)', () => {
     }
   })
 
-  it('drawio_create の out_path を変換後の mount root 配下へ向けると file に変換後パスが載る (#1094 F-13)', async () => {
+  it('drawio_create の out_path に Windows 形式のパスを指定すると、変換後のパスに出力し、file に変換後のパスを返す', async () => {
     // 直前の 2 テストは、「受理されること (invalidPaths 無し)」までしか見ていない。
     // out_path が実際に下流 (成果物の書き出し先) で使われることまでは、テストで覆えていなかった。
     // 対象は drawio_create / drawio_export / slide_convert の out_path。
     // 下流利用まで見ていたのは、evidence_create の E2E だけだった。
     // そこで Chromium を要らない設定 (png: false) の drawio_create を 1 件足す。
+    await explains('`drawio_create` の出力先（`out_path`）に Windows 形式のパスを指定した場合のテストです。変換後のパスの配下に出力され、応答の `file` に変換後のパスが含まれることを確認します。')
     const inputPath = path.join(CLI_ROOT, 'tests', 'fixtures', 'drawio', 'minimal.drawio')
     const windowsOutPath = String.raw`C:\pecotv-1094\missing\diagram.drawio.html`
     const expectedOutPath = path.join(convertedPath, 'diagram.drawio.html')
@@ -635,7 +645,8 @@ describe('MCP ツール契約 (tools/list)', () => {
     expect(structured['file']).toBe(expectedOutPath)
   })
 
-  it.each(TOOL_CONTRACTS)('$name の outputSchema は、宣言に無い項目を拒む閉じた object で、共通の 4 項目を持ち、anyOf で成功の必須項目か kind と detail を求める', (contract) => {
+  it.each(TOOL_CONTRACTS)('$name の outputSchema は、宣言した項目だけを許す object で、共通の 4 項目を持ち、成功の必須項目か kind と detail のどちらかを求める', async (contract) => {
+    await explains('ツールの出力スキーマ（`outputSchema`）の構造のテストです。宣言していない項目を許さない `object` であり、共通の 4 項目を持ち、`anyOf` で成功時の必須項目か `kind` と `detail` のいずれかを求めることを確認します。')
     const outputSchema = toolOf(contract.name).outputSchema
     const properties = outputSchema?.['properties']
     const names = Object.keys(isRecord(properties) ? properties : {})
@@ -655,7 +666,8 @@ describe('MCP ツール契約 (tools/list)', () => {
     expect(JSON.stringify(outputSchema)).not.toMatch(/:true[,\}]/v)
   })
 
-  it.each(TOOL_CONTRACTS)('$name の outputSchema は、共通の 4 項目を省略可の型で持つ', (contract) => {
+  it.each(TOOL_CONTRACTS)('$name の outputSchema は、共通の 4 項目を省略可の型で持つ', async (contract) => {
+    await explains('ツールの出力スキーマ（`outputSchema`）の共通項目のテストです。`warnings`、`kind`、`detail`、`log` の 4 項目が、それぞれ決まった型で定義されていることを確認します。')
     const properties = toolOf(contract.name).outputSchema?.['properties']
 
     expect(properties).toMatchObject({
@@ -666,13 +678,15 @@ describe('MCP ツール契約 (tools/list)', () => {
     })
   })
 
-  it.each(TOOL_CONTRACTS)('$name の annotations が実行判断のヒントを持つ', (contract) => {
+  it.each(TOOL_CONTRACTS)('$name の annotations が実行判断のヒントを持つ', async (contract) => {
+    await explains('ツールの `annotations` のテストです。`readOnlyHint` と `openWorldHint` が、契約の表に定めた値と一致することを確認します。')
     const annotations = toolOf(contract.name).annotations ?? {}
     expect(annotations.readOnlyHint === true).toBe(contract.readOnly)
     expect(annotations.openWorldHint === false).toBe(!contract.openWorld)
   })
 
-  it.each(TOOL_CONTRACTS)('$name が定義書の mcp.title と同じ最上位の title と description を持つ', (contract) => {
+  it.each(TOOL_CONTRACTS)('$name が定義書の mcp.title と同じ最上位の title と description を持つ', async (contract) => {
+    await explains('ツールの題名と説明のテストです。最上位の `title` が、インタフェース定義書の `mcp.title` と同じ値で、`description` が空でないことを確認します。')
     const tool = toolOf(contract.name)
     const title = generatedTitleOf(contract.name)
     expect(title).toEqual(expect.stringMatching(/\S/))
@@ -682,21 +696,24 @@ describe('MCP ツール契約 (tools/list)', () => {
     expect(tool.description).not.toBe('')
   })
 
-  it.each(['drawio_create', 'evidence_create'])('%s は生成前に文言を文章規則で確認すると description に書いてある', (name) => {
+  it.each(['drawio_create', 'evidence_create'])('%s の description に、生成の前に文言を文章規則で確認し、違反があれば何も生成しないと書いてある', async (name) => {
     // 違反で生成されないことを、呼び出す側が description から読み取れるようにする。
+    await explains('`drawio_create` と `evidence_create` の説明文のテストです。生成の前に文章規則で確認し、違反があれば何も生成しないことが、説明文に書かれていることを確認します。')
     expect(toolOf(name).description).toContain('against the text rules and generates nothing if there is a violation')
   })
 
-  it('即失敗テーブルが runtime_setup 以外の全ツールを覆う', () => {
+  it('すぐに失敗するケースの表は、runtime_setup 以外のすべてのツールを対象にしている', async () => {
+    await explains('すぐに失敗するケースの表のテストです。表の対象が、`runtime_setup` を除くすべてのツールと一致することを確認します。')
     expect(sorted(FAST_FAILURES.map(entry => entry.name)))
       .toEqual(sorted(TOOL_CONTRACTS
         .map(contract => contract.name)
         .filter(name => !NO_FAST_FAILURE.has(name))))
   })
 
-  it('runtime_setup が引数を取らず、破壊的かつ外部到達として宣言されている', () => {
+  it('runtime_setup が引数を取らず、破壊的かつ外部到達として宣言されている', async () => {
     // Claude Code は annotations から自動承認の可否を組み立てるため、Chromium を
     // ダウンロードする本ツールが読み取り専用や非破壊に見えてはいけない。
+    await explains('`runtime_setup` ツールの宣言のテストです。引数を持たず、`destructiveHint` と `openWorldHint` が `true` で、説明文にダウンロードの量（`120MB` と `600MB`）が書かれていることを確認します。')
     const tool = toolOf('runtime_setup')
 
     expect(Object.keys(tool.inputSchema.properties ?? {})).toEqual([])
@@ -711,8 +728,9 @@ describe('MCP ツール契約 (tools/list)', () => {
     expect(tool.description).toContain('600MB')
   })
 
-  it.each(FAST_FAILURES)('$name の失敗は、入れ物の項目と stdout / stderr と reason を持たず、kind と detail を返す', async (failure) => {
+  it.each(FAST_FAILURES)('$name は失敗した場合に、ok や stdout などの項目を含めず、kind と detail だけを返す', async (failure) => {
     // 相対パス拒否は実処理の前に返るので、実処理へ入る引数 (絶対パスだが実在しない入力) を使う。
+    await explains('実際の処理に進んで失敗した場合の応答のテストです。`ok`、`stdout`、`stderr`、`reason` などの項目を含まず、文字列の `kind` と `detail` を返すことを確認します。')
     const structured = structuredOf(await client().callTool({
       name: failure.name,
       arguments: { ...failure.arguments },

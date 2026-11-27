@@ -25,6 +25,7 @@ import { defaultLintText } from '../../../src/infra/text-lint.js'
 import { rejectionOf } from '../../_helpers/rejection.js'
 import { asStream, makeStream } from '../../_helpers/talk-directory.js'
 import { copyFixtureTheme } from '../../_helpers/theme-fixtures.js'
+import { explains } from '../../_helpers/explains.js'
 
 const PLUGIN_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..')
 const TEST_THEME_NAME = 'slidev-theme-pecotv-test-declared'
@@ -140,7 +141,8 @@ function warnLines(stderr: string): readonly string[] {
 }
 
 describe('宣言の値が違う 2 つのテーマの talk-dir', () => {
-  it('Test Sans の talk-dir: 宣言の書体と 18/15/14/11/10 で確かめる', async () => {
+  it('テーマが Test Sans の talk-dir では、宣言した書体と文字サイズ 18・15・14・11・10 を基準に警告する', async () => {
+    await explains('`drawio url` のテーマの宣言に基づく警告のテストです。宣言した書体と文字サイズを持つ talk-dir の図の場合に、結果の `theme` が宣言どおりになり、書体の警告 4 件とサイズの警告 1 件を出して、終了コードが 3 になることを確認します。')
     const talk = makeTalk('talk-test', makeTheme('test-sans'))
     const { execution, theme, stderr } = await run(diagramIn(talk))
 
@@ -161,7 +163,8 @@ describe('宣言の値が違う 2 つのテーマの talk-dir', () => {
     expect(execution.warningCount).toBe(warnings.length)
   })
 
-  it('既定の書体と同じ値の talk-dir: 書体の警告は無く、サイズは 14px だけ外れる', async () => {
+  it('既定と同じ書体を宣言した talk-dir では、書体の警告を出さず、文字サイズの警告だけを出す', async () => {
+    await explains('`drawio url` のテーマの宣言に基づく警告のテストです。宣言の書体が既定と同じ場合に、書体の警告を出さず、文字サイズの警告が `ja` と `s14` の 2 件になり、終了コードが 3 になることを確認します。')
     const talk = makeTalk('talk-default-fonts', makeTheme('two-fonts', TWO_FONTS))
     const { execution, theme, stderr } = await run(diagramIn(talk))
 
@@ -178,6 +181,7 @@ describe('宣言の値が違う 2 つのテーマの talk-dir', () => {
   })
 
   it('宣言に合う図は警告 0', async () => {
+    await explains('`drawio url` の書体とサイズの検証のテストです。talk-dir のテーマの宣言と合う書体とサイズの図の場合は、標準エラー出力へ何も出力せず、警告が 0 件であることを確認します。')
     const talk = makeTalk('talk-test', makeTheme('test-sans'))
     const xml = diagram(cell('a', 'Alpha', 14, 'html=1;fontFamily=Test Sans;'), cell('b', '構成', 18, 'html=1;whiteSpace=wrap;fontFamily=Test Sans, Test Sans JP;'))
     const { execution, stderr } = await run(diagramIn(talk, xml))
@@ -193,6 +197,7 @@ describe('talk-dir の外', () => {
   )
 
   it('theme 無しは既定値で、書体だけを確かめる。data.theme に name と fontSizes を載せない', async () => {
+    await explains('`drawio url` のテーマの決め方のテストです。テーマを指定せず talk-dir の外にある図の場合は、既定の宣言で書体だけを検証し、結果の `theme` へ `name` と `fontSizes` を含めないことを確認します。')
     const input = writeDiagram(path.join(state.root, 'outside'), POSTER, 'poster.drawio')
     const { execution, theme, stderr } = await run(input)
 
@@ -204,7 +209,8 @@ describe('talk-dir の外', () => {
     expect(execution.warningCount).toBeGreaterThan(0)
   })
 
-  it('public/ の外の図は、祖先に slides.md があっても既定値', async () => {
+  it('`public/` の外の図は、祖先に `slides.md` があっても既定の宣言を使う', async () => {
+    await explains('`drawio url` のテーマの決め方のテストです。talk-dir の `public/` の外にある図の場合に、祖先に `slides.md` があっても、結果の `theme.source` が `default` になることを確認します。')
     const talk = makeTalk('talk-test', makeTheme('test-sans'))
     const input = writeDiagram(path.join(talk, '.pecotv', 'work'), CHECK_XML)
     const { theme } = await run(input)
@@ -212,6 +218,7 @@ describe('talk-dir の外', () => {
   })
 
   it('theme にテーマの talk-dir を渡すと、その宣言で書体とサイズを確かめる', async () => {
+    await explains('`drawio url` の `theme` オプションのテストです。テーマの talk-dir を `theme` へ指定した場合は、その宣言に基づく書体とサイズの警告を表示し、`theme.source` が `option` になることを確認します。')
     const talk = makeTalk('talk-test', makeTheme('test-sans'))
     const input = writeDiagram(path.join(state.root, 'outside'), POSTER, 'poster.drawio')
     const { theme, stderr } = await run(input, { theme: talk })
@@ -227,6 +234,7 @@ describe('talk-dir の外', () => {
   })
 
   it('theme はテーマ root（pecot-theme.json を持つ dir）も受ける。相対パスは currentDirectory を基準にする', async () => {
+    await explains('`drawio url` の `theme` オプションのテストです。テーマの root（`pecot-theme.json` を持つディレクトリ）を相対パスで指定した場合に、`currentDirectory` を基準に解決し、宣言の書体が結果に含まれることを確認します。')
     const themeRoot = makeTheme('test-sans')
     const input = writeDiagram(path.join(state.root, 'outside'), POSTER, 'poster.drawio')
     const { theme } = await run(input, { theme: path.relative(state.root, themeRoot) })
@@ -236,6 +244,7 @@ describe('talk-dir の外', () => {
   })
 
   it('theme file:<dir> は pecot-theme.json を直接読み、取得（install）を呼ばない', async () => {
+    await explains('`drawio url` の `theme` オプションのテストです。`file:` で始まるディレクトリを指定した場合に、`pecot-theme.json` を直接読み込み、テーマの取得処理を呼び出さないことを確認します。')
     const themeRoot = makeTheme('test-sans')
     const fetchTheme = vi.fn<FetchTheme>().mockRejectedValue(new Error('呼ばれない'))
     const input = writeDiagram(path.join(state.root, 'outside'), POSTER, 'poster.drawio')
@@ -246,6 +255,7 @@ describe('talk-dir の外', () => {
   })
 
   it('theme git+...#tag は fetchTheme で置き場から取り、signal と置き場を渡す。取得の警告は [info] で stderr へ', async () => {
+    await explains('`drawio url` の `theme` オプションのテストです。`git+` で始まるタグつきの指定の場合に、`fetchTheme` を 1 回呼び出して置き場と `signal` を渡し、取得時の警告を標準エラー出力へ `[info]` で表示することを確認します。')
     const themeRoot = makeTheme('test-sans')
     const fetchTheme = vi.fn<FetchTheme>().mockImplementation((_spec, options) => {
       options.warn?.('キャッシュを使います')
@@ -267,6 +277,7 @@ describe('talk-dir の外', () => {
   })
 
   it('theme は図の祖先の talk-dir より優先する', async () => {
+    await explains('`drawio url` のテーマの優先順位のテストです。`theme` を指定した場合に、図の祖先の talk-dir のテーマよりも指定したテーマの宣言を使うことを確認します。')
     const talkTest = makeTalk('talk-test', makeTheme('test-sans'))
     const twoFonts = makeTheme('two-fonts', TWO_FONTS)
     const { theme } = await run(diagramIn(talkTest), { theme: twoFonts })
@@ -275,6 +286,7 @@ describe('talk-dir の外', () => {
   })
 
   it('宣言の無いテーマは既定値で続け、欠落は [info] にして 警告の件数に数えない', async () => {
+    await explains('`drawio url` の宣言のないテーマのテストです。`pecot-theme.json` が存在しないテーマを指定した場合に、既定の宣言で処理を続け、欠落を `[info]` として表示し、警告の件数には数えないことを確認します。')
     const themeRoot = makeTheme('no-declaration')
     rmSync(path.join(themeRoot, 'pecot-theme.json'))
     const xml = diagram(cell('a', 'Alpha', 12, 'html=1;fontFamily=sans-serif;'))
@@ -289,6 +301,7 @@ describe('talk-dir の外', () => {
   })
 
   it('schema 違いの宣言の警告も [info] で、警告の件数に数えない', async () => {
+    await explains('`drawio url` の `schema` の版が異なる宣言のテストです。宣言の `schema` が未対応の版の場合に、警告を `[info]` として表示し、警告の件数には数えないことを確認します。')
     const themeRoot = makeTheme('future', { schema: 2 })
     const xml = diagram(cell('a', 'Alpha', 12, 'html=1;fontFamily=sans-serif;'))
     const input = writeDiagram(path.join(state.root, 'outside'), xml, 'a.drawio')
@@ -301,6 +314,7 @@ describe('talk-dir の外', () => {
 
 describe('移行前の talk-dir と、解けないテーマ', () => {
   it('theme: none の talk-dir は既定値で続け、[info] で slide_sync の theme を案内する', async () => {
+    await explains('`drawio url` の移行前の talk-dir のテストです。`slides.md` の `theme` が `none` の talk-dir の場合に、既定の宣言で処理を続け、`slide_sync` の `theme` を案内する `[info]` を表示することを確認します。')
     const talk = path.join(state.root, 'talk-legacy')
     mkdirSync(talk, { recursive: true })
     writeFileSync(path.join(talk, 'slides.md'), '---\ntheme: none\n---\n\n# t\n')
@@ -325,7 +339,8 @@ describe('移行前の talk-dir と、解けないテーマ', () => {
     expect(written.warningCount).toBe(0)
   })
 
-  it('theme-unlinked（node_modules にテーマが無い）は止まり、HTML と PNG を作らない', async () => {
+  it('`node_modules` にテーマがない場合は、`theme-unlinked` で止まり、HTML と PNG を作らない', async () => {
+    await explains('`drawio url` のテーマが張られていない場合のテストです。`node_modules` にテーマがない talk-dir の場合に、`theme-unlinked` の終了コード 1 で失敗し、HTML を書き出さず、PNG の撮影を呼ばないことを確認します。')
     const talk = makeTalk('talk-unlinked', makeTheme('test-sans'))
     rmSync(path.join(talk, 'node_modules', TEST_THEME_NAME), { recursive: true })
     const input = diagramIn(talk)
@@ -340,6 +355,7 @@ describe('移行前の talk-dir と、解けないテーマ', () => {
   })
 
   it('取得の失敗は theme-<reason>', async () => {
+    await explains('`drawio url` のテーマの取得に失敗した場合のテストです。`fetchTheme` が `ThemeFetchError` で失敗した場合に、例外の理由が `theme-tag` になることを確認します。')
     const fetchTheme = vi.fn<FetchTheme>().mockRejectedValue(new ThemeFetchError('タグがありません', 'tag'))
     const input = writeDiagram(path.join(state.root, 'outside'))
     const error = await rejectionOf(run(input, { theme: 'git+file:///x.git#v9.9.9' }, { fetchTheme }))
@@ -348,6 +364,7 @@ describe('移行前の talk-dir と、解けないテーマ', () => {
   })
 
   it('宣言の誤り（形の誤り）は theme-invalid-shape', async () => {
+    await explains('`drawio url` の宣言の検証のテストです。テーマの宣言の形が不正な場合に、`ThemeDeclarationError` が発生し、理由が `theme-invalid-shape` になることを確認します。')
     const themeRoot = makeTheme('broken', { schema: 1, fonts: { body: [] } })
     const input = writeDiagram(path.join(state.root, 'outside'))
     const error = await rejectionOf(run(input, { theme: themeRoot }))
@@ -356,6 +373,7 @@ describe('移行前の talk-dir と、解けないテーマ', () => {
   })
 
   it('指定の誤り（ThemeSpecError）は theme-tag-required', async () => {
+    await explains('`drawio url` の `theme` の指定の検証のテストです。タグのない `git+` の指定の場合に、`ThemeSpecError` が発生し、理由が `theme-tag-required` になることを確認します。')
     const input = writeDiagram(path.join(state.root, 'outside'))
     const error = await rejectionOf(run(input, { theme: 'git+https://example.com/x.git' }))
     expect(error).toBeInstanceOf(ThemeSpecError)
@@ -363,6 +381,7 @@ describe('移行前の talk-dir と、解けないテーマ', () => {
   })
 
   it('slides.md も pecot-theme.json も無いパスは invalid-theme の usage error', async () => {
+    await explains('`drawio url` の `theme` の指定の検証のテストです。`slides.md` と `pecot-theme.json` が存在しないパスの場合は、`DrawioUrlUsageError` が発生し、理由が `invalid-theme` になることを確認します。')
     const empty = path.join(state.root, 'empty')
     mkdirSync(empty)
     const input = writeDiagram(path.join(state.root, 'outside'))
@@ -372,13 +391,15 @@ describe('移行前の talk-dir と、解けないテーマ', () => {
   })
 
   it('file: の指定先に pecot-theme.json も package.json も無ければ invalid-theme', async () => {
+    await explains('`drawio url` の `theme` の指定の検証のテストです。`file:` の指定先へ宣言と `package.json` が存在しない場合は、`DrawioUrlUsageError` が発生し、理由が `invalid-theme` になることを確認します。')
     const input = writeDiagram(path.join(state.root, 'outside'))
     const error = await rejectionOf(run(input, { theme: `file:${path.join(state.root, 'missing')}` }))
     expect(error).toBeInstanceOf(DrawioUrlUsageError)
     expect(errorToReason(error)).toBe('invalid-theme')
   })
 
-  it('テーマ root の package.json が読めないときは、ディレクトリ名をテーマ名にする', async () => {
+  it('テーマの root の `package.json` を読めないときは、ディレクトリ名をテーマの名前にする', async () => {
+    await explains('`drawio url` のテーマの名前の決め方のテストです。テーマの root の `package.json` が JSON として不正な場合に、`theme.name` がディレクトリ名になることを確認します。')
     const themeRoot = makeTheme('broken-package')
     writeFileSync(path.join(themeRoot, 'package.json'), '{')
     const input = writeDiagram(path.join(state.root, 'outside'))
@@ -386,11 +407,13 @@ describe('移行前の talk-dir と、解けないテーマ', () => {
     expect(theme.name).toBe('broken-package')
   })
 
-  it('テーマ以外の例外の reason は unknown', () => {
+  it('テーマ以外の例外の reason は unknown', async () => {
+    await explains('`errorToReason` の理由の分類のテストです。テーマに関係しない例外を渡した場合に、理由が `unknown` になることを確認します。')
     expect(errorToReason(new Error('予期しない失敗'))).toBe('unknown')
   })
 
   it('置き場を決められない git の指定は theme-unknown', async () => {
+    await explains('`drawio url` のテーマの取得先の検証のテストです。取得先の置き場を決められない `git+` の指定の場合に、`DrawioUrlRuntimeError` が発生し、理由が `theme-unknown` になることを確認します。')
     const input = writeDiagram(path.join(state.root, 'outside'))
     const error = await rejectionOf(run(input, { theme: 'git+file:///x.git#v1.0.0' }, { themeStoreRoot: NO_STORE_ROOT }))
     expect(error).toBeInstanceOf(DrawioUrlRuntimeError)
@@ -399,7 +422,8 @@ describe('移行前の talk-dir と、解けないテーマ', () => {
 })
 
 describe('PNG の書体', () => {
-  it('capturePng に宣言の書体（body と eastAsian）を渡す', async () => {
+  it('`capturePng` に、宣言の書体（`body` と `eastAsian`）を渡す', async () => {
+    await explains('`drawio url` の PNG の撮影のテストです。talk-dir の図で PNG を撮影する場合に、`capturePng` を 1 回呼び、宣言した本文の書体と東アジア文字の書体を渡すことを確認します。')
     const talk = makeTalk('talk-test', makeTheme('test-sans'))
     const input = diagramIn(talk)
     const capturePng = vi.fn<CapturePng>().mockResolvedValue()
@@ -409,6 +433,7 @@ describe('PNG の書体', () => {
   })
 
   it('talk-dir の外で theme 無しなら既定の書体を渡す', async () => {
+    await explains('`drawio url` の PNG の撮影のテストです。talk-dir の外でテーマを指定しない場合に、`capturePng` へ既定の書体 `sans-serif` を渡すことを確認します。')
     const input = writeDiagram(path.join(state.root, 'outside'))
     const capturePng = vi.fn<CapturePng>().mockResolvedValue()
     await executeDrawioUrl(input, { mode: 'view', png: true, output: path.join(state.root, 'outside', 'check.html') }, dependencies({ capturePng }))

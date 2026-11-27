@@ -39,6 +39,7 @@ import { expectConvertRouteFromEnvironment } from '../_helpers/single-pass-route
 import { readZipEntries } from '../_helpers/zip-entries.js'
 import { compareStrings } from '../../src/domain/_shared/compare-strings.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
+import { explains } from '../_helpers/explains.js'
 
 /**
 presentationml / content-types 側の prefix。ooxml-parts の OOXML_NS は xlsx 用で p: を持たない。
@@ -181,13 +182,15 @@ async function convertAndAssertEmbeddedFonts(
 }
 
 describe.skipIf(!isChromiumReady)('CUJ: 書体の少ないページを 1 枚目にした deck で埋め込み書体が残る', () => {
-  it('embeddedFontLst に両書体が載り、fntdata の件数と宣言が整合する', async () => {
+  it('`embeddedFontLst` に本文と見出しの両方の書体が載り、`fntdata` の件数が宣言と一致する', async () => {
+    await explains('実際の Chromium で変換した PPTX の埋め込み書体のテストです。本文の書体だけの 1 枚目から始まる deck を変換した場合に、`embeddedFontLst` に Inter と Noto Sans JP が載ることを確認します。')
     expect.hasAssertions()
     // 変換方式の assert（#1147）: 既定は 1 パス方式、PECOTV_SINGLE_PASS=0 なら現行の方式で変換している
     await convertAndAssertEmbeddedFonts('embedded-fonts', [], expectConvertRouteFromEnvironment)
   }, 660_000)
 
-  it('--no-single-pass（現行の方式）でも embeddedFontLst に両書体が載り、fntdata の件数と宣言が整合する (#1147)', async () => {
+  it('`--no-single-pass` で変換しても、`embeddedFontLst` に両方の書体が載り、`fntdata` の件数が宣言と一致する', async () => {
+    await explains('埋め込み書体のテストです。`--no-single-pass` でステップごとの方式に切り替えた場合も、同じ判定になり、完了の結果の `timings` に `singlePass` が含まれないことを確認します。')
     expect.hasAssertions()
     await convertAndAssertEmbeddedFonts('embedded-fonts-per-step', ['--no-single-pass'], (done) => {
       expect(done?.timings).not.toHaveProperty('singlePass')

@@ -1,21 +1,25 @@
 import { describe, expect, it } from 'vitest'
 
 import { compareStrings, readBaseline } from './baseline.js'
+import { explains } from '../_helpers/explains.js'
 
 describe('baseline.json', () => {
-  it('キーが measuredAt / commit / cli / hooks だけで、各階層のキーも揃っている', () => {
+  it('キーが measuredAt / commit / cli / hooks だけで、各階層のキーも揃っている', async () => {
+    await explains('ベースラインの記録（`baseline.json`）のキーのテストです。トップレベルのキーが `measuredAt`・`commit`・`cli`・`hooks` だけで、読み込み時に例外が発生しないことを確認します。')
     // 余分なキー・欠けたキー・型違いは readBaseline が TypeError で止める。
     expect(() => readBaseline()).not.toThrow()
     expect(Object.keys(readBaseline()).toSorted(compareStrings)).toEqual(['cli', 'commit', 'hooks', 'measuredAt'])
   })
 
-  it('commit は 40 桁の SHA で、measuredAt は ISO 8601 の UTC', () => {
+  it('commit は 40 桁の SHA で、measuredAt は ISO 8601 の UTC', async () => {
+    await explains('ベースラインに記録した `commit` と `measuredAt` の形式のテストです。`commit` が 40 桁の SHA で、`measuredAt` が ISO 8601 の UTC 形式であることを確認します。')
     const baseline = readBaseline()
     expect(baseline.commit).toMatch(/^[0-9a-f]{40}$/)
     expect(baseline.measuredAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/)
   })
 
-  it('行カバレッジは 0 超 100 以下で、hooks のテスト件数は正の整数', () => {
+  it('行カバレッジは 0 超 100 以下で、hooks のテスト件数は正の整数', async () => {
+    await explains('ベースラインに記録した行カバレッジと、hooks のテスト件数のテストです。行カバレッジが 0 より大きく 100 以下で、テスト件数が正の整数であることを確認します。')
     const baseline = readBaseline()
     expect(baseline.cli.lineCoverage).toBeGreaterThan(0)
     expect(baseline.cli.lineCoverage).toBeLessThanOrEqual(100)
@@ -23,7 +27,8 @@ describe('baseline.json', () => {
     expect(baseline.hooks.testCount).toBeGreaterThan(0)
   })
 
-  it('hooks.scripts は hooks/ 配下の .sh で、重複なく昇順に並ぶ', () => {
+  it('hooks.scripts は hooks/ 配下の .sh で、重複なく昇順に並ぶ', async () => {
+    await explains('ベースラインに記録した `hooks.scripts` のテストです。すべての要素が `hooks/` 配下の `.sh` のパスで、重複がなく昇順に並んでいることを確認します。')
     const { scripts } = readBaseline().hooks
     expect(scripts.length).toBeGreaterThan(0)
     for (const script of scripts) expect(script).toMatch(/^hooks\/.+\.sh$/)

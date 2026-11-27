@@ -80,8 +80,9 @@ def _label(result: dict[str, Any], name: str) -> list[str]:
     return [label["value"] for label in result["labels"] if label["name"] == name]
 
 
+@allure.title("bash のテストに確認を書くと、確認 1 つにつき状態と理由を持つ結果が 1 つ書かれる")
 def test_one_result_per_check_with_status_and_reason(tmp_path: Path) -> None:
-    """確かめ 1 つに結果 1 つを書き、状態と理由を持たせる。落ちた確かめがあればファイルは 1 で終わる。"""
+    """`bash-test.sh` の確認用の関数が、Allure の結果を書くときのテストです。通る確認・落ちる確認・飛ばす確認が、確認ごとに 1 つの結果として状態と理由つきで書かれ、落ちた確認があるファイルは終了コード 1 で終わることを確認します。"""
     body = "\n".join(
         [
             'bt_pass "通る"',
@@ -113,8 +114,9 @@ def test_one_result_per_check_with_status_and_reason(tmp_path: Path) -> None:
         assert "PASS: 1 / FAIL: 5 / SKIP: 1" in done.stdout
 
 
+@allure.title("bt_eq で値が異なると、結果に expected と actual を書く")
 def test_eq_has_expected_and_actual(tmp_path: Path) -> None:
-    """bt_eq は、Allure が差分を出せるよう expected と actual を書く。"""
+    """`bt_eq` で 2 つの値が異なる場合のテストです。Allure が差分を表示できるように、結果に期待値（`expected`）と実際の値（`actual`）が書かれることを確認します。"""
     test = _write_test(tmp_path / "suite", 'bt_eq "等しい" "a" "b"\nbt_finish')
     _run_file(tmp_path, test, results=tmp_path / "results")
     [result] = _results(tmp_path / "results")
@@ -124,8 +126,11 @@ def test_eq_has_expected_and_actual(tmp_path: Path) -> None:
         assert result["statusDetails"]["actual"] == "b"
 
 
+@allure.title(
+    "結果にはレーン・ファイルのパス・host・thread のラベルを付け、fullName にはレーンとパスと題を含める"
+)
 def test_labels_and_full_name(tmp_path: Path) -> None:
-    """ラベルはレーン・ファイルのパス・host・thread を持ち、fullName はレーンとパスと題を持つ。"""
+    """bash のテストの結果に付くラベルと `fullName` のテストです。project・lane・parentSuite などのラベルが付き、`fullName` にレーンとファイルのパスと題が含まれることを確認します。"""
     test = _write_test(tmp_path / "plugins/p/tests", 'bt_pass "通る"\nbt_finish')
     _run_file(tmp_path, test, results=tmp_path / "results")
     [result] = _results(tmp_path / "results")
@@ -145,8 +150,11 @@ def test_labels_and_full_name(tmp_path: Path) -> None:
         assert result["start"] <= result["stop"]
 
 
+@allure.title(
+    "runner が .. を含むパスでファイルを渡しても、parentSuite はリポのルートからの正規のパスになる"
+)
 def test_path_with_dot_dot_is_normalized(tmp_path: Path) -> None:
-    """runner が .. を含むパスで渡しても、parentSuite はリポのルートからの正規のパスになる。"""
+    """`..` を含むパスでテストのファイルを渡した場合のテストです。parentSuite のラベルが、リポのルートからの正規のパスになることを確認します。"""
     test = _write_test(tmp_path / "plugins/p/tests", 'bt_pass "通る"\nbt_finish')
     detour = tmp_path / "plugins/p/../../plugins/p/tests" / test.name
     _run_file(tmp_path, detour, results=tmp_path / "results")
@@ -156,8 +164,11 @@ def test_path_with_dot_dot_is_normalized(tmp_path: Path) -> None:
         assert _label(result, "parentSuite") == ["plugins/p/tests/sample.test.sh"]
 
 
+@allure.title(
+    "題と理由に引用符・バックスラッシュ・制御文字・日本語を含めても、JSON の文字列として正しく書く"
+)
 def test_json_escapes_quotes_backslashes_and_control_characters(tmp_path: Path) -> None:
-    """題と理由の引用符・バックスラッシュ・改行・タブ・制御文字・日本語を、JSON の文字列として書く。"""
+    """題と理由に特殊な文字を含めた場合のテストです。引用符・バックスラッシュ・改行・タブ・制御文字・日本語が、JSON にエスケープされて書かれ、読み戻すと元の文字列と一致することを確認します。"""
     body = (
         'bt_fail "題 \\"引用\\" \\\\ 日本語" "$(printf \'1行目\\n2行目\\tタブ\\001\')"\nbt_finish'
     )
@@ -170,8 +181,9 @@ def test_json_escapes_quotes_backslashes_and_control_characters(tmp_path: Path) 
         assert result["statusDetails"]["message"] == "1行目\n2行目\tタブ\x01"
 
 
+@allure.title("結果のディレクトリを指定しないと、画面に出力するだけで結果のファイルは書かない")
 def test_without_results_dir_prints_only(tmp_path: Path) -> None:
-    """結果のディレクトリが無いと、印字だけで結果を書かない。"""
+    """結果の出力先（`PECOT_REPORT_RESULTS`）を指定せずに実行した場合のテストです。`PASS: 通る` が標準出力に表示され、Allure の結果ファイルが 1 つも作成されないことを確認します。"""
     test = _write_test(tmp_path / "suite", 'bt_pass "通る"\nbt_finish')
     done = _run_file(tmp_path, test, results=None)
 
@@ -181,8 +193,9 @@ def test_without_results_dir_prints_only(tmp_path: Path) -> None:
         assert list(tmp_path.rglob("*-result.json")) == []
 
 
+@allure.title("runner を通さず bash で直接実行しても、確認の結果と終了コードは変わらない")
 def test_run_directly_without_runner(tmp_path: Path) -> None:
-    """runner を通さず bash で打っても、確かめと終了コードは今までどおり。"""
+    """テストのファイルを runner を通さずに `bash` で直接実行した場合のテストです。落ちる確認があるため終了コード 1 で終わり、`PASS` と `FAIL` の行が標準出力に表示されることを確認します。"""
     test = _write_test(tmp_path / "suite", 'bt_pass "通る"\nbt_fail "落ちる" "理由"\nbt_finish')
     with allure.step("runner を通さず bash でファイルを動かす"):
         done = run_attached(["bash", str(test)], capture_output=True, text=True)
@@ -193,8 +206,9 @@ def test_run_directly_without_runner(tmp_path: Path) -> None:
         assert "FAIL: 落ちる — 理由" in done.stdout
 
 
+@allure.title("1 つのファイルで同じ題の確認が 2 回あると、2 回目を別の結果として失敗にする")
 def test_duplicate_title_fails_as_a_separate_result(tmp_path: Path) -> None:
-    """1 ファイルで題が重なると、2 回目を別の 1 件の failed にする。"""
+    """同じファイルの中で、同じ題の確認を 2 回実行した場合のテストです。2 回目は題に「（2 回目）」が付いた別の結果になって失敗し、終了コード 1 で終わることを確認します。"""
     test = _write_test(tmp_path / "suite", 'bt_pass "同じ"\nbt_pass "同じ"\nbt_finish')
     done = _run_file(tmp_path, test, results=tmp_path / "results")
     results = _results(tmp_path / "results")
@@ -206,8 +220,9 @@ def test_duplicate_title_fails_as_a_separate_result(tmp_path: Path) -> None:
         assert len({r["fullName"] for r in results}) == 2
 
 
+@allure.title("サブシェルの中で確認が失敗しても、ファイルの終了コードと失敗の件数に数える")
 def test_failure_in_subshell_is_counted(tmp_path: Path) -> None:
-    """( ... ) の中で落ちた確かめも、ファイルの終了コードに数える。"""
+    """`( ... )` のサブシェルの中で、確認が落ちた場合のテストです。ファイルが終了コード 1 で終わり、集計に `FAIL: 1` が表示されることを確認します。"""
     test = _write_test(tmp_path / "suite", '( bt_fail "中で落ちる" "理由" )\nbt_finish')
     done = _run_file(tmp_path, test, results=tmp_path / "results")
 
@@ -216,6 +231,9 @@ def test_failure_in_subshell_is_counted(tmp_path: Path) -> None:
         assert "PASS: 0 / FAIL: 1 / SKIP: 0" in done.stdout
 
 
+@allure.title(
+    "bt_finish の前でファイルが終了すると、「最後まで動く」を broken として書き、それまでの確認は残す（{param_id}）"
+)
 @pytest.mark.parametrize(
     ("options", "stop", "code"),
     [("set -eu", "false", 1), ("set -u", ': "$UNDEFINED_IN_TEST"', 1), ("set -u", "exit 0", 1)],
@@ -224,7 +242,7 @@ def test_failure_in_subshell_is_counted(tmp_path: Path) -> None:
 def test_file_stopped_before_finish_is_broken(
     tmp_path: Path, options: str, stop: str, code: int
 ) -> None:
-    """bt_finish の前で終わると「最後まで動く」を broken として書き、それまでの確かめは残す。"""
+    """`bt_finish` を呼ぶ前にテストのファイルが終了した場合のテストです。`set -e` や `set -u` による停止、`exit 0` の場合に、「最後まで動く」という結果が broken として書かれ、それまでの確認の結果は残ることを確認します。"""
     test = _write_test(tmp_path / "suite", f'bt_pass "前"\n{stop}\nbt_finish', options=options)
     done = _run_file(tmp_path, test, results=tmp_path / "results")
     results = _results(tmp_path / "results")
@@ -235,8 +253,11 @@ def test_file_stopped_before_finish_is_broken(
         assert got == [("前", "passed"), ("最後まで動く", "broken")]
 
 
+@allure.title(
+    "ファイルが途中で止まると、broken の結果の trace に stderr の末尾を含め、stderr もそのまま出力する"
+)
 def test_broken_has_the_tail_of_stderr(tmp_path: Path) -> None:
-    """broken の 1 件は、止まった原因の行を stderr の末尾として trace に持ち、stderr もそのまま流す。"""
+    """テストのファイルが未定義の変数で途中停止した場合のテストです。broken の結果の `trace` に、止まった原因を示す stderr の末尾が含まれ、stderr にも同じ内容がそのまま出力されることを確認します。"""
     test = _write_test(
         tmp_path / "suite", 'echo "前提が崩れた" >&2\n: "$UNDEFINED_IN_TEST"\nbt_finish'
     )
@@ -250,8 +271,11 @@ def test_broken_has_the_tail_of_stderr(tmp_path: Path) -> None:
         assert "UNDEFINED_IN_TEST: unbound variable" in done.stderr
 
 
+@allure.title(
+    "bt_run_files は失敗したファイルがあっても最後まで実行し、失敗したファイルの一覧を出力して 1 で終わる"
+)
 def test_run_files_runs_every_file_and_lists_failures(tmp_path: Path) -> None:
-    """bt_run_files は落ちたファイルの後も最後まで動かし、落ちたファイルの一覧を出して 1 を返す。"""
+    """`bt_run_files` で複数のテストのファイルを実行した場合のテストです。最初のファイルが失敗しても 2 つ目まで実行され、失敗したファイルが標準エラーに一覧表示されて、終了コード 1 で終わることを確認します。"""
     first = _write_test(tmp_path / "a", 'bt_fail "落ちる" "理由"\nbt_finish')
     second = _write_test(tmp_path / "b", 'bt_pass "通る"\nbt_finish')
     done = _run_files(tmp_path, first, second, results=tmp_path / "results")
@@ -263,8 +287,9 @@ def test_run_files_runs_every_file_and_lists_failures(tmp_path: Path) -> None:
         assert f"{first} (exit 1)" in done.stderr
 
 
+@allure.title("テストのファイルから起動した別の bash のテストは、レーンの結果に書き込まない")
 def test_grandchild_does_not_write_to_the_lane(tmp_path: Path) -> None:
-    """テストのファイルが動かした別の bash のテストは、レーンの結果に書かない。"""
+    """テストのファイルの中から、別の bash のテストを起動した場合のテストです。孫にあたるテストの結果は書かれず、起動したファイルの確認の結果だけが残ることを確認します。"""
     inner = _write_test(tmp_path / "inner", 'bt_pass "孫"\nbt_finish')
     outer = _write_test(tmp_path / "outer", f'bash "{inner}" > /dev/null\nbt_pass "子"\nbt_finish')
     _run_file(tmp_path, outer, results=tmp_path / "results")
@@ -274,8 +299,9 @@ def test_grandchild_does_not_write_to_the_lane(tmp_path: Path) -> None:
         assert [r["name"] for r in results] == ["子"]
 
 
+@allure.title("確認を含まないファイルを runner で実行しても、一時ディレクトリにファイルを残さない")
 def test_leaves_no_temporary_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """runner と、確かめの無いファイルを動かしても、一時ディレクトリに何も残さない。"""
+    """確認を 1 つも含まないテストのファイルを runner で実行した場合のテストです。`TMPDIR` のディレクトリにファイルが残らず、`PASS: 0 / FAIL: 0 / SKIP: 0` が表示されることを確認します。"""
     temp = tmp_path / "temp"
     temp.mkdir()
     monkeypatch.setenv("TMPDIR", str(temp))
@@ -289,9 +315,12 @@ def test_leaves_no_temporary_files(tmp_path: Path, monkeypatch: pytest.MonkeyPat
         assert list(temp.iterdir()) == []
 
 
+@allure.title(
+    "実際の Allure で結果を読み込むと、題・状態・理由・期待値と実際の値・ラベルがレポートに含まれる"
+)
 @pytest.mark.skipif(shutil.which("pnpm") is None, reason="pnpm が要る")
 def test_real_allure_reads_the_results(tmp_path: Path) -> None:
-    """Allure 3 が書いた結果を読み、題・状態・理由・期待と実際・木の段のラベルをレポートに載せる。"""
+    """bash のテストが書いた結果を、実際の Allure 3 で `allure generate` して読み込んだ場合のテストです。通る確認と失敗する確認の題・状態・理由・期待値と実際の値、さらに project・lane・parentSuite のラベルがレポートに含まれることを確認します。"""
     test = _write_test(tmp_path / "suite", 'bt_pass "通る"\nbt_eq "等しい" "a" "b"\nbt_finish')
     _run_file(tmp_path, test, results=tmp_path / "results")
     report = tmp_path / "report"

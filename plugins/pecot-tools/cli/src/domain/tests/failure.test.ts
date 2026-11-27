@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { FailureKind } from '../allowlist.js'
 import { classifyFailure, type FailureSignals } from '../failure.js'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 /**
 実 awscli から採取した失敗の signals。
@@ -86,15 +87,18 @@ function signals(overrides: Partial<FailureSignals> = {}): FailureSignals {
 }
 
 describe('classifyFailure', () => {
-  it('spawn の ENOENT を awscli-missing にする', () => {
+  it('awscli の起動に失敗して ENOENT になったときは、awscli-missing と判定する', async () => {
+    await explains('awscli の失敗の種類を判定する `classifyFailure` のテストです。終了コードが `null` で、起動エラーのコードが `ENOENT` の場合に、`awscli-missing` を返すことを確認します。')
     expect(classifyFailure(signals({ exitCode: null, spawnErrorCode: 'ENOENT' }))).toBe('awscli-missing')
   })
 
-  it('時間切れを timeout にする', () => {
+  it('時間切れになったときは、timeout と判定する', async () => {
+    await explains('awscli の失敗の種類を判定する `classifyFailure` のテストです。終了コードが `null` で、`timedOut` が真の場合に、`timeout` を返すことを確認します。')
     expect(classifyFailure(signals({ exitCode: null, timedOut: true }))).toBe('timeout')
   })
 
-  it('終了コード 252 を invalid-input にする', () => {
+  it('終了コードが 252 のときは、invalid-input と判定する', async () => {
+    await explains('awscli の失敗の種類を判定する `classifyFailure` のテストです。stderr が空で、終了コードが `252` の場合に、`invalid-input` を返すことを確認します。')
     expect(classifyFailure(signals({ exitCode: 252 }))).toBe('invalid-input')
   })
 
@@ -129,11 +133,13 @@ describe('classifyFailure', () => {
     ['aws: error: the following arguments are required: --function-name', 'invalid-input'],
     ['aws: error: argument --function-name is required', 'invalid-input'],
     ['An error occurred (ThrottlingException) when calling the ListFunctions operation', 'other'],
-  ])('stderr %j を %s と判定する', (stderr, expected) => {
+  ])('stderr に %j が出力されたときは、%s と判定する', async (stderr, expected) => {
+    await explains('awscli の失敗の種類を判定する `classifyFailure` のテストです。`ExpiredToken` や `Unable to locate credentials`、`AccessDenied` など、さまざまな出力を渡した場合に、それぞれ期待する失敗の種類を返すことを確認します。')
     expect(classifyFailure(signals({ stderr }))).toBe(expected)
   })
 
-  it('ENOENT は stderr の内容より優先する', () => {
+  it('ENOENT と stderr の内容が同時にあるときは、ENOENT を優先して awscli-missing と判定する', async () => {
+    await explains('awscli の失敗の種類を判定する `classifyFailure` のテストです。起動エラーのコードが `ENOENT` で、stderr に `AccessDenied` が出力されている場合でも、`awscli-missing` を返すことを確認します。')
     // awscli 未導入なら、stderr に何が出ていても打つ手は「awscli を入れる」しかない。
     expect(classifyFailure(signals({
       exitCode: null,
@@ -142,24 +148,28 @@ describe('classifyFailure', () => {
     }))).toBe('awscli-missing')
   })
 
-  it('auth-expired は permission-denied より優先する', () => {
+  it('認証の期限切れと権限の不足が同時にあるときは、auth-expired を優先して判定する', async () => {
+    await explains('awscli の失敗の種類を判定する `classifyFailure` のテストです。stderr に `ExpiredToken` と `AccessDenied` の両方が含まれる場合に、`auth-expired` を返すことを確認します。')
     expect(classifyFailure(signals({
       stderr: 'An error occurred (ExpiredToken) ... An error occurred (AccessDenied) ...',
     }))).toBe('auth-expired')
   })
 
-  it('どれにも当てはまらない失敗は other にする', () => {
+  it('どの種類にも当てはまらない失敗は、other と判定する', async () => {
+    await explains('awscli の失敗の種類を判定する `classifyFailure` のテストです。終了コードが `1` で、stderr が空の場合に、`other` を返すことを確認します。')
     expect(classifyFailure(signals({ exitCode: 1, stderr: '' }))).toBe('other')
   })
 })
 
 describe('実採取した awscli の失敗', () => {
-  it.each(CAPTURED_FAILURES)('$label を $expected と判定する', (captured) => {
+  it.each(CAPTURED_FAILURES)('実際の awscli の失敗 $label は、$expected と判定する', async (captured) => {
+    await explains('awscli の失敗の種類を判定する `classifyFailure` のテストです。実際の awscli から採取した終了コードと stderr を渡した場合に、必須オプションの不足、資格情報の不足、SSO の期限切れなどの種類を、それぞれ期待どおりに判定することを確認します。')
     expect(classifyFailure(signals({ exitCode: captured.exitCode, stderr: captured.stderr })))
       .toBe(captured.expected)
   })
 
-  it('構文不正の stderr は終了コード 252 以外で届いても invalid-input にする', () => {
+  it('構文不正の stderr は、終了コードが 252 以外でも、invalid-input と判定する', async () => {
+    await explains('awscli の失敗の種類を判定する `classifyFailure` のテストです。終了コードが `1` で、stderr に `Found invalid choice` を含む場合に、`invalid-input` を返すことを確認します。')
     // 実採取の構文不正は 252 で先に確定するため、stderr 断片 `Found invalid choice` が
     // 使われるのは終了コードが違う場合だけになる。R4 転記の `Invalid choice` とは大小文字が違い、
     // 断片を足していないとここで other になる。

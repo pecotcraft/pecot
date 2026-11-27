@@ -21,6 +21,7 @@ import {
 } from '../serve.js'
 import { createMcpServer, MCP_SERVER_NAME, type ToolDefinition } from '../server.js'
 import { AttachingClient } from '../../../tests/_helpers/attaching-client.js'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 type WriteCallback = (error?: Error | null) => void
 
@@ -64,7 +65,8 @@ describe('installStdoutGuard', () => {
     process.exitCode = undefined
   })
 
-  it('返した Writable への書き込みだけが元の stdout へ届く', async () => {
+  it('ガードが返した Writable への書き込みだけを、元の標準出力へ送る', async () => {
+    await explains('標準出力を JSON-RPC の通信専用にする `installStdoutGuard` のテストです。返された `Writable` に JSON-RPC のメッセージを書き込んだ場合に、元の標準出力にそのメッセージが書き込まれ、標準エラー出力には何も書き込まれないことを確認します。')
     const stdout = makeTarget()
     const stderr = makeTarget()
 
@@ -75,7 +77,8 @@ describe('installStdoutGuard', () => {
     expect(stderr.chunks).toEqual([])
   })
 
-  it('ガード後の stdout 書き込みは stderr へ逃がす', () => {
+  it('ガードを設定した後に標準出力へ書き込まれた内容は、標準エラー出力へ移す', async () => {
+    await explains('標準出力を JSON-RPC の通信専用にする `installStdoutGuard` のテストです。`console.log` のように標準出力へ直接書き込まれた文字列が、標準エラー出力に書き込まれ、元の標準出力には書き込まれないことを確認します。')
     const stdout = makeTarget()
     const stderr = makeTarget()
 
@@ -86,7 +89,8 @@ describe('installStdoutGuard', () => {
     expect(stdout.chunks).toEqual([])
   })
 
-  it('逃がした書き込みでも callback は呼ぶ (encoding 付き / 無しの両形)', () => {
+  it('標準エラー出力へ移した書き込みでも、callback を呼び出す', async () => {
+    await explains('標準出力を JSON-RPC の通信専用にする `installStdoutGuard` のテストです。標準出力への書き込みを encoding の指定がある場合とない場合の両方で行った場合に、どちらの callback も 1 回ずつ呼び出され、内容が標準エラー出力に書き込まれることを確認します。')
     const stdout = makeTarget()
     const stderr = makeTarget()
     installStdoutGuard(stdout, stderr)
@@ -102,7 +106,8 @@ describe('installStdoutGuard', () => {
     expect(stderr.chunks).toEqual(['a\n', 'b\n', 'c\n'])
   })
 
-  it('同じ stdout への 2 回目は初回と同じ Writable を返す (冪等)', async () => {
+  it('同じ標準出力に 2 回ガードを設定しても、初回と同じ Writable を返す', async () => {
+    await explains('標準出力を JSON-RPC の通信専用にする `installStdoutGuard` のテストです。同じ標準出力に対して 2 回呼び出した場合に、同じ `Writable` が返り、JSON-RPC のメッセージが標準出力に書き込まれて、標準エラー出力には書き込まれないことを確認します。')
     const stdout = makeTarget()
     const stderr = makeTarget()
 
@@ -116,8 +121,9 @@ describe('installStdoutGuard', () => {
     expect(stderr.chunks).toEqual([])
   })
 
-  it('stdout への書き込みが失敗したら stderr へ 1 行出して exit code 1 を立てる', async () => {
+  it('標準出力への書き込みが失敗したときは、標準エラー出力へ 1 行出力し、終了コードを 1 にする', async () => {
     // 実際の EPIPE は同期 throw ではなく write の callback にエラーが返る形で現れる。
+    await explains('標準出力を JSON-RPC の通信専用にする `installStdoutGuard` のテストです。標準出力への書き込みが失敗した場合は、標準エラー出力へ `error: failed to write` を出力し、`process.exitCode` が `1` になることを確認します。')
     const failing: FakeTarget = {
       chunks: [],
       write(_chunk: string | Uint8Array, encodingOrCallback?: BufferEncoding | WriteCallback, callback?: WriteCallback): boolean {
@@ -233,7 +239,8 @@ function serverOf(harness: Harness): McpServer {
 }
 
 describe('runMcpServe', () => {
-  it('transport へ接続し、クライアントから serverInfo が見える', async () => {
+  it('transport へ接続すると、クライアントから serverInfo を確認できる', async () => {
+    await explains('MCP サーバを起動する `runMcpServe` のテストです。サーバを起動してクライアントを接続した場合に、クライアントから見える `serverInfo` の名前が `MCP_SERVER_NAME` と一致し、サーバが接続済みの状態であることを確認します。')
     const harness = makeHarness()
     const handle = await startAndConnect(harness)
     try {
@@ -246,7 +253,8 @@ describe('runMcpServe', () => {
     }
   })
 
-  it('1 接続でインスタンスを 1 つだけ作り、factory 以外の副作用で重複しない', async () => {
+  it('1 回の接続でサーバのインスタンスを 1 つだけ作り、終了処理の登録を重複させない', async () => {
+    await explains('MCP サーバを起動する `runMcpServe` のテストです。サーバを起動してクライアントを接続した場合に、インスタンスを作る処理が 1 回だけ呼ばれ、シグナルなどの登録が 3 件だけであることを確認します。')
     const harness = makeHarness()
     const handle = await startAndConnect(harness)
     try {
@@ -260,7 +268,8 @@ describe('runMcpServe', () => {
     }
   })
 
-  it('stdin の EOF で接続を閉じ、後始末を全件呼ぶ', async () => {
+  it('標準入力が終端に達したときは、接続を閉じ、終了処理をすべて呼び出す', async () => {
+    await explains('MCP サーバを起動する `runMcpServe` のテストです。標準入力を終了した場合に、サーバの接続が閉じられ、登録した終了処理がすべて 1 回ずつ呼び出されることを確認します。')
     const harness = makeHarness()
     await startAndConnect(harness)
     expect(serverOf(harness).isConnected()).toBe(true)
@@ -277,8 +286,9 @@ describe('runMcpServe', () => {
     await harness.client.close()
   })
 
-  it('stdin の EOF で処理中の tools/call の signal を abort する', async () => {
+  it('標準入力が終端に達したときは、処理中の tools/call の signal を中断する', async () => {
     // ハンドラが止まったままだと、クライアントが去ったあとも awscli の子が孤児として残る。
+    await explains('MCP サーバを起動する `runMcpServe` のテストです。処理が終わらない `tools/call` の実行中に標準入力を終了した場合に、ハンドラへ渡した `signal` が中断状態になることを確認します。')
     const started: PromiseWithResolvers<AbortSignal> = Promise.withResolvers()
     const gate: PromiseWithResolvers<void> = Promise.withResolvers()
     const gated: ToolDefinition = {
@@ -311,9 +321,10 @@ describe('runMcpServe', () => {
     }
   })
 
-  it('SIGTERM / SIGINT で後始末をしてから明示的に終了する', async () => {
+  it('SIGTERM または SIGINT を受けたときは、終了処理を呼び出してから、明示的にプロセスを終了する', async () => {
     // ハンドラを登録すると既定の即終了が無効になるため、exit を自分で呼ばないと
     // シグナルを受けたまま止まらないプロセスになる。
+    await explains('MCP サーバを起動する `runMcpServe` のテストです。`SIGTERM` と `SIGINT` を受けた場合に、終了処理がそれぞれ呼び出され、終了コードが `143` と `130` で終了することを確認します。')
     const harness = makeHarness()
     const handle = await startAndConnect(harness)
     try {
@@ -329,7 +340,8 @@ describe('runMcpServe', () => {
     }
   })
 
-  it('最後の網として process の exit でも後始末を呼ぶ', async () => {
+  it('process の exit イベントでも、最後の手段として終了処理を呼び出す', async () => {
+    await explains('MCP サーバを起動する `runMcpServe` のテストです。`exit` イベントを受けた場合に、終了処理がすべて 1 回ずつ呼び出され、`exit` は再度呼び出されないことを確認します。')
     const harness = makeHarness()
     const handle = await startAndConnect(harness)
     try {
@@ -345,8 +357,9 @@ describe('runMcpServe', () => {
     }
   })
 
-  it('インスタンス内部のプロトコル層エラーを stderr へ 1 行流す', async () => {
+  it('サーバのインスタンスが検出したプロトコル層のエラーを、標準エラー出力へ 1 行出力する', async () => {
     // 不正な JSON-RPC やハンドラ不在は個別レスポンスにならず onerror にしか出てこない。
+    await explains('MCP サーバを起動する `runMcpServe` のテストです。サーバの `onerror` にエラーが通知された場合に、標準エラー出力に `error: Unknown message type` が出力されることを確認します。')
     const harness = makeHarness()
     const handle = await startAndConnect(harness)
     try {
@@ -359,7 +372,8 @@ describe('runMcpServe', () => {
     }
   })
 
-  it('transport 層のエラー (onerror) も stderr へ 1 行流す', async () => {
+  it('transport 層のエラーも、標準エラー出力へ 1 行出力する', async () => {
+    await explains('MCP サーバを起動する `runMcpServe` のテストです。transport の `onerror` にエラーが通知された場合に、標準エラー出力に `error: transport failure` が出力されることを確認します。')
     const harness = makeHarness()
     const handle = await startAndConnect(harness)
     try {
@@ -372,8 +386,9 @@ describe('runMcpServe', () => {
     }
   })
 
-  it('JSON-RPC として不正な stdin の行は stderr へ報告し、接続は生きたまま', async () => {
+  it('JSON-RPC として不正な標準入力の行は、標準エラー出力へ報告し、接続は維持する', async () => {
     // 型で表せない不正フレームは、実 stdio transport の生の入力 (stdin) から注入する。
+    await explains('MCP サーバを起動する `runMcpServe` のテストです。接続後に宣言外のキーを含む不正な JSON-RPC の行を送った場合に、標準エラー出力へ `Unrecognized key` を含むエラーが 1 件だけ出力され、サーバは増えないことを確認します。')
     const stdin = new PassThrough()
     const responses: string[] = []
     const harness = makeHarness({
@@ -415,7 +430,8 @@ describe('runMcpServe', () => {
     }
   })
 
-  it('factory が失敗したら stderr へ報告し、exit code 1 を立てて接続を閉じる', async () => {
+  it('サーバの作成処理が失敗したときは、標準エラー出力へ報告し、終了コードを 1 にして接続を閉じる', async () => {
+    await explains('MCP サーバを起動する `runMcpServe` のテストです。サーバを作る処理が例外を発生させた場合は、接続が拒否され、標準エラー出力へ `error: factory failure` が出力され、終了コードが `1` になることを確認します。')
     const harness = makeHarness({
       createServer: () => {
         throw new Error('factory failure')
@@ -443,7 +459,8 @@ describe('executeMcpServe', () => {
     process.exitCode = undefined
   })
 
-  it('サーバを起動する', async () => {
+  it('executeMcpServe を呼び出すと、サーバを起動し、終了コードを変更しない', async () => {
+    await explains('MCP サーバの起動処理 `executeMcpServe` のテストです。サーバの起動処理を呼び出してクライアントを接続した場合に、サーバが接続済みの状態になり、終了コードが `0` のままであることを確認します。')
     const harness = makeHarness()
 
     executeMcpServe(() => harness.deps)
@@ -457,7 +474,8 @@ describe('executeMcpServe', () => {
     }
   })
 
-  it('起動に失敗したら stderr へ出して exit code 1 を立てる', () => {
+  it('起動に失敗したときは、標準エラー出力へ出力し、終了コードを 1 にする', async () => {
+    await explains('MCP サーバの起動処理 `executeMcpServe` のテストです。transport の作成が例外を発生させた場合に、標準エラー出力に `error: transport 生成に失敗` が出力され、終了コードが `1` になることを確認します。')
     const harness = makeHarness({
       createTransport: () => {
         throw new Error('transport 生成に失敗')
@@ -470,7 +488,8 @@ describe('executeMcpServe', () => {
     expect(process.exitCode).toBe(1)
   })
 
-  it('Error 以外の throw も stderr へ出す', () => {
+  it('Error 以外の値が throw されたときも、標準エラー出力へ出力する', async () => {
+    await explains('MCP サーバの起動処理 `executeMcpServe` のテストです。文字列が throw された場合に、標準エラー出力に `error: plain string failure` が出力され、終了コードが `1` になることを確認します。')
     const harness = makeHarness({
       createTransport: () => {
         // eslint-disable-next-line @typescript-eslint/only-throw-error -- 非 Error の throw を整形する処理を検証する
@@ -486,7 +505,8 @@ describe('executeMcpServe', () => {
 })
 
 describe('mcpServeDefaultDependencies', () => {
-  it('実プロセスの stdio と SDK の stdio transport を組み立てる', () => {
+  it('既定の依存は、実際のプロセスの stdio と、SDK の stdio transport を組み立てる', async () => {
+    await explains('起動処理の既定の依存を作る `mcpServeDefaultDependencies` のテストです。入出力とシグナルの接続先が実際の `process` で、終了処理が `killRunningAwscli` と `shutdownLoginRegistry` であることを確認します。')
     const dependencies = mcpServeDefaultDependencies()
 
     expect(dependencies.stdin).toBe(process.stdin)

@@ -35,7 +35,9 @@ def _minimal_path(tmp_path: Path) -> Path:
     return bin_dir
 
 
+@allure.title("pnpm が PATH に存在しないと、npx に固定した版・作業ディレクトリ・引数を渡す")
 def test_npx_branch_passes_pinned_version_dir_and_args(tmp_path: Path) -> None:
+    """pnpm と corepack が PATH に存在しない環境で `run-pnpm.sh install` を実行した場合のテストです。偽の npx が、`package.json` の `packageManager` の版の pnpm、`--dir` に続く作業ディレクトリ、`install` の順に引数を受け取ることを確認します。"""
     with allure.step("偽の npx だけの PATH を作り、run-pnpm.sh を動かす"):
         bin_dir = _minimal_path(tmp_path)
         cwd = tmp_path / "work"
@@ -67,6 +69,8 @@ def test_npx_branch_passes_pinned_version_dir_and_args(tmp_path: Path) -> None:
         ]
 
 
+@allure.title("run-pnpm.sh には実行権限が付いている")
 def test_script_is_executable() -> None:
+    """`.githooks/scripts/run-pnpm.sh` に実行権限が付いていることを確認するテストです。"""
     with allure.step("run-pnpm.sh が実行できることを確かめる"):
         assert os.access(_SCRIPT, os.X_OK)

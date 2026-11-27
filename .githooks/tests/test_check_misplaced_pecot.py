@@ -13,8 +13,11 @@ from pathlib import Path
 import allure
 
 
+@allure.title(
+    "リポジトリのルート以外に .pecot ディレクトリがあると、パスと対処を出力して失敗で終わる"
+)
 def test_nested_pecot_blocks(script_dir: Path, git_repo, run_script) -> None:
-    """(a) パッケージ配下のネスト .pecot/ あり → exit 1・検出パスと対処案内を表示。"""
+    """パッケージの配下に `.pecot/` ディレクトリが存在する場合の、`check-misplaced-pecot.sh` のテストです。終了コード 1 で終わり、見つけたパスと、`.pecot/work/<Issue番号>/` を使う案内を出力することを確認します。"""
     with allure.step("パッケージ配下に .pecot を置いて hook を動かす"):
         repo = git_repo()
         misplaced = repo / "pkg" / ".pecot" / "work" / "1"
@@ -30,8 +33,9 @@ def test_nested_pecot_blocks(script_dir: Path, git_repo, run_script) -> None:
         assert ".pecot/work/<Issue番号>/" in out
 
 
+@allure.title("ルート直下の .pecot だけなら、その配下に入れ子の .pecot があっても成功で終わる")
 def test_root_pecot_only_passes(script_dir: Path, git_repo, run_script) -> None:
-    """(b) ルート直下の正規 .pecot/ のみ → exit 0（配下の残骸も prune で誤検知しない）。"""
+    """ルート直下の `.pecot/` の配下に、入れ子の `.pecot` が存在する場合のテストです。走査から除外されるため誤って検出せず、終了コード 0 で終わることを確認します。"""
     with allure.step("ルート直下の .pecot だけを置いて hook を動かす"):
         repo = git_repo()
         # ルート正規 .pecot/ 配下に work 残骸内の fixture 由来 .pecot を置いても prune される
@@ -44,8 +48,9 @@ def test_root_pecot_only_passes(script_dir: Path, git_repo, run_script) -> None:
         assert result.returncode == 0
 
 
+@allure.title("node_modules の配下の .pecot は、対象にしない")
 def test_node_modules_pecot_passes(script_dir: Path, git_repo, run_script) -> None:
-    """(c) node_modules/ 配下の .pecot → prune で除外され exit 0。"""
+    """`node_modules` の配下に `.pecot` が存在する場合のテストです。走査から除外されるため、終了コード 0 で終わることを確認します。"""
     with allure.step("node_modules 配下に .pecot を置いて hook を動かす"):
         repo = git_repo()
         (repo / "node_modules" / "somepkg" / ".pecot").mkdir(parents=True)
@@ -56,13 +61,9 @@ def test_node_modules_pecot_passes(script_dir: Path, git_repo, run_script) -> No
         assert result.returncode == 0
 
 
+@allure.title("読み取りできないディレクトリがあっても、誤配置が存在しなければ成功で終わる")
 def test_unreadable_dir_without_misplaced_passes(script_dir: Path, git_repo, run_script) -> None:
-    """(d) 読み取り不能ディレクトリ (chmod 000) があっても誤配置がなければ exit 0。
-
-    F-01 の回帰テスト。`set -euo pipefail` 下で find が exit 1 を返しても
-    2>/dev/null || true で握りつぶし、案内文なしの誤ブロックを防ぐ。
-    teardown で必ず chmod を戻す（戻さないと tmp_path の後片付けが失敗する）。
-    """
+    """権限を `000` にして読み取れなくしたディレクトリがあり、`.pecot` の誤配置が存在しない場合のテストです。`find` のエラーで誤って止まらず、終了コード 0 で終わることを確認します。"""
     with allure.step("読み取れないディレクトリを作って hook を動かす"):
         repo = git_repo()
         locked = repo / "locked"
@@ -77,8 +78,9 @@ def test_unreadable_dir_without_misplaced_passes(script_dir: Path, git_repo, run
         assert result.returncode == 0
 
 
+@allure.title("2 箇所以上に .pecot が誤配置されていると、すべてのパスを出力して失敗で終わる")
 def test_multiple_misplaced_all_listed(script_dir: Path, git_repo, run_script) -> None:
-    """(e) 2 箇所以上の同時誤配置 → 全件がメッセージに列挙され exit 1。"""
+    """2 箇所に `.pecot` が同時に誤配置されている場合のテストです。終了コード 1 で終わり、2 件のパスをどちらも出力することを確認します。"""
     with allure.step("2 か所に .pecot を置いて hook を動かす"):
         repo = git_repo()
         first = repo / "pkgA" / ".pecot"
@@ -95,12 +97,9 @@ def test_multiple_misplaced_all_listed(script_dir: Path, git_repo, run_script) -
         assert str(second) in out
 
 
+@allure.title("誤配置された .pecot の配下の入れ子の .pecot は、重ねて出力しない")
 def test_nested_misplaced_reports_top_only(script_dir: Path, git_repo, run_script) -> None:
-    """(f) 誤配置 .pecot 配下に入れ子 .pecot → トップ 1 件のみ報告。
-
-    F-03 の回帰テスト。find 式の `-print -prune` により、検出した .pecot 自身を
-    prune してその配下の入れ子 .pecot を二重報告しない。
-    """
+    """誤配置された `.pecot` の配下に、さらに `.pecot` が存在する場合のテストです。終了コード 1 で終わり、最上位の 1 件だけを出力して、入れ子の分は出力しないことを確認します。"""
     with allure.step("誤配置の .pecot の中に入れ子の .pecot を置いて hook を動かす"):
         repo = git_repo()
         top = repo / "pkg" / ".pecot"

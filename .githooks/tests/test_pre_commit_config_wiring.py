@@ -63,9 +63,10 @@ def _hook_ids(config_text: str) -> list[str]:
     ]
 
 
+@allure.title("hook {hook_id} の entry は、with-timing.sh で元のスクリプトを包んでいる")
 @pytest.mark.parametrize("hook_id", _WRAPPED_HOOKS)
 def test_entry_wrapped_with_timing(script_dir: Path, hook_id: str) -> None:
-    """entry が `with-timing.sh <自分の id> <元の script>` の形で、元の script が実在する。"""
+    """`.pre-commit-config.yaml` の自前 hook の `entry` のテストです。`with-timing.sh` の後ろに自分の hook id と元のスクリプトが並び、元のスクリプトがリポジトリに実在することを確認します。"""
     with allure.step("hook の entry を .pre-commit-config.yaml から取り出す"):
         block = _hook_entry_lines(_config_text(script_dir), hook_id)
         entries = [line.strip() for line in block if line.strip().startswith("entry:")]
@@ -78,8 +79,9 @@ def test_entry_wrapped_with_timing(script_dir: Path, hook_id: str) -> None:
         assert (script_dir.parents[1] / wrapped).is_file()
 
 
+@allure.title("`verbose: true` は、成功時にも行を出力する nx-affected-tests にだけ指定する")
 def test_verbose_only_on_hooks_that_print_a_success_line(script_dir: Path) -> None:
-    """`verbose: true` を持つ hook は、成功時にも端末へ出す行がある nx-affected-tests だけ。"""
+    """`.pre-commit-config.yaml` の `verbose: true` のテストです。この指定を持つ hook が `nx-affected-tests` の 1 つだけであることを確認します。"""
     with allure.step("verbose: true を持つ hook を集める"):
         text = _config_text(script_dir)
         verbose = [
@@ -98,6 +100,7 @@ def _hook_files_pattern(script_dir: Path, hook_id: str) -> re.Pattern[str]:
     return re.compile(patterns[0].removeprefix("files:").strip())
 
 
+@allure.title("{changed_path} を変更すると、nx-env-inputs が起動する")
 @pytest.mark.parametrize(
     "changed_path",
     [
@@ -130,6 +133,7 @@ def _hook_files_pattern(script_dir: Path, hook_id: str) -> re.Pattern[str]:
 def test_nx_env_inputs_runs_when_env_scan_inputs_change(
     script_dir: Path, changed_path: str
 ) -> None:
+    """環境変数の宣言の抜けを調べる hook の `files` のテストです。調べる範囲のファイルと `nx.json` が、`nx-env-inputs` の `files` の正規表現に一致することを確認します。"""
     with allure.step("nx-env-inputs の files の正規表現を読む"):
         pattern = _hook_files_pattern(script_dir, "nx-env-inputs")
     with allure.step("変更したパスに一致することを確かめる"):
@@ -138,6 +142,7 @@ def test_nx_env_inputs_runs_when_env_scan_inputs_change(
         )
 
 
+@allure.title("{changed_path} を変更しても、nx-env-inputs は起動しない")
 @pytest.mark.parametrize(
     "changed_path",
     [
@@ -149,12 +154,14 @@ def test_nx_env_inputs_runs_when_env_scan_inputs_change(
     ],
 )
 def test_nx_env_inputs_skips_unrelated_paths(script_dir: Path, changed_path: str) -> None:
+    """環境変数の宣言の抜けを調べる hook の `files` のテストです。README や CHANGELOG などの無関係なファイルが、`nx-env-inputs` の `files` の正規表現に一致しないことを確認します。"""
     with allure.step("nx-env-inputs の files の正規表現を読む"):
         pattern = _hook_files_pattern(script_dir, "nx-env-inputs")
     with allure.step("関係の無いパスに一致しないことを確かめる"):
         assert not pattern.search(changed_path)
 
 
+@allure.title("{changed_path} を変更すると、check-runtime-lock が起動する")
 @pytest.mark.parametrize(
     "changed_path",
     [
@@ -170,6 +177,7 @@ def test_nx_env_inputs_skips_unrelated_paths(script_dir: Path, changed_path: str
 def test_check_runtime_lock_runs_when_its_inputs_change(
     script_dir: Path, changed_path: str
 ) -> None:
+    """ランタイムの lock を検証する hook の `files` のテストです。lock と workspace の定義、生成スクリプトのパスが、`check-runtime-lock` の `files` の正規表現に一致することを確認します。"""
     with allure.step("check-runtime-lock の files の正規表現を読む"):
         pattern = _hook_files_pattern(script_dir, "check-runtime-lock")
     with allure.step("変更したパスに一致することを確かめる"):
@@ -178,11 +186,13 @@ def test_check_runtime_lock_runs_when_its_inputs_change(
         )
 
 
+@allure.title("{changed_path} を変更しても、check-runtime-lock は起動しない")
 @pytest.mark.parametrize(
     "changed_path",
     ["README.md", "plugins/pecot-visual/cli/src/main.ts", "plugins/pecot-tools/pnpm-lock.yml"],
 )
 def test_check_runtime_lock_skips_unrelated_paths(script_dir: Path, changed_path: str) -> None:
+    """ランタイムの lock を検証する hook の `files` のテストです。無関係なパスが、`check-runtime-lock` の `files` の正規表現に一致しないことを確認します。"""
     with allure.step("check-runtime-lock の files の正規表現を読む"):
         pattern = _hook_files_pattern(script_dir, "check-runtime-lock")
     with allure.step("関係の無いパスに一致しないことを確かめる"):
@@ -191,6 +201,7 @@ def test_check_runtime_lock_skips_unrelated_paths(script_dir: Path, changed_path
         )
 
 
+@allure.title("{changed_path} を変更すると、plugin-validate が起動する")
 @pytest.mark.parametrize(
     "changed_path",
     [
@@ -206,6 +217,7 @@ def test_check_runtime_lock_skips_unrelated_paths(script_dir: Path, changed_path
     ],
 )
 def test_plugin_validate_runs_when_definitions_change(script_dir: Path, changed_path: str) -> None:
+    """プラグインの定義を検証する hook の `files` のテストです。マーケットプレイスやプラグインの定義、スキルとエージェントのファイルが、`plugin-validate` の `files` の正規表現に一致することを確認します。"""
     with allure.step("plugin-validate の files の正規表現を読む"):
         pattern = _hook_files_pattern(script_dir, "plugin-validate")
     with allure.step("変更したパスに一致することを確かめる"):
@@ -214,6 +226,7 @@ def test_plugin_validate_runs_when_definitions_change(script_dir: Path, changed_
         )
 
 
+@allure.title("{changed_path} を変更しても、plugin-validate は起動しない")
 @pytest.mark.parametrize(
     "changed_path",
     [
@@ -223,6 +236,7 @@ def test_plugin_validate_runs_when_definitions_change(script_dir: Path, changed_
     ],
 )
 def test_plugin_validate_skips_unrelated_paths(script_dir: Path, changed_path: str) -> None:
+    """プラグインの定義を検証する hook の `files` のテストです。`project.json` や README などの定義ではないファイルが、`plugin-validate` の `files` の正規表現に一致しないことを確認します。"""
     with allure.step("plugin-validate の files の正規表現を読む"):
         pattern = _hook_files_pattern(script_dir, "plugin-validate")
     with allure.step("関係の無いパスに一致しないことを確かめる"):
@@ -235,6 +249,7 @@ _TEXT_FILES_HOOK = "check-text"
 _LONG_SENTENCE = "あ" * 101 + "。"
 
 
+@allure.title("{changed_path} を変更すると、check-text が起動する")
 @pytest.mark.parametrize(
     "changed_path",
     [
@@ -247,14 +262,17 @@ _LONG_SENTENCE = "あ" * 101 + "。"
     ],
 )
 def test_check_text_runs_for_text_sources(script_dir: Path, changed_path: str) -> None:
+    """文章の規則を検証する hook の `files` のテストです。Markdown やソースコード、設定ファイルのパスが、`check-text` の `files` の正規表現に一致することを確認します。"""
     with allure.step("check-text の files の正規表現を読む"):
         pattern = _hook_files_pattern(script_dir, _TEXT_FILES_HOOK)
     with allure.step("文章の元のファイルに一致することを確かめる"):
         assert pattern.search(changed_path), f"check-text の files が {changed_path} に一致しない"
 
 
+@allure.title("{changed_path} を変更しても、check-text は起動しない")
 @pytest.mark.parametrize("changed_path", [".yamllint", "docs/index.html"])
 def test_check_text_skips_other_files(script_dir: Path, changed_path: str) -> None:
+    """文章の規則を検証する hook の `files` のテストです。対象外の拡張子や場所のファイルが、`check-text` の `files` の正規表現に一致しないことを確認します。"""
     with allure.step("check-text の files の正規表現を読む"):
         pattern = _hook_files_pattern(script_dir, _TEXT_FILES_HOOK)
     with allure.step("文章でないファイルに一致しないことを確かめる"):
@@ -305,15 +323,18 @@ def _lint_with_textlintignore(
     )
 
 
+@allure.title("`.textlintignore` に載せたパスは、文章の検証から除外する")
 def test_check_text_skips_textlintignore_paths(script_dir: Path, tmp_path: Path) -> None:
-    """生成物・逐語の記録・上流の文書の写し・spec-kit のテンプレートの形の成果物は、.textlintignore で外れる。"""
+    """実物の `.textlintignore` を置いた一時ディレクトリで、除外対象のファイルに長すぎる文を書いて検証する場合のテストです。終了コードが 0 になり、何も出力されないことを確認します。"""
     with allure.step("除外するパスに違反を書き、.textlintignore を置いて text-lint を動かす"):
         result = _lint_with_textlintignore(script_dir, tmp_path, _IGNORED_TEXT_PATHS)
     with allure.step("違反が 1 件も出ないことを確かめる"):
         assert (result.returncode, result.stdout) == (0, ""), result.stdout + result.stderr
 
 
+@allure.title("手書きのファイルは、文章の検証から除外しない")
 def test_check_text_keeps_hand_written_files(script_dir: Path, tmp_path: Path) -> None:
+    """実物の `.textlintignore` を置いた一時ディレクトリで、手書きのファイルに長すぎる文を書いて検証する場合のテストです。終了コードが 1 になり、すべてのファイルが違反として報告されることを確認します。"""
     with allure.step("手書きのパスに違反を書き、.textlintignore を置いて text-lint を動かす"):
         result = _lint_with_textlintignore(script_dir, tmp_path, _KEPT_TEXT_PATHS)
     with allure.step("すべてのパスで違反が出ることを確かめる"):
@@ -322,16 +343,20 @@ def test_check_text_keeps_hand_written_files(script_dir: Path, tmp_path: Path) -
         assert reported == set(_KEPT_TEXT_PATHS)
 
 
+@allure.title("check-text には、`.textlintignore` と重複する exclude を指定しない")
 def test_check_text_has_no_exclude(script_dir: Path) -> None:
-    """除外の一覧は .textlintignore の 1 か所に置き、pre-commit の exclude と二重に持たない。"""
+    """`check-text` の hook の定義に `exclude:` が存在しないことを確認するテストです。除外の一覧は `.textlintignore` の 1 か所に置きます。"""
     with allure.step("check-text の設定の行を取り出す"):
         block = _hook_entry_lines(_config_text(script_dir), _TEXT_FILES_HOOK)
     with allure.step("exclude: が無いことを確かめる"):
         assert not [line for line in block if line.strip().startswith("exclude:")]
 
 
+@allure.title(
+    "check-text は pre-commit の stage だけで動き、fail_fast と require_serial を指定する"
+)
 def test_check_text_stages_and_flags(script_dir: Path) -> None:
-    """check-text は pre-commit だけで動き、fail_fast と require_serial を付ける。"""
+    """`check-text` の hook の定義のテストです。`stages` が `pre-commit` だけで、`fail_fast: true` と `require_serial: true` が指定されていることを確認します。"""
     with allure.step("check-text の設定の行を取り出す"):
         block = [line.strip() for line in _hook_entry_lines(_config_text(script_dir), "check-text")]
     with allure.step("stages・fail_fast・require_serial を確かめる"):
@@ -340,8 +365,9 @@ def test_check_text_stages_and_flags(script_dir: Path) -> None:
         assert "require_serial: true" in block
 
 
+@allure.title("check-text-push は pre-push の stage で常に実行し、ファイル名を渡さない")
 def test_check_text_push_stage_and_flags(script_dir: Path) -> None:
-    """pre-push はステージ済みの差分でなく push 範囲を自前で解決するため、常に動く。"""
+    """`check-text-push` の hook の定義のテストです。`stages` が `pre-push`、`always_run` と `fail_fast` が `true`、`pass_filenames` が `false` であることを確認します。"""
     with allure.step("check-text-push の設定の行を取り出す"):
         block = [
             line.strip() for line in _hook_entry_lines(_config_text(script_dir), "check-text-push")
@@ -360,16 +386,18 @@ def _script_regex(script_dir: Path, name: str) -> str:
     return matches[0]
 
 
+@allure.title("check-text-push.sh の対象判定は、check-text の files と一致する")
 def test_check_text_push_regexes_match_config(script_dir: Path) -> None:
-    """check-text-push.sh の対象判定は、check-text の files と同一にする。"""
+    """`check-text-push.sh` の `TEXT_FILES_RE` のテストです。この正規表現が、`.pre-commit-config.yaml` の `check-text` の `files` と同じ文字列であることを確認します。"""
     with allure.step("check-text の files の正規表現を読む"):
         files = _hook_files_pattern(script_dir, _TEXT_FILES_HOOK).pattern
     with allure.step("check-text-push.sh の正規表現と同じことを確かめる"):
         assert _script_regex(script_dir, "TEXT_FILES_RE") == files
 
 
+@allure.title("check-commit-text は commit-msg の stage で常に実行する")
 def test_check_commit_text_stage_and_always_run(script_dir: Path) -> None:
-    """コミットメッセージは files: の対象にならないため、commit-msg stage で常に動く。"""
+    """`check-commit-text` の hook の定義のテストです。コミットメッセージは `files` の対象にならないため、`stages` が `commit-msg` で、`always_run` が `true` であることを確認します。"""
     with allure.step("check-commit-text の設定の行を取り出す"):
         block = [
             line.strip()
@@ -380,24 +408,27 @@ def test_check_commit_text_stage_and_always_run(script_dir: Path) -> None:
         assert "always_run: true" in block
 
 
+@allure.title("check-text は、重い nx-affected-lint より前に実行する順序で定義する")
 def test_check_text_runs_before_heavy_hooks(script_dir: Path) -> None:
-    """check-text は重い nx-affected-lint より前に置く。"""
+    """`.pre-commit-config.yaml` の hook の並びのテストです。`check-text` が `nx-affected-lint` より前に定義されていることを確認します。"""
     with allure.step("hook の並びを読む"):
         ids = _hook_ids(_config_text(script_dir))
     with allure.step("check-text が nx-affected-lint より前にあることを確かめる"):
         assert ids.index("check-text") < ids.index("nx-affected-lint")
 
 
+@allure.title("check-text-push は、check-version-plan-required より前に実行する順序で定義する")
 def test_check_text_push_runs_before_heavy_hooks(script_dir: Path) -> None:
-    """check-text-push は version plan ガードより前に置く。"""
+    """`.pre-commit-config.yaml` の hook の並びのテストです。`check-text-push` が `check-version-plan-required` より前に定義されていることを確認します。"""
     with allure.step("hook の並びを読む"):
         ids = _hook_ids(_config_text(script_dir))
     with allure.step("check-text-push が check-version-plan-required より前にあることを確かめる"):
         assert ids.index("check-text-push") < ids.index("check-version-plan-required")
 
 
+@allure.title("Pages の公開ビルドの hook と、docs/ を除外する設定は存在しない")
 def test_pages_build_hook_is_removed(script_dir: Path) -> None:
-    """Pages の公開ビルドは持たない。docs/ を除外する設定も残さない。"""
+    """`.pre-commit-config.yaml` のテストです。`build-pages-slides` の hook と `^docs/` の設定が、どちらも存在しないことを確認します。"""
     with allure.step("設定の本文を読む"):
         text = _config_text(script_dir)
     with allure.step("Pages のビルドの hook も docs/ の除外も無いことを確かめる"):
@@ -405,17 +436,16 @@ def test_pages_build_hook_is_removed(script_dir: Path) -> None:
         assert "^docs/" not in text
 
 
+@allure.title("旧 check-pecotv-skill-frontmatter の hook は存在しない")
 def test_pecotv_skill_frontmatter_hook_is_replaced(script_dir: Path) -> None:
-    """旧 check-pecotv-skill-frontmatter は plugin-validate に吸収済みで、残さない。"""
+    """`check-pecotv-skill-frontmatter` が `plugin-validate` に統合された後の、`.pre-commit-config.yaml` のテストです。旧 hook の id が存在しないことを確認します。"""
     with allure.step("旧 check-pecotv-skill-frontmatter が残っていないことを確かめる"):
         assert "check-pecotv-skill-frontmatter" not in _hook_ids(_config_text(script_dir))
 
 
+@allure.title("local hook の language は新しい表記で、pre-commit の下限もそれ以上に固定する")
 def test_local_hooks_use_unsupported_languages(script_dir: Path) -> None:
-    """repo: local の language は pre-commit 4.4.0 の新表記で、下限もそれ以上に固定する。
-
-    旧 `script` / `system` は pre-commit 側で読み替え対象（将来撤去）になっている。
-    """
+    """`repo: local` の hook の `language` のテストです。値が `unsupported` と `unsupported_script` のいずれかで、`minimum_pre_commit_version` が 4.4.0 以上であることを確認します。"""
     with allure.step("local の hook の language と最低版を読む"):
         text = _config_text(script_dir)
         local_part = text.split("  - repo: https://", 1)[0]
@@ -489,8 +519,9 @@ def _local_scripts(script_dir: Path) -> dict[str, str]:
     }
 
 
+@allure.title("local hook は、すべて stages を指定する")
 def test_local_hooks_declare_stages(script_dir: Path) -> None:
-    """local hook は stages を必ず持つ。置き場との一致を確かめる前提になる。"""
+    """`repo: local` の hook のテストです。`stages` を指定していない hook が 1 つも存在しないことを確認します。"""
     with allure.step("local の hook を切り出し、stages の無いものを集める"):
         blocks = _local_hook_blocks(_config_text(script_dir))
         missing = [hook_id for hook_id, block in blocks.items() if _stages(block) is None]
@@ -498,8 +529,9 @@ def test_local_hooks_declare_stages(script_dir: Path) -> None:
         assert missing == []
 
 
+@allure.title("local hook の entry のスクリプトは、すべて実在する")
 def test_local_hook_entry_scripts_exist(script_dir: Path) -> None:
-    """全 local hook の entry の実体が実在する。E2E で発火しない hook も押さえる。"""
+    """`repo: local` の hook の `entry` のテストです。参照するスクリプトがリポジトリに存在しない hook が 1 つも存在しないことを確認します。"""
     with allure.step("local の hook の entry の実体を集め、無いものを挙げる"):
         root = script_dir.parents[1]
         missing = [
@@ -511,8 +543,9 @@ def test_local_hook_entry_scripts_exist(script_dir: Path) -> None:
         assert missing == []
 
 
+@allure.title("stage 名のディレクトリ直下のスクリプトを使う hook は、その stage だけで動く")
 def test_stage_dir_matches_stages(script_dir: Path) -> None:
-    """実体が stage 名のディレクトリ直下にある hook は、stages がそのディレクトリ名 1 つだけ。"""
+    """`pre-commit`・`commit-msg`・`pre-push` の直下にスクリプトを置く hook のテストです。`stages` がディレクトリ名と同じ 1 つだけであることを確認します。"""
     with allure.step("stage の置き場の hook の stages を集め、置き場と合わないものを挙げる"):
         blocks = _local_hook_blocks(_config_text(script_dir))
         mismatched = []
@@ -525,8 +558,9 @@ def test_stage_dir_matches_stages(script_dir: Path) -> None:
         assert mismatched == []
 
 
+@allure.title("`.githooks/ci/` 直下のスクリプトを使う hook は、manual の stage だけで動く")
 def test_ci_dir_hooks_run_only_in_manual(script_dir: Path) -> None:
-    """実体が `.githooks/ci/` 直下にある local hook は、stages が manual だけ。"""
+    """`.githooks/ci/` 直下にスクリプトを置く local hook のテストです。1 件以上存在し、すべての `stages` が `manual` だけであることを確認します。"""
     with allure.step("ci/ 直下の hook を集める"):
         blocks = _local_hook_blocks(_config_text(script_dir))
         ci_hooks = {
@@ -541,8 +575,9 @@ def test_ci_dir_hooks_run_only_in_manual(script_dir: Path) -> None:
         }
 
 
+@allure.title("pre-push で動く hook は、期待する 3 つの local hook だけに限る")
 def test_pre_push_hooks_are_only_the_expected_local_ones(script_dir: Path) -> None:
-    """pre-push で動く hook は、明示の stages に pre-push を含む local hook の 3 本だけ。"""
+    """pre-push で動く hook のテストです。既定の stages に `pre-push` が含まれないことを確認します。指定する hook は、`check-text-push`・`check-version-plan-required`・`nx-env-inputs` の 3 つの local hook だけです。外部のリポジトリの hook は、`pre-push` を指定しません。"""
     with allure.step("pre-push で動く hook を設定から集める"):
         text = _config_text(script_dir)
         default = re.search(r"^default_stages:\s*\[(.*)\]", text, re.MULTILINE)
@@ -570,8 +605,9 @@ def test_pre_push_hooks_are_only_the_expected_local_ones(script_dir: Path) -> No
         assert all("pre-push" not in line for line in stage_lines)
 
 
+@allure.title("stage 名のディレクトリ直下の *.sh は、すべてどれかの entry から参照される")
 def test_stage_dir_scripts_are_referenced_by_entries(script_dir: Path) -> None:
-    """stage 名のディレクトリ直下の *.sh は、どれかの entry から参照される。"""
+    """`.githooks` の `pre-commit`・`commit-msg`・`pre-push` の直下にあるシェルスクリプトのテストです。どの hook の `entry` からも参照されない未使用のスクリプトが存在しないことを確認します。"""
     with allure.step("entry に参照される script を集め、参照されない *.sh を挙げる"):
         root = script_dir.parents[1]
         referenced = set(_local_scripts(script_dir).values())
@@ -586,9 +622,10 @@ def test_stage_dir_scripts_are_referenced_by_entries(script_dir: Path) -> None:
         assert orphans == []
 
 
+@allure.title("{hook_id} は、manual の stage だけで動く")
 @pytest.mark.parametrize("hook_id", ["nx-affected-tests"])
 def test_test_hooks_run_only_in_manual(script_dir: Path, hook_id: str) -> None:
-    """テストの hook は manual だけで動く。manual は CI（run-pr-checks.sh）と手動用。"""
+    """テストを実行する hook の `stages` のテストです。`manual` だけが指定され、CI と手動の実行にだけ使われることを確認します。"""
     with allure.step("テストの hook の設定の行を取り出す"):
         block = _hook_entry_lines(_config_text(script_dir), hook_id)
     with allure.step("stages が manual だけであることを確かめる"):

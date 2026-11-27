@@ -32,6 +32,7 @@ import { assertCliBuilt, formatOutputTails, isChromiumCached, spawnToolSync } fr
 import { attachFile } from '../_helpers/attach.js'
 import { useTemporaryDirectory } from '../_helpers/temporary-directory.js'
 import { durationCeilingMs } from '../_helpers/duration-ceiling.js'
+import { explains } from '../_helpers/explains.js'
 
 // PNG シグネチャ（8 byte）。以降に length(4) + "IHDR"(4) + width(4) + height(4) が続く。
 const PNG_SIGNATURE_HEX = '89504e470d0a1a0a'
@@ -108,6 +109,7 @@ function readPngSize(png: Readonly<Buffer>): { readonly width: number, readonly 
 
 describe.skipIf(!isChromiumReady)('CUJ: drawio url が実 chromium で PNG を描画する', () => {
   it('日本語入りの図から exit 0 で PNG を書き出し、寸法を持つ PNG になる', async () => {
+    await explains('`drawio url` の実際の Chromium での PNG の書き出しのテストです。日本語を含む図の場合に、終了コード 0 で、幅と高さを持つ PNG を書き出し、PNG に図の元データが埋め込まれることを確認します。')
     const inputPath = workDirectory('ja-minimal.drawio')
     const outputPath = workDirectory('ja-minimal.drawio.html')
     const expectedPngPath = workDirectory('ja-minimal.drawio.png')

@@ -22,7 +22,9 @@ def _masked(path: str) -> str:
     return _ACTION_REF.sub(r"\1@<ref>", (_REPO_ROOT / path).read_text(encoding="utf-8"))
 
 
+@allure.title("引き継ぎのワークフローは、action の版を除いて雛形と一致する")
 def test_workflow_is_a_copy_of_the_template() -> None:
+    """`.github/workflows/pecot-handoff.yml` が、配布する雛形の写しであることのテストです。action の版を伏せた内容が、雛形と一致することを確認します。"""
     with allure.step("写しと雛形を、版を伏せて読む"):
         copy = _masked(_COPY)
         template = _masked(_TEMPLATE)
@@ -32,8 +34,10 @@ def test_workflow_is_a_copy_of_the_template() -> None:
         )
 
 
+@allure.title("{path} の action は、すべて 40 桁の SHA で固定する")
 @pytest.mark.parametrize("path", [_COPY, _TEMPLATE])
 def test_every_action_is_pinned_to_a_full_sha(path: str) -> None:
+    """ワークフローの写しと雛形の、`uses:` の行のテストです。`uses:` の行が 1 件以上あり、すべての action が 40 桁の SHA で固定されていることを確認します。"""
     with allure.step("ワークフローの uses の行を集める"):
         text = (_REPO_ROOT / path).read_text(encoding="utf-8")
         uses = _USES_LINE.findall(text)

@@ -31,6 +31,7 @@ import {
 import type { AlertResponses } from '../_helpers/tracker-sync-security-case.js'
 import { boardRules, createdTracker, freezeClock, graphqlServerError, missingTokenStderr, prepareSync, WORKFLOW_FIELD } from '../_helpers/tracker-sync-case.js'
 import { verifies } from '../_helpers/verifies.js'
+import { explains } from '../_helpers/explains.js'
 import { STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 
 useIsolatedEnvironment()
@@ -158,6 +159,7 @@ describe('tracker sync', () => {
   describe('Tracker を作る', () => {
     it('open の Tracker が無く、載せる alert があると、label が security-alert の Tracker の Issue を作る', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-47')
+      await explains('open の Tracker が存在せず、載せる alert がある場合のテストです。ラベル `security-alert` を付けた Tracker の Issue を作成し、標準エラーに `created` と `added` の行を出力することを確認します。')
       const github = await startCreating()
       const result = await sync()
       expect(result.code).toBe(0)
@@ -170,6 +172,7 @@ describe('tracker sync', () => {
 
     it('Tracker の Issue を作ると、ボードに足す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-48')
+      await explains('Tracker の Issue を作成した場合のテストです。作成した Issue をボードに追加することを確認します。')
       const github = await startCreating()
       await sync()
       expect(graphqlOperations(github.requests())).toEqual(['GetIssueNodeId', 'AddToProject', UPDATE_FIELD])
@@ -177,6 +180,7 @@ describe('tracker sync', () => {
 
     it('Tracker の Issue を作ると、Status を Backlog にする', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-49')
+      await explains('Tracker の Issue を作成した場合のテストです。ボード上の Status を `Backlog` にすることを確認します。')
       const github = await startCreating()
       await sync()
       expect(fieldUpdates(github.requests())).toContainEqual({ projectId: 'PVT_1', itemId: 'PVTI_12', fieldId: 'PVTSSF_workflow', optionId: 'o1' })
@@ -184,6 +188,7 @@ describe('tracker sync', () => {
 
     it('Tracker の Issue を作ると、ボードの欄は Status だけを入れ、Priority を入れない', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-50')
+      await explains('Tracker の Issue を作成した場合に、ボードへ書き込む欄のテストです。Status だけを書き込み、Priority は書き込まないことを確認します。')
       const github = await startCreating()
       const result = await sync()
       expect(result.code).toBe(0)
@@ -192,6 +197,7 @@ describe('tracker sync', () => {
 
     it('open の Tracker が無く、載せる alert も無いと、Tracker の Issue を作らない', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-51')
+      await explains('open の Tracker が存在せず、載せる alert も存在しない場合のテストです。Tracker の Issue を作成せず、GitHub への書き込みも発生しないことを確認します。')
       prepareSync()
       const github = await startGithub(listings(NO_ALERTS, []))
       const result = await sync()
@@ -201,6 +207,7 @@ describe('tracker sync', () => {
 
     it('open の Tracker が無く、載せる alert も無いと、skipped の行を標準エラーに出す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-52')
+      await explains('open の Tracker が存在せず、載せる alert も存在しない場合のテストです。`skipped: Tracker creation` の行を標準エラーに出力することを確認します。')
       prepareSync()
       await startGithub(listings(NO_ALERTS, []))
       const result = await sync()
@@ -208,6 +215,7 @@ describe('tracker sync', () => {
     })
 
     it('閉じた Tracker は使い回さない', async () => {
+      await explains('閉じた Tracker が存在する場合のテストです。閉じた Tracker を再利用せず、新しい Issue を作成することを確認します。')
       freezeClock()
       prepareSync()
       const closed = [trackerIssue(5, trackerBody(), 'closed')]
@@ -218,6 +226,7 @@ describe('tracker sync', () => {
     })
 
     it('CLI で、Tracker の作成が失敗すると、Tracker の error の行を標準エラーに出す', async () => {
+      await explains('CLI で Tracker の作成が失敗した場合のテストです。`error: Tracker: GitHub API error: 502` の行を標準エラーに出力することを確認します。')
       freezeClock()
       prepareSync()
       await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12, 502)])
@@ -226,6 +235,7 @@ describe('tracker sync', () => {
     })
 
     it('CLI で、ボードへの追加が失敗すると、Tracker の error の行を標準エラーに出す', async () => {
+      await explains('CLI で Tracker の作成後にボードへの追加が失敗した場合のテストです。`created` と `added` の行に続いて、Tracker の `error` の行を標準エラーに出力することを確認します。')
       freezeClock()
       prepareSync()
       const github = await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12), ...boardRules(12, { onlyIfEmpty: false, failsToAdd: true })])
@@ -235,6 +245,7 @@ describe('tracker sync', () => {
 
     it('選択肢の ID が古くて Status を書けないと、書けなかった欄と ID を読み直す案内を detail に入れて partial-failure の失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-94')
+      await explains('MCP で、ボードの選択肢の ID が古く Status を書き込めない場合のテストです。書き込めなかった欄と、ID を読み直す案内を `detail` に含めた `partial-failure` の失敗が返ることを確認します。')
       freezeClock()
       prepareSync()
       const added = boardRules(12, { onlyIfEmpty: false }).filter(rule => rule.match.operation !== UPDATE_FIELD)
@@ -249,6 +260,7 @@ describe('tracker sync', () => {
     })
 
     it('CLI で、選択肢の ID が古くて Status を書けないと、error の行と ID を読み直す案内を出し、終了コード 1 で終わる', async () => {
+      await explains('CLI で、ボードの選択肢の ID が古く Status を書き込めない場合のテストです。`error` の行と ID を読み直す案内を標準エラーに出力し、終了コード 1 で終了することを確認します。')
       freezeClock()
       prepareSync()
       const added = boardRules(12, { onlyIfEmpty: false }).filter(rule => rule.match.operation !== UPDATE_FIELD)
@@ -270,6 +282,7 @@ describe('tracker sync', () => {
     it('Tracker の作成に失敗すると、Tracker の失敗の文を detail に入れて partial-failure の失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-89')
       await verifies(context, 'PW-TRACKER-SYNC-90')
+      await explains('MCP で Tracker の作成が失敗した場合のテストです。失敗の文を `detail` に含めた `partial-failure` の失敗が返ることを確認します。')
       freezeClock()
       prepareSync()
       await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12, 502)])
@@ -282,6 +295,7 @@ describe('tracker sync', () => {
   describe('Tracker の本文を書き直す', () => {
     it('open の Tracker があると、list-begin と list-end の間を、Dependabot・code scanning・secret scanning の見出しと表に書き直す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-53')
+      await explains('open の Tracker が存在する場合のテストです。`list-begin` と `list-end` の間を、Dependabot・code scanning・secret scanning の見出しと表に書き直し、範囲の外の文は残すことを確認します。')
       prepareSync()
       const outside = '\nこの文は残す\n'
       const responses: AlertResponses = { dependabot: [dependabotAlert(1), dependabotAlert(2)], codeScanning: [codeScanningAlert(3)], secretScanning: [secretScanningAlert(4)] }
@@ -298,6 +312,7 @@ describe('tracker sync', () => {
 
     it('表に alert を足すと、added の行を標準エラーに出す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-54')
+      await explains('既存の Tracker に alert を追加する場合のテストです。`added: dependabot #2 to Tracker #5` の行を標準エラーに出力することを確認します。')
       prepareSync()
       await startGithub(existing({ dependabot: [dependabotAlert(1), dependabotAlert(2)] }, BODY_WITH_ONE))
       const result = await sync()
@@ -306,6 +321,7 @@ describe('tracker sync', () => {
 
     it('表から alert を外すと、removed の行を標準エラーに出す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-55')
+      await explains('既存の Tracker から alert を削除する場合のテストです。`removed` の行を標準エラーに出力し、書き直した本文に該当の行が残らないことを確認します。')
       prepareSync()
       const body = trackerBody(dependabotEntry(1), trackerEntry('code-scanning', 9))
       const github = await startGithub(existing(ONE_DEPENDABOT, body))
@@ -316,6 +332,7 @@ describe('tracker sync', () => {
 
     it('行の足し外しが無く本文だけが変わると、本文を書き直す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-56')
+      await explains('表の行の増減がなく、本文の形式だけが変わる場合のテストです。古い形式の印を持つ本文を、新しい形式に書き直すことを確認します。')
       prepareSync()
       const github = await startGithub(existing(ONE_DEPENDABOT, OLD_FORMAT_BODY))
       const result = await sync()
@@ -327,6 +344,7 @@ describe('tracker sync', () => {
 
     it('行の足し外しが無く本文だけが変わると、updated の行を標準エラーに出す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-57')
+      await explains('表の行の増減がなく、本文の形式だけが変わる場合のテストです。`updated: Tracker #5 body` の行を標準エラーに出力することを確認します。')
       prepareSync()
       await startGithub(existing(ONE_DEPENDABOT, OLD_FORMAT_BODY))
       const result = await sync()
@@ -335,6 +353,7 @@ describe('tracker sync', () => {
 
     it('書き直した本文が今の本文と同じだと、本文を書き直さない（改行が CRLF でも同じとみなす）', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-58')
+      await explains('書き直した本文が現在の本文と同じ場合のテストです。改行が CRLF の本文でも同じとみなして、GitHub へ書き込まないことを確認します。')
       prepareSync()
       const github = await startGithub(sameBody(BODY_WITH_ONE.replaceAll('\n', '\r\n')))
       const result = await sync()
@@ -344,6 +363,7 @@ describe('tracker sync', () => {
 
     it('書き直した本文が今の本文と同じだと、unchanged の行を標準エラーに出す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-59')
+      await explains('書き直した本文が現在の本文と同じ場合のテストです。`unchanged: Tracker #5` の行を標準エラーに出力することを確認します。')
       prepareSync()
       await startGithub(sameBody(BODY_WITH_ONE))
       const result = await sync()
@@ -352,6 +372,7 @@ describe('tracker sync', () => {
 
     it('open の alert がすべて無くなると、各種類の見出しの下に none を書く', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-60')
+      await explains('open の alert がすべてなくなった場合のテストです。3 種類の見出しの下に、それぞれ `none` を書くことを確認します。')
       prepareSync()
       const github = await startGithub(existing(NO_ALERTS, GONE_BODY))
       const result = await sync()
@@ -362,6 +383,7 @@ describe('tracker sync', () => {
 
     it('open の alert がすべて無くなると、Tracker を閉じない', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-61')
+      await explains('open の alert がすべてなくなった場合のテストです。Tracker を閉じず、本文の書き換えだけを行うことを確認します。')
       prepareSync()
       const github = await startGithub(existing(NO_ALERTS, GONE_BODY))
       await sync()
@@ -373,6 +395,7 @@ describe('tracker sync', () => {
 
     it('code scanning と secret scanning の行を書くと、title を masked にする', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-62')
+      await explains('code scanning と secret scanning の行を書き込む場合のテストです。どちらの行も title を `masked` にし、元の title を本文に含めないことを確認します。')
       freezeClock()
       prepareSync()
       const github = await startGithub(creating({ codeScanning: [codeScanningAlert(10)], secretScanning: [secretScanningAlert(11)] }))
@@ -386,6 +409,7 @@ describe('tracker sync', () => {
 
     it('機能が無効の種類があると、その見出しの下に disabled を書き、行を足さない', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-63')
+      await explains('機能を無効にした種類がある場合のテストです。その種類の見出しの下に `disabled` を書き、表の行を追加しないことを確認します。')
       prepareSync()
       const github = await startGithub(secretNotFound('disabled', ONE_DEPENDABOT, [patchedTracker(5), ...boardRules(5, { onlyIfEmpty: true })]))
       const result = await sync()
@@ -397,6 +421,7 @@ describe('tracker sync', () => {
 
     it('機能が無効の種類があると、skipped の行を標準エラーに出す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-64')
+      await explains('機能を無効にした種類がある場合のテストです。`skipped: secret scanning alerts (feature disabled)` の行を標準エラーに出力することを確認します。')
       prepareSync()
       await startGithub(secretNotFound('disabled', ONE_DEPENDABOT, [patchedTracker(5), ...boardRules(5, { onlyIfEmpty: true })]))
       const result = await sync()
@@ -405,6 +430,7 @@ describe('tracker sync', () => {
 
     it('code scanning の解析が無いリポジトリだと、code scanning の alert を 0 件として扱う', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-65')
+      await explains('code scanning の解析が存在しないリポジトリの場合のテストです。code scanning の alert を 0 件として扱い、見出しの下に `none` を書くことを確認します。')
       prepareSync()
       const responses: AlertResponses = { codeScanningFailure: failure(404, 'no analysis found') }
       const body = trackerBody(trackerEntry('code-scanning', 9))
@@ -416,6 +442,7 @@ describe('tracker sync', () => {
 
     it('既存の Tracker の Status が空だと、Status だけに Backlog を入れ、Priority を入れない', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-66')
+      await explains('既存の Tracker の Status が空の場合のテストです。Status だけに `Backlog` を書き込み、Priority は書き込まないことを確認します。')
       const workflow = { projectId: 'PVT_1', itemId: 'PVTI_5', fieldId: 'PVTSSF_workflow', optionId: 'o1' }
       expect(await boardUpdates([])).toEqual([workflow])
       expect(await boardUpdates([WORKFLOW_FIELD])).toEqual([])
@@ -423,6 +450,7 @@ describe('tracker sync', () => {
 
     it('表の 3 列目を Severity にし、GitHub の重大度の値をそのまま出す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-97')
+      await explains('Tracker の表の 3 列目のテストです。列の名前を Severity にし、GitHub の重大度の値を変換せずに出力することを確認します。')
       freezeClock()
       prepareSync()
       const codeScanning = [codeScanningAlert(10, { security_severity_level: 'medium', severity: 'error' }), codeScanningAlert(11, { severity: 'warning' }), codeScanningAlert(12, { severity: 'none' })]
@@ -436,6 +464,7 @@ describe('tracker sync', () => {
 
     it('secret scanning の alert と重大度の無い alert は、Severity の列に - を出す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-98')
+      await explains('重大度が存在しない alert の場合のテストです。secret scanning の alert と重大度のない alert は、Severity の列に `-` を出力することを確認します。')
       freezeClock()
       prepareSync()
       const dependabot = [{ ...dependabotAlert(1), security_vulnerability: {} }]
@@ -452,6 +481,7 @@ describe('tracker sync', () => {
 
     it('旧い本文の priority= の印を重大度として読み、書き直しで severity= にする', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-99')
+      await explains('古い本文が `priority=` の印を持つ場合のテストです。その値を重大度として読み取り、書き直した本文では `severity=` の印にすることを確認します。')
       prepareSync()
       const oldRows = [
         '| <!-- pecot-alert: code-scanning/9 priority=high --> masked | [#9](u) | high |',
@@ -470,6 +500,7 @@ describe('tracker sync', () => {
 
     it('open の Tracker が複数あると、番号が最小のものを使う', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-67')
+      await explains('open の Tracker が 2 件以上ある場合のテストです。番号が最も小さい Tracker だけを対象にして更新することを確認します。')
       prepareSync()
       const github = await startGithub(severalTrackers())
       const result = await sync()
@@ -479,6 +510,7 @@ describe('tracker sync', () => {
 
     it('open の Tracker が複数あると、使わないものを閉じない', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-68')
+      await explains('open の Tracker が 2 件以上ある場合のテストです。対象にしなかった Tracker を閉じないことを確認します。')
       prepareSync()
       const github = await startGithub(severalTrackers())
       await sync()
@@ -487,6 +519,7 @@ describe('tracker sync', () => {
 
     it('open の Tracker が複数あると、warning の行を標準エラーに出す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-69')
+      await explains('open の Tracker が 2 件以上ある場合のテストです。`warning` の行を標準エラーに出力することを確認します。')
       prepareSync()
       await startGithub(severalTrackers())
       const result = await sync()
@@ -495,6 +528,7 @@ describe('tracker sync', () => {
 
     it('Tracker の本文の書き直しに失敗したなら、error の行を標準エラーに出す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-87')
+      await explains('Tracker の本文の書き直しが失敗した場合のテストです。`error: could not update Tracker #5 body` の行を標準エラーに出力することを確認します。')
       prepareSync()
       await startGithub(failingUpdate())
       const result = await sync()
@@ -504,6 +538,7 @@ describe('tracker sync', () => {
     it('Tracker の本文の書き直しに失敗したなら、失敗の文を detail に入れて partial-failure の失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-87')
       await verifies(context, 'PW-TRACKER-SYNC-88')
+      await explains('MCP で Tracker の本文の書き直しが失敗した場合のテストです。失敗の文を `detail` に含めた `partial-failure` の失敗が返ることを確認します。')
       prepareSync()
       await startGithub(failingUpdate())
       const outcome = await syncOutcome()
@@ -516,8 +551,9 @@ describe('tracker sync', () => {
     // 書き込みの応答を持たない。書き込みの要求があれば、表に無い要求としてテストが落ちる
     const responses: AlertResponses = { dependabot: [dependabotAlert(1, 'high')], codeScanning: [codeScanningAlert(10)] }
 
-    it('GitHub への書き込みをしない', async (context) => {
+    it('--dry-run を指定すると、GitHub へ書き込まない', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-70')
+      await explains('`--dry-run` を指定して実行した場合のテストです。GitHub へ REST と GraphQL のどちらの書き込みも送信しないことを確認します。')
       freezeClock()
       prepareSync()
       const github = await startGithub(listings(responses, []))
@@ -529,6 +565,7 @@ describe('tracker sync', () => {
 
     it('予定の行を標準エラーに出す（Tracker を作る場合）', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-71')
+      await explains('`--dry-run` を指定して、Tracker を新しく作成する場合のテストです。作成の予定を `dry-run: would` で始まる行にして、標準エラーに出力することを確認します。')
       freezeClock()
       prepareSync()
       await startGithub(listings(responses, []))
@@ -540,6 +577,7 @@ describe('tracker sync', () => {
 
     it('予定の行を標準エラーに出す（既存の Tracker を書き直す場合）', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-71')
+      await explains('`--dry-run` を指定して、既存の Tracker を書き直す場合のテストです。追加と削除の予定を、標準エラーに出力することを確認します。')
       prepareSync()
       const body = trackerBody(dependabotEntry(2), trackerEntry('code-scanning', 9))
       await startGithub(listings({ dependabot: [dependabotAlert(2), dependabotAlert(3)] }, [trackerIssue(5, body)]))
@@ -551,6 +589,7 @@ describe('tracker sync', () => {
   describe('実行できない', () => {
     it('対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないと、候補の名前と project の案内を detail に入れて失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-72')
+      await explains('対象のリポジトリを含む設定が 2 つ以上あり、アクティブなプロジェクトがどれにも一致しない場合のテストです。候補の名前と `project` の指定方法を `detail` に含めた失敗が返ることを確認します。')
       prepareSync({ ambiguous: true })
       const github = await startGithub([])
       const outcome = await syncOutcome()
@@ -562,6 +601,7 @@ describe('tracker sync', () => {
 
     it('対象のリポを含む設定が無いと、repo-not-in-project の失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-95')
+      await explains('対象のリポジトリを含む設定が存在しない場合のテストです。`repo-not-in-project` の失敗が返り、GitHub へ要求を送信しないことを確認します。')
       prepareSync({ repositories: ['other'] })
       const github = await startGithub([])
       const outcome = await syncOutcome()
@@ -572,6 +612,7 @@ describe('tracker sync', () => {
 
     it('project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-96')
+      await explains('対象のリポジトリを含む設定が 2 つ以上ある場合のテストです。`project` に設定の名前を指定すると、その設定を使って成功することを確認します。')
       prepareSync({ ambiguous: true })
       await startGithub(listings({}, []))
       const outcome = await syncOutcome({ project: 'second' })
@@ -580,6 +621,7 @@ describe('tracker sync', () => {
 
     it('repo を省いて git の remote のリポジトリを読めないと、git-unresolved の失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-73')
+      await explains('`repo` を省略し、Git の remote からリポジトリを取得できない場合のテストです。`git-unresolved` の失敗が返り、GitHub へ要求を送信しないことを確認します。')
       prepareSync({ hasRemote: false })
       const github = await startGithub([])
       const outcome = await syncOutcome()
@@ -590,6 +632,7 @@ describe('tracker sync', () => {
 
     it('GitHub のトークンが見つからないと、error の行を標準エラーに出す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-74')
+      await explains('GitHub のトークンが存在しない場合のテストです。標準出力は空のまま、`error` の行を標準エラーに出力することを確認します。')
       const { result, root } = await withoutToken()
       expect(result.stdout).toBe('')
       expect(result.stderr).toBe(missingTokenStderr(root))
@@ -598,6 +641,7 @@ describe('tracker sync', () => {
     it('GitHub のトークンが見つからないと、理由を detail に入れて github-auth の失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-74')
       await verifies(context, 'PW-TRACKER-SYNC-75')
+      await explains('GitHub のトークンが存在しない場合のテストです。理由を `detail` に含めた `github-auth` の失敗が返り、GitHub へ要求を送信しないことを確認します。')
       const project = prepareSync()
       const github = await startGithub([])
       setEnvironment({ [project.tokenVariable]: undefined })
@@ -610,8 +654,9 @@ describe('tracker sync', () => {
   })
 
   describe('ある種類の alert の一覧を取れない', () => {
-    it('その種類の前の行を残す', async (context) => {
+    it('一覧を取得できない種類の行が Tracker に存在すると、その行を書き直した本文に残す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-76')
+      await explains('ある種類の alert の一覧を取得できず、Tracker にその種類の行が存在する場合のテストです。見出しの下の表と既存の行を、そのまま残すことを確認します。')
       prepareSync()
       const github = await startGithub(failedSecret(SECRET_ROW_BODY))
       await sync()
@@ -620,24 +665,27 @@ describe('tracker sync', () => {
       expect(body).toContain('pecot-alert: secret-scanning/1 ')
     })
 
-    it('前の行も無いと、見出しの下に unavailable を書く', async (context) => {
+    it('一覧を取得できない種類の行が Tracker に存在しないと、見出しの下に unavailable を書く', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-77')
+      await explains('ある種類の alert の一覧を取得できず、Tracker にその種類の行も存在しない場合のテストです。見出しの下に `unavailable` を書くことを確認します。')
       prepareSync()
       const github = await startGithub(failedSecret(trackerBody()))
       await sync()
       expect(updatedBody(github.requests(), 5)).toContain('## secret scanning\n\nunavailable')
     })
 
-    it('その種類を触らない旨の error の行を標準エラーに出す', async (context) => {
+    it('一覧を取得できない種類があると、その種類の行に触れない旨の error の行を標準エラーに出力する', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-78')
+      await explains('ある種類の alert の一覧を取得できない場合のテストです。その種類の行に触れない旨の `error` の行を、標準エラーに出力することを確認します。')
       prepareSync()
       await startGithub(failedSecret(SECRET_ROW_BODY))
       const result = await sync()
       expect(result.stderr).toBe('error: could not list secret scanning alerts (leaving its rows untouched): acme/demo: secret scanning: GitHub API error: 500 boom\nadded: dependabot #1 to Tracker #5\n')
     })
 
-    it('ほかの種類を書き直す', async (context) => {
+    it('一覧を取得できない種類があっても、ほかの種類の行は書き直す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-79')
+      await explains('ある種類の alert の一覧を取得できない場合のテストです。ほかの種類の行は、通常どおり書き直すことを確認します。')
       prepareSync()
       const github = await startGithub(failedSecret(SECRET_ROW_BODY))
       await sync()
@@ -647,6 +695,7 @@ describe('tracker sync', () => {
     it('ほかの種類を書き直した後に、その種類を触らない旨を detail に入れて partial-failure の失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-78')
       await verifies(context, 'PW-TRACKER-SYNC-80')
+      await explains('ある種類の alert の一覧を取得できない場合のテストです。ほかの種類を書き直したうえで、その種類に触れない旨を `detail` に含めた `partial-failure` の失敗が返ることを確認します。')
       prepareSync()
       const github = await startGithub(failedSecret(SECRET_ROW_BODY))
       const outcome = await syncOutcome()
@@ -658,6 +707,7 @@ describe('tracker sync', () => {
 
     it('Tracker が無く、取れなかった種類しか無いと、Tracker を作らずに partial-failure の失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-80')
+      await explains('Tracker が存在せず、一覧を取得できなかった種類しか存在しない場合のテストです。Tracker を作成せず、`partial-failure` の失敗が返ることを確認します。')
       prepareSync()
       const github = await startGithub(listings({ dependabotFailure: failure(500, 'boom') }, []))
       const outcome = await syncOutcome()
@@ -668,6 +718,7 @@ describe('tracker sync', () => {
 
     it('Dependabot alert が有効なのに一覧を 403 で取れないと、その種類を取れなかったものとして扱う', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-81')
+      await explains('Dependabot alert が有効で、一覧の取得が 403 で失敗する場合のテストです。その種類を取得できなかったものとして扱い、終了コード 1 で終了することを確認します。')
       prepareSync()
       await startGithub([...listings({ dependabotFailure: failure(403, 'Resource not accessible by integration') }, []), vulnerabilityAlertsEnabled()])
       const result = await sync()
@@ -677,6 +728,7 @@ describe('tracker sync', () => {
 
     it('secret scanning の一覧を 404 で取れず、無効とも確かめられないと、その種類を取れなかったものとして扱う', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-82')
+      await explains('secret scanning の一覧が 404 になり、無効であることも確認できない場合のテストです。その種類を取得できなかったものとして扱い、GitHub へ書き込まないことを確認します。')
       prepareSync()
       const github = await startGithub(secretNotFound('enabled', NO_ALERTS, boardRules(5, { onlyIfEmpty: true })))
       const result = await sync()
@@ -687,8 +739,9 @@ describe('tracker sync', () => {
   })
 
   describe('Issue の一覧を取れない', () => {
-    it('何も書かない', async (context) => {
+    it('Issue の一覧を取得できないと、GitHub へ何も書き込まず、error の行を標準エラーに出力する', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-83')
+      await explains('Issue の一覧を取得できない場合のテストです。標準エラーに `error` の行を出力し、GitHub へ何も書き込まないことを確認します。')
       prepareSync()
       const github = await startGithub(unlistable())
       const result = await sync()
@@ -697,8 +750,9 @@ describe('tracker sync', () => {
       expect(graphqlOperations(github.requests())).toEqual([])
     })
 
-    it('失敗を返す', async (context) => {
+    it('Issue の一覧を取得できないと、失敗の文を detail に入れて失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-84')
+      await explains('Issue の一覧を取得できない場合のテストです。失敗の文を `detail` に含めた失敗が返ることを確認します。')
       prepareSync()
       await startGithub(unlistable())
       const outcome = await syncOutcome()
@@ -708,8 +762,9 @@ describe('tracker sync', () => {
   })
 
   describe('使う Tracker の本文に list-begin と list-end の印が 1 組だけ無い', () => {
-    it('何も書かない', async (context) => {
+    it('Tracker の本文に list-begin と list-end の印が 1 組だけ存在しないと、GitHub へ何も書き込まず、error の行を標準エラーに出力する', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-85')
+      await explains('使う Tracker の本文に `list-begin` と `list-end` の印が 1 組だけ存在しない場合のテストです。標準エラーに `error` の行を出力し、GitHub へ何も書き込まないことを確認します。')
       prepareSync()
       const github = await startGithub(brokenMarkers())
       const result = await sync()
@@ -718,8 +773,9 @@ describe('tracker sync', () => {
       expect(graphqlOperations(github.requests())).toEqual([])
     })
 
-    it('content-invalid の失敗を返す', async (context) => {
+    it('Tracker の本文に list-begin と list-end の印が 1 組だけ存在しないと、content-invalid の失敗を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-86')
+      await explains('使う Tracker の本文に `list-begin` と `list-end` の印が 1 組だけ存在しない場合のテストです。`content-invalid` の失敗が返ることを確認します。')
       prepareSync()
       await startGithub(brokenMarkers())
       const outcome = await syncOutcome()
@@ -734,6 +790,7 @@ describe('tracker sync', () => {
       { name: 'source に dependabot でも security でもない値を渡す', input: { source: 'foo' }, id: 'PW-TRACKER-SYNC-92' },
     ])('$name と、invalid-input の失敗を返す', async (row, context) => {
       await verifies(context, row.id)
+      await explains(`MCP の \`tracker_sync\` に不正な \`source\` を指定した場合のテストです。${row.name}と、\`invalid-input\` の失敗が返ることを確認します。`)
       const outcome = await callToolOnce(TRACKER_COMMANDS, 'tracker_sync', row.input)
       expect(outcome.isError).toBe(true)
       expect(outcome.structured).toMatchObject({ kind: 'invalid-input' })
@@ -741,6 +798,7 @@ describe('tracker sync', () => {
 
     it('source を省くと、使い方の誤りとして終了コード 2 で終わる', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-91')
+      await explains('CLI で `source` を省略した場合のテストです。使い方の誤りとして終了コード 2 で終了し、`Missing argument` のメッセージを出力することを確認します。')
       const result = await runInProcess(['tracker', 'sync'], TRACKER_COMMANDS)
       expect(result.code).toBe(2)
       expect(result.stdout).toBe('')
@@ -749,6 +807,7 @@ describe('tracker sync', () => {
 
     it('dependabot でも security でもない値を渡すと、使い方の誤りとして終了コード 2 で終わる', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-92')
+      await explains('CLI で `source` に `dependabot` でも `security` でもない値を指定した場合のテストです。使い方の誤りとして終了コード 2 で終了することを確認します。')
       const result = await runInProcess(['tracker', 'sync', 'foo'], TRACKER_COMMANDS)
       expect(result.code).toBe(2)
       expect(result.stdout).toBe('')
@@ -758,6 +817,7 @@ describe('tracker sync', () => {
 
   describe('MCP の data', () => {
     it('Tracker を作ると、その番号と足した alert を返す', async () => {
+      await explains('MCP で Tracker を作成した場合のテストです。作成した Tracker の番号と、追加した alert を返すことを確認します。')
       await startCreating()
       const data = await syncTool()
       const added = [{ kind: 'dependabot', number: 1 }, { kind: 'dependabot', number: 2 }, { kind: 'code-scanning', number: 10 }]
@@ -766,6 +826,7 @@ describe('tracker sync', () => {
 
     it('open の Tracker と載せる alert が無いと、tracker を入れずに created を false にして成功を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-52')
+      await explains('MCP で、open の Tracker と載せる alert のどちらも存在しない場合のテストです。`tracker` を含めずに `created` を `false` にして、成功が返ることを確認します。')
       prepareSync()
       await startGithub(listings(NO_ALERTS, []))
       const outcome = await syncOutcome()
@@ -775,6 +836,7 @@ describe('tracker sync', () => {
 
     it('行の足し外しが無く本文だけが変わると、added と removed を空にして成功を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-57')
+      await explains('MCP で、表の行の増減がなく本文の形式だけが変わる場合のテストです。`added` と `removed` を空にして、成功が返ることを確認します。')
       prepareSync()
       await startGithub(existing(ONE_DEPENDABOT, OLD_FORMAT_BODY))
       const outcome = await syncOutcome()
@@ -784,6 +846,7 @@ describe('tracker sync', () => {
 
     it('open の Tracker が複数あると、warnings に 1 つ入れる', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-69')
+      await explains('MCP で open の Tracker が 2 件以上ある場合のテストです。`warnings` に警告が 1 つ含まれることを確認します。')
       prepareSync()
       await startGithub(severalTrackers())
       const data = await syncTool()
@@ -793,6 +856,7 @@ describe('tracker sync', () => {
     it('既存の Tracker の行を足し外すと、足した alert を added に、外した alert を removed に入れる', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-54')
       await verifies(context, 'PW-TRACKER-SYNC-55')
+      await explains('MCP で既存の Tracker の行を増減した場合のテストです。追加した alert を `added` に、削除した alert を `removed` に含めることを確認します。')
       prepareSync()
       const body = trackerBody(dependabotEntry(1), trackerEntry('code-scanning', 9))
       await startGithub(existing({ dependabot: [dependabotAlert(1), dependabotAlert(2)] }, body))
@@ -802,6 +866,7 @@ describe('tracker sync', () => {
 
     it('本文が今と同じだと、added と removed を空にして成功を返す', async (context) => {
       await verifies(context, 'PW-TRACKER-SYNC-59')
+      await explains('MCP で、書き直した本文が現在の本文と同じ場合のテストです。`added` と `removed` を空にして、成功が返ることを確認します。')
       prepareSync()
       await startGithub([...listings(ONE_DEPENDABOT, [trackerIssue(5, BODY_WITH_ONE)]), ...boardRules(5, { onlyIfEmpty: true })])
       const data = await syncTool()
@@ -812,6 +877,7 @@ describe('tracker sync', () => {
       await verifies(context, 'PW-COMMON-18')
       await verifies(context, 'PW-TRACKER-SYNC-89')
       await verifies(context, 'PW-TRACKER-SYNC-90')
+      await explains('MCP で Tracker の作成後にボードへの追加が失敗した場合のテストです。作成した Tracker と追加した alert を `data` に残したまま、失敗が返ることを確認します。')
       freezeClock()
       prepareSync()
       const github = await startGithub([...listings(ONE_DEPENDABOT, []), createdTracker(12), ...boardRules(12, { onlyIfEmpty: false, failsToAdd: true })])

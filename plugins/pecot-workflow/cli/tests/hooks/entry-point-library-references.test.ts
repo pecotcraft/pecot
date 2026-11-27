@@ -5,6 +5,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { explains } from '../_helpers/explains.js'
 import { compareStrings } from '../parity/baseline.js'
 import { createHookCase } from './_helpers/environment.js'
 import { isFile } from './_helpers/files.js'
@@ -113,14 +114,16 @@ const syntheticLibraryDirectory = path.join(hooksDirectory, 'lib', 'post-tool-us
 
 describe('hooks のスクリプトの参照先', () => {
   describe('対象の列挙', () => {
-    it.for(CONFIG_FILES.map(label => ({ label })))('hooks 設定 $label の command の指すスクリプトは実在する', (row) => {
+    it.for(CONFIG_FILES.map(label => ({ label })))('hooks 設定 $label の command の指すスクリプトは実在する', async (row) => {
+      await explains(`hooks の設定ファイルのテストです。\`${row.label}\` の \`command\` に書かれたスクリプトが、すべてプラグインの中に実在することを確認します。`)
       const scripts = configCommandScripts(row.label)
       expect(scripts, `${row.label} から command を抽出できませんでした`).not.toHaveLength(0)
       const missing = [...new Set(scripts.filter(script => !isFile(path.join(pluginRoot, script))))].toSorted(compareStrings)
       expect(missing, `${row.label} の command が実在しないスクリプトを指しています`).toEqual([])
     })
 
-    it('hooks 設定の command はすべてエントリポイントを指す', () => {
+    it('hooks 設定の command はすべてエントリポイントを指す', async () => {
+      await explains('hooks の設定ファイルのテストです。`hooks.json` などの `command` の指すスクリプトは、すべて `hooks/` 直下のエントリポイントであり、`lib` 内部を直接指していないことを確認します。')
       const enumerated = new Set(entryPoints.map(relative => path.posix.join('hooks', relative)))
       for (const configName of CONFIG_FILES) {
         const scripts = configCommandScripts(configName)
@@ -130,20 +133,23 @@ describe('hooks のスクリプトの参照先', () => {
       }
     })
 
-    it('ガード対象の列挙は下限を割らない', () => {
+    it('ガード対象の列挙は下限を割らない', async () => {
+      await explains('走査対象の列挙のテストです。エントリポイントと `lib` 配下のスクリプトが、それぞれ 1 件以上、合計で下限の 25 件以上列挙されることを確認します。')
       expect(guardedScripts.length, `ガード対象が ${String(guardedScripts.length)} 件しか列挙できていません`).toBeGreaterThanOrEqual(MIN_GUARDED_SCRIPTS)
       expect(entryPoints.length, 'hooks/ 直下のエントリポイントが 0 件です').toBeGreaterThan(0)
       expect(libraryScripts.length, 'lib 配下のスクリプトが 0 件です').toBeGreaterThan(0)
     })
 
-    it('全対象を通算した解決参照の数は下限を割らない', () => {
+    it('全対象を通算した解決参照の数は下限を割らない', async () => {
+      await explains('スクリプトの参照の抽出のテストです。すべての走査対象から解決できた `lib` スクリプトへの参照が、通算で下限の 40 件以上であることを確認します。')
       const total = guardedScripts
         .map(relative => extractReferences(readText(scriptPath(relative)), path.dirname(scriptPath(relative)), pluginRoot).length)
         .reduce((sum, count) => sum + count, 0)
       expect(total, `解決できた参照が通算 ${String(total)} 件しかありません`).toBeGreaterThanOrEqual(MIN_RESOLVED_REFERENCES)
     })
 
-    it('全対象を通算した解決テンプレ参照の数は下限を割らない', () => {
+    it('全対象を通算した解決テンプレ参照の数は下限を割らない', async () => {
+      await explains('テンプレートの参照の抽出のテストです。すべての走査対象から解決できたテンプレートへの参照が、通算で下限の 2 件以上であることを確認します。')
       const total = guardedScripts
         .map(relative => extractTemplateReferences(readText(scriptPath(relative)), path.dirname(scriptPath(relative)), pluginRoot).length)
         .reduce((sum, count) => sum + count, 0)
@@ -154,13 +160,15 @@ describe('hooks のスクリプトの参照先', () => {
   describe('参照の実在とトークン会計', () => {
     const rows = guardedScripts.map(label => ({ label }))
 
-    it.for(rows)('$label が呼ぶ lib スクリプトはすべて実在する', (row) => {
+    it.for(rows)('$label が呼ぶ lib スクリプトはすべて実在する', async (row) => {
+      await explains(`スクリプトの参照先のテストです。\`${row.label}\` が呼ぶ \`lib\` のスクリプトが、すべて実在することを確認します。`)
       const target = scriptPath(row.label)
       const references = extractReferences(readText(target), path.dirname(target), pluginRoot)
       expect(missingReferencePaths(references), `${row.label} が存在しないスクリプトを呼んでいます`).toEqual([])
     })
 
-    it.for(rows)('$label の非コメント行の .sh トークンはすべて抽出器が解決している', (row) => {
+    it.for(rows)('$label の非コメント行の .sh トークンはすべて抽出器が解決している', async (row) => {
+      await explains(`スクリプトの参照の抽出のテストです。\`${row.label}\` のコメントでない行に出てくる \`.sh\` の名前が、すべて抽出器によって解決されていることを確認します。`)
       const target = scriptPath(row.label)
       const text = readText(target)
       const references = extractReferences(text, path.dirname(target), pluginRoot)
@@ -169,13 +177,15 @@ describe('hooks のスクリプトの参照先', () => {
       expect(blunt, `${row.label} の .sh トークンに抽出器が解決していないものがあります。未解決: ${JSON.stringify(unresolved)}`).toEqual(extracted)
     })
 
-    it.for(rows)('$label が読むテンプレはすべて実在する', (row) => {
+    it.for(rows)('$label が読むテンプレはすべて実在する', async (row) => {
+      await explains(`テンプレートの参照先のテストです。\`${row.label}\` の読むテンプレートは、すべて実在することを確認します。`)
       const target = scriptPath(row.label)
       const references = extractTemplateReferences(readText(target), path.dirname(target), pluginRoot)
       expect(missingReferencePaths(references), `${row.label} が存在しないテンプレを参照しています`).toEqual([])
     })
 
-    it.for(rows)('$label の非コメント行のテンプレトークンはすべて抽出器が解決している', (row) => {
+    it.for(rows)('$label の非コメント行のテンプレトークンはすべて抽出器が解決している', async (row) => {
+      await explains(`テンプレートの参照の抽出のテストです。\`${row.label}\` のコメントでない行に出てくるテンプレートの名前が、すべて抽出器によって解決されていることを確認します。`)
       const target = scriptPath(row.label)
       const text = readText(target)
       const references = extractTemplateReferences(text, path.dirname(target), pluginRoot)
@@ -186,53 +196,62 @@ describe('hooks のスクリプトの参照先', () => {
   })
 
   describe('抽出器の前提', () => {
-    it('config-dispatcher.sh は ${CLAUDE_PLUGIN_ROOT}/hooks から PLUGIN_HOOKS を導く行を持つ', () => {
+    it('config-dispatcher.sh は ${CLAUDE_PLUGIN_ROOT}/hooks から PLUGIN_HOOKS を導く行を持つ', async () => {
+      await explains('抽出器の前提のテストです。`config-dispatcher.sh` に、`CLAUDE_PLUGIN_ROOT` 配下の `hooks` から `PLUGIN_HOOKS` を導く代入の行が存在することを確認します。')
       const dispatcher = readText(path.join(hooksDirectory, 'lib', 'core', 'config-dispatcher.sh'))
       expect(HOOKS_ROOT_DERIVATION.test(dispatcher), 'PLUGIN_HOOKS の導出行がありません。PLUGIN_HOOKS の seed の前提が崩れています').toBe(true)
     })
   })
 
   describe('抽出器の自己テスト', () => {
-    it('実在しない lib への参照を検出する', () => {
+    it('実在しない lib への参照を検出する', async () => {
+      await explains('抽出器の自己テストです。存在しない `lib` のスクリプトを呼ぶコードを渡した場合に、その参照が実在しないものとして検出されることを確認します。')
       const text = `${SYNTHETIC_HEADER}echo "$INPUT" | "$LIB_DIR/does-not-exist.sh"\n`
       const references = extractReferences(text, hooksDirectory, pluginRoot)
       expect(missingReferencePaths(references)).toEqual([path.join(hooksDirectory, 'lib', 'pre-tool-use', 'does-not-exist.sh')])
     })
 
-    it('未知のディレクトリ変数の参照は解決せずエラーにする', () => {
+    it('未知のディレクトリ変数の参照は解決せずエラーにする', async () => {
+      await explains('抽出器の自己テストです。未知のディレクトリ変数を使った参照を渡した場合に、解決せずに変数名を含む例外が発生することを確認します。')
       const text = `${SYNTHETIC_HEADER}"$UNKNOWN_DIR/handler.sh"\n`
       expect(() => extractReferences(text, hooksDirectory, pluginRoot)).toThrow('UNKNOWN_DIR')
     })
 
-    it('値が .sh で終わる代入はディレクトリ変数として登録しない', () => {
+    it('値が .sh で終わる代入はディレクトリ変数として登録しない', async () => {
+      await explains('抽出器の自己テストです。値が `.sh` で終わる代入を、ディレクトリ変数として登録せず、その変数を使った参照は例外が発生することを確認します。')
       const text = `${SYNTHETIC_HEADER}HELPER="$LIB_DIR/helper.sh"\n`
       expect(resolveDirectoryVariables(text, hooksDirectory, pluginRoot).has('HELPER')).toBe(false)
       expect(() => extractReferences(`${text}"$HELPER/nested.sh"\n`, hooksDirectory, pluginRoot)).toThrow('$HELPER/nested.sh')
     })
 
-    it('.sh 以外の拡張子を持つ値もディレクトリ変数として登録しない', () => {
+    it('.sh 以外の拡張子を持つ値もディレクトリ変数として登録しない', async () => {
+      await explains('抽出器の自己テストです。値が `.md` のファイルを指す代入を、ディレクトリ変数として登録せず、その変数を使った参照は例外が発生することを確認します。')
       const text = `${SYNTHETIC_LIBRARY_HEADER}TEMPLATE="\${PLUGIN_HOOKS}/templates/reminder.md"\n`
       expect(resolveDirectoryVariables(text, adaptersDirectory, pluginRoot).has('TEMPLATE')).toBe(false)
       expect(() => extractReferences(`${text}"$TEMPLATE/nested.sh"\n`, adaptersDirectory, pluginRoot)).toThrow('$TEMPLATE/nested.sh')
     })
 
-    it('同名のディレクトリ変数を 2 回代入するとエラーにする', () => {
+    it('同名のディレクトリ変数を 2 回代入するとエラーにする', async () => {
+      await explains('抽出器の自己テストです。同じ名前のディレクトリ変数に 2 回代入するコードを渡した場合に、変数名を含む例外が発生することを確認します。')
       const text = `${SYNTHETIC_HEADER}LIB_DIR="$SCRIPT_DIR/lib/post-tool-use"\n"$LIB_DIR/auto-push.sh"\n`
       expect(() => extractReferences(text, hooksDirectory, pluginRoot)).toThrow('LIB_DIR')
     })
 
-    it('seed 済みの PLUGIN_HOOKS への実代入は重複として扱わない', () => {
+    it('seed 済みの PLUGIN_HOOKS への実代入は重複として扱わない', async () => {
+      await explains('抽出器の自己テストです。あらかじめ設定された `PLUGIN_HOOKS` に実際の代入があっても、重複として扱わず、プラグインの `hooks` ディレクトリを値に持つことを確認します。')
       const text = `${SYNTHETIC_LIBRARY_HEADER}PLUGIN_HOOKS="\${CLAUDE_PLUGIN_ROOT}/hooks"\n`
       const directoryVariables = resolveDirectoryVariables(text, adaptersDirectory, pluginRoot)
       expect(directoryVariables.get('PLUGIN_HOOKS')).toBe(path.join(pluginRoot, 'hooks'))
     })
 
-    it('CLAUDE_PLUGIN_ROOT の再代入は、seed の除外が PLUGIN_HOOKS に限られるのでエラーにする', () => {
+    it('CLAUDE_PLUGIN_ROOT の再代入は、seed の除外が PLUGIN_HOOKS に限られるのでエラーにする', async () => {
+      await explains('抽出器の自己テストです。`CLAUDE_PLUGIN_ROOT` を再代入するコードを渡した場合に、`PLUGIN_HOOKS` と違って例外が発生することを確認します。')
       const text = `${SYNTHETIC_LIBRARY_HEADER}CLAUDE_PLUGIN_ROOT="$SCRIPT_DIR/elsewhere"\n`
       expect(() => extractReferences(text, adaptersDirectory, pluginRoot)).toThrow('CLAUDE_PLUGIN_ROOT')
     })
 
-    it('変数プレフィックスのない参照は抽出されず、会計の不一致として現れる', () => {
+    it('変数プレフィックスのない参照は抽出されず、会計の不一致として現れる', async () => {
+      await explains('抽出器の自己テストです。変数の接頭辞がない `.sh` の参照を渡した場合に、抽出は 0 件になり、会計では未解決のトークンとして残ることを確認します。')
       const text = `${SYNTHETIC_HEADER}bash lib/pre-tool-use/handler.sh\n`
       const references = extractReferences(text, hooksDirectory, pluginRoot)
       const [blunt, extracted] = tokenAccounting(text, references, SYNTHETIC_NAME)
@@ -240,13 +259,15 @@ describe('hooks のスクリプトの参照先', () => {
       expect(blunt).toEqual(['lib/pre-tool-use/handler.sh'])
     })
 
-    it('自ファイル名の裸トークン（usage 文字列）は会計から外れる', () => {
+    it('自ファイル名の裸トークン（usage 文字列）は会計から外れる', async () => {
+      await explains('抽出器の自己テストです。使い方の文字列に自分のファイル名だけが出てくる場合に、そのトークンが会計の対象から除外されることを確認します。')
       const text = `${SYNTHETIC_HEADER}echo "Usage: ${SYNTHETIC_NAME} <core-script>" >&2\n`
       const references = extractReferences(text, hooksDirectory, pluginRoot)
       expect(tokenAccounting(text, references, SYNTHETIC_NAME)).toEqual([[], []])
     })
 
-    it('自己名の例外は他ファイルの裸 basename まで免除しない', () => {
+    it('自己名の例外は他ファイルの裸 basename まで免除しない', async () => {
+      await explains('抽出器の自己テストです。使い方の文字列に他のファイル名が出てくる場合に、自己名の例外が適用されず、会計では未解決のトークンとして残ることを確認します。')
       const text = `${SYNTHETIC_HEADER}echo "Usage: other-handler.sh <core-script>" >&2\n`
       const references = extractReferences(text, hooksDirectory, pluginRoot)
       const [blunt, extracted] = tokenAccounting(text, references, SYNTHETIC_NAME)
@@ -254,13 +275,15 @@ describe('hooks のスクリプトの参照先', () => {
       expect(blunt).toEqual(['other-handler.sh'])
     })
 
-    it('.sh で始まる別拡張子（foo.shellcheckrc）は偽トークンにしない', () => {
+    it('.sh で始まる別拡張子（foo.shellcheckrc）は偽トークンにしない', async () => {
+      await explains('抽出器の自己テストです。`foo.shellcheckrc` のように `.sh` で始まる別の拡張子を、スクリプトのトークンとして誤って抽出しないことを確認します。')
       const text = `${SYNTHETIC_HEADER}cat "$LIB_DIR/foo.shellcheckrc"\n`
       const references = extractReferences(text, hooksDirectory, pluginRoot)
       expect(tokenAccounting(text, references, SYNTHETIC_NAME)).toEqual([[], []])
     })
 
-    it('行頭と行末のコメント内の .sh は両系統とも 0 件になる', () => {
+    it('行頭と行末のコメント内の .sh は両系統とも 0 件になる', async () => {
+      await explains('抽出器の自己テストです。行頭と行末のコメントの中に `.sh` の名前がある場合に、抽出と会計のどちらでも 0 件になることを確認します。')
       const text
         = `${SYNTHETIC_HEADER}# merge-hook-outputs.sh で出力を統合する\n`
           + 'export HOOK_EVENT_NAME="PreToolUse"  # auto-push.sh 側で参照する\n'
@@ -268,7 +291,8 @@ describe('hooks のスクリプトの参照先', () => {
       expect(tokenAccounting(text, references, SYNTHETIC_NAME)).toEqual([[], []])
     })
 
-    it('BASH_SOURCE 版の自己ディレクトリ、${VAR} 形、サブディレクトリ、CLAUDE_PLUGIN_ROOT を解決する', () => {
+    it('BASH_SOURCE 版の自己ディレクトリ、${VAR} 形、サブディレクトリ、CLAUDE_PLUGIN_ROOT を解決する', async () => {
+      await explains('抽出器の自己テストです。`BASH_SOURCE` を使う自己ディレクトリ・波括弧つきの変数・サブディレクトリ・`CLAUDE_PLUGIN_ROOT` の各形式の参照を、正しいパスに解決することを確認します。')
       const text
         = '#!/bin/bash\n'
           + 'SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"\n'
@@ -283,7 +307,8 @@ describe('hooks のスクリプトの参照先', () => {
       expect(missingReferencePaths(references)).toEqual([])
     })
 
-    it('${VAR%/*} の親ディレクトリ剥がしは 1 段上を起点に解決する', () => {
+    it('${VAR%/*} の親ディレクトリ剥がしは 1 段上を起点に解決する', async () => {
+      await explains('抽出器の自己テストです。`SCRIPT_DIR` の末尾を `%/*` で取り除いた参照を渡した場合に、1 段上のディレクトリを起点にして解決することを確認します。')
       const text = `${SYNTHETIC_LIBRARY_HEADER}source "\${SCRIPT_DIR%/*}/core/git-no-verify-check.sh"\n`
       const references = extractReferences(text, adaptersDirectory, pluginRoot)
       expect(references.map(reference => reference.path)).toEqual([
@@ -293,12 +318,14 @@ describe('hooks のスクリプトの参照先', () => {
       expect(missingReferencePaths(references)).toEqual([])
     })
 
-    it('%/* 以外の % 修飾は解決せずエラーにする', () => {
+    it('%/* 以外の % 修飾は解決せずエラーにする', async () => {
+      await explains('抽出器の自己テストです。`%/*` 以外の `%` による修飾を使った参照を渡した場合に、解決せずに例外が発生することを確認します。')
       const text = `${SYNTHETIC_LIBRARY_HEADER}source "\${SCRIPT_DIR%/lib/*}/core/git-no-verify-check.sh"\n`
       expect(() => extractReferences(text, adaptersDirectory, pluginRoot)).toThrow('SCRIPT_DIR%/lib/*')
     })
 
-    it('config-dispatcher.sh を source していれば ${PLUGIN_HOOKS} 起点を解決する', () => {
+    it('config-dispatcher.sh を source していれば ${PLUGIN_HOOKS} 起点を解決する', async () => {
+      await explains('抽出器の自己テストです。`config-dispatcher.sh` を読み込むスクリプトでは、`PLUGIN_HOOKS` を起点とする参照が、`hooks` ディレクトリのパスに解決されることを確認します。')
       const text = `${SYNTHETIC_LIBRARY_HEADER}CORE_DIR="\${PLUGIN_HOOKS}/lib/core"\n"$CORE_DIR/git-no-verify-check.sh"\n`
       const references = extractReferences(text, adaptersDirectory, pluginRoot)
       expect(references.map(reference => reference.path)).toEqual([
@@ -308,12 +335,14 @@ describe('hooks のスクリプトの参照先', () => {
       expect(missingReferencePaths(references)).toEqual([])
     })
 
-    it('config-dispatcher.sh を source しないスクリプトの ${PLUGIN_HOOKS} は未解決にする', () => {
+    it('config-dispatcher.sh を source しないスクリプトの ${PLUGIN_HOOKS} は未解決にする', async () => {
+      await explains('抽出器の自己テストです。`config-dispatcher.sh` を読み込まないスクリプトが `PLUGIN_HOOKS` を使った場合に、未解決として例外が発生することを確認します。')
       const text = `${SYNTHETIC_HEADER}"\${PLUGIN_HOOKS}/lib/core/git-no-verify-check.sh"\n`
       expect(() => extractReferences(text, hooksDirectory, pluginRoot)).toThrow('PLUGIN_HOOKS')
     })
 
-    it('末尾に config-dispatcher.sh を含む別名ファイルの source では seed しない', () => {
+    it('末尾に config-dispatcher.sh を含む別名ファイルの source では seed しない', async () => {
+      await explains('抽出器の自己テストです。`my-config-dispatcher.sh` のように、末尾だけが同じ別名のファイルを読み込んでも、`PLUGIN_HOOKS` を設定せず、参照で例外が発生することを確認します。')
       const text
         = '#!/bin/bash\n'
           + 'SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"\n'
@@ -323,7 +352,8 @@ describe('hooks のスクリプトの参照先', () => {
       expect(() => extractReferences(text, adaptersDirectory, pluginRoot)).toThrow('PLUGIN_HOOKS')
     })
 
-    it('崩れた symlink への参照を実在ありと判定しない', () => {
+    it('崩れた symlink への参照を実在ありと判定しない', async () => {
+      await explains('抽出器の自己テストです。リンク先が存在しない symlink を参照するコードを渡した場合に、その参照を実在するものとして扱わず、存在しないものとして検出することを確認します。')
       const hookCase = createHookCase()
       const coreDirectory = path.join(hookCase.temporaryPath, 'hooks', 'lib', 'core')
       mkdirSync(coreDirectory, { recursive: true })
@@ -335,18 +365,21 @@ describe('hooks のスクリプトの参照先', () => {
   })
 
   describe('テンプレ参照抽出器の自己テスト', () => {
-    it('実在しないテンプレへの参照を検出する', () => {
+    it('実在しないテンプレへの参照を検出する', async () => {
+      await explains('テンプレートの参照の抽出器の自己テストです。存在しないテンプレートを指す参照を渡した場合に、その参照が実在しないものとして検出されることを確認します。')
       const text = `${SYNTHETIC_LIBRARY_HEADER}TEMPLATE="\${PLUGIN_HOOKS}/templates/does-not-exist.md"\n`
       const references = extractTemplateReferences(text, syntheticLibraryDirectory, pluginRoot)
       expect(missingReferencePaths(references)).toEqual([path.join(hooksDirectory, 'templates', 'does-not-exist.md')])
     })
 
-    it('config-dispatcher.sh を source しないスクリプトのテンプレ参照は未解決にする', () => {
+    it('config-dispatcher.sh を source しないスクリプトのテンプレ参照は未解決にする', async () => {
+      await explains('テンプレートの参照の抽出器の自己テストです。`config-dispatcher.sh` を読み込まないスクリプトが `PLUGIN_HOOKS` を使った場合に、未解決として例外が発生することを確認します。')
       const text = `${SYNTHETIC_HEADER}TEMPLATE="\${PLUGIN_HOOKS}/templates/reminder.md"\n`
       expect(() => extractTemplateReferences(text, hooksDirectory, pluginRoot)).toThrow('PLUGIN_HOOKS')
     })
 
-    it('コメント内のテンプレ参照は抽出と会計のどちらでも 0 件になる', () => {
+    it('コメント内のテンプレ参照は抽出と会計のどちらでも 0 件になる', async () => {
+      await explains('テンプレートの参照の抽出器の自己テストです。コメントの中にテンプレートの名前がある場合に、抽出と会計のどちらでも 0 件になることを確認します。')
       const text
         = `${SYNTHETIC_LIBRARY_HEADER}# \${PLUGIN_HOOKS}/templates/reminder.md を読み込む\n`
           + 'MODE="quick"  # ${PLUGIN_HOOKS}/templates/reminder-quick.md を使う\n'
@@ -354,13 +387,15 @@ describe('hooks のスクリプトの参照先', () => {
       expect(templateTokenAccounting(text, references)).toEqual([[], []])
     })
 
-    it('.md で始まる別拡張子（x.mdx）は偽のテンプレトークンにしない', () => {
+    it('.md で始まる別拡張子（x.mdx）は偽のテンプレトークンにしない', async () => {
+      await explains('テンプレートの参照の抽出器の自己テストです。`reminder.mdx` のように `.md` で始まる別の拡張子を、テンプレートのトークンとして誤って抽出しないことを確認します。')
       const text = `${SYNTHETIC_LIBRARY_HEADER}TEMPLATE="\${PLUGIN_HOOKS}/templates/reminder.mdx"\n`
       const references = extractTemplateReferences(text, syntheticLibraryDirectory, pluginRoot)
       expect(templateTokenAccounting(text, references)).toEqual([[], []])
     })
 
-    it('templates/ セグメントを含まない .md は抽出と会計のどちらの対象にもならない', () => {
+    it('templates/ セグメントを含まない .md は抽出と会計のどちらの対象にもならない', async () => {
+      await explains('テンプレートの参照の抽出器の自己テストです。`templates/` を含まない `.md` のパスは、抽出と会計のどちらの対象にもならないことを確認します。')
       const text
         = `${SYNTHETIC_LIBRARY_HEADER}PLAN_FILE="$HOME/.claude/plans/\${SLUG}.md"\n`
           + 'echo "CLAUDE.mdのルール"\n'
@@ -368,7 +403,8 @@ describe('hooks のスクリプトの参照先', () => {
       expect(templateTokenAccounting(text, references)).toEqual([[], []])
     })
 
-    it('hooks/templates/x.md のような深い相対パスも対象に入る', () => {
+    it('hooks/templates/x.md のような深い相対パスも対象に入る', async () => {
+      await explains('テンプレートの参照の抽出器の自己テストです。`hooks/templates/` を含む深い相対パスの参照も、対象として抽出され、実在するものとして扱われることを確認します。')
       const text = `${SYNTHETIC_HEADER}REMIND="\${CLAUDE_PLUGIN_ROOT}/hooks/templates/exit-plan-comment-update.md"\n`
       const references = extractTemplateReferences(text, hooksDirectory, pluginRoot)
       expect(references.map(reference => reference.path)).toEqual([path.join(hooksDirectory, 'templates', 'exit-plan-comment-update.md')])
