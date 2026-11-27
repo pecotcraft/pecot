@@ -401,6 +401,8 @@ describe('w-pr の手順', () => {
     expect(body).toContain('引数が `resume` なら')
     expect(body).toContain('[Step 4](#step-4-ci-を待って直す) の出力を読むところから続ける')
     expect(body).toContain('[Step 6](#step-6-マージを待ち受けて片付ける) の出力の表から続ける')
+    expect(body).toContain('- CI 待ちの `wait-pr.cjs ci` なら、')
+    expect(body).toContain('- マージ待ちの `wait-pr.cjs merge` なら、')
   })
 
   it('Step 4 と Step 5 は、途中で終えずに Step 6 の待ち受けへつなぐ', async () => {
