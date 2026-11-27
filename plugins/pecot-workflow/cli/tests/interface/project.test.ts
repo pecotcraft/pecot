@@ -291,6 +291,14 @@ describe('project_search', () => {
     expect(result.stdout).toBe(`=== Projects of acme (${DEFAULT_HOST}) ===\n\n#    Title                                    URL\n${'-'.repeat(80)}\n1    board${' '.repeat(35)} ${URL1}\n`)
   })
 
+  it('番号・タイトル・URL を持たないプロジェクトは、タイトルを (untitled) にして出し、フィールドを読まない', async () => {
+    await explains('`project_search` の表示のテストです。番号・タイトル・URL を持たないプロジェクトを含む場合に、番号を `?`、タイトルを `(untitled)` にして出力し、そのプロジェクトのフィールドを読まないことを確認します。')
+    const result = await search([{ id: 'PVT_9' }], [])
+    expect(result.code).toBe(0)
+    expectClean(result)
+    expect(rowsOf(result)).toEqual([`?    (untitled)${' '.repeat(30)} `])
+  })
+
   it('タイトルが 38 文字を超えると、35 文字に切り詰めて末尾に ... を付ける', async (context) => {
     await verifies(context, 'PW-PROJECT-SEARCH-02')
     await explains('`project_search` のタイトルの省略のテストです。タイトルが 38 文字を超える場合は、35 文字に切り詰めて末尾に `...` を付けることを確認します。')
@@ -733,6 +741,13 @@ describe('project_init', () => {
       expect(result.code).toBe(0)
       expectClean(result)
       expect(requestLabels(result.requests)).toContain(`POST ${USER_VIEWS_PATH}`)
+    })
+
+    it('作ったビューの応答に html_url が無いと、url を含めずに created を true にする', async () => {
+      await explains('`project_init` の `Lanes` のビューのテストです。作成したビューの応答に `html_url` が無い場合に、`view` に `url` を含めず、`created` を `true` にすることを確認します。')
+      const result = await tool('project_init', laneArguments, [...laneBoard('cli', 'skills'), viewTarget(), createView(201, { id: 2, number: 2 }), ...syncRules()], { config: false })
+      expect(result.isError).toBe(false)
+      expect(result.structured['view']).toEqual({ created: true, name: 'Lanes' })
     })
 
     it('組織のボードでは、組織の名前のパスにビューを作る', async (context) => {

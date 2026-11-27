@@ -896,6 +896,18 @@ describe('session_show', () => {
       expect(outcome.structured['warnings']).toEqual([expect.stringMatching(/^cannot infer the stacked base: blocked by #3/u)])
     })
 
+    it('記録が無く、依存関係に対応しない GHES では、判定できないので stack と warnings を入れない', async () => {
+      await explains('MCP の `session_show` で、記録がなく、Issue の依存関係に対応しない GHES の場合のテストです。着手の基点を判定できないので、`stack` と `warnings` を含めないことを確認します。')
+      const repository = prepareLower(true)
+      const unsupported: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }
+      await startGithub([issueResponse({ number: 7, title: 't' }), unsupported, stackedAbove()])
+
+      const outcome = await showTool(repository)
+
+      expect(outcome.structured).not.toHaveProperty('stack')
+      expect(outcome.structured).not.toHaveProperty('warnings')
+    })
+
     it('記録が無く、判定は stackable でも親ブランチの変更をブランチに持たないと、stack を入れない', async (context) => {
       await verifies(context, 'PW-SESSION-SHOW-37')
       await explains('MCP の `session_show` で、記録がなく、判定は `stackable` でもブランチが親ブランチの変更を持たない場合のテストです。`stack` を含めないことを確認します。')

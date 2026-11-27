@@ -100,6 +100,19 @@ describe('pr_merge', () => {
     expect(github.requests().find(request => labelOf(request) === PUT)).toMatchObject({ body: { sha: 'sha-11', merge_method: 'squash' } })
   })
 
+  it('PR が存在しないと、PR not found の error の行を出し、何もマージせずに終了コード 1 で終わる', async () => {
+    await explains('存在しない PR を指定する、`pr_merge` のテストです。GitHub が PR を返さない場合に、`PR not found` の `error` の行を出力し、マージを要求せずに終了コード 1 で終了することを確認します。')
+    prepareProject()
+    // eslint-disable-next-line unicorn/no-null -- GraphQL の応答の null を確かめる
+    const missing: ResponseRule = { match: { operation: 'GetPullRequestForMerge' }, respond: { status: 200, body: { data: { repository: { pullRequest: null } } } }, times: 1 }
+    const github = await startGithub([missing])
+
+    const outcome = await merge({ pr_ref: 'acme/demo/11' })
+
+    expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: PR not found: acme/demo/11\n' })
+    expect(github.requests().map(request => labelOf(request))).not.toContain(PUT)
+  })
+
   it('スタックの一番下の PR をマージすると、スタックの番号と PR の数を添えた merged の行を出す', async () => {
     await explains('スタックの一番下の PR をマージする、`pr_merge` のテストです。マージが成功した場合は、スタックの番号と PR の数を添えた `merged` の行を出力することを確認します。')
     prepareProject()

@@ -47,6 +47,17 @@ describe('issue_unblock', () => {
     expect(writes(github)).toEqual(['RemoveBlockedBy', 'PATCH /repos/acme/demo/issues/7', 'UpdateProjectItemField'])
   })
 
+  it('前提の一覧を読み切れず、外す前提が見つからないと、何も書かずに終了コード 1 で止める', async () => {
+    await explains('前提を外す、`issue_unblock` の読み取りのテストです。前提の一部しか読めず、読めた分に `by` の前提が無い場合は、何も書かず、読めた件数を添えて終了コード 1 で終わることを確認します。')
+    prepareDependencyProject()
+    const github = await startGithub([bothLinked(), targetReferences(7, WITH_SECTION, [{ number: 6 }], 3)])
+
+    const result = await unblock({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
+
+    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: could not read blocked-by of #7: 1 of 3 issues were read\n' })
+    expect(writes(github)).toEqual([])
+  })
+
   it('選択肢の ID が古くて列を書けないと、前提を外したまま warning と project_activate の案内を出し、終了コード 0 で終わる', async () => {
     await explains('Status の選択肢の ID が古くなっている場合の、`issue_unblock` のテストです。列を書き込めないときに、前提は外したまま、`warning` と `project_activate` の案内を出力して終了コード 0 で終了することを確認します。')
     prepareDependencyProject()

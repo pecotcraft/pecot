@@ -49,4 +49,24 @@ describe('normalizeInput', () => {
     const schema = { type: 'object', properties: { n: { type: ['string', 'null'] } }, required: [] }
     expect(() => normalizeInput(schema, 'issue edit', false)).toThrow('issue edit: n: unsupported type ["string","null"]')
   })
+
+  it('スキーマの形が想定と違う部分は、空のオブジェクトか元の値のまま扱い、例外を送出しない', async () => {
+    await explains('入力の JSON Schema を正規化する `normalizeInput` のテストです。オブジェクトでない引数・枝・`properties` や、文字列だけでない `required` を渡した場合に、空のオブジェクトに直すか元の値のまま残し、例外を送出しないことを確認します。')
+    const schema = {
+      type: 'object',
+      properties: { z: { type: 'object', properties: { b: 1 }, anyOf: [1], required: [1, 'x'] }, a: 5 },
+      required: 'bad',
+    }
+    expect(normalizeInput(schema, 'issue edit', false)).toEqual({
+      type: 'object',
+      properties: { a: {}, z: { type: 'object', anyOf: [{}], properties: { b: {} }, required: [1, 'x'] } },
+      required: [],
+      additionalProperties: false,
+    })
+  })
+
+  it('properties が無いスキーマは、引数の無い入力として扱う', async () => {
+    await explains('入力の JSON Schema を正規化する `normalizeInput` のテストです。`properties` を持たないスキーマの場合に、引数も必須の名前も空の入力にすることを確認します。')
+    expect(normalizeInput({ type: 'object' }, 'issue edit', false)).toEqual({ type: 'object', properties: {}, required: [], additionalProperties: false })
+  })
 })

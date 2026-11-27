@@ -155,6 +155,17 @@ describe('workflow_doctor', () => {
     expect(itemsOf(result)).not.toContainEqual(expect.objectContaining({ state: 'missing' }))
   })
 
+  it.for([
+    { name: '500 を返す', respond: { status: 500, body: { message: 'Server Error' } }, detail: 'GitHub API error: 500' },
+    { name: '接続を切る', respond: { status: 200, disconnect: true }, detail: 'other side closed' },
+  ])('リポジトリの情報を読むとき GitHub が $name と、github-api の失敗を返す', async ({ respond, detail }) => {
+    await explains('リポジトリの設定を読めない場合のテストです。リポジトリの情報の取得で GitHub が 500 を返す、または接続を切った場合に、`github-api` の失敗が返ることを確認します。')
+    const failing = { match: { method: 'GET', path: REPO }, respond, times: 1 }
+    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'review' }, files: INSTALLED, config: false, github: [failing] })
+    expect(result.isError).toBe(true)
+    expect(result.structured).toEqual({ kind: 'github-api', detail: `could not read the settings of acme/demo: ${detail}` })
+  })
+
   it('一部の一覧を取得できなくても、取得できた一覧に名前があれば ok にする', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-08')
     await explains('一部の一覧を取得できない場合のテストです。Organization の secret の一覧が 403 でも、取得できたリポジトリの secret に名前があれば、その項目が `ok` になることを確認します。')

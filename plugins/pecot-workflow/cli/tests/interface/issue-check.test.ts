@@ -275,6 +275,18 @@ describe('issue_check', () => {
       })
     })
 
+    it('親 Epic を持たないファイルは、order を省いて plan の行に返す', async () => {
+      await explains('MCP ツール `issue_check` の結果のテストです。親 Epic を持たないファイルを渡した場合に、番号が付かないので、`plan` の行から `order` を省くことを確認します。')
+      const project = setUpIssueProject()
+      writeTree(project.root, { 'solo.md': taskFile('単独') })
+      await startGithub([linkedRepositories()])
+
+      const outcome = await checkTool({ files: inRoot(project.root, 'solo.md') })
+
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured['plan']).toEqual([{ file: 'solo', blockedBy: [], approach: 'alone' }])
+    })
+
     it('files が空なら、invalid-input を返す', async () => {
       await explains('MCP ツール `issue_check` の引数の検証のテストです。`files` が空の場合に、`kind` が `invalid-input` の失敗を返すことを確認します。')
       setUpIssueProject()

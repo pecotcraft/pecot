@@ -258,6 +258,17 @@ describe('issue_block', () => {
     expect(github.requests()).toEqual([])
   })
 
+  it('reason が複数行のとき、要求を送らずに終了コード 2 で止める', async () => {
+    await explains('`issue_block` の `reason` の検証のテストです。`reason` に改行を含めた場合に、1 行にするよう案内し、要求は送らず終了コード 2 で終わることを確認します。')
+    prepareDependencyProject()
+    const github = await startGithub([])
+
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', wait: 'merge', reason: '1 行目\n2 行目' })
+
+    expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: reason must be a single line\n' })
+    expect(github.requests()).toEqual([])
+  })
+
   it('前提が 50 件あるとき、新しい前提を付けずに終了コード 1 で止める', async () => {
     await explains('`issue_block` の前提の上限のテストです。前提が既に 50 件ある場合に、新しい前提は付けず、終了コード 1 で終わることを確認します。')
     prepareDependencyProject()

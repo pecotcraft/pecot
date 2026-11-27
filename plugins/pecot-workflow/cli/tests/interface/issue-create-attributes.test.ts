@@ -227,6 +227,17 @@ describe('issue_create', () => {
       expect(outcome).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
     })
 
+    it('attributes の labels を渡すと、起票の要求の labels に入れて Issue を作る', async () => {
+      await explains('MCP ツール `issue_create` の `attributes` のテストです。`labels` を渡した場合に、起票の要求の `labels` へ入れて Issue を作ることを確認します。')
+      setUpIssueProject()
+      const github = await startGithub([linkedRepositories(), ...definitionRules(), created({ labels: [{ name: 'bug' }] }), addedToProject(), updatedFields(1)])
+
+      const outcome = await createTool({ ...DIRECT, attributes: [{ name: 'labels', value: ['bug'] }] })
+
+      expect(outcome.isError).toBe(false)
+      expect(issuePosts(github)).toMatchObject([{ body: { labels: ['bug'] } }])
+    })
+
     it('value が null の機能は、書き込まずに除く', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-86')
       await explains('MCP ツール `issue_create` の `attributes` のテストです。`value` が `null` の機能を渡した場合に、書き込まずに除き、失敗にも入れないことを確認します。')

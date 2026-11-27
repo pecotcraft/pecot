@@ -123,10 +123,11 @@ describe('workflow_install', () => {
 
   it.for([
     { name: '版が古い', installed: OLD, line: 'workflow template review is outdated', call: 'workflow_install with name: "review", force: true' },
+    { name: '版の印が無い', installed: 'name: pecot-review\n', line: 'outdated (installed unknown, bundled', call: 'workflow_install with name: "review", force: true' },
     { name: 'ファイルが存在しない', installed: undefined, line: `${DESTINATION} is missing`, call: 'workflow_install with name: "review"' },
   ])('check で $name とき、更新の呼び方を detail に含めて not-ready の失敗を返す', async (row, context) => {
     await verifies(context, 'PW-WORKFLOW-INSTALL-08')
-    await explains('`check` を指定して呼び出し、版が古い場合と、ファイルが存在しない場合のテストです。ファイルを書き換えず、更新の呼び出し方を `detail` に含めた `not-ready` の失敗が返ることを確認します。')
+    await explains('`check` を指定して呼び出した場合のテストです。更新の要る 3 つの状態（古い版・版の印なし・ファイルなし）で、ファイルは書き換えず、更新の呼び出し方を含む `detail` と `not-ready` の失敗を返すことを確認します。')
     const result = await install({ check: true }, row.installed === undefined ? NO_FILES : { [DESTINATION]: row.installed })
     expect(result.isError).toBe(true)
     expect(result.structured).toMatchObject({ kind: 'not-ready', path: DESTINATION, written: false, upToDate: false })
@@ -270,6 +271,18 @@ describe('workflow_install', () => {
     const result = await runTool({ tool: 'workflow_install', arguments: { name: 'review' }, config: false, github: [missing], environment: GITHUB_COM })
     expect(result.isError).toBe(true)
     expect(result.structured).toMatchObject({ kind: 'github-not-found', detail: `tag ${TAG} is not found in pecotcraft/pecot` })
+    expect(result.read(DESTINATION)).toBeUndefined()
+  })
+
+  it.for([
+    { name: '500 を返す', respond: { status: 500, body: { message: 'Server Error' } }, detail: 'GitHub API error: 500' },
+    { name: '接続を切る', respond: { status: 200, disconnect: true }, detail: 'other side closed' },
+  ])('タグの読み取りで GitHub が $name と、何も書かずに github-api の失敗を返す', async ({ respond, detail }) => {
+    await explains('雛形の指すタグを読めない場合のテストです。GitHub が 500 を返す、または接続を切った場合に、ファイルを書き出さず、読めなかったタグを含む `github-api` の失敗が返ることを確認します。')
+    const failing = { match: { method: 'GET', path: TAG_PATH }, respond, times: 1 }
+    const result = await runTool({ tool: 'workflow_install', arguments: { name: 'review' }, config: false, github: [failing], environment: GITHUB_COM })
+    expect(result.isError).toBe(true)
+    expect(result.structured).toEqual({ kind: 'github-api', detail: `could not read tag ${TAG} of pecotcraft/pecot: ${detail}` })
     expect(result.read(DESTINATION)).toBeUndefined()
   })
 

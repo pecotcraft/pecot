@@ -226,6 +226,30 @@ describe('issue_edit', () => {
       expect(JSON.stringify(outcome.structured['errors'])).toContain('board_move')
     })
 
+    it('attributes が空だと、GitHub へ何も要求せず、changed を空にして成功を返す', async () => {
+      await explains('MCP ツール `issue_edit` の `attributes` のテストです。`attributes` が空の場合に、GitHub へ何も要求せず、`changed` を空にして成功を返すことを確認します。')
+      setUpProject()
+      const github = await startGithub([])
+
+      const outcome = await edit([])
+
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toStrictEqual({ changed: [], errors: [], failed: [] })
+      expect(github.requests()).toEqual([])
+    })
+
+    it('Issue が設定のボードに存在しなくても、Issue 自体の機能だけを渡すと、ボードへ書かずに書き込む', async () => {
+      await explains('MCP ツール `issue_edit` のボードの外の Issue のテストです。設定のボードが Issue を持たない場合に、Issue 自体の機能だけを渡すと、ボードへ何も書かずに `changed` へ入れることを確認します。')
+      setUpProject()
+      const github = await startGithub([...readRules({ isOnBoard: false }), assignable('octocat'), patched({ assignees: [{ login: 'octocat' }] })])
+
+      const outcome = await edit([{ name: 'assignees', value: ['octocat'] }])
+
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured['changed']).toStrictEqual([{ name: 'assignees', source: 'issue', before: null, after: ['octocat'] }])
+      expect(writesOf(github)).toMatchObject([{ type: 'rest', method: 'PATCH' }])
+    })
+
     it('Issue が設定のボードに存在しないのにボードのフィールドを渡すと、not_on_board にし、board_add を使うよう hint に入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-EDIT-10')
       await explains('MCP ツール `issue_edit` のボードのフィールドのテストです。設定のボードが Issue を持たない場合に、`not_on_board` を返し、`board_add` の使用を `hint` で案内することを確認します。')

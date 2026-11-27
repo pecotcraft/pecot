@@ -47,12 +47,16 @@ interface ItemExtra {
   */
   readonly others?: readonly string[]
   readonly lane?: string
+  /**
+  親の Issue。前提の件数（blockedBy）と一緒に指定したときだけ載せる
+  */
+  readonly parent?: number
 }
 
 // 一覧の応答に載る、着手の判定の軽い入力
 function item(id: string, number: number, workflow: string, extra: ItemExtra = {}): Json {
   const { repository = 'demo' } = extra
-  const progress = extra.blockedBy === undefined ? {} : { issueType: null, subIssues: { totalCount: 0 }, parent: null, blockedBy: { totalCount: extra.blockedBy } }
+  const progress = extra.blockedBy === undefined ? {} : { issueType: null, subIssues: { totalCount: 0 }, parent: extra.parent === undefined ? null : { number: extra.parent, repository: { owner: { login: 'acme' }, name: repository } }, blockedBy: { totalCount: extra.blockedBy } }
   return {
     id,
     updatedAt: extra.updatedAt ?? '2026-01-02T03:04:05Z',
@@ -280,6 +284,23 @@ describe('board_show', () => {
         { name: 'gamma', count: 0, startable: 0 },
         { name: null, count: 1, startable: 0 },
       ])
+    })
+
+    it('前提の無い Ready の Issue が親 Issue を持つと、前提を問い合わせずに startable と判定する', async () => {
+      await explains('MCP ツール `board_show` の `readiness` のテストです。前提の件数が 0 で親 Issue を持つ Ready の Issue を渡した場合に、前提の問い合わせなしで `startable` と判定することを確認します。')
+      const result = await tool('board_show', {}, [board(item('PVTI_1', 1, 'Ready', { blockedBy: 0, parent: 3 })), noAlerts()])
+      const items = asJson(result.structured['board'])['items']
+      expect(items).toMatchObject([{ id: 'PVTI_1', readiness: { text: 'startable' } }])
+      expect(result.requests.map(request => request.type === 'graphql' ? request.operation : request.method)).not.toContain('GetIssuePrerequisites')
+    })
+
+    it('repo が owner/repo の形でないと、GitHub へ何も要求せず invalid-input の失敗を返す', async () => {
+      await explains('`board_show` の `repo` を検証するテストです。`repo` が `owner/repo` の形でない場合に、GitHub へ何も要求せず、`invalid-input` の失敗を返すことを確認します。')
+      const result = await tool('board_show', { repo: 'invalid-format' }, [])
+      expect(result.isError).toBe(true)
+      expect(result.structured['kind']).toBe('invalid-input')
+      expect(result.structured['detail']).toContain('must be in')
+      expect(result.requests).toEqual([])
     })
   })
 })

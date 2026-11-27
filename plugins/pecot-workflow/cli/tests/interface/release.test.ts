@@ -667,6 +667,14 @@ describe('release_create', () => {
     expect(result.requests).toMatchObject([{ type: 'rest', method: 'POST', path: '/repos/acme/demo/releases', body: { tag_name: 'v0.2.0', name: 'v0.2.0', ...notes } }])
   })
 
+  it('応答に html_url が無いと、URL なしで成功を返す', async () => {
+    await explains('`release_create` の結果のテストです。GitHub の応答に `html_url` が無い場合に、URL を標準出力に出力せず、終了コード 0 で終わることを確認します。')
+    const created = rest('POST', '/repos/acme/demo/releases', 201, { id: 1, tag_name: 'v0.2.0', name: 'v0.2.0' })
+    const result = await runCreate(project(), { version: '0.2.0' }, [created])
+    expect(result.code).toBe(0)
+    expect(result.stdout).not.toContain('http')
+  })
+
   it('リリースを作ると、release_branch の先頭にタグを作る', async (context) => {
     await verifies(context, 'PW-RELEASE-CREATE-02')
     await explains('`release_create` のタグの作成先のテストです。リリースを作成した場合は、`release_branch` の先頭にタグを作成することを確認します。')
