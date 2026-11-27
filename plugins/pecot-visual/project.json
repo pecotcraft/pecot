@@ -269,6 +269,7 @@
         "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{workspaceRoot}/.githooks/scripts/test_report/allure-result.sh",
+        "{workspaceRoot}/.githooks/scripts/test_report/bats/**/*",
         "{projectRoot}/skills/v-drawio/**/*",
         "{projectRoot}/skills/v-evidence/**/*",
         "{projectRoot}/skills/v-slidev/**/*",
@@ -280,7 +281,7 @@
       "dependsOn": ["install", "check-pm-guard"],
       "outputs": ["{projectRoot}/test-results/test-skills/allure-results"],
       "metadata": {
-        "description": "SKILL.md / agents / references の DESIGN.md に現れる references/ パスの実在を、静的に確認する。agents/ と scripts/ci/tests/ も inputs に入れる。後者は run-tests.sh --scope=skills が実行する *.test.sh を含む。"
+        "description": "SKILL.md / agents / references の DESIGN.md に現れる references/ パスの実在を、静的に確認する。agents/ と scripts/ci/tests/ も inputs に入れる。後者は run-tests.sh --scope=skills が実行する *.bats を含む。"
       },
       "options": {
         "command": "rm -rf test-results/test-skills/allure-results && PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=skills",

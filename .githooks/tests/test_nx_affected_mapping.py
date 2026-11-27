@@ -324,10 +324,10 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
                     "pecot-workflow:test-skills",
                 },
             ),
-            # scripts/ci/tests の *.test.sh を実行するのは、run-tests.sh --scope=skills だけとなる (#1225)。
+            # scripts/ci/tests の *.bats を実行するのは、run-tests.sh --scope=skills だけとなる (#1225)。
             # pecotvPluginTestGlobals（pecot-visual 全レーン共有）に置くと、1 ファイルの変更で全レーンが再実行される。
             (
-                "plugins/pecot-visual/scripts/ci/tests/references-path-existence.test.sh",
+                "plugins/pecot-visual/scripts/ci/tests/references-path-existence.bats",
                 {"pecot-visual:test-skills"},
             ),
             # fake-aws を使うのは pecot-tools の cli のテストだけ (#1225)。
@@ -473,7 +473,7 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             # bats のテストを動かす仕組み。bats に移したレーンだけが読む (#844)。
             (
                 ".githooks/scripts/test_report/bats/run.sh",
-                {"githooks:test-ci", "pecot-visual:test-compare"},
+                {"githooks:test-ci", "pecot-visual:test-compare", "pecot-visual:test-skills"},
             ),
         ]
     ),
