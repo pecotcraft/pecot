@@ -16,6 +16,8 @@ useIsolatedEnvironment()
 
 const REPO = '/repos/acme/demo'
 const TEMPLATES = path.join(import.meta.dirname, '../../../templates')
+// 雛形の版はリリースで上がるので、actions/package.json の版から求める
+const RELEASE_TAG = `pecot-actions/v${/"version": "([^"]+)"/u.exec(readFileSync(path.join(import.meta.dirname, '../../../package.json'), 'utf8'))?.[1] ?? ''}`
 const absent = (name: string): Record<string, unknown> => ({ path: `.github/workflows/${name}`, present: false })
 
 const settingRules = (secrets: readonly string[], variables: readonly string[]): ResponseRule[] => [
@@ -58,7 +60,7 @@ describe('github ops', () => {
           template: 'board-sync',
           version: expect.any(Number),
           has_pecot_action_step: true,
-          pecot_actions: [{ action: 'session-finish', tag: 'pecot-actions/v0.0.0' }, { action: 'board-sync', tag: 'pecot-actions/v0.0.0' }],
+          pecot_actions: [{ action: 'session-finish', tag: RELEASE_TAG }, { action: 'board-sync', tag: RELEASE_TAG }],
           npx_lines: [],
         },
         absent('pecot-review.yml'),
