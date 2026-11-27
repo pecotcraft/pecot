@@ -372,13 +372,222 @@ def test_explains_rejects_bad_value(tmp_path: Path, argument: str) -> None:
         assert "空でなく改行の無い説明を 1 つ渡してください" in result["statusDetails"]["trace"]
 
 
-@allure.title("実際の Allure で結果を読み込むと、説明・状態・期待値と実際の値がレポートに含まれる")
-@pytest.mark.skipif(shutil.which("pnpm") is None, reason="pnpm が要る")
-def test_real_allure_reads_the_results(tmp_path: Path) -> None:
-    """bats のテストの結果を、実際の Allure 3 で `allure generate` して読み込んだ場合のテストです。通る `@test` と失敗する `@test` の状態・説明・期待値と実際の値、`framework` のラベルがレポートに含まれることを確認します。"""
+def _attachments(directory: Path, result: dict[str, Any]) -> list[tuple[str, str, str]]:
+    """結果の attachments を、名前・型・添付のファイルの中身の組にする。"""
+    with allure.step("結果の添付と、添付のファイルの中身を読む"):
+        return [
+            (item["name"], item["type"], read_output(directory / item["source"]))
+            for item in result.get("attachments", [])
+        ]
+
+
+_MINIMUM = "bats_require_minimum_version 1.5.0\n\n"
+
+
+@allure.title(
+    "run_attached で動かすと、コマンドと終了コードを名前にした stdout と stderr を添付し、run と同じ値を残す"
+)
+def test_run_attached_attaches_output(tmp_path: Path) -> None:
+    """`run_attached` でコマンドを動かす `@test` のテストです。vitest の `attachOutput` と同じ名前・型で空でない stdout・stderr が添付され、`$status`・`$output` が `run` の値に一致することを確認します。"""
+    test = _write_test(
+        tmp_path / "suite",
+        _case(
+            "添付する",
+            'explains "出力を添付するテストです。"',
+            "run_attached bash -c 'echo out; echo err >&2; exit 3'",
+            'assert_equal "$status" 3',
+            "assert_output \"$(printf 'out\\nerr')\"",
+            "run_attached --separate-stderr bash -c 'echo out; echo err >&2'",
+            'assert_equal "$stderr" err',
+            "run_attached true",
+        ),
+        prelude=_MINIMUM,
+    )
+    done = _run(tmp_path, test, results=tmp_path / "results")
+    [result] = _results(tmp_path / "results").values()
+    attached = _attachments(tmp_path / "results", result)
+
+    with allure.step("状態と、添付の名前・型・中身を比べる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        merged = "bash -c echo out; echo err >&2; exit 3（終了コード 3）"
+        separate = "bash -c echo out; echo err >&2（終了コード 0）"
+        assert attached == [
+            (f"{merged} stdout", "text/plain", "out\nerr"),
+            (f"{separate} stdout", "text/plain", "out"),
+            (f"{separate} stderr", "text/plain", "err"),
+            ("true（終了コード 0） stdout", "text/plain", ""),
+        ]
+
+
+@allure.title("判定か run の終了コードで落ちた @test にも、run_attached の出力を添付する")
+def test_failed_test_has_attachments(tmp_path: Path) -> None:
+    """`run_attached` の後の判定で落ちる `@test` と、`run_attached -1` が終了コードの違いで落ちる `@test` のテストです。どちらも failed になり、動かしたコマンドの出力が添付されることを確認します。"""
+    test = _write_test(
+        tmp_path / "suite",
+        _case(
+            "判定で落ちる",
+            'explains "判定で落ちるテストです。"',
+            "run_attached echo hi",
+            "assert_output bye",
+        ),
+        _case(
+            "終了コードで落ちる",
+            'explains "終了コードで落ちるテストです。"',
+            "run_attached -1 echo hi",
+        ),
+        prelude=_MINIMUM,
+    )
+    _run(tmp_path, test, results=tmp_path / "results")
+    results = _results(tmp_path / "results")
+
+    with allure.step("それぞれの状態と添付を比べる"):
+        for name in ("判定で落ちる", "終了コードで落ちる"):
+            assert results[name]["status"] == "failed"
+            assert _attachments(tmp_path / "results", results[name]) == [
+                ("echo hi（終了コード 0） stdout", "text/plain", "hi")
+            ]
+
+
+@allure.title(
+    "read_output で読むと、中身を出してファイル名で添付し、同じファイルは 1 回だけ添付する"
+)
+def test_read_output_attaches_file_once(tmp_path: Path) -> None:
+    """`run read_output` で判定に使うファイルを読む `@test` のテストです。`.md` と `.json` はその型で、ほかの拡張子は `text/plain` で添付され、同じファイルを 2 回読んでも添付が 1 つであることを確認します。"""
+    test = _write_test(
+        tmp_path / "suite",
+        _case(
+            "読む",
+            'explains "ファイルを読むテストです。"',
+            "printf '# 見出し\\n' > \"$BATS_TEST_TMPDIR/a.md\"",
+            "printf '{}' > \"$BATS_TEST_TMPDIR/b.json\"",
+            "printf 'log' > \"$BATS_TEST_TMPDIR/c.log\"",
+            'run read_output "$BATS_TEST_TMPDIR/a.md"',
+            'assert_output "# 見出し"',
+            'run read_output "$BATS_TEST_TMPDIR/a.md"',
+            'assert_equal "$(read_output "$BATS_TEST_TMPDIR/b.json")" "{}"',
+            'run read_output "$BATS_TEST_TMPDIR/c.log"',
+        ),
+    )
+    done = _run(tmp_path, test, results=tmp_path / "results")
+    [result] = _results(tmp_path / "results").values()
+
+    with allure.step("状態と、添付の名前・型・中身を比べる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert _attachments(tmp_path / "results", result) == [
+            ("a.md", "text/markdown", "# 見出し\n"),
+            ("b.json", "application/json", "{}"),
+            ("c.log", "text/plain", "log"),
+        ]
+
+
+@allure.title("read_output に読めないファイルを渡すと、その @test を失敗にする")
+def test_read_output_rejects_missing_file(tmp_path: Path) -> None:
+    """存在しないファイルを `read_output` に渡す `@test` のテストです。`read_output` が理由を出して失敗し、その `@test` が添付の無い failed になることを確認します。"""
+    test = _write_test(
+        tmp_path / "suite",
+        _case(
+            "読めない",
+            'explains "読めないファイルのテストです。"',
+            'read_output "$BATS_TEST_TMPDIR/no-such.md"',
+        ),
+    )
+    _run(tmp_path, test, results=tmp_path / "results")
+    [result] = _results(tmp_path / "results").values()
+
+    with allure.step("状態・trace・添付を比べる"):
+        assert result["status"] == "failed"
+        assert "read_output: ファイルを読めません:" in result["statusDetails"]["trace"]
+        assert "attachments" not in result
+
+
+@allure.title(
+    "attach_file は拡張子から型を決めて添付し、型の決まっていない拡張子ではその @test を失敗にする"
+)
+def test_attach_file_uses_content_type_table(tmp_path: Path) -> None:
+    """`attach_file` で判定に使うファイルを添付する `@test` のテストです。`.png` が `image/png` で添付され、表に無い `.log` を渡した `@test` は理由を出して failed になることを確認します。"""
+    test = _write_test(
+        tmp_path / "suite",
+        _case(
+            "型がある",
+            'explains "型のあるファイルのテストです。"',
+            "printf 'png' > \"$BATS_TEST_TMPDIR/x.png\"",
+            'attach_file "$BATS_TEST_TMPDIR/x.png"',
+            'attach_file "$BATS_TEST_TMPDIR/no-such.png"',
+        ),
+        _case(
+            "型が無い",
+            'explains "型の無いファイルのテストです。"',
+            'attach_file "$BATS_TEST_TMPDIR/x.log"',
+        ),
+    )
+    _run(tmp_path, test, results=tmp_path / "results")
+    results = _results(tmp_path / "results")
+
+    with allure.step("それぞれの状態と添付を比べる"):
+        assert results["型がある"]["status"] == "passed"
+        assert _attachments(tmp_path / "results", results["型がある"]) == [
+            ("x.png", "image/png", "png")
+        ]
+        assert results["型が無い"]["status"] == "failed"
+        assert (
+            "添付の型が決まっていない拡張子: .log" in results["型が無い"]["statusDetails"]["trace"]
+        )
+
+
+@allure.title("setup_file で run_attached を呼んでも、添付のファイルも結果の添付も作らない")
+def test_setup_file_does_not_attach(tmp_path: Path) -> None:
+    """`setup_file` の中で `run_attached` を呼ぶファイルのテストです。`@test` の結果に `attachments` が無く、結果のディレクトリに添付のファイルが書かれないことを確認します。"""
     test = _write_test(
         tmp_path / "suite",
         _case("通る", 'explains "通るテストです。"'),
+        prelude="setup_file() {\n    bats_load_library pecot-bats\n    run_attached echo hi\n}\n\n",
+    )
+    done = _run(tmp_path, test, results=tmp_path / "results")
+    [result] = _results(tmp_path / "results").values()
+
+    with allure.step("状態と、添付が無いことを比べる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert "attachments" not in result
+        assert list((tmp_path / "results").glob("*-attachment*")) == []
+
+
+@allure.title(
+    "結果のディレクトリを渡さないと、外から添付の置き場所を渡しても添付のファイルを書かない"
+)
+def test_outside_lane_writes_no_attachments(tmp_path: Path) -> None:
+    """`PECOT_REPORT_RESULTS` を渡さず、`PECOT_BATS_ATTACHMENTS` だけを渡して `run.sh` を実行するテストです。`run_attached` が `run` と同じ値を残して通り、渡した置き場所に何も書かれないことを確認します。"""
+    leak = tmp_path / "leak"
+    leak.mkdir()
+    test = _write_test(
+        tmp_path / "suite",
+        _case(
+            "書かない",
+            'explains "添付を書かないテストです。"',
+            "run_attached bash -c 'echo out; exit 2'",
+            'assert_equal "$status" 2',
+            "assert_output out",
+            "printf 'x' > \"$BATS_TEST_TMPDIR/a.md\"",
+            'run read_output "$BATS_TEST_TMPDIR/a.md"',
+            "assert_output x",
+            'attach_file "$BATS_TEST_TMPDIR/a.log"',
+        ),
+    )
+    done = _run(tmp_path, test, results=None, env={"PECOT_BATS_ATTACHMENTS": str(leak)})
+
+    with allure.step("終了コードと、置き場所が空のままであることを比べる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert list(leak.iterdir()) == []
+
+
+@allure.title(
+    "実際の Allure で結果を読み込むと、説明・状態・期待値と実際の値・添付がレポートに含まれる"
+)
+@pytest.mark.skipif(shutil.which("pnpm") is None, reason="pnpm が要る")
+def test_real_allure_reads_the_results(tmp_path: Path) -> None:
+    """bats のテストの結果を、実際の Allure 3 で `allure generate` して読み込んだ場合のテストです。2 つの `@test` の状態・説明・期待値と実際の値・ラベルと、`run_attached` の添付がレポートに含まれることを確認します。"""
+    test = _write_test(
+        tmp_path / "suite",
+        _case("通る", 'explains "通るテストです。"', "run_attached echo hi"),
         _case("等しくない", 'explains "失敗するテストです。"', 'assert_equal "a" "b"'),
     )
     _run(tmp_path, test, results=tmp_path / "results")
@@ -417,3 +626,13 @@ def test_real_allure_reads_the_results(tmp_path: Path) -> None:
         )
         labels = {label["name"]: label["value"] for label in by_name["通る"]["labels"]}
         assert (labels["framework"], labels["parentSuite"]) == ("bats", "suite/sample.bats")
+
+    with allure.step("添付の名前・型と、レポートに写した中身を比べる"):
+        [step] = by_name["通る"]["steps"]
+        link = step["link"]
+        assert (step["type"], link["name"], link["contentType"]) == (
+            "attachment",
+            "echo hi（終了コード 0） stdout",
+            "text/plain",
+        )
+        assert read_output(report / "data/attachments" / f"{link['id']}{link['ext']}") == "hi"

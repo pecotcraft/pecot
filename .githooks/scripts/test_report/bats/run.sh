@@ -11,8 +11,8 @@ ROOT="$(cd -P "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd -P)"
 BATS="$ROOT/node_modules/.bin/bats"
 FORMATTER="$ROOT/.githooks/scripts/test_report/bats/allure-formatter.sh"
 RESULTS="${PECOT_REPORT_RESULTS:-}"
-# テストと被テストのスクリプトには渡さない。
-unset PECOT_REPORT_RESULTS
+# テストと被テストのスクリプトには渡さない。外の run.sh が置いた値も、テストの中の run.sh には持ち込まない。
+unset PECOT_REPORT_RESULTS PECOT_BATS_REPORT PECOT_BATS_ATTACHMENTS
 export BATS_LIB_PATH="$ROOT/.githooks/scripts/test_report/bats:$ROOT/node_modules"
 
 # bats の --jobs は GNU parallel で @test を並べる。GNU parallel は空いた枠を待つ間に眠るため、枠は CPU の数より多くする。
@@ -36,21 +36,23 @@ for file in "$@"; do
         continue
     fi
     work="$(mktemp -d)"
+    mkdir "$work/attachments"
     start="$(allure_result_now_ms)"
     # stderr はそのまま流し、読み込みで止まったときの理由に添える写しを取る。
     {
-        PECOT_BATS_REPORT=1 "$BATS" --jobs "$JOBS" -T --formatter tap --report-formatter "$FORMATTER" --output "$work" "$file" \
+        PECOT_BATS_REPORT=1 PECOT_BATS_ATTACHMENTS="$work/attachments" "$BATS" --jobs "$JOBS" -T --formatter tap --report-formatter "$FORMATTER" --output "$work" "$file" \
             2>&1 1>&3 3>&- | tee "$work/stderr" >&2 3>&-
         rc="${PIPESTATUS[0]}"
     } 3>&1
     if grep -q '^{"uuid":' "$work/report.log" 2> /dev/null; then
         allure_result_split "$work/report.log" "$RESULTS"
+        find "$work/attachments" -mindepth 1 -maxdepth 1 -type f -exec mv -t "$RESULTS" {} +
     elif [ "$rc" -ne 0 ]; then
         # 題の重なりやファイルの直下のコードの失敗では、bats は formatter に何も渡さずに終わる。
         rel="$(allure_result_relpath "$file" "$ROOT")"
         allure_result_write "$RESULTS" "$rel" bats broken "読み込む" \
             "bats がテストを読み込めず、終了コード $rc で終わった" "$start" "$(allure_result_now_ms)" "" \
-            "$(tail -n 20 "$work/stderr" 2> /dev/null)" "$(allure_result_layer "$rel" "$ROOT")" ""
+            "$(tail -n 20 "$work/stderr" 2> /dev/null)" "$(allure_result_layer "$rel" "$ROOT")" "" ""
     fi
     while IFS= read -r line; do
         missing+=("${line#missing-description: }")
