@@ -1047,6 +1047,204 @@ def test_conflicting_arguments_stop_before_anything(
         assert raised.value.code == 2
 
 
+# --- 環境の情報（environment.properties） ---
+
+
+def _environment(root: Path, lane: str, text: str) -> None:
+    (_results(root, lane) / generate.ENVIRONMENT_FILE).write_text(text, encoding="utf-8")
+
+
+class EnvironmentRecorder(Recorder):
+    """allure の代わりに、最後に渡された結果のディレクトリの environment.properties を読んで残す。"""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.environment: str | None = None
+
+    def __call__(self, command: list[str], env: dict[str, str]) -> int:
+        path = Path(command[-1]) / generate.ENVIRONMENT_FILE
+        self.environment = path.read_text(encoding="utf-8") if path.is_file() else None
+        return super().__call__(command, env)
+
+
+@allure.title(
+    "非 ASCII の値・区切りの文字を含むキー・先頭の空白を、エスケープして書き、同じ値に読み戻す"
+)
+def test_environment_round_trips_through_properties(tmp_path: Path) -> None:
+    """`write_environment` と `read_environment` のテストです。日本語や絵文字の値と、`:`・`=`・`\\` を含むキーを、allure-js-commons と同じエスケープで書き、読み戻すと元の値と一致することを確認します。"""
+    with allure.step("非 ASCII の値と区切りの文字を含むキーを書く"):
+        environment = {
+            "OS": "Ubuntu 26.04.1 LTS",
+            "a:b=c": "  先頭の空白",
+            "x\\y": "タブ\tと😀",
+        }
+        path = tmp_path / generate.ENVIRONMENT_FILE
+
+        generate.write_environment(path, environment)
+
+    with allure.step("書いた文字列と、読み戻した値を比べる"):
+        assert path.read_text(encoding="utf-8") == (
+            "OS=Ubuntu 26.04.1 LTS\n"
+            "a\\:b\\=c=\\ \\ \\u5148\\u982d\\u306e\\u7a7a\\u767d\n"
+            "x\\\\y=\\u30bf\\u30d6\\t\\u3068\\ud83d\\ude00"
+        )
+        assert generate.read_environment(path) == environment
+
+
+@allure.title("コメント・区切りの種類・行の継続・エスケープを、Allure の読み方と同じに読む")
+def test_environment_reads_comments_separators_and_continuations(tmp_path: Path) -> None:
+    """Java の properties の形で書いた `environment.properties` を `read_environment` で読む場合のテストです。`#` と `!` のコメント、`=`・`:`・空白の区切り、行末の `\\` による継続、`\\u` などのエスケープが、Allure の `parseProperties` と同じ値になることを確認します。"""
+    with allure.step("いろいろな書き方の properties を置いて読む"):
+        path = tmp_path / generate.ENVIRONMENT_FILE
+        path.write_bytes(
+            b"# comment=1\r\n"
+            b"  ! comment=2\n"
+            b"OS = Ubuntu\n"
+            b"Node.js:v24\n"
+            b"Python   3.12\n"
+            b"long=first \\\n"
+            b"     second\n"
+            b"escaped=\\u3042\\n\\\\\\ x\n"
+            b"\n"
+            b"empty=\n"
+        )
+
+        environment = generate.read_environment(path)
+
+    with allure.step("読んだキーと値を比べる"):
+        assert environment == {
+            "OS": "Ubuntu",
+            "Node.js": "v24",
+            "Python": "3.12",
+            "long": "first second",
+            "escaped": "あ\n\\ x",
+            "empty": "",
+        }
+
+
+@allure.title("全レーンで値が同じキーを残し、OS・Node.js・Python の後に名前順で並べる")
+def test_merge_keeps_keys_with_one_value_in_fixed_order() -> None:
+    """一部のレーンにしか無いキーを含む環境の情報を、`merge_environments` でまとめる場合のテストです。値が 1 つに決まるキーがすべて残り、`OS`・`Node.js`・`Python` の後にほかのキーが名前順で並び、値の違うキーが存在しないことを確認します。"""
+    with allure.step("レーンごとの環境の情報をまとめる"):
+        merged, differing = generate.merge_environments(
+            [
+                {"ホスト": "開発機", "Node.js": "v24", "OS": "Ubuntu"},
+                {"Python": "3.12", "OS": "Ubuntu", "Arch": "x64"},
+            ]
+        )
+
+    with allure.step("まとめた値とキーの順を比べる"):
+        assert list(merged.items()) == [
+            ("OS", "Ubuntu"),
+            ("Node.js", "v24"),
+            ("Python", "3.12"),
+            ("Arch", "x64"),
+            ("ホスト", "開発機"),
+        ]
+        assert differing == []
+
+
+@allure.title("レーンで値の違うキーは、まとめから除き、その名前を名前順で返す")
+def test_merge_drops_keys_whose_values_differ() -> None:
+    """3 つのレーンのうち、一部で値の違うキーがある環境の情報を、`merge_environments` でまとめる場合のテストです。値の違うキーがまとめに含まれず、その名前が名前順で返ることを確認します。"""
+    with allure.step("値の違うキーを含む環境の情報をまとめる"):
+        merged, differing = generate.merge_environments(
+            [
+                {"OS": "Ubuntu", "Python": "3.12", "Node.js": "v24"},
+                {"OS": "Ubuntu", "Python": "3.14"},
+                {"OS": "Ubuntu", "Node.js": "v22"},
+            ]
+        )
+
+    with allure.step("残ったキーと、値の違うキーの名前を比べる"):
+        assert merged == {"OS": "Ubuntu"}
+        assert differing == ["Node.js", "Python"]
+
+
+@allure.title(
+    "まとめた環境の情報を、`--output` の外の一時のディレクトリに書いて最後に渡し、実行の後で消す"
+)
+def test_main_passes_merged_environment_last_and_removes_it(
+    root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """2 つのレーンが `environment.properties` を持ち、`Node.js` の値だけが違う場合の、`generate.py` のテストです。`allure generate` が最後に受け取るディレクトリが `--output` の外にあって共通の値だけを持ち、実行の後で削除され、値の違うキーが表示されることを確認します。"""
+    with allure.step("値の一部が違う環境の情報を 2 つのレーンに置いて生成する"):
+        alpha = _results(root, "alpha:test-unit")
+        beta = _results(root, "beta:test-cli")
+        _environment(root, "alpha:test-unit", "OS=Ubuntu\nNode.js=v24\n")
+        _environment(root, "beta:test-cli", "OS=Ubuntu\nNode.js=v22\n")
+        output = tmp_path / "reports/out"
+        recorder = EnvironmentRecorder()
+
+        code, _ = _main(root, "--local", "--output", str(output), run=recorder)
+
+    with allure.step("渡したディレクトリの場所・中身・後始末と、標準エラー出力を確かめる"):
+        assert code == 0
+        command = recorder.calls[0][0]
+        merged = Path(command[-1])
+        assert command[-3:-1] == [str(alpha), str(beta)]
+        assert merged.parent == output.parent
+        assert not merged.is_relative_to(output)
+        assert recorder.environment == "OS=Ubuntu"
+        assert not merged.exists()
+        assert "メタデータに出さないキー: Node.js" in capsys.readouterr().err
+
+
+@allure.title("一部のレーンにしか `environment.properties` が無いと、あるレーンの値だけでまとめる")
+def test_main_merges_only_lanes_with_an_environment_file(root: Path, tmp_path: Path) -> None:
+    """1 つのレーンだけが `environment.properties` を持つ場合の、`generate.py` のテストです。最後に渡すディレクトリの `environment.properties` が、そのレーンの値と同じになることを確認します。"""
+    with allure.step("1 つのレーンだけに環境の情報を置いて生成する"):
+        _results(root, "beta:test-cli")
+        _environment(root, "alpha:test-unit", "OS=Ubuntu\nNode.js=v24\n")
+        recorder = EnvironmentRecorder()
+
+        code, _ = _main(root, "--local", "--output", str(tmp_path / "out"), run=recorder)
+
+    with allure.step("最後に渡したディレクトリの環境の情報を比べる"):
+        assert code == 0
+        assert recorder.environment == "OS=Ubuntu\nNode.js=v24"
+
+
+@allure.title(
+    "どのキーもレーンで値が違うと、コメントだけの環境の情報を最後に渡し、レーンの値を出さない"
+)
+def test_main_passes_comment_only_environment_when_no_key_is_shared(
+    root: Path, tmp_path: Path
+) -> None:
+    """2 つのレーンの `environment.properties` が、どのキーも違う値を持つ場合の、`generate.py` のテストです。最後に渡すディレクトリの `environment.properties` が、キーを持たないコメントだけの内容になることを確認します。"""
+    with allure.step("どのキーも値の違う環境の情報を 2 つのレーンに置いて生成する"):
+        _results(root, "alpha:test-unit")
+        _results(root, "beta:test-cli")
+        _environment(root, "alpha:test-unit", "OS=Ubuntu\n")
+        _environment(root, "beta:test-cli", "OS=Debian\n")
+        recorder = EnvironmentRecorder()
+
+        code, _ = _main(root, "--local", "--output", str(tmp_path / "out"), run=recorder)
+
+    with allure.step("最後に渡したディレクトリの環境の情報がキーを持たないことを確かめる"):
+        assert code == 0
+        assert recorder.environment is not None
+        assert recorder.environment.startswith("#")
+        assert generate.parse_properties(recorder.environment) == {}
+
+
+@allure.title("どのレーンにも `environment.properties` が無いと、追加のディレクトリを渡さない")
+def test_main_passes_no_extra_directory_without_environment_files(
+    root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """どのレーンも `environment.properties` を持たない場合の、`generate.py` のテストです。`allure generate` に、レーンの結果のディレクトリだけが渡され、値の違うキーの通知も表示されないことを確認します。"""
+    with allure.step("環境の情報の無いレーンで生成する"):
+        alpha = _results(root, "alpha:test-unit")
+        beta = _results(root, "beta:test-cli")
+
+        code, run = _main(root, "--local", "--output", str(tmp_path / "out"))
+
+    with allure.step("結果のディレクトリがレーンの分だけであることを確かめる"):
+        assert code == 0
+        assert run.calls[0][0][-3:] == ["--clean", str(alpha), str(beta)]
+        assert "メタデータ" not in capsys.readouterr().err
+
+
 # --- allurerc.mjs ---
 
 
@@ -1111,32 +1309,35 @@ def test_config_values() -> None:
             "historyLimit": 3,
             "historyBaseUrl": None,
             "flakyDetection": {"includePassedTests": True},
-            # 既定と同じ名前の分類は、既定の id にまとまり、書いた groupBy を持つ。
+            # 既定の 2 つは後ろに足されるが、書いた規則が failed・broken をすべて取るので、結果が入らず画面に出ない。
             "categories": [
-                {
-                    "id": "_product_errors_default_category",
-                    "name": "Product errors",
-                    "groupBy": ["severity"],
-                },
-                {
-                    "id": "_test_errors_default_category",
-                    "name": "Test errors",
-                    "groupBy": ["severity"],
-                },
+                {"id": "flaky", "name": "不安定なテスト", "groupBy": [{"label": "epic"}]},
+                {"id": "product-errors", "name": "製品の不具合", "groupBy": [{"label": "epic"}]},
+                {"id": "test-errors", "name": "テストの不具合", "groupBy": [{"label": "epic"}]},
+                {"id": "_product_errors_default_category", "name": "Product errors", "groupBy": []},
+                {"id": "_test_errors_default_category", "name": "Test errors", "groupBy": []},
             ],
             "variables": {},
         }
         assert config["raw"]["categories"] == {
             "rules": [
                 {
-                    "name": "Product errors",
-                    "matchers": {"statuses": ["failed"]},
-                    "groupBy": ["severity"],
+                    "id": "flaky",
+                    "name": "不安定なテスト",
+                    "matchers": {"statuses": ["failed", "broken"], "flaky": True},
+                    "groupBy": [{"label": "epic"}],
                 },
                 {
-                    "name": "Test errors",
+                    "id": "product-errors",
+                    "name": "製品の不具合",
+                    "matchers": {"statuses": ["failed"]},
+                    "groupBy": [{"label": "epic"}],
+                },
+                {
+                    "id": "test-errors",
+                    "name": "テストの不具合",
                     "matchers": {"statuses": ["broken"]},
-                    "groupBy": ["severity"],
+                    "groupBy": [{"label": "epic"}],
                 },
             ]
         }
@@ -1383,3 +1584,145 @@ def test_real_allure_writes_the_variables_of_each_lane(
             "beta:test-cli": f"{SHA_B} https://github.com/owner/repo/actions/runs/456",
         }
         assert not (out / "history.jsonl").exists()
+
+
+def _write_result(results: Path, result: dict[str, Any]) -> None:
+    results.mkdir(parents=True, exist_ok=True)
+    (results / f"{result['uuid']}-result.json").write_text(json.dumps(result), encoding="utf-8")
+
+
+def _build_local(root: Path, out: Path) -> int:
+    return generate.main(
+        ["generate.py", "--local", "--output", str(out)],
+        root=root,
+        lanes_path=root / "report-lanes.json",
+    )
+
+
+@allure.title("本物の allure のメタデータに、レーンの間で値が同じ環境の情報だけを出す")
+@_needs_pnpm
+def test_real_allure_shows_only_environment_values_shared_by_all_lanes(
+    root: Path, tmp_path: Path
+) -> None:
+    """`Node.js` の値だけが違う 2 つのレーンの結果から、本物の `allure generate` でレポートを作る場合のテストです。`widgets/allure_environment.json` に、共通の `OS` と日本語の値が出て、`Node.js` は出ないことを確認します。"""
+    with allure.step("値の一部が違う環境の情報を持つ 2 つのレーンの結果を置く"):
+        for lane, results, node in (
+            ("alpha:test-unit", _LANES[0]["results"], "v24.22.1"),
+            ("beta:test-cli", _LANES[1]["results"], "v22.0.0"),
+        ):
+            uuid = lane.replace(":", "-")
+            _write_result(
+                root / results,
+                _allure_result(uuid) | {"historyId": uuid, "testCaseId": uuid},
+            )
+            (root / results / generate.ENVIRONMENT_FILE).write_text(
+                f"OS=Ubuntu 26.04.1 LTS\nNode.js={node}\nホスト=開発機\n", encoding="utf-8"
+            )
+
+    with allure.step("本物の allure でレポートを作る"):
+        code = _build_local(root, tmp_path / "report")
+
+    with allure.step("メタデータの項目を比べる"):
+        assert code == 0
+        widget = tmp_path / "report/widgets/allure_environment.json"
+        assert json.loads(widget.read_text(encoding="utf-8")) == [
+            {"name": "OS", "values": ["Ubuntu 26.04.1 LTS"]},
+            {"name": "ホスト", "values": ["開発機"]},
+        ]
+
+
+@allure.title("どのキーもレーンで値が違うと、本物の allure のメタデータに何も出さない")
+@_needs_pnpm
+def test_real_allure_shows_no_environment_when_no_key_is_shared(root: Path, tmp_path: Path) -> None:
+    """どのキーも値の違う 2 つのレーンの結果から、本物の `allure generate` でレポートを作る場合のテストです。`widgets/allure_environment.json` が空の配列になり、最後のレーンの値が残らないことを確認します。"""
+    with allure.step("どのキーも値の違う環境の情報を持つ 2 つのレーンの結果を置く"):
+        for lane, results, os_name in (
+            ("alpha:test-unit", _LANES[0]["results"], "Ubuntu 26.04.1 LTS"),
+            ("beta:test-cli", _LANES[1]["results"], "Debian GNU/Linux 13"),
+        ):
+            uuid = lane.replace(":", "-")
+            _write_result(
+                root / results,
+                _allure_result(uuid) | {"historyId": uuid, "testCaseId": uuid},
+            )
+            (root / results / generate.ENVIRONMENT_FILE).write_text(
+                f"OS={os_name}\n", encoding="utf-8"
+            )
+
+    with allure.step("本物の allure でレポートを作る"):
+        code = _build_local(root, tmp_path / "report")
+
+    with allure.step("メタデータが空であることを確かめる"):
+        assert code == 0
+        widget = tmp_path / "report/widgets/allure_environment.json"
+        assert json.loads(widget.read_text(encoding="utf-8")) == []
+
+
+def _leaves(nodes: dict[str, Any], node_id: str) -> set[str]:
+    node = nodes[node_id]
+    if node["type"] == "tr":
+        return {node["name"]}
+    leaves: set[str] = set()
+    for child in node.get("childrenIds", []):
+        leaves |= _leaves(nodes, child)
+    return leaves
+
+
+@allure.title(
+    "本物の allure で、失敗を不安定なテスト・製品の不具合・テストの不具合に分け、epic ごとに並べる"
+)
+@_needs_pnpm
+def test_real_allure_sorts_failures_into_categories_by_epic(root: Path, tmp_path: Path) -> None:
+    """failed・broken・不安定な failed と、不安定な passed の結果から、本物の `allure generate` でレポートを作る場合のテストです。`widgets/categories.json` で、各結果が決めた日本語の分類の epic ごとの枝に入り、passed の結果と英語の既定の分類が出ないことを確認します。"""
+    with allure.step("状態と epic の違う結果を置く"):
+        results = root / _LANES[0]["results"]
+        cases = [
+            ("assert が落ちる", "alpha", "failed", False),
+            ("beta の assert が落ちる", "beta", "failed", False),
+            ("例外で止まる", "alpha", "broken", False),
+            ("揺れて落ちる", "alpha", "failed", True),
+            ("揺れて通る", "alpha", "passed", True),
+        ]
+        for i, (name, epic, status, flaky) in enumerate(cases):
+            base = _allure_result(f"c{i}")
+            _write_result(
+                results,
+                base
+                | {
+                    "historyId": f"h-c{i}",
+                    "testCaseId": f"t-c{i}",
+                    "name": name,
+                    "fullName": f"alpha/case.test.ts#{name}",
+                    "status": status,
+                    "statusDetails": {"message": f"{name}の理由", "flaky": flaky},
+                    "labels": [*base["labels"], {"name": "epic", "value": epic}],
+                },
+            )
+
+    with allure.step("本物の allure でレポートを作る"):
+        code = _build_local(root, tmp_path / "report")
+
+    with allure.step("分類と epic の枝ごとに、入った結果の名前を比べる"):
+        assert code == 0
+        widget = json.loads(
+            (tmp_path / "report/widgets/categories.json").read_text(encoding="utf-8")
+        )
+        nodes = widget["nodes"]
+        tree = {
+            nodes[root_id]["name"]: {
+                nodes[group]["name"]: _leaves(nodes, group)
+                for group in nodes[root_id]["childrenIds"]
+            }
+            for root_id in widget["roots"]
+        }
+        assert list(tree) == ["不安定なテスト", "製品の不具合", "テストの不具合"]
+        assert tree == {
+            "不安定なテスト": {"epic: alpha": {"揺れて落ちる"}},
+            "製品の不具合": {
+                "epic: alpha": {"assert が落ちる"},
+                "epic: beta": {"beta の assert が落ちる"},
+            },
+            "テストの不具合": {"epic: alpha": {"例外で止まる"}},
+        }
+        names = {node["name"] for node in nodes.values()}
+        assert not names & {"Product errors", "Test errors", "揺れて通る"}

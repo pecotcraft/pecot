@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import platform
 import re
 import shutil
 import subprocess
@@ -166,6 +167,78 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         # この conftest が動く githooks のレーンは、重大度の表で minor の project。
         if labels["project"] and not _has_severity(item):
             item.add_marker(mark("severity", "minor"))
+
+
+# 実行全体で同じ値を、Allure のレポートのメタデータに出すファイル。
+_ENVIRONMENT_FILE = "environment.properties"
+_CONTROL_ESCAPES = {"\t": "\\t", "\n": "\\n", "\f": "\\f", "\r": "\\r"}
+# os-release(5) の読む順と、行の形・エスケープの外し方。行の形は platform.freedesktop_os_release と同じ。
+_OS_RELEASE_PATHS = ("/etc/os-release", "/usr/lib/os-release")
+_OS_RELEASE_LINE = re.compile(r"^(?P<name>[a-zA-Z0-9_]+)=(?P<quote>[\"']?)(?P<value>.*)(?P=quote)$")
+_OS_RELEASE_UNESCAPE = re.compile(r"\\([\\\$\"\'`])")
+
+
+def _alluredir(config: pytest.Config) -> Path | None:
+    value = cast("str | None", config.getoption("allure_report_dir", None))
+    return config.invocation_params.dir / value if value else None
+
+
+def _os_name() -> str:
+    # freedesktop_os_release は PRETTY_NAME の無いファイルに "Linux" を補うので使わない。
+    for path in _OS_RELEASE_PATHS:
+        try:
+            text = Path(path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        lines = (_OS_RELEASE_LINE.match(line) for line in text.split("\n"))
+        names = [m["value"] for m in lines if m and m["name"] == "PRETTY_NAME"]
+        if names:
+            return _OS_RELEASE_UNESCAPE.sub(r"\1", names[-1])
+        break
+    return f"{platform.system()} {platform.release()}"
+
+
+def _escape_property(text: str, *, key: bool) -> str:
+    # allure-js-commons の stringifyEnvInfo と同じエスケープ。JS と同じく UTF-16 の単位で見る。
+    raw = text.encode("utf-16-le", "surrogatepass")
+    escaped: list[str] = []
+    leading = True
+    for code in (int.from_bytes(raw[i : i + 2], "little") for i in range(0, len(raw), 2)):
+        char = chr(code)
+        leading = leading and char in " \t\f"
+        if key and char in "=:":
+            escaped.append(f"\\{char}")
+        elif 31 < code < 127:
+            space = char == " " and (key or leading)
+            escaped.append("\\ " if space else "\\\\" if char == "\\" else char)
+        elif char in _CONTROL_ESCAPES:
+            escaped.append(_CONTROL_ESCAPES[char])
+        elif code < 160 or code >= 256:
+            escaped.append(f"\\u{code:04x}")
+        else:
+            escaped.append(char)
+    return "".join(escaped)
+
+
+@pytest.fixture(autouse=True)
+def allure_python_parameter(request: pytest.FixtureRequest) -> None:
+    # Python の版はレーンで違うので、テストのパラメータにする。excluded なので historyId は変わらない。
+    if _alluredir(request.config) is not None:
+        # pyright は別名で import された allure.dynamic を読めない。
+        allure.dynamic.parameter("Python", platform.python_version(), excluded=True)  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType]
+
+
+def pytest_sessionfinish(session: pytest.Session) -> None:
+    # xdist の worker は書かない。既にあるファイルは、同じディレクトリの別の書き手のものなので残す。
+    results = _alluredir(session.config)
+    if hasattr(session.config, "workerinput") or results is None:
+        return
+    environment = results / _ENVIRONMENT_FILE
+    if environment.exists():
+        return
+    results.mkdir(parents=True, exist_ok=True)
+    line = f"{_escape_property('OS', key=True)}={_escape_property(_os_name(), key=False)}"
+    environment.write_text(line, encoding="utf-8")
 
 
 def pytest_configure(config: pytest.Config) -> None:
