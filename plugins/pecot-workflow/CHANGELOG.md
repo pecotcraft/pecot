@@ -1,3 +1,38 @@
+## 10.1.0 (2026-11-27)
+
+### 🚀 Features
+
+- w-active・w-pr は、CUJ の evidence を **PR に集める**。本文に収まらないログは PR のコメントに分ける。 ([#787](https://github.com/pecotcraft/pecot/pull/787), [#758](https://github.com/pecotcraft/pecot/issues/758))
+  w-review は、前の指摘と対応を `## Findings`・`## Resolution` のコメントだけから読む。
+
+- `pecot workflow install auto` で、自動処理のワークフローを書き出せます。 ([#780](https://github.com/pecotcraft/pecot/pull/780), [#714](https://github.com/pecotcraft/pecot/issues/714))
+  Issue に起動ラベルを付けると、GitHub Actions が Issue を直して PR まで作ります。
+
+
+### 🩹 Fixes
+
+- ツールの output が MCP の結果の共通の項目（`kind`・`detail`・`log`・`warnings`）と同じ名前を持つと、ツールの定義で止める。プラグインの動作は変わらない。 ([#775](https://github.com/pecotcraft/pecot/pull/775), [#747](https://github.com/pecotcraft/pecot/issues/747))
+- 前提の種類の名前を **スタック可**・**スタック不可** に変えます。 ([#782](https://github.com/pecotcraft/pecot/pull/782), [#756](https://github.com/pecotcraft/pecot/issues/756), [#755](https://github.com/pecotcraft/pecot/issues/755))
+  w-issueize は、前の版の tasks.md の「積める」「スタックできる」「マージを待つ」も読みます。
+
+- MCP のツールに `readOnlyHint` を付けます。 ([#784](https://github.com/pecotcraft/pecot/pull/784), [#771](https://github.com/pecotcraft/pecot/issues/771))
+  読むだけの 12 個（`issue_show`・`board_show` など）は、Claude Code のプランモードでも承認なしで動きます。
+  書き込むツールは、今までどおりプランモードで止まります。
+
+- 定義書の effects の種類を MCP の annotations にそろえ、上書きと削除を `destructive` にした。ツールの動きは変わらない。 ([#805](https://github.com/pecotcraft/pecot/pull/805), [#785](https://github.com/pecotcraft/pecot/issues/785))
+- pecot-workflow と GitHub Actions の処理が共有するコードを、`libs/workflow-core` に移した。プラグインの動作は変わらない。 ([#819](https://github.com/pecotcraft/pecot/pull/819), [#791](https://github.com/pecotcraft/pecot/issues/791))
+- `bin/_lib.sh` のコメントから、`bin/` の無くなった pecot-visual との逐語一致の記述を外した。動作は変わらない。 ([#841](https://github.com/pecotcraft/pecot/pull/841), [#795](https://github.com/pecotcraft/pecot/issues/795))
+- `bin/_lib.sh` の逐語一致の確かめから、`bin/` の無くなった pecot-tools を外した。動作は変わらない。 ([#827](https://github.com/pecotcraft/pecot/pull/827), [#796](https://github.com/pecotcraft/pecot/issues/796))
+- runtime-lock.yaml から、使われなくなった @typescript-eslint の古い版を外した。動作は変わらない。 ([#828](https://github.com/pecotcraft/pecot/pull/828), [#809](https://github.com/pecotcraft/pecot/issues/809))
+- 開発用の bash のテストが、確かめ 1 つずつ **Allure の結果** を残すようにした。プラグインの動作は変わらない。 ([#829](https://github.com/pecotcraft/pecot/pull/829), [#810](https://github.com/pecotcraft/pecot/issues/810))
+- 開発用のテストが、テストレポートに **何を確認したかの説明** を残す。プラグインの動作は変わらない。 ([#842](https://github.com/pecotcraft/pecot/pull/842), [#815](https://github.com/pecotcraft/pecot/issues/815))
+- 開発用のテストが、判定で使った **CLI・MCP・hook の出力** を Allure の添付として残す。プラグインの動作は変わらない。 ([#831](https://github.com/pecotcraft/pecot/pull/831), [#816](https://github.com/pecotcraft/pecot/issues/816))
+- GitHub の今のスキーマを Issue の機能の写しと毎時比べ、差を **Tracker 1 件**に書き直してボードに載せる開発用のスクリプトを足した。プラグインの動作は変わらない。 ([#770](https://github.com/pecotcraft/pecot/pull/770), [#708](https://github.com/pecotcraft/pecot/issues/708))
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 # 10.0.0 (2026-11-26)
 
 ### 🚀 Features

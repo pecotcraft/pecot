@@ -1,3 +1,26 @@
+# 4.0.0 (2026-11-27)
+
+### 🩹 Fixes
+
+- ツールの output が MCP の結果の共通の項目（`kind`・`detail`・`log`・`warnings`）と同じ名前を持つと、ツールの定義で止める。プラグインの動作は変わらない。 ([#775](https://github.com/pecotcraft/pecot/pull/775), [#747](https://github.com/pecotcraft/pecot/issues/747))
+- `bin/_lib.sh` の逐語一致の確かめから、`bin/` の無くなった pecot-tools を外した。動作は変わらない。 ([#827](https://github.com/pecotcraft/pecot/pull/827), [#796](https://github.com/pecotcraft/pecot/issues/796))
+- Slidev の lint のテストを vitest に移し、使わなくなった c8 を devDependencies から外した。 ([#828](https://github.com/pecotcraft/pecot/pull/828), [#809](https://github.com/pecotcraft/pecot/issues/809))
+  runtime-lock.yaml から、使われなくなった @typescript-eslint の古い版を外した。動作は変わらない。
+
+- 開発用の bash のテストが、確かめ 1 つずつ **Allure の結果** を残すようにした。プラグインの動作は変わらない。 ([#829](https://github.com/pecotcraft/pecot/pull/829), [#810](https://github.com/pecotcraft/pecot/issues/810))
+- 開発用のテストが、テストレポートに **何を確認したかの説明** を残す。プラグインの動作は変わらない。 ([#842](https://github.com/pecotcraft/pecot/pull/842), [#815](https://github.com/pecotcraft/pecot/issues/815))
+- 開発用のテストが、判定で使った **CLI・MCP・hook の出力** を Allure の添付として残す。プラグインの動作は変わらない。 ([#831](https://github.com/pecotcraft/pecot/pull/831), [#816](https://github.com/pecotcraft/pecot/issues/816))
+
+### ⚠️  Breaking Changes
+
+- `bin/` と CLI（`pecotv`）をなくし、MCP のサーバは npm の版を npx で起動する。 ([#841](https://github.com/pecotcraft/pecot/pull/841), [#795](https://github.com/pecotcraft/pecot/issues/795))
+  編集の後の確認は MCP のツールを呼ぶフックに替え、GitHub Copilot CLI では動かなくなった。
+  データ置き場に残る前の版の `runtime/` は消してかまわない。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 3.1.0 (2026-11-26)
 
 ### 🚀 Features

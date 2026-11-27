@@ -1,3 +1,23 @@
+# 4.0.0 (2026-11-27)
+
+### 🩹 Fixes
+
+- ツールの output が MCP の結果の共通の項目（`kind`・`detail`・`log`・`warnings`）と同じ名前を持つと、ツールの定義で止める。プラグインの動作は変わらない。 ([#775](https://github.com/pecotcraft/pecot/pull/775), [#747](https://github.com/pecotcraft/pecot/issues/747))
+- `aws_sso_login` の MCP の `destructiveHint` を `true` にした。トークンのキャッシュを上書きするため。 ([#805](https://github.com/pecotcraft/pecot/pull/805), [#785](https://github.com/pecotcraft/pecot/issues/785))
+- `node-runtime.ts` のコメントから、無くなった CLI の記述を外した。動作は変わらない。 ([#841](https://github.com/pecotcraft/pecot/pull/841), [#795](https://github.com/pecotcraft/pecot/issues/795))
+- 開発用の bash のテストが、確かめ 1 つずつ **Allure の結果** を残すようにした。プラグインの動作は変わらない。 ([#829](https://github.com/pecotcraft/pecot/pull/829), [#810](https://github.com/pecotcraft/pecot/issues/810))
+- 開発用のテストが、テストレポートに **何を確認したかの説明** を残す。プラグインの動作は変わらない。 ([#842](https://github.com/pecotcraft/pecot/pull/842), [#815](https://github.com/pecotcraft/pecot/issues/815))
+- 開発用のテストが、判定で使った **CLI・MCP・hook の出力** を Allure の添付として残す。プラグインの動作は変わらない。 ([#831](https://github.com/pecotcraft/pecot/pull/831), [#816](https://github.com/pecotcraft/pecot/issues/816))
+
+### ⚠️  Breaking Changes
+
+- MCP は npm の `@pecot/tools-mcp` を npx で起動するようにし、`bin/` と `setup.sh` をなくした。 ([#827](https://github.com/pecotcraft/pecot/pull/827), [#796](https://github.com/pecotcraft/pecot/issues/796))
+  `pecot-tools-mcp` は引数を読まずにサーバを起動し、`--version` はなくなった。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 3.1.0 (2026-11-26)
 
 ### 🚀 Features

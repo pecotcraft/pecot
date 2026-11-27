@@ -1,3 +1,16 @@
+## 0.2.11 (2026-11-27)
+
+### 🩹 Fixes
+
+- runtime-lock.yaml から、使われなくなった @typescript-eslint の古い版を外した。動作は変わらない。 ([#828](https://github.com/pecotcraft/pecot/pull/828), [#809](https://github.com/pecotcraft/pecot/issues/809))
+- テストに **名前の付いた Allure の step** を書き、step の無いテストがあるとテストのレーンが止まるようにした。ライブラリの動作は変わらない。 ([#833](https://github.com/pecotcraft/pecot/pull/833), [#814](https://github.com/pecotcraft/pecot/issues/814))
+- 開発用のテストが、テストレポートに **何を確認したかの説明** を残す。プラグインの動作は変わらない。 ([#842](https://github.com/pecotcraft/pecot/pull/842), [#815](https://github.com/pecotcraft/pecot/issues/815))
+- 開発用のテストが、判定で使った **CLI・MCP・hook の出力** を Allure の添付として残す。プラグインの動作は変わらない。 ([#831](https://github.com/pecotcraft/pecot/pull/831), [#816](https://github.com/pecotcraft/pecot/issues/816))
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 0.2.10 (2026-11-26)
 
 ### 🩹 Fixes
