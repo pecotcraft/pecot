@@ -263,5 +263,6 @@ python3 .githooks/scripts/test_report/generate.py --local --output <出力のデ
 公開の run は `generate.py --sources <report-sources.json> --output <出力のディレクトリ> [--history <history.jsonl>]` と打つ。
 
 - `--local` でないときは `--sources` が要る。結果が欠けたレーンや、結果のコミットが材料と違うレーンがあれば、レーンの名前を出して止まる（終了コード 1）
+- リリース版の材料のレーンは、今の `report-lanes.json` でなく、`runs` の各コミットの `report-lanes.json` で確かめる（#889）。手順は data-model の ResultsCheck
 - `--history` は、`--output` の中に置けない。読めない行があれば、警告を出して空の履歴で作る
 - `--history` を渡すのは、リリース版の run だけ。開発版の run は渡さない（2026-11-26 に改めた）

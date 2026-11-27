@@ -36,6 +36,7 @@ matrix = _load_matrix()
 
 REPO_ROOT = _HERE.parents[2]
 DEFAULT_LANES = _HERE / "report-lanes.json"
+LANES_IN_REPO = DEFAULT_LANES.relative_to(REPO_ROOT).as_posix()
 CONFIG = _HERE / "allurerc.mjs"
 HISTORY_ENV = "PECOT_REPORT_HISTORY"
 VARIABLES_ENV = "PECOT_REPORT_VARIABLES"
@@ -73,15 +74,43 @@ class ReportSources(NamedTuple):
     commits: dict[str, str]
     # latest のレーンを試した run。runs のレーンは、この run で流す
     latest_runs: dict[str, int]
+    # runs と latest の全レーンの、結果のディレクトリ（リポのルートからのパス）
+    results: dict[str, str]
 
 
-def _check_lane(name: object, where: str, lanes: dict[str, str], excluded: set[str]) -> str:
+class LaneTable(NamedTuple):
+    """1 つの report-lanes.json から読んだレーン。file はエラーの文に出す名前。"""
+
+    lanes: dict[str, str]
+    excluded: set[str]
+    file: str = "report-lanes.json"
+
+
+def lane_table(raw: object, file: str = "report-lanes.json") -> LaneTable:
+    return LaneTable(report_lanes(raw), excluded_lanes(raw), file)
+
+
+def git_lanes_at(root: Path, commit: str) -> object:
+    """コミットの report-lanes.json を git から読む。"""
+    done = subprocess.run(
+        ["git", "show", f"{commit}:{LANES_IN_REPO}"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if done.returncode != 0:
+        raise InputError(f"{commit[:7]} の report-lanes.json を読めません: {done.stderr.strip()}")
+    return json.loads(done.stdout)
+
+
+def _check_lane(name: object, where: str, table: LaneTable) -> str:
     if not isinstance(name, str):
         raise InputError(f"材料の {where} に、文字列でないレーンがあります")
-    if name in excluded:
+    if name in table.excluded:
         raise InputError(f"材料のレーン {name} は、レポートに入れないレーンです")
-    if name not in lanes:
-        raise InputError(f"材料のレーン {name} は report-lanes.json にありません")
+    if name not in table.lanes:
+        raise InputError(f"材料のレーン {name} は {table.file} にありません")
     return name
 
 
@@ -95,8 +124,13 @@ def _is_run_id(value: object) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and value > 0
 
 
-def required_lanes(sources: object, lanes: dict[str, str], excluded: set[str]) -> dict[str, str]:
-    """ReportSources の runs から、レーンの名前とそのコミットを引く。形の誤りは InputError。"""
+def required_lanes(
+    sources: object, table_of: Callable[[str], LaneTable], results: dict[str, str]
+) -> dict[str, str]:
+    """ReportSources の runs から、レーンの名前とそのコミットを引き、結果のディレクトリを results に足す。
+
+    レーンは、run のコミットごとに table_of が返す表で確かめる。形の誤りは InputError。
+    """
     if not isinstance(sources, dict):
         raise InputError("材料がオブジェクトではありません")
     runs = cast("dict[str, object]", sources).get("runs")
@@ -110,17 +144,17 @@ def required_lanes(sources: object, lanes: dict[str, str], excluded: set[str]) -
         commit, names = _check_commit(run.get("commit"), f"runs #{i}"), run.get("lanes")
         if not isinstance(names, list) or not names:
             raise InputError(f"材料の runs #{i} の lanes が、空でない配列ではありません")
+        table = table_of(commit)
         for value in cast("list[object]", names):
-            name = _check_lane(value, f"runs #{i} の lanes", lanes, excluded)
+            name = _check_lane(value, f"runs #{i} の lanes", table)
             if name in commits:
                 raise InputError(f"材料のレーン {name} が 2 回あります")
             commits[name] = commit
+            results[name] = table.lanes[name]
     return commits
 
 
-def latest_lanes(
-    sources: dict[str, object], lanes: dict[str, str], excluded: set[str]
-) -> dict[str, tuple[str, int]]:
+def latest_lanes(sources: dict[str, object], table: LaneTable) -> dict[str, tuple[str, int]]:
     """ReportSources の latest から、レーンの名前とそのコミット・試した run を引く。形の誤りは InputError。"""
     latest = sources.get("latest", [])
     if not isinstance(latest, list):
@@ -130,7 +164,7 @@ def latest_lanes(
         if not isinstance(item, dict):
             raise InputError(f"材料の latest #{i} がオブジェクトではありません")
         entry = cast("dict[str, object]", item)
-        name = _check_lane(entry.get("lane"), f"latest #{i}", lanes, excluded)
+        name = _check_lane(entry.get("lane"), f"latest #{i}", table)
         where = f"latest #{i} のレーン {name}"
         commit = _check_commit(entry.get("commit"), where)
         run_id, from_run, artifact = (
@@ -152,25 +186,37 @@ def latest_lanes(
     return found
 
 
-def read_sources(sources: object, lanes: dict[str, str], excluded: set[str]) -> ReportSources:
-    """ReportSources を読む。開発版は、runs と latest を合わせてレポートのレーンが全部そろうこと。"""
-    commits = required_lanes(sources, lanes, excluded)
+def read_sources(
+    sources: object, table: LaneTable, table_at: Callable[[str], LaneTable]
+) -> ReportSources:
+    """ReportSources を読む。開発版は、runs と latest を合わせてレポートのレーンが全部そろうこと。
+
+    リリース版のレーンは、tests の job が選んだのと同じ、runs のコミットの表（table_at）で引く。
+    """
+    if not isinstance(sources, dict):
+        raise InputError("材料がオブジェクトではありません")
     raw = cast("dict[str, object]", sources)
     side = raw.get("side")
     if side not in ("dev", "release"):
         raise InputError(f"材料の side {repr(side)} が dev と release のどちらでもありません")
-    latest = latest_lanes(raw, lanes, excluded)
+    results: dict[str, str] = {}
+    commits = required_lanes(
+        raw, table_at if side == "release" else (lambda _commit: table), results
+    )
+    lanes = table.lanes
+    latest = latest_lanes(raw, table)
     if side == "release" and latest:
         raise InputError("リリース版の材料に latest があります")
     both = sorted(set(commits) & set(latest))
     if both:
         raise InputError(f"材料のレーン {', '.join(both)} が runs と latest の両方にあります")
     commits.update({name: commit for name, (commit, _) in latest.items()})
+    results.update({name: lanes[name] for name in latest})
     absent = sorted(set(lanes) - set(commits))
     if side == "dev" and absent:
         raise InputError(f"開発版の材料に、レーン {', '.join(absent)} がありません")
     return ReportSources(
-        cast("str", side), commits, {name: run for name, (_, run) in latest.items()}
+        cast("str", side), commits, {name: run for name, (_, run) in latest.items()}, results
     )
 
 
@@ -495,23 +541,34 @@ def main(
     lanes_path: Path = DEFAULT_LANES,
     run: Runner = run_allure,
     is_ancestor: Callable[[Path, str], bool] = git_is_ancestor,
+    lanes_at: Callable[[Path, str], object] = git_lanes_at,
 ) -> int:
     args, output, history, sources_path = _parse(argv)
     sources: ReportSources | None = None
     try:
-        raw = json.loads(lanes_path.read_text(encoding="utf-8"))
-        lanes = report_lanes(raw)
+        table = lane_table(json.loads(lanes_path.read_text(encoding="utf-8")))
         if sources_path is None:
             commits: dict[str, str] = {}
-            wanted = lanes
+            wanted = table.lanes
         else:
+            tables: dict[str, LaneTable] = {}
+
+            def table_at(commit: str) -> LaneTable:
+                if commit not in tables:
+                    file = f"{commit[:7]} の report-lanes.json"
+                    try:
+                        tables[commit] = lane_table(lanes_at(root, commit), file)
+                    except ValueError as error:
+                        raise InputError(f"{file}: {error}") from error
+                return tables[commit]
+
             sources = read_sources(
-                json.loads(sources_path.read_text(encoding="utf-8")), lanes, excluded_lanes(raw)
+                json.loads(sources_path.read_text(encoding="utf-8")), table, table_at
             )
             if sources.side == "dev" and history is not None:
                 raise InputError("開発版の材料には --history を渡せません（履歴はリリース版だけ）")
             commits = sources.commits
-            wanted = {name: lanes[name] for name in commits}
+            wanted = sources.results
     except (OSError, ValueError, InputError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 1
