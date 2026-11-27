@@ -313,8 +313,9 @@ bash のファイルが `bt_finish` の前で止まったときに runner が書
 | pytest | `.githooks/tests/conftest.py`・`libs/interface-spec/docs/tests/conftest.py`。どちらも minor の project のレーンだけで動くので、印の無いテストに minor を足す |
 | bash | `.githooks/scripts/test_report/bash-test.sh` の `_bt_severity_default` |
 
-失敗の分類は、Allure の既定の Product errors・Test errors を、重大度で分けて並べます。
-設定は `allurerc.mjs` の `categories` で、分類ごとに `groupBy: ["severity"]` を書いています。
+失敗の分類は、`allurerc.mjs` の `categories` で、不安定なテスト・製品の不具合・テストの不具合に分けます。
+分け方の決まりは、`specs/030-allure-test-report/contracts/test-report.md` の「レポートの失敗の分類」にあります。
+どの分類も、`groupBy: [{ label: "epic" }, "severity"]` で、project の下を重大度で分けて並べます。
 
 ## step
 

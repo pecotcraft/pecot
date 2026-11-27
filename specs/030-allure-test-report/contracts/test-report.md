@@ -225,7 +225,7 @@ python3 .githooks/scripts/test_report/generate.py --local --output <出力のデ
 
 ## レポートの失敗の分類
 
-`allurerc.mjs` の `categories` に、次の順で規則を書く（#817）。どれも `epic`（プロジェクト）ごとに分け、その下を失敗の文言で分ける。
+`allurerc.mjs` の `categories` に、次の順で規則を書く（#817）。どれも `epic`（プロジェクト）、重大度（`severity`）の順に分け、その下を失敗の文言で分ける。
 
 | 順 | 名前 | id | 入るもの |
 |---|---|---|---|

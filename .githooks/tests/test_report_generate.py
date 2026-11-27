@@ -1311,9 +1311,21 @@ def test_config_values() -> None:
             "flakyDetection": {"includePassedTests": True},
             # 既定の 2 つは後ろに足されるが、書いた規則が failed・broken をすべて取るので、結果が入らず画面に出ない。
             "categories": [
-                {"id": "flaky", "name": "不安定なテスト", "groupBy": [{"label": "epic"}]},
-                {"id": "product-errors", "name": "製品の不具合", "groupBy": [{"label": "epic"}]},
-                {"id": "test-errors", "name": "テストの不具合", "groupBy": [{"label": "epic"}]},
+                {
+                    "id": "flaky",
+                    "name": "不安定なテスト",
+                    "groupBy": [{"label": "epic"}, "severity"],
+                },
+                {
+                    "id": "product-errors",
+                    "name": "製品の不具合",
+                    "groupBy": [{"label": "epic"}, "severity"],
+                },
+                {
+                    "id": "test-errors",
+                    "name": "テストの不具合",
+                    "groupBy": [{"label": "epic"}, "severity"],
+                },
                 {"id": "_product_errors_default_category", "name": "Product errors", "groupBy": []},
                 {"id": "_test_errors_default_category", "name": "Test errors", "groupBy": []},
             ],
@@ -1325,19 +1337,19 @@ def test_config_values() -> None:
                     "id": "flaky",
                     "name": "不安定なテスト",
                     "matchers": {"statuses": ["failed", "broken"], "flaky": True},
-                    "groupBy": [{"label": "epic"}],
+                    "groupBy": [{"label": "epic"}, "severity"],
                 },
                 {
                     "id": "product-errors",
                     "name": "製品の不具合",
                     "matchers": {"statuses": ["failed"]},
-                    "groupBy": [{"label": "epic"}],
+                    "groupBy": [{"label": "epic"}, "severity"],
                 },
                 {
                     "id": "test-errors",
                     "name": "テストの不具合",
                     "matchers": {"statuses": ["broken"]},
-                    "groupBy": [{"label": "epic"}],
+                    "groupBy": [{"label": "epic"}, "severity"],
                 },
             ]
         }
