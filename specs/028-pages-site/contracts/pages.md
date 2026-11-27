@@ -31,6 +31,14 @@ Read the Docs の版の知らせと同じく、リリース版でない側でだ
 | `push`（`main`） | — | `dev`（その push のコミット） |
 | `pull_request`（opened・synchronize・reopened） | — | `pr`（PR の head のコミット）。head が同じリポの PR だけ。fork の PR では作らずに成功で終わる |
 | `pull_request`（closed） | — | 作らない（`pages-deploy.yml` を起こし、閉じた PR を掃除させるためだけに成功で終わる） |
+
+- `pull_request` は、`paths` でサイトの材料に触る PR に絞る（2026-11-27、#847 で改めた）。材料は次のとおり
+  - 定義書（`plugins/*/interface/**`・`actions/interface/**`）
+  - `libs/interface-spec/docs/**`・`libs/interface-spec/targets.json`・`libs/interface-spec/project.json`・`.github/assets/**`
+  - ビルドの手順と環境（この workflow・`.githooks/ci/dev-container.sh`・`.devcontainer/**`・`nx.json`）
+- root の `package.json`・`pnpm-lock.yaml` は入れない。lock を変えてもサイトを作れるかは、ci の `interface-spec:test-site` が確かめる
+- `paths` は PR の diff の最初の 300 ファイルしか見ない。材料が 301 番目以降にある大きな PR では、PR 版が作られない
+- `paths` に当たらない PR は、閉じても起動しない。PR 版を作った後にサイトの変更を消した PR の PR 版は、次の store が掃除する
 | `workflow_dispatch` | `side`（`release`・`dev`）だけ。コミットは受けない | `dev` は `github.sha`（起動した run のコミット）。`release` は ReleaseSources（data-model.md） |
 
 - `workflow_dispatch` では、side の job は `github.ref == 'refs/heads/main'` でなければ失敗する。main 以外のブランチや、`main` という名前のタグで起動された run は、側を作らない
@@ -91,27 +99,27 @@ job と権限:
 | job | 権限・environment | すること |
 |---|---|---|
 | verify | `contents: read`・`actions: read`・`pull-requests: read` | RunProvenance で側を決める。artifact を、確かめた run の ID と側から作った名前で取り、SideCheck（data-model.md）で確かめる。確かめた中身を、この run の artifact に上げる。中身は実行しない |
-| store | `contents: read`。environment `pages-store` | pages-store の App のトークンで `pages-store` を取り、StoreLayout の決まりで差し替える。verify が出した開いている PR の一覧に無い `pr/<番号>/` を消し、側の間の行き来のリンクを確かめて push する |
-| upload | `contents: read`・`pages: read` | `pages-store` を取り、`configure-pages` v6 → `upload-pages-artifact` v5 で artifact `github-pages` に上げる |
-| deploy | `contents: read`・`pages: write`・`id-token: write`（starter workflow の値）。environment `github-pages` | upload が上げた artifact を `deploy-pages` v5 で公開する |
-| preview-status | `statuses: write` | PR 版を保管し、deploy が成功したか、`changed` が偽で deploy を飛ばしたとき、PR の head のコミットに commit status を付ける。開いたときに中身があるように、deploy の後に付ける |
+| store | `contents: read`・`pages: read`・`statuses: write`。environment `pages-store` | pages-store の App のトークンで `pages-store` を取り、StoreLayout の決まりで差し替える。verify が出した開いている PR の一覧に無い `pr/<番号>/` を消し、側の間の行き来のリンクを確かめて push する。続けて `pages-store` を取り、`configure-pages` v6 → `upload-pages-artifact` v5 で artifact `github-pages` に上げる。上げずに済んだ PR 版には commit status を付ける |
+| deploy | `contents: read`・`pages: write`・`id-token: write`（starter workflow の値）と `statuses: write`。environment `github-pages` | store が上げた artifact を `deploy-pages` v5 で公開する。PR 版なら、公開の後に commit status を付ける |
 
 - `actions: write` は、どの job にも持たせない
 - verify の後の job は、verify が API から決めた値（側・PR の番号・head の SHA・開いている PR の番号の一覧）だけを使う
 - 受けた run が RunProvenance に合わないときは、verify が理由を summary に書き、store に側を渡さない。closed の PR の run と、合わない run でも、store は閉じた PR の掃除をする
-- store は、`pages-store` を書き換えて push したかを出力 `changed` にする。upload は、`changed` が真のときと、`workflow_dispatch` のときだけ動く。`workflow_dispatch` では verify と store は動かない
-- deploy は、upload が成功したときだけ動く。upload と deploy を 1 つの job にすると、上げた直後の artifact を `deploy-pages` の照会が見つけられないことがあるため、starter workflow と同じく分ける（2026-11-26、#804 で改めた。actions/deploy-pages#451）
+- store は、`pages-store` を書き換えて push したかを出力 `changed` にする。上げたかを出力 `uploaded` にする
+- store が上げるのは、`changed` が真のとき、`workflow_dispatch` のとき、`run_attempt` が 2 以上のとき。`workflow_dispatch` では verify と、store の保管の step は動かない
+  - push の後に上げる step が落ちてやり直すと、store は push 済みの中身を見て `changed` を偽にする。そのため、やり直しでは今の中身を上げる
+- deploy は、store が上げたときだけ動く。upload と deploy を 1 つの job にすると、上げた直後の artifact を `deploy-pages` の照会が見つけられないことがあるため、starter workflow と同じく分ける（2026-11-26、#804 で改めた。actions/deploy-pages#451）
+- upload の job と preview-status の job は、store と deploy に入れた（2026-11-27、#847。1 回の job の数を 5 から 3 にするため）。verify は、PR の artifact を確かめる job を App の鍵を持つ job と分けるため、残す
 
 concurrency:
 
 | job | concurrency |
 |---|---|
-| store | `group: pages-store`・`cancel-in-progress: false`・`queue: max`（待っている保管を消さない） |
-| upload | `group: pages`・`cancel-in-progress: false`（starter workflow の値）・`queue: max` |
+| store | `group: pages`・`cancel-in-progress: false`（starter workflow の値）・`queue: max`（待っている保管を消さない） |
 | deploy | `group: pages`・`cancel-in-progress: false`（starter workflow の値）・`queue: max` |
 
 - deploy の `queue: max` は、PR への push のたびに deploy が起きるため。既定の `queue: single` では、待っている deploy が後から来た deploy に取り消され、その PR 版の status が付かない
-- upload も deploy と同じ group に入れる。deploy は自分の upload が終わってから待ち始め、待ち始めた順（FIFO）に並ぶ。docs は実際に始まる順を保証しないので、順が入れ替われば、次の deploy まで古い中身が残る
+- starter workflow は、上げる job と deploy を `pages` の group に入れる。store も同じ group に入れ、保管も 1 つずつにする。deploy は自分の store が終わってから待ち始め、待ち始めた順（FIFO）に並ぶ。docs は実際に始まる順を保証しないので、順が入れ替われば、次の deploy まで古い中身が残る
 - `queue` は actionlint 1.7.12 が知らない。`.github/actionlint.yaml` の除外は path ごとなので、`paths` に `.github/workflows/pages-deploy.yml` を足し、publish-npm.yml と同じ除外を付ける。#529（除外を消す Issue）の対象にも加える
 
 commit status:
@@ -124,7 +132,7 @@ commit status:
 | 付け先 | PR の今の head のコミット |
 
 - `pages / preview` の context は、必須のチェックの名前と重ならない
-- `pages / preview` を付けるのは、main の定義で動く preview-status の job だけ
+- `pages / preview` を付けるのは、main の定義で動く store と deploy の `Set preview status` の step だけ
 - `GITHUB_TOKEN` で付けた status は、GitHub Actions に固定した必須のチェックを満たす（research R12）。そのため、上の 2 つを `.githooks/tests/test_pages_workflows.py` で固定する
 
 job summary:
