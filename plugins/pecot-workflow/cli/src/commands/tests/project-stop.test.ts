@@ -120,24 +120,22 @@ describe('位置引数の選択肢', () => {
     { name: 'project get の key', argv: ['project', 'get'] },
     { name: 'project set の key', argv: ['project', 'set'] },
     { name: 'project unset の key', argv: ['project', 'unset'] },
-    { name: 'tracker sync の source', argv: ['tracker', 'sync'] },
   ])('$name を省くと、GitHub と設定を読まずに終了コード 2 で止まる', async ({ argv }) => {
-    await explains('`project get` などの `key` と `tracker sync` の `source` を省略した場合のテストです。何も読み込まず、終了コード `2` で `Missing argument` の使い方の誤りを表示することを確認します。')
+    await explains('`project get`・`set`・`unset` の `key` を省略した場合のテストです。何も読み込まず、終了コード `2` で `Missing argument` の使い方の誤りを表示することを確認します。')
     const result = await runCommand({ argv })
     expect(result.code).toBe(2)
     expect(result.requests).toEqual([])
     expect(result.stdout).toBe('')
     expect(result.stderr).toContain(`Usage: pecot ${argv.join(' ')} [OPTIONS]`)
-    expect(result.stderr).toMatch(/Missing argument '(key|source)'\./u)
+    expect(result.stderr).toMatch(/Missing argument 'key'\./u)
   })
 
   it.for([
-    { name: 'project get の選択肢にない key', argv: ['project', 'get', 'develop_branch'], message: 'Invalid value for \'key\': \'develop_branch\' is not one of \'aggregation_repo\'.' },
-    { name: 'project set の選択肢にない key', argv: ['project', 'set', 'develop_branch', 'a/b'], message: 'Invalid value for \'key\': \'develop_branch\' is not one of \'aggregation_repo\'.' },
-    { name: 'project unset の選択肢にない key', argv: ['project', 'unset', 'develop_branch'], message: 'Invalid value for \'key\': \'develop_branch\' is not one of \'aggregation_repo\'.' },
-    { name: 'tracker sync の選択肢にない source', argv: ['tracker', 'sync', 'codeql'], message: 'Invalid value for \'source\': \'codeql\' is not one of \'dependabot\', \'security\'.' },
+    { name: 'project get の知らない key', argv: ['project', 'get', 'develop_branch'], message: 'Invalid value for \'key\': \'develop_branch\' is not one of \'aggregation_repo\'.' },
+    { name: 'project set の知らない key', argv: ['project', 'set', 'develop_branch', 'a/b'], message: 'Invalid value for \'key\': \'develop_branch\' is not one of \'aggregation_repo\'.' },
+    { name: 'project unset の知らない key', argv: ['project', 'unset', 'develop_branch'], message: 'Invalid value for \'key\': \'develop_branch\' is not one of \'aggregation_repo\'.' },
   ])('$name を渡すと、何も読まずに終了コード 2 で止まる', async ({ argv, message }) => {
-    await explains('位置引数へ選択肢以外の値を渡した場合のテストです。`key` や `source` が対象の場合に、何も読み込まず、終了コード `2` で `is not one of …` の使い方の誤りを表示することを確認します。')
+    await explains('位置引数 `key` へ選択肢以外の値を渡した場合のテストです。何も読み込まず、終了コード `2` で `is not one of …` の使い方の誤りを表示することを確認します。')
     const result = await runCommand({ argv })
     expect(result.code).toBe(2)
     expect(result.requests).toEqual([])

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの応答は readonly にしない */
 /* eslint-disable unicorn/no-null -- 偽サーバの応答に JSON の null を使う */
-// board sync の振る舞い（PW-BOARD-SYNC-*）を、runCli をプロセス内で呼んで確かめる。GitHub は偽サーバにする。
+// board add・board move・board show の振る舞いを、MCP のツールと runCli をプロセス内で呼んで確かめる。GitHub は偽サーバにする。
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -9,9 +9,8 @@ import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/
 import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
-import { botResult, commentsFailure, commentsRule, humanResult, prerequisitesRule } from '../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
-import type { IssueSpec } from '../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
-import { CONFIG_FILE, DEFAULT_HOST, graphqlRule, projectConfig, requestLabels, restRule, runCommand, runTool, STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
+import { prerequisitesRule } from '../../../../../libs/workflow-core/tests/_helpers/prerequisites.js'
+import { CONFIG_FILE, DEFAULT_HOST, graphqlRule, projectConfig, restRule, runCommand, runTool } from '../_helpers/command-harness.js'
 import type { CommandResult, ToolResult } from '../_helpers/command-harness.js'
 import { addedToBoard, boardItems, fieldUpdated, issueNodeId, linkedRepositories } from '../_helpers/board-issue-case.js'
 
@@ -21,9 +20,6 @@ type Json = Record<string, unknown>
 
 const FULL_WORKFLOW = { backlog: 'o1', blocked: 'ob', pending: 'o2', ready: 'o3', active: 'o4', in_review: 'o5', archived: 'o6' }
 const STATUS = { id: 'PVTSSF_status', options: { todo: 'st1', in_progress: 'st2', done: 'st3', needs_attention: 'st4' } }
-const PROJECTS_DIRECTORY = '.pecot/config/projects'
-const NO_ACTIVE = 'error: no active project\n  run: pecot project activate <PROJECT>\n'
-const UNSUPPORTED = 'warning: this GitHub Enterprise Server does not support issue dependencies (blockedBy); no column is moved\n'
 const notStarted = { number: 9 }
 
 function asJson(value: unknown): Json {
@@ -32,8 +28,8 @@ function asJson(value: unknown): Json {
 }
 
 // Blocked と Status の値を持つ設定
-function boardConfig(workflowOptions: Record<string, string> = FULL_WORKFLOW, repositories?: readonly Json[]): Json {
-  const base = projectConfig(repositories === undefined ? { workflowOptions } : { workflowOptions, repositories })
+function boardConfig(repositories?: readonly Json[]): Json {
+  const base = projectConfig(repositories === undefined ? { workflowOptions: FULL_WORKFLOW } : { workflowOptions: FULL_WORKFLOW, repositories })
   const project = asJson(base['project'])
   return { ...base, project: { ...project, fields: { ...asJson(project['fields']), status: STATUS } } }
 }
@@ -66,53 +62,20 @@ function item(id: string, number: number, workflow: string, extra: ItemExtra = {
   }
 }
 
-const deletion = (itemId: string, status = 200): ResponseRule => status === 200
-  ? graphqlRule('DeleteProjectItem', { deleteProjectV2Item: { deletedItemId: itemId } }, { projectId: 'PVT_1', itemId })
-  : { match: { operation: 'DeleteProjectItem', variables: { projectId: 'PVT_1', itemId } }, respond: { status, body: { message: 'Server Error' } }, times: 1 }
-const archivedItems = (count: number): Json[] => Array.from({ length: count }, (_unused, index) => item(`PVTI_a${String(index + 1).padStart(2, '0')}`, 100 + index, 'Archived', { state: 'CLOSED', updatedAt: `2026-02-${String(index + 1).padStart(2, '0')}T00:00:00Z` }))
-// Archived より古い updatedAt の Backlog。絞り込みが無いと、これも削除の対象になる
-const olderBacklog = (): Json => item('PVTI_r1', 11, 'Backlog', { updatedAt: '2026-01-01T00:00:00Z' })
-
-const RESET = 1_800_000_000
 const board = (...nodes: Json[]): ResponseRule => graphqlRule('ListProjectItems', { node: { items: { nodes, pageInfo: { hasNextPage: false, endCursor: null } } } })
 // single select の pecot-lane（選択肢は options）を持つボード
 const laneBoard = (options: readonly string[], ...nodes: Json[]): ResponseRule => graphqlRule('ListProjectItems', { node: { laneField: { options: options.map(name => ({ name })) }, items: { nodes, pageInfo: { hasNextPage: false, endCursor: null } } } })
-const write = (itemId: string, optionId: string): ResponseRule => graphqlRule('UpdateProjectItemField', { updateProjectV2ItemFieldValue: { projectV2Item: { id: itemId } } }, { itemId, optionId })
-const failedWrite = (optionId: string): ResponseRule => ({ match: { operation: 'UpdateProjectItemField', variables: { itemId: 'PVTI_1', optionId } }, respond: { status: 500, body: { message: 'boom' } }, times: 1 })
-const rateLimit = (used: number, reset = RESET): ResponseRule => restRule('GET', '/rate_limit', 200, { resources: { graphql: { limit: 5000, used, remaining: 5000 - used, reset } } })
-const RATE_NOTE = 'count: GraphQL points used: 30\ncount: GraphQL points remaining: 4870\n'
-const NO_POINTS_USED = 'count: GraphQL points used: 0\ncount: GraphQL points remaining: 4900\n'
-const done: IssueSpec = { number: 5, state: 'CLOSED', pullRequests: [{ number: 50, state: 'MERGED' }] }
-// 偽サーバの 500 の文。ポートは実行ごとに変わるので、stable で置き換えて比べる
-const SERVER_ERROR = 'GraphQL query error: Server error \'500 Internal Server Error\' for url \'http://127.0.0.1:PORT/graphql\'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500'
 // project activate の案内に出る名前（CONFIG_FILE のファイル名から .json を除いたもの）
 const ACTIVE_PROJECT = path.basename(CONFIG_FILE, '.json')
 const stable = (stderr: string): string => stderr.replaceAll(/http:\/\/127\.0\.0\.1:\d+/gu, 'http://127.0.0.1:PORT')
-
-async function sync(rules: ResponseRule[], argv: readonly string[] = [], config: Json | false = boardConfig()): Promise<CommandResult> {
-  return await runCommand({ argv: ['board', 'sync', ...argv], github: rules, config })
-}
 
 function expectClean(result: Readonly<Pick<CommandResult, 'problems' | 'unused'>>): void {
   expect(result.problems).toEqual([])
   expect(result.unused).toEqual([])
 }
 
-const writes = (result: Readonly<Pick<CommandResult, 'requests'>>): string[] => requestLabels(result.requests).filter(label => label === 'UpdateProjectItemField')
-
-// Blocked の #4 を Ready へ動かす 1 回分の応答
-const blockedToReadyRules = (): ResponseRule[] => [rateLimit(100), board(item('PVTI_4', 4, 'Blocked')), prerequisitesRule({ number: 4 }), write('PVTI_4', 'o3'), rateLimit(130)]
-const contentOf = (config: Json): string => `${JSON.stringify(config, undefined, 2)}\n`
-
-const syncWithPoints = async (rules: ResponseRule[], argv: readonly string[] = []): Promise<CommandResult> => await sync([rateLimit(100), ...rules, rateLimit(130)], argv)
 const tool = async (name: string, arguments_: Json, rules: ResponseRule[], config: Json = boardConfig()): Promise<ToolResult> => await runTool({ tool: name, arguments: arguments_, github: rules, config })
 
-// board_sync の MCP の呼び出し。GraphQL の点数の読み取りを前後に置く
-const withPoints = (...rules: ResponseRule[]): ResponseRule[] => [rateLimit(100), ...rules, rateLimit(130)]
-const syncBoard = async (...rules: ResponseRule[]): Promise<ToolResult> => await tool('board_sync', {}, withPoints(...rules))
-const syncBoardWith = async (config: Json, ...rules: ResponseRule[]): Promise<ToolResult> => await tool('board_sync', {}, withPoints(...rules), config)
-const syncTool = async (arguments_: Json, run: Readonly<{ github?: ResponseRule[], config?: Json | false, files?: Record<string, string> }>): Promise<ToolResult> =>
-  await runTool({ tool: 'board_sync', arguments: arguments_, github: run.github ?? [], config: run.config ?? boardConfig(), ...run.files !== undefined && { files: run.files } })
 const stableWarnings = (result: ToolResult): string[] => (Array.isArray(result.structured['warnings']) ? result.structured['warnings'].map(String) : []).map(warning => stable(warning))
 
 const noAlerts = (): ResponseRule => restRule('GET', '/repos/acme/demo/dependabot/alerts', 200, [])
@@ -131,695 +94,6 @@ const showRules = (): ResponseRule[] => [
   restRule('GET', '/repos/acme/demo/dependabot/alerts', 200, [{ security_vulnerability: { severity: 'high' } }]),
   prerequisitesRule({ number: 1, blockedBy: [notStarted] }),
 ]
-
-describe('board sync', () => {
-  it('Blocked の Issue の判定が startable なら、Ready へ動かす', async () => {
-    await explains('`board sync` の基本の動作のテストです。Blocked の Issue の判定が着手できる状態（`startable`）の場合に、Ready へ移動し、`moved` の行と GraphQL の点数を標準エラーに出力することを確認します。')
-    const result = await sync(blockedToReadyRules())
-    expectClean(result)
-    expect(result.code).toBe(0)
-    expect(result.stdout).toBe('')
-    expect(result.stderr).toBe(`moved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
-  })
-
-  it('進行の欄が旧い名前のボードでも、同じ Issue を動かし、旧い名前の警告と project init の案内を出す', async (context) => {
-    await verifies(context, 'PW-BOARD-SYNC-33')
-    await explains('進行の欄が旧い名前（`pecot-workflow-acme`）のボードを扱う、`board sync` のテストです。そのボードでも同じ Issue を移動し、旧い名前の警告と `pecot project init` の案内を標準エラーに出力することを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_4', 4, 'Blocked', { field: 'pecot-workflow-acme' })), prerequisitesRule({ number: 4 }), write('PVTI_4', 'o3'), rateLimit(130)])
-    expectClean(result)
-    expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`warning: this board uses the old field name pecot-workflow-acme\n  run: pecot project init acme <name> --host ghes.example.com\nmoved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
-  })
-
-  it('Item の値に pecot-priority・pecot-size が残るボードでは、同じ Issue を動かし、残った名前と project init の案内を出す', async (context) => {
-    await verifies(context, 'PW-BOARD-SYNC-34')
-    await explains('Item の値に旧いフィールドが残るボードを扱う、`board sync` のテストです。`pecot-priority` と `pecot-size` が残る場合でも同じ Issue を移動し、残った名前と `pecot project init` の案内を出力することを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_4', 4, 'Blocked', { others: ['pecot-priority'] }), item('PVTI_5', 5, 'Archived', { state: 'CLOSED', others: ['pecot-size', 'pecot-priority'] })), prerequisitesRule({ number: 4 }), write('PVTI_4', 'o3'), rateLimit(130)])
-    expectClean(result)
-    expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`warning: this board still has fields pecot does not use: pecot-priority, pecot-size\n  run: pecot project init acme <name> --host ghes.example.com\nmoved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
-  })
-
-  it('Ready の Issue に済んでいない前提があると、Blocked へ動かす', async () => {
-    await explains('Ready の Issue を Blocked へ移動する、`board sync` のテストです。済んでいない前提がある場合に、Blocked へ移動し、その理由を `moved` の行に出力することを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready', { blockedBy: 1 })), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), write('PVTI_1', 'ob'), rateLimit(130)])
-    expectClean(result)
-    expect(result.stderr).toBe(`moved: #1 Ready -> Blocked (blocked by #9 (not in review: #9 (not started)))\n${RATE_NOTE}`)
-  })
-
-  it('着手の跡の無い Active と In Review の Issue を、判定に合った列へ戻す', async () => {
-    await explains('着手の跡（ブランチや PR）を持たない Issue を扱う、`board sync` のテストです。Active と In Review の Issue が着手できる状態の場合に、判定に合った Ready へ戻すことを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_2', 2, 'Active'), item('PVTI_3', 3, 'In Review')), prerequisitesRule({ number: 2 }), prerequisitesRule({ number: 3 }), write('PVTI_2', 'o3'), write('PVTI_3', 'o3'), rateLimit(130)])
-    expectClean(result)
-    expect(result.stderr).toBe(`moved: #2 Active -> Ready (startable)\nmoved: #3 In Review -> Ready (startable)\n${RATE_NOTE}`)
-  })
-
-  it('着手の跡のある Issue は、blocked でも列と Status を変えず、warning を出す', async (context) => {
-    await verifies(context, 'PW-BOARD-SYNC-04')
-    await explains('着手の跡を持つ Issue を扱う、`board sync` のテストです。前提が済んでいない場合でも、列と Status を変えず、`warning` の行だけを出力することを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_2', 2, 'Active')), prerequisitesRule({ number: 2, branch: 'feat/2', blockedBy: [notStarted] }), rateLimit(130)])
-    expectClean(result)
-    expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`warning: #2 is in Active but blocked by #9\n${RATE_NOTE}`)
-    expect(writes(result)).toEqual([])
-  })
-
-  it('前提が無くブランチのある Blocked の Issue は、Ready へ動かさない', async () => {
-    await explains('`board sync` の判定のテストです。前提を持たず、ブランチを持つ Blocked の Issue は、Ready へ移動せず、書き込みも行わないことを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_4', 4, 'Blocked', { blockedBy: 0 })), prerequisitesRule({ number: 4, branch: 'feat/4' }), rateLimit(130)])
-    expectClean(result)
-    expect(result.stderr).toBe(RATE_NOTE)
-    expect(writes(result)).toEqual([])
-  })
-
-  it('Backlog と Pending の Issue は、前提を読まず、動かさない', async () => {
-    await explains('`board sync` の対象のテストです。Backlog と Pending の Issue は、前提を読み込まず、移動もしないことを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_7', 7, 'Backlog'), item('PVTI_8', 8, 'Pending')), rateLimit(130)])
-    expectClean(result)
-    expect(result.stderr).toBe(RATE_NOTE)
-    expect(requestLabels(result.requests)).not.toContain('GetIssuePrerequisites')
-    expect(writes(result)).toEqual([])
-  })
-
-  it('前提がマージされずに閉じた Issue の Status を Needs Attention にする', async () => {
-    await explains('前提が閉じられた Issue を扱う、`board sync` のテストです。前提がマージされないまま閉じた場合に、Blocked へ移動し、Status を `Needs Attention` に設定することを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [{ number: 5, state: 'CLOSED' }] }), write('PVTI_1', 'ob'), write('PVTI_1', 'st4'), rateLimit(130)])
-    expectClean(result)
-    expect(result.stderr).toBe(`moved: #1 Ready -> Blocked (blocked by #5 (closed without merge: #5))\nset: Status of #1 to Needs Attention\n${RATE_NOTE}`)
-  })
-
-  it('前提がすべて済んだ Issue の Needs Attention を、Todo に戻す', async () => {
-    await explains('`Needs Attention` の Status を戻す、`board sync` のテストです。前提がすべて済んだ Issue の Status が `Needs Attention` の場合に、Status を `Todo` に戻すことを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), commentsRule(1), write('PVTI_1', 'st1'), rateLimit(130)])
-    expectClean(result)
-    expect(result.stderr).toBe(`set: Status of #1 to Todo\n${RATE_NOTE}`)
-  })
-
-  it.for(['question', 'failed', 'limit'])('bot が書いた最後の自動処理の結果が %s なら、前提が済んでも Needs Attention を Todo に戻さない', async (result, context) => {
-    await verifies(context, 'PW-BOARD-SYNC-32')
-    await explains('`Needs Attention` の Status を戻す条件の、`board sync` のテストです。bot が書いた最後の自動処理の結果が `question`・`failed`・`limit` のいずれかの場合に、前提が済んでいても Status を戻さないことを確認します。')
-    const comments = [botResult('pr-created'), { body: '答えを書きました' }, botResult(result)]
-    const run = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), commentsRule(1, comments), rateLimit(130)])
-    expectClean(run)
-    expect(run.code).toBe(0)
-    expect(run.stderr).toBe(RATE_NOTE)
-    expect(writes(run)).toEqual([])
-  })
-
-  it('人が書いた自動処理の結果の目印は見ず、前提がすべて済んだ Issue の Needs Attention を Todo に戻す', async (context) => {
-    await verifies(context, 'PW-BOARD-SYNC-08')
-    await explains('`Needs Attention` の Status を戻す条件の、`board sync` のテストです。人が書いたコメントの結果の目印は自動処理の結果と見なさず、前提がすべて済んだ Issue の Status を `Todo` に戻すことを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), commentsRule(1, [humanResult('question')]), write('PVTI_1', 'st1'), rateLimit(130)])
-    expectClean(result)
-    expect(result.stderr).toBe(`set: Status of #1 to Todo\n${RATE_NOTE}`)
-  })
-
-  it('bot が書いた最後の自動処理の結果が人の対応を待たないものなら、Needs Attention を Todo に戻す', async (context) => {
-    await verifies(context, 'PW-BOARD-SYNC-08')
-    await explains('`Needs Attention` の Status を戻す条件の、`board sync` のテストです。bot が書いた最後の自動処理の結果が `out-of-scope` のように人の対応を待たないものの場合に、Status を `Todo` に戻すことを確認します。')
-    const comments = [botResult('question'), botResult('out-of-scope')]
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), commentsRule(1, comments), write('PVTI_1', 'st1'), rateLimit(130)])
-    expectClean(result)
-    expect(result.stderr).toBe(`set: Status of #1 to Todo\n${RATE_NOTE}`)
-  })
-
-  it('Status が Needs Attention の Issue のコメントを読めないと、判定を出せない warning を出し、Status を戻さない', async (context) => {
-    await verifies(context, 'PW-BOARD-SYNC-23')
-    await explains('コメントを読み取れない場合の、`board sync` のテストです。Status が `Needs Attention` の Issue のコメントを取得できない場合に、warning を出力し、Status を戻さないことを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), commentsFailure(1), rateLimit(130)])
-    expectClean(result)
-    expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`warning: could not judge #1: GitHub API error: 500\n${RATE_NOTE}`)
-    expect(writes(result)).toEqual([])
-  })
-
-  it('--dry-run を付けると、同じ文を dry-run の行で出し、ボードに書かない', async (context) => {
-    await verifies(context, 'PW-BOARD-SYNC-09')
-    await explains('`board sync --dry-run` のテストです。`--dry-run` を指定した場合に、移動の予定を `dry-run` の行として出力し、ボードには書き込まないことを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [{ number: 5, state: 'CLOSED' }] }), commentsRule(1), prerequisitesRule({ number: 4 }), rateLimit(100)], ['--dry-run'])
-    expectClean(result)
-    expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`dry-run: would move #1 Ready -> Blocked (blocked by #5 (closed without merge: #5))\ndry-run: would move #4 Blocked -> Ready (startable)\n${NO_POINTS_USED}`)
-    expect(writes(result)).toEqual([])
-  })
-
-  it('--dry-run で Status を変える予定も、dry-run の行で出す', async (context) => {
-    await verifies(context, 'PW-BOARD-SYNC-09')
-    await explains('`board sync --dry-run` のテストです。`--dry-run` を指定した場合に、Status を変更する予定も `dry-run` の行として出力し、ボードには書き込まないことを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready'), item('PVTI_3', 3, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [{ number: 5, state: 'CLOSED' }] }), prerequisitesRule({ number: 3, label: 'Needs Attention', blockedBy: [done] }), commentsRule(3), rateLimit(100)], ['--dry-run'])
-    expectClean(result)
-    expect(result.stderr).toBe(`dry-run: would move #1 Ready -> Blocked (blocked by #5 (closed without merge: #5))\ndry-run: would set Status of #1 to Needs Attention\ndry-run: would set Status of #3 to Todo\n${NO_POINTS_USED}`)
-    expect(writes(result)).toEqual([])
-  })
-
-  it('書き込みに失敗した Issue は、warning を出し、ほかの Issue を続けてから、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-BOARD-SYNC-10')
-    await explains('ボードへの書き込みが失敗した場合の、`board sync` のテストです。1 件の Issue の書き込みが失敗した場合に、warning を出力して残りの Issue の処理を続け、終了コード 1 で終わることを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 4 }), failedWrite('ob'), write('PVTI_4', 'o3'), rateLimit(130)])
-    expectClean(result)
-    expect(result.code).toBe(1)
-    expect(stable(result.stderr)).toBe(`warning: could not move #1: ${SERVER_ERROR}\nmoved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}error: could not write 1 Issue to the board\n`)
-    expect(writes(result)).toHaveLength(2)
-  })
-
-  it('列の書き込みが成功し Status の書き込みだけ失敗すると、move の行の後に warning を出し、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-BOARD-SYNC-10')
-    await explains('ボードへの書き込みが失敗した場合の、`board sync` のテストです。列の書き込みが成功し、Status の書き込みだけが失敗した場合に、`moved` の行に続けて warning を出力し、終了コード 1 で終わることを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [{ number: 5, state: 'CLOSED' }] }), write('PVTI_1', 'ob'), failedWrite('st4'), rateLimit(130)])
-    expectClean(result)
-    expect(result.code).toBe(1)
-    expect(stable(result.stderr)).toBe(`moved: #1 Ready -> Blocked (blocked by #5 (closed without merge: #5))\nwarning: could not move #1: ${SERVER_ERROR}\n${RATE_NOTE}error: could not write 1 Issue to the board\n`)
-    expect(writes(result)).toHaveLength(2)
-  })
-
-  it('選択肢の ID が古くて 2 件の書き込みに失敗すると、warning を 2 行と ID を読み直す案内を 1 回出し、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-BOARD-SYNC-10')
-    await explains('ボードへの書き込みが失敗した場合の、`board sync` のテストです。選択肢の ID が古く、2 件の書き込みが失敗した場合に、warning を 2 行と ID を読み直す案内を 1 回だけ出力し、終了コード 1 で終わることを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready'), item('PVTI_3', 3, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 3, blockedBy: [notStarted] }), staleOptionUpdate(2), rateLimit(130)])
-    expectClean(result)
-    expect(result.code).toBe(1)
-    expect(result.stderr).toBe([
-      `warning: could not move #1: ${STALE_OPTION_TEXT}`,
-      `  hint: if the board options were recreated, run pecot project activate ${ACTIVE_PROJECT} to read their IDs again`,
-      `warning: could not move #3: ${STALE_OPTION_TEXT}`,
-      `${RATE_NOTE}error: could not write 2 Issues to the board`,
-      '',
-    ].join('\n'))
-    expect(writes(result)).toHaveLength(2)
-  })
-
-  it('一覧で前提が 0 件の Ready の Issue だけ、前提を個別に読まない', async () => {
-    await explains('`board sync` の読み取りの回数のテストです。一覧の応答で前提が 0 件と分かる Ready の Issue だけは、前提を個別に読み込まないことを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready', { blockedBy: 0 }), item('PVTI_4', 4, 'Blocked', { blockedBy: 0 }), item('PVTI_2', 2, 'Active', { blockedBy: 0 })), prerequisitesRule({ number: 4 }), prerequisitesRule({ number: 2, branch: 'feat/2' }), write('PVTI_4', 'o3'), rateLimit(130)])
-    expectClean(result)
-    expect(result.stderr).toBe(`moved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
-    expect(requestLabels(result.requests).filter(label => label === 'GetIssuePrerequisites')).toHaveLength(2)
-  })
-
-  it('動かす先の選択肢がボードに存在しないと、動かさず、warning を 1 回出す', async () => {
-    await explains('移動先の選択肢が存在しない場合の、`board sync` のテストです。進行の欄に `Blocked` の選択肢が存在しない場合に、移動せず、warning を 1 回だけ出力することを確認します。')
-    const withoutBlocked = Object.fromEntries(Object.entries(FULL_WORKFLOW).filter(([name]) => name !== 'blocked'))
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready'), item('PVTI_3', 3, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 3, blockedBy: [notStarted] }), rateLimit(130)], [], boardConfig(withoutBlocked))
-    expectClean(result)
-    expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`warning: the board has no option Blocked; add it with pecot project init\n${RATE_NOTE}`)
-    expect(writes(result)).toEqual([])
-  })
-
-  it('Issue の依存関係に対応しない GHES では、warning を 1 回出し、終了コード 0 で終わる', async () => {
-    await explains('Issue の依存関係（`blockedBy`）に対応していない GitHub Enterprise Server を扱う、`board sync` のテストです。この場合に、warning を 1 回だけ出力し、何も移動せずに終了コード 0 で終わることを確認します。')
-    const unsupported: ResponseRule = { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready')), unsupported, rateLimit(100)])
-    expect(result.problems).toEqual([])
-    expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`${UNSUPPORTED}${NO_POINTS_USED}`)
-    expect(writes(result)).toEqual([])
-  })
-
-  it('一覧の新しいクエリがスキーマの失敗になると、古いクエリで読み直し、前提を読まずに終了コード 0 で終わる', async () => {
-    await explains('スキーマのエラーで一覧の取得が失敗した場合の、`board sync` のテストです。一覧の新しいクエリが拒否された場合に、古いクエリで読み直し、前提は読み込まずに終了コード 0 で終わることを確認します。')
-    const rejected: ResponseRule = { match: { operation: 'ListProjectItems' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }
-    const legacy = graphqlRule('ListProjectItemsLegacy', { node: { items: { nodes: [item('PVTI_1', 1, 'Ready')], pageInfo: { hasNextPage: false, endCursor: null } } } })
-    const result = await sync([rateLimit(100), rejected, legacy, rateLimit(100)])
-    expectClean(result)
-    expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`${UNSUPPORTED}${NO_POINTS_USED}`)
-    expect(requestLabels(result.requests)).not.toContain('GetIssuePrerequisites')
-  })
-
-  it('点数の使用量と残りを、実行の前後の差で、標準エラーに count の行で出す', async (context) => {
-    await verifies(context, 'PW-BOARD-SYNC-14')
-    await explains('GraphQL の点数の表示のテストです。実行の前後の差から、使用量と残りを `count` の行として標準エラーに出力することを確認します。')
-    const result = await sync([rateLimit(100), board(), rateLimit(130)])
-    expectClean(result)
-    expect(result.stderr).toBe(RATE_NOTE)
-  })
-
-  it('点数の差が負なら、使用量の行を省く', async (context) => {
-    await verifies(context, 'PW-BOARD-SYNC-14')
-    await explains('GraphQL の点数の表示のテストです。点数の差が負の値の場合に、使用量の行を省き、残りの行だけを出力することを確認します。')
-    const result = await sync([rateLimit(4990), board(), rateLimit(10)])
-    expectClean(result)
-    expect(result.stderr).toBe('count: GraphQL points remaining: 4990\n')
-  })
-
-  it('点数の集計期間が実行の途中で切り替わると、差が正でも使用量の行を省く', async (context) => {
-    await verifies(context, 'PW-BOARD-SYNC-14')
-    await explains('GraphQL の点数の表示のテストです。集計期間（リセット時刻）が実行の途中で切り替わった場合に、差が正でも使用量の行を省くことを確認します。')
-    const result = await sync([rateLimit(100), board(), rateLimit(130, RESET + 3600)])
-    expectClean(result)
-    expect(result.stderr).toBe('count: GraphQL points remaining: 4870\n')
-  })
-
-  it('点数を読めなくても、その行を省いて続ける', async (context) => {
-    await verifies(context, 'PW-BOARD-SYNC-15')
-    await explains('GraphQL の点数を取得できない場合の、`board sync` のテストです。点数の取得が失敗した場合に、その行を省いて処理を続けることを確認します。')
-    const missing: ResponseRule = { match: { method: 'GET', path: '/rate_limit' }, respond: { status: 404, body: { message: 'Not Found' } }, times: 2 }
-    const result = await sync([missing, board(item('PVTI_4', 4, 'Blocked')), prerequisitesRule({ number: 4 }), write('PVTI_4', 'o3')])
-    expectClean(result)
-    expect(result.code).toBe(0)
-    expect(result.stderr).toBe('moved: #4 Blocked -> Ready (startable)\n')
-  })
-
-  it('ボードの取得で GitHub API がエラーを返すと、点数の行を出し、終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-BOARD-SYNC-16')
-    await explains('ボードの取得が失敗した場合の、`board sync` のテストです。GitHub API が 500 を返した場合に、点数の行とエラーを出力して終了コード 1 で終わることを確認します。')
-    const result = await sync([rateLimit(100), { match: { operation: 'ListProjectItems' }, respond: { status: 500, body: { message: 'Server Error' } }, times: 1 }, rateLimit(101)])
-    expectClean(result)
-    expect(result.code).toBe(1)
-    expect(result.stdout).toBe('')
-    expect(stable(result.stderr)).toBe(`count: GraphQL points used: 1\ncount: GraphQL points remaining: 4899\nerror: could not read project board: ${SERVER_ERROR}\n`)
-  })
-
-  it('判定を読めない Issue があると、warning の行を出し、その Issue を動かさない', async () => {
-    await explains('判定を出せない Issue を扱う、`board sync` のテストです。リポジトリの設定が `develop_branch` を持たず判定できない場合に、warning を出力し、その Issue を移動しないことを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), rateLimit(130)], [], boardConfig(FULL_WORKFLOW, [{ owner: 'acme', name: 'demo' }]))
-    expectClean(result)
-    expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`warning: could not judge #1: develop_branch is not set for acme/demo\n${RATE_NOTE}`)
-    expect(writes(result)).toEqual([])
-  })
-
-  it('Ready の Issue の前提が循環すると、Blocked へ動かす', async () => {
-    await explains('前提が循環している Issue を扱う、`board sync` のテストです。Ready の Issue 同士が互いを前提にしている場合に、どちらも Blocked へ移動し、循環する Issue の並び（`#1 -> #2 -> #1`）を理由に出力することを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready'), item('PVTI_2', 2, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [{ number: 2 }] }), prerequisitesRule({ number: 2, blockedBy: [{ number: 1 }] }), write('PVTI_1', 'ob'), write('PVTI_2', 'ob'), rateLimit(130)])
-    expectClean(result)
-    expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`moved: #1 Ready -> Blocked (blocked by #2 (cycle: #1 -> #2 -> #1))\nmoved: #2 Ready -> Blocked (blocked by #1 (cycle: #1 -> #2 -> #1))\n${RATE_NOTE}`)
-  })
-
-  it('PR・Tracker・Epic のカードは、列と Status を動かさない', async () => {
-    await explains('PR・Tracker・Epic のカードを扱う、`board sync` のテストです。これらのカードは、列と Status のどちらも動かさないことを確認します。')
-    const result = await sync([rateLimit(100), board(item('PVTI_10', 10, 'Blocked', { isPullRequest: true }), item('PVTI_11', 11, 'Blocked', { title: '[Tracker] 追跡' }), item('PVTI_12', 12, 'Blocked')), prerequisitesRule({ number: 12, issueType: 'Epic', subIssues: 2 }), rateLimit(130)])
-    expectClean(result)
-    expect(result.code).toBe(0)
-    expect(result.stderr).toBe(RATE_NOTE)
-    expect(writes(result)).toEqual([])
-    expect(requestLabels(result.requests).filter(label => label === 'GetIssuePrerequisites')).toHaveLength(1)
-  })
-
-  it('複数のリポがあるボードでは、設定の最初のリポ以外の Issue を owner/repo#N で表す', async () => {
-    await explains('複数のリポジトリを登録したボードを扱う、`board sync` のテストです。設定の最初のリポジトリ以外の Issue を、`owner/repo#N` の形で `moved` の行に出力することを確認します。')
-    const repositories = [{ owner: 'acme', name: 'demo', develop_branch: 'main' }, { owner: 'acme', name: 'other', develop_branch: 'main' }]
-    const result = await sync([rateLimit(100), board(item('PVTI_4', 4, 'Blocked'), item('PVTI_6', 6, 'Blocked', { repository: 'other' })), prerequisitesRule({ number: 4 }), prerequisitesRule({ number: 6, repo: 'other' }), write('PVTI_4', 'o3'), write('PVTI_6', 'o3'), rateLimit(130)], [], boardConfig(FULL_WORKFLOW, repositories))
-    expectClean(result)
-    expect(result.stderr).toBe(`moved: #4 Blocked -> Ready (startable)\nmoved: acme/other#6 Blocked -> Ready (startable)\n${RATE_NOTE}`)
-  })
-
-  describe('設定の解決', () => {
-    const second = `${PROJECTS_DIRECTORY}/${DEFAULT_HOST}_acme_other_acme.json`
-
-    it('.active が無く、設定が 1 つなら、それを使う', async () => {
-      await explains('`board sync` のプロジェクトの設定の選択のテストです。`.active` が存在しなくても、設定が 1 つだけであれば、その設定を使って処理することを確認します。')
-      const result = await runCommand({ argv: ['board', 'sync'], github: blockedToReadyRules(), config: false, files: { [CONFIG_FILE]: contentOf(boardConfig()) } })
-      expectClean(result)
-      expect(result.code).toBe(0)
-      expect(result.stderr).toBe(`moved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
-    })
-
-    it('.active が無く、設定が 2 つ以上なら、--project を求めて終了コード 1 で止まる', async () => {
-      await explains('`board sync` のプロジェクトの設定の選択のテストです。`.active` が存在せず、設定が 2 つ以上の場合に、`--project` を求めるエラーを出力して終了コード 1 で終わり、GitHub へは要求しないことを確認します。')
-      const result = await runCommand({ argv: ['board', 'sync'], github: [], config: false, files: { [CONFIG_FILE]: contentOf(boardConfig()), [second]: contentOf(boardConfig()) } })
-      expect(result.code).toBe(1)
-      expect(result.stdout).toBe('')
-      expect(result.stderr).toBe(`error: no active project, and 2 project configs exist\n  choose one with --project <NAME>\n  available: ${DEFAULT_HOST}_acme_board_acme, ${DEFAULT_HOST}_acme_other_acme\n`)
-      expect(result.requests).toEqual([])
-    })
-
-    it.for([`${DEFAULT_HOST}_acme_other_acme`, `${DEFAULT_HOST}_acme_other_acme.json`])('--project で設定名 %s を渡すと、アクティブな設定ではなく、その設定を使う', async (name) => {
-      await explains('`board sync` の `--project` のテストです。設定名を渡した場合に（`.json` の拡張子の有無を問わず）、アクティブな設定ではなく、指定した設定を使うことを確認します。')
-      const other = boardConfig()
-      const result = await runCommand({ argv: ['board', 'sync', '--project', name], github: blockedToReadyRules(), config: projectConfig(), files: { [second]: contentOf({ ...other, project: { ...asJson(other['project']), id: 'PVT_1' } }) } })
-      expectClean(result)
-      expect(result.stderr).toBe(`moved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
-    })
-
-    it.for(['nothing', '../x', ''])('--project の設定 %j が無いと、使える設定の名前を出して終了コード 1 で終わる', async (name) => {
-      await explains('`board sync` の `--project` のテストです。存在しない設定名（空文字や `../x` を含む）を渡した場合に、使える設定の名前を出力して終了コード 1 で終わることを確認します。')
-      const result = await sync([], ['--project', name])
-      expect(result.code).toBe(1)
-      expect(result.stderr).toBe(`error: project config not found: ${name}\n  available: ${DEFAULT_HOST}_acme_board_acme\n`)
-      expect(result.requests).toEqual([])
-    })
-
-    it('設定がまったく無いと、アクティブなプロジェクトが無いと出して終了コード 1 で終わる', async () => {
-      await explains('`board sync` のプロジェクトの設定の選択のテストです。設定がまったく存在しない場合に、アクティブなプロジェクトが存在しないことを示すエラーを出力して終了コード 1 で終わることを確認します。')
-      const result = await sync([], [], false)
-      expect(result.code).toBe(1)
-      expect(result.stderr).toBe(NO_ACTIVE)
-    })
-
-    it('設定の JSON が読めないと、error の行を出して終了コード 1 で終わる', async () => {
-      await explains('`board sync` のプロジェクトの設定の読み取りのテストです。設定の JSON を読み取れない場合に、`invalid config file` で始まるエラーを出力して終了コード 1 で終わり、GitHub へは要求しないことを確認します。')
-      const result = await runCommand({ argv: ['board', 'sync'], github: [], config: false, files: { [CONFIG_FILE]: '{ broken' } })
-      expect(result.code).toBe(1)
-      expect(result.stdout).toBe('')
-      expect(result.stderr).toMatch(/^error: invalid config file: [^\n]+\n$/u)
-      expect(result.stderr).toContain(CONFIG_FILE)
-      expect(result.requests).toEqual([])
-    })
-  })
-
-  it('更新の新しい 20 件を超える Archived の項目があると、超えた分だけをボードから削除し、deleted の行を標準エラーに出す', async () => {
-    await explains('ボードの Archived の項目の整理を扱う、`board sync` のテストです。更新が新しい 20 件を超える Archived の項目がある場合に、超えた分だけをボードから削除し、`deleted` の行を出力することを確認します。')
-    const result = await syncWithPoints([board(...archivedItems(22), olderBacklog()), deletion('PVTI_a01'), deletion('PVTI_a02')])
-    expectClean(result)
-    expect(result.code).toBe(0)
-    const deleted = result.requests.filter(request => request.type === 'graphql' && request.operation === 'DeleteProjectItem').map(request => request.type === 'graphql' ? Reflect.get(asJson(request.variables), 'itemId') : undefined)
-    expect(deleted.toSorted((first, second) => String(first).localeCompare(String(second)))).toEqual(['PVTI_a01', 'PVTI_a02'])
-    expect(result.stderr).toBe(`deleted: 2 archived items\n${RATE_NOTE}`)
-  })
-
-  it('Archived の項目がちょうど 20 件なら、ボードから何も削除しない', async () => {
-    await explains('ボードの Archived の項目の整理を扱う、`board sync` のテストです。Archived の項目がちょうど 20 件の場合に、ボードから何も削除せず、`deleted` の行も出力しないことを確認します。')
-    const result = await syncWithPoints([board(...archivedItems(20), olderBacklog())])
-    expectClean(result)
-    expect(requestLabels(result.requests)).not.toContain('DeleteProjectItem')
-    expect(result.stderr).not.toContain('archived')
-  })
-
-  it('--dry-run を付けると、Archived の項目を削除せず、削除する件数を dry-run の行で標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-BOARD-SYNC-29')
-    await explains('ボードの Archived の項目の整理を扱う、`board sync --dry-run` のテストです。`--dry-run` を指定した場合に、削除は行わず、削除する予定の件数を `dry-run` の行として出力することを確認します。')
-    const result = await syncWithPoints([board(...archivedItems(22), olderBacklog())], ['--dry-run'])
-    expectClean(result)
-    expect(result.code).toBe(0)
-    expect(requestLabels(result.requests)).not.toContain('DeleteProjectItem')
-    expect(result.stderr).toBe(`dry-run: would delete 2 archived items\n${RATE_NOTE}`)
-  })
-
-  it('Archived の項目を削除できなかったなら、warning の行を出して続け、error の行を出して終了コード 1 で終わる', async (context) => {
-    await verifies(context, 'PW-BOARD-SYNC-31')
-    await explains('ボードの Archived の項目の整理を扱う、`board sync` のテストです。削除が失敗した場合に、warning を出力して処理を続け、最後に `error` の行を出力して終了コード 1 で終わることを確認します。')
-    const result = await syncWithPoints([board(...archivedItems(22), olderBacklog()), deletion('PVTI_a01', 500), deletion('PVTI_a02')])
-    expect(result.code).toBe(1)
-    expect(result.stderr).toBe(`deleted: 1 archived items\nwarning: failed to delete 1 archived items\n${RATE_NOTE}error: could not delete 1 archived item from the board\n`)
-  })
-
-  describe('MCP の data', () => {
-    it('Issue を動かすと、動かした Issue と削除した Archived の件数を返す', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-01')
-      await explains('MCP ツール `board_sync` の結果のテストです。Issue を移動した場合に、移動した Issue の一覧（`moves`）と、削除した Archived の件数（`deletedArchived`）を返すことを確認します。')
-      const result = await tool('board_sync', {}, blockedToReadyRules())
-      expect(result.structured).toEqual({ moves: [{ issue: '#4', from: 'Blocked', to: 'Ready', reason: 'startable' }], deletedArchived: 0 })
-    })
-
-    it('進行の欄が旧い名前のボードでは、同じ Issue を動かし、旧い名前と project_init の案内を warnings に入れる', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-33')
-      await explains('進行の欄が旧い名前のボードを扱う、MCP ツール `board_sync` のテストです。同じ Issue を移動し、旧い名前と `project_init` の案内を `warnings` に入れることを確認します。')
-      const result = await tool('board_sync', {}, [rateLimit(100), board(item('PVTI_4', 4, 'Blocked', { field: 'pecot-workflow-acme' })), prerequisitesRule({ number: 4 }), write('PVTI_4', 'o3'), rateLimit(130)])
-      expectClean(result)
-      expect(result.structured).toMatchObject({ moves: [{ issue: '#4', from: 'Blocked', to: 'Ready', reason: 'startable' }] })
-      expect(stableWarnings(result)[0]).toMatch(/^this board uses the old field name pecot-workflow-acme\n.*project_init/su)
-    })
-
-    it('旧い名前の欄と pecot-priority・pecot-size が残るボードでは、1 つの warning で project_init を案内する', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-33')
-      await verifies(context, 'PW-BOARD-SYNC-34')
-      await explains('旧い名前の欄と旧いフィールドが両方とも残るボードを扱う、MCP ツール `board_sync` のテストです。`pecot-priority`・`pecot-size` を含めて、`project_init` の案内を 1 つの warning にまとめて `warnings` に入れることを確認します。')
-      const result = await tool('board_sync', {}, [rateLimit(100), board(item('PVTI_4', 4, 'Blocked', { field: 'pecot-workflow-acme', others: ['pecot-size', 'pecot-priority'] })), prerequisitesRule({ number: 4 }), write('PVTI_4', 'o3'), rateLimit(130)])
-      expectClean(result)
-      const migrations = stableWarnings(result).filter(warning => warning.includes('project_init'))
-      expect(migrations).toEqual([`this board uses the old field name pecot-workflow-acme and still has fields pecot does not use: pecot-priority, pecot-size\n  call project_init with owner: "acme", name: <name>, host: "${DEFAULT_HOST}"`])
-    })
-
-    it('20 件を超えた Archived を削除すると、その件数を deletedArchived に返す', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-28')
-      await explains('MCP ツール `board_sync` の Archived の項目の整理のテストです。20 件を超えた Archived の項目を削除した場合に、その件数を `deletedArchived` に返すことを確認します。')
-      const result = await tool('board_sync', {}, [rateLimit(100), board(...archivedItems(22), olderBacklog()), deletion('PVTI_a01'), deletion('PVTI_a02'), rateLimit(130)])
-      expect(result.structured).toEqual({ moves: [], deletedArchived: 2 })
-    })
-
-    it('Archived の削除が一部で失敗すると、削除できた件数と warning を data に残して失敗を返す', async (context) => {
-      await verifies(context, 'PW-COMMON-18')
-      await verifies(context, 'PW-COMMON-19')
-      await verifies(context, 'PW-BOARD-SYNC-30')
-      await verifies(context, 'PW-BOARD-SYNC-31')
-      await explains('MCP ツール `board_sync` の Archived の項目の整理のテストです。削除が一部で失敗した場合に、削除できた件数と warning を結果に残し、`kind` が `partial-failure` の失敗を返すことを確認します。')
-      const result = await tool('board_sync', {}, [rateLimit(100), board(...archivedItems(22), olderBacklog()), deletion('PVTI_a01', 500), deletion('PVTI_a02'), rateLimit(130)])
-      expect(result).toMatchObject({ isError: true, structured: { kind: 'partial-failure' } })
-      expect(result.structured).toEqual({
-        moves: [],
-        deletedArchived: 1,
-        kind: 'partial-failure',
-        detail: 'could not delete 1 archived item from the board',
-        warnings: ['failed to delete 1 archived items'],
-      })
-    })
-  })
-
-  describe('MCP の呼び出し', () => {
-    const second = `${PROJECTS_DIRECTORY}/${DEFAULT_HOST}_acme_other_acme.json`
-
-    it('Ready の Issue に済んでいない前提があると、Blocked へ動かし、moves に入れる', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-02')
-      await explains('MCP ツール `board_sync` の移動のテストです。Ready の Issue に済んでいない前提がある場合に、Blocked へ移動し、その理由とともに `moves` に入れることを確認します。')
-      const result = await syncBoard(board(item('PVTI_1', 1, 'Ready', { blockedBy: 1 })), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), write('PVTI_1', 'ob'))
-      expectClean(result)
-      expect(result.structured).toEqual({ moves: [{ issue: '#1', from: 'Ready', to: 'Blocked', reason: 'blocked by #9 (not in review: #9 (not started))' }], deletedArchived: 0 })
-    })
-
-    it('着手の跡の無い Active と In Review の Issue を、判定に合った列へ戻す', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-03')
-      await explains('MCP ツール `board_sync` の移動のテストです。着手の跡を持たない Active と In Review の Issue を、判定に合った Ready へ戻し、`moves` に入れることを確認します。')
-      const result = await syncBoard(board(item('PVTI_2', 2, 'Active'), item('PVTI_3', 3, 'In Review')), prerequisitesRule({ number: 2 }), prerequisitesRule({ number: 3 }), write('PVTI_2', 'o3'), write('PVTI_3', 'o3'))
-      expectClean(result)
-      expect(result.structured).toEqual({ moves: [{ issue: '#2', from: 'Active', to: 'Ready', reason: 'startable' }, { issue: '#3', from: 'In Review', to: 'Ready', reason: 'startable' }], deletedArchived: 0 })
-    })
-
-    it('着手の跡のある Issue は、blocked でも列と Status を変えず、warnings で知らせる', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-04')
-      await explains('MCP ツール `board_sync` の移動のテストです。着手の跡を持つ Issue は、前提が済んでいなくても移動せず、`warnings` で知らせることを確認します。')
-      const result = await syncBoard(board(item('PVTI_2', 2, 'Active')), prerequisitesRule({ number: 2, branch: 'feat/2', blockedBy: [notStarted] }))
-      expectClean(result)
-      expect(result.structured).toEqual({ moves: [], deletedArchived: 0, warnings: ['#2 is in Active but blocked by #9'] })
-      expect(writes(result)).toEqual([])
-    })
-
-    it('前提が無くブランチのある Blocked の Issue は、Ready へ動かさない', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-05')
-      await explains('MCP ツール `board_sync` の移動のテストです。前提を持たず、ブランチを持つ Blocked の Issue は、Ready へ移動せず、`moves` を空にすることを確認します。')
-      const result = await syncBoard(board(item('PVTI_4', 4, 'Blocked', { blockedBy: 0 })), prerequisitesRule({ number: 4, branch: 'feat/4' }))
-      expectClean(result)
-      expect(result.structured).toEqual({ moves: [], deletedArchived: 0 })
-      expect(writes(result)).toEqual([])
-    })
-
-    it('Backlog と Pending の Issue は、前提を読まず、動かさない', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-06')
-      await explains('MCP ツール `board_sync` の対象のテストです。Backlog と Pending の Issue は、前提を読み込まず、移動もしないことを確認します。')
-      const result = await syncBoard(board(item('PVTI_7', 7, 'Backlog'), item('PVTI_8', 8, 'Pending')))
-      expectClean(result)
-      expect(result.structured).toEqual({ moves: [], deletedArchived: 0 })
-      expect(requestLabels(result.requests)).not.toContain('GetIssuePrerequisites')
-    })
-
-    it('前提がマージされずに閉じた Issue の Status を Needs Attention にする', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-07')
-      await explains('MCP ツール `board_sync` の Status のテストです。前提がマージされないまま閉じた場合に、Status を `Needs Attention` に設定して、`moves` の `label` に入れることを確認します。')
-      const result = await syncBoard(board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [{ number: 5, state: 'CLOSED' }] }), write('PVTI_1', 'ob'), write('PVTI_1', 'st4'))
-      expectClean(result)
-      expect(result.structured).toEqual({ moves: [{ issue: '#1', from: 'Ready', to: 'Blocked', label: 'Needs Attention', reason: 'blocked by #5 (closed without merge: #5)' }], deletedArchived: 0 })
-    })
-
-    it('前提がすべて済んだ Issue の Needs Attention を、Todo に戻す', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-08')
-      await explains('MCP ツール `board_sync` の Status のテストです。前提がすべて済んだ Issue の Status を `Needs Attention` から `Todo` に戻し、`moves` に入れることを確認します。')
-      const result = await syncBoard(board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), commentsRule(1), write('PVTI_1', 'st1'))
-      expectClean(result)
-      expect(result.structured).toEqual({ moves: [{ issue: '#1', label: 'Todo', reason: 'startable' }], deletedArchived: 0 })
-    })
-
-    it('bot が書いた最後の自動処理の結果が question なら、Needs Attention を Todo に戻さず、空の moves を返す', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-32')
-      await explains('MCP ツール `board_sync` の Status のテストです。bot が書いた最後の自動処理の結果が `question` の場合に、前提が済んでいても Status を戻さず、`moves` を空にすることを確認します。')
-      const result = await syncBoard(board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), commentsRule(1, [botResult('question')]))
-      expectClean(result)
-      expect(result.structured).toEqual({ moves: [], deletedArchived: 0 })
-    })
-
-    it('Status が Needs Attention の Issue のコメントを読めないと、判定を出せない旨を warnings に入れ、Status を戻さない', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-23')
-      await explains('MCP ツール `board_sync` のコメントを読み取れない場合のテストです。Status が `Needs Attention` の Issue のコメントを取得できない場合に、判定を出せない旨を `warnings` に入れ、Status を戻さないことを確認します。')
-      const result = await syncBoard(board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, label: 'Needs Attention', blockedBy: [done] }), commentsFailure(1))
-      expectClean(result)
-      expect(result.structured).toEqual({ moves: [], deletedArchived: 0, warnings: ['could not judge #1: GitHub API error: 500'] })
-    })
-
-    it('書き込みに失敗した Issue を warnings に入れてほかの Issue を続け、kind が partial-failure の失敗を返す', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-10')
-      await explains('MCP ツール `board_sync` の書き込みが失敗した場合のテストです。一部の書き込みが失敗した場合に、失敗した Issue を `warnings` に入れて残りを処理し、`kind` が `partial-failure` の失敗を返すことを確認します。')
-      const result = await syncBoard(board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 4 }), failedWrite('ob'), write('PVTI_4', 'o3'))
-      expectClean(result)
-      expect(result.isError).toBe(true)
-      expect({ ...result.structured, warnings: stableWarnings(result) }).toEqual({
-        moves: [{ issue: '#4', from: 'Blocked', to: 'Ready', reason: 'startable' }],
-        deletedArchived: 0,
-        kind: 'partial-failure',
-        detail: 'could not write 1 Issue to the board',
-        warnings: [`could not move #1: ${SERVER_ERROR}`],
-      })
-      expect(writes(result)).toHaveLength(2)
-    })
-
-    it('選択肢の ID が古くて 2 件の書き込みに失敗すると、project_activate の案内を 1 回だけ添える', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-10')
-      await explains('MCP ツール `board_sync` の書き込みが失敗した場合のテストです。選択肢の ID が古く、2 件の書き込みが失敗した場合に、`project_activate` の案内を 1 回だけ添えることを確認します。')
-      const result = await syncBoard(board(item('PVTI_1', 1, 'Ready'), item('PVTI_3', 3, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 3, blockedBy: [notStarted] }), staleOptionUpdate(2))
-      expectClean(result)
-      expect(result.isError).toBe(true)
-      expect(result.structured).toEqual({
-        moves: [],
-        deletedArchived: 0,
-        kind: 'partial-failure',
-        detail: 'could not write 2 Issues to the board',
-        warnings: [
-          `could not move #1: ${STALE_OPTION_TEXT}\n  hint: if the board options were recreated, call project_activate with project: "${ACTIVE_PROJECT}" to read their IDs again`,
-          `could not move #3: ${STALE_OPTION_TEXT}`,
-        ],
-      })
-    })
-
-    it('一覧で前提が 0 件の Ready の Issue だけ、前提を個別に読まない', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-11')
-      await explains('MCP ツール `board_sync` の読み取りの回数のテストです。一覧の応答で前提が 0 件と分かる Ready の Issue だけは、前提を個別に読み込まないことを確認します。')
-      const result = await syncBoard(board(item('PVTI_1', 1, 'Ready', { blockedBy: 0 }), item('PVTI_4', 4, 'Blocked', { blockedBy: 0 }), item('PVTI_2', 2, 'Active', { blockedBy: 0 })), prerequisitesRule({ number: 4 }), prerequisitesRule({ number: 2, branch: 'feat/2' }), write('PVTI_4', 'o3'))
-      expectClean(result)
-      expect(result.structured).toEqual({ moves: [{ issue: '#4', from: 'Blocked', to: 'Ready', reason: 'startable' }], deletedArchived: 0 })
-      expect(requestLabels(result.requests).filter(label => label === 'GetIssuePrerequisites')).toHaveLength(2)
-    })
-
-    it('動かす先の選択肢がボードに存在しないと、動かさず、warnings に 1 つ入れる', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-12')
-      await explains('MCP ツール `board_sync` の移動先の選択肢のテストです。進行の欄に `Blocked` の選択肢が存在しない場合に、移動せず、warning を `warnings` に 1 つだけ入れることを確認します。')
-      const withoutBlocked = Object.fromEntries(Object.entries(FULL_WORKFLOW).filter(([name]) => name !== 'blocked'))
-      const result = await syncBoardWith(boardConfig(withoutBlocked), board(item('PVTI_1', 1, 'Ready'), item('PVTI_3', 3, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 3, blockedBy: [notStarted] }))
-      expectClean(result)
-      expect(result.structured).toEqual({ moves: [], deletedArchived: 0, warnings: ['the board has no option Blocked; add it with project_init'] })
-      expect(writes(result)).toEqual([])
-    })
-
-    it.for([
-      { name: 'Issue の依存関係に対応しない GHES', id: 'PW-BOARD-SYNC-13', rules: (): ResponseRule[] => [board(item('PVTI_1', 1, 'Ready')), { match: { operation: 'GetIssuePrerequisites' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }] },
-      { name: '一覧の新しいクエリがスキーマの失敗になる', id: 'PW-BOARD-SYNC-22', rules: (): ResponseRule[] => [{ match: { operation: 'ListProjectItems' }, respond: { status: 200, body: { errors: [{ message: 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'' }] } }, times: 1 }, graphqlRule('ListProjectItemsLegacy', { node: { items: { nodes: [item('PVTI_1', 1, 'Ready')], pageInfo: { hasNextPage: false, endCursor: null } } } })] },
-    ])('$name とき、warnings に 1 つ入れ、何も動かさずに成功を返す', async (row, context) => {
-      await verifies(context, row.id)
-      await explains('MCP ツール `board_sync` の GitHub Enterprise Server のテストです。依存関係に対応していない場合と、一覧の新しいクエリがスキーマのエラーで拒否された場合に、warning を `warnings` に 1 つだけ入れ、何も移動せずに成功を返すことを確認します。')
-      const result = await tool('board_sync', {}, [rateLimit(100), ...row.rules(), rateLimit(100)])
-      expect(result.problems).toEqual([])
-      expect(result.isError).toBe(false)
-      expect(result.structured).toEqual({ moves: [], deletedArchived: 0, warnings: ['this GitHub Enterprise Server does not support issue dependencies (blockedBy); no column is moved'] })
-      expect(writes(result)).toEqual([])
-    })
-
-    it('ボードの取得で GitHub API がエラーを返すと、失敗を返す', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-16')
-      await explains('MCP ツール `board_sync` のボードの取得が失敗した場合のテストです。GitHub API がエラーを返した場合に、`kind` が `github-api` の失敗を返すことを確認します。')
-      const result = await tool('board_sync', {}, [rateLimit(100), { match: { operation: 'ListProjectItems' }, respond: { status: 500, body: { message: 'Server Error' } }, times: 1 }, rateLimit(101)])
-      expectClean(result)
-      expect(result.isError).toBe(true)
-      expect(result.structured['kind']).toBe('github-api')
-      expect(stable(String(result.structured['detail']))).toBe(`could not read project board: ${SERVER_ERROR}`)
-    })
-
-    it('判定を読めない Issue があると、理由を warnings に入れ、その Issue を動かさない', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-23')
-      await explains('MCP ツール `board_sync` の判定を出せない Issue のテストです。判定できない Issue がある場合に、理由を `warnings` に入れ、その Issue を移動しないことを確認します。')
-      const result = await syncBoardWith(boardConfig(FULL_WORKFLOW, [{ owner: 'acme', name: 'demo' }]), board(item('PVTI_1', 1, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }))
-      expectClean(result)
-      expect(result.structured).toEqual({ moves: [], deletedArchived: 0, warnings: ['could not judge #1: develop_branch is not set for acme/demo'] })
-      expect(writes(result)).toEqual([])
-    })
-
-    it('Ready の Issue の前提が循環すると、Blocked へ動かす', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-24')
-      await explains('MCP ツール `board_sync` の前提が循環している Issue のテストです。Ready の Issue 同士が互いを前提にしている場合に、どちらも Blocked へ移動し、`moves` の理由に循環する Issue の並びを入れることを確認します。')
-      const result = await syncBoard(board(item('PVTI_1', 1, 'Ready'), item('PVTI_2', 2, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [{ number: 2 }] }), prerequisitesRule({ number: 2, blockedBy: [{ number: 1 }] }), write('PVTI_1', 'ob'), write('PVTI_2', 'ob'))
-      expectClean(result)
-      expect(result.structured).toEqual({
-        moves: [
-          { issue: '#1', from: 'Ready', to: 'Blocked', reason: 'blocked by #2 (cycle: #1 -> #2 -> #1)' },
-          { issue: '#2', from: 'Ready', to: 'Blocked', reason: 'blocked by #1 (cycle: #1 -> #2 -> #1)' },
-        ],
-        deletedArchived: 0,
-      })
-    })
-
-    it('PR・Tracker・Epic のカードは、列と Status を動かさない', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-25')
-      await explains('MCP ツール `board_sync` の対象のテストです。PR・Tracker・Epic のカードは、列と Status のどちらも動かさず、`moves` を空にすることを確認します。')
-      const result = await syncBoard(board(item('PVTI_10', 10, 'Blocked', { isPullRequest: true }), item('PVTI_11', 11, 'Blocked', { title: '[Tracker] 追跡' }), item('PVTI_12', 12, 'Blocked')), prerequisitesRule({ number: 12, issueType: 'Epic', subIssues: 2 }))
-      expectClean(result)
-      expect(result.structured).toEqual({ moves: [], deletedArchived: 0 })
-      expect(writes(result)).toEqual([])
-    })
-
-    it('設定の最初のリポ以外の Issue を動かすと、moves の issue を owner/repo#N で表す', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-26')
-      await explains('MCP ツール `board_sync` の複数のリポジトリを登録したボードのテストです。設定の最初のリポジトリ以外の Issue を移動した場合に、`moves` の `issue` を `owner/repo#N` の形で返すことを確認します。')
-      const repositories = [{ owner: 'acme', name: 'demo', develop_branch: 'main' }, { owner: 'acme', name: 'other', develop_branch: 'main' }]
-      const result = await syncBoardWith(boardConfig(FULL_WORKFLOW, repositories), board(item('PVTI_4', 4, 'Blocked'), item('PVTI_6', 6, 'Blocked', { repository: 'other' })), prerequisitesRule({ number: 4 }), prerequisitesRule({ number: 6, repo: 'other' }), write('PVTI_4', 'o3'), write('PVTI_6', 'o3'))
-      expectClean(result)
-      expect(result.structured['moves']).toEqual([
-        { issue: '#4', from: 'Blocked', to: 'Ready', reason: 'startable' },
-        { issue: 'acme/other#6', from: 'Blocked', to: 'Ready', reason: 'startable' },
-      ])
-    })
-
-    it('.active が無く、設定が 1 つなら、それを使う', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-17')
-      await explains('MCP ツール `board_sync` のプロジェクトの設定の選択のテストです。`.active` が存在しなくても、設定が 1 つだけであれば、その設定を使って処理することを確認します。')
-      const result = await syncTool({}, { github: blockedToReadyRules(), config: false, files: { [CONFIG_FILE]: contentOf(boardConfig()) } })
-      expectClean(result)
-      expect(result.structured).toEqual({ moves: [{ issue: '#4', from: 'Blocked', to: 'Ready', reason: 'startable' }], deletedArchived: 0 })
-    })
-
-    it('.active が無く、設定が 2 つ以上なら、project を求める detail を入れ、kind が no-active-project の失敗を返す', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-18')
-      await explains('MCP ツール `board_sync` のプロジェクトの設定の選択のテストです。`.active` が存在せず、設定が 2 つ以上の場合に、`project` を求める `detail` を入れた、`kind` が `no-active-project` の失敗を返すことを確認します。')
-      const result = await syncTool({}, { config: false, files: { [CONFIG_FILE]: contentOf(boardConfig()), [second]: contentOf(boardConfig()) } })
-      expect(result.isError).toBe(true)
-      expect(result.structured).toEqual({ kind: 'no-active-project', detail: `no active project, and 2 project configs exist\n  choose one with project: <NAME>\n  available: ${DEFAULT_HOST}_acme_board_acme, ${DEFAULT_HOST}_acme_other_acme` })
-      expect(result.requests).toEqual([])
-    })
-
-    it('project に設定名を渡すと、アクティブな設定ではなく、その設定を使う', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-19')
-      await explains('MCP ツール `board_sync` の `project` のテストです。設定名を渡した場合に、アクティブな設定ではなく、指定した設定を使うことを確認します。')
-      const other = boardConfig()
-      const result = await syncTool({ project: `${DEFAULT_HOST}_acme_other_acme` }, { github: blockedToReadyRules(), config: projectConfig(), files: { [second]: contentOf({ ...other, project: { ...asJson(other['project']), id: 'PVT_1' } }) } })
-      expectClean(result)
-      expect(result.structured).toEqual({ moves: [{ issue: '#4', from: 'Blocked', to: 'Ready', reason: 'startable' }], deletedArchived: 0 })
-    })
-
-    it('project の設定が無いと、使える設定の名前を detail に入れ、kind が project-not-found の失敗を返す', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-20')
-      await explains('MCP ツール `board_sync` の `project` のテストです。存在しない設定名を渡した場合に、使える設定の名前を `detail` に入れた、`kind` が `project-not-found` の失敗を返すことを確認します。')
-      const result = await syncTool({ project: 'nothing' }, {})
-      expect(result.isError).toBe(true)
-      expect(result.structured).toEqual({ kind: 'project-not-found', detail: `project config not found: nothing\n  available: ${DEFAULT_HOST}_acme_board_acme` })
-      expect(result.requests).toEqual([])
-    })
-
-    it('設定がまったく無いと、kind が no-active-project の失敗を返す', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-21')
-      await explains('MCP ツール `board_sync` のプロジェクトの設定の選択のテストです。設定がまったく存在しない場合に、`kind` が `no-active-project` の失敗を返すことを確認します。')
-      const result = await syncTool({}, { config: false })
-      expect(result.isError).toBe(true)
-      expect(result.structured).toEqual({ kind: 'no-active-project', detail: 'no active project\n  call project_activate with project: <PROJECT>' })
-    })
-
-    it('設定の JSON が読めないと、kind が config-invalid の失敗を返す', async (context) => {
-      await verifies(context, 'PW-BOARD-SYNC-27')
-      await explains('MCP ツール `board_sync` のプロジェクトの設定の読み取りのテストです。設定の JSON を読み取れない場合に、`kind` が `config-invalid` の失敗を返し、GitHub へは要求しないことを確認します。')
-      const result = await syncTool({}, { config: false, files: { [CONFIG_FILE]: '{ broken' } })
-      expect(result.isError).toBe(true)
-      expect(result.structured['kind']).toBe('config-invalid')
-      expect(result.structured['detail']).toMatch(/^invalid config file: [^\n]+$/u)
-      expect(result.requests).toEqual([])
-    })
-  })
-})
 
 describe('board add', () => {
   describe('MCP の data', () => {
@@ -861,21 +135,21 @@ describe('board show', () => {
       ] },
       lanes: [],
       mismatches: 1,
-      warnings: ['1 Ready or Blocked Issue may be in a column or Status that does not match its judgment; call board_sync to fix'],
+      warnings: ['1 Ready or Blocked Issue may be in a column or Status that does not match its judgment; run the pecot-board-sync workflow (Run workflow on its page in the Actions tab) to fix'],
     }
 
     it('json を省くと、--json の中身に release_type・packages と列の合わない件数を足して返す', async (context) => {
       await verifies(context, 'PW-BOARD-SHOW-01')
       await verifies(context, 'PW-BOARD-SHOW-33')
       await explains('MCP ツール `board_show` の結果のテストです。`json` を省略した場合に、`--json` の内容に `release_type`・`packages` と、列が判定と合わない件数を加えて返すことを確認します。')
-      const result = await tool('board_show', {}, showRules(), boardConfig(FULL_WORKFLOW, repositories))
+      const result = await tool('board_show', {}, showRules(), boardConfig(repositories))
       expect(result.structured).toEqual(expected)
     })
 
     it('json を true にしても、同じ data を返す', async (context) => {
       await verifies(context, 'PW-BOARD-SHOW-02')
       await explains('MCP ツール `board_show` の `json` のテストです。`json` に `true` を指定した場合に、省略した場合と同じ内容を返すことを確認します。')
-      const result = await tool('board_show', { json: true }, showRules(), boardConfig(FULL_WORKFLOW, repositories))
+      const result = await tool('board_show', { json: true }, showRules(), boardConfig(repositories))
       expect(result.structured).toEqual(expected)
     })
 
@@ -883,7 +157,7 @@ describe('board show', () => {
       await verifies(context, 'PW-BOARD-SHOW-36')
       await explains('進行の欄が旧い名前のボードを扱う、MCP ツール `board_show` のテストです。旧い名前と `project_init` の案内を `warnings` に入れることを確認します。')
       const [, ...rest] = showRules()
-      const result = await tool('board_show', {}, [board(item('PVTI_1', 1, 'Ready', { field: 'pecot-workflow-acme' })), ...rest], boardConfig(FULL_WORKFLOW, repositories))
+      const result = await tool('board_show', {}, [board(item('PVTI_1', 1, 'Ready', { field: 'pecot-workflow-acme' })), ...rest], boardConfig(repositories))
       expectClean(result)
       expect(stableWarnings(result)[0]).toMatch(/^this board uses the old field name pecot-workflow-acme\n.*project_init/su)
     })
@@ -892,7 +166,7 @@ describe('board show', () => {
       await verifies(context, 'PW-BOARD-SHOW-37')
       await explains('Item の値に旧いフィールドが残るボードを扱う、MCP ツール `board_show` のテストです。`pecot-priority`・`pecot-size` が残る場合に、残った名前と `project_init` の案内を `warnings` に入れることを確認します。')
       const [, ...rest] = showRules()
-      const result = await tool('board_show', {}, [board(item('PVTI_1', 1, 'Ready', { others: ['pecot-priority', 'pecot-size'] })), ...rest], boardConfig(FULL_WORKFLOW, repositories))
+      const result = await tool('board_show', {}, [board(item('PVTI_1', 1, 'Ready', { others: ['pecot-priority', 'pecot-size'] })), ...rest], boardConfig(repositories))
       expectClean(result)
       expect(stableWarnings(result)[0]).toBe(`this board still has fields pecot does not use: pecot-priority, pecot-size\n  call project_init with owner: "acme", name: <name>, host: "${DEFAULT_HOST}"`)
       expect(result.structured['board']).toEqual(expected.board)

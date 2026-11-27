@@ -13,6 +13,7 @@ const GENERATED = 'plugins/pecot-workflow/interface/generated.json'
 async function validPlugin(): Promise<PluginInput> {
   return {
     name: 'pecot-workflow',
+    root: 'plugins/pecot-workflow',
     dirExists: true,
     mode: 'partial',
     generated: await loadJson(path.join(VALID, 'generated.json')),
@@ -82,7 +83,27 @@ describe('generated.json checks', () => {
     stepSync('指摘を比べる', () => {
       expect(lines).toContain(`${GENERATED}|XX-ISSUE-CREATE|id|must start with "PW-" and use only A-Z, 0-9 and "-"`)
       expect(lines).toContain(`${GENERATED}|XX-ISSUE-CREATE|id|is defined more than once`)
-      expect(lines).toContain(`${GENERATED}|XX-ISSUE-CREATE|surfaces|must have cli or mcp`)
+      expect(lines).toContain(`${GENERATED}|XX-ISSUE-CREATE|surfaces|must have cli, mcp or action`)
+    })
+  })
+
+  it('action の面だけを持つ項目は、surface の無い項目として止めない', async () => {
+    await explains('`generated.json` の検証のテストです。action の面だけを持つ項目の場合に、`surfaces` の検証エラーを返さないことを確認します。')
+    const lines = await step('action の面だけにして検証する', () => withGenerated((data) => {
+      generatedEntry(data, 0)['surfaces'] = { action: { path: 'actions/issue-create' } }
+    }))
+    stepSync('surfaces の指摘が無いことを確かめる', () => {
+      expect(lines.filter(line => line.includes('|surfaces|'))).toEqual([])
+    })
+  })
+
+  it('root を持つ定義書の指摘は、root の下のパスで出す', async () => {
+    await explains('定義書の検証のテストです。`root` を持つプラグインの場合に、検証エラーのファイルのパスを `root` の下のパスで返すことを確認します。')
+    const plugin = await step('定義書を読む', () => validPlugin())
+    const lines = stepSync('root を actions にして検証する', () =>
+      validateDefinitions([{ ...plugin, root: 'actions', dirExists: false }]).map(finding => finding.file))
+    stepSync('指摘のパスを比べる', () => {
+      expect(lines).toEqual(['actions/interface'])
     })
   })
 
@@ -461,6 +482,12 @@ async function withBoth(changeGenerated: (data: Record<string, unknown>) => void
     .map(finding => `${finding.file}|${finding.scope ?? ''}|${finding.field ?? ''}|${finding.reason}`)
 }
 
+function actionOnly(data: Record<string, unknown>): void {
+  const target = generatedEntry(data, 0)
+  target['surfaces'] = { action: { path: 'actions/issue-create' } }
+  delete target['cli']
+}
+
 // PW-ISSUE-CREATE に MCP の面を足す。cli を外すと MCP だけの項目になる。
 function withMcpSurface(hasCli: boolean, title?: string): (data: Record<string, unknown>) => void {
   return (data) => {
@@ -503,7 +530,7 @@ describe('MCP の表示名と使用例', () => {
     await explains('MCP の表示名と使用例の検証のテストです。MCP の面を持つ項目の使用例が `run` の形の場合に、`arguments` で書くことを求める検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(true, TITLE), mcpExamples([{ run: 'pecot issue create a.md', note: 'An example' }])))
     stepSync('指摘を比べる', () => {
-      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0]|must be an MCP call (write arguments instead of run)`)
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0]|must be an MCP call or action inputs (write arguments instead of run)`)
     })
   })
 
@@ -525,7 +552,21 @@ describe('MCP の表示名と使用例', () => {
       entry(data, 'PW-ISSUE-CREATE')['examples'] = [{ arguments: { title: 'x' }, note: 'An example' }]
     }))
     stepSync('指摘を比べる', () => {
-      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0]|must be a command line (write run instead of arguments; the entry has no MCP surface)`)
+      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0]|must be a command line (write run instead of arguments; the entry has no MCP or action surface)`)
+    })
+  })
+
+  it('action の面だけを持つ項目の使用例は、with: の inputs を arguments の形で書けば通り、run の形だと止める', async () => {
+    await explains('action の面だけを持つ項目の使用例の検証のテストです。`with:` の inputs を `arguments` の形で書いた例は通り、`run` の形の例は検証エラーになることを確認します。')
+    const passing = await step('arguments の形の使用例で検証する', () => withBoth(actionOnly, (data) => {
+      entry(data, 'PW-ISSUE-CREATE')['examples'] = [{ arguments: { title: 'x' }, note: 'An example' }]
+    }))
+    const failing = await step('run の形の使用例で検証する', () => withBoth(actionOnly, (data) => {
+      entry(data, 'PW-ISSUE-CREATE')['examples'] = [{ run: 'pecot issue create a.md', note: 'An example' }]
+    }))
+    stepSync('arguments の形は通り、run の形は止まることを確かめる', () => {
+      expect(passing.filter(line => line.includes('|PW-ISSUE-CREATE|examples'))).toEqual([])
+      expect(failing).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0]|must be an MCP call or action inputs (write arguments instead of run)`)
     })
   })
 })

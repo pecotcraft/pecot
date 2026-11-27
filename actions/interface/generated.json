@@ -1,0 +1,352 @@
+{
+  "format": 1,
+  "plugin": "actions",
+  "prefix": "PA",
+  "names": {
+    "separator": " ",
+    "positions": [
+      [
+        {
+          "word": "board",
+          "meaning": "ボードの上の Issue の置き場所。設定ファイルは書かない"
+        },
+        {
+          "word": "session",
+          "meaning": "1 つの Issue の作業の始まりから終わりまで"
+        },
+        {
+          "word": "review",
+          "meaning": "PR の自動レビューの実行"
+        },
+        {
+          "word": "auto",
+          "meaning": "Issue のラベルを契機にした自動処理の実行"
+        },
+        {
+          "word": "tracker",
+          "meaning": "Tracker の Issue の書き直し"
+        }
+      ],
+      [
+        {
+          "word": "sync",
+          "meaning": "GitHub の状態に合わせて書き直す"
+        },
+        {
+          "word": "finish",
+          "meaning": "終わった後の片付けをする"
+        },
+        {
+          "word": "gate",
+          "meaning": "動かすかどうかを決める"
+        },
+        {
+          "word": "start",
+          "meaning": "始める"
+        }
+      ]
+    ],
+    "rest": false
+  },
+  "entries": [
+    {
+      "id": "PA-AUTO-FINISH",
+      "name": "auto finish",
+      "description": "Finish an automated fix run. Decide the result, post the result comment, set the waiting Status and remove the trigger label, unless this run already posted one.",
+      "surfaces": {
+        "action": {
+          "path": "actions/auto-finish"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "body-file": {
+            "type": "string",
+            "description": "Path of a file with the text for result (only with result)"
+          },
+          "execution-file": {
+            "type": "string",
+            "description": "Path of the execution_file output of claude-code-action (may be empty)"
+          },
+          "issue": {
+            "type": "string",
+            "description": "Issue number in the repository of the workflow, or owner/repo/N"
+          },
+          "job-status": {
+            "type": "string",
+            "description": "Status of the job (job.status). Required without result"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the repository of the Issue; when several do, the active one among them"
+          },
+          "result": {
+            "type": "string",
+            "description": "Result to write as it is, for a step that decided it (pr-created, ci-passed, ci-fix-pushed, question, out-of-scope, failed, limit or setup-missing). Not used with job-status, execution-file, start-outcome or result-file"
+          },
+          "result-file": {
+            "type": "string",
+            "description": "Path of the result file the skill writes, with the result in the frontmatter and the text in the body. A missing file means the skill wrote no result"
+          },
+          "start-outcome": {
+            "type": "string",
+            "description": "Outcome of the auto-start step (steps.<id>.outcome). Required without result"
+          },
+          "token": {
+            "type": "string",
+            "description": "Token to write the comment, the board and the label (the App token of the workflow)"
+          }
+        },
+        "required": [
+          "issue"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "PA-AUTO-GATE",
+      "name": "auto gate",
+      "description": "Decide from the issues or workflow_run event whether the automated fix runs, and of what kind. Post the result comment and remove the trigger label when the Issue is out of scope or the CI fixes reached the limit.",
+      "surfaces": {
+        "action": {
+          "path": "actions/auto-gate"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "max-ci-attempts": {
+            "type": "string",
+            "default": "3",
+            "description": "Maximum number of CI fixes on one branch"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the repository of the event; when several do, the active one among them"
+          },
+          "token": {
+            "type": "string",
+            "description": "Token to read the Issue and the board and to write the result comment (the App token of the workflow)"
+          }
+        },
+        "additionalProperties": false
+      },
+      "action": {
+        "outputs": {
+          "branch": "Existing branch of the Issue; empty when none",
+          "issue": "Issue (owner/repo/N); empty when the branch of the workflow run does not end with an Issue number",
+          "kind": "Kind of the run (start, resume, ci-fix or ci-passed); empty when it is not decided",
+          "number": "Issue number; 0 when unknown",
+          "proceed": "Whether the agent runs (true or false)"
+        }
+      }
+    },
+    {
+      "id": "PA-AUTO-START",
+      "name": "auto start",
+      "description": "Start an automated fix run. Put the Issue on the board or restore the Status the automation wrote, and write the context to continue to a JSON file.",
+      "surfaces": {
+        "action": {
+          "path": "actions/auto-start"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "issue": {
+            "type": "string",
+            "description": "Issue number in the repository of the workflow, or owner/repo/N"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the repository of the Issue; when several do, the active one among them"
+          },
+          "token": {
+            "type": "string",
+            "description": "Token to read the Issue and to write the board (the App token of the workflow)"
+          }
+        },
+        "required": [
+          "issue"
+        ],
+        "additionalProperties": false
+      },
+      "action": {
+        "outputs": {
+          "context-file": "Path of the JSON file with the Issue, the plan, the earlier results, the answers, the branch and the PR, under RUNNER_TEMP"
+        }
+      }
+    },
+    {
+      "id": "PA-BOARD-SYNC",
+      "name": "board sync",
+      "description": "Move the Issues in Ready, Blocked, Active and In Review to the columns and Status values their judgment calls for, and delete the Archived items beyond the latest 20 from the board.",
+      "surfaces": {
+        "action": {
+          "path": "actions/board-sync"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "dry-run": {
+            "type": "string",
+            "default": "false",
+            "description": "Show the planned moves without writing to the board"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the active project; when none is active and only one config exists, that one"
+          },
+          "token": {
+            "type": "string",
+            "description": "Token to read and write the project board (the App token or PAT of the workflow)"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "PA-REVIEW-FINISH",
+      "name": "review finish",
+      "description": "Finish an automated review. Post one comment on the PR only when the review stopped (failed, limit or setup-missing).",
+      "surfaces": {
+        "action": {
+          "path": "actions/review-finish"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "execution-file": {
+            "type": "string",
+            "description": "Path of the execution_file output of claude-code-action"
+          },
+          "job-status": {
+            "type": "string",
+            "description": "Status of the job (job.status)"
+          },
+          "pr": {
+            "type": "string",
+            "description": "PR number in the repository of the workflow, or owner/repo/N"
+          },
+          "review-conclusion": {
+            "type": "string",
+            "description": "The conclusion output of claude-code-action. Pass it even when empty; empty means Claude Code did not run"
+          },
+          "review-has-token": {
+            "type": "string",
+            "description": "Whether claude-code-action output a github_token (true or false; never the token itself)"
+          },
+          "review-outcome": {
+            "type": "string",
+            "description": "Outcome of the automated review step (steps.<id>.outcome)"
+          },
+          "since": {
+            "type": "string",
+            "description": "Start time of the review step in ISO 8601, to find the inline comments it posted. Empty means the stop location is unknown"
+          },
+          "token": {
+            "type": "string",
+            "description": "Token to read the PR and write the comment (the App token of the workflow)"
+          }
+        },
+        "required": [
+          "job-status",
+          "pr",
+          "review-conclusion",
+          "review-has-token",
+          "review-outcome"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "PA-SESSION-FINISH",
+      "name": "session finish",
+      "description": "Clean up on GitHub after a merged PR. Close the Issues the PR closes (except Epics) and move the Issues waiting for them on the board. It does not delete branches.",
+      "surfaces": {
+        "action": {
+          "path": "actions/session-finish"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "dry-run": {
+            "type": "string",
+            "default": "false",
+            "description": "Dry-run (do not actually clean up)"
+          },
+          "pr": {
+            "type": "string",
+            "description": "PR number in the repository of the workflow, or owner/repo/N"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
+          "token": {
+            "type": "string",
+            "description": "Token to close the Issues and write the project board (the App token or PAT of the workflow)"
+          }
+        },
+        "required": [
+          "pr"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "PA-TRACKER-SYNC",
+      "name": "tracker sync",
+      "description": "Rewrite the open Tracker's list for a source in the repository of the workflow. Dependabot PRs waiting for a human decision, or open security alerts.",
+      "surfaces": {
+        "action": {
+          "path": "actions/tracker-sync"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "dry-run": {
+            "type": "string",
+            "default": "false",
+            "description": "Show the planned Tracker changes without changing anything"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that has the repository of the workflow"
+          },
+          "source": {
+            "type": "string",
+            "description": "What to put into the Tracker: dependabot (Dependabot PRs waiting for a human decision) or security (open security alerts)"
+          },
+          "token": {
+            "type": "string",
+            "description": "Token to read the PRs or alerts and write the Tracker and the board (the App token or PAT of the workflow)"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

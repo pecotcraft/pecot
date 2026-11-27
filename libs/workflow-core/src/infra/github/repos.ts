@@ -127,6 +127,20 @@ export class ReposApi extends GitHubClientBase {
   }
 
   /**
+  タグが指す commit の SHA（REST）。注釈付きのタグは git/tags で commit まで辿る。見つからなければ GitHubNotFoundError
+  */
+  async getTagCommitSha(owner: string, repository: string, tag: string): Promise<string> {
+    let target = jsonField(await this.restJson('GET', `${repositoryPath(owner, repository)}/git/ref/tags/${encodePath(tag)}`), 'object')
+    // タグを指すタグもあるので、commit に着くまで辿る
+    for (let depth = 0; depth < 5 && jsonField(target, 'type') === 'tag'; depth += 1) {
+      const sha = requireString(jsonField(target, 'sha'), 'object.sha')
+      target = jsonField(await this.restJson('GET', `${repositoryPath(owner, repository)}/git/tags/${encodePathSegment(sha)}`), 'object')
+    }
+    if (jsonField(target, 'type') !== 'commit') throw new GitHubAPIError(`tag ${tag} does not point to a commit`)
+    return requireString(jsonField(target, 'sha'), 'object.sha')
+  }
+
+  /**
   head_sha の workflow の run の id と conclusion。終わっていない run の conclusion は空。先頭の 100 件だけ読む
   */
   async listWorkflowRunConclusions(owner: string, repository: string, headSha: string): Promise<readonly WorkflowRunConclusion[]> {

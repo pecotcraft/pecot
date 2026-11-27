@@ -35,6 +35,11 @@ board sync と pr create が判定し直す列
 export const SYNCED_COLUMNS: ReadonlySet<string> = new Set(['Ready', 'Blocked', 'Active', 'In Review'])
 
 /**
+列と札を後から直す手段。board sync は actions/ の board-sync に移ったので、それを呼ぶワークフローを手で起動する
+*/
+export const BOARD_SYNC_WORKFLOW = 'the pecot-board-sync workflow (Run workflow on its page in the Actions tab)'
+
+/**
 動かす先の値がボードに無いときの warning の文
 */
 export function missingWarning(missing: ReadonlySet<MissingValue>): HintedText {

@@ -1519,7 +1519,7 @@ describe('board show', () => {
     const info = async (rules: ResponseRule[], config: Json = boardConfig(), ...rest: string[]): Promise<CommandResult> => await run(boardArguments('show', ...rest), [twoAlerts(), ...rules], { config })
     const boardItems = (result: Readonly<CommandResult>): unknown => asJson(asJson(JSON.parse(result.stdout))['board'])['items']
     const notStarted = { number: 9 }
-    const NOTE_ONE = 'warning: 1 Ready or Blocked Issue may be in a column or Status that does not match its judgment; run pecot board sync (--dry-run to preview) to fix'
+    const NOTE_ONE = 'warning: 1 Ready or Blocked Issue may be in a column or Status that does not match its judgment; run the pecot-board-sync workflow (Run workflow on its page in the Actions tab) to fix'
     const NOTE_TWO = NOTE_ONE.replace('1 Ready or Blocked Issue may be', '2 Ready or Blocked Issues may be')
     const failedRead = (): ResponseRule => ({ match: { operation: 'GetIssuePrerequisites' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 })
 
@@ -1545,15 +1545,15 @@ describe('board show', () => {
       ].join('\n'))
     })
 
-    it('列と判定の食い違いそうな Issue を見つけると、件数と pecot board sync の案内を 1 行、標準エラーに出す', async () => {
-      await explains('`board show` の列と判定の食い違いの案内のテストです。食い違っていそうな Issue が存在する場合は、件数と `pecot board sync` の案内を標準エラーへ 1 行出力することを確認します。')
+    it('列と判定の食い違いそうな Issue を見つけると、件数と pecot-board-sync のワークフローの案内を 1 行、標準エラーに出す', async () => {
+      await explains('`board show` の列と判定の食い違いの案内のテストです。食い違っていそうな Issue が存在する場合は、件数と `pecot-board-sync` のワークフローの案内を標準エラーへ 1 行出力することを確認します。')
       const result = await info([board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked'), item('PVTI_5', 5, 'Blocked')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 4, blockedBy: [notStarted] }), prerequisitesRule({ number: 5 })])
       expectClean(result)
       expect(result.stderr).toBe(`${NOTE_TWO}\n`)
     })
 
     it('board sync と同じ規則で数え、項目の食い違いを数え、動かす先の値がボードに存在しない Issue は数えない', async () => {
-      await explains('`board show` の列と判定の食い違いの件数のテストです。`board sync` と同じ規則で数え、ラベルの食い違いも数え、移動先の選択肢がボードに存在しない Issue は数えないことを確認します。')
+      await explains('`board show` の列と判定の食い違いの件数のテストです。ボードの判定と同じ規則で数え、ラベルの食い違いも数え、移動先の選択肢がボードに存在しない Issue は数えないことを確認します。')
       const withoutBlocked = boardConfig()
       const project = asJson(withoutBlocked['project'])
       const fields = asJson(project['fields'])
@@ -1765,13 +1765,13 @@ describe('board show', () => {
         ])
       })
 
-      it('列と判定の食い違いそうな Issue を数え、件数を mismatches に入れ、warnings に board_sync の案内を入れる', async (context) => {
+      it('列と判定の食い違いそうな Issue を数え、件数を mismatches に入れ、warnings に pecot-board-sync のワークフローの案内を入れる', async (context) => {
         await verifies(context, 'PW-BOARD-SHOW-33')
-        await explains('`board show` の MCP の結果のテストです。列と判定が食い違っていそうな Issue の件数を `mismatches` に含め、`board_sync` の案内を `warnings` に含めることを確認します。')
+        await explains('`board show` の MCP の結果のテストです。列と判定が食い違っていそうな Issue の件数を `mismatches` に含め、`pecot-board-sync` のワークフローの案内を `warnings` に含めることを確認します。')
         const result = await infoTool([board(item('PVTI_1', 1, 'Ready'), item('PVTI_4', 4, 'Blocked'), item('PVTI_5', 5, 'Blocked')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 4, blockedBy: [notStarted] }), prerequisitesRule({ number: 5 })])
         expectClean(result)
         expect(result.structured['mismatches']).toBe(2)
-        expect(result.structured['warnings']).toEqual(['2 Ready or Blocked Issues may be in a column or Status that does not match its judgment; call board_sync to fix'])
+        expect(result.structured['warnings']).toEqual(['2 Ready or Blocked Issues may be in a column or Status that does not match its judgment; run the pecot-board-sync workflow (Run workflow on its page in the Actions tab) to fix'])
       })
 
       it('Active と In Review の Issue は、前提を読まず、readiness を null にする', async (context) => {

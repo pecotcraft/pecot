@@ -1,49 +1,32 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は内部の状態を持つ */
-// session finish。cli/commands/pr.py の pr_cleanup の移植。
+// session finish。GitHub 側の片付けは lib の session-finish-remote.ts（actions/ の session-finish と共有）、ここは手元の片付けを足す。
 
 import { z } from 'zod'
 
 import { describeApiError } from '@pecot/workflow-core/domain/api-error-detail.js'
-import { extractIssueNumberFromBranch } from '@pecot/workflow-core/domain/branch-name.js'
-import { getDevelopBranch, homeRepositoryOf } from '@pecot/workflow-core/domain/config.js'
+import { getDevelopBranch } from '@pecot/workflow-core/domain/config.js'
 import type { ProjectConfig } from '@pecot/workflow-core/domain/config.js'
-import { isEpicIssue } from '@pecot/workflow-core/domain/issue-kind.js'
-import { extractClosingIssueNumbers } from '@pecot/workflow-core/domain/pull-request.js'
-import { assumePullRequestState, describeReadinessChange, displayReference, hasReadinessChanged, isDone, isStackedOn } from '@pecot/workflow-core/domain/readiness.js'
-import type { IssuePullRequest } from '@pecot/workflow-core/domain/readiness.js'
-import { createIssueReference } from '@pecot/workflow-core/domain/reference-parser.js'
-import type { IssueReference } from '@pecot/workflow-core/domain/reference-parser.js'
-import { RESTACK_PATH } from '@pecot/workflow-core/domain/restack.js'
-import { isSameRepository } from '@pecot/workflow-core/domain/repository-resolver.js'
 import type { RepositoryReference } from '@pecot/workflow-core/domain/repository-resolver.js'
 import { FLAG_PECOT_BASE, FLAG_PECOT_SESSION_TITLE } from '@pecot/workflow-core/domain/state.js'
 import { GIT_TIMED_OUT, gitCurrentBranch, GitCommandError, NON_INTERACTIVE_GIT, REMOTE_TIMEOUT_MILLISECONDS, runGit, runGitAsync } from '@pecot/workflow-core/infra/git.js'
 import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
-import { GitHubAPIError, GitHubNotFoundError, isClosedByAnotherRequest, isMissingReferenceError } from '@pecot/workflow-core/infra/github/errors.js'
-import type { PullRequestForFinish } from '@pecot/workflow-core/infra/github/pulls.js'
+import { GitHubAPIError, isMissingReferenceError } from '@pecot/workflow-core/infra/github/errors.js'
 import { isFileNotFound } from '@pecot/workflow-core/infra/os-error.js'
 import { readSessionTitleNumber, removeFlag } from '../infra/state-store.js'
 import { getCurrentWorktreeName, isWorktreeEnvironment } from '../infra/worktree.js'
-import type { BoardContext } from '@pecot/workflow-core/commands-shared/board-judgment.js'
-import { commandHint, hinted, RUN } from '@pecot/workflow-core/commands-shared/command-hint.js'
-import type { HintedText } from '@pecot/workflow-core/commands-shared/command-hint.js'
-import { PROJECT_INPUT, requireConfigFor, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
-import { createReadinessCache, judgeAssuming } from '@pecot/workflow-core/commands-shared/issue-readiness.js'
-import type { JudgedIssue, ReadinessCache } from '@pecot/workflow-core/commands-shared/issue-readiness.js'
-import { moveIssuesWaitingFor, prerequisiteOf } from './pr-waiting.js'
-import type { WaitingCheck } from './pr-waiting.js'
-import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
-import { createGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
-import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
+import { PROJECT_INPUT, requireConfigFor } from '@pecot/workflow-core/commands-shared/command-stop.js'
+import { createOutput, settle } from '@pecot/workflow-core/commands-shared/output.js'
 import type { Operation, Output } from '@pecot/workflow-core/commands-shared/output.js'
 import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import type { CommandDefinition, CommandIo, GlobalInput } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import { settle } from './tracker-sync.js'
-import { isPositive, parseReference, PR_REFERENCE_DESCRIPTION, primaryRemote, reasonOf } from './pr.js'
+import { parseReference, PR_REFERENCE_DESCRIPTION } from '@pecot/workflow-core/commands-shared/pr-reference.js'
+import { finishOnGithub, requireMergedPullRequest, SKIPPED_ISSUE_REASONS } from '@pecot/workflow-core/commands-shared/session-finish-remote.js'
+import type { RemoteFinishRecord } from '@pecot/workflow-core/commands-shared/session-finish-remote.js'
+import { primaryRemote, reasonOf } from './pr.js'
 
 const SKIPPED_ISSUE_DATA = z.strictObject({
   number: z.int().describe('Issue number'),
-  reason: z.enum(['epic', 'already-closed', 'not-found', 'failed']).describe('Why it was not closed: epic (protected), already-closed (including Issues GitHub closed on merge), not-found, or failed (see warnings)'),
+  reason: z.enum(SKIPPED_ISSUE_REASONS).describe('Why it was not closed: epic (protected), already-closed (including Issues GitHub closed on merge), not-found, or failed (see warnings)'),
 })
 
 const DELETED_BRANCH_DATA = z.strictObject({
@@ -74,12 +57,8 @@ const SESSION_FINISH_OUTPUT = z.strictObject({
 type FinishData = z.input<typeof SESSION_FINISH_OUTPUT>
 
 // 各段の結果を集め、最後に 1 回だけ result に渡す
-interface FinishRecord {
-  readonly closedIssues: number[]
-  readonly skippedIssues: FinishData['skippedIssues']
+interface FinishRecord extends RemoteFinishRecord {
   readonly deletedBranches: FinishData['deletedBranches']
-  readonly readinessChanges: FinishData['readinessChanges']
-  readonly restack: FinishData['restack']
   currentBranch?: string
   // PR を確かめる前に止まったときは、空の項目を失敗の data に載せない
   hasStarted: boolean
@@ -89,169 +68,6 @@ interface FinishContext {
   readonly out: Output
   readonly isDryRun: boolean
   readonly record: FinishRecord
-}
-
-async function fetchPullRequestForCleanup(config: Readonly<ProjectConfig>, location: Readonly<RepositoryReference & { readonly number: number }>, out: Readonly<Output>): Promise<{ readonly client: GitHubClient, readonly pr: PullRequestForFinish }> {
-  try {
-    const client = createGitHubClient(out, config.host)
-    return { client, pr: await client.getPullRequestForFinish(location.owner, location.repository, location.number) }
-  }
-  catch (error: unknown) {
-    if (error instanceof GitHubNotFoundError) return stopWith(out, `PR not found: ${location.owner}/${location.repository}/${String(location.number)}`, 'github-not-found')
-    if (error instanceof GitHubAPIError) return stopWith(out, error.message, kindOfFailure(error))
-    throw error
-  }
-}
-
-// GitHub はキーワードを既定ブランチ宛ての PR でだけ解釈するので、そのときは closing issues だけを使う
-function collectClosingIssueNumbers(pr: Readonly<PullRequestForFinish>, location: RepositoryReference): Set<number> {
-  const numbers = new Set<number>(pr.closing_issues.filter(issue => isSameRepository(issue, location)).map(issue => issue.number))
-  if (pr.base_ref !== pr.default_branch) {
-    for (const number of extractClosingIssueNumbers(pr.body, location)) numbers.add(number)
-  }
-  const branchNumber = extractIssueNumberFromBranch(pr.head_ref)
-  if (isPositive(branchNumber)) numbers.add(branchNumber)
-  return numbers
-}
-
-interface ClosingIssues {
-  readonly open: Set<number>
-  readonly epic: Set<number>
-  readonly closed: Set<number>
-  readonly unread: Set<number>
-}
-
-// Epic（Issue Type が Epic か、sub-issue を持つ）と閉じた Issue を分ける。読めない Issue は、閉じた理由を上書きしないよう閉じない
-async function classifyClosingIssues(client: GitHubClient, location: RepositoryReference, issueNumbers: ReadonlySet<number>, out: Readonly<Output>): Promise<ClosingIssues> {
-  const classified: ClosingIssues = { open: new Set(), epic: new Set(), closed: new Set(), unread: new Set() }
-  const ordered = [...issueNumbers].toSorted((a, b) => a - b)
-  for (const number of ordered) {
-    try {
-      const kind = await client.getIssueKind(location.owner, location.repository, number)
-      if (isEpicIssue(kind)) classified.epic.add(number)
-      else if (kind.state === 'CLOSED') classified.closed.add(number)
-      else classified.open.add(number)
-    }
-    catch (error: unknown) {
-      if (error instanceof GitHubNotFoundError) {
-        // 状態は確かめていないが、close の 404 で not-found として記録するため open に入れる
-        classified.open.add(number)
-        continue
-      }
-      if (!(error instanceof GitHubAPIError)) throw error
-      out.warning(`reading Issue #${String(number)} failed: ${error.message}; not closed`)
-      classified.unread.add(number)
-    }
-  }
-  return classified
-}
-
-function sorted(numbers: ReadonlySet<number>): number[] {
-  return [...numbers].toSorted((a, b) => a - b)
-}
-
-async function closeRelatedIssues(context: Readonly<FinishContext>, client: GitHubClient, location: RepositoryReference, issues: Readonly<ClosingIssues>): Promise<void> {
-  const { out, isDryRun, record } = context
-  for (const number of sorted(issues.epic)) {
-    settle(out, { verb: 'skip', target: `closing Issue #${String(number)} (Epic)` })
-    record.skippedIssues.push({ number, reason: 'epic' })
-  }
-  for (const number of sorted(issues.unread)) record.skippedIssues.push({ number, reason: 'failed' })
-  for (const number of sorted(issues.closed)) {
-    settle(out, { verb: 'unchanged', target: `Issue #${String(number)} (already closed)` })
-    record.skippedIssues.push({ number, reason: 'already-closed' })
-  }
-  for (const number of sorted(issues.open)) {
-    const operation: Operation = { verb: 'close', target: `Issue #${String(number)}` }
-    out.planned(operation)
-    if (isDryRun) {
-      record.closedIssues.push(number)
-      continue
-    }
-    try {
-      await client.closeIssue(location.owner, location.repository, number)
-      out.done(operation)
-      record.closedIssues.push(number)
-    }
-    catch (error: unknown) {
-      if (error instanceof GitHubNotFoundError) {
-        out.warning(`Issue #${String(number)} not found; skipped`)
-        record.skippedIssues.push({ number, reason: 'not-found' })
-      }
-      else if (error instanceof GitHubAPIError) {
-        const isClosed = isClosedByAnotherRequest(error)
-        if (isClosed) out.done({ verb: 'unchanged', target: `Issue #${String(number)} (already closed)` })
-        else out.warning(`closing Issue #${String(number)} failed: ${describeApiError(error)}`)
-        record.skippedIssues.push({ number, reason: isClosed ? 'already-closed' : 'failed' })
-      }
-      else {
-        throw error
-      }
-    }
-  }
-}
-
-interface WaitingSource {
-  readonly client: GitHubClient
-  readonly config: ProjectConfig
-  readonly location: RepositoryReference
-  readonly pullRequest: IssuePullRequest
-}
-
-function mergedPullRequestOf(location: RepositoryReference, number: number, pr: Readonly<PullRequestForFinish>): IssuePullRequest {
-  return { repository: location, number, state: 'merged', headRefName: pr.head_ref, baseRefName: pr.base_ref, isDraft: pr.is_draft, isCrossRepository: false }
-}
-
-// 閉じた Issue のうち、判定に出ている前提がすべて済んでいるか
-function isClosedReflected(judged: JudgedIssue, heads: readonly IssueReference[]): boolean {
-  const found = heads.flatMap(head => prerequisiteOf(judged, head) ?? [])
-  return found.length > 0 && found.every(({ issue }) => isDone(issue))
-}
-
-function waitingCheck(source: Readonly<WaitingSource>, heads: readonly IssueReference[], isDryRun: boolean, cache: ReadinessCache, home: RepositoryReference | undefined): WaitingCheck {
-  const { client, config, pullRequest } = source
-  const names = heads.map(head => displayReference(head, home)).join(', ')
-  const unconfirmed = (name: string): HintedText => hinted`could not confirm that GitHub reflects the close of ${names} in the readiness of ${name}; its column was not moved; ${RUN} ${commandHint(['board', 'sync'])} later to move it`
-  if (!isDryRun) return { isReflected: judged => isClosedReflected(judged, heads), unconfirmed }
-  // dry-run では Issue を閉じていないので、閉じた後を置き換えで作る
-  return {
-    isReflected: () => true,
-    unconfirmed,
-    assume: async ({ target, result }) => (result.kind === 'judged'
-      ? { target, result: await judgeAssuming(client, config, result, prerequisites => assumePullRequestState(prerequisites, heads, pullRequest, 'merged'), cache) }
-      : { target, result }),
-  }
-}
-
-// 閉じた Issue を待つ Issue の列と札を動かし、マージの前と比べた判定の変化と、スタックし直す子ブランチを記録する
-async function updateWaitingIssues(context: Readonly<FinishContext>, source: Readonly<WaitingSource>): Promise<void> {
-  const { out, isDryRun, record } = context
-  const { client, config, location, pullRequest } = source
-  const alreadyClosed = record.skippedIssues.filter(({ reason }) => reason === 'already-closed').map(({ number }) => number)
-  const heads = [...record.closedIssues, ...alreadyClosed].toSorted((a, b) => a - b).map(number => createIssueReference(location, number))
-  if (heads.length === 0) return
-  const home = homeRepositoryOf(config)
-  const cache = createReadinessCache()
-  const board: BoardContext = { out, client, config, home }
-  const judged = await moveIssuesWaitingFor(board, { heads, check: waitingCheck(source, heads, isDryRun, cache, home), isDryRun, cache })
-
-  for (const { target, result } of judged) {
-    if (result.kind !== 'judged' || result.readiness === undefined) continue
-    const before = await judgeAssuming(client, config, result, prerequisites => assumePullRequestState(prerequisites, heads, pullRequest, 'open'), cache)
-    if (before.kind !== 'judged' || before.readiness === undefined || !hasReadinessChanged(before.readiness, result.readiness)) continue
-    const { repository } = target.ref
-    record.readinessChanges.push({ issue: displayReference(target.ref, home), from: describeReadinessChange(before.readiness, repository), to: describeReadinessChange(result.readiness, repository) })
-  }
-  if (record.readinessChanges.length > 0) out.data(['Readiness changed:', ...record.readinessChanges.map(change => `- ${change.issue} ${change.from} -> ${change.to}`)].join('\n'))
-
-  for (const { target, result } of judged) {
-    if (result.kind !== 'judged' || !isStackedOn(result.target, result.prerequisites, heads)) continue
-    const name = displayReference(target.ref, home)
-    const lower = heads.filter(head => prerequisiteOf(result, head)?.wait === 'stack').map(head => displayReference(head, home)).join(', ')
-    const [branch] = result.target.branches
-    record.restack.push({ issue: name, ...branch !== undefined && { branch } })
-    out.warning(hinted`${name} is stacked on ${lower}; ${RUN} ${commandHint(RESTACK_PATH)} in the working directory of ${branch ?? 'its branch'}`)
-  }
 }
 
 // head ブランチを消す。無ければ unchanged、ほかの失敗は warning にして続ける
@@ -399,7 +215,6 @@ const FinishInputSchema = z.strictObject({
   pr_ref: z.string().describe(PR_REFERENCE_DESCRIPTION),
   dry_run: z.boolean().default(false).describe('Dry-run (do not actually clean up)'),
   delete_branch: z.boolean().default(false).describe('Delete the branch'),
-  skip_local_cleanup: z.boolean().default(false).describe('Skip the local branch switch and deletion'),
   project: PROJECT_INPUT,
 })
 
@@ -421,18 +236,11 @@ async function finish(input: Readonly<z.output<typeof FinishInputSchema> & Globa
   const location: RepositoryReference = { owner: reference.owner, repository: reference.repository }
   const config = requireConfigFor(out, location, input.project, ['session', 'finish']).config
 
-  const { client, pr } = await fetchPullRequestForCleanup(config, reference, out)
-  if (pr.state !== 'MERGED') stopWith(out, hinted`PR #${String(reference.number)} is not merged yet (state: ${pr.state}); merge it on GitHub first`, 'pr-state')
+  const merged = await requireMergedPullRequest(out, config, reference)
   context.record.hasStarted = true
-
-  const closingNumbers = collectClosingIssueNumbers(pr, location)
-  const issues = await classifyClosingIssues(client, location, closingNumbers, out)
-  out.count('Issues to close', issues.open.size)
-  await closeRelatedIssues(context, client, location, issues)
-  await updateWaitingIssues(context, { client, config, location, pullRequest: mergedPullRequestOf(location, reference.number, pr) })
-  if (input.delete_branch) await deleteMergedBranch(context, client, location, pr.head_ref)
-  if (input.skip_local_cleanup) return
-  await localCleanupAfterMerge(context, pr.head_ref, config, location)
+  const closingNumbers = await finishOnGithub(context, config, merged)
+  if (input.delete_branch) await deleteMergedBranch(context, merged.client, location, merged.pr.head_ref)
+  await localCleanupAfterMerge(context, merged.pr.head_ref, config, location)
   if (input.dry_run) {
     return
   }

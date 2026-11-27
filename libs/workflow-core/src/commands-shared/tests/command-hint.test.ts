@@ -81,12 +81,12 @@ describe('案内の誤り', () => {
   })
 
   it.for([
-    { name: 'コマンドの案内', make: () => commandHint(['board', 'sync'], { dry_run: true }), cli: 'pecot board sync --dry-run' },
-    { name: '入力の案内', make: () => inputHint(['board', 'sync'], 'dry_run'), cli: '--dry-run' },
-  ])('CLI 専用の入力を含む案内（$name）は、MCP の形では TypeError が発生し、CLI の形では整形できる', async ({ name, make, cli }) => {
+    { name: 'コマンドの案内', make: () => commandHint(['board', 'add'], { dry_run: true }), cli: 'pecot board add --dry-run' },
+    { name: '入力の案内', make: () => inputHint(['board', 'add'], 'dry_run'), cli: '--dry-run' },
+  ])('CLI だけの入力を $name で MCP に描くと、TypeError で止まり、CLI には描ける', async ({ name, make, cli }) => {
     await explains(`CLI だけで使える入力（\`dry_run\`）を含む案内のテストです。${name}を MCP の形に整形すると \`TypeError\` が発生し、CLI の形には整形できることを確認します。`)
     expect(formatHint(make(), 'cli')).toBe(cli)
-    expect(() => formatHint(make(), 'mcp')).toThrow(new TypeError('案内の入力 \'dry_run\' は \'board sync\' の CLI だけの入力で、MCP に出せない'))
+    expect(() => formatHint(make(), 'mcp')).toThrow(new TypeError('案内の入力 \'dry_run\' は \'board add\' の CLI だけの入力で、MCP に出せない'))
   })
 })
 
@@ -132,11 +132,11 @@ describe('出し先で変わる文', () => {
     expect(formatHinted(text, 'mcp')).toBe('fix it and call the tool again')
   })
 
-  it('cliOnlyText の中の文は、CLI の形では出力し、MCP の形では空にする', async () => {
+  it('cliOnlyText は、CLI では中の文を描き、MCP では空になる', async () => {
     await explains('CLI だけに出力する文（`cliOnlyText`）のテストです。CLI の形では括弧内の案内を出力し、MCP の形では何も出力しないことを確認します。')
-    const text = hinted`run ${commandHint(['board', 'sync'])}${cliOnlyText(hinted` (${inputHint(['board', 'sync'], 'dry_run')} to preview)`)}`
-    expect(formatHinted(text, 'cli')).toBe('run pecot board sync (--dry-run to preview)')
-    expect(formatHinted(text, 'mcp')).toBe('run board_sync')
+    const text = hinted`run ${commandHint(['board', 'add'])}${cliOnlyText(hinted` (${inputHint(['board', 'add'], 'dry_run')} to preview)`)}`
+    expect(formatHinted(text, 'cli')).toBe('run pecot board add (--dry-run to preview)')
+    expect(formatHinted(text, 'mcp')).toBe('run board_add')
   })
 
   it('RUN_COLON は、CLI では run: とコマンド、MCP では call とツール名になる', async () => {
@@ -148,9 +148,9 @@ describe('出し先で変わる文', () => {
 
   it('RUN は、文の中の動詞を CLI では run、MCP では call にする', async () => {
     await explains('文の中で動詞になる定数（`RUN`）のテストです。CLI の形では `run`、MCP の形では `call` になることを確認します。')
-    const text = hinted`${RUN} ${commandHint(['board', 'sync'])} later`
-    expect(formatHinted(text, 'cli')).toBe('run pecot board sync later')
-    expect(formatHinted(text, 'mcp')).toBe('call board_sync later')
+    const text = hinted`${RUN} ${commandHint(['pr', 'restack'])} later`
+    expect(formatHinted(text, 'cli')).toBe('run pecot pr restack later')
+    expect(formatHinted(text, 'mcp')).toBe('call pr_restack later')
   })
 
   it('runAgain は、CLI では run again: とコマンド、MCP では call とツール名と again になる', async () => {

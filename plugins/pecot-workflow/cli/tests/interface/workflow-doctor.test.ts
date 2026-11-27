@@ -27,6 +27,8 @@ const TOKEN_MISSING = 'secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_A
 const KEY_MISSING = 'secret PECOT_AGENT_APP_PRIVATE_KEY'
 const CLIENT_ID_MISSING = 'variable PECOT_AGENT_APP_CLIENT_ID'
 const AUTO_DESTINATION = '.github/workflows/pecot-auto.yml'
+const ACTIONS_ITEM = `${DESTINATION} calls the pecot actions, not npx @pecot/workflow-mcp`
+const AUTO_ACTIONS_ITEM = `${AUTO_DESTINATION} calls the pecot actions, not npx @pecot/workflow-mcp`
 
 // 雛形が無くても、ほかのケースは流れるように、使うケースの中で読む
 function bundledAuto(): string {
@@ -86,6 +88,7 @@ describe('workflow doctor', () => {
     expect(itemsOf(result)).toEqual([
       { name: DESTINATION, state: 'ok' },
       { name: 'workflow template review', state: 'ok' },
+      { name: ACTIONS_ITEM, state: 'ok' },
       { name: TOKEN_MISSING, state: 'ok' },
       { name: 'Claude GitHub App', state: 'skipped' },
     ])
@@ -198,7 +201,7 @@ describe('workflow doctor', () => {
     expect(result.isError).toBe(true)
     expect(result.structured).toMatchObject({ kind: 'invalid-input' })
     expect(result.structured['detail']).toContain('unknown workflow template: deploy')
-    expect(result.structured['detail']).toContain('available: review, handoff, auto')
+    expect(result.structured['detail']).toContain('available: board-sync, review, handoff, auto')
   })
 
   it('name に handoff を渡すと、引き継ぎの雛形と review と同じエージェント用の認証を確かめ、Claude の App の項目を入れない', async (context) => {
@@ -233,6 +236,7 @@ describe('workflow doctor', () => {
     expect(itemsOf(result)).toEqual([
       { name: AUTO_DESTINATION, state: 'ok' },
       { name: 'workflow template auto', state: 'ok' },
+      { name: AUTO_ACTIONS_ITEM, state: 'ok' },
       { name: CLIENT_ID_MISSING, state: 'missing' },
       { name: KEY_MISSING, state: 'missing' },
       { name: TOKEN_MISSING, state: 'ok' },
@@ -291,9 +295,49 @@ describe('workflow doctor', () => {
     expect(result.stdout).toBe([
       `ok: ${DESTINATION}`,
       'ok: workflow template review',
+      `ok: ${ACTIONS_ITEM}`,
       `ok: ${TOKEN_MISSING}`,
       'skipped: Claude GitHub App',
       '',
     ].join('\n'))
+  })
+  it.for([
+    { name: 'npx で @pecot/workflow-mcp を呼ぶ', installed: BUNDLED.replace(/uses: pecotcraft\/pecot\/actions\/review-finish@\S+/u, 'run: npx -y --prefix=/ @pecot/workflow-mcp@latest review finish "$PR"') },
+    { name: 'pecot の action を呼ばない', installed: BUNDLED.replace(/uses: pecotcraft\/pecot\/actions\/review-finish@\S+/u, 'run: echo finish') },
+  ])('もし置いたファイルが $name なら、版が同じでも、その項目を outdated にして失敗を返す', async (row, context) => {
+    await verifies(context, 'PW-WORKFLOW-DOCTOR-18')
+    await explains(`\`workflow doctor\` の、置いたワークフローの pecot の action の確認のテストです。置いたファイルが \`${row.name}\` 場合に、版が同じでもその項目を \`outdated\` にして失敗を返すことを確認します。`)
+    const result = await doctor(READY, { [DESTINATION]: row.installed })
+    expect(result.isError).toBe(true)
+    expect(itemsOf(result)).toContainEqual({ name: 'workflow template review', state: 'ok' })
+    expect(itemsOf(result)).toContainEqual({ name: ACTIONS_ITEM, state: 'outdated' })
+    expect(result.structured).toMatchObject({ kind: 'repo-setting-missing', ready: false })
+  })
+
+  it('SHA で固定した pecot の action を呼ぶファイルは、その項目を ok にする', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-DOCTOR-18')
+    await explains('`workflow doctor` の、置いたワークフローの pecot の action の確認のテストです。SHA で固定した pecot の action を呼ぶファイルの場合に、その項目を `ok` にすることを確認します。')
+    const pinned = BUNDLED.replace(/(uses: pecotcraft\/pecot\/actions\/review-finish)@(\S+)/u, (_match, use: string, tag: string) => `${use}@${'a'.repeat(40)} # ${tag}`)
+    const result = await doctor(READY, { [DESTINATION]: pinned })
+    expect(itemsOf(result)).toContainEqual({ name: ACTIONS_ITEM, state: 'ok' })
+  })
+
+  it.for([
+    { name: 'App の組', settings: { secrets: ['PECOT_BOARD_SYNC_APP_PRIVATE_KEY'], variables: ['PECOT_BOARD_SYNC_APP_CLIENT_ID'] }, state: 'ok' },
+    { name: 'PAT の組', settings: { secrets: ['PECOT_BOARD_SYNC_TOKEN'], variables: ['PECOT_BOARD_SYNC_USE_PAT'] }, state: 'ok' },
+    { name: 'App の変数だけ', settings: { variables: ['PECOT_BOARD_SYNC_APP_CLIENT_ID'] }, state: 'missing' },
+  ])('board-sync で $name があると、token の組の項目を $state にする', async (row, context) => {
+    await verifies(context, 'PW-WORKFLOW-DOCTOR-19')
+    await explains(`\`workflow doctor\` の、board sync のトークンの設定の確認のテストです。リポジトリに \`${row.name}\` がある場合に、トークンの組の項目を \`${row.state}\` にすることを確認します。`)
+    const destination = '.github/workflows/pecot-board-sync.yml'
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同梱の雛形のパス
+    const bundled = readFileSync(path.join(pluginRoot(), 'cli/templates/workflow/pecot-board-sync.yml'), 'utf8')
+    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'board-sync' }, files: { [destination]: bundled }, config: false, github: github(row.settings) })
+    expect(itemsOf(result)).toEqual([
+      { name: destination, state: 'ok' },
+      { name: 'workflow template board-sync', state: 'ok' },
+      { name: `${destination} calls the pecot actions, not npx @pecot/workflow-mcp`, state: 'ok' },
+      { name: 'variable PECOT_BOARD_SYNC_APP_CLIENT_ID and secret PECOT_BOARD_SYNC_APP_PRIVATE_KEY, or variable PECOT_BOARD_SYNC_USE_PAT and secret PECOT_BOARD_SYNC_TOKEN', state: row.state },
+    ])
   })
 })

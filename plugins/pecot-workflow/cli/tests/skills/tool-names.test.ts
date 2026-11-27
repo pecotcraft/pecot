@@ -177,11 +177,11 @@ describe('`pecot <サブコマンド>` の検出式', () => {
     '"$PECOT" board show',
     '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" --repo o/r issue comment',
     '/home/u/.claude/plugins/x/bin/pecot session show',
-    'pecot --repo o/r tracker sync security',
+    'pecot --repo o/r session finish 3',
     'cd x && pecot --help',
     'pecot --version',
     'pecot branch delete acme/demo feat/x',
-    '$PECOT tracker sync security --dry-run',
+    '$PECOT session start 3 --dry-run',
     'pecot workflow doctor review',
   ]
   const allowed = [

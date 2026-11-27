@@ -130,7 +130,7 @@ def test_ini_labels_are_added_to_every_result(tmp_path: Path) -> None:
 `${}` を含むテンプレートリテラルの題と、文字列の連結（`'a' + x`）の題は、値が決まらないので止めません。
 変数や関数呼び出しの題は、規約の文言ではなく `Test title must be a string` で止まります。
 
-設定は次の 8 つに、同じ形で書いています。変えるときは 8 つとも変えます。
+設定は次の 9 つに、同じ形で書いています。変えるときは 9 つとも変えます。
 
 - `plugins/pecot-tools/cli/eslint.config.js`
 - `plugins/pecot-visual/cli/eslint.config.js`
@@ -138,19 +138,20 @@ def test_ini_labels_are_added_to_every_result(tmp_path: Path) -> None:
 - `plugins/pecot-workflow/cli/eslint.config.js`
 - `libs/text-rules/eslint.config.js`
 - `libs/workflow-core/eslint.config.js`
+- `actions/eslint.config.js`
 - `libs/interface-spec/eslint.config.js`
 - `.nx/nx-release/eslint.config.mjs`
 
 `describe` の題の 2 行は、`tests/interface/**` にだけ当てます。規則は `libs/interface-spec/src/eslint/describe-title.ts` にあります。
-上の設定のうち、interface-spec を除く 7 つが、`describeTitleConfig` で読み込んでいます。
+上の設定のうち、interface-spec を除く 8 つが、`describeTitleConfig` で読み込んでいます。
 入れ子の `describe` と関数の中の `describe`、`describe` が無いファイルは止めません。`${}` の無いテンプレートリテラルは題として読みます。
 `libs/text-rules`・`libs/workflow-core`・slidev・nx-release は定義書を持たず、`definitions` が空です。`tests/interface/` に `describe` を足すと、どの題も止まります。
 
-`explains` の行は、8 つの設定が `testDescriptionConfig` で読み込みます。規則は `libs/interface-spec/src/eslint/test-description.ts` にあります。
+`explains` の行は、9 つの設定が `testDescriptionConfig` で読み込みます。規則は `libs/interface-spec/src/eslint/test-description.ts` にあります。
 本体は、引数の中の最後の関数式とします。`test(題, options, 本体)` と `test(題, 本体, timeout)` の形があるためです。本体の関数式が無い呼び出しと、`.todo`・`.extend` は見ません。
 pytest の行は、pre-commit の hook `check-pytest-titles`（`.githooks/pre-commit/check-pytest-titles.py`）が止めます。モジュールの直下と `Test*` クラスの `test_*` 関数を見ます。
 
-`$` のキーの行は、8 つの設定が `tableKeyConfig` で読み込みます。規則は `libs/interface-spec/src/eslint/table-key.ts` にあります。
+`$` のキーの行は、9 つの設定が `tableKeyConfig` で読み込みます。規則は `libs/interface-spec/src/eslint/table-key.ts` にあります。
 見るのは、根が `it`・`test`・`describe`・`suite` の `.each(…)(題)` と `.for(…)(題)` です。入れ子の `describe` と関数の中も見ます。題は、文字列のリテラルと `${}` の無いテンプレートリテラルだけ読みます。
 行にキーが無いことは見ません。行が変数や関数の結果のことが多いためです。
 
@@ -164,12 +165,13 @@ vitest の setupFiles の `libs/interface-spec/src/vitest/unique-titles.ts` が�
 | 同じ名前が 2 回以上ある。ファイルが失敗になり、そのファイルのケースは skip として並ぶ | `同じ題のテストが重なる` と、重なった名前 |
 
 別の `describe` の中にある同じ題は、名前が違うので重なりとしません。
-setupFiles は、7 つの `vitest.config.ts` と `.nx/nx-release/vitest.config.mjs` に書いています。pecot-workflow は、インラインの 3 つの project それぞれに書いています。
+setupFiles は、8 つの `vitest.config.ts` と `.nx/nx-release/vitest.config.mjs` に書いています。pecot-workflow は、インラインの 3 つの project それぞれに書いています。
 pecot-tools・pecot-visual の `vitest.e2e.config.ts` にも書いています。vitest の設定を足すときは、これも足します。
 
 ## 項目へのつなぎ
 
-vitest は、テストの本体の最初で `verifies` を呼びます。ID は文字列のリテラルで書きます。テストは、各 project の `tests/_helpers/verifies.ts` から `verifies` を import します。project は pecot-tools・pecot-visual の `cli/` と、pecot-workflow の `cli/` です。
+vitest は、テストの本体の最初で `verifies` を呼びます。ID は文字列のリテラルで書きます。
+テストは、各 project の `tests/_helpers/verifies.ts` から `verifies` を import します。project は pecot-tools・pecot-visual の `cli/` と、pecot-workflow の `cli/`、`actions` です。
 本体は `libs/interface-spec/src/vitest/verifies.ts` にあります。annotation を残し、nx のレーンの中では、Allure の `tms` のリンクと `tag` も残します。
 
 ```ts

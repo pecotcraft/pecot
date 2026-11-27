@@ -194,10 +194,13 @@ repos:
       # 上流マニフェストが stages を宣言する 3 hook は、default_stages が反映されない。
       # 対象は trailing-whitespace、end-of-file-fixer、check-added-large-files の 3 hook。
       # そのため設定側で pre-commit のみに固定する。
+      # actions の dist は rollup の出力のまま commit する（lint-dist が build し直したものと比べる）
       - id: trailing-whitespace
         stages: [pre-commit]
+        exclude: ^actions/[^/]+/dist/
       - id: end-of-file-fixer
         stages: [pre-commit]
+        exclude: ^actions/[^/]+/dist/
       - id: check-yaml
         exclude: (^|/)(pnpm|runtime)-lock\.yaml$
       # pnpm 11 以降の lockfile は package manager 自身の記録と依存の記録の 2 ドキュメント構成のため、

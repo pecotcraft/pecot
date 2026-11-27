@@ -271,4 +271,17 @@ describe('listed names', () => {
       expect(findings).toEqual([{ file: 'plugins/p/interface/authored.yaml', field: 'environment', reason: 'X is read by cli/a.py but not listed' }])
     })
   })
+
+  it('プラグインのディレクトリの外のソースは、リポからのパスで挙げる', async () => {
+    await explains('環境変数の読み取りの確認のテストです。プラグインのディレクトリの外にあるソースの場合に、指摘のパスをリポジトリのルートからのパスで返すことを確認します。')
+    const findings = stepSync('環境変数の読みを調べる', () => checkEnvironment({
+      pluginDir: 'actions',
+      authoredPath: 'actions/interface/authored.yaml',
+      listed: [],
+      sources: [{ path: 'libs/core/src/paths.ts', text: 'process.env[\'HOME\']\n' }],
+    }))
+    stepSync('結果を比べる', () => {
+      expect(findings).toEqual([{ file: 'actions/interface/authored.yaml', field: 'environment', reason: 'HOME is read by libs/core/src/paths.ts but not listed' }])
+    })
+  })
 })

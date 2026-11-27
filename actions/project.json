@@ -1,0 +1,157 @@
+{
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "name": "actions",
+  "projectType": "library",
+  "tags": [
+    "type:actions",
+    "scope:actions"
+  ],
+  "//implicitDependencies-reason": "package.json は workflow-core を別名（@pecot/workflow-core）で読み、nx は別名から辺を引かない",
+  "implicitDependencies": ["workflow-core"],
+  "targets": {
+    "install": {
+      "executor": "nx:noop",
+      "cache": false,
+      "dependsOn": [
+        {
+          "projects": [
+            "pecot"
+          ],
+          "target": "install"
+        }
+      ],
+      "metadata": {
+        "description": "依存の導入は、root の project の install が行う。build / lint / test-unit に、root の install の後に動く順序だけを与える。"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "dependsOn": [
+        "install",
+        {
+          "projects": [
+            "workflow-core"
+          ],
+          "target": "build"
+        }
+      ],
+      "metadata": {
+        "description": "rollup で処理ごとに <処理>/dist/index.js を作る。lib の exports が dist を指すので、workflow-core を先に build する。"
+      },
+      "options": {
+        "command": "pnpm run build",
+        "cwd": "actions"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "default",
+        "^production",
+        "runtime",
+        "env",
+        "{workspaceRoot}/libs/interface-spec/src/eslint/describe-title.ts",
+        "{workspaceRoot}/libs/interface-spec/src/eslint/table-key.ts",
+        "{workspaceRoot}/libs/interface-spec/src/eslint/test-description.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/explains.ts"
+      ],
+      "dependsOn": [
+        "install",
+        {
+          "projects": [
+            "workflow-core"
+          ],
+          "target": "build"
+        }
+      ],
+      "metadata": {
+        "description": "型チェック（typescript7 の tsc --noEmit）、eslint（警告も失敗）、knip。"
+      },
+      "options": {
+        "command": "pnpm run lint",
+        "cwd": "actions"
+      }
+    },
+    "lint-dist": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "default",
+        "^production",
+        "runtime",
+        "env"
+      ],
+      "dependsOn": [
+        "build"
+      ],
+      "metadata": {
+        "description": "commit した <処理>/dist が、source から build し直したものと同じかを確かめる。違えば build して commit し直す。"
+      },
+      "options": {
+        "command": "git diff --exit-code --stat -- 'actions/*/dist' && test -z \"$(git ls-files --others --exclude-standard -- 'actions/*/dist')\"",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "test": {
+      "executor": "nx:noop",
+      "cache": false,
+      "dependsOn": [
+        "test-unit"
+      ],
+      "metadata": {
+        "description": "CI と manual の stage の nx-affected-tests が起動するターゲット。レーン（test-*）を dependsOn で束ねる。"
+      }
+    },
+    "test-unit": {
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/explains.ts",
+        "default",
+        "^production",
+        "runtime",
+        "env",
+        { "runtime": "git --version" }
+      ],
+      "outputs": ["{projectRoot}/test-results/test-unit/allure-results"],
+      "dependsOn": [
+        "install",
+        {
+          "projects": [
+            "workflow-core"
+          ],
+          "target": "build"
+        }
+      ],
+      "metadata": {
+        "description": "vitest のテスト。カバレッジ閾値は 90%。一時リポで git を起動するテストがあるので、git のバージョンを runtime 入力に置く。"
+      },
+      "options": {
+        "command": "rm -rf test-results/test-unit/allure-results && pnpm exec vitest run --coverage",
+        "cwd": "actions"
+      }
+    },
+    "nx-release-publish": {
+      "executor": "nx:run-commands",
+      "metadata": {
+        "description": "nx release の publish phase は全 group の project を回り、このターゲットを持たない project があると throw する。action はタグで配るので publish は無い。"
+      },
+      "options": {
+        "forwardAllArgs": false,
+        "command": "echo 'actions: タグで配るため publish は不要'"
+      }
+    }
+  },
+  "release": {
+    "version": {
+      "versionActions": "./.nx/nx-release/src/actions-version-actions.js",
+      "manifestRootsToUpdate": [
+        {
+          "path": "{projectRoot}"
+        }
+      ]
+    }
+  }
+}

@@ -8,19 +8,19 @@ import { z } from 'zod'
 
 import { compareStrings } from '../../../tests/parity/baseline.js'
 import { COMMON_OUTPUT_KEYS } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { CLI_HINT_COMMANDS } from '@pecot/workflow-core/commands-shared/hint-catalog.js'
 import { commandNameViolations } from '@pecot/workflow-core/commands-shared/names.js'
 import { COMMANDS, defineCommand, findCommand, toolNameOf } from '../registry.js'
 import { exitWith } from './support.js'
 
-const COMMAND_COUNT = 45
+const COMMAND_COUNT = 39
 const GENERATED = path.resolve(import.meta.dirname, '../../../../interface/generated.json')
-const HINT_COMMANDS = path.resolve(import.meta.dirname, '../../../../../../libs/workflow-core/tests/_helpers/hint-commands.json')
 const EntrySchema = z.object({ id: z.string() })
 const GeneratedSchema = z.object({ prefix: z.string(), entries: z.array(EntrySchema) })
 
 describe('コマンドの一覧', () => {
-  it('コマンドが 45 個登録され、path が重複しない', async () => {
-    await explains('登録済みのコマンドの一覧（`COMMANDS`）のテストです。コマンドが 45 個あり、`path` を空白でつないだ値がすべて異なることを確認します。')
+  it('39 個が登録され、path は重複しない', async () => {
+    await explains('登録済みのコマンドの一覧（`COMMANDS`）のテストです。コマンドが 39 個あり、`path` を空白でつないだ値がすべて異なることを確認します。')
     expect(COMMANDS).toHaveLength(COMMAND_COUNT)
     expect(new Set(COMMANDS.map(command => command.path.join(' '))).size).toBe(COMMAND_COUNT)
   })
@@ -41,14 +41,11 @@ describe('コマンドの一覧', () => {
     await explains('コマンドの並び順のテストです。登録済みのコマンドが、`project`・`board`・`issue` などのグループごとにまとまり、グループと各コマンドが決められた順に並ぶことを確認します。')
     expect(COMMANDS.map(command => command.path.join(' '))).toEqual([
       'project list', 'project search', 'project init', 'project create', 'project activate', 'project link', 'project get', 'project set', 'project unset',
-      'board show', 'board add', 'board move', 'board sync',
+      'board show', 'board add', 'board move',
       'issue create', 'issue check', 'issue show', 'issue attributes', 'issue edit', 'issue comment', 'issue block', 'issue unblock', 'issue reopen',
       'session start', 'session show', 'session finish',
       'pr create', 'pr show', 'pr check', 'pr merge', 'pr restack',
-      'review finish',
-      'auto gate', 'auto start', 'auto finish',
       'release check', 'release create', 'release merge',
-      'tracker sync',
       'worktree add', 'worktree remove', 'worktree init', 'worktree link',
       'branch delete',
       'workflow install', 'workflow doctor',
@@ -60,10 +57,9 @@ describe('コマンドの一覧', () => {
     expect(z.toJSONSchema(output, { io: 'input' })).toEqual(z.toJSONSchema(output, { io: 'output' }))
   })
 
-  it('ライブラリのテストが使うコマンドの形の写しが、登録したコマンドの形と一致する', async () => {
-    await explains('`libs/workflow-core` のテストが使う `hint-commands.json` のテストです。写しに書かれた `path`・位置引数・入力名・`cliOnly`・`hasOwnRepo` が、登録済みのコマンドの値と一致することを確認します。')
-    const shapes: unknown = JSON.parse(readFileSync(HINT_COMMANDS, 'utf8'))
-    expect(shapes).toEqual(COMMANDS.map(command => ({
+  it('lib の案内の一覧の CLI の形が、登録した形と同じになる', async () => {
+    await explains('`libs/workflow-core` の案内に使うコマンドの一覧（`CLI_HINT_COMMANDS`）のテストです。一覧の `path`・位置引数・入力名・`cliOnly`・`hasOwnRepo` が、登録済みのコマンドの値と一致することを確認します。')
+    expect(CLI_HINT_COMMANDS).toEqual(COMMANDS.map(command => ({
       path: command.path,
       positional: command.positional,
       inputs: Object.keys(command.input.shape),

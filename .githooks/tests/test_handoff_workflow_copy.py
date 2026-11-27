@@ -9,7 +9,7 @@ import allure
 import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
-_TEMPLATE = "plugins/pecot-workflow/cli/templates/workflow/pecot-handoff.yml"
+_TEMPLATE = "actions/templates/pecot-handoff.yml"
 _COPY = ".github/workflows/pecot-handoff.yml"
 
 # Dependabot は写しの action の版だけを上げ、雛形を上げない。版は比べない。

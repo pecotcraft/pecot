@@ -91,11 +91,11 @@ describe('tools/list', () => {
     return found
   }
 
-  it('COMMANDS と同じ 45 個の名前を、同じ並びで返す', async () => {
-    await explains('MCP サーバのツール一覧（`tools/list`）の件数と並びのテストです。コマンド定義（`COMMANDS`）と同じ 45 個の名前が、同じ並びで返ることを確認します。')
+  it('COMMANDS と同じ 39 個の名前を、同じ並びで返す', async () => {
+    await explains('MCP サーバのツール一覧（`tools/list`）の件数と並びのテストです。コマンド定義（`COMMANDS`）と同じ 39 個の名前が、同じ並びで返ることを確認します。')
     const { client } = await connect()
     const { tools } = await client.listTools()
-    expect(tools).toHaveLength(45)
+    expect(tools).toHaveLength(39)
     expect(tools.map(tool => tool.name)).toEqual(COMMANDS.map(command => command.toolName))
   })
 

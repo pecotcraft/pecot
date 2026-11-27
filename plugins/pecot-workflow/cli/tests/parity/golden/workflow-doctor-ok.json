@@ -1,5 +1,5 @@
 {
-  "stdout": "ok: .github/workflows/pecot-review.yml\nok: workflow template review\nok: secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*\nskipped: Claude GitHub App\n",
+  "stdout": "ok: .github/workflows/pecot-review.yml\nok: workflow template review\nok: .github/workflows/pecot-review.yml calls the pecot actions, not npx @pecot/workflow-mcp\nok: secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*\nskipped: Claude GitHub App\n",
   "stderr": "",
   "exitCode": 0,
   "requests": [

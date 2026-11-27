@@ -6,6 +6,7 @@
 
 | 名前 | 役割 |
 |:---|:---|
+| `actions` | GitHub Actions の action と、利用者のリポに置くワークフローの雛形（`actions/<処理>/`） |
 | `libs` | ライブラリ（`libs/<name>/`） |
 | `plugins` | 配布するプラグイン（`plugins/<name>/`） |
 | `specs` | Spec Kit の仕様 |
@@ -32,4 +33,5 @@
 | プラグインの中身 | `plugins/<name>/` |
 | ライブラリ | `libs/<name>/` |
 | ワークフロー | `.github/workflows/` |
+| 利用者のリポが `uses:` で呼ぶ action と、その雛形 | `actions/` |
 | 作業ファイル・スクラッチ | `.pecot/work/<Issue番号>/` |

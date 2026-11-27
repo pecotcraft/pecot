@@ -1,5 +1,5 @@
 // review finish の結果の決め方と、止まったことを知らせるコメントの本文。決まりは spec 027 の contracts/cli-commands.md。
-// GitHub を読む・書くのは commands/review-finish.ts が受け持つ。
+// GitHub を読む・書くのは actions/src/commands/review-finish.ts が受け持つ。
 import { isJsonObject, jsonField, tryParseJsonText } from './json.js'
 import { isJsonArray } from './python-format.js'
 import type { JsonValue } from './python-format.js'
@@ -183,7 +183,7 @@ export function hasStoppedMarker(comments: readonly Readonly<IssueCommentReading
   return comments.some(comment => comment.userType === 'Bot' && comment.body.includes(marker))
 }
 
-// テンプレートのプレースホルダ。cli/templates/comment/review-stopped.md の本文と同じ文字列
+// テンプレートのプレースホルダ。actions/src/templates/review-stopped.md の本文と同じ文字列
 export const REVIEW_STOPPED_PLACEHOLDERS: Readonly<Record<'summary' | 'result' | 'location' | 'next', string>> = {
   summary: '<止まった理由を1行で>',
   result: '<結果>',

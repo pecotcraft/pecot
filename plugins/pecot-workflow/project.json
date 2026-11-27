@@ -3,6 +3,8 @@
   "name": "pecot-workflow",
   "projectType": "library",
   "tags": ["type:plugin", "scope:p-w"],
+  "//implicitDependencies-reason": "cli/templates/workflow/ に actions/templates/ の写しを持つ。actions の版上げで写しが変わるので、pecot-workflow の版も上げる",
+  "implicitDependencies": ["actions"],
   "targets": {
     "install": {
       "executor": "nx:run-commands",

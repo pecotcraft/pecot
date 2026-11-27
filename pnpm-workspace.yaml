@@ -9,6 +9,7 @@ packages:
   - libs/interface-spec
   - libs/text-rules
   - libs/workflow-core
+  - actions
   - plugins/pecot-workflow
   - plugins/pecot-tools
   - plugins/pecot-visual

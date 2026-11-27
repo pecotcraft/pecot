@@ -1,0 +1,16 @@
+name: pecot board sync
+description: Move the Issues in Ready, Blocked, Active and In Review to the columns and Status values their judgment calls for, and delete the Archived items beyond the latest 20 from the board.
+inputs:
+  token:
+    description: Token to read and write the project board (the App token or PAT of the workflow)
+    required: false
+  project:
+    description: Name of the project config under .pecot/config/projects (without .json). Without it, the active project; when none is active and only one config exists, that one
+    required: false
+  dry-run:
+    description: Show the planned moves without writing to the board
+    required: false
+    default: 'false'
+runs:
+  using: node24
+  main: dist/index.js

@@ -1,11 +1,12 @@
-# pecot-workflow-template: auto 1
+# pecot-workflow-template: auto 2
 #
 # Place this file at .github/workflows/pecot-auto.yml in your repository.
+# `pecot workflow install auto` places it and pins the pecot actions to a commit SHA.
 #
 # This workflow runs the pecot w-auto skill on an issue with claude-code-action.
 # It starts when the trigger label is added to an issue. The default label is "pecot-auto".
 # Comments, edits, and new issues never start it.
-# The gate job decides with the pecot CLI alone whether to go on. It starts no agent.
+# The gate job decides with a pecot action alone whether to go on. It starts no agent.
 # Then the run job posts a plan, fixes the issue, runs the tests, and opens a pull request.
 # It ends with a result comment on the issue and removes the trigger label.
 # When the fix needs a decision, it asks in the result comment and stops.
@@ -49,6 +50,9 @@
 #     Set it when the repository is in two or more configs under .pecot/config/projects.
 #     Write the file name without .json.
 #
+# The pecot actions are pinned to a commit SHA, with the release tag in the comment after it.
+# Dependabot can update them when .github/dependabot.yml has the github-actions ecosystem.
+#
 # Keep your own lines between the pecot-auto:*:begin and :end markers.
 # Add the commands that your tests need to the allowed-tools lines, for example Bash(npm test:*).
 # `pecot workflow install auto --force` shows them before it overwrites this file.
@@ -84,13 +88,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: "24.22.1"
-          # This job holds secrets, so the npm cache is neither restored nor saved.
-          package-manager-cache: false
-
       - name: Generate GitHub App token
         id: token
         continue-on-error: true
@@ -104,21 +101,16 @@ jobs:
           permission-contents: read
           permission-pull-requests: read
 
-      # The dist-tag after the package name decides the version. @latest is the newest release,
-      # and a new major version brings breaking changes. Use @<major> or @<version> to stay on one.
-      # --prefix=/ keeps npx from stopping in a repository that declares pnpm devEngines.
       - name: Decide
         id: decide
         if: ${{ steps.token.outcome == 'success' }}
+        uses: pecotcraft/pecot/actions/auto-gate@pecot-actions/v0.0.0
         env:
-          PECOT_GITHUB_COM_TOKEN: ${{ steps.token.outputs.token }}
           PECOT_AUTO_LABEL: ${{ vars.PECOT_AUTO_LABEL || 'pecot-auto' }}
-          MAX_CI_ATTEMPTS: ${{ vars.PECOT_AUTO_MAX_CI_ATTEMPTS || '3' }}
-          PECOT_AUTO_PROJECT: ${{ vars.PECOT_AUTO_PROJECT }}
-        run: |
-          set -- --event-name "$GITHUB_EVENT_NAME" --event-path "$GITHUB_EVENT_PATH" --max-ci-attempts "$MAX_CI_ATTEMPTS"
-          if [ -n "$PECOT_AUTO_PROJECT" ]; then set -- "$@" --project "$PECOT_AUTO_PROJECT"; fi
-          npx -y --prefix=/ @pecot/workflow-mcp@latest auto gate "$@"
+        with:
+          token: ${{ steps.token.outputs.token }}
+          max-ci-attempts: ${{ vars.PECOT_AUTO_MAX_CI_ATTEMPTS || '3' }}
+          project: ${{ vars.PECOT_AUTO_PROJECT }}
 
   run:
     needs: gate
@@ -163,16 +155,25 @@ jobs:
           permission-actions: read
           permission-organization-projects: write
 
+      # Writes the context of the issue to a file under RUNNER_TEMP for the skill.
+      - name: Start
+        id: start
+        uses: pecotcraft/pecot/actions/auto-start@pecot-actions/v0.0.0
+        with:
+          token: ${{ steps.token.outputs.token }}
+          issue: ${{ needs.gate.outputs.issue }}
+          project: ${{ vars.PECOT_AUTO_PROJECT }}
+
       # pecot-auto:prepare:begin
       # Add steps that the fix and the tests need, such as installing dependencies.
       # pecot-auto:prepare:end
 
       - name: Fix
         id: claude
+        if: ${{ success() && steps.start.outcome == 'success' }}
         uses: anthropics/claude-code-action@cc98b3ae241b0fcfb6a42a2690751afffecb4452 # v1.0.278
         env:
           PECOT_GITHUB_COM_TOKEN: ${{ steps.token.outputs.token }}
-          PECOT_AUTO_LABEL: ${{ vars.PECOT_AUTO_LABEL || 'pecot-auto' }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # The action takes either a token or Workload Identity Federation, not both.
@@ -185,27 +186,29 @@ jobs:
           plugins: pecot-w@pecot
           # Pushes made with the App token come back as runs started by the App.
           allowed_bots: ${{ steps.token.outputs.app-slug }}
-          prompt: /pecot-w:w-auto ${{ needs.gate.outputs.kind }} ${{ needs.gate.outputs.issue }}${{ vars.PECOT_AUTO_PROJECT != '' && format(' project={0}', vars.PECOT_AUTO_PROJECT) || '' }}
+          prompt: /pecot-w:w-auto ${{ needs.gate.outputs.kind }} ${{ needs.gate.outputs.issue }} context=${{ steps.start.outputs.context-file }} result=${{ runner.temp }}/pecot-auto/result.md${{ vars.PECOT_AUTO_PROJECT != '' && format(' project={0}', vars.PECOT_AUTO_PROJECT) || '' }}
+          # The skill reads the context file and writes the result file in this directory.
           claude_args: >-
             --permission-mode default
             --max-turns ${{ vars.PECOT_AUTO_MAX_TURNS || '80' }}
-            --allowedTools "Read,Glob,Grep,Edit,Write,mcp__plugin_pecot-w_pecot-workflow__session_start,mcp__plugin_pecot-w_pecot-workflow__issue_comment,mcp__plugin_pecot-w_pecot-workflow__pr_check,mcp__plugin_pecot-w_pecot-workflow__pr_create,mcp__plugin_pecot-w_pecot-workflow__auto_start,mcp__plugin_pecot-w_pecot-workflow__auto_finish,Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git fetch:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh pr checks:*),Bash(gh run view:*)${{ env.PECOT_AUTO_EXTRA_ALLOWED_TOOLS != '' && format(',{0}', env.PECOT_AUTO_EXTRA_ALLOWED_TOOLS) || '' }}"
+            --add-dir "${{ runner.temp }}/pecot-auto"
+            --allowedTools "Read,Glob,Grep,Edit,Write,mcp__plugin_pecot-w_pecot-workflow__session_start,mcp__plugin_pecot-w_pecot-workflow__issue_comment,mcp__plugin_pecot-w_pecot-workflow__pr_check,mcp__plugin_pecot-w_pecot-workflow__pr_create,Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git fetch:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh pr checks:*),Bash(gh run view:*)${{ env.PECOT_AUTO_EXTRA_ALLOWED_TOOLS != '' && format(',{0}', env.PECOT_AUTO_EXTRA_ALLOWED_TOOLS) || '' }}"
             --disallowedTools "Agent,AskUserQuestion,WebFetch,WebSearch,Bash(git clone:*),Read(//proc/**)"
 
-      # Writes the result comment when the skill did not, for example on a time-out.
+      # Writes the result comment from the result file of the skill, or from how the job ended.
       - name: Finish
         if: ${{ always() }}
+        uses: pecotcraft/pecot/actions/auto-finish@pecot-actions/v0.0.0
         env:
-          ISSUE: ${{ needs.gate.outputs.number }}
-          JOB_STATUS: ${{ job.status }}
-          EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
           PECOT_AUTO_LABEL: ${{ vars.PECOT_AUTO_LABEL || 'pecot-auto' }}
-          PECOT_GITHUB_COM_TOKEN: ${{ steps.token.outputs.token }}
-          PECOT_AUTO_PROJECT: ${{ vars.PECOT_AUTO_PROJECT }}
-        run: |
-          set -- --ensure --job-status "$JOB_STATUS" --execution-file "$EXECUTION_FILE"
-          if [ -n "$PECOT_AUTO_PROJECT" ]; then set -- "$@" --project "$PECOT_AUTO_PROJECT"; fi
-          npx -y --prefix=/ @pecot/workflow-mcp@latest auto finish "$GITHUB_REPOSITORY/$ISSUE" "$@"
+        with:
+          token: ${{ steps.token.outputs.token }}
+          issue: ${{ needs.gate.outputs.issue }}
+          job-status: ${{ job.status }}
+          start-outcome: ${{ steps.start.outcome }}
+          result-file: ${{ runner.temp }}/pecot-auto/result.md
+          execution-file: ${{ steps.claude.outputs.execution_file }}
+          project: ${{ vars.PECOT_AUTO_PROJECT }}
 
   # Without the App or its token, tell the issue what is missing. The run token writes the comment.
   setup:
@@ -228,20 +231,11 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: "24.22.1"
-          package-manager-cache: false
-
       # Like the gate job, write nothing for a bot or for someone without write access.
-      - name: Report
+      - name: Check
+        id: check
         env:
           GH_TOKEN: ${{ github.token }}
-          PECOT_GITHUB_COM_TOKEN: ${{ github.token }}
-          PECOT_AUTO_LABEL: ${{ vars.PECOT_AUTO_LABEL || 'pecot-auto' }}
-          PECOT_AUTO_PROJECT: ${{ vars.PECOT_AUTO_PROJECT }}
-          ISSUE: ${{ github.event.issue.number }}
           SENDER: ${{ github.event.sender.login }}
           NO_APP: ${{ vars.PECOT_AGENT_APP_CLIENT_ID == '' }}
           BODY_NO_APP: |
@@ -268,9 +262,22 @@ jobs:
           case "$SENDER" in *"[bot]") exit 0 ;; esac
           role=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$SENDER/permission" --jq .permission) || exit 0
           case "$role" in admin|write) ;; *) exit 0 ;; esac
-          BODY_FILE="$RUNNER_TEMP/pecot-auto-setup.md"
+          body_file="$RUNNER_TEMP/pecot-auto-setup.md"
           if [ "$NO_APP" = true ]; then body=$BODY_NO_APP; else body=$BODY_NO_TOKEN; fi
-          printf '%s' "$body" > "$BODY_FILE"
-          set -- --result setup-missing --body-file "$BODY_FILE"
-          if [ -n "$PECOT_AUTO_PROJECT" ]; then set -- "$@" --project "$PECOT_AUTO_PROJECT"; fi
-          npx -y --prefix=/ @pecot/workflow-mcp@latest auto finish "$GITHUB_REPOSITORY/$ISSUE" "$@"
+          printf '%s' "$body" > "$body_file"
+          {
+            echo "ok=true"
+            echo "body-file=$body_file"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Report
+        if: ${{ steps.check.outputs.ok == 'true' }}
+        uses: pecotcraft/pecot/actions/auto-finish@pecot-actions/v0.0.0
+        env:
+          PECOT_AUTO_LABEL: ${{ vars.PECOT_AUTO_LABEL || 'pecot-auto' }}
+        with:
+          token: ${{ github.token }}
+          issue: ${{ github.event.issue.number }}
+          result: setup-missing
+          body-file: ${{ steps.check.outputs.body-file }}
+          project: ${{ vars.PECOT_AUTO_PROJECT }}

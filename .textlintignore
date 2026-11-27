@@ -2,6 +2,7 @@
 # 外すのは、生成物と逐語の記録、上流の文書の写し（speckit の配布物・aws-agent-rules.md）、spec-kit のテンプレートの形で書く specs/ だ。
 **/CHANGELOG.md
 plugins/pecot-workflow/cli/tests/parity/golden/**
+actions/*/dist/**
 libs/workflow-core/tests/python-output/**
 .nx/nx-release/tests/_fixtures/**
 .specify/**

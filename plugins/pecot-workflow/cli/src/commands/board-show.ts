@@ -11,8 +11,6 @@ import { getActiveConfigPath } from '@pecot/workflow-core/infra/config-store.js'
 import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
 import { CommandExit, defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import { cliOnlyText, commandHint, hinted, inputHint, RUN } from '@pecot/workflow-core/commands-shared/command-hint.js'
-import type { HintedText } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import { requireActiveConfig, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { createGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
@@ -20,13 +18,11 @@ import { readBoardReadiness, readinessOf, skipBoardReadiness } from './board-rea
 import { BOARD_SHOW_OUTPUT, boardShowData, boardShowJson, boardShowMarkdown, boardShowResult, collectAlertStatuses, readBoard, warnOldFieldName } from '@pecot/workflow-core/commands-shared/board-view.js'
 import type { BoardShowJson } from '@pecot/workflow-core/commands-shared/board-view.js'
 import { failApi } from '@pecot/workflow-core/commands-shared/project-sync.js'
+import { BOARD_SYNC_WORKFLOW } from '@pecot/workflow-core/commands-shared/board-judgment.js'
 
-const SYNC_PATH = ['board', 'sync']
-
-function mismatchNote(count: number): HintedText {
+function mismatchNote(count: number): string {
   const subject = count === 1 ? '1 Ready or Blocked Issue may be' : `${String(count)} Ready or Blocked Issues may be`
-  const preview = cliOnlyText(hinted` (${inputHint(SYNC_PATH, 'dry_run')} to preview)`)
-  return hinted`${subject} in a column or Status that does not match its judgment; ${RUN} ${commandHint(SYNC_PATH)}${preview} to fix`
+  return `${subject} in a column or Status that does not match its judgment; run ${BOARD_SYNC_WORKFLOW} to fix`
 }
 
 const boardShowCommand = defineCommand({

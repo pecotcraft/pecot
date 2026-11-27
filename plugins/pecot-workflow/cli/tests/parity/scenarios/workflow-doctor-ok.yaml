@@ -7,7 +7,11 @@ setup:
   repo:
     files:
       .github/workflows/pecot-review.yml: |
-        # pecot-workflow-template: review 8
+        # pecot-workflow-template: review 9
+        jobs:
+          review:
+            steps:
+              - uses: pecotcraft/pecot/actions/review-finish@0123456789abcdef0123456789abcdef01234567 # pecot-actions/v1.0.0
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token
 github:

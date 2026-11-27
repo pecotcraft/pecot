@@ -88,6 +88,11 @@
     "results": "libs/workflow-core/test-results/test-unit/allure-results"
   },
   {
+    "project": "actions",
+    "target": "test-unit",
+    "results": "actions/test-results/test-unit/allure-results"
+  },
+  {
     "project": "interface-spec",
     "target": "test-unit",
     "results": "libs/interface-spec/test-results/test-unit/allure-results"

@@ -9,7 +9,7 @@ import { decideReviewFinish, hasStoppedMarker, readExecution, renderReviewStoppe
 import type { ExecutionReading, FinishInput, JobStatus, NextStep, ReviewOutcome, ReviewStoppedValues, StopLocation, StoppedResult } from '../review-finish.js'
 import { extractSectionsFromTemplate, validateBodyStyle, validateHeadingSummaries, validateSections } from '../sections.js'
 
-// 配布テンプレートの comment/review-stopped.md を写す。実物がプレースホルダを持ち検証を通すことは、cli の review-finish.test.ts が確かめる
+// actions/src/templates/review-stopped.md を写す。実物がプレースホルダを持ち検証を通すことは、actions の review-stopped-template.test.ts が確かめる
 const TEMPLATE = '---\ntemplate: review-stopped\n---\n\n## Review stopped — <止まった理由を1行で>\n\n- 結果 — <結果>\n- 止まった場所 — <止まった場所>\n- 次にすること — <次にすること>\n'
 const TEMPLATE_BODY = stripLeadingHtmlComment(stripFrontmatter(TEMPLATE))
 

@@ -240,7 +240,8 @@ secret の有無だけで切り替わります。雛形は書き換えません�
 
 雛形は、job の `concurrency` に `queue: max` を書きます。actionlint 1.7.12 はこの項目を知らず、`unexpected key "queue"` を出します。GitHub は受け付けるので、actionlint の設定でこのファイルの指摘を外します。
 
-後始末の step は、npm の最新の正式版の `@pecot/workflow-mcp` を取ります。major が上がると、互換の無い変更も次の実行から入ります。`@latest` を `@<major>` か `@<版>` に替えると、取る版を留められます。
+後始末の step は、pecot の action の review-finish を呼びます。`workflow_install` は、雛形の `@pecot-actions/v<版>` をタグの commit の SHA に直して置き、行の末尾のコメントにタグを書きます。
+新しい版は、Dependabot の `github-actions` の更新か、`workflow_install` の `force: true` で取り込みます。
 
 ### Claude の App が入っているか
 
@@ -257,11 +258,11 @@ github.com で確かめた構成です。GHES では確かめていません。
 
 - Claude の GitHub App は github.com の App なので、GHES では自前の App の構成になる
 - token を渡す環境変数の名前が変わる。名前は `PECOT_GITHUB_<HOST>_TOKEN` で、`<HOST>` はホスト名を大文字にし、ドットをアンダースコアに替えたもの
-- 雛形の Review と Finish の 2 つの step の `env` にある `PECOT_GITHUB_COM_TOKEN` を、その名前に替える
+- 雛形の Review の step の `env` にある `PECOT_GITHUB_COM_TOKEN` を、その名前に替える。Finish の step の action は、`token` の input を動いているホストの名前の変数に渡すので、替えなくてよい
 - 次の 2 つも前提になる
   - 雛形が SHA で固定した版の action（`anthropics/claude-code-action` など）を使える
   - Actions の実行環境から npm の registry に届く
-  - Actions の実行環境から、github.com の pecot のマーケットプレイス（`pecotcraft/pecot`）に届く。雛形は、そこからプラグインを取る
+  - Actions の実行環境から、github.com の `pecotcraft/pecot` に届く。雛形は、そこからプラグインと pecot の action を取る
 
 ## 自動処理に共通の決まり
 

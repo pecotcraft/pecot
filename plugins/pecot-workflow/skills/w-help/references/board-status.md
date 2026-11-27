@@ -20,10 +20,10 @@
 | 動かす者 | 人だけ | pecot だけ | pecot |
 | 出る条件 | 人が別の列へ動かしたとき | 前提がそろい、着手できると判定されたとき | 着手の操作で Active に移ったとき。前提が崩れたときは Blocked に戻る |
 
-- 列を動かすものは 3 つある
+- 列を動かすものは 2 つある
   - pecot の操作: 着手・PR の作成・片付けなどが、その場で列を動かす
-  - pecot-workflow の MCP ツール `board_sync`: ボード全体を判定に合わせて、列と札を直す。待ち受けるセッションの無い画面でのマージ・blocked by の付け外し・カードの手での移動で、ずれたものが対象になる。手元でも GitHub Actions でも同じコマンドを打つ
-  - ワークフロー: `board_sync` を GitHub Actions で打つ。入れるかは任意で、置き方は[ボードを自動で直すワークフロー](board-sync-workflow.md)にある
+  - ワークフロー: pecot の action の board-sync を GitHub Actions で動かし、ボード全体を判定に合わせて、列と札を直す。待ち受けるセッションの無い画面でのマージ・blocked by の付け外し・カードの手での移動で、ずれたものが対象になる
+    - 入れるかは任意で、置き方は[ボードを自動で直すワークフロー](board-sync-workflow.md)にある
 - pecot-workflow の MCP ツール `board_show` は列を動かさない。判定と食い違いそうな Issue があると、件数と直し方の案内を警告で返す
 - `Ready` には、着手できるタスクだけを置く。前提を待つタスクは `Blocked` に置く
 

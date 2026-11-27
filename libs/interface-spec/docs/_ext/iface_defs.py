@@ -147,8 +147,11 @@ def _schema(value: object) -> tuple[dict[str, dict[str, Any]], list[str]]:
     return properties, cast("list[str]", body.get("required", []))
 
 
-# MCP のツールの引数を書く object type。setup で登録する。
+# MCP のツールの引数と、action の入力（with:）を書く object type。setup で登録する。
 MCP_ARG = "mcparg"
+ACTION_INPUT = "actioninput"
+# 呼ぶリポ。action の使用例の uses: に書く。
+ACTION_REPOSITORY = "pecotcraft/pecot"
 
 
 def _surfaces(entry: dict[str, Any]) -> dict[str, Any]:
@@ -156,14 +159,29 @@ def _surfaces(entry: dict[str, Any]) -> dict[str, Any]:
     return cast("dict[str, Any]", entry.get("surfaces", {"cli": {}}))
 
 
+def _action_path(entry: dict[str, Any]) -> str | None:
+    path = _get(entry, "surfaces.action.path")
+    return str(path) if isinstance(path, str) else None
+
+
 def _tool(entry: dict[str, Any]) -> str | None:
+    """呼ぶときの名前。MCP のツール名か、action の uses: の名前。"""
     tool = _get(entry, "surfaces.mcp.tool")
-    return str(tool) if isinstance(tool, str) else None
+    if isinstance(tool, str):
+        return tool
+    path = _action_path(entry)
+    return f"{ACTION_REPOSITORY}/{path}" if path is not None else None
+
+
+def _is_action(entry: dict[str, Any]) -> bool:
+    """action の面だけを持つ項目か。"""
+    return "mcp" not in _surfaces(entry) and _action_path(entry) is not None
 
 
 def shows_cli(entry: dict[str, Any]) -> bool:
-    """CLI の面（標準入出力・終了コード・フラグ）をページに出すか。MCP の項目では cli_reference を持つものだけ。"""
-    return "cli_reference" in entry or "mcp" not in _surfaces(entry)
+    """CLI の面（標準入出力・終了コード・フラグ）をページに出すか。MCP と action の項目では cli_reference を持つものだけ。"""
+    surfaces = _surfaces(entry)
+    return "cli_reference" in entry or ("mcp" not in surfaces and "action" not in surfaces)
 
 
 def _flag_label(entry: dict[str, Any], name: str) -> str:
@@ -194,11 +212,13 @@ def _parameter(entry: dict[str, Any], name: str, spec: dict[str, Any], required:
         rows.append(("指定可能な値", ", ".join(str(v) for v in cast("list[Any]", spec["enum"]))))
     body = [_esc(text, link=True), "", *(f":{key}: {_esc(value)}" for key, value in rows), ""]
     # 同じ名前の引数は別のツールにもあるので、索引に載せない
-    head = (
-        [f".. {MCP_ARG}:: {name}", "   :no-index:"]
-        if "mcp" in _surfaces(entry)
-        else [f".. option:: {_flag_label(entry, name)}"]
-    )
+    surfaces = _surfaces(entry)
+    if "mcp" in surfaces:
+        head = [f".. {MCP_ARG}:: {name}", "   :no-index:"]
+    elif "action" in surfaces:
+        head = [f".. {ACTION_INPUT}:: {name}", "   :no-index:"]
+    else:
+        head = [f".. option:: {_flag_label(entry, name)}"]
     return [*head, "", *(f"   {line}" if line else "" for line in body)]
 
 
@@ -220,17 +240,28 @@ def _call_block(tool: str, arguments: object) -> list[str]:
     return [".. code-block:: json", "", *(f"   {line}" for line in text.splitlines()), ""]
 
 
+def _uses_block(uses: str, inputs: object) -> list[str]:
+    """ワークフローの step。uses: の版は、利用者のリポで固定する SHA の代わりに <ref> と書く。"""
+    step: dict[str, object] = {"uses": f"{uses}@<ref>"}
+    if isinstance(inputs, dict) and inputs:
+        step["with"] = inputs
+    text = yaml.safe_dump([step], allow_unicode=True, sort_keys=False, default_flow_style=False)
+    return [".. code-block:: yaml", "", *(f"   {line}" for line in text.splitlines()), ""]
+
+
 def _run_examples(examples: list[dict[str, Any]]) -> list[str]:
     return [line for e in examples for line in (*_para(e["note"]), *_code_block(e["run"]))]
 
 
 def _examples(entry: dict[str, Any]) -> list[str]:
     tool = _tool(entry) or str(entry.get("name", ""))
+    is_action = _is_action(entry)
     lines: list[str] = []
     for example in cast("list[dict[str, Any]]", entry.get("examples", [])):
         lines += _para(example["note"])
         if "arguments" in example:
-            lines += _call_block(tool, example["arguments"])
+            block = _uses_block if is_action else _call_block
+            lines += block(tool, example["arguments"])
         else:
             lines += _code_block(example["run"])
     return lines
@@ -346,10 +377,22 @@ def _stdout(entry: dict[str, Any]) -> list[str]:
     return lines + (_fields(extra) if extra else [])
 
 
+def _action_outputs(entry: dict[str, Any]) -> list[str]:
+    """action の outputs の表。後の step が ``steps.<id>.outputs.<名前>`` で読む。"""
+    outputs = _get(entry, "action.outputs")
+    if not isinstance(outputs, dict):
+        return []
+    rows = [[name, text] for name, text in cast("dict[str, str]", outputs).items()]
+    return _table("action の outputs", ["名前", "説明"], rows)
+
+
 def _output(entry: dict[str, Any]) -> list[str]:
-    """出力の節。MCP の項目は結果の項目だけ。CLI の標準入出力は、CLI だけの項目に出す（cli_reference を持つ項目は「コマンド」の節に出す）。"""
+    """出力の節。MCP の項目は結果の項目だけ。CLI の標準入出力は、CLI だけの項目に出す（cli_reference を持つ項目は「コマンド」の節に出す）。
+
+    action の項目は、step のログの行と outputs を出す。
+    """
     cli_only = "mcp" not in _surfaces(entry)
-    return [*(_stdout(entry) if cli_only else []), *_mcp_output(entry)]
+    return [*(_stdout(entry) if cli_only else []), *_mcp_output(entry), *_action_outputs(entry)]
 
 
 def _command(entry: dict[str, Any]) -> list[str]:
@@ -433,7 +476,7 @@ def render_sections(entry: dict[str, Any]) -> list[tuple[str, list[str]]]:
     sections = [
         ("", details),
         ("使用例", _examples(entry)),
-        ("引数", arguments),
+        ("入力" if _is_action(entry) else "引数", arguments),
         ("出力", _output(entry)),
         (failure_title, failures),
         (COMMAND_TITLE, _command(entry)),
@@ -564,11 +607,37 @@ def _load_yaml(path: Path) -> Any:
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
+TARGETS = Path("libs/interface-spec/targets.json")
+
+
+def _roots(root: Path) -> dict[str, str]:
+    """targets.json で ``root`` を持つ定義書の名前と、その root（リポのルートから）。"""
+    path = root / TARGETS
+    if not path.is_file():
+        return {}
+    plugins = cast("dict[str, Any]", _load_json(path).get("plugins", {}))
+    return {
+        str(name): str(cast("dict[str, Any]", spec)["root"])
+        for name, spec in plugins.items()
+        if isinstance(spec, dict) and "root" in spec
+    }
+
+
+def interface_dir(root: Path, plugin: str) -> Path:
+    """定義書のディレクトリ。targets.json の root を持つものはその下、ほかは ``plugins/<名前>`` の下。"""
+    return root / _roots(root).get(plugin, f"plugins/{plugin}") / "interface"
+
+
 def interface_plugins(root: Path) -> list[str]:
-    """``plugins/<名前>/interface/generated.json`` を持つプラグインの名前を、名前の順に返す。"""
-    return sorted(
-        p.parent.parent.name for p in (root / "plugins").glob("*/interface/generated.json")
-    )
+    """``generated.json`` を持つ定義書の名前を、名前の順に返す。
+
+    ``plugins/<名前>/interface/`` と、targets.json で root を持つものの ``<root>/interface/`` を見る。
+    """
+    names = {p.parent.parent.name for p in (root / "plugins").glob("*/interface/generated.json")}
+    names |= {
+        name for name in _roots(root) if (interface_dir(root, name) / "generated.json").is_file()
+    }
+    return sorted(names)
 
 
 # ---------------------------------------------------------------- ディレクティブ
@@ -589,7 +658,7 @@ def report_cell(href: str) -> str:
 
 class _Base(SphinxDirective):
     def _plan(self, plugin: str) -> Plan:
-        interface = Path(self.config.iface_root) / "plugins" / plugin / "interface"
+        interface = interface_dir(Path(self.config.iface_root), plugin)
         generated, authored = interface / "generated.json", interface / "authored.yaml"
         self.env.note_dependency(str(generated))
         self.env.note_dependency(str(authored))
@@ -774,9 +843,12 @@ class IfaceDefs(_Base):
         return created
 
 
+# 型の欄に出す名前と並び。MCP を先に、action、CLI の順にする。
+KINDS = {"mcp": "MCP", "action": "Action", "cli": "CLI"}
+
+
 def _kind_order(tag: str) -> int:
-    """型の並び。MCP を先に、CLI を後にする。"""
-    return 0 if tag == "mcp" else 1
+    return list(KINDS).index(tag) if tag in KINDS else len(KINDS)
 
 
 class IfaceIndex(_Base):
@@ -788,17 +860,21 @@ class IfaceIndex(_Base):
         plugin = self.arguments[0]
         plan = self._plan(plugin)
         base = f"/{PAGES_DIR.as_posix()}/{plugin}"
-        kinds = {"cli": "CLI", "mcp": "MCP"}
         rows: list[list[str]] = [
             [
                 f":doc:`{_esc(c.heading)} <{base}/{c.slug}>`",
                 _lit(c.tool),
                 _esc(c.description),
-                _esc("・".join(kinds.get(t, t) for t in sorted(c.tags, key=_kind_order))),
+                _esc("・".join(KINDS.get(t, t) for t in sorted(c.tags, key=_kind_order))),
             ]
             for c in plan.commands
         ]
-        head = ["表示名", "ツール名", "説明", "型"]
+        name = (
+            "action"
+            if plan.commands and all("action" in c.tags for c in plan.commands)
+            else "ツール名"
+        )
+        head = ["表示名", name, "説明", "型"]
         lines = [".. list-table::", "   :header-rows: 1", "   :widths: 20 22 48 10", ""]
         for row in [head, *rows]:
             lines += [("   * - " if i == 0 else "     - ") + cell for i, cell in enumerate(row)]
@@ -839,7 +915,7 @@ def write_pages(app: Sphinx) -> None:
             if stale_dir.is_dir() and stale_dir.name not in plugins:
                 shutil.rmtree(stale_dir)
     for plugin in plugins:
-        interface = Path(config.iface_root) / "plugins" / plugin / "interface"
+        interface = interface_dir(Path(config.iface_root), plugin)
         plan = build_plan(
             _load_json(interface / "generated.json"), _load_yaml(interface / "authored.yaml")
         )
@@ -848,12 +924,11 @@ def write_pages(app: Sphinx) -> None:
             if c.slug in pages:
                 logger.warning("%s: ページ名 %s が別の項目と重なるため、飛ばしました", c.id, c.slug)
                 continue
-            kinds = {"cli": "CLI", "mcp": "MCP"}
             pages[c.slug] = [
                 # 文書の先頭の field list は、Sphinx がページの付帯情報として読む。右の欄に出す。
                 f":iface-id: {c.id}",
                 f":iface-plugin: {plugin}",
-                f":iface-kind: {'・'.join(kinds.get(t, t) for t in sorted(c.tags, key=_kind_order))}",
+                f":iface-kind: {'・'.join(KINDS.get(t, t) for t in sorted(c.tags, key=_kind_order))}",
                 "",
                 c.heading,
                 "=" * (len(c.heading) * 2),
@@ -880,6 +955,7 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.connect("config-inited", _load_terms)
     app.connect("builder-inited", write_pages)
     app.add_object_type(MCP_ARG, MCP_ARG, objname="MCP のツールの引数")
+    app.add_object_type(ACTION_INPUT, ACTION_INPUT, objname="action の入力")
     app.add_directive("iface-defs", IfaceDefs)
     app.add_directive("iface-index", IfaceIndex)
     app.add_directive("iface-common-output", IfaceCommonOutput)

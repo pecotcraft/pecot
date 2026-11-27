@@ -2,11 +2,11 @@
 import { z } from 'zod'
 
 import { formatHinted } from '@pecot/workflow-core/domain/command-hint.js'
-import { evaluateRequirements, findWorkflowTemplate, isOutdated, readTemplateVersion, userLines, WORKFLOW_TEMPLATES } from '@pecot/workflow-core/domain/workflow-template.js'
+import { evaluateRequirements, findWorkflowTemplate, isOutdated, npxWorkflowMcpLines, pecotActionReferences, pinPecotActions, readTemplateVersion, userLines, hasPecotActionStep, WORKFLOW_TEMPLATES } from '@pecot/workflow-core/domain/workflow-template.js'
 import type { SettingList, SettingNames, WorkflowTemplate } from '@pecot/workflow-core/domain/workflow-template.js'
 import { gitToplevel, primaryRemoteRepository } from '@pecot/workflow-core/infra/git.js'
 import { TransportFailure } from '@pecot/workflow-core/infra/github/client.js'
-import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
+import { GitHubAPIError, GitHubNotFoundError } from '@pecot/workflow-core/infra/github/errors.js'
 import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
 import type { ActionsScope } from '@pecot/workflow-core/infra/github/repos.js'
 import { readBundledWorkflow, readInstalledWorkflow, writeWorkflow } from '../infra/workflow-file.js'
@@ -37,6 +37,31 @@ function repositoryRoot(out: Readonly<Output>, directory: string | undefined): s
 
 function versionOf(text: string | undefined): number | undefined {
   return text === undefined ? undefined : readTemplateVersion(text)?.version
+}
+
+// pecot の action を置くリポ。雛形の uses の `pecotcraft/pecot/actions/<処理>` と同じ
+const ACTIONS_OWNER = 'pecotcraft'
+const ACTIONS_REPOSITORY = 'pecot'
+
+/**
+雛形がタグで指す pecot の action を、タグの commit の SHA に直す。タグが無ければ止まる
+*/
+async function pinnedTemplate(out: Readonly<Output>, bundled: string): Promise<string> {
+  const tags = [...new Set(pecotActionReferences(bundled).map(reference => reference.tag))]
+  if (tags.length === 0) return bundled
+  const client = createGitHubClient(out, undefined)
+  const shas = new Map<string, string>()
+  for (const tag of tags) {
+    try {
+      shas.set(tag, await client.getTagCommitSha(ACTIONS_OWNER, ACTIONS_REPOSITORY, tag))
+    }
+    catch (error: unknown) {
+      if (error instanceof GitHubNotFoundError) return stopWith(out, `tag ${tag} is not found in ${ACTIONS_OWNER}/${ACTIONS_REPOSITORY}`, 'github-not-found')
+      if (!(error instanceof GitHubAPIError || error instanceof TransportFailure)) throw error
+      return stopWith(out, `could not read tag ${tag} of ${ACTIONS_OWNER}/${ACTIONS_REPOSITORY}: ${apiFailureMessage(error)}`, kindOfFailure(error) === 'other' ? 'github-api' : kindOfFailure(error))
+    }
+  }
+  return pinPecotActions(bundled, tag => shas.get(tag) ?? tag)
 }
 
 const INSTALL_OUTPUT = z.strictObject({
@@ -76,7 +101,6 @@ const workflowInstallCommand = defineCommand({
   shortFlags: { dry_run: '-n', directory: '-D' },
   interactive: false,
   run: async (input, io) => {
-    await Promise.resolve()
     const out = createOutput<z.input<typeof INSTALL_OUTPUT>>(input.dry_run, io)
     if (input.check && (input.force || input.dry_run)) {
       const message = hinted`${inputNameHint(INSTALL_PATH, 'check')} cannot be used with ${inputNameHint(INSTALL_PATH, 'force')}${cliOnlyText(hinted` or ${inputNameHint(INSTALL_PATH, 'dry_run')}`)}`
@@ -109,12 +133,13 @@ const workflowInstallCommand = defineCommand({
     if (removed.length > 0) out.warning(`these lines between the markers will be removed:\n${removed.join('\n')}`)
     const operation: Operation = { verb: installed === undefined ? 'create' : 'update', target: template.destination }
     const result = { ...base, ...installed !== undefined && { removedLines: [...removed] } }
+    const content = await pinnedTemplate(out, bundled)
     if (input.dry_run) {
       out.planned(operation)
       out.result({ ...result, written: false })
       return 0
     }
-    writeWorkflow(root, template, bundled)
+    writeWorkflow(root, template, content)
     out.done(operation)
     out.data(formatHinted(nextSteps(template), io.surface ?? 'cli'))
     out.result({ ...result, written: true })
@@ -135,6 +160,26 @@ const DOCTOR_OUTPUT = z.strictObject({
 
 // Claude の App が入っているかは、リポのトークンでは読めない。App を使う雛形だけ入れる
 const CLAUDE_APP_ITEM: z.input<typeof DOCTOR_ITEM> = { name: 'Claude GitHub App', state: 'skipped' }
+
+function stateOf(isOk: boolean): 'ok' | 'outdated' {
+  return isOk ? 'ok' : 'outdated'
+}
+
+/**
+置いたファイルの版の項目と、npx の `@pecot/workflow-mcp` から pecot の action に移ったかの項目。
+後者は、同梱の雛形が action を使うか、置いたファイルが npx で呼ぶときだけ出す
+*/
+function templateItems(template: Readonly<WorkflowTemplate>, installed: string, bundled: string): readonly z.input<typeof DOCTOR_ITEM>[] {
+  const hasNpxCall = npxWorkflowMcpLines(installed).length > 0
+  const isActionTemplate = hasPecotActionStep(bundled)
+  return [
+    { name: template.destination, state: 'ok' },
+    { name: `workflow template ${template.name}`, state: stateOf(!isOutdated(installed, bundled)) },
+    ...hasNpxCall || isActionTemplate
+      ? [{ name: `${template.destination} calls the pecot actions, not npx @pecot/workflow-mcp`, state: stateOf(!hasNpxCall && (!isActionTemplate || hasPecotActionStep(installed))) }]
+      : [],
+  ]
+}
 
 // 読めた一覧の名前を合わせる。読めなかった一覧があれば complete を false にする
 function mergeNames(lists: readonly (readonly string[] | undefined)[]): SettingList {
@@ -175,10 +220,7 @@ const workflowDoctorCommand = defineCommand({
     const installed = readInstalledWorkflow(root, template)
     const fileItems: readonly z.input<typeof DOCTOR_ITEM>[] = installed === undefined
       ? [{ name: template.destination, state: 'missing' }]
-      : [
-          { name: template.destination, state: 'ok' },
-          { name: `workflow template ${template.name}`, state: isOutdated(installed, readBundledWorkflow(template)) ? 'outdated' : 'ok' },
-        ]
+      : templateItems(template, installed, readBundledWorkflow(template))
 
     let names: SettingNames
     try {

@@ -36,6 +36,7 @@ function okData(state: FileState): Record<string, unknown> {
 async function pluginOf(name: string, directory: string): Promise<PluginInput> {
   return {
     name,
+    root: `plugins/${name}`,
     dirExists: true,
     mode: 'partial',
     generated: await loadJson(path.join(directory, 'generated.json')),

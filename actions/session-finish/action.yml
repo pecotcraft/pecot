@@ -1,0 +1,19 @@
+name: pecot session finish
+description: Clean up on GitHub after a merged PR. Close the Issues the PR closes (except Epics) and move the Issues waiting for them on the board. It does not delete branches.
+inputs:
+  token:
+    description: Token to close the Issues and write the project board (the App token or PAT of the workflow)
+    required: false
+  pr:
+    description: PR number in the repository of the workflow, or owner/repo/N
+    required: true
+  project:
+    description: Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them
+    required: false
+  dry-run:
+    description: Dry-run (do not actually clean up)
+    required: false
+    default: 'false'
+runs:
+  using: node24
+  main: dist/index.js

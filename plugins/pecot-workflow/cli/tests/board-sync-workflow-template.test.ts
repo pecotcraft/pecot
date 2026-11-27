@@ -1,4 +1,4 @@
-// 配布する board sync のワークフローの雛形が、安全な形・最新の正式版の取得・文書との一致を保つことを確かめる。
+// 配布する board sync のワークフローの雛形が、安全な形・pecot の action の呼び方・文書との一致を保つことを確かめる。
 // actionlint は pre-commit が掛ける（.pre-commit-config.yaml の actionlint-system が雛形も対象にする）。
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
@@ -7,7 +7,8 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
-import { attachOutput } from '../../../../libs/interface-spec/src/vitest/attach.js'
+import { readOutput } from '../../../../libs/interface-spec/src/vitest/attach.js'
+import { makeTemporaryDirectory } from '../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { markdownSection } from './_helpers/markdown-section.js'
 import { explains } from './_helpers/explains.js'
 
@@ -45,32 +46,25 @@ const workflow = parse(template) as Workflow
 const sync: Job = workflow.jobs['sync'] ?? { steps: [] }
 const finish: Job = workflow.jobs['finish'] ?? { steps: [] }
 const steps = sync.steps
-const runLine = 'npx -y --prefix=/ @pecot/workflow-mcp@latest board sync'
-const finishLine = 'npx -y --prefix=/ @pecot/workflow-mcp@latest session finish "$GITHUB_REPOSITORY/$PR" --skip-local-cleanup --delete-branch'
+const PECOT_ACTION = /^pecotcraft\/pecot\/actions\/([a-z-]+)@pecot-actions\/v\d+\.\d+\.\d+$/
 const tokenCondition = '(vars.PECOT_BOARD_SYNC_APP_CLIENT_ID != \'\' || vars.PECOT_BOARD_SYNC_USE_PAT == \'true\')'
-const finishStep = finish.steps.find(step => step.run !== undefined) ?? {}
+const finishStep = finish.steps.find(step => PECOT_ACTION.exec(step.uses ?? '')?.[1] === 'session-finish') ?? {}
+const syncStep = steps.find(step => PECOT_ACTION.exec(step.uses ?? '')?.[1] === 'board-sync') ?? {}
+const branchStep = finish.steps.find(step => step.id === 'branch') ?? {}
 
-// finish の step の run を bash で動かし、npx の代わりに引数を出す関数で、打つ行を読む。
-function finishCommand(headReference: string): string {
-  const script = `npx() { printf '%s\\n' "npx $*"; }\n${finishStep.run ?? ''}`
-  const stdout = execFileSync('bash', ['-e'], {
-    input: script,
-    env: { ...process.env, HEAD_REF: headReference, PR: '7', GITHUB_REPOSITORY: 'o/r' },
+// head ブランチを見る step の run を bash で動かし、session-finish の step に渡す出力を読む。
+function branchOutput(headReference: string): string {
+  const output = path.join(makeTemporaryDirectory(), 'output')
+  execFileSync('bash', ['-e'], {
+    input: `: > "$GITHUB_OUTPUT"\n${branchStep.run ?? ''}`,
+    env: { ...process.env, HEAD_REF: headReference, GITHUB_OUTPUT: output },
     encoding: 'utf8',
   })
-  attachOutput('bash -e（finish の run）', 0, stdout, '')
-  return stdout.trim()
+  return readOutput(output).trim()
 }
 
 describe('board sync のワークフローの雛形', () => {
-  it('文書に、雛形の実行の行がそのまま書かれている', async () => {
-    await explains('board sync のワークフローの雛形 `pecot-board-sync.yml` のテストです。雛形の実行の行が、文書 `board-sync-workflow.md` にそのまま書かれていることを確認します。')
-    const run = steps.find(step => step.run !== undefined)?.run ?? ''
-    expect(run).not.toBe('')
-    expect(document).toContain(run)
-  })
-
-  it('ワークフローの契機が 3 つそろっている', async () => {
+  it('3 つの契機がそろっている', async () => {
     await explains('board sync のワークフローの雛形 `pecot-board-sync.yml` のテストです。契機に `pull_request_target`・`issues`・`workflow_dispatch` の 3 つが含まれることを確認します。')
     expect(Object.keys(workflow.on)).toEqual(expect.arrayContaining(['pull_request_target', 'issues', 'workflow_dispatch']))
   })
@@ -114,7 +108,7 @@ describe('board sync のワークフローの雛形', () => {
   })
 
   it('finish の job は、token の変数があり、同じリポの head の PR がマージされた closed の実行だけで動く', async () => {
-    await explains('board sync のワークフローの雛形 `pecot-board-sync.yml` のテストです。`finish` の `if` が、トークンの変数があり、同じリポジトリの head の PR がマージされて閉じた実行だけを対象にし、`secrets` を参照しないことを確認します。')
+    await explains('board sync のワークフローの雛形 `pecot-board-sync.yml` のテストです。`finish` の `if` が、トークンの変数があり、同じリポジトリの head の PR がマージで閉じた実行だけを対象にし、`secrets` を参照しないことを確認します。')
     const condition = finish.if ?? ''
     expect(condition).toContain(tokenCondition)
     expect(condition).toContain('github.event_name == \'pull_request_target\'')
@@ -124,72 +118,60 @@ describe('board sync のワークフローの雛形', () => {
     expect(condition).not.toContain('secrets.')
   })
 
-  it('finish の job の permissions は contents: write・issues: write・pull-requests: read だけになる', async () => {
-    await explains('board sync のワークフローの雛形 `pecot-board-sync.yml` のテストです。`finish` の `permissions` が、`contents: write`・`issues: write`・`pull-requests: read` だけであることを確認します。')
-    expect(finish.permissions).toEqual({ 'contents': 'write', 'issues': 'write', 'pull-requests': 'read' })
+  it('finish の job は、ブランチを消さないので contents に書かず、issues: write・pull-requests: read だけを広げる', async () => {
+    await explains('board sync のワークフローの雛形 `pecot-board-sync.yml` のテストです。`finish` の `permissions` が、`contents: read`・`issues: write`・`pull-requests: read` だけであることを確認します。')
+    expect(finish.permissions).toEqual({ 'contents': 'read', 'issues': 'write', 'pull-requests': 'read' })
   })
 
-  it('finish の job は ref を指定せずに checkout し、GITHUB_TOKEN で session finish を打つ', async () => {
-    await explains('board sync のワークフローの雛形 `pecot-board-sync.yml` のテストです。`finish` が `ref` を指定せずに `checkout` し、`GITHUB_TOKEN` で `session finish` を実行し、`run` に式を埋め込まないことを確認します。')
+  it('finish の job は ref を指定せずに checkout し、GITHUB_TOKEN と PR の番号を session-finish の action に渡す', async () => {
+    await explains('board sync のワークフローの雛形 `pecot-board-sync.yml` のテストです。`finish` が `ref` を指定せずに `checkout` し、`GITHUB_TOKEN` と PR の番号を `session-finish` の action に渡すことを確認します。')
     const checkout = finish.steps.find(step => step.uses?.startsWith('actions/checkout@'))
     expect(checkout?.with).toEqual({ 'persist-credentials': false })
-    expect(finishStep.env).toEqual({
-      PECOT_GITHUB_COM_TOKEN: '${{ github.token }}',
-      PR: '${{ github.event.pull_request.number }}',
-      HEAD_REF: '${{ github.event.pull_request.head.ref }}',
-    })
-    expect(finishStep.run).not.toContain('${{')
-    expect(finishStep.run).toContain(finishLine)
+    expect(finishStep.with).toEqual({ token: '${{ github.token }}', pr: '${{ github.event.pull_request.number }}' })
+    expect(finishStep.if).toBe('${{ steps.branch.outputs.ok == \'true\' }}')
   })
 
   it.for([
-    { name: 'feat/add-csv/732', expected: 'npx -y --prefix=/ @pecot/workflow-mcp@latest session finish o/r/7 --skip-local-cleanup --delete-branch' },
+    { name: 'feat/add-csv/732', expected: 'ok=true' },
     { name: 'develop', expected: '' },
     { name: 'feat/732-csv', expected: '' },
     { name: 'dependabot/npm_and_yarn/foo-1.2.3', expected: '' },
-  ])('head ブランチが $name のとき、finish の job は末尾が /<番号> のときだけ session finish を打つ', async ({ name, expected }) => {
-    await explains(`board sync のワークフローの雛形 \`pecot-board-sync.yml\` のテストです。head ブランチが \`${name}\` の場合に、末尾が \`/<番号>\` のときだけ \`session finish\` を実行し、それ以外は何も実行しないことを確認します。`)
-    expect(finishCommand(name)).toBe(expected)
+  ])('head ブランチが $name のとき、末尾が /<番号> のときだけ session-finish を動かす出力を出す', async ({ name, expected }) => {
+    await explains(`board sync のワークフローの雛形 \`pecot-board-sync.yml\` のテストです。head ブランチが \`${name}\` の場合に、末尾が \`/<番号>\` のときだけ \`session-finish\` の action を動かす出力を出すことを確認します。`)
+    expect(branchStep.env).toEqual({ HEAD_REF: '${{ github.event.pull_request.head.ref }}' })
+    expect(branchStep.run).not.toContain('${{')
+    expect(branchOutput(name)).toBe(expected)
   })
 
-  it('finish の job も、すべての action を 40 桁の SHA で固定し、npm のキャッシュを使わない', async () => {
-    await explains('board sync のワークフローの雛形 `pecot-board-sync.yml` のテストです。`finish` のすべての action を 40 桁の SHA で固定し、npm のキャッシュを使わないことを確認します。')
-    const uses = finish.steps.map(step => step.uses).filter(use => use !== undefined)
-    expect(uses.length).toBeGreaterThan(0)
-    for (const action of uses) expect(action).toMatch(/@[0-9a-f]{40}$/)
-    const setupNode = finish.steps.find(step => step.uses?.startsWith('actions/setup-node@'))
-    expect(setupNode?.with?.['package-manager-cache']).toBe(false)
+  it('sync の job は、App の token か PAT を board-sync の action に渡す', async () => {
+    await explains('board sync のワークフローの雛形 `pecot-board-sync.yml` のテストです。`sync` が、App のトークンか PAT（`PECOT_BOARD_SYNC_TOKEN`）を `board-sync` の action に渡すことを確認します。')
+    expect(syncStep.with).toEqual({ token: '${{ steps.app-token.outputs.token || secrets.PECOT_BOARD_SYNC_TOKEN }}' })
+  })
+
+  it('npx で CLI を取らず、Node.js を用意しない', async () => {
+    await explains('board sync のワークフローの雛形 `pecot-board-sync.yml` のテストです。`npx` で `@pecot/workflow-mcp` を取得せず、`setup-node` で Node.js を用意しないことを確認します。')
+    expect(active).not.toMatch(/\bnpx\b/)
+    expect(active).not.toContain('@pecot/workflow-mcp')
+    expect(active).not.toContain('actions/setup-node@')
+  })
+
+  it('pecot の action はリリースのタグで指し、ほかの action は 40 桁の SHA で固定する', async () => {
+    await explains('board sync のワークフローの雛形 `pecot-board-sync.yml` のテストです。pecot の action をリリースのタグで指定し、ほかのすべての action を 40 桁の SHA で固定していることを確認します。')
+    const uses = [...finish.steps, ...steps].map(step => step.uses).filter(use => use !== undefined)
+    const pecot = uses.filter(use => use.startsWith('pecotcraft/pecot/'))
+    expect(pecot.map(use => PECOT_ACTION.exec(use)?.[1])).toEqual(['session-finish', 'board-sync'])
+    const others = uses.filter(use => !use.startsWith('pecotcraft/pecot/'))
+    for (const action of others) expect(action).toMatch(/@[0-9a-f]{40}$/)
   })
 
   it('文書に、マージで閉じた PR の片付けの節と、finish の job の権限がある', async () => {
     await explains('board sync のワークフローの雛形 `pecot-board-sync.yml` のテストです。文書にマージで閉じた PR の後片付けの節と、`finish` の権限の節があり、雛形の権限と一致することを確認します。')
     const section = markdownSection(document, '## マージで閉じた PR の片付け')
-    expect(section).toContain('`--skip-local-cleanup`')
+    expect(section).toContain('Automatically delete head branches')
     expect(section).toContain('`/<番号>`')
     const permissions = markdownSection(document, '### `finish` の権限')
     const scopes = Object.entries(finish.permissions ?? {})
     for (const [scope, access] of scopes) expect(permissions).toContain(`\`${scope}: ${access}\``)
-  })
-
-  it('run は最新の正式版を取る 1 行だけで、式を埋め込まない', async () => {
-    await explains('board sync のワークフローの雛形 `pecot-board-sync.yml` のテストです。`sync` の `run` が最新の正式版を取得する 1 行だけで、式を埋め込まないことを確認します。')
-    const runs = steps.filter(step => step.run !== undefined)
-    expect(runs.map(step => step.run)).toEqual([runLine])
-    for (const step of runs) expect(step.run).not.toContain('${{')
-  })
-
-  it('setup-node は、secret を持つ job なので npm のキャッシュを戻さず保存もしない', async () => {
-    await explains('board sync のワークフローの雛形 `pecot-board-sync.yml` のテストです。secret を持つ job の `setup-node` が、npm のキャッシュを復元せず保存もしないことを確認します。')
-    const setupNode = steps.find(step => step.uses?.startsWith('actions/setup-node@'))
-    expect(setupNode).toBeDefined()
-    expect(setupNode?.with?.['package-manager-cache']).toBe(false)
-  })
-
-  it('すべての action を 40 桁の SHA で固定する', async () => {
-    await explains('board sync のワークフローの雛形 `pecot-board-sync.yml` のテストです。`sync` のすべての action が 40 桁の SHA で固定されていることを確認します。')
-    const uses = steps.map(step => step.uses).filter(use => use !== undefined)
-    expect(uses.length).toBeGreaterThan(0)
-    for (const action of uses) expect(action).toMatch(/@[0-9a-f]{40}$/)
   })
 
   it('雛形の variable と secret の名前が、文書に出てくる', async () => {

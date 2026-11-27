@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { explains } from '../../../tests/_helpers/explains.js'
 
-import { evaluateRequirements, findWorkflowTemplate, isOutdated, readTemplateVersion, userLines, WORKFLOW_TEMPLATES } from '../workflow-template.js'
+import { evaluateRequirements, findWorkflowTemplate, isOutdated, npxWorkflowMcpLines, pecotActionReferences, pinPecotActions, readTemplateVersion, userLines, hasPecotActionStep, WORKFLOW_TEMPLATES } from '../workflow-template.js'
 import type { SettingList, SettingNames } from '../workflow-template.js'
 
 const BUNDLED = [
@@ -20,9 +20,9 @@ function review(): NonNullable<ReturnType<typeof findWorkflowTemplate>> {
 }
 
 describe('雛形の一覧', () => {
-  it('review の行は、名前・テンプレートのファイル・配置先・必要な変数と secret を持つ', async () => {
-    await explains('ワークフローのテンプレート一覧のテストです。`review` の行が、テンプレートのファイル名・配置先・必要な変数と secret を持つことを確認します。')
-    expect(WORKFLOW_TEMPLATES.map(template => template.name)).toEqual(['review', 'handoff', 'auto'])
+  it('review の行が、名前・雛形のファイル・置き先・要る変数と secret を持つ', async () => {
+    await explains('ワークフローのテンプレート一覧のテストです。一覧が `board-sync`・`review`・`handoff`・`auto` の順に並び、`review` の行がテンプレートのファイル名・配置先・必要な変数と secret を持つことを確認します。')
+    expect(WORKFLOW_TEMPLATES.map(template => template.name)).toEqual(['board-sync', 'review', 'handoff', 'auto'])
     const template = review()
     expect(template.templateFile).toBe('pecot-review.yml')
     expect(template.destination).toBe('.github/workflows/pecot-review.yml')
@@ -178,5 +178,71 @@ describe('evaluateRequirements（auto）', () => {
     await explains('`auto` のテンプレートの、必要な設定の判定のテストです。App の変数と secret とトークンがそろっている場合に、すべての項目を `ok` と判定することを確認します。')
     const ready = names(['PECOT_AGENT_APP_PRIVATE_KEY', 'CLAUDE_CODE_OAUTH_TOKEN'], ['PECOT_AGENT_APP_CLIENT_ID'])
     expect(evaluateRequirements(requirements, ready).map(result => result.state)).toEqual(['ok', 'ok', 'ok'])
+  })
+})
+
+describe('evaluateRequirements（board-sync）', () => {
+  const requirements = findWorkflowTemplate('board-sync')?.requirements ?? []
+
+  it.for([
+    { name: 'App の変数と secret', secrets: ['PECOT_BOARD_SYNC_APP_PRIVATE_KEY'], variables: ['PECOT_BOARD_SYNC_APP_CLIENT_ID'], state: 'ok' },
+    { name: 'PAT の変数と secret', secrets: ['PECOT_BOARD_SYNC_TOKEN'], variables: ['PECOT_BOARD_SYNC_USE_PAT'], state: 'ok' },
+    { name: 'App の変数だけ', secrets: [], variables: ['PECOT_BOARD_SYNC_APP_CLIENT_ID'], state: 'missing' },
+  ])('$name があると、token の組の項目を $state にする', async (row) => {
+    await explains(`\`board-sync\` のテンプレートの、必要な設定の判定のテストです。${row.name}がある場合に、トークンの組の項目を \`${row.state}\` と判定することを確認します。`)
+    expect(evaluateRequirements(requirements, names(row.secrets, row.variables)).map(result => result.state)).toEqual([row.state])
+  })
+})
+
+const PECOT_ACTION_STEPS = [
+  '      - name: Sync the board',
+  '        uses: pecotcraft/pecot/actions/board-sync@pecot-actions/v1.2.0',
+  '      - uses: pecotcraft/pecot/actions/session-finish@pecot-actions/v1.2.0',
+  '        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1',
+  '',
+].join('\n')
+
+describe('pecot の action の参照', () => {
+  it('タグで pecot の action を指す行から、action の名前とタグを出てくる順に読む', async () => {
+    await explains('雛形の中の pecot の action の参照を読む `pecotActionReferences` のテストです。タグで pecot の action を指す行から、action の名前とタグを出現順に返し、ほかの action の行は含めないことを確認します。')
+    expect(pecotActionReferences(PECOT_ACTION_STEPS)).toEqual([
+      { action: 'board-sync', tag: 'pecot-actions/v1.2.0' },
+      { action: 'session-finish', tag: 'pecot-actions/v1.2.0' },
+    ])
+  })
+
+  it('タグを SHA に直し、行の末尾にタグのコメントを付ける。ほかの行は変えない', async () => {
+    await explains('pecot の action のタグを固定する `pinPecotActions` のテストです。タグを commit の SHA に置き換えて行の末尾にタグのコメントを付け、ほかの行は変更しないことを確認します。')
+    const sha = 'a'.repeat(40)
+    expect(pinPecotActions(PECOT_ACTION_STEPS, () => sha)).toBe([
+      '      - name: Sync the board',
+      `        uses: pecotcraft/pecot/actions/board-sync@${sha} # pecot-actions/v1.2.0`,
+      `      - uses: pecotcraft/pecot/actions/session-finish@${sha} # pecot-actions/v1.2.0`,
+      '        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1',
+      '',
+    ].join('\n'))
+  })
+
+  it.for([
+    { name: 'タグの参照', text: '        uses: pecotcraft/pecot/actions/board-sync@pecot-actions/v1.2.0', expected: true },
+    { name: 'SHA の参照', text: `        uses: pecotcraft/pecot/actions/board-sync@${'b'.repeat(40)} # pecot-actions/v1.2.0`, expected: true },
+    { name: 'このリポの参照', text: '        uses: ./actions/board-sync', expected: true },
+    { name: 'npx の行', text: '        run: npx -y --prefix=/ @pecot/workflow-mcp@latest board sync', expected: false },
+  ])('$name を hasPecotActionStep が $expected と読む', async (row) => {
+    await explains(`pecot の action を呼ぶ step の有無を判定する \`hasPecotActionStep\` のテストです。${row.name}の行の場合に、\`${String(row.expected)}\` を返すことを確認します。`)
+    expect(hasPecotActionStep(row.text)).toBe(row.expected)
+  })
+
+  it('npx で @pecot/workflow-mcp を呼ぶ行を返し、コメントの行は返さない', async () => {
+    await explains('`npx` で `@pecot/workflow-mcp` を呼ぶ行を探す `npxWorkflowMcpLines` のテストです。`npx` で呼ぶ行だけを返し、コメントの行は含めないことを確認します。')
+    const text = [
+      '      # npx @pecot/workflow-mcp was used before',
+      '        run: npx -y --prefix=/ @pecot/workflow-mcp@latest board sync',
+      '          npx -y @pecot/workflow-mcp@next review finish "$PR"',
+    ].join('\n')
+    expect(npxWorkflowMcpLines(text)).toEqual([
+      '        run: npx -y --prefix=/ @pecot/workflow-mcp@latest board sync',
+      '          npx -y @pecot/workflow-mcp@next review finish "$PR"',
+    ])
   })
 })

@@ -20,7 +20,7 @@ export const POSIX_MAP: readonly PosixRow[] = [
   { section: 'NAME', fields: ['id', 'name', 'description', 'summary', 'mcp.title'], writer: '書き出し。summary は人', mcp: 'Tool の name・title・description' },
   {
     section: 'SYNOPSIS',
-    fields: ['surfaces.cli.path', 'cli.positional', 'cli.flags', 'constraints', 'surfaces.mcp.tool'],
+    fields: ['surfaces.cli.path', 'cli.positional', 'cli.flags', 'constraints', 'surfaces.mcp.tool', 'surfaces.action.path'],
     writer: '書き出し。constraints は人',
     mcp: 'surfaces.mcp.tool',
   },
@@ -37,8 +37,8 @@ export const POSIX_MAP: readonly PosixRow[] = [
   { section: 'ASYNCHRONOUS EVENTS', fields: [], writer: '欄にしない。全項目が既定の扱い', mcp: '—' },
   {
     section: 'STDOUT',
-    fields: ['output', 'mcp.output', 'mcp_output.fields'],
-    writer: 'CLI は人。MCP ツールの形は書き出し、ツールの項目の説明は人',
+    fields: ['output', 'mcp.output', 'mcp_output.fields', 'action.outputs'],
+    writer: 'CLI は人。MCP ツールの形と action の outputs は書き出し、ツールの項目の説明は人',
     mcp: 'Tool の outputSchema と結果の構造',
   },
   { section: 'STDERR', fields: ['diagnostics'], writer: '人', mcp: '失敗の結果に入る文言' },

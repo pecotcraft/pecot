@@ -44,6 +44,7 @@ _NX_CONFIG_FILES = (".nxignore", "nx.json", "pnpm-workspace.yaml", "pnpm-lock.ya
 
 # nx が認識する project の集合。入れ子のメンバーは `nx.root` / `nx.name` でプラグインの project へ束ねる (#113)。
 _EXPECTED_PROJECTS = {
+    "actions",
     "githooks",
     "interface-spec",
     "nx-release",
@@ -180,8 +181,13 @@ def test_project_set_is_the_expected_one(nx_bin: Path) -> None:
             ("plugins/pecot-workflow/cli/src/cli.ts", {"pecot-workflow"}),
             ("plugins/pecot-visual/cli/src/main.ts", {"pecot-visual"}),
             ("libs/text-rules/index.ts", {"text-rules"}),
-            # pecot-workflow は package.json の依存で workflow-core を読み、graph の辺でも affected になる。
-            ("libs/workflow-core/src/domain/config.ts", {"workflow-core", "pecot-workflow"}),
+            # pecot-workflow は package.json の依存で、actions は implicitDependencies で workflow-core を読む。
+            (
+                "libs/workflow-core/src/domain/config.ts",
+                {"workflow-core", "pecot-workflow", "actions"},
+            ),
+            # pecot-workflow は actions の雛形の写しを持ち、implicitDependencies で actions に頼る。
+            ("actions/src/entry.ts", {"actions", "pecot-workflow"}),
         ]
     ),
 )
@@ -382,6 +388,7 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             (
                 "libs/interface-spec/src/vitest/unique-titles.ts",
                 {
+                    "actions:test-unit",
                     "interface-spec:test-unit",
                     "interface-spec:test-site",
                     "nx-release:test-unit",
@@ -399,6 +406,7 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             (
                 "libs/interface-spec/src/vitest/allure-reporter.ts",
                 {
+                    "actions:test-unit",
                     "interface-spec:test-unit",
                     "interface-spec:test-site",
                     "nx-release:test-unit",
@@ -850,11 +858,12 @@ _PECOTV_TEST_LANES = {
                     "pecot-workflow:test-skills",
                 },
             ),
-            # libs/workflow-core のソースは、dist を読む pecot-workflow の各レーンへ ^production で届く。
+            # libs/workflow-core のソースは、dist を読む pecot-workflow・actions の各レーンへ ^production で届く。
             (
                 "libs/workflow-core/src/domain/config.ts",
                 {
                     "workflow-core:test-unit",
+                    "actions:test-unit",
                     "pecot-workflow:test-cli",
                     "pecot-workflow:test-bootstrap",
                     "pecot-workflow:test-hooks",
@@ -1015,17 +1024,17 @@ def test_gate_selects_only_the_lanes_the_change_reaches(
             (".github/workflows/dependabot-commit.yml", _GITHOOKS_CHECKS),
             (".github/workflows/pecot-board-sync.yml", _GITHOOKS_CHECKS),
             (
-                "plugins/pecot-workflow/cli/templates/workflow/pecot-board-sync.yml",
+                "actions/templates/pecot-board-sync.yml",
                 _GITHOOKS_CHECKS,
             ),
             (".github/workflows/pecot-review.yml", _GITHOOKS_CHECKS),
             (
-                "plugins/pecot-workflow/cli/templates/workflow/pecot-review.yml",
+                "actions/templates/pecot-review.yml",
                 _GITHOOKS_CHECKS,
             ),
             (".github/workflows/pecot-handoff.yml", _GITHOOKS_CHECKS),
             (
-                "plugins/pecot-workflow/cli/templates/workflow/pecot-handoff.yml",
+                "actions/templates/pecot-handoff.yml",
                 _GITHOOKS_CHECKS,
             ),
             ("plugins/pecot-workflow/scripts/ci/run-tests.sh", _GITHOOKS_CHECKS),
@@ -1145,10 +1154,17 @@ def test_graph_lanes_read_every_workspace_package_json(
                 "plugins/pecot-workflow/cli/tests/hooks/baseline-scripts.test.ts",
                 {"pecot-workflow:lint-cli", "interface-spec:lint-defs"},
             ),
-            # libs/workflow-core のソースは、自分の lint と、dist を読む lint-cli と、環境変数を確かめる lint-defs に届く。
+            # libs/workflow-core のソースは、自分の lint・lint-cli・actions の lint に届く。lint-cli と actions の lint は dist を読む。
+            # まとめ直した dist の確認と、環境変数を確かめる lint-defs にも届く。
             (
                 "libs/workflow-core/src/domain/config.ts",
-                {"workflow-core:lint", "pecot-workflow:lint-cli", "interface-spec:lint-defs"},
+                {
+                    "workflow-core:lint",
+                    "pecot-workflow:lint-cli",
+                    "actions:lint",
+                    "actions:lint-dist",
+                    "interface-spec:lint-defs",
+                },
             ),
             # libs/text-rules の lint は実体の target 1 つ。
             # pecot-visual の lint-slidev は、リンクで載せた libs/text-rules を inputs に持つ (#1297)。
@@ -1196,10 +1212,11 @@ def test_graph_lanes_read_every_workspace_package_json(
                 "plugins/pecot-visual/interface/generated.json",
                 {"interface-spec:lint-defs", "pecot-visual:lint-cli"},
             ),
-            # describe の題の規則は、interface-spec の lint と、これを読む 7 つの lint に届く。
+            # describe の題の規則は、interface-spec の lint と、これを読む 8 つの lint に届く。
             (
                 "libs/interface-spec/src/eslint/describe-title.ts",
                 {
+                    "actions:lint",
                     "interface-spec:lint",
                     "interface-spec:lint-defs",
                     "nx-release:lint-eslint",
@@ -1214,6 +1231,7 @@ def test_graph_lanes_read_every_workspace_package_json(
             (
                 "libs/interface-spec/src/eslint/table-key.ts",
                 {
+                    "actions:lint",
                     "interface-spec:lint",
                     "interface-spec:lint-defs",
                     "nx-release:lint-eslint",
@@ -1321,10 +1339,11 @@ def test_lint_defs_inputs_cover_the_sources_and_tests_of_every_plugin() -> None:
         }
     with allure.step("各プラグインの sources と tests の glob が inputs に覆われることを確かめる"):
         for name, plugin in targets["plugins"].items():
+            base = plugin.get("root", f"plugins/{name}")
             for key in ("sources", "tests"):
                 for glob in plugin[key]:
-                    # glob は plugins/<name>/ から、inputs はリポのルートから。
-                    path = posixpath.normpath(f"plugins/{name}/{glob}")
+                    # glob は root（既定は plugins/<name>）から、inputs はリポのルートから。
+                    path = posixpath.normpath(f"{base}/{glob}")
                     assert path in inputs, (
                         f"{name} の {key} の {glob} が lint-defs の inputs に無い"
                     )

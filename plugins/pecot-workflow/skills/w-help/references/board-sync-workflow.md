@@ -1,24 +1,23 @@
 # ボードを自動で直すワークフロー
 
-pecot-workflow の MCP ツール `board_sync` を GitHub Actions で打つ雛形です。置くかどうかは任意で、置かなくても手元で `board_sync` を呼べば同じ列と札に直ります。
+pecot の action `board-sync` と `session-finish` を GitHub Actions で呼ぶ雛形です。置くかどうかは任意です。置かないと、列と札はセッションの手順が動かすときにだけ変わります。
 
 ## 前提
 
-- `board_sync` は `@pecot/workflow-mcp` の 6.0.0 から入っている。雛形は、npm の最新の正式版を取る
+- 雛形は、pecot の action を `pecotcraft/pecot/actions/<処理>` で呼ぶ。`workflow_install` が、リリースのタグを commit の SHA に直して置く
 - 利用者のリポが GHES にあるときは、次の 2 つも前提になる
-  - SHA で固定した版の action（`actions/checkout`・`actions/setup-node`・`actions/create-github-app-token`）を使える
-  - Actions の実行環境から npm の registry に届く
+  - SHA で固定した版の action（`actions/checkout`・`actions/create-github-app-token`）を使える
+  - github.com の pecot の action を使える。GitHub Connect で github.com の action を取れるようにするか、`actions-sync` で写す
 
 ## 雛形と置き先
 
+- 置き方: pecot-workflow の MCP ツール `workflow_install` を `name: board-sync` で呼ぶ
 - 雛形: `${CLAUDE_PLUGIN_ROOT}/cli/templates/workflow/pecot-board-sync.yml`
 - 置き先: 利用者のリポの `.github/workflows/pecot-board-sync.yml`
-- 置くのは雛形をそのまま写したファイルだけとする。書き換えてよいのは次の箇所だけだ
+- 置くのは `workflow_install` が書いたファイルだけとする。書き換えてよいのは次の箇所だけだ
   - `schedule` のコメントを外して、cron の間隔を選ぶ
-  - 版を固定する
-  - 設定が 2 つ以上あるとき、`board sync` と `session finish` の実行の行へ `--project` を足す
-  - 試すとき、`board sync` の実行の行へ `--dry-run` を足す
-  - GHES のとき、token の環境変数の名前を替える
+  - 設定が 2 つ以上あるとき、`board-sync` と `session-finish` の step の `with:` へ `project` を足す
+  - 試すとき、`board-sync` の step の `with:` へ `dry-run: 'true'` を足す
 
 ## 動く契機
 
@@ -28,7 +27,7 @@ pecot-workflow の MCP ツール `board_sync` を GitHub Actions で打つ雛形
 | `issues`（`closed`・`reopened`） | Issue のクローズと開き直し |
 | `workflow_dispatch` | Actions の画面からの手での起動 |
 
-次の変化は契機に無いので、拾えません。`schedule` を有効にするか、手元で `board_sync` を呼んで直します。
+次の変化は契機に無いので、拾えません。`schedule` を有効にするか、Actions の画面から `workflow_dispatch` で起動して直します。
 
 - blocked by の付け外し
 - カードの移動
@@ -43,23 +42,24 @@ PR を merge queue がマージしたときも、`pull_request_target` の `clos
 
 ## マージで閉じた PR の片付け
 
-PR がマージされると、`finish` の job が、`sync` の job の前に `session finish` を打ちます。PR を出したセッションが片付けずに終わっても、GitHub 側が片付きます。
+PR がマージされると、`finish` の job が、`sync` の job の前に `session-finish` の action を呼びます。PR を出したセッションが片付けずに終わっても、GitHub 側が片付きます。
 
-- PR が閉じる Issue を閉じ、head ブランチをリモートから消す。手元の片付けはしない（`--skip-local-cleanup`）
-- セッションが先に片付けていれば、閉じた Issue と消したブランチは `unchanged` と出て、そのまま成功する
+- PR が閉じる Issue を閉じ、その Issue を待っていた Issue を動かす。手元の片付けはしない
+- head ブランチは消さない。リポの Settings の General にある「Automatically delete head branches」を有効にして、GitHub に消させる
+- セッションが先に片付けていれば、閉じた Issue は `unchanged` と出て、そのまま成功する
 - 列は `finish` では動かない。続く `sync` が、閉じた Issue のカードを直す
 
 `finish` が動くのは、次の 3 つがそろうときだけです。
 
 - `pull_request_target` の `closed` で、PR がマージされた
-- head が同じリポのブランチ。fork の PR では、同じ名前のブランチや Issue に触れるので動かない
-- head ブランチの名前の末尾が `/<番号>`。pecot のタスクのブランチの形だ。2 ブランチのモードのリリースの PR は head が開発ブランチ（例: `develop`）なので、消さずに済む
+- head が同じリポのブランチ。fork の PR では、同じ名前の Issue に触れるので動かない
+- head ブランチの名前の末尾が `/<番号>`。pecot のタスクのブランチの形だ。2 ブランチのモードのリリースの PR は head が開発ブランチ（例: `develop`）なので、片付けない
 
 token の変数がそろっていないときは、`finish` も飛びます。
 
 ### `finish` の権限
 
-`finish` は、実行の `GITHUB_TOKEN` を使います。job の権限は `contents: write`・`issues: write`・`pull-requests: read` で、ブランチの削除と Issue のクローズに要る分だけです。
+`finish` は、実行の `GITHUB_TOKEN` を使います。job の権限は `contents: read`・`issues: write`・`pull-requests: read` で、Issue のクローズに要る分だけです。
 
 - ボードの GitHub App と PAT に、権限を足さなくてよい
 - workflow 全体の権限は `contents: read` のまま。`finish` の job だけが広げる
@@ -71,7 +71,7 @@ token の変数がそろっていないときは、`finish` も飛びます。
 契機は、雛形を置いたリポの PR と Issue だけを拾います。ほかのリポの変化は、そのリポに雛形が無ければ拾えません。
 
 - 全部のリポに雛形を置く
-- 1 つのリポに置き、ほかのリポの変化は `schedule` か、手元の `board_sync` で補う
+- 1 つのリポに置き、ほかのリポの変化は `schedule` で補う
 
 設定の JSON は、雛形を置くリポごとに要ります。
 
@@ -83,11 +83,11 @@ Actions の checkout には `.active` が入りません。`.pecot/config/projec
 2. ルートの `.gitignore` が `.pecot/` を丸ごと除外しているときは、その行を外す
 3. `.pecot/.gitignore` が設定の JSON を許可しているか確かめる。許可の一覧は `pecot-gitignore-ensure.sh` が作り、`!/config/projects/*.json` の行が JSON を戻す
 4. 設定の JSON を既定ブランチへ入れる
-5. 設定の JSON が 1 つなら、`board_sync` はそれを使う。2 つ以上あるときは `--project <設定名>` が要るので、雛形の 2 つの実行の行（`board sync`・`session finish`）に足す
+5. 設定の JSON が 1 つなら、action はそれを使う。2 つ以上あるときは設定名が要るので、雛形の 2 つの step（`board-sync`・`session-finish`）の `with:` に `project: <設定名>` を足す
 
 ## token を用意する
 
-どちらか 1 つを用意します。どちらの variable も無い間は、job が失敗せずに飛びます。
+どちらか 1 つを用意します。どちらの variable も無い間は、job が失敗せずに飛びます。`workflow_doctor` を `name: board-sync` で呼ぶと、そろっているかを確かめられます。
 
 ### GitHub App
 
@@ -116,13 +116,7 @@ fine-grained PAT は、この 2 つの場面に使えません。
 
 ## 実行の結果
 
-書き込みが 1 件でも失敗すると、実行が失敗（終了コード 1）で終わります。token の権限が足りないときは、ここで気づけます。
-
-## GHES
-
-github.com 以外のホストでは、token を渡す環境変数の名前が変わります。名前は `PECOT_GITHUB_<HOST>_TOKEN` で、`<HOST>` はホスト名を大文字にし、ドットをアンダースコアに替えたものです。
-
-例は `ghe.example.com` の `PECOT_GITHUB_GHE_EXAMPLE_COM_TOKEN` です。github.com は `PECOT_GITHUB_COM_TOKEN` です。
+書き込みが 1 件でも失敗すると、step が失敗で終わります。token の権限が足りないときは、ここで気づけます。
 
 ## 定期の実行を足す
 
@@ -150,14 +144,13 @@ github.com 以外のホストでは、token を渡す環境変数の名前が変
 - PAT は、持ち主が手元で使う点数と 5000 点を分け合う
 - 終わりの `count: GraphQL points used` の行は、前後の実行と点数が入れ替わって見えることがある（0 点の実行もあった）。1 回の値ではなく、数回の平均で読む
 
-## 版を固定する
+## 版を上げる
 
-雛形は `npx -y --prefix=/ @pecot/workflow-mcp@latest board sync` を打ち、npm の最新の正式版を取ります。`finish` の job の `session finish` の行も同じ版を取ります。major が上がると、互換の無い変更も次の実行から入ります。2 つの行の `@latest` を次のどれかに替えると、取る版を変えられます。
+pecot の action は commit の SHA で固定し、行の末尾のコメントにリリースのタグ（`# pecot-actions/v<版>`）を書いています。
 
-- `@<major>`: その major の最新に留まる
-- `@<版>`: 版を固定する
-- `@next`: pecot の main の開発版を取る
+- `.github/dependabot.yml` に `github-actions` の ecosystem があれば、Dependabot が SHA とコメントの版を一緒に上げる PR を出す
+- 雛形の新しい版を取り込むときは、`workflow_install` を `force` で呼んで置き直す
 
 ## 試す
 
-Actions の画面から `workflow_dispatch` で 1 回起動し、ログの `moved:`・`set:`・warning の行を読みます。ボードへ書かずに見るときは、実行の行へ `--dry-run` を足します。
+Actions の画面から `workflow_dispatch` で 1 回起動し、ログの `moved:`・`set:`・warning の行を読みます。ボードへ書かずに見るときは、`board-sync` の step の `with:` へ `dry-run: 'true'` を足します。

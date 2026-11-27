@@ -3,7 +3,7 @@
 共通仕様
 ========
 
-pecot-workflow は、Issue・PR・リリースの運用を管理するためのツールを提供する `MCP <https://modelcontextprotocol.io/>`__ サーバです。スキルとエージェントは、各ツールを MCP のツールとして呼びます。GitHub Actions から呼ぶ 5 つのコマンド（``board sync``・``review finish``・``release check``・``tracker sync dependabot``・``tracker sync security``）は、``pecot`` コマンドでも実行できます。
+pecot-workflow は、Issue・PR・リリースの運用を管理するためのツールを提供する `MCP <https://modelcontextprotocol.io/>`__ サーバです。スキルとエージェントは、各ツールを MCP のツールとして呼びます。GitHub Actions から呼ぶ ``release check`` は、``pecot`` コマンドでも実行できます。Actions だけが使う処理は、ツールでなく ``actions/`` の action です。
 
 MCP サーバは、MCP プロトコルリビジョン `2026-07-28 <https://modelcontextprotocol.io/specification/2026-07-28>`__ と `2025-11-25 <https://modelcontextprotocol.io/specification/2025-11-25>`__ をサポートしています。`stdio <https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/stdio>`__ サーバとして、マシン上でローカルプロセスとして実行されます。
 
@@ -32,9 +32,9 @@ MCP ツール
 コマンド
 ~~~~~~~~
 
-GitHub Actions から呼ぶ 5 つのコマンドは、失敗すると、標準エラーに ``error:`` で始まる行を出力し、0 以外の終了コードで終了します。警告は、``warning:`` で始まる行として標準エラーに出力します。
+GitHub Actions から呼ぶ ``release check`` のコマンドは、失敗すると、標準エラーに ``error:`` で始まる行を出力し、0 以外の終了コードで終了します。警告は、``warning:`` で始まる行として標準エラーに出力します。
 
-ツールごとの項目とエラー名については、:doc:`ツール一覧 <pecot-workflow-tools>` の各ツールのページを参照してください。コマンドの構文・フラグ・終了コードは、5 つのコマンドのツールのページの「コマンド」の節にあります。
+ツールごとの項目とエラー名については、:doc:`ツール一覧 <pecot-workflow-tools>` の各ツールのページを参照してください。コマンドの構文・フラグ・終了コードは、``release_check`` のツールのページの「コマンド」の節にあります。
 
 機能要件
 --------

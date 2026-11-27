@@ -55,6 +55,45 @@ describe('getBranchSha', () => {
   })
 })
 
+describe('getTagCommitSha', () => {
+  const TAG_PATH = '/repos/owner/repo/git/ref/tags/pecot-actions/v1.0.0'
+
+  it('軽量のタグは、ref の object.sha を返す', async () => {
+    await explains('タグの commit の SHA を読み取る `getTagCommitSha` のテストです。軽量のタグの場合に、ref の `object.sha` をそのまま返し、ref だけを読むことを確認します。')
+    const { client, server } = await startClient([
+      restResponse('GET', TAG_PATH, { status: 200, body: { object: { sha: 'c0ffee', type: 'commit' } } }),
+    ])
+    expect(await client.getTagCommitSha('owner', 'repo', 'pecot-actions/v1.0.0')).toBe('c0ffee')
+    expect(restRequests(server).map(({ path }) => path)).toEqual([TAG_PATH])
+  })
+
+  it('注釈付きのタグは、git/tags で commit まで辿る', async () => {
+    await explains('タグの commit の SHA を読み取る `getTagCommitSha` のテストです。注釈付きのタグの場合に、`git/tags` を読んで commit の SHA まで辿ることを確認します。')
+    const { client, server } = await startClient([
+      restResponse('GET', TAG_PATH, { status: 200, body: { object: { sha: 't1', type: 'tag' } } }),
+      restResponse('GET', '/repos/owner/repo/git/tags/t1', { status: 200, body: { object: { sha: 'c0ffee', type: 'commit' } } }),
+    ])
+    expect(await client.getTagCommitSha('owner', 'repo', 'pecot-actions/v1.0.0')).toBe('c0ffee')
+    expect(restRequests(server).map(({ path }) => path)).toEqual([TAG_PATH, '/repos/owner/repo/git/tags/t1'])
+  })
+
+  it('commit でないものを指すタグは GitHubAPIError', async () => {
+    await explains('タグの commit の SHA を読み取る `getTagCommitSha` のテストです。タグが commit 以外を指す場合に、`GitHubAPIError` の例外が発生することを確認します。')
+    const { client } = await startClient([
+      restResponse('GET', TAG_PATH, { status: 200, body: { object: { sha: 'tree1', type: 'tree' } } }),
+    ])
+    expect(await rejection(client.getTagCommitSha('owner', 'repo', 'pecot-actions/v1.0.0'))).toMatchObject(failure(GitHubAPIError, 'tag pecot-actions/v1.0.0 does not point to a commit'))
+  })
+
+  it('タグが無ければ GitHubNotFoundError', async () => {
+    await explains('タグの commit の SHA を読み取る `getTagCommitSha` のテストです。タグが存在しない場合に、`GitHubNotFoundError` の例外が発生することを確認します。')
+    const { client } = await startClient([
+      restResponse('GET', TAG_PATH, { status: 404, body: { message: 'Not Found' } }),
+    ])
+    expect(await rejection(client.getTagCommitSha('owner', 'repo', 'pecot-actions/v1.0.0'))).toBeInstanceOf(GitHubNotFoundError)
+  })
+})
+
 describe('listWorkflowRunConclusions', () => {
   it('head_sha で絞った run の id と conclusion を返し、未完了の run の conclusion は空文字にする', async () => {
     await explains('ワークフローの実行結果を取得する `listWorkflowRunConclusions` のテストです。`head_sha` で絞り込んだ run の `id` と `conclusion` を返し、未完了の run の `conclusion` は空文字になることを確認します。')

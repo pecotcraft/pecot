@@ -5,6 +5,7 @@
 set -euo pipefail
 
 ALLOWED=(
+    actions
     libs
     plugins
     specs

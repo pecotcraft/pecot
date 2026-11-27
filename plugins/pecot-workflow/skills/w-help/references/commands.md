@@ -4,14 +4,6 @@
 
 引数と詳しい振る舞いは `pecot <コマンド> --help` で確かめてください。
 
-## auto
-
-| コマンド | 説明 |
-| --- | --- |
-| `auto finish` | Finish an automated fix run: post the result comment, set the waiting Status and remove the trigger label |
-| `auto gate` | Decide from a GitHub Actions event whether the automated fix runs, and of what kind |
-| `auto start` | Start an automated fix run: restore the Status the automation wrote and print the context to continue |
-
 ## board
 
 | コマンド | 説明 |
@@ -19,7 +11,6 @@
 | `board add` | Add an Issue to the project board with a GraphQL mutation (for an Issue created outside pecot) |
 | `board move` | Update the status of an Issue on the project board by Issue number (pecot commands normally set the status themselves) |
 | `board show` | Show the dashboard of the project board |
-| `board sync` | Move the Issues in Ready, Blocked, Active and In Review to the columns and Status values their judgment calls for, and delete the Archived items beyond the latest 20 from the board |
 
 ## branch
 
@@ -73,12 +64,6 @@
 | `release create` | Create a GitHub release and its tag (the release notes come from the CHANGELOG) |
 | `release merge` | Merge a release PR with a regular merge |
 
-## review
-
-| コマンド | 説明 |
-| --- | --- |
-| `review finish` | Finish an automated review: post a comment on the PR only when the review stopped (failed, limit or setup-missing) |
-
 ## session
 
 | コマンド | 説明 |
@@ -86,12 +71,6 @@
 | `session finish` | Clean up after a merged PR (close related Issues, delete branches, local cleanup) |
 | `session show` | Show the branch, repository and work Issue of the session |
 | `session start` | Create a branch linked to an Issue (shown in the Development section of the Issue) |
-
-## tracker
-
-| コマンド | 説明 |
-| --- | --- |
-| `tracker sync` | Rewrite the open Tracker's list for a source: Dependabot PRs waiting for a human decision, or open security alerts |
 
 ## workflow
 

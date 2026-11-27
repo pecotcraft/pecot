@@ -44,9 +44,12 @@ const FAKE_GH = [
   'cat "$f"',
 ].join('\n')
 
-const BOARD_SYNC = 'name: pecot-board-sync\non: workflow_dispatch\njobs:\n  sync:\n    steps:\n      - run: npx -y @pecot/workflow-mcp@next\n'
+const BOARD_SYNC = 'name: pecot-board-sync\non: workflow_dispatch\njobs:\n  sync:\n    steps:\n      - uses: ./actions/board-sync\n'
 
-const REVIEW = 'name: pecot review\non: pull_request\njobs:\n  review:\n    steps:\n      - run: npx -y @pecot/workflow-mcp@next review finish\n'
+const REVIEW = 'name: pecot review\non: pull_request\njobs:\n  review:\n    steps:\n      # このリポだけの step\n      - name: Check out the pecot actions\n        uses: actions/checkout@0\n        with:\n          path: .pecot-actions\n\n      - name: Finish\n        uses: ./.pecot-actions/actions/review-finish\n'
+
+// 検証用の写しは、pecot の action を pecotcraft/pecot から呼び、このリポだけの step を持たない
+const SANDBOX_REVIEW = 'name: pecot review\non: pull_request\njobs:\n  review:\n    steps:\n      - name: Finish\n        uses: pecotcraft/pecot/actions/review-finish@main\n'
 
 const HANDOFF = 'name: pecot handoff\non: pull_request_target\njobs:\n  handoff:\n    steps:\n      - uses: anthropics/claude-code-action@0\n'
 
@@ -391,11 +394,11 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
   })
 
-  it('pecot-board-sync.yml の内容が違うと、両方の blob の sha と、違う最初の行を表示する', async () => {
+  it('board-sync の中身が違うと、両方の blob の sha と違う最初の行を出す（FR-032）', async () => {
     await explains('ワークフローのファイルの比較のテストです。検証用の `pecot-board-sync.yml` の内容が違う場合に、両方の blob の sha と、内容が違う最初の行を差異として表示することを確認します。')
-    const other = BOARD_SYNC.replace('@next', '@6')
+    const other = BOARD_SYNC.replace('workflow_dispatch', 'push')
     scene.sandbox.files['pecot-board-sync.yml'] = other
-    const line = 6
+    const line = 2
     const expectedThis = `blob ${blob(BOARD_SYNC)}、${String(line)} 行目: ${splitLines(BOARD_SYNC)[line - 1] ?? ''}`
     const expectedSandbox = `blob ${blob(other)}、${String(line)} 行目: ${splitLines(other)[line - 1] ?? ''}`
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-board-sync.yml', expectedThis, expectedSandbox)))
@@ -411,7 +414,15 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-review.yml', expectedThis, expectedSandbox)))
   })
 
-  it('検証用に pecot-review.yml が存在しないと、検証用を「なし」として差異に表示する', async () => {
+  it('pecot の action を pecotcraft/pecot から呼び、このリポだけの step が無い写しは、ずれに出さない', async () => {
+    await explains('ワークフローのファイルの比較のテストです。検証用の写しが pecot の action を `pecotcraft/pecot` から呼び、このリポジトリだけの step を持たない場合に、差異にせず「ずれは 0 件」と表示することを確認します。')
+    scene.sandbox.files['pecot-review.yml'] = SANDBOX_REVIEW
+    scene.sandbox.files['pecot-board-sync.yml'] = BOARD_SYNC.replace('./actions/board-sync', 'pecotcraft/pecot/actions/board-sync@0123456789abcdef0123456789abcdef01234567 # pecot-actions/v1.0.0')
+    const result = scene.run()
+    expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+  })
+
+  it('検証用に pecot-review.yml が無いと、検証用を「なし」としてずれに出す', async () => {
     await explains('ワークフローのファイルの存在の比較のテストです。検証用に `pecot-review.yml` が存在しない場合は、検証用の値を「なし」と表示することを確認します。')
     delete scene.sandbox.files['pecot-review.yml']
     const expectedThis = `blob ${blob(REVIEW)}、1 行目: ${splitLines(REVIEW)[0] ?? ''}`

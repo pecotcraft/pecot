@@ -15,7 +15,7 @@ import { GRAPHQL_SCHEMA_URL, restDescriptionUrl } from '../src/infra/github/issu
 import { DEFAULT_API_VERSION } from '@pecot/workflow-core/infra/github/client.js'
 import type { RecordedRequest, ResponseRule } from '../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { setUpProject, startGithub } from './_helpers/interface-case.js'
-import { boardRules, createdTracker, freezeClock, issueListRule, WORKFLOW_FIELD } from './_helpers/tracker-sync-case.js'
+import { boardRules, createdTracker, issueListRule, WORKFLOW_FIELD } from '../../../../libs/workflow-core/tests/_helpers/tracker-rules.js'
 import { explains } from './_helpers/explains.js'
 
 useIsolatedEnvironment()
@@ -155,7 +155,7 @@ const CHANGED = [...SNAPSHOT.items, ADDED]
 
 describe('drift.ts', () => {
   beforeEach(() => {
-    freezeClock()
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-09T12:00:00Z') })
   })
 
   afterEach(() => {

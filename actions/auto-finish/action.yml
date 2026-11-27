@@ -1,0 +1,33 @@
+name: pecot auto finish
+description: Finish an automated fix run. Decide the result, post the result comment, set the waiting Status and remove the trigger label, unless this run already posted one.
+inputs:
+  token:
+    description: Token to write the comment, the board and the label (the App token of the workflow)
+    required: false
+  issue:
+    description: Issue number in the repository of the workflow, or owner/repo/N
+    required: true
+  project:
+    description: Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the repository of the Issue; when several do, the active one among them
+    required: false
+  result-file:
+    description: Path of the result file the skill writes, with the result in the frontmatter and the text in the body. A missing file means the skill wrote no result
+    required: false
+  job-status:
+    description: Status of the job (job.status). Required without result
+    required: false
+  execution-file:
+    description: Path of the execution_file output of claude-code-action (may be empty)
+    required: false
+  start-outcome:
+    description: Outcome of the auto-start step (steps.<id>.outcome). Required without result
+    required: false
+  result:
+    description: Result to write as it is, for a step that decided it (pr-created, ci-passed, ci-fix-pushed, question, out-of-scope, failed, limit or setup-missing). Not used with job-status, execution-file, start-outcome or result-file
+    required: false
+  body-file:
+    description: Path of a file with the text for result (only with result)
+    required: false
+runs:
+  using: node24
+  main: dist/index.js

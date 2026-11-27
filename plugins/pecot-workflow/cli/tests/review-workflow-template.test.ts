@@ -67,7 +67,8 @@ function stepUsing(action: string): Step {
 const review = stepUsing('anthropics/claude-code-action')
 const reviewInputs = review.with ?? {}
 const claudeArguments = text(reviewInputs['claude_args'])
-const finish = steps.find(step => step.run?.includes('review finish') === true) ?? {}
+const finish = steps.find(step => step.uses?.startsWith('pecotcraft/pecot/actions/review-finish@') === true) ?? {}
+const finishInputs = finish.with ?? {}
 const checkPr = steps.find(step => step.id === 'pr') ?? {}
 const checkFirst = steps.find(step => step.id === 'first') ?? {}
 const record = steps.find(step => step.name === 'Record the run') ?? {}
@@ -322,12 +323,12 @@ describe('review のワークフローの雛形', () => {
     expect(granted).toEqual({ 'permission-pull-requests': 'write', 'permission-contents': 'read' })
   })
 
-  it('発行したトークンが存在しない場合は、github_token が空になり Claude の App を使い、PECOT_GITHUB_COM_TOKEN などには GITHUB_TOKEN を使う', async () => {
-    await explains('トークンの代替のテストです。発行したトークンが存在しない場合に、`github_token` は空になり、`PECOT_GITHUB_COM_TOKEN` と `GH_TOKEN` には `github.token` を使うことを確認します。')
+  it('発行したトークンが無いとき、github_token を空にして Claude の App を使う。PECOT_GITHUB_COM_TOKEN と後始末の token は GITHUB_TOKEN だ', async () => {
+    await explains('発行したトークンが存在しない場合の、トークンの代替のテストです。`github_token` は空になり、`PECOT_GITHUB_COM_TOKEN`・後始末の `token`・`GH_TOKEN` には `github.token` を使うことを確認します。')
     expect(reviewInputs['github_token']).toBe('${{ steps.token.outputs.token }}')
     const fallback = '${{ steps.token.outputs.token || github.token }}'
     expect(review.env?.['PECOT_GITHUB_COM_TOKEN']).toBe(fallback)
-    expect(finish.env?.['PECOT_GITHUB_COM_TOKEN']).toBe(fallback)
+    expect(finishInputs['token']).toBe(fallback)
     expect(checkPr.env?.['GH_TOKEN']).toBe(fallback)
   })
 
@@ -442,37 +443,36 @@ describe('review のワークフローの雛形', () => {
     }
   })
 
-  it('後始末のステップは、前回のレビューがあった場合を除き、常に動き、式を run に埋め込まない', async () => {
-    await explains('後始末のステップ（`review finish`）のテストです。前回のレビューがあった場合を除いて `always()` で動き、式を `run` に埋め込まず、必要な引数を渡すことを確認します。')
+  it('後始末の step は、前のレビューの跡で飛ばした run のほかは if: always() で動き、PR の番号を with で渡す', async () => {
+    await explains('後始末のステップ（`review-finish` の action）のテストです。前回のレビューがあった場合を除いて `always()` で動き、`run` を持たず、PR の番号を `with` で渡すことを確認します。')
     expect(finish.if).toBe('${{ always() && steps.first.outputs.ok != \'false\' }}')
-    expect(finish.run).not.toContain('${{')
-    expect(finish.run).toContain('"$GITHUB_REPOSITORY/$PR" --ensure --job-status "$JOB_STATUS" --review-outcome "$REVIEW_OUTCOME" --review-conclusion "$REVIEW_CONCLUSION" --review-has-token "$REVIEW_HAS_TOKEN"')
+    expect(finish.run).toBeUndefined()
+    expect(finishInputs['pr']).toBe('${{ github.event.pull_request.number || github.event.issue.number }}')
   })
 
-  it('後始末のステップは、自動レビューの 4 つの値を env で受け取り、トークンの値そのものは受け取らない', async () => {
-    await explains('後始末のステップの入力のテストです。job の状態など 4 つの値を `env` で受け取り、トークンの値そのものは受け取らないことを確認します。')
-    expect(finish.env).toMatchObject({
-      JOB_STATUS: '${{ job.status }}',
-      REVIEW_OUTCOME: '${{ steps.claude.outcome }}',
-      REVIEW_CONCLUSION: '${{ steps.claude.outputs.conclusion }}',
-      REVIEW_HAS_TOKEN: '${{ steps.claude.outputs.github_token != \'\' }}',
+  it('後始末の step は自動レビューの 4 つの値を with で受け、自動レビューのトークンの値そのものは受けない', async () => {
+    await explains('後始末のステップの入力のテストです。job の状態など 4 つの値を `with` で受け取り、トークンの値そのものは受け取らないことを確認します。')
+    expect(finishInputs).toMatchObject({
+      'job-status': '${{ job.status }}',
+      'review-outcome': '${{ steps.claude.outcome }}',
+      'review-conclusion': '${{ steps.claude.outputs.conclusion }}',
+      'review-has-token': '${{ steps.claude.outputs.github_token != \'\' }}',
     })
-    const finishValues = Object.values(finish.env ?? {})
+    const finishValues = [...Object.values(finishInputs), ...Object.values(finish.env ?? {})]
     for (const value of finishValues) {
       expect(value).not.toBe('${{ steps.claude.outputs.github_token }}')
     }
   })
 
-  it('後始末のステップは、実行結果のファイル・最初のステップが記録した開始時刻・起動用のフレーズの変数を env で受け取って渡す', async () => {
-    await explains('後始末のステップの入力のテストです。実行結果のファイル・開始時刻・起動用のフレーズの変数を `env` で受け取り、`--execution-file` と `--since` で渡すことを確認します。')
+  it('後始末の step は、実行のファイルと最初の step が記録した開始時刻を with で、合言葉の変数を env で受ける', async () => {
+    await explains('後始末のステップの入力のテストです。実行結果のファイルと開始時刻を `with` で、起動用のフレーズの変数を `env` で受け取ることを確認します。')
     expect(steps[0]?.id).toBe('start')
     expect(steps[0]?.run).toBe('echo "time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"')
-    expect(finish.env).toMatchObject({
-      EXECUTION_FILE: '${{ steps.claude.outputs.execution_file }}',
-      REVIEW_STARTED_AT: '${{ steps.start.outputs.time }}',
-      PECOT_REVIEW_TRIGGER_PHRASE: '${{ vars.PECOT_REVIEW_TRIGGER_PHRASE }}',
+    expect(finishInputs).toMatchObject({
+      'execution-file': '${{ steps.claude.outputs.execution_file }}',
+      'since': '${{ steps.start.outputs.time }}',
     })
-    expect(finish.run).toContain('--execution-file "$EXECUTION_FILE" --since "$REVIEW_STARTED_AT"')
+    expect(finish.env).toEqual({ PECOT_REVIEW_TRIGGER_PHRASE: '${{ vars.PECOT_REVIEW_TRIGGER_PHRASE }}' })
   })
 
   it('Review の settings は、使われた effort を RUNNER_TEMP のファイルに書き出す PreToolUse の hook だけを持つ', async () => {
@@ -536,16 +536,16 @@ describe('review のワークフローの雛形', () => {
     expect(stepUsing('actions/setup-node').with?.['package-manager-cache']).toBe(false)
   })
 
-  it('すべての action を 40 桁の SHA で固定する', async () => {
-    await explains('ステップが使う action のテストです。すべての `uses` が、40 桁の SHA で固定されていることを確認します。')
-    const uses = steps.map(step => step.uses).filter(use => use !== undefined)
+  it('pecot の action のほかは、すべての action を 40 桁の SHA で固定する', async () => {
+    await explains('ステップが使う action のテストです。`pecotcraft/pecot/actions/` の action を除くすべての `uses` が、40 桁の SHA で固定されていることを確認します。')
+    const uses = steps.map(step => step.uses).filter(use => use !== undefined && !use.startsWith('pecotcraft/pecot/actions/'))
     expect(uses.length).toBeGreaterThan(0)
     for (const action of uses) expect(action).toMatch(/@[0-9a-f]{40}$/)
   })
 
-  it('後始末のステップは、最新の正式版の CLI を取得する', async () => {
-    await explains('後始末のステップの CLI のテストです。`@pecot/workflow-mcp@latest` で最新の正式版を取得して、`review finish` を実行することを確認します。')
-    expect(finish.run).toMatch(/^npx -y --prefix=\/ @pecot\/workflow-mcp@latest review finish /)
+  it('後始末の step は、pecot の action の review-finish を、リリースのタグで呼ぶ', async () => {
+    await explains('後始末のステップの action のテストです。`pecotcraft/pecot/actions/review-finish` を、`pecot-actions/v<版>` のリリースのタグで指定して呼ぶことを確認します。')
+    expect(finish.uses).toMatch(/^pecotcraft\/pecot\/actions\/review-finish@pecot-actions\/v\d+\.\d+\.\d+$/)
   })
 })
 

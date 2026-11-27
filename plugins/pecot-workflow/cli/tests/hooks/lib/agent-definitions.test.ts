@@ -46,7 +46,7 @@ const EXPECTED_SKILLS = [
 ]
 const EXPECTED_ARGUMENT_HINTS = {
   'w-active': '[Issue]',
-  'w-auto': '<種類> <owner/repo/N> [project=<名前>]',
+  'w-auto': '<種類> <owner/repo/N> context=<パス> result=<パス> [project=<名前>]',
   'w-backlog': '[Epic の内容]',
   'w-quick': '[タスクの内容]',
   'w-worktree-remove': '[WT 名]',

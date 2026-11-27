@@ -42,13 +42,15 @@ step 名は英語で、Actions でよく使う形にする。Actions の画面�
   - `side` の job が材料と matrix を決める。`tests` がレーンごとに dev container で動かし、結果を `allure-results-<slug>`（1 日）に上げる。`report` がレポートを作る
   - テストが落ちても run は成功で終わる。落ちるのは、結果を残さずに止まったレーンがあるときと、`allure generate` が失敗したとき
   - 履歴は側ごとに 3 件まで。pages-deploy が artifact を受けて公開する
+- `codeql.yml`: CodeQL の解析（advanced setup）。リポの設定の default setup は止めておく
+  - `actions/*/dist` を `paths-ignore` で外す。依存を同梱した生成物で、依存の既知の脆弱性は Dependabot が見る
 - `dependabot-auto-merge.yml`: minor・patch の PR に auto-merge を入れる
 - `dependabot-commit.yml`: 各 `runtime-lock.yaml` を root の lock から作り直し、version plan を足して同じブランチへ push する
 - `dependabot-prs.yml`: 人の判断を待つ dependabot の PR を Tracker 1 件にそろえる
 - `security-alerts.yml`: main の security alert を Tracker 1 件にそろえる
 - 上の 2 本は App の webhook と Scheduler で起動し、cron は補助
   - 変数 `DEPENDABOT_PRS_APP_CLIENT_ID`・`SECURITY_APP_CLIENT_ID` が空の間は動かない
-- `pecot-board-sync.yml`: ボードの列と札を判定どおりに直す。pecot-workflow の雛形の写しで、npx の dist-tag だけ `@next`（main の開発版）にする
+- `pecot-board-sync.yml`: ボードの列と札を判定どおりに直す。`actions/templates/` の雛形の写しで、pecot の action だけ `./actions/<処理>` で呼ぶ
   - PR と Issue のイベントと、Scheduler（毎時）で起動する。変数 `PECOT_BOARD_SYNC_APP_CLIENT_ID` が空の間は動かない
 - `issue-surface-drift.yml`: GitHub の今のスキーマを Issue の機能の写しと比べ、差を Tracker 1 件に書き直してボードに載せる。差が無くなれば閉じる。Scheduler（毎時）だけが起こし、変数 `SECURITY_APP_CLIENT_ID` が空の間は動かない
 - `dependabot-*`・`release.yml` の push と auto-merge は、リリースの App のトークンで行う

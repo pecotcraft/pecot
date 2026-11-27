@@ -1424,13 +1424,13 @@ describe('pr create', () => {
       expect(operationsOf(workspace).filter(operation => operation === 'GetIssuePrerequisites')).toHaveLength(2)
     })
 
-    it('読み直しても作った PR が判定に出なければ、board sync で後から直せる旨の warning の行を出して列を動かさない', async () => {
-      await explains('再取得しても、待つ Issue の判定に作成した PR が反映されない場合の、`pr create` のテストです。列は移動せず、`board sync` で後から修正できる旨の warning の行を出力することを確認します。')
+    it('読み直しても作った PR が判定に出なければ、pecot-board-sync のワークフローで後から直せる旨の warning の行を出して列を動かさない', async () => {
+      await explains('再取得しても、待つ Issue の判定に作成した PR が反映されない場合の、`pr create` のテストです。列は移動せず、`pecot-board-sync` のワークフローで後から修正できる旨の warning の行を出力することを確認します。')
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(false)), prerequisitesRule(waitingTarget(false))] })
       useFakeDelays()
       const result = await settleWithFakeDelays(workspace.run(messageArguments()))
       expect(result).toMatchObject({ code: 0, stdout: `${PULL_URL}\n` })
-      expect(lines(result.stderr).at(-1)).toBe('warning: could not confirm that GitHub reflects PR #21 in the readiness of #13; its column was not moved; run pecot board sync later to move it')
+      expect(lines(result.stderr).at(-1)).toBe('warning: could not confirm that GitHub reflects PR #21 in the readiness of #13; its column was not moved; run the pecot-board-sync workflow (Run workflow on its page in the Actions tab) later to move it')
       expect(result.stderr).not.toContain('moved:')
     })
 
@@ -2117,15 +2117,15 @@ describe('pr create', () => {
         ])
       })
 
-      it('読み直しても作った PR が判定に出なければ、board_sync で後から直せる旨を warnings に入れて列を動かさない', async (context) => {
+      it('読み直しても作った PR が判定に出なければ、pecot-board-sync のワークフローで後から直せる旨を warnings に入れて列を動かさない', async (context) => {
         await verifies(context, 'PW-PR-CREATE-61')
-        await explains('再取得しても、待つ Issue の判定に作成した PR が反映されない場合の、MCP の `pr_create` のテストです。列は移動せず、`board_sync` で後から修正できる旨を `warnings` に含めることを確認します。')
+        await explains('再取得しても、待つ Issue の判定に作成した PR が反映されない場合の、MCP の `pr_create` のテストです。列は移動せず、`pecot-board-sync` のワークフローで後から修正できる旨を `warnings` に含めることを確認します。')
         const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(false)), prerequisitesRule(waitingTarget(false))] })
         useFakeDelays()
         const result = await settleWithFakeDelays(createTool(workspace, MESSAGE_ARGUMENTS))
         expect(result.isError).toBe(false)
         expect(result.structured['moves']).toEqual([])
-        expect(result.structured['warnings']).toEqual(['could not confirm that GitHub reflects PR #21 in the readiness of #13; its column was not moved; call board_sync later to move it'])
+        expect(result.structured['warnings']).toEqual(['could not confirm that GitHub reflects PR #21 in the readiness of #13; its column was not moved; run the pecot-board-sync workflow (Run workflow on its page in the Actions tab) later to move it'])
       })
 
       it.for([
