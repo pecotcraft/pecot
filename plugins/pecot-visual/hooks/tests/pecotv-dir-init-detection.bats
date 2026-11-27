@@ -19,6 +19,11 @@ _git() {
     "${_GIT_ISOLATE[@]}" git "$@"
 }
 
+setup_file() {
+    bats_load_library pecot-bats
+    command -v jq >/dev/null 2>&1 || fail "jq が無いため hooks.json を読めない"
+}
+
 setup() {
     bats_load_library pecot-bats
     PROJ="$BATS_TEST_TMPDIR/proj"
@@ -118,8 +123,11 @@ bats_test_function --description "自プラグインのスキルでない空の�
     assert_equal "$(jq -c '[.hooks.UserPromptSubmit[].hooks[].command] | sort' "$copilot")" \
         "$(jq -c '[.hooks.UserPromptSubmit[].hooks[].command] | sort' "$orig")"
     # Copilot のツール名は小文字の skill で Claude 名に写されないため、matcher は Skill|skill（全体一致）
+    local orig_ptus
+    orig_ptus="$(jq -c '[.hooks.PreToolUse[] | select(.matcher == "Skill") | .hooks[].command] | sort' "$orig")"
+    assert_not_equal "$orig_ptus" "[]"
     assert_equal "$(jq -c '[.hooks.PreToolUse[] | select(.matcher == "Skill|skill") | .hooks[].command] | sort' "$copilot")" \
-        "$(jq -c '[.hooks.PreToolUse[] | select(.matcher == "Skill") | .hooks[].command] | sort' "$orig")"
+        "$orig_ptus"
 }
 
 @test "実 git のリポで init すると、.pecotv/work 配下のファイルがコミット候補に出ない" {

@@ -256,16 +256,17 @@ assert_self_status() {
     refute_output
 }
 
-@test "hooks 設定のファイルを 2 本以上列挙する" {
-    explains "Claude Code 向けと Copilot CLI 向けの hooks 設定のファイルを列挙するテストです。\`hooks*.json\` が 2 本以上見つかることを確認します。"
-    local count
-    count=$(
+# 名指しの @test が確かめるのはこの 2 本だけなので、hooks*.json が増えたらここで落とす。
+@test "hooks 設定のファイルは、command を確かめる 2 本だけを列挙する" {
+    explains "Claude Code 向けと Copilot CLI 向けの hooks 設定のファイルを列挙するテストです。\`hooks*.json\` の一覧が、\`command\` を確かめる 2 本とちょうど一致することを確認します。2 本は \`hooks/hooks.json\` と \`com.github.copilot/hooks/hooks.json\` です。"
+    local listed
+    listed=$(
         {
             find "$HOOKS_DIR" -maxdepth 1 -type f -name 'hooks*.json'
             find "$PLUGIN_ROOT/com.github.copilot/hooks" -maxdepth 1 -type f -name 'hooks*.json' 2> /dev/null || true
-        } | wc -l
+        } | sed "s|^$PLUGIN_ROOT/||" | LC_ALL=C sort
     )
-    ((count >= 2)) || fail "列挙が想定より少ない（$count < 2）"
+    assert_equal "$listed" "$(printf '%s\n' com.github.copilot/hooks/hooks.json hooks/hooks.json)"
 }
 
 @test "Claude Code 向けの hooks.json の command は、3 件とも hooks 直下の実在するエントリポイントを指す" {

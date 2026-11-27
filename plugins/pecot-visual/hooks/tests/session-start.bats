@@ -10,6 +10,11 @@ HOOK="$BATS_TEST_DIRNAME/../session-start.sh"
 ENSURE="$BATS_TEST_DIRNAME/../lib/core/pecotv-gitignore-ensure.sh"
 NODE_OLD_MESSAGE="pecotv: Node.js 0.0.0 は起動しません。"
 
+setup_file() {
+    bats_load_library pecot-bats
+    command -v jq >/dev/null 2>&1 || fail "jq が無いためフックの JSON を読めない"
+}
+
 setup() {
     bats_load_library pecot-bats
 }
