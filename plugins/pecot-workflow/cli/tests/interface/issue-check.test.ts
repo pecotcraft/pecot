@@ -378,6 +378,16 @@ describe('issue_check', () => {
       })
     })
 
+    it('update でボードの欄へ、選択肢に無い値を書くと、選択肢の名前を候補にして problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-08')
+      await explains('`method` が `update` で、ボードの欄 `Area` へ、選択肢に存在しない値 `doc` を書いた場合のテストです。`invalid_value` の問題を返し、`cli` と `docs` を候補に含めることを確認します。')
+      useProject()
+      const outcome = await check({ method: 'update', issues: [{ kind: 'task', ...DEMO, issue_number: 7, project_fields: [{ name: 'Area', value: 'doc' }] }], reads: { project_fields: PROJECT_FIELDS } })
+      await step('結果を確かめる', () => {
+        expect(problemsOf(outcome)).toEqual([expect.objectContaining({ field: 'project_fields.Area', code: 'invalid_value', candidates: ['cli', 'docs'] })])
+      })
+    })
+
     it('update で列を書くと、列は決まりで動くとして problem にする', async (context) => {
       await verifies(context, 'PW-ISSUE-CHECK-09')
       await explains('`method` が `update` で、`project_fields` に列（`pecot-status`）を含めた場合のテストです。列は前提と PR で動くため、`column` の問題を返すことを確認します。')

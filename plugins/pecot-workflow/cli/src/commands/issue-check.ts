@@ -563,7 +563,8 @@ function attributeProblems(output: Readonly<Output>, target: Readonly<Target>, e
   if (validation.ok) return
   for (const error of validation.errors) {
     const prefix = error.source === 'issue_field' ? 'issue_fields' : 'project_fields'
-    findings.add(target, `${prefix}.${error.name}`, error.code, attributeErrorLine(error), error.candidates)
+    const options = error.code === 'invalid_value' ? definitions.find(definition => definition.name === error.name && definition.source === error.source)?.options : undefined
+    findings.add(target, `${prefix}.${error.name}`, error.code, attributeErrorLine(error), error.candidates ?? options?.map(option => option.name))
   }
 }
 

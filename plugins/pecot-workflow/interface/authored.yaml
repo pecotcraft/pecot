@@ -677,7 +677,7 @@ entries:
         statement: 'テンプレートを指さないと、題と本文の 1 行目が同じことと、本文の末尾の行を確かめます'
       - id: PW-ISSUE-CHECK-08
         pattern: event
-        statement: '`method` に `create` を渡すと、置く列とボードの欄の値をボードの読み取りに照らし、置く列を `candidates` に添えます'
+        statement: '`method` に `create` を渡すと、置く列とボードの欄の値をボードの読み取りに照らし、置く列と選択肢を `candidates` に添えます'
       - id: PW-ISSUE-CHECK-09
         pattern: unwanted
         statement: 'もし `method` が `update` で置く列を書くなら、列は決まりで動くとして項目を返します'
