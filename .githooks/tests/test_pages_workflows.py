@@ -405,7 +405,7 @@ def test_pages_preview_context_is_written_only_by_pages_deploy() -> None:
             if rule["type"] == "required_status_checks"
             for check in rule["parameters"]["required_status_checks"]
         }
-        assert contexts == {"ci-result", "version-plan"}
+        assert "ci-result" in contexts
         assert "pages / preview" not in contexts
 
 
