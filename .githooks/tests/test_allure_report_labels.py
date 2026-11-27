@@ -264,6 +264,78 @@ def test_without_ini_labels_no_project_or_lane_label(tmp_path: Path, conftest: s
         assert _hierarchy(labels[0]) == []
 
 
+def _severity(results: Path) -> dict[str, list[str]]:
+    """テストの名前ごとの、severity のラベルの値。"""
+    found: dict[str, list[str]] = {}
+    for path in sorted(results.glob("*-result.json")):
+        result = json.loads(read_output(path))
+        found[result["name"]] = [
+            label["value"] for label in result["labels"] if label["name"] == "severity"
+        ]
+    return found
+
+
+@allure.title(
+    "-o で project を指定すると、{param_id} の conftest はすべての結果に minor の severity を 1 つ付ける"
+)
+@pytest.mark.parametrize("conftest", _CONFTESTS)
+def test_severity_minor_is_added_to_every_result(tmp_path: Path, conftest: str) -> None:
+    """`-o` で project を指定して pytest を実行したときの、重大度のラベルのテストです。severity を書いていない 2 件のテストの結果に、`minor` の severity が 1 つずつ付くことを確認します。"""
+    with allure.step("2 つのテストを -o のラベル付きで pytest に動かす"):
+        results = tmp_path / "allure-results"
+        body = "def test_a() -> None:\n    pass\n\n\ndef test_b() -> None:\n    pass\n"
+        done = _run_pytest(
+            tmp_path, conftest, body,
+            "--alluredir", str(results), "-o", "pecot_report_project=githooks", "-o", "pecot_report_lane=test-ci",
+        )  # fmt: skip
+    with allure.step("結果ごとに minor の severity が 1 つ付くことを確かめる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert _severity(results) == {"test_a": ["minor"], "test_b": ["minor"]}
+
+
+@allure.title(
+    "関数とクラスに @allure.severity を付けたテストは、{param_id} の conftest が付ける minor でなく、書いた段階を持つ"
+)
+@pytest.mark.parametrize("conftest", _CONFTESTS)
+def test_severity_written_in_test_is_kept(tmp_path: Path, conftest: str) -> None:
+    """テストに `@allure.severity` の印を書いて pytest を実行したときの、重大度のラベルのテストです。関数に付けた `trivial` とクラスに付けた `critical` がそのまま残り、印の無いテストだけが `minor` になることを確認します。"""
+    with allure.step("関数とクラスに severity の印を付けたテストを、-o のラベル付きで動かす"):
+        results = tmp_path / "allure-results"
+        body = (
+            "import allure\n\n\n"
+            "@allure.severity(allure.severity_level.TRIVIAL)\n"
+            "def test_function() -> None:\n    pass\n\n\n"
+            "@allure.severity(allure.severity_level.CRITICAL)\n"
+            "class TestClass:\n    def test_method(self) -> None:\n        pass\n\n\n"
+            "def test_plain() -> None:\n    pass\n"
+        )
+        done = _run_pytest(
+            tmp_path, conftest, body,
+            "--alluredir", str(results), "-o", "pecot_report_project=githooks", "-o", "pecot_report_lane=test-ci",
+        )  # fmt: skip
+    with allure.step("書いた段階が残り、印の無いテストだけが minor になることを確かめる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert _severity(results) == {
+            "test_function": ["trivial"],
+            "test_method": ["critical"],
+            "test_plain": ["minor"],
+        }
+
+
+@allure.title("-o を指定しないと、{param_id} の conftest は結果に severity のラベルを付けない")
+@pytest.mark.parametrize("conftest", _CONFTESTS)
+def test_without_ini_labels_no_severity(tmp_path: Path, conftest: str) -> None:
+    """`-o` を指定せずに pytest を実行したときの、重大度のラベルのテストです。結果に severity のラベルが 1 つも付いていないことを確認します。"""
+    with allure.step("-o を渡さずに pytest を動かす"):
+        results = tmp_path / "allure-results"
+        done = _run_pytest(
+            tmp_path, conftest, "def test_a() -> None:\n    pass\n", "--alluredir", str(results)
+        )
+    with allure.step("severity のラベルが付かないことを確かめる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert _severity(results) == {"test_a": []}
+
+
 @allure.title(
     "-o を指定しないと、allure-pytest を無効にしても docs の conftest は allure を読み込まずに成功する"
 )

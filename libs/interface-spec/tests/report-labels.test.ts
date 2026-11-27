@@ -3,13 +3,13 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { LabelName, LinkType, Stage, Status } from 'allure-js-commons'
+import { LabelName, LinkType, Severity, Stage, Status } from 'allure-js-commons'
 import type { Label, Link, TestResult } from 'allure-js-commons'
 import { getProjectRoot } from 'allure-js-commons/sdk/reporter'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { attachJson, attachOutput } from '../src/vitest/attach.js'
-import { featureStory, findUp, layerOf, loadItemTable, loadLayerTable, reportLabelsListener } from '../src/vitest/report-labels.js'
+import { featureStory, findUp, layerOf, loadItemTable, loadLayerTable, reportLabelsListener, severityOf } from '../src/vitest/report-labels.js'
 import type { ItemTable, LayerRule } from '../src/vitest/report-labels.js'
 import { stepSync } from '../src/vitest/step.js'
 import { explains } from '../src/vitest/explains.js'
@@ -55,6 +55,12 @@ function hierarchy(labels: readonly Label[]): Label[] {
   return labels.filter(label => HIERARCHY.has(label.name))
 }
 
+function severities(labels: readonly Label[]): string[] {
+  return labels.filter(label => label.name === 'severity').map(label => label.value)
+}
+
+const LANE_LABELS: readonly Label[] = [{ name: 'project', value: 'pecot-tools' }, { name: 'lane', value: 'test-cli' }]
+
 const labelSchema = z.object({ name: z.string(), value: z.string() })
 const childResultSchema = z.object({
   name: z.string(),
@@ -91,6 +97,26 @@ describe('featureStory', () => {
     await explains(`定義書の無い project の ID を扱う \`featureStory\` のテストです。${name}を渡した場合に、末尾の \`-NN\` を除いた項目の ID が \`feature\` になることを確認します。`)
     stepSync('feature と story を決めて比べる', () => {
       expect(featureStory(ids, 'libs/sample/tests/a.test.ts', undefined)).toEqual(expected)
+    })
+  })
+})
+
+describe('severityOf', () => {
+  it.for([
+    { name: 'githooks のテスト', project: 'githooks', lane: 'test-ci', hasIds: false, expected: Severity.MINOR },
+    { name: 'interface-spec の ID を持つテスト', project: 'interface-spec', lane: 'test-unit', hasIds: true, expected: Severity.MINOR },
+    { name: 'test-release のレーンのテスト', project: 'pecot-tools', lane: 'test-release', hasIds: false, expected: Severity.BLOCKER },
+    { name: 'test-release のレーンの ID を持つテスト', project: 'pecot-workflow', lane: 'test-release', hasIds: true, expected: Severity.BLOCKER },
+    { name: 'nx-release のテスト', project: 'nx-release', lane: 'test-unit', hasIds: false, expected: Severity.BLOCKER },
+    { name: 'pecot-tools の ID を持つテスト', project: 'pecot-tools', lane: 'test-cli', hasIds: true, expected: Severity.CRITICAL },
+    { name: 'actions の ID を持つテスト', project: 'actions', lane: 'test-unit', hasIds: true, expected: Severity.CRITICAL },
+    { name: 'pecot-tools の ID を持たないテスト', project: 'pecot-tools', lane: 'test-cli', hasIds: false, expected: Severity.NORMAL },
+    { name: 'text-rules のテスト', project: 'text-rules', lane: 'test-unit', hasIds: false, expected: Severity.NORMAL },
+    { name: 'project とレーンの無いテスト', project: '', lane: '', hasIds: false, expected: Severity.NORMAL },
+  ])('$name には、段階 $expected を返す', async ({ name, project, lane, hasIds, expected }) => {
+    await explains(`テストの重大度を決める \`severityOf\` のテストです。${name}の場合に、表の上から読んで最初に当てはまる段階の \`${expected}\` を返すことを確認します。`)
+    stepSync('段階を決めて比べる', () => {
+      expect(severityOf(project, lane, hasIds)).toBe(expected)
     })
   })
 })
@@ -196,6 +222,44 @@ describe('reportLabelsListener', () => {
     })
     stepSync('ラベルを比べる', () => {
       expect(hierarchy(result.labels)).toEqual([label])
+    })
+  })
+
+  it.for([
+    { name: 'ID を持つ', ids: ['PT-AWS-S3-LS-03'], expected: Severity.CRITICAL },
+    { name: 'ID を持たない', ids: [], expected: Severity.NORMAL },
+  ])('severity の無い結果が $name とき、project・レーン・ID から決めた段階を 1 つ足す', async ({ name, ids, expected }) => {
+    await explains(`結果を書き出す前に呼ぶ \`reportLabelsListener\` のテストです。severity の無い、${name}結果に、project とレーンと ID から決めた \`${expected}\` が 1 つ付くことを確認します。`)
+    const result = stepSync('pecot-tools の test-cli の結果を作る', () => testResult(PARENT_SUITE, ids, LANE_LABELS))
+    stepSync('listener を呼ぶ', () => {
+      reportLabelsListener().beforeTestResultWrite?.(result)
+    })
+    stepSync('severity を比べる', () => {
+      expect(severities(result.labels)).toEqual([expected])
+    })
+  })
+
+  it('severity を持つ結果には、段階を足さず、テストに書いた段階を残す', async () => {
+    await explains('結果を書き出す前に呼ぶ `reportLabelsListener` のテストです。テストに書いた `trivial` の severity を持つ結果の場合に、段階を追加せず `trivial` だけが残ることを確認します。')
+    const result = stepSync('trivial の severity を持つ結果を作る', () => testResult(PARENT_SUITE, ['PT-AWS-S3-LS-03'], [...LANE_LABELS, { name: LabelName.SEVERITY, value: Severity.TRIVIAL }]))
+    stepSync('listener を呼ぶ', () => {
+      reportLabelsListener().beforeTestResultWrite?.(result)
+    })
+    stepSync('severity を比べる', () => {
+      expect(severities(result.labels)).toEqual([Severity.TRIVIAL])
+    })
+  })
+
+  it('feature と story を持つ結果にも、severity は足す', async () => {
+    await explains('結果を書き出す前に呼ぶ `reportLabelsListener` のテストです。`feature` と `story` を既に持つ結果の場合も、severity が 1 つ付き、機能の階層のラベルは変わらないことを確認します。')
+    const given: Label[] = [{ name: LabelName.FEATURE, value: 'given' }, { name: LabelName.STORY, value: 'given' }]
+    const result = stepSync('feature と story を持つ結果を作る', () => testResult(PARENT_SUITE, [], [...LANE_LABELS, ...given]))
+    stepSync('listener を呼ぶ', () => {
+      reportLabelsListener().beforeTestResultWrite?.(result)
+    })
+    stepSync('severity と機能の階層を比べる', () => {
+      expect(severities(result.labels)).toEqual([Severity.NORMAL])
+      expect(hierarchy(result.labels)).toEqual(given)
     })
   })
 
@@ -389,6 +453,24 @@ describe('子の vitest の結果', () => {
         { name: LabelName.FEATURE, value: 'SM-ONE' },
         { name: LabelName.STORY, value: 'SM-ONE-02' },
       ])
+    })
+  })
+
+  it.for([
+    { name: '通る', expected: Severity.NORMAL },
+    { name: '落ちる', expected: Severity.NORMAL },
+    { name: '本体で skip する', expected: Severity.NORMAL },
+    { name: 'beforeAll の後に動く', expected: Severity.NORMAL },
+    { name: 'COMMON の ID の後に項目の ID を持つ', expected: Severity.CRITICAL },
+    { name: 'テストに段階を書く', expected: Severity.TRIVIAL },
+  ])('「$name」の結果は、severity を 1 つだけ持つ', async ({ name, expected }) => {
+    await explains(`子の vitest を Allure の reporter 付きで実行したときの結果のテストです。「${name}」の結果が、severity のラベルを \`${expected}\` の 1 つだけ持つことを確認します。`)
+    const found = stepSync('結果を探す', () => childResults().find(result => result.name === name))
+    stepSync('結果を添付する', () => {
+      attachJson(`「${name}」の結果のラベル`, found?.labels)
+    })
+    stepSync('severity を比べる', () => {
+      expect(severities(found?.labels ?? [])).toEqual([expected])
     })
   })
 })

@@ -1,7 +1,7 @@
-// テストの結果の feature・story を、ファイルの場所と verifies の ID から決める（test-conventions.md の「機能の階層」）。
+// テストの結果の feature・story・layer・severity を、場所と verifies の ID から決める（test-conventions.md の「機能の階層」「テストの層」「重大度」）。
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { LabelName, LinkType } from 'allure-js-commons'
+import { LabelName, LinkType, Severity } from 'allure-js-commons'
 import type { Label, TestResult } from 'allure-js-commons'
 import { getProjectRoot } from 'allure-js-commons/sdk/reporter'
 import type { LifecycleListener } from 'allure-js-commons/sdk/reporter'
@@ -38,6 +38,15 @@ export function featureStory(ids: readonly string[], testFile: string, table: It
   if (table === undefined) return { feature: item, story: chosen }
   const feature = item === `${table.prefix}-COMMON` ? `${table.plugin} 共通` : (table.names.get(item) ?? item)
   return { feature, story: chosen }
+}
+
+const MINOR_PROJECTS: ReadonlySet<string> = new Set(['githooks', 'interface-spec'])
+
+// 表を上から読み、最初に当てはまった段階を返す。trivial は場所からは付けない。
+export function severityOf(project: string, lane: string, hasIds: boolean): Severity {
+  if (MINOR_PROJECTS.has(project)) return Severity.MINOR
+  if (lane === 'test-release' || project === 'nx-release') return Severity.BLOCKER
+  return hasIds ? Severity.CRITICAL : Severity.NORMAL
 }
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
@@ -106,7 +115,7 @@ interface Place {
   readonly project: string | undefined
 }
 
-// allure-vitest の reporter の listeners に渡す。feature・story・layer の無い結果にだけ、書き出す直前に足す。
+// allure-vitest の reporter の listeners に渡す。feature・story・layer・severity は、それぞれ無い結果にだけ書き出す直前に足す。
 export function reportLabelsListener(
   load: (projectDirectory: string) => ItemTable | undefined = loadItemTable,
   loadLayers: (projectDirectory: string) => readonly LayerRule[] | undefined = loadLayerTable,
@@ -147,13 +156,18 @@ export function reportLabelsListener(
   return {
     // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 渡された結果を書き換える
     beforeTestResultWrite: (result: TestResult) => {
+      const ids = result.links.filter(link => link.type === LinkType.TMS).map(link => link.name ?? link.url)
+      if (result.labels.every(label => label.name !== 'severity')) {
+        // project・lane は、ReporterRuntime が listener より先に足した globalLabels の値。
+        const value = (name: string): string => result.labels.find(label => label.name === name)?.value ?? ''
+        result.labels.push({ name: LabelName.SEVERITY, value: severityOf(value('project'), value('lane'), ids.length > 0) })
+      }
       const suite = result.labels.find(label => label.name === 'parentSuite')?.value
       if (suite === undefined) return
       // allure-vitest は parentSuite を、getProjectRoot() からのテストのファイルのパスで作る。
       const file = path.resolve(getProjectRoot(), suite)
       const found = place(path.dirname(file))
       const names = new Set(result.labels.map(label => label.name))
-      const ids = result.links.filter(link => link.type === LinkType.TMS).map(link => link.name ?? link.url)
       result.labels.push(...hierarchyLabels(names, ids, file, found), ...layerLabels(names, file, found))
     },
   }

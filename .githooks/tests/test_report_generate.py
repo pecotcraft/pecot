@@ -588,9 +588,12 @@ def _config(env: dict[str, str]) -> dict[str, Any]:
         f"const {{ default: raw }} = await import({json.dumps(_CONFIG.as_uri())});"
         "const { readConfig } = await import('@allurereport/core');"
         f"const r = await readConfig(process.cwd(), {json.dumps(str(_CONFIG))});"
+        "const { normalizeCategoriesConfig } = await import('@allurereport/core-api');"
+        "const categories = normalizeCategoriesConfig(r.categories)"
+        ".map(({ id, name, groupBy }) => ({ id, name, groupBy }));"
         "const resolved = { name: r.name, historyPath: r.historyPath ?? null,"
         " historyLimit: r.historyLimit, historyBaseUrl: r.historyBaseUrl ?? null,"
-        " flakyDetection: r.flakyDetection };"
+        " flakyDetection: r.flakyDetection, categories };"
         "process.stdout.write('\\n' + JSON.stringify({ raw, resolved }));"
     )
     # -e の import は作業ディレクトリから解く。@allurereport/core は allure の依存なので、allure の実体から解く
@@ -608,7 +611,7 @@ def _config(env: dict[str, str]) -> dict[str, Any]:
 
 @allure.title("allurerc.mjs は、グループの順・言語・履歴の上限などを期待する値で設定する")
 def test_config_values() -> None:
-    """`allurerc.mjs` の設定のテストです。`awesome` プラグインの `groupBy` と `reportLanguage`、Allure が解いた名前・履歴の上限・不安定なテストの検出の設定が、期待する値であることを確認します。"""
+    """`allurerc.mjs` の設定のテストです。`awesome` プラグインの `groupBy` と `reportLanguage`、Allure が解いた名前・履歴の上限・不安定なテストの検出・失敗の分類の設定が、期待する値であることを確認します。"""
     with allure.step("allure の設定を読む"):
         env = {k: v for k, v in os.environ.items() if k != generate.HISTORY_ENV}
 
@@ -629,6 +632,33 @@ def test_config_values() -> None:
             "historyLimit": 3,
             "historyBaseUrl": None,
             "flakyDetection": {"includePassedTests": True},
+            # 既定と同じ名前の分類は、既定の id にまとまり、書いた groupBy を持つ。
+            "categories": [
+                {
+                    "id": "_product_errors_default_category",
+                    "name": "Product errors",
+                    "groupBy": ["severity"],
+                },
+                {
+                    "id": "_test_errors_default_category",
+                    "name": "Test errors",
+                    "groupBy": ["severity"],
+                },
+            ],
+        }
+        assert config["raw"]["categories"] == {
+            "rules": [
+                {
+                    "name": "Product errors",
+                    "matchers": {"statuses": ["failed"]},
+                    "groupBy": ["severity"],
+                },
+                {
+                    "name": "Test errors",
+                    "matchers": {"statuses": ["broken"]},
+                    "groupBy": ["severity"],
+                },
+            ]
         }
 
 
