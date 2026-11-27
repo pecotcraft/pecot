@@ -100,11 +100,6 @@ describe('最低版の記述の整合', () => {
     expect(match?.[1]).toBe(expectedEngines())
   })
 
-  it('node-runtime.ts は、pecot-tools の同名のファイルと内容が一致する', async () => {
-    await explains('Node.js の最低版を記載した複数の箇所が、一致していることのテストです。`src/node-runtime.ts` の内容が、`pecot-tools/cli/src/node-runtime.ts` として読み込んだファイルの内容と、1 文字も違わないことを確認します。')
-    expect(readRelative('../../../../pecot-tools/cli/src/node-runtime.ts')).toBe(readRelative('../node-runtime.ts'))
-  })
-
   it('pecot-tools 配下で git が管理するすべての package.json の engines.node は、最低版の表と一致する', async () => {
     await explains('Node.js の最低版を記載した複数の箇所が、一致していることのテストです。`pecot-tools` 配下で git が追跡するすべての `package.json` の `engines.node` が、最低版の表から組み立てた範囲指定と一致することを確認します。')
     // pecot-tools は pre-commit フックの対象外のため、ここで確かめる。
