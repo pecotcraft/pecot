@@ -44,9 +44,9 @@ esac
 
 # shellcheck source=pnpm-lib.sh
 . "$PECOTV_PLUGIN_ROOT/scripts/ci/pnpm-lib.sh"
-# shellcheck source=parallel-lib.sh
-. "$SCRIPT_DIR/parallel-lib.sh"
-# bash のテストは bt_run_file で動かし、nx のレーンなら確かめを Allure の結果に残す（parallel-lib.sh が bash-test.sh を読む）。
+# shellcheck source=../../../../.githooks/scripts/test_report/bash-test.sh
+. "$REPO_ROOT/.githooks/scripts/test_report/bash-test.sh"
+# bash のテストは bt_run_file か bats/run.sh で動かし、nx のレーンなら結果を Allure の結果に残す。
 PECOT_REPORT_RESULTS="$(bt_results_dir "$PECOTV_PLUGIN_ROOT")"
 
 PNPM="$(resolve_pnpm "$PECOTV_PLUGIN_ROOT")"
@@ -174,17 +174,27 @@ if [ "$RUN_RELEASE" = true ]; then
         fi
     fi
 
-    # publish のテストは一時ディレクトリ・ポート・監査記録をテスト内に閉じているので、並行で動かす (#1225)。
-    echo "==> pecotv release 単体テスト (scripts/release/tests/ 配下の *.test.sh を、find | sort の順に並行して実行)"
-    mapfile -t release_test_files < <(find "$PECOTV_PLUGIN_ROOT/scripts/release/tests" -name '*.test.sh' | LC_ALL=C sort)
-    if [ "${#release_test_files[@]}" -eq 0 ]; then
-        echo "ERROR: scripts/release/tests/ 配下に *.test.sh が見つかりません (消失か、find の失敗)。" >&2
+    # 各ファイルは一時ディレクトリ・ポート・監査記録を @test の中に閉じているので、bats の --jobs で並べて動かす (#1225)。
+    echo "==> pecotv release 単体テスト (scripts/release/tests/ 配下の *.bats を、find | sort の順に bats で実行)"
+    PUBLISH_TEST="$PECOTV_PLUGIN_ROOT/scripts/release/tests/publish-mcp-dist.bats"
+    mapfile -t release_test_files < <(find "$PECOTV_PLUGIN_ROOT/scripts/release/tests" -name '*.bats' ! -path "$PUBLISH_TEST" | LC_ALL=C sort)
+    if [ ! -f "$PUBLISH_TEST" ] || [ "${#release_test_files[@]}" -eq 0 ]; then
+        echo "ERROR: scripts/release/tests/ 配下に publish-mcp-dist.bats とほかの *.bats が見つかりません (消失か、find の失敗)。" >&2
         exit 1
     fi
     # publish が共通で使う attach-mcp-tgz.sh と mcp-publish-common.sh のテストも、このレーンで実行する。
-    release_test_files+=("$REPO_ROOT/.githooks/scripts/tests/attach-mcp-tgz.test.sh")
-    release_test_files+=("$REPO_ROOT/.githooks/scripts/tests/mcp-publish-common.test.sh")
-    run_tests_parallel "${release_test_files[@]}"
+    release_test_files+=("$REPO_ROOT/.githooks/scripts/tests/attach-mcp-tgz.bats")
+    release_test_files+=("$REPO_ROOT/.githooks/scripts/tests/mcp-publish-common.bats")
+    # publish の setup_file は CPU を使い切らないので、ほかのファイルと同時に動かす。ログは publish を後に出す。
+    PUBLISH_LOG="$(mktemp)"
+    PECOT_REPORT_RESULTS="$PECOT_REPORT_RESULTS" bash "$REPO_ROOT/.githooks/scripts/test_report/bats/run.sh" "$PUBLISH_TEST" > "$PUBLISH_LOG" 2>&1 &
+    publish_pid=$!
+    release_rc=0
+    PECOT_REPORT_RESULTS="$PECOT_REPORT_RESULTS" bash "$REPO_ROOT/.githooks/scripts/test_report/bats/run.sh" "${release_test_files[@]}" || release_rc=$?
+    wait "$publish_pid" || release_rc=$?
+    cat "$PUBLISH_LOG"
+    rm -f "$PUBLISH_LOG"
+    [ "$release_rc" -eq 0 ] || exit "$release_rc"
 fi
 
 if [ "$RUN_COMPARE" = true ]; then
