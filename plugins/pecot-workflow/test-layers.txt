@@ -2,8 +2,6 @@
 unit cli/src/
 integration cli/src/commands/tests/directory-option.test.ts
 integration cli/src/commands/tests/flag-hint.test.ts
-integration cli/src/commands/tests/issue-create-freeform.test.ts
-integration cli/src/commands/tests/issue-reopen-archived.test.ts
 integration cli/src/commands/tests/project-stop.test.ts
 integration cli/src/commands/tests/release.test.ts
 integration cli/src/commands/tests/work-target.test.ts

@@ -138,6 +138,18 @@ describe('項目の名前と names', () => {
     })
   })
 
+  it('位置の語が区切りでつないだ 2 語のとき、その 2 語を 1 つの位置に当て、長い語を先に当てる', async () => {
+    await explains('項目の `name` と `names` の整合を検証するテストです。対象の位置に `issue` と `issue dependency` の両方がある場合に、`issue dependency quick` は長い語に当たり、検証エラーになりません。`issue dependency` は動詞が無いので、語の数の検証エラーになることを確認します。')
+    const result = await step('書き換えた定義書を検証する', () => withNames((data) => {
+      positions(data)[0]?.push({ word: 'issue dependency', meaning: 'blocked by' })
+      entryNamed(data, 'PW-ISSUE-QUICK')['name'] = 'issue dependency quick'
+      entryNamed(data, 'PW-ISSUE-CREATE')['name'] = 'issue dependency'
+    }))
+    stepSync('指摘を比べる', () => {
+      expect(result).toEqual([`${GENERATED}|PW-ISSUE-CREATE|name|"issue dependency" has 2 word(s) but names expects 3`])
+    })
+  })
+
   it('rest が false で語が多いと、語の数の不一致として検証エラーにする', async () => {
     await explains('項目の `name` と `names` の整合を検証するテストです。`rest` が `false` の語彙に対して、`issue quick now` のように語が多い名前の場合に、語の数の不一致を示す検証エラーが返ることを確認します。')
     await step('書き換えた定義書を検証し、指摘を比べる', async () => {

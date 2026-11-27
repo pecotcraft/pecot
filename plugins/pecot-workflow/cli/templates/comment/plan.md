@@ -1,6 +1,9 @@
 ---
-issue_ref: ""
-template: plan
+template: "pecot-template://comment/plan"
+owner: ""
+repo: ""
+issue_number: null
+comment_id: null
 ---
 
 <!--

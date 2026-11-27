@@ -590,352 +590,37 @@ entries:
       - id: PW-BRANCH-DELETE-21
         pattern: event
         statement: '`project` に設定の名前を渡して呼ぶと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
-  PW-ISSUE-ATTRIBUTES:
-    summary: リポの Issue に付けられる機能の定義を出します。
-    arguments:
-      json: 'JSON で出力するかどうかです。結果の項目は、この値によらず同じです。'
-      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
-    constraints: []
-    details:
-      - 'リポの Issue に付けられる機能の定義を返します。定義は、名前・`source`・`kind`・選べる値・書けるかを持ちます。'
-      - '機能は 3 つの `source` に分かれます。設定のボードのフィールドは `project`、リポの Issue fields は `issue_field` です。組み込みの `assignees`・`milestone`・`type`・`labels`・`parent`・`blocked_by` は `issue` です。'
-      - '組み込みの機能を写すボードのフィールド（Assignees・Labels・Milestone・Type・Parent issue）は、`source` が `project` の定義に出しません。Issue field を写したボードのフィールドも出しません。'
-      - 'pecot の進行の欄と組み込みの Status は、`board_move` で動かすので `writable` が false です。`parent` と `blocked_by` も false です。'
-      - 'GitHub が計算するフィールドと、pecot が扱えない種類のフィールドは、`kind` を `unsupported` にし、`unsupported_reason` に GitHub の種類を入れます。`unsupported` にも並べます。'
-      - 'ボードか Issue fields を読めないときは、`warnings` に入れ、読めた定義を返します。'
-      - 'Issue fields の無い GitHub Enterprise Server では、Issue fields と Issue type を除いた定義を返します。'
-      - 'ラベルとマイルストーン（open のもの）は、すべてのページを読みます。ほかの一覧は先頭の 100 件を読み、続きがあれば `warnings` に入れます。'
-      - '`json` を付けても、結果の項目は変わりません。'
-      - 'リポジトリは、引数 `repo` から決めます。無ければ remote の `origin` から、`origin` も無ければ最初の remote から決めます。'
-      - '`repo` が今の git remote と食い違うときは、`warnings` に入れて `repo` を使います。'
-      - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
-    stdin: none
-    output:
-      format: text
-      description: '機能ごとに `- <name> (<source>, <kind>): <選べる値>` の行を並べた Markdown の箇条書きです。書けない機能は `<kind>` の後に `read-only` を、扱えない機能は `unsupported (<GitHub の種類>)` を出します。`json` を付けると、`attributes` と `unsupported` を持つ JSON のオブジェクトです。'
-    mcp_output:
-      fields:
-        attributes: '機能の定義の配列です。要素は `name`・`source`（`project`・`issue_field`・`issue`）・`kind`・`writable` を持ちます。`writable` は、人やツールが値を入れる機能かどうかで、GitHub が計算するフィールドなどは false です。`kind` の値は、ボードと Issue fields の種類の `single_select`・`multi_select`・`text`・`number`・`date`・`iteration` です。組み込みの機能の種類は `users`・`milestone`・`issue_type`・`labels`・`issue_ref`・`issue_refs` です。扱えない種類は `unsupported` です。選べる値のある `kind`（選択・Iteration・マイルストーン・Issue type・ラベル）は `options` を持ちます。`options` の要素は `name` を持ち、Iteration では `start_date`（`YYYY-MM-DD`）も持ちます。担当者は列挙しません。`kind` が `unsupported` の要素は、`unsupported_reason` に GitHub の種類を持ちます。キーは snake_case です。'
-        unsupported: '`kind` が `unsupported` の機能の配列です。要素は `name`・`source`・`github_type` を持ちます。'
-    diagnostics: 'ボードか Issue fields を読めないとき、一覧の続きを読まなかったときは、`warning` の行を出します。`repo` が git remote と違うときも、`warning` の行を出します。'
-    environment: []
-    exit_status:
-      - kind: git-unresolved
-        when: '`repo` を省いたのに、git remote から `owner/repo` を読めません。git の外で `repo` を省いたときも含みます。'
-      - kind: no-active-project
-        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`project` もありません。'
-      - kind: repo-not-in-project
-        when: '対象のリポを含むプロジェクトの設定がありません。`project` で選んだ設定が対象のリポを含まないときも含みます。'
-      - kind: project-not-found
-        when: '`project` の名前の設定がありません。'
-      - kind: invalid-input
-        when: '引数の誤りがあります。'
-      - kind: github-auth
-        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
-      - kind: github-not-found
-        when: 'GitHub に対象のリポが見つかりません。'
-      - kind: github-rate-limit
-        when: 'GitHub API のレート制限に当たりました。'
-      - kind: github-api
-        when: 'GitHub API がほかのエラーを返しました。'
-      - kind: project-root-not-found
-        when: 'プロジェクトのルートを決められません。'
-      - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
-      - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: default
-    effects:
-      - target: github
-        kind: read
-        what: '設定のボードのフィールドと、リポの Issue fields・Issue type・ラベル・open のマイルストーンを読みます。'
-      - target: file
-        kind: read
-        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
-    prerequisites:
-      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `project` で選びます。'
-      - 'ホストの GitHub トークンが要ります。'
-    idempotent: true
-    examples:
-      - arguments: {}
-        note: '今のリポの Issue に付けられる機能の定義を返します。'
-      - arguments:
-          json: true
-        note: '今のリポの定義を、JSON の出力で返します。'
-    default_notes:
-      project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
-    behaviors:
-      - id: PW-ISSUE-ATTRIBUTES-01
-        pattern: event
-        statement: '呼ぶと、設定のボードのフィールドを `source` が `project` の定義にして `attributes` に入れます。選択・Iteration のフィールドは `options` に選べる値を、Iteration は開始日も入れます'
-      - id: PW-ISSUE-ATTRIBUTES-02
-        pattern: event
-        statement: '呼ぶと、リポの Issue fields を `source` が `issue_field` の定義にして `attributes` に入れます'
-      - id: PW-ISSUE-ATTRIBUTES-03
-        pattern: event
-        statement: '呼ぶと、組み込みの機能を `source` が `issue` の定義にして `attributes` に入れます。組み込みの機能は `assignees`・`milestone`・`type`・`labels`・`parent`・`blocked_by` です。`options` には、open のマイルストーン・Issue type・ラベルを入れます'
-      - id: PW-ISSUE-ATTRIBUTES-04
-        pattern: event
-        statement: '呼ぶと、組み込みの機能を写すボードのフィールドと Issue field を写したボードのフィールドを、`source` が `project` の定義に入れません'
-      - id: PW-ISSUE-ATTRIBUTES-05
-        pattern: event
-        statement: '呼ぶと、pecot の進行の欄・組み込みの Status・`parent`・`blocked_by` の `writable` を false にします'
-      - id: PW-ISSUE-ATTRIBUTES-06
-        pattern: unwanted
-        statement: 'もし GitHub が計算するフィールドか pecot が扱えない種類のフィールドがあるなら、`kind` を `unsupported` にします。`unsupported_reason` を GitHub の種類にして、`unsupported` にも入れます'
-      - id: PW-ISSUE-ATTRIBUTES-07
-        pattern: unwanted
-        statement: 'もし Issue fields かボードを読めないなら、`warnings` に入れ、読めた定義を返します'
-      - id: PW-ISSUE-ATTRIBUTES-08
-        pattern: unwanted
-        statement: 'もし GitHub Enterprise Server に Issue fields が無いなら、Issue fields と `type` を除いた定義を返します'
-      - id: PW-ISSUE-ATTRIBUTES-09
-        pattern: event
-        statement: 'ラベルかマイルストーンが 100 件を超えると、続きのページも読んで `options` に入れます'
-      - id: PW-ISSUE-ATTRIBUTES-10
-        pattern: event
-        statement: '`json` を付けて呼ぶと、同じ内容を JSON にします。結果の項目は、`json` を省いたときと同じです'
-      - id: PW-ISSUE-ATTRIBUTES-11
-        pattern: event
-        statement: '`repo` を渡すと、そのリポの定義を返します。省くと、git の remote のリポの定義を返します'
-      - id: PW-ISSUE-ATTRIBUTES-12
-        pattern: unwanted
-        statement: 'もし `repo` を省いて git の remote のリポジトリを読めないなら、`kind` が `git-unresolved` の失敗を返します'
-      - id: PW-ISSUE-ATTRIBUTES-13
-        pattern: unwanted
-        statement: 'もし対象のリポを含む設定が無いなら、`kind` が `repo-not-in-project` の失敗を返します'
-      - id: PW-ISSUE-ATTRIBUTES-14
-        pattern: unwanted
-        statement: 'もし GitHub API がエラーを返したなら、失敗を返します'
-  PW-ISSUE-BLOCK:
-    summary: 'Issue に blocked-by（前提）を付けるか、付いている前提の待ち方と理由を変えます。'
-    arguments:
-      by: '待つ相手の Issue です。`owner/repo/N` の形で渡します。別のリポジトリの Issue も指せます。'
-      issue_ref: '待つ側の Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
-      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
-      reason: '前提のマージを待つ理由です。`wait` が `merge` のときは必須で、`stack` のときは渡せません。'
-      wait: '待ち方です。`stack`（相手のブランチの上にスタックします。省くとこちら）か `merge`（相手がマージされるまで待ちます）を渡します。'
-    constraints: []
-    details:
-      - 'Issue に blocked-by（前提）を付けるか、付いている前提の待ち方と理由を変えます。'
-      - '`issue_ref` は待つ側の Issue で、`by` は待つ相手の Issue です。`by` は別のリポジトリの Issue でもかまいません。'
-      - '`wait` は `stack`（省くとこちら）か `merge` です。`merge` のときは `reason` が必須で、待つ側の Issue の本文の `Waits for merge` の節に、前提と理由の行を足します。`stack` のときは、その行を節から外します。'
-      - '`wait` が `stack` のときに `reason` を渡すと、使い方の誤りです。'
-      - '書き込むのは、`Waits for merge` の節にある前提の行だけです。節のほかの部分と、本文のほかの節は変えません。'
-      - 'まず、待つ側の Issue の blocked-by を読みます。既に付いていて種類と理由が同じ前提は、そのままにします。種類か理由が違う前提は、節だけを書き換えます。既にその状態の組には、追加と削除は求めません。何も変えないときは、成功を返します。'
-      - '輪の探索は、新しく blocked-by を足すときだけ行います。`by` の blocked-by を 1 段ずつたどり、200 件の Issue まで調べます。確かめきれないときは、失敗を返します。GitHub は 3 件以上の Issue でできる輪を受け付けてしまうためです。'
-      - '書き込みは、blocked-by、本文、ボードの順に行います。本文の書き込みに失敗しても、blocked-by は残ります。同じ引数で呼び直せば、本文が直ります。'
-      - '書き込みの後で、待つ側の Issue の判定を読み直します。読み直した blocked-by と節が書いた内容と違うときは、もう一度読みます。それでも違うときは、列と Status の札を動かしません。'
-      - '列と Status の札は、読み直した判定で動かします。やり方は、board-sync の action と同じです。ブランチか PR のある Issue は動かさず、判定との食い違いを `warnings` で知らせます。自動処理が人の対応を待って付けた `Needs Attention` の札は、`Todo` に戻しません。'
-      - 'Issue の依存関係を持つ GitHub Enterprise Server の 3.19 以上が要ります。'
-      - '参照の短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
-      - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
-    stdin: none
-    output:
-      format: none
-    mcp_output:
-      fields:
-        issue: '待たせる側の Issue です。`owner/repo/N` の形です。'
-        by: '前提の Issue です。`owner/repo/N` の形です。'
-        wait: '実行後の blocked-by の待ち方です。`stack`（前提のブランチにスタックする）か `merge`（前提のマージを待つ）です。'
-        change: 'blocked-by がどうなったかです。`added`（新しく足した）・`updated`（待ち方か理由を変えた）・`unchanged`（変更なし）のどれかです。'
-        moves: '待つ側の Issue の列か Status を書いたときに、その 1 件を入れる配列です。要素は `issue`・`reason` を必ず持ち、列を動かしたときは `from`・`to`、Status を書いたときは `label` も持ちます。書かなかったときは空です。判定を確かめられなかったときと、ボードに書けなかったときも空で、理由は `warnings` に入ります。'
-    diagnostics: '標準エラーに、結果の行を出します。blocked-by には `added`・`unchanged`・`updated` のどれかを出し、列か札を変えたときは続けて `moved` と `set` を出します。`updated` の行の末尾には、`(wait: merge)` か `(wait: stack)` が付きます。`warning` の行は、次のときに出します。Issue に着手の跡があるとき。判定を出せないか、確かめられないとき。ボードに Blocked の選択肢が無いとき。ボードに書けなかったとき。Blocked が無いときは、`project_init` の呼び出しを案内する `hint` の行が続きます。失敗ごとに `error` の行を出します。輪のときは、たどった Issue を `#A -> #B -> #A` の形で出します。'
-    environment: []
-    exit_status:
-      - kind: no-active-project
-        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`project` もありません。'
-      - kind: project-not-found
-        when: '`project` の名前の設定がありません。'
-      - kind: repo-not-in-project
-        when: '待つ側の Issue のリポジトリがプロジェクトにありません。'
-      - kind: dependency-rejected
-        when: 'Issue が既に 50 件の blocked-by を持っています。GitHub Enterprise Server が Issue の依存関係に対応していないときも含みます。'
-      - kind: dependency-unreadable
-        when: '輪を除けると確かめられませんでした。blocked-by を読めないときも含みます。'
-      - kind: dependency-rejected
-        when: '`by` が輪（Issue 自身を含みます）になります。'
-      - kind: invalid-input
-        when: 'Issue の参照の形が誤っています。`wait` が `merge` で `reason` が無いとき、`wait` が `stack` で `reason` を渡したとき、ほかの引数の誤りも含みます。'
-      - kind: content-invalid
-        when: '本文の `Waits for merge` の節を読めません。'
-      - kind: github-auth
-        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
-      - kind: github-not-found
-        when: 'GitHub に対象が見つかりません。'
-      - kind: github-rate-limit
-        when: 'GitHub API のレート制限に当たりました。'
-      - kind: github-api
-        when: 'GitHub API がほかのエラーを返しました。'
-      - kind: project-root-not-found
-        when: 'プロジェクトのルートを決められません。'
-      - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
-      - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: '前提を付けた後で本文の書き込みに失敗したときは、blocked-by は残り、失敗を返します。ボードに書けないときは、blocked-by と本文は残り、`warnings` に入れるだけです。選択肢の ID が古くて書けないときは、ID を読み直す `project_activate` の案内を添えます。ボードに関する警告だけのときは、成功を返します。'
-    effects:
-      - target: github
-        kind: write
-        what: 'blocked-by を付けます。'
-      - target: github
-        kind: destructive
-        what: '待つ側の Issue の本文を書き換え、そのボードの項目の列と Status の札を設定します。'
-      - target: github
-        kind: read
-        what: 'プロジェクトにつながっているリポジトリ、待つ側の Issue の blocked-by と本文、輪の探索、読み直した判定、ボードの項目を読みます。待つ側の Issue の札が `Needs Attention` で着手の跡が無いときは、そのコメントも読みます。'
-      - target: file
-        kind: read
-        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
-    prerequisites:
-      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `project` で選びます。'
-      - 'ホストの GitHub トークンが要ります。'
-    idempotent: true
-    examples:
-      - arguments:
-          issue_ref: example-org/my-repo/12
-          by: example-org/my-repo/11
-          wait: merge
-          reason: The check script is on main.
-        note: 'Issue 12 が、Issue 11 のマージを待つようにします。'
-    default_notes:
-      issue_ref: '短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
-    behaviors:
-      - id: PW-ISSUE-BLOCK-01
-        pattern: event
-        statement: 'Issue の参照と `by` を渡すと、blocked-by に前提を付けて、結果の `change` を `added` にします'
-      - id: PW-ISSUE-BLOCK-02
-        pattern: event
-        statement: '`wait` に `merge` を、`reason` に理由を渡して呼ぶと、本文の `Waits for merge` の節に前提と理由の行を足します'
-      - id: PW-ISSUE-BLOCK-03
-        pattern: event
-        statement: '付いている前提を `wait` が `stack` で呼ぶと、節の行を外して、`change` を `updated` にします'
-      - id: PW-ISSUE-BLOCK-04
-        pattern: event
-        statement: '既に付いていて種類と理由が同じ前提で呼ぶと、何も書き込まずに、`change` を `unchanged` にします'
-      - id: PW-ISSUE-BLOCK-05
-        pattern: event
-        statement: '付いている前提の理由を変えて呼ぶと、節の行の理由だけを置き換えて、`change` を `updated` にします'
-      - id: PW-ISSUE-BLOCK-06
-        pattern: event
-        statement: '前提を書いた後に判定が変わると、待つ側の Issue の列と札を動かして、その 1 件を `moves` に入れます'
-      - id: PW-ISSUE-BLOCK-07
-        pattern: unwanted
-        statement: 'もし待つ側の Issue に着手の跡があるなら、前提は付けて列と札を動かさず、判定との食い違いを `warnings` に入れます'
-      - id: PW-ISSUE-BLOCK-09
-        pattern: ubiquitous
-        statement: '常に、本文の節の中の前提の行以外を書き換えません'
-      - id: PW-ISSUE-BLOCK-10
-        pattern: unwanted
-        statement: 'もし前提を付けると輪になる、または `by` が待つ側と同じ Issue なら、書き込みを送らずに、`kind` が `dependency-rejected` の失敗を返します'
-      - id: PW-ISSUE-BLOCK-11
-        pattern: unwanted
-        statement: 'もし輪になるかを確かめられないなら、前提を付けずに、`kind` が `dependency-unreadable` の失敗を返します'
-      - id: PW-ISSUE-BLOCK-12
-        pattern: unwanted
-        statement: 'もし `wait` が `merge` で `reason` が無いなら、要求を送らずに、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-BLOCK-13
-        pattern: unwanted
-        statement: 'もし `wait` が `stack` で `reason` を渡したなら、要求を送らずに、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-BLOCK-14
-        pattern: unwanted
-        statement: 'もし待つ側の Issue が既に 50 件の前提を持つなら、前提を付けずに、`kind` が `dependency-rejected` の失敗を返します'
-      - id: PW-ISSUE-BLOCK-15
-        pattern: unwanted
-        statement: 'もし本文の `Waits for merge` の節が読めないなら、書き込みを送らずに、`kind` が `content-invalid` の失敗を返します'
-      - id: PW-ISSUE-BLOCK-16
-        pattern: unwanted
-        statement: 'もし読み直した前提と節が書いた内容と 2 回続けて合わないなら、列と札を動かさずに、`warnings` に入れます'
-      - id: PW-ISSUE-BLOCK-17
-        pattern: unwanted
-        statement: 'もし動かす先の値がボードに無いなら、`project_init` で足し方を案内する文を添えて、`warnings` に入れます'
-      - id: PW-ISSUE-BLOCK-18
-        pattern: unwanted
-        statement: 'もし GitHub Enterprise Server が Issue の依存関係に対応しないなら、`kind` が `dependency-rejected` の失敗を返します'
-      - id: PW-ISSUE-BLOCK-19
-        pattern: unwanted
-        statement: 'もし Issue の参照の形が誤っているなら、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-BLOCK-20
-        pattern: unwanted
-        statement: 'もしリポジトリがプロジェクトに無いなら、`kind` が `repo-not-in-project` の失敗を返します'
-      - id: PW-ISSUE-BLOCK-21
-        pattern: unwanted
-        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、`kind` が `no-active-project` の失敗を返します。`detail` に候補の名前と `project` の案内を入れます'
-      - id: PW-ISSUE-BLOCK-22
-        pattern: unwanted
-        statement: 'もし GitHub API がエラーを返したなら、または本文の書き込みに失敗したなら、失敗を返します'
-      - id: PW-ISSUE-BLOCK-23
-        pattern: event
-        statement: '`by` でプロジェクトの外のリポジトリの Issue を指すと、プロジェクトに入っているかは待つ側のリポジトリだけ確かめ、前提を付けます'
-      - id: PW-ISSUE-BLOCK-24
-        pattern: event
-        statement: '呼ぶと、書いた列と札を `moves` で返し、書かなかったときは空の `moves` を返します'
-      - id: PW-ISSUE-BLOCK-25
-        pattern: unwanted
-        statement: 'もし列を書けないなら、`warnings` に入れ、前提を付けたまま成功を返します。選択肢の ID が古くて書けないときは、ID を読み直す `project_activate` の案内を添えます'
-      - id: PW-ISSUE-BLOCK-26
-        pattern: unwanted
-        statement: 'もし対象のリポを含む設定が無いなら、`kind` が `repo-not-in-project` の失敗を返します'
-      - id: PW-ISSUE-BLOCK-27
-        pattern: event
-        statement: '`project` に設定の名前を渡して呼ぶと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
-      - id: PW-ISSUE-BLOCK-28
-        pattern: unwanted
-        statement: 'もし待つ側の札が `Needs Attention` で、bot が書いた最後の結果のコメントが `question`・`failed`・`limit` のどれかなら、前提がすべて済んでも札を `Todo` に戻しません'
-      - id: PW-ISSUE-BLOCK-29
-        pattern: unwanted
-        statement: 'もし書いた後の待つ側の Issue の判定を読めないなら、前提は付けたまま列と札を動かさず、判定を出せない旨を `warnings` に入れて成功を返します'
   PW-ISSUE-CHECK:
-    summary: '`issue_create` に渡すファイルを確かめ、番号・前提・進め方の表を返します。何も作りません。'
+    summary: '公式の MCP の `issue_write` に渡す値を、書く前に pecot の決まりに照らします。GitHub を読み書きしません。'
     arguments:
-      files: 'フロントマター付きの Markdown ファイルのパスの配列です。複数渡すと、まとめて確かめます。投稿する順に渡します。'
-      project: '使うプロジェクトの設定の名前です。`.pecot/config/projects` の下のファイル名から `.json` を除いたものです。省くと、ファイルの作り先のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブなプロジェクトを使います。'
+      method: '`create` か `update` です。公式の `issue_write` の `method` と同じです。`create` では、一括で作る Issue を書く順に渡せます。`update` では、Issue を 1 つ渡します。'
+      issues: 'Issue ごとの値の配列です。`issue_write` の引数に、pecot の `kind`・`template`・`key`・`blocked_by`・`project_fields` を足した形です。'
+      project: '使うプロジェクトの設定の名前です。`.pecot/config/projects` の下のファイル名から `.json` を除いたものです。省くと、作り先のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブなプロジェクトを使います。'
+      reads: '決まりを確かめるのに要る、公式の MCP の読み取りの結果です。親 Epic の sub-issue・前提の Issue・前提を閉じる PR・ボードの欄とカードなどを、結果のまま渡します。'
     constraints: []
     details:
-      - '`issue_create` に渡すファイルを、渡した順に確かめます。何も作りません。'
-      - '一括の最初の Issue を作る前に `issue_create` が行う確認を、すべて行います。親 Epic と、`blocked_by` に書いた既存の Issue も読みます。フロントマターの `attributes` の値も、機能の定義と照らします。'
-      - 'ファイルごとの進め方を `plan` に、スタックできる並びを `stackableChains` に入れます。`plan` には、番号・blocked-by・進め方（単独・スタックする・マージを待つ・合流）を載せます。'
-      - 'ファイルは、key（ファイル名の拡張子を除いた部分）で示します。'
-      - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、ファイルの作り先のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
+      - '値を受けて、決まりに外れた所を `problems` に返します。GitHub を読み書きせず、何も作りません。'
+      - '`problems` が空なら、値をそのまま `issue_write` に渡せます。'
+      - '同梱のテンプレート（`pecot-template://issue/<名前>`）を指すと、本文をテンプレートの見出しと書き方に照らします。差し替えたテンプレートを指すときは、本文に決まりを当てません。'
+      - '題の接頭辞と番号、ボードの欄と置く列、前提の待ち方は、テンプレートによらずいつも見ます。'
+      - '決まりを確かめるのに要る読み取りが `reads` に無いと、`code` が `read-required` の項目で、読むツールと `method` を案内します。'
+      - '`create` では、Issue ごとの進め方を `plan` に、スタックできる並びを `stackableChains` に入れます。'
     stdin: none
     output:
       format: text
-      description: 'ファイルの表です。スタックできる並びがあれば、空行に続けて出します。'
+      description: '外れた所が無ければ `ok` の 1 行です。あれば、外れた所ごとに `<Issue>: <引数>: <内容>` の行を出します。'
     mcp_output:
       fields:
-        plan: 'ファイルごとの進め方の表です。渡した順に並びます。要素は `file`・`blockedBy`・`approach` を必ず持ちます。`file` はファイルのキー（ファイル名の本体）です。`blockedBy` は、`issue`（ファイルのキーか既存の Issue）と `wait`（`stack` か `merge`）の配列で、書いた順です。`approach` は `alone`・`wait-merge`・`stack`・`join` のどれかです。`order` は、親 Epic があるときだけ入ります。`stackOn` は、`approach` が `stack` のときだけ入ります。'
-        stackableChains: 'スタックできる並びの配列です。1 つの並びは、親から子の順に並べた文字列の配列です。ファイルはキー、既存の Issue は `#N` か `owner/repo#N` で書きます。スタックできる並びが無いときは入りません。'
-    diagnostics: '`issue_create` と同じく、一括の確認で見つけた `warning` と `error` の行を出します。'
+        problems: '決まりに外れた所の配列です。要素は `field`・`code`・`message` を必ず持ちます。`issue` は一括のキーか `owner/repo/N` で、対象が 1 つのときは入りません。受け付ける値が決まっているときは `candidates` に入れます。空なら、値をそのまま書けます。'
+        plan: '`create` のときだけ入る、Issue ごとの進め方の表です。渡した順に並びます。要素は `key`・`blockedBy`・`approach` を必ず持ちます。`approach` は `alone`・`wait-merge`・`stack`・`join` のどれかです。`order` は、親 Epic があるときだけ入ります。`stackOn` は、`approach` が `stack` のときだけ入ります。'
+        stackableChains: 'スタックできる並びの配列です。1 つの並びは、親から子の順に並べた文字列の配列です。一括の Issue はキー、既存の Issue は `#N` か `owner/repo#N` で書きます。スタックできる並びが無いときは入りません。'
+    diagnostics: '決まりに外れはしないが、注意の要る値に `warning` の行を出します。前提の PR を読んでおらず、スタックできるかを決められないときも出します。'
     environment: []
     exit_status:
-      - kind: no-active-project
-        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`project` もありません。'
-      - kind: project-not-found
-        when: '`project` の名前の設定がありません。'
+      - kind: github-mcp-shape
+        when: '`reads` に渡した値が、公式の GitHub MCP のツールの結果の形と違います。'
       - kind: invalid-input
-        when: '同じファイルを重ねて渡したか、ファイルの作り先のリポが別々のプロジェクトの設定に分かれています。フロントマターの `attributes` の値が定義に合わないときも含みます。'
-      - kind: content-invalid
-        when: 'ファイルが無いか、フロントマターか本文が誤っています。プレースホルダが先のファイルを指していないとき、`blocked_by` が誤った前提を指すとき、ファイルに `parallel` があるときも含みます。'
-      - kind: repo-not-in-project
-        when: 'リポジトリがプロジェクトにつながっていません。'
-      - kind: order-conflict
-        when: '親 Epic の別の Issue か、一括の別のファイルが同じ order を持っています。'
-      - kind: dependency-unreadable
-        when: '`blocked_by` に書いた Issue を読めません。'
-      - kind: dependency-rejected
-        when: 'GitHub Enterprise Server が Issue の依存関係に対応していません。'
-      - kind: invalid-input
-        when: '`files` が無いか、ほかの引数の誤りがあります。'
-      - kind: repo-setting-missing
-        when: 'Epic のファイルの作り先を決められません。`repository` が空で、設定に `aggregation_repo` もありません。'
-      - kind: github-auth
-        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
-      - kind: github-not-found
-        when: 'GitHub に対象が見つかりません。'
-      - kind: github-rate-limit
-        when: 'GitHub API のレート制限に当たりました。'
-      - kind: github-api
-        when: 'GitHub API がほかのエラーを返しました。'
+        when: '引数の形が誤っています。`method` が `create`・`update` でないときや、`issues` が空のときを含みます。'
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
@@ -944,978 +629,190 @@ entries:
         when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: default
     effects:
-      - target: github
-        kind: read
-        what: 'プロジェクトにつながっているリポジトリ、親 Epic の sub-issue、`blocked_by` に書いた Issue を読みます。`lane` を渡さずに親 Epic を指したときは、親の `pecot-lane` の値を読みます。`attributes` か `lane`（親から引き継いだ値も含む）があるときは、機能の定義も読みます。`attributes` があるときは、`assignees` に渡したログイン名を担当にできるかも読みます。'
       - target: file
         kind: read
-        what: 'Markdown ファイル、テンプレート、プロジェクトの設定ファイルを読みます。'
+        what: 'プロジェクトの設定ファイルと、同梱のテンプレートを読みます。'
     prerequisites:
-      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `project` で選びます。'
-      - 'ホストの GitHub トークンが要ります。'
+      - '作り先のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。無いときは、失敗にせず `not-in-project` の項目を返します。'
     idempotent: true
     examples:
       - arguments:
-          files:
-            - .pecot/work/12/issue-a.md
-            - .pecot/work/12/issue-b.md
-        note: '何も作らずに、進め方の表とスタックできる並びを返します。'
+          method: create
+          issues:
+            - kind: task
+              template: pecot-template://issue/task
+              owner: acme
+              repo: demo
+              title: '[Task] #12-1: 一覧の画面を作る'
+              body: '## Summary — 一覧の画面を作る'
+              parent_owner: acme
+              parent_repo: demo
+              parent_issue_number: 12
+              project_fields:
+                - name: pecot-status
+                  value: Ready
+        note: '値を確かめ、外れた所を `problems` に、進め方を `plan` に返します。何も作りません。'
     default_notes: {}
     behaviors:
       - id: PW-ISSUE-CHECK-01
         pattern: event
-        statement: '`files` を渡すと、何も作らずに、ファイルごとの番号・前提・進め方を `plan` に、スタックできる並びを `stackableChains` に入れます'
+        statement: '`issue_write` に渡す値を受けると、GitHub を読み書きせずに、決まりに外れた所を `problems` に返します'
       - id: PW-ISSUE-CHECK-02
-        pattern: unwanted
-        statement: 'もし `blocked_by` が一括の中の誤った前提か読めない既存の Issue を指すなら、失敗を返します'
+        pattern: event
+        statement: '`method` に `create` を渡すと、Issue ごとの番号・前提・進め方を `plan` に、スタックできる並びを `stackableChains` に入れます'
       - id: PW-ISSUE-CHECK-03
         pattern: unwanted
-        statement: 'もし `files` を渡していないなら、`kind` が `invalid-input` の失敗を返します'
+        statement: 'もし題の接頭辞か番号が決まりに外れるなら、直した題を `candidates` に添えた項目を返します'
       - id: PW-ISSUE-CHECK-04
         pattern: unwanted
-        statement: 'もしフロントマターの `attributes` の値が 1 つでも定義に合わないなら、合わない値ごとに `error` の行を出し、`kind` が `invalid-input` の失敗を返します'
+        statement: 'もし決まりを確かめるのに要る読み取りが `reads` に無いなら、`code` が `read-required` の項目で、読むツールを案内します'
       - id: PW-ISSUE-CHECK-05
-        pattern: unwanted
-        statement: 'もしフロントマターの `lane` がボードの `pecot-lane` の選択肢に無いなら、`error` の行に取りうる値を出し、`kind` が `invalid-input` の失敗を返します'
+        pattern: event
+        statement: '同梱のテンプレートを指すと、本文をテンプレートの見出しと書き方に照らし、テンプレートの種別と `kind` も照らします'
       - id: PW-ISSUE-CHECK-06
         pattern: state
-        statement: 'ボードに single select の `pecot-lane` が無い間、フロントマターの `lane` を error にせず、`warning` の行を 1 つ出して表を返します'
-  PW-ISSUE-COMMENT:
-    summary: Issue にコメントを投稿します。
-    arguments:
-      file: 'フロントマター付きの Markdown ファイルのパスです。'
-      issue_ref: 'Issue の参照です。`owner/repo/123` の形で渡します。'
-      message: 'コメントの本文です。'
-      template: '`message` の本文を確かめるテンプレートの種類です。`plan`・`merge-diff`・`review-findings`・`review-resolution`・`precede-notify` のどれかを渡します。'
-      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
-    constraints:
-      - requires: {message: [issue_ref, template]}
-    details:
-      - 'モードは、`file`・`message` の 2 つです。'
-      - '両方を渡すと、`file` が `message` より優先されます。'
-      - 'テンプレートは MCP の resource（`pecot-template://comment/<種類>`）です。ファイルに写して書き込みます。'
-      - '`file` では、フロントマターの `issue_ref` の Issue に、ファイルの本文をコメントとして投稿します。'
-      - '`message` では、渡した本文を `issue_ref` の Issue にコメントとして投稿します。'
-      - '`file` はフロントマターに書いたテンプレートで、`message` は `template` で渡したテンプレートで、本文を検証します。'
-      - '`comment_url` のあるファイルは、新しいコメントを投稿せず、そのコメントを書き換えます。'
-      - 'ファイルから投稿した後、新しいコメントの URL をそのファイルの `comment_url` に書き戻します。'
-      - '`comment_url` は、`issue_ref` の Issue のコメントを指していなければなりません。'
-      - '`file` では、リポジトリがプロジェクトに無いと `warnings` に入れますが、コメントは投稿します。'
-      - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
-    stdin: none
-    output:
-      format: text
-      description: '投稿したか書き換えたコメントの URL です。'
-    mcp_output:
-      fields:
-        issue: 'コメントした Issue です。`owner/repo/N` の形です。'
-        commentUrl: '作ったか更新したコメントの URL です。GitHub が URL を返さなかったときは入りません。'
-        change: 'コメントをどう書いたかです。`created`（新しく作った）と `updated`（更新した）の 2 値です。'
-        file: 'ファイルから新しく投稿して `comment_url` を書き戻したときは、そのファイルの絶対パスです。書き戻せなかったとき、`comment_url` を持つファイルで更新したとき、`message` で投稿したときは入りません。'
-    diagnostics: '標準エラーに、コメントの結果の行（`created` か `updated`）を出します。ファイルのリポジトリがプロジェクトに無いときと、`comment_url` を書き戻せないときは、`warning` の行を出します。本文がテンプレートに合わないときは、`error` の行を 1 つ出します。その 1 行目はテンプレートのパスです。続けて、字下げした行で次の違反を出します。足りない節、見出しの要約の規則の違反、使えない記法、折りたたみの規則の違反、テンプレートに無い見出しです。'
-    environment: []
-    exit_status:
-      - kind: no-active-project
-        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`project` もありません。'
-      - kind: repo-not-in-project
-        when: '対象のリポを含むプロジェクトの設定がありません。`project` で選んだ設定が対象のリポを含まないときも含みます。'
-      - kind: project-not-found
-        when: '`project` の名前の設定がありません。'
-      - kind: invalid-input
-        when: 'モードの引数がありません。`message` に `template` が無いとき、`message` に `issue_ref` が無いときも含みます。'
-      - kind: content-invalid
-        when: 'フロントマターを読めないか、フロントマターに `template` がありません。'
-      - kind: invalid-input
-        when: '`comment_url` の形が誤っているか、別のホストか別の Issue を指しています。'
-      - kind: other
-        when: 'テンプレートが見つかりません。'
-      - kind: invalid-input
-        when: 'Issue の参照の形が誤っているか、ほかの引数の誤りがあります。'
-      - kind: content-invalid
-        when: '本文がテンプレートに合いません。'
-      - kind: github-auth
-        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
-      - kind: github-not-found
-        when: 'GitHub に対象が見つかりません。'
-      - kind: github-rate-limit
-        when: 'GitHub API のレート制限に当たりました。'
-      - kind: github-api
-        when: 'GitHub API がほかのエラーを返しました。'
-      - kind: project-root-not-found
-        when: 'プロジェクトのルートを決められません。'
-      - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
-      - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: '本文がテンプレートに合わないときは、何も投稿しません。コメントを投稿した後で `comment_url` を書き戻せないときは、コメントは GitHub に残り、ファイルは元のままです。'
-    effects:
-      - target: github
-        kind: write
-        what: 'Issue にコメントを投稿します。'
-      - target: github
-        kind: destructive
-        what: '`comment_url` を渡したときは、そのコメントを書き換えます。'
-      - target: github
-        kind: read
-        what: 'ファイルのときに、リポジトリがプロジェクトにつながっているかどうかを確かめます。'
-      - target: file
-        kind: destructive
-        what: '投稿したファイルに、`comment_url` を書き戻します。'
-      - target: file
-        kind: read
-        what: 'コメントのファイル、テンプレート、アクティブな設定ファイルを読みます。'
-    prerequisites:
-      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `project` で選びます。'
-      - 'ホストの GitHub トークンが要ります。'
-    idempotent: false
-    examples:
-      - arguments:
-          file: .pecot/tmp/output/comment-plan-20260101-120000.md
-        note: 'ファイルのコメントを投稿します。ファイルに `comment_url` があれば、そのコメントを書き換えます。'
-    default_notes:
-      issue_ref: '省くと、値はありません。`message` では必須です。`file` では、フロントマターの `issue_ref` を使います。短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
-      template: '省くと、値はありません。`message` では必須です。`file` では、フロントマターのテンプレートを使います。'
-    behaviors:
-      - id: PW-ISSUE-COMMENT-03
+        statement: '差し替えたテンプレートを指す間、本文にテンプレートの決まりを当てません'
+      - id: PW-ISSUE-CHECK-07
         pattern: event
-        statement: 'コメントのファイルを渡すと、フロントマターの `issue_ref` の Issue にコメントを投稿します'
-      - id: PW-ISSUE-COMMENT-04
+        statement: 'テンプレートを指さないと、題と本文の 1 行目が同じことと、本文の末尾の行を確かめます'
+      - id: PW-ISSUE-CHECK-08
         pattern: event
-        statement: '`message` に `issue_ref` とテンプレの種類を付けて呼ぶと、その Issue にコメントを投稿します'
-      - id: PW-ISSUE-COMMENT-05
+        statement: '`method` に `create` を渡すと、置く列とボードの欄の値をボードの読み取りに照らし、置く列を `candidates` に添えます'
+      - id: PW-ISSUE-CHECK-09
+        pattern: unwanted
+        statement: 'もし `method` が `update` で置く列を書くなら、列は決まりで動くとして項目を返します'
+      - id: PW-ISSUE-CHECK-10
         pattern: event
-        statement: '`comment_url` を持つファイルを渡すと、新しいコメントを投稿せずにそのコメントを書き換えます'
-      - id: PW-ISSUE-COMMENT-06
-        pattern: event
-        statement: 'ファイルからコメントを投稿すると、できたコメントの URL をファイルの `comment_url` に書き戻します'
-      - id: PW-ISSUE-COMMENT-08
-        pattern: event
-        statement: '`file` と `message` を一緒に渡すと、`message` の本文を使わずにファイルを投稿します'
-      - id: PW-ISSUE-COMMENT-10
-        pattern: event
-        statement: 'コメントを投稿すると、そのコメントの URL を結果の `commentUrl` に入れます'
-      - id: PW-ISSUE-COMMENT-11
-        pattern: event
-        statement: 'コメントを書き換えると、書き換えたコメントの URL を結果の `commentUrl` に入れます'
-      - id: PW-ISSUE-COMMENT-12
-        pattern: event
-        statement: 'コメントを投稿すると、結果の `change` を `created` にします'
-      - id: PW-ISSUE-COMMENT-13
-        pattern: event
-        statement: 'コメントを書き換えると、結果の `change` を `updated` にします'
-      - id: PW-ISSUE-COMMENT-14
-        pattern: unwanted
-        statement: 'もしファイルの Issue のリポジトリがプロジェクトに無いなら、`warnings` に入れます'
-      - id: PW-ISSUE-COMMENT-15
-        pattern: unwanted
-        statement: 'もし `comment_url` を書き戻せないなら、`warnings` に入れます'
-      - id: PW-ISSUE-COMMENT-16
-        pattern: unwanted
-        statement: 'もし本文がテンプレに合わないなら、`kind` が `content-invalid` の失敗を返します'
-      - id: PW-ISSUE-COMMENT-17
-        pattern: unwanted
-        statement: 'もし本文がテンプレに合わないなら、違反の種類ごとの行を `detail` に入れます'
-      - id: PW-ISSUE-COMMENT-18
-        pattern: unwanted
-        statement: 'もし本文がテンプレに合わないなら、コメントを投稿しません'
-      - id: PW-ISSUE-COMMENT-19
-        pattern: unwanted
-        statement: 'もし `message` でテンプレの種類を渡していないなら、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-COMMENT-20
-        pattern: unwanted
-        statement: 'もし `message` で `issue_ref` を渡していないなら、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-COMMENT-21
-        pattern: unwanted
-        statement: 'もし `file` と `message` のどちらも渡していないなら、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-COMMENT-22
-        pattern: unwanted
-        statement: 'もしファイルのフロントマターを読めないなら、`kind` が `content-invalid` の失敗を返します'
-      - id: PW-ISSUE-COMMENT-23
-        pattern: unwanted
-        statement: 'もしファイルのフロントマターに `template` が無いなら、`kind` が `content-invalid` の失敗を返します'
-      - id: PW-ISSUE-COMMENT-24
-        pattern: unwanted
-        statement: 'もし `comment_url` の形が誤っているか、別のホストや別の Issue を指すなら、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-COMMENT-25
-        pattern: unwanted
-        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、`kind` が `no-active-project` の失敗を返します。`detail` に候補の名前と `project` の案内を入れます'
-      - id: PW-ISSUE-COMMENT-26
-        pattern: unwanted
-        statement: 'もし GitHub API がエラーを返したなら、失敗を返します'
-      - id: PW-ISSUE-COMMENT-27
-        pattern: unwanted
-        statement: 'もし Issue の参照の形が誤っているなら、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-COMMENT-31
-        pattern: unwanted
-        statement: 'もし対象のリポを含む設定が無いなら、`kind` が `repo-not-in-project` の失敗を返します'
-      - id: PW-ISSUE-COMMENT-32
-        pattern: event
-        statement: '`project` に設定の名前を渡して呼ぶと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
-  PW-ISSUE-CREATE:
-    summary: フロントマター付きの Markdown ファイルから Issue を作ります。
-    arguments:
-      attributes: '書く機能の配列です。要素は `name`・`value` を持ち、同じ名前が複数の `source` にあるときだけ `source` を持ちます。機能は `issue_attributes` が返すものです。`files` と一緒には使えません。'
-      files: 'フロントマター付きの Markdown ファイルのパスの配列です。複数渡すと、まとめて投稿します。'
-      freeform: 'テンプレートの検証なしで、`message` と `repo` だけから Issue を作るかどうかです。題は `message` の 1 行目の先頭 50 文字から作ります。'
-      label: 'ラベルの配列です。複数渡せます。'
-      message: 'Issue の本文です。ファイルを使わずに直接投稿するときの値です。'
-      order: 'サブタスクの順番の番号です。`parent_epic` と一緒に使います。'
-      parent_epic: '親 Epic の参照です。整数か、`owner/repo/N` の形で渡します。'
-      project: '使うプロジェクトの設定の名前です。`.pecot/config/projects` の下のファイル名から `.json` を除いたものです。省くと、作り先のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブなプロジェクトを使います。Epic を `repo` なしで作るときは、アクティブなプロジェクト、設定が 1 つだけならその設定の順で選びます。'
-      repo: 'リポジトリです。`owner/repo` の形で渡します。'
-      status: 'Status です。`backlog`・`pending`・`ready`・`active`・`in_review`・`archived` のどれかを渡します。'
-      title: 'Issue の題です。`message` で直接投稿するときは必須です。'
-      type: 'Issue の種類です。`task`・`bug`・`epic`・`tracker` のどれかを渡します。'
-    constraints:
-      - requires: {freeform: [message, repo]}
-      - conflicts: [freeform, files]
-      - conflicts: [freeform, title]
-      - conflicts: [attributes, files]
-    details:
-      - 'モードは、`files`・`message`・`freeform` の 3 つです。'
-      - '`files` と `message` を両方渡すと、`files` が `message` より優先されます。'
-      - '`freeform` は、`files`・`title` と一緒に使えません。'
-      - 'テンプレートは MCP の resource（`pecot-template://issue/<種類>`）です。ファイルに写して書き込みます。'
-      - '何も作らずに一括の表を見るときは、`issue_check` を使います。'
-      - '`files` では、渡した順に、ファイルごとに Issue を 1 件作ります。'
-      - '`files` では、type・リポジトリ・status・親 Epic・order・ラベル・`blocked_by` をフロントマターで決めます。同じ名前の引数は無視します。'
-      - '旧いフロントマターの `priority`・`size` は読み捨てます。'
-      - '一括の最初の Issue を作る前に、次のことを確かめます。どのファイルもあること。同じファイルを重ねて渡していないこと。どの `{{issue:key}}` も先のファイルを指すこと。どのフロントマターと本文も正しいこと。'
-      - '一括の最初の Issue を作る前に、`blocked_by`・order の番号・リポジトリのつながりも確かめます。親 Epic と、`blocked_by` に書いた既存の Issue も読みます。'
-      - '`blocked_by` の各要素は、一括の中の先のファイルを key で指すか、既存の Issue を `owner/repo/N` で指します。key は、ファイル名の拡張子を除いた部分です。各要素には、`wait: stack`（既定）か `wait: merge` と、reason を書きます。'
-      - '`blocked_by` の各要素は、Issue を作った直後に、その Issue の blocked-by として足します。'
-      - '`wait: merge` の要素では、前提と reason の行を本文の Waits for merge の節に書きます。`wait: stack` の要素では何も書きません。'
-      - '`blocked_by` のある task か bug は Blocked の列に、無いものは Ready の列に置きます。ボードに Blocked の列が無いときは、`warnings` に 1 つ入れて Ready に置きます。'
-      - '既存の Issue を指す Blocked の Issue は、blocked-by を足した後で、着手できるかどうかを読みます。着手できるなら、Ready の列へ動かします。判定を読めないときは、Blocked のまま残します。'
-      - '親 Epic があって order の無い Issue には、その Epic で使われている最大の order の次の番号を、ファイルの順に振ります。`18a` のような枝の文字が付いた番号は、その数字として数えます。題には、通し番号だけを入れます。'
-      - '投稿の後、すべての blocked-by を足せたときは、作った Issue のスタックできる並びを `stackableChains` に入れます。'
-      - '`parallel` の欄には対応していません。この欄のあるファイルは受け付けません。'
-      - '本文の `{{issue:key}}` は、その key の先のファイルから作った Issue の番号に展開します。'
-      - '`message` では、`title`・本文・`repo`・`type` から Issue を 1 件作ります。'
-      - '`message` では、`type` が `epic` でなければ `repo` が必須です。'
-      - '`freeform` では、`message` と `repo` から、本文をテンプレートで確かめずに Issue を 1 件作ります。'
-      - '`freeform` の題は、`message` の 1 行目の先頭の 50 文字です。連続した空白は 1 つの空白にまとめ、前に type を付けます。'
-      - '`freeform` の status は `status` の値で、無ければ type の既定の値です。'
-      - '`freeform` では、本文の末尾に、起票の決まりを指すコメントを付けます。'
-      - '`freeform` で Epic に親 Epic を渡すと、`warnings` に入れて続けます。'
-      - '`freeform` は、ブランチを作らず、作業対象も記録しません。それは `session_start` が行います。'
-      - '本文は、Issue の種類のテンプレートに合っていなければなりません。'
-      - '作るときの status にできるのは、type の既定の値だけです。`blocked_by` のある task か bug では、`blocked` にもできます。'
-      - 'Epic は、リポジトリを渡さないと `aggregation_repo` に作ります。'
-      - '`aggregation_repo` 以外のリポジトリに Epic を作ると、`warnings` に入れて続けます。'
-      - '作った Issue は、それぞれプロジェクトのボードに足し、status を設定します。'
-      - '親 Epic があるときは、作った Issue をそれぞれ親 Epic の sub-issue としてつなぎます。'
-      - '親 Epic と `order` を渡したときは、その Epic に同じ order の Issue が既にあると、失敗を返します。'
-      - '`files` では、一括の中の 2 つのファイルが同じ親 Epic の下で同じ order を持つと、失敗を返します。'
-      - '`attributes` で、`issue_attributes` が返す機能に、名前で値を書きます。`files` では、フロントマターの `attributes` が同じ役をします。引数の `attributes` は `files` と一緒に使えません。'
-      - '最初の Issue を作る前に、すべての値を GitHub から読んだ定義と照らします。1 つでも合わなければ、Issue を 1 件も作らずに、合わないものをすべて `errors` に入れて失敗を返します。'
-      - '担当者・マイルストーン・Issue type・ラベルは、Issue を作る要求に入れます。続けて Issue fields を書きます。ボードのフィールドは、ボードへ足した後で書きます。'
-      - 'Issue fields か組み込みの機能を書けないときは、その機能と理由を `failed` と `warnings` に入れて続けます。'
-      - '`label` かフロントマターの `labels` と、`attributes` の `labels` を両方渡すと、どちらを使うか決まらないので失敗を返します。`value` が `null` の機能は書きません。'
-      - '`attributes`・`lane`・親の Epic から引き継ぐ値のどれも無いときは、機能の定義を読まず、今までと同じ要求で作ります。'
-    stdin: none
-    output:
-      format: text
-      description: '作った Issue ごとに URL を 1 行ずつ、ファイルの順に出します。作った Issue にスタックできる並びがあれば、その後に出します。'
-    mcp_output:
-      fields:
-        issues: '作った Issue の配列です。作った順に並びます。途中で失敗したときも、それまでに作った分が入ります。要素は `owner`・`repository`・`number`・`url` を必ず持ちます。`status` は、ボードに書いた Status（Blocked から出したときは `ready`）です。書かなかったときは入りません。`parent` は、sub-issue として足した親 Epic（`owner/repo/N`）です。親が無いときは入りません。'
-        stackableChains: 'スタックできる並びの配列です。1 つの並びは、親から子の順に並べた文字列の配列です。ファイルはキー、既存の Issue は `#N` か `owner/repo#N` で書きます。スタックできる並びが無いときは入りません。'
-        errors: '機能の値の検証で止めた理由の配列です。止めなかったときは入りません。要素の形は `issue_edit` の `errors` と同じで、ファイルから作るときは、値を書いたファイルの名前の `file` も持ちます。'
-        failed: '検証は通ったが書けなかった機能の配列です。書けなかった機能が無いときは入りません。要素は `issue` (`owner/repo/N`)・`name`・`source`・`reason` を持ちます。'
-    diagnostics: '標準エラーに、Issue ごとの結果の行を出します。行の種類は、`created` と、`added`（blocked-by・プロジェクト・親 Epic の sub-issue）です。`set`（status と、`attributes` で書いた機能）と `moved`（Blocked から Ready）もあります。`warning` の行を出すのは、次のときです。`aggregation_repo` の外に Epic を作ったとき。ボードに Blocked の列が無いとき。Issue をプロジェクトに足せなかったとき。blocked-by を足せなかったとき。Issue の blocked-by を全部は読めなかったとき。`attributes` の機能を書けなかったとき。機能の定義を一部読めなかったとき。機能の値が定義に合わないときは、合わない値ごとに `error` の行を出します。blocked-by を足せなかったときは、付け直す `issue_block` の呼び出しを載せた `error` の行が続きます。複数のファイルの一括では、次の 2 種類の `warning` の行を、最初の `created` の行より前にすべて出します。`aggregation_repo` の外に作る Epic の行と、読めない親 Epic の行です。親 Epic の `warning` は、ファイルごとではなく、親ごとに 1 回書きます。`message` と一緒に渡した `status` が有効な値でないときは、有効な値を並べた `error` の行を出します。失敗ごとに `error` の行を出します。本文がテンプレートに合わないときは、1 行目にテンプレートのパスを、字下げした行に違反の種類ごとの内容を出します。`parent_epic` の形が誤っているときは、受け付ける形を載せた `error` の行を出します。'
-    environment: []
-    exit_status:
-      - kind: no-active-project
-        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`project` もありません。'
-      - kind: project-not-found
-        when: '`project` の名前の設定がありません。'
-      - kind: invalid-input
-        when: 'モードの引数がありません。`message` に `title` か `repo` が無いとき、ファイルが無いとき、同じファイルを重ねて渡したときも含みます。'
-      - kind: invalid-input
-        when: '`message` で渡した `status` が有効な値ではありません。status が type の既定の値でないときも含みます。'
-      - kind: invalid-input
-        when: '一括で渡したファイルの作り先のリポが、別々のプロジェクトの設定に分かれています。'
-      - kind: invalid-input
-        when: '機能の値が定義に合いません。名前が無いとき、名前が曖昧なとき、書けない機能のとき、定義を読めないときも含みます。'
-      - kind: content-invalid
-        when: 'フロントマターか本文が誤っています。プレースホルダが先のファイルを指していないとき、リポジトリの形が誤っているとき、本文がテンプレートに合わないとき（3 ではなく 1 です）も含みます。'
-      - kind: content-invalid
-        when: '`blocked_by` が、知らない key・輪・後のファイル・重複した前提のどれかを指しています。`wait: merge` に reason が無いときと、ファイルに `parallel` があるときも含みます。'
-      - kind: repo-not-in-project
-        when: 'リポジトリがプロジェクトにつながっていません。'
-      - kind: order-conflict
-        when: '親 Epic の別の Issue が同じ order を持っています。一括の 2 つのファイルが同じ order を持つときも含みます。'
-      - kind: dependency-unreadable
-        when: '`blocked_by` に書いた Issue を読めません。'
-      - kind: dependency-rejected
-        when: 'GitHub Enterprise Server が Issue の依存関係に対応していません。'
-      - kind: partial-failure
-        when: 'blocked-by を足せなかった Issue があります。'
-      - kind: other
-        when: 'テンプレートが見つかりません。'
-      - kind: invalid-input
-        when: '`freeform` に `message` か `repo` がありません。`freeform` をファイル・`title` と一緒に渡したときも含みます。`attributes` を `files` と一緒に渡したとき、`attributes` の要素が JSON として読めないときも含みます。リポジトリが `owner/repo` の形でないときも含みます。`parent_epic` の形が誤っているときと、ほかの引数の誤りも含みます。'
-      - kind: repo-setting-missing
-        when: 'Epic の作り先を決められません。設定に `aggregation_repo` が無く、`repo` もありません。'
-      - kind: github-auth
-        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
-      - kind: github-not-found
-        when: 'GitHub に対象が見つかりません。'
-      - kind: github-rate-limit
-        when: 'GitHub API のレート制限に当たりました。'
-      - kind: github-api
-        when: 'GitHub API がほかのエラーを返しました。'
-      - kind: project-root-not-found
-        when: 'プロジェクトのルートを決められません。'
-      - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
-      - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: '一括の途中で Issue の作成に失敗すると、先のファイルから作った Issue は GitHub に残り、後のファイルは処理しません。Issue が無くてもできる確認は、すべて最初の Issue を作る前に行います。そのため、誤ったファイルが 1 つあると一括の全体が止まります。blocked-by を足せなかったときは、`warnings` に入れ、ほかの blocked-by と次のファイルを処理します。最後のファイルの後で、`kind` が `partial-failure` の失敗を返し、`detail` に付け直す `issue_block` の呼び方を入れます。プロジェクトのボードに足せなかったときは、`warnings` に入れます。Issue は残り、フィールドと列の設定は飛ばし、親 Epic へのつなぎは行って、次のファイルを処理します。親 Epic へのつなぎに失敗したときは、Issue はフィールドを設定した状態でボードに残ります。`detail` には、次の内容の文が加わります。手で親へつなぐまで、題の order は次の採番で数えません。ファイルに `blocked_by` があるのにサーバが Issue の依存関係に対応していないときは、何も作らずに失敗を返します。Issue の作成が途中で失敗したときは、既に作った Issue どうしの blocked-by だけを足します。失敗がボードへの追加だけのときは、成功を返します。失敗の結果の `issues` にも、それまでに作った Issue が入ります。'
-    effects:
-      - target: github
-        kind: write
-        what: 'Issue を作り、blocked-by を足し、プロジェクトのボードに足します。フィールドと `attributes` の機能の値を設定し、親 Epic の sub-issue としてつなぎます。前提が済んでいる Issue は、Blocked から Ready へ動かします。'
-      - target: github
-        kind: read
-        what: '次のものを読みます。プロジェクトにつながっているリポジトリ。親 Epic の sub-issue。`blocked_by` に書いた Issue。`lane` を渡さずに親 Epic を指したときは、親の `pecot-lane` の値。`attributes` か `lane`（親から引き継いだ値も含む）があるときは、機能の定義。`attributes` があるときは、`assignees` に渡したログイン名を担当にできるか。既存の Issue を指す Issue の前提。その Issue の札が `Needs Attention` で着手の跡が無いときは、そのコメントも読みます。'
-      - target: file
-        kind: read
-        what: 'Markdown ファイル、テンプレート、アクティブな設定ファイルを読みます。'
-    prerequisites:
-      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `project` で選びます。'
-      - 'ホストの GitHub トークンが要ります。'
-    idempotent: false
-    examples:
-      - arguments:
-          files:
-            - .pecot/work/12/issue-a.md
-            - .pecot/work/12/issue-b.md
-        note: '渡した順に、Issue を 2 件作ります。'
-      - arguments:
-          freeform: true
-          repo: example-org/my-repo
-          message: Fix the status column of the list
-        note: '自由な形式のメッセージから Issue を 1 件作ります。'
-      - arguments:
-          title: Add a report
-          repo: example-org/my-repo
-          message: <body>
-        note: 'ファイルを使わずに、引数から Issue を 1 件作ります。'
-    default_notes:
-      status: '省くと、type で決まります。`task` と `bug` は `ready`（ファイルに `blocked_by` があれば `blocked`）で、`epic` と `tracker` は `backlog` です。ほかの値を渡すと、失敗を返します。'
-      repo: '`message` では、type が `epic` のときだけ省けます。省くと、Epic をアクティブなプロジェクトの `aggregation_repo` に作ります。`aggregation_repo` が未設定なら、省けません。'
-      parent_epic: '整数は、`aggregation_repo` の Issue として解決します。`aggregation_repo` が未設定なら、新しい Issue のリポジトリで解決します。`owner/repo/N` の形は、そのまま使います。'
-    behaviors:
-      - id: PW-ISSUE-CREATE-04
-        pattern: event
-        statement: '複数のファイルを渡すと、渡した順に 1 件ずつ Issue を作ります'
-      - id: PW-ISSUE-CREATE-05
-        pattern: event
-        statement: '`message` に `title` と `repo` を付けて呼ぶと、Issue を 1 件作ります'
-      - id: PW-ISSUE-CREATE-07
-        pattern: event
-        statement: '`files` と `message` を一緒に渡すと、`message` の本文を使わずにファイルから Issue を作ります'
-      - id: PW-ISSUE-CREATE-08
-        pattern: event
-        statement: 'ファイルを渡すと、フロントマターの値を使い、`type`・`status` などの引数は使いません'
-      - id: PW-ISSUE-CREATE-09
-        pattern: event
-        statement: '本文に `{{issue:key}}` があると、key のファイルから作った Issue の番号に置き換えて投稿します'
-      - id: PW-ISSUE-CREATE-10
-        pattern: event
-        statement: 'Issue を作ると、プロジェクトのボードに足します'
-      - id: PW-ISSUE-CREATE-11
-        pattern: event
-        statement: 'ボードに足すと、status を設定します'
-      - id: PW-ISSUE-CREATE-12
-        pattern: event
-        statement: '`status` を省いて `message` で呼ぶと、type の既定の status を設定します'
-      - id: PW-ISSUE-CREATE-13
-        pattern: event
-        statement: '親 Epic を指定して Issue を作ると、その Epic の sub-issue につなぎます'
-      - id: PW-ISSUE-CREATE-14
-        pattern: event
-        statement: '`type` に `epic` を渡して `repo` を省くと、`aggregation_repo` に Epic を作ります'
-      - id: PW-ISSUE-CREATE-15
-        pattern: event
-        statement: '`aggregation_repo` と違うリポジトリに Epic を作ると、`warnings` に入れます'
-      - id: PW-ISSUE-CREATE-17
-        pattern: event
-        statement: 'Issue を作ると、その URL を結果の `issues` の `url` に入れます'
-      - id: PW-ISSUE-CREATE-18
-        pattern: event
-        statement: 'Issue を作ると、その Issue を結果の `issues` に足します'
-      - id: PW-ISSUE-CREATE-19
-        pattern: event
-        statement: '親 Epic に足すと、`issues` の要素の `parent` にその Epic を入れます'
-      - id: PW-ISSUE-CREATE-20
-        pattern: event
-        statement: 'Status の欄を設定すると、`issues` の要素の `status` にその値を入れます'
-      - id: PW-ISSUE-CREATE-21
-        pattern: unwanted
-        statement: 'もしボードへの追加に失敗したなら、`warnings` に入れます'
-      - id: PW-ISSUE-CREATE-22
-        pattern: unwanted
-        statement: 'もしボードへの追加に失敗したなら、作った Issue を `issues` に入れます'
-      - id: PW-ISSUE-CREATE-23
-        pattern: unwanted
-        statement: 'もしボードへの追加に失敗したなら、次のファイルへ進みます'
-      - id: PW-ISSUE-CREATE-24
-        pattern: unwanted
-        statement: 'もし欄の設定に失敗したなら、設定できなかった欄と値を `warnings` に入れ、残りの欄の設定を続けます。選択肢の ID が古くて書けないときは、ID を読み直す `project_activate` の案内を、1 回の実行で 1 回だけ添えます'
-      - id: PW-ISSUE-CREATE-25
-        pattern: unwanted
-        statement: 'もし親 Epic へのつなぎに失敗したなら、作った Issue を `issues` に入れます'
-      - id: PW-ISSUE-CREATE-26
-        pattern: unwanted
-        statement: 'もし親 Epic へのつなぎに失敗したなら、失敗を返します'
-      - id: PW-ISSUE-CREATE-27
-        pattern: unwanted
-        statement: 'もし複数のファイルの途中で Issue の作成に失敗したなら、後のファイルを処理しません'
-      - id: PW-ISSUE-CREATE-28
-        pattern: unwanted
-        statement: 'もし複数のファイルの途中で Issue の作成に失敗したなら、失敗を返します'
-      - id: PW-ISSUE-CREATE-29
-        pattern: unwanted
-        statement: 'もし本文がテンプレに合わないなら、`kind` が `content-invalid` の失敗を返します'
-      - id: PW-ISSUE-CREATE-30
-        pattern: unwanted
-        statement: 'もし status が有効な値で、type の既定の値でないなら、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-CREATE-31
-        pattern: unwanted
-        statement: 'もし `message` に `title` を渡していないなら、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-CREATE-32
-        pattern: unwanted
-        statement: 'もし `epic` 以外の `message` に `repo` を渡していないなら、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-CREATE-33
-        pattern: unwanted
-        statement: 'もし `files` と `message` のどちらも渡していないなら、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-CREATE-34
-        pattern: unwanted
-        statement: 'もしファイルが無いか、同じファイルを重ねて渡したか、`{{issue:key}}` が先のファイルを指していないなら、失敗を返します'
-      - id: PW-ISSUE-CREATE-35
-        pattern: unwanted
-        statement: 'もしフロントマターを読めないか、`repository` が `owner/repo` の形でないなら、`kind` が `content-invalid` の失敗を返します'
-      - id: PW-ISSUE-CREATE-36
-        pattern: unwanted
-        statement: 'もし同じ親 Epic に同じ order の Issue があるなら、`kind` が `order-conflict` の失敗を返します'
-      - id: PW-ISSUE-CREATE-37
-        pattern: unwanted
-        statement: 'もしリポジトリがプロジェクトにつながっていないなら、`kind` が `repo-not-in-project` の失敗を返します'
-      - id: PW-ISSUE-CREATE-38
-        pattern: unwanted
-        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、`kind` が `no-active-project` の失敗を返します。`detail` に候補の名前と `project` の案内を入れます'
-      - id: PW-ISSUE-CREATE-39
-        pattern: unwanted
-        statement: 'もし GitHub API がエラーを返したなら、失敗を返します'
-      - id: PW-ISSUE-CREATE-40
-        pattern: unwanted
-        statement: 'もしリポジトリが `owner/repo` の形でないなら、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-CREATE-42
-        pattern: unwanted
-        statement: 'もし Epic の作り先を決められないなら、`kind` が `repo-setting-missing` の失敗を返します'
-      - id: PW-ISSUE-CREATE-43
-        pattern: unwanted
-        statement: 'もし `parent_epic` の形が誤っているなら、受け付ける形を `detail` に入れて、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-CREATE-44
-        pattern: unwanted
-        statement: 'もし `message` で呼び、`status` が有効な値でないなら、有効な値を並べた `detail` を入れて、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-CREATE-46
-        pattern: event
-        statement: 'ファイルに `blocked_by` を書いて呼ぶと、作った Issue に前提を付けます'
-      - id: PW-ISSUE-CREATE-47
-        pattern: event
-        statement: '前提のあるタスクを作ると、Blocked の列に置きます。ボードに Blocked の列が無ければ、Ready に置いて `warnings` に 1 回だけ入れます'
-      - id: PW-ISSUE-CREATE-48
-        pattern: event
-        statement: '既存の Issue を前提にした Issue を作ると、前提が済んでいれば Ready の列へ動かします。判定を読めなければ Blocked のまま残します'
-      - id: PW-ISSUE-CREATE-49
-        pattern: event
-        statement: '親 Epic を持ち order を省いたファイルを作ると、親 Epic の使われた番号の最大の次から、ファイルの順に通し番号を振ります'
-      - id: PW-ISSUE-CREATE-50
-        pattern: event
-        statement: '`wait` が `merge` の前提を付けると、その前提と `reason` を本文の Waits for merge の節に書きます'
-      - id: PW-ISSUE-CREATE-51
-        pattern: unwanted
-        statement: 'もし前提を付けるのに失敗したなら、`warnings` に入れ、`detail` に付け直す `issue_block` の呼び方を入れて、`kind` が `partial-failure` の失敗を返します'
-      - id: PW-ISSUE-CREATE-52
-        pattern: unwanted
-        statement: 'もし `blocked_by` が一括の中の誤った前提か読めない既存の Issue を指すなら、何も作らずに失敗を返します'
-      - id: PW-ISSUE-CREATE-53
-        pattern: unwanted
-        statement: 'もしフロントマターに `parallel` を書いたなら、何も作らずに、削除を促す `detail` を入れて、`kind` が `content-invalid` の失敗を返します'
-      - id: PW-ISSUE-CREATE-54
-        pattern: unwanted
-        statement: 'もし `wait` が `merge` の前提に `reason` が無いなら、何も作らずに、`kind` が `content-invalid` の失敗を返します'
-      - id: PW-ISSUE-CREATE-56
-        pattern: event
-        statement: '前提を付けたファイルを作り終えると、スタックできる並びを `stackableChains` に入れます'
-      - id: PW-ISSUE-CREATE-57
-        pattern: unwanted
-        statement: 'もし一括の中で同じ親 Epic に同じ order を書いたファイルが 2 つ以上あるなら、何も作らずに、`kind` が `order-conflict` の失敗を返します'
-      - id: PW-ISSUE-CREATE-58
-        pattern: unwanted
-        statement: 'もし `blocked_by` を書いたファイルがあるのにサーバが Issue の依存関係に対応しないなら、何も作らずに、`kind` が `dependency-rejected` の失敗を返します'
-      - id: PW-ISSUE-CREATE-59
-        pattern: unwanted
-        statement: 'もし作成が途中で失敗したなら、作った Issue どうしの前提だけを付けて、失敗を返します'
-      - id: PW-ISSUE-CREATE-60
-        pattern: event
-        statement: '`freeform` に `message` と `repo` を付けて呼ぶと、本文をテンプレートで確かめずに Issue を 1 件作り、`issues` に入れます'
-      - id: PW-ISSUE-CREATE-61
-        pattern: event
-        statement: '`freeform` で呼ぶと、`message` の 1 行目の先頭 50 文字の連続する空白を 1 つにしたものを、type の接頭辞つきの題にします'
-      - id: PW-ISSUE-CREATE-62
-        pattern: event
-        statement: '`freeform` で呼ぶと、status を `status` の値か type の既定の値にします'
-      - id: PW-ISSUE-CREATE-63
-        pattern: event
-        statement: '`freeform` に `parent_epic` を付けて呼ぶと、その Epic の sub-issue につなぎます。Epic に付けたときは、`warnings` に入れます'
-      - id: PW-ISSUE-CREATE-65
-        pattern: unwanted
-        statement: 'もし `freeform` でボードへの追加に失敗したなら、`warnings` に入れ、作った Issue を `issues` に入れます。欄の設定をせずに、成功を返します'
-      - id: PW-ISSUE-CREATE-66
-        pattern: unwanted
-        statement: 'もし `freeform` で親 Epic へのつなぎに失敗したなら、作った Issue を `issues` に入れて、失敗を返します'
-      - id: PW-ISSUE-CREATE-67
-        pattern: unwanted
-        statement: 'もし `freeform` で `message` が空か無いなら、`message` が要ることを `detail` に入れて、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-CREATE-68
-        pattern: unwanted
-        statement: 'もし `freeform` に `repo` が無いなら、`repo` が要ることを `detail` に入れて、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-CREATE-69
-        pattern: unwanted
-        statement: 'もし `freeform` を `files`・`title` と一緒に渡したなら、何も作らずに、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-CREATE-74
-        pattern: unwanted
-        statement: 'もし作り先のリポを含む設定が無いなら、どのプロジェクトの設定にも無いことと設定の名前の一覧を `detail` に入れて、失敗を返します'
-      - id: PW-ISSUE-CREATE-75
-        pattern: event
-        statement: '`project` を付けて呼ぶと、作り先のリポを含む設定が 2 つ以上あっても、その名前の設定で作ります'
-      - id: PW-ISSUE-CREATE-76
-        pattern: unwanted
-        statement: 'もし Epic を `repo` なしで作るときに、アクティブなプロジェクトが無くて設定の数が 2 つ以上なら、`kind` が `no-active-project` の失敗を返します。`detail` に設定の名前と `project` の案内を入れます'
-      - id: PW-ISSUE-CREATE-77
-        pattern: event
-        statement: 'Epic を `repo` なしで `project` を付けて呼ぶと、その名前の設定の `aggregation_repo` に作ります'
-      - id: PW-ISSUE-CREATE-78
-        pattern: unwanted
-        statement: 'もし一括で渡したファイルの作り先のリポが、別々のプロジェクトの設定に分かれるなら、ファイルと設定の名前を `detail` に入れ、1 件も作らずに失敗を返します'
-      - id: PW-ISSUE-CREATE-79
-        pattern: event
-        statement: '`attributes` を付けて呼ぶと、Issue を作り、名前で引いた機能に値を書きます。組み込みの機能は起票の要求に入れます。Issue fields は起票の後で書きます。ボードのフィールドは、ボードへ足した後で書きます'
-      - id: PW-ISSUE-CREATE-80
-        pattern: event
-        statement: 'ファイルのフロントマターに `attributes` があると、そのファイルから作る Issue に、同じように値を書きます'
-      - id: PW-ISSUE-CREATE-81
-        pattern: unwanted
-        statement: 'もし値が 1 つでも定義に合わないなら、一括のどの Issue も作らずに、`kind` が `invalid-input` の失敗を返します。合わないものを、すべて `errors` に入れます'
-      - id: PW-ISSUE-CREATE-82
-        pattern: event
-        statement: '`attributes`・`lane`・親の Epic から引き継ぐ値のどれも無いと、機能の定義を読まずに、今までと同じ要求で Issue を作ります'
-      - id: PW-ISSUE-CREATE-83
-        pattern: unwanted
-        statement: 'もし Issue fields か組み込みの機能の値を書けないなら、その機能と理由を `failed` と `warnings` に入れ、ほかの機能を書いて成功を返します'
-      - id: PW-ISSUE-CREATE-84
-        pattern: unwanted
-        statement: 'もし `label` かフロントマターの `labels` と `attributes` の `labels` を両方渡したなら、Issue を作らずに `ambiguous_attribute` の失敗を返します'
-      - id: PW-ISSUE-CREATE-85
-        pattern: unwanted
-        statement: 'もし `attributes` を `files` と一緒に渡したなら、`kind` が `invalid-input` で終了コードが 2 の失敗を返します'
-      - id: PW-ISSUE-CREATE-86
-        pattern: event
-        statement: '`attributes` の `value` に `null` を渡すと、その機能を書かずに飛ばします'
-      - id: PW-ISSUE-CREATE-87
-        pattern: unwanted
-        statement: 'もし `priority` か `size` を渡したなら、無い入力として断り、Issue を作りません'
-      - id: PW-ISSUE-CREATE-88
-        pattern: event
-        statement: 'フロントマターに `priority`・`size` のあるファイルを渡すと、2 つを読み捨てて Issue を作り、ボードには status だけを設定します'
-      - id: PW-ISSUE-CREATE-89
-        pattern: event
-        statement: '`lane` を付けて呼ぶと、Issue を作り、ボードの `pecot-lane` にその値を書きます。値は、そのときボードから読んだ選択肢と、大文字と小文字まで同じ名前で照らします'
-      - id: PW-ISSUE-CREATE-90
-        pattern: unwanted
-        statement: 'もし `lane` がボードの `pecot-lane` の選択肢に無いなら、Issue を作らずに、`kind` が `invalid-input` の失敗を返します。`errors` に `invalid_value` と取りうる値を入れます'
-      - id: PW-ISSUE-CREATE-91
-        pattern: unwanted
-        statement: 'もし `lane` と `attributes` の `pecot-lane` を両方渡したなら、Issue を作らずに失敗を返します。`errors` には `ambiguous_attribute` を 1 件だけ入れます'
-      - id: PW-ISSUE-CREATE-92
-        pattern: event
-        statement: '`parent_epic` を付け、`lane` も `attributes` の `pecot-lane` も渡さずに呼ぶと、親の Epic の `pecot-lane` の値を書きます。親に値が無ければ、`pecot-lane` を書きません'
-      - id: PW-ISSUE-CREATE-93
+        statement: '前提を渡すと、待ち方・理由・`Waits for merge` の節を確かめ、置く列が `Ready` か `Blocked` かを決めます'
+      - id: PW-ISSUE-CHECK-11
         pattern: state
-        statement: 'ボードに single select の `pecot-lane` が無い間、`lane` を渡されても書かずに Issue を作り、`warnings` に入れて成功を返します'
-      - id: PW-ISSUE-CREATE-94
+        statement: '前提の PR を読んでいない間、`Ready` と `Blocked` のどちらも受け、読む PR を `warning` の行で案内します'
+      - id: PW-ISSUE-CHECK-12
         pattern: event
-        statement: 'ファイルのフロントマターに `lane` があると、そのファイルから作る Issue に、`lane` の入力と同じように値を書きます'
-      - id: PW-ISSUE-CREATE-95
+        statement: '前提の PR を `reads` で受けると、スタックできるかで `Ready` か `Blocked` を決め、もう一方の列を項目にします'
+      - id: PW-ISSUE-CHECK-13
         pattern: unwanted
-        statement: 'もし `lane` を `files` と一緒に渡したなら、`kind` が `invalid-input` で終了コードが 2 の失敗を返します'
-  PW-ISSUE-EDIT:
-    summary: Issue の機能の値を、名前で書き、変え、外します。
+        statement: 'もし `method` が `update` で `blocked_by` を渡すなら、`issue_dependency_check` を案内する項目を返します'
+      - id: PW-ISSUE-CHECK-14
+        pattern: unwanted
+        statement: 'もし作り先がプロジェクトに無いか、作り先・`issue_number`・担当の数が決まりに外れるなら、引数ごとの項目を返します'
+      - id: PW-ISSUE-CHECK-15
+        pattern: unwanted
+        statement: 'もし `reads` の値が公式の MCP の結果の形でないなら、`kind` が `github-mcp-shape` の失敗を返します'
+  PW-ISSUE-COMMENT-CHECK:
+    summary: '公式の MCP の `add_issue_comment`・`update_issue_comment` に渡す値を、書く前に pecot の決まりに照らします。GitHub を読み書きしません。'
     arguments:
-      attributes: '書く機能の配列です。要素は `name`・`value` を持ち、同じ名前が複数の `source` にあるときだけ `source` を持ちます。`value` を `null` にすると、値を外します。'
-      issue_ref: 'Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。'
-      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
+      method: '`add` か `update` です。`add` は `add_issue_comment` の前に、`update` は `update_issue_comment` の前に通します。'
+      owner: 'コメントを書く Issue か PR のリポのオーナーです。'
+      repo: 'コメントを書く Issue か PR のリポの名前です。'
+      issue_number: 'コメントを書く Issue か PR の番号です。`update` では、書き換えるコメントが属するはずの Issue です。'
+      comment_id: '`update` のときだけ渡します。書き換えるコメントの ID です。'
+      body: '書くコメントの本文です。書き込みのツールに渡すものと同じです。'
+      template: '本文が従うテンプレートです。同梱のものは `pecot-template://comment/<名前>` で書き、決まりを当てます。差し替えたテンプレートのパスか URL は、本文を照らさずに受けます。'
+      template_text: '差し替えたテンプレートの本文です。本文をこれに照らしません。'
+      reads: '`update` のときに要る、公式の MCP の読み取りの結果です。同じ Issue の `issue_read`（`get_comments`）の結果を渡します。'
     constraints: []
     details:
-      - 'Issue 1 件の機能の値を、名前で書き、変え、外します。機能は、`issue_attributes` が返すものです。'
-      - '`attributes` の要素は、`name`・`value` と、同じ名前が複数の `source` にあるときだけ `source` を持ちます。`value` が `null` なら、値を外します。'
-      - '先に、機能の定義と Issue の今の値を読みます。すべての値を定義と照らし、1 つでも合わなければ、何も書かずに失敗を返します。'
-      - '今の値と同じ値は書きません。複数選択・担当者・ラベルは、順を問わずに比べます。Iteration は、開始日で渡しても名前に引き当てて比べます。'
-      - '組み込みの機能（`assignees`・`milestone`・`type`・`labels`）は、REST の 1 回の要求で書きます。続けて Issue fields を、最後にボードのフィールドを書きます。'
-      - 'Issue fields か組み込みの機能を書けないときは、ほかの機能を書き続けます。書けなかった機能と理由を `failed` に入れ、`kind` が `partial-failure` の失敗を返します。'
-      - 'pecot の進行の欄・組み込みの Status・`parent`・`blocked_by` は書けません。`board_move`・`issue_create` の `parent_epic`・`issue_block` を使います。'
-      - '参照の短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
-      - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
+      - '値を受けて、決まりに外れた所を `problems` に返します。GitHub を読み書きしません。'
+      - '同梱のテンプレートを指すと、本文をテンプレートの見出しと書き方に照らします。差し替えたテンプレートを指すときと、テンプレートを省くときは、本文に決まりを当てません。'
+      - '`update` では、`comment_id` のコメントが `issue_number` の Issue に属することを、読み取りの結果で確かめます。'
     stdin: none
     output:
       format: text
-      description: '変えた機能ごとに `- <name>: <前の値> -> <後の値>` の行を並べた Markdown の箇条書きです。値の無いときは `(none)` と出します。変えた機能が無いときは、何も出しません。'
+      description: '外れた所が無ければ `ok` の 1 行です。あれば、外れた所ごとに `<引数>: <内容>` の行を出します。'
     mcp_output:
       fields:
-        changed: '変えた機能の配列です。要素は `name`・`source`・`before`・`after` を持ちます。`before`・`after` は、`issue_show` の `attributes` の `value` と同じ形で、値の無いときは `null` です。'
-        errors: '検証で止めた理由の配列です。止めなかったときは空です。要素は `code`・`name` を持ちます。あるときだけ、`source`・`value`・`expected`（取りうる値）・`candidates`（似た名前）を持ちます。同じく、`sources`（同じ名前を持つ `source`）・`hint`（代わりに使う操作や、読めなかった理由）を持ちます。`code` は、名前の誤りなら `unknown_attribute`・`ambiguous_attribute` です。書けない機能なら `read_only_attribute`・`unsupported_attribute`・`not_on_board` です。値の誤りなら `invalid_value`、定義を読めなければ `unreadable_attribute` です。'
-        failed: '検証は通ったが書けなかった機能の配列です。要素は `name`・`source`・`reason` を持ちます。`reason` は、GitHub が返した文か、GitHub が値を捨てたことです。'
-    diagnostics: '検証で止めたときは、合わない機能ごとに `error` の行を出します。書けなかった機能ごとに `warning` の行を出します。機能の定義か値の一部を読めないときも、`warning` の行を出します。'
+        problems: '決まりに外れた所の配列です。要素は `field`・`code`・`message` を必ず持ちます。受け付ける値が決まっているときは `candidates` に入れます。空なら、値をそのまま書けます。'
+    diagnostics: '標準エラーに行を出しません。'
     environment: []
     exit_status:
-      - kind: no-active-project
-        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`project` もありません。'
-      - kind: repo-not-in-project
-        when: '対象のリポを含むプロジェクトの設定がありません。`project` で選んだ設定が対象のリポを含まないときも含みます。'
-      - kind: project-not-found
-        when: '`project` の名前の設定がありません。'
+      - kind: github-mcp-shape
+        when: '`reads.comments` に渡した値が、公式の GitHub MCP の `issue_read` の結果の形と違います。'
       - kind: invalid-input
-        when: '機能の値が定義に合いません。名前が無いとき、名前が曖昧なとき、書けない機能のとき、定義を読めないとき、Issue がボードに無いときも含みます。'
-      - kind: partial-failure
-        when: '検証は通りましたが、書けなかった機能があります。'
-      - kind: invalid-input
-        when: 'Issue の参照の形が誤っています。`attributes` の要素が JSON として読めないときと、ほかの引数の誤りも含みます。'
-      - kind: github-auth
-        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
-      - kind: github-not-found
-        when: 'GitHub に対象が見つかりません。'
-      - kind: github-rate-limit
-        when: 'GitHub API のレート制限に当たりました。'
-      - kind: github-api
-        when: 'GitHub API がほかのエラーを返しました。'
-      - kind: project-root-not-found
-        when: 'プロジェクトのルートを決められません。'
+        when: '引数の形が誤っています。`method` が `add`・`update` でないときを含みます。'
       - kind: other
         when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
       - kind: session-directory-unresolved
         when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: '書いている途中で 1 つの機能を書けなくても、残りの機能を書きます。書けた機能は `changed` に、書けなかった機能は `failed` に入ります。'
+    on_error: default
     effects:
-      - target: github
-        kind: read
-        what: '設定のボードのフィールドと、リポの Issue fields・Issue type・ラベル・open のマイルストーンの定義を読みます。Issue の今の値と、`assignees` に渡したログイン名を担当にできるかも読みます。'
-      - target: github
-        kind: destructive
-        what: 'Issue の担当者・マイルストーン・Issue type・ラベルと、Issue fields の値、設定のボードのフィールドの値を書きます。'
       - target: file
         kind: read
-        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
-    prerequisites:
-      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `project` で選びます。'
-      - 'ホストの GitHub トークンが要ります。'
+        what: '同梱のテンプレートを読みます。'
+    prerequisites: []
     idempotent: true
     examples:
       - arguments:
-          issue_ref: example-org/my-repo/12
-          attributes:
-            - name: Estimate
-              value: 3
-        note: 'Issue の Estimate のフィールドを 3 にします。'
-      - arguments:
-          issue_ref: example-org/my-repo/12
-          attributes:
-            - name: milestone
-              value: null
-        note: 'Issue のマイルストーンを外します。'
-    default_notes:
-      issue_ref: '短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
-      project: '省くと、Issue のリポジトリを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
+          method: add
+          owner: acme
+          repo: demo
+          issue_number: 12
+          template: pecot-template://comment/merge-diff
+          body: '## Merge — 実装は半分まで進んだ'
+        note: '本文を `merge-diff` のテンプレートに照らし、外れた所を `problems` に返します。'
+    default_notes: {}
     behaviors:
-      - id: PW-ISSUE-EDIT-01
+      - id: PW-ISSUE-COMMENT-CHECK-01
         pattern: event
-        statement: '`attributes` に値を渡すと、名前で引いた機能に値を書き、`changed` に前と後の値を入れます'
-      - id: PW-ISSUE-EDIT-02
+        statement: 'コメントを書く値を受けると、GitHub を読み書きせずに、決まりに外れた所を `problems` に返します'
+      - id: PW-ISSUE-COMMENT-CHECK-02
         pattern: event
-        statement: '`value` に `null` を渡すと、その機能の値を外し、`changed` の `after` を `null` にします'
-      - id: PW-ISSUE-EDIT-03
+        statement: '同梱のテンプレートを指すと、本文をテンプレートの見出しと書き方に照らし、外れた所ごとに項目を返します'
+      - id: PW-ISSUE-COMMENT-CHECK-03
+        pattern: state
+        statement: '差し替えたテンプレートを指すか、テンプレートを省く間、本文にテンプレートの決まりを当てません'
+      - id: PW-ISSUE-COMMENT-CHECK-04
+        pattern: unwanted
+        statement: 'もし `add` に `comment_id` を渡すか、`update` に `comment_id` が無いなら、`comment_id` の項目を返します'
+      - id: PW-ISSUE-COMMENT-CHECK-05
+        pattern: unwanted
+        statement: 'もし `update` で `reads.comments` が無いなら、`issue_read` の `get_comments` で読むよう `read-required` の項目で案内します'
+      - id: PW-ISSUE-COMMENT-CHECK-06
         pattern: event
-        statement: '今の値と同じ値を渡すと、書かずに、`changed` にも入れません。複数選択・担当者・ラベルは、順を問わずに比べます'
-      - id: PW-ISSUE-EDIT-04
-        pattern: event
-        statement: '組み込みの機能・Issue fields・ボードのフィールドを渡すと、組み込みは REST の 1 回の要求で書きます。Issue fields は REST で、ボードのフィールドは種類ごとの値の GraphQL で書きます'
-      - id: PW-ISSUE-EDIT-05
+        statement: '`update` で読み取りの結果を受けると、`comment_id` のコメントが `issue_number` の Issue に属するかを確かめます'
+      - id: PW-ISSUE-COMMENT-CHECK-07
         pattern: unwanted
-        statement: 'もし値が 1 つでも定義に合わないなら、何も書かずに、`kind` が `invalid-input` の失敗を返します。合わないものを、すべて `errors` に入れます'
-      - id: PW-ISSUE-EDIT-06
+        statement: 'もし `reads.comments` の値が公式の MCP の結果の形でないなら、`kind` が `github-mcp-shape` の失敗を返します'
+      - id: PW-ISSUE-COMMENT-CHECK-08
         pattern: unwanted
-        statement: 'もし名前が定義に無いなら、`code` を `unknown_attribute` にし、似た名前を `candidates` に入れます'
-      - id: PW-ISSUE-EDIT-07
-        pattern: unwanted
-        statement: 'もし同じ名前が複数の `source` にあり、`source` を渡していないなら、`code` を `ambiguous_attribute` にし、候補の `source` を `sources` に入れます'
-      - id: PW-ISSUE-EDIT-08
-        pattern: unwanted
-        statement: 'もし pecot の進行の欄か組み込みの Status を渡したなら、`code` を `read_only_attribute` にし、`board_move` を使うよう `hint` に入れます'
-      - id: PW-ISSUE-EDIT-09
-        pattern: unwanted
-        statement: 'もし値が種類と合わないか、選択肢の外か、担当にできないログイン名なら、`code` を `invalid_value` にして取りうる値を `expected` に入れます'
-      - id: PW-ISSUE-EDIT-10
-        pattern: unwanted
-        statement: 'もし Issue が設定のボードに無いのにボードのフィールドを渡したなら、`code` を `not_on_board` にし、`board_add` を使うよう `hint` に入れます'
-      - id: PW-ISSUE-EDIT-11
-        pattern: unwanted
-        statement: 'もし機能の定義を読めなかった `source` の名前を渡したなら、`code` を `unreadable_attribute` にし、読めなかった理由を `hint` に入れます'
-      - id: PW-ISSUE-EDIT-12
-        pattern: unwanted
-        statement: 'もし Issue fields の書き込みを GitHub が拒んだなら、ほかの機能を書き続けます。その機能と GitHub の理由を `failed` に入れ、`kind` が `partial-failure` の失敗を返します'
-      - id: PW-ISSUE-EDIT-13
-        pattern: unwanted
-        statement: 'もし GitHub が組み込みの機能の値を捨てたなら、その機能を `failed` に入れ、`kind` が `partial-failure` の失敗を返します'
-      - id: PW-ISSUE-EDIT-14
-        pattern: unwanted
-        statement: 'もし対象のリポを含む設定が無いなら、`kind` が `repo-not-in-project` の失敗を返します'
-      - id: PW-ISSUE-EDIT-15
-        pattern: unwanted
-        statement: 'もし GitHub API がエラーを返したなら、失敗を返します'
-  PW-ISSUE-REOPEN:
-    summary: 閉じた Issue を開き直し、ボードの status も設定します。
+        statement: 'もし `method` が `add`・`update` のどちらでもないなら、`kind` が `invalid-input` の失敗を返します'
+  PW-ISSUE-DEPENDENCY-CHECK:
+    summary: '公式の MCP の `issue_dependency_write` に渡す値を、書く前に pecot の決まりに照らし、書いた後に動かす列を返します。GitHub を読み書きしません。'
     arguments:
-      comment: '開き直す理由です。コメントとして投稿します。'
-      issue_ref: 'Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。'
-      status: '開き直した後の status です。`backlog`・`pending`・`blocked`・`ready`・`active`・`in_review`・`archived` のどれかを渡します。'
-      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
+      method: '`add` か `remove` です。公式の `issue_dependency_write` の `method` と同じです。'
+      owner: '待つ側の Issue のリポのオーナーです。'
+      repo: '待つ側の Issue のリポの名前です。'
+      issue_number: '待つ側の Issue の番号です。'
+      related_owner: '前提の Issue のリポのオーナーです。省くと `owner` と同じです。'
+      related_repo: '前提の Issue のリポの名前です。省くと `repo` と同じです。'
+      related_issue_number: '前提の Issue の番号です。'
+      type: '公式の `issue_dependency_write` の `type` と同じです。pecot は `blocked_by` だけを書きます。'
+      wait: '`add` のときだけ渡します。`stack`（前提のブランチの上に作る。既定）か `merge`（マージを待つ）です。'
+      reason: '`add` で `wait` が `merge` のときだけ渡します。マージを待つ理由の 1 行です。'
+      project: '使うプロジェクトの設定の名前です。`.pecot/config/projects` の下のファイル名から `.json` を除いたものです。省くと、待つ側のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブなプロジェクトを使います。'
+      reads: '決まりを確かめるのに要る、公式の MCP の読み取りの結果です。待つ側と前提の Issue・blocked-by・前提を閉じる PR・ボードの欄とカードを、結果のまま渡します。'
     constraints: []
     details:
-      - '閉じた Issue を開き直し、プロジェクトのボードの status を設定します。'
-      - '`status` の値を設定します。渡さなければ `ready` にします。'
-      - 'status を設定してから 3 秒待ち、Issue をもう一度開き直します。ボードの自動化が Issue を閉じ直すことがあるためです。'
-      - '`comment` を渡すと、Issue を開き直した後で、渡した理由をコメントとして投稿します。'
-      - '`comment` を渡して呼ぶたびに、コメントが 1 件増えます。'
-      - 'ボードに無い Issue は、`warnings` に入れて開き直し、status は変えません。'
-      - 'ボードの項目がアーカイブ済みのときは、status を設定する前にアーカイブを解き、結果の `unarchived` を `true` にします。'
-      - '組み込みの `Status` が `Done` の項目は、Issue を開き直す前に値を消し、結果の `doneCleared` を `true` にします。'
-      - '`Done` が残ると、ボードの自動化（Auto-close issue）が Issue を閉じ直すことがあります。'
-      - '参照の短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
-      - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
-    stdin: none
-    output:
-      format: none
-    mcp_output:
-      fields:
-        issue: '再び開いた Issue です。`owner/repo/N` の形です。'
-        status: 'ボードに設定した Status です。Issue がボードに無いときと、Status が設定されていないときは入りません。'
-        unarchived: 'ボードの項目の Archived を解いたかどうかです。'
-        doneCleared: 'ボードの項目の組み込みの `Status` の `Done` を消したかどうかです。'
-        commented: '理由をコメントに投稿したかどうかです。'
-    diagnostics: '標準エラーに、結果の行を出します。`updated`（アーカイブの解除）、`removed`（`Status` の `Done` の消去）、`set`（status）、`reopened`（Issue）、`created`（コメント）です。Issue がボードに無いときと、status がプロジェクトに設定されていないとき、`Status` の `Done` を消せないときは、`warning` の行を出します。値が `blocked` のときは、`hint` の行が `project_init` の呼び出しを案内します。失敗ごとに `error` の行を出します。'
-    environment: []
-    exit_status:
-      - kind: invalid-input
-        when: 'status が有効な値ではありません。'
-      - kind: no-active-project
-        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`project` もありません。'
-      - kind: project-not-found
-        when: '`project` の名前の設定がありません。'
-      - kind: repo-not-in-project
-        when: 'リポジトリがプロジェクトにありません。'
-      - kind: other
-        when: '2 回目に開き直した後も、Issue が open ではありません。'
-      - kind: invalid-input
-        when: 'Issue の参照の形が誤っているか、ほかの引数の誤りがあります。'
-      - kind: github-auth
-        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
-      - kind: github-not-found
-        when: 'GitHub に対象が見つかりません。'
-      - kind: github-rate-limit
-        when: 'GitHub API のレート制限に当たりました。'
-      - kind: github-api
-        when: 'GitHub API がほかのエラーを返しました。'
-      - kind: project-root-not-found
-        when: 'プロジェクトのルートを決められません。'
-      - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
-      - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: 'コメントの投稿に失敗したときは、Issue は新しい status で open のまま残り、失敗を返します。2 回目に開き直した後も Issue が open でないときは、status は変わったまま残り、失敗を返します。`Status` の `Done` を消した後で Issue を開き直せないときは、閉じた Issue と空の `Status` が残り、失敗を返します。同じ引数で呼び直せば開き直します。'
-    effects:
-      - target: github
-        kind: write
-        what: 'Issue にコメントを投稿します。'
-      - target: github
-        kind: destructive
-        what: 'Issue を開き直します。ボードの項目は、アーカイブを解き、組み込みの `Status` の `Done` を消し、status のフィールドを設定します。'
-      - target: github
-        kind: read
-        what: 'プロジェクトにつながっているリポジトリと、Issue のボードの項目を読みます。'
-      - target: file
-        kind: read
-        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
-    prerequisites:
-      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `project` で選びます。'
-      - 'ホストの GitHub トークンが要ります。'
-    idempotent: true
-    examples:
-      - arguments:
-          issue_ref: example-org/my-repo/12
-          status: active
-          comment: The fix did not hold.
-        note: 'Issue を `active` で開き直し、理由を残します。'
-    default_notes:
-      issue_ref: '短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
-    behaviors:
-      - id: PW-ISSUE-REOPEN-01
-        pattern: event
-        statement: '閉じた Issue の参照を渡すと、その Issue を reopen します'
-      - id: PW-ISSUE-REOPEN-02
-        pattern: event
-        statement: 'Issue を reopen すると、ボードの status を `status` の値にします'
-      - id: PW-ISSUE-REOPEN-03
-        pattern: event
-        statement: '`status` を省いて呼ぶと、ボードの status を `ready` にします'
-      - id: PW-ISSUE-REOPEN-04
-        pattern: event
-        statement: 'status を設定すると、3 秒待ってからもう一度 reopen します'
-      - id: PW-ISSUE-REOPEN-05
-        pattern: event
-        statement: '`comment` を渡して呼ぶと、reopen の後に理由をコメントに投稿します'
-      - id: PW-ISSUE-REOPEN-06
-        pattern: event
-        statement: '`comment` を渡して 2 回呼ぶと、そのたびにコメントを投稿します'
-      - id: PW-ISSUE-REOPEN-07
-        pattern: event
-        statement: 'status を設定すると、結果の `status` にその値を入れます'
-      - id: PW-ISSUE-REOPEN-08
-        pattern: event
-        statement: 'Issue を reopen すると、結果の `issue` にその Issue を入れます'
-      - id: PW-ISSUE-REOPEN-09
-        pattern: event
-        statement: 'コメントを投稿すると、結果の `commented` を `true` にします'
-      - id: PW-ISSUE-REOPEN-10
-        pattern: unwanted
-        statement: 'もし Issue がボードに無いなら、`warnings` に入れます'
-      - id: PW-ISSUE-REOPEN-11
-        pattern: unwanted
-        statement: 'もし Issue がボードに無いなら、status を変えずに reopen だけを行います'
-      - id: PW-ISSUE-REOPEN-12
-        pattern: unwanted
-        statement: 'もし status がプロジェクトに設定されていないなら、`warnings` に入れます'
-      - id: PW-ISSUE-REOPEN-13
-        pattern: unwanted
-        statement: 'もし 2 回目の reopen の後も Issue が open でないなら、`kind` が `other` の失敗を返します'
-      - id: PW-ISSUE-REOPEN-14
-        pattern: unwanted
-        statement: 'もしコメントの投稿に失敗したなら、コメントを投稿できなかったと分かる `detail` を入れて、失敗を返します'
-      - id: PW-ISSUE-REOPEN-15
-        pattern: unwanted
-        statement: 'もし `status` が有効な値でないなら、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-REOPEN-16
-        pattern: unwanted
-        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、`kind` が `no-active-project` の失敗を返します。`detail` に候補の名前と `project` の案内を入れます'
-      - id: PW-ISSUE-REOPEN-17
-        pattern: unwanted
-        statement: 'もしリポジトリがプロジェクトに無いなら、`kind` が `repo-not-in-project` の失敗を返します'
-      - id: PW-ISSUE-REOPEN-18
-        pattern: unwanted
-        statement: 'もし GitHub API がエラーを返したなら、失敗を返します'
-      - id: PW-ISSUE-REOPEN-19
-        pattern: unwanted
-        statement: 'もし Issue の参照の形が誤っているなら、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-REOPEN-20
-        pattern: unwanted
-        statement: 'もし status が `blocked` でボードが Blocked を定義していないなら、`project_init` で足し方を案内する文を `warnings` に入れます'
-      - id: PW-ISSUE-REOPEN-22
-        pattern: event
-        statement: 'ボードの項目がアーカイブ済みの Issue を開き直すと、Status を設定する前にアーカイブを解き、結果の `unarchived` を `true` にします'
-      - id: PW-ISSUE-REOPEN-23
-        pattern: unwanted
-        statement: 'もしアーカイブを解けないなら、Issue を開かずに失敗を返します。`detail` は `could not unarchive Issue <ref> on the board: ...` です'
-      - id: PW-ISSUE-REOPEN-24
-        pattern: unwanted
-        statement: 'もし Status の書き込みに失敗したなら、書けなかった Status を `warnings` に入れ、reopen とコメントの投稿を続けます。選択肢の ID が古くて書けないときは、ID を読み直す `project_activate` の案内を添えます'
-      - id: PW-ISSUE-REOPEN-25
-        pattern: unwanted
-        statement: 'もし `comment` が空白だけなら、Issue を開き直さずボードにも書かずに、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-REOPEN-26
-        pattern: event
-        statement: 'ボードの項目の組み込みの `Status` が `Done` の Issue を開き直すと、開き直す前に `Status` の値を消し、結果の `doneCleared` を `true` にします'
-      - id: PW-ISSUE-REOPEN-27
-        pattern: unwanted
-        statement: 'もし `Status` の `Done` を消せないなら、ボードの自動化が閉じ直しうることを `warnings` で伝え、reopen とコメントの投稿を続けます'
-      - id: PW-ISSUE-REOPEN-28
-        pattern: unwanted
-        statement: 'もし対象のリポを含む設定が無いなら、`kind` が `repo-not-in-project` の失敗を返します'
-      - id: PW-ISSUE-REOPEN-29
-        pattern: event
-        statement: '`project` に設定の名前を渡して呼ぶと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
-  PW-ISSUE-SHOW:
-    summary: Issue の詳細を、必要な項目だけ GraphQL で取得して出します。
-    arguments:
-      comment_limit: '返すコメントの数です。0 から 20 で渡します。0 にすると、コメントを返しません。'
-      issue_ref: 'Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。'
-      json: 'JSON で出力するかどうかです。結果の項目は、この値によらず同じです。'
-      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
-    constraints: []
-    details:
-      - 'GraphQL のクエリ 1 回で、Issue を 1 件取得します。'
-      - '題・状態・親 Issue・紐づいたブランチ・紐づいた PR・sub-issue・本文・コメントを返します。'
-      - 'blocked-by のある Issue では、前提を並べた `blockedBy` と、判定の `readiness` も返します。'
-      - 'blocked-by を読めないときは、`warnings` に入れ、Issue の残りを今までどおり返します。'
-      - '値の入っている機能を、`attributes` に返します。機能は、設定のボードのフィールド・Issue fields・組み込みの機能（担当者・マイルストーン・Issue type・ラベル・`parent`・`blocked_by`）です。'
-      - 'pecot が扱えない種類の値は、`unsupported` に名前と GitHub の種類を返します。'
-      - '機能の値の一部（ボード・Issue fields）を読めないときは、`warnings` に入れ、読めた値を返します。値を読む要求が失敗したときは、`warnings` に入れ、`attributes` と `unsupported` を `null` にします。'
-      - 'コメントは、多くても `comment_limit` 件まで返します。値は 0 から 20 で、0 にするとコメントを返しません。'
-      - '`json` を付けても、結果の項目は変わりません。'
-      - '参照の短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
-      - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
+      - '値を受けて、決まりに外れた所を `problems` に返します。GitHub を読み書きしません。'
+      - '向き・待ち方・理由・自分自身や輪になる前提・すでにある前提・前提の数の上限を見ます。'
+      - '書いた後に待つ側の Issue を置く列を `expected_status` に、本文の `Waits for merge` の節の書き換えを `waits_for_merge` に返します。'
+      - '前提の PR を読んでいないときは、スタックできるかを決めず、`expected_status` を返しません。読む PR を `warning` の行で案内します。'
     stdin: none
     output:
       format: text
-      description: '`## #<N> <title>` の見出しで始まる Markdown です。続けて、状態、親、Blocked by と Readiness の行、Attributes の節、紐づいたブランチ、紐づいた PR、sub-issue、本文、コメントを出します。Attributes の節は、機能ごとに `  - <name>: <value>` の行を並べます。続けて、扱えない機能を `  - <name>: unsupported (<GitHub の種類>)` の行で並べます。`json` を付けると、同じデータに `blockedBy`・`readiness`・`attributes`・`unsupported` を足した JSON のオブジェクトです。'
+      description: '外れた所が無ければ `ok` の 1 行です。あれば、外れた所ごとに `<引数>: <内容>` の行を出します。動かす列と本文の書き換えがあれば、続けて 1 行ずつ出します。'
     mcp_output:
       fields:
-        number: 'Issue の番号です。キーは snake_case です。'
-        state: 'Issue の状態です。`OPEN` か `CLOSED` です。'
-        title: 'Issue のタイトルです。'
-        body: 'Issue の本文です。'
-        comments: 'コメントです。`total_count`（全コメントの数）と `nodes`（新しいほうから `comment_limit` 件）を持ちます。`nodes` の要素は `author`・`created_at`・`body` を持ちます。削除されたユーザーの `author` は `ghost` です。'
-        parent: '親の Issue です。`number`・`title`・`state`・`owner`・`repo` を持ちます。親が無いときは `null` です。'
-        sub_issues: 'sub-issue の配列です。要素は `number`・`state`・`title` を持ちます。'
-        linked_branches: 'Issue に紐づいたブランチ名の配列です。'
-        linked_prs: 'Issue に紐づいた PR の配列です。要素は `number`・`title`・`state` を持ちます。'
-        owner: 'Issue があるリポジトリのオーナーです。'
-        repo: 'Issue があるリポジトリの名前です。'
-        blockedBy: '前提（blocked-by）の配列です。読めなかったときは `null` です。要素は `number`・`repository`・`state`・`wait`・`reason` を持ちます。`wait` は `stack` か `merge`、`reason` は Waits for merge の節に書いた理由（無ければ `null`）です。'
-        readiness: 'Readiness の判定です。判定できなかったときは `null` です。`kind`（`startable`・`stackable`・`blocked`）・`stackOn`・`reason`・`text` を持ちます。`stackOn` はスタック先の前提で、`stackable` 以外は `null` です。`reason` は `blocked` の理由の符号で、`blocked` 以外は `null` です。'
-        attributes: '値の入っている機能の配列です。読めなかったときは `null` です。要素は `name`・`source`（`project`・`issue_field`・`issue`）・`kind`・`value` を持ちます。`value` は、選択・Iteration・マイルストーン・Issue type では名前です。複数選択・担当者・ラベル・`blocked_by` では配列、数では数です。日付では `YYYY-MM-DD`、`parent` では `owner/repo/N` です。'
-        unsupported: '値は入っているが pecot が扱えない種類の機能の配列です。読めなかったときは `null` です。要素は `name`・`source`・`github_type` を持ちます。'
-    diagnostics: '本文の Waits for merge の節が blocked-by と食い違うか、形が誤っているときは、`warning` の行を出します。blocked-by を読めないときと、機能の値を読めないときも、`warning` の行を出します。'
+        problems: '決まりに外れた所の配列です。要素は `field`・`code`・`message` を必ず持ちます。受け付ける値が決まっているときは `candidates` に入れます。空なら、値をそのまま書けます。'
+        expected_status: '書いた後に待つ側の Issue を動かす列（`pecot-status`）の、ボードの選択肢の名前です。列が変わらないときと、決められないときは入りません。'
+        waits_for_merge: '本文の `Waits for merge` の節に、前提の行を足すなら `add`、消すなら `remove` です。本文を直す必要が無いときは入りません。'
+    diagnostics: '前提の PR を読んでおらず、スタックできるかを決められないときに、読む PR を `warning` の行で案内します。'
     environment: []
     exit_status:
-      - kind: no-active-project
-        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`project` もありません。'
-      - kind: repo-not-in-project
-        when: '対象のリポを含むプロジェクトの設定がありません。`project` で選んだ設定が対象のリポを含まないときも含みます。'
-      - kind: project-not-found
-        when: '`project` の名前の設定がありません。'
+      - kind: github-mcp-shape
+        when: '`reads` に渡した値が、公式の GitHub MCP のツールの結果の形と違います。'
       - kind: invalid-input
-        when: 'Issue の参照の形が誤っています。`comment_limit` が 0 から 20 の外のときと、ほかの引数の誤りも含みます。'
-      - kind: github-auth
-        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
-      - kind: github-not-found
-        when: 'GitHub に対象が見つかりません。'
-      - kind: github-rate-limit
-        when: 'GitHub API のレート制限に当たりました。'
-      - kind: github-api
-        when: 'GitHub API がほかのエラーを返しました。'
+        when: '引数の形が誤っています。'
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
@@ -1924,267 +821,55 @@ entries:
         when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
     on_error: default
     effects:
-      - target: github
-        kind: read
-        what: 'Issue と、その親・sub-issue・紐づいたブランチ・紐づいた PR・コメントを読みます。blocked-by と、それぞれの前提の状態も読みます。担当者・マイルストーン・Issue type・ラベル・Issue fields の値と、設定のボードのフィールドの値も読みます。'
       - target: file
         kind: read
-        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
+        what: 'プロジェクトの設定ファイルを読みます。'
     prerequisites:
-      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `project` で選びます。'
-      - 'ホストの GitHub トークンが要ります。'
+      - '待つ側のリポを `repositories` に持つプロジェクトの設定が要ります。無いときは、失敗にせず `not-in-project` の項目を返します。'
     idempotent: true
     examples:
       - arguments:
-          issue_ref: example-org/my-repo/12
-        note: 'Issue の詳細を返します。'
-      - arguments:
-          issue_ref: example-org/my-repo/12
-          json: true
-          comment_limit: 0
-        note: 'Issue の詳細を、コメントなしで返します。'
-    default_notes:
-      issue_ref: '短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
+          method: add
+          owner: acme
+          repo: demo
+          issue_number: 7
+          related_issue_number: 5
+          type: blocked_by
+          wait: merge
+          reason: 'API の形が決まるまで待つ'
+        note: '前提を付けてよいかを確かめ、書いた後に動かす列と本文の書き換えを返します。'
+    default_notes: {}
     behaviors:
-      - id: PW-ISSUE-SHOW-01
+      - id: PW-ISSUE-DEPENDENCY-CHECK-01
         pattern: event
-        statement: 'Issue の参照を渡すと、番号・題・状態・本文を結果の `number`・`title`・`state`・`body` に入れます'
-      - id: PW-ISSUE-SHOW-02
+        statement: '`method` が `add` の値を受けると、GitHub を読み書きせずに、`problems` と、書いた後に動かす列と本文の書き換えを返します'
+      - id: PW-ISSUE-DEPENDENCY-CHECK-02
+        pattern: state
+        statement: '前提の PR を読んでいないか、PR の base を辿れない間、`expected_status` を返さず、読む PR を `warning` の行で案内します'
+      - id: PW-ISSUE-DEPENDENCY-CHECK-03
         pattern: event
-        statement: '親 Issue がある Issue を読むと、親 Issue を `parent` に入れます'
-      - id: PW-ISSUE-SHOW-03
+        statement: '前提の PR を `reads` で受けると、スタックできるなら `Ready`、できないなら `Blocked` を `expected_status` に返します'
+      - id: PW-ISSUE-DEPENDENCY-CHECK-04
+        pattern: unwanted
+        statement: 'もし前提がすでにあるか、自分自身か輪になるか、前提の数が上限を超えるなら、項目を返します'
+      - id: PW-ISSUE-DEPENDENCY-CHECK-05
+        pattern: unwanted
+        statement: 'もし決まりを確かめるのに要る読み取りが `reads` に無いか、続きのページがあるなら、読むツールを項目で案内します'
+      - id: PW-ISSUE-DEPENDENCY-CHECK-06
         pattern: event
-        statement: 'リンクされたブランチがある Issue を読むと、そのブランチを `linked_branches` に入れます'
-      - id: PW-ISSUE-SHOW-04
-        pattern: event
-        statement: 'リンクされた PR がある Issue を読むと、その PR を `linked_prs` に入れます'
-      - id: PW-ISSUE-SHOW-05
-        pattern: event
-        statement: 'sub-issue がある Issue を読むと、sub-issue を `sub_issues` に入れます'
-      - id: PW-ISSUE-SHOW-06
-        pattern: event
-        statement: 'コメントがある Issue を読むと、`comment_limit` 件までのコメントを `comments` に入れます'
-      - id: PW-ISSUE-SHOW-07
-        pattern: event
-        statement: '`comment_limit` に 0 を渡して呼ぶと、コメントを返しません'
-      - id: PW-ISSUE-SHOW-08
-        pattern: event
-        statement: '`json` を付けて呼ぶと、同じ内容を JSON にします。結果の項目は、`json` を省いたときと同じです'
-      - id: PW-ISSUE-SHOW-09
-        pattern: event
-        statement: '短い形 `N` の参照を渡すと、`repo` か git の remote で補って読みます'
-      - id: PW-ISSUE-SHOW-10
+        statement: '`method` が `remove` の値を受けると、`problems` と、書いた後に動かす列と本文の書き換えを返します'
+      - id: PW-ISSUE-DEPENDENCY-CHECK-07
         pattern: unwanted
-        statement: 'もし Issue の参照の形が誤っているなら、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-SHOW-11
+        statement: 'もし `remove` で前提に無い Issue を指すか、`wait`・`reason` を渡すなら、項目を返します'
+      - id: PW-ISSUE-DEPENDENCY-CHECK-08
         pattern: unwanted
-        statement: 'もし `comment_limit` が 0 から 20 の外なら、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-SHOW-12
+        statement: 'もし `type` が `blocking` か、`reason` が待ち方に合わないなら、項目を返します'
+      - id: PW-ISSUE-DEPENDENCY-CHECK-09
         pattern: unwanted
-        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、`kind` が `no-active-project` の失敗を返します。`detail` に候補の名前と `project` の案内を入れます'
-      - id: PW-ISSUE-SHOW-13
+        statement: 'もし待つ側のリポがプロジェクトに無いなら、`not-in-project` の項目を返します'
+      - id: PW-ISSUE-DEPENDENCY-CHECK-10
         pattern: unwanted
-        statement: 'もし GitHub API がエラーを返したなら、失敗を返します'
-      - id: PW-ISSUE-SHOW-14
-        pattern: event
-        statement: '前提がある Issue を読むと、前提を `blockedBy` に、判定を `readiness` に入れます'
-      - id: PW-ISSUE-SHOW-15
-        pattern: event
-        statement: '前提が無い Issue を読むと、`blockedBy` を空の配列にします'
-      - id: PW-ISSUE-SHOW-16
-        pattern: unwanted
-        statement: 'もし本文の Waits for merge の節が blocked by と食い違うか読めないなら、`warnings` に入れて読み続けます'
-      - id: PW-ISSUE-SHOW-17
-        pattern: event
-        statement: '呼ぶと、結果に `blockedBy` と `readiness` を足します'
-      - id: PW-ISSUE-SHOW-18
-        pattern: unwanted
-        statement: 'もし前提を読めないなら、`warnings` に入れ、ほかの項目を今までどおり返します'
-      - id: PW-ISSUE-SHOW-19
-        pattern: unwanted
-        statement: 'もし済んでいない前提があり、リポに `develop_branch` が無いなら、`blockedBy` に前提を入れて `readiness` を `null` にします。`warnings` にも入れます'
-      - id: PW-ISSUE-SHOW-20
-        pattern: unwanted
-        statement: 'もし前提のスタック先の PR を読めないなら、`warnings` に入れ、`blockedBy` に前提を入れて、`readiness` を `null` にします'
-      - id: PW-ISSUE-SHOW-21
-        pattern: unwanted
-        statement: 'もし GitHub Enterprise Server が Issue の依存関係に対応しないなら、`warnings` に入れ、`blockedBy` と `readiness` を `null` にします'
-      - id: PW-ISSUE-SHOW-22
-        pattern: event
-        statement: '前提が 0 件の Issue を読むと、前提を個別に読まず、判定を `startable` にします'
-      - id: PW-ISSUE-SHOW-23
-        pattern: unwanted
-        statement: 'もし対象のリポを含む設定が無いなら、`kind` が `repo-not-in-project` の失敗を返します'
-      - id: PW-ISSUE-SHOW-24
-        pattern: event
-        statement: '`project` に設定の名前を渡して呼ぶと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
-      - id: PW-ISSUE-SHOW-25
-        pattern: event
-        statement: '値の入っている機能がある Issue を読むと、その値を `name`・`source`・`kind`・`value` で `attributes` に入れます。対象は、設定のボードのフィールド・Issue fields・組み込みの機能です'
-      - id: PW-ISSUE-SHOW-26
-        pattern: event
-        statement: '親か前提がある Issue を読むと、`parent` と `blocked_by` を `owner/repo/N` の形で `attributes` に入れます'
-      - id: PW-ISSUE-SHOW-27
-        pattern: event
-        statement: '呼ぶと、Issue field を写したボードの値と、組み込みの機能を写すボードの値を、`source` が `project` の値に入れません'
-      - id: PW-ISSUE-SHOW-28
-        pattern: unwanted
-        statement: 'もし値の種類を pecot が扱えないなら、名前と GitHub の種類を `unsupported` に入れます'
-      - id: PW-ISSUE-SHOW-29
-        pattern: unwanted
-        statement: 'もし機能の値の一部（ボード・Issue fields）を読めないなら、`warnings` に入れ、読めた値を `attributes` に返します'
-      - id: PW-ISSUE-SHOW-30
-        pattern: unwanted
-        statement: 'もし機能の値を読む要求が失敗したなら、`warnings` に入れ、`attributes` と `unsupported` を `null` にし、ほかの項目を今までどおり返します'
-      - id: PW-ISSUE-SHOW-31
-        pattern: event
-        statement: '値の入っている機能がある Issue を `json` なしで読むと、ヘッダの行の後に `**Attributes:**` の節を出します'
-  PW-ISSUE-UNBLOCK:
-    summary: 'Issue から blocked-by（前提）を外します。'
-    arguments:
-      by: '外す前提の Issue です。`owner/repo/N` の形で渡します。別のリポジトリの Issue も指せます。'
-      issue_ref: '待つ側の Issue の参照です。`owner/repo/N` か、番号だけの短い形 `N` で渡します。短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
-      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、Issue のリポジトリを含む設定を使います。'
-    constraints: []
-    details:
-      - 'Issue から blocked-by（前提）を外します。'
-      - '`issue_ref` は待つ側の Issue で、`by` は外す前提です。`by` は別のリポジトリの Issue でもかまいません。'
-      - 'まず、待つ側の Issue の blocked-by を読みます。付いていない前提は外しません。`Waits for merge` の節に残った古い行も、そのままにします。食い違いは `issue_show` が `warnings` で知らせます。前提が付いていなければ、何も書かずに成功を返します。'
-      - '節に前提の行があるときは、その行を外します。節が空になったときは、見出しごと消します。'
-      - '節を読めないときは、blocked-by だけを外し、節を直していない旨を `warnings` で知らせます。外すことが利用者の求めることだからです。'
-      - '書き込みの後で、待つ側の Issue の判定を読み直して確かめ、`issue_block` と同じやり方で、列と Status の札を動かします。'
-      - 'Status の札の `Needs Attention` を `Todo` に戻すのは、前提が残っているときか、外した前提が閉じていたときだけです。人がほかの理由で付けた札は、開いた最後の前提を外しても外しません。自動処理が人の対応を待って付けた札も、戻しません。'
-      - 'ブランチか PR のある Issue は動かしません。'
-      - 'Issue の依存関係を持つ GitHub Enterprise Server の 3.19 以上が要ります。'
-      - '参照の短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
-      - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、Issue のリポジトリを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
-    stdin: none
-    output:
-      format: none
-    mcp_output:
-      fields:
-        issue: '待たせていた側の Issue です。`owner/repo/N` の形です。'
-        by: '前提の Issue です。`owner/repo/N` の形です。'
-        change: 'blocked-by がどうなったかです。`removed`（外した）か `unchanged`（もともと blocked-by ではなかった）です。'
-        moves: '待つ側の Issue の列か Status を書いたときに、その 1 件を入れる配列です。要素は `issue`・`reason` を必ず持ち、列を動かしたときは `from`・`to`、Status を書いたときは `label` も持ちます。書かなかったときは空です。判定を確かめられなかったときと、ボードに書けなかったときも空で、理由は `warnings` に入ります。'
-    diagnostics: '標準エラーに、結果の行を出します。blocked-by には `removed` か `unchanged` を出し、列か札を変えたときは続けて `moved` と `set` を出します。`warning` の行は、次のときに出します。`Waits for merge` の節を読めないとき。判定を出せないか、確かめられないとき。ボードに Todo の選択肢が無いとき。ボードに書けなかったとき。Todo が無いときは、`project_init` の呼び出しを案内する `hint` の行が続きます。失敗ごとに `error` の行を出します。'
-    environment: []
-    exit_status:
-      - kind: no-active-project
-        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`project` もありません。'
-      - kind: project-not-found
-        when: '`project` の名前の設定がありません。'
-      - kind: repo-not-in-project
-        when: '待つ側の Issue のリポジトリがプロジェクトにありません。'
-      - kind: dependency-unreadable
-        when: 'blocked-by を全部は読めませんでした。'
-      - kind: dependency-rejected
-        when: 'GitHub Enterprise Server が Issue の依存関係に対応していません。'
-      - kind: invalid-input
-        when: 'Issue の参照の形が誤っているか、ほかの引数の誤りがあります。'
-      - kind: github-auth
-        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
-      - kind: github-not-found
-        when: 'GitHub に対象が見つかりません。'
-      - kind: github-rate-limit
-        when: 'GitHub API のレート制限に当たりました。'
-      - kind: github-api
-        when: 'GitHub API がほかのエラーを返しました。'
-      - kind: project-root-not-found
-        when: 'プロジェクトのルートを決められません。'
-      - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
-      - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
-    on_error: '前提を外した後で本文の書き込みに失敗したときは、blocked-by は外れたままで、失敗を返します。ボードに書けないときは、blocked-by と本文は残り、`warnings` に入れるだけです。選択肢の ID が古くて書けないときは、ID を読み直す `project_activate` の案内を添えます。節かボードに関する `warnings` だけのときは、成功を返します。'
-    effects:
-      - target: github
-        kind: destructive
-        what: 'blocked-by を外し、待つ側の Issue の本文を書き換え、そのボードの項目の列と Status の札を設定します。'
-      - target: github
-        kind: read
-        what: 'プロジェクトにつながっているリポジトリ、待つ側の Issue の blocked-by と本文、読み直した判定、ボードの項目を読みます。待つ側の Issue の札が `Needs Attention` で着手の跡が無いときは、そのコメントも読みます。'
-      - target: file
-        kind: read
-        what: 'プロジェクトの設定ファイルを読みます。対象のリポを含む設定を探すため、`.pecot/config/projects` の設定ファイルとアクティブな設定ファイルを全部読みます。'
-    prerequisites:
-      - '対象のリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、アクティブなプロジェクトか `project` で選びます。'
-      - 'ホストの GitHub トークンが要ります。'
-    idempotent: true
-    examples:
-      - arguments:
-          issue_ref: example-org/my-repo/12
-          by: example-org/my-repo/11
-        note: 'Issue 12 が Issue 11 を待つのをやめます。'
-    default_notes:
-      issue_ref: '短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、セッションのディレクトリの git remote で補います。'
-    behaviors:
-      - id: PW-ISSUE-UNBLOCK-01
-        pattern: event
-        statement: 'Issue の参照と `by` を渡すと、blocked-by から前提を外し、結果の `change` を `removed` にします'
-      - id: PW-ISSUE-UNBLOCK-02
-        pattern: event
-        statement: '付いていない前提を渡すと、何も書き込まずに `change` を `unchanged` にし、節に残った古い行も書き換えません'
-      - id: PW-ISSUE-UNBLOCK-03
-        pattern: event
-        statement: '節に前提の行があるものを外すと、その行を節から消し、節が空になれば節ごと消します'
-      - id: PW-ISSUE-UNBLOCK-04
-        pattern: event
-        statement: '前提を外した後に判定が変わると、待つ側の Issue の列を動かして、その動きを `moves` に入れます'
-      - id: PW-ISSUE-UNBLOCK-05
-        pattern: event
-        statement: '札が `Needs Attention` で、残りの前提がある、または外した前提が閉じていると、札を `Todo` へ戻して `moves` に入れます'
-      - id: PW-ISSUE-UNBLOCK-06
-        pattern: unwanted
-        statement: 'もし外したのが開いた最後の前提なら、札が `Needs Attention` でも `Todo` に戻しません'
-      - id: PW-ISSUE-UNBLOCK-07
-        pattern: unwanted
-        statement: 'もし待つ側の Issue に着手の跡があるなら、前提は外して列と札を動かしません'
-      - id: PW-ISSUE-UNBLOCK-09
-        pattern: unwanted
-        statement: 'もし本文の `Waits for merge` の節が読めないなら、前提だけを外し、節を直していない旨を `warnings` に入れます'
-      - id: PW-ISSUE-UNBLOCK-10
-        pattern: unwanted
-        statement: 'もし読み直した前提が書いた内容と 2 回続けて合わないなら、列と札を動かさず、その旨を `warnings` で知らせます'
-      - id: PW-ISSUE-UNBLOCK-11
-        pattern: unwanted
-        statement: 'もし動かす先の値がボードに無いなら、`project_init` で足し方を案内する文を `warnings` に入れます'
-      - id: PW-ISSUE-UNBLOCK-12
-        pattern: unwanted
-        statement: 'もし GitHub Enterprise Server が Issue の依存関係に対応しないなら、`kind` が `dependency-rejected` の失敗を返します'
-      - id: PW-ISSUE-UNBLOCK-13
-        pattern: unwanted
-        statement: 'もし Issue の参照の形が誤っているなら、`kind` が `invalid-input` の失敗を返します'
-      - id: PW-ISSUE-UNBLOCK-14
-        pattern: unwanted
-        statement: 'もしリポジトリがプロジェクトに無いなら、`kind` が `repo-not-in-project` の失敗を返します'
-      - id: PW-ISSUE-UNBLOCK-15
-        pattern: unwanted
-        statement: 'もし対象のリポを含む設定が 2 つ以上あり、アクティブなプロジェクトがそのどれも指さないなら、`kind` が `no-active-project` の失敗を返します。`detail` に候補の名前と `project` の案内を入れます'
-      - id: PW-ISSUE-UNBLOCK-16
-        pattern: unwanted
-        statement: 'もし GitHub API がエラーを返したなら、または本文の書き込みに失敗したなら、失敗を返します'
-      - id: PW-ISSUE-UNBLOCK-17
-        pattern: event
-        statement: '`by` でプロジェクトの外のリポジトリの Issue を指すと、プロジェクトに入っているかは待つ側のリポジトリだけ確かめ、前提を外します'
-      - id: PW-ISSUE-UNBLOCK-18
-        pattern: event
-        statement: '呼ぶと、書いた列と札を `moves` で返し、書かなかったときは空の `moves` を返します'
-      - id: PW-ISSUE-UNBLOCK-19
-        pattern: unwanted
-        statement: 'もし列を書けないなら、`warnings` に入れ、前提を外したまま成功を返します。選択肢の ID が古くて書けないときは、ID を読み直す `project_activate` の案内を添えます'
-      - id: PW-ISSUE-UNBLOCK-20
-        pattern: unwanted
-        statement: 'もし対象のリポを含む設定が無いなら、`kind` が `repo-not-in-project` の失敗を返します'
-      - id: PW-ISSUE-UNBLOCK-21
-        pattern: event
-        statement: '`project` に設定の名前を渡して呼ぶと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います'
-      - id: PW-ISSUE-UNBLOCK-22
-        pattern: unwanted
-        statement: 'もし待つ側の札が `Needs Attention` で、bot が書いた最後の結果のコメントが `question`・`failed`・`limit` のどれかなら、閉じた前提を外しても札を `Todo` に戻しません'
-      - id: PW-ISSUE-UNBLOCK-23
-        pattern: unwanted
-        statement: 'もし外した後の待つ側の Issue の判定を読めないなら、前提は外したまま列と札を動かさず、判定を出せない旨を `warnings` に入れて成功を返します'
+        statement: 'もし `reads` の値が公式の MCP の結果の形でないなら、`kind` が `github-mcp-shape` の失敗を返します'
   PW-PR-CHECK:
     summary: PR を作る前に確かめる情報を、まとめて出します。
     arguments:

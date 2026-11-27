@@ -77,10 +77,10 @@ describe('exportNames', () => {
     expect(names.positions.map(words => words.map(item => item.word))).toStrictEqual([COMMAND_GROUPS.map(group => group.name), COMMAND_VERBS.map(verb => verb.name)])
   })
 
-  it('読むだけの動詞（list・search・show・get・check・doctor・attributes）にだけ read_only を付ける', async () => {
-    await explains('`exportNames` のテストです。語彙を書き出した場合に、読むだけの動詞（`list`・`search`・`show`・`get`・`check`・`doctor`・`attributes`）にだけ `read_only` を付けることを確認します。')
+  it('読むだけの動詞（list・search・show・get・check・doctor）にだけ read_only を付ける', async () => {
+    await explains('`exportNames` のテストです。語彙を書き出した場合に、読むだけの動詞（`list`・`search`・`show`・`get`・`check`・`doctor`）にだけ `read_only` を付けることを確認します。')
     const marked = exportNames().positions.flat().filter(item => item.read_only === true).map(item => item.word)
-    expect(marked).toStrictEqual(['list', 'search', 'show', 'get', 'check', 'doctor', 'attributes'])
+    expect(marked).toStrictEqual(['list', 'search', 'show', 'get', 'check', 'doctor'])
   })
 
   it('語と意味だけを書き、グループの help は書かない', async () => {
@@ -101,7 +101,7 @@ describe('exportResources', () => {
       uri: 'pecot-template://comment/plan',
       name: 'comment/plan',
       title: 'Plan comment',
-      description: 'Template of the plan comment posted on an Issue before implementation (issue_comment)',
+      description: 'Template of the plan comment posted on an Issue before implementation (issue_comment_check, then add_issue_comment or update_issue_comment)',
       mimeType: 'text/markdown',
     })
     expect(resources.map(resource => resource.uri).at(-1)).toBe('pecot-template://pr/release')

@@ -260,7 +260,7 @@ describe('project_list', () => {
       await verifies(context, 'PW-PROJECT-LIST-02')
       await explains('`project_list` の MCP の結果のテストです。設定ファイルが存在する場合は、ファイル名の順に `projects` へ並べ、アクティブな設定の `active` を `true` にすることを確認します。')
       const result = await tool('project_list', {}, [], { files: otherFile })
-      expect(result.structured).toEqual({ projects: [{ name: CONFIG_NAME, active: true }, { name: OTHER_NAME, active: false }] })
+      expect(result.structured).toEqual({ projects: [{ name: CONFIG_NAME, active: true, owner: 'acme', project_number: 1 }, { name: OTHER_NAME, active: false, owner: 'acme', project_number: 1 }] })
     })
 
     it('設定が 1 つも存在しないと projects を空の配列で返す', async (context) => {

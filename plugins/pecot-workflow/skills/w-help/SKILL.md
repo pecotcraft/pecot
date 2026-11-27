@@ -26,9 +26,10 @@ pecot-workflow の MCP ツールとスキル群の使い方で迷ったとき、
 | Epic をサブタスクに分解したい | `/pecot-w:w-breakdown` |
 | 実装計画ファイルから Issue を一括登録したい | `/pecot-w:w-issueize` |
 | Epic 配下に次のサブタスクを 1 件作りたい | `/pecot-w:w-ready` |
-| Issue の前提（blocked by）を付け外ししたい・種類を変えたい | MCP ツール `issue_block` / `issue_unblock` |
-| Issue に付けられる機能（ボードのフィールド・Issue fields など）と取りうる値を知りたい | MCP ツール `issue_attributes` |
-| Issue の機能の値を名前で変えたい・外したい | MCP ツール `issue_edit` |
+| Issue の前提（blocked by）を付け外ししたい・種類を変えたい | MCP ツール `issue_dependency_check` の後に、公式の MCP の `issue_dependency_write`。[Issue とコメントを公式の MCP で書く](references/issue-write.md) |
+| Issue に付けられる機能（ボードのフィールド・Issue fields など）と取りうる値を知りたい | [Issue の機能を名前で指定する](references/issue-attributes.md) |
+| Issue の機能の値を名前で変えたい・外したい | MCP ツール `issue_check` の後に、公式の MCP の `issue_write`・`projects_write`。[Issue の機能を名前で指定する](references/issue-attributes.md) |
+| 閉じた Issue を開き直したい | [Issue を開き直す](references/issue-reopen.md) |
 | スタック PR を、親ブランチの新しい位置へスタックし直したい | `/pecot-w:w-pr`、または MCP ツール `pr_restack` |
 | リポジトリをプロジェクトに追加したい | `/pecot-w:w-repo-add` |
 | ワークツリーを作成したい | `/pecot-w:w-worktree-add` |
@@ -39,6 +40,7 @@ pecot-workflow の MCP ツールとスキル群の使い方で迷ったとき、
 | 知りたいこと | 参照先 |
 |-------------|--------|
 | MCP ツールの一覧 | [ツール一覧](references/commands.md) |
+| Issue とコメントを書く手順（チェックと公式の MCP の順） | [Issue とコメントを公式の MCP で書く](references/issue-write.md) |
 | Issue の機能（フィールド・担当者・マイルストーンなど）を名前で指定する | [Issue の機能を名前で指定する](references/issue-attributes.md) |
 | ボードの列の読み方（`Blocked` と `Ready` の違い、列を動かすもの） | [ボードステータス](references/board-status.md) |
 | 列を自動で直すワークフローを置きたい | [ボードを自動で直すワークフロー](references/board-sync-workflow.md) |
@@ -59,5 +61,17 @@ pecot-workflow の MCP ツールとスキル群の使い方で迷ったとき、
 ## よくある操作
 
 pecot-workflow の機能は、MCP ツールだけで使う。ツールの一覧は [ツール一覧](references/commands.md)、入力の定義は MCP ツールの定義を読む。
+
+## 公式の MCP をつなぐ
+
+Issue とコメントは、GitHub の公式の MCP サーバ（github-mcp-server）のツールで読み書きする。スキルは、公式のツールをツール名（`issue_read`・`issue_write` など）で指す。
+
+- 前提のツール（`issue_dependency_read`・`issue_dependency_write`）は、features の `issue_dependencies` で有効にする
+- `issue_write` が書かずに入力の画面へ回さないよう、features に `mcp_apps_disable_form_deferral` も足す
+- insiders のモードは使わない。`list_*` の結果が CSV のテキストになり、チェックのツールに渡せない
+- リモートのサーバは、次の URL でつなぐ。手元のサーバは `--features` に、URL の `features` と同じ値を渡す
+  - `https://api.githubcopilot.com/mcp/?features=issue_dependencies,mcp_apps_disable_form_deferral`
+
+公式のツールが無い、または読み取りだけでつながっているときは、Issue とコメントを書かずに止める。利用者に、上の形で書き込みのできるサーバをつなぐよう伝える。
 
 ボードの現在状態を確認したいときは、pecot-workflow の MCP ツール `board_show` を使う。

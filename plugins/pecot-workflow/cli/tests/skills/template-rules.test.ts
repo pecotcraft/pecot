@@ -197,18 +197,20 @@ describe('plan テンプレート', () => {
 describe.each(['cli/templates/issue/task.md', 'cli/templates/issue/bug.md'])('%s のフロントマター', (template) => {
   const keys = (readPluginFile(template).split('---\n', 2)[1] ?? '').split('\n').map(line => line.split(':', 1)[0])
 
-  it('blocked_by を持ち、status と order を持たない（置く列と番号は issue_create が決める）', async () => {
-    await explains(`\`${template}\` のフロントマターのテストです。\`blocked_by\` が含まれ、\`status\` と \`order\` が含まれないことを確認します。`)
+  it('blocked_by と project_fields を持ち、status と order を持たない（番号は題に、列は project_fields に書く）', async () => {
+    await explains(`\`${template}\` のフロントマターのテストです。\`blocked_by\` と \`project_fields\` が含まれ、\`status\` と \`order\` が含まれないことを確認します。`)
     expect(keys).toContain('blocked_by')
+    expect(keys).toContain('project_fields')
     expect(keys).not.toContain('status')
     expect(keys).not.toContain('order')
   })
 
-  it('フィールドの説明に、blocked_by と、order・status を書かない旨がある', async () => {
-    await explains(`\`${template}\` の冒頭のコメントのテストです。フィールドの説明に \`blocked_by\` の項目と、\`order\` と \`status\` は書かない旨が記載されていることを確認します。`)
+  it('フィールドの説明に、blocked_by と、題の番号と置く列の書き方がある', async () => {
+    await explains(`\`${template}\` の冒頭のコメントのテストです。フィールドの説明に \`blocked_by\` の項目と、題の番号の書き方と、置く列を前提で決める旨が記載されていることを確認します。`)
     const text = comment(template)
     expect(text).toContain('- blocked_by: ')
-    expect(text).toContain('- order・status: 書かない')
+    expect(text).toContain('親の sub-issue の題で使っていない番号')
+    expect(text).toContain('前提があれば `Blocked`、無ければ `Ready`')
   })
 })
 

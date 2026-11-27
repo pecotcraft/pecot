@@ -21,13 +21,14 @@ mcp_guidance_gh_issue_create() {
     cat <<'EOF'
 gh-issue-create-check: gh issue create is not allowed.
 
-Reason: using gh issue create directly skips the automatic registration on the project board,
-the status field settings, and the template validation, which breaks the consistency
+Reason: using gh issue create directly skips the checks of the workflow (the template,
+the title number, the prerequisites and the board fields), which breaks the consistency
 and traceability of the workflow.
 
-Use one of these instead:
-  the MCP tool issue_create with freeform: true  (free-form quick filing)
-  the MCP tool issue_create                      (from Markdown with frontmatter)
+Use this instead:
+  check the arguments with the MCP tool issue_check of the workflow server,
+  then create the Issue with issue_write of the official GitHub MCP server
+  (steps: skills/w-help/references/issue-write.md)
 EOF
 }
 

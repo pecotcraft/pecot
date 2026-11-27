@@ -1,12 +1,16 @@
 ---
+template: "pecot-template://issue/task-implement"
+kind: task
+owner: ""
+repo: ""
 title: ""
-type: task
-template: task-implement
-repository: ""
+type: ""
 labels: []
-parent_epic: ""
-lane: ""
+parent_owner: ""
+parent_repo: ""
+parent_issue_number: null
 blocked_by: []
+project_fields: []
 ---
 
 <!--
@@ -18,12 +22,17 @@ blocked_by: []
 - Artifacts は、speckit の一式を置いたディレクトリを 1 つ、実パスで書く。外部のリポにあるときは `owner/repo:specs/NNN-*/` の形
 
 フィールド:
-- repository: 実装が行われるリポ `owner/repo` 必須
-- parent_epic: 親 Epic を `owner/repo/number` で指定（推奨）
-- lane: 分類したいときだけ、ボードの `pecot-lane` の値を書く。空なら親 Epic の値が入る
-- blocked_by: このフェーズの着手を止める前提の一覧。前提が無ければ `[]` のまま
-  - `issue` は、同じ一括投稿のファイルのキー（`suffix`）か、Issue 化済みのフェーズを指す `owner/repo/N`
+- 鍵の名前は、書く公式の MCP のツールの引数の名前。`issue_check` に通してから、同じ値を渡す
+- template・kind: 変えない
+- owner・repo: 起票先のリポ。必須
+- title: `[Task] ` で始める。親 Epic があれば `[Task] #{親の番号}-{順}: ` にする。順は 2 桁で、親の sub-issue の題で使っていない番号
+- type: リポの Issue type の名前。Issue type を使わないリポでは消す
+- labels・assignees・milestone・issue_fields: 要るときだけ書く。`issue_fields` は `issue_write` と同じ `[{field_name, value}]` の形
+- parent_owner・parent_repo・parent_issue_number: 親 Epic。無ければ消す。`issue_fields` があるときは `sub_issue_write` で付ける
+- blocked_by: この Issue の着手を止める前提の一覧。前提が無ければ `[]` のまま
+  - `issue` は、同じ一括の Issue の key（ファイルの名前の幹）か、Issue 化済みのフェーズを指す `owner/repo/N`
   - スタック不可の前提だけ、`wait: merge` と、前提の表の `理由` の文をそのまま写した `reason`（改行しない）を足す
+  - スタック不可の前提は、本文の末尾の `## Waits for merge` の節にも挙げる。書く行は `issue_check` が返す
   ```yaml
   blocked_by:
     - issue: phase3
@@ -31,8 +40,11 @@ blocked_by: []
       wait: merge
       reason: "action は、既定のブランチのプラグインを入れる。main に入るまで、確認ができない"
   ```
-- order・status: 書かない。通し番号と置く列は `issue_create` が決める
-- 起票ルール: skills/w-help/references/issue-flow-rules.md （投稿先 / parent_epic / blocked_by の判定基準）
+  - 書く先は `issue_dependency_write`（`type: blocked_by`）
+- project_fields: ボードの欄を `[{name, value}]` で書く。書く先は `projects_write` の `update_project_item`
+  - `pecot-lane` は、分類したいときだけ書く。書かなければ親 Epic の値にそろえる
+  - 置く列（設定の workflow の欄）は、前提があれば `Blocked`、無ければ `Ready`
+- 起票ルール: skills/w-help/references/issue-flow-rules.md （投稿先 / 親 Epic / blocked_by の判定基準）
 
 例:
 

@@ -1,6 +1,9 @@
 ---
-issue_ref: ""
-template: precede-notify
+template: "pecot-template://comment/precede-notify"
+owner: ""
+repo: ""
+issue_number: null
+comment_id: null
 ---
 
 <!--

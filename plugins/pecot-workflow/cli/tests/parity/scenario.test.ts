@@ -1,5 +1,5 @@
 // 器の前提の確認。Node の build は要らない。
-// 「シナリオの網羅」は、golden とシナリオの id の一致、39 個のツールの網羅、種別のそろい、tools.ts と TOOLS の一致を確かめる。
+// 「シナリオの網羅」は、golden とシナリオの id の一致、30 個のツールの網羅、種別のそろい、tools.ts と TOOLS の一致を確かめる。
 import { readdirSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
@@ -11,19 +11,21 @@ import { goldenDirectory, kindOf, normalizeDeep, normalizeText, parseScenario, r
 import { TOOL_NAMES } from './tools.js'
 
 // CLI の使い方の誤りと予行のシナリオを外して、ok か ok 以外の片方だけになったツール
-const ONE_SIDED: ReadonlySet<string> = new Set(['issue_attributes', 'issue_edit', 'issue_block', 'issue_unblock'])
+const ONE_SIDED: ReadonlySet<string> = new Set<string>()
+// GitHub を呼ばないチェックのツール。前後で比べる GitHub への読み書きを持たない
+const CHECK_ONLY: ReadonlySet<string> = new Set(['issue_check', 'issue_dependency_check', 'issue_comment_check'])
 
-const MINIMAL = `id: issue-show-ok
-tool: issue_show
-arguments: { issue_ref: acme/demo#1 }
+const MINIMAL = `id: pr-show-ok
+tool: pr_show
+arguments: { pr_ref: acme/demo#1 }
 `
 
 describe('parseScenario', () => {
   it('省略したキーには、既定値が設定される', async () => {
     await explains('シナリオの読み込みのテストです。省略した `setup`・`github` などのキーに、既定のリポジトリ設定や空の配列といった既定値が設定されることを確認します。')
-    const scenario = parseScenario('issue-show-ok', MINIMAL)
-    expect(scenario.tool).toBe('issue_show')
-    expect(scenario.arguments).toEqual({ issue_ref: 'acme/demo#1' })
+    const scenario = parseScenario('pr-show-ok', MINIMAL)
+    expect(scenario.tool).toBe('pr_show')
+    expect(scenario.arguments).toEqual({ pr_ref: 'acme/demo#1' })
     expect(scenario.setup.repo).toEqual({ owner: 'acme', name: 'demo', host: 'ghes.example.com', branch: 'main', commits: [], branches: [], tags: [], worktrees: [], files: {} })
     expect(scenario.setup.cwd).toBe('.')
     expect(scenario.setup.ghToken).toBeUndefined()
@@ -32,12 +34,12 @@ describe('parseScenario', () => {
 
   it('arguments を省略すると、空のオブジェクトになる', async () => {
     await explains('シナリオの `arguments` の読み込みのテストです。`arguments` を省略したシナリオが、空のオブジェクトを渡すシナリオとして読み込まれることを確認します。')
-    expect(parseScenario('issue-show-usage', 'id: issue-show-usage\ntool: issue_show\n').arguments).toEqual({})
+    expect(parseScenario('pr-show-usage', 'id: pr-show-usage\ntool: pr_show\n').arguments).toEqual({})
   })
 
   it('github の応答は、times を省略すると 1 になる', async () => {
     await explains('シナリオの `github` の応答の読み込みのテストです。`times` を省略した応答が、`times: 1` として読み込まれることを確認します。')
-    const scenario = parseScenario('issue-show-ok', `${MINIMAL}github:
+    const scenario = parseScenario('pr-show-ok', `${MINIMAL}github:
   - match: { operation: GetIssueSlim }
     respond: { status: 200, body: { data: {} } }
 `)
@@ -51,22 +53,22 @@ describe('parseScenario', () => {
   })
 
   it.each([
-    ['id がファイル名と違う', 'issue-show-ok', MINIMAL.replace('issue-show-ok', 'issue-show-usage'), 'id がファイル名と違います'],
-    ['id がツール名と kind の形でない', 'issue-show', MINIMAL.replace('issue-show-ok', 'issue-show'), 'id は'],
-    ['未知の kind', 'issue-show-bad', MINIMAL.replace('issue-show-ok', 'issue-show-bad'), 'id は'],
-    ['id が別のツールの名前で始まる', 'issue-read-ok', MINIMAL.replace('issue-show-ok', 'issue-read-ok'), 'id は'],
-    ['tool が無い', 'issue-show-ok', 'id: issue-show-ok\n', 'tool が必要です'],
-    ['未知のトップのキー', 'issue-show-ok', `${MINIMAL}extra: 1\n`, 'ルート に未知のキー'],
-    ['CLI の形の command', 'issue-show-ok', `${MINIMAL}command: { path: [issue, show] }\n`, 'ルート に未知のキー'],
-    ['対応表に無い operation', 'issue-show-ok', `${MINIMAL}github:\n  - match: { operation: NoSuch }\n    respond: { status: 200 }\n`, '対応表'],
-    ['match が空', 'issue-show-ok', `${MINIMAL}github:\n  - match: {}\n    respond: { status: 200 }\n`, 'method・path・operation'],
-    ['status が整数でない', 'issue-show-ok', `${MINIMAL}github:\n  - match: { path: /a }\n    respond: { status: ok }\n`, 'status'],
-    ['times が 0', 'issue-show-ok', `${MINIMAL}github:\n  - match: { path: /a }\n    respond: { status: 200 }\n    times: 0\n`, 'times'],
-    ['files の値が文字列でない', 'issue-show-ok', `${MINIMAL}setup:\n  repo:\n    files: { a: 1 }\n`, 'setup.repo.files.a'],
-    ['branches に文字列', 'issue-show-ok', `${MINIMAL}setup:\n  repo:\n    branches: [release]\n`, 'name と commits を持つオブジェクト'],
-    ['worktrees の name が wt で始まらない', 'issue-show-ok', `${MINIMAL}setup:\n  repo:\n    worktrees: [{ name: sub }]\n`, 'wt で始めて'],
-    ['worktrees の files の値が文字列でない', 'issue-show-ok', `${MINIMAL}setup:\n  repo:\n    worktrees: [{ name: wt1, files: { a: 1 } }]\n`, 'setup.repo.worktrees[].files.a'],
-    ['env の値が文字列でない', 'issue-show-ok', `${MINIMAL}setup:\n  env: { A: 1 }\n`, 'setup.env.A'],
+    ['id がファイル名と違う', 'pr-show-ok', MINIMAL.replace('pr-show-ok', 'pr-show-usage'), 'id がファイル名と違います'],
+    ['id がツール名と kind の形でない', 'pr-show', MINIMAL.replace('pr-show-ok', 'pr-show'), 'id は'],
+    ['未知の kind', 'pr-show-bad', MINIMAL.replace('pr-show-ok', 'pr-show-bad'), 'id は'],
+    ['id が別のツールの名前で始まる', 'pr-read-ok', MINIMAL.replace('pr-show-ok', 'pr-read-ok'), 'id は'],
+    ['tool が無い', 'pr-show-ok', 'id: pr-show-ok\n', 'tool が必要です'],
+    ['未知のトップのキー', 'pr-show-ok', `${MINIMAL}extra: 1\n`, 'ルート に未知のキー'],
+    ['CLI の形の command', 'pr-show-ok', `${MINIMAL}command: { path: [pr, show] }\n`, 'ルート に未知のキー'],
+    ['対応表に無い operation', 'pr-show-ok', `${MINIMAL}github:\n  - match: { operation: NoSuch }\n    respond: { status: 200 }\n`, '対応表'],
+    ['match が空', 'pr-show-ok', `${MINIMAL}github:\n  - match: {}\n    respond: { status: 200 }\n`, 'method・path・operation'],
+    ['status が整数でない', 'pr-show-ok', `${MINIMAL}github:\n  - match: { path: /a }\n    respond: { status: ok }\n`, 'status'],
+    ['times が 0', 'pr-show-ok', `${MINIMAL}github:\n  - match: { path: /a }\n    respond: { status: 200 }\n    times: 0\n`, 'times'],
+    ['files の値が文字列でない', 'pr-show-ok', `${MINIMAL}setup:\n  repo:\n    files: { a: 1 }\n`, 'setup.repo.files.a'],
+    ['branches に文字列', 'pr-show-ok', `${MINIMAL}setup:\n  repo:\n    branches: [release]\n`, 'name と commits を持つオブジェクト'],
+    ['worktrees の name が wt で始まらない', 'pr-show-ok', `${MINIMAL}setup:\n  repo:\n    worktrees: [{ name: sub }]\n`, 'wt で始めて'],
+    ['worktrees の files の値が文字列でない', 'pr-show-ok', `${MINIMAL}setup:\n  repo:\n    worktrees: [{ name: wt1, files: { a: 1 } }]\n`, 'setup.repo.worktrees[].files.a'],
+    ['env の値が文字列でない', 'pr-show-ok', `${MINIMAL}setup:\n  env: { A: 1 }\n`, 'setup.env.A'],
   ])('形式に誤りがあると、例外が発生する: %s', async (_label, id, text, message) => {
     await explains(`シナリオの形式の検証のテストです。\`id\` の不一致や未知のキー、値の型の誤りなど、形式に誤りがある入力を読み込むと、\`${message}\` を含む例外が発生することを確認します。`)
     expect(() => parseScenario(id, text)).toThrow(message)
@@ -75,10 +77,10 @@ describe('parseScenario', () => {
 
 describe('kindOf', () => {
   it('id のツール名の次の語を kind として返し、該当する語が存在しない場合は undefined を返す', async () => {
-    await explains('シナリオの種別を求める `kindOf` のテストです。`board-add-4xx-notfound` では `4xx`、`project-link-ok` では `ok`、判定できない `issue-show-bad` では `undefined` を返すことを確認します。')
+    await explains('シナリオの種別を求める `kindOf` のテストです。`board-add-4xx-notfound` では `4xx`、`project-link-ok` では `ok`、判定できない `pr-show-bad` では `undefined` を返すことを確認します。')
     expect(kindOf({ id: 'board-add-4xx-notfound', tool: 'board_add' })).toBe('4xx')
     expect(kindOf({ id: 'project-link-ok', tool: 'project_link' })).toBe('ok')
-    expect(kindOf({ id: 'issue-show-bad', tool: 'issue_show' })).toBeUndefined()
+    expect(kindOf({ id: 'pr-show-bad', tool: 'pr_show' })).toBeUndefined()
   })
 })
 
@@ -121,14 +123,15 @@ describe('シナリオの網羅', () => {
     expect(goldenIds).toEqual(ids)
   })
 
-  it('tools.ts の 39 個のツールの名前が、本番の登録（TOOLS）と同じ順で一致する', async () => {
-    await explains('シナリオ用のツール一覧（`tools.ts`）のテストです。一覧の名前が、本番のツール登録（`TOOLS`）の名前と、過不足なく同じ順で一致することを確認します。')
-    expect(TOOL_NAMES).toHaveLength(39)
-    expect(TOOLS.map(definition => definition.name)).toEqual(TOOL_NAMES)
+  it('tools.ts の 30 個のツールの名前が、本番の登録（TOOLS）からチェックのツールを除いた名前と同じ順で一致する', async () => {
+    await explains('シナリオ用のツール一覧（`tools.ts`）のテストです。一覧の名前が、本番のツール登録（`TOOLS`）から GitHub を呼ばないチェックのツールを除いた名前と、過不足なく同じ順で一致することを確認します。')
+    expect(TOOL_NAMES).toHaveLength(30)
+    expect(TOOLS.map(definition => definition.name).filter(name => !CHECK_ONLY.has(name))).toEqual(TOOL_NAMES)
+    expect(TOOLS.filter(definition => CHECK_ONLY.has(definition.name))).toHaveLength(CHECK_ONLY.size)
   })
 
-  it('シナリオが使うツールの集合が、39 個のツールの名前と一致する', async () => {
-    await explains('シナリオの網羅のテストです。シナリオの `tool` の集合が、39 個のツールの名前と過不足なく一致することを確認します。')
+  it('シナリオが使うツールの集合が、30 個のツールの名前と一致する', async () => {
+    await explains('シナリオの網羅のテストです。シナリオの `tool` の集合が、30 個のツールの名前と過不足なく一致することを確認します。')
     const actual = [...new Set(ids.map(id => readScenario(id).tool))].toSorted(compareStrings)
     expect(actual).toEqual(TOOL_NAMES.toSorted(compareStrings))
   })

@@ -199,8 +199,10 @@ async function inSequence(signal: Readonly<AbortSignal>, options: Readonly<McpSe
 
 export const MCP_INSTRUCTIONS = [
   'Templates for Issues, comments and PRs are the pecot-template:// resources.',
-  'To post one, write a copy to .pecot/tmp/output/ under the project root, fill it in, and pass its path as file to issue_comment, issue_create or pr_create.',
-  'For Issue files, the file name without the extension is the key that blocked_by uses to point at another file in the same batch.',
+  'Write a copy to .pecot/tmp/output/ under the project root and fill it in; its frontmatter keys are the argument names of the official GitHub MCP tool that writes it.',
+  'Pass Issues and comments through issue_check, issue_dependency_check and issue_comment_check, then write them with the official tools (issue_write, issue_dependency_write, add_issue_comment, update_issue_comment).',
+  'For a PR, pass the path as file to pr_create.',
+  'In a batch of Issues, blocked_by and {{issue:key}} point at another Issue by its key, the file name without the extension.',
 ].join(' ')
 
 // テンプレートはリポに依存しないので、unavailableReason のときも読める

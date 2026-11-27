@@ -1,4 +1,4 @@
-// 前後比較の対象にする 39 個のツールの名前。src/commands/registry.ts の TOOLS と同じ。
+// 前後比較の対象にする 30 個のツールの名前。src/commands/registry.ts の TOOLS と同じ。
 // シナリオの tool の集合がこの一覧と一致することを scenario.test.ts が確かめる。
 export const TOOL_NAMES: readonly string[] = [
   'project_list',
@@ -13,15 +13,6 @@ export const TOOL_NAMES: readonly string[] = [
   'board_show',
   'board_add',
   'board_move',
-  'issue_create',
-  'issue_check',
-  'issue_show',
-  'issue_attributes',
-  'issue_edit',
-  'issue_comment',
-  'issue_block',
-  'issue_unblock',
-  'issue_reopen',
   'session_start',
   'session_show',
   'session_finish',

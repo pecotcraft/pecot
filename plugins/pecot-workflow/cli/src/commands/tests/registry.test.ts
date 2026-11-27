@@ -12,14 +12,14 @@ import { TOOL_HINT_COMMANDS } from '@pecot/workflow-core/commands-shared/hint-ca
 import { toolNameViolations } from '@pecot/workflow-core/commands-shared/names.js'
 import { TOOLS } from '../registry.js'
 
-const TOOL_COUNT = 39
+const TOOL_COUNT = 33
 const GENERATED = path.resolve(import.meta.dirname, '../../../../interface/generated.json')
 const EntrySchema = z.object({ id: z.string() })
 const GeneratedSchema = z.object({ entries: z.array(EntrySchema) })
 
 describe('ツールの一覧', () => {
-  it('39 個が登録され、名前は重複しない', async () => {
-    await explains('登録済みのツールの一覧（`TOOLS`）のテストです。ツールが 39 個あり、名前がすべて異なることを確認します。')
+  it('33 個が登録され、名前は重複しない', async () => {
+    await explains('登録済みのツールの一覧（`TOOLS`）のテストです。ツールが 33 個あり、名前がすべて異なることを確認します。')
     expect(TOOLS).toHaveLength(TOOL_COUNT)
     expect(new Set(TOOLS.map(tool => tool.name)).size).toBe(TOOL_COUNT)
   })
@@ -41,7 +41,7 @@ describe('ツールの一覧', () => {
     expect(TOOLS.map(tool => tool.name)).toEqual([
       'project_list', 'project_search', 'project_init', 'project_create', 'project_activate', 'project_link', 'project_get', 'project_set', 'project_unset',
       'board_show', 'board_add', 'board_move',
-      'issue_create', 'issue_check', 'issue_show', 'issue_attributes', 'issue_edit', 'issue_comment', 'issue_block', 'issue_unblock', 'issue_reopen',
+      'issue_check', 'issue_dependency_check', 'issue_comment_check',
       'session_start', 'session_show', 'session_finish',
       'pr_create', 'pr_show', 'pr_check', 'pr_merge', 'pr_restack',
       'release_check', 'release_create', 'release_merge',

@@ -19,7 +19,6 @@ const OPERATION_TABLE: readonly (readonly [string, string])[] = [
   ['updateProjectV2ItemFieldValue.projectV2Item{id}|fieldId,itemId,optionId,projectId', 'UpdateProjectItemField'],
   ['updateProjectV2ItemFieldValue.projectV2Item{id}|fieldId,itemId,projectId,value', 'UpdateProjectItemFieldValue'],
   ['deleteProjectV2Item{deletedItemId}|itemId,projectId', 'DeleteProjectItem'],
-  ['unarchiveProjectV2Item.item{id}|itemId,projectId', 'UnarchiveProjectItem'],
   ['clearProjectV2ItemFieldValue.projectV2Item{id}|fieldId,itemId,projectId', 'ClearProjectItemField'],
   ['addSubIssue{issue,subIssue}|childId,parentId', 'AddSubIssue'],
   ['createLinkedBranch.linkedBranch.ref{name,prefix}|input', 'CreateLinkedBranch'],

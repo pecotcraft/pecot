@@ -202,23 +202,55 @@ function duplicateWordFindings(file: string, names: Names): Finding[] {
   })
 }
 
-// 名前を区切りで語に分け、語の数と位置ごとの一覧を比べる。rest の語は形だけを見る。
-function nameRuleFindings(file: string, scope: string, name: string, names: Names): Finding[] {
+type NameWord = Names['positions'][number][number]
+
+interface NameMatch {
+  readonly words: readonly string[]
+  // 位置ごとに当たった一覧の語。当たらなければ undefined
+  readonly matched: readonly (NameWord | undefined)[]
+  // 位置ごとに当てた語の始まり（words の添字）
+  readonly starts: readonly number[]
+  // 位置の一覧に当てた語の数。当たらない位置は 1 語と数える
+  readonly fixedWords: number
+}
+
+// 名前を区切りで語に分け、位置ごとの一覧の語を前から当てる。一覧の語は区切りを含んでよく、長い語から当てる。
+function matchName(name: string, names: Names): NameMatch {
   const words = name.split(names.separator)
-  const fixed = names.positions.length
+  const matched: (NameWord | undefined)[] = []
+  const starts: number[] = []
+  let at = 0
+  for (const listed of names.positions) {
+    starts.push(at)
+    const hit = listed
+      .map(item => ({ item, parts: item.word.split(names.separator) }))
+      .toSorted((a, b) => b.parts.length - a.parts.length)
+      .find(({ parts }) => parts.every((part, offset) => words[at + offset] === part))
+    matched.push(hit?.item)
+    at += hit?.parts.length ?? 1
+  }
+  return { words, matched, starts, fixedWords: at }
+}
+
+// 語の数と位置ごとの一覧を比べる。rest の語は形だけを見る。
+function nameRuleFindings(file: string, scope: string, name: string, names: Names): Finding[] {
+  const { words, matched, starts, fixedWords } = matchName(name, names)
   const finding = (reason: string): Finding => ({ file, scope, field: 'name', reason })
   const findings: Finding[] = []
-  if (names.rest ? words.length <= fixed : words.length !== fixed) {
-    const expected = names.rest ? `${String(fixed + 1)} or more` : String(fixed)
+  if (names.rest ? words.length <= fixedWords : words.length !== fixedWords) {
+    const expected = names.rest ? `${String(fixedWords + 1)} or more` : String(fixedWords)
     findings.push(finding(`${quote(name)} has ${String(words.length)} word(s) but names expects ${expected}`))
   }
-  for (const [index, word] of words.entries()) {
-    const listed = names.positions[index]
-    if (listed === undefined) {
-      if (names.rest && !NAME_WORD_PATTERN.test(word)) findings.push(finding(`word ${String(index + 1)} ${quote(word)} must be lower-case letters and digits`))
+  for (const [index, item] of matched.entries()) {
+    const start = starts[index] ?? 0
+    const word = words[start]
+    if (item === undefined && word !== undefined) {
+      findings.push(finding(`word ${String(start + 1)} ${quote(word)} is not in names.positions[${String(index)}]`))
     }
-    else if (listed.every(item => item.word !== word)) {
-      findings.push(finding(`word ${String(index + 1)} ${quote(word)} is not in names.positions[${String(index)}]`))
+  }
+  if (names.rest) {
+    for (const [offset, word] of words.slice(fixedWords).entries()) {
+      if (!NAME_WORD_PATTERN.test(word)) findings.push(finding(`word ${String(fixedWords + offset + 1)} ${quote(word)} must be lower-case letters and digits`))
     }
   }
   return findings
@@ -322,7 +354,7 @@ function exampleFindings(file: string, scope: string, entry: AuthoredEntry, gene
 }
 
 function readOnlyWordOf(name: string, names: Names): string | undefined {
-  return name.split(names.separator).find((word, index) => names.positions[index]?.some(item => item.word === word && item.read_only === true))
+  return matchName(name, names).matched.find(item => item?.read_only === true)?.word
 }
 
 function readOnlyFindings(file: string, scope: string, entry: AuthoredEntry, generated: GeneratedEntry, names: Names): Finding[] {

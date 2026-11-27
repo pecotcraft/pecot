@@ -165,12 +165,6 @@ const IssueFrontmatterSchema = z.object({
   lane: z.preprocess(emptyStringToUndefined, z.string({ error: stringMessage }).nullish().transform(value => value ?? undefined)),
 }).readonly()
 
-const CommentFrontmatterSchema = z.object({
-  issue_ref: z.string({ error: stringMessage }),
-  template: z.enum(['plan', 'merge-diff', 'review-findings', 'review-resolution', 'precede-notify'], { error: choiceMessage }).nullish().transform(value => value ?? undefined),
-  comment_url: z.string({ error: STRING_MESSAGE }).nullish().transform(value => value ?? undefined),
-}).readonly()
-
 const PullRequestFrontmatterSchema = z.object({
   title: z.string({ error: stringMessage }),
   repository: z.string({ error: stringMessage }),
@@ -182,16 +176,10 @@ const PullRequestFrontmatterSchema = z.object({
 
 // 種別などの列挙は IssueFrontmatter['type'] のように項目の型から取る
 export type IssueFrontmatter = z.infer<typeof IssueFrontmatterSchema>
-export type CommentFrontmatter = z.infer<typeof CommentFrontmatterSchema>
 export type PullRequestFrontmatter = z.infer<typeof PullRequestFrontmatterSchema>
 
 export interface ParsedIssue {
   readonly frontmatter: IssueFrontmatter
-  readonly body: string
-}
-
-export interface ParsedComment {
-  readonly frontmatter: CommentFrontmatter
   readonly body: string
 }
 
@@ -255,15 +243,6 @@ export function validateIssueFrontmatter(data: unknown): IssueFrontmatter {
 }
 
 /**
-値からコメントのフロントマターを作る。不正なら FrontmatterError
-*/
-export function validateCommentFrontmatter(data: unknown): CommentFrontmatter {
-  const result = CommentFrontmatterSchema.safeParse(data)
-  if (!result.success) throw fieldErrors(result.error.issues)
-  return result.data
-}
-
-/**
 値から PR のフロントマターを作る。不正なら FrontmatterError
 */
 export function validatePullRequestFrontmatter(data: unknown): PullRequestFrontmatter {
@@ -278,7 +257,7 @@ export function validatePullRequestFrontmatter(data: unknown): PullRequestFrontm
 // 先頭の空白の連続と、本文の最短一致が、空白を取り合う。入力はフロントマター付きの Markdown 1 ファイルで、
 // Python の同名の正規表現と同じ範囲を取るため、この形を保つ。
 // eslint-disable-next-line regexp/no-super-linear-backtracking -- 空白の連続が長い入力でだけ遅くなる。取る範囲を Python と揃えるため書き換えない
-const FRONTMATTER_PATTERN = /^---\s*\n(.*?)\n---\s*/dsu
+const FRONTMATTER_PATTERN = /^---\s*\n(.*?)\n---\s*/su
 
 // 本文先頭のガイドコメント（テンプレートの「読者:／書き方:／フィールド:」ブロック）。
 // 前後の空白・空行ごと 1 ブロックだけ食う。本文途中のコメントは対象外。
@@ -344,37 +323,9 @@ export function parseFrontmatter(content: string): ParsedIssue {
 }
 
 /**
-文字列からコメントのフロントマターをパースする。不正なら FrontmatterError
-*/
-export function parseCommentContent(content: string): ParsedComment {
-  const { data, body } = splitFrontmatter(content)
-  return { frontmatter: validateCommentFrontmatter(data), body }
-}
-
-/**
 文字列から PR のフロントマターをパースする。不正なら FrontmatterError
 */
 export function parsePullRequestContent(content: string): ParsedPullRequest {
   const { data, body } = splitFrontmatter(content)
   return { frontmatter: validatePullRequestFrontmatter(data), body }
-}
-
-// `key` の直後に空白を挟んで `:` が続く行か（Python の `^key\s*:`）
-function isKeyLine(line: string, key: string): boolean {
-  return line.startsWith(key) && /^\s*:/u.test(line.slice(key.length))
-}
-
-/**
-フロントマターに `key: "value"` の 1 行を足す。同じキーの行があれば置き換えるだけで、足さない。
-フロントマターが無ければ FrontmatterError
-*/
-export function setFrontmatterValue(content: string, key: string, value: string): string {
-  const match = FRONTMATTER_PATTERN.exec(content)
-  const span = match?.indices?.[1]
-  if (match === null || span === undefined) throw new FrontmatterError('frontmatter not found')
-  const lines = (match[1] ?? '').split('\n')
-  const entry = `${key}: "${value}"`
-  const replaced = lines.map(line => isKeyLine(line, key) ? entry : line)
-  if (lines.every(line => !isKeyLine(line, key))) replaced.push(entry)
-  return content.slice(0, span[0]) + replaced.join('\n') + content.slice(span[1])
 }

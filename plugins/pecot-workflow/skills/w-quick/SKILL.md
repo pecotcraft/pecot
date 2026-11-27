@@ -23,25 +23,26 @@ hooks:
 
 ## 手順
 
-### Step 1: Issue作成（issue_create）
+### Step 1: Issue作成（issue_write）
 
-pecot-workflow の MCP ツール `issue_create` を使って、Issue を作る。基本形（親Epicなし）は、テンプレを通さずに `freeform: true` と `message` で作る。
+公式の MCP の `issue_write` で、Issue を作る。基本形（親Epicなし）は、テンプレを通さない自由形式で作る。
+書く前に、pecot-workflow の MCP ツール `issue_check` に、`template` を渡さずに通す。手順は [Issue とコメントを公式の MCP で書く](../w-help/references/issue-write.md) の「Issue を作る」。
 
-**`message` の書き方:** テンプレを経由しないため `message` の内容がそのままIssue本文になる。読者は着手する実装者（直後の自分）と後から経緯を追う人。冒頭に要点を1行、達成したい状態を簡潔な箇条書きで書く。実装手順・ファイル名は書かない（planの領分）。段落で埋めない。箇条書きは項目間に空行を入れる。
+**本文の書き方:** テンプレを経由しないため、書いた本文がそのままIssue本文になる。読者は着手する実装者（直後の自分）と後から経緯を追う人。冒頭に要点を1行、達成したい状態を簡潔な箇条書きで書く。実装手順・ファイル名は書かない（planの領分）。段落で埋めない。箇条書きは項目間に空行を入れる。
 
 **特徴:**
 
-- タイトルは `message` の 1 行目から自動で作る
-- テンプレート検証スキップ
+- タイトルは、本文の 1 行目の先頭 50 文字に `[Task]` を付けたもの。本文の末尾に、自由形式の定型の 1 行を足す。どちらも `issue_check` が確かめ、外れたら直す文を返す
+- テンプレートの見出しは確かめない
 - ブランチは作られない（Step 2 の `session_start` が作る）
-- 固定設定: type=task。status は型の既定（`session_start` が active にする）
+- 固定設定: kind=task。置く列は種類の既定の `Ready`（`session_start` が active にする）
   - 起票時点が作業開始時点なので、Step 2 で active にする。詳細は [issue-flow-rules.md §4](../w-help/references/issue-flow-rules.md#起票時の既定-status)
 
-**分類（`pecot-lane`）:** 利用者が分類の値を言ったときだけ、`lane` に渡す。言っていなければ渡さず、尋ねもしない。
+**分類（`pecot-lane`）:** 利用者が分類の値を言ったときだけ、`project_fields` に書く。言っていなければ渡さず、尋ねもしない。
 
 **リポジトリの特定方法:**
 
-- pecot-workflow の MCP ツール `session_show` を使って、セッションの remote のリポを確かめ、それを `repo` にする
+- pecot-workflow の MCP ツール `session_show` を使って、セッションの remote のリポを確かめ、それを `owner`・`repo` にする
 - 詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 
 ### Step 2: ブランチ作成（session_start）とブランチ切り替え
@@ -70,7 +71,7 @@ git checkout feat/description
 
 ### Step 4: 計画ドラフト作成
 
-pecot-workflow の MCP サーバの resource `pecot-template://comment/plan` を読み、plan テンプレのファイルを作る。frontmatter の `issue_ref` には、起票した Issue を書く。
+pecot-workflow の MCP サーバの resource `pecot-template://comment/plan` を読み、plan テンプレのファイルを作る。frontmatter の `owner`・`repo`・`issue_number` には、起票した Issue を書く。
 
 計画を書く前に、[`w-help/references/plan-clarify.md`](../w-help/references/plan-clarify.md) に従って clarify を行う。Issue と依頼の曖昧な点を AskUserQuestion で聞き、答えを受けるたびに、できたファイルへ書く。
 
@@ -80,14 +81,14 @@ pecot-workflow の MCP サーバの resource `pecot-template://comment/plan` を
 
 ### Step 5: 計画の投稿
 
-`issue_comment` を使って、書いたファイルを Issue に投稿する。
+書いた本文を、pecot-workflow の MCP ツール `issue_comment_check` に通す。通ったら、公式の MCP の `add_issue_comment` で Issue に投稿する。結果の `id` を、ファイルの `comment_id` に書く。
 
-本文の検証で止まったら、指摘を直して投稿し直す。
+チェックで外れたら、指摘を直して通し直す。
 
 ### Step 6: プランモードで承認を得る
 
 EnterPlanMode を呼び、投稿した計画で承認を得る。
 
-承認までに計画を直したら、承認後に投稿したファイルも同じように直し、Step 5 の呼び出しをやり直す。投稿したコメントが書き換わる。
+承認までに計画を直したら、承認後に投稿したファイルも同じように直す。`issue_comment_check` に通し直し、`comment_id` のコメントを `update_issue_comment` で書き換える。
 
 承認されたら、利用者への確認をせず、同じターンのまま main が実装を始める。サブエージェントは起動しない。

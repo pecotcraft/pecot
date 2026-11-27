@@ -20,11 +20,8 @@ import {
   formatAttributeValue,
   issueFieldDefinition,
   issueFieldValueKind,
-  issueReferenceText,
   projectFieldDefinition,
   projectValueTreatment,
-  relationReadings,
-  unsupportedOf,
   validateAttributes,
 } from '../attributes.js'
 import { compareCodePoints } from '../fuzzy.js'
@@ -131,17 +128,6 @@ describe('builtinDefinitions', () => {
   })
 })
 
-describe('unsupportedOf', () => {
-  it('unsupported の定義だけを、名前・source・種類にして返す', async () => {
-    await explains('対応していない定義を一覧にする関数（`unsupportedOf`）のテストです。`unsupported` の定義だけを選び、名前・`source`・GitHub の種類にして返すことを確認します。')
-    const definitions = [
-      projectFieldDefinition(field('SUB_ISSUES_PROGRESS', { name: 'Sub-issues progress' }), WORKFLOW_FIELD_ID),
-      projectFieldDefinition(field('TEXT', { name: 'Note' }), WORKFLOW_FIELD_ID),
-    ].filter(definition => definition !== undefined)
-    expect(unsupportedOf(definitions)).toStrictEqual([{ name: 'Sub-issues progress', source: 'project', githubType: 'SUB_ISSUES_PROGRESS' }])
-  })
-})
-
 describe('projectValueTreatment', () => {
   it.for([
     { dataType: 'TEXT', kind: 'text' },
@@ -195,31 +181,6 @@ describe('builtinReadings', () => {
   it('値が存在しない組み込みの機能は、返さない', async () => {
     await explains('担当者・ラベルが空で、マイルストーンと Issue type が `undefined` の場合のテストです。空の配列を返すことを確認します。')
     expect(builtinReadings({ assignees: [], milestone: undefined, issueType: undefined, labels: [] })).toStrictEqual([])
-  })
-})
-
-describe('relationReadings', () => {
-  it('親を parent に、前提を blocked_by に、owner/repo/N の形で返す', async () => {
-    await explains('Issue の親と前提の現在の値を作成する関数（`relationReadings`）のテストです。親は `parent`、前提は `blocked_by` として、どちらも `owner/repo/N` の形の文字列で返すことを確認します。')
-    const parent = { owner: 'acme', repository: 'demo', number: 3 }
-    const blockedBy = [{ owner: 'acme', repository: 'other', number: 4 }, { owner: 'acme', repository: 'demo', number: 5 }]
-    expect(relationReadings(parent, blockedBy)).toStrictEqual([
-      { name: 'parent', source: 'issue', kind: 'issue_ref', value: 'acme/demo/3' },
-      { name: 'blocked_by', source: 'issue', kind: 'issue_refs', value: ['acme/other/4', 'acme/demo/5'] },
-    ])
-  })
-
-  it('親が存在せず、前提が空か取得できない場合は、何も返さない', async () => {
-    await explains('親が `undefined` の場合のテストです。前提が空の配列でも `undefined` でも、空の配列を返すことを確認します。')
-    expect(relationReadings(undefined, [])).toStrictEqual([])
-    expect(relationReadings(undefined, undefined)).toStrictEqual([])
-  })
-})
-
-describe('issueReferenceText', () => {
-  it('Issue の参照を、owner/repo/N の形の文字列にする', async () => {
-    await explains('Issue の参照を文字列にする関数（`issueReferenceText`）のテストです。`owner/repo/N` の形の文字列を返すことを確認します。')
-    expect(issueReferenceText({ owner: 'acme', repository: 'demo', number: 12 })).toBe('acme/demo/12')
   })
 })
 
@@ -321,8 +282,8 @@ describe('validateAttributes', () => {
   })
 
   it.for([
-    { name: 'parent', value: 'acme/demo/3', hint: 'set the parent with parent_epic' },
-    { name: 'blocked_by', value: ['acme/demo/4'], hint: 'change blocked_by with issue_block or issue_unblock' },
+    { name: 'parent', value: 'acme/demo/3', hint: 'set the parent with parent_owner, parent_repo and parent_issue_number, written by issue_write or sub_issue_write' },
+    { name: 'blocked_by', value: ['acme/demo/4'], hint: 'change blocked_by with issue_dependency_write after issue_dependency_check' },
   ])('$name は、代わりのツールを案内して read_only_attribute にする', async ({ name, value, hint }) => {
     await explains(`親と前提を属性として指定した場合のテストです。${name}は書き込めないため、\`read_only_attribute\` のエラーを返し、代わりに使うツールを案内することを確認します。`)
     expect(errorsOf(validate([{ name, value }]))).toStrictEqual([{ code: 'read_only_attribute', name, source: 'issue', hint }])
@@ -422,12 +383,12 @@ describe('validateAttributes', () => {
     ])
   })
 
-  it('issue_create のように現在の値が存在しない場合は、null の入力を書き込まず無視する', async () => {
+  it('issue_check の create のように現在の値が存在しない場合は、null の入力を書き込まず無視する', async () => {
     await explains('Issue を作成するときの、現在の値が存在しない場合のテストです。`null` を指定した属性は書き込まず、書き込みの予定が空になることを確認します。')
     expect(validate([{ name: 'Area', value: JSON_NULL }, { name: 'labels', value: JSON_NULL }])).toStrictEqual({ ok: true, writes: [] })
   })
 
-  it('issue_edit で null を指定した場合は、現在の値を外す書き込みにする', async () => {
+  it('issue_check の update で null を指定した場合は、現在の値を外す書き込みにする', async () => {
     await explains('Issue を編集するときに、値を持つ属性へ `null` を指定した場合のテストです。ボードのフィールド・Issue field・組み込みの機能のそれぞれで、現在の値を外す書き込みになることを確認します。')
     const current: readonly AttributeReading[] = [
       { name: 'Area', source: 'project', kind: 'single_select', value: 'cli' },
@@ -448,7 +409,7 @@ describe('validateAttributes', () => {
     ])
   })
 
-  it('issue_edit で null を指定しても、現在の値が存在しない場合は書き込まない', async () => {
+  it('issue_check の update で null を指定しても、現在の値が存在しない場合は書き込まない', async () => {
     await explains('Issue を編集するときに、現在の値が存在しない属性へ `null` を指定した場合のテストです。書き込みの予定が空になることを確認します。')
     expect(validate([{ name: 'Area', value: JSON_NULL }], { current: [] })).toStrictEqual({ ok: true, writes: [] })
   })
@@ -462,7 +423,7 @@ describe('validateAttributes', () => {
     expect(validate([{ name: 'labels', value: [] }])).toStrictEqual({ ok: true, writes: [] })
   })
 
-  it('issue_edit で現在の値と同じ値を指定した場合は、書き込まない', async () => {
+  it('issue_check の update で現在の値と同じ値を指定した場合は、書き込まない', async () => {
     await explains('Issue を編集するときに、現在の値と同じ値を指定した場合のテストです。書き込みの予定が空になることを確認します。')
     const current: readonly AttributeReading[] = [
       { name: 'Note', source: 'project', kind: 'text', value: 'x' },

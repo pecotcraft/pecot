@@ -33,8 +33,6 @@ const TARGET_MATCHERS: readonly TargetMatcher[] = [
 
 // 役割が対象そのものではない入力。名前か説明が対象に似るが、別の役割を持つので、明示の例外にする
 const ROLE_EXCEPTIONS: Readonly<Record<string, string>> = {
-  by: '待たせる相手の Issue。操作の対象の issue_ref とは別の役割',
-  parent_epic: '親の Epic。操作の対象の Issue ではない',
   no_issue_ref: '関連 Issue の自動設定を止める印で、Issue を指さない',
   allow_existing_branch: '既存のブランチの再利用を許す印で、ブランチを指さない',
   delete_branch: 'ブランチを消すかの印で、ブランチを指さない',
@@ -45,6 +43,12 @@ const ROLE_EXCEPTIONS: Readonly<Record<string, string>> = {
   head: 'PR の head。操作するブランチ（branch）とは別の役割',
 }
 
+// 公式の MCP の書き込みのツールに渡す値を受けるチェックのツール。入力名は公式のツールの引数の名前にそろえる
+const OFFICIAL_ARGUMENT_ENTRIES: Readonly<Record<string, string>> = {
+  'PW-ISSUE-DEPENDENCY-CHECK': 'issue_dependency_write',
+  'PW-ISSUE-COMMENT-CHECK': 'add_issue_comment・update_issue_comment',
+}
+
 function targetsOf(name: string, description: string): readonly TargetMatcher[] {
   return TARGET_MATCHERS.filter(matcher => matcher.byName.test(name) || matcher.byDescription.test(description))
 }
@@ -53,7 +57,7 @@ function targetsOf(name: string, description: string): readonly TargetMatcher[] 
 対象を指す入力のうち、許す名前でなく、例外の一覧にも無いものを `<項目>: <入力名> (<対象>)` で返す
 */
 function aliasesIn(entries: readonly Entry[]): string[] {
-  return entries.flatMap(entry => Object.entries(entry.input.properties).flatMap(([name, property]) =>
+  return entries.filter(entry => !Object.keys(OFFICIAL_ARGUMENT_ENTRIES).includes(entry.id)).flatMap(entry => Object.entries(entry.input.properties).flatMap(([name, property]) =>
     targetsOf(name, property.description ?? '')
       .filter(matcher => name !== matcher.allowed && !Object.keys(ROLE_EXCEPTIONS).includes(name))
       .map(matcher => `${entry.id}: ${name} (${matcher.target})`)))
@@ -74,7 +78,7 @@ describe('定義書の入力名', () => {
   })
 
   it('Issue・PR・リポ・操作するブランチを指す入力の名前は、対象ごとに 1 つ（issue_ref・pr_ref・repo・branch）で、役割の名前は例外の一覧にある', async () => {
-    await explains('定義書の入力名の決まりのテストです。Issue・PR・リポ・ブランチを指す入力を調べた場合に、対象ごとの名前（`issue_ref`・`pr_ref`・`repo`・`branch`）か、例外の一覧にある役割の名前だけであることを確認します。')
+    await explains('定義書の入力名の決まりのテストです。Issue・PR・リポ・ブランチを指す入力を調べた場合に、対象ごとの名前（`issue_ref`・`pr_ref`・`repo`・`branch`）か、例外の一覧にある役割の名前だけであることを確認します。公式の MCP の引数を受けるチェックのツールは対象外です。')
     expect(aliasesIn(generated.entries)).toEqual([])
   })
 

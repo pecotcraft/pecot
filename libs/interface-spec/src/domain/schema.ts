@@ -49,10 +49,14 @@ export const generatedEntrySchema = z.strictObject({
 export const NAME_SEPARATORS = [' ', '_'] as const
 // 名前の語は英小文字と数字。区切りを含まない。
 export const NAME_WORD_PATTERN = /^[a-z0-9]+$/u
+// 位置の一覧の語は、区切りでつないだ 2 語以上でもよい（issue_dependency のような複数の語の対象）。
+function isPositionWord(word: string): boolean {
+  return word.split(/[ _]/u).every(piece => NAME_WORD_PATTERN.test(piece))
+}
 
 // read_only は読むだけの動詞の印。印の語を名前に持つ項目は、read でない effects を持てない。
 const nameWordSchema = z.strictObject({
-  word: z.string().regex(NAME_WORD_PATTERN),
+  word: z.string().refine(isPositionWord, 'words of a position are lowercase letters and digits, joined by a separator'),
   meaning: z.string().trim().min(1),
   read_only: z.literal(true).optional(),
 })

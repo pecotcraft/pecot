@@ -8344,14 +8344,6 @@ const MUTATION_CLEAR_PROJECT_ITEM_FIELD = `mutation ($projectId: ID!, $itemId: I
     }
   }
 }`;
-// プロジェクトアイテムのアーカイブを解く
-const MUTATION_UNARCHIVE_PROJECT_ITEM = `mutation ($projectId: ID!, $itemId: ID!) {
-  unarchiveProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) {
-    item {
-      id
-    }
-  }
-}`;
 // サブIssue紐づけ
 const MUTATION_ADD_SUB_ISSUE = `mutation ($parentId: ID!, $childId: ID!) {
   addSubIssue(input: { issueId: $parentId, subIssueId: $childId }) {
@@ -11037,12 +11029,6 @@ class ReposApi extends GitHubClientBase {
 // owner が user か organization かは分からないので、user のクエリを先に試し、失敗したら organization を試す。
 // 着手の判定に足したフィールドの名前が出るスキーマの失敗（`Field 'x' doesn't exist` と `Cannot query field "x"`）
 const READINESS_FIELD_ERROR = /(?:Field '|field ")(?:issueType|subIssues|parent|blockedBy)['"]/u;
-function statusOf(item) {
-    const value = jsonField(item, 'status');
-    const name = jsonField(value, 'name');
-    const fieldId = jsonField(jsonField(value, 'field'), 'id');
-    return typeof name === 'string' && typeof fieldId === 'string' ? { fieldId, name } : undefined;
-}
 // ProjectV2.field(name:) は、その名前のフィールドが無いと null と NOT_FOUND の errors を返す
 function isLaneFieldPath(path) {
     return path.length === 2 && path[0] === 'node' && path[1] === 'laneField';
@@ -11231,14 +11217,6 @@ class ProjectsApi extends ReposApi {
             throw new GitHubAPIError('failed to clear the field');
     }
     /**
-    アーカイブ済みのアイテムをボードに戻す
-    */
-    async unarchiveProjectItem(projectId, itemId) {
-        const result = await this.executeGraphql(MUTATION_UNARCHIVE_PROJECT_ITEM, { projectId, itemId });
-        if (!isTruthy(jsonField(jsonField(result, 'unarchiveProjectV2Item'), 'item')))
-            throw new GitHubAPIError('failed to unarchive the project item');
-    }
-    /**
     プロジェクトボードからアイテムを削除し、削除したアイテムの ID を返す
     */
     async deleteProjectItem(projectId, itemId) {
@@ -11299,28 +11277,10 @@ class ProjectsApi extends ReposApi {
     Issue から直接引くので、全アイテムの走査は要らない。Issue やリポジトリが無い、またはプロジェクトに無ければ undefined
     */
     async getItemIdByIssue(projectId, owner, repository, issueNumber) {
-        const item = await this.getIssueProjectItem(projectId, owner, repository, issueNumber);
-        return item?.id;
-    }
-    /**
-    getItemIdByIssue と同じ引き方で、アイテムの ID とアーカイブ済みかを取る
-    */
-    async getIssueProjectItem(projectId, owner, repository, issueNumber) {
         const result = await this.queryIssue(QUERY_GET_ISSUE_PROJECT_ITEMS, { owner, repo: repository, number: issueNumber });
-        const repositoryNode = jsonField(result, 'repository');
-        if (!isTruthy(repositoryNode))
-            return undefined;
-        const issue = jsonField(repositoryNode, 'issue');
-        if (!isTruthy(issue))
-            return undefined;
-        const projectItems = truthyNodes(jsonField(issue, 'projectItems'));
-        for (const item of projectItems) {
-            if (jsonField(jsonField(item, 'project'), 'id') !== projectId)
-                continue;
-            const status = statusOf(item);
-            return { id: requireString(jsonField(item, 'id'), 'projectItems.nodes.id'), isArchived: jsonField(item, 'isArchived') === true, ...status !== undefined && { status } };
-        }
-        return undefined;
+        const issue = jsonField(jsonField(result, 'repository'), 'issue');
+        const item = truthyNodes(jsonField(issue, 'projectItems')).find(node => jsonField(jsonField(node, 'project'), 'id') === projectId);
+        return item === undefined ? undefined : requireString(jsonField(item, 'id'), 'projectItems.nodes.id');
     }
     /**
     Issue 1 件の、指定のプロジェクトの項目を、readBoard の一覧の項目と同じ形で返す（札は含めない）。
@@ -11738,12 +11698,6 @@ class IssuesApi extends ProjectsApi {
         return this.handleHttpError(response);
     }
     /**
-    Issue のコメントを書き換える。見つからなければ GitHubNotFoundError
-    */
-    async updateIssueComment(owner, repository, commentId, body) {
-        return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/comments/${String(commentId)}`, { json: { body } });
-    }
-    /**
     Issue にコメントを足す
     */
     async addIssueComment(owner, repository, number, body) {
@@ -12005,14 +11959,6 @@ class IssuesApi extends ProjectsApi {
         });
     }
     /**
-    Issue を再オープンする
-    */
-    async reopenIssue(owner, repository, number) {
-        return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/${String(number)}`, {
-            json: { state: 'open', state_reason: 'reopened' },
-        });
-    }
-    /**
     ラベルの付いた Issue を open・closed の両方で全件取る（REST）。Pull Request は除く
     */
     async listIssuesByLabel(owner, repository, label) {
@@ -12255,7 +12201,6 @@ const KIND_BY_CLASS = [
     [GitHubAuthError, 'github-auth'],
     [GitHubNotFoundError, 'github-not-found'],
     [GitHubRateLimitError, 'github-rate-limit'],
-    [DependenciesUnsupportedError, 'dependency-rejected'],
     [GitHubAPIError, 'github-api'],
     [ConfigError, 'config-invalid'],
     [ProjectRootNotFoundError, 'project-root-not-found'],
@@ -42157,15 +42102,9 @@ const TOOL_HINT_COMMANDS = [
     { name: 'board_show', inputs: ['json', 'repo'] },
     { name: 'board_add', inputs: ['issue_ref', 'status', 'project', 'repo'] },
     { name: 'board_move', inputs: ['issue_ref', 'status', 'project', 'repo'] },
-    { name: 'issue_create', inputs: ['files', 'message', 'title', 'repo', 'type', 'status', 'parent_epic', 'order', 'label', 'attributes', 'lane', 'freeform', 'project'] },
-    { name: 'issue_check', inputs: ['files', 'project', 'repo'] },
-    { name: 'issue_show', inputs: ['issue_ref', 'project', 'json', 'comment_limit', 'repo'] },
-    { name: 'issue_attributes', inputs: ['project', 'json', 'repo'] },
-    { name: 'issue_edit', inputs: ['issue_ref', 'attributes', 'project', 'repo'] },
-    { name: 'issue_comment', inputs: ['file', 'message', 'issue_ref', 'template', 'project', 'repo'] },
-    { name: 'issue_block', inputs: ['issue_ref', 'by', 'wait', 'reason', 'project', 'repo'] },
-    { name: 'issue_unblock', inputs: ['issue_ref', 'by', 'project', 'repo'] },
-    { name: 'issue_reopen', inputs: ['issue_ref', 'status', 'project', 'comment', 'repo'] },
+    { name: 'issue_check', inputs: ['method', 'project', 'issues', 'reads', 'repo'] },
+    { name: 'issue_dependency_check', inputs: ['method', 'owner', 'repo', 'issue_number', 'type', 'related_owner', 'related_repo', 'related_issue_number', 'wait', 'reason', 'project', 'reads'] },
+    { name: 'issue_comment_check', inputs: ['method', 'owner', 'repo', 'issue_number', 'comment_id', 'body', 'template', 'template_text', 'reads'] },
     { name: 'session_start', inputs: ['issue_ref', 'branch', 'base', 'checkout', 'project', 'repo'] },
     { name: 'session_show', inputs: ['directory', 'project', 'repo'] },
     { name: 'session_finish', inputs: ['pr_ref', 'delete_branch', 'project', 'repo'] },

@@ -8,7 +8,7 @@ import { explains } from '../../../tests/_helpers/explains.js'
 
 import { FrontmatterError } from '@pecot/workflow-core/domain/frontmatter.js'
 import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
-import { parseCommentFile, parseIssueFile, parsePullRequestFile } from '../frontmatter-file.js'
+import { parseIssueFile, parsePullRequestFile } from '../frontmatter-file.js'
 import { OsError } from '@pecot/workflow-core/infra/os-error.js'
 
 function writeFile(name: string, content: string): string {
@@ -63,30 +63,6 @@ status: ready
     const directory = path.join(makeTemporaryDirectory(), 'dir')
     mkdirSync(directory)
     expect(() => parseIssueFile(directory)).toThrow(OsError)
-  })
-})
-
-describe('parseCommentFile', () => {
-  it('コメントのファイルを読むと、frontmatter と本文を返す', async () => {
-    await explains('コメントのファイルを読み込む `parseCommentFile` のテストです。`issue_ref` と `template` を持つ frontmatter と、`## 進捗報告` を含む本文を、分けて返すことを確認します。')
-    const file = writeFile('comment.md', `---
-issue_ref: "owner/repo/123"
-template: merge-diff
----
-
-## 進捗報告
-
-ファイルから読み込んだ本文。
-`)
-    const result = parseCommentFile(file)
-    expect(result.frontmatter.issue_ref).toBe('owner/repo/123')
-    expect(result.frontmatter.template).toBe('merge-diff')
-    expect(result.body).toContain('## 進捗報告')
-  })
-
-  it('コメントのファイルが存在しない場合は、file not found のエラーにする', async () => {
-    await explains('存在しないパスを渡した場合の `parseCommentFile` のテストです。`file not found` を含むメッセージで例外が発生することを確認します。')
-    expect(() => parseCommentFile(path.join(makeTemporaryDirectory(), 'nonexistent.md'))).toThrow('file not found')
   })
 })
 

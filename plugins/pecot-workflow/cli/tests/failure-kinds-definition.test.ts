@@ -15,13 +15,17 @@ import { compareStrings } from '@pecot/workflow-core/domain/python-format.js'
 import { collectReturnedKinds, type ReturnedKind } from './_helpers/returned-kinds.js'
 
 const AUTHORED = path.resolve(import.meta.dirname, '../../interface/authored.yaml')
+// FAILURE_KINDS を共有する actions の定義書
+const ACTIONS_AUTHORED = path.resolve(import.meta.dirname, '../../../../actions/interface/authored.yaml')
 const ExitSchema = z.object({ kind: z.string() })
 const EntrySchema = z.object({ exit_status: z.array(ExitSchema) })
 const AuthoredSchema = z.object({ entries: z.record(z.string(), EntrySchema) })
 
 const authored = AuthoredSchema.parse(parseYaml(readFileSync(AUTHORED, 'utf8')))
 const entries = Object.entries(authored.entries)
-const definedKinds = new Set(entries.flatMap(([, entry]) => entry.exit_status.map(element => element.kind)))
+const actionsAuthored = AuthoredSchema.parse(parseYaml(readFileSync(ACTIONS_AUTHORED, 'utf8')))
+const allEntries = [...Object.values(authored.entries), ...Object.values(actionsAuthored.entries)]
+const definedKinds = new Set(allEntries.flatMap(entry => entry.exit_status.map(element => element.kind)))
 
 // MCP のサーバがどのツールでも返す名前。想定外の例外・入力の検証の誤り・セッションのディレクトリの未決定
 const UNIVERSAL: readonly string[] = [
@@ -33,10 +37,9 @@ const UNIVERSAL: readonly string[] = [
 // 型からは返りうるが、引数の値や呼ぶ順で実際には返らない所（ファイル・名前・項目）
 const UNREACHABLE: readonly { readonly file: string, readonly kinds: readonly string[], readonly ids: readonly string[] }[] = [
   // repo の形は、MCP のサーバの prepare が先に確かめる
-  { file: 'repository-match.ts', kinds: ['invalid-input'], ids: ['PW-ISSUE-ATTRIBUTES', 'PW-RELEASE-MERGE', 'PW-SESSION-START', 'PW-WORKTREE-ADD', 'PW-WORKTREE-INIT', 'PW-WORKTREE-REMOVE'] },
-  { file: 'release.ts', kinds: ['invalid-input'], ids: ['PW-ISSUE-ATTRIBUTES'] },
-  // issue attributes・release check・create は、食い違いを warn で流す
-  { file: 'repository-match.ts', kinds: ['repo-mismatch'], ids: ['PW-ISSUE-ATTRIBUTES', 'PW-RELEASE-CHECK', 'PW-RELEASE-CREATE'] },
+  { file: 'repository-match.ts', kinds: ['invalid-input'], ids: ['PW-RELEASE-MERGE', 'PW-SESSION-START', 'PW-WORKTREE-ADD', 'PW-WORKTREE-INIT', 'PW-WORKTREE-REMOVE'] },
+  // release check・create は、食い違いを warn で流す
+  { file: 'repository-match.ts', kinds: ['repo-mismatch'], ids: ['PW-RELEASE-CHECK', 'PW-RELEASE-CREATE'] },
   // キーごとの操作の表のうち、値を確かめるのは set だけ
   { file: 'project.ts', kinds: ['invalid-input'], ids: ['PW-PROJECT-GET', 'PW-PROJECT-UNSET'] },
   // WorktreeRuntimeError の個別の名前は、worktree add の作成だけが付ける
@@ -59,8 +62,8 @@ function kindsOf(id: string): ReadonlySet<string> {
 }
 
 describe('FAILURE_KINDS', () => {
-  it('定義書の exit_status に出る kind の集合と一致する', async () => {
-    await explains('失敗の種別 `FAILURE_KINDS` のテストです。定義書の `exit_status` に出てくる `kind` の集合が、`FAILURE_KINDS` と一致することを確認します。')
+  it('pecot-workflow と actions の定義書の exit_status に出る kind の集合と一致する', async () => {
+    await explains('失敗の種別 `FAILURE_KINDS` のテストです。pecot-workflow と actions の定義書の `exit_status` に出てくる `kind` の集合が、両者の共有する `FAILURE_KINDS` と一致することを確認します。')
     expect(definedKinds).toEqual(new Set(FAILURE_KINDS))
   })
 

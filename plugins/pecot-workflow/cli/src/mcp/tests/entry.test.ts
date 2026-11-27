@@ -39,12 +39,12 @@ describe('サーバの起動ファイル', () => {
     expect(existsSync(path.join(CLI_ROOT, 'src/cli.ts'))).toBe(false)
   })
 
-  it('既定のサーバの tools/list は、TOOLS の 39 個のツールを同じ順に並べる', async () => {
-    await explains('既定の MCP のサーバのテストです。メモリ内の transport でクライアントを接続した場合に、`tools/list` のツール名が `TOOLS` の 39 個の名前と同じ順序で一致することを確認します。')
+  it('既定のサーバの tools/list は、TOOLS の 33 個のツールを同じ順に並べる', async () => {
+    await explains('既定の MCP のサーバのテストです。メモリ内の transport でクライアントを接続した場合に、`tools/list` のツール名が `TOOLS` の 33 個の名前と同じ順序で一致することを確認します。')
     const connected = await connectInMemory(createMcpServer())
     try {
       const listed = await connected.client.listTools()
-      expect(TOOLS).toHaveLength(39)
+      expect(TOOLS).toHaveLength(33)
       expect(listed.tools.map(tool => tool.name)).toEqual(TOOLS.map(tool => tool.name))
     }
     finally {

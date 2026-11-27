@@ -14,7 +14,7 @@ import { compareStrings } from '../parity/baseline.js'
 import { pluginRoot, readPluginFile } from './_helpers/documents.js'
 
 const RULES_DOC = 'skills/w-help/references/issue-flow-rules.md'
-const FREEFORM_SOURCE = 'cli/src/commands/issue-create.ts'
+const FREEFORM_SOURCE = 'cli/src/commands/issue-check.ts'
 
 const MD_LINK = /\[[^\]]*\]\(([^)]+)\)/gu
 const INLINE_CODE = /`[^`]*`/gu
@@ -161,7 +161,7 @@ describe('skills の相対リンク', () => {
 
 describe('起票ルールの参照', () => {
   it('freeform の本文のフッターが指すパスと anchor が実在する', async () => {
-    await explains('`issue-create.ts` の `FREEFORM_FOOTER` のテストです。フッターが指す `skills/` 配下のパスと anchor が存在することを確認します。')
+    await explains('`issue-check.ts` の `FREEFORM_FOOTER` のテストです。フッターが指す `skills/` 配下のパスと anchor が存在することを確認します。')
     const source = readPluginFile(FREEFORM_SOURCE)
     const footer = /const FREEFORM_FOOTER = '([^']*)'/u.exec(source)?.[1]
     expect(footer).toContain('skills/')

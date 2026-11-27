@@ -1,11 +1,16 @@
 ---
+template: "pecot-template://issue/bug"
+kind: bug
+owner: ""
+repo: ""
 title: ""
-type: bug
-repository: ""
+type: ""
 labels: []
-parent_epic: ""
-lane: ""
+parent_owner: ""
+parent_repo: ""
+parent_issue_number: null
 blocked_by: []
+project_fields: []
 ---
 
 <!--
@@ -16,21 +21,21 @@ blocked_by: []
 - 長いログは `<details>` に入れる
 
 フィールド:
-- repository: 起票先 `owner/repo` 必須
-- parent_epic: `owner/repo/number` 推奨。番号のみは aggregation_repo 解釈なので別リポの Epic を指すなら full path 必須
-- lane: 分類したいときだけ、ボードの `pecot-lane` の値を書く。空なら親 Epic の値が入る
+- 鍵の名前は、書く公式の MCP のツールの引数の名前。`issue_check` に通してから、同じ値を渡す
+- template・kind: 変えない
+- owner・repo: 起票先のリポ。必須
+- title: `[Bug] ` で始める。親 Epic があれば `[Bug] #{親の番号}-{順}: ` にする。順は 2 桁で、親の sub-issue の題で使っていない番号
+- type: リポの Issue type の名前。Issue type を使わないリポでは消す
+- labels・assignees・milestone・issue_fields: 要るときだけ書く。`issue_fields` は `issue_write` と同じ `[{field_name, value}]` の形
+- parent_owner・parent_repo・parent_issue_number: 親 Epic。無ければ消す。`issue_fields` があるときは `sub_issue_write` で付ける
 - blocked_by: この Issue の着手を止める前提の一覧。前提が無ければ `[]` のまま
   - `issue` は、前提の Issue を指す `owner/repo/N`
-  - スタック不可の前提だけ、`wait: merge` と、待つ理由の 1 文の `reason`（改行しない）を足す
-  ```yaml
-  blocked_by:
-    - issue: acme/mytool/12
-    - issue: acme/mytool/13
-      wait: merge
-      reason: "action は、既定のブランチのプラグインを入れる。main に入るまで、確認ができない"
-  ```
-- order・status: 書かない。通し番号（タイトル先頭の `#{epic}-NN`）と置く列（前提があれば `Blocked`、無ければ `Ready`）は `issue_create` が決める
-- 起票ルール: skills/w-help/references/issue-flow-rules.md （投稿先 / parent_epic / blocked_by の判定基準）
+  - スタック不可の前提だけ、`wait: merge` と、待つ理由の 1 文の `reason`（改行しない）を足す。本文の末尾の `## Waits for merge` の節にも挙げる。書く行は `issue_check` が返す
+  - 書く先は `issue_dependency_write`（`type: blocked_by`）
+- project_fields: ボードの欄を `[{name, value}]` で書く。書く先は `projects_write` の `update_project_item`
+  - `pecot-lane` は、分類したいときだけ書く。書かなければ親 Epic の値にそろえる
+  - 置く列（設定の workflow の欄）は、前提があれば `Blocked`、無ければ `Ready`
+- 起票ルール: skills/w-help/references/issue-flow-rules.md （投稿先 / 親 Epic / blocked_by の判定基準）
 
 例:
 

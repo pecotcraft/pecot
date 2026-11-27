@@ -3,8 +3,8 @@
 
 import { existsSync } from 'node:fs'
 
-import { FrontmatterError, parseCommentContent, parseFrontmatter, parsePullRequestContent } from '@pecot/workflow-core/domain/frontmatter.js'
-import type { ParsedComment, ParsedIssue, ParsedPullRequest } from '@pecot/workflow-core/domain/frontmatter.js'
+import { FrontmatterError, parseFrontmatter, parsePullRequestContent } from '@pecot/workflow-core/domain/frontmatter.js'
+import type { ParsedIssue, ParsedPullRequest } from '@pecot/workflow-core/domain/frontmatter.js'
 
 import { normalizePath } from '@pecot/workflow-core/infra/paths.js'
 import { readTextFile } from '@pecot/workflow-core/infra/text-file.js'
@@ -19,13 +19,6 @@ Issue 用のファイルをパースする。ファイルが無い・パース�
 */
 export function parseIssueFile(file: string): ParsedIssue {
   return parseFrontmatter(readFrontmatterFile(file))
-}
-
-/**
-コメント用のファイルをパースする。ファイルが無い・パースできないときは FrontmatterError
-*/
-export function parseCommentFile(file: string): ParsedComment {
-  return parseCommentContent(readFrontmatterFile(file))
 }
 
 /**

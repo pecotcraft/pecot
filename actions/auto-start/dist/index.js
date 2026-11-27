@@ -37221,7 +37221,6 @@ const KIND_BY_CLASS = [
     [GitHubAuthError, 'github-auth'],
     [GitHubNotFoundError, 'github-not-found'],
     [GitHubRateLimitError, 'github-rate-limit'],
-    [DependenciesUnsupportedError, 'dependency-rejected'],
     [GitHubAPIError, 'github-api'],
     [ConfigError, 'config-invalid'],
     [ProjectRootNotFoundError, 'project-root-not-found'],
@@ -46075,11 +46074,6 @@ object({
     lane: preprocess(emptyStringToUndefined, string$1({ error: stringMessage }).nullish().transform(value => value ?? undefined)),
 }).readonly();
 object({
-    issue_ref: string$1({ error: stringMessage }),
-    template: _enum(['plan', 'merge-diff', 'review-findings', 'review-resolution', 'precede-notify'], { error: choiceMessage }).nullish().transform(value => value ?? undefined),
-    comment_url: string$1({ error: STRING_MESSAGE }).nullish().transform(value => value ?? undefined),
-}).readonly();
-object({
     title: string$1({ error: stringMessage }),
     repository: string$1({ error: stringMessage }),
     base: string$1({ error: stringMessage }),
@@ -46102,82 +46096,6 @@ object({
 new Set(splitCodePoints('。！？!?'));
 // 1 文判定の前にサマリ末尾から除く閉じ括弧類（`「完了。」` を 1 文として扱う）
 new Set(splitCodePoints('」』）】〕〉》］｝"\'”’)]}'));
-
-// GitHub の応答（REST の JSON と GraphQL の data）を読む補助。
-// Python の dict.get と as_dict に当たる。形が合わないときは、辞書や配列を空として読む。
-// 必須の値が無い、または型が違うときは GitHubAPIError にする（Python は KeyError で落ちる所）。
-const EMPTY_OBJECT = {};
-const EMPTY_ARRAY = [];
-/**
-as_dict と同じ。オブジェクトでなければ空のオブジェクト
-*/
-function asObject(value) {
-    return isJsonObject(value) ? value : EMPTY_OBJECT;
-}
-/**
-配列でなければ空の配列
-*/
-function asArray(value) {
-    return isJsonArray(value) ? value : EMPTY_ARRAY;
-}
-/**
-Python の真偽値と同じ。None・False・0・空文字・空の配列・空の辞書は偽
-*/
-function isTruthy(value) {
-    if (value === undefined || value === null || value === false || value === 0 || value === '')
-        return false;
-    if (isJsonArray(value))
-        return value.length > 0;
-    if (typeof value === 'object')
-        return Object.keys(value).length > 0;
-    return true;
-}
-/**
-`value.get(key, [])` の `nodes` の読み方。真偽値が偽の要素（None・空の辞書）を落とした配列
-*/
-function truthyNodes(value) {
-    return asArray(jsonField(value, 'nodes')).filter(node => isTruthy(node));
-}
-function throwMalformed(path) {
-    throw new GitHubAPIError(`malformed GitHub response: ${path}`);
-}
-/**
-必須の文字列。無い、または文字列でなければ GitHubAPIError
-*/
-function requireString(value, path) {
-    return typeof value === 'string' ? value : throwMalformed(path);
-}
-/**
-必須の数。無い、または数でなければ GitHubAPIError
-*/
-function requireNumber(value, path) {
-    return typeof value === 'number' ? value : throwMalformed(path);
-}
-/**
-文字列か null。無いときと文字列以外は null
-*/
-function stringOrNull(value) {
-    return typeof value === 'string' ? value : JSON_NULL;
-}
-/**
-数か null。無いときと数以外は null
-*/
-function numberOrNull(value) {
-    return typeof value === 'number' ? value : JSON_NULL;
-}
-/**
-必須の値（null でもよい）。キーが無ければ GitHubAPIError
-*/
-function requireValue(value, path) {
-    return value === undefined ? throwMalformed(path) : value;
-}
-/**
-Issue の subIssues.totalCount。無いときは 0
-*/
-function subIssuesTotal(issue) {
-    const total = jsonField(jsonField(issue, 'subIssues'), 'totalCount');
-    return typeof total === 'number' ? total : 0;
-}
 
 /* eslint-disable security/detect-non-literal-fs-filename -- パスは設定ディレクトリ配下のファイルと、呼び出し側が渡す .env */
 // GitHub トークン解決に使うホスト設定と .env の読み書き。cli/core/github/auth.py の移植。
@@ -46325,6 +46243,82 @@ function ensureEnvironmentFile(host) {
         throw toOsError(error);
     }
     return file;
+}
+
+// GitHub の応答（REST の JSON と GraphQL の data）を読む補助。
+// Python の dict.get と as_dict に当たる。形が合わないときは、辞書や配列を空として読む。
+// 必須の値が無い、または型が違うときは GitHubAPIError にする（Python は KeyError で落ちる所）。
+const EMPTY_OBJECT = {};
+const EMPTY_ARRAY = [];
+/**
+as_dict と同じ。オブジェクトでなければ空のオブジェクト
+*/
+function asObject(value) {
+    return isJsonObject(value) ? value : EMPTY_OBJECT;
+}
+/**
+配列でなければ空の配列
+*/
+function asArray(value) {
+    return isJsonArray(value) ? value : EMPTY_ARRAY;
+}
+/**
+Python の真偽値と同じ。None・False・0・空文字・空の配列・空の辞書は偽
+*/
+function isTruthy(value) {
+    if (value === undefined || value === null || value === false || value === 0 || value === '')
+        return false;
+    if (isJsonArray(value))
+        return value.length > 0;
+    if (typeof value === 'object')
+        return Object.keys(value).length > 0;
+    return true;
+}
+/**
+`value.get(key, [])` の `nodes` の読み方。真偽値が偽の要素（None・空の辞書）を落とした配列
+*/
+function truthyNodes(value) {
+    return asArray(jsonField(value, 'nodes')).filter(node => isTruthy(node));
+}
+function throwMalformed(path) {
+    throw new GitHubAPIError(`malformed GitHub response: ${path}`);
+}
+/**
+必須の文字列。無い、または文字列でなければ GitHubAPIError
+*/
+function requireString(value, path) {
+    return typeof value === 'string' ? value : throwMalformed(path);
+}
+/**
+必須の数。無い、または数でなければ GitHubAPIError
+*/
+function requireNumber(value, path) {
+    return typeof value === 'number' ? value : throwMalformed(path);
+}
+/**
+文字列か null。無いときと文字列以外は null
+*/
+function stringOrNull(value) {
+    return typeof value === 'string' ? value : JSON_NULL;
+}
+/**
+数か null。無いときと数以外は null
+*/
+function numberOrNull(value) {
+    return typeof value === 'number' ? value : JSON_NULL;
+}
+/**
+必須の値（null でもよい）。キーが無ければ GitHubAPIError
+*/
+function requireValue(value, path) {
+    return value === undefined ? throwMalformed(path) : value;
+}
+/**
+Issue の subIssues.totalCount。無いときは 0
+*/
+function subIssuesTotal(issue) {
+    const total = jsonField(jsonField(issue, 'subIssues'), 'totalCount');
+    return typeof total === 'number' ? total : 0;
 }
 
 // GitHub API クライアントの基底（認証・REST と GraphQL の実行・エラー変換）。cli/core/github/client.py の移植。
@@ -47157,14 +47151,6 @@ const MUTATION_CLEAR_PROJECT_ITEM_FIELD = `mutation ($projectId: ID!, $itemId: I
     input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId }
   ) {
     projectV2Item {
-      id
-    }
-  }
-}`;
-// プロジェクトアイテムのアーカイブを解く
-const MUTATION_UNARCHIVE_PROJECT_ITEM = `mutation ($projectId: ID!, $itemId: ID!) {
-  unarchiveProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) {
-    item {
       id
     }
   }
@@ -48671,12 +48657,6 @@ class ReposApi extends GitHubClientBase {
 // owner が user か organization かは分からないので、user のクエリを先に試し、失敗したら organization を試す。
 // 着手の判定に足したフィールドの名前が出るスキーマの失敗（`Field 'x' doesn't exist` と `Cannot query field "x"`）
 const READINESS_FIELD_ERROR = /(?:Field '|field ")(?:issueType|subIssues|parent|blockedBy)['"]/u;
-function statusOf(item) {
-    const value = jsonField(item, 'status');
-    const name = jsonField(value, 'name');
-    const fieldId = jsonField(jsonField(value, 'field'), 'id');
-    return typeof name === 'string' && typeof fieldId === 'string' ? { fieldId, name } : undefined;
-}
 // ProjectV2.field(name:) は、その名前のフィールドが無いと null と NOT_FOUND の errors を返す
 function isLaneFieldPath(path) {
     return path.length === 2 && path[0] === 'node' && path[1] === 'laneField';
@@ -48865,14 +48845,6 @@ class ProjectsApi extends ReposApi {
             throw new GitHubAPIError('failed to clear the field');
     }
     /**
-    アーカイブ済みのアイテムをボードに戻す
-    */
-    async unarchiveProjectItem(projectId, itemId) {
-        const result = await this.executeGraphql(MUTATION_UNARCHIVE_PROJECT_ITEM, { projectId, itemId });
-        if (!isTruthy(jsonField(jsonField(result, 'unarchiveProjectV2Item'), 'item')))
-            throw new GitHubAPIError('failed to unarchive the project item');
-    }
-    /**
     プロジェクトボードからアイテムを削除し、削除したアイテムの ID を返す
     */
     async deleteProjectItem(projectId, itemId) {
@@ -48933,28 +48905,10 @@ class ProjectsApi extends ReposApi {
     Issue から直接引くので、全アイテムの走査は要らない。Issue やリポジトリが無い、またはプロジェクトに無ければ undefined
     */
     async getItemIdByIssue(projectId, owner, repository, issueNumber) {
-        const item = await this.getIssueProjectItem(projectId, owner, repository, issueNumber);
-        return item?.id;
-    }
-    /**
-    getItemIdByIssue と同じ引き方で、アイテムの ID とアーカイブ済みかを取る
-    */
-    async getIssueProjectItem(projectId, owner, repository, issueNumber) {
         const result = await this.queryIssue(QUERY_GET_ISSUE_PROJECT_ITEMS, { owner, repo: repository, number: issueNumber });
-        const repositoryNode = jsonField(result, 'repository');
-        if (!isTruthy(repositoryNode))
-            return undefined;
-        const issue = jsonField(repositoryNode, 'issue');
-        if (!isTruthy(issue))
-            return undefined;
-        const projectItems = truthyNodes(jsonField(issue, 'projectItems'));
-        for (const item of projectItems) {
-            if (jsonField(jsonField(item, 'project'), 'id') !== projectId)
-                continue;
-            const status = statusOf(item);
-            return { id: requireString(jsonField(item, 'id'), 'projectItems.nodes.id'), isArchived: jsonField(item, 'isArchived') === true, ...status !== undefined && { status } };
-        }
-        return undefined;
+        const issue = jsonField(jsonField(result, 'repository'), 'issue');
+        const item = truthyNodes(jsonField(issue, 'projectItems')).find(node => jsonField(jsonField(node, 'project'), 'id') === projectId);
+        return item === undefined ? undefined : requireString(jsonField(item, 'id'), 'projectItems.nodes.id');
     }
     /**
     Issue 1 件の、指定のプロジェクトの項目を、readBoard の一覧の項目と同じ形で返す（札は含めない）。
@@ -49372,12 +49326,6 @@ class IssuesApi extends ProjectsApi {
         return this.handleHttpError(response);
     }
     /**
-    Issue のコメントを書き換える。見つからなければ GitHubNotFoundError
-    */
-    async updateIssueComment(owner, repository, commentId, body) {
-        return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/comments/${String(commentId)}`, { json: { body } });
-    }
-    /**
     Issue にコメントを足す
     */
     async addIssueComment(owner, repository, number, body) {
@@ -49636,14 +49584,6 @@ class IssuesApi extends ProjectsApi {
     async closeIssue(owner, repository, number, stateReason = 'completed') {
         return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/${String(number)}`, {
             json: { state: 'closed', state_reason: stateReason },
-        });
-    }
-    /**
-    Issue を再オープンする
-    */
-    async reopenIssue(owner, repository, number) {
-        return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/${String(number)}`, {
-            json: { state: 'open', state_reason: 'reopened' },
         });
     }
     /**
@@ -50048,63 +49988,12 @@ function createGitHubClient(out, host) {
     return new GitHubClient({ host, diagnostics: out, signal: out.signal });
 }
 
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
-// Issue の作成・ボードへの追加・フィールドの設定と、判定に応じた列と札の書き込み（applyBoardMove）。cli/core/issue_board.py の移植に applyBoardMove を足した。
-// 失敗は GitHubAPIError で呼び出し側に返す。表示と終了コードは呼び出し側が決める。
-/**
-Issue をボードへ追加し、項目 ID と Issue の node id を返す。
-追加済みの Issue には既存の項目 ID が返る（何度呼んでも同じ結果になる）。node id の取得かボードへの追加に失敗したら GitHubAPIError
-*/
-async function addIssueToBoard(client, config, owner, repository, issueNumber, issueNodeId) {
-    const nodeId = issueNodeId === undefined || issueNodeId === '' ? await client.getIssueNodeId(owner, repository, issueNumber) : issueNodeId;
-    const itemId = await client.addToProject(config.project.id, nodeId);
-    return { itemId, issueNodeId: nodeId };
-}
-/**
-設定の workflow に、その status のオプションがあるか
-*/
-function isStatusConfigured(config, status) {
-    const fieldId = getFieldId(config, 'workflow');
-    const optionId = getOptionId(config, 'workflow', status);
-    return fieldId !== undefined && fieldId !== '' && optionId !== undefined && optionId !== '';
-}
-/**
-カスタムフィールドを 1 つ設定する。設定したら true。
-設定に無いフィールド・オプションは何もせず false。更新に失敗したら GitHubAPIError
-*/
-// eslint-disable-next-line unicorn/consistent-boolean-name -- Python の set_issue_field と名前をそろえる
-async function setIssueField(client, config, itemId, fieldName, optionName) {
-    const fieldId = getFieldId(config, fieldName);
-    const optionId = getOptionId(config, fieldName, optionName);
-    if (fieldId === undefined || fieldId === '' || optionId === undefined || optionId === '')
-        return false;
-    await client.updateProjectItemField(config.project.id, itemId, fieldId, optionId);
-    return true;
-}
-/**
-列と札を動かした（dry-run は動かす予定の）Issue 1 件。board sync・pr create・issue block / unblock の data が使う
-*/
-strictObject({
-    issue: string$1().describe('Issue as shown in the moved line (#N, or owner/repo#N outside the home repository)'),
-    from: string$1().optional().describe('Column before the move (omitted when only the Status changed)'),
-    to: string$1().optional().describe('Column after the move (omitted when only the Status changed)'),
-    label: string$1().optional().describe('Status value set (omitted when the Status did not change)'),
-    reason: string$1().describe('Readiness that decided the move'),
-});
-
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
-// issue 系のコマンドが共有する関数と定数。cli/commands/issue.py の移植。
-// typer.Exit(n) に当たるのは、error の行を出して止める stopWith(output, 文, n)。
-// 行を別の関数が先に出した後は、throw new CommandExit(n) で止める。
-// BadParameter は、run の本体を包む runWithExit が受ける。
-/**
-Issue 種別の入力。issue create が使う
-*/
-_enum(['task', 'bug', 'epic', 'tracker']).default('task').describe('Issue type (task/bug/epic/tracker)');
+// issue 系のコマンドが共有する関数と定数。I/O を持たない起票の決まりは domain/issue-rules.ts にある。
+// error の行を出して止めるのは stopWith(output, 文, n)。
 const ISSUE_REF_DESCRIPTION = 'Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)';
 // --- 終了の表し方 ---
 /**
-引数の値が不正。Python の typer.BadParameter。呼ぶ側が受けない場合は、runWithExit が使い方の誤り（終了コード 2）にする
+Issue 参照が不正。parseIssueReferenceOrExit が終了コード 2 にする
 */
 class BadParameterError extends BaseError {
     text;
@@ -50115,19 +50004,11 @@ class BadParameterError extends BaseError {
     }
 }
 /**
-run の本体を包む。終わったら 0 を返す。BadParameterError は使い方の誤りにして伝える。
-それ以外の例外はそのまま伝える。CommandExit は defineTool が受けて終了コードにする
+run の本体を包む。終わったら 0 を返す。例外はそのまま伝える。CommandExit は defineTool が受けて終了コードにする
 */
 async function runWithExit(body) {
-    try {
-        await body();
-        return 0;
-    }
-    catch (error) {
-        if (error instanceof BadParameterError)
-            throw new UsageError(`Invalid value: ${error.message}`);
-        throw error;
-    }
+    await body();
+    return 0;
 }
 // --- Issue 参照 ---
 /**
@@ -50210,6 +50091,50 @@ async function writersAmong(out, client, repository, logins) {
     const checked = await Promise.all(logins.map(async (login) => await hasWritePermission(out, client, repository, login)));
     return new Set(logins.filter((_login, index) => checked.at(index) === true));
 }
+
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
+// Issue の作成・ボードへの追加・フィールドの設定と、判定に応じた列と札の書き込み（applyBoardMove）。cli/core/issue_board.py の移植に applyBoardMove を足した。
+// 失敗は GitHubAPIError で呼び出し側に返す。表示と終了コードは呼び出し側が決める。
+/**
+Issue をボードへ追加し、項目 ID と Issue の node id を返す。
+追加済みの Issue には既存の項目 ID が返る（何度呼んでも同じ結果になる）。node id の取得かボードへの追加に失敗したら GitHubAPIError
+*/
+async function addIssueToBoard(client, config, owner, repository, issueNumber, issueNodeId) {
+    const nodeId = issueNodeId === undefined || issueNodeId === '' ? await client.getIssueNodeId(owner, repository, issueNumber) : issueNodeId;
+    const itemId = await client.addToProject(config.project.id, nodeId);
+    return { itemId, issueNodeId: nodeId };
+}
+/**
+設定の workflow に、その status のオプションがあるか
+*/
+function isStatusConfigured(config, status) {
+    const fieldId = getFieldId(config, 'workflow');
+    const optionId = getOptionId(config, 'workflow', status);
+    return fieldId !== undefined && fieldId !== '' && optionId !== undefined && optionId !== '';
+}
+/**
+カスタムフィールドを 1 つ設定する。設定したら true。
+設定に無いフィールド・オプションは何もせず false。更新に失敗したら GitHubAPIError
+*/
+// eslint-disable-next-line unicorn/consistent-boolean-name -- Python の set_issue_field と名前をそろえる
+async function setIssueField(client, config, itemId, fieldName, optionName) {
+    const fieldId = getFieldId(config, fieldName);
+    const optionId = getOptionId(config, fieldName, optionName);
+    if (fieldId === undefined || fieldId === '' || optionId === undefined || optionId === '')
+        return false;
+    await client.updateProjectItemField(config.project.id, itemId, fieldId, optionId);
+    return true;
+}
+/**
+列と札を動かした（dry-run は動かす予定の）Issue 1 件。board sync・pr create・issue block / unblock の data が使う
+*/
+strictObject({
+    issue: string$1().describe('Issue as shown in the moved line (#N, or owner/repo#N outside the home repository)'),
+    from: string$1().optional().describe('Column before the move (omitted when only the Status changed)'),
+    to: string$1().optional().describe('Column after the move (omitted when only the Status changed)'),
+    label: string$1().optional().describe('Status value set (omitted when the Status did not change)'),
+    reason: string$1().describe('Readiness that decided the move'),
+});
 
 // Issue の本文の `## Waits for merge` の節の読み書き（contracts/prerequisite-table.md の 3）。純関数だけを置く。
 const WAITS_FOR_MERGE_HEADING = '## Waits for merge';
@@ -50574,15 +50499,9 @@ const TOOL_HINT_COMMANDS = [
     { name: 'board_show', inputs: ['json', 'repo'] },
     { name: 'board_add', inputs: ['issue_ref', 'status', 'project', 'repo'] },
     { name: 'board_move', inputs: ['issue_ref', 'status', 'project', 'repo'] },
-    { name: 'issue_create', inputs: ['files', 'message', 'title', 'repo', 'type', 'status', 'parent_epic', 'order', 'label', 'attributes', 'lane', 'freeform', 'project'] },
-    { name: 'issue_check', inputs: ['files', 'project', 'repo'] },
-    { name: 'issue_show', inputs: ['issue_ref', 'project', 'json', 'comment_limit', 'repo'] },
-    { name: 'issue_attributes', inputs: ['project', 'json', 'repo'] },
-    { name: 'issue_edit', inputs: ['issue_ref', 'attributes', 'project', 'repo'] },
-    { name: 'issue_comment', inputs: ['file', 'message', 'issue_ref', 'template', 'project', 'repo'] },
-    { name: 'issue_block', inputs: ['issue_ref', 'by', 'wait', 'reason', 'project', 'repo'] },
-    { name: 'issue_unblock', inputs: ['issue_ref', 'by', 'project', 'repo'] },
-    { name: 'issue_reopen', inputs: ['issue_ref', 'status', 'project', 'comment', 'repo'] },
+    { name: 'issue_check', inputs: ['method', 'project', 'issues', 'reads', 'repo'] },
+    { name: 'issue_dependency_check', inputs: ['method', 'owner', 'repo', 'issue_number', 'type', 'related_owner', 'related_repo', 'related_issue_number', 'wait', 'reason', 'project', 'reads'] },
+    { name: 'issue_comment_check', inputs: ['method', 'owner', 'repo', 'issue_number', 'comment_id', 'body', 'template', 'template_text', 'reads'] },
     { name: 'session_start', inputs: ['issue_ref', 'branch', 'base', 'checkout', 'project', 'repo'] },
     { name: 'session_show', inputs: ['directory', 'project', 'repo'] },
     { name: 'session_finish', inputs: ['pr_ref', 'delete_branch', 'project', 'repo'] },

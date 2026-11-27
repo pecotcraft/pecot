@@ -40,7 +40,7 @@ Epic の作成先を決めるため、pecot-workflow の MCP ツール `project_
 - **設定済み** → Step 4 へ進む
 - **未設定** → AskUserQuestion で分岐:
   - 「先に集約リポを設定する（推奨）」→ `/pecot-w:w-onboarding` を案内してこのスキルを中断
-  - 「このまま個別リポに Epic を作る（分散運用）」→ Step 4 へ進む（作成時 `repository` 必須）
+  - 「このまま個別リポに Epic を作る（分散運用）」→ Step 4 へ進む（作成時 `owner`・`repo` 必須）
 
 集約リポを後から追加すると、既存 Epic を移送する運用負荷が生じる。可能なら先に設定することを推奨する。
 
@@ -50,21 +50,21 @@ Epic の作成先を決めるため、pecot-workflow の MCP ツール `project_
 2. できたファイルを編集する
    - YAMLフロントマターを設定する
    - Issue本文を記述する（テンプレ冒頭コメントの 読者:/書き方: に従う）
-3. `issue_create` を使って、書いたファイルを投稿する
+3. pecot-workflow の MCP ツール `issue_check` に通してから、公式の MCP の `issue_write` で作り、`projects_write` でボードに足して欄を書く。手順は [Issue とコメントを公式の MCP で書く](../w-help/references/issue-write.md) の「Issue を作る」
 
 ツールが出力したファイルのセクション構造を維持して本文を埋める。テンプレ冒頭コメントの `読者:`（Epic を分解する人）の判断に使われない情報は書かない。
 
 **YAMLフロントマターの設定:**
 
-`title`（必須）を設定する。`[Epic]` プレフィックスはツールが自動付与するため不要。
+`title`（必須）を、`[Epic]` で始めて設定する。
 
-利用者が分類（`pecot-lane`）の値を言ったときだけ、`lane` に書く。言っていなければ空のままにし、尋ねもしない。
+利用者が分類（`pecot-lane`）の値を言ったときだけ、`project_fields` に書く。言っていなければ空のままにし、尋ねもしない。
 
 **リポジトリの特定方法:**
 
-- 集約リポ設定済 → `repository: ""` のまま。ツールが自動で集約リポに作成する
-- 集約リポ未設定（Step 3 で「このまま個別リポに作る」を選んだ）→ `repository: <owner/repo>` を **必須** で指定する。未指定だと `issue_create` が失敗する
-- ユーザーが実装リポ名を言及しても安易に `repo` で上書きせず、まず集約リポ行きで提案する。例外的に集約リポ以外へ作る時のみ `repo: "<impl-repo>"` で明示する（ツールは警告を出しつつ作成を許可する）
+- 集約リポ設定済 → `owner`・`repo` に、pecot-workflow の MCP ツール `project_get`（`key: aggregation_repo`）の集約リポを書く
+- 集約リポ未設定（Step 3 で「このまま個別リポに作る」を選んだ）→ `owner`・`repo` に、作るリポを書く
+- ユーザーが実装リポ名を言及しても安易にそのリポにせず、まず集約リポ行きで提案する。例外的に集約リポ以外へ作る時のみ、そのリポを書く（`issue_check` は警告を出しつつ通す）
 - 詳細マトリクス: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 
 ### Step 5: 完了報告

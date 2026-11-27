@@ -237,19 +237,6 @@ describe('アイテムの追加・更新・削除', () => {
     expect(graphqlRequests(server)).toEqual([{ operation: 'DeleteProjectItem', variables: { projectId: 'PVT_proj', itemId: 'PVTI_item' } }])
   })
 
-  it('unarchiveProjectItem は、projectId と itemId を変数に送信する', async () => {
-    await explains('`unarchiveProjectItem` のテストです。`projectId` と `itemId` を変数にして、アーカイブの解除を送信することを確認します。')
-    const { client, server } = await startClient([graphqlData('UnarchiveProjectItem', { unarchiveProjectV2Item: { item: { id: 'PVTI_item' } } })])
-    await client.unarchiveProjectItem('PVT_proj', 'PVTI_item')
-    expect(graphqlRequests(server)).toEqual([{ operation: 'UnarchiveProjectItem', variables: { projectId: 'PVT_proj', itemId: 'PVTI_item' } }])
-  })
-
-  it('unarchiveProjectItem は、item が null の場合に GitHubAPIError が発生する', async () => {
-    await explains('`unarchiveProjectItem` の失敗時のテストです。応答の `item` が `null` の場合は、`GitHubAPIError` が発生することを確認します。')
-    const { client } = await startClient([graphqlData('UnarchiveProjectItem', { unarchiveProjectV2Item: { item: JSON_NULL } })])
-    expect(await rejection(client.unarchiveProjectItem('PVT_proj', 'PVTI_item'))).toMatchObject(failure(GitHubAPIError, 'failed to unarchive the project item'))
-  })
-
   it('deleteProjectItem は、deletedItemId が null の場合に GitHubAPIError が発生する', async () => {
     await explains('`deleteProjectItem` の失敗時のテストです。応答の `deletedItemId` が `null` の場合は、`GitHubAPIError` が発生することを確認します。')
     const { client } = await startClient([graphqlData('DeleteProjectItem', { deleteProjectV2Item: { deletedItemId: JSON_NULL } })])
@@ -390,28 +377,6 @@ async function lookup(response: unknown): Promise<{ readonly result: string | un
   const result = await client.getItemIdByIssue('PVT_proj', 'owner', 'repo', 123)
   return { result, variables: graphqlRequests(server).map(request => request.variables) }
 }
-
-describe('getIssueProjectItem', () => {
-  it.each([
-    ['isArchived が真', true, true],
-    ['isArchived が偽', false, false],
-    ['isArchived が存在しない', undefined, false],
-  ])('%s のアイテムは、ID とアーカイブ済みか（%s → %s）を返す', async (_label, isArchived, expected) => {
-    await explains('`getIssueProjectItem` のテストです。アイテムの `isArchived` が真・偽・存在しないのいずれの場合も、ID とアーカイブ済みかどうかを返すことを確認します。')
-    const { client } = await startClient([graphqlData('GetIssueProjectItems', { repository: { issue: { projectItems: { nodes: [
-      { id: 'PVTI_item1', ...isArchived !== undefined && { isArchived }, project: { id: 'PVT_proj' } },
-    ] } } } })])
-    expect(await client.getIssueProjectItem('PVT_proj', 'owner', 'repo', 123)).toEqual({ id: 'PVTI_item1', isArchived: expected })
-  })
-
-  it('指定のプロジェクトに紐づかない場合は、undefined を返す', async () => {
-    await explains('`getIssueProjectItem` のテストです。指定のプロジェクトに紐づくアイテムが存在しない場合は、`undefined` を返すことを確認します。')
-    const { client } = await startClient([graphqlData('GetIssueProjectItems', { repository: { issue: { projectItems: { nodes: [
-      { id: 'PVTI_item1', isArchived: true, project: { id: 'PVT_other' } },
-    ] } } } })])
-    expect(await client.getIssueProjectItem('PVT_proj', 'owner', 'repo', 123)).toBeUndefined()
-  })
-})
 
 describe('getItemIdByIssue', () => {
   it('指定のプロジェクトのアイテム ID を返す', async () => {

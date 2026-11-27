@@ -1,11 +1,11 @@
-// tools/list の annotations。定義書の書き出しも同じ値を使い、effects との一致は interface-spec の検証が確かめる。
+// MCP の Tool の annotations を、ツールの定義から作る。
 import type { ToolAnnotations } from '@modelcontextprotocol/server'
 
 import type { ToolDefinition } from '../commands/registry.js'
 
 /**
-readOnlyHint だけを付ける。effects の種類は MCP の annotations に合わせてある。destructiveHint は付けず、既定値に任せる
+読むだけの印は readOnlyHint に、外の世界に触れない印は openWorldHint: false にする。openWorldHint は印が無ければ出さない（既定の true のまま）
 */
-export function toolAnnotationsOf(definition: Readonly<Pick<ToolDefinition, 'readOnly'>>): ToolAnnotations {
-  return { readOnlyHint: definition.readOnly }
+export function toolAnnotationsOf(definition: Readonly<Pick<ToolDefinition, 'readOnly' | 'openWorld'>>): ToolAnnotations {
+  return { readOnlyHint: definition.readOnly, ...definition.openWorld === false && { openWorldHint: false } }
 }

@@ -1,5 +1,6 @@
 # GitHub の Issue の機能の写し（github-issue-surface.json）の各項目について、pecot が扱うものと外すものを書く。
-# 照らし合わせは cli/tests/issue-coverage.test.ts。直し方は CONTRIBUTING.md の「4. GitHub の Issue の機能の写しと担保の一覧」
+# 照らし合わせは cli/tests/issue-coverage.test.ts。直し方は CONTRIBUTING.md の「4. GitHub の Issue の機能の写しと担保の一覧」。
+# tool は、その項目を書く前に通すチェックのツール（書くのは GitHub の公式の MCP）か、pecot が自分で書くツール。
 items:
   - id: "graphql:CreateIssueInput.agentAssignment"
     status: excluded
@@ -9,13 +10,13 @@ items:
     handler: users
   - id: "graphql:CreateIssueInput.body"
     status: supported
-    tool: issue_create
+    tool: issue_check
   - id: "graphql:CreateIssueInput.clientMutationId"
     status: excluded
     reason: GraphQL の仕組みの項目で、Issue の機能でない
   - id: "graphql:CreateIssueInput.issueFields"
     status: supported
-    tool: issue_create
+    tool: issue_check
   - id: "graphql:CreateIssueInput.issueTemplate"
     status: excluded
     reason: pecot の流れの外。本文は pecot-template:// の雛形で作り、リポの Issue テンプレートは使わない
@@ -30,22 +31,22 @@ items:
     handler: milestone
   - id: "graphql:CreateIssueInput.parentIssueId"
     status: supported
-    tool: issue_create
+    tool: issue_check
   - id: "graphql:CreateIssueInput.projectIds"
     status: excluded
     reason: Projects (classic) の項目。pecot は Projects だけを扱う
   - id: "graphql:CreateIssueInput.projectV2Ids"
     status: supported
-    tool: issue_create
+    tool: issue_check
   - id: "graphql:CreateIssueInput.repositoryId"
     status: supported
-    tool: issue_create
+    tool: issue_check
   - id: "graphql:CreateIssueInput.statusId"
     status: excluded
     reason: preview の機能（Issue の status）
   - id: "graphql:CreateIssueInput.title"
     status: supported
-    tool: issue_create
+    tool: issue_check
   - id: "graphql:ProjectV2FieldValue.date"
     status: supported
     handler: date
@@ -75,16 +76,16 @@ items:
     handler: users
   - id: "graphql:UpdateIssueInput.body"
     status: supported
-    tool: issue_block
+    tool: issue_check
   - id: "graphql:UpdateIssueInput.clientMutationId"
     status: excluded
     reason: GraphQL の仕組みの項目で、Issue の機能でない
   - id: "graphql:UpdateIssueInput.id"
     status: supported
-    tool: issue_edit
+    tool: issue_check
   - id: "graphql:UpdateIssueInput.issueFieldUpdates"
     status: supported
-    tool: issue_edit
+    tool: issue_check
   - id: "graphql:UpdateIssueInput.issueType"
     status: supported
     handler: issue_type
@@ -183,7 +184,7 @@ items:
     handler: number
   - id: "graphql:enum:ProjectV2FieldType.PARENT_ISSUE"
     status: supported
-    tool: issue_create
+    tool: issue_check
   - id: "graphql:enum:ProjectV2FieldType.REPOSITORY"
     status: excluded
     reason: GitHub が計算する
@@ -201,7 +202,7 @@ items:
     handler: text
   - id: "graphql:enum:ProjectV2FieldType.TITLE"
     status: supported
-    tool: issue_create
+    tool: issue_check
   - id: "graphql:enum:ProjectV2FieldType.TRACKED_BY"
     status: excluded
     reason: GitHub が計算する（tasklist の関係）
@@ -213,7 +214,7 @@ items:
     reason: GitHub が計算する
   - id: "graphql:mutation:addBlockedBy"
     status: supported
-    tool: issue_block
+    tool: issue_dependency_check
   - id: "graphql:mutation:addCloseIssueReferences"
     status: excluded
     reason: pecot の流れの外。Pull Request は本文の closing keyword で Issue につなぐ
@@ -222,7 +223,7 @@ items:
     reason: pecot の流れの外。Issue の関係は parent と blocked_by だけを扱う
   - id: "graphql:mutation:addSubIssue"
     status: supported
-    tool: issue_create
+    tool: issue_check
   - id: "graphql:mutation:applyPendingIssueSuggestions"
     status: excluded
     reason: pecot の流れの外。Issue の提案の適用・却下は扱わない
@@ -231,10 +232,10 @@ items:
     tool: session_finish
   - id: "graphql:mutation:createIssue"
     status: supported
-    tool: issue_create
+    tool: issue_check
   - id: "graphql:mutation:createIssueFieldValue"
     status: supported
-    tool: issue_edit
+    tool: issue_check
   - id: "graphql:mutation:createLinkedBranch"
     status: supported
     tool: session_start
@@ -243,7 +244,7 @@ items:
     reason: pecot の流れの外。Issue は閉じて残し、消さない
   - id: "graphql:mutation:deleteIssueFieldValue"
     status: supported
-    tool: issue_edit
+    tool: issue_check
   - id: "graphql:mutation:pinIssue"
     status: excluded
     reason: pecot の流れの外。リポでの Issue の固定は扱わない
@@ -252,7 +253,7 @@ items:
     reason: pecot の流れの外。Issue の提案の適用・却下は扱わない
   - id: "graphql:mutation:removeBlockedBy"
     status: supported
-    tool: issue_unblock
+    tool: issue_dependency_check
   - id: "graphql:mutation:removeCloseIssueReferences"
     status: excluded
     reason: pecot の流れの外。Pull Request は本文の closing keyword で Issue につなぐ
@@ -264,13 +265,13 @@ items:
     reason: pecot の流れの外。親は起票のときに付けるだけで、外さない
   - id: "graphql:mutation:reopenIssue"
     status: supported
-    tool: issue_reopen
+    tool: issue_check
   - id: "graphql:mutation:reprioritizeSubIssue"
     status: excluded
     reason: pecot の流れの外。sub-issue の並びは題の番号で決め、GitHub の並びを変えない
   - id: "graphql:mutation:setIssueFieldValue"
     status: supported
-    tool: issue_edit
+    tool: issue_check
   - id: "graphql:mutation:setIssueStatus"
     status: excluded
     reason: preview の機能（Issue の status）
@@ -282,10 +283,10 @@ items:
     reason: pecot の流れの外。リポでの Issue の固定は扱わない
   - id: "graphql:mutation:updateIssue"
     status: supported
-    tool: issue_edit
+    tool: issue_check
   - id: "graphql:mutation:updateIssueFieldValue"
     status: supported
-    tool: issue_edit
+    tool: issue_check
   - id: "graphql:mutation:updateIssueIssueType"
     status: supported
     handler: issue_type
@@ -297,10 +298,10 @@ items:
     handler: users
   - id: "rest:POST /repos/{owner}/{repo}/issues#body"
     status: supported
-    tool: issue_create
+    tool: issue_check
   - id: "rest:POST /repos/{owner}/{repo}/issues#issue_field_values"
     status: supported
-    tool: issue_create
+    tool: issue_check
   - id: "rest:POST /repos/{owner}/{repo}/issues#labels"
     status: supported
     handler: labels
@@ -309,13 +310,13 @@ items:
     handler: milestone
   - id: "rest:POST /repos/{owner}/{repo}/issues#parent_issue_id"
     status: supported
-    tool: issue_create
+    tool: issue_check
   - id: "rest:POST /repos/{owner}/{repo}/issues#status"
     status: excluded
     reason: preview の機能（Issue の status）
   - id: "rest:POST /repos/{owner}/{repo}/issues#title"
     status: supported
-    tool: issue_create
+    tool: issue_check
   - id: "rest:POST /repos/{owner}/{repo}/issues#type"
     status: supported
     handler: issue_type

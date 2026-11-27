@@ -388,13 +388,6 @@ export class IssuesApi extends ProjectsApi {
   }
 
   /**
-  Issue のコメントを書き換える。見つからなければ GitHubNotFoundError
-  */
-  async updateIssueComment(owner: string, repository: string, commentId: number, body: string): Promise<JsonObject> {
-    return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/comments/${String(commentId)}`, { json: { body } })
-  }
-
-  /**
   Issue にコメントを足す
   */
   async addIssueComment(owner: string, repository: string, number: number, body: string): Promise<JsonObject> {
@@ -667,15 +660,6 @@ export class IssuesApi extends ProjectsApi {
   async closeIssue(owner: string, repository: string, number: number, stateReason = 'completed'): Promise<JsonObject> {
     return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/${String(number)}`, {
       json: { state: 'closed', state_reason: stateReason },
-    })
-  }
-
-  /**
-  Issue を再オープンする
-  */
-  async reopenIssue(owner: string, repository: string, number: number): Promise<JsonObject> {
-    return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/${String(number)}`, {
-      json: { state: 'open', state_reason: 'reopened' },
     })
   }
 

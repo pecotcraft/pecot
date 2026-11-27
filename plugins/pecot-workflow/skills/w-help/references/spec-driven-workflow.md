@@ -167,19 +167,18 @@ Phase の前後関係は、tasks.md の前提の表に書く。表が `blocked_b
 | スタック可 | 前提の変更を、手元のブランチか試験環境で動かして、実装と確認ができる。前提の PR の上にスタックして着手できる |
 | スタック不可 | 前提の変更が開発ブランチに入っていないと、手元のブランチと試験環境のどちらでも、実装か確認ができない。前提のマージを待つ |
 
-Issue の本文に、前後関係は書かない。スタック不可の前提の節は、CLI が本文の末尾に足す。
+Issue の本文に、前後関係は書かない。スタック不可の前提の節は、`issue_check` が返す中身を本文の末尾に書く。
 前提と種類の決まりは、[issue-flow-rules.md](./issue-flow-rules.md) の「前提（`blocked_by`）と種類」が定める。
 前提を持つフェーズが 1 つも無いときは、見出しの行と区切りの行だけの表を書く。この表は「前提は無い」と読む。
 この表の Phase は tasks.md のフェーズ（サブ Issue）を指し、Epic の前提は表せない。
 
 ### 投稿の後に前提を直す
 
-計画が変わったら、pecot-workflow の MCP ツール `issue_block` と `issue_unblock` で前提を直す。GitHub の画面で直す必要は無い。
+計画が変わったら、[Issue とコメントを公式の MCP で書く](issue-write.md) の「前提を付け外しする」の手順で前提を直す。GitHub の画面で直す必要は無い。
 
-- `issue_block` は、前提を付ける。付いている前提には、種類（スタック可・スタック不可）と理由を付け直す
-- `issue_unblock` は、前提を外す
-- どちらも、本文の `## Waits for merge` の節と、ボードの列と札を、その場でそろえる。輪になる前提は止まる
-- 着手済み（`Active`・`In Review`）の Issue では、列と札を動かさず、残る前提を警告で伝える。ブランチは前提の PR の上へ移らない
+- pecot-workflow の MCP ツール `issue_dependency_check` に通してから、公式の MCP の `issue_dependency_write` で付ける・外す。付いている前提の種類（スタック可・スタック不可）と理由は、`issue_dependency_check` に新しい種類を渡し、返る `## Waits for merge` の節で本文を書き直す
+- `issue_dependency_check` が返す本文の節と置く列で、本文とボードの列をそろえる。輪になる前提は外れとして返る
+- 着手済み（`Active`・`In Review`）の Issue では、置く列を返さず、残る前提を警告で伝える。ブランチは前提の PR の上へ移らない
 - 1 件ずつサブタスクを作る `/pecot-w:w-ready` も、先に終える Issue を `blocked_by` に書いて投稿する
 
 ## スタックして進める

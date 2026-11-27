@@ -575,7 +575,7 @@ describe('session_start', () => {
       expectClean(result)
       expect(result).toMatchObject({ isError: true, structured: { kind: 'not-ready' } })
       expect(result.structured['detail']).toContain('#7 is blocked by #3 (not in review: #3 (not started))')
-      expect(result.structured['detail']).toContain('issue_unblock')
+      expect(result.structured['detail']).toContain('issue_dependency_check')
       expect(requestLabels(result.requests)).not.toContain('CreateLinkedBranch')
     })
 
@@ -662,9 +662,9 @@ describe('session_start', () => {
         'error: #7 is blocked by #3, #4 (waits for merge)',
         '  - #3: in review',
         '  - #4: wait: merge — 公開後に確かめる',
-        '  to remove the prerequisite: issue_unblock with issue_ref: "acme/demo/7", by: "acme/demo/3"',
-        '  to remove the prerequisite: issue_unblock with issue_ref: "acme/demo/7", by: "acme/demo/4"',
-        '  to stack on it instead of waiting for merge: issue_block with issue_ref: "acme/demo/7", by: "acme/demo/4", wait: "stack"',
+        '  to remove the prerequisite: issue_dependency_check with method: "remove", owner: "acme", repo: "demo", issue_number: 7, type: "blocked_by", related_owner: "acme", related_repo: "demo", related_issue_number: 3, then issue_dependency_write with the same arguments',
+        '  to remove the prerequisite: issue_dependency_check with method: "remove", owner: "acme", repo: "demo", issue_number: 7, type: "blocked_by", related_owner: "acme", related_repo: "demo", related_issue_number: 4, then issue_dependency_write with the same arguments',
+        '  to stack on it instead of waiting for merge: remove #4 from the Waits for merge section of the body of acme/demo/7, then issue_check with method: "update" and issue_write',
         '',
       ].join('\n'))
       expect(result.read(TITLE)).toBeUndefined()
@@ -677,8 +677,8 @@ describe('session_start', () => {
       expect(result.stderr).toBe([
         'error: #7 is blocked by #4 (waits for merge)',
         '  - #4: wait: merge — 公開後に確かめる',
-        '  to remove the prerequisite: issue_unblock with issue_ref: "acme/demo/7", by: "acme/demo/4"',
-        '  to stack on it instead of waiting for merge: issue_block with issue_ref: "acme/demo/7", by: "acme/demo/4", wait: "stack"',
+        '  to remove the prerequisite: issue_dependency_check with method: "remove", owner: "acme", repo: "demo", issue_number: 7, type: "blocked_by", related_owner: "acme", related_repo: "demo", related_issue_number: 4, then issue_dependency_write with the same arguments',
+        '  to stack on it instead of waiting for merge: remove #4 from the Waits for merge section of the body of acme/demo/7, then issue_check with method: "update" and issue_write',
         '',
       ].join('\n'))
     })
@@ -690,7 +690,7 @@ describe('session_start', () => {
       expect(result.stderr).toBe([
         'error: #7 is blocked by #3 (not in review: #3 (not started))',
         '  - #3: not started',
-        '  to remove the prerequisite: issue_unblock with issue_ref: "acme/demo/7", by: "acme/demo/3"',
+        '  to remove the prerequisite: issue_dependency_check with method: "remove", owner: "acme", repo: "demo", issue_number: 7, type: "blocked_by", related_owner: "acme", related_repo: "demo", related_issue_number: 3, then issue_dependency_write with the same arguments',
         '',
       ].join('\n'))
     })
@@ -765,7 +765,7 @@ describe('session_start', () => {
       expect(result.stderr).toBe([
         'error: #7 is blocked by #3 (not in one chain)',
         '  - #3: in review',
-        '  to remove the prerequisite: issue_unblock with issue_ref: "acme/demo/7", by: "acme/demo/3"',
+        '  to remove the prerequisite: issue_dependency_check with method: "remove", owner: "acme", repo: "demo", issue_number: 7, type: "blocked_by", related_owner: "acme", related_repo: "demo", related_issue_number: 3, then issue_dependency_write with the same arguments',
         '',
       ].join('\n'))
     })

@@ -70,7 +70,7 @@ describe('decideStart', () => {
   const targetFacts: IssueFacts = { ref: target, state: 'open', column: undefined, label: undefined, kind: 'task', branches: [], pullRequests: [] }
   const mergedPullRequest: IssuePullRequest = { repository, number: 1003, state: 'merged', headRefName: 'feat/3', baseRefName: 'main', isDraft: false, isCrossRepository: false }
   const mergedOpen: Prerequisite = { issue: { ...targetFacts, ref: lower, pullRequests: [mergedPullRequest] }, wait: 'stack', reason: undefined }
-  const unblockHint = 'to remove the prerequisite: issue_unblock with issue_ref: "acme/demo/7", by: "acme/demo/3"'
+  const unblockHint = 'to remove the prerequisite: issue_dependency_check with method: "remove", owner: "acme", repo: "demo", issue_number: 7, type: "blocked_by", related_owner: "acme", related_repo: "demo", related_issue_number: 3, then issue_dependency_write with the same arguments'
 
   function blockedText(prerequisite: Prerequisite): string {
     const judged = judgeReadiness({ target: targetFacts, prerequisites: [prerequisite], cycle: undefined, pullRequestsByHead: new Map(), developmentBranch: 'main' })

@@ -54,6 +54,7 @@ const run: Job = workflow.jobs['run'] ?? { steps: [] }
 const setup: Job = workflow.jobs['setup'] ?? { steps: [] }
 const label = 'vars.PECOT_AUTO_LABEL || \'pecot-auto\''
 const pecot = 'mcp__plugin_pecot-w_pecot-workflow__'
+const official = 'mcp__github-official__'
 const actions = 'pecotcraft/pecot/actions'
 const project = '${{ vars.PECOT_AUTO_PROJECT }}'
 
@@ -318,7 +319,7 @@ describe('auto のワークフローの雛形', () => {
   })
 
   it('claude_args は権限のモード・ターンの上限・文脈と結果の置き場所・許可・拒否の 5 つを持ち、# を含まない', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`claude_args` が、権限のモード・ターンの上限・`--add-dir`・許可・拒否の 5 つのオプションだけを持ち、`#` を含まないことを確認します。')
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`claude_args` が、権限のモード・ターンの上限・`--mcp-config`・`--add-dir`・許可・拒否の 6 つのオプションだけを持ち、`#` を含まないことを確認します。')
     expect(claudeArguments).toContain('--permission-mode default')
     expect(claudeArguments).toContain('--max-turns ${{ vars.PECOT_AUTO_MAX_TURNS || \'80\' }}')
     expect(claudeArguments).toContain('--add-dir "${{ runner.temp }}/pecot-auto"')
@@ -327,6 +328,7 @@ describe('auto のワークフローの雛形', () => {
     expect(Array.from(claudeArguments.matchAll(/(?:^|\s)(--[a-z-]+)/gi), match => match[1])).toEqual([
       '--permission-mode',
       '--max-turns',
+      '--mcp-config',
       '--add-dir',
       '--allowedTools',
       '--disallowedTools',
@@ -334,8 +336,8 @@ describe('auto のワークフローの雛形', () => {
     expect(claudeArguments).not.toContain('#')
   })
 
-  it('許可は契約のツールだけで、Edit・Write と 4 つの MCP ツールを含み、pecot の CLI を Bash で許さない', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`--allowedTools` が定めたツールだけで、`Edit`・`Write` と 4 つの MCP ツールを含み、pecot の CLI を `Bash` で許可しないことを確認します。')
+  it('許可は契約のツールだけで、Edit・Write と pecot・公式の MCP ツールを含み、pecot の CLI を Bash で許さない', async () => {
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。`--allowedTools` が定めたツールだけで、`Edit`・`Write` と pecot・公式の MCP ツールを含み、pecot の CLI を `Bash` で許可しないことを確認します。')
     const allowed = toolList('--allowedTools')
     expect(allowed).toEqual([
       'Read',
@@ -344,7 +346,10 @@ describe('auto のワークフローの雛形', () => {
       'Edit',
       'Write',
       `${pecot}session_start`,
-      `${pecot}issue_comment`,
+      `${pecot}issue_comment_check`,
+      `${official}issue_read`,
+      `${official}add_issue_comment`,
+      `${official}update_issue_comment`,
       `${pecot}pr_check`,
       `${pecot}pr_create`,
       'Bash(git status:*)',
@@ -359,6 +364,27 @@ describe('auto のワークフローの雛形', () => {
       'Bash(gh run view:*)',
     ])
     expect(allowed.filter(tool => tool.startsWith('Bash(pecot'))).toEqual([])
+  })
+
+  it('公式の GitHub の MCP サーバを digest で固定した docker で起動し、ツールを 3 つに絞って --mcp-config で渡す', async () => {
+    await explains('公式の GitHub の MCP サーバの設定のテストです。`github-official` が docker で `ghcr.io/github/github-mcp-server` の v2.3.0 を digest つきで起動することを確認します。token・ホスト・ツールを env で渡し、`--mcp-config` に job の env の値を渡すことも確認します。')
+    const server: unknown = JSON.parse(run.env?.['PECOT_AUTO_GITHUB_MCP'] ?? '')
+    const image = 'ghcr.io/github/github-mcp-server:v2.3.0@sha256:f8ee4dedc7d5c8cb32854ab91cc92a31c55a8a5510708cf8742e9f9427588ca6'
+    expect(server).toEqual({
+      mcpServers: {
+        'github-official': {
+          type: 'stdio',
+          command: 'docker',
+          args: ['run', '-i', '--rm', '-e', 'GITHUB_PERSONAL_ACCESS_TOKEN', '-e', 'GITHUB_HOST', '-e', 'GITHUB_TOOLS', image],
+          env: {
+            GITHUB_PERSONAL_ACCESS_TOKEN: '${PECOT_GITHUB_COM_TOKEN}',
+            GITHUB_HOST: '${{ github.server_url }}',
+            GITHUB_TOOLS: 'issue_read,add_issue_comment,update_issue_comment',
+          },
+        },
+      },
+    })
+    expect(claudeArguments).toContain('--mcp-config \'${{ env.PECOT_AUTO_GITHUB_MCP }}\'')
   })
 
   it('許可に、マージ・クローズ・リリースのツールを含まない', async () => {
@@ -378,7 +404,8 @@ describe('auto のワークフローの雛形', () => {
 
   it('利用者が足す許可は、job の env の空の変数から、空でないときだけ --allowedTools の末尾に足す', async () => {
     await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。利用者が追加する許可は、job の `env` の空の変数から、空でない場合だけ `--allowedTools` の末尾に追加される式であることを確認します。')
-    expect(run.env).toEqual({ PECOT_AUTO_EXTRA_ALLOWED_TOOLS: '' })
+    expect(Object.keys(run.env ?? {})).toEqual(['PECOT_AUTO_GITHUB_MCP', 'PECOT_AUTO_EXTRA_ALLOWED_TOOLS'])
+    expect(run.env?.['PECOT_AUTO_EXTRA_ALLOWED_TOOLS']).toBe('')
     expect(claudeArguments).toContain('${{ env.PECOT_AUTO_EXTRA_ALLOWED_TOOLS != \'\' && format(\',{0}\', env.PECOT_AUTO_EXTRA_ALLOWED_TOOLS) || \'\' }}"')
   })
 

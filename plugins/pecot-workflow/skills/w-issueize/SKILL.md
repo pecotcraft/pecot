@@ -22,7 +22,7 @@ when_to_use: "tasks.md の各フェーズを Issue にまとめて登録した�
 - `SPECKIT_DIR`: speckit 一式が置かれているディレクトリ（例: `specs/263-plan-mode-reminder/`）。aist-roadmap など外部リポにある場合は `owner/repo:specs/NNN-*/` 形式で表す。
 - `TASKS_PATH`: 受け取った tasks.md の実パス
 
-pecot-workflow の MCP ツール `issue_show` を使って、親 Epic を読む。
+公式の MCP の `issue_read`（`get`・`get_sub_issues`）で、親 Epic と sub-issue を読む。
 
 ### Step 2: フェーズ構造と前提を把握する
 
@@ -60,11 +60,11 @@ Issue 化済みのフェーズは、同じ親Epicの既存サブタスクの本�
 pecot-workflow の MCP サーバの resource `pecot-template://issue/task-implement` を読み、テンプレートのファイルをフェーズの数だけ作る。
 ファイル名は `phase1.md`、`phase2.md` … とする。拡張子を除いた名前が、そのファイルのキーになる。
 
-`repository` には、**実装コードを置くリポ** を書く（w-ready と同じルール）。親 Epic が `aggregation_repo` にあっても、サブタスクは `aggregation_repo` に作らない（明示的な例外指示がある場合を除く）。詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
+`owner`・`repo` には、**実装コードを置くリポ** を書く（w-ready と同じルール）。親 Epic が `aggregation_repo` にあっても、サブタスクは `aggregation_repo` に作らない（明示的な例外指示がある場合を除く）。詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 
 できた各ファイルを編集する。セクション構造（見出し）は変更せず、テンプレ冒頭コメントの `読者:`/`書き方:` に従って埋める。spec/plan の本文を転記しない（Artifacts のリンクで読者に届く）。
-`title` / `repository` / `parent_epic` を設定し、Step 2 の前提を `blocked_by` に写す。`order`・`parallel`・`status` は書かない。
-`lane` は、利用者が分類（`pecot-lane`）の値を言ったときだけ書く。言っていなければ空のままにし、尋ねもしない。
+`title`・`owner`・`repo`・`parent_owner`・`parent_repo`・`parent_issue_number` を設定し、Step 2 の前提を `blocked_by` に写す。題の番号は、Epic の sub-issue の題で使っていない番号を、フェーズの順に振る。
+`project_fields` の `pecot-lane` は、利用者が分類の値を言ったときだけ書く。言っていなければ空のままにし、尋ねもしない。
 
 `blocked_by` の写し方は次のとおり。
 
@@ -94,7 +94,7 @@ blocked_by:
     reason: "action は、既定のブランチのプラグインを入れる。main に入るまで、確認ができない"
 ```
 
-- 本文に前後関係を書かない。スタック不可の前提の節は、CLI が足す
+- 本文に前後関係を書かない。スタック不可の前提は、本文の末尾の `## Waits for merge` の節にも挙げる。書く行は `issue_check` が返す
 
 tasks.md にある絵文字（`🎯 MVP` 等）は Issue ファイルに写さない。本文に絵文字があると投稿時の検証で落ち、一括投稿が途中で止まる。
 
@@ -111,20 +111,19 @@ before / after の例を示す。
 
 全フェーズ分のファイルを Phase の順に並べる。前提が後ろのフェーズを指すときは、前提にされるフェーズのファイルを先にする。
 
-投稿の前に、pecot-workflow の MCP ツール `issue_check` を使って、番号・前提・進め方を確かめる（全フェーズのファイルを `files` に並べる）。
+投稿の前に、pecot-workflow の MCP ツール `issue_check` に、全フェーズを 1 回で通し、番号・前提・置く列・進め方を確かめる。各フェーズの `key` は、ファイルの名前の幹にする。
 結果の番号・前提・進め方を表にし、Step 2 の前提の表と並べてユーザーに示す。スタックできる並びも示す。前提の食い違いが無いかを見てもらう。
-食い違いがあればファイルを直して、もう一度 `issue_check` で確かめる。失敗で止まったときも、エラーの文に従ってファイルか並びを直し、もう一度確かめる。合意を得てから投稿する。
+食い違いがあればファイルを直して、もう一度 `issue_check` で確かめる。合意を得てから投稿する。
 
-投稿は、同じ `files` で `issue_create` を 1 回だけ使う。複数回に分けない。
+投稿の手順は、[Issue とコメントを公式の MCP で書く](../w-help/references/issue-write.md) の「Issue を作る」のとおり。
+フェーズの順に 1 件ずつ、公式の MCP の `issue_write`・`issue_dependency_write`・`projects_write` で書く。書いた Issue の番号で、後のフェーズの `{{issue:<key>}}` と `blocked_by` の key を置き換える。
 
-投稿が失敗したときは、次のとおりにする。
+書く途中で公式のツールが失敗したときは、次のとおりにする。
 
-- 失敗しても、結果に作った Issue があれば、その Issue は作られている。同じ `files` で呼び直さない。呼び直すと Issue が重複する
-- エラーに、前提を付け直すコマンドの行があれば、打たずにそのままユーザーへ示す
-- 作った Issue が無く、投稿の前の確認（ファイルの中身や並び）で止まったときは、エラーの文に従ってファイルを直し、呼び直してよい
-- それ以外の失敗は、操作が済んでいる可能性がある。呼び直さず、エラーの文を利用者に示して止まる
+- 作った Issue は作られている。作り直さない。作り直すと Issue が重複する
+- 失敗した書き込み（前提・ボードの欄など）だけを、理由とともに利用者に示し、残りのフェーズを続けるかを確かめる
 
 ### Step 4: 完了報告
 
-作成した Phase と Issue 番号を表形式でユーザーに報告する。表には進め方（`issue_check` で確かめたもの）を足す。あわせて、スタックできる並びと、最初に着手できる Issue を示す。最初に着手できる Issue は、`Ready` に置かれた Issue とする。
+作成した Phase と Issue 番号を表形式でユーザーに報告する。表には進め方（`issue_check` の `plan`）を足す。あわせて、スタックできる並びと、最初に着手できる Issue を示す。最初に着手できる Issue は、`Ready` に置かれた Issue とする。
 警告があるときは、その文をそのままユーザーに伝える。実装開始は `/pecot-w:w-active` を使う旨を案内する。

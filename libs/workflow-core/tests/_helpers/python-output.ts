@@ -45,7 +45,6 @@ const TableSchema = z.array(RowSchema)
 const FrontmatterSchema = z.object({
   issue: TableSchema,
   keyAndTag: TableSchema,
-  comment: TableSchema,
   pullRequest: TableSchema,
   yamlFailures: z.array(z.string()),
 })

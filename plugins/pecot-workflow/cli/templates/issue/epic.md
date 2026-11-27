@@ -1,11 +1,12 @@
 ---
+template: "pecot-template://issue/epic"
+kind: epic
+owner: ""
+repo: ""
 title: ""
-type: epic
-repository: ""
-status: backlog
+type: ""
 labels: []
-parent_epic: ""
-lane: ""
+project_fields: []
 ---
 
 <!--
@@ -16,9 +17,16 @@ lane: ""
 - GAP は、AS-IS と TO-BE の差を書く。サブタスクや Issue へのリンク・担当・進み具合は書かない（sub-issue の表示とボードが見せる）
 
 フィールド:
-- repository: aggregation_repo 設定済みなら自動補完。未設定 or 例外時のみ `--repo` で明示
-- lane: 分類したいときだけ、ボードの `pecot-lane` の値を書く
-- 起票ルール: skills/w-help/references/issue-flow-rules.md （投稿先の判定基準）
+- 鍵の名前は、書く公式の MCP のツールの引数の名前。`issue_check` に通してから、同じ値を渡す
+- template・kind: 変えない
+- owner・repo: aggregation_repo を設定していれば、そのリポ。設定が無いか例外のときだけ、ほかのリポを書く
+- title: `[Epic] ` で始める
+- type: リポの Issue type の名前。Issue type を使わないリポでは消す
+- labels・assignees・milestone・issue_fields: 要るときだけ書く。`issue_fields` は `issue_write` と同じ `[{field_name, value}]` の形
+- project_fields: ボードの欄を `[{name, value}]` で書く。書く先は `projects_write` の `update_project_item`
+  - `pecot-lane` は、分類したいときだけ書く
+  - 置く列（設定の workflow の欄）は `Backlog`
+- 起票ルール: skills/w-help/references/issue-flow-rules.md （投稿先 / 親 Epic / blocked_by の判定基準）
 
 例:
 

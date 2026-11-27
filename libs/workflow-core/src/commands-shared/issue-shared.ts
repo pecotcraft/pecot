@@ -1,95 +1,37 @@
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
-// issue 系のコマンドが共有する関数と定数。cli/commands/issue.py の移植。
-// typer.Exit(n) に当たるのは、error の行を出して止める stopWith(output, 文, n)。
-// 行を別の関数が先に出した後は、throw new CommandExit(n) で止める。
-// BadParameter は、run の本体を包む runWithExit が受ける。
-import path from 'node:path'
-
-import { z } from 'zod'
-
-import { aggregationRepositoryReference, isRepositoryInProject } from '../domain/config.js'
+// issue 系のコマンドが共有する関数と定数。I/O を持たない起票の決まりは domain/issue-rules.ts にある。
+// error の行を出して止めるのは stopWith(output, 文, n)。
+import { isRepositoryInProject } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
 import { formatHinted } from '../domain/command-hint.js'
 import { BaseError } from '../domain/errors.js'
-import { CommandExit } from './command-definition.js'
-import type { IssueFrontmatter } from '../domain/frontmatter.js'
-import { planOrders, usedOrdersOf } from '../domain/issue-order.js'
-import type { UsedOrder } from '../domain/issue-order.js'
-import { pythonStrip } from '../domain/python-format.js'
-import { issueReferenceToCliReference, parseIssueReference, ReferenceParseError } from '../domain/reference-parser.js'
-import type { IssueReference } from '../domain/reference-parser.js'
-import { createRepositoryReference, resolveShortReferenceBase, withUnreadableReason } from '../domain/repository-resolver.js'
-import {
-  CLOSED_HEADINGS_BY_TEMPLATE,
-  extractSectionsFromTemplate,
-  FOLD_SUMMARY_BY_TEMPLATE,
-  validateBodyStyle,
-  validateClosedHeadings,
-  validateFoldBalance,
-  validateFoldSummaries,
-  validateHeadingSummaries,
-  validateSections,
-} from '../domain/sections.js'
+import { parseIssueReference, ReferenceParseError } from '../domain/reference-parser.js'
+import { resolveShortReferenceBase, withUnreadableReason } from '../domain/repository-resolver.js'
+import { extractSectionsFromTemplate } from '../domain/sections.js'
 import type { SectionHeading } from '../domain/sections.js'
-import type { JsonObject } from '../domain/json.js'
+import { closedHeadingGuidance, EM_DASH_HINT, templateViolations } from '../domain/template-violations.js'
+import type { TemplateViolationCode } from '../domain/template-violations.js'
 import { gitRunnerFor } from '../infra/git.js'
-import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import type { CreateIssueExtras } from '../infra/github/issues.js'
-import { requireNumber, requireString } from '../infra/github/payload.js'
-import { readTemplateSections } from '../infra/template-sections.js'
-import { commandHint, hinted, inputHint, inputNameHint, RUN } from './command-hint.js'
+import { commandHint, hinted, RUN } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { stopWith } from './command-stop.js'
-import { kindOfFailure } from './failure.js'
-import { fieldWriteFailure } from './field-write-failure.js'
-import type { FieldHintState } from './field-write-failure.js'
 import { createGitHubClient } from './github-client.js'
-import { addIssueToBoard, createIssue, setIssueField } from './issue-board.js'
-import type { BoardItem } from './issue-board.js'
 import type { Output } from './output.js'
-import { USAGE_EXIT_CODE, UsageError } from './usage-error.js'
+import { USAGE_EXIT_CODE } from './usage-error.js'
 
-// Epic を作るコマンド。作成先の案内に使う
-const EPIC_CREATE_PATH = ['issue', 'create']
-
-export type IssueType = IssueFrontmatter['type']
+export { VALID_STATUSES } from '../domain/issue-rules.js'
 
 /**
 issue comment のテンプレ検証失敗の終了コード。通信失敗・設定なし・引数不足の 1 と区別し、hooks がこの値で分岐する
 */
 export const COMMENT_VALIDATION_EXIT_CODE = 3
 
-/**
-Issue 種別の入力。issue create が使う
-*/
-export const ISSUE_TYPE_SCHEMA = z.enum(['task', 'bug', 'epic', 'tracker']).default('task').describe('Issue type (task/bug/epic/tracker)')
-
-export const PARENT_EPIC_DESCRIPTION = 'Parent Epic reference: an integer (relative to aggregation_repo) or the primary form \'owner/repo/N\''
-
 export const ISSUE_REF_DESCRIPTION = 'Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)'
-
-export const VALID_STATUSES: ReadonlySet<string> = new Set(['backlog', 'pending', 'blocked', 'ready', 'active', 'in_review', 'archived'])
-
-/**
-Issue 種別 → タイトルの接頭辞
-*/
-const TYPE_PREFIX_MAP: ReadonlyMap<string, string> = new Map([
-  ['task', '[Task]'],
-  ['bug', '[Bug]'],
-  ['epic', '[Epic]'],
-  ['tracker', '[Tracker]'],
-])
-
-/**
-起票時の status は、型対応テンプレートの既定値だけを受ける。pending / archived への配置はボード上の手動操作
-*/
-export const TYPE_DEFAULT_STATUS: Readonly<Record<IssueType, string>> = { epic: 'backlog', tracker: 'backlog', task: 'ready', bug: 'ready' }
 
 // --- 終了の表し方 ---
 
 /**
-引数の値が不正。Python の typer.BadParameter。呼ぶ側が受けない場合は、runWithExit が使い方の誤り（終了コード 2）にする
+Issue 参照が不正。parseIssueReferenceOrExit が終了コード 2 にする
 */
 class BadParameterError extends BaseError {
   readonly text: string | HintedText
@@ -102,18 +44,11 @@ class BadParameterError extends BaseError {
 }
 
 /**
-run の本体を包む。終わったら 0 を返す。BadParameterError は使い方の誤りにして伝える。
-それ以外の例外はそのまま伝える。CommandExit は defineTool が受けて終了コードにする
+run の本体を包む。終わったら 0 を返す。例外はそのまま伝える。CommandExit は defineTool が受けて終了コードにする
 */
 export async function runWithExit(body: () => Promise<void>): Promise<0> {
-  try {
-    await body()
-    return 0
-  }
-  catch (error: unknown) {
-    if (error instanceof BadParameterError) throw new UsageError(`Invalid value: ${error.message}`)
-    throw error
-  }
+  await body()
+  return 0
 }
 
 // --- Issue 参照 ---
@@ -168,304 +103,14 @@ export function exitInvalidStatus(output: Output, status: string): never {
   return stopWith(output, `invalid status: ${status}\nvalid values: backlog/pending/blocked/ready/active/in_review/archived`, 'invalid-input')
 }
 
-/**
-起票時の status が、許す値のどれかと一致するか確かめる。違えば終了コード 1。許す値の既定は、型対応テンプレートの既定値だけ。
-enum 外の値（`--status foo`）と、許さない値（`--type bug --status backlog`）は文を分ける
-*/
-export function validateStatusForType(output: Output, issueType: IssueType, status: string, allowed?: readonly string[]): void {
-  if (!VALID_STATUSES.has(status)) exitInvalidStatus(output, status)
-  // eslint-disable-next-line security/detect-object-injection -- issueType は列挙型
-  const accepted = allowed ?? [TYPE_DEFAULT_STATUS[issueType]]
-  if (accepted.includes(status)) return
-  stopWith(output, `the status at creation for type '${issueType}' is only ${accepted.map(value => `'${value}'`).join(' or ')} (given: ${status})\nhint: move it to pending or another status on the board after creation`, 'invalid-input')
-}
-
-// --- parent_epic・タイトル・order ---
+// --- ボード ---
 
 /**
-ツールの入力で来た parent_epic。空・空白だけなら undefined、数字だけなら整数（安全な整数を超えるなら数字の文字列）、それ以外は文字列
-*/
-export function normalizeParentEpicCli(raw: string | undefined): number | string | undefined {
-  if (raw === undefined) return undefined
-  const stripped = pythonStrip(raw)
-  if (stripped === '') return undefined
-  if (!/^\d+$/u.test(stripped)) return stripped
-  const value = Number(stripped)
-  // 安全な整数に収まらない数字は、丸めずに文字列のまま返す（先頭の 0 は Python の int() と同じく落とす）
-  return Number.isSafeInteger(value) ? value : stripped.replace(/^0+(?=\d)/u, '')
-}
-
-/**
-parent_epic を Issue 参照にする。整数は aggregation_repo の Issue（未設定なら task のリポジトリ）、`owner/repo/N` はそのまま。
-解決できなければ BadParameterError。番号が安全な整数を超える参照は、丸めずに解決できない参照として扱う
-*/
-export function resolveParentEpicReference(raw: number | string, config: ProjectConfig, taskOwner: string, taskRepository: string): IssueReference {
-  const base = aggregationRepositoryReference(config) ?? createRepositoryReference(taskOwner, taskRepository)
-  try {
-    if (typeof raw === 'string' && /^\d+$/u.test(raw) && !Number.isSafeInteger(Number(raw))) {
-      throw new ReferenceParseError(`the number is too large: ${raw}`, raw)
-    }
-    return parseIssueReference(String(raw), base)
-  }
-  catch (error: unknown) {
-    if (!(error instanceof ReferenceParseError)) throw error
-    throw new BadParameterError(`could not resolve parent_epic: ${error.message}\naccepted forms: an integer (Issue number in aggregation_repo) or the primary form 'owner/repo/N'`)
-  }
-}
-
-export interface EpicTarget {
-  readonly repository: string
-  /**
-  入力 repo が aggregation_repo と違う例外なので、warnEpicRepositoryException を出す
-  */
-  readonly needsWarning: boolean
-}
-
-/**
-Epic を作るリポジトリを、aggregation_repo の方針で決める。
-repository が空で aggregation_repo も未設定なら、決められないので終了コード 2
-*/
-export function resolveEpicTargetRepository(output: Output, repository: string | undefined, config: ProjectConfig): EpicTarget {
-  const stripped = repository === undefined ? '' : pythonStrip(repository)
-  const explicit = stripped === '' ? undefined : stripped
-  const aggregation = config.aggregation_repo
-  if (explicit === undefined) {
-    if (aggregation === undefined) {
-      stopWith(output, hinted`cannot decide where to create the Epic\ndeclare aggregation_repo in the project config, or pass ${inputNameHint(EPIC_CREATE_PATH, 'repo')}`, 'repo-setting-missing', USAGE_EXIT_CODE)
-    }
-    return { repository: aggregation, needsWarning: false }
-  }
-  return { repository: explicit, needsWarning: aggregation !== undefined && explicit !== aggregation }
-}
-
-/**
-Epic の作成先が aggregation_repo と違うときの警告
-*/
-export function warnEpicRepositoryException(output: Output, resolvedRepository: string, config: ProjectConfig): void {
-  output.warning(hinted`${inputHint(EPIC_CREATE_PATH, 'repo', resolvedRepository)} differs from aggregation_repo (${String(config.aggregation_repo)})\ncontinuing as an exception for an Epic in an implementation repo`)
-}
-
-export interface IssueTitleOptions {
-  readonly parentEpic?: number | undefined
-  readonly order?: number | undefined
-}
-
-/**
-タイトルに接頭辞と、Epic 番号・order を付ける。例は `[Task] #353-04: タイトル`
-*/
-export function buildIssueTitle(issueType: string, title: string, options: Readonly<IssueTitleOptions> = {}): string {
-  const prefix = TYPE_PREFIX_MAP.get(issueType) ?? ''
-  const hasPrefix = prefix !== '' && title.startsWith(prefix)
-  const baseTitle = hasPrefix ? pythonStrip(title.slice(prefix.length)) : title
-  if (options.parentEpic !== undefined && options.order !== undefined) {
-    const number = `#${String(options.parentEpic)}-${orderLabel(options.order)}`
-    return prefix === '' ? `${number}: ${baseTitle}` : `${prefix} ${number}: ${baseTitle}`
-  }
-  return prefix === '' || hasPrefix ? title : `${prefix} ${title}`
-}
-
-/**
-タイトルの番号。2 桁にそろえる
-*/
-function orderLabel(order: number): string {
-  return String(order).padStart(2, '0')
-}
-
-/**
-親 Epic のサブ Issue から、使われた番号を読む。全件を読む。Epic を取れなければ warning を出して undefined
-*/
-export async function readUsedOrders(output: Output, client: GitHubClient, owner: string, repository: string, parentEpic: number): Promise<readonly UsedOrder[] | undefined> {
-  try {
-    return usedOrdersOf(await client.getAllSubIssues(owner, repository, parentEpic), parentEpic)
-  }
-  catch (error: unknown) {
-    if (!(error instanceof GitHubAPIError)) throw error
-    output.warning(`could not fetch the parent Epic #${String(parentEpic)}: ${error.message}`)
-    return undefined
-  }
-}
-
-/**
-明示の order が既存の Issue と重なったときの error を出して終了コード 1。一度使った番号は、OPEN でも CLOSED でも再利用できない
-*/
-export function stopForDuplicateOrder(output: Output, parentEpic: number, order: number, existing: UsedOrder, nextAvailable: number): never {
-  const stateLabel = existing.state === 'OPEN' ? 'OPEN' : 'CLOSED'
-  return stopWith(output, `Epic #${String(parentEpic)} already has an Issue with order=${String(order)} (${stateLabel})\n#${String(existing.number)} ${existing.title}\nnext available order: ${String(nextAvailable)}`, 'order-conflict')
-}
-
-/**
-同じ Epic に、同じ order の Issue が無いことを確かめる。最初の一致を error にして終了コード 1。Epic を取れなければ warning だけで続ける
-*/
-export async function checkDuplicateOrder(
-  output: Output,
-  client: GitHubClient,
-  owner: string,
-  repository: string,
-  parentEpic: number,
-  order: number,
-): Promise<void> {
-  const used = await readUsedOrders(output, client, owner, repository, parentEpic)
-  if (used === undefined) return
-  const plan = planOrders(used, [{ file: '', order }])
-  if (plan.kind === 'duplicate-existing') stopForDuplicateOrder(output, parentEpic, order, plan.existing, plan.nextAvailable)
-}
-
-// --- Issue の作成・ボード・親 Epic ---
-
-/**
-Issue を作り、`created:` の行を出して API の応答を返す。失敗は error の行と終了コード 1。
-source は作成元のファイル名（`from <source>` として行の末尾に付く）
-*/
-export async function createIssueOrExit(
-  output: Output,
-  client: GitHubClient,
-  owner: string,
-  repository: string,
-  title: string,
-  body: string,
-  labels: readonly string[] | undefined,
-  source?: string,
-  extras?: Readonly<CreateIssueExtras>,
-): Promise<JsonObject> {
-  let issue: JsonObject
-  try {
-    issue = await createIssue(client, owner, repository, title, body, labels, extras)
-  }
-  catch (error: unknown) {
-    if (!(error instanceof GitHubAPIError)) throw error
-    return stopWith(output, `could not create an Issue in ${owner}/${repository}: ${error.message}`, kindOfFailure(error))
-  }
-  const target = `Issue ${issuePath(owner, repository, requireNumber(issue['number'], 'number'))}`
-  output.done({ verb: 'create', target: source === undefined || source === '' ? target : `${target} from ${source}` })
-  return issue
-}
-
-export interface IssueSummary {
-  readonly number: number
-  readonly url: string
-  /**
-  作成の応答に node_id が無ければ undefined
-  */
-  readonly nodeId: string | undefined
-}
-
-/**
-Issue の作成の応答から、番号・URL・node id を取る
-*/
-export function summarizeCreatedIssue(issue: JsonObject): IssueSummary {
-  const nodeId = issue['node_id']
-  return {
-    number: requireNumber(issue['number'], 'number'),
-    url: requireString(issue['html_url'], 'html_url'),
-    nodeId: typeof nodeId === 'string' ? nodeId : undefined,
-  }
-}
-
-/**
-Issue をボードへ追加する。失敗は warning と Issue の URL を出して undefined
-*/
-export async function addToBoardOrWarn(
-  output: Output,
-  client: GitHubClient,
-  config: ProjectConfig,
-  owner: string,
-  repository: string,
-  issueNumber: number,
-  issueNodeId: string | undefined,
-  issueUrl: string,
-): Promise<BoardItem | undefined> {
-  let added: BoardItem
-  try {
-    added = await addIssueToBoard(client, config, owner, repository, issueNumber, issueNodeId)
-  }
-  catch (error: unknown) {
-    if (!(error instanceof GitHubAPIError)) throw error
-    output.warning(`could not add Issue ${issuePath(owner, repository, issueNumber)} to project: ${error.message}`)
-    output.data(issueUrl)
-    return undefined
-  }
-  output.done({ verb: 'add', target: `Issue ${issuePath(owner, repository, issueNumber)} to project` })
-  return added
-}
-
-export interface IssueField {
-  readonly fieldName: string
-  readonly optionName: string
-  /**
-  `set:` の行に出す名前
-  */
-  readonly label: string
-}
-
-/**
-カスタムフィールドを順に設定し、設定できた分を 1 行の set にする。書き込みに失敗したフィールドは warning にして飛ばす。設定できたフィールドの名前を返す
-*/
-export async function setIssueFields(
-  output: Output,
-  client: GitHubClient,
-  config: ProjectConfig,
-  itemId: string,
-  target: string,
-  fields: readonly IssueField[],
-  hintState: FieldHintState,
-): Promise<readonly string[]> {
-  const labels: string[] = []
-  const written: string[] = []
-  for (const { fieldName, optionName, label } of fields) {
-    try {
-      if (await setIssueField(client, config, itemId, fieldName, optionName)) {
-        labels.push(label)
-        written.push(fieldName)
-      }
-    }
-    catch (error: unknown) {
-      if (!(error instanceof GitHubAPIError)) throw error
-      output.warning(fieldWriteFailure(`could not set ${label} of ${target}: ${error.message}`, error, config, hintState))
-    }
-  }
-  if (labels.length > 0) output.done({ verb: 'set', target: `${target} ${labels.join(', ')}` })
-  return written
-}
-
-/**
-親 Epic のサブ Issue にする。失敗は Issue の URL（issueUrl が undefined なら出し済みとして省く）、error の行の順に出して終了コード 1。issueNodeId は、無ければ取り直す関数。行に出した親の参照（owner/repo/N）を返す
-*/
-export async function linkToParentEpic(
-  output: Output,
-  client: GitHubClient,
-  target: string,
-  parentReference: IssueReference,
-  issueNodeId: string | (() => Promise<string>),
-  issueUrl: string | undefined,
-): Promise<string> {
-  const parent = issueReferenceToCliReference(parentReference)
-  try {
-    const parentNodeId = await client.getIssueNodeId(parentReference.repository.owner, parentReference.repository.repository, parentReference.number)
-    await client.addSubIssue(parentNodeId, typeof issueNodeId === 'string' ? issueNodeId : await issueNodeId())
-  }
-  catch (error: unknown) {
-    if (!(error instanceof GitHubAPIError)) throw error
-    if (issueUrl !== undefined) output.data(issueUrl)
-    stopWith(output, `could not add ${target} as sub-issue of ${parent}: ${error.message}\nthe order in its title is not counted for the next numbering until it is linked to the parent; link it by hand`, kindOfFailure(error))
-  }
-  output.done({ verb: 'add', target: `${target} as sub-issue of ${parent}` })
-  return parent
-}
-
-/**
-リポジトリがプロジェクトにリンクされていなければ、message を error に出して終了コード 1
-*/
-export async function ensureRepositoryInProject(output: Output, config: ProjectConfig, client: GitHubClient, owner: string, repository: string, message: string): Promise<void> {
-  if (await isRepositoryInProject(config, owner, repository, client)) return
-  stopWith(output, message, 'repo-not-in-project')
-}
-
-/**
-クライアントを作り、リポジトリがプロジェクトにあることを確かめる。無ければ error と終了コード 1。board add・board move・issue reopen が使う
+クライアントを作り、リポジトリがプロジェクトにあることを確かめる。無ければ error と終了コード 1。board add・board move が使う
 */
 export async function connectToProject(output: Output, config: ProjectConfig, owner: string, repository: string): Promise<GitHubClient> {
   const client = createGitHubClient(output, config.host)
-  await ensureRepositoryInProject(output, config, client, owner, repository, `repository ${owner}/${repository} is not in the project`)
+  if (!await isRepositoryInProject(config, owner, repository, client)) stopWith(output, `repository ${owner}/${repository} is not in the project`, 'repo-not-in-project')
   return client
 }
 
@@ -477,39 +122,10 @@ export function notConfiguredMessage(status: string): string | HintedText {
   return status === 'blocked' ? hinted`${base}\nhint: ${RUN} ${commandHint(['project', 'init'])} to add the Blocked option to the board` : base
 }
 
-/**
-起票用のクライアントを作り、リポジトリのリンクと、親 Epic のリポジトリでの order の重複を確かめる
-*/
-export async function clientForIssueCreate(
-  output: Output,
-  config: ProjectConfig,
-  owner: string,
-  repository: string,
-  display: string,
-  parentReference: IssueReference | undefined,
-  order: number | undefined,
-): Promise<GitHubClient> {
-  const client = createGitHubClient(output, config.host)
-  await ensureRepositoryInProject(output, config, client, owner, repository, `${display} is not linked to the project`)
-  if (parentReference !== undefined && order !== undefined) {
-    await checkDuplicateOrder(output, client, parentReference.repository.owner, parentReference.repository.repository, parentReference.number, order)
-  }
-  return client
-}
-
 // --- テンプレートの検証 ---
 
 /**
-本文をテンプレートと比べ、違反を 1 つの error にして出す。違反があれば true。
-1 行目はテンプレートのパス。続く行に、違反のある種類だけを並べる
-*/
-export function hasReportedTemplateViolations(output: Output, body: string, templatePath: string, options: { readonly emDashHint?: boolean } = {}): boolean {
-  const stem = path.basename(templatePath, path.extname(templatePath))
-  return hasReportedSectionViolations(output, body, { label: templatePath, stem, required: readTemplateSections(templatePath) }, options)
-}
-
-/**
-hasReportedTemplateViolations の、テンプレートを文字列で受ける形。ファイルを持たない bundle（action）が使う。
+本文を文字列のテンプレートと比べ、違反を 1 つの error にして出す。違反があれば true。ファイルを持たない bundle（action）が使う。
 templateName はファイル名から拡張子を除いたもの
 */
 export function hasReportedTemplateTextViolations(output: Output, body: string, templateName: string, templateText: string, options: { readonly emDashHint?: boolean } = {}): boolean {
@@ -523,35 +139,27 @@ interface TemplateSections {
 }
 
 function hasReportedSectionViolations(output: Output, body: string, template: Readonly<TemplateSections>, options: { readonly emDashHint?: boolean }): boolean {
-  const { label, stem, required } = template
-  const missing = required.length > 0 ? validateSections(body, required) : []
-  const summaryErrors = required.length > 0 ? validateHeadingSummaries(body, required) : []
-  const styleErrors = validateBodyStyle(body)
-  const closedGuidance = CLOSED_HEADINGS_BY_TEMPLATE.get(stem)
-  const foldErrors = closedGuidance === undefined ? [] : [...validateFoldBalance(body)]
-  const extraHeadings = closedGuidance !== undefined && required.length > 0 ? validateClosedHeadings(body, required) : []
-  const foldSummary = FOLD_SUMMARY_BY_TEMPLATE.get(stem)
-  if (foldSummary !== undefined) foldErrors.push(...validateFoldSummaries(body, foldSummary))
-  if (missing.length === 0 && summaryErrors.length === 0 && styleErrors.length === 0 && foldErrors.length === 0 && extraHeadings.length === 0) return false
+  const { label, stem } = template
+  const violations = templateViolations(body, template)
+  if (violations.length === 0) return false
 
+  const details = (code: TemplateViolationCode): readonly string[] => violations.filter(violation => violation.code === code).map(violation => violation.detail)
+  const missing = details('missing-section')
   const lines = [`the body does not follow the template ${label}`]
   if (missing.length > 0) {
     lines.push(`missing sections: ${missing.join(', ')}`)
-    if (options.emDashHint === true && missing.some(section => section.includes(' — <'))) {
-      lines.push('hint: the em dash must be U+2014; hyphen-minus (-) and EN DASH (U+2013) are not allowed')
-    }
+    if (options.emDashHint === true && missing.some(section => section.includes(' — <'))) lines.push(`hint: ${EM_DASH_HINT}`)
   }
-  if (summaryErrors.length > 0) lines.push(`heading summary rule violations: ${summaryErrors.join(', ')}`)
-  if (styleErrors.length > 0) lines.push(`unusable notation: ${styleErrors.join(', ')}`)
-  if (foldErrors.length > 0) lines.push(`collapse rule violations: ${foldErrors.join(', ')}`)
-  if (extraHeadings.length > 0) lines.push(`headings not in the template: ${extraHeadings.join(', ')} (${String(closedGuidance)})`)
+  const groups: readonly (readonly [TemplateViolationCode, string])[] = [
+    ['heading-summary', 'heading summary rule violations'],
+    ['body-style', 'unusable notation'],
+    ['fold', 'collapse rule violations'],
+  ]
+  for (const [code, heading] of groups) {
+    if (details(code).length > 0) lines.push(`${heading}: ${details(code).join(', ')}`)
+  }
+  const extraHeadings = details('extra-heading')
+  if (extraHeadings.length > 0) lines.push(`headings not in the template: ${extraHeadings.join(', ')} (${String(closedHeadingGuidance(stem))})`)
   output.error(lines.join('\n'))
   return true
-}
-
-/**
-Issue 本文を種別のテンプレート（templatePath）と比べる。違反があれば error を出して終了コード 1
-*/
-export function validateIssueTemplate(output: Output, templatePath: string, body: string): void {
-  if (hasReportedTemplateViolations(output, body, templatePath, { emDashHint: true })) throw new CommandExit(1, 'content-invalid')
 }

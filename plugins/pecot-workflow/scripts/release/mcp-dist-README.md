@@ -75,12 +75,15 @@ WSL 内の npx が非ログインシェルの PATH に無い場合は、`args` �
 ツールが対象にするリポジトリは、サーバを起動したディレクトリを含むリポジトリです。
 Claude Code では、Claude Code がサーバを起動するディレクトリ（通常はプロジェクトの root）になります。
 
-プラグインの hooks は働きません。`issue_create`・`pr_create`・`pr_merge` の確認は、MCP クライアント自身の確認だけになります。
+プラグインの hooks は働きません。`pr_create`・`pr_merge` の確認は、MCP クライアント自身の確認だけになります。
 これらのツールは自動で許可しないでください。また、`--help` を打つと、プラグインで出る補足の節は出ません。
 
 ## ツール
 
 ツール名は `<対象>_<動詞>` の形です。
+
+Issue とコメントには読み書きしません。読み書きは、GitHub の公式の MCP サーバ（[github-mcp-server](https://github.com/github/github-mcp-server)）のツールで行います。
+書く前に、`issue_check`・`issue_dependency_check`・`issue_comment_check` に通します。公式の MCP サーバは、features の `issue_dependencies` を有効にしてつなぎます。
 Issue・コメント・PR のテンプレートは、MCP の resource で読めます。URI は `pecot-template://<種類>/<名前>`（例: `pecot-template://comment/plan`）です。
 
 | ツール | 内容 |
@@ -97,15 +100,9 @@ Issue・コメント・PR のテンプレートは、MCP の resource で読め�
 | `board_show` | ボードの状態をまとめて表示する |
 | `board_add` | プロジェクトボードに Issue を足す（pecot の外で作った Issue 用） |
 | `board_move` | Issue 番号でボードのステータスを更新する |
-| `issue_create` | frontmatter 付きの Markdown から Issue を作る（`freeform: true` と `repo`・`message` で、自由形式のメッセージから作る） |
-| `issue_check` | `issue_create` に渡すファイルを確かめ、作らずに番号・前提・進め方の表を出す |
-| `issue_show` | Issue の詳細を必要な項目だけ取得する |
-| `issue_attributes` | Issue に付けられる機能（ボードのフィールド・Issue fields・担当者など）の名前・種類・取りうる値を一覧にする |
-| `issue_edit` | Issue の機能（ボードのフィールド・Issue fields・担当者・マイルストーン・Issue type・ラベル）の値を、名前で書き、変え、外す |
-| `issue_comment` | Issue にコメントを投稿する |
-| `issue_block` | Issue に前提（blocked by）を付ける。付いている前提の種類と理由を変えるのにも使う |
-| `issue_unblock` | Issue から前提（blocked by）を外す |
-| `issue_reopen` | 閉じた Issue を開き直す（ボードのステータスも戻す） |
+| `issue_check` | 公式の MCP の `issue_write` に渡す値が、pecot の決まり（テンプレート・題の番号・前提・ボードの欄）に合うかを確かめる。書かない |
+| `issue_dependency_check` | 公式の MCP の `issue_dependency_write` に渡す値を確かめ、本文の `## Waits for merge` の節と置く列を返す。書かない |
+| `issue_comment_check` | 公式の MCP の `add_issue_comment`・`update_issue_comment` に渡す本文を確かめる。書かない |
 | `session_start` | Issue の作業を始める（ブランチを作り、ボードを Active にし、作業対象を記録する） |
 | `session_show` | セッションのフラグ、ブランチ、推定した Issue を表示する |
 | `session_finish` | 作業を終える（マージ後の後処理として、Issue のクローズ、ブランチ削除、ローカルの整理をする） |

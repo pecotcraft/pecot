@@ -15,7 +15,7 @@ import { explains } from '../_helpers/explains.js'
 const sandboxes: Sandbox[] = []
 
 function make(yaml: string): Sandbox {
-  const sandbox = createSandbox(parseScenario('issue-show-ok', `id: issue-show-ok\ntool: issue_show\n${yaml}`))
+  const sandbox = createSandbox(parseScenario('pr-show-ok', `id: pr-show-ok\ntool: pr_show\n${yaml}`))
   sandboxes.push(sandbox)
   return sandbox
 }
@@ -192,7 +192,7 @@ describe('createSandbox', () => {
 
   it('destroySandbox を呼ぶと、一時ディレクトリが削除される', async () => {
     await explains('サンドボックスの削除のテストです。`destroySandbox` を呼ぶと、一時ディレクトリが存在しなくなることを確認します。')
-    const sandbox = createSandbox(parseScenario('issue-show-ok', 'id: issue-show-ok\ntool: issue_show\n'))
+    const sandbox = createSandbox(parseScenario('pr-show-ok', 'id: pr-show-ok\ntool: pr_show\n'))
     expect(existsSync(sandbox.root)).toBe(true)
     destroySandbox(sandbox)
     expect(existsSync(sandbox.root)).toBe(false)

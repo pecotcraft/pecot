@@ -2,20 +2,20 @@
 
 `/pecot-w:w-quick` / `/pecot-w:w-ready` / `/pecot-w:w-issueize` / `/pecot-w:w-backlog` が対象。
 これらの Issue 起票に共通する、判定ルールを定める。
-判定ルールは 4 つあり、投稿先リポ・親 Epic 参照・タイトル連番・テンプレート選択を扱う。
+判定ルールは 4 つあり、作るリポ・親 Epic・題の番号と前提・テンプレート選択を扱う。
 着手前のセッションスコープ前提（§5）と、着手後の変更対象リポジトリ限定（§6）も、このファイルが定義元になる。
 AI は推測で埋めない。ここで定義される手順に従い、ユーザー指示とツールの結果を組み合わせて決定する。
 
-## 1. `repository` の決定
+## 1. 作るリポ（`owner`・`repo`）の決定
 
 Epic と、task / bug / tracker で挙動が異なる。
-表の `issue_create` は、pecot-workflow の MCP ツールの名前。
+作るリポは、テンプレートの frontmatter の `owner`・`repo` に書く。公式の MCP の `issue_write` に渡す引数と同じ名前だ。
 
-| 種類 | 投稿先の決まり方 |
+| 種類 | 作るリポの決まり方 |
 |------|-----------------|
-| Epic | `aggregation_repo` が設定済みなら **そこに集約する**。`repo` 未指定 + `repository: ""` でも `issue_create` が自動補完。例外時のみ `repo: "<owner/repo>"` で明示（警告を出して作成は続行） |
-| 通常 Issue（task / bug） | **実装が行われるリポ** を指定する。Epic が aggregation_repo に置かれていても、その配下のサブタスクは aggregation_repo に作らない |
-| Tracker | task と同じく `repo` が必須で、aggregation_repo に寄せない。security alert の Tracker は、pecot の action の tracker-sync が、`source` を `security` にして実装リポに立てる |
+| Epic | `aggregation_repo` が設定済みなら **そこに集約する**。例外時のみ、ほかのリポを書く。pecot-workflow の MCP ツール `issue_check` は警告を出して通す |
+| 通常 Issue（task / bug） | **実装が行われるリポ** を書く。Epic が aggregation_repo に置かれていても、その配下のサブタスクは aggregation_repo に作らない |
+| Tracker | task と同じく実装リポに作り、aggregation_repo に寄せない。security alert の Tracker は、pecot の action の tracker-sync が、`source` を `security` にして実装リポに立てる |
 
 Epic は「プロジェクト全体の進捗把握 / 親子追跡」のため集約リポに寄せる。一方サブタスクは
 実装コードが置かれるリポに作ることで、PR や branch と同じ場所で追跡できる。両者を混同すると
@@ -24,57 +24,41 @@ aggregation_repo が雑多な実装サブタスクで埋まり、Epic の俯瞰�
 ユーザー指示が無い時の確認手順:
 
 1. pecot-workflow の MCP ツール `project_get` を使い（`key: "aggregation_repo"`）、集約リポを取得
-2. 集約リポと実装リポが異なる場合、サブタスクは実装リポ側を `repo` で指定する
+2. 集約リポと実装リポが異なる場合、サブタスクは実装リポを書く
 3. どちらに作るべきか判断材料が無い場合は AskUserQuestion で確認する（推測で埋めない）
 
-pecot-workflow の MCP ツール `issue_create` が失敗する代表ケース:
+`owner`・`repo` が空のときは、`issue_check` が外れと返す。
 
-- Epic で `repo` 未指定かつ `aggregation_repo` も未設定（決定不能）
-- 通常 Issue（task / bug / tracker）で `repository: ""` のまま投稿（必須フィールド欠落）
+## 2. 親 Epic（`parent_owner`・`parent_repo`・`parent_issue_number`）
 
-## 2. `parent_epic` の指定
+親 Epic は、frontmatter の `parent_owner`・`parent_repo`・`parent_issue_number` に書く。公式の MCP の `issue_write`（`create`）の引数と同じ名前だ。
+集約リポに置いた Epic の配下に、別リポのサブタスクを作るとき（典型的な pecot 運用）も、Epic のリポを `parent_owner`・`parent_repo` に書く。
 
-受理形式は 2 通り。
+親 Epic は、作るときに `issue_write` の `parent_*` で付く。`issue_fields` を書いたときだけ、`issue_write` が `parent_*` と一緒に受けないので、作った後に `sub_issue_write` で付ける。
+手順は [Issue とコメントを公式の MCP で書く](issue-write.md)。
 
-| 形式 | 解釈 |
-|------|------|
-| `owner/repo/N`（主軸形式・推奨） | そのまま該当リポの Issue #N を指す |
-| 整数 `N` 単体 | `aggregation_repo` の Issue #N として解決。`aggregation_repo` 未設定時は task repo にフォールバック |
+## 3. 題の番号と前提
 
-クロスリポで親 Epic を参照する場合は **full path 必須**。集約リポに置いた Epic の配下に
-別リポのサブタスクを作るケース（典型的な pecot 運用）では `parent_epic: acme-labs/aist-roadmap/123`
-のように書く。整数 `123` だけだと aggregation_repo 解釈になるため、サブタスクの task repo と
-aggregation_repo が同じ場合のみ意図通り動く。
+### 題の番号
 
-整数指定で aggregation_repo と task repo が異なっても、CLI は何も出さずに aggregation_repo の Issue #N として解決する。
-確認の通知やエラーは出ないので、task repo の Issue を指したいときは `owner/repo/N` で書く。
-
-`parent_epic` は、フロントマターに書いても引数で渡しても、次の順で整える。
-
-- 数字だけなら整数（Issue 番号）にする
-- それ以外は `owner/repo/N` の参照として解決する。解決できない値は使い方の誤りとして止まる
-- 空なら未指定にする。引数では、前後の空白を落としてから空かを見るので、空白だけの値も未指定になる。フロントマターでは `""` だけが未指定で、空白だけの値は未指定にならず、解決できない値として止まる
-
-## 3. `order` とタイトル prefix
-
-`order` は、親 Epic の配下のサブタスクの通し番号で、1 以上の整数。`order` を指定するには `parent_epic` が要る。
-`order` を省くと、CLI が既存のサブタスクの最大の次から、ファイルの順に振る。段（依存グラフの層）は表さない。前後関係は、前提（`blocked_by`）で書く。
-枝の文字（`parallel`）は使えない。書くと止まる。枝の文字の付いた既存の番号（`18a` など）は、数字の部分で数える。
-
-タイトルは CLI が自動生成する。
+task / bug の題は、親 Epic の配下のサブタスクの通し番号を持つ。番号は、エージェントが題に書く。
 `{order}` は、2 桁に満たなければ 0 で埋めた値（例: `3` は `03`）を指す。形式は次のとおり。
 
 ```
 [Task] #{epic}-{order}: <title>
-[Bug]  #{epic}-{order}: <title>
+[Bug] #{epic}-{order}: <title>
 ```
 
-`order` の決定:
+番号の決め方:
 
-- 同じ Epic に対する既存サブタスク（OPEN / CLOSED 問わず）を CLI が確かめる。
-  明示した `order` が重複すれば、失敗する
+- 親 Epic の sub-issue を、公式の MCP の `issue_read`（`get_sub_issues`）で読む。OPEN / CLOSED を問わず、題で使っている番号の最大の次から振る
 - 再利用はできない（CLOSED でも空き番号にしない）
-- 省いたファイルの番号は、既存のサブタスクの最大の番号と、同じ一括で明示した番号の最大の、次から振る。確認は CLI が行う
+- 一括で作るときは、ファイルの順に振る。段（依存グラフの層）は表さない。前後関係は、前提（`blocked_by`）で書く
+- 枝の文字の付いた既存の番号（`18a` など）は、数字の部分で数える。新しく枝の文字を付けない
+
+`issue_check` は、読んだ sub-issue の題と比べ、題の形・番号の重複・番号の再利用を外れとして返す。
+
+Epic と Tracker の題は、`[Epic]`・`[Tracker]` で始める。
 
 ### 前提（`blocked_by`）と種類
 
@@ -82,20 +66,17 @@ aggregation_repo が同じ場合のみ意図通り動く。
 
 | キー | 内容 |
 |---|---|
-| `issue` | 必須。同じ一括投稿のファイルのキー（ファイル名から拡張子を除いたもの）、または `owner/repo/N` |
+| `issue` | 必須。同じ一括で作るファイルのキー（ファイル名から拡張子を除いたもの）、または `owner/repo/N` |
 | `wait` | `stack`（既定）か `merge` |
 | `reason` | `wait: merge` のとき必須。前提の表の `理由` の文をそのまま写す。改行しない |
 
-- 前提にされるファイルを、それを待つファイルより前に並べる。後ろを指す前提と輪は止まる
+- 前提にされるファイルを、それを待つファイルより前に並べる。後ろを指す前提と輪は、`issue_check` が外れとして返す
 - `stack`（スタック可）は、前提の変更を、手元のブランチか試験環境で動かして、実装と確認ができる前提。前提の PR の上にスタックして着手できる
 - `merge`（スタック不可）は、前提の変更が開発ブランチに入っていないと、手元のブランチと試験環境のどちらでも、実装か確認ができない前提。開発ブランチは config の `develop_branch`（trunk-based では main）。既定のブランチから配られるもの（action・公開したパッケージ）を使うときや、リリースの後の実物で確かめるときが当たる
-  - CLI が、本文の末尾に `## Waits for merge` の節を足す。本文には手で書かない
+  - 本文の末尾に `## Waits for merge` の節が要る。`issue_check` が節の中身を返すので、それを本文に書く
 - 試験環境は、開発ブランチに入れる前の変更を動かして確かめる場所。プロジェクトの文書に、その場所で動かす手順があるときだけ使う。無いときは、手元のブランチだけで判断する
-- `status` は、省くと CLI が置く。前提があれば `Blocked`、無ければ `Ready`
+- 置く列（`pecot-status`）は、前提があれば `Blocked`、無ければ `Ready`。`issue_check` が `project_fields` の値を確かめる
 - 投稿の後の前提の見直しは、利用者が決める。エージェントの判断で前提を外さない
-
-タイトル prefix（`[Task]` / `[Bug]` / `[Epic]` / `[Tracker]`）は CLI が type から自動で付ける。
-ユーザー入力のタイトルに先頭で同じ prefix が入っていれば剥がしてから付け直す。
 
 ## 4. テンプレート選択
 
@@ -115,7 +96,7 @@ aggregation_repo が同じ場合のみ意図通り動く。
 - `task.md`: 新機能・改善・リファクタ・タスク追加など、**達成したい状態** が主軸
 - `bug.md`: 既存挙動が期待値と乖離している事象の修正。**Problem（Expected / Actual を対置する表 + Repro）** が主軸
 
-`tracker.md` は、複数の作業を束ねる Tracker を `issue_create` で起こすときのテンプレで、Backlog に置く。
+`tracker.md` は、複数の作業を束ねる Tracker を起こすときのテンプレで、Backlog に置く。
 security alert の Tracker は、このテンプレを通らない。本文は pecot の action の tracker-sync が作る。
 
 `task-implement.md` は w-issueize 固有の「実装フェーズを順に展開する」フォーマットで、
@@ -129,14 +110,14 @@ security alert の Tracker は、このテンプレを通らない。本文は p
 
 本節は §4「テンプレート選択」の一部で、各テンプレで起票したときの既定 status を扱う。
 
-計画起票（`issue create` を使う w-backlog / w-ready / w-issueize）は、型の既定の status で起票する。task/bug のテンプレは `status` を持たず、置く列を CLI に任せる。
-既定は task/bug=ready（ファイルに `blocked_by` があれば blocked）、epic=backlog、tracker=backlog。
-CLI は、#669 から型既定以外の status を拒否する。
-これらは未着手の置き場であり、着手時に `session start` がボード Status を active に設定する。
+計画起票（w-backlog / w-ready / w-issueize）は、型の既定の status で起票する。置く列は、frontmatter の `project_fields` に書く。
+既定は task/bug=ready（`blocked_by` があれば blocked）、epic=backlog、tracker=backlog。
+`issue_check` は、型の既定以外の status を外れとして返す。
+これらは未着手の置き場であり、着手時に `session_start` がボード Status を active に設定する。
 
-`issue create` の `freeform` も、task/bug を型の既定の status で起票する。
-即着手フロー（w-quick）は、起票の直後に `session start` を呼び、`session start` がボード Status を active にする。
-active を設定する担い手は、どの起票でも `session start` だけ。
+テンプレートを通さない自由形式の起票（w-quick・w-breakdown）も、task/bug を型の既定の status で起票する。
+即着手フロー（w-quick）は、起票の直後に `session_start` を呼び、`session_start` がボード Status を active にする。
+active を設定する担い手は、どの起票でも `session_start` だけ。
 
 ## 5. セッションスコープ（着手前の前提）
 
@@ -153,7 +134,7 @@ pecot は **1 WT = 1 セッション = 1 Issue = 1 リポ** を前提に状態�
 | 違反 | 検出箇所 | 結果 | バイパス（入力） |
 |------|----------|----------|----------|
 | CWD の remote と Issue ref の owner/repo 不一致 | `session_start` の冒頭 | 止まり、対象リポの worktree でセッションを始め直すよう案内する | なし（対象リポの worktree で始め直す） |
-| Issue の判定が blocked | 同上 | 止まり、前提ごとの状態と直し方の行（`issue unblock ...`）を示す | なし（前提を見直す） |
+| Issue の判定が blocked | 同上 | 止まり、前提ごとの状態を示す | なし（前提を見直す） |
 | 前提を読めない・判定できない | 同上 | 止まり、読めなかった理由を示す（開発ブランチが原因なら設定の直し方の行も） | なし（エラーの文を利用者に示す） |
 | スタック先のブランチが判定の後に無くなった | `session_start` のブランチ作成前 | 止まり、無くなったブランチを示す | なし（判定をやり直す） |
 | `--base` が判定のスタック先と違う（stackable のときだけ比べる） | 同上 | 止まり、食い違いを示す | `--base` を外す |
