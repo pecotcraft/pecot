@@ -345,16 +345,21 @@ jobs:
       # 開発版のレポートの材料。レポートのレーンの結果だけを、リポのルートからのパスのまま置く。
       - name: Stage results
         if: (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || github.event_name == 'merge_group'
+        # 集め終えたときだけ mv で置く。途中で落ちても、欠けた結果を上げない。
+        continue-on-error: true
         run: |
           set -euo pipefail
           stage="$RUNNER_TEMP/ci-results"
+          partial="$RUNNER_TEMP/ci-results.partial"
+          rm -rf "$stage" "$partial"
           results=$(python3 .githooks/scripts/test_report/lanes.py | jq -r --arg lane "$CHECKS_LANE" '.[] | select(.lane == $lane) | .results')
           if [ -n "$results" ] && [ -d "$results" ]; then
-            mkdir -p "$stage/$(dirname "$results")"
-            cp -R "$results" "$stage/$(dirname "$results")/"
+            mkdir -p "$partial/$(dirname "$results")"
+            cp -R "$results" "$partial/$(dirname "$results")/"
+            mv "$partial" "$stage"
           fi
 
-      # 上げられなくても、開発版のレポートがそのレーンを main で流し直すだけなので、job は落とさない。
+      # 集められず上げられなくても、開発版のレポートがそのレーンを main で流し直すだけなので、job は落とさない。
       - name: Upload results
         if: (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || github.event_name == 'merge_group'
         continue-on-error: true

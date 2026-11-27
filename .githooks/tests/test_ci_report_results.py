@@ -109,6 +109,7 @@ def test_results_are_uploaded_only_on_success_of_same_repo_pr_or_queue() -> None
         assert "always()" not in stage["if"] and "always()" not in upload["if"]
         assert names.index("Write job summary") < names.index("Stage results")
         assert names.index("Stage results") + 1 == names.index("Upload results")
+        assert stage["continue-on-error"] is True
 
 
 @allure.title("レーンの結果は、レーンの slug の名前で、隠しファイルも含めて 30 日間保存する")
@@ -190,6 +191,33 @@ def test_stage_results_stages_nothing(stage_repo: tuple[Path, Path], case: str) 
         assert result.returncode == 0, result.stderr
         stage = temp / "ci-results"
         assert not stage.exists() or not any(p.is_file() for p in stage.rglob("*"))
+
+
+@allure.title("結果を写す途中で失敗すると、step は失敗し、上げる場所に欠けた結果を置かない")
+@pytest.mark.skipif(os.geteuid() == 0, reason="root は読み取り権限を無視する")
+def test_stage_results_leaves_nothing_when_copy_fails(stage_repo: tuple[Path, Path]) -> None:
+    """`Stage results` の step で、結果のファイルを写せない場合のテストです。step が失敗で終わり、前の run の残りも含めて、上げる場所に何も存在しないことを確認します。"""
+    with allure.step("読めないファイルを含む結果と、前の残りを置いて、結果を集める step を動かす"):
+        repo, temp = stage_repo
+        path = repo / "plugins/p/test-results/test-cli/allure-results"
+        path.mkdir(parents=True)
+        (path / "1-result.json").write_text("{}", encoding="utf-8")
+        unreadable = path / "2-result.json"
+        unreadable.write_text("{}", encoding="utf-8")
+        unreadable.chmod(0)
+        (temp / "ci-results").mkdir()
+        (temp / "ci-results" / "old.json").write_text("{}", encoding="utf-8")
+        try:
+            result = _run_step(
+                _step("tests", "Stage results"),
+                repo,
+                {"RUNNER_TEMP": str(temp), "CHECKS_LANE": "p:test-cli"},
+            )
+        finally:
+            unreadable.chmod(0o644)
+    with allure.step("失敗で終わり、上げる場所が存在しないことを確かめる"):
+        assert result.returncode != 0
+        assert not (temp / "ci-results").exists()
 
 
 # ---------------------------------------------------------------- lane-sources
