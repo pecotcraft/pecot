@@ -668,23 +668,24 @@ def test_report_downloads_history_only_for_release() -> None:
     "{param_id} のとき、リリース版の履歴を用意し、無ければ空にして、受け取れなかったときだけ警告する"
 )
 @pytest.mark.parametrize(
-    ("state", "downloaded", "kept", "warned"),
+    ("state", "downloaded", "kept", "received", "warned"),
     [
-        ("found", '{"r":1}\n', '{"r":1}\n', False),
-        ("found", None, "", True),
-        ("absent", None, "", False),
-        ("unreadable", None, "", False),
-        ("", None, "", True),
+        ("found", '{"r":1}\n', '{"r":1}\n', "received", False),
+        ("found", None, "", "empty", True),
+        ("absent", None, "", "empty", False),
+        ("unreadable", None, "", "empty", False),
+        ("", None, "", "empty", True),
     ],
     ids=["受け取った", "found で受け取れない", "absent", "unreadable", "history-get が落ちた"],
 )
 def test_prepare_history_keeps_the_download_or_starts_empty(
-    tmp_path: Path, state: str, downloaded: str | None, kept: str, warned: bool
+    tmp_path: Path, state: str, downloaded: str | None, kept: str, received: str, warned: bool
 ) -> None:
-    """`Prepare history` の step を、`history-get` の `state` と受け取った `history.jsonl` の有無を変えて実行した場合のテストです。受け取った履歴はそのまま残り、無いときは空の履歴になることを確認します。サマリーの警告は、`found` なのに受け取れなかったときと、`history-get` が落ちて `state` が無いときだけ書かれます（FR-021）。"""
+    """`Prepare history` の step を、`history-get` の `state` と受け取った `history.jsonl` の有無を変えて実行した場合のテストです。受け取った履歴はそのまま残り、無いときは空の履歴になり、出力 `history` に受け取れたかが出ることを確認します。サマリーの警告は、`found` なのに受け取れなかったときと、`history-get` が落ちて `state` が無いときだけ書かれます（FR-021）。"""
     with allure.step("受け取った履歴を置き、履歴を用意する step の run を動かす"):
         step = _step("report", "Prepare history")
         temp, summary = tmp_path / "runner-temp", tmp_path / "summary"
+        output = tmp_path / "output"
         (temp / "test-report").mkdir(parents=True)
         if downloaded is not None:
             (temp / "test-report/history.jsonl").write_text(downloaded, encoding="utf-8")
@@ -693,12 +694,16 @@ def test_prepare_history_keeps_the_download_or_starts_empty(
             "STATE": state,
             "RUNNER_TEMP": str(temp),
             "GITHUB_STEP_SUMMARY": str(summary),
+            "GITHUB_OUTPUT": str(output),
         }
         result = _bash(step["run"], tmp_path, env)
-    with allure.step("履歴の中身と、無いときだけの警告を確かめる"):
+    with allure.step("履歴の中身と出力と、無いときだけの警告を確かめる"):
         assert step["if"] == "${{ needs.side.outputs.side == 'release' }}"
+        assert step["id"] == "prepare"
+        assert _job("report")["outputs"] == {"history": "${{ steps.prepare.outputs.history }}"}
         assert result.returncode == 0, result.stderr
         assert read_output(temp / "test-report/history.jsonl") == kept
+        assert read_output(output) == f"history={received}\n"
         text = read_output(summary) if summary.exists() else ""
         assert (step["env"]["MSG_NO_HISTORY"] in text) == warned
 
@@ -751,6 +756,7 @@ def test_report_steps_hand_sources_history_and_tree_to_each_other(
             "SOURCES": sources,
             "SEEN": str(seen),
             "GITHUB_STEP_SUMMARY": str(tmp_path / "summary"),
+            "GITHUB_OUTPUT": str(tmp_path / "output"),
         }
         names = ["Write report sources", "Generate report", "Pack report"]
         if side == "release":
@@ -960,15 +966,18 @@ def test_get_history_fails_when_the_check_cannot_run(tmp_path: Path) -> None:
 # ---------------------------------------------------------------- history-put
 
 
-@allure.title("history-put の job は、リリース版で、レポートができ、履歴を読めたときだけ動く")
+@allure.title(
+    "history-put の job は、リリース版で、レポートができ、履歴が無いか受け取れたときだけ動く"
+)
 def test_history_put_runs_only_after_a_readable_history() -> None:
-    """`history-put` の job の条件のテストです。取り消されておらず、リリース版で、`report` と `history-get` が成功し、`history-get` の `state` が `unreadable` でないときだけ実行されることを確認します。`tests` の一部が基盤で落ちても、レポートができていれば書き戻します。"""
+    """`history-put` の job の条件のテストです。取り消されておらず、リリース版で、`report` と `history-get` が成功したときに実行されることを確認します。さらに、S3 に履歴が無かったか、`report` が履歴を受け取れたことを求めます。`found` なのに受け取れなかった回と `unreadable` の回は、書き戻しません。"""
     with allure.step("history-put の job の条件を確かめる"):
         assert _job("history-put")["if"] == (
             "${{ !cancelled() && needs.side.outputs.side == 'release'"
             " && needs.report.result == 'success'"
             " && needs.history-get.result == 'success'"
-            " && needs.history-get.outputs.state != 'unreadable' }}"
+            " && (needs.history-get.outputs.state == 'absent'"
+            " || needs.report.outputs.history == 'received') }}"
         )
 
 

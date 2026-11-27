@@ -319,6 +319,8 @@ jobs:
     permissions:
       contents: read
       actions: read
+    outputs:
+      history: ${{ steps.prepare.outputs.history }}
     env:
       SOURCES: ${{ needs.side.outputs.sources }}
       SIDE: ${{ needs.side.outputs.side }}
@@ -381,7 +383,9 @@ jobs:
 
       # absent・unreadable は空の履歴で作る。unreadable の知らせは history-get が出している。
       # history-get が落ちたか、found なのに受け取れなかったときも、空の履歴で作って知らせる（FR-021）。
+      # history は、S3 の履歴を受け取れたかを history-put に渡す。受け取れずに作った 1 行で S3 を上書きしないため。
       - name: Prepare history
+        id: prepare
         if: ${{ needs.side.outputs.side == 'release' }}
         env:
           STATE: ${{ needs.history-get.outputs.state }}
@@ -389,8 +393,11 @@ jobs:
         run: |
           set -euo pipefail
           history="$RUNNER_TEMP/test-report/history.jsonl"
-          if [ ! -f "$history" ]; then
+          if [ -f "$history" ]; then
+            echo "history=received" >> "$GITHUB_OUTPUT"
+          else
             : > "$history"
+            echo "history=empty" >> "$GITHUB_OUTPUT"
             if [ "$STATE" != "absent" ] && [ "$STATE" != "unreadable" ]; then
               printf '\n> [!WARNING]\n> %s\n' "$MSG_NO_HISTORY" >> "$GITHUB_STEP_SUMMARY"
             fi
@@ -467,10 +474,10 @@ jobs:
           overwrite: true
           if-no-files-found: error
 
-  # 読めなかった回は書かない。空の履歴から作った 1 行で、S3 の行を消さないため。
+  # 履歴が無かった回と、取った履歴を report が受け取れた回だけ書く。空の履歴から作った 1 行で、S3 の行を消さないため。
   history-put:
     needs: [side, history-get, report]
-    if: ${{ !cancelled() && needs.side.outputs.side == 'release' && needs.report.result == 'success' && needs.history-get.result == 'success' && needs.history-get.outputs.state != 'unreadable' }}
+    if: ${{ !cancelled() && needs.side.outputs.side == 'release' && needs.report.result == 'success' && needs.history-get.result == 'success' && (needs.history-get.outputs.state == 'absent' || needs.report.outputs.history == 'received') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

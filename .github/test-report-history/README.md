@@ -32,7 +32,7 @@ test-report.yml (main の run。environment test-report-history)
   - 許可は、`release/history.jsonl` の `s3:GetObject`・`s3:PutObject` と、バケットの `s3:ListBucket` だけである
   - 権限の境界 `pecot-test-report-history-boundary`（`role-boundary.json`）を付ける。中身は、ロールの許可と同じ範囲である
 - environment `test-report-history`
-  - デプロイ先は、種類が Branch の `main` だけである。PR とマージキューの run は、信頼の条件に合わない
+  - デプロイ先は、種類が Branch の `main` だけである。environment を参照する job の `sub` は、どの契機でも同じ値である。`main` 以外の ref の run は、このデプロイ先の決まりで job が止まり、ロールに入れない
   - ロールの ARN とバケットの名前は、この environment の変数に置く。アカウント ID をリポに書かない
 
 | Parameter | 既定値 | 値 |
@@ -118,3 +118,14 @@ test-report.yml (main の run。environment test-report-history)
      - `token.actions.githubusercontent.com:aud` が `sts.amazonaws.com`
      - `token.actions.githubusercontent.com:sub` が、手順 3 の `P` に `:environment:test-report-history` を足したもの
    - `StringLike` やワイルドカードがあれば、environment の外の run も引き受けられる。スタックを直すまで、environment の変数を空にする
+6. environment のデプロイ先を確かめる。`sub` はどの契機でも同じなので、`main` 以外の ref の run を止めるのはこの決まりだけである
+
+   ```bash
+   gh api repos/pecotcraft/pecot/environments/test-report-history --jq .deployment_branch_policy
+   gh api repos/pecotcraft/pecot/environments/test-report-history/deployment-branch-policies \
+     --jq '.branch_policies[] | [.type, .name]'
+   ```
+
+   - 1 つ目が `{"custom_branch_policies":true,"protected_branches":false}` であれば正しい
+   - 2 つ目が `["branch","main"]` の 1 行だけであれば正しい
+   - 違えば、手順 4 のとおりに直すまで、environment の変数を空にする
