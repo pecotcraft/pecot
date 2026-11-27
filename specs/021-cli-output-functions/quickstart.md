@@ -68,7 +68,7 @@ pnpm -C plugins/pecot-tools/cli exec vitest run src/tests/english-only.test.ts
 ```bash
 cd plugins/pecot-workflow/cli && uv run pytest tests/unit/test_english_only.py
 cd plugins/pecot-workflow/hooks && uv run --project ../cli pytest tests/test_english_only.py
-plugins/pecot-visual/hooks/tests/english-only.test.sh
+bash .githooks/scripts/test_report/bats/run.sh plugins/pecot-visual/hooks/tests/english-only.bats
 ```
 
 期待: `cli/commands/` の文字列リテラルと docstring、hooks の shell のコメントでない行に、日本語の文字が 0 個。
