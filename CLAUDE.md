@@ -36,7 +36,7 @@ Claude Code / GitHub Copilot CLI 向けプラグインの monorepo（nx workspac
 
 ## テスト・lint
 
-- 検証は PR ごとの CI（`ci.yml`）が担う。必須チェックは `ci-result` と `version-plan`
+- 検証は PR ごとの CI（`ci.yml`）が担う。必須チェックは `ci-result`・`version-plan` と、`codeql.yml` の言語ごとの `analyze (<言語>)`
 - 手元では、変更箇所に絞ったテストと CI の失敗の再現だけを動かす。push 前にレーンの全量を動かさない
   - 絞り方は、vitest・pytest はファイル・ケース、`*.test.sh` は 1 本
 - CI の失敗の再現は ci-repro スキルに従う
