@@ -22,9 +22,9 @@ function read(name: string): string {
 }
 
 describe('actions/templates', () => {
-  it('雛形は 4 つで、どれも 1 行目に版の目印を持つ', async () => {
-    await explains('利用者のリポに置くワークフローの雛形（`actions/templates/`）のテストです。雛形が 4 つあり、どれも 1 行目に `pecot-workflow-template:` の版の目印を持つことを確認します。')
-    expect(TEMPLATES).toEqual(['pecot-auto.yml', 'pecot-board-sync.yml', 'pecot-handoff.yml', 'pecot-review.yml'])
+  it('雛形は 5 つで、どれも 1 行目に版の目印を持つ', async () => {
+    await explains('利用者のリポに置くワークフローの雛形（`actions/templates/`）のテストです。雛形が 5 つあり、どれも 1 行目に `pecot-workflow-template:` の版の目印を持つことを確認します。')
+    expect(TEMPLATES).toEqual(['pecot-auto.yml', 'pecot-board-sync.yml', 'pecot-github-ops.yml', 'pecot-handoff.yml', 'pecot-review.yml'])
     for (const name of TEMPLATES) expect(read(name).split('\n', 1)[0]).toMatch(/^# pecot-workflow-template: [a-z-]+ \d+$/u)
   })
 

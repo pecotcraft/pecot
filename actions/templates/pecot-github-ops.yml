@@ -1,0 +1,122 @@
+# pecot-workflow-template: github-ops 1
+#
+# Place this file at .github/workflows/pecot-github-ops.yml in your repository.
+# `pecot workflow install github-ops` places it and pins the pecot actions to a commit SHA.
+#
+# This workflow runs one GitHub operation that the official GitHub MCP server has no tool for.
+# The pecot skills start it with the actions_run_trigger tool of the official GitHub MCP server.
+# You do not start it by hand.
+#
+# Inputs.
+#   operation: the operation to run.
+#   request_id: an ID the caller chooses. It goes into the run name, so the caller can find the run.
+#   params: a JSON object with the values of the operation. actions/README.md of pecotcraft/pecot lists them.
+# The result is one line of the job log that starts with PECOT_RESULT, followed by JSON.
+# The JSON has ok, and result or error. The job fails when ok is false.
+#
+# Tokens.
+#   link-branch, stack-register and repo-settings use the GITHUB_TOKEN of the run.
+#   The other operations use a token of your GitHub App, narrowed to what the operation needs.
+#     project-fields, project-view: Organization projects (write).
+#     project-link: Organization projects (write) and Contents (write).
+#     release-create: Contents (write). Releases made with the GITHUB_TOKEN start no workflow, so on: release would not run.
+#     workflow-doctor: Secrets (read) and Variables (read). It reads only the names, never the values.
+#   Give the App these permissions and install it on the owner of this repository.
+#   Set these in Settings > Secrets and variables > Actions.
+#     Variable PECOT_AGENT_APP_CLIENT_ID.
+#     Secret PECOT_AGENT_APP_PRIVATE_KEY.
+#   The board must belong to the same organization as this repository.
+#   Boards of a personal account and boards of another owner are not supported.
+#
+# The pecot actions are pinned to a commit SHA, with the release tag in the comment after it.
+# Dependabot can update them when .github/dependabot.yml has the github-actions ecosystem.
+name: pecot github-ops
+run-name: pecot github-ops ${{ inputs.operation }} ${{ inputs.request_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Operation to run
+        required: true
+        type: choice
+        options:
+          - link-branch
+          - stack-register
+          - project-fields
+          - project-view
+          - project-link
+          - repo-settings
+          - workflow-doctor
+          - release-create
+      request_id:
+        description: ID the caller puts into the run name to find the run
+        required: false
+        default: ''
+        type: string
+      params:
+        description: JSON object with the values of the operation
+        required: false
+        default: '{}'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  # The operations that run with the GITHUB_TOKEN.
+  github-token:
+    if: ${{ contains(fromJSON('["link-branch","stack-register","repo-settings"]'), inputs.operation) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run the operation
+        uses: pecotcraft/pecot/actions/github-ops@pecot-actions/v0.0.0
+        with:
+          token: ${{ github.token }}
+          operation: ${{ inputs.operation }}
+          request-id: ${{ inputs.request_id }}
+          params: ${{ inputs.params }}
+
+  # The operations that run with the App token.
+  app:
+    if: ${{ !contains(fromJSON('["link-branch","stack-register","repo-settings"]'), inputs.operation) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # workflow-doctor reads the workflow files of the checked out branch.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Without the variable, the operation runs without a token and its result line says github-auth.
+      - name: Generate GitHub App token
+        id: app-token
+        if: ${{ vars.PECOT_AGENT_APP_CLIENT_ID != '' }}
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          client-id: ${{ vars.PECOT_AGENT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PECOT_AGENT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-organization-projects: ${{ contains(fromJSON('["project-fields","project-view","project-link"]'), inputs.operation) && 'write' || '' }}
+          permission-contents: ${{ contains(fromJSON('["project-link","release-create"]'), inputs.operation) && 'write' || '' }}
+          permission-secrets: ${{ inputs.operation == 'workflow-doctor' && 'read' || '' }}
+          permission-actions-variables: ${{ inputs.operation == 'workflow-doctor' && 'read' || '' }}
+
+      - name: Run the operation
+        uses: pecotcraft/pecot/actions/github-ops@pecot-actions/v0.0.0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          operation: ${{ inputs.operation }}
+          request-id: ${{ inputs.request_id }}
+          params: ${{ inputs.params }}

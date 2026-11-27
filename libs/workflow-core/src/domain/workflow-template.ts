@@ -64,6 +64,14 @@ const AUTO_REQUIREMENTS: readonly SettingRequirement[] = [
 ]
 
 /**
+github-ops は自前の App だけを使い、モデルの認証は要らない。AUTO_REQUIREMENTS の先頭 2 行と同じ形
+*/
+const GITHUB_OPS_REQUIREMENTS: readonly SettingRequirement[] = [
+  { type: 'anyOf', options: [[APP_CLIENT_ID]], missing: 'variable PECOT_AGENT_APP_CLIENT_ID' },
+  { type: 'anyOf', options: [[APP_PRIVATE_KEY]], missing: 'secret PECOT_AGENT_APP_PRIVATE_KEY' },
+]
+
+/**
 ボードの同期は App か PAT のどちらかの組を使う（雛形の先頭のコメント）
 */
 const BOARD_SYNC_REQUIREMENTS: readonly SettingRequirement[] = [
@@ -85,6 +93,7 @@ export const WORKFLOW_TEMPLATES: readonly WorkflowTemplate[] = [
   { name: 'review', templateFile: 'pecot-review.yml', destination: '.github/workflows/pecot-review.yml', requirements: AGENT_REQUIREMENTS, claudeApp: true },
   { name: 'handoff', templateFile: 'pecot-handoff.yml', destination: '.github/workflows/pecot-handoff.yml', requirements: AGENT_REQUIREMENTS, claudeApp: false },
   { name: 'auto', templateFile: 'pecot-auto.yml', destination: '.github/workflows/pecot-auto.yml', requirements: AUTO_REQUIREMENTS, claudeApp: false },
+  { name: 'github-ops', templateFile: 'pecot-github-ops.yml', destination: '.github/workflows/pecot-github-ops.yml', requirements: GITHUB_OPS_REQUIREMENTS, claudeApp: false },
 ]
 
 export function findWorkflowTemplate(name: string): WorkflowTemplate | undefined {

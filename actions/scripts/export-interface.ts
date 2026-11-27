@@ -42,6 +42,7 @@ export const NAMES: Names = {
       { word: 'auto', meaning: 'Issue のラベルを契機にした自動処理の実行' },
       { word: 'tracker', meaning: 'Tracker の Issue の書き直し' },
       { word: 'release', meaning: 'リリース' },
+      { word: 'github', meaning: '公式の GitHub の MCP に手の無い、GitHub の 1 つの操作' },
     ],
     [
       { word: 'sync', meaning: 'GitHub の状態に合わせて書き直す' },
@@ -49,6 +50,7 @@ export const NAMES: Names = {
       { word: 'gate', meaning: '動かすかどうかを決める' },
       { word: 'start', meaning: '始める' },
       { word: 'check', meaning: '確かめる' },
+      { word: 'ops', meaning: '入力で選んだ操作を 1 つ行い、結果を返す' },
     ],
   ],
   rest: false,

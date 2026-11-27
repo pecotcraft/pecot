@@ -5400,14 +5400,14 @@ entries:
   PW-WORKFLOW-DOCTOR:
     summary: ワークフローの雛形と、雛形の要る設定が、導入先のリポにそろっているかを確かめます。
     arguments:
-      name: '雛形の一覧の名前です。`board-sync`・`review`・`handoff`・`auto` のどれかです。'
+      name: '雛形の一覧の名前です。`board-sync`・`review`・`handoff`・`auto`・`github-ops` のどれかです。'
       directory: '対象の Git リポジトリの中のディレクトリです。サブディレクトリでも、リポのルートを使います。絶対パスと相対パスのどちらも渡せます。省くと、セッションのディレクトリです。'
     constraints: []
     details:
       - '`directory` のリポに、名前の雛形のワークフローのファイルと、雛形が要る GitHub の設定がそろっているかを確かめます。何も書きません。'
       - 'リポは `directory` の git remote から読みます。プロジェクトの設定とボードは読みません。'
       - '確かめた項目を、結果の `items` に 1 つずつ入れます。状態の `state` は `ok`・`missing`・`outdated`・`skipped` のどれかです。'
-      - '項目は、ワークフローのファイル、その 1 行目の版の目印、雛形が要る secret と変数です。`review` では、Claude の GitHub App も項目です。`handoff` と `auto` は Claude の GitHub App を使いません。'
+      - '項目は、ワークフローのファイル、その 1 行目の版の目印、雛形が要る secret と変数です。`review` では、Claude の GitHub App も項目です。`handoff`・`auto`・`github-ops` は Claude の GitHub App を使いません。'
       - '`review` と `handoff` の要る設定は同じです。変数 `PECOT_AGENT_APP_CLIENT_ID` があるときだけ、secret `PECOT_AGENT_APP_PRIVATE_KEY` が要り、その項目を入れます。secret `CLAUDE_CODE_OAUTH_TOKEN` か、`PECOT_AGENT_ANTHROPIC_*` の 4 つの変数のすべてが要ります。'
       - '`auto` では、変数 `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY` の両方が、いつも要ります。それぞれを項目に入れます。モデルの認証は `review` と同じです。'
       - '`board-sync` では、token の組が 1 つ要ります。1 つは、変数 `PECOT_BOARD_SYNC_APP_CLIENT_ID` と secret `PECOT_BOARD_SYNC_APP_PRIVATE_KEY` の組です。もう 1 つは、変数 `PECOT_BOARD_SYNC_USE_PAT` と secret `PECOT_BOARD_SYNC_TOKEN` の組です。'
@@ -5515,7 +5515,7 @@ entries:
         statement: '`review` と `handoff` で、変数 `PECOT_AGENT_APP_CLIENT_ID` が無いと、秘密鍵の secret の項目を入れません'
       - id: PW-WORKFLOW-DOCTOR-16
         pattern: event
-        statement: '`handoff` か `auto` を確かめると、Claude の GitHub App の項目を入れません'
+        statement: '`handoff`・`auto`・`github-ops` のどれかを確かめると、Claude の GitHub App の項目を入れません'
       - id: PW-WORKFLOW-DOCTOR-17
         pattern: unwanted
         statement: 'もし `auto` で、App の Client ID の変数か秘密鍵の secret が無いなら、無いものの項目を `missing` にして失敗を返します'
@@ -5528,7 +5528,7 @@ entries:
   PW-WORKFLOW-INSTALL:
     summary: pecot が同梱する GitHub Actions のワークフローの雛形を、リポに書き出します。
     arguments:
-      name: '雛形の一覧の名前です。`board-sync`・`review`・`handoff`・`auto` のどれかです。'
+      name: '雛形の一覧の名前です。`board-sync`・`review`・`handoff`・`auto`・`github-ops` のどれかです。'
       check: '書き出さずに、置いたファイルの版が同梱の雛形と同じかを確かめるかどうかです。'
       force: 'ファイルが既にあるときに上書きするかどうかです。'
       directory: '対象の Git リポジトリの中のディレクトリです。サブディレクトリでも、リポのルートを使います。絶対パスと相対パスのどちらも渡せます。省くと、セッションのディレクトリです。'

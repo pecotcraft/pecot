@@ -5776,7 +5776,7 @@
           },
           "name": {
             "type": "string",
-            "description": "Name of the workflow template (board-sync, review, handoff, auto)"
+            "description": "Name of the workflow template (board-sync, review, handoff, auto, github-ops)"
           }
         },
         "required": [
@@ -5897,7 +5897,7 @@
           },
           "name": {
             "type": "string",
-            "description": "Name of the workflow template (board-sync, review, handoff, auto)"
+            "description": "Name of the workflow template (board-sync, review, handoff, auto, github-ops)"
           }
         },
         "required": [

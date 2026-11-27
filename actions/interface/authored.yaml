@@ -16,6 +16,8 @@ environment:
     effect: 'auto-gate だけが読みます。ワークフローを起こしたイベントの JSON のファイルのパスです。'
   - name: GITHUB_ACTOR
     effect: 'review-finish だけが読みます。ワークフローを起こした利用者です。この利用者がリポに書けないときは、コメントを書きません。名前が `[bot]` で終わるときと値が無いときは、書ける利用者とみなします。'
+  - name: GITHUB_WORKSPACE
+    effect: 'github-ops の `workflow-doctor` だけが読みます。checkout したリポのディレクトリです。無ければ作業ディレクトリを使います。'
   - name: RUNNER_TEMP
     effect: 'auto-start だけが読みます。この下に、続きに要る文脈のファイルを書きます。値が無いと、入力エラーで止まります。'
   - name: PECOT_AUTO_LABEL
@@ -1469,3 +1471,135 @@ entries:
       - id: PA-AUTO-FINISH-16
         pattern: event
         statement: 'Issue に紐づく開いた PR があると、目印のブランチに、その PR の head を書きます'
+  PA-GITHUB-OPS:
+    summary: '公式の GitHub の MCP に手の無い GitHub の操作を 1 つ行い、結果を実行のログの `PECOT_RESULT` の行に JSON で出します。'
+    arguments:
+      token: '操作に使う GitHub トークンです。`link-branch`・`stack-register`・`repo-settings` には `GITHUB_TOKEN` を、ほかの操作には App のトークンを渡します。'
+      operation: '行う操作の名前です。`params` の説明に並べた 8 つの操作のどれかを渡します。'
+      request-id: '呼び出し元が決める ID です。結果の行にそのまま入ります。省くと空の文字列です。'
+      params: '操作ごとの値を入れた JSON のオブジェクトです。省くと `{}` です。'
+    constraints: []
+    details:
+      - 'スキルが、公式の GitHub の MCP の `actions_run_trigger` で `pecot-github-ops.yml` を起動し、その job の step が呼びます。'
+      - 'どの操作も、渡された中身を書くか、読んだ値を返すだけです。何を書くかは呼び出し元が決めます。'
+      - '`link-branch` は `issue`・`branch`・`base` を受け、`base` の先頭から Issue につながったブランチを作ります。`base` を省くと、リポの既定のブランチを使います。'
+      - '`stack-register` は `pr`・`parent_pr` を受け、子の PR を親の PR の直後へ登録します。親がスタックに無いときはスタックを作り、親が一番上なら足します。子が既に親の直後にあるときは書きません。'
+      - '`project-fields` は `project`・`changes` を受けます。`changes` の各項目は、`create`・`rename`・`delete`・`set-options` のどれかです。並べた順に 1 つずつ書き、書く前に欄を読み直します。'
+      - '`set-options` は、名前の合う既存の選択肢の ID・色・説明を引き継ぎます。ID を外すと選択肢が作り直され、カードの値が消えるためです。'
+      - '`project-view` は `project`・`name`・`column`・`row` を受け、列と行を単一選択の欄で分けたボードのビューを作ります。同じ名前のビューがあれば、作らずに返します。'
+      - '`project-link` は `project`・`repo` を受け、リポをボードにつなぎます。`repo` を省くと、ワークフローが動くリポを使います。'
+      - '`repo-settings` は、`delete_branch_on_merge`・既定のブランチ・持ち主の種類を返します。'
+      - '`workflow-doctor` は、secret と variable の名前と、checkout したリポに置いた pecot のワークフローの雛形の目印を返します。値は読みません。揃っているかの判定はしません。'
+      - '`release-create` は `tag`・`sha`・`body`・`name`・`prerelease` を受け、`sha` の commit にタグを付けてリリースを作ります。`name` を省くとタグを名前にします。'
+      - 'ボードは、ワークフローが動くリポと同じ組織のものだけを扱います。'
+    stdin: none
+    output:
+      format: text
+      description: 'outputs はありません。実行のログに、`PECOT_RESULT ` に続けて JSON を書いた行を 1 つ出します。JSON は `operation`・`request_id`・`ok` と、成功なら `result`、失敗なら `error`（`kind`・`message`）を持ちます。'
+    diagnostics: '失敗したときは、結果の行に加えて、標準エラーに `error:` の行を出します。'
+    environment:
+      - name: GITHUB_REPOSITORY
+        effect: '操作するリポジトリです。ボードの持ち主にもします。'
+      - name: GITHUB_SERVER_URL
+        effect: '`token` を渡す先の GitHub のホストです。無いか空なら `github.com` にします。'
+      - name: GITHUB_WORKSPACE
+        effect: '`workflow-doctor` だけが読みます。checkout したリポのディレクトリです。無ければ作業ディレクトリを使います。'
+    exit_status:
+      - kind: invalid-input
+        when: '`operation` が一覧に無いか、`params` が JSON でないか、操作の値の形と合いません。単一選択でない欄に `set-options` を渡したときも含みます。GitHub を呼ばずに、step を失敗にします。'
+      - kind: already-exists
+        when: '`project-fields` の `create` で、同じ名前の欄が既にあります。step は失敗になります。'
+      - kind: order-conflict
+        when: '`stack-register` で、親が一番上でないスタックにあるか、子が別のスタックにあります。書かずに、step を失敗にします。'
+      - kind: github-auth
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。`repo-settings` で `delete_branch_on_merge` が返らないときも含みます。step は失敗になります。'
+      - kind: github-not-found
+        when: 'ボード・欄・Issue・ブランチが GitHub に見つかりません。step は失敗になります。'
+      - kind: github-rate-limit
+        when: 'GitHub API のレート制限に当たりました。step は失敗になります。'
+      - kind: github-api
+        when: 'GitHub API がほかのエラーを返しました。`project-link` でつなげなかったときも含みます。step は失敗になります。'
+      - kind: other
+        when: 'ほかの名前に当たらない失敗です。step は失敗になります。'
+    on_error: '失敗した操作は、そこで止めます。`project-fields` で途中の変更が失敗したときは、書いた変更を巻き戻しません。成否にかかわらず、結果の行を 1 つ出します。'
+    effects:
+      - target: github
+        kind: write
+        what: '`link-branch` はブランチを作り、`stack-register` はスタック PR を登録し、`project-view` はビューを作り、`project-link` はリポをボードにつなぎます。'
+      - target: github
+        kind: destructive
+        what: '`project-fields` は、ボードの欄を作り・名前を変え・消し、選択肢を書き換えます。'
+      - target: github
+        kind: write
+        what: '`release-create` は、タグとリリースを作ります。'
+      - target: github
+        kind: read
+        what: '`repo-settings` はリポの設定を、`workflow-doctor` は secret と variable の名前を読みます。'
+      - target: file
+        kind: read
+        what: '`workflow-doctor` は、checkout したリポの `.github/workflows` の下の pecot の雛形を読みます。'
+    prerequisites:
+      - '`workflow_dispatch` で起動したワークフローの step で呼びます。`workflow-doctor` は、リポを checkout した後の step で呼びます。'
+      - '操作に合った権限を持つ GitHub トークンが要ります。権限は `pecot-github-ops.yml` の雛形の先頭のコメントにあります。'
+    idempotent: false
+    examples:
+      - arguments:
+          token: '${{ github.token }}'
+          operation: link-branch
+          request-id: 'cuj-1'
+          params: '{"issue":7,"branch":"feat/demo/7"}'
+        note: 'Issue #7 につながったブランチを、既定のブランチの先頭から作ります。'
+      - arguments:
+          token: '${{ steps.app-token.outputs.token }}'
+          operation: project-view
+          params: '{"project":3,"name":"Lanes","column":"pecot-status","row":"pecot-lane"}'
+        note: 'ボード #3 に、`pecot-status` を列、`pecot-lane` を行にしたビューを作ります。'
+    default_notes:
+      request-id: '省くと空の文字列です。'
+      params: '省くか空なら `{}` として読みます。'
+    behaviors:
+      - id: PA-GITHUB-OPS-01
+        pattern: event
+        statement: '操作が成功すると、`operation`・`request_id`・`ok: true`・`result` を入れた `PECOT_RESULT` の行を 1 つ出します'
+      - id: PA-GITHUB-OPS-02
+        pattern: unwanted
+        statement: 'もし `operation` か `params` が誤っているなら、GitHub を呼ばず、`invalid-input` の結果の行を出して step を失敗にします'
+      - id: PA-GITHUB-OPS-03
+        pattern: unwanted
+        statement: 'もし GitHub が操作を断るか接続が切れたなら、`ok: false` と失敗の種類と GitHub の文を入れた結果の行を出し、step を失敗にします'
+      - id: PA-GITHUB-OPS-04
+        pattern: event
+        statement: '`link-branch` を呼ぶと、`base` か既定のブランチの先頭から Issue につながったブランチを作り、ブランチ名・元のブランチ・commit を返します'
+      - id: PA-GITHUB-OPS-05
+        pattern: unwanted
+        statement: 'もし `link-branch` で GitHub がブランチの作成を断ったなら、GitHub の文を入れた `ok: false` の行を出します'
+      - id: PA-GITHUB-OPS-06
+        pattern: event
+        statement: '`stack-register` を呼ぶと、親の PR のスタックを作るか一番上に子の PR を足し、登録後の PR の並びを返します'
+      - id: PA-GITHUB-OPS-07
+        pattern: unwanted
+        statement: 'もし子の PR が既に親の直後へ並んでいるなら、書き込まず `unchanged` を返します。その順で登録できないなら、書き込まず `order-conflict` を返します'
+      - id: PA-GITHUB-OPS-08
+        pattern: event
+        statement: '`project-fields` を呼ぶと、`changes` を並べた順に書き、書いた後の欄と選択肢の ID を返します'
+      - id: PA-GITHUB-OPS-09
+        pattern: unwanted
+        statement: 'もし `changes` の項目が欄の有無や種類と合わないなら、その項目を書かずに `ok: false` を返します。`set-options` では、名前の合う選択肢の ID を引き継ぎます'
+      - id: PA-GITHUB-OPS-10
+        pattern: event
+        statement: '`project-view` を呼ぶと、列と行の欄で分けたビューを作ります。同じ名前のビューがあれば、作らずに `created: false` で返します'
+      - id: PA-GITHUB-OPS-11
+        pattern: event
+        statement: '`project-link` を呼ぶと、リポをボードにつなぎ、`linked` か `already_linked` を返します。つなげなければ `ok: false` を返します'
+      - id: PA-GITHUB-OPS-12
+        pattern: event
+        statement: '`repo-settings` を呼ぶと、`delete_branch_on_merge`・既定のブランチ・持ち主の種類を返します。`delete_branch_on_merge` が返らなければ `github-auth` を返します'
+      - id: PA-GITHUB-OPS-13
+        pattern: event
+        statement: '`workflow-doctor` を呼ぶと、secret と variable の名前と、置いたワークフローの雛形の目印を返します。読めない一覧は `complete: false` にします'
+      - id: PA-GITHUB-OPS-14
+        pattern: event
+        statement: '`release-create` を呼ぶと、渡したタグ・commit・本文でリリースを作り、`id`・タグ・URL を返します'
+      - id: PA-GITHUB-OPS-15
+        pattern: ubiquitous
+        statement: '常に、トークンの値を、結果の行と標準エラーに書きません'

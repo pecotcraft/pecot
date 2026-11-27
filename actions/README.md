@@ -14,6 +14,28 @@
 | `auto-finish` | 自動処理の結果のコメントを書き、待ちの Status を書いて起動ラベルを外す | `pecot-auto.yml` |
 | `release-check` | リリースを出す前に、alert・CHANGELOG・タグ・リリースするコミットを確かめる | なし（このリポの `release.yml`） |
 | `tracker-sync` | Dependabot の PR か security alert を、Tracker 1 件にそろえる | なし（このリポの `security-alerts.yml`・`dependabot-prs.yml`） |
+| `github-ops` | 公式の GitHub の MCP に手の無い操作を 1 つ行い、結果を `PECOT_RESULT` の行に出す | `pecot-github-ops.yml` |
+
+## github-ops の操作
+
+スキルが、公式の GitHub の MCP の `actions_run_trigger` で `pecot-github-ops.yml` を起動します。`operation` で操作を選び、操作ごとの値を `params` に JSON で渡します。
+
+| operation | params | result | token |
+|---|---|---|---|
+| `link-branch` | `issue`・`branch`・`base`（省くと既定のブランチ） | `issue`・`branch`・`base`・`sha` | `GITHUB_TOKEN` |
+| `stack-register` | `pr`・`parent_pr` | `change`（`created`・`added`・`unchanged`）・`number`・`pull_requests` | `GITHUB_TOKEN` |
+| `project-fields` | `project`・`changes`（`create`・`rename`・`delete`・`set-options` の並び） | `project`・`applied`・`fields`（欄と選択肢の ID） | App（Organization projects: write） |
+| `project-view` | `project`・`name`・`column`・`row` | `created`・`number`・`url` | App（Organization projects: write） |
+| `project-link` | `project`・`repo`（省くとこのリポ） | `project`・`repo`・`status`（`linked`・`already_linked`） | App（Organization projects: write・Contents: write） |
+| `repo-settings` | なし | `delete_branch_on_merge`・`default_branch`・`owner_type` | `GITHUB_TOKEN` |
+| `workflow-doctor` | なし | `secrets`・`variables`（名前と `complete`）・`workflows`（置いた雛形の目印） | App（Secrets: read・Variables: read） |
+| `release-create` | `tag`・`sha`・`body`・`name`（省くとタグ）・`prerelease` | `id`・`tag`・`url` | App（Contents: write） |
+
+- 結果は、job のログの `PECOT_RESULT {"operation","request_id","ok","result"}` の 1 行に出る。失敗したときは `result` の代わりに `error`（`kind`・`message`）が入り、job も失敗になる
+- 呼び出し元は、`request_id` に自分で決めた ID を渡し、実行の名前（`pecot github-ops <operation> <request_id>`）で自分の実行を探す
+- 何を書くかの判断は呼び出し元が持つ。`workflow-doctor` は名前と目印を返すだけで、揃っているかを判定しない
+- ボードは、リポと同じ組織のものだけを扱う。個人のアカウントのボードは扱わない
+- `release-create` に `GITHUB_TOKEN` を使わないのは、`GITHUB_TOKEN` で作ったリリースが `on: release` のワークフローを起こさないため
 
 inputs と outputs は、各 action の `action.yml` にあります。振る舞いの項目は `interface/authored.yaml` にあります。
 
@@ -33,6 +55,7 @@ inputs と outputs は、各 action の `action.yml` にあります。振る舞
 | `pecot-review.yml` | secret `CLAUDE_CODE_OAUTH_TOKEN` か、variable `PECOT_AGENT_ANTHROPIC_*` の 4 つ。自前の App を使うときは variable `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY` |
 | `pecot-handoff.yml` | `pecot-review.yml` と同じ |
 | `pecot-auto.yml` | variable `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY`。モデルの認証は `pecot-review.yml` と同じ |
+| `pecot-github-ops.yml` | variable `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY`。`GITHUB_TOKEN` で動く操作だけなら要らない |
 
 詳しい置き方は、pecot-workflow の w-help の references にあります。雛形ごとに 1 つのファイルです。
 
