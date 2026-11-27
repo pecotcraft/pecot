@@ -98,7 +98,7 @@ describe('featureStory', () => {
 describe('loadItemTable', () => {
   it.for([
     { name: 'pecot-tools', project: 'plugins/pecot-tools', item: 'PT-AWS-S3-LS', expected: 'aws_s3_ls' },
-    { name: 'pecot-workflow', project: 'plugins/pecot-workflow', item: 'PW-ISSUE-CREATE', expected: 'issue create' },
+    { name: 'pecot-workflow', project: 'plugins/pecot-workflow', item: 'PW-ISSUE-CREATE', expected: 'issue_create' },
   ])('$name の generated.json から、項目の ID で name を引ける表を作る', async ({ name, project, item, expected }) => {
     await explains(`定義書の項目の表を作る \`loadItemTable\` のテストです。${name} の \`interface/generated.json\` から、項目の ID で \`name\` を引ける表ができることを確認します。`)
     const table = stepSync('表を作る', () => loadItemTable(path.join(REPO_ROOT, project)))

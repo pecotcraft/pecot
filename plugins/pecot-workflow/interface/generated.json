@@ -4034,14 +4034,14 @@
               "properties": {
                 "created": {
                   "type": "boolean",
-                  "description": "Whether the view was created (with dry_run: whether it would be created); false when a view of that name already exists or it has to be created by hand"
+                  "description": "Whether the view was created; false when a view of that name already exists or it has to be created by hand"
                 },
                 "name": {
                   "type": "string",
                   "description": "Name of the view (Lanes)"
                 },
                 "url": {
-                  "description": "URL of the view (omitted with dry_run, and when it has to be created by hand)",
+                  "description": "URL of the view (omitted when it has to be created by hand)",
                   "type": "string"
                 },
                 "manual_steps": {
@@ -4339,14 +4339,14 @@
               "properties": {
                 "created": {
                   "type": "boolean",
-                  "description": "Whether the view was created (with dry_run: whether it would be created); false when a view of that name already exists or it has to be created by hand"
+                  "description": "Whether the view was created; false when a view of that name already exists or it has to be created by hand"
                 },
                 "name": {
                   "type": "string",
                   "description": "Name of the view (Lanes)"
                 },
                 "url": {
-                  "description": "URL of the view (omitted with dry_run, and when it has to be created by hand)",
+                  "description": "URL of the view (omitted when it has to be created by hand)",
                   "type": "string"
                 },
                 "manual_steps": {
