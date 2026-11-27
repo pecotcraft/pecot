@@ -1,0 +1,291 @@
+import { spawnSync } from 'node:child_process'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import { LabelName, LinkType, Stage, Status } from 'allure-js-commons'
+import type { Label, Link, TestResult } from 'allure-js-commons'
+import { getProjectRoot } from 'allure-js-commons/sdk/reporter'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { z } from 'zod'
+import { attachJson, attachOutput } from '../src/vitest/attach.js'
+import { featureStory, findUp, loadItemTable, reportLabelsListener } from '../src/vitest/report-labels.js'
+import type { ItemTable } from '../src/vitest/report-labels.js'
+import { stepSync } from '../src/vitest/step.js'
+import { explains } from '../src/vitest/explains.js'
+
+const REPO_ROOT = path.resolve(import.meta.dirname, '../../..')
+const LIB_ROOT = path.resolve(import.meta.dirname, '..')
+const FIXTURES = path.join(import.meta.dirname, 'fixtures', 'report-labels')
+const VITEST = path.join(path.dirname(createRequire(import.meta.url).resolve('vitest/package.json')), 'vitest.mjs')
+const FIXTURE_DIRECTORY = 'libs/interface-spec/tests/fixtures/report-labels'
+
+const TABLE: ItemTable = {
+  prefix: 'PT',
+  plugin: 'pecot-tools',
+  names: new Map([['PT-AWS-S3-LS', 'aws_s3_ls'], ['PT-AWS-STS-GET-CALLER-IDENTITY', 'aws_sts_get_caller_identity']]),
+}
+const FILE = 'plugins/pecot-tools/cli/tests/integration/tools-reject.test.ts'
+
+// allure-vitest が書き出す直前の結果のうち、listener が読む欄だけを持つもの。
+function testResult(parentSuite: string | undefined, ids: readonly string[], labels: readonly Label[] = []): TestResult {
+  const links: Link[] = ids.map(id => ({ type: LinkType.TMS, name: id, url: `http://localhost:8000/permalink.html?id=${id}` }))
+  return {
+    uuid: 'uuid',
+    name: 'name',
+    fullName: 'fullName',
+    historyId: 'historyId',
+    status: Status.PASSED,
+    statusDetails: {},
+    stage: Stage.FINISHED,
+    steps: [],
+    attachments: [],
+    parameters: [],
+    labels: [...(parentSuite === undefined ? [] : [{ name: LabelName.PARENT_SUITE, value: parentSuite }]), ...labels],
+    links,
+  }
+}
+
+// allure-vitest と同じく、getProjectRoot() からのテストのファイルのパス。
+const PARENT_SUITE = path.relative(getProjectRoot(), path.join(REPO_ROOT, FILE))
+
+const HIERARCHY: ReadonlySet<string> = new Set(['epic', 'feature', 'story'])
+
+function hierarchy(labels: readonly Label[]): Label[] {
+  return labels.filter(label => HIERARCHY.has(label.name))
+}
+
+const labelSchema = z.object({ name: z.string(), value: z.string() })
+const childResultSchema = z.object({
+  name: z.string(),
+  status: z.string(),
+  labels: z.array(labelSchema),
+})
+
+function readChildResult(file: string): z.infer<typeof childResultSchema> {
+  const data: unknown = JSON.parse(readFileSync(file, 'utf8'))
+  return childResultSchema.parse(data)
+}
+
+describe('featureStory', () => {
+  it.for([
+    { name: 'ID が無い', ids: [], file: FILE, expected: { feature: 'plugins/pecot-tools/cli/tests/integration', story: FILE } },
+    { name: 'ルートの直下のファイルで ID が無い', ids: [], file: 'a.test.ts', expected: { feature: '.', story: 'a.test.ts' } },
+    { name: '項目の ID が 1 つ', ids: ['PT-AWS-S3-LS-03'], file: FILE, expected: { feature: 'aws_s3_ls', story: 'PT-AWS-S3-LS-03' } },
+    { name: 'COMMON の後に項目の ID', ids: ['PT-COMMON-14', 'PT-AWS-S3-LS-03'], file: FILE, expected: { feature: 'aws_s3_ls', story: 'PT-AWS-S3-LS-03' } },
+    { name: '項目の ID が 2 つ', ids: ['PT-AWS-STS-GET-CALLER-IDENTITY-01', 'PT-AWS-S3-LS-03'], file: FILE, expected: { feature: 'aws_sts_get_caller_identity', story: 'PT-AWS-STS-GET-CALLER-IDENTITY-01' } },
+    { name: 'COMMON の ID だけが 2 つ', ids: ['PT-COMMON-02', 'PT-COMMON-14'], file: FILE, expected: { feature: 'pecot-tools 共通', story: 'PT-COMMON-02' } },
+    { name: '定義書に無い ID', ids: ['PT-UNKNOWN-01'], file: FILE, expected: { feature: 'PT-UNKNOWN', story: 'PT-UNKNOWN-01' } },
+    { name: '別の接頭辞の COMMON の ID', ids: ['PW-COMMON-01'], file: FILE, expected: { feature: 'PW-COMMON', story: 'PW-COMMON-01' } },
+  ])('$name とき、feature と story を 1 組返す', async ({ name, ids, file, expected }) => {
+    await explains(`\`feature\` と \`story\` の値を決める \`featureStory\` のテストです。渡した ID が「${name}」の場合に、決まった \`feature\` と \`story\` を 1 組返すことを確認します。`)
+    stepSync('feature と story を決めて比べる', () => {
+      expect(featureStory(ids, file, TABLE)).toEqual(expected)
+    })
+  })
+
+  it.for([
+    { name: '項目の ID', ids: ['SM-ONE-02'], expected: { feature: 'SM-ONE', story: 'SM-ONE-02' } },
+    { name: 'COMMON の ID', ids: ['SM-COMMON-01'], expected: { feature: 'SM-COMMON', story: 'SM-COMMON-01' } },
+  ])('定義書の無い project の $name は、末尾の -NN を除いた項目の ID を feature にする', async ({ name, ids, expected }) => {
+    await explains(`定義書の無い project の ID を扱う \`featureStory\` のテストです。${name}を渡した場合に、末尾の \`-NN\` を除いた項目の ID が \`feature\` になることを確認します。`)
+    stepSync('feature と story を決めて比べる', () => {
+      expect(featureStory(ids, 'libs/sample/tests/a.test.ts', undefined)).toEqual(expected)
+    })
+  })
+})
+
+describe('loadItemTable', () => {
+  it.for([
+    { name: 'pecot-tools', project: 'plugins/pecot-tools', item: 'PT-AWS-S3-LS', expected: 'aws_s3_ls' },
+    { name: 'pecot-workflow', project: 'plugins/pecot-workflow', item: 'PW-ISSUE-CREATE', expected: 'issue create' },
+  ])('$name の generated.json から、項目の ID で name を引ける表を作る', async ({ name, project, item, expected }) => {
+    await explains(`定義書の項目の表を作る \`loadItemTable\` のテストです。${name} の \`interface/generated.json\` から、項目の ID で \`name\` を引ける表ができることを確認します。`)
+    const table = stepSync('表を作る', () => loadItemTable(path.join(REPO_ROOT, project)))
+    stepSync('表を比べる', () => {
+      expect(table?.plugin).toBe(name)
+      expect(table?.names.get(item)).toBe(expected)
+    })
+  })
+
+  it.for([
+    { name: '配列', content: [], message: 'がオブジェクトでない' },
+    { name: 'entries の name が無い', content: { prefix: 'SM', plugin: 'sample', entries: [{ id: 'SM-ONE' }] }, message: 'に prefix・plugin・entries（id と name）が無い' },
+  ])('generated.json が$name だと、ファイルの名前を添えて止める', async ({ name, content, message }) => {
+    await explains(`定義書の項目の表を作る \`loadItemTable\` のテストです。\`generated.json\` が「${name}」の場合に、ファイルの名前を含むエラーで止まることを確認します。`)
+    const project = stepSync('generated.json を置く', () => {
+      const directory = mkdtempSync(path.join(tmpdir(), 'interface-spec-report-labels-table-'))
+      mkdirSync(path.join(directory, 'interface'))
+      writeFileSync(path.join(directory, 'interface', 'generated.json'), JSON.stringify(content))
+      return directory
+    })
+    try {
+      stepSync('表を作り、止まるかを比べる', () => {
+        expect(() => loadItemTable(project)).toThrow(`${path.join(project, 'interface', 'generated.json')} ${message}`)
+      })
+    }
+    finally {
+      rmSync(project, { recursive: true, force: true })
+    }
+  })
+
+  it('interface/generated.json の無い project では、表を返さない', async () => {
+    await explains('定義書の項目の表を作る `loadItemTable` のテストです。`interface/generated.json` の無い project の場合に、`undefined` を返すことを確認します。')
+    stepSync('表を作り、未定義かを比べる', () => {
+      expect(loadItemTable(LIB_ROOT)).toBeUndefined()
+    })
+  })
+})
+
+describe('findUp', () => {
+  it.for([
+    { name: 'project.json', file: 'project.json', expected: 'plugins/pecot-tools' },
+    { name: 'nx.json', file: 'nx.json', expected: '.' },
+  ])('テストのファイルのディレクトリから上へたどり、$name を持つ最初のディレクトリを返す', async ({ name, file, expected }) => {
+    await explains(`上位のディレクトリを探す \`findUp\` のテストです。テストのファイルのディレクトリから上へ探し、\`${name}\` を持つ最初のディレクトリを返すことを確認します。`)
+    stepSync('ディレクトリを探して比べる', () => {
+      expect(findUp(path.join(REPO_ROOT, 'plugins/pecot-tools/cli/tests/integration'), file)).toBe(path.join(REPO_ROOT, expected))
+    })
+  })
+
+  it('どこにも無いと、undefined を返す', async () => {
+    await explains('上位のディレクトリを探す `findUp` のテストです。探すファイルがどの上位のディレクトリにも存在しない場合に、`undefined` を返すことを確認します。')
+    stepSync('ディレクトリを探し、未定義かを比べる', () => {
+      expect(findUp(REPO_ROOT, 'no-such-file-for-report-labels.json')).toBeUndefined()
+    })
+  })
+})
+
+describe('reportLabelsListener', () => {
+  it('ID を持つ結果に、ID の属する定義書の項目の name と ID を足す', async () => {
+    await explains('結果を書き出す前に呼ぶ `reportLabelsListener` のテストです。要件の ID を持つ結果に、定義書の項目の `name` の `feature` と、ID の `story` が付くことを確認します。')
+    const result = stepSync('結果を作る', () => testResult(PARENT_SUITE, ['PT-COMMON-14', 'PT-AWS-S3-LS-03']))
+    stepSync('listener を呼ぶ', () => {
+      reportLabelsListener().beforeTestResultWrite?.(result)
+    })
+    stepSync('ラベルを比べる', () => {
+      expect(hierarchy(result.labels)).toEqual([
+        { name: LabelName.FEATURE, value: 'aws_s3_ls' },
+        { name: LabelName.STORY, value: 'PT-AWS-S3-LS-03' },
+      ])
+    })
+  })
+
+  it('ID を持たない結果に、リポのルートからのディレクトリとファイルを足す', async () => {
+    await explains('結果を書き出す前に呼ぶ `reportLabelsListener` のテストです。要件の ID を持たない結果に、リポのルートからのディレクトリとファイルのパスが付くことを確認します。')
+    const result = stepSync('結果を作る', () => testResult(PARENT_SUITE, []))
+    stepSync('listener を呼ぶ', () => {
+      reportLabelsListener().beforeTestResultWrite?.(result)
+    })
+    stepSync('ラベルを比べる', () => {
+      expect(hierarchy(result.labels)).toEqual([
+        { name: LabelName.FEATURE, value: 'plugins/pecot-tools/cli/tests/integration' },
+        { name: LabelName.STORY, value: FILE },
+      ])
+    })
+  })
+
+  it.for([
+    { name: 'feature', label: { name: LabelName.FEATURE, value: 'given' } },
+    { name: 'story', label: { name: LabelName.STORY, value: 'given' } },
+  ])('$name を持つ結果には、足さない', async ({ name, label }) => {
+    await explains(`結果を書き出す前に呼ぶ \`reportLabelsListener\` のテストです。\`${name}\` のラベルを既に持つ結果の場合に、ラベルを追加しないことを確認します。`)
+    const result = stepSync('結果を作る', () => testResult(PARENT_SUITE, ['PT-AWS-S3-LS-03'], [label]))
+    stepSync('listener を呼ぶ', () => {
+      reportLabelsListener().beforeTestResultWrite?.(result)
+    })
+    stepSync('ラベルを比べる', () => {
+      expect(hierarchy(result.labels)).toEqual([label])
+    })
+  })
+
+  it('parentSuite を持たない結果には、足さない', async () => {
+    await explains('結果を書き出す前に呼ぶ `reportLabelsListener` のテストです。`parentSuite` のラベルを持たない結果の場合に、ラベルを追加しないことを確認します。')
+    const result = stepSync('結果を作る', () => testResult(undefined, ['PT-AWS-S3-LS-03']))
+    stepSync('listener を呼ぶ', () => {
+      reportLabelsListener().beforeTestResultWrite?.(result)
+    })
+    stepSync('ラベルを比べる', () => {
+      expect(hierarchy(result.labels)).toEqual([])
+    })
+  })
+
+  it('generated.json は、ID を持つ最初の結果で project ごとに 1 回だけ読み、ID の無い結果では読まない', async () => {
+    await explains('定義書の読み込みの回数についての `reportLabelsListener` のテストです。`generated.json` を、ID を持つ結果のときだけ project ごとに 1 回読むことを確認します。')
+    const loaded: string[] = []
+    const listener = stepSync('読んだ project を記録する listener を作る', () => reportLabelsListener((project) => {
+      loaded.push(path.relative(REPO_ROOT, project))
+      return loadItemTable(project)
+    }))
+    stepSync('ID の無い結果と、ID を持つ 2 つの結果を渡す', () => {
+      for (const ids of [[], ['PT-AWS-S3-LS-03'], ['PT-COMMON-14']]) listener.beforeTestResultWrite?.(testResult(PARENT_SUITE, ids))
+    })
+    stepSync('読んだ project を比べる', () => {
+      expect(loaded).toEqual(['plugins/pecot-tools'])
+    })
+  })
+})
+
+const child: { root?: string, results?: z.infer<typeof childResultSchema>[] } = {}
+
+function childResults(): z.infer<typeof childResultSchema>[] {
+  if (child.results === undefined) throw new Error('子の vitest を動かしていない')
+  return child.results
+}
+
+describe('子の vitest の結果', () => {
+  beforeAll(() => {
+    const root = mkdtempSync(path.join(tmpdir(), 'interface-spec-report-labels-'))
+    child.root = root
+    const result = spawnSync(process.execPath, [VITEST, 'run', '--config', path.join(FIXTURES, 'vitest.config.mjs')], {
+      cwd: FIXTURES,
+      encoding: 'utf8',
+      env: { ...process.env, CI: 'true', NO_COLOR: '1', NX_TASK_TARGET_PROJECT: 'fixture-project', NX_TASK_TARGET_TARGET: 'test-fixture', REPORT_LABELS_ROOT: root },
+    })
+    attachOutput('vitest run（report-labels の fixture）', result.status ?? undefined, result.stdout, result.stderr)
+    const directory = path.join(root, 'test-results', 'test-fixture', 'allure-results')
+    child.results = readdirSync(directory)
+      .filter(file => file.endsWith('-result.json'))
+      .map(file => readChildResult(path.join(directory, file)))
+  })
+
+  afterAll(() => {
+    if (child.root !== undefined) rmSync(child.root, { recursive: true, force: true })
+  })
+
+  it.for([
+    { name: '通る', status: Status.PASSED, file: 'outcomes.fixture.ts' },
+    { name: '落ちる', status: Status.FAILED, file: 'outcomes.fixture.ts' },
+    { name: '本体で skip する', status: Status.SKIPPED, file: 'outcomes.fixture.ts' },
+    { name: 'beforeAll の後に動く', status: Status.SKIPPED, file: 'before-all.fixture.ts' },
+  ])('「$name」の結果は、epic・feature・story を 1 つずつ持つ', async ({ name, status, file }) => {
+    await explains(`子の vitest を Allure の reporter 付きで実行したときの結果のテストです。「${name}」の結果が、epic・feature・story のラベルを 1 つずつ持つことを確認します。`)
+    const found = stepSync('結果を探す', () => childResults().find(result => result.name === name))
+    stepSync('結果を添付する', () => {
+      attachJson(`「${name}」の結果のラベル`, found?.labels)
+    })
+    stepSync('状態とラベルを比べる', () => {
+      expect(found?.status).toBe(status)
+      expect(hierarchy(found?.labels ?? [])).toEqual([
+        { name: 'epic', value: 'fixture-project' },
+        { name: LabelName.FEATURE, value: FIXTURE_DIRECTORY },
+        { name: LabelName.STORY, value: `${FIXTURE_DIRECTORY}/${file}` },
+      ])
+    })
+  })
+
+  it('COMMON の ID の後に項目の ID を持つ結果は、項目の ID で feature と story を 1 組持つ', async () => {
+    await explains('子の vitest を Allure の reporter 付きで実行したときの結果のテストです。COMMON の ID と項目の ID を持つ結果が、項目の ID の `feature` と `story` を持つことを確認します。')
+    const found = stepSync('結果を探す', () => childResults().find(result => result.name === 'COMMON の ID の後に項目の ID を持つ'))
+    stepSync('結果を添付する', () => {
+      attachJson('結果のラベル', found?.labels)
+    })
+    stepSync('ラベルを比べる', () => {
+      expect(hierarchy(found?.labels ?? [])).toEqual([
+        { name: 'epic', value: 'fixture-project' },
+        { name: LabelName.FEATURE, value: 'SM-ONE' },
+        { name: LabelName.STORY, value: 'SM-ONE-02' },
+      ])
+    })
+  })
+})

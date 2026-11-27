@@ -11,6 +11,7 @@ import { chromium } from 'playwright'
 import type { Browser } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { attachContent } from '../../src/vitest/attach.js'
+import { featureStory } from '../../src/vitest/report-labels.js'
 import { step, stepSync } from '../../src/vitest/step.js'
 import { explains } from '../../src/vitest/explains.js'
 
@@ -56,8 +57,9 @@ function report(): Report {
   return state.report
 }
 
-// verifies が残すのと同じ、tms のリンクと tag のラベルを持つ結果。
+// verifies が残すのと同じ tms のリンクと tag のラベルと、reporter が足す epic・feature・story を持つ結果。
 function result(index: number, name: string, id: string | undefined): TestResult {
+  const hierarchy = featureStory(id === undefined ? [] : [id], 'sample/tests/sample.test.ts', undefined)
   const start = 1_700_000_000_000 + index * 1000
   return {
     uuid: `00000000-0000-4000-8000-00000000000${String(index)}`,
@@ -76,6 +78,9 @@ function result(index: number, name: string, id: string | undefined): TestResult
     labels: [
       { name: 'project', value: 'sample' },
       { name: 'lane', value: 'test-unit' },
+      { name: 'epic', value: 'sample' },
+      { name: 'feature', value: hierarchy.feature },
+      { name: 'story', value: hierarchy.story },
       { name: 'suite', value: 'sample.test.ts' },
       ...(id === undefined ? [] : [{ name: 'tag', value: id }]),
     ],

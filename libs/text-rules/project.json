@@ -50,6 +50,7 @@
         "{workspaceRoot}/libs/interface-spec/src/eslint/table-key.ts",
         "{workspaceRoot}/libs/interface-spec/src/eslint/test-description.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/report-labels.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/attach.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/explains.ts"
       ],
@@ -79,6 +80,7 @@
       "inputs": [
         "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/report-labels.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/attach.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/explains.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/step.ts",

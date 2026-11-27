@@ -29,12 +29,13 @@ _CONFTESTS = [
 
 
 def _run_pytest(
-    tmp_path: Path, conftest: str, test_body: str, *args: str
+    tmp_path: Path, conftest: str, test_body: str, *args: str, test_file: str = "test_sample.py"
 ) -> subprocess.CompletedProcess[str]:
     suite = tmp_path / "suite"
     suite.mkdir()
     shutil.copy(_REPO / conftest, suite / "conftest.py")
-    (suite / "test_sample.py").write_text(test_body, encoding="utf-8")
+    (suite / test_file).parent.mkdir(parents=True, exist_ok=True)
+    (suite / test_file).write_text(test_body, encoding="utf-8")
     return run_attached(
         [
             sys.executable,
@@ -59,6 +60,12 @@ def _labels(results: Path) -> list[list[dict[str, Any]]]:
     return [
         json.loads(read_output(path))["labels"] for path in sorted(results.glob("*-result.json"))
     ]
+
+
+def _hierarchy(result: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    # allure-pytest は印のラベルを集合にまとめるので、並びが実行ごとに変わる。
+    found = [label for label in result if label["name"] in {"epic", "feature", "story"}]
+    return sorted(found, key=lambda label: label["name"])
 
 
 @allure.title(
@@ -88,21 +95,94 @@ def test_ini_labels_are_added_to_every_result(tmp_path: Path, conftest: str) -> 
 
 
 @allure.title(
-    "-o を指定しないと、{param_id} の conftest は結果に project と lane のラベルを付けない"
+    "nx.json が上に無いと、{param_id} の conftest は rootpath からのパスで epic・feature・story を 1 つずつ付ける"
+)
+@pytest.mark.parametrize("conftest", _CONFTESTS)
+def test_hierarchy_labels_without_nx_json_use_rootpath(tmp_path: Path, conftest: str) -> None:
+    """`nx.json` の無いディレクトリで pytest を実行したときの、機能の階層のラベルのテストです。どの結果にも、project の epic と、rootpath からのパスの feature・story が 1 つずつ付くことを確認します。"""
+    with allure.step("nx.json の無い一時ディレクトリで、2 つのテストを -o のラベル付きで動かす"):
+        results = tmp_path / "allure-results"
+        body = "def test_a() -> None:\n    pass\n\n\ndef test_b() -> None:\n    pass\n"
+        done = _run_pytest(
+            tmp_path, conftest, body,
+            "--alluredir", str(results), "-o", "pecot_report_project=githooks", "-o", "pecot_report_lane=test-ci",
+        )  # fmt: skip
+    with allure.step(
+        "結果ごとに epic・feature・story が 1 つずつ付き、feature が . になることを確かめる"
+    ):
+        assert done.returncode == 0, done.stdout + done.stderr
+        labels = _labels(results)
+        assert len(labels) == 2
+        for result in labels:
+            assert _hierarchy(result) == [
+                {"name": "epic", "value": "githooks"},
+                {"name": "feature", "value": "."},
+                {"name": "story", "value": "test_sample.py"},
+            ]
+
+
+@allure.title(
+    "上に nx.json があると、{param_id} の conftest は nx.json のディレクトリからのパスを feature と story にする"
+)
+@pytest.mark.parametrize("conftest", _CONFTESTS)
+def test_hierarchy_labels_use_the_directory_of_nx_json(tmp_path: Path, conftest: str) -> None:
+    """`nx.json` の下の入れ子のディレクトリのテストを実行したときの、機能の階層のラベルのテストです。feature がテストのディレクトリ、story がテストのファイルの、`nx.json` からのパスになることを確認します。"""
+    with allure.step("nx.json の下の入れ子のディレクトリのテストを、-o のラベル付きで動かす"):
+        (tmp_path / "nx.json").write_text("{}", encoding="utf-8")
+        results = tmp_path / "allure-results"
+        done = _run_pytest(
+            tmp_path, conftest, "def test_a() -> None:\n    pass\n",
+            "--alluredir", str(results), "-o", "pecot_report_project=githooks",
+            test_file="sub/test_nested.py",
+        )  # fmt: skip
+    with allure.step("feature が入れ子のディレクトリ、story がファイルのパスになることを確かめる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        [result] = _labels(results)
+        assert _hierarchy(result) == [
+            {"name": "epic", "value": "githooks"},
+            {"name": "feature", "value": "suite/sub"},
+            {"name": "story", "value": "suite/sub/test_nested.py"},
+        ]
+
+
+@allure.title(
+    "project の値が空だと、{param_id} の conftest は epic を付けず、feature と story を付ける"
+)
+@pytest.mark.parametrize("conftest", _CONFTESTS)
+def test_without_project_no_epic(tmp_path: Path, conftest: str) -> None:
+    """`-o` で lane だけを指定して pytest を実行したときの、機能の階層のラベルのテストです。結果に epic が付かず、feature と story が付くことを確認します。"""
+    with allure.step("lane だけを -o で渡して pytest を動かす"):
+        results = tmp_path / "allure-results"
+        done = _run_pytest(
+            tmp_path, conftest, "def test_a() -> None:\n    pass\n",
+            "--alluredir", str(results), "-o", "pecot_report_lane=test-ci",
+        )  # fmt: skip
+    with allure.step("epic が無く、feature と story があることを確かめる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        [result] = _labels(results)
+        assert _hierarchy(result) == [
+            {"name": "feature", "value": "."},
+            {"name": "story", "value": "test_sample.py"},
+        ]
+
+
+@allure.title(
+    "-o を指定しないと、{param_id} の conftest は結果に project・lane・epic・feature・story のラベルを付けない"
 )
 @pytest.mark.parametrize("conftest", _CONFTESTS)
 def test_without_ini_labels_no_project_or_lane_label(tmp_path: Path, conftest: str) -> None:
-    """`-o` を指定せずに pytest を実行したときに、Allure の結果ファイルに付くラベルのテストです。結果に `project` と `lane` のラベルが 1 つも付いていないことを確認します。"""
+    """`-o` を指定せずに pytest を実行したときに、Allure の結果ファイルに付くラベルのテストです。結果に `project`・`lane` と機能の階層のラベルが 1 つも付いていないことを確認します。"""
     with allure.step("-o を渡さずに pytest を動かす"):
         results = tmp_path / "allure-results"
         done = _run_pytest(
             tmp_path, conftest, "def test_a() -> None:\n    pass\n", "--alluredir", str(results)
         )
-    with allure.step("project と lane のラベルが付かないことを確かめる"):
+    with allure.step("project・lane・epic・feature・story のラベルが付かないことを確かめる"):
         assert done.returncode == 0, done.stdout + done.stderr
         labels = _labels(results)
         assert len(labels) == 1
         assert [label for label in labels[0] if label["name"] in {"project", "lane"}] == []
+        assert _hierarchy(labels[0]) == []
 
 
 @allure.title(

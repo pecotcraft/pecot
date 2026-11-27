@@ -618,7 +618,7 @@ def test_config_values() -> None:
         assert config["raw"]["plugins"] == {
             "awesome": {
                 "options": {
-                    "groupBy": ["project", "lane", "parentSuite", "suite", "subSuite"],
+                    "groupBy": ["epic", "feature", "story"],
                     "reportLanguage": "ja",
                 }
             }

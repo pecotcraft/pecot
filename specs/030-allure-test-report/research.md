@@ -130,6 +130,7 @@
 
 - **Decision**: `allure generate <結果のディレクトリ>...` に、レポートのレーンの結果のディレクトリを全部渡す。設定は `.githooks/scripts/test_report/allurerc.mjs` に置く
   - plugin は awesome を 1 つ。`groupBy: ["project", "lane", "parentSuite", "suite", "subSuite"]`、`reportLanguage: "ja"`
+  - #811 で、`groupBy` を `["epic", "feature", "story"]` に替えた。値の決まりは [data-model.md](data-model.md) のラベルの表にある
   - レポートの名前は、トップレベルの `name: "pecot テストレポート"` に置く。awesome の `reportName` は、3.33.0 では画面の題を変えない（ソース。awesome は options の後に、トップレベルの `name` から来る `context.reportName` を渡す）
 - **Rationale**: 複数のディレクトリを渡す形は、CLI のヘルプの例と、設定の `resultsDir` の配列にある。結果には「どのディレクトリから来たか」の項目が無く、出どころはラベルでだけ分かる。`groupBy` は任意のラベルで木を組む（plugin-awesome の README）
 - **実物で確かめた点**（Phase 2。`text-rules:test-unit` と `githooks:test-nx-cache`）: `groupBy` は縮めない
