@@ -99,7 +99,7 @@ job と権限:
 |---|---|---|
 | verify | `contents: read`・`actions: read`・`pull-requests: read` | RunProvenance で側を決める。artifact を、確かめた run の ID と側から作った名前で取り、SideCheck（data-model.md）で確かめる。確かめた中身を、この run の artifact に上げる。中身は実行しない |
 | store | `contents: read`・`pages: read`・`statuses: write`。environment `pages-store` | pages-store の App のトークンで `pages-store` を取り、StoreLayout の決まりで差し替える。verify が出した開いている PR の一覧に無い `pr/<番号>/` を消し、側の間の行き来のリンクを確かめて push する。続けて `pages-store` を取り、`configure-pages` v6 → `upload-pages-artifact` v5 で artifact `github-pages` に上げる。上げずに済んだ PR 版には commit status を付ける |
-| deploy | `contents: read`・`pages: write`・`id-token: write`（starter workflow の値）と `statuses: write`。environment `github-pages` | store が上げた artifact を `deploy-pages` v5 で公開する。PR 版なら、公開の後に commit status を付ける |
+| deploy | `contents: read`・`pages: write`・`id-token: write`（starter workflow の値）と `statuses: write`。environment `github-pages` | store が上げた artifact を `deploy-pages` v5 で公開し、目印を読み戻して確かめる（「公開の確かめ」）。PR 版なら、確かめの後に commit status を付ける |
 
 - `actions: write` は、どの job にも持たせない
 - verify の後の job は、verify が API から決めた値（側・PR の番号・head の SHA・開いている PR の番号の一覧）だけを使う
@@ -109,6 +109,31 @@ job と権限:
   - push の後に上げる step が落ちてやり直すと、store は push 済みの中身を見て `changed` を偽にする。そのため、やり直しでは今の中身を上げる
 - deploy は、store が上げたときだけ動く。upload と deploy を 1 つの job にすると、上げた直後の artifact を `deploy-pages` の照会が見つけられないことがあるため、starter workflow と同じく分ける（2026-11-26、#804 で改めた。actions/deploy-pages#451）
 - upload の job と preview-status の job は、store と deploy に入れた（2026-11-27、#847。1 回の job の数を 5 から 3 にするため）。verify は、PR の artifact を確かめる job を App の鍵を持つ job と分けるため、残す
+
+公開の確かめ:
+
+`deploy-pages` は、`Reported success!` を出しても中身を公開しないことがある（2026-11-27、#872）。
+
+- 同じ `pages_build_version` で続いた deploy は、後の方が成功を報告し、deployments の API でも success になったのに、公開は前の中身のまま残った。`deploy-pages` は版を `GITHUB_SHA` に固定し、`workflow_run` の `GITHUB_SHA` は main の先頭なので、重なった run は同じ版になる（actions/deploy-pages#383）
+- 前の deploy の成功の 6〜15 秒後の deploy は、`due to in progress deployment` で作成を断られた
+
+そこで、deploy は公開した中身を読み戻して確かめる。
+
+| 項目 | 決まり |
+|---|---|
+| 目印 | `pages-version.txt`（サイトの根）。中身は `<pages-store の SHA> <run_id>-<run_attempt>` の 1 行。store が upload の前に書き、出力 `version` にする。`pages-store` には commit しない |
+| 読み方 | `.githooks/scripts/pages_site/served.py`。ファイル名の英数字を毎回違う組で百分率符号化した URL で読む |
+| 出そろい | 目印が 30 秒続けて、すべての読み出しで合ったら出たとする。違う値・404・通信の失敗で数え直す。5 秒ごとに読み、180 秒まで待つ |
+| deploy し直し | 最初の deploy の作成が断られたか、出そろわなかったら、60 秒待って同じ job で 1 回 deploy し直す。それでも出そろわなければ job を落とす |
+| 時間 | 2 つの `deploy-pages` の `timeout` は 300000 ms。job の `timeout-minutes` は 25 |
+
+- 目印に run の番号を入れるのは、中身の変わらない deploy（手での起動・`--failed` のやり直し）でも、その deploy の目印にするため
+- 目印の名前を `.` で始めないのは、`upload-pages-artifact` の `include-hidden-files` を真にすると `.pecot-store.json` も公開されるため
+- Pages の CDN は、問い合わせの文字列を見ずに写しを返し、要求の `Cache-Control` も見ない。404 も写しになる。百分率符号化した URL は、CDN が別の URL として元へ取りに行く（2026-11-27 に `x-cache` と `x-github-request-id` で確かめた）。RFC 3986 §6.2.2.2 では、非予約文字の符号化の有無は同じ資源を指す
+- 公開の元は複数あり、出る時刻がずれる（12:37:48 に終わった deploy で、元ごとの `last-modified` が 12:37:56〜12:38:16）。出そろうまで group `pages` を持つので、次の deploy は前の中身が出そろってから作られる
+- 60 秒は、断られた deploy が前の成功から 15 秒以内で、元への反映が 30 秒ほどで終わったことから、その倍を取った
+- 出そろわないことを公開し直しで直す #383 の回避（`workflow_dispatch` で起こし直す）は、`actions: write` が要るので採らない。job が落ちたら、手で公開し直す（`.claude/rules/pages-site.md`）
+- 確かめるのは、その run が上げた中身。`pages-store` の先頭ではないので、下の concurrency の順の入れ替わりは直らない
 
 concurrency:
 

@@ -8,11 +8,16 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
 import allure
 import yaml
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts/pages_site"))
+
+import served  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _BUILD = _REPO_ROOT / ".github/workflows/pages-build.yml"
@@ -403,6 +408,7 @@ def test_store_stores_only_for_workflow_run_and_uploads_when_decided() -> None:
             "Store side",
             "Decide upload",
             "Checkout pages-store",
+            "Write version marker",
             "Setup Pages",
             "Upload artifact",
             "Set preview status",
@@ -414,7 +420,12 @@ def test_store_stores_only_for_workflow_run_and_uploads_when_decided() -> None:
         assert _step(_DEPLOY, "store", "Download verified side")["if"] == (
             "github.event_name == 'workflow_run' && env.SIDE != ''"
         )
-        for name in ("Checkout pages-store", "Setup Pages", "Upload artifact"):
+        for name in (
+            "Checkout pages-store",
+            "Write version marker",
+            "Setup Pages",
+            "Upload artifact",
+        ):
             assert (
                 _step(_DEPLOY, "store", name)["if"] == "steps.decide.outputs.uploaded == 'true'"
             ), name
@@ -450,8 +461,8 @@ def test_preview_status_runs_after_deploy_or_in_store_without_upload() -> None:
         assert store["name"] == "Set preview status"
         # 変更が無く deploy を飛ばしたときも、保管済みの PR 版を指して付ける。
         assert store["if"] == "env.SIDE == 'pr' && steps.decide.outputs.uploaded != 'true'"
-        assert [s["name"] for s in deploy] == ["Deploy to GitHub Pages", "Set preview status"]
-        # 開いたときに中身があるように、deploy の後に付ける。
+        assert deploy[-1]["name"] == "Set preview status"
+        # 開いたときに中身があるように、公開の確かめの後に付ける。確かめが落ちれば、既定の success() で飛ぶ。
         assert deploy[-1]["if"] == "needs.verify.outputs.side == 'pr'"
 
 
@@ -592,6 +603,84 @@ def test_store_passes_the_report_tar_and_sources_for_a_report() -> None:
         assert "--kind" not in rest
 
 
+@allure.title("保管の job は、上げる中身に pages-store のコミットと run の番号の目印を書く")
+def test_store_writes_version_marker() -> None:
+    """`store` の `Write version marker` の step のテストです。上げる `pages-site` の根に `served.py` が読む名前の目印を書き、同じ値を job の出力 `version` にすることを確認します。"""
+    with allure.step("Write version marker の step と store の出力を読む"):
+        step = _step(_DEPLOY, "store", "Write version marker")
+        outputs = _job(_DEPLOY, "store")["outputs"]
+    with allure.step("目印の中身・置き場所・出力を確かめる"):
+        assert step["id"] == "marker"
+        run = step["run"]
+        assert (
+            'version="$(git -C pages-site rev-parse HEAD) ${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"'
+            in run
+        )
+        assert f"pages-site/{served.MARKER}" in run
+        assert 'echo "version=$version" >> "$GITHUB_OUTPUT"' in run
+        assert outputs["version"] == "${{ steps.marker.outputs.version }}"
+
+
+@allure.title("公開の job は、目印を読み戻し、出なければ待って 1 回だけ deploy し直す")
+def test_deploy_checks_served_and_redeploys_once() -> None:
+    """`deploy` の job の step のテストです。最初の deploy の失敗で job を止めずに目印を確かめ、出なかったときだけ 60 秒待って deploy し直し、もう一度の確かめで出なければ失敗することを確認します。"""
+    with allure.step("deploy の step を読む"):
+        job = _job(_DEPLOY, "deploy")
+        steps = _steps(_DEPLOY, "deploy")
+        by_name = {s["name"]: s for s in steps}
+    with allure.step("step の並びを確かめる"):
+        assert [s["name"] for s in steps] == [
+            "Checkout",
+            "Deploy to GitHub Pages",
+            "Check served",
+            "Wait before redeploy",
+            "Redeploy to GitHub Pages",
+            "Check redeployed",
+            "Set preview status",
+        ]
+    with allure.step("served.py だけを取る checkout を確かめる"):
+        assert by_name["Checkout"]["with"] == {
+            "ref": "main",
+            "sparse-checkout": ".githooks/scripts/pages_site",
+            "persist-credentials": False,
+        }
+    with allure.step("最初の deploy だけが失敗で止めないことを確かめる"):
+        first = by_name["Deploy to GitHub Pages"]
+        again = by_name["Redeploy to GitHub Pages"]
+        assert first["continue-on-error"] is True
+        assert [s["name"] for s in steps if s.get("continue-on-error")] == [
+            "Deploy to GitHub Pages"
+        ]
+        assert first["uses"] == again["uses"]
+        assert first["with"] == again["with"] == {"timeout": 300000}
+    with allure.step("確かめと deploy し直しの条件を確かめる"):
+        assert by_name["Check served"]["if"] == "steps.deployment.outcome == 'success'"
+        assert by_name["Wait before redeploy"]["if"] == "steps.served.outputs.served != 'true'"
+        assert by_name["Wait before redeploy"]["run"] == "sleep 60"
+        assert again["id"] == "redeploy"
+        assert again["if"] == "steps.served.outputs.served != 'true'"
+        assert by_name["Check redeployed"]["if"] == "steps.redeploy.outcome == 'success'"
+    with allure.step(
+        "2 つの確かめが、その deploy の page_url と store の目印で served.py を呼ぶことを確かめる"
+    ):
+        for name, step_id in (("Check served", "deployment"), ("Check redeployed", "redeploy")):
+            check = by_name[name]
+            assert check["env"] == {
+                "PAGE_URL": f"${{{{ steps.{step_id}.outputs.page_url }}}}",
+                "VERSION": "${{ needs.store.outputs.version }}",
+            }
+            assert check["run"].startswith(
+                'python3 .githooks/scripts/pages_site/served.py --page-url "$PAGE_URL" --expect "$VERSION"'
+            )
+        assert "--require" not in by_name["Check served"]["run"]
+        assert by_name["Check redeployed"]["run"].endswith(" --require")
+    with allure.step("environment の URL と job の時間の上限を確かめる"):
+        assert job["environment"]["url"] == (
+            "${{ steps.redeploy.outputs.page_url || steps.deployment.outputs.page_url }}"
+        )
+        assert job["timeout-minutes"] == 25
+
+
 @allure.title("公開の job は、pages-store を checkout して Pages に公開する")
 def test_deploy_publishes_pages_store() -> None:
     """`pages-deploy.yml` の公開のテストです。`store` の job が保管の後に `pages-store` を checkout して上げ、`store` と `deploy` が Pages の 3 つの action を順に使うことを確認します。"""
@@ -608,7 +697,8 @@ def test_deploy_publishes_pages_store() -> None:
         store = [s.get("uses", "").split("@")[0] for s in _steps(_DEPLOY, "store")]
         deploy = [s.get("uses", "").split("@")[0] for s in _steps(_DEPLOY, "deploy")]
         pages = [u for u in store + deploy if u in _PAGES_ACTIONS]
-        assert pages == list(_PAGES_ACTIONS)
+        # deploy-pages は、公開されなかったときに deploy し直すので 2 回ある。
+        assert pages == [*_PAGES_ACTIONS, "actions/deploy-pages"]
 
 
 @allure.title("Pages の artifact は、deploy より前の job でアップロードする")
@@ -623,14 +713,16 @@ def test_pages_artifact_is_uploaded_in_an_earlier_job_than_deploy() -> None:
 
 @allure.title("Pages の action は、定めた版に固定する")
 def test_pages_actions_are_pinned_to_the_contract_versions() -> None:
-    """`pages-deploy.yml` の 3 つの Pages の action のテストです。SHA の後ろのコメントに、定めた版が書かれていることを確認します。"""
+    """`pages-deploy.yml` の 3 つの Pages の action のテストです。同じ action はどれも同じ SHA で、その後ろのコメントに定めた版が書かれていることを確認します。"""
     with allure.step("pages-deploy.yml の行を読む"):
         # 版は SHA の後ろのコメントにだけある。YAML の読み込みではコメントが消えるので、行で見る。
         lines = _DEPLOY.read_text(encoding="utf-8").splitlines()
     with allure.step("Pages の action が決めた版で固定されていることを確かめる"):
         for action, version in _PAGES_ACTIONS.items():
-            (line,) = [line for line in lines if f"uses: {action}@" in line]
-            assert line.endswith(f" # {version}"), line
+            found = [line.strip() for line in lines if f"uses: {action}@" in line]
+            assert found, action
+            assert len(set(found)) == 1, found
+            assert found[0].endswith(f" # {version}"), found[0]
 
 
 @allure.title("actionlint は、pages-deploy の `queue` を publish-npm と同じ設定で除外する")

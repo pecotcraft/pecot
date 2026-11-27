@@ -63,6 +63,15 @@ paths:
   - 落ちた run の artifact は、store の job が取った時点の `pages-store` なので、後の run の後にやり直すと古い中身を公開する
   - `github-pages` の artifact は 1 日で消える。過ぎたら `gh workflow run pages-deploy.yml --ref main` を打つ
 
+- deploy の job は、公開の後に目印 `pages-version.txt` を読み戻し、出そろうまで待つ。出そろわなければ 60 秒待って 1 回 deploy し直す。決まりは `specs/028-pages-site/contracts/pages.md` の「公開の確かめ」
+  - `Redeploy to GitHub Pages` が動いた run は、最初の deploy の作成が断られたか、成功を報告しても公開されなかった run。ログの `Check served` の行に、読んだ値と `x-cache` が出る
+  - `Check redeployed` で落ちたら、deploy し直しても公開されていない。後に通った run が無ければ、`gh workflow run pages-deploy.yml --ref main` で `pages-store` の今の中身を公開し直す
+  - 公開中の目印は、次のコマンドで読む。CDN の写しを避けるため、ファイル名の文字を符号化する
+
+    ```bash
+    curl -s https://pecotcraft.github.io/pecot/pages-versio%6E.txt
+    ```
+
 - store の job が、保管の push の後に上げる step で落ちたときも、上の `--failed` でやり直す。やり直しの store は、保管の変更が無くても `pages-store` の今の中身を上げる
 
 - 側を作る run は、テストの結果に左右されない。失敗するのは、`sphinx-build -W` が警告を出したときなど、サイトを作れなかったとき
@@ -103,12 +112,13 @@ paths:
 - run の実行の時間が長いのは、どちらの側も `pecot-workflow:test-cli` の tests の job
 - 起動からの時間には、前の run の終わりを concurrency で待つ時間が入る
 - 結果がそろってから公開が変わるまでは、どの回も SC-008 の 30 分に収まる。開発版の長い回は、PR 版の保管と同時に動き、store の job が待った。リリース版の回は、ほとんど report・verify・store・deploy の job の時間で、job の間の空きは合わせて 27 秒だった
-- deploy の job は、`actions/deploy-pages` の `timeout` の既定（600000 ms）に余裕がある
+- deploy の job は、`actions/deploy-pages` に渡す `timeout`（300000 ms）に余裕がある。公開の確かめを足した後（#872）は、出そろうまでの 30 秒ほどが加わる
 - リリース版で測った run
   - `release.yml` が起こした `test-report.yml` の run 45750823897
   - それを受けた `pages-deploy.yml` の run 45751913227
 
 - Pages の応答は `cache-control: max-age=600` なので、deploy の後の 10 分ほどは、前の中身を返すことがある。`index.html` の `last-modified` で、新しい中身かを見分ける
+  - CDN は問い合わせの文字列（`?x=1`）を見ずに写しを返す。写しを避けて読むときは、`%69ndex.html` のようにファイル名の文字を符号化する。応答の `x-cache: MISS` で、写しでないことが分かる
 
 ### 起動とやり直し
 

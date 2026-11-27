@@ -8,6 +8,7 @@ unit tests/test_githooks_lanes.py
 unit tests/test_handoff_workflow_copy.py
 unit tests/test_marketplace_parity.py
 unit tests/test_pages_provenance.py
+unit tests/test_pages_served.py
 unit tests/test_pages_workflows.py
 unit tests/test_review_workflow_copy.py
 unit tests/test_root_package_manifest.py

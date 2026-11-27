@@ -164,6 +164,7 @@ verify の job が、artifact を展開したツリーに対して確かめる�
 - 案内のページは、ある方の側へのリンクを持つ
 - 開発版を書き換える前に、取った `.pecot-store.json` の開発版の SHA が、受けた SHA の祖先（同じを含む）かを git で確かめ直す。違えば書き換えない。verify と store の間に、新しい開発版が先に保管されることがあるため
 - `.pecot-store.json` は公開されない。`upload-pages-artifact` が `.` で始まるファイルを除くため
+- 公開する artifact には、根に `pages-version.txt`（公開の確かめの目印）が入る。`pages-store` には無い（contracts/pages.md の「公開の確かめ」）
 - 書き換えが無ければ push しない
 - コミットは毎回 1 つの orphan のコミットにして、`--force-with-lease=<取ったときの SHA>` で push する。断られたら取り直してやり直す
 - 全体の大きさが 900 MB を超えたら、run の summary に警告を書く（上限は 1 GB）
