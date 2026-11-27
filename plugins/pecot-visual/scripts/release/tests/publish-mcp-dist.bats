@@ -45,6 +45,112 @@ EMPTY_ICONS="$SF/empty-icons"
 FAKE_BROWSERS="$SF/ms-playwright"
 SMOKE_MJS="$SF/smoke.mjs"
 
+setup_file() {
+    # git hook から継いだ GIT_DIR 等があると `git -C` が本体の index を書き換えるので捨てる。
+    unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY \
+        GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_PREFIX GIT_COMMON_DIR GIT_NAMESPACE
+    # dry-run の有無は引数で作り分けるので、nx release --dry-run から継いだ値は捨てる。
+    unset NX_DRY_RUN
+    # 親の値を継ぐと、publish が渡さなくても 1-4 の env の確かめが通る。
+    unset PECOTV_SKIP_LIB_BUILD
+    # 並べた publish の `git status` が、使い捨てリポの index.lock を取り合わないようにする。
+    export GIT_OPTIONAL_LOCKS=0
+    export GIT_AUTHOR_NAME="pecotv release test" GIT_AUTHOR_EMAIL="pecotv-release-test@example.invalid"
+    export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME" GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
+
+    # build 済み dist の存在を先に確かめる（無いと publish が途中で、原因の分からない形で落ちる）。
+    local dir pkg
+    for dir in "$PECOTV_ROOT/cli/dist" "$TEXT_RULES_DIST" $(for pkg in $ESLINT_PKGS; do echo "$ESLINT_SOURCE/$pkg/dist"; done); do
+        if [ ! -d "$dir" ]; then
+            echo "ERROR: $dir がありません。build 済みの dist が前提です。" >&2
+            echo "  bash plugins/pecot-visual/scripts/ci/run-tests.sh --scope=release" >&2
+            return 1
+        fi
+    done
+
+    # 既定の置き場。@test は setup で自分の置き場に向け直す。置かないと publish が本体の記録を読む。
+    export PECOTV_AUDIT_RECORD="$SF/audit-record.json" GH_CALLS="$SF/gh-calls.txt" GH_UPLOAD_COPY="$SF/uploaded.tgz"
+    REPO_HEAD="$(git -C "$REPO_ROOT" rev-parse HEAD)"
+    PLUGIN_VERSION="$(node -e "process.stdout.write(require('$PECOTV_ROOT/.claude-plugin/plugin.json').version)")"
+    TEST_VERSION="0.0.0-test$$"
+    ESLINT_BIN="$(node -e "
+const path = require('node:path')
+process.stdout.write(path.join(path.dirname(require.resolve('eslint/package.json', { paths: ['$PECOTV_ROOT'] })), 'bin/eslint.js'))
+")"
+    export REPO_HEAD PLUGIN_VERSION TEST_VERSION ESLINT_BIN
+
+    # 偽 gh は引数を 1 行ずつ記録する。release view は GH_VIEW_RC で終わり、release upload は tgz を GH_UPLOAD_COPY へ写す。
+    mkdir -p "$SF/ghbin" "$SF/npmbin"
+    cat > "$SF/ghbin/gh" << 'FAKE_GH'
+#!/bin/bash
+printf '%s\n' "$*" >> "$GH_CALLS"
+case "$1 $2" in
+    "release view")
+        if [ "${GH_VIEW_RC:-0}" != 0 ]; then
+            echo "release not found" >&2
+        fi
+        exit "${GH_VIEW_RC:-0}"
+        ;;
+    "release upload") cp "$4" "$GH_UPLOAD_COPY" ;;
+esac
+exit 0
+FAKE_GH
+    chmod +x "$SF/ghbin/gh"
+    export PATH="$SF/ghbin:$PATH"
+    # 非 dry-run の実行は PECOT_RELEASE_TEST_NPM_CACHE を拒否する。代わりに偽 npm が install にだけ永続キャッシュを足す。
+    # 無指定のときのキャッシュは、npm が同時の書き込みに耐える作りなので、並べた @test で共有する。
+    REAL_NPM="$(command -v npm)"
+    NPM_PERSIST_CACHE="${PECOT_RELEASE_TEST_NPM_CACHE:-$SF/npm-persist-cache}"
+    export REAL_NPM NPM_PERSIST_CACHE
+    cat > "$SF/npmbin/npm" << 'FAKE_NPM_PERSIST'
+#!/bin/bash
+case "$1" in
+    install) exec "$REAL_NPM" "$@" "--cache=$NPM_PERSIST_CACHE" --prefer-offline ;;
+esac
+exec "$REAL_NPM" "$@"
+FAKE_NPM_PERSIST
+    chmod +x "$SF/npmbin/npm"
+
+    make_test_repo
+    TEST_HEAD="$(git -C "$TEST_REPO" rev-parse HEAD)"
+    TEST_PARENT="$(git -C "$TEST_REPO" rev-parse HEAD^)"
+    # 期待値は HEAD の catalog.vite。被検証物と同じ出力を期待値にしないよう、実装の resolveCatalog は使わない。
+    git -C "$TEST_REPO" show HEAD:pnpm-workspace.yaml > "$SF/head-pnpm-workspace.yaml"
+    HEAD_VITE="$(node -e "
+const { readDefaultCatalog } = require(process.argv[2])
+process.stdout.write(readDefaultCatalog(require('node:fs').readFileSync(process.argv[3], 'utf8')).vite)
+" _ "$RELEASE_DIR/catalog.mjs" "$SF/head-pnpm-workspace.yaml")"
+    export TEST_HEAD TEST_PARENT HEAD_VITE
+    make_fixtures
+
+    # 2 つの流れは互いの記録・gh の記録・構築先を使わないので、同時に動かす。
+    local dryrun_pid publish_pid dryrun_rc=0
+    run_dryrun_chain 3>&- &
+    dryrun_pid=$!
+    run_publish_chain 3>&- &
+    publish_pid=$!
+    wait "$publish_pid"
+    wait "$dryrun_pid" || dryrun_rc=$?
+    [ "$dryrun_rc" -eq 0 ] || return 1
+    DIST_FP="$(fingerprint_from_log "$SF/dryrun-skipped.log")"
+    TEST_FP="$(fingerprint_from_log "$SF/mismatch.log")"
+    export DIST_FP TEST_FP
+}
+
+setup() {
+    bats_load_library pecot-bats
+    T="$BATS_TEST_TMPDIR"
+    export PECOTV_AUDIT_RECORD="$T/audit-record.json" GH_CALLS="$T/gh-calls.txt" GH_UPLOAD_COPY="$T/uploaded.tgz"
+    : > "$GH_CALLS"
+}
+
+# --- 11. テストはリポジトリ本体の監査記録に触れない ---
+# 指紋は本体の実監査と一致し得る (#1074) ので、本体の記録が由来の印（TEST_REGISTRY）を持たないことだけを見る。
+teardown_file() {
+    bats_load_library pecot-bats
+    assert_not_equal "$(record_registry "$REAL_RECORD_FILE")" "$TEST_REGISTRY"
+}
+
 # 指定パスの記録の registry。記録が無い・読めない・registry が文字列でない場合は空を返す。
 record_registry() {
     [ -f "$1" ] || return 0
@@ -567,112 +673,6 @@ run_publish_chain() {
     rm -rf "$SF/dist-1"
 }
 
-setup_file() {
-    # git hook から継いだ GIT_DIR 等があると `git -C` が本体の index を書き換えるので捨てる。
-    unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY \
-        GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_PREFIX GIT_COMMON_DIR GIT_NAMESPACE
-    # dry-run の有無は引数で作り分けるので、nx release --dry-run から継いだ値は捨てる。
-    unset NX_DRY_RUN
-    # 親の値を継ぐと、publish が渡さなくても 1-4 の env の確かめが通る。
-    unset PECOTV_SKIP_LIB_BUILD
-    # 並べた publish の `git status` が、使い捨てリポの index.lock を取り合わないようにする。
-    export GIT_OPTIONAL_LOCKS=0
-    export GIT_AUTHOR_NAME="pecotv release test" GIT_AUTHOR_EMAIL="pecotv-release-test@example.invalid"
-    export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME" GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
-
-    # build 済み dist の存在を先に確かめる（無いと publish が途中で、原因の分からない形で落ちる）。
-    local dir pkg
-    for dir in "$PECOTV_ROOT/cli/dist" "$TEXT_RULES_DIST" $(for pkg in $ESLINT_PKGS; do echo "$ESLINT_SOURCE/$pkg/dist"; done); do
-        if [ ! -d "$dir" ]; then
-            echo "ERROR: $dir がありません。build 済みの dist が前提です。" >&2
-            echo "  bash plugins/pecot-visual/scripts/ci/run-tests.sh --scope=release" >&2
-            return 1
-        fi
-    done
-
-    # 既定の置き場。@test は setup で自分の置き場に向け直す。置かないと publish が本体の記録を読む。
-    export PECOTV_AUDIT_RECORD="$SF/audit-record.json" GH_CALLS="$SF/gh-calls.txt" GH_UPLOAD_COPY="$SF/uploaded.tgz"
-    REPO_HEAD="$(git -C "$REPO_ROOT" rev-parse HEAD)"
-    PLUGIN_VERSION="$(node -e "process.stdout.write(require('$PECOTV_ROOT/.claude-plugin/plugin.json').version)")"
-    TEST_VERSION="0.0.0-test$$"
-    ESLINT_BIN="$(node -e "
-const path = require('node:path')
-process.stdout.write(path.join(path.dirname(require.resolve('eslint/package.json', { paths: ['$PECOTV_ROOT'] })), 'bin/eslint.js'))
-")"
-    export REPO_HEAD PLUGIN_VERSION TEST_VERSION ESLINT_BIN
-
-    # 偽 gh は引数を 1 行ずつ記録する。release view は GH_VIEW_RC で終わり、release upload は tgz を GH_UPLOAD_COPY へ写す。
-    mkdir -p "$SF/ghbin" "$SF/npmbin"
-    cat > "$SF/ghbin/gh" << 'FAKE_GH'
-#!/bin/bash
-printf '%s\n' "$*" >> "$GH_CALLS"
-case "$1 $2" in
-    "release view")
-        if [ "${GH_VIEW_RC:-0}" != 0 ]; then
-            echo "release not found" >&2
-        fi
-        exit "${GH_VIEW_RC:-0}"
-        ;;
-    "release upload") cp "$4" "$GH_UPLOAD_COPY" ;;
-esac
-exit 0
-FAKE_GH
-    chmod +x "$SF/ghbin/gh"
-    export PATH="$SF/ghbin:$PATH"
-    # 非 dry-run の実行は PECOT_RELEASE_TEST_NPM_CACHE を拒否する。代わりに偽 npm が install にだけ永続キャッシュを足す。
-    # 無指定のときのキャッシュは、npm が同時の書き込みに耐える作りなので、並べた @test で共有する。
-    REAL_NPM="$(command -v npm)"
-    NPM_PERSIST_CACHE="${PECOT_RELEASE_TEST_NPM_CACHE:-$SF/npm-persist-cache}"
-    export REAL_NPM NPM_PERSIST_CACHE
-    cat > "$SF/npmbin/npm" << 'FAKE_NPM_PERSIST'
-#!/bin/bash
-case "$1" in
-    install) exec "$REAL_NPM" "$@" "--cache=$NPM_PERSIST_CACHE" --prefer-offline ;;
-esac
-exec "$REAL_NPM" "$@"
-FAKE_NPM_PERSIST
-    chmod +x "$SF/npmbin/npm"
-
-    make_test_repo
-    TEST_HEAD="$(git -C "$TEST_REPO" rev-parse HEAD)"
-    TEST_PARENT="$(git -C "$TEST_REPO" rev-parse HEAD^)"
-    # 期待値は HEAD の catalog.vite。被検証物と同じ出力を期待値にしないよう、実装の resolveCatalog は使わない。
-    git -C "$TEST_REPO" show HEAD:pnpm-workspace.yaml > "$SF/head-pnpm-workspace.yaml"
-    HEAD_VITE="$(node -e "
-const { readDefaultCatalog } = require(process.argv[2])
-process.stdout.write(readDefaultCatalog(require('node:fs').readFileSync(process.argv[3], 'utf8')).vite)
-" _ "$RELEASE_DIR/catalog.mjs" "$SF/head-pnpm-workspace.yaml")"
-    export TEST_HEAD TEST_PARENT HEAD_VITE
-    make_fixtures
-
-    # 2 つの流れは互いの記録・gh の記録・構築先を使わないので、同時に動かす。
-    local dryrun_pid publish_pid dryrun_rc=0
-    run_dryrun_chain 3>&- &
-    dryrun_pid=$!
-    run_publish_chain 3>&- &
-    publish_pid=$!
-    wait "$publish_pid"
-    wait "$dryrun_pid" || dryrun_rc=$?
-    [ "$dryrun_rc" -eq 0 ] || return 1
-    DIST_FP="$(fingerprint_from_log "$SF/dryrun-skipped.log")"
-    TEST_FP="$(fingerprint_from_log "$SF/mismatch.log")"
-    export DIST_FP TEST_FP
-}
-
-setup() {
-    bats_load_library pecot-bats
-    T="$BATS_TEST_TMPDIR"
-    export PECOTV_AUDIT_RECORD="$T/audit-record.json" GH_CALLS="$T/gh-calls.txt" GH_UPLOAD_COPY="$T/uploaded.tgz"
-    : > "$GH_CALLS"
-}
-
-# --- 11. テストはリポジトリ本体の監査記録に触れない ---
-# 指紋は本体の実監査と一致し得る (#1074) ので、本体の記録が由来の印（TEST_REGISTRY）を持たないことだけを見る。
-teardown_file() {
-    bats_load_library pecot-bats
-    assert_not_equal "$(record_registry "$REAL_RECORD_FILE")" "$TEST_REGISTRY"
-}
-
 # --- 1. dry-run: 監査記録の確認と配布ツリーの構築 ---
 
 @test "監査記録が無いと、dry-run でも配布ツリーを構築せずに止まる" {
@@ -732,7 +732,8 @@ teardown_file() {
 
 @test "build を伴う dry-run は、install・text-rules・cli・eslint プラグインの順に pnpm を呼ぶ" {
     explains "偽の \`pnpm\` を置いて、build を伴う \`--dry-run\` を実行するテストです。\`install\`・text-rules・cli・eslint プラグインの順に呼び、本体ツリーの dist に触れないことを確認します。"
-    local pkg calls="$T/pnpm-calls.txt" tree="$T/eslint-tree" backup="$T/eslint-dist-backup" at_build="$T/eslint-dist-at-build.txt"
+    local pkg PNPM_CALLS="$T/pnpm-calls.txt" ESLINT_TREE="$T/eslint-tree" ESLINT_BACKUP="$T/eslint-dist-backup" ESLINT_DIST_AT_BUILD="$T/eslint-dist-at-build.txt"
+    local calls="$PNPM_CALLS" tree="$ESLINT_TREE" backup="$ESLINT_BACKUP" at_build="$ESLINT_DIST_AT_BUILD"
     local source_before text_rules_line cli_line
     write_audit_record "$DIST_FP" "$REPO_HEAD" 0
     # 本体ツリーの eslint プラグインの dist は別のレーンが読んでいるので、publish には一時の写しを指させる (#82)。
@@ -789,7 +790,8 @@ FAKE_PNPM
 
 @test "pnpm の install が失敗すると、build へ進まずに非ゼロ終了する" {
     explains "\`install --frozen-lockfile\` が失敗する偽の \`pnpm\` で \`--dry-run\` を実行するテストです。非ゼロで終了し、build を呼ばないことを確認します。"
-    local calls="$T/pnpm-calls.txt"
+    local PNPM_CALLS="$T/pnpm-calls.txt"
+    local calls="$PNPM_CALLS"
     write_audit_record "$DIST_FP" "$REPO_HEAD" 0
     mkdir -p "$T/bin"
     cat > "$T/bin/pnpm" << 'FAKE_PNPM_FAIL'
