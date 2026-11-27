@@ -7,7 +7,7 @@ setup:
   repo:
     files:
       .github/workflows/pecot-review.yml: |
-        # pecot-workflow-template: review 9
+        # pecot-workflow-template: review 10
         jobs:
           review:
             steps:
