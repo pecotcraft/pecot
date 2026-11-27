@@ -42,6 +42,8 @@ step 名は英語で、Actions でよく使う形にする。Actions の画面�
   - `side` の job が材料と matrix を決める。`tests` がレーンごとに dev container で動かし、結果を `allure-results-<slug>`（1 日）に上げる。`report` がレポートを作る
   - テストが落ちても run は成功で終わる。落ちるのは、結果を残さずに止まったレーンがあるときと、`allure generate` が失敗したとき
   - 履歴は側ごとに 3 件まで。pages-deploy が artifact を受けて公開する
+- `codeql.yml`: CodeQL の解析（advanced setup）。リポの設定の default setup は止めておく
+  - `actions/*/dist` を `paths-ignore` で外す。依存を同梱した生成物で、依存の既知の脆弱性は Dependabot が見る
 - `dependabot-auto-merge.yml`: minor・patch の PR に auto-merge を入れる
 - `dependabot-commit.yml`: 各 `runtime-lock.yaml` を root の lock から作り直し、version plan を足して同じブランチへ push する
 - `dependabot-prs.yml`: 人の判断を待つ dependabot の PR を Tracker 1 件にそろえる
