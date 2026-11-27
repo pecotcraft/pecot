@@ -2,7 +2,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { LabelName, LinkType } from 'allure-js-commons'
-import type { TestResult } from 'allure-js-commons'
+import type { Label, TestResult } from 'allure-js-commons'
 import { getProjectRoot } from 'allure-js-commons/sdk/reporter'
 import type { LifecycleListener } from 'allure-js-commons/sdk/reporter'
 
@@ -72,15 +72,48 @@ export function findUp(start: string, fileName: string): string | undefined {
   }
 }
 
+// test-layers.txt の 1 行。path は project の root からのパスで、/ で終わればディレクトリ。
+export interface LayerRule {
+  readonly layer: string
+  readonly path: string
+}
+
+// project の root の test-layers.txt を読む（test-conventions.md の「テストの層」）。ファイルが無ければ undefined。
+export function loadLayerTable(projectDirectory: string): readonly LayerRule[] | undefined {
+  const file = path.join(projectDirectory, 'test-layers.txt')
+  return existsSync(file)
+    ? readFileSync(file, 'utf8').split('\n')
+        .map(line => line.trim())
+        .filter(line => line !== '' && !line.startsWith('#'))
+        .map(line => line.split(/\s+/u))
+        .filter((fields): fields is [string, string] => fields.length === 2)
+        .map(([layer, rulePath]) => ({ layer, path: rulePath }))
+    : undefined
+}
+
+// 当たる規則のうち、パスの長いものの層。relativePath は project の root からの POSIX のパス。
+export function layerOf(table: readonly LayerRule[], relativePath: string): string | undefined {
+  let best: LayerRule | undefined
+  for (const rule of table) {
+    const isHit = relativePath === rule.path || (rule.path.endsWith('/') && relativePath.startsWith(rule.path))
+    if (isHit && (best === undefined || rule.path.length > best.path.length)) best = rule
+  }
+  return best?.layer
+}
+
 interface Place {
   readonly root: string
   readonly project: string | undefined
 }
 
-// allure-vitest の reporter の listeners に渡す。feature・story の無い結果にだけ、書き出す直前に足す。
-export function reportLabelsListener(load: (projectDirectory: string) => ItemTable | undefined = loadItemTable): LifecycleListener {
+// allure-vitest の reporter の listeners に渡す。feature・story・layer の無い結果にだけ、書き出す直前に足す。
+export function reportLabelsListener(
+  load: (projectDirectory: string) => ItemTable | undefined = loadItemTable,
+  loadLayers: (projectDirectory: string) => readonly LayerRule[] | undefined = loadLayerTable,
+): LifecycleListener {
   const places = new Map<string, Place>()
   const tables = new Map<string, ItemTable | undefined>()
+  const layerTables = new Map<string, readonly LayerRule[] | undefined>()
   const place = (directory: string): Place => {
     const known = places.get(directory)
     if (known !== undefined) return known
@@ -94,19 +127,34 @@ export function reportLabelsListener(load: (projectDirectory: string) => ItemTab
     if (!tables.has(project)) tables.set(project, load(project))
     return tables.get(project)
   }
+  const layer = (project: string | undefined, file: string): string | undefined => {
+    if (project === undefined) return undefined
+    if (!layerTables.has(project)) layerTables.set(project, loadLayers(project))
+    const rules = layerTables.get(project)
+    return rules === undefined ? undefined : layerOf(rules, path.relative(project, file).split(path.sep).join('/'))
+  }
+  const hierarchyLabels = (names: ReadonlySet<string>, ids: readonly string[], file: string, { root, project }: Place): Label[] => {
+    if (names.has(LabelName.FEATURE) || names.has(LabelName.STORY)) return []
+    const testFile = path.relative(root, file).split(path.sep).join('/')
+    const { feature, story } = featureStory(ids, testFile, ids.length === 0 ? undefined : table(project))
+    return [{ name: LabelName.FEATURE, value: feature }, { name: LabelName.STORY, value: story }]
+  }
+  const layerLabels = (names: ReadonlySet<string>, file: string, { project }: Place): Label[] => {
+    if (names.has(LabelName.LAYER)) return []
+    const value = layer(project, file)
+    return value === undefined ? [] : [{ name: LabelName.LAYER, value }]
+  }
   return {
     // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 渡された結果を書き換える
     beforeTestResultWrite: (result: TestResult) => {
-      if (result.labels.some(label => label.name === 'feature' || label.name === 'story')) return
       const suite = result.labels.find(label => label.name === 'parentSuite')?.value
       if (suite === undefined) return
       // allure-vitest は parentSuite を、getProjectRoot() からのテストのファイルのパスで作る。
       const file = path.resolve(getProjectRoot(), suite)
+      const found = place(path.dirname(file))
+      const names = new Set(result.labels.map(label => label.name))
       const ids = result.links.filter(link => link.type === LinkType.TMS).map(link => link.name ?? link.url)
-      const { root, project } = place(path.dirname(file))
-      const testFile = path.relative(root, file).split(path.sep).join('/')
-      const { feature, story } = featureStory(ids, testFile, ids.length === 0 ? undefined : table(project))
-      result.labels.push({ name: LabelName.FEATURE, value: feature }, { name: LabelName.STORY, value: story })
+      result.labels.push(...hierarchyLabels(names, ids, file, found), ...layerLabels(names, file, found))
     },
   }
 }

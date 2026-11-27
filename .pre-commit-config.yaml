@@ -160,6 +160,14 @@ repos:
         exclude: /fixtures/
         stages: [pre-commit]
 
+      - id: check-test-layers
+        name: test layers decided by test-layers.txt
+        entry: .githooks/pre-commit/check-test-layers.py
+        language: unsupported
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
       - id: plugin-validate
         name: claude plugin validate --strict
         entry: .githooks/lib/with-timing.sh plugin-validate .githooks/pre-commit/plugin-validate.sh

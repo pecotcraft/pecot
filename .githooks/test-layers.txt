@@ -1,0 +1,17 @@
+# 層の表。決まりは .claude/rules/test-conventions.md の「テストの層」
+integration tests/
+unit tests/test_board_sync_workflow_copy.py
+unit tests/test_cli_output_lines_match.py
+unit tests/test_dependabot_commit_workflow.py
+unit tests/test_devcontainer_playwright_version.py
+unit tests/test_githooks_lanes.py
+unit tests/test_handoff_workflow_copy.py
+unit tests/test_marketplace_parity.py
+unit tests/test_pages_provenance.py
+unit tests/test_pages_workflows.py
+unit tests/test_review_workflow_copy.py
+unit tests/test_root_package_manifest.py
+unit tests/test_ruleset_main.py
+unit tests/test_tsc_mjs_consistency.py
+unit tests/test_workflow_checkouts.py
+integration scripts/tests/

@@ -42,6 +42,38 @@ def _hierarchy_labels(
     }
 
 
+def _layer(
+    item: pytest.Item,
+    projects: dict[Path, Path | None],
+    tables: dict[Path, list[tuple[str, str]]],
+) -> str:
+    # 層は project の root の test-layers.txt で決める（test-conventions.md の「テストの層」）。
+    if any(m.kwargs.get("label_type") == "layer" for m in item.iter_markers("allure_label")):
+        return ""
+    directory = item.path.parent
+    if directory not in projects:
+        projects[directory] = next(
+            (p for p in [directory, *directory.parents] if (p / "project.json").is_file()), None
+        )
+    project = projects[directory]
+    if project is None:
+        return ""
+    if project not in tables:
+        table = project / "test-layers.txt"
+        lines = table.read_text(encoding="utf-8").splitlines() if table.is_file() else []
+        fields = [
+            line.split() for line in lines if line.strip() and not line.strip().startswith("#")
+        ]
+        tables[project] = [(field[0], field[1]) for field in fields if len(field) == 2]
+    relative = item.path.relative_to(project).as_posix()
+    hits = [
+        (len(path), layer)
+        for layer, path in tables[project]
+        if relative == path or (path.endswith("/") and relative.startswith(path))
+    ]
+    return max(hits)[1] if hits else ""
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     labels = {label: config.getini(name) for name, label in _REPORT_LABELS.items()}
     if not any(labels.values()):
@@ -51,7 +83,10 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     # allure.label は型を持たない。allure-pytest では pytest の印を返す。
     mark = cast("Callable[[str, str], pytest.MarkDecorator]", allure.label)  # pyright: ignore[reportUnknownMemberType]
     found: dict[Path, Path] = {}
+    projects: dict[Path, Path | None] = {}
+    tables: dict[Path, list[tuple[str, str]]] = {}
     for item in items:
-        for label, value in {**labels, **_hierarchy_labels(config, item, found)}.items():
+        layer = {"layer": _layer(item, projects, tables)}
+        for label, value in {**labels, **_hierarchy_labels(config, item, found), **layer}.items():
             if value:
                 item.add_marker(mark(label, value))

@@ -115,3 +115,5 @@ actions/src/entry.ts
 actions/templates/pecot-board-sync.yml
 actions/templates/pecot-handoff.yml
 actions/templates/pecot-review.yml
+plugins/pecot-workflow/test-layers.txt
+libs/workflow-core/test-layers.txt

@@ -9,8 +9,8 @@ import { getProjectRoot } from 'allure-js-commons/sdk/reporter'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { attachJson, attachOutput } from '../src/vitest/attach.js'
-import { featureStory, findUp, loadItemTable, reportLabelsListener } from '../src/vitest/report-labels.js'
-import type { ItemTable } from '../src/vitest/report-labels.js'
+import { featureStory, findUp, layerOf, loadItemTable, loadLayerTable, reportLabelsListener } from '../src/vitest/report-labels.js'
+import type { ItemTable, LayerRule } from '../src/vitest/report-labels.js'
 import { stepSync } from '../src/vitest/step.js'
 import { explains } from '../src/vitest/explains.js'
 
@@ -222,6 +222,94 @@ describe('reportLabelsListener', () => {
     })
     stepSync('読んだ project を比べる', () => {
       expect(loaded).toEqual(['plugins/pecot-tools'])
+    })
+  })
+
+  it('layer を持たない結果に、project の層の表で引いた層を足し、表は project ごとに 1 回だけ読む', async () => {
+    await explains('層の表から `layer` を付ける `reportLabelsListener` のテストです。結果のファイルに当たる規則の層が付き、表の読み込みが project ごとに 1 回であることを確認します。')
+    const loaded: string[] = []
+    const listener = stepSync('層の表を差し替えた listener を作る', () => reportLabelsListener(loadItemTable, (project) => {
+      loaded.push(path.relative(REPO_ROOT, project))
+      return [{ layer: 'unit', path: 'cli/' }, { layer: 'integration', path: 'cli/tests/integration/' }]
+    }))
+    const results = stepSync('2 つの結果を渡す', () => [testResult(PARENT_SUITE, []), testResult(PARENT_SUITE, [])])
+    stepSync('listener を呼ぶ', () => {
+      for (const result of results) listener.beforeTestResultWrite?.(result)
+    })
+    stepSync('layer と、読んだ project を比べる', () => {
+      expect(results.map(result => result.labels.filter(label => label.name === 'layer'))).toEqual([
+        [{ name: LabelName.LAYER, value: 'integration' }],
+        [{ name: LabelName.LAYER, value: 'integration' }],
+      ])
+      expect(loaded).toEqual(['plugins/pecot-tools'])
+    })
+  })
+
+  it.for([
+    { name: 'layer を持つ結果', labels: [{ name: LabelName.LAYER, value: 'e2e' }], table: [{ layer: 'unit', path: 'cli/' }], expected: [{ name: LabelName.LAYER, value: 'e2e' }] },
+    { name: '層の表の無い project の結果', labels: [], table: undefined, expected: [] },
+    { name: '表のどの規則にも当たらない結果', labels: [], table: [{ layer: 'unit', path: 'scripts/' }], expected: [] },
+  ])('$name には、layer を足さない', async ({ name, labels, table, expected }) => {
+    await explains(`層の表から \`layer\` を付ける \`reportLabelsListener\` のテストです。${name}の場合に、\`layer\` を追加しないことを確認します。`)
+    const result = stepSync('結果を作る', () => testResult(PARENT_SUITE, [], labels))
+    stepSync('listener を呼ぶ', () => {
+      reportLabelsListener(loadItemTable, () => table).beforeTestResultWrite?.(result)
+    })
+    stepSync('layer を比べる', () => {
+      expect(result.labels.filter(label => label.name === 'layer')).toEqual(expected)
+    })
+  })
+})
+
+describe('layerOf', () => {
+  const table: LayerRule[] = [
+    { layer: 'unit', path: 'cli/' },
+    { layer: 'integration', path: 'cli/tests/' },
+    { layer: 'e2e', path: 'cli/tests/parity.test.ts' },
+  ]
+
+  it.for([
+    { name: 'ディレクトリの規則だけに当たるファイル', file: 'cli/src/a.test.ts', expected: 'unit' },
+    { name: '長いディレクトリの規則にも当たるファイル', file: 'cli/tests/b.test.ts', expected: 'integration' },
+    { name: 'ファイルの規則に当たるファイル', file: 'cli/tests/parity.test.ts', expected: 'e2e' },
+    { name: 'ファイルの規則と名前の先頭だけが同じファイル', file: 'cli/tests/parity.test.ts.bak', expected: 'integration' },
+  ])('$name には、当たる規則のうちパスの長いものの層を返す', async ({ name, file, expected }) => {
+    await explains(`層の表から層を引く \`layerOf\` のテストです。${name}の場合に、層 \`${expected}\` を返すことを確認します。`)
+    stepSync('層を引いて比べる', () => {
+      expect(layerOf(table, file)).toBe(expected)
+    })
+  })
+
+  it('どの規則にも当たらないファイルには、undefined を返す', async () => {
+    await explains('層の表から層を引く `layerOf` のテストです。ディレクトリの名前の先頭だけが同じファイルのように、どの規則にも当たらない場合に `undefined` を返すことを確認します。')
+    stepSync('層を引いて比べる', () => {
+      expect(layerOf(table, 'cli-extra/a.test.ts')).toBeUndefined()
+    })
+  })
+})
+
+describe('loadLayerTable', () => {
+  it('コメントと空行と、2 つに分かれない行を読み飛ばし、規則を書いた順に返す', async () => {
+    await explains('project の root の `test-layers.txt` を読む `loadLayerTable` のテストです。`#` の行・空行・欄の数の違う行を除き、残りの行を層とパスの規則として返すことを確認します。')
+    const directory = stepSync('層の表を一時のディレクトリに書く', () => {
+      const created = mkdtempSync(path.join(tmpdir(), 'interface-spec-layer-table-'))
+      writeFileSync(path.join(created, 'test-layers.txt'), '# 層の表\n\nunit src/\n  integration   tests/a.test.ts  \nunit\ne2e tests/b.test.ts extra\n')
+      return created
+    })
+    try {
+      stepSync('表を読んで比べる', () => {
+        expect(loadLayerTable(directory)).toEqual([{ layer: 'unit', path: 'src/' }, { layer: 'integration', path: 'tests/a.test.ts' }])
+      })
+    }
+    finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
+  it('test-layers.txt の無い project では、表を返さない', async () => {
+    await explains('project の root の `test-layers.txt` を読む `loadLayerTable` のテストです。ファイルが存在しない場合に `undefined` を返すことを確認します。')
+    stepSync('表を読んで比べる', () => {
+      expect(loadLayerTable(FIXTURES)).toBeUndefined()
     })
   })
 })

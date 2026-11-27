@@ -1,0 +1,19 @@
+# 層の表。決まりは .claude/rules/test-conventions.md の「テストの層」
+unit src/
+unit tests/
+integration src/commands-shared/tests/
+unit src/commands-shared/tests/command-definition.test.ts
+unit src/commands-shared/tests/command-hint.test.ts
+unit src/commands-shared/tests/failure.test.ts
+unit src/commands-shared/tests/names.test.ts
+unit src/commands-shared/tests/output-settle.test.ts
+unit src/commands-shared/tests/tracker-shared.test.ts
+integration src/infra/github/tests/
+unit src/infra/github/tests/errors.test.ts
+unit src/infra/github/tests/payload.test.ts
+unit src/infra/github/tests/queries.test.ts
+integration src/infra/tests/
+unit src/infra/tests/child-stdin.test.ts
+unit src/infra/tests/os-error.test.ts
+integration tests/_helpers/
+integration tests/output/

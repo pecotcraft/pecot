@@ -98,6 +98,7 @@
     "test-cli": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/report-labels.ts",
@@ -150,6 +151,7 @@
     "test-slidev": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/report-labels.ts",
@@ -182,6 +184,7 @@
     "test-hooks": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{projectRoot}/hooks/**/*",
         "sharedGlobals",
@@ -202,6 +205,7 @@
     "test-compare": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{projectRoot}/scripts/pptx-compare/**/*",
         "{projectRoot}/scripts/page-compare/**/*",
@@ -222,6 +226,8 @@
     "test-release": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{workspaceRoot}/.githooks/test-layers.txt",
+        "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{projectRoot}/scripts/release/**/*",
         "{projectRoot}/scripts/ci/pnpm-lib.sh",
@@ -256,6 +262,7 @@
     "test-skills": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{projectRoot}/skills/v-drawio/**/*",
         "{projectRoot}/skills/v-evidence/**/*",

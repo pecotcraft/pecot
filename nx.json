@@ -7,6 +7,7 @@
       "!{projectRoot}/**/*.md",
       "!{projectRoot}/**/tests/**/*",
       "!{projectRoot}/**/*.test.*",
+      "!{projectRoot}/test-layers.txt",
       "!{projectRoot}/dist/**/*",
       "!{projectRoot}/build/**/*"
     ],
@@ -70,6 +71,7 @@
       "sharedGlobals",
       "{projectRoot}/project.json",
       "{projectRoot}/tests/conftest.py",
+      "{projectRoot}/test-layers.txt",
       "{projectRoot}/tests/attach.py",
       "{projectRoot}/tests/run.sh",
       "{projectRoot}/scripts/test_report/step-gate.mjs",
@@ -318,6 +320,7 @@
         "CONTRIBUTING.md",
         "tests/",
         "conftest.py",
+        "test-layers.txt",
         "vitest.config.ts",
         "vitest.e2e.config.ts",
         ".gitignore",

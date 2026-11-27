@@ -3,7 +3,6 @@ paths:
   - "**/*.test.ts"
   - ".nx/nx-release/tests/*.test.mjs"
   - "**/*.test.sh"
-  - "plugins/*/cli/tests/bootstrap/*.sh"
   - "**/test_*.py"
 ---
 
@@ -219,6 +218,65 @@ ID を 2 つ以上持つテストは、feature・story を 1 組だけ持ちま�
 | pytest | `.githooks/tests/conftest.py`・`libs/interface-spec/docs/tests/conftest.py` |
 | bash | `.githooks/scripts/test_report/bash-test.sh` |
 
+## テストの層
+
+テストの結果は、Allure の `layer` のラベル（`unit`・`integration`・`e2e`）を持ちます。テストレポートの「テストのピラミッド」と「層ごとの時間」のグラフが、このラベルで集まります。
+層は、テストのファイルごとに、各 project の root の `test-layers.txt` で決めます。テストに `layer()` を書きません。
+
+層は、テストが動かす範囲で分けます。根拠は、『Software Engineering at Google』11 章の test scope と、Fowler の「The Practical Test Pyramid」です。
+
+| 層 | テストが動かすもの | 例 |
+|---|---|---|
+| unit | 対象の関数・モジュールを、同じプロセスの中で呼ぶ。相手は偽物か、決まった入力にする。リポの文書や設定の形を読む静的な確認も含む | ドメインの関数、SKILL.md の参照の確認、ESLint の `RuleTester` |
+| integration | 対象を、実際の外部のものとつないで動かす。git のリポ、一時のファイルの木、偽の GitHub のサーバ、スクリプトや hook の子プロセスなど | MCP ツールを偽の GitHub と一時の git で呼ぶ、hook の `*.test.sh`、偽の `gh` で動かすリリースのスクリプト |
+| e2e | build した配布物（CLI・MCP サーバ・pack したパッケージ）を、利用者が使う起点から動かす | build した CLI を子プロセスで動かす、`vitest.e2e.config.ts` のテスト |
+
+- 1 つのファイルの中に範囲の違うケースがあるときは、いちばん広いものの層にする
+- ディレクトリの名前（`tests/e2e` など）は、層の根拠にしない
+
+### 表の書き方
+
+```text
+# 層の表。決まりは .claude/rules/test-conventions.md の「テストの層」
+unit cli/src/
+integration cli/src/infra/tests/
+unit cli/src/infra/tests/gitignore-spec.test.ts
+```
+
+| 決め | 内容 |
+|---|---|
+| 1 行 | `<層> <project の root からのパス>`。`#` で始まる行と空行は読まない |
+| パス | `/` で終わるとディレクトリで、その下のファイルすべてに当たる。`/` で終わらないと、そのファイルだけに当たる |
+| 当たる規則が複数 | パスの長い規則を採る。ディレクトリの既定を書き、違うファイルだけを足す |
+| 層の綴り | 小文字の `unit`・`integration`・`e2e`。層ごとの時間のグラフは値をそのまま集めるので、`Unit` は別の層になる |
+
+テストのファイルを足すときは、当たる規則があるかを見ます。無ければ、表に行を足します。
+表は nx の `production` と version plan の確かめから外しています。直しても、ほかの project のキャッシュは外れず、version plan も要りません。
+
+### 付ける所
+
+| 枠組み | 付ける所 |
+|---|---|
+| vitest | `libs/interface-spec/src/vitest/report-labels.ts` の `reportLabelsListener` |
+| pytest | `.githooks/tests/conftest.py`・`libs/interface-spec/docs/tests/conftest.py` の `_layer` |
+| bash | `.githooks/scripts/test_report/bash-test.sh` の `_bt_layer` |
+
+テストが自分で `layer` を付けたときは、表の層を足しません。vitest は結果のラベル、pytest は `@allure.label("layer", …)` の印で見分けます。
+
+### 抜けを止める
+
+pre-commit の hook `check-test-layers`（`.githooks/pre-commit/check-test-layers.py`）が、次のものを止めます。
+
+| 起きること | 出る文言 |
+|---|---|
+| 層の決まらないテストのファイルがある | `<ファイル>: 層が決まっていない` |
+| 層の綴りが違う | `<表>:<行>: 層 '…' は unit・integration・e2e のどれでもない` |
+| 1 行が 2 つの欄に分かれない | `<表>:<行>: 「<層> <パス>」の 2 つに分かれていない` |
+| どのテストのファイルにも採られない規則がある | `<表>:<行>: '…' に当たるテストのファイルが無い` |
+
+見るテストのファイルは、`*.test.ts`・`*.test.mjs`・`*.test.sh`・`test_*.py` です。
+`project.json` を持つ project に属さないファイルは見ません。`fixtures` の下の `project.json` は、project と見なしません。
+
 ## step
 
 テストの本体を、名前の付いた Allure の step に分けます。テストレポートで、落ちたテストがどの操作で落ちたか、通ったテストがどの手順を通ったかを読むためです。
@@ -268,7 +326,7 @@ CodeQL は、`-c` を持つ引数の配列の全要素を、シェルが解釈�
 
 ## bash のテスト
 
-`*.test.sh` と `cli/tests/bootstrap/` のテストは、確かめを `bt_*` の関数で書きます。関数は `.githooks/scripts/test_report/bash-test.sh` にあります。確かめ 1 つが、テストレポートの 1 件になります。
+`*.test.sh` のテストは、確かめを `bt_*` の関数で書きます。関数は `.githooks/scripts/test_report/bash-test.sh` にあります。確かめ 1 つが、テストレポートの 1 件になります。
 
 | 決め | 例 |
 |---|---|
