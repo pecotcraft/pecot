@@ -29,9 +29,9 @@ setup() {
 # $1=PECOTV_PM_GUARD_BEHAVIOR の値（空なら未設定で起動）。結果を $status・$output に置く。
 run_guard() {
     if [ -z "$1" ]; then
-        run env -u PECOTV_PM_GUARD_BEHAVIOR PATH="$BATS_FILE_TMPDIR/bin" bash "$GUARD"
+        run_attached env -u PECOTV_PM_GUARD_BEHAVIOR PATH="$BATS_FILE_TMPDIR/bin" bash "$GUARD"
     else
-        run env PECOTV_PM_GUARD_BEHAVIOR="$1" PATH="$BATS_FILE_TMPDIR/bin" bash "$GUARD"
+        run_attached env PECOTV_PM_GUARD_BEHAVIOR="$1" PATH="$BATS_FILE_TMPDIR/bin" bash "$GUARD"
     fi
 }
 

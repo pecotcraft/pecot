@@ -125,11 +125,12 @@ assert_interrupted() {
     shift
     write_hang_tests
     mkdir -p "$T/driver-tmp"
-    TMPDIR="$T/driver-tmp" "$@" > "$T/driver.out" 2>&1 3>&- &
+    TMPDIR="$T/driver-tmp" "$@" > "$T/driver.txt" 2>&1 3>&- &
     local driver=$!
     echo "$driver" > "$T/driver.pid"
     if ! wait_hang_pids; then
-        cat "$T/driver.out" >&2
+        attach_file "$T/driver.txt"
+        cat "$T/driver.txt" >&2
         fail "子が起動しない（hang*.pid が揃わない）"
     fi
     local pid1 pid2 gpid drc=0
@@ -138,6 +139,7 @@ assert_interrupted() {
     gpid="$(cat "$T/hang1-grandchild.pid")"
     kill -"$sig" "$driver"
     wait "$driver" || drc=$?
+    attach_file "$T/driver.txt"
     rm -f "$T/driver.pid"
     assert_equal "$drc" 130
     pid_gone "$pid1" || fail "並走中の子が残っている (pid $pid1)"
@@ -165,7 +167,7 @@ assert_interrupted() {
         "==> bash $T/a.test.sh" "a: start" "a: middle" "a: end" "PASS: a が通る" "" "$summary" \
         "==> bash $T/b.test.sh" "b: start" "b: middle" "b: end" "PASS: b が通る" "" "$summary" \
         "==> bash $T/c.test.sh" "c: start" "c: middle" "c: end" "PASS: c が通る" "" "$summary")"
-    run ls "$sync"
+    run_attached ls "$sync"
     assert_output "$(printf '%s\n' a b c)"
 }
 
@@ -207,7 +209,7 @@ run_tests_parallel "$BATS_FILE_TMPDIR/ok.test.sh" > /dev/null 2>&1
 echo "int=[\$(trap -p INT)] term=[\$(trap -p TERM)]"
 SCRIPT
     command -v perl > /dev/null 2>&1 || skip "perl が無い"
-    run "${DEFAULT_INT[@]}" bash "$T/driver-normal.sh"
+    run_attached "${DEFAULT_INT[@]}" bash "$T/driver-normal.sh"
     assert_success
     assert_output "$(printf 'int=[] term=[]\ncaller-exit')"
 }

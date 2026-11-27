@@ -139,7 +139,7 @@ static_case() {
     shift
     cp -R "$BATS_FILE_TMPDIR/pristine" "$fix"
     (cd "$fix" && "$@") || fail "fixture を書き換えられない: $*"
-    run bash "$STATIC_RUNNER" "$GUARD" "$fix"
+    run_attached bash "$STATIC_RUNNER" "$GUARD" "$fix"
     if [ -z "$needle" ]; then
         assert_success
         assert_output --partial "OK: 全 package.json の宣言と .npmrc"
