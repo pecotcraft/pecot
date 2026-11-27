@@ -36,12 +36,12 @@ setup_file() {
 # before / after を比べる。結果は $status・$stderr、Markdown は $BATS_TEST_TMPDIR/<label>.md に残る。
 run_compare() {
     local label="$1" before="$2" after="$3"
-    run --separate-stderr node "$COMPARE" "$before" "$after" --out "$BATS_TEST_TMPDIR/$label.md"
+    run_attached --separate-stderr node "$COMPARE" "$before" "$after" --out "$BATS_TEST_TMPDIR/$label.md"
 }
 
 # $1=ラベル $2=含むはずの行
 assert_md_has() {
-    run cat "$BATS_TEST_TMPDIR/$1.md"
+    run read_output "$BATS_TEST_TMPDIR/$1.md"
     assert_output --partial "$2"
 }
 
@@ -157,14 +157,14 @@ done
 
 @test "引数が 1 個しかないとき、usage を stderr に出して終了コード 2 で終わる" {
     explains "pptx を 1 個だけ渡して起動するテストです。usage が stderr に表示され、終了コード 2 で終わることを確認します。"
-    run --separate-stderr node "$COMPARE" "$FIX/base.pptx"
+    run_attached --separate-stderr node "$COMPARE" "$FIX/base.pptx"
     assert_failure 2
     assert_stderr_has "usage: node compare-pptx.mjs"
 }
 
 @test "cli/dist が存在しないとき、build の手順を stderr に出して終了コード 2 で終わる" {
     explains "\`PECOTV_CLI_DIST\` に存在しないパスを指定して起動するテストです。build の手順が stderr に表示され、終了コード 2 で終わることを確認します。"
-    run --separate-stderr env PECOTV_CLI_DIST="$BATS_TEST_TMPDIR/no-such-dist" node "$COMPARE" "$FIX/base.pptx" "$FIX/base.pptx"
+    run_attached --separate-stderr env PECOTV_CLI_DIST="$BATS_TEST_TMPDIR/no-such-dist" node "$COMPARE" "$FIX/base.pptx" "$FIX/base.pptx"
     assert_failure 2
     assert_stderr_has "pnpm --filter @pecot/pecotv-cli run build"
 }
@@ -172,7 +172,7 @@ done
 @test "zip として読めない pptx を渡すと、終了コード 2 で終わる" {
     explains "中身が zip でないファイルを before に渡すテストです。pptx を読み取れず、終了コード 2 で終わることを確認します。"
     echo "not a zip" > "$BATS_TEST_TMPDIR/broken.pptx"
-    run node "$COMPARE" "$BATS_TEST_TMPDIR/broken.pptx" "$FIX/base.pptx"
+    run_attached node "$COMPARE" "$BATS_TEST_TMPDIR/broken.pptx" "$FIX/base.pptx"
     assert_failure 2
 }
 

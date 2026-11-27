@@ -49,6 +49,7 @@ bats に移したレーン（#844 から）は、`run-tests.sh` が `.githooks/s
 `run.sh` は、ファイルを 1 本ずつ `bats --jobs` で動かし、ファイルの中の `@test` を GNU parallel で並べる。`PECOT_REPORT_RESULTS` があれば、report formatter に Allure の結果を書かせる。
 
 - `PECOT_REPORT_RESULTS` は `run.sh` を起こすときだけ渡す。`run.sh` は、bats とテストには渡さない
+- `PECOT_BATS_REPORT`・`PECOT_BATS_ATTACHMENTS` は、`run.sh` が bats を起こすときだけ置く。`run.sh` は、添付のファイルを結果のディレクトリに移す
 - `@test` 1 つに結果のファイルを 1 つ書く。説明は、`@test` の本体の先頭で呼ぶ `explains` が付ける
 - 説明の無い passed の `@test` があれば、ファイルと題を並べて 0 以外で終わる
 - 落ちたファイルがあっても、最後のファイルまで動かす。落ちたファイルの一覧を出して 0 以外で終わる
@@ -122,6 +123,26 @@ attach_json(name: str, value) -> None
 - `run_attached` は `subprocess.run` と同じ引数で動かし、出力を添付してから結果を返す。`check=True` で終了コードが 0 でないときも、timeout のときも、添付してから例外を投げる
 - `attach_json` は、大きな出力の一部だけで判定するテストが、判定に使った値だけを JSON で添付する
 - 添付の型は、出力が TEXT、`read_output` の `.json` と `attach_json` が JSON。走っているテストの外（`PYTEST_CURRENT_TEST` が無い）と、allure-pytest を読めないときは何もしない
+
+bats は `.githooks/scripts/test_report/bats/pecot-bats/load.bash` の 3 つの関数で添付する。`setup` で `bats_load_library pecot-bats` と読む。
+
+```bash
+run_attached [run の印…] <コマンド…>
+read_output <ファイル>
+attach_file <ファイル>
+```
+
+- `run_attached` は、bats の `run` で動かし、`$output`・`$stderr` を添付してから、`run` の終了コードを返す。`$output`・`$status`・`$stderr` は `run` と同じに残る
+  - 名前は `<コマンド 200 字>（終了コード N） stdout`・`stderr`。空でないものを添付し、両方空なら空の stdout を 1 つ添付する
+  - 既定の `run` は stderr を `$output` に入れるので、両方を含む出力が stdout の名前で添付される。分けるには `--separate-stderr` を渡す
+- `read_output` は、中身を stdout に出し、ファイル名を名前にして添付する。`.txt`・`.json`・`.md`・`.svg` でない拡張子は `text/plain` にする。読めなければ 1 を返す。`run read_output <ファイル>` を `assert_output` で確かめるか、`"$(read_output <ファイル>)"` で使う
+- `attach_file` は、中身を出さずに添付する。node などに読ませるファイルに使う。型は上の表（vitest の `attachFile` と同じ 8 つの拡張子）で決め、表に無い拡張子は 1 を返す。ファイルが無いと何もしない
+- 名前と型は、vitest の `attachOutput`・`readOutput`・`attachFile` と同じ。同じ `@test` の中で同じパスは 1 回だけ添付する
+- nx のレーンの外（`PECOT_BATS_ATTACHMENTS` が無いとき）と、`setup_file`・`teardown_file` の中では、何もしない。formatter は、`setup_file`・`teardown_file` の出力を `@test` の結果に入れない
+- 受け渡しの形
+  - `run.sh` が、bats に `PECOT_BATS_ATTACHMENTS`（ファイルごとの一時のディレクトリ）を渡す
+  - 関数がそこへ `<uuid>-attachment<拡張子>` を書き、fd 3 に `# pecot-attachment: <ファイル名> <型> <名前>` を書く
+  - formatter が、`@test` の結果の `attachments`（`{name, source, type}`）に入れる
 
 ## `test-report.yml`（テストを動かし、レポートを作る）
 
