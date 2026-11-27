@@ -119,6 +119,7 @@ def _hook_files_pattern(script_dir: Path, hook_id: str) -> re.Pattern[str]:
         "plugins/pecot-visual/cli/src/infra/drawio/pdf.ts",
         "plugins/pecot-visual/cli/tests/e2e/mcp-tools.test.ts",
         "plugins/pecot-visual/scripts/pptx-compare/lib/cli-dist.mjs",
+        "plugins/pecot-visual/scripts/pptx-compare/tests/compare-pptx.bats",
         "plugins/pecot-workflow/cli/src/cli.ts",
         "plugins/pecot-workflow/cli/tests/hooks/_helpers/run.ts",
         "nx.json",
@@ -219,6 +220,7 @@ _LONG_SENTENCE = "あ" * 101 + "。"
         "nx.json",
         "plugins/pecot-workflow/hooks/hooks.json",
         "libs/text-rules/package-lock.json",
+        "plugins/pecot-visual/scripts/page-compare/tests/compare-pages.bats",
     ],
 )
 def test_check_text_runs_for_text_sources(script_dir: Path, changed_path: str) -> None:

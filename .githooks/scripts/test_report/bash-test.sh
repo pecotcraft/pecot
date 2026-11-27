@@ -8,6 +8,8 @@ fi
 _BT_LOADED=1
 
 _BT_ROOT="$(cd -P "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
+# shellcheck source=allure-result.sh
+. "$_BT_ROOT/.githooks/scripts/test_report/allure-result.sh"
 
 # bt_run_file が子に渡す値。孫のプロセスに渡らないよう、読んだら環境から外す。
 _BT_RESULTS="${BT_RESULTS:-}"
@@ -20,47 +22,11 @@ declare -A _BT_SEEN=()
 # bt_severity で決めた段階。空のあいだは _bt_severity_default が project・lane から決める。
 _BT_SEVERITY=""
 
-_bt_now_ms() {
-    local t="${EPOCHREALTIME:-}"
-    t="${t//[!0-9]/}"
-    if [ -n "$t" ]; then
-        printf '%s' "$((10#$t / 1000))"
-    else
-        printf '%s000' "$(date +%s)"
-    fi
-}
+_bt_now_ms() { allure_result_now_ms; }
 
-_bt_relpath() {
-    local dir
-    dir="$(cd -P "$(dirname "$1")" 2> /dev/null && pwd -P)" || dir="$(dirname "$1")"
-    local abs="$dir/$(basename "$1")"
-    printf '%s' "${abs#"$_BT_ROOT"/}"
-}
+_bt_relpath() { allure_result_relpath "$1" "$_BT_ROOT"; }
 
-# _bt_layer <相対パス>: project の root の test-layers.txt で当たる規則のうち、パスの長いものの層を印字する。
-_bt_layer() {
-    local rel="$1" dir project="" layer path best="" best_len=-1
-    dir="$(dirname "$rel")"
-    while [ "$dir" != . ] && [ "$dir" != / ]; do
-        if [ -f "$_BT_ROOT/$dir/project.json" ]; then
-            project="$dir"
-            break
-        fi
-        dir="$(dirname "$dir")"
-    done
-    [ -n "$project" ] && [ -f "$_BT_ROOT/$project/test-layers.txt" ] || return 0
-    rel="${rel#"$project"/}"
-    while read -r layer path _; do
-        [ -n "$path" ] && [[ "$layer" != \#* ]] || continue
-        if [ "$rel" = "$path" ] || { [[ "$path" == */ ]] && [[ "$rel" == "$path"* ]]; }; then
-            if [ "${#path}" -gt "$best_len" ]; then
-                best="$layer"
-                best_len="${#path}"
-            fi
-        fi
-    done < "$_BT_ROOT/$project/test-layers.txt"
-    printf '%s' "$best"
-}
+_bt_layer() { allure_result_layer "$1" "$_BT_ROOT"; }
 
 _BT_REL="$(_bt_relpath "$_BT_FILE")"
 _BT_LAYER="$(_bt_layer "$_BT_REL")"
@@ -76,88 +42,23 @@ else
     _BT_OWN_STATE=1
 fi
 
-_bt_json() {
-    local s="$1" i ch code
-    s="${s//\\/\\\\}"
-    s="${s//\"/\\\"}"
-    s="${s//$'\n'/\\n}"
-    s="${s//$'\r'/\\r}"
-    s="${s//$'\t'/\\t}"
-    if [[ "$s" == *[$'\001'-$'\037']* ]]; then
-        for ((i = 1; i < 32; i++)); do
-            printf -v ch "\\$(printf '%03o' "$i")"
-            if [[ "$s" == *"$ch"* ]]; then
-                printf -v code '\\u%04x' "$i"
-                s="${s//"$ch"/$code}"
-            fi
-        done
-    fi
-    printf '"%s"' "$s"
-}
-
-# _bt_severity_default <project> <lane>: 重大度の表（test-conventions.md）を上から読んだ段階。bash に verifies は無く、critical にならない。
-_bt_severity_default() {
-    case "$1" in
-        githooks | interface-spec) printf 'minor' ;;
-        nx-release) printf 'blocker' ;;
-        *)
-            if [ "$2" = test-release ]; then
-                printf 'blocker'
-            else
-                printf 'normal'
-            fi
-            ;;
-    esac
-}
-
 # bt_severity <段階>: ファイルのこの後の確かめすべてに、場所から決まる段階の代わりにこの段階を付ける。
 bt_severity() {
-    case "${1:-}" in
-        blocker | critical | normal | minor | trivial) _BT_SEVERITY="$1" ;;
-        *)
-            printf 'ERROR: bt_severity の段階は blocker・critical・normal・minor・trivial のどれか（渡された値: %s）\n' "${1:-}" >&2
-            exit 1
-            ;;
-    esac
+    if ! allure_result_is_severity "${1:-}"; then
+        printf 'ERROR: bt_severity の段階は blocker・critical・normal・minor・trivial のどれか（渡された値: %s）\n' "${1:-}" >&2
+        exit 1
+    fi
+    _BT_SEVERITY="$1"
 }
 
-# _bt_write <相対パス> <status> <題> <理由> <start> <stop> [<expected> <actual>]
+# _bt_write <結果のディレクトリ> <相対パス> <status> <題> <理由> <start> <stop> [<expected> <actual>]
+# trace は、bt_run_file が local で置く、止まったファイルの stderr の末尾。
 _bt_write() {
-    local results="$1"
-    shift
-    [ -n "$results" ] || return 0
-    local rel="$1" status="$2" title="$3" message="$4" start="$5" stop="$6"
-    local project="${NX_TASK_TARGET_PROJECT:-}" lane="${NX_TASK_TARGET_TARGET:-}"
-    local uuid details labels feature layer="$_BT_LAYER"
+    local results="$1" rel="$2" status="$3" title="$4" message="$5" start="$6" stop="$7" layer="$_BT_LAYER"
+    shift 7
     [ "$rel" = "$_BT_REL" ] || layer="$(_bt_layer "$rel")"
-    read -r uuid < /proc/sys/kernel/random/uuid
-    details=""
-    if [ -n "$message" ]; then
-        details="\"message\":$(_bt_json "$message")"
-    fi
-    if [ "$#" -ge 8 ]; then
-        details="${details:+$details,}\"expected\":$(_bt_json "$7"),\"actual\":$(_bt_json "$8")"
-    fi
-    # bt_run_file が local で置く、止まったファイルの stderr の末尾。
-    if [ -n "${_bt_trace:-}" ]; then
-        details="${details:+$details,}\"trace\":$(_bt_json "$_bt_trace")"
-    fi
-    labels="{\"name\":\"parentSuite\",\"value\":$(_bt_json "$rel")}"
-    labels+=",{\"name\":\"host\",\"value\":$(_bt_json "${HOSTNAME:-}")}"
-    labels+=",{\"name\":\"thread\",\"value\":$(_bt_json "$$")}"
-    labels+=",{\"name\":\"language\",\"value\":\"bash\"},{\"name\":\"framework\",\"value\":\"bash\"}"
-    [ -n "$project" ] && labels+=",{\"name\":\"project\",\"value\":$(_bt_json "$project")}"
-    [ -n "$lane" ] && labels+=",{\"name\":\"lane\",\"value\":$(_bt_json "$lane")}"
-    [ -n "$project" ] && labels+=",{\"name\":\"epic\",\"value\":$(_bt_json "$project")}"
-    feature=.
-    [[ "$rel" == */* ]] && feature="${rel%/*}"
-    labels+=",{\"name\":\"feature\",\"value\":$(_bt_json "$feature")},{\"name\":\"story\",\"value\":$(_bt_json "$rel")}"
-    [ -n "$layer" ] && labels+=",{\"name\":\"layer\",\"value\":$(_bt_json "$layer")}"
-    labels+=",{\"name\":\"severity\",\"value\":\"${_BT_SEVERITY:-$(_bt_severity_default "$project" "$lane")}\"}"
-    mkdir -p "$results"
-    printf '{"uuid":"%s","name":%s,"fullName":%s,"status":"%s","stage":"finished","statusDetails":{%s},"start":%s,"stop":%s,"labels":[%s]}\n' \
-        "$uuid" "$(_bt_json "$title")" "$(_bt_json "$project:$lane $rel#$title")" \
-        "$status" "$details" "$start" "$stop" "$labels" > "$results/$uuid-result.json"
+    allure_result_write "$results" "$rel" bash "$status" "$title" "$message" "$start" "$stop" "" "${_bt_trace:-}" \
+        "$layer" "$_BT_SEVERITY" "$@"
 }
 
 # _bt_record <status> <題> <理由> [<expected> <actual>]

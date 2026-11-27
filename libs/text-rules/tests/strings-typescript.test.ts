@@ -302,7 +302,7 @@ describe('Processor: TypeScript / JavaScript', () => {
     await explains('文字列を取り出す plugin の Processor のテストです。対応する拡張子の一覧を取得した場合に、Python やシェルなどの拡張子に続けて、TypeScript・JavaScript・`.vue` の拡張子が並ぶことを確認します。')
     stepSync('対象の拡張子を比べる', () => {
       expect(new strings.Processor().availableExtensions()).toEqual([
-        '.py', '.pyi', '.sh', '.bash', '.json', '.jsonc', '.yaml', '.yml',
+        '.py', '.pyi', '.sh', '.bash', '.bats', '.json', '.jsonc', '.yaml', '.yml',
         '.ts', '.mts', '.cts', '.tsx', '.js', '.mjs', '.cjs', '.jsx', '.vue',
       ])
     })

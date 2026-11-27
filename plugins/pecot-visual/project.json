@@ -186,6 +186,7 @@
       "inputs": [
         "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
+        "{workspaceRoot}/.githooks/scripts/test_report/allure-result.sh",
         "{projectRoot}/hooks/**/*",
         "sharedGlobals",
         "pecotvPluginTestGlobals",
@@ -207,6 +208,8 @@
       "inputs": [
         "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
+        "{workspaceRoot}/.githooks/scripts/test_report/allure-result.sh",
+        "{workspaceRoot}/.githooks/scripts/test_report/bats/**/*",
         "{projectRoot}/scripts/pptx-compare/**/*",
         "{projectRoot}/scripts/page-compare/**/*",
         "sharedGlobals",
@@ -229,6 +232,7 @@
         "{workspaceRoot}/.githooks/test-layers.txt",
         "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
+        "{workspaceRoot}/.githooks/scripts/test_report/allure-result.sh",
         "{projectRoot}/scripts/release/**/*",
         "{projectRoot}/scripts/ci/pnpm-lib.sh",
         "{workspaceRoot}/LICENSE",
@@ -264,6 +268,7 @@
       "inputs": [
         "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
+        "{workspaceRoot}/.githooks/scripts/test_report/allure-result.sh",
         "{projectRoot}/skills/v-drawio/**/*",
         "{projectRoot}/skills/v-evidence/**/*",
         "{projectRoot}/skills/v-slidev/**/*",

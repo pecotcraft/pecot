@@ -239,6 +239,15 @@ importers:
       allure:
         specifier: 3.33.0
         version: 3.33.0(debug@4.4.3(supports-color@7.2.0))(preact@11.2.0)(supports-color@7.2.0)
+      bats:
+        specifier: 1.13.0
+        version: 1.13.0
+      bats-assert:
+        specifier: 2.2.4
+        version: 2.2.4(bats-support@0.3.0(bats@1.13.0))(bats@1.13.0)
+      bats-support:
+        specifier: 0.3.0
+        version: 0.3.0(bats@1.13.0)
       eslint:
         specifier: ^10.15.0
         version: 10.15.0(jiti@2.7.0)(supports-color@7.2.0)
@@ -3914,6 +3923,21 @@ packages:
   baseline-browser-mapping@2.11.31:
     resolution: {integrity: sha512-b0k7wXlWjpuL/Uxb/pYlpjY0ej5BjAmurtPUk3eRGuloI4yjK32m8TiKUQ81l1ptcLjKS/KH2+uqIolZti1x4Q==}
     engines: {node: '>=6.0.0'}
+    hasBin: true
+
+  bats-assert@2.2.4:
+    resolution: {integrity: sha512-EcaY4Z+Tbz1c7pnC1SrVSq0epr7tLwFpz6qt7KUW9K8uSw8V12DTfH9d2HxZWvBEATaCuMsZ7KoZMFiSQPRoXw==}
+    peerDependencies:
+      bats: 0.4 || ^1
+      bats-support: ^0.3
+
+  bats-support@0.3.0:
+    resolution: {integrity: sha512-z+2WzXbI4OZgLnynydqH8GpI3+DcOtepO66PlK47SfEzTkiuV9hxn9eIQX+uLVFbt2Oqoc7Ky3TJ/N83lqD+cg==}
+    peerDependencies:
+      bats: 0.4 || ^1
+
+  bats@1.13.0:
+    resolution: {integrity: sha512-giSYKGTOcPZyJDbfbTtzAedLcNWdjCLbXYU3/MwPnjyvDXzu6Dgw8d2M+8jHhZXSmsCMSQqCp+YBsJ603UO4vQ==}
     hasBin: true
 
   bcp-47-match@2.0.3:
@@ -11501,6 +11525,17 @@ snapshots:
   base64-js@1.5.1: {}
 
   baseline-browser-mapping@2.11.31: {}
+
+  bats-assert@2.2.4(bats-support@0.3.0(bats@1.13.0))(bats@1.13.0):
+    dependencies:
+      bats: 1.13.0
+      bats-support: 0.3.0(bats@1.13.0)
+
+  bats-support@0.3.0(bats@1.13.0):
+    dependencies:
+      bats: 1.13.0
+
+  bats@1.13.0: {}
 
   bcp-47-match@2.0.3: {}
 

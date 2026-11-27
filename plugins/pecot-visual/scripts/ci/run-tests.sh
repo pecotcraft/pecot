@@ -197,15 +197,15 @@ if [ "$RUN_COMPARE" = true ]; then
     fi
 
     # page-compare (#1341) は cli/dist を使わないが、同じレーンで一緒に動かす。
-    echo "==> pecotv pptx-compare / page-compare 単体テスト (各 tests/ 配下の *.test.sh を、find | sort の順に実行)"
+    echo "==> pecotv pptx-compare / page-compare 単体テスト (各 tests/ 配下の *.bats を、find | sort の順に bats で実行)"
     for compare_tests_dir in pptx-compare page-compare; do
-        if [ -z "$(find "$PECOTV_PLUGIN_ROOT/scripts/$compare_tests_dir/tests" -name '*.test.sh' 2> /dev/null)" ]; then
-            echo "ERROR: scripts/$compare_tests_dir/tests/ 配下に *.test.sh が見つかりません (消失か、find の失敗)。" >&2
+        if [ -z "$(find "$PECOTV_PLUGIN_ROOT/scripts/$compare_tests_dir/tests" -name '*.bats' 2> /dev/null)" ]; then
+            echo "ERROR: scripts/$compare_tests_dir/tests/ 配下に *.bats が見つかりません (消失か、find の失敗)。" >&2
             exit 1
         fi
     done
-    mapfile -t compare_test_files < <(find "$PECOTV_PLUGIN_ROOT/scripts/pptx-compare/tests" "$PECOTV_PLUGIN_ROOT/scripts/page-compare/tests" -name '*.test.sh' | LC_ALL=C sort)
-    bt_run_files "${compare_test_files[@]}"
+    mapfile -t compare_test_files < <(find "$PECOTV_PLUGIN_ROOT/scripts/pptx-compare/tests" "$PECOTV_PLUGIN_ROOT/scripts/page-compare/tests" -name '*.bats' | LC_ALL=C sort)
+    PECOT_REPORT_RESULTS="$PECOT_REPORT_RESULTS" bash "$REPO_ROOT/.githooks/scripts/test_report/bats/run.sh" "${compare_test_files[@]}"
 fi
 
 if [ "$RUN_SKILLS" = true ]; then

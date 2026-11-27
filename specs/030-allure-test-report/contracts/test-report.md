@@ -45,6 +45,14 @@ bash のテストのレーンは、各プラグインの `scripts/ci/run-tests.s
 - 終了コード・カバレッジの閾値の判定は、今のまま
 - `pecot-workflow:test-hooks` の 2 回目（`env -i`）の実行は、Allure の結果を残さない
 
+bats に移したレーン（#844 から）は、`run-tests.sh` が `.githooks/scripts/test_report/bats/run.sh` にファイルを渡す。
+`run.sh` は、ファイルを 1 本ずつ `bats` で動かす。`PECOT_REPORT_RESULTS` があれば、report formatter に Allure の結果を書かせる。
+
+- `PECOT_REPORT_RESULTS` は `run.sh` を起こすときだけ渡す。`run.sh` は、bats とテストには渡さない
+- `@test` 1 つに結果のファイルを 1 つ書く。説明は、`@test` の本体の先頭で呼ぶ `explains` が付ける
+- 説明の無い passed の `@test` があれば、ファイルと題を並べて 0 以外で終わる
+- 落ちたファイルがあっても、最後のファイルまで動かす。落ちたファイルの一覧を出して 0 以外で終わる
+
 ## `verifies`
 
 ```ts

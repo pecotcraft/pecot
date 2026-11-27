@@ -37,6 +37,7 @@ const SCANNERS: ReadonlyMap<string, Scanner> = new Map([
   ['.pyi', pythonStrings],
   ['.sh', shellStrings],
   ['.bash', shellStrings],
+  ['.bats', shellStrings],
   ['.json', jsonStrings],
   ['.jsonc', jsonStrings],
   ['.yaml', yamlStrings],
@@ -372,12 +373,14 @@ export async function stringParagraphs(text: string, extension: string, lineStar
 export { documentOf } from './inline-spans.js'
 
 const EXTENSIONS: readonly string[] = SCANNERS.keys().toArray()
+// comments plugin が知らない拡張子を、同じ文法の拡張子で読ませる。bats のファイルは bash の文法で書く。
+const COMMENT_EXTENSIONS: ReadonlyMap<string, string> = new Map([['.bats', '.bash']])
 
 // 文字列の外にあるコメントの Paragraph。.vue は comments plugin が読めないので、script の中身だけを残した本文を拡張子ごとに読ませる。
 async function commentNodes(text: string, extension: string): Promise<ReturnType<typeof documentOf>['children']> {
   const Processor = loadCommentsPlugin().Processor
   if (extension !== '.vue') {
-    return documentOf(await new Processor().processor(extension).preProcess(text)).children
+    return documentOf(await new Processor().processor(COMMENT_EXTENSIONS.get(extension) ?? extension).preProcess(text)).children
   }
   const documents = await Promise.all(vueScripts(text).map(async ({ grammar, masked }) => documentOf(await new Processor().processor(SCRIPT_EXTENSIONS.get(grammar) ?? '.js').preProcess(masked)).children))
   return documents.flat()

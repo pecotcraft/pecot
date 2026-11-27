@@ -25,7 +25,8 @@ nx の task cache は、宣言した入力が変わらない限りレーンを�
 走査の対象は、レーンが実行するコード全体に絞らず、広げてある。
 run-tests.sh / install.sh が外から読む変数は少ない。
 結果を左右する変数（PLAYWRIGHT_BROWSERS_PATH、PECOTV_SINGLE_PASS 等）は、テストコードと設定の側にある。
-シェルは scripts/ci/*.sh・bin/*・setup.sh に加え、レーンが直接実行する tests 配下の *.sh を走査する。
+シェルは scripts/ci/*.sh・bin/*・setup.sh に加え、レーンが直接実行する tests 配下の *.sh と *.bats を走査する。
+*.bats では、bats が設定する BATS_ で始まる変数を数えない。
 tests 配下の例は plugins/pecot-visual/cli/tests/bootstrap/run.sh になる。
 hooks 配下の *.sh（hooks/**/*.sh と hooks/tests/*.test.sh）は走査しない。
 hook スクリプトは、dispatcher や別のスクリプトが設定して渡す変数を大量に読む。
@@ -222,7 +223,7 @@ def _strip_shell_comments(text: str) -> str:
 
 
 def _is_shell_in_scope(rel: str) -> bool:
-    """レーンが呼ぶシェル。ci スクリプト・bin の wrapper・setup.sh・tests 配下の *.sh。
+    """レーンが呼ぶシェル。ci スクリプト・bin の wrapper・setup.sh・tests 配下の *.sh と *.bats。
 
     hooks 配下は含めない（理由はモジュールの docstring）。
     """
@@ -232,7 +233,7 @@ def _is_shell_in_scope(rel: str) -> bool:
         re.fullmatch(r"plugins/[^/]+/scripts/ci/[^/]+\.sh", rel)
         or re.fullmatch(r"plugins/[^/]+/bin/[^/]+", rel)
         or re.fullmatch(r"plugins/[^/]+/setup\.sh", rel)
-        or re.fullmatch(r"plugins/[^/]+/(?:[^/]+/)*tests/(?:[^/]+/)*[^/]+\.sh", rel)
+        or re.fullmatch(r"plugins/[^/]+/(?:[^/]+/)*tests/(?:[^/]+/)*[^/]+\.(?:sh|bats)", rel)
     )
 
 
@@ -298,7 +299,10 @@ def scan_env_reads(root: Path, rels: list[str]) -> dict[str, set[str]]:
         except UnicodeDecodeError:
             continue
         if _is_shell_in_scope(rel):
-            add(_shell_external_reads(_strip_shell_comments(text)), rel)
+            names = _shell_external_reads(_strip_shell_comments(text))
+            if suffix == ".bats":
+                names = {name for name in names if not name.startswith("BATS_")}
+            add(names, rel)
         elif suffix in _JS_SUFFIXES:
             plain = _flat(_JS_READ.findall(text)) - _flat(_JS_ASSIGN.findall(text))
             add(plain | _flat(_JS_READ_DEFAULT.findall(text)), rel)
@@ -682,6 +686,7 @@ def test_scan_reads_shell_under_tests_but_not_under_hooks(tmp_path: Path) -> Non
             {
                 "plugins/p/cli/tests/bootstrap/run.sh": 'echo "${UNDECLARED_TESTS_SH:-}"\n',
                 "plugins/p/scripts/release/tests/audit.test.sh": 'echo "$UNDECLARED_RELEASE_TEST"\n',
+                "plugins/p/scripts/x/tests/case.bats": 'echo "$UNDECLARED_BATS $BATS_TEST_DIRNAME"\n',
                 "plugins/p/hooks/tests/session-start.test.sh": 'echo "$HOOKS_TEST_ONLY"\n',
                 "plugins/p/hooks/lib/core/dispatcher.sh": 'echo "$HOOKS_LIB_ONLY"\n',
                 "plugins/p/cli/src/helper.sh": 'echo "$NOT_IN_SCOPE_SH"\n',
@@ -692,6 +697,7 @@ def test_scan_reads_shell_under_tests_but_not_under_hooks(tmp_path: Path) -> Non
         assert set(scan_env_reads(tmp_path, rels)) == {
             "UNDECLARED_TESTS_SH",
             "UNDECLARED_RELEASE_TEST",
+            "UNDECLARED_BATS",
         }
 
 
