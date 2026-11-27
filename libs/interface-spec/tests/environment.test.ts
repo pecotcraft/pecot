@@ -272,7 +272,8 @@ describe('listed names', () => {
     })
   })
 
-  it('プラグインのディレクトリの外のソースは、リポからのパスで挙げる', () => {
+  it('プラグインのディレクトリの外のソースは、リポからのパスで挙げる', async () => {
+    await explains('環境変数の読み取りの確認のテストです。プラグインのディレクトリの外にあるソースの場合に、指摘のパスをリポジトリのルートからのパスで返すことを確認します。')
     const findings = stepSync('環境変数の読みを調べる', () => checkEnvironment({
       pluginDir: 'actions',
       authoredPath: 'actions/interface/authored.yaml',

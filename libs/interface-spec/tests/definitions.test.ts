@@ -88,6 +88,7 @@ describe('generated.json checks', () => {
   })
 
   it('action の面だけを持つ項目は、surface の無い項目として止めない', async () => {
+    await explains('`generated.json` の検証のテストです。action の面だけを持つ項目の場合に、`surfaces` の検証エラーを返さないことを確認します。')
     const lines = await step('action の面だけにして検証する', () => withGenerated((data) => {
       generatedEntry(data, 0)['surfaces'] = { action: { path: 'actions/issue-create' } }
     }))
@@ -97,6 +98,7 @@ describe('generated.json checks', () => {
   })
 
   it('root を持つ定義書の指摘は、root の下のパスで出す', async () => {
+    await explains('定義書の検証のテストです。`root` を持つプラグインの場合に、検証エラーのファイルのパスを `root` の下のパスで返すことを確認します。')
     const plugin = await step('定義書を読む', () => validPlugin())
     const lines = stepSync('root を actions にして検証する', () =>
       validateDefinitions([{ ...plugin, root: 'actions', dirExists: false }]).map(finding => finding.file))
@@ -555,6 +557,7 @@ describe('MCP の表示名と使用例', () => {
   })
 
   it('action の面だけを持つ項目の使用例は、with: の inputs を arguments の形で書けば通り、run の形だと止める', async () => {
+    await explains('action の面だけを持つ項目の使用例の検証のテストです。`with:` の inputs を `arguments` の形で書いた例は通り、`run` の形の例は検証エラーになることを確認します。')
     const passing = await step('arguments の形の使用例で検証する', () => withBoth(actionOnly, (data) => {
       entry(data, 'PW-ISSUE-CREATE')['examples'] = [{ arguments: { title: 'x' }, note: 'An example' }]
     }))

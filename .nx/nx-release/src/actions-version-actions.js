@@ -5,7 +5,7 @@
  * actions/ の VersionActions。package.json の version を上げ、雛形が指す `@pecot-actions/v<版>` を新しい版に書き換える。
  * 雛形は正（actions/templates/）と、プラグインが配る写し（plugins/pecot-workflow/cli/templates/workflow/）の 2 か所にある。
  *
- * 回帰テスト: `.nx/nx-release/tests/actions-version-actions.test.js`。
+ * 回帰テスト: `.nx/nx-release/tests/actions-version-actions.test.mjs`。
  */
 
 const { PecotPackageVersionActions } = require("./package-version-actions");

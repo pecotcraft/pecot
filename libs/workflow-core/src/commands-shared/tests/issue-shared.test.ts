@@ -389,13 +389,15 @@ describe('validateIssueTemplate', () => {
 describe('hasReportedTemplateTextViolations', () => {
   const TEMPLATE = '---\ntemplate: note\n---\n\n## Note — <要約>\n\n- 中身 — <中身>\n'
 
-  it('文字列のテンプレートの見出しを持つ本文は、何も出さずに false を返す', () => {
+  it('文字列のテンプレートの見出しを持つ本文は、何も出さずに false を返す', async () => {
+    await explains('本文がテンプレートに沿うかを確認する `hasReportedTemplateTextViolations` のテストです。文字列のテンプレートの見出しをすべて持つ本文の場合に、何も出力せず `false` を返すことを確認します。')
     const { io, output } = started()
     expect(hasReportedTemplateTextViolations(output, '## Note — 要約\n\n- 中身 — 本文\n', 'note', TEMPLATE)).toBe(false)
     expect(io.err).toEqual([])
   })
 
-  it('見出しが無い本文は、テンプレートの名前と不足を出して true を返す', () => {
+  it('見出しが無い本文は、テンプレートの名前と不足を出して true を返す', async () => {
+    await explains('本文がテンプレートに沿うかを確認する `hasReportedTemplateTextViolations` のテストです。見出しの無い本文の場合に、テンプレートの名前と不足している見出しを出力し、`true` を返すことを確認します。')
     const { io, output } = started()
     expect(hasReportedTemplateTextViolations(output, 'ただの本文', 'note', TEMPLATE)).toBe(true)
     expect(io.err[0]).toMatch(/^error: the body does not follow the template note\n {2}missing sections: /u)

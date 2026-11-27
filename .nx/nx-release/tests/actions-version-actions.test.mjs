@@ -1,8 +1,12 @@
-"use strict";
+import assert from "node:assert/strict";
+import { createRequire } from "node:module";
 
-const test = require("node:test");
-const assert = require("node:assert/strict");
+import { test } from "vitest";
 
+import { explains } from "../../../libs/interface-spec/src/vitest/explains.js";
+
+// src は CommonJS なので、Node の require で読む。
+const require = createRequire(import.meta.url);
 const { PecotActionsVersionActions } = require("../src/actions-version-actions");
 
 const MANIFEST = "actions/package.json";
@@ -12,7 +16,7 @@ const COPY = "plugins/pecot-workflow/cli/templates/workflow/pecot-board-sync.yml
 function makeActions() {
   const actions = Object.create(PecotActionsVersionActions.prototype);
   actions.manifestsToUpdate = [{ manifestPath: MANIFEST }];
-  actions.projectGraphNode = { name: "actions" };
+  actions.projectGraphNode = { name: "actions", data: { root: "actions" } };
   return actions;
 }
 
@@ -33,6 +37,7 @@ function makeTree(files) {
 }
 
 test("package.json の版を上げ、正と写しの雛形の版の印を書き換える", async () => {
+  await explains("actions の版を上げる `updateProjectVersion` のテストです。`actions/package.json` の版を上げ、正の雛形とプラグインの写しにある `pecot-actions/v<版>` の印を書き換え、README は書き換えないことを確認します。");
   const uses = (version) => `      - uses: pecotcraft/pecot/actions/board-sync@pecot-actions/v${version}\n`;
   const tree = makeTree({
     [MANIFEST]: '{"name":"@pecot/actions","version":"1.0.0"}\n',
@@ -49,6 +54,7 @@ test("package.json の版を上げ、正と写しの雛形の版の印を書き�
 });
 
 test("前の版で始まる別の版の印は書き換えない", async () => {
+  await explains("actions の版を上げる `updateProjectVersion` のテストです。`v1.0.1` から上げるときに、前の版で始まる別の版（`v1.0.10`）の印を書き換えないことを確認します。");
   const text = "uses: pecotcraft/pecot/actions/auto-gate@pecot-actions/v1.0.10\n";
   const tree = makeTree({
     [MANIFEST]: '{"name":"@pecot/actions","version":"1.0.1"}\n',

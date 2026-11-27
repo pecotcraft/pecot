@@ -59,6 +59,7 @@ describe('getTagCommitSha', () => {
   const TAG_PATH = '/repos/owner/repo/git/ref/tags/pecot-actions/v1.0.0'
 
   it('軽量のタグは、ref の object.sha を返す', async () => {
+    await explains('タグの commit の SHA を読み取る `getTagCommitSha` のテストです。軽量のタグの場合に、ref の `object.sha` をそのまま返し、ref だけを読むことを確認します。')
     const { client, server } = await startClient([
       restResponse('GET', TAG_PATH, { status: 200, body: { object: { sha: 'c0ffee', type: 'commit' } } }),
     ])
@@ -67,6 +68,7 @@ describe('getTagCommitSha', () => {
   })
 
   it('注釈付きのタグは、git/tags で commit まで辿る', async () => {
+    await explains('タグの commit の SHA を読み取る `getTagCommitSha` のテストです。注釈付きのタグの場合に、`git/tags` を読んで commit の SHA まで辿ることを確認します。')
     const { client, server } = await startClient([
       restResponse('GET', TAG_PATH, { status: 200, body: { object: { sha: 't1', type: 'tag' } } }),
       restResponse('GET', '/repos/owner/repo/git/tags/t1', { status: 200, body: { object: { sha: 'c0ffee', type: 'commit' } } }),
@@ -76,6 +78,7 @@ describe('getTagCommitSha', () => {
   })
 
   it('commit でないものを指すタグは GitHubAPIError', async () => {
+    await explains('タグの commit の SHA を読み取る `getTagCommitSha` のテストです。タグが commit 以外を指す場合に、`GitHubAPIError` の例外が発生することを確認します。')
     const { client } = await startClient([
       restResponse('GET', TAG_PATH, { status: 200, body: { object: { sha: 'tree1', type: 'tree' } } }),
     ])
@@ -83,6 +86,7 @@ describe('getTagCommitSha', () => {
   })
 
   it('タグが無ければ GitHubNotFoundError', async () => {
+    await explains('タグの commit の SHA を読み取る `getTagCommitSha` のテストです。タグが存在しない場合に、`GitHubNotFoundError` の例外が発生することを確認します。')
     const { client } = await startClient([
       restResponse('GET', TAG_PATH, { status: 404, body: { message: 'Not Found' } }),
     ])

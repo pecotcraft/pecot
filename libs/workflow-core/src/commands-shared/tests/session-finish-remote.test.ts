@@ -1,6 +1,7 @@
 /* eslint-disable unicorn/no-null -- 偽サーバの応答に JSON の null を使う */
 // マージの後の GitHub 側の片付け。GitHub は偽サーバにする。
 import { describe, expect, it, vi } from 'vitest'
+import { explains } from '../../../tests/_helpers/explains.js'
 
 import { capture } from '../../../tests/_helpers/captured-io.js'
 import type { CapturedIo } from '../../../tests/_helpers/captured-io.js'
@@ -103,6 +104,7 @@ function captured(): { readonly io: CapturedIo, readonly out: Output } {
 
 describe('requireMergedPullRequest', () => {
   it('マージ済みの PR を読むと、PR と場所を返す', async () => {
+    await explains('マージ済みの PR を読み取る `requireMergedPullRequest` のテストです。マージ済みの PR の場合に、PR の内容とリポジトリの場所、PR の番号を返すことを確認します。')
     await startServer([graphql('GetPullRequestForFinish', pullRequestData())])
     setEnvironment({ PECOT_GITHUB_COM_TOKEN: 'test_token' })
     const merged = await requireMergedPullRequest(captured().out, config(), LOCATION)
@@ -114,6 +116,7 @@ describe('requireMergedPullRequest', () => {
     { name: 'PR が無い', rule: graphql('GetPullRequestForFinish', { repository: { pullRequest: null } }), expected: /^error: PR not found: acme\/demo\/21\n$/u, kind: 'github-not-found' },
     { name: 'PR を読めない', rule: { match: { operation: 'GetPullRequestForFinish' }, respond: BOOM, times: 1 }, expected: /^error: GraphQL query error: /u, kind: 'github-api' },
   ])('PR が次のとき（$name）、error の行を出して止める', async (row) => {
+    await explains(`マージ済みの PR を読み取る \`requireMergedPullRequest\` のテストです。PR が使えない場合（\`${row.name}\`）に、\`error\` の行を出力して止めることを確認します。`)
     await startServer([row.rule])
     setEnvironment({ PECOT_GITHUB_COM_TOKEN: 'test_token' })
     const { io, out } = captured()
@@ -130,7 +133,8 @@ describe('collectClosingIssueNumbers', () => {
     { name: '既定ブランチでない base', sample: { base_ref: 'develop' }, expected: [10, 11, 12] },
     { name: '既定ブランチが無い', sample: { default_branch: undefined }, expected: [10, 11, 12] },
     { name: 'head の末尾が番号でない', sample: { head_ref: 'feat/demo/x' }, expected: [10] },
-  ])('PR が次のとき（$name）、閉じる Issue の番号を集める', (row) => {
+  ])('PR が次のとき（$name）、閉じる Issue の番号を集める', async (row) => {
+    await explains(`閉じる Issue の番号を集める \`collectClosingIssueNumbers\` のテストです。PR の宛先とブランチ名の場合（\`${row.name}\`）に、閉じる対象の Issue の番号を返すことを確認します。`)
     const sample: Partial<PullRequestForFinish> = { body: 'Closes #11\n', closing_issues: [{ owner: 'acme', repository: 'demo', number: 10 }, { owner: 'acme', repository: 'other', number: 13 }], ...row.sample }
     expect([...collectClosingIssueNumbers(pullRequest(sample), HOME)].toSorted((a, b) => a - b)).toEqual(row.expected)
   })
@@ -138,6 +142,7 @@ describe('collectClosingIssueNumbers', () => {
 
 describe('finishOnGithub', () => {
   it('Issue を種別で分け、開いた Issue を閉じ、Epic・閉じた Issue・読めない Issue を飛ばした理由を記録する', async () => {
+    await explains('マージ後の GitHub 側の片付けを行う `finishOnGithub` のテストです。Issue を種別で分けて開いた Issue を閉じ、Epic や閉じた Issue を飛ばした理由を記録することを確認します。')
     const closing = [10, 11, 12, 13].map(number => ({ owner: 'acme', repository: 'demo', number }))
     const finished = await finish([
       kindRule(10, { issueType: 'Epic' }),
@@ -165,6 +170,7 @@ describe('finishOnGithub', () => {
     { name: '別の要求に先を越された', rule: closeRule(12, 422, { message: 'Validation Failed: closed by another request' }), line: 'unchanged: Issue #12 (already closed)\n', reason: 'already-closed' },
     { name: '500', rule: closeRule(12, 500, { message: 'Server Error' }), line: 'warning: closing Issue #12 failed: ', reason: 'failed' },
   ])('close が次の失敗のとき（$name）、その理由で記録して続ける', async (row) => {
+    await explains(`マージ後の GitHub 側の片付けを行う \`finishOnGithub\` のテストです。Issue を閉じる要求が失敗した場合（\`${row.name}\`）に、その理由を記録して続けることを確認します。`)
     const waiting = row.reason === 'already-closed' ? [blockingRule([])] : []
     const finished = await finish([kindRule(12), row.rule, ...waiting])
     expect(finished.record.skippedIssues).toEqual([{ number: 12, reason: row.reason }])
@@ -172,16 +178,19 @@ describe('finishOnGithub', () => {
   })
 
   it('種別の読み取りが 404 の Issue は、閉じる対象に入れ、close の 404 で not-found として記録する', async () => {
+    await explains('マージ後の GitHub 側の片付けを行う `finishOnGithub` のテストです。種別の読み取りで存在しない Issue を閉じる対象に入れ、close の 404 で `not-found` と記録することを確認します。')
     const finished = await finish([graphql('GetIssueKind', { repository: { issue: null } }, { number: 12 }), closeRule(12, 404, { message: 'Not Found' })])
     expect(finished.record.skippedIssues).toEqual([{ number: 12, reason: 'not-found' }])
   })
 
   it('閉じる Issue が無ければ、待つ Issue を読まない', async () => {
+    await explains('マージ後の GitHub 側の片付けを行う `finishOnGithub` のテストです。閉じる Issue が無い場合に、待つ Issue を読まないことを確認します。')
     const finished = await finish([kindRule(12, { subIssues: 2 })])
     expect(graphqlRequests(finished.server).map(request => request.operation)).toEqual(['GetIssueKind'])
   })
 
   it('閉じた Issue を待つ Issue の列を動かし、判定の変化を data に出し、スタックした Issue を記録して案内する', async () => {
+    await explains('マージ後の GitHub 側の片付けを行う `finishOnGithub` のテストです。閉じた Issue を待つ Issue の列を動かし、判定の変化とスタックした Issue を記録することを確認します。')
     const finished = await finish([
       kindRule(12),
       closeRule(12),
@@ -203,6 +212,7 @@ describe('finishOnGithub', () => {
   })
 
   it('読み直しても、閉じた Issue が済んだ前提として判定に出なければ、pecot-board-sync のワークフローを案内して列を動かさない', async () => {
+    await explains('マージ後の GitHub 側の片付けを行う `finishOnGithub` のテストです。読み直しても閉じた Issue が判定へ反映されない場合は、列を動かさず、board sync のワークフローを案内することを確認します。')
     const open12: IssueSpec = { ...DONE_12, state: 'OPEN' }
     const finished = await finish([kindRule(12), closeRule(12), blockingRule([13]), boardItemRule(13), prerequisitesRule({ number: 13, blockedBy: [open12] }), prerequisitesRule({ number: 13, blockedBy: [open12] })])
     expect(delay).toHaveBeenCalledWith(1500)
@@ -210,6 +220,7 @@ describe('finishOnGithub', () => {
   })
 
   it('dry-run では、閉じずに閉じる予定として記録し、閉じた後を置き換えた判定で予定の行と判定の変化を出す', async () => {
+    await explains('マージ後の GitHub 側の片付けを行う `finishOnGithub` のテストです。`dry-run` の場合に、Issue を閉じずに予定として記録し、閉じた後の判定の変化を出力することを確認します。')
     const open12: IssueSpec = { ...DONE_12, state: 'OPEN' }
     const finished = await finish([kindRule(12), blockingRule([13]), boardItemRule(13), prerequisitesRule({ number: 13, blockedBy: [open12] })], {}, true)
     expect({ record: finished.record, stdout: finished.io.out.join(''), stderr: finished.io.err.join(''), writes: restRequests(finished.server) }).toEqual({
