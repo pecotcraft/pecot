@@ -473,7 +473,12 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             # bats のテストを動かす仕組み。bats に移したレーンだけが読む (#844)。
             (
                 ".githooks/scripts/test_report/bats/run.sh",
-                {"githooks:test-ci", "pecot-visual:test-compare", "pecot-visual:test-hooks", "pecot-visual:test-skills"},
+                {
+                    "githooks:test-ci",
+                    "pecot-visual:test-compare",
+                    "pecot-visual:test-hooks",
+                    "pecot-visual:test-skills",
+                },
             ),
         ]
     ),
