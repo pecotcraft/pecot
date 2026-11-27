@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import os
 import re
-import shutil
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -114,20 +114,39 @@ def test_dispatch_outside_main_fails_before_anything_else() -> None:
 
 
 @allure.title(
-    "test-report の権限は、contents の読み取りと、side と report の job の actions の読み取りに限る"
+    "test-report の権限は、contents の読み取りと、side と report の actions の読み取りと、履歴の job の id-token に限る"
 )
-def test_permissions_are_contents_read_and_actions_read_for_side_and_report() -> None:
-    """`test-report.yml` の権限のテストです。workflow の既定が `contents: read` だけで、`side` と `report` の job だけが `actions: read` を加えて持つことを確認します。"""
+def test_permissions_are_limited_per_job() -> None:
+    """`test-report.yml` の権限のテストです。workflow の既定は `contents: read` だけで、`side` と `report` は `actions: read` を加えます。`id-token: write` を持つのは、`history-get` と `history-put` だけであることを確認します。"""
     with allure.step("workflow と job の権限を読む"):
         workflow = _load(_REPORT)
-    with allure.step(
-        "既定が contents の read で、side と report だけが actions の read を持つことを確かめる"
-    ):
+    with allure.step("job ごとの権限が決めた形であることを確かめる"):
         assert workflow["permissions"] == {"contents": "read"}
         jobs = workflow["jobs"]
         for name in ("side", "report"):
             assert jobs[name]["permissions"] == {"contents": "read", "actions": "read"}, name
         assert "permissions" not in jobs["tests"]
+        assert jobs["history-get"]["permissions"] == {"contents": "read", "id-token": "write"}
+        assert jobs["history-put"]["permissions"] == {"id-token": "write"}
+
+
+@allure.title(
+    "environment の test-report-history は、デプロイを記録せず、履歴の 2 つの job だけが使う"
+)
+def test_only_history_jobs_use_the_history_environment() -> None:
+    """`test-report.yml` の environment のテストです。`test-report-history` を使うのが `history-get` と `history-put` だけで、どちらも `deployment: false` であることを確認します。"""
+    with allure.step("job ごとの environment を読む"):
+        jobs = _load(_REPORT)["jobs"]
+    with allure.step("履歴の 2 つの job だけが environment を持つことを確かめる"):
+        environments = {name: job.get("environment") for name, job in jobs.items()}
+        expected = {"name": "test-report-history", "deployment": False}
+        assert environments == {
+            "side": None,
+            "tests": None,
+            "history-get": expected,
+            "report": None,
+            "history-put": expected,
+        }
 
 
 @allure.title("同じ側の run は、取り消さず、順番に待つ")
@@ -156,15 +175,19 @@ def test_env_matches_ci_and_holds_side_urls_once() -> None:
 # ---------------------------------------------------------------- side
 
 
-@allure.title("job は side・tests・report の順に、前の job を待って実行する")
-def test_jobs_are_side_tests_report() -> None:
-    """`test-report.yml` の job の構成のテストです。3 つの job が決まった順に存在し、`tests` は `side` を、`report` は `side` と `tests` を待つことを確認します。"""
+@allure.title(
+    "job は side・tests・history-get・report・history-put の順に、前の job を待って実行する"
+)
+def test_jobs_are_side_tests_history_get_report_history_put() -> None:
+    """`test-report.yml` の job の構成のテストです。5 つの job が決まった順に存在し、`report` が `history-get` を待ち、`history-put` が `history-get` と `report` を待つことを確認します。"""
     with allure.step("test-report.yml の job を読む"):
         jobs = _load(_REPORT)["jobs"]
-    with allure.step("side・tests・report の順で needs がつながることを確かめる"):
-        assert list(jobs) == ["side", "tests", "report"]
+    with allure.step("job の順と needs のつながりを確かめる"):
+        assert list(jobs) == ["side", "tests", "history-get", "report", "history-put"]
         assert jobs["tests"]["needs"] == "side"
-        assert jobs["report"]["needs"] == ["side", "tests"]
+        assert jobs["history-get"]["needs"] == "side"
+        assert jobs["report"]["needs"] == ["side", "tests", "history-get"]
+        assert jobs["history-put"]["needs"] == ["side", "history-get", "report"]
 
 
 @allure.title(
@@ -482,10 +505,12 @@ def test_report_installs_node_on_the_runner_like_version_plan() -> None:
             "Download results",
             "Write report sources",
             "Fetch latest results",
-            "Read stored history",
+            "Download history",
+            "Prepare history",
             "Generate report",
             "Pack report",
             "Upload report",
+            "Upload history",
             "Pack lane results",
             "Upload lane results",
             "Upload lane index",
@@ -496,7 +521,7 @@ def test_report_installs_node_on_the_runner_like_version_plan() -> None:
 def test_report_downloads_all_results_into_the_repo_root() -> None:
     """`actions/download-artifact` の設定のテストです。パターンが `allure-results-*` で、`merge-multiple` が有効で、保存先が `github.workspace` であることを確認します。"""
     with allure.step("結果の download の step を読む"):
-        (download,) = _uses("report", "actions/download-artifact")
+        download = _step("report", "Download results")
     with allure.step("すべての結果をリポのルートへ集めることを確かめる"):
         assert download["with"] == {
             "pattern": "allure-results-*",
@@ -621,127 +646,83 @@ def test_report_uploads_report_for_seven_days() -> None:
         }
 
 
-def _store_repo(tmp_path: Path, files: dict[str, str] | None) -> Path:
-    """files を持つコミットを origin/pages-store に置いたリポ。None なら pages-store を置かない。"""
-    repo, _ = _stage_repo(tmp_path)
-    if files is None:
-        return repo
-    git = ["git", "-C", str(repo)]
-    branch = run_attached(
-        [*git, "symbolic-ref", "--short", "HEAD"], capture_output=True, text=True, check=True
-    ).stdout.strip()
-    subprocess.run([*git, "checkout", "-q", "--orphan", "store"], check=True)
-    subprocess.run([*git, "rm", "-rqf", "."], check=True)
-    for name, text in files.items():
-        (repo / name).parent.mkdir(parents=True, exist_ok=True)
-        (repo / name).write_text(text, encoding="utf-8")
-    subprocess.run([*git, "add", "-A"], check=True)
-    subprocess.run(
-        [*git, "-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false"]
-        + ["commit", "-q", "--allow-empty", "-m", "store"],
-        check=True,
-    )
-    subprocess.run([*git, "update-ref", "refs/remotes/origin/pages-store", "HEAD"], check=True)
-    subprocess.run([*git, "checkout", "-q", "-f", branch], check=True)
-    return repo
+@allure.title("リリース版で履歴が見つかったときだけ、history-get が上げた artifact を受け取る")
+def test_report_downloads_history_only_for_release() -> None:
+    """`report` の job の `Download history` の step のテストです。リリース版で `history-get` の `state` が `found` のときだけ動くことを確認します。`test-report-history-in` は、`RUNNER_TEMP` の下の `test-report` に受け取ります。artifact が無くても job を止めません。"""
+    with allure.step("履歴を受け取る step を読む"):
+        step = _step("report", "Download history")
+    with allure.step("リリース版の found だけで動き、無くても止まらない設定であることを確かめる"):
+        assert step["if"] == (
+            "${{ needs.side.outputs.side == 'release'"
+            " && needs.history-get.outputs.state == 'found' }}"
+        )
+        assert step["continue-on-error"] is True
+        assert step["uses"].startswith("actions/download-artifact@")
+        assert step["with"] == {
+            "name": "test-report-history-in",
+            "path": "${{ runner.temp }}/test-report",
+        }
 
 
-_STORED = {"test-report/history.jsonl": '{"r":1}\n', "dev/test-report/history.jsonl": '{"d":1}\n'}
-
-
-def _history_env(step: dict[str, Any], temp: Path, summary: Path) -> dict[str, str]:
-    (temp / "test-report").mkdir(parents=True, exist_ok=True)
-    return {**step["env"], "RUNNER_TEMP": str(temp), "GITHUB_STEP_SUMMARY": str(summary)}
-
-
-@allure.title("履歴は、リリース版のときだけ読み込む")
-def test_read_history_only_for_release() -> None:
-    """`Read stored history` の step の条件のテストです。リリース版のときだけ動き、開発版の履歴のパス `dev/test-report/` を読まないことを確認します。"""
-    with allure.step("履歴を読む step を読む"):
-        step = _step("report", "Read stored history")
-    with allure.step("リリース版だけで動き、開発版の履歴を読まないことを確かめる"):
-        assert step["if"] == "${{ needs.side.outputs.side == 'release' }}"
-        assert 'stored="origin/pages-store:test-report/history.jsonl"' in step["run"]
-        assert "dev/test-report" not in step["run"]
-
-
-@allure.title("保管ブランチの状態が {param_id} のとき、リリース版の保管された履歴を読み込む")
-@pytest.mark.parametrize(
-    ("files", "kept", "warned"),
-    [
-        (_STORED, '{"r":1}\n', False),
-        ({"index.html": "x"}, "", False),
-        (None, "", True),
-    ],
-    ids=["stored", "first-time", "no-store"],
+@allure.title(
+    "{param_id} のとき、リリース版の履歴を用意し、無ければ空にして、受け取れなかったときだけ警告する"
 )
-def test_read_history_from_pages_store(
-    tmp_path: Path, files: dict[str, str] | None, kept: str, warned: bool
+@pytest.mark.parametrize(
+    ("state", "downloaded", "kept", "received", "warned"),
+    [
+        ("found", '{"r":1}\n', '{"r":1}\n', "received", False),
+        ("found", None, "", "empty", True),
+        ("absent", None, "", "empty", False),
+        ("unreadable", None, "", "empty", False),
+        ("", None, "", "empty", True),
+    ],
+    ids=["受け取った", "found で受け取れない", "absent", "unreadable", "history-get が落ちた"],
+)
+def test_prepare_history_keeps_the_download_or_starts_empty(
+    tmp_path: Path, state: str, downloaded: str | None, kept: str, received: str, warned: bool
 ) -> None:
-    """`Read stored history` の step を、保管ブランチの状態を変えて実行した場合のテストです。リリース版の履歴が読み込まれ、履歴や保管ブランチが存在しないときは空になることを確認します。警告は保管ブランチが無いときだけ表示します。"""
-    with allure.step("保管した pages-store のリポを用意し、履歴を読む step の run を動かす"):
-        repo = _store_repo(tmp_path, files)
-        summary, temp = tmp_path / "summary", tmp_path / "runner-temp"
-        step = _step("report", "Read stored history")
-
-        result = _bash(step["run"], repo, _history_env(step, temp, summary))
-
-    with allure.step("リリース版の履歴を読み、保管が無いときだけ警告することを確かめる"):
+    """`Prepare history` の step を、`history-get` の `state` と受け取った `history.jsonl` の有無を変えて実行した場合のテストです。受け取った履歴はそのまま残り、無いときは空の履歴になり、出力 `history` に受け取れたかが出ることを確認します。サマリーの警告は、`found` なのに受け取れなかったときと、`history-get` が落ちて `state` が無いときだけ書かれます（FR-021）。"""
+    with allure.step("受け取った履歴を置き、履歴を用意する step の run を動かす"):
+        step = _step("report", "Prepare history")
+        temp, summary = tmp_path / "runner-temp", tmp_path / "summary"
+        output = tmp_path / "output"
+        (temp / "test-report").mkdir(parents=True)
+        if downloaded is not None:
+            (temp / "test-report/history.jsonl").write_text(downloaded, encoding="utf-8")
+        env = {
+            **step["env"],
+            "STATE": state,
+            "RUNNER_TEMP": str(temp),
+            "GITHUB_STEP_SUMMARY": str(summary),
+            "GITHUB_OUTPUT": str(output),
+        }
+        result = _bash(step["run"], tmp_path, env)
+    with allure.step("履歴の中身と出力と、無いときだけの警告を確かめる"):
+        assert step["if"] == "${{ needs.side.outputs.side == 'release' }}"
+        assert step["id"] == "prepare"
+        assert _job("report")["outputs"] == {"history": "${{ steps.prepare.outputs.history }}"}
         assert result.returncode == 0, result.stderr
         assert read_output(temp / "test-report/history.jsonl") == kept
+        assert read_output(output) == f"history={received}\n"
         text = read_output(summary) if summary.exists() else ""
-        assert (step["env"]["MSG_NO_STORE"] in text) == warned
+        assert (step["env"]["MSG_NO_HISTORY"] in text) == warned
 
 
-@allure.title("履歴の確認では、blob を取得せずに保管ブランチの参照だけを調べる")
-def test_read_history_looks_up_the_path_without_reading_the_blob() -> None:
-    """`Read stored history` の step のテストです。checkout が `blob:none` のため、`cat-file` を使わず、`git rev-parse --verify` で参照を確認することを確認します。"""
-    with allure.step("履歴を読む step の run を読む"):
-        # checkout は blob:none なので、cat-file -e は blob を取りに行き、取れないと「無い」と読む。
-        run = _step("report", "Read stored history")["run"]
-    with allure.step("blob を読まずにパスだけを引くことを確かめる"):
-        assert "cat-file" not in run
-        assert 'elif git rev-parse --verify --quiet "$stored" > /dev/null; then' in run
-
-
-@allure.title("blob を取得できないとき、履歴を空にして続け、サマリーで警告する")
-def test_read_history_warns_and_starts_empty_when_the_blob_cannot_be_fetched(
-    tmp_path: Path,
-) -> None:
-    """保管ブランチの blob を取得できない clone で `Read stored history` を実行した場合のテストです。終了コードが 0 で、履歴が空になり、サマリーに履歴を取得できなかった旨の警告が書かれることを確認します。"""
-    with allure.step("blob を取れない clone を用意し、履歴を読む step の run を動かす"):
-        # FR-021: 履歴を取れないときも、空の履歴でレポートを作り、job summary で知らせる。
-        src = _store_repo(tmp_path, _STORED)
-        bare, clone = tmp_path / "bare.git", tmp_path / "clone"
-        subprocess.run(["git", "init", "-q", "--bare", str(bare)], check=True)
-        subprocess.run(
-            ["git", "-C", str(bare), "config", "uploadpack.allowFilter", "true"], check=True
-        )
-        store = "refs/remotes/origin/pages-store:refs/heads/pages-store"
-        subprocess.run(["git", "-C", str(src), "push", "-q", str(bare), store], check=True)
-        subprocess.run(
-            [
-                "git",
-                "clone",
-                "-q",
-                "--no-checkout",
-                "--filter=blob:none",
-                f"file://{bare}",
-                str(clone),
-            ],
-            check=True,
-        )
-        shutil.rmtree(bare)
-        temp = tmp_path / "runner-temp"
-        step = _step("report", "Read stored history")
-
-        result = _bash(step["run"], clone, _history_env(step, temp, tmp_path / "summary"))
-
-    with allure.step("警告を出し、空の履歴で始めることを確かめる"):
-        assert result.returncode == 0, result.stderr
-        assert "promisor remote" in result.stderr
-        assert read_output(temp / "test-report/history.jsonl") == ""
-        assert step["env"]["MSG_NO_STORE"] in read_output(tmp_path / "summary")
+@allure.title("リリース版では、レポートを作った後の履歴を、1 日だけ別の artifact に上げる")
+def test_report_uploads_history_only_for_release() -> None:
+    """`Upload history` の step のテストです。リリース版のときだけ動き、`history.jsonl` を `test-report-history-out` として 1 日保存し、ファイルが無ければ失敗することを確認します。"""
+    with allure.step("履歴を上げる step を読む"):
+        step = _step("report", "Upload history")
+    with allure.step("リリース版だけで、レポートとは別の artifact に上げることを確かめる"):
+        assert step["if"] == "${{ needs.side.outputs.side == 'release' }}"
+        assert step["uses"].startswith("actions/upload-artifact@")
+        assert step["with"] == {
+            "name": "test-report-history-out",
+            "path": "${{ runner.temp }}/test-report/history.jsonl",
+            "retention-days": 1,
+            "overwrite": True,
+            "if-no-files-found": "error",
+        }
 
 
 # generate.py の代わり: --output に index.html を書き、--history があれば 1 行足し、--sources を写す。
@@ -763,11 +744,10 @@ _FAKE_GENERATE = (
 def test_report_steps_hand_sources_history_and_tree_to_each_other(
     tmp_path: Path, side: str, history: str | None
 ) -> None:
-    """`Write report sources` から `Pack report` までを、側の条件に従って続けて実行した場合のテストです。材料が `report-sources.json` に保存されることを確認します。`report.tar` には `index.html` が入り、追記された `history.jsonl` はリリース版だけに入ります。"""
-    with allure.step("保管のリポと偽の python3 を用意する"):
-        repo = _store_repo(tmp_path, _STORED)
+    """`Write report sources` から `Pack report` までを、側の条件に従って続けて実行した場合のテストです。材料が `report-sources.json` に保存され、`report.tar` には `index.html` だけが入ることを確認します。追記した履歴は、リリース版だけが `Upload history` の上げる場所に残ります。"""
+    with allure.step("受け取った履歴と偽の python3 を用意する"):
         temp, bin_dir, seen = tmp_path / "runner-temp", tmp_path / "bin", tmp_path / "seen-sources"
-        temp.mkdir()
+        (temp / "test-report").mkdir(parents=True)
         _fake(bin_dir, "python3", _FAKE_GENERATE)
         sources = json.dumps({"side": side, "runs": [], "missing": []})
         env = {
@@ -776,45 +756,38 @@ def test_report_steps_hand_sources_history_and_tree_to_each_other(
             "SOURCES": sources,
             "SEEN": str(seen),
             "GITHUB_STEP_SUMMARY": str(tmp_path / "summary"),
+            "GITHUB_OUTPUT": str(tmp_path / "output"),
         }
         names = ["Write report sources", "Generate report", "Pack report"]
         if side == "release":
-            names.insert(1, "Read stored history")
+            (temp / "test-report/history.jsonl").write_text('{"r":1}\n', encoding="utf-8")
+            names.insert(1, "Prepare history")
 
     with allure.step("step を順に動かし、元・履歴・木が渡ることを確かめる"):
         for name in names:
             step = _step("report", name)
-            result = _bash(step["run"], repo, {**step.get("env", {}), **env}, bin_dir)
+            result = _bash(step["run"], tmp_path, {**step.get("env", {}), **env}, bin_dir)
             assert result.returncode == 0, f"{name}: {result.stderr}"
 
         out = temp / "test-report-artifact"
         assert read_output(out / "report-sources.json") == sources
         assert read_output(seen) == sources
-        extract = tmp_path / "extract"
-        extract.mkdir()
-        subprocess.run(["tar", "-xf", str(out / "report.tar"), "-C", str(extract)], check=True)
-        assert (extract / "index.html").is_file()
+        names = run_attached(
+            ["tar", "-tf", str(out / "report.tar")], capture_output=True, text=True, check=True
+        ).stdout.split()
+        assert sorted(names) == ["./", "./index.html"]
+        uploaded = _step("report", "Upload history")["with"]["path"]
+        assert uploaded == "${{ runner.temp }}/test-report/history.jsonl"
         if history is None:
-            assert not (extract / "history.jsonl").exists()
+            assert not (temp / "test-report/history.jsonl").exists()
         else:
-            assert read_output(extract / "history.jsonl") == history
+            assert read_output(temp / "test-report/history.jsonl") == history
 
 
-@allure.title(
-    "側が {side} のとき、レポートを梱包し、履歴はリリース版だけサイトのファイルと同じ場所に含める"
-)
-@pytest.mark.parametrize(
-    ("side", "listed"),
-    [
-        ("release", ["./", "./history.jsonl", "./index.html"]),
-        ("dev", ["./", "./index.html"]),
-    ],
-    ids=["release", "dev"],
-)
-def test_pack_report_puts_history_into_the_tree_only_for_release(
-    tmp_path: Path, side: str, listed: list[str]
-) -> None:
-    """`Pack report` の step のテストです。出力先に `report.tar` と `report-sources.json` が作られることを確認します。`report.tar` に `history.jsonl` が入るのは、リリース版のときだけです。"""
+@allure.title("側が {side} のとき、レポートを梱包し、履歴は tar に含めない")
+@pytest.mark.parametrize("side", ["release", "dev"])
+def test_pack_report_leaves_history_out_of_the_tree(tmp_path: Path, side: str) -> None:
+    """作業のディレクトリに `history.jsonl` がある状態で、`Pack report` の step を実行した場合のテストです。出力先に `report.tar` と `report-sources.json` が作られ、`report.tar` に `history.jsonl` が入らないことを確認します（FR-019）。"""
     with allure.step("report の木と履歴を置き、report を固める step の run を動かす"):
         temp = tmp_path / "runner-temp"
         work = temp / "test-report"
@@ -826,36 +799,315 @@ def test_pack_report_puts_history_into_the_tree_only_for_release(
         env = {"RUNNER_TEMP": str(temp), "SIDE": side}
         result = _bash(_step("report", "Pack report")["run"], tmp_path, env)
 
-    with allure.step("側に応じた中身の tar ができることを確かめる"):
+    with allure.step("履歴の入らない tar ができることを確かめる"):
         assert result.returncode == 0, result.stderr
         out = temp / "test-report-artifact"
         assert sorted(p.name for p in out.iterdir()) == ["report-sources.json", "report.tar"]
         names = run_attached(
             ["tar", "-tf", str(out / "report.tar")], capture_output=True, text=True, check=True
         ).stdout.split()
-        assert sorted(names) == listed
+        assert sorted(names) == ["./", "./index.html"]
+
+
+# ---------------------------------------------------------------- history-get
+
+
+@allure.title("history-get の job は、リリース版のレポートを作るときだけ動く")
+def test_history_get_runs_only_for_release_reports() -> None:
+    """`history-get` の job のテストです。`side` の `report` が `true` で、側がリリース版のときだけ実行され、`state` と `etag` を出力することを確認します。"""
+    with allure.step("history-get の job を読む"):
+        job = _job("history-get")
+    with allure.step("条件と出力を確かめる"):
+        assert job["if"] == (
+            "${{ needs.side.outputs.report == 'true' && needs.side.outputs.side == 'release' }}"
+        )
+        assert job["outputs"] == {
+            "state": "${{ steps.get.outputs.state }}",
+            "etag": "${{ steps.get.outputs.etag }}",
+        }
+
+
+@allure.title(
+    "history-get の job は、行の確かめのスクリプトだけを取得し、資格情報が取れなくても続ける"
+)
+def test_history_get_steps() -> None:
+    """`history-get` の job の step のテストです。checkout が `.githooks/scripts/test_report` だけを取得することを確認します。AWS の資格情報の step は失敗しても続き、その結果を `Get history` に渡します。履歴の artifact は、`found` のときだけ上げます。"""
+    with allure.step("history-get の step を読む"):
+        names = [s["name"] for s in _steps("history-get")]
+        checkout = _step("history-get", "Checkout")
+        aws = _step("history-get", "Configure AWS credentials")
+        get = _step("history-get", "Get history")
+        upload = _step("history-get", "Upload history")
+    with allure.step("step の並びと設定を確かめる"):
+        assert names == ["Checkout", "Configure AWS credentials", "Get history", "Upload history"]
+        assert checkout["with"] == {
+            "ref": "${{ github.sha }}",
+            "sparse-checkout": ".githooks/scripts/test_report",
+            "persist-credentials": False,
+        }
+        assert aws["uses"].startswith("aws-actions/configure-aws-credentials@")
+        assert aws["id"] == "aws"
+        assert aws["continue-on-error"] is True
+        assert aws["with"] == {
+            "role-to-assume": "${{ vars.TEST_REPORT_HISTORY_ROLE_ARN }}",
+            "aws-region": "ap-southeast-2",
+        }
+        assert get["id"] == "get"
+        assert get["env"]["CREDENTIALS"] == "${{ steps.aws.outcome }}"
+        assert get["env"]["BUCKET"] == "${{ vars.TEST_REPORT_HISTORY_BUCKET }}"
+        assert upload["if"] == "${{ steps.get.outputs.state == 'found' }}"
+        assert upload["with"] == {
+            "name": "test-report-history-in",
+            "path": "${{ runner.temp }}/test-report-history/history.jsonl",
+            "retention-days": 1,
+            "overwrite": True,
+            "if-no-files-found": "error",
+        }
+
+
+_NO_SUCH_KEY = "An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist."
+_ACCESS_DENIED = (
+    "An error occurred (AccessDenied) when calling the GetObject operation: Access Denied"
+)
+
+
+def _fake_aws(bin_dir: Path, calls: Path, *, body: Path | None = None, error: str = "") -> None:
+    """aws の代わり。引数を calls に残し、error があれば stderr に出して 254 で終わる。
+
+    error が無ければ、最後の引数のファイルに body を写し、ETag を出す。
+    """
+    if error:
+        action = f"echo {shlex.quote(error)} >&2\nexit 254"
+    elif body is not None:
+        action = f'for out; do :; done\ncp {shlex.quote(str(body))} "$out"\necho \'"etag-1"\''
+    else:
+        action = ":"
+    _fake(bin_dir, "aws", f'echo "$*" >> {shlex.quote(str(calls))}\n{action}')
+
+
+def _get_history(
+    tmp_path: Path, cwd: Path, *, credentials: str = "success", body: str | None, error: str = ""
+) -> tuple[subprocess.CompletedProcess[str], Path, Path, Path, Path]:
+    """偽の aws で `Get history` を動かし、結果と GITHUB_OUTPUT・要約・履歴・aws の呼び出しを返す。"""
+    bin_dir, calls, stored = tmp_path / "bin", tmp_path / "aws-calls", tmp_path / "stored.jsonl"
+    if body is not None:
+        stored.write_text(body, encoding="utf-8")
+    _fake_aws(bin_dir, calls, body=stored if body is not None else None, error=error)
+    temp, output, summary = tmp_path / "runner-temp", tmp_path / "output", tmp_path / "summary"
+    temp.mkdir()
+    step = _step("history-get", "Get history")
+    env = {
+        **step["env"],
+        "CREDENTIALS": credentials,
+        "BUCKET": "b",
+        "RUNNER_TEMP": str(temp),
+        "GITHUB_OUTPUT": str(output),
+        "GITHUB_STEP_SUMMARY": str(summary),
+    }
+    result = _bash(step["run"], cwd, env, bin_dir)
+    return result, output, summary, temp / "test-report-history/history.jsonl", calls
+
+
+@allure.title("S3 の履歴が {param_id} のとき、状態を出力し、読めないときだけ空の履歴にして警告する")
+@pytest.mark.parametrize(
+    ("credentials", "body", "error", "state", "kept", "message"),
+    [
+        ("success", '{"a":1}\n{"b":2}\n', "", "found", '{"a":1}\n{"b":2}\n', None),
+        ("success", None, _NO_SUCH_KEY, "absent", "", None),
+        ("failure", None, "", "unreadable", "", "MSG_NO_CREDENTIALS"),
+        ("success", None, _ACCESS_DENIED, "unreadable", "", "MSG_GET_FAILED"),
+        ("success", '{"a":1}\nNaN\n', "", "unreadable", "", "MSG_BAD_LINES"),
+    ],
+    ids=["ある", "無い", "資格情報の失敗", "S3 の失敗", "読めない行"],
+)
+def test_get_history_reports_the_state(
+    tmp_path: Path,
+    credentials: str,
+    body: str | None,
+    error: str,
+    state: str,
+    kept: str,
+    message: str | None,
+) -> None:
+    """偽の `aws` で `Get history` の step を、S3 の応答を変えて実行した場合のテストです。`state` が `found`・`absent`・`unreadable` に分かれ、`etag` は `found` のときだけ出ることを確認します。`unreadable` のときは履歴が空になり、理由をサマリーに書きます（FR-021）。"""
+    with allure.step("偽の aws を置き、履歴を取る step の run を動かす"):
+        result, output, summary, history, calls = _get_history(
+            tmp_path, _REPO_ROOT, credentials=credentials, body=body, error=error
+        )
+    with allure.step("出力・履歴・サマリー・aws の呼び出しを確かめる"):
+        assert result.returncode == 0, result.stderr
+        expected = {"state": state, **({"etag": '"etag-1"'} if state == "found" else {})}
+        assert _outputs(output) == expected
+        assert read_output(history) == kept
+        env = _step("history-get", "Get history")["env"]
+        if message is None:
+            assert not summary.exists() or read_output(summary) == ""
+        else:
+            assert f"{env[message]}{env['MSG_EMPTY']}" in read_output(summary)
+        if credentials == "failure":
+            assert not calls.exists()
+        else:
+            assert read_output(calls) == (
+                "s3api get-object --bucket b --key release/history.jsonl"
+                f" --query ETag --output text {history}\n"
+            )
+
+
+@allure.title("行の確かめのスクリプトが動かないときは、Get history の step を失敗させる")
+def test_get_history_fails_when_the_check_cannot_run(tmp_path: Path) -> None:
+    """`generate.py` の無い作業ディレクトリで、S3 から履歴を取れた状態の `Get history` の step を実行した場合のテストです。読めない行とは別の失敗として、step が 0 以外の終了コードで終わることを確認します。"""
+    with allure.step("generate.py の無いディレクトリで、履歴を取る step の run を動かす"):
+        result, output, _, _, _ = _get_history(tmp_path, tmp_path, body='{"a":1}\n')
+    with allure.step("step が失敗し、state を出さないことを確かめる"):
+        assert result.returncode != 0
+        assert not output.exists()
+
+
+# ---------------------------------------------------------------- history-put
+
+
+@allure.title(
+    "history-put の job は、リリース版で、レポートができ、履歴が無いか受け取れたときだけ動く"
+)
+def test_history_put_runs_only_after_a_readable_history() -> None:
+    """`history-put` の job の条件のテストです。取り消されておらず、リリース版で、`report` と `history-get` が成功したときに実行されることを確認します。さらに、S3 に履歴が無かったか、`report` が履歴を受け取れたことを求めます。`found` なのに受け取れなかった回と `unreadable` の回は、書き戻しません。"""
+    with allure.step("history-put の job の条件を確かめる"):
+        assert _job("history-put")["if"] == (
+            "${{ !cancelled() && needs.side.outputs.side == 'release'"
+            " && needs.report.result == 'success'"
+            " && needs.history-get.result == 'success'"
+            " && (needs.history-get.outputs.state == 'absent'"
+            " || needs.report.outputs.history == 'received') }}"
+        )
+
+
+@allure.title("history-put の job は、checkout をせず、レポートの後の履歴を受け取って S3 に入る")
+def test_history_put_steps() -> None:
+    """`history-put` の job の step のテストです。checkout をせずに `test-report-history-out` を受け取り、資格情報の失敗で止まることを確認します。`Put history` には、history-get の状態と ETag を渡します。"""
+    with allure.step("history-put の step を読む"):
+        names = [s["name"] for s in _steps("history-put")]
+        download = _step("history-put", "Download history")
+        aws = _step("history-put", "Configure AWS credentials")
+        put = _step("history-put", "Put history")
+    with allure.step("step の並びと設定を確かめる"):
+        assert names == ["Download history", "Configure AWS credentials", "Put history"]
+        assert download["with"] == {
+            "name": "test-report-history-out",
+            "path": "${{ runner.temp }}/test-report-history",
+        }
+        assert "continue-on-error" not in aws
+        assert aws["with"] == _step("history-get", "Configure AWS credentials")["with"]
+        assert put["env"]["BUCKET"] == "${{ vars.TEST_REPORT_HISTORY_BUCKET }}"
+        assert put["env"]["STATE"] == "${{ needs.history-get.outputs.state }}"
+        assert put["env"]["ETAG"] == "${{ needs.history-get.outputs.etag }}"
+
+
+def _put_history(
+    tmp_path: Path, state: str, error: str = ""
+) -> tuple[subprocess.CompletedProcess[str], Path, Path]:
+    """偽の aws で `Put history` を動かし、結果と要約と aws の呼び出しを返す。"""
+    bin_dir, calls, summary = tmp_path / "bin", tmp_path / "aws-calls", tmp_path / "summary"
+    _fake_aws(bin_dir, calls, error=error)
+    step = _step("history-put", "Put history")
+    env = {
+        **step["env"],
+        "BUCKET": "b",
+        "STATE": state,
+        "ETAG": '"etag-1"',
+        "RUNNER_TEMP": str(tmp_path),
+        "GITHUB_STEP_SUMMARY": str(summary),
+    }
+    return _bash(step["run"], tmp_path, env, bin_dir), summary, calls
+
+
+@allure.title("history-get の状態が {state} のとき、条件付きの書き込みで S3 に履歴を戻す")
+@pytest.mark.parametrize(
+    ("state", "condition"),
+    [("found", '--if-match "etag-1"'), ("absent", "--if-none-match *")],
+)
+def test_put_history_writes_with_a_condition(tmp_path: Path, state: str, condition: str) -> None:
+    """偽の `aws` で `Put history` の step を実行した場合のテストです。`found` では読んだときの ETag を `--if-match` に渡し、`absent` では `--if-none-match '*'` を渡して `put-object` を呼ぶことを確認します。"""
+    with allure.step("偽の aws で、履歴を戻す step の run を動かす"):
+        result, summary, calls = _put_history(tmp_path, state)
+    with allure.step("条件を付けて put-object を呼ぶことを確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert read_output(calls) == (
+            "s3api put-object --bucket b --key release/history.jsonl"
+            f" --body {tmp_path}/test-report-history/history.jsonl {condition}\n"
+        )
+        assert not summary.exists()
+
+
+@allure.title(
+    "S3 が {param_id} で書き込みを断ると、step を失敗させ、条件の不一致だけをサマリーに書く"
+)
+@pytest.mark.parametrize(
+    ("error", "noted"),
+    [
+        (
+            "An error occurred (PreconditionFailed) when calling the PutObject operation:"
+            " At least one of the pre-conditions you specified did not hold",
+            True,
+        ),
+        (
+            "An error occurred (AccessDenied) when calling the PutObject operation: Access Denied",
+            False,
+        ),
+    ],
+    ids=["条件の不一致", "ほかの失敗"],
+)
+def test_put_history_fails_when_s3_refuses(tmp_path: Path, error: str, noted: bool) -> None:
+    """偽の `aws` が `put-object` を断る場合の `Put history` の step のテストです。どちらも step が失敗し、412 の `PreconditionFailed` のときだけ、この run が読んだ後に履歴が変わった旨をサマリーに書くことを確認します。"""
+    with allure.step("断る偽の aws で、履歴を戻す step の run を動かす"):
+        result, summary, _ = _put_history(tmp_path, "found", error)
+    with allure.step("step の失敗と、サマリーの中身を確かめる"):
+        assert result.returncode != 0
+        assert error in result.stderr
+        message = _step("history-put", "Put history")["env"]["MSG_CHANGED"]
+        text = read_output(summary) if summary.exists() else ""
+        assert (message in text) == noted
+
+
+@allure.title("history-get の状態が found と absent のどちらでもないと、書き込まずに失敗する")
+def test_put_history_refuses_an_unknown_state(tmp_path: Path) -> None:
+    """`STATE` が `unreadable` のまま `Put history` の step を実行した場合のテストです。`aws` を呼ばずに、0 以外の終了コードで終わることを確認します。"""
+    with allure.step("unreadable の状態で、履歴を戻す step の run を動かす"):
+        result, _, calls = _put_history(tmp_path, "unreadable")
+    with allure.step("aws を呼ばずに失敗することを確かめる"):
+        assert result.returncode != 0
+        assert not calls.exists()
 
 
 # ---------------------------------------------------------------- 共通
 
 
-@allure.title("すべての checkout は、github の参照で全履歴を取得する")
+@allure.title("checkout は github の参照を使い、history-get のほかは全履歴を取得する")
 def test_checkouts_use_github_ref_with_full_history() -> None:
-    """`test-report.yml` の `actions/checkout` のテストです。3 つの checkout すべてで、`ref` が `github.sha`、`fetch-depth` が 0、`filter` が `blob:none` で、認証情報を残さないことを確認します。"""
-    with allure.step("checkout の step を集める"):
+    """`test-report.yml` の `actions/checkout` のテストです。どの checkout も `ref` が `github.sha` で、認証情報を残さないことを確認します。`side`・`tests`・`report` は全履歴を `blob:none` で取り、`history-get` は 1 つのディレクトリだけを取ります。"""
+    with allure.step("checkout の step を job ごとに集める"):
         # step の出力の SHA を checkout すると、CodeQL の actions/cache-poisoning が止める。
-        checkouts = [
-            s for _, s in _all_steps() if s.get("uses", "").startswith("actions/checkout@")
-        ]
-    with allure.step("github の ref を全履歴で使うことを確かめる"):
-        assert len(checkouts) == 3
-        for step in checkouts:
-            assert step["with"] == {
+        checkouts = {
+            job: s["with"]
+            for job, s in _all_steps()
+            if s.get("uses", "").startswith("actions/checkout@")
+        }
+    with allure.step("github の ref と、job ごとの取得の範囲を確かめる"):
+        full = {
+            "ref": "${{ github.sha }}",
+            "fetch-depth": 0,
+            "filter": "blob:none",
+            "persist-credentials": False,
+        }
+        assert checkouts == {
+            "side": full,
+            "tests": full,
+            "history-get": {
                 "ref": "${{ github.sha }}",
-                "fetch-depth": 0,
-                "filter": "blob:none",
+                "sparse-checkout": ".githooks/scripts/test_report",
                 "persist-credentials": False,
-            }
+            },
+            "report": full,
+        }
 
 
 @allure.title("すべての action は、40 桁の SHA で固定する")

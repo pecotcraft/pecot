@@ -42,12 +42,13 @@ step 名は英語で、Actions でよく使う形にする。Actions の画面�
   - `pages-store` へは専用の App（秘密鍵は environment `pages-store`）でだけ書く。手での起動は `pages-store` の今の中身を公開し直す
   - job は verify・store・deploy の 3 つ。store が保管して `github-pages` の artifact を上げ、deploy が公開する
   - PR 版を公開したら、deploy の job が PR の head に commit status `pages / preview` を付ける。保管の変更が無ければ、store の job が付ける
-- `test-report.yml`: Allure Report を作り、artifact `test-report-<side>`（7 日）に上げる。リリース版は履歴も入れる
+- `test-report.yml`: Allure Report を作り、artifact `test-report-<side>`（7 日）に上げる
   - main への push で開発版を作る。手での起動は `side`（`release`・`dev`）を取り、main からだけ動く。release.yml の本番が land の後に `side=release` で起こす
   - `side` の job が材料と matrix を決める。`tests` がレーンごとに dev container で動かし、結果を `allure-results-<slug>`（1 日）に上げる。`report` がレポートを作る
   - リリース版は全レーンを動かす。開発版は、`dev_sources.py` が ci の結果と前の開発版の `lane-latest`（90 日）からレーンを拾い、結果の無いレーンだけを動かす。動かすレーンが無ければ tests の job は飛ぶ
   - テストが落ちても run は成功で終わる。落ちるのは、結果を残さずに止まったレーンがあるときと、`allure generate` が失敗したとき
-  - 履歴はリリース版だけで 3 件まで。pages-deploy が artifact を受けて公開する
+  - 履歴はリリース版だけで 10 件まで。S3 に置き、`history-get` が取り、`history-put` が戻す。この 2 つだけが environment `test-report-history` と OIDC で AWS に入る
+  - pages-deploy が artifact を受けて公開する
 - `codeql.yml`: CodeQL の解析（advanced setup）。リポの設定の default setup は止めておく
   - `actions/*/dist` を `paths-ignore` で外す。依存を同梱した生成物で、依存の既知の脆弱性は Dependabot が見る
 - `dependabot-auto-merge.yml`: minor・patch の PR に auto-merge を入れる

@@ -1306,7 +1306,7 @@ def test_config_values() -> None:
         assert config["resolved"] == {
             "name": "pecot テストレポート",
             "historyPath": None,
-            "historyLimit": 3,
+            "historyLimit": 10,
             "historyBaseUrl": None,
             "flakyDetection": {"includePassedTests": True},
             # 既定の 2 つは後ろに足されるが、書いた規則が failed・broken をすべて取るので、結果が入らず画面に出ない。
@@ -1477,6 +1477,31 @@ def test_real_allure_appends_a_line_per_report(
 
         assert build() == 0
         assert len(_entries(history)) == 2
+
+
+@allure.title("本物の allure に 11 行の履歴を渡すと、古い行を捨てて 10 行に詰める")
+@_needs_pnpm
+def test_real_allure_keeps_ten_entries_of_history(
+    real_build: tuple[Callable[[], int], Path],
+) -> None:
+    """11 行の履歴を渡して、本物の `allure generate` を `allurerc.mjs` の設定で実行した場合のテストです。履歴が 10 行になり、渡した行のうち新しい 9 行と今回の 1 行が順に残ることを確認します。"""
+    with allure.step("1 回作った履歴の行を写し、uuid の違う 11 行の履歴を用意する"):
+        build, history = real_build
+        assert build() == 0
+        entry = json.loads(_entries(history)[0])
+        old = [f"old-{i}" for i in range(1, 12)]
+        history.write_text(
+            "".join(json.dumps({**entry, "uuid": uuid}) + "\n" for uuid in old), encoding="utf-8"
+        )
+
+    with allure.step("実際の allure でレポートを作る"):
+        assert build() == 0
+
+    with allure.step("古い 2 行が消え、新しい 9 行と今回の 1 行が残ることを確かめる"):
+        uuids = [json.loads(line)["uuid"] for line in _entries(history)]
+        assert len(uuids) == 10
+        assert uuids[:9] == old[2:]
+        assert uuids[9] not in old
 
 
 @allure.title("テスト名に U+2028 を含んでも、履歴を維持して追記する")
