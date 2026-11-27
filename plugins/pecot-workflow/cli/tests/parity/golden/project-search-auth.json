@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: could not list projects: authentication error: could not get a GitHub API token\n  \n  {{TMP}}/base/demo/.pecot/config/.env was generated. Set the token as follows:\n  \n  1. get a token: https://ghes.example.com/settings/tokens\n  \n  \n  2. edit {{TMP}}/base/demo/.pecot/config/.env and set the token in PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN\n  \n  or authenticate with the GitHub CLI:\n     gh auth login -h ghes.example.com\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "could not list projects: authentication error: could not get a GitHub API token\n  \n  {{TMP}}/base/demo/.pecot/config/.env was generated. Set the token as follows:\n  \n  1. get a token: https://ghes.example.com/settings/tokens\n  \n  \n  2. edit {{TMP}}/base/demo/.pecot/config/.env and set the token in PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN\n  \n  or authenticate with the GitHub CLI:\n     gh auth login -h ghes.example.com",
+  "structuredContent": {
+    "kind": "github-auth",
+    "detail": "could not list projects: authentication error: could not get a GitHub API token\n  \n  {{TMP}}/base/demo/.pecot/config/.env was generated. Set the token as follows:\n  \n  1. get a token: https://ghes.example.com/settings/tokens\n  \n  \n  2. edit {{TMP}}/base/demo/.pecot/config/.env and set the token in PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN\n  \n  or authenticate with the GitHub CLI:\n     gh auth login -h ghes.example.com"
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/.env": "# pecot-cli 認証設定\n# 各トークンの値を設定してください\n#\n# トークン作成時は必要なスコープを付与してください\n\n# ghes.example.com\n# 取得先: https://ghes.example.com/settings/tokens\n\nPECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN=\n",

@@ -2,7 +2,7 @@
 name: w-worktree-remove
 description: |
   ワークツリーを削除します（単発／並行作業セット対応）。
-  Use when the user wants to remove a git worktree via the pecot CLI — single-repo or a parallel-work set spanning multiple repositories.
+  Use when the user wants to remove a git worktree via the pecot-workflow MCP tool worktree_remove — single-repo or a parallel-work set spanning multiple repositories.
   Do NOT use for creation (use w-worktree-add).
 when_to_use: "ワークツリーを削除したい、使い終えた作業ディレクトリを片付けたい"
 argument-hint: "[WT 名]"

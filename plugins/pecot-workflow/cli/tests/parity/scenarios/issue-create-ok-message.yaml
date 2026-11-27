@@ -1,14 +1,17 @@
 # -m の直接投稿。REST の node_id でボードに追加し、status の欄を設定する。
 id: issue-create-ok-message
-command:
-  path: [issue, create]
-  args:
-    - -m
-    - "## Goal — 一覧画面から状態を確認できる\n\n利用者が一覧画面で各項目の状態を確認できる。\n\n## Acceptance — 一覧に状態の列が出る\n\n- 状態の列が一覧に出る — 確認: 一覧画面を開く\n"
-    - -t
-    - 一覧に状態を出す
-    - -r
-    - acme/demo
+tool: issue_create
+arguments:
+  message: |
+    ## Goal — 一覧画面から状態を確認できる
+
+    利用者が一覧画面で各項目の状態を確認できる。
+
+    ## Acceptance — 一覧に状態の列が出る
+
+    - 状態の列が一覧に出る — 確認: 一覧画面を開く
+  title: 一覧に状態を出す
+  repo: acme/demo
 setup:
   repo:
     files:

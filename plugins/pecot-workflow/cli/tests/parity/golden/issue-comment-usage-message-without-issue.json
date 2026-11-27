@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: --issue-ref (Issue reference) is required with --message\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "issue_ref (Issue reference) is required with message",
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "issue_ref (Issue reference) is required with message"
+  },
+  "stderr": "",
   "requests": [],
   "files": {}
 }

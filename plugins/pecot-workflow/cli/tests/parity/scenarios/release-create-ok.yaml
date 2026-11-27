@@ -1,9 +1,8 @@
 # CHANGELOG のリリースノートで GitHub release を作る。POST が 201。
 id: release-create-ok
-command:
-  path: [release, create]
-  args:
-    - "0.2.0"
+tool: release_create
+arguments:
+  version: 0.2.0
 setup:
   repo:
     files:

@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: the base branch of PR #31 does not match release_branch\n  base: main\n  release_branch: release\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "the base branch of PR #31 does not match release_branch\n  base: main\n  release_branch: release",
+  "structuredContent": {
+    "kind": "pr-state",
+    "detail": "the base branch of PR #31 does not match release_branch\n  base: main\n  release_branch: release"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

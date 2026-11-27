@@ -2,8 +2,8 @@
 import { z } from 'zod'
 
 import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
-import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { addIssueToBoard, isStatusConfigured, setIssueField } from '@pecot/workflow-core/commands-shared/issue-board.js'
 import { stopWith, requireConfigFor, PROJECT_INPUT } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
@@ -26,22 +26,18 @@ const BOARD_ADD_OUTPUT = z.strictObject({
   status: z.string().optional().describe('Status set on the board (omitted when status is empty)'),
 })
 
-const BOARD_ADD = defineCommand({
-  path: ['board', 'add'],
+const BOARD_ADD = defineTool({
+  name: 'board_add',
   title: 'Add Issue to board',
   description: 'Add an Issue to the project board with a GraphQL mutation (for an Issue created outside pecot)',
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),
     status: z.string().default('ready').describe('Initial status (backlog/pending/blocked/ready/active/in_review/archived)'),
     project: PROJECT_INPUT,
-    dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
   output: BOARD_ADD_OUTPUT,
-  positional: ['issue_ref'],
-  shortFlags: { status: '-s', dry_run: '-n' },
-  interactive: false,
   run: async (input, io) => {
-    const output = createOutput<z.input<typeof BOARD_ADD_OUTPUT>>(input.dry_run, io)
+    const output = createOutput<z.input<typeof BOARD_ADD_OUTPUT>>(false, io)
     return await runWithExit(async () => {
       const { status } = input
       if (status !== '' && !VALID_STATUSES.has(status)) exitInvalidStatus(output, status)
@@ -55,14 +51,6 @@ const BOARD_ADD = defineCommand({
       const target = `Issue ${issuePath(owner, repository, number)}`
       try {
         const client = await connectToProject(output, config, owner, repository)
-        if (input.dry_run) {
-          // Issue が読めることだけ確かめる
-          await client.getIssueNodeId(owner, repository, number)
-          output.planned({ verb: 'add', target: `${target} to project` })
-          if (status !== '') output.planned({ verb: 'set', target: `${target} status ${status}` })
-          output.result({ issue: issuePath(owner, repository, number), added: true, ...status !== '' && { status } })
-          return
-        }
         const { itemId } = await addIssueToBoard(client, config, owner, repository, number, undefined)
         output.done({ verb: 'add', target: `${target} to project` })
         output.result({ issue: issuePath(owner, repository, number), added: true })
@@ -86,4 +74,4 @@ const BOARD_ADD = defineCommand({
   },
 })
 
-export const BOARD_ADD_COMMANDS: readonly CommandDefinition[] = [BOARD_ADD]
+export const BOARD_ADD_TOOLS: readonly ToolDefinition[] = [BOARD_ADD]

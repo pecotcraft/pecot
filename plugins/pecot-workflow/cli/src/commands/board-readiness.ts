@@ -1,17 +1,13 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
 // board show の着手の判定。盤上の Ready・Blocked の Issue の前提を読んで表示する。列と札は動かさない。
-import { homeRepositoryOf } from '@pecot/workflow-core/domain/config.js'
 import type { ProjectConfig } from '@pecot/workflow-core/domain/config.js'
 import { boardItemKey } from '@pecot/workflow-core/domain/format.js'
-import type { BoardItem, BoardProgress, StackableChain } from '@pecot/workflow-core/domain/format.js'
+import type { BoardItem, BoardProgress } from '@pecot/workflow-core/domain/format.js'
 import { isEpicIssue } from '@pecot/workflow-core/domain/issue-kind.js'
 import { JSON_NULL } from '@pecot/workflow-core/domain/json-null.js'
-import { describeReadiness, describeUnknown, displayReference, progressionsFromReadiness, stackChains } from '@pecot/workflow-core/domain/readiness.js'
-import type { Readiness } from '@pecot/workflow-core/domain/readiness.js'
-import { createIssueReference, issueReferenceKey } from '@pecot/workflow-core/domain/reference-parser.js'
-import type { IssueReference } from '@pecot/workflow-core/domain/reference-parser.js'
+import { describeReadiness, describeUnknown } from '@pecot/workflow-core/domain/readiness.js'
+import { createIssueReference } from '@pecot/workflow-core/domain/reference-parser.js'
 import { createRepositoryReference, splitOwnerRepository } from '@pecot/workflow-core/domain/repository-resolver.js'
-import type { RepositoryReference } from '@pecot/workflow-core/domain/repository-resolver.js'
 import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
 import { boardMoveOf, judgeBoard } from '@pecot/workflow-core/commands-shared/board-judgment.js'
 import type { BoardTarget } from '@pecot/workflow-core/commands-shared/board-judgment.js'
@@ -30,7 +26,6 @@ export interface BoardReadiness {
   boardItemKey → JSON の readiness。undefined なら JSON に足さない
   */
   readonly json: ReadonlyMap<string, BoardReadinessJson> | undefined
-  readonly chains: readonly StackableChain[]
   /**
   board sync が列か札を動かしそうな Ready・Blocked の Issue の数
   */
@@ -59,19 +54,11 @@ function localSnapshot(config: ProjectConfig, target: BoardTarget, progress: Boa
   })
 }
 
-// 小文字のキーを、元の参照（無ければキーから作る）に戻して表記する
-function displayKey(key: string, references: ReadonlyMap<string, IssueReference>, home: RepositoryReference | undefined): string {
-  const known = references.get(key)
-  const [repository = '', number = ''] = key.split('#', 2)
-  const split = splitOwnerRepository(repository)
-  return known === undefined && split === undefined ? key : displayReference(known ?? createIssueReference(createRepositoryReference(split?.owner ?? '', split?.repository ?? ''), Number(number)), home)
-}
-
 function unsupportedWarning(out: Readonly<Output>): void {
   out.warning('this GitHub Enterprise Server does not support issue dependencies (blockedBy); the Readiness column is omitted')
 }
 
-const PLAIN: BoardReadiness = { texts: undefined, json: undefined, chains: [], mismatches: 0 }
+const PLAIN: BoardReadiness = { texts: undefined, json: undefined, mismatches: 0 }
 
 /**
 判定を読まずに、依存関係に対応しない GHES と同じ扱いにする。warning を 1 回出す
@@ -84,7 +71,7 @@ export function skipBoardReadiness(out: Readonly<Output>): BoardReadiness {
 /**
 Ready・Blocked の Issue の前提を読んで判定する。items は表示するアイテム（--repo で絞った後）。列と札は動かさない
 */
-export async function readBoardReadiness(out: Readonly<Output>, client: GitHubClient, config: ProjectConfig, items: readonly BoardItem[], repository: string | undefined, progress: ReadonlyMap<string, BoardProgress> = new Map()): Promise<BoardReadiness> {
+export async function readBoardReadiness(out: Readonly<Output>, client: GitHubClient, config: ProjectConfig, items: readonly BoardItem[], progress: ReadonlyMap<string, BoardProgress> = new Map()): Promise<BoardReadiness> {
   const judged = await judgeBoard(client, config, items, progress, {
     columns: JUDGED_STATUSES,
     withoutRead: (target, known) => localSnapshot(config, target, known),
@@ -93,13 +80,8 @@ export async function readBoardReadiness(out: Readonly<Output>, client: GitHubCl
     unsupportedWarning(out)
     return PLAIN
   }
-  const home = homeRepositoryOf(config, repository)
-
   const texts = new Map<string, string>()
   const json = new Map<string, BoardReadinessJson>()
-  const readinessByKey = new Map<string, Readiness>()
-  const parents = new Map<string, IssueReference>()
-  const references = new Map<string, IssueReference>(judged.map(({ target }) => [target.key, target.ref]))
   let mismatches = 0
 
   for (const { target, result } of judged) {
@@ -109,24 +91,15 @@ export async function readBoardReadiness(out: Readonly<Output>, client: GitHubCl
       json.set(target.key, { kind: 'unknown', stackOn: JSON_NULL, reason: JSON_NULL, text })
       continue
     }
-    if (result.parent !== undefined) parents.set(target.key, result.parent)
     const { readiness } = result
     if (readiness === undefined) continue
     const text = describeReadiness(readiness, result.prerequisites, target.ref.repository)
     texts.set(target.key, text)
     json.set(target.key, readinessJson(readiness, text))
-    readinessByKey.set(target.key, readiness)
     const move = boardMoveOf(config, target, result)
     if (move?.column !== undefined || move?.label !== undefined) mismatches += 1
-    if (readiness.stackOn !== undefined) references.set(issueReferenceKey(readiness.stackOn.issue), readiness.stackOn.issue)
   }
-
-  const chains = stackChains(progressionsFromReadiness(readinessByKey)).filter(chain => chain.length >= 2).map((chain): StackableChain => {
-    const parentKey = chain.find(key => parents.has(key))
-    const parent = parentKey === undefined ? undefined : parents.get(parentKey)
-    return { epic: parent === undefined ? undefined : displayReference(parent, home), chain: chain.map(key => displayKey(key, references, home)) }
-  })
-  return { texts, json, chains, mismatches }
+  return { texts, json, mismatches }
 }
 
 /**

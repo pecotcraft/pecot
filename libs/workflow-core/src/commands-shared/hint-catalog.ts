@@ -1,69 +1,68 @@
-// 案内（domain/command-hint.ts）が名指しできるコマンドの形。actions/ は pecot-workflow の registry を持たないので、ここから登録する。
-// CLI_HINT_COMMANDS が registry と同じかは、cli の registry.test.ts が確かめる。
-// ACTION_HINT_COMMANDS が action.yml と合うかは、actions のテストが確かめる。
+// 案内（domain/command-hint.ts）が名指しできるツールの形。actions/ は pecot-workflow の registry を持たないので、ここから登録する。
+// TOOL_HINT_COMMANDS と registry の一致は cli の registry.test.ts が確かめる。ACTION_HINT_COMMANDS と action.yml の一致は actions のテストが確かめる。
 import { registerHintCommands } from '../domain/command-hint.js'
 import type { HintCommandShape } from '../domain/command-hint.js'
 
 /**
-pecot-workflow の cli の registry.ts が登録するコマンドの形。並びは registry と同じ
+pecot-workflow の MCP のサーバの registry.ts が登録するツールの形。並びは registry と同じ
 */
-export const CLI_HINT_COMMANDS: readonly HintCommandShape[] = [
-  { path: ['project', 'list'], positional: [], inputs: ['repo'], cliOnly: [], hasOwnRepo: false },
-  { path: ['project', 'search'], positional: ['owner'], inputs: ['owner', 'host', 'repo'], cliOnly: [], hasOwnRepo: false },
-  { path: ['project', 'init'], positional: ['owner', 'name'], inputs: ['owner', 'name', 'host', 'lanes', 'dry_run', 'confirm_delete', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['project', 'create'], positional: ['owner', 'title'], inputs: ['owner', 'title', 'host', 'lanes', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['project', 'activate'], positional: ['project'], inputs: ['project', 'owner', 'host', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['project', 'link'], positional: ['repo'], inputs: ['repo', 'develop_branch', 'release_branch', 'changelog_file', 'package', 'clear_packages', 'release_type', 'dry_run'], cliOnly: ['dry_run'], hasOwnRepo: true },
-  { path: ['project', 'get'], positional: ['key'], inputs: ['key', 'repo'], cliOnly: [], hasOwnRepo: false },
-  { path: ['project', 'set'], positional: ['key', 'value'], inputs: ['key', 'value', 'yes', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['project', 'unset'], positional: ['key'], inputs: ['key', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['board', 'show'], positional: [], inputs: ['json', 'repo'], cliOnly: [], hasOwnRepo: true },
-  { path: ['board', 'add'], positional: ['issue_ref'], inputs: ['issue_ref', 'status', 'project', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['board', 'move'], positional: ['issue_ref', 'status'], inputs: ['issue_ref', 'status', 'project', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['issue', 'create'], positional: ['files'], inputs: ['files', 'message', 'title', 'repo', 'type', 'status', 'parent_epic', 'order', 'label', 'attributes', 'lane', 'freeform', 'project'], cliOnly: [], hasOwnRepo: true },
-  { path: ['issue', 'check'], positional: ['files'], inputs: ['files', 'project', 'repo'], cliOnly: [], hasOwnRepo: false },
-  { path: ['issue', 'show'], positional: ['issue_ref'], inputs: ['issue_ref', 'project', 'json', 'comment_limit', 'repo'], cliOnly: [], hasOwnRepo: false },
-  { path: ['issue', 'attributes'], positional: [], inputs: ['project', 'json', 'repo'], cliOnly: [], hasOwnRepo: false },
-  { path: ['issue', 'edit'], positional: ['issue_ref'], inputs: ['issue_ref', 'attributes', 'project', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['issue', 'comment'], positional: ['file'], inputs: ['file', 'message', 'issue_ref', 'template', 'project', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['issue', 'block'], positional: ['issue_ref'], inputs: ['issue_ref', 'by', 'wait', 'reason', 'project', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['issue', 'unblock'], positional: ['issue_ref'], inputs: ['issue_ref', 'by', 'project', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['issue', 'reopen'], positional: ['issue_ref'], inputs: ['issue_ref', 'status', 'project', 'comment', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['session', 'start'], positional: ['issue_ref', 'branch'], inputs: ['issue_ref', 'branch', 'base', 'checkout', 'dry_run', 'project', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['session', 'show'], positional: [], inputs: ['directory', 'project', 'repo'], cliOnly: [], hasOwnRepo: false },
-  { path: ['session', 'finish'], positional: ['pr_ref'], inputs: ['pr_ref', 'dry_run', 'delete_branch', 'project', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['pr', 'create'], positional: ['file'], inputs: ['file', 'message', 'title', 'base', 'head', 'draft', 'dry_run', 'repo', 'no_issue_ref', 'template', 'screenshot', 'project'], cliOnly: ['dry_run'], hasOwnRepo: true },
-  { path: ['pr', 'show'], positional: ['pr_ref'], inputs: ['pr_ref', 'json', 'reviews', 'project', 'repo'], cliOnly: [], hasOwnRepo: false },
-  { path: ['pr', 'check'], positional: [], inputs: ['directory', 'project', 'repo'], cliOnly: [], hasOwnRepo: false },
-  { path: ['pr', 'merge'], positional: ['pr_ref'], inputs: ['pr_ref', 'dry_run', 'project', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['pr', 'restack'], positional: [], inputs: ['check', 'continue', 'abort', 'dry_run', 'project', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['release', 'check'], positional: ['version'], inputs: ['version', 'package', 'project', 'repo'], cliOnly: [], hasOwnRepo: false },
-  { path: ['release', 'create'], positional: ['version'], inputs: ['version', 'dry_run', 'package', 'project', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['release', 'merge'], positional: ['pr_ref'], inputs: ['pr_ref', 'dry_run', 'delete_branch', 'admin', 'project', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['worktree', 'add'], positional: [], inputs: ['directory', 'base', 'path', 'no_copy', 'no_link', 'setup', 'dry_run', 'allow_existing_branch', 'project', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['worktree', 'remove'], positional: ['name'], inputs: ['name', 'directory', 'force', 'keep_branch', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['worktree', 'init'], positional: [], inputs: ['directory', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['worktree', 'link'], positional: [], inputs: ['directory', 'force', 'all', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['branch', 'delete'], positional: ['repo', 'branch'], inputs: ['repo', 'branch', 'dry_run', 'project'], cliOnly: ['dry_run'], hasOwnRepo: true },
-  { path: ['workflow', 'install'], positional: ['name'], inputs: ['name', 'check', 'force', 'dry_run', 'directory', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-  { path: ['workflow', 'doctor'], positional: ['name'], inputs: ['name', 'directory', 'repo'], cliOnly: [], hasOwnRepo: false },
+export const TOOL_HINT_COMMANDS: readonly HintCommandShape[] = [
+  { name: 'project_list', inputs: ['repo'] },
+  { name: 'project_search', inputs: ['owner', 'host', 'repo'] },
+  { name: 'project_init', inputs: ['owner', 'name', 'host', 'lanes', 'confirm_delete', 'repo'] },
+  { name: 'project_create', inputs: ['owner', 'title', 'host', 'lanes', 'repo'] },
+  { name: 'project_activate', inputs: ['project', 'owner', 'host', 'repo'] },
+  { name: 'project_link', inputs: ['repo', 'develop_branch', 'release_branch', 'changelog_file', 'package', 'clear_packages', 'release_type'] },
+  { name: 'project_get', inputs: ['key', 'repo'] },
+  { name: 'project_set', inputs: ['key', 'value', 'yes', 'repo'] },
+  { name: 'project_unset', inputs: ['key', 'repo'] },
+  { name: 'board_show', inputs: ['json', 'repo'] },
+  { name: 'board_add', inputs: ['issue_ref', 'status', 'project', 'repo'] },
+  { name: 'board_move', inputs: ['issue_ref', 'status', 'project', 'repo'] },
+  { name: 'issue_create', inputs: ['files', 'message', 'title', 'repo', 'type', 'status', 'parent_epic', 'order', 'label', 'attributes', 'lane', 'freeform', 'project'] },
+  { name: 'issue_check', inputs: ['files', 'project', 'repo'] },
+  { name: 'issue_show', inputs: ['issue_ref', 'project', 'json', 'comment_limit', 'repo'] },
+  { name: 'issue_attributes', inputs: ['project', 'json', 'repo'] },
+  { name: 'issue_edit', inputs: ['issue_ref', 'attributes', 'project', 'repo'] },
+  { name: 'issue_comment', inputs: ['file', 'message', 'issue_ref', 'template', 'project', 'repo'] },
+  { name: 'issue_block', inputs: ['issue_ref', 'by', 'wait', 'reason', 'project', 'repo'] },
+  { name: 'issue_unblock', inputs: ['issue_ref', 'by', 'project', 'repo'] },
+  { name: 'issue_reopen', inputs: ['issue_ref', 'status', 'project', 'comment', 'repo'] },
+  { name: 'session_start', inputs: ['issue_ref', 'branch', 'base', 'checkout', 'project', 'repo'] },
+  { name: 'session_show', inputs: ['directory', 'project', 'repo'] },
+  { name: 'session_finish', inputs: ['pr_ref', 'delete_branch', 'project', 'repo'] },
+  { name: 'pr_create', inputs: ['file', 'message', 'title', 'base', 'head', 'draft', 'repo', 'no_issue_ref', 'template', 'screenshot', 'project'] },
+  { name: 'pr_show', inputs: ['pr_ref', 'json', 'reviews', 'project', 'repo'] },
+  { name: 'pr_check', inputs: ['directory', 'project', 'repo'] },
+  { name: 'pr_merge', inputs: ['pr_ref', 'project', 'repo'] },
+  { name: 'pr_restack', inputs: ['check', 'continue', 'abort', 'project', 'repo'] },
+  { name: 'release_check', inputs: ['version', 'package', 'project', 'repo'] },
+  { name: 'release_create', inputs: ['version', 'package', 'project', 'repo'] },
+  { name: 'release_merge', inputs: ['pr_ref', 'delete_branch', 'admin', 'project', 'repo'] },
+  { name: 'worktree_add', inputs: ['directory', 'base', 'path', 'no_copy', 'no_link', 'setup', 'allow_existing_branch', 'project', 'repo'] },
+  { name: 'worktree_remove', inputs: ['name', 'directory', 'force', 'keep_branch', 'repo'] },
+  { name: 'worktree_init', inputs: ['directory', 'repo'] },
+  { name: 'worktree_link', inputs: ['directory', 'force', 'all', 'repo'] },
+  { name: 'branch_delete', inputs: ['repo', 'branch', 'project'] },
+  { name: 'workflow_install', inputs: ['name', 'check', 'force', 'directory', 'repo'] },
+  { name: 'workflow_doctor', inputs: ['name', 'directory', 'repo'] },
 ]
 
 /**
-actions/ に移した処理の形。path は actions/<path を - でつないだ名前>/action.yml、inputs は token を除く inputs を snake_case にしたもの
+actions/ に移した処理の形。name の `_` を `-` にしたものが actions/<name>/action.yml、inputs は token を除く inputs を snake_case にしたもの
 */
 export const ACTION_HINT_COMMANDS: readonly HintCommandShape[] = [
-  { path: ['board', 'sync'], positional: [], inputs: ['project', 'dry_run'], cliOnly: [], hasOwnRepo: false },
-  { path: ['review', 'finish'], positional: [], inputs: ['pr', 'job_status', 'execution_file', 'since', 'review_outcome', 'review_conclusion', 'review_has_token'], cliOnly: [], hasOwnRepo: false },
-  { path: ['tracker', 'sync'], positional: [], inputs: ['source', 'project', 'dry_run'], cliOnly: [], hasOwnRepo: false },
-  { path: ['auto', 'gate'], positional: [], inputs: ['max_ci_attempts', 'project'], cliOnly: [], hasOwnRepo: false },
-  { path: ['auto', 'start'], positional: [], inputs: ['issue', 'project'], cliOnly: [], hasOwnRepo: false },
-  { path: ['auto', 'finish'], positional: [], inputs: ['issue', 'project', 'result_file', 'job_status', 'execution_file', 'start_outcome', 'result', 'body_file'], cliOnly: [], hasOwnRepo: false },
+  { name: 'board_sync', inputs: ['project', 'dry_run'] },
+  { name: 'review_finish', inputs: ['pr', 'job_status', 'execution_file', 'since', 'review_outcome', 'review_conclusion', 'review_has_token'] },
+  { name: 'tracker_sync', inputs: ['source', 'project', 'dry_run'] },
+  { name: 'auto_gate', inputs: ['max_ci_attempts', 'project'] },
+  { name: 'auto_start', inputs: ['issue', 'project'] },
+  { name: 'auto_finish', inputs: ['issue', 'project', 'result_file', 'job_status', 'execution_file', 'start_outcome', 'result', 'body_file'] },
 ]
 
 /**
-CLI と actions/ の両方の形を、案内の描き方に登録する。actions/ の処理は、案内を描く前にこれを呼ぶ
+ツールと actions/ の両方の形を、案内の描き方に登録する。actions/ の処理は、案内を描く前にこれを呼ぶ
 */
 export function registerHintCatalog(): void {
-  registerHintCommands([...CLI_HINT_COMMANDS, ...ACTION_HINT_COMMANDS])
+  registerHintCommands([...TOOL_HINT_COMMANDS, ...ACTION_HINT_COMMANDS])
 }

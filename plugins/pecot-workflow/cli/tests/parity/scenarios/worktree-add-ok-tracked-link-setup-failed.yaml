@@ -1,13 +1,10 @@
 # 追跡しているパスの link と、0 以外で終わる setup の行が、それぞれ 1 本だけ出る。
 # links は CLAUDE.local.md の 1 件で、commit に含めて追跡させる。
 id: worktree-add-ok-tracked-link-setup-failed
-command:
-  path: [worktree, add]
-  args:
-    - "-D"
-    - "."
-    - "--setup"
-    - "echo hi; echo oops >&2; exit 3"
+tool: worktree_add
+arguments:
+  directory: .
+  setup: echo hi; echo oops >&2; exit 3
 setup:
   repo:
     commits: [{message: "chore: CLAUDE.local.md を追跡する", files: {.gitignore: ".pecot/\n", CLAUDE.local.md: "ローカル向けの指示\n"}}]

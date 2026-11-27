@@ -1,8 +1,7 @@
 # 設定ファイルが 2 つあり、1 つがアクティブな状態で project list を流す。GitHub は呼ばない。
 id: project-list-ok
-command:
-  path: [project, list]
-  args: []
+tool: project_list
+arguments: {}
 setup:
   repo:
     files:

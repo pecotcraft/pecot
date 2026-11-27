@@ -48,7 +48,7 @@ step 名は英語で、Actions でよく使う形にする。Actions の画面�
 - `codeql.yml`: CodeQL の解析（advanced setup）。リポの設定の default setup は止めておく
   - `actions/*/dist` を `paths-ignore` で外す。依存を同梱した生成物で、依存の既知の脆弱性は Dependabot が見る
 - `dependabot-auto-merge.yml`: minor・patch の PR に auto-merge を入れる
-- `dependabot-commit.yml`: 各 `runtime-lock.yaml` を root の lock から作り直し、version plan を足して同じブランチへ push する
+- `dependabot-commit.yml`: version plan と playwright-deps の版を足して同じブランチへ push する
 - `dependabot-prs.yml`: 人の判断を待つ dependabot の PR を Tracker 1 件にそろえる
 - `security-alerts.yml`: main の security alert を Tracker 1 件にそろえる
 - 上の 2 本は App の webhook と Scheduler で起動し、cron は補助

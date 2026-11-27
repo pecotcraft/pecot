@@ -1,8 +1,9 @@
 # frontmatter 付きのファイルを投稿する。親 Epic があるので重複 order の確認と、サブ Issue の紐づけまで通る。
 id: issue-create-ok-file
-command:
-  path: [issue, create]
-  args: [draft.md]
+tool: issue_create
+arguments:
+  files:
+    - draft.md
 setup:
   repo:
     files:

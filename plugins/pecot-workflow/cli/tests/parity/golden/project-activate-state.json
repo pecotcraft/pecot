@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: --host is required\n  example: pecot project activate 1 --host github.com --owner example-org\n  example: pecot project activate example-project --host ghes.example.com --owner example-org\n  example: pecot project activate ghes.example.com_example-org_1\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "host is required\n  example: project_activate with project: \"1\", host: \"github.com\", owner: \"example-org\"\n  example: project_activate with project: \"example-project\", host: \"ghes.example.com\", owner: \"example-org\"\n  example: project_activate with project: \"ghes.example.com_example-org_1\"",
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "host is required\n  example: project_activate with project: \"1\", host: \"github.com\", owner: \"example-org\"\n  example: project_activate with project: \"example-project\", host: \"ghes.example.com\", owner: \"example-org\"\n  example: project_activate with project: \"ghes.example.com_example-org_1\""
+  },
+  "stderr": "",
   "requests": [],
   "files": {}
 }

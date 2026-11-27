@@ -1,7 +1,28 @@
 {
-  "stdout": "=== Git Remote ===\ngit@ghes.example.com:acme/demo.git\n\n=== Current Branch ===\nfeat/demo/12\n\n=== Push Status ===\nin sync with origin/feat/demo/12\n\n=== Base Branch ===\norigin/main\n\n=== Git Status ===\nOn branch feat/demo/12\nUntracked files:\n\tmemo.txt\n\nnothing added to commit but untracked files present\n\n\n=== .gitignore ===\n.pecot/\n\n\n=== Git Exclude ===\n# parity fixed exclude\n\n\n=== Commits (vs origin/main) ===\n(no commits)\n\n=== Diff Summary (vs origin/main) ===\n(no diff)\n\n=== Worktree Info ===\n{{TMP}}/base/demo dd06359 [feat/demo/12]\n\nCurrent directory name: demo\nIs worktree environment: false\n\n=== Stash List ===\n(no stash)\n",
-  "stderr": "count: preflight warnings: 1\nwarning: Git Status: modified or untracked files (fix: commit)\n",
-  "exitCode": 2,
+  "isError": true,
+  "text": "preflight found warnings; fix them before creating a PR",
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "preflight found warnings; fix them before creating a PR",
+    "remoteUrl": "git@ghes.example.com:acme/demo.git",
+    "currentBranch": "feat/demo/12",
+    "pushed": true,
+    "pushStatus": "in sync with origin/feat/demo/12",
+    "baseBranch": "origin/main",
+    "gitStatus": "On branch feat/demo/12\nUntracked files:\n\tmemo.txt\n\nnothing added to commit but untracked files present\n",
+    "commits": "(no commits)",
+    "diffSummary": "(no diff)",
+    "worktree": {
+      "list": "{{TMP}}/base/demo dd06359 [feat/demo/12]",
+      "directoryName": "demo",
+      "isWorktree": false
+    },
+    "stashList": "(no stash)",
+    "warnings": [
+      "Git Status: modified or untracked files (fix: commit)"
+    ]
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: worktree config not found\n  run: pecot worktree init --directory <directory>\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "worktree config not found\n  call worktree_init with directory: <directory>",
+  "structuredContent": {
+    "kind": "not-initialized",
+    "detail": "worktree config not found\n  call worktree_init with directory: <directory>"
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     "../../wt1/demo/.gitignore": ".pecot/\n",

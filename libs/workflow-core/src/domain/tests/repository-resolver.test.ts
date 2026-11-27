@@ -274,7 +274,7 @@ describe('withUnreadableReason', () => {
 })
 
 describe('resolveRepository', () => {
-  it('--repo で明示した値は、git を呼ばずに採用する', async () => {
+  it('repo で明示した値は、git を呼ばずに採用する', async () => {
     await explains('リポジトリを決める `resolveRepository` のテストです。リポジトリを明示した場合に、git を呼び出さず、その値を `explicit` として返すことを確認します。')
     const git = vi.fn<GitRunner>()
     const resolved = resolveRepository('a/b', git)
@@ -289,9 +289,9 @@ describe('resolveRepository', () => {
   })
 
   it('Git リポジトリの外で、明示した値もなければ、曖昧として例外が発生する', async () => {
-    await explains('Git リポジトリの外で、リポジトリも明示しない場合の、`resolveRepository` のテストです。`AmbiguousRepositoryError` の例外が発生し、`--repo` の指定を案内することを確認します。')
+    await explains('Git リポジトリの外で、リポジトリも明示しない場合の、`resolveRepository` のテストです。`AmbiguousRepositoryError` の例外が発生し、`repo` の指定を案内することを確認します。')
     expect(() => resolveRepository(undefined, fakeGit({ isInsideWorktree: false }))).toThrow(AmbiguousRepositoryError)
-    expect(() => resolveRepository(undefined, fakeGit({ isInsideWorktree: false }))).toThrow('repository is ambiguous: pass --repo <owner/repo>')
+    expect(() => resolveRepository(undefined, fakeGit({ isInsideWorktree: false }))).toThrow('repository is ambiguous: pass repo: <owner/repo>')
   })
 
   it('明示した値がなく remote の URL を読み取れなければ、理由を持つ UnreadableRemoteError を投げる', async () => {

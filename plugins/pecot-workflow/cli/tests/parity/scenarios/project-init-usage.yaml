@@ -1,7 +1,0 @@
-# 外した --suffix を渡す。知らないオプションの使い方エラーを記録する。
-id: project-init-usage
-command:
-  path: [project, init]
-  args: [acme, board, --suffix, x, --host, ghes.example.com]
-setup: {}
-github: []

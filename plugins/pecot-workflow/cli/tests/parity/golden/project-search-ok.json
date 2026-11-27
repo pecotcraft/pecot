@@ -1,7 +1,27 @@
 {
-  "stdout": "=== Projects of acme (ghes.example.com) ===\n\n#    Title                                    URL\n--------------------------------------------------------------------------------\n1    board                                    https://ghes.example.com/users/acme/projects/1 [INITIALIZED]\n2    とても長いタイトルのプロジェクトで三十八文字を超えるので末尾が省略される例    https://ghes.example.com/users/acme/projects/2\n",
+  "isError": false,
+  "text": "=== Projects of acme (ghes.example.com) ===",
+  "structuredContent": {
+    "owner": "acme",
+    "host": "ghes.example.com",
+    "projects": [
+      {
+        "number": 1,
+        "title": "board",
+        "url": "https://ghes.example.com/users/acme/projects/1",
+        "initialized": true,
+        "active": false
+      },
+      {
+        "number": 2,
+        "title": "とても長いタイトルのプロジェクトで三十八文字を超えるので末尾が省略される例",
+        "url": "https://ghes.example.com/users/acme/projects/2",
+        "initialized": false,
+        "active": false
+      }
+    ]
+  },
   "stderr": "",
-  "exitCode": 0,
   "requests": [
     {
       "type": "graphql",

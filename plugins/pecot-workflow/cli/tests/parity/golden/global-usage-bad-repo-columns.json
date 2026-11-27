@@ -1,7 +1,0 @@
-{
-  "stdout": "",
-  "stderr": "Usage: pecot [OPTIONS] COMMAND [ARGS]...\nTry 'pecot --help' for help.\n╭─ Error ────────────────────────────────────────╮\n│ Invalid value for '--repo': must be in         │\n│ 'owner/repo' form: invalid owner/repo form:    │\n│ 'bad' (expected: 'owner/repo')                 │\n╰────────────────────────────────────────────────╯\n",
-  "exitCode": 2,
-  "requests": [],
-  "files": {}
-}

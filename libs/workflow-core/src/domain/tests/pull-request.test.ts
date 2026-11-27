@@ -28,7 +28,6 @@ import type { PullRequestBaseDecision, PullRequestContentOptions, PullRequestSli
 import type { PullRequestReadout } from '../issue-readout.js'
 import '../../../tests/_helpers/hint-commands.js'
 import { formatHinted } from '../command-hint.js'
-import type { HintSurface } from '../command-hint.js'
 import { JSON_NULL } from '../json-null.js'
 import { createIssueReference } from '../reference-parser.js'
 import { createRepositoryReference } from '../repository-resolver.js'
@@ -177,11 +176,10 @@ describe('validatePullRequestContent', () => {
   })
 
   it('Issue の参照が存在しない場合はエラーとし、skipIssueReferenceCheck を指定した場合はエラーにしない', async () => {
-    await explains('PR の内容を検証する、`validatePullRequestContent` のテストです。本文に Issue の参照が存在しない場合に、CLI と MCP でそれぞれのオプション名を案内するエラーを返し、`skipIssueReferenceCheck` の指定時は返さないことを確認します。')
+    await explains('PR の内容を検証する、`validatePullRequestContent` のテストです。本文に Issue の参照が存在しない場合に、入力 `no_issue_ref` を案内するエラーを返し、`skipIssueReferenceCheck` の指定時は返さないことを確認します。')
     const body = `## Summary\n\n${IMAGE}\n\n## Changes\n\n- 変更\n`
     const errors = validatePullRequestContent(options({ body }))
-    expect(errors.map(error => formatHinted(error, 'cli'))).toEqual(['PR body has no Issue reference `#N` (use `--no-issue-ref` for a PR not tied to an Issue)'])
-    expect(errors.map(error => formatHinted(error, 'mcp'))).toEqual(['PR body has no Issue reference `#N` (use `no_issue_ref: true` for a PR not tied to an Issue)'])
+    expect(errors.map(error => formatHinted(error))).toEqual(['PR body has no Issue reference `#N` (use `no_issue_ref: true` for a PR not tied to an Issue)'])
     expect(validatePullRequestContent(options({ body, skipIssueReferenceCheck: true }))).toEqual([])
   })
 
@@ -217,10 +215,9 @@ describe('validatePullRequestContent', () => {
     expect(validatePullRequestContent(options({ body, screenshot: '' }))).toEqual([SCREENSHOT_MISSING_ERROR])
   })
 
-  it('screenshot の理由の案内は、CLI ではフラグ名、MCP では入力名で表示する', async () => {
-    await explains('PR の内容を検証する、`validatePullRequestContent` のテストです。screenshot が不足している場合の案内が、CLI ではフラグの名前（`--screenshot`）、MCP では入力の名前（`screenshot`）で表示されることを確認します。')
-    expect(formatHinted(SCREENSHOT_MISSING_ERROR, 'cli')).toMatch(/\(`--screenshot` with `--message`\)$/u)
-    expect(formatHinted(SCREENSHOT_MISSING_ERROR, 'mcp')).toMatch(/\(`screenshot` with `message`\)$/u)
+  it('screenshot の理由の案内は、入力名で表示する', async () => {
+    await explains('PR の内容を検証する、`validatePullRequestContent` のテストです。screenshot が不足している場合の案内が、入力の名前（`screenshot` と `message`）で表示されることを確認します。')
+    expect(formatHinted(SCREENSHOT_MISSING_ERROR)).toMatch(/\(`screenshot` with `message`\)$/u)
   })
 
   it('base が develop でない場合はエラーとし、develop が未設定の場合は検証しない', async () => {
@@ -315,12 +312,12 @@ describe('formatPullRequestMarkdown', () => {
 })
 
 describe('formatPullRequestWithReviewsMarkdown', () => {
-  it('Issue ごとに詳細を見るコマンドを添え、レビューと行コメントを続ける', async () => {
-    await explains('レビューを含めた PR の情報を Markdown にする、`formatPullRequestWithReviewsMarkdown` のテストです。レビューと行コメントを持つ PR を渡した場合に、Issue ごとに詳細を見るコマンドを添え、本文の後にレビューと行コメントを続けることを確認します。')
-    expect(formatPullRequestWithReviewsMarkdown(FULL, 'o', 'r')).toBe(
+  it('メタ情報・ブランチ・Issue・本文の後に、レビューと行コメントを続ける', async () => {
+    await explains('レビューを含めた PR の情報を Markdown にする、`formatPullRequestWithReviewsMarkdown` のテストです。レビューと行コメントを持つ PR を渡した場合に、閉じる Issue と参照する Issue を並べ、本文の後にレビューと行コメントを続けることを確認します。')
+    expect(formatPullRequestWithReviewsMarkdown(FULL)).toBe(
       '## PR #7 題\n\n**State:** OPEN | **Draft** | **Mergeable:** MERGEABLE | **Comments:** 2\n\n**Branch:** `feat/x/7` → `main`\n\n'
-      + '**Closing Issues:**\n  - #7 T7\n    → details: issue show o/r/7\n\n'
-      + '**Referenced Issues:**\n  - #8\n    → details: issue show o/r/8\n  - #9 T9\n    → details: issue show o/r/9\n\n'
+      + '**Closing Issues:**\n  - #7 T7\n\n'
+      + '**Referenced Issues:**\n  - #8\n  - #9 T9\n\n'
       + '---\n\n本文\n\n---\n\n## Reviews\n\n### @alice (APPROVED) - 2026-11-01\n\nOK\n\n### @(unknown) (COMMENTED)\n\n### @bob (COMMENTED)\n\n'
       + '---\n\n## Line Comments\n\n### `a.ts:12` [Resolved]\n\n**@alice** (2026-11-02) https://github.com/o/r/pull/7#discussion_r1:\n> 行1\n> 行2\n\n**@(unknown)**:\n\n### `(unknown file)` [Open]\n',
     )
@@ -328,7 +325,7 @@ describe('formatPullRequestWithReviewsMarkdown', () => {
 
   it('Issue・レビュー・行コメントが存在しない場合は、本文で終える', async () => {
     await explains('レビューを含めた PR の情報を Markdown にする、`formatPullRequestWithReviewsMarkdown` のテストです。Issue・レビュー・行コメントを持たない PR を渡した場合に、本文までで出力が終わることを確認します。')
-    expect(formatPullRequestWithReviewsMarkdown(BARE, 'o', 'r')).toBe('## PR #1 t\n\n**State:** MERGED\n\n**Branch:** `a` → `b`\n\n---\n\n\n')
+    expect(formatPullRequestWithReviewsMarkdown(BARE)).toBe('## PR #1 t\n\n**State:** MERGED\n\n**Branch:** `a` → `b`\n\n---\n\n\n')
   })
 })
 
@@ -392,12 +389,12 @@ describe('parseHeadReference', () => {
 describe('forkPushFixHint', () => {
   it('ローカルと remote がずれていない場合は、remote とブランチ名を付けた git push を案内する', async () => {
     await explains('fork へ push するときの直し方を案内する、`forkPushFixHint` のテストです。ローカルと remote が分岐していない場合に、`git push fork feat/x` のように remote とブランチ名を付けた `git push` を案内することを確認します。')
-    expect(formatHinted(forkPushFixHint('fork', 'feat/x', false), 'cli')).toBe('git push fork feat/x')
+    expect(formatHinted(forkPushFixHint('fork', 'feat/x', false))).toBe('git push fork feat/x')
   })
 
   it('ローカルと remote がずれている場合は、取り込みか lease 付きの上書きを案内する', async () => {
     await explains('fork へ push するときの直し方を案内する、`forkPushFixHint` のテストです。ローカルと remote が分岐している場合に、取り込みの `git pull --rebase` か、上書きの `git push --force-with-lease` を案内することを確認します。')
-    expect(formatHinted(forkPushFixHint('fork', 'feat/x', true), 'cli')).toBe('git pull --rebase fork feat/x, or git push --force-with-lease fork feat/x if you rewrote pushed commits')
+    expect(formatHinted(forkPushFixHint('fork', 'feat/x', true))).toBe('git pull --rebase fork feat/x, or git push --force-with-lease fork feat/x if you rewrote pushed commits')
   })
 })
 
@@ -415,22 +412,17 @@ describe('describePushStatus', () => {
 
 describe('pushFixHintOf', () => {
   const rows: readonly { readonly name: string, readonly decision: RestackDecision | undefined, readonly expected: string }[] = [
-    { name: '親ブランチが動いた', decision: { kind: 'moved', base: 'feat/1' }, expected: 'pecot pr restack' },
-    { name: '親 PR がマージ済み', decision: { kind: 'merged', base: 'main', pullRequest: 1 }, expected: 'pecot pr restack' },
-    { name: 'スタックし直し済みで記録だけが古い', decision: { kind: 'rebased', base: 'main' }, expected: 'pecot pr restack' },
+    { name: '親ブランチが動いた', decision: { kind: 'moved', base: 'feat/1' }, expected: 'pr_restack' },
+    { name: '親 PR がマージ済み', decision: { kind: 'merged', base: 'main', pullRequest: 1 }, expected: 'pr_restack' },
+    { name: 'スタックし直し済みで記録だけが古い', decision: { kind: 'rebased', base: 'main' }, expected: 'pr_restack' },
     { name: '親ブランチが動いていない', decision: { kind: 'up-to-date', base: 'feat/1' }, expected: `git pull --rebase, or ${['git', 'push', '--force-with-lease'].join(' ')} if you rewrote pushed commits` },
-    { name: '親ブランチが消えた', decision: { kind: 'gone', base: 'feat/1', pullRequest: undefined }, expected: 'pecot pr restack --check' },
-    { name: '判断を読めない', decision: undefined, expected: 'pecot pr restack --check' },
+    { name: '親ブランチが消えた', decision: { kind: 'gone', base: 'feat/1', pullRequest: undefined }, expected: 'pr_restack with check: true' },
+    { name: '判断を読めない', decision: undefined, expected: 'pr_restack with check: true' },
   ]
 
   it.for(rows)('$name の場合は、$expected を案内する', async (row) => {
     await explains(`push の問題の直し方を案内する、\`pushFixHintOf\` のテストです。${row.name}の場合に、\`${row.expected}\` を案内することを確認します。`)
-    expect(formatHinted(pushFixHintOf(row.decision), 'cli')).toBe(row.expected)
-  })
-
-  it('MCP の出力では、ツールの名前で案内する', async () => {
-    await explains('push の問題の直し方を案内する、`pushFixHintOf` のテストです。MCP の出力の場合に、コマンドではなくツールの名前（`pr_restack`）で案内することを確認します。')
-    expect(formatHinted(pushFixHintOf({ kind: 'moved', base: 'feat/1' }), 'mcp')).toBe('pr_restack')
+    expect(formatHinted(pushFixHintOf(row.decision))).toBe(row.expected)
   })
 })
 
@@ -445,7 +437,7 @@ describe('collectPreflightWarnings', () => {
   it('警告は push・status・stash の順に返し、stash の件数に空行を含めない', async () => {
     await explains('PR を作成する前の警告を集める、`collectPreflightWarnings` のテストです。push 前・未コミットの変更・stash のすべてがある場合に、その順の警告を返し、stash の件数から空行を除くことを確認します。')
     const warnings = collectPreflightWarnings({ gitStatus: ' M a.ts', stashList: 'stash@{0}: a\n\nstash@{1}: b\r\nstash@{2}: c', isPushed: false, pushMessage: '2 unpushed commits' })
-    expect(warnings.map(warning => ({ ...warning, fixHint: formatHinted(warning.fixHint, 'cli') }))).toEqual([
+    expect(warnings.map(warning => ({ ...warning, fixHint: formatHinted(warning.fixHint) }))).toEqual([
       { label: 'Push Status', message: '2 unpushed commits', fixHint: 'git push' },
       { label: 'Git Status', message: 'modified or untracked files', fixHint: 'commit' },
       { label: 'Stash List', message: '3 stash entries', fixHint: 'check them' },
@@ -455,12 +447,12 @@ describe('collectPreflightWarnings', () => {
   it('Push Status の直し方を渡した場合は、その直し方を使う', async () => {
     await explains('PR を作成する前の警告を集める、`collectPreflightWarnings` のテストです。push の問題の直し方を渡した場合に、既定の `git push` の案内ではなく、渡した直し方を `Push Status` の警告に使うことを確認します。')
     const [warning] = collectPreflightWarnings({ ...clean, isPushed: false, pushMessage: 'diverged', pushFixHint: pushFixHintOf({ kind: 'moved', base: 'feat/1' }) })
-    expect(warning === undefined ? undefined : formatHinted(warning.fixHint, 'cli')).toBe('pecot pr restack')
+    expect(warning === undefined ? undefined : formatHinted(warning.fixHint)).toBe('pr_restack')
   })
 
   it('警告を 1 行の文にする', async () => {
     await explains('PR を作成する前の警告を 1 行の文にする、`formatPreflightWarning` のテストです。ラベル・メッセージ・直し方を渡した場合に、`Push Status: m (fix: git push)` の形の文を返すことを確認します。')
-    expect(formatHinted(formatPreflightWarning({ label: 'Push Status', message: 'm', fixHint: ['git push'] }), 'cli')).toBe('Push Status: m (fix: git push)')
+    expect(formatHinted(formatPreflightWarning({ label: 'Push Status', message: 'm', fixHint: ['git push'] }))).toBe('Push Status: m (fix: git push)')
   })
 })
 
@@ -548,15 +540,11 @@ describe('pickLowerPullRequest', () => {
 })
 
 describe('describeBaseStop', () => {
-  const surfaces: readonly { readonly name: string, readonly surface: HintSurface, readonly again: string }[] = [
-    { name: 'cli', surface: 'cli', again: 'run pr create again' },
-    { name: 'mcp', surface: 'mcp', again: 'call pr_create again' },
-  ]
-  it.for(surfaces)('親 PR が存在しない場合は、止めた理由と、$name の形の直し方の 2 行を返す', async ({ name, surface, again }) => {
-    await explains(`base を決められずに止めたときの説明を作成する、\`describeBaseStop\` のテストです。開いている親 PR が存在しない場合に、止めた理由と、${name} の形で書いた直し方の 2 行を返すことを確認します。`)
-    expect(describeBaseStop({ kind: 'stop', reason: 'no-open-pr', branch: 'feat/a/11' }).map(line => formatHinted(line, surface))).toEqual([
+  it('親 PR が存在しない場合は、止めた理由と、pr_create を呼び直す直し方の 2 行を返す', async () => {
+    await explains('base を決められずに止めたときの説明を作成する、`describeBaseStop` のテストです。開いている親 PR が存在しない場合に、止めた理由と、`pr_create` を呼び直す直し方の 2 行を返すことを確認します。')
+    expect(describeBaseStop({ kind: 'stop', reason: 'no-open-pr', branch: 'feat/a/11' }).map(line => formatHinted(line))).toEqual([
       'base branch feat/a/11 has no open PR',
-      `reopen the PR of feat/a/11, or create a new one, then ${again}`,
+      'reopen the PR of feat/a/11, or create a new one, then call pr_create again',
     ])
   })
 

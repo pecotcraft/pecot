@@ -1,7 +1,20 @@
 {
-  "stdout": "{{TMP}}/wt1/demo\n",
-  "stderr": "warning: target does not exist: {{TMP}}/base/demo/.env\nwarning: target does not exist: {{TMP}}/base/demo/.claude/settings.local.json\nwarning: target does not exist: {{TMP}}/base/demo/.pecot/config/hooks-config.json\nwarning: target does not exist: {{TMP}}/base/demo/.pecot/work\ncreated: worktree wt1 at {{TMP}}/wt1/demo (branch wt1 from main)\ncount: symlinks created: 2\ncount: symlinks skipped: 4\ncount: files copied: 1\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "created: worktree wt1 at {{TMP}}/wt1/demo (branch wt1 from main)",
+  "structuredContent": {
+    "name": "wt1",
+    "path": "{{TMP}}/wt1/demo",
+    "branch": "wt1",
+    "base": "main",
+    "setupFailed": false,
+    "warnings": [
+      "target does not exist: {{TMP}}/base/demo/.env",
+      "target does not exist: {{TMP}}/base/demo/.claude/settings.local.json",
+      "target does not exist: {{TMP}}/base/demo/.pecot/config/hooks-config.json",
+      "target does not exist: {{TMP}}/base/demo/.pecot/work"
+    ]
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     "../../wt1/demo/.env.local": "TOKEN=sample\n",

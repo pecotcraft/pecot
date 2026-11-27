@@ -302,26 +302,6 @@ export function formatBoardOutput(items: readonly BoardItem[], readiness?: Reado
   return sections.length === 0 ? '_No items_' : sections.map(section => section.join('\n')).join('\n\n')
 }
 
-export interface StackableChain {
-  /**
-  並びの一番上の Issue の親（表示用の `#N`）。親が無ければ undefined
-  */
-  readonly epic: string | undefined
-  /**
-  下から並べた Issue（表示用の `#N`）
-  */
-  readonly chain: readonly string[]
-}
-
-/**
-`## Stackable chains` の節を作る。1 行が 1 つの並びで、並びが無ければ undefined
-*/
-export function formatStackableChains(chains: readonly StackableChain[]): string | undefined {
-  if (chains.length === 0) return undefined
-  const lines = chains.map(({ epic = '(no epic)', chain }) => `- ${epic}: ${chain.join(' -> ')}`)
-  return ['## Stackable chains', '', ...lines].join('\n')
-}
-
 /**
 アイテムリストを JSON 出力用の辞書にする
 */

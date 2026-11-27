@@ -1,8 +1,8 @@
 # リポジトリがプロジェクトにリンクされていないので exit 1 で止まる。
 id: board-add-state-outside-project
-command:
-  path: [board, add]
-  args: [acme/demo/7]
+tool: board_add
+arguments:
+  issue_ref: acme/demo/7
 setup:
   repo:
     files:

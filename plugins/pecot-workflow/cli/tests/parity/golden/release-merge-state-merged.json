@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: PR #31 is already merged\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "PR #31 is already merged",
+  "structuredContent": {
+    "kind": "pr-state",
+    "detail": "PR #31 is already merged"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

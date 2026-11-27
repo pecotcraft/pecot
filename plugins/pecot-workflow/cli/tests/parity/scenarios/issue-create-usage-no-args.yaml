@@ -1,7 +1,6 @@
 # モードを決める引数が無い。使用方法を出して exit 1。
 id: issue-create-usage-no-args
-command:
-  path: [issue, create]
-  args: []
+tool: issue_create
+arguments: {}
 setup: {}
 github: []

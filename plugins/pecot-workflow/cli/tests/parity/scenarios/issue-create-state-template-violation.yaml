@@ -1,14 +1,13 @@
 # 本文に Acceptance が無い。テンプレート違反で exit 1 になり、GitHub は呼ばれない。
 id: issue-create-state-template-violation
-command:
-  path: [issue, create]
-  args:
-    - -m
-    - "## Goal — 一覧画面から状態を確認できる\n\n利用者が一覧画面で各項目の状態を確認できる。\n"
-    - -t
-    - 一覧に状態を出す
-    - -r
-    - acme/demo
+tool: issue_create
+arguments:
+  message: |
+    ## Goal — 一覧画面から状態を確認できる
+
+    利用者が一覧画面で各項目の状態を確認できる。
+  title: 一覧に状態を出す
+  repo: acme/demo
 setup:
   repo:
     files:

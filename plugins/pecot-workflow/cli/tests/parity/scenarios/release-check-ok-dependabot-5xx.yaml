@@ -1,8 +1,7 @@
 # Dependabot の一覧が 502。警告 2 行を出して通る（exit 0）。
 id: release-check-ok-dependabot-5xx
-command:
-  path: [release, check]
-  args: []
+tool: release_check
+arguments: {}
 setup:
   repo:
     files:

@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: invalid version format: v0.2\n  use semantic versioning (X.Y.Z)\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "invalid version format: v0.2\n  use semantic versioning (X.Y.Z)",
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid version format: v0.2\n  use semantic versioning (X.Y.Z)"
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

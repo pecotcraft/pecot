@@ -1,8 +1,10 @@
 # 前提の付いた 2 ファイルを確かめる。何も作らずに、進め方の表とスタックできる並びを出す。
 id: issue-check-ok-files
-command:
-  path: [issue, check]
-  args: [first.md, second.md]
+tool: issue_check
+arguments:
+  files:
+    - first.md
+    - second.md
 setup:
   repo:
     files:

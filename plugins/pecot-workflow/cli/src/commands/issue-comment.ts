@@ -17,8 +17,8 @@ import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
 import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
 import { readTextFile } from '@pecot/workflow-core/infra/text-file.js'
 import { templateFile } from '../infra/template-store.js'
-import { defineCommand, CommandExit } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { defineTool, CommandExit } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { commandHint, hinted, inputNameHint, placeholder } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import { stopWith, requireConfigFor, PROJECT_INPUT } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
@@ -123,7 +123,7 @@ async function updateComment(output: CommentOutput, client: GitHubClient, target
   output.data(updatedUrl)
 }
 
-async function postFromFile(output: CommentOutput, project: string | undefined, repository: string | undefined, file: string, isDryRun: boolean): Promise<void> {
+async function postFromFile(output: CommentOutput, project: string | undefined, repository: string | undefined, file: string): Promise<void> {
   let parsed
   try {
     parsed = parseCommentFile(file)
@@ -151,13 +151,6 @@ async function postFromFile(output: CommentOutput, project: string | undefined, 
   if (!await isRepositoryInProject(config, target.owner, target.repository, client)) {
     output.warning(`${target.owner}/${target.repository} is not in the project`)
   }
-  if (isDryRun) {
-    const display = issuePath(target.owner, target.repository, target.number)
-    output.result({ issue: issuePath(target.owner, target.repository, target.number), change: hasCommentUrl ? 'updated' : 'created' })
-    output.planned({ verb: hasCommentUrl ? 'update' : 'create', target: `comment on ${display}` })
-    if (!hasCommentUrl) output.planned({ verb: 'set', target: `comment_url in ${file}` })
-    return
-  }
 
   if (hasCommentUrl) {
     await updateComment(output, client, target, commentId, commentUrl, body)
@@ -167,25 +160,20 @@ async function postFromFile(output: CommentOutput, project: string | undefined, 
   if (createdUrl !== '') writeBackCommentUrl(output, file, createdUrl)
 }
 
-async function postDirect(output: CommentOutput, project: string | undefined, repository: string | undefined, issueReference: string, message: string, template: string, isDryRun: boolean): Promise<void> {
+async function postDirect(output: CommentOutput, project: string | undefined, repository: string | undefined, issueReference: string, message: string, template: string): Promise<void> {
   const target = parseIssueReferenceOrExit(output, repository, issueReference)
   const { config } = requireConfigFor(output, target, project, COMMENT_PATH)
 
   if (hasReportedTemplateViolations(output, message, templateFile('comment', template))) throw new CommandExit(COMMENT_VALIDATION_EXIT_CODE, 'content-invalid')
 
-  if (isDryRun) {
-    output.result({ issue: issuePath(target.owner, target.repository, target.number), change: 'created' })
-    output.planned({ verb: 'create', target: `comment on ${issuePath(target.owner, target.repository, target.number)}` })
-    return
-  }
   // 認証の失敗を、コメントを作れない文に包まないため
   await createComment(output, await createAuthenticatedGitHubClient(output, config.host), target, message)
 }
 
 const COMMENT_PATH = ['issue', 'comment']
 
-const ISSUE_COMMENT = defineCommand({
-  path: COMMENT_PATH,
+const ISSUE_COMMENT = defineTool({
+  name: 'issue_comment',
   title: 'Comment on Issue',
   description: 'Post a comment on an Issue',
   input: z.object({
@@ -196,28 +184,24 @@ const ISSUE_COMMENT = defineCommand({
       'Template type the message is checked against (required with `message`; plan/merge-diff/review-findings/review-resolution/precede-notify)',
     ),
     project: PROJECT_INPUT,
-    dry_run: z.boolean().default(false).describe('Show what would be posted or written without changing anything'),
   }),
   output: ISSUE_COMMENT_OUTPUT,
-  positional: ['file'],
-  shortFlags: { message: '-m', issue_ref: '-i', template: '-t', dry_run: '-n' },
-  interactive: false,
   run: async (input, io) => {
-    const output = createOutput<z.input<typeof ISSUE_COMMENT_OUTPUT>>(input.dry_run, io)
+    const output = createOutput<z.input<typeof ISSUE_COMMENT_OUTPUT>>(false, io)
     return await runWithExit(async () => {
       const { file, message, issue_ref: issue, template } = input
       if (template === undefined && message !== undefined && file === undefined) {
         stopWith(output, hinted`specify a template with ${inputNameHint(COMMENT_PATH, 'template')} (${TEMPLATE_CHOICES})`, 'invalid-input')
       }
       if (file !== undefined) {
-        await postFromFile(output, input.project, input.repo, file, input.dry_run)
+        await postFromFile(output, input.project, input.repo, file)
         return
       }
       if (message !== undefined && template !== undefined) {
         if (issue === undefined || issue === '') {
           stopWith(output, hinted`${inputNameHint(COMMENT_PATH, 'issue_ref')} (Issue reference) is required with ${inputNameHint(COMMENT_PATH, 'message')}`, 'invalid-input')
         }
-        await postDirect(output, input.project, input.repo, issue, message, template, input.dry_run)
+        await postDirect(output, input.project, input.repo, issue, message, template)
         return
       }
       stopWith(
@@ -231,4 +215,4 @@ from a file: ${commandHint(COMMENT_PATH, { file: placeholder('path') })}`,
   },
 })
 
-export const ISSUE_COMMENT_COMMANDS: readonly CommandDefinition[] = [ISSUE_COMMENT]
+export const ISSUE_COMMENT_TOOLS: readonly ToolDefinition[] = [ISSUE_COMMENT]

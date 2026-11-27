@@ -1,9 +1,8 @@
 # Python の project create / activate が書いた形の設定を読む。手本の golden は project-create-ok。
 # ボードに 3 件あり、登録リポは 0 件。Markdown で出す。進行の欄は旧い名前のままなので、旧い名前の警告を出す。
 id: board-show-ok-python-state
-command:
-  path: [board, show]
-  args: []
+tool: board_show
+arguments: {}
 setup:
   repo:
     files:

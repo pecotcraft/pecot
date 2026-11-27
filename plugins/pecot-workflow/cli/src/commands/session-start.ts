@@ -14,18 +14,18 @@ import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
 import { issuePath } from '@pecot/workflow-core/commands-shared/issue-shared.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import type { Output } from '@pecot/workflow-core/commands-shared/output.js'
-import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import { commandHint, hinted, joinHinted, surfaceText } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { commandHint, hinted, joinHinted } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import type { HintedText } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
 import { fieldWriteFailure } from '@pecot/workflow-core/commands-shared/field-write-failure.js'
 import { createGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
 import { USAGE_EXIT_CODE } from '@pecot/workflow-core/commands-shared/usage-error.js'
-import { requireRepositoryMatch, resolveCurrentRepository } from './repository-match.js'
+import { requireRepositoryMatch, resolveCurrentRepository } from '@pecot/workflow-core/commands-shared/repository-match.js'
 import { createReadinessCache, readIssueReadinessIfSupported } from '@pecot/workflow-core/commands-shared/issue-readiness.js'
-import { planWorkTarget, recordWorkTarget } from './work-target.js'
+import { recordWorkTarget } from './work-target.js'
 import { checkLeftovers } from './session-leftovers.js'
 
 const START_PATH = ['session', 'start']
@@ -40,7 +40,7 @@ function rejectCwdRepositoryMismatch(out: Readonly<Output>, owner: string, repos
   if (current.owner === owner && current.repository === repository) return
   stopWith(
     out,
-    hinted`the repository of the work Issue (${owner}/${repository}) differs from the CWD git remote (${repositoryFullName(current)})\nmove to the worktree of the target repository and ${surfaceText('run again', 'call the tool again')}:\n<project-root>/base/${repository}/ or <project-root>/<wtN>/${repository}/\ncreate one with /pecot-w:w-worktree-add only if the repository has no worktree`,
+    hinted`the repository of the work Issue (${owner}/${repository}) differs from the CWD git remote (${repositoryFullName(current)})\nmove to the worktree of the target repository and call the tool again:\n<project-root>/base/${repository}/ or <project-root>/<wtN>/${repository}/\ncreate one with /pecot-w:w-worktree-add only if the repository has no worktree`,
     'repo-mismatch',
     USAGE_EXIT_CODE,
   )
@@ -132,7 +132,7 @@ async function setIssueStatusActive(out: Readonly<Output>, client: Readonly<GitH
 }
 
 const LEFTOVER_DATA = z.strictObject({
-  pullRequest: z.string().describe('Merged PR of the current branch whose local cleanup with session finish is left (owner/repo/N)'),
+  pullRequest: z.string().describe('Merged PR of the current branch whose local cleanup with session_finish is left (owner/repo/N)'),
 })
 
 const SESSION_START_OUTPUT = z.strictObject({
@@ -145,8 +145,8 @@ const SESSION_START_OUTPUT = z.strictObject({
   leftovers: z.array(LEFTOVER_DATA).optional().describe('Earlier merged PRs whose local cleanup is left undone (omitted when there is none)'),
 })
 
-const sessionStartCommand = defineCommand({
-  path: START_PATH,
+const sessionStartCommand = defineTool({
+  name: 'session_start',
   title: 'Start Issue branch',
   description: 'Create a branch linked to an Issue (shown in the Development section of the Issue)',
   input: z.strictObject({
@@ -154,17 +154,12 @@ const sessionStartCommand = defineCommand({
     branch: z.string().describe('Name of the branch to create'),
     base: z.string().optional().describe('Base branch (default: chosen by readiness, else develop_branch from the config)'),
     checkout: z.boolean().default(true).describe('Kept for compatibility; has no effect'),
-    dry_run: z.boolean().default(false).describe('Show what would be created and recorded without writing anything'),
     project: PROJECT_INPUT,
   }),
   output: SESSION_START_OUTPUT,
-  positional: ['issue_ref', 'branch'],
-  shortFlags: { base: '-b', dry_run: '-n' },
-  negations: { checkout: '--no-checkout' },
-  interactive: false,
   run: async (input, io) => {
     requireRepositoryMatch('reject', input.repo, io, process.cwd())
-    const out = createOutput<z.input<typeof SESSION_START_OUTPUT>>(input.dry_run, io)
+    const out = createOutput<z.input<typeof SESSION_START_OUTPUT>>(false, io)
     // 2. issue_ref をパース（フル形式必須、基準リポは渡さない）
     let issue
     try {
@@ -219,13 +214,6 @@ const sessionStartCommand = defineCommand({
 
       const stackedNote = decision.kind === 'stack' ? ` (stacked on ${displayReference(decision.issue, issue.repository)})` : ''
       const started = { repository: `${owner}/${repository}`, base: baseBranch, ...decision.kind === 'stack' && { stackedOn: decision.issue.number }, issue: issuePath(owner, repository, issueNumber) }
-      if (input.dry_run) {
-        out.result({ ...started, branch: finalBranchName })
-        out.planned({ verb: 'create', target: `branch ${finalBranchName} in ${owner}/${repository} from ${baseBranch}${stackedNote}` })
-        out.planned({ verb: 'set', target: `Issue ${issuePath(owner, repository, issueNumber)} status active` })
-        planWorkTarget(out, issueNumber)
-        return 0
-      }
       // 7. リンクブランチ作成（ブランチ名末尾に Issue 番号を自動付与）
       const createdBranch = await client.createLinkedBranch(issueNodeId, baseSha, finalBranchName)
       out.done({ verb: 'create', target: `branch ${createdBranch} in ${owner}/${repository} from ${baseBranch}${stackedNote}` })
@@ -248,4 +236,4 @@ const sessionStartCommand = defineCommand({
   },
 })
 
-export const SESSION_START_COMMANDS: readonly CommandDefinition[] = [sessionStartCommand]
+export const SESSION_START_TOOLS: readonly ToolDefinition[] = [sessionStartCommand]

@@ -1,7 +1,13 @@
 {
-  "stdout": "",
-  "stderr": "added: acme/other to project #1\nadded: acme/other to {{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "added: acme/other to project #1",
+  "structuredContent": {
+    "repository": "acme/other",
+    "projectNumber": 1,
+    "change": "create",
+    "configPath": "{{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

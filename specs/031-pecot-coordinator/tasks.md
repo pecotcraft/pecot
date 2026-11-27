@@ -162,24 +162,24 @@
 
 **Independent Test**: `claude plugin validate --strict` が通り、Claude Code で MCP とフックが今どおり動き、作業ツリーの build を Inspector の `--cli` で呼べる
 
-- [ ] T074 [US4] `.mcp.json` と `mcp.json` の形のテストを書く。`npx`・`--prefix` はデータ置き場・`@pecot/workflow-mcp@<版>`、playwright の `--prefix` もデータ置き場 in `plugins/pecot-workflow/cli/tests/`
-- [ ] T075 [US4] ツールをサーバに直に登録する形のテストを書き、CLI の入口が無いことを確かめる in `plugins/pecot-workflow/cli/src/mcp/tests/`
-- [ ] T076 [US4] `plugins/pecot-workflow/.mcp.json` と `mcp.json` を、`npx` で npm の版を起動する形に直す（Claude Code は `${CLAUDE_PLUGIN_DATA}`、Agent Plugins は `${PLUGIN_DATA}`）
-- [ ] T077 [US4] `plugins/pecot-workflow/cli/src/mcp/server.ts` に、ツールを直に登録する形を書く。CLI のコマンドを 1 つずつツールとして出す作りをやめる
-- [ ] T078 [US4] `plugins/pecot-workflow/cli/src/cli.ts` と、CLI だけが使う部品を消す。`cli/package.json` の `bin` は、引数なしで MCP のサーバを起動する入口を指す
-- [ ] T079 [US4] `plugins/pecot-workflow/bin/` と、`bin/` だけが使う `runtime-lock.yaml`・`runtime-workspace.yaml`・`cli/tests/bootstrap/`・`test-bootstrap` のレーンを消す
-- [ ] T080 [US4] T079 で消したものの参照を直す（`.pre-commit-config.yaml`・`nx.json`・`.github/dependabot.yml`・`dependabot-commit.yml`・`.githooks/tests/`・`CLAUDE.md` の表）
-- [ ] T081 [US4] リリースで `.mcp.json`・`mcp.json` の `@pecot/workflow-mcp@<版>` を同じ版に書き換える仕組みを足し、`plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh` を直す
-- [ ] T082 [US4] `release-check` の入口のテストを書き、今の `release check` と同じ判定になることを確かめる in `actions/tests/release-check.test.ts`
-- [ ] T083 [US4] `.github/workflows/release.yml` の preflight の `bin/pecot release check` を、`uses: ./actions/release-check` に直す。`actions/release-check/action.yml`・入口・`dist/` を足す
-- [ ] T084 [US4] `.devcontainer/scripts/post-create.sh` の `bin/pecot worktree add` を、build したサーバの `worktree_add` を Inspector の `--cli`（版を固定）で呼ぶ形に直す
-- [ ] T085 [US4] `.githooks/pre-commit/check-entry-point-logic.sh` を、CLI の入口が無く、MCP のサーバとフックが入口になる形に合わせて直す
-- [ ] T086 [US4] `plugins/pecot-workflow/CONTRIBUTING.md` の「3. 試験環境」の `bin/pecot <コマンド>` を、作業ツリーで build して Inspector の `--cli` で呼ぶ形に書き換える（リポの外で打つ）
-- [ ] T087 [US4] スキル・`README.md`・`CONTRIBUTING.md` から、PATH のコマンドと `bin/` を前提にする箇所を消す（FR-009） in `plugins/pecot-workflow/`
-- [ ] T088 [US4] `.specify/memory/constitution.md` の Sync Impact Report の Follow-up TODO（CONTRIBUTING の書き換え）を済みにする
-- [ ] T089 [US4] version plan を足す（pecot-workflow はメジャー）
-- [ ] T090 [US4] CUJ: `claude plugin validate --strict` を通し、子の Claude Code に `--plugin-dir` で入れて、npx で npm の版のサーバが起動し、スキルとフックが今どおり動くことを確かめる
-- [ ] T091 [US4] CUJ: 作業ツリーで build し、リポの外で Inspector の `--cli` で `tools/list` と `tools/call` が通ることを確かめる
+- [x] T074 [US4] `.mcp.json` と `mcp.json` の形のテストを書く。`npx`・`--prefix` はデータ置き場・`@pecot/workflow-mcp@<版>`、playwright の `--prefix` もデータ置き場 in `plugins/pecot-workflow/cli/tests/`
+- [x] T075 [US4] ツールをサーバに直に登録する形のテストを書き、CLI の入口が無いことを確かめる in `plugins/pecot-workflow/cli/src/mcp/tests/`
+- [x] T076 [US4] `plugins/pecot-workflow/.mcp.json` と `mcp.json` を、`npx` で npm の版を起動する形に直す（Claude Code は `${CLAUDE_PLUGIN_DATA}`、Agent Plugins は `${PLUGIN_DATA}`）
+- [x] T077 [US4] `plugins/pecot-workflow/cli/src/mcp/server.ts` に、ツールを直に登録する形を書く。CLI のコマンドを 1 つずつツールとして出す作りをやめる
+- [x] T078 [US4] `plugins/pecot-workflow/cli/src/cli.ts` と、CLI だけが使う部品を消す。`cli/package.json` の `bin` は、引数なしで MCP のサーバを起動する入口を指す
+- [x] T079 [US4] `plugins/pecot-workflow/bin/` と、`bin/` だけが使う `runtime-lock.yaml`・`runtime-workspace.yaml`・`cli/tests/bootstrap/`・`test-bootstrap` のレーンを消す
+- [x] T080 [US4] T079 で消したものの参照を直す（`.pre-commit-config.yaml`・`nx.json`・`.github/dependabot.yml`・`dependabot-commit.yml`・`.githooks/tests/`・`CLAUDE.md` の表）
+- [x] T081 [US4] リリースで `.mcp.json`・`mcp.json` の `@pecot/workflow-mcp@<版>` を同じ版に書き換える仕組みを足し、`plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh` を直す
+- [x] T082 [US4] `release-check` の入口のテストを書き、今の `release check` と同じ判定になることを確かめる in `actions/tests/release-check.test.ts`
+- [x] T083 [US4] `.github/workflows/release.yml` の preflight の `bin/pecot release check` を、`uses: ./actions/release-check` に直す。`actions/release-check/action.yml`・入口・`dist/` を足す
+- [x] T084 [US4] `.devcontainer/scripts/post-create.sh` の `bin/pecot worktree add` を、build したサーバの `worktree_add` を Inspector の `--cli`（版を固定）で呼ぶ形に直す
+- [x] T085 [US4] `.githooks/pre-commit/check-entry-point-logic.sh` を、CLI の入口が無く、MCP のサーバとフックが入口になる形に合わせて直す
+- [x] T086 [US4] `plugins/pecot-workflow/CONTRIBUTING.md` の「3. 試験環境」の `bin/pecot <コマンド>` を、作業ツリーで build して Inspector の `--cli` で呼ぶ形に書き換える（リポの外で打つ）
+- [x] T087 [US4] スキル・`README.md`・`CONTRIBUTING.md` から、PATH のコマンドと `bin/` を前提にする箇所を消す（FR-009） in `plugins/pecot-workflow/`
+- [x] T088 [US4] `.specify/memory/constitution.md` の Sync Impact Report の Follow-up TODO（CONTRIBUTING の書き換え）を済みにする
+- [x] T089 [US4] version plan を足す（pecot-workflow はメジャー）
+- [x] T090 [US4] CUJ: `claude plugin validate --strict` を通し、子の Claude Code に `--plugin-dir` で入れて、npx で npm の版のサーバが起動し、スキルとフックが今どおり動くことを確かめる
+- [x] T091 [US4] CUJ: 作業ツリーで build し、リポの外で Inspector の `--cli` で `tools/list` と `tools/call` が通ることを確かめる
 
 ---
 

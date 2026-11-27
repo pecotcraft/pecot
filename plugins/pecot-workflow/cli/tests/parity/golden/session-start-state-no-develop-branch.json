@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: develop_branch is not set for acme/demo\n  set it with: pecot project link acme/demo --develop-branch develop\n  or give the base: pecot session start acme/demo/7 feat --base main\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "develop_branch is not set for acme/demo\n  set it with: project_link with repo: \"acme/demo\", develop_branch: \"develop\"\n  or give the base: session_start with issue_ref: \"acme/demo/7\", branch: \"feat\", base: \"main\"",
+  "structuredContent": {
+    "kind": "repo-setting-missing",
+    "detail": "develop_branch is not set for acme/demo\n  set it with: project_link with repo: \"acme/demo\", develop_branch: \"develop\"\n  or give the base: session_start with issue_ref: \"acme/demo/7\", branch: \"feat\", base: \"main\""
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

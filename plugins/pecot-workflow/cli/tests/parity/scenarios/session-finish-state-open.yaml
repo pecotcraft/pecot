@@ -1,9 +1,8 @@
 # PR がまだマージされていない（OPEN）。何もせず exit 1 になる。
 id: session-finish-state-open
-command:
-  path: [session, finish]
-  args:
-    - "acme/demo/21"
+tool: session_finish
+arguments:
+  pr_ref: acme/demo/21
 setup:
   repo:
     files:

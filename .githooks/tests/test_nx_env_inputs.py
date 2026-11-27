@@ -26,7 +26,7 @@ nx の task cache は、宣言した入力が変わらない限りレーンを�
 run-tests.sh / install.sh が外から読む変数は少ない。
 結果を左右する変数（PLAYWRIGHT_BROWSERS_PATH、PECOTV_SINGLE_PASS 等）は、テストコードと設定の側にある。
 シェルは scripts/ci/*.sh・bin/*・setup.sh に加え、レーンが直接実行する tests 配下の *.sh を走査する。
-tests 配下の例は plugins/pecot-workflow/cli/tests/bootstrap/run.sh になる。
+tests 配下の例は plugins/pecot-visual/cli/tests/bootstrap/run.sh になる。
 hooks 配下の *.sh（hooks/**/*.sh と hooks/tests/*.test.sh）は走査しない。
 hook スクリプトは、dispatcher や別のスクリプトが設定して渡す変数を大量に読む。
 HOOK_COMMAND、REPO_DIR、FILE_PATH 等がその例で、環境変数と見分けがつかない。
@@ -60,8 +60,6 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 # 足すときは理由を 1 行で書く。
 # 読まれなくなった変数は test_exempt_entries_are_still_read が落とす。そのときは行ごと消す。
 _EXEMPT: dict[str, str] = {
-    "COLUMNS": "枠の幅。cli のテストは幅を引数で渡し、前後比較は子プロセスに 80 を渡すので、外の値は結果を変えない",
-    "TERMINAL_WIDTH": "COLUMNS と同じ",
     "PATH": (
         "実行ファイルの版は runtime 入力（node / uv / aws の --version）で見る。値そのものは"
         "端末・フック・IDE ごとに揺れ、入れると無関係な再実行が増える"
@@ -104,13 +102,6 @@ _EXEMPT: dict[str, str] = {
     "PECOTV_PLUGIN_ROOT": "source した check-pm-guard.sh が設定するシェル変数。環境変数ではない",
     "REPO_ROOT": "source した check-pm-guard.sh が設定するシェル変数。環境変数ではない",
     # --- #1230 プラグインのデータ置き場 ---
-    "PECOT_BOOTSTRAP_SKIP": (
-        "pre-push で動く run-tests.sh と conftest が unset して固定する。bin/pecot の SKIP は"
-        "テストが自分で env に渡す"
-    ),
-    "PECOT_BOOTSTRAP_FORCE": (
-        "run-tests.sh と conftest が unset して固定する。ミラーを作り直す bootstrap テストは、自分で env に渡す"
-    ),
     "GITHUB_RUN_ID": (
         "review-finish の action が目印に入れる。vitest の useIsolatedEnvironment が外し、review-finish のテストが自分で渡す"
     ),
@@ -145,26 +136,6 @@ _EXEMPT: dict[str, str] = {
         "useIsolatedEnvironment が外して固定する。秘密の値をハッシュに入れない点も合う"
     ),
     "GITHUB_COM_TOKEN": "PECOT_GITHUB_*_TOKEN と同じ読みの組なので、同じ扱い",
-    "SCRIPT_DIR": "bootstrap テストの stub-root.sh が自分の置き場所から求める内部変数",
-    "STUB_FAIL_BUILD": "bootstrap テストの stub pnpm の失敗注入。テストが自分で env に渡す",
-    "STUB_FAIL_INSTALL": "bootstrap テストの stub pnpm の失敗注入。テストが自分で env に渡す",
-    "PLUGIN_RUNTIME_DIR": "source した bin/_lib.sh の plugin_runtime_ensure が設定するシェル変数。環境変数ではない",
-    "PLUGIN_RUNTIME_FORCE": "wrapper が PECOTV_BOOTSTRAP_FORCE から設定し、source した bin/_lib.sh が読むシェル変数",
-    "PLUGIN_RUNTIME_NAME": "source した bin/_lib.sh が設定するシェル変数。環境変数ではない",
-    # source した helper（stub-root.sh）が設定するシェル変数。環境変数ではない。
-    "BASE": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
-    "ROOT": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
-    "DATA": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
-    "CALLS": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
-    "PNPM_XDG": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
-    "OUT": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
-    "ERR": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
-    "NOFLOCK_BIN": "source した stub-root.sh の make_noflock_bin が設定するシェル変数。環境変数ではない",
-    "LAX_MKDIR_BIN": "source した stub-root.sh の make_lax_mkdir_bin が設定するシェル変数。環境変数ではない",
-    "RUN_ROOT": "install-record.sh が版の並走の再現で設定し、source した stub-root.sh が読むシェル変数。外の値は読まれない",
-    "STUB_PNPM_DELAY": "テストが env に渡す stub pnpm の遅延秒数。外の値は読まれない",
-    "STUB_BIN": "source した stub-root.sh が設定するシェル変数。環境変数ではない",
-    "STUB_NODE_MAJOR": "テストが env に渡す stub node の値。外の値は読まれない",
     "PYTEST_CURRENT_TEST": "pytest がテストごとに設定する。添付するかどうかだけを決め、テストの成否を変えない",
 }
 

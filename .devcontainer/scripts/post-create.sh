@@ -28,7 +28,13 @@ fi
 if [ "${CI:-}" != "true" ]; then
   cd "$root"
   git worktree prune
+  pnpm --filter @pecot/workflow-core-src run build
+  pnpm --filter @pecot/pecot-workflow-cli run build
+  # build した pecot-workflow のサーバの worktree_add を呼ぶ。--prefix はリポの devEngines で npx が止まらないようにする。
+  args="{\"directory\":\"$root\"}"
   for _ in 1 2 3 4 5 6 7 8 9 10 11 12; do
-    "$root/plugins/pecot-workflow/bin/pecot" worktree add -D "$root"
+    npx --prefix="$HOME/.cache/pecot-inspector" -y @modelcontextprotocol/inspector@2.5.0 --cli \
+      node "$root/plugins/pecot-workflow/cli/dist/main.js" \
+      --method tools/call --tool-name worktree_add --tool-args-json "$args" --format json
   done
 fi

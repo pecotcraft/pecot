@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "Usage: pecot project link [OPTIONS] {repo}\nTry 'pecot project link --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing argument 'repo'.                                                     │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
-  "exitCode": 2,
+  "isError": true,
+  "text": "invalid input: repo: Invalid input: expected string, received undefined",
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid input: repo: Invalid input: expected string, received undefined"
+  },
+  "stderr": "",
   "requests": [],
   "files": {}
 }

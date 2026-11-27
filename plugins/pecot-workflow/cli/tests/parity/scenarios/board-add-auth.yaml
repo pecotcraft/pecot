@@ -1,8 +1,8 @@
 # gh が無く、トークンも無い。認証の失敗がどう出るかを記録する。
 id: board-add-auth
-command:
-  path: [board, add]
-  args: [acme/demo/7]
+tool: board_add
+arguments:
+  issue_ref: acme/demo/7
 setup:
   repo:
     files:

@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "Usage: pecot issue show [OPTIONS] {issue_ref}\nTry 'pecot issue show --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing argument 'issue_ref'.                                                │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
-  "exitCode": 2,
+  "isError": true,
+  "text": "invalid input: issue_ref: Invalid input: expected string, received undefined",
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid input: issue_ref: Invalid input: expected string, received undefined"
+  },
+  "stderr": "",
   "requests": [],
   "files": {}
 }

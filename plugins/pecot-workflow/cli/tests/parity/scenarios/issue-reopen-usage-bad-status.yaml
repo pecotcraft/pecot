@@ -1,7 +1,8 @@
 # --status が有効な値ではない。GitHub を呼ぶ前に exit 1。
 id: issue-reopen-usage-bad-status
-command:
-  path: [issue, reopen]
-  args: [acme/demo/7, --status, done]
+tool: issue_reopen
+arguments:
+  status: done
+  issue_ref: acme/demo/7
 setup: {}
 github: []

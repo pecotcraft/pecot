@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: invalid reference: not-a-ref\n  accepted forms:\n    - full: 'owner/repo/N'\n    - short: 'N' (with a base repository)\n",
-  "exitCode": 2,
+  "isError": true,
+  "text": "invalid reference: not-a-ref\n  accepted forms:\n    - full: 'owner/repo/N'\n    - short: 'N' (with a base repository)",
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid reference: not-a-ref\n  accepted forms:\n    - full: 'owner/repo/N'\n    - short: 'N' (with a base repository)"
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

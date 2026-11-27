@@ -1,10 +1,8 @@
 # GetIssueSlim が 401。警告だけ出して exit 0 で終わる。
 id: session-show-auth
-command:
-  path: [session, show]
-  args:
-    - "-D"
-    - "."
+tool: session_show
+arguments:
+  directory: .
 setup:
   repo:
     branch: feat/demo/7

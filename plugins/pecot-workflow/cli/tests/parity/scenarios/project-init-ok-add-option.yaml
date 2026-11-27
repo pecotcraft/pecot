@@ -1,8 +1,10 @@
 # Blocked の無い進行の欄と、Needs Attention の無い Status に値を足す（id 付きで全件を送り直す）。足した後の盤面で設定ファイルを作る。
 id: project-init-ok-add-option
-command:
-  path: [project, init]
-  args: [acme, board, --host, ghes.example.com]
+tool: project_init
+arguments:
+  host: ghes.example.com
+  owner: acme
+  name: board
 setup:
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token

@@ -1,9 +1,8 @@
 # 同じ名前のタグがローカルに既にある。exit 1。
 id: release-check-state-tag-exists
-command:
-  path: [release, check]
-  args:
-    - "0.2.0"
+tool: release_check
+arguments:
+  version: 0.2.0
 setup:
   repo:
     tags: [{name: v0.2.0}]

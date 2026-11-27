@@ -1,12 +1,10 @@
 # wt1 に未コミットの変更が残っていても、--force を付けると削除できる。
 id: worktree-remove-ok-force
-command:
-  path: [worktree, remove]
-  args:
-    - "wt1"
-    - "-D"
-    - "."
-    - "--force"
+tool: worktree_remove
+arguments:
+  directory: .
+  force: true
+  name: wt1
 setup:
   repo:
     worktrees:

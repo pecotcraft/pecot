@@ -25,6 +25,10 @@
         {
           "word": "tracker",
           "meaning": "Tracker の Issue の書き直し"
+        },
+        {
+          "word": "release",
+          "meaning": "リリース"
         }
       ],
       [
@@ -43,6 +47,10 @@
         {
           "word": "start",
           "meaning": "始める"
+        },
+        {
+          "word": "check",
+          "meaning": "確かめる"
         }
       ]
     ],
@@ -210,6 +218,44 @@
           "token": {
             "type": "string",
             "description": "Token to read and write the project board (the App token or PAT of the workflow)"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "PA-RELEASE-CHECK",
+      "name": "release check",
+      "description": "Check that a release can go out. Check the open code scanning and secret scanning alerts (open Dependabot alerts only warn). For a repository that is not released with Nx, also check the CHANGELOG, the tag and the commits to release.",
+      "surfaces": {
+        "action": {
+          "path": "actions/release-check"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "log-file": {
+            "type": "string",
+            "description": "File to write the output lines to as well (overwritten). The directory is created"
+          },
+          "package": {
+            "type": "string",
+            "description": "Package name in a monorepo. Required for a repository with packages configured; must be empty for a repository released with Nx"
+          },
+          "project": {
+            "type": "string",
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
+          "token": {
+            "type": "string",
+            "description": "Token to read the alerts and the commits (the App token of the workflow)"
+          },
+          "version": {
+            "type": "string",
+            "description": "Release version. Detected from the CHANGELOG when empty. Must be empty for a repository released with Nx"
           }
         },
         "additionalProperties": false

@@ -1,8 +1,7 @@
 # release_type が nx のリポ。3 種の alert の確認だけで終わる。
 id: release-check-ok-nx
-command:
-  path: [release, check]
-  args: []
+tool: release_check
+arguments: {}
 setup:
   repo:
     files:

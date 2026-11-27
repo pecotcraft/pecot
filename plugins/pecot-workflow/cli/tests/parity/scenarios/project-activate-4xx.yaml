@@ -1,8 +1,9 @@
 # --owner が無く、認証ユーザーの取得（GET /user）が 404 を返す。
 id: project-activate-4xx
-command:
-  path: [project, activate]
-  args: [board, --host, ghes.example.com]
+tool: project_activate
+arguments:
+  host: ghes.example.com
+  project: board
 setup:
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token

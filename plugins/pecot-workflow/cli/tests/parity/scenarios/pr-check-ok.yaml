@@ -1,10 +1,8 @@
 # push 済みで作業ツリーが綺麗。全チェックが通り exit 0 になる。
 id: pr-check-ok
-command:
-  path: [pr, check]
-  args:
-    - "-D"
-    - "."
+tool: pr_check
+arguments:
+  directory: .
 setup:
   repo:
     branch: feat/demo/12

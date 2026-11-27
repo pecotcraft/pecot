@@ -1,7 +1,17 @@
 {
-  "stdout": "# Session status\n\n- Branch: feat/demo/7\n- Repository: acme/demo\n- Active Issue: acme/demo#7\n\n## Active Issue\n\n#7 見本の Issue (OPEN)\n\n本文の 1 行目\n本文の 2 行目\n",
+  "isError": false,
+  "text": "# Session status",
+  "structuredContent": {
+    "branch": "feat/demo/7",
+    "repository": "acme/demo",
+    "activeIssue": {
+      "reference": "acme/demo/7",
+      "title": "見本の Issue",
+      "state": "OPEN",
+      "body": "本文の 1 行目\n本文の 2 行目\n"
+    }
+  },
   "stderr": "",
-  "exitCode": 0,
   "requests": [
     {
       "type": "graphql",

@@ -1,7 +1,18 @@
 {
-  "stdout": "https://ghes.example.com/acme/demo/issues/12\n",
-  "stderr": "created: Issue acme/demo/12\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status ready\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "created: Issue acme/demo/12",
+  "structuredContent": {
+    "issues": [
+      {
+        "owner": "acme",
+        "repository": "demo",
+        "number": 12,
+        "url": "https://ghes.example.com/acme/demo/issues/12",
+        "status": "ready"
+      }
+    ]
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

@@ -1,9 +1,8 @@
 # スタックしていないブランチ。--check は、開発ブランチの上にある旨を出して exit 0 になる。
 id: pr-restack-ok
-command:
-  path: [pr, restack]
-  args:
-    - "--check"
+tool: pr_restack
+arguments:
+  check: true
 setup:
   repo:
     branch: feat/demo/12

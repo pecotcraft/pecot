@@ -1,8 +1,9 @@
 # リポジトリ情報の取得が 404。API エラーとして exit 1 になる。
 id: branch-delete-4xx
-command:
-  path: [branch, delete]
-  args: [acme/demo, feat/7]
+tool: branch_delete
+arguments:
+  repo: acme/demo
+  branch: feat/7
 setup:
   repo:
     files:

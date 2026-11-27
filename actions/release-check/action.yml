@@ -1,0 +1,21 @@
+name: pecot release check
+description: Check that a release can go out. Check the open code scanning and secret scanning alerts (open Dependabot alerts only warn). For a repository that is not released with Nx, also check the CHANGELOG, the tag and the commits to release.
+inputs:
+  token:
+    description: Token to read the alerts and the commits (the App token of the workflow)
+    required: false
+  version:
+    description: Release version. Detected from the CHANGELOG when empty. Must be empty for a repository released with Nx
+    required: false
+  package:
+    description: Package name in a monorepo. Required for a repository with packages configured; must be empty for a repository released with Nx
+    required: false
+  project:
+    description: Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them
+    required: false
+  log-file:
+    description: File to write the output lines to as well (overwritten). The directory is created
+    required: false
+runs:
+  using: node24
+  main: dist/index.js

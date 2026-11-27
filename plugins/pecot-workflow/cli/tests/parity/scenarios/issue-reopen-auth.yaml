@@ -1,8 +1,8 @@
 # 認証が 401 で拒否される。ユーザー所有として引いても組織所有として引いても同じ。
 id: issue-reopen-auth
-command:
-  path: [issue, reopen]
-  args: [acme/demo/7]
+tool: issue_reopen
+arguments:
+  issue_ref: acme/demo/7
 setup:
   repo:
     files:

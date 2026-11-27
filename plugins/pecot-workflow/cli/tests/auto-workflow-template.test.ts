@@ -551,11 +551,11 @@ describe('auto のワークフローの雛形の Check の中身', () => {
     expect(readLines(output)).toEqual(['ok=true', `body-file=${path.join(work, 'pecot-auto-setup.md')}`])
   })
 
-  it('変数が空なら、足りない変数と secret の名前と workflow doctor auto を本文に書き、結果のコメントの書き方を守る', async () => {
-    await explains('雛形の `Check` の step を実行するテストです。変数が空の場合に、不足している変数と secret の名前と `pecot workflow doctor auto` を本文に含め、結果のコメントの書式に従うことを確認します。')
+  it('変数が空なら、足りない変数と secret の名前と workflow_doctor を本文に書き、結果のコメントの書き方を守る', async () => {
+    await explains('雛形の `Check` の step を実行するテストです。変数が空の場合に、不足している変数と secret の名前と `workflow_doctor` を本文に含め、結果のコメントの書式に従うことを確認します。')
     expect(runCheck({ SENDER: 'alice', FAKE_ROLE: 'write', NO_APP: 'true' })).toBe(0)
     const body = writtenBody()
-    for (const name of ['`PECOT_AGENT_APP_CLIENT_ID`', '`PECOT_AGENT_APP_PRIVATE_KEY`', '`pecot workflow doctor auto`']) {
+    for (const name of ['`PECOT_AGENT_APP_CLIENT_ID`', '`PECOT_AGENT_APP_PRIVATE_KEY`', '`workflow_doctor`']) {
       expect(body).toContain(name)
     }
     expect(validateBodyStyle(body)).toEqual([])
@@ -569,7 +569,7 @@ describe('auto のワークフローの雛形の Check の中身', () => {
     for (const name of ['`PECOT_AGENT_APP_CLIENT_ID`', '`PECOT_AGENT_APP_PRIVATE_KEY`', '`gate`', 'Contents: write', 'Issues: write', 'Pull requests: write', 'Actions: read', 'Projects: write']) {
       expect(body).toContain(name)
     }
-    expect(body).not.toContain('`pecot workflow doctor auto`')
+    expect(body).not.toContain('`workflow_doctor`')
     expect(validateBodyStyle(body)).toEqual([])
   })
 

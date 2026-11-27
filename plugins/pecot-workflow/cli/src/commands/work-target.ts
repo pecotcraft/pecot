@@ -99,10 +99,3 @@ function recordBase(record: Readonly<BaseRecord>, out: Readonly<Output>): void {
     warnBase(out, error)
   }
 }
-
-/**
-予行の行。recordWorkTarget が作る作業ディレクトリ（と書く .pecot-session-title・.pecot-base）を作らずに出す
-*/
-export function planWorkTarget(out: Readonly<Output>, issueNumber: number): void {
-  out.planned({ verb: 'create', target: workDirectoryTarget(issueNumber) })
-}

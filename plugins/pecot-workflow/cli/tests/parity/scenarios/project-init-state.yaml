@@ -1,8 +1,10 @@
 # 指定のタイトルのプロジェクトが無い。一覧を出して exit 1。
 id: project-init-state
-command:
-  path: [project, init]
-  args: [acme, missing, --host, ghes.example.com]
+tool: project_init
+arguments:
+  host: ghes.example.com
+  owner: acme
+  name: missing
 setup:
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token

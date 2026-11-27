@@ -136,13 +136,13 @@ function entryProblems(entry: Readonly<CoverageEntry>, handlers: ReadonlySet<str
   if (entry.reason !== undefined) return ['supported must not have a reason']
   if ((handler === undefined) === (tool === undefined)) return ['supported needs exactly one of handler or tool']
   if (handler !== undefined && !handlers.has(handler)) return [`handler ${handler} is not in ATTRIBUTE_HANDLERS`]
-  if (tool !== undefined && !tools.has(tool)) return [`tool ${tool} is not an MCP tool of COMMANDS`]
+  if (tool !== undefined && !tools.has(tool)) return [`tool ${tool} is not an MCP tool of TOOLS`]
   return []
 }
 
 /**
 写しの項目と担保の一覧を照らし、問題を「id: 文」の形で id の順に返す。問題が無ければ空。
-handlers は ATTRIBUTE_HANDLERS の鍵、tools は COMMANDS の MCP のツール名
+handlers は ATTRIBUTE_HANDLERS の鍵、tools は TOOLS の MCP のツール名
 */
 export function checkIssueCoverage(items: readonly string[], coverage: Readonly<IssueCoverage>, handlers: readonly string[], tools: readonly string[]): string[] {
   const surface = new Set(items)

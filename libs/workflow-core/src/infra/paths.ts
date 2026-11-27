@@ -106,8 +106,7 @@ const DATA_DIRECTORY_PROJECT = 'pecot-workflow'
 /**
 データ置き場。作らずに値を返す。有効な HOME と有効な XDG_DATA_HOME がどちらも無いときは undefined。
 
-bin/_lib.sh の plugin_data_dir_resolve と同じ解決順で、同じ入力なら同じ結果になる。
-この対応は infra/tests/paths.test.ts が固定する。
+解決順は固定で、infra/tests/paths.test.ts が固める。
 順序は CLAUDE_PLUGIN_DATA、PLUGIN_DATA、XDG_DATA_HOME、HOME。
 有効な値は、空でない絶対パスだけ。
 先頭が変数展開の書式（ドル記号と開き波括弧）の値は無効とする。

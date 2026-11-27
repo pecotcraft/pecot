@@ -22,37 +22,37 @@ describe('exitCodeOfFailure', () => {
   it('使い方の誤りは、メッセージを標準エラー出力へ表示して終了コード 2 を返す', async () => {
     await explains('失敗から終了コードを求める関数（`exitCodeOfFailure`）のテストです。使い方の誤り（`UsageError`）の場合に、メッセージを標準エラー出力へ表示し、終了コード 2 を返すことを確認します。')
     const io = capture()
-    expect(exitCodeOfFailure(new UsageError('bad'), io, 80)).toBe(2)
+    expect(exitCodeOfFailure(new UsageError('bad'), io)).toBe(2)
     expect(io.err.join('')).toContain('bad')
   })
 
   it('確認が中止された場合は、Aborted. と表示して終了コード 1 を返す', async () => {
     await explains('利用者が確認を中止した場合（`AbortedError`）のテストです。`Aborted.` を標準エラー出力へ表示し、終了コード 1 を返すことを確認します。')
     const io = capture()
-    expect(exitCodeOfFailure(new AbortedError(), io, 80)).toBe(1)
+    expect(exitCodeOfFailure(new AbortedError(), io)).toBe(1)
     expect(io.err).toEqual(['Aborted.\n'])
   })
 
   it('報告できる失敗の場合は、error: で始まる行を表示して終了コード 1 を返す', async () => {
     await explains('報告できる失敗（`PecotError` と `InvalidValueError`）のテストです。どちらも `error:` で始まる行を標準エラー出力へ表示し、終了コード 1 を返すことを確認します。')
     const io = capture()
-    expect(exitCodeOfFailure(new PecotError('x'), io, 80)).toBe(1)
-    expect(exitCodeOfFailure(new InvalidValueError('y'), io, 80)).toBe(1)
+    expect(exitCodeOfFailure(new PecotError('x'), io)).toBe(1)
+    expect(exitCodeOfFailure(new InvalidValueError('y'), io)).toBe(1)
     expect(io.err).toEqual(['error: x\n', 'error: y\n'])
   })
 
   it('想定していない例外は、終了コードに変換せず、そのまま再度発生させる', async () => {
     await explains('想定していない例外（`TypeError`）のテストです。終了コードに変換せず、元のメッセージのまま例外が発生することを確認します。')
-    expect(() => exitCodeOfFailure(new TypeError('bug'), capture(), 80)).toThrow('bug')
+    expect(() => exitCodeOfFailure(new TypeError('bug'), capture())).toThrow('bug')
   })
 
   it('失敗の原因の種類を、io.failureKind に渡す', async () => {
     await explains('失敗の原因の種類を通知する処理のテストです。使い方の誤り・中止・認証の失敗・その他の失敗が、`invalid-input`・`aborted`・`github-auth`・`other` として `io.failureKind` に渡されることを確認します。')
     const { io, kinds } = withKinds()
-    exitCodeOfFailure(new UsageError('bad'), io, 80)
-    exitCodeOfFailure(new AbortedError(), io, 80)
-    exitCodeOfFailure(new GitHubAuthError('no token'), io, 80)
-    exitCodeOfFailure(new PecotError('x'), io, 80)
+    exitCodeOfFailure(new UsageError('bad'), io)
+    exitCodeOfFailure(new AbortedError(), io)
+    exitCodeOfFailure(new GitHubAuthError('no token'), io)
+    exitCodeOfFailure(new PecotError('x'), io)
     expect(kinds).toEqual(['invalid-input', 'aborted', 'github-auth', 'other'])
   })
 })

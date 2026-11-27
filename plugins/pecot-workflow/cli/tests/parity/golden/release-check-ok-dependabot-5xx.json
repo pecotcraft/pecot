@@ -1,7 +1,12 @@
 {
-  "stdout": "",
-  "stderr": "warning: could not check Dependabot alerts. The release is not blocked.\n  reason: acme/demo: GitHub API error: 502 Bad Gateway\ncount: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\n",
-  "exitCode": 0,
+  "isError": false,
+  "structuredContent": {
+    "skipped": [],
+    "warnings": [
+      "could not check Dependabot alerts. The release is not blocked.\n  reason: acme/demo: GitHub API error: 502 Bad Gateway"
+    ]
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "rest",

@@ -1,7 +1,48 @@
 {
-  "stdout": "## PR #21 feat(demo): #12 見本の変更\n\n**State:** OPEN | **Mergeable:** MERGEABLE\n\n**Branch:** `feat/demo/12` → `main`\n\n**Closing Issues:**\n  - #12 見本の Issue\n    → details: issue show acme/demo/12\n\n---\n\nCloses #12\n\n\n---\n\n## Reviews\n\n### @reviewer (CHANGES_REQUESTED) - 2026-01-02\n\n直してください。\n\n---\n\n## Line Comments\n\n### `src/a.ts:10` [Open]\n\n**@reviewer** (2026-01-02):\n> 名前を直す\n\n",
+  "isError": false,
+  "text": "## PR #21 feat(demo): #12 見本の変更",
+  "structuredContent": {
+    "number": 21,
+    "state": "OPEN",
+    "title": "feat(demo): #12 見本の変更",
+    "body": "Closes #12\n",
+    "head_ref": "feat/demo/12",
+    "base_ref": "main",
+    "is_draft": false,
+    "mergeable": "MERGEABLE",
+    "comments": 0,
+    "closing_issues": [
+      {
+        "number": 12,
+        "title": "見本の Issue"
+      }
+    ],
+    "referenced_issues": [],
+    "reviews": [
+      {
+        "state": "CHANGES_REQUESTED",
+        "author": "reviewer",
+        "body": "直してください。",
+        "submitted_at": "2026-01-02T03:04:05Z"
+      }
+    ],
+    "review_threads": [
+      {
+        "is_resolved": false,
+        "path": "src/a.ts",
+        "line": 10,
+        "comments": [
+          {
+            "author": "reviewer",
+            "body": "名前を直す",
+            "created_at": "2026-01-02T03:04:05Z",
+            "url": null
+          }
+        ]
+      }
+    ]
+  },
   "stderr": "",
-  "exitCode": 0,
   "requests": [
     {
       "type": "graphql",

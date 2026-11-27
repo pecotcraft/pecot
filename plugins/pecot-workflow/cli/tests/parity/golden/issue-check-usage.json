@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "Usage: pecot issue check [OPTIONS] {files}...\nTry 'pecot issue check --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing argument 'files'.                                                    │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
-  "exitCode": 2,
+  "isError": true,
+  "text": "invalid input: files: Invalid input: expected array, received undefined",
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid input: files: Invalid input: expected array, received undefined"
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

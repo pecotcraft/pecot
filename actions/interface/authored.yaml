@@ -60,7 +60,7 @@ entries:
       - '設定は、`project` の設定、アクティブなプロジェクト、`.pecot/config/projects` にある唯一の設定の順で選びます。設定が 2 つ以上あってアクティブなプロジェクトが無いときは、`project` を求めて step を失敗にします。'
       - '実行の前後に GraphQL の rate limit を読み（REST なので点数は減りません）、使った点数と残りの点数を出します。読めないときは、その行を省きます。実行中に rate limit の窓が切り替わったときと、差が負のときは、使った点数の行を省きます。'
       - 'Issue の依存関係に対応していない GitHub Enterprise Server では、`warning` の行を 1 つ出し、何も動かしません。'
-      - '進行の欄がまだ旧い名前（`pecot-workflow-<suffix>`）なら、同じように Issue を動かします。旧い名前を載せて `pecot project init` を案内する `warning` の行を 1 つ出します。'
+      - '進行の欄がまだ旧い名前（`pecot-workflow-<suffix>`）なら、同じように Issue を動かします。旧い名前を載せて `project_init` を案内する `warning` の行を 1 つ出します。'
       - 'Item の値に `pecot-priority`・`pecot-size` が残っていれば、残ったフィールドの名前を同じ警告に足します。値の入った Item が無いボードと、値が 10 個を超える Item だけのボードでは、残っていても気づけません。'
     stdin: none
     output:
@@ -154,7 +154,7 @@ entries:
         statement: '`dry-run` を `true` にして呼ぶと、ボードに書かず、動かす予定を `dry-run` の行で出します'
       - id: PA-BOARD-SYNC-10
         pattern: unwanted
-        statement: 'もし書き込みに失敗した Issue があるなら、`warning` の行を出してほかの Issue を続け、最後に step を失敗にします。選択肢の ID が古くて書けないときは、ID を読み直す `pecot project activate` の案内を、1 回の実行で 1 回だけ添えます'
+        statement: 'もし書き込みに失敗した Issue があるなら、`warning` の行を出してほかの Issue を続け、最後に step を失敗にします。選択肢の ID が古くて書けないときは、ID を読み直す `project_activate` の案内を、1 回の実行で 1 回だけ添えます'
       - id: PA-BOARD-SYNC-11
         pattern: event
         statement: '一覧で前提が 0 件の Ready の Issue があると、前提を個別に読みません。Blocked・Active・In Review の Issue は、前提の件数によらず個別に読みます'
@@ -223,10 +223,10 @@ entries:
         statement: 'もし札が `Needs Attention` で、bot が書いた最後の結果のコメントが `question`・`failed`・`limit` のどれかなら、前提がすべて済んでも札を `Todo` に戻しません'
       - id: PA-BOARD-SYNC-33
         pattern: state
-        statement: '進行の欄が旧い名前（`pecot-workflow-<suffix>`）である間、同じ Issue を動かし、`pecot project init` を案内する `warning` の行を 1 つ出します'
+        statement: '進行の欄が旧い名前（`pecot-workflow-<suffix>`）である間、同じ Issue を動かし、`project_init` を案内する `warning` の行を 1 つ出します'
       - id: PA-BOARD-SYNC-34
         pattern: state
-        statement: 'Item の値に `pecot-priority`・`pecot-size` が残っている間、同じ Issue を動かします。残ったフィールドの名前は、`pecot project init` を案内する警告に足します。進行の欄の警告と合わせて、警告は 1 つです'
+        statement: 'Item の値に `pecot-priority`・`pecot-size` が残っている間、同じ Issue を動かします。残ったフィールドの名前は、`project_init` を案内する警告に足します。進行の欄の警告と合わせて、警告は 1 つです'
       - id: PA-BOARD-SYNC-35
         pattern: unwanted
         statement: 'もし `dry-run` が `true`・`false` のどちらでもないなら、GitHub を読まず、入力の誤りの `error` の行を出して step を失敗にします'
@@ -372,7 +372,7 @@ entries:
         statement: 'もし判定の変わった Issue が無いなら、`Readiness changed:` の行を出しません'
       - id: PA-SESSION-FINISH-35
         pattern: state
-        statement: '子ブランチがある間、`pecot pr restack` でのスタックし直しを `warning` の行で案内します'
+        statement: '子ブランチがある間、`pr_restack` でのスタックし直しを `warning` の行で案内します'
       - id: PA-SESSION-FINISH-36
         pattern: unwanted
         statement: 'もし読み直しても、閉じた Issue が済んだ前提として判定に出ないなら、pecot-board-sync のワークフローを案内する `warning` の行を出して列を動かしません'
@@ -384,7 +384,7 @@ entries:
         statement: 'base が開発ブランチでない PR を片付けると、その PR の Issue を閉じます'
       - id: PA-SESSION-FINISH-40
         pattern: unwanted
-        statement: 'もし待っている Issue の列を書けないなら、`warning` の行を出して続けます。選択肢の ID が古くて書けないときは、ID を読み直す `pecot project activate` の案内を、1 回の実行で 1 回だけ添えます'
+        statement: 'もし待っている Issue の列を書けないなら、`warning` の行を出して続けます。選択肢の ID が古くて書けないときは、ID を読み直す `project_activate` の案内を、1 回の実行で 1 回だけ添えます'
       - id: PA-SESSION-FINISH-41
         pattern: event
         statement: '閉じる対象にすでに閉じた Issue があると、close を送らず、`unchanged` の行を出します'
@@ -943,6 +943,121 @@ entries:
       - id: PA-TRACKER-SYNC-99
         pattern: event
         statement: '`security` で、既存の本文の行の印に旧い `priority=` があると、それを重大度として読み、次の書き直しで `severity=` の印にします'
+  PA-RELEASE-CHECK:
+    summary: 'リリースを出す前の確認をします。open の code scanning と secret scanning の alert があれば止めます。Nx でリリースしないリポジトリでは、CHANGELOG・タグ・リリースするコミットも確かめます。'
+    arguments:
+      token: 'alert とコミットを読む GitHub トークンです。ワークフローの App のトークンを渡します。'
+      version: 'リリースするバージョンです。省くと、CHANGELOG の最新のバージョンを使います。Nx でリリースするリポジトリでは、省きます。'
+      package: 'monorepo のパッケージ名です。`packages` を設定したリポジトリでは必須です。Nx でリリースするリポジトリでは、省きます。'
+      project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、対象のリポを含む設定を使います。'
+      log-file: '出力の行を、実行のログに加えて書くファイルです。同じ順で書き、前の中身は消します。ディレクトリが無ければ作ります。'
+    constraints: []
+    details:
+      - 'リリースの workflow の、リリースを始める前の step が呼びます。checkout したリポジトリのルートで動かします。'
+      - '確かめるのは、Dependabot・code scanning・secret scanning の open の alert です。1 つが失敗しても、残りを確かめてから結果を決めます。'
+      - 'open の Dependabot alert は、`warning` の行で知らせるだけで、リリースを止めません。code scanning と secret scanning は、open の alert が 1 件でもあれば止めます。'
+      - 'alert の機能が無効のリポジトリは、通します。確かめなかったことを `skipped` の行で知らせます。'
+      - 'プロジェクトの設定で `release_type` が `nx` のリポジトリは、alert だけを確かめて通ります。バージョンは Nx Release が決めます。'
+      - 'ほかのリポジトリは、alert の後に、CHANGELOG・ローカルとリモートのタグ・開発ブランチからリリースブランチへのコミットの数を確かめます。通ると、標準出力に `version:`・`tag:` の行と、リリースノートを出します。'
+    stdin: none
+    output:
+      format: text
+      description: 'outputs はありません。実行のログに、確認ごとの行を出します。Nx でないリポジトリでは、標準出力に `version:`・`tag:` の行と、CHANGELOG から取ったリリースノートも出します。'
+    diagnostics: '実行のログに、alert の確認ごとに `count`・`skipped`・`warning`・`error` のどれかの行を出します。Nx でないリポジトリでは、リリースするコミットの数を `count` の行で出します。止めるときは、理由を `error` の行に出します。'
+    environment:
+      - name: GITHUB_REPOSITORY
+        effect: '対象のリポジトリは、checkout した git の主の remote から決めます。この変数は読みません。'
+      - name: GITHUB_SERVER_URL
+        effect: '`token` を渡す先の GitHub のホストです。無いか空なら `github.com` にします。'
+    exit_status:
+      - kind: no-active-project
+        when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。step は失敗になります。'
+      - kind: repo-not-in-project
+        when: '対象のリポを含むプロジェクトの設定がありません。step は失敗になります。'
+      - kind: project-not-found
+        when: '`project` の名前の設定がありません。step は失敗になります。'
+      - kind: invalid-input
+        when: '`version` の形が誤っているか、`package` の指定が設定と合いません。Nx でリリースするリポジトリで `version` か `package` を渡したときも含みます。step は失敗になります。'
+      - kind: repo-setting-missing
+        when: 'Nx でないリポジトリで、`develop_branch` か `release_branch` がプロジェクトの設定にありません。step は失敗になります。'
+      - kind: preflight-failed
+        when: 'open の code scanning か secret scanning の alert があります。Nx でないリポジトリでは、次のときも含みます。CHANGELOG やリリースするコミットが無いとき、同じタグがあるとき、CHANGELOG にバージョンの無いときです。step は失敗になります。'
+      - kind: git-unresolved
+        when: 'checkout したリポジトリのルートか、主の remote のリポジトリを読めません。step は失敗になります。'
+      - kind: github-auth
+        when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。step は失敗になります。'
+      - kind: github-not-found
+        when: 'GitHub に対象が見つかりません。step は失敗になります。'
+      - kind: github-rate-limit
+        when: 'GitHub API のレート制限に当たりました。step は失敗になります。'
+      - kind: github-api
+        when: 'GitHub API がほかのエラーを返しました。step は失敗になります。'
+      - kind: project-root-not-found
+        when: 'プロジェクトのルートを決められません。step は失敗になります。'
+      - kind: other
+        when: 'ほかの名前に当たらない失敗です。step は失敗になります。'
+    on_error: 'alert を読めなかった確認は、`error` の行を出して失敗にし、残りの確認を続けます。Dependabot alert だけは、読めなくても `warning` の行を出して続けます。何も書き換えないので、巻き戻しはありません。'
+    effects:
+      - target: github
+        kind: read
+        what: 'リポジトリの Dependabot・code scanning・secret scanning の open の alert を読みます。Nx でないリポジトリでは、開発ブランチがリリースブランチより進んだコミットの数も読みます。'
+      - target: file
+        kind: read
+        what: 'プロジェクトの設定ファイルと、Nx でないリポジトリでは CHANGELOG を読みます。'
+      - target: file
+        kind: write
+        what: '`log-file` を渡したときだけ、そのファイルに出力の行を書きます。'
+    prerequisites:
+      - 'リポジトリを checkout した後の step で呼びます。Nx でないリポジトリでは、タグを確かめるため、リモートを読める必要があります。'
+      - '対象のリポを `repositories` に持つプロジェクトの設定が要ります。'
+      - 'alert を読む権限を持つ GitHub トークンが要ります。'
+    idempotent: true
+    examples:
+      - arguments:
+          token: '${{ steps.app-token.outputs.token }}'
+          log-file: .pecot/tmp/release/preflight.log
+        note: 'リリースを始める前に、alert を確かめ、出力を `preflight.log` にも残します。'
+      - arguments:
+          token: '${{ steps.app-token.outputs.token }}'
+          version: 1.2.0
+        note: 'Nx でないリポジトリで、バージョン 1.2.0 のリリースを出せるかを確かめます。'
+    default_notes:
+      version: 'CHANGELOG の最新のバージョンを使います。'
+      project: '省くと、対象のリポを含む設定を使います。2 つ以上あるときは、その中のアクティブな設定を使います。'
+    behaviors:
+      - id: PA-RELEASE-CHECK-01
+        pattern: event
+        statement: '呼ぶと、Dependabot・code scanning・secret scanning の open の alert の数を、確認ごとに `count` の行で出します'
+      - id: PA-RELEASE-CHECK-02
+        pattern: unwanted
+        statement: 'もし code scanning か secret scanning に open の alert があるなら、件数・番号・一覧の URL を `error` の行に出します。残りの確認は続けて、step を失敗にします'
+      - id: PA-RELEASE-CHECK-03
+        pattern: unwanted
+        statement: 'もし Dependabot の open の alert があるなら、件数・最も高い重大度・一覧を `warning` の行に出し、リリースは止めません'
+      - id: PA-RELEASE-CHECK-04
+        pattern: unwanted
+        statement: 'もし Dependabot alert を読めないなら、理由を `warning` の行に出し、リリースは止めません'
+      - id: PA-RELEASE-CHECK-05
+        pattern: unwanted
+        statement: 'もし code scanning か secret scanning の alert を読めないなら、理由を `error` の行に出し、残りの確認を続けて、step を失敗にします'
+      - id: PA-RELEASE-CHECK-06
+        pattern: event
+        statement: 'プロジェクトの設定の `release_type` が `nx` のリポジトリで呼ぶと、alert だけを確かめ、CHANGELOG とタグは確かめずに通ります'
+      - id: PA-RELEASE-CHECK-07
+        pattern: unwanted
+        statement: 'もし `release_type` が `nx` のリポジトリで `version` か `package` を渡したなら、alert を読まず、`error` の行を出して step を失敗にします'
+      - id: PA-RELEASE-CHECK-08
+        pattern: event
+        statement: '`release_type` が `nx` でないリポジトリで alert が通ると、リリースするコミットの数を `count` の行で出します。標準出力には `version:`・`tag:` の行とリリースノートを出します'
+      - id: PA-RELEASE-CHECK-09
+        pattern: unwanted
+        statement: 'もし CHANGELOG かリリースするコミットが無いか、同じ名前のタグがすでにあるなら、理由を `error` の行に出して step を失敗にします'
+      - id: PA-RELEASE-CHECK-10
+        pattern: unwanted
+        statement: 'もし `version` の形が誤っているなら、alert を読まず、`error` の行を出して step を失敗にします'
+      - id: PA-RELEASE-CHECK-11
+        pattern: event
+        statement: '`log-file` を渡すと、出力の行を実行のログに加えて、そのファイルに同じ順で書きます'
   PA-AUTO-GATE:
     summary: 'GitHub Actions のイベントから、自動処理を進めるかと、その種類を決めます。進めないときに Issue へ知らせる理由があれば、結果のコメントを書きます。'
     arguments:

@@ -5,15 +5,15 @@ import { ATTRIBUTE_KINDS, ATTRIBUTE_SOURCES, unsupportedOf } from '@pecot/workfl
 import type { AttributeDefinition } from '@pecot/workflow-core/domain/attributes.js'
 import { readAttributeDefinitions } from '@pecot/workflow-core/infra/github/attributes.js'
 import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
-import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
 import { createAuthenticatedGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
 import { runWithExit } from '@pecot/workflow-core/commands-shared/issue-shared.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
-import { requireReleaseTargetRepository } from './release.js'
-import { requireRepositoryMatch } from './repository-match.js'
+import { requireReleaseTargetRepository } from '@pecot/workflow-core/commands-shared/release-check.js'
+import { requireRepositoryMatch } from '@pecot/workflow-core/commands-shared/repository-match.js'
 
 const ATTRIBUTES_PATH = ['issue', 'attributes']
 
@@ -75,8 +75,8 @@ function definitionLine(definition: Readonly<AttributeDefinition>): string {
   return `- ${definition.name} (${detail})${options.length === 0 ? '' : `: ${options.join(', ')}`}`
 }
 
-const ISSUE_ATTRIBUTES = defineCommand({
-  path: ATTRIBUTES_PATH,
+const ISSUE_ATTRIBUTES = defineTool({
+  name: 'issue_attributes',
   title: 'List Issue attributes',
   description: 'List the attributes an Issue of the repository can have: fields of the configured board, Issue fields, and built-in ones',
   input: z.object({
@@ -84,9 +84,6 @@ const ISSUE_ATTRIBUTES = defineCommand({
     json: z.boolean().default(false).describe('Output as JSON'),
   }),
   output: ISSUE_ATTRIBUTES_OUTPUT,
-  positional: [],
-  shortFlags: { json: '-j' },
-  interactive: false,
   run: async (input, io) => {
     const adopted = requireRepositoryMatch('warn', input.repo, io, process.cwd())
     const output = createOutput<IssueAttributesJson>(false, io)
@@ -114,4 +111,4 @@ const ISSUE_ATTRIBUTES = defineCommand({
   },
 })
 
-export const ISSUE_ATTRIBUTES_COMMANDS: readonly CommandDefinition[] = [ISSUE_ATTRIBUTES]
+export const ISSUE_ATTRIBUTES_TOOLS: readonly ToolDefinition[] = [ISSUE_ATTRIBUTES]

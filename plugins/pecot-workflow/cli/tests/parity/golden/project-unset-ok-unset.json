@@ -1,7 +1,12 @@
 {
-  "stdout": "",
-  "stderr": "unchanged: aggregation_repo (not set)\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "unchanged: aggregation_repo (not set)",
+  "structuredContent": {
+    "key": "aggregation_repo",
+    "change": "unchanged",
+    "configPath": "{{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json"
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

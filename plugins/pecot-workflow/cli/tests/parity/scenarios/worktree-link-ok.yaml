@@ -1,10 +1,8 @@
 # サブ WT に symlink を張る。ターゲットは main WT の CLAUDE.local.md。
 id: worktree-link-ok
-command:
-  path: [worktree, link]
-  args:
-    - "-D"
-    - "../../wt1/demo"
+tool: worktree_link
+arguments:
+  directory: ../../wt1/demo
 setup:
   repo:
     worktrees: [{name: wt1}]

@@ -10,7 +10,7 @@ import { createGitRepository } from '../../../../../../libs/workflow-core/tests/
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { writeTree } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
-import { planWorkTarget, recordWorkTarget } from '../work-target.js'
+import { recordWorkTarget } from '../work-target.js'
 import { capture } from './support.js'
 
 useIsolatedEnvironment()
@@ -77,16 +77,5 @@ describe('recordWorkTarget', () => {
     const io = capture()
     recordWorkTarget(createOutput(false, io), 'acme', 'demo', 7, 't')
     expect(io.err.join('')).toMatch(/^warning: could not record the base: .+\n/u)
-  })
-})
-
-describe('planWorkTarget', () => {
-  it('作業ディレクトリを作成する予定の行を表示し、何も書き込まない', async () => {
-    await explains('dry-run で作業対象を計画する `planWorkTarget` のテストです。`dry-run: would create work directory .pecot/work/7/` の行を表示し、`.pecot` ディレクトリを作成しないことを確認します。')
-    const directory = projectDirectory()
-    const io = capture()
-    planWorkTarget(createOutput(true, io), 7)
-    expect(io.err.join('')).toBe('dry-run: would create work directory .pecot/work/7/\n')
-    expect(existsSync(path.join(directory, '.pecot'))).toBe(false)
   })
 })

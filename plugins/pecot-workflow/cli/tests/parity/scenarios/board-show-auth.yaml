@@ -1,8 +1,7 @@
 # トークンが無く gh も使えない。ボード取得で認証切れになる。
 id: board-show-auth
-command:
-  path: [board, show]
-  args: []
+tool: board_show
+arguments: {}
 setup:
   repo:
     files:

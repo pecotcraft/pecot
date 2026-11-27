@@ -1016,9 +1016,6 @@ importers:
       '@pecot/workflow-core':
         specifier: workspace:@pecot/workflow-core-src@*
         version: link:../../../libs/workflow-core
-      commander:
-        specifier: ^15.1.0
-        version: 15.1.0
       yaml:
         specifier: ^2.9.1
         version: 2.9.1

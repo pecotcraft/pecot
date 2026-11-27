@@ -2,11 +2,9 @@
 # description の値は文章規則に合わせて短い英語に置き換えた。キーの並びと値の型は手本のまま。
 # wt1 を作る。symlink を 1 件張り、git の ignore 対象の .env.local をコピーする。
 id: worktree-add-ok-python-state
-command:
-  path: [worktree, add]
-  args:
-    - "-D"
-    - "."
+tool: worktree_add
+arguments:
+  directory: .
 setup:
   repo:
     commits: [{message: "chore: .env.local を ignore する", files: {.gitignore: ".pecot/\n.env.local\n"}}]

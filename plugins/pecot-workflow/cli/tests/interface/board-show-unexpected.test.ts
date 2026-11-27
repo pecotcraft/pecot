@@ -19,13 +19,13 @@ vi.mock(import('@pecot/workflow-core/commands-shared/board-view.js'), async (imp
 
 useIsolatedEnvironment()
 
-describe('board show', () => {
+describe('board_show', () => {
   const emptyBoard = graphqlRule('ListProjectItems', { node: { items: { nodes: [], pageInfo: { hasNextPage: false, endCursor: undefined } } } })
 
   it('予期しないエラーが起きると、終了コード 1 で終わる', async () => {
-    await explains('`board show` が予期しない例外を受けた場合のテストです。API 以外の例外が発生した場合に、終了コード 1 で終わり、標準エラーに `error: unexpected error: boom` を出力することを確認します。')
+    await explains('`board_show` が予期しない例外を受けた場合のテストです。API 以外の例外が発生した場合に、終了コード 1 で終わり、標準エラーに `error: unexpected error: boom` を出力することを確認します。')
     const result = await runCommand({
-      argv: ['board', 'show'],
+      tool: 'board_show', arguments: {},
       github: [emptyBoard],
     })
     expect(result.code).toBe(1)

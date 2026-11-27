@@ -1,22 +1,5 @@
-// `--repo` 不一致方針（FR-009a / FR-009b）の判定。
-//
-// ローカル Git を破壊する操作系（worktree・session start・branch delete など）は reject にする。
-// GitHub API 側への操作が中心のもの（release など）は warn にする。
-// 判定だけを純粋な関数にする。stderr への出力と終了は、呼ぶ側（commands 層）が行う。
-//
-// 決定木:
-//   1. --repo を指定しない場合
-//      - カレント Git remote を解決できたら続行する（採用値なし）。
-//      - 解決できなければ「リポジトリが曖昧です」で終了コード 1。
-//        remote の URL から owner/repo を読めないときは、その理由の行を添える。
-//   2. --repo を指定した場合
-//      - 形式が不正なら終了コード 1。
-//      - カレント Git remote が無い場合（Git 外・remote 無し）は、比較できないので明示値を採用して続行する。
-//      - remote の URL から owner/repo を読めない場合も比較できない。reject・warn とも警告を出して明示値を採用して続行する。
-//      - 一致なら明示値を採用して続行する。
-//      - 不一致で reject は終了コード 1、warn は警告を出して明示値を採用して続行する。
-//
-// 文言は contracts/cli-commands.md の固定文言と一致させる（stderr を e2e で確かめるため）。
+// 入力 `repo` と今の Git remote の不一致方針（FR-009a / FR-009b）の判定。ローカル Git を壊す操作は reject、GitHub 側の操作は warn にする。
+// 判定だけの純粋な関数で、stderr への出力と終了は呼ぶ側が行う。
 
 import { globalRepositoryHint, hinted, placeholder } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
@@ -34,7 +17,7 @@ export const AMBIGUOUS_REPOSITORY_LINE = 'error: the repository is ambiguous'
 
 export interface PolicyInput {
   /**
-  グローバル `--repo` の値。無ければ undefined
+  共通の入力 `repo` の値。無ければ undefined
   */
   readonly explicit: string | undefined
   /**
@@ -46,7 +29,7 @@ export interface PolicyInput {
 
 /**
 結果の種類は kind で判別する。stderr は改行を含まない行の並びで、呼ぶ側が出し先の形にして 1 行ずつ出す。
-- proceed は、続行する。adopted は明示値から採用したリポジトリ（--repo が無ければ undefined）。
+- proceed は、続行する。adopted は明示値から採用したリポジトリ（repo が無ければ undefined）。
 - exit は、stderr を出して指定の終了コードで終わる。
 */
 export type PolicyOutcome
@@ -73,7 +56,7 @@ function parseExplicit(explicit: string): RepositoryReference | undefined {
 }
 
 /**
-`--repo` とカレント Git remote の不一致時の方針を判定する
+入力 `repo` とカレント Git remote の不一致時の方針を判定する
 */
 export function applyRepositoryPolicy(input: PolicyInput): PolicyOutcome {
   const { explicit, resolved, mode } = input

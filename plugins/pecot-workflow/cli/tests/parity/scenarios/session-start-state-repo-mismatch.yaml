@@ -1,8 +1,9 @@
 # cwd の origin と Issue 参照のリポジトリが違うので exit 2 で止まる。
 id: session-start-state-repo-mismatch
-command:
-  path: [session, start]
-  args: [acme/other/7, feat]
+tool: session_start
+arguments:
+  issue_ref: acme/other/7
+  branch: feat
 setup:
   repo:
     files:

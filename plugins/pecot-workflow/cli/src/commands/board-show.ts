@@ -4,13 +4,13 @@ import path from 'node:path'
 import { z } from 'zod'
 
 import { InvalidValueError } from '@pecot/workflow-core/domain/errors.js'
-import { formatBoardOutput, formatStackableChains } from '@pecot/workflow-core/domain/format.js'
+import { formatBoardOutput } from '@pecot/workflow-core/domain/format.js'
 import type { BoardItem } from '@pecot/workflow-core/domain/format.js'
 import { parseOwnerRepository } from '@pecot/workflow-core/domain/repository-resolver.js'
 import { getActiveConfigPath } from '@pecot/workflow-core/infra/config-store.js'
 import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
-import { CommandExit, defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { CommandExit, defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { requireActiveConfig, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { createGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
@@ -25,8 +25,8 @@ function mismatchNote(count: number): string {
   return `${subject} in a column or Status that does not match its judgment; run ${BOARD_SYNC_WORKFLOW} to fix`
 }
 
-const boardShowCommand = defineCommand({
-  path: ['board', 'show'],
+const boardShowCommand = defineTool({
+  name: 'board_show',
   title: 'Show board dashboard',
   description: 'Show the dashboard of the project board',
   input: z.strictObject({
@@ -43,9 +43,6 @@ const boardShowCommand = defineCommand({
   }),
   hasOwnRepo: true,
   output: BOARD_SHOW_OUTPUT,
-  positional: [],
-  shortFlags: { json: '-j' },
-  interactive: false,
   run: async (input, io) => {
     const out = createOutput<BoardShowJson>(false, io)
     const config = requireActiveConfig(out)
@@ -58,14 +55,14 @@ const boardShowCommand = defineCommand({
       const { items, progress, isLegacy } = read
       const statuses = await collectAlertStatuses(client, config)
       const view = { config, projectName, statuses, laneOptions: read.laneOptions }
-      const readiness = isLegacy ? skipBoardReadiness(out) : await readBoardReadiness(out, client, config, items, input.repo, progress)
+      const readiness = isLegacy ? skipBoardReadiness(out) : await readBoardReadiness(out, client, config, items, progress)
       if (readiness.mismatches > 0) out.warning(mismatchNote(readiness.mismatches))
       const json = readiness.json === undefined ? undefined : (item: BoardItem) => readinessOf(readiness, item)
       const data = boardShowData(view, items, json)
       out.result(boardShowResult(view, data, readiness.mismatches))
       out.data(input.json
         ? boardShowJson(data)
-        : boardShowMarkdown(view, input.repo, formatBoardOutput(items, readiness.texts), formatStackableChains(readiness.chains), data.lanes))
+        : boardShowMarkdown(view, input.repo, formatBoardOutput(items, readiness.texts), data.lanes))
     }
     catch (error: unknown) {
       if (error instanceof GitHubAPIError) return failApi(out, 'read project board', error)
@@ -77,4 +74,4 @@ const boardShowCommand = defineCommand({
   },
 })
 
-export const BOARD_SHOW_COMMANDS: readonly CommandDefinition[] = [boardShowCommand]
+export const BOARD_SHOW_TOOLS: readonly ToolDefinition[] = [boardShowCommand]

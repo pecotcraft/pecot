@@ -1,8 +1,10 @@
 # 2 ファイルを投稿する。後のファイルが {{issue:first}} で先の Issue を参照し、作成された番号に展開される。
 id: issue-create-ok-multi-file
-command:
-  path: [issue, create]
-  args: [first.md, second.md]
+tool: issue_create
+arguments:
+  files:
+    - first.md
+    - second.md
 setup:
   repo:
     files:

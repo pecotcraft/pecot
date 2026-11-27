@@ -54,8 +54,8 @@ import {
   writeProjectFields,
 } from './attribute-writes.js'
 import type { AttributeErrorJson, AttributeOutcome, DefinitionsCache, IssueLocationTarget, RawAttributes } from './attribute-writes.js'
-import { CommandExit, defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { CommandDefinition, CommandIo } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { CommandExit, defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition, CommandIo } from '@pecot/workflow-core/commands-shared/command-definition.js'
 
 import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import type { CommandHint } from '@pecot/workflow-core/commands-shared/command-hint.js'
@@ -1049,7 +1049,7 @@ from a file: ${commandHint(CREATE_PATH, { files: placeholder('path') })}`
 const PYTHON_WHITESPACE_RUN = /[\p{White_Space}\u{1C}\u{1D}\u{1E}\u{1F}]+/gu
 
 // テンプレートの検証を飛ばす freeform でも、起票規約への参照を本文の末尾に残す
-const FREEFORM_FOOTER = '<!-- issue create の freeform で起票（テンプレ検証スキップ）。起票ルール: skills/w-help/references/issue-flow-rules.md#起票時の既定-status -->'
+const FREEFORM_FOOTER = '<!-- issue_create の freeform で起票（テンプレ検証スキップ）。起票ルール: skills/w-help/references/issue-flow-rules.md#起票時の既定-status -->'
 
 const FREEFORM_TITLE_LENGTH = 50
 
@@ -1141,8 +1141,8 @@ async function createFromMessage(output: CreateOutput, input: Readonly<MessageIn
   }, target.config)
 }
 
-const ISSUE_CREATE = defineCommand({
-  path: ['issue', 'create'],
+const ISSUE_CREATE = defineTool({
+  name: 'issue_create',
   title: 'Create Issues',
   hasOwnRepo: true,
   ignoresGlobalRepo: true,
@@ -1163,10 +1163,6 @@ const ISSUE_CREATE = defineCommand({
     project: PROJECT_INPUT,
   }),
   output: ISSUE_CREATE_OUTPUT,
-  positional: ['files'],
-  shortFlags: { message: '-m', title: '-t', repo: '-r', label: '-l' },
-  aliases: { attributes: '--attribute' },
-  interactive: false,
   run: async (input, io: CommandIo) => {
     const output = createOutput<IssueCreateData>(false, io)
     const hasFiles = input.files !== undefined && input.files.length > 0
@@ -1196,4 +1192,4 @@ const ISSUE_CREATE = defineCommand({
   },
 })
 
-export const ISSUE_CREATE_COMMANDS: readonly CommandDefinition[] = [ISSUE_CREATE]
+export const ISSUE_CREATE_TOOLS: readonly ToolDefinition[] = [ISSUE_CREATE]

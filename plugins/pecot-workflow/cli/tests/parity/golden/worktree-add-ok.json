@@ -1,7 +1,14 @@
 {
-  "stdout": "{{TMP}}/wt1/demo\n",
-  "stderr": "created: worktree wt1 at {{TMP}}/wt1/demo (branch wt1 from main)\ncount: symlinks created: 1\ncount: files copied: 1\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "created: worktree wt1 at {{TMP}}/wt1/demo (branch wt1 from main)",
+  "structuredContent": {
+    "name": "wt1",
+    "path": "{{TMP}}/wt1/demo",
+    "branch": "wt1",
+    "base": "main",
+    "setupFailed": false
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     "../../wt1/demo/.env.local": "TOKEN=sample\n",

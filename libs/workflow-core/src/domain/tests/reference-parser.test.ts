@@ -65,16 +65,11 @@ describe('parseIssueReference', () => {
     expect(error.message).toBe('the short form \'N\' is not accepted here: use the full form \'owner/repo/N\'')
   })
 
-  it('--repo で解決するコマンドで基準リポジトリが指定されていないと、--repo の指定も案内する例外が発生する', async () => {
-    await explains('`--repo` でリポジトリを解決するコマンドで、基準リポジトリが指定されていない場合のテストです。参照エラーの例外が発生し、メッセージが `--repo` の指定とフル形式の両方を案内することを確認します。')
+  it('repo で解決するツールで基準リポジトリが指定されていないと、入力 repo の指定も案内する例外が発生する', async () => {
+    await explains('入力 `repo` でリポジトリを解決するツールで、基準リポジトリが指定されていない場合のテストです。参照エラーの例外が発生し、メッセージが `repo:` の指定とフル形式の両方を案内することを確認します。')
     const error = thrownBy(() => parseIssueReference('123', undefined, { repositoryFlag: true }))
-    expect(error.message).toBe('the short form \'N\' needs a base_repo: pass --repo <owner/repo> or use the full form \'owner/repo/N\'')
-  })
-
-  it('MCP では、基準リポジトリの案内を入力名 repo で表示する', async () => {
-    await explains('MCP からの呼び出しで、基準リポジトリが指定されていない場合のテストです。案内の文に含まれる `--repo` が、MCP の入力名である `repo:` の形に置き換わって表示されることを確認します。')
-    const error = thrownBy(() => parseIssueReference('123', undefined, { repositoryFlag: true }))
-    expect(formatHinted(error.hintedText ?? error.message, 'mcp')).toBe('the short form \'N\' needs a base_repo: pass repo: <owner/repo> or use the full form \'owner/repo/N\'')
+    expect(error.message).toBe('the short form \'N\' needs a base_repo: pass repo: <owner/repo> or use the full form \'owner/repo/N\'')
+    expect(formatHinted(error.hintedText ?? error.message)).toBe('the short form \'N\' needs a base_repo: pass repo: <owner/repo> or use the full form \'owner/repo/N\'')
   })
 
   it('短縮形 N に全角数字や丸数字を渡すと、例外が発生する', async () => {

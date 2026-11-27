@@ -1,8 +1,9 @@
 # user のプロジェクトが 0 件。見つかりませんと出して exit 1。
 id: project-search-state
-command:
-  path: [project, search]
-  args: [acme, --host, ghes.example.com]
+tool: project_search
+arguments:
+  host: ghes.example.com
+  owner: acme
 setup:
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token

@@ -1,21 +1,21 @@
-// issue のグループのコマンド。並びは help の一覧に出る順
-import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import { ISSUE_ATTRIBUTES_COMMANDS } from './issue-attributes.js'
-import { ISSUE_CHECK_COMMANDS } from './issue-check.js'
-import { ISSUE_COMMENT_COMMANDS } from './issue-comment.js'
-import { ISSUE_CREATE_COMMANDS } from './issue-create.js'
-import { ISSUE_DEPENDENCY_COMMANDS } from './issue-dependency.js'
-import { ISSUE_EDIT_COMMANDS } from './issue-edit.js'
-import { ISSUE_REOPEN_COMMANDS } from './issue-reopen.js'
-import { ISSUE_SHOW_COMMANDS } from './issue-show.js'
+// issue のグループのツール。並びは tools/list に出る順
+import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { ISSUE_ATTRIBUTES_TOOLS } from './issue-attributes.js'
+import { ISSUE_CHECK_TOOLS } from './issue-check.js'
+import { ISSUE_COMMENT_TOOLS } from './issue-comment.js'
+import { ISSUE_CREATE_TOOLS } from './issue-create.js'
+import { ISSUE_DEPENDENCY_TOOLS } from './issue-dependency.js'
+import { ISSUE_EDIT_TOOLS } from './issue-edit.js'
+import { ISSUE_REOPEN_TOOLS } from './issue-reopen.js'
+import { ISSUE_SHOW_TOOLS } from './issue-show.js'
 
-export const ISSUE_COMMANDS: readonly CommandDefinition[] = [
-  ...ISSUE_CREATE_COMMANDS,
-  ...ISSUE_CHECK_COMMANDS,
-  ...ISSUE_SHOW_COMMANDS,
-  ...ISSUE_ATTRIBUTES_COMMANDS,
-  ...ISSUE_EDIT_COMMANDS,
-  ...ISSUE_COMMENT_COMMANDS,
-  ...ISSUE_DEPENDENCY_COMMANDS,
-  ...ISSUE_REOPEN_COMMANDS,
+export const ISSUE_TOOLS: readonly ToolDefinition[] = [
+  ...ISSUE_CREATE_TOOLS,
+  ...ISSUE_CHECK_TOOLS,
+  ...ISSUE_SHOW_TOOLS,
+  ...ISSUE_ATTRIBUTES_TOOLS,
+  ...ISSUE_EDIT_TOOLS,
+  ...ISSUE_COMMENT_TOOLS,
+  ...ISSUE_DEPENDENCY_TOOLS,
+  ...ISSUE_REOPEN_TOOLS,
 ]

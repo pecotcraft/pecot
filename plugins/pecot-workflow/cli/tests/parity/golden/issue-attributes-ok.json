@@ -1,7 +1,162 @@
 {
-  "stdout": "- Title (project, unsupported (TITLE))\n- Status (project, single_select, read-only): Todo, Done\n- pecot-workflow-acme (project, single_select, read-only): Ready\n- Area (project, single_select): cli, docs\n- Sprint (project, iteration): Sprint 2 (2026-11-16)\n- Tracks (project, unsupported (TRACKS))\n- Priority (issue_field, single_select): High, Low\n- Effort (issue_field, number)\n- assignees (issue, users)\n- milestone (issue, milestone): v1\n- type (issue, issue_type): Bug, Task\n- labels (issue, labels): bug\n- parent (issue, issue_ref, read-only)\n- blocked_by (issue, issue_refs, read-only)\n",
+  "isError": false,
+  "text": "- Title (project, unsupported (TITLE))",
+  "structuredContent": {
+    "attributes": [
+      {
+        "name": "Title",
+        "source": "project",
+        "kind": "unsupported",
+        "writable": false,
+        "unsupported_reason": "TITLE"
+      },
+      {
+        "name": "Status",
+        "source": "project",
+        "kind": "single_select",
+        "options": [
+          {
+            "name": "Todo"
+          },
+          {
+            "name": "Done"
+          }
+        ],
+        "writable": false
+      },
+      {
+        "name": "pecot-workflow-acme",
+        "source": "project",
+        "kind": "single_select",
+        "options": [
+          {
+            "name": "Ready"
+          }
+        ],
+        "writable": false
+      },
+      {
+        "name": "Area",
+        "source": "project",
+        "kind": "single_select",
+        "options": [
+          {
+            "name": "cli"
+          },
+          {
+            "name": "docs"
+          }
+        ],
+        "writable": true
+      },
+      {
+        "name": "Sprint",
+        "source": "project",
+        "kind": "iteration",
+        "options": [
+          {
+            "name": "Sprint 2",
+            "start_date": "2026-11-16"
+          }
+        ],
+        "writable": true
+      },
+      {
+        "name": "Tracks",
+        "source": "project",
+        "kind": "unsupported",
+        "writable": false,
+        "unsupported_reason": "TRACKS"
+      },
+      {
+        "name": "Priority",
+        "source": "issue_field",
+        "kind": "single_select",
+        "options": [
+          {
+            "name": "High"
+          },
+          {
+            "name": "Low"
+          }
+        ],
+        "writable": true
+      },
+      {
+        "name": "Effort",
+        "source": "issue_field",
+        "kind": "number",
+        "writable": true
+      },
+      {
+        "name": "assignees",
+        "source": "issue",
+        "kind": "users",
+        "writable": true
+      },
+      {
+        "name": "milestone",
+        "source": "issue",
+        "kind": "milestone",
+        "options": [
+          {
+            "name": "v1"
+          }
+        ],
+        "writable": true
+      },
+      {
+        "name": "type",
+        "source": "issue",
+        "kind": "issue_type",
+        "options": [
+          {
+            "name": "Bug"
+          },
+          {
+            "name": "Task"
+          }
+        ],
+        "writable": true
+      },
+      {
+        "name": "labels",
+        "source": "issue",
+        "kind": "labels",
+        "options": [
+          {
+            "name": "bug"
+          }
+        ],
+        "writable": true
+      },
+      {
+        "name": "parent",
+        "source": "issue",
+        "kind": "issue_ref",
+        "writable": false
+      },
+      {
+        "name": "blocked_by",
+        "source": "issue",
+        "kind": "issue_refs",
+        "writable": false
+      }
+    ],
+    "unsupported": [
+      {
+        "name": "Title",
+        "source": "project",
+        "github_type": "TITLE"
+      },
+      {
+        "name": "Tracks",
+        "source": "project",
+        "github_type": "TRACKS"
+      }
+    ]
+  },
   "stderr": "",
-  "exitCode": 0,
   "requests": [
     {
       "type": "graphql",

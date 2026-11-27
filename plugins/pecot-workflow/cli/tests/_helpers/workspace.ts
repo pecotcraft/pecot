@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時 root 配下のみ */
-// コマンドをプロセス内で動かすための作業場。一時 git リポ（origin は bare リポ）と偽の GitHub サーバを用意する。
+// ツールをプロセス内で動かすための作業場。一時 git リポ（origin は bare リポ）と偽の GitHub サーバを用意する。
 //
-// 使い方: `await openWorkspace({ branch, branches, github })` で作り、`workspace.run(argv)` で動かす。
+// 使い方: `await openWorkspace({ branch, branches, github })` で作り、`workspace.run(name, arguments)` で動かす。
 // 後始末は、このファイルを import したテストの afterEach が行う。
 // 環境変数を戻すのは useIsolatedEnvironment の afterEach。
 import { execFileSync } from 'node:child_process'
@@ -10,10 +10,7 @@ import path from 'node:path'
 
 import { afterEach } from 'vitest'
 
-import { runCli } from '../../src/cli.js'
-import { attachOutput } from '../../../../../libs/interface-spec/src/vitest/attach.js'
-import { COMMANDS } from '../../src/commands/registry.js'
-import { capture } from '../../src/commands/tests/support.js'
+import { TOOLS } from '../../src/commands/registry.js'
 import { setEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { gitEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import { startFakeGithub } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
@@ -24,6 +21,8 @@ import type { Sandbox } from '../parity/setup.js'
 
 import { developmentRecordOf } from './base-record.js'
 import type { BaseRecordOption } from './base-record.js'
+import { runToolInProcess } from './run-tool.js'
+import type { ToolRunResult } from './run-tool.js'
 
 export type ResponseRuleList = readonly ResponseRule[]
 
@@ -210,12 +209,6 @@ export interface WorkspaceOptions extends BaseRecordOption {
   readonly env?: Readonly<Record<string, string | undefined>>
 }
 
-export interface CliResult {
-  readonly code: number
-  readonly stdout: string
-  readonly stderr: string
-}
-
 export interface Workspace {
   /**
   作業リポジトリ（checkout 済み）
@@ -229,7 +222,7 @@ export interface Workspace {
   /**
   既定は作業リポジトリで実行する。cwd を渡すと、そこで実行する
   */
-  readonly run: (argv: readonly string[], cwd?: string) => Promise<CliResult>
+  readonly run: (name: string, arguments_: Readonly<Record<string, unknown>>, cwd?: string) => Promise<ToolRunResult>
   readonly git: (arguments_: readonly string[], cwd?: string) => string
   /**
   origin の bare リポで git を実行する
@@ -272,8 +265,8 @@ function scenarioOf(options: Readonly<WorkspaceOptions>): Scenario {
   const configFiles = options.config === false ? {} : projectConfigFiles(options.config)
   return {
     id: 'interface',
-    command: { path: [], args: [] },
-    stdin: '',
+    tool: '',
+    arguments: {},
     setup: {
       repo: {
         owner: OWNER,
@@ -311,16 +304,11 @@ export async function openWorkspace(options: Readonly<WorkspaceOptions> = {}): P
     directory: sandbox.repositoryDirectory,
     root: sandbox.root,
     server,
-    run: async (argv, cwd = sandbox.repositoryDirectory) => {
-      const io = capture({ attach: false })
+    run: async (name, arguments_, cwd = sandbox.repositoryDirectory) => {
       const previous = process.cwd()
       process.chdir(cwd)
       try {
-        const code = await runCli(argv, { commands: COMMANDS, io, cwd, environment: { COLUMNS: '80' }, terminalColumns: undefined })
-        const stdout = io.out.join('')
-        const stderr = io.err.join('')
-        attachOutput(['pecot', ...argv].join(' '), code, stdout, stderr)
-        return { code, stdout, stderr }
+        return await runToolInProcess(TOOLS, name, arguments_)
       }
       finally {
         process.chdir(previous)

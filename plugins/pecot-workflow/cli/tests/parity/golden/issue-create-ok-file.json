@@ -1,7 +1,19 @@
 {
-  "stdout": "https://ghes.example.com/acme/demo/issues/12\n",
-  "stderr": "created: Issue acme/demo/12 from draft.md\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status ready\nadded: Issue acme/demo/12 as sub-issue of acme/demo/3\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "created: Issue acme/demo/12 from draft.md",
+  "structuredContent": {
+    "issues": [
+      {
+        "owner": "acme",
+        "repository": "demo",
+        "number": 12,
+        "url": "https://ghes.example.com/acme/demo/issues/12",
+        "status": "ready",
+        "parent": "acme/demo/3"
+      }
+    ]
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

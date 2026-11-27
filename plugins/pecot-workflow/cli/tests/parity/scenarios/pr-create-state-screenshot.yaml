@@ -1,17 +1,32 @@
-# 画像も --screenshot の理由も無い本文。画像のエラーで exit 3 になる（dry-run でも同じ）。
+# 画像も --screenshot の理由も無い本文。画像のエラーで exit 3 になる。
 id: pr-create-state-screenshot
-command:
-  path: [pr, create]
-  args:
-    - "-m"
-    - "## Summary — 見本の変更を取り込む\n\n見本の変更を取り込みます。\n\n## Changes\n\nなし\n\n## Verified — 見本の確認を終えた\n\n確認しました。\n\n- 見本の確認 — 通過\n\n## Risks — 残る懸念はない\n\nなし。\n\n- 見本の懸念 — なし\n\nCloses #12\n"
-    - "-t"
-    - "feat(demo): #12 見本の変更"
-    - "-b"
-    - "main"
-    - "-r"
-    - "acme/demo"
-    - "--dry-run"
+tool: pr_create
+arguments:
+  message: |
+    ## Summary — 見本の変更を取り込む
+
+    見本の変更を取り込みます。
+
+    ## Changes
+
+    なし
+
+    ## Verified — 見本の確認を終えた
+
+    確認しました。
+
+    - 見本の確認 — 通過
+
+    ## Risks — 残る懸念はない
+
+    なし。
+
+    - 見本の懸念 — なし
+
+    Closes #12
+  title: "feat(demo): #12 見本の変更"
+  base: main
+  repo: acme/demo
 setup:
   repo:
     branch: feat/demo/12

@@ -1,8 +1,8 @@
 # 設定ファイル名を渡して同期する。GetProjectFields のあと sync で再び取得し、設定を書き直す。
 id: project-activate-ok
-command:
-  path: [project, activate]
-  args: [ghes.example.com_acme_board_acme]
+tool: project_activate
+arguments:
+  project: ghes.example.com_acme_board_acme
 setup:
   repo:
     files:

@@ -1,26 +1,17 @@
-// コマンドの定義の型と defineCommand()。コマンドのファイルが import する。
-// registry.ts が COMMANDS を持つために各コマンドのファイルを import するので、循環を避けて定義をここに分ける。
-// グローバルの --repo は、全コマンドの入力 repo として合成する。
+// MCP のツールの定義の型と defineTool()。ツールのファイルが import する。
+// registry.ts が TOOLS を持つために各ツールのファイルを import するので、循環を避けて定義をここに分ける。全ツールの入力に repo を合成する。
 import { z } from 'zod'
 
 import { BaseError } from '../domain/errors.js'
 import type { FailureKind } from './failure-kind.js'
-import { COMMAND_VERBS, flagOf } from './names.js'
+import { COMMAND_VERBS } from './names.js'
 
 /**
-コマンドが出力を書く先。CLI は process の stdout・stderr、MCP は結果の文字列に集める
+ツールが出力を書く先。MCP のサーバは結果の文字列に集め（collectIo）、actions/ は process の stdout・stderr に書く
 */
 export interface CommandIo {
   readonly stdout: (text: string) => void
   readonly stderr: (text: string) => void
-  /**
-  標準入力から 1 行読む（末尾の改行は含めない）。終端は undefined。渡されない io（MCP）は、入力の終端と同じ扱い
-  */
-  readonly readLine?: () => string | undefined
-  /**
-  案内の出し先。MCP の io（collectIo）だけが mcp を入れる。無ければ CLI の形
-  */
-  readonly surface?: 'cli' | 'mcp'
   /**
   MCP の要求の取り消し。MCP だけが渡す
   */
@@ -52,8 +43,8 @@ export interface CommandIo {
 }
 
 /**
-コマンドの途中で、決めた終了コードで止めるための例外。defineCommand が包む run の 1 か所で捕まえて、戻り値の終了コードにする。
-Python の `typer.Exit(n)` に当たる。`error:` の行や使い方の枠は出さない（出す行は投げる前に書く）ので、PecotError・InvalidValueError・OsError・UsageError は継がない
+ツールの途中で、決めた終了コードで止めるための例外。defineTool が包む run の 1 か所で捕まえて、戻り値の終了コードにする。
+`error:` の行は出さない（出す行は投げる前に書く）ので、PecotError・InvalidValueError・OsError・UsageError は継がない
 */
 export class CommandExit extends BaseError {
   readonly exitCode: number
@@ -74,33 +65,25 @@ export const COMMON_OUTPUT_KEYS = ['kind', 'detail', 'log', 'warnings'] as const
 export type CommonOutputKey = typeof COMMON_OUTPUT_KEYS[number]
 
 /**
-グローバルの --repo を入力にしたもの。全コマンドの入力に足される
+全ツールの入力に足す repo
 */
 const GLOBAL_SHAPE = { repo: z.string().optional().describe('Target repository, given explicitly as \'owner/repo\'') }
 const GLOBAL_SCHEMA = z.object(GLOBAL_SHAPE)
-/**
-CLI だけが受け取る入力。MCP では、書き込みの前の確認をホストのツールの承認が担うので、予行を出さない
-*/
-const CLI_ONLY_INPUTS: readonly string[] = ['dry_run']
 
 export type GlobalInput = z.output<typeof GLOBAL_SCHEMA>
 
-export interface CommandSpec<Input extends z.ZodObject, Output extends z.ZodObject> {
+export interface ToolSpec<Input extends z.ZodObject, Output extends z.ZodObject> {
   /**
-  `['issue', 'create']`、`['board', 'add']`。決まりは `<対象> <動詞>` の 2 語で、どちらも英小文字だけ（names.ts の commandNameViolations）
+  `issue_create`、`board_add`。決まりは `<対象>_<動詞>` の 2 語で、どちらも英小文字だけ（names.ts の toolNameViolations）
   */
-  readonly path: readonly string[]
+  readonly name: string
   /**
   MCP の Tool の最上位の title（表示名）。英語・4 語以内
   */
   readonly title: string
-  /**
-  typer の help の 1 行目と同じ文
-  */
   readonly description: string
   /**
-  引数とオプション。名前は CLI のオプション名の `-` を `_` にしたもの。
-  `repo` はグローバルの --repo 用の予約名。hasOwnRepo が真のコマンドだけ、自分の `--repo` として持てる
+  入力。`repo` は全ツールに足す入力の予約名。hasOwnRepo が真のツールだけ、自分の `repo` として持てる
   */
   readonly input: Input
   /**
@@ -109,44 +92,22 @@ export interface CommandSpec<Input extends z.ZodObject, Output extends z.ZodObje
   */
   readonly output: Output
   /**
-  自分の `--repo` を持つ印。真なら input に `repo` を書ける（説明は `.describe()`、形の検証は input の refine）。
-  実行時の `repo` は、サブコマンドの値を先に使い、無ければグローバルの値になる
+  自分の `repo` を持つ印。真なら input に `repo` を書ける（説明は `.describe()`、形の検証は input の refine）
   */
   readonly hasOwnRepo?: boolean
   /**
-  真なら、グローバルの --repo を使わない。`repo` は自分のオプションの値だけになる（hasOwnRepo のコマンド用）
+  真なら、共通の repo を使わない。`repo` は自分の入力の値だけになる（hasOwnRepo のツール用）
   */
   readonly ignoresGlobalRepo?: boolean
-  /**
-  input のうち CLI で位置引数になるもの（順序つき）
-  */
-  readonly positional: readonly (keyof Input['shape'] & string)[]
-  /**
-  CLI の短いオプション。キーは input の名前、値は `-D` の形
-  */
-  readonly shortFlags?: Readonly<Partial<Record<keyof Input['shape'] & string, string>>>
-  /**
-  CLI の別名の長いオプション。キーは input の名前、値は `--force` の形。短いオプションとは併用できない
-  */
-  readonly aliases?: Readonly<Partial<Record<keyof Input['shape'] & string, string>>>
-  /**
-  CLI の否定形のオプション。キーは input の名前、値は `--no-checkout` の形。
-  `--checkout/--no-checkout` の形で、既定値が真の真偽値を偽にできる
-  */
-  readonly negations?: Readonly<Partial<Record<keyof Input['shape'] & string, string>>>
   /**
   実行して 0 を返す。出力は io に書く。失敗は CommandExit で止め、原因の名前を運ぶ
   */
   // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
   readonly run: (input: z.output<Input> & GlobalInput, io: CommandIo) => Promise<0>
-  /**
-  CLI でだけ利用者に問うか
-  */
-  readonly interactive: boolean
 }
 
 /**
-検証を終えた入力で、本体を呼べる状態のコマンド
+検証を終えた入力で、本体を呼べる状態のツール
 */
 export interface PreparedCommand {
   readonly run: (io: CommandIo) => Promise<number>
@@ -155,49 +116,26 @@ export interface PreparedCommand {
 /**
 入力の型を消した定義。一覧の要素の型
 */
-export interface CommandDefinition {
-  readonly path: readonly string[]
-  readonly toolName: string
+export interface ToolDefinition {
+  readonly name: string
   readonly title: string
   readonly description: string
   /**
-  グローバルの repo を足した入力
+  共通の repo を足した入力
   */
   readonly input: z.ZodObject
-  /**
-  CLI だけが受け取る入力の名前。MCP のツールの入力と、定義書の input には出さない
-  */
-  readonly cliOnly: readonly string[]
-  /**
-  MCP のツールの入力。input から cliOnly を除いたもの
-  */
-  readonly mcpInput: z.ZodObject
   /**
   MCP の成功の data の型
   */
   readonly output: z.ZodObject
-  readonly positional: readonly string[]
   /**
-  自分の `--repo` を持つか。真のとき、input の repo はコマンド自身の引数
+  自分の `repo` を持つか。真のとき、input の repo はツール自身の入力
   */
   readonly hasOwnRepo: boolean
   /**
-  グローバルの --repo を入力に渡さないか
+  共通の repo を入力に渡さないか
   */
   readonly ignoresGlobalRepo: boolean
-  /**
-  input の名前から短いオプションへ
-  */
-  readonly shortFlags: ReadonlyMap<string, string>
-  /**
-  input の名前から別名の長いオプションへ
-  */
-  readonly aliases: ReadonlyMap<string, string>
-  /**
-  input の名前から否定形のオプションへ
-  */
-  readonly negations: ReadonlyMap<string, string>
-  readonly interactive: boolean
   /**
   動詞が読むだけの印（names.ts の readOnly）を持つか
   */
@@ -213,31 +151,10 @@ export interface CommandDefinition {
 }
 
 /**
-path から MCP のツール名を作る。`['issue', 'create']` は issue_create、`['board', 'add']` は board_add
+ツール名から定義書（interface/）の項目の ID を作る。`session_start` は PW-SESSION-START、`issue_create` は PW-ISSUE-CREATE
 */
-export function toolNameOf(path: readonly string[]): string {
-  return path.join('_')
-}
-
-/**
-path から定義書（interface/）の項目の ID を作る。`['session', 'start']` は PW-SESSION-START、`['issue', 'create']` は PW-ISSUE-CREATE
-*/
-export function interfaceIdOf(path: readonly string[]): string {
-  return `PW-${path.join(' ').toUpperCase().replaceAll(/[ _]/g, '-')}`
-}
-
-function flagMap(flags: Readonly<Partial<Record<string, string>>> | undefined): ReadonlyMap<string, string> {
-  return new Map(Object.entries(flags ?? {}).filter((entry): entry is [string, string] => typeof entry[1] === 'string'))
-}
-
-// 入力 no_x の `--no-x` と、入力 x の否定形 `--no-x` のように、同じ長いオプションになる組を断る
-function assertDistinctFlags(fields: readonly string[], positional: readonly string[], negations: ReadonlyMap<string, string>): void {
-  const flags = [
-    ...fields.filter(name => !positional.includes(name)).map(name => flagOf(name)),
-    ...negations.values(),
-  ]
-  const duplicate = flags.find((flag, index) => flags.indexOf(flag) !== index)
-  if (duplicate !== undefined) throw new TypeError(`オプション ${duplicate} が重複しています`)
+export function interfaceIdOf(name: string): string {
+  return `PW-${name.toUpperCase().replaceAll('_', '-')}`
 }
 
 async function runToExitCode<Input>(run: (input: Input, io: CommandIo) => Promise<number>, input: Input, io: CommandIo): Promise<number> {
@@ -254,52 +171,34 @@ async function runToExitCode<Input>(run: (input: Input, io: CommandIo) => Promis
 /**
 型付きの仕様から、型を消した定義を作る。parse が input で検証してから本体を呼ぶので、型を消しても安全に呼べる
 */
-export function defineCommand<Input extends z.ZodObject, Output extends z.ZodObject>(spec: Readonly<CommandSpec<Input, Output>>): CommandDefinition {
-  if (spec.path.length === 0) throw new TypeError('コマンドの path が空です')
+export function defineTool<Input extends z.ZodObject, Output extends z.ZodObject>(spec: Readonly<ToolSpec<Input, Output>>): ToolDefinition {
+  if (spec.name === '') throw new TypeError('ツールの name が空です')
   const hasOwnRepository = spec.hasOwnRepo === true
   const hasRepositoryField = Object.hasOwn(spec.input.shape, 'repo')
-  // eslint-disable-next-line no-restricted-syntax -- コマンドの定義の誤りで、利用者には出ない
-  if (hasRepositoryField && !hasOwnRepository) throw new TypeError('input の repo はグローバルの --repo 用の予約名です')
-  if (hasOwnRepository && !hasRepositoryField) throw new TypeError('hasOwnRepo のコマンドは input に repo が要ります')
+  if (hasRepositoryField && !hasOwnRepository) throw new TypeError('input の repo は全ツールに足す入力の予約名です')
+  if (hasOwnRepository && !hasRepositoryField) throw new TypeError('hasOwnRepo のツールは input に repo が要ります')
   // 定義書の data の成功の側を閉じた型（additionalProperties: false）にするため
   if (!(spec.output.def.catchall instanceof z.ZodNever)) throw new TypeError('output は z.strictObject で書きます')
   // 同じ名前だと outputSchema では共通の項目が、失敗の値では output が勝ち、結果が outputSchema に合わなくなる
   const reserved = COMMON_OUTPUT_KEYS.filter(key => Object.hasOwn(spec.output.shape, key))
   if (reserved.length > 0) throw new TypeError(`output の ${reserved.join('・')} は MCP の結果の共通の項目の予約名です`)
-  assertDistinctFlags(Object.keys(spec.input.shape), spec.positional, flagMap(spec.negations))
-  const aliased = Object.keys(spec.aliases ?? {})
-  for (const name of aliased) {
-    if (spec.shortFlags !== undefined && Object.hasOwn(spec.shortFlags, name)) throw new TypeError(`${name}: 短いオプションと別名は併用できません`)
-  }
   const input = hasOwnRepository ? spec.input : spec.input.safeExtend(GLOBAL_SHAPE)
-  const cliOnly = CLI_ONLY_INPUTS.filter(name => Object.hasOwn(input.shape, name))
-  // omit() は全体の refine を持つ入力で例外になるので、shape から組み直す
-  const mcpInput = z.strictObject(Object.fromEntries(Object.entries(input.shape).filter(([name]) => !cliOnly.includes(name))))
   const parse = (raw: Readonly<Record<string, unknown>>): PreparedCommand => {
-    // 検証は spec.input で行う（全体の refine を保つ）。グローバルの repo は strictObject が拒むので外し、別に検証する。
-    // 自分の repo を持つコマンドは、repo も spec.input が検証する
+    // 検証は spec.input で行う（全体の refine を保つ）。共通の repo は strictObject が拒むので外し、別に検証する
     const parsed: z.output<Input> & GlobalInput = hasOwnRepository
       ? spec.input.parse(raw)
       : { ...spec.input.parse(Object.fromEntries(Object.entries(raw).filter(([name]) => name !== 'repo'))), ...GLOBAL_SCHEMA.parse(raw) }
     return { run: async io => await runToExitCode(spec.run, parsed, io) }
   }
   return {
-    path: spec.path,
-    toolName: toolNameOf(spec.path),
+    name: spec.name,
     title: spec.title,
     description: spec.description,
     input,
-    cliOnly,
-    mcpInput,
     output: spec.output,
-    positional: spec.positional,
     hasOwnRepo: hasOwnRepository,
     ignoresGlobalRepo: spec.ignoresGlobalRepo === true,
-    shortFlags: flagMap(spec.shortFlags),
-    aliases: flagMap(spec.aliases),
-    negations: flagMap(spec.negations),
-    interactive: spec.interactive,
-    readOnly: COMMAND_VERBS.some(verb => verb.name === spec.path[1] && verb.readOnly === true),
+    readOnly: COMMAND_VERBS.some(verb => verb.name === spec.name.split('_', 2)[1] && verb.readOnly === true),
     parse,
     run: async (raw, io) => await parse(raw).run(io),
   }

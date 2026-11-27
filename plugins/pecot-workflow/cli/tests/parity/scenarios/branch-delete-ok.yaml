@@ -1,8 +1,9 @@
 # ブランチを削除する。
 id: branch-delete-ok
-command:
-  path: [branch, delete]
-  args: [acme/demo, feat/7]
+tool: branch_delete
+arguments:
+  repo: acme/demo
+  branch: feat/7
 setup:
   repo:
     files:

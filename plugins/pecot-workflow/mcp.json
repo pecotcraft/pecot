@@ -3,9 +3,11 @@
   "mcpServers": {
     "pecot-workflow": {
       "type": "stdio",
-      "command": "./bin/pecot",
+      "command": "npx",
       "args": [
-        "mcp"
+        "--prefix=${PLUGIN_DATA}",
+        "-y",
+        "@pecot/workflow-mcp@11.0.0"
       ]
     },
     "context7": {
@@ -16,7 +18,7 @@
       "type": "stdio",
       "command": "npx",
       "args": [
-        "--prefix=${PLUGIN_ROOT}/bin",
+        "--prefix=${PLUGIN_DATA}",
         "-y",
         "@playwright/mcp@0.0.83",
         "--headless",

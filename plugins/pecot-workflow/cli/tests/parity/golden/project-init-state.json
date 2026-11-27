@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: project not found: missing\n  available projects:\n  - board\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "project not found: missing\n  available projects:\n  - board",
+  "structuredContent": {
+    "kind": "project-not-found",
+    "detail": "project not found: missing\n  available projects:\n  - board"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

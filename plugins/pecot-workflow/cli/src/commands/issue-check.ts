@@ -5,8 +5,8 @@ import { formatPlanTable } from '@pecot/workflow-core/domain/batch-plan.js'
 import type { PlanRow, ResolvedPrerequisite } from '@pecot/workflow-core/domain/batch-plan.js'
 import { displayReference } from '@pecot/workflow-core/domain/readiness.js'
 import type { RepositoryReference } from '@pecot/workflow-core/domain/repository-resolver.js'
-import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { CommandDefinition, CommandIo } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition, CommandIo } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { inputNameHint, hinted } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import { PROJECT_INPUT, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { chainsData, chainsText, existingLabels, prepareBatch, STACKABLE_CHAINS } from './issue-create.js'
@@ -68,17 +68,15 @@ function printPlan(output: Readonly<Output<IssueCheckData>>, context: Readonly<B
   output.data(['Plan:', formatPlanTable(rows, context.home), ...chains === undefined ? [] : ['', chains]].join('\n'))
 }
 
-const ISSUE_CHECK = defineCommand({
-  path: CHECK_PATH,
+const ISSUE_CHECK = defineTool({
+  name: 'issue_check',
   title: 'Check Issue files',
-  description: 'Check Markdown files for issue create and show their order numbers, prerequisites and how to proceed, without creating anything',
+  description: 'Check Markdown files for issue_create and show their order numbers, prerequisites and how to proceed, without creating anything',
   input: z.object({
     files: FILES_SCHEMA,
     project: PROJECT_INPUT,
   }),
   output: ISSUE_CHECK_OUTPUT,
-  positional: ['files'],
-  interactive: false,
   run: async (input, io: CommandIo) => {
     const output = createOutput<IssueCheckData>(false, io)
     return await runWithExit(async () => {
@@ -88,4 +86,4 @@ const ISSUE_CHECK = defineCommand({
   },
 })
 
-export const ISSUE_CHECK_COMMANDS: readonly CommandDefinition[] = [ISSUE_CHECK]
+export const ISSUE_CHECK_TOOLS: readonly ToolDefinition[] = [ISSUE_CHECK]

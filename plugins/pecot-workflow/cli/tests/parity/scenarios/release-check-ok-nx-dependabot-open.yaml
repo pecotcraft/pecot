@@ -1,9 +1,8 @@
 # release_type が nx のリポ。open の Dependabot alert が 2 件あっても警告だけで通る（exit 0）。
 # 廃止した例外ファイル .github/dependabot-exceptions.json に #1 を載せても、#1 は警告の一覧に出る。
 id: release-check-ok-nx-dependabot-open
-command:
-  path: [release, check]
-  args: []
+tool: release_check
+arguments: {}
 setup:
   repo:
     files:

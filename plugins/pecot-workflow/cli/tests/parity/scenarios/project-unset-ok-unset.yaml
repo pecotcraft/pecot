@@ -1,8 +1,8 @@
 # 未設定のまま実行する。`unchanged: aggregation_repo (not set)` と出して exit 0。
 id: project-unset-ok-unset
-command:
-  path: [project, unset]
-  args: [aggregation_repo]
+tool: project_unset
+arguments:
+  key: aggregation_repo
 setup:
   repo:
     files:

@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- パスは利用者が指定する */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は内部の状態を持つ */
 // pr create・pr show・pr check。cli/commands/pr.py の移植。
-// 途中で抜ける箇所は CommandExit を投げ、defineCommand が終了コードにする。
+// 途中で抜ける箇所は CommandExit を投げ、defineTool が終了コードにする。
 import { existsSync, statSync } from 'node:fs'
 import path from 'node:path'
 
@@ -40,7 +40,7 @@ import { readTemplateSections } from '@pecot/workflow-core/infra/template-sectio
 import { templateFile } from '../infra/template-store.js'
 import { readBaseOrInfer, warnUnresolved } from './base-reading.js'
 import { readTextFile } from '@pecot/workflow-core/infra/text-file.js'
-import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder, surfaceText } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import type { HintedText } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { findConfigForRemotes, readRemoteLocations } from '../infra/remote-config.js'
@@ -49,8 +49,8 @@ import { directorySchema } from './directory-option.js'
 import { createGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import type { Operation, Output } from '@pecot/workflow-core/commands-shared/output.js'
-import { CommandExit, defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { CommandDefinition, CommandIo, GlobalInput } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { CommandExit, defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition, CommandIo, GlobalInput } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { BOARD_MOVE_JSON, moveJson } from '@pecot/workflow-core/commands-shared/issue-board.js'
 import type { BoardMoveLine } from '@pecot/workflow-core/commands-shared/issue-board.js'
 import { PR_MERGE_COMMAND } from './pr-merge.js'
@@ -552,7 +552,6 @@ interface ValidatedInput {
   readonly directory: string
   readonly template: string
   readonly noIssueRef: boolean
-  readonly dryRun: boolean
   readonly location: RepositoryReference
   readonly title: string
   readonly base: string
@@ -574,14 +573,14 @@ export function stopOnMalformedRecord(reading: BaseReading, out: Readonly<Output
 // 記録を使うのは、head が今のブランチで、release のテンプレートでないときだけ。形が誤っていれば終了コード 1 で止める。
 // 記録のコミットが head の履歴に無ければ、別のブランチの記録か、手でスタックし直した後の古い記録なので止める。開発ブランチ向けに作ると親ブランチの差分が入りうるため。
 // 記録が無くスタック先を求められないときも、同じ理由で投稿を止める
-async function readBaseRecordFor(head: string, input: Readonly<{ template: string, dryRun: boolean }>, directory: string, target: Readonly<RecordTarget>, out: Readonly<Output>): Promise<BaseReading | undefined> {
+async function readBaseRecordFor(head: string, input: Readonly<{ template: string }>, directory: string, target: Readonly<RecordTarget>, out: Readonly<Output>): Promise<BaseReading | undefined> {
   if (input.template === 'release' || head !== gitCurrentBranch(directory)) return undefined
   const base = await readBaseOrInfer({ directory, project: { config: target.config, client: lazyClient(target.config, out) } })
-  if (base.unresolved !== undefined && !input.dryRun) {
+  if (base.unresolved !== undefined) {
     return stopWith(out, joinHinted([
       `cannot infer the stacked base: ${base.unresolved}`,
       'the PR is not created, since a PR to the develop branch can include the changes of the layer below',
-      hinted`fix the cause and ${surfaceText('run again, or run pr create', 'call it again, or call pr_create')} in the work directory where ${surfaceText('session start', 'session_start')} wrote .pecot/state/.pecot-base`,
+      hinted`fix the cause and call it again, or call pr_create in the work directory where session_start wrote .pecot/state/.pecot-base`,
     ]), 'git-unresolved')
   }
   warnUnresolved(base, out)
@@ -595,7 +594,7 @@ async function readBaseRecordFor(head: string, input: Readonly<{ template: strin
   return stopWith(out, joinHinted([
     `.pecot-base records ${branch} at ${sha.slice(0, 7)}, which is not in the history of ${head}`,
     ...isRestacked ? [hinted`${head} is already restacked; rewrite the record with: ${commandHint(RESTACK_PATH)}`] : [],
-    hinted`${surfaceText('run pr create', 'call pr_create')} on the branch the record was written for, or pass ${inputHint(PR_CREATE_PATH, 'head', head)} to create the PR without the record`,
+    hinted`call pr_create on the branch the record was written for, or pass ${inputHint(PR_CREATE_PATH, 'head', head)} to create the PR without the record`,
   ]), 'git-unresolved')
 }
 
@@ -659,7 +658,7 @@ function stackedScopeOf(reading: BaseReading | undefined, use: Readonly<PullRequ
   return use.stackOn === undefined ? undefined : { branch: reading.record.branch }
 }
 
-// 検証して、dry-run なら計画を出し、そうでなければ投稿する。file と -m の両方がここを通る
+// 検証して投稿する
 async function validateAndSubmit(input: Readonly<ValidatedInput>, out: Readonly<Output<PrCreateData>>): Promise<void> {
   const { config, directory, template, location, title, head, headReference } = input
   const client = lazyClient(config, out)
@@ -691,14 +690,7 @@ async function validateAndSubmit(input: Readonly<ValidatedInput>, out: Readonly<
 
   const isRelease = template === 'release'
   const draft: PullRequestDraft = { location, title, body: input.body, head, headReference, base, isDraft: input.isDraft, isRelease }
-  if (!input.dryRun) {
-    await submitPullRequest(config, client, directory, draft, use?.stackOn, { reading: input.reading, lowerPullRequest: decided.lowerPullRequest }, out)
-    return
-  }
-  out.planned(createOperation(draft))
-  const issueNumber = extractIssueNumberFromBranch(headReference.branch)
-  if (!isRelease && issueNumber !== undefined) out.planned(inReviewOperation(issueNumber))
-  if (use?.stackOn !== undefined) out.planned({ verb: 'add', target: `the new PR to the stack of PR #${String(use.stackOn)}` })
+  await submitPullRequest(config, client, directory, draft, use?.stackOn, { reading: input.reading, lowerPullRequest: decided.lowerPullRequest }, out)
 }
 
 function requireRepository(value: string, out: Readonly<Output>): RepositoryReference {
@@ -718,7 +710,6 @@ interface FileModeInput {
   readonly file: string
   readonly template: string
   readonly noIssueRef: boolean
-  readonly dryRun: boolean
   readonly project: string | undefined
 }
 
@@ -750,7 +741,6 @@ async function createFromFile(input: Readonly<FileModeInput>, directory: string,
     directory,
     template: input.template,
     noIssueRef: input.noIssueRef,
-    dryRun: input.dryRun,
     location,
     title: frontmatter.title,
     base,
@@ -769,7 +759,6 @@ interface DirectModeInput {
   readonly base: string
   readonly head: string | undefined
   readonly isDraft: boolean
-  readonly dryRun: boolean
   readonly repository: string | undefined
   readonly noIssueRef: boolean
   readonly template: string
@@ -777,7 +766,7 @@ interface DirectModeInput {
   readonly project: string | undefined
 }
 
-// 作り先のリポと設定。--repo が無ければ、設定にあるリポを指す remote（origin を先に）を使う
+// 作り先のリポと設定。repo が無ければ、設定にあるリポを指す remote（origin を先に）を使う
 function directTarget(input: Readonly<DirectModeInput>, directory: string, out: Readonly<Output<PrCreateData>>): { readonly location: RepositoryReference, readonly config: ProjectConfig } {
   if (input.repository !== undefined && input.repository !== '') {
     const location = requireRepository(input.repository, out)
@@ -806,7 +795,6 @@ async function createDirect(input: Readonly<DirectModeInput>, directory: string,
     directory,
     template: input.template,
     noIssueRef: input.noIssueRef,
-    dryRun: input.dryRun,
     location,
     title: input.title,
     base: input.base,
@@ -826,7 +814,6 @@ const CreateInputSchema = z.strictObject({
   base: z.string().optional().describe('Base branch (required with `message`)'),
   head: z.string().optional().describe('Head branch, or owner:branch for a branch of a fork (default: the current branch)'),
   draft: z.boolean().default(false).describe('Create as a draft PR'),
-  dry_run: z.boolean().default(false).describe('Validate only (skip the early preflight check, do not create the PR)'),
   repo: z.string().optional().describe('Repository in owner/repo form (with `message`)'),
   no_issue_ref: z.boolean().default(false).describe('Skip the automatic related-Issue setup (extraction from the branch name, adding it to the body, and the validation check)'),
   template: z.string().default('default').describe('PR template kind (default / release)'),
@@ -836,12 +823,12 @@ const CreateInputSchema = z.strictObject({
 
 async function runCreate(input: Readonly<z.output<typeof CreateInputSchema>>, io: Readonly<CommandIo>): Promise<void> {
   const directory = process.cwd()
-  const out = createOutput<PrCreateData>(input.dry_run, io)
+  const out = createOutput<PrCreateData>(false, io)
   if (input.template !== 'default' && input.template !== 'release') stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'template')} must be 'default' or 'release' (given: ${input.template})`, 'invalid-input')
 
   if (input.file !== undefined) {
     if (input.screenshot !== undefined) stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'screenshot')} is for ${inputNameHint(PR_CREATE_PATH, 'message')}; write the reason in the \`screenshot\` frontmatter field instead`, 'invalid-input')
-    await createFromFile({ file: input.file, template: input.template, noIssueRef: input.no_issue_ref, dryRun: input.dry_run, project: input.project }, directory, out)
+    await createFromFile({ file: input.file, template: input.template, noIssueRef: input.no_issue_ref, project: input.project }, directory, out)
   }
   else if (input.message === undefined) {
     stopWith(out, hinted`missing arguments\nusage:\n${commandHint(PR_CREATE_PATH, { file: placeholder('path') })}\n${commandHint(PR_CREATE_PATH, { message: placeholder('body'), title: placeholder('title'), base: placeholder('base-branch') })}`, 'invalid-input')
@@ -854,7 +841,6 @@ async function runCreate(input: Readonly<z.output<typeof CreateInputSchema>>, io
       base: input.base,
       head: input.head,
       isDraft: input.draft,
-      dryRun: input.dry_run,
       repository: input.repo,
       noIssueRef: input.no_issue_ref,
       template: input.template,
@@ -949,7 +935,7 @@ async function runShow(input: Readonly<z.output<typeof ShowInputSchema> & Global
       const pr = await client.getPullRequestWithReviews(owner, repository, number)
       const json = pullRequestJson(pr)
       out.result(json)
-      out.data(`${input.json ? JSON.stringify(json, undefined, 2) : formatPullRequestWithReviewsMarkdown(pr, owner, repository)}\n`)
+      out.data(`${input.json ? JSON.stringify(json, undefined, 2) : formatPullRequestWithReviewsMarkdown(pr)}\n`)
     }
     else {
       const pr = await client.getPullRequestSlim(owner, repository, number)
@@ -1105,50 +1091,41 @@ async function runCheck(input: Readonly<z.output<typeof CheckInputSchema>>, io: 
   throw new CommandExit(PREFLIGHT_EXIT_CODE, 'preflight-failed')
 }
 
-const prCreate = defineCommand({
-  path: PR_CREATE_PATH,
+const prCreate = defineTool({
+  name: 'pr_create',
   title: 'Create PR',
   description: 'Create a PR (pull request)',
   input: CreateInputSchema,
   output: PR_CREATE_OUTPUT,
-  positional: ['file'],
-  shortFlags: { message: '-m', title: '-t', base: '-b', draft: '-d', dry_run: '-n', repo: '-r' },
   hasOwnRepo: true,
-  interactive: false,
   run: async (input, io) => {
     await runCreate(input, io)
     return 0
   },
 })
 
-const prShow = defineCommand({
-  path: ['pr', 'show'],
+const prShow = defineTool({
+  name: 'pr_show',
   title: 'Get PR details',
   description: 'Get PR details efficiently (GraphQL, only the needed fields)',
   input: ShowInputSchema,
   output: PR_SHOW_OUTPUT,
-  positional: ['pr_ref'],
-  shortFlags: { json: '-j', reviews: '-r' },
-  interactive: false,
   run: async (input, io) => {
     await runShow(input, io)
     return 0
   },
 })
 
-const prCheck = defineCommand({
-  path: ['pr', 'check'],
+const prCheck = defineTool({
+  name: 'pr_check',
   title: 'Check PR readiness',
   description: 'Show all the information to check before creating a PR',
   input: CheckInputSchema,
   output: PR_CHECK_OUTPUT,
-  positional: [],
-  shortFlags: { directory: '-D' },
-  interactive: false,
   run: async (input, io) => {
     await runCheck(input, io)
     return 0
   },
 })
 
-export const PR_COMMANDS: readonly CommandDefinition[] = [prCreate, prShow, prCheck, PR_MERGE_COMMAND]
+export const PR_TOOLS: readonly ToolDefinition[] = [prCreate, prShow, prCheck, PR_MERGE_COMMAND]

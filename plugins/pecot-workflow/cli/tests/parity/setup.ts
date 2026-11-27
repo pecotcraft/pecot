@@ -68,11 +68,9 @@ export function baseEnvironment(sandbox: Sandbox): Record<string, string> {
     HOME: path.join(sandbox.root, 'home'),
     TMPDIR: path.join(sandbox.root, 'tmp'),
     CLAUDE_PROJECT_DIR: sandbox.repositoryDirectory,
-    CLAUDE_PLUGIN_ROOT: pluginRoot,
     CLAUDE_PLUGIN_DATA: sandbox.dataDirectory,
     LC_ALL: 'C.UTF-8',
     TZ: 'UTC',
-    COLUMNS: '80',
     NO_COLOR: '1',
     TERM: 'dumb',
     // 一時 root がリポジトリの中にあっても、親をたどって実リポを読まない

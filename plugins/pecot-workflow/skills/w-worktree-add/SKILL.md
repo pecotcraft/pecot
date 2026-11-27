@@ -2,7 +2,7 @@
 name: w-worktree-add
 description: |
   ワークツリーを作成します。
-  Use when the user wants to create a new git worktree via the pecot CLI — single-repo only (cwd / repo named in the request).
+  Use when the user wants to create a new git worktree via the pecot-workflow MCP tool worktree_add — single-repo only (cwd / repo named in the request).
   Do NOT use for removal (use w-worktree-remove).
 when_to_use: "ワークツリーを作りたい、並行作業用の作業ディレクトリを増やしたい"
 ---

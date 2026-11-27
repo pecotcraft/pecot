@@ -1,8 +1,9 @@
 # トークンが無く gh も使えない。.pecot/config/ に何かを置いて traceback を避け、認証切れを記録する。
 id: project-search-auth
-command:
-  path: [project, search]
-  args: [acme, --host, ghes.example.com]
+tool: project_search
+arguments:
+  host: ghes.example.com
+  owner: acme
 setup:
   repo:
     files:

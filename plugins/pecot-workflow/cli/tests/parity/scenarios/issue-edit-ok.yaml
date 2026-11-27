@@ -1,8 +1,11 @@
 # ボードのフィールド Area を cli から docs に変える。定義と今の値を読み、変わる 1 つだけを書く。
 id: issue-edit-ok
-command:
-  path: [issue, edit]
-  args: [acme/demo/7, --attribute, "{\"name\":\"Area\",\"value\":\"docs\"}"]
+tool: issue_edit
+arguments:
+  attributes:
+    - name: Area
+      value: docs
+  issue_ref: acme/demo/7
 setup:
   repo:
     files:

@@ -40,8 +40,8 @@ mcp_publish_require_release_head "$RELEASE_TAG" pecot-workflow plugins/pecot-wor
 echo "==> @pecot/workflow-mcp 配布ツリーを構築 (version=$VERSION / dry-run=$DRY_RUN)"
 
 # --- 2. build ---
-# shellcheck source=../../bin/_lib.sh
-. "$WORKFLOW_ROOT/bin/_lib.sh"
+# shellcheck source=../ci/pnpm-lib.sh
+. "$WORKFLOW_ROOT/scripts/ci/pnpm-lib.sh"
 
 if [ "$SKIP_BUILD" = false ]; then
     PNPM="$(resolve_pnpm "$WORKFLOW_ROOT")"
@@ -94,23 +94,6 @@ cp "$SCRIPT_DIR/mcp-dist-README.md" "$DIST/README.md"
 git -C "$REPO_ROOT" archive HEAD LICENSE | tar -x -C "$DIST"
 
 node "$SCRIPT_DIR/finalize-dist.mjs" "$DIST" "$VERSION" "$WORKFLOW_ROOT"
-
-# bin shim。cli.js は import だけでは動かないので main() を呼び、引数なしの起動だけ `mcp` を足す。
-# 残ったプラグインのルートはテンプレートと対象のリポの判定をプラグイン側に引くので、import の前に消す。
-mkdir -p "$DIST/bin"
-cat > "$DIST/bin/pecot-workflow-mcp.mjs" << 'BIN_SHIM'
-#!/usr/bin/env node
-import path from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-for (const name of ['CLAUDE_PLUGIN_ROOT', 'PLUGIN_ROOT', 'COPILOT_PLUGIN_ROOT']) delete process.env[name]
-if (process.argv.length === 2) process.argv.push('mcp')
-// 絶対パスの動的 import は Windows で ERR_UNSUPPORTED_ESM_URL_SCHEME になるため file URL を通す。
-const { main } = await import(pathToFileURL(path.join(root, 'cli/dist/cli.js')).href)
-main()
-BIN_SHIM
-chmod +x "$DIST/bin/pecot-workflow-mcp.mjs"
 
 mcp_publish_write_shrinkwrap "$DIST"
 

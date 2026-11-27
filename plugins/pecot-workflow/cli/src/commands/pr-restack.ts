@@ -1,5 +1,5 @@
 // pr restack。スタックしたブランチを、base にしたブランチの新しい位置へスタックし直す。
-// 途中で抜ける箇所は CommandExit を投げ、defineCommand が終了コードにする。
+// 途中で抜ける箇所は CommandExit を投げ、defineTool が終了コードにする。
 import { z } from 'zod'
 
 import { describeApiError } from '@pecot/workflow-core/domain/api-error-detail.js'
@@ -31,8 +31,8 @@ import type { FetchResult, PushResult } from '@pecot/workflow-core/infra/git.js'
 import { findConfigFor } from '@pecot/workflow-core/infra/config-store.js'
 import type { PullRequestForFinish } from '@pecot/workflow-core/infra/github/pulls.js'
 import { readBaseRecord, readFlag, removeFlag, writeBaseRecord, writeFlag } from '../infra/state-store.js'
-import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { CommandDefinition, CommandIo } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition, CommandIo } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { commandHint, hinted, RUN_COLON, runAgain } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import type { HintedText } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import { gitFailureText } from '@pecot/workflow-core/domain/git-output.js'
@@ -70,7 +70,6 @@ const RestackInputSchema = z.strictObject({
   check: z.boolean().default(false).describe('Only report whether a restack is needed'),
   continue: z.boolean().default(false).describe('Continue a restack that stopped on conflicts, after resolving them'),
   abort: z.boolean().default(false).describe('Abort a restack that stopped on conflicts and go back to the position before it'),
-  dry_run: z.boolean().default(false).describe('Show what would be done without rebasing, pushing or writing records'),
   project: PROJECT_INPUT,
 })
 
@@ -192,11 +191,7 @@ async function relinkClosingIssues(out: RestackOutput, target: Readonly<RelinkTa
   }
 }
 
-function planRelink(out: RestackOutput, branch: string, target: Readonly<RelinkTarget>, ontoBranch: string): void {
-  if (ontoBranch === target.developBranch) out.planned({ verb: 'update', target: `PR of ${branch} relinked ${RELINK_TARGET}` })
-}
-
-// --continue で終えた後に保存し直す先。rebase の間はブランチを読めないので、終えてから求める。求まらなければ保存し直さない
+// continue で終えた後に保存し直す先。rebase の間はブランチを読めないので、終えてから求める。求まらなければ保存し直さない
 function relinkTargetOf(cwd: string, project: string | undefined): RelinkTarget | undefined {
   const location = primaryRemote(cwd)?.location
   if (location === undefined) return undefined
@@ -207,8 +202,8 @@ function relinkTargetOf(cwd: string, project: string | undefined): RelinkTarget 
   return developBranch === undefined || developBranch === '' ? undefined : { owner: location.owner, repository: location.repository, host: config.host, developBranch }
 }
 
-// --continue と --abort。途中の記録だけを読む。記録が無ければ、利用者が始めた rebase を動かさずに止まる
-async function resumeRestack(out: RestackOutput, cwd: string, mode: 'continue' | 'abort', isDryRun: boolean, signal: Readonly<AbortSignal> | undefined): Promise<RestackProgress | undefined> {
+// continue と abort。途中の記録だけを読む。記録が無ければ、利用者が始めた rebase を動かさずに止まる
+async function resumeRestack(out: RestackOutput, cwd: string, mode: 'continue' | 'abort', signal: Readonly<AbortSignal> | undefined): Promise<RestackProgress | undefined> {
   const reading = interpretRestackProgress(readFlag(FLAG_PECOT_RESTACK))
   if (reading.kind === 'malformed') stopWith(out, `.pecot-restack is malformed: ${reading.content}`, 'content-invalid')
   const isRebasing = isRebaseInProgress(cwd)
@@ -216,15 +211,10 @@ async function resumeRestack(out: RestackOutput, cwd: string, mode: 'continue' |
   const isRebased = reading.kind === 'progress' && !isRebasing && mode === 'continue'
     && currentBranch(cwd) === reading.progress.branch && mergeBase(cwd, 'HEAD', reading.progress.ontoSha) === reading.progress.ontoSha
   if (reading.kind === 'none' || (!isRebasing && !isRebased)) {
-    if (!isDryRun) removeFlag(FLAG_PECOT_RESTACK)
+    removeFlag(FLAG_PECOT_RESTACK)
     return stopWith(out, hinted`no restack in progress\nto restack the branch, ${RUN_COLON}${commandHint(RESTACK_PATH)}`, 'invalid-input', USAGE_EXIT_CODE)
   }
   const { progress } = reading
-  if (isDryRun) {
-    out.result({ branch: progress.branch, base: progress.ontoBranch, outcome: mode === 'abort' ? 'aborted' : 'restacked' })
-    out.planned(mode === 'abort' ? { verb: 'unchanged', target: `${progress.branch} restack aborted` } : { verb: 'update', target: `${progress.branch} restacked on ${progress.ontoBranch}` })
-    return mode === 'abort' ? undefined : progress
-  }
   if (mode === 'abort') {
     abortRebase(cwd)
     removeFlag(FLAG_PECOT_RESTACK)
@@ -293,16 +283,15 @@ function rebaseStartOf(out: RestackOutput, cwd: string, target: Readonly<Stacked
 }
 
 async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, io: Readonly<CommandIo>): Promise<void> {
-  const out = createOutput<PrRestackData>(input.dry_run, io)
+  const out = createOutput<PrRestackData>(false, io)
   const modes = [input.check, input.continue, input.abort].filter(Boolean).length
   if (modes > 1) stopWith(out, 'give only one of check, continue and abort', 'invalid-input', USAGE_EXIT_CODE)
   const cwd = '.'
   if (input.continue || input.abort) {
-    const finished = await resumeRestack(out, cwd, input.abort ? 'abort' : 'continue', input.dry_run, io.signal)
+    const finished = await resumeRestack(out, cwd, input.abort ? 'abort' : 'continue', io.signal)
     const relinkTarget = finished === undefined ? undefined : relinkTargetOf(cwd, input.project)
     if (finished === undefined || relinkTarget === undefined) return
-    if (input.dry_run) planRelink(out, finished.branch, relinkTarget, finished.ontoBranch)
-    else await relinkClosingIssues(out, relinkTarget, finished)
+    await relinkClosingIssues(out, relinkTarget, finished)
     return
   }
 
@@ -350,13 +339,6 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
   if (decision.kind === 'rebased') {
     // スタックし直し済みなので rebase をせず、push と記録の書き直しだけを行う
     const progress = progressOf(out, cwd, branch, target, decision)
-    if (input.dry_run) {
-      const isSynced = isSyncedWithRemote(cwd, progress)
-      out.result({ branch, base: decision.base, outcome: isSynced ? 'synced' : 'restacked' })
-      out.planned({ verb: 'update', target: isSynced ? `${branch} synced with ${remote}/${branch}` : `${branch} restacked on ${decision.base}` })
-      planRelink(out, branch, relinkTarget, decision.base)
-      return
-    }
     await finishRestack(out, cwd, progress, io.signal)
     await relinkClosingIssues(out, relinkTarget, progress)
     return
@@ -368,12 +350,6 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
   }
 
   const progress = progressOf(out, cwd, branch, target, decision)
-  if (input.dry_run) {
-    out.result({ branch, base: decision.base, outcome: 'needs-restack', ...causeOf(decision) })
-    out.planned({ verb: 'update', target: `${branch} restacked on ${decision.base}` })
-    planRelink(out, branch, relinkTarget, decision.base)
-    return
-  }
   if (rebaseOnto(cwd, progress.ontoSha, rebaseStartOf(out, cwd, target, progress.ontoSha)) === 'conflict') {
     writeFlag(FLAG_PECOT_RESTACK, formatRestackProgress(progress))
     stopOnConflict(out, cwd, progress)
@@ -382,15 +358,12 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
   await relinkClosingIssues(out, relinkTarget, progress)
 }
 
-const prRestack = defineCommand({
-  path: RESTACK_PATH,
+const prRestack = defineTool({
+  name: 'pr_restack',
   title: 'Restack branch',
   description: 'Restack the current branch onto the new position of its base branch',
   input: RestackInputSchema,
   output: PR_RESTACK_OUTPUT,
-  positional: [],
-  shortFlags: { dry_run: '-n' },
-  interactive: false,
   run: async (input, io) => {
     await runRestack(input, io)
     return 0
@@ -400,4 +373,4 @@ const prRestack = defineCommand({
 /**
 pr restack。pr のグループの最後に並ぶ
 */
-export const PR_RESTACK_COMMANDS: readonly CommandDefinition[] = [prRestack]
+export const PR_RESTACK_TOOLS: readonly ToolDefinition[] = [prRestack]

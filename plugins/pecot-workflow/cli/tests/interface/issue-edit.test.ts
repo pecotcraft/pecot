@@ -1,7 +1,7 @@
 /* eslint-disable unicorn/no-null -- JSON の null を確かめる */
 import { describe, expect, it } from 'vitest'
 
-import { ISSUE_EDIT_COMMANDS } from '../../src/commands/issue-edit.js'
+import { ISSUE_EDIT_TOOLS } from '../../src/commands/issue-edit.js'
 import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import type { RecordedRequest, ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import type { RunningGithub } from '../_helpers/interface-case.js'
@@ -59,35 +59,23 @@ function boardCleared(): ResponseRule {
 }
 
 async function edit(attributes: readonly unknown[]): Promise<ToolOutcome> {
-  return await callToolOnce(ISSUE_EDIT_COMMANDS, 'issue_edit', { issue_ref: 'acme/demo/7', attributes })
+  return await callToolOnce(ISSUE_EDIT_TOOLS, 'issue_edit', { issue_ref: 'acme/demo/7', attributes })
 }
 
 function writesOf(github: Readonly<RunningGithub>): readonly RecordedRequest[] {
   return github.requests().filter(request => request.type === 'rest' ? request.method !== 'GET' : request.operation === 'UpdateProjectItemFieldValue' || request.operation === 'ClearProjectItemField')
 }
 
-describe('issue edit', () => {
+describe('issue_edit', () => {
   describe('書く', () => {
-    it('--attribute を渡すと、変えた値を Markdown の箇条書きで標準出力に出し、変えた機能を set の行に出す', async () => {
-      await explains('`issue edit` の基本の動作のテストです。`--attribute` を渡した場合に、変えた値を Markdown の箇条書きで標準出力へ出力し、変えた機能を `set` の行として出力することを確認します。')
+    it('attributes を渡すと、変えた値を Markdown の箇条書きで標準出力に出し、変えた機能を set の行に出す', async () => {
+      await explains('`issue_edit` の基本の動作のテストです。`attributes` を渡した場合に、変えた値を Markdown の箇条書きで標準出力へ出力し、変えた機能を `set` の行として出力することを確認します。')
       setUpProject()
       await startGithub([...readRules(), boardWritten()])
 
-      const result = await runInProcess(['issue', 'edit', 'acme/demo/7', '--attribute', '{"name":"Area","value":"docs"}'], ISSUE_EDIT_COMMANDS)
+      const result = await runInProcess('issue_edit', { issue_ref: 'acme/demo/7', attributes: [{ name: 'Area', value: 'docs' }] }, ISSUE_EDIT_TOOLS)
 
       expect(result).toEqual({ code: 0, stdout: '- Area: cli -> docs\n', stderr: 'set: Issue acme/demo/7 Area\n' })
-    })
-
-    it('--dry-run を付けると、値を検証し、何も書かずに、書く予定を dry-run の行と箇条書きで出す', async (context) => {
-      await verifies(context, 'PW-ISSUE-EDIT-16')
-      await explains('`issue edit --dry-run` のテストです。`--dry-run` を指定した場合に、値の検証だけを行い、書き込みは送らずに、書く予定を `dry-run` の行と箇条書きで出力することを確認します。')
-      setUpProject()
-      const github = await startGithub(readRules())
-
-      const result = await runInProcess(['issue', 'edit', 'acme/demo/7', '--attribute', '{"name":"Area","value":"docs"}', '--dry-run'], ISSUE_EDIT_COMMANDS)
-
-      expect(result).toEqual({ code: 0, stdout: '- Area: cli -> docs\n', stderr: 'dry-run: would set Issue acme/demo/7 Area\n' })
-      expect(writesOf(github)).toStrictEqual([])
     })
 
     it('attributes に値を渡すと、名前で引いた機能に値を書き、changed に前と後の値を入れる', async (context) => {
@@ -238,6 +226,30 @@ describe('issue edit', () => {
       expect(JSON.stringify(outcome.structured['errors'])).toContain('board_move')
     })
 
+    it('attributes が空だと、GitHub へ何も要求せず、changed を空にして成功を返す', async () => {
+      await explains('MCP ツール `issue_edit` の `attributes` のテストです。`attributes` が空の場合に、GitHub へ何も要求せず、`changed` を空にして成功を返すことを確認します。')
+      setUpProject()
+      const github = await startGithub([])
+
+      const outcome = await edit([])
+
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured).toStrictEqual({ changed: [], errors: [], failed: [] })
+      expect(github.requests()).toEqual([])
+    })
+
+    it('Issue が設定のボードに存在しなくても、Issue 自体の機能だけを渡すと、ボードへ書かずに書き込む', async () => {
+      await explains('MCP ツール `issue_edit` のボードの外の Issue のテストです。設定のボードが Issue を持たない場合に、Issue 自体の機能だけを渡すと、ボードへ何も書かずに `changed` へ入れることを確認します。')
+      setUpProject()
+      const github = await startGithub([...readRules({ isOnBoard: false }), assignable('octocat'), patched({ assignees: [{ login: 'octocat' }] })])
+
+      const outcome = await edit([{ name: 'assignees', value: ['octocat'] }])
+
+      expect(outcome.isError).toBe(false)
+      expect(outcome.structured['changed']).toStrictEqual([{ name: 'assignees', source: 'issue', before: null, after: ['octocat'] }])
+      expect(writesOf(github)).toMatchObject([{ type: 'rest', method: 'PATCH' }])
+    })
+
     it('Issue が設定のボードに存在しないのにボードのフィールドを渡すと、not_on_board にし、board_add を使うよう hint に入れる', async (context) => {
       await verifies(context, 'PW-ISSUE-EDIT-10')
       await explains('MCP ツール `issue_edit` のボードのフィールドのテストです。設定のボードが Issue を持たない場合に、`not_on_board` を返し、`board_add` の使用を `hint` で案内することを確認します。')
@@ -321,18 +333,6 @@ describe('issue edit', () => {
       expect(outcome.isError).toBe(true)
       expect(outcome.structured['kind']).toBe('github-api')
       expect(outcome.structured['detail']).toMatch(/^could not edit the attributes of Issue acme\/demo\/7: /u)
-    })
-
-    it('JSON として読めない --attribute を渡すと、使い方の誤りで終了コード 2 を返し、GitHub を呼ばない', async () => {
-      await explains('`issue edit` の `--attribute` の検証のテストです。JSON として読めない値を渡した場合に、GitHub へは要求せず、終了コード 2 で終わることを確認します。')
-      setUpProject()
-      const github = await startGithub([])
-
-      const result = await runInProcess(['issue', 'edit', 'acme/demo/7', '--attribute', '{name: Area}'], ISSUE_EDIT_COMMANDS)
-
-      expect(result.code).toBe(2)
-      expect(result.stderr).toContain('is not')
-      expect(github.requests()).toStrictEqual([])
     })
   })
 })

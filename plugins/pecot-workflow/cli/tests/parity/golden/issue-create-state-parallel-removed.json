@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: parallel is no longer supported in draft.md. Remove it\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "parallel is no longer supported in draft.md. Remove it",
+  "structuredContent": {
+    "kind": "content-invalid",
+    "detail": "parallel is no longer supported in draft.md. Remove it"
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

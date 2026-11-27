@@ -1,5 +1,4 @@
-// コマンドの入力（zod）から JSON Schema を作り、定義書（generated.json）と同じ形にそろえる。
-// 定義書の書き出し（scripts/export-interface.ts）と、コマンドごとの --help が同じ関数を通す。
+// ツールの入力（zod）から JSON Schema を作り、定義書（generated.json）と同じ形にそろえる。
 import { byName } from '@pecot/workflow-core/commands-shared/names.js'
 
 export type JsonObject = Readonly<Record<string, unknown>>
@@ -69,17 +68,17 @@ function normalizeProperty(schema: JsonObject, where: string): JsonObject {
 }
 
 /**
-グローバルの repo を除いて、input を正規化する。repo は defineCommand が足したもので、コマンド自身の引数ではない。
-自分の `--repo` を持つコマンド（hasOwnRepo）の repo は、コマンド自身の引数なので残す
+共通の repo を除いて、input を正規化する。repo は defineTool が足したもので、ツール自身の入力ではない。
+自分の repo を持つツール（hasOwnRepo）の repo は、ツール自身の入力なので残す
 */
-export function normalizeInput(schema: JsonObject, command: string, isRepositoryKept: boolean): InputSchema {
+export function normalizeInput(schema: JsonObject, tool: string, isRepositoryKept: boolean): InputSchema {
   const { properties, required } = schema
   const isKept = (name: string): boolean => isRepositoryKept || name !== 'repo'
   const own = (isRecord(properties) ? Object.entries(properties) : []).filter(([name]) => isKept(name))
   const names = (Array.isArray(required) ? required.filter((name): name is string => typeof name === 'string') : []).filter(name => isKept(name))
   return {
     type: 'object',
-    properties: Object.fromEntries(own.toSorted(([left], [right]) => byName(left, right)).map(([name, property]) => [name, normalizeProperty(isRecord(property) ? property : {}, `${command}: ${name}`)])),
+    properties: Object.fromEntries(own.toSorted(([left], [right]) => byName(left, right)).map(([name, property]) => [name, normalizeProperty(isRecord(property) ? property : {}, `${tool}: ${name}`)])),
     required: names.toSorted(byName),
     additionalProperties: false,
   }

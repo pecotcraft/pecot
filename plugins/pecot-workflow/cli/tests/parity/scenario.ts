@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのは scenarios/ と golden/ 配下のみ */
-// 前後比較のシナリオ（scenarios/<id>.yaml）と golden（golden/<id>.json）の型、読み込み、正規化。
+// 前後比較のシナリオ（scenarios/<id>.yaml）と golden（golden/<id>.json。MCP の結果）の型、読み込み、正規化。
 // YAML と JSON は unknown として読み、型ガードで形を確かめる。形が崩れていれば読み込みの時点で落とす。
 import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -8,7 +8,7 @@ import { parse } from 'yaml'
 
 import { OPERATION_NAMES } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/operations.js'
 import type { ResponseMatch, ResponseRule, ResponseSpec } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
-import { compareStrings, isRecord, isStringArray } from './baseline.js'
+import { compareStrings, isRecord } from './baseline.js'
 
 export const scenariosDirectory = path.join(import.meta.dirname, 'scenarios')
 export const goldenDirectory = path.join(import.meta.dirname, 'golden')
@@ -87,8 +87,11 @@ export interface RepositorySetup {
 
 export interface Scenario {
   readonly id: string
-  readonly command: Readonly<{ path: readonly string[], args: readonly string[] }>
-  readonly stdin: string
+  /**
+  呼ぶツールの名前
+  */
+  readonly tool: string
+  readonly arguments: Readonly<Record<string, unknown>>
   readonly setup: Readonly<{
     repo: RepositorySetup
     /**
@@ -108,10 +111,14 @@ export interface Scenario {
   readonly github: readonly ResponseRule[]
 }
 
+/**
+ツールの結果。text は content の要約の文（無ければ省く）。stderr はサーバのプロセスの stderr
+*/
 export interface Golden {
-  readonly stdout: string
+  readonly isError: boolean
+  readonly text?: string
+  readonly structuredContent: Readonly<Record<string, unknown>>
   readonly stderr: string
-  readonly exitCode: number
   readonly requests: readonly unknown[]
   readonly files: Readonly<Record<string, unknown>>
 }
@@ -154,12 +161,6 @@ function stringRecord(id: string, value: unknown, label: string): Readonly<Recor
     return typeof item === 'string' ? [key, item] : fail(id, `${label}.${key} が文字列ではありません`)
   })
   return Object.fromEntries(entries)
-}
-
-function stringList(id: string, value: unknown, label: string): readonly string[] {
-  if (value === undefined) return []
-  if (!isStringArray(value)) return fail(id, `${label} が文字列の配列ではありません`)
-  return value
 }
 
 function commitSetups(id: string, value: unknown, label: string): readonly CommitSetup[] {
@@ -281,16 +282,10 @@ function responseRule(id: string, value: unknown, index: number): ResponseRule {
 }
 
 /**
-サブコマンドを持たない起動（グローバルオプションだけ）の id の接頭辞
+id から、ツール名（`_` を `-` にしたもの）の次に来る kind を取り出す。形が合わなければ undefined
 */
-export const GLOBAL_ID_PREFIX = 'global'
-
-/**
-id から、path の次に来る kind を取り出す。形が合わなければ undefined。
-path が空（グローバルオプションだけ）の id は `global-<kind>...` にする
-*/
-export function kindOf(scenario: Readonly<Pick<Scenario, 'id' | 'command'>>): Kind | undefined {
-  const prefix = `${scenario.command.path.length === 0 ? GLOBAL_ID_PREFIX : scenario.command.path.join('-')}-`
+export function kindOf(scenario: Readonly<Pick<Scenario, 'id' | 'tool'>>): Kind | undefined {
+  const prefix = `${scenario.tool.replaceAll('_', '-')}-`
   if (!scenario.id.startsWith(prefix)) return undefined
   const [kind] = scenario.id.slice(prefix.length).split('-', 1)
   return KINDS.find(candidate => candidate === kind)
@@ -298,11 +293,10 @@ export function kindOf(scenario: Readonly<Pick<Scenario, 'id' | 'command'>>): Ki
 
 export function parseScenario(id: string, text: string): Scenario {
   const root = recordOf(id, parse(text), 'ルート')
-  assertKeys(id, root, ['id', 'command', 'stdin', 'setup', 'github'], 'ルート')
+  assertKeys(id, root, ['id', 'tool', 'arguments', 'setup', 'github'], 'ルート')
   if (root['id'] !== id) fail(id, `id がファイル名と違います: ${String(root['id'])}`)
-  const command = recordOf(id, root['command'], 'command')
-  assertKeys(id, command, ['path', 'args'], 'command')
-  const commandPath = stringList(id, command['path'], 'command.path')
+  const tool = optionalString(id, root, 'tool', '')
+  if (tool === '') fail(id, 'tool が必要です')
   const setup = recordOf(id, root['setup'], 'setup')
   assertKeys(id, setup, ['repo', 'cwd', 'data', 'env', 'gh'], 'setup')
   const gh = recordOf(id, setup['gh'], 'setup.gh')
@@ -311,8 +305,8 @@ export function parseScenario(id: string, text: string): Scenario {
   if (github !== undefined && !Array.isArray(github)) fail(id, 'github が配列ではありません')
   const scenario: Scenario = {
     id,
-    command: { path: commandPath, args: stringList(id, command['args'], 'command.args') },
-    stdin: optionalString(id, root, 'stdin', ''),
+    tool,
+    arguments: recordOf(id, root['arguments'], 'arguments'),
     setup: {
       repo: repositorySetup(id, setup['repo']),
       cwd: optionalString(id, setup, 'cwd', '.'),
@@ -323,7 +317,7 @@ export function parseScenario(id: string, text: string): Scenario {
     github: (Array.isArray(github) ? github : []).map((item: unknown, index) => responseRule(id, item, index)),
   }
   if (kindOf(scenario) === undefined) {
-    fail(id, `id は <command.path を - でつないだもの（空なら global）>-<${KINDS.join('|')}>[-<詳細>] にしてください`)
+    fail(id, `id は <tool の _ を - にしたもの>-<${KINDS.join('|')}>[-<詳細>] にしてください`)
   }
   return scenario
 }
@@ -349,14 +343,14 @@ export function goldenPath(id: string): string {
 export function readGolden(id: string): Golden {
   const parsed: unknown = JSON.parse(readFileSync(goldenPath(id), 'utf8'))
   if (!isRecord(parsed)) throw new TypeError(`golden/${id}.json: ルートがオブジェクトではありません`)
-  const { stdout, stderr, exitCode, requests, files } = parsed
-  if (typeof stdout !== 'string' || typeof stderr !== 'string' || typeof exitCode !== 'number') {
-    throw new TypeError(`golden/${id}.json: stdout・stderr・exitCode の型が違います`)
+  const { isError, text, structuredContent, stderr, requests, files } = parsed
+  if (typeof isError !== 'boolean' || typeof stderr !== 'string' || (text !== undefined && typeof text !== 'string') || !isRecord(structuredContent)) {
+    throw new TypeError(`golden/${id}.json: isError・text・structuredContent・stderr の型が違います`)
   }
   if (!Array.isArray(requests) || !isRecord(files)) {
     throw new TypeError(`golden/${id}.json: requests が配列でない、または files がオブジェクトではありません`)
   }
-  return { stdout, stderr, exitCode, requests, files }
+  return { isError, ...text !== undefined && { text }, structuredContent, stderr, requests, files }
 }
 
 export interface Substitution {

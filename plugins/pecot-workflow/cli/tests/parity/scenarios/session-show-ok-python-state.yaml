@@ -1,11 +1,9 @@
 # Python が書いた形の状態ファイル（.pecot-session-title を含む）を読む。手本の golden は session-status-ok。
 # ブランチ feat/demo/7 と origin から作業中の Issue を求め、GetIssueSlim が 200 を返す。Issue の本文を出す。
 id: session-show-ok-python-state
-command:
-  path: [session, show]
-  args:
-    - "-D"
-    - "."
+tool: session_show
+arguments:
+  directory: .
 setup:
   repo:
     branch: feat/demo/7

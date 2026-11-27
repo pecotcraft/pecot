@@ -37,11 +37,11 @@ describe('stopWith', () => {
 
 describe('requireActiveConfig', () => {
   it('アクティブなプロジェクトが存在しない場合は、activate の案内を表示して終了コード 1 で止める', async () => {
-    await explains('アクティブなプロジェクトの設定を取得する関数（`requireActiveConfig`）のテストです。アクティブなプロジェクトが存在しない場合に、`pecot project activate` の案内付きのエラーを表示し、終了コード 1 の例外が発生することを確認します。')
+    await explains('アクティブなプロジェクトの設定を取得する関数（`requireActiveConfig`）のテストです。アクティブなプロジェクトが存在しない場合に、`project_activate` の案内付きのエラーを表示し、終了コード 1 の例外が発生することを確認します。')
     setEnvironment({ CLAUDE_PROJECT_DIR: makeTemporaryDirectory() })
     const { io, output } = started()
     expect(() => requireActiveConfig(output)).toThrow(expect.objectContaining({ exitCode: 1, kind: 'no-active-project' }))
-    expect(io.err).toEqual(['error: no active project\n  run: pecot project activate <PROJECT>\n'])
+    expect(io.err).toEqual(['error: no active project\n  call project_activate with project: <PROJECT>\n'])
   })
 })
 
@@ -93,12 +93,12 @@ describe('requireConfigFor', () => {
   })
 
   it('設定が 2 つあり .active でも選べない場合は、候補と project の案内を表示して no-active-project で止める', async () => {
-    await explains('対象のリポジトリを含む設定が 2 つあり、`.active` が別の設定を指している場合のテストです。候補の一覧と `--project` の指定方法を表示し、種類が `no-active-project` の例外が発生することを確認します。')
+    await explains('対象のリポジトリを含む設定が 2 つあり、`.active` が別の設定を指している場合のテストです。候補の一覧と `project` の指定方法を表示し、種類が `no-active-project` の例外が発生することを確認します。')
     const projects = useProjects({ a: ['acme/app'], b: ['acme/app'], c: ['acme/lib'] })
     writeFileSync(path.join(projects, '.active'), 'c.json\n')
     const { io, output } = started()
     expect(() => requireConfigFor(output, TARGET, undefined, PATH)).toThrow(expect.objectContaining({ exitCode: 1, kind: 'no-active-project' }))
-    expect(io.err).toEqual(['error: acme/app is in 2 project configs\n  choose one with --project <NAME>\n  available: a, b\n'])
+    expect(io.err).toEqual(['error: acme/app is in 2 project configs\n  choose one with project: <NAME>\n  available: a, b\n'])
   })
 
   it('project を指定した場合は、候補が 2 つあっても指定した設定を返す', async () => {

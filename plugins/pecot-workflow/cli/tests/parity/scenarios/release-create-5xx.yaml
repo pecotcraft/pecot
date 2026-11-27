@@ -1,9 +1,8 @@
 # POST が 502。リリース作成の失敗として exit 1。
 id: release-create-5xx
-command:
-  path: [release, create]
-  args:
-    - "0.2.0"
+tool: release_create
+arguments:
+  version: 0.2.0
 setup:
   repo:
     files:

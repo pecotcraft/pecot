@@ -54,9 +54,9 @@ describe('missingWarning', () => {
     await explains('ボードに存在しない選択肢（`Blocked` や `Todo` など）へ Issue を移動しようとしたときに表示する、警告文のテストです。不足している選択肢が 1 つの場合と 2 つの場合で、名前が名前順に並び、`it` と `them` が正しく使い分けられることを確認します。')
     const one = missingWarning(new Set(['Todo']))
     const two = missingWarning(new Set(['Todo', 'Blocked']))
-    expect([formatHinted(one, 'cli'), formatHinted(two, 'cli')]).toEqual([
-      'the board has no option Todo; add it with pecot project init',
-      'the board has no option Blocked, Todo; add them with pecot project init',
+    expect([formatHinted(one), formatHinted(two)]).toEqual([
+      'the board has no option Todo; add it with project_init',
+      'the board has no option Blocked, Todo; add them with project_init',
     ])
   })
 })
@@ -155,7 +155,7 @@ describe('applyJudgedMoves', () => {
     const { client, judged } = await judge([blockedRule()], false)
     const io = capture()
     const result = await applyJudgedMoves({ out: createOutput(false, io), client, config: config(false), home: HOME }, judged)
-    expect({ result, err: io.err.join('') }).toEqual({ result: { failures: 0, moves: [] }, err: 'warning: the board has no option Blocked; add it with pecot project init\n' })
+    expect({ result, err: io.err.join('') }).toEqual({ result: { failures: 0, moves: [] }, err: 'warning: the board has no option Blocked; add it with project_init\n' })
   })
 
   it('判定できなかった Issue は、理由の空白を 1 つにまとめた警告を表示する', async () => {

@@ -103,19 +103,6 @@ class Collector {
     return kinds.map(kind => ({ kind, code, at }))
   }
 
-  // path に定数を渡したときは、その宣言（import した定数は元の宣言）の配列のリテラルを読む
-  private arrayLiteralOf(expression: ts.Expression): ts.ArrayLiteralExpression | undefined {
-    const node = unwrap(expression)
-    if (ts.isArrayLiteralExpression(node)) return node
-    if (!ts.isIdentifier(node)) return undefined
-    const symbol = this.checker.getSymbolAtLocation(node)
-    const resolved = symbol === undefined || (symbol.flags & ts.SymbolFlags.Alias) === 0 ? symbol : this.checker.getAliasedSymbol(symbol)
-    const declaration = resolved?.declarations?.at(0)
-    return declaration !== undefined && ts.isVariableDeclaration(declaration) && declaration.initializer !== undefined
-      ? this.arrayLiteralOf(declaration.initializer)
-      : undefined
-  }
-
   private declarationOf(identifier: ts.Identifier): ts.Node | undefined {
     const symbol = this.checker.getSymbolAtLocation(identifier)
     if (symbol === undefined) return undefined
@@ -152,19 +139,17 @@ class Collector {
     for (const file of this.program.getSourceFiles()) {
       if (!path.resolve(file.fileName).startsWith(COMMANDS_DIRECTORY)) continue
       const visit = (node: ts.Node): void => {
-        if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'defineCommand') {
+        if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'defineTool') {
           const spec = node.arguments[0]
           if (spec !== undefined && ts.isObjectLiteralExpression(spec)) {
             const property = (name: string): ts.Expression | undefined => {
               const found = spec.properties.find(item => ts.isPropertyAssignment(item) && ts.isIdentifier(item.name) && item.name.text === name)
               return found !== undefined && ts.isPropertyAssignment(found) ? found.initializer : undefined
             }
-            const pathExpression = property('path')
-            const pathNode = pathExpression === undefined ? undefined : this.arrayLiteralOf(pathExpression)
+            const name = property('name')
             const run = property('run')
-            if (pathNode !== undefined && run !== undefined) {
-              const words = pathNode.elements.filter(element => ts.isStringLiteral(element)).map(element => element.text)
-              result.push({ id: interfaceIdOf(words), run })
+            if (name !== undefined && run !== undefined && ts.isStringLiteral(name)) {
+              result.push({ id: interfaceIdOf(name.text), run })
             }
           }
         }

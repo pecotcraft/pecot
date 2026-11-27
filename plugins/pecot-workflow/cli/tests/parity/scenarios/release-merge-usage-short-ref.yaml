@@ -1,9 +1,8 @@
 # PR 参照が owner/repo/N の形ではない。exit 2。
 id: release-merge-usage-short-ref
-command:
-  path: [release, merge]
-  args:
-    - "31"
+tool: release_merge
+arguments:
+  pr_ref: "31"
 setup:
   repo:
     files:

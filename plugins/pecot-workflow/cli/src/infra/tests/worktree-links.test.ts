@@ -2,8 +2,9 @@
 import { chmodSync, lstatSync, mkdirSync, readFileSync, readlinkSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import type * as VersionModule from '../../version.js'
 import { explains } from '../../../tests/_helpers/explains.js'
 
 import { InvalidValueError } from '@pecot/workflow-core/domain/errors.js'
@@ -38,6 +39,16 @@ import '../../commands/registry.js'
 const OUTPUTS = worktreeConfigOutputs()
 
 useIsolatedEnvironment()
+
+// 生成スクリプトの置き場所（プラグインのルート）を、テストの一時ディレクトリに差し替える
+const pluginRootOverride = vi.hoisted((): { value: string | undefined } => ({ value: undefined }))
+vi.mock('../../version.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof VersionModule>()
+  return { ...actual, pluginRoot: () => pluginRootOverride.value ?? actual.pluginRoot() }
+})
+afterEach(() => {
+  pluginRootOverride.value = undefined
+})
 
 function linkOf(linkPath: string, targetRepository: string, targetPath: string): WorktreeConfig['links'][number] {
   return { path: linkPath, target_repo: targetRepository, target_path: targetPath, description: undefined }
@@ -495,45 +506,45 @@ function setupPecotLinks(): { readonly root: string, readonly config: WorktreeCo
 }
 
 describe('.pecot/.gitignore の生成スクリプトの探索', () => {
-  it('環境変数 CLAUDE_PLUGIN_ROOT を指定した場合は、その下のスクリプトのパスを返す', async () => {
-    await explains('`.pecot/.gitignore` を生成するスクリプトを探す `pecotGitignoreEnsureScript` のテストです。環境変数 `CLAUDE_PLUGIN_ROOT` を指定した場合に、その下の `hooks/lib/core/pecot-gitignore-ensure.sh` のパスを返すことを確認します。')
+  it('プラグインのルートが別の場所の場合は、その下のスクリプトのパスを返す', async () => {
+    await explains('`.pecot/.gitignore` を生成するスクリプトを探す `pecotGitignoreEnsureScript` のテストです。プラグインのルートが別のディレクトリの場合に、その下の `hooks/lib/core/pecot-gitignore-ensure.sh` のパスを返すことを確認します。')
     const pluginDirectory = makeTemporaryDirectory()
-    setEnvironment({ CLAUDE_PLUGIN_ROOT: pluginDirectory })
+    pluginRootOverride.value = pluginDirectory
     expect(pecotGitignoreEnsureScript()).toBe(path.join(pluginDirectory, ENSURE_SCRIPT))
   })
 
-  it('環境変数で指定した場所にスクリプトが存在しない場合でも、その場所の候補パスを返す', async () => {
-    await explains('`.pecot/.gitignore` を生成するスクリプトを探す `pecotGitignoreEnsureScript` のテストです。`CLAUDE_PLUGIN_ROOT` の下にスクリプトが存在しない場合でも、その下のパスを返すことを確認します。')
+  it('プラグインのルートにスクリプトが存在しない場合でも、その場所の候補パスを返す', async () => {
+    await explains('`.pecot/.gitignore` を生成するスクリプトを探す `pecotGitignoreEnsureScript` のテストです。プラグインのルートの下にスクリプトが存在しない場合でも、その下のパスを返すことを確認します。')
     const pluginDirectory = makeTemporaryDirectory()
-    setEnvironment({ CLAUDE_PLUGIN_ROOT: pluginDirectory })
+    pluginRootOverride.value = pluginDirectory
     expect(pecotGitignoreEnsureScript()).toBe(path.join(pluginDirectory, ENSURE_SCRIPT))
   })
 
-  it('スクリプトが存在しない場合は、環境変数で指定した場所の候補パスを警告に含める', async () => {
+  it('スクリプトが存在しない場合は、プラグインのルートの下の候補パスを警告に含める', async () => {
     await explains('`.pecot` の下のリンクを作成する `createSymlinks` のテストです。生成スクリプトが存在しない場合に、`generation script for .pecot/.gitignore not found` の警告に、探した候補のパスが含まれることを確認します。')
     const pluginDirectory = path.join(makeTemporaryDirectory(), 'plugin')
-    setEnvironment({ CLAUDE_PLUGIN_ROOT: pluginDirectory })
+    pluginRootOverride.value = pluginDirectory
     const { root, config } = setupPecotLinks()
     const recorded = recordDiagnostics()
     createSymlinks(config, root, path.join(root, 'wt1', 'myrepo'), recorded.diagnostics)
     expect(recorded.lines).toEqual([`warning: generation script for .pecot/.gitignore not found: ${path.join(pluginDirectory, ENSURE_SCRIPT)}`])
   })
 
-  it('環境変数が指定されていない場合は、ソースツリーの plugin ルートにあるスクリプトのパスを返す', async () => {
-    await explains('`.pecot/.gitignore` を生成するスクリプトを探す `pecotGitignoreEnsureScript` のテストです。環境変数を指定しない場合に、パスが `pecot-gitignore-ensure.sh` で終わり、そのファイルが実在して `#!` を含むことを確認します。')
+  it('スクリプトの場所を求めると、ソースツリーの plugin ルートにあるスクリプトのパスを返す', async () => {
+    await explains('`.pecot/.gitignore` を生成するスクリプトを探す `pecotGitignoreEnsureScript` のテストです。パスが `pecot-gitignore-ensure.sh` で終わり、そのファイルが実在して `#!` を含むことを確認します。')
     const resolved = pecotGitignoreEnsureScript()
     expect(resolved.endsWith(ENSURE_SCRIPT)).toBe(true)
     expect(readFileSync(resolved, 'utf8')).toContain('#!')
   })
 
-  it('CLAUDE_PLUGIN_ROOT のスクリプトを、worktree を CLAUDE_PROJECT_DIR にして実行する', async () => {
+  it('プラグインのルートのスクリプトを、worktree を CLAUDE_PROJECT_DIR にして実行する', async () => {
     await explains('`.pecot` の下のリンクを作成する `createSymlinks` のテストです。生成スクリプトを実行した場合に、環境変数 `CLAUDE_PROJECT_DIR` が対象の worktree のパスになっていることを確認します。')
     const temporary = makeTemporaryDirectory()
     const marker = path.join(temporary, 'marker')
     const script = path.join(temporary, 'plugin', ENSURE_SCRIPT)
     mkdirSync(path.dirname(script), { recursive: true })
     writeFileSync(script, `#!/bin/bash\necho "$CLAUDE_PROJECT_DIR" > "${marker}"\n`)
-    setEnvironment({ CLAUDE_PLUGIN_ROOT: path.join(temporary, 'plugin') })
+    pluginRootOverride.value = path.join(temporary, 'plugin')
     const { root, config, worktree } = setupPecotLinks()
     createSymlinks(config, root, path.join(root, 'wt1', 'myrepo'), ignoredDiagnostics)
     expect(readFileSync(marker, 'utf8').trim()).toBe(worktree)
@@ -546,7 +557,7 @@ describe('.pecot/.gitignore の生成スクリプトの探索', () => {
     mkdirSync(path.dirname(script), { recursive: true })
     writeFileSync(script, '#!/bin/bash\necho oops >&2\nexit 3\n')
     chmodSync(script, 0o755)
-    setEnvironment({ CLAUDE_PLUGIN_ROOT: path.join(temporary, 'plugin') })
+    pluginRootOverride.value = path.join(temporary, 'plugin')
     const { root, config } = setupPecotLinks()
     const recorded = recordDiagnostics()
     const results = createSymlinks(config, root, path.join(root, 'wt1', 'myrepo'), recorded.diagnostics)
@@ -598,10 +609,10 @@ function writeIgnore(mainWorktree: string, content: string): string {
 
 describe('loadCopyExcludeSpec', () => {
   it('.worktreeignore が存在しない場合は、WorktreeConfigError を送出する', async () => {
-    await explains('コピーの除外設定を読み込む `loadCopyExcludeSpec` のテストです。`.worktreeignore` が存在しない場合は、`WorktreeConfigError` が発生し、`pecot worktree init` の案内を含むことを確認します。')
+    await explains('コピーの除外設定を読み込む `loadCopyExcludeSpec` のテストです。`.worktreeignore` が存在しない場合は、`WorktreeConfigError` が発生し、`worktree_init` の案内を含むことを確認します。')
     const main = makeTemporaryDirectory()
     expect(() => loadCopyExcludeSpec(main, ignoredDiagnostics)).toThrow(WorktreeConfigError)
-    expect(() => loadCopyExcludeSpec(main, ignoredDiagnostics)).toThrow(`copy exclude config not found: ${WORKTREE_IGNORE_FILENAME}\n  run pecot worktree init to generate the template`)
+    expect(() => loadCopyExcludeSpec(main, ignoredDiagnostics)).toThrow(`copy exclude config not found: ${WORKTREE_IGNORE_FILENAME}\n  call worktree_init to generate the template`)
   })
 
   it('基本的な gitignore のパターンに一致するファイルを、除外の対象にする', async () => {

@@ -210,7 +210,7 @@ describe('checkIssueCoverage', () => {
 
   it.for([
     { name: 'handler が ATTRIBUTE_HANDLERS に存在しない', entry: { handler: 'parent' }, expected: 'handler parent is not in ATTRIBUTE_HANDLERS' },
-    { name: 'tool が COMMANDS に存在しない', entry: { tool: 'issue_link' }, expected: 'tool issue_link is not an MCP tool of COMMANDS' },
+    { name: 'tool が TOOLS に存在しない', entry: { tool: 'issue_link' }, expected: 'tool issue_link is not an MCP tool of TOOLS' },
     { name: 'supported に reason がある', entry: { handler: 'labels', reason: 'x' }, expected: 'supported must not have a reason' },
     { name: 'excluded に handler がある', entry: { status: 'excluded', handler: 'labels', reason: 'x' }, expected: 'excluded must not have handler or tool' },
     { name: 'excluded に tool がある', entry: { status: 'excluded', tool: 'issue_create', reason: 'x' }, expected: 'excluded must not have handler or tool' },

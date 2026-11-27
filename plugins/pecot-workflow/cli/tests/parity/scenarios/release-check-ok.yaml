@@ -1,8 +1,7 @@
 # Dependabot・code scanning・secret scanning が 0 件、タグが無く、origin/release から origin/main へ 2 コミットある。バージョンは CHANGELOG から検出する。
 id: release-check-ok
-command:
-  path: [release, check]
-  args: []
+tool: release_check
+arguments: {}
 setup:
   repo:
     branches: [{name: develop, commits: [{message: "feat: 新機能 A を足す", files: {src/a.txt: "a\n"}}, {message: "feat: 新機能 B を足す", files: {src/b.txt: "b\n"}}]}]

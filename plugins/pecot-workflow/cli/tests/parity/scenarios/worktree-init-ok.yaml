@@ -1,10 +1,8 @@
 # 設定が無い main WT で、worktree-config.json と .worktreeignore を作る。
 id: worktree-init-ok
-command:
-  path: [worktree, init]
-  args:
-    - "-D"
-    - "."
+tool: worktree_init
+arguments:
+  directory: .
 setup:
   repo:
     files:

@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: worktree not found: wt9\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "worktree not found: wt9",
+  "structuredContent": {
+    "kind": "other",
+    "detail": "worktree not found: wt9"
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

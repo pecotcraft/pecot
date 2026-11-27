@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: could not read the authenticated user: resource not found: {{GITHUB_API}}/user\n  pass --owner to give the owner explicitly\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "could not read the authenticated user: resource not found: {{GITHUB_API}}/user\n  pass owner to give the owner explicitly",
+  "structuredContent": {
+    "kind": "github-not-found",
+    "detail": "could not read the authenticated user: resource not found: {{GITHUB_API}}/user\n  pass owner to give the owner explicitly"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "rest",

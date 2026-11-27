@@ -1,10 +1,8 @@
 # wt1 を作る。symlink を 1 件張り、git の ignore 対象の .env.local をコピーする。
 id: worktree-add-ok
-command:
-  path: [worktree, add]
-  args:
-    - "-D"
-    - "."
+tool: worktree_add
+arguments:
+  directory: .
 setup:
   repo:
     commits: [{message: "chore: .env.local を ignore する", files: {.gitignore: ".pecot/\n.env.local\n"}}]

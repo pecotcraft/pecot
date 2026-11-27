@@ -3,7 +3,7 @@
   "plugin": "pecot-workflow",
   "prefix": "PW",
   "names": {
-    "separator": " ",
+    "separator": "_",
     "positions": [
       [
         {
@@ -35,14 +35,11 @@
   "entries": [
     {
       "id": "PW-PR-CREATE",
-      "name": "pr create",
+      "name": "pr_create",
       "description": "Create a pull request",
       "surfaces": {
-        "cli": {
-          "path": [
-            "pr",
-            "create"
-          ]
+        "mcp": {
+          "tool": "pr_create"
         }
       },
       "hidden": false,
@@ -54,14 +51,11 @@
     },
     {
       "id": "PW-ISSUE-QUICK",
-      "name": "issue quick",
+      "name": "issue_quick",
       "description": "Create an issue | open <branch> at once",
       "surfaces": {
-        "cli": {
-          "path": [
-            "issue",
-            "quick"
-          ]
+        "mcp": {
+          "tool": "issue_quick"
         }
       },
       "hidden": false,
@@ -73,14 +67,11 @@
     },
     {
       "id": "PW-ISSUE-CREATE",
-      "name": "issue create",
+      "name": "issue_create",
       "description": "Create an issue",
       "surfaces": {
-        "cli": {
-          "path": [
-            "issue",
-            "create"
-          ]
+        "mcp": {
+          "tool": "issue_create"
         }
       },
       "hidden": false,
@@ -92,14 +83,11 @@
     },
     {
       "id": "PW-ISSUE-OLD",
-      "name": "issue old",
+      "name": "issue_old",
       "description": "Old way to create an issue",
       "surfaces": {
-        "cli": {
-          "path": [
-            "issue",
-            "old"
-          ]
+        "mcp": {
+          "tool": "issue_old"
         }
       },
       "hidden": false,
@@ -114,10 +102,8 @@
       "name": "create-branch",
       "description": "Create a branch",
       "surfaces": {
-        "cli": {
-          "path": [
-            "create-branch"
-          ]
+        "mcp": {
+          "tool": "create-branch"
         }
       },
       "hidden": false,
@@ -132,10 +118,8 @@
       "name": "add-to-project",
       "description": "Add an issue to the board",
       "surfaces": {
-        "cli": {
-          "path": [
-            "add-to-project"
-          ]
+        "mcp": {
+          "tool": "add-to-project"
         }
       },
       "hidden": false,
@@ -147,14 +131,11 @@
     },
     {
       "id": "PW-HIDDEN",
-      "name": "hidden",
+      "name": "internal_hidden",
       "description": "Internal command",
       "surfaces": {
-        "cli": {
-          "path": [
-            "internal",
-            "hidden"
-          ]
+        "mcp": {
+          "tool": "internal_hidden"
         }
       },
       "hidden": true,
@@ -165,12 +146,12 @@
       }
     },
     {
-      "id": "PW-MCP-ONLY",
-      "name": "mcp only",
-      "description": "Tool only",
+      "id": "PW-ACTION-ONLY",
+      "name": "action only",
+      "description": "Action only",
       "surfaces": {
-        "mcp": {
-          "tool": "mcp_only"
+        "action": {
+          "path": "actions/action-only"
         }
       },
       "hidden": false,

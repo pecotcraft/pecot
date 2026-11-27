@@ -1,8 +1,8 @@
 # リポジトリがボードに属し、Issue を追加して status を ready にする。
 id: board-add-ok
-command:
-  path: [board, add]
-  args: [acme/demo/7]
+tool: board_add
+arguments:
+  issue_ref: acme/demo/7
 setup:
   repo:
     files:

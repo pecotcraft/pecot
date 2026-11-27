@@ -1,7 +1,13 @@
 {
-  "stdout": "https://ghes.example.com/acme/demo/issues/7#issuecomment-1\n",
-  "stderr": "created: comment on acme/demo/7\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "created: comment on acme/demo/7",
+  "structuredContent": {
+    "issue": "acme/demo/7",
+    "commentUrl": "https://ghes.example.com/acme/demo/issues/7#issuecomment-1",
+    "change": "created",
+    "file": "{{TMP}}/base/demo/note.md"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

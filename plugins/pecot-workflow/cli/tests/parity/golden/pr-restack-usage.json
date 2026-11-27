@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: give only one of check, continue and abort\n",
-  "exitCode": 2,
+  "isError": true,
+  "text": "give only one of check, continue and abort",
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "give only one of check, continue and abort"
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

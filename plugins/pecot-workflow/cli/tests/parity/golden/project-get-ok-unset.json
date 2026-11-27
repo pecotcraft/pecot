@@ -1,7 +1,10 @@
 {
-  "stdout": "none\n",
+  "isError": false,
+  "text": "none",
+  "structuredContent": {
+    "key": "aggregation_repo"
+  },
   "stderr": "",
-  "exitCode": 0,
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

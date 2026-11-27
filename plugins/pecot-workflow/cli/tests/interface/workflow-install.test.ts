@@ -66,7 +66,7 @@ async function install(argumentsOfTool: Readonly<Record<string, unknown>>, files
   return await runTool({ tool: 'workflow_install', arguments: { name: 'review', ...argumentsOfTool }, files, config: false, github: [TAG_RULE], environment: GITHUB_COM })
 }
 
-describe('workflow install', () => {
+describe('workflow_install', () => {
   it('置き先にファイルが存在しないとき呼ぶと、雛形を書き出し、written を true にする', async (context) => {
     await verifies(context, 'PW-WORKFLOW-INSTALL-01')
     await explains('ワークフローの雛形の書き出し（`workflow_install`）のテストです。置き先にファイルが存在しない場合に、雛形を書き出して `written` が `true` になり、GitHub へはタグを読む要求だけを送ることを確認します。')
@@ -82,15 +82,6 @@ describe('workflow install', () => {
     await explains('雛形を書き出した場合の、結果の項目のテストです。置き先が `path` に、同梱の雛形の版が `version` に格納されることを確認します。')
     const result = await install({})
     expect(result.structured).toMatchObject({ path: DESTINATION, version: BUNDLED_VERSION })
-  })
-
-  it('CLI で --dry-run を付けると、何も書かずに、書く予定を dry-run の行に出して 0 で終わる', async (context) => {
-    await verifies(context, 'PW-WORKFLOW-INSTALL-03')
-    await explains('CLI で `--dry-run` を指定した場合のテストです。ファイルを書き出さず、書き出す予定を `dry-run:` の行に出力して、終了コード 0 で終了することを確認します。')
-    const result = await runCommand({ argv: ['workflow', 'install', 'review', '--dry-run'], config: false, github: [TAG_RULE], environment: GITHUB_COM })
-    expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`dry-run: would create ${DESTINATION}\n`)
-    expect(result.read(DESTINATION)).toBeUndefined()
   })
 
   it('置き先にファイルのあるとき force を付けずに呼ぶと、何も書かずに already-exists の失敗を返す', async (context) => {
@@ -132,10 +123,11 @@ describe('workflow install', () => {
 
   it.for([
     { name: '版が古い', installed: OLD, line: 'workflow template review is outdated', call: 'workflow_install with name: "review", force: true' },
+    { name: '版の印が無い', installed: 'name: pecot-review\n', line: 'outdated (installed unknown, bundled', call: 'workflow_install with name: "review", force: true' },
     { name: 'ファイルが存在しない', installed: undefined, line: `${DESTINATION} is missing`, call: 'workflow_install with name: "review"' },
   ])('check で $name とき、更新の呼び方を detail に含めて not-ready の失敗を返す', async (row, context) => {
     await verifies(context, 'PW-WORKFLOW-INSTALL-08')
-    await explains('`check` を指定して呼び出し、版が古い場合と、ファイルが存在しない場合のテストです。ファイルを書き換えず、更新の呼び出し方を `detail` に含めた `not-ready` の失敗が返ることを確認します。')
+    await explains('`check` を指定して呼び出した場合のテストです。更新の要る 3 つの状態（古い版・版の印なし・ファイルなし）で、ファイルは書き換えず、更新の呼び出し方を含む `detail` と `not-ready` の失敗を返すことを確認します。')
     const result = await install({ check: true }, row.installed === undefined ? NO_FILES : { [DESTINATION]: row.installed })
     expect(result.isError).toBe(true)
     expect(result.structured).toMatchObject({ kind: 'not-ready', path: DESTINATION, written: false, upToDate: false })
@@ -212,21 +204,6 @@ describe('workflow install', () => {
     expect(stringScalars(parse(written))).not.toContain(ciName)
   })
 
-  it('CLI で auto を書き出すと、次にすることに App の変数と secret の設定を入れ、Claude の App の手順を入れない', async (context) => {
-    await verifies(context, 'PW-WORKFLOW-INSTALL-14')
-    await explains('CLI で `auto` の雛形を書き出した場合の、次の手順の表示のテストです。App の変数と secret の設定が含まれ、Claude GitHub App の手順が含まれないことを確認します。')
-    const result = await runCommand({ argv: ['workflow', 'install', 'auto'], config: false, github: [TAG_RULE], environment: GITHUB_COM })
-    expect(result.code).toBe(0)
-    expect(result.stdout).toBe([
-      'next:',
-      '  1. set variable PECOT_AGENT_APP_CLIENT_ID in Settings > Secrets and variables > Actions',
-      '  2. set secret PECOT_AGENT_APP_PRIVATE_KEY in Settings > Secrets and variables > Actions',
-      '  3. set secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_* in Settings > Secrets and variables > Actions',
-      '  4. check the settings with: pecot workflow doctor auto',
-      '',
-    ].join('\n'))
-  })
-
   it('name に handoff を渡すと、引き継ぎの雛形を .github/workflows/pecot-handoff.yml に書き出す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-INSTALL-01')
     await explains('`name` に `handoff` を指定した場合のテストです。引き継ぎの雛形が `.github/workflows/pecot-handoff.yml` に書き出され、結果に版が含まれることを確認します。')
@@ -239,33 +216,12 @@ describe('workflow install', () => {
     expect(result.structured).toMatchObject({ written: true, path: '.github/workflows/pecot-handoff.yml', version: 2 })
   })
 
-  it('CLI で handoff を書き出すと、次にすることに Claude の App の手順を入れない', async (context) => {
-    await verifies(context, 'PW-WORKFLOW-INSTALL-13')
-    await explains('CLI で `handoff` の雛形を書き出した場合の、次の手順の表示のテストです。Claude GitHub App の手順が含まれないことを確認します。')
-    const result = await runCommand({ argv: ['workflow', 'install', 'handoff'], config: false, github: [] })
-    expect(result.stdout).toBe([
-      'next:',
-      '  1. set secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_* in Settings > Secrets and variables > Actions',
-      '  2. check the settings with: pecot workflow doctor handoff',
-      '',
-    ].join('\n'))
-  })
-
   it('check と force を一緒に渡すと、何も書かずに invalid-input の失敗を返す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-INSTALL-10')
     await explains('`check` と `force` を同時に指定した場合のテストです。ファイルを書き出さず、`invalid-input` の失敗が返ることを確認します。')
     const result = await install({ check: true, force: true })
     expect(result.isError).toBe(true)
     expect(result.structured).toMatchObject({ kind: 'invalid-input', detail: 'check cannot be used with force' })
-    expect(result.read(DESTINATION)).toBeUndefined()
-  })
-
-  it('CLI で --check と --dry-run を一緒に付けると、何も書かずに使い方の誤りで止まる', async (context) => {
-    await verifies(context, 'PW-WORKFLOW-INSTALL-10')
-    await explains('CLI で `--check` と `--dry-run` を同時に指定した場合のテストです。ファイルを書き出さず、使い方の誤りを示す終了コード 2 で終了することを確認します。')
-    const result = await runCommand({ argv: ['workflow', 'install', 'review', '--check', '--dry-run'], config: false, github: [] })
-    expect(result.code).toBe(2)
-    expect(result.stderr).toBe('error: --check cannot be used with --force or --dry-run\n')
     expect(result.read(DESTINATION)).toBeUndefined()
   })
 
@@ -287,17 +243,6 @@ describe('workflow install', () => {
     expect(result.read(DESTINATION)).toBeUndefined()
   })
 
-  it('CLI で雛形を書き出すと、次にすることを標準出力に出す', async () => {
-    await explains('CLI で雛形を書き出した場合の、次の手順の表示のテストです。Claude GitHub App のインストール、認証の設定、設定の確認の 3 つの手順が標準出力に表示されることを確認します。')
-    const result = await runCommand({ argv: ['workflow', 'install', 'review'], config: false, github: [TAG_RULE], environment: GITHUB_COM })
-    expect(result.stdout).toBe([
-      'next:',
-      '  1. install the Claude GitHub App on the repository',
-      '  2. set secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_* in Settings > Secrets and variables > Actions',
-      '  3. check the settings with: pecot workflow doctor review',
-      '',
-    ].join('\n'))
-  })
   it('雛形が pecot の action をタグで指すと、タグの commit の SHA に直し、タグをコメントに残して書き出す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-INSTALL-15')
     await explains('雛形の中で pecot の action をタグで指す行のテストです。書き出したファイルでは、タグが commit の SHA に置き換わり、元のタグがコメントとして残ることを確認します。')
@@ -329,6 +274,18 @@ describe('workflow install', () => {
     expect(result.read(DESTINATION)).toBeUndefined()
   })
 
+  it.for([
+    { name: '500 を返す', respond: { status: 500, body: { message: 'Server Error' } }, detail: 'GitHub API error: 500' },
+    { name: '接続を切る', respond: { status: 200, disconnect: true }, detail: 'other side closed' },
+  ])('タグの読み取りで GitHub が $name と、何も書かずに github-api の失敗を返す', async ({ respond, detail }) => {
+    await explains('雛形の指すタグを読めない場合のテストです。GitHub が 500 を返す、または接続を切った場合に、ファイルを書き出さず、読めなかったタグを含む `github-api` の失敗が返ることを確認します。')
+    const failing = { match: { method: 'GET', path: TAG_PATH }, respond, times: 1 }
+    const result = await runTool({ tool: 'workflow_install', arguments: { name: 'review' }, config: false, github: [failing], environment: GITHUB_COM })
+    expect(result.isError).toBe(true)
+    expect(result.structured).toEqual({ kind: 'github-api', detail: `could not read tag ${TAG} of pecotcraft/pecot: ${detail}` })
+    expect(result.read(DESTINATION)).toBeUndefined()
+  })
+
   it('check では GitHub を読まない', async () => {
     await explains('`check` を指定して呼び出した場合の、GitHub への要求のテストです。タグを読み込まずに成功の結果を返し、GitHub へ要求を 1 件も送らないことを確認します。')
     const result = await install({ check: true }, { [DESTINATION]: PINNED })
@@ -336,20 +293,13 @@ describe('workflow install', () => {
     expect(result.requests).toEqual([])
   })
 
-  it('CLI で board-sync を書き出すと、.github/workflows/pecot-board-sync.yml に置き、次にすることに token の組の設定を入れる', async (context) => {
+  it('board-sync を書き出すと、.github/workflows/pecot-board-sync.yml に置く', async (context) => {
     await verifies(context, 'PW-WORKFLOW-INSTALL-01')
-    await verifies(context, 'PW-WORKFLOW-INSTALL-17')
-    await explains('CLI で `board-sync` の雛形を書き出した場合のテストです。`.github/workflows/pecot-board-sync.yml` に書き出し、次の手順に App または PAT の設定と設定の確認が表示されることを確認します。')
+    await explains('`board-sync` の雛形を書き出した場合のテストです。同梱の雛形を、タグを SHA に直して `.github/workflows/pecot-board-sync.yml` に書き出すことを確認します。')
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同梱の雛形のパス
     const bundled = readFileSync(path.join(pluginRoot(), 'cli/templates/workflow/pecot-board-sync.yml'), 'utf8')
-    const result = await runCommand({ argv: ['workflow', 'install', 'board-sync'], config: false, github: [TAG_RULE], environment: GITHUB_COM })
+    const result = await runCommand({ tool: 'workflow_install', arguments: { name: 'board-sync' }, config: false, github: [TAG_RULE], environment: GITHUB_COM })
     expect(result.code).toBe(0)
     expect(result.read('.github/workflows/pecot-board-sync.yml')).toBe(pinned(bundled))
-    expect(result.stdout).toBe([
-      'next:',
-      '  1. set variable PECOT_BOARD_SYNC_APP_CLIENT_ID and secret PECOT_BOARD_SYNC_APP_PRIVATE_KEY, or variable PECOT_BOARD_SYNC_USE_PAT and secret PECOT_BOARD_SYNC_TOKEN in Settings > Secrets and variables > Actions',
-      '  2. check the settings with: pecot workflow doctor board-sync',
-      '',
-    ].join('\n'))
   })
 })

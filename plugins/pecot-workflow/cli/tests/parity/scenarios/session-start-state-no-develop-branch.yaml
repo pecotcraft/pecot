@@ -1,8 +1,9 @@
 # 設定に develop_branch の無いリポで止まり、project link で設定する案内を出す。
 id: session-start-state-no-develop-branch
-command:
-  path: [session, start]
-  args: [acme/demo/7, feat]
+tool: session_start
+arguments:
+  issue_ref: acme/demo/7
+  branch: feat
 setup:
   repo:
     files:

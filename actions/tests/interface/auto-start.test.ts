@@ -137,28 +137,28 @@ describe('auto start', () => {
     expect(writtenContext(runner)).toEqual(emptyContext())
   })
 
-  it('設定に fields.status が無いと、何も読まずに project init を案内して止まる', async (context) => {
+  it('設定に fields.status が無いと、何も読まずに project_init を案内して止まる', async (context) => {
     await verifies(context, 'PA-AUTO-START-07')
-    await explains('プロジェクトの設定を検証する、`auto-start` の action のテストです。`fields.status` を持たない設定の場合に、GitHub へ何も要求せず、文脈のファイルを書かずに `pecot project init` を案内して step を失敗にすることを確認します。')
+    await explains('プロジェクトの設定を検証する、`auto-start` の action のテストです。`fields.status` を持たない設定の場合に、GitHub へ何も要求せず、文脈のファイルを書かずに `project_init` を案内して step を失敗にすることを確認します。')
     const runner = prepareAuto({ hasStatus: false })
     const github = await startGithub([])
 
     const outcome = await start()
 
-    expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: the project config has no Status field (fields.status)\n  run: pecot project init\n' })
+    expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: the project config has no Status field (fields.status)\n  call project_init\n' })
     expect(github.requests()).toEqual([])
     expect(existsSync(contextFile(runner))).toBe(false)
   })
 
-  it('戻すはずの札の選択肢が設定に無いと、書かずに project init を案内して止まる', async (context) => {
+  it('戻すはずの札の選択肢が設定に無いと、書かずに project_init を案内して止まる', async (context) => {
     await verifies(context, 'PA-AUTO-START-07')
-    await explains('プロジェクトの設定を検証する、`auto-start` の action のテストです。戻す Status（`Todo`）の選択肢を設定が持たない場合に、ボードへ書き込まず、`pecot project init` の実行を案内して step を失敗にすることを確認します。')
+    await explains('プロジェクトの設定を検証する、`auto-start` の action のテストです。戻す Status（`Todo`）の選択肢を設定が持たない場合に、ボードへ書き込まず、`project_init` の実行を案内して step を失敗にすることを確認します。')
     prepareAuto({ missingStatus: 'todo' })
     const github = await startGithub([prerequisitesRule(WAITING), issueComments([bot(QUESTION)]), boardItems()])
 
     const outcome = await start()
 
-    expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: the board has no option Todo for Status\n  run: pecot project init\n' })
+    expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: the board has no option Todo for Status\n  call project_init\n' })
     expect(writesOf(github.requests())).toEqual([])
   })
 

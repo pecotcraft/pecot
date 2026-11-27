@@ -1,7 +1,39 @@
 {
-  "stdout": "",
-  "stderr": "skipped: field pecot-status (already exists)\nskipped: field pecot-lane (no lanes given)\nwarning: field pecot-lane was not created because no lanes were given\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with --lanes\nadded: option Blocked to field pecot-status\nadded: option Needs Attention to field Status\ncreated: config file {{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_1.json\nset: active project to ghes.example.com_acme_1\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "skipped: field pecot-status (already exists)",
+  "structuredContent": {
+    "fields": [
+      {
+        "name": "pecot-status",
+        "change": "update",
+        "addedOptions": [
+          "Blocked"
+        ]
+      },
+      {
+        "name": "pecot-lane",
+        "change": "skip",
+        "addedOptions": []
+      },
+      {
+        "name": "Status",
+        "change": "update",
+        "addedOptions": [
+          "Needs Attention"
+        ]
+      }
+    ],
+    "migration": {
+      "renamed": null,
+      "config_moved": null,
+      "pending_delete": [],
+      "deleted": []
+    },
+    "warnings": [
+      "field pecot-lane was not created because no lanes were given\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes"
+    ]
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

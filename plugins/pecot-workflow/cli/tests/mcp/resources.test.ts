@@ -2,7 +2,7 @@
 import { ProtocolError } from '@modelcontextprotocol/client'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { COMMANDS } from '../../src/commands/registry.js'
+import { TOOLS } from '../../src/commands/registry.js'
 import { templateFile } from '../../src/infra/template-store.js'
 import { readTextFile } from '@pecot/workflow-core/infra/text-file.js'
 import { createMcpServer, MCP_INSTRUCTIONS } from '../../src/mcp/server.js'
@@ -32,7 +32,7 @@ const TEMPLATES: readonly { readonly kind: TemplateKind, readonly name: string }
 const opened: ConnectedClient[] = []
 
 async function connect(unavailableReason?: string): Promise<ConnectedClient> {
-  const connected = await connectInMemory(createMcpServer(COMMANDS, { unavailableReason }))
+  const connected = await connectInMemory(createMcpServer(TOOLS, { unavailableReason }))
   opened.push(connected)
   return connected
 }

@@ -1,22 +1,21 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 定義の型は readonly にできない */
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
-// tests/interface/<コマンド>.test.ts が共有する準備。コマンドは runCli でプロセス内で呼ぶ。
+// tests/interface/<ツール>.test.ts が共有する準備。ツールの本体はプロセス内で呼ぶ。
 // 使う側は useIsolatedEnvironment() を 1 回呼ぶ。後始末は、このファイルの afterEach が行う。
 import { realpathSync } from 'node:fs'
 import path from 'node:path'
 
 import { afterEach, expect, vi } from 'vitest'
 
-import { runCli } from '../../src/cli.js'
-import type { CommandDefinition } from '../../src/commands/registry.js'
-import { capture } from '../../src/commands/tests/support.js'
-import { attachOutput } from '../../../../../libs/interface-spec/src/vitest/attach.js'
+import type { ToolDefinition } from '../../src/commands/registry.js'
 import { installFakeGh, prependToPath } from '../../../../../libs/workflow-core/tests/_helpers/fake-executables.js'
 import { setEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { createGitRepository } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import { makeTemporaryDirectory, writeTree } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { startFakeGithub } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import type { FakeGithub, RecordedRequest, ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
+import { runToolInProcess } from './run-tool.js'
+import type { ToolRunResult } from './run-tool.js'
 
 const startingDirectory = process.cwd()
 const servers: FakeGithub[] = []
@@ -31,11 +30,7 @@ afterEach(async () => {
   expect({ problems, unused }).toEqual({ problems: [], unused: [] })
 })
 
-export interface CliResult {
-  readonly code: number
-  readonly stdout: string
-  readonly stderr: string
-}
+export type { ToolRunResult } from './run-tool.js'
 
 export interface RunOptions {
   /**
@@ -45,15 +40,17 @@ export interface RunOptions {
 }
 
 /**
-runCli をプロセス内で呼び、終了コードと出力を返す。commands は検証したいコマンドの定義
+ツールの本体をプロセス内で呼び、終了コードと出力を返す。cwd を渡すと、呼ぶ間だけそこへ移る
 */
-export async function runInProcess(argv: readonly string[], commands: readonly CommandDefinition[], options: Readonly<RunOptions> = {}): Promise<CliResult> {
-  const io = capture({ attach: false })
-  const code = await runCli(argv, { commands, io, cwd: options.cwd ?? process.cwd(), environment: {}, terminalColumns: undefined })
-  const stdout = io.out.join('')
-  const stderr = io.err.join('')
-  attachOutput(['pecot', ...argv].join(' '), code, stdout, stderr)
-  return { code, stdout, stderr }
+export async function runInProcess(name: string, arguments_: Readonly<Record<string, unknown>>, tools: readonly ToolDefinition[], options: Readonly<RunOptions> = {}): Promise<ToolRunResult> {
+  const previous = process.cwd()
+  if (options.cwd !== undefined) process.chdir(options.cwd)
+  try {
+    return await runToolInProcess(tools, name, arguments_)
+  }
+  finally {
+    process.chdir(previous)
+  }
 }
 
 export interface ProjectFixtureOptions {

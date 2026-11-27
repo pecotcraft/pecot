@@ -24,11 +24,10 @@ describe('gitReasonOf', () => {
 })
 
 describe('gitFailureText', () => {
-  it('CLI では渡した文のまま表示し、MCP では前置きの後に理由の行だけを続ける', async () => {
-    await explains('git コマンドの失敗を表す文を作成する、`gitFailureText` のテストです。CLI 向けの表示では出力の全文を含め、MCP 向けの表示では前置きの後に理由の行だけが続くことを確認します。')
+  it('前置きの後に、git の出力の理由の行だけを続ける', async () => {
+    await explains('git コマンドの失敗を表す文を作成する、`gitFailureText` のテストです。進捗の行を含む出力を渡した場合に、前置きの後に `fatal:` の理由の行だけが続くことを確認します。')
     const text = gitFailureText('failed to create the worktree: ', ADD_FAILURE)
-    expect(formatHinted(text, 'cli')).toBe(`failed to create the worktree: ${ADD_FAILURE}`)
-    expect(formatHinted(text, 'mcp')).toBe('failed to create the worktree: fatal: \'/w/occupied\' already exists')
+    expect(formatHinted(text)).toBe('failed to create the worktree: fatal: \'/w/occupied\' already exists')
   })
 })
 

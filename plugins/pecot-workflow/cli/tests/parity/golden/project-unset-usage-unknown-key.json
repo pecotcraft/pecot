@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "Usage: pecot project unset [OPTIONS] {key}\nTry 'pecot project unset --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Invalid value for 'key': 'foo' is not one of 'aggregation_repo'.             │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
-  "exitCode": 2,
+  "isError": true,
+  "text": "invalid input: key: Invalid input: expected \"aggregation_repo\"",
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid input: key: Invalid input: expected \"aggregation_repo\""
+  },
+  "stderr": "",
   "requests": [],
   "files": {}
 }

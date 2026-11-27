@@ -2,9 +2,9 @@
 import { z } from 'zod'
 
 import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
-import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import { isStatusConfigured, setIssueField } from '@pecot/workflow-core/commands-shared/issue-board.js'
+import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { setIssueField } from '@pecot/workflow-core/commands-shared/issue-board.js'
 import { commandHint, hinted } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import { stopWith, requireConfigFor, PROJECT_INPUT } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
@@ -26,22 +26,18 @@ const BOARD_MOVE_OUTPUT = z.strictObject({
   status: z.string().describe('Status set on the board'),
 })
 
-const BOARD_MOVE = defineCommand({
-  path: ['board', 'move'],
+const BOARD_MOVE = defineTool({
+  name: 'board_move',
   title: 'Move Issue on board',
   description: 'Update the status of an Issue on the project board by Issue number (pecot commands normally set the status themselves)',
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),
     status: z.string().describe('Status (backlog/pending/blocked/ready/active/in_review/archived)'),
     project: PROJECT_INPUT,
-    dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
   output: BOARD_MOVE_OUTPUT,
-  positional: ['issue_ref', 'status'],
-  shortFlags: { dry_run: '-n' },
-  interactive: false,
   run: async (input, io) => {
-    const output = createOutput<z.input<typeof BOARD_MOVE_OUTPUT>>(input.dry_run, io)
+    const output = createOutput<z.input<typeof BOARD_MOVE_OUTPUT>>(false, io)
     return await runWithExit(async () => {
       const { status } = input
       if (!VALID_STATUSES.has(status)) exitInvalidStatus(output, status)
@@ -54,12 +50,6 @@ const BOARD_MOVE = defineCommand({
         const itemId = await client.getItemIdByIssue(config.project.id, owner, repository, number)
         if (itemId === undefined) {
           stopWith(output, hinted`${target} is not on the project board\nhint: add it to the board first with ${commandHint(['board', 'add'], { issue_ref: `${owner}/${repository}/${String(number)}` })}`, 'not-on-board')
-        }
-        if (input.dry_run) {
-          if (!isStatusConfigured(config, status)) stopWith(output, notConfiguredMessage(status), 'status-not-configured')
-          output.planned({ verb: 'set', target: `${target} status ${status}` })
-          output.result({ issue: issuePath(owner, repository, number), status })
-          return
         }
         let isSet: boolean
         try {
@@ -81,4 +71,4 @@ const BOARD_MOVE = defineCommand({
   },
 })
 
-export const BOARD_MOVE_COMMANDS: readonly CommandDefinition[] = [BOARD_MOVE]
+export const BOARD_MOVE_TOOLS: readonly ToolDefinition[] = [BOARD_MOVE]

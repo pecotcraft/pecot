@@ -1,4 +1,4 @@
-// branch delete の振る舞い（PW-BRANCH-DELETE-*）を MCP のツールで確かめ、CLI の行と終了コードも runCli をプロセス内で呼んで確かめる。
+// branch_delete の振る舞い（PW-BRANCH-DELETE-*）を、MCP のツールと、プロセス内で呼んだツールの行と終了コードで確かめる。
 import { describe, expect, it } from 'vitest'
 
 import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
@@ -21,13 +21,15 @@ async function tool(arguments_: Readonly<Record<string, unknown>>, extra: Partia
   return await runTool({ tool: 'branch_delete', arguments: arguments_, github: [repository(), removal()], ...extra })
 }
 
-async function remove(extra: Partial<CommandRun> = {}, argv: readonly string[] = ['branch', 'delete', 'acme/demo', 'feat/7']): Promise<CommandResult> {
-  return await runCommand({ argv, github: [repository(), removal()], ...extra })
+const REMOVE_ARGUMENTS = { repo: 'acme/demo', branch: 'feat/7' }
+
+async function remove(extra: Partial<CommandRun> = {}, arguments_: Readonly<Record<string, unknown>> = REMOVE_ARGUMENTS): Promise<CommandResult> {
+  return await runCommand({ tool: 'branch_delete', arguments: arguments_, github: [repository(), removal()], ...extra })
 }
 
-describe('branch delete', () => {
+describe('branch_delete', () => {
   it('リポジトリとブランチ名を渡して打つと、そのリポジトリのリモートブランチを削除する', async () => {
-    await explains('`branch delete` の基本の動作のテストです。リポジトリとブランチ名を渡した場合に、そのリポジトリのリモートブランチを GitHub API で削除することを確認します。')
+    await explains('`branch_delete` の基本の動作のテストです。リポジトリとブランチ名を渡した場合に、そのリポジトリのリモートブランチを GitHub API で削除することを確認します。')
     const result = await remove()
     expect(result.code).toBe(0)
     expect(result.problems).toEqual([])
@@ -35,32 +37,18 @@ describe('branch delete', () => {
     expect(requestLabels(result.requests)).toContain('DELETE /repos/acme/demo/git/refs/heads/feat/7')
   })
 
-  it('--dry-run を付けて打つと、何も削除しない', async () => {
-    await explains('`branch delete` の `--dry-run` のテストです。`--dry-run` を指定した場合に、ブランチを削除せず、既定ブランチの取得だけを行うことを確認します。')
-    const result = await remove({ github: [repository()] }, ['branch', 'delete', 'acme/demo', 'feat/7', '--dry-run'])
-    expect(result.code).toBe(0)
-    expect(result.problems).toEqual([])
-    expect(requestLabels(result.requests)).toEqual(['GET /repos/acme/demo'])
-  })
-
   it('ブランチを削除すると、deleted の行を標準エラーに出す', async () => {
-    await explains('`branch delete` の出力のテストです。ブランチを削除した場合に、`deleted` の行を標準エラーに出力し、標準出力には何も出力しないことを確認します。')
+    await explains('`branch_delete` の出力のテストです。ブランチを削除した場合に、`deleted` の行を標準エラーに出力し、標準出力には何も出力しないことを確認します。')
     const result = await remove()
     expect(result.stdout).toBe('')
     expect(result.stderr).toContain(DELETED)
   })
 
-  it('--dry-run を付けて打つと、dry-run の行を標準エラーに出す', async () => {
-    await explains('`branch delete` の `--dry-run` のテストです。短縮形の `-n` を指定した場合に、`dry-run` の行を標準エラーに出力することを確認します。')
-    const result = await remove({ github: [repository()] }, ['branch', 'delete', 'acme/demo', 'feat/7', '-n'])
-    expect(result.stderr).toBe('dry-run: would delete remote branch feat/7 in acme/demo\n')
-  })
-
   it('削除するブランチが既定ブランチ・develop_branch・release_branch のどれかなら、保護するブランチを並べた error の行を標準エラーに出して終了コード 1 で終わる', async () => {
-    await explains('`branch delete` の保護するブランチのテストです。削除するブランチが既定ブランチ・`develop_branch`・`release_branch` のいずれかの場合に、保護するブランチを並べたエラーを出力して終了コード 1 で終わることを確認します。')
+    await explains('`branch_delete` の保護するブランチのテストです。削除するブランチが既定ブランチ・`develop_branch`・`release_branch` のいずれかの場合に、保護するブランチを並べたエラーを出力して終了コード 1 で終わることを確認します。')
     const config = projectConfig({ repositories: [{ owner: 'acme', name: 'demo', develop_branch: 'develop-aist', release_branch: 'release-v1' }] })
     for (const branch of ['main', 'develop-aist', 'release-v1']) {
-      const result = await remove({ config, github: [repository()] }, ['branch', 'delete', 'acme/demo', branch])
+      const result = await remove({ config, github: [repository()] }, { repo: 'acme/demo', branch: branch })
       expect(result.code).toBe(1)
       expect(result.problems).toEqual([])
       expect(result.stderr).toBe(`error: ${branch} is a protected branch\n  protected: develop-aist, main, release-v1\n`)
@@ -69,46 +57,46 @@ describe('branch delete', () => {
   })
 
   it('repo_ref が owner/repo の形でないと、終了コード 2 で終わる', async () => {
-    await explains('`branch delete` の引数を検証するテストです。`repo_ref` が `owner/repo` の形でない場合に、GitHub へ何も要求せず、終了コード 2 で終わることを確認します。')
-    const result = await remove({ github: [] }, ['branch', 'delete', 'invalid-format', 'feat/7'])
+    await explains('`branch_delete` の引数を検証するテストです。`repo_ref` が `owner/repo` の形でない場合に、GitHub へ何も要求せず、終了コード 2 で終わることを確認します。')
+    const result = await remove({ github: [] }, { repo: 'invalid-format', branch: 'feat/7' })
     expect(result.code).toBe(2)
     expect(result.stderr).toContain('invalid owner/repo form')
     expect(result.requests).toEqual([])
   })
 
-  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async () => {
-    await explains('`branch delete` のプロジェクトの設定の選択のテストです。対象のリポジトリを含む設定が 2 つあり `.active` でも選べない場合に、候補と `--project` の案内を出力して終了コード 1 で終わることを確認します。')
+  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と project の案内を出して終了コード 1 で終わる', async () => {
+    await explains('`branch_delete` のプロジェクトの設定の選択のテストです。対象のリポジトリを含む設定が 2 つあり `.active` でも選べない場合に、候補と `project` の案内を出力して終了コード 1 で終わることを確認します。')
     const result = await remove({ files: ambiguousFiles(), github: [] })
     expect(result.code).toBe(1)
-    expect(result.stderr).toBe(`error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n`)
+    expect(result.stderr).toBe(`error: acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n`)
     expect(result.requests).toEqual([])
   })
 
   it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async () => {
-    await explains('`branch delete` のプロジェクトの設定の選択のテストです。対象のリポジトリを含む設定が存在しない場合に、エラーと選べる設定の一覧を出力して終了コード 1 で終わることを確認します。')
+    await explains('`branch_delete` のプロジェクトの設定の選択のテストです。対象のリポジトリを含む設定が存在しない場合に、エラーと選べる設定の一覧を出力して終了コード 1 で終わることを確認します。')
     const result = await remove({ config: otherRepositoryConfig(), github: [] })
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme\n')
     expect(result.requests).toEqual([])
   })
 
-  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で削除する', async () => {
-    await explains('`branch delete` の `--project` のテストです。対象のリポジトリを含む設定が 2 つある場合でも、`--project` で指定した設定でブランチを削除することを確認します。')
-    const result = await remove({ files: ambiguousFiles() }, ['branch', 'delete', 'acme/demo', 'feat/7', '--project', SECOND_PROJECT])
+  it('project を渡すと、対象のリポを含む設定が 2 つあってもその設定で削除する', async () => {
+    await explains('`branch_delete` の `project` のテストです。対象のリポジトリを含む設定が 2 つある場合でも、`project` で指定した設定でブランチを削除することを確認します。')
+    const result = await remove({ files: ambiguousFiles() }, { repo: 'acme/demo', branch: 'feat/7', project: SECOND_PROJECT })
     expect(result.code).toBe(0)
     expect(result.problems).toEqual([])
     expect(result.stderr).toContain(DELETED)
   })
 
   it('.active が無くても、対象のリポを含む設定が 1 つならその設定で削除する', async () => {
-    await explains('`branch delete` のプロジェクトの設定の選択のテストです。`.active` が存在しなくても、対象のリポジトリを含む設定が 1 つであれば、その設定でブランチを削除することを確認します。')
+    await explains('`branch_delete` のプロジェクトの設定の選択のテストです。`.active` が存在しなくても、対象のリポジトリを含む設定が 1 つであれば、その設定でブランチを削除することを確認します。')
     const result = await remove({ files: NO_ACTIVE_FILES })
     expect(result.code).toBe(0)
     expect(result.stderr).toContain(DELETED)
   })
 
   it('リポジトリの既定ブランチを読めないと、終了コード 1 で終わる', async () => {
-    await explains('`branch delete` の既定ブランチの取得のテストです。GitHub API が 404 を返した場合に、`could not read the default branch` で始まるエラーを出力して終了コード 1 で終わることを確認します。')
+    await explains('`branch_delete` の既定ブランチの取得のテストです。GitHub API が 404 を返した場合に、`could not read the default branch` で始まるエラーを出力して終了コード 1 で終わることを確認します。')
     const result = await remove({ github: [restRule('GET', REPO_PATH, 404, { message: 'Not Found' })] })
     expect(result.code).toBe(1)
     expect(result.stderr).toMatch(/^error: could not read the default branch of acme\/demo: resource not found: http:\/\/127\.0\.0\.1:\d+\/repos\/acme\/demo\n$/u)
@@ -116,7 +104,7 @@ describe('branch delete', () => {
   })
 
   it('ブランチの削除で GitHub API がエラーを返すと、終了コード 1 で終わる', async () => {
-    await explains('`branch delete` の GitHub API のエラーのテストです。ブランチの削除が 422 で失敗した場合に、`could not delete remote branch` で始まるエラーを出力して終了コード 1 で終わることを確認します。')
+    await explains('`branch_delete` の GitHub API のエラーのテストです。ブランチの削除が 422 で失敗した場合に、`could not delete remote branch` で始まるエラーを出力して終了コード 1 で終わることを確認します。')
     const result = await remove({ github: [repository(), removal(422, { message: 'Validation Failed' })] })
     expect(result.code).toBe(1)
     expect(result.problems).toEqual([])
@@ -124,7 +112,7 @@ describe('branch delete', () => {
   })
 
   it('git の外で打つと、the repository is ambiguous の行を標準エラーに出して終了コード 1 で終わる', async () => {
-    await explains('`branch delete` の実行場所のテストです。git リポジトリの外で実行した場合に、`the repository is ambiguous` のエラーを出力して終了コード 1 で終わり、GitHub へは要求しないことを確認します。')
+    await explains('`branch_delete` の実行場所のテストです。git リポジトリの外で実行した場合に、`the repository is ambiguous` のエラーを出力して終了コード 1 で終わり、GitHub へは要求しないことを確認します。')
     const result = await remove({ remote: false, github: [] })
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: the repository is ambiguous\n  run inside a git repository that has a remote\n')
@@ -132,7 +120,7 @@ describe('branch delete', () => {
   })
 
   it('origin の URL が GitHub の形でなくても、引数のリポジトリのリモートブランチを削除する', async () => {
-    await explains('`branch delete` の `origin` の URL のテストです。URL が GitHub の形式でない場合でも、引数で渡したリポジトリのリモートブランチを削除することを確認します。')
+    await explains('`branch_delete` の `origin` の URL のテストです。URL が GitHub の形式でない場合でも、引数で渡したリポジトリのリモートブランチを削除することを確認します。')
     const result = await remove({ remoteUrl: '/srv/git/demo.git' })
     expect(result.code).toBe(0)
     expect(result.problems).toEqual([])
@@ -149,16 +137,6 @@ describe('branch delete', () => {
       const result = await tool(ARGUMENTS)
       expect(result.structured).toEqual({ branch: 'feat/7', repository: 'acme/demo', deleted: true })
       expect(requestLabels(result.requests)).toContain('DELETE /repos/acme/demo/git/refs/heads/feat/7')
-    })
-
-    it('CLI で --dry-run を付けると、何も削除せず、削除する予定を dry-run の行に出して 0 で終わる', async (context) => {
-      await verifies(context, 'PW-BRANCH-DELETE-03')
-      await verifies(context, 'PW-BRANCH-DELETE-06')
-      await explains('`branch delete --dry-run` のテストです。`--dry-run` を指定した場合に、何も削除せず、削除する予定を `dry-run` の行に出力して終了コード 0 で終わることを確認します。')
-      const result = await remove({ github: [repository()] }, ['branch', 'delete', 'acme/demo', 'feat/7', '--dry-run'])
-      expect(result.code).toBe(0)
-      expect(result.stderr).toBe('dry-run: would delete remote branch feat/7 in acme/demo\n')
-      expect(requestLabels(result.requests)).toEqual(['GET /repos/acme/demo'])
     })
 
     it('ブランチの削除で GitHub API がエラーを返すと、deleted を返さず、kind が github-api の失敗を返す', async (context) => {

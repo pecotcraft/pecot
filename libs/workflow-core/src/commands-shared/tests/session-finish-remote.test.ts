@@ -208,7 +208,7 @@ describe('finishOnGithub', () => {
       restack: [{ issue: '#14', branch: 'feat/demo/14' }],
     })
     expect(finished.io.out.join('')).toBe('Readiness changed:\n- #13 stackable on #12 -> startable\n- #14 stackable on #12 -> startable\n')
-    expect(finished.io.err.join('')).toContain('warning: #14 is stacked on #12; run pecot pr restack in the working directory of feat/demo/14\n')
+    expect(finished.io.err.join('')).toContain('warning: #14 is stacked on #12; call pr_restack in the working directory of feat/demo/14\n')
   })
 
   it('読み直しても、閉じた Issue が済んだ前提として判定に出なければ、pecot-board-sync のワークフローを案内して列を動かさない', async () => {

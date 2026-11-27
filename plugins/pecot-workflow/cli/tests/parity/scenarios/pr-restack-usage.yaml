@@ -1,10 +1,9 @@
 # --check と --abort を同時に付ける。使い方の誤りで exit 2 になる。
 id: pr-restack-usage
-command:
-  path: [pr, restack]
-  args:
-    - "--check"
-    - "--abort"
+tool: pr_restack
+arguments:
+  check: true
+  abort: true
 setup:
   repo:
     files:

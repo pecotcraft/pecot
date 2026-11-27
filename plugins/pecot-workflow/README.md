@@ -32,7 +32,7 @@ GitHub Projects V2 と連携し、Issue 起票から実装・PR・リリース�
 | 運用 | `/pecot-w:w-onboarding` | GitHub Projects ボードの作成とリポジトリ登録を行い、プロジェクトを新規セットアップする |
 | 運用 | `/pecot-w:w-repo-add` | ボードにリポジトリを追加登録する |
 | 運用 | `/pecot-w:w-worktree-add` / `/pecot-w:w-worktree-remove` | git worktree を作成・削除する |
-| 運用 | `/pecot-w:w-help` | pecot CLI とスキルの使い方を調べる |
+| 運用 | `/pecot-w:w-help` | pecot の MCP ツールとスキルの使い方を調べる |
 
 w-pr は、CI 待ちとマージの待ち受けが終わるたびに、自分を呼び直して続けます。
 Claude Code の既定の権限では、呼び直しのときに、スキルを使うかの確認が出ます。
@@ -54,7 +54,8 @@ Claude Code の既定の権限では、呼び直しのときに、スキルを�
 
 ## MCP サーバ
 
-MCP サーバ `pecot-workflow` が、`pecot` CLI の 39 個のコマンドを MCP ツールとして公開します。
+MCP サーバ `pecot-workflow` が、39 個の MCP ツールを公開します。
+プラグインは、プラグインと同じ版の npm のパッケージ `@pecot/workflow-mcp` を `npx` で起動します。
 Issue・コメント・PR のテンプレートは、MCP の resource で読めます。URI は `pecot-template://<種類>/<名前>`（例: `pecot-template://comment/plan`）です。
 ツール名は、`<対象> <動詞>` の空白を `_` に置き換えた形です（`issue create` は `issue_create`、`session start` は `session_start`）。
 許可リストに書くツール名は、Claude Code では `mcp__plugin_pecot-w_pecot-workflow__<ツール名>` です。
@@ -98,7 +99,7 @@ Claude Code は、プラグインの stdio のサーバの起動の失敗を 15 
 
 - Claude Code 2.1.141 以上、または GitHub Copilot CLI 1.0.106 以上
 - [gh CLI](https://cli.github.com/) — `gh auth refresh -s project` で `project` スコープを追加してください
-- Node.js 24 系は 24.22.1 以上、26 系は 26.12.1 以上 — `pecot` の実行に使う。初回の実行時に、依存の導入とビルドを行う（pnpm・corepack・npx のいずれかが要る）
+- Node.js 24 系は 24.22.1 以上、26 系は 26.12.1 以上と、同梱の `npx` — MCP のサーバの起動に使う
 
 インストール手順は[リポジトリルートの README](../../README.md) を参照してください。
 
@@ -108,7 +109,7 @@ Claude Code は、プラグインの stdio のサーバの起動の失敗を 15 
 
 | 環境変数 | 内容 |
 |:--------|:----|
-| `XDG_DATA_HOME` | Bash から実行する `pecot` の実行用の環境を `$XDG_DATA_HOME/pecot/pecot-workflow` に作ります（`XDG_DATA_HOME` が未設定か絶対パスでなければ `~/.local/share/pecot/pecot-workflow`）。hook からの実行ではクライアントのデータ置き場を使います。プラグインをアンインストールしてもこの場所は残るので、不要になったら手で消してください |
+| `XDG_DATA_HOME` | クライアントがデータ置き場を渡さないとき（プラグインを入れずにサーバを起動したとき）、データを `$XDG_DATA_HOME/pecot/pecot-workflow` に置きます（`XDG_DATA_HOME` が未設定か絶対パスでなければ `~/.local/share/pecot/pecot-workflow`）。プラグインとして入れたときは、クライアントのデータ置き場を使います |
 
 ---
 

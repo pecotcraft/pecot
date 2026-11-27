@@ -1,7 +1,7 @@
 /* eslint-disable unicorn/no-null -- 偽サーバの応答に JSON の null を使う */
 import { describe, expect, it } from 'vitest'
 
-import { ISSUE_DEPENDENCY_COMMANDS } from '../../src/commands/issue-dependency.js'
+import { ISSUE_DEPENDENCY_TOOLS } from '../../src/commands/issue-dependency.js'
 import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { requestLabels, STALE_OPTION_TEXT, staleOptionUpdate } from '../_helpers/command-harness.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
@@ -19,8 +19,8 @@ import { verifies } from '../_helpers/verifies.js'
 
 useIsolatedEnvironment()
 
-async function block(...argv: readonly string[]): Promise<Awaited<ReturnType<typeof runInProcess>>> {
-  return await runInProcess(['issue', 'block', ...argv], ISSUE_DEPENDENCY_COMMANDS)
+async function block(arguments_: Readonly<Record<string, unknown>> = {}): Promise<Awaited<ReturnType<typeof runInProcess>>> {
+  return await runInProcess('issue_block', arguments_, ISSUE_DEPENDENCY_TOOLS)
 }
 
 const BODY = '## Summary\n\n本文\n\n## Notes\n\nメモ\n'
@@ -38,19 +38,19 @@ function writes(github: Readonly<RunningGithub>): readonly string[] {
 }
 
 async function blockTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
-  return await callToolOnce(ISSUE_DEPENDENCY_COMMANDS, 'issue_block', argumentsOfTool)
+  return await callToolOnce(ISSUE_DEPENDENCY_TOOLS, 'issue_block', argumentsOfTool)
 }
 
-describe('issue block', () => {
-  it('Issue と --by を渡すと、blocked by を付けて added の行を出し、判定が変われば列を Blocked に動かす', async () => {
-    await explains('`issue block` の基本の動作のテストです。Issue と `--by` を渡した場合に、前提を付けて `added` の行を出力し、判定が変われば列を Blocked へ動かすことを確認します。')
+describe('issue_block', () => {
+  it('Issue と by を渡すと、blocked by を付けて added の行を出し、判定が変われば列を Blocked に動かす', async () => {
+    await explains('`issue_block` の基本の動作のテストです。Issue と `by` を渡した場合に、前提を付けて `added` の行を出力し、判定が変われば列を Blocked へ動かすことを確認します。')
     prepareDependencyProject()
     const github = await startGithub([
       bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {}), addBlockedByRule(7, 5),
       prerequisitesRule({ number: 7, column: 'Ready', body: BODY, blockedBy: [{ number: 5 }] }), boardItems(), fieldUpdated('o7'),
     ])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
     expect(result).toEqual({ code: 0, stdout: '', stderr: `added: blocked-by #5 to #7\nmoved: #7 Ready -> Blocked (${NOT_IN_REVIEW})\n` })
     expect(requestLabels(github.requests())).toEqual([
@@ -59,15 +59,15 @@ describe('issue block', () => {
     ])
   })
 
-  it('選択肢の ID が古くて Status を書けないと、前提を付けたまま warning と project activate の案内を出し、終了コード 0 で終わる', async () => {
-    await explains('`issue block` の Status の書き込みが失敗した場合のテストです。古い選択肢の ID で書き込みが失敗した場合に、前提は付けたまま、warning と `pecot project activate` の案内を出力して終了コード 0 で終わることを確認します。')
+  it('選択肢の ID が古くて Status を書けないと、前提を付けたまま warning と project_activate の案内を出し、終了コード 0 で終わる', async () => {
+    await explains('`issue_block` の Status の書き込みが失敗した場合のテストです。古い選択肢の ID で書き込みが失敗した場合に、前提は付けたまま、warning と `project_activate` の案内を出力して終了コード 0 で終わることを確認します。')
     prepareDependencyProject()
     await startGithub([
       bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {}), addBlockedByRule(7, 5),
       prerequisitesRule({ number: 7, column: 'Ready', body: BODY, blockedBy: [{ number: 5 }] }), boardItems(), staleOptionUpdate(),
     ])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
     expect(result).toEqual({
       code: 0,
@@ -75,28 +75,28 @@ describe('issue block', () => {
       stderr: [
         'added: blocked-by #5 to #7',
         `warning: could not move #7: ${STALE_OPTION_TEXT}`,
-        '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
+        '  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again',
         '',
       ].join('\n'),
     })
   })
 
-  it('--wait merge と --reason を付けると、本文の節へ前提と理由の行を追加し、節の外は書き換えない', async () => {
-    await explains('`issue block --wait merge` のテストです。`--wait merge` と `--reason` を指定した場合に、本文の節へ前提と理由の行を追加し、節の外は書き換えないことを確認します。')
+  it('wait merge と reason を付けると、本文の節へ前提と理由の行を追加し、節の外は書き換えない', async () => {
+    await explains('`issue_block` の `wait: merge` のテストです。`wait: merge` と `reason` を指定した場合に、本文の節へ前提と理由の行を追加し、節の外は書き換えないことを確認します。')
     prepareDependencyProject()
     const github = await startGithub([
       bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {}), addBlockedByRule(7, 5), bodyWritten(7, MERGE_BODY),
       prerequisitesRule({ number: 7, column: 'Ready', body: MERGE_BODY, blockedBy: [{ number: 5 }] }), boardItems(), fieldUpdated('o7'),
     ])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5', '--wait', 'merge', '--reason', 'main の版が要る')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', wait: 'merge', reason: 'main の版が要る' })
 
     expect(result).toEqual({ code: 0, stdout: '', stderr: 'added: blocked-by #5 to #7\nmoved: #7 Ready -> Blocked (blocked by #5 (waits for merge))\n' })
     expect(writes(github)).toEqual(['AddBlockedBy', 'PATCH /repos/acme/demo/issues/7', 'UpdateProjectItemField'])
   })
 
   it('別のリポジトリの前提を付けると、行と節に owner/repo#N の形で出す', async () => {
-    await explains('`issue block` の別のリポジトリの前提のテストです。別のリポジトリの Issue を `--by` へ指定した場合に、`added` の行と本文の節の両方で `owner/repo#N` の形で書くことを確認します。')
+    await explains('`issue_block` の別のリポジトリの前提のテストです。別のリポジトリの Issue を `by` へ指定した場合に、`added` の行と本文の節の両方で `owner/repo#N` の形で書くことを確認します。')
     prepareDependencyProject()
     const body = `${BODY}\n${WAITS_SECTION(['acme/other#9: b の版が要る'])}`
     await startGithub([
@@ -106,20 +106,20 @@ describe('issue block', () => {
       prerequisitesRule({ number: 7, column: 'Ready', body, blockedBy: [{ number: 9, repo: 'other' }] }), boardItems(), fieldUpdated('o7'),
     ])
 
-    const result = await block('acme/demo/7', '--by', 'acme/other/9', '--wait', 'merge', '--reason', 'b の版が要る')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/other/9', wait: 'merge', reason: 'b の版が要る' })
 
     expect(result.stderr).toBe('added: blocked-by acme/other#9 to #7\nmoved: #7 Ready -> Blocked (blocked by acme/other#9 (waits for merge))\n')
   })
 
-  it('--by がプロジェクトに登録されていない別のリポジトリでも、待つ側のリポジトリだけを確かめて前提を付ける', async () => {
-    await explains('`issue block` のプロジェクトの登録のテストです。`--by` のリポジトリがプロジェクトに登録されていない場合でも、待つ側のリポジトリだけを確認して前提を付けることを確認します。')
+  it('by がプロジェクトに登録されていない別のリポジトリでも、待つ側のリポジトリだけを確かめて前提を付ける', async () => {
+    await explains('`issue_block` のプロジェクトの登録のテストです。`by` のリポジトリがプロジェクトに登録されていない場合でも、待つ側のリポジトリだけを確認して前提を付けることを確認します。')
     prepareDependencyProject()
     const github = await startGithub([
       bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5, 'other'), levelRule([nodeId(5, 'other')], {}), addBlockedByRule(7, 5, 'other'),
       prerequisitesRule({ number: 7, column: 'Ready', body: BODY, blockedBy: [{ number: 5, repo: 'other' }] }), boardItems(), fieldUpdated('o7'),
     ])
 
-    const result = await block('acme/demo/7', '--by', 'acme/other/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/other/5' })
 
     expect(result.code).toBe(0)
     expect(result.stderr).toContain('added: blocked-by acme/other#5 to #7\n')
@@ -127,18 +127,18 @@ describe('issue block', () => {
   })
 
   it('既に付いていて種類と理由が同じなら、書き込まずに unchanged の行を出す', async () => {
-    await explains('`issue block` を既に付いている前提へ重ねるテストです。種類と理由が同じ場合に、書き込みは行わず `unchanged` の行を出力することを確認します。')
+    await explains('`issue_block` を既に付いている前提へ重ねるテストです。種類と理由が同じ場合に、書き込みは行わず `unchanged` の行を出力することを確認します。')
     prepareDependencyProject()
     const github = await startGithub([bothLinked(), targetReferences(7, MERGE_BODY, [{ number: 5 }])])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5', '--wait', 'merge', '--reason', 'main の版が要る')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', wait: 'merge', reason: 'main の版が要る' })
 
     expect(result).toEqual({ code: 0, stdout: '', stderr: 'unchanged: blocked-by #5 on #7\n' })
     expect(requestLabels(github.requests())).toEqual(['GetLinkedRepositoriesUser', 'GetIssueBlockedByReferences'])
   })
 
   it('既に付いている前提の理由を変えると、節の行の理由だけを置き換えて updated の行を出す', async () => {
-    await explains('`issue block` を既に付いている前提へ重ねるテストです。理由だけを変えた場合に、節の行の理由を置き換えて `updated` の行を出力することを確認します。')
+    await explains('`issue_block` を既に付いている前提へ重ねるテストです。理由だけを変えた場合に、節の行の理由を置き換えて `updated` の行を出力することを確認します。')
     prepareDependencyProject()
     const changed = `${BODY}\n${WAITS_SECTION(['#5: 検証の手順が main にある'])}`
     const github = await startGithub([
@@ -146,14 +146,14 @@ describe('issue block', () => {
       prerequisitesRule({ number: 7, column: 'Blocked', body: changed, blockedBy: [{ number: 5 }] }),
     ])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5', '--wait', 'merge', '--reason', '検証の手順が main にある')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', wait: 'merge', reason: '検証の手順が main にある' })
 
     expect(result).toEqual({ code: 0, stdout: '', stderr: 'updated: blocked-by #5 on #7 (wait: merge)\n' })
     expect(writes(github)).toEqual(['PATCH /repos/acme/demo/issues/7'])
   })
 
   it('種類を stack に戻すと、節から行を外して updated の行を出し、スタック可の判定なら列を Ready に戻す', async () => {
-    await explains('`issue block` の種類を戻すテストです。既に付いている前提を `stack` へ戻した場合に、節から行を外して `updated` の行を出力し、スタック可の判定なら列を Ready へ戻すことを確認します。')
+    await explains('`issue_block` の種類を戻すテストです。既に付いている前提を `stack` へ戻した場合に、節から行を外して `updated` の行を出力し、スタック可の判定なら列を Ready へ戻すことを確認します。')
     prepareDependencyProject()
     const inReview = { number: 5, branch: 'feat/5', pullRequests: [{ number: 50, head: 'feat/5' }] }
     await startGithub([
@@ -161,85 +161,64 @@ describe('issue block', () => {
       prerequisitesRule({ number: 7, column: 'Blocked', body: BODY, blockedBy: [inReview] }), boardItems(), fieldUpdated('o3'),
     ])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
     expect(result).toEqual({ code: 0, stdout: '', stderr: 'updated: blocked-by #5 on #7 (wait: stack)\nmoved: #7 Blocked -> Ready (stackable on #5)\n' })
   })
 
   it('着手の跡がある Issue に付けると、前提は付け、列と Status は動かさずに食い違いを warning で出す', async () => {
-    await explains('`issue block` の着手の跡がある Issue のテストです。列が Ready のまま前提を付けた場合に、列と Status は動かさず、食い違いを warning で出力することを確認します。')
+    await explains('`issue_block` の着手の跡がある Issue のテストです。列が Ready のまま前提を付けた場合に、列と Status は動かさず、食い違いを warning で出力することを確認します。')
     prepareDependencyProject()
     const github = await startGithub([
       bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {}), addBlockedByRule(7, 5),
       prerequisitesRule({ number: 7, column: 'Ready', branch: 'feat/7', body: BODY, blockedBy: [{ number: 5 }] }),
     ])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
     expect(result).toEqual({ code: 0, stdout: '', stderr: 'added: blocked-by #5 to #7\nwarning: #7 is in Ready but blocked by #5\n' })
     expect(writes(github)).toEqual(['AddBlockedBy'])
-  })
-
-  it('--dry-run を付けると、読み取りだけ行い、書き込みを送らずに dry-run の行を出す', async () => {
-    await explains('`issue block --dry-run` のテストです。`--dry-run` を指定した場合に、読み取りだけを行い、書き込みは送らずに `dry-run` の行を出力することを確認します。')
-    prepareDependencyProject()
-    const github = await startGithub([bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {})])
-
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5', '--wait', 'merge', '--reason', 'x', '--dry-run')
-
-    expect(result).toEqual({ code: 0, stdout: '', stderr: 'dry-run: would add blocked-by #5 to #7\n' })
-    expect(writes(github)).toEqual([])
-  })
-
-  it('--dry-run で種類を変えるとき、would update の行を出す', async () => {
-    await explains('`issue block --dry-run` のテストです。既に付いている前提の種類を `--dry-run` で変える場合に、`would update` の行を出力することを確認します。')
-    prepareDependencyProject()
-    await startGithub([bothLinked(), targetReferences(7, BODY, [{ number: 5 }])])
-
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5', '--wait', 'merge', '--reason', 'x', '--dry-run')
-
-    expect(result.stderr).toBe('dry-run: would update blocked-by #5 on #7 (wait: merge)\n')
   })
 
   it.for<CycleRow>([
     { name: '2 つの Issue', edges: [[5, [7]]], line: '#7 -> #5 -> #7' },
     { name: '3 つの Issue', edges: [[5, [6]], [6, [7]]], line: '#7 -> #5 -> #6 -> #7' },
   ])('付けると $name で前提が循環するとき、要求を送る前に終了コード 2 で止める', async ({ edges, line }) => {
-    await explains('`issue block` の循環の検証のテストです。前提を付けると 2 つか 3 つの Issue で循環する場合に、要求は送らず、循環する並びを出力して終了コード 2 で終わることを確認します。')
+    await explains('`issue_block` の循環の検証のテストです。前提を付けると 2 つか 3 つの Issue で循環する場合に、要求は送らず、循環する並びを出力して終了コード 2 で終わることを確認します。')
     prepareDependencyProject()
     const levels = edges.map(([number, blockers]) => levelRule([nodeId(number)], { [nodeId(number)]: blockers.map(blocker => ({ number: blocker })) }))
     const github = await startGithub([bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), ...levels])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
     expect(result).toEqual({ code: 2, stdout: '', stderr: `error: blocked-by would form a cycle: ${line}\n` })
     expect(writes(github)).toEqual([])
   })
 
-  it('--by が待つ側と同じ Issue のとき、要求を送らずに終了コード 2 で止める', async () => {
-    await explains('`issue block` の引数の検証のテストです。`--by` が待つ側と同じ Issue の場合に、要求は送らず、終了コード 2 で終わることを確認します。')
+  it('by が待つ側と同じ Issue のとき、要求を送らずに終了コード 2 で止める', async () => {
+    await explains('`issue_block` の引数の検証のテストです。`by` が待つ側と同じ Issue の場合に、要求は送らず、終了コード 2 で終わることを確認します。')
     prepareDependencyProject()
     const github = await startGithub([])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/7')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/7' })
 
     expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: blocked-by would form a cycle: #7 -> #7\n' })
     expect(github.requests()).toEqual([])
   })
 
   it('循環の確認に要る Issue が読めないとき、付けずに終了コード 1 で止める', async () => {
-    await explains('`issue block` の循環の検証のテストです。循環の確認に要る Issue を読めない場合に、前提を付けず、終了コード 1 で終わることを確認します。')
+    await explains('`issue_block` の循環の検証のテストです。循環の確認に要る Issue を読めない場合に、前提を付けず、終了コード 1 で終わることを確認します。')
     prepareDependencyProject()
     const github = await startGithub([bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], { [nodeId(5)]: null })])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
     expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: could not check blocked-by cycle of #7: could not read blocked-by of #5: the node is not an Issue or was not found\n' })
     expect(writes(github)).toEqual([])
   })
 
   it('たどる Issue が 200 件を超えるとき、付けずに終了コード 1 で止める', async () => {
-    await explains('`issue block` の循環の検証のテストです。たどる Issue が 200 件を超える場合に、前提を付けず、終了コード 1 で終わることを確認します。')
+    await explains('`issue_block` の循環の検証のテストです。たどる Issue が 200 件を超える場合に、前提を付けず、終了コード 1 で終わることを確認します。')
     prepareDependencyProject()
     const first = Array.from({ length: 50 }, (_, index) => ({ number: 100 + index }))
     const second = Object.fromEntries(first.map(({ number }) => [nodeId(number), Array.from({ length: 50 }, (_, index) => ({ number: number * 100 + index }))]))
@@ -248,68 +227,79 @@ describe('issue block', () => {
       levelRule(first.map(({ number }) => nodeId(number)), second),
     ])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
     expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: could not check blocked-by cycle of #7: more than 200 issues in the blocked-by chain\n' })
     expect(writes(github)).toEqual([])
   })
 
-  it('--wait merge で --reason を渡していないとき、要求を送らずに終了コード 2 で止める', async () => {
-    await explains('`issue block --wait merge` の引数の検証のテストです。`--reason` を指定しなかった場合に、要求は送らず、終了コード 2 で終わることを確認します。')
+  it('wait merge で reason を渡していないとき、要求を送らずに終了コード 2 で止める', async () => {
+    await explains('`issue_block` の `wait: merge` の引数の検証のテストです。`reason` を指定しなかった場合に、要求は送らず、終了コード 2 で終わることを確認します。')
     prepareDependencyProject()
     const github = await startGithub([])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5', '--wait', 'merge')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', wait: 'merge' })
 
-    expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: --reason is required with --wait merge\n' })
+    expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: reason is required with wait: "merge"\n' })
     expect(github.requests()).toEqual([])
   })
 
   it.for([
-    { name: '--wait stack', argv: ['--wait', 'stack'] },
-    { name: '--wait を省いた既定', argv: [] },
-  ])('$name で --reason を渡すとき、要求を送らずに終了コード 2 で止める', async ({ argv }) => {
-    await explains('`issue block` の `--reason` の検証のテストです。`--wait stack` を指定した場合と `--wait` を省略した場合に、`--reason` は使えないため、要求は送らず終了コード 2 で終わることを確認します。')
+    { name: 'wait が stack', input: { wait: 'stack' } },
+    { name: 'wait を省いた既定', input: {} },
+  ])('$name で reason を渡すとき、要求を送らずに終了コード 2 で止める', async ({ input }) => {
+    await explains('`issue_block` の `reason` の検証のテストです。`wait: stack` を指定した場合と `wait` を省略した場合に、`reason` は使えないため、要求は送らず終了コード 2 で終わることを確認します。')
     prepareDependencyProject()
     const github = await startGithub([])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5', ...argv, '--reason', 'x')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', ...input, reason: 'x' })
 
-    expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: --reason is only valid with --wait merge\n' })
+    expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: reason is only valid with wait: "merge"\n' })
+    expect(github.requests()).toEqual([])
+  })
+
+  it('reason が複数行のとき、要求を送らずに終了コード 2 で止める', async () => {
+    await explains('`issue_block` の `reason` の検証のテストです。`reason` に改行を含めた場合に、1 行にするよう案内し、要求は送らず終了コード 2 で終わることを確認します。')
+    prepareDependencyProject()
+    const github = await startGithub([])
+
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', wait: 'merge', reason: '1 行目\n2 行目' })
+
+    expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: reason must be a single line\n' })
     expect(github.requests()).toEqual([])
   })
 
   it('前提が 50 件あるとき、新しい前提を付けずに終了コード 1 で止める', async () => {
-    await explains('`issue block` の前提の上限のテストです。前提が既に 50 件ある場合に、新しい前提は付けず、終了コード 1 で終わることを確認します。')
+    await explains('`issue_block` の前提の上限のテストです。前提が既に 50 件ある場合に、新しい前提は付けず、終了コード 1 で終わることを確認します。')
     prepareDependencyProject()
     const fifty = Array.from({ length: 50 }, (_, index) => ({ number: 100 + index }))
     const github = await startGithub([bothLinked(), targetReferences(7, BODY, fifty)])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
     expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: #7 already has 50 blocked-by issues\n' })
     expect(writes(github)).toEqual([])
   })
 
   it('本文の節が読めないとき、要求を送る前に終了コード 3 で止める', async () => {
-    await explains('`issue block` の本文の検証のテストです。本文の節を読み取れない場合に、要求は送らず、終了コード 3 で終わることを確認します。')
+    await explains('`issue_block` の本文の検証のテストです。本文の節を読み取れない場合に、要求は送らず、終了コード 3 で終わることを確認します。')
     prepareDependencyProject()
     const github = await startGithub([bothLinked(), targetReferences(7, '## Waits for merge\n\nplain text\n', [])])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
     expect(result.code).toBe(3)
-    expect(result.stderr).toBe('error: Waits for merge of #7 is malformed: not a list item: plain text; fix the section in the Issue body and run the command again\n')
+    expect(result.stderr).toBe('error: Waits for merge of #7 is malformed: not a list item: plain text; fix the section in the Issue body and call the tool again\n')
     expect(writes(github)).toEqual([])
   })
 
   it('読み直した前提が書いた内容と合わないとき、列と Status を動かさずに warning を出して終了コード 0 で終わる', async () => {
-    await explains('`issue block` の反映の確認のテストです。読み直した前提が書いた内容と一致しない場合に、列と Status は動かさず、warning を出力して終了コード 0 で終わることを確認します。')
+    await explains('`issue_block` の反映の確認のテストです。読み直した前提が書いた内容と一致しない場合に、列と Status は動かさず、warning を出力して終了コード 0 で終わることを確認します。')
     prepareDependencyProject()
     const stale = prerequisitesRule({ number: 7, column: 'Ready', body: BODY, blockedBy: [] })
     const github = await startGithub([bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {}), addBlockedByRule(7, 5), stale, stale])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
     expect(result).toEqual({
       code: 0,
@@ -320,7 +310,7 @@ describe('issue block', () => {
   })
 
   it('1 回目の読み直しが古くても、2 回目で一致すれば列を動かす', async () => {
-    await explains('`issue block` の反映の確認のテストです。1 回目の読み直しが古くても 2 回目で一致した場合に、列を動かすことを確認します。')
+    await explains('`issue_block` の反映の確認のテストです。1 回目の読み直しが古くても 2 回目で一致した場合に、列を動かすことを確認します。')
     prepareDependencyProject()
     await startGithub([
       bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {}), addBlockedByRule(7, 5),
@@ -328,49 +318,49 @@ describe('issue block', () => {
       prerequisitesRule({ number: 7, column: 'Ready', body: BODY, blockedBy: [{ number: 5 }] }), boardItems(), fieldUpdated('o7'),
     ])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
     expect(result.stderr).toBe(`added: blocked-by #5 to #7\nmoved: #7 Ready -> Blocked (${NOT_IN_REVIEW})\n`)
   })
 
-  it('動かす先の列がボードに存在しないとき、warning と project init の案内を出して終了コード 0 で終わる', async () => {
-    await explains('`issue block` の Blocked の選択肢のテストです。ボードが動かす先の列を持たない場合に、warning と `pecot project init` の案内を出力して終了コード 0 で終わることを確認します。')
+  it('動かす先の列がボードに存在しないとき、warning と project_init の案内を出して終了コード 0 で終わる', async () => {
+    await explains('`issue_block` の Blocked の選択肢のテストです。ボードが動かす先の列を持たない場合に、warning と `project_init` の案内を出力して終了コード 0 で終わることを確認します。')
     prepareDependencyProject({ omit: ['blocked'] })
     const github = await startGithub([
       bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {}), addBlockedByRule(7, 5),
       prerequisitesRule({ number: 7, column: 'Ready', body: BODY, blockedBy: [{ number: 5 }] }),
     ])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
     expect(result).toEqual({
       code: 0,
       stdout: '',
-      stderr: 'added: blocked-by #5 to #7\nwarning: the Blocked option is not on the board, so #7 was not moved\n  hint: run pecot project init to add the Blocked option to the board\n',
+      stderr: 'added: blocked-by #5 to #7\nwarning: the Blocked option is not on the board, so #7 was not moved\n  hint: call project_init to add the Blocked option to the board\n',
     })
     expect(writes(github)).toEqual(['AddBlockedBy'])
   })
 
   it('本文の書き込みが失敗したとき、前提は付いたまま終了コード 1 で止める', async () => {
-    await explains('`issue block` の本文の書き込みが失敗した場合のテストです。本文の書き込みが失敗した場合に、前提は付けたまま、終了コード 1 で終わることを確認します。')
+    await explains('`issue_block` の本文の書き込みが失敗した場合のテストです。本文の書き込みが失敗した場合に、前提は付けたまま、終了コード 1 で終わることを確認します。')
     prepareDependencyProject()
     const failing = { match: { method: 'PATCH', path: '/repos/acme/demo/issues/7' }, respond: { status: 502, body: { message: 'failure' } }, times: 1 }
     await startGithub([bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {}), addBlockedByRule(7, 5), failing])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5', '--wait', 'merge', '--reason', 'x')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', wait: 'merge', reason: 'x' })
 
     expect(result.code).toBe(1)
-    expect(result.stderr).toMatch(/^added: blocked-by #5 to #7\nerror: could not update the body of #7; blocked-by #5 was added, run the command again to write the section: /u)
+    expect(result.stderr).toMatch(/^added: blocked-by #5 to #7\nerror: could not update the body of #7; blocked-by #5 was added, call the tool again to write the section: /u)
   })
 
   it('依存関係に対応しない GHES では、終了コード 1 で止める', async () => {
-    await explains('`issue block` の GitHub Enterprise Server のテストです。依存関係に対応していない版の場合に、必要な版を示すエラーを出力して終了コード 1 で終わることを確認します。')
+    await explains('`issue_block` の GitHub Enterprise Server のテストです。依存関係に対応していない版の場合に、必要な版を示すエラーを出力して終了コード 1 で終わることを確認します。')
     prepareDependencyProject()
     const message = 'Field \'blockedBy\' doesn\'t exist on type \'Issue\''
     const unsupported: ResponseRule = { match: { operation: 'GetIssueBlockedByReferences' }, respond: { status: 200, body: { errors: [{ message }] } }, times: 1 }
     await startGithub([bothLinked(), unsupported])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
     expect(result).toEqual({
       code: 1,
@@ -380,11 +370,11 @@ describe('issue block', () => {
   })
 
   it('Issue の参照の形が誤っているとき、要求を送らずに終了コード 2 で止める', async () => {
-    await explains('`issue block` の Issue の参照を検証するテストです。参照の形が誤っている場合に、要求は送らず、終了コード 2 で終わることを確認します。')
+    await explains('`issue_block` の Issue の参照を検証するテストです。参照の形が誤っている場合に、要求は送らず、終了コード 2 で終わることを確認します。')
     prepareDependencyProject()
     const github = await startGithub([])
 
-    const result = await block('invalid-format', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'invalid-format', by: 'acme/demo/5' })
 
     expect(result.code).toBe(2)
     expect(result.stderr).toContain('invalid reference')
@@ -392,39 +382,39 @@ describe('issue block', () => {
   })
 
   it('リポジトリがプロジェクトに登録されていないとき、終了コード 1 で止める', async () => {
-    await explains('`issue block` のプロジェクトの登録を検証するテストです。リポジトリがプロジェクトに登録されていない場合に、終了コード 1 で終わることを確認します。')
+    await explains('`issue_block` のプロジェクトの登録を検証するテストです。リポジトリがプロジェクトに登録されていない場合に、終了コード 1 で終わることを確認します。')
     prepareDependencyProject()
     const github = await startGithub([linkedRepositories(['other'])])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
     expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: repository acme/demo is not in the project\n' })
     expect(github.requests()).toHaveLength(1)
   })
 
-  it('対象のリポを含む設定が 2 つあり .active も選べないとき、候補と --project の案内を出して終了コード 1 で止める', async () => {
-    await explains('`issue block` のプロジェクトの設定の選択のテストです。対象のリポジトリを含む設定が 2 つあり `.active` でも選べない場合に、候補と `--project` の案内を出力して終了コード 1 で終わることを確認します。')
+  it('対象のリポを含む設定が 2 つあり .active も選べないとき、候補と project の案内を出して終了コード 1 で止める', async () => {
+    await explains('`issue_block` のプロジェクトの設定の選択のテストです。対象のリポジトリを含む設定が 2 つあり `.active` でも選べない場合に、候補と `project` の案内を出力して終了コード 1 で終わることを確認します。')
     const project = setUpProject()
     makeAmbiguous(project)
     const github = await startGithub([])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
-    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ghes.example.com_acme_board_acme, second\n' })
+    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ghes.example.com_acme_board_acme, second\n' })
     expect(github.requests()).toEqual([])
   })
 
   it('待つ側のリポを含む設定が存在しないとき、error を出して終了コード 1 で止める', async () => {
-    await explains('`issue block` のプロジェクトの設定の選択のテストです。待つ側のリポジトリを含む設定が存在しない場合に、エラーを出力して終了コード 1 で終わることを確認します。')
+    await explains('`issue_block` のプロジェクトの設定の選択のテストです。待つ側のリポジトリを含む設定が存在しない場合に、エラーを出力して終了コード 1 で終わることを確認します。')
     setUpProject({ repositories: ['other'] })
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
     expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme\n' })
   })
 
-  it('--project を渡すと、待つ側のリポを含む設定が 2 つあってもその設定で動く', async () => {
-    await explains('`issue block` の `--project` のテストです。待つ側のリポジトリを含む設定が 2 つある場合でも、`--project` で指定した設定で前提を付けることを確認します。')
+  it('project を渡すと、待つ側のリポを含む設定が 2 つあってもその設定で動く', async () => {
+    await explains('`issue_block` の `project` のテストです。待つ側のリポジトリを含む設定が 2 つある場合でも、`project` で指定した設定で前提を付けることを確認します。')
     const project = prepareDependencyProject()
     makeAmbiguous(project)
     await startGithub([
@@ -432,14 +422,14 @@ describe('issue block', () => {
       prerequisitesRule({ number: 7, column: 'Ready', body: BODY, blockedBy: [{ number: 5 }] }), boardItems(), fieldUpdated('o7'),
     ])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5', '--project', SECOND_PROJECT)
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5', project: SECOND_PROJECT })
 
     expect(result.code).toBe(0)
     expect(result.stderr).toContain('added: blocked-by #5 to #7\n')
   })
 
   it('.active が存在しなくても、待つ側のリポを含む設定が 1 つならその設定で動く', async () => {
-    await explains('`issue block` のプロジェクトの設定の選択のテストです。`.active` が存在しなくても、待つ側のリポジトリを含む設定が 1 つであれば、その設定で前提を付けることを確認します。')
+    await explains('`issue_block` のプロジェクトの設定の選択のテストです。`.active` が存在しなくても、待つ側のリポジトリを含む設定が 1 つであれば、その設定で前提を付けることを確認します。')
     const project = prepareDependencyProject()
     removeActive(project)
     await startGithub([
@@ -447,19 +437,19 @@ describe('issue block', () => {
       prerequisitesRule({ number: 7, column: 'Ready', body: BODY, blockedBy: [{ number: 5 }] }), boardItems(), fieldUpdated('o7'),
     ])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
     expect(result.code).toBe(0)
     expect(result.stderr).toContain('added: blocked-by #5 to #7\n')
   })
 
   it('GitHub API がエラーを返したとき、終了コード 1 で止める', async () => {
-    await explains('`issue block` の GitHub API のエラーのテストです。GitHub API がエラーを返した場合に、終了コード 1 で終わることを確認します。')
+    await explains('`issue_block` の GitHub API のエラーのテストです。GitHub API がエラーを返した場合に、終了コード 1 で終わることを確認します。')
     prepareDependencyProject()
     const failing = { match: { operation: 'GetIssueBlockedByReferences' }, respond: { status: 502, body: { message: 'failure' } }, times: 1 }
     await startGithub([bothLinked(), failing])
 
-    const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+    const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
     expect(result.code).toBe(1)
     expect(result.stderr).toMatch(/^error: could not read blocked-by of #7: /u)
@@ -474,11 +464,11 @@ describe('issue block', () => {
 
     it('自動処理の結果のコメントが存在しないと、列を Ready へ戻した後でStatus を Todo にする', async (context) => {
       await verifies(context, 'PW-ISSUE-BLOCK-06')
-      await explains('Status が Needs Attention の Issue に済んだ前提を付ける、`issue block` のテストです。自動処理の結果のコメントが存在しない場合に、列を Ready へ戻してから Status を Todo にすることを確認します。')
+      await explains('Status が Needs Attention の Issue に済んだ前提を付ける、`issue_block` のテストです。自動処理の結果のコメントが存在しない場合に、列を Ready へ戻してから Status を Todo にすることを確認します。')
       prepareDependencyProject()
       const github = await startGithub(addMerged(commentsRule(7), boardItems(), fieldUpdated('o3'), labelUpdated('s2')))
 
-      const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+      const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
       expect(result).toEqual({ code: 0, stdout: '', stderr: 'added: blocked-by #5 to #7\nmoved: #7 Blocked -> Ready (startable)\nset: Status of #7 to Todo\n' })
       expect(writes(github)).toEqual(['AddBlockedBy', 'UpdateProjectItemField', 'UpdateProjectItemField'])
@@ -486,12 +476,12 @@ describe('issue block', () => {
 
     it('bot が書いた最後の自動処理の結果が limit なら、列は Ready に戻し、Status を Todo に戻さない', async (context) => {
       await verifies(context, 'PW-ISSUE-BLOCK-28')
-      await explains('Status が Needs Attention の Issue に済んだ前提を付ける、`issue block` のテストです。bot が書いた最後の自動処理の結果が `limit` の場合に、列は Ready へ戻し、Status は Todo に戻さないことを確認します。')
+      await explains('Status が Needs Attention の Issue に済んだ前提を付ける、`issue_block` のテストです。bot が書いた最後の自動処理の結果が `limit` の場合に、列は Ready へ戻し、Status は Todo に戻さないことを確認します。')
       prepareDependencyProject()
       const comments = commentsRule(7, [botResult('limit')])
       const github = await startGithub(addMerged(comments, boardItems(), fieldUpdated('o3')))
 
-      const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+      const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
       expect(result).toEqual({ code: 0, stdout: '', stderr: 'added: blocked-by #5 to #7\nmoved: #7 Blocked -> Ready (startable)\n' })
       expect(writes(github)).toEqual(['AddBlockedBy', 'UpdateProjectItemField'])
@@ -499,12 +489,12 @@ describe('issue block', () => {
 
     it('人が書いた自動処理の結果の目印しか存在しないなら、Status を Todo に戻す', async (context) => {
       await verifies(context, 'PW-ISSUE-BLOCK-06')
-      await explains('Status が Needs Attention の Issue に済んだ前提を付ける、`issue block` のテストです。自動処理の結果の目印が人の書いたものだけの場合に、Status を Todo に戻すことを確認します。')
+      await explains('Status が Needs Attention の Issue に済んだ前提を付ける、`issue_block` のテストです。自動処理の結果の目印が人の書いたものだけの場合に、Status を Todo に戻すことを確認します。')
       prepareDependencyProject()
       const comments = commentsRule(7, [humanResult('limit')])
       const github = await startGithub(addMerged(comments, boardItems(), fieldUpdated('o3'), labelUpdated('s2')))
 
-      const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+      const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
       expect(result.stderr).toBe('added: blocked-by #5 to #7\nmoved: #7 Blocked -> Ready (startable)\nset: Status of #7 to Todo\n')
       expect(writes(github)).toEqual(['AddBlockedBy', 'UpdateProjectItemField', 'UpdateProjectItemField'])
@@ -512,11 +502,11 @@ describe('issue block', () => {
 
     it('コメントを読めないと、前提は付けたまま、判定できない warning を出して列と Status を動かさない', async (context) => {
       await verifies(context, 'PW-ISSUE-BLOCK-29')
-      await explains('Status が Needs Attention の Issue に済んだ前提を付ける、`issue block` のテストです。コメントを読めない場合に、前提は付けたまま、判定できない旨の warning を出力して列と Status を動かさないことを確認します。')
+      await explains('Status が Needs Attention の Issue に済んだ前提を付ける、`issue_block` のテストです。コメントを読めない場合に、前提は付けたまま、判定できない旨の warning を出力して列と Status を動かさないことを確認します。')
       prepareDependencyProject()
       const github = await startGithub(addMerged(commentsFailure(7)))
 
-      const result = await block('acme/demo/7', '--by', 'acme/demo/5')
+      const result = await block({ issue_ref: 'acme/demo/7', by: 'acme/demo/5' })
 
       expect(result).toEqual({ code: 0, stdout: '', stderr: 'added: blocked-by #5 to #7\nwarning: could not judge readiness of #7: GitHub API error: 500; the column and label of #7 were not moved\n' })
       expect(writes(github)).toEqual(['AddBlockedBy'])
@@ -671,30 +661,6 @@ describe('issue block', () => {
 
       expect(outcome.structured).toEqual({ issue: 'acme/demo/7', by: 'acme/demo/5', wait: 'merge', change: 'unchanged', moves: [] })
       expect(requestLabels(github.requests())).toEqual(['GetLinkedRepositoriesUser', 'GetIssueBlockedByReferences'])
-    })
-
-    it('CLI で既に付いている前提に --dry-run を付けると、何も書かずに、変えない予定を dry-run の行に出す', async (context) => {
-      await verifies(context, 'PW-ISSUE-BLOCK-08')
-      await explains('`issue block --dry-run` のテストです。既に付いている前提に `--dry-run` を指定した場合に、何も書かず、変えない予定を `dry-run` の行として出力することを確認します。')
-      prepareDependencyProject()
-      const github = await startGithub([bothLinked(), targetReferences(7, MERGE_BODY, [{ number: 5 }])])
-
-      const result = await block('acme/demo/7', '--by', 'acme/demo/5', '--wait', 'merge', '--reason', 'main の版が要る', '--dry-run')
-
-      expect(result).toEqual({ code: 0, stdout: '', stderr: 'dry-run: would leave blocked-by #5 on #7 unchanged\n' })
-      expect(writes(github)).toEqual([])
-    })
-
-    it('CLI で --dry-run を付けると、書き込みを送らずに、付ける予定を dry-run の行に出す', async (context) => {
-      await verifies(context, 'PW-ISSUE-BLOCK-08')
-      await explains('`issue block --dry-run` のテストです。`--dry-run` を指定した場合に、書き込みは送らず、前提を付ける予定を `dry-run` の行として出力することを確認します。')
-      prepareDependencyProject()
-      const github = await startGithub([bothLinked(), targetReferences(7, BODY, []), nodeIdRule(5), levelRule([nodeId(5)], {})])
-
-      const result = await block('acme/demo/7', '--by', 'acme/demo/5', '--dry-run')
-
-      expect(result).toEqual({ code: 0, stdout: '', stderr: 'dry-run: would add blocked-by #5 to #7\n' })
-      expect(writes(github)).toEqual([])
     })
 
     it('種類を stack に戻すと、節から行を外して updated を返し、スタック可の判定なら列を Ready に戻して moves に入れる', async (context) => {

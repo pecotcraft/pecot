@@ -28,7 +28,7 @@ const STATUS = { id: 'PVTSSF_status', options: { todo: 'st1', in_progress: 'st2'
 const PROJECTS_DIRECTORY = '.pecot/config/projects'
 const CONFIG_NAME = `${HOST}_acme_board_acme`
 const SECOND_NAME = `${HOST}_acme_other_acme`
-const NO_ACTIVE = 'error: no active project\n  run: pecot project activate <PROJECT>\n'
+const NO_ACTIVE = 'error: no active project\n  call project_activate with project: <PROJECT>\n'
 const UNSUPPORTED = 'warning: this GitHub Enterprise Server does not support issue dependencies (blockedBy); no column is moved\n'
 const notStarted = { number: 9 }
 
@@ -123,29 +123,29 @@ describe('board sync', () => {
     expect(result.stderr).toBe(`moved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
   })
 
-  it('進行の欄が旧い名前のボードでも、同じ Issue を動かし、旧い名前の警告と project init の案内を出す', async (context) => {
+  it('進行の欄が旧い名前のボードでも、同じ Issue を動かし、旧い名前の警告と project_init の案内を出す', async (context) => {
     await verifies(context, 'PA-BOARD-SYNC-33')
-    await explains('`board-sync` の action のテストです。進行の欄が旧い名前（`pecot-workflow-acme`）のボードでも同じ Issue を移動し、旧い名前の警告と `pecot project init` の案内を出力することを確認します。')
+    await explains('`board-sync` の action のテストです。進行の欄が旧い名前（`pecot-workflow-acme`）のボードでも同じ Issue を移動し、旧い名前の警告と `project_init` の案内を出力することを確認します。')
     const result = await sync([rateLimit(100), board(item('PVTI_4', 4, 'Blocked', { field: 'pecot-workflow-acme' })), prerequisitesRule({ number: 4 }), write('PVTI_4', 'o3'), rateLimit(130)])
     expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`warning: this board uses the old field name pecot-workflow-acme\n  run: pecot project init acme <name> --host github.com\nmoved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
+    expect(result.stderr).toBe(`warning: this board uses the old field name pecot-workflow-acme\n  call project_init with owner: "acme", name: <name>, host: "github.com"\nmoved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
   })
 
-  it('Item の値に pecot-priority・pecot-size が残るボードでは、同じ Issue を動かし、残った名前と project init の案内を出す', async (context) => {
+  it('Item の値に pecot-priority・pecot-size が残るボードでは、同じ Issue を動かし、残った名前と project_init の案内を出す', async (context) => {
     await verifies(context, 'PA-BOARD-SYNC-34')
-    await explains('`board-sync` の action のテストです。Item の値に `pecot-priority` と `pecot-size` が残るボードでも Issue を移動し、残った名前と `pecot project init` の案内を出力することを確認します。')
+    await explains('`board-sync` の action のテストです。Item の値に `pecot-priority` と `pecot-size` が残るボードでも Issue を移動し、残った名前と `project_init` の案内を出力することを確認します。')
     const result = await sync([rateLimit(100), board(item('PVTI_4', 4, 'Blocked', { others: ['pecot-priority'] }), item('PVTI_5', 5, 'Archived', { state: 'CLOSED', others: ['pecot-size', 'pecot-priority'] })), prerequisitesRule({ number: 4 }), write('PVTI_4', 'o3'), rateLimit(130)])
     expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`warning: this board still has fields pecot does not use: pecot-priority, pecot-size\n  run: pecot project init acme <name> --host github.com\nmoved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
+    expect(result.stderr).toBe(`warning: this board still has fields pecot does not use: pecot-priority, pecot-size\n  call project_init with owner: "acme", name: <name>, host: "github.com"\nmoved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
   })
 
-  it('旧い名前の欄と pecot-priority・pecot-size が残るボードでは、1 つの warning で project init を案内する', async (context) => {
+  it('旧い名前の欄と pecot-priority・pecot-size が残るボードでは、1 つの warning で project_init を案内する', async (context) => {
     await verifies(context, 'PA-BOARD-SYNC-33')
     await verifies(context, 'PA-BOARD-SYNC-34')
-    await explains('`board-sync` の action のテストです。旧い名前の欄と使わないフィールドの両方が残るボードの場合に、1 つの warning にまとめて `pecot project init` を案内することを確認します。')
+    await explains('`board-sync` の action のテストです。旧い名前の欄と使わないフィールドの両方が残るボードの場合に、1 つの warning にまとめて `project_init` を案内することを確認します。')
     const result = await sync([rateLimit(100), board(item('PVTI_4', 4, 'Blocked', { field: 'pecot-workflow-acme', others: ['pecot-size', 'pecot-priority'] })), prerequisitesRule({ number: 4 }), write('PVTI_4', 'o3'), rateLimit(130)])
     expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`warning: this board uses the old field name pecot-workflow-acme and still has fields pecot does not use: pecot-priority, pecot-size\n  run: pecot project init acme <name> --host github.com\nmoved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
+    expect(result.stderr).toBe(`warning: this board uses the old field name pecot-workflow-acme and still has fields pecot does not use: pecot-priority, pecot-size\n  call project_init with owner: "acme", name: <name>, host: "github.com"\nmoved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
   })
 
   it('Ready の Issue に済んでいない前提があると、Blocked へ動かす', async (context) => {
@@ -287,7 +287,7 @@ describe('board sync', () => {
     expect(result.code).toBe(1)
     expect(result.stderr).toBe([
       `warning: could not move #1: ${STALE_OPTION_TEXT}`,
-      `  hint: if the board options were recreated, run pecot project activate ${CONFIG_NAME} to read their IDs again`,
+      `  hint: if the board options were recreated, call project_activate with project: "${CONFIG_NAME}" to read their IDs again`,
       `warning: could not move #3: ${STALE_OPTION_TEXT}`,
       `${RATE_NOTE}error: could not write 2 Issues to the board`,
       '',
@@ -309,7 +309,7 @@ describe('board sync', () => {
     const withoutBlocked = Object.fromEntries(Object.entries(FULL_WORKFLOW).filter(([name]) => name !== 'blocked'))
     const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready'), item('PVTI_3', 3, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 3, blockedBy: [notStarted] }), rateLimit(130)], {}, boardConfig(withoutBlocked))
     expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`warning: the board has no option Blocked; add it with pecot project init\n${RATE_NOTE}`)
+    expect(result.stderr).toBe(`warning: the board has no option Blocked; add it with project_init\n${RATE_NOTE}`)
     expect(writes(result)).toEqual([])
   })
 
@@ -425,7 +425,7 @@ describe('board sync', () => {
       const result = await sync([], {}, boardConfig(), { [second]: contentOf(boardConfig()) })
       expect(result.code).toBe(1)
       expect(result.stdout).toBe('')
-      expect(result.stderr).toBe(`error: no active project, and 2 project configs exist\n  choose one with --project <NAME>\n  available: ${CONFIG_NAME}, ${SECOND_NAME}\n`)
+      expect(result.stderr).toBe(`error: no active project, and 2 project configs exist\n  choose one with project: <NAME>\n  available: ${CONFIG_NAME}, ${SECOND_NAME}\n`)
       expect(result.github.requests()).toEqual([])
     })
 

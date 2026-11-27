@@ -72,7 +72,7 @@ function runGit(git: GitRunner, arguments_: readonly string[]): string {
 }
 
 /**
-git の失敗。CLI は標準エラーの全文、MCP は理由の行だけを文に入れ、全文は log に持つ
+git の失敗。標準エラーの理由の行だけを文に入れ、全文は log に持つ
 */
 export class GitFailedError extends ReleaseError {
   readonly hintedText: HintedText
@@ -80,7 +80,7 @@ export class GitFailedError extends ReleaseError {
 
   constructor(arguments_: readonly string[], stderr: string) {
     const text: HintedText = gitFailureText(`git command failed: git ${arguments_.join(' ')}\n`, pythonStrip(stderr))
-    super(formatHinted(text, 'cli'))
+    super(formatHinted(text))
     this.hintedText = text
     this.log = stderr
   }

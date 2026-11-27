@@ -5,14 +5,14 @@ import { findRepository } from '@pecot/workflow-core/domain/config.js'
 import { compareStrings } from '@pecot/workflow-core/domain/python-format.js'
 import { ReferenceParseError, parseRepositoryReference } from '@pecot/workflow-core/domain/reference-parser.js'
 import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
-import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
 import { createGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import type { Operation } from '@pecot/workflow-core/commands-shared/output.js'
-import { requireGitRemote } from './repository-match.js'
+import { requireGitRemote } from '@pecot/workflow-core/commands-shared/repository-match.js'
 import { USAGE_EXIT_CODE } from '@pecot/workflow-core/commands-shared/usage-error.js'
 
 const BRANCH_DELETE_OUTPUT = z.strictObject({
@@ -21,8 +21,8 @@ const BRANCH_DELETE_OUTPUT = z.strictObject({
   deleted: z.boolean().describe('Whether the remote branch was deleted'),
 })
 
-const branchDeleteCommand = defineCommand({
-  path: ['branch', 'delete'],
+const branchDeleteCommand = defineTool({
+  name: 'branch_delete',
   title: 'Delete remote branch',
   hasOwnRepo: true,
   ignoresGlobalRepo: true,
@@ -30,17 +30,13 @@ const branchDeleteCommand = defineCommand({
   input: z.strictObject({
     repo: z.string().describe('Repository reference (owner/repo)'),
     branch: z.string().describe('Name of the branch to delete'),
-    dry_run: z.boolean().default(false).describe('Show what would be deleted without deleting anything'),
     project: PROJECT_INPUT,
   }),
   output: BRANCH_DELETE_OUTPUT,
-  positional: ['repo', 'branch'],
-  shortFlags: { dry_run: '-n' },
-  interactive: false,
   run: async (input, io) => {
     // 位置引数の repo は対象のリポで、cwd と比べる明示値ではない
     requireGitRemote(io, process.cwd())
-    const out = createOutput<z.input<typeof BRANCH_DELETE_OUTPUT>>(input.dry_run, io)
+    const out = createOutput<z.input<typeof BRANCH_DELETE_OUTPUT>>(false, io)
     // 1. repo をパース
     let target
     try {
@@ -77,13 +73,8 @@ const branchDeleteCommand = defineCommand({
       return stopWith(out, `${input.branch} is a protected branch\nprotected: ${[...protectedBranches].toSorted(compareStrings).join(', ')}`, 'guard-blocked')
     }
 
-    // 5. dry-run
+    // 5. 削除する操作
     const operation: Operation = { verb: 'delete', target: `remote branch ${input.branch} in ${owner}/${repository}` }
-    if (input.dry_run) {
-      out.planned(operation)
-      out.result({ branch: input.branch, repository: `${owner}/${repository}`, deleted: false })
-      return 0
-    }
 
     // 6. 削除実行
     try {
@@ -99,4 +90,4 @@ const branchDeleteCommand = defineCommand({
   },
 })
 
-export const BRANCH_COMMANDS: readonly CommandDefinition[] = [branchDeleteCommand]
+export const BRANCH_TOOLS: readonly ToolDefinition[] = [branchDeleteCommand]

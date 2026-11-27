@@ -119,10 +119,6 @@ PAGES_DIR = Path("_generated")
 _NOTHING = {"stdin": "none", "diagnostics": "default", "on_error": "default"}
 
 
-def _code_block(text: object) -> list[str]:
-    return [".. code-block:: text", "", *(f"   {line}" for line in str(text).splitlines()), ""]
-
-
 def _type(spec: dict[str, Any]) -> str:
     if "enum" in spec:
         return " | ".join(
@@ -155,8 +151,7 @@ ACTION_REPOSITORY = "pecotcraft/pecot"
 
 
 def _surfaces(entry: dict[str, Any]) -> dict[str, Any]:
-    # surfaces の無い entry は CLI として扱う
-    return cast("dict[str, Any]", entry.get("surfaces", {"cli": {}}))
+    return cast("dict[str, Any]", entry.get("surfaces", {}))
 
 
 def _action_path(entry: dict[str, Any]) -> str | None:
@@ -178,24 +173,10 @@ def _is_action(entry: dict[str, Any]) -> bool:
     return "mcp" not in _surfaces(entry) and _action_path(entry) is not None
 
 
-def shows_cli(entry: dict[str, Any]) -> bool:
-    """CLI の面（標準入出力・終了コード・フラグ）をページに出すか。MCP と action の項目では cli_reference を持つものだけ。"""
-    surfaces = _surfaces(entry)
-    return "cli_reference" in entry or ("mcp" not in surfaces and "action" not in surfaces)
-
-
-def _flag_label(entry: dict[str, Any], name: str) -> str:
-    detail = cast("dict[str, Any]", entry.get("cli") or {})
-    flags = cast("dict[str, list[str]]", detail.get("flags", {}))
-    if name in flags:
-        return ", ".join(flags[name])
-    return f"<{name}>" if name in cast("list[str]", detail.get("positional", [])) else name
-
-
 def _parameter(entry: dict[str, Any], name: str, spec: dict[str, Any], required: bool) -> list[str]:
     """引数 1 つ。名前・説明・項目（field list）の順に書く。
 
-    MCP の引数は拡張の mcparg で書く。Sphinx の option は「command line argument or switch」用なので、CLI だけの項目に使う。
+    MCP の引数は拡張の mcparg で、action の入力は actioninput で書く。
     """
     written = cast("dict[str, str]", entry.get("arguments", {}))
     notes = cast("dict[str, str]", entry.get("default_notes", {}))
@@ -213,12 +194,8 @@ def _parameter(entry: dict[str, Any], name: str, spec: dict[str, Any], required:
     body = [_esc(text, link=True), "", *(f":{key}: {_esc(value)}" for key, value in rows), ""]
     # 同じ名前の引数は別のツールにもあるので、索引に載せない
     surfaces = _surfaces(entry)
-    if "mcp" in surfaces:
-        head = [f".. {MCP_ARG}:: {name}", "   :no-index:"]
-    elif "action" in surfaces:
-        head = [f".. {ACTION_INPUT}:: {name}", "   :no-index:"]
-    else:
-        head = [f".. option:: {_flag_label(entry, name)}"]
+    directive = MCP_ARG if "mcp" in surfaces else ACTION_INPUT
+    head = [f".. {directive}:: {name}", "   :no-index:"]
     return [*head, "", *(f"   {line}" if line else "" for line in body)]
 
 
@@ -249,21 +226,13 @@ def _uses_block(uses: str, inputs: object) -> list[str]:
     return [".. code-block:: yaml", "", *(f"   {line}" for line in text.splitlines()), ""]
 
 
-def _run_examples(examples: list[dict[str, Any]]) -> list[str]:
-    return [line for e in examples for line in (*_para(e["note"]), *_code_block(e["run"]))]
-
-
 def _examples(entry: dict[str, Any]) -> list[str]:
     tool = _tool(entry) or str(entry.get("name", ""))
     is_action = _is_action(entry)
     lines: list[str] = []
     for example in cast("list[dict[str, Any]]", entry.get("examples", [])):
-        lines += _para(example["note"])
-        if "arguments" in example:
-            block = _uses_block if is_action else _call_block
-            lines += block(tool, example["arguments"])
-        else:
-            lines += _code_block(example["run"])
+        block = _uses_block if is_action else _call_block
+        lines += [*_para(example["note"]), *block(tool, example["arguments"])]
     return lines
 
 
@@ -281,7 +250,6 @@ def _constraint(item: object) -> str:
 
 
 MCP_FIELDS_EMPTY = "ツールごとに返す項目はありません。"
-COMMAND_TITLE = "コマンド"
 COMMON_OUTPUT_TITLE = "出力"
 # structuredContent の最上位に、ツールの項目と並べて置く全ツールに共通の項目。ツールごとの表には出さない。
 _MCP_COMMON = ("kind", "detail", "log", "warnings")
@@ -351,12 +319,10 @@ def resource_rows(generated: dict[str, Any], authored: dict[str, Any]) -> list[l
 
 
 def _stdout(entry: dict[str, Any]) -> list[str]:
-    """CLI の標準出力・標準入力・標準エラー。"""
+    """action の step のログ・標準入力・標準エラー。"""
     output = cast("dict[str, Any]", entry.get("output", {}))
     lines: list[str] = []
-    if output.get("format") == "none":
-        lines += _para("標準出力には何も出しません。") if "cli" in _surfaces(entry) else []
-    elif output.get("description"):
+    if output.get("format") != "none" and output.get("description"):
         lines += _para(output["description"])
     properties, _ = _schema(output.get("schema"))
     written = cast("dict[str, str]", output.get("fields", {}))
@@ -387,66 +353,15 @@ def _action_outputs(entry: dict[str, Any]) -> list[str]:
 
 
 def _output(entry: dict[str, Any]) -> list[str]:
-    """出力の節。MCP の項目は結果の項目だけ。CLI の標準入出力は、CLI だけの項目に出す（cli_reference を持つ項目は「コマンド」の節に出す）。
-
-    action の項目は、step のログの行と outputs を出す。
-    """
-    cli_only = "mcp" not in _surfaces(entry)
-    return [*(_stdout(entry) if cli_only else []), *_mcp_output(entry), *_action_outputs(entry)]
-
-
-def _command(entry: dict[str, Any]) -> list[str]:
-    """cli_reference を持つ MCP の項目の「コマンド」の節。構文・フラグ・使用例・標準入出力。"""
-    reference = entry.get("cli_reference")
-    path = _get(entry, "surfaces.cli.path")
-    if (
-        not isinstance(reference, dict)
-        or "mcp" not in _surfaces(entry)
-        or not isinstance(path, list)
-    ):
-        return []
-    program = " ".join(["pecot", *cast("list[str]", path)])
-    detail = cast("dict[str, Any]", entry.get("cli") or {})
-    positional = cast("list[str]", detail.get("positional", []))
-    flags = cast("dict[str, list[str]]", detail.get("flags", {}))
-    synopsis = " ".join(
-        [program, *(f"<{p}>" for p in positional), *(["[options]"] if flags else [])]
-    )
-    lines = [
-        *_para(
-            f"GitHub Actions からは、`{program}` コマンドで呼びます。引数は、次のフラグで渡します。"
-        ),
-        *_code_block(synopsis),
-        f".. program:: {program}",
-        "",
-    ]
-    # cli.only の入力は MCP の引数に無いので、cli_reference.options の説明を出す
-    only = cast("dict[str, Any]", detail.get("only", {}))
-    options = cast("dict[str, str]", cast("dict[str, Any]", reference).get("options", {}))
-    for name in [*positional, *flags]:
-        text = (
-            _esc(options.get(name, ""), link=True)
-            if name in only
-            else f"引数 {_lit(name)} に当たります。"
-        )
-        lines += [f".. option:: {_flag_label(entry, name)}", "", f"   {text}", ""]
-    lines += _run_examples(
-        cast("list[dict[str, Any]]", cast("dict[str, Any]", reference).get("examples", []))
-    )
-    return lines + _stdout(entry)
+    """出力の節。MCP の項目は結果の項目だけ。action の項目は、step のログの行と outputs を出す。"""
+    is_mcp = "mcp" in _surfaces(entry)
+    return [*([] if is_mcp else _stdout(entry)), *_mcp_output(entry), *_action_outputs(entry)]
 
 
 def _failures(entry: dict[str, Any]) -> tuple[str, list[str]]:
-    """エラーの表。終了コードの列は CLI を出す項目だけに付け、決まっていない行は空にする。エラーの後に残る状態を、その下に書く。"""
+    """エラーの表。エラーの後に残る状態を、その下に書く。"""
     items = cast("list[dict[str, Any]]", entry.get("exit_status", []))
-    if shows_cli(entry):
-        lines = _table(
-            "",
-            ["エラー名", "説明", "終了コード"],
-            [[e.get("kind", ""), e["when"], e.get("code", "")] for e in items],
-        )
-    else:
-        lines = _table("", ["エラー名", "説明"], [[e.get("kind", ""), e["when"]] for e in items])
+    lines = _table("", ["エラー名", "説明"], [[e.get("kind", ""), e["when"]] for e in items])
     if lines:
         lines.insert(1, "   :class: iface-errors")
     if "on_error" in entry and entry["on_error"] != _NOTHING["on_error"]:
@@ -479,7 +394,6 @@ def render_sections(entry: dict[str, Any]) -> list[tuple[str, list[str]]]:
         ("入力" if _is_action(entry) else "引数", arguments),
         ("出力", _output(entry)),
         (failure_title, failures),
-        (COMMAND_TITLE, _command(entry)),
     ]
     return [(title, lines) for title, lines in sections if lines]
 
@@ -566,8 +480,7 @@ def build_plan(generated: dict[str, Any], authored: dict[str, Any]) -> Plan:
             merged = {**g, **a, **plugin}
             sections = render_sections(merged)
             surfaces = cast("dict[str, Any]", g["surfaces"])
-            # MCP の項目の CLI は、cli_reference を持つときだけ型に数える
-            tags = sorted(t for t in surfaces if t != "cli" or shows_cli(merged))
+            tags = sorted(surfaces)
             title = _get(g, "mcp.title")
             command = Command(
                 id=gid,
@@ -728,8 +641,6 @@ class IfaceDefs(_Base):
             _esc(command.description, link=True),
             "",
         ]
-        if "mcp" not in command.tags:
-            lines += [f".. program:: {command.name}", ""]
         if command.deprecated:
             lines += [".. warning::", "", "   このツールは非推奨です。", ""]
         for title, body in command.sections:
@@ -843,8 +754,8 @@ class IfaceDefs(_Base):
         return created
 
 
-# 型の欄に出す名前と並び。MCP を先に、action、CLI の順にする。
-KINDS = {"mcp": "MCP", "action": "Action", "cli": "CLI"}
+# 型の欄に出す名前と並び。MCP を先に、action の順にする。
+KINDS = {"mcp": "MCP", "action": "Action"}
 
 
 def _kind_order(tag: str) -> int:

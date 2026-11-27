@@ -1,8 +1,9 @@
 # Issue がボードに無いので exit 1 で止まる。
 id: board-move-state-not-on-board
-command:
-  path: [board, move]
-  args: [acme/demo/7, active]
+tool: board_move
+arguments:
+  issue_ref: acme/demo/7
+  status: active
 setup:
   repo:
     files:

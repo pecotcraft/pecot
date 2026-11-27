@@ -4,10 +4,10 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { ISSUE_CREATE_COMMANDS } from '../../src/commands/issue-create.js'
+import { ISSUE_CREATE_TOOLS } from '../../src/commands/issue-create.js'
 import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { runInProcess, startGithub } from '../_helpers/interface-case.js'
-import type { CliResult, RunningGithub } from '../_helpers/interface-case.js'
+import type { ToolRunResult, RunningGithub } from '../_helpers/interface-case.js'
 import {
   addedToProject,
   createdIssue,
@@ -29,10 +29,10 @@ import { verifies } from '../_helpers/verifies.js'
 useIsolatedEnvironment()
 
 const MESSAGE = '一覧の状態列を直す'
-const FOOTER = 'issue create の freeform で起票（テンプレ検証スキップ）'
+const FOOTER = 'issue_create の freeform で起票（テンプレ検証スキップ）'
 
-async function freeform(...argv: readonly string[]): Promise<CliResult> {
-  return await runInProcess(['issue', 'create', '--freeform', ...argv], ISSUE_CREATE_COMMANDS)
+async function freeform(arguments_: Readonly<Record<string, unknown>> = {}): Promise<ToolRunResult> {
+  return await runInProcess('issue_create', { freeform: true, ...arguments_ }, ISSUE_CREATE_TOOLS)
 }
 
 function hasQuickMode(root: string): boolean {
@@ -42,7 +42,7 @@ function hasQuickMode(root: string): boolean {
 const ISSUE_12 = { owner: 'acme', repository: 'demo', number: 12, url: `${ISSUE_URL_BASE}/12` }
 
 async function freeformTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
-  return await callToolOnce(ISSUE_CREATE_COMMANDS, 'issue_create', { freeform: true, ...argumentsOfTool })
+  return await callToolOnce(ISSUE_CREATE_TOOLS, 'issue_create', { freeform: true, ...argumentsOfTool })
 }
 
 function sentBody(github: RunningGithub): string {
@@ -54,13 +54,13 @@ function fieldWrites(github: RunningGithub): number {
   return github.requests().filter(request => request.type === 'graphql' && request.operation === 'UpdateProjectItemField').length
 }
 
-describe('issue create', () => {
+describe('issue_create', () => {
   it('メッセージとリポジトリを渡すと、テンプレートの検証をせず Issue を 1 件作り、ボードへ追加して status を設定し、URL を出す', async () => {
-    await explains('`issue create --freeform` の基本の動作のテストです。メッセージとリポジトリを渡した場合に、テンプレートの検証はせずに Issue を 1 件作り、ボードへ追加して `status` を設定し、URL を標準出力へ出力することを確認します。')
+    await explains('`issue_create` の `freeform` の基本の動作のテストです。メッセージとリポジトリを渡した場合に、テンプレートの検証はせずに Issue を 1 件作り、ボードへ追加して `status` を設定し、URL を標準出力へ出力することを確認します。')
     const project = setUpIssueProject()
     const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
 
-    const result = await freeform('-m', MESSAGE, '-r', 'acme/demo')
+    const result = await freeform({ message: MESSAGE, repo: 'acme/demo' })
 
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
@@ -72,24 +72,24 @@ describe('issue create', () => {
     expect(existsSync(path.join(project.root, '.pecot/state/.pecot-active'))).toBe(false)
   })
 
-  it('--label を付けると、Issue にそのラベルを付けて作る', async () => {
-    await explains('`issue create --freeform` の `--label` のテストです。`--label` を指定した場合に、そのラベルを付けて Issue を作ることを確認します。')
+  it('label を付けると、Issue にそのラベルを付けて作る', async () => {
+    await explains('`issue_create` の `freeform` の `label` のテストです。`label` を指定した場合に、そのラベルを付けて Issue を作ることを確認します。')
     setUpIssueProject()
     const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
 
-    const result = await freeform('-m', MESSAGE, '-r', 'acme/demo', '--label', 'bug')
+    const result = await freeform({ message: MESSAGE, repo: 'acme/demo', label: ['bug'] })
 
     expect(result.code).toBe(0)
     expect(github.requests().find(request => request.type === 'rest')).toMatchObject({ body: { title: `[Task] ${MESSAGE}`, labels: ['bug'] } })
   })
 
   it('複数行のメッセージを渡すと、1 行目の連続する空白を 1 つにしたものを type の接頭辞つきの題にし、本文にはメッセージの全体を入れる', async () => {
-    await explains('`issue create --freeform` の題の作り方のテストです。複数行のメッセージを渡した場合に、1 行目の連続する空白を 1 つにして `[Task]` の接頭辞を付けた題にし、本文にはメッセージの全体を入れることを確認します。')
+    await explains('`issue_create` の `freeform` の題の作り方のテストです。複数行のメッセージを渡した場合に、1 行目の連続する空白を 1 つにして `[Task]` の接頭辞を付けた題にし、本文にはメッセージの全体を入れることを確認します。')
     setUpIssueProject()
     const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
     const message = `先頭の   行\n次の行 ${'あ'.repeat(60)}`
 
-    const result = await freeform('-m', message, '-r', 'acme/demo')
+    const result = await freeform({ message: message, repo: 'acme/demo' })
 
     expect(result.code).toBe(0)
     const post = github.requests().find(request => request.type === 'rest')
@@ -99,24 +99,24 @@ describe('issue create', () => {
   })
 
   it('1 行目が 50 文字を超えるメッセージを渡すと、1 行目の先頭 50 文字の連続する空白を 1 つにしたものを題にする', async () => {
-    await explains('`issue create --freeform` の題の長さのテストです。1 行目が 50 文字を超える場合に、先頭 50 文字の連続する空白を 1 つにしたものを題にすることを確認します。')
+    await explains('`issue_create` の `freeform` の題の長さのテストです。1 行目が 50 文字を超える場合に、先頭 50 文字の連続する空白を 1 つにしたものを題にすることを確認します。')
     setUpIssueProject()
     const github = await startGithub([linkedRepositories(), createdIssue(12), addedToProject(), updatedFields(1)])
     const message = `${'あ'.repeat(30)}   ${'い'.repeat(27)}\n2 行目`
 
-    const result = await freeform('-m', message, '-r', 'acme/demo')
+    const result = await freeform({ message: message, repo: 'acme/demo' })
 
     expect(result.code).toBe(0)
     const post = github.requests().find(request => request.type === 'rest')
     expect(post).toMatchObject({ body: { title: `[Task] ${'あ'.repeat(30)} ${'い'.repeat(17)}` } })
   })
 
-  it('Epic に --parent-epic を付けると、warning の行を出して親につなぎ、欄は status backlog だけにする', async () => {
-    await explains('`issue create --freeform` の `--parent-epic` のテストです。Epic に `--parent-epic` を付けた場合に、warning の行を出力して親につなぎ、ボードの欄は `status` が `backlog` のものだけを書くことを確認します。')
+  it('Epic に parent_epic を付けると、warning の行を出して親につなぎ、欄は status backlog だけにする', async () => {
+    await explains('`issue_create` の `freeform` の `parent_epic` のテストです。Epic に `parent_epic` を付けた場合に、warning の行を出力して親につなぎ、ボードの欄は `status` が `backlog` のものだけを書くことを確認します。')
     setUpIssueProject()
     await startGithub([linkedRepositories(), parentLane(3), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), subIssueAdded()])
 
-    const result = await freeform('-m', MESSAGE, '-r', 'acme/demo', '--type', 'epic', '--parent-epic', '3')
+    const result = await freeform({ message: MESSAGE, repo: 'acme/demo', type: 'epic', parent_epic: '3' })
 
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
@@ -126,29 +126,12 @@ describe('issue create', () => {
     )
   })
 
-  it.for([
-    { name: '--priority', argv: ['--priority', 'high'] },
-    { name: '--size', argv: ['--size', 'm'] },
-  ])('$name を渡すと、知らないオプションとして、何も作らずに終了コード 2 で終わる', async (row, context) => {
-    await verifies(context, 'PW-ISSUE-CREATE-87')
-    await explains('`issue create --freeform` のオプションの検証のテストです。`--priority` や `--size` を渡した場合に、知らないオプションとして、何も作らず終了コード 2 で終わることを確認します。')
-    setUpIssueProject()
-    const github = await startGithub([])
-
-    const result = await freeform('-m', MESSAGE, '-r', 'acme/demo', ...row.argv)
-
-    expect(result.code).toBe(2)
-    expect(result.stdout).toBe('')
-    expect(result.stderr).toContain(`No such option: ${row.name}`)
-    expect(github.requests()).toEqual([])
-  })
-
   it('ボードへの追加に失敗したとき、warning の行と Issue の URL を出し、欄の設定をせず、終了コード 0 で終わる', async () => {
-    await explains('`issue create --freeform` のボードへの追加が失敗した場合のテストです。ボードへの追加が失敗した場合に、warning の行と Issue の URL を出力し、欄の設定は行わず、終了コード 0 で終わることを確認します。')
+    await explains('`issue_create` の `freeform` のボードへの追加が失敗した場合のテストです。ボードへの追加が失敗した場合に、warning の行と Issue の URL を出力し、欄の設定は行わず、終了コード 0 で終わることを確認します。')
     setUpIssueProject()
     await startGithub([linkedRepositories(), createdIssue(12), failedAddToProject()])
 
-    const result = await freeform('-m', MESSAGE, '-r', 'acme/demo')
+    const result = await freeform({ message: MESSAGE, repo: 'acme/demo' })
 
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
@@ -156,11 +139,11 @@ describe('issue create', () => {
   })
 
   it('親 Epic へのつなぎに失敗したとき、Issue の URL を標準出力に出して終了コード 1 で終わる', async () => {
-    await explains('`issue create --freeform` の親 Epic へのつなぎが失敗した場合のテストです。親 Epic へのつなぎが失敗した場合に、Issue の URL を標準出力へ出力して終了コード 1 で終わることを確認します。')
+    await explains('`issue_create` の `freeform` の親 Epic へのつなぎが失敗した場合のテストです。親 Epic へのつなぎが失敗した場合に、Issue の URL を標準出力へ出力して終了コード 1 で終わることを確認します。')
     setUpIssueProject()
     await startGithub([linkedRepositories(), parentLane(3), createdIssue(12), addedToProject(), updatedFields(1), issueNodeId(3), failedSubIssue()])
 
-    const result = await freeform('-m', MESSAGE, '-r', 'acme/demo', '--parent-epic', '3')
+    const result = await freeform({ message: MESSAGE, repo: 'acme/demo', parent_epic: '3' })
 
     expect(result.code).toBe(1)
     expect(result.stdout).toBe(`${ISSUE_URL_BASE}/12\n`)
@@ -168,38 +151,38 @@ describe('issue create', () => {
   })
 
   it.for([
-    { name: '渡されていない', argv: ['-r', 'acme/demo'] },
-    { name: '空白だけ', argv: ['-m', '  \n ', '-r', 'acme/demo'] },
-  ])('--message が $name とき、error の行を出して終了コード 2 で終わる', async (row) => {
-    await explains('`issue create --freeform` の `--message` の検証のテストです。`--message` を渡さない場合と空白だけの場合に、`error` の行を出力して終了コード 2 で終わることを確認します。')
+    { name: '渡されていない', input: { repo: 'acme/demo' } },
+    { name: '空白だけ', input: { message: '  \n ', repo: 'acme/demo' } },
+  ])('message が $name とき、error の行を出して終了コード 2 で終わる', async (row) => {
+    await explains('`issue_create` の `freeform` の `message` の検証のテストです。`message` を渡さない場合と空白だけの場合に、`error` の行を出力して終了コード 2 で終わることを確認します。')
     setUpIssueProject()
 
-    const result = await freeform(...row.argv)
+    const result = await freeform(row.input)
 
-    expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: --message is required with --freeform\n' })
+    expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: message is required with freeform: true\n' })
   })
 
-  it('--repo を渡さないとき、error の行を出して終了コード 2 で終わる', async () => {
-    await explains('`issue create --freeform` の `--repo` の検証のテストです。`--repo` を渡さなかった場合に、`error` の行を出力して終了コード 2 で終わることを確認します。')
+  it('repo を渡さないとき、error の行を出して終了コード 2 で終わる', async () => {
+    await explains('`issue_create` の `freeform` の `repo` の検証のテストです。`repo` を渡さなかった場合に、`error` の行を出力して終了コード 2 で終わることを確認します。')
     setUpIssueProject()
 
-    const result = await freeform('-m', MESSAGE)
+    const result = await freeform({ message: MESSAGE })
 
-    expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: --repo is required with --freeform\n' })
+    expect(result).toEqual({ code: 2, stdout: '', stderr: 'error: repo is required with freeform: true\n' })
   })
 
   it.for([
-    { name: 'ファイル', argv: ['-m', MESSAGE, '-r', 'acme/demo', 'a.md'] },
-    { name: '--title', argv: ['-m', MESSAGE, '-r', 'acme/demo', '-t', '題'] },
+    { name: 'ファイル', input: { files: ['a.md'], message: MESSAGE, repo: 'acme/demo' } },
+    { name: 'title', input: { message: MESSAGE, repo: 'acme/demo', title: '題' } },
   ])('$name と一緒に渡したとき、何も作らずに終了コード 2 で終わる', async (row) => {
-    await explains('`issue create --freeform` の引数の検証のテストです。`--freeform` をファイルや `--title` と一緒に渡した場合は、何も作らず、終了コード 2 で終わることを確認します。')
+    await explains('`issue_create` の `freeform` の引数の検証のテストです。`freeform` をファイルや `title` と一緒に渡した場合は、何も作らず、終了コード 2 で終わることを確認します。')
     setUpIssueProject()
 
-    const result = await freeform(...row.argv)
+    const result = await freeform(row.input)
 
     expect(result.code).toBe(2)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toBe('error: --freeform cannot be used with --files or --title\n')
+    expect(result.stderr).toBe('error: freeform: true cannot be used with files or title\n')
   })
 
   describe('MCP の呼び出し', () => {

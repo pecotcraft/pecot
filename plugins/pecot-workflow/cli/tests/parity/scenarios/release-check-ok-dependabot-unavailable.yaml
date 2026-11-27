@@ -1,8 +1,7 @@
 # Dependabot の一覧が 403 で、vulnerability-alerts は 204（有効＝権限不足）。警告 2 行を出して通る（exit 0）。
 id: release-check-ok-dependabot-unavailable
-command:
-  path: [release, check]
-  args: []
+tool: release_check
+arguments: {}
 setup:
   repo:
     files:

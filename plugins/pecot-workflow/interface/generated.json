@@ -3,7 +3,7 @@
   "plugin": "pecot-workflow",
   "prefix": "PW",
   "names": {
-    "separator": " ",
+    "separator": "_",
     "positions": [
       [
         {
@@ -166,15 +166,9 @@
   "entries": [
     {
       "id": "PW-BOARD-ADD",
-      "name": "board add",
+      "name": "board_add",
       "description": "Add an Issue to the project board with a GraphQL mutation (for an Issue created outside pecot)",
       "surfaces": {
-        "cli": {
-          "path": [
-            "board",
-            "add"
-          ]
-        },
         "mcp": {
           "tool": "board_add"
         }
@@ -202,31 +196,6 @@
           "issue_ref"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "issue_ref"
-        ],
-        "flags": {
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "project": [
-            "--project"
-          ],
-          "status": [
-            "--status",
-            "-s"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Add Issue to board",
@@ -288,15 +257,9 @@
     },
     {
       "id": "PW-BOARD-MOVE",
-      "name": "board move",
+      "name": "board_move",
       "description": "Update the status of an Issue on the project board by Issue number (pecot commands normally set the status themselves)",
       "surfaces": {
-        "cli": {
-          "path": [
-            "board",
-            "move"
-          ]
-        },
         "mcp": {
           "tool": "board_move"
         }
@@ -324,28 +287,6 @@
           "status"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "issue_ref",
-          "status"
-        ],
-        "flags": {
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "project": [
-            "--project"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Move Issue on board",
@@ -403,15 +344,9 @@
     },
     {
       "id": "PW-BOARD-SHOW",
-      "name": "board show",
+      "name": "board_show",
       "description": "Show the dashboard of the project board",
       "surfaces": {
-        "cli": {
-          "path": [
-            "board",
-            "show"
-          ]
-        },
         "mcp": {
           "tool": "board_show"
         }
@@ -433,18 +368,6 @@
         },
         "required": [],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [],
-        "flags": {
-          "json": [
-            "--json",
-            "-j"
-          ],
-          "repo": [
-            "--repo"
-          ]
-        }
       },
       "mcp": {
         "title": "Show board dashboard",
@@ -855,15 +778,9 @@
     },
     {
       "id": "PW-BRANCH-DELETE",
-      "name": "branch delete",
+      "name": "branch_delete",
       "description": "Delete a remote branch (a protected branch is never deleted)",
       "surfaces": {
-        "cli": {
-          "path": [
-            "branch",
-            "delete"
-          ]
-        },
         "mcp": {
           "tool": "branch_delete"
         }
@@ -891,28 +808,6 @@
           "repo"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "repo",
-          "branch"
-        ],
-        "flags": {
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "project": [
-            "--project"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would be deleted without deleting anything"
-          }
-        }
       },
       "mcp": {
         "title": "Delete remote branch",
@@ -975,15 +870,9 @@
     },
     {
       "id": "PW-ISSUE-ATTRIBUTES",
-      "name": "issue attributes",
+      "name": "issue_attributes",
       "description": "List the attributes an Issue of the repository can have: fields of the configured board, Issue fields, and built-in ones",
       "surfaces": {
-        "cli": {
-          "path": [
-            "issue",
-            "attributes"
-          ]
-        },
         "mcp": {
           "tool": "issue_attributes"
         }
@@ -1005,18 +894,6 @@
         },
         "required": [],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [],
-        "flags": {
-          "json": [
-            "--json",
-            "-j"
-          ],
-          "project": [
-            "--project"
-          ]
-        }
       },
       "mcp": {
         "title": "List Issue attributes",
@@ -1175,15 +1052,9 @@
     },
     {
       "id": "PW-ISSUE-BLOCK",
-      "name": "issue block",
+      "name": "issue_block",
       "description": "Add a blocked-by (prerequisite) to an Issue, or change the wait kind and reason of an existing one",
       "surfaces": {
-        "cli": {
-          "path": [
-            "issue",
-            "block"
-          ]
-        },
         "mcp": {
           "tool": "issue_block"
         }
@@ -1224,35 +1095,6 @@
           "issue_ref"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "issue_ref"
-        ],
-        "flags": {
-          "by": [
-            "--by"
-          ],
-          "dry_run": [
-            "--dry-run"
-          ],
-          "project": [
-            "--project"
-          ],
-          "reason": [
-            "--reason"
-          ],
-          "wait": [
-            "--wait"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Set Issue blocker",
@@ -1364,15 +1206,9 @@
     },
     {
       "id": "PW-ISSUE-CHECK",
-      "name": "issue check",
-      "description": "Check Markdown files for issue create and show their order numbers, prerequisites and how to proceed, without creating anything",
+      "name": "issue_check",
+      "description": "Check Markdown files for issue_create and show their order numbers, prerequisites and how to proceed, without creating anything",
       "surfaces": {
-        "cli": {
-          "path": [
-            "issue",
-            "check"
-          ]
-        },
         "mcp": {
           "tool": "issue_check"
         }
@@ -1398,16 +1234,6 @@
           "files"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "files"
-        ],
-        "flags": {
-          "project": [
-            "--project"
-          ]
-        }
       },
       "mcp": {
         "title": "Check Issue files",
@@ -1531,15 +1357,9 @@
     },
     {
       "id": "PW-ISSUE-COMMENT",
-      "name": "issue comment",
+      "name": "issue_comment",
       "description": "Post a comment on an Issue",
       "surfaces": {
-        "cli": {
-          "path": [
-            "issue",
-            "comment"
-          ]
-        },
         "mcp": {
           "tool": "issue_comment"
         }
@@ -1579,39 +1399,6 @@
         },
         "required": [],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "file"
-        ],
-        "flags": {
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "issue_ref": [
-            "--issue-ref",
-            "-i"
-          ],
-          "message": [
-            "--message",
-            "-m"
-          ],
-          "project": [
-            "--project"
-          ],
-          "template": [
-            "--template",
-            "-t"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would be posted or written without changing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Comment on Issue",
@@ -1681,15 +1468,9 @@
     },
     {
       "id": "PW-ISSUE-CREATE",
-      "name": "issue create",
+      "name": "issue_create",
       "description": "Create Issues from Markdown files with frontmatter",
       "surfaces": {
-        "cli": {
-          "path": [
-            "issue",
-            "create"
-          ]
-        },
         "mcp": {
           "tool": "issue_create"
         }
@@ -1812,54 +1593,6 @@
         },
         "required": [],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "files"
-        ],
-        "flags": {
-          "attributes": [
-            "--attributes",
-            "--attribute"
-          ],
-          "freeform": [
-            "--freeform"
-          ],
-          "label": [
-            "--label",
-            "-l"
-          ],
-          "lane": [
-            "--lane"
-          ],
-          "message": [
-            "--message",
-            "-m"
-          ],
-          "order": [
-            "--order"
-          ],
-          "parent_epic": [
-            "--parent-epic"
-          ],
-          "project": [
-            "--project"
-          ],
-          "repo": [
-            "--repo",
-            "-r"
-          ],
-          "status": [
-            "--status"
-          ],
-          "title": [
-            "--title",
-            "-t"
-          ],
-          "type": [
-            "--type"
-          ]
-        }
       },
       "mcp": {
         "title": "Create Issues",
@@ -2096,15 +1829,9 @@
     },
     {
       "id": "PW-ISSUE-EDIT",
-      "name": "issue edit",
+      "name": "issue_edit",
       "description": "Write, change or remove the values of the attributes of an Issue by name (the attributes that issue_attributes lists)",
       "surfaces": {
-        "cli": {
-          "path": [
-            "issue",
-            "edit"
-          ]
-        },
         "mcp": {
           "tool": "issue_edit"
         }
@@ -2174,31 +1901,6 @@
           "issue_ref"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "issue_ref"
-        ],
-        "flags": {
-          "attributes": [
-            "--attributes",
-            "--attribute"
-          ],
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "project": [
-            "--project"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Check the values and show what would change without writing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Edit Issue attributes",
@@ -2451,15 +2153,9 @@
     },
     {
       "id": "PW-ISSUE-REOPEN",
-      "name": "issue reopen",
+      "name": "issue_reopen",
       "description": "Reopen a closed Issue (also sets the status on the board)",
       "surfaces": {
-        "cli": {
-          "path": [
-            "issue",
-            "reopen"
-          ]
-        },
         "mcp": {
           "tool": "issue_reopen"
         }
@@ -2491,35 +2187,6 @@
           "issue_ref"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "issue_ref"
-        ],
-        "flags": {
-          "comment": [
-            "--comment",
-            "-c"
-          ],
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "project": [
-            "--project"
-          ],
-          "status": [
-            "--status",
-            "-s"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Reopen Issue",
@@ -2591,15 +2258,9 @@
     },
     {
       "id": "PW-ISSUE-SHOW",
-      "name": "issue show",
+      "name": "issue_show",
       "description": "Fetch Issue details efficiently (GraphQL, only the needed fields)",
       "surfaces": {
-        "cli": {
-          "path": [
-            "issue",
-            "show"
-          ]
-        },
         "mcp": {
           "tool": "issue_show"
         }
@@ -2634,24 +2295,6 @@
           "issue_ref"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "issue_ref"
-        ],
-        "flags": {
-          "comment_limit": [
-            "--comment-limit",
-            "-c"
-          ],
-          "json": [
-            "--json",
-            "-j"
-          ],
-          "project": [
-            "--project"
-          ]
-        }
       },
       "mcp": {
         "title": "Get Issue details",
@@ -3139,15 +2782,9 @@
     },
     {
       "id": "PW-ISSUE-UNBLOCK",
-      "name": "issue unblock",
+      "name": "issue_unblock",
       "description": "Remove a blocked-by (prerequisite) from an Issue",
       "surfaces": {
-        "cli": {
-          "path": [
-            "issue",
-            "unblock"
-          ]
-        },
         "mcp": {
           "tool": "issue_unblock"
         }
@@ -3175,29 +2812,6 @@
           "issue_ref"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "issue_ref"
-        ],
-        "flags": {
-          "by": [
-            "--by"
-          ],
-          "dry_run": [
-            "--dry-run"
-          ],
-          "project": [
-            "--project"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Remove Issue blocker",
@@ -3299,15 +2913,9 @@
     },
     {
       "id": "PW-PR-CHECK",
-      "name": "pr check",
+      "name": "pr_check",
       "description": "Show all the information to check before creating a PR",
       "surfaces": {
-        "cli": {
-          "path": [
-            "pr",
-            "check"
-          ]
-        },
         "mcp": {
           "tool": "pr_check"
         }
@@ -3330,18 +2938,6 @@
           "directory"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [],
-        "flags": {
-          "directory": [
-            "--directory",
-            "-D"
-          ],
-          "project": [
-            "--project"
-          ]
-        }
       },
       "mcp": {
         "title": "Check PR readiness",
@@ -3458,15 +3054,9 @@
     },
     {
       "id": "PW-PR-CREATE",
-      "name": "pr create",
+      "name": "pr_create",
       "description": "Create a PR (pull request)",
       "surfaces": {
-        "cli": {
-          "path": [
-            "pr",
-            "create"
-          ]
-        },
         "mcp": {
           "tool": "pr_create"
         }
@@ -3526,59 +3116,6 @@
         },
         "required": [],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "file"
-        ],
-        "flags": {
-          "base": [
-            "--base",
-            "-b"
-          ],
-          "draft": [
-            "--draft",
-            "-d"
-          ],
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "head": [
-            "--head"
-          ],
-          "message": [
-            "--message",
-            "-m"
-          ],
-          "no_issue_ref": [
-            "--no-issue-ref"
-          ],
-          "project": [
-            "--project"
-          ],
-          "repo": [
-            "--repo",
-            "-r"
-          ],
-          "screenshot": [
-            "--screenshot"
-          ],
-          "template": [
-            "--template"
-          ],
-          "title": [
-            "--title",
-            "-t"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Validate only (skip the early preflight check, do not create the PR)"
-          }
-        }
       },
       "mcp": {
         "title": "Create PR",
@@ -3720,15 +3257,9 @@
     },
     {
       "id": "PW-PR-MERGE",
-      "name": "pr merge",
+      "name": "pr_merge",
       "description": "Merge a PR with the asynchronous merge API (a PR in a stack must be the bottom one)",
       "surfaces": {
-        "cli": {
-          "path": [
-            "pr",
-            "merge"
-          ]
-        },
         "mcp": {
           "tool": "pr_merge"
         }
@@ -3751,27 +3282,6 @@
           "pr_ref"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "pr_ref"
-        ],
-        "flags": {
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "project": [
-            "--project"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Read the PR and its stack, and show what would happen without merging"
-          }
-        }
       },
       "mcp": {
         "title": "Merge PR",
@@ -3861,15 +3371,9 @@
     },
     {
       "id": "PW-PR-RESTACK",
-      "name": "pr restack",
+      "name": "pr_restack",
       "description": "Restack the current branch onto the new position of its base branch",
       "surfaces": {
-        "cli": {
-          "path": [
-            "pr",
-            "restack"
-          ]
-        },
         "mcp": {
           "tool": "pr_restack"
         }
@@ -3901,34 +3405,6 @@
         },
         "required": [],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [],
-        "flags": {
-          "abort": [
-            "--abort"
-          ],
-          "check": [
-            "--check"
-          ],
-          "continue": [
-            "--continue"
-          ],
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "project": [
-            "--project"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would be done without rebasing, pushing or writing records"
-          }
-        }
       },
       "mcp": {
         "title": "Restack branch",
@@ -4030,15 +3506,9 @@
     },
     {
       "id": "PW-PR-SHOW",
-      "name": "pr show",
+      "name": "pr_show",
       "description": "Get PR details efficiently (GraphQL, only the needed fields)",
       "surfaces": {
-        "cli": {
-          "path": [
-            "pr",
-            "show"
-          ]
-        },
         "mcp": {
           "tool": "pr_show"
         }
@@ -4071,24 +3541,6 @@
           "pr_ref"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "pr_ref"
-        ],
-        "flags": {
-          "json": [
-            "--json",
-            "-j"
-          ],
-          "project": [
-            "--project"
-          ],
-          "reviews": [
-            "--reviews",
-            "-r"
-          ]
-        }
       },
       "mcp": {
         "title": "Get PR details",
@@ -4353,15 +3805,9 @@
     },
     {
       "id": "PW-PROJECT-ACTIVATE",
-      "name": "project activate",
+      "name": "project_activate",
       "description": "Activate an initialized project",
       "surfaces": {
-        "cli": {
-          "path": [
-            "project",
-            "activate"
-          ]
-        },
         "mcp": {
           "tool": "project_activate"
         }
@@ -4381,39 +3827,13 @@
           },
           "project": {
             "type": "string",
-            "description": "Project number or name, or config file path/file name (list the candidates with project search)"
+            "description": "Project number or name, or config file path/file name (list the candidates with project_search)"
           }
         },
         "required": [
           "project"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "project"
-        ],
-        "flags": {
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "host": [
-            "--host",
-            "-h"
-          ],
-          "owner": [
-            "--owner",
-            "-o"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Activate project",
@@ -4507,15 +3927,9 @@
     },
     {
       "id": "PW-PROJECT-CREATE",
-      "name": "project create",
-      "description": "Create a new project with the pecot-workflow fields, and the pecot-lane field and the Lanes view from lanes (to add the fields to an existing project, use project init)",
+      "name": "project_create",
+      "description": "Create a new project with the pecot-workflow fields, and the pecot-lane field and the Lanes view from lanes (to add the fields to an existing project, use project_init)",
       "surfaces": {
-        "cli": {
-          "path": [
-            "project",
-            "create"
-          ]
-        },
         "mcp": {
           "tool": "project_create"
         }
@@ -4554,32 +3968,6 @@
         ],
         "additionalProperties": false
       },
-      "cli": {
-        "positional": [
-          "owner",
-          "title"
-        ],
-        "flags": {
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "host": [
-            "--host",
-            "-h"
-          ],
-          "lanes": [
-            "--lanes"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          }
-        }
-      },
       "mcp": {
         "title": "Create project",
         "output": {
@@ -4604,7 +3992,7 @@
               "description": "Project owner"
             },
             "fields": {
-              "description": "The fields of the created project, in the same rows as project init (omitted with dry_run, and when the command stopped before the fields)",
+              "description": "The fields of the created project, in the same rows as project_init (omitted when the command stopped before the fields)",
               "type": "array",
               "items": {
                 "type": "object",
@@ -4646,14 +4034,14 @@
               "properties": {
                 "created": {
                   "type": "boolean",
-                  "description": "Whether the view was created (with dry_run: whether it would be created); false when a view of that name already exists or it has to be created by hand"
+                  "description": "Whether the view was created; false when a view of that name already exists or it has to be created by hand"
                 },
                 "name": {
                   "type": "string",
                   "description": "Name of the view (Lanes)"
                 },
                 "url": {
-                  "description": "URL of the view (omitted with dry_run, and when it has to be created by hand)",
+                  "description": "URL of the view (omitted when it has to be created by hand)",
                   "type": "string"
                 },
                 "manual_steps": {
@@ -4714,15 +4102,9 @@
     },
     {
       "id": "PW-PROJECT-GET",
-      "name": "project get",
+      "name": "project_get",
       "description": "Show the value of a key of the project config (aggregation_repo: the Epic aggregation repository)",
       "surfaces": {
-        "cli": {
-          "path": [
-            "project",
-            "get"
-          ]
-        },
         "mcp": {
           "tool": "project_get"
         }
@@ -4744,12 +4126,6 @@
           "key"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "key"
-        ],
-        "flags": {}
       },
       "mcp": {
         "title": "Get project config",
@@ -4809,15 +4185,9 @@
     },
     {
       "id": "PW-PROJECT-INIT",
-      "name": "project init",
+      "name": "project_init",
       "description": "Add the pecot-status field to an existing project, rename the old suffixed workflow field to pecot-status, add the Blocked and Needs Attention options to the fields that already exist, and add the lanes to the pecot-lane field with a Lanes view. The fields pecot does not use (pecot-priority, pecot-size, and the old suffixed workflow field when pecot-status also exists) are listed in migration.pending_delete, and deleted only with confirm_delete",
       "surfaces": {
-        "cli": {
-          "path": [
-            "project",
-            "init"
-          ]
-        },
         "mcp": {
           "tool": "project_init"
         }
@@ -4860,35 +4230,6 @@
           "owner"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "owner",
-          "name"
-        ],
-        "flags": {
-          "confirm_delete": [
-            "--confirm-delete"
-          ],
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "host": [
-            "--host",
-            "-h"
-          ],
-          "lanes": [
-            "--lanes"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Initialize project fields",
@@ -4998,14 +4339,14 @@
               "properties": {
                 "created": {
                   "type": "boolean",
-                  "description": "Whether the view was created (with dry_run: whether it would be created); false when a view of that name already exists or it has to be created by hand"
+                  "description": "Whether the view was created; false when a view of that name already exists or it has to be created by hand"
                 },
                 "name": {
                   "type": "string",
                   "description": "Name of the view (Lanes)"
                 },
                 "url": {
-                  "description": "URL of the view (omitted with dry_run, and when it has to be created by hand)",
+                  "description": "URL of the view (omitted when it has to be created by hand)",
                   "type": "string"
                 },
                 "manual_steps": {
@@ -5065,15 +4406,9 @@
     },
     {
       "id": "PW-PROJECT-LINK",
-      "name": "project link",
+      "name": "project_link",
       "description": "Add or update a repository in the project config",
       "surfaces": {
-        "cli": {
-          "path": [
-            "project",
-            "link"
-          ]
-        },
         "mcp": {
           "tool": "project_link"
         }
@@ -5120,43 +4455,6 @@
           "repo"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "repo"
-        ],
-        "flags": {
-          "changelog_file": [
-            "--changelog-file"
-          ],
-          "clear_packages": [
-            "--clear-packages"
-          ],
-          "develop_branch": [
-            "--develop-branch",
-            "-b"
-          ],
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "package": [
-            "--package"
-          ],
-          "release_branch": [
-            "--release-branch"
-          ],
-          "release_type": [
-            "--release-type"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Link repository to project",
@@ -5230,15 +4528,9 @@
     },
     {
       "id": "PW-PROJECT-LIST",
-      "name": "project list",
+      "name": "project_list",
       "description": "List available projects",
       "surfaces": {
-        "cli": {
-          "path": [
-            "project",
-            "list"
-          ]
-        },
         "mcp": {
           "tool": "project_list"
         }
@@ -5250,10 +4542,6 @@
         "properties": {},
         "required": [],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [],
-        "flags": {}
       },
       "mcp": {
         "title": "List projects",
@@ -5324,15 +4612,9 @@
     },
     {
       "id": "PW-PROJECT-SEARCH",
-      "name": "project search",
+      "name": "project_search",
       "description": "Search projects through the GitHub API, and show which are initialized and which is active",
       "surfaces": {
-        "cli": {
-          "path": [
-            "project",
-            "search"
-          ]
-        },
         "mcp": {
           "tool": "project_search"
         }
@@ -5356,17 +4638,6 @@
           "owner"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "owner"
-        ],
-        "flags": {
-          "host": [
-            "--host",
-            "-h"
-          ]
-        }
       },
       "mcp": {
         "title": "Search projects",
@@ -5401,7 +4672,7 @@
                     "type": "string"
                   },
                   "initialized": {
-                    "description": "Whether project init has set up the fields (omitted without a number, or when the fields could not be read)",
+                    "description": "Whether project_init has set up the fields (omitted without a number, or when the fields could not be read)",
                     "type": "boolean"
                   },
                   "active": {
@@ -5457,15 +4728,9 @@
     },
     {
       "id": "PW-PROJECT-SET",
-      "name": "project set",
+      "name": "project_set",
       "description": "Set a key of the project config (aggregation_repo: the Epic aggregation repository)",
       "surfaces": {
-        "cli": {
-          "path": [
-            "project",
-            "set"
-          ]
-        },
         "mcp": {
           "tool": "project_set"
         }
@@ -5497,29 +4762,6 @@
           "value"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "key",
-          "value"
-        ],
-        "flags": {
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "yes": [
-            "--yes",
-            "-y"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Set project config",
@@ -5599,15 +4841,9 @@
     },
     {
       "id": "PW-PROJECT-UNSET",
-      "name": "project unset",
+      "name": "project_unset",
       "description": "Clear a key of the project config; without aggregation_repo, creating an Epic needs the target repository given explicitly",
       "surfaces": {
-        "cli": {
-          "path": [
-            "project",
-            "unset"
-          ]
-        },
         "mcp": {
           "tool": "project_unset"
         }
@@ -5629,24 +4865,6 @@
           "key"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "key"
-        ],
-        "flags": {
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would change without writing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Clear project config",
@@ -5720,15 +4938,9 @@
     },
     {
       "id": "PW-RELEASE-CHECK",
-      "name": "release check",
+      "name": "release_check",
       "description": "Run the pre-release checks; for an nx repository only the alerts are checked",
       "surfaces": {
-        "cli": {
-          "path": [
-            "release",
-            "check"
-          ]
-        },
         "mcp": {
           "tool": "release_check"
         }
@@ -5753,19 +4965,6 @@
         },
         "required": [],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "version"
-        ],
-        "flags": {
-          "package": [
-            "--package"
-          ],
-          "project": [
-            "--project"
-          ]
-        }
       },
       "mcp": {
         "title": "Check release readiness",
@@ -5869,15 +5068,9 @@
     },
     {
       "id": "PW-RELEASE-CREATE",
-      "name": "release create",
+      "name": "release_create",
       "description": "Create a GitHub release and its tag (the release notes come from the CHANGELOG)",
       "surfaces": {
-        "cli": {
-          "path": [
-            "release",
-            "create"
-          ]
-        },
         "mcp": {
           "tool": "release_create"
         }
@@ -5904,29 +5097,6 @@
           "version"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "version"
-        ],
-        "flags": {
-          "dry_run": [
-            "--dry-run"
-          ],
-          "package": [
-            "--package"
-          ],
-          "project": [
-            "--project"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would happen without changing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Create release",
@@ -5988,15 +5158,9 @@
     },
     {
       "id": "PW-RELEASE-MERGE",
-      "name": "release merge",
+      "name": "release_merge",
       "description": "Merge a release PR with a regular merge",
       "surfaces": {
-        "cli": {
-          "path": [
-            "release",
-            "merge"
-          ]
-        },
         "mcp": {
           "tool": "release_merge"
         }
@@ -6029,34 +5193,6 @@
           "pr_ref"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "pr_ref"
-        ],
-        "flags": {
-          "admin": [
-            "--admin"
-          ],
-          "delete_branch": [
-            "--delete-branch",
-            "-d"
-          ],
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "project": [
-            "--project"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would happen without merging"
-          }
-        }
       },
       "mcp": {
         "title": "Merge release PR",
@@ -6124,15 +5260,9 @@
     },
     {
       "id": "PW-SESSION-FINISH",
-      "name": "session finish",
+      "name": "session_finish",
       "description": "Clean up after a merged PR (close related Issues, delete branches, local cleanup)",
       "surfaces": {
-        "cli": {
-          "path": [
-            "session",
-            "finish"
-          ]
-        },
         "mcp": {
           "tool": "session_finish"
         }
@@ -6160,31 +5290,6 @@
           "pr_ref"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "pr_ref"
-        ],
-        "flags": {
-          "delete_branch": [
-            "--delete-branch",
-            "-d"
-          ],
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "project": [
-            "--project"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Dry-run (do not actually clean up)"
-          }
-        }
       },
       "mcp": {
         "title": "Clean up after merge",
@@ -6302,7 +5407,7 @@
                 ],
                 "additionalProperties": false
               },
-              "description": "Upper stacked Issues to restack with pr restack in their working directories"
+              "description": "Upper stacked Issues to restack with pr_restack in their working directories"
             },
             "currentBranch": {
               "description": "Current branch after the local cleanup (omitted when the local cleanup was skipped)",
@@ -6354,15 +5459,9 @@
     },
     {
       "id": "PW-SESSION-SHOW",
-      "name": "session show",
+      "name": "session_show",
       "description": "Show the branch, repository and work Issue of the session",
       "surfaces": {
-        "cli": {
-          "path": [
-            "session",
-            "show"
-          ]
-        },
         "mcp": {
           "tool": "session_show"
         }
@@ -6385,18 +5484,6 @@
           "directory"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [],
-        "flags": {
-          "directory": [
-            "--directory",
-            "-D"
-          ],
-          "project": [
-            "--project"
-          ]
-        }
       },
       "mcp": {
         "title": "Show session",
@@ -6471,7 +5558,7 @@
                   "additionalProperties": false
                 },
                 "needsRestack": {
-                  "description": "Whether the branch needs pr restack: the base branch moved or its PR is merged (omitted when it cannot be decided)",
+                  "description": "Whether the branch needs pr_restack: the base branch moved or its PR is merged (omitted when it cannot be decided)",
                   "type": "boolean"
                 },
                 "readiness": {
@@ -6538,15 +5625,9 @@
     },
     {
       "id": "PW-SESSION-START",
-      "name": "session start",
+      "name": "session_start",
       "description": "Create a branch linked to an Issue (shown in the Development section of the Issue)",
       "surfaces": {
-        "cli": {
-          "path": [
-            "session",
-            "start"
-          ]
-        },
         "mcp": {
           "tool": "session_start"
         }
@@ -6583,36 +5664,6 @@
           "issue_ref"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "issue_ref",
-          "branch"
-        ],
-        "flags": {
-          "base": [
-            "--base",
-            "-b"
-          ],
-          "checkout": [
-            "--checkout",
-            "--no-checkout"
-          ],
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "project": [
-            "--project"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would be created and recorded without writing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Start Issue branch",
@@ -6653,7 +5704,7 @@
                 "properties": {
                   "pullRequest": {
                     "type": "string",
-                    "description": "Merged PR of the current branch whose local cleanup with session finish is left (owner/repo/N)"
+                    "description": "Merged PR of the current branch whose local cleanup with session_finish is left (owner/repo/N)"
                   }
                 },
                 "required": [
@@ -6707,15 +5758,9 @@
     },
     {
       "id": "PW-WORKFLOW-DOCTOR",
-      "name": "workflow doctor",
+      "name": "workflow_doctor",
       "description": "Check that the repository has the workflow file and the settings it needs",
       "surfaces": {
-        "cli": {
-          "path": [
-            "workflow",
-            "doctor"
-          ]
-        },
         "mcp": {
           "tool": "workflow_doctor"
         }
@@ -6738,17 +5783,6 @@
           "name"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "name"
-        ],
-        "flags": {
-          "directory": [
-            "--directory",
-            "-D"
-          ]
-        }
       },
       "mcp": {
         "title": "Check workflow setup",
@@ -6835,15 +5869,9 @@
     },
     {
       "id": "PW-WORKFLOW-INSTALL",
-      "name": "workflow install",
+      "name": "workflow_install",
       "description": "Write a GitHub Actions workflow template of pecot into the repository",
       "surfaces": {
-        "cli": {
-          "path": [
-            "workflow",
-            "install"
-          ]
-        },
         "mcp": {
           "tool": "workflow_install"
         }
@@ -6876,34 +5904,6 @@
           "name"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "name"
-        ],
-        "flags": {
-          "check": [
-            "--check"
-          ],
-          "directory": [
-            "--directory",
-            "-D"
-          ],
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "force": [
-            "--force"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would be written without writing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Install workflow template",
@@ -6981,15 +5981,9 @@
     },
     {
       "id": "PW-WORKTREE-ADD",
-      "name": "worktree add",
+      "name": "worktree_add",
       "description": "Create a new worktree",
       "surfaces": {
-        "cli": {
-          "path": [
-            "worktree",
-            "add"
-          ]
-        },
         "mcp": {
           "tool": "worktree_add"
         }
@@ -7039,47 +6033,6 @@
           "directory"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [],
-        "flags": {
-          "allow_existing_branch": [
-            "--allow-existing-branch",
-            "--force"
-          ],
-          "base": [
-            "--base"
-          ],
-          "directory": [
-            "--directory",
-            "-D"
-          ],
-          "dry_run": [
-            "--dry-run"
-          ],
-          "no_copy": [
-            "--no-copy"
-          ],
-          "no_link": [
-            "--no-link"
-          ],
-          "path": [
-            "--path"
-          ],
-          "project": [
-            "--project"
-          ],
-          "setup": [
-            "--setup"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would happen without changing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Add worktree",
@@ -7152,15 +6105,9 @@
     },
     {
       "id": "PW-WORKTREE-INIT",
-      "name": "worktree init",
+      "name": "worktree_init",
       "description": "Create the worktree config files in the main worktree",
       "surfaces": {
-        "cli": {
-          "path": [
-            "worktree",
-            "init"
-          ]
-        },
         "mcp": {
           "tool": "worktree_init"
         }
@@ -7179,26 +6126,6 @@
           "directory"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [],
-        "flags": {
-          "directory": [
-            "--directory",
-            "-D"
-          ],
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would happen without changing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Initialize worktree config",
@@ -7256,15 +6183,9 @@
     },
     {
       "id": "PW-WORKTREE-LINK",
-      "name": "worktree link",
+      "name": "worktree_link",
       "description": "Apply or update symlinks in existing worktrees",
       "surfaces": {
-        "cli": {
-          "path": [
-            "worktree",
-            "link"
-          ]
-        },
         "mcp": {
           "tool": "worktree_link"
         }
@@ -7293,31 +6214,6 @@
           "directory"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [],
-        "flags": {
-          "all": [
-            "--all"
-          ],
-          "directory": [
-            "--directory",
-            "-D"
-          ],
-          "dry_run": [
-            "--dry-run"
-          ],
-          "force": [
-            "--force"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would happen without changing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Update worktree symlinks",
@@ -7403,15 +6299,9 @@
     },
     {
       "id": "PW-WORKTREE-REMOVE",
-      "name": "worktree remove",
+      "name": "worktree_remove",
       "description": "Remove a worktree",
       "surfaces": {
-        "cli": {
-          "path": [
-            "worktree",
-            "remove"
-          ]
-        },
         "mcp": {
           "tool": "worktree_remove"
         }
@@ -7445,34 +6335,6 @@
           "name"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "name"
-        ],
-        "flags": {
-          "directory": [
-            "--directory",
-            "-D"
-          ],
-          "dry_run": [
-            "--dry-run",
-            "-n"
-          ],
-          "force": [
-            "--force"
-          ],
-          "keep_branch": [
-            "--keep-branch"
-          ]
-        },
-        "only": {
-          "dry_run": {
-            "type": "boolean",
-            "default": false,
-            "description": "Show what would happen without changing anything"
-          }
-        }
       },
       "mcp": {
         "title": "Remove worktree",

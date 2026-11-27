@@ -10,8 +10,8 @@ import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
 import { GitHubAPIError, GitHubNotFoundError } from '@pecot/workflow-core/infra/github/errors.js'
 import type { AsyncMergeResult, PullRequestForMerge } from '@pecot/workflow-core/infra/github/pulls.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
-import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
 import { createAuthenticatedGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
@@ -29,7 +29,6 @@ const SYNC_MERGE_REJECTED_STATUSES: ReadonlySet<number> = new Set([405, 409])
 
 const MergeInputSchema = z.strictObject({
   pr_ref: z.string().describe(PR_REFERENCE_DESCRIPTION),
-  dry_run: z.boolean().default(false).describe('Read the PR and its stack, and show what would happen without merging'),
   project: PROJECT_INPUT,
 })
 
@@ -219,17 +218,14 @@ async function requestMerge(context: Readonly<MergeContext>, pullRequest: Readon
   }
 }
 
-export const PR_MERGE_COMMAND: CommandDefinition = defineCommand({
-  path: ['pr', 'merge'],
+export const PR_MERGE_COMMAND: ToolDefinition = defineTool({
+  name: 'pr_merge',
   title: 'Merge PR',
   description: 'Merge a PR with the asynchronous merge API (a PR in a stack must be the bottom one)',
   input: MergeInputSchema,
   output: PR_MERGE_OUTPUT,
-  positional: ['pr_ref'],
-  shortFlags: { dry_run: '-n' },
-  interactive: false,
   run: async (input, io) => {
-    const out = createOutput<PrMergeData>(input.dry_run, io)
+    const out = createOutput<PrMergeData>(false, io)
     const target = parseReference(input.pr_ref, input.repo, out)
     const config = requireConfigFor(out, target, input.project, ['pr', 'merge']).config
     // 認証の失敗を、PR を読めない文に包まないため
@@ -242,10 +238,6 @@ export const PR_MERGE_COMMAND: CommandDefinition = defineCommand({
     out.result({ pullRequest: pathOf(target), base: pullRequest.baseRefName, ...stack !== undefined && { stack } })
 
     const suffix = stack === undefined ? '' : ` (stack #${String(stack.number)}, 1 of ${String(stack.size)})`
-    if (input.dry_run) {
-      out.planned({ verb: 'merge', target: `${name} into ${pullRequest.baseRefName}${suffix}` })
-      return 0
-    }
     return requestMerge({ out, client, target, name, base: pullRequest.baseRefName, suffix, isInStack: stack !== undefined }, pullRequest)
   },
 })

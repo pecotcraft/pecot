@@ -1,7 +1,14 @@
 {
-  "stdout": "",
-  "stderr": "count: open Dependabot alerts: 0\ncount: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\n",
-  "exitCode": 0,
+  "isError": false,
+  "structuredContent": {
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    }
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "rest",

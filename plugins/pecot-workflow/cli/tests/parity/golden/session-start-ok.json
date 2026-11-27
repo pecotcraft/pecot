@@ -1,7 +1,14 @@
 {
-  "stdout": "",
-  "stderr": "created: branch feat/7 in acme/demo from main\nset: Issue acme/demo/7 status active\ncreated: work directory .pecot/work/7/\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "created: branch feat/7 in acme/demo from main",
+  "structuredContent": {
+    "branch": "feat/7",
+    "repository": "acme/demo",
+    "base": "main",
+    "issue": "acme/demo/7",
+    "workDirectory": "{{TMP}}/base/demo/.pecot/work/7"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

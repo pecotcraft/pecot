@@ -7,7 +7,6 @@ paths:
   - "plugins/*/mcp.json"
   - "plugins/*/hooks/hooks*.json"
   - "plugins/*/com.github.copilot/**"
-  - "plugins/*/bin/_lib.sh"
   - ".claude-plugin/marketplace.json"
   - ".github/plugin/marketplace.json"
   - "README.md"
@@ -36,14 +35,12 @@ paths:
     - `model` を書かない。auto で定義に `model` があると `400 model_not_supported` になるため（#416）
   - `tools` の値は `plugins/pecot-workflow/cli/tests/hooks/lib/agent-definitions.test.ts` が固定する
 - リモートの MCP サーバの `type` は、`.mcp.json` が `"http"`、`mcp.json` が `"streamable-http"` にする。1.0 のスキーマは `http` を認めない。`url` は同値
-- 一致は、次のファイルが確認する
-  - pecot-workflow: `plugins/pecot-workflow/cli/tests/bootstrap/manifest.sh`
-  - pecot-tools・pecot-visual: `plugins/<名前>/cli/tests/plugin-manifests.test.ts`
+- 一致は `plugins/<名前>/cli/tests/plugin-manifests.test.ts` が確認する
 
 ## データ置き場は 3 段で解決する
 
 解決順は次のとおりです。
-pecot-workflow は `bin/_lib.sh` の data-dir ブロックで解決します。
+pecot-workflow は `libs/workflow-core/src/infra/paths.ts` の `dataDirectory` で解決します。
 pecot-visual は `cli/src/infra/_shared/dependency-root.ts` で解決します。
 
 1. `CLAUDE_PLUGIN_DATA`
@@ -54,7 +51,6 @@ pecot-visual は `cli/src/infra/_shared/dependency-root.ts` で解決します�
   SessionStart の hook で置き場を Bash へ渡す仕組みも作らない。クライアントが置き場を渡さない起動は 3 段目で解決される
 - `PLUGIN_DATA` は 1 プラグイン専用の置き場で、project 名の階層が付かない。
   単体配布の MCP 登録の `env` にだけ書く案内にし、シェルで export する案内を書かない。複数プラグインが同じ `runtime/` を奪い合うためである
-- pecot-workflow も `${データ置き場}/runtime/` に実行用ミラーを作る。旧方式の `venv/` は、`bin/pecot` が解決した置き場と既定の場所の 2 か所から、毎回の起動で片づける（使用中の世代は次回に回す）
 - pecot-visual は、解決した置き場の `mcp-dist/` に依存を置く
 
 ## 名前は 4 層に分ける
@@ -63,7 +59,7 @@ pecot-visual は `cli/src/infra/_shared/dependency-root.ts` で解決します�
 |:--|:----|:-------|
 | 利用者が入力する層 | `pecot-w` / `pecot-v` / `pecot-t` | プラグイン名、スキルの名前空間、Copilot のインストール先 |
 | リポの層 | `pecot-workflow` / `pecot-visual` / `pecot-tools` | ディレクトリ、nx project、release group、タグ、MCP サーバのキー |
-| CLI の層 | `pecot` / `pecotv` / `pecot-tools` | コマンド名、作業ディレクトリ（`.pecot/` / `.pecotv/`）、npm・Python のパッケージ名、stderr の接頭辞。据え置く |
+| 作業の層 | `pecot` / `pecotv` / `pecot-tools` | 作業ディレクトリ（`.pecot/` / `.pecotv/`）、リポの中の npm のパッケージ名、stderr の接頭辞。据え置く（CLI のコマンドは #794・#795・#796 でなくした） |
 | 単体配布の層 | `@pecot/visual-mcp` / `@pecot/tools-mcp` / `@pecot/workflow-mcp`（bin は `pecot-visual-mcp` / `pecot-tools-mcp` / `pecot-workflow-mcp`） | MCP の単体配布の npm のパッケージ名と bin。スコープ `@pecot` の後ろに機能の名前を置く |
 
 MCP サーバのキーはリポの層（`pecot-visual` / `pecot-visual-playwright` / `pecot-tools`）にします。Copilot CLI はキーを
@@ -88,5 +84,5 @@ pecot-tools のパッケージ名・配布物名・MCP サーバのキーには 
 
 置かないもの:
 
-- 開発者向けの記述（元ファイルのパス、同期機構、実装経緯、ハッシュやロックの内部、開発手順、テストハーネス、リリース手順、命名の理由、「自動生成なので直接編集しない」）。内部の仕組みは `bin/_lib.sh` のコメント、開発手順は `CLAUDE.md` と w-release スキルに書く
+- 開発者向けの記述（元ファイルのパス、同期機構、実装経緯、ハッシュやロックの内部、開発手順、テストハーネス、リリース手順、命名の理由、「自動生成なので直接編集しない」）。内部の仕組みはソースのコメント、開発手順は `CLAUDE.md` と w-release スキルに書く
 - 旧名からの移行手順。利用者が読む変更点は version-plan（CHANGELOG）に書く

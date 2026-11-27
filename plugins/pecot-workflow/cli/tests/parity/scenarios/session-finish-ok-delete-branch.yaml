@@ -1,10 +1,9 @@
 # -d 付きで片付ける。リモートの head ブランチを削除する。
 id: session-finish-ok-delete-branch
-command:
-  path: [session, finish]
-  args:
-    - "acme/demo/21"
-    - "-d"
+tool: session_finish
+arguments:
+  delete_branch: true
+  pr_ref: acme/demo/21
 setup:
   repo:
     branches:

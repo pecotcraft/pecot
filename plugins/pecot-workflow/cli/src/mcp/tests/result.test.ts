@@ -20,11 +20,6 @@ describe('collectIo', () => {
     expect(collected.stderr()).toBe('xy\n')
   })
 
-  it('標準入力を読む関数を持たない', async () => {
-    await explains('MCP の呼び出し中の入出力を集める `collectIo` のテストです。集めた入出力の `readLine` が存在せず、`undefined` になることを確認します。')
-    expect(collectIo().io.readLine).toBeUndefined()
-  })
-
   it('失敗の種別は、最初に受け取ったものを残す', async () => {
     await explains('MCP の呼び出し中の入出力を集める `collectIo` のテストです。失敗の種別を 2 回受け取った場合に、最初の `not-on-board` を残し、受け取る前は `undefined` になることを確認します。')
     const collected = collectIo()

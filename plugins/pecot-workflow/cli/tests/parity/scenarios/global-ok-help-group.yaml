@@ -1,8 +1,0 @@
-# グループの --help も、ルートと同じ書式で stdout に出て exit 0 になる。golden は Python の出力。
-# Node の help は書式が違うので、stdout を除いて比べる（#362）。
-id: global-ok-help-group
-command:
-  path: []
-  args: ["issue", "--help"]
-setup: {}
-github: []

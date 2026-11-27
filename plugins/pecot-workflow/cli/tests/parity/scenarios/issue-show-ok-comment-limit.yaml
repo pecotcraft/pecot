@@ -1,8 +1,9 @@
 # --comment-limit 2 で、取得するコメント数の上限を変える。GetIssueSlim の commentLimit に 2 が載る。
 id: issue-show-ok-comment-limit
-command:
-  path: [issue, show]
-  args: [acme/demo/7, --comment-limit, "2"]
+tool: issue_show
+arguments:
+  comment_limit: 2
+  issue_ref: acme/demo/7
 setup:
   repo:
     files:

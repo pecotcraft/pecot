@@ -1,16 +1,16 @@
 # フラグ一覧
 
-pecot の CLI・MCP ツールと hooks は、セッションの作業対象やモードを `.pecot/state/` 配下のフラグファイルで共有する。
+pecot-workflow の MCP ツールと hooks は、セッションの作業対象やモードを `.pecot/state/` 配下のフラグファイルで共有する。
 フラグはプロジェクトルート（worktree）ごとに独立する。
 
 ## プロジェクトルートの解決
 
-CLI と MCP ツールはコマンドの cwd の git toplevel（環境変数 `CLAUDE_PROJECT_DIR` があればそれ）を基準にする。
+MCP ツールはサーバの cwd の git toplevel（環境変数 `CLAUDE_PROJECT_DIR` があればそれ）を基準にする。
 hooks は hook 入力の `cwd` の git toplevel を基準にする。
-どちらも、その直下の `.pecot/state/` を読み書きする。Bash ツールの PreToolUse は実行前の cwd で発火するため `cd` を含むコマンドでは hook と CLI の基準がずれる。
+どちらも、その直下の `.pecot/state/` を読み書きする。
 ネストした clone 内で発火した hook はその clone を基準にする。
 
-## CLI と hooks が共有するフラグ
+## MCP ツールと hooks が共有するフラグ
 
 表の `session_start`・`pr_create` などは、pecot-workflow の MCP ツールの名前。
 
@@ -24,11 +24,11 @@ hooks は hook 入力の `cwd` の git toplevel を基準にする。
 
 - 後片付けの前に次の Issue に着手したときは、`.pecot-session-title` が次の Issue の番号になる。`session_finish` は、そのときの 2 つの記録を消さずに残す
 
-## CLI だけが使う状態ファイル
+## MCP ツールだけが使う状態ファイル
 
 | ファイル | 内容 | 書き手 | 読み手 | 消し手 |
 |----------|------|--------|--------|--------|
-| `.pecot-restack` | 衝突で止まったスタックし直しの途中の記録 | `pr_restack` | `pr_restack`（`--continue`・`--abort`） | `pr_restack`（続行か取りやめ） |
+| `.pecot-restack` | 衝突で止まったスタックし直しの途中の記録 | `pr_restack` | `pr_restack`（`continue`・`abort`） | `pr_restack`（続行か取りやめ） |
 
 ## hooks だけが使う状態ファイル
 

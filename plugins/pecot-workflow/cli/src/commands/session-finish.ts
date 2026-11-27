@@ -17,8 +17,8 @@ import { getCurrentWorktreeName, isWorktreeEnvironment } from '../infra/worktree
 import { PROJECT_INPUT, requireConfigFor } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { createOutput, settle } from '@pecot/workflow-core/commands-shared/output.js'
 import type { Operation, Output } from '@pecot/workflow-core/commands-shared/output.js'
-import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { CommandDefinition, CommandIo, GlobalInput } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition, CommandIo, GlobalInput } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { parseReference, PR_REFERENCE_DESCRIPTION } from '@pecot/workflow-core/commands-shared/pr-reference.js'
 import { finishOnGithub, requireMergedPullRequest, SKIPPED_ISSUE_REASONS } from '@pecot/workflow-core/commands-shared/session-finish-remote.js'
 import type { RemoteFinishRecord } from '@pecot/workflow-core/commands-shared/session-finish-remote.js'
@@ -50,7 +50,7 @@ const SESSION_FINISH_OUTPUT = z.strictObject({
   skippedIssues: z.array(SKIPPED_ISSUE_DATA).describe('Closing Issues of the PR that this command did not close'),
   deletedBranches: z.array(DELETED_BRANCH_DATA).describe('Branches deleted'),
   readinessChanges: z.array(READINESS_CHANGE_DATA).describe('Issues waiting for the closed Issues whose readiness changed by the merge'),
-  restack: z.array(RESTACK_DATA).describe('Upper stacked Issues to restack with pr restack in their working directories'),
+  restack: z.array(RESTACK_DATA).describe('Upper stacked Issues to restack with pr_restack in their working directories'),
   currentBranch: z.string().optional().describe('Current branch after the local cleanup (omitted when the local cleanup was skipped)'),
 })
 
@@ -72,13 +72,8 @@ interface FinishContext {
 
 // head ブランチを消す。無ければ unchanged、ほかの失敗は warning にして続ける
 async function deleteMergedBranch(context: Readonly<FinishContext>, client: GitHubClient, location: RepositoryReference, headBranch: string): Promise<void> {
-  const { out, isDryRun, record } = context
+  const { out, record } = context
   const operation: Operation = { verb: 'delete', target: `remote branch ${headBranch}` }
-  out.planned(operation)
-  if (isDryRun) {
-    record.deletedBranches.push({ branch: headBranch, location: 'remote' })
-    return
-  }
   try {
     await client.deleteBranch(location.owner, location.repository, headBranch)
     out.done(operation)
@@ -140,9 +135,7 @@ function resolveCheckoutTarget(cwd: string, config: Readonly<ProjectConfig>, loc
 
 // isRemote の git（pull）は、認証の入力を待たず、取り消しと時間切れで止める
 async function didRunLocalStep(context: Readonly<FinishContext>, operation: Operation, cwd: string, arguments_: readonly string[], failure: string, isRemote = false): Promise<boolean> {
-  const { out, isDryRun } = context
-  out.planned(operation)
-  if (isDryRun) return true
+  const { out } = context
   try {
     if (isRemote) {
       const result = await runGitAsync(arguments_, { cwd, check: true, env: NON_INTERACTIVE_GIT, timeoutMilliseconds: REMOTE_TIMEOUT_MILLISECONDS, signal: out.signal })
@@ -213,16 +206,15 @@ function removeActiveFlags(out: Readonly<Output>, issueNumbers: ReadonlySet<numb
 
 const FinishInputSchema = z.strictObject({
   pr_ref: z.string().describe(PR_REFERENCE_DESCRIPTION),
-  dry_run: z.boolean().default(false).describe('Dry-run (do not actually clean up)'),
   delete_branch: z.boolean().default(false).describe('Delete the branch'),
   project: PROJECT_INPUT,
 })
 
 async function runFinish(input: Readonly<z.output<typeof FinishInputSchema> & GlobalInput>, io: Readonly<CommandIo>): Promise<void> {
-  const out = createOutput<FinishData>(input.dry_run, io)
+  const out = createOutput<FinishData>(false, io)
   const record: FinishRecord = { closedIssues: [], skippedIssues: [], deletedBranches: [], readinessChanges: [], restack: [], hasStarted: false }
   try {
-    await finish(input, { out, isDryRun: input.dry_run, record })
+    await finish(input, { out, isDryRun: false, record })
   }
   finally {
     const { closedIssues, skippedIssues, deletedBranches, readinessChanges, restack, currentBranch } = record
@@ -241,26 +233,20 @@ async function finish(input: Readonly<z.output<typeof FinishInputSchema> & Globa
   const closingNumbers = await finishOnGithub(context, config, merged)
   if (input.delete_branch) await deleteMergedBranch(context, merged.client, location, merged.pr.head_ref)
   await localCleanupAfterMerge(context, merged.pr.head_ref, config, location)
-  if (input.dry_run) {
-    return
-  }
 
   removeActiveFlags(out, closingNumbers)
 }
 
-const sessionFinishCommand = defineCommand({
-  path: ['session', 'finish'],
+const sessionFinishCommand = defineTool({
+  name: 'session_finish',
   title: 'Clean up after merge',
   description: 'Clean up after a merged PR (close related Issues, delete branches, local cleanup)',
   input: FinishInputSchema,
   output: SESSION_FINISH_OUTPUT,
-  positional: ['pr_ref'],
-  shortFlags: { dry_run: '-n', delete_branch: '-d' },
-  interactive: false,
   run: async (input, io) => {
     await runFinish(input, io)
     return 0
   },
 })
 
-export const SESSION_FINISH_COMMANDS: readonly CommandDefinition[] = [sessionFinishCommand]
+export const SESSION_FINISH_TOOLS: readonly ToolDefinition[] = [sessionFinishCommand]

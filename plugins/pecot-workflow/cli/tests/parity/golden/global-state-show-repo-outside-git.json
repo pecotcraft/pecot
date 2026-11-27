@@ -1,7 +1,0 @@
-{
-  "stdout": "",
-  "stderr": "error: repository is ambiguous: pass --repo <owner/repo>\n",
-  "exitCode": 2,
-  "requests": [],
-  "files": {}
-}

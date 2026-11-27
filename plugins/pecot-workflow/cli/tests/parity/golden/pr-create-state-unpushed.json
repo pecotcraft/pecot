@@ -1,7 +1,14 @@
 {
-  "stdout": "",
-  "stderr": "error: preflight found warnings; fix them before creating a PR\nwarning: Push Status: origin/feat/demo/12 does not exist (not pushed) (fix: git push)\n",
-  "exitCode": 2,
+  "isError": true,
+  "text": "preflight found warnings; fix them before creating a PR",
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "preflight found warnings; fix them before creating a PR",
+    "warnings": [
+      "Push Status: origin/feat/demo/12 does not exist (not pushed) (fix: git push)"
+    ]
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

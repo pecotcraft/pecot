@@ -1,8 +1,7 @@
 # origin/release と origin/main の差分が 0 件。exit 1。
 id: release-check-state-no-diff
-command:
-  path: [release, check]
-  args: []
+tool: release_check
+arguments: {}
 setup:
   repo:
     branches: [{name: release}]

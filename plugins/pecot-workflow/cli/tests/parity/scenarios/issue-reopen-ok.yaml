@@ -1,8 +1,10 @@
 # 再オープンを 2 回呼び、間でボードの status を更新して 3 秒待つ。--comment でコメントも投稿する。
 id: issue-reopen-ok
-command:
-  path: [issue, reopen]
-  args: [acme/demo/7, --status, active, --comment, 再発したので開き直す]
+tool: issue_reopen
+arguments:
+  status: active
+  comment: 再発したので開き直す
+  issue_ref: acme/demo/7
 setup:
   repo:
     files:

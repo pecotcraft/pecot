@@ -3,7 +3,7 @@
   "plugin": "pecot-workflow",
   "prefix": "PW",
   "names": {
-    "separator": " ",
+    "separator": "_",
     "positions": [
       [
         {
@@ -31,11 +31,6 @@
       "name": "alpha",
       "description": "Greet someone",
       "surfaces": {
-        "cli": {
-          "path": [
-            "alpha"
-          ]
-        },
         "mcp": {
           "tool": "alpha"
         }
@@ -79,28 +74,6 @@
         ],
         "additionalProperties": false
       },
-      "cli": {
-        "positional": [
-          "name"
-        ],
-        "flags": {
-          "count": [
-            "--count",
-            "-c"
-          ],
-          "json": [
-            "--json",
-            "-j"
-          ],
-          "mode": [
-            "--mode"
-          ],
-          "verbose": [
-            "--verbose",
-            "--no-verbose"
-          ]
-        }
-      },
       "mcp": {
         "title": "Greet someone",
         "output": {
@@ -138,11 +111,6 @@
       "name": "beta",
       "description": "Read files.",
       "surfaces": {
-        "cli": {
-          "path": [
-            "beta"
-          ]
-        },
         "mcp": {
           "tool": "beta"
         }
@@ -180,21 +148,6 @@
         },
         "required": [],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "source",
-          "files"
-        ],
-        "flags": {
-          "label": [
-            "--label",
-            "-l"
-          ],
-          "limit": [
-            "--limit"
-          ]
-        }
       },
       "mcp": {
         "title": "Read files",

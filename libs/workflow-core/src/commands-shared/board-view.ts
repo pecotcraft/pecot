@@ -331,16 +331,16 @@ function repositoryLines(view: Readonly<BoardShowView>): readonly string[] {
   return lines
 }
 
-function lanesSection(lanes: readonly LaneSummary[]): string | undefined {
-  if (lanes.length === 0) return undefined
+function lanesSection(lanes: readonly LaneSummary[]): readonly string[] {
+  if (lanes.length === 0) return []
   const rows = lanes.map(lane => `| ${lane.name ?? '(none)'} | ${String(lane.count)} | ${String(lane.startable)} |`)
-  return ['## Lanes', '', '| Lane | Issues | Startable |', '|------|--------|-----------|', ...rows].join('\n')
+  return ['', '## Lanes', '', '| Lane | Issues | Startable |', '|------|--------|-----------|', ...rows]
 }
 
 /**
 info の Markdown の出力。lanes が空でなければ、Board status の後に Lanes の節を足す
 */
-export function boardShowMarkdown(view: Readonly<BoardShowView>, effectiveRepository: string | undefined, boardOutput: string, chainsSection?: string, lanes: readonly LaneSummary[] = []): string {
+export function boardShowMarkdown(view: Readonly<BoardShowView>, effectiveRepository: string | undefined, boardOutput: string, lanes: readonly LaneSummary[] = []): string {
   const { config, projectName } = view
   const aggregation = config.aggregation_repo === undefined || config.aggregation_repo === '' ? 'none' : `\`${config.aggregation_repo}\``
   return [
@@ -357,7 +357,7 @@ export function boardShowMarkdown(view: Readonly<BoardShowView>, effectiveReposi
     effectiveRepository === undefined || effectiveRepository === '' ? '## Board status' : `## Board status (filter: ${effectiveRepository})`,
     '',
     boardOutput,
-    ...[lanesSection(lanes), chainsSection].flatMap(section => section === undefined ? [] : ['', section]),
+    ...lanesSection(lanes),
   ].join('\n')
 }
 

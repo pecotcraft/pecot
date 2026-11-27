@@ -23,7 +23,6 @@
       "entries": "complete",
       "coverage": "on",
       "sources": [
-        "bin/*",
         "hooks/**/*.sh",
         "cli/src/*.ts",
         "cli/src/commands/*.ts",

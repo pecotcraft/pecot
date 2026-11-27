@@ -7,7 +7,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse as parseYaml } from 'yaml'
 
-import { COMMANDS } from '../src/commands/registry.js'
+import { TOOLS } from '../src/commands/registry.js'
 import { ATTRIBUTE_HANDLERS } from '@pecot/workflow-core/domain/attributes.js'
 import type { IssueCoverage } from '../src/domain/issue-surface.js'
 import { checkIssueCoverage, issueCoverageSchema, issueSurfaceSchema } from '../src/domain/issue-surface.js'
@@ -24,11 +24,11 @@ const surface = issueSurfaceSchema.parse(JSON.parse(readInterface('github-issue-
 const coverage = issueCoverageSchema.parse(parseYaml(readInterface('issue-coverage.yaml')))
 
 const HANDLERS = Object.keys(ATTRIBUTE_HANDLERS)
-const TOOLS = COMMANDS.map(command => command.toolName)
+const TOOL_NAMES = TOOLS.map(tool => tool.name)
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の推論型は変えられない
 function problemsOf(changed: Readonly<IssueCoverage>): string[] {
-  return checkIssueCoverage(surface.items, changed, HANDLERS, TOOLS)
+  return checkIssueCoverage(surface.items, changed, HANDLERS, TOOL_NAMES)
 }
 
 const firstSupported = coverage.items.find(entry => entry.status === 'supported')

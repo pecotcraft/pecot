@@ -24,7 +24,7 @@ MARKER="$GIT_DIR_PATH/pecot-worktree-setup"
 LOG="$GIT_DIR_PATH/pecot-worktree-setup.log"
 [ -e "$MARKER" ] && exit 0
 
-# worktree-config.json は main worktree のものを読む（pecot worktree add と同じ）。一覧の先頭が main worktree
+# worktree-config.json は main worktree のものを読む（worktree_add と同じ）。一覧の先頭が main worktree
 MAIN_WORKTREE=$(git -C "$WORKTREE" worktree list --porcelain 2>/dev/null | sed -n '1s/^worktree //p')
 [ -n "$MAIN_WORKTREE" ] || exit 0
 CONFIG="$MAIN_WORKTREE/.pecot/config/worktree-config.json"

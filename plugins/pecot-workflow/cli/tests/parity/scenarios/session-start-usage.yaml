@@ -1,8 +1,9 @@
 # Issue 参照が完全形でない。exit 2 で止まる。
 id: session-start-usage
-command:
-  path: [session, start]
-  args: ["7", feat]
+tool: session_start
+arguments:
+  issue_ref: "7"
+  branch: feat
 setup:
   repo:
     files:

@@ -1,11 +1,4 @@
-// コマンドの名前まわりの小さな関数。help・バインド・定義書の書き出しが同じものを使う。
-
-/**
-入力名を長いオプションの形にする。`dry_run` は `--dry-run`
-*/
-export function flagOf(name: string): string {
-  return `--${name.replaceAll('_', '-')}`
-}
+// ツールの名前まわりの小さな関数。登録の検証と定義書の書き出しが同じものを使う。
 
 /**
 文字列を名前の順（コードユニットの順）に並べる比較関数
@@ -16,39 +9,32 @@ export function byName(left: string, right: string): number {
 }
 
 /**
-コマンド名の語と、その意味
+ツール名の語と、その意味
 */
 export interface CommandWord {
   readonly name: string
   readonly meaning: string
-  // 読むだけの動詞の印。定義書の検証が、この語のコマンドに read でない effects を許さない
+  // 読むだけの動詞の印。定義書の検証が、この語のツールに read でない effects を許さない
   readonly readOnly?: true
 }
 
 /**
-グループの語。help は、グループの一覧と `pecot <グループ> --help` に help の文を出す
+ツール名の 1 語目に使うグループ。利用者が操作する対象
 */
-export interface CommandGroup extends CommandWord {
-  readonly help: string
-}
-
-/**
-コマンド名の 1 語目に使うグループ。利用者が操作する対象で、help の一覧はこの順に並ぶ
-*/
-export const COMMAND_GROUPS: readonly CommandGroup[] = [
-  { name: 'project', meaning: 'プロジェクトとの接続と設定ファイル。ボードの上の Issue には触らない', help: 'Connect to projects and manage the project config' },
-  { name: 'board', meaning: 'ボードの上の Issue の置き場所。設定ファイルは書かない', help: 'Show the project board and place Issues on it' },
-  { name: 'issue', meaning: 'Issue そのもの', help: 'Work with Issues' },
-  { name: 'session', meaning: '1 つの Issue の作業の始まりから終わりまで', help: 'Start, show and finish the work on an Issue' },
-  { name: 'pr', meaning: 'PR そのもの', help: 'Work with PRs' },
-  { name: 'release', meaning: 'リリース', help: 'Work with releases' },
-  { name: 'worktree', meaning: 'worktree', help: 'Work with worktrees' },
-  { name: 'branch', meaning: 'リモートのブランチ', help: 'Work with remote branches' },
-  { name: 'workflow', meaning: '導入先のリポに置く GitHub Actions のワークフロー', help: 'Install and check the GitHub Actions workflows of pecot' },
+export const COMMAND_GROUPS: readonly CommandWord[] = [
+  { name: 'project', meaning: 'プロジェクトとの接続と設定ファイル。ボードの上の Issue には触らない' },
+  { name: 'board', meaning: 'ボードの上の Issue の置き場所。設定ファイルは書かない' },
+  { name: 'issue', meaning: 'Issue そのもの' },
+  { name: 'session', meaning: '1 つの Issue の作業の始まりから終わりまで' },
+  { name: 'pr', meaning: 'PR そのもの' },
+  { name: 'release', meaning: 'リリース' },
+  { name: 'worktree', meaning: 'worktree' },
+  { name: 'branch', meaning: 'リモートのブランチ' },
+  { name: 'workflow', meaning: '導入先のリポに置く GitHub Actions のワークフロー' },
 ]
 
 /**
-コマンド名の 2 語目に使う動詞の語彙。1 語に 1 つの意味を決める
+ツール名の 2 語目に使う動詞の語彙。1 語に 1 つの意味を決める
 */
 export const COMMAND_VERBS: readonly CommandWord[] = [
   { name: 'list', meaning: '複数を並べる', readOnly: true },
@@ -80,13 +66,13 @@ export const COMMAND_VERBS: readonly CommandWord[] = [
   { name: 'unblock', meaning: '前提を外す' },
 ]
 
-const COMMAND_WORD_COUNT = 2
+const TOOL_WORD_COUNT = 2
 
 /**
-コマンド名の決まりに合わない path と、その理由
+ツール名の決まりに合わない名前と、その理由
 */
-export interface CommandNameViolation {
-  readonly path: string
+export interface ToolNameViolation {
+  readonly name: string
   readonly reason: string
 }
 
@@ -95,17 +81,20 @@ function isListed(words: readonly CommandWord[], word: string | undefined): bool
 }
 
 /**
-コマンド名の決まり（`<グループ> <動詞>` の 2 語で、1 語目が COMMAND_GROUPS、2 語目が COMMAND_VERBS にある）に合わない path を、渡された順で返す。全部が合えば空
+ツール名の決まり（`<グループ>_<動詞>` の 2 語で、1 語目が COMMAND_GROUPS、2 語目が COMMAND_VERBS にある）に合わない名前を、渡された順で返す。全部が合えば空
 */
-export function commandNameViolations(paths: readonly (readonly string[])[]): readonly CommandNameViolation[] {
-  return paths
-    .map(path => ({
-      path: path.join(' '),
-      reason: [
-        ...path.length === COMMAND_WORD_COUNT ? [] : [`has ${String(path.length)} word(s); a command name is '<group> <verb>' (2 words)`],
-        ...isListed(COMMAND_GROUPS, path.at(0)) ? [] : [`'${String(path.at(0))}' is not a group in COMMAND_GROUPS`],
-        ...isListed(COMMAND_VERBS, path.at(1)) ? [] : [`'${String(path.at(1))}' is not a verb in COMMAND_VERBS`],
-      ].join('; '),
-    }))
+export function toolNameViolations(names: readonly string[]): readonly ToolNameViolation[] {
+  return names
+    .map((name) => {
+      const words = name.split('_')
+      return {
+        name,
+        reason: [
+          ...words.length === TOOL_WORD_COUNT ? [] : [`has ${String(words.length)} word(s); a tool name is '<group>_<verb>' (2 words)`],
+          ...isListed(COMMAND_GROUPS, words.at(0)) ? [] : [`'${String(words.at(0))}' is not a group in COMMAND_GROUPS`],
+          ...isListed(COMMAND_VERBS, words.at(1)) ? [] : [`'${String(words.at(1))}' is not a verb in COMMAND_VERBS`],
+        ].join('; '),
+      }
+    })
     .filter(violation => violation.reason !== '')
 }

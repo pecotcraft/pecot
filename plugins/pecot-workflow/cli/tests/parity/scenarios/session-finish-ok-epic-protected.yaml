@@ -1,9 +1,8 @@
 # クローズ対象が Epic。片付けはするが Issue は閉じない（Epic 保護）。手元のブランチも消す。
 id: session-finish-ok-epic-protected
-command:
-  path: [session, finish]
-  args:
-    - "acme/demo/21"
+tool: session_finish
+arguments:
+  pr_ref: acme/demo/21
 setup:
   repo:
     branches:

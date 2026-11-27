@@ -1,8 +1,8 @@
 # リンク先のリポジトリが見つからない。GraphQL のエラーでリンクに失敗し exit 1。
 id: project-link-4xx
-command:
-  path: [project, link]
-  args: [acme/other]
+tool: project_link
+arguments:
+  repo: acme/other
 setup:
   repo:
     files:

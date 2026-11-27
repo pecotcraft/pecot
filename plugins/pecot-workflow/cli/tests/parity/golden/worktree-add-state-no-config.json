@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: worktree config not found: .pecot/config/worktree-config.json\n    run pecot worktree init to generate the template\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "worktree config not found: .pecot/config/worktree-config.json\n    call worktree_init to generate the template",
+  "structuredContent": {
+    "kind": "not-initialized",
+    "detail": "worktree config not found: .pecot/config/worktree-config.json\n    call worktree_init to generate the template"
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: the repository of the work Issue (acme/other) differs from the CWD git remote (acme/demo)\n  move to the worktree of the target repository and run again:\n  <project-root>/base/other/ or <project-root>/<wtN>/other/\n  create one with /pecot-w:w-worktree-add only if the repository has no worktree\n",
-  "exitCode": 2,
+  "isError": true,
+  "text": "the repository of the work Issue (acme/other) differs from the CWD git remote (acme/demo)\n  move to the worktree of the target repository and call the tool again:\n  <project-root>/base/other/ or <project-root>/<wtN>/other/\n  create one with /pecot-w:w-worktree-add only if the repository has no worktree",
+  "structuredContent": {
+    "kind": "repo-mismatch",
+    "detail": "the repository of the work Issue (acme/other) differs from the CWD git remote (acme/demo)\n  move to the worktree of the target repository and call the tool again:\n  <project-root>/base/other/ or <project-root>/<wtN>/other/\n  create one with /pecot-w:w-worktree-add only if the repository has no worktree"
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

@@ -1,27 +1,12 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
-// コマンドを、一時 git リポ・設定ファイル・偽の GitHub サーバの上で、プロセス内の runCli から動かす補助。
-//
-// 使い方。テストファイルの describe の外で useIsolatedEnvironment() を 1 回呼んでおく。
-// runCommand に argv と偽サーバの応答の列を渡す。応答は restRule と graphqlRule で作る。
-// 結果は、終了コードと出力と受けた要求を持つ。終わった後のファイルは read で読む。
-// MCP の結果の項目を確かめるときは、runTool にツール名と arguments を渡す。
-//
-// 作るもの:
-//   - 一時 git リポ。origin は `git@<host>:<owner>/<name>.git`。`remote: false` なら git の外の空ディレクトリにする
-//   - `.pecot/config/projects/` の設定ファイルと .active（`config: false` なら作らない）
-//   - 偽の GitHub サーバ。API の URL とトークンの環境変数を、このサーバに向ける
-// 動かし方:
-//   process.chdir でリポに入って runCli を呼び、後で cwd を戻す。CliContext.cwd にも同じディレクトリを渡す。
-//   env は runCommand が終わるときに、書き換える前の値へ戻す。useIsolatedEnvironment も各テストの後に戻す
-//   process.chdir を使うので、it.concurrent と pool: threads のテストでは使えない
+// ツールを、一時 git リポ・設定ファイル・偽の GitHub サーバの上で、プロセス内で動かす補助。describe の外で useIsolatedEnvironment() を 1 回呼んでおく。
+// runCommand は本体を呼んで終了コードと出力を、runTool は MCP のクライアントから呼んで結果の項目を返す。process.chdir を使うので it.concurrent では使えない
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { runCli } from '../../src/cli.js'
-import { COMMANDS } from '../../src/commands/registry.js'
-import type { CommandDefinition } from '../../src/commands/registry.js'
-import { capture } from '../../src/commands/tests/support.js'
-import { attachOutput, attachReadText } from '../../../../../libs/interface-spec/src/vitest/attach.js'
+import { TOOLS } from '../../src/commands/registry.js'
+import type { ToolDefinition } from '../../src/commands/registry.js'
+import { attachReadText } from '../../../../../libs/interface-spec/src/vitest/attach.js'
 import { getEnvironmentVariableName } from '@pecot/workflow-core/infra/github/auth.js'
 import { setEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { createGitRepository, gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
@@ -30,6 +15,7 @@ import { startFakeGithub } from '../../../../../libs/workflow-core/tests/_helper
 import type { RecordedRequest, ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { callToolOnce } from './mcp-client.js'
 import type { ToolOutcome } from './mcp-client.js'
+import { runToolInProcess } from './run-tool.js'
 
 export const DEFAULT_HOST = 'ghes.example.com'
 export const DEFAULT_OWNER = 'acme'
@@ -79,7 +65,8 @@ export function projectConfig(options: Readonly<ConfigOptions> = {}): Record<str
 export const CONFIG_FILE = `.pecot/config/projects/${DEFAULT_HOST}_${DEFAULT_OWNER}_board_acme.json`
 
 export interface CommandRun {
-  readonly argv: readonly string[]
+  readonly tool: string
+  readonly arguments: Readonly<Record<string, unknown>>
   /**
   偽サーバの応答。受けた要求が当たらなければ problems に出る
   */
@@ -113,9 +100,9 @@ export interface CommandRun {
   */
   readonly environment?: Readonly<Record<string, string | undefined>>
   /**
-  動かすコマンドの一覧。既定は COMMANDS
+  動かすツールの一覧。既定は TOOLS
   */
-  readonly commands?: readonly CommandDefinition[]
+  readonly tools?: readonly ToolDefinition[]
 }
 
 export interface CommandResult {
@@ -175,7 +162,7 @@ type Sandboxed = Pick<CommandResult, 'requests' | 'problems' | 'unused' | 'direc
 一時リポ・設定・偽サーバを用意して、そのリポの中で body を呼ぶ。終わったら cwd と env を戻し、偽サーバを閉じる
 */
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの規則は入れ子が深く、読むだけ
-async function inSandbox<T>(run: Readonly<Omit<CommandRun, 'argv'>>, body: (directory: string) => Promise<T>): Promise<T & Sandboxed> {
+async function inSandbox<T>(run: Readonly<Omit<CommandRun, 'tool' | 'arguments'>>, body: (directory: string) => Promise<T>): Promise<T & Sandboxed> {
   const originalDirectory = process.cwd()
   const originalEnvironment = { ...process.env }
   const server = await startFakeGithub(run.github ?? [])
@@ -217,30 +204,14 @@ async function inSandbox<T>(run: Readonly<Omit<CommandRun, 'argv'>>, body: (dire
 }
 
 /**
-一時リポ・設定・偽サーバを用意して、runCli をプロセス内で呼ぶ。終わったら cwd を戻し、偽サーバを閉じる
+一時リポ・設定・偽サーバを用意して、ツールの本体をプロセス内で呼ぶ。終わったら cwd を戻し、偽サーバを閉じる
 */
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの規則は入れ子が深く、読むだけ
 export async function runCommand(run: Readonly<CommandRun>): Promise<CommandResult> {
-  return await inSandbox(run, async (directory) => {
-    const io = capture({ attach: false })
-    const code = await runCli(run.argv, {
-      commands: run.commands ?? COMMANDS,
-      io,
-      cwd: directory,
-      environment: {},
-      terminalColumns: undefined,
-    })
-    const stdout = io.out.join('')
-    const stderr = io.err.join('')
-    attachOutput(['pecot', ...run.argv].join(' '), code, stdout, stderr)
-    return { code, stdout, stderr }
-  })
+  return await inSandbox(run, async () => await runToolInProcess(run.tools ?? TOOLS, run.tool, run.arguments))
 }
 
-export interface ToolRun extends Omit<CommandRun, 'argv'> {
-  readonly tool: string
-  readonly arguments: Readonly<Record<string, unknown>>
-}
+export type ToolRun = CommandRun
 
 export interface ToolResult extends Sandboxed, ToolOutcome {}
 
@@ -250,7 +221,7 @@ runCommand と同じ用意の上で、MCP のツールを同じプロセスの�
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの規則は入れ子が深く、読むだけ
 export async function runTool(run: Readonly<ToolRun>): Promise<ToolResult> {
   return await inSandbox(run, async () => {
-    return await callToolOnce(run.commands ?? COMMANDS, run.tool, run.arguments)
+    return await callToolOnce(run.tools ?? TOOLS, run.tool, run.arguments)
   })
 }
 

@@ -1,4 +1,4 @@
-// `pecot mcp` が起動のときに移る、セッションのディレクトリの判定。
+// サーバが起動のときに移る、セッションのディレクトリの判定。
 // GitHub Copilot CLI は、プラグインのサーバをプラグインの root を cwd にして起動する。
 import { statSync } from 'node:fs'
 import path from 'node:path'

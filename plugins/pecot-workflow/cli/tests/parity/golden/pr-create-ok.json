@@ -1,7 +1,16 @@
 {
-  "stdout": "https://ghes.example.com/acme/demo/pull/21\n",
-  "stderr": "created: PR acme/demo feat/demo/12 -> main: feat(demo): #12 見本の変更\nset: Issue #12 status to In Review\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "created: PR acme/demo feat/demo/12 -> main: feat(demo): #12 見本の変更",
+  "structuredContent": {
+    "url": "https://ghes.example.com/acme/demo/pull/21",
+    "number": 21,
+    "head": "feat/demo/12",
+    "base": "main",
+    "title": "feat(demo): #12 見本の変更",
+    "inReview": 12,
+    "moves": []
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "rest",

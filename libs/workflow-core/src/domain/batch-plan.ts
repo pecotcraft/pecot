@@ -1,4 +1,4 @@
-// 一括投稿の前提の確認と、進め方の表（specs/024 の contracts/cli-commands.md の `pecot issue create`）。I/O を持たない。
+// issue_create の一括投稿の前提の確認と、進め方の表。I/O を持たない。
 
 import { displayReference, planProgression, stackChains } from './readiness.js'
 import type { Progression, Wait } from './readiness.js'

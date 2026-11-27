@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: give the repository as owner/repo\n  example: pecot project link example-org/my-repo\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "give the repository as owner/repo\n  example: project_link with repo: \"example-org/my-repo\"",
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "give the repository as owner/repo\n  example: project_link with repo: \"example-org/my-repo\""
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

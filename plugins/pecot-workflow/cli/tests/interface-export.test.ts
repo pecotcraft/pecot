@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない */
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのは一時ファイルと定義書 */
-// cli の書き出しの形と、--check / --write の動きを確かめる。
+// 定義書の書き出しの形と、--check / --write の動きを確かめる。
 import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -9,8 +9,8 @@ import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
 
 import { authoredFileSchema } from '../../../../libs/interface-spec/src/domain/schema.js'
-import { COMMANDS } from '../src/commands/registry.js'
-import { defineCommand, type CommandIo } from '../src/commands/registry.js'
+import { TOOLS } from '../src/commands/registry.js'
+import { defineTool, type CommandIo, type ToolDefinition } from '../src/commands/registry.js'
 import { compareText } from '../../../../libs/interface-spec/src/domain/utility.js'
 import { collectVerifiedIds, missingIds } from './_helpers/behavior-ids.js'
 import { makeTemporaryDirectory, writeTree } from '../../../../libs/workflow-core/tests/_helpers/temporary.js'
@@ -19,8 +19,8 @@ import { exportEntries, exportNames, exportResources, main } from '../scripts/ex
 import { COMMAND_GROUPS, COMMAND_VERBS } from '@pecot/workflow-core/commands-shared/names.js'
 import { explains } from './_helpers/explains.js'
 
-const alpha = defineCommand({
-  path: ['alpha'],
+const alpha = defineTool({
+  name: 'alpha',
   title: 'Greet someone',
   description: 'Greet someone',
   input: z.strictObject({
@@ -31,17 +31,13 @@ const alpha = defineCommand({
     verbose: z.boolean().default(true).describe('Be loud.'),
   }),
   output: z.strictObject({}),
-  positional: ['name'],
-  shortFlags: { count: '-c', json: '-j' },
-  negations: { verbose: '--no-verbose' },
   run: () => Promise.resolve(0),
-  interactive: false,
 })
 
 const strings = z.array(z.string())
 
-const beta = defineCommand({
-  path: ['beta'],
+const beta = defineTool({
+  name: 'beta',
   title: 'Read files',
   description: 'Read files.',
   input: z.strictObject({
@@ -51,10 +47,7 @@ const beta = defineCommand({
     limit: z.int().min(1).max(10).default(5).describe('Upper limit.'),
   }),
   output: z.strictObject({}),
-  positional: ['source', 'files'],
-  shortFlags: { label: '-l' },
   run: () => Promise.resolve(0),
-  interactive: false,
 })
 
 function capture(): { io: CommandIo, out: string[], error: string[] } {
@@ -76,10 +69,10 @@ const samples = [alpha, beta]
 const SAMPLE_NAMES = exportNames([{ name: 'alpha', meaning: '見本のグループ' }], [{ name: 'show', meaning: '見本の読む動詞', readOnly: true }, { name: 'add', meaning: '見本の書く動詞' }])
 
 describe('exportNames', () => {
-  it('区切りは空白で、語の位置はグループと動詞の 2 つ。後ろに自由な語を許さない', async () => {
-    await explains('`exportNames` のテストです。語彙を書き出した場合に、区切りが空白で、語の位置がグループと動詞の 2 つになり、後ろに自由な語を許さないことを確認します。')
+  it('区切りは _ で、語の位置はグループと動詞の 2 つ。後ろに自由な語を許さない', async () => {
+    await explains('`exportNames` のテストです。語彙を書き出した場合に、区切りが `_` で、語の位置がグループと動詞の 2 つになり、後ろに自由な語を許さないことを確認します。')
     const names = exportNames()
-    expect(names.separator).toBe(' ')
+    expect(names.separator).toBe('_')
     expect(names.rest).toBe(false)
     expect(names.positions.map(words => words.map(item => item.word))).toStrictEqual([COMMAND_GROUPS.map(group => group.name), COMMAND_VERBS.map(verb => verb.name)])
   })
@@ -119,52 +112,52 @@ describe('exportEntries', () => {
   const entries = exportEntries([beta, alpha])
 
   it('見本の書き出し全体が node-sample.json と同じバイト列になる', async () => {
-    await explains('`exportEntries` のテストです。見本のコマンドを書き出した場合に、全体が `node-sample.json` と同じバイト列になることを確認します。')
+    await explains('`exportEntries` のテストです。見本のツールを書き出した場合に、全体が `node-sample.json` と同じバイト列になることを確認します。')
     const file = { format: 1, plugin: 'pecot-workflow', prefix: 'PW', names: SAMPLE_NAMES, entries: exportEntries(samples) }
     const expected = readFileSync(path.resolve(import.meta.dirname, 'interface-export/node-sample.json'), 'utf8')
     expect(`${JSON.stringify(file, undefined, 2)}\n`).toBe(expected)
   })
 
   it('項目は id の順に並ぶ', async () => {
-    await explains('`exportEntries` のテストです。順番が逆の 2 つのコマンドを渡した場合に、項目が `id` の順に並ぶことを確認します。')
+    await explains('`exportEntries` のテストです。順番が逆の 2 つのツールを渡した場合に、項目が `id` の順に並ぶことを確認します。')
     expect(entries.map(entry => entry.id)).toStrictEqual(['PW-ALPHA', 'PW-BETA'])
   })
 
-  it('surfaces は cli.path と mcp.tool の両方を持つ', async () => {
-    await explains('`exportEntries` のテストです。コマンドを書き出した場合に、`surfaces` が `cli.path` と `mcp.tool` の両方を持つことを確認します。')
+  it('surfaces は mcp.tool だけを持つ', async () => {
+    await explains('`exportEntries` のテストです。ツールを書き出した場合に、`surfaces` が `mcp.tool` だけを持つことを確認します。')
     expect(entries.map(entry => entry.surfaces)).toStrictEqual([
-      { cli: { path: ['alpha'] }, mcp: { tool: 'alpha' } },
-      { cli: { path: ['beta'] }, mcp: { tool: 'beta' } },
+      { mcp: { tool: 'alpha' } },
+      { mcp: { tool: 'beta' } },
     ])
   })
 
-  it('mcp は、コマンド定義の title を output より先に持ち、annotations を最後に持つ', async () => {
-    await explains('`exportEntries` のテストです。コマンドを書き出した場合に、`mcp` がコマンド定義の `title` を `output` より先に持ち、`annotations` を最後に持つことを確認します。')
+  it('mcp は、ツールの定義の title を output より先に持ち、annotations を最後に持つ', async () => {
+    await explains('`exportEntries` のテストです。ツールを書き出した場合に、`mcp` がツールの定義の `title` を `output` より先に持ち、`annotations` を最後に持つことを確認します。')
     expect(entries.map(entry => entry.mcp.title)).toStrictEqual(['Greet someone', 'Read files'])
     expect(Object.keys(entries[0]?.mcp ?? {})).toStrictEqual(['title', 'output', 'annotations'])
   })
 
   it('mcp.annotations の readOnlyHint は、動詞が読むだけの印を持つときだけ true になる', async () => {
-    await explains('`exportEntries` のテストです。読むだけの動詞を持つコマンドを書き出した場合に、その項目だけ `mcp.annotations` の `readOnlyHint` が `true` になることを確認します。')
-    const show = defineCommand({ path: ['alpha', 'show'], title: 'Show alpha', description: 'Show alpha.', input: z.strictObject({}), output: z.strictObject({}), positional: [], run: () => Promise.resolve(0), interactive: false })
+    await explains('`exportEntries` のテストです。読むだけの動詞を持つツールを書き出した場合に、その項目だけ `mcp.annotations` の `readOnlyHint` が `true` になることを確認します。')
+    const show = defineTool({ name: 'alpha_show', title: 'Show alpha', description: 'Show alpha.', input: z.strictObject({}), output: z.strictObject({}), run: () => Promise.resolve(0) })
     expect(exportEntries([show, alpha]).map(entry => entry.mcp.annotations)).toStrictEqual([{ readOnlyHint: false }, { readOnlyHint: true }])
   })
 
   it('項目のキーは contracts の例の順', async () => {
-    await explains('`exportEntries` のテストです。コマンドを書き出した場合に、項目のキーが `contracts` の例と同じ順に並ぶことを確認します。')
-    expect(Object.keys(entries[0] ?? {})).toStrictEqual(['id', 'name', 'description', 'surfaces', 'hidden', 'deprecated', 'input', 'cli', 'mcp'])
+    await explains('`exportEntries` のテストです。ツールを書き出した場合に、項目のキーが `contracts` の例と同じ順に並ぶことを確認します。')
+    expect(Object.keys(entries[0] ?? {})).toStrictEqual(['id', 'name', 'description', 'surfaces', 'hidden', 'deprecated', 'input', 'mcp'])
   })
 
   it('グローバルの repo は input に出さない', async () => {
-    await explains('`exportEntries` のテストです。コマンドを書き出した場合に、グローバルの `repo` を `input` に出さないことを確認します。')
+    await explains('`exportEntries` のテストです。ツールを書き出した場合に、グローバルの `repo` を `input` に出さないことを確認します。')
     expect(Object.keys(entries[0]?.input.properties ?? {})).not.toContain('repo')
   })
 
-  it('自分の --repo を持つコマンド（hasOwnRepo）は、repo を input と cli.flags に出し、required には入れない', async () => {
-    await explains('`exportEntries` のテストです。自分の `--repo` を持つコマンド（`hasOwnRepo`）を書き出した場合に、`repo` を `input` と `cli.flags` へ出し、`required` には入れないことを確認します。')
-    const own = defineCommand({
-      path: ['own'],
-      title: 'Test command',
+  it('自分の repo を持つツール（hasOwnRepo）は、repo を input に出し、required には入れない', async () => {
+    await explains('`exportEntries` のテストです。自分の `repo` を持つツール（`hasOwnRepo`）を書き出した場合に、`repo` を `input` へ出し、`required` には入れないことを確認します。')
+    const own = defineTool({
+      name: 'own',
+      title: 'Test tool',
       description: 'Has its own repo.',
       input: z.strictObject({
         json: z.boolean().default(false).describe('Print JSON.'),
@@ -172,10 +165,7 @@ describe('exportEntries', () => {
       }),
       hasOwnRepo: true,
       output: z.strictObject({}),
-      positional: [],
-      shortFlags: { json: '-j' },
       run: () => Promise.resolve(0),
-      interactive: false,
     })
     const [entry] = exportEntries([own])
     expect(entry?.input).toStrictEqual({
@@ -187,21 +177,19 @@ describe('exportEntries', () => {
       required: [],
       additionalProperties: false,
     })
-    expect(entry?.cli).toStrictEqual({ positional: [], flags: { json: ['--json', '-j'], repo: ['--repo'] } })
   })
 
-  it('input.properties と cli.flags のキーは名前の順、引数の中のキーは決めた順', async () => {
-    await explains('`exportEntries` のテストです。コマンドを書き出した場合に、`input.properties` と `cli.flags` のキーが名前の順になり、引数の中のキーが決めた順になることを確認します。')
+  it('input.properties のキーは名前の順、引数の中のキーは決めた順', async () => {
+    await explains('`exportEntries` のテストです。ツールを書き出した場合に、`input.properties` のキーが名前の順になり、引数の中のキーが決めた順になることを確認します。')
     const alphaEntry = entries[0]
     expect(Object.keys(alphaEntry?.input.properties ?? {})).toStrictEqual(['count', 'json', 'mode', 'name', 'verbose'])
-    expect(Object.keys(alphaEntry?.cli.flags ?? {})).toStrictEqual(['count', 'json', 'mode', 'verbose'])
     expect(Object.keys(alphaEntry?.input.properties['mode'] ?? {})).toStrictEqual(['type', 'enum', 'default', 'description'])
     expect(Object.keys(entries[1]?.input.properties['limit'] ?? {})).toStrictEqual(['type', 'minimum', 'maximum', 'default', 'description'])
     expect(Object.keys(entries[1]?.input.properties['files'] ?? {})).toStrictEqual(['type', 'items', 'description'])
   })
 
   it('required が空でも [] を出し、additionalProperties: false を付け、$schema を外す', async () => {
-    await explains('`exportEntries` のテストです。`required` が空のコマンドを書き出した場合に、`[]` を出し、`additionalProperties: false` を付け、`$schema` を外すことを確認します。')
+    await explains('`exportEntries` のテストです。`required` が空のツールを書き出した場合に、`[]` を出し、`additionalProperties: false` を付け、`$schema` を外すことを確認します。')
     const input = entries[1]?.input
     expect(input?.required).toStrictEqual([])
     expect(input?.additionalProperties).toBe(false)
@@ -211,15 +199,13 @@ describe('exportEntries', () => {
   it('z.int() の安全な整数の端を、items の中も含めて外す', async () => {
     await explains('`exportEntries` のテストです。`z.int()` を持つ入力を書き出した場合に、安全な整数の端を `items` の中も含めて外し、`integer` だけにすることを確認します。')
     const integers = z.array(z.int())
-    const gamma = defineCommand({
-      path: ['gamma'],
-      title: 'Test command',
+    const gamma = defineTool({
+      name: 'gamma',
+      title: 'Test tool',
       description: 'Numbers.',
       input: z.strictObject({ one: z.int().optional(), many: integers.optional() }),
       output: z.strictObject({}),
-      positional: [],
       run: () => Promise.resolve(0),
-      interactive: false,
     })
     const [entry] = exportEntries([gamma])
     expect(entry?.input.properties).toStrictEqual({
@@ -232,83 +218,48 @@ describe('exportEntries', () => {
     await explains('`exportEntries` のテストです。空を断る配列を書き出した場合に、`minItems` と `items` の中の `minLength` を決めた順で出すことを確認します。')
     const nonEmpty = z.string().min(1)
     const lanes = z.array(nonEmpty).min(1).optional().describe('Lanes.')
-    const delta = defineCommand({
-      path: ['delta'],
-      title: 'Test command',
+    const delta = defineTool({
+      name: 'delta',
+      title: 'Test tool',
       description: 'Lanes.',
       input: z.strictObject({ lanes }),
       output: z.strictObject({}),
-      positional: [],
       run: () => Promise.resolve(0),
-      interactive: false,
     })
     const [entry] = exportEntries([delta])
     expect(entry?.input.properties['lanes']).toStrictEqual({ type: 'array', items: { type: 'string', minLength: 1 }, minItems: 1, description: 'Lanes.' })
     expect(Object.keys(entry?.input.properties['lanes'] ?? {})).toStrictEqual(['type', 'items', 'minItems', 'description'])
   })
 
-  it('id は名前を大文字にし、空白と _ を - にする', async () => {
-    await explains('`exportEntries` のテストです。空白と `_` を含む名前のコマンドを書き出した場合に、`id` は名前を大文字にして、空白と `_` を `-` にすることを確認します。')
-    const [entry] = exportEntries([defineCommand({
-      path: ['sub', 'add-to_x'],
-      title: 'Test command',
+  it('id は名前を大文字にし、_ を - にする', async () => {
+    await explains('`exportEntries` のテストです。`_` を含む名前のツールを書き出した場合に、`id` は名前を大文字にして、`_` を `-` にすることを確認します。')
+    const [entry] = exportEntries([defineTool({
+      name: 'sub_add-to_x',
+      title: 'Test tool',
       description: 'Sub.',
       input: z.strictObject({}),
       output: z.strictObject({}),
-      positional: [],
       run: () => Promise.resolve(0),
-      interactive: false,
     })])
     expect(entry?.id).toBe('PW-SUB-ADD-TO-X')
-    expect(entry?.name).toBe('sub add-to_x')
-  })
-})
-
-describe('exportEntries の別名', () => {
-  const aliased = defineCommand({
-    path: ['aliased'],
-    title: 'Test command',
-    description: 'Has aliases.',
-    input: z.strictObject({
-      allow_existing_branch: z.boolean().default(false),
-      verbose: z.boolean().default(true),
-      directory: z.string().optional(),
-    }),
-    output: z.strictObject({}),
-    positional: [],
-    shortFlags: { directory: '-D' },
-    aliases: { allow_existing_branch: '--force', verbose: '--loud' },
-    negations: { verbose: '--no-verbose' },
-    run: () => Promise.resolve(0),
-    interactive: false,
-  })
-
-  it('旗は、長い形・短い形・別名・否定形の順に並ぶ', async () => {
-    await explains('`exportEntries` の別名のテストです。別名と否定形を持つコマンドを書き出した場合に、旗が長い形・短い形・別名・否定形の順に並ぶことを確認します。')
-    expect(exportEntries([aliased])[0]?.cli.flags).toStrictEqual({
-      allow_existing_branch: ['--allow-existing-branch', '--force'],
-      verbose: ['--verbose', '--loud', '--no-verbose'],
-      directory: ['--directory', '-D'],
-    })
+    expect(entry?.name).toBe('sub_add-to_x')
   })
 })
 
 describe('exportEntries の失敗と refine', () => {
-  function commandOf(shape: Readonly<Record<string, z.ZodType>>): ReturnType<typeof defineCommand> {
-    return defineCommand({ path: ['bad', 'cmd'], title: 'Test command', description: 'Bad.', input: z.strictObject(shape), output: z.strictObject({}), positional: [], run: () => Promise.resolve(0), interactive: false })
+  function commandOf(shape: Readonly<Record<string, z.ZodType>>): ReturnType<typeof defineTool> {
+    return defineTool({ name: 'bad_cmd', title: 'Test tool', description: 'Bad.', input: z.strictObject(shape), output: z.strictObject({}), run: () => Promise.resolve(0) })
   }
 
   it('全体の refine を持つ input でも書き出せ、repo を出さない', async () => {
-    await explains('`exportEntries` のテストです。全体の `refine` を持つ入力のコマンドを書き出した場合に、書き出しに成功し、`repo` を出さないことを確認します。')
-    const refined = defineCommand({
-      path: ['refined'],
-      title: 'Test command',
+    await explains('`exportEntries` のテストです。全体の `refine` を持つ入力のツールを書き出した場合に、書き出しに成功し、`repo` を出さないことを確認します。')
+    const refined = defineTool({
+      name: 'refined',
+      title: 'Test tool',
       description: 'Refined.',
       input: z.strictObject({ a: z.string().optional(), b: z.string().optional() }).refine(value => value.a !== undefined || value.b !== undefined),
       output: z.strictObject({}),
-      positional: [],
       run: () => Promise.resolve(0),
-      interactive: false,
     })
     const [entry] = exportEntries([refined])
     expect(Object.keys(entry?.input.properties ?? {})).toStrictEqual(['a', 'b'])
@@ -316,14 +267,14 @@ describe('exportEntries の失敗と refine', () => {
   })
 
   it.each([
-    ['exclusiveMinimum', z.number().int().gt(0), 'bad cmd: n: unsupported JSON Schema key exclusiveMinimum'],
-    ['maxLength', z.string().max(5), 'bad cmd: n: unsupported JSON Schema key maxLength'],
-    ['pattern', z.string().regex(/^a$/), 'bad cmd: n: unsupported JSON Schema key pattern'],
-    ['format', z.email(), 'bad cmd: n: unsupported JSON Schema key format'],
-    ['anyOf の枝の中の maxLength', z.union([z.string().max(5), strings]), 'bad cmd: n: unsupported JSON Schema key maxLength'],
-    ['items の中の maxLength', z.array(z.string().max(5)), 'bad cmd: n: unsupported JSON Schema key maxLength'],
-  ])('表に無い %s は、コマンドと引数の名前を付けて止める', async (_label, schema, message) => {
-    await explains(`\`exportEntries\` のテストです。表に無い \`${_label}\` を持つ入力を書き出した場合に、コマンドと引数の名前を付けたエラーで止めることを確認します。`)
+    ['exclusiveMinimum', z.number().int().gt(0), 'bad_cmd: n: unsupported JSON Schema key exclusiveMinimum'],
+    ['maxLength', z.string().max(5), 'bad_cmd: n: unsupported JSON Schema key maxLength'],
+    ['pattern', z.string().regex(/^a$/), 'bad_cmd: n: unsupported JSON Schema key pattern'],
+    ['format', z.email(), 'bad_cmd: n: unsupported JSON Schema key format'],
+    ['anyOf の枝の中の maxLength', z.union([z.string().max(5), strings]), 'bad_cmd: n: unsupported JSON Schema key maxLength'],
+    ['items の中の maxLength', z.array(z.string().max(5)), 'bad_cmd: n: unsupported JSON Schema key maxLength'],
+  ])('表に無い %s は、ツールと引数の名前を付けて止める', async (_label, schema, message) => {
+    await explains(`\`exportEntries\` のテストです。表に無い \`${_label}\` を持つ入力を書き出した場合に、ツールと引数の名前を付けたエラーで止めることを確認します。`)
     expect(() => exportEntries([commandOf({ n: schema })])).toThrow(message)
   })
 })
@@ -394,7 +345,7 @@ describe('main の --write', () => {
   })
 
   it('登録が 0 件でも、空の項目で書く', async () => {
-    await explains('`main` の `--write` のテストです。登録されたコマンドが 0 件の場合に、空の項目でファイルを書くことを確認します。')
+    await explains('`main` の `--write` のテストです。登録されたツールが 0 件の場合に、空の項目でファイルを書くことを確認します。')
     const target = temporaryTarget()
     expect(run('--write', target, []).code).toBe(0)
     expect(readFileSync(target, 'utf8')).toBe(`${JSON.stringify({ format: 1, plugin: 'pecot-workflow', prefix: 'PW', names: exportNames(), entries: [], resources: exportResources() }, undefined, 2)}\n`)
@@ -418,8 +369,8 @@ function checkOf(file: Readonly<Record<string, unknown>>): ReturnType<typeof run
 }
 
 describe('main の --check', () => {
-  it('実物の generated.json は、登録済みのコマンドと一致して 0 を返す', async () => {
-    await explains('`main` の `--check` のテストです。実物の `generated.json` を調べた場合に、登録済みのコマンドと一致して 0 を返し、何も出力しないことを確認します。')
+  it('実物の generated.json は、登録済みのツールと一致して 0 を返す', async () => {
+    await explains('`main` の `--check` のテストです。実物の `generated.json` を調べた場合に、登録済みのツールと一致して 0 を返し、何も出力しないことを確認します。')
     const { io, out, error } = capture()
     expect(main(['--check'], io)).toBe(0)
     expect({ out, error }).toStrictEqual({ out: [], error: [] })
@@ -460,7 +411,7 @@ describe('main の --check', () => {
   it('surfaces.mcp の差も 1 を返す', async () => {
     await explains('`main` の `--check` のテストです。`surfaces.mcp` の値が違う定義書を調べた場合に、1 を返し、差の行を出すことを確認します。')
     const file = fileOf(samples)
-    entryOf(file, 'PW-ALPHA')['surfaces'] = { cli: { path: ['alpha'] }, mcp: { tool: 'renamed' } }
+    entryOf(file, 'PW-ALPHA')['surfaces'] = { mcp: { tool: 'renamed' } }
     const result = checkOf(file)
     expect(result.code).toBe(1)
     expect(result.error).toContain('  PW-ALPHA: surfaces.mcp.tool: "renamed" -> "alpha"\n')
@@ -493,15 +444,15 @@ describe('main の --check', () => {
   it('Node にだけある欄のキーは 1 を返し、added の行を出す', async () => {
     await explains('`main` の `--check` のテストです。Node にだけある欄のキーを調べた場合に、1 を返し、`added` の行を出すことを確認します。')
     const file = fileOf(samples)
-    Reflect.deleteProperty(entryOf(file, 'PW-BETA'), 'cli')
-    expect(checkOf(file).error).toContain('  PW-BETA: cli: added\n')
+    Reflect.deleteProperty(entryOf(file, 'PW-BETA'), 'mcp')
+    expect(checkOf(file).error).toContain('  PW-BETA: mcp: added\n')
   })
 
   it('定義書にだけある欄のキーは 1 を返し、removed の行を出す', async () => {
     await explains('`main` の `--check` のテストです。定義書にだけある欄のキーを調べた場合に、1 を返し、`removed` の行を出すことを確認します。')
     const file = fileOf(samples)
-    entryOf(file, 'PW-BETA')['cli'] = { ...exportEntries([beta])[0]?.cli, only: { dry_run: { type: 'boolean' } } }
-    expect(checkOf(file).error).toContain('  PW-BETA: cli.only: removed\n')
+    entryOf(file, 'PW-BETA')['input'] = { ...exportEntries([beta])[0]?.input, only: { dry_run: { type: 'boolean' } } }
+    expect(checkOf(file).error).toContain('  PW-BETA: input.only: removed\n')
   })
 
   describe('定義書を読めないとき', () => {
@@ -529,29 +480,28 @@ describe('main の --check', () => {
   })
 
   describe('Node の側の項目が不正なとき', () => {
-    const broken = defineCommand({
-      path: ['broken'],
-      title: 'Test command',
-      description: 'Has an invalid path',
+    const broken = defineTool({
+      name: 'broken',
+      title: 'Test tool',
+      description: 'Has no description',
       input: z.strictObject({}),
       output: z.strictObject({}),
-      positional: [],
       run: () => Promise.resolve(0),
-      interactive: false,
     })
 
     it('項目がスキーマに合わなければ、invalid entries の行を出して 1 を返し、ファイルを書かない', async () => {
       await explains('`main` の `--write` のテストです。Node の側の項目がスキーマと合わない場合は、`invalid entries` の行を出して 1 を返し、ファイルを書かないことを確認します。')
       const target = temporaryTarget()
-      const result = run('--write', target, [{ ...broken, path: [] }])
+      // eslint-disable-next-line no-restricted-syntax -- スキーマに合わない定義を渡すため、型を外す
+      const result = run('--write', target, [{ ...broken, description: undefined } as unknown as ToolDefinition])
       expect(result.code).toBe(1)
       expect(result.error).toHaveLength(1)
       expect(result.error[0]).toMatch(/^error: invalid entries: /v)
       expect(() => readFileSync(target)).toThrow('ENOENT')
     })
 
-    it('同じ ID のコマンドが 2 つあれば、重複した ID を示す error の行を出して 1 を返す', async () => {
-      await explains('`main` の `--check` のテストです。同じ ID のコマンドが 2 つある場合に、重複した ID を示す `error` の行を出して 1 を返すことを確認します。')
+    it('同じ ID のツールが 2 つあれば、重複した ID を示す error の行を出して 1 を返す', async () => {
+      await explains('`main` の `--check` のテストです。同じ ID のツールが 2 つある場合に、重複した ID を示す `error` の行を出して 1 を返すことを確認します。')
       const result = run('--check', temporaryTarget(), [alpha, alpha, beta])
       expect(result.code).toBe(1)
       expect(result.error).toStrictEqual(['error: duplicate ids: PW-ALPHA\n'])
@@ -644,16 +594,16 @@ describe('振る舞いの項目のつなぎ', () => {
     })
   })
 
-  it('登録済みのコマンドの項目の ID が、すべて vitest の verifies につながる', async () => {
-    await explains('振る舞いの項目のつなぎのテストです。登録済みのコマンドの項目の ID を調べた場合に、すべてが vitest の `verifies` につながっていることを確認します。')
-    const missing = missingIds(expectedIds(COMMANDS), collectVerifiedIds(root, include))
+  it('登録済みのツールの項目の ID が、すべて vitest の verifies につながる', async () => {
+    await explains('振る舞いの項目のつなぎのテストです。登録済みのツールの項目の ID を調べた場合に、すべてが vitest の `verifies` につながっていることを確認します。')
+    const missing = missingIds(expectedIds(TOOLS), collectVerifiedIds(root, include))
     expect(missing).toStrictEqual([])
   })
 
   it('共通の項目の ID が、すべて vitest の verifies につながる', async () => {
-    await explains('振る舞いの項目のつなぎのテストです。共通の項目の ID（28 件）を調べた場合に、すべてが vitest の `verifies` につながっていることを確認します。')
+    await explains('振る舞いの項目のつなぎのテストです。共通の項目の ID（21 件）を調べた場合に、すべてが vitest の `verifies` につながっていることを確認します。')
     const common = authored.common_behaviors.map(behavior => behavior.id)
-    expect(common).toHaveLength(28)
+    expect(common).toHaveLength(21)
     expect(missingIds(common, collectVerifiedIds(root, include))).toStrictEqual([])
   })
 })

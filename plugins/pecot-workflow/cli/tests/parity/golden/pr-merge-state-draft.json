@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: PR #21 is a draft\n",
-  "exitCode": 2,
+  "isError": true,
+  "text": "PR #21 is a draft",
+  "structuredContent": {
+    "kind": "pr-state",
+    "detail": "PR #21 is a draft"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

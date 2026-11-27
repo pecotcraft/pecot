@@ -1,7 +1,46 @@
 {
-  "stdout": "## #7 見本の Issue\n\n**State:** OPEN | **Comments:** 1\n\n**Branches:**\n  - `feat/7`\n\n**Sub-issues:**\n  - #8 子の Issue (OPEN)\n\n---\n\n本文の 1 行目\n本文の 2 行目\n\n\n\n### Comments (1/1)\n\n---\n\n**@reviewer** - 2026-01-02\n\nコメントの本文\n",
+  "isError": false,
+  "text": "## #7 見本の Issue",
+  "structuredContent": {
+    "number": 7,
+    "state": "OPEN",
+    "title": "見本の Issue",
+    "body": "本文の 1 行目\n本文の 2 行目\n",
+    "comments": {
+      "total_count": 1,
+      "nodes": [
+        {
+          "author": "reviewer",
+          "created_at": "2026-01-02T03:04:05Z",
+          "body": "コメントの本文"
+        }
+      ]
+    },
+    "parent": null,
+    "sub_issues": [
+      {
+        "number": 8,
+        "state": "OPEN",
+        "title": "子の Issue"
+      }
+    ],
+    "linked_branches": [
+      "feat/7"
+    ],
+    "linked_prs": [],
+    "owner": "acme",
+    "repo": "demo",
+    "blockedBy": [],
+    "readiness": {
+      "kind": "startable",
+      "stackOn": null,
+      "reason": null,
+      "text": "startable"
+    },
+    "attributes": [],
+    "unsupported": []
+  },
   "stderr": "",
-  "exitCode": 0,
   "requests": [
     {
       "type": "graphql",

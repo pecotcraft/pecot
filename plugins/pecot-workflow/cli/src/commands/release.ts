@@ -1,302 +1,34 @@
 // release check・create・merge。移す元は cli/commands/release.py。
-import path from 'node:path'
 
 import { z } from 'zod'
 
 import { describeApiError } from '@pecot/workflow-core/domain/api-error-detail.js'
-import { ChangelogFileNotFoundError, InvalidVersionError, validateSemver } from '@pecot/workflow-core/domain/changelog.js'
-import { effectiveReleaseType, findPackage, findRepository, getDevelopBranch, getReleaseBranch } from '@pecot/workflow-core/domain/config.js'
-import type { ProjectConfig, Repository } from '@pecot/workflow-core/domain/config.js'
-import { DependabotAlertError, fetchDependabotAlertStatus } from '@pecot/workflow-core/domain/dependabot.js'
-import type { DependabotAlertStatus } from '@pecot/workflow-core/domain/dependabot.js'
+import { ChangelogFileNotFoundError } from '@pecot/workflow-core/domain/changelog.js'
+import { getReleaseBranch } from '@pecot/workflow-core/domain/config.js'
 import { PecotError } from '@pecot/workflow-core/domain/errors.js'
-import { pythonStringRepr } from '@pecot/workflow-core/domain/python-format.js'
 import { parsePullRequestReference, ReferenceParseError } from '@pecot/workflow-core/domain/reference-parser.js'
-import { ReleaseError, runPreflight } from '@pecot/workflow-core/domain/release.js'
-import { splitOwnerRepository } from '@pecot/workflow-core/domain/repository-resolver.js'
-import type { RepositoryReference } from '@pecot/workflow-core/domain/repository-resolver.js'
-import { fetchCodeScanningStatus, fetchSecretScanningStatus, SecurityAlertError } from '@pecot/workflow-core/domain/security-alerts.js'
-import type { ScanAlertStatus } from '@pecot/workflow-core/domain/security-alerts.js'
-import { extractReleaseNotesFromFile, readChangelogIfExists, resolveChangelogPath } from '../infra/changelog-file.js'
-import { gitRunnerFor, gitToplevel, primaryRemoteName, primaryRemoteRepository, remoteTagExists } from '@pecot/workflow-core/infra/git.js'
-import { TransportFailure } from '@pecot/workflow-core/infra/github/client.js'
-import { createDependabotSource } from '@pecot/workflow-core/infra/github/dependabot-source.js'
+import { extractReleaseNotesFromFile } from '@pecot/workflow-core/infra/changelog-file.js'
 import { GitHubAPIError, GitHubNotFoundError } from '@pecot/workflow-core/infra/github/errors.js'
-import { createScanAlertSource } from '@pecot/workflow-core/infra/github/security-alerts-source.js'
-import { commandHint, hinted, inputHint, inputNameHint, placeholder, surfaceText } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import { hinted, inputHint } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
-import { createAuthenticatedGitHubClient, createGitHubClient, makeClient } from '@pecot/workflow-core/commands-shared/github-client.js'
+import { createGitHubClient, makeClient } from '@pecot/workflow-core/commands-shared/github-client.js'
 import { issuePath } from '@pecot/workflow-core/commands-shared/issue-shared.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
-import type { Operation, Output } from '@pecot/workflow-core/commands-shared/output.js'
-import { CommandExit, defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import { requireRepositoryMatch } from './repository-match.js'
+import type { Operation } from '@pecot/workflow-core/commands-shared/output.js'
+import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { requireRepositoryMatch } from '@pecot/workflow-core/commands-shared/repository-match.js'
+import { loadReleaseContext, RELEASE_CHECK_INPUT, RELEASE_CHECK_OUTPUT, requireBranchSetting, requireSemver, runReleaseCheck } from '@pecot/workflow-core/commands-shared/release-check.js'
 import { USAGE_EXIT_CODE } from '@pecot/workflow-core/commands-shared/usage-error.js'
 
-const CHECK_PATH = ['release', 'check']
-
-/**
-順は採用済みの --repo、グローバルの --repo、主の remote。決められないと error の行を出して終了コード 1 で止める。
-remote は process.cwd() から読む
-*/
-export function requireReleaseTargetRepository(adopted: RepositoryReference | undefined, explicit: string | undefined, out: Readonly<Output>): RepositoryReference {
-  if (adopted !== undefined) return adopted
-  if (explicit !== undefined) {
-    return splitOwnerRepository(explicit) ?? stopWith(out, hinted`invalid ${inputNameHint(CHECK_PATH, 'repo')} format: ${pythonStringRepr(explicit)}\nspecify it as owner/repo`, 'invalid-input')
-  }
-  const remote = primaryRemoteRepository(process.cwd()) ?? stopWith(out, 'could not read the repository from the git remote', 'git-unresolved')
-  return { owner: remote.owner, repository: remote.repository }
-}
-
-interface ReleaseContext {
-  readonly config: ProjectConfig
-  readonly owner: string
-  readonly repository: string
-  readonly repositoryConfig: Repository | undefined
-  readonly changelogPath: string
-  /**
-  monorepo のときのパッケージ名。タグの接頭辞になる
-  */
-  readonly tagPrefix: string | undefined
-}
-
-interface ContextOptions {
-  readonly version?: string | undefined
-  readonly nxAlertsOnly?: boolean
-}
-
-// 4 つの場合（packages の有無と --package の有無）を分ける。矛盾があれば error の行を出して止める
-function resolvePackageContext(out: Readonly<Output>, repositoryConfig: Repository | undefined, packageName: string | undefined, gitRoot: string, owner: string, repository: string): { readonly changelogPath: string, readonly tagPrefix: string | undefined } {
-  const packages = repositoryConfig?.packages ?? []
-  if (repositoryConfig !== undefined && packages.length > 0) {
-    const names = packages.map(item => item.name).join(', ')
-    if (packageName === undefined) stopWith(out, hinted`${owner}/${repository} is a monorepo\nspecify ${inputNameHint(['release', 'check'], 'package')} (available: ${names})`, 'invalid-input')
-    const found = findPackage(repositoryConfig, packageName) ?? stopWith(out, `package '${packageName}' is not registered in ${owner}/${repository}\navailable: ${names}`, 'invalid-input')
-    return { changelogPath: path.isAbsolute(found.changelog) ? found.changelog : path.join(gitRoot, found.changelog), tagPrefix: found.name }
-  }
-  if (packageName !== undefined) stopWith(out, `${owner}/${repository} has no packages configured\n--package can only be used in a monorepo`, 'invalid-input')
-  return { changelogPath: resolveChangelogPath(gitRoot, repositoryConfig?.changelog_file), tagPrefix: undefined }
-}
-
-function requireSemver(out: Readonly<Output>, version: string): void {
-  try {
-    validateSemver(version)
-  }
-  catch (error: unknown) {
-    if (!(error instanceof InvalidVersionError)) throw error
-    stopWith(out, error.message, 'invalid-input')
-  }
-}
-
-function requireBranchSetting(out: Readonly<Output>, branch: string | undefined, kind: 'develop' | 'release', owner: string, repository: string): string {
-  return branch === undefined || branch === '' ? stopWith(out, hinted`${kind}_branch is not set for ${owner}/${repository}\nset it with: ${commandHint(['project', 'link'], { repo: `${owner}/${repository}`, [`${kind}_branch`]: placeholder('branch') })}`, 'repo-setting-missing') : branch
-}
-
-function loadReleaseContext(out: Readonly<Output>, adopted: RepositoryReference | undefined, explicit: string | undefined, packageName: string | undefined, project: string | undefined, commandPath: readonly string[], options: Readonly<ContextOptions> = {}): ReleaseContext {
-  const cwd = process.cwd()
-  const gitRoot = gitToplevel({ cwd }) ?? stopWith(out, 'could not find the root directory of the git repository', 'git-unresolved')
-  const target = requireReleaseTargetRepository(adopted, explicit, out)
-  const { owner, repository } = target
-  const config = requireConfigFor(out, target, project, commandPath).config
-
-  const repositoryConfig = findRepository(config, owner, repository)
-  if (repositoryConfig !== undefined && options.nxAlertsOnly === true && effectiveReleaseType(repositoryConfig) === 'nx') {
-    if (packageName !== undefined || options.version !== undefined) {
-      stopWith(out, hinted`the version argument and ${inputNameHint(CHECK_PATH, 'package')} cannot be used when release_type is nx\n${surfaceText('run it without arguments', 'call the tool without them')} (Nx Release decides the version)`, 'invalid-input')
-    }
-    return { config, owner, repository, repositoryConfig, changelogPath: resolveChangelogPath(gitRoot, repositoryConfig.changelog_file), tagPrefix: undefined }
-  }
-  return { config, owner, repository, repositoryConfig, ...resolvePackageContext(out, repositoryConfig, packageName, gitRoot, owner, repository) }
-}
-
-function alertLabel(number: number, packageName: string | undefined, severity: string | undefined): string {
-  const detail = [packageName, severity].filter(value => value !== undefined && value !== '').join(', ')
-  return detail === '' ? `#${String(number)}` : `#${String(number)} (${detail})`
-}
-
-// 理由は 1 行目だけを使い、末尾の句点を落とす
-function warnAlertsUnavailable(out: Readonly<Output>, reason: string): void {
-  const [first = ''] = reason.trim().split(/\r\n|[\n\r]/u, 1)
-  out.warning(`could not check Dependabot alerts. The release is not blocked.\nreason: ${first.trim().replace(/\.+$/u, '').trimEnd()}`)
-}
-
-// open の Dependabot alert は警告だけで、リリースを止めない。読めた状態を返し、読めなければ undefined
-async function checkDependabotAlerts(out: Readonly<Output>, config: ProjectConfig, owner: string, repository: string, skip: (target: string) => void): Promise<DependabotAlertStatus | undefined> {
-  let status
-  try {
-    const client = await createAuthenticatedGitHubClient(out, config.host)
-    status = await fetchDependabotAlertStatus(createDependabotSource(client), config.host, owner, repository)
-  }
-  catch (error: unknown) {
-    if (error instanceof DependabotAlertError) {
-      warnAlertsUnavailable(out, error.message)
-      return undefined
-    }
-    if (error instanceof GitHubAPIError) {
-      warnAlertsUnavailable(out, error.message)
-      return undefined
-    }
-    throw error
-  }
-
-  if (!status.enabled) {
-    skip('Dependabot alerts (feature disabled)')
-    return status
-  }
-  if (status.openCount === 0) {
-    out.count('open Dependabot alerts', 0)
-    return status
-  }
-  const severity = status.maxSeverity === undefined ? '' : ` (highest severity: ${status.maxSeverity})`
-  const listing = status.openAlerts.map(alert => `\n${alertLabel(alert.number, alert.package, alert.severity)}`).join('')
-  const noun = status.openCount === 1 ? 'alert' : 'alerts'
-  out.warning(`${String(status.openCount)} open Dependabot ${noun}${severity}. The release is not blocked.${listing}\n→ ${status.alertsUrl}`)
-  return status
-}
-
-/**
-code scanning・secret scanning の open の alert があれば、false を返す。機能が無効のリポジトリは通る
-*/
-async function isScanningPassed(out: Readonly<Output>, name: string, fetchStatus: () => Promise<ScanAlertStatus>, skip: (target: string) => void): Promise<boolean> {
-  let status: ScanAlertStatus
-  try {
-    status = await fetchStatus()
-  }
-  catch (error: unknown) {
-    if (!(error instanceof SecurityAlertError)) throw error
-    out.error(`could not check ${name}: ${error.message}`)
-    return false
-  }
-  if (!status.enabled) {
-    skip(`${name} (feature disabled)`)
-    return true
-  }
-  if (status.openCount === 0) {
-    out.count(`open ${name} alerts`, 0)
-    return true
-  }
-  const listing = status.openNumbers.map(number => `\n#${String(number)}`).join('')
-  out.error(hinted`${name} has ${String(status.openCount)} open ${status.openCount === 1 ? 'alert' : 'alerts'}${listing}\n→ ${status.alertsUrl}\nclose them (fixed, or dismissed with a reason) and ${surfaceText('run again', 'call the tool again')}`)
-  return false
-}
-
-interface AlertChecks {
-  readonly isPassed: boolean
-  /**
-  skipped: の行に出した確認
-  */
-  readonly skipped: readonly string[]
-  /**
-  Dependabot alert の状態。読めなければ undefined
-  */
-  readonly dependabot: DependabotAlertStatus | undefined
-}
-
-/**
-3 種を確かめる。1 つが失敗しても残りを続け、最後に成否を返す
-*/
-async function checkAlerts(out: Readonly<Output>, config: ProjectConfig, owner: string, repository: string): Promise<AlertChecks> {
-  const skipped: string[] = []
-  const skip = (target: string): void => {
-    out.done({ verb: 'skip', target, aside: true })
-    skipped.push(target)
-  }
-  let dependabot: DependabotAlertStatus | undefined
-  const checks: readonly (() => Promise<boolean>)[] = [
-    async () => {
-      dependabot = await checkDependabotAlerts(out, config, owner, repository, skip)
-      return true
-    },
-    async () => await isScanningPassed(out, 'code scanning', async () => await fetchCodeScanningStatus(createScanAlertSource(await createAuthenticatedGitHubClient(out, config.host)), config.host, owner, repository), skip),
-    async () => await isScanningPassed(out, 'secret scanning', async () => await fetchSecretScanningStatus(createScanAlertSource(await createAuthenticatedGitHubClient(out, config.host)), config.host, owner, repository), skip),
-  ]
-  let isPassed = true
-  for (const check of checks) {
-    try {
-      if (!await check()) isPassed = false
-    }
-    catch (error: unknown) {
-      if (!(error instanceof PecotError) && !(error instanceof TransportFailure)) throw error
-      out.error(`could not check alerts: ${error.message}`)
-      isPassed = false
-    }
-  }
-  return { isPassed, skipped, dependabot }
-}
-
-const RELEASE_CHECK_OUTPUT = z.strictObject({
-  version: z.string().optional().describe('Version to release (omitted when release_type is nx, where only the alerts are checked)'),
-  tag: z.string().optional().describe('Tag to create (omitted when release_type is nx)'),
-  releaseNotes: z.string().optional().describe('Release notes from the CHANGELOG (omitted when release_type is nx)'),
-  commitCount: z.int().optional().describe('Number of commits from the release branch to the develop branch (omitted when release_type is nx)'),
-  skipped: z.array(z.string()).describe('Checks skipped because the feature is disabled, as in the skipped lines (e.g. "Dependabot alerts (feature disabled)")'),
-  dependabotAlerts: z.strictObject({
-    enabled: z.boolean().describe('Whether Dependabot alerts are enabled'),
-    openCount: z.int().describe('Number of open alerts (0 when disabled)'),
-    maxSeverity: z.string().optional().describe('Highest severity of the open alerts (omitted when there is none)'),
-    alertsUrl: z.string().describe('URL of the alert list'),
-  }).optional().describe('Dependabot alert status (omitted when it could not be read; the release is not blocked)'),
-})
-
-const releaseCheckCommand = defineCommand({
-  path: CHECK_PATH,
+const releaseCheckCommand = defineTool({
+  name: 'release_check',
   title: 'Check release readiness',
   description: 'Run the pre-release checks; for an nx repository only the alerts are checked',
-  input: z.object({
-    version: z.string().optional().describe('Release version (detected from the CHANGELOG when omitted)'),
-    package: z.string().optional().describe('Package name in a monorepo (required for repositories with packages configured)'),
-    project: PROJECT_INPUT,
-  }),
+  input: RELEASE_CHECK_INPUT,
   output: RELEASE_CHECK_OUTPUT,
-  positional: ['version'],
-  interactive: false,
-  run: async (input, io) => {
-    const adopted = requireRepositoryMatch('warn', input.repo, io, process.cwd())
-    const out = createOutput<z.input<typeof RELEASE_CHECK_OUTPUT>>(false, io)
-    const cwd = process.cwd()
-    const context = loadReleaseContext(out, adopted, input.repo, input.package, input.project, CHECK_PATH, { version: input.version, nxAlertsOnly: true })
-    const { config, owner, repository } = context
-    if (input.version !== undefined) requireSemver(out, input.version)
-
-    const alerts = await checkAlerts(out, config, owner, repository)
-    const { dependabot } = alerts
-    out.result({
-      skipped: [...alerts.skipped],
-      ...dependabot !== undefined && { dependabotAlerts: { enabled: dependabot.enabled, openCount: dependabot.openCount, ...dependabot.maxSeverity !== undefined && { maxSeverity: dependabot.maxSeverity }, alertsUrl: dependabot.alertsUrl } },
-    })
-    if (!alerts.isPassed) throw new CommandExit(1, 'preflight-failed')
-    if (context.repositoryConfig !== undefined && effectiveReleaseType(context.repositoryConfig) === 'nx') return 0
-
-    const developBranch = requireBranchSetting(out, getDevelopBranch(config, owner, repository), 'develop', owner, repository)
-    const releaseBranch = requireBranchSetting(out, getReleaseBranch(config, owner, repository), 'release', owner, repository)
-
-    const remote = primaryRemoteName(cwd) ?? 'origin'
-    try {
-      const client = await createAuthenticatedGitHubClient(out, config.host)
-      const result = await runPreflight({
-        changelogPath: context.changelogPath,
-        changelogContent: readChangelogIfExists(context.changelogPath),
-        developBranch,
-        releaseBranch,
-        version: input.version,
-        tagPrefix: context.tagPrefix,
-        remote,
-      }, gitRunnerFor(cwd), async (name, tagName) => await remoteTagExists(cwd, name, tagName, out.signal), async (base, head) => await client.countCommitsAhead(owner, repository, base, head))
-      out.count(`commits to release (${remote}/${result.developBranch} -> ${remote}/${result.releaseBranch})`, result.diffCount)
-      out.result({ version: result.version, tag: result.tagName, releaseNotes: result.releaseNotes, commitCount: result.diffCount })
-      out.data(`version: ${result.version}\ntag: ${result.tagName}\n\n${result.releaseNotes}`)
-      return 0
-    }
-    catch (error: unknown) {
-      if (error instanceof GitHubAPIError || error instanceof TransportFailure) {
-        return stopWith(out, `could not count the commits from ${releaseBranch} to ${developBranch}: ${error.message}`, kindOfFailure(error))
-      }
-      if (!(error instanceof ReleaseError)) throw error
-      return stopWith(out, error.message, 'preflight-failed')
-    }
-  },
+  run: runReleaseCheck,
 })
 
 const RELEASE_CREATE_OUTPUT = z.strictObject({
@@ -305,22 +37,19 @@ const RELEASE_CREATE_OUTPUT = z.strictObject({
   releaseNotes: z.string().describe('Release notes from the CHANGELOG'),
 })
 
-const releaseCreateCommand = defineCommand({
-  path: ['release', 'create'],
+const releaseCreateCommand = defineTool({
+  name: 'release_create',
   title: 'Create release',
   description: 'Create a GitHub release and its tag (the release notes come from the CHANGELOG)',
   input: z.object({
     version: z.string().describe('Release version (for example 0.6.1)'),
-    dry_run: z.boolean().default(false).describe('Show what would happen without changing anything'),
     package: z.string().optional().describe('Package name in a monorepo (required for repositories with packages configured)'),
     project: PROJECT_INPUT,
   }),
   output: RELEASE_CREATE_OUTPUT,
-  positional: ['version'],
-  interactive: false,
   run: async (input, io) => {
     const adopted = requireRepositoryMatch('warn', input.repo, io, process.cwd())
-    const out = createOutput<z.input<typeof RELEASE_CREATE_OUTPUT>>(input.dry_run, io)
+    const out = createOutput<z.input<typeof RELEASE_CREATE_OUTPUT>>(false, io)
 
     requireSemver(out, input.version)
 
@@ -341,13 +70,6 @@ const releaseCreateCommand = defineCommand({
     const tagName = tagPrefix === undefined ? `v${input.version}` : `${tagPrefix}-v${input.version}`
     const releaseName = tagPrefix === undefined ? tagName : `${tagPrefix} v${input.version}`
     const operation: Operation = { verb: 'create', target: `release ${tagName} on ${releaseBranch}` }
-
-    if (input.dry_run) {
-      out.planned(operation)
-      out.result({ tag: tagName, releaseNotes })
-      out.data(releaseNotes)
-      return 0
-    }
 
     const client = await makeClient(out, config)
     try {
@@ -372,24 +94,20 @@ const RELEASE_MERGE_OUTPUT = z.strictObject({
   deletedBranch: z.boolean().describe('Whether the remote head branch was deleted (false without delete_branch or when the deletion failed)'),
 })
 
-const releaseMergeCommand = defineCommand({
-  path: ['release', 'merge'],
+const releaseMergeCommand = defineTool({
+  name: 'release_merge',
   title: 'Merge release PR',
   description: 'Merge a release PR with a regular merge',
   input: z.object({
     pr_ref: z.string().describe('PR reference (owner/repo/123)'),
-    dry_run: z.boolean().default(false).describe('Show what would happen without merging'),
     delete_branch: z.boolean().default(false).describe('Delete the branch after merging'),
     admin: z.boolean().default(false).describe('Merge with admin rights (skip the mergeability check)'),
     project: PROJECT_INPUT,
   }),
   output: RELEASE_MERGE_OUTPUT,
-  positional: ['pr_ref'],
-  shortFlags: { dry_run: '-n', delete_branch: '-d' },
-  interactive: false,
   run: async (input, io) => {
     requireRepositoryMatch('reject', input.repo, io, process.cwd())
-    const out = createOutput<z.input<typeof RELEASE_MERGE_OUTPUT>>(input.dry_run, io)
+    const out = createOutput<z.input<typeof RELEASE_MERGE_OUTPUT>>(false, io)
     let reference
     try {
       reference = parsePullRequestReference(input.pr_ref)
@@ -428,11 +146,6 @@ const releaseMergeCommand = defineCommand({
     const headBranch = pullRequest.head_ref
     const operation: Operation = { verb: 'merge', target: `PR ${pullRequestName} (${headBranch} -> ${pullRequest.base_ref}, merge commit)` }
     const merged = { pullRequest: pullRequestName, head: headBranch, base: pullRequest.base_ref, deletedBranch: false }
-    if (input.dry_run) {
-      out.planned(operation)
-      out.result(merged)
-      return 0
-    }
 
     try {
       await client.mergePullRequest(owner, repository, number, 'merge')
@@ -459,4 +172,4 @@ const releaseMergeCommand = defineCommand({
   },
 })
 
-export const RELEASE_COMMANDS: readonly CommandDefinition[] = [releaseCheckCommand, releaseCreateCommand, releaseMergeCommand]
+export const RELEASE_TOOLS: readonly ToolDefinition[] = [releaseCheckCommand, releaseCreateCommand, releaseMergeCommand]

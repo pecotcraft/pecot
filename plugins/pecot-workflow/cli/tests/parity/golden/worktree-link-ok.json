@@ -1,7 +1,15 @@
 {
-  "stdout": "",
-  "stderr": "count: symlinks created in {{TMP}}/wt1/demo: 1\n",
-  "exitCode": 0,
+  "isError": false,
+  "structuredContent": {
+    "links": [
+      {
+        "path": "{{TMP}}/wt1/demo/CLAUDE.local.md",
+        "destination": "{{TMP}}/base/demo/CLAUDE.local.md",
+        "change": "create"
+      }
+    ]
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     "../../wt1/demo/.gitignore": ".pecot/\n",

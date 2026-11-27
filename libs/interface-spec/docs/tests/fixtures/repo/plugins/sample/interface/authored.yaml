@@ -17,7 +17,6 @@ entries:
         effect: Moves the sample directory.
     exit_status:
       - kind: target-missing
-        code: 2
         when: The target is missing.
     on_error: default
     effects:
@@ -28,7 +27,8 @@ entries:
       - Needs the sample runtime.
     idempotent: true
     examples:
-      - run: sample one run x
+      - arguments:
+          target: x
         note: Run x.
     default_notes: {}
     behaviors:

@@ -1,15 +1,13 @@
-// CLI の出力の行をそろえる共通の関数。
+// ツールの出力の行をそろえる共通の関数。
 //
 // 行の形は specs/021-cli-output-functions/contracts/output-lines.md が決める。
 // コマンドは操作（動詞と対象）を 1 つ作り、実行の前に planned を、実行の後に done を呼ぶ。
 // 期待の行は tests/output/cases.json に置き、Python の側と同じ値を共有する。
-import { readSync } from 'node:fs'
 
 import { z } from 'zod'
 
 import { formatHinted } from '../domain/command-hint.js'
 import type { HintedText } from '../domain/command-hint.js'
-import { hasErrorCode } from '../infra/os-error.js'
 
 import type { CommandIo } from './command-definition.js'
 
@@ -54,7 +52,7 @@ export interface Operation {
 }
 
 /**
-D は MCP の成功の data の型（コマンドの output の z.input）。CLI では result は何も出さない
+D は MCP の成功の data の型（ツールの output の z.input）。actions/ では result は何も出さない
 */
 export interface Output<D extends object = Record<string, unknown>> {
   /**
@@ -92,7 +90,7 @@ export interface Output<D extends object = Record<string, unknown>> {
   // 補助の関数が Output（既定の D）で受け取れるよう、メソッドの形で書く（引数の型の比べ方が双変になる）
   result(fields: Readonly<Partial<D>>): void
   /**
-  io の signal（MCP の要求の取り消し）。CLI では undefined
+  io の signal（MCP の要求の取り消し）。actions/ では undefined
   */
   readonly signal: Readonly<AbortSignal> | undefined
 }
@@ -120,8 +118,11 @@ function formatMessage(prefix: string, message: string): string {
   return `${prefix}${lines.join('\n  ')}\n`
 }
 
+function render(message: string | HintedText): string {
+  return formatHinted(message)
+}
+
 export function createOutput<D extends object = Record<string, unknown>>(isDryRun: boolean, io: CommandIo): Output<D> {
-  const render = (message: string | HintedText): string => formatHinted(message, io.surface ?? 'cli')
   const writeResult = (line: string, aside: boolean | undefined): void => {
     io.stderr(`${line}\n`)
     if (aside !== true) io.resultLine?.(line)
@@ -167,71 +168,7 @@ export function createOutput<D extends object = Record<string, unknown>>(isDryRu
 }
 
 /**
-fd から buffer へ読んだバイト数。0 は終端
-*/
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- buffer は書き込み先
-export type ReadBytes = (fd: number, buffer: Uint8Array) => number
-
-const RETRY_WAIT_MILLISECONDS = 10
-
-/**
-非ブロッキングの入力が空のとき、読み直す前に待つ
-*/
-/* v8 ignore next 3 -- 本物の EAGAIN は再現できないので、テストは wait を差し替える */
-function sleepBriefly(): void {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, RETRY_WAIT_MILLISECONDS)
-}
-
-/**
-1 バイトずつ読むのは、次の行を先読みして取りこぼさず、process.stdin に触れないため。read と wait はテスト用の差し替え口
-*/
-export function createLineReader(
-  fd: number,
-  read: ReadBytes = (source, buffer) => readSync(source, buffer),
-  wait: () => void = sleepBriefly,
-): () => string | undefined {
-  const NEWLINE = 10
-  return () => {
-    const bytes: number[] = []
-    const buffer = new Uint8Array(1)
-    for (;;) {
-      let count: number
-      try {
-        count = read(fd, buffer)
-      }
-      catch (error: unknown) {
-        // 非ブロッキングの入力が空のとき。process.stdin に触ると入力が非ブロッキングになる環境がある
-        if (hasErrorCode(error) && error.code === 'EAGAIN') {
-          wait()
-          continue
-        }
-        throw error
-      }
-      if (count === 0) return bytes.length === 0 ? undefined : Buffer.from(bytes).toString('utf8')
-      const byte = buffer[0] ?? NEWLINE
-      if (byte === NEWLINE) return Buffer.from(bytes).toString('utf8')
-      bytes.push(byte)
-    }
-  }
-}
-
-/**
-process.stdout・process.stderr に書き、fd（既定は標準入力）から読む CommandIo。src/cli.ts の main が使う
-*/
-export function createProcessIo(fd = 0): CommandIo {
-  return {
-    stdout: (text) => {
-      process.stdout.write(text)
-    },
-    stderr: (text) => {
-      process.stderr.write(text)
-    },
-    readLine: createLineReader(fd),
-  }
-}
-
-/**
-確認の途中で入力が終わった（Python の click の Abort）。
+確認が要る所で止めた（Python の click の Abort）。
 code を持たせない（link の処理は code を持つ例外を握るため、これは握られずに最上位まで届く）
 */
 export class AbortedError extends Error {
@@ -253,25 +190,9 @@ export function reportAborted(io: CommandIo): number {
 }
 
 /**
-末尾の空白 1 つを stdout に出すのは、既存の CLI の出力（問いは stderr、空白だけ stdout）を変えないため。
-readLine が無い（MCP）か入力が終わると AbortedError を投げる
+上書きなどの確認が要る所で、問わずに止める。MCP には利用者に問う手段が無いので、続けるかはツールの入力（force など）で決める
 */
-export function isConfirmed(io: CommandIo, text: string): boolean {
-  for (;;) {
-    io.stderr(`${text} [y/N]:`)
-    io.stdout(' ')
-    const line = io.readLine?.()
-    if (line === undefined) {
-      io.error?.(text)
-      throw new AbortedError()
-    }
-    switch (line.trim().toLowerCase()) {
-      case 'y':
-      case 'yes': { return true }
-      case 'n':
-      case 'no':
-      case '': { return false }
-      default: { io.stderr('Error: invalid input\n') }
-    }
-  }
+export function abortUnconfirmed(io: CommandIo, text: string): never {
+  io.error?.(text)
+  throw new AbortedError()
 }

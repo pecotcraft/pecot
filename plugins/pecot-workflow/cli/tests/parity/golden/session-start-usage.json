@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: the short form 'N' is not accepted here: use the full form 'owner/repo/N'\n",
-  "exitCode": 2,
+  "isError": true,
+  "text": "the short form 'N' is not accepted here: use the full form 'owner/repo/N'",
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "the short form 'N' is not accepted here: use the full form 'owner/repo/N'"
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

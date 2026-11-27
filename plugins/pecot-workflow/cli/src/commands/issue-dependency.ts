@@ -17,9 +17,9 @@ import { createRepositoryReference } from '@pecot/workflow-core/domain/repositor
 import type { RepositoryReference } from '@pecot/workflow-core/domain/repository-resolver.js'
 import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
 import { MAX_BLOCKED_BY } from '@pecot/workflow-core/infra/github/issues.js'
-import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import { commandHint, hinted, inputHint, inputNameHint, joinHinted, RUN, surfaceText } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { commandHint, hinted, inputHint, inputNameHint, joinHinted, RUN } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import type { HintedText } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
@@ -169,7 +169,6 @@ interface BlockInput {
   readonly by: string
   readonly wait: Wait
   readonly reason?: string | undefined
-  readonly dry_run: boolean
   readonly project?: string | undefined
   readonly repo?: string | undefined
 }
@@ -225,7 +224,7 @@ async function runBlock(out: BlockOutput, input: BlockInput): Promise<void> {
   const decision = decideBlock({ body: read.body, home, by, wait: input.wait, reason, isLinked: linked !== undefined })
   const result: Omit<z.input<typeof ISSUE_BLOCK_OUTPUT>, 'change' | 'moves'> = { issue: issueReferenceToCliReference(target), by: issueReferenceToCliReference(by), wait: input.wait }
   if (decision.kind === 'malformed') {
-    stopWith(out, hinted`Waits for merge of ${name} is malformed: ${decision.reason}; fix the section in the Issue body and ${surfaceText('run the command again', 'call the tool again')}`, 'content-invalid', CONTENT_EXIT_CODE)
+    stopWith(out, hinted`Waits for merge of ${name} is malformed: ${decision.reason}; fix the section in the Issue body and call the tool again`, 'content-invalid', CONTENT_EXIT_CODE)
   }
   else if (decision.kind === 'unchanged') {
     out.result({ ...result, change: 'unchanged', moves: [] })
@@ -244,10 +243,6 @@ async function runBlock(out: BlockOutput, input: BlockInput): Promise<void> {
     : { verb: 'update', target: `blocked-by ${byName} on ${name} (wait: ${input.wait})` }
   out.planned(operation)
   const change = decision.kind === 'add' ? 'added' : 'updated'
-  if (input.dry_run) {
-    out.result({ ...result, change })
-    return
-  }
 
   if (byId !== undefined && decision.kind === 'add') {
     const blockingId = byId
@@ -257,7 +252,7 @@ async function runBlock(out: BlockOutput, input: BlockInput): Promise<void> {
     out.done(operation)
   }
   if (decision.body !== read.body) {
-    const message = hinted`could not update the body of ${name}${decision.kind === 'add' ? hinted`; blocked-by ${byName} was added, ${surfaceText('run the command again', 'call the tool again')} to write the section` : ''}`
+    const message = hinted`could not update the body of ${name}${decision.kind === 'add' ? hinted`; blocked-by ${byName} was added, call the tool again to write the section` : ''}`
     await wrapped(out, message, async () => {
       await client.updateIssueBody(targetIssue.owner, targetIssue.repository, targetIssue.number, decision.body)
     })
@@ -273,7 +268,6 @@ async function runBlock(out: BlockOutput, input: BlockInput): Promise<void> {
 interface UnblockInput {
   readonly issue_ref: string
   readonly by: string
-  readonly dry_run: boolean
   readonly project?: string | undefined
   readonly repo?: string | undefined
 }
@@ -308,10 +302,6 @@ async function runUnblock(out: UnblockOutput, input: UnblockInput): Promise<void
   }
   const operation: Operation = { verb: 'remove', target: `blocked-by ${byName} from ${name}` }
   out.planned(operation)
-  if (input.dry_run) {
-    out.result({ ...result, change: 'removed' })
-    return
-  }
 
   await wrapped(out, `could not remove blocked-by ${byName} from ${name}`, async () => {
     await client.removeBlockedBy(read.id, linked.id)
@@ -334,8 +324,8 @@ async function runUnblock(out: UnblockOutput, input: UnblockInput): Promise<void
   out.result({ moves: movesOf(written) })
 }
 
-const ISSUE_BLOCK = defineCommand({
-  path: BLOCK_PATH,
+const ISSUE_BLOCK = defineTool({
+  name: 'issue_block',
   title: 'Set Issue blocker',
   description: 'Add a blocked-by (prerequisite) to an Issue, or change the wait kind and reason of an existing one',
   input: z.object({
@@ -344,38 +334,32 @@ const ISSUE_BLOCK = defineCommand({
     wait: z.enum(['stack', 'merge']).default('stack').describe('stack (build on its branch) or merge (wait until it is merged)'),
     reason: z.string().optional().describe('Why it waits for the merge (required when `wait` is merge)'),
     project: PROJECT_INPUT,
-    dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
   output: ISSUE_BLOCK_OUTPUT,
-  positional: ['issue_ref'],
-  interactive: false,
   run: async (input, io) => {
-    const out = createOutput<z.input<typeof ISSUE_BLOCK_OUTPUT>>(input.dry_run, io)
+    const out = createOutput<z.input<typeof ISSUE_BLOCK_OUTPUT>>(false, io)
     return await runWithExit(async () => {
       await runBlock(out, input)
     })
   },
 })
 
-const ISSUE_UNBLOCK = defineCommand({
-  path: UNBLOCK_PATH,
+const ISSUE_UNBLOCK = defineTool({
+  name: 'issue_unblock',
   title: 'Remove Issue blocker',
   description: 'Remove a blocked-by (prerequisite) from an Issue',
   input: z.object({
     issue_ref: z.string().describe(`The waiting Issue. ${ISSUE_REF_DESCRIPTION}`),
     by: z.string().describe('The prerequisite Issue to remove (`owner/repo/N`; another repository is allowed)'),
     project: PROJECT_INPUT,
-    dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
   output: ISSUE_UNBLOCK_OUTPUT,
-  positional: ['issue_ref'],
-  interactive: false,
   run: async (input, io) => {
-    const out = createOutput<z.input<typeof ISSUE_UNBLOCK_OUTPUT>>(input.dry_run, io)
+    const out = createOutput<z.input<typeof ISSUE_UNBLOCK_OUTPUT>>(false, io)
     return await runWithExit(async () => {
       await runUnblock(out, input)
     })
   },
 })
 
-export const ISSUE_DEPENDENCY_COMMANDS: readonly CommandDefinition[] = [ISSUE_BLOCK, ISSUE_UNBLOCK]
+export const ISSUE_DEPENDENCY_TOOLS: readonly ToolDefinition[] = [ISSUE_BLOCK, ISSUE_UNBLOCK]

@@ -1,11 +1,9 @@
 # その名前のワークツリーが無い。exit 1。
 id: worktree-remove-state-not-found
-command:
-  path: [worktree, remove]
-  args:
-    - "wt9"
-    - "-D"
-    - "."
+tool: worktree_remove
+arguments:
+  directory: .
+  name: wt9
 setup:
   repo:
     files:

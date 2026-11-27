@@ -1,7 +1,13 @@
 {
-  "stdout": "",
-  "stderr": "merged: PR acme/demo/31 (develop -> release, merge commit)\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "merged: PR acme/demo/31 (develop -> release, merge commit)",
+  "structuredContent": {
+    "pullRequest": "acme/demo/31",
+    "head": "develop",
+    "base": "release",
+    "deletedBranch": false
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

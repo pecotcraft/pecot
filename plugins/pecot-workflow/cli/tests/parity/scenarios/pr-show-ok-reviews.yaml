@@ -1,10 +1,9 @@
 # --reviews 付きで PR を読む。レビュー本文と行コメントを含む。
 id: pr-show-ok-reviews
-command:
-  path: [pr, show]
-  args:
-    - "acme/demo/21"
-    - "--reviews"
+tool: pr_show
+arguments:
+  reviews: true
+  pr_ref: acme/demo/21
 setup:
   repo:
     files:

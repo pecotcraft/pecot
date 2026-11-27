@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: could not create release v0.2.0 in acme/demo: GitHub API error: 422 Validation Failed\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "could not create release v0.2.0 in acme/demo: GitHub API error: 422 Validation Failed",
+  "structuredContent": {
+    "kind": "github-api",
+    "detail": "could not create release v0.2.0 in acme/demo: GitHub API error: 422 Validation Failed"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "rest",

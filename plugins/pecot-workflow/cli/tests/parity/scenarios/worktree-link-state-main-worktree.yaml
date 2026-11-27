@@ -1,10 +1,8 @@
 # main WT を対象にして --all が無い。exit 1。
 id: worktree-link-state-main-worktree
-command:
-  path: [worktree, link]
-  args:
-    - "-D"
-    - "."
+tool: worktree_link
+arguments:
+  directory: .
 setup:
   repo:
     files:

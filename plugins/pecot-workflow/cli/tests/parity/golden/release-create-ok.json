@@ -1,7 +1,12 @@
 {
-  "stdout": "https://ghes.example.com/acme/demo/releases/tag/v0.2.0\n",
-  "stderr": "created: release v0.2.0 on release\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "created: release v0.2.0 on release",
+  "structuredContent": {
+    "tag": "v0.2.0",
+    "url": "https://ghes.example.com/acme/demo/releases/tag/v0.2.0",
+    "releaseNotes": "### 追加\n\n- 新機能 A\n- 新機能 B"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "rest",

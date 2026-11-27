@@ -6,7 +6,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
-import { ACTION_HINT_COMMANDS, CLI_HINT_COMMANDS } from '@pecot/workflow-core/commands-shared/hint-catalog.js'
+import { ACTION_HINT_COMMANDS, TOOL_HINT_COMMANDS } from '@pecot/workflow-core/commands-shared/hint-catalog.js'
 
 import { explains } from './_helpers/explains.js'
 
@@ -21,14 +21,14 @@ function actionInputs(name: string): string[] {
 }
 
 describe('ACTION_HINT_COMMANDS', () => {
-  it.for(ACTION_HINT_COMMANDS.map(shape => ({ name: shape.path.join('-'), inputs: shape.inputs })))('$name の形の inputs が、action.yml の token 以外の inputs と同じになる', async (row) => {
+  it.for(ACTION_HINT_COMMANDS.map(shape => ({ name: shape.name.replaceAll('_', '-'), inputs: shape.inputs })))('$name の形の inputs が、action.yml の token 以外の inputs と同じになる', async (row) => {
     await explains(`次に打つ操作の案内に使う \`ACTION_HINT_COMMANDS\` の \`${row.name}\` の形のテストです。形の \`inputs\` が、\`${row.name}/action.yml\` の \`token\` を除いた \`inputs\` を snake_case にしたものと一致することを確認します。`)
     expect([...row.inputs].toSorted((first, second) => first.localeCompare(second))).toEqual(actionInputs(row.name))
   })
 
-  it('CLI の形と同じ path を持たない', async () => {
-    await explains('操作の案内に使う `ACTION_HINT_COMMANDS` のテストです。action の形の `path` に、CLI の形の一覧 `CLI_HINT_COMMANDS` と同じものが存在しないことを確認します。')
-    const cliPaths = new Set(CLI_HINT_COMMANDS.map(shape => shape.path.join(' ')))
-    expect(ACTION_HINT_COMMANDS.map(shape => shape.path.join(' ')).filter(name => cliPaths.has(name))).toEqual([])
+  it('ツールの形と同じ name を持たない', async () => {
+    await explains('操作の案内に使う `ACTION_HINT_COMMANDS` のテストです。action の形の `name` に、ツールの形の一覧 `TOOL_HINT_COMMANDS` と同じものが存在しないことを確認します。')
+    const toolNames = new Set(TOOL_HINT_COMMANDS.map(shape => shape.name))
+    expect(ACTION_HINT_COMMANDS.map(shape => shape.name).filter(name => toolNames.has(name))).toEqual([])
   })
 })

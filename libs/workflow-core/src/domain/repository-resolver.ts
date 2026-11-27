@@ -187,7 +187,7 @@ export function resolveRepository(explicit: string | undefined, git: GitRunner):
   const current = readCurrentGitRemote(git)
   if (current?.source === 'unreadable-remote') throw new UnreadableRemoteError(unreadableRemoteReason(current))
   if (current !== undefined) return current
-  // 文を出すのは CLI の最上位（src/cli.ts）だけ。ほかの呼び手は捕まえて undefined にする
+  // 文を出すのはツールの最上位だけ。ほかの呼び手は捕まえて undefined にする
   const repositoryHint = globalRepositoryHint(placeholder('owner/repo'))
-  throw new AmbiguousRepositoryError(formatHinted(hinted`repository is ambiguous: pass ${repositoryHint}`, 'cli'))
+  throw new AmbiguousRepositoryError(formatHinted(hinted`repository is ambiguous: pass ${repositoryHint}`))
 }

@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: PR not found: acme/demo/21\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "PR not found: acme/demo/21",
+  "structuredContent": {
+    "kind": "github-not-found",
+    "detail": "PR not found: acme/demo/21"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

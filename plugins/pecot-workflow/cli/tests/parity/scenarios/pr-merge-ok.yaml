@@ -1,9 +1,8 @@
 # 単独の PR を merge-async でマージする。200 の merged で、結果を読み直さずに終わる。
 id: pr-merge-ok
-command:
-  path: [pr, merge]
-  args:
-    - "acme/demo/21"
+tool: pr_merge
+arguments:
+  pr_ref: acme/demo/21
 setup:
   repo:
     files:

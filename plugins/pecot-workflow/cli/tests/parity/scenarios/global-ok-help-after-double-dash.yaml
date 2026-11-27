@@ -1,8 +1,0 @@
-# -- の後ろの --help はオプションとして解析し直される。golden は Python の出力。
-# Node の help は書式が違うので、stdout を除いて比べる（#362）。
-id: global-ok-help-after-double-dash
-command:
-  path: []
-  args: ["--", "--help"]
-setup: {}
-github: []

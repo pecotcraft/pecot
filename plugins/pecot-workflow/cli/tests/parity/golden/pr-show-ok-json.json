@@ -1,7 +1,36 @@
 {
-  "stdout": "{\n  \"number\": 21,\n  \"state\": \"OPEN\",\n  \"title\": \"feat(demo): #12 見本の変更\",\n  \"body\": \"本文の 1 行目\\n\\nRefs #3\\n\",\n  \"head_ref\": \"feat/demo/12\",\n  \"base_ref\": \"main\",\n  \"is_draft\": true,\n  \"mergeable\": \"MERGEABLE\",\n  \"comments\": 2,\n  \"closing_issues\": [\n    {\n      \"number\": 12,\n      \"title\": \"見本の Issue\"\n    }\n  ],\n  \"referenced_issues\": [\n    {\n      \"number\": 3,\n      \"title\": \"\"\n    }\n  ],\n  \"reviews\": [\n    {\n      \"state\": \"APPROVED\",\n      \"author\": \"reviewer\"\n    }\n  ]\n}\n",
+  "isError": false,
+  "text": "{",
+  "structuredContent": {
+    "number": 21,
+    "state": "OPEN",
+    "title": "feat(demo): #12 見本の変更",
+    "body": "本文の 1 行目\n\nRefs #3\n",
+    "head_ref": "feat/demo/12",
+    "base_ref": "main",
+    "is_draft": true,
+    "mergeable": "MERGEABLE",
+    "comments": 2,
+    "closing_issues": [
+      {
+        "number": 12,
+        "title": "見本の Issue"
+      }
+    ],
+    "referenced_issues": [
+      {
+        "number": 3,
+        "title": ""
+      }
+    ],
+    "reviews": [
+      {
+        "state": "APPROVED",
+        "author": "reviewer"
+      }
+    ]
+  },
   "stderr": "",
-  "exitCode": 0,
   "requests": [
     {
       "type": "graphql",

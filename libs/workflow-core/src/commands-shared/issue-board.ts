@@ -245,7 +245,7 @@ export async function applyBoardMove(
 }
 
 /**
-applyBoardMove と同じ文を、書かずに予定の行として出す（--dry-run）。予定の列と札を返し、どちらも無ければ undefined
+applyBoardMove と同じ文を、書かずに予定の行として出す。予定の列と札を返し、どちらも無ければ undefined
 */
 export function planBoardMove(out: Readonly<Output>, target: MoveTarget, move: Readonly<BoardMove>, text: string): BoardMoveLine | undefined {
   const name = displayReference(target.ref, target.home)

@@ -161,46 +161,6 @@ def test_nx_env_inputs_skips_unrelated_paths(script_dir: Path, changed_path: str
         assert not pattern.search(changed_path)
 
 
-@allure.title("{changed_path} を変更すると、check-runtime-lock が起動する")
-@pytest.mark.parametrize(
-    "changed_path",
-    [
-        "pnpm-lock.yaml",
-        "pnpm-workspace.yaml",
-        "package.json",
-        "plugins/pecot-tools/cli/package.json",
-        "plugins/pecot-workflow/runtime-lock.yaml",
-        "libs/text-rules/runtime-workspace.yaml",
-        ".githooks/scripts/gen-runtime-lock.mjs",
-    ],
-)
-def test_check_runtime_lock_runs_when_its_inputs_change(
-    script_dir: Path, changed_path: str
-) -> None:
-    """ランタイムの lock を検証する hook の `files` のテストです。lock と workspace の定義、生成スクリプトのパスが、`check-runtime-lock` の `files` の正規表現に一致することを確認します。"""
-    with allure.step("check-runtime-lock の files の正規表現を読む"):
-        pattern = _hook_files_pattern(script_dir, "check-runtime-lock")
-    with allure.step("変更したパスに一致することを確かめる"):
-        assert pattern.search(changed_path), (
-            f"check-runtime-lock の files が {changed_path} に一致しない"
-        )
-
-
-@allure.title("{changed_path} を変更しても、check-runtime-lock は起動しない")
-@pytest.mark.parametrize(
-    "changed_path",
-    ["README.md", "plugins/pecot-visual/cli/src/main.ts", "plugins/pecot-tools/pnpm-lock.yml"],
-)
-def test_check_runtime_lock_skips_unrelated_paths(script_dir: Path, changed_path: str) -> None:
-    """ランタイムの lock を検証する hook の `files` のテストです。無関係なパスが、`check-runtime-lock` の `files` の正規表現に一致しないことを確認します。"""
-    with allure.step("check-runtime-lock の files の正規表現を読む"):
-        pattern = _hook_files_pattern(script_dir, "check-runtime-lock")
-    with allure.step("関係の無いパスに一致しないことを確かめる"):
-        assert not pattern.search(changed_path), (
-            f"check-runtime-lock の files が {changed_path} に一致する"
-        )
-
-
 @allure.title("{changed_path} を変更すると、plugin-validate が起動する")
 @pytest.mark.parametrize(
     "changed_path",

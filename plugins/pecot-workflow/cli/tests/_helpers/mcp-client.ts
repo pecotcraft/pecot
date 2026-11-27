@@ -5,7 +5,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/client'
 import type { McpServer } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 
-import type { CommandDefinition } from '../../src/commands/registry.js'
+import type { ToolDefinition } from '../../src/commands/registry.js'
 import { standardOutputSchema } from '../../src/mcp/result.js'
 import { createMcpServer } from '../../src/mcp/server.js'
 import { AttachingClient } from './attaching-client.js'
@@ -97,11 +97,11 @@ const awaitAsIs: Settle = async pending => await pending
 const FAKE_DELAY_REQUEST_TIMEOUT = 24 * 60 * 60 * 1000
 
 /**
-commands から MCP のサーバを作り、同じプロセスの中のクライアントからツールを 1 回呼んで、成否と structuredContent を返す。cwd は呼ぶ側が決める。
+tools から MCP のサーバを作り、同じプロセスの中のクライアントからツールを 1 回呼んで、成否と structuredContent を返す。cwd は呼ぶ側が決める。
 失敗の detail が空か、行が `error: ` で始まれば例外（実物のコマンドの失敗は、どれも読める文を持つ）
 */
-export async function callToolOnce(commands: readonly CommandDefinition[], name: string, arguments_: Readonly<Record<string, unknown>>, settle: Settle = awaitAsIs): Promise<ToolOutcome> {
-  const connected = await connectInMemory(createMcpServer(commands))
+export async function callToolOnce(tools: readonly ToolDefinition[], name: string, arguments_: Readonly<Record<string, unknown>>, settle: Settle = awaitAsIs): Promise<ToolOutcome> {
+  const connected = await connectInMemory(createMcpServer(tools))
   try {
     const result = await settle(connected.client.callTool({ name, arguments: { ...arguments_ } }, settle === awaitAsIs ? undefined : { timeout: FAKE_DELAY_REQUEST_TIMEOUT }))
     const outcome = toolOutcomeOf(result)

@@ -1,10 +1,8 @@
 # ブランチ feat/demo/7 と origin から作業中の Issue を求め、GetIssueSlim が 200 を返す。Issue の本文を出す。
 id: session-show-ok
-command:
-  path: [session, show]
-  args:
-    - "-D"
-    - "."
+tool: session_show
+arguments:
+  directory: .
 setup:
   repo:
     branch: feat/demo/7

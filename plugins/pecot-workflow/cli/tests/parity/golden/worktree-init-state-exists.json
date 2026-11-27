@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: worktree config already exists\n  {{TMP}}/base/demo/.pecot/config/worktree-config.json\n  {{TMP}}/base/demo/.pecot/config/.worktreeignore\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "worktree config already exists\n  {{TMP}}/base/demo/.pecot/config/worktree-config.json\n  {{TMP}}/base/demo/.pecot/config/.worktreeignore",
+  "structuredContent": {
+    "kind": "already-exists",
+    "detail": "worktree config already exists\n  {{TMP}}/base/demo/.pecot/config/worktree-config.json\n  {{TMP}}/base/demo/.pecot/config/.worktreeignore"
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/.worktreeignore": ".pecot/\n",

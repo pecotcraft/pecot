@@ -1,7 +1,6 @@
 # 必須の引数（Issue 参照）が無い。typer の使い方エラーを rich の表示のまま記録する。
 id: issue-show-usage
-command:
-  path: [issue, show]
-  args: []
+tool: issue_show
+arguments: {}
 setup: {}
 github: []

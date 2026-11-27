@@ -12,7 +12,6 @@ import {
   attributeInputs,
   builtinBody,
   builtinOutcome,
-  changeJson,
   changeLine,
   checkAttributes,
   reportAttributeErrors,
@@ -21,8 +20,8 @@ import {
   writeProjectFields,
 } from './attribute-writes.js'
 import type { AttributeOutcome } from './attribute-writes.js'
-import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
 import { createAuthenticatedGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
@@ -42,23 +41,18 @@ type IssueEditJson = z.input<typeof ISSUE_EDIT_OUTPUT>
 
 const EMPTY: IssueEditJson = { changed: [], errors: [], failed: [] }
 
-const ISSUE_EDIT = defineCommand({
-  path: EDIT_PATH,
+const ISSUE_EDIT = defineTool({
+  name: 'issue_edit',
   title: 'Edit Issue attributes',
   description: 'Write, change or remove the values of the attributes of an Issue by name (the attributes that issue_attributes lists)',
   input: z.object({
     issue_ref: z.string().describe(ISSUE_REF_DESCRIPTION),
     attributes: ATTRIBUTES_INPUT.describe('Attributes to write: name, value (null removes it) and, only when the same name is in several sources, source'),
     project: PROJECT_INPUT,
-    dry_run: z.boolean().default(false).describe('Check the values and show what would change without writing anything'),
   }),
   output: ISSUE_EDIT_OUTPUT,
-  positional: ['issue_ref'],
-  shortFlags: { dry_run: '-n' },
-  aliases: { attributes: '--attribute' },
-  interactive: false,
   run: async (input, io) => {
-    const output = createOutput<IssueEditJson>(input.dry_run, io)
+    const output = createOutput<IssueEditJson>(false, io)
     return await runWithExit(async () => {
       const issue = parseIssueReferenceOrExit(output, input.repo, input.issue_ref)
       const { owner, repository, number } = issue
@@ -79,10 +73,6 @@ const ISSUE_EDIT = defineCommand({
           return stopWith(output, `did not write the attributes of ${target}`, 'invalid-input')
         }
         const { writes } = validation
-        if (input.dry_run) {
-          report(output, target, { changed: writes.map(write => changeJson(write)), failed: [] })
-          return
-        }
         const builtins = builtinBody(writes)
         const parts: AttributeOutcome[] = []
         if (builtins.length > 0) {
@@ -108,7 +98,7 @@ const ISSUE_EDIT = defineCommand({
   },
 })
 
-// 結果を set・warning の行と箇条書きに出す。dry-run では書く予定を出す。
+// 結果を set・warning の行と箇条書きに出す。
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の input の型は配列が可変
 function report(output: Readonly<Output<IssueEditJson>>, target: string, outcome: Readonly<AttributeOutcome>): void {
   output.result({ changed: [...outcome.changed], errors: [], failed: [...outcome.failed] })
@@ -122,4 +112,4 @@ function report(output: Readonly<Output<IssueEditJson>>, target: string, outcome
   if (outcome.failed.length > 0) stopWith(output, `could not write ${String(outcome.failed.length)} attribute(s) of ${target}`, 'partial-failure')
 }
 
-export const ISSUE_EDIT_COMMANDS: readonly CommandDefinition[] = [ISSUE_EDIT]
+export const ISSUE_EDIT_TOOLS: readonly ToolDefinition[] = [ISSUE_EDIT]

@@ -28,7 +28,7 @@ hook を足す・外す・stage を変えるときは、config と表を同じ�
 
 | 検証 | 置き場 | 所要の目安 | 理由 |
 |---|---|---|---|
-| `check-forbidden-dirs`・`check-root-entries`・`check-misplaced-pecot`・`check-version-plan-format`・`check-release-group-changelog`・`check-runtime-lock`・`check-engines-node-drift`・`check-skill-doc-direct-call`・`check-entry-point-logic`・`check-pytest-titles`（単機能ガード） | pre-commit（CI でも動く） | 秒未満 | 秒未満で、commit の前に止めたい |
+| `check-forbidden-dirs`・`check-root-entries`・`check-misplaced-pecot`・`check-version-plan-format`・`check-release-group-changelog`・`check-engines-node-drift`・`check-skill-doc-direct-call`・`check-entry-point-logic`・`check-pytest-titles`（単機能ガード） | pre-commit（CI でも動く） | 秒未満 | 秒未満で、commit の前に止めたい |
 | `check-text` | pre-commit（CI でも動く） | 平均 0.5 秒・最大 0.7 秒 | 同上 |
 | `nx-affected-lint` | pre-commit（CI でも動く） | 平均 10 秒・最大 87 秒 | staged に絞れて速く、commit の前に直せる |
 | `githooks-lint` | pre-commit（CI でも動く） | 数秒（記録なし） | 対象のファイルのときだけ動く |
