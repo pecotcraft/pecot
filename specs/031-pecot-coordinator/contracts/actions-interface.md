@@ -39,13 +39,13 @@
 | `stack-register` | スタック PR を登録する（Stacks API） | `pr`・`parent_pr` | w-pr | `GITHUB_TOKEN`（試したときは contents・issues・pull-requests の write） |
 | `project-fields` | ボードのフィールドを作る・名前を変える・消す・選択肢を直す | `project`・`changes`（書く中身。何を書くかは pecot-workflow が決める） | w-onboarding | App（Organization projects: write） |
 | `project-view` | ビューの列と行の分け方を決める（REST の views） | `project`・ビューの名前・列と行の欄 | w-onboarding | App（Organization projects: write） |
-| `project-link` | リポをボードにつなぐ | `project`・`repo` | w-onboarding・w-repo-add | App（エージェントの App と同じ権限で通った。リポのどの write が要るかは切り分けていない） |
+| `project-link` | リポをボードにつなぐ | `project`・`repo` | w-onboarding・w-repo-add | App（Organization projects: write・Contents: write） |
 | `repo-settings` | リポの `delete_branch_on_merge` を返す | なし | w-onboarding・w-repo-add | `GITHUB_TOKEN`（contents の write。merge の設定は read では返らない） |
 | `workflow-doctor` | Actions の secret と variable の名前と、置いた雛形の目印を返す。足りるかの判定は pecot-workflow がする | なし | w-onboarding | App（Secrets: read・Variables: read） |
 | `release-create` | リリースを作る | `tag`・`sha`・`body`（本文の文字）・`name`・`prerelease` | w-release | App（Contents: write）。`GITHUB_TOKEN` で作ると、利用者のリポの `on: release` のワークフローが動かない |
 
 - `GITHUB_TOKEN` からは組織のボードが見えない（`projectV2` が null、ビューの作成は 403）。ボードを触る operation は App で動かす
-- `project-link` は、Organization projects: write とリポの read を持つ App では FORBIDDEN だった。リポの write も持つエージェントの App では通った
+- `project-link` は、Organization projects: write に Contents: write を足すと通った。Contents の代わりに Issues か Pull requests の write を足しても FORBIDDEN だった（#793 の CUJ）
 - `workflow-doctor` は、`GITHUB_TOKEN` に Secrets・Variables の権限が無い。試した 2 つの App にも付いていなかったので、通るところは確かめていない
 - `GITHUB_TOKEN` が起こすイベントは、新しい run を作らない（`workflow_dispatch`・`repository_dispatch` を除く）。`link-branch` で作ったブランチは、利用者のリポの `create`・`push` のワークフローを起こさない
 - `params` は JSON の文字列で受ける。結果は job のログの `PECOT_RESULT {"operation","request_id","ok","result"|"error"}` の 1 行で返し、失敗なら job も失敗にする。スキルは `run-name` の `request_id` で run を探す
