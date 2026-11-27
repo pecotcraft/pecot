@@ -460,14 +460,17 @@ describe('auto のワークフローの雛形', () => {
   })
 
   it('pecot の 4 つの action はリリースのタグで指し、npx で CLI を取らない', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。pecot の 4 つの action をリリースのタグで指定し、`npx` で CLI を取得しないことを確認します。')
-    const pecotUses = Array.from(template.matchAll(/uses: (pecotcraft\/pecot\/actions\/[a-z-]+)@(\S+)$/gm), match => [match[1], match[2]])
-    expect(pecotUses).toEqual([
-      [`${actions}/auto-gate`, 'pecot-actions/v0.0.0'],
-      [`${actions}/auto-start`, 'pecot-actions/v0.0.0'],
-      [`${actions}/auto-finish`, 'pecot-actions/v0.0.0'],
-      [`${actions}/auto-finish`, 'pecot-actions/v0.0.0'],
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。pecot の 4 つの action を、どれも同じ `pecot-actions/v<版>` のリリースのタグで指定し、`npx` で CLI を取得しないことを確認します。')
+    const pecotUses = Array.from(template.matchAll(/uses: (pecotcraft\/pecot\/actions\/[a-z-]+)@(\S+)$/gm), match => ({ action: match[1], tag: match[2] ?? '' }))
+    expect(pecotUses.map(({ action }) => action)).toEqual([
+      `${actions}/auto-gate`,
+      `${actions}/auto-start`,
+      `${actions}/auto-finish`,
+      `${actions}/auto-finish`,
     ])
+    // 版の値と actions/package.json の一致は actions/tests/templates.test.ts が確かめる。
+    expect(new Set(pecotUses.map(({ tag }) => tag)).size).toBe(1)
+    expect(pecotUses[0]?.tag).toMatch(/^pecot-actions\/v\d+\.\d+\.\d+$/)
     expect(template).not.toMatch(/\bnpx\b/)
   })
 
