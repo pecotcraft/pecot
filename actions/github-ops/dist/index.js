@@ -7050,12 +7050,12 @@ function parseJsonText(text) {
     }
 }
 
-// 出力の文に添える、次に打つコマンドの案内。案内はコマンドの path と入力のデータで持ち、CLI の行か MCP のツールの呼び方にする。
-// コマンドの形（位置引数・入力名）は commands/registry.ts が registerHintCommands で登録する。
+// 出力の文に添える、次に呼ぶツールの案内。案内はツールの path と入力のデータで持ち、ツール名と入力の呼び方（`call x with a: "b"`）に描く。
+// ツールの形（入力名）は commands/registry.ts と hint-catalog.ts が registerHintCommands で登録する。
 const catalog = new Map();
 function registerHintCommands(shapes) {
     for (const shape of shapes)
-        catalog.set(shape.path.join(' '), shape);
+        catalog.set(shape.name, shape);
 }
 function commandHint(path, input = {}) {
     return { kind: 'command', path, input };
@@ -7063,18 +7063,15 @@ function commandHint(path, input = {}) {
 function placeholder(name) {
     return { placeholder: name };
 }
-function surfaceText(cli, mcp) {
-    return { kind: 'text', cli, mcp };
-}
 /**
-案内の前置き。CLI は `run: <コマンド>`、MCP は `call <ツール>`
+案内の前置き。`call <ツール>`
 */
-const RUN_COLON = surfaceText('run: ', 'call ');
+const RUN_COLON = 'call ';
 function isHint(value) {
     return typeof value === 'object' && value !== null && 'kind' in value;
 }
 /**
-タグ付きテンプレートで HintedText を作る。`hinted\`run: ${commandHint(['project', 'init'])}\``
+タグ付きテンプレートで HintedText を作る。`hinted\`call ${commandHint(['project', 'init'])}\``
 */
 function hinted(strings, ...values) {
     return strings.flatMap((text, index) => {
@@ -7087,19 +7084,14 @@ function hinted(strings, ...values) {
     });
 }
 function shapeOf(path) {
-    const shape = catalog.get(path.join(' '));
+    const shape = catalog.get(path.join('_'));
     if (shape === undefined)
-        throw new TypeError(`案内のコマンド '${path.join(' ')}' が定義に無い`);
+        throw new TypeError(`案内のツール '${path.join('_')}' が定義に無い`);
     return shape;
 }
-function assertInput(shape, name, surface) {
-    // 自分の --repo を持たないコマンドの repo は、グローバルの --repo
-    if (name === 'repo' && !shape.hasOwnRepo)
-        return;
+function assertInput(shape, name) {
     if (!shape.inputs.includes(name))
-        throw new TypeError(`案内の入力 '${name}' が '${shape.path.join(' ')}' の定義に無い`);
-    if (surface === 'mcp' && shape.cliOnly.includes(name))
-        throw new TypeError(`案内の入力 '${name}' は '${shape.path.join(' ')}' の CLI だけの入力で、MCP に出せない`);
+        throw new TypeError(`案内の入力 '${name}' が '${shape.name}' の定義に無い`);
 }
 function isList(value) {
     return Array.isArray(value);
@@ -7107,81 +7099,38 @@ function isList(value) {
 function isPlaceholder(value) {
     return typeof value === 'object' && !isList(value);
 }
-// シェルにそのまま渡せない値は、単一引用符で包む
-function cliValue(value) {
-    if (typeof value === 'number')
-        return String(value);
-    if (typeof value === 'object')
-        return `<${value.placeholder}>`;
-    return /^[\w./:@=+,-]+$/u.test(value) ? value : `'${value.replaceAll('\'', String.raw `'\''`)}'`;
-}
-function mcpValue(value) {
+function valueText(value) {
     if (isPlaceholder(value))
         return `<${value.placeholder}>`;
     return typeof value === 'string' || isList(value) ? JSON.stringify(value) : String(value);
 }
-function flagOf(name) {
-    return `--${name.replaceAll('_', '-')}`;
-}
-function cliOption(name, value) {
-    const flag = flagOf(name);
-    if (typeof value === 'boolean') {
-        if (!value)
-            throw new TypeError(`案内の入力 '${name}' に false は出せない`);
-        return [flag];
-    }
-    return isList(value) ? value.flatMap((item) => [flag, cliValue(item)]) : [flag, cliValue(value)];
-}
-function cliPositional(value) {
-    if (typeof value === 'boolean')
-        throw new TypeError('位置引数に真偽値は出せない');
-    return isList(value) ? value.map((item) => cliValue(item)) : [cliValue(value)];
-}
-function formatCommand(hint, surface) {
+function formatCommand(hint) {
     const shape = shapeOf(hint.path);
-    const values = new Map(Object.entries(hint.input));
-    const names = Object.keys(hint.input);
-    for (const name of names)
-        assertInput(shape, name, surface);
-    const ordered = [...shape.positional.filter(name => names.includes(name)), ...names.filter(name => !shape.positional.includes(name))];
-    const valueOf = (name) => values.get(name) ?? '';
-    if (surface === 'mcp') {
-        const tool = hint.path.join('_');
-        return ordered.length === 0 ? tool : `${tool} with ${ordered.map(name => `${name}: ${mcpValue(valueOf(name))}`).join(', ')}`;
-    }
-    const globalRepository = !shape.hasOwnRepo && names.includes('repo') ? cliOption('repo', valueOf('repo')) : [];
-    const words = ordered.filter(name => globalRepository.length === 0 || name !== 'repo').flatMap(name => shape.positional.includes(name) ? cliPositional(valueOf(name)) : cliOption(name, valueOf(name)));
-    return ['pecot', ...globalRepository, ...hint.path, ...words].join(' ');
+    const entries = Object.entries(hint.input);
+    for (const [name] of entries)
+        assertInput(shape, name);
+    const tool = hint.path.join('_');
+    return entries.length === 0 ? tool : `${tool} with ${entries.map(([name, value]) => `${name}: ${valueText(value)}`).join(', ')}`;
 }
 /**
-案内 1 つを出し先の形にする。定義に無い path・入力名は TypeError
+案内 1 つをツールの呼び方にする。定義に無い path・入力名は TypeError
 */
-function formatHint(hint, surface) {
+function formatHint(hint) {
     if (hint.kind === 'command')
-        return formatCommand(hint, surface);
-    if (hint.kind === 'text')
-        return surface === 'mcp' ? hint.mcp : hint.cli;
+        return formatCommand(hint);
     if (hint.kind === 'input')
-        assertInput(shapeOf(hint.path), hint.name, surface);
+        assertInput(shapeOf(hint.path), hint.name);
     const name = hint.kind === 'input' ? hint.name : 'repo';
-    const { value } = hint;
-    switch (surface) {
-        case 'mcp': {
-            return value === undefined ? name : `${name}: ${mcpValue(value)}`;
-        }
-        case 'cli': {
-            return value === undefined ? flagOf(name) : cliOption(name, value).join(' ');
-        }
-    }
+    return hint.value === undefined ? name : `${name}: ${valueText(hint.value)}`;
 }
-function formatHinted(text, surface) {
-    return typeof text === 'string' ? text : text.map(part => typeof part === 'string' ? part : formatHint(part, surface)).join('');
+function formatHinted(text) {
+    return typeof text === 'string' ? text : text.map(part => typeof part === 'string' ? part : formatHint(part)).join('');
 }
 function isHintedText(value) {
     return Array.isArray(value) && value.every((part) => typeof part === 'string' || isHint(part));
 }
 /**
-例外が持つ案内（hintedText）。最上位はこれを出し先の形で描き直す。無ければ undefined
+例外が持つ案内（hintedText）。無ければ undefined
 */
 function hintedTextOf(error) {
     if (typeof error !== 'object' || error === null || !('hintedText' in error))
@@ -7366,7 +7315,6 @@ function toOsError(error, fallbackPath) {
     return new OsError(message, error.code, errorPath, { cause: error });
 }
 
-// git の標準エラーを失敗の文に埋めるときの形。CLI は全文、MCP は理由の行だけにし、全文は log に渡す。
 /**
 例外が持つ子プロセスの生の出力（log）。無いか空なら undefined
 */
@@ -7377,7 +7325,7 @@ function logOf(error) {
     return typeof log === 'string' && log.trim() !== '' ? log : undefined;
 }
 
-// CLI の出力の行をそろえる共通の関数。
+// ツールの出力の行をそろえる共通の関数。
 //
 // 行の形は specs/021-cli-output-functions/contracts/output-lines.md が決める。
 // コマンドは操作（動詞と対象）を 1 つ作り、実行の前に planned を、実行の後に done を呼ぶ。
@@ -7444,8 +7392,10 @@ function formatMessage(prefix, message) {
     const lines = message.replace(/\n+$/, '').split('\n');
     return `${prefix}${lines.join('\n  ')}\n`;
 }
+function render(message) {
+    return formatHinted(message);
+}
 function createOutput(isDryRun, io) {
-    const render = (message) => formatHinted(message, io.surface ?? 'cli');
     const writeResult = (line, aside) => {
         io.stderr(`${line}\n`);
         if (aside !== true)
@@ -7490,7 +7440,7 @@ function createOutput(isDryRun, io) {
     };
 }
 /**
-確認の途中で入力が終わった（Python の click の Abort）。
+確認が要る所で止めた（Python の click の Abort）。
 code を持たせない（link の処理は code を持つ例外を握るため、これは握られずに最上位まで届く）
 */
 class AbortedError extends Error {
@@ -7500,522 +7450,8 @@ class AbortedError extends Error {
     }
 }
 
-// rich の Unicode 幅の表（unicode 17.0.0）。生成物なので手で直さない。
-// 再生成: Python の rich で `rich._unicode_data.load('latest')` の widths と narrow_to_wide を書き出す。
-// widths は [開始, 終了, セル数] の並びで、表に無い文字は 1 セルになる。
-const CELL_WIDTHS = [
-    [0, 0, 0],
-    [768, 879, 0],
-    [1155, 1161, 0],
-    [1425, 1469, 0],
-    [1471, 1471, 0],
-    [1473, 1474, 0],
-    [1476, 1477, 0],
-    [1479, 1479, 0],
-    [1552, 1562, 0],
-    [1564, 1564, 0],
-    [1611, 1631, 0],
-    [1648, 1648, 0],
-    [1750, 1756, 0],
-    [1759, 1764, 0],
-    [1767, 1768, 0],
-    [1770, 1773, 0],
-    [1809, 1809, 0],
-    [1840, 1866, 0],
-    [1958, 1968, 0],
-    [2027, 2035, 0],
-    [2045, 2045, 0],
-    [2070, 2073, 0],
-    [2075, 2083, 0],
-    [2085, 2087, 0],
-    [2089, 2093, 0],
-    [2137, 2139, 0],
-    [2199, 2207, 0],
-    [2250, 2273, 0],
-    [2275, 2307, 0],
-    [2362, 2364, 0],
-    [2366, 2383, 0],
-    [2385, 2391, 0],
-    [2402, 2403, 0],
-    [2433, 2435, 0],
-    [2492, 2492, 0],
-    [2494, 2500, 0],
-    [2503, 2504, 0],
-    [2507, 2509, 0],
-    [2519, 2519, 0],
-    [2530, 2531, 0],
-    [2558, 2558, 0],
-    [2561, 2563, 0],
-    [2620, 2620, 0],
-    [2622, 2626, 0],
-    [2631, 2632, 0],
-    [2635, 2637, 0],
-    [2641, 2641, 0],
-    [2672, 2673, 0],
-    [2677, 2677, 0],
-    [2689, 2691, 0],
-    [2748, 2748, 0],
-    [2750, 2757, 0],
-    [2759, 2761, 0],
-    [2763, 2765, 0],
-    [2786, 2787, 0],
-    [2810, 2815, 0],
-    [2817, 2819, 0],
-    [2876, 2876, 0],
-    [2878, 2884, 0],
-    [2887, 2888, 0],
-    [2891, 2893, 0],
-    [2901, 2903, 0],
-    [2914, 2915, 0],
-    [2946, 2946, 0],
-    [3006, 3010, 0],
-    [3014, 3016, 0],
-    [3018, 3021, 0],
-    [3031, 3031, 0],
-    [3072, 3076, 0],
-    [3132, 3132, 0],
-    [3134, 3140, 0],
-    [3142, 3144, 0],
-    [3146, 3149, 0],
-    [3157, 3158, 0],
-    [3170, 3171, 0],
-    [3201, 3203, 0],
-    [3260, 3260, 0],
-    [3262, 3268, 0],
-    [3270, 3272, 0],
-    [3274, 3277, 0],
-    [3285, 3286, 0],
-    [3298, 3299, 0],
-    [3315, 3315, 0],
-    [3328, 3331, 0],
-    [3387, 3388, 0],
-    [3390, 3396, 0],
-    [3398, 3400, 0],
-    [3402, 3405, 0],
-    [3415, 3415, 0],
-    [3426, 3427, 0],
-    [3457, 3459, 0],
-    [3530, 3530, 0],
-    [3535, 3540, 0],
-    [3542, 3542, 0],
-    [3544, 3551, 0],
-    [3570, 3571, 0],
-    [3633, 3633, 0],
-    [3636, 3642, 0],
-    [3655, 3662, 0],
-    [3761, 3761, 0],
-    [3764, 3772, 0],
-    [3784, 3790, 0],
-    [3864, 3865, 0],
-    [3893, 3893, 0],
-    [3895, 3895, 0],
-    [3897, 3897, 0],
-    [3902, 3903, 0],
-    [3953, 3972, 0],
-    [3974, 3975, 0],
-    [3981, 3991, 0],
-    [3993, 4028, 0],
-    [4038, 4038, 0],
-    [4139, 4158, 0],
-    [4182, 4185, 0],
-    [4190, 4192, 0],
-    [4194, 4196, 0],
-    [4199, 4205, 0],
-    [4209, 4212, 0],
-    [4226, 4237, 0],
-    [4239, 4239, 0],
-    [4250, 4253, 0],
-    [4352, 4447, 2],
-    [4448, 4607, 0],
-    [4957, 4959, 0],
-    [5906, 5909, 0],
-    [5938, 5940, 0],
-    [5970, 5971, 0],
-    [6002, 6003, 0],
-    [6068, 6099, 0],
-    [6109, 6109, 0],
-    [6155, 6159, 0],
-    [6277, 6278, 0],
-    [6313, 6313, 0],
-    [6432, 6443, 0],
-    [6448, 6459, 0],
-    [6679, 6683, 0],
-    [6741, 6750, 0],
-    [6752, 6780, 0],
-    [6783, 6783, 0],
-    [6832, 6877, 0],
-    [6880, 6891, 0],
-    [6912, 6916, 0],
-    [6964, 6980, 0],
-    [7019, 7027, 0],
-    [7040, 7042, 0],
-    [7073, 7085, 0],
-    [7142, 7155, 0],
-    [7204, 7223, 0],
-    [7376, 7378, 0],
-    [7380, 7400, 0],
-    [7405, 7405, 0],
-    [7412, 7412, 0],
-    [7415, 7417, 0],
-    [7616, 7679, 0],
-    [8203, 8207, 0],
-    [8232, 8238, 0],
-    [8288, 8303, 0],
-    [8400, 8432, 0],
-    [8986, 8987, 2],
-    [9001, 9002, 2],
-    [9193, 9196, 2],
-    [9200, 9200, 2],
-    [9203, 9203, 2],
-    [9725, 9726, 2],
-    [9748, 9749, 2],
-    [9776, 9783, 2],
-    [9800, 9811, 2],
-    [9855, 9855, 2],
-    [9866, 9871, 2],
-    [9875, 9875, 2],
-    [9889, 9889, 2],
-    [9898, 9899, 2],
-    [9917, 9918, 2],
-    [9924, 9925, 2],
-    [9934, 9934, 2],
-    [9940, 9940, 2],
-    [9962, 9962, 2],
-    [9970, 9971, 2],
-    [9973, 9973, 2],
-    [9978, 9978, 2],
-    [9981, 9981, 2],
-    [9989, 9989, 2],
-    [9994, 9995, 2],
-    [10_024, 10_024, 2],
-    [10_060, 10_060, 2],
-    [10_062, 10_062, 2],
-    [10_067, 10_069, 2],
-    [10_071, 10_071, 2],
-    [10_133, 10_135, 2],
-    [10_160, 10_160, 2],
-    [10_175, 10_175, 2],
-    [11_035, 11_036, 2],
-    [11_088, 11_088, 2],
-    [11_093, 11_093, 2],
-    [11_503, 11_505, 0],
-    [11_647, 11_647, 0],
-    [11_744, 11_775, 0],
-    [11_904, 11_929, 2],
-    [11_931, 12_019, 2],
-    [12_032, 12_245, 2],
-    [12_272, 12_329, 2],
-    [12_330, 12_335, 0],
-    [12_336, 12_350, 2],
-    [12_353, 12_438, 2],
-    [12_441, 12_442, 0],
-    [12_443, 12_543, 2],
-    [12_549, 12_591, 2],
-    [12_593, 12_643, 2],
-    [12_644, 12_644, 0],
-    [12_645, 12_686, 2],
-    [12_688, 12_773, 2],
-    [12_783, 12_830, 2],
-    [12_832, 12_871, 2],
-    [12_880, 42_124, 2],
-    [42_128, 42_182, 2],
-    [42_607, 42_610, 0],
-    [42_612, 42_621, 0],
-    [42_654, 42_655, 0],
-    [42_736, 42_737, 0],
-    [43_010, 43_010, 0],
-    [43_014, 43_014, 0],
-    [43_019, 43_019, 0],
-    [43_043, 43_047, 0],
-    [43_052, 43_052, 0],
-    [43_136, 43_137, 0],
-    [43_188, 43_205, 0],
-    [43_232, 43_249, 0],
-    [43_263, 43_263, 0],
-    [43_302, 43_309, 0],
-    [43_335, 43_347, 0],
-    [43_360, 43_388, 2],
-    [43_392, 43_395, 0],
-    [43_443, 43_456, 0],
-    [43_493, 43_493, 0],
-    [43_561, 43_574, 0],
-    [43_587, 43_587, 0],
-    [43_596, 43_597, 0],
-    [43_643, 43_645, 0],
-    [43_696, 43_696, 0],
-    [43_698, 43_700, 0],
-    [43_703, 43_704, 0],
-    [43_710, 43_711, 0],
-    [43_713, 43_713, 0],
-    [43_755, 43_759, 0],
-    [43_765, 43_766, 0],
-    [44_003, 44_010, 0],
-    [44_012, 44_013, 0],
-    [44_032, 55_203, 2],
-    [55_216, 55_295, 0],
-    [63_744, 64_255, 2],
-    [64_286, 64_286, 0],
-    [65_024, 65_039, 0],
-    [65_040, 65_049, 2],
-    [65_056, 65_071, 0],
-    [65_072, 65_106, 2],
-    [65_108, 65_126, 2],
-    [65_128, 65_131, 2],
-    [65_279, 65_279, 0],
-    [65_281, 65_376, 2],
-    [65_440, 65_440, 0],
-    [65_504, 65_510, 2],
-    [65_520, 65_531, 0],
-    [66_045, 66_045, 0],
-    [66_272, 66_272, 0],
-    [66_422, 66_426, 0],
-    [68_097, 68_099, 0],
-    [68_101, 68_102, 0],
-    [68_108, 68_111, 0],
-    [68_152, 68_154, 0],
-    [68_159, 68_159, 0],
-    [68_325, 68_326, 0],
-    [68_900, 68_903, 0],
-    [68_969, 68_973, 0],
-    [69_291, 69_292, 0],
-    [69_370, 69_375, 0],
-    [69_446, 69_456, 0],
-    [69_506, 69_509, 0],
-    [69_632, 69_634, 0],
-    [69_688, 69_702, 0],
-    [69_744, 69_744, 0],
-    [69_747, 69_748, 0],
-    [69_759, 69_762, 0],
-    [69_808, 69_818, 0],
-    [69_826, 69_826, 0],
-    [69_888, 69_890, 0],
-    [69_927, 69_940, 0],
-    [69_957, 69_958, 0],
-    [70_003, 70_003, 0],
-    [70_016, 70_018, 0],
-    [70_067, 70_080, 0],
-    [70_089, 70_092, 0],
-    [70_094, 70_095, 0],
-    [70_188, 70_199, 0],
-    [70_206, 70_206, 0],
-    [70_209, 70_209, 0],
-    [70_367, 70_378, 0],
-    [70_400, 70_403, 0],
-    [70_459, 70_460, 0],
-    [70_462, 70_468, 0],
-    [70_471, 70_472, 0],
-    [70_475, 70_477, 0],
-    [70_487, 70_487, 0],
-    [70_498, 70_499, 0],
-    [70_502, 70_508, 0],
-    [70_512, 70_516, 0],
-    [70_584, 70_592, 0],
-    [70_594, 70_594, 0],
-    [70_597, 70_597, 0],
-    [70_599, 70_602, 0],
-    [70_604, 70_608, 0],
-    [70_610, 70_610, 0],
-    [70_625, 70_626, 0],
-    [70_709, 70_726, 0],
-    [70_750, 70_750, 0],
-    [70_832, 70_851, 0],
-    [71_087, 71_093, 0],
-    [71_096, 71_104, 0],
-    [71_132, 71_133, 0],
-    [71_216, 71_232, 0],
-    [71_339, 71_351, 0],
-    [71_453, 71_467, 0],
-    [71_724, 71_738, 0],
-    [71_984, 71_989, 0],
-    [71_991, 71_992, 0],
-    [71_995, 71_998, 0],
-    [72_000, 72_000, 0],
-    [72_002, 72_003, 0],
-    [72_145, 72_151, 0],
-    [72_154, 72_160, 0],
-    [72_164, 72_164, 0],
-    [72_193, 72_202, 0],
-    [72_243, 72_249, 0],
-    [72_251, 72_254, 0],
-    [72_263, 72_263, 0],
-    [72_273, 72_283, 0],
-    [72_330, 72_345, 0],
-    [72_544, 72_551, 0],
-    [72_751, 72_758, 0],
-    [72_760, 72_767, 0],
-    [72_850, 72_871, 0],
-    [72_873, 72_886, 0],
-    [73_009, 73_014, 0],
-    [73_018, 73_018, 0],
-    [73_020, 73_021, 0],
-    [73_023, 73_029, 0],
-    [73_031, 73_031, 0],
-    [73_098, 73_102, 0],
-    [73_104, 73_105, 0],
-    [73_107, 73_111, 0],
-    [73_459, 73_462, 0],
-    [73_472, 73_473, 0],
-    [73_475, 73_475, 0],
-    [73_524, 73_530, 0],
-    [73_534, 73_538, 0],
-    [73_562, 73_562, 0],
-    [78_896, 78_912, 0],
-    [78_919, 78_933, 0],
-    [90_398, 90_415, 0],
-    [92_912, 92_916, 0],
-    [92_976, 92_982, 0],
-    [94_031, 94_031, 0],
-    [94_033, 94_087, 0],
-    [94_095, 94_098, 0],
-    [94_176, 94_179, 2],
-    [94_180, 94_180, 0],
-    [94_192, 94_193, 0],
-    [94_194, 94_198, 2],
-    [94_208, 101_589, 2],
-    [101_631, 101_662, 2],
-    [101_760, 101_874, 2],
-    [110_576, 110_579, 2],
-    [110_581, 110_587, 2],
-    [110_589, 110_590, 2],
-    [110_592, 110_882, 2],
-    [110_898, 110_898, 2],
-    [110_928, 110_930, 2],
-    [110_933, 110_933, 2],
-    [110_948, 110_951, 2],
-    [110_960, 111_355, 2],
-    [113_821, 113_822, 0],
-    [113_824, 113_827, 0],
-    [118_528, 118_573, 0],
-    [118_576, 118_598, 0],
-    [119_141, 119_145, 0],
-    [119_149, 119_170, 0],
-    [119_173, 119_179, 0],
-    [119_210, 119_213, 0],
-    [119_362, 119_364, 0],
-    [119_552, 119_638, 2],
-    [119_648, 119_670, 2],
-    [121_344, 121_398, 0],
-    [121_403, 121_452, 0],
-    [121_461, 121_461, 0],
-    [121_476, 121_476, 0],
-    [121_499, 121_503, 0],
-    [121_505, 121_519, 0],
-    [122_880, 122_886, 0],
-    [122_888, 122_904, 0],
-    [122_907, 122_913, 0],
-    [122_915, 122_916, 0],
-    [122_918, 122_922, 0],
-    [123_023, 123_023, 0],
-    [123_184, 123_190, 0],
-    [123_566, 123_566, 0],
-    [123_628, 123_631, 0],
-    [124_140, 124_143, 0],
-    [124_398, 124_399, 0],
-    [124_643, 124_643, 0],
-    [124_646, 124_646, 0],
-    [124_654, 124_655, 0],
-    [124_661, 124_661, 0],
-    [125_136, 125_142, 0],
-    [125_252, 125_258, 0],
-    [126_980, 126_980, 2],
-    [127_183, 127_183, 2],
-    [127_374, 127_374, 2],
-    [127_377, 127_386, 2],
-    [127_488, 127_490, 2],
-    [127_504, 127_547, 2],
-    [127_552, 127_560, 2],
-    [127_568, 127_569, 2],
-    [127_584, 127_589, 2],
-    [127_744, 127_776, 2],
-    [127_789, 127_797, 2],
-    [127_799, 127_868, 2],
-    [127_870, 127_891, 2],
-    [127_904, 127_946, 2],
-    [127_951, 127_955, 2],
-    [127_968, 127_984, 2],
-    [127_988, 127_988, 2],
-    [127_992, 127_994, 2],
-    [127_995, 127_999, 0],
-    [128_000, 128_062, 2],
-    [128_064, 128_064, 2],
-    [128_066, 128_252, 2],
-    [128_255, 128_317, 2],
-    [128_331, 128_334, 2],
-    [128_336, 128_359, 2],
-    [128_378, 128_378, 2],
-    [128_405, 128_406, 2],
-    [128_420, 128_420, 2],
-    [128_507, 128_591, 2],
-    [128_640, 128_709, 2],
-    [128_716, 128_716, 2],
-    [128_720, 128_722, 2],
-    [128_725, 128_728, 2],
-    [128_732, 128_735, 2],
-    [128_747, 128_748, 2],
-    [128_756, 128_764, 2],
-    [128_992, 129_003, 2],
-    [129_008, 129_008, 2],
-    [129_292, 129_338, 2],
-    [129_340, 129_349, 2],
-    [129_351, 129_535, 2],
-    [129_648, 129_660, 2],
-    [129_664, 129_674, 2],
-    [129_678, 129_734, 2],
-    [129_736, 129_736, 2],
-    [129_741, 129_756, 2],
-    [129_759, 129_770, 2],
-    [129_775, 129_784, 2],
-    [131_072, 196_605, 2],
-    [196_608, 262_141, 2],
-    [917_504, 921_599, 0],
-];
-// 異体字セレクタ U+FE0F が付くと 2 セルになる文字
-const NARROW_TO_WIDE = [
-    35, 42, 48, 49, 50, 51, 52, 53, 54, 55,
-    56, 57, 169, 174, 8252, 8265, 8482, 8505, 8596, 8597,
-    8598, 8599, 8600, 8601, 8617, 8618, 9000, 9167, 9197, 9198,
-    9199, 9201, 9202, 9208, 9209, 9210, 9410, 9642, 9643, 9654,
-    9664, 9723, 9724, 9728, 9729, 9730, 9731, 9732, 9742, 9745,
-    9752, 9757, 9760, 9762, 9763, 9766, 9770, 9774, 9775, 9784,
-    9785, 9786, 9792, 9794, 9823, 9824, 9827, 9829, 9830, 9832,
-    9851, 9854, 9874, 9876, 9877, 9878, 9879, 9881, 9883, 9884,
-    9888, 9895, 9904, 9905, 9928, 9935, 9937, 9939, 9961, 9968,
-    9969, 9972, 9975, 9976, 9977, 9986, 9992, 9993, 9996, 9997,
-    9999, 10_002, 10_004, 10_006, 10_013, 10_017, 10_035, 10_036, 10_052, 10_055,
-    10_083, 10_084, 10_145, 10_548, 10_549, 11_013, 11_014, 11_015, 127_344, 127_345,
-    127_358, 127_359, 127_777, 127_780, 127_781, 127_782, 127_783, 127_784, 127_785, 127_786,
-    127_787, 127_788, 127_798, 127_869, 127_894, 127_895, 127_897, 127_898, 127_899, 127_902,
-    127_903, 127_947, 127_948, 127_949, 127_950, 127_956, 127_957, 127_958, 127_959, 127_960,
-    127_961, 127_962, 127_963, 127_964, 127_965, 127_966, 127_967, 127_987, 127_989, 127_991,
-    128_063, 128_065, 128_253, 128_329, 128_330, 128_367, 128_368, 128_371, 128_372, 128_373,
-    128_374, 128_375, 128_376, 128_377, 128_391, 128_394, 128_395, 128_396, 128_397, 128_400,
-    128_421, 128_424, 128_433, 128_434, 128_444, 128_450, 128_451, 128_452, 128_465, 128_466,
-    128_467, 128_476, 128_477, 128_478, 128_481, 128_483, 128_488, 128_495, 128_499, 128_506,
-    128_715, 128_717, 128_718, 128_719, 128_736, 128_737, 128_738, 128_739, 128_740, 128_741,
-    128_745, 128_752, 128_755,
-];
-
-// 端末向けの枠付き表示。Python の CLI が使っていた表示ライブラリ（rich 15）の折り返し規則を写す。
-//
-// 規則は次のとおり。
-//   - 単語は、前の空白・語・後ろの空白の並び。語が行に収まらなければ次の行へ送る。
-//   - 1 行より長い語は、幅の単位で折る。
-//   - 幅は端末のセル数で数える。幅の表は rich のもの（cell-table.ts）。
-//   - 異体字セレクタ U+FE0F は、直前の文字を 2 セルにする場合がある。ゼロ幅接合子 U+200D は、次の文字を数えない。
-new Set(NARROW_TO_WIDE);
-Math.max(...CELL_WIDTHS.map(([, end]) => end));
-
-// 使い方の誤りの表示。Python の CLI が出していた click の Usage 行・Try 行と、枠付きの Error を写す。
-// 全コマンドの共通部。コマンドの path と引数の書式は、呼び出す側が渡す。
-/**
-使い方の誤り。終了コードは 2。context が無いときは枠だけを出す
-*/
+// 入力の誤り。ツールの結果の文は例外の文そのもので、終了コードは 2。
 class UsageError extends BaseError {
-    context;
-    constructor(message, context) {
-        super(message);
-        this.context = context;
-    }
 }
 
 // コマンドが捕まえなかった例外を、最上位で `error: <message>` の行と終了コード 1 にする（Python の PecotError の網と同じ）。
@@ -12352,12 +11788,11 @@ RepositoryMembership（domain/config.ts）と同じ形の linkedRepositories も
 class GitHubClient extends PullsApi {
 }
 
-// コマンドの定義の型と defineCommand()。コマンドのファイルが import する。
-// registry.ts が COMMANDS を持つために各コマンドのファイルを import するので、循環を避けて定義をここに分ける。
-// グローバルの --repo は、全コマンドの入力 repo として合成する。
+// MCP のツールの定義の型と defineTool()。ツールのファイルが import する。
+// registry.ts が TOOLS を持つために各ツールのファイルを import するので、循環を避けて定義をここに分ける。全ツールの入力に repo を合成する。
 /**
-コマンドの途中で、決めた終了コードで止めるための例外。defineCommand が包む run の 1 か所で捕まえて、戻り値の終了コードにする。
-Python の `typer.Exit(n)` に当たる。`error:` の行や使い方の枠は出さない（出す行は投げる前に書く）ので、PecotError・InvalidValueError・OsError・UsageError は継がない
+ツールの途中で、決めた終了コードで止めるための例外。defineTool が包む run の 1 か所で捕まえて、戻り値の終了コードにする。
+`error:` の行は出さない（出す行は投げる前に書く）ので、PecotError・InvalidValueError・OsError・UsageError は継がない
 */
 class CommandExit extends BaseError {
     exitCode;
@@ -12369,7 +11804,7 @@ class CommandExit extends BaseError {
     }
 }
 /**
-グローバルの --repo を入力にしたもの。全コマンドの入力に足される
+全ツールの入力に足す repo
 */
 const GLOBAL_SHAPE = { repo: string().optional().describe('Target repository, given explicitly as \'owner/repo\'') };
 object(GLOBAL_SHAPE);
@@ -41605,69 +41040,68 @@ function error(message, properties = {}) {
     issueCommand('error', toCommandProperties(properties), message instanceof Error ? message.toString() : message);
 }
 
-// 案内（domain/command-hint.ts）が名指しできるコマンドの形。actions/ は pecot-workflow の registry を持たないので、ここから登録する。
-// CLI_HINT_COMMANDS が registry と同じかは、cli の registry.test.ts が確かめる。
-// ACTION_HINT_COMMANDS が action.yml と合うかは、actions のテストが確かめる。
+// 案内（domain/command-hint.ts）が名指しできるツールの形。actions/ は pecot-workflow の registry を持たないので、ここから登録する。
+// TOOL_HINT_COMMANDS と registry の一致は cli の registry.test.ts が確かめる。ACTION_HINT_COMMANDS と action.yml の一致は actions のテストが確かめる。
 /**
-pecot-workflow の cli の registry.ts が登録するコマンドの形。並びは registry と同じ
+pecot-workflow の MCP のサーバの registry.ts が登録するツールの形。並びは registry と同じ
 */
-const CLI_HINT_COMMANDS = [
-    { path: ['project', 'list'], positional: [], inputs: ['repo'], cliOnly: [], hasOwnRepo: false },
-    { path: ['project', 'search'], positional: ['owner'], inputs: ['owner', 'host', 'repo'], cliOnly: [], hasOwnRepo: false },
-    { path: ['project', 'init'], positional: ['owner', 'name'], inputs: ['owner', 'name', 'host', 'lanes', 'dry_run', 'confirm_delete', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['project', 'create'], positional: ['owner', 'title'], inputs: ['owner', 'title', 'host', 'lanes', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['project', 'activate'], positional: ['project'], inputs: ['project', 'owner', 'host', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['project', 'link'], positional: ['repo'], inputs: ['repo', 'develop_branch', 'release_branch', 'changelog_file', 'package', 'clear_packages', 'release_type', 'dry_run'], cliOnly: ['dry_run'], hasOwnRepo: true },
-    { path: ['project', 'get'], positional: ['key'], inputs: ['key', 'repo'], cliOnly: [], hasOwnRepo: false },
-    { path: ['project', 'set'], positional: ['key', 'value'], inputs: ['key', 'value', 'yes', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['project', 'unset'], positional: ['key'], inputs: ['key', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['board', 'show'], positional: [], inputs: ['json', 'repo'], cliOnly: [], hasOwnRepo: true },
-    { path: ['board', 'add'], positional: ['issue_ref'], inputs: ['issue_ref', 'status', 'project', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['board', 'move'], positional: ['issue_ref', 'status'], inputs: ['issue_ref', 'status', 'project', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['issue', 'create'], positional: ['files'], inputs: ['files', 'message', 'title', 'repo', 'type', 'status', 'parent_epic', 'order', 'label', 'attributes', 'lane', 'freeform', 'project'], cliOnly: [], hasOwnRepo: true },
-    { path: ['issue', 'check'], positional: ['files'], inputs: ['files', 'project', 'repo'], cliOnly: [], hasOwnRepo: false },
-    { path: ['issue', 'show'], positional: ['issue_ref'], inputs: ['issue_ref', 'project', 'json', 'comment_limit', 'repo'], cliOnly: [], hasOwnRepo: false },
-    { path: ['issue', 'attributes'], positional: [], inputs: ['project', 'json', 'repo'], cliOnly: [], hasOwnRepo: false },
-    { path: ['issue', 'edit'], positional: ['issue_ref'], inputs: ['issue_ref', 'attributes', 'project', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['issue', 'comment'], positional: ['file'], inputs: ['file', 'message', 'issue_ref', 'template', 'project', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['issue', 'block'], positional: ['issue_ref'], inputs: ['issue_ref', 'by', 'wait', 'reason', 'project', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['issue', 'unblock'], positional: ['issue_ref'], inputs: ['issue_ref', 'by', 'project', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['issue', 'reopen'], positional: ['issue_ref'], inputs: ['issue_ref', 'status', 'project', 'comment', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['session', 'start'], positional: ['issue_ref', 'branch'], inputs: ['issue_ref', 'branch', 'base', 'checkout', 'dry_run', 'project', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['session', 'show'], positional: [], inputs: ['directory', 'project', 'repo'], cliOnly: [], hasOwnRepo: false },
-    { path: ['session', 'finish'], positional: ['pr_ref'], inputs: ['pr_ref', 'dry_run', 'delete_branch', 'project', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['pr', 'create'], positional: ['file'], inputs: ['file', 'message', 'title', 'base', 'head', 'draft', 'dry_run', 'repo', 'no_issue_ref', 'template', 'screenshot', 'project'], cliOnly: ['dry_run'], hasOwnRepo: true },
-    { path: ['pr', 'show'], positional: ['pr_ref'], inputs: ['pr_ref', 'json', 'reviews', 'project', 'repo'], cliOnly: [], hasOwnRepo: false },
-    { path: ['pr', 'check'], positional: [], inputs: ['directory', 'project', 'repo'], cliOnly: [], hasOwnRepo: false },
-    { path: ['pr', 'merge'], positional: ['pr_ref'], inputs: ['pr_ref', 'dry_run', 'project', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['pr', 'restack'], positional: [], inputs: ['check', 'continue', 'abort', 'dry_run', 'project', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['release', 'check'], positional: ['version'], inputs: ['version', 'package', 'project', 'repo'], cliOnly: [], hasOwnRepo: false },
-    { path: ['release', 'create'], positional: ['version'], inputs: ['version', 'dry_run', 'package', 'project', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['release', 'merge'], positional: ['pr_ref'], inputs: ['pr_ref', 'dry_run', 'delete_branch', 'admin', 'project', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['worktree', 'add'], positional: [], inputs: ['directory', 'base', 'path', 'no_copy', 'no_link', 'setup', 'dry_run', 'allow_existing_branch', 'project', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['worktree', 'remove'], positional: ['name'], inputs: ['name', 'directory', 'force', 'keep_branch', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['worktree', 'init'], positional: [], inputs: ['directory', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['worktree', 'link'], positional: [], inputs: ['directory', 'force', 'all', 'dry_run', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['branch', 'delete'], positional: ['repo', 'branch'], inputs: ['repo', 'branch', 'dry_run', 'project'], cliOnly: ['dry_run'], hasOwnRepo: true },
-    { path: ['workflow', 'install'], positional: ['name'], inputs: ['name', 'check', 'force', 'dry_run', 'directory', 'repo'], cliOnly: ['dry_run'], hasOwnRepo: false },
-    { path: ['workflow', 'doctor'], positional: ['name'], inputs: ['name', 'directory', 'repo'], cliOnly: [], hasOwnRepo: false },
+const TOOL_HINT_COMMANDS = [
+    { name: 'project_list', inputs: ['repo'] },
+    { name: 'project_search', inputs: ['owner', 'host', 'repo'] },
+    { name: 'project_init', inputs: ['owner', 'name', 'host', 'lanes', 'confirm_delete', 'repo'] },
+    { name: 'project_create', inputs: ['owner', 'title', 'host', 'lanes', 'repo'] },
+    { name: 'project_activate', inputs: ['project', 'owner', 'host', 'repo'] },
+    { name: 'project_link', inputs: ['repo', 'develop_branch', 'release_branch', 'changelog_file', 'package', 'clear_packages', 'release_type'] },
+    { name: 'project_get', inputs: ['key', 'repo'] },
+    { name: 'project_set', inputs: ['key', 'value', 'yes', 'repo'] },
+    { name: 'project_unset', inputs: ['key', 'repo'] },
+    { name: 'board_show', inputs: ['json', 'repo'] },
+    { name: 'board_add', inputs: ['issue_ref', 'status', 'project', 'repo'] },
+    { name: 'board_move', inputs: ['issue_ref', 'status', 'project', 'repo'] },
+    { name: 'issue_create', inputs: ['files', 'message', 'title', 'repo', 'type', 'status', 'parent_epic', 'order', 'label', 'attributes', 'lane', 'freeform', 'project'] },
+    { name: 'issue_check', inputs: ['files', 'project', 'repo'] },
+    { name: 'issue_show', inputs: ['issue_ref', 'project', 'json', 'comment_limit', 'repo'] },
+    { name: 'issue_attributes', inputs: ['project', 'json', 'repo'] },
+    { name: 'issue_edit', inputs: ['issue_ref', 'attributes', 'project', 'repo'] },
+    { name: 'issue_comment', inputs: ['file', 'message', 'issue_ref', 'template', 'project', 'repo'] },
+    { name: 'issue_block', inputs: ['issue_ref', 'by', 'wait', 'reason', 'project', 'repo'] },
+    { name: 'issue_unblock', inputs: ['issue_ref', 'by', 'project', 'repo'] },
+    { name: 'issue_reopen', inputs: ['issue_ref', 'status', 'project', 'comment', 'repo'] },
+    { name: 'session_start', inputs: ['issue_ref', 'branch', 'base', 'checkout', 'project', 'repo'] },
+    { name: 'session_show', inputs: ['directory', 'project', 'repo'] },
+    { name: 'session_finish', inputs: ['pr_ref', 'delete_branch', 'project', 'repo'] },
+    { name: 'pr_create', inputs: ['file', 'message', 'title', 'base', 'head', 'draft', 'repo', 'no_issue_ref', 'template', 'screenshot', 'project'] },
+    { name: 'pr_show', inputs: ['pr_ref', 'json', 'reviews', 'project', 'repo'] },
+    { name: 'pr_check', inputs: ['directory', 'project', 'repo'] },
+    { name: 'pr_merge', inputs: ['pr_ref', 'project', 'repo'] },
+    { name: 'pr_restack', inputs: ['check', 'continue', 'abort', 'project', 'repo'] },
+    { name: 'release_check', inputs: ['version', 'package', 'project', 'repo'] },
+    { name: 'release_create', inputs: ['version', 'package', 'project', 'repo'] },
+    { name: 'release_merge', inputs: ['pr_ref', 'delete_branch', 'admin', 'project', 'repo'] },
+    { name: 'worktree_add', inputs: ['directory', 'base', 'path', 'no_copy', 'no_link', 'setup', 'allow_existing_branch', 'project', 'repo'] },
+    { name: 'worktree_remove', inputs: ['name', 'directory', 'force', 'keep_branch', 'repo'] },
+    { name: 'worktree_init', inputs: ['directory', 'repo'] },
+    { name: 'worktree_link', inputs: ['directory', 'force', 'all', 'repo'] },
+    { name: 'branch_delete', inputs: ['repo', 'branch', 'project'] },
+    { name: 'workflow_install', inputs: ['name', 'check', 'force', 'directory', 'repo'] },
+    { name: 'workflow_doctor', inputs: ['name', 'directory', 'repo'] },
 ];
 /**
-actions/ に移した処理の形。path は actions/<path を - でつないだ名前>/action.yml、inputs は token を除く inputs を snake_case にしたもの
+actions/ に移した処理の形。name の `_` を `-` にしたものが actions/<name>/action.yml、inputs は token を除く inputs を snake_case にしたもの
 */
 const ACTION_HINT_COMMANDS = [
-    { path: ['board', 'sync'], positional: [], inputs: ['project', 'dry_run'], cliOnly: [], hasOwnRepo: false },
-    { path: ['review', 'finish'], positional: [], inputs: ['pr', 'job_status', 'execution_file', 'since', 'review_outcome', 'review_conclusion', 'review_has_token'], cliOnly: [], hasOwnRepo: false },
-    { path: ['tracker', 'sync'], positional: [], inputs: ['source', 'project', 'dry_run'], cliOnly: [], hasOwnRepo: false },
-    { path: ['auto', 'gate'], positional: [], inputs: ['max_ci_attempts', 'project'], cliOnly: [], hasOwnRepo: false },
-    { path: ['auto', 'start'], positional: [], inputs: ['issue', 'project'], cliOnly: [], hasOwnRepo: false },
-    { path: ['auto', 'finish'], positional: [], inputs: ['issue', 'project', 'result_file', 'job_status', 'execution_file', 'start_outcome', 'result', 'body_file'], cliOnly: [], hasOwnRepo: false },
+    { name: 'board_sync', inputs: ['project', 'dry_run'] },
+    { name: 'review_finish', inputs: ['pr', 'job_status', 'execution_file', 'since', 'review_outcome', 'review_conclusion', 'review_has_token'] },
+    { name: 'tracker_sync', inputs: ['source', 'project', 'dry_run'] },
+    { name: 'auto_gate', inputs: ['max_ci_attempts', 'project'] },
+    { name: 'auto_start', inputs: ['issue', 'project'] },
+    { name: 'auto_finish', inputs: ['issue', 'project', 'result_file', 'job_status', 'execution_file', 'start_outcome', 'result', 'body_file'] },
 ];
 /**
-CLI と actions/ の両方の形を、案内の描き方に登録する。actions/ の処理は、案内を描く前にこれを呼ぶ
+ツールと actions/ の両方の形を、案内の描き方に登録する。actions/ の処理は、案内を描く前にこれを呼ぶ
 */
 function registerHintCatalog() {
-    registerHintCommands([...CLI_HINT_COMMANDS, ...ACTION_HINT_COMMANDS]);
+    registerHintCommands([...TOOL_HINT_COMMANDS, ...ACTION_HINT_COMMANDS]);
 }
 
 // action の起動の共通部分。案内の形を登録し、inputs を読み、token を渡し、終了コードを step の成否にする。
