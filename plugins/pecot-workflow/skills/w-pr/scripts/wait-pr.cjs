@@ -1,6 +1,5 @@
 // PR の CI の結果・コンフリクト・queue からの外れ・マージ・クローズを待ち、先に起きたものの語を 1 行出す。
-// 引数は待ち方（ci か merge）と PR の URL と、任意の間隔・上限（秒）。
-// ci は CI の通過でも抜け、merge はマージかクローズまで待つ。queue の状態は gh pr view に無いので GraphQL で読む
+// 引数は待ち方（ci か merge）・PR の URL・任意の間隔と上限（秒）。queue の状態は gh pr view に無いので GraphQL で読む
 const { execFile } = require('node:child_process')
 const fail = (message) => {
   console.error(`待ち受けを続けられません: ${message}`)

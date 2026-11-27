@@ -372,6 +372,13 @@ describe('w-pr の CI とマージの待ち受け', () => {
     expect(result.calls).toHaveLength(5)
   })
 
+  it('ci の待ちで、必須の check の結果がまだ無い間は待ち続け、CI が通ったら CI_PASSED を出力する', async () => {
+    await explains('`wait-pr.cjs` の ci の待ちのテストです。CI の状態が `EXPECTED` の回では何も出力せず、次の回の状態が `SUCCESS` の場合は `CI_PASSED` を出力することを確認します。')
+    const result = waitPr([open('MERGEABLE', false, 'EXPECTED'), open('MERGEABLE', false, 'SUCCESS')], ['ci', url, '0.05', '2'])
+    expect(result).toMatchObject({ status: 0, stdout: 'CI_PASSED\n' })
+    expect(result.calls).toHaveLength(2)
+  })
+
   it('merge の待ちでは、CI が通っても、CI が無くても抜けずに待ち続ける', async () => {
     await explains('`wait-pr.cjs` の merge の待ちのテストです。CI が通った回や CI の無い回では何も出力せず、マージされた時点で `MERGED` を出力することを確認します。')
     const result = waitPr([open('MERGEABLE'), open('MERGEABLE'), open('MERGEABLE'), open('MERGEABLE', false, 'SUCCESS'), merged])
