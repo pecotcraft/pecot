@@ -84,7 +84,9 @@ CLI・MCP のツール・hook・子プロセスを動かすテストには、判
 
 ## 5. 開発版のレポート（マージの後。US1・US3）
 
-2026-11-26 に、開発版はマージキューの結果を寄せ集めて作り、履歴を持たない形に改めた（#821）。
+2026-11-26 に、開発版はマージキューの結果を寄せ集めて作り、履歴を持たない形に改めた。2026-11-27 に、積のモードで省いたレーンは PR の CI の結果を使い、結果を Actions の artifact で持ち回す形に決めた（#821）。
+
+材料の判定は、手元で `python3 .githooks/scripts/test_report/dev_sources.py resolve --head origin/main --repo pecotcraft/pecot` を打っても読める。API を読むだけで、書き込まない。
 
 1. PR をマージキューで main にマージする
 2. `test-report.yml` の run が終わり、`pages-deploy.yml` の run が続くのを待つ
@@ -93,8 +95,10 @@ CLI・MCP のツール・hook・子プロセスを動かすテストには、判
 期待:
 
 - レポートに、`report-lanes.json` で `results` を持つすべてのレーンのテストがある
-- マージの変更が届いたレーン（マージキューが流したレーンと、積のモードで省いたレーン）だけが、新しい結果に変わり、ほかのレーンは前の結果のままである。各レーンの結果がどのコミットのものかを、レポートで読める
-- `test-report.yml` の run で、結果のあるレーンの tests の job は動かない
+- マージの変更が届いたレーン（マージキューが流したレーンと、積のモードで省いたレーン）だけが、新しい結果に変わり、ほかのレーンは前の結果のままである
+- 各レーンの結果がどのコミットのものかを、レポートの先頭の変数で読める。変更が届いたレーンは、そのマージのコミットと、試した run（マージキューか PR の run）の URL になる
+- `test-report.yml` の run で、結果のあるレーンの tests の job は動かない。side の job のログに、コミットごとの判定（どこから拾ったか・main で流す理由）が出る
+- `test-report.yml` の run に、artifact `lane-latest`・`lane-latest-index` がある
 - 定義書の振る舞いの項目の「テスト」を押すと、その ID のテストだけが出る。テストの要件の ID のリンクから、開発版の定義書のその項目へ戻る
 - テストの「履歴」のタブは空で、`dev/test-report/history.jsonl` は無い
 - 定義書の開発版は、テストの終わりを待たずに変わっている。`.pecot-store.json` の `dev.stored_at` が、`reports.dev.stored_at` より前になる

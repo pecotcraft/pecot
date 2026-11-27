@@ -25,6 +25,8 @@ step 名は英語で、Actions でよく使う形にする。Actions の画面�
 
 - `ci.yml`: PR・merge queue で、変更が届いたレーンを devcontainer で検証する。`checks (lint)` とレーンごとの `tests` を `ci-result` にまとめ、`version-plan` も動かす
   - tests の job は job 内に nx リモートキャッシュのサーバを持ち、同じ PR の前の run で成功したレーンの結果だけを取り込む
+  - 同じリポの PR とマージキューの run は、成功したレーンの Allure の結果を `allure-results-<slug>`（30 日）に上げる。マージキューの lanes の job は、変更が届いたレーンと結果を持つ run を `lane-sources` に上げる。どちらも開発版のテストレポートの材料
+  - workflow の env で `PECOT_REPORT_SITE_URL` に開発版の URL を渡す。PR とマージキューで nx のキャッシュの hash をそろえるため
   - 公開サイトは作らない
 - `devcontainer-image.yml`: CI 用の devcontainer イメージを GHCR に載せる（`.claude/rules/devcontainer.md`）
 - `release.yml`: 人が手で起動する。入力 `dry-run`（既定 `true`）では案だけを出す。本番は一時ブランチへ push してタグと Release を出し、その後で `main` を取り込んで push する
@@ -40,11 +42,12 @@ step 名は英語で、Actions でよく使う形にする。Actions の画面�
   - `pages-store` へは専用の App（秘密鍵は environment `pages-store`）でだけ書く。手での起動は `pages-store` の今の中身を公開し直す
   - job は verify・store・deploy の 3 つ。store が保管して `github-pages` の artifact を上げ、deploy が公開する
   - PR 版を公開したら、deploy の job が PR の head に commit status `pages / preview` を付ける。保管の変更が無ければ、store の job が付ける
-- `test-report.yml`: レポートのレーンを全部動かし、Allure Report と履歴を artifact `test-report-<side>`（7 日）に上げる
+- `test-report.yml`: Allure Report を作り、artifact `test-report-<side>`（7 日）に上げる。リリース版は履歴も入れる
   - main への push で開発版を作る。手での起動は `side`（`release`・`dev`）を取り、main からだけ動く。release.yml の本番が land の後に `side=release` で起こす
   - `side` の job が材料と matrix を決める。`tests` がレーンごとに dev container で動かし、結果を `allure-results-<slug>`（1 日）に上げる。`report` がレポートを作る
+  - リリース版は全レーンを動かす。開発版は、`dev_sources.py` が ci の結果と前の開発版の `lane-latest`（90 日）からレーンを拾い、結果の無いレーンだけを動かす。動かすレーンが無ければ tests の job は飛ぶ
   - テストが落ちても run は成功で終わる。落ちるのは、結果を残さずに止まったレーンがあるときと、`allure generate` が失敗したとき
-  - 履歴は側ごとに 3 件まで。pages-deploy が artifact を受けて公開する
+  - 履歴はリリース版だけで 3 件まで。pages-deploy が artifact を受けて公開する
 - `codeql.yml`: CodeQL の解析（advanced setup）。リポの設定の default setup は止めておく
   - `actions/*/dist` を `paths-ignore` で外す。依存を同梱した生成物で、依存の既知の脆弱性は Dependabot が見る
 - `dependabot-auto-merge.yml`: minor・patch の PR に auto-merge を入れる

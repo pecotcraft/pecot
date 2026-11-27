@@ -123,6 +123,10 @@ class Scene:
     def go(self) -> tuple[str, str]:
         return self.env.go(self.ref, self.base, self.q_head)
 
+    def found(self, main_sha: str, run_id: int = 100) -> str:
+        """成功したときの標準出力（pr_main・pr_run・pr_head の 3 行）。"""
+        return f"pr_main={main_sha}\npr_run={run_id}\npr_head={self.pr_head}"
+
 
 @pytest.fixture
 def env(tmp_path: Path, githooks_dir: Path, git_repo: Callable[..., Path]) -> Env:
@@ -134,13 +138,18 @@ def scene(env: Env) -> Scene:
     return Scene(env)
 
 
-@allure.title("すべての条件を満たすと、PR の CI が基にした main の sha を pr_main として出力する")
-def test_outputs_pr_main_on_success(scene: Scene) -> None:
-    """`find-pr-ci-base.sh` の、merge queue のコミットが PR の CI の結果を再利用できる場合のテストです。標準出力に `pr_main=` と、PR の CI が基にした main の sha を出力し、標準エラーには何も出力しないことを確認します。"""
+@allure.title(
+    "すべての条件を満たすと、PR の CI が基にした main の sha と、その run の ID と PR の head を出力する"
+)
+def test_outputs_pr_main_run_and_head_on_success(scene: Scene) -> None:
+    """`find-pr-ci-base.sh` の、merge queue のコミットが PR の CI の結果を再利用できる場合のテストです。標準出力に `pr_main`・`pr_run`・`pr_head` の 3 行を出力し、標準エラーには何も出力しないことを確認します。"""
     with allure.step("成功する run を用意して動かす"):
         scene.good_run()
-    with allure.step("出力が pr_main であることを確かめる"):
-        assert scene.go() == (f"pr_main={scene.m0}", "")
+    with allure.step("出力が pr_main・pr_run・pr_head の 3 行であることを確かめる"):
+        assert scene.go() == (
+            f"pr_main={scene.m0}\npr_run=100\npr_head={scene.pr_head}",
+            "",
+        )
 
 
 @allure.title("HEAD_REF の接頭辞が「{prefix}」でも、pr_main を出力する")
@@ -151,7 +160,7 @@ def test_head_ref_forms(scene: Scene, prefix: str) -> None:
         scene.good_run()
         ref = f"{prefix}gh-readonly-queue/main/pr-7-{scene.base}"
     with allure.step("出力が pr_main であることを確かめる"):
-        assert scene.env.go(ref, scene.base, scene.q_head)[0] == f"pr_main={scene.m0}"
+        assert scene.env.go(ref, scene.base, scene.q_head)[0] == scene.found(scene.m0)
 
 
 @allure.title("成功した run が複数あるときは、検証に合格した新しい run の pr_main を出力する")
@@ -162,7 +171,7 @@ def test_picks_newer_run_that_passes(scene: Scene) -> None:
         scene.env.artifact(100, scene.m0, scene.pr_head)
         scene.env.artifact(110, scene.base, scene.pr_head)
     with allure.step("新しい run の pr_main が選ばれることを確かめる"):
-        assert scene.go()[0] == f"pr_main={scene.base}"
+        assert scene.go()[0] == scene.found(scene.base, 110)
 
 
 @allure.title("新しい run の artifact が検証に合格しないと、古い run の pr_main を出力する")
@@ -173,7 +182,7 @@ def test_falls_back_to_older_run_when_newer_fails_check(scene: Scene) -> None:
         scene.env.artifact(100, scene.m0, scene.pr_head)
         scene.env.artifact(110, scene.m0, "f" * 40)
     with allure.step("古い run の pr_main に戻ることを確かめる"):
-        assert scene.go()[0] == f"pr_main={scene.m0}"
+        assert scene.go()[0] == scene.found(scene.m0)
 
 
 @allure.title("別の PR の run は除外し、次の run の pr_main を出力する")
@@ -188,7 +197,7 @@ def test_skips_run_of_other_pr(scene: Scene) -> None:
         scene.env.artifact(100, scene.m0, scene.pr_head)
         scene.env.artifact(110, scene.base, scene.pr_head)
     with allure.step("別の PR の run が飛ばされることを確かめる"):
-        assert scene.go()[0] == f"pr_main={scene.m0}"
+        assert scene.go()[0] == scene.found(scene.m0)
 
 
 @allure.title("イベントが pull_request ではない run は除外し、次の run の pr_main を出力する")
@@ -203,7 +212,7 @@ def test_skips_run_of_other_event(scene: Scene) -> None:
         scene.env.artifact(100, scene.m0, scene.pr_head)
         scene.env.artifact(110, scene.base, scene.pr_head)
     with allure.step("別のイベントの run が飛ばされることを確かめる"):
-        assert scene.go()[0] == f"pr_main={scene.m0}"
+        assert scene.go()[0] == scene.found(scene.m0)
 
 
 @allure.title("別の PR の run しか存在しないと、run に PR が含まれない理由を出力する")

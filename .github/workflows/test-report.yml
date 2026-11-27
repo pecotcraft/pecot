@@ -1,6 +1,6 @@
 name: test-report
 
-# レポートのレーンを全部動かし、Allure Report と履歴を artifact test-report-<side> に上げる。公開は pages-deploy.yml が受ける。
+# Allure Report を artifact test-report-<side> に上げる。開発版は ci の結果を拾って結果の無いレーンだけ、リリース版は全レーンを動かす。
 # 契機と出力の決まりは specs/030-allure-test-report/contracts/test-report.md。形は .githooks/tests/test_report_workflow.py が固定する。
 
 on:
@@ -30,11 +30,16 @@ env:
 jobs:
   side:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
+    # 他の run の artifact と jobs を読む。
+    permissions:
+      contents: read
+      actions: read
     outputs:
       side: ${{ steps.decide.outputs.side }}
       site_url: ${{ steps.decide.outputs.site_url }}
       report: ${{ steps.sources.outputs.report }}
+      run_tests: ${{ steps.sources.outputs.run_tests }}
       matrix: ${{ steps.sources.outputs.matrix }}
       sources: ${{ steps.sources.outputs.sources }}
     steps:
@@ -78,27 +83,46 @@ jobs:
             echo "site_url=$site_url"
           } >> "$GITHUB_OUTPUT"
 
-      # data-model の ReportSources。リリース版で材料が無ければ、matrix が空で後の job を飛ばす。
+      # 開発版の dev_sources.py は、list-test-lanes.sh で nx を動かす。
+      - name: Set up Node.js
+        if: ${{ steps.decide.outputs.side == 'dev' }}
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.22.1"
+
+      - name: Enable Corepack
+        if: ${{ steps.decide.outputs.side == 'dev' }}
+        run: corepack enable
+
+      - name: Install dependencies
+        if: ${{ steps.decide.outputs.side == 'dev' }}
+        run: pnpm install --frozen-lockfile --ignore-scripts --filter pecot
+
+      # data-model の ReportSources。開発版はレポートを必ず作り、リリース版は材料が無ければ後の job を飛ばす。
       - name: Resolve report sources
         id: sources
         env:
           SIDE: ${{ steps.decide.outputs.side }}
           SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
           MSG_MISSING: "結果を出せるタグが無いので、レポートに入れないプラグイン:"
           MSG_NO_REPORT: "レポートに入れるプラグインが無いので、レポートを作りません。"
         run: |
           set -euo pipefail
           if [ "$SIDE" = "dev" ]; then
-            args=(--commit "$SHA")
+            out=$(python3 .githooks/scripts/test_report/dev_sources.py resolve --head "$SHA" --repo "$REPO")
           else
-            args=(--main origin/main)
+            out=$(python3 .githooks/scripts/pages_site/release_sources.py --report release --main origin/main)
           fi
-          out=$(python3 .githooks/scripts/pages_site/release_sources.py --report "$SIDE" "${args[@]}")
-          report=$(printf '%s' "$out" | jq -r 'if (.matrix | length) > 0 then "true" else "false" end')
+          run_tests=$(printf '%s' "$out" | jq -r 'if (.matrix | length) > 0 then "true" else "false" end')
+          report=$run_tests
+          [ "$SIDE" != "dev" ] || report=true
           {
             echo "sources=$(printf '%s' "$out" | jq -c .sources)"
             echo "matrix=$(printf '%s' "$out" | jq -c .matrix)"
             echo "report=$report"
+            echo "run_tests=$run_tests"
           } >> "$GITHUB_OUTPUT"
           if [ "$(printf '%s' "$out" | jq '.sources.missing | length')" -gt 0 ]; then
             {
@@ -111,10 +135,10 @@ jobs:
             printf '\n%s\n' "$MSG_NO_REPORT" >> "$GITHUB_STEP_SUMMARY"
           fi
 
-  # 空の matrix は GitHub がエラーにするため、材料が無ければ job ごと飛ばす。
+  # 空の matrix は GitHub がエラーにするため、動かすレーンが無ければ job ごと飛ばす。
   tests:
     needs: side
-    if: ${{ needs.side.outputs.report == 'true' }}
+    if: ${{ needs.side.outputs.run_tests == 'true' }}
     name: tests (${{ matrix.lane }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -197,12 +221,15 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
 
-  # tests の一部が基盤で落ちても動き、ResultsCheck で欠けたレーンを出す。
+  # tests が飛ばされても、一部が基盤で落ちても動き、ResultsCheck で欠けたレーンを出す。
   report:
     needs: [side, tests]
     if: ${{ !cancelled() && needs.side.outputs.report == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
     env:
       SOURCES: ${{ needs.side.outputs.sources }}
       SIDE: ${{ needs.side.outputs.side }}
@@ -236,19 +263,34 @@ jobs:
           merge-multiple: true
           path: ${{ github.workspace }}
 
-      # Pages の CDN は前の中身を返すことがあるので、公開元の pages-store から読む。ファイルが無ければ初めてとして空にする。
-      # checkout は blob:none なので、blob を取れないことがある。そのときも空の履歴で作り、job summary で知らせる（FR-021）。
-      - name: Read stored history
-        env:
-          MSG_NO_STORE: "保管ブランチ pages-store を読めなかったので、空の履歴でレポートを作ります。"
+      - name: Write report sources
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/test-report"
           mkdir -p "$work"
-          history="$work/history.jsonl"
-          prefix=""
-          [ "$SIDE" != "dev" ] || prefix="dev/"
-          stored="origin/pages-store:${prefix}test-report/history.jsonl"
+          printf '%s' "$SOURCES" > "$work/report-sources.json"
+
+      # 開発版の latest のレーンの結果を、ci と前の開発版の run の artifact から取り、レーンの場所に写す。
+      - name: Fetch latest results
+        if: ${{ needs.side.outputs.side == 'dev' }}
+        env:
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 .githooks/scripts/test_report/dev_sources.py fetch \
+            --sources "$RUNNER_TEMP/test-report/report-sources.json" --repo "$REPO" --root .
+
+      # 履歴はリリース版だけ。Pages の CDN は前の中身を返すことがあるので、公開元の pages-store から読む。
+      # checkout は blob:none なので、blob を取れないことがある。そのときも空の履歴で作り、job summary で知らせる（FR-021）。
+      - name: Read stored history
+        if: ${{ needs.side.outputs.side == 'release' }}
+        env:
+          MSG_NO_STORE: "保管ブランチ pages-store を読めなかったので、空の履歴でレポートを作ります。"
+        run: |
+          set -euo pipefail
+          history="$RUNNER_TEMP/test-report/history.jsonl"
+          stored="origin/pages-store:test-report/history.jsonl"
           : > "$history"
           if ! git rev-parse --verify --quiet origin/pages-store > /dev/null; then
             printf '\n> [!WARNING]\n> %s\n' "$MSG_NO_STORE" >> "$GITHUB_STEP_SUMMARY"
@@ -263,9 +305,9 @@ jobs:
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/test-report"
-          printf '%s' "$SOURCES" > "$work/report-sources.json"
-          python3 .githooks/scripts/test_report/generate.py \
-            --sources "$work/report-sources.json" --output "$work/site" --history "$work/history.jsonl"
+          args=(--sources "$work/report-sources.json" --output "$work/site")
+          [ "$SIDE" = "dev" ] || args+=(--history "$work/history.jsonl")
+          python3 .githooks/scripts/test_report/generate.py "${args[@]}"
 
       # 履歴は allure generate --clean に消されないよう出力の外で書かせ、作った後でツリーに写す。
       - name: Pack report
@@ -274,7 +316,7 @@ jobs:
           work="$RUNNER_TEMP/test-report"
           out="$RUNNER_TEMP/test-report-artifact"
           mkdir -p "$out"
-          cp "$work/history.jsonl" "$work/site/history.jsonl"
+          [ "$SIDE" = "dev" ] || cp "$work/history.jsonl" "$work/site/history.jsonl"
           tar -C "$work/site" -cf "$out/report.tar" .
           cp "$work/report-sources.json" "$out/report-sources.json"
 
@@ -284,5 +326,38 @@ jobs:
           name: test-report-${{ needs.side.outputs.side }}
           path: ${{ runner.temp }}/test-report-artifact/
           retention-days: 7
+          overwrite: true
+          if-no-files-found: error
+
+      # 次の開発版の run が持ち越す、全レーンの結果と index（data-model の LaneLatest）。
+      - name: Pack lane results
+        if: ${{ needs.side.outputs.side == 'dev' }}
+        env:
+          SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          python3 .githooks/scripts/test_report/dev_sources.py pack \
+            --sources "$RUNNER_TEMP/test-report/report-sources.json" --root . \
+            --out "$RUNNER_TEMP/lane-latest" --commit "$SHA" --run-id "$RUN_ID"
+
+      - name: Upload lane results
+        if: ${{ needs.side.outputs.side == 'dev' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lane-latest
+          path: ${{ runner.temp }}/lane-latest/lane-latest/
+          retention-days: 90
+          overwrite: true
+          include-hidden-files: true
+          if-no-files-found: error
+
+      - name: Upload lane index
+        if: ${{ needs.side.outputs.side == 'dev' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lane-latest-index
+          path: ${{ runner.temp }}/lane-latest/lane-latest-index/lane-latest-index.json
+          retention-days: 90
           overwrite: true
           if-no-files-found: error

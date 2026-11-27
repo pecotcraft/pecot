@@ -29,7 +29,7 @@ vitest と pytest の全レーン（12 本）に、Allure の公式のアダプ�
 **Primary Dependencies**: `allure` 3.33.0・`allure-vitest` 3.15.0・`allure-js-commons` 3.15.0（npm）、`allure-pytest` 2.16.2（PyPI）。版は固定する。
 今ある vitest 5.1.0・pytest 9.2.0・Sphinx・sphinx-needs 9.2.0 はそのまま。`sphinx-test-reports` は消す
 
-**Storage**: レポートは、保管ブランチ `pages-store` の `<側>/test-report/`。リリース版の履歴は S3 のバケット（#822）。開発版のレーンの最新の結果の置き場所は #821 で決める。結果とレポートの受け渡しは artifact（`retention-days: 7`）
+**Storage**: レポートは、保管ブランチ `pages-store` の `<側>/test-report/`。リリース版の履歴は S3 のバケット（#822）。開発版のレーンの最新の結果は、artifact `lane-latest`（90 日。#821）。結果とレポートの受け渡しは artifact（`retention-days: 7`）
 
 **Testing**: vitest（`verifies` の単体テスト、`interface-spec:test-site` でレポートの絞り込みの URL を実物で確かめる）、pytest（`.githooks/tests` の workflow の形・出どころの確かめ・保管・レーンの定め、`libs/interface-spec/docs/tests` の拡張）
 

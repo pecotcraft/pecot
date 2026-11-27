@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# CI の lanes job が、変更が届いた test レーンの一覧を `lanes=<JSON>`・`count=<n>`・`lint=run|skip` の 3 行で出す。
+# CI の lanes job が、変更が届いた test レーンの一覧を `lanes=<JSON>`・`count=<n>`・`skipped=<JSON>`・`lint=run|skip` の 4 行で出す。
 # 使い方: list-test-lanes.sh [--pr-main=<sha> --queue-base=<sha>] <base> <head>（オプションは位置引数の前後どちらでも可）
 # 2 つのオプションは組で使う（積モード）。lanes は、PR の変更のレーン（queue-base..head）と main の変更のレーン（pr-main..queue-base）の積。
+# skipped は積モードで省いたレーンの名前（PR の変更のレーン − 積）で、ほかのモードは []。
 # lint=skip は積モードで pr-main と queue-base が同じ commit のときだけ。graph を取れないときは非 0 で止める。
 
 # shellcheck disable=SC2154  # repo_root と nx_bin は require_repo_node_nx が設定する
@@ -50,7 +51,7 @@ graph_pr="$work/tasks-graph-pr.json"
 graph_main="$work/tasks-graph-main.json"
 
 run_nx() {
-    # nx の出力はログへ回し、stdout は 3 行の出力だけにする。
+    # nx の出力はログへ回し、stdout は 4 行の出力だけにする。
     if ! (cd "$repo_root" && env -u FORCE_COLOR -u NX_LEGACY_AFFECTED NO_COLOR=1 "$nx_bin" "$@") \
         > "$work/nx.log" 2>&1; then
         {
@@ -118,8 +119,10 @@ for (const [slug, names] of bySlug) {
         process.exit(3);
     }
 }
-out.sort((a, b) => (a.lane < b.lane ? -1 : a.lane > b.lane ? 1 : 0));
-process.stdout.write(`lanes=${JSON.stringify(out)}\ncount=${out.length}\n`);
+const byName = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+out.sort((a, b) => byName(a.lane, b.lane));
+const skipped = mainLanes ? [...prLanes.keys()].filter((x) => !mainLanes.has(x)).sort(byName) : [];
+process.stdout.write(`lanes=${JSON.stringify(out)}\ncount=${out.length}\nskipped=${JSON.stringify(skipped)}\n`);
 if (mainLanes) {
     process.stdout.write(`pr=${[...prLanes.keys()].join(",")}\nmain=${[...mainLanes.keys()].join(",")}\nproduct=${out.map((x) => x.lane).join(",")}\n`);
 }
@@ -141,5 +144,5 @@ if [ "$stack" = true ]; then
     show main "main の変更のレーン"
     show product 積
 fi
-printf '%s\n' "$result" | grep -E '^(lanes|count)='
+printf '%s\n' "$result" | grep -E '^(lanes|count|skipped)='
 printf 'lint=%s\n' "$lint"

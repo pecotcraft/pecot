@@ -44,7 +44,7 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 - `feature`・`story` の値は、グラフが epic をまたいで値だけで集めるので、project をまたいで重ならない形にする
 - `layer` は、テストのピラミッドと層ごとの時間のグラフが集める。テストが自分で `layer` を付けたら、表の層を足さない
 - 側の URL は、環境変数 `PECOT_REPORT_SITE_URL` で渡す。開発版は `https://pecotcraft.github.io/pecot/dev/`、リリース版は `https://pecotcraft.github.io/pecot/`。渡さなければ `http://localhost:8000/`
-  - 開発版の材料になるマージキューの結果に、開発版の URL を渡す形は #821 で決める。この変数は nx の入力で、マージキューは PR の run の nx キャッシュを取り込むため
+  - 開発版の材料になる PR の CI とマージキューの結果には、`ci.yml` の workflow の env が開発版の URL を渡す（#821）。この変数は nx の入力なので、両方の run に同じ値を渡して、マージキューが PR の run の nx キャッシュを取り込めるようにする
 - bash のテストにはアダプタが無いので、`.githooks/scripts/test_report/bash-test.sh` が結果のファイルを書く。上の `project`・`lane` のほかに書く欄は次のとおり
 
 | 欄 | 値 |
@@ -69,12 +69,17 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 | `side` | `dev` | `release` |
 | `runs` | 結果がまだ無いレーンだけ。起動した run のコミットで流す（2026-11-26 に改めた。ほかのレーンは「レーンの最新の結果」を使う） | 結果を出せるタグを持つプラグインごとに 1 項目（そのタグのコミットで、そのプラグインのレーン）と、骨組みのコミットで、プラグインに属さないレーンの 1 項目 |
 | `missing` | 空 | 結果を出せないタグのプラグインの名前 |
+| `latest` | 拾ったレーン（下の LaneLatest）。レーンごとに、コミット・試した run・取り出す元の run と artifact | 持たない |
 
-形（`report-sources.json`）。`generate.py` が読むのは `runs` だけで、`commit` は 40 桁の 16 進、`lanes` は `<project>:<target>`。
+形（`report-sources.json`）。`generate.py` が読むのは `runs` と `latest` で、`commit` は 40 桁の 16 進、`lanes`・`lane` は `<project>:<target>`。
 
 ```json
-{"side": "dev", "runs": [{"commit": "<SHA>", "lanes": ["pecot-workflow:test-cli"]}], "missing": []}
+{"side": "dev", "runs": [{"commit": "<SHA>", "lanes": ["pecot-workflow:test-cli"]}], "missing": [],
+ "latest": [{"lane": "pecot-tools:test-cli", "commit": "<SHA>", "run_id": 123, "from_run": 456, "artifact": "allure-results-pecot-tools-test-cli"}]}
 ```
+
+- 開発版の `runs` と `latest` のレーンは重ならず、合わせてレポートのレーンの全部になる。流すレーンが無ければ `runs` は空
+- `run_id` はそのレーンを試した run で、レポートに出す。`from_run`・`artifact` は結果を取り出す元。前の開発版の run から持ち越すレーンは、`from_run` が前の run、`artifact` が `lane-latest`
 
 決まり:
 
@@ -91,17 +96,39 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 | 欄 | 値 |
 |---|---|
 | レーン | `<project>:<target>` |
-| コミット | その結果を流したコミット。main に入ったコミット |
+| コミット | その結果が試した main のコミット。マージキューと PR の CI の結果は、そのマージキューのコミット（main に入ったコミット）。main で流した結果は、流したコミット |
+| run | そのレーンを試した run。PR の CI の結果は、PR の run |
 | 結果 | そのレーンの結果のディレクトリ（`allure-results`）の中身 |
 
 決まり:
 
-- 持つのは、main に入ったコミットを試したマージキューの run と、main で結果の無いレーンを流した run の結果だけ。マージされなかった run の結果は持たない
+- 持つのは、次の run の結果だけ。マージされなかった run の結果は持たない
+  - main に入ったコミットを試したマージキューの run
+  - そのマージキューの run が、積のモードで省いたレーンの分として指した PR の CI の run（2026-11-27 に足した）
+  - main で結果の無いレーンを流した、開発版の run
 - レーンごとに 1 回分だけを持ち、同じレーンの新しい結果で置き換える
 - マージの変更が届かないレーンは、前の結果のまま残す
 - 変更が届いたレーンは、マージキューが積のモードで省いたもの（PR の CI で試し済みのもの）も含め、その変更を試した run の結果に置き換える
-- マージキューを通らずに main に入るコミット（リリースの land など）で入力が変わったレーンは、main で流した結果に置き換える
-- 置き場所・書く run・コミットの確かめ方・積のモードで省いたレーンの結果の取り方・キューを通らないコミットの見分け方は #821 で決める
+- 一番新しい変更を試した結果が無いレーンには、それより古い結果を使わず、main で流す
+- マージキューを通らずに main に入るコミット（リリースの land など）で入力が変わったレーンは、main で流した結果に置き換える。キューを通ったかは、そのコミットを head とするマージキューの run の有無で見分ける
+
+置き場所（2026-11-27 に #821 で決めた）:
+
+| artifact | 上げる run | 中身 | 保持 |
+|---|---|---|---|
+| `allure-results-<slug>` | `ci.yml` の tests（同じリポの PR とマージキュー。成功した job だけ） | レーンの結果のディレクトリ | 30 日 |
+| `lane-sources` | `ci.yml` の lanes（マージキューだけ） | `{"commit", "pr", "pr_head", "pr_run", "merge_group": [レーン], "pull_request": [レーン]}`。そのコミットで変更が届いたレーンと、結果を持つ run | 30 日 |
+| `lane-latest` | `test-report.yml` の report（開発版だけ） | 全レーンの結果のディレクトリと `source.json` | 90 日 |
+| `lane-latest-index` | 同上 | `{"commit", "lanes": {"<レーン>": {"commit", "run_id"}}}` | 90 日 |
+
+- 開発版の run（`dev_sources.py`）は、前の開発版の run の `lane-latest-index` から始め、今のコミットから first-parent で遡ってレーンを決める
+- 読む run は、GitHub の API で確かめる
+  - 前の開発版の run: `test-report.yml` の `push` か `workflow_dispatch` の成功した run で、head が今のコミットの祖先
+  - マージキューの run: `ci.yml` の `merge_group` の run で、head がそのコミットで、`ci-result` の job が成功
+  - PR の run: `ci.yml` の `pull_request` の run で、head が `lane-sources` の `pr_head`
+    - あわせて、PR を `pulls/<番号>` で読み、base と head がこのリポで、head の SHA が `pr_head`、head のブランチが run の `head_branch` であることを確かめる
+    - マージ後の run の `pull_requests` は空になるので使わない
+- 前の run が無いか、50 コミット遡っても届かないとき（初めての run・artifact が消えた後）は、決まらなかったレーンを main で流す
 
 ## そろいの判定（ResultsCheck）
 
@@ -109,15 +136,28 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 
 | 確かめ | 落ちる条件 |
 |---|---|
-| 結果のディレクトリ | ReportSources の `runs` にあるレーン（開発版は、レーンの最新の結果も含めた全レーン）のうち、`results` のディレクトリが無いか、`*-result.json` が 1 つも無いレーンがある |
+| 結果のディレクトリ | ReportSources の `runs` にあるレーン（開発版は、`latest` も含めた全レーン）のうち、`results` のディレクトリが無いか、`*-result.json` が 1 つも無いレーンがある |
+| そろい（開発版） | `runs` と `latest` を合わせて、レポートのレーンの全部が無いか、同じレーンが 2 回ある |
 | コミット（リリース版） | 手元でない実行で、結果の artifact の `source.json`（`tests` の job が書く、レーンと取り出したコミット）が無いか、`runs` のコミットと違う |
-| コミット（開発版） | レーンごとのコミットが分からないか、main の祖先でない。確かめ方は #821 で決める（2026-11-26 に改めた） |
+| コミット（開発版） | `source.json` が `runs`・`latest` のコミットと違うか、そのコミットが今のコミット（`HEAD`）の祖先でない（`git merge-base --is-ancestor`）。`latest` のレーンの `source.json` は、report の job が取り出すときに書く（2026-11-27 に #821 で決めた） |
 
 - 落ちたら、欠けたレーンの名前を出して失敗する。レポートは作らない（FR-012・FR-015）
 - 手元では、ある結果だけで作る。欠けたレーンを出して続ける（FR-024）
 - 手元でない実行は、ReportSources（`--sources`）を必ず受ける。受けないと、コミットを確かめられない
 - `source.json` は、結果のディレクトリの親（`<project>/test-results/<target>/source.json`）に置く。形は `{"lane": "<project>:<target>", "commit": "<SHA>"}`
   - 結果のディレクトリの中に置かないのは、Allure がそのディレクトリのファイルを全部、読み手に渡すため
+
+## レーンの結果のコミット（ReportVariables）
+
+各レーンの結果がどのコミットのものかを、レポートの先頭の変数（Allure の `variables`）で出す（2026-11-27 に #821 で足した。spec の FR-012）。
+
+| 欄 | 値 |
+|---|---|
+| 名前 | レーン（`<project>:<target>`） |
+| 値 | `<40 桁の SHA> <試した run の URL>`。run の URL は `<GITHUB_SERVER_URL>/<GITHUB_REPOSITORY>/actions/runs/<ID>`。`runs` のレーンは、レポートを作る run |
+
+- `generate.py` が、手元でない実行で、環境変数 `PECOT_REPORT_VARIABLES`（JSON のオブジェクト）に入れて渡し、`allurerc.mjs` が `variables` にする。手元では渡さない
+- リポか run の ID が分からなければ、値は SHA だけにする
 
 ## 履歴（History）
 
@@ -167,6 +207,7 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 - レポートがまだ無い側の `test-report/index.html` には、案内のページを置く。リリース版で、結果を出せるプラグインが無い間も同じ
 - `pr/<番号>/` には `test-report/` を置かない
 - 開発版のレポートは、保管中のレポートより古いコミットのものなら捨てる
+- 開発版のレポートの tar に `history.jsonl` があれば、SideCheck が捨てる（2026-11-27 に #821 で足した）。`/dev/test-report/` は丸ごと差し替えるので、前に保管した `history.jsonl` は次の保管で消える
 
 ## サイトのリンク（SiteStamp に足すもの）
 

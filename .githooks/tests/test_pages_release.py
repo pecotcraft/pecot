@@ -27,7 +27,6 @@ import release_sources  # noqa: E402
 from release_sources import (  # noqa: E402
     ReleaseSourcesError,
     latest_tags,
-    report_dev,
     report_release,
     resolve,
 )
@@ -259,7 +258,7 @@ def test_cli_fails_when_tag_is_off_main(repo: Path) -> None:
         assert f"ERROR: a-v1.0.0（{side}）が main の祖先ではありません" in result.stderr
 
 
-# --- ReportSources（report_release・report_dev） ---
+# --- ReportSources（report_release） ---
 
 D = "d" * 40
 _REPORT_LANES = ".githooks/scripts/test_report/report-lanes.json"
@@ -424,71 +423,6 @@ def test_report_release_fails_naming_tag_of_malformed_report_lanes() -> None:
             _report({"a": A, "b": B}, {(A, B)}, {B: [{"project": "b"}]})
 
 
-@allure.title("開発版のレポートは、commit の report-lanes.json のレーンをすべて選ぶ")
-def test_report_dev_takes_every_report_lane_of_the_commit() -> None:
-    """`report_dev` に、除外対象のレーンを含む一覧を持つ commit を渡す場合のテストです。除外対象を除いたレーンが、1 つの run にまとまり、`jobs` にも同じレーンが入ることを確認します。"""
-    with allure.step("レポートのレーンを持つ commit の dev のレポートを作る"):
-        cli, ci = _rlane("p", "test-cli", "p"), _rlane("githooks", "test-ci")
-        sources = report_dev(
-            A,
-            read_lanes=lambda commit: {A: [cli, _excluded("p", "test-bootstrap", "p"), ci]}.get(
-                commit
-            ),
-        )
-    with allure.step("commit のレーンがすべて入ることを確かめる"):
-        assert sources.record() == {
-            "side": "dev",
-            "runs": [{"commit": A, "lanes": ["githooks:test-ci", "p:test-cli"]}],
-            "missing": [],
-        }
-        assert sources.jobs == [_job(ci, A), _job(cli, A)]
-
-
-@allure.title("commit に report-lanes.json が存在しないと、開発版のレポートは例外が発生する")
-def test_report_dev_fails_without_report_lanes() -> None:
-    """`report_dev` に、レーンの一覧を読めない commit を渡す場合のテストです。`ReleaseSourcesError` が発生し、commit の短縮形と `report-lanes.json` が存在しない旨がメッセージに含まれることを確認します。"""
-    with allure.step("レポートのレーンが無い commit の dev のレポートが失敗することを確かめる"):
-        with pytest.raises(ReleaseSourcesError, match=f"{A[:7]} に {_REPORT_LANES} がありません"):
-            report_dev(A, read_lanes=lambda commit: None)
-
-
-@allure.title("開発版のレポートは、40 桁の SHA 以外を渡すと例外が発生する")
-def test_report_dev_requires_full_sha() -> None:
-    """`report_dev` に、`HEAD` という名前を渡す場合のテストです。`ReleaseSourcesError` が発生し、40 桁の SHA ではない旨のメッセージが含まれることを確認します。"""
-    with allure.step("40 桁でない SHA の dev のレポートが失敗することを確かめる"):
-        with pytest.raises(ReleaseSourcesError, match="40 桁の SHA ではありません: HEAD"):
-            report_dev("HEAD", read_lanes=lambda commit: [])
-
-
-@allure.title("CLI は、--report dev で、材料とジョブの一覧を 1 行の JSON で出力する")
-def test_cli_report_dev_prints_sources_and_matrix(repo: Path) -> None:
-    """一時の git リポジトリで、`release_sources.py --report dev --commit` を実行する場合のテストです。終了コード 0 で終わり、`sources` と `matrix` を含む JSON を出力することを確認します。"""
-    with allure.step("レポートのレーンを持つ git のリポで dev のレポートの CLI を動かす"):
-        cli, ci = _rlane("a", "test-cli", "a"), _rlane("githooks", "test-ci")
-        head = _commit(
-            repo,
-            {
-                "plugins/a/.claude-plugin/plugin.json": "{}",
-                _REPORT_LANES: json.dumps([cli, _excluded("a", "test-bootstrap", "a"), ci]),
-            },
-            "first",
-        )
-
-        result = _run_cli(repo, "--report", "dev", "--commit", head)
-
-    with allure.step("終了コードと標準出力の sources と matrix を確かめる"):
-        assert result.returncode == 0, result.stderr
-        assert result.stdout.count("\n") == 1
-        assert json.loads(result.stdout) == {
-            "sources": {
-                "side": "dev",
-                "runs": [{"commit": head, "lanes": ["a:test-cli", "githooks:test-ci"]}],
-                "missing": [],
-            },
-            "matrix": [_job(cli, head), _job(ci, head)],
-        }
-
-
 @allure.title("CLI は、--report release で、git のタグからレポートの材料とジョブの一覧を決める")
 def test_cli_report_release_resolves_from_git_tags(repo: Path) -> None:
     """一時の git リポジトリで、`release_sources.py --report release` を実行する場合のテストです。プラグインごとの最新のタグから `runs` と `matrix` を作り、レーンの一覧を持たないプラグインは `missing` に入ることを確認します。"""
@@ -584,14 +518,13 @@ def test_git_reader_tells_unreadable_blob_from_missing_path(repo: Path, tmp_path
 @pytest.mark.parametrize(
     ("args", "message"),
     [
-        (["--report", "dev"], "--report dev には --commit が要ります"),
-        (["--report", "release", "--commit", A], "--commit は --report dev だけで使えます"),
-        (["--report", "dev", "--commit", A, "--record", "x.json"], "--report は --record"),
-        (["--commit", A], "--commit は --report dev だけで使えます"),
+        (["--report", "dev"], "invalid choice: 'dev'"),
+        (["--report", "release", "--commit", A], f"unrecognized arguments: --commit {A}"),
+        (["--report", "release", "--record", "x.json"], "--report は --record"),
     ],
 )
 def test_cli_report_rejects_wrong_arguments(repo: Path, args: list[str], message: str) -> None:
-    """`--report`、`--commit`、`--record` の、誤った組み合わせを渡す場合のテストです。終了コード 2 で終わり、その理由を標準エラーに出力することを確認します。"""
+    """`--report` と `--record` の誤った組み合わせと、開発版の引数を渡す場合のテストです。開発版は `dev_sources.py` が扱うので、終了コード 2 で終わり、その理由を標準エラーに出力することを確認します。"""
     with allure.step("誤った引数で CLI を動かす"):
         result = _run_cli(repo, *args)
     with allure.step("終了コード 2 とエラーの出力を確かめる"):

@@ -279,6 +279,7 @@ _REPORT_SOURCES = {
     "missing": [],
 }
 _REPORT_TREE = {"./index.html": "<html></html>", "./history.jsonl": '{"uuid":"a"}\n'}
+_DEV_REPORT_TREE = {"./index.html": "<html></html>"}
 
 
 @allure.title("レポートの run の artifact に report.tar が存在しないと、問題として報告する")
@@ -293,22 +294,45 @@ def test_check_side_report_needs_report_tar(tmp_path: Path) -> None:
         ]
 
 
-@allure.title("report.tar の history.jsonl が読めないと、問題として報告する")
+@allure.title("リリース版の report.tar の history.jsonl が読めないと、問題として報告する")
 def test_check_side_report_runs_report_check(tmp_path: Path) -> None:
-    """`history.jsonl` に Allure が読めない行を含む `report.tar` を、`check_side` で検証した場合のテストです。「`history.jsonl` の 1 行目を Allure が読めません」という問題が報告されることを確認します。"""
-    with allure.step("履歴に不正な値のあるレポートの tar を置く"):
+    """`history.jsonl` に Allure が読めない行を含むリリース版の `report.tar` を、`check_side` で検証した場合のテストです。「`history.jsonl` の 1 行目を Allure が読めません」という問題が報告されることを確認します。"""
+    with allure.step("履歴に不正な値のあるレポートの tar と材料を置く"):
         _tar(tmp_path / "report.tar", {"./index.html": "x", "./history.jsonl": "NaN\n"})
+        (tmp_path / "report-sources.json").write_text(json.dumps(_REPORT_SOURCES), encoding="utf-8")
     with allure.step("レポートの側を verify して、問題が出ることを確かめる"):
+        assert check_side(
+            _verdict("release", "report"), tmp_path, "origin/main", lambda _: dict(_REPORT_SOURCES)
+        ) == ["`history.jsonl` の 1 行目を Allure が読めません"]
+
+
+@allure.title("開発版の report.tar が history.jsonl を持つと、問題として報告する")
+def test_check_side_dev_report_refuses_history(tmp_path: Path) -> None:
+    """`history.jsonl` を含む開発版の `report.tar` を、`check_side` で検証した場合のテストです。開発版のレポートは履歴を持てない旨の問題が 1 件だけ報告されることを確認します。"""
+    with allure.step("履歴を持つ開発版のレポートの tar を置く"):
+        _tar(tmp_path / "report.tar", _REPORT_TREE)
+    with allure.step("レポートの側を verify して、履歴を持てないと出ることを確かめる"):
         assert check_side(_verdict("dev", "report"), tmp_path, "origin/main", lambda _: {}) == [
-            "`history.jsonl` の 1 行目を Allure が読めません"
+            "開発版のレポートは `history.jsonl` を持てません"
         ]
 
 
-@allure.title("開発版のレポートは、材料を求め直さずに検証を通す")
+@allure.title("レポートの側が開発版とリリース版のどちらでもないと、問題として報告する")
+def test_check_side_report_refuses_other_sides(tmp_path: Path) -> None:
+    """PR 版の側を持つレポートの判定で、`check_side` を呼んだ場合のテストです。tar を確認せずに、側が不正である旨の問題が報告されることを確認します。"""
+    with allure.step("レポートの tar を置く"):
+        _tar(tmp_path / "report.tar", _DEV_REPORT_TREE)
+    with allure.step("PR 版の側で verify して、側が不正と出ることを確かめる"):
+        assert check_side(_verdict("pr", "report"), tmp_path, "origin/main", lambda _: {}) == [
+            "レポートの側 pr は dev と release のどちらでもありません"
+        ]
+
+
+@allure.title("履歴を持たない開発版のレポートは、材料を求め直さずに検証を通す")
 def test_check_side_dev_report_passes_without_comparing_sources(tmp_path: Path) -> None:
-    """正しい構成の `report.tar` を、開発版のレポートとして `check_side` で検証した場合のテストです。問題が検出されず、材料を求め直す関数が 1 度も呼ばれないことを確認します。"""
+    """`history.jsonl` を含まない `report.tar` を、開発版のレポートとして `check_side` で検証した場合のテストです。問題が検出されず、材料を求め直す関数が 1 度も呼ばれないことを確認します。"""
     with allure.step("dev のレポートの tar を置く"):
-        _tar(tmp_path / "report.tar", _REPORT_TREE)
+        _tar(tmp_path / "report.tar", _DEV_REPORT_TREE)
         seen: list[str] = []
 
         def record(main_ref: str) -> dict[str, object]:

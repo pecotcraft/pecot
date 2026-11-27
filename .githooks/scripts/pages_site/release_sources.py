@@ -1,7 +1,8 @@
 """リリース版の材料（ReleaseSources）を、プラグインごとの最新のタグから決める。
 
 標準出力に tags・commits・skeleton の JSON を出す。--record に release-sources.json を書く。
---report {dev,release} のときは、テストレポートの材料（ReportSources）と matrix を出す。
+--report release のときは、リリース版のテストレポートの材料（ReportSources）と matrix を出す。
+開発版の材料は .githooks/scripts/test_report/dev_sources.py が決める。
 """
 
 from __future__ import annotations
@@ -229,17 +230,6 @@ def report_release(
     return _report_sources("release", groups, missing)
 
 
-def report_dev(commit: str, *, read_lanes: Callable[[str], object | None]) -> ReportSources:
-    """開発版の ReportSources。渡したコミットの、レポートに入れるレーンを全部並べた 1 項目。"""
-    if not _SHA.fullmatch(commit):
-        raise ReleaseSourcesError(f"コミットが 40 桁の SHA ではありません: {commit}")
-    data = read_lanes(commit)
-    if data is None:
-        raise ReleaseSourcesError(f"{commit[:7]} に {REPORT_LANES} がありません")
-    jobs = _report_jobs(data, f"{commit[:7]}:{REPORT_LANES}", commit, lambda e: True)
-    return _report_sources("dev", [jobs] if jobs else [], [])
-
-
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=False)
 
@@ -303,17 +293,13 @@ def resolve_git(root: Path, main: str) -> ReleaseSources:
     )
 
 
-def resolve_report_git(root: Path, side: str, *, main: str, commit: str | None) -> ReportSources:
-    read_lanes = _git_reader(root, REPORT_LANES)
-    if side == "dev":
-        return report_dev(commit or "", read_lanes=read_lanes)
-    plugins = _plugins(root)
+def resolve_report_git(root: Path, *, main: str) -> ReportSources:
     return report_release(
         _git_out(root, "tag", "-l").split(),
-        plugins,
+        _plugins(root),
         commit_of=_git_commit_of(root),
         is_ancestor=_git_ancestor(root),
-        read_lanes=read_lanes,
+        read_lanes=_git_reader(root, REPORT_LANES),
         main=main,
     )
 
@@ -329,19 +315,14 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--root", type=Path, default=Path("."))
     parser.add_argument("--record", type=Path)
     parser.add_argument(
-        "--report", choices=["dev", "release"], help="テストレポートの材料と matrix を出す"
+        "--report", choices=["release"], help="リリース版のテストレポートの材料と matrix を出す"
     )
-    parser.add_argument("--commit", help="--report dev で、レーンを動かすコミット（40 桁の SHA）")
     args = parser.parse_args(argv[1:])
-    if args.commit is not None and args.report != "dev":
-        parser.error("--commit は --report dev だけで使えます")
-    if args.report == "dev" and args.commit is None:
-        parser.error("--report dev には --commit が要ります")
     if args.report is not None and args.record is not None:
         parser.error("--report は --record と一緒に使えません")
     try:
         if args.report is not None:
-            report = resolve_report_git(args.root, args.report, main=args.main, commit=args.commit)
+            report = resolve_report_git(args.root, main=args.main)
             print(json.dumps(report.to_json(), ensure_ascii=False, separators=(",", ":")))
             return 0
         sources = resolve_git(args.root, args.main)

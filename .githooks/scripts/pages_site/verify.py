@@ -164,7 +164,10 @@ def check_side(
     if not tar.is_file():
         return [f"artifact に {tar_name} がありません"]
     if kind == "report":
-        problems = report_check(tar)
+        side = verdict.side or ""
+        if side not in REPORT_SIDES:
+            return [f"レポートの側 {side or 'なし'} は dev と release のどちらでもありません"]
+        problems = report_check(tar, side)
     else:
         problems = side_check(tar, report_links=verdict.side in REPORT_SIDES)
     if verdict.side == "release":
