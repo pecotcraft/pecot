@@ -5,9 +5,10 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { LabelName, LinkType, Severity, Stage, Status } from 'allure-js-commons'
 import type { Label, Link, TestResult } from 'allure-js-commons'
-import { getProjectRoot } from 'allure-js-commons/sdk/reporter'
+import { getProjectRoot, stringifyEnvInfo } from 'allure-js-commons/sdk/reporter'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { z } from 'zod'
+import { osName } from '../src/vitest/allure-reporter.js'
 import { attachJson, attachOutput } from '../src/vitest/attach.js'
 import { featureStory, findUp, layerOf, loadItemTable, loadLayerTable, reportLabelsListener, severityOf } from '../src/vitest/report-labels.js'
 import type { ItemTable, LayerRule } from '../src/vitest/report-labels.js'
@@ -396,7 +397,7 @@ describe('loadLayerTable', () => {
   })
 })
 
-const child: { root?: string, results?: z.infer<typeof childResultSchema>[] } = {}
+const child: { root?: string, directory?: string, results?: z.infer<typeof childResultSchema>[] } = {}
 
 function childResults(): z.infer<typeof childResultSchema>[] {
   if (child.results === undefined) throw new Error('子の vitest を動かしていない')
@@ -414,6 +415,7 @@ describe('子の vitest の結果', () => {
     })
     attachOutput('vitest run（report-labels の fixture）', result.status ?? undefined, result.stdout, result.stderr)
     const directory = path.join(root, 'test-results', 'test-release', 'allure-results')
+    child.directory = directory
     child.results = readdirSync(directory)
       .filter(file => file.endsWith('-result.json'))
       .map(file => readChildResult(path.join(directory, file)))
@@ -474,6 +476,34 @@ describe('子の vitest の結果', () => {
     })
     stepSync('severity を比べる', () => {
       expect(severities(found?.labels ?? [])).toEqual([expected])
+    })
+  })
+
+  it('結果のディレクトリに、OS と Node.js の版を書いた environment.properties を置く', async () => {
+    await explains('子の vitest を Allure の reporter 付きで実行したときの、結果のディレクトリのテストです。`environment.properties` に、`OS` と `Node.js` の版だけが allure-js-commons と同じ形で書かれていることを確認します。')
+    const text = stepSync('environment.properties を読む', () => {
+      if (child.directory === undefined) throw new Error('子の vitest を動かしていない')
+      return readFileSync(path.join(child.directory, 'environment.properties'), 'utf8')
+    })
+    stepSync('ファイルの中身を添付する', () => {
+      attachJson('environment.properties', text)
+    })
+    stepSync('中身を比べる', () => {
+      expect(text).toBe(stringifyEnvInfo({ 'OS': osName(), 'Node.js': process.version }))
+    })
+  })
+
+  it('どの結果も、Node.js の版のラベルを 1 つだけ持つ', async () => {
+    await explains('子の vitest を Allure の reporter 付きで実行したときの結果のテストです。すべての結果が、`Node.js` のラベルを、動かした Node.js の版の 1 つだけ持つことを確認します。')
+    const results = stepSync('結果を集める', () => childResults())
+    stepSync('結果のラベルを添付する', () => {
+      attachJson('結果ごとの Node.js のラベル', results.map(result => ({ name: result.name, labels: result.labels.filter(label => label.name === 'Node.js') })))
+    })
+    stepSync('Node.js のラベルを比べる', () => {
+      expect(results.length).toBeGreaterThan(0)
+      for (const result of results) {
+        expect({ name: result.name, versions: result.labels.filter(label => label.name === 'Node.js').map(label => label.value) }).toEqual({ name: result.name, versions: [process.version] })
+      }
     })
   })
 })

@@ -176,7 +176,7 @@ pnpm exec allure open <作業ディレクトリ>
 | `.githooks/tests/test_report_generate.py` の `test_real_allure_keeps_history_of_a_test_name_with_line_separator` | 3.33.0 は、U+2028・U+2029 を含む履歴を次の回に読めない。`generate.py` がエスケープしている |
 | `generate.py` の `read_history`・`_LINE_BREAK`・`_JS_TRIM` | Allure の履歴の読み方（readline と `trim()`）を写している。`store.py` の確かめも使う |
 | `allurerc.mjs` の `groupBy`・`reportLanguage`・`historyLimit` | 木の段・画面の言葉・履歴の数が変わりうる |
-| `allurerc.mjs` の `categories` | 規則の形（`matchers`）と、既定の分類の扱いが変わりうる |
+| `allurerc.mjs` の `categories` と、`.githooks/tests/test_report_generate.py` の `test_real_allure_sorts_failures_into_categories_by_epic` | 規則の形（`matchers`）と当てる順、結果の無い既定の分類を出さない扱いが変わりうる |
 | `.githooks/tests/test_report_generate.py` の `test_real_allure_shows_only_environment_values_shared_by_all_lanes`・`test_real_allure_shows_no_environment_when_no_key_is_shared` | `generate.py` の環境の情報のまとめは、Allure の読み方に頼っている。結果のディレクトリを渡した順に読み、`environment.properties` を読むたびにメタデータを置き換え、コメントだけのファイルで空にする |
 | `.githooks/scripts/test_report/bash-test.sh` と `.githooks/tests/test_bash_test_lib.py` の `test_real_allure_reads_the_results` | bash のテストの結果のファイルは手で書いている。Allure の読み手が読む欄が変わりうる |
 | `@allurereport/web-commons` の `generateTestingPyramidChart` の `DEFAULT_LAYERS` と、`@allurereport/charts-api` の `defaultChartsConfig` の `groupBy: "layer"` | テストのピラミッドと層ごとの時間のグラフは、`layer` の値（`test-layers.txt` の層）で集める。層の名前と、既定のグラフの有無が変わりうる。`allurerc.mjs` に `charts` を書くと、既定のグラフは消える |
