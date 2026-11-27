@@ -479,7 +479,6 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
                     "pecot-visual:test-hooks",
                     "pecot-visual:test-skills",
                     "pecot-visual:test-release",
-                    "pecot-visual:test-skills",
                     "pecot-tools:test-release",
                 },
             ),
