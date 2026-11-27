@@ -96,22 +96,27 @@ setup() {
     SYNTH_WORKSPACE_YAML="$BATS_FILE_TMPDIR/synth-workspace.yaml"
 }
 
-# 実リポの manifest を $T/manifest.json に書き出す。
+# 実リポの manifest を $T/manifest.json に書き出して添付する。
 write_manifest() {
     node "$MANIFEST_JS" "$PECOTV_ROOT" > "$T/manifest.json"
+    attach_file "$T/manifest.json"
 }
 
+# 比べた結果を $T/compare-<観点>.txt に書き、中身を出して添付する。
 compare() {
-    node "$COMPARE_MJS" "$RUNTIME_INSTALL_JS" "$T/manifest.json" "$RUNTIME_MANIFEST" "$1" "$CATALOG_JS" "$REPO_WORKSPACE_YAML"
+    node "$COMPARE_MJS" "$RUNTIME_INSTALL_JS" "$T/manifest.json" "$RUNTIME_MANIFEST" "$1" "$CATALOG_JS" "$REPO_WORKSPACE_YAML" > "$T/compare-$1.txt"
+    read_output "$T/compare-$1.txt"
 }
 
-# 合成 root の manifest を $T/synth-manifest.json に書き出す。
+# 合成 root の manifest を $T/synth-manifest.json に書き出して添付する。
 write_synth_manifest() {
     node "$MANIFEST_JS" "$SYNTH_ROOT" "$SYNTH_WORKSPACE_YAML" > "$T/synth-manifest.json"
+    attach_file "$T/synth-manifest.json"
 }
 
 compare_synth() {
-    node "$COMPARE_MJS" "$RUNTIME_INSTALL_JS" "$T/synth-manifest.json" "$SYNTH_RUNTIME_MANIFEST" "$1" "$CATALOG_JS" "$SYNTH_WORKSPACE_YAML"
+    node "$COMPARE_MJS" "$RUNTIME_INSTALL_JS" "$T/synth-manifest.json" "$SYNTH_RUNTIME_MANIFEST" "$1" "$CATALOG_JS" "$SYNTH_WORKSPACE_YAML" > "$T/compare-synth-$1.txt"
+    read_output "$T/compare-synth-$1.txt"
 }
 
 # 行 $2 が、列 $1 に完全一致で 1 行あること。
@@ -139,13 +144,15 @@ const manifest = JSON.parse(fs.readFileSync(src, "utf8"))
 manifest.dependencies.vite = range
 fs.writeFileSync(dst, JSON.stringify(manifest))
 ' "$SYNTH_RUNTIME_MANIFEST" "$root/assets/slidev/runtime/package.json" "$vite_range"
-    run node "$MANIFEST_JS" "$root" "$workspace_yaml"
+    run_attached node "$MANIFEST_JS" "$root" "$workspace_yaml"
 }
 
 @test "実リポの runtime を直接起動すると、name が pecotv-runtime の有効な JSON を返す" {
     explains '`runtime-manifest.mjs` を実リポのルートに対して直接起動するテストです。終了コード 0 で、出力が有効な JSON であり、`name` が `pecotv-runtime` であることを確認します。'
     local rc=0
-    node "$MANIFEST_JS" "$PECOTV_ROOT" > "$T/manifest.json" 2> "$T/manifest.err" || rc=$?
+    node "$MANIFEST_JS" "$PECOTV_ROOT" > "$T/manifest.json" 2> "$T/manifest-stderr.txt" || rc=$?
+    attach_file "$T/manifest.json"
+    attach_file "$T/manifest-stderr.txt"
     assert_equal "$rc" "0"
     local name
     name="$(node -e 'const fs=require("node:fs");process.stdout.write(String(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).name))' \
@@ -166,7 +173,9 @@ fs.writeFileSync(dst, JSON.stringify(manifest))
 @test "合成 root を直接起動すると、link・file・portal を除いた依存が runtimeInstallPlan の specs と一致する" {
     explains '`@slidev/parser` の重複と `link:`・`file:`・`portal:` を含む合成 root を `runtime-manifest.mjs` に渡すテストです。終了コード 0 で、依存が `runtimeInstallPlan` の specs と一致し、specs が空でないことを確認します。'
     local rc=0
-    node "$MANIFEST_JS" "$SYNTH_ROOT" "$SYNTH_WORKSPACE_YAML" > "$T/synth-manifest.json" 2> "$T/synth-manifest.err" || rc=$?
+    node "$MANIFEST_JS" "$SYNTH_ROOT" "$SYNTH_WORKSPACE_YAML" > "$T/synth-manifest.json" 2> "$T/synth-manifest-stderr.txt" || rc=$?
+    attach_file "$T/synth-manifest.json"
+    attach_file "$T/synth-manifest-stderr.txt"
     assert_equal "$rc" "0"
     local plan_specs
     plan_specs="$(compare_synth specs)"
@@ -239,7 +248,7 @@ fs.writeFileSync(dst, JSON.stringify(manifest))
     explains '`@slidev/cli` を含まない runtime の manifest を持つ root を渡すテストです。`runtime-manifest.mjs` が非ゼロで終了し、`@slidev/cli` の版指定が無いという文言を出力することを確認します。'
     mkdir -p "$T/nocli-root/assets/slidev/runtime"
     printf '%s\n' '{"name":"nocli","dependencies":{"some-lib":"^1.2.3"}}' > "$T/nocli-root/assets/slidev/runtime/package.json"
-    run node "$MANIFEST_JS" "$T/nocli-root"
+    run_attached node "$MANIFEST_JS" "$T/nocli-root"
     assert_failure
     assert_output --partial "@slidev/cli の版指定がありません"
 }
@@ -255,7 +264,7 @@ import('$RUNTIME_INSTALL_JS').then((m) => process.stdout.write(require('node:pat
 
 @test "引数が足りないと、終了コード 1 で usage を出す" {
     explains '引数を渡さずに `runtime-manifest.mjs` を起動するテストです。終了コード 1 で終わり、`usage: runtime-manifest.mjs` が出力されることを確認します。'
-    run node "$MANIFEST_JS"
+    run_attached node "$MANIFEST_JS"
     assert_failure 1
     assert_output --partial "usage: runtime-manifest.mjs"
 }

@@ -103,30 +103,39 @@ log_tail() {
     tail -"$2" "$TMP/$1" | tr '\n' ' '
 }
 
+# npm スタブの記録を読んで添付し、中身を npm_log に置く。
+read_npm_log() {
+    npm_log="$(read_output "$NPM_STUB_LOG")"
+}
+
 # 記録から 1 フィールドを取り出す（複数行なら 1 行目）。
 log_field() {
     local field="$1"
-    head -n 1 "$NPM_STUB_LOG" | tr ' ' '\n' | sed -n "s/^${field}=//p"
+    head -n 1 <<< "$npm_log" | tr ' ' '\n' | sed -n "s/^${field}=//p"
 }
 
 # npm スタブの呼び出し行数。
 npm_call_count() {
-    wc -l < "$NPM_STUB_LOG" | tr -d ' '
+    printf '%s' "$npm_log" | grep -c '' || true
 }
 
 run_publish() {
     local label="$1"
     shift
+    export NPM_STUB_LOG="$TMP/npm-calls-$label.log"
     : > "$NPM_STUB_LOG"
     PUBLISH_RC=0
-    PATH="$STUB_BIN:$PATH" bash "$PUBLISH" "$@" > "$TMP/publish-$label.out" 2> "$TMP/publish-$label.err" || PUBLISH_RC=$?
+    PATH="$STUB_BIN:$PATH" bash "$PUBLISH" "$@" > "$TMP/publish-$label-stdout.txt" 2> "$TMP/publish-$label-stderr.txt" || PUBLISH_RC=$?
+    attach_file "$TMP/publish-$label-stdout.txt"
+    attach_file "$TMP/publish-$label-stderr.txt"
+    read_npm_log
 }
 
 # 拒否の理由（stderr）に変数名が出ること。
 assert_err_names_variable() {
-    if ! grep -q 'PECOT_RELEASE_TEST_NPM_CACHE' "$TMP/publish-$1.err"; then
+    if ! grep -q 'PECOT_RELEASE_TEST_NPM_CACHE' "$TMP/publish-$1-stderr.txt"; then
         local tail_text
-        tail_text="$(log_tail "publish-$1.err" 3)"
+        tail_text="$(log_tail "publish-$1-stderr.txt" 3)"
         fail "変数名が出ない。stderr の末尾は次のとおり。${tail_text}"
     fi
 }
@@ -141,6 +150,7 @@ new_tree() {
 run_audit() {
     local label="$1"
     shift
+    export NPM_STUB_LOG="$TMP/npm-calls-$label.log"
     : > "$NPM_STUB_LOG"
     local PLANS="$TMP/plans" EXC="$TMP/exceptions.json"
     mkdir -p "$PLANS"
@@ -151,14 +161,17 @@ run_audit() {
         --dist="$(new_tree "audit-dist-$label" "$FIXTURE")" \
         --runtime-dist="$(new_tree "audit-runtime-$label" "$FIXTURE_RUNTIME")" \
         --exceptions="$EXC" --plans-dir="$PLANS" --registry="http://registry.invalid/" \
-        > "$TMP/audit-$label.out" 2> "$TMP/audit-$label.err" || AUDIT_RC=$?
+        > "$TMP/audit-$label-stdout.txt" 2> "$TMP/audit-$label-stderr.txt" || AUDIT_RC=$?
+    attach_file "$TMP/audit-$label-stdout.txt"
+    attach_file "$TMP/audit-$label-stderr.txt"
+    read_npm_log
 }
 
 @test "opt-in を設定せずに publish の dry-run を動かすと、使い捨てのキャッシュで依存を解決する" {
     explains '`PECOT_RELEASE_TEST_NPM_CACHE` を設定せずに `publish-mcp-dist.sh --dry-run` を動かすテストです。成功し、`npm install` が 1 回だけ呼ばれ、永続キャッシュを使わず `--prefer-offline` も渡さないことを確認します。'
     run_publish unset --dry-run --skip-build --out-dir="$TMP/dist-unset"
     assert_equal "$PUBLISH_RC" "0"
-    assert_equal "$(grep -c '^install ' "$NPM_STUB_LOG")" "1"
+    assert_equal "$(grep -c '^install ' <<< "$npm_log")" "1"
     assert_not_equal "$(log_field cache)" "$PERSISTENT"
     assert_not_equal "$(log_field cache)" "unset"
     assert_equal "$(log_field prefer_offline)" "unset"
@@ -213,7 +226,10 @@ run_audit() {
     : > "$NPM_STUB_LOG"
     local rc=0
     NX_DRY_RUN=true PATH="$STUB_BIN:$PATH" bash "$PUBLISH" --skip-build --out-dir="$TMP/dist-nxdry" \
-        > "$TMP/publish-nxdry.out" 2> "$TMP/publish-nxdry.err" || rc=$?
+        > "$TMP/publish-nxdry-stdout.txt" 2> "$TMP/publish-nxdry-stderr.txt" || rc=$?
+    attach_file "$TMP/publish-nxdry-stdout.txt"
+    attach_file "$TMP/publish-nxdry-stderr.txt"
+    read_npm_log
     assert_equal "$rc" "0"
     assert_equal "$(log_field cache)" "$PERSISTENT"
 }
@@ -226,11 +242,11 @@ run_audit() {
         npm_config_offline=true npm_config_prefer_offline=true \
         NPM_CONFIG_CACHE="$PERSISTENT" NPM_CONFIG_OFFLINE=true NPM_CONFIG_PREFER_OFFLINE=true
     assert_equal "$AUDIT_RC" "0"
-    assert_equal "$(grep -c '^audit ' "$NPM_STUB_LOG")" "3"
-    assert_equal "$(grep '^audit ' "$NPM_STUB_LOG" | grep -c "cache=$PERSISTENT" || true)" "0"
+    assert_equal "$(grep -c '^audit ' <<< "$npm_log")" "3"
+    assert_equal "$(grep '^audit ' <<< "$npm_log" | grep -c "cache=$PERSISTENT" || true)" "0"
     # 区切り（行頭か空白）で一致を見る。素の部分一致だと、prefer_offline=false が offline=false に当たる。
-    assert_equal "$(grep '^audit ' "$NPM_STUB_LOG" | grep -Evc '(^| )offline=false( |$)' || true)" "0"
-    assert_equal "$(grep '^audit ' "$NPM_STUB_LOG" | grep -Evc '(^| )prefer_offline=false( |$)' || true)" "0"
-    assert_equal "$(grep '^audit ' "$NPM_STUB_LOG" | grep -c 'cache=unset' || true)" "0"
-    assert_equal "$(grep '^audit ' "$NPM_STUB_LOG" | sed -n 's/^audit cache=\([^ ]*\) .*/\1/p' | sort -u | wc -l | tr -d ' ')" "1"
+    assert_equal "$(grep '^audit ' <<< "$npm_log" | grep -Evc '(^| )offline=false( |$)' || true)" "0"
+    assert_equal "$(grep '^audit ' <<< "$npm_log" | grep -Evc '(^| )prefer_offline=false( |$)' || true)" "0"
+    assert_equal "$(grep '^audit ' <<< "$npm_log" | grep -c 'cache=unset' || true)" "0"
+    assert_equal "$(grep '^audit ' <<< "$npm_log" | sed -n 's/^audit cache=\([^ ]*\) .*/\1/p' | sort -u | wc -l | tr -d ' ')" "1"
 }

@@ -103,7 +103,9 @@ MOCK_EOF
 
     REPO_HEAD="$(git -C "$REPO_ROOT" rev-parse HEAD)"
     PLUGIN_VERSION="$(node -e "process.stdout.write(require('$PECOTV_PLUGIN_ROOT/.claude-plugin/plugin.json').version)")"
-    FIXTURE_FP="$(node "$FINGERPRINT" "$FIXTURE/npm-shrinkwrap.json")"
+    # 判定に使う @test が read_fixture_fp で添付できるよう、指紋をファイルにも残す。
+    node "$FINGERPRINT" "$FIXTURE/npm-shrinkwrap.json" > "$BATS_FILE_TMPDIR/fixture-fingerprint.txt"
+    FIXTURE_FP="$(cat "$BATS_FILE_TMPDIR/fixture-fingerprint.txt")"
     export REPO_HEAD PLUGIN_VERSION FIXTURE_FP
 }
 
@@ -171,12 +173,21 @@ stop_mock() {
     MOCK_PID=""
 }
 
-mock_requests() {
-    wc -l < "$MOCK_COUNT" | tr -d ' '
+# モックへの到達の記録を読んで添付し、到達の回数を mock_count に置く。
+read_mock_requests() {
+    local log
+    log="$(read_output "$MOCK_COUNT")"
+    mock_count="$(printf '%s' "$log" | grep -c '' || true)"
 }
 
-# 記録の欠け・破損・フィールドの欠けを、__ABSENT__・__UNREADABLE__・__MISSING__ で分けて返す。
+# setup_file が求めた fixture の指紋を読んで添付し、fixture_fp に置く。
+read_fixture_fp() {
+    fixture_fp="$(read_output "$BATS_FILE_TMPDIR/fixture-fingerprint.txt")"
+}
+
+# 記録の欠け・破損・フィールドの欠けを、__ABSENT__・__UNREADABLE__・__MISSING__ で分けて返す。記録は添付する。
 record_field() {
+    attach_file "$PECOTV_AUDIT_RECORD"
     node -e '
 const fs = require("node:fs")
 const [file, query] = process.argv.slice(1)
@@ -251,9 +262,9 @@ fs.writeFileSync(out, JSON.stringify({ exceptions }, null, 2) + "\n")
 WRITE_EXCEPTIONS_JS
 }
 
-# 監査を動かす。結果は $status・$output（stdout）・$stderr に入る。
+# 監査を動かし、出力を添付する。結果は $status・$output（stdout）・$stderr に入る。
 run_audit() {
-    run --separate-stderr bash "$AUDIT" "$@"
+    run_attached --separate-stderr bash "$AUDIT" "$@"
 }
 
 # 形の違う例外リストで、監査未実施として中止することを見る。
@@ -350,9 +361,14 @@ AUDIT_FIXTURE_JS
 }
 
 # stdout は 10 行で、順に status、message、total、critical、high、moderate、low、info、例外件数、blocking 件数。$3 は 0 始まり。
+# stdout を監査結果と例外リストの組ごとのファイルに書いて添付し、$3 の行を summary_value に置く。
 summary_field() {
+    local audit="${1##*/}" exceptions="${2##*/}" out summary
+    out="$T/summary-${audit%.json}-${exceptions%.json}.txt"
     node "$SUMMARY_JS" --audit="$1" --exceptions="$2" --label=テスト --fingerprint=ffff \
-        --out="$T/unit-summary.json" | sed -n "$(($3 + 1))p"
+        --out="$T/unit-summary.json" > "$out"
+    summary="$(read_output "$out")"
+    summary_value="$(sed -n "$(($3 + 1))p" <<< "$summary")"
 }
 
 # release-groups.mjs だけを出力 $2 に差し替え、ほかの呼び出しは実 node へ exec する偽の node を $1 に置く。
@@ -388,18 +404,21 @@ FAKE_NODE_EOF
     assert_output --partial "指紋 "
     assert_stderr --partial "配布ツリー: 1 パッケージ"
     assert_output --partial "監査 pass（high 以上なし）"
+    read_fixture_fp
+    assert_output --partial "指紋 $fixture_fp"
     # 記録は publish が読む。指紋が dist-fingerprint.mjs の値と一致し、監査時の HEAD が入ることを固定する。
-    assert_equal "$(record_field dist.fingerprint)" "$FIXTURE_FP"
+    assert_equal "$(record_field dist.fingerprint)" "$fixture_fp"
     assert_equal "$(record_field head)" "$REPO_HEAD"
     assert_equal "$(record_field registry)" "$registry"
     assert_equal "$(record_field dist.vulnerabilities.high)" "0"
     assert_equal "$(record_field dist.total)" "1"
-    runtime_fp="$(node "$FINGERPRINT" "$FIXTURE_RUNTIME/npm-shrinkwrap.json")"
+    run_attached --separate-stderr node "$FINGERPRINT" "$FIXTURE_RUNTIME/npm-shrinkwrap.json"
+    assert_success
+    runtime_fp="$output"
     assert_equal "$(record_field runtime.fingerprint)" "$runtime_fp"
-    assert_not_equal "$runtime_fp" "$FIXTURE_FP"
+    assert_not_equal "$runtime_fp" "$fixture_fp"
     assert_equal "$(record_field runtime.vulnerabilities.high)" "0"
     assert_equal "$(record_field runtime.total)" "3"
-    assert_output --partial "指紋 $FIXTURE_FP"
 }
 
 @test "配布ツリーに high の advisory があると、パッケージと advisory を示して中止し、監査記録を消す" {
@@ -441,30 +460,33 @@ FAKE_NODE_EOF
     assert_stderr --partial "3 秒以内に応答なし"
     [ "$elapsed" -le 6 ] || fail "--timeout=3 が働いていない (${elapsed}s)"
     # 最初の npm 呼び出しはカナリア監査。そこで無応答になるので bulk への到達は 1 件。
-    assert_equal "$(mock_requests)" "1"
+    read_mock_requests
+    assert_equal "$mock_count" "1"
 }
 
 @test "npm_config_registry と --registry の両方があると、--registry の監査先へ問い合わせる" {
     explains "\`npm_config_registry\` に接続を拒否する先を置き、\`--registry\` にモックを渡すテストです。env や \`~/.npmrc\` の監査先が優先されず、モックへ 3 回問い合わせて監査を通すことを確認します。"
     start_mock "$RESPONSES/canary-only.json" case5
-    run --separate-stderr env npm_config_registry="$CLOSED_REGISTRY" \
+    run_attached --separate-stderr env npm_config_registry="$CLOSED_REGISTRY" \
         bash "$AUDIT" --dist="$(new_dist case5)" --runtime-dist="$(new_runtime_dist case5)" \
         --exceptions="$EXC_EMPTY" --plans-dir="$PLANS_PECOTV" --registry="http://127.0.0.1:$MOCK_PORT"
     assert_success
     # カナリア監査と 2 ツリーの監査で bulk へ 3 回投げる。
-    assert_equal "$(mock_requests)" "3"
+    read_mock_requests
+    assert_equal "$mock_count" "3"
     assert_output --partial "registry http://127.0.0.1:$MOCK_PORT"
 }
 
 @test "pecot-visual の version plan が無いと、監査せずにスキップし、skipped の記録を残す" {
     explains "pecot だけの version plan を渡し、HEAD のリリースタグを空にして監査するテストです。監査先へ問い合わせずにスキップし、HEAD を持つ \`skipped: true\` の記録を残すことを確認します。"
     start_mock "$RESPONSES/canary-only.json" case6
-    run --separate-stderr env PECOTV_AUDIT_HEAD_TAGS="" bash "$AUDIT" --dist="$(new_dist case6)" \
+    run_attached --separate-stderr env PECOTV_AUDIT_HEAD_TAGS="" bash "$AUDIT" --dist="$(new_dist case6)" \
         --runtime-dist="$(new_runtime_dist case6)" --exceptions="$EXC_EMPTY" \
         --plans-dir="$PLANS_PECOT_ONLY" --registry="http://127.0.0.1:$MOCK_PORT"
     assert_success
     assert_output --partial "スキップ: pecot-visual の version plan が無いため"
-    assert_equal "$(mock_requests)" "0"
+    read_mock_requests
+    assert_equal "$mock_count" "0"
     # publish はこの記録を読んで「監査していないリリース」と判定する。
     assert_equal "$(record_field skipped)" "true"
     assert_equal "$(record_field head)" "$REPO_HEAD"
@@ -501,6 +523,9 @@ FAKE_NODE_EOF
     assert_success
     assert_stderr --partial "WARNING: 配布ツリー: high 以上の脆弱なパッケージ 1 件"
     assert_stderr --partial "lodash (high)"
+    # 1 回目と同じパスの記録は添付し直されないので、書き直された記録の写しを添付する。
+    cp "$PECOTV_AUDIT_RECORD" "$T/audit-record-case6c-dist.json"
+    attach_file "$T/audit-record-case6c-dist.json"
     assert_equal "$(record_field dist.vulnerabilities.high)" "1"
 }
 
@@ -555,7 +580,8 @@ FAKE_NODE_EOF
     assert_failure 1
     assert_stderr --partial "監査未実施のため中止"
     assert_stderr --partial "998-quoted.md"
-    assert_equal "$(mock_requests)" "0"
+    read_mock_requests
+    assert_equal "$mock_count" "0"
     stop_mock
 
     # updateDependents: always により、text-rules の bump は pecot-visual のリリースになる。
@@ -565,7 +591,8 @@ FAKE_NODE_EOF
     assert_failure 1
     assert_stderr --partial "監査未実施のため中止"
     assert_stderr --partial "996-quoted.md"
-    assert_equal "$(mock_requests)" "0"
+    read_mock_requests
+    assert_equal "$mock_count" "0"
 }
 
 @test "version plan のキーを引用符で囲んでも、宣言として読んで監査する" {
@@ -578,7 +605,8 @@ FAKE_NODE_EOF
             --plans-dir="$plans" --registry="http://127.0.0.1:$MOCK_PORT"
         assert_success
         assert_output --partial "監査 pass（high 以上なし）"
-        assert_equal "$(mock_requests)" "3"
+        read_mock_requests
+        assert_equal "$mock_count" "3"
         stop_mock
     done
 }
@@ -601,7 +629,7 @@ FAKE_NODE_EOF
 
 @test "dist-manifest.mjs を直接起動すると、import 経由と同じ依存を持つ配布 package.json を出力する" {
     explains "\`dist-manifest.mjs\` を直接起動して、出力の JSON を publish が使う import 経由の結果と比べるテストです。依存が一致し、text-rules の依存を範囲ごと含み、引数不足では usage を出すことを確認します。"
-    run --separate-stderr node "$MANIFEST_JS" "$PECOTV_PLUGIN_ROOT" 0.0.0-test "$REPO_ROOT"
+    run_attached --separate-stderr node "$MANIFEST_JS" "$PECOTV_PLUGIN_ROOT" 0.0.0-test "$REPO_ROOT"
     assert_success
     printf '%s\n' "$output" > "$T/manifest.json"
 
@@ -619,7 +647,9 @@ const { buildDistManifest } = await import(pathToFileURL(modPath).href)
 const deps = buildDistManifest(pecotvRoot, '0.0.0-test', repoRoot).dependencies
 process.stdout.write(Object.keys(deps).sort().join(','))
 IMPORT_EOF
-    import_deps="$(node "$T/manifest-import.mjs" "$MANIFEST_JS" "$PECOTV_PLUGIN_ROOT" "$REPO_ROOT")"
+    run_attached --separate-stderr node "$T/manifest-import.mjs" "$MANIFEST_JS" "$PECOTV_PLUGIN_ROOT" "$REPO_ROOT"
+    assert_success
+    import_deps="$output"
     assert_equal "$direct_deps" "$import_deps"
     # 同梱する text-rules の依存は、名前を列挙せず libs/text-rules/package.json の宣言と範囲まで比べる。
     gap="$(node -e '
@@ -632,7 +662,7 @@ process.stdout.write(Object.keys(textRules).length === 0 ? "TEXT_RULES_HAS_NO_DE
     assert_equal "$gap" ""
     [ -n "$import_deps" ] || fail "dependencies が空（比較が無意味になっている）"
 
-    run --separate-stderr node "$MANIFEST_JS"
+    run_attached --separate-stderr node "$MANIFEST_JS"
     assert_failure 1
     assert_stderr --partial "usage: dist-manifest.mjs"
     assert_stderr --partial "<repo-root>"
@@ -642,20 +672,22 @@ process.stdout.write(Object.keys(textRules).length === 0 ? "TEXT_RULES_HAS_NO_DE
     explains "publish が指紋の不一致で止まった後に、release commit で記録を作り直す場面のテストです。HEAD に同じ版のタグがあれば plan 無しでも監査し、別版のタグだけならスキップすることを確認します。"
     # タグは worktree 間で共有されるので作らず、PECOTV_AUDIT_HEAD_TAGS で差し替える。
     start_mock "$RESPONSES/canary-only.json" case14
-    run --separate-stderr env PECOTV_AUDIT_HEAD_TAGS="pecot-visual-v$PLUGIN_VERSION" bash "$AUDIT" \
+    run_attached --separate-stderr env PECOTV_AUDIT_HEAD_TAGS="pecot-visual-v$PLUGIN_VERSION" bash "$AUDIT" \
         --dist="$(new_dist case14)" --runtime-dist="$(new_runtime_dist case14)" --exceptions="$EXC_EMPTY" \
         --plans-dir="$PLANS_PECOT_ONLY" --registry="http://127.0.0.1:$MOCK_PORT"
     assert_success
     assert_output --partial "再監査: HEAD に pecot-visual-v$PLUGIN_VERSION"
     assert_output --partial "監査 pass（high 以上なし）"
-    assert_equal "$(mock_requests)" "3"
+    read_mock_requests
+    assert_equal "$mock_count" "3"
     assert_equal "$(record_field skipped)" "__MISSING__"
-    assert_equal "$(record_field dist.fingerprint)" "$FIXTURE_FP"
+    read_fixture_fp
+    assert_equal "$(record_field dist.fingerprint)" "$fixture_fp"
     stop_mock
 
     # 無関係なタグしか無ければスキップする（タグ判定が総当たりでないこと）。
     start_mock "$RESPONSES/canary-only.json" case14b
-    run --separate-stderr env PECOTV_AUDIT_HEAD_TAGS="$(printf 'pecot-workflow-v1.0.0\npecot-visual-v0.0.0-other')" bash "$AUDIT" \
+    run_attached --separate-stderr env PECOTV_AUDIT_HEAD_TAGS="$(printf 'pecot-workflow-v1.0.0\npecot-visual-v0.0.0-other')" bash "$AUDIT" \
         --dist="$(new_dist case14b)" --runtime-dist="$(new_runtime_dist case14b)" --exceptions="$EXC_EMPTY" \
         --plans-dir="$PLANS_PECOT_ONLY" --registry="http://127.0.0.1:$MOCK_PORT"
     assert_success
@@ -665,29 +697,36 @@ process.stdout.write(Object.keys(textRules).length === 0 ? "TEXT_RULES_HAS_NO_DE
 @test "依存先の text-rules の version plan だけでも監査し、無関係な group だけの plan ではスキップする" {
     explains "text-rules だけの version plan と、pecot-workflow だけの version plan を渡すテストです。前者は監査先へ 3 回問い合わせて監査し、後者は問い合わせずに \`skipped: true\` の記録を残すことを確認します。"
     start_mock "$RESPONSES/canary-only.json" case14c
-    run --separate-stderr env PECOTV_AUDIT_HEAD_TAGS="" bash "$AUDIT" \
+    run_attached --separate-stderr env PECOTV_AUDIT_HEAD_TAGS="" bash "$AUDIT" \
         --dist="$(new_dist case14c)" --runtime-dist="$(new_runtime_dist case14c)" --exceptions="$EXC_EMPTY" \
         --plans-dir="$PLANS_TEXT_RULES" --registry="http://127.0.0.1:$MOCK_PORT"
     assert_success
     assert_output --partial "監査 pass（high 以上なし）"
     refute_output --partial "スキップ"
-    assert_equal "$(mock_requests)" "3"
+    read_mock_requests
+    assert_equal "$mock_count" "3"
     assert_equal "$(record_field skipped)" "__MISSING__"
     stop_mock
 
     start_mock "$RESPONSES/canary-only.json" case14d
-    run --separate-stderr env PECOTV_AUDIT_HEAD_TAGS="" bash "$AUDIT" \
+    run_attached --separate-stderr env PECOTV_AUDIT_HEAD_TAGS="" bash "$AUDIT" \
         --dist="$(new_dist case14d)" --runtime-dist="$(new_runtime_dist case14d)" --exceptions="$EXC_EMPTY" \
         --plans-dir="$PLANS_WORKFLOW_ONLY" --registry="http://127.0.0.1:$MOCK_PORT"
     assert_success
     assert_output --partial "スキップ: pecot-visual の version plan が無いため"
-    assert_equal "$(mock_requests)" "0"
+    read_mock_requests
+    assert_equal "$mock_count" "0"
+    # 1 回目と同じパスの記録は添付し直されないので、書き直された記録の写しを添付する。
+    cp "$PECOTV_AUDIT_RECORD" "$T/audit-record-case14d.json"
+    attach_file "$T/audit-record-case14d.json"
     assert_equal "$(record_field skipped)" "true"
 }
 
 @test "release-groups.mjs は、workspace: 依存のある group だけを対象にし、引けない group があると中止する" {
     explains "\`release-groups.mjs\` を、実リポジトリと、workspace の依存を 2 つ持つ fixture で動かすテストです。依存先の group だけを列挙し、依存先を含む group が \`nx.json\` に無ければ終了コード 1 で止まることを確認します。"
-    assert_equal "$(node "$RELEASE_DIR/release-groups.mjs" "$REPO_ROOT" | paste -sd ',' -)" "pecot-visual,text-rules"
+    run_attached --separate-stderr node "$RELEASE_DIR/release-groups.mjs" "$REPO_ROOT"
+    assert_success
+    assert_equal "$(paste -sd ',' - <<< "$output")" "pecot-visual,text-rules"
 
     # 別の workspace 依存が増えても、列挙し直さずに追従することを fixture で見る。
     local repo="$T/groups-repo" lib
@@ -708,40 +747,51 @@ JSON_EOF
   "gamma-group": { "projects": ["gamma-project"] }
 } } }
 JSON_EOF
-    assert_equal "$(node "$RELEASE_DIR/release-groups.mjs" "$repo" | paste -sd ',' -)" "pecot-visual,alpha-group,beta-group"
+    run_attached --separate-stderr node "$RELEASE_DIR/release-groups.mjs" "$repo"
+    assert_success
+    assert_equal "$(paste -sd ',' - <<< "$output")" "pecot-visual,alpha-group,beta-group"
 
     cat > "$repo/nx.json" << 'JSON_EOF'
 { "release": { "groups": { "pecot-visual": { "projects": ["pecot-visual"] } } } }
 JSON_EOF
-    run --separate-stderr node "$RELEASE_DIR/release-groups.mjs" "$repo"
+    run_attached --separate-stderr node "$RELEASE_DIR/release-groups.mjs" "$repo"
     assert_failure 1
     assert_stderr --partial "alpha-project"
 }
 
 @test "dist-fingerprint.mjs は、ルートの version とキー順を除いた依存ツリーから指紋を求める" {
     explains "\`dist-fingerprint.mjs\` に、shrinkwrap を 1 箇所ずつ変えた変種を渡すテストです。監査と publish で同じ値になるようルートの version とキー順では変わらず、依存の変化では変わることを確認します。"
-    assert_regex "$FIXTURE_FP" '^[0-9a-f]{64}$'
+    read_fixture_fp
+    assert_regex "$fixture_fp" '^[0-9a-f]{64}$'
 
     mutate_shrinkwrap "$T/sw-root-version.json" root-version
-    assert_equal "$(node "$FINGERPRINT" "$T/sw-root-version.json")" "$FIXTURE_FP"
+    run_attached --separate-stderr node "$FINGERPRINT" "$T/sw-root-version.json"
+    assert_success
+    assert_output "$fixture_fp"
     mutate_shrinkwrap "$T/sw-root-deps.json" root-deps
-    assert_not_equal "$(node "$FINGERPRINT" "$T/sw-root-deps.json")" "$FIXTURE_FP"
+    run_attached --separate-stderr node "$FINGERPRINT" "$T/sw-root-deps.json"
+    assert_success
+    refute_output "$fixture_fp"
     mutate_shrinkwrap "$T/sw-dep-version.json" dep-version
-    assert_not_equal "$(node "$FINGERPRINT" "$T/sw-dep-version.json")" "$FIXTURE_FP"
+    run_attached --separate-stderr node "$FINGERPRINT" "$T/sw-dep-version.json"
+    assert_success
+    refute_output "$fixture_fp"
     mutate_shrinkwrap "$T/sw-reordered.json" reordered
-    assert_equal "$(node "$FINGERPRINT" "$T/sw-reordered.json")" "$FIXTURE_FP"
+    run_attached --separate-stderr node "$FINGERPRINT" "$T/sw-reordered.json"
+    assert_success
+    assert_output "$fixture_fp"
 
     mutate_shrinkwrap "$T/sw-no-packages.json" no-packages
-    run --separate-stderr node "$FINGERPRINT" "$T/sw-no-packages.json"
+    run_attached --separate-stderr node "$FINGERPRINT" "$T/sw-no-packages.json"
     assert_failure 1
     assert_stderr --partial "packages がありません"
     # 依存解決が丸ごと失敗した shrinkwrap（ルート "" が無い）を、有効な指紋として扱わない。
     mutate_shrinkwrap "$T/sw-empty-packages.json" empty-packages
-    run --separate-stderr node "$FINGERPRINT" "$T/sw-empty-packages.json"
+    run_attached --separate-stderr node "$FINGERPRINT" "$T/sw-empty-packages.json"
     assert_failure 1
     assert_stderr --partial 'ルート "" がありません'
 
-    run --separate-stderr node "$FINGERPRINT"
+    run_attached --separate-stderr node "$FINGERPRINT"
     assert_failure 1
     assert_stderr --partial "usage: dist-fingerprint.mjs"
 }
@@ -880,7 +930,7 @@ JSON_EOF
 
 @test "runtime-manifest.mjs を直接起動すると、中核パッケージの版を固定した永続層の package.json を出力する" {
     explains "\`runtime-manifest.mjs\` を直接起動して、出力の JSON を見るテストです。\`@slidev/cli\` の版で中核パッケージを固定し、overrides と catalog の範囲を写し、ローカル参照を含まないことを確認します。"
-    run --separate-stderr node "$RUNTIME_MANIFEST_JS" "$PECOTV_PLUGIN_ROOT"
+    run_attached --separate-stderr node "$RUNTIME_MANIFEST_JS" "$PECOTV_PLUGIN_ROOT"
     assert_success
     printf '%s\n' "$output" > "$T/runtime-manifest.json"
 
@@ -907,14 +957,14 @@ process.stdout.write(String((w.catalog ?? w.catalogs?.default ?? {}).vite))')"
     assert_equal "$(runtime_manifest_field vite)" "$catalog_vite"
     refute grep -qF 'catalog:' "$T/runtime-manifest.json"
 
-    run --separate-stderr node "$RUNTIME_MANIFEST_JS"
+    run_attached --separate-stderr node "$RUNTIME_MANIFEST_JS"
     assert_failure 1
     assert_stderr --partial "usage: runtime-manifest.mjs"
 }
 
 @test "audit-summary.mjs は、via の伝播・循環・例外の適用を、キーの並びによらず数える" {
     explains "\`audit-summary.mjs\` に、via の連鎖・循環・参照先の欠け・同じ advisory の 2 パッケージを持つ合成の監査結果を渡すテストです。high と例外の件数が期待どおりで、陳腐化した例外は \`UNAVAILABLE\` になることを確認します。"
-    local kind
+    local kind cycle_blocking
     for kind in chain cycle cycleRev orphan orphanMix dualpkg; do
         write_audit_fixture "$T/unit-$kind.json" "$kind"
     done
@@ -924,47 +974,67 @@ process.stdout.write(String((w.catalog ?? w.catalogs?.default ?? {}).vite))')"
     write_exceptions "$T/exceptions-stale-other.json" "GHSA-aaaa-aaaa-aaaa,other-pkg"
     write_exceptions "$T/exceptions-dualpkg.json" "GHSA-aaaa-aaaa-aaaa,pkg1" "GHSA-aaaa-aaaa-aaaa,pkg2"
 
-    assert_equal "$(summary_field "$T/unit-chain.json" "$EXC_EMPTY" 4)" "2"
-    assert_equal "$(summary_field "$T/unit-chain.json" "$EXC_EMPTY" 9)" "2"
-    assert_equal "$(summary_field "$T/unit-chain.json" "$T/exceptions-leaf.json" 4)" "0"
-    assert_equal "$(summary_field "$T/unit-chain.json" "$T/exceptions-leaf.json" 8)" "1"
-    assert_equal "$(summary_field "$T/unit-chain.json" "$EXC_EMPTY" 2)" "42"
-    assert_equal "$(summary_field "$T/unit-cycle.json" "$EXC_EMPTY" 4)" "2"
-    assert_equal "$(summary_field "$T/unit-orphan.json" "$EXC_EMPTY" 5)" "1"
-    assert_equal "$(summary_field "$T/unit-chain.json" "$T/exceptions-unused.json" 8)" "0"
-    assert_equal "$(summary_field "$T/unit-chain.json" "$T/exceptions-unused.json" 4)" "2"
+    summary_field "$T/unit-chain.json" "$EXC_EMPTY" 4
+    assert_equal "$summary_value" "2"
+    summary_field "$T/unit-chain.json" "$EXC_EMPTY" 9
+    assert_equal "$summary_value" "2"
+    summary_field "$T/unit-chain.json" "$T/exceptions-leaf.json" 4
+    assert_equal "$summary_value" "0"
+    summary_field "$T/unit-chain.json" "$T/exceptions-leaf.json" 8
+    assert_equal "$summary_value" "1"
+    summary_field "$T/unit-chain.json" "$EXC_EMPTY" 2
+    assert_equal "$summary_value" "42"
+    summary_field "$T/unit-cycle.json" "$EXC_EMPTY" 4
+    assert_equal "$summary_value" "2"
+    summary_field "$T/unit-orphan.json" "$EXC_EMPTY" 5
+    assert_equal "$summary_value" "1"
+    summary_field "$T/unit-chain.json" "$T/exceptions-unused.json" 8
+    assert_equal "$summary_value" "0"
+    summary_field "$T/unit-chain.json" "$T/exceptions-unused.json" 4
+    assert_equal "$summary_value" "2"
 
     # 一度も一致しなかった例外は、判定を変えずに excepted-out へ「例外未適用」として 1 行残す (#1071 F-11)。
     node "$SUMMARY_JS" --audit="$T/unit-chain.json" --exceptions="$T/exceptions-unused.json" \
         --label=テスト --fingerprint=ffff --out="$T/unit-summary-unused.json" \
         --excepted-out="$T/unused-excepted-out.txt" > /dev/null
-    run cat "$T/unused-excepted-out.txt"
+    run read_output "$T/unused-excepted-out.txt"
+    assert_success
     assert_output --partial "テストの例外未適用: GHSA-zzzz-zzzz-zzzz nothing"
 
     # 修正前は Object.keys の列挙順に判定が依存し、high 件数が 2 件から 1 件へ減っていた (#1071 F-01)。
-    assert_equal "$(summary_field "$T/unit-cycle.json" "$EXC_EMPTY" 4)" "2"
-    assert_equal "$(summary_field "$T/unit-cycleRev.json" "$EXC_EMPTY" 4)" "2"
-    assert_equal "$(summary_field "$T/unit-cycleRev.json" "$EXC_EMPTY" 9)" "$(summary_field "$T/unit-cycle.json" "$EXC_EMPTY" 9)"
+    summary_field "$T/unit-cycle.json" "$EXC_EMPTY" 4
+    assert_equal "$summary_value" "2"
+    summary_field "$T/unit-cycleRev.json" "$EXC_EMPTY" 4
+    assert_equal "$summary_value" "2"
+    summary_field "$T/unit-cycle.json" "$EXC_EMPTY" 9
+    cycle_blocking="$summary_value"
+    summary_field "$T/unit-cycleRev.json" "$EXC_EMPTY" 9
+    assert_equal "$summary_value" "$cycle_blocking"
 
     # fallback で severity が戻る理由を blocking の advisory 行に残す (#1071 F-02 / F-12)。
-    assert_equal "$(summary_field "$T/unit-orphanMix.json" "$T/exceptions-pkg.json" 4)" "1"
-    assert_equal "$(summary_field "$T/unit-orphanMix.json" "$T/exceptions-pkg.json" 8)" "1"
+    summary_field "$T/unit-orphanMix.json" "$T/exceptions-pkg.json" 4
+    assert_equal "$summary_value" "1"
+    summary_field "$T/unit-orphanMix.json" "$T/exceptions-pkg.json" 8
+    assert_equal "$summary_value" "1"
     node "$SUMMARY_JS" --audit="$T/unit-orphanMix.json" --exceptions="$T/exceptions-pkg.json" \
         --label=テスト --fingerprint=ffff --out="$T/unit-summary-orphanmix.json" \
         --blocking-out="$T/orphan-mix-blocking.txt" > /dev/null
-    run cat "$T/orphan-mix-blocking.txt"
+    run read_output "$T/orphan-mix-blocking.txt"
+    assert_success
     assert_output --partial "advisory の参照先 ghost が報告に載っていない"
 
     # 同一 advisory id が 2 パッケージへ跨る例外は、重複エラーにならず両方へ独立に適用される (#1071 F-03)。
-    assert_equal "$(summary_field "$T/unit-dualpkg.json" "$T/exceptions-dualpkg.json" 4)" "0"
-    assert_equal "$(summary_field "$T/unit-dualpkg.json" "$T/exceptions-dualpkg.json" 8)" "2"
+    summary_field "$T/unit-dualpkg.json" "$T/exceptions-dualpkg.json" 4
+    assert_equal "$summary_value" "0"
+    summary_field "$T/unit-dualpkg.json" "$T/exceptions-dualpkg.json" 8
+    assert_equal "$summary_value" "2"
     # advisory と package の組をキーにしても、登録 package の不一致は陳腐化として UNAVAILABLE になる。
-    run --separate-stderr node "$SUMMARY_JS" --audit="$T/unit-chain.json" --exceptions="$T/exceptions-stale-other.json" \
+    run_attached --separate-stderr node "$SUMMARY_JS" --audit="$T/unit-chain.json" --exceptions="$T/exceptions-stale-other.json" \
         --label=テスト --fingerprint=ffff --out="$T/unit-summary-stale.json"
     assert_line --index 0 "UNAVAILABLE"
     assert_output --partial "GHSA-aaaa-aaaa-aaaa"
 
-    run --separate-stderr node "$SUMMARY_JS"
+    run_attached --separate-stderr node "$SUMMARY_JS"
     assert_failure 1
     assert_stderr --partial "usage: audit-summary.mjs"
 }
@@ -984,7 +1054,7 @@ process.stdout.write(String((w.catalog ?? w.catalogs?.default ?? {}).vite))')"
 @test "永続層の依存解決に失敗すると、永続層で止まった旨を示して監査未実施として中止する" {
     explains "\`npm install\` だけを差し替え、配布ツリーでは成功させ、永続層では失敗させるテストです。\`install\` を 2 回呼んだ後に永続層で止まった旨を示して中止し、記録を残さないことを確認します。"
     # npm audit は実 npm だが、監査先は --registry のモックなので実レジストリへは出ない。
-    local stub="$T/case27-npm" count real_npm
+    local stub="$T/case27-npm" count real_npm install_count
     count="$stub/install-count"
     real_npm="$(command -v npm)"
     mkdir -p "$stub"
@@ -1007,12 +1077,13 @@ STUB_EOF
     chmod +x "$stub/npm"
 
     start_mock "$RESPONSES/canary-only.json" case27
-    run --separate-stderr env PATH="$stub:$PATH" bash "$AUDIT" --plans-dir="$PLANS_PECOTV" \
+    run_attached --separate-stderr env PATH="$stub:$PATH" bash "$AUDIT" --plans-dir="$PLANS_PECOTV" \
         --registry="http://127.0.0.1:$MOCK_PORT" --exceptions="$EXC_EMPTY"
     assert_failure 1
     assert_stderr --partial "監査未実施のため中止: 永続層: 依存解決に失敗しました"
     assert_output --partial "配布ツリーの依存を監査"
-    assert_equal "$(cat "$count")" "2"
+    install_count="$(read_output "$count")"
+    assert_equal "$install_count" "2"
     refute [ -f "$PECOTV_AUDIT_RECORD" ]
 }
 
@@ -1024,12 +1095,13 @@ STUB_EOF
     for variant in a b; do
         rm -f "$PECOTV_AUDIT_RECORD"
         start_mock "$RESPONSES/canary-only.json" "case29$variant"
-        run --separate-stderr env PATH="$T/case29$variant-node:$PATH" bash "$AUDIT" \
+        run_attached --separate-stderr env PATH="$T/case29$variant-node:$PATH" bash "$AUDIT" \
             --dist="$(new_dist "case29$variant")" --runtime-dist="$(new_runtime_dist "case29$variant")" \
             --plans-dir="$PLANS_PECOTV" --registry="http://127.0.0.1:$MOCK_PORT" --exceptions="$EXC_EMPTY"
         assert_failure
         assert_stderr --partial "監査未実施のため中止: release group"
-        assert_equal "$(mock_requests)" "0"
+        read_mock_requests
+        assert_equal "$mock_count" "0"
         refute [ -f "$PECOTV_AUDIT_RECORD" ]
         stop_mock
     done
@@ -1037,7 +1109,7 @@ STUB_EOF
 
 @test "同梱の audit-exceptions.json は、loadExceptions が読める例外リストの形を満たす" {
     explains "既定の \`audit-exceptions.json\` を \`audit-summary.mjs\` の \`loadExceptions\` で読むテストです。ほかのケースは一時ファイルを渡すので、実在のファイルの書き損じをここで検出できることを確認します。"
-    run env SUMMARY_JS="$SUMMARY_JS" EXC="$RELEASE_DIR/audit-exceptions.json" node --input-type=module -e '
+    run_attached env SUMMARY_JS="$SUMMARY_JS" EXC="$RELEASE_DIR/audit-exceptions.json" node --input-type=module -e '
 import { pathToFileURL } from "node:url"
 const { loadExceptions } = await import(pathToFileURL(process.env.SUMMARY_JS).href)
 loadExceptions(process.env.EXC)

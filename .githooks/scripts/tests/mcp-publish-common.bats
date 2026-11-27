@@ -14,9 +14,9 @@ setup() {
     bats_load_library pecot-bats
 }
 
-# 子 bash で lib を source してコードを実行する。終了コードは status、標準出力と標準エラーは output に入る。
+# 子 bash で lib を source してコードを実行し、出力を添付する。終了コードは status、標準出力と標準エラーは output に入る。
 run_lib() {
-    run bash -c "set -euo pipefail; . '$LIB'; $1"
+    run_attached bash -c "set -euo pipefail; . '$LIB'; $1"
 }
 
 # 使い捨てリポ用の git の作者。
@@ -168,7 +168,7 @@ use_git_author() {
     assert [ -d "$tmp/dist-out" ]
     run_lib "OUT_DIR=''; mcp_publish_make_dist; echo \"\$DIST\" > '$tmp/auto-dist-path'"
     assert_success
-    auto_dist="$(cat "$tmp/auto-dist-path")"
+    auto_dist="$(read_output "$tmp/auto-dist-path")"
     assert [ ! -e "$auto_dist" ]
     run_lib "OUT_DIR=''; mcp_publish_make_dist; exit 7"
     assert_failure 7
@@ -189,12 +189,13 @@ STUB_NPM
     assert_success
     assert [ -f "$tmp/sw-dist/npm-shrinkwrap.json" ]
     assert [ ! -f "$tmp/sw-dist/package-lock.json" ]
-    npm_args="$(cat "$NPM_STUB_LOG")"
+    npm_args="$(read_output "$NPM_STUB_LOG")"
     assert_regex "$npm_args" "--fetch-timeout=30000 --fetch-retries=1"
     assert_regex "$npm_args" "install --package-lock-only --ignore-scripts"
     refute_regex "$npm_args" "--prefer-offline"
     rm -f "$tmp/sw-dist/npm-shrinkwrap.json"
+    export NPM_STUB_LOG="$tmp/npm-2.log"
     PATH="$tmp/bin:$PATH" run_lib "NPM_CACHE_OPT_IN='$tmp/persist-cache'; mcp_publish_write_shrinkwrap '$tmp/sw-dist'"
-    npm_args="$(cat "$NPM_STUB_LOG")"
+    npm_args="$(read_output "$NPM_STUB_LOG")"
     assert_regex "$npm_args" "--cache=$tmp/persist-cache --prefer-offline"
 }

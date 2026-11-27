@@ -236,8 +236,10 @@ fingerprint_from_log() {
 publish_real() {
     env -u PECOT_RELEASE_TEST_NPM_CACHE PATH="$SF/npmbin:$PATH" "$@"
 }
-gh_call_count() {
-    wc -l < "$GH_CALLS" | tr -d ' '
+# gh の呼び出しの記録（省略時は GH_CALLS）を読んで添付し、中身を gh_log、行数を gh_count に置く。
+read_gh_log() {
+    gh_log="$(read_output "${1:-$GH_CALLS}")"
+    gh_count="$(printf '%s' "$gh_log" | grep -c '' || true)"
 }
 
 # 本体ツリーの eslint プラグインの dist の指紋。publish の前後で変わらないことを確かめる。
@@ -323,6 +325,7 @@ const { data } = await executeSlideTheme({ dir }, { files: new NodeThemeFiles() 
 process.stdout.write(JSON.stringify(data.lint))
 " "$root" "$talk")"
     (cd "$talk" && PECOTV_DECK_LINT="$lint_json" node "$ESLINT_BIN" --no-config-lookup --config "$1" -f json 'pages/**/*.md' 'slides.md' > "$2" 2> "$2.err") || true
+    attach_file "$2"
     node -e "
 const fs = require('node:fs')
 let report
@@ -372,6 +375,7 @@ process.stdout.write(value === undefined ? '' : typeof value === 'object' ? JSON
 # smoke（$1 = 結果、$2 = stderr）が MCP サーバとして起動しなかったら、理由を添えてテストを落とす。
 smoke_must_start() {
     local head result stderr_tail
+    attach_file "$1"
     head="$(head -c 5 "$1" 2> /dev/null)"
     result="$(cat "$1" 2> /dev/null)"
     stderr_tail="$(tail -n 3 "$2" | tr '\n' ' ')"
@@ -427,8 +431,10 @@ run_setup_smoke() {
 
 # patch-package の代役が残した記録の起動回数を返す。記録が無ければ 0。
 patch_launch_count() {
+    local records
     if [ -f "$1" ]; then
-        grep -c . "$1" || true
+        records="$(read_output "$1")" || return 1
+        grep -c . <<< "$records" || true
     else
         echo 0
     fi
@@ -436,15 +442,19 @@ patch_launch_count() {
 
 # 本実行の監査記録の確認で止まることを確かめる。$1 = 理由の文言、$2 = --out-dir。
 reject_record() {
-    run publish_real bash "$TAGGED_PUBLISH" --version="$TEST_VERSION" --skip-build --out-dir="$2"
+    # 呼ぶたびに gh の記録を分け、どの拒否の記録も添付する。
+    GH_CALLS="$2-gh-calls.txt"
+    : > "$GH_CALLS"
+    run_attached publish_real bash "$TAGGED_PUBLISH" --version="$TEST_VERSION" --skip-build --out-dir="$2"
     assert_failure
     assert_output --partial "$1"
-    assert_equal "$(gh_call_count)" 0
+    read_gh_log
+    assert_equal "$gh_count" 0
 }
 
 # --out-dir のガードで止まることを確かめる。記録を置かないので、ガードが外れても構築の前に止まる。
 reject_out_dir() {
-    run bash "$PUBLISH" --dry-run --skip-build --out-dir="$1"
+    run_attached bash "$PUBLISH" --dry-run --skip-build --out-dir="$1"
     assert_failure
     assert_output --partial "ERROR: --out-dir"
 }
@@ -677,7 +687,7 @@ run_publish_chain() {
 
 @test "監査記録が無いと、dry-run でも配布ツリーを構築せずに止まる" {
     explains "監査記録が存在しない状態で \`--dry-run\` を実行するテストです。終了コード 1 で記録が無い理由を表示し、配布ツリーを構築しないことを確認します。"
-    run bash "$PUBLISH" --dry-run --skip-build --out-dir="$T/dist-norecord"
+    run_attached bash "$PUBLISH" --dry-run --skip-build --out-dir="$T/dist-norecord"
     assert_failure 1
     assert_output --partial "監査記録がありません"
     [ ! -d "$T/dist-norecord" ] || fail "記録が無いのに配布ツリーを構築した"
@@ -685,17 +695,21 @@ run_publish_chain() {
 
 @test "監査スキップの記録では、dry-run が突合を省略して配布ツリーの指紋を出力する" {
     explains "監査スキップの記録で \`--dry-run\` を実行するテストです。突合を省略して正常終了し、生成した shrinkwrap と同じ 64 桁の指紋を出力することを確認します。"
-    run cat "$SF/dryrun-skipped.log"
+    run read_output "$SF/dryrun-skipped.log"
+    assert_success
     assert_output --partial "突合を省略"
     assert_regex "$DIST_FP" '^[0-9a-f]{64}$'
+    attach_file "$SF/dist-skipped/npm-shrinkwrap.json"
     assert_equal "$DIST_FP" "$(node "$FINGERPRINT" "$SF/dist-skipped/npm-shrinkwrap.json" 2> /dev/null || echo __NO_SHRINKWRAP__)"
 }
 
 @test "監査記録の指紋が一致すると、dry-run が突合を通り、同じ指紋の配布ツリーを構築する" {
     explains "監査スキップの dry-run が出力した指紋で監査記録を作り、\`--dry-run\` をもう一度実行するテストです。記録が由来の印を持ち、同じ指紋で監査記録との一致を出力することを確認します。"
     # teardown_file の陽性側。印が載らなくなると teardown_file の確かめが常に通るので、ここで固定する。
+    attach_file "$SF/record-dryrun.json"
     assert_equal "$(record_registry "$SF/record-dryrun.json")" "$TEST_REGISTRY"
-    run cat "$SF/dryrun.log"
+    run read_output "$SF/dryrun.log"
+    assert_success
     assert_output --partial "配布ツリーの指紋: $DIST_FP"
     assert_output --partial "監査記録と一致"
 }
@@ -703,18 +717,21 @@ run_publish_chain() {
 @test "high の残る監査記録でも、dry-run は件数を警告して正常終了する" {
     explains "\`high\` の脆弱性が残る監査記録で \`--dry-run\` を実行するテストです。件数を含む警告を表示して正常終了することを確認します。"
     write_audit_record "$DIST_FP" "$REPO_HEAD" 0 2
-    run bash "$PUBLISH" --dry-run --skip-build --out-dir="$T/dist-dev-high"
+    run_attached bash "$PUBLISH" --dry-run --skip-build --out-dir="$T/dist-dev-high"
     assert_success
     assert_output --partial "WARNING: 監査記録に high 以上の脆弱性が残っています (2 件)"
-    assert_equal "$(gh_call_count)" 0
+    read_gh_log
+    assert_equal "$gh_count" 0
 }
 
 @test "dry-run は gh を呼ばず、実行予定の gh コマンドと tgz の中身を表示する" {
     explains "\`--dry-run\` が表示する内容のテストです。\`gh\` を呼ばずに予定の \`gh\` コマンドと tgz の中身を表示し、中身にソースマップと証明書が無いことを確認します。"
     local log="$SF/dryrun.log"
-    assert_equal "$(wc -l < "$SF/gh-calls-dryrun.txt" | tr -d ' ')" 0
+    read_gh_log "$SF/gh-calls-dryrun.txt"
+    assert_equal "$gh_count" 0
     # dry-run の表示は、タグの版が nx の上げる前の値であることを添える。
-    run cat "$log"
+    run read_output "$log"
+    assert_success
     assert_output --partial "版は version の段階より前の値です"
     assert_line "==> tgz: pecot-visual-mcp-$PLUGIN_VERSION.tgz"
     assert_line "    LICENSE"
@@ -764,10 +781,14 @@ exit 0
 FAKE_PNPM
     chmod +x "$T/bin/pnpm"
     : > "$calls"
-    run env PECOTV_ESLINT_PLUGINS_DIR="$tree" PNPM_CALLS="$calls" \
+    run_attached env PECOTV_ESLINT_PLUGINS_DIR="$tree" PNPM_CALLS="$calls" \
         ESLINT_TREE="$tree" ESLINT_BACKUP="$backup" ESLINT_DIST_AT_BUILD="$at_build" \
         ESLINT_PKGS="$ESLINT_PKGS" PATH="$T/bin:$PATH" \
         bash "$PUBLISH" --dry-run --out-dir="$T/dist-build"
+    assert_success
+    run read_output "$calls"
+    assert_success
+    run read_output "$at_build"
     assert_success
     # 古い dist が残ると、削除したソースに対応するモジュールが配布へ同梱される。build の前に消えていることを見る。
     assert_equal "$(wc -l < "$at_build" | tr -d ' ')" 0
@@ -804,8 +825,10 @@ exit 0
 FAKE_PNPM_FAIL
     chmod +x "$T/bin/pnpm"
     : > "$calls"
-    run env PNPM_CALLS="$calls" PATH="$T/bin:$PATH" bash "$PUBLISH" --dry-run --out-dir="$T/dist-install-fail"
+    run_attached env PNPM_CALLS="$calls" PATH="$T/bin:$PATH" bash "$PUBLISH" --dry-run --out-dir="$T/dist-install-fail"
     assert_failure
+    run read_output "$calls"
+    assert_success
     # 記録が空だと下の build 不在は自明に成立するため、install が実際に呼ばれた印を先に見る。
     assert_equal "$(sed -n '1p' "$calls" | cut -f2)" "install --frozen-lockfile"
     assert_equal "$(grep -c 'run build' "$calls" | tr -d ' ')" 0
@@ -816,6 +839,9 @@ FAKE_PNPM_FAIL
 @test "生成する package.json が公開名・版・依存を宣言し、shrinkwrap と plugin.json が実版で揃う" {
     explains "配布ツリーに生成する \`package.json\` のテストです。公開名・版・\`bin\`・依存がソースの宣言と一致し、shrinkwrap と \`plugin.json\` が実版で揃うことを確認します。"
     local manifest="$DIST/package.json" dist_deps dep
+    attach_file "$manifest"
+    attach_file "$DIST/npm-shrinkwrap.json"
+    attach_file "$DIST/.claude-plugin/plugin.json"
     read_manifest() {
         node -e "
 const m = require(process.argv[1])
@@ -883,6 +909,10 @@ process.stdout.write(['eslint', '@eslint/markdown'].filter((name) => dist[name] 
 @test "README の登録例が公開名と --prefix=/ を使い、LICENSE が HEAD のものと一致する" {
     explains "配布ツリーの \`README.md\` と \`LICENSE\` のテストです。登録例が公開名と \`--prefix=/\` を使い、\`LICENSE\` が HEAD のものと一致することを確認します。"
     local readme="$DIST/README.md"
+    run read_output "$readme"
+    assert_success
+    run read_output "$DIST/LICENSE"
+    assert_success
     assert_equal "$(grep -cE '__[A-Za-z0-9_]+__' "$readme" | tr -d ' ')" 0
     # 4 件 = 直接起動・PLUGIN_DATA 付き・WSL 経由・WSL で PLUGIN_DATA を渡す登録例（bash -lc の行は引用符が付かず対象外）。
     assert_equal "$(grep -cF '"--prefix=/", "@pecot/visual-mcp"' "$readme" | tr -d ' ')" 4
@@ -909,6 +939,7 @@ process.stdout.write(['eslint', '@eslint/markdown'].filter((name) => dist[name] 
     [ -f "$DIST/assets/drawio-icons/science/brain-circuit.svg" ] && [ -f "$DIST/assets/drawio-icons/weather/cloud.svg" ] \
         || fail "smoke で使う icon カタログが配布ツリーに無い"
     # 期待値は、ソースの manifest の vite だけを HEAD の catalog.vite に差し替えて作る。
+    attach_file "$DIST_RUNTIME/package.json"
     runtime_diff="$(node -e "
 const fs = require('node:fs')
 const source = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
@@ -957,6 +988,8 @@ process.stdout.write(JSON.stringify(source) === JSON.stringify(dist) ? 'same' : 
     assert_equal "$(count_js_containing "$DIST/cli/dist" '_shared/dist/index.js')" 0
     # build は削除したソースに対応する dist を掃除しない。消したモジュールが配布へ残っていないことを見る。
     assert_equal "$(find "$DIST_ESLINT/text-constraints/dist/lib/textlint" -name 'rules.*' 2> /dev/null | wc -l | tr -d ' ')" 0
+    run read_output "$DIST/assets/slidev/deck-lint.config.js"
+    assert_success
     assert_equal "$(count_js_containing "$DIST/assets/slidev/deck-lint.config.js" '@v-slidev/')" 0
 }
 
@@ -964,7 +997,8 @@ process.stdout.write(JSON.stringify(source) === JSON.stringify(dist) ? 'same' : 
 
 @test "配布 package.json の依存が、すべてローカルの実体に解決できる" {
     explains "配布ツリーの \`node_modules\` を symlink で再現するテストです。配布 \`package.json\` のすべての依存に、ローカルの実体が見つかることを確認します。"
-    run cat "$SF/missing-links.txt"
+    run read_output "$SF/missing-links.txt"
+    assert_success
     assert_output ""
 }
 
@@ -998,9 +1032,10 @@ process.stdout.write(JSON.stringify(source) === JSON.stringify(dist) ? 'same' : 
 
 @test "配布ツリーが引数なしで MCP サーバとして起動し、drawio 系と slide_lint の tools/call に応答する" {
     explains "配布ツリーの MCP サーバを引数なしで起動し、JSON-RPC で呼び出すテストです。\`tools/list\` と drawio 系のツールと \`slide_lint\` が期待どおりの結果を返すことを確認します。"
-    local json="$SF/smoke.json" tools_error hash_default hash_explicit hash_empty detail chromium_err
+    local json="$SF/smoke.json" tools_error hash_default hash_explicit hash_empty detail chromium_err main_js
     # tsc の出力は実行権を持たず、npm の bin-links が導入時に付ける。ここでは node の shebang を見る。
-    assert_equal "$(head -n 1 "$DIST/cli/dist/main.js")" "#!/usr/bin/env node"
+    main_js="$(read_output "$DIST/cli/dist/main.js")"
+    assert_equal "$(head -n 1 <<< "$main_js")" "#!/usr/bin/env node"
     chromium_err="$(tail -n 2 "$SF/fake-chromium.err" | tr '\n' ' ')"
     [ "$(cat "$SF/fake-chromium.rc")" = 0 ] || fail "偽 chromium キャッシュを用意できない: $chromium_err"
     # smoke.mjs は id を持つ全要求の応答が揃うまで待つので、起動できていれば全要求に応答が返っている。
@@ -1039,6 +1074,7 @@ process.stdout.write(JSON.stringify(source) === JSON.stringify(dist) ? 'same' : 
     explains "\`CLAUDE_PLUGIN_ROOT\` を別の場所に向けて、配布ツリーの \`drawio_export\` を呼び出すテストです。既定の icons root が配布ツリーのカタログを指し、明示した場合と同じハッシュになることを確認します。"
     local hash_explicit
     # npx の起動でも、Claude Code は導入済みのプラグインの置き場所を CLAUDE_PLUGIN_ROOT に渡す。サーバはそれを読まない。
+    attach_file "$SF/smoke.json"
     hash_explicit="$(smoke_value "$SF/smoke.json" 4.call.data.sourceSha256)"
     [ -n "$hash_explicit" ] || fail "比較対象（icons_dir 明示のハッシュ）が smoke から取れていない"
     mkdir -p "$T/other-plugin-root"
@@ -1055,7 +1091,7 @@ process.stdout.write(JSON.stringify(source) === JSON.stringify(dist) ? 'same' : 
 
 @test "runtime_setup が、利用者の NODE_EXTRA_CA_CERTS をそのまま渡し、PLUGIN_DATA に従う置き場へ実行時依存を入れる" {
     explains "偽の \`npm\` を置いて、配布ツリーの \`runtime_setup\` を呼び出すテストです。\`NODE_EXTRA_CA_CERTS\` をそのまま渡し、\`PLUGIN_DATA\` の有無で決まる置き場へ実行時依存を入れることを確認します。"
-    local location entries=0 missing=0 json detail preset_ca="$T/preset-ca.pem"
+    local location entries=0 missing=0 json detail npm_env preset_ca="$T/preset-ca.pem"
     # 取得は単体配布でだけ動く。npm の代役は受け取った値を記録し、RUNTIME_DEPENDENCY_PROBES を満たす最小の node_modules を作る。
     mkdir -p "$T/bin"
     cat > "$T/bin/npm" << 'STUB_NPM'
@@ -1112,7 +1148,8 @@ STUB_NPM
     json="$T/setup-unset.json"
     smoke_must_start "$json" "$T/setup-unset.err"
     assert_equal "ok=$(smoke_value "$json" 2.call.ok) event=$(smoke_value "$json" 2.call.data.event)" "ok=true event=setup.done"
-    assert_equal "$(cat "$T/npm-env-unset" 2> /dev/null)" "<unset>"
+    npm_env="$(read_output "$T/npm-env-unset")"
+    assert_equal "$npm_env" "<unset>"
     # runtime_setup に patch 段は無い。npm の後に patch-package が起動されないことを固定する。
     assert_equal "$(patch_launch_count "$T/patch-record-unset.jsonl")" 0
     [ -f "$T/home-unset/.local/share/pecot/pecot-visual/mcp-dist/node_modules/@slidev/cli/package.json" ] \
@@ -1122,7 +1159,8 @@ STUB_NPM
     printf '%s\n' 'test-ca-bundle' > "$preset_ca"
     run_setup_smoke preset "$preset_ca"
     smoke_must_start "$T/setup-preset.json" "$T/setup-preset.err"
-    assert_equal "$(cat "$T/npm-env-preset" 2> /dev/null)" "$preset_ca"
+    npm_env="$(read_output "$T/npm-env-preset")"
+    assert_equal "$npm_env" "$preset_ca"
 
     # 単体配布の登録の `env` に PLUGIN_DATA を書けば、そこが置き場になる（既定の場所は作られない）。
     run_setup_smoke pdata "" "$T/sa-data"
@@ -1139,11 +1177,12 @@ STUB_NPM
     explains "リリースタグの無い HEAD で本実行するテストです。\`gh\` を呼ばず、配布ツリーも構築せずに正常終了することを確認します。"
     # 記録は pecot 単独リリースの実態に合わせて skipped を置く。冪等性の確認は監査記録の確認より先に働く。
     write_skipped_audit_record "$REPO_HEAD"
-    run publish_real bash "$PUBLISH" --version="$TEST_VERSION" --skip-build --out-dir="$T/dist-gate"
+    run_attached publish_real bash "$PUBLISH" --version="$TEST_VERSION" --skip-build --out-dir="$T/dist-gate"
     assert_success
     assert_output --partial "スキップ"
     [ ! -d "$T/dist-gate" ] || fail "リリースタグが無いのに配布ツリーを構築した"
-    assert_equal "$(gh_call_count)" 0
+    read_gh_log
+    assert_equal "$gh_count" 0
 }
 
 @test "素性を満たさない監査記録では、本実行が gh を呼ばずに publish を拒否する" {
@@ -1180,11 +1219,12 @@ STUB_NPM
     git -C "$solo" tag "pecot-visual-v$TEST_VERSION" HEAD
     assert_equal "$(git -C "$solo" rev-parse -q --verify HEAD^ || true)" ""
     write_audit_record "$DUMMY_FP" "$UNRELATED_SHA" 0
-    run publish_real bash "$solo/plugins/pecot-visual/scripts/release/publish-mcp-dist.sh" --version="$TEST_VERSION" \
+    run_attached publish_real bash "$solo/plugins/pecot-visual/scripts/release/publish-mcp-dist.sh" --version="$TEST_VERSION" \
         --skip-build --out-dir="$T/dist-solo"
     assert_failure 1
     assert_output --partial "対応しません"
-    assert_equal "$(gh_call_count)" 0
+    read_gh_log
+    assert_equal "$gh_count" 0
     [ ! -d "$T/dist-solo" ] || fail "親が無いリポの拒否で配布ツリーを構築した"
 }
 
@@ -1192,13 +1232,17 @@ STUB_NPM
 
 @test "指紋が監査記録と一致しないと、gh を呼ばずに非ゼロ終了し、配布ツリーの指紋を出力する" {
     explains "指紋が配布ツリーと一致しない監査記録で本実行するテストです。理由と配布ツリーの指紋を出力して \`gh\` を呼ばずに止まり、\`vite\` が HEAD の catalog で解決されることを確認します。"
-    local tagged_vite
-    assert_equal "$(cat "$SF/mismatch.rc")" 1
-    run cat "$SF/mismatch.log"
+    local tagged_vite rc
+    rc="$(read_output "$SF/mismatch.rc")"
+    assert_equal "$rc" 1
+    run read_output "$SF/mismatch.log"
+    assert_success
     assert_output --partial "監査した依存ツリーと配布ツリーが一致しません"
-    assert_equal "$(wc -l < "$SF/gh-calls-mismatch.txt" | tr -d ' ')" 0
+    read_gh_log "$SF/gh-calls-mismatch.txt"
+    assert_equal "$gh_count" 0
     assert_regex "$TEST_FP" '^[0-9a-f]{64}$'
     # 使い捨てリポ側で作った配布ツリーも HEAD の catalog を使う（作業ツリーの値と違うのを見られるのはここだけ）。
+    attach_file "$SF/dist-mismatch/assets/slidev/runtime/package.json"
     tagged_vite="$(node -e "process.stdout.write(require('$SF/dist-mismatch/assets/slidev/runtime/package.json').dependencies.vite)" 2> /dev/null || true)"
     assert_equal "$tagged_vite" "$HEAD_VITE"
     assert_not_equal "$tagged_vite" "$WORKTREE_VITE"
@@ -1209,21 +1253,29 @@ STUB_NPM
 @test "監査時 HEAD が現在の HEAD の親でも publish が通り、gh で tgz を Release に添えてワークフローを起動する" {
     explains "監査時 HEAD を親 commit にした監査記録で本実行するテストです。突合を通り、\`gh\` を確認・添付・ワークフローの起動の順に 3 回呼び、添付した tgz に配布物が入ることを確認します。"
     local calls="$SF/gh-calls-publish.txt" tgz="$SF/uploaded.tgz" list="$T/uploaded-files.txt"
-    local tag="pecot-visual-v$TEST_VERSION" tgz_name="pecot-visual-mcp-$TEST_VERSION.tgz" upload_line
-    assert_equal "$(cat "$SF/publish1.rc")" 0
-    run cat "$SF/publish1.log"
+    local tag="pecot-visual-v$TEST_VERSION" tgz_name="pecot-visual-mcp-$TEST_VERSION.tgz" upload_line rc
+    local uploaded_manifest="$T/uploaded-package.json"
+    rc="$(read_output "$SF/publish1.rc")"
+    assert_equal "$rc" 0
+    run read_output "$SF/publish1.log"
+    assert_success
     assert_output --partial "監査記録と一致"
     assert_output --partial "tgz: $tgz_name"
     # 順序は view → upload → workflow run。-R は origin の URL から求めた値になる。
-    assert_equal "$(wc -l < "$calls" | tr -d ' ')" 3
-    assert_equal "$(sed -n '1p' "$calls")" "release view $tag -R $TEST_OWNER_REPO"
-    upload_line="$(sed -n '2p' "$calls")"
+    read_gh_log "$calls"
+    assert_equal "$gh_count" 3
+    assert_equal "$(sed -n '1p' <<< "$gh_log")" "release view $tag -R $TEST_OWNER_REPO"
+    upload_line="$(sed -n '2p' <<< "$gh_log")"
     [[ "$upload_line" == "release upload $tag /"*"/$tgz_name --clobber -R $TEST_OWNER_REPO" ]] \
         || fail "添付の形でない ($upload_line)"
-    assert_equal "$(sed -n '3p' "$calls")" "workflow run publish-npm.yml -f tag=$tag --ref $tag -R $TEST_OWNER_REPO"
+    assert_equal "$(sed -n '3p' <<< "$gh_log")" "workflow run publish-npm.yml -f tag=$tag --ref $tag -R $TEST_OWNER_REPO"
     tar -tzf "$tgz" > "$list" 2> /dev/null || : > "$list"
-    assert_equal "$(tar -xzOf "$tgz" package/package.json 2> /dev/null | node -e "process.stdout.write(JSON.parse(require('fs').readFileSync(0, 'utf8')).name)" 2> /dev/null)" "@pecot/visual-mcp"
-    assert_equal "$(tar -xzOf "$tgz" package/package.json 2> /dev/null | node -e "process.stdout.write(JSON.parse(require('fs').readFileSync(0, 'utf8')).version)" 2> /dev/null)" "$TEST_VERSION"
+    attach_file "$list"
+    # 添付した tgz の package.json は、ファイルに出して添付してから読む。
+    tar -xzOf "$tgz" package/package.json > "$uploaded_manifest" 2> /dev/null || :
+    attach_file "$uploaded_manifest"
+    assert_equal "$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync(0, 'utf8')).name)" < "$uploaded_manifest" 2> /dev/null)" "@pecot/visual-mcp"
+    assert_equal "$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync(0, 'utf8')).version)" < "$uploaded_manifest" 2> /dev/null)" "$TEST_VERSION"
     assert_equal "$(tar -xzOf "$tgz" package/LICENSE 2> /dev/null | cksum)" "$(git -C "$TEST_REPO" show HEAD:LICENSE | cksum)"
     assert_equal "$(grep -cx 'package/cli/dist/main.js' "$list" | tr -d ' ')" 1
     assert_equal "$(grep -cx 'package/npm-shrinkwrap.json' "$list" | tr -d ' ')" 1
@@ -1250,7 +1302,7 @@ STUB_NPM
     printf '%s\n' '{"name":"devengines-repo","private":true,"devEngines":{"packageManager":{"name":"pnpm"}}}' > "$home/package.json"
     cd "$home"
     # --prefix=/ が無ければ、この cwd の npx は EBADDEVENGINES で止まる。止まらなければ --prefix=/ の要否を見直す。
-    run env HOME="$home" npx --yes "--cache=$npx_cache" node -v
+    run_attached env HOME="$home" npx --yes "--cache=$npx_cache" node -v
     assert_failure
     assert_output --partial EBADDEVENGINES
     for kind in cold warm; do
@@ -1274,14 +1326,17 @@ STUB_NPM
 
 @test "同じ版で再実行しても、初回と同じ gh の呼び出しで正常終了する" {
     explains "同じ版で本実行をやり直すテストです。正常終了し、初回と同じ Release の確認とワークフローの起動を含む 3 回の \`gh\` を呼ぶことを確認します。"
-    local first="$SF/gh-calls-publish.txt"
+    local first="$SF/gh-calls-publish.txt" first_log
     # --clobber で上書きし、publish 済みの版はワークフローが飛ばす。
     write_audit_record "$TEST_FP" "$TEST_HEAD" 0
-    run publish_real bash "$TAGGED_PUBLISH" --version="$TEST_VERSION" --skip-build --out-dir="$T/dist-2"
+    run_attached publish_real bash "$TAGGED_PUBLISH" --version="$TEST_VERSION" --skip-build --out-dir="$T/dist-2"
     assert_success
-    assert_equal "$(gh_call_count)" 3
-    assert_equal "$(sed -n '1p' "$GH_CALLS")" "$(sed -n '1p' "$first")"
-    assert_equal "$(sed -n '3p' "$GH_CALLS")" "$(sed -n '3p' "$first")"
+    read_gh_log "$first"
+    first_log="$gh_log"
+    read_gh_log
+    assert_equal "$gh_count" 3
+    assert_equal "$(sed -n '1p' <<< "$gh_log")" "$(sed -n '1p' <<< "$first_log")"
+    assert_equal "$(sed -n '3p' <<< "$gh_log")" "$(sed -n '3p' <<< "$first_log")"
     assert_equal "$(git -C "$REPO_ROOT" tag -l "pecot-visual-v$TEST_VERSION" | wc -l | tr -d ' ')" 0
 }
 
@@ -1291,12 +1346,13 @@ STUB_NPM
     explains "\`gh release view\` が失敗する状態で本実行するテストです。理由と \`gh\` の標準エラーを表示し、確認の 1 回だけで非ゼロ終了することを確認します。"
     write_audit_record "$TEST_FP" "$TEST_HEAD" 0
     export GH_VIEW_RC=1
-    run publish_real bash "$TAGGED_PUBLISH" --version="$TEST_VERSION" --skip-build --out-dir="$T/dist-norelease"
+    run_attached publish_real bash "$TAGGED_PUBLISH" --version="$TEST_VERSION" --skip-build --out-dir="$T/dist-norelease"
     assert_failure 1
     assert_output --partial "Release pecot-visual-v$TEST_VERSION を確認できません"
     assert_output --partial "release not found"
-    assert_equal "$(gh_call_count)" 1
-    assert_equal "$(tail -1 "$GH_CALLS")" "release view pecot-visual-v$TEST_VERSION -R $TEST_OWNER_REPO"
+    read_gh_log
+    assert_equal "$gh_count" 1
+    assert_equal "$(tail -1 <<< "$gh_log")" "release view pecot-visual-v$TEST_VERSION -R $TEST_OWNER_REPO"
 }
 
 # --- 9-6. 作業ツリーが HEAD と乖離しているとき ---
@@ -1307,18 +1363,19 @@ STUB_NPM
     cp -a "$TEST_REPO" "$T/repo"
     printf '\ndirty\n' >> "$T/repo/plugins/pecot-visual/scripts/release/mcp-dist-README.md"
     write_audit_record "$TEST_FP" "$TEST_HEAD" 0
-    run publish_real bash "$T/repo/plugins/pecot-visual/scripts/release/publish-mcp-dist.sh" --version="$TEST_VERSION" \
+    run_attached publish_real bash "$T/repo/plugins/pecot-visual/scripts/release/publish-mcp-dist.sh" --version="$TEST_VERSION" \
         --skip-build --out-dir="$T/dist-dirty"
     assert_failure
     assert_output --partial "未コミットの変更"
-    assert_equal "$(gh_call_count)" 0
+    read_gh_log
+    assert_equal "$gh_count" 0
 }
 
 # --- 10. --out-dir ガード ---
 
 @test "廃止した --repo を、未対応の引数として拒否する" {
     explains "廃止した \`--repo\` を渡して \`--dry-run\` を実行するテストです。未対応の引数として拒否することを確認します。"
-    run bash "$PUBLISH" --dry-run --skip-build --repo=owner/name --out-dir="$T/dist-oldflag"
+    run_attached bash "$PUBLISH" --dry-run --skip-build --repo=owner/name --out-dir="$T/dist-oldflag"
     assert_failure
     assert_output --partial "未対応の引数: --repo=owner/name"
 }
