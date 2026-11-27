@@ -228,8 +228,9 @@ assert_deck_line() {
     refute_stacktrace "$stderr"
 }
 
-@test "集計した後も、作業ツリーに新たな変更が残らない" {
-    explains "ここまでのテストで集計を何度も動かした後に、\`plugins/pecot-visual\` 配下の \`git status\` を実行前と比べるテストです。差分が増えていないことを確認します。"
+# テストは並列に動くため、作業ツリーに変更が残らないことは、すべて終わった後に確かめる。落ちると broken になる。
+teardown_file() {
+    bats_load_library pecot-bats
     run git -C "$REPO_ROOT" status --porcelain -- plugins/pecot-visual
-    assert_output "$(cat "$FIX/git-status-before")"
+    assert_output "$(cat "$BATS_FILE_TMPDIR/git-status-before")"
 }

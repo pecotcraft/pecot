@@ -253,6 +253,38 @@ def test_outside_lane_writes_nothing(tmp_path: Path) -> None:
         assert not (tmp_path / "results").exists()
 
 
+@allure.title("同じファイルの @test を、並べて同時に動かす")
+def test_runs_tests_in_parallel(tmp_path: Path) -> None:
+    """互いに相手の目印のファイルを待つ 2 つの `@test` を、`run.sh` で実行するテストです。2 つが同時に動くことで両方とも passed になり、終了コード 0 で終わることを確認します。"""
+    waits = [
+        ('touch "$BATS_FILE_TMPDIR/' + mine + '"', *_wait_for(other))
+        for mine, other in (("a", "b"), ("b", "a"))
+    ]
+    test = _write_test(
+        tmp_path / "suite",
+        _case("目印 a", 'explains "a を置いて b を待つテストです。"', *waits[0]),
+        _case("目印 b", 'explains "b を置いて a を待つテストです。"', *waits[1]),
+    )
+    done = _run(tmp_path, test, results=tmp_path / "results")
+
+    with allure.step("終了コードと状態を比べる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        statuses = {name: r["status"] for name, r in _results(tmp_path / "results").items()}
+        assert statuses == {"目印 a": "passed", "目印 b": "passed"}
+
+
+def _wait_for(name: str) -> tuple[str, ...]:
+    """相手の目印のファイルを、5 秒まで待つコマンド。"""
+    path = '"$BATS_FILE_TMPDIR/' + name + '"'
+    return (
+        "for _ in $(seq 50); do",
+        "    [ -e " + path + " ] && break",
+        "    sleep 0.1",
+        "done",
+        "[ -e " + path + " ]",
+    )
+
+
 @allure.title("テストと被テストのスクリプトには、結果のディレクトリを渡さない")
 def test_results_dir_is_not_passed_to_tests(tmp_path: Path) -> None:
     """結果のディレクトリを指定して `run.sh` を実行し、`@test` の中で環境変数を読むテストです。`@test` の中では `PECOT_REPORT_RESULTS` が空で、被テストのスクリプトに渡らないことを確認します。"""

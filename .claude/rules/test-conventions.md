@@ -393,7 +393,8 @@ setup() {
 | 題 | vitest の `it` の題と同じ形にする。1 つのファイルの中で同じ題を使わない。重なると bats がファイルを読み込まずに止める |
 | 説明 | 本体の先頭で `explains` を 1 回呼び、「説明の書き方」の形の文字列を 1 行のリテラルで渡す。`bats_test_function` で作るテストは、呼ぶ関数の本体の先頭で呼ぶ |
 | 前提の崩れ | `setup_file`・`setup` の失敗は、そのまま落とす。ファイルの単位の失敗は broken になる |
-| 動かし方 | `.githooks/scripts/test_report/bats/run.sh <ファイル>...`。nx のレーンでは、`run-tests.sh` が `PECOT_REPORT_RESULTS` を付けて呼ぶ |
+| 並列 | `@test` は、bats の `--jobs` で同時に動く。ほかの `@test` の結果や動く順に頼らない。書き込みは `$BATS_TEST_TMPDIR` にする。ファイルのすべての `@test` の後の確かめは `teardown_file` に書く |
+| 動かし方 | `.githooks/scripts/test_report/bats/run.sh <ファイル>...`。nx のレーンでは、`run-tests.sh` が `PECOT_REPORT_RESULTS` を付けて呼ぶ。`--jobs` に要る GNU parallel は、dev container に入っている |
 | 版 | root の `package.json` の `bats`・`bats-assert`・`bats-support`。上げたら `.githooks/tests/test_bats_report.py` を全量で動かす。formatter が bats の拡張 TAP を読むため |
 
 `explains` は、nx のレーンの中でだけ説明を formatter に渡します。説明の無い passed の `@test` があると、`run.sh` がファイルと題を並べてレーンを落とします。

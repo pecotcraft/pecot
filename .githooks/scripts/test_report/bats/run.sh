@@ -15,6 +15,13 @@ RESULTS="${PECOT_REPORT_RESULTS:-}"
 unset PECOT_REPORT_RESULTS
 export BATS_LIB_PATH="$ROOT/.githooks/scripts/test_report/bats:$ROOT/node_modules"
 
+# bats の --jobs は GNU parallel で @test を並べる。GNU parallel は空いた枠を待つ間に眠るため、枠は CPU の数より多くする。
+if ! command -v parallel > /dev/null 2>&1; then
+    echo "ERROR: bats の --jobs に GNU parallel が要ります（.devcontainer/Dockerfile で入れています）" >&2
+    exit 1
+fi
+JOBS=$(($(nproc) * 4))
+
 work=""
 trap 'rm -rf "$work"' EXIT
 
@@ -24,7 +31,7 @@ for file in "$@"; do
     echo "==> bats $file"
     rc=0
     if [ -z "$RESULTS" ]; then
-        "$BATS" "$file" || rc=$?
+        "$BATS" --jobs "$JOBS" "$file" || rc=$?
         [ "$rc" -eq 0 ] || failed+=("$file (exit $rc)")
         continue
     fi
@@ -32,7 +39,7 @@ for file in "$@"; do
     start="$(allure_result_now_ms)"
     # stderr はそのまま流し、読み込みで止まったときの理由に添える写しを取る。
     {
-        PECOT_BATS_REPORT=1 "$BATS" -T --formatter tap --report-formatter "$FORMATTER" --output "$work" "$file" \
+        PECOT_BATS_REPORT=1 "$BATS" --jobs "$JOBS" -T --formatter tap --report-formatter "$FORMATTER" --output "$work" "$file" \
             2>&1 1>&3 3>&- | tee "$work/stderr" >&2 3>&-
         rc="${PIPESTATUS[0]}"
     } 3>&1

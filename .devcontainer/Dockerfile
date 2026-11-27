@@ -4,9 +4,10 @@ FROM mcr.microsoft.com/devcontainers/base:ubuntu26.04@sha256:b377a08d19467bcc081
 LABEL org.opencontainers.image.source=https://github.com/pecotcraft/pecot
 
 # libreoffice・poppler-utils は PPTX→PDF 変換と PDF の抽出のため (#165)。
+# parallel（GNU parallel）は、bats の --jobs で @test を並べて動かすため (#844)。
 # --no-install-recommends を付けない。日本語の抽出に要る poppler-data は recommends でしか入らない。
 RUN apt-get update \
-  && DEBIAN_FRONTEND=noninteractive apt-get install -y shellcheck tmux fontconfig fonts-noto-cjk fonts-inter fonts-crosextra-carlito libreoffice-impress libreoffice-calc poppler-utils \
+  && DEBIAN_FRONTEND=noninteractive apt-get install -y shellcheck tmux fontconfig fonts-noto-cjk fonts-inter fonts-crosextra-carlito libreoffice-impress libreoffice-calc poppler-utils parallel \
   && rm -rf /var/lib/apt/lists/*
 
 # PPTX のフォント名を deb の実体へ寄せる。無いと PDF 変換でフォントが崩れる (#728)。
