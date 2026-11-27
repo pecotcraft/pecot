@@ -2,13 +2,8 @@
 // hook が node の型除去で直接読むので、enum・namespace・パラメータプロパティ・import を使わない。
 
 /**
-系列（major）ごとの最低版。2026-10-21 の Node.js セキュリティリリース
-（Brotli 展開の RCE CVE-2026-111497 ほか）の修正版。25 系はサポート終了で修正版が無い。
-次のセキュリティリリースで上げるときは、現行の版を次のコマンドで列挙する。
-`grep -rn '24.22.1' plugins .githooks`（node_modules・アイコン SVG のヒットは除く）。
-ヒットした箇所を同じ変更で更新する。
-表・engines・フックの期待値は各プラグインの node-runtime.test.ts が検証する。
-2 つの複製の一致は pecot-visual の node-runtime.test.ts が検証する。
+系列（major）ごとの最低版で、2026-10-21 の Node.js セキュリティリリース（CVE-2026-111497 ほか）の修正版。25 系は修正版が無い。
+上げ方は `.claude/rules/devcontainer.md` の「Node.js」。2 つの複製の一致は pecot-visual の node-runtime.test.ts が検証する。
 */
 export const MINIMUM_NODE_VERSIONS: Readonly<Record<number, string>> = {
   24: '24.22.1',
