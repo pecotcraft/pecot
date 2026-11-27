@@ -859,7 +859,7 @@ def _lane_results(root: Path, entry: dict[str, str], commit: str) -> Path:
     "リリース版では、今の report-lanes.json に無いレーンも、run のコミットの表から結果を読む"
 )
 def test_release_sources_read_lanes_from_each_run_commit(root: Path, tmp_path: Path) -> None:
-    """今の `report-lanes.json` から消えたレーンを、タグのコミットで動かしたリリース版の材料のテストです。run のコミットごとに表を 1 回だけ読み、消えたレーンの結果も `allure generate` に渡してレポートを作ることを確認します。"""
+    """今の `report-lanes.json` から消えたレーンを、タグのコミットで動かしたリリース版の材料のテストです。同じコミットの run が 2 つあっても表は 1 回だけ読むことを確認します。消えたレーンの結果も `allure generate` に渡します。"""
     with allure.step("タグのコミットにだけあるレーンの結果を置き、リリース版の材料で生成する"):
         old = _lane_results(root, _OLD_LANE, SHA_A)
         cli = _results(root, "beta:test-cli", commit=SHA_A)
@@ -868,8 +868,9 @@ def test_release_sources_read_lanes_from_each_run_commit(root: Path, tmp_path: P
         sources = _sources(
             tmp_path,
             [
-                {"commit": SHA_A, "lanes": ["beta:test-cli", "beta:test-old"]},
+                {"commit": SHA_A, "lanes": ["beta:test-cli"]},
                 {"commit": SHA_B, "lanes": ["alpha:test-unit"]},
+                {"commit": SHA_A, "lanes": ["beta:test-old"]},
             ],
         )
 
