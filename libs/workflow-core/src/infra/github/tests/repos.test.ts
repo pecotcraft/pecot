@@ -505,3 +505,31 @@ describe('getRepositoryOwnerType', () => {
     expect(await client.getRepositoryOwnerType('owner', 'repo')).toBeUndefined()
   })
 })
+
+describe('getRepositorySettings', () => {
+  it('delete_branch_on_merge・default_branch・owner.type がある場合は、その値を返す', async () => {
+    await explains('リポジトリの設定を取得する `getRepositorySettings` のテストです。応答に 3 つの項目がそろっている場合に、値をそのまま返し、`/repos/owner/repo` を 1 回だけ要求することを確認します。')
+    const { client, server } = await startClient([restResponse('GET', '/repos/owner/repo', { status: 200, body: { default_branch: 'main', delete_branch_on_merge: true, owner: { type: 'Organization' } } })])
+    expect(await client.getRepositorySettings('owner', 'repo')).toEqual({ deleteBranchOnMerge: true, defaultBranch: 'main', ownerType: 'Organization' })
+    expect(restRequests(server).map(({ path }) => path)).toEqual(['/repos/owner/repo'])
+  })
+
+  it('delete_branch_on_merge と owner.type が無い場合は、その 2 項目を undefined にする', async () => {
+    await explains('`getRepositorySettings` のテストです。応答に `delete_branch_on_merge` と `owner.type` が無い場合に、2 項目が `undefined` になり、`default_branch` は返ることを確認します。')
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo', { status: 200, body: { default_branch: 'trunk' } })])
+    expect(await client.getRepositorySettings('owner', 'repo')).toEqual({ deleteBranchOnMerge: undefined, defaultBranch: 'trunk', ownerType: undefined })
+  })
+
+  it('delete_branch_on_merge が boolean でない場合は、undefined にする', async () => {
+    await explains('`getRepositorySettings` のテストです。`delete_branch_on_merge` が文字列で返った場合に、boolean として読まず `undefined` にすることを確認します。')
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo', { status: 200, body: { default_branch: 'main', delete_branch_on_merge: 'true' } })])
+    const settings = await client.getRepositorySettings('owner', 'repo')
+    expect(settings.deleteBranchOnMerge).toBeUndefined()
+  })
+
+  it('default_branch が無い場合は、GitHubAPIError を発生させる', async () => {
+    await explains('`getRepositorySettings` のテストです。応答に `default_branch` が無い場合に、`GitHubAPIError` が発生することを確認します。')
+    const { client } = await startClient([restResponse('GET', '/repos/owner/repo', { status: 200, body: { name: 'repo' } })])
+    await expect(client.getRepositorySettings('owner', 'repo')).rejects.toBeInstanceOf(GitHubAPIError)
+  })
+})

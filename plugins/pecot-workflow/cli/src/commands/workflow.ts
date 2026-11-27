@@ -2,13 +2,12 @@
 import { z } from 'zod'
 
 import { evaluateRequirements, findWorkflowTemplate, isOutdated, npxWorkflowMcpLines, pecotActionReferences, pinPecotActions, readTemplateVersion, userLines, hasPecotActionStep, WORKFLOW_TEMPLATES } from '@pecot/workflow-core/domain/workflow-template.js'
-import type { SettingList, SettingNames, WorkflowTemplate } from '@pecot/workflow-core/domain/workflow-template.js'
+import type { SettingNames, WorkflowTemplate } from '@pecot/workflow-core/domain/workflow-template.js'
 import { gitToplevel, primaryRemoteRepository } from '@pecot/workflow-core/infra/git.js'
 import { TransportFailure } from '@pecot/workflow-core/infra/github/client.js'
 import { GitHubAPIError, GitHubNotFoundError } from '@pecot/workflow-core/infra/github/errors.js'
-import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
-import type { ActionsScope } from '@pecot/workflow-core/infra/github/repos.js'
 import { readBundledWorkflow, readInstalledWorkflow, writeWorkflow } from '../infra/workflow-file.js'
+import { readSettingNames } from '@pecot/workflow-core/commands-shared/actions-setting-names.js'
 import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { commandHint, hinted, inputNameHint } from '@pecot/workflow-core/commands-shared/command-hint.js'
@@ -157,22 +156,6 @@ function templateItems(template: Readonly<WorkflowTemplate>, installed: string, 
       ? [{ name: `${template.destination} calls the pecot actions, not npx @pecot/workflow-mcp`, state: stateOf(!hasNpxCall && (!isActionTemplate || hasPecotActionStep(installed))) }]
       : [],
   ]
-}
-
-// 読めた一覧の名前を合わせる。読めなかった一覧があれば complete を false にする
-function mergeNames(lists: readonly (readonly string[] | undefined)[]): SettingList {
-  return { names: new Set(lists.flatMap(list => list ?? [])), complete: !lists.includes(undefined) }
-}
-
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない
-async function readSettingNames(client: GitHubClient, owner: string, repository: string): Promise<SettingNames> {
-  const ownerType = await client.getRepositoryOwnerType(owner, repository)
-  const scopes: readonly ActionsScope[] = ownerType === 'Organization' ? ['repository', 'organization'] : ['repository']
-  const [secrets, variables] = await Promise.all([
-    Promise.all(scopes.map(async scope => await client.listActionsSecretNames(owner, repository, scope))),
-    Promise.all(scopes.map(async scope => await client.listActionsVariableNames(owner, repository, scope))),
-  ])
-  return { secrets: mergeNames(secrets), variables: mergeNames(variables) }
 }
 
 const workflowDoctorCommand = defineTool({

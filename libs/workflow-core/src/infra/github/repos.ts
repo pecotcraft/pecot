@@ -38,6 +38,21 @@ Actions の secret と変数を読む単位。organization は、organization �
 */
 export type ActionsScope = 'repository' | 'organization'
 
+/**
+リポジトリの設定のうち、action が読むもの
+*/
+export interface RepositorySettings {
+  /**
+  マージしたブランチを自動で消すか。merge の設定は contents:write の無い token では応答に載らず、その場合は undefined
+  */
+  readonly deleteBranchOnMerge: boolean | undefined
+  readonly defaultBranch: string
+  /**
+  持ち主の種類（`User`・`Organization`）。読めない形なら undefined
+  */
+  readonly ownerType: string | undefined
+}
+
 const ALERTS_PER_PAGE = 100
 // 一覧の per_page の上限。secret は 100、変数は 30（REST の文書）
 const SECRETS_PER_PAGE = 100
@@ -219,6 +234,20 @@ export class ReposApi extends GitHubClientBase {
   }
 
   /**
+  リポジトリの設定（`GET /repos/{owner}/{repo}` を 1 回読む）
+  */
+  async getRepositorySettings(owner: string, repository: string): Promise<RepositorySettings> {
+    const repositoryInfo = await this.restJson('GET', repositoryPath(owner, repository))
+    const autoDelete = jsonField(repositoryInfo, 'delete_branch_on_merge')
+    const ownerType = jsonField(jsonField(repositoryInfo, 'owner'), 'type')
+    return {
+      deleteBranchOnMerge: typeof autoDelete === 'boolean' ? autoDelete : undefined,
+      defaultBranch: requireString(jsonField(repositoryInfo, 'default_branch'), 'default_branch'),
+      ownerType: typeof ownerType === 'string' ? ownerType : undefined,
+    }
+  }
+
+  /**
   リポジトリの持ち主の種類（`User`・`Organization`）。読めない形なら undefined
   */
   async getRepositoryOwnerType(owner: string, repository: string): Promise<string | undefined> {
@@ -231,8 +260,8 @@ export class ReposApi extends GitHubClientBase {
   リポジトリの既定ブランチ名
   */
   async getRepositoryDefaultBranch(owner: string, repository: string): Promise<string> {
-    const repositoryInfo = await this.restJson('GET', repositoryPath(owner, repository))
-    return requireString(jsonField(repositoryInfo, 'default_branch'), 'default_branch')
+    const settings = await this.getRepositorySettings(owner, repository)
+    return settings.defaultBranch
   }
 
   /**

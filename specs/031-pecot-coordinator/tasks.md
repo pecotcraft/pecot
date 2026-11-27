@@ -145,13 +145,13 @@
 
 **Independent Test**: sandbox の `pecot-github-ops.yml` を、GitHub 公式の MCP の `actions_run_trigger` で operation ごとに起動し、結果を読める
 
-- [ ] T066 [P] [US6] `github-ops` の operation ごとのテストを書く（[contracts/actions-interface.md](contracts/actions-interface.md) の 2 節と、Phase 2 で足したもの） in `actions/tests/github-ops/`
-- [ ] T067 [US6] operation ごとの処理を `actions/src/github-ops.ts` に書き、`libs/workflow-core/src/infra/github/` を呼ぶ。結果は job のログに `PECOT_RESULT` で始まる 1 行の JSON で出す
-- [ ] T068 [US6] `actions/github-ops/action.yml` を書く（`operation` と、operation ごとの `inputs`・`token`）。`dist/` を作って commit する
-- [ ] T069 [US6] `actions/templates/pecot-github-ops.yml` を書く（`workflow_dispatch` の `inputs`・`permissions`・Phase 2 で決めた token）
-- [ ] T070 [US6] このリポの `.github/workflows/pecot-github-ops.yml` を足し、`uses: ./actions/github-ops` で呼ぶ
-- [ ] T071 [US6] `actions/README.md` に、`pecot-github-ops.yml` の導入と、operation ごとの token を書く
-- [ ] T072 [US6] version plan を足す（`actions` は minor）
+- [x] T066 [P] [US6] `github-ops` の operation ごとのテストを書く（[contracts/actions-interface.md](contracts/actions-interface.md) の 2 節と、Phase 2 で足したもの） in `actions/tests/interface/github-ops/`
+- [x] T067 [US6] operation ごとの処理を `actions/src/commands/github-ops.ts` に書き、`libs/workflow-core/src/infra/github/` を呼ぶ。結果は job のログに `PECOT_RESULT` で始まる 1 行の JSON で出す
+- [x] T068 [US6] `actions/github-ops/action.yml` を書く（`operation`・`request-id`・`params`（operation ごとの値の JSON）・`token`）。`dist/` を作って commit する
+- [x] T069 [US6] `actions/templates/pecot-github-ops.yml` を書く（`workflow_dispatch` の `inputs`・`permissions`・Phase 2 で決めた token）
+- [x] T070 [US6] このリポの `.github/workflows/pecot-github-ops.yml` を足し、`uses: ./actions/github-ops` で呼ぶ
+- [x] T071 [US6] `actions/README.md` に、`pecot-github-ops.yml` の導入と、operation ごとの token を書く
+- [x] T072 [US6] version plan を足す（`actions` は minor）
 - [ ] T073 [US6] CUJ: sandbox に `pecot-github-ops.yml` を置き（`uses:` は確かめるブランチの ref）、`actions_run_trigger` で operation ごとに起動して、`run-name` で run を探し、`get_job_logs` で結果を読む
 
 ---

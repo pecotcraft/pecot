@@ -212,7 +212,7 @@ describe('workflow_doctor', () => {
     expect(result.isError).toBe(true)
     expect(result.structured).toMatchObject({ kind: 'invalid-input' })
     expect(result.structured['detail']).toContain('unknown workflow template: deploy')
-    expect(result.structured['detail']).toContain('available: board-sync, review, handoff, auto')
+    expect(result.structured['detail']).toContain('available: board-sync, review, handoff, auto, github-ops')
   })
 
   it('name に handoff を渡すと、引き継ぎの雛形と review と同じエージェント用の認証を確かめ、Claude の App の項目を入れない', async (context) => {

@@ -143,7 +143,7 @@ describe('workflow_install', () => {
     expect(result.isError).toBe(true)
     expect(result.structured).toMatchObject({ kind: 'invalid-input' })
     expect(result.structured['detail']).toContain('unknown workflow template: deploy')
-    expect(result.structured['detail']).toContain('available: board-sync, review, handoff, auto')
+    expect(result.structured['detail']).toContain('available: board-sync, review, handoff, auto, github-ops')
   })
 
   it('name に auto を渡すと、自動処理の雛形を .github/workflows/pecot-auto.yml に書き出し、雛形の版を version に入れる', async (context) => {

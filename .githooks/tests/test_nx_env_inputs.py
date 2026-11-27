@@ -114,6 +114,7 @@ _EXEMPT: dict[str, str] = {
     "GITHUB_EVENT_NAME": "auto-gate の action が読む。GITHUB_RUN_ID と同じく、useIsolatedEnvironment が外し、テストが自分で渡す",
     "GITHUB_EVENT_PATH": "GITHUB_EVENT_NAME と同じ",
     "RUNNER_TEMP": "auto-start の action が読む。GITHUB_RUN_ID と同じく、useIsolatedEnvironment が外し、テストが自分で渡す",
+    "GITHUB_WORKSPACE": "github-ops の action の workflow-doctor が読む。RUNNER_TEMP と同じく、useIsolatedEnvironment が外し、テストが自分で渡す",
     "PECOT_GITHUB_API_URL": (
         "cli/tests/conftest.py が unset して固定する。前後比較のテストは、子プロセスの env に偽サーバの URL を"
         "自分で渡す"

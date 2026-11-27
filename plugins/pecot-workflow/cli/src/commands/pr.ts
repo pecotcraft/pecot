@@ -43,6 +43,7 @@ import { readTextFile } from '@pecot/workflow-core/infra/text-file.js'
 import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import type { HintedText } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
+import { planStackRegistration } from '@pecot/workflow-core/commands-shared/stack-registration.js'
 import { findConfigForRemotes, readRemoteLocations } from '../infra/remote-config.js'
 import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
 import { directorySchema } from './directory-option.js'
@@ -484,15 +485,16 @@ async function registerStack(client: GitHubClient, location: RepositoryReference
   }
   try {
     const stack = await client.getStackOfPullRequest(location.owner, location.repository, lower)
-    const top = stack?.pullRequests.at(-1)
     // GitHub は一番上にしか足せないので、同じ親 PR に 2 つ目の子 PR をスタックしたときは 422 を待たずに知らせる
-    if (stack !== undefined && top !== lower) {
-      out.warning(`could not register stack: PR #${String(lower)} is not the top of stack #${String(stack.number)} (top: PR #${String(top)}); PR #${String(created)} was not added`)
+    const plan = planStackRegistration(lower, created, stack, undefined)
+    if (plan.kind === 'conflict') {
+      out.warning(`could not register stack: ${plan.reason}; PR #${String(created)} was not added`)
       return unregistered
     }
-    const registered = stack === undefined
-      ? await client.createStack(location.owner, location.repository, [lower, created])
-      : await client.addToStack(location.owner, location.repository, stack.number, [created])
+    if (plan.kind === 'already') return { lower, registered: true, number: plan.stack.number }
+    const registered = plan.kind === 'create'
+      ? await client.createStack(location.owner, location.repository, plan.pullRequests)
+      : await client.addToStack(location.owner, location.repository, plan.stackNumber, plan.pullRequests)
     out.done({ verb: 'add', target: `PR #${String(created)} to stack #${String(registered.number)}` })
     return { lower, registered: true, number: registered.number }
   }

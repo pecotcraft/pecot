@@ -245,6 +245,7 @@ MCP サーバ（`cli/src`）の直しは、クライアントに反映されま�
 | ボードの同期（`pecot-board-sync.yml`） | 有無と中身 | この節の手順 1〜6 |
 | 自動レビュー（`pecot-review.yml`） | 有無と中身 | `specs/027-auto-revise-on-pr/quickstart.md` |
 | 引き継ぎ（`pecot-handoff.yml`） | 有無と中身 | この節の「引き継ぎを確かめる」 |
+| 手の無い操作（`pecot-github-ops.yml`） | 有無と中身 | `pecotcraft/pecot` の `specs/031-pecot-coordinator/tasks.md` の T073。手順 1〜3・5・6 で写しを入れて戻し、手順 4 の代わりに `actions_run_trigger` で operation ごとに起動する |
 
 検証用にも自動レビューの写しがあるので、検証用で作る draft でない PR には、自動レビューが付きます。
 自動レビューを quickstart で確かめるときは、次の 2 つに気を付けます。
@@ -318,6 +319,7 @@ MCP のツール名は、CLI のコマンドの 2 語を `_` でつないだ形�
 | `session_start` | 紐づいたブランチ・カードの Status を `active` に | sweep（ブランチを消す） |
 | `session_finish` | Issue のクローズ・リモートの head ブランチの削除 | カードは sweep がアーカイブします |
 | （配る workflow の `pecot-board-sync.yml`） | PR・Issue の変化で、pecot の action の board-sync と session-finish を動かす。board-sync は新しい 20 件を超えた Archived のカードを削除します | 「配る自動化を確かめる」の手順で入れて戻します。削除は戻せません |
+| （配る workflow の `pecot-github-ops.yml`） | 起動した operation のブランチ・スタック・ボードの欄とビュー・リポのつなぎ・リリース | ブランチ・スタックは sweep。ボードは `project_init` と同じく使い捨てを作って消します。つなぎとリリースは `project_link`・`release_create` の行と同じ |
 
 ## 4. GitHub の Issue の機能の写しと担保の一覧
 

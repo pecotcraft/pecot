@@ -11219,6 +11219,19 @@ class ReposApi extends GitHubClientBase {
         return await this.listNamesOrUndefined(`${repositoryPath(owner, repository)}/actions/${kind}`, VARIABLES_PER_PAGE, 'variables');
     }
     /**
+    リポジトリの設定（`GET /repos/{owner}/{repo}` を 1 回読む）
+    */
+    async getRepositorySettings(owner, repository) {
+        const repositoryInfo = await this.restJson('GET', repositoryPath(owner, repository));
+        const autoDelete = jsonField(repositoryInfo, 'delete_branch_on_merge');
+        const ownerType = jsonField(jsonField(repositoryInfo, 'owner'), 'type');
+        return {
+            deleteBranchOnMerge: typeof autoDelete === 'boolean' ? autoDelete : undefined,
+            defaultBranch: requireString(jsonField(repositoryInfo, 'default_branch'), 'default_branch'),
+            ownerType: typeof ownerType === 'string' ? ownerType : undefined,
+        };
+    }
+    /**
     リポジトリの持ち主の種類（`User`・`Organization`）。読めない形なら undefined
     */
     async getRepositoryOwnerType(owner, repository) {
@@ -11230,8 +11243,8 @@ class ReposApi extends GitHubClientBase {
     リポジトリの既定ブランチ名
     */
     async getRepositoryDefaultBranch(owner, repository) {
-        const repositoryInfo = await this.restJson('GET', repositoryPath(owner, repository));
-        return requireString(jsonField(repositoryInfo, 'default_branch'), 'default_branch');
+        const settings = await this.getRepositorySettings(owner, repository);
+        return settings.defaultBranch;
     }
     /**
     open な Dependabot alert を全件取得する（REST）。

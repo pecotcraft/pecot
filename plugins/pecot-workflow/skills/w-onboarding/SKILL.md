@@ -136,7 +136,7 @@ PR を作ると GitHub Actions の上で w-review のレビューを回すワー
 
 前にカレントリポへ置いた雛形が古ければ、新しい雛形へ置き換える PR を出す。古い雛形は `@pecot/workflow-mcp` を npx で呼んでおり、新しい雛形は pecot の action を呼ぶ。
 
-1. 雛形の一覧の `board-sync`・`review`・`handoff`・`auto` ごとに、pecot-workflow の MCP ツール `workflow_doctor` を使う
+1. 雛形の一覧の `board-sync`・`review`・`handoff`・`auto`・`github-ops` ごとに、pecot-workflow の MCP ツール `workflow_doctor` を使う
    - ファイルの項目が `missing` の雛形は飛ばす
    - 止まったら、止まった理由を示して Step 7 へ進む
 2. 次の項目のどちらかが `outdated` の雛形を集める。無ければ Step 7 へ進む

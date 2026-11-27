@@ -21,8 +21,8 @@ function review(): NonNullable<ReturnType<typeof findWorkflowTemplate>> {
 
 describe('雛形の一覧', () => {
   it('review の行が、名前・雛形のファイル・置き先・要る変数と secret を持つ', async () => {
-    await explains('ワークフローのテンプレート一覧のテストです。一覧が `board-sync`・`review`・`handoff`・`auto` の順に並び、`review` の行がテンプレートのファイル名・配置先・必要な変数と secret を持つことを確認します。')
-    expect(WORKFLOW_TEMPLATES.map(template => template.name)).toEqual(['board-sync', 'review', 'handoff', 'auto'])
+    await explains('ワークフローのテンプレート一覧のテストです。一覧が `board-sync` から `github-ops` までの 5 つの順に並び、`review` の行がファイル名・配置先・必要な設定を持つことを確認します。')
+    expect(WORKFLOW_TEMPLATES.map(template => template.name)).toEqual(['board-sync', 'review', 'handoff', 'auto', 'github-ops'])
     const template = review()
     expect(template.templateFile).toBe('pecot-review.yml')
     expect(template.destination).toBe('.github/workflows/pecot-review.yml')

@@ -11,7 +11,7 @@ WORKFLOWS=".github/workflows"
 HOST="github.com"
 CONFIG_DIR=".pecot/config/projects"
 # 有無と中身を比べる workflow。比べる相手は、このリポの main にある同じファイル（FR-032）。
-COPIED_WORKFLOWS=(pecot-board-sync.yml pecot-handoff.yml pecot-review.yml)
+COPIED_WORKFLOWS=(pecot-board-sync.yml pecot-github-ops.yml pecot-handoff.yml pecot-review.yml)
 # pecot の action を、このリポは ./actions/<処理> で呼び、検証用は pecotcraft/pecot/actions/<処理>@<ref> で呼ぶ。そろえてから比べる。
 # このリポだけの step（Check out the pecot actions）も落とす
 PECOT_ACTIONS='

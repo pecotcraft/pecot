@@ -29,6 +29,10 @@
         {
           "word": "release",
           "meaning": "リリース"
+        },
+        {
+          "word": "github",
+          "meaning": "公式の GitHub の MCP に手の無い、GitHub の 1 つの操作"
         }
       ],
       [
@@ -51,6 +55,10 @@
         {
           "word": "check",
           "meaning": "確かめる"
+        },
+        {
+          "word": "ops",
+          "meaning": "入力で選んだ操作を 1 つ行い、結果を返す"
         }
       ]
     ],
@@ -220,6 +228,45 @@
             "description": "Token to read and write the project board (the App token or PAT of the workflow)"
           }
         },
+        "additionalProperties": false
+      }
+    },
+    {
+      "id": "PA-GITHUB-OPS",
+      "name": "github ops",
+      "description": "Run one GitHub operation that the official GitHub MCP server has no tool for, and print the result as one PECOT_RESULT line of JSON in the job log.",
+      "surfaces": {
+        "action": {
+          "path": "actions/github-ops"
+        }
+      },
+      "hidden": false,
+      "deprecated": false,
+      "input": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "description": "Operation to run: link-branch, stack-register, project-fields, project-view, project-link, repo-settings, workflow-doctor or release-create"
+          },
+          "params": {
+            "type": "string",
+            "default": "{}",
+            "description": "JSON object with the values of the operation. link-branch: issue, branch, base (default: the default branch). stack-register: pr, parent_pr. project-fields: project, changes (each one of create {name, options}, rename {name, to}, delete {name}, set-options {name, options}). project-view: project, name, column, row. project-link: project, repo (default: this repository). repo-settings and workflow-doctor: none. release-create: tag, sha, body, name (default: tag), prerelease (default: false)"
+          },
+          "request-id": {
+            "type": "string",
+            "default": "",
+            "description": "ID the caller chose for this run. It is copied into the result line, so the caller can tell its run apart"
+          },
+          "token": {
+            "type": "string",
+            "description": "Token for the operation. GITHUB_TOKEN for link-branch, stack-register and repo-settings; the App token for project-fields, project-view, project-link, workflow-doctor and release-create"
+          }
+        },
+        "required": [
+          "operation"
+        ],
         "additionalProperties": false
       }
     },
