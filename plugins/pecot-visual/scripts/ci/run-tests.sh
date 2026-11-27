@@ -149,14 +149,13 @@ if [ "$RUN_CLI" = true ]; then
 fi
 
 if [ "$RUN_HOOKS" = true ]; then
-    # hooks/tests/ の *.test.sh を再帰で列挙して順に動かす。source される補助は *.test.sh にしない。
-    echo "==> pecotv hooks 単体テスト (hooks/tests/ 配下の *.test.sh を、find | sort の順に実行)"
-    mapfile -t test_files < <(find "$PECOTV_PLUGIN_ROOT/hooks/tests" -name '*.test.sh' | LC_ALL=C sort)
+    echo "==> pecotv hooks 単体テスト (hooks/tests/ 配下の *.bats を、find | sort の順に bats で実行)"
+    mapfile -t test_files < <(find "$PECOTV_PLUGIN_ROOT/hooks/tests" -name '*.bats' | LC_ALL=C sort)
     if [ "${#test_files[@]}" -eq 0 ]; then
-        echo "ERROR: hooks/tests/ 配下に *.test.sh が見つかりません (hooks/tests の消失か、find の失敗)。" >&2
+        echo "ERROR: hooks/tests/ 配下に *.bats が見つかりません (hooks/tests の消失か、find の失敗)。" >&2
         exit 1
     fi
-    bt_run_files "${test_files[@]}"
+    PECOT_REPORT_RESULTS="$PECOT_REPORT_RESULTS" bash "$REPO_ROOT/.githooks/scripts/test_report/bats/run.sh" "${test_files[@]}"
 fi
 
 if [ "$RUN_RELEASE" = true ]; then

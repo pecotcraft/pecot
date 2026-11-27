@@ -28,7 +28,7 @@ run-tests.sh / install.sh が外から読む変数は少ない。
 シェルは scripts/ci/*.sh・bin/*・setup.sh に加え、レーンが直接実行する tests 配下の *.sh と *.bats を走査する。
 *.bats では、bats が設定する BATS_ で始まる変数を数えない。
 tests 配下の例は plugins/pecot-visual/cli/tests/bootstrap/run.sh になる。
-hooks 配下の *.sh（hooks/**/*.sh と hooks/tests/*.test.sh）は走査しない。
+hooks 配下の *.sh（hooks/**/*.sh と hooks/tests/*.bats）は走査しない。
 hook スクリプトは、dispatcher や別のスクリプトが設定して渡す変数を大量に読む。
 HOOK_COMMAND、REPO_DIR、FILE_PATH 等がその例で、環境変数と見分けがつかない。
 手元で確認すると、hooks 配下のシェルから外の値として拾う 23 変数のうち、半数ほどがこの内部変数だった。

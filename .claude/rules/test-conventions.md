@@ -3,6 +3,7 @@ paths:
   - "**/*.test.ts"
   - ".nx/nx-release/tests/*.test.mjs"
   - "**/*.test.sh"
+  - "**/*.bats"
   - "**/test_*.py"
 ---
 
@@ -230,7 +231,7 @@ ID を 2 つ以上持つテストは、feature・story を 1 組だけ持ちま�
 | 層 | テストが動かすもの | 例 |
 |---|---|---|
 | unit | 対象の関数・モジュールを、同じプロセスの中で呼ぶ。相手は偽物か、決まった入力にする。リポの文書や設定の形を読む静的な確認も含む | ドメインの関数、SKILL.md の参照の確認、ESLint の `RuleTester` |
-| integration | 対象を、実際の外部のものとつないで動かす。git のリポ、一時のファイルの木、偽の GitHub のサーバ、スクリプトや hook の子プロセスなど | MCP ツールを偽の GitHub と一時の git で呼ぶ、hook の `*.test.sh`、偽の `gh` で動かすリリースのスクリプト |
+| integration | 対象を、実際の外部のものとつないで動かす。git のリポ、一時のファイルの木、偽の GitHub のサーバ、スクリプトや hook の子プロセスなど | MCP ツールを偽の GitHub と一時の git で呼ぶ、hook の `*.bats`、偽の `gh` で動かすリリースのスクリプト |
 | e2e | build した配布物（CLI・MCP サーバ・pack したパッケージ）を、利用者が使う起点から動かす | build した CLI を子プロセスで動かす、`vitest.e2e.config.ts` のテスト |
 
 - 1 つのファイルの中に範囲の違うケースがあるときは、いちばん広いものの層にする
