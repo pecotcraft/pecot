@@ -39,8 +39,8 @@
   - 値は、`project.fields` の欄ごとの `options` のキーを名前順に並べた配列。ID とキーの並びは比べない
   - `project.fields` か `options` が object でないときは、欄を空として扱い、止めない
   - 0 個か 2 個以上のときは比べない。そのずれは `config-file` として出る
-- `ci.yml` は、有無だけを比べる
-- `pecot-board-sync.yml` と `pecot-review.yml` は、有無と中身を比べる。比べる相手は、このリポの main にある同じファイルだ（FR-032）
+- `ci.yml`・`codeql.yml` は、有無だけを比べる。検証用のこの 2 つは、必須チェックの名前を出すだけのスタブだ
+- `pecot-board-sync.yml`・`pecot-github-ops.yml`・`pecot-handoff.yml`・`pecot-review.yml` は、有無と中身を比べる。比べる相手は、このリポの main にある同じファイルだ（FR-032）
   - 中身が違えば、両方の値を `blob <sha>、<行番号> 行目: <その行>` の形で出す。行は、両方で違う最初の行にする
 - 片方にしか無い項目は、無い側を「なし」と出す
 
@@ -74,6 +74,10 @@
 | 検証用の `pecot-board-sync.yml` の中身が、このリポの main と違う | 1 件 |
 | 検証用の `pecot-review.yml` の中身が、このリポの main と違う | 1 件。項目の名前は `workflows / pecot-review.yml` |
 | 検証用に `pecot-review.yml` が無い | 1 件。検証用の値が「なし」 |
+| 検証用の `pecot-handoff.yml` の中身が、このリポの main と違う | 1 件。項目の名前は `workflows / pecot-handoff.yml` |
+| 検証用に `pecot-handoff.yml` が無い | 1 件。検証用の値が「なし」 |
+| 検証用の `ci.yml`・`codeql.yml` の中身だけが違う | 0 件 |
+| 検証用に `ci.yml`・`codeql.yml` が無い | ファイルごとに 1 件。項目の名前は `workflows / <ファイル>` で、検証用の値が「なし」 |
 | `gh` が認証の失敗を返す | `error:` の行、終了コード 2 |
 | 比べるキーが `null` か無い（両方とも `null` の場合を含む） | `error:` の行、終了コード 2 |
 | git の作業ツリーの外で打つ | `error:` の行、終了コード 2 |

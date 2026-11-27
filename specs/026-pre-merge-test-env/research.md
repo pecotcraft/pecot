@@ -55,7 +55,7 @@
 | マージ方式 | `GET /repos/{owner}/{repo}` の `allow_squash_merge`・`allow_merge_commit`・`allow_rebase_merge`・`allow_auto_merge`・`delete_branch_on_merge` | `id`・名前・URL・日時・件数 |
 | ruleset | `GET /repos/{owner}/{repo}/rulesets/{id}` の `rules`・`conditions`・`enforcement` | `id`・`node_id`・`source`・`_links`・日時・`bypass_actors[].actor_id`・`integration_id` |
 | ボードの項目と値 | Projects の項目の名前・型・選択肢の名前と並び | 項目と選択肢の `id`・色・説明・日時 |
-| 置いてある自動化 | `.github/workflows/` の `ci.yml` の有無と、`pecot-board-sync.yml` の有無と中身 | `ci.yml` の中身 |
+| 置いてある自動化 | `.github/workflows/` の `ci.yml`・`codeql.yml` の有無と、`pecot-board-sync.yml`・`pecot-github-ops.yml`・`pecot-handoff.yml`・`pecot-review.yml` の有無と中身 | `ci.yml`・`codeql.yml` の中身 |
 
 - Alternatives considered:
   - org の ruleset を 1 つ作って両方のリポに当てる。ずれが起きなくなるが、Team 以上のプランが要る。`pecotcraft` のプランは確かめていない。退ける
@@ -244,6 +244,11 @@ T052 で、入れてある版を外す手順をやめた。代わりに、`COPIL
 - 検証用の ruleset 27130266 の必須チェックは `ci-result`・`version-plan` で、どちらも `integration_id: 15368`（GitHub Actions）。このリポと同じ
 - `merge_group` の実行の記録が 18 件あり、最新は 2026-11-16T06:53:59Z の success
 - T015 は、何もしない
+- 2026-11-27 に読み直した（#882）
+  - このリポの必須チェックに `analyze (actions)`・`analyze (javascript-typescript)`・`analyze (python)` が加わり、検証用の ruleset `main` も同じ 5 つを必須にしている
+  - 検証用の `codeql.yml`（pecot-sandbox#728 で足した）は、`analyze (<言語>)` のジョブを 3 言語の matrix で持ち、step は `echo ok` だけ。契機は `ci.yml` と同じ
+  - 検証用は public で、code scanning の default setup は `not-configured`
+  - `sandbox-diff.sh` は、`ci.yml` と `codeql.yml` の有無だけを比べる
 
 ### R11-4 の結果
 
