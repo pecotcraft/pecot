@@ -187,6 +187,7 @@
         "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{workspaceRoot}/.githooks/scripts/test_report/allure-result.sh",
+        "{workspaceRoot}/.githooks/scripts/test_report/bats/**/*",
         "{projectRoot}/hooks/**/*",
         "sharedGlobals",
         "pecotvPluginTestGlobals",
@@ -196,7 +197,7 @@
       "dependsOn": ["install", "check-pm-guard"],
       "outputs": ["{projectRoot}/test-results/test-hooks/allure-results"],
       "metadata": {
-        "description": "hooks/ の *.test.sh。session-start の Node の版の案内は cli/src/node-runtime.ts を読む。hooks-json.test.sh は Copilot CLI 向けの hooks.json も読む。"
+        "description": "hooks/ の *.bats。session-start の Node の版の案内は cli/src/node-runtime.ts を読む。hooks-json.bats は Copilot CLI 向けの hooks.json も読む。"
       },
       "options": {
         "command": "rm -rf test-results/test-hooks/allure-results && PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=hooks",

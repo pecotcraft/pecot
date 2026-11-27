@@ -351,7 +351,7 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             ("plugins/pecot-visual/cli/tests/plugin-manifests.test.ts", {"pecot-visual:test-cli"}),
             # hooks.json の形を確かめるのは hooks レーンだけ。
             (
-                "plugins/pecot-visual/hooks/tests/hooks-json.test.sh",
+                "plugins/pecot-visual/hooks/tests/hooks-json.bats",
                 {"pecot-visual:test-hooks"},
             ),
             # pecot-workflow の登録ファイルは cli/tests/plugin-manifests.test.ts が確かめる。com.github.copilot/hooks/hooks.json は hooks のテストも読む。
@@ -473,7 +473,12 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             # bats のテストを動かす仕組み。bats に移したレーンだけが読む (#844)。
             (
                 ".githooks/scripts/test_report/bats/run.sh",
-                {"githooks:test-ci", "pecot-visual:test-compare", "pecot-visual:test-skills"},
+                {
+                    "githooks:test-ci",
+                    "pecot-visual:test-compare",
+                    "pecot-visual:test-hooks",
+                    "pecot-visual:test-skills",
+                },
             ),
         ]
     ),

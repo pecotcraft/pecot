@@ -50,8 +50,8 @@ integration assets/slidev/scripts/eslint/text-constraints/tests/textlint-rule.te
 integration assets/slidev/scripts/eslint/validate-references/tests/cli.test.ts
 integration assets/slidev/scripts/eslint/validate-references/tests/semantic-validator.test.ts
 integration hooks/
-unit hooks/tests/english-only.test.sh
-unit hooks/tests/hooks-json.test.sh
+unit hooks/tests/english-only.bats
+unit hooks/tests/hooks-json.bats
 integration scripts/
 unit scripts/ci/tests/slide-pages-by-main.bats
 unit scripts/ci/tests/text-violation-guidance.bats
