@@ -171,6 +171,7 @@ pnpm exec allure open <作業ディレクトリ>
 | `generate.py` の `read_history`・`_LINE_BREAK`・`_JS_TRIM` | Allure の履歴の読み方（readline と `trim()`）を写している。`store.py` の確かめも使う |
 | `allurerc.mjs` の `groupBy`・`reportLanguage`・`historyLimit` | 木の段・画面の言葉・履歴の数が変わりうる |
 | `.githooks/scripts/test_report/bash-test.sh` と `.githooks/tests/test_bash_test_lib.py` の `test_real_allure_reads_the_results` | bash のテストの結果のファイルは手で書いている。Allure の読み手が読む欄が変わりうる |
+| `@allurereport/web-commons` の `generateTestingPyramidChart` の `DEFAULT_LAYERS` と、`@allurereport/charts-api` の `defaultChartsConfig` の `groupBy: "layer"` | テストのピラミッドと層ごとの時間のグラフは、`layer` の値（`test-layers.txt` の層）で集める。層の名前と、既定のグラフの有無が変わりうる。`allurerc.mjs` に `charts` を書くと、既定のグラフは消える |
 
 ## 管理者の設定
 

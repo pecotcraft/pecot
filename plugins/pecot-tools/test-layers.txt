@@ -1,0 +1,11 @@
+# 層の表。決まりは .claude/rules/test-conventions.md の「テストの層」
+unit cli/src/
+integration cli/src/infra/
+integration cli/src/mcp/tools/tests/_shared.test.ts
+integration cli/src/mcp/tools/tests/sso.test.ts
+unit cli/tests/
+integration cli/tests/integration/
+integration cli/tests/interface-export.test.ts
+e2e cli/tests/e2e/
+integration scripts/release/tests/
+e2e scripts/release/tests/publish-mcp-dist.test.sh

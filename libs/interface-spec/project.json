@@ -127,6 +127,7 @@
     "test-site": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{projectRoot}/test-layers.txt",
         "{projectRoot}/docs/**/*",
         "!{projectRoot}/docs/_build/**/*",
         "!{projectRoot}/docs/.venv/**/*",

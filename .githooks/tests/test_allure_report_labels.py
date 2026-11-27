@@ -166,6 +166,85 @@ def test_without_project_no_epic(tmp_path: Path, conftest: str) -> None:
         ]
 
 
+def _layers(result: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [label for label in result if label["name"] == "layer"]
+
+
+_LAYER_TABLE = "# 層の表\nunit suite/\nintegration suite/sub/test_nested.py\n"
+
+
+@allure.title(
+    "{param_id} の conftest は、project の test-layers.txt で {test_file} に当たる規則のうち、パスの長いものの層を付ける"
+)
+@pytest.mark.parametrize("conftest", _CONFTESTS)
+@pytest.mark.parametrize(
+    ("test_file", "expected"),
+    [("test_sample.py", "unit"), ("sub/test_nested.py", "integration")],
+)
+def test_layer_label_from_project_table(
+    tmp_path: Path, conftest: str, test_file: str, expected: str
+) -> None:
+    """`project.json` と `test-layers.txt` を持つディレクトリで pytest を実行したときの、層のラベルのテストです。ディレクトリとファイルの規則のうち、パスの長い規則の層が `layer` として 1 つだけ付くことを確認します。"""
+    with allure.step("project.json と層の表を置き、-o のラベル付きで pytest を動かす"):
+        (tmp_path / "project.json").write_text("{}", encoding="utf-8")
+        (tmp_path / "test-layers.txt").write_text(_LAYER_TABLE, encoding="utf-8")
+        results = tmp_path / "allure-results"
+        done = _run_pytest(
+            tmp_path, conftest, "def test_a() -> None:\n    pass\n",
+            "--alluredir", str(results), "-o", "pecot_report_project=githooks",
+            test_file=test_file,
+        )  # fmt: skip
+    with allure.step("layer のラベルを比べる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        [result] = _labels(results)
+        assert _layers(result) == [{"name": "layer", "value": expected}]
+
+
+@allure.title("{param_id} の conftest は、{case}ときに layer のラベルを足さない")
+@pytest.mark.parametrize("conftest", _CONFTESTS)
+@pytest.mark.parametrize(
+    ("case", "table", "body", "expected"),
+    [
+        ("層の表が無い", None, "def test_a() -> None:\n    pass\n", []),
+        (
+            "どの規則にも当たらない",
+            "unit other/\n",
+            "def test_a() -> None:\n    pass\n",
+            [],
+        ),
+        (
+            "テストが自分で layer を付けた",
+            _LAYER_TABLE,
+            'import allure\n\n\n@allure.label("layer", "e2e")\ndef test_a() -> None:\n    pass\n',
+            [{"name": "layer", "value": "e2e"}],
+        ),
+    ],
+    ids=["no-table", "no-match", "own-layer"],
+)
+def test_layer_label_is_not_added(
+    tmp_path: Path, conftest: str, case: str, table: str | None, body: str, expected: list[Any]
+) -> None:
+    """層の表から `layer` を付けない場合の、conftest のテストです。表が無い・規則に当たらない・テストが自分で層を付けた場合に、表の層を追加しないことを確認します。"""
+    with allure.step(f"{case}状態で、-o のラベル付きで pytest を動かす"):
+        (tmp_path / "project.json").write_text("{}", encoding="utf-8")
+        if table is not None:
+            (tmp_path / "test-layers.txt").write_text(table, encoding="utf-8")
+        results = tmp_path / "allure-results"
+        done = _run_pytest(
+            tmp_path,
+            conftest,
+            body,
+            "--alluredir",
+            str(results),
+            "-o",
+            "pecot_report_project=githooks",
+        )
+    with allure.step("layer のラベルを比べる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        [result] = _labels(results)
+        assert _layers(result) == expected
+
+
 @allure.title(
     "-o を指定しないと、{param_id} の conftest は結果に project・lane・epic・feature・story のラベルを付けない"
 )

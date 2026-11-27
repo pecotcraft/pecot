@@ -34,7 +34,33 @@ _bt_relpath() {
     printf '%s' "${abs#"$_BT_ROOT"/}"
 }
 
+# _bt_layer <相対パス>: project の root の test-layers.txt で当たる規則のうち、パスの長いものの層を印字する。
+_bt_layer() {
+    local rel="$1" dir project="" layer path best="" best_len=-1
+    dir="$(dirname "$rel")"
+    while [ "$dir" != . ] && [ "$dir" != / ]; do
+        if [ -f "$_BT_ROOT/$dir/project.json" ]; then
+            project="$dir"
+            break
+        fi
+        dir="$(dirname "$dir")"
+    done
+    [ -n "$project" ] && [ -f "$_BT_ROOT/$project/test-layers.txt" ] || return 0
+    rel="${rel#"$project"/}"
+    while read -r layer path _; do
+        [ -n "$path" ] && [[ "$layer" != \#* ]] || continue
+        if [ "$rel" = "$path" ] || { [[ "$path" == */ ]] && [[ "$rel" == "$path"* ]]; }; then
+            if [ "${#path}" -gt "$best_len" ]; then
+                best="$layer"
+                best_len="${#path}"
+            fi
+        fi
+    done < "$_BT_ROOT/$project/test-layers.txt"
+    printf '%s' "$best"
+}
+
 _BT_REL="$(_bt_relpath "$_BT_FILE")"
+_BT_LAYER="$(_bt_layer "$_BT_REL")"
 _BT_LAST_MS="$(_bt_now_ms)"
 
 # 件数は、( ... ) の中の確かめも数えられるようファイルに書く。
@@ -73,7 +99,8 @@ _bt_write() {
     [ -n "$results" ] || return 0
     local rel="$1" status="$2" title="$3" message="$4" start="$5" stop="$6"
     local project="${NX_TASK_TARGET_PROJECT:-}" lane="${NX_TASK_TARGET_TARGET:-}"
-    local uuid details labels feature
+    local uuid details labels feature layer="$_BT_LAYER"
+    [ "$rel" = "$_BT_REL" ] || layer="$(_bt_layer "$rel")"
     read -r uuid < /proc/sys/kernel/random/uuid
     details=""
     if [ -n "$message" ]; then
@@ -96,6 +123,7 @@ _bt_write() {
     feature=.
     [[ "$rel" == */* ]] && feature="${rel%/*}"
     labels+=",{\"name\":\"feature\",\"value\":$(_bt_json "$feature")},{\"name\":\"story\",\"value\":$(_bt_json "$rel")}"
+    [ -n "$layer" ] && labels+=",{\"name\":\"layer\",\"value\":$(_bt_json "$layer")}"
     mkdir -p "$results"
     printf '{"uuid":"%s","name":%s,"fullName":%s,"status":"%s","stage":"finished","statusDetails":{%s},"start":%s,"stop":%s,"labels":[%s]}\n' \
         "$uuid" "$(_bt_json "$title")" "$(_bt_json "$project:$lane $rel#$title")" \

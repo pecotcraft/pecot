@@ -775,6 +775,17 @@ _PECOTV_TEST_LANES = {
                 {"pecot-visual:test-cli", "pecot-visual:test-compare"},
             ),
             ("plugins/pecot-tools/cli/src/version.ts", {"pecot-tools:test-cli"}),
+            # 層の表は production から外すので、その project のレーンだけに届く (#813)。
+            (
+                "plugins/pecot-workflow/test-layers.txt",
+                {
+                    "pecot-workflow:test-cli",
+                    "pecot-workflow:test-hooks",
+                    "pecot-workflow:test-release",
+                    "pecot-workflow:test-skills",
+                },
+            ),
+            ("libs/workflow-core/test-layers.txt", {"workflow-core:test-unit"}),
             # 検証用のスクリプトと、それが読む spec は、vitest で確かめる test-cli だけに届く (#562)。
             (
                 "plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh",

@@ -48,6 +48,7 @@
     "test-cli": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/report-labels.ts",
@@ -103,6 +104,7 @@
     "test-skills": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/report-labels.ts",
@@ -143,6 +145,7 @@
     "test-hooks": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/report-labels.ts",
@@ -197,6 +200,7 @@
     "test-release": {
       "executor": "nx:run-commands",
       "inputs": [
+        "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{projectRoot}/scripts/release/**/*",
         "{projectRoot}/cli/templates/**/*",

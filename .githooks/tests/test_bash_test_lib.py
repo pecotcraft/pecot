@@ -151,6 +151,60 @@ def test_labels_and_full_name(tmp_path: Path) -> None:
         assert result["stage"] == "finished"
         assert isinstance(result["start"], int) and isinstance(result["stop"], int)
         assert result["start"] <= result["stop"]
+        assert _label(result, "layer") == []
+
+
+def _project(root: Path, table: str | None) -> None:
+    with allure.step("project.json と層の表を置く"):
+        root.mkdir(parents=True, exist_ok=True)
+        (root / "project.json").write_text("{}", encoding="utf-8")
+        if table is not None:
+            (root / "test-layers.txt").write_text(table, encoding="utf-8")
+
+
+@allure.title(
+    "{case}テストのファイルの結果に、project の test-layers.txt で引いた層 {expected} を付ける"
+)
+@pytest.mark.parametrize(
+    ("case", "table", "expected"),
+    [
+        ("ディレクトリの規則に当たる", "# 層の表\nintegration tests/\n", ["integration"]),
+        (
+            "ファイルの規則にも当たる",
+            "integration tests/\n  e2e   tests/sample.test.sh\n",
+            ["e2e"],
+        ),
+        ("どの規則にも当たらない", "unit other/\n", []),
+        ("層の表の無い project の", None, []),
+    ],
+    ids=["directory", "file", "no-match", "no-table"],
+)
+def test_layer_label_from_project_table(
+    tmp_path: Path, case: str, table: str | None, expected: list[str]
+) -> None:
+    """bash のテストの結果に付く層のラベルのテストです。テストのファイルの属する project の `test-layers.txt` で、当たる規則のうちパスの長いものの層が `layer` として付くことを確認します。"""
+    _project(tmp_path / "plugins/p", table)
+    test = _write_test(tmp_path / "plugins/p/tests", 'bt_pass "通る"\nbt_finish')
+    _run_file(tmp_path, test, results=tmp_path / "results")
+    [result] = _results(tmp_path / "results")
+
+    with allure.step("layer のラベルを比べる"):
+        assert _label(result, "layer") == expected
+
+
+@allure.title("bt_finish の前で終わったファイルの broken の結果にも、層のラベルを付ける")
+def test_broken_result_has_layer(tmp_path: Path) -> None:
+    """`bt_finish` を呼ぶ前に終わったテストのファイルについて、runner が書く broken の結果のテストです。runner 自身の場所ではなく、テストのファイルの project の層の表で引いた `layer` が付くことを確認します。"""
+    _project(tmp_path / "plugins/p", "integration tests/\n")
+    test = _write_test(tmp_path / "plugins/p/tests", 'bt_pass "通る"\nexit 3')
+    _run_file(tmp_path, test, results=tmp_path / "results")
+    results = _results(tmp_path / "results")
+
+    with allure.step("broken の結果と layer を比べる"):
+        assert [(r["name"], r["status"], _label(r, "layer")) for r in results] == [
+            ("通る", "passed", ["integration"]),
+            ("最後まで動く", "broken", ["integration"]),
+        ]
 
 
 @allure.title(
@@ -354,6 +408,7 @@ def test_leaves_no_temporary_files(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 @pytest.mark.skipif(shutil.which("pnpm") is None, reason="pnpm が要る")
 def test_real_allure_reads_the_results(tmp_path: Path) -> None:
     """bash のテストが書いた結果を、実際の Allure 3 で `allure generate` して読み込んだ場合のテストです。通る確認と失敗する確認の題・状態・理由・期待値と実際の値、さらに project・lane・parentSuite のラベルがレポートに含まれることを確認します。"""
+    _project(tmp_path / "suite", "integration sample.test.sh\n")
     test = _write_test(tmp_path / "suite", 'bt_pass "通る"\nbt_eq "等しい" "a" "b"\nbt_finish')
     _run_file(tmp_path, test, results=tmp_path / "results")
     report = tmp_path / "report"
@@ -400,3 +455,4 @@ def test_real_allure_reads_the_results(tmp_path: Path) -> None:
             "suite",
             "suite/sample.test.sh",
         )
+        assert labels["layer"] == "integration"

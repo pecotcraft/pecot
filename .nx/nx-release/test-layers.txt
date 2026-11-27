@@ -1,0 +1,3 @@
+# 層の表。決まりは .claude/rules/test-conventions.md の「テストの層」
+unit tests/
+integration tests/dependabot-plans.test.mjs

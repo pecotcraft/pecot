@@ -33,6 +33,7 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 | ラベル | `epic` | nx の project の名前（#811） | vitest は reporter の `globalLabels`、pytest は `conftest.py`、bash は `bash-test.sh` |
 | ラベル | `feature` | 要件の ID を持つテストは、ID の属する定義書の項目の `name`（`<接頭辞>-COMMON-NN` は `<プラグイン> 共通`）。持たないテストは、ファイルのディレクトリ（リポのルートからのパス）（#811） | vitest は reporter の `listeners` の `beforeTestResultWrite`、pytest は `conftest.py`、bash は `bash-test.sh` |
 | ラベル | `story` | 要件の ID を持つテストは、その ID。持たないテストは、ファイル（リポのルートからのパス）（#811） | 同上 |
+| ラベル | `layer` | `unit`・`integration`・`e2e`。テストのファイルの属する project の `test-layers.txt` で決める（#813） | vitest は reporter の `listeners` の `beforeTestResultWrite`、pytest は `conftest.py`、bash は `bash-test.sh` |
 | ラベル | `tag` | 要件の ID（`PW-…-01` など） | `verifies` |
 | リンク（型 `tms`） | 名前は要件の ID | `<側の URL>permalink.html?id=<ID>` | `verifies` と、reporter の `links.tms.urlTemplate` |
 | 添付 | テストが決める名前 | 判定に使った画面の画像か成果物 | 対象のテスト（research R11） |
@@ -40,6 +41,7 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 - 1 つのテストが複数の ID を `verifies` で書いたら、tag とリンクを ID の数だけ持つ
   - `feature`・`story` は 1 組だけ持つ。COMMON でない ID のうち最初のもの、無ければ最初の COMMON の ID で決める。Allure の木は値の直積で作るので、全部持たせると実在しない組ができる
 - `feature`・`story` の値は、グラフが epic をまたいで値だけで集めるので、project をまたいで重ならない形にする
+- `layer` は、テストのピラミッドと層ごとの時間のグラフが集める。テストが自分で `layer` を付けたら、表の層を足さない
 - 側の URL は、環境変数 `PECOT_REPORT_SITE_URL` で渡す。開発版は `https://pecotcraft.github.io/pecot/dev/`、リリース版は `https://pecotcraft.github.io/pecot/`。渡さなければ `http://localhost:8000/`
   - 開発版の材料になるマージキューの結果に、開発版の URL を渡す形は #821 で決める。この変数は nx の入力で、マージキューは PR の run の nx キャッシュを取り込むため
 - bash のテストにはアダプタが無いので、`.githooks/scripts/test_report/bash-test.sh` が結果のファイルを書く。上の `project`・`lane` のほかに書く欄は次のとおり
@@ -53,6 +55,7 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 | `start`・`stop` | 整数のミリ秒。`start` は前の確かめの終わり |
 | ラベル `parentSuite` | リポのルートからのファイルのパス。vitest の結果と同じ段 |
 | ラベル `epic`・`feature`・`story` | `$NX_TASK_TARGET_PROJECT`・ファイルのディレクトリ・ファイル（どちらもリポのルートからのパス） |
+| ラベル `layer` | ファイルの属する project の `test-layers.txt` で引いた層。引けなければ書かない |
 | ラベル `host`・`thread`・`language`・`framework` | `$HOSTNAME`・ファイルの PID・`bash`・`bash` |
 
 ## レポートの材料（ReportSources）

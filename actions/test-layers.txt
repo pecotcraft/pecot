@@ -1,0 +1,5 @@
+# 層の表。決まりは .claude/rules/test-conventions.md の「テストの層」
+unit tests/
+integration tests/interface/
+integration tests/interface-export.test.ts
+integration tests/templates.test.ts
