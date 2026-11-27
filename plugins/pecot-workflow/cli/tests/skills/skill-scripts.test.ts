@@ -28,7 +28,7 @@ describe('スキルの本文とスクリプトのファイル', () => {
     { skill: 'skills/w-onboarding/SKILL.md', script: 'scripts/detect-sibling-config.cjs' },
     { skill: 'skills/w-onboarding/SKILL.md', script: 'scripts/board-url.cjs' },
     { skill: 'skills/w-pr/SKILL.md', script: 'scripts/serve-preview.cjs' },
-    { skill: 'skills/w-pr/SKILL.md', script: 'scripts/wait-merge.cjs' },
+    { skill: 'skills/w-pr/SKILL.md', script: 'scripts/wait-pr.cjs' },
   ])('$skill は、base directory の $script を node で実行するよう書き、そのファイルが存在する', async ({ skill, script }) => {
     await explains(`スキルの本文とスクリプトの対応のテストです。\`${skill}\` に \`node <このスキルの base directory>/${script}\` の記述があり、そのスクリプトのファイルが存在することを確認します。`)
     expect(readPluginFile(skill)).toContain(`node <このスキルの base directory>/${script}`)
@@ -311,8 +311,9 @@ describe('w-pr のプレビューの配信', () => {
   })
 })
 
-function open(mergeable: string, isInMergeQueue = false) {
-  return { state: 'OPEN', mergeable, isInMergeQueue }
+function open(mergeable: string, isInMergeQueue = false, checks?: string) {
+  const commit = checks === undefined ? {} : { statusCheckRollup: { state: checks } }
+  return { state: 'OPEN', mergeable, isInMergeQueue, commits: { nodes: [{ commit }] } }
 }
 
 function parseArguments(line: string): readonly string[] {
@@ -320,12 +321,13 @@ function parseArguments(line: string): readonly string[] {
   return Array.isArray(parsed) ? parsed.filter(item => typeof item === 'string') : []
 }
 
-describe('w-pr のマージの待ち受け', () => {
-  const script = scriptPath('skills/w-pr/scripts/wait-merge.cjs')
+describe('w-pr の CI とマージの待ち受け', () => {
+  const script = scriptPath('skills/w-pr/scripts/wait-pr.cjs')
   const url = 'https://github.com/pecotcraft/pecot-sandbox/pull/12'
   const fakeGh = readFileSync(path.join(import.meta.dirname, 'fixtures/fake-gh.mjs'), 'utf8')
+  const merged = { state: 'MERGED', mergeable: 'UNKNOWN', isInMergeQueue: false }
 
-  function waitMerge(responses: readonly unknown[], arguments_: readonly string[] = [url, '0.05', '2']) {
+  function waitPr(responses: readonly unknown[], arguments_: readonly string[] = ['merge', url, '0.05', '2']) {
     const bin = makeTemporaryDirectory()
     writeTree(bin, { 'gh': `#!/bin/sh\nexec "${process.execPath}" "$(dirname "$0")/fake-gh.mjs" "$@"\n`, 'fake-gh.mjs': fakeGh, 'responses.json': JSON.stringify(responses) })
     chmodSync(path.join(bin, 'gh'), 0o755)
@@ -333,62 +335,94 @@ describe('w-pr のマージの待ち受け', () => {
       encoding: 'utf8',
       env: { ...process.env, PATH: `${bin}${path.delimiter}${process.env['PATH'] ?? ''}` },
     })
-    attachOutput(`node wait-merge.cjs ${arguments_.join(' ')}`, result.status ?? undefined, result.stdout, result.stderr)
+    attachOutput(`node wait-pr.cjs ${arguments_.join(' ')}`, result.status ?? undefined, result.stdout, result.stderr)
     const log = path.join(bin, 'calls.log')
     const calls = existsSync(log) ? readOutput(log).trim().split('\n').map(line => parseArguments(line)) : []
     return { status: result.status, stdout: result.stdout, stderr: result.stderr, calls }
   }
 
   it.for([
-    { name: 'マージされた', responses: [{ state: 'MERGED', mergeable: 'UNKNOWN', isInMergeQueue: false }], word: 'MERGED' },
+    { name: 'マージされた', responses: [merged], word: 'MERGED' },
     { name: 'マージされずに閉じられた', responses: [{ state: 'CLOSED', mergeable: 'MERGEABLE', isInMergeQueue: false }], word: 'CLOSED' },
     { name: 'base とコンフリクトした', responses: [open('CONFLICTING')], word: 'CONFLICTING' },
     { name: 'merge queue から外れて開いたまま', responses: [open('MERGEABLE', true), open('MERGEABLE')], word: 'DEQUEUED' },
-  ])('PR が $name なら、$word を 1 行出力して終了コード 0 で終了する', async ({ name, responses, word }) => {
-    await explains(`\`wait-merge.cjs\` のテストです。PR が「${name}」の状態の場合は、\`${word}\` を 1 行出力し、標準エラーには何も出力せず、終了コード 0 で終了することを確認します。`)
-    expect(waitMerge(responses)).toMatchObject({ status: 0, stdout: `${word}\n`, stderr: '' })
+    { name: 'CI が通った後で失敗した', responses: [open('MERGEABLE', false, 'SUCCESS'), open('MERGEABLE', false, 'FAILURE')], word: 'CI_FAILED' },
+  ])('merge の待ちで、PR が $name なら、$word を 1 行出力して終了コード 0 で終了する', async ({ name, responses, word }) => {
+    await explains(`\`wait-pr.cjs\` の merge の待ちのテストです。PR が「${name}」の状態の場合は、\`${word}\` を 1 行出力し、標準エラーには何も出力せず、終了コード 0 で終了することを確認します。`)
+    expect(waitPr(responses)).toMatchObject({ status: 0, stdout: `${word}\n`, stderr: '' })
   })
 
-  it('PR が開いたままの間は待ち続け、マージされたら MERGED を出力する', async () => {
-    await explains('`wait-merge.cjs` のテストです。PR が開いたままの間は状態を取得し続け、3 回目の取得でマージされた場合に `MERGED` を出力することを確認します。')
-    const result = waitMerge([open('UNKNOWN'), open('MERGEABLE', true), { state: 'MERGED', mergeable: 'UNKNOWN', isInMergeQueue: false }])
+  it.for([
+    { name: 'CI が通った', responses: [open('MERGEABLE', false, 'PENDING'), open('MERGEABLE', false, 'SUCCESS')], word: 'CI_PASSED' },
+    { name: 'CI が落ちた', responses: [open('MERGEABLE', false, 'PENDING'), open('MERGEABLE', false, 'FAILURE')], word: 'CI_FAILED' },
+    { name: 'CI がエラーで終わった', responses: [open('MERGEABLE', false, 'ERROR')], word: 'CI_FAILED' },
+    { name: 'CI の実行中に base とコンフリクトした', responses: [open('MERGEABLE', false, 'PENDING'), open('CONFLICTING', false, 'PENDING')], word: 'CONFLICTING' },
+    { name: 'コンフリクトと CI の失敗が同時に起きた', responses: [open('CONFLICTING', false, 'FAILURE')], word: 'CONFLICTING' },
+    { name: 'CI の結果より先にマージされた', responses: [open('MERGEABLE', false, 'PENDING'), merged], word: 'MERGED' },
+    { name: '3 回続けて CI が 1 つも無い', responses: [open('MERGEABLE')], word: 'NO_CHECKS' },
+  ])('ci の待ちで、$name なら、$word を 1 行出力して終了コード 0 で終了する', async ({ name, responses, word }) => {
+    await explains(`\`wait-pr.cjs\` の ci の待ちのテストです。「${name}」場合は、\`${word}\` を 1 行出力し、標準エラーには何も出力せず、終了コード 0 で終了することを確認します。`)
+    expect(waitPr(responses, ['ci', url, '0.05', '2'])).toMatchObject({ status: 0, stdout: `${word}\n`, stderr: '' })
+  })
+
+  it('ci の待ちで、CI の無い回が続いても、途中で CI が現れたら数え直す', async () => {
+    await explains('`wait-pr.cjs` の ci の待ちのテストです。CI の無い回が 2 回続いた後に CI が現れると、CI の無い回を数え直し、`NO_CHECKS` を出さずに CI の結果を待つことを確認します。')
+    const result = waitPr([open('MERGEABLE'), open('MERGEABLE'), open('MERGEABLE', false, 'PENDING'), open('MERGEABLE'), open('MERGEABLE', false, 'SUCCESS')], ['ci', url, '0.05', '2'])
+    expect(result).toMatchObject({ status: 0, stdout: 'CI_PASSED\n' })
+    expect(result.calls).toHaveLength(5)
+  })
+
+  it('ci の待ちで、必須の check の結果がまだ無い間は待ち続け、CI が通ったら CI_PASSED を出力する', async () => {
+    await explains('`wait-pr.cjs` の ci の待ちのテストです。CI の状態が `EXPECTED` の回では何も出力せず、次の回の状態が `SUCCESS` の場合は `CI_PASSED` を出力することを確認します。')
+    const result = waitPr([open('MERGEABLE', false, 'EXPECTED'), open('MERGEABLE', false, 'SUCCESS')], ['ci', url, '0.05', '2'])
+    expect(result).toMatchObject({ status: 0, stdout: 'CI_PASSED\n' })
+    expect(result.calls).toHaveLength(2)
+  })
+
+  it('merge の待ちでは、CI が通っても、CI が無くても抜けずに待ち続ける', async () => {
+    await explains('`wait-pr.cjs` の merge の待ちのテストです。CI が通った回や CI の無い回では何も出力せず、マージされた時点で `MERGED` を出力することを確認します。')
+    const result = waitPr([open('MERGEABLE'), open('MERGEABLE'), open('MERGEABLE'), open('MERGEABLE', false, 'SUCCESS'), merged])
     expect(result).toMatchObject({ status: 0, stdout: 'MERGED\n' })
-    expect(result.calls).toHaveLength(3)
+    expect(result.calls).toHaveLength(5)
   })
 
   it('PR が開いたまま待ち時間の上限に達すると、TIMEOUT を出力して終了コード 0 で終了する', async () => {
-    await explains('`wait-merge.cjs` のテストです。PR が開いたまま待ち時間の上限に達した場合は、`TIMEOUT` を出力し、終了コード 0 で終了することを確認します。')
-    const result = waitMerge([open('MERGEABLE')], [url, '0.05', '0.3'])
+    await explains('`wait-pr.cjs` のテストです。PR が開いたまま待ち時間の上限に達した場合は、`TIMEOUT` を出力し、終了コード 0 で終了することを確認します。')
+    const result = waitPr([open('MERGEABLE', false, 'PENDING')], ['ci', url, '0.05', '0.3'])
     expect(result).toMatchObject({ status: 0, stdout: 'TIMEOUT\n' })
     expect(result.calls.length).toBeGreaterThan(1)
   })
 
-  it('PR の URL のホスト・owner・repo・番号を指定して、GraphQL で状態を取得する', async () => {
-    await explains('`wait-merge.cjs` の `gh` の呼び出しのテストです。PR の URL から求めたホスト・owner・repo・番号を指定して、`isInMergeQueue` を含む GraphQL のクエリを呼ぶことを確認します。')
-    const [call] = waitMerge([{ state: 'MERGED', mergeable: 'UNKNOWN', isInMergeQueue: false }]).calls
+  it('PR の URL のホスト・owner・repo・番号を指定して、GraphQL で状態と CI の結果を取得する', async () => {
+    await explains('`wait-pr.cjs` の `gh` の呼び出しのテストです。PR の URL から求めたホスト・owner・repo・番号を指定して、`isInMergeQueue` と `statusCheckRollup` を含む GraphQL のクエリを呼ぶことを確認します。')
+    const [call] = waitPr([merged]).calls
     expect(call?.slice(0, 4)).toStrictEqual(['api', '--hostname', 'github.com', 'graphql'])
     expect(call).toEqual(expect.arrayContaining(['owner=pecotcraft', 'repo=pecot-sandbox', 'number=12']))
-    expect(call?.find(argument => argument.startsWith('query='))).toContain('isInMergeQueue')
+    const query = call?.find(argument => argument.startsWith('query='))
+    expect(query).toContain('isInMergeQueue')
+    expect(query).toContain('statusCheckRollup')
   })
 
   it('gh が 1 回失敗しても、状態を取得し直して続ける', async () => {
-    await explains('`wait-merge.cjs` のテストです。`gh` の呼び出しが 1 回失敗しても、取得し直して続け、マージされた場合に `MERGED` を出力することを確認します。')
-    expect(waitMerge(['fail', { state: 'MERGED', mergeable: 'UNKNOWN', isInMergeQueue: false }])).toMatchObject({ status: 0, stdout: 'MERGED\n' })
+    await explains('`wait-pr.cjs` のテストです。`gh` の呼び出しが 1 回失敗しても、取得し直して続け、マージされた場合に `MERGED` を出力することを確認します。')
+    expect(waitPr(['fail', merged])).toMatchObject({ status: 0, stdout: 'MERGED\n' })
   })
 
   it('gh が 3 回続けて失敗すると、理由を標準エラーに出力して終了コード 1 で止まる', async () => {
-    await explains('`wait-merge.cjs` のテストです。`gh` の呼び出しが 3 回続けて失敗した場合に、失敗の理由を標準エラーに出力し、終了コード 1 で終了することを確認します。')
-    const result = waitMerge(['fail'])
+    await explains('`wait-pr.cjs` のテストです。`gh` の呼び出しが 3 回続けて失敗した場合に、失敗の理由を標準エラーに出力し、終了コード 1 で終了することを確認します。')
+    const result = waitPr(['fail'])
     expect(result).toMatchObject({ status: 1, stdout: '', stderr: '待ち受けを続けられません: HTTP 502\n' })
     expect(result.calls).toHaveLength(3)
   })
 
   it.for([
-    { name: '間隔が 0', arguments_: [url, '0'], message: '間隔が正の数ではありません（0）' },
-    { name: '上限が数でない', arguments_: [url, '1', 'abc'], message: '上限が正の数ではありません（abc）' },
-    { name: 'URL が PR を指さない', arguments_: ['https://github.com/pecotcraft/pecot-sandbox/issues/12'], message: 'PR の URL ではありません（https://github.com/pecotcraft/pecot-sandbox/issues/12）' },
+    { name: '待ち方が無い', arguments_: [], message: '待ち方が ci でも merge でもありません（）' },
+    { name: '待ち方の代わりに URL', arguments_: [url], message: `待ち方が ci でも merge でもありません（${url}）` },
+    { name: '間隔が 0', arguments_: ['merge', url, '0'], message: '間隔が正の数ではありません（0）' },
+    { name: '上限が数でない', arguments_: ['ci', url, '1', 'abc'], message: '上限が正の数ではありません（abc）' },
+    { name: 'URL が PR を指さない', arguments_: ['merge', 'https://github.com/pecotcraft/pecot-sandbox/issues/12'], message: 'PR の URL ではありません（https://github.com/pecotcraft/pecot-sandbox/issues/12）' },
   ])('$name だと、gh を呼ばずに終了コード 1 で止まる', async ({ name, arguments_, message }) => {
-    await explains(`\`wait-merge.cjs\` の引数の検証のテストです。「${name}」の場合に、\`gh\` を呼ばず、「${message}」を標準エラーに出力して、終了コード 1 で終了することを確認します。`)
-    expect(waitMerge([open('MERGEABLE')], arguments_)).toMatchObject({ status: 1, stdout: '', stderr: `待ち受けを続けられません: ${message}\n`, calls: [] })
+    await explains(`\`wait-pr.cjs\` の引数の検証のテストです。「${name}」の場合に、\`gh\` を呼ばず、「${message}」を標準エラーに出力して、終了コード 1 で終了することを確認します。`)
+    expect(waitPr([open('MERGEABLE')], arguments_)).toMatchObject({ status: 1, stdout: '', stderr: `待ち受けを続けられません: ${message}\n`, calls: [] })
   })
 })
