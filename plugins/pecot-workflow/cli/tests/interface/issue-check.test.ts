@@ -175,13 +175,13 @@ describe('issue_check', () => {
       })
     })
 
-    it('親 Epic の子が使っている番号を題に書くと、次の空き番号を添えて problem にする', async (context) => {
+    it('親 Epic の子が使っている番号を題に書くと、次の空き番号の題を候補に添えて problem にする', async (context) => {
       await verifies(context, 'PW-ISSUE-CHECK-03')
-      await explains('親 Epic の既存の子（`#3-01`）と同じ番号を題に書いた場合のテストです。`order-conflict` の問題を返し、文に次の空き番号 2 を含めることを確認します。')
+      await explains('親 Epic の既存の子（`#3-01`）と同じ番号を題に書いた場合のテストです。`order-conflict` の問題を返し、次の空き番号 2 の題を候補に含めることを確認します。')
       useProject()
       const problems = problemsOf(await createOne({ title: '[Task] #3-01: 一覧に状態を出す' }))
       await step('結果を確かめる', () => {
-        expect(problems).toEqual([expect.objectContaining({ field: 'title', code: 'order-conflict' })])
+        expect(problems).toEqual([expect.objectContaining({ field: 'title', code: 'order-conflict', candidates: ['[Task] #3-02: 一覧に状態を出す'] })])
         expect(problems[0]?.['message']).toContain('the next free order is 2')
       })
     })

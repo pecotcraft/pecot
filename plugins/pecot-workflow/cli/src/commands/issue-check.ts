@@ -446,7 +446,9 @@ function planTitleOrders(targets: readonly Target[], used: ReadonlyMap<string, R
     const plan = planOrders(siblings, requests)
     if (plan.kind === 'duplicate-existing') {
       const member = members.find(target => orderOf(target) === plan.order)
-      findings.add(member, 'title', 'order-conflict', `order ${String(plan.order)} under ${issueText(parent)} is used by #${String(plan.existing.number)} (${plan.existing.title}); the next free order is ${String(plan.nextAvailable)}`)
+      const rest = member === undefined ? undefined : titleParts(member)?.rest
+      const fixed = member === undefined || rest === undefined ? [] : [expectedTitle(member, rest, plan.nextAvailable)]
+      findings.add(member, 'title', 'order-conflict', `order ${String(plan.order)} under ${issueText(parent)} is used by #${String(plan.existing.number)} (${plan.existing.title}); the next free order is ${String(plan.nextAvailable)}`, fixed)
       continue
     }
     if (plan.kind !== 'planned') continue
