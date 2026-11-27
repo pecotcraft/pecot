@@ -18,7 +18,7 @@
   - 確かめのたびにリポを作って消す（gh CLI の `isolated`）。ruleset・merge queue・ボードを毎回作る手間が大きい。退ける
   - 別の org に分ける。ユーザーが、同じ org のままと決めた
 - 残る点:
-  - 検証用の `ci.yml` は、必須チェックと同じ名前のチェックを出し、`merge_group` でも動く（R11-3）。直すものは無い
+  - 検証用の `ci.yml`・`codeql.yml` は、必須チェックと同じ名前のチェックを出し、`merge_group` でも動く（R11-3）。直すものは無い
   - `pecot-sandbox-b` は空で、ruleset が無い。複数のリポをまたぐ確かめを tasks で扱うときだけ整える
 
 ## R2. 直した pecot-workflow の読み込み（FR-014、FR-015、FR-019）
