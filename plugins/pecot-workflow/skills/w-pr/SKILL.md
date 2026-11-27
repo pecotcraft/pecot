@@ -4,7 +4,7 @@ description: |
   PRを作成しタイトル・説明を自動生成し、CIとレビューの指摘に対応します。
   Use when the user wants to create a pull request for the current branch — auto-generates title/description from commits and diff, waits for CI, then addresses the review findings without asking which to adopt, replying with the reason on each one it declines. Triggers: "create PR", "submit for review", "address review comments".
   Does not merge PRs itself — it then waits for the user to merge on GitHub and runs the post-merge cleanup (session finish).
-allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check mcp__plugin_pecot-w_pecot-workflow__pr_create mcp__plugin_pecot-w_pecot-workflow__pr_show mcp__plugin_pecot-w_pecot-workflow__issue_comment mcp__plugin_pecot-w_pecot-workflow__issue_show mcp__plugin_pecot-w_pecot-workflow__session_show mcp__plugin_pecot-w_pecot-workflow__session_finish Bash(node ${CLAUDE_SKILL_DIR}/scripts/wait-merge.cjs *) Bash(gh api:*) Bash(git push:*) Bash(git checkout:*) Bash(git branch:*) Bash(git worktree list:*) Bash(git fetch:*) Bash(git pull:*) Bash(mkdir:*) Bash(touch:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr comment:*) Bash(gh pr checks:*) Bash(gh run view:*) Bash(git add:*) Bash(git commit:*)
+allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check mcp__plugin_pecot-w_pecot-workflow__pr_create mcp__plugin_pecot-w_pecot-workflow__pr_show mcp__plugin_pecot-w_pecot-workflow__issue_comment mcp__plugin_pecot-w_pecot-workflow__issue_show mcp__plugin_pecot-w_pecot-workflow__session_show mcp__plugin_pecot-w_pecot-workflow__session_finish Bash(node ${CLAUDE_SKILL_DIR}/scripts/wait-pr.cjs *) Bash(gh api:*) Bash(git push:*) Bash(git checkout:*) Bash(git branch:*) Bash(git worktree list:*) Bash(git fetch:*) Bash(git pull:*) Bash(mkdir:*) Bash(touch:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr comment:*) Bash(gh pr checks:*) Bash(gh run view:*) Bash(git add:*) Bash(git commit:*)
 when_to_use: "PR を作りたい、レビューに出したい、プルリクエストの説明文を作ってほしい、PR のレビュー指摘に対応したい"
 ---
 
@@ -21,8 +21,8 @@ when_to_use: "PR を作りたい、レビューに出したい、プルリクエ
 
 引数が `resume` なら、background の待ちが終わった後の呼び直しなので、直前の通知のコマンドに合わせて続ける。
 
-- CI 待ちの `gh pr checks` なら、[Step 4](#step-4-ci-を待って直す) の出力を読むところから続ける
-- 待ち受けの `wait-merge.cjs` なら、[Step 6](#step-6-マージを待ち受けて片付ける) の出力の表から続ける
+- CI 待ちの `wait-pr.cjs ci` なら、[Step 4](#step-4-ci-を待って直す) の出力を読むところから続ける
+- マージ待ちの `wait-pr.cjs merge` なら、[Step 6](#step-6-マージを待ち受けて片付ける) の出力の表から続ける
 
 ブランチに PR がもうあるときは、Step 2・3 を飛ばして [Step 4](#step-4-ci-を待って直す) から進む。
 
@@ -132,19 +132,29 @@ body.md は画像と同じ `.playwright-mcp/` に置く。gh は本文の `./<�
 
 ### Step 4: CI を待って直す
 
-待つ前に、pecot-workflow の MCP ツール `pr_show` を使って、PR が base とコンフリクトしていないかを確かめる。コンフリクトしていたら、スタックしたブランチでは `pr_restack` でスタックし直し、ほかのブランチでは base の新しい先頭へ rebase してから待つ。
+CI の結果を待つ間も、base とのコンフリクトと merge queue からの外れを同時に待つ。CI を待つ間に base が進んでも、言われる前に直すためだ。
 
-次のコマンドで CI を待ち、終わった後の結果だけを 1 回出す。Claude Code では Bash の background 実行、GitHub Copilot CLI では非同期の実行で動かす。
+次のコマンドで待ち、CI が終わるか PR の状態が変わったときに 1 語だけ出す。Claude Code では Bash の background 実行、GitHub Copilot CLI では非同期の実行で動かす。
 
 ```bash
-gh pr checks <PR番号> --watch --fail-fast > /dev/null 2>&1; gh pr checks <PR番号>
+node <このスキルの base directory>/scripts/wait-pr.cjs ci <PR の URL>
 ```
+
+間隔と上限は [Step 6](#step-6-マージを待ち受けて片付ける) と同じで、3 つ目と 4 つ目の引数に秒で渡せる。
 
 Claude Code では、待ちが終わった通知を受けたら、出力を読む前に、Skill ツールで `pecot-w:w-pr` を引数 `resume` で呼び直す。allowed-tools の許可は、スキルを呼んだターンの間だけ続き、通知で始まるターンでは切れているからだ。GitHub Copilot CLI では呼び直さず、そのまま出力を読む。
 
-- `no checks reported` が出たら、少しおいて打ち直す。2 回続いたら CI の無いリポとみなし、その旨を伝えて Step 5 へ進む
-- 落ちたら、PR の変更が原因のものだけ直して push し、待ち直す。関係ない失敗は利用者に伝えて止まる
-- 直すのは 3 回まで。超えたら状況を利用者に伝えて止まる
+| 出力 | 次の手順 |
+|---|---|
+| `CI_PASSED` | Step 5 へ進む |
+| `CI_FAILED` | `gh pr checks <PR番号>` で落ちた check を読む。PR の変更が原因のものだけ直して push し、待ち直す。関係ない失敗は利用者に伝えて止まる |
+| `NO_CHECKS` | CI の無いリポとみなし、その旨を伝えて Step 5 へ進む |
+| `CONFLICTING` | base とコンフリクトした。スタックしたブランチでは `pr_restack` でスタックし直し、ほかのブランチでは base の新しい先頭へ rebase して push し、待ち直す |
+| `DEQUEUED`・`MERGED`・`CLOSED` | Step 6 の表の同じ行に従う |
+| `TIMEOUT` | 同じコマンドで待ち直す |
+| `待ち受けを続けられません:` で始まる | 文を利用者に伝えて止まる |
+
+CI の失敗を直すのは 3 回まで。超えたら状況を利用者に伝えて止まる。コンフリクトの直しは、この回数に数えない。
 
 ### Step 5: レビューの指摘に対応
 
@@ -280,10 +290,10 @@ gh api --hostname <対象ホスト> graphql -f query='
 次のコマンドで待ち、PR の状態が変わったときに 1 語だけ出す。Step 4 と同じく、Claude Code では Bash の background 実行、GitHub Copilot CLI では非同期の実行で動かす。
 
 ```bash
-node <このスキルの base directory>/scripts/wait-merge.cjs <PR の URL>
+node <このスキルの base directory>/scripts/wait-pr.cjs merge <PR の URL>
 ```
 
-URL だけを渡すと、60 秒おきに PR を読み、25 分で切り上げる。間隔と上限は、2 つ目と 3 つ目の引数に秒で渡せる。
+待ち方と URL だけを渡すと、60 秒おきに PR を読み、25 分で切り上げる。間隔と上限は、3 つ目と 4 つ目の引数に秒で渡せる。
 25 分は、Claude Code の background 実行の既定の上限（30 分）より短い。
 
 Claude Code では、待ちが終わった通知を受けたら、Step 4 と同じく Skill ツールで `pecot-w:w-pr` を引数 `resume` で呼び直してから出力に合う行を実行する。待ち直したときも、待ちが終わるたびに呼び直す。GitHub Copilot CLI では呼び直さず、そのまま出力に合う行を実行する。
@@ -293,6 +303,7 @@ Claude Code では、待ちが終わった通知を受けたら、Step 4 と同�
 | `MERGED` | [マージされた後の片付け](references/after-merge.md) に従って片付ける |
 | `CLOSED` | マージされずに閉じられた旨を利用者に伝えて止まる。片付けない |
 | `CONFLICTING` | base とコンフリクトした。Step 4 に戻り、スタックし直すか base へ rebase してから CI とレビューの指摘に対応し、ここで待ち直す |
+| `CI_FAILED` | CI が通った後で、再実行や push により失敗した。Step 4 に戻り、落ちた check を直してから CI とレビューの指摘に対応し、ここで待ち直す |
 | `DEQUEUED` | merge queue のチェックが落ちたか、コンフリクトで queue から外された。スタックの子 PR では、親 PR が先にマージされて外れることもある。Step 4 に戻り、原因を直してから待ち直す。直す箇所が無ければ、もう一度押すよう利用者に伝えて待ち直す |
 | `TIMEOUT` | 同じコマンドで待ち直す |
 | `待ち受けを続けられません:` で始まる | 文を利用者に伝えて止まる |

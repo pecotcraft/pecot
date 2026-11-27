@@ -369,12 +369,21 @@ describe('w-pr の手順', () => {
     expect(titleIndex(headings, 'レビューの指摘に対応')).toBeLessThan(titleIndex(headings, 'マージを待ち受けて片付ける'))
   })
 
-  it('Step 6 は、待ち受けのスクリプトの出力ごとに次の手順を持ち、コンフリクトと queue からの外れで Step 4 に戻す', async () => {
-    await explains('`w-pr` の Step 6 のテストです。`wait-merge.cjs` の出力ごとに次の手順があり、コンフリクトと merge queue からの除外では Step 4 に戻ると書かれていることを確認します。')
+  it('Step 4 は、CI の待ちの間もコンフリクトを待ち受け、出力ごとに次の手順を持つ', async () => {
+    await explains('`w-pr` の Step 4 のテストです。`wait-pr.cjs` を `ci` の待ち方で起動し、CI の結果とコンフリクトの出力ごとに次の手順があり、`gh pr checks --watch` で CI だけを待たないことを確認します。')
+    const body = sectionBody(text, numberIndex(headings, 4))
+    expect(body).toContain('node <このスキルの base directory>/scripts/wait-pr.cjs ci <PR の URL>')
+    for (const word of ['CI_PASSED', 'CI_FAILED', 'NO_CHECKS', 'CONFLICTING', 'DEQUEUED', 'TIMEOUT', '待ち受けを続けられません:']) expect(body).toContain(`| \`${word}`)
+    expect(body).not.toContain('--watch')
+    expect(body).toContain('コンフリクトの直しは、この回数に数えない')
+  })
+
+  it('Step 6 は、待ち受けのスクリプトの出力ごとに次の手順を持ち、コンフリクトと queue からの外れと CI の失敗で Step 4 に戻す', async () => {
+    await explains('`w-pr` の Step 6 のテストです。`wait-pr.cjs` を `merge` の待ち方で起動し、出力ごとに次の手順があり、コンフリクト・queue からの除外・CI の失敗で Step 4 に戻ることを確認します。')
     const body = sectionBody(text, numberIndex(headings, 6))
-    expect(body).toContain('node <このスキルの base directory>/scripts/wait-merge.cjs <PR の URL>')
-    for (const word of ['MERGED', 'CLOSED', 'CONFLICTING', 'DEQUEUED', 'TIMEOUT', '待ち受けを続けられません:']) expect(body).toContain(`| \`${word}`)
-    expect(body.match(/Step 4 に戻り/gu)).toHaveLength(2)
+    expect(body).toContain('node <このスキルの base directory>/scripts/wait-pr.cjs merge <PR の URL>')
+    for (const word of ['MERGED', 'CLOSED', 'CONFLICTING', 'CI_FAILED', 'DEQUEUED', 'TIMEOUT', '待ち受けを続けられません:']) expect(body).toContain(`| \`${word}`)
+    expect(body.match(/Step 4 に戻り/gu)).toHaveLength(3)
     expect(body).toContain('マージされずに閉じられた旨を利用者に伝えて止まる。片付けない')
   })
 

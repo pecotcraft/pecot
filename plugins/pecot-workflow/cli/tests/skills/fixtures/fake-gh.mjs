@@ -1,4 +1,4 @@
-// wait-merge.cjs のテストで gh の代わりに置く。responses.json の応答を呼ばれた順に返し、最後の応答は繰り返す
+// wait-pr.cjs のテストで gh の代わりに置く。responses.json の応答を呼ばれた順に返し、最後の応答は繰り返す
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 

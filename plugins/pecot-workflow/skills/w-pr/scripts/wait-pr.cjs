@@ -1,11 +1,13 @@
-// PR のマージ・クローズ・コンフリクト・queue からの外れを待ち、その語を 1 行出す。
-// 引数は PR の URL と、任意の間隔・上限（秒）。queue の状態は gh pr view に無いので GraphQL で読む
+// PR の CI の結果・コンフリクト・queue からの外れ・マージ・クローズを待ち、先に起きたものの語を 1 行出す。
+// 引数は待ち方（ci か merge）と PR の URL と、任意の間隔・上限（秒）。
+// ci は CI の通過でも抜け、merge はマージかクローズまで待つ。queue の状態は gh pr view に無いので GraphQL で読む
 const { execFile } = require('node:child_process')
 const fail = (message) => {
   console.error(`待ち受けを続けられません: ${message}`)
   process.exit(1)
 }
-const [url = '', intervalArgument, limitArgument] = process.argv.slice(2)
+const [mode = '', url = '', intervalArgument, limitArgument] = process.argv.slice(2)
+if (mode !== 'ci' && mode !== 'merge') fail(`待ち方が ci でも merge でもありません（${mode}）`)
 const match = /^https?:\/\/([^/]+)\/([^/]+)\/([^/]+)\/pull\/(\d+)\/?$/u.exec(url)
 if (match === null) fail(`PR の URL ではありません（${url}）`)
 const [, host, owner, repository, number] = match
@@ -18,7 +20,9 @@ const seconds = (value, fallback, name) => {
 const interval = seconds(intervalArgument, 60, '間隔')
 const limit = seconds(limitArgument, 1500, '上限')
 const MAX_FAILURES = 3
-const query = 'query($owner: String!, $repo: String!, $number: Int!) { repository(owner: $owner, name: $repo) { pullRequest(number: $number) { state mergeable isInMergeQueue } } }'
+// head に CI が 1 つも無い回がこの数だけ続いたら、CI の無いリポとみなす
+const MAX_EMPTY = 3
+const query = 'query($owner: String!, $repo: String!, $number: Int!) { repository(owner: $owner, name: $repo) { pullRequest(number: $number) { state mergeable isInMergeQueue commits(last: 1) { nodes { commit { statusCheckRollup { state } } } } } } }'
 
 const read = () => new Promise((resolve, reject) => {
   const arguments_ = ['api', '--hostname', host, 'graphql', '-f', `query=${query}`, '-f', `owner=${owner}`, '-f', `repo=${repository}`, '-F', `number=${number}`]
@@ -35,10 +39,19 @@ const read = () => new Promise((resolve, reject) => {
   })
 })
 
-const judge = (pullRequest, wasQueued) => {
+// head のコミットの CI の結果。CI が 1 つも無ければ undefined
+const checks = pullRequest => pullRequest.commits?.nodes?.[0]?.commit?.statusCheckRollup?.state
+
+// 同じ回にいくつも当てはまるときは、上から先に返す。コンフリクトを直すと CI は動き直すので、CI の失敗より先にする
+const judge = (pullRequest, wasQueued, empties) => {
   if (pullRequest.state === 'MERGED' || pullRequest.state === 'CLOSED') return pullRequest.state
   if (pullRequest.mergeable === 'CONFLICTING') return 'CONFLICTING'
   if (wasQueued && !pullRequest.isInMergeQueue) return 'DEQUEUED'
+  const state = checks(pullRequest)
+  if (state === 'FAILURE' || state === 'ERROR') return 'CI_FAILED'
+  if (mode !== 'ci') return
+  if (state === 'SUCCESS') return 'CI_PASSED'
+  if (empties >= MAX_EMPTY) return 'NO_CHECKS'
   return
 }
 
@@ -48,11 +61,13 @@ const main = async () => {
   const deadline = Date.now() + limit * 1000
   let failures = 0
   let wasQueued = false
+  let empties = 0
   for (;;) {
     try {
       const pullRequest = await read()
       failures = 0
-      const word = judge(pullRequest, wasQueued)
+      empties = checks(pullRequest) === undefined ? empties + 1 : 0
+      const word = judge(pullRequest, wasQueued, empties)
       if (word !== undefined) return console.log(word)
       wasQueued = pullRequest.isInMergeQueue === true
     }
