@@ -1,8 +1,10 @@
 # 本文が merge-diff テンプレートに合わない。exit 3。
 id: issue-comment-state-template-violation
-command:
-  path: [issue, comment]
-  args: [-t, merge-diff, -m, 進捗です, --issue-ref, acme/demo/7]
+tool: issue_comment
+arguments:
+  template: merge-diff
+  message: 進捗です
+  issue_ref: acme/demo/7
 setup:
   repo:
     files:

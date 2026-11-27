@@ -14,8 +14,8 @@ import { readAttributeValues } from '@pecot/workflow-core/infra/github/attribute
 import { DependenciesUnsupportedError, GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
 import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
 import type { IssueSlim } from '@pecot/workflow-core/infra/github/issues.js'
-import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { stopWith, requireConfigFor, PROJECT_INPUT } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
 import { ATTRIBUTE_READING_JSON, UNSUPPORTED_ATTRIBUTE_JSON } from './issue-attributes.js'
@@ -285,8 +285,8 @@ async function readView(out: Readonly<Output>, client: Readonly<GitHubClient>, c
   }
 }
 
-const ISSUE_SHOW = defineCommand({
-  path: ['issue', 'show'],
+const ISSUE_SHOW = defineTool({
+  name: 'issue_show',
   title: 'Get Issue details',
   description: 'Fetch Issue details efficiently (GraphQL, only the needed fields)',
   input: z.object({
@@ -296,9 +296,6 @@ const ISSUE_SHOW = defineCommand({
     comment_limit: z.int().min(0).max(MAX_COMMENT_LIMIT).default(DEFAULT_COMMENT_LIMIT).describe('Number of comments to show (0-20; 0 hides them)'),
   }),
   output: ISSUE_SHOW_OUTPUT,
-  positional: ['issue_ref'],
-  shortFlags: { json: '-j', comment_limit: '-c' },
-  interactive: false,
   run: async (input, io) => {
     const output = createOutput<IssueShowJson>(false, io)
     return await runWithExit(async () => {
@@ -325,4 +322,4 @@ const ISSUE_SHOW = defineCommand({
   },
 })
 
-export const ISSUE_SHOW_COMMANDS: readonly CommandDefinition[] = [ISSUE_SHOW]
+export const ISSUE_SHOW_TOOLS: readonly ToolDefinition[] = [ISSUE_SHOW]

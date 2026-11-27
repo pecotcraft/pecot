@@ -1,9 +1,11 @@
 {
   "mcpServers": {
     "pecot-workflow": {
-      "command": "${CLAUDE_PLUGIN_ROOT}/bin/pecot",
+      "command": "npx",
       "args": [
-        "mcp"
+        "--prefix=${CLAUDE_PLUGIN_DATA}",
+        "-y",
+        "@pecot/workflow-mcp@10.1.0"
       ]
     },
     "context7": {
@@ -13,7 +15,7 @@
     "pecot-workflow-playwright": {
       "command": "npx",
       "args": [
-        "--prefix=${CLAUDE_PLUGIN_ROOT}/bin",
+        "--prefix=${CLAUDE_PLUGIN_DATA}",
         "-y",
         "@playwright/mcp@0.0.83",
         "--headless",

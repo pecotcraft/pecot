@@ -45,7 +45,7 @@ const CASES: readonly (readonly [string, readonly string[]])[] = [
   ]],
   ['format-unknown', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: output.format: unknown value "bogus" (expected one of "text", "json", "none")`]],
   ['file-format', [`error: ${PW}/authored.yaml: format: unknown value 2 (expected 1)`]],
-  ['unknown-issue', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: exit_status[1].code: must be between 0 and 255`]],
+  ['unknown-issue', [`error: ${PW}/generated.json: names.positions[0][0].word: unknown validation issue (invalid_format): Invalid string: must match pattern /^[a-z0-9]+$/u`]],
   ['resources', []],
   ['resource-missing', [`error: ${PW}/authored.yaml: pecot-template://pr/default: resource is missing (present in generated.json)`]],
   ['resource-extra', [`error: ${PW}/authored.yaml: pecot-template://issue/old: resource is not in generated.json (remove it)`]],
@@ -269,112 +269,6 @@ describe('validateRepository', () => {
       await step('検証して結果を比べる', async () => {
         expect(await validateRepository(root)).toEqual([
           `error: ${PW}/authored.yaml: common_mcp_output: is only for plugins with an MCP surface (remove it)`,
-        ])
-      })
-    })
-  })
-
-  describe('cli.only', () => {
-    const DRY_RUN = { type: 'boolean', description: 'Print the plan and write nothing.' }
-    const CLI = { positional: ['source', 'destination'], flags: { dry_run: ['--dry-run', '-n'] }, only: { dry_run: DRY_RUN } }
-    const REFERENCE = '    cli_reference:\n      examples:\n        - run: pecot aws s3 cp s3://bucket/a ./a --dry-run\n          note: Print the plan.\n      options:\n        dry_run: Print the plan and write nothing.\n'
-
-    // PT-AWS-S3-CP に CLI の面と cli を足し、authored.yaml を書き換える
-    async function withCliOnly(cli: object = CLI, replace: (text: string) => string = text => text): Promise<string> {
-      const root = await materialize('valid')
-      const generatedFile = path.join(root, PT, 'generated.json')
-      const generated = generatedFileSchema.parse(JSON.parse(await readFile(generatedFile, 'utf8')))
-      const entries = generated.entries.map(item => item.id === 'PT-AWS-S3-CP'
-        ? { ...item, surfaces: { ...item.surfaces, cli: { path: ['aws', 's3', 'cp'] } }, cli }
-        : item)
-      await writeFile(generatedFile, JSON.stringify({ ...generated, entries }))
-      const file = path.join(root, PT, 'authored.yaml')
-      const original = await readFile(file, 'utf8')
-      await writeFile(file, replace(original))
-      return root
-    }
-
-    const withReference = (text: string): string => text.replace('    default_notes: {}\n', () => `${REFERENCE}    default_notes: {}\n`)
-
-    it('cli.flags の名前が cli.only にあり、cli_reference.options に説明があると、検証エラーを返さない', async () => {
-      await explains('`cli.only`（CLI だけの入力）の検証のテストです。`cli.flags` の名前が `cli.only` にあり、`cli_reference.options` に説明がある場合に、検証エラーが 0 件であることを確認します。')
-      await step('検証して結果を比べる', async () => {
-        expect(await validateRepository(await withCliOnly(CLI, withReference))).toEqual([])
-      })
-    })
-
-    it('cli_reference を持たない項目は、cli_reference.options を求めない', async () => {
-      await explains('`cli.only`（CLI だけの入力）の検証のテストです。`cli_reference` を持たない項目の場合に、`cli_reference.options` がなくても検証エラーが返らないことを確認します。')
-      await step('検証して結果を比べる', async () => {
-        expect(await validateRepository(await withCliOnly())).toEqual([])
-      })
-    })
-
-    it('cli.flags と cli.positional の名前が input と cli.only のどちらにも存在しないと、検証エラーにする', async () => {
-      await explains('`cli.only`（CLI だけの入力）の検証のテストです。`cli.flags` と `cli.positional` に、`input` と `cli.only` のどちらにも存在しない名前を指定した場合、未知の入力名として検証エラーが返ることを確認します。')
-      const root = await withCliOnly({ ...CLI, positional: ['source', 'target'], flags: { ...CLI.flags, force: ['--force'] } })
-      await step('検証して結果を比べる', async () => {
-        expect(await validateRepository(root)).toEqual([
-          `error: ${PT}/generated.json: PT-AWS-S3-CP: cli.flags: unknown input name "force"`,
-          `error: ${PT}/generated.json: PT-AWS-S3-CP: cli.positional: unknown input name "target"`,
-        ])
-      })
-    })
-
-    it('cli.only の名前が input にもある、または cli.flags にないと、検証エラーにする', async () => {
-      await explains('`cli.only`（CLI だけの入力）の検証のテストです。`cli.only` の名前が `input` と重複する場合と、`cli.flags` にない場合、それぞれ検証エラーが返ることを確認します。')
-      const root = await withCliOnly({ ...CLI, flags: { source: ['--source'] }, only: { source: { type: 'string' }, dry_run: DRY_RUN } })
-      await step('検証して結果を比べる', async () => {
-        expect(await validateRepository(root)).toEqual([
-          `error: ${PT}/generated.json: PT-AWS-S3-CP: cli.only: "dry_run" is not in cli.flags (give the CLI-only input a flag)`,
-          `error: ${PT}/generated.json: PT-AWS-S3-CP: cli.only: "source" is also in input (remove it from one; input is the MCP input)`,
-        ])
-      })
-    })
-
-    it('cli.only の説明が英語でないと、検証エラーにする', async () => {
-      await explains('`cli.only`（CLI だけの入力）の検証のテストです。`cli.only` の `description` が日本語の場合に、英語で書くことを求める検証エラーが返ることを確認します。')
-      const root = await withCliOnly({ ...CLI, only: { dry_run: { type: 'boolean', description: '予定だけを出します。' } } })
-      await step('検証して結果を比べる', async () => {
-        expect(await validateRepository(root)).toEqual([
-          `error: ${PT}/generated.json: PT-AWS-S3-CP: cli.only.dry_run.description: contains Japanese text (write English)`,
-        ])
-      })
-    })
-
-    it('cli.only の名前を MCP の使用例・arguments・mcp_output.fields に書くと、検証エラーにする', async () => {
-      await explains('`cli.only`（CLI だけの入力）の検証のテストです。CLI だけの入力 `dry_run` を、`arguments`・使用例の `arguments`・`mcp_output.fields` に書いた場合、削除を求める検証エラーがそれぞれ返ることを確認します。')
-      const root = await withCliOnly(CLI, text => text
-        .replace('          destination: ./a\n', '          destination: ./a\n          dry_run: true\n')
-        .replace('  PT-AWS-S3-CP:\n', '  PT-AWS-S3-CP:\n    arguments:\n      dry_run: Print the plan.\n')
-        .replace('    mcp_output:\n      fields: {}\n    diagnostics: default\n    environment: []\n    exit_status:\n      - kind: aws-error\n        when: The aws command exited with a non-zero status.\n    on_error: default\n    effects:\n      - target: aws\n        kind: destructive', '    mcp_output:\n      fields:\n        dry_run: The plan.\n    diagnostics: default\n    environment: []\n    exit_status:\n      - kind: aws-error\n        when: The aws command exited with a non-zero status.\n    on_error: default\n    effects:\n      - target: aws\n        kind: destructive'))
-      await step('検証して結果を比べる', async () => {
-        expect(await validateRepository(root)).toEqual([
-          `error: ${PT}/authored.yaml: PT-AWS-S3-CP: arguments: "dry_run" is in cli.only (remove it; only the CLI takes it)`,
-          `error: ${PT}/authored.yaml: PT-AWS-S3-CP: examples[0].arguments: "dry_run" is in cli.only (remove it; only the CLI takes it)`,
-          `error: ${PT}/authored.yaml: PT-AWS-S3-CP: mcp_output.fields: "dry_run" is in cli.only (remove it; only the CLI takes it)`,
-          `error: ${PT}/authored.yaml: PT-AWS-S3-CP: mcp_output.fields: has "dry_run" not in mcp.output (remove it)`,
-        ])
-      })
-    })
-
-    it('cli_reference を持つ項目で、cli.only の説明が options に不足しているか余分だと、検証エラーにする', async () => {
-      await explains('`cli.only`（CLI だけの入力）の検証のテストです。`cli_reference.options` が `cli.only` の名前と食い違う場合に、不足している名前と余分な名前を示す検証エラーが返ることを確認します。')
-      const root = await withCliOnly(CLI, text => withReference(text).replace('        dry_run: Print the plan and write nothing.\n', '        force: Overwrite.\n'))
-      await step('検証して結果を比べる', async () => {
-        expect(await validateRepository(root)).toEqual([
-          `error: ${PT}/authored.yaml: PT-AWS-S3-CP: cli_reference.options: has "force" not in cli.only (remove it)`,
-          `error: ${PT}/authored.yaml: PT-AWS-S3-CP: cli_reference.options: is missing "dry_run" (present in cli.only)`,
-        ])
-      })
-    })
-
-    it('cli_reference.options の説明の言語が prose と違うと、検証エラーにする', async () => {
-      await explains('`cli.only`（CLI だけの入力）の検証のテストです。`prose` が英語の定義書で、`cli_reference.options` の説明が日本語の場合に、英語で書くことを求める検証エラーが返ることを確認します。')
-      const root = await withCliOnly(CLI, text => withReference(text).replace('dry_run: Print the plan and write nothing.', 'dry_run: 予定だけを出します。'))
-      await step('検証して結果を比べる', async () => {
-        expect(await validateRepository(root)).toEqual([
-          `error: ${PT}/authored.yaml: PT-AWS-S3-CP: cli_reference.options.dry_run: contains Japanese text (write English)`,
         ])
       })
     })

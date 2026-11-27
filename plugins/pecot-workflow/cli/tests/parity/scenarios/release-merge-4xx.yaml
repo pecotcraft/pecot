@@ -1,9 +1,8 @@
 # PUT が 405。マージ失敗として exit 1。
 id: release-merge-4xx
-command:
-  path: [release, merge]
-  args:
-    - "acme/demo/31"
+tool: release_merge
+arguments:
+  pr_ref: acme/demo/31
 setup:
   repo:
     files:

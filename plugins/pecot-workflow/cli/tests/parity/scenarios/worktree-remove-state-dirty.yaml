@@ -1,11 +1,9 @@
 # wt1 に未コミットの変更が残っている。--force なしでは git が止め、wt1 は残る。
 id: worktree-remove-state-dirty
-command:
-  path: [worktree, remove]
-  args:
-    - "wt1"
-    - "-D"
-    - "."
+tool: worktree_remove
+arguments:
+  directory: .
+  name: wt1
 setup:
   repo:
     worktrees:

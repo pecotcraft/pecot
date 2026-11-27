@@ -46,9 +46,6 @@ export interface CommandOutcome {
 }
 
 export interface CollectedIo {
-  /**
-  readLine を持たない。標準入力の無い io は、入力の終端と同じ扱い
-  */
   readonly io: CommandIo
   readonly stdout: () => string
   readonly stderr: () => string
@@ -81,7 +78,6 @@ export function collectIo(signal?: Readonly<AbortSignal>): CollectedIo {
       stderr: (text) => {
         error.push(text)
       },
-      surface: 'mcp',
       ...(signal !== undefined && { signal }),
       failureKind: (kind) => {
         failureKind ??= kind

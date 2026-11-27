@@ -162,6 +162,44 @@ test(".mcp.json・mcp.json の @pecot/<名前>-mcp の版だけを書き換え�
   ]);
 });
 
+const WORKFLOW_CLAUDE = "plugins/pecot-workflow/.claude-plugin/plugin.json";
+const WORKFLOW_MCP = "plugins/pecot-workflow/.mcp.json";
+const WORKFLOW_AGENT_MCP = "plugins/pecot-workflow/mcp.json";
+const WORKFLOW_MCP_BEFORE = `{
+  "mcpServers": {
+    "pecot-workflow": {
+      "command": "npx",
+      "args": ["--prefix=\${CLAUDE_PLUGIN_DATA}", "-y", "@pecot/workflow-mcp@10.1.0"]
+    },
+    "pecot-workflow-playwright": {
+      "command": "npx",
+      "args": ["--prefix=\${CLAUDE_PLUGIN_DATA}", "-y", "@playwright/mcp@0.0.83", "--headless"]
+    }
+  }
+}
+`;
+const WORKFLOW_AGENT_MCP_BEFORE = WORKFLOW_MCP_BEFORE.replaceAll("CLAUDE_PLUGIN_DATA", "PLUGIN_DATA");
+
+test("pecot-workflow の .mcp.json・mcp.json は @pecot/workflow-mcp の版だけを書き換え、playwright の版は変えない", async () => {
+  await explains("pecot-workflow の MCP の登録ファイルの版を更新する `updateProjectVersion` のテストです。`.mcp.json` と `mcp.json` の `@pecot/workflow-mcp` の版だけが書き換わり、`@playwright/mcp` の版は変わらないことを確認します。");
+  const tree = makeTree({
+    [WORKFLOW_CLAUDE]: '{"name":"pecot-w","version":"10.1.0"}\n',
+    [WORKFLOW_MCP]: WORKFLOW_MCP_BEFORE,
+    [WORKFLOW_AGENT_MCP]: WORKFLOW_AGENT_MCP_BEFORE,
+  });
+  const logs = await makeActions([WORKFLOW_CLAUDE]).updateProjectVersion(tree, "11.0.0");
+  assert.equal(tree.get(WORKFLOW_MCP), WORKFLOW_MCP_BEFORE.replace("@pecot/workflow-mcp@10.1.0", "@pecot/workflow-mcp@11.0.0"));
+  assert.equal(
+    tree.get(WORKFLOW_AGENT_MCP),
+    WORKFLOW_AGENT_MCP_BEFORE.replace("@pecot/workflow-mcp@10.1.0", "@pecot/workflow-mcp@11.0.0"),
+  );
+  assert.deepEqual(logs, [
+    `Updated ${WORKFLOW_CLAUDE} to 11.0.0`,
+    `Updated ${WORKFLOW_MCP} to 11.0.0`,
+    `Updated ${WORKFLOW_AGENT_MCP} to 11.0.0`,
+  ]);
+});
+
 test("ほかの project の npm の指定は書き換えない", async () => {
   await explains("MCP の登録ファイルの版を更新する `updateProjectVersion` のテストです。ほかのプロジェクトの `@pecot/tools-mcp` の指定を含む `.mcp.json` が、そのまま変更されないことを確認します。");
   const visualMcp = `{"mcpServers":{"pecot-visual-playwright":{"command":"npx","args":["-y","@playwright/mcp@0.0.83","@pecot/tools-mcp@3.1.0"]}}}\n`;

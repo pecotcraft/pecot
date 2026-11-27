@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: no active project\n  run: pecot project activate <PROJECT>\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "no active project\n  call project_activate with project: <PROJECT>",
+  "structuredContent": {
+    "kind": "no-active-project",
+    "detail": "no active project\n  call project_activate with project: <PROJECT>"
+  },
+  "stderr": "",
   "requests": [],
   "files": {}
 }

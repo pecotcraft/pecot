@@ -1,37 +1,32 @@
-// コマンド定義の一覧。CLI と MCP の両方がこの一覧から作られる。
-// 各コマンドは defineCommand() で定義して、グループのファイルの一覧に足す。定義の型と defineCommand は command-definition.ts にあり、ここから再公開する。
-import { BOARD_COMMANDS } from './board.js'
-import { BRANCH_COMMANDS } from './branch.js'
-import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import { registerCommandHints } from '@pecot/workflow-core/commands-shared/command-hint.js'
-import { ISSUE_COMMANDS } from './issue.js'
-import { PR_RESTACK_COMMANDS } from './pr-restack.js'
-import { PR_COMMANDS } from './pr.js'
-import { PROJECT_COMMANDS } from './project.js'
-import { RELEASE_COMMANDS } from './release.js'
-import { SESSION_COMMANDS } from './session.js'
-import { WORKTREE_COMMANDS } from './worktree.js'
-import { WORKFLOW_COMMANDS } from './workflow.js'
+// MCP のツールの一覧。各ツールは defineTool() で定義して、グループのファイルの一覧に足す。
+import { BOARD_TOOLS } from './board.js'
+import { BRANCH_TOOLS } from './branch.js'
+import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { registerToolHints } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import { ISSUE_TOOLS } from './issue.js'
+import { PR_RESTACK_TOOLS } from './pr-restack.js'
+import { PR_TOOLS } from './pr.js'
+import { PROJECT_TOOLS } from './project.js'
+import { RELEASE_TOOLS } from './release.js'
+import { SESSION_TOOLS } from './session.js'
+import { WORKTREE_TOOLS } from './worktree.js'
+import { WORKFLOW_TOOLS } from './workflow.js'
 
-export { defineCommand, toolNameOf } from '@pecot/workflow-core/commands-shared/command-definition.js'
-export type { CommandDefinition, CommandIo, PreparedCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
+export { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+export type { CommandIo, PreparedCommand, ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
 
-// 並びは help の一覧の順で、names.ts の COMMAND_GROUPS の順に合わせる
-export const COMMANDS: readonly CommandDefinition[] = [
-  ...PROJECT_COMMANDS,
-  ...BOARD_COMMANDS,
-  ...ISSUE_COMMANDS,
-  ...SESSION_COMMANDS,
-  ...PR_COMMANDS,
-  ...PR_RESTACK_COMMANDS,
-  ...RELEASE_COMMANDS,
-  ...WORKTREE_COMMANDS,
-  ...BRANCH_COMMANDS,
-  ...WORKFLOW_COMMANDS,
+// 並びは tools/list の順で、names.ts の COMMAND_GROUPS の順に合わせる
+export const TOOLS: readonly ToolDefinition[] = [
+  ...PROJECT_TOOLS,
+  ...BOARD_TOOLS,
+  ...ISSUE_TOOLS,
+  ...SESSION_TOOLS,
+  ...PR_TOOLS,
+  ...PR_RESTACK_TOOLS,
+  ...RELEASE_TOOLS,
+  ...WORKTREE_TOOLS,
+  ...BRANCH_TOOLS,
+  ...WORKFLOW_TOOLS,
 ]
 
-registerCommandHints(COMMANDS)
-
-export function findCommand(path: readonly string[], commands: readonly CommandDefinition[] = COMMANDS): CommandDefinition | undefined {
-  return commands.find(command => command.path.join(' ') === path.join(' '))
-}
+registerToolHints(TOOLS)

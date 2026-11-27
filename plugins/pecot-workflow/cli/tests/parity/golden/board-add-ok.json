@@ -1,7 +1,12 @@
 {
-  "stdout": "",
-  "stderr": "added: Issue acme/demo/7 to project\nset: Issue acme/demo/7 status ready\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "added: Issue acme/demo/7 to project",
+  "structuredContent": {
+    "issue": "acme/demo/7",
+    "added": true,
+    "status": "ready"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

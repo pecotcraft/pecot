@@ -1,10 +1,9 @@
 # -d でマージ後に head ブランチを削除する。DELETE が 204。
 id: release-merge-ok-delete-branch
-command:
-  path: [release, merge]
-  args:
-    - "acme/demo/31"
-    - "-d"
+tool: release_merge
+arguments:
+  delete_branch: true
+  pr_ref: acme/demo/31
 setup:
   repo:
     files:

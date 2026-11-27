@@ -1,29 +1,21 @@
-// 定義書の入力名の決まり。書き込む項目は CLI だけの入力に dry_run を持ち、MCP の入力には持たない。1 つの対象を指す入力名は 1 つだけにする
+// 定義書の入力名の決まり。入力に dry_run を持たない。1 つの対象を指す入力名は 1 つだけにする
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
-import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
 
-import { authoredFileSchema } from '../../../../libs/interface-spec/src/domain/schema.js'
 import { explains } from './_helpers/explains.js'
 
 const propertySchema = z.object({ description: z.string().optional() })
 const inputSchema = z.object({ properties: z.record(z.string(), propertySchema) })
-const cliSchema = z.object({ only: z.record(z.string(), z.unknown()).optional() })
-const entrySchema = z.object({ id: z.string(), input: inputSchema, cli: cliSchema.optional() })
+const entrySchema = z.object({ id: z.string(), input: inputSchema })
 const generatedSchema = z.object({ entries: z.array(entrySchema) })
 
 const directory = path.resolve(import.meta.dirname, '../../interface')
-const authoredText = readFileSync(path.join(directory, 'authored.yaml'), 'utf8')
-const authored = authoredFileSchema.parse(parseYaml(authoredText))
 const generatedText = readFileSync(path.join(directory, 'generated.json'), 'utf8')
 const generated = generatedSchema.parse(JSON.parse(generatedText))
 
-const WRITING_KINDS: ReadonlySet<string> = new Set(['write', 'destructive'])
-// 予行を別の check のコマンドが担う項目と、その check の項目
-const CHECKED_ELSEWHERE: ReadonlyMap<string, string> = new Map([['PW-ISSUE-CREATE', 'PW-ISSUE-CHECK']])
 const OLD_NAMES: readonly string[] = ['issue', 'repo_ref', 'owner_repo', 'branch_name', 'plan']
 
 type Target = 'issue' | 'pr' | 'repo' | 'branch'
@@ -75,31 +67,10 @@ function hasInput(id: string, name: string): boolean {
   return Object.keys(generated.entries.find(entry => entry.id === id)?.input.properties ?? {}).includes(name)
 }
 
-function hasCliOnlyDryRun(id: string): boolean {
-  return Object.keys(generated.entries.find(entry => entry.id === id)?.cli?.only ?? {}).includes('dry_run')
-}
-
 describe('定義書の入力名', () => {
   it('どの項目も、MCP の入力に dry_run を持たない', async () => {
     await explains('定義書の入力名の決まりのテストです。定義書のすべての項目を調べた場合に、MCP の入力に `dry_run` を持つ項目が 1 つも無いことを確認します。')
     expect(generated.entries.filter(entry => hasInput(entry.id, 'dry_run')).map(entry => entry.id)).toEqual([])
-  })
-
-  it('write か destructive の effects を持つ項目は、予行を check の項目が担うものを除き、CLI だけの入力に dry_run を持つ', async () => {
-    await explains('定義書の入力名の決まりのテストです。`write` か `destructive` の効果を持つ項目を調べた場合に、予行を `check` の項目が担うものを除き、CLI だけの入力に `dry_run` を持つことを確認します。')
-    const writing = Object.entries(authored.entries)
-      .filter(([, entry]) => entry.effects.some(effect => WRITING_KINDS.has(effect.kind)))
-      .map(([id]) => id)
-    expect(writing.length).toBeGreaterThan(20)
-    expect(writing.filter(id => !hasCliOnlyDryRun(id) && !CHECKED_ELSEWHERE.has(id))).toEqual([])
-  })
-
-  it('予行を check の項目が担う項目は、dry_run を持たず、その check の項目は書き込まない', async () => {
-    await explains('定義書の入力名の決まりのテストです。予行を `check` の項目が担う項目を調べた場合に、`dry_run` を持たず、その `check` の項目が読むだけの効果であることを確認します。')
-    for (const [id, check] of CHECKED_ELSEWHERE) {
-      expect(hasInput(id, 'dry_run') || hasCliOnlyDryRun(id)).toBe(false)
-      expect(Object.entries(authored.entries).find(([key]) => key === check)?.[1].effects.map(effect => effect.kind)).toEqual(['read', 'read'])
-    }
   })
 
   it('Issue・PR・リポ・操作するブランチを指す入力の名前は、対象ごとに 1 つ（issue_ref・pr_ref・repo・branch）で、役割の名前は例外の一覧にある', async () => {

@@ -16,10 +16,10 @@ import { activeIssueOf, gitCurrentBranch, primaryRemoteName, primaryRemoteReposi
 import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
 import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
 import { readBaseOrInfer, warnUnresolved } from './base-reading.js'
-import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { joinHinted } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import { PROJECT_INPUT } from '@pecot/workflow-core/commands-shared/command-stop.js'
-import type { CommandDefinition, CommandIo } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition, CommandIo } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { directorySchema } from './directory-option.js'
 import { createGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
 import { createReadinessCache, readIssueReadinessIfSupported } from '@pecot/workflow-core/commands-shared/issue-readiness.js'
@@ -27,8 +27,8 @@ import type { IssueReadiness } from '@pecot/workflow-core/commands-shared/issue-
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import type { Output } from '@pecot/workflow-core/commands-shared/output.js'
 import { readRestackDecision } from './restack-reading.js'
-import { SESSION_FINISH_COMMANDS } from './session-finish.js'
-import { SESSION_START_COMMANDS } from './session-start.js'
+import { SESSION_FINISH_TOOLS } from './session-finish.js'
+import { SESSION_START_TOOLS } from './session-start.js'
 
 const ACTIVE_ISSUE_DATA = z.strictObject({
   reference: z.string().describe('Work Issue found from the git remote and the number that ends the branch name (owner/repo/N, the form issue_ref takes)'),
@@ -187,15 +187,12 @@ async function blockedReadiness(active: Readonly<ActiveIssue>, known: IssueReadi
   return readiness?.kind === 'blocked' ? describeReadiness(readiness, result.prerequisites, active.reference.repository) : undefined
 }
 
-const SESSION_SHOW = defineCommand({
-  path: ['session', 'show'],
+const SESSION_SHOW = defineTool({
+  name: 'session_show',
   title: 'Show session',
   description: 'Show the branch, repository and work Issue of the session',
   input: z.object({ directory: directorySchema, project: PROJECT_INPUT }),
   output: SESSION_SHOW_OUTPUT,
-  positional: [],
-  shortFlags: { directory: '-D' },
-  interactive: false,
   run: async (input, io: CommandIo) => {
     const output = createOutput<SessionShowData>(false, io)
     const branch = gitCurrentBranch(input.directory)
@@ -227,6 +224,6 @@ const SESSION_SHOW = defineCommand({
 })
 
 /**
-session のグループのコマンド。start は session-start.ts、finish は session-finish.ts にある。並びは help の一覧に出る順
+session のグループのコマンド。start は session-start.ts、finish は session-finish.ts にある。並びは tools/list に出る順
 */
-export const SESSION_COMMANDS: readonly CommandDefinition[] = [...SESSION_START_COMMANDS, SESSION_SHOW, ...SESSION_FINISH_COMMANDS]
+export const SESSION_TOOLS: readonly ToolDefinition[] = [...SESSION_START_TOOLS, SESSION_SHOW, ...SESSION_FINISH_TOOLS]

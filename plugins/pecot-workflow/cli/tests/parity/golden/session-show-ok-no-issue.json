@@ -1,7 +1,11 @@
 {
-  "stdout": "# Session status\n\n- Branch: main\n- Repository: acme/demo\n- Active Issue: none\n",
+  "isError": false,
+  "text": "# Session status",
+  "structuredContent": {
+    "branch": "main",
+    "repository": "acme/demo"
+  },
   "stderr": "",
-  "exitCode": 0,
   "requests": [],
   "files": {}
 }

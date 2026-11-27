@@ -1,4 +1,4 @@
-// tools/list が、COMMANDS の全ツールと定義書の入力に一致し、入力の検証の誤りがコマンドを呼ばずに返ることを確かめる。
+// tools/list が、TOOLS の全ツールと定義書の入力に一致し、入力の検証の誤りがコマンドを呼ばずに返ることを確かめる。
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -7,7 +7,7 @@ import { z } from 'zod'
 
 import { normalizeInput } from '../../src/commands/input-schema.js'
 import { byName } from '@pecot/workflow-core/commands-shared/names.js'
-import { COMMANDS } from '../../src/commands/registry.js'
+import { TOOLS } from '../../src/commands/registry.js'
 import { createMcpServer } from '../../src/mcp/server.js'
 import type { Tool } from '@modelcontextprotocol/client'
 import { attachJson } from '../../../../../libs/interface-spec/src/vitest/attach.js'
@@ -91,12 +91,12 @@ describe('tools/list', () => {
     return found
   }
 
-  it('COMMANDS と同じ 39 個の名前を、同じ並びで返す', async () => {
-    await explains('MCP サーバのツール一覧（`tools/list`）の件数と並びのテストです。コマンド定義（`COMMANDS`）と同じ 39 個の名前が、同じ並びで返ることを確認します。')
+  it('TOOLS と同じ 39 個の名前を、同じ並びで返す', async () => {
+    await explains('MCP サーバのツール一覧（`tools/list`）の件数と並びのテストです。ツールの定義（`TOOLS`）と同じ 39 個の名前が、同じ並びで返ることを確認します。')
     const { client } = await connect()
     const { tools } = await client.listTools()
     expect(tools).toHaveLength(39)
-    expect(tools.map(tool => tool.name)).toEqual(COMMANDS.map(command => command.toolName))
+    expect(tools.map(tool => tool.name)).toEqual(TOOLS.map(definition => definition.name))
   })
 
   it('mcp という名前のツールは存在しない', async () => {
@@ -110,7 +110,7 @@ describe('tools/list', () => {
     await explains('`tools/list` が返すツールの説明のテストです。各ツールの説明が、コマンド定義の `description`（1 行の文）と一致することを確認します。')
     const { client } = await connect()
     const { tools } = await client.listTools()
-    expect(tools.map(tool => tool.description)).toEqual(COMMANDS.map(command => command.description))
+    expect(tools.map(tool => tool.description)).toEqual(TOOLS.map(command => command.description))
   })
 
   it.for([
@@ -132,12 +132,12 @@ describe('tools/list', () => {
     expect(flagged).toEqual([])
   })
 
-  it.for(COMMANDS.map(command => ({ name: command.toolName, command })))('$name の入力は、定義書の同じ項目の input に一致する', async ({ command }) => {
-    await explains(`\`${command.toolName}\` の入力のテストです。\`tools/list\` が返す入力のスキーマを正規化した結果が、定義書（\`generated.json\`）の同じ項目の \`input\` と一致することを確認します。`)
-    const tool = toolOf(command.toolName)
-    const entry = generated.entries.find(item => item.surfaces.mcp.tool === command.toolName)
+  it.for(TOOLS.map(command => ({ name: command.name, command })))('$name の入力は、定義書の同じ項目の input に一致する', async ({ command }) => {
+    await explains(`\`${command.name}\` の入力のテストです。\`tools/list\` が返す入力のスキーマを正規化した結果が、定義書（\`generated.json\`）の同じ項目の \`input\` と一致することを確認します。`)
+    const tool = toolOf(command.name)
+    const entry = generated.entries.find(item => item.surfaces.mcp.tool === command.name)
     expect(entry).toBeDefined()
-    expect(normalizeInput(tool.inputSchema, command.toolName, command.hasOwnRepo)).toEqual(entry?.input)
+    expect(normalizeInput(tool.inputSchema, command.name, command.hasOwnRepo)).toEqual(entry?.input)
   })
 
   it('全ツールが最上位の title を持ち、値は定義書の mcp.title に一致し、annotations に title を持たない', async () => {
@@ -175,9 +175,9 @@ describe('tools/list', () => {
     expect(outputs).toEqual(expected)
   })
 
-  it.for(COMMANDS.map(command => ({ name: command.toolName, command })))('$name の outputSchema は、最上位が type: object の閉じた型で、properties にツールの項目と共通の 4 項目を持ち、入れ物の名前を持たない', async ({ command }) => {
-    await explains(`\`${command.toolName}\` の \`outputSchema\` の形のテストです。最上位が \`type: object\` で、ツール固有の項目と共通の 4 項目だけを持ち、\`ok\` や \`data\` などの名前を持たない閉じた型であることを確認します。`)
-    const schema = OutputSchemaShape.parse(toolOf(command.toolName).outputSchema)
+  it.for(TOOLS.map(command => ({ name: command.name, command })))('$name の outputSchema は、最上位が type: object の閉じた型で、properties にツールの項目と共通の 4 項目を持ち、入れ物の名前を持たない', async ({ command }) => {
+    await explains(`\`${command.name}\` の \`outputSchema\` の形のテストです。最上位が \`type: object\` で、ツール固有の項目と共通の 4 項目だけを持ち、\`ok\` や \`data\` などの名前を持たない閉じた型であることを確認します。`)
+    const schema = OutputSchemaShape.parse(toolOf(command.name).outputSchema)
     const names = Object.keys(schema.properties)
     expect(names).toEqual([...Object.keys(command.output.shape), 'kind', 'detail', 'log', 'warnings'])
     expect(names.filter(name => ENVELOPE_NAMES.has(name))).toEqual([])
@@ -207,7 +207,7 @@ describe('tools/list', () => {
     await explains('ツールの入力のスキーマのテストです。全ツールの入力が `additionalProperties: false` を持つことを確認します。')
     const { client } = await connect()
     const { tools } = await client.listTools()
-    expect(tools.map(tool => tool.inputSchema['additionalProperties'])).toEqual(COMMANDS.map(() => false))
+    expect(tools.map(tool => tool.inputSchema['additionalProperties'])).toEqual(TOOLS.map(() => false))
   })
 
   it('どのツールの入力にも dry_run が存在せず、どの outputSchema にも dryRun が存在しない', async () => {
@@ -223,7 +223,7 @@ describe('tools/list', () => {
     const { client } = await connect()
     const { tools } = await client.listTools()
     const shapes = tools.map(tool => WithRepositorySchema.safeParse(tool.inputSchema).success)
-    expect(shapes).toEqual(COMMANDS.map(() => true))
+    expect(shapes).toEqual(TOOLS.map(() => true))
   })
 })
 

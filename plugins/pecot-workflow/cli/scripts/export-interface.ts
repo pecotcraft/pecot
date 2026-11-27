@@ -1,4 +1,4 @@
-// cli のコマンド一覧（COMMANDS）から、interface/generated.json の項目を作る。
+// MCP のツールの一覧（TOOLS）から、interface/generated.json の項目を作る。
 // 形と決定性の決めは specs/022-interface-definitions/contracts/definition-format.md にある。
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
@@ -12,12 +12,12 @@ import { diffGenerated, formatStale } from '../../../../libs/interface-spec/src/
 import { generatedFileSchema, type GeneratedFile, type Names } from '../../../../libs/interface-spec/src/domain/schema.js'
 import { interfaceIdOf } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { normalizeInput } from '../src/commands/input-schema.js'
-import { byName, COMMAND_GROUPS, COMMAND_VERBS, flagOf } from '@pecot/workflow-core/commands-shared/names.js'
+import { byName, COMMAND_GROUPS, COMMAND_VERBS } from '@pecot/workflow-core/commands-shared/names.js'
 import type { CommandWord } from '@pecot/workflow-core/commands-shared/names.js'
 import type { InputSchema } from '../src/commands/input-schema.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
-import { COMMANDS } from '../src/commands/registry.js'
-import type { CommandDefinition, CommandIo } from '../src/commands/registry.js'
+import { TOOLS } from '../src/commands/registry.js'
+import type { CommandIo, ToolDefinition } from '../src/commands/registry.js'
 import { toolAnnotationsOf } from '../src/mcp/annotations.js'
 import { toolOutputSchema } from '../src/mcp/result.js'
 import { TEMPLATE_MIME_TYPE, TEMPLATE_RESOURCES, templateResourceName, templateUri } from '../src/mcp/templates.js'
@@ -26,70 +26,33 @@ export interface InterfaceEntry {
   readonly id: string
   readonly name: string
   readonly description: string
-  readonly surfaces: { readonly cli: { readonly path: readonly string[] }, readonly mcp: { readonly tool: string } }
+  readonly surfaces: { readonly mcp: { readonly tool: string } }
   readonly hidden: false
   readonly deprecated: false
   readonly input: InputSchema
-  readonly cli: {
-    readonly positional: readonly string[]
-    readonly flags: Readonly<Record<string, readonly string[]>>
-    readonly only?: InputSchema['properties']
-  }
   readonly mcp: { readonly title: string, readonly output: unknown, readonly annotations: Readonly<ToolAnnotations> }
 }
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
-function outputOf(command: CommandDefinition): Record<string, unknown> {
-  return toolOutputSchema(command.output)
-}
-
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
-function flagsOf(command: CommandDefinition, names: readonly string[]): Record<string, readonly string[]> {
-  const positional = new Set(command.positional)
-  const flags: [string, readonly string[]][] = []
-  for (const name of names) {
-    if (positional.has(name)) continue
-    const flag = [flagOf(name)]
-    const short = command.shortFlags.get(name)
-    if (short !== undefined) flag.push(short)
-    const alias = command.aliases.get(name)
-    if (alias !== undefined) flag.push(alias)
-    const negation = command.negations.get(name)
-    if (negation !== undefined) flag.push(negation)
-    flags.push([name, flag])
-  }
-  return Object.fromEntries(flags)
-}
-
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
-function entryOf(command: CommandDefinition): InterfaceEntry {
-  const name = command.path.join(' ')
-  const input = normalizeInput(z.toJSONSchema(command.mcpInput, { io: 'input' }), name, command.hasOwnRepo)
-  const all = normalizeInput(z.toJSONSchema(command.input, { io: 'input' }), name, command.hasOwnRepo)
-  const only = Object.entries(all.properties).filter(([property]) => command.cliOnly.includes(property))
+function entryOf(tool: ToolDefinition): InterfaceEntry {
   return {
-    id: interfaceIdOf(command.path),
-    name,
-    description: command.description,
-    surfaces: { cli: { path: command.path }, mcp: { tool: command.toolName } },
+    id: interfaceIdOf(tool.name),
+    name: tool.name,
+    description: tool.description,
+    surfaces: { mcp: { tool: tool.name } },
     hidden: false,
     deprecated: false,
-    input,
-    cli: {
-      positional: command.positional,
-      flags: flagsOf(command, Object.keys(all.properties)),
-      ...only.length > 0 && { only: Object.fromEntries(only) },
-    },
-    mcp: { title: command.title, output: outputOf(command), annotations: toolAnnotationsOf(command) },
+    input: normalizeInput(z.toJSONSchema(z.strictObject(tool.input.shape), { io: 'input' }), tool.name, tool.hasOwnRepo),
+    mcp: { title: tool.title, output: toolOutputSchema(tool.output), annotations: toolAnnotationsOf(tool) },
   }
 }
 
 /**
-コマンドの一覧から、generated.json の項目を id の順に作る
+ツールの一覧から、generated.json の項目を id の順に作る
 */
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
-export function exportEntries(commands: readonly CommandDefinition[]): InterfaceEntry[] {
-  return commands.map(command => entryOf(command)).toSorted((left, right) => byName(left.id, right.id))
+export function exportEntries(tools: readonly ToolDefinition[]): InterfaceEntry[] {
+  return tools.map(tool => entryOf(tool)).toSorted((left, right) => byName(left.id, right.id))
 }
 
 function wordsOf(words: readonly CommandWord[]): Names['positions'][number] {
@@ -99,10 +62,10 @@ function wordsOf(words: readonly CommandWord[]): Names['positions'][number] {
 }
 
 /**
-コマンド名の語彙（グループと動詞の 2 語、区切りは空白）を、generated.json の names の形にする
+ツール名の語彙（対象と動詞の 2 語、区切りは `_`）を、generated.json の names の形にする
 */
 export function exportNames(groups: readonly CommandWord[] = COMMAND_GROUPS, verbs: readonly CommandWord[] = COMMAND_VERBS): Names {
-  return { separator: ' ', positions: [wordsOf(groups), wordsOf(verbs)], rest: false }
+  return { separator: '_', positions: [wordsOf(groups), wordsOf(verbs)], rest: false }
 }
 
 /**
@@ -157,7 +120,7 @@ function shownOf(target: string): string {
 }
 
 /**
-コマンドの項目を、generated.json の書式（挿入順・字下げ 2・末尾に改行 1 つ）の文字列にする
+ツールの項目を、generated.json の書式（挿入順・字下げ 2・末尾に改行 1 つ）の文字列にする
 */
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の推論型は変えられない
 function serialize(file: Readonly<GeneratedFile>): string {
@@ -183,7 +146,7 @@ function write(file: Readonly<GeneratedFile>, target: string, io: CommandIo): nu
 }
 
 /**
-定義書の全項目を、Node の COMMANDS から作った項目と比べる。絞り込みはしない
+定義書の全項目を、TOOLS から作った項目と比べる。絞り込みはしない
 */
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の推論型は変えられない
 function check(file: Readonly<GeneratedFile>, target: string, io: CommandIo): number {
@@ -206,13 +169,13 @@ function check(file: Readonly<GeneratedFile>, target: string, io: CommandIo): nu
 /**
 `--check` か `--write` を受ける
 */
-export function main(argv: readonly string[], io: CommandIo, commands: readonly CommandDefinition[] = COMMANDS, options: Readonly<MainOptions> = {}): number {
+export function main(argv: readonly string[], io: CommandIo, tools: readonly ToolDefinition[] = TOOLS, options: Readonly<MainOptions> = {}): number {
   const output = createOutput(false, io)
   if (!(argv.length === 1 && (argv[0] === '--check' || argv[0] === '--write'))) {
     output.error('usage: export-interface.ts --check | --write')
     return 2
   }
-  const entries = exportEntries(commands)
+  const entries = exportEntries(tools)
   const duplicated = duplicatesOf(entries.map(entry => entry.id))
   if (duplicated.length > 0) {
     output.error(`duplicate ids: ${duplicated.join(', ')}`)

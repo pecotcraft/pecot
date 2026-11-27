@@ -1,8 +1,8 @@
 # 1 回目の再オープンが 500 で失敗する。ボードは更新されない。
 id: issue-reopen-5xx
-command:
-  path: [issue, reopen]
-  args: [acme/demo/7]
+tool: issue_reopen
+arguments:
+  issue_ref: acme/demo/7
 setup:
   repo:
     files:

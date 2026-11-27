@@ -1,8 +1,9 @@
 # 廃止した parallel を書いたファイルを投稿する。何も投稿せずに、削除を促す error で exit 1 になる。
 id: issue-create-state-parallel-removed
-command:
-  path: [issue, create]
-  args: [draft.md]
+tool: issue_create
+arguments:
+  files:
+    - draft.md
 setup:
   repo:
     files:

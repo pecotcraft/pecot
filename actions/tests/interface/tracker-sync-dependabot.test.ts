@@ -64,7 +64,7 @@ function stderrAfterCounts(result: Readonly<ActionResult>): string {
 const OLD_ROW = trackerBody([[1, 'Bump old', 'failed']])
 const NO_PRS_COUNTS = 'count: open dependabot PRs: 0\ncount: PRs awaiting a decision: 0\ncount: PRs awaiting a decision without check results: 0\n'
 const OTHER_WARNING = 'warning: multiple open Trackers; using #9 (lowest number) and leaving #12 open\n'
-const AMBIGUOUS_STDERR = 'error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ghes.example.com_acme_board_acme, second\n'
+const AMBIGUOUS_STDERR = 'error: acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ghes.example.com_acme_board_acme, second\n'
 
 // 使う Tracker のほかに、open の別の Tracker・閉じた Tracker・印の無い Issue を混ぜる。どれも番号は使う Tracker と違う
 function withOthers(tracker: Readonly<JsonObject>): JsonObject[] {
@@ -489,7 +489,7 @@ describe('tracker sync', () => {
       `created: Tracker "${TODAY_TITLE}"`,
       'added: PR #2 to new Tracker (major)',
       `error: could not set status backlog of Tracker #100: ${STALE_OPTION_TEXT}`,
-      '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
+      '  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again',
       '',
     ].join('\n'))
   })

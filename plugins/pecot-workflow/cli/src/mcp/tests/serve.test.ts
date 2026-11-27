@@ -10,7 +10,7 @@ import { z } from 'zod'
 
 import { childStdin, setChildStdin } from '@pecot/workflow-core/infra/child-stdin.js'
 import { explains } from '../../../tests/_helpers/explains.js'
-import { defineCommand } from '../../commands/registry.js'
+import { defineTool } from '../../commands/registry.js'
 import { exitWith, failWith } from '../../commands/tests/support.js'
 import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { outcomeOf, structuredOf, toolOutcomeOf } from '../../../tests/_helpers/mcp-client.js'
@@ -87,15 +87,13 @@ describe('installStdoutGuard', () => {
 
 const started: string[] = []
 
-const COMMANDS = [
-  defineCommand({
-    path: ['slow'],
-    title: 'Test command',
+const TOOLS = [
+  defineTool({
+    name: 'slow',
+    title: 'Test tool',
     description: '時間がかかる',
     input: z.object({ name: z.string() }),
     output: z.strictObject({}),
-    positional: ['name'],
-    interactive: false,
     run: async (input) => {
       started.push(input.name)
       await new Promise((resolve) => {
@@ -104,48 +102,42 @@ const COMMANDS = [
       return await exitWith(0)
     },
   }),
-  defineCommand({
-    path: ['hello'],
-    title: 'Test command',
+  defineTool({
+    name: 'hello',
+    title: 'Test tool',
     description: 'あいさつ',
     input: z.object({}),
     output: z.strictObject({}),
-    positional: [],
-    interactive: false,
     run: async (_input, io) => {
       io.stdout('hello\n')
       return await exitWith(0)
     },
   }),
-  defineCommand({
-    path: ['noisy', 'bug'],
-    title: 'Test command',
+  defineTool({
+    name: 'noisy_bug',
+    title: 'Test tool',
     description: '出力の後にプログラムの誤り',
     input: z.object({}),
     output: z.strictObject({}),
-    positional: [],
-    interactive: false,
     run: async (_input, io) => {
       io.stdout('half\n')
       io.stderr('warn\n')
       return await failWith('boom')
     },
   }),
-  defineCommand({
-    path: ['bug'],
-    title: 'Test command',
+  defineTool({
+    name: 'bug',
+    title: 'Test tool',
     description: 'プログラムの誤り',
     input: z.object({}),
     output: z.strictObject({}),
-    positional: [],
-    interactive: false,
     run: async () => await failWith('boom'),
   }),
 ]
 
 function dependenciesOver(stdin: PassThrough, stderr: FakeTarget, serverTransport: InMemoryTransport): McpServeDependencies {
   return {
-    createServer: options => createMcpServer(COMMANDS, options),
+    createServer: options => createMcpServer(TOOLS, options),
     createTransport: () => serverTransport,
     installStdoutGuard: () => new Writable(),
     stdin,

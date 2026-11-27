@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: the body does not follow the template {{PLUGIN_ROOT}}/cli/templates/issue/task.md\n  missing sections: ## Acceptance — <summary>\n  hint: the em dash must be U+2014; hyphen-minus (-) and EN DASH (U+2013) are not allowed\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "the body does not follow the template {{PLUGIN_ROOT}}/cli/templates/issue/task.md\n  missing sections: ## Acceptance — <summary>\n  hint: the em dash must be U+2014; hyphen-minus (-) and EN DASH (U+2013) are not allowed",
+  "structuredContent": {
+    "kind": "content-invalid",
+    "detail": "the body does not follow the template {{PLUGIN_ROOT}}/cli/templates/issue/task.md\n  missing sections: ## Acceptance — <summary>\n  hint: the em dash must be U+2014; hyphen-minus (-) and EN DASH (U+2013) are not allowed"
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

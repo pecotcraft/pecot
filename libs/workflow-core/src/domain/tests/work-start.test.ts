@@ -75,7 +75,7 @@ describe('decideStart', () => {
   function blockedText(prerequisite: Prerequisite): string {
     const judged = judgeReadiness({ target: targetFacts, prerequisites: [prerequisite], cycle: undefined, pullRequestsByHead: new Map(), developmentBranch: 'main' })
     const decision = decideStart(judged, [prerequisite], target)
-    return decision.kind === 'blocked' ? formatHinted(decision.message, 'mcp') : decision.kind
+    return decision.kind === 'blocked' ? formatHinted(decision.message) : decision.kind
   }
 
   it('マージ済みの PR を持つ open の前提で止める場合は、Issue を close するか再実行するよう案内する', async () => {

@@ -252,9 +252,9 @@ describe('auto gate', () => {
     })
   })
 
-  it('設定に fields.status が無いと、何も読まずに project init を案内して止まる', async (context) => {
+  it('設定に fields.status が無いと、何も読まずに project_init を案内して止まる', async (context) => {
     await verifies(context, 'PA-AUTO-GATE-11')
-    await explains('`auto-gate` の action のテストです。設定に `fields.status` が無い場合に、何も読まず、`project init` を案内して step を失敗にすることを確認します。')
+    await explains('`auto-gate` の action のテストです。設定に `fields.status` が無い場合に、何も読まず、`project_init` を案内して step を失敗にすることを確認します。')
     prepareAuto({ hasStatus: false })
     const github = await startGithub([])
 
@@ -262,7 +262,7 @@ describe('auto gate', () => {
 
     expect(outcome.code).toBe(1)
     expect(outcome.stdout).toBe('')
-    expect(outcome.stderr).toBe('error: the project config has no Status field (fields.status)\n  run: pecot project init\n')
+    expect(outcome.stderr).toBe('error: the project config has no Status field (fields.status)\n  call project_init\n')
     expect(github.requests()).toEqual([])
   })
 

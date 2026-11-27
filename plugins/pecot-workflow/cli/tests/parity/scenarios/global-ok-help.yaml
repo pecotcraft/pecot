@@ -1,8 +1,0 @@
-# --help はルートの help を stdout に出して exit 0 になる。golden は Python の rich の枠の出力。
-# Node の help は書式が違うので、stdout を除いて比べる（#362）。
-id: global-ok-help
-command:
-  path: []
-  args: ["--help"]
-setup: {}
-github: []

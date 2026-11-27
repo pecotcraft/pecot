@@ -1,4 +1,4 @@
-// スキル・エージェント・hooks のテンプレートの本文に出るツール名が、COMMANDS に実在することを確かめる。
+// スキル・エージェント・hooks のテンプレートの本文に出るツール名が、TOOLS に実在することを確かめる。
 // あわせて、`pecot <サブコマンド>` の書き方（R-19）が本文に残らないことを確かめる。
 import { globSync, readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -7,13 +7,12 @@ import { describe, expect, it } from 'vitest'
 
 import { explains } from '../_helpers/explains.js'
 import { COMMAND_GROUPS } from '@pecot/workflow-core/commands-shared/names.js'
-import { COMMANDS } from '../../src/commands/registry.js'
+import { TOOLS } from '../../src/commands/registry.js'
 import { compareStrings } from '../parity/baseline.js'
 import { pluginRoot, readDocuments, toolInputs } from './_helpers/documents.js'
 
-// 利用者が端末で打つコマンドの説明として、本文に残してよい `pecot <サブコマンド>`。
-// 書式は `<プラグインからの相対パス>:<行>`。載せるのは、w-help の、利用者が端末か `!` で打つ説明だけ。
-const TERMINAL_COMMANDS: readonly string[] = ['skills/w-help/SKILL.md:64', 'skills/w-help/SKILL.md:66']
+// 本文に残してよい `pecot <サブコマンド>` の箇所（`<プラグインからの相対パス>:<行>`）。CLI は無いので空
+const TERMINAL_COMMANDS: readonly string[] = []
 
 // ツール名に似るが、入力の値や概念を指す語。TOOL_LIKE に合う語だけを置く
 const NOT_TOOLS: ReadonlySet<string> = new Set(['release_type', 'release_branch', 'session_id', 'workflow_dispatch'])
@@ -23,10 +22,10 @@ const GROUP_WORDS = COMMAND_GROUPS.map(group => group.name).join('|')
 // eslint-disable-next-line security/detect-non-literal-regexp -- 語は COMMAND_GROUPS から作る
 const TOOL_LIKE = new RegExp(String.raw`(?<![\w-])(?:${GROUP_WORDS})_[a-z_]+\b`, 'gu')
 // コマンドの名前の全体。グループの語だけの形を除く。
-const TOP_WORDS = [...new Set(COMMANDS.map(command => command.path.join(' ')))].toSorted(compareStrings).map(name => name.replaceAll(' ', String.raw`\s+`)).join('|')
+const TOP_WORDS = [...new Set(TOOLS.map(tool => tool.name.replace('_', ' ')))].toSorted(compareStrings).map(name => name.replaceAll(' ', String.raw`\s+`)).join('|')
 // deny の hook の起動形を拾う。起動形は pecot・$PECOT・${PECOT}・.../bin/pecot で、クオート付きを含む。
 // 後ろに `--repo <値>` があってもよい。その後ろに、サブコマンドか `--help`・`--version` が来る形を拾う。
-// eslint-disable-next-line security/detect-non-literal-regexp -- サブコマンドの語は COMMANDS から作る
+// eslint-disable-next-line security/detect-non-literal-regexp -- サブコマンドの語は TOOLS の名前から作る
 const CLI_FORM = new RegExp(
   String.raw`(?:^|[\s\x60(;&|'])"?(?:\$\{?PECOT\}?|[^\s"'=]*/bin/pecot|pecot)"?`
   + String.raw`(?:\s+--repo(?:=|\s+)\S+)?\s+(?:${TOP_WORDS}|--help|--version)(?![\w-])`,
@@ -52,8 +51,8 @@ describe('本文のツール名', () => {
     expect(documents.length).toBeGreaterThan(30)
   })
 
-  it('ツール名らしい語は、COMMANDS のツール名・入力名、またはツールでない語の一覧のどれかに含まれる', async () => {
-    await explains('本文のツール名のテストです。`issue_show` のようなツール名らしい語が、すべて `COMMANDS` のツール名・入力名、またはツールではない語の一覧のどれかに含まれることを確認します。')
+  it('ツール名らしい語は、TOOLS のツール名・入力名、またはツールでない語の一覧のどれかに含まれる', async () => {
+    await explains('本文のツール名のテストです。`issue_show` のようなツール名らしい語が、すべて `TOOLS` のツール名・入力名、またはツールではない語の一覧のどれかに含まれることを確認します。')
     const unknown: string[] = []
     for (const { file, text } of documents) {
       for (const match of text.matchAll(TOOL_LIKE)) {
@@ -149,9 +148,9 @@ describe('本文のツール名', () => {
     expect(fields.filter(({ value }) => value.includes(',')).map(({ file }) => file)).toEqual([])
   })
 
-  it('COMMANDS の全ツールの名前が重複しない', async () => {
-    await explains('`COMMANDS` のツール名のテストです。すべてのツール名が一意で、重複が存在しないことを確認します。')
-    const names = COMMANDS.map(command => command.toolName)
+  it('TOOLS の全ツールの名前が重複しない', async () => {
+    await explains('`TOOLS` のツール名のテストです。すべてのツール名が一意で、重複が存在しないことを確認します。')
+    const names = TOOLS.map(tool => tool.name)
     expect(new Set(names).size).toBe(names.length)
   })
 })

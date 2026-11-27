@@ -31,20 +31,10 @@ describe('issuesToFindings', () => {
   })
 
   it('既定値を書けない欄の空の文字列は、案内を付けず is empty だけで報告する', async () => {
-    await explains('zod の検証結果を検証エラーに変換する `issuesToFindings` のテストです。`examples[0].run` が空白だけの場合に、案内を付けず `is empty` だけの行を出力することを確認します。')
-    const issue: Issue = { code: 'too_small', origin: 'string', minimum: 1, inclusive: true, path: ['entries', 'PW-A', 'examples', 0, 'run'], message: 'Too small', input: ' ' }
+    await explains('zod の検証結果を検証エラーに変換する `issuesToFindings` のテストです。`examples[0].note` が空白だけの場合に、案内を付けず `is empty` だけの行を出力することを確認します。')
+    const issue: Issue = { code: 'too_small', origin: 'string', minimum: 1, inclusive: true, path: ['entries', 'PW-A', 'examples', 0, 'note'], message: 'Too small', input: ' ' }
     stepSync('issue を整形して比べる', () => {
-      expect(lines([issue], { entries: { 'PW-A': { examples: [{ run: ' ' }] } } })).toEqual(['error: f.yaml: PW-A: examples[0].run: is empty'])
-    })
-  })
-
-  it.each([
-    [{ code: 'too_small', origin: 'number', minimum: 0, inclusive: true, path: ['code'], message: 'Too small', input: -1 }, -1],
-    [{ code: 'too_big', origin: 'number', maximum: 255, inclusive: true, path: ['code'], message: 'Too big', input: 256 }, 256],
-  ] satisfies readonly (readonly [Issue, number])[])('範囲外の数の issue は、固定の文で報告する (%#)', async (issue, input) => {
-    await explains('zod の検証結果を検証エラーに変換する `issuesToFindings` のテストです。終了コードが下限を下回る場合と上限を上回る場合に、どちらも `must be between 0 and 255` の行を出力することを確認します。')
-    stepSync('issue を整形して比べる', () => {
-      expect(lines([issue], { code: input })).toEqual(['error: f.yaml: code: must be between 0 and 255'])
+      expect(lines([issue], { entries: { 'PW-A': { examples: [{ note: ' ' }] } } })).toEqual(['error: f.yaml: PW-A: examples[0].note: is empty'])
     })
   })
 

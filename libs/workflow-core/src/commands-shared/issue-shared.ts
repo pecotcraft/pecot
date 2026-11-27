@@ -94,16 +94,16 @@ export const TYPE_DEFAULT_STATUS: Readonly<Record<IssueType, string>> = { epic: 
 class BadParameterError extends BaseError {
   readonly text: string | HintedText
 
-  // message は CLI の形。text は出し先の形で描き直すために持つ
+  // message は描いた文。text は、案内を他の文へ埋め込む用途で持つ
   constructor(text: string | HintedText) {
-    super(formatHinted(text, 'cli'))
+    super(formatHinted(text))
     this.text = text
   }
 }
 
 /**
 run の本体を包む。終わったら 0 を返す。BadParameterError は使い方の誤りにして伝える。
-それ以外の例外はそのまま伝える。CommandExit は defineCommand が受けて終了コードにする
+それ以外の例外はそのまま伝える。CommandExit は defineTool が受けて終了コードにする
 */
 export async function runWithExit(body: () => Promise<void>): Promise<0> {
   try {
@@ -183,7 +183,7 @@ export function validateStatusForType(output: Output, issueType: IssueType, stat
 // --- parent_epic・タイトル・order ---
 
 /**
-CLI のオプションで来た parent_epic。空・空白だけなら undefined、数字だけなら整数（安全な整数を超えるなら数字の文字列）、それ以外は文字列
+ツールの入力で来た parent_epic。空・空白だけなら undefined、数字だけなら整数（安全な整数を超えるなら数字の文字列）、それ以外は文字列
 */
 export function normalizeParentEpicCli(raw: string | undefined): number | string | undefined {
   if (raw === undefined) return undefined
@@ -216,7 +216,7 @@ export function resolveParentEpicReference(raw: number | string, config: Project
 export interface EpicTarget {
   readonly repository: string
   /**
-  --repo が aggregation_repo と違う例外なので、warnEpicRepositoryException を出す
+  入力 repo が aggregation_repo と違う例外なので、warnEpicRepositoryException を出す
   */
   readonly needsWarning: boolean
 }

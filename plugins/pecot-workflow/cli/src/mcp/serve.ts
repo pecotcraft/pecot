@@ -1,4 +1,4 @@
-// `pecot mcp` の実装。cli.ts が dynamic import で読む。stdout は JSON-RPC 専用にし、stdin が閉じたら接続を閉じる。
+// `main.ts` が読むサーバの本体。stdout は JSON-RPC 専用にし、stdin が閉じたら接続を閉じる。
 // pecot-tools の serve.ts と骨格が同じ。終了のときは、待っている子プロセス（runProcess）を止める。
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数は Node の stream。mutable な型でしか公開されていない */
 import { Writable } from 'node:stream'
@@ -251,7 +251,7 @@ function moveToSessionDirectory(dependencies: Readonly<McpServeDependencies>): s
 }
 
 /**
-`pecot mcp` の本体。子プロセスの stdin を切り離してから待ち受ける。起動できたら 0、同期の起動の失敗は stderr に出して 1 を返す
+サーバの本体。子プロセスの stdin を切り離してから待ち受ける。起動できたら 0、同期の起動の失敗は stderr に出して 1 を返す
 */
 export function executeMcpServe(buildDependencies: () => McpServeDependencies = defaultDependencies): number {
   let dependencies: McpServeDependencies

@@ -119,10 +119,8 @@
     ],
     "pecotPluginNodeInputs": [
       "{workspaceRoot}/plugins/pecot-workflow/**/package.json",
-      "{workspaceRoot}/plugins/pecot-workflow/runtime-lock.yaml",
-      "{workspaceRoot}/plugins/pecot-workflow/runtime-workspace.yaml",
       "{workspaceRoot}/plugins/pecot-workflow/.gitignore",
-      "{workspaceRoot}/plugins/pecot-workflow/bin/_lib.sh",
+      "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/pnpm-lib.sh",
       "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/install.sh",
       "{workspaceRoot}/plugins/pecot-workflow/scripts/ci/check-pm-scripts.sh",
       "{workspaceRoot}/plugins/pecot-visual/scripts/ci/pm-guard-lib.sh"

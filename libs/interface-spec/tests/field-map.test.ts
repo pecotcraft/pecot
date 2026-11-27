@@ -5,13 +5,13 @@ import { explains } from '../src/vitest/explains.js'
 
 describe('field map', () => {
   it('項目の schema が定義する全フィールドを、一覧で返す', async () => {
-    await explains('定義書の項目の schema から欄の一覧を作成する `definedFields` のテストです。`cli.flags` や `mcp.title` のような入れ子のフィールドを含め、全フィールドが名前順に返ることを確認します。')
+    await explains('定義書の項目の schema から欄の一覧を作成する `definedFields` のテストです。`mcp.title` や `surfaces.mcp.tool` のような入れ子のフィールドを含め、全フィールドが名前順に返ることを確認します。')
     stepSync('定義済みの欄を一覧して比べる', () => {
       expect(definedFields()).toEqual([
-        'action.outputs', 'arguments', 'behaviors', 'cli.flags', 'cli.only', 'cli.positional', 'cli_reference.examples', 'cli_reference.options', 'constraints', 'default_notes', 'deprecated', 'description', 'details',
-        'diagnostics', 'effects', 'environment', 'examples', 'exit_status', 'help.default_notes', 'help.details', 'help.examples', 'hidden', 'id', 'idempotent',
+        'action.outputs', 'arguments', 'behaviors', 'constraints', 'default_notes', 'deprecated', 'description', 'details',
+        'diagnostics', 'effects', 'environment', 'examples', 'exit_status', 'hidden', 'id', 'idempotent',
         'input',
-        'mcp.annotations', 'mcp.output', 'mcp.title', 'mcp_output.fields', 'name', 'on_error', 'output', 'prerequisites', 'stdin', 'summary', 'surfaces.action.path', 'surfaces.cli.path', 'surfaces.mcp.tool',
+        'mcp.annotations', 'mcp.output', 'mcp.title', 'mcp_output.fields', 'name', 'on_error', 'output', 'prerequisites', 'stdin', 'summary', 'surfaces.action.path', 'surfaces.mcp.tool',
       ])
     })
   })

@@ -1,8 +1,9 @@
 # owner/repo の形式でない。exit 1。
 id: project-set-state
-command:
-  path: [project, set]
-  args: [aggregation_repo, roadmap]
+tool: project_set
+arguments:
+  key: aggregation_repo
+  value: roadmap
 setup:
   repo:
     files:

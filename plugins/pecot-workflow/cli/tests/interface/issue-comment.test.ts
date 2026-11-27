@@ -4,7 +4,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { ISSUE_COMMENT_COMMANDS } from '../../src/commands/issue-comment.js'
+import { ISSUE_COMMENT_TOOLS } from '../../src/commands/issue-comment.js'
 import { templateFile } from '../../src/infra/template-store.js'
 import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
@@ -20,21 +20,21 @@ useIsolatedEnvironment()
 
 const POSTED_BODY = MERGE_DIFF_BODY.trim()
 
-async function comment(...argv: readonly string[]): Promise<Awaited<ReturnType<typeof runInProcess>>> {
-  return await runInProcess(['issue', 'comment', ...argv], ISSUE_COMMENT_COMMANDS)
+async function comment(arguments_: Readonly<Record<string, unknown>> = {}): Promise<Awaited<ReturnType<typeof runInProcess>>> {
+  return await runInProcess('issue_comment', arguments_, ISSUE_COMMENT_TOOLS)
 }
 
 async function commentTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
-  return await callToolOnce(ISSUE_COMMENT_COMMANDS, 'issue_comment', argumentsOfTool)
+  return await callToolOnce(ISSUE_COMMENT_TOOLS, 'issue_comment', argumentsOfTool)
 }
 
-describe('issue comment', () => {
+describe('issue_comment', () => {
   it('ファイルを渡すと、フロントマターの issue_ref の Issue にコメントを投稿する', async () => {
-    await explains('`issue comment` の基本の動作のテストです。ファイルを渡した場合に、フロントマターの `issue_ref` が指す Issue にコメントを投稿し、コメントの URL を標準出力に出力することを確認します。')
+    await explains('`issue_comment` の基本の動作のテストです。ファイルを渡した場合に、フロントマターの `issue_ref` が指す Issue にコメントを投稿し、コメントの URL を標準出力に出力することを確認します。')
     const { file } = setUpCommentProject()
     const github = await startGithub([linkedRepositories(), postedComment(COMMENT_URL)])
 
-    const result = await comment(file)
+    const result = await comment({ file: file })
 
     expect(result).toEqual({ code: 0, stdout: `${COMMENT_URL}\n`, stderr: 'created: comment on acme/demo/7\n' })
     expect(github.requests()).toMatchObject([
@@ -43,12 +43,12 @@ describe('issue comment', () => {
     ])
   })
 
-  it('-m に --issue-ref とテンプレの種類を渡すと、その Issue にコメントを投稿する', async () => {
-    await explains('`issue comment -m` のテストです。`-m` に `--issue-ref` とテンプレートの種類を渡した場合に、指定した Issue にコメントを投稿することを確認します。')
+  it('message に issue_ref とテンプレの種類を渡すと、その Issue にコメントを投稿する', async () => {
+    await explains('`issue_comment` の `message` のテストです。`message` に `issue_ref` とテンプレートの種類を渡した場合に、指定した Issue にコメントを投稿することを確認します。')
     setUpProject()
     const github = await startGithub([postedComment(COMMENT_URL)])
 
-    const result = await comment('-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7')
+    const result = await comment({ template: 'merge-diff', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7' })
 
     expect(result).toEqual({ code: 0, stdout: `${COMMENT_URL}\n`, stderr: 'created: comment on acme/demo/7\n' })
     expect(github.requests()).toMatchObject([{ type: 'rest', method: 'POST', path: '/repos/acme/demo/issues/7/comments', body: { body: MERGE_DIFF_BODY } }])
@@ -58,11 +58,11 @@ describe('issue comment', () => {
     { name: 'issues の URL', url: 'https://ghes.example.com/acme/demo/issues/7#issuecomment-456' },
     { name: 'pull の URL', url: 'https://ghes.example.com/acme/demo/pull/7#issuecomment-456' },
   ])('comment_url を持つファイルを渡すと、新しいコメントを投稿せずにそのコメントを書き換える（$name）', async ({ url }) => {
-    await explains('`comment_url` を持つファイルを扱う、`issue comment` のテストです。`issues` と `pull` のどちらの URL の場合も、新しいコメントを投稿せず、そのコメントを書き換えて `updated` の行を出力することを確認します。')
+    await explains('`comment_url` を持つファイルを扱う、`issue_comment` のテストです。`issues` と `pull` のどちらの URL の場合も、新しいコメントを投稿せず、そのコメントを書き換えて `updated` の行を出力することを確認します。')
     const { file } = setUpCommentProject({ extra: [`comment_url: "${url}"`] })
     const github = await startGithub([linkedRepositories(), updatedComment(456, url)])
 
-    const result = await comment(file)
+    const result = await comment({ file: file })
 
     expect(result).toEqual({ code: 0, stdout: `${url}\n`, stderr: 'updated: comment on acme/demo/7\n' })
     expect(github.requests()).toMatchObject([
@@ -72,51 +72,39 @@ describe('issue comment', () => {
   })
 
   it('書き換えの応答に URL が無いと、comment_url の URL を出す', async () => {
-    await explains('`comment_url` を持つファイルを扱う、`issue comment` のテストです。書き換えの応答が URL を含まない場合に、`comment_url` の URL を標準出力へ出力することを確認します。')
+    await explains('`comment_url` を持つファイルを扱う、`issue_comment` のテストです。書き換えの応答が URL を含まない場合に、`comment_url` の URL を標準出力へ出力することを確認します。')
     const url = 'https://ghes.example.com/acme/demo/issues/7#issuecomment-456'
     const { file } = setUpCommentProject({ extra: [`comment_url: "${url}"`] })
     await startGithub([linkedRepositories(), { match: { method: 'PATCH', path: '/repos/acme/demo/issues/comments/456' }, respond: { status: 200, body: { id: 456 } }, times: 1 }])
 
-    const result = await comment(file)
+    const result = await comment({ file: file })
 
     expect(result).toEqual({ code: 0, stdout: `${url}\n`, stderr: 'updated: comment on acme/demo/7\n' })
   })
 
-  it('--dry-run で comment_url を持つファイルを渡すと、書き換えるはずの行を出し、コメントを書かない', async () => {
-    await explains('`issue comment --dry-run` のテストです。`comment_url` を持つファイルに `--dry-run` を指定した場合に、書き換える予定を `dry-run` の行として出力し、コメントには書き込まないことを確認します。')
-    const url = 'https://ghes.example.com/acme/demo/issues/7#issuecomment-456'
-    const { file } = setUpCommentProject({ extra: [`comment_url: "${url}"`] })
-    const github = await startGithub([linkedRepositories()])
-
-    const result = await comment(file, '--dry-run')
-
-    expect(result).toEqual({ code: 0, stdout: '', stderr: 'dry-run: would update comment on acme/demo/7\n' })
-    expect(github.requests()).toMatchObject([{ type: 'graphql', operation: 'GetLinkedRepositoriesUser' }])
-  })
-
   it('ファイルからコメントを投稿すると、できたコメントの URL をファイルの comment_url に書き戻す', async () => {
-    await explains('`issue comment` の `comment_url` の書き戻しのテストです。ファイルからコメントを投稿した場合に、できたコメントの URL をファイルの `comment_url` に書き戻すことを確認します。')
+    await explains('`issue_comment` の `comment_url` の書き戻しのテストです。ファイルからコメントを投稿した場合に、できたコメントの URL をファイルの `comment_url` に書き戻すことを確認します。')
     const { file } = setUpCommentProject()
     await startGithub([linkedRepositories(), postedComment(COMMENT_URL)])
 
-    await comment(file)
+    await comment({ file: file })
 
     expect(readFileSync(file, 'utf8')).toBe(commentFileContent({ extra: [`comment_url: "${COMMENT_URL}"`] }))
   })
 
-  it('ファイルと -m を一緒に渡すと、-m の本文を使わずにファイルを投稿する', async () => {
-    await explains('`issue comment` の引数のテストです。ファイルと `-m` を両方渡した場合は、`-m` の本文を使わず、ファイルの内容を投稿することを確認します。')
+  it('ファイルと message を一緒に渡すと、message の本文を使わずにファイルを投稿する', async () => {
+    await explains('`issue_comment` の引数のテストです。ファイルと `message` を両方渡した場合は、`message` の本文を使わず、ファイルの内容を投稿することを確認します。')
     const { file } = setUpCommentProject()
     const github = await startGithub([linkedRepositories(), postedComment(COMMENT_URL)])
 
-    const result = await comment(file, '-m', '## 別の本文', '--issue-ref', 'acme/demo/999')
+    const result = await comment({ file: file, message: '## 別の本文', issue_ref: 'acme/demo/999' })
 
     expect(result.code).toBe(0)
     expect(github.requests()).toMatchObject([{ type: 'graphql' }, { type: 'rest', path: '/repos/acme/demo/issues/7/comments', body: { body: POSTED_BODY } }])
   })
 
   it('ファイルの Issue のリポジトリがプロジェクトに無いとき、warning の行を標準エラーに出して投稿を続ける', async () => {
-    await explains('`issue comment` のプロジェクトの登録のテストです。ファイルの Issue のリポジトリがプロジェクトに登録されていない場合に、warning の行を標準エラーに出力し、投稿は続けることを確認します。')
+    await explains('`issue_comment` のプロジェクトの登録のテストです。ファイルの Issue のリポジトリがプロジェクトに登録されていない場合に、warning の行を標準エラーに出力し、投稿は続けることを確認します。')
     const { root } = setUpProject({ repositories: ['demo', 'other'], files: { 'note.md': commentFileContent({ issueRef: 'acme/other/7' }) } })
     const file = path.join(root, 'note.md')
     const github = await startGithub([
@@ -124,7 +112,7 @@ describe('issue comment', () => {
       { match: { method: 'POST', path: '/repos/acme/other/issues/7/comments' }, respond: { status: 201, body: { html_url: COMMENT_URL } }, times: 1 },
     ])
 
-    const result = await comment(file)
+    const result = await comment({ file: file })
 
     expect(result.code).toBe(0)
     expect(result.stderr).toBe('warning: acme/other is not in the project\ncreated: comment on acme/other/7\n')
@@ -132,12 +120,12 @@ describe('issue comment', () => {
   })
 
   it('comment_url を書き戻せないとき、warning の行を標準エラーに出して終了コード 0 で終わる', async () => {
-    await explains('`issue comment` の `comment_url` の書き戻しのテストです。ファイルを書き込めない場合に、warning の行を標準エラーに出力し、終了コード 0 で終わることを確認します。')
+    await explains('`issue_comment` の `comment_url` の書き戻しのテストです。ファイルを書き込めない場合に、warning の行を標準エラーに出力し、終了コード 0 で終わることを確認します。')
     const { file } = setUpCommentProject()
     chmodSync(file, 0o444)
     await startGithub([linkedRepositories(), postedComment(COMMENT_URL)])
 
-    const result = await comment(file)
+    const result = await comment({ file: file })
 
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`${COMMENT_URL}\n`)
@@ -146,11 +134,11 @@ describe('issue comment', () => {
   })
 
   it('ファイルの本文がテンプレに合わないとき、違反の種類ごとの行を標準エラーに出し、投稿せずに終了コード 3 で終わる', async () => {
-    await explains('`issue comment` の本文の検証のテストです。ファイルの本文がテンプレートと合わない場合に、違反の種類ごとの行を標準エラーへ出力し、投稿せず終了コード 3 で終わることを確認します。')
+    await explains('`issue_comment` の本文の検証のテストです。ファイルの本文がテンプレートと合わない場合に、違反の種類ごとの行を標準エラーへ出力し、投稿せず終了コード 3 で終わることを確認します。')
     const { file } = setUpCommentProject({ body: '## 進捗\n\n- 見出しなし\n- ✅ 完了\n' })
     const github = await startGithub([])
 
-    const result = await comment(file)
+    const result = await comment({ file: file })
 
     const lines = result.stderr.split('\n')
     expect(result.code).toBe(3)
@@ -164,12 +152,12 @@ describe('issue comment', () => {
   it.for([
     { id: 'PW-ISSUE-COMMENT-17', name: '見出しの要約が規則に反する', message: MERGE_DIFF_BODY.replace('## Merge — 実装は半分まで進んだ', '## Merge — all done'), line: '  heading summary rule violations: ## Merge — ' },
     { id: 'PW-ISSUE-COMMENT-18', name: '<> の書き残しがある', message: `${MERGE_DIFF_BODY}\n- <次にやること> — 未定\n`, line: '  unusable notation: ' },
-  ])('-m の本文がテンプレに合わないとき、違反の行を出し、投稿せずに終了コード 3 で終わる（$name）', async ({ message, line }) => {
-    await explains('`issue comment -m` の本文の検証のテストです。見出しの要約の規則違反や `<>` の書き残しがある場合に、違反の行を標準エラーに出力し、投稿せずに終了コード 3 で終わることを確認します。')
+  ])('message の本文がテンプレに合わないとき、違反の行を出し、投稿せずに終了コード 3 で終わる（$name）', async ({ message, line }) => {
+    await explains('`issue_comment` の `message` の本文の検証のテストです。見出しの要約の規則違反や `<>` の書き残しがある場合に、違反の行を標準エラーに出力し、投稿せずに終了コード 3 で終わることを確認します。')
     setUpProject()
     const github = await startGithub([])
 
-    const result = await comment('-t', 'merge-diff', '-m', message, '--issue-ref', 'acme/demo/7')
+    const result = await comment({ template: 'merge-diff', message: message, issue_ref: 'acme/demo/7' })
 
     expect(result.code).toBe(3)
     expect(result.stderr.split('\n').some(entry => entry.startsWith(line))).toBe(true)
@@ -177,31 +165,31 @@ describe('issue comment', () => {
   })
 
   it.for([
-    { name: '-m に -t が無い', argv: ['-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7'] },
-  ])('テンプレの種類を渡していない（$name）とき、終了コード 1 で終わる', async ({ argv }) => {
-    await explains('`issue comment` の引数の検証のテストです。`-m` を渡して `-t` を省略した場合に、`--template` で指定するよう案内するエラーを出力して終了コード 1 で終わることを確認します。')
+    { name: 'message に template が無い', input: { message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7' } },
+  ])('テンプレの種類を渡していない（$name）とき、終了コード 1 で終わる', async ({ input }) => {
+    await explains('`issue_comment` の引数の検証のテストです。`message` を渡して `template` を省略した場合に、`template` で指定するよう案内するエラーを出力して終了コード 1 で終わることを確認します。')
     setUpProject()
 
-    const result = await comment(...argv)
+    const result = await comment(input)
 
     expect(result).toEqual({
       code: 1,
       stdout: '',
-      stderr: 'error: specify a template with --template (plan / merge-diff / review-findings / review-resolution / precede-notify)\n',
+      stderr: 'error: specify a template with template (plan / merge-diff / review-findings / review-resolution / precede-notify)\n',
     })
   })
 
-  it('-m で --issue-ref を渡していないとき、終了コード 1 で終わる', async () => {
-    await explains('`issue comment` の引数の検証のテストです。`-m` を渡して `--issue-ref` を省略した場合に、`--issue-ref` が必要であることを示すエラーを出力して終了コード 1 で終わることを確認します。')
+  it('message で issue_ref を渡していないとき、終了コード 1 で終わる', async () => {
+    await explains('`issue_comment` の引数の検証のテストです。`message` を渡して `issue_ref` を省略した場合に、`issue_ref` が必要であることを示すエラーを出力して終了コード 1 で終わることを確認します。')
     setUpProject()
 
-    const result = await comment('-t', 'merge-diff', '-m', MERGE_DIFF_BODY)
+    const result = await comment({ template: 'merge-diff', message: MERGE_DIFF_BODY })
 
-    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: --issue-ref (Issue reference) is required with --message\n' })
+    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: issue_ref (Issue reference) is required with message\n' })
   })
 
-  it('ファイルと -m のどちらも渡していないとき、使い方を添えて終了コード 1 で終わる', async () => {
-    await explains('`issue comment` の引数の検証のテストです。ファイルと `-m` のどちらも渡さなかった場合に、使い方を添えたエラーを出力して終了コード 1 で終わることを確認します。')
+  it('ファイルと message のどちらも渡していないとき、使い方を添えて終了コード 1 で終わる', async () => {
+    await explains('`issue_comment` の引数の検証のテストです。ファイルと `message` のどちらも渡さなかった場合に、使い方を添えたエラーを出力して終了コード 1 で終わることを確認します。')
     setUpProject()
 
     const result = await comment()
@@ -209,26 +197,26 @@ describe('issue comment', () => {
     expect(result.code).toBe(1)
     expect(result.stderr).toBe(
       'error: missing arguments\n'
-      + '  direct posting: pecot issue comment --message <MESSAGE> --template <template> --issue-ref owner/repo/123\n'
-      + '  from a file: pecot issue comment <path>\n',
+      + '  direct posting: issue_comment with message: <MESSAGE>, template: <template>, issue_ref: "owner/repo/123"\n'
+      + '  from a file: issue_comment with file: <path>\n',
     )
   })
 
   it('ファイルのフロントマターを読めないとき、終了コード 1 で終わる', async () => {
-    await explains('`issue comment` のファイルの検証のテストです。フロントマターを読み取れない場合に、`frontmatter not found` のエラーを出力して終了コード 1 で終わることを確認します。')
+    await explains('`issue_comment` のファイルの検証のテストです。フロントマターを読み取れない場合に、`frontmatter not found` のエラーを出力して終了コード 1 で終わることを確認します。')
     const project = setUpProject({ files: { 'note.md': '本文だけで、フロントマターが無い\n' } })
     const file = path.join(project.root, 'note.md')
 
-    const result = await comment(file)
+    const result = await comment({ file: file })
 
     expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: frontmatter not found (does not start with ---)\n' })
   })
 
   it('ファイルのフロントマターに template が無いとき、終了コード 1 で終わる', async () => {
-    await explains('`issue comment` のファイルの検証のテストです。フロントマターが `template` を含まない場合に、指定を求めるエラーを出力して終了コード 1 で終わることを確認します。')
+    await explains('`issue_comment` のファイルの検証のテストです。フロントマターが `template` を含まない場合に、指定を求めるエラーを出力して終了コード 1 で終わることを確認します。')
     const { file } = setUpCommentProject({ withoutTemplate: true })
 
-    const result = await comment(file)
+    const result = await comment({ file: file })
 
     expect(result).toEqual({
       code: 1,
@@ -247,78 +235,78 @@ describe('issue comment', () => {
     const { file } = setUpCommentProject({ extra: [`comment_url: "${url}"`] })
     const github = await startGithub([])
 
-    const result = await comment(file)
+    const result = await comment({ file: file })
 
     expect(result).toEqual({ code: 1, stdout: '', stderr: `error: ${message.replaceAll('\n', '\n  ')}\n` })
     expect(github.requests()).toEqual([])
   })
 
   it.for([
-    { name: 'ファイルを渡した', argv: (file: string): string[] => [file] },
-    { name: '-m を渡した', argv: (): string[] => ['-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7'] },
-  ])('対象のリポを含む設定が 2 つあり .active も選べない（$name）とき、候補と --project の案内を出して終了コード 1 で終わる', async ({ argv }) => {
-    await explains('`issue comment` のプロジェクトの設定の選択のテスト（ファイルを渡す場合と `-m` を渡す場合）です。対象のリポジトリを含む設定が 2 つあり `.active` でも選べない場合に、候補と `--project` の案内を出力して終了コード 1 で終わることを確認します。')
+    { name: 'ファイルを渡した', input: (file: string): Readonly<Record<string, unknown>> => ({ file: file }) },
+    { name: 'message を渡した', input: (): Readonly<Record<string, unknown>> => ({ template: 'merge-diff', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7' }) },
+  ])('対象のリポを含む設定が 2 つあり .active も選べない（$name）とき、候補と project の案内を出して終了コード 1 で終わる', async ({ input }) => {
+    await explains('`issue_comment` のプロジェクトの設定の選択のテスト（ファイルを渡す場合と `message` を渡す場合）です。対象のリポジトリを含む設定が 2 つあり `.active` でも選べない場合に、候補と `project` の案内を出力して終了コード 1 で終わることを確認します。')
     const { file, ...project } = setUpCommentProject()
     makeAmbiguous(project)
     const github = await startGithub([])
 
-    const result = await comment(...argv(file))
+    const result = await comment(input(file))
 
-    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ghes.example.com_acme_board_acme, second\n' })
+    expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ghes.example.com_acme_board_acme, second\n' })
     expect(github.requests()).toEqual([])
   })
 
   it.for([
-    { name: 'ファイルを渡した', argv: (file: string): string[] => [file] },
-    { name: '-m を渡した', argv: (): string[] => ['-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7'] },
-  ])('対象のリポを含む設定が無い（$name）とき、error を出して終了コード 1 で終わる', async ({ argv }) => {
-    await explains('`issue comment` のプロジェクトの設定の選択のテスト（ファイルを渡す場合と `-m` を渡す場合）です。対象のリポジトリを含む設定が存在しない場合に、エラーと選べる設定の一覧を出力して終了コード 1 で終わることを確認します。')
+    { name: 'ファイルを渡した', input: (file: string): Readonly<Record<string, unknown>> => ({ file: file }) },
+    { name: 'message を渡した', input: (): Readonly<Record<string, unknown>> => ({ template: 'merge-diff', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7' }) },
+  ])('対象のリポを含む設定が無い（$name）とき、error を出して終了コード 1 で終わる', async ({ input }) => {
+    await explains('`issue_comment` のプロジェクトの設定の選択のテスト（ファイルを渡す場合と `message` を渡す場合）です。対象のリポジトリを含む設定が存在しない場合に、エラーと選べる設定の一覧を出力して終了コード 1 で終わることを確認します。')
     const repository = enterGitRepository({ 'note.md': commentFileContent() })
     setUpProject({ repositories: ['other'] })
 
-    const result = await comment(...argv(path.join(repository, 'note.md')))
+    const result = await comment(input(path.join(repository, 'note.md')))
 
     expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme\n' })
   })
 
-  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で -m の投稿をする', async () => {
-    await explains('`issue comment` の `--project` のテストです。対象のリポジトリを含む設定が 2 つある場合でも、`--project` で指定した設定で `-m` の本文を投稿することを確認します。')
+  it('project を渡すと、対象のリポを含む設定が 2 つあってもその設定で message の投稿をする', async () => {
+    await explains('`issue_comment` の `project` のテストです。対象のリポジトリを含む設定が 2 つある場合でも、`project` で指定した設定で `message` の本文を投稿することを確認します。')
     makeAmbiguous(setUpProject())
     await startGithub([postedComment(COMMENT_URL)])
 
-    const result = await comment('-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7', '--project', SECOND_PROJECT)
+    const result = await comment({ template: 'merge-diff', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7', project: SECOND_PROJECT })
 
     expect(result).toEqual({ code: 0, stdout: `${COMMENT_URL}\n`, stderr: 'created: comment on acme/demo/7\n' })
   })
 
-  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定でファイルの投稿をする', async () => {
-    await explains('`issue comment` の `--project` のテストです。対象のリポジトリを含む設定が 2 つある場合でも、`--project` で指定した設定でファイルを投稿することを確認します。')
+  it('project を渡すと、対象のリポを含む設定が 2 つあってもその設定でファイルの投稿をする', async () => {
+    await explains('`issue_comment` の `project` のテストです。対象のリポジトリを含む設定が 2 つある場合でも、`project` で指定した設定でファイルを投稿することを確認します。')
     const { file, ...project } = setUpCommentProject()
     makeAmbiguous(project)
     await startGithub([linkedRepositories(), postedComment(COMMENT_URL)])
 
-    const result = await comment(file, '--project', SECOND_PROJECT)
+    const result = await comment({ file: file, project: SECOND_PROJECT })
 
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`${COMMENT_URL}\n`)
   })
 
-  it('.active が無くても、対象のリポを含む設定が 1 つならその設定で -m の投稿をする', async () => {
-    await explains('`issue comment` のプロジェクトの設定の選択のテストです。`.active` が存在しなくても、対象のリポジトリを含む設定が 1 つであれば、その設定で `-m` の本文を投稿することを確認します。')
+  it('.active が無くても、対象のリポを含む設定が 1 つならその設定で message の投稿をする', async () => {
+    await explains('`issue_comment` のプロジェクトの設定の選択のテストです。`.active` が存在しなくても、対象のリポジトリを含む設定が 1 つであれば、その設定で `message` の本文を投稿することを確認します。')
     removeActive(setUpProject())
     await startGithub([postedComment(COMMENT_URL)])
 
-    const result = await comment('-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7')
+    const result = await comment({ template: 'merge-diff', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7' })
 
     expect(result).toEqual({ code: 0, stdout: `${COMMENT_URL}\n`, stderr: 'created: comment on acme/demo/7\n' })
   })
 
   it.for([{ status: 500 }, { status: 404 }])('ファイルの投稿で GitHub API が HTTP $status を返したとき、終了コード 1 で終わる', async ({ status }) => {
-    await explains('`issue comment` の GitHub API のエラーのテストです。ファイルの投稿で HTTP 500 か 404 が返った場合に、`could not create a comment` で始まるエラーを出力して終了コード 1 で終わることを確認します。')
+    await explains('`issue_comment` の GitHub API のエラーのテストです。ファイルの投稿で HTTP 500 か 404 が返った場合に、`could not create a comment` で始まるエラーを出力して終了コード 1 で終わることを確認します。')
     const { file } = setUpCommentProject()
     await startGithub([linkedRepositories(), failedPost(status)])
 
-    const result = await comment(file)
+    const result = await comment({ file: file })
 
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
@@ -326,8 +314,8 @@ describe('issue comment', () => {
     expect(readFileSync(file, 'utf8')).toBe(commentFileContent())
   })
 
-  it('ファイルの書き換えと -m の投稿で GitHub API がエラーを返したとき、終了コード 1 で終わる', async () => {
-    await explains('`issue comment` の GitHub API のエラーのテストです。ファイルの書き換えと `-m` の投稿でエラーが返った場合に、どちらも終了コード 1 で終わり、`could not` で始まるエラーを出力することを確認します。')
+  it('ファイルの書き換えと message の投稿で GitHub API がエラーを返したとき、終了コード 1 で終わる', async () => {
+    await explains('`issue_comment` の GitHub API のエラーのテストです。ファイルの書き換えと `message` の投稿でエラーが返った場合に、どちらも終了コード 1 で終わり、`could not` で始まるエラーを出力することを確認します。')
     const url = 'https://ghes.example.com/acme/demo/issues/7#issuecomment-456'
     const { file } = setUpCommentProject({ extra: [`comment_url: "${url}"`] })
     await startGithub([
@@ -336,8 +324,8 @@ describe('issue comment', () => {
       failedPost(500),
     ])
 
-    const updated = await comment(file)
-    const direct = await comment('-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'acme/demo/7')
+    const updated = await comment({ file: file })
+    const direct = await comment({ template: 'merge-diff', message: MERGE_DIFF_BODY, issue_ref: 'acme/demo/7' })
 
     expect(updated.code).toBe(1)
     expect(updated.stderr).toContain('error: could not update the comment on Issue acme/demo/7: ')
@@ -346,14 +334,14 @@ describe('issue comment', () => {
   })
 
   it.for([
-    { name: 'ファイルの issue_ref', argv: (file: string): string[] => [file], issueRef: 'invalid-format' },
-    { name: '--issue-ref', argv: (): string[] => ['-t', 'merge-diff', '-m', MERGE_DIFF_BODY, '--issue-ref', 'invalid-format'], issueRef: 'acme/demo/7' },
-  ])('Issue の参照の形が誤っている（$name）とき、終了コード 2 で終わる', async ({ argv, issueRef }) => {
-    await explains('`issue comment` の Issue の参照の検証のテストです。ファイルの `issue_ref` か `--issue-ref` の形が誤っている場合に、GitHub へ何も要求せず、終了コード 2 で終わることを確認します。')
+    { name: 'ファイルの issue_ref', input: (file: string): Readonly<Record<string, unknown>> => ({ file: file }), issueRef: 'invalid-format' },
+    { name: 'issue_ref', input: (): Readonly<Record<string, unknown>> => ({ template: 'merge-diff', message: MERGE_DIFF_BODY, issue_ref: 'invalid-format' }), issueRef: 'acme/demo/7' },
+  ])('Issue の参照の形が誤っている（$name）とき、終了コード 2 で終わる', async ({ input, issueRef }) => {
+    await explains('`issue_comment` の Issue の参照の検証のテストです。ファイルの `issue_ref` か `issue_ref` の形が誤っている場合に、GitHub へ何も要求せず、終了コード 2 で終わることを確認します。')
     const { file } = setUpCommentProject({ issueRef })
     const github = await startGithub([])
 
-    const result = await comment(...argv(file))
+    const result = await comment(input(file))
 
     expect(result).toEqual({
       code: 2,

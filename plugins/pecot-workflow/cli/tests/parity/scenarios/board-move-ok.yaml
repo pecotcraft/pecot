@@ -1,8 +1,9 @@
 # Issue がボードにあり、status を active に更新する。
 id: board-move-ok
-command:
-  path: [board, move]
-  args: [acme/demo/7, active]
+tool: board_move
+arguments:
+  issue_ref: acme/demo/7
+  status: active
 setup:
   repo:
     files:

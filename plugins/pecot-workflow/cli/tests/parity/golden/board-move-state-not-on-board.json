@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: Issue acme/demo/7 is not on the project board\n  hint: add it to the board first with pecot board add acme/demo/7\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "Issue acme/demo/7 is not on the project board\n  hint: add it to the board first with board_add with issue_ref: \"acme/demo/7\"",
+  "structuredContent": {
+    "kind": "not-on-board",
+    "detail": "Issue acme/demo/7 is not on the project board\n  hint: add it to the board first with board_add with issue_ref: \"acme/demo/7\""
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

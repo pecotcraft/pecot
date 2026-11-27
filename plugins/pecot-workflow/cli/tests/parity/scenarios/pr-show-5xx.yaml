@@ -1,9 +1,8 @@
 # GraphQL が 502 を返す。exit 1 になる。
 id: pr-show-5xx
-command:
-  path: [pr, show]
-  args:
-    - "acme/demo/21"
+tool: pr_show
+arguments:
+  pr_ref: acme/demo/21
 setup:
   repo:
     files:

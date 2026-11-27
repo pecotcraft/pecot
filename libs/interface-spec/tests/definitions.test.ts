@@ -83,7 +83,7 @@ describe('generated.json checks', () => {
     stepSync('指摘を比べる', () => {
       expect(lines).toContain(`${GENERATED}|XX-ISSUE-CREATE|id|must start with "PW-" and use only A-Z, 0-9 and "-"`)
       expect(lines).toContain(`${GENERATED}|XX-ISSUE-CREATE|id|is defined more than once`)
-      expect(lines).toContain(`${GENERATED}|XX-ISSUE-CREATE|surfaces|must have cli, mcp or action`)
+      expect(lines).toContain(`${GENERATED}|XX-ISSUE-CREATE|surfaces|must have mcp or action`)
     })
   })
 
@@ -126,17 +126,6 @@ describe('generated.json checks', () => {
     stepSync('指摘を比べる', () => {
       expect(lines).toContain(`${GENERATED}|PW-ISSUE-CREATE|description|contains Japanese text (write English)`)
       expect(lines).toContain(`${GENERATED}|PW-ISSUE-CREATE|input.properties.title.description|contains Japanese text (write English)`)
-    })
-  })
-
-  it('generated.json の cli が input に存在しない名前を持つと、検証エラーにする', async () => {
-    await explains('`generated.json` の検証のテストです。`cli.positional` と `cli.flags` に、`input` のプロパティにない名前を指定した場合、未知の入力名として検証エラーが返ることを確認します。')
-    const lines = await step('定義書を書き換えて検証する', () => withGenerated((data) => {
-      generatedEntry(data, 1)['cli'] = { positional: ['nope'], flags: { gone: ['--gone'] } }
-    }))
-    stepSync('指摘を比べる', () => {
-      expect(lines).toContain(`${GENERATED}|PW-ISSUE-QUICK|cli.positional|unknown input name "nope"`)
-      expect(lines).toContain(`${GENERATED}|PW-ISSUE-QUICK|cli.flags|unknown input name "gone"`)
     })
   })
 })
@@ -300,7 +289,7 @@ function japanize(data: Record<string, unknown>): Record<string, unknown> {
   target['on_error'] = 'default'
   target['effects'] = [{ target: 'github', kind: 'write', what: '作る' }]
   target['prerequisites'] = ['認証済み']
-  target['examples'] = [{ run: 'pecot x', note: '例' }]
+  target['examples'] = [{ arguments: {}, note: '例' }]
   target['default_notes'] = { title: '既定は空' }
   data['environment'] = [{ name: 'PECOT_Y', effect: '共通の挙動' }]
   return target
@@ -331,7 +320,7 @@ describe('prose（人が書く欄の言語）', () => {
       target['exit_status'] = [{ kind: 'ok', when: 'English' }]
       target['effects'] = [{ target: 'github', kind: 'write', what: 'English' }]
       target['prerequisites'] = ['English']
-      target['examples'] = [{ run: 'pecot x', note: 'English' }]
+      target['examples'] = [{ arguments: {}, note: 'English' }]
       target['default_notes'] = { title: 'English' }
       target['environment'] = [{ name: 'PECOT_X', effect: 'English' }]
       data['environment'] = [{ name: 'PECOT_Y', effect: 'English' }]
@@ -403,51 +392,6 @@ describe('prose（人が書く欄の言語）', () => {
     })
   })
 
-  it('prose が ja で CLI の面を持つ項目に help がないと、検証エラーにする', async () => {
-    await explains('`prose`（人が書く欄の言語）の検証のテストです。`prose: ja` の定義書で、CLI の面を持つ項目に `help` がない場合に、`help` を英語で書くことを促す検証エラーが返ることを確認します。')
-    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
-      data['prose'] = 'ja'
-      japanize(data)
-    }))
-    stepSync('指摘を比べる', () => {
-      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help|is missing (--help reads it; write details, examples and default_notes in English)`)
-    })
-  })
-
-  it('prose が ja で、help が英語で本体とそろっていると、検証エラーにしない', async () => {
-    await explains('`prose`（人が書く欄の言語）の検証のテストです。`help` が英語で、`examples` の `run` と `default_notes` の名前が本体と同じ場合に、`help` に関する検証エラーが返らないことを確認します。')
-    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
-      data['prose'] = 'ja'
-      japanize(data)['help'] = { details: ['Returns the result'], examples: [{ run: 'pecot x', note: 'An example' }], default_notes: { title: 'Empty by default' } }
-    }))
-    stepSync('指摘を比べる', () => {
-      expect(lines.filter(line => line.includes('|PW-ISSUE-CREATE|help'))).toEqual([])
-    })
-  })
-
-  it('help に日本語がある、または examples の run か default_notes の名前が本体と違うと、検証エラーにする', async () => {
-    await explains('`prose`（人が書く欄の言語）の検証のテストです。`help` が日本語の場合と、`run` や `default_notes` の名前が本体と違う場合に、それぞれ検証エラーが返ることを確認します。')
-    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
-      data['prose'] = 'ja'
-      japanize(data)['help'] = { details: ['結果を返す'], examples: [{ run: 'pecot y', note: 'An example' }], default_notes: {} }
-    }))
-    stepSync('指摘を比べる', () => {
-      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help.details[0]|contains Japanese text (write English)`)
-      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help.examples|must have the same run values, in the same order, as examples`)
-      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help.default_notes|must have the same input names as default_notes`)
-    })
-  })
-
-  it('prose を省略した定義書に help があると、検証エラーにする', async () => {
-    await explains('`prose`（人が書く欄の言語）の検証のテストです。`prose` を省略した定義書に `help` がある場合に、`prose: ja` の定義書だけで使えるという検証エラーが返ることを確認します。')
-    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
-      entry(data, 'PW-ISSUE-CREATE')['help'] = { details: [], examples: [], default_notes: {} }
-    }))
-    stepSync('指摘を比べる', () => {
-      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help|is only for prose "ja" (remove it; --help reads details, examples and default_notes)`)
-    })
-  })
-
   it('prose が ja と en 以外の値だと、検証エラーにする', async () => {
     await explains('`prose`（人が書く欄の言語）の検証のテストです。`prose` に `fr` を指定した場合に、`prose` に関する検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
@@ -482,19 +426,11 @@ async function withBoth(changeGenerated: (data: Record<string, unknown>) => void
     .map(finding => `${finding.file}|${finding.scope ?? ''}|${finding.field ?? ''}|${finding.reason}`)
 }
 
-function actionOnly(data: Record<string, unknown>): void {
-  const target = generatedEntry(data, 0)
-  target['surfaces'] = { action: { path: 'actions/issue-create' } }
-  delete target['cli']
-}
-
-// PW-ISSUE-CREATE に MCP の面を足す。cli を外すと MCP だけの項目になる。
-function withMcpSurface(hasCli: boolean, title?: string): (data: Record<string, unknown>) => void {
+// PW-ISSUE-CREATE を MCP の面の項目にする。
+function withMcpSurface(title?: string): (data: Record<string, unknown>) => void {
   return (data) => {
     const target = generatedEntry(data, 0)
-    const surfaces = record(target['surfaces'])
-    target['surfaces'] = { ...(hasCli && surfaces), mcp: { tool: 'issue_create' } }
-    if (!hasCli) delete target['cli']
+    target['surfaces'] = { mcp: { tool: 'issue_create' } }
     target['mcp'] = { ...(title !== undefined && { title }), output: { type: 'object', properties: {}, additionalProperties: false } }
   }
 }
@@ -512,7 +448,7 @@ function mcpExamples(examples: unknown[]): (data: Record<string, unknown>) => vo
 describe('MCP の表示名と使用例', () => {
   it('MCP の面を持つ項目に mcp.title がないと、検証エラーにする', async () => {
     await explains('MCP の表示名と使用例の検証のテストです。MCP の面を持つ項目に `mcp.title` がない場合に、英語の表示名を付けることを求める検証エラーが返ることを確認します。')
-    const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(true), mcpExamples([{ arguments: { title: 'x' }, note: 'An example' }])))
+    const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(), mcpExamples([{ arguments: { title: 'x' }, note: 'An example' }])))
     stepSync('指摘を比べる', () => {
       expect(lines).toContain(`${GENERATED}|PW-ISSUE-CREATE|mcp.title|is missing (give the tool a display name in English)`)
     })
@@ -520,24 +456,16 @@ describe('MCP の表示名と使用例', () => {
 
   it('MCP の面を持つ項目の使用例が arguments の形で、キーが input にあれば、検証エラーにしない', async () => {
     await explains('MCP の表示名と使用例の検証のテストです。使用例が `arguments` の形で、`input` にあるキーだけを使っている場合に、検証エラーが 0 件であることを確認します。')
-    const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(true, TITLE), mcpExamples([{ arguments: { title: 'x', message: 'y' }, note: 'An example' }])))
+    const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(TITLE), mcpExamples([{ arguments: { title: 'x', message: 'y' }, note: 'An example' }])))
     stepSync('指摘を比べる', () => {
       expect(lines.filter(line => line.includes('|PW-ISSUE-CREATE|'))).toEqual([])
-    })
-  })
-
-  it('MCP の面を持つ項目の使用例が run の形だと、検証エラーにする', async () => {
-    await explains('MCP の表示名と使用例の検証のテストです。MCP の面を持つ項目の使用例が `run` の形の場合に、`arguments` で書くことを求める検証エラーが返ることを確認します。')
-    const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(true, TITLE), mcpExamples([{ run: 'pecot issue create a.md', note: 'An example' }])))
-    stepSync('指摘を比べる', () => {
-      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0]|must be an MCP call or action inputs (write arguments instead of run)`)
     })
   })
 
   it('使用例の arguments が input に存在しない名前を持つか、必須の入力が欠けていると、検証エラーにする', async () => {
     await explains('MCP の表示名と使用例の検証のテストです。`arguments` に未知のキーがある場合と、必須の入力が欠けている場合、それぞれ検証エラーが返ることを確認します。')
     const lines = await step('定義書を書き換えて検証する', () => withBoth((data) => {
-      withMcpSurface(true, TITLE)(data)
+      withMcpSurface(TITLE)(data)
       record(generatedEntry(data, 0)['input'])['required'] = ['title']
     }, mcpExamples([{ arguments: { mesage: 'y' }, note: 'An example' }])))
     stepSync('指摘を比べる', () => {
@@ -546,71 +474,13 @@ describe('MCP の表示名と使用例', () => {
     })
   })
 
-  it('MCP の面を持たない項目の使用例が arguments の形だと、検証エラーにする', async () => {
-    await explains('MCP の表示名と使用例の検証のテストです。MCP の面を持たない項目の使用例が `arguments` の形の場合に、コマンドラインの `run` で書くことを求める検証エラーが返ることを確認します。')
-    const lines = await step('定義書を書き換えて検証する', () => withAuthored((data) => {
+  it('action の面だけを持つ項目の使用例は、with: の inputs を arguments の形で書けば検証エラーにしない', async () => {
+    await explains('action の面だけを持つ項目の使用例の検証のテストです。`with:` の inputs を `arguments` の形で書いた場合に、使用例に関する検証エラーが返らないことを確認します。')
+    const lines = await step('arguments の形の使用例で検証する', () => withAuthored((data) => {
       entry(data, 'PW-ISSUE-CREATE')['examples'] = [{ arguments: { title: 'x' }, note: 'An example' }]
     }))
-    stepSync('指摘を比べる', () => {
-      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0]|must be a command line (write run instead of arguments; the entry has no MCP or action surface)`)
-    })
-  })
-
-  it('action の面だけを持つ項目の使用例は、with: の inputs を arguments の形で書けば通り、run の形だと止める', async () => {
-    await explains('action の面だけを持つ項目の使用例の検証のテストです。`with:` の inputs を `arguments` の形で書いた例は通り、`run` の形の例は検証エラーになることを確認します。')
-    const passing = await step('arguments の形の使用例で検証する', () => withBoth(actionOnly, (data) => {
-      entry(data, 'PW-ISSUE-CREATE')['examples'] = [{ arguments: { title: 'x' }, note: 'An example' }]
-    }))
-    const failing = await step('run の形の使用例で検証する', () => withBoth(actionOnly, (data) => {
-      entry(data, 'PW-ISSUE-CREATE')['examples'] = [{ run: 'pecot issue create a.md', note: 'An example' }]
-    }))
-    stepSync('arguments の形は通り、run の形は止まることを確かめる', () => {
-      expect(passing.filter(line => line.includes('|PW-ISSUE-CREATE|examples'))).toEqual([])
-      expect(failing).toContain(`${AUTHORED}|PW-ISSUE-CREATE|examples[0]|must be an MCP call or action inputs (write arguments instead of run)`)
-    })
-  })
-})
-
-describe('CLI の節と終了コード', () => {
-  it('CLI の面を持たない項目に cli_reference と終了コードがあると、検証エラーにする', async () => {
-    await explains('CLI の節と終了コードの検証のテストです。MCP だけの項目に `cli_reference` と `exit_status` の `code` がある場合に、削除を求める検証エラーがそれぞれ返ることを確認します。')
-    const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(false, TITLE), (data) => {
-      mcpExamples([{ arguments: { title: 'x' }, note: 'An example' }])(data)
-      entry(data, 'PW-ISSUE-CREATE')['cli_reference'] = { examples: [{ run: 'pecot issue create a.md', note: 'An example' }] }
-    }))
-    stepSync('指摘を比べる', () => {
-      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|cli_reference|is only for entries with a CLI surface (remove it)`)
-      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|exit_status[0].code|is only for entries with a CLI surface (remove it)`)
-      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|exit_status[1].code|is only for entries with a CLI surface (remove it)`)
-    })
-  })
-
-  it('cli_reference を持つ項目で、help.examples の run が cli_reference.examples と違うと、検証エラーにする', async () => {
-    await explains('CLI の節と終了コードの検証のテストです。`help.examples` の `run` が `cli_reference.examples` と違う場合に、同じ値を同じ順で書くことを求める検証エラーが返ることを確認します。')
-    const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(true, TITLE), (data) => {
-      data['prose'] = 'ja'
-      const target = japanize(data)
-      target['examples'] = [{ arguments: { title: 'x' }, note: '例' }]
-      target['mcp_output'] = { fields: {} }
-      target['help'] = { details: ['Returns the result'], examples: [{ run: 'pecot y', note: 'An example' }], default_notes: { title: 'Empty by default' } }
-      target['cli_reference'] = { examples: [{ run: 'pecot x', note: '例' }] }
-    }))
-    stepSync('指摘を比べる', () => {
-      expect(lines).toContain(`${AUTHORED}|PW-ISSUE-CREATE|help.examples|must have the same run values, in the same order, as cli_reference.examples`)
-    })
-  })
-
-  it('cli_reference を持たない項目は、help.examples の run を cli_reference.examples と比較しない', async () => {
-    await explains('CLI の節と終了コードの検証のテストです。`cli_reference` を持たない項目の `help.examples` の `run` が本体と違う場合でも、`help.examples` に関する検証エラーが返らないことを確認します。')
-    const lines = await step('定義書を書き換えて検証する', () => withBoth(withMcpSurface(true, TITLE), (data) => {
-      data['prose'] = 'ja'
-      const target = japanize(data)
-      target['examples'] = [{ arguments: { title: 'x' }, note: '例' }]
-      target['mcp_output'] = { fields: {} }
-      target['help'] = { details: ['Returns the result'], examples: [{ run: 'pecot y', note: 'An example' }], default_notes: { title: 'Empty by default' } }
-    }))
-    stepSync('指摘を比べる', () => {
-      expect(lines.filter(line => line.includes('|help.examples|'))).toEqual([])
+    stepSync('使用例の指摘が無いことを確かめる', () => {
+      expect(lines.filter(line => line.includes('|PW-ISSUE-CREATE|examples'))).toEqual([])
     })
   })
 })

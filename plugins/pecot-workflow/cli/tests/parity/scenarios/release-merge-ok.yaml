@@ -1,9 +1,8 @@
 # リリース PR を merge 方式でマージする。base が release_branch と一致する。
 id: release-merge-ok
-command:
-  path: [release, merge]
-  args:
-    - "acme/demo/31"
+tool: release_merge
+arguments:
+  pr_ref: acme/demo/31
 setup:
   repo:
     files:

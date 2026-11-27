@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: main is a protected branch\n  protected: main\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "main is a protected branch\n  protected: main",
+  "structuredContent": {
+    "kind": "guard-blocked",
+    "detail": "main is a protected branch\n  protected: main"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "rest",

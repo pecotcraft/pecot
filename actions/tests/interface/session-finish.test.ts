@@ -350,11 +350,11 @@ describe('session finish', () => {
     expect(operationsOf(result)).toStrictEqual([MERGED])
   })
 
-  it('対象のリポを含む設定が 2 つあり、project を渡さないと、候補と --project の案内を出して終了コード 1 で終わる', async (context) => {
+  it('対象のリポを含む設定が 2 つあり、project を渡さないと、候補と project の案内を出して終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PA-SESSION-FINISH-26')
     await explains('`session-finish` の action のテストです。対象のリポジトリを含む設定が 2 つあり、input の `project` が無い場合に、候補を出力して step を失敗にすることを確認します。')
     const result = await finish([], CLEANUP, { ambiguous: true })
-    expect({ code: result.code, stdout: result.stdout, stderr: result.stderr }).toStrictEqual({ code: 1, stdout: '', stderr: `error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ${HOST}_acme_board_acme, ${SECOND_PROJECT}\n` })
+    expect({ code: result.code, stdout: result.stdout, stderr: result.stderr }).toStrictEqual({ code: 1, stdout: '', stderr: `error: acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ${HOST}_acme_board_acme, ${SECOND_PROJECT}\n` })
     expect(result.github.requests()).toStrictEqual([])
   })
 
@@ -407,15 +407,15 @@ describe('session finish', () => {
         'count: Issues to close: 1',
         'closed: Issue #12',
         'moved: #13 Blocked -> Ready (startable)',
-        `warning: #14 is stacked on #12; run pecot pr restack in the working directory of ${UPPER}`,
+        `warning: #14 is stacked on #12; call pr_restack in the working directory of ${UPPER}`,
       ])
       expect(writesOf(result)).toMatchObject([{ variables: { itemId: 'PVTI_13', optionId: 'o3' } }])
       expect(restRequests(result, 'DELETE')).toStrictEqual([])
     })
 
-    it('待つ Issue の列が古い ID で書けないと、warning と project activate の案内を出して続け、終了コード 0 で終わる', async (context) => {
+    it('待つ Issue の列が古い ID で書けないと、warning と project_activate の案内を出して続け、終了コード 0 で終わる', async (context) => {
       await verifies(context, 'PA-SESSION-FINISH-40')
-      await explains('`session-finish` の action のテストです。待機中の Issue の列を古い ID で更新できない場合に、`warning` と `project activate` の案内を出力し、成功することを確認します。')
+      await explains('`session-finish` の action のテストです。待機中の Issue の列を古い ID で更新できない場合に、`warning` と `project_activate` の案内を出力し、成功することを確認します。')
       const result = await finish([...WAITING_RULES, staleOptionUpdate()])
       expect(result.code).toBe(0)
       const stderr = lines(result.stderr)
@@ -424,8 +424,8 @@ describe('session finish', () => {
         'closed: Issue #12',
         `warning: could not move #13: ${STALE_OPTION_TEXT}`,
       ])
-      expect(stderr[3]).toMatch(/^ {2}hint: if the board options were recreated, run pecot project activate \S+ to read their IDs again$/u)
-      expect(stderr.slice(4)).toStrictEqual([`warning: #14 is stacked on #12; run pecot pr restack in the working directory of ${UPPER}`])
+      expect(stderr[3]).toMatch(/^ {2}hint: if the board options were recreated, call project_activate with project: "\S+" to read their IDs again$/u)
+      expect(stderr.slice(4)).toStrictEqual([`warning: #14 is stacked on #12; call pr_restack in the working directory of ${UPPER}`])
     })
 
     it('判定が変わった Issue を、stdout の Readiness changed の節に出す', async (context) => {

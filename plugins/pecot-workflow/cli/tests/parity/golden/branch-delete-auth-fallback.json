@@ -1,7 +1,15 @@
 {
-  "stdout": "",
-  "stderr": "warning: the token in the environment variable is invalid (401 Unauthorized); fell back to gh auth token\n  update or remove the token in .env\ndeleted: remote branch feat/7 in acme/demo\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "deleted: remote branch feat/7 in acme/demo",
+  "structuredContent": {
+    "branch": "feat/7",
+    "repository": "acme/demo",
+    "deleted": true,
+    "warnings": [
+      "the token in the environment variable is invalid (401 Unauthorized); fell back to gh auth token\n  update or remove the token in .env"
+    ]
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "rest",

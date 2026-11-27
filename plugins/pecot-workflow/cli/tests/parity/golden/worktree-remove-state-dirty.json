@@ -1,7 +1,12 @@
 {
-  "stdout": "",
-  "stderr": "error: failed to remove the worktree: fatal: '{{TMP}}/wt1/demo' contains modified or untracked files, use --force to delete it\n  hint: to remove it with its changes, pass --force\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "failed to remove the worktree: fatal: '{{TMP}}/wt1/demo' contains modified or untracked files, use --force to delete it\n  hint: to remove it with its changes, pass force: true",
+  "structuredContent": {
+    "kind": "other",
+    "detail": "failed to remove the worktree: fatal: '{{TMP}}/wt1/demo' contains modified or untracked files, use --force to delete it\n  hint: to remove it with its changes, pass force: true",
+    "log": "fatal: '{{TMP}}/wt1/demo' contains modified or untracked files, use --force to delete it\n"
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     "../../wt1/demo/.gitignore": ".pecot/\n",

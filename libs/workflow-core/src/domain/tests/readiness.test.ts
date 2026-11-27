@@ -22,7 +22,6 @@ import {
   isStackedOn,
   judgeReadiness,
   planProgression,
-  progressionsFromReadiness,
   stackChains,
   toIssueFacts,
 } from '../readiness.js'
@@ -797,24 +796,6 @@ describe('cycleThrough', () => {
   it('自分自身への依存は、長さ 1 の循環になる', async () => {
     await explains('自分自身へ依存する Issue の、`cycleThrough` のテストです。指定した Issue が自分自身を前提にしている場合、同じ Issue を 2 回並べた循環を返すことを確認します。')
     expect(cycleThrough('a', new Map([['a', ['a']]]))).toEqual(['a', 'a'])
-  })
-})
-
-describe('progressionsFromReadiness', () => {
-  it('stackable は前提の上にスタックし、ほかの区分は単独にする', async () => {
-    await explains('判定の結果から進め方を作る `progressionsFromReadiness` のテストです。`stackable` はスタック先の上にスタックする進め方、`startable` と `blocked` は `alone` になることを確認します。')
-    const stackable = judge([reviewing(1)])
-    const startable = judge([])
-    const blocked = judge([unstarted(1)])
-    const progressions = progressionsFromReadiness(new Map([
-      ['acme/app#2', stackable],
-      ['acme/app#3', startable],
-      ['acme/app#4', blocked],
-    ]))
-    expect(progressions.get('acme/app#2')).toEqual({ kind: 'stack', on: 'acme/app#1' })
-    expect(progressions.get('acme/app#3')).toEqual({ kind: 'alone' })
-    expect(progressions.get('acme/app#4')).toEqual({ kind: 'alone' })
-    expect(stackChains(progressions)).toEqual([['acme/app#1', 'acme/app#2']])
   })
 })
 

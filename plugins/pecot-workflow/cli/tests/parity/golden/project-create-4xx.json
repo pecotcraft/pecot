@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: owner not found: acme\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "owner not found: acme",
+  "structuredContent": {
+    "kind": "github-not-found",
+    "detail": "owner not found: acme"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

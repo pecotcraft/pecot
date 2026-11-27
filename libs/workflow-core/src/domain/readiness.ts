@@ -369,19 +369,6 @@ export function cycleThrough(target: string, edges: ReadonlyMap<string, readonly
 }
 
 /**
-判定の一覧（Issue のキー → 判定）から、stackChains に渡す進め方を作る。
-stackable はスタック先の Issue の上にスタックし、それ以外は単独として扱う
-*/
-export function progressionsFromReadiness(readiness: ReadonlyMap<string, Readiness>): ReadonlyMap<string, Progression> {
-  return new Map([...readiness].map(([key, judged]): [string, Progression] => [
-    key,
-    judged.kind === 'stackable' && judged.stackOn !== undefined
-      ? { kind: 'stack', on: issueReferenceKey(judged.stackOn.issue) }
-      : { kind: 'alone' },
-  ]))
-}
-
-/**
 メッセージに出す Issue の表記。home と同じリポジトリは `#N`、別のリポジトリは `owner/repo#N`。home が無ければ常に `owner/repo#N`
 */
 export function displayReference(reference: IssueReference, home?: RepositoryReference): string {

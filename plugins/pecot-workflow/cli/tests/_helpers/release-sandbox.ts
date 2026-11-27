@@ -6,17 +6,14 @@ import path from 'node:path'
 
 import { expect } from 'vitest'
 
-import { runCli } from '../../src/cli.js'
-import { attachOutput } from '../../../../../libs/interface-spec/src/vitest/attach.js'
-import type { CliContext } from '../../src/cli.js'
-import { RELEASE_COMMANDS } from '../../src/commands/release.js'
-import { capture } from '../../src/commands/tests/support.js'
+import { RELEASE_TOOLS } from '../../src/commands/release.js'
 import { setEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { installFakeExecutable, installFakeGh, prependToPath } from '../../../../../libs/workflow-core/tests/_helpers/fake-executables.js'
 import { gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import { makeTemporaryDirectory } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { startFakeGithub } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import type { RecordedRequest, ResponseRule, ResponseSpec } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
+import { runToolInProcess } from './run-tool.js'
 
 export const HOST = 'ghes.example.com'
 export const OWNER = 'acme'
@@ -271,19 +268,16 @@ export interface RunOptions {
 /**
 release の 3 個を、プロセス内で呼ぶ。偽サーバの応答は rules の順に使う
 */
-export async function runRelease(project: Readonly<Project>, argv: readonly string[], rules: readonly ResponseRule[] = [], options: Readonly<RunOptions> = {}): Promise<RunResult> {
+export async function runRelease(project: Readonly<Project>, name: string, arguments_: Readonly<Record<string, unknown>>, rules: readonly ResponseRule[] = [], options: Readonly<RunOptions> = {}): Promise<RunResult> {
   const server = await startFakeGithub(rules)
   setEnvironment({ PECOT_GITHUB_API_URL: server.url })
-  const io = capture({ attach: false })
   const cwd = options.cwd ?? project.directory
-  const context: CliContext = { commands: RELEASE_COMMANDS, io, cwd, environment: {}, terminalColumns: undefined }
   const original = process.cwd()
   try {
     process.chdir(cwd)
-    const code = await runCli(argv, context)
-    attachOutput(['pecot', ...argv].join(' '), code, io.out.join(''), io.err.join(''))
+    const result = await runToolInProcess(RELEASE_TOOLS, name, arguments_)
     expect({ problems: server.problems(), unused: server.unused() }).toEqual({ problems: [], unused: [] })
-    return { code, stdout: io.out.join(''), stderr: io.err.join(''), requests: server.requests() }
+    return { ...result, requests: server.requests() }
   }
   finally {
     process.chdir(original)

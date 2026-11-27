@@ -1,6 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのは配布テンプレートと一時ディレクトリ配下のみ */
 import { existsSync } from 'node:fs'
-import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
@@ -24,7 +23,7 @@ useIsolatedEnvironment()
 
 const DISTRIBUTED_TEMPLATES: readonly (readonly [TemplateKind, string])[] = [['issue', 'task'], ['issue', 'epic'], ['comment', 'plan'], ['pr', 'create'], ['pr', 'release']]
 
-// 配布テンプレート実体の必須セクション。CLAUDE_PLUGIN_ROOT の隔離後に読むため、呼ぶたびに読む
+// 配布テンプレート実体の必須セクション。呼ぶたびに読む
 function createSections(): readonly SectionHeading[] {
   return readTemplateSections(templateFile('pr', 'create'))
 }
@@ -60,11 +59,10 @@ describe('templatesDirectory・templateFile', () => {
     }
   })
 
-  it('環境変数 CLAUDE_PLUGIN_ROOT を指定した場合は、その下のテンプレートを指す', async () => {
-    await explains('テンプレートの場所を求める `templatesDirectory` のテストです。環境変数 `CLAUDE_PLUGIN_ROOT` を指定した場合に、その下の `cli/templates/issue` を返すことを確認します。')
-    const root = makeTemporaryDirectory()
-    process.env['CLAUDE_PLUGIN_ROOT'] = root
-    expect(templatesDirectory('issue')).toBe(path.join(root, 'cli', 'templates', 'issue'))
+  it('環境変数 CLAUDE_PLUGIN_ROOT を指定しても、ソースからの相対位置のテンプレートを指す', async () => {
+    await explains('テンプレートの場所を求める `templatesDirectory` のテストです。環境変数 `CLAUDE_PLUGIN_ROOT` に別のディレクトリを設定しても、`plugins/pecot-workflow/cli/templates/issue` を返すことを確認します。')
+    process.env['CLAUDE_PLUGIN_ROOT'] = makeTemporaryDirectory()
+    expect(templatesDirectory('issue')).toMatch(/plugins\/pecot-workflow\/cli\/templates\/issue$/u)
   })
 })
 

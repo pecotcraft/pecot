@@ -13,10 +13,10 @@ import type { BoardItem } from '@pecot/workflow-core/domain/format.js'
 
 useIsolatedEnvironment()
 
-describe('project link の --package', () => {
+describe('project_link の package', () => {
   it('NAME の形が不正だと、GitHub を呼ぶ前に終了コード 1 で止まる', async () => {
-    await explains('`project link` の `--package` のテストです。名前の形が不正な場合に、GitHub を呼ばず、終了コード `1` で検証エラーを表示して終了することを確認します。')
-    const result = await runCommand({ argv: ['project', 'link', 'acme/other', '--package', 'b!d:x/CHANGELOG.md'] })
+    await explains('`project_link` の `package` のテストです。名前の形が不正な場合に、GitHub を呼ばず、検証エラーを表示して失敗することを確認します。')
+    const result = await runCommand({ tool: 'project_link', arguments: { repo: 'acme/other', package: ['b!d:x/CHANGELOG.md'] } })
     expect(result.code).toBe(1)
     expect(result.requests).toEqual([])
     expect(result.stdout).toBe('')
@@ -25,12 +25,12 @@ describe('project link の --package', () => {
   })
 })
 
-describe('project activate のパス', () => {
-  it('ファイルの下を指すパス（ENOTDIR）は設定ファイルとみなさず、--host の案内で終わる', async () => {
-    await explains('`project activate` に、ファイルの下を指すパス `package.json/x` を渡した場合のテストです。設定ファイルとして扱わず、`--host` の指定を求めるエラーを表示し、GitHub を呼ばないことを確認します。')
-    const result = await runCommand({ argv: ['project', 'activate', 'package.json/x'], files: { 'package.json': '{}\n' } })
+describe('project_activate のパス', () => {
+  it('ファイルの下を指すパス（ENOTDIR）は設定ファイルとみなさず、host の案内で終わる', async () => {
+    await explains('`project_activate` に、ファイルの下を指すパス `package.json/x` を渡した場合のテストです。設定ファイルとして扱わず、`host` の指定を求めるエラーを表示し、GitHub を呼ばないことを確認します。')
+    const result = await runCommand({ tool: 'project_activate', arguments: { project: 'package.json/x' }, files: { 'package.json': '{}\n' } })
     expect(result.code).toBe(1)
-    expect(result.stderr).toContain('error: --host is required')
+    expect(result.stderr).toContain('error: host is required\n')
     expect(result.requests).toEqual([])
   })
 })
@@ -112,34 +112,5 @@ describe('pruneArchivedItems', () => {
     expect(await pruneArchivedItems(createOutput(false, io), { deleteProjectItem }, config, items, false)).toEqual({ deleted: 0, failed: 0 })
     expect(deleteProjectItem).not.toHaveBeenCalled()
     expect(io.err.join('') + io.out.join('')).toBe('')
-  })
-})
-
-describe('位置引数の選択肢', () => {
-  it.for([
-    { name: 'project get の key', argv: ['project', 'get'] },
-    { name: 'project set の key', argv: ['project', 'set'] },
-    { name: 'project unset の key', argv: ['project', 'unset'] },
-  ])('$name を省くと、GitHub と設定を読まずに終了コード 2 で止まる', async ({ argv }) => {
-    await explains('`project get`・`set`・`unset` の `key` を省略した場合のテストです。何も読み込まず、終了コード `2` で `Missing argument` の使い方の誤りを表示することを確認します。')
-    const result = await runCommand({ argv })
-    expect(result.code).toBe(2)
-    expect(result.requests).toEqual([])
-    expect(result.stdout).toBe('')
-    expect(result.stderr).toContain(`Usage: pecot ${argv.join(' ')} [OPTIONS]`)
-    expect(result.stderr).toMatch(/Missing argument 'key'\./u)
-  })
-
-  it.for([
-    { name: 'project get の知らない key', argv: ['project', 'get', 'develop_branch'], message: 'Invalid value for \'key\': \'develop_branch\' is not one of \'aggregation_repo\'.' },
-    { name: 'project set の知らない key', argv: ['project', 'set', 'develop_branch', 'a/b'], message: 'Invalid value for \'key\': \'develop_branch\' is not one of \'aggregation_repo\'.' },
-    { name: 'project unset の知らない key', argv: ['project', 'unset', 'develop_branch'], message: 'Invalid value for \'key\': \'develop_branch\' is not one of \'aggregation_repo\'.' },
-  ])('$name を渡すと、何も読まずに終了コード 2 で止まる', async ({ argv, message }) => {
-    await explains('位置引数 `key` へ選択肢以外の値を渡した場合のテストです。何も読み込まず、終了コード `2` で `is not one of …` の使い方の誤りを表示することを確認します。')
-    const result = await runCommand({ argv })
-    expect(result.code).toBe(2)
-    expect(result.requests).toEqual([])
-    expect(result.stdout).toBe('')
-    expect(result.stderr).toContain(message)
   })
 })

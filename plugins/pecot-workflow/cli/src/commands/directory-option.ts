@@ -1,4 +1,4 @@
-// -D / --directory の共有スキーマ。typer の exists=True・file_okay=False・dir_okay=True・resolve_path=True と同じ検証。
+// directory の入力の共有スキーマ。typer の exists=True・file_okay=False・dir_okay=True・resolve_path=True と同じ検証。
 import { accessSync, constants, realpathSync, statSync } from 'node:fs'
 import type { Stats } from 'node:fs'
 
@@ -10,7 +10,7 @@ export const DIRECTORY_DESCRIPTION = 'Target Git repository (absolute or relativ
 
 function statOf(resolved: string): Stats | undefined {
   try {
-    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 利用者が渡した -D の値
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 利用者が渡した directory の値
     return statSync(resolved)
   }
   catch {
@@ -30,7 +30,7 @@ function isReadable(resolved: string): boolean {
 
 function resolvedOf(value: string): string {
   try {
-    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 利用者が渡した -D の値
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 利用者が渡した directory の値
     return realpathSync(value)
   }
   catch {

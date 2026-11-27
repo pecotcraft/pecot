@@ -1,8 +1,7 @@
 # アクティブなプロジェクトがあり、ボードのフィールド・Issue fields・Issue type・ラベル・マイルストーンの定義を Markdown で出す。
 id: issue-attributes-ok
-command:
-  path: [issue, attributes]
-  args: []
+tool: issue_attributes
+arguments: {}
 setup:
   repo:
     files:

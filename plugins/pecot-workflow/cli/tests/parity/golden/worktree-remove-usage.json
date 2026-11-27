@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "Usage: pecot worktree remove [OPTIONS] {name}\nTry 'pecot worktree remove --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing argument 'name'.                                                     │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
-  "exitCode": 2,
+  "isError": true,
+  "text": "invalid input: name: Invalid input: expected string, received undefined",
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid input: name: Invalid input: expected string, received undefined"
+  },
+  "stderr": "",
   "requests": [],
   "files": {}
 }

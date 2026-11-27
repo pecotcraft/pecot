@@ -37,7 +37,7 @@ entries:
       - gh is authenticated for the target repository.
     idempotent: false
     examples:
-      - run: pecot issue create .pecot/work/199/issue.md
+      - arguments: {}
         note: Create one issue from a file.
     default_notes:
       issue_type: The task type unless the front matter says otherwise.
@@ -68,7 +68,7 @@ entries:
     prerequisites: []
     idempotent: false
     examples:
-      - run: pecot issue quick "Fix typo"
+      - arguments: {title: x}
         note: Create an issue and its branch.
     default_notes: {}
     behaviors:

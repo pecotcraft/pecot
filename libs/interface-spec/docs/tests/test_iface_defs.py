@@ -21,7 +21,6 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 sys.path.insert(0, str(DOCS / "_ext"))
 
 from iface_defs import (  # noqa: E402
-    COMMAND_TITLE,
     COMMON_OUTPUT_TITLE,
     MCP_FIELDS_EMPTY,
     PLUGIN_KEY,
@@ -187,7 +186,8 @@ def test_body_follows_page_section_order(full: Built) -> None:
         assert description < content.index("Skip the check") < exit_status
 
 
-SECTION_TITLES = ["使用例", "引数", "出力", "エラー"]
+# 引数は MCP の項目、入力は action の項目の節。
+SECTION_TITLES = ["使用例", "引数", "入力", "出力", "エラー"]
 
 
 def _heading(title: str) -> str:
@@ -196,10 +196,11 @@ def _heading(title: str) -> str:
 
 @allure.title("節は決まった順に並び、内容のない節は表示しない")
 def test_sections_appear_in_order_and_empty_ones_are_left_out(full: Built) -> None:
-    """内容のある項目と、ほとんど空の項目の本文を比較した場合のテストです。使用例・引数・出力・エラーの見出しが順に並び、空の項目では「ありません」の文や、前提条件・環境変数・使用例の見出しが表示されないことを確認します。"""
+    """内容のある項目と、ほとんど空の項目の本文を比較した場合のテストです。action の項目で使用例・入力・出力・エラーの見出しが順に並び、空の項目では「ありません」の文や、前提条件・環境変数・使用例の見出しが表示されないことを確認します。"""
     with allure.step("節の並びと空の節の有無を比べる"):
         content: str = full.needs["SM-ONE"]["content"]
-        positions = [content.index(_heading(title)) for title in SECTION_TITLES]
+        titles = ["使用例", "入力", "出力", "エラー"]
+        positions = [content.index(_heading(title)) for title in titles]
         assert positions == sorted(positions)
         body: str = full.needs["SM-TWO"]["content"]
         assert "ありません。" not in body
@@ -224,7 +225,7 @@ def test_prerequisites_join_the_description_and_environment_is_not_shown(full: B
 def test_page_headings_run_through_requirements_in_one_order(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    """ページを生成して、各ページの `h2` の見出しを読んだ場合のテストです。使用例・引数・出力・エラーのうち存在する節が順に並び、最後に「機能要件」が置かれることを確認します。"""
+    """ページを生成して、各ページの `h2` の見出しを読んだ場合のテストです。使用例・引数・入力・出力・エラーのうち存在する節が順に並び、最後に「機能要件」が置かれることを確認します。"""
     with allure.step("ドキュメントをビルドする"):
         built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
     with allure.step("ページの見出しの並びを比べる"):
@@ -240,14 +241,12 @@ def test_page_headings_run_through_requirements_in_one_order(
         )
 
 
-@allure.title(
-    "エラーの表は、エラー名と終了コードを含む 3 つの列を持ち、エラーがなければ表を表示しない"
-)
-def test_failures_table_always_has_three_columns(full: Built) -> None:
-    """エラーのある項目とない項目の本文を比較した場合のテストです。エラーのある項目にはエラー名と終了コードの列が含まれ、エラーのない項目には表も「エラー」の見出しも含まれないことを確認します。"""
-    with allure.step("エラーの表の列を比べる"):
+@allure.title("エラーのある項目はエラーの表を表示し、エラーがなければ表を表示しない")
+def test_failures_table_is_shown_only_with_errors(full: Built) -> None:
+    """エラーのある項目とない項目の本文を比較した場合のテストです。エラーのある項目にはエラー名の列とエラーの種別が含まれ、エラーのない項目には表も「エラー」の見出しも含まれないことを確認します。"""
+    with allure.step("エラーの表の有無を比べる"):
         filled: str = full.needs["SM-ONE"]["content"]
-        assert "エラー名" in filled and "終了コード" in filled
+        assert "エラー名" in filled and "終了コード" not in filled
         assert "target-missing" in filled
         empty: str = full.needs["SM-TWO"]["content"]
         assert "エラー名" not in empty
@@ -955,47 +954,38 @@ def test_mcp_without_tool_fields_says_there_is_nothing() -> None:
         assert "項目名" not in text
 
 
-_BOTH = {"cli": {"path": ["sample", "run"]}, "mcp": {"tool": "sample_tool"}}
-_CLI_REFERENCE = {"examples": [{"run": "pecot sample run x --force", "note": "x を動かします。"}]}
-
-
-def _both_entry(**extra: Any) -> dict[str, Any]:
-    """CLI と MCP の両方の面を持つ項目。extra に cli_reference などを足す。"""
+def _tool_entry() -> dict[str, Any]:
+    """引数・エラー・使用例を持つ MCP の項目。"""
     return {
         **_mcp_entry({"branch": {"type": "string"}}),
-        "surfaces": _BOTH,
         "input": {
             "type": "object",
             "properties": {"target": {"type": "string"}, "force": {"type": "boolean"}},
             "required": ["target"],
         },
-        "cli": {"positional": ["target"], "flags": {"force": ["--force", "-f"]}},
-        "exit_status": [{"kind": "target-missing", "code": 2, "when": "対象がありません。"}],
+        "exit_status": [{"kind": "target-missing", "when": "対象がありません。"}],
         "examples": [{"arguments": {"target": "x", "force": True}, "note": "x を動かします。"}],
-        **extra,
     }
 
 
 @allure.title("MCP の項目の出力には、標準出力の文を表示しない")
 def test_stdout_sentence_is_not_in_the_output_of_mcp_entries() -> None:
-    """MCP だけの項目と、CLI と MCP の両方を持つ項目の出力を変換した場合のテストです。`cli_reference` の有無にかかわらず、標準出力に関する文が含まれないことを確認します。"""
+    """MCP の項目の出力を変換した場合のテストです。引数やエラーの有無にかかわらず、出力の節に標準出力に関する文が含まれないことを確認します。"""
     with allure.step("標準出力の文が無いことを比べる"):
         entry = _mcp_entry({"branch": {"type": "string"}})
         assert "標準出力" not in _output_section(entry)
-        assert "標準出力" not in _output_section(_both_entry())
-        assert "標準出力" not in _output_section(_both_entry(cli_reference=_CLI_REFERENCE))
+        assert "標準出力" not in _output_section(_tool_entry())
 
 
 @allure.title("MCP の引数は `mcparg` で表し、使用例は `tools/call` の引数の JSON にする")
 def test_mcp_arguments_use_mcparg_and_examples_are_tools_call_params() -> None:
-    """CLI と MCP の両方を持つ項目を `render_sections` で変換した場合のテストです。引数の節に `mcparg` が使われ、`option` やフラグが含まれず、使用例が `name` と `arguments` を持つ JSON になることを確認します。"""
+    """MCP の項目を `render_sections` で変換した場合のテストです。引数の節に `mcparg` が使われ、使用例が `name` と `arguments` を持つ JSON になることを確認します。"""
     with allure.step("節を描く"):
-        sections = dict(render_sections(_both_entry()))
+        sections = dict(render_sections(_tool_entry()))
     with allure.step("引数と使用例の書き方を比べる"):
         arguments = "\n".join(sections["引数"])
         assert ".. mcparg:: target" in arguments and ".. mcparg:: force" in arguments
         assert ".. option::" not in arguments
-        assert "--force" not in arguments
         examples = "\n".join(sections["使用例"])
         assert ".. code-block:: json" in examples
         body = examples.split(".. code-block:: json", 1)[1]
@@ -1005,23 +995,15 @@ def test_mcp_arguments_use_mcparg_and_examples_are_tools_call_params() -> None:
         }
 
 
-@allure.title("終了コードの列とコマンドの節は、`cli_reference` がある場合だけ表示する")
-def test_exit_code_column_and_command_section_are_only_for_cli_reference() -> None:
-    """`cli_reference` の有無で、CLI と MCP の両方を持つ項目を変換した場合のテストです。ない場合は終了コードの列とコマンドの節がなく、ある場合は使い方、`option`、使用例、標準出力の文を含むコマンドの節が最後に表示されることを確認します。"""
-    with allure.step("終了コードの列とコマンドの節を比べる"):
-        plain = dict(render_sections(_both_entry()))
-        assert "終了コード" not in "\n".join(plain["エラー"])
-        assert COMMAND_TITLE not in plain
-        referenced = dict(render_sections(_both_entry(cli_reference=_CLI_REFERENCE)))
-        assert "終了コード" in "\n".join(referenced["エラー"])
-        command = "\n".join(referenced[COMMAND_TITLE])
-        assert "pecot sample run <target> [options]" in command
-        assert ".. program:: pecot sample run" in command
-        assert ".. option:: --force, -f" in command and ".. option:: <target>" in command
-        assert "pecot sample run x --force" in command
-        assert "標準出力には何も出しません。" in command
-        titles = [title for title, _ in render_sections(_both_entry(cli_reference=_CLI_REFERENCE))]
-        assert titles[-1] == COMMAND_TITLE
+@allure.title("エラーの表は、エラー名と説明の 2 つの列を持ち、項目の最後の節になる")
+def test_failures_table_has_two_columns_and_is_the_last_section() -> None:
+    """エラーを持つ MCP の項目を変換した場合のテストです。エラーの表がエラー名と説明の列だけを持ち、エラーの節が最後に表示されることを確認します。"""
+    with allure.step("エラーの表と節の並びを比べる"):
+        sections = render_sections(_tool_entry())
+        failures = "\n".join(dict(sections)["エラー"])
+        assert "エラー名" in failures and "target-missing" in failures
+        assert "終了コード" not in failures
+        assert [title for title, _ in sections][-1] == "エラー"
 
 
 def _action_entry(**extra: Any) -> dict[str, Any]:
@@ -1058,7 +1040,7 @@ def test_action_inputs_use_actioninput_and_examples_are_workflow_steps() -> None
 
 @allure.title("action の出力は、ログと action の outputs を表示し、終了コードを表示しない")
 def test_action_output_has_the_log_and_the_outputs_and_no_exit_code() -> None:
-    """`outputs` を持つ action の項目を変換した場合の、出力とエラーの節のテストです。ログの説明と `action の outputs` の表を表示し、終了コードとコマンドの節を表示しないことを確認します。"""
+    """`outputs` を持つ action の項目を変換した場合の、出力とエラーの節のテストです。ログの説明と `action の outputs` の表を表示し、終了コードを表示しないことを確認します。"""
     with allure.step("outputs を持つ action の節を描く"):
         sections = dict(
             render_sections(_action_entry(action={"outputs": {"proceed": "Whether to go on"}}))
@@ -1068,7 +1050,6 @@ def test_action_output_has_the_log_and_the_outputs_and_no_exit_code() -> None:
         assert "動かした結果を、ログに 1 行ずつ出します。" in output
         assert "action の outputs" in output and "``proceed``" in output
         assert "終了コード" not in "\n".join(sections["エラー"])
-        assert COMMAND_TITLE not in sections
 
 
 @allure.title("定義書の場所は、targets.json に root があればそこを、無ければ plugins の下を指す")
@@ -1087,36 +1068,6 @@ def test_interface_dir_follows_the_root_in_targets_json(tmp_path: Path) -> None:
         assert interface_dir(tmp_path, "acts") == tmp_path / "acts" / "interface"
         assert interface_dir(tmp_path, "p") == tmp_path / "plugins" / "p" / "interface"
         assert interface_plugins(tmp_path) == ["acts", "p"]
-
-
-@allure.title("CLI だけのオプションは、説明を表示し、MCP の引数には含めない")
-def test_cli_only_options_show_their_description_and_are_not_mcp_arguments() -> None:
-    """`only` で CLI だけのオプションを指定した項目を変換した場合のテストです。そのオプションが引数の節に含まれず、コマンドの節に手書きの説明が表示され、MCP の引数に対応する旨の文は付かないことを確認します。"""
-    with allure.step("節を描く"):
-        entry = _both_entry(
-            cli={
-                "positional": ["target"],
-                "flags": {"force": ["--force", "-f"], "dry_run": ["--dry-run", "-n"]},
-                "only": {"dry_run": {"type": "boolean"}},
-            },
-            cli_reference={
-                **_CLI_REFERENCE,
-                "options": {"dry_run": "何も書かずに、予定を出します。"},
-            },
-        )
-        sections = dict(render_sections(entry))
-    with allure.step("オプションの説明を比べる"):
-        assert "dry_run" not in "\n".join(sections["引数"])
-        command = sections[COMMAND_TITLE]
-        at = command.index(".. option:: --dry-run, -n")
-        assert command[at : at + 4] == [
-            ".. option:: --dry-run, -n",
-            "",
-            "   何も書かずに、予定を出します。",
-            "",
-        ]
-        assert "引数 \\ ``dry_run``\\  に当たります。" not in "\n".join(command)
-        assert "   引数 \\ ``force``\\  に当たります。" in command
 
 
 @allure.title("MCP の出力は、プラグインの共通の項目の節へのリンクを表示する")
@@ -1224,7 +1175,7 @@ def test_conf_lists_the_interface_plugins_on_the_site(monkeypatch: pytest.Monkey
 def test_tool_page_title_is_the_display_name_with_the_tool_name_below(
     tmp_path: Path, capfd: pytest.CaptureFixture[str]
 ) -> None:
-    """ページを生成してビルドした場合のテストです。表示名のあるページでは題が表示名になってツール名が添えられ、表示名のない CLI だけの項目では `name` が題になり、添え書きが含まれないことを確認します。"""
+    """ページを生成してビルドした場合のテストです。表示名のあるページでは題が表示名になってツール名が添えられ、表示名のない action の項目では `name` が題になり、添え書きが含まれないことを確認します。"""
     with allure.step("ドキュメントをビルドする"):
         built = build(tmp_path, capfd, files={"index.rst": PAGES_INDEX}, pages=True)
     with allure.step("ページの題を比べる"):
@@ -1232,7 +1183,7 @@ def test_tool_page_title_is_the_display_name_with_the_tool_name_below(
         page = built.html("_generated/sample/sample_two.html")
         assert re.search(r"<h1>Sample two<a ", page)
         assert re.search(r'<p class="iface-tool-name">.*sample_two', page)
-        # 表示名の無い CLI だけの項目は、name を題にして、添え書きを出さない
+        # 表示名の無い action の項目は、name を題にして、添え書きを出さない
         one = built.html("_generated/sample/one-run.html")
         assert re.search(r"<h1>one run<a ", one)
         assert "iface-tool-name" not in one

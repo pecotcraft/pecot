@@ -31,7 +31,7 @@ describe('coverage', () => {
     const include = typeof project === 'object' && 'test' in project ? project.test.include ?? [] : []
     const matched = include.flatMap(pattern => globSync(pattern, { cwd: cliRoot })).filter(file => file.startsWith('tests/mcp/'))
     expect(matched).toContain('tests/mcp/tools-list.test.ts')
-    expect(matched).toContain('tests/mcp/worktree-link.test.ts')
+    expect(matched).toContain('tests/mcp/resources.test.ts')
   })
 
   it('skills project の include が、tests/skills/ の実在するテストに当たる', async () => {

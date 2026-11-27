@@ -537,7 +537,35 @@ def test_sha_flow(scene: Scene, dry_run: str, sha_kind: str, expected: int) -> N
         assert _sha_flow(scene, dry_run, sha) == expected
 
 
-# ---- runCmd（stub の pecot・pnpm・gh と本物の git・release-land.sh で動かす） ----
+@allure.title(
+    "preflight は、App のトークンと checkout の後、コンテナを起こす前に、release-check の action で動く"
+)
+def test_preflight_runs_release_check_action_before_the_container() -> None:
+    """`release.yml` の `Preflight` の step のテストです。`./actions/release-check` を使い、App のトークンの生成と `Checkout` の後、`Start dev container` の前に置かれることを確認します。App のトークンを渡し、`preflight.log` に出力を残すことも確認します。"""
+    with allure.step("step の並びと preflight の step を読む"):
+        names = [s.get("name") for s in _steps()]
+        step = _step("Preflight")
+    with allure.step("順序と、action・入力・ログの置き場を確かめる"):
+        assert names.index("Generate GitHub App token") < names.index("Preflight")
+        assert names.index("Checkout") < names.index("Preflight")
+        assert names.index("Preflight") < names.index("Start dev container")
+        assert step["uses"] == "./actions/release-check"
+        assert step["with"]["token"] == "${{ steps.app-token.outputs.token }}"
+        assert step["with"]["log-file"] == ".pecot/tmp/release/preflight.log"
+        assert "continue-on-error" not in step
+
+
+@allure.title("release の runCmd は、preflight を実行しない")
+def test_run_cmd_has_no_preflight() -> None:
+    """`Run release` の `runCmd` のテストです。preflight は action の step が行うので、`runCmd` に `preflight` が含まれないことを確認します。"""
+    with allure.step("runCmd を読む"):
+        cmd = _run_cmd()
+    with allure.step("preflight と pecot の起動ファイルを呼ばないことを確かめる"):
+        assert "preflight" not in cmd
+        assert "bin/pecot" not in cmd
+
+
+# ---- runCmd（stub の pnpm・gh と本物の git・release-land.sh で動かす） ----
 
 # nx の push は、フックを飛ばす git の引数を変数で組み立てて nx と同じ形にする。
 _NX_STUB = """#!/usr/bin/env bash
@@ -573,10 +601,6 @@ class RunScene(Scene):
         self._script(self.stubs / "pnpm", _NX_STUB)
         self._script(self.stubs / "gh", "#!/usr/bin/env bash\nexit 0\n")
         self._script(self.stubs / "git", _GIT_SHIM.format(real=_REAL_GIT))
-        self._script(
-            self.work / "plugins/pecot-workflow/bin/pecot",
-            "#!/usr/bin/env bash\necho preflight ok\n",
-        )
         land = self.work / ".githooks/scripts/release-land.sh"
         land.parent.mkdir(parents=True)
         shutil.copy(_LAND, land)
@@ -614,12 +638,12 @@ def run_scene(tmp_path: Path) -> RunScene:
 
 @allure.title("dry-run のとき、`runCmd` は計画を作るだけで、main には何も反映しない")
 def test_run_cmd_dry_run_only_plans(run_scene: RunScene) -> None:
-    """偽の `pecot`・`pnpm`・`gh` を使って `runCmd` を dry-run で実行した場合のテストです。`preflight.log` と `nx.log` が作られ、`land.log` は作られず、origin の main とブランチが変わらないことを確認します。"""
+    """偽の `pnpm`・`gh` を使って `runCmd` を dry-run で実行した場合のテストです。`nx.log` が作られ、`land.log` は作られず、origin の main とブランチが変わらないことを確認します。"""
     with allure.step("dry-run で release の run コマンドを動かす"):
         result = run_scene.run_cmd(dry_run=True)
     with allure.step("plan を出すだけで、land と push は行わないことを確かめる"):
         assert result.returncode == 0, result.stderr
-        assert (run_scene.logs / "preflight.log").is_file()
+        assert not (run_scene.logs / "preflight.log").exists()
         assert "dry-run plan" in read_output(run_scene.logs / "nx.log")
         assert not (run_scene.logs / "land.log").exists()
         assert run_scene.origin_ref("refs/heads/main") == run_scene.base
@@ -699,6 +723,7 @@ def _summary(tmp_path: Path, logs: dict[str, str], **env: str) -> str:
         DRY_RUN="false",
         SHA_INPUT_OUTCOME="success",
         SHA_VERIFY_OUTCOME="success",
+        PREFLIGHT_OUTCOME="success",
         UP_OUTCOME="success",
         RUN_OUTCOME="success",
         GITHUB_STEP_SUMMARY=str(out),
@@ -780,6 +805,25 @@ def test_summary_release_failure_messages(tmp_path: Path) -> None:
         assert _msg("MSG_RELEASE_FAILED") in _summary(tmp_path, {}, RUN_OUTCOME="failure")
         plan = _summary(tmp_path / "b", {}, RUN_OUTCOME="failure", DRY_RUN="true")
         assert _msg("MSG_PLAN_FAILED") in plan
+
+
+@allure.title("preflight が失敗したとき、サマリーは失敗を告げ、preflight のログを details に載せる")
+def test_summary_preflight_failure(tmp_path: Path) -> None:
+    """`Preflight` の step が失敗し、後の step が飛ばされた場合の `Write job summary` のテストです。メッセージが「進みませんでした」でなく失敗の文になり、`preflight` のログの warning が `preflight warnings` に載ることを確認します。"""
+    with allure.step("preflight の失敗で、後の step が飛ばされた状態の要約を作る"):
+        text = _summary(
+            tmp_path,
+            {"preflight": "warning: w\n  detail\nerror: x\n"},
+            DRY_RUN="true",
+            PREFLIGHT_OUTCOME="failure",
+            UP_OUTCOME="skipped",
+            RUN_OUTCOME="skipped",
+        )
+    with allure.step("失敗の文と、preflight のログが出ることを確かめる"):
+        assert _msg("MSG_PLAN_FAILED") in text
+        assert _msg("MSG_NOT_RUN") not in text
+        assert "### preflight warnings" in text
+        assert "<details><summary>preflight</summary>" in text
 
 
 @allure.title("ログが非常に大きくても、サマリーは 1 MiB 未満に収める")

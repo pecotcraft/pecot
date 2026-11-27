@@ -341,7 +341,7 @@ describe('syncProjectConfig', () => {
       {
         name: 'ワークフローのフィールドが存在しない',
         rules: [listProjects('board'), projectFields([statusField])],
-        message: 'error: project "board" has no pecot-status field\n  required field: pecot-status (Backlog/Pending/Ready/Active/In Review/Archived)\n  run: pecot project init acme board --host github.com\n',
+        message: 'error: project "board" has no pecot-status field\n  required field: pecot-status (Backlog/Pending/Ready/Active/In Review/Archived)\n  call project_init with owner: "acme", name: "board", host: "github.com"\n',
       },
       {
         name: 'ワークフローのフィールドで必須の選択肢が不足している',

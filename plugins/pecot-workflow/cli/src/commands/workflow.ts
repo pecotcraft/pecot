@@ -1,7 +1,6 @@
 // workflow install・workflow doctor。導入先のリポに雛形を置き、版と要る設定を確かめる。
 import { z } from 'zod'
 
-import { formatHinted } from '@pecot/workflow-core/domain/command-hint.js'
 import { evaluateRequirements, findWorkflowTemplate, isOutdated, npxWorkflowMcpLines, pecotActionReferences, pinPecotActions, readTemplateVersion, userLines, hasPecotActionStep, WORKFLOW_TEMPLATES } from '@pecot/workflow-core/domain/workflow-template.js'
 import type { SettingList, SettingNames, WorkflowTemplate } from '@pecot/workflow-core/domain/workflow-template.js'
 import { gitToplevel, primaryRemoteRepository } from '@pecot/workflow-core/infra/git.js'
@@ -10,10 +9,9 @@ import { GitHubAPIError, GitHubNotFoundError } from '@pecot/workflow-core/infra/
 import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
 import type { ActionsScope } from '@pecot/workflow-core/infra/github/repos.js'
 import { readBundledWorkflow, readInstalledWorkflow, writeWorkflow } from '../infra/workflow-file.js'
-import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import { cliOnlyText, commandHint, hinted, inputNameHint, joinHinted } from '@pecot/workflow-core/commands-shared/command-hint.js'
-import type { HintedText } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { commandHint, hinted, inputNameHint } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import { stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { directorySchema } from './directory-option.js'
 import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
@@ -75,35 +73,21 @@ const INSTALL_OUTPUT = z.strictObject({
 
 const INSTALL_PATH = ['workflow', 'install']
 
-function nextSteps(template: Readonly<WorkflowTemplate>): HintedText {
-  const settings = template.requirements.filter(requirement => requirement.type === 'anyOf').map(requirement => `set ${requirement.missing} in Settings > Secrets and variables > Actions`)
-  const steps = [...template.claudeApp ? ['install the Claude GitHub App on the repository'] : [], ...settings]
-  return joinHinted([
-    'next:',
-    ...steps.map((step, index) => `  ${String(index + 1)}. ${step}`),
-    hinted`  ${String(steps.length + 1)}. check the settings with: ${commandHint(['workflow', 'doctor'], { name: template.name })}`,
-  ])
-}
-
-const workflowInstallCommand = defineCommand({
-  path: ['workflow', 'install'],
+const workflowInstallCommand = defineTool({
+  name: 'workflow_install',
   title: 'Install workflow template',
   description: 'Write a GitHub Actions workflow template of pecot into the repository',
   input: z.strictObject({
     name: NAME_INPUT,
     check: z.boolean().default(false).describe('Write nothing; check that the file in the repository has the version of the bundled template'),
     force: z.boolean().default(false).describe('Overwrite the file when it already exists'),
-    dry_run: z.boolean().default(false).describe('Show what would be written without writing anything'),
     directory: DIRECTORY_INPUT,
   }),
   output: INSTALL_OUTPUT,
-  positional: ['name'],
-  shortFlags: { dry_run: '-n', directory: '-D' },
-  interactive: false,
   run: async (input, io) => {
-    const out = createOutput<z.input<typeof INSTALL_OUTPUT>>(input.dry_run, io)
-    if (input.check && (input.force || input.dry_run)) {
-      const message = hinted`${inputNameHint(INSTALL_PATH, 'check')} cannot be used with ${inputNameHint(INSTALL_PATH, 'force')}${cliOnlyText(hinted` or ${inputNameHint(INSTALL_PATH, 'dry_run')}`)}`
+    const out = createOutput<z.input<typeof INSTALL_OUTPUT>>(false, io)
+    if (input.check && input.force) {
+      const message = hinted`${inputNameHint(INSTALL_PATH, 'check')} cannot be used with ${inputNameHint(INSTALL_PATH, 'force')}`
       return stopWith(out, message, 'invalid-input', USAGE_EXIT_CODE)
     }
     const template = requireTemplate(out, input.name)
@@ -134,14 +118,8 @@ const workflowInstallCommand = defineCommand({
     const operation: Operation = { verb: installed === undefined ? 'create' : 'update', target: template.destination }
     const result = { ...base, ...installed !== undefined && { removedLines: [...removed] } }
     const content = await pinnedTemplate(out, bundled)
-    if (input.dry_run) {
-      out.planned(operation)
-      out.result({ ...result, written: false })
-      return 0
-    }
     writeWorkflow(root, template, content)
     out.done(operation)
-    out.data(formatHinted(nextSteps(template), io.surface ?? 'cli'))
     out.result({ ...result, written: true })
     return 0
   },
@@ -197,8 +175,8 @@ async function readSettingNames(client: GitHubClient, owner: string, repository:
   return { secrets: mergeNames(secrets), variables: mergeNames(variables) }
 }
 
-const workflowDoctorCommand = defineCommand({
-  path: ['workflow', 'doctor'],
+const workflowDoctorCommand = defineTool({
+  name: 'workflow_doctor',
   title: 'Check workflow setup',
   description: 'Check that the repository has the workflow file and the settings it needs',
   input: z.strictObject({
@@ -206,9 +184,6 @@ const workflowDoctorCommand = defineCommand({
     directory: DIRECTORY_INPUT,
   }),
   output: DOCTOR_OUTPUT,
-  positional: ['name'],
-  shortFlags: { directory: '-D' },
-  interactive: false,
   run: async (input, io) => {
     const out = createOutput<z.input<typeof DOCTOR_OUTPUT>>(false, io)
     const template = requireTemplate(out, input.name)
@@ -239,4 +214,4 @@ const workflowDoctorCommand = defineCommand({
   },
 })
 
-export const WORKFLOW_COMMANDS: readonly CommandDefinition[] = [workflowInstallCommand, workflowDoctorCommand]
+export const WORKFLOW_TOOLS: readonly ToolDefinition[] = [workflowInstallCommand, workflowDoctorCommand]

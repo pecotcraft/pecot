@@ -1,8 +1,8 @@
 # アクティブなプロジェクトがあり、GraphQL が Issue と機能の値を返す。GetIssueSlim を 1 回受ける。
 id: issue-show-ok
-command:
-  path: [issue, show]
-  args: [acme/demo/7]
+tool: issue_show
+arguments:
+  issue_ref: acme/demo/7
 setup:
   repo:
     files:

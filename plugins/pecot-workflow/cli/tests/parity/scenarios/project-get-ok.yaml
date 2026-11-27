@@ -1,8 +1,8 @@
 # 設定済みの値を表示する。
 id: project-get-ok
-command:
-  path: [project, get]
-  args: [aggregation_repo]
+tool: project_get
+arguments:
+  key: aggregation_repo
 setup:
   repo:
     files:

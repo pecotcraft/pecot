@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "Usage: pecot project set [OPTIONS] {key} {value}\nTry 'pecot project set --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing argument 'value'.                                                    │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
-  "exitCode": 2,
+  "isError": true,
+  "text": "invalid input: value: Invalid input: expected string, received undefined",
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid input: value: Invalid input: expected string, received undefined"
+  },
+  "stderr": "",
   "requests": [],
   "files": {}
 }

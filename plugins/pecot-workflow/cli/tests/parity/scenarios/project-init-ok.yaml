@@ -1,8 +1,10 @@
 # フィールドが 1 つも無いプロジェクトに init する。CreateProjectField を 1 回（pecot-status）受け、設定ファイルを作る。
 id: project-init-ok
-command:
-  path: [project, init]
-  args: [acme, board, --host, ghes.example.com]
+tool: project_init
+arguments:
+  host: ghes.example.com
+  owner: acme
+  name: board
 setup:
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token

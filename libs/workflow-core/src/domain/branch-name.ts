@@ -1,4 +1,4 @@
-// ブランチ名の読み取り。pecot session start が作る名前は、末尾が `/Issue番号` になる。
+// ブランチ名の読み取り。session_start が作る名前は、末尾が `/Issue番号` になる。
 import { parsePythonInteger, ValidationFailure } from './python-format.js'
 import { createIssueReference } from './reference-parser.js'
 import type { IssueReference } from './reference-parser.js'

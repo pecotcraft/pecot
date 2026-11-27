@@ -1,7 +1,36 @@
 {
-  "stdout": "## PR #21 feat(demo): #12 見本の変更\n\n**State:** OPEN | **Draft** | **Mergeable:** MERGEABLE | **Comments:** 2\n\n**Branch:** `feat/demo/12` → `main`\n\n**Closing Issues:**\n  - #12 見本の Issue\n\n**Referenced Issues:**\n  - #3\n\n**Reviews:**\n  - reviewer: APPROVED\n\n---\n\n本文の 1 行目\n\nRefs #3\n\n",
+  "isError": false,
+  "text": "## PR #21 feat(demo): #12 見本の変更",
+  "structuredContent": {
+    "number": 21,
+    "state": "OPEN",
+    "title": "feat(demo): #12 見本の変更",
+    "body": "本文の 1 行目\n\nRefs #3\n",
+    "head_ref": "feat/demo/12",
+    "base_ref": "main",
+    "is_draft": true,
+    "mergeable": "MERGEABLE",
+    "comments": 2,
+    "closing_issues": [
+      {
+        "number": 12,
+        "title": "見本の Issue"
+      }
+    ],
+    "referenced_issues": [
+      {
+        "number": 3,
+        "title": ""
+      }
+    ],
+    "reviews": [
+      {
+        "state": "APPROVED",
+        "author": "reviewer"
+      }
+    ]
+  },
   "stderr": "",
-  "exitCode": 0,
   "requests": [
     {
       "type": "graphql",

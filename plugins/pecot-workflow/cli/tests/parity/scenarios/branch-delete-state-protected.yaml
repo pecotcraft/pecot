@@ -1,8 +1,9 @@
 # デフォルトブランチは保護ブランチなので exit 1 で止まる。
 id: branch-delete-state-protected
-command:
-  path: [branch, delete]
-  args: [acme/demo, main]
+tool: branch_delete
+arguments:
+  repo: acme/demo
+  branch: main
 setup:
   repo:
     files:

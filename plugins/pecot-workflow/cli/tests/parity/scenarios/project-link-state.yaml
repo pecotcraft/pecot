@@ -1,8 +1,8 @@
 # owner/repo の形式でない。API の前に exit 1。
 id: project-link-state
-command:
-  path: [project, link]
-  args: [other]
+tool: project_link
+arguments:
+  repo: other
 setup:
   repo:
     files:

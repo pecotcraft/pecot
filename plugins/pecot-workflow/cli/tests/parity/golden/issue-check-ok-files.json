@@ -1,7 +1,35 @@
 {
-  "stdout": "Plan:\n| File | Number | Blocked by | Approach |\n|---|---|---|---|\n| first | 2 | - | alone |\n| second | 3 | first | stack on first |\n\nStackable chains:\n- first -> second\n",
+  "isError": false,
+  "text": "Plan:",
+  "structuredContent": {
+    "plan": [
+      {
+        "file": "first",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      },
+      {
+        "file": "second",
+        "order": 3,
+        "blockedBy": [
+          {
+            "issue": "first",
+            "wait": "stack"
+          }
+        ],
+        "approach": "stack",
+        "stackOn": "first"
+      }
+    ],
+    "stackableChains": [
+      [
+        "first",
+        "second"
+      ]
+    ]
+  },
   "stderr": "",
-  "exitCode": 0,
   "requests": [
     {
       "type": "graphql",

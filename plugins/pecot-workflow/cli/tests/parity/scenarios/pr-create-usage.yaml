@@ -1,8 +1,7 @@
 # モードを決める引数が無い。独自の使用方法を出して exit 1 になる。
 id: pr-create-usage
-command:
-  path: [pr, create]
-  args: []
+tool: pr_create
+arguments: {}
 setup:
   repo:
     branch: feat/demo/12

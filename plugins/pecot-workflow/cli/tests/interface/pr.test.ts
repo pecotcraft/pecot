@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時 root 配下のみ */
-// pr の 3 コマンド（PW-PR-*）を、runCli をプロセス内で呼んで確かめる。
+// pr の 3 つのツール（PW-PR-*）を、ツールをプロセス内で呼んで確かめる。
 // GitHub は偽サーバ、git は一時リポ（origin は bare）、設定は一時ディレクトリのファイルにする。
 import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
@@ -22,7 +22,7 @@ import type { TargetSpec } from '../../../../../libs/workflow-core/tests/_helper
 import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
-import { COMMANDS } from '../../src/commands/registry.js'
+import { TOOLS } from '../../src/commands/registry.js'
 import { PecotError } from '@pecot/workflow-core/domain/errors.js'
 import { compareStrings } from '@pecot/workflow-core/domain/python-format.js'
 import { templateFile } from '../../src/infra/template-store.js'
@@ -137,9 +137,9 @@ function lowerPullRequest(state: string): Record<string, unknown> {
 }
 
 // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの応答は入れ子が深く、読むだけ
-function lowerPullRequests(nodes: readonly Record<string, unknown>[], times = 1): ResponseRule {
+function lowerPullRequests(nodes: readonly Record<string, unknown>[]): ResponseRule {
   const data = { repository: { pullRequests: { pageInfo: { hasNextPage: false }, nodes } } }
-  return graphql('ListPullRequestsByHead', data, { variables: { headRefName: LOWER }, times })
+  return graphql('ListPullRequestsByHead', data, { variables: { headRefName: LOWER }, times: 1 })
 }
 
 const FORK_OWNER = 'someone'
@@ -153,8 +153,8 @@ function addForkRemote(workspace: Readonly<Workspace>, host = HOST): void {
   workspace.git(['remote', 'add', 'fork', `git@${host}:${FORK_OWNER}/${REPOSITORY}.git`])
 }
 
-function forkArguments(): string[] {
-  return messageArguments(['--head', FORK_HEAD], BODY_WITHOUT_REFERENCE)
+function forkArguments(): Record<string, unknown> {
+  return messageArguments({ head: FORK_HEAD }, BODY_WITHOUT_REFERENCE)
 }
 
 function commitFile(workspace: Readonly<Workspace>, file: string, content: string): void {
@@ -215,7 +215,7 @@ const STACKED_CHECK_ROWS: readonly { readonly name: string, readonly scene: Dive
 const DIVERGED_FIX = `git pull --rebase, or ${['git', 'push', '--force-with-lease'].join(' ')} if you rewrote pushed commits`
 
 const STACKED_CREATE_ROWS: readonly { readonly name: string, readonly scene: DivergeScene, readonly expected: string }[] = [
-  { name: '親ブランチが動き、remote の子ブランチがその上にスタックし直された', scene: 'moved', expected: 'pecot pr restack' },
+  { name: '親ブランチが動き、remote の子ブランチがその上にスタックし直された', scene: 'moved', expected: 'pr_restack' },
   { name: '親ブランチが動かないまま手元だけを書き換えた', scene: 'amended', expected: DIVERGED_FIX },
 ]
 
@@ -247,8 +247,8 @@ function divergeStacked(workspace: Readonly<Workspace>, scene: DivergeScene): vo
 
 const UNREADABLE_LOWER_RULE: ResponseRule = { match: { operation: 'ListPullRequestsByHead' }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
 
-function stackedArguments(extra: readonly string[] = [], title = TITLE): string[] {
-  return ['pr', 'create', '-m', VALID_BODY, '-t', title, '-b', LOWER, '-r', 'acme/demo', '--screenshot', SCREENSHOT, ...extra]
+function stackedArguments(extra: Readonly<Record<string, unknown>> = {}, title = TITLE): Record<string, unknown> {
+  return { message: VALID_BODY, title, base: LOWER, repo: 'acme/demo', screenshot: SCREENSHOT, ...extra }
 }
 
 // 待っている Issue（#12 を前提にする #13。ボードでは Blocked）
@@ -293,8 +293,8 @@ function pushedBranch(extra: Readonly<WorkspaceOptions> = {}): Promise<Workspace
   return openWorkspace({ branch: BRANCH, branches: [{ name: BRANCH }], ...extra })
 }
 
-function messageArguments(extra: readonly string[] = [], body = VALID_BODY): string[] {
-  return ['pr', 'create', '-m', body, '-t', TITLE, '-b', 'main', '-r', 'acme/demo', '--screenshot', SCREENSHOT, ...extra]
+function messageArguments(extra: Readonly<Record<string, unknown>> = {}, body = VALID_BODY): Record<string, unknown> {
+  return { message: body, title: TITLE, base: 'main', repo: 'acme/demo', screenshot: SCREENSHOT, ...extra }
 }
 
 interface FileOptions {
@@ -331,7 +331,7 @@ async function callToolAt(directory: string, name: string, arguments_: Readonly<
   const previous = process.cwd()
   process.chdir(directory)
   try {
-    return await callToolOnce(COMMANDS, name, arguments_)
+    return await callToolOnce(TOOLS, name, arguments_)
   }
   finally {
     process.chdir(previous)
@@ -346,23 +346,23 @@ const MESSAGE_ARGUMENTS = { message: VALID_BODY, title: TITLE, base: 'main', rep
 const MESSAGE_WITHOUT_REPOSITORY = { message: VALID_BODY, title: TITLE, base: 'main', screenshot: SCREENSHOT }
 const CREATED = { head: BRANCH, base: 'main', title: TITLE, number: 21, inReview: 12, moves: [], url: PULL_URL }
 
-describe('pr create', () => {
+describe('pr_create', () => {
   it('default のテンプレのファイルで base を空のまま打つと、develop_branch を base にして PR を作る', async (context) => {
     await verifies(context, 'PW-PR-CREATE-03')
-    await explains('ファイルで `base` を空にした場合の、`pr create` のテストです。設定の `develop_branch` を `base` に使って PR を作成し、標準出力に PR の URL を出力することを確認します。')
+    await explains('ファイルで `base` を空にした場合の、`pr_create` のテストです。設定の `develop_branch` を `base` に使って PR を作成し、標準出力に PR の URL を出力することを確認します。')
     const workspace = await pushedBranch({ config: { developBranch: 'develop' }, github: SUBMIT_RULES })
     const file = writePrFile(workspace, { base: '' })
-    const result = await workspace.run(['pr', 'create', file])
+    const result = await workspace.run('pr_create', { file: file })
     expect(result).toMatchObject({ code: 0, stdout: `${PULL_URL}\n` })
     expect(postedBody(workspace)).toMatchObject({ base: 'develop', head: BRANCH })
   })
 
   it('default のテンプレのファイルで base を空のまま打ち、develop_branch が無いと、PR を作らずに終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-PR-CREATE-38')
-    await explains('ファイルで `base` を空にして、`develop_branch` が設定されていない場合の、`pr create` のテストです。PR を作成せず、`develop_branch is not set` のエラーを出力して終了コード 1 で終了することを確認します。')
+    await explains('ファイルで `base` を空にして、`develop_branch` が設定されていない場合の、`pr_create` のテストです。PR を作成せず、`develop_branch is not set` のエラーを出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch({ config: NO_DEVELOP_BRANCH, github: SUBMIT_RULES })
     const file = writePrFile(workspace, { base: '' })
-    const result = await workspace.run(['pr', 'create', file])
+    const result = await workspace.run('pr_create', { file: file })
     expect(result.code).toBe(1)
     expect(result.stderr).toMatch(/^error: develop_branch is not set\n/u)
     expect(restRequests(workspace, 'POST')).toStrictEqual([])
@@ -370,20 +370,20 @@ describe('pr create', () => {
 
   it('default のテンプレのファイルで末尾の Closes # を空のまま打つと、head ブランチ名の末尾の番号を入れて PR を作る', async (context) => {
     await verifies(context, 'PW-PR-CREATE-05')
-    await explains('ファイルの末尾の `Closes #` が空の場合の、`pr create` のテストです。head ブランチ名の末尾の番号を補って PR を作成し、本文の末尾を `Closes #12` にすることを確認します。')
+    await explains('ファイルの末尾の `Closes #` が空の場合の、`pr_create` のテストです。head ブランチ名の末尾の番号を補って PR を作成し、本文の末尾を `Closes #12` にすることを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const file = writePrFile(workspace, { body: `${BODY_BEFORE_CLOSES}\nCloses #\n` })
-    const result = await workspace.run(['pr', 'create', file])
+    const result = await workspace.run('pr_create', { file: file })
     expect(result.code).toBe(0)
     expect(postedBody(workspace)['body']).toBe(`${BODY_BEFORE_CLOSES}\nCloses #12`)
   })
 
   it('head ブランチ名の末尾の番号の Issue が Epic のときにファイルで作ると、番号の空いた Closes # の行を消す', async (context) => {
     await verifies(context, 'PW-PR-CREATE-06')
-    await explains('head ブランチ名の末尾の番号の Issue が Epic の場合の、ファイルからの `pr create` のテストです。番号の入っていない `Closes #` の行を本文から削除し、warning を出力することを確認します。')
+    await explains('head ブランチ名の末尾の番号の Issue が Epic の場合の、ファイルからの `pr_create` のテストです。番号の入っていない `Closes #` の行を本文から削除し、warning を出力することを確認します。')
     const workspace = await pushedBranch({ github: [graphql('GetIssueKind', issueKindData({ number: 12, subIssues: 2 })), CREATED_RULE, ...AFTER_CREATE_RULES] })
     const file = writePrFile(workspace, { body: `${BODY_WITH_REFERENCE_ONLY}Closes #\n` })
-    const result = await workspace.run(['pr', 'create', file])
+    const result = await workspace.run('pr_create', { file: file })
     expect(result.code).toBe(0)
     expect(result.stderr).toContain('warning: Issue #12 at the end of the branch is an Epic; Closes not added, and the empty Closes line removed\n')
     expect(postedBody(workspace)['body']).toBe(BODY_WITH_REFERENCE_ONLY.trimEnd())
@@ -391,7 +391,7 @@ describe('pr create', () => {
 
   it('.pecot/state/ の無い clone で紐づいたブランチにいるときファイルで作ると、Closes にブランチの番号を入れる', async (context) => {
     await verifies(context, 'PW-PR-CREATE-68')
-    await explains('`.pecot/state/` が存在しない clone で、Issue と紐づいたブランチを使用している場合の、ファイルからの `pr create` のテストです。ブランチ名の末尾の番号を `Closes` へ補い、PR を作成することを確認します。')
+    await explains('`.pecot/state/` が存在しない clone で、Issue と紐づいたブランチを使用している場合の、ファイルからの `pr_create` のテストです。ブランチ名の末尾の番号を `Closes` へ補い、PR を作成することを確認します。')
     const workspace = await openWorkspace({
       branches: [{ name: 'feat/demo/34' }],
       github: [prerequisitesRule({ number: 34 }), graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } }), CREATED_RULE, ...IN_REVIEW_RULES],
@@ -401,14 +401,14 @@ describe('pr create', () => {
     cpSync(path.join(workspace.directory, '.pecot', 'config'), path.join(clone, '.pecot', 'config'), { recursive: true })
     expect(existsSync(path.join(clone, '.pecot/state'))).toBe(false)
     const file = writePrFile(workspace, { title: 'feat(demo): #34 見本の変更', body: `${BODY_BEFORE_CLOSES}\nCloses #\n` })
-    const result = await workspace.run(['pr', 'create', file], clone)
+    const result = await workspace.run('pr_create', { file: file }, clone)
     expect(result.code).toBe(0)
     expect(postedBody(workspace)).toMatchObject({ head: 'feat/demo/34', body: `${BODY_BEFORE_CLOSES}\nCloses #34` })
   })
 
   it('別の番号の古い .pecot-active が残っていても読まず、Closes にブランチの番号を入れる', async (context) => {
     await verifies(context, 'PW-PR-CREATE-67')
-    await explains('別の Issue 番号を記録した古い `.pecot-active` が残っている場合の、ファイルからの `pr create` のテストです。その記録は参照せず、ブランチ名の末尾の番号を `Closes` に補うことを確認します。')
+    await explains('別の Issue 番号を記録した古い `.pecot-active` が残っている場合の、ファイルからの `pr_create` のテストです。その記録は参照せず、ブランチ名の末尾の番号を `Closes` に補うことを確認します。')
     const workspace = await openWorkspace({
       branch: 'feat/demo/34',
       branches: [{ name: 'feat/demo/34' }],
@@ -416,68 +416,68 @@ describe('pr create', () => {
       github: [graphql('GetIssueKind', issueKindData({ number: 34 }), { variables: { number: 34 } }), CREATED_RULE],
     })
     const file = writePrFile(workspace, { title: 'feat(demo): #34 見本の変更', body: `${BODY_BEFORE_CLOSES}\nCloses #\n` })
-    const result = await workspace.run(['pr', 'create', file])
+    const result = await workspace.run('pr_create', { file: file })
     expect(result.code).toBe(0)
     expect(postedBody(workspace)['body']).toBe(`${BODY_BEFORE_CLOSES}\nCloses #34`)
   })
 
   it('ファイルを渡すと、フロントマターの値で PR を作る', async () => {
-    await explains('ファイルを指定した場合の、`pr create` のテストです。フロントマターの題・head・base・draft の値で PR を作成し、本文にファイルの節を含めることを確認します。')
+    await explains('ファイルを指定した場合の、`pr_create` のテストです。フロントマターの題・head・base・draft の値で PR を作成し、本文にファイルの節を含めることを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const file = writePrFile(workspace, { title: 'feat(demo): #12 ファイルの題', head: BRANCH })
-    const result = await workspace.run(['pr', 'create', file])
+    const result = await workspace.run('pr_create', { file: file })
     expect(result).toMatchObject({ code: 0, stdout: `${PULL_URL}\n` })
     expect(postedBody(workspace)).toMatchObject({ title: 'feat(demo): #12 ファイルの題', head: BRANCH, base: 'main', draft: false })
     expect(postedBody(workspace)['body']).toContain('## Summary — 見本の変更を取り込む')
   })
 
-  it('ファイルと -m を一緒に渡すと、-m の本文を使わずにファイルから PR を作る', async () => {
-    await explains('ファイルと `-m` を同時に指定した場合の、`pr create` のテストです。`-m` や `-t` の値は使用せず、ファイルの題と本文で PR を作成することを確認します。')
+  it('ファイルと message を一緒に渡すと、message の本文を使わずにファイルから PR を作る', async () => {
+    await explains('ファイルと `message` を同時に指定した場合の、`pr_create` のテストです。`message` や `title` の値は使用せず、ファイルの題と本文で PR を作成することを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const file = writePrFile(workspace, { title: 'feat(demo): #12 ファイルの題' })
-    const result = await workspace.run(['pr', 'create', file, '-m', '別の本文 #12', '-t', '別の題', '-b', 'main'])
+    const result = await workspace.run('pr_create', { file: file, message: '別の本文 #12', title: '別の題', base: 'main' })
     expect(result.code).toBe(0)
     expect(postedBody(workspace)).toMatchObject({ title: 'feat(demo): #12 ファイルの題' })
     expect(postedBody(workspace)['body']).not.toContain('別の本文')
   })
 
-  it('-m に -t と -b を付けて打つと、PR を作る', async () => {
-    await explains('`-m` に `-t` と `-b` を指定した場合の、`pr create` のテストです。指定した題・base・本文で PR を作成し、現在のブランチを head にして PR の URL を出力することを確認します。')
+  it('message に title と base を付けて打つと、PR を作る', async () => {
+    await explains('`message` に `title` と `base` を指定した場合の、`pr_create` のテストです。指定した題・base・本文で PR を作成し、現在のブランチを head にして PR の URL を出力することを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
-    const result = await workspace.run(messageArguments())
+    const result = await workspace.run('pr_create', messageArguments())
     expect(result).toMatchObject({ code: 0, stdout: `${PULL_URL}\n` })
     expect(postedBody(workspace)).toMatchObject({ title: TITLE, base: 'main', head: BRANCH, body: VALID_BODY })
   })
 
-  it('-m で --repo を省くと、設定のリポジトリが 1 つならそのリポジトリに PR を作る', async () => {
-    await explains('`-m` を指定して `--repo` を省略した場合の、`pr create` のテストです。設定のリポジトリが 1 つであれば、そのリポジトリへ PR を作成することを確認します。')
+  it('message で repo を省くと、設定のリポジトリが 1 つならそのリポジトリに PR を作る', async () => {
+    await explains('`message` を指定して `repo` を省略した場合の、`pr_create` のテストです。設定のリポジトリが 1 つであれば、そのリポジトリへ PR を作成することを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
-    const result = await workspace.run(['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', '--screenshot', SCREENSHOT])
+    const result = await workspace.run('pr_create', { message: VALID_BODY, title: TITLE, base: 'main', screenshot: SCREENSHOT })
     expect(result.code).toBe(0)
     expect(restRequests(workspace, 'POST', '/repos/acme/demo/pulls')).toHaveLength(1)
   })
 
-  it('--head を省いて打つと、今のブランチを head にする', async () => {
-    await explains('`--head` を省略した場合の、`pr create` のテストです。現在のブランチを head にして PR を作成することを確認します。')
+  it('head を省いて打つと、今のブランチを head にする', async () => {
+    await explains('`head` を省略した場合の、`pr_create` のテストです。現在のブランチを head にして PR を作成することを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
-    await workspace.run(messageArguments())
+    await workspace.run('pr_create', messageArguments())
     expect(postedBody(workspace)['head']).toBe(BRANCH)
   })
 
-  it('--draft を付けて -m で打つと、ドラフトの PR を作る', async () => {
-    await explains('`-m` に `--draft` を指定した場合の、`pr create` のテストです。ドラフトの PR を作成し、`created: draft PR` の行を標準エラーに出力することを確認します。')
+  it('draft を付けて message で打つと、ドラフトの PR を作る', async () => {
+    await explains('`message` に `draft` を指定した場合の、`pr_create` のテストです。ドラフトの PR を作成し、`created: draft PR` の行を標準エラーに出力することを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
-    const result = await workspace.run(messageArguments(['--draft']))
+    const result = await workspace.run('pr_create', messageArguments({ draft: true }))
     expect(result.stderr).toContain(`created: draft PR acme/demo ${BRANCH} -> main: ${TITLE}\n`)
     expect(postedBody(workspace)['draft']).toBe(true)
   })
 
   it.for([{ mode: 'file' }, { mode: 'message' }])('$mode の形で head ブランチ名の末尾に番号があると、本文にその番号の Closes を足す', async (row) => {
-    await explains('head ブランチ名の末尾に番号がある場合の、`pr create` のテストです。ファイルでも `-m` でも、本文の末尾にその番号の `Closes` を追加することを確認します。')
+    await explains('head ブランチ名の末尾に番号がある場合の、`pr_create` のテストです。ファイルでも `message` でも、本文の末尾にその番号の `Closes` を追加することを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const body = BODY_WITHOUT_REFERENCE
-    const argv = row.mode === 'file' ? ['pr', 'create', writePrFile(workspace, { body })] : messageArguments([], body)
-    const result = await workspace.run(argv)
+    const input = row.mode === 'file' ? { file: writePrFile(workspace, { body }) } : messageArguments({}, body)
+    const result = await workspace.run('pr_create', input)
     expect(result.code).toBe(0)
     const posted = postedBody(workspace)['body']
     expect(posted).toBe(`${body.trimEnd()}\n\nCloses #12`)
@@ -486,10 +486,10 @@ describe('pr create', () => {
 
   it('ファイルで作るとき末尾の番号の Issue の種別を読めないと、Closes を足さず、空の Closes # の行を消し、warning を出す', async (context) => {
     await verifies(context, 'PW-PR-CREATE-87')
-    await explains('末尾の番号の Issue の種別を取得できない場合の、ファイルからの `pr create` のテストです。`Closes` を追加せず、空の `Closes #` の行を削除して、warning を出力することを確認します。')
+    await explains('末尾の番号の Issue の種別を取得できない場合の、ファイルからの `pr_create` のテストです。`Closes` を追加せず、空の `Closes #` の行を削除して、warning を出力することを確認します。')
     const workspace = await pushedBranch({ github: [KIND_FAILURE, CREATED_RULE, ...AFTER_CREATE_RULES] })
     const file = writePrFile(workspace, { body: `${BODY_WITH_REFERENCE_ONLY}Closes #\n` })
-    const result = await workspace.run(['pr', 'create', file])
+    const result = await workspace.run('pr_create', { file: file })
     expect(result.code).toBe(0)
     expect(result.stderr).toMatch(/^warning: Issue #12 at the end of the branch could not be read as an Epic or not; Closes not added, and the empty Closes line removed$/mu)
     expect(postedBody(workspace)['body']).toBe(BODY_WITH_REFERENCE_ONLY.trimEnd())
@@ -497,85 +497,60 @@ describe('pr create', () => {
 
   it('ファイルで作るとき末尾の番号の Issue が Epic だと、Closes を足さない', async (context) => {
     await verifies(context, 'PW-PR-CREATE-16')
-    await explains('head ブランチ名の末尾の番号の Issue が Epic の場合の、ファイルからの `pr create` のテストです。`Closes` を追加せず、本文の参照だけを残して PR を作成することを確認します。')
+    await explains('head ブランチ名の末尾の番号の Issue が Epic の場合の、ファイルからの `pr_create` のテストです。`Closes` を追加せず、本文の参照だけを残して PR を作成することを確認します。')
     const workspace = await pushedBranch({ github: [graphql('GetIssueKind', issueKindData({ number: 12, subIssues: 2 })), CREATED_RULE, ...AFTER_CREATE_RULES] })
     const file = writePrFile(workspace, { body: BODY_WITH_REFERENCE_ONLY })
-    const result = await workspace.run(['pr', 'create', file])
+    const result = await workspace.run('pr_create', { file: file })
     expect(result.code).toBe(0)
     expect(postedBody(workspace)['body']).toBe(BODY_WITH_REFERENCE_ONLY.trimEnd())
   })
 
   it('ファイルで作るとき末尾の番号の Issue が Epic だと、warning の行を標準エラーに出す', async () => {
-    await explains('head ブランチ名の末尾の番号の Issue が Epic の場合の、ファイルからの `pr create` のテストです。Epic のため `Closes` を追加しない旨の warning の行を、標準エラーに出力することを確認します。')
+    await explains('head ブランチ名の末尾の番号の Issue が Epic の場合の、ファイルからの `pr_create` のテストです。Epic のため `Closes` を追加しない旨の warning の行を、標準エラーに出力することを確認します。')
     const workspace = await pushedBranch({ github: [graphql('GetIssueKind', issueKindData({ number: 12, subIssues: 2 })), CREATED_RULE, ...AFTER_CREATE_RULES] })
     const file = writePrFile(workspace, { body: BODY_WITH_REFERENCE_ONLY })
-    const result = await workspace.run(['pr', 'create', file])
+    const result = await workspace.run('pr_create', { file: file })
     expect(result.stderr).toContain('warning: Issue #12 at the end of the branch is an Epic; Closes not added\n')
   })
 
-  it('--no-issue-ref を付けて打つと、Closes を足さず、Issue の参照の確認もしない', async () => {
-    await explains('`--no-issue-ref` を指定した場合の、`pr create` のテストです。`Closes` を追加せず、Issue の種別の問い合わせも行わないことを確認します。')
+  it('no_issue_ref を付けて打つと、Closes を足さず、Issue の参照の確認もしない', async () => {
+    await explains('`no_issue_ref` を指定した場合の、`pr_create` のテストです。`Closes` を追加せず、Issue の種別の問い合わせも行わないことを確認します。')
     const workspace = await pushedBranch({ github: [CREATED_RULE, ...AFTER_CREATE_RULES] })
-    const result = await workspace.run(messageArguments(['--no-issue-ref'], BODY_WITHOUT_REFERENCE))
+    const result = await workspace.run('pr_create', messageArguments({ no_issue_ref: true }, BODY_WITHOUT_REFERENCE))
     expect(result.code).toBe(0)
     expect(postedBody(workspace)['body']).toBe(BODY_WITHOUT_REFERENCE)
     expect(operationsOf(workspace)).not.toContain('GetIssueKind')
   })
 
-  it('--template release を付けて打つと、リリース PR として検証する', async (context) => {
+  it('template release を付けて打つと、リリース PR として検証する', async (context) => {
     await verifies(context, 'PW-PR-CREATE-19')
-    await explains('`--template release` を指定した場合の、`pr create` のテストです。リリース PR として本文と base を検証し、節の不足と base の誤りは終了コード 3 で拒否し、正しい入力は `--dry-run` で受理することを確認します。')
+    await explains('`template: release` を指定した場合の、`pr_create` のテストです。リリース PR として本文と base を検証し、節の不足と base の誤りは終了コード 3 で拒否しことを確認します。')
     const workspace = await pushedBranch({ config: { developBranch: 'develop', releaseBranch: 'main' } })
-    const missing = await workspace.run(['pr', 'create', '-m', '本文だけ', '-t', 'release: v0.5.0', '-b', 'main', '--head', 'develop', '-r', 'acme/demo', '--template', 'release', '--dry-run'])
+    const missing = await workspace.run('pr_create', { message: '本文だけ', title: 'release: v0.5.0', base: 'main', head: 'develop', repo: 'acme/demo', template: 'release' })
     expect(missing.code).toBe(3)
     expect(missing.stderr).toMatch(/^error: missing sections: ## Summary, ## Changes, ## Migration, ## Verified\n/u)
     expect(missing.stderr).not.toContain('Issue reference')
-    const wrongBase = await workspace.run(['pr', 'create', '-m', RELEASE_BODY, '-t', 'release: v0.5.0', '-b', 'staging', '--head', 'develop', '-r', 'acme/demo', '--template', 'release', '--dry-run'])
+    const wrongBase = await workspace.run('pr_create', { message: RELEASE_BODY, title: 'release: v0.5.0', base: 'staging', head: 'develop', repo: 'acme/demo', template: 'release' })
     expect(wrongBase.code).toBe(3)
     expect(wrongBase.stderr).toContain('error: release PR base branch must be main (given: staging)\n')
-    const valid = await workspace.run(['pr', 'create', '-m', RELEASE_BODY, '-t', 'release: v0.5.0', '-b', 'main', '--head', 'develop', '-r', 'acme/demo', '--template', 'release', '--dry-run'])
-    expect(valid).toMatchObject({ code: 0, stderr: 'dry-run: would create PR acme/demo develop -> main: release: v0.5.0 (release template)\n' })
   })
 
-  it('--dry-run を付けずに打つと、PR を作る前に pr check と同じ確認をする', async (context) => {
+  it('PR を作る前に pr_check と同じ確認をする', async (context) => {
     await verifies(context, 'PW-PR-CREATE-20')
-    await explains('`--dry-run` を指定しない場合の、`pr create` のテストです。PR を作成する前に `pr check` と同じ検証をして、同じ warning を出力し、PR を作成しないことを確認します。')
+    await explains('`pr_create` のテストです。PR を作成する前に `pr_check` と同じ検証をして、同じ warning を出力し、PR を作成しないことを確認します。')
     const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
-    const preflight = await workspace.run(['pr', 'check', '-D', workspace.directory])
+    const preflight = await workspace.run('pr_check', { directory: workspace.directory })
     const warning = 'warning: Push Status: origin/feat/demo/12 does not exist (not pushed) (fix: git push)\n'
     expect(preflight.stderr).toContain(warning)
-    const result = await workspace.run(messageArguments())
+    const result = await workspace.run('pr_create', messageArguments())
     expect(result.stderr).toContain(warning)
     expect(restRequests(workspace, 'POST')).toStrictEqual([])
   })
 
-  it('--dry-run を付けて打つと、PR を作らずに dry-run: would create の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-21')
-    await explains('`--dry-run` を指定した場合の、`pr create` のテストです。PR を作成せず、`dry-run: would create` の行を標準エラーに出力して終了コード 0 で終了することを確認します。')
-    const workspace = await pushedBranch({ github: SUBMIT_RULES })
-    const result = await workspace.run(messageArguments(['--dry-run']))
-    expect(result).toStrictEqual({
-      code: 0,
-      stdout: '',
-      stderr: `dry-run: would create PR acme/demo ${BRANCH} -> main: ${TITLE}\ndry-run: would set Issue #12 status to In Review\n`,
-    })
-    expect(restRequests(workspace, 'POST')).toStrictEqual([])
-  })
-
-  it('--dry-run を付けて打つと、事前の確認をしない', async (context) => {
-    await verifies(context, 'PW-PR-CREATE-22')
-    await explains('`--dry-run` を指定した場合の、`pr create` のテストです。事前の確認は省略するため、未追跡のファイルがあっても warning を出力しないことを確認します。')
-    const workspace = await openWorkspace({ branch: BRANCH, files: { 'memo.txt': 'x\n' } })
-    const result = await workspace.run(messageArguments(['--dry-run']))
-    expect(result.code).toBe(0)
-    expect(result.stderr).not.toContain('preflight')
-    expect(result.stderr).not.toContain('warning:')
-  })
-
   it('PR を作ると、関連 Issue のボードの status を In Review にする', async () => {
-    await explains('PR を作成した場合の、`pr create` のテストです。関連する Issue のボードの Status を `In Review` に更新し、その旨の行を標準エラーに出力することを確認します。')
+    await explains('PR を作成した場合の、`pr_create` のテストです。関連する Issue のボードの Status を `In Review` に更新し、その旨の行を標準エラーに出力することを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
-    const result = await workspace.run(messageArguments())
+    const result = await workspace.run('pr_create', messageArguments())
     expect(result.stderr).toContain('set: Issue #12 status to In Review\n')
     expect(workspace.requests().filter(request => request.type === 'graphql' && request.operation === 'UpdateProjectItemField')).toMatchObject([
       { variables: { projectId: 'PVT_1', itemId: 'PVTI_1', fieldId: 'PVTSSF_workflow', optionId: 'o5' } },
@@ -583,76 +558,74 @@ describe('pr create', () => {
   })
 
   it('PR を作ると、その URL を標準出力に出す', async () => {
-    await explains('PR を作成した場合の、`pr create` のテストです。作成した PR の URL を標準出力に出力することを確認します。')
+    await explains('PR を作成した場合の、`pr_create` のテストです。作成した PR の URL を標準出力に出力することを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
-    const result = await workspace.run(messageArguments())
+    const result = await workspace.run('pr_create', messageArguments())
     expect(result.stdout).toBe(`${PULL_URL}\n`)
   })
 
   it('PR を作ると、created の行を標準エラーに出す', async () => {
-    await explains('PR を作成した場合の、`pr create` のテストです。`created` の行と Status 更新の行を、この順に標準エラーへ出力することを確認します。')
+    await explains('PR を作成した場合の、`pr_create` のテストです。`created` の行と Status 更新の行を、この順に標準エラーへ出力することを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
-    const result = await workspace.run(messageArguments())
+    const result = await workspace.run('pr_create', messageArguments())
     expect(lines(result.stderr)).toStrictEqual([`created: PR acme/demo ${BRANCH} -> main: ${TITLE}`, 'set: Issue #12 status to In Review'])
   })
 
   it('本文に Issue の参照 #N が無いと、終了コード 3 で終わる', async () => {
-    await explains('本文に Issue の参照 `#N` が存在しない場合の、`pr create` のテストです。終了コード 3 で終了し、参照が存在しない旨のエラーを出力することを確認します。')
+    await explains('本文に Issue の参照 `#N` が存在しない場合の、`pr_create` のテストです。終了コード 3 で終了し、参照が存在しない旨のエラーを出力することを確認します。')
     const workspace = await openWorkspace({ branch: 'feat/demo/other' })
-    const result = await workspace.run(messageArguments(['--head', 'feat/demo/other', '--dry-run'], BODY_WITHOUT_REFERENCE))
+    const result = await workspace.run('pr_create', messageArguments({ head: 'feat/demo/other' }, BODY_WITHOUT_REFERENCE))
     expect(result.code).toBe(3)
-    expect(result.stderr).toBe('error: PR body has no Issue reference `#N` (use `--no-issue-ref` for a PR not tied to an Issue)\n')
+    expect(result.stderr).toBe('error: PR body has no Issue reference `#N` (use `no_issue_ref: true` for a PR not tied to an Issue)\n')
   })
 
   it('必須の節が足りないと、終了コード 3 で終わる', async () => {
-    await explains('必須の節が不足している場合の、`pr create` のテストです。終了コード 3 で終了し、不足している節の名前を含むエラーを出力することを確認します。')
+    await explains('必須の節が不足している場合の、`pr_create` のテストです。終了コード 3 で終了し、不足している節の名前を含むエラーを出力することを確認します。')
     const workspace = await pushedBranch()
-    const result = await workspace.run(messageArguments(['--dry-run'], '本文だけ #12'))
+    const result = await workspace.run('pr_create', messageArguments({}, '本文だけ #12'))
     expect(result.code).toBe(3)
     expect(result.stderr).toBe('error: missing sections: ## Summary, ## Changes, ## Verified, ## Risks\n')
   })
 
   it('使えない記法があると、終了コード 3 で終わる', async () => {
-    await explains('本文に使用できない記法が含まれる場合の、`pr create` のテストです。終了コード 3 で終了し、チェックボックス記法を禁止する旨のエラーを出力することを確認します。')
+    await explains('本文に使用できない記法が含まれる場合の、`pr_create` のテストです。終了コード 3 で終了し、チェックボックス記法を禁止する旨のエラーを出力することを確認します。')
     const workspace = await pushedBranch()
-    const result = await workspace.run(messageArguments(['--dry-run'], `${VALID_BODY}\n- [ ] 残タスク\n`))
+    const result = await workspace.run('pr_create', messageArguments({}, `${VALID_BODY}\n- [ ] 残タスク\n`))
     expect(result.code).toBe(3)
     expect(result.stderr).toBe('error: disallowed syntax: checkbox syntax (- [ ] / 1. [ ]) is not allowed\n')
   })
 
   it('Summary に画像も screenshot の理由も無いと、終了コード 3 で終わる', async () => {
-    await explains('Summary に画像がなく、`--screenshot` にも理由を指定していない場合の、`pr create` のテストです。終了コード 3 で終了し、画像か理由が必要な旨のエラーを出力することを確認します。')
+    await explains('Summary に画像がなく、`screenshot` にも理由を指定していない場合の、`pr_create` のテストです。終了コード 3 で終了し、画像か理由が必要な旨のエラーを出力することを確認します。')
     const workspace = await pushedBranch()
-    const result = await workspace.run(['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', '-r', 'acme/demo', '--dry-run'])
+    const result = await workspace.run('pr_create', { message: VALID_BODY, title: TITLE, base: 'main', repo: 'acme/demo' })
     expect(result.code).toBe(3)
-    expect(result.stderr).toBe('error: Summary has no image and `screenshot` gives no reason to omit one. If the change alters a screen, Markdown the tool writes for GitHub, or CLI output text, take a screenshot and add it to Summary as `![alt](./<file>.png)`. Otherwise, write the reason in the `screenshot` frontmatter field (`--screenshot` with `--message`)\n')
+    expect(result.stderr).toBe('error: Summary has no image and `screenshot` gives no reason to omit one. If the change alters a screen, Markdown the tool writes for GitHub, or CLI output text, take a screenshot and add it to Summary as `![alt](./<file>.png)`. Otherwise, write the reason in the `screenshot` frontmatter field (`screenshot` with `message`)\n')
   })
 
   it('base が設定のブランチと違うと、終了コード 3 で終わる', async () => {
-    await explains('`base` が設定のブランチと異なる場合の、`pr create` のテストです。終了コード 3 で終了し、base は設定のブランチにする旨のエラーを出力することを確認します。')
+    await explains('`base` が設定のブランチと異なる場合の、`pr_create` のテストです。終了コード 3 で終了し、base は設定のブランチにする旨のエラーを出力することを確認します。')
     const workspace = await pushedBranch()
-    const result = await workspace.run(['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'develop', '-r', 'acme/demo', '--screenshot', SCREENSHOT, '--dry-run'])
+    const result = await workspace.run('pr_create', { message: VALID_BODY, title: TITLE, base: 'develop', repo: 'acme/demo', screenshot: SCREENSHOT })
     expect(result.code).toBe(3)
     expect(result.stderr).toBe('error: base branch must be main (given: develop)\n')
   })
 
   it.for([{ mode: 'file' }, { mode: 'message' }])('nx のリポジトリで scope が違うタイトルを $mode の形で渡すと、終了コード 3 で終わる', async (row) => {
-    await explains('nx のリポジトリで、題の scope が変更したファイルから決まる scope と異なる場合の、`pr create` のテストです。ファイルでも `-m` でも、終了コード 3 で終了することを確認します。')
+    await explains('nx のリポジトリで、題の scope が変更したファイルから決まる scope と異なる場合の、`pr_create` のテストです。ファイルでも `message` でも、終了コード 3 で終了することを確認します。')
     installNx({ 'pecot-workflow': { root: 'plugins/pecot-workflow', tags: ['scope:p-w'] } })
     const workspace = await openWorkspace(NX_OPTIONS)
     const title = 'feat(pecot): #12 見本の変更'
-    const argv = row.mode === 'file'
-      ? ['pr', 'create', writePrFile(workspace, { title }), '--dry-run']
-      : ['pr', 'create', '-m', VALID_BODY, '-t', title, '-b', 'main', '-r', 'acme/demo', '--screenshot', SCREENSHOT, '--dry-run']
-    const result = await workspace.run(argv)
+    const input = row.mode === 'file' ? { file: writePrFile(workspace, { title }) } : { message: VALID_BODY, title: title, base: 'main', repo: 'acme/demo', screenshot: SCREENSHOT }
+    const result = await workspace.run('pr_create', input)
     expect(result.code).toBe(3)
     expect(lines(result.stderr).filter(line => !line.startsWith('warning: '))).toEqual(['error: PR title scope must be p-w (given: pecot; computed from the tags of the changed nx projects)'])
   })
 
   it('検証に失敗すると、違反ごとに error の行を標準エラーに出す', async () => {
-    await explains('検証に複数の違反がある場合の、`pr create` のテストです。違反ごとに `error` の行を標準エラーへ出力し、4 件の行が順に並ぶことを確認します。')
+    await explains('検証に複数の違反がある場合の、`pr_create` のテストです。違反ごとに `error` の行を標準エラーへ出力し、4 件の行が順に並ぶことを確認します。')
     const workspace = await openWorkspace({ branch: 'feat/demo/other' })
-    const result = await workspace.run(['pr', 'create', '-m', '本文だけ', '-t', TITLE, '-b', 'develop', '-r', 'acme/demo', '--dry-run'])
+    const result = await workspace.run('pr_create', { message: '本文だけ', title: TITLE, base: 'develop', repo: 'acme/demo' })
     const errors = lines(result.stderr)
     expect(errors).toHaveLength(4)
     expect(errors.every(line => line.startsWith('error: '))).toBe(true)
@@ -663,38 +636,38 @@ describe('pr create', () => {
   })
 
   it('検証に失敗すると、PR を作らない', async () => {
-    await explains('本文の検証に失敗した場合の、`pr create` のテストです。終了コード 3 で終了し、PR の作成と更新のどちらも要求しないことを確認します。')
+    await explains('本文の検証に失敗した場合の、`pr_create` のテストです。終了コード 3 で終了し、PR の作成と更新のどちらも要求しないことを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
-    const result = await workspace.run(messageArguments([], '本文だけ #12'))
+    const result = await workspace.run('pr_create', messageArguments({}, '本文だけ #12'))
     expect(result.code).toBe(3)
     expect(restRequests(workspace, 'POST')).toStrictEqual([])
     expect(restRequests(workspace, 'PATCH')).toStrictEqual([])
   })
 
   it('事前の確認が warning を出すと、終了コード 2 で終わる', async () => {
-    await explains('事前の確認が warning を出力した場合の、`pr create` のテストです。PR を作成する前に、終了コード 2 で終了し、warning を修正する旨のエラーを出力することを確認します。')
+    await explains('事前の確認が warning を出力した場合の、`pr_create` のテストです。PR を作成する前に、終了コード 2 で終了し、warning を修正する旨のエラーを出力することを確認します。')
     const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
-    const result = await workspace.run(messageArguments())
+    const result = await workspace.run('pr_create', messageArguments())
     expect(result.code).toBe(2)
     expect(result.stderr).toBe('error: preflight found warnings; fix them before creating a PR\nwarning: Push Status: origin/feat/demo/12 does not exist (not pushed) (fix: git push)\n')
   })
 
   it('owner:branch の head のブランチが owner の fork に push 済みなら、その head で PR を作る', async () => {
-    await explains('head に `owner:branch` を指定し、そのブランチが fork に push 済みの場合の、`pr create` のテストです。指定した head で PR を作成することを確認します。')
+    await explains('head に `owner:branch` を指定し、そのブランチが fork に push 済みの場合の、`pr_create` のテストです。指定した head で PR を作成することを確認します。')
     const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
     addForkRemote(workspace)
     workspace.git(['push', '-q', 'fork', BRANCH])
-    const result = await workspace.run(forkArguments())
+    const result = await workspace.run('pr_create', forkArguments())
     expect(result.code).toBe(0)
     expect(postedBody(workspace)['head']).toBe(FORK_HEAD)
   })
 
   it('owner:branch の head でも、ブランチ名の末尾の番号の Closes を本文に足す', async () => {
-    await explains('head に `owner:branch` を指定した場合の、`pr create` のテストです。ブランチ名の末尾の番号の `Closes` を、本文へ追加することを確認します。')
+    await explains('head に `owner:branch` を指定した場合の、`pr_create` のテストです。ブランチ名の末尾の番号の `Closes` を、本文へ追加することを確認します。')
     const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
     addForkRemote(workspace)
     workspace.git(['push', '-q', 'fork', BRANCH])
-    await workspace.run(forkArguments())
+    await workspace.run('pr_create', forkArguments())
     expect(String(postedBody(workspace)['body']).endsWith('Closes #12')).toBe(true)
   })
 
@@ -703,13 +676,13 @@ describe('pr create', () => {
     { name: '未 push のコミットがある', scene: 'ahead', expected: '1 unpushed commits (fix: git push fork feat/demo/12)' },
     { name: 'fork とずれた', scene: 'diverged', expected: 'diverged: local is 1 commits ahead, fork/feat/demo/12 is 1 ahead (fix: git pull --rebase fork feat/demo/12, or git push --force-with-lease fork feat/demo/12 if you rewrote pushed commits)' },
   ])('owner:branch の head のブランチが $name と、remote とブランチ名を示した直し方を出して終了コード 2 で止まる', async (row) => {
-    await explains('head に `owner:branch` を指定し、ブランチが fork に存在しない場合や、fork とずれている場合の、`pr create` のテストです。remote とブランチ名を示した直し方を出力し、終了コード 2 で終了することを確認します。')
+    await explains('head に `owner:branch` を指定し、ブランチが fork に存在しない場合や、fork とずれている場合の、`pr_create` のテストです。remote とブランチ名を示した直し方を出力し、終了コード 2 で終了することを確認します。')
     const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
     addForkRemote(workspace)
     if (row.scene !== 'absent') workspace.git(['push', '-q', 'fork', BRANCH])
     if (row.scene === 'ahead') commitFile(workspace, 'ahead.txt', 'ahead\n')
     else if (row.scene === 'diverged') workspace.git(['commit', '-q', '--amend', '-m', 'amended'])
-    const result = await workspace.run(forkArguments())
+    const result = await workspace.run('pr_create', forkArguments())
     expect(result.code).toBe(2)
     expect(lines(result.stderr)).toContain(`warning: Push Status: ${row.expected}`)
     expect(restRequests(workspace, 'POST')).toStrictEqual([])
@@ -719,87 +692,87 @@ describe('pr create', () => {
     { name: 'fork の remote が無い', host: undefined },
     { name: 'owner の remote が別のホストにしか無い', host: 'github.com' },
   ])('owner:branch の head で $name と、owner と remote の足し方を出して終了コード 2 で止まる', async (row) => {
-    await explains('head に `owner:branch` を指定し、fork の remote が設定されていない場合の、`pr create` のテストです。owner の remote の追加方法を出力して終了コード 2 で終了し、PR を作成しないことを確認します。')
+    await explains('head に `owner:branch` を指定し、fork の remote が設定されていない場合の、`pr_create` のテストです。owner の remote の追加方法を出力して終了コード 2 で終了し、PR を作成しないことを確認します。')
     const workspace = await openWorkspace({ branch: BRANCH, github: SUBMIT_RULES })
     if (row.host !== undefined) addForkRemote(workspace, row.host)
-    const result = await workspace.run(forkArguments())
+    const result = await workspace.run('pr_create', forkArguments())
     expect(result.code).toBe(2)
     expect(lines(result.stderr)).toContain(`warning: Push Status: no git remote points to a repository of someone on ${HOST} (fix: git remote add fork https://${HOST}/someone/demo.git)`)
     expect(restRequests(workspace, 'POST')).toStrictEqual([])
   })
 
   it.for([':feat/demo/12', 'someone:'])('head が %s のように owner かブランチ名を欠くと、終了コード 1 で止まる', async (head) => {
-    await explains('head に owner かブランチ名の片方が欠けている場合の、`pr create` のテストです。invalid head のエラーを出力して終了コード 1 で終了し、PR を作成しないことを確認します。')
+    await explains('head に owner かブランチ名の片方が欠けている場合の、`pr_create` のテストです。invalid head のエラーを出力して終了コード 1 で終了し、PR を作成しないことを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
-    const result = await workspace.run(messageArguments(['--head', head]))
+    const result = await workspace.run('pr_create', messageArguments({ head: head }))
     expect(result).toMatchObject({ code: 1, stderr: `error: invalid head: ${head} (expected: branch or owner:branch)\n` })
     expect(restRequests(workspace, 'POST')).toStrictEqual([])
   })
 
-  it('--head で今と別のブランチを指すと、そのブランチの push を確かめる', async () => {
-    await explains('`--head` に現在とは別のブランチを指定した場合の、`pr create` のテストです。指定したブランチの push 状況を確認し、未 push であれば warning を出力して終了コード 2 で終了することを確認します。')
+  it('head で今と別のブランチを指すと、そのブランチの push を確かめる', async () => {
+    await explains('`head` に現在とは別のブランチを指定した場合の、`pr_create` のテストです。指定したブランチの push 状況を確認し、未 push であれば warning を出力して終了コード 2 で終了することを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     workspace.git(['branch', 'feat/demo/other'])
-    const result = await workspace.run(messageArguments(['--head', 'feat/demo/other']))
+    const result = await workspace.run('pr_create', messageArguments({ head: 'feat/demo/other' }))
     expect(result.code).toBe(2)
     expect(lines(result.stderr)).toContain('warning: Push Status: origin/feat/demo/other does not exist (not pushed) (fix: git push)')
   })
 
   it('owner が作り先と同じ head は、作り先のリポの remote で push を確かめる', async () => {
-    await explains('head の owner が PR の作成先と同じ場合の、`pr create` のテストです。作成先のリポジトリの remote で push 状況を確認し、`acme:` を付けた head で PR を作成することを確認します。')
+    await explains('head の owner が PR の作成先と同じ場合の、`pr_create` のテストです。作成先のリポジトリの remote で push 状況を確認し、`acme:` を付けた head で PR を作成することを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
-    const result = await workspace.run(messageArguments(['--head', `acme:${BRANCH}`]))
+    const result = await workspace.run('pr_create', messageArguments({ head: `acme:${BRANCH}` }))
     expect(result.code).toBe(0)
     expect(postedBody(workspace)['head']).toBe(`acme:${BRANCH}`)
   })
 
   it.for(STACKED_CREATE_ROWS)('スタックの記録があり、$name ときに事前の確認が remote とのずれを見つけると、Push Status の直し方に $expected を出す', async (row) => {
-    await explains('スタックの記録があり、remote の子ブランチだけがずれている場合の、`pr create` のテストです。Push Status の直し方がずれの種類に応じた内容となり、終了コード 2 で終了することを確認します。')
+    await explains('スタックの記録があり、remote の子ブランチだけがずれている場合の、`pr_create` のテストです。Push Status の直し方がずれの種類に応じた内容となり、終了コード 2 で終了することを確認します。')
     const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('OPEN')]), NOT_EPIC_RULE])
     divergeStacked(workspace, row.scene)
-    const result = await workspace.run(stackedArguments())
+    const result = await workspace.run('pr_create', stackedArguments())
     expect(result.code).toBe(2)
     expect(pushStatusFixes(result.stderr)).toStrictEqual([row.expected])
     expect(restRequests(workspace, 'POST')).toStrictEqual([])
   })
 
   it('事前の確認が git のリポジトリでないなどの致命的な場合に当たると、終了コード 1 で終わる', async () => {
-    await explains('事前の確認が致命的な失敗に当たる場合の、`pr create` のテストです。git のリポジトリではない場所で実行したときに、`not a git repository` のエラーを出力して終了コード 1 で終了することを確認します。')
+    await explains('事前の確認が致命的な失敗に当たる場合の、`pr_create` のテストです。git のリポジトリではない場所で実行したときに、`not a git repository` のエラーを出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const plain = path.join(workspace.root, 'plain')
     mkdirSync(plain)
-    const result = await workspace.run(messageArguments(['--head', BRANCH]), plain)
+    const result = await workspace.run('pr_create', messageArguments({ head: BRANCH }), plain)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: not a git repository\n' })
     expect(restRequests(workspace, 'POST')).toStrictEqual([])
   })
 
   it.for([
-    { title: 'develop_branch が設定に無い', config: NO_DEVELOP_BRANCH, argv: messageArguments(['--dry-run'], '本文だけ'), expected: 'error: develop_branch is not set\n  set it with:' },
-    { title: 'release_branch が設定に無い', config: { developBranch: 'main' }, argv: ['pr', 'create', '-m', '本文だけ', '-t', 'release: v1', '-b', 'main', '--head', 'develop', '-r', 'acme/demo', '--template', 'release', '--dry-run'], expected: 'error: release_branch is not set\n  set it with:' },
+    { title: 'develop_branch が設定に無い', config: NO_DEVELOP_BRANCH, input: messageArguments({}, '本文だけ'), expected: 'error: develop_branch is not set\n  set it with:' },
+    { title: 'release_branch が設定に無い', config: { developBranch: 'main' }, input: { message: '本文だけ', title: 'release: v1', base: 'main', head: 'develop', repo: 'acme/demo', template: 'release' }, expected: 'error: release_branch is not set\n  set it with:' },
   ])('$title と、検証の前に終了コード 1 で終わる', async (row) => {
-    await explains('`develop_branch` や `release_branch` が設定されていない場合の、`pr create` のテストです。本文の検証より前に、終了コード 1 で終了することを確認します。')
+    await explains('`develop_branch` や `release_branch` が設定されていない場合の、`pr_create` のテストです。本文の検証より前に、終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch({ config: row.config })
-    const result = await workspace.run(row.argv)
+    const result = await workspace.run('pr_create', row.input)
     expect(result.code).toBe(1)
     expect(result.stderr).toContain(row.expected)
     expect(result.stderr).not.toContain('missing sections')
   })
 
   it('ボードの status を In Review にできないと、warning の行を標準エラーに出す', async () => {
-    await explains('ボードの Status を `In Review` に更新できない場合の、`pr create` のテストです。Issue がボードに存在しないときは、PR を作成して URL を出力し、warning の行を標準エラーへ出力することを確認します。')
+    await explains('ボードの Status を `In Review` に更新できない場合の、`pr_create` のテストです。Issue がボードに存在しないときは、PR を作成して URL を出力し、warning の行を標準エラーへ出力することを確認します。')
     const empty = graphql('GetIssueProjectItems', { repository: { issue: { projectItems: { nodes: [] } } } })
     const workspace = await pushedBranch({ github: [CREATED_RULE, empty, NO_WAITING_RULE] })
-    const result = await workspace.run(messageArguments(['--no-issue-ref']))
+    const result = await workspace.run('pr_create', messageArguments({ no_issue_ref: true }))
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`${PULL_URL}\n`)
     expect(result.stderr).toContain('warning: Issue #12 is not on the board; status not updated\n')
   })
 
   it('ボードの status の更新で GitHub API がエラーを返すと、PR は作ったまま warning の行を標準エラーに出す', async () => {
-    await explains('ボードの Status の更新で GitHub API がエラーを返す場合の、`pr create` のテストです。PR の作成は成功として扱い、更新に失敗した旨の warning の行を標準エラーに出力することを確認します。')
+    await explains('ボードの Status の更新で GitHub API がエラーを返す場合の、`pr_create` のテストです。PR の作成は成功として扱い、更新に失敗した旨の warning の行を標準エラーに出力することを確認します。')
     const failing = rule({ operation: 'UpdateProjectItemField' }, { status: 500, body: { message: 'Server Error' } })
     const workspace = await pushedBranch({ github: [NOT_EPIC_RULE, CREATED_RULE, ...IN_REVIEW_RULES.slice(0, 1), failing, NO_WAITING_RULE] })
-    const result = await workspace.run(messageArguments())
+    const result = await workspace.run('pr_create', messageArguments())
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`${PULL_URL}\n`)
     expect(lines(result.stderr).slice(0, 2)).toStrictEqual([
@@ -810,107 +783,107 @@ describe('pr create', () => {
   })
 
   it('PR の作成で GitHub API がエラーを返すと、終了コード 1 で終わる', async () => {
-    await explains('PR の作成で GitHub API がエラーを返す場合の、`pr create` のテストです。`PR creation failed` のエラーを出力して終了コード 1 で終了することを確認します。')
+    await explains('PR の作成で GitHub API がエラーを返す場合の、`pr_create` のテストです。`PR creation failed` のエラーを出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch({ github: [rest('POST', '/repos/acme/demo/pulls', 422, { message: 'Validation Failed' })] })
-    const result = await workspace.run(messageArguments())
+    const result = await workspace.run('pr_create', messageArguments())
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: PR creation failed: GitHub API error: 422\n' })
     expect(operationsOf(workspace)).toStrictEqual(['POST /repos/acme/demo/pulls'])
   })
 
-  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async () => {
-    await explains('対象のリポジトリを含む設定が 2 つあり、`.active` でも選択できない場合の、`pr create` のテストです。候補と `--project` による指定の案内を出力して終了コード 1 で終了することを確認します。')
+  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と project の案内を出して終了コード 1 で終わる', async () => {
+    await explains('対象のリポジトリを含む設定が 2 つあり、`.active` でも選択できない場合の、`pr_create` のテストです。候補と `project` による指定の案内を出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch({ files: ambiguousWorkspaceFiles() })
-    const result = await workspace.run(messageArguments())
-    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: `error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n` })
+    const result = await workspace.run('pr_create', messageArguments())
+    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: `error: acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n` })
   })
 
   it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async () => {
-    await explains('対象のリポジトリを含む設定が存在しない場合の、`pr create` のテストです。どの設定にも含まれない旨のエラーを出力して終了コード 1 で終了することを確認します。')
+    await explains('対象のリポジトリを含む設定が存在しない場合の、`pr_create` のテストです。どの設定にも含まれない旨のエラーを出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch({ config: false })
-    const result = await workspace.run(messageArguments())
+    const result = await workspace.run('pr_create', messageArguments())
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: (none)\n' })
   })
 
-  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で PR を作る', async () => {
-    await explains('`--project` を指定した場合の、`pr create` のテストです。対象のリポジトリを含む設定が 2 つあっても、指定した設定で PR を作成することを確認します。')
+  it('project を渡すと、対象のリポを含む設定が 2 つあってもその設定で PR を作る', async () => {
+    await explains('`project` を指定した場合の、`pr_create` のテストです。対象のリポジトリを含む設定が 2 つあっても、指定した設定で PR を作成することを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES, files: ambiguousWorkspaceFiles() })
-    const result = await workspace.run(messageArguments(['--project', SECOND_PROJECT]))
+    const result = await workspace.run('pr_create', messageArguments({ project: SECOND_PROJECT }))
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`${PULL_URL}\n`)
   })
 
   it('.active が無くても、対象のリポを含む設定が 1 つならその設定で PR を作る', async () => {
-    await explains('`.active` が存在せず、対象のリポジトリを含む設定が 1 つの場合の、`pr create` のテストです。その設定で PR を作成することを確認します。')
+    await explains('`.active` が存在せず、対象のリポジトリを含む設定が 1 つの場合の、`pr_create` のテストです。その設定で PR を作成することを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES, files: NO_ACTIVE_FILES })
-    const result = await workspace.run(messageArguments())
+    const result = await workspace.run('pr_create', messageArguments())
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`${PULL_URL}\n`)
   })
 
-  it('-m で --repo を省くと、設定のリポジトリが 2 つあっても git remote のリポジトリで PR を作る', async () => {
-    await explains('`-m` を指定して `--repo` を省略した場合の、`pr create` のテストです。設定のリポジトリが 2 つあっても、git の remote が指すリポジトリへ PR を作成することを確認します。')
+  it('message で repo を省くと、設定のリポジトリが 2 つあっても git remote のリポジトリで PR を作る', async () => {
+    await explains('`message` を指定して `repo` を省略した場合の、`pr_create` のテストです。設定のリポジトリが 2 つあっても、git の remote が指すリポジトリへ PR を作成することを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES, config: { hasSecondRepository: true } })
-    const argv = ['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', '--screenshot', SCREENSHOT]
-    const result = await workspace.run(argv)
+    const input = { message: VALID_BODY, title: TITLE, base: 'main', screenshot: SCREENSHOT }
+    const result = await workspace.run('pr_create', input)
     expect(result.code).toBe(0)
     expect(operationsOf(workspace)).toContain('POST /repos/acme/demo/pulls')
   })
 
-  it('-m で --repo を省き、origin のリポが設定に無いと、設定にあるリポを指す別の remote のリポで PR を作る', async () => {
-    await explains('`-m` を指定して `--repo` を省略し、`origin` のリポジトリが設定に含まれない場合の、`pr create` のテストです。設定に含まれるリポジトリを指す別の remote を使って PR を作成することを確認します。')
+  it('message で repo を省き、origin のリポが設定に無いと、設定にあるリポを指す別の remote のリポで PR を作る', async () => {
+    await explains('`message` を指定して `repo` を省略し、`origin` のリポジトリが設定に含まれない場合の、`pr_create` のテストです。設定に含まれるリポジトリを指す別の remote を使って PR を作成することを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
     const originUrl = workspace.git(['remote', 'get-url', 'origin']).trim()
     workspace.git(['remote', 'rename', 'origin', 'upstream'])
     workspace.git(['remote', 'add', 'origin', 'https://ghes.example.com/someone/demo.git'])
     workspace.git(['config', `url.${originUrl}.insteadOf`, 'https://ghes.example.com/someone/demo.git'])
     workspace.git(['fetch', 'origin'])
-    const argv = ['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', '--screenshot', SCREENSHOT]
-    const result = await workspace.run(argv)
+    const input = { message: VALID_BODY, title: TITLE, base: 'main', screenshot: SCREENSHOT }
+    const result = await workspace.run('pr_create', input)
     expect(result.code).toBe(0)
     expect(operationsOf(workspace)).toContain('POST /repos/acme/demo/pulls')
   })
 
-  it('--template が default でも release でもないと、終了コード 1 で終わる', async () => {
-    await explains('`--template` に `default` と `release` のどちらでもない値を指定した場合の、`pr create` のテストです。エラーを出力して終了コード 1 で終了することを確認します。')
+  it('template が default でも release でもないと、終了コード 1 で終わる', async () => {
+    await explains('`template` に `default` と `release` のどちらでもない値を指定した場合の、`pr_create` のテストです。エラーを出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch()
-    const result = await workspace.run(['pr', 'create', '-m', 'test', '-t', 'test', '-b', 'main', '--template', 'invalid'])
-    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: --template must be \'default\' or \'release\' (given: invalid)\n' })
+    const result = await workspace.run('pr_create', { message: 'test', title: 'test', base: 'main', template: 'invalid' })
+    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: template must be \'default\' or \'release\' (given: invalid)\n' })
   })
 
-  it('ファイルと -m のどちらも渡さないと、終了コード 1 で終わる', async (context) => {
+  it('ファイルと message のどちらも渡さないと、終了コード 1 で終わる', async (context) => {
     await verifies(context, 'PW-PR-CREATE-43')
-    await explains('ファイルと `-m` のどちらも指定しない場合の、`pr create` のテストです。使い方を示す `missing arguments` のエラーを出力して終了コード 1 で終了することを確認します。')
+    await explains('ファイルと `message` のどちらも指定しない場合の、`pr_create` のテストです。使い方を示す `missing arguments` のエラーを出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch()
-    const result = await workspace.run(['pr', 'create'])
+    const result = await workspace.run('pr_create', {})
     expect(result.code).toBe(1)
-    expect(result.stderr).toBe('error: missing arguments\n  usage:\n  pecot pr create <path>\n  pecot pr create --message <body> --title <title> --base <base-branch>\n')
+    expect(result.stderr).toBe('error: missing arguments\n  usage:\n  pr_create with file: <path>\n  pr_create with message: <body>, title: <title>, base: <base-branch>\n')
   })
 
   it.for([
-    { title: '-t', argv: ['pr', 'create', '-m', 'x', '-b', 'main'] },
-    { title: '-b', argv: ['pr', 'create', '-m', 'x', '-t', 'x'] },
-  ])('-m に $title を渡さないと、終了コード 1 で終わる', async (row) => {
-    await explains('`-m` に `-t` か `-b` のどちらかを指定しない場合の、`pr create` のテストです。`--title` と `--base` が必要である旨のエラーを出力して終了コード 1 で終了することを確認します。')
+    { title: 'title', input: { message: 'x', base: 'main' } },
+    { title: 'base', input: { message: 'x', title: 'x' } },
+  ])('message に $title を渡さないと、終了コード 1 で終わる', async (row) => {
+    await explains('`message` に `title` か `base` のどちらかを指定しない場合の、`pr_create` のテストです。`title` と `base` が必要である旨のエラーを出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch()
-    const result = await workspace.run(row.argv)
-    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: --title and --base (base branch) are required with --message\n' })
+    const result = await workspace.run('pr_create', row.input)
+    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: title and base (base branch) are required with message\n' })
   })
 
-  it('ファイルと一緒に --screenshot を渡すと、終了コード 1 で終わる', async () => {
-    await explains('ファイルと `--screenshot` を同時に指定した場合の、`pr create` のテストです。`--screenshot` は `--message` 用である旨のエラーを出力して終了コード 1 で終了することを確認します。')
+  it('ファイルと一緒に screenshot を渡すと、終了コード 1 で終わる', async () => {
+    await explains('ファイルと `screenshot` を同時に指定した場合の、`pr_create` のテストです。`screenshot` は `message` 用である旨のエラーを出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch()
-    const result = await workspace.run(['pr', 'create', writePrFile(workspace), '--screenshot', '理由'])
+    const result = await workspace.run('pr_create', { file: writePrFile(workspace), screenshot: '理由' })
     expect(result.code).toBe(1)
-    expect(result.stderr).toMatch(/^error: --screenshot is for --message; write the reason in the `screenshot` frontmatter field instead\n$/u)
+    expect(result.stderr).toMatch(/^error: screenshot is for message; write the reason in the `screenshot` frontmatter field instead\n$/u)
   })
 
   it.for([
     { title: 'フロントマターが無い', content: '本文だけ\n', expected: 'error: frontmatter not found (does not start with ---)\n' },
     { title: 'repository が owner/repo の形でない', content: '---\ntitle: "x"\nrepository: "invalid"\nbase: "main"\nhead: ""\ndraft: false\n---\n\n本文\n', expected: 'error: repository is required (e.g. owner/repo)\n' },
   ])('ファイルが次の形だと（$title）、終了コード 1 で終わる', async (row) => {
-    await explains('ファイルの形式が誤っている場合の、`pr create` のテストです。フロントマターが存在しない場合や `repository` が `owner/repo` の形式ではない場合に、エラーを出力して終了コード 1 で終了し、PR を作成しないことを確認します。')
+    await explains('ファイルの形式が誤っている場合の、`pr_create` のテストです。フロントマターが存在しない場合や `repository` が `owner/repo` の形式ではない場合に、エラーを出力して終了コード 1 で終了し、PR を作成しないことを確認します。')
     const workspace = await pushedBranch()
-    const result = await workspace.run(['pr', 'create', workspace.scratch('bad.md', row.content)])
+    const result = await workspace.run('pr_create', { file: workspace.scratch('bad.md', row.content) })
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe(row.expected)
@@ -918,57 +891,45 @@ describe('pr create', () => {
   })
 
   it.for([
-    { title: 'git remote が無く --repo も無い', config: {}, repo: [], expected: 'error: specify the repository (--repo <owner/repo>)\n' },
-    { title: '--repo が owner/repo の形でない', config: {}, repo: ['-r', 'invalid'], expected: 'error: invalid repository format: invalid (expected: owner/repo)\n' },
-  ])('-m で次の形だと（$title）、終了コード 1 で終わる', async (row) => {
-    await explains('`-m` で、リポジトリを決定できない場合の、`pr create` のテストです。git の remote と `--repo` のどちらも存在しない場合と、`--repo` の形式が誤っている場合に、エラーを出力して終了コード 1 で終了することを確認します。')
+    { title: 'git remote が無く repo も無い', config: {}, input: {}, expected: 'error: specify the repository (repo: <owner/repo>)\n' },
+    { title: 'repo が owner/repo の形でない', config: {}, input: { repo: 'invalid' }, expected: 'error: invalid repository format: invalid (expected: owner/repo)\n' },
+  ])('message で次の形だと（$title）、終了コード 1 で終わる', async (row) => {
+    await explains('`message` で、リポジトリを決定できない場合の、`pr_create` のテストです。git の remote と `repo` のどちらも存在しない場合と、`repo` の形式が誤っている場合に、エラーを出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch({ config: row.config })
-    if (row.repo.length === 0) workspace.git(['remote', 'remove', 'origin'])
-    const result = await workspace.run(['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', ...row.repo])
+    if (row.input.repo === undefined) workspace.git(['remote', 'remove', 'origin'])
+    const result = await workspace.run('pr_create', { message: VALID_BODY, title: TITLE, base: 'main', ...row.input })
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: row.expected })
   })
 
   it.for([
     { title: 'ファイルの repository', mode: 'file' },
-    { title: '-m の --repo', mode: 'message' },
+    { title: 'message の repo', mode: 'message' },
   ])('$title が owner/repo の形でない 3 つ組だと、終了コード 1 で終わり、PR を作らない', async (row) => {
-    await explains('リポジトリの指定が `a/b/c` のように `owner/repo` の形式ではない場合の、`pr create` のテストです。ファイルの `repository` でも `-m` の `--repo` でも、エラーを出力して終了コード 1 で終了し、PR を作成しないことを確認します。')
+    await explains('リポジトリの指定が `a/b/c` のように `owner/repo` の形式ではない場合の、`pr_create` のテストです。ファイルの `repository` でも `message` の `repo` でも、エラーを出力して終了コード 1 で終了し、PR を作成しないことを確認します。')
     const workspace = await pushedBranch({ github: SUBMIT_RULES })
-    const argv = row.mode === 'file'
-      ? ['pr', 'create', writePrFile(workspace, { repository: 'a/b/c' })]
-      : ['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', '-r', 'a/b/c']
-    const result = await workspace.run(argv)
+    const input = row.mode === 'file' ? { file: writePrFile(workspace, { repository: 'a/b/c' }) } : { message: VALID_BODY, title: TITLE, base: 'main', repo: 'a/b/c' }
+    const result = await workspace.run('pr_create', input)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: invalid repository format: a/b/c (expected: owner/repo)\n' })
     expect(restRequests(workspace, 'POST')).toStrictEqual([])
   })
 
   it('PR の作成の応答に html_url が無いと、探す先を示す error の行を最後に出して終了コード 1 で終わる', async () => {
-    await explains('PR の作成の応答に `html_url` が含まれない場合の、`pr create` のテストです。GitHub で PR を探すよう案内するエラーの行を最後に出力して終了コード 1 で終了することを確認します。')
+    await explains('PR の作成の応答に `html_url` が含まれない場合の、`pr_create` のテストです。GitHub で PR を探すよう案内するエラーの行を最後に出力して終了コード 1 で終了することを確認します。')
     const created = rest('POST', '/repos/acme/demo/pulls', 201, { number: 21 })
     const workspace = await pushedBranch({ github: [NOT_EPIC_RULE, created, ...AFTER_CREATE_RULES] })
-    const result = await workspace.run(messageArguments())
+    const result = await workspace.run('pr_create', messageArguments())
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(lines(result.stderr).at(-1)).toBe('error: PR was created, but the response has no html_url; find it on GitHub')
     expect(restRequests(workspace, 'POST')).toHaveLength(1)
   })
 
-  it.for([{ title: 'nx.json が無い' }, { title: 'nx.json がディレクトリ' }])('release_type が nx で $title と、scope を検証しない', async (row) => {
-    await explains('`release_type` が `nx` で、`nx.json` がファイルとして存在しない場合の、`pr create` のテストです。題の scope を検証せず、`--dry-run` で予定の行を出力して終了コード 0 で終了することを確認します。')
-    installNx({ 'pecot-workflow': { root: 'plugins/pecot-workflow', tags: ['scope:p-w'] } })
-    const nxJson = row.title === 'nx.json が無い' ? { 'keep.txt': 'x\n' } : { 'nx.json/keep.txt': 'x\n' }
-    const workspace = await openWorkspace({ ...NX_OPTIONS, commits: [{ message: 'nx', files: nxJson }] })
-    const result = await workspace.run(['pr', 'create', '-m', VALID_BODY, '-t', 'feat(pecot): #12 見本の変更', '-b', 'main', '-r', 'acme/demo', '--screenshot', SCREENSHOT, '--dry-run'])
-    expect(result.code).toBe(0)
-    expect(lines(result.stderr)).toStrictEqual([`dry-run: would create PR acme/demo ${BRANCH} -> main: feat(pecot): #12 見本の変更`, 'dry-run: would set Issue #12 status to In Review'])
-  })
-
   it('head ブランチを決められないと、終了コード 1 で終わる', async () => {
-    await explains('head ブランチを決定できない場合の、`pr create` のテストです。git のリポジトリではない場所で実行したときに、`cannot determine the head branch` のエラーを出力して終了コード 1 で終了することを確認します。')
+    await explains('head ブランチを決定できない場合の、`pr_create` のテストです。git のリポジトリではない場所で実行したときに、`cannot determine the head branch` のエラーを出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch()
     const plain = path.join(workspace.root, 'plain')
     mkdirSync(plain)
-    const result = await workspace.run(['pr', 'create', '-m', VALID_BODY, '-t', TITLE, '-b', 'main', '-r', 'acme/demo', '--dry-run'], plain)
+    const result = await workspace.run('pr_create', { message: VALID_BODY, title: TITLE, base: 'main', repo: 'acme/demo' }, plain)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: cannot determine the head branch\n' })
   })
 
@@ -976,9 +937,9 @@ describe('pr create', () => {
     it('親 PR が開いているときに打つと、base を親ブランチにして PR を作り、新しいスタックに登録する', async (context) => {
       await verifies(context, 'PW-PR-CREATE-50')
       await verifies(context, 'PW-PR-CREATE-51')
-      await explains('`.pecot-base` に親ブランチが記録され、親 PR が開いている場合の、`pr create` のテストです。親ブランチを `base` にして PR を作成し、新しいスタックへ登録して、その旨の行を標準エラーに出力することを確認します。')
+      await explains('`.pecot-base` に親ブランチが記録され、親 PR が開いている場合の、`pr_create` のテストです。親ブランチを `base` にして PR を作成し、新しいスタックへ登録して、その旨の行を標準エラーに出力することを確認します。')
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, NO_STACK_RULE, CREATED_STACK_RULE] })
-      const result = await workspace.run(stackedArguments())
+      const result = await workspace.run('pr_create', stackedArguments())
       expect(result).toStrictEqual({
         code: 0,
         stdout: `${PULL_URL}\n`,
@@ -990,11 +951,11 @@ describe('pr create', () => {
     })
 
     it('親 PR がスタックに入っているときに PR を作ると、そのスタックの一番上に足す', async () => {
-      await explains('親 PR が既存のスタックに含まれている場合の、`pr create` のテストです。新しい PR をそのスタックの一番上へ追加し、新しいスタックは作成しないことを確認します。')
+      await explains('親 PR が既存のスタックに含まれている場合の、`pr_create` のテストです。新しい PR をそのスタックの一番上へ追加し、新しいスタックは作成しないことを確認します。')
       const existing = rule({ method: 'GET', path: STACKS_PATH, apiVersion: STACKS_VERSION }, { status: 200, body: [{ number: 5, pull_requests: [{ number: 19 }, { number: 20 }] }] })
       const added = rule({ method: 'POST', path: `${STACKS_PATH}/5/add`, apiVersion: STACKS_VERSION }, { status: 200, body: { number: 5, pull_requests: [{ number: 19 }, { number: 20 }, { number: 21 }] } })
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, existing, added] })
-      const result = await workspace.run(stackedArguments())
+      const result = await workspace.run('pr_create', stackedArguments())
       expect(result).toStrictEqual({
         code: 0,
         stdout: `${PULL_URL}\n`,
@@ -1005,10 +966,10 @@ describe('pr create', () => {
     })
 
     it('親 PR がスタックの一番上に無いと、追加を呼ばずに warning の行を出し、PR を残す', async () => {
-      await explains('親 PR が既存のスタックの一番上ではない場合の、`pr create` のテストです。スタックへの追加は要求せず、登録できなかった旨の warning の行を出力して、PR は作成したままにすることを確認します。')
+      await explains('親 PR が既存のスタックの一番上ではない場合の、`pr_create` のテストです。スタックへの追加は要求せず、登録できなかった旨の warning の行を出力して、PR は作成したままにすることを確認します。')
       const existing = rule({ method: 'GET', path: STACKS_PATH, apiVersion: STACKS_VERSION }, { status: 200, body: [{ number: 5, pull_requests: [{ number: 20 }, { number: 22 }] }] })
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, existing] })
-      const result = await workspace.run(stackedArguments())
+      const result = await workspace.run('pr_create', stackedArguments())
       expect(result).toStrictEqual({
         code: 0,
         stdout: `${PULL_URL}\n`,
@@ -1017,24 +978,10 @@ describe('pr create', () => {
       expect(restRequests(workspace, 'POST', `${STACKS_PATH}/5/add`)).toStrictEqual([])
     })
 
-    it('スタックの記録で --dry-run を付けて打つと、親ブランチを base にした予定の行とスタックへの登録の予定の行を出し、スタックと待つ側を読まない', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-50')
-      await verifies(context, 'PW-PR-CREATE-63')
-      await explains('スタックの記録があり、`--dry-run` を指定した場合の、`pr create` のテストです。親ブランチを `base` にした作成の予定と、スタックへの登録の予定の行を出力し、スタックや待つ側の Issue は読み取らないことを確認します。')
-      const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')])] })
-      const result = await workspace.run(stackedArguments(['--dry-run']))
-      expect(result).toStrictEqual({
-        code: 0,
-        stdout: '',
-        stderr: `dry-run: would create PR acme/demo ${BRANCH} -> ${LOWER}: ${TITLE}\ndry-run: would set Issue #12 status to In Review\ndry-run: would add the new PR to the stack of PR #20\n`,
-      })
-      expect(operationsOf(workspace)).toStrictEqual(['ListPullRequestsByHead'])
-    })
-
     it('テンプレを写したファイルの題と本文を埋め、base を空のまま投稿すると、base を親ブランチにして PR を作り、スタックに登録する', async (context) => {
       await verifies(context, 'PW-PR-CREATE-49')
       await verifies(context, 'PW-PR-CREATE-50')
-      await explains('テンプレートを写したファイルの題と本文を記入し、`base` を空にしたまま実行した場合の、`pr create` のテストです。親ブランチを `base` にして PR を作成し、スタックへ登録することを確認します。')
+      await explains('テンプレートを写したファイルの題と本文を記入し、`base` を空にしたまま実行した場合の、`pr_create` のテストです。親ブランチを `base` にして PR を作成し、スタックへ登録することを確認します。')
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [NOT_EPIC_RULE, lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, NO_STACK_RULE, CREATED_STACK_RULE] })
       const file = workspace.scratch('pr.md', readFileSync(templateFile('pr', 'create'), 'utf8'))
       const [frontmatter = ''] = readFileSync(file, 'utf8').split(/\n---\n/u, 1)
@@ -1043,7 +990,7 @@ describe('pr create', () => {
         .replace(/^repository: ""/mu, 'repository: "acme/demo"')
         .replace(/^screenshot: ""/mu, () => `screenshot: "${SCREENSHOT}"`)
       writeFileSync(file, `${filled}\n---\n${VALID_BODY}`)
-      const result = await workspace.run(['pr', 'create', file])
+      const result = await workspace.run('pr_create', { file: file })
       expect(result).toStrictEqual({
         code: 0,
         stdout: `${PULL_URL}\n`,
@@ -1052,67 +999,67 @@ describe('pr create', () => {
       expect(postedBody(workspace)).toMatchObject({ base: LOWER, head: BRANCH })
     })
 
-    it('記録のコミットが今のブランチの履歴に無く、スタックし直し済みとも決まらないと、pr restack を案内せずに、PR を作らずに終了コード 1 で終わる', async () => {
-      await explains('`.pecot-base` のコミットが現在のブランチの履歴に含まれず、スタックし直し済みとも判定できない場合の、`pr create` のテストです。`pr restack` は案内せず、PR を作成せずに終了コード 1 で終了することを確認します。')
+    it('記録のコミットが今のブランチの履歴に無く、スタックし直し済みとも決まらないと、pr_restack を案内せずに、PR を作らずに終了コード 1 で終わる', async () => {
+      await explains('`.pecot-base` のコミットが現在のブランチの履歴に含まれず、スタックし直し済みとも判定できない場合の、`pr_create` のテストです。`pr_restack` は案内せず、PR を作成せずに終了コード 1 で終了することを確認します。')
       const workspace = await pushedBranch({ github: [lowerPullRequests([lowerPullRequest('OPEN')]), ...SUBMIT_RULES] })
       const tree = workspace.git(['rev-parse', 'HEAD^{tree}']).trim()
       const foreign = workspace.git(['commit-tree', tree, '-m', 'elsewhere']).trim()
       mkdirSync(path.join(workspace.directory, '.pecot', 'state'), { recursive: true })
       writeFileSync(path.join(workspace.directory, '.pecot', 'state', '.pecot-base'), `${LOWER} ${foreign} acme/demo#11\n`)
-      const result = await workspace.run(stackedArguments())
+      const result = await workspace.run('pr_create', stackedArguments())
       expect(result).toStrictEqual({
         code: 1,
         stdout: '',
-        stderr: `error: .pecot-base records ${LOWER} at ${foreign.slice(0, 7)}, which is not in the history of ${BRANCH}\n  run pr create on the branch the record was written for, or pass --head ${BRANCH} to create the PR without the record\n`,
+        stderr: `error: .pecot-base records ${LOWER} at ${foreign.slice(0, 7)}, which is not in the history of ${BRANCH}\n  call pr_create on the branch the record was written for, or pass head: "${BRANCH}" to create the PR without the record\n`,
       })
       expect(operationsOf(workspace)).toStrictEqual(['ListPullRequestsByHead'])
     })
 
-    it('記録が別のブランチのもので、その親ブランチが今のブランチの履歴に無い位置へ動いていると、pr restack を案内しない', async () => {
-      await explains('`.pecot-base` が別のブランチ用の記録で、その親ブランチが現在のブランチの履歴に含まれない位置へ移動している場合の、`pr create` のテストです。`pr restack` を案内せずにエラーを出力することを確認します。')
+    it('記録が別のブランチのもので、その親ブランチが今のブランチの履歴に無い位置へ動いていると、pr_restack を案内しない', async () => {
+      await explains('`.pecot-base` が別のブランチ用の記録で、その親ブランチが現在のブランチの履歴に含まれない位置へ移動している場合の、`pr_create` のテストです。`pr_restack` を案内せずにエラーを出力することを確認します。')
       const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('OPEN')]), ...SUBMIT_RULES])
       const tree = workspace.git(['rev-parse', 'HEAD^{tree}']).trim()
       const foreign = workspace.git(['commit-tree', tree, '-m', 'elsewhere']).trim()
       writeFileSync(path.join(workspace.directory, stateFile('.pecot-base')), `${LOWER} ${foreign} acme/demo#11\n`)
       pushTo(workspace, `origin/${LOWER}`, LOWER, 'lower-fix.txt', 'fix\n')
-      const result = await workspace.run(stackedArguments())
+      const result = await workspace.run('pr_create', stackedArguments())
       expect(result.code).toBe(1)
       expect(lines(result.stderr)).toStrictEqual([
         `error: .pecot-base records ${LOWER} at ${foreign.slice(0, 7)}, which is not in the history of ${BRANCH}`,
-        `  run pr create on the branch the record was written for, or pass --head ${BRANCH} to create the PR without the record`,
+        `  call pr_create on the branch the record was written for, or pass head: "${BRANCH}" to create the PR without the record`,
       ])
     })
 
-    it('親 PR がマージされた後に手でスタックし直すと、PR を作らずに、pr restack で記録を書き直す案内を出す', async () => {
-      await explains('親 PR がマージされた後に、手でスタックし直した場合の、`pr create` のテストです。PR を作成せず、`pr restack` で記録を書き直す案内を出力して終了コード 1 で終了することを確認します。')
+    it('親 PR がマージされた後に手でスタックし直すと、PR を作らずに、pr_restack で記録を書き直す案内を出す', async () => {
+      await explains('親 PR がマージされた後に、手でスタックし直した場合の、`pr_create` のテストです。PR を作成せず、`pr_restack` で記録を書き直す案内を出力して終了コード 1 で終了することを確認します。')
       const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('MERGED')]), ...SUBMIT_RULES])
       const recorded = workspace.git(['rev-parse', `origin/${LOWER}`]).trim()
       pushTo(workspace, 'origin/main', 'main', 'lower.txt', '1\n')
       workspace.git(['rebase', '-q', '--onto', 'origin/main', recorded])
       workspace.git(['push', '-q', '--force', 'origin', BRANCH])
-      const result = await workspace.run(stackedArguments())
+      const result = await workspace.run('pr_create', stackedArguments())
       expect(result.code).toBe(1)
       expect(lines(result.stderr)).toStrictEqual([
         `error: .pecot-base records ${LOWER} at ${recorded.slice(0, 7)}, which is not in the history of ${BRANCH}`,
-        `  ${BRANCH} is already restacked; rewrite the record with: pecot pr restack`,
-        `  run pr create on the branch the record was written for, or pass --head ${BRANCH} to create the PR without the record`,
+        `  ${BRANCH} is already restacked; rewrite the record with: pr_restack`,
+        `  call pr_create on the branch the record was written for, or pass head: "${BRANCH}" to create the PR without the record`,
       ])
       expect(operationsOf(workspace)).toStrictEqual(['ListPullRequestsByHead'])
     })
 
     it('親ブランチに、マージ済みの PR と後から作って閉じた PR があると、マージ済みの方で base を決める', async () => {
-      await explains('親ブランチに、マージ済みの PR と、後から作成して閉じた PR がある場合の、`pr create` のテストです。マージ済みの PR を基準に `base` を決定し、開発ブランチを `base` にして PR を作成することを確認します。')
+      await explains('親ブランチに、マージ済みの PR と、後から作成して閉じた PR がある場合の、`pr_create` のテストです。マージ済みの PR を基準に `base` を決定し、開発ブランチを `base` にして PR を作成することを確認します。')
       const closed = { ...lowerPullRequest('CLOSED'), number: 30 }
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([closed, lowerPullRequest('MERGED')]), ...SUBMIT_RULES] })
-      const result = await workspace.run(stackedArguments())
+      const result = await workspace.run('pr_create', stackedArguments())
       expect(result).toStrictEqual({ code: 0, stdout: `${PULL_URL}\n`, stderr: `created: PR acme/demo ${BRANCH} -> main: ${TITLE}\nset: Issue #12 status to In Review\n` })
     })
 
     it('作成の応答が PR 番号を持たないと、スタックへ登録せずに warning の行を出し、URL を出す', async () => {
-      await explains('PR の作成の応答に PR 番号が含まれない場合の、`pr create` のテストです。スタックへの登録はせず、登録できなかった旨の warning の行を出力し、URL を標準出力に出力することを確認します。')
+      await explains('PR の作成の応答に PR 番号が含まれない場合の、`pr_create` のテストです。スタックへの登録はせず、登録できなかった旨の warning の行を出力し、URL を標準出力に出力することを確認します。')
       const created = rest('POST', '/repos/acme/demo/pulls', 201, { html_url: PULL_URL })
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), created, ...AFTER_CREATE_RULES] })
-      const result = await workspace.run(stackedArguments())
+      const result = await workspace.run('pr_create', stackedArguments())
       expect(result).toStrictEqual({
         code: 0,
         stdout: `${PULL_URL}\n`,
@@ -1122,10 +1069,10 @@ describe('pr create', () => {
     })
 
     it('PR を作った後にスタックの読み取りで接続が切れても、warning の行を出し、URL を出す', async () => {
-      await explains('PR の作成後に、スタックの取得で接続が切断された場合の、`pr create` のテストです。登録できなかった旨の warning の行を出力し、PR の URL は標準出力に出力して終了コード 0 で終了することを確認します。')
+      await explains('PR の作成後に、スタックの取得で接続が切断された場合の、`pr_create` のテストです。登録できなかった旨の warning の行を出力し、PR の URL は標準出力に出力して終了コード 0 で終了することを確認します。')
       const dropped = rule({ method: 'GET', path: STACKS_PATH }, { status: 200, disconnect: true })
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, dropped] })
-      const result = await workspace.run(stackedArguments())
+      const result = await workspace.run('pr_create', stackedArguments())
       expect(result.code).toBe(0)
       expect(result.stdout).toBe(`${PULL_URL}\n`)
       expect(lines(result.stderr)).toStrictEqual([
@@ -1137,87 +1084,86 @@ describe('pr create', () => {
     })
 
     it('release のテンプレートで PR を作ると、待っている Issue を読まない', async () => {
-      await explains('`release` のテンプレートで PR を作成する場合の、`pr create` のテストです。head の Issue を待つ Issue を取得しないことを確認します。')
+      await explains('`release` のテンプレートで PR を作成する場合の、`pr_create` のテストです。head の Issue を待つ Issue を取得しないことを確認します。')
       const workspace = await pushedBranch({ config: { developBranch: 'develop', releaseBranch: 'main' }, github: [CREATED_RULE] })
-      const result = await workspace.run(['pr', 'create', '-m', RELEASE_BODY, '-t', 'release: v0.5.0', '-b', 'main', '-r', 'acme/demo', '--template', 'release'])
+      const result = await workspace.run('pr_create', { message: RELEASE_BODY, title: 'release: v0.5.0', base: 'main', repo: 'acme/demo', template: 'release' })
       expect(result).toStrictEqual({ code: 0, stdout: `${PULL_URL}\n`, stderr: `created: PR acme/demo ${BRANCH} -> main: release: v0.5.0 (release template)\n` })
       expect(operationsOf(workspace)).not.toContain('GetIssueBlockingReferences')
     })
 
     it('親 PR がマージ済みのときにファイルで打つと、base を開発ブランチにして PR を作り、スタックに登録しない', async () => {
-      await explains('親 PR がマージ済みの場合の、ファイルからの `pr create` のテストです。開発ブランチを `base` にして PR を作成し、スタックには登録しないことを確認します。')
+      await explains('親 PR がマージ済みの場合の、ファイルからの `pr_create` のテストです。開発ブランチを `base` にして PR を作成し、スタックには登録しないことを確認します。')
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('MERGED')]), ...SUBMIT_RULES] })
-      const result = await workspace.run(['pr', 'create', writePrFile(workspace, { base: LOWER })])
+      const result = await workspace.run('pr_create', { file: writePrFile(workspace, { base: LOWER }) })
       expect(result).toStrictEqual({ code: 0, stdout: `${PULL_URL}\n`, stderr: `created: PR acme/demo ${BRANCH} -> main: ${TITLE}\nset: Issue #12 status to In Review\n` })
       expect(postedBody(workspace)['base']).toBe('main')
       expect(operationsOf(workspace).filter(operation => operation.includes('/stacks'))).toStrictEqual([])
     })
 
     it('開発ブランチから着手した記録で打つと、記録の無い startable の判定のときと同じ出力になり、判定を読まない', async () => {
-      await explains('開発ブランチから着手した記録がある場合の、`pr create` のテストです。`startable` の判定で記録を持たない場合の出力と一致し、前提の判定は取得しないことを確認します。')
+      await explains('開発ブランチから着手した記録がある場合の、`pr_create` のテストです。`startable` の判定で記録を持たない場合の出力と一致し、前提の判定は取得しないことを確認します。')
       const plain = await pushedBranch({ baseRecord: false, github: [STARTABLE_RULE, ...SUBMIT_RULES] })
-      const expected = await plain.run(messageArguments())
+      const expected = await plain.run('pr_create', messageArguments())
       const recorded = await pushedBranch({ files: { [stateFile('.pecot-base')]: `main ${RECORD_SHA}\n` }, github: SUBMIT_RULES })
-      const result = await recorded.run(messageArguments())
+      const result = await recorded.run('pr_create', messageArguments())
       expect(result).toStrictEqual(expected)
       expect(operationsOf(plain)).toStrictEqual(['GetIssuePrerequisites', ...operationsOf(recorded)])
     })
 
+    it.for([
+      { name: 'head で別のブランチを指す', record: 'stacked', mode: 'head' },
+      { name: 'フロントマターの head で別のブランチを指す', record: 'malformed', mode: 'frontmatter' },
+    ])('$name ときは、記録を読まずに PR を作る', async (row, context) => {
+      await verifies(context, 'PW-PR-CREATE-54')
+      await explains('`head` かフロントマターの `head` に別のブランチを指定した場合の、`pr_create` のテストです。`.pecot-base` を読み取らず、記録の形式に関係なく、指定したブランチを head にして PR を作成することを確認します。')
+      const workspace = await pushedBranch({ branches: [{ name: BRANCH }, { name: 'feat/demo/other' }], files: row.record === 'stacked' ? STACKED_RECORD : MALFORMED_RECORD, github: [CREATED_RULE] })
+      const input = row.mode === 'head' ? messageArguments({ head: 'feat/demo/other' }) : { file: writePrFile(workspace, { head: 'feat/demo/other' }) }
+      const result = await workspace.run('pr_create', input)
+      expect(result.code).toBe(0)
+      expect(postedBody(workspace)).toMatchObject({ head: 'feat/demo/other', base: 'main' })
+    })
+
+    it('今のブランチから release のテンプレートで呼ぶと、形の誤った記録があっても読まずに PR を作る', async (context) => {
+      await verifies(context, 'PW-PR-CREATE-54')
+      await explains('現在のブランチから `release` のテンプレートで実行する場合の、`pr_create` のテストです。形式の誤った `.pecot-base` があっても読み取らず、PR を作成することを確認します。')
+      const workspace = await pushedBranch({ files: MALFORMED_RECORD, config: { developBranch: 'develop', releaseBranch: 'main' }, github: [CREATED_RULE] })
+      const result = await workspace.run('pr_create', { message: RELEASE_BODY, title: 'release: v0.5.0', base: 'main', repo: 'acme/demo', template: 'release' })
+      expect(result).toStrictEqual({ code: 0, stdout: `${PULL_URL}\n`, stderr: `created: PR acme/demo ${BRANCH} -> main: release: v0.5.0 (release template)\n` })
+    })
+
     describe('記録が無い作業ディレクトリ', () => {
-      it('判定が stackable で親ブランチの上にあると、--dry-run で親ブランチを base にした PR とスタックへの登録を出す', async (context) => {
+      it('判定が stackable で親ブランチの上にあると、親ブランチを base にして PR を作り、親 PR のスタックに登録する', async (context) => {
         await verifies(context, 'PW-PR-CREATE-71')
-        await explains('`.pecot-base` が存在しない作業ディレクトリで、前提の判定が `stackable` の場合の、`pr create` のテストです。`--dry-run` で、親ブランチを `base` にした作成の予定と、スタックへの登録の予定の行を出力することを確認します。')
-        const workspace = await openInferredUpper([STACKABLE_RULE, lowerPullRequests([lowerPullRequest('OPEN')])])
-        const result = await workspace.run(stackedArguments(['--dry-run']))
-        expect(result).toStrictEqual({
-          code: 0,
-          stdout: '',
-          stderr: `dry-run: would create PR acme/demo ${BRANCH} -> ${LOWER}: ${TITLE}\ndry-run: would set Issue #12 status to In Review\ndry-run: would add the new PR to the stack of PR #20\n`,
-        })
+        await explains('`.pecot-base` が存在しない作業ディレクトリで、前提の判定が `stackable` の場合の、`pr_create` のテストです。親ブランチを `base` にして PR を作成し、親 PR のスタックに登録することを確認します。')
+        const workspace = await openInferredUpper([STACKABLE_RULE, lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, NO_STACK_RULE, CREATED_STACK_RULE])
+        const result = await workspace.run('pr_create', stackedArguments())
+        expect(result.code).toBe(0)
+        expect(postedBody(workspace)['base']).toBe(LOWER)
+        expect(restRequests(workspace, 'POST', STACKS_PATH)).toHaveLength(1)
       })
 
-      it('親ブランチを進めた main の上へスタックし直して force-push した後も、親ブランチを base にする', async () => {
-        await explains('`.pecot-base` が存在しない作業ディレクトリで、親ブランチが `main` の上にスタックし直されて force-push された場合の、`pr create` のテストです。その後も親ブランチを `base` にすることを確認します。')
-        const workspace = await openInferredUpper([STACKABLE_RULE, lowerPullRequests([lowerPullRequest('OPEN')])])
+      it('親ブランチを進めた main の上へスタックし直して force-push した後も、親ブランチを base にする', async (context) => {
+        await verifies(context, 'PW-PR-CREATE-71')
+        await explains('`.pecot-base` が存在しない作業ディレクトリで、親ブランチが `main` の上にスタックし直されて force-push された場合の、`pr_create` のテストです。その後も親ブランチを `base` にして PR を作成することを確認します。')
+        const workspace = await openInferredUpper([STACKABLE_RULE, lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, NO_STACK_RULE, CREATED_STACK_RULE])
         pushTo(workspace, 'origin/main', 'main', 'main.txt', 'main\n')
         workspace.git(['checkout', '-q', '-b', 'rebased-lower', `origin/${LOWER}`])
         workspace.git(['rebase', '-q', 'origin/main'])
         workspace.git(['push', '-q', '--force', 'origin', `HEAD:refs/heads/${LOWER}`])
         workspace.git(['checkout', '-q', BRANCH])
         workspace.git(['fetch', '-q', 'origin'])
-        const result = await workspace.run(stackedArguments(['--dry-run']))
+        const result = await workspace.run('pr_create', stackedArguments())
         expect(result.code).toBe(0)
-        expect(lines(result.stderr)[0]).toBe(`dry-run: would create PR acme/demo ${BRANCH} -> ${LOWER}: ${TITLE}`)
-      })
-
-      it('判定が stackable でも、ブランチが開発ブランチから分かれて親ブランチの変更を持たないと、develop_branch を base にする', async (context) => {
-        await verifies(context, 'PW-PR-CREATE-72')
-        await explains('`.pecot-base` が存在せず、判定が `stackable` でも、ブランチが開発ブランチから分岐して親ブランチの変更を含まない場合の、`pr create` のテストです。`develop_branch` を `base` にすることを確認します。')
-        const workspace = await pushedBranch({ baseRecord: false, branches: [{ name: BRANCH }, { name: LOWER, commits: [{ message: 'lower', files: { 'lower.txt': '1\n' } }] }], github: [STACKABLE_RULE] })
-        const result = await workspace.run(messageArguments(['--dry-run']))
-        expect(result).toStrictEqual({ code: 0, stdout: '', stderr: `dry-run: would create PR acme/demo ${BRANCH} -> main: ${TITLE}\ndry-run: would set Issue #12 status to In Review\n` })
-      })
-
-      it('判定が blocked なら、--dry-run では warning を出し、develop_branch を base にする', async (context) => {
-        await verifies(context, 'PW-PR-CREATE-74')
-        await explains('`.pecot-base` が存在せず、前提の判定が `blocked` の場合の、`pr create --dry-run` のテストです。warning を出力し、`develop_branch` を `base` にして作成の予定を出力することを確認します。')
-        const workspace = await pushedBranch({ baseRecord: false, github: [prerequisitesRule({ number: 12, blockedBy: [{ number: 11 }] })] })
-        const result = await workspace.run(messageArguments(['--dry-run']))
-        expect(result.code).toBe(0)
-        expect(lines(result.stderr)).toStrictEqual([
-          expect.stringMatching(/^warning: cannot infer the stacked base: blocked by #11/u),
-          `dry-run: would create PR acme/demo ${BRANCH} -> main: ${TITLE}`,
-          'dry-run: would set Issue #12 status to In Review',
-        ])
+        expect(postedBody(workspace)['base']).toBe(LOWER)
       })
 
       it.for([
         { name: '判定が blocked', rules: [prerequisitesRule({ number: 12, blockedBy: [{ number: 11 }] })], expected: /^error: cannot infer the stacked base: blocked by #11/u },
         { name: '判定を読む GitHub への接続が切れる', rules: [rule({ operation: 'GetIssuePrerequisites' }, { status: 200, disconnect: true })], expected: /^error: cannot infer the stacked base: /u },
       ])('$name とき、投稿では PR を作らずに error の行を出し、終了コード 1 で終わる', async (row) => {
-        await explains('`.pecot-base` が存在せず、前提の判定が `blocked` か判定の取得に失敗した場合の、`pr create` のテストです。`-m` の投稿では PR を作成せず、`error` の行を出力して終了コード 1 で終了することを確認します。')
+        await explains('`.pecot-base` が存在せず、前提の判定が `blocked` か判定の取得に失敗した場合の、`pr_create` のテストです。`message` の投稿では PR を作成せず、`error` の行を出力して終了コード 1 で終了することを確認します。')
         const workspace = await pushedBranch({ baseRecord: false, github: row.rules })
-        const result = await workspace.run(messageArguments([]))
+        const result = await workspace.run('pr_create', messageArguments())
         expect(result.code).toBe(1)
         expect(result.stderr).toMatch(row.expected)
         expect(operationsOf(workspace)).toStrictEqual(['GetIssuePrerequisites'])
@@ -1225,60 +1171,36 @@ describe('pr create', () => {
     })
 
     it.for([
-      { name: '--head で別のブランチを指す', record: 'stacked', mode: 'head' },
-      { name: 'フロントマターの head で別のブランチを指す', record: 'malformed', mode: 'frontmatter' },
-    ])('$name ときは、記録を読まずに今までどおり動く', async (row, context) => {
-      await verifies(context, 'PW-PR-CREATE-54')
-      await explains('`--head` かフロントマターの `head` に別のブランチを指定した場合の、`pr create` のテストです。`.pecot-base` を読み取らず、記録の形式に関係なく従来どおり `--dry-run` の予定を出力することを確認します。')
-      const workspace = await pushedBranch({ files: row.record === 'stacked' ? STACKED_RECORD : MALFORMED_RECORD })
-      const argv = row.mode === 'head'
-        ? messageArguments(['--head', 'feat/demo/other', '--dry-run'])
-        : ['pr', 'create', writePrFile(workspace, { head: 'feat/demo/other' }), '--dry-run']
-      const result = await workspace.run(argv)
-      expect(result).toStrictEqual({ code: 0, stdout: '', stderr: `dry-run: would create PR acme/demo feat/demo/other -> main: ${TITLE}\n` })
-      expect(operationsOf(workspace)).toStrictEqual([])
-    })
-
-    it('今のブランチから release のテンプレートで打つと、形の誤った記録があっても読まずに今までどおり動く', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-54')
-      await explains('現在のブランチから `release` のテンプレートで実行する場合の、`pr create` のテストです。形式の誤った `.pecot-base` があっても読み取らず、従来どおり `--dry-run` の予定を出力することを確認します。')
-      const workspace = await pushedBranch({ files: MALFORMED_RECORD, config: { developBranch: 'develop', releaseBranch: 'main' } })
-      const result = await workspace.run(['pr', 'create', '-m', RELEASE_BODY, '-t', 'release: v0.5.0', '-b', 'main', '-r', 'acme/demo', '--template', 'release', '--dry-run'])
-      expect(result).toStrictEqual({ code: 0, stdout: '', stderr: `dry-run: would create PR acme/demo ${BRANCH} -> main: release: v0.5.0 (release template)\n` })
-      expect(operationsOf(workspace)).toStrictEqual([])
-    })
-
-    it.for([
       { name: '親 PR が無い', nodes: [] },
       { name: '親 PR がマージされずに閉じた', nodes: [lowerPullRequest('CLOSED')] },
     ])('$name とき、PR を作らずに直し方を添えた error の行を出し、終了コード 2 で終わる', async (row) => {
-      await explains('`.pecot-base` が記録した親ブランチに、開いている PR が存在しない場合の、`pr create` のテストです。PR を作成せず、直し方を添えた `error` の行を出力して終了コード 2 で終了することを確認します。')
+      await explains('`.pecot-base` が記録した親ブランチに、開いている PR が存在しない場合の、`pr_create` のテストです。PR を作成せず、直し方を添えた `error` の行を出力して終了コード 2 で終了することを確認します。')
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests(row.nodes), ...SUBMIT_RULES] })
-      const result = await workspace.run(stackedArguments())
+      const result = await workspace.run('pr_create', stackedArguments())
       expect(result).toStrictEqual({
         code: 2,
         stdout: '',
-        stderr: `error: base branch ${LOWER} has no open PR\n  reopen the PR of ${LOWER}, or create a new one, then run pr create again\n`,
+        stderr: `error: base branch ${LOWER} has no open PR\n  reopen the PR of ${LOWER}, or create a new one, then call pr_create again\n`,
       })
       expect(restRequests(workspace, 'POST')).toStrictEqual([])
     })
 
     it('親 PR が開いているのに base に開発ブランチを渡すと、PR を作らずに終了コード 3 で終わる', async () => {
-      await explains('親 PR が開いているのに、`base` に開発ブランチを指定した場合の、`pr create` のテストです。PR を作成せず、`base` は親ブランチにする旨のエラーを出力して終了コード 3 で終了することを確認します。')
+      await explains('親 PR が開いているのに、`base` に開発ブランチを指定した場合の、`pr_create` のテストです。PR を作成せず、`base` は親ブランチにする旨のエラーを出力して終了コード 3 で終了することを確認します。')
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), ...SUBMIT_RULES] })
-      const result = await workspace.run(messageArguments())
+      const result = await workspace.run('pr_create', messageArguments())
       expect(result).toStrictEqual({ code: 3, stdout: '', stderr: `error: base branch must be ${LOWER} while its PR #20 is open (given: main)\n` })
       expect(restRequests(workspace, 'POST')).toStrictEqual([])
     })
 
     it.for([
       { name: 'ファイルの投稿', mode: 'file' },
-      { name: '-m の投稿', mode: 'message' },
+      { name: 'message の投稿', mode: 'message' },
     ])('スタックした base の記録の形が誤っていると、$name でも終了コード 1 で終わる', async (row) => {
-      await explains('`.pecot-base` の形式が誤っている場合の、`pr create` のテストです。ファイルでも `-m` でも、`.pecot-base is malformed` のエラーを出力して終了コード 1 で終了し、PR を作成しないことを確認します。')
+      await explains('`.pecot-base` の形式が誤っている場合の、`pr_create` のテストです。ファイルでも `message` でも、`.pecot-base is malformed` のエラーを出力して終了コード 1 で終了し、PR を作成しないことを確認します。')
       const workspace = await pushedBranch({ files: MALFORMED_RECORD, github: SUBMIT_RULES })
-      const argv = row.mode === 'file' ? ['pr', 'create', writePrFile(workspace)] : messageArguments()
-      const result = await workspace.run(argv)
+      const input = row.mode === 'file' ? { file: writePrFile(workspace) } : messageArguments()
+      const result = await workspace.run('pr_create', input)
       expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: .pecot-base is malformed: garbage\n' })
       expect(restRequests(workspace, 'POST')).toStrictEqual([])
     })
@@ -1296,9 +1218,9 @@ describe('pr create', () => {
       },
       { name: 'スタックの API が版を知らずに 400', rules: [rule({ method: 'GET', path: STACKS_PATH }, { status: 400, body: { message: 'Unsupported API version' } })], expected: /^warning: could not register stack: GitHub API error: 400 Unsupported API version$/u },
     ])('$name とき、PR を作ったまま warning: could not register stack の行を出す', async (row) => {
-      await explains('PR の作成後に、スタックへの登録が失敗した場合の、`pr create` のテストです。スタックの取得・作成・追加で API がエラーを返しても、PR は作成したまま、`could not register stack` の warning の行を出力することを確認します。')
+      await explains('PR の作成後に、スタックへの登録が失敗した場合の、`pr_create` のテストです。スタックの取得・作成・追加で API がエラーを返しても、PR は作成したまま、`could not register stack` の warning の行を出力することを確認します。')
       const workspace = await pushedBranch({ files: STACKED_RECORD, github: [lowerPullRequests([lowerPullRequest('OPEN')]), CREATED_RULE, ...AFTER_CREATE_RULES, ...row.rules] })
-      const result = await workspace.run(stackedArguments())
+      const result = await workspace.run('pr_create', stackedArguments())
       expect(result.code).toBe(0)
       expect(result.stdout).toBe(`${PULL_URL}\n`)
       expect(lines(result.stderr)).toStrictEqual([
@@ -1308,38 +1230,8 @@ describe('pr create', () => {
       ])
     })
 
-    it('親 PR がマージ済みのとき、題の scope を記録のコミットから head までの差分で確かめる', async (context) => {
-      await verifies(context, 'PW-PR-CREATE-62')
-      await explains('親 PR がマージ済みの場合の、`pr create` のテストです。題の scope を、記録のコミットから head までの差分に含まれる nx project から計算し、一致する題は受理して、一致しない題は終了コード 3 で拒否することを確認します。')
-      installNx({
-        'pecot-workflow': { root: 'plugins/pecot-workflow', tags: ['scope:p-w'] },
-        'text-rules': { root: 'libs/text-rules', tags: ['scope:libs'] },
-      })
-      const workspace = await openWorkspace({
-        commits: [{ message: 'nx', files: { 'nx.json': '{}\n' } }],
-        branch: LOWER,
-        branches: [{ name: LOWER, commits: [{ message: 'lower', files: { 'libs/text-rules/a.txt': 'x\n' } }] }],
-        config: { releaseType: 'nx' },
-        github: [lowerPullRequests([lowerPullRequest('MERGED')], 2)],
-      })
-      const sha = workspace.git(['rev-parse', 'HEAD']).trim()
-      workspace.git(['checkout', '-q', '-b', BRANCH])
-      mkdirSync(path.join(workspace.directory, 'plugins', 'pecot-workflow'), { recursive: true })
-      writeFileSync(path.join(workspace.directory, 'plugins', 'pecot-workflow', 'b.txt'), 'y\n')
-      workspace.git(['add', '-A', 'plugins'])
-      workspace.git(['commit', '-q', '-m', 'own'])
-      mkdirSync(path.join(workspace.directory, '.pecot', 'state'), { recursive: true })
-      writeFileSync(path.join(workspace.directory, '.pecot', 'state', '.pecot-base'), `${LOWER} ${sha} acme/demo#11\n`)
-
-      const passed = await workspace.run(stackedArguments(['--dry-run'], 'feat(p-w): #12 見本の変更'))
-      const planned = [`dry-run: would create PR acme/demo ${BRANCH} -> main: feat(p-w): #12 見本の変更`, 'dry-run: would set Issue #12 status to In Review', '']
-      expect(passed).toMatchObject({ code: 0, stderr: planned.join('\n') })
-      const failed = await workspace.run(stackedArguments(['--dry-run'], 'feat(libs,p-w): #12 見本の変更'))
-      expect(failed).toStrictEqual({ code: 3, stdout: '', stderr: 'error: PR title scope must be p-w (given: libs,p-w; computed from the tags of the changed nx projects)\n' })
-    })
-
     it('親 PR が開いている間は、題の scope を remote の親ブランチから head までの差分で確かめる', async () => {
-      await explains('親 PR が開いている場合の、`pr create` のテストです。題の scope を、remote の親ブランチから head までの差分に含まれる nx project から計算し、一致する題は受理して、一致しない題は終了コード 3 で拒否することを確認します。')
+      await explains('親 PR が開いている場合の、`pr_create` のテストです。題の scope を、remote の親ブランチから head までの差分に含まれる nx project から計算し、一致しない題を終了コード 3 で拒否することを確認します。')
       installNx({
         'pecot-workflow': { root: 'plugins/pecot-workflow', tags: ['scope:p-w'] },
         'text-rules': { root: 'libs/text-rules', tags: ['scope:libs'] },
@@ -1349,7 +1241,7 @@ describe('pr create', () => {
         branch: LOWER,
         branches: [{ name: LOWER, commits: [{ message: 'lower moved on', files: { 'libs/text-rules/a.txt': 'x\n' } }] }],
         config: { releaseType: 'nx' },
-        github: [lowerPullRequests([lowerPullRequest('OPEN')], 2)],
+        github: [lowerPullRequests([lowerPullRequest('OPEN')])],
       })
       // 記録は着手した時点の親ブランチの先端。その後に親ブランチへ足した libs の変更を、head は rebase で取り込んでいる
       const recorded = workspace.git(['rev-parse', 'HEAD~1']).trim()
@@ -1361,18 +1253,44 @@ describe('pr create', () => {
       mkdirSync(path.join(workspace.directory, '.pecot', 'state'), { recursive: true })
       writeFileSync(path.join(workspace.directory, '.pecot', 'state', '.pecot-base'), `${LOWER} ${recorded} acme/demo#11\n`)
 
-      const passed = await workspace.run(stackedArguments(['--dry-run'], 'feat(p-w): #12 見本の変更'))
-      expect(passed).toMatchObject({ code: 0 })
-      const failed = await workspace.run(stackedArguments(['--dry-run'], 'feat(libs,p-w): #12 見本の変更'))
+      const failed = await workspace.run('pr_create', stackedArguments({}, 'feat(libs,p-w): #12 見本の変更'))
+      expect(failed).toStrictEqual({ code: 3, stdout: '', stderr: 'error: PR title scope must be p-w (given: libs,p-w; computed from the tags of the changed nx projects)\n' })
+    })
+
+    it('親 PR がマージ済みのとき、題の scope を記録のコミットから head までの差分で確かめる', async (context) => {
+      await verifies(context, 'PW-PR-CREATE-62')
+      await explains('親 PR がマージ済みの場合の、`pr_create` のテストです。題の scope を、記録のコミットから head までの差分に含まれる nx project から計算し、一致しない題を終了コード 3 で拒否することを確認します。')
+      installNx({
+        'pecot-workflow': { root: 'plugins/pecot-workflow', tags: ['scope:p-w'] },
+        'text-rules': { root: 'libs/text-rules', tags: ['scope:libs'] },
+      })
+      const workspace = await openWorkspace({
+        commits: [{ message: 'nx', files: { 'nx.json': '{}\n' } }],
+        branch: LOWER,
+        branches: [{ name: LOWER, commits: [{ message: 'lower', files: { 'libs/text-rules/a.txt': 'x\n' } }] }],
+        config: { releaseType: 'nx' },
+        github: [lowerPullRequests([lowerPullRequest('MERGED')])],
+      })
+      // 記録は親ブランチの先端。親ブランチの libs の変更は差分に入らない
+      const sha = workspace.git(['rev-parse', 'HEAD']).trim()
+      workspace.git(['checkout', '-q', '-b', BRANCH])
+      mkdirSync(path.join(workspace.directory, 'plugins', 'pecot-workflow'), { recursive: true })
+      writeFileSync(path.join(workspace.directory, 'plugins', 'pecot-workflow', 'b.txt'), 'y\n')
+      workspace.git(['add', '-A', 'plugins'])
+      workspace.git(['commit', '-q', '-m', 'own'])
+      mkdirSync(path.join(workspace.directory, '.pecot', 'state'), { recursive: true })
+      writeFileSync(path.join(workspace.directory, '.pecot', 'state', '.pecot-base'), `${LOWER} ${sha} acme/demo#11\n`)
+
+      const failed = await workspace.run('pr_create', stackedArguments({}, 'feat(libs,p-w): #12 見本の変更'))
       expect(failed).toStrictEqual({ code: 3, stdout: '', stderr: 'error: PR title scope must be p-w (given: libs,p-w; computed from the tags of the changed nx projects)\n' })
     })
   })
 
   describe('待っている Issue', () => {
     it('PR を作ると、head の Issue を待つ Issue の列を動かし、moved の行を In Review の行と URL の間に出す', async () => {
-      await explains('head の Issue を待つ Issue がある場合の、`pr create` のテストです。待つ Issue のボードの列を `Blocked` から `Ready` へ移動し、`moved` の行を `In Review` の行の後に出力することを確認します。')
+      await explains('head の Issue を待つ Issue がある場合の、`pr_create` のテストです。待つ Issue のボードの列を `Blocked` から `Ready` へ移動し、`moved` の行を `In Review` の行の後に出力することを確認します。')
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(true)), READY_WRITE_RULE] })
-      const result = await workspace.run(messageArguments())
+      const result = await workspace.run('pr_create', messageArguments())
       expect(result).toStrictEqual({
         code: 0,
         stdout: `${PULL_URL}\n`,
@@ -1381,16 +1299,16 @@ describe('pr create', () => {
     })
 
     it('選択肢の ID が古くて In Review と待つ Issue の列を書けないと、warning を 2 行出し、ID を読み直す案内を 1 回だけ添える', async () => {
-      await explains('ボードの選択肢の ID が古く、`In Review` と待つ Issue の列を更新できない場合の、`pr create` のテストです。warning を 2 行出力し、ID を読み直す案内は 1 回だけ添えることを確認します。')
+      await explains('ボードの選択肢の ID が古く、`In Review` と待つ Issue の列を更新できない場合の、`pr_create` のテストです。warning を 2 行出力し、ID を読み直す案内は 1 回だけ添えることを確認します。')
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES.slice(0, 1), staleOptionUpdate(2), waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(true))] })
-      const result = await workspace.run(messageArguments())
+      const result = await workspace.run('pr_create', messageArguments())
       expect(result).toStrictEqual({
         code: 0,
         stdout: `${PULL_URL}\n`,
         stderr: [
           `created: PR acme/demo ${BRANCH} -> main: ${TITLE}`,
           `warning: status update of Issue #12 failed: ${STALE_OPTION_TEXT}`,
-          '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
+          '  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again',
           `warning: could not move #13: ${STALE_OPTION_TEXT}`,
           '',
         ].join('\n'),
@@ -1398,60 +1316,60 @@ describe('pr create', () => {
     })
 
     it('待つ Issue の Status が Bot の待ちの結果を持つ Needs Attention の場合は、列だけを動かし、Status を Todo に戻さない', async () => {
-      await explains('待つ Issue の Status が、Bot の待ちの結果を持つ `Needs Attention` の場合の、`pr create` のテストです。ボードの列だけを移動し、Status は `Todo` へ戻さないことを確認します。')
+      await explains('待つ Issue の Status が、Bot の待ちの結果を持つ `Needs Attention` の場合の、`pr_create` のテストです。ボードの列だけを移動し、Status は `Todo` へ戻さないことを確認します。')
       const waiting = { ...waitingTarget(true), label: 'Needs Attention' }
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule(waiting), commentsRule(13, [botResult('question')]), READY_WRITE_RULE] })
-      const result = await workspace.run(messageArguments())
+      const result = await workspace.run('pr_create', messageArguments())
       expect(result.code).toBe(0)
       expect(lines(result.stderr)).toStrictEqual([`created: PR acme/demo ${BRANCH} -> main: ${TITLE}`, 'set: Issue #12 status to In Review', 'moved: #13 Blocked -> Ready (stackable on #12)'])
     })
 
     it('着手の跡がある待つ Issue は、列を動かさない', async () => {
-      await explains('着手済みの記録がある待つ Issue の場合の、`pr create` のテストです。その Issue のボードの列を移動しないことを確認します。')
+      await explains('着手済みの記録がある待つ Issue の場合の、`pr_create` のテストです。その Issue のボードの列を移動しないことを確認します。')
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule({ ...waitingTarget(true), branch: 'feat/demo/13' })] })
-      const result = await workspace.run(messageArguments())
+      const result = await workspace.run('pr_create', messageArguments())
       expect(result.code).toBe(0)
       expect(lines(result.stderr)).toStrictEqual([`created: PR acme/demo ${BRANCH} -> main: ${TITLE}`, 'set: Issue #12 status to In Review'])
       expect(workspace.requests().filter(request => request.type === 'graphql' && request.operation === 'UpdateProjectItemField')).toHaveLength(1)
     })
 
     it('待つ Issue の判定に作った PR が出ていなければ、1 回だけ読み直してから動かす', async () => {
-      await explains('待つ Issue の判定に、作成した PR がまだ反映されていない場合の、`pr create` のテストです。判定を 1 回だけ再取得してから、ボードの列を移動することを確認します。')
+      await explains('待つ Issue の判定に、作成した PR がまだ反映されていない場合の、`pr_create` のテストです。判定を 1 回だけ再取得してから、ボードの列を移動することを確認します。')
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(false)), prerequisitesRule(waitingTarget(true)), READY_WRITE_RULE] })
       useFakeDelays()
-      const result = await settleWithFakeDelays(workspace.run(messageArguments()))
+      const result = await settleWithFakeDelays(workspace.run('pr_create', messageArguments()))
       expect(result.stderr).toContain('moved: #13 Blocked -> Ready (stackable on #12)\n')
       expect(operationsOf(workspace).filter(operation => operation === 'GetIssuePrerequisites')).toHaveLength(2)
     })
 
     it('読み直しても作った PR が判定に出なければ、pecot-board-sync のワークフローで後から直せる旨の warning の行を出して列を動かさない', async () => {
-      await explains('再取得しても、待つ Issue の判定に作成した PR が反映されない場合の、`pr create` のテストです。列は移動せず、`pecot-board-sync` のワークフローで後から修正できる旨の warning の行を出力することを確認します。')
+      await explains('再取得しても、待つ Issue の判定に作成した PR が反映されない場合の、`pr_create` のテストです。列は移動せず、`pecot-board-sync` のワークフローで後から修正できる旨の warning の行を出力することを確認します。')
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(false)), prerequisitesRule(waitingTarget(false))] })
       useFakeDelays()
-      const result = await settleWithFakeDelays(workspace.run(messageArguments()))
+      const result = await settleWithFakeDelays(workspace.run('pr_create', messageArguments()))
       expect(result).toMatchObject({ code: 0, stdout: `${PULL_URL}\n` })
       expect(lines(result.stderr).at(-1)).toBe('warning: could not confirm that GitHub reflects PR #21 in the readiness of #13; its column was not moved; run the pecot-board-sync workflow (Run workflow on its page in the Actions tab) later to move it')
       expect(result.stderr).not.toContain('moved:')
     })
 
     it('待つ Issue があっても、ボードの全項目を読まず、待つ Issue の項目だけを読む', async () => {
-      await explains('待つ Issue がある場合の、`pr create` のテストです。ボードの全項目は取得せず、待つ Issue の項目だけを取得することを確認します。')
+      await explains('待つ Issue がある場合の、`pr_create` のテストです。ボードの全項目は取得せず、待つ Issue の項目だけを取得することを確認します。')
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(true)), READY_WRITE_RULE] })
-      await workspace.run(messageArguments())
+      await workspace.run('pr_create', messageArguments())
       expect(operationsOf(workspace)).toStrictEqual(['POST /repos/acme/demo/pulls', 'GetIssueProjectItems', 'UpdateProjectItemField', 'GetIssueBlockingReferences', 'GetIssueBoardItem', 'GetIssuePrerequisites', 'UpdateProjectItemField'])
     })
 
     it('ボードに載っていない待つ Issue は、判定を読まずに飛ばす', async () => {
-      await explains('待つ Issue がボードに存在しない場合の、`pr create` のテストです。判定は取得せず、その Issue を処理の対象から外すことを確認します。')
+      await explains('待つ Issue がボードに存在しない場合の、`pr_create` のテストです。判定は取得せず、その Issue を処理の対象から外すことを確認します。')
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(), boardItemRule([])] })
-      const result = await workspace.run(messageArguments())
+      const result = await workspace.run('pr_create', messageArguments())
       expect(result).toStrictEqual({ code: 0, stdout: `${PULL_URL}\n`, stderr: `created: PR acme/demo ${BRANCH} -> main: ${TITLE}\nset: Issue #12 status to In Review\n` })
     })
 
     it('待つ Issue を全件読めなければ、読めた分を動かして warning の行を出す', async () => {
-      await explains('待つ Issue を一部しか取得できなかった場合の、`pr create` のテストです。取得できた Issue のボードの列を移動し、残りが取得できなかった旨の warning の行を出力することを確認します。')
+      await explains('待つ Issue を一部しか取得できなかった場合の、`pr_create` のテストです。取得できた Issue のボードの列を移動し、残りが取得できなかった旨の warning の行を出力することを確認します。')
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, waitingRule(2), BOARD_RULE, prerequisitesRule(waitingTarget(true)), READY_WRITE_RULE] })
-      const result = await workspace.run(messageArguments())
+      const result = await workspace.run('pr_create', messageArguments())
       expect(result.code).toBe(0)
       expect(lines(result.stderr).slice(2)).toStrictEqual(['moved: #13 Blocked -> Ready (stackable on #12)', 'warning: read 1 of 2 Issues waiting for #12; the rest were not moved'])
     })
@@ -1463,19 +1381,19 @@ describe('pr create', () => {
       { name: '列の書き込みの接続', rules: [waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(true)), rule({ operation: 'UpdateProjectItemField', variables: { itemId: 'PVTI_13' } }, { status: 200, disconnect: true })], expected: /^warning: could not move #13: /u },
       { name: '列の書き込み', rules: [waitingRule(), BOARD_RULE, prerequisitesRule(waitingTarget(true)), rule({ operation: 'UpdateProjectItemField', variables: { itemId: 'PVTI_13' } }, { status: 500, body: { message: 'boom' } })], expected: /^warning: could not move #13: GraphQL query error: /u },
     ])('$name に失敗すると、PR を作ったまま warning の行を出し、終了コード 0 で終わる', async (row) => {
-      await explains('待つ Issue の取得、ボードの取得、列の書き込みのいずれかが失敗した場合の、`pr create` のテストです。PR は作成したまま、warning の行を出力して終了コード 0 で終了することを確認します。')
+      await explains('待つ Issue の取得、ボードの取得、列の書き込みのいずれかが失敗した場合の、`pr_create` のテストです。PR は作成したまま、warning の行を出力して終了コード 0 で終了することを確認します。')
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, ...row.rules] })
-      const result = await workspace.run(messageArguments())
+      const result = await workspace.run('pr_create', messageArguments())
       expect(result).toMatchObject({ code: 0, stdout: `${PULL_URL}\n` })
       expect(lines(result.stderr).slice(0, 2)).toStrictEqual([`created: PR acme/demo ${BRANCH} -> main: ${TITLE}`, 'set: Issue #12 status to In Review'])
       expect(result.stderr.split('\n').slice(2).join('\n')).toMatch(row.expected)
     })
 
     it('Issue の依存関係に対応しない GHES では、何も出さずに飛ばす', async () => {
-      await explains('Issue の依存関係に対応していない GHES を使用している場合の、`pr create` のテストです。待つ Issue の処理を行わず、warning を出力しないことを確認します。')
+      await explains('Issue の依存関係に対応していない GHES を使用している場合の、`pr_create` のテストです。待つ Issue の処理を行わず、warning を出力しないことを確認します。')
       const unsupported = rule({ operation: 'GetIssueBlockingReferences' }, { status: 200, body: { errors: [{ message: 'Field \'blocking\' doesn\'t exist on type \'Issue\'' }] } })
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, unsupported] })
-      const result = await workspace.run(messageArguments())
+      const result = await workspace.run('pr_create', messageArguments())
       expect(result).toStrictEqual({ code: 0, stdout: `${PULL_URL}\n`, stderr: `created: PR acme/demo ${BRANCH} -> main: ${TITLE}\nset: Issue #12 status to In Review\n` })
     })
 
@@ -1485,17 +1403,17 @@ describe('pr create', () => {
       // eslint-disable-next-line unicorn/no-null -- 応答の形（リポが無いと null）
       { name: 'リポジトリ', data: { repository: null }, path: ['repository'] },
     ])('head の番号の $name が PR のリポに無いと、何も出さずに飛ばす', async (row) => {
-      await explains('head の番号の Issue かリポジトリが、PR のリポジトリに存在しない場合の、`pr create` のテストです。待つ Issue の処理を行わず、warning を出力しないことを確認します。')
+      await explains('head の番号の Issue かリポジトリが、PR のリポジトリに存在しない場合の、`pr_create` のテストです。待つ Issue の処理を行わず、warning を出力しないことを確認します。')
       const notFound = rule({ operation: 'GetIssueBlockingReferences' }, { status: 200, body: { data: row.data, errors: [{ type: 'NOT_FOUND', path: row.path, message: 'Could not resolve to an Issue with the number of 12.' }] } })
       const workspace = await pushedBranch({ github: [CREATED_RULE, ...IN_REVIEW_RULES, notFound] })
-      const result = await workspace.run(messageArguments())
+      const result = await workspace.run('pr_create', messageArguments())
       expect(result).toStrictEqual({ code: 0, stdout: `${PULL_URL}\n`, stderr: `created: PR acme/demo ${BRANCH} -> main: ${TITLE}\nset: Issue #12 status to In Review\n` })
     })
 
     it('待つ Issue が無ければ、ボードを読まない', async () => {
-      await explains('head の Issue を待つ Issue が存在しない場合の、`pr create` のテストです。ボードの項目を取得しないことを確認します。')
+      await explains('head の Issue を待つ Issue が存在しない場合の、`pr_create` のテストです。ボードの項目を取得しないことを確認します。')
       const workspace = await pushedBranch({ github: SUBMIT_RULES })
-      await workspace.run(messageArguments())
+      await workspace.run('pr_create', messageArguments())
       expect(operationsOf(workspace)).toStrictEqual(['POST /repos/acme/demo/pulls', 'GetIssueProjectItems', 'UpdateProjectItemField', 'GetIssueBlockingReferences'])
     })
   })
@@ -1837,7 +1755,7 @@ describe('pr create', () => {
         divergeStacked(workspace, row.scene)
         const result = await createTool(workspace, { ...MESSAGE_ARGUMENTS, base: LOWER })
         expect(result.structured['kind']).toBe('preflight-failed')
-        expect(toolFixes(result)).toStrictEqual([row.expected === 'pecot pr restack' ? 'pr_restack' : row.expected])
+        expect(toolFixes(result)).toStrictEqual([row.expected === 'pr_restack' ? 'pr_restack' : row.expected])
         expect(restRequests(workspace, 'POST')).toStrictEqual([])
       })
 
@@ -2225,11 +2143,11 @@ const REVIEW_SAMPLE: PullRequestSample = {
   threads: [{ isResolved: false, path: 'src/a.ts', line: 10, comments: { nodes: [{ author: { login: 'reviewer' }, body: '名前を直す', createdAt: '2026-01-02T03:04:05Z', url: 'https://github.com/acme/demo/pull/21#discussion_r1' }] } }],
 }
 
-describe('pr show', () => {
+describe('pr_show', () => {
   it('PR の参照を渡すと、見出し・状態・ブランチ・本文を Markdown で標準出力に出す', async () => {
-    await explains('PR の参照を指定した場合の、`pr show` のテストです。見出し、状態、ブランチ、本文を Markdown として標準出力に出力することを確認します。')
+    await explains('PR の参照を指定した場合の、`pr_show` のテストです。見出し、状態、ブランチ、本文を Markdown として標準出力に出力することを確認します。')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN', body: '本文の 1 行目\n' }))] })
-    const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
+    const result = await workspace.run('pr_show', { pr_ref: 'acme/demo/21' })
     expect(result.code).toBe(0)
     expect(result.stderr).toBe('')
     expect(result.stdout).toBe([
@@ -2254,38 +2172,38 @@ describe('pr show', () => {
     { title: 'closing issues', body: '本文\n', expected: '**Closing Issues:**\n  - #12 見本の Issue\n' },
     { title: '本文の参照 Issue', body: '本文\n\nRefs #3\n', expected: '**Referenced Issues:**\n  - #3\n' },
   ])('関連 Issue がある PR を読むと、$title を出す', async (row) => {
-    await explains('関連する Issue がある PR を指定した場合の、`pr show` のテストです。closing issues と、本文中の参照の Issue を、それぞれの節に出力することを確認します。')
+    await explains('関連する Issue がある PR を指定した場合の、`pr_show` のテストです。closing issues と、本文中の参照の Issue を、それぞれの節に出力することを確認します。')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN', body: row.body }))] })
-    const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
+    const result = await workspace.run('pr_show', { pr_ref: 'acme/demo/21' })
     expect(result.stdout).toContain(row.expected)
   })
 
-  it('短い形 N の参照を --repo なしで渡し、remote の URL から owner/repo を読めないと、短い形の案内と理由を出して終了コード 2 で終わる', async (context) => {
+  it('短い形 N の参照を repo なしで渡し、remote の URL から owner/repo を読めないと、短い形の案内と理由を出して終了コード 2 で終わる', async (context) => {
     await verifies(context, 'PW-COMMON-22')
-    await explains('短い形の `N` で参照を指定し、`--repo` も指定せず、remote の URL から `owner/repo` を取得できない場合の、`pr show` のテストです。短い形の案内と理由を出力して、終了コード 2 で終了することを確認します。')
+    await explains('短い形の `N` で参照を指定し、`repo` も指定せず、remote の URL から `owner/repo` を取得できない場合の、`pr_show` のテストです。短い形の案内と理由を出力して、終了コード 2 で終了することを確認します。')
     const workspace = await openWorkspace()
     workspace.git(['remote', 'set-url', 'origin', '/srv/git/demo.git'])
-    const result = await workspace.run(['pr', 'show', '21'])
+    const result = await workspace.run('pr_show', { pr_ref: '21' })
     expect(result.code).toBe(2)
     expect(result.stderr).toBe([
-      'error: the short form \'N\' needs a base_repo: pass --repo <owner/repo> or use the full form \'owner/repo/N\'',
+      'error: the short form \'N\' needs a base_repo: pass repo: <owner/repo> or use the full form \'owner/repo/N\'',
       '  could not read the repository from the URL of the Git remote origin',
       '',
     ].join('\n'))
   })
 
   it('レビューがある PR を読むと、レビューごとの author と状態を出す', async () => {
-    await explains('レビューがある PR を指定した場合の、`pr show` のテストです。レビューごとの author と状態を出力し、Draft とコメント数も状態の行に含めることを確認します。')
+    await explains('レビューがある PR を指定した場合の、`pr_show` のテストです。レビューごとの author と状態を出力し、Draft とコメント数も状態の行に含めることを確認します。')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData(FULL_SAMPLE))] })
-    const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
+    const result = await workspace.run('pr_show', { pr_ref: 'acme/demo/21' })
     expect(result.stdout).toContain('**Reviews:**\n  - reviewer: APPROVED\n')
     expect(result.stdout).toContain('**State:** OPEN | **Draft** | **Mergeable:** MERGEABLE | **Comments:** 2')
   })
 
-  it('--reviews を付けて打つと、レビューの本文と行のコメントを足して出す', async () => {
-    await explains('`--reviews` を指定した場合の、`pr show` のテストです。レビューの本文と、行ごとのコメントを追加して出力することを確認します。')
+  it('reviews を付けて打つと、レビューの本文と行のコメントを足して出す', async () => {
+    await explains('`reviews` を指定した場合の、`pr_show` のテストです。レビューの本文と、行ごとのコメントを追加して出力することを確認します。')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData(REVIEW_SAMPLE))] })
-    const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--reviews'])
+    const result = await workspace.run('pr_show', { pr_ref: 'acme/demo/21', reviews: true })
     expect(result.stdout).toContain('### @reviewer (CHANGES_REQUESTED) - 2026-01-02\n\n直してください。\n')
     expect(result.stdout).toContain('### `src/a.ts:10` [Open]\n\n**@reviewer** (2026-01-02) https://github.com/acme/demo/pull/21#discussion_r1:\n> 名前を直す\n')
   })
@@ -2293,36 +2211,27 @@ describe('pr show', () => {
   it.for([
     { title: 'レビューがあれば ## Reviews の節を出す', sample: REVIEW_SAMPLE, isShown: true },
     { title: 'レビューが無ければ ## Reviews の節を出さない', sample: { state: 'OPEN' }, isShown: false },
-  ])('--reviews を付けて打つと、$title', async (row) => {
-    await explains('`--reviews` を指定した場合の、`pr show` のテストです。レビューがあれば `## Reviews` の節を出力し、存在しなければその節を出力しないことを確認します。')
+  ])('reviews を付けて打つと、$title', async (row) => {
+    await explains('`reviews` を指定した場合の、`pr_show` のテストです。レビューがあれば `## Reviews` の節を出力し、存在しなければその節を出力しないことを確認します。')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData(row.sample))] })
-    const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--reviews'])
+    const result = await workspace.run('pr_show', { pr_ref: 'acme/demo/21', reviews: true })
     expect(result.stdout.includes('## Reviews\n')).toBe(row.isShown)
   })
 
   it.for([
     { title: '行のコメントがあれば ## Line Comments の節を出す', sample: REVIEW_SAMPLE, isShown: true },
     { title: '行のコメントが無ければ ## Line Comments の節を出さない', sample: { state: 'OPEN', reviews: REVIEW_SAMPLE.reviews ?? [], threads: [] }, isShown: false },
-  ])('--reviews を付けて打つと、$title', async (row) => {
-    await explains('`--reviews` を指定した場合の、`pr show` のテストです。行のコメントがあれば `## Line Comments` の節を出力し、存在しなければその節を出力しないことを確認します。')
+  ])('reviews を付けて打つと、$title', async (row) => {
+    await explains('`reviews` を指定した場合の、`pr_show` のテストです。行のコメントがあれば `## Line Comments` の節を出力し、存在しなければその節を出力しないことを確認します。')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData(row.sample))] })
-    const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--reviews'])
+    const result = await workspace.run('pr_show', { pr_ref: 'acme/demo/21', reviews: true })
     expect(result.stdout.includes('## Line Comments\n')).toBe(row.isShown)
   })
 
-  it('--reviews を付けて打つと、関連 Issue ごとに pecot issue show の案内を足す', async (context) => {
-    await verifies(context, 'PW-PR-SHOW-07')
-    await explains('`--reviews` を指定した場合の、`pr show` のテストです。関連する Issue ごとに、`issue show` による詳細の案内を追加して出力することを確認します。')
-    const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData({ ...REVIEW_SAMPLE, closing: [[12, '見本の Issue'], [13, '別の Issue']] }))] })
-    const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--reviews'])
-    expect(result.stdout).toContain('  - #12 見本の Issue\n    → details: issue show acme/demo/12\n')
-    expect(result.stdout).toContain('  - #13 別の Issue\n    → details: issue show acme/demo/13\n')
-  })
-
-  it('--json を付けて打つと、同じ内容を JSON で標準出力に出す', async () => {
-    await explains('`--json` を指定した場合の、`pr show` のテストです。Markdown の出力と同じ内容を、JSON として標準出力に出力することを確認します。')
+  it('json を付けて打つと、同じ内容を JSON で標準出力に出す', async () => {
+    await explains('`json` を指定した場合の、`pr_show` のテストです。Markdown の出力と同じ内容を、JSON として標準出力に出力することを確認します。')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData(FULL_SAMPLE))] })
-    const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--json'])
+    const result = await workspace.run('pr_show', { pr_ref: 'acme/demo/21', json: true })
     expect(result.code).toBe(0)
     expect(JSON.parse(result.stdout)).toStrictEqual({
       number: 21,
@@ -2340,10 +2249,10 @@ describe('pr show', () => {
     })
   })
 
-  it('--json と --reviews を一緒に付けて打つと、JSON にレビューと行のコメントを含める', async () => {
-    await explains('`--json` と `--reviews` を同時に指定した場合の、`pr show` のテストです。JSON にレビューと行のコメントを含めることを確認します。')
+  it('json と reviews を一緒に付けて打つと、JSON にレビューと行のコメントを含める', async () => {
+    await explains('`json` と `reviews` を同時に指定した場合の、`pr_show` のテストです。JSON にレビューと行のコメントを含めることを確認します。')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData(REVIEW_SAMPLE))] })
-    const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--json', '--reviews'])
+    const result = await workspace.run('pr_show', { pr_ref: 'acme/demo/21', json: true, reviews: true })
     expect(JSON.parse(result.stdout)).toMatchObject({
       reviews: [{ state: 'CHANGES_REQUESTED', author: 'reviewer', body: '直してください。', submitted_at: '2026-01-02T03:04:05Z' }],
       review_threads: [{ is_resolved: false, path: 'src/a.ts', line: 10, comments: [{ author: 'reviewer', body: '名前を直す', created_at: '2026-01-02T03:04:05Z', url: 'https://github.com/acme/demo/pull/21#discussion_r1' }] }],
@@ -2351,75 +2260,75 @@ describe('pr show', () => {
   })
 
   it.for([
-    { title: '--repo（git の remote と違う値）', argv: ['--repo', 'acme/other', 'pr', 'show', '21'], remote: 'origin', expected: 'other' },
-    { title: 'origin の remote', argv: ['pr', 'show', '21'], remote: 'origin', expected: 'demo' },
-    { title: 'origin が無いときの upstream の remote', argv: ['pr', 'show', '21'], remote: 'upstream', expected: 'other' },
+    { title: 'repo（git の remote と違う値）', input: { pr_ref: '21', repo: 'acme/other' }, remote: 'origin', expected: 'other' },
+    { title: 'origin の remote', input: { pr_ref: '21' }, remote: 'origin', expected: 'demo' },
+    { title: 'origin が無いときの upstream の remote', input: { pr_ref: '21' }, remote: 'upstream', expected: 'other' },
   ])('短い形 N の参照を渡すと、$title で補って読む', async (row) => {
-    await explains('短い形の `N` で参照を指定した場合の、`pr show` のテストです。`--repo`、`origin` の remote、`origin` が存在しない場合の `upstream` の remote の順で、リポジトリを補って読み取ることを確認します。')
+    await explains('短い形の `N` で参照を指定した場合の、`pr_show` のテストです。`repo`、`origin` の remote、`origin` が存在しない場合の `upstream` の remote の順で、リポジトリを補って読み取ることを確認します。')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN' }))], config: { hasSecondRepository: true } })
     if (row.remote === 'upstream') {
       workspace.git(['remote', 'rename', 'origin', 'upstream'])
       workspace.git(['remote', 'set-url', 'upstream', `https://${HOST}/acme/other.git`])
     }
-    const result = await workspace.run(row.argv)
+    const result = await workspace.run('pr_show', row.input)
     expect(result.code).toBe(0)
     expect(workspace.requests()).toMatchObject([{ type: 'graphql', operation: 'GetPullRequestSlim', variables: { owner: 'acme', repo: row.expected, number: 21 } }])
   })
 
   it('PR の参照の形が誤っていると、終了コード 2 で終わる', async () => {
-    await explains('PR の参照の形式が誤っている場合の、`pr show` のテストです。`invalid reference` のエラーを出力して終了コード 2 で終了し、GitHub へは要求しないことを確認します。')
+    await explains('PR の参照の形式が誤っている場合の、`pr_show` のテストです。`invalid reference` のエラーを出力して終了コード 2 で終了し、GitHub へは要求しないことを確認します。')
     const workspace = await openWorkspace()
-    const result = await workspace.run(['pr', 'show', 'not-a-ref'])
+    const result = await workspace.run('pr_show', { pr_ref: 'not-a-ref' })
     expect(result.code).toBe(2)
     expect(result.stderr).toMatch(/^error: invalid reference: not-a-ref\n/u)
     expect(workspace.requests()).toStrictEqual([])
   })
 
-  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async () => {
-    await explains('対象のリポジトリを含む設定が 2 つあり、`.active` でも選択できない場合の、`pr show` のテストです。候補と `--project` による指定の案内を出力して終了コード 1 で終了することを確認します。')
+  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と project の案内を出して終了コード 1 で終わる', async () => {
+    await explains('対象のリポジトリを含む設定が 2 つあり、`.active` でも選択できない場合の、`pr_show` のテストです。候補と `project` による指定の案内を出力して終了コード 1 で終了することを確認します。')
     const workspace = await openWorkspace({ files: ambiguousWorkspaceFiles() })
-    const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
-    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: `error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n` })
+    const result = await workspace.run('pr_show', { pr_ref: 'acme/demo/21' })
+    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: `error: acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n` })
     expect(workspace.requests()).toStrictEqual([])
   })
 
   it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async () => {
-    await explains('対象のリポジトリを含む設定が存在しない場合の、`pr show` のテストです。どの設定にも含まれない旨のエラーを出力して終了コード 1 で終了することを確認します。')
+    await explains('対象のリポジトリを含む設定が存在しない場合の、`pr_show` のテストです。どの設定にも含まれない旨のエラーを出力して終了コード 1 で終了することを確認します。')
     const workspace = await openWorkspace({ config: false })
-    const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
+    const result = await workspace.run('pr_show', { pr_ref: 'acme/demo/21' })
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: (none)\n' })
     expect(workspace.requests()).toStrictEqual([])
   })
 
-  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で読む', async () => {
-    await explains('`--project` を指定した場合の、`pr show` のテストです。対象のリポジトリを含む設定が 2 つあっても、指定した設定で PR を読み取ることを確認します。')
+  it('project を渡すと、対象のリポを含む設定が 2 つあってもその設定で読む', async () => {
+    await explains('`project` を指定した場合の、`pr_show` のテストです。対象のリポジトリを含む設定が 2 つあっても、指定した設定で PR を読み取ることを確認します。')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN' }))], files: ambiguousWorkspaceFiles() })
-    const result = await workspace.run(['pr', 'show', 'acme/demo/21', '--project', SECOND_PROJECT])
+    const result = await workspace.run('pr_show', { pr_ref: 'acme/demo/21', project: SECOND_PROJECT })
     expect(result.code).toBe(0)
   })
 
   it('.active が無くても、対象のリポを含む設定が 1 つならその設定で読む', async () => {
-    await explains('`.active` が存在せず、対象のリポジトリを含む設定が 1 つの場合の、`pr show` のテストです。その設定で PR を読み取ることを確認します。')
+    await explains('`.active` が存在せず、対象のリポジトリを含む設定が 1 つの場合の、`pr_show` のテストです。その設定で PR を読み取ることを確認します。')
     const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData({ state: 'OPEN' }))], files: NO_ACTIVE_FILES })
-    const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
+    const result = await workspace.run('pr_show', { pr_ref: 'acme/demo/21' })
     expect(result.code).toBe(0)
   })
 
   it('GitHub API がエラーを返すと、終了コード 1 で終わる', async () => {
-    await explains('GitHub API がエラーを返す場合の、`pr show` のテストです。GraphQL のエラーを出力して終了コード 1 で終了し、標準出力には何も出力しないことを確認します。')
+    await explains('GitHub API がエラーを返す場合の、`pr_show` のテストです。GraphQL のエラーを出力して終了コード 1 で終了し、標準出力には何も出力しないことを確認します。')
     const workspace = await openWorkspace({ github: [rule({ operation: 'GetPullRequestSlim' }, { status: 502, body: { message: 'Bad Gateway' } })] })
-    const result = await workspace.run(['pr', 'show', 'acme/demo/21'])
+    const result = await workspace.run('pr_show', { pr_ref: 'acme/demo/21' })
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toMatch(/^error: GraphQL query error: /u)
   })
 
   describe('MCP の data', () => {
-    it('json を省いても、--json と同じ中身を返す', async (context) => {
+    it('json を省いても、json と同じ中身を返す', async (context) => {
       await verifies(context, 'PW-PR-SHOW-01')
       await verifies(context, 'PW-PR-SHOW-03')
       await verifies(context, 'PW-PR-SHOW-08')
-      await explains('`json` を省略した場合の、MCP の `pr_show` のテストです。`--json` を指定した場合と同じ内容を返すことを確認します。')
+      await explains('`json` を省略した場合の、MCP の `pr_show` のテストです。`json` を指定した場合と同じ内容を返すことを確認します。')
       const workspace = await openWorkspace({ github: [graphql('GetPullRequestSlim', pullRequestData(FULL_SAMPLE))] })
       const result = await callTool(workspace, 'pr_show', { pr_ref: 'acme/demo/21' })
       expect(result.structured).toEqual({
@@ -2438,11 +2347,11 @@ describe('pr show', () => {
       })
     })
 
-    it('reviews を付けると、--json --reviews と同じく、レビューの本文と行のコメントも返す', async (context) => {
+    it('reviews を付けると、json reviews と同じく、レビューの本文と行のコメントも返す', async (context) => {
       await verifies(context, 'PW-PR-SHOW-09')
-      await explains('`reviews` を指定した場合の、MCP の `pr_show` のテストです。`--json --reviews` を指定した場合と同じく、レビューの本文と行のコメントを含めて返すことを確認します。')
+      await explains('`reviews` を指定した場合の、MCP の `pr_show` のテストです。`json: reviews` を指定した場合と同じく、レビューの本文と行のコメントを含めて返すことを確認します。')
       const workspace = await openWorkspace({ github: [graphql('GetPullRequestWithReviews', pullRequestData(REVIEW_SAMPLE), { times: 2 })] })
-      const json = await workspace.run(['pr', 'show', 'acme/demo/21', '--json', '--reviews'])
+      const json = await workspace.run('pr_show', { pr_ref: 'acme/demo/21', json: true, reviews: true })
       const result = await callTool(workspace, 'pr_show', { pr_ref: 'acme/demo/21', reviews: true })
       expect(result.structured).toEqual(JSON.parse(json.stdout))
     })
@@ -2565,7 +2474,7 @@ function headingsOf(stdout: string): string[] {
 }
 
 function preflight(workspace: Readonly<Workspace>): ReturnType<Workspace['run']> {
-  return workspace.run(['pr', 'check', '-D', workspace.directory])
+  return workspace.run('pr_check', { directory: workspace.directory })
 }
 
 function checkTool(workspace: Readonly<Workspace>, extra: Readonly<Record<string, unknown>> = {}): Promise<ToolOutcome> {
@@ -2602,13 +2511,13 @@ function localRemote(workspace: Readonly<Workspace>): string {
   return workspace.directory
 }
 
-describe('pr check', () => {
-  it('--directory でリポジトリを指すと、11 の節を決まった順で標準出力に出す', async () => {
-    await explains('`--directory` でリポジトリを指定した場合の、`pr check` のテストです。作業ディレクトリがリポジトリの外でも、11 の節を決まった順で標準出力に出力することを確認します。')
+describe('pr_check', () => {
+  it('directory でリポジトリを指すと、11 の節を決まった順で標準出力に出す', async () => {
+    await explains('`directory` でリポジトリを指定した場合の、`pr_check` のテストです。作業ディレクトリがリポジトリの外でも、11 の節を決まった順で標準出力に出力することを確認します。')
     const workspace = await pushedBranch()
     const elsewhere = path.join(workspace.root, 'elsewhere')
     mkdirSync(elsewhere)
-    const result = await workspace.run(['pr', 'check', '-D', workspace.directory], elsewhere)
+    const result = await workspace.run('pr_check', { directory: workspace.directory }, elsewhere)
     expect(result.code).toBe(0)
     expect(headingsOf(result.stdout)).toStrictEqual(SECTION_HEADINGS)
     expect(result.stdout).toContain('=== Git Remote ===\ngit@ghes.example.com:acme/demo.git\n')
@@ -2617,31 +2526,31 @@ describe('pr check', () => {
   })
 
   it('プロセスの cwd がリポジトリの外でも、そのリポジトリの .git/info/exclude を Git Exclude の節に出す', async () => {
-    await explains('プロセスの作業ディレクトリがリポジトリの外の場合の、`pr check` のテストです。対象のリポジトリの `.git/info/exclude` の内容を、Git Exclude の節に出力することを確認します。')
+    await explains('プロセスの作業ディレクトリがリポジトリの外の場合の、`pr_check` のテストです。対象のリポジトリの `.git/info/exclude` の内容を、Git Exclude の節に出力することを確認します。')
     const workspace = await pushedBranch()
     writeFileSync(path.join(workspace.directory, '.git', 'info', 'exclude'), '# 目印の行\n.marker-exclude\n')
     const elsewhere = path.join(workspace.root, 'elsewhere')
     mkdirSync(elsewhere)
-    const result = await workspace.run(['pr', 'check', '-D', workspace.directory], elsewhere)
+    const result = await workspace.run('pr_check', { directory: workspace.directory }, elsewhere)
     expect(result.stdout).toContain('=== Git Exclude ===\n# 目印の行\n.marker-exclude\n')
     expect(result.stdout).not.toContain('(no exclude)')
   })
 
-  it('worktree を --directory に渡すと、Worktree Info の節に Is worktree environment: true を出す', async () => {
-    await explains('worktree を `--directory` に指定した場合の、`pr check` のテストです。Worktree Info の節に `Is worktree environment: true` を出力し、通常のリポジトリでは `false` を出力することを確認します。')
+  it('worktree を directory に渡すと、Worktree Info の節に Is worktree environment: true を出す', async () => {
+    await explains('worktree を `directory` に指定した場合の、`pr_check` のテストです。Worktree Info の節に `Is worktree environment: true` を出力し、通常のリポジトリでは `false` を出力することを確認します。')
     const workspace = await pushedBranch()
     const worktree = path.join(workspace.root, 'linked')
     workspace.git(['worktree', 'add', '-q', '-b', 'linked-work', worktree])
     const elsewhere = path.join(workspace.root, 'elsewhere')
     mkdirSync(elsewhere)
-    const result = await workspace.run(['pr', 'check', '-D', worktree], elsewhere)
+    const result = await workspace.run('pr_check', { directory: worktree }, elsewhere)
     expect(result.stdout).toContain('Is worktree environment: true\n')
     const main = await preflight(workspace)
     expect(main.stdout).toContain('Is worktree environment: false\n')
   })
 
   it('.gitignore が UTF-8 として読めないと、.gitignore の節に (read error) を出す', async () => {
-    await explains('`.gitignore` を UTF-8 として読み取れない場合の、`pr check` のテストです。`.gitignore` の節に `(read error)` を出力することを確認します。')
+    await explains('`.gitignore` を UTF-8 として読み取れない場合の、`pr_check` のテストです。`.gitignore` の節に `(read error)` を出力することを確認します。')
     const workspace = await pushedBranch()
     writeFileSync(path.join(workspace.directory, '.gitignore'), Buffer.from([0x61, 0xFF, 0x0A]))
     const result = await preflight(workspace)
@@ -2649,7 +2558,7 @@ describe('pr check', () => {
   })
 
   it('warning があるときに打つと、11 の節を全部出す', async () => {
-    await explains('warning がある場合の、`pr check` のテストです。終了コード 2 で終了し、11 の節をすべて出力することを確認します。')
+    await explains('warning がある場合の、`pr_check` のテストです。終了コード 2 で終了し、11 の節をすべて出力することを確認します。')
     const workspace = await openWorkspace({ branch: BRANCH, files: { 'memo.txt': 'x\n' } })
     const result = await preflight(workspace)
     expect(result.code).toBe(2)
@@ -2657,7 +2566,7 @@ describe('pr check', () => {
   })
 
   it.for([{ remote: 'origin' }, { remote: 'upstream' }])('remote が $remote だけだと、Base Branch の節に <remote>/<develop_branch> を出す', async (row) => {
-    await explains('remote が `origin` だけの場合と `upstream` だけの場合の、`pr check` のテストです。Base Branch の節に、その remote と `develop_branch` を連結した名前を出力することを確認します。')
+    await explains('remote が `origin` だけの場合と `upstream` だけの場合の、`pr_check` のテストです。Base Branch の節に、その remote と `develop_branch` を連結した名前を出力することを確認します。')
     const workspace = await pushedBranch()
     if (row.remote !== 'origin') workspace.git(['remote', 'rename', 'origin', row.remote])
     const result = await preflight(workspace)
@@ -2671,7 +2580,7 @@ describe('pr check', () => {
     { name: '親ブランチが remote から消え、手元に追跡参照が残っている', branches: [BRANCH, LOWER], remoteChange: 'delete', expected: 'origin/main' },
     { name: '親ブランチの追跡参照があり、remote に届かない', branches: [BRANCH, LOWER], remoteChange: 'unreachable', expected: `origin/${LOWER}` },
   ])('スタックした base の記録があり、$name ときに打つと、Base Branch の節に $expected を出す', async (row) => {
-    await explains('スタックの記録があり、親ブランチの状態が異なる場合の、`pr check` のテストです。親ブランチが remote に存在するときは親ブランチを、存在しないときや取得できないときは開発ブランチを、Base Branch の節に出力することを確認します。')
+    await explains('スタックの記録があり、親ブランチの状態が異なる場合の、`pr_check` のテストです。親ブランチが remote に存在するときは親ブランチを、存在しないときや取得できないときは開発ブランチを、Base Branch の節に出力することを確認します。')
     const workspace = await pushedBranch({ branches: row.branches.map(name => ({ name })), files: STACKED_RECORD })
     if (row.remoteChange === 'delete') workspace.remoteGit(['update-ref', '-d', `refs/heads/${LOWER}`])
     else if (row.remoteChange === 'unreachable') {
@@ -2685,7 +2594,7 @@ describe('pr check', () => {
   })
 
   it('スタックした base の記録があり、親ブランチが remote にあって手元に追跡参照が無いと、開発ブランチと比べて git fetch を案内する', async () => {
-    await explains('スタックの記録があり、親ブランチが remote に存在して、手元に追跡参照が存在しない場合の、`pr check` のテストです。開発ブランチと比較し、`git fetch` の案内を標準エラーに出力することを確認します。')
+    await explains('スタックの記録があり、親ブランチが remote に存在して、手元に追跡参照が存在しない場合の、`pr_check` のテストです。開発ブランチと比較し、`git fetch` の案内を標準エラーに出力することを確認します。')
     const workspace = await pushedBranch({ branches: [{ name: BRANCH }, { name: LOWER }], files: STACKED_RECORD })
     workspace.git(['update-ref', '-d', `refs/remotes/origin/${LOWER}`])
     const result = await preflight(workspace)
@@ -2698,21 +2607,21 @@ describe('pr check', () => {
   })
 
   it('スタックした base の記録の形が誤っていると、終了コード 1 で終わる', async () => {
-    await explains('`.pecot-base` の形式が誤っている場合の、`pr check` のテストです。`.pecot-base is malformed` のエラーを出力して終了コード 1 で終了することを確認します。')
+    await explains('`.pecot-base` の形式が誤っている場合の、`pr_check` のテストです。`.pecot-base is malformed` のエラーを出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch({ files: MALFORMED_RECORD })
     const result = await preflight(workspace)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: .pecot-base is malformed: garbage\n' })
   })
 
   it('打つと、count: preflight warnings の行を標準エラーに出す', async () => {
-    await explains('`pr check` を実行した場合のテストです。`count: preflight warnings` の行を、標準エラーに出力することを確認します。')
+    await explains('`pr_check` を実行した場合のテストです。`count: preflight warnings` の行を、標準エラーに出力することを確認します。')
     const workspace = await pushedBranch()
     const result = await preflight(workspace)
     expect(result.stderr).toBe('count: preflight warnings: 0\n')
   })
 
   it('warning があるときに打つと、warning ごとに warning の行を標準エラーに出す', async () => {
-    await explains('warning がある場合の、`pr check` のテストです。warning ごとに `warning` の行を、件数の行に続けて標準エラーに出力することを確認します。')
+    await explains('warning がある場合の、`pr_check` のテストです。warning ごとに `warning` の行を、件数の行に続けて標準エラーに出力することを確認します。')
     const workspace = await openWorkspace({ branch: BRANCH, files: { 'memo.txt': 'x\n' } })
     const result = await preflight(workspace)
     expect(lines(result.stderr)).toStrictEqual([
@@ -2723,7 +2632,7 @@ describe('pr check', () => {
   })
 
   it('常に、リポジトリとファイルを書き換えない', async () => {
-    await explains('`pr check` のテストです。実行の前後で、作業ディレクトリのファイル、HEAD、ブランチ、stash の状態が変化しないことを確認します。')
+    await explains('`pr_check` のテストです。実行の前後で、作業ディレクトリのファイル、HEAD、ブランチ、stash の状態が変化しないことを確認します。')
     const workspace = await pushedBranch({ files: { 'memo.txt': 'x\n' } })
     const snapshot = (): unknown => ({
       files: filesOf(workspace.directory),
@@ -2744,7 +2653,7 @@ describe('pr check', () => {
     { title: 'push 後に手元だけ進んだ', kind: 'ahead', expected: '1 unpushed commits' },
     { title: 'remote とずれた', kind: 'diverged', expected: `diverged: local is 1 commits ahead, origin/${BRANCH} is 1 ahead` },
   ])('ブランチが次の状態だと（$title）、Push Status の warning を数える', async (row) => {
-    await explains('ブランチの push 状況が異なる場合の、`pr check` のテストです。未 push、push 後に手元だけが進んだ状態、remote とずれた状態のそれぞれで、Push Status の warning を 1 件出力することを確認します。')
+    await explains('ブランチの push 状況が異なる場合の、`pr_check` のテストです。未 push、push 後に手元だけが進んだ状態、remote とずれた状態のそれぞれで、Push Status の warning を 1 件出力することを確認します。')
     const workspace = row.kind === 'unpushed' ? await openWorkspace({ branch: BRANCH }) : await pushedBranch()
     if (row.kind !== 'unpushed') workspace.git(['commit', '--allow-empty', '-q', '-m', 'local'])
     if (row.kind === 'diverged') {
@@ -2756,17 +2665,17 @@ describe('pr check', () => {
     expect(lines(result.stderr)).toStrictEqual(['count: preflight warnings: 1', `warning: Push Status: ${row.expected} (fix: ${fix})`])
   })
 
-  it.for(STACKED_CHECK_ROWS)('スタックの記録があり、$name ときに打つと、Push Status の直し方に pr restack を出す', async (row) => {
-    await explains('スタックの記録があり、remote の子ブランチだけがずれている場合の、`pr check` のテストです。親ブランチが動いた場合も、親 PR がマージされた場合も、Push Status の直し方に `pecot pr restack` を出力することを確認します。')
+  it.for(STACKED_CHECK_ROWS)('スタックの記録があり、$name ときに打つと、Push Status の直し方に pr_restack を出す', async (row) => {
+    await explains('スタックの記録があり、remote の子ブランチだけがずれている場合の、`pr_check` のテストです。親ブランチが動いた場合も、親 PR がマージされた場合も、Push Status の直し方に `pr_restack` を出力することを確認します。')
     const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest(row.state)])])
     divergeStacked(workspace, row.scene)
     const result = await preflight(workspace)
     expect(result.code).toBe(2)
-    expect(pushStatusFixes(result.stderr)).toStrictEqual(['pecot pr restack'])
+    expect(pushStatusFixes(result.stderr)).toStrictEqual(['pr_restack'])
   })
 
-  it('スタックの記録があり、親 PR のマージの後に手元だけをスタックし直して remote とずれると、Push Status の直し方に pr restack を出す', async () => {
-    await explains('スタックの記録があり、親 PR のマージ後に手元だけをスタックし直して、remote とずれた場合の、`pr check` のテストです。Push Status の直し方に `pecot pr restack` を出力することを確認します。')
+  it('スタックの記録があり、親 PR のマージの後に手元だけをスタックし直して remote とずれると、Push Status の直し方に pr_restack を出す', async () => {
+    await explains('スタックの記録があり、親 PR のマージ後に手元だけをスタックし直して、remote とずれた場合の、`pr_check` のテストです。Push Status の直し方に `pr_restack` を出力することを確認します。')
     const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('MERGED')])])
     const recorded = workspace.git(['rev-parse', `origin/${LOWER}`]).trim()
     pushTo(workspace, 'origin/main', 'main', 'lower.txt', '1\n')
@@ -2774,11 +2683,11 @@ describe('pr check', () => {
     workspace.git(['rebase', '-q', '--onto', 'origin/main', recorded])
     const result = await preflight(workspace)
     expect(result.code).toBe(2)
-    expect(pushStatusFixes(result.stderr)).toStrictEqual(['pecot pr restack'])
+    expect(pushStatusFixes(result.stderr)).toStrictEqual(['pr_restack'])
   })
 
   it('記録が無く、判定が stackable で親ブランチの上にあると、親ブランチの追跡参照と比べ、Commits の節に子ブランチのコミットだけを出す', async () => {
-    await explains('`.pecot-base` が存在せず、判定が `stackable` で親ブランチの上にある場合の、`pr check` のテストです。親ブランチの追跡参照と比較し、Commits の節に子ブランチのコミットだけを出力することを確認します。')
+    await explains('`.pecot-base` が存在せず、判定が `stackable` で親ブランチの上にある場合の、`pr_check` のテストです。親ブランチの追跡参照と比較し、Commits の節に子ブランチのコミットだけを出力することを確認します。')
     const workspace = await openInferredUpper([STACKABLE_RULE])
     const result = await preflight(workspace)
     expect(result).toMatchObject({ code: 0, stderr: 'count: preflight warnings: 0\n' })
@@ -2787,7 +2696,7 @@ describe('pr check', () => {
   })
 
   it('記録が無く、判定が stackable で、親ブランチが自分のコミットを持たないまま子ブランチの祖先なら、親ブランチの追跡参照と比べる', async () => {
-    await explains('`.pecot-base` が存在せず、判定が `stackable` で、親ブランチが自分のコミットを持たずに子ブランチの祖先である場合の、`pr check` のテストです。親ブランチの追跡参照と比較することを確認します。')
+    await explains('`.pecot-base` が存在せず、判定が `stackable` で、親ブランチが自分のコミットを持たずに子ブランチの祖先である場合の、`pr_check` のテストです。親ブランチの追跡参照と比較することを確認します。')
     const workspace = await openWorkspace({ baseRecord: false, branches: [{ name: LOWER }], github: [STACKABLE_RULE] })
     workspace.git(['checkout', '-q', '-b', BRANCH, `origin/${LOWER}`])
     commitFile(workspace, 'upper.txt', 'upper\n')
@@ -2801,7 +2710,7 @@ describe('pr check', () => {
     { name: '判定を読む GitHub への接続が切れる', rules: [rule({ operation: 'GetIssuePrerequisites' }, { status: 200, disconnect: true })], isTracked: true, expected: /^warning: cannot infer the stacked base: /u },
     { name: '親ブランチの追跡参照が無い', rules: [STACKABLE_RULE], isTracked: false, expected: /^warning: cannot infer the stacked base: origin\/feat\/demo\/11 is not found; fetch it with: git fetch$/u },
   ])('記録が無く、$name と、warning の行を出し、develop_branch の追跡参照と比べる', async (row) => {
-    await explains('`.pecot-base` が存在せず、前提の判定を取得できない場合や、親ブランチの追跡参照が存在しない場合の、`pr check` のテストです。warning の行を出力し、`develop_branch` の追跡参照と比較することを確認します。')
+    await explains('`.pecot-base` が存在せず、前提の判定を取得できない場合や、親ブランチの追跡参照が存在しない場合の、`pr_check` のテストです。warning の行を出力し、`develop_branch` の追跡参照と比較することを確認します。')
     const workspace = await openInferredUpper(row.rules)
     if (!row.isTracked) workspace.git(['update-ref', '-d', `refs/remotes/origin/${LOWER}`])
     const result = await preflight(workspace)
@@ -2811,15 +2720,15 @@ describe('pr check', () => {
   })
 
   it('スタックの記録があり、親ブランチが動かないまま手元だけを書き換えて remote とずれると、Push Status の直し方に取り込みか lease 付きの上書きを出す', async () => {
-    await explains('スタックの記録があり、親ブランチが動かないまま手元だけを書き換えて、remote とずれた場合の、`pr check` のテストです。Push Status の直し方に、取り込みか lease を付けた上書きを出力することを確認します。')
+    await explains('スタックの記録があり、親ブランチが動かないまま手元だけを書き換えて、remote とずれた場合の、`pr_check` のテストです。Push Status の直し方に、取り込みか lease を付けた上書きを出力することを確認します。')
     const workspace = await openStackedUpper([lowerPullRequests([lowerPullRequest('OPEN')])])
     divergeStacked(workspace, 'amended')
     const result = await preflight(workspace)
     expect(lines(result.stderr)).toStrictEqual(['count: preflight warnings: 1', `warning: Push Status: diverged: local is 1 commits ahead, origin/${BRANCH} is 1 ahead (fix: ${DIVERGED_FIX})`])
   })
 
-  it.for(UNDECIDED_ROWS)('スタックの記録があって remote とずれ、$name と、Push Status の直し方に pr restack --check を出す', async (row) => {
-    await explains('スタックの記録があり、remote とずれていて、親ブランチの状態を判断できない場合の、`pr check` のテストです。親 PR の取得失敗、親ブランチの消失、remote への接続不能のいずれでも、Push Status の直し方に `pecot pr restack --check` を出力することを確認します。')
+  it.for(UNDECIDED_ROWS)('スタックの記録があって remote とずれ、$name と、Push Status の直し方に check を付けた pr_restack を出す', async (row) => {
+    await explains('スタックの記録があり、remote とずれていて、親ブランチの状態を判断できない場合の、`pr_check` のテストです。親 PR の取得失敗、親ブランチの消失、remote への接続不能のいずれでも、Push Status の直し方に `pr_restack` の `check` を出力することを確認します。')
     const workspace = await openStackedUpper([row.cause === 'pull-request-unreadable' ? UNREADABLE_LOWER_RULE : lowerPullRequests([lowerPullRequest('OPEN')])])
     divergeStacked(workspace, 'moved')
     if (row.cause === 'gone') workspace.remoteGit(['update-ref', '-d', `refs/heads/${LOWER}`])
@@ -2828,7 +2737,7 @@ describe('pr check', () => {
       renameSync(bare, `${bare}.moved`)
     }
     const result = await preflight(workspace)
-    expect(pushStatusFixes(result.stderr)).toStrictEqual(['pecot pr restack --check'])
+    expect(pushStatusFixes(result.stderr)).toStrictEqual(['pr_restack with check: true'])
   })
 
   it('MCP で呼ぶと、Push Status の直し方をツールの名前で出す', async (context) => {
@@ -2841,14 +2750,14 @@ describe('pr check', () => {
   })
 
   it('未コミットの変更があると、Git Status の warning を数える', async () => {
-    await explains('未コミットの変更がある場合の、`pr check` のテストです。Git Status の warning を 1 件、標準エラーに出力することを確認します。')
+    await explains('未コミットの変更がある場合の、`pr_check` のテストです。Git Status の warning を 1 件、標準エラーに出力することを確認します。')
     const workspace = await pushedBranch({ files: { 'memo.txt': 'x\n' } })
     const result = await preflight(workspace)
     expect(lines(result.stderr)).toStrictEqual(['count: preflight warnings: 1', 'warning: Git Status: modified or untracked files (fix: commit)'])
   })
 
   it('stash に項目があると、Stash List の warning を数える', async () => {
-    await explains('stash に項目がある場合の、`pr check` のテストです。Stash List の warning を 1 件、標準エラーに出力することを確認します。')
+    await explains('stash に項目がある場合の、`pr_check` のテストです。Stash List の warning を 1 件、標準エラーに出力することを確認します。')
     const workspace = await pushedBranch()
     writeFileSync(path.join(workspace.directory, 'README.md'), '変更\n')
     workspace.git(['stash', 'push', '-q'])
@@ -2858,7 +2767,7 @@ describe('pr check', () => {
   })
 
   it('warning が 1 件以上あると、終了コード 2 で終わる', async () => {
-    await explains('`pr check` の終了コードのテストです。warning が 1 件以上ある場合は終了コード 2 で終了し、ない場合は終了コード 0 で終了することを確認します。')
+    await explains('`pr_check` の終了コードのテストです。warning が 1 件以上ある場合は終了コード 2 で終了し、ない場合は終了コード 0 で終了することを確認します。')
     const dirty = await pushedBranch({ files: { 'memo.txt': 'x\n' } })
     const dirtyResult = await preflight(dirty)
     expect(dirtyResult.code).toBe(2)
@@ -2868,16 +2777,16 @@ describe('pr check', () => {
   })
 
   it('git のリポジトリでないと、終了コード 1 で終わる', async () => {
-    await explains('git のリポジトリではない場所を指定した場合の、`pr check` のテストです。`not a git repository` のエラーを出力して終了コード 1 で終了することを確認します。')
+    await explains('git のリポジトリではない場所を指定した場合の、`pr_check` のテストです。`not a git repository` のエラーを出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch()
     const plain = path.join(workspace.root, 'plain')
     mkdirSync(plain)
-    const result = await workspace.run(['pr', 'check', '-D', plain])
+    const result = await workspace.run('pr_check', { directory: plain })
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: not a git repository\n' })
   })
 
   it('git の remote が無いと、終了コード 1 で終わる', async () => {
-    await explains('git の remote が存在しない場合の、`pr check` のテストです。`git remote not found` のエラーを出力して終了コード 1 で終了することを確認します。')
+    await explains('git の remote が存在しない場合の、`pr_check` のテストです。`git remote not found` のエラーを出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch()
     workspace.git(['remote', 'remove', 'origin'])
     const result = await preflight(workspace)
@@ -2885,77 +2794,67 @@ describe('pr check', () => {
   })
 
   it('現在のブランチを決められないと、終了コード 1 で終わる', async () => {
-    await explains('現在のブランチを決定できない場合の、`pr check` のテストです。コミットが存在しないリポジトリを指定したときに、エラーを出力して終了コード 1 で終了することを確認します。')
+    await explains('現在のブランチを決定できない場合の、`pr_check` のテストです。コミットが存在しないリポジトリを指定したときに、エラーを出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch()
     const unborn = path.join(workspace.root, 'unborn')
     mkdirSync(unborn)
     workspace.git(['init', '-q', '-b', 'main'], unborn)
     workspace.git(['remote', 'add', 'origin', 'git@ghes.example.com:acme/demo.git'], unborn)
-    const result = await workspace.run(['pr', 'check', '-D', unborn])
+    const result = await workspace.run('pr_check', { directory: unborn })
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: cannot determine the current branch\n' })
   })
 
   it('remote のリポジトリを決められないと、終了コード 1 で終わる', async () => {
-    await explains('remote のリポジトリを決定できない場合の、`pr check` のテストです。remote の URL がローカルのパスのときに、エラーと確認方法を出力して終了コード 1 で終了することを確認します。')
+    await explains('remote のリポジトリを決定できない場合の、`pr_check` のテストです。remote の URL がローカルのパスのときに、エラーと確認方法を出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch()
     workspace.git(['remote', 'set-url', 'origin', '/local/path/demo'])
     const result = await preflight(workspace)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: cannot read repository info from the remote URL\n  check it with: git remote -v\n' })
   })
 
-  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async () => {
-    await explains('対象のリポジトリを含む設定が 2 つあり、`.active` でも選択できない場合の、`pr check` のテストです。候補と `--project` による指定の案内を出力して終了コード 1 で終了することを確認します。')
+  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と project の案内を出して終了コード 1 で終わる', async () => {
+    await explains('対象のリポジトリを含む設定が 2 つあり、`.active` でも選択できない場合の、`pr_check` のテストです。候補と `project` による指定の案内を出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch({ files: ambiguousWorkspaceFiles() })
     const result = await preflight(workspace)
-    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: `error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n` })
+    expect(result).toStrictEqual({ code: 1, stdout: '', stderr: `error: acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n` })
   })
 
   it('対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる', async () => {
-    await explains('対象のリポジトリを含む設定が存在しない場合の、`pr check` のテストです。どの設定にも含まれない旨のエラーを出力して終了コード 1 で終了することを確認します。')
+    await explains('対象のリポジトリを含む設定が存在しない場合の、`pr_check` のテストです。どの設定にも含まれない旨のエラーを出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch({ config: false })
     const result = await preflight(workspace)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is not in any project config\n  available: (none)\n' })
   })
 
-  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定で確かめる', async () => {
-    await explains('`--project` を指定した場合の、`pr check` のテストです。対象のリポジトリを含む設定が 2 つあっても、指定した設定で Base Branch の節を出力することを確認します。')
+  it('project を渡すと、対象のリポを含む設定が 2 つあってもその設定で確かめる', async () => {
+    await explains('`project` を指定した場合の、`pr_check` のテストです。対象のリポジトリを含む設定が 2 つあっても、指定した設定で Base Branch の節を出力することを確認します。')
     const workspace = await pushedBranch({ files: ambiguousWorkspaceFiles() })
-    const result = await workspace.run(['pr', 'check', '-D', workspace.directory, '--project', SECOND_PROJECT])
+    const result = await workspace.run('pr_check', { directory: workspace.directory, project: SECOND_PROJECT })
     expect(result.stdout).toContain('=== Base Branch ===\norigin/main\n')
     expect(result.stderr).not.toContain('project config')
   })
 
   it('.active が無くても、対象のリポを含む設定が 1 つならその設定で確かめる', async () => {
-    await explains('`.active` が存在せず、対象のリポジトリを含む設定が 1 つの場合の、`pr check` のテストです。その設定で Base Branch の節を出力することを確認します。')
+    await explains('`.active` が存在せず、対象のリポジトリを含む設定が 1 つの場合の、`pr_check` のテストです。その設定で Base Branch の節を出力することを確認します。')
     const workspace = await pushedBranch({ files: NO_ACTIVE_FILES })
     const result = await preflight(workspace)
     expect(result.stdout).toContain('=== Base Branch ===\norigin/main\n')
   })
 
   it('develop_branch が設定に無いと、終了コード 1 で終わる', async () => {
-    await explains('`develop_branch` が設定されていない場合の、`pr check` のテストです。設定を促すエラーを出力して終了コード 1 で終了し、標準出力には何も出力しないことを確認します。')
+    await explains('`develop_branch` が設定されていない場合の、`pr_check` のテストです。設定を促すエラーを出力して終了コード 1 で終了し、標準出力には何も出力しないことを確認します。')
     const workspace = await pushedBranch({ config: NO_DEVELOP_BRANCH })
     const result = await preflight(workspace)
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
-    expect(result.stderr).toMatch(/^error: develop_branch is not set for acme\/demo\n {2}set it with: pecot project link acme\/demo --develop-branch develop\n$/u)
+    expect(result.stderr).toMatch(/^error: develop_branch is not set for acme\/demo\n {2}set it with: project_link with repo: "acme\/demo", develop_branch: "develop"\n$/u)
   })
 
   it('<remote>/<develop_branch> が無いと、終了コード 1 で終わる', async () => {
-    await explains('`develop_branch` に対応する remote のブランチが存在しない場合の、`pr check` のテストです。確認方法を示すエラーを出力して終了コード 1 で終了することを確認します。')
+    await explains('`develop_branch` に対応する remote のブランチが存在しない場合の、`pr_check` のテストです。確認方法を示すエラーを出力して終了コード 1 で終了することを確認します。')
     const workspace = await pushedBranch({ config: { developBranch: 'develop' } })
     const result = await preflight(workspace)
     expect(result).toStrictEqual({ code: 1, stdout: '', stderr: 'error: branch origin/develop does not exist\n  check the remote branches with: git branch -r\n' })
-  })
-
-  it('--directory を渡していないと、使い方のエラーを出して終了コード 2 で終わる', async () => {
-    await explains('`--directory` を指定しない場合の、`pr check` のテストです。使い方を示すエラーを出力して終了コード 2 で終了することを確認します。')
-    const workspace = await pushedBranch()
-    const result = await workspace.run(['pr', 'check'])
-    expect(result.code).toBe(2)
-    expect(result.stdout).toBe('')
-    expect(result.stderr).toContain('Usage: pecot pr check [OPTIONS]')
-    expect(result.stderr).toContain('Missing option \'--directory\' / \'-D\'.')
   })
 
   describe('MCP の data', () => {
@@ -3000,7 +2899,7 @@ describe('pr check', () => {
       process.chdir(elsewhere)
       let result: ToolOutcome
       try {
-        result = await callToolOnce(COMMANDS, 'pr_check', { directory: workspace.directory })
+        result = await callToolOnce(TOOLS, 'pr_check', { directory: workspace.directory })
       }
       finally {
         process.chdir(previous)

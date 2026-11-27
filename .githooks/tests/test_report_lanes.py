@@ -38,7 +38,6 @@ _INCLUDED = [
     "pecot-visual:test-release",
     "pecot-visual:test-skills",
     "pecot-visual:test-slidev",
-    "pecot-workflow:test-bootstrap",
     "pecot-workflow:test-cli",
     "pecot-workflow:test-hooks",
     "pecot-workflow:test-release",

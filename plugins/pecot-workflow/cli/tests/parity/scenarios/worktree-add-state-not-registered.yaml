@@ -1,10 +1,8 @@
 # origin のリポを含むプロジェクトの設定が無い。exit 1。
 id: worktree-add-state-not-registered
-command:
-  path: [worktree, add]
-  args:
-    - "-D"
-    - "."
+tool: worktree_add
+arguments:
+  directory: .
 setup:
   repo:
     files:

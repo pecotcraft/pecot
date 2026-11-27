@@ -359,7 +359,7 @@ describe('review finish', () => {
 
     const outcome = await finish({ ...FAILED_RUN, since: 'yesterday' })
 
-    expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: --since is not an ISO 8601 time: yesterday\n' })
+    expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: since is not an ISO 8601 time: yesterday\n' })
     expect(github.requests()).toEqual([])
   })
 

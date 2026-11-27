@@ -1,8 +1,7 @@
 # ボード取得の GraphQL が 500 を返す。
 id: board-show-5xx
-command:
-  path: [board, show]
-  args: []
+tool: board_show
+arguments: {}
 setup:
   repo:
     files:

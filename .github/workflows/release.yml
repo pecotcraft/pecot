@@ -93,6 +93,14 @@ jobs:
       - name: Prepare output directory
         run: mkdir -p .pecot/tmp/release
 
+      # コンテナの前にホストで確かめる。出力は Summary と artifact が読む preflight.log にも残す。
+      - name: Preflight
+        id: preflight
+        uses: ./actions/release-check
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          log-file: .pecot/tmp/release/preflight.log
+
       # push: never にする。省くと main で image を push しようとする。
       - name: Start dev container
         id: up
@@ -135,7 +143,6 @@ jobs:
             cd /workspaces/base/pecot &&
             d=.pecot/tmp/release &&
             run() { n=$1; shift; "$@" > "$d/$n.log" 2>&1; rc=$?; cat "$d/$n.log"; return $rc; } &&
-            run preflight plugins/pecot-workflow/bin/pecot release check &&
             if [ "$DRY_RUN" = true ]; then
               run nx pnpm exec nx release --dry-run --verbose --yes
             else
@@ -191,6 +198,7 @@ jobs:
           DRY_RUN: ${{ inputs.dry-run }}
           SHA_INPUT_OUTCOME: ${{ steps.sha-input.outcome }}
           SHA_VERIFY_OUTCOME: ${{ steps.verify-sha.outcome }}
+          PREFLIGHT_OUTCOME: ${{ steps.preflight.outcome }}
           UP_OUTCOME: ${{ steps.up.outcome }}
           RUN_OUTCOME: ${{ steps.release.outcome }}
           MSG_SHA_FAILED: "sha の確認で止まりました（入力の誤りで、基盤の失敗ではありません）。上の step のエラーを確かめてください。"
@@ -209,7 +217,7 @@ jobs:
               echo "$MSG_SHA_FAILED"
             elif [ "$UP_OUTCOME" = "failure" ]; then
               echo "$MSG_UP_FAILED"
-            elif [ "$RUN_OUTCOME" = "failure" ]; then
+            elif [ "$PREFLIGHT_OUTCOME" = "failure" ] || [ "$RUN_OUTCOME" = "failure" ]; then
               if [ "$DRY_RUN" = "true" ]; then echo "$MSG_PLAN_FAILED"; else echo "$MSG_RELEASE_FAILED"; fi
             elif [ "$RUN_OUTCOME" != "success" ]; then
               echo "$MSG_NOT_RUN"

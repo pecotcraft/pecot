@@ -1,11 +1,9 @@
 # wt1 を削除し、ブランチ wt1 の削除も試みる。
 id: worktree-remove-ok
-command:
-  path: [worktree, remove]
-  args:
-    - "wt1"
-    - "-D"
-    - "."
+tool: worktree_remove
+arguments:
+  directory: .
+  name: wt1
 setup:
   repo:
     worktrees: [{name: wt1}]

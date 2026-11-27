@@ -1,4 +1,4 @@
-# Dependabot の PR に、runtime-lock・version plan・playwright-deps の版の commit を足す。
+# Dependabot の PR に、version plan と playwright-deps の版の commit を足す。
 # push は App のトークンで行う（GITHUB_TOKEN の push で起きる ci の run は承認待ちで止まる）。
 name: dependabot-commit
 
@@ -23,7 +23,7 @@ jobs:
       packages: write
     steps:
       # App の push で起きる run は actor が App になり、Dependabot secrets を読めない。
-      # その run では lock と plan の差分が無く push もしないので、トークンを作らない。
+      # その run では plan と版の差分が無く push もしないので、トークンを作らない。
       - name: Generate GitHub App token
         id: app-token
         if: ${{ github.actor == 'dependabot[bot]' }}
@@ -54,9 +54,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Regenerate runtime lock
-        run: node .githooks/scripts/gen-runtime-lock.mjs --write
-
       - name: Sync playwright-deps version
         id: sync
         continue-on-error: true
@@ -71,15 +68,15 @@ jobs:
         run: node .nx/nx-release/src/dependabot-plans.js --pr "$PR_NUMBER" --base "origin/$BASE_REF"
 
       # commit の本文の [dependabot skip] が無いと、dependabot は他者の commit がある PR を rebase しなくなる。
-      # 固定するテスト: .githooks/tests/test_gen_runtime_lock.py
+      # 固定するテスト: .githooks/tests/test_dependabot_commit_workflow.py
       - name: Commit generated files
         id: commit
         env:
-          COMMIT_MSG: "chore(repo): runtime-lock・version plan と devcontainer の playwright-deps の版を dependabot の更新から作る"
+          COMMIT_MSG: "chore(repo): version plan と devcontainer の playwright-deps の版を dependabot の更新から作る"
           HAS_APP_TOKEN: ${{ steps.app-token.outputs.token != '' }}
-          NO_TOKEN_MSG: "App のトークンが無く、lock と plan を push できない。PR で @dependabot recreate を打つ"
+          NO_TOKEN_MSG: "App のトークンが無く、plan と版を push できない。PR で @dependabot recreate を打つ"
         run: |
-          git add -A -- ':(glob)**/runtime-*.yaml' .nx/version-plans .devcontainer/devcontainer.json
+          git add -A -- .nx/version-plans .devcontainer/devcontainer.json
           if git diff --cached --quiet; then
             exit 0
           fi
@@ -135,7 +132,7 @@ jobs:
       - name: Fail when version plans were not created
         if: ${{ steps.plans.outcome == 'failure' }}
         env:
-          PLANS_FAILED_MSG: "version plan を作れなかった。runtime-lock は push した。ログを見て、PR で @dependabot recreate を打つ"
+          PLANS_FAILED_MSG: "version plan を作れなかった。playwright-deps の版は push した。ログを見て、PR で @dependabot recreate を打つ"
         run: |
           echo "::error::${PLANS_FAILED_MSG}"
           exit 1
@@ -143,7 +140,7 @@ jobs:
       - name: Fail when playwright-deps was not synced
         if: ${{ steps.sync.outcome == 'failure' }}
         env:
-          SYNC_FAILED_MSG: "playwright-deps の版を同期できなかった。runtime-lock と version plan は push した。ログを見て、PR で @dependabot recreate を打つ"
+          SYNC_FAILED_MSG: "playwright-deps の版を同期できなかった。version plan は push した。ログを見て、PR で @dependabot recreate を打つ"
         run: |
           echo "::error::${SYNC_FAILED_MSG}"
           exit 1

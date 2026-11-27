@@ -7,10 +7,10 @@ import { z } from 'zod'
 import type { ProjectConfig } from '@pecot/workflow-core/domain/config.js'
 import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
 import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
-import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { hinted, inputNameHint } from '@pecot/workflow-core/commands-shared/command-hint.js'
-import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import { isStatusConfigured, setIssueField } from '@pecot/workflow-core/commands-shared/issue-board.js'
+import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { setIssueField } from '@pecot/workflow-core/commands-shared/issue-board.js'
 import { stopWith, requireConfigFor, PROJECT_INPUT } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
 import { fieldWriteFailure } from '@pecot/workflow-core/commands-shared/field-write-failure.js'
@@ -139,23 +139,6 @@ async function confirmReopened(output: ReopenOutput, client: GitHubClient, issue
 }
 
 // 予行。ボードの項目を読み、書く操作を並べる
-async function planReopen(output: ReopenOutput, client: GitHubClient, config: ProjectConfig, issue: Readonly<ReopenTarget>, status: string, comment: string | undefined): Promise<void> {
-  const { owner, repository, number } = issue
-  const target = `Issue ${issuePath(owner, repository, number)}`
-  const item = await client.getIssueProjectItem(config.project.id, owner, repository, number)
-  const hasComment = comment !== undefined && comment !== ''
-  const willSetStatus = item !== undefined && isStatusConfigured(config, status)
-  const willClearDone = item?.status?.name === DONE_STATUS
-  output.result({ issue: issuePath(issue.owner, issue.repository, issue.number), ...willSetStatus && { status }, unarchived: item?.isArchived === true, doneCleared: willClearDone, commented: hasComment })
-  output.planned({ verb: 'reopen', target })
-  if (item?.isArchived === true) output.planned({ verb: 'update', target: `${target} unarchived on the board` })
-  if (willClearDone) output.planned({ verb: 'remove', target: `${target} Status ${DONE_STATUS} on the board` })
-  if (item === undefined) output.warning(`${target} is not on the project board`)
-  else if (willSetStatus) output.planned({ verb: 'set', target: `${target} status ${status}` })
-  else output.warning(notConfiguredMessage(status))
-  if (hasComment) output.planned({ verb: 'create', target: `comment on ${issuePath(owner, repository, number)}` })
-}
-
 async function reopenIssue(output: ReopenOutput, client: GitHubClient, config: ProjectConfig, issue: Readonly<ReopenTarget>, status: string, comment: string | undefined): Promise<void> {
   await reopenAndSetStatus(output, client, config, issue, status)
   await confirmReopened(output, client, issue, comment)
@@ -163,8 +146,8 @@ async function reopenIssue(output: ReopenOutput, client: GitHubClient, config: P
 
 const REOPEN_PATH = ['issue', 'reopen']
 
-const ISSUE_REOPEN = defineCommand({
-  path: REOPEN_PATH,
+const ISSUE_REOPEN = defineTool({
+  name: 'issue_reopen',
   title: 'Reopen Issue',
   description: 'Reopen a closed Issue (also sets the status on the board)',
   input: z.object({
@@ -172,14 +155,10 @@ const ISSUE_REOPEN = defineCommand({
     status: z.string().default('ready').describe('Status after reopening (backlog/pending/blocked/ready/active/in_review/archived)'),
     project: PROJECT_INPUT,
     comment: z.string().optional().describe('Reason for reopening (posted as a comment)'),
-    dry_run: z.boolean().default(false).describe('Show what would change without writing anything'),
   }),
   output: ISSUE_REOPEN_OUTPUT,
-  positional: ['issue_ref'],
-  shortFlags: { status: '-s', comment: '-c', dry_run: '-n' },
-  interactive: false,
   run: async (input, io) => {
-    const output = createOutput<z.input<typeof ISSUE_REOPEN_OUTPUT>>(input.dry_run, io)
+    const output = createOutput<z.input<typeof ISSUE_REOPEN_OUTPUT>>(false, io)
     return await runWithExit(async () => {
       const { status, comment } = input
       if (!VALID_STATUSES.has(status)) exitInvalidStatus(output, status)
@@ -193,8 +172,7 @@ const ISSUE_REOPEN = defineCommand({
       const target = `Issue ${issuePath(owner, repository, number)}`
       try {
         const client = await connectToProject(output, config, owner, repository)
-        const run = input.dry_run ? planReopen : reopenIssue
-        await run(output, client, config, { owner, repository, number }, status, comment)
+        await reopenIssue(output, client, config, { owner, repository, number }, status, comment)
       }
       catch (error: unknown) {
         if (!(error instanceof GitHubAPIError)) throw error
@@ -204,4 +182,4 @@ const ISSUE_REOPEN = defineCommand({
   },
 })
 
-export const ISSUE_REOPEN_COMMANDS: readonly CommandDefinition[] = [ISSUE_REOPEN]
+export const ISSUE_REOPEN_TOOLS: readonly ToolDefinition[] = [ISSUE_REOPEN]

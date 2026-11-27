@@ -1,9 +1,8 @@
 # PR 参照の形が不正。exit 2 になる。
 id: pr-show-usage
-command:
-  path: [pr, show]
-  args:
-    - "not-a-ref"
+tool: pr_show
+arguments:
+  pr_ref: not-a-ref
 setup:
   repo:
     files:

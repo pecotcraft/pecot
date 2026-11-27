@@ -1,8 +1,7 @@
 # ボードに 3 件あり、登録リポ 1 つの Dependabot alert が 2 件。Markdown で出す。
 id: board-show-ok
-command:
-  path: [board, show]
-  args: []
+tool: board_show
+arguments: {}
 setup:
   repo:
     files:

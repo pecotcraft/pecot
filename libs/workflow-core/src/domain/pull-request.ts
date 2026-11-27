@@ -1,7 +1,7 @@
 // PR コマンドの入出力を持たない関数。本文の検証、Closes の抽出と追記、`pr show` の Markdown の整形、preflight の警告の判定。
 // 引数の型は、infra/github/pulls.ts の返す値が構造として満たす形をここに持つ（domain は infra を import できない）。
 
-import { commandHint, hinted, inputHint, inputNameHint, joinHinted, surfaceText } from './command-hint.js'
+import { commandHint, hinted, inputHint, inputNameHint, joinHinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import type { PullRequestReadout } from './issue-readout.js'
 import { PYTHON_LINE_BREAK, parsePythonInteger, pythonRightStrip, pythonStrip, splitCodePoints, truncateCodePoints } from './python-format.js'
@@ -200,7 +200,7 @@ export function describeBaseStop(stop: Readonly<PullRequestBaseStop>): readonly 
       return [`.pecot-base is malformed: ${stop.content}`]
     }
     case 'no-open-pr': {
-      return [`base branch ${stop.branch} has no open PR`, hinted`reopen the PR of ${stop.branch}, or create a new one, then ${surfaceText('run pr create again', 'call pr_create again')}`]
+      return [`base branch ${stop.branch} has no open PR`, hinted`reopen the PR of ${stop.branch}, or create a new one, then call pr_create again`]
     }
     case 'lower-open': {
       return [`base branch must be ${stop.branch} while its PR #${String(stop.pullRequest)} is open (given: ${stop.base})`]
@@ -330,20 +330,19 @@ export function formatReviewThreadsMarkdown(threads: readonly ReviewThreadView[]
 }
 
 /**
-`pr show --reviews` の Markdown。Issue ごとに詳細を見るコマンドを添え、レビュー本文と行コメントを続ける
+`pr show --reviews` の Markdown。関連 Issue の後に、レビュー本文と行コメントを続ける
 */
-export function formatPullRequestWithReviewsMarkdown(pr: PullRequestWithReviewsView, owner: string, repository: string): string {
+export function formatPullRequestWithReviewsMarkdown(pr: PullRequestWithReviewsView): string {
   const lines = [`## PR #${String(pr.number)} ${pr.title}`, '', metaLine(pr), '', `**Branch:** \`${pr.head_ref}\` → \`${pr.base_ref}\``, '']
-  const detailsLine = (issue: IssueSummary): string => `    → details: issue show ${owner}/${repository}/${String(issue.number)}`
 
   if (pr.closing_issues.length > 0) {
     lines.push('**Closing Issues:**')
-    for (const issue of pr.closing_issues) lines.push(`  - #${String(issue.number)} ${issue.title}`, detailsLine(issue))
+    for (const issue of pr.closing_issues) lines.push(`  - #${String(issue.number)} ${issue.title}`)
     lines.push('')
   }
   if (pr.referenced_issues.length > 0) {
     lines.push('**Referenced Issues:**')
-    for (const issue of pr.referenced_issues) lines.push(referencedIssueLine(issue), detailsLine(issue))
+    for (const issue of pr.referenced_issues) lines.push(referencedIssueLine(issue))
     lines.push('')
   }
 

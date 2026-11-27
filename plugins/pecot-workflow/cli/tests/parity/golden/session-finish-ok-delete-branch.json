@@ -1,7 +1,26 @@
 {
-  "stdout": "",
-  "stderr": "count: Issues to close: 1\nclosed: Issue #12\ndeleted: remote branch feat/demo/12\nunchanged: current branch main\nupdated: main from origin/main\ndeleted: local branch feat/demo/12\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "closed: Issue #12",
+  "structuredContent": {
+    "closedIssues": [
+      12
+    ],
+    "skippedIssues": [],
+    "deletedBranches": [
+      {
+        "branch": "feat/demo/12",
+        "location": "remote"
+      },
+      {
+        "branch": "feat/demo/12",
+        "location": "local"
+      }
+    ],
+    "readinessChanges": [],
+    "restack": [],
+    "currentBranch": "main"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

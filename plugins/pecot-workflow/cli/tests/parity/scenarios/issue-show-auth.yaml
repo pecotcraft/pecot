@@ -1,8 +1,8 @@
 # GraphQL が 401 を返す。
 id: issue-show-auth
-command:
-  path: [issue, show]
-  args: [acme/demo/7]
+tool: issue_show
+arguments:
+  issue_ref: acme/demo/7
 setup:
   repo:
     files:

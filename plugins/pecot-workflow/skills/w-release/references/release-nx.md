@@ -208,7 +208,9 @@ dry-run で案を見てユーザーの OK を得てから、本番を起動す�
    gh run download <id> -n release-plan -D .pecot/work/<Issue番号>/release-plan -R <owner>/<repo>
    ```
 
-   `preflight.log` に `warning:` で始まる行があれば、その行と続く行をユーザーに示す。
+   `preflight.log` は、release.yml の「Preflight」の step の出力で、コンテナを起こす前に作られる。
+   この step は `release-check` の action で、`release_check` と同じ判定をする。
+   `warning:` で始まる行があれば、その行と続く行をユーザーに示す。
    Summary の「preflight warnings」にも同じ行が出る。
    `warning: could not check Dependabot alerts` が出たときは、App の権限（Dependabot alerts の read）とトークンを確かめていただく。
 
@@ -240,7 +242,7 @@ dry-run で案を見てユーザーの OK を得てから、本番を起動す�
 
    失敗したときは [release-nx-recovery.md](release-nx-recovery.md) の「ランナーが失敗した場合」に従う。
 
-   dry-run が preflight で止まったときは、open の code scanning・secret scanning の alert があるか、その一覧を取得できない。
+   dry-run が「Preflight」の step で止まったときは、open の code scanning・secret scanning の alert があるか、その一覧を取得できない。
    手元の手順の「3. open の security alert を確認（preflight）」に従う。
    扱いは、解消か理由付きの dismiss である。
 

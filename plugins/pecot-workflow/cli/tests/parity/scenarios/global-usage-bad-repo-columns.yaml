@@ -1,9 +1,0 @@
-# 枠の幅は COLUMNS に従う。
-id: global-usage-bad-repo-columns
-command:
-  path: []
-  args: ["--repo", "bad", "--show-repo"]
-setup:
-  env:
-    COLUMNS: "50"
-github: []

@@ -1,7 +1,7 @@
 # pecot-workflow-template: auto 2
 #
 # Place this file at .github/workflows/pecot-auto.yml in your repository.
-# `pecot workflow install auto` places it and pins the pecot actions to a commit SHA.
+# `workflow_install` (name: auto) places it and pins the pecot actions to a commit SHA.
 #
 # This workflow runs the pecot w-auto skill on an issue with claude-code-action.
 # It starts when the trigger label is added to an issue. The default label is "pecot-auto".
@@ -55,7 +55,7 @@
 #
 # Keep your own lines between the pecot-auto:*:begin and :end markers.
 # Add the commands that your tests need to the allowed-tools lines, for example Bash(npm test:*).
-# `pecot workflow install auto --force` shows them before it overwrites this file.
+# `workflow_install` with `force: true` shows them before it overwrites this file.
 name: pecot auto
 
 on:
@@ -246,7 +246,7 @@ jobs:
             - 変数 `PECOT_AGENT_APP_CLIENT_ID` — App の Client ID
             - secret `PECOT_AGENT_APP_PRIVATE_KEY` — App の秘密鍵
 
-            置いた後に、`pecot workflow doctor auto` で、足りない設定が無いことを確かめる。
+            置いた後に、pecot-workflow の MCP ツール `workflow_doctor`（`name` は `auto`）で、足りない設定が無いことを確かめる。
           BODY_NO_TOKEN: |
             自前の GitHub App のトークンを作れなかったので、自動処理を始めなかった。
 

@@ -1,6 +1,6 @@
 skills/w-help/references/board-sync-workflow.md	GitHub Actions の実行のログ	| W | 書き込む列と札の数。ログの `moved:`・`set:` の行の数 | 1 回 1 点として数える |
 skills/w-help/references/board-sync-workflow.md	GitHub Actions の実行のログ	Actions の画面から `workflow_dispatch` で 1 回起動し、ログの `moved:`・`set:`・warning の行を読みます。ボードへ書かずに見るときは、`board-sync` の step の `with:` へ `dry-run: 'true'` を足します。
-skills/w-release/references/release-nx.md	release.yml の artifact のログ	`preflight.log` に `warning:` で始まる行があれば、その行と続く行をユーザーに示す。
+skills/w-release/references/release-nx.md	release.yml の artifact のログ	`warning:` で始まる行があれば、その行と続く行をユーザーに示す。
 skills/w-release/references/release-nx.md	release.yml の artifact のログ	`warning: could not check Dependabot alerts` が出たときは、App の権限（Dependabot alerts の read）とトークンを確かめていただく。
 skills/w-release/references/release-nx.md	release.yml の artifact の summary.md	`landed: ... (merged <SHA>)`・`landed: ... (fast-forward)`・`skipped:` のどれかを読んで、そのまま伝える。
 skills/w-release/references/release-nx-recovery.md	release.yml の実行のログ	land のログに `landed:` の行があれば、`main` への取り込みも済んでいる。Release が無ければ作り、publish だけをやり直す（上の「publish だけの失敗」と同じ）。

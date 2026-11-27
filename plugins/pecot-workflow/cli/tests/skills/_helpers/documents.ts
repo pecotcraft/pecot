@@ -4,7 +4,7 @@
 import { globSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { COMMANDS } from '../../../src/commands/registry.js'
+import { TOOLS } from '../../../src/commands/registry.js'
 import { compareStrings } from '../../parity/baseline.js'
 
 export const pluginRoot = path.resolve(import.meta.dirname, '../../../..')
@@ -35,5 +35,5 @@ export function readPluginFile(relative: string): string {
 ツール名から、受け取る入力の名前（グローバルの repo を含む）へ
 */
 export function toolInputs(): ReadonlyMap<string, ReadonlySet<string>> {
-  return new Map(COMMANDS.map(command => [command.toolName, new Set(Object.keys(command.input.shape))]))
+  return new Map(TOOLS.map(tool => [tool.name, new Set(Object.keys(tool.input.shape))]))
 }

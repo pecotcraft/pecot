@@ -172,3 +172,86 @@ def test_devcontainer_base_image_is_pinned_and_followed_by_dependabot() -> None:
             u["package-ecosystem"] == "docker" and u["directory"] == "/.devcontainer"
             for u in config["updates"]
         )
+
+
+@allure.title("dependabot-commit.yml は、パスを絞らずにすべての PR で動く")
+def test_commit_workflow_runs_on_every_pull_request_path() -> None:
+    """`dependabot-commit.yml` の `pull_request` のトリガーのテストです。`paths` が指定されていないことを確認します。"""
+    with allure.step("workflow の on を読む"):
+        on = _workflow("dependabot-commit.yml")[True]  # YAML 1.1 では on が True になる
+
+    with allure.step("pull_request に paths の絞りが無いことを確かめる"):
+        assert on["pull_request"] is None or "paths" not in on["pull_request"]
+
+
+@allure.title("dependabot-commit.yml は、履歴をすべて取得してチェックアウトする")
+def test_commit_workflow_checks_out_full_history() -> None:
+    """`dependabot-commit.yml` の `Checkout` の step のテストです。`fetch-depth` が `0` であることを確認します。"""
+    with allure.step("Checkout の step を探す"):
+        checkout = _step(_commit_steps(), "Checkout")
+
+    with allure.step("fetch-depth が 0 であることを確かめる"):
+        assert checkout["with"]["fetch-depth"] == 0
+
+
+@allure.title("dependabot-commit.yml は、origin の base ブランチを plan の作成に渡す")
+def test_commit_workflow_passes_origin_base_to_plans() -> None:
+    """`dependabot-commit.yml` の、plan を作る step のテストです。`--base origin/$BASE_REF` の形で base を渡し、`continue-on-error` が `true` であることを確認します。"""
+    with allure.step("plans の step を探す"):
+        plans = next(s for s in _commit_steps() if s.get("id") == "plans")
+
+    with allure.step("origin の base を渡し、continue-on-error であることを確かめる"):
+        assert '--base "origin/$BASE_REF"' in plans["run"]
+        assert plans["continue-on-error"] is True
+
+
+@allure.title("dependabot-commit.yml は、plan の作成に失敗したとき、push の後で失敗にする")
+def test_commit_workflow_fails_after_push_when_plans_failed() -> None:
+    """`dependabot-commit.yml` の、plan の作成が失敗した場合のテストです。失敗を判定する step が `Push generated files` より後にあり、`exit 1` を実行することを確認します。"""
+    with allure.step("step の並びから、Push と失敗の step の位置を探す"):
+        steps = _commit_steps()
+        push = _step_index(steps, "Push generated files")
+        fail = next(
+            i
+            for i, s in enumerate(steps)
+            if s.get("if") == "${{ steps.plans.outcome == 'failure' }}"
+        )
+
+    with allure.step("失敗の step が push の後にあり、exit 1 を含むことを確かめる"):
+        assert push < fail
+        assert "exit 1" in steps[fail]["run"]
+
+
+@allure.title("dependabot-commit.yml のコミットには、Dependabot の rebase を許す印を付ける")
+def test_commit_workflow_marks_commit_for_dependabot_rebase() -> None:
+    """`dependabot-commit.yml` の `git commit` の行のテストです。印（`[dependabot skip]`）がないと、他者のコミットがある PR を Dependabot が rebase しないため、コミットの行がその印を含む 1 つだけであることを確認します。"""
+    with allure.step("dependabot-commit.yml の git commit の行を集める"):
+        workflow = (_REPO_ROOT / ".github/workflows/dependabot-commit.yml").read_text(
+            encoding="utf-8"
+        )
+        commits = re.findall(r"^\s*(git commit\b.*)$", workflow, re.M)
+
+    with allure.step("[dependabot skip] の印が付くことを確かめる"):
+        assert commits == ['git commit -m "$COMMIT_MSG" -m "[dependabot skip]"'], (
+            f"git commit の行: {commits}"
+        )
+
+
+@allure.title("dependabot-commit.yml は、コミットの前に version plan を作る")
+def test_commit_workflow_creates_version_plans_before_commit() -> None:
+    """`dependabot-commit.yml` の、version plan を作る step のテストです。`dependabot-plans.js --pr` を実行し、そのファイルが存在し、`git add -A` が `git diff --cached --quiet` より前にあることを確認します。"""
+    with allure.step("dependabot-commit.yml を読む"):
+        steps = _commit_steps()
+        plans = next(s for s in steps if s.get("id") == "plans")
+        run = _step(steps, "Commit generated files")["run"]
+
+    with allure.step("version plan の作成が commit の前にあることを確かめる"):
+        assert re.fullmatch(
+            r'node\s+\.nx/nx-release/src/dependabot-plans\.js --pr "\$PR_NUMBER".*', plans["run"]
+        )
+        assert (_REPO_ROOT / ".nx/nx-release/src/dependabot-plans.js").is_file()
+        assert _step_index(steps, "Create version plans") < _step_index(
+            steps, "Commit generated files"
+        )
+        assert "git add -A -- .nx/version-plans .devcontainer/devcontainer.json" in run
+        assert run.index("git add -A") < run.index("git diff --cached --quiet")

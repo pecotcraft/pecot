@@ -1,4 +1,4 @@
-// COMMANDS の全コマンドを MCP のツールとして登録するサーバ。CLI と同じ定義の run を呼び、結果の形だけが違う。
+// TOOLS の全ツールを MCP のツールとして、テンプレートを resource として登録するサーバ。
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- zod と SDK の型は readonly にできない */
 import { McpServer } from '@modelcontextprotocol/server'
 import type { CallToolResult, StandardSchemaWithJSON } from '@modelcontextprotocol/server'
@@ -8,14 +8,12 @@ import { CancelledError, InvalidValueError } from '@pecot/workflow-core/domain/e
 import { parseOwnerRepository } from '@pecot/workflow-core/domain/repository-resolver.js'
 import { resolveApiUrlOverride } from '@pecot/workflow-core/infra/github/client.js'
 import { cancelledBy } from '@pecot/workflow-core/infra/process-run.js'
-import { usageOf, withUsage } from '../commands/command-binding.js'
 import { AbortedError, createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import { exitCodeOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
 import type { FailureKind } from '@pecot/workflow-core/commands-shared/failure-kind.js'
 import { isRecord } from '../commands/input-schema.js'
-import { COMMANDS } from '../commands/registry.js'
-import type { CommandDefinition, PreparedCommand } from '../commands/registry.js'
-import { outputWidth } from '@pecot/workflow-core/commands-shared/rich-panel.js'
+import { TOOLS } from '../commands/registry.js'
+import type { PreparedCommand, ToolDefinition } from '../commands/registry.js'
 import { UsageError } from '@pecot/workflow-core/commands-shared/usage-error.js'
 import { readVersion } from '../version.js'
 import { toolAnnotationsOf } from './annotations.js'
@@ -52,8 +50,8 @@ function rejected(message: string): Preparation {
 SDK に渡す入力のスキーマ。tools/list の形は定義書と同じ z.toJSONSchema の形に additionalProperties: false を足し、検証は素通しにする。
 SDK に zod を渡すと、検証の後に未知のキーを捨てた値が届き、未知のキーを誤りにできない
 */
-function passthroughSchema(definition: Readonly<CommandDefinition>): StandardSchemaWithJSON {
-  const jsonSchema = (): Record<string, unknown> => ({ ...z.toJSONSchema(definition.mcpInput, { io: 'input' }), additionalProperties: false })
+function passthroughSchema(definition: Readonly<ToolDefinition>): StandardSchemaWithJSON {
+  const jsonSchema = (): Record<string, unknown> => ({ ...z.toJSONSchema(z.strictObject(definition.input.shape), { io: 'input' }), additionalProperties: false })
   return {
     '~standard': {
       version: 1,
@@ -69,12 +67,12 @@ function issuesMessage(error: Readonly<z.ZodError>): string {
 }
 
 /**
-入力を検証する。順は CLI と同じ（未知のキー → repo の形 → definition.parse）。誤りならコマンドを呼ばない
+入力を検証する。順は未知のキー → repo の形 → definition.parse。誤りならツールを呼ばない
 */
-function prepare(definition: Readonly<CommandDefinition>, raw: unknown): Preparation {
+function prepare(definition: Readonly<ToolDefinition>, raw: unknown): Preparation {
   // arguments が配列や null なら SDK が先に -32602 で断るので、ここに来る非 object は省略（undefined）だけ
   const input = isRecord(raw) ? raw : {}
-  const unknown = Object.keys(input).filter(key => !Object.hasOwn(definition.mcpInput.shape, key))
+  const unknown = Object.keys(input).filter(key => !Object.hasOwn(definition.input.shape, key))
   if (unknown.length > 0) {
     return rejected(`unknown ${unknown.length === 1 ? 'key' : 'keys'} ${unknown.map(key => `'${key}'`).join(', ')}`)
   }
@@ -108,23 +106,16 @@ function unexpectedMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-async function invoke(definition: Readonly<CommandDefinition>, raw: unknown, options: Readonly<McpServerOptions>, signal: Readonly<AbortSignal>): Promise<CallToolResult> {
+async function invoke(definition: Readonly<ToolDefinition>, raw: unknown, options: Readonly<McpServerOptions>, signal: Readonly<AbortSignal>): Promise<CallToolResult> {
   if (options.unavailableReason !== undefined) return unavailableResult(options.unavailableReason)
   const collected = collectIo(signal)
-  // interface-env: TERMINAL_WIDTH COLUMNS
-  const width = outputWidth(process.env, undefined)
   let exitCode: number
   let message: string | undefined
   try {
     resolveApiUrlOverride()
     const preparation = prepare(definition, raw)
     if (preparation.kind === 'rejected') return toRejectedResult(preparation.message)
-    try {
-      exitCode = await preparation.command.run(collected.io)
-    }
-    catch (error: unknown) {
-      throw withUsage(error, usageOf(definition))
-    }
+    exitCode = await preparation.command.run(collected.io)
   }
   catch (error: unknown) {
     if (error instanceof CancelledError) {
@@ -134,7 +125,7 @@ async function invoke(definition: Readonly<CommandDefinition>, raw: unknown, opt
     // 使い方の誤りと確認の中止は error の行を出さないので、例外の文を message にする
     if (error instanceof UsageError || error instanceof AbortedError) message = error.message
     try {
-      exitCode = exitCodeOfFailure(error, collected.io, width)
+      exitCode = exitCodeOfFailure(error, collected.io)
     }
     catch (error_: unknown) {
       options.reportUnexpected?.(error_, { stdout: collected.stdout(), stderr: collected.stderr() })
@@ -154,7 +145,7 @@ interface Ended {
 }
 
 // SDK の検証に任せると、合わない結果は structuredContent の無い文字列だけになるので、ここで検証する
-function finish(definition: Readonly<CommandDefinition>, collected: CollectedIo, ended: Ended, options: Readonly<McpServerOptions>): CallToolResult {
+function finish(definition: Readonly<ToolDefinition>, collected: CollectedIo, ended: Ended, options: Readonly<McpServerOptions>): CallToolResult {
   const stdout = collected.stdout()
   const stderr = collected.stderr()
   const outcome = {
@@ -180,7 +171,7 @@ function finish(definition: Readonly<CommandDefinition>, collected: CollectedIo,
 }
 
 // 失敗の結果は SDK とクライアントが検証しない。省略可の形に合わなければ、kind などを保ち、ツールの項目だけを捨てる
-function partialData(definition: Readonly<CommandDefinition>, raw: Readonly<Record<string, unknown>>, stdout: string, stderr: string, options: Readonly<McpServerOptions>): Readonly<Record<string, unknown>> | undefined {
+function partialData(definition: Readonly<ToolDefinition>, raw: Readonly<Record<string, unknown>>, stdout: string, stderr: string, options: Readonly<McpServerOptions>): Readonly<Record<string, unknown>> | undefined {
   const parsed = definition.output.partial().safeParse(raw)
   if (parsed.success) return parsed.data
   options.reportUnexpected?.(parsed.error, { stdout, stderr })
@@ -226,14 +217,14 @@ function registerTemplates(server: McpServer): void {
 }
 
 /**
-MCP サーバを作り、commands のそれぞれをツールとして、テンプレートを resource として登録する。名前は toolName、表示名は title、説明は description、並びは commands の順
+MCP サーバを作り、tools のそれぞれをツールとして、テンプレートを resource として登録する。並びは tools の順
 */
-export function createMcpServer(commands: readonly CommandDefinition[] = COMMANDS, options: Readonly<McpServerOptions> = {}): McpServer {
+export function createMcpServer(tools: readonly ToolDefinition[] = TOOLS, options: Readonly<McpServerOptions> = {}): McpServer {
   const server = new McpServer({ name: MCP_SERVER_NAME, version: readVersion() }, { instructions: MCP_INSTRUCTIONS })
   registerTemplates(server)
-  for (const definition of commands) {
+  for (const definition of tools) {
     server.registerTool(
-      definition.toolName,
+      definition.name,
       { title: definition.title, description: definition.description, inputSchema: passthroughSchema(definition), outputSchema: standardOutputSchema(toolOutputSchema(definition.output)), annotations: toolAnnotationsOf(definition) },
       async (arguments_, serverContext) => await inSequence(serverContext.mcpReq.signal, options, async () => await invoke(definition, arguments_, options, serverContext.mcpReq.signal)),
     )

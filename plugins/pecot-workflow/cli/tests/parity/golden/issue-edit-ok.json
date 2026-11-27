@@ -1,7 +1,19 @@
 {
-  "stdout": "- Area: cli -> docs\n",
-  "stderr": "set: Issue acme/demo/7 Area\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "set: Issue acme/demo/7 Area",
+  "structuredContent": {
+    "changed": [
+      {
+        "name": "Area",
+        "source": "project",
+        "before": "cli",
+        "after": "docs"
+      }
+    ],
+    "errors": [],
+    "failed": []
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

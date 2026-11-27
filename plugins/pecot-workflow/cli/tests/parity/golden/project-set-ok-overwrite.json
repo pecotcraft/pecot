@@ -1,7 +1,17 @@
 {
-  "stdout": "",
-  "stderr": "warning: overwriting aggregation_repo: acme/roadmap -> acme/new\nset: aggregation_repo to acme/new\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "set: aggregation_repo to acme/new",
+  "structuredContent": {
+    "key": "aggregation_repo",
+    "value": "acme/new",
+    "previous": "acme/roadmap",
+    "change": "update",
+    "configPath": "{{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json",
+    "warnings": [
+      "overwriting aggregation_repo: acme/roadmap -> acme/new"
+    ]
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

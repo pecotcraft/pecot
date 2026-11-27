@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: GraphQL query error: Server error '502 Bad Gateway' for url '{{GITHUB_API}}/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "GraphQL query error: Server error '502 Bad Gateway' for url '{{GITHUB_API}}/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502",
+  "structuredContent": {
+    "kind": "github-api",
+    "detail": "GraphQL query error: Server error '502 Bad Gateway' for url '{{GITHUB_API}}/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

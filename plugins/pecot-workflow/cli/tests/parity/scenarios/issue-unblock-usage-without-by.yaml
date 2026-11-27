@@ -1,8 +1,8 @@
 # --by が無い。GitHub を呼ぶ前に終わる。
 id: issue-unblock-usage-without-by
-command:
-  path: [issue, unblock]
-  args: [acme/demo/7]
+tool: issue_unblock
+arguments:
+  issue_ref: acme/demo/7
 setup:
   repo:
     files:

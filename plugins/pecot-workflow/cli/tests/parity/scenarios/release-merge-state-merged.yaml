@@ -1,9 +1,8 @@
 # PR は既にマージ済み。exit 1。
 id: release-merge-state-merged
-command:
-  path: [release, merge]
-  args:
-    - "acme/demo/31"
+tool: release_merge
+arguments:
+  pr_ref: acme/demo/31
 setup:
   repo:
     files:

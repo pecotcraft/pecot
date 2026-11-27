@@ -1,10 +1,9 @@
 # --json で PR を JSON のまま出力する。GetPullRequestSlim を 1 回受ける。
 id: pr-show-ok-json
-command:
-  path: [pr, show]
-  args:
-    - "acme/demo/21"
-    - "--json"
+tool: pr_show
+arguments:
+  json: true
+  pr_ref: acme/demo/21
 setup:
   repo:
     files:

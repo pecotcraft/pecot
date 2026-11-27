@@ -1,7 +1,12 @@
 {
-  "stdout": "up to date: feat/demo/12 on main\n",
+  "isError": false,
+  "text": "up to date: feat/demo/12 on main",
+  "structuredContent": {
+    "branch": "feat/demo/12",
+    "base": "main",
+    "outcome": "up-to-date"
+  },
   "stderr": "",
-  "exitCode": 0,
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

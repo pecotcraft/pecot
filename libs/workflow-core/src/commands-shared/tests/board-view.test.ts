@@ -180,9 +180,9 @@ describe('board show の表示', () => {
     })
   })
 
-  it('Markdown に、リポジトリのブランチ・リリース・alert・パッケージの情報と、Lanes の表、後続の節を出力する', async () => {
-    await explains('`board show` の Markdown を作成する処理のテストです。登録した 3 件のリポジトリの情報、絞り込みを示す見出し、Lanes の表、渡した後続の節が、定められた順序で出力されることを確認します。')
-    expect(boardShowMarkdown(view, 'acme/a', '(board)', '## Chains', [{ name: 'fe', count: 1, startable: 1 }, { name: null, count: 2, startable: 0 }])).toBe([
+  it('Markdown に、リポジトリのブランチ・リリース・alert・パッケージの情報と、Lanes の表を出力する', async () => {
+    await explains('`board show` の Markdown を作成する処理のテストです。登録した 3 件のリポジトリの情報、絞り込みを示す見出し、Lanes の表が、定められた順序で出力されることを確認します。')
+    expect(boardShowMarkdown(view, 'acme/a', '(board)', [{ name: 'fe', count: 1, startable: 1 }, { name: null, count: 2, startable: 0 }])).toBe([
       '# Project info',
       '',
       '## Overview',
@@ -214,8 +214,6 @@ describe('board show の表示', () => {
       '|------|--------|-----------|',
       '| fe | 1 | 1 |',
       '| (none) | 2 | 0 |',
-      '',
-      '## Chains',
     ].join('\n'))
   })
 
@@ -271,8 +269,8 @@ describe('warnOldFieldName', () => {
 
   it.for([
     { name: '現在のフィールド名で不要なフィールドも存在しなければ表示しない', workflowFieldName: 'pecot-status', unused: [], expected: '' },
-    { name: '旧いフィールド名で不要なフィールドも存在すれば両方を知らせる', workflowFieldName: 'pecot-workflow-acme', unused: ['pecot-priority', 'pecot-size'], expected: 'warning: this board uses the old field name pecot-workflow-acme and still has fields pecot does not use: pecot-priority, pecot-size\n  run: pecot project init acme <name> --host github.com\n' },
-    { name: 'ワークフローのフィールドが見つからない場合は、不要なフィールドだけを知らせる', workflowFieldName: undefined, unused: ['pecot-size'], expected: 'warning: this board still has fields pecot does not use: pecot-size\n  run: pecot project init acme <name> --host github.com\n' },
+    { name: '旧いフィールド名で不要なフィールドも存在すれば両方を知らせる', workflowFieldName: 'pecot-workflow-acme', unused: ['pecot-priority', 'pecot-size'], expected: 'warning: this board uses the old field name pecot-workflow-acme and still has fields pecot does not use: pecot-priority, pecot-size\n  call project_init with owner: "acme", name: <name>, host: "github.com"\n' },
+    { name: 'ワークフローのフィールドが見つからない場合は、不要なフィールドだけを知らせる', workflowFieldName: undefined, unused: ['pecot-size'], expected: 'warning: this board still has fields pecot does not use: pecot-size\n  call project_init with owner: "acme", name: <name>, host: "github.com"\n' },
   ])('移行の警告は、$name', async ({ name, workflowFieldName, unused, expected }) => {
     await explains(`ボードのフィールド名に関する、移行の警告のテストです。移行の警告は、${name}ことを確認します。`)
     const io = capture()

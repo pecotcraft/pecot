@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
-// worktree add / remove / init / link の振る舞い（PW-WORKTREE-*）を、runCli をプロセス内で呼んで確かめる。
+// worktree_add・worktree_remove・worktree_init・worktree_link の振る舞い（PW-WORKTREE-*）を、ツールをプロセス内で呼んで確かめる。
 // 実 git と一時ディレクトリを使う。モックするのは、/.dockerenv の有無だけ。
 import { chmodSync, existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import type * as FileSystem from 'node:fs'
@@ -7,14 +7,14 @@ import path from 'node:path'
 
 import { expect, it, describe, beforeEach, vi } from 'vitest'
 
-import { COMMANDS } from '../../src/commands/registry.js'
-import { runCli } from '../../src/cli.js'
-import { attachOutput } from '../../../../../libs/interface-spec/src/vitest/attach.js'
+import { TOOLS } from '../../src/commands/registry.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { createGitRepository, gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import { makeTemporaryDirectory, writeTree } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
+import { runInProcess } from '../_helpers/interface-case.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
+import type { ToolRunResult } from '../_helpers/run-tool.js'
 import { verifies } from '../_helpers/verifies.js'
 import { explains } from '../_helpers/explains.js'
 
@@ -112,62 +112,8 @@ function createProject(options: Readonly<ProjectOptions> = {}): Project {
   return project
 }
 
-interface Run {
-  readonly code: number
-  readonly stdout: string
-  readonly stderr: string
-  /**
-  readLine が呼ばれた回数
-  */
-  readonly reads: number
-}
-
-interface RunOptions {
-  /**
-  作業ディレクトリ。既定は main worktree
-  */
-  readonly cwd?: string
-  /**
-  確認の答え。尽きると入力の終端になる
-  */
-  readonly answers?: readonly string[]
-}
-
-async function pecot(argv: readonly string[], options: Readonly<RunOptions> = {}): Promise<Run> {
-  const out: string[] = []
-  const error: string[] = []
-  const answers = [...options.answers ?? []]
-  let reads = 0
-  const cwd = options.cwd ?? currentProject().repository
-  const previous = process.cwd()
-  process.chdir(cwd)
-  try {
-    const code = await runCli(argv, {
-      commands: COMMANDS,
-      io: {
-        stdout: (text) => {
-          out.push(text)
-        },
-        stderr: (text) => {
-          error.push(text)
-        },
-        readLine: () => {
-          reads += 1
-          return answers.shift()
-        },
-      },
-      cwd,
-      environment: {},
-      terminalColumns: undefined,
-    })
-    const stdout = out.join('')
-    const stderr = error.join('')
-    attachOutput(['pecot', ...argv].join(' '), code, stdout, stderr)
-    return { code, stdout, stderr, reads }
-  }
-  finally {
-    process.chdir(previous)
-  }
+async function run(name: string, arguments_: Readonly<Record<string, unknown>>): Promise<ToolRunResult> {
+  return await runInProcess(name, arguments_, TOOLS, { cwd: currentProject().repository })
 }
 
 // MCP のツールを、同じプロセスの中のクライアントから 1 回呼ぶ。作業ディレクトリの既定は main worktree
@@ -175,7 +121,7 @@ async function tool(name: string, toolArguments: Readonly<Record<string, unknown
   const previous = process.cwd()
   process.chdir(cwd)
   try {
-    return await callToolOnce(COMMANDS, name, toolArguments)
+    return await callToolOnce(TOOLS, name, toolArguments)
   }
   finally {
     process.chdir(previous)
@@ -191,7 +137,7 @@ function outsideGit(): string {
 }
 
 const UNREADABLE_REMOTE = 'could not read the repository from the URL of the Git remote origin'
-const AMBIGUOUS_LINES = 'error: the repository is ambiguous\n  could not read the repository from the URL of the Git remote origin\n  give --repo <owner/repo>\n'
+const AMBIGUOUS_LINES = 'error: the repository is ambiguous\n  could not read the repository from the URL of the Git remote origin\n  give repo: <owner/repo>\n'
 
 // origin を手元の bare リポのパスに付け替えて、URL から owner/repo を読めなくする
 function useBareOrigin(project: Readonly<Project>): void {
@@ -307,7 +253,7 @@ async function removeWithBlockedBranch(): Promise<{ readonly repository: string,
   return { repository, result }
 }
 
-describe('worktree add', () => {
+describe('worktree_add', () => {
   it('リポジトリを directory に渡して呼ぶと、プロジェクトのルートの下の wtN にそのリポジトリの worktree を作る', async (context) => {
     await verifies(context, 'PW-WORKTREE-ADD-01')
     await explains('`worktree_add` にリポジトリを `directory` で指定した場合のテストです。プロジェクトのルートの下の `wt1` に、そのリポジトリの worktree を作成することを確認します。')
@@ -429,42 +375,21 @@ describe('worktree add', () => {
     expect(gitForTest(worktree, ['rev-parse', 'HEAD']).trim()).toBe(gitForTest(repository, ['rev-parse', 'main']).trim())
   })
 
-  it('CLI で --force を付けて打つと、--allow-existing-branch と同じく既存のブランチを再利用する', async () => {
-    await explains('CLI で `--force` を指定して実行した場合のテストです。`--allow-existing-branch` と同様に、既存のブランチを再利用することを確認します。')
+  it('force を付けて呼ぶと、allow_existing_branch と同じく既存のブランチを再利用する', async () => {
+    await explains(' `force` を指定して実行した場合のテストです。`allow_existing_branch` と同様に、既存のブランチを再利用することを確認します。')
     const { repository } = createProject()
     prepareExistingBranch(repository)
-    const result = await pecot(['worktree', 'add', '-D', repository, '--force'])
+    const result = await run('worktree_add', { directory: repository, allow_existing_branch: true })
     expect(result.code).toBe(0)
     expect(gitForTest(result.stdout.trim(), ['rev-parse', 'HEAD']).trim()).toBe(gitForTest(repository, ['rev-parse', 'main']).trim())
   })
 
-  it('CLI で --dry-run を付けて打つと、worktree とブランチを作らない', async (context) => {
-    await verifies(context, 'PW-WORKTREE-ADD-13')
-    await explains('CLI で `--dry-run` を指定して実行した場合のテストです。worktree とブランチを作成せず、終了コード 0 で終了することを確認します。')
+  it('worktree を作ると、created の行を標準エラーに、worktree のパスを標準出力に出す', async () => {
+    await explains(' worktree を作成した場合のテストです。`created` の行を標準エラーに、worktree のパスを標準出力に出力することを確認します。')
     const { repository, root } = createProject()
-    const result = await pecot(['worktree', 'add', '-D', repository, '--dry-run'])
-    expect(result.code).toBe(0)
-    expect(existsSync(path.join(root, 'wt1'))).toBe(false)
-    expect(branches(repository)).not.toContain('wt1')
-    expect(worktreePaths(repository)).toEqual([repository])
-  })
-
-  it('CLI で worktree を作ると、created の行を標準エラーに、worktree のパスを標準出力に出す', async () => {
-    await explains('CLI で worktree を作成した場合のテストです。`created` の行を標準エラーに、worktree のパスを標準出力に出力することを確認します。')
-    const { repository, root } = createProject()
-    const result = await pecot(['worktree', 'add', '-D', repository])
+    const result = await run('worktree_add', { directory: repository })
     expect(result.code).toBe(0)
     expect(result.stderr).toContain(`created: worktree wt1 at ${path.join(root, 'wt1', 'demo')} (branch wt1 from develop)\n`)
-    expect(result.stdout).toBe(`${path.join(root, 'wt1', 'demo')}\n`)
-  })
-
-  it('CLI で --dry-run を付けて打つと、予定の行を標準エラーに、予定のパスを標準出力に出す', async (context) => {
-    await verifies(context, 'PW-WORKTREE-ADD-16')
-    await verifies(context, 'PW-WORKTREE-ADD-17')
-    await explains('CLI で `--dry-run` を指定して実行した場合のテストです。予定の行を標準エラーに、予定のパスを標準出力に出力することを確認します。')
-    const { repository, root } = createProject()
-    const result = await pecot(['worktree', 'add', '-D', repository, '--dry-run'])
-    expect(result.stderr).toBe(`dry-run: would create worktree wt1 at ${path.join(root, 'wt1', 'demo')} (branch wt1 from develop)\n`)
     expect(result.stdout).toBe(`${path.join(root, 'wt1', 'demo')}\n`)
   })
 
@@ -473,7 +398,7 @@ describe('worktree add', () => {
     await explains('シンボリックリンクを作成した場合のテストです。作成した数を `count: symlinks created` の行で、標準エラーに出力することを確認します。')
     const { repository } = createProject({ worktreeConfig: CLAUDE_LOCAL_LINK })
     writeFileSync(path.join(repository, 'CLAUDE.local.md'), 'local')
-    const result = await pecot(['worktree', 'add', '-D', repository])
+    const result = await run('worktree_add', { directory: repository })
     expect(result.stderr).toContain('count: symlinks created: 1\n')
   })
 
@@ -481,11 +406,11 @@ describe('worktree add', () => {
     await verifies(context, 'PW-WORKTREE-ADD-19')
     await explains('作成しなかったリンクまたは作成に失敗したリンクが存在する場合のテストです。その数を `count` の行で、標準エラーに出力することを確認します。')
     const { repository } = createProject({ worktreeConfig: CLAUDE_LOCAL_LINK })
-    const result = await pecot(['worktree', 'add', '-D', repository])
+    const result = await run('worktree_add', { directory: repository })
     expect(result.stderr).toContain('count: symlinks created: 0\n')
     expect(result.stderr).toContain('count: symlinks skipped: 1\n')
     const { repository: tracked } = createProject({ worktreeConfig: CLAUDE_LOCAL_LINK, files: { 'CLAUDE.local.md': 'tracked' } })
-    const failed = await pecot(['worktree', 'add', '-D', tracked])
+    const failed = await run('worktree_add', { directory: tracked })
     expect(failed.stderr).toContain('count: symlink errors: 1\n')
   })
 
@@ -494,7 +419,7 @@ describe('worktree add', () => {
     await explains('未追跡のファイルをコピーした場合のテストです。コピーした数を `count: files copied` の行で、標準エラーに出力することを確認します。')
     const { repository } = createProject()
     writeFileSync(path.join(repository, '.env.local'), 'TOKEN=1')
-    const result = await pecot(['worktree', 'add', '-D', repository])
+    const result = await run('worktree_add', { directory: repository })
     expect(result.stderr).toContain('count: files copied: 1\n')
   })
 
@@ -524,30 +449,6 @@ describe('worktree add', () => {
     expect(result.isError).toBe(false)
     expect(existsSync(path.join(root, 'wt1', 'demo', 'CLAUDE.local.md'))).toBe(false)
     expect(result.structured['warnings']).toEqual([`target does not exist: ${path.join(repository, 'CLAUDE.local.md')}`])
-  })
-
-  it('CLI で --dry-run を付けて打つと、既存のリンク・実ファイル・追跡済み・dangling のそれぞれに、予定の行を標準エラーに出す', async () => {
-    await explains('CLI で `--dry-run` を指定して `worktree link` を実行する場合のテストです。既存のリンク・実ファイル・追跡済みのファイル・参照先のないリンクのそれぞれについて、予定の行を標準エラーに出力することを確認します。')
-    const links = ['CLAUDE.local.md', 'second.md', 'dangling.md', 'tracked.md'].map(name => ({ path: name, target_repo: 'demo', target_path: name }))
-    const { project, worktree } = await linkedProject(['wt1'], { worktreeConfig: JSON.stringify({ version: 3, links }), files: { 'tracked.md': 'tracked' } })
-    symlinkSync('/nonexistent', path.join(project.repository, 'dangling.md'))
-    const real = path.join(worktree, 'CLAUDE.local.md')
-    rmSync(real, { force: true })
-    writeFileSync(real, 'mine')
-    symlinkSync('/nonexistent', path.join(worktree, 'second.md'))
-    const from = (name: string): string => path.join(worktree, name)
-    const to = (name: string): string => path.join(project.repository, name)
-    const asking = await pecot(['worktree', 'link', '-D', worktree, '--dry-run'])
-    expect(asking.stderr).toBe([
-      `dry-run: would update symlink ${from('CLAUDE.local.md')} -> ${to('CLAUDE.local.md')} (real file, asks first)`,
-      `dry-run: would update symlink ${from('second.md')} -> ${to('second.md')}`,
-      `dry-run: would skip symlink ${from('dangling.md')} (target is a dangling symlink)`,
-      `dry-run: would skip symlink ${from('tracked.md')} (tracked by git)`,
-      '',
-    ].join('\n'))
-    const skipping = await pecot(['worktree', 'link', '-D', project.repository, '--all', '--dry-run'])
-    expect(skipping.stderr).toContain(`dry-run: would skip symlink ${from('CLAUDE.local.md')} (a real file exists)\n`)
-    expect(skipping.reads).toBe(0)
   })
 
   it('リンクのパスを git が追跡していると、そのリンクを作らず、warnings に 1 つ入れる', async (context) => {
@@ -654,12 +555,12 @@ describe('worktree add', () => {
     expect(existsSync(path.join(root, 'wt1'))).toBe(false)
   })
 
-  it('CLI で worktree-config.json が無いと、pecot worktree init を促す error の行を標準エラーに出す', async () => {
-    await explains('CLI で `worktree-config.json` が存在しない場合のテストです。`pecot worktree init` を案内する `error` の行を標準エラーに出力し、終了コード 1 で終了することを確認します。')
+  it('worktree-config.json が無いと、worktree_init を促す error の行を標準エラーに出す', async () => {
+    await explains(' `worktree-config.json` が存在しない場合のテストです。`worktree_init` を案内する `error` の行を標準エラーに出力し、終了コード 1 で終了することを確認します。')
     const { repository } = createProject({ worktreeConfig: false })
-    const result = await pecot(['worktree', 'add', '-D', repository])
+    const result = await run('worktree_add', { directory: repository })
     expect(result.code).toBe(1)
-    expect(result.stderr).toContain('run pecot worktree init')
+    expect(result.stderr).toContain('call worktree_init to generate the template')
   })
 
   it.for<{ readonly name: string, readonly options: Readonly<ProjectOptions>, readonly message: string }>([
@@ -748,10 +649,10 @@ describe('worktree add', () => {
     expect(existsSync(path.join(root, 'wt1'))).toBe(false)
   })
 
-  it('git worktree add に失敗すると、git の理由の行を detail に、git の出力の全文を log に入れて失敗を返す', async (context) => {
+  it('git worktree_add に失敗すると、git の理由の行を detail に、git の出力の全文を log に入れて失敗を返す', async (context) => {
     await verifies(context, 'PW-WORKTREE-ADD-47')
     await verifies(context, 'PW-WORKTREE-ADD-48')
-    await explains('`git worktree add` が失敗する場合のテストです。git が出力した理由の行を `detail` に、出力の全文を `log` に含めた失敗が返ることを確認します。')
+    await explains('`git worktree_add` が失敗する場合のテストです。git が出力した理由の行を `detail` に、出力の全文を `log` に含めた失敗が返ることを確認します。')
     const { repository, root } = createProject()
     const occupied = path.join(root, 'occupied')
     writeTree(occupied, { 'file.txt': 'x' })
@@ -807,26 +708,26 @@ describe('worktree add', () => {
   })
 
   describe('remote の URL から owner/repo を読めない', () => {
-    it('--repo を渡すと、CLI は warning の行を標準エラーに出し、MCP は結果の warnings に同じ文を入れ、使う remote の URL を読めないので終了コード 1 で終わる', async (context) => {
+    it('repo を渡すと、warning の行を標準エラーに出し、結果の warnings に同じ文を入れ、使う remote の URL を読めないので終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-WORKTREE-ADD-53')
-      await explains('remote の URL から owner と repo を取得できず、`--repo` を指定した場合のテストです。CLI は `warning` の行を標準エラーに出力し、MCP は同じ文を `warnings` に含め、どちらも失敗することを確認します。')
+      await explains('remote の URL から owner と repo を取得できず、`repo` を指定した場合のテストです。`warning` の行を標準エラーに出力し、同じ文を `warnings` に含め、失敗することを確認します。')
       const project = createProject()
       useBareOrigin(project)
-      const cli = await pecot(['--repo', 'acme/demo', 'worktree', 'add', '-D', project.repository])
+      const cli = await run('worktree_add', { directory: project.repository, repo: 'acme/demo' })
       expect(cli.code).toBe(1)
-      expect(cli.stderr).toBe(`warning: using --repo acme/demo (${UNREADABLE_REMOTE})\nerror: cannot get the repository information: check that a git remote is set to a GitHub repository URL\n`)
+      expect(cli.stderr).toBe(`warning: using repo acme/demo (${UNREADABLE_REMOTE})\nerror: cannot get the repository information: check that a git remote is set to a GitHub repository URL\n`)
       const result = await tool('worktree_add', { directory: project.repository, repo: 'acme/demo' })
       expect(result.structured['warnings']).toEqual([`using repo acme/demo (${UNREADABLE_REMOTE})`])
       expect(result).toMatchObject({ isError: true, structured: { kind: 'git-unresolved' } })
       expect(detailOf(result)).toContain('cannot get the repository information: check that a git remote is set')
     })
 
-    it('--repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {
+    it('repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-WORKTREE-ADD-54')
-      await explains('remote の URL から owner と repo を取得できず、`--repo` を省略した場合のテストです。`the repository is ambiguous` と理由の行を出力し、終了コード 1 で終了することを確認します。')
+      await explains('remote の URL から owner と repo を取得できず、`repo` を省略した場合のテストです。`the repository is ambiguous` と理由の行を出力し、終了コード 1 で終了することを確認します。')
       const project = createProject()
       useBareOrigin(project)
-      const cli = await pecot(['worktree', 'add', '-D', project.repository])
+      const cli = await run('worktree_add', { directory: project.repository })
       expect(cli).toMatchObject({ code: 1, stdout: '', stderr: AMBIGUOUS_LINES })
       expect(worktreePaths(project.repository)).toEqual([project.repository])
       const result = await tool('worktree_add', { directory: project.repository })
@@ -834,16 +735,6 @@ describe('worktree add', () => {
       expect(detailOf(result)).toContain('the repository is ambiguous')
       expect(detailOf(result)).toContain(UNREADABLE_REMOTE)
     })
-  })
-
-  it('--path がファイルの下を指しても、検証で落とさず、その先の処理に進む', async () => {
-    await explains('`--path` にファイルの下のパスを指定した場合のテストです。検証で失敗せず、その先の処理に進むことを確認します。')
-    const { repository } = createProject()
-    const file = path.join(makeTemporaryDirectory(), 'file.txt')
-    writeFileSync(file, 'x')
-    const result = await pecot(['worktree', 'add', '-D', repository, '--path', path.join(file, 'sub'), '--dry-run'])
-    expect(result.code).toBe(0)
-    expect(result.stderr).toContain(`dry-run: would create worktree wt1 at ${path.join(file, 'sub')} `)
   })
 
   describe('MCP の data', () => {
@@ -871,7 +762,7 @@ describe('worktree add', () => {
   })
 })
 
-describe('worktree init', () => {
+describe('worktree_init', () => {
   it('設定ファイルの無いリポジトリを directory に渡して呼ぶと、メインの worktree に worktree-config.json と .worktreeignore を書く', async (context) => {
     await verifies(context, 'PW-WORKTREE-INIT-01')
     await verifies(context, 'PW-WORKTREE-INIT-02')
@@ -914,10 +805,10 @@ describe('worktree init', () => {
     expect(targetsOf(configPaths(withoutProject.repository).config)).toEqual(new Set(['demo']))
   })
 
-  it('CLI でファイルを書くと、ファイルごとに created の行を標準エラーに出す', async () => {
-    await explains('CLI で `worktree init` を実行した場合のテストです。ファイルごとに `created` の行を、標準エラーに出力することを確認します。')
+  it('ファイルを書くと、ファイルごとに created の行を標準エラーに出す', async () => {
+    await explains(' `worktree_init` を実行した場合のテストです。ファイルごとに `created` の行を、標準エラーに出力することを確認します。')
     const { repository } = initialProject()
-    const result = await pecot(['worktree', 'init', '-D', repository])
+    const result = await run('worktree_init', { directory: repository })
     const files = configPaths(repository)
     expect(result.stderr).toBe(`created: worktree config ${files.config}\ncreated: worktree ignore file ${files.ignore}\n`)
   })
@@ -942,10 +833,10 @@ describe('worktree init', () => {
     expect(readFileSync(existing, 'utf8')).toBe(before)
   })
 
-  it('CLI で設定ファイルが既にあると、既存のファイルのパスを error の行に出し、終了コード 1 で終わる', async () => {
-    await explains('CLI で `worktree init` を実行し、設定ファイルが既に存在する場合のテストです。既存のファイルのパスを `error` の行に出力し、終了コード 1 で終了することを確認します。')
+  it('設定ファイルが既にあると、既存のファイルのパスを error の行に出し、終了コード 1 で終わる', async () => {
+    await explains(' `worktree_init` を実行し、設定ファイルが既に存在する場合のテストです。既存のファイルのパスを `error` の行に出力し、終了コード 1 で終了することを確認します。')
     const { repository } = createProject({ ignore: false })
-    const result = await pecot(['worktree', 'init', '-D', repository])
+    const result = await run('worktree_init', { directory: repository })
     expect(result.code).toBe(1)
     expect(result.stderr).toBe(`error: worktree config already exists\n  ${configPaths(repository).config}\n`)
   })
@@ -1022,24 +913,23 @@ describe('worktree init', () => {
     }, reason: 'is a file.' },
   ]
 
-  it.for(DIRECTORY_ROWS)('-D が $name だと、使い方の枠で理由を出し、終了コード 2 で終わる', async (row) => {
-    await explains(`CLI で \`-D\` に${row.name}パスを指定した場合のテストです。使い方のエラーとして理由を出力し、終了コード 2 で終了することを確認します。`)
+  it.for(DIRECTORY_ROWS)('directory が $name だと、理由を detail に入れて、kind が invalid-input の失敗を返す', async (row) => {
+    await explains(`\`directory\` に${row.name}パスを指定した場合のテストです。理由を \`detail\` に含めた、\`invalid-input\` の失敗が返ることを確認します。`)
     const directory = row.argument()
-    const result = await pecot(['worktree', 'init', '-D', directory], { cwd: makeTemporaryDirectory() })
-    expect(result.code).toBe(2)
-    expect(result.stdout).toBe('')
-    expect(result.stderr.replaceAll(/[│\s]+/gu, ' ')).toContain(`Invalid value for '--directory' / '-D': Directory '${directory}' ${row.reason}`)
+    const result = await tool('worktree_init', { directory }, makeTemporaryDirectory())
+    expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
+    expect(result.structured['detail']).toContain(`Directory '${directory}' ${row.reason}`)
   })
 
-  it.skipIf(process.getuid?.() === 0)('-D が読めないディレクトリだと、is not readable の理由を出し、終了コード 2 で終わる', async () => {
-    await explains('CLI で `-D` に読み取れないディレクトリを指定した場合のテストです。`is not readable` の理由を出力し、終了コード 2 で終了することを確認します。')
+  it.skipIf(process.getuid?.() === 0)('directory が読めないディレクトリだと、is not readable の理由を detail に入れて、kind が invalid-input の失敗を返す', async () => {
+    await explains('`directory` に読み取れないディレクトリを指定した場合のテストです。`is not readable` の理由を `detail` に含めた、`invalid-input` の失敗が返ることを確認します。')
     const directory = path.join(makeTemporaryDirectory(), 'locked')
     mkdirSync(directory)
     chmodSync(directory, 0o000)
     try {
-      const result = await pecot(['worktree', 'init', '-D', directory], { cwd: makeTemporaryDirectory() })
-      expect(result.code).toBe(2)
-      expect(result.stderr.replaceAll(/[│\s]+/gu, ' ')).toContain('is not readable.')
+      const result = await tool('worktree_init', { directory }, makeTemporaryDirectory())
+      expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
+      expect(result.structured['detail']).toContain('is not readable.')
     }
     finally {
       chmodSync(directory, 0o755)
@@ -1047,14 +937,14 @@ describe('worktree init', () => {
   })
 
   describe('remote の URL から owner/repo を読めない', () => {
-    it('worktree init で、--repo を渡すと、CLI は warning の行を標準エラーに出し、MCP は結果の warnings に同じ文を入れて続ける', async (context) => {
+    it('worktree_init で、repo を渡すと、warning の行を標準エラーに出し、結果の warnings に同じ文を入れて続ける', async (context) => {
       await verifies(context, 'PW-WORKTREE-INIT-20')
-      await explains('remote の URL から owner と repo を取得できず、`--repo` を指定して `worktree init` を実行した場合のテストです。CLI は `warning` の行を標準エラーに出力し、MCP は同じ文を `warnings` に含めて、処理を続けることを確認します。')
+      await explains('remote の URL から owner と repo を取得できず、`repo` を指定して `worktree_init` を実行した場合のテストです。`warning` の行を標準エラーに出力し、同じ文を `warnings` に含めて、処理を続けることを確認します。')
       const project = initialProject()
       useBareOrigin(project)
-      const cli = await pecot(['--repo', 'acme/demo', 'worktree', 'init', '-D', project.repository])
+      const cli = await run('worktree_init', { directory: project.repository, repo: 'acme/demo' })
       expect(cli.code).toBe(0)
-      expect(cli.stderr).toContain(`warning: using --repo acme/demo (${UNREADABLE_REMOTE})\n`)
+      expect(cli.stderr).toContain(`warning: using repo acme/demo (${UNREADABLE_REMOTE})\n`)
       rmSync(configPaths(project.repository).config)
       rmSync(configPaths(project.repository).ignore)
       const result = await tool('worktree_init', { directory: project.repository, repo: 'acme/demo' })
@@ -1062,12 +952,12 @@ describe('worktree init', () => {
       expect(result.structured['warnings']).toEqual([`using repo acme/demo (${UNREADABLE_REMOTE})`])
     })
 
-    it('worktree init で、--repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {
+    it('worktree_init で、repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-WORKTREE-INIT-21')
-      await explains('remote の URL から owner と repo を取得できず、`--repo` を省略して `worktree init` を実行した場合のテストです。`the repository is ambiguous` と理由の行を出力し、終了コード 1 で終了することを確認します。')
+      await explains('remote の URL から owner と repo を取得できず、`repo` を省略して `worktree_init` を実行した場合のテストです。`the repository is ambiguous` と理由の行を出力し、終了コード 1 で終了することを確認します。')
       const project = initialProject()
       useBareOrigin(project)
-      const cli = await pecot(['worktree', 'init', '-D', project.repository])
+      const cli = await run('worktree_init', { directory: project.repository })
       expect(cli).toMatchObject({ code: 1, stdout: '', stderr: AMBIGUOUS_LINES })
       expect(existsSync(configPaths(project.repository).config)).toBe(false)
       const result = await tool('worktree_init', { directory: project.repository })
@@ -1090,7 +980,7 @@ describe('worktree init', () => {
   })
 })
 
-describe('worktree link', () => {
+describe('worktree_link', () => {
   it('サブの worktree を directory に渡して呼ぶと、worktree-config.json のリンクをその worktree に作る', async (context) => {
     await verifies(context, 'PW-WORKTREE-LINK-01')
     await explains('サブの worktree を `directory` に指定して `worktree_link` を実行した場合のテストです。`worktree-config.json` のリンクを、その worktree に作成することを確認します。')
@@ -1130,16 +1020,6 @@ describe('worktree link', () => {
     expect(isSymlink(path.join(worktree, 'CLAUDE.local.md'))).toBe(false)
   })
 
-  it('CLI でリンクのパスに実ファイルがあるサブの worktree を --force と --all のどちらも付けずに打つと、上書きしてよいかを標準エラーで尋ねる', async (context) => {
-    await verifies(context, 'PW-WORKTREE-LINK-05')
-    await explains('CLI で、リンクのパスに実ファイルが存在するサブの worktree を、`--force` と `--all` を指定せずに実行した場合のテストです。上書きの可否を尋ねる文を、標準エラーに出力することを確認します。')
-    const { worktree } = await linkedProject()
-    writeFileSync(path.join(worktree, 'CLAUDE.local.md'), 'mine')
-    const result = await pecot(['worktree', 'link', '-D', worktree], { answers: ['n'] })
-    expect(result.stderr).toContain(`real file exists: ${path.join(worktree, 'CLAUDE.local.md')}\noverwrite it? [y/N]:`)
-    expect(result.reads).toBe(1)
-  })
-
   it('リンクのパスに実ファイルがあるサブの worktree を force と all のどちらも付けずに渡すと、答えが無いので、何も変えずに kind が aborted の失敗を返す', async (context) => {
     await verifies(context, 'PW-WORKTREE-LINK-05')
     await verifies(context, 'PW-WORKTREE-LINK-20')
@@ -1149,18 +1029,6 @@ describe('worktree link', () => {
     const result = await tool('worktree_link', { directory: worktree })
     expect(result).toMatchObject({ isError: true, structured: { kind: 'aborted' } })
     expect(readFileSync(path.join(worktree, 'CLAUDE.local.md'), 'utf8')).toBe('mine')
-  })
-
-  it.for(OBSTACLES)('CLI で上書きの確認に y と答えると、$kind を消してリンクを作る', async (row, context) => {
-    await verifies(context, 'PW-WORKTREE-LINK-06')
-    await verifies(context, 'PW-WORKTREE-LINK-07')
-    await explains(`CLI で上書きの確認に \`y\` と答えた場合のテストです。リンクのパスにある${row.kind}を削除して、リンクを作成することを確認します。`)
-    const { worktree } = await linkedProject()
-    row.make(path.join(worktree, 'CLAUDE.local.md'))
-    const result = await pecot(['worktree', 'link', '-D', worktree], { answers: ['y'] })
-    expect(result.code).toBe(0)
-    expect(isSymlink(path.join(worktree, 'CLAUDE.local.md'))).toBe(true)
-    expect(readFileSync(path.join(worktree, 'CLAUDE.local.md'), 'utf8')).toBe('shared')
   })
 
   it.for(OBSTACLES)('force を付けて$kind があると、尋ねずにそれを消してリンクを作る', async (row, context) => {
@@ -1186,39 +1054,25 @@ describe('worktree link', () => {
     expect(isSymlink(path.join(worktree, 'CLAUDE.local.md'))).toBe(false)
   })
 
-  it('CLI で --force を付けずに --all を付けてリンクのパスに実ファイルがあると、尋ねない', async () => {
-    await explains('CLI で `--force` を指定せず `--all` を指定し、リンクのパスに実ファイルが存在する場合のテストです。確認を求めないことを確認します。')
+  it('force を付けずに all を付けてリンクのパスに実ファイルがあると、尋ねない', async () => {
+    await explains(' `force` を指定せず `all` を指定し、リンクのパスに実ファイルが存在する場合のテストです。確認を求めないことを確認します。')
     const { project, worktree } = await linkedProject()
     writeFileSync(path.join(worktree, 'CLAUDE.local.md'), 'mine')
-    const result = await pecot(['worktree', 'link', '-D', project.repository, '--all'])
+    const result = await run('worktree_link', { directory: project.repository, all: true })
     expect(result.code).toBe(0)
-    expect(result.reads).toBe(0)
   })
 
-  it('CLI で --dry-run を付けて打つと、何も変えない', async (context) => {
-    await verifies(context, 'PW-WORKTREE-LINK-11')
-    await explains('CLI で `--dry-run` を指定して `worktree link` を実行した場合のテストです。何も変更せず、実ファイルがそのまま残ることを確認します。')
-    const { worktree } = await linkedProject()
-    const linkPath = path.join(worktree, 'CLAUDE.local.md')
-    rmSync(linkPath, { force: true })
-    writeFileSync(linkPath, 'mine')
-    const result = await pecot(['worktree', 'link', '-D', worktree, '--dry-run'])
-    expect(result.code).toBe(0)
-    expect(isSymlink(linkPath)).toBe(false)
-    expect(readFileSync(linkPath, 'utf8')).toBe('mine')
-  })
-
-  it('CLI で --all を付けてサブの worktree が無いと、sub-worktrees の count を 0 にして標準エラーに出す', async () => {
-    await explains('CLI で `--all` を指定し、サブの worktree が存在しない場合のテストです。`count: sub-worktrees: 0` の行を、標準エラーに出力することを確認します。')
+  it('all を付けてサブの worktree が無いと、sub-worktrees の count を 0 にして標準エラーに出す', async () => {
+    await explains(' `all` を指定し、サブの worktree が存在しない場合のテストです。`count: sub-worktrees: 0` の行を、標準エラーに出力することを確認します。')
     const { project } = await linkedProject([])
-    const result = await pecot(['worktree', 'link', '-D', project.repository, '--all'])
+    const result = await run('worktree_link', { directory: project.repository, all: true })
     expect(result).toMatchObject({ code: 0, stdout: '', stderr: 'count: sub-worktrees: 0\n' })
   })
 
-  it('CLI で worktree にリンクを作ると、作った数を worktree ごとの count の行で標準エラーに出す', async () => {
-    await explains('CLI で worktree にリンクを作成した場合のテストです。作成した数を worktree ごとの `count` の行で、標準エラーに出力することを確認します。')
+  it('worktree にリンクを作ると、作った数を worktree ごとの count の行で標準エラーに出す', async () => {
+    await explains(' worktree にリンクを作成した場合のテストです。作成した数を worktree ごとの `count` の行で、標準エラーに出力することを確認します。')
     const { worktree } = await linkedProject()
-    const result = await pecot(['worktree', 'link', '-D', worktree])
+    const result = await run('worktree_link', { directory: worktree })
     expect(result.stderr).toBe(`count: symlinks created in ${worktree}: 1\n`)
   })
 
@@ -1235,34 +1089,21 @@ describe('worktree link', () => {
     expect(result.structured['links']).toEqual(rows)
   })
 
-  it('CLI で複数の worktree に作ると、作った数と飛ばした数と失敗した数の合計を count の行で標準エラーに出す', async () => {
-    await explains('CLI で複数の worktree にリンクを作成した場合のテストです。作成した数・スキップした数・失敗した数の合計を、`count` の行で標準エラーに出力することを確認します。')
+  it('複数の worktree に作ると、作った数と飛ばした数と失敗した数の合計を count の行で標準エラーに出す', async () => {
+    await explains('複数の worktree にリンクを作成した場合のテストです。作成した数・スキップした数・失敗した数の合計を、`count` の行で標準エラーに出力することを確認します。')
     const { project } = await linkedProject(['wt1', 'wt2'], { worktreeConfig: SECOND_LINK })
     rmSync(path.join(project.repository, 'second.md'))
-    const result = await pecot(['worktree', 'link', '-D', project.repository, '--all'])
+    const result = await run('worktree_link', { directory: project.repository, all: true })
     expect(result.stderr).toContain('count: symlinks created: 2\ncount: symlinks skipped: 2\ncount: symlink errors: 0\n')
   })
 
-  it('CLI でリンクを飛ばすと、skipped の行を標準エラーに出す', async () => {
-    await explains('CLI でリンクをスキップした場合のテストです。`skipped` の行を標準エラーに出力することを確認します。')
+  it('リンクを飛ばすと、skipped の行を標準エラーに出す', async () => {
+    await explains('リンクをスキップした場合のテストです。`skipped` の行を標準エラーに出力することを確認します。')
     const { project, worktree } = await linkedProject()
     rmSync(path.join(project.repository, 'CLAUDE.local.md'))
-    const result = await pecot(['worktree', 'link', '-D', worktree])
+    const result = await run('worktree_link', { directory: worktree })
     const missing = `target does not exist: ${path.join(project.repository, 'CLAUDE.local.md')}`
     expect(result.stderr).toContain(`skipped: symlink ${path.join(worktree, 'CLAUDE.local.md')} (${missing})\n`)
-  })
-
-  it('CLI で --dry-run を付けて打つと、リンクごとの dry-run の予定の行を標準エラーに出す', async (context) => {
-    await verifies(context, 'PW-WORKTREE-LINK-16')
-    await explains('CLI で `--dry-run` を指定して `worktree link` を実行した場合のテストです。リンクごとの予定の行を、標準エラーに出力することを確認します。')
-    const { project, worktree } = await linkedProject(['wt1'], { worktreeConfig: SECOND_LINK })
-    rmSync(path.join(project.repository, 'second.md'))
-    const result = await pecot(['worktree', 'link', '-D', worktree, '--dry-run'])
-    expect(result.stderr).toBe([
-      `dry-run: would create symlink ${path.join(worktree, 'CLAUDE.local.md')} -> ${path.join(project.repository, 'CLAUDE.local.md')}`,
-      `dry-run: would skip symlink ${path.join(worktree, 'second.md')} (target does not exist)`,
-      '',
-    ].join('\n'))
   })
 
   it('worktree_link で、リンクのパスを git が追跡していると、そのリンクを作らず、warnings に 1 つ入れる', async (context) => {
@@ -1289,11 +1130,11 @@ describe('worktree link', () => {
     expect(isSymlink(path.join(worktree, 'CLAUDE.local.md'))).toBe(true)
   })
 
-  it('CLI で上書きの確認の入力が尽きると、Aborted. の行を出し、終了コード 1 で終わる', async () => {
-    await explains('CLI で、上書きの確認に対する入力が尽きた場合のテストです。`Aborted.` の行を出力し、終了コード 1 で終了することを確認します。')
+  it('上書きの確認の入力が尽きると、Aborted. の行を出し、終了コード 1 で終わる', async () => {
+    await explains('上書きの確認に対する入力が尽きた場合のテストです。`Aborted.` の行を出力し、終了コード 1 で終了することを確認します。')
     const { worktree } = await linkedProject()
     writeFileSync(path.join(worktree, 'CLAUDE.local.md'), 'mine')
-    const result = await pecot(['worktree', 'link', '-D', worktree])
+    const result = await run('worktree_link', { directory: worktree })
     expect(result.code).toBe(1)
     expect(result.stderr).toMatch(/Aborted\.\n$/u)
     expect(readFileSync(path.join(worktree, 'CLAUDE.local.md'), 'utf8')).toBe('mine')
@@ -1310,13 +1151,13 @@ describe('worktree link', () => {
     expect(detailOf(result)).toContain('worktree_init')
   })
 
-  it('CLI で設定ファイルが無いと、init を促す error の行を標準エラーに出す', async () => {
-    await explains('CLI で設定ファイルが存在しない場合のテストです。`init` を案内する `error` の行を、標準エラーに出力することを確認します。')
+  it('設定ファイルが無いと、init を促す error の行を標準エラーに出す', async () => {
+    await explains('設定ファイルが存在しない場合のテストです。`init` を案内する `error` の行を、標準エラーに出力することを確認します。')
     const { project, worktree } = await linkedProject()
     rmSync(path.join(project.repository, '.pecot', 'config', 'worktree-config.json'))
-    const result = await pecot(['worktree', 'link', '-D', worktree])
+    const result = await run('worktree_link', { directory: worktree })
     expect(result.code).toBe(1)
-    expect(result.stderr).toBe('error: worktree config not found\n  run: pecot worktree init --directory <directory>\n')
+    expect(result.stderr).toBe('error: worktree config not found\n  call worktree_init with directory: <directory>\n')
   })
 
   it('設定ファイルの形式が不正だと、理由を detail に入れて、kind が config-invalid の失敗を返す', async (context) => {
@@ -1340,11 +1181,11 @@ describe('worktree link', () => {
     expect(detailOf(result)).toContain('all: true')
   })
 
-  it('CLI でメインの worktree を --all なしで -D に渡すと、use --all の error の行を標準エラーに出す', async () => {
-    await explains('CLI でメインの worktree を、`--all` を指定せずに `-D` へ指定した場合のテストです。`use --all` の `error` の行を、標準エラーに出力することを確認します。')
+  it('メインの worktree を all なしで directory に渡すと、use all の error の行を標準エラーに出す', async () => {
+    await explains('メインの worktree を、`all` を指定せずに `directory` へ指定した場合のテストです。`use all` の `error` の行を、標準エラーに出力することを確認します。')
     const { project } = await linkedProject()
-    const result = await pecot(['worktree', 'link', '-D', project.repository])
-    expect(result).toMatchObject({ code: 1, stderr: 'error: use --all in the main worktree\n' })
+    const result = await run('worktree_link', { directory: project.repository })
+    expect(result).toMatchObject({ code: 1, stderr: 'error: use all: true in the main worktree\n' })
   })
 
   it('プロジェクトのルートを見つけられないと、失敗を返す', async (context) => {
@@ -1413,25 +1254,25 @@ describe('worktree link', () => {
   })
 
   describe('remote の URL から owner/repo を読めない', () => {
-    it('worktree link で、--repo を渡すと、CLI は warning の行を標準エラーに出し、MCP は結果の warnings に同じ文を入れて続ける', async (context) => {
+    it('worktree_link で、repo を渡すと、warning の行を標準エラーに出し、結果の warnings に同じ文を入れて続ける', async (context) => {
       await verifies(context, 'PW-WORKTREE-LINK-35')
-      await explains('remote の URL から owner と repo を取得できず、`--repo` を指定して `worktree link` を実行した場合のテストです。CLI は `warning` の行を標準エラーに出力し、MCP は同じ文を `warnings` に含めて、処理を続けることを確認します。')
+      await explains('remote の URL から owner と repo を取得できず、`repo` を指定して `worktree_link` を実行した場合のテストです。`warning` の行を標準エラーに出力し、同じ文を `warnings` に含めて、処理を続けることを確認します。')
       const { project, worktree } = await linkedProject()
       useBareOrigin(project)
-      const cli = await pecot(['--repo', 'acme/demo', 'worktree', 'link', '-D', worktree])
+      const cli = await run('worktree_link', { directory: worktree, repo: 'acme/demo' })
       expect(cli.code).toBe(0)
-      expect(cli.stderr).toContain(`warning: using --repo acme/demo (${UNREADABLE_REMOTE})\n`)
+      expect(cli.stderr).toContain(`warning: using repo acme/demo (${UNREADABLE_REMOTE})\n`)
       const result = await tool('worktree_link', { directory: worktree, repo: 'acme/demo' })
       expect(result.isError).toBe(false)
       expect(result.structured['warnings']).toEqual([`using repo acme/demo (${UNREADABLE_REMOTE})`])
     })
 
-    it('worktree link で、--repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {
+    it('worktree_link で、repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-WORKTREE-LINK-36')
-      await explains('remote の URL から owner と repo を取得できず、`--repo` を省略して `worktree link` を実行した場合のテストです。`the repository is ambiguous` と理由の行を出力し、終了コード 1 で終了することを確認します。')
+      await explains('remote の URL から owner と repo を取得できず、`repo` を省略して `worktree_link` を実行した場合のテストです。`the repository is ambiguous` と理由の行を出力し、終了コード 1 で終了することを確認します。')
       const { project, worktree } = await linkedProject()
       useBareOrigin(project)
-      const cli = await pecot(['worktree', 'link', '-D', worktree])
+      const cli = await run('worktree_link', { directory: worktree })
       expect(cli).toMatchObject({ code: 1, stdout: '', stderr: AMBIGUOUS_LINES })
       expect(isSymlink(path.join(worktree, 'CLAUDE.local.md'))).toBe(false)
       const result = await tool('worktree_link', { directory: worktree })
@@ -1479,7 +1320,7 @@ describe('worktree link', () => {
   })
 })
 
-describe('worktree remove', () => {
+describe('worktree_remove', () => {
   it('worktree_add が記録した名前を渡して呼ぶと、checkout しているブランチによらず、その worktree を削除する', async (context) => {
     await verifies(context, 'PW-WORKTREE-REMOVE-01')
     await explains('`worktree_add` が記録した名前を指定して `worktree_remove` を実行した場合のテストです。checkout しているブランチにかかわらず、その worktree を削除することを確認します。')
@@ -1536,19 +1377,19 @@ describe('worktree remove', () => {
     expect(existsSync(path.join(root, 'wt1'))).toBe(false)
   })
 
-  it('CLI で worktree とローカルブランチを削除すると、removed と deleted の行を標準エラーに出す', async () => {
-    await explains('CLI で worktree とローカルブランチを削除した場合のテストです。`removed` と `deleted` の行を、標準エラーに出力することを確認します。')
+  it('worktree とローカルブランチを削除すると、removed と deleted の行を標準エラーに出す', async () => {
+    await explains(' worktree とローカルブランチを削除した場合のテストです。`removed` と `deleted` の行を、標準エラーに出力することを確認します。')
     const { repository } = createProject()
     await addWorktree()
-    const result = await pecot(['worktree', 'remove', 'wt1', '-D', repository])
+    const result = await run('worktree_remove', { name: 'wt1', directory: repository })
     expect(result.stderr).toBe('removed: worktree wt1\ndeleted: local branch wt1\n')
   })
 
-  it('CLI で --keep-branch を付けて打つと、removed の行だけを標準エラーに出す', async () => {
-    await explains('CLI で `--keep-branch` を指定して worktree を削除した場合のテストです。`removed` の行だけを、標準エラーに出力することを確認します。')
+  it('keep_branch を付けて呼ぶと、removed の行だけを標準エラーに出す', async () => {
+    await explains(' `keep_branch` を指定して worktree を削除した場合のテストです。`removed` の行だけを、標準エラーに出力することを確認します。')
     const { repository } = createProject()
     await addWorktree()
-    const result = await pecot(['worktree', 'remove', 'wt1', '-D', repository, '--keep-branch'])
+    const result = await run('worktree_remove', { name: 'wt1', directory: repository, keep_branch: true })
     expect(result.stderr).toBe('removed: worktree wt1\n')
   })
 
@@ -1568,11 +1409,11 @@ describe('worktree remove', () => {
     }
   })
 
-  it('git branch -D に失敗すると、ブランチを残し、理由を warnings に入れ、deletedBranch を false にして成功を返す', async (context) => {
+  it('git branch directory に失敗すると、ブランチを残し、理由を warnings に入れ、deletedBranch を false にして成功を返す', async (context) => {
     await verifies(context, 'PW-WORKTREE-REMOVE-09')
     await verifies(context, 'PW-WORKTREE-REMOVE-10')
     await verifies(context, 'PW-WORKTREE-REMOVE-23')
-    await explains('`git branch -D` が失敗する場合のテストです。ブランチを残し、理由を `warnings` に含め、`deletedBranch` を `false` にして、成功が返ることを確認します。')
+    await explains('`git branch directory` が失敗する場合のテストです。ブランチを残し、理由を `warnings` に含め、`deletedBranch` を `false` にして、成功が返ることを確認します。')
     const { repository, result } = await removeWithBlockedBranch()
     expect(result.isError).toBe(false)
     expect(result.structured).toEqual({ name: 'wt1', deletedBranch: false, warnings: [expect.stringMatching(/^could not delete local branch wt1: .+/u)] })
@@ -1606,14 +1447,14 @@ describe('worktree remove', () => {
     expect(branches(repository)).toContain('wt1')
   })
 
-  it('CLI で --force を付けずに変更のある worktree を削除しようとすると、git の文に続けて --force の案内の hint の行を出す', async () => {
-    await explains('CLI で `--force` を指定せず、変更のある worktree を削除しようとした場合のテストです。git の文に続けて、`--force` を案内する `hint` の行を出力することを確認します。')
+  it('force を付けずに変更のある worktree を削除しようとすると、git の文に続けて force の案内の hint の行を出す', async () => {
+    await explains(' `force` を指定せず、変更のある worktree を削除しようとした場合のテストです。git の文に続けて、`force` を案内する `hint` の行を出力することを確認します。')
     const { repository } = createProject()
     const worktree = await addWorktree()
     writeFileSync(path.join(worktree, 'untracked.txt'), 'x')
-    const result = await pecot(['worktree', 'remove', 'wt1', '-D', repository])
+    const result = await run('worktree_remove', { name: 'wt1', directory: repository })
     expect(result.code).toBe(1)
-    expect(result.stderr).toMatch(/^error: failed to remove the worktree: fatal: '.+' contains modified or untracked files, use --force to delete it\n {2}hint: to remove it with its changes, pass --force\n$/u)
+    expect(result.stderr).toMatch(/^error: failed to remove the worktree: fatal: '.+' contains modified or untracked files, use --force to delete it\n {2}hint: to remove it with its changes, pass force: true\n$/u)
   })
 
   it('引数 repo が今の git の remote と食い違うと、何も削除せず、kind が repo-mismatch の失敗を返す', async (context) => {
@@ -1674,28 +1515,28 @@ describe('worktree remove', () => {
   })
 
   describe('remote の URL から owner/repo を読めない', () => {
-    it('worktree remove で、--repo を渡すと、CLI は warning の行を標準エラーに出し、MCP は結果の warnings に同じ文を入れて続ける', async (context) => {
+    it('worktree_remove で、repo を渡すと、warning の行を標準エラーに出し、結果の warnings に同じ文を入れて続ける', async (context) => {
       await verifies(context, 'PW-WORKTREE-REMOVE-28')
-      await explains('remote の URL から owner と repo を取得できず、`--repo` を指定して `worktree remove` を実行した場合のテストです。CLI は `warning` の行を標準エラーに出力し、MCP は同じ文を `warnings` に含めて、処理を続けることを確認します。')
+      await explains('remote の URL から owner と repo を取得できず、`repo` を指定して `worktree_remove` を実行した場合のテストです。`warning` の行を標準エラーに出力し、同じ文を `warnings` に含めて、処理を続けることを確認します。')
       const project = createProject()
       await addWorktree()
       await addWorktree()
       useBareOrigin(project)
-      const cli = await pecot(['--repo', 'acme/demo', 'worktree', 'remove', 'wt1', '-D', project.repository])
+      const cli = await run('worktree_remove', { name: 'wt1', directory: project.repository, repo: 'acme/demo' })
       expect(cli.code).toBe(0)
-      expect(cli.stderr).toContain(`warning: using --repo acme/demo (${UNREADABLE_REMOTE})\n`)
+      expect(cli.stderr).toContain(`warning: using repo acme/demo (${UNREADABLE_REMOTE})\n`)
       const result = await tool('worktree_remove', { directory: project.repository, name: 'wt2', repo: 'acme/demo' })
       expect(result.isError).toBe(false)
       expect(result.structured['warnings']).toEqual([`using repo acme/demo (${UNREADABLE_REMOTE})`])
     })
 
-    it('worktree remove で、--repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {
+    it('worktree_remove で、repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-WORKTREE-REMOVE-29')
-      await explains('remote の URL から owner と repo を取得できず、`--repo` を省略して `worktree remove` を実行した場合のテストです。`the repository is ambiguous` と理由の行を出力し、終了コード 1 で終了することを確認します。')
+      await explains('remote の URL から owner と repo を取得できず、`repo` を省略して `worktree_remove` を実行した場合のテストです。`the repository is ambiguous` と理由の行を出力し、終了コード 1 で終了することを確認します。')
       const project = createProject()
       const worktree = await addWorktree()
       useBareOrigin(project)
-      const cli = await pecot(['worktree', 'remove', 'wt1', '-D', project.repository])
+      const cli = await run('worktree_remove', { name: 'wt1', directory: project.repository })
       expect(cli).toMatchObject({ code: 1, stdout: '', stderr: AMBIGUOUS_LINES })
       expect(existsSync(worktree)).toBe(true)
       const result = await tool('worktree_remove', { directory: project.repository, name: 'wt1' })

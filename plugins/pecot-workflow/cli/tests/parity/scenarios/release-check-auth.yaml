@@ -1,8 +1,7 @@
 # Dependabot は成功し、code scanning の一覧が 401。exit 1。
 id: release-check-auth
-command:
-  path: [release, check]
-  args: []
+tool: release_check
+arguments: {}
 setup:
   repo:
     files:

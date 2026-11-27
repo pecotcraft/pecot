@@ -8,10 +8,10 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { explains } from './_helpers/explains.js'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
-const RESTRICTED_PATH = path.join(ROOT, 'src', 'cli.ts')
-// 止める側のパスは、src/cli.ts のほかに infra と domain の実在のファイルでも確かめる
+const RESTRICTED_PATH = path.join(ROOT, 'src', 'main.ts')
+// 止める側のパスは、src/main.ts のほかに infra と domain の実在のファイルでも確かめる
 const RESTRICTED_PATHS: readonly (readonly [string, string])[] = [
-  ['src/cli.ts', RESTRICTED_PATH],
+  ['src/main.ts', RESTRICTED_PATH],
   ['src/infra/worktree.ts', path.join(ROOT, 'src', 'infra', 'worktree.ts')],
   ['src/domain/issue-surface.ts', path.join(ROOT, 'src', 'domain', 'issue-surface.ts')],
 ]
@@ -45,8 +45,8 @@ describe('直接の出力を止める lint', () => {
     })
   })
 
-  it('共通の規則（enum 禁止）は src/cli.ts のパスでも止まる', async () => {
-    await explains('直接の出力を禁止する lint のテストです。共通の規則である `enum` の禁止が、`src/cli.ts` のファイルでも `no-restricted-syntax` の違反として報告されることを確認します。')
+  it('共通の規則（enum 禁止）は src/main.ts のパスでも止まる', async () => {
+    await explains('直接の出力を禁止する lint のテストです。共通の規則である `enum` の禁止が、`src/main.ts` のファイルでも `no-restricted-syntax` の違反として報告されることを確認します。')
     expect(await ruleIds('enum Color { Red }\n', RESTRICTED_PATH)).toContain('no-restricted-syntax')
   })
 })

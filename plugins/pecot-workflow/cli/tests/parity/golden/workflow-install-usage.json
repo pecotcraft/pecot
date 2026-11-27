@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: --check cannot be used with --force or --dry-run\n",
-  "exitCode": 2,
+  "isError": true,
+  "text": "check cannot be used with force",
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "check cannot be used with force"
+  },
+  "stderr": "",
   "requests": [],
   "files": {}
 }

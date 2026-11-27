@@ -178,7 +178,7 @@ def test_project_set_is_the_expected_one(nx_bin: Path) -> None:
     ("changed_file", "expected"),
     _lane_cases(
         [
-            ("plugins/pecot-workflow/cli/src/cli.ts", {"pecot-workflow"}),
+            ("plugins/pecot-workflow/cli/src/main.ts", {"pecot-workflow"}),
             ("plugins/pecot-visual/cli/src/main.ts", {"pecot-visual"}),
             ("libs/text-rules/index.ts", {"text-rules"}),
             # pecot-workflow は package.json の依存で、actions は implicitDependencies で workflow-core を読む。
@@ -315,12 +315,13 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             # w-plan-reviewer.md を読むテストは 2 つある。
             # 1 つは CUJ 定義の単一化を確かめるテストで、test-hooks が持つ (#1091)。
             # 1 つは本文のツール名と入力名を COMMANDS の定義と比べるテスト（cli/tests/skills/）で、test-skills が持つ (#1185, #350)。
+            # エージェントの定義の一致は cli/tests/plugin-manifests.test.ts が確かめるので、test-cli も読む。
             (
                 "plugins/pecot-workflow/agents/w-plan-reviewer.md",
                 {
+                    "pecot-workflow:test-cli",
                     "pecot-workflow:test-hooks",
                     "pecot-workflow:test-skills",
-                    "pecot-workflow:test-bootstrap",
                 },
             ),
             # scripts/ci/tests の *.test.sh を実行するのは、run-tests.sh --scope=skills だけとなる (#1225)。
@@ -353,22 +354,14 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
                 "plugins/pecot-visual/hooks/tests/hooks-json.test.sh",
                 {"pecot-visual:test-hooks"},
             ),
-            (
-                "plugins/pecot-workflow/cli/tests/bootstrap/data-dir.sh",
-                {"pecot-workflow:test-bootstrap"},
-            ),
-            (
-                "plugins/pecot-workflow/cli/tests/bootstrap/install-record.sh",
-                {"pecot-workflow:test-bootstrap"},
-            ),
-            # pecot-workflow の登録ファイルは test-bootstrap が確かめる。com.github.copilot/hooks/hooks.json は hooks のテストも読む。
+            # pecot-workflow の登録ファイルは cli/tests/plugin-manifests.test.ts が確かめる。com.github.copilot/hooks/hooks.json は hooks のテストも読む。
             (
                 "plugins/pecot-workflow/mcp.json",
-                {"pecot-workflow:test-bootstrap", "pecot-workflow:test-hooks"},
+                {"pecot-workflow:test-cli", "pecot-workflow:test-hooks"},
             ),
             (
                 "plugins/pecot-workflow/com.github.copilot/hooks/hooks.json",
-                {"pecot-workflow:test-bootstrap", "pecot-workflow:test-hooks"},
+                {"pecot-workflow:test-cli", "pecot-workflow:test-hooks"},
             ),
             # 出力の行の期待値は、Node の出力のテストと githooks の一致のテストが読む (#205)。
             (
@@ -456,7 +449,6 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
                 ".githooks/scripts/test_report/bash-test.sh",
                 {
                     "githooks:test-ci",
-                    "pecot-workflow:test-bootstrap",
                     "pecot-workflow:test-release",
                     "pecot-visual:test-hooks",
                     "pecot-visual:test-compare",
@@ -498,13 +490,13 @@ def test_skill_definition_change_runs_definition_check(
     [
         "plugins/pecot-workflow/skills/w-pr/SKILL.md",
         "plugins/pecot-workflow/agents/w-plan-reviewer.md",
-        "plugins/pecot-workflow/cli/src/cli.ts",
+        "plugins/pecot-workflow/cli/src/main.ts",
     ],
 )
 def test_skill_body_change_runs_skills_lane(
     lane_input_files: dict[str, set[str]], changed_file: str
 ) -> None:
-    """スキルやエージェントの本文、または `cli.ts` を変更した場合のテストです。本文を確認する `pecot-workflow:test-skills` レーンの inputs に、そのファイルが含まれることを確認します。"""
+    """スキルやエージェントの本文、または `main.ts` を変更した場合のテストです。本文を確認する `pecot-workflow:test-skills` レーンの inputs に、そのファイルが含まれることを確認します。"""
     with allure.step("スキルの本文の変更を、pecot-workflow の skills レーンが読むことを確かめる"):
         assert "pecot-workflow:test-skills" in _lanes_reading(lane_input_files, changed_file)
 
@@ -517,7 +509,7 @@ def test_skill_body_change_runs_skills_lane(
         ("plugins/pecot-visual/skills/v-slidev/SKILL.md", "pecot-visual:test-release"),
         ("plugins/pecot-visual/hooks/hooks.json", "pecot-visual:test-release"),
         ("plugins/pecot-tools/cli/src/main.ts", "pecot-tools:test-release"),
-        ("plugins/pecot-workflow/cli/src/cli.ts", "pecot-workflow:test-release"),
+        ("plugins/pecot-workflow/cli/src/main.ts", "pecot-workflow:test-release"),
     ],
 )
 def test_release_lane_is_cached_and_not_run_by_unrelated_changes(
@@ -845,15 +837,23 @@ _PECOTV_TEST_LANES = {
                     *_GITHOOKS_GRAPH,
                 },
             ),
-            # pecot-workflow の Node の CLI のソースは、次のレーンを選ぶ (#1313)。
-            # cli/src/ は COMMANDS を持ち、本文を確認する test-skills も読む。
-            # test-bootstrap の run.sh は、実の cli/src をミラーに build して tools/list を確かめる。
-            # test-hooks の state-directory-resolution は、build 済みの CLI を起動する。
+            # pnpm の解決のファイルは pecotPluginNodeInputs が引くレーンに届く。
             (
-                "plugins/pecot-workflow/cli/src/cli.ts",
+                "plugins/pecot-workflow/scripts/ci/pnpm-lib.sh",
                 {
                     "pecot-workflow:test-cli",
-                    "pecot-workflow:test-bootstrap",
+                    "pecot-workflow:test-hooks",
+                    "pecot-workflow:test-skills",
+                    "pecot-workflow:test-release",
+                },
+            ),
+            # pecot-workflow の Node の CLI のソースは、次のレーンを選ぶ (#1313)。
+            # cli/src/ は COMMANDS を持ち、本文を確認する test-skills も読む。
+            # test-hooks の state-directory-resolution は、build 済みの CLI を起動する。
+            (
+                "plugins/pecot-workflow/cli/src/main.ts",
+                {
+                    "pecot-workflow:test-cli",
                     "pecot-workflow:test-hooks",
                     "pecot-workflow:test-skills",
                 },
@@ -865,7 +865,6 @@ _PECOTV_TEST_LANES = {
                     "workflow-core:test-unit",
                     "actions:test-unit",
                     "pecot-workflow:test-cli",
-                    "pecot-workflow:test-bootstrap",
                     "pecot-workflow:test-hooks",
                     "pecot-workflow:test-skills",
                     "pecot-workflow:test-release",
@@ -983,19 +982,8 @@ _PECOTV_TEST_LANES = {
                 "libs/interface-spec/docs/_static/pecot.css",
                 {"interface-spec:test-unit", "interface-spec:test-site"},
             ),
-            # root の lockfile は .nxignore で入力から外す。依存の変更は、各 project の runtime-lock.yaml で届く。
+            # root の lockfile は .nxignore で入力から外す。依存の変更は、各 project の package.json で届く。
             ("pnpm-lock.yaml", set()),
-            (
-                "plugins/pecot-workflow/runtime-lock.yaml",
-                {
-                    "pecot-workflow:test-cli",
-                    "pecot-workflow:test-bootstrap",
-                    "pecot-workflow:test-hooks",
-                    "pecot-workflow:test-release",
-                    "pecot-workflow:test-skills",
-                    *_GITHOOKS_CHECKS,
-                },
-            ),
         ]
     ),
 )
@@ -1016,7 +1004,6 @@ def test_gate_selects_only_the_lanes_the_change_reaches(
         [
             # 当たる側。.githooks/ の外のファイルも、テストが読むなら、それを読むレーンが動く。
             (".githooks/ci/run-pr-checks.sh", {"githooks:test-ci"}),
-            (".githooks/scripts/gen-runtime-lock.mjs", _GITHOOKS_CHECKS),
             # run.sh が step-gate.sh を通して呼ぶので、githooks のすべてのレーンが読む。
             (".githooks/scripts/run-pnpm.sh", _GITHOOKS_GRAPH | {"githooks:test-ci"}),
             (".github/board-sync/handler.mjs", _GITHOOKS_CHECKS),
@@ -1089,7 +1076,7 @@ def test_gate_selects_only_the_lanes_the_change_reaches(
             ("plugins/pecot-visual/CHANGELOG.md", set()),
             ("plugins/pecot-visual/cli/src/infra/drawio/pdf.ts", set()),
             ("plugins/pecot-tools/cli/src/main.ts", set()),
-            ("libs/workflow-core/src/commands-shared/cell-table.ts", set()),
+            ("libs/workflow-core/src/commands-shared/output.ts", set()),
         ]
     ),
 )
@@ -1146,7 +1133,7 @@ def test_graph_lanes_read_every_workspace_package_json(
             ("package.json", set()),
             # pecot-workflow の lint は lint-cli だけ。
             (
-                "plugins/pecot-workflow/cli/src/cli.ts",
+                "plugins/pecot-workflow/cli/src/main.ts",
                 {"pecot-workflow:lint-cli", "interface-spec:lint-defs"},
             ),
             # tests/hooks/ のテストも型の確認と eslint の対象。

@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "set: Issue acme/demo/7 status active\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "set: Issue acme/demo/7 status active",
+  "structuredContent": {
+    "issue": "acme/demo/7",
+    "status": "active"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

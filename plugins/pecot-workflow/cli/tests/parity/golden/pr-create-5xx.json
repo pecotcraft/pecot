@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: PR creation failed: GitHub API error: 502\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "PR creation failed: GitHub API error: 502",
+  "structuredContent": {
+    "kind": "github-api",
+    "detail": "PR creation failed: GitHub API error: 502"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "rest",

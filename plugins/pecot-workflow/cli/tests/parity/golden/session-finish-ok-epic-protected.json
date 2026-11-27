@@ -1,7 +1,25 @@
 {
-  "stdout": "",
-  "stderr": "count: Issues to close: 0\nskipped: closing Issue #12 (Epic)\nunchanged: current branch main\nupdated: main from origin/main\ndeleted: local branch feat/demo/12\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "skipped: closing Issue #12 (Epic)",
+  "structuredContent": {
+    "closedIssues": [],
+    "skippedIssues": [
+      {
+        "number": 12,
+        "reason": "epic"
+      }
+    ],
+    "deletedBranches": [
+      {
+        "branch": "feat/demo/12",
+        "location": "local"
+      }
+    ],
+    "readinessChanges": [],
+    "restack": [],
+    "currentBranch": "main"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

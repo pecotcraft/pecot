@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: use --all in the main worktree\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "use all: true in the main worktree",
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "use all: true in the main worktree"
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/.worktreeignore": ".pecot/\n",

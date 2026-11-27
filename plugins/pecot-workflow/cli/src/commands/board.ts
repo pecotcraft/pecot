@@ -1,11 +1,11 @@
-// board のグループのコマンド。並びは help の一覧に出る順
-import { BOARD_ADD_COMMANDS } from './board-add.js'
-import { BOARD_MOVE_COMMANDS } from './board-move.js'
-import { BOARD_SHOW_COMMANDS } from './board-show.js'
-import type { CommandDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
+// board のグループのツール。並びは tools/list に出る順
+import { BOARD_ADD_TOOLS } from './board-add.js'
+import { BOARD_MOVE_TOOLS } from './board-move.js'
+import { BOARD_SHOW_TOOLS } from './board-show.js'
+import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
 
-export const BOARD_COMMANDS: readonly CommandDefinition[] = [
-  ...BOARD_SHOW_COMMANDS,
-  ...BOARD_ADD_COMMANDS,
-  ...BOARD_MOVE_COMMANDS,
+export const BOARD_TOOLS: readonly ToolDefinition[] = [
+  ...BOARD_SHOW_TOOLS,
+  ...BOARD_ADD_TOOLS,
+  ...BOARD_MOVE_TOOLS,
 ]

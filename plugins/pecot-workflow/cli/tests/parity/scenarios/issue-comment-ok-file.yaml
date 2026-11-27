@@ -1,8 +1,8 @@
 # ファイル指定。frontmatter の issue_ref に投稿する。
 id: issue-comment-ok-file
-command:
-  path: [issue, comment]
-  args: [note.md]
+tool: issue_comment
+arguments:
+  file: note.md
 setup:
   repo:
     files:

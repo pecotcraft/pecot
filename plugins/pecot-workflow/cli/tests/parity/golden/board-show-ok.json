@@ -1,7 +1,78 @@
 {
-  "stdout": "# Project info\n\n## Overview\n- Project: ghes.example.com_acme_board_acme\n- Host: ghes.example.com\n- Owner: acme\n- Roadmap repo: none\n\n## Registered repositories\n- acme/demo (develop: main)\n    release_type: single\n    dependabot_alerts: open 2\n\n## Board status\n\n### Active (1)\n| Ref | Title |\n|-----|----------|\n| acme/demo#2 | 作業中の課題 |\n\n### Ready (1)\n| Ref | Title | Readiness |\n|-----|----------|-----------|\n| acme/demo#1 | 準備済みの課題 | startable |\n",
+  "isError": false,
+  "text": "# Project info",
+  "structuredContent": {
+    "project": {
+      "name": "ghes.example.com_acme_board_acme",
+      "host": "ghes.example.com",
+      "owner": "acme",
+      "number": 1,
+      "aggregation_repo": null
+    },
+    "repositories": [
+      {
+        "full_name": "acme/demo",
+        "owner": "acme",
+        "name": "demo",
+        "develop_branch": "main",
+        "release_branch": null,
+        "dependabot_alerts": {
+          "enabled": true,
+          "open_count": 2,
+          "max_severity": "high",
+          "alerts_url": "https://ghes.example.com/acme/demo/security/dependabot"
+        },
+        "release_type": "single",
+        "packages": []
+      }
+    ],
+    "board": {
+      "items": [
+        {
+          "id": "PVTI_1",
+          "workflow": "Ready",
+          "lane": null,
+          "title": "準備済みの課題",
+          "updatedAt": "2026-01-02T03:04:05Z",
+          "content": {
+            "number": 1,
+            "state": "OPEN",
+            "url": "https://ghes.example.com/acme/demo/issues/1",
+            "labels": [
+              "bug"
+            ],
+            "repository": "acme/demo"
+          },
+          "readiness": {
+            "kind": "startable",
+            "stackOn": null,
+            "reason": null,
+            "text": "startable"
+          }
+        },
+        {
+          "id": "PVTI_2",
+          "workflow": "Active",
+          "lane": null,
+          "title": "作業中の課題",
+          "updatedAt": "2026-01-02T03:04:05Z",
+          "content": {
+            "number": 2,
+            "state": "OPEN",
+            "url": "https://ghes.example.com/acme/demo/issues/2",
+            "labels": [
+              "bug"
+            ],
+            "repository": "acme/demo"
+          },
+          "readiness": null
+        }
+      ]
+    },
+    "lanes": [],
+    "mismatches": 0
+  },
   "stderr": "",
-  "exitCode": 0,
   "requests": [
     {
       "type": "graphql",

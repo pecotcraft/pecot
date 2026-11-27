@@ -1,9 +1,8 @@
 # PR の取得が 401。exit 1。
 id: release-merge-auth
-command:
-  path: [release, merge]
-  args:
-    - "acme/demo/31"
+tool: release_merge
+arguments:
+  pr_ref: acme/demo/31
 setup:
   repo:
     files:

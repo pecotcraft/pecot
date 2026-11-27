@@ -1,8 +1,9 @@
 # --json で Issue を JSON のまま出力する。GetIssueSlim を 1 回受ける。
 id: issue-show-ok-json
-command:
-  path: [issue, show]
-  args: [acme/demo/7, --json]
+tool: issue_show
+arguments:
+  json: true
+  issue_ref: acme/demo/7
 setup:
   repo:
     files:

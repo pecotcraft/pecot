@@ -1,9 +1,8 @@
 # GraphQL が 401 を返す。認証エラーとして exit 1 になる。
 id: pr-show-auth
-command:
-  path: [pr, show]
-  args:
-    - "acme/demo/21"
+tool: pr_show
+arguments:
+  pr_ref: acme/demo/21
 setup:
   repo:
     files:

@@ -53,7 +53,7 @@ for (const file of walk(CLI_DIST_DIR)) {
 // --- 2. 配布用 package.json ---
 
 // cli/dist が bare import する外部パッケージ。版指定は必ず cli/package.json から読む。
-const RUNTIME_DEPS = ['@modelcontextprotocol/server', 'commander', 'yaml', 'zod']
+const RUNTIME_DEPS = ['@modelcontextprotocol/server', 'yaml', 'zod']
 
 const pick = (source, names, origin) =>
   Object.fromEntries(
@@ -84,6 +84,13 @@ if (typeof engineNode !== 'string') {
   throw new Error('cli/package.json に engines.node がありません')
 }
 
+// 配布ツリーは cli/ の下に cli/dist を置くので、cli/package.json の bin の各値に cli/ を付ける。
+const cliBin = cliManifest.bin
+if (cliBin === null || typeof cliBin !== 'object' || Object.keys(cliBin).length === 0) {
+  throw new Error('cli/package.json に bin がありません')
+}
+const bin = Object.fromEntries(Object.entries(cliBin).map(([name, target]) => [name, path.posix.join('cli', target)]))
+
 // 配布物は npx が展開して bin を起動するだけで、build / test の script は持たない。
 const distManifest = {
   name: '@pecot/workflow-mcp',
@@ -97,7 +104,7 @@ const distManifest = {
     url: 'git+https://github.com/pecotcraft/pecot.git',
     directory: 'plugins/pecot-workflow'
   },
-  bin: { 'pecot-workflow-mcp': 'bin/pecot-workflow-mcp.mjs' },
+  bin,
   engines: { node: engineNode },
   dependencies: Object.fromEntries(Object.entries({ ...cliDeps, ...libraryDeps }).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
 }

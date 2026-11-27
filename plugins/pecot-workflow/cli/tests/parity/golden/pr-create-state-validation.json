@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: missing sections: ## Summary, ## Changes, ## Verified, ## Risks\n",
-  "exitCode": 3,
+  "isError": true,
+  "text": "missing sections: ## Summary, ## Changes, ## Verified, ## Risks",
+  "structuredContent": {
+    "kind": "content-invalid",
+    "detail": "missing sections: ## Summary, ## Changes, ## Verified, ## Risks"
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

@@ -1,9 +1,8 @@
 # release_branch が未設定。設定方法を出して exit 1。
 id: release-create-state-no-release-branch
-command:
-  path: [release, create]
-  args:
-    - "0.2.0"
+tool: release_create
+arguments:
+  version: 0.2.0
 setup:
   repo:
     files:

@@ -1,10 +1,8 @@
 # ブランチが未 push。警告を出して exit 2 になる。
 id: pr-check-state-unpushed
-command:
-  path: [pr, check]
-  args:
-    - "-D"
-    - "."
+tool: pr_check
+arguments:
+  directory: .
 setup:
   repo:
     branch: feat/demo/12

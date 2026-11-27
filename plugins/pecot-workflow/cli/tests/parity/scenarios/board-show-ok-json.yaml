@@ -1,8 +1,8 @@
 # --json で同じ内容を JSON にして出す。
 id: board-show-ok-json
-command:
-  path: [board, show]
-  args: [--json]
+tool: board_show
+arguments:
+  json: true
 setup:
   repo:
     files:

@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: unknown workflow template: deploy\n  available: board-sync, review, handoff, auto\n",
-  "exitCode": 2,
+  "isError": true,
+  "text": "unknown workflow template: deploy\n  available: board-sync, review, handoff, auto",
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "unknown workflow template: deploy\n  available: board-sync, review, handoff, auto"
+  },
+  "stderr": "",
   "requests": [],
   "files": {}
 }

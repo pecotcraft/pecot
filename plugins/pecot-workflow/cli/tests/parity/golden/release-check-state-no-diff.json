@@ -1,7 +1,17 @@
 {
-  "stdout": "",
-  "stderr": "count: open Dependabot alerts: 0\ncount: open code scanning alerts: 0\ncount: open secret scanning alerts: 0\nerror: no difference between origin/release and origin/main: there is nothing to release\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "no difference between origin/release and origin/main: there is nothing to release",
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "no difference between origin/release and origin/main: there is nothing to release",
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    }
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "rest",

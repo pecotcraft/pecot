@@ -4,7 +4,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { SESSION_COMMANDS } from '../../src/commands/session.js'
+import { SESSION_TOOLS } from '../../src/commands/session.js'
 import { installFakeExecutable } from '../../../../../libs/workflow-core/tests/_helpers/fake-executables.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
@@ -28,7 +28,7 @@ const HEADER = '# Session status\n\n'
 const SUMMARY = `${HEADER}- Branch: feat/demo/7\n- Repository: acme/demo\n- Active Issue: acme/demo#7\n`
 
 async function status(directory: string): Promise<Awaited<ReturnType<typeof runInProcess>>> {
-  return await runInProcess(['session', 'show', '-D', directory], SESSION_COMMANDS)
+  return await runInProcess('session_show', { directory: directory }, SESSION_TOOLS)
 }
 
 const pullRequest = (number: number, state: string, isCrossRepository = false): Record<string, unknown> => ({
@@ -86,17 +86,17 @@ function sshOrigin(): string {
 }
 
 async function showTool(directory: string): Promise<ToolOutcome> {
-  return await callToolOnce(SESSION_COMMANDS, 'session_show', { directory })
+  return await callToolOnce(SESSION_TOOLS, 'session_show', { directory })
 }
 
 function failingOn(operation: string): ResponseRule {
   return { match: { operation }, respond: { status: 500, body: { message: 'boom' } }, times: 1 }
 }
 
-describe('session show', () => {
-  it('--directory を渡すと、ブランチ・リポジトリ・remote とブランチ名から求めた作業中の Issue を標準出力に出し、フラグの表を出さない', async (context) => {
+describe('session_show', () => {
+  it('directory を渡すと、ブランチ・リポジトリ・remote とブランチ名から求めた作業中の Issue を標準出力に出し、フラグの表を出さない', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-01')
-    await explains('CLI の `session show -D` を実行した場合のテストです。ブランチ名と remote から求めた作業中の Issue を標準出力に表示し、フラグの表を表示しないことを確認します。')
+    await explains('`session_show` の `directory` を実行した場合のテストです。ブランチ名と remote から求めた作業中の Issue を標準出力に表示し、フラグの表を表示しないことを確認します。')
     const { repository } = prepareSession()
     await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
 
@@ -214,7 +214,7 @@ describe('session show', () => {
 
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(SUMMARY)
-    expect(result.stderr).toBe('warning: cannot read the active Issue: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ghes.example.com_acme_board_acme, second\n')
+    expect(result.stderr).toBe('warning: cannot read the active Issue: acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ghes.example.com_acme_board_acme, second\n')
   })
 
   it('作業中の Issue があるのに、そのリポを含む設定が無いとき、節を出さずに warning を標準エラーに出して終了コード 0 で終わる', async () => {
@@ -228,14 +228,14 @@ describe('session show', () => {
     expect(result.stderr).toBe('warning: cannot read the active Issue: acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme\n')
   })
 
-  it('--project を渡すと、そのリポを含む設定が 2 つあってもその設定で作業中の Issue を読む', async (context) => {
+  it('project を渡すと、そのリポを含む設定が 2 つあってもその設定で作業中の Issue を読む', async (context) => {
     await verifies(context, 'PW-SESSION-SHOW-40')
-    await explains('`--project` を指定した場合のテストです。そのリポジトリを含む設定が 2 つあっても、指定した設定で作業中の Issue を読み取り、警告が出力されないことを確認します。')
+    await explains('`project` を指定した場合のテストです。そのリポジトリを含む設定が 2 つあっても、指定した設定で作業中の Issue を読み取り、警告が出力されないことを確認します。')
     const { project, repository } = prepareSession()
     makeAmbiguous(project)
     await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
 
-    const result = await runInProcess(['session', 'show', '-D', repository, '--project', SECOND_PROJECT], SESSION_COMMANDS)
+    const result = await runInProcess('session_show', { directory: repository, project: SECOND_PROJECT }, SESSION_TOOLS)
 
     expect(result.code).toBe(0)
     expect(result.stdout).toContain('## Active Issue')
@@ -267,34 +267,8 @@ describe('session show', () => {
     expect(result.stderr).toMatch(/^warning: cannot read the active Issue: .*502/u)
   })
 
-  it('--directory を省くと、終了コード 2 で終わる', async () => {
-    await explains('`--directory` を省略した場合のテストです。`Missing option` のエラーが出力され、終了コード 2 で終了することを確認します。')
-    const result = await runInProcess(['session', 'show'], SESSION_COMMANDS)
-
-    expect(result.code).toBe(2)
-    expect(result.stderr).toContain('Missing option \'--directory\' / \'-D\'.')
-  })
-
-  it.for(INVALID_DIRECTORY_CASES)('--directory が存在するディレクトリでないとき（$name）、終了コード 2 で終わる', async ({ reason, locked, prepare }, context) => {
-    await explains('`--directory` に、存在するディレクトリではない値を指定した場合のテストです。`Invalid value` のエラーを標準エラーに出力して終了コード 2 で終了し、標準出力には何も出力しないことを確認します。')
-    if (locked && isRoot()) context.skip()
-    const { repository } = prepareSession()
-    const target = prepare(repository)
-
-    try {
-      const result = await status(target)
-
-      expect(result.code).toBe(2)
-      expect(result.stdout).toBe('')
-      expect(result.stderr.replaceAll(/[│\s]+/gu, ' ')).toContain(`Invalid value for '--directory' / '-D': Directory '${target}' ${reason}.`)
-    }
-    finally {
-      if (locked) unlock(target)
-    }
-  })
-
-  it('--directory が空文字のとき、cwd を対象にして終了コード 0 で終わる', async () => {
-    await explains('`--directory` に空文字を指定した場合のテストです。現在のディレクトリを対象にして、終了コード 0 でセッションの状態を表示することを確認します。')
+  it('directory が空文字のとき、cwd を対象にして終了コード 0 で終わる', async () => {
+    await explains('`directory` に空文字を指定した場合のテストです。現在のディレクトリを対象にして、終了コード 0 でセッションの状態を表示することを確認します。')
     prepareSession()
     await startGithub([issueResponse({ number: 7, title: 't' }), stackedAbove()])
 
@@ -305,8 +279,8 @@ describe('session show', () => {
     expect(result.stdout).toContain('- Branch: feat/demo/7')
   })
 
-  it('--directory がファイルとディレクトリのどちらでもないパスのとき、Usage ではなく error の 1 行を出して終了コード 1 で終わる', async () => {
-    await explains('`--directory` に、ファイルとディレクトリのどちらにも該当しないパス（`/dev/null`）を指定した場合のテストです。Usage ではなく `error:` で始まる 1 行を標準エラーに出力して、終了コード 1 で終了することを確認します。')
+  it('directory がファイルとディレクトリのどちらでもないパスのとき、Usage ではなく error の 1 行を出して終了コード 1 で終わる', async () => {
+    await explains('`directory` に、ファイルとディレクトリのどちらにも該当しないパス（`/dev/null`）を指定した場合のテストです。Usage ではなく `error:` で始まる 1 行を標準エラーに出力して、終了コード 1 で終了することを確認します。')
     prepareSession()
 
     const result = await status('/dev/null')
@@ -478,8 +452,8 @@ describe('session show', () => {
       expect(result.stdout).not.toContain('## Stack')
     })
 
-    it('--directory の toplevel がプロジェクトのルートと違うと、.pecot-base のスタックの記録を Stack の節に出さず、判定から求め、子 PR は出す', async () => {
-      await explains('`--directory` の toplevel がプロジェクトのルートと異なる場合のテストです。`.pecot-base` の記録は使わず、判定から `Stack` の節を求め、子 PR（今のブランチを base にした PR）を表示することを確認します。')
+    it('directory の toplevel がプロジェクトのルートと違うと、.pecot-base のスタックの記録を Stack の節に出さず、判定から求め、子 PR は出す', async () => {
+      await explains('`directory` の toplevel がプロジェクトのルートと異なる場合のテストです。`.pecot-base` の記録は使わず、判定から `Stack` の節を求め、子 PR（今のブランチを base にした PR）を表示することを確認します。')
       prepareSession({ files: STACKED })
       const clone = separateRepository()
       const github = await startGithub([issueResponse({ number: 7, title: 't' }), prerequisitesRule({ number: 7 }), stackedAbove(above(40, 'feat/demo/8'))])
@@ -491,8 +465,8 @@ describe('session show', () => {
       expect(operationsOf(github)).toEqual(['GetIssueSlim', 'GetIssuePrerequisites', 'ListPullRequestsByBase'])
     })
 
-    it('--directory の toplevel がプロジェクトのルートと違っても、その worktree にスタックの記録があれば、判定から求めずにその記録を Stack の節に出す', async () => {
-      await explains('`--directory` の toplevel がプロジェクトのルートと異なり、その worktree にスタックの記録がある場合のテストです。判定は求めず、その記録を `Stack` の節に表示することを確認します。')
+    it('directory の toplevel がプロジェクトのルートと違っても、その worktree にスタックの記録があれば、判定から求めずにその記録を Stack の節に出す', async () => {
+      await explains('`directory` の toplevel がプロジェクトのルートと異なり、その worktree にスタックの記録がある場合のテストです。判定は求めず、その記録を `Stack` の節に表示することを確認します。')
       prepareSession()
       const clone = separateRepository()
       mkdirSync(path.join(clone, '.pecot/state'), { recursive: true })
@@ -802,7 +776,7 @@ describe('session show', () => {
       await verifies(context, 'PW-SESSION-SHOW-19')
       await explains('MCP の `session_show` を、`directory` を省略して呼び出した場合のテストです。`kind` が `invalid-input` の失敗が返ることを確認します。')
 
-      const outcome = await callToolOnce(SESSION_COMMANDS, 'session_show', {})
+      const outcome = await callToolOnce(SESSION_TOOLS, 'session_show', {})
 
       expect(outcome).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
     })

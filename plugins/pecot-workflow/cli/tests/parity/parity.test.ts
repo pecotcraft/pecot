@@ -1,191 +1,47 @@
-// Node の CLI でシナリオを流し、golden と一致することを確かめる。golden は Node の回帰の控えで、挙動を変えたら再生成して差分を確かめ、手で直す。コマンドの足し忘れは registry.test.ts が止める。
-import { readFileSync } from 'node:fs'
-import path from 'node:path'
-
+// ビルドした MCP のサーバでシナリオを流し、golden（ツールの結果）と一致することを確かめる。golden は回帰の控えで、挙動を変えたら作り直して差分を確かめる。
 import { describe, expect, it } from 'vitest'
 
 import { explains } from '../_helpers/explains.js'
-import { cliEntry, builtCliProblem } from './built-cli.js'
-import { hasCliOnlyInput, readToolShape, toolInputOf } from './mcp-input.js'
-import { mcpViewOfStderr } from './mcp-view.js'
+import { builtServer, builtServerProblem } from './built-server.js'
 import { runScenario } from './run.js'
-import type { Launcher, Outcome } from './run.js'
-import type { Golden } from './scenario.js'
-import { isRecord } from './baseline.js'
 import { readGolden, readScenario, scenarioIds } from './scenario.js'
 
-// issue reopen は 3 秒待つ。子プロセスの時間切れ（25 秒）より長くする
+// issue_reopen は 3 秒待つ。子プロセスの時間切れ（25 秒）より長くする
 const TEST_TIMEOUT_MS = 30_000
 
-// help を stdout に出すシナリオ。書式は Node で決めた（#362）ので、stdout だけ golden と比べない。中身は help.test.ts が確かめる
-const SCENARIOS_WITH_NODE_HELP: ReadonlySet<string> = new Set([
-  'global-ok-help',
-  'global-ok-help-group',
-  'global-ok-help-after-double-dash',
-  'global-usage-no-args',
-])
+// 入力の検証でツールの本体を呼ばずに断った結果の detail の前置き（server.ts の rejected）
+const REJECTED_PREFIX = 'invalid input: '
 
-// MCP のツールの呼び出しに写せないシナリオ。ここに無いものは、MCP 経由でも流す
-const MCP_UNMAPPABLE_STDIN: ReadonlySet<string> = new Set([
-  'worktree-link-ok-overwrite-confirmed',
-  'worktree-link-state-overwrite-declined',
-  'worktree-link-state-overwrite-eof',
-])
+// 時間内に呼べたこと。偽サーバの誤りと、使われなかった応答が無いこと
+const COMPLETED = { spawnError: undefined, timedOut: false, problems: [], unused: [] }
 
-// 名前に usage を含む CLI の引数の誤りのうち、MCP 経由では golden と比べないもの。理由は 2 種類
-//   unmappable: argv を入力に写せない（未知のフラグなど）。toolInputOf が例外にする
-//   rejected: 入力には写せるが、入力の検証で断られる（必須の欠けなど）。本体を呼ばないので出力が無い
-// ここに無い usage のシナリオは MCP 経由でも流し、golden と比べる
-const MCP_USAGE_EXCLUDED: ReadonlyMap<string, 'unmappable' | 'rejected'> = new Map([
-  ['board-add-usage', 'rejected'],
-  ['project-get-usage-unknown-key', 'rejected'],
-  ['project-set-usage-unknown-key', 'rejected'],
-  ['project-unset-usage-unknown-key', 'rejected'],
-  ['issue-block-usage-without-by', 'rejected'],
-  ['issue-show-usage', 'rejected'],
-  ['issue-unblock-usage-without-by', 'rejected'],
-  ['pr-check-usage', 'rejected'],
-  ['issue-check-usage', 'rejected'],
-  ['project-init-usage', 'unmappable'],
-  ['project-search-usage', 'rejected'],
-  ['project-set-usage', 'rejected'],
-  ['project-link-usage', 'rejected'],
-  ['release-create-usage-no-version', 'rejected'],
-  ['issue-attributes-usage', 'unmappable'],
-  ['issue-edit-usage', 'unmappable'],
-  ['release-check-usage-unknown-option', 'unmappable'],
-  ['session-show-usage', 'rejected'],
-  ['worktree-add-usage', 'rejected'],
-  ['worktree-init-usage', 'rejected'],
-  ['worktree-link-usage', 'rejected'],
-  ['worktree-remove-usage', 'rejected'],
-])
-
-// 表を stdout に出すシナリオの、MCP の要約の文（content の 1 つ目の text）
-const TABLE_SUMMARIES: readonly { readonly id: string, readonly summary: string }[] = [
-  { id: 'issue-check-ok-files', summary: 'Plan:' },
-  { id: 'session-show-ok', summary: '# Session status' },
-  { id: 'session-show-ok-no-issue', summary: '# Session status' },
-  { id: 'session-show-ok-python-state', summary: '# Session status' },
-]
-
-// global-*: --help・--version・--show-repo・未知のコマンド・引数なしは、ツールの呼び出しに写せない。
-// 標準入力を使う 3 件: MCP のツールは標準入力を持たない。--dry-run など CLI だけの入力を使うシナリオも写せない
-function isMcpMappable(id: string): boolean {
-  if (id.startsWith('global-') || MCP_USAGE_EXCLUDED.has(id) || MCP_UNMAPPABLE_STDIN.has(id)) return false
-  const { command } = readScenario(id)
-  return !hasCliOnlyInput(readToolShape(command.path), command.args)
+function isRejected(id: string): boolean {
+  const { structuredContent } = readGolden(id)
+  return structuredContent['kind'] === 'invalid-input' && String(structuredContent['detail']).startsWith(REJECTED_PREFIX)
 }
-
-function excludedBy(reason: 'unmappable' | 'rejected'): readonly string[] {
-  return [...MCP_USAGE_EXCLUDED].filter(([, kind]) => kind === reason).map(([id]) => id)
-}
-
-const node: Launcher = { command: process.execPath, args: [cliEntry], env: {} }
-const nodeMcp: Launcher = { ...node, via: 'mcp' }
-
-interface Comparison {
-  readonly outcome: Outcome
-  readonly actual: Golden
-  readonly expected: Golden
-}
-
-// help の 4 件は stdout を除いて比べる（isStdoutSkipped）
-async function compareWithGolden(id: string, launcher: Launcher, isStdoutSkipped: boolean): Promise<Comparison> {
-  const outcome = await runScenario(readScenario(id), launcher)
-  const compared = (result: Golden): Golden => isStdoutSkipped ? { ...result, stdout: '' } : result
-  const golden = readGolden(id)
-  // 案内の文は、CLI では打つコマンド、MCP ではツールの呼び出しの形で出る。MCP だけ違う stderr は mcp-stderr.json に置く。
-  // MCP の結果は stdout・stderr を持たないので、stderr から取り出した warning の文と失敗の detail で比べる（mcp-view.ts）
-  const cliStderr = new Map(Object.entries(mcpStderr())).get(id) ?? golden.stderr
-  // MCP の結果は終了コードを持たないので、終了コードは成否（0 か 1）に写して比べる
-  const expected = launcher.via === 'mcp' ? { ...golden, stdout: '', stderr: mcpViewOfStderr(cliStderr, golden.exitCode), exitCode: golden.exitCode === 0 ? 0 : 1 } : golden
-  return { outcome, actual: compared(outcome.golden), expected: compared(expected) }
-}
-
-function mcpStderr(): Readonly<Record<string, string>> {
-  const parsed: unknown = JSON.parse(readFileSync(path.join(import.meta.dirname, 'mcp-stderr.json'), 'utf8'))
-  if (!isRecord(parsed) || Object.values(parsed).some(value => typeof value !== 'string')) throw new TypeError('mcp-stderr.json: 文字列の値を持つオブジェクトではありません')
-  return Object.fromEntries(Object.entries(parsed).map(([key, value]) => [key, String(value)]))
-}
-
-// 起動できて、時間内にシグナルなしで終わること。偽サーバの誤りと、使われなかった応答が無いこと
-const COMPLETED = { spawnError: undefined, signal: undefined, timedOut: false, problems: [], unused: [] }
 
 describe('前後比較', () => {
-  it('Node の CLI がビルドされていると、ビルドの問題を報告しない', async () => {
-    await explains('前後比較の前提のテストです。Node の CLI のビルド成果物が存在し、`builtCliProblem` がビルドの問題を報告しないことを確認します。')
-    expect(builtCliProblem()).toBeUndefined()
+  it('MCP のサーバがビルドされていると、ビルドの問題を報告しない', async () => {
+    await explains('前後比較の前提のテストです。MCP のサーバのビルド成果物（`dist/main.js`）が存在し、`builtServerProblem` がビルドの問題を報告しないことを確認します。')
+    expect(builtServerProblem()).toBeUndefined()
   })
 
-  it.for(scenarioIds())('シナリオ %s を動かすと、期待出力（golden）と同じ出力になる（help の 4 件は stdout を除く）', { timeout: TEST_TIMEOUT_MS }, async (id) => {
-    await explains('シナリオを Node の CLI で実行したときの出力のテストです。標準出力・標準エラー・終了コード・ファイルが保存済みの期待出力（golden）と一致することを確認し、help の 4 件は標準出力を比較から除きます。')
-    const isNodeHelp = SCENARIOS_WITH_NODE_HELP.has(id)
-    const { outcome, actual, expected } = await compareWithGolden(id, node, isNodeHelp)
+  it.for(scenarioIds())('シナリオ %s を動かすと、期待出力（golden）と同じ結果になる', { timeout: TEST_TIMEOUT_MS }, async (id) => {
+    await explains('シナリオを MCP のサーバで実行したときの結果のテストです。ツールの結果（成否・要約の文・structuredContent）、サーバの標準エラー、偽サーバへの要求、ファイルが、保存済みの期待出力（golden）と一致することを確認します。')
+    const outcome = await runScenario(readScenario(id), builtServer)
     expect(outcome).toMatchObject(COMPLETED)
-    expect(actual).toEqual(expected)
-    // help の 4 件の stdout は golden（Python の枠）と違い、ほかは同じ
-    expect(outcome.golden.stdout === readGolden(id).stdout).toBe(!isNodeHelp)
-  })
-
-  it('mcp-stderr.json の id は、MCP に変換できるシナリオのうち、CLI の期待出力と標準エラーが異なるものだけを持つ', async () => {
-    await explains('`mcp-stderr.json` の内容のテストです。記載された id がすべて実在し、MCP のツール呼び出しに変換できるシナリオであり、標準エラーが CLI の期待出力と異なるものだけであることを確認します。')
-    const entries = Object.entries(mcpStderr())
-    expect(entries.length).toBeGreaterThan(0)
-    expect(entries.filter(([id]) => scenarioIds().includes(id) && !isMcpMappable(id))).toEqual([])
-    expect(entries.map(([id]) => id).filter(id => !scenarioIds().includes(id))).toEqual([])
-    expect(entries.filter(([id, stderr]) => stderr === readGolden(id).stderr)).toEqual([])
-  })
-
-  it('標準入力が空でないシナリオは、MCP へ変換できない 3 件の一覧に含まれる', async () => {
-    await explains('標準入力を使うシナリオのテストです。標準入力を渡すシナリオはすべて、MCP のツール呼び出しへ変換できない 3 件の一覧に含まれることを確認します。')
-    const withStdin = scenarioIds().filter(id => readScenario(id).stdin !== '')
-    expect(withStdin.filter(id => !MCP_UNMAPPABLE_STDIN.has(id))).toEqual([])
-    expect(withStdin.length).toBeGreaterThan(0)
-  })
-
-  it.for(scenarioIds().filter(id => isMcpMappable(id)))('MCP 経由でシナリオ %s を動かすと、期待出力と同じ成否・要求・ファイルになり、warning と detail が標準エラーの内容と一致する', { timeout: TEST_TIMEOUT_MS }, async (id) => {
-    await explains('シナリオを MCP のツール呼び出し経由で実行したときの結果のテストです。成否・偽サーバへの要求・ファイルが期待出力と一致し、警告と失敗の詳細が標準エラーから取り出した内容と一致し、要約の文が表の行で始まらないことを確認します。')
-    const { outcome, actual, expected } = await compareWithGolden(id, nodeMcp, false)
-    expect(outcome).toMatchObject(COMPLETED)
-    expect(actual).toEqual(expected)
+    expect(outcome.golden).toEqual(readGolden(id))
     // 要約の文が表の行（見出しなど）にならない
-    expect(outcome.text?.startsWith('|') ?? false).toBe(false)
+    expect(outcome.golden?.text?.startsWith('|') ?? false).toBe(false)
   })
 
-  it.for(TABLE_SUMMARIES)('表を出力するシナリオ $id を MCP 経由で動かすと、結果の本文が要約の 1 行になる', { timeout: TEST_TIMEOUT_MS }, async ({ id, summary }) => {
-    await explains(`表を標準出力に出すシナリオを MCP 経由で実行したときの、結果のテストです。結果の本文が表ではなく、要約の文（\`${summary}\`）だけになることを確認します。`)
-    const outcome = await runScenario(readScenario(id), nodeMcp)
-    expect(outcome).toMatchObject(COMPLETED)
-    expect(outcome.text).toBe(summary)
+  it.for(scenarioIds().filter(id => isRejected(id)))('入力の検証で断るシナリオ %s は、偽サーバに要求を送らない', async (id) => {
+    await explains(`入力の検証で断るシナリオのテストです。\`${id}\` の期待出力が \`invalid input:\` から始まる失敗であり、偽サーバへの要求が無いことを確認します。`)
+    expect(readGolden(id)).toMatchObject({ isError: true, requests: [] })
   })
 
-  it('要約の期待値は、実在し MCP に変換できるシナリオだけが持つ', async () => {
-    await explains('要約の期待値の一覧のテストです。一覧の id がすべて実在するシナリオで、MCP のツール呼び出しに変換できることを確認します。')
-    expect(TABLE_SUMMARIES.map(({ id }) => id).filter(id => !scenarioIds().includes(id) || !isMcpMappable(id))).toEqual([])
-  })
-
-  it('MCP 経由の比較から除く usage の一覧は実在するシナリオだけで、残りの usage シナリオは実行する', async () => {
-    await explains('MCP 経由の比較から除外する usage シナリオの一覧のテストです。一覧の id がすべて実在する usage シナリオであり、一覧に含まれない usage シナリオが 1 件以上実行されることを確認します。')
-    const usageIds = scenarioIds().filter(id => id.includes('usage') && !id.startsWith('global-'))
-    expect([...excludedBy('unmappable'), ...excludedBy('rejected')].filter(id => !usageIds.includes(id))).toEqual([])
-    expect(usageIds.filter(id => isMcpMappable(id)).length).toBeGreaterThan(0)
-  })
-
-  it.for(excludedBy('unmappable'))('usage のシナリオ %s は、引数をツールの入力に変換できず、例外が発生する', async (id) => {
-    await explains(`MCP のツールの入力に変換できない usage シナリオのテストです。\`${id}\` の引数を入力へ変換しようとすると、例外が発生することを確認します。`)
-    const { command } = readScenario(id)
-    expect(() => toolInputOf(readToolShape(command.path), command.args)).toThrow()
-  })
-
-  it.for(excludedBy('rejected'))('usage のシナリオ %s を MCP 経由で動かすと、入力の検証で拒否され、コマンド本体を呼ばない', { timeout: TEST_TIMEOUT_MS }, async (id) => {
-    await explains(`入力の検証で拒否される usage シナリオのテストです。\`${id}\` を MCP 経由で実行すると、\`invalid input:\` で始まるメッセージを返し、偽サーバに要求が届かないことを確認します。`)
-    const { command } = readScenario(id)
-    expect(() => toolInputOf(readToolShape(command.path), command.args)).not.toThrow()
-    const outcome = await runScenario(readScenario(id), nodeMcp)
-    expect(outcome).toMatchObject(COMPLETED)
-    // 本体の終了コードと分けて -1 にする。本体が呼ばれていれば、偽サーバに要求が届く
-    expect(outcome.golden).toMatchObject({ exitCode: -1, requests: [] })
-    expect(outcome.golden.stdout).toMatch(/^invalid input: /u)
+  it('入力の検証で断るシナリオが 1 件以上ある', async () => {
+    await explains('前後比較のシナリオの網羅のテストです。入力の検証が、ツールの本体を呼ばずに断る結果を持つシナリオが、1 件以上存在することを確認します。')
+    expect(scenarioIds().filter(id => isRejected(id)).length).toBeGreaterThan(0)
   })
 })

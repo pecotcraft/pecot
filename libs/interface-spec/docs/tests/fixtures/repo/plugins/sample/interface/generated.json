@@ -8,11 +8,8 @@
       "name": "one run",
       "description": "Runs one thing",
       "surfaces": {
-        "cli": {
-          "path": [
-            "one",
-            "run"
-          ]
+        "action": {
+          "path": "actions/one-run"
         }
       },
       "hidden": false,
@@ -32,17 +29,6 @@
         "required": [
           "target"
         ]
-      },
-      "cli": {
-        "positional": [
-          "target"
-        ],
-        "flags": {
-          "force": [
-            "--force",
-            "-f"
-          ]
-        }
       }
     },
     {
@@ -94,10 +80,8 @@
       "name": "bad entry",
       "description": "Has no authored entry",
       "surfaces": {
-        "cli": {
-          "path": [
-            "bad"
-          ]
+        "action": {
+          "path": "actions/bad"
         }
       },
       "hidden": false,
@@ -112,10 +96,8 @@
       "name": "half entry",
       "description": "Has a behavior without a statement",
       "surfaces": {
-        "cli": {
-          "path": [
-            "half"
-          ]
+        "action": {
+          "path": "actions/half"
         }
       },
       "hidden": false,

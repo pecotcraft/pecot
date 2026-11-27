@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: could not read the default branch of acme/demo: resource not found: {{GITHUB_API}}/repos/acme/demo\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "could not read the default branch of acme/demo: resource not found: {{GITHUB_API}}/repos/acme/demo",
+  "structuredContent": {
+    "kind": "github-not-found",
+    "detail": "could not read the default branch of acme/demo: resource not found: {{GITHUB_API}}/repos/acme/demo"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "rest",

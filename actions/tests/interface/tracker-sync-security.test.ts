@@ -259,7 +259,7 @@ describe('tracker sync', () => {
           `created: Tracker "${TODAY_TITLE}"`,
           'added: dependabot #1 to new Tracker',
           `error: could not set status backlog of Tracker #12: ${STALE_OPTION_TEXT}`,
-          '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
+          '  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again',
           '',
         ].join('\n'),
       })
@@ -557,7 +557,7 @@ describe('tracker sync', () => {
       prepareSync({ ambiguous: true })
       const github = await startGithub([])
       const result = await sync()
-      expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ghes.example.com_acme_board_acme, second\n' })
+      expect(result).toEqual({ code: 1, stdout: '', stderr: 'error: acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ghes.example.com_acme_board_acme, second\n' })
       expect(github.requests()).toEqual([])
     })
 

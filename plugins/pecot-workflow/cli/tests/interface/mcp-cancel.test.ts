@@ -10,7 +10,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/client'
 import { expect, it } from 'vitest'
 
 import { createMcpServer } from '../../src/mcp/server.js'
-import { COMMANDS } from '../../src/commands/registry.js'
+import { TOOLS } from '../../src/commands/registry.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -136,7 +136,7 @@ async function connectRecording(): Promise<RecordedConnection> {
     if (id !== undefined) calls.push(id)
     await sendFromClient(message, options)
   }
-  const server = createMcpServer(COMMANDS)
+  const server = createMcpServer(TOOLS)
   const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
   await server.connect(serverTransport)
   await client.connect(clientTransport)

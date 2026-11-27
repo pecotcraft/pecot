@@ -1,7 +1,33 @@
 {
-  "stdout": "ok: .github/workflows/pecot-review.yml\nok: workflow template review\nok: .github/workflows/pecot-review.yml calls the pecot actions, not npx @pecot/workflow-mcp\nok: secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*\nskipped: Claude GitHub App\n",
+  "isError": false,
+  "text": "ok: .github/workflows/pecot-review.yml",
+  "structuredContent": {
+    "repository": "acme/demo",
+    "items": [
+      {
+        "name": ".github/workflows/pecot-review.yml",
+        "state": "ok"
+      },
+      {
+        "name": "workflow template review",
+        "state": "ok"
+      },
+      {
+        "name": ".github/workflows/pecot-review.yml calls the pecot actions, not npx @pecot/workflow-mcp",
+        "state": "ok"
+      },
+      {
+        "name": "secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*",
+        "state": "ok"
+      },
+      {
+        "name": "Claude GitHub App",
+        "state": "skipped"
+      }
+    ],
+    "ready": true
+  },
   "stderr": "",
-  "exitCode": 0,
   "requests": [
     {
       "type": "rest",

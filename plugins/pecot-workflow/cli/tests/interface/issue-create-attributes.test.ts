@@ -3,7 +3,7 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { ISSUE_CREATE_COMMANDS } from '../../src/commands/issue-create.js'
+import { ISSUE_CREATE_TOOLS } from '../../src/commands/issue-create.js'
 import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { writeTree } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import type { RecordedRequest, ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
@@ -21,7 +21,7 @@ useIsolatedEnvironment()
 const DIRECT = { title: '一覧に状態を出す', repo: 'acme/demo', message: TASK_BODY }
 
 async function createTool(argumentsOfTool: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
-  return await callToolOnce(ISSUE_CREATE_COMMANDS, 'issue_create', argumentsOfTool)
+  return await callToolOnce(ISSUE_CREATE_TOOLS, 'issue_create', argumentsOfTool)
 }
 
 /**
@@ -74,7 +74,7 @@ function laneWrite(optionId: string): Record<string, unknown> {
   return { projectId: 'PVT_1', itemId: 'PVTI_1', fieldId: 'F_lane', value: { singleSelectOptionId: optionId } }
 }
 
-describe('issue create', () => {
+describe('issue_create', () => {
   describe('attributes', () => {
     it('attributes を付けて呼ぶと、組み込みを起票の要求で送り、Issue fields を起票の後で、ボードのフィールドをボードへ追加した後で書く', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-79')
@@ -122,12 +122,12 @@ describe('issue create', () => {
 
     it('フロントマターに attributes があると、そのファイルから作る Issue に値を書き、set の行に出す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-80')
-      await explains('`issue create` のフロントマターの `attributes` のテストです。フロントマターに `attributes` がある場合に、そのファイルから作る Issue へ値を書き、`set` の行として出力することを確認します。')
+      await explains('`issue_create` のフロントマターの `attributes` のテストです。フロントマターに `attributes` がある場合に、そのファイルから作る Issue へ値を書き、`set` の行として出力することを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', ...attributeLines(['Area', 'docs'], ['Effort', '3'])) })
       const github = await startGithub([linkedRepositories(), ...definitionRules(), created(), issueNodeId(12), addedToProject(), updatedFields(1), fieldValuesAdded(), boardWritten()])
 
-      const result = await runInProcess(['issue', 'create', path.join(project.root, 'a.md')], ISSUE_CREATE_COMMANDS)
+      const result = await runInProcess('issue_create', { files: [path.join(project.root, 'a.md')] }, ISSUE_CREATE_TOOLS)
 
       expect(result.code).toBe(0)
       expect(result.stderr).toBe('created: Issue acme/demo/12 from a.md\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status ready\nset: Issue acme/demo/12 Effort, Area\n')
@@ -215,18 +215,16 @@ describe('issue create', () => {
       expect(issuePosts(github)).toStrictEqual([])
     })
 
-    it('--attribute をファイルと一緒に渡すと、使い方の誤りで終了コード 2 を返す', async (context) => {
+    it('attributes を files と一緒に渡すと、invalid-input の失敗を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-85')
-      await explains('`issue create` の引数の検証のテストです。`--attribute` とファイルを両方渡した場合は、使い方の誤りとして終了コード 2 で終わることを確認します。')
+      await explains('MCP ツール `issue_create` の引数の検証のテストです。`attributes` と `files` を両方渡した場合は、`kind` が `invalid-input` の失敗を返すことを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭') })
-      const github = await startGithub([])
+      await startGithub([])
 
-      const result = await runInProcess(['issue', 'create', path.join(project.root, 'a.md'), '--attribute', '{"name":"Area","value":"docs"}'], ISSUE_CREATE_COMMANDS)
+      const outcome = await createTool({ files: [path.join(project.root, 'a.md')], attributes: [{ name: 'Area', value: 'docs' }] })
 
-      expect(result.code).toBe(2)
-      expect(result.stderr).toContain('cannot be used with')
-      expect(github.requests()).toStrictEqual([])
+      expect(outcome).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
     })
 
     it('value が null の機能は、書き込まずに除く', async (context) => {
@@ -358,31 +356,16 @@ describe('issue create', () => {
 
     it('フロントマターに lane があると、そのファイルから作る Issue に値を書き、set の行に出す', async (context) => {
       await verifies(context, 'PW-ISSUE-CREATE-94')
-      await explains('`issue create` のフロントマターの `lane` のテストです。フロントマターに `lane` がある場合に、そのファイルから作る Issue へ値を書き、`set` の行として出力することを確認します。')
+      await explains('`issue_create` のフロントマターの `lane` のテストです。フロントマターに `lane` がある場合に、そのファイルから作る Issue へ値を書き、`set` の行として出力することを確認します。')
       const project = setUpIssueProject()
       writeTree(project.root, { 'a.md': taskFile('先頭', 'lane: docs') })
       const github = await startGithub([linkedRepositories(), ...laneDefinitions(), created(), issueNodeId(12), addedToProject(), updatedFields(1), boardWritten()])
 
-      const result = await runInProcess(['issue', 'create', path.join(project.root, 'a.md')], ISSUE_CREATE_COMMANDS)
+      const result = await runInProcess('issue_create', { files: [path.join(project.root, 'a.md')] }, ISSUE_CREATE_TOOLS)
 
       expect(result.code).toBe(0)
       expect(result.stderr).toBe('created: Issue acme/demo/12 from a.md\nadded: Issue acme/demo/12 to project\nset: Issue acme/demo/12 status ready\nset: Issue acme/demo/12 pecot-lane\n')
       expect(laneWrites(github)).toMatchObject([laneWrite('O_lane_docs')])
-    })
-
-    it('--lane をファイルと一緒に渡すと、使い方の誤りで終了コード 2 を返す', async (context) => {
-      await verifies(context, 'PW-ISSUE-CREATE-95')
-      await explains('`issue create` の引数の検証のテストです。`--lane` とファイルを両方渡した場合は、使い方の誤りとして終了コード 2 で終わることを確認します。')
-      const project = setUpIssueProject()
-      writeTree(project.root, { 'a.md': taskFile('先頭') })
-      const github = await startGithub([])
-
-      const result = await runInProcess(['issue', 'create', path.join(project.root, 'a.md'), '--lane', 'docs'], ISSUE_CREATE_COMMANDS)
-
-      expect(result.code).toBe(2)
-      expect(result.stderr).toContain('cannot be used with')
-      expect(result.stderr).toContain('write lane in the front matter')
-      expect(github.requests()).toStrictEqual([])
     })
 
     it('lane を files と一緒に渡すと、invalid-input の失敗を返す', async (context) => {

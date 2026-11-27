@@ -1,5 +1,4 @@
-// git の標準エラーを失敗の文に埋めるときの形。CLI は全文、MCP は理由の行だけにし、全文は log に渡す。
-import { surfaceText } from './command-hint.js'
+// git の標準エラーを失敗の文に埋めるときの形。理由の行だけにし、全文は log に渡す。
 import type { HintedText } from './command-hint.js'
 
 const REASON_LINE = /^(?:fatal|error): /u
@@ -14,10 +13,10 @@ export function gitReasonOf(stderr: string): string {
 }
 
 /**
-`<prefix><git の標準エラー>` の文。cliText は CLI に出す形の標準エラー（呼ぶ側が今の形のまま渡す）
+`<prefix><git の標準エラーの理由の行>` の文
 */
-export function gitFailureText(prefix: string, cliText: string): HintedText {
-  return [prefix, surfaceText(cliText, gitReasonOf(cliText))]
+export function gitFailureText(prefix: string, stderr: string): HintedText {
+  return [prefix, gitReasonOf(stderr)]
 }
 
 /**

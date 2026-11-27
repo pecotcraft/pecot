@@ -1,7 +1,12 @@
 {
-  "stdout": "",
-  "stderr": "deleted: remote branch feat/7 in acme/demo\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "deleted: remote branch feat/7 in acme/demo",
+  "structuredContent": {
+    "branch": "feat/7",
+    "repository": "acme/demo",
+    "deleted": true
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "rest",

@@ -1,11 +1,11 @@
-// 本文に書かれたツールの呼び出しを、COMMANDS の定義と比べる。
+// 本文に書かれたツールの呼び出しを、TOOLS の定義と比べる。
 // - 呼び出しの入力名が、そのツールの入力に実在する
-// - w-help の commands.md に、COMMANDS の全コマンドが載っている
+// - w-help の commands.md に、TOOLS の全ツールが載っている
 // - w-release の release-multi.md が、board_show の repositories の packages の項目名で読む
 import { describe, expect, it } from 'vitest'
 
 import { explains } from '../_helpers/explains.js'
-import { COMMANDS } from '../../src/commands/registry.js'
+import { TOOLS } from '../../src/commands/registry.js'
 import { boardShowData, boardShowResult } from '@pecot/workflow-core/commands-shared/board-view.js'
 import { parseProjectConfig } from '@pecot/workflow-core/domain/config.js'
 import { TEMPLATE_RESOURCES, templateUri } from '../../src/mcp/templates.js'
@@ -150,10 +150,10 @@ describe('本文のツールの呼び出し', () => {
 })
 
 describe('commands.md', () => {
-  it('commands.md に COMMANDS の全コマンドが記載されている', async () => {
-    await explains('w-help の `commands.md` のテストです。`COMMANDS` に登録されたすべてのコマンドの path が、バッククォートで囲んで記載されていることを確認します。')
+  it('commands.md に TOOLS の全ツールが記載されている', async () => {
+    await explains('w-help の `commands.md` のテストです。`TOOLS` に登録されたすべてのツールの名前が、バッククォートで囲んで記載されていることを確認します。')
     const document = readPluginFile('skills/w-help/references/commands.md')
-    const missing = COMMANDS.map(command => command.path.join(' ')).filter(path => !document.includes(`\`${path}\``))
+    const missing = TOOLS.map(tool => tool.name).filter(name => !document.includes(`\`${name}\``))
     expect(missing).toEqual([])
   })
 })

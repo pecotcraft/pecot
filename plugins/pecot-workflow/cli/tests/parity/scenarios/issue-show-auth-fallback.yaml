@@ -1,8 +1,8 @@
 # env のトークンに GraphQL が 401 を返す。gh auth token のトークンで再送が通り、警告が stderr に出る。同じ要求が 2 回記録される。
 id: issue-show-auth-fallback
-command:
-  path: [issue, show]
-  args: [acme/demo/7]
+tool: issue_show
+arguments:
+  issue_ref: acme/demo/7
 setup:
   repo:
     files:

@@ -4,10 +4,10 @@ import { z } from 'zod'
 
 import { PecotError } from '@pecot/workflow-core/domain/errors.js'
 import { explains } from '../../../tests/_helpers/explains.js'
-import { BOARD_ADD_COMMANDS } from '../../commands/board-add.js'
-import { createOutput, isConfirmed } from '@pecot/workflow-core/commands-shared/output.js'
-import { defineCommand } from '../../commands/registry.js'
-import type { CommandDefinition } from '../../commands/registry.js'
+import { BOARD_ADD_TOOLS } from '../../commands/board-add.js'
+import { abortUnconfirmed, createOutput } from '@pecot/workflow-core/commands-shared/output.js'
+import { defineTool } from '../../commands/registry.js'
+import type { ToolDefinition } from '../../commands/registry.js'
 import { UsageError } from '@pecot/workflow-core/commands-shared/usage-error.js'
 import { exitWith, failWith, throwFailure } from '../../commands/tests/support.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
@@ -21,15 +21,13 @@ useIsolatedEnvironment()
 
 const calls: unknown[] = []
 
-const COMMANDS: readonly CommandDefinition[] = [
-  defineCommand({
-    path: ['echo'],
-    title: 'Test command',
+const TOOLS: readonly ToolDefinition[] = [
+  defineTool({
+    name: 'echo',
+    title: 'Test tool',
     description: '入力を返す',
     input: z.object({ text: z.string(), count: z.int().optional(), flag: z.boolean().optional() }),
     output: z.strictObject({}),
-    positional: ['text'],
-    interactive: false,
     run: async (input, io) => {
       calls.push(input)
       io.stdout(`echo ${input.text}\n`)
@@ -37,81 +35,70 @@ const COMMANDS: readonly CommandDefinition[] = [
       return await exitWith(0)
     },
   }),
-  defineCommand({
-    path: ['exit', 'three'],
-    title: 'Test command',
+  defineTool({
+    name: 'exit_three',
+    title: 'Test tool',
     description: '3 で終わる',
     input: z.object({}),
     output: z.strictObject({}),
-    positional: [],
-    interactive: false,
     run: async (_input, io) => {
       io.stdout('partial\n')
       return await exitWith(3)
     },
   }),
-  defineCommand({
-    path: ['ask'],
-    title: 'Test command',
+  defineTool({
+    name: 'ask',
+    title: 'Test tool',
     description: '確認を求める',
     input: z.object({}),
     output: z.strictObject({}),
-    positional: [],
-    interactive: true,
-    run: async (_input, io) => await exitWith(isConfirmed(io, 'Overwrite?') ? 0 : 1),
+    run: async (_input, io) => {
+      await exitWith(0)
+      return abortUnconfirmed(io, 'Overwrite?')
+    },
   }),
-  defineCommand({
-    path: ['bad', 'parameter'],
-    title: 'Test command',
+  defineTool({
+    name: 'bad_parameter',
+    title: 'Test tool',
     description: 'context の無い使い方の誤り',
     input: z.object({}),
     output: z.strictObject({}),
-    positional: [],
-    interactive: false,
     run: async () => await throwFailure(new UsageError('Invalid value for x')),
   }),
-  defineCommand({
-    path: ['pecot', 'failure'],
-    title: 'Test command',
+  defineTool({
+    name: 'pecot_failure',
+    title: 'Test tool',
     description: '報告できる失敗',
     input: z.object({}),
     output: z.strictObject({}),
-    positional: [],
-    interactive: false,
     run: async () => await throwFailure(new PecotError('ルートがありません')),
   }),
-  defineCommand({
-    path: ['bug'],
-    title: 'Test command',
+  defineTool({
+    name: 'bug',
+    title: 'Test tool',
     description: 'プログラムの誤り',
     input: z.object({}),
     output: z.strictObject({}),
-    positional: [],
-    interactive: false,
     run: async () => await failWith('boom'),
   }),
-  defineCommand({
-    path: ['own', 'repo'],
-    title: 'Test command',
+  defineTool({
+    name: 'own_repo',
+    title: 'Test tool',
     description: '自分の repo を持つ',
     input: z.object({ repo: z.string() }),
     hasOwnRepo: true,
     output: z.strictObject({}),
-    positional: [],
-    interactive: false,
     run: async (input, io) => {
       io.stdout(`${input.repo}\n`)
       return await exitWith(0)
     },
   }),
-  defineCommand({
-    path: ['slow'],
-    title: 'Test command',
+  defineTool({
+    name: 'slow',
+    title: 'Test tool',
     description: '時間がかかる',
     input: z.object({ name: z.string() }),
     output: z.strictObject({}),
-    positional: ['name'],
-    interactive: false,
     run: async (input, io) => {
       calls.push(`start ${input.name}`)
       await new Promise((resolve) => {
@@ -127,14 +114,12 @@ const COMMANDS: readonly CommandDefinition[] = [
 const TYPED_OUTPUT = z.strictObject({ name: z.string(), count: z.int().optional() })
 
 // mode で、合う項目・合わない項目・途中まで進んだ失敗を返す
-const TYPED = defineCommand({
-  path: ['typed'],
-  title: 'Test command',
+const TYPED = defineTool({
+  name: 'typed',
+  title: 'Test tool',
   description: '型のある項目を返す',
   input: z.object({ mode: z.enum(['ok', 'twice', 'wrong', 'fail', 'fail-wrong', 'crash', 'crash-wrong']) }),
   output: TYPED_OUTPUT,
-  positional: ['mode'],
-  interactive: false,
   run: async (input, io) => {
     const out = createOutput<z.input<typeof TYPED_OUTPUT>>(false, io)
     out.warning('slow API')
@@ -161,14 +146,14 @@ const TYPED = defineCommand({
 const opened: ConnectedClient[] = []
 const unexpected: unknown[] = []
 
-async function open(commands: readonly CommandDefinition[], options: Readonly<McpServerOptions> = {}): Promise<ConnectedClient> {
-  const connected = await connectInMemory(createMcpServer(commands, options))
+async function open(tools: readonly ToolDefinition[], options: Readonly<McpServerOptions> = {}): Promise<ConnectedClient> {
+  const connected = await connectInMemory(createMcpServer(tools, options))
   opened.push(connected)
   return connected
 }
 
 async function connect(): Promise<ConnectedClient> {
-  return await open(COMMANDS, {
+  return await open(TOOLS, {
     reportUnexpected: (error) => {
       unexpected.push(error)
     },
@@ -205,14 +190,14 @@ describe('ツールの呼び出し', () => {
     expect(structuredOf(result)).toEqual({ kind: 'other', detail: '' })
   })
 
-  it('確認が要るのに入力が存在しないと、detail が Aborted. の失敗を返す', async () => {
-    await explains('MCP サーバーのツール呼び出しのテストです。確認を求めるコマンドで、確認の入力を受け取れない場合に、`detail` が `Overwrite?` と `Aborted.` の失敗を返すことを確認します。')
+  it('確認が要る所で問わずに止めると、detail が Aborted. の失敗を返す', async () => {
+    await explains('MCP サーバーのツール呼び出しのテストです。ツールが確認の要る所で問い合わせないで止まった場合に、`Overwrite?` と `Aborted.` を `detail` に持つ失敗を返すことを確認します。')
     const result = await call('ask')
     expect(outcomeOf(result)).toEqual({ isError: true, detail: 'Overwrite?\nAborted.', warnings: [] })
   })
 
-  it('コマンドの本体が使い方の誤りを投げると、CLI の Usage を付けず、例外の文だけを detail にして invalid-input の失敗にする', async () => {
-    await explains('MCP サーバーのツール呼び出しのテストです。コマンドの本体が使い方の誤りを投げた場合に、CLI 用の `Usage` を付けずに例外の文を `detail` にし、`kind` を `invalid-input` にすることを確認します。')
+  it('コマンドの本体が使い方の誤りを投げると、例外の文だけを detail にして invalid-input の失敗にする', async () => {
+    await explains('MCP サーバーのツール呼び出しのテストです。コマンドの本体が使い方の誤りを投げた場合に、例外の文だけを `detail` にし、`kind` を `invalid-input` にすることを確認します。')
     const result = await call('bad_parameter')
     const structured = outcomeOf(result)
     expect(structured.isError).toBe(true)
@@ -239,7 +224,7 @@ describe('ツールの呼び出し', () => {
 
   it('報告先が存在しなくても、想定外の例外は isError の結果になる', async () => {
     await explains('MCP サーバーのツール呼び出しのテストです。報告先を指定せずにコマンドが想定外の例外を投げた場合に、`isError` が付いた結果を返すことを確認します。')
-    const { client } = await open(COMMANDS)
+    const { client } = await open(TOOLS)
     const result = await client.callTool({ name: 'bug', arguments: {} })
     expect(result.isError).toBe(true)
   })
@@ -336,16 +321,14 @@ describe('入力の検証の誤り', () => {
 
   it('検証の途中で想定外の例外が発生しても、isError の結果にして、報告先にも通知する', async () => {
     await explains('ツールの入力の検証のテストです。入力の検証の途中で想定外の例外が発生した場合に、`isError` の結果を返し、報告先にも例外を 1 件通知することを確認します。')
-    const broken = defineCommand({
-      path: ['broken'],
-      title: 'Test command',
+    const broken = defineTool({
+      name: 'broken',
+      title: 'Test tool',
       description: '検証が誤っている',
       input: z.object({}).refine(() => {
         throw new TypeError('refine bug')
       }),
       output: z.strictObject({}),
-      positional: [],
-      interactive: false,
       run: async () => await exitWith(0),
     })
     const { client } = await open([broken], { reportUnexpected: (error) => {
@@ -381,14 +364,12 @@ describe('入力の検証の誤り', () => {
     await explains('ツールのキャンセルのテストです。実行中の呼び出しをキャンセルした場合に、コマンドが受け取った `io.signal` の `abort` が発火し、呼び出しが拒否されることを確認します。')
     const started = Promise.withResolvers<boolean>()
     const aborted = Promise.withResolvers<boolean>()
-    const waiting = defineCommand({
-      path: ['waiting'],
-      title: 'Test command',
+    const waiting = defineTool({
+      name: 'waiting',
+      title: 'Test tool',
       description: '取り消しを待つ',
       input: z.object({}),
       output: z.strictObject({}),
-      positional: [],
-      interactive: false,
       run: async (_input, io) => {
         io.signal?.addEventListener('abort', () => {
           aborted.resolve(true)
@@ -413,28 +394,24 @@ describe('入力の検証の誤り', () => {
     const started = Promise.withResolvers<boolean>()
     const release = Promise.withResolvers<boolean>()
     const ran: string[] = []
-    const first = defineCommand({
-      path: ['first'],
-      title: 'Test command',
+    const first = defineTool({
+      name: 'first',
+      title: 'Test tool',
       description: '先に動いて待つ',
       input: z.object({}),
       output: z.strictObject({}),
-      positional: [],
-      interactive: false,
       run: async () => {
         started.resolve(true)
         await release.promise
         return await exitWith(0)
       },
     })
-    const second = defineCommand({
-      path: ['second'],
-      title: 'Test command',
+    const second = defineTool({
+      name: 'second',
+      title: 'Test tool',
       description: '後に並ぶ',
       input: z.object({}),
       output: z.strictObject({}),
-      positional: [],
-      interactive: false,
       run: async () => {
         ran.push('second')
         return await exitWith(0)
@@ -465,14 +442,12 @@ describe('入力の検証の誤り', () => {
 
   it('想定外の例外のときは、それまでに集めた出力も通知する', async () => {
     await explains('ツールの入力の検証のテストです。出力を書いた後でコマンドが想定外の例外を投げた場合に、報告先へそれまでに集めた標準出力と標準エラー出力を渡し、`kind` が `other` の結果を返すことを確認します。')
-    const noisy = defineCommand({
-      path: ['noisy'],
-      title: 'Test command',
+    const noisy = defineTool({
+      name: 'noisy',
+      title: 'Test tool',
       description: '出力の後の誤り',
       input: z.object({}),
       output: z.strictObject({}),
-      positional: [],
-      interactive: false,
       run: async (_input, io) => {
         io.stdout('half\n')
         io.stderr('warn\n')
@@ -497,14 +472,12 @@ describe('入力の検証の誤り', () => {
 
   it('入力の全体を見る検証の誤りは、名前を付けずに文だけを返す', async () => {
     await explains('ツールの入力の検証のテストです。複数の入力にまたがる検証を満たさない場合は、入力の名前を付けず、検証の文だけを含む `invalid-input` の失敗を返すことを確認します。')
-    const refined = defineCommand({
-      path: ['refined'],
-      title: 'Test command',
+    const refined = defineTool({
+      name: 'refined',
+      title: 'Test tool',
       description: '全体の検証',
       input: z.object({ a: z.string().optional(), b: z.string().optional() }).refine(value => value.a === undefined || value.b === undefined, 'a と b は同時に渡せません'),
       output: z.strictObject({}),
-      positional: [],
-      interactive: false,
       run: async () => await exitWith(0),
     })
     const { client } = await open([refined])
@@ -518,7 +491,7 @@ describe('対象のリポを決められなかったとき', () => {
 
   it('どのツールもコマンドを実行せず、理由を detail に持つ失敗を返す', async () => {
     await explains('対象のリポジトリを決められなかったときのテストです。理由を指定してサーバーを作成した場合に、どのツールを呼んでもコマンドを実行せず、`session-directory-unresolved` の失敗を返すことを確認します。')
-    const { client } = await open(COMMANDS, { unavailableReason: reason })
+    const { client } = await open(TOOLS, { unavailableReason: reason })
     for (const name of ['echo', 'own_repo', 'bug']) {
       const result = await client.callTool({ name, arguments: {} })
       expect(result.isError).toBe(true)
@@ -529,15 +502,15 @@ describe('対象のリポを決められなかったとき', () => {
 
   it('入力が誤っていても、入力の検証より先に理由を返す', async () => {
     await explains('対象のリポジトリを決められなかったときのテストです。定義にない入力を渡した場合でも、入力の検証より先に理由を `detail` として返すことを確認します。')
-    const { client } = await open(COMMANDS, { unavailableReason: reason })
+    const { client } = await open(TOOLS, { unavailableReason: reason })
     const result = await client.callTool({ name: 'echo', arguments: { unknown: 1 } })
     expect(outcomeOf(result).detail).toBe(reason)
   })
 
   it('理由を指定しても、tools/list の結果は変わらない', async () => {
     await explains('対象のリポジトリを決められなかったときのテストです。理由を指定したサーバーと指定しないサーバーで、`tools/list` が返すツールの一覧が同じになることを確認します。')
-    const available = await open(COMMANDS)
-    const unavailable = await open(COMMANDS, { unavailableReason: reason })
+    const available = await open(TOOLS)
+    const unavailable = await open(TOOLS, { unavailableReason: reason })
     const [expected, actual] = await Promise.all([available.client.listTools(), unavailable.client.listTools()])
     expect(actual.tools).toEqual(expected.tools)
   })
@@ -547,7 +520,7 @@ describe('失敗の原因の名前', () => {
   it('board_add でボードが定義していない status を渡すと、kind を status-not-configured にする', async () => {
     await explains('失敗の種別のテストです。`board_add` にプロジェクトのボードが定義していない `status` を渡した場合に、`kind` が `status-not-configured` の失敗を返すことを確認します。')
     prepareProject({ missingStatus: 'active' })
-    const { client } = await open(BOARD_ADD_COMMANDS)
+    const { client } = await open(BOARD_ADD_TOOLS)
     const result = await client.callTool({ name: 'board_add', arguments: { issue_ref: 'acme/demo/7', status: 'active' } })
     expect(result.isError).toBe(true)
     expect(structuredOf(result)).toEqual({ kind: 'status-not-configured', detail: 'status \'active\' is not configured in the project' })
@@ -640,7 +613,7 @@ describe('結果の項目', () => {
 
   it('成功の必須項目が存在しないツールの outputSchema には、anyOf を置かない', async () => {
     await explains('ツールの結果の項目のテストです。成功の必須項目がないツールの場合に、`outputSchema` に `anyOf` が含まれないことを確認します。')
-    const { client } = await open(COMMANDS.slice(0, 1))
+    const { client } = await open(TOOLS.slice(0, 1))
     const { tools } = await client.listTools()
     expect(SchemaShape.parse(tools[0]?.outputSchema).anyOf).toBeUndefined()
   })

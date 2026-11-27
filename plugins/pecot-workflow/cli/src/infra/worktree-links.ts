@@ -44,7 +44,7 @@ import { pluginRoot } from '../version.js'
 // 定数
 
 /**
-`pecot worktree init` で生成される .worktreeignore のデフォルト内容
+`worktree_init` が作る .worktreeignore のデフォルト内容
 */
 export const DEFAULT_WORKTREEIGNORE_CONTENT = `\
 # Git メタデータ
@@ -105,9 +105,9 @@ export interface SymlinkResult {
 export class WorktreeConfigError extends PecotError {
   readonly hintedText: HintedText | undefined
 
-  // message は CLI の形。MCP では最上位が hintedText から描き直す
+  // message は描いた文。hintedText は、案内を他の文へ埋め込む用途で持つ
   constructor(message: string | HintedText, options?: Readonly<ErrorOptions>) {
-    super(formatHinted(message, 'cli'), options)
+    super(formatHinted(message), options)
     this.hintedText = typeof message === 'string' ? undefined : message
   }
 }
@@ -505,7 +505,7 @@ function processLink(link: Readonly<WorktreeLinkItem>, projectRoot: string, work
 }
 
 /**
-.pecot/.gitignore の生成スクリプトのパス。CLAUDE_PLUGIN_ROOT を起点にし、無ければソースツリーのルート。
+.pecot/.gitignore の生成スクリプトのパス。起点はプラグインのルート。
 スクリプトの有無は問わない（無ければ呼び出し側の警告に候補パスが出る）
 */
 export function pecotGitignoreEnsureScript(): string {

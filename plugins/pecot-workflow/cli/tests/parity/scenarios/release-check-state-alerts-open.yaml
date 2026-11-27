@@ -1,8 +1,7 @@
 # open の Dependabot alert が 2 件（警告だけ）、code scanning の alert が 1 件（失敗）ある。3 種を確かめてから exit 1。
 id: release-check-state-alerts-open
-command:
-  path: [release, check]
-  args: []
+tool: release_check
+arguments: {}
 setup:
   repo:
     files:

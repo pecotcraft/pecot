@@ -32,15 +32,15 @@ import {
   saveConfig,
   WorktreeConfigError,
 } from '../infra/worktree-links.js'
-import type { LinkPlan, SymlinkResult, WorktreeConfig } from '../infra/worktree-links.js'
-import { createOutput, isConfirmed } from '@pecot/workflow-core/commands-shared/output.js'
+import type { SymlinkResult, WorktreeConfig } from '../infra/worktree-links.js'
+import { abortUnconfirmed, createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import type { Operation, Output } from '@pecot/workflow-core/commands-shared/output.js'
-import { defineCommand } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { commandHint, hinted, hintedTextOf, inputHint, placeholder, RUN_COLON } from '@pecot/workflow-core/commands-shared/command-hint.js'
-import type { CommandDefinition, CommandIo, GlobalInput } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition, CommandIo, GlobalInput } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { PROJECT_INPUT, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { directorySchema } from './directory-option.js'
-import { requireRepositoryMatch } from './repository-match.js'
+import { requireRepositoryMatch } from '@pecot/workflow-core/commands-shared/repository-match.js'
 
 // click の realpath と同じく、解決できない所は字面のまま残して投げない
 function lenientRealPath(value: string): string {
@@ -52,8 +52,6 @@ function lenientRealPath(value: string): string {
     return path.resolve(value)
   }
 }
-
-const dryRunInput = z.boolean().default(false).describe('Show what would happen without changing anything')
 
 // WorktreeRuntimeError は最上位の網にかからないので、ここで error の行と終了コード 1 にする
 function reportRuntimeError(out: Readonly<Output>, error: unknown): never {
@@ -87,7 +85,6 @@ const worktreeAddInput = z.object({
   no_copy: z.boolean().default(false).describe('Skip copying untracked files'),
   no_link: z.boolean().default(false).describe('Skip creating symlinks'),
   setup: z.string().optional().describe('Command to run after creation'),
-  dry_run: dryRunInput,
   allow_existing_branch: z.boolean().default(false).describe('Allow reusing an existing branch even if its upstream differs from develop_branch'),
   project: PROJECT_INPUT,
 })
@@ -100,22 +97,18 @@ const ADD_OUTPUT = z.strictObject({
   setupFailed: z.boolean().describe('true when the setup command failed or timed out, false when it succeeded or was not run'),
 })
 
-const worktreeAddCommand = defineCommand({
-  path: ['worktree', 'add'],
+const worktreeAddCommand = defineTool({
+  name: 'worktree_add',
   title: 'Add worktree',
   description: 'Create a new worktree',
   input: worktreeAddInput,
   output: ADD_OUTPUT,
-  positional: [],
-  shortFlags: { directory: '-D' },
-  aliases: { allow_existing_branch: '--force' },
-  interactive: false,
   run: async (input, io) => await runAdd(input, io),
 })
 
 async function runAdd(input: Readonly<z.output<typeof worktreeAddInput> & GlobalInput>, io: CommandIo): Promise<0> {
   requireRepositoryMatch('reject', input.repo, io, process.cwd())
-  const out = createOutput<z.input<typeof ADD_OUTPUT>>(input.dry_run, io)
+  const out = createOutput<z.input<typeof ADD_OUTPUT>>(false, io)
   try {
     ensureDevcontainerEnvironment()
     const result = await createWorktree(input.directory, out, {
@@ -124,7 +117,6 @@ async function runAdd(input: Readonly<z.output<typeof worktreeAddInput> & Global
       shouldCopy: !input.no_copy,
       shouldLink: !input.no_link,
       setupCommand: input.setup,
-      isDryRun: input.dry_run,
       isExistingBranchAllowed: input.allow_existing_branch,
       project: input.project,
       signal: out.signal,
@@ -149,7 +141,6 @@ const worktreeRemoveInput = z.object({
   directory: directorySchema,
   force: z.boolean().default(false).describe('Force removal even if there are changes'),
   keep_branch: z.boolean().default(false).describe('Keep the branch'),
-  dry_run: dryRunInput,
 })
 
 const REMOVE_OUTPUT = z.strictObject({
@@ -157,32 +148,24 @@ const REMOVE_OUTPUT = z.strictObject({
   deletedBranch: z.boolean().describe('Whether the local branch was deleted (false when kept or when the deletion failed)'),
 })
 
-const worktreeRemoveCommand = defineCommand({
-  path: ['worktree', 'remove'],
+const worktreeRemoveCommand = defineTool({
+  name: 'worktree_remove',
   title: 'Remove worktree',
   description: 'Remove a worktree',
   input: worktreeRemoveInput,
   output: REMOVE_OUTPUT,
-  positional: ['name'],
-  shortFlags: { directory: '-D', dry_run: '-n' },
-  interactive: false,
   run: (input, io) => Promise.resolve(runRemove(input, io)),
 })
 
 function runRemove(input: Readonly<z.output<typeof worktreeRemoveInput> & GlobalInput>, io: CommandIo): 0 {
   requireRepositoryMatch('reject', input.repo, io, process.cwd())
-  const out = createOutput<z.input<typeof REMOVE_OUTPUT>>(input.dry_run, io)
+  const out = createOutput<z.input<typeof REMOVE_OUTPUT>>(false, io)
   try {
     ensureDevcontainerEnvironment()
-    const branchError = removeWorktree(input.directory, input.name, out, { isForced: input.force, shouldKeepBranch: input.keep_branch, isDryRun: input.dry_run })
+    const branchError = removeWorktree(input.directory, input.name, out, { isForced: input.force, shouldKeepBranch: input.keep_branch })
     const removed: Operation = { verb: 'remove', target: `worktree ${input.name}` }
     out.planned(removed)
     out.done(removed)
-    if (input.dry_run) {
-      if (!input.keep_branch) out.planned({ verb: 'delete', target: `local branch ${input.name}` })
-      out.result({ name: input.name, deletedBranch: false })
-      return 0
-    }
     const shouldDelete = !input.keep_branch
     if (shouldDelete) {
       if (branchError === undefined) out.done({ verb: 'delete', target: `local branch ${input.name}` })
@@ -196,22 +179,19 @@ function runRemove(input: Readonly<z.output<typeof worktreeRemoveInput> & Global
   }
 }
 
-const worktreeInitInput = z.object({ directory: directorySchema, dry_run: dryRunInput })
+const worktreeInitInput = z.object({ directory: directorySchema })
 
 const INIT_OUTPUT = z.strictObject({
   configFile: z.string().describe('Absolute path of the worktree config file'),
   ignoreFile: z.string().describe('Absolute path of the worktree ignore file'),
 })
 
-const worktreeInitCommand = defineCommand({
-  path: ['worktree', 'init'],
+const worktreeInitCommand = defineTool({
+  name: 'worktree_init',
   title: 'Initialize worktree config',
   description: 'Create the worktree config files in the main worktree',
   input: worktreeInitInput,
   output: INIT_OUTPUT,
-  positional: [],
-  shortFlags: { directory: '-D', dry_run: '-n' },
-  interactive: false,
   run: (input, io) => Promise.resolve(runInit(input, io)),
 })
 
@@ -239,7 +219,7 @@ function writeInitFiles(configFile: string, ignoreFile: string, config: Readonly
 
 function runInit(input: Readonly<z.output<typeof worktreeInitInput> & GlobalInput>, io: CommandIo): 0 {
   requireRepositoryMatch('reject', input.repo, io, process.cwd())
-  const out = createOutput<z.input<typeof INIT_OUTPUT>>(input.dry_run, io)
+  const out = createOutput<z.input<typeof INIT_OUTPUT>>(false, io)
   let mainWorktree: string
   try {
     ensureDevcontainerEnvironment()
@@ -263,12 +243,6 @@ function runInit(input: Readonly<z.output<typeof worktreeInitInput> & GlobalInpu
     return stopWith(out, `could not read the active config: ${error.message}`, 'config-invalid')
   }
 
-  if (input.dry_run) {
-    out.planned({ verb: 'create', target: `worktree config ${configFile}` })
-    out.planned({ verb: 'create', target: `worktree ignore file ${ignoreFile}` })
-    out.result({ configFile, ignoreFile })
-    return 0
-  }
   writeInitFiles(configFile, ignoreFile, getDefaultConfig(targetRepository, path.basename(mainWorktree)), out)
   return 0
 }
@@ -292,7 +266,6 @@ const worktreeLinkInput = z.object({
   directory: directorySchema,
   force: z.boolean().default(false).describe('Overwrite real files and directories without asking'),
   all: z.boolean().default(false).describe('Apply to all sub-worktrees'),
-  dry_run: dryRunInput,
 })
 
 const LINK_ROW = z.strictObject({
@@ -309,15 +282,12 @@ const LINK_OUTPUT = z.strictObject({
 type LinkData = z.input<typeof LINK_OUTPUT>
 type LinkEntry = NonNullable<LinkData['links']>[number]
 
-const worktreeLinkCommand = defineCommand({
-  path: ['worktree', 'link'],
+const worktreeLinkCommand = defineTool({
+  name: 'worktree_link',
   title: 'Update worktree symlinks',
   description: 'Apply or update symlinks in existing worktrees',
   input: worktreeLinkInput,
   output: LINK_OUTPUT,
-  positional: [],
-  shortFlags: { directory: '-D' },
-  interactive: true,
   run: (input, io) => Promise.resolve(runLink(input, io)),
 })
 
@@ -332,45 +302,6 @@ function linkTargets(directory: string, mainWorktree: string, isAll: boolean): L
   return resolvedDirectory === resolveRealPath(mainWorktree) ? { kind: 'main-needs-all' } : { kind: 'worktrees', directories: [resolvedDirectory] }
 }
 
-type SkipPlan = Exclude<LinkPlan, 'create' | 'update' | 'ask'>
-
-function skipReason(plan: SkipPlan): string {
-  switch (plan) {
-    case 'skip-missing': { return 'target does not exist' }
-    case 'skip-dangling': { return 'target is a dangling symlink' }
-    case 'skip-real-file': { return 'a real file exists' }
-    case 'skip-tracked': { return 'tracked by git' }
-  }
-}
-
-function plannedOperation(plan: LinkPlan, symlinkPath: string, destination: string): Operation {
-  if (plan === 'create') return { verb: 'create', target: `symlink ${symlinkPath} -> ${destination}` }
-  if (plan === 'update') return { verb: 'update', target: `symlink ${symlinkPath} -> ${destination}` }
-  if (plan === 'ask') return { verb: 'update', target: `symlink ${symlinkPath} -> ${destination} (real file, asks first)` }
-  return { verb: 'skip', target: `symlink ${symlinkPath} (${skipReason(plan)})` }
-}
-
-function plannedEntry(plan: LinkPlan, symlinkPath: string, destination: string): LinkEntry {
-  if (plan === 'create') return { path: symlinkPath, destination, change: 'create' }
-  if (plan === 'update') return { path: symlinkPath, destination, change: 'update' }
-  if (plan === 'ask') return { path: symlinkPath, destination, change: 'update', reason: 'a real file exists; it is replaced only after confirmation' }
-  return { path: symlinkPath, destination, change: 'skip', reason: skipReason(plan) }
-}
-
-function previewLinks(targets: readonly string[], config: Readonly<WorktreeConfig>, projectRoot: string, options: Readonly<{ readonly force: boolean, readonly all: boolean }>, out: Readonly<Output<LinkData>>): void {
-  const decision = decideOverwrite({ force: options.force, allWorktrees: options.all })
-  const links: LinkEntry[] = []
-  for (const target of targets) {
-    for (const link of config.links) {
-      const destination = path.join(projectRoot, 'base', link.target_repo, link.target_path)
-      const plan = planLink(link, projectRoot, target, decision)
-      out.planned(plannedOperation(plan, path.join(target, link.path), destination))
-      links.push(plannedEntry(plan, path.join(target, link.path), destination))
-    }
-  }
-  out.result({ links })
-}
-
 // 1 つの worktree にリンクを作り、(作った数, 飛ばした数, 失敗した数) を返す
 function applyLinks(target: string, config: Readonly<WorktreeConfig>, projectRoot: string, options: Readonly<{ readonly force: boolean, readonly all: boolean }>, io: CommandIo, out: Readonly<Output<LinkData>>): { readonly counts: readonly [number, number, number], readonly links: readonly LinkEntry[] } {
   const decision = decideOverwrite({ force: options.force, allWorktrees: options.all })
@@ -378,7 +309,7 @@ function applyLinks(target: string, config: Readonly<WorktreeConfig>, projectRoo
   const plans = config.links.map(link => planLink(link, projectRoot, target, decision))
   const results = createSymlinksSafe(config, projectRoot, target, out, {
     force: decision.force,
-    confirm: decision.ask ? symlinkPath => isConfirmed(io, `real file exists: ${symlinkPath}\noverwrite it?`) : undefined,
+    confirm: decision.ask ? symlinkPath => abortUnconfirmed(io, `real file exists: ${symlinkPath}\noverwrite it?`) : undefined,
   })
   const created = results.filter(result => result.action === 'created')
   const skipped = results.filter(result => result.action === 'skipped')
@@ -394,7 +325,7 @@ function applyLinks(target: string, config: Readonly<WorktreeConfig>, projectRoo
 
 function runLink(input: Readonly<z.output<typeof worktreeLinkInput> & GlobalInput>, io: CommandIo): 0 {
   requireRepositoryMatch('reject', input.repo, io, process.cwd())
-  const out = createOutput<LinkData>(input.dry_run, io)
+  const out = createOutput<LinkData>(false, io)
   try {
     ensureDevcontainerEnvironment()
     const configFile = findWorktreeConfigFile(input.directory)
@@ -412,10 +343,6 @@ function runLink(input: Readonly<z.output<typeof worktreeLinkInput> & GlobalInpu
       return 0
     }
     const options = { force: input.force, all: input.all }
-    if (input.dry_run) {
-      previewLinks(targets, config, projectRoot, options, out)
-      return 0
-    }
     let [created, skipped, failed] = [0, 0, 0]
     const links: LinkEntry[] = []
     for (const target of targets) {
@@ -440,4 +367,4 @@ function runLink(input: Readonly<z.output<typeof worktreeLinkInput> & GlobalInpu
   }
 }
 
-export const WORKTREE_COMMANDS: readonly CommandDefinition[] = [worktreeAddCommand, worktreeRemoveCommand, worktreeInitCommand, worktreeLinkCommand]
+export const WORKTREE_TOOLS: readonly ToolDefinition[] = [worktreeAddCommand, worktreeRemoveCommand, worktreeInitCommand, worktreeLinkCommand]

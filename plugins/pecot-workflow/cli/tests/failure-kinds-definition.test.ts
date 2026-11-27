@@ -1,4 +1,4 @@
-// 定義書の exit_status[].kind を、MCP の結果の kind に入る FAILURE_KINDS と、コマンドごとの実装と比べる。
+// 定義書の exit_status[].kind を、MCP の結果の kind に入る FAILURE_KINDS と、ツールごとの実装と比べる。
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -9,13 +9,13 @@ import { z } from 'zod'
 import { KIND_BY_CLASS } from '@pecot/workflow-core/commands-shared/failure.js'
 import { FAILURE_KINDS } from '@pecot/workflow-core/commands-shared/failure-kind.js'
 import { explains } from './_helpers/explains.js'
-import { COMMANDS } from '../src/commands/registry.js'
+import { TOOLS } from '../src/commands/registry.js'
 import { interfaceIdOf } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { compareStrings } from '@pecot/workflow-core/domain/python-format.js'
 import { collectReturnedKinds, type ReturnedKind } from './_helpers/returned-kinds.js'
 
 const AUTHORED = path.resolve(import.meta.dirname, '../../interface/authored.yaml')
-const ExitSchema = z.object({ kind: z.string(), code: z.number() })
+const ExitSchema = z.object({ kind: z.string() })
 const EntrySchema = z.object({ exit_status: z.array(ExitSchema) })
 const AuthoredSchema = z.object({ entries: z.record(z.string(), EntrySchema) })
 
@@ -23,16 +23,16 @@ const authored = AuthoredSchema.parse(parseYaml(readFileSync(AUTHORED, 'utf8')))
 const entries = Object.entries(authored.entries)
 const definedKinds = new Set(entries.flatMap(([, entry]) => entry.exit_status.map(element => element.kind)))
 
-// MCP のサーバがどのツールでも返す名前と終了コード。想定外の例外・入力の検証の誤り・セッションのディレクトリの未決定
-const UNIVERSAL: readonly { readonly kind: string, readonly code: number }[] = [
-  { kind: 'other', code: 1 },
-  { kind: 'invalid-input', code: 2 },
-  { kind: 'session-directory-unresolved', code: 1 },
+// MCP のサーバがどのツールでも返す名前。想定外の例外・入力の検証の誤り・セッションのディレクトリの未決定
+const UNIVERSAL: readonly string[] = [
+  'other',
+  'invalid-input',
+  'session-directory-unresolved',
 ]
 
 // 型からは返りうるが、引数の値や呼ぶ順で実際には返らない所（ファイル・名前・項目）
 const UNREACHABLE: readonly { readonly file: string, readonly kinds: readonly string[], readonly ids: readonly string[] }[] = [
-  // --repo の形は、引数の解析（CLI）と prepare（MCP）が先に確かめる
+  // repo の形は、MCP のサーバの prepare が先に確かめる
   { file: 'repository-match.ts', kinds: ['invalid-input'], ids: ['PW-ISSUE-ATTRIBUTES', 'PW-RELEASE-MERGE', 'PW-SESSION-START', 'PW-WORKTREE-ADD', 'PW-WORKTREE-INIT', 'PW-WORKTREE-REMOVE'] },
   { file: 'release.ts', kinds: ['invalid-input'], ids: ['PW-ISSUE-ATTRIBUTES'] },
   // issue attributes・release check・create は、食い違いを warn で流す
@@ -47,15 +47,15 @@ function isUnreachable(id: string, { kind, at }: ReturnedKind): boolean {
   return UNREACHABLE.some(row => at.startsWith(`${row.file}:`) && row.kinds.includes(kind) && row.ids.includes(id))
 }
 
-// 例外のクラスから決まる名前。どのコマンドが投げうるかは、ソースからたどれない
+// 例外のクラスから決まる名前。どのツールが投げうるかは、ソースからたどれない
 const KINDS_FROM_EXCEPTIONS: ReadonlySet<string> = new Set([...KIND_BY_CLASS.map(([, kind]) => kind), 'other'])
 
 const returned = collectReturnedKinds()
 
-const pairsById: ReadonlyMap<string, ReadonlySet<string>> = new Map(entries.map(([id, entry]) => [id, new Set(entry.exit_status.map(row => `${row.kind}:${String(row.code)}`))]))
+const kindsById: ReadonlyMap<string, ReadonlySet<string>> = new Map(entries.map(([id, entry]) => [id, new Set(entry.exit_status.map(row => row.kind))]))
 
-function pairsOf(id: string): ReadonlySet<string> {
-  return pairsById.get(id) ?? new Set()
+function kindsOf(id: string): ReadonlySet<string> {
+  return kindsById.get(id) ?? new Set()
 }
 
 describe('FAILURE_KINDS', () => {
@@ -72,21 +72,21 @@ describe('FAILURE_KINDS', () => {
 
 describe('項目ごとの exit_status', () => {
   it('どのツールでも返りうる名前を、すべての項目が持つ', async () => {
-    await explains('定義書の項目ごとの `exit_status` のテストです。`other`・`invalid-input`・`session-directory-unresolved` の 3 つの名前と終了コードを、すべての項目が持つことを確認します。')
-    const missing = entries.flatMap(([id]) => UNIVERSAL.filter(({ kind, code }) => !pairsOf(id).has(`${kind}:${String(code)}`)).map(({ kind, code }) => `${id} ${kind}:${String(code)}`))
+    await explains('定義書の項目ごとの `exit_status` のテストです。`other`・`invalid-input`・`session-directory-unresolved` の 3 つの名前を、すべての項目が持つことを確認します。')
+    const missing = entries.flatMap(([id]) => UNIVERSAL.filter(kind => !kindsOf(id).has(kind)).map(kind => `${id} ${kind}`))
     expect(missing).toEqual([])
   })
 
-  it('ソースから、全コマンドの run を見つける', async () => {
-    await explains('定義書の項目ごとの `exit_status` のテストです。ソースから集めた `run` の項目が、登録済みのコマンドの項目と一致することを確認します。')
-    expect([...returned].map(([id]) => id).toSorted(compareStrings)).toEqual(COMMANDS.map(command => interfaceIdOf(command.path)).toSorted(compareStrings))
+  it('ソースから、全ツールの run を見つける', async () => {
+    await explains('定義書の項目ごとの `exit_status` のテストです。ソースから集めた `run` の項目が、登録済みのツールの項目と一致することを確認します。')
+    expect([...returned].map(([id]) => id).toSorted(compareStrings)).toEqual(TOOLS.map(tool => interfaceIdOf(tool.name)).toSorted(compareStrings))
   })
 
-  it('コマンドが stopWith・CommandExit に渡す名前と終了コードを、その項目が持つ', async () => {
-    await explains('定義書の項目ごとの `exit_status` のテストです。コマンドが `stopWith` や `CommandExit` に渡す失敗の名前と終了コードが、対応する項目の `exit_status` に含まれることを確認します。')
-    const missing = [...returned].flatMap(([id, kinds]) => [...new Set(kinds.filter(returnedKind => !isUnreachable(id, returnedKind)).map(({ kind, code }) => `${kind}:${code === undefined ? '?' : String(code)}`))]
-      .filter(pair => !pairsOf(id).has(pair))
-      .map(pair => `${id} ${pair}`))
+  it('ツールが stopWith・CommandExit に渡す名前を、その項目が持つ', async () => {
+    await explains('定義書の項目ごとの `exit_status` のテストです。ツールが `stopWith` や `CommandExit` に渡す失敗の名前が、対応する項目の `exit_status` に含まれることを確認します。')
+    const missing = [...returned].flatMap(([id, kinds]) => [...new Set(kinds.filter(returnedKind => !isUnreachable(id, returnedKind)).map(({ kind }) => kind))]
+      .filter(kind => !kindsOf(id).has(kind))
+      .map(kind => `${id} ${kind}`))
     expect(missing.toSorted(compareStrings)).toEqual([])
   })
 
@@ -98,8 +98,8 @@ describe('項目ごとの exit_status', () => {
     expect(stale).toEqual([])
   })
 
-  it('例外から決まらない名前は、コマンドがどこかで返す', async () => {
-    await explains('定義書の項目ごとの `exit_status` のテストです。例外のクラスから決まらない失敗の名前が、定義書にあるものはすべて、いずれかのコマンドの実装で返されることを確認します。')
+  it('例外から決まらない名前は、ツールがどこかで返す', async () => {
+    await explains('定義書の項目ごとの `exit_status` のテストです。例外のクラスから決まらない失敗の名前が、定義書にあるものはすべて、いずれかのツールの実装で返されることを確認します。')
     const unused = entries.flatMap(([id, entry]) => {
       const kinds = new Set((returned.get(id) ?? []).map(({ kind }) => kind))
       return [...new Set(entry.exit_status.map(row => row.kind))]

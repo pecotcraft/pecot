@@ -46,8 +46,6 @@ export const ISOLATED_ENVIRONMENT: readonly (string | RegExp)[] = [
   'COPILOT_SESSION_CWD',
   'CLAUDE_PLUGIN_DATA',
   'PLUGIN_DATA',
-  'PECOT_BOOTSTRAP_SKIP',
-  'PECOT_BOOTSTRAP_FORCE',
   'XDG_DATA_HOME',
   'HOME',
 ]

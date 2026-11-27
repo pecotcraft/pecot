@@ -13,7 +13,7 @@ import type { Operation, Output } from '@pecot/workflow-core/commands-shared/out
 import type { CommandIo } from '../../src/commands/registry.js'
 import { apiErrorDetail, isBodyUnchanged, syncTargetOf, todayUtc, warnExtraTrackers } from '@pecot/workflow-core/commands-shared/tracker-shared.js'
 import type { SyncTarget } from '@pecot/workflow-core/commands-shared/tracker-shared.js'
-import { requireReleaseTargetRepository } from '../../src/commands/release.js'
+import { requireReleaseTargetRepository } from '@pecot/workflow-core/commands-shared/release-check.js'
 import { diffIssueSurface, extractIssueSurface, hasIssueSurfaceDifference, issueSurfaceSchema } from '../../src/domain/issue-surface.js'
 import type { IssueSurfaceDiff } from '../../src/domain/issue-surface.js'
 import { buildTrackerTitle, IssueSurfaceTrackerError, renderTrackerBody, SURFACE_LABEL, TRACKER_PATTERN } from '../../src/domain/issue-surface-tracker.js'

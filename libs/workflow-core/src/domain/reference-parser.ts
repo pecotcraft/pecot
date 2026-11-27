@@ -17,9 +17,9 @@ export class ReferenceParseError extends PecotError {
   readonly reference: string
   readonly hintedText: HintedText | undefined
 
-  // message は CLI の形。出し先の形は hintedText から描き直す
+  // message は描いた文。hintedText は、案内を他の文へ埋め込む用途で持つ
   constructor(message: string | HintedText, reference: string, options?: Readonly<ErrorOptions>) {
-    super(formatHinted(message, 'cli'), options)
+    super(formatHinted(message), options)
     this.reference = reference
     this.hintedText = typeof message === 'string' ? undefined : message
   }
@@ -75,7 +75,7 @@ function invalidFormat(raw: string): ReferenceParseError {
 Issue 参照を IssueReference にする。
 `owner/repo/N` は主軸形式。`N` は短縮形で、baseRepository が要る。
 形式が不正・短縮形で基準リポが無いときは ReferenceParseError。
-repositoryFlag は --repo で短縮形を解決するコマンドか。true のときだけ error で --repo を案内する
+repositoryFlag は入力 repo で短縮形を解決するツールか。true のときだけ error で repo を案内する
 */
 export function parseIssueReference(raw: string, baseRepository?: RepositoryReference, { repositoryFlag = false }: { readonly repositoryFlag?: boolean } = {}): IssueReference {
   if (/^\d+$/u.test(raw)) {

@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 見るのは一時リポ配下だけ */
-// session start の振る舞い（PW-SESSION-START-01〜39）を、runCli をプロセス内で呼んで確かめる。
+// session_start の振る舞い（PW-SESSION-START-01〜39）を、ツールをプロセス内で呼んで確かめる。
 // 一時 git リポ・設定ファイル・偽の GitHub サーバの上で動かし、受けた要求と終わった後のファイルを比べる。
 import { existsSync } from 'node:fs'
 import path from 'node:path'
@@ -59,8 +59,10 @@ const CREATED = 'created: branch feat/7 in acme/demo from main\n'
 const STATUS_SET = 'set: Issue acme/demo/7 status active\n'
 const TARGET_SET = 'created: work directory .pecot/work/7/\n'
 
-async function create(extra: Partial<CommandRun> = {}, argv: readonly string[] = ['session', 'start', 'acme/demo/7', 'feat']): Promise<CommandResult> {
-  return await runCommand({ argv, github: succeeding(), ...extra })
+const CREATE_ARGUMENTS = { issue_ref: 'acme/demo/7', branch: 'feat' }
+
+async function create(extra: Partial<CommandRun> = {}, arguments_: Readonly<Record<string, unknown>> = CREATE_ARGUMENTS): Promise<CommandResult> {
+  return await runCommand({ tool: 'session_start', arguments: arguments_, github: succeeding(), ...extra })
 }
 
 function expectClean(result: Readonly<Pick<CommandResult, 'problems' | 'unused'>>): void {
@@ -84,10 +86,10 @@ async function start(run: Readonly<Partial<ToolRun>>): Promise<ToolResult> {
   return await runTool({ tool: 'session_start', arguments: { issue_ref: 'acme/demo/7', branch: 'feat' }, github: succeeding(), ...run })
 }
 
-describe('session start', () => {
+describe('session_start', () => {
   it('Issue の参照とブランチ名を渡して打つと、Issue に紐づいたブランチを ブランチ名/Issue 番号 の名前で作る', async (context) => {
     await verifies(context, 'PW-SESSION-START-01')
-    await explains('CLI の `session start` に Issue の参照とブランチ名を指定した場合のテストです。Issue に紐づくブランチを `ブランチ名/Issue 番号` の名前で作成し、期待する順序で GitHub API を呼び出すことを確認します。')
+    await explains('`session_start` に Issue の参照とブランチ名を指定した場合のテストです。Issue に紐づくブランチを `ブランチ名/Issue 番号` の名前で作成し、期待する順序で GitHub API を呼び出すことを確認します。')
     const result = await create()
     expect(result.code).toBe(0)
     expectClean(result)
@@ -103,19 +105,19 @@ describe('session start', () => {
     expect(result.requests.at(4)).toMatchObject({ variables: { input: { issueId: 'I_7', oid: SHA, name: 'feat/7' } } })
   })
 
-  it('--base を付けて打つと、そのブランチの先頭からブランチを作る', async (context) => {
+  it('base を付けて打つと、そのブランチの先頭からブランチを作る', async (context) => {
     await verifies(context, 'PW-SESSION-START-02')
-    await explains('`--base` を指定した場合のテストです。指定したブランチの先頭から、ブランチを作成することを確認します。')
-    const result = await create({ github: succeeding('release') }, ['session', 'start', 'acme/demo/7', 'feat', '--base', 'release'])
+    await explains('`base` を指定した場合のテストです。指定したブランチの先頭から、ブランチを作成することを確認します。')
+    const result = await create({ github: succeeding('release') }, { issue_ref: 'acme/demo/7', branch: 'feat', base: 'release' })
     expect(result.code).toBe(0)
     expectClean(result)
     expect(requestLabels(result.requests)).toContain('GET /repos/acme/demo/git/ref/heads/release')
     expect(result.stderr).toContain('created: branch feat/7 in acme/demo from release\n')
   })
 
-  it('--base を省いて打つと、設定ファイルの develop_branch の先頭からブランチを作る', async (context) => {
+  it('base を省いて打つと、設定ファイルの develop_branch の先頭からブランチを作る', async (context) => {
     await verifies(context, 'PW-SESSION-START-03')
-    await explains('`--base` を省略した場合のテストです。設定ファイルの `develop_branch` の先頭から、ブランチを作成することを確認します。')
+    await explains('`base` を省略した場合のテストです。設定ファイルの `develop_branch` の先頭から、ブランチを作成することを確認します。')
     const config = projectConfig({ repositories: [{ owner: 'acme', name: 'demo', develop_branch: 'develop' }] })
     const result = await create({ config, github: succeeding('develop') })
     expect(result.code).toBe(0)
@@ -124,28 +126,15 @@ describe('session start', () => {
     expect(result.stderr).toContain('created: branch feat/7 in acme/demo from develop\n')
   })
 
-  it.for([
-    { flag: '--allow-cross-repo' },
-    { flag: '--force-overwrite-active' },
-    { flag: '-X' },
-    { flag: '-F' },
-  ])('$flag を付けて打つと、未知のオプションとして終了コード 2 で終わり、ブランチを作らない', async ({ flag }) => {
-    await explains(`\`${flag}\` を指定した場合のテストです。未知のオプションとして終了コード 2 で終了し、ブランチを作成しないことを確認します。`)
-    const result = await create({ github: [] }, ['session', 'start', 'acme/demo/7', 'feat', flag])
-    expect(result.code).toBe(2)
-    expect(result.stderr).toContain(`No such option: ${flag}`)
-    expect(result.requests).toEqual([])
-  })
-
-  it.for([{ flag: '--checkout' }, { flag: '--no-checkout' }])('$flag を付けて打つと、付けないときと同じ結果になる', async ({ flag }, context) => {
+  it.for([{ checkout: true }, { checkout: false }])('checkout に $checkout を渡して呼ぶと、渡さないときと同じ結果になる', async ({ checkout }, context) => {
     await verifies(context, 'PW-SESSION-START-06')
-    await explains(`\`${flag}\` を指定した場合のテストです。指定しない場合と、終了コード・標準エラー・GitHub への要求・セッション名の記録がすべて同じになることを確認します。`)
+    await explains(`\`checkout\` に \`${String(checkout)}\` を指定した場合のテストです。指定しない場合と、終了コード・標準エラー・GitHub への要求・セッション名の記録がすべて同じになることを確認します。`)
     const plain = await create()
-    const flagged = await create({}, ['session', 'start', 'acme/demo/7', 'feat', flag])
-    expect(flagged.code).toBe(plain.code)
-    expect(flagged.stderr).toBe(plain.stderr)
-    expect(flagged.requests).toEqual(plain.requests)
-    expect(flagged.read(TITLE)).toBe(plain.read(TITLE))
+    const given = await create({}, { issue_ref: 'acme/demo/7', branch: 'feat', checkout })
+    expect(given.code).toBe(plain.code)
+    expect(given.stderr).toBe(plain.stderr)
+    expect(given.requests).toEqual(plain.requests)
+    expect(given.read(TITLE)).toBe(plain.read(TITLE))
   })
 
   it('ブランチを作ると、ボード上の Issue の Status を active にする', async (context) => {
@@ -207,14 +196,14 @@ describe('session start', () => {
     expect(result.stderr).not.toContain('set: Issue')
   })
 
-  it('選択肢の ID が古くて Status を active にできないと、warning の行に project activate の案内を添える', async () => {
-    await explains('選択肢の ID が古く、Status を `active` にできない場合のテストです。警告に、`project activate` で ID を読み直す案内（`hint:`）が付くことを確認します。')
+  it('選択肢の ID が古くて Status を active にできないと、warning の行に project_activate の案内を添える', async () => {
+    await explains('選択肢の ID が古く、Status を `active` にできない場合のテストです。警告に、`project_activate` で ID を読み直す案内（`hint:`）が付くことを確認します。')
     const result = await create({ github: [linkedRepositories(), noPrerequisites(), issueNode(), baseSha('main'), linkedBranch(), projectItems(), staleOptionUpdate()] })
     expect(result.code).toBe(0)
     expectClean(result)
     expect(result.stderr).toContain([
       `warning: could not set Issue acme/demo/7 status active: ${STALE_OPTION_TEXT}`,
-      '  hint: if the board options were recreated, run pecot project activate ghes.example.com_acme_board_acme to read their IDs again',
+      '  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again',
       '',
     ].join('\n'))
     expect(result.stderr).not.toContain(STATUS_SET)
@@ -249,7 +238,7 @@ describe('session start', () => {
   it('作業対象を記録できないと、warning の行を標準エラーに出して終了コード 0 で終わる', async () => {
     await explains('作業対象を記録できない場合のテストです。状態ディレクトリの場所にファイルを置くと、警告を標準エラーに出力して終了コード 0 で終了することを確認します。')
     // 状態ディレクトリの場所にファイルを置くと、書けない
-    const result = await create({ files: { '.pecot/state': 'not a directory' } }, ['session', 'start', 'acme/demo/7', 'feat'])
+    const result = await create({ files: { '.pecot/state': 'not a directory' } }, { issue_ref: 'acme/demo/7', branch: 'feat' })
     expect(result.code).toBe(0)
     expectClean(result)
     expect(result.stderr).toContain(CREATED)
@@ -257,11 +246,11 @@ describe('session start', () => {
     expect(result.stderr).not.toContain('created: work directory')
   })
 
-  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と --project の案内を出して終了コード 1 で終わる', async () => {
-    await explains('対象のリポジトリを含む設定が 2 つあり、`.active` でも選べない場合のテストです。候補と `--project` の案内を標準エラーに出力して、終了コード 1 で終了することを確認します。')
+  it('対象のリポを含む設定が 2 つあり .active も選べないと、候補と project の案内を出して終了コード 1 で終わる', async () => {
+    await explains('対象のリポジトリを含む設定が 2 つあり、`.active` でも選べない場合のテストです。候補と `project` の案内を標準エラーに出力して、終了コード 1 で終了することを確認します。')
     const result = await create({ files: ambiguousFiles(), github: [] })
     expect(result.code).toBe(1)
-    expect(result.stderr).toBe(`error: acme/demo is in 2 project configs\n  choose one with --project <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n`)
+    expect(result.stderr).toBe(`error: acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ${AMBIGUOUS_MESSAGE}\n`)
     expect(result.requests).toEqual([])
   })
 
@@ -273,10 +262,10 @@ describe('session start', () => {
     expect(result.requests).toEqual([])
   })
 
-  it('--project を渡すと、対象のリポを含む設定が 2 つあってもその設定でブランチを作る', async (context) => {
+  it('project を渡すと、対象のリポを含む設定が 2 つあってもその設定でブランチを作る', async (context) => {
     await verifies(context, 'PW-SESSION-START-42')
-    await explains('`--project` を指定した場合のテストです。対象のリポジトリを含む設定が 2 つあっても、指定した設定でブランチを作成することを確認します。')
-    const result = await create({ files: ambiguousFiles() }, ['session', 'start', 'acme/demo/7', 'feat', '--project', SECOND_PROJECT])
+    await explains('`project` を指定した場合のテストです。対象のリポジトリを含む設定が 2 つあっても、指定した設定でブランチを作成することを確認します。')
+    const result = await create({ files: ambiguousFiles() }, { issue_ref: 'acme/demo/7', branch: 'feat', project: SECOND_PROJECT })
     expect(result.code).toBe(0)
     expectClean(result)
     expect(result.stderr).toContain(CREATED)
@@ -294,7 +283,7 @@ describe('session start', () => {
     { reference: 'invalid-format', message: 'error: invalid reference: invalid-format\n  accepted forms:\n    - full: \'owner/repo/N\'\n    - short: \'N\' (with a base repository)\n' },
   ])('Issue の参照が $reference でフル形式でないと、終了コード 2 で終わる', async ({ reference, message }) => {
     await explains(`Issue の参照に \`${reference}\` を指定した場合のテストです。フル形式（\`owner/repo/N\`）ではないため、エラーを標準エラーに出力して終了コード 2 で終了することを確認します。`)
-    const result = await create({ github: [] }, ['session', 'start', reference, 'feat'])
+    const result = await create({ github: [] }, { issue_ref: reference, branch: 'feat' })
     expect(result.code).toBe(2)
     expect(result.stderr).toBe(message)
     expect(result.requests).toEqual([])
@@ -306,7 +295,7 @@ describe('session start', () => {
     expect(result.code).toBe(2)
     expect(result.stderr).toBe([
       'error: the repository of the work Issue (acme/demo) differs from the CWD git remote (other/tree)',
-      '  move to the worktree of the target repository and run again:',
+      '  move to the worktree of the target repository and call the tool again:',
       '  <project-root>/base/demo/ or <project-root>/<wtN>/demo/',
       '  create one with /pecot-w:w-worktree-add only if the repository has no worktree',
       '',
@@ -314,15 +303,15 @@ describe('session start', () => {
     expect(result.requests).toEqual([])
   })
 
-  it('--base を省いて develop_branch も設定していないと、終了コード 1 で終わる', async () => {
-    await explains('`--base` を省略し、`develop_branch` も設定していない場合のテストです。設定方法を案内するエラーを標準エラーに出力して、終了コード 1 で終了することを確認します。')
+  it('base を省いて develop_branch も設定していないと、終了コード 1 で終わる', async () => {
+    await explains('`base` を省略し、`develop_branch` も設定していない場合のテストです。設定方法を案内するエラーを標準エラーに出力して、終了コード 1 で終了することを確認します。')
     const result = await create({ config: projectConfig({ repositories: [{ owner: 'acme', name: 'demo' }] }), github: [linkedRepositories(), noPrerequisites()] })
     expect(result.code).toBe(1)
     expectClean(result)
     expect(result.stderr).toBe([
       'error: develop_branch is not set for acme/demo',
-      '  set it with: pecot project link acme/demo --develop-branch develop',
-      '  or give the base: pecot session start acme/demo/7 feat --base main',
+      '  set it with: project_link with repo: "acme/demo", develop_branch: "develop"',
+      '  or give the base: session_start with issue_ref: "acme/demo/7", branch: "feat", base: "main"',
       '',
     ].join('\n'))
     expect(requestLabels(result.requests)).toEqual(['GetLinkedRepositoriesUser', 'GetIssuePrerequisites'])
@@ -362,19 +351,19 @@ describe('session start', () => {
     expect(result.read(TITLE)).toBeUndefined()
   })
 
-  it('--repo が今の git remote のリポジトリと食い違うと、終了コード 1 で終わる', async () => {
-    await explains('`--repo` が現在の git remote のリポジトリと異なる場合のテストです。エラーを標準エラーに出力して、終了コード 1 で終了することを確認します。')
-    const result = await create({ github: [] }, ['--repo', 'other/tree', 'session', 'start', 'acme/demo/7', 'feat'])
+  it('repo が今の git remote のリポジトリと食い違うと、終了コード 1 で終わる', async () => {
+    await explains('`repo` が現在の git remote のリポジトリと異なる場合のテストです。エラーを標準エラーに出力して、終了コード 1 で終了することを確認します。')
+    const result = await create({ github: [] }, { issue_ref: 'acme/demo/7', branch: 'feat', repo: 'other/tree' })
     expect(result.code).toBe(1)
-    expect(result.stderr).toBe('error: --repo other/tree differs from the current Git remote (acme/demo)\n  this command works only on the repository of the current Git remote\n')
+    expect(result.stderr).toBe('error: repo other/tree differs from the current Git remote (acme/demo)\n  this command works only on the repository of the current Git remote\n')
     expect(result.requests).toEqual([])
   })
 
-  it('--repo を省いて git の外で打つと、the repository is ambiguous の行を標準エラーに出して終了コード 1 で終わる', async () => {
-    await explains('`--repo` を省略し、git リポジトリの外で実行した場合のテストです。`the repository is ambiguous` のエラーを標準エラーに出力して、終了コード 1 で終了することを確認します。')
+  it('repo を省いて git の外で打つと、the repository is ambiguous の行を標準エラーに出して終了コード 1 で終わる', async () => {
+    await explains('`repo` を省略し、git リポジトリの外で実行した場合のテストです。`the repository is ambiguous` のエラーを標準エラーに出力して、終了コード 1 で終了することを確認します。')
     const result = await create({ remote: false, github: [] })
     expect(result.code).toBe(1)
-    expect(result.stderr).toBe('error: the repository is ambiguous\n  give --repo <owner/repo>\n')
+    expect(result.stderr).toBe('error: the repository is ambiguous\n  give repo: <owner/repo>\n')
     expect(result.requests).toEqual([])
   })
 
@@ -383,13 +372,13 @@ describe('session start', () => {
     const LOCAL_REMOTE = '/srv/git/demo.git'
     const WARNING = 'could not read the repository from the URL of the Git remote origin'
 
-    it('--repo を渡すと、CLI は warning の行を標準エラーに出し、MCP は結果の warnings に同じ文を入れて続ける', async (context) => {
+    it('repo を渡すと、warning の行を標準エラーに出し、結果の warnings に同じ文を入れて続ける', async (context) => {
       await verifies(context, 'PW-SESSION-START-38')
-      await explains('remote の URL から owner と repo を読み取れない場合に、`--repo` を指定したときのテストです。CLI は警告を標準エラーに出力し、MCP は同じ文を結果の `warnings` に含めて、処理を続行することを確認します。')
-      const cli = await create({ remoteUrl: LOCAL_REMOTE }, ['--repo', 'acme/demo', 'session', 'start', 'acme/demo/7', 'feat'])
+      await explains('remote の URL から owner と repo を読み取れない場合に、`repo` を指定したときのテストです。警告を標準エラーに出力し、同じ文を結果の `warnings` に含めて、処理を続行することを確認します。')
+      const cli = await create({ remoteUrl: LOCAL_REMOTE }, { issue_ref: 'acme/demo/7', branch: 'feat', repo: 'acme/demo' })
       expectClean(cli)
       expect(cli.code).toBe(0)
-      expect(cli.stderr).toContain(`warning: using --repo acme/demo (${WARNING})\n`)
+      expect(cli.stderr).toContain(`warning: using repo acme/demo (${WARNING})\n`)
       expect(cli.stderr).toContain(CREATED)
       const tool = await runTool({ tool: 'session_start', arguments: { issue_ref: 'acme/demo/7', branch: 'feat', repo: 'acme/demo' }, github: succeeding(), remoteUrl: LOCAL_REMOTE })
       expectClean(tool)
@@ -397,22 +386,22 @@ describe('session start', () => {
       expect(tool.structured).toMatchObject({ branch: 'feat/7', warnings: [`using repo acme/demo (${WARNING})`] })
     })
 
-    it('--repo を渡すと、Issue のリポジトリと作業ディレクトリの remote を比べずにブランチを作る', async (context) => {
+    it('repo を渡すと、Issue のリポジトリと作業ディレクトリの remote を比べずにブランチを作る', async (context) => {
       await verifies(context, 'PW-SESSION-START-40')
-      await explains('remote の URL から owner と repo を読み取れない状態で、別のリポジトリを `--repo` に指定した場合のテストです。作業ディレクトリの remote と比較せず、ブランチを作成することを確認します。')
-      const cli = await create({ remoteUrl: LOCAL_REMOTE }, ['--repo', 'other/tree', 'session', 'start', 'acme/demo/7', 'feat'])
+      await explains('remote の URL から owner と repo を読み取れない状態で、別のリポジトリを `repo` に指定した場合のテストです。作業ディレクトリの remote と比較せず、ブランチを作成することを確認します。')
+      const cli = await create({ remoteUrl: LOCAL_REMOTE }, { issue_ref: 'acme/demo/7', branch: 'feat', repo: 'other/tree' })
       expectClean(cli)
       expect(cli.code).toBe(0)
       expect(cli.stderr).not.toContain('differs from the CWD git remote')
       expect(cli.stderr).toContain(CREATED)
     })
 
-    it('--repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {
+    it('repo を省くと、the repository is ambiguous と理由の行を出し、終了コード 1 で終わる', async (context) => {
       await verifies(context, 'PW-SESSION-START-39')
-      await explains('remote の URL から owner と repo を読み取れない状態で、`--repo` を省略した場合のテストです。CLI は終了コード 1 で終了し、MCP は `git-unresolved` の失敗を返し、どちらも GitHub へ要求を送らないことを確認します。')
+      await explains('remote の URL から owner と repo を読み取れない状態で、`repo` を省略した場合のテストです。`git-unresolved` の失敗と終了コード 1 を返し、GitHub へ要求を送らないことを確認します。')
       const cli = await create({ remoteUrl: LOCAL_REMOTE, github: [] })
       expect(cli.code).toBe(1)
-      expect(cli.stderr).toBe('error: the repository is ambiguous\n  could not read the repository from the URL of the Git remote origin\n  give --repo <owner/repo>\n')
+      expect(cli.stderr).toBe('error: the repository is ambiguous\n  could not read the repository from the URL of the Git remote origin\n  give repo: <owner/repo>\n')
       expect(cli.requests).toEqual([])
       const tool = await runTool({ tool: 'session_start', arguments: { issue_ref: 'acme/demo/7', branch: 'feat' }, github: [], remoteUrl: LOCAL_REMOTE })
       expect(tool).toMatchObject({ isError: true, structured: { kind: 'git-unresolved' } })
@@ -645,20 +634,20 @@ describe('session start', () => {
       expect(plain.read(BASE)).toBe(`main ${SHA}`)
     })
 
-    it('スタック先と同じ --base を付けると、そのままスタックして作る', async (context) => {
+    it('スタック先と同じ base を付けると、そのままスタックして作る', async (context) => {
       await verifies(context, 'PW-SESSION-START-28')
-      await explains('スタック先と同じブランチを `--base` に指定した場合のテストです。そのままスタックして、ブランチを作成することを確認します。')
-      const result = await create({ github: judged({ blockedBy: [inReview] }, 'feat/3') }, ['session', 'start', 'acme/demo/7', 'feat', '--base', 'feat/3'])
+      await explains('スタック先と同じブランチを `base` に指定した場合のテストです。そのままスタックして、ブランチを作成することを確認します。')
+      const result = await create({ github: judged({ blockedBy: [inReview] }, 'feat/3') }, { issue_ref: 'acme/demo/7', branch: 'feat', base: 'feat/3' })
       expect(result.code).toBe(0)
       expect(result.stderr).toContain(STACKED)
     })
 
-    it('スタック先と違う --base を付けると、ブランチを作らず終了コード 2 で終わる', async () => {
-      await explains('スタック先と異なるブランチを `--base` に指定した場合のテストです。ブランチを作成せず、エラーを標準エラーに出力して終了コード 2 で終了することを確認します。')
-      const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [inReview] })] }, ['session', 'start', 'acme/demo/7', 'feat', '--base', 'release'])
+    it('スタック先と違う base を付けると、ブランチを作らず終了コード 2 で終わる', async () => {
+      await explains('スタック先と異なるブランチを `base` に指定した場合のテストです。ブランチを作成せず、エラーを標準エラーに出力して終了コード 2 で終了することを確認します。')
+      const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [inReview] })] }, { issue_ref: 'acme/demo/7', branch: 'feat', base: 'release' })
       expect(result.code).toBe(2)
       expectClean(result)
-      expect(result.stderr).toBe('error: --base release differs from the base chosen by readiness: feat/3 (stacked on #3)\n')
+      expect(result.stderr).toBe('error: base: "release" differs from the base chosen by readiness: feat/3 (stacked on #3)\n')
       expect(result.read(TITLE)).toBeUndefined()
       expect(result.read(BASE)).toBeUndefined()
     })
@@ -673,9 +662,9 @@ describe('session start', () => {
         'error: #7 is blocked by #3, #4 (waits for merge)',
         '  - #3: in review',
         '  - #4: wait: merge — 公開後に確かめる',
-        '  to remove the prerequisite: pecot issue unblock acme/demo/7 --by acme/demo/3',
-        '  to remove the prerequisite: pecot issue unblock acme/demo/7 --by acme/demo/4',
-        '  to stack on it instead of waiting for merge: pecot issue block acme/demo/7 --by acme/demo/4 --wait stack',
+        '  to remove the prerequisite: issue_unblock with issue_ref: "acme/demo/7", by: "acme/demo/3"',
+        '  to remove the prerequisite: issue_unblock with issue_ref: "acme/demo/7", by: "acme/demo/4"',
+        '  to stack on it instead of waiting for merge: issue_block with issue_ref: "acme/demo/7", by: "acme/demo/4", wait: "stack"',
         '',
       ].join('\n'))
       expect(result.read(TITLE)).toBeUndefined()
@@ -688,8 +677,8 @@ describe('session start', () => {
       expect(result.stderr).toBe([
         'error: #7 is blocked by #4 (waits for merge)',
         '  - #4: wait: merge — 公開後に確かめる',
-        '  to remove the prerequisite: pecot issue unblock acme/demo/7 --by acme/demo/4',
-        '  to stack on it instead of waiting for merge: pecot issue block acme/demo/7 --by acme/demo/4 --wait stack',
+        '  to remove the prerequisite: issue_unblock with issue_ref: "acme/demo/7", by: "acme/demo/4"',
+        '  to stack on it instead of waiting for merge: issue_block with issue_ref: "acme/demo/7", by: "acme/demo/4", wait: "stack"',
         '',
       ].join('\n'))
     })
@@ -701,14 +690,14 @@ describe('session start', () => {
       expect(result.stderr).toBe([
         'error: #7 is blocked by #3 (not in review: #3 (not started))',
         '  - #3: not started',
-        '  to remove the prerequisite: pecot issue unblock acme/demo/7 --by acme/demo/3',
+        '  to remove the prerequisite: issue_unblock with issue_ref: "acme/demo/7", by: "acme/demo/3"',
         '',
       ].join('\n'))
     })
 
-    it('blocked のときは、--base を付けても比べずに blocked で止まる', async () => {
-      await explains('`blocked` の状態で `--base` を指定した場合のテストです。`--base` を比較せずに、`blocked` のエラーで終了することを確認します。')
-      const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [waiting], body: WAITS })] }, ['session', 'start', 'acme/demo/7', 'feat', '--base', 'release'])
+    it('blocked のときは、base を付けても比べずに blocked で止まる', async () => {
+      await explains('`blocked` の状態で `base` を指定した場合のテストです。`base` を比較せずに、`blocked` のエラーで終了することを確認します。')
+      const result = await create({ github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [waiting], body: WAITS })] }, { issue_ref: 'acme/demo/7', branch: 'feat', base: 'release' })
       expect(result.code).toBe(2)
       expect(result.stderr).toContain('error: #7 is blocked by #4')
     })
@@ -726,12 +715,12 @@ describe('session start', () => {
     it('前提は読めても判定できないと、判定できない旨の error の行を出して終了コード 1 で終わる', async () => {
       await explains('前提は取得できたが、判定ができない場合のテストです。判定できないことを示すエラーを標準エラーに出力して、終了コード 1 で終了することを確認します。')
       const config = projectConfig({ repositories: [{ owner: 'acme', name: 'demo' }] })
-      const result = await create({ config, github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [inReview] })] }, ['session', 'start', 'acme/demo/7', 'feat', '--base', 'main'])
+      const result = await create({ config, github: [linkedRepositories(), prerequisitesRule({ number: 7, blockedBy: [inReview] })] }, { issue_ref: 'acme/demo/7', branch: 'feat', base: 'main' })
       expect(result.code).toBe(1)
       expectClean(result)
       expect(result.stderr).toBe([
         'error: could not judge readiness of #7: develop_branch is not set for acme/demo',
-        '  set it with: pecot project link acme/demo --develop-branch develop',
+        '  set it with: project_link with repo: "acme/demo", develop_branch: "develop"',
         '',
       ].join('\n'))
     })
@@ -776,16 +765,16 @@ describe('session start', () => {
       expect(result.stderr).toBe([
         'error: #7 is blocked by #3 (not in one chain)',
         '  - #3: in review',
-        '  to remove the prerequisite: pecot issue unblock acme/demo/7 --by acme/demo/3',
+        '  to remove the prerequisite: issue_unblock with issue_ref: "acme/demo/7", by: "acme/demo/3"',
         '',
       ].join('\n'))
     })
   })
 
   describe('前の PR の手元の後片付けの取りこぼし', () => {
-    it('今のブランチの PR がマージ済みで開いた PR が無いと、leftovers にその PR を入れ、session finish を案内してブランチを作る', async (context) => {
+    it('今のブランチの PR がマージ済みで開いた PR が無いと、leftovers にその PR を入れ、session_finish を案内してブランチを作る', async (context) => {
       await verifies(context, 'PW-SESSION-START-43')
-      await explains('MCP の `session_start` で、今のブランチの PR がマージ済みで、開いた PR が存在しない場合のテストです。その PR を `leftovers` に含め、`session finish` の案内を警告に含めて、ブランチを作成することを確認します。')
+      await explains('MCP の `session_start` で、今のブランチの PR がマージ済みで、開いた PR が存在しない場合のテストです。その PR を `leftovers` に含め、`session_finish` の案内を警告に含めて、ブランチを作成することを確認します。')
       const tool = await start({ branch: OLD_BRANCH, github: [...succeeding(), headPullRequests('MERGED')] })
       expectClean(tool)
       expect(tool.isError).toBe(false)
@@ -796,7 +785,7 @@ describe('session start', () => {
     it('今のブランチの名前が番号で終わらないと、取りこぼしを確かめる要求を送らず、leftovers を入れない', async (context) => {
       await verifies(context, 'PW-SESSION-START-45')
       await explains('MCP の `session_start` で、今のブランチの名前が番号で終わらない場合のテストです。取りこぼしを確認する要求を送らず、`leftovers` を含めないことを確認します。')
-      const result = await create({}, ['session', 'start', 'acme/demo/7', 'feat'])
+      const result = await create({}, { issue_ref: 'acme/demo/7', branch: 'feat' })
       expectClean(result)
       expect(requestLabels(result.requests)).not.toContain(LIST_BY_HEAD)
       const tool = await start({ branch: 'wt8' })

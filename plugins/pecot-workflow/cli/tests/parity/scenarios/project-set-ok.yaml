@@ -1,8 +1,9 @@
 # 集約リポジトリを新しく設定する。GitHub は呼ばない。
 id: project-set-ok
-command:
-  path: [project, set]
-  args: [aggregation_repo, acme/roadmap]
+tool: project_set
+arguments:
+  key: aggregation_repo
+  value: acme/roadmap
 setup:
   repo:
     files:

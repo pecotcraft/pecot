@@ -105,10 +105,10 @@ git init --quiet --initial-branch=main "$TEST_REPO" || exit 1
 # gh の -R は origin の URL から求める。合成した owner/name の https URL を置く。
 TEST_SLUG="acme-labs/example-repo"
 git -C "$TEST_REPO" remote add origin "https://github.com/$TEST_SLUG.git" || exit 1
-# git 管理対象の入力を ls-files で列挙し、node_modules 等を外す。bin は publish が _lib.sh を source するので同梱する。
+# git 管理対象の入力を ls-files で列挙し、node_modules 等を外す。pnpm-lib.sh は publish が resolve_pnpm のために source する。
 (cd "$REPO_ROOT" && git ls-files -z -- \
     plugins/pecot-workflow/.claude-plugin \
-    plugins/pecot-workflow/bin \
+    plugins/pecot-workflow/scripts/ci/pnpm-lib.sh \
     plugins/pecot-workflow/package.json \
     plugins/pecot-workflow/cli/package.json \
     plugins/pecot-workflow/cli/templates \
@@ -244,7 +244,7 @@ else if (q === 'hasScripts') process.stdout.write(String('scripts' in m))
 
 bt_eq "package.json の name が配布パッケージ名" "@pecot/workflow-mcp" "$(read_manifest name)"
 bt_eq "package.json の version がプラグイン版と一致" "$PLUGIN_VERSION" "$(read_manifest version)"
-bt_eq "package.json の bin が shim を指す" '{"pecot-workflow-mcp":"bin/pecot-workflow-mcp.mjs"}' "$(read_manifest bin)"
+bt_eq "package.json の bin が cli/dist/main.js を指す" '{"pecot-workflow-mcp":"cli/dist/main.js"}' "$(read_manifest bin)"
 bt_eq "package.json の license が MIT" "MIT" "$(read_manifest license)"
 bt_eq "package.json の repository が公開リポを指す" \
     '{"type":"git","url":"git+https://github.com/pecotcraft/pecot.git","directory":"plugins/pecot-workflow"}' "$(read_manifest repository)"
@@ -265,6 +265,12 @@ process.stdout.write([...names].sort().join(','))"
 }
 bt_eq "配布 package.json の依存が cli と lib の package.json の dependencies と一致する" \
     "$(cli_dep_set)" "$(read_manifest deps)"
+# サーバは引数を読まないので、引数の解釈の commander は配布物に要らない。
+if printf ',%s,' "$(read_manifest deps)" | grep -qF ',commander,'; then
+    bt_fail "配布 package.json の dependencies に commander が無い" "commander がある"
+else
+    bt_pass "配布 package.json の dependencies に commander が無い"
+fi
 
 # cli/dist の lib の import は、配布ツリーの vendor/workflow-core/dist への相対パスに書き換わる。
 bt_eq "cli/dist に @pecot/workflow-core の import が残らない" "0" \
@@ -322,7 +328,7 @@ bt_eq ".claude-plugin/plugin.json が実版を持つ" "$PLUGIN_VERSION" \
     "$(node -e "process.stdout.write(require('$DIST/.claude-plugin/plugin.json').version)" 2> /dev/null)"
 
 # MCP サーバの起動に要る 4 点が、cli/dist の階層ごと届いていることを見る（cp の -a 落ちや部分コピーの検出）。
-for entry in cli.js package.json infra/template-store.js mcp/server.js; do
+for entry in main.js package.json infra/template-store.js mcp/server.js; do
     if [ -f "$DIST/cli/dist/$entry" ]; then
         bt_pass "cli/dist/$entry が配布ツリーにある"
     else
@@ -358,12 +364,6 @@ fi
 bt_eq "配布ツリーに cert を含むパスが無い" "0" \
     "$(find "$DIST" -iname '*cert*' | wc -l | tr -d ' ')"
 
-if [ -x "$DIST/bin/pecot-workflow-mcp.mjs" ]; then
-    bt_pass "bin shim に実行権がある"
-else
-    bt_fail "bin shim に実行権がある" "実行権がない"
-fi
-
 # --- 3. README の登録例 ---
 
 # 登録例は npm のパッケージ名を直に書く。URL のプレースホルダも git の URL も残らない。
@@ -385,38 +385,31 @@ bt_eq "README の bash -lc の差し替え例が --prefix=/ を付ける" "1" \
 bt_eq "README の登録例 3 件がサーバ名 pecot-workflow を使う" "3" \
     "$(grep -cF '"pecot-workflow":' "$DIST/README.md" | tr -d ' ')"
 
-# --- 4. 配布ツリーの起動 smoke ---
-# 構築した配布ツリーを起動して JSON-RPC を往復させる。npx が作る node_modules は symlink で再現し、ネットワーク無しで回す。
+# --- 4. 配布物の起動 smoke ---
+# 配布ツリーの tgz を npm install し、node_modules/.bin/pecot-workflow-mcp から起動する。
+# tsc の出力は実行権を持たない。実行権は npm の bin-links が導入時に付ける。
+# npm はリポの外で打つ（リポの中は devEngines で EBADDEVENGINES になる）。
 
-MISSING_LINKS="$(node -e "
-const fs = require('node:fs'), path = require('node:path')
-const [dist, base] = process.argv.slice(1)
-// require.resolve は package の実体ディレクトリを返さないので、cli を起点に node_modules を実際に辿って引き当てる。
-const rootOf = (spec) => {
-  let dir = path.resolve(base)
-  for (;;) {
-    const candidate = path.join(dir, 'node_modules', spec)
-    if (fs.existsSync(path.join(candidate, 'package.json'))) return fs.realpathSync(candidate)
-    const up = path.dirname(dir)
-    if (up === dir) return null
-    dir = up
-  }
-}
-const missing = []
-const dependencies = JSON.parse(fs.readFileSync(path.join(dist, 'package.json'), 'utf8')).dependencies
-for (const spec of Object.keys(dependencies)) {
-  const root = rootOf(spec)
-  if (root === null) { missing.push(spec); continue }
-  const link = path.join(dist, 'node_modules', spec)
-  fs.mkdirSync(path.dirname(link), { recursive: true })
-  fs.symlinkSync(root, link)
-}
-process.stdout.write(missing.join(','))
-" "$DIST" "$WORKFLOW_ROOT/cli")"
-bt_eq "配布 package.json の依存がすべてローカルに実体を持つ" "" "$MISSING_LINKS"
+SMOKE_ROOT="$TMP/smoke-install"
+mkdir -p "$TMP/smoke-pack" "$SMOKE_ROOT"
+printf '{"private":true}\n' > "$SMOKE_ROOT/package.json"
+SMOKE_TGZ_NAME="$(cd "$TMP" && "$REAL_NPM" pack "$DIST" --ignore-scripts --pack-destination "$TMP/smoke-pack" 2> "$TMP/smoke-pack.err" | tail -n 1)"
+SMOKE_BIN="$SMOKE_ROOT/node_modules/.bin/pecot-workflow-mcp"
+if [ -n "$SMOKE_TGZ_NAME" ] && (cd "$SMOKE_ROOT" && "$REAL_NPM" install "$TMP/smoke-pack/$SMOKE_TGZ_NAME" \
+    --no-audit --no-fund --fetch-timeout=30000 --fetch-retries=1 \
+    "--cache=$NPM_PERSIST_CACHE" --prefer-offline > "$TMP/smoke-install.log" 2>&1); then
+    bt_pass "配布物の tgz を npm install できる"
+else
+    bt_fail "配布物の tgz を npm install できる" "$(file_tail "$TMP/smoke-pack.err" 3) $(log_tail smoke-install.log 3)"
+fi
+if [ -x "$SMOKE_BIN" ]; then
+    bt_pass "npm install が node_modules/.bin/pecot-workflow-mcp を実行できる形で張る"
+else
+    bt_fail "npm install が node_modules/.bin/pecot-workflow-mcp を実行できる形で張る" "無いか、実行できない"
+fi
 
 cat > "$TMP/smoke.mjs" << 'SMOKE'
-// node smoke.mjs <script> [args...]: MCP サーバに initialize / tools/list（と SMOKE_TOOL_CALLS・SMOKE_RESOURCE_READS）を送り、要約を 1 行 JSON で返す。
+// node smoke.mjs <command> [args...]: MCP サーバに initialize / tools/list（と SMOKE_TOOL_CALLS・SMOKE_RESOURCE_READS）を送り、要約を 1 行 JSON で返す。
 // 起動そのものに失敗したときだけ `FAIL: <理由>` を返す。SMOKE_CWD があれば、それをサーバの cwd にする。
 import { spawn } from 'node:child_process'
 
@@ -439,7 +432,7 @@ const requests = [
 ]
 const expected = requests.filter((message) => message.id !== undefined).map((message) => message.id)
 
-const child = spawn(process.execPath, command, { stdio: ['pipe', 'pipe', 'pipe'], cwd: process.env['SMOKE_CWD'] })
+const child = spawn(command[0], command.slice(1), { stdio: ['pipe', 'pipe', 'pipe'], cwd: process.env['SMOKE_CWD'] })
 const seen = new Map()
 let stderr = ''
 let buffer = ''
@@ -517,7 +510,7 @@ process.stdout.write(value === undefined ? '' : String(value))
 " "$1" "$2"
 }
 
-# tools/list の期待値。COMMANDS（cli/src/commands/registry.ts）の並びを写している（cli/tests/bootstrap/run.sh と同値）。
+# tools/list の期待値。COMMANDS（cli/src/commands/registry.ts）の並びを写している。
 EXPECTED_TOOL_COUNT=39
 EXPECTED_FIRST_TOOL="project_list"
 
@@ -545,7 +538,7 @@ smoke_broken() {
     [ -n "$SMOKE_BROKEN" ]
 }
 
-# 登録例と同じ引数なし起動（shim の argv 注入）と、`mcp` を明示した起動（注入が無いときの素通し）の双方を見る。
+# 登録例と同じ引数なし起動と、`mcp` を付けた起動（引数を読まないこと）の双方を見る。
 run_smoke() {
     local label="$1" out="$2"
     shift 2
@@ -569,8 +562,8 @@ run_smoke() {
     bt_eq "$first_title" "$EXPECTED_FIRST_TOOL" "$(smoke_value "$out" firstTool)"
 }
 
-run_smoke "引数なし起動" "$TMP/smoke-default.json" "$DIST/bin/pecot-workflow-mcp.mjs"
-run_smoke "mcp を明示した起動" "$TMP/smoke-mcp.json" "$DIST/bin/pecot-workflow-mcp.mjs" mcp
+run_smoke "引数なし起動" "$TMP/smoke-default.json" "$SMOKE_BIN"
+run_smoke "mcp を付けた起動" "$TMP/smoke-mcp.json" "$SMOKE_BIN" mcp
 
 # README のツール表（`| \`name\`` の行）が tools/list の名前列と順序込みで一致することを固定する。
 # ツールの追加・改名・順序変更で表だけが古くなっても緑のままになるのを防ぐ。
@@ -605,7 +598,7 @@ SMOKE_CALLS_OUT="$TMP/smoke-calls.json"
 SMOKE_CWD="$CALL_REPO" \
     SMOKE_TOOL_CALLS='[{"name":"session_show","arguments":{"directory":"."}}]' \
     SMOKE_RESOURCE_READS='["pecot-template://comment/plan"]' \
-    smoke_node "$DIST/bin/pecot-workflow-mcp.mjs" mcp \
+    smoke_node "$SMOKE_BIN" \
     > "$SMOKE_CALLS_OUT" 2> "$SMOKE_CALLS_OUT.err"
 CALL_TITLES=(
     "session_show の tools/call が成功（isError が false）を返す"
@@ -644,7 +637,7 @@ LINK_CONFIG
 SMOKE_LINK_OUT="$TMP/smoke-link.json"
 DEVCONTAINER=1 SMOKE_CWD="$LINK_WT" \
     SMOKE_TOOL_CALLS="[{\"name\":\"worktree_link\",\"arguments\":{\"directory\":\"$LINK_WT\"}}]" \
-    smoke_node "$DIST/bin/pecot-workflow-mcp.mjs" mcp \
+    smoke_node "$SMOKE_BIN" \
     > "$SMOKE_LINK_OUT" 2> "$SMOKE_LINK_OUT.err"
 bt_eq "worktree_link の tools/call が成功（isError が false）を返す" "false" \
     "$(call_value "$SMOKE_LINK_OUT" 0 isError)"
@@ -660,23 +653,6 @@ if [ -f "$LINK_WT/.pecot/.gitignore" ] && [ ! -L "$LINK_WT/.pecot/.gitignore" ] 
 else
     bt_fail "worktree_link が同梱のスクリプトで .pecot/.gitignore を実ファイルで作る" ".pecot/.gitignore を作らなかった: $LINK_TEXT"
 fi
-
-# 引数がある起動は、そのまま commander へ渡す（argv 注入が --version を止めない）。
-VERSION_RC=0
-node "$DIST/bin/pecot-workflow-mcp.mjs" --version > "$TMP/version.out" 2> "$TMP/version.err" || VERSION_RC=$?
-bt_eq "--version が exit 0 で終わる" "0" "$VERSION_RC"
-bt_eq "--version が配布ツリーの plugin.json の版を返す" "pecot version $PLUGIN_VERSION" \
-    "$(tr -d '\n' < "$TMP/version.out")"
-
-# 配布物の bin に引数を渡すと CLI として動く。
-BOARD_HELP_RC=0
-node "$DIST/bin/pecot-workflow-mcp.mjs" board show --help > "$TMP/board-help.out" 2> "$TMP/board-help.err" || BOARD_HELP_RC=$?
-bt_eq "board show --help が exit 0 で終わる" "0" "$BOARD_HELP_RC"
-
-# smoke 用に張った symlink は配布ツリーの一部ではないので消す。
-rm -rf "$DIST/node_modules"
-bt_eq "smoke 用の node_modules を配布ツリーに残さない" "0" \
-    "$(find "$DIST" -maxdepth 1 -name 'node_modules' | wc -l | tr -d ' ')"
 
 # --- 5. 冪等性の確認と Release への添付 ---
 
@@ -736,7 +712,7 @@ bt_eq "tgz の package.json の version" "$TEST_VERSION" \
 TREE="$TMP/tgz-list.txt"
 tgz_names > "$TREE"
 for entry in package/package.json package/npm-shrinkwrap.json package/README.md package/LICENSE \
-    package/.claude-plugin/plugin.json package/cli/dist/cli.js package/cli/templates/comment/plan.md package/hooks/lib/core/pecot-gitignore-ensure.sh package/bin/pecot-workflow-mcp.mjs; do
+    package/.claude-plugin/plugin.json package/cli/dist/main.js package/cli/templates/comment/plan.md package/hooks/lib/core/pecot-gitignore-ensure.sh; do
     if grep -qxF "$entry" "$TREE"; then
         bt_pass "tgz に $entry が入る"
     else

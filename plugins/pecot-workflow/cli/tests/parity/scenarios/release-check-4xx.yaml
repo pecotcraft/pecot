@@ -1,8 +1,7 @@
 # Dependabot は成功し、code scanning の一覧が 403（権限不足。GHAS 無しの 403 とは別）。exit 1。
 id: release-check-4xx
-command:
-  path: [release, check]
-  args: []
+tool: release_check
+arguments: {}
 setup:
   repo:
     files:

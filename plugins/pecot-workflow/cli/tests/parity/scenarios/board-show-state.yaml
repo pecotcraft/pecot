@@ -1,7 +1,6 @@
 # アクティブなプロジェクト設定が無い。案内を出して exit 1。
 id: board-show-state
-command:
-  path: [board, show]
-  args: []
+tool: board_show
+arguments: {}
 setup: {}
 github: []

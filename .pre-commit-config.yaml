@@ -121,14 +121,6 @@ repos:
         verbose: true
         stages: [manual]
 
-      - id: check-runtime-lock
-        name: runtime-lock.yaml matches root pnpm-lock.yaml
-        entry: node .githooks/scripts/gen-runtime-lock.mjs --check
-        language: unsupported
-        pass_filenames: false
-        files: (^|/)(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|runtime-(lock|workspace)\.yaml)$|^\.githooks/scripts/gen-runtime-lock\.mjs$
-        stages: [pre-commit]
-
       - id: nx-affected-lint
         name: nx affected lint
         entry: .githooks/lib/with-timing.sh nx-affected-lint .githooks/pre-commit/run-affected-lint.sh

@@ -36,27 +36,27 @@ const STALE = `error: ${COMMANDS_MD_PATH} is stale\n  run: ${REGENERATE_COMMAND}
 const EXPECTED = [
   '<!-- このファイルは生成物です。手で直さず、`CMD` で作り直してください。 -->',
   '',
-  '# コマンド一覧',
+  '# ツール一覧',
   '',
-  '引数と詳しい振る舞いは `pecot <コマンド> --help` で確かめてください。',
+  '入力と詳しい振る舞いは、MCP のツールの定義（tools/list）で確かめてください。',
   '',
   '## issue',
   '',
-  '| コマンド | 説明 |',
+  '| ツール | 説明 |',
   '| --- | --- |',
-  '| `issue create` | Create an issue |',
-  '| `issue old` | Old way to create an issue（非推奨） |',
-  '| `issue quick` | Create an issue \\| open \\<branch> at once |',
+  '| `issue_create` | Create an issue |',
+  '| `issue_old` | Old way to create an issue（非推奨） |',
+  '| `issue_quick` | Create an issue \\| open \\<branch> at once |',
   '',
   '## pr',
   '',
-  '| コマンド | 説明 |',
+  '| ツール | 説明 |',
   '| --- | --- |',
-  '| `pr create` | Create a pull request |',
+  '| `pr_create` | Create a pull request |',
   '',
   '## その他',
   '',
-  '| コマンド | 説明 |',
+  '| ツール | 説明 |',
   '| --- | --- |',
   '| `add-to-project` | Add an issue to the board |',
   '| `create-branch` | Create a branch |',
@@ -64,21 +64,21 @@ const EXPECTED = [
 ].join('\n')
 
 describe('commands-md', () => {
-  it('コマンドをグループの名前順に並べ、パスが 1 段のものを最後の「その他」にまとめて出力する', async () => {
-    await explains('定義書から `commands.md` の本文を作成する `renderCommandsMd` のテストです。コマンドがグループの名前順に並び、パスが 1 段のコマンドが最後の「その他」の表にまとまることを確認します。')
+  it('ツールを名前の最初の語の順にまとめ、語が 1 つのものを最後の「その他」にまとめて出力する', async () => {
+    await explains('定義書から `commands.md` の本文を作成する `renderCommandsMd` のテストです。ツールが名前の最初の語ごとの表に並び、語が 1 つのツールが最後の「その他」の表にまとまることを確認します。')
     const file = await step('定義を読み込む', async () => await fixtureFile(await materialize('commands-md')))
     stepSync('描いた文書を比べる', () => {
       expect(renderCommandsMd(file, 'CMD')).toBe(EXPECTED)
     })
   })
 
-  it('非表示にした項目と CLI を持たない項目を、commands.md に出力しない', async () => {
-    await explains('定義書から `commands.md` の本文を作成する `renderCommandsMd` のテストです。`hidden` の項目と、CLI の面を持たず MCP だけの項目が、出力に含まれないことを確認します。')
+  it('非表示にした項目と MCP の面を持たない項目を、commands.md に出力しない', async () => {
+    await explains('定義書から `commands.md` の本文を作成する `renderCommandsMd` のテストです。`hidden` の項目と、MCP の面を持たず action だけの項目が、出力に含まれないことを確認します。')
     const file = await step('定義を読み込む', async () => await fixtureFile(await materialize('commands-md')))
     const text = stepSync('文書を描く', () => renderCommandsMd(file, 'CMD'))
     stepSync('文書を比べる', () => {
       expect(text).not.toContain('internal')
-      expect(text).not.toContain('mcp only')
+      expect(text).not.toContain('action only')
     })
   })
 

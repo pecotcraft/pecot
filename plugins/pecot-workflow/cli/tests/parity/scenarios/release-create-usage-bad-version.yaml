@@ -1,9 +1,8 @@
 # バージョンが X.Y.Z の形ではない。exit 1。
 id: release-create-usage-bad-version
-command:
-  path: [release, create]
-  args:
-    - "v0.2"
+tool: release_create
+arguments:
+  version: v0.2
 setup:
   repo:
     files:

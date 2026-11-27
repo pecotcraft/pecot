@@ -1,19 +1,12 @@
-# 本文が必須セクションを欠く。検証違反を列挙して exit 3 になる（dry-run でも同じ）。
+# 本文が必須セクションを欠く。検証違反を列挙して exit 3 になる。
 id: pr-create-state-validation
-command:
-  path: [pr, create]
-  args:
-    - "-m"
-    - "本文だけ"
-    - "-t"
-    - "feat(demo): #12 見本の変更"
-    - "-b"
-    - "main"
-    - "-r"
-    - "acme/demo"
-    - "--screenshot"
-    - "CLI の出力の文を変えない変更のため撮らない"
-    - "--dry-run"
+tool: pr_create
+arguments:
+  message: 本文だけ
+  title: "feat(demo): #12 見本の変更"
+  base: main
+  repo: acme/demo
+  screenshot: CLI の出力の文を変えない変更のため撮らない
 setup:
   repo:
     branch: feat/demo/12

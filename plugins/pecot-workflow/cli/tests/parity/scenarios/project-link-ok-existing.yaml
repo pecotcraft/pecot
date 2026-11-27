@@ -1,8 +1,9 @@
 # 登録済みのリポジトリのブランチを更新する。API は呼ばない。
 id: project-link-ok-existing
-command:
-  path: [project, link]
-  args: [acme/demo, --release-branch, release]
+tool: project_link
+arguments:
+  release_branch: release
+  repo: acme/demo
 setup:
   repo:
     files:

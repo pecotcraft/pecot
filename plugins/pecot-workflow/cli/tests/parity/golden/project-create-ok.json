@@ -1,7 +1,33 @@
 {
-  "stdout": "",
-  "stderr": "created: project #1 https://ghes.example.com/users/acme/projects/1\ncreated: field pecot-status (ID: PVTSSF_w)\nskipped: field pecot-lane (no lanes given)\nwarning: field pecot-lane was not created because no lanes were given\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with --lanes\nskipped: field Status (not found)\ncreated: config file {{TMP}}/base/demo/.pecot/config/projects/ghes.example.com_acme_1.json\nset: active project to ghes.example.com_acme_1\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "created: project #1 https://ghes.example.com/users/acme/projects/1",
+  "structuredContent": {
+    "number": 1,
+    "url": "https://ghes.example.com/users/acme/projects/1",
+    "title": "board",
+    "owner": "acme",
+    "fields": [
+      {
+        "name": "pecot-status",
+        "change": "create",
+        "addedOptions": []
+      },
+      {
+        "name": "pecot-lane",
+        "change": "skip",
+        "addedOptions": []
+      },
+      {
+        "name": "Status",
+        "change": "skip",
+        "addedOptions": []
+      }
+    ],
+    "warnings": [
+      "field pecot-lane was not created because no lanes were given\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes"
+    ]
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

@@ -1,8 +1,7 @@
 # ファイルを渡さない。使い方の誤りで exit 2 になる。
 id: issue-check-usage
-command:
-  path: [issue, check]
-  args: []
+tool: issue_check
+arguments: {}
 setup:
   repo:
     files:

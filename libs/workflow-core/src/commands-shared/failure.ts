@@ -9,7 +9,7 @@ import { hintedTextOf } from './command-hint.js'
 import type { FailureKind } from './failure-kind.js'
 import { AbortedError, createOutput, reportAborted } from './output.js'
 import type { CommandIo } from './command-definition.js'
-import { formatUsageError, USAGE_EXIT_CODE, UsageError } from './usage-error.js'
+import { USAGE_EXIT_CODE, UsageError } from './usage-error.js'
 
 export const FAILURE_EXIT_CODE = 1
 
@@ -49,13 +49,13 @@ export function kindOfFailure(error: unknown): FailureKind {
 }
 
 /**
-コマンドの実行で捕まえた例外を、終了コードにする。CLI の runCli と MCP のツールの呼び出しが共有する。
-使い方の誤りは枠付きで stderr に出して 2。確認の中止は Aborted. で 1。報告できる失敗は error の行で 1。それ以外は伝える
+ツールの実行で捕まえた例外を、終了コードにする。MCP のツールの呼び出しが使う。
+入力の誤りは文を stderr に出して 2。確認の中止は Aborted. で 1。報告できる失敗は error の行で 1。それ以外は伝える
 */
-export function exitCodeOfFailure(error: unknown, io: CommandIo, width: number): number {
+export function exitCodeOfFailure(error: unknown, io: CommandIo): number {
   if (error instanceof UsageError) {
     io.failureKind?.(kindOfFailure(error))
-    io.stderr(formatUsageError(error, width))
+    io.stderr(`${error.message}\n`)
     return USAGE_EXIT_CODE
   }
   if (error instanceof AbortedError) {

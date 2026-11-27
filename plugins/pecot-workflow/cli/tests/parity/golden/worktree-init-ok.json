@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "created: worktree config {{TMP}}/base/demo/.pecot/config/worktree-config.json\ncreated: worktree ignore file {{TMP}}/base/demo/.pecot/config/.worktreeignore\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "created: worktree config {{TMP}}/base/demo/.pecot/config/worktree-config.json",
+  "structuredContent": {
+    "configFile": "{{TMP}}/base/demo/.pecot/config/worktree-config.json",
+    "ignoreFile": "{{TMP}}/base/demo/.pecot/config/.worktreeignore"
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/.worktreeignore": "# Git メタデータ\n.git/\n\n# Python キャッシュ。\n__pycache__/\n*.pyc\n*.pyo\n.venv/\nvenv/\n*.egg-info/\n.pytest_cache/\n.mypy_cache/\n.ruff_cache/\n.tox/\n\n# カバレッジ\nhtmlcov/\n.coverage\n\n# ビルド生成物\ndist/\nbuild/\n\n# JS 依存\nnode_modules/\n\n# pecot の実行時状態・一時領域（config は worktree-config の links 経由で symlink）\n.pecot/\ntmp/\n\n# Nx ビルド状態（version-plans は残すので .nx/ 丸ごとは除外しない）\n.nx/workspace-data/\n",

@@ -1,7 +1,0 @@
-{
-  "stdout": "",
-  "stderr": "Usage: pecot issue attributes [OPTIONS]\nTry 'pecot issue attributes --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such option: --bogus                                                      │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
-  "exitCode": 2,
-  "requests": [],
-  "files": {}
-}

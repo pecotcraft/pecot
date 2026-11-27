@@ -25,10 +25,9 @@ if [ "${PECOT_WORKFLOW_SKIP_INSTALL:-0}" = "1" ]; then
 fi
 
 # Node 側（cli/）は repo root の 1 つの pnpm workspace に属する。
-# pnpm 起動コマンドの解決は bin/_lib.sh (resolve_pnpm) を使う。
 # `$PNPM` は意図的に quote しない（"corepack pnpm" を 2 トークンに分割するため）。
-# shellcheck source=../../bin/_lib.sh
-. "$PLUGIN_ROOT/bin/_lib.sh"
+# shellcheck source=pnpm-lib.sh
+. "$PLUGIN_ROOT/scripts/ci/pnpm-lib.sh"
 PNPM="$(resolve_pnpm "$PLUGIN_ROOT")"
 if [ -z "$PNPM" ]; then
     echo "ERROR: pnpm / corepack / npx not found. Install Node.js 24.22.1+ in the 24.x line or 26.12.1+ (npm and npx are bundled) and retry." >&2

@@ -22,9 +22,8 @@ export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 # nx 経由実行と直接実行で挙動が割れる問題を予防的に塞ぐため、除去する。
 unset FORCE_COLOR
 
-# pnpm 起動コマンドの解決は bin/_lib.sh (resolve_pnpm) を使う。
-# shellcheck source=../../bin/_lib.sh
-. "$PLUGIN_ROOT/bin/_lib.sh"
+# shellcheck source=pnpm-lib.sh
+. "$PLUGIN_ROOT/scripts/ci/pnpm-lib.sh"
 
 PNPM="$(resolve_pnpm "$PLUGIN_ROOT")"
 if [ -z "$PNPM" ]; then

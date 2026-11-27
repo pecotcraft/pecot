@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの応答は readonly にしない */
 /* eslint-disable unicorn/no-null -- 偽サーバの応答に JSON の null を使う */
-// board add・board move・board show の振る舞いを、MCP のツールと runCli をプロセス内で呼んで確かめる。GitHub は偽サーバにする。
+// board_add・board_move・board_show の振る舞いを、ツールをプロセス内で呼んで確かめる。GitHub は偽サーバにする。
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -81,7 +81,7 @@ const stableWarnings = (result: ToolResult): string[] => (Array.isArray(result.s
 const noAlerts = (): ResponseRule => restRule('GET', '/repos/acme/demo/dependabot/alerts', 200, [])
 // pecot-lane の無いボード。Ready の #1 は着手できる
 const noLaneRules = (): ResponseRule[] => [board(item('PVTI_1', 1, 'Ready'), item('PVTI_3', 3, 'Active')), noAlerts(), prerequisitesRule({ number: 1 })]
-const showCommand = async (argv: readonly string[], rules: ResponseRule[]): Promise<CommandResult> => await runCommand({ argv: ['board', 'show', ...argv], github: rules, config: boardConfig() })
+const showCommand = async (arguments_: Readonly<Record<string, unknown>>, rules: ResponseRule[]): Promise<CommandResult> => await runCommand({ tool: 'board_show', arguments: arguments_, github: rules, config: boardConfig() })
 
 function itemLanes(result: ToolResult): unknown[] {
   const items = asJson(result.structured['board'])['items']
@@ -95,7 +95,7 @@ const showRules = (): ResponseRule[] => [
   prerequisitesRule({ number: 1, blockedBy: [notStarted] }),
 ]
 
-describe('board add', () => {
+describe('board_add', () => {
   describe('MCP の data', () => {
     it('Issue を追加すると、追加した Issue・設定した Status を返す', async () => {
       await explains('MCP ツール `board_add` の結果のテストです。Issue を追加した場合に、追加した Issue と設定した Status を返すことを確認します。')
@@ -105,7 +105,7 @@ describe('board add', () => {
   })
 })
 
-describe('board move', () => {
+describe('board_move', () => {
   describe('MCP の data', () => {
     it('Status を設定すると、その Issue と Status を返す', async () => {
       await explains('MCP ツール `board_move` の結果のテストです。Status を設定した場合に、その Issue と Status を返すことを確認します。')
@@ -115,7 +115,7 @@ describe('board move', () => {
   })
 })
 
-describe('board show', () => {
+describe('board_show', () => {
   describe('MCP の data', () => {
     const repositories = [{ owner: 'acme', name: 'demo', develop_branch: 'main', release_branch: 'release', packages: [{ name: 'pkg', changelog: 'packages/pkg/CHANGELOG.md' }] }]
     const expected = {
@@ -138,10 +138,10 @@ describe('board show', () => {
       warnings: ['1 Ready or Blocked Issue may be in a column or Status that does not match its judgment; run the pecot-board-sync workflow (Run workflow on its page in the Actions tab) to fix'],
     }
 
-    it('json を省くと、--json の中身に release_type・packages と列の合わない件数を足して返す', async (context) => {
+    it('json を省くと、json の中身に release_type・packages と列の合わない件数を足して返す', async (context) => {
       await verifies(context, 'PW-BOARD-SHOW-01')
       await verifies(context, 'PW-BOARD-SHOW-33')
-      await explains('MCP ツール `board_show` の結果のテストです。`json` を省略した場合に、`--json` の内容に `release_type`・`packages` と、列が判定と合わない件数を加えて返すことを確認します。')
+      await explains('MCP ツール `board_show` の結果のテストです。`json` を省略した場合に、`json` の内容に `release_type`・`packages` と、列が判定と合わない件数を加えて返すことを確認します。')
       const result = await tool('board_show', {}, showRules(), boardConfig(repositories))
       expect(result.structured).toEqual(expected)
     })
@@ -223,7 +223,7 @@ describe('board show', () => {
       expectClean(result)
       expect(itemLanes(result)).toEqual([null, null])
       expect(result.structured['lanes']).toEqual([])
-      const markdown = await showCommand([], noLaneRules())
+      const markdown = await showCommand({}, noLaneRules())
       expect(markdown.code).toBe(0)
       expect(markdown.stdout).toBe([
         '# Project info', '', '## Overview', `- Project: ${ACTIVE_PROJECT}`, `- Host: ${DEFAULT_HOST}`, '- Owner: acme', '- Roadmap repo: none', '',
@@ -235,8 +235,8 @@ describe('board show', () => {
 
     it('lanes が空でないと、Markdown の Board status の後に Lanes の節を表で出し、lane の値を持たない組を (none) と書く', async (context) => {
       await verifies(context, 'PW-BOARD-SHOW-41')
-      await explains('`board show` の `Lanes` の節のテストです。`lanes` が空でない場合に、Markdown の `Board status` の後ろへ `Lanes` の節を表で出力し、`lane` の値を持たない組を `(none)` と表示することを確認します。')
-      const result = await showCommand([], laneRules())
+      await explains('`board_show` の `Lanes` の節のテストです。`lanes` が空でない場合に、Markdown の `Board status` の後ろへ `Lanes` の節を表で出力し、`lane` の値を持たない組を `(none)` と表示することを確認します。')
+      const result = await showCommand({}, laneRules())
       expect(result.code).toBe(0)
       expectClean(result)
       expect(result.stdout).toContain([
@@ -254,9 +254,9 @@ describe('board show', () => {
       ].join('\n'))
     })
 
-    it('--json を付けて打つと、lanes を JSON にも入れる', async () => {
-      await explains('`board show --json` のテストです。`--json` を指定した場合に、`lanes` を JSON にも含めることを確認します。')
-      const result = await showCommand(['--json'], laneRules())
+    it('json を付けて打つと、lanes を JSON にも入れる', async () => {
+      await explains('`board_show` の `json` のテストです。`json` を指定した場合に、`lanes` を JSON にも含めることを確認します。')
+      const result = await showCommand({ json: true }, laneRules())
       expect(result.code).toBe(0)
       expect(asJson(JSON.parse(result.stdout))['lanes']).toEqual(laneSummaries)
     })

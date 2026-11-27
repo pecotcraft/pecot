@@ -1,8 +1,9 @@
 # ベースブランチの ref が 404。API エラーとして exit 1 になる。
 id: session-start-4xx
-command:
-  path: [session, start]
-  args: [acme/demo/7, feat]
+tool: session_start
+arguments:
+  issue_ref: acme/demo/7
+  branch: feat
 setup:
   repo:
     files:

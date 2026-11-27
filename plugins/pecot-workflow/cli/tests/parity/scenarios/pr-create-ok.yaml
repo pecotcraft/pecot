@@ -1,18 +1,33 @@
 # PR を作る。push 済みで作業ツリーが綺麗。POST /pulls のあと、Issue を In Review に更新し、待つ Issue（0 件）を読む。
 id: pr-create-ok
-command:
-  path: [pr, create]
-  args:
-    - "-m"
-    - "## Summary — 見本の変更を取り込む\n\n見本の変更を取り込みます。\n\n## Changes\n\nなし\n\n## Verified — 見本の確認を終えた\n\n確認しました。\n\n- 見本の確認 — 通過\n\n## Risks — 残る懸念はない\n\nなし。\n\n- 見本の懸念 — なし\n\nCloses #12\n"
-    - "-t"
-    - "feat(demo): #12 見本の変更"
-    - "-b"
-    - "main"
-    - "-r"
-    - "acme/demo"
-    - "--screenshot"
-    - "CLI の出力の文を変えない変更のため撮らない"
+tool: pr_create
+arguments:
+  message: |
+    ## Summary — 見本の変更を取り込む
+
+    見本の変更を取り込みます。
+
+    ## Changes
+
+    なし
+
+    ## Verified — 見本の確認を終えた
+
+    確認しました。
+
+    - 見本の確認 — 通過
+
+    ## Risks — 残る懸念はない
+
+    なし。
+
+    - 見本の懸念 — なし
+
+    Closes #12
+  title: "feat(demo): #12 見本の変更"
+  base: main
+  repo: acme/demo
+  screenshot: CLI の出力の文を変えない変更のため撮らない
 setup:
   repo:
     branch: feat/demo/12

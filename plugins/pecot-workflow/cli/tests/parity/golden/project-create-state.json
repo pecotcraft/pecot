@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: project already exists: board\n  url: https://ghes.example.com/users/acme/projects/1\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "project already exists: board\n  url: https://ghes.example.com/users/acme/projects/1",
+  "structuredContent": {
+    "kind": "already-exists",
+    "detail": "project already exists: board\n  url: https://ghes.example.com/users/acme/projects/1"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

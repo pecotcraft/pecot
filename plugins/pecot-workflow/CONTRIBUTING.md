@@ -2,12 +2,12 @@
 
 このガイドでは、pecot-workflow プラグイン（`plugins/pecot-workflow/`）を改修するときの決まりと、変更を確かめる手順を説明します。
 
-## 1. 成果物テンプレートは CLI 側に置く
+## 1. 成果物テンプレートは cli/templates/ に置く
 
 スキルが作る Issue・PR・コメントの本文の雛形は、`cli/templates/<種別>/<名前>.<ext>` に置きます。スキル（`skills/*/`）には置きません。
 MCP サーバは、雛形を `pecot-template://<種別>/<名前>` の resource として出します。スキルは resource を読んで作業ファイルに写し、書き込んでから、そのパスを投稿のツールに渡します。
 
-雛形の定義元を 1 か所にするための決まりです。対話（AskUserQuestion）を伴う雛形でも、雛形は CLI に置き、対話はスキルが受け持ちます。
+雛形の定義元を 1 か所にするための決まりです。対話（AskUserQuestion）を伴う雛形でも、雛形は `cli/templates/` に置き、対話はスキルが受け持ちます。
 
 | 置き場所 | 置くもの |
 |:---|:---|
@@ -20,14 +20,13 @@ MCP サーバは、雛形を `pecot-template://<種別>/<名前>` の resource �
 find plugins/pecot-workflow/skills -type f \( -name "*.json" -o -name "*.yaml" -o -name "*.yml" \)
 ```
 
-## 2. コマンド名の決まり
+## 2. ツール名の決まり
 
-コマンドの名前（`path`）は、`<対象> <動詞>` の 2 語にします。MCP のツール名は 2 語を `_` でつないだ `<対象>_<動詞>` になり、前が対象、後ろが動詞と読めます。
+MCP のツールの名前は、2 語を `_` でつないだ `<対象>_<動詞>` にします。前が対象、後ろが動詞と読めます。
 
 - どちらの語も `^[a-z]+$` に合わせる。ハイフンと数字は使わない
 - 1 語目は次のグループ、2 語目は次の動詞の語彙から選ぶ
-- 同じ対象を扱うコマンドは、同じ 1 語目に置く
-- 起動の語である `pecot mcp` は対象外
+- 同じ対象を扱うツールは、同じ 1 語目に置く
 
 ### グループ
 
@@ -54,41 +53,37 @@ find plugins/pecot-workflow/skills -type f \( -name "*.json" -o -name "*.yaml" -
 | 作業の流れ | `start`・`restore`・`finish`・`sync`（判定や一覧に合わせて書き直す）・`move`（列を移す）・`merge`（PR を取り込む） |
 | Issue | `comment`・`reopen`・`block`・`unblock` |
 
-読む動詞のコマンドは、何も書き換えません。書き込むコマンドは、ほかの種類の動詞に置きます。
-語彙に無い語を使うときは、先に `cli/src/commands/names.ts` の一覧へ意味と一緒に追加します。追加しないとテストが失敗します。
-Issue の作成と作業の開始を 1 つのコマンドで行う動詞（以前の `quick`）は置きません。作成は `issue create`（`freeform`）、開始は `session start` が行います。
+読む動詞のツールは、何も書き換えません。書き込むツールは、ほかの種類の動詞に置きます。
+語彙に無い語を使うときは、先に `libs/workflow-core/src/commands-shared/names.ts` の一覧へ意味と一緒に追加します。追加しないとテストが失敗します。
+Issue の作成と作業の開始を 1 つのツールで行う動詞（以前の `quick`）は置きません。作成は `issue_create`（`freeform`）、開始は `session_start` が行います。
 
 ### 入力名
 
-同じものを指す入力は、コマンドが違っても同じ名前にします。
+同じものを指す入力は、ツールが違っても同じ名前にします。
 
 | 指すもの | 入力名 | 例 |
 |:---|:---|:---|
-| Issue | `issue_ref` | `issue comment`・`session start`・`board move` |
-| PR | `pr_ref` | `pr show`・`pr check` |
-| リポ | `repo` | `branch delete`・`project link` |
-| 操作するブランチ | `branch` | `session start`・`branch delete` |
+| Issue | `issue_ref` | `issue_comment`・`session_start`・`board_move` |
+| PR | `pr_ref` | `pr_show`・`pr_check` |
+| リポ | `repo` | `branch_delete`・`project_link` |
+| 操作するブランチ | `branch` | `session_start`・`branch_delete` |
 
 - PR の両端を表す `base`・`head` と、真偽値の `delete_branch` は対象外
 - 名前を変えても、古い名前の別名は作らない。古い名前は、知らない名前として止まる。利用者向けの変更点は version plan に書き、README には移行の手順を書かない
-- 書き込むコマンド（effects に `write` か `destructive` を持つもの）には、CLI だけの入力 `dry_run`（`--dry-run`・`-n`）を付ける。予行でも入力の検証と読み取りは行い、書き込みの直前で `dry-run: would ...` の行を出して終わる
-  - MCP のツールには出さない。定義書では `input` に入れず、`cli.only` に入る
-  - 例外: 予行を別の check のコマンドが担うものは、`dry_run` を持たない（`issue create` の予行は `issue check`）
+- 書き込むツールは予行の入力を持たない。書き込む前の確かめは、ホストのツールの承認が担う。予行を別の check のツールが担うものもある（`issue_create` の前の `issue_check`）
 
 ### 次の操作の案内
 
-出力で次の操作を案内するときは、`pecot <グループ> <動詞>` の文字列を直接書きません。MCP で呼ぶエージェントは `pecot` のコマンドを打てないためです。
-案内は、コマンドの path と入力をデータで渡し、`cli/src/domain/command-hint.ts`・`cli/src/commands/command-hint.ts` の関数で文にします。
-CLI では `pecot project link o/r --develop-branch develop` の形で出ます。MCP では `project_link with repo: "o/r", develop_branch: "develop"` の形で出ます。
-`--help` の examples は CLI にだけ出るので、`pecot ...` のまま書いて構いません。
+出力で次の操作を案内するときは、ツールの名前と入力の文字列を直接書きません。
+案内は、ツールと入力をデータで渡し、`libs/workflow-core/src/commands-shared/command-hint.ts` の関数で文にします。`project_link with repo: "o/r", develop_branch: "develop"` の形で出ます。
 
 ### 決まりを確かめる場所
 
 - `libs/interface-spec` の検証が、定義書（`interface/generated.json`）の全項目の名前を、最上位の `names` と比べる。pecot-visual と pecot-tools の定義書も対象
   - 語彙を変えたら、`cli/scripts/export-interface.ts` で `generated.json` を書き出し直す。書き出し直さないと `diffGenerated` が失敗する
-- `cli/src/commands/tests/registry.test.ts` が、すべてのコマンドの path を `names.ts` の関数で確かめる
-- `cli/tests/interface/` が、書き込むコマンドの `dry_run` と、対象ごとの入力名を確かめる
-- `cli/tests/direct-hint-lint.test.ts` が、`cli/src/` の出力に `pecot <グループ>` の直書きが無いことを確かめる
+- `cli/src/commands/tests/registry.test.ts` が、すべてのツールの名前を `names.ts` の関数で確かめる
+- `cli/tests/interface/` が、対象ごとの入力名を確かめる
+- `cli/tests/direct-hint-lint.test.ts` が、`cli/src/` の出力に案内の直書きが無いことを確かめる
 
 ## 3. 試験環境
 
@@ -101,7 +96,29 @@ GitHub に書き込む変更は、マージの前に検証用のリポとボー�
 | このリポ | `pecotcraft/pecot`。ボードは Projects の 1 番。確かめでは書き込みません |
 | 検証用のリポ | `pecotcraft/pecot-sandbox`。確かめで作る Issue・PR・ブランチを置きます |
 | 検証用のボード | `pecot sandbox`（Projects の 3 番）。確かめで書き込むボードはこれだけです |
-| 検証用の clone | `.pecot/work/<Issue番号>/pecot-sandbox/`。`pecot` を動かす作業ディレクトリです |
+| 検証用の clone | `.pecot/work/<Issue番号>/pecot-sandbox/`。作業ツリーのツールを呼ぶ作業ディレクトリです |
+
+### 作業ツリーのツールを呼ぶ
+
+プラグインの MCP サーバは、npm に出した版です。直したツールを確かめるときは、作業ツリーで build したサーバを、[MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) の CLI で起動して呼びます。
+
+```bash
+# 作業ツリーで build する。cli/src・libs/workflow-core を直すたびに打つ
+cd <作業ツリー>
+pnpm --filter @pecot/workflow-core-src run build && pnpm --filter @pecot/pecot-workflow-cli run build
+
+# 呼ぶ。サーバは、打ったディレクトリを作業ディレクトリにして動く
+npx --prefix="$HOME/.cache/pecot-inspector" -y @modelcontextprotocol/inspector@2.5.0 --cli \
+  node <作業ツリー>/plugins/pecot-workflow/cli/dist/main.js \
+  --method tools/call --tool-name board_show --tool-args-json '{}' --format json
+```
+
+- `--prefix` は外さない。`package.json` の無いディレクトリを渡す。外すと、リポの `package.json` の `devEngines` で npm が止まる（`EBADDEVENGINES`）
+- ツールの一覧は `--method tools/list`、テンプレートは `--method resources/read --uri pecot-template://comment/plan` で読める
+- Inspector は、サーバに `HOME`・`PATH` など 6 つの環境変数しか渡さない。トークンを環境変数だけで持つ環境では、`-e PECOT_GITHUB_COM_TOKEN=<トークン>` を足す。devcontainer では `gh` の認証を使うので要らない
+- 結果は JSON で出る。失敗は `result.isError` が `true` で、`structuredContent.kind` に原因の名前が入る
+
+以下の手順の `<呼ぶ> <ツール> '<入力>'` は、この形で `--tool-name <ツール> --tool-args-json '<入力>'` を渡すことを指します。
 
 ### 基本の流れ
 
@@ -118,25 +135,25 @@ GitHub に書き込む変更は、マージの前に検証用のリポとボー�
    ```bash
    git clone https://github.com/pecotcraft/pecot-sandbox .pecot/work/<Issue番号>/pecot-sandbox
    cd .pecot/work/<Issue番号>/pecot-sandbox
-   <作業ツリー>/plugins/pecot-workflow/bin/pecot project activate github.com_pecotcraft_3.json
+   <呼ぶ> project_activate '{"project":"github.com_pecotcraft_3.json"}'
    ```
 
-3. 書き込む前に、毎回 `pecot board show --json`（MCP では `board_show`）を実行し、`project.number` が `3` であることを確かめる。ボードの題は出ないので、番号で見る
+3. 書き込む前に、毎回 `board_show` を呼び、結果の `project.number` が `3` であることを確かめる。ボードの題は出ないので、番号で見る
 4. 作るものの名前を決める。`<乱数>` は `[0-9a-z]{4}` の 4 文字、`<Issue番号>` はこのリポで確かめている Issue の番号
 
    | 作るもの | 名前の形 |
    |:---|:---|
-   | ブランチ | `cuj/<Issue番号>-<乱数>`（`session start` が後ろに `/<検証用の Issue 番号>` を付けた形も含みます） |
+   | ブランチ | `cuj/<Issue番号>-<乱数>`（`session_start` が後ろに `/<検証用の Issue 番号>` を付けた形も含みます） |
    | Issue・PR の題 | `[cuj <Issue番号>-<乱数>]` を含める。pecot が題の先頭に `[Task]` などを付けるので、先頭には置かない |
 
-5. clone の中で、作業ツリーの `bin/pecot` を使って作る。`gh pr create`・`gh issue create` は、`-R pecotcraft/pecot-sandbox` を付けても pecot-workflow のフックが止める
+5. clone の中で、作業ツリーのツールを呼んで作る。`gh pr create`・`gh issue create` は、`-R pecotcraft/pecot-sandbox` を付けても pecot-workflow のフックが止める
 
    ```bash
-   <作業ツリー>/plugins/pecot-workflow/bin/pecot issue create ...
-   <作業ツリー>/plugins/pecot-workflow/bin/pecot session start ...   # リモートにブランチを作るだけで、checkout はしない
+   <呼ぶ> issue_create '{"files":["<Issue のファイル>"]}'
+   <呼ぶ> session_start '{"issue_ref":"<Issue>","branch":"<ブランチ>"}'   # リモートにブランチを作るだけで、checkout はしない
    git fetch origin && git checkout <作ったブランチ>
    # 変更を commit して push する
-   <作業ツリー>/plugins/pecot-workflow/bin/pecot pr create ...
+   <呼ぶ> pr_create '{"file":"<PR のファイル>"}'
    ```
 
    スキル・MCP ツールで作るときは、clone で「直した pecot-workflow を動かす」の手順でクライアントを起動する
@@ -157,8 +174,9 @@ clone は、確かめるセッションごとに 1 つ作ります。手順 5 �
 
 ### 直した pecot-workflow を動かす
 
-スキル・MCP ツール・フックの変更を確かめるときは、検証用の clone でクライアントを起動し、作業ツリーのプラグインを読み込ませます。
+スキル・フックの変更を確かめるときは、検証用の clone でクライアントを起動し、作業ツリーのプラグインを読み込ませます。
 `--plugin-dir` には、直した作業ツリーの絶対パスを渡します。base など別の checkout を渡すと、直していない版が動きます。
+読み込んだプラグインでも、MCP サーバは `.mcp.json` の npm の版が動きます。直したツールは「作業ツリーのツールを呼ぶ」の形で確かめます。
 
 clone で初めて起動すると、フォルダーを信頼するかを聞かれます。Claude Code では `Yes, I trust this folder` を選びます。GitHub Copilot CLI では `Yes` を選びます。`remember this folder` は `~/.copilot/settings.json` を書き換えるので選びません。
 
@@ -210,12 +228,10 @@ COPILOT_PLUGIN_DIR_ONLY=true copilot --plugin-dir <作業ツリー>/plugins/peco
 | スキル | `/reload-plugins` | `/skills reload` |
 | エージェント | `/reload-plugins` | 不要（呼ぶたびに読み直します） |
 | フックのスクリプト | 不要 | 不要 |
-| MCP サーバ（`cli/src`） | `/mcp` で `plugin:pecot-w:pecot-workflow` の Reconnect を選び、`/clear` します | `/mcp reload pecot-workflow` |
 | `hooks.json` | `/reload-plugins` | 起動し直します（`/restart` では反映されません） |
 | `.mcp.json`・`mcp.json` | `/reload-plugins` | `/mcp reload` |
 
-MCP サーバを起動し直すと、`bin/pecot` が `cli/src` からビルドし直します。
-Claude Code では、Reconnect の後も、会話に読み込み済みのツール定義が古いまま残ります。`/clear` で新しい会話にします。会話を残したいときは、セッションを始め直します。
+MCP サーバ（`cli/src`）の直しは、クライアントに反映されません。作業ツリーで build し直し、「作業ツリーのツールを呼ぶ」の形で呼びます。
 
 ### 配る自動化を確かめる
 
@@ -232,7 +248,7 @@ Claude Code では、Reconnect の後も、会話に読み込み済みのツー�
 検証用にも自動レビューの写しがあるので、検証用で作る draft でない PR には、自動レビューが付きます。
 自動レビューを quickstart で確かめるときは、次の 2 つに気を付けます。
 
-- 検証用には写しが既にあるので、`pecot workflow install review` は上書きになる
+- 検証用には写しが既にあるので、`workflow_install`（`review`）は上書きになる
 - 確かめの後に、写しをこのリポの `main` の `.github/workflows/pecot-review.yml` と同じ中身に戻す PR を入れる。その後、`sandbox-diff.sh` でずれが 0 件であることを確かめる
 
 利用者に配る `actions/templates/pecot-board-sync.yml` や、それが呼ぶ pecot の action を直したときは、マージの前に動かします。検証用の `.github/workflows/` に入れます。`uses:` は、作業ブランチの `actions/<処理>/dist/index.js` を読みます。
@@ -240,10 +256,10 @@ Claude Code では、Reconnect の後も、会話に読み込み済みのツー�
 
 1. 作業ツリーで `pnpm exec nx run actions:build` を打って `dist` を作り直し、作業ブランチに commit して push する
 2. 作業ツリーのテンプレートを写し、`pecotcraft/pecot/actions/<処理>@pecot-actions/v<版>` の `@` の後ろだけを作業ブランチの名前に置き換える
-3. 検証用の clone で、写しを入れる PR を「基本の流れ」の手順で作り、`pecot pr merge` で merge queue に入れる。`workflow_dispatch`・`pull_request_target`・`issues` は既定のブランチの定義で動くので、マージするまで直した定義では動かない
+3. 検証用の clone で、写しを入れる PR を「基本の流れ」の手順で作り、`pr_merge` で merge queue に入れる。`workflow_dispatch`・`pull_request_target`・`issues` は既定のブランチの定義で動くので、マージするまで直した定義では動かない
 4. PR・Issue を変えるか、`gh workflow run pecot-board-sync.yml -R pecotcraft/pecot-sandbox` で起動し、次の 2 つを確かめる
    - 実行の `Sync the board` の step が成功し、ログに `moved:`・`set:` の行が出ること
-   - `pecot board show --json` の `project.number` が 3 で、動かす見込みのカードの列か Status が変わったこと
+   - `board_show` の `project.number` が 3 で、動かす見込みのカードの列か Status が変わったこと
 5. 写しを、このリポの `main` の `.github/workflows/pecot-board-sync.yml` から作った形に戻す PR を入れる。pecot の action の呼び方は `pecotcraft/pecot/actions/<処理>@main` にする
 6. `sandbox-diff.sh` でずれが 0 件であることを確かめる
 

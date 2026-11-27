@@ -1,8 +1,10 @@
 # 新規作成から init、設定ファイルの生成とアクティベートまでを通す。
 id: project-create-ok
-command:
-  path: [project, create]
-  args: [acme, board, --host, ghes.example.com]
+tool: project_create
+arguments:
+  host: ghes.example.com
+  owner: acme
+  title: board
 setup:
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token

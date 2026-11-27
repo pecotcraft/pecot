@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "Usage: pecot release create [OPTIONS] {version}\nTry 'pecot release create --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Missing argument 'version'.                                                  │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
-  "exitCode": 2,
+  "isError": true,
+  "text": "invalid input: version: Invalid input: expected string, received undefined",
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid input: version: Invalid input: expected string, received undefined"
+  },
+  "stderr": "",
   "requests": [],
   "files": {}
 }

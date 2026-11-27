@@ -1,8 +1,9 @@
 # 新しいリポジトリを登録する。Project ID と Repository ID を引いてリンクし、設定に追加する。
 id: project-link-ok
-command:
-  path: [project, link]
-  args: [acme/other, --develop-branch, main]
+tool: project_link
+arguments:
+  develop_branch: main
+  repo: acme/other
 setup:
   repo:
     files:

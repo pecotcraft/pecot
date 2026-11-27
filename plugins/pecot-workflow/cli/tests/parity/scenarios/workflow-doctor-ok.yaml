@@ -1,8 +1,8 @@
 # 雛形の版と要る secret がそろう。変数の値は出さない。
 id: workflow-doctor-ok
-command:
-  path: [workflow, doctor]
-  args: [review]
+tool: workflow_doctor
+arguments:
+  name: review
 setup:
   repo:
     files:

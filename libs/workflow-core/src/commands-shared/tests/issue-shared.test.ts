@@ -82,11 +82,10 @@ describe('runWithExit', () => {
     await expect(runWithExit(exitWith3)).rejects.toMatchObject({ exitCode: 3 })
   })
 
-  it('BadParameterError が発生した場合は、context を持たない UsageError に変換して発生させる', async () => {
-    await explains('`runWithExit` が実行する処理で、`BadParameterError` が発生した場合のテストです。`context` を持たない `UsageError` に変換され、メッセージが `Invalid value: could not resolve parent_epic:` で始まることを確認します。')
+  it('BadParameterError が発生した場合は、UsageError に変換して発生させる', async () => {
+    await explains('`runWithExit` が実行する処理で、`BadParameterError` が発生した場合のテストです。`UsageError` に変換され、メッセージが `Invalid value: could not resolve parent_epic:` で始まることを確認します。')
     const error = await rejection(runWithExit(badParameter))
     expect(error).toBeInstanceOf(UsageError)
-    expect(error).toMatchObject({ context: undefined })
     expect(error instanceof Error ? error.message : '').toMatch(/^Invalid value: could not resolve parent_epic: /u)
   })
 
@@ -177,19 +176,19 @@ describe('resolveParentEpicReference の大きな番号', () => {
 
 describe('resolveEpicTargetRepository', () => {
   it('リポジトリを指定せず aggregation_repo も設定されていない場合は、作成先を決められないエラーで止める', async () => {
-    await explains('Epic の作成先のリポジトリを決める関数（`resolveEpicTargetRepository`）のテストです。`--repo` と `aggregation_repo` の指定がない場合は、エラーを表示して `CommandExit` が発生することを確認します。')
+    await explains('Epic の作成先のリポジトリを決める関数（`resolveEpicTargetRepository`）のテストです。`repo` と `aggregation_repo` の指定がない場合は、エラーを表示して `CommandExit` が発生することを確認します。')
     const { io, output } = started()
     expect(() => resolveEpicTargetRepository(output, ' ', config())).toThrow(CommandExit)
-    expect(io.err).toEqual(['error: cannot decide where to create the Epic\n  declare aggregation_repo in the project config, or pass --repo\n'])
+    expect(io.err).toEqual(['error: cannot decide where to create the Epic\n  declare aggregation_repo in the project config, or pass repo\n'])
   })
 
   it('リポジトリを指定しない場合は、aggregation_repo を作成先にする', async () => {
-    await explains('`--repo` を指定しない場合のテストです。`aggregation_repo` のリポジトリが作成先になり、例外の警告は不要と判定されることを確認します。')
+    await explains('`repo` を指定しない場合のテストです。`aggregation_repo` のリポジトリが作成先になり、例外の警告は不要と判定されることを確認します。')
     expect(resolveEpicTargetRepository(started().output, undefined, config('o/agg'))).toEqual({ repository: 'o/agg', needsWarning: false })
   })
 
   it('指定したリポジトリが aggregation_repo と異なる場合だけ、例外の警告が必要と判定する', async () => {
-    await explains('`--repo` を指定した場合のテストです。`aggregation_repo` が設定されていない場合や同じ場合は警告が不要で、異なる場合だけ警告が必要（`needsWarning` が `true`）になることを確認します。')
+    await explains('`repo` を指定した場合のテストです。`aggregation_repo` が設定されていない場合や同じ場合は警告が不要で、異なる場合だけ警告が必要（`needsWarning` が `true`）になることを確認します。')
     const { output } = started()
     expect(resolveEpicTargetRepository(output, 'o/impl', config())).toEqual({ repository: 'o/impl', needsWarning: false })
     expect(resolveEpicTargetRepository(output, 'o/agg', config('o/agg'))).toEqual({ repository: 'o/agg', needsWarning: false })
@@ -197,10 +196,10 @@ describe('resolveEpicTargetRepository', () => {
   })
 
   it('作成先が aggregation_repo と異なる場合は、例外として作成する旨の警告を表示する', async () => {
-    await explains('作成先が `aggregation_repo` と異なる場合の警告（`warnEpicRepositoryException`）のテストです。`--repo` と `aggregation_repo` が異なることと、例外として続行することを知らせる警告を表示することを確認します。')
+    await explains('作成先が `aggregation_repo` と異なる場合の警告（`warnEpicRepositoryException`）のテストです。入力 `repo` と `aggregation_repo` が異なることと、例外として続行することを知らせる警告を表示することを確認します。')
     const { io, output } = started()
     warnEpicRepositoryException(output, 'o/impl', config('o/agg'))
-    expect(io.err).toEqual(['warning: --repo o/impl differs from aggregation_repo (o/agg)\n  continuing as an exception for an Epic in an implementation repo\n'])
+    expect(io.err).toEqual(['warning: repo: "o/impl" differs from aggregation_repo (o/agg)\n  continuing as an exception for an Epic in an implementation repo\n'])
   })
 })
 
@@ -405,8 +404,8 @@ describe('hasReportedTemplateTextViolations', () => {
 })
 
 describe('Issue 参照と設定', () => {
-  it('--repo を基準にして、短縮形と owner/repo/N の形を区別して解釈する', async () => {
-    await explains('Issue の参照を解釈する関数（`parseIssueReferenceOrExit`）のテストです。番号だけの短縮形は `--repo` のリポジトリの Issue になり、`owner/repo/N` の形は指定したリポジトリの Issue になることを確認します。')
+  it('repo を基準にして、短縮形と owner/repo/N の形を区別して解釈する', async () => {
+    await explains('Issue の参照を解釈する関数（`parseIssueReferenceOrExit`）のテストです。番号だけの短縮形は `repo` のリポジトリの Issue になり、`owner/repo/N` の形は指定したリポジトリの Issue になることを確認します。')
     const { output } = started()
     expect(parseIssueReferenceOrExit(output, 'o/r', '5')).toEqual({ owner: 'o', repository: 'r', number: 5 })
     expect(parseIssueReferenceOrExit(output, 'o/r', 'x/y/7')).toEqual({ owner: 'x', repository: 'y', number: 7 })

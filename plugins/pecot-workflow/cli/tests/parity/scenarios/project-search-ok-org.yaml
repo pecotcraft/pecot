@@ -1,8 +1,9 @@
 # user が null のとき organization に切り替わる。ListProjectsUser のあと ListProjectsOrg を受ける。
 id: project-search-ok-org
-command:
-  path: [project, search]
-  args: [acme, --host, ghes.example.com]
+tool: project_search
+arguments:
+  host: ghes.example.com
+  owner: acme
 setup:
   env:
     PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: dummy-token

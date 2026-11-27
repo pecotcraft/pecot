@@ -1,7 +1,10 @@
 {
-  "stdout": "=== Projects ===\n  none\n",
+  "isError": false,
+  "text": "=== Projects ===",
+  "structuredContent": {
+    "projects": []
+  },
   "stderr": "",
-  "exitCode": 0,
   "requests": [],
   "files": {}
 }

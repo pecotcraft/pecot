@@ -1,8 +1,10 @@
 # 設定済みの値を --yes で上書きする。警告は stderr に出る。
 id: project-set-ok-overwrite
-command:
-  path: [project, set]
-  args: [aggregation_repo, acme/new, --yes]
+tool: project_set
+arguments:
+  yes: true
+  key: aggregation_repo
+  value: acme/new
 setup:
   repo:
     files:

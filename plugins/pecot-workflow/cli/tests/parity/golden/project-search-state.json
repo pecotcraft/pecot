@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: no projects found for acme\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "no projects found for acme",
+  "structuredContent": {
+    "kind": "project-not-found",
+    "detail": "no projects found for acme"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

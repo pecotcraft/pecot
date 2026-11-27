@@ -30,11 +30,8 @@
       "name": "issue create",
       "description": "Create an issue from a Markdown file with front matter.",
       "surfaces": {
-        "cli": {
-          "path": [
-            "issue",
-            "create"
-          ]
+        "action": {
+          "path": "actions/issue-create"
         }
       },
       "hidden": false,
@@ -71,22 +68,6 @@
         },
         "required": [],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "files"
-        ],
-        "flags": {
-          "issue_type": [
-            "--type"
-          ],
-          "message": [
-            "--message"
-          ],
-          "title": [
-            "--title"
-          ]
-        }
       }
     },
     {
@@ -94,11 +75,8 @@
       "name": "issue quick",
       "description": "Create an issue and its branch in one step.",
       "surfaces": {
-        "cli": {
-          "path": [
-            "issue",
-            "quick"
-          ]
+        "action": {
+          "path": "actions/issue-quick"
         }
       },
       "hidden": false,
@@ -115,12 +93,6 @@
           "title"
         ],
         "additionalProperties": false
-      },
-      "cli": {
-        "positional": [
-          "title"
-        ],
-        "flags": {}
       }
     }
   ],

@@ -419,10 +419,9 @@ async function addElsewhere(): Promise<{ readonly repository: string, readonly r
 }
 
 describe('createWorktree と番号の記録（実 git）', () => {
-  it('作成した worktree に番号を記録し、dry-run では記録しない', async () => {
-    await explains('worktree を作成する `createWorktree` のテストです。通常の作成では worktree の番号を記録し、dry-run では何も記録しないことを確認します。')
+  it('作成した worktree の番号を、worktree の git のディレクトリに記録する', async () => {
+    await explains('worktree を作成する `createWorktree` のテストです。作成する前は使用中の番号が存在せず、作成した後は worktree の番号 `wt1` を記録することを確認します。')
     const { repository, root } = createProject()
-    await createWorktree(repository, ignoredDiagnostics, { isDryRun: true })
     expect(claimedSetNames(repository)).toEqual(new Set())
     const result = await createWorktree(repository, ignoredDiagnostics, { shouldCopy: false, shouldLink: false })
     expect(result.path).toBe(path.join(root, 'wt1', 'myrepo'))
@@ -442,7 +441,7 @@ describe('createWorktree と番号の記録（実 git）', () => {
     await explains('worktree を作成する `createWorktree` のテストです。`path` を指定して作成した `wt1` が別のブランチに切り替わった後でも、`wt1` が使用中として扱われ `wt2` が選ばれることを確認します。')
     const { repository, elsewhere } = await addElsewhere()
     gitForTest(elsewhere, ['switch', '-q', '-c', 'feature/x'])
-    const { name } = await createWorktree(repository, ignoredDiagnostics, { isDryRun: true })
+    const { name } = await createWorktree(repository, ignoredDiagnostics, { shouldCopy: false, shouldLink: false })
     expect(name).toBe('wt2')
   })
 
@@ -451,7 +450,7 @@ describe('createWorktree と番号の記録（実 git）', () => {
     const { repository, root } = createProject()
     gitForTest(repository, ['worktree', 'add', '-q', '-b', 'wt1', path.join(makeTemporaryDirectory(), 'x', 'myrepo')])
     expect(claimedSetNames(repository)).toEqual(new Set(['wt1']))
-    const created = await createWorktree(repository, ignoredDiagnostics, { isDryRun: true })
+    const created = await createWorktree(repository, ignoredDiagnostics, { shouldCopy: false, shouldLink: false })
     expect(created.path).toBe(path.join(root, 'wt2', 'myrepo'))
   })
 
@@ -471,19 +470,11 @@ describe('createWorktree と番号の記録（実 git）', () => {
 })
 
 describe('createWorktree（実 git・実ファイル）', () => {
-  it('dry-run では、パスを求めるだけで worktree を作成しない', async () => {
-    await explains('worktree を作成する `createWorktree` のテストです。`isDryRun` を指定した場合に、`<root>/<name>/<repo>` のパスを含む結果を返し、worktree を作成しないことを確認します。')
-    const { repository, root } = createProject()
-    const result = await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true })
-    expect(result).toEqual({ name: 'wt1', path: path.join(root, 'wt1', 'myrepo'), branch: 'wt1', baseBranch: 'develop', copiedFiles: [], linkedFiles: [], setupResult: undefined })
-    expect(existsSync(path.join(root, 'wt1'))).toBe(false)
-  })
-
   it('name を省略すると、プロジェクトのルートを基準に番号を決め、起点を develop_branch にする', async () => {
     await explains('worktree を作成する `createWorktree` のテストです。`name` を省略した場合に、プロジェクトのルートを基準にした番号の `wt2` を選び、起点のブランチに `develop` を使うことを確認します。')
     const { repository, root } = createProject()
     mkdirSync(path.join(root, 'wt1', 'myrepo'), { recursive: true })
-    const result = await createWorktree(repository, ignoredDiagnostics, { isDryRun: true })
+    const result = await createWorktree(repository, ignoredDiagnostics, { shouldCopy: false, shouldLink: false })
     expect(result.name).toBe('wt2')
     expect(result.path).toBe(path.join(root, 'wt2', 'myrepo'))
     expect(result.baseBranch).toBe('develop')
@@ -493,7 +484,7 @@ describe('createWorktree（実 git・実ファイル）', () => {
     await explains('worktree を作成する `createWorktree` のテストです。`wt1/` に別のリポジトリだけがある場合に、`wt1` に参加することを確認します。')
     const { repository, root } = createProject()
     mkdirSync(path.join(root, 'wt1', 'myrepo-B'), { recursive: true })
-    const { name } = await createWorktree(repository, ignoredDiagnostics, { isDryRun: true })
+    const { name } = await createWorktree(repository, ignoredDiagnostics, { shouldCopy: false, shouldLink: false })
     expect(name).toBe('wt1')
   })
 
@@ -518,14 +509,14 @@ describe('createWorktree（実 git・実ファイル）', () => {
   it('--base を指定すれば develop_branch が未設定でも作成でき、未設定のまま省略するとエラーになる', async () => {
     await explains('worktree を作成する `createWorktree` のテストです。リポジトリに `develop_branch` が未設定の場合に、`baseBranch` を省略するとエラーを返し、指定すれば作成できることを確認します。')
     const { repository } = createProject({ repositories: [{ owner: 'myowner', name: 'myrepo' }] })
-    const error = await asyncRuntimeError(async () => await createWorktree(repository, ignoredDiagnostics, { isDryRun: true }))
+    const error = await asyncRuntimeError(async () => await createWorktree(repository, ignoredDiagnostics, { shouldCopy: false, shouldLink: false }))
     expect(error.message).toBe([
       'develop_branch is not set for repository myowner/myrepo',
       '  add develop_branch to repositories in the project config file',
-      '  or pass --base explicitly',
+      '  or pass base explicitly',
     ].join('\n'))
     expect(error.failure).toBe('repo-setting-missing')
-    const { baseBranch } = await createWorktree(repository, ignoredDiagnostics, { baseBranch: 'main', isDryRun: true })
+    const { baseBranch } = await createWorktree(repository, ignoredDiagnostics, { baseBranch: 'main', shouldCopy: false, shouldLink: false })
     expect(baseBranch).toBe('main')
   })
 
@@ -538,11 +529,11 @@ describe('createWorktree（実 git・実ファイル）', () => {
   })
 
   it('既存ブランチの上流が develop_branch と異なる場合は、WorktreeRuntimeError を投げる', async () => {
-    await explains('worktree を作成する `createWorktree` のテストです。既存のブランチの上流が `origin/develop` と異なる場合に、`--allow-existing-branch` を案内する例外が発生することを確認します。')
+    await explains('worktree を作成する `createWorktree` のテストです。既存のブランチの上流が `origin/develop` と異なる場合に、`allow_existing_branch` を案内する例外が発生することを確認します。')
     const { repository } = createProject()
     gitForTest(repository, ['branch', '--track', 'wt1', 'origin/main'])
     const message = await asyncRuntimeMessage(async () => await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldLink: false, shouldCopy: false }))
-    expect(message).toBe('branch \'wt1\' already exists and its upstream differs from the expected one (current: origin/main, expected: origin/develop): pass --allow-existing-branch to reuse it')
+    expect(message).toBe('branch \'wt1\' already exists and its upstream differs from the expected one (current: origin/main, expected: origin/develop): pass allow_existing_branch: true to reuse it')
   })
 
   it('上流が存在しない既存ブランチは、（unset）と表示する', async () => {
@@ -649,20 +640,20 @@ describe('createWorktree（実 git・実ファイル）', () => {
   })
 
   it('worktree-config.json が存在しなければ、init を案内するエラーを返す', async () => {
-    await explains('worktree を作成する `createWorktree` のテストです。`worktree-config.json` が存在しない場合に、`pecot worktree init` を案内し、失敗の種別 `not-initialized` を返すことを確認します。')
+    await explains('worktree を作成する `createWorktree` のテストです。`worktree-config.json` が存在しない場合に、`worktree_init` を案内し、失敗の種別 `not-initialized` を返すことを確認します。')
     const { repository } = createProject()
     rmSync(path.join(repository, '.pecot', 'config', 'worktree-config.json'))
     const error = await asyncRuntimeError(async () => await createWorktree(repository, ignoredDiagnostics))
-    expect(error.message).toBe('worktree config not found: .pecot/config/worktree-config.json\n  run pecot worktree init to generate the template')
+    expect(error.message).toBe('worktree config not found: .pecot/config/worktree-config.json\n  call worktree_init to generate the template')
     expect(error.failure).toBe('not-initialized')
   })
 
   it('.worktreeignore が存在しなければ、init を案内するエラーを返す', async () => {
-    await explains('worktree を作成する `createWorktree` のテストです。`.worktreeignore` が存在しない場合に、`pecot worktree init` を案内し、失敗の種別 `not-initialized` を返すことを確認します。')
+    await explains('worktree を作成する `createWorktree` のテストです。`.worktreeignore` が存在しない場合に、`worktree_init` を案内し、失敗の種別 `not-initialized` を返すことを確認します。')
     const { repository } = createProject()
     rmSync(path.join(repository, '.pecot', 'config', '.worktreeignore'))
     const error = await asyncRuntimeError(async () => await createWorktree(repository, ignoredDiagnostics))
-    expect(error.message).toBe('copy exclude config not found: .pecot/config/.worktreeignore\n  run pecot worktree init to generate the template')
+    expect(error.message).toBe('copy exclude config not found: .pecot/config/.worktreeignore\n  call worktree_init to generate the template')
     expect(error.failure).toBe('not-initialized')
   })
 
@@ -685,20 +676,20 @@ describe('createWorktree（実 git・実ファイル）', () => {
     await explains('worktree を作成する `createWorktree` のテストです。`.active` が存在しない場合でも、remote のリポジトリを含むプロジェクト設定が 1 つなら、その設定で作成できることを確認します。')
     const { repository, configRoot } = createProject()
     rmSync(path.join(configRoot, '.pecot', 'config', 'projects', '.active'))
-    const { branch } = await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true })
+    const { branch } = await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false })
     expect(branch).toBe('wt1')
   })
 
   it('remote のリポジトリを含む設定が 2 つあって選べなければ、候補と project の案内を出して止まる', async () => {
-    await explains('worktree を作成する `createWorktree` のテストです。remote のリポジトリを含む設定が 2 つあり `.active` もない場合に、候補を並べて `--project` を案内するエラーを返し、`project` を指定すれば作成できることを確認します。')
+    await explains('worktree を作成する `createWorktree` のテストです。remote のリポジトリを含む設定が 2 つあり `.active` もない場合に、候補を並べて `project` を案内するエラーを返し、`project` を指定すれば作成できることを確認します。')
     const { repository, configRoot } = createProject()
     const projects = path.join(configRoot, '.pecot', 'config', 'projects')
     rmSync(path.join(projects, '.active'))
     writeTree(configRoot, { '.pecot/config/projects/github.com_myowner_2.json': projectConfigJson(DEFAULT_REPOSITORIES) })
-    const error = await asyncRuntimeError(async () => await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', isDryRun: true }))
-    expect(error.message).toBe('myowner/myrepo is in 2 project configs\nchoose one with --project <NAME>\navailable: github.com_myowner_1, github.com_myowner_2')
+    const error = await asyncRuntimeError(async () => await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', shouldCopy: false, shouldLink: false }))
+    expect(error.message).toBe('myowner/myrepo is in 2 project configs\nchoose one with project: <NAME>\navailable: github.com_myowner_1, github.com_myowner_2')
     expect(error.failure).toBe('no-active-project')
-    const { branch } = await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true, project: 'github.com_myowner_2' })
+    const { branch } = await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false, project: 'github.com_myowner_2' })
     expect(branch).toBe('wt1')
   })
 
@@ -706,7 +697,7 @@ describe('createWorktree（実 git・実ファイル）', () => {
     await explains('worktree を作成する `createWorktree` のテストです。remote のリポジトリがどのプロジェクト設定にも含まれない場合に、そのことと既存の設定名を示すエラーを返し、失敗の種別が `repo-not-in-project` になることを確認します。')
     const { repository } = createProject({ repositories: [{ owner: 'foo', name: 'bar' }, { owner: 'foo', name: 'baz' }] })
     const expected = 'myowner/myrepo is not in any project config\navailable: github.com_myowner_1'
-    const error = await asyncRuntimeError(async () => await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', isDryRun: true }))
+    const error = await asyncRuntimeError(async () => await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false }))
     expect(error.message).toBe(expected)
     expect(error.failure).toBe('repo-not-in-project')
   })
@@ -743,7 +734,7 @@ describe('createWorktree（実 git・実ファイル）', () => {
   it('.worktreeignore に不正なパターンがあれば、GitIgnorePatternError をそのまま伝える', async () => {
     await explains('worktree を作成する `createWorktree` のテストです。`.worktreeignore` に感嘆符だけの不正なパターンがある場合に、`GitIgnorePatternError` をそのまま伝えることを確認します。')
     const { repository } = createProject({ ignoreContent: '!\n' })
-    await expect(createWorktree(repository, ignoredDiagnostics, { isDryRun: true })).rejects.toBeInstanceOf(GitIgnorePatternError)
+    await expect(createWorktree(repository, ignoredDiagnostics, { shouldCopy: false, shouldLink: false })).rejects.toBeInstanceOf(GitIgnorePatternError)
   })
 
   it('worktree-config.json を読み込めなければ、OsError をそのまま伝える', async () => {
@@ -763,7 +754,7 @@ describe('createWorktree（実 git・実ファイル）', () => {
     const { message } = error
     expect(error.failure).toBe('config-invalid')
     expect(message.startsWith(`failed to load the worktree config: ${configPath}: JSON parse error: ${configPath}: `)).toBe(true)
-    expect(message.endsWith('\n  fix the config file and run it again')).toBe(true)
+    expect(message.endsWith('\n  fix the config file and call it again')).toBe(true)
     expect(existsSync(path.join(root, 'wt1', 'myrepo'))).toBe(true)
   })
 
@@ -777,21 +768,21 @@ describe('createWorktree（実 git・実ファイル）', () => {
   })
 
   describe('setup_command', () => {
-    it('CLI の --setup は config の setup_command より優先し、worktree のルートで実行する', async () => {
-      await explains('worktree の作成後に実行するセットアップコマンドのテストです。CLI で指定したコマンドと設定ファイルのコマンドがある場合に、CLI のコマンドを worktree のルートで実行することを確認します。')
+    it('引数の setup は config の setup_command より優先し、worktree のルートで実行する', async () => {
+      await explains('worktree の作成後に実行するセットアップコマンドのテストです。引数で指定したコマンドと設定ファイルのコマンドがある場合に、引数のコマンドを worktree のルートで実行することを確認します。')
       const { repository } = projectWithSetup('echo from-config')
       const result = await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', setupCommand: 'echo from-cli; pwd', shouldCopy: false, shouldLink: false })
       expect(result.setupResult).toEqual({ command: 'echo from-cli; pwd', exitCode: 0, stdout: `from-cli\n${result.path}\n`, stderr: '' })
     })
 
-    it('CLI で指定しなければ、config の setup_command を使う', async () => {
-      await explains('worktree の作成後に実行するセットアップコマンドのテストです。CLI でコマンドを指定しない場合に、設定ファイルの `setup_command` を実行することを確認します。')
+    it('引数で指定しなければ、config の setup_command を使う', async () => {
+      await explains('worktree の作成後に実行するセットアップコマンドのテストです。引数でコマンドを指定しない場合に、設定ファイルの `setup_command` を実行することを確認します。')
       const { repository } = projectWithSetup('echo from-config')
       const result = await createWorktree(repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false })
       expect(result.setupResult).toEqual({ command: 'echo from-config', exitCode: 0, stdout: 'from-config\n', stderr: '' })
     })
 
-    it('CLI と config の両方にコマンドが存在しない場合や、空文字の setup_command は、実行しない', async () => {
+    it('引数と config の両方にコマンドが存在しない場合や、空文字の setup_command は、実行しない', async () => {
       await explains('worktree の作成後に実行するセットアップコマンドのテストです。コマンドが指定されていない場合と空文字の場合に、どちらも実行せず結果が `undefined` になることを確認します。')
       const none = projectWithSetup(undefined)
       const { setupResult: noneResult } = await createWorktree(none.repository, ignoredDiagnostics, { name: 'wt1', baseBranch: 'develop', shouldCopy: false, shouldLink: false })
@@ -846,21 +837,6 @@ describe('removeWorktree', () => {
     expect(existsSync(worktree)).toBe(false)
     expect(existsSync(path.join(root, 'wt1'))).toBe(false)
     expect(gitForTest(repository, ['branch', '--list', 'wt1'])).toBe('')
-  })
-
-  it('isDryRun を指定すると、対象の worktree を探すだけで何も削除しない', async () => {
-    await explains('worktree を削除する `removeWorktree` のテストです。`isDryRun` を指定した場合に、worktree・ブランチ・`<root>/<name>/` のいずれも削除されずに残ることを確認します。')
-    const { repository, root, worktree } = projectWithWorktree()
-    expect(removeWorktree(repository, 'wt1', ignoredDiagnostics, { isDryRun: true })).toBeUndefined()
-    expect(existsSync(worktree)).toBe(true)
-    expect(existsSync(path.join(root, 'wt1'))).toBe(true)
-    expect(gitForTest(repository, ['branch', '--list', '--format=%(refname:short)', 'wt1']).trim()).toBe('wt1')
-  })
-
-  it('isDryRun でも、存在しない worktree は WorktreeRuntimeError を投げる', async () => {
-    await explains('worktree を削除する `removeWorktree` のテストです。`isDryRun` を指定しても、存在しない worktree の名前を渡した場合に、`WorktreeRuntimeError` が発生することを確認します。')
-    const { repository } = projectWithWorktree()
-    expect(() => removeWorktree(repository, 'nope', ignoredDiagnostics, { isDryRun: true })).toThrow(WorktreeRuntimeError)
   })
 
   it('ブランチ wt1 が存在しない worktree を名前で削除すると、ブランチを削除できなかった理由を返す', async () => {
@@ -1234,8 +1210,8 @@ describe('ensureDevcontainerEnvironment', () => {
     const message = runtimeMessage(() => {
       ensureDevcontainerEnvironment(absent())
     })
-    expect(message).toContain('this command must run inside a devcontainer')
-    expect(message).toContain('prepare .devcontainer/ in the project, run Reopen in Container in VS Code, and run it again')
+    expect(message).toContain('this tool must run inside a devcontainer')
+    expect(message).toContain('prepare .devcontainer/ in the project, run Reopen in Container in VS Code, and call it again')
     expect(message).not.toContain('a-dcgen')
   })
 

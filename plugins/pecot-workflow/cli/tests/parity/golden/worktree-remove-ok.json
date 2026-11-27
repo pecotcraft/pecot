@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "removed: worktree wt1\ndeleted: local branch wt1\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "removed: worktree wt1",
+  "structuredContent": {
+    "name": "wt1",
+    "deletedBranch": true
+  },
+  "stderr": "",
   "requests": [],
   "files": {
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

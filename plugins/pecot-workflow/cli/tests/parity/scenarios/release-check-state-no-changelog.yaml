@@ -1,8 +1,7 @@
 # CHANGELOG.md が無い。exit 1。
 id: release-check-state-no-changelog
-command:
-  path: [release, check]
-  args: []
+tool: release_check
+arguments: {}
 setup:
   repo:
     files:

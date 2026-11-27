@@ -13,7 +13,7 @@ import { BaseError } from '@pecot/workflow-core/domain/errors.js'
 import { existsSync, readdirSync, readFileSync, rmdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { commandHint, formatHinted, hinted, inputHint, inputNameHint, RUN, surfaceText } from '@pecot/workflow-core/domain/command-hint.js'
+import { commandHint, formatHinted, hinted, inputHint, inputNameHint, RUN } from '@pecot/workflow-core/domain/command-hint.js'
 import type { HintedText } from '@pecot/workflow-core/domain/command-hint.js'
 import { gitFailureText } from '@pecot/workflow-core/domain/git-output.js'
 import { getDevelopBranch } from '@pecot/workflow-core/domain/config.js'
@@ -58,9 +58,9 @@ export class WorktreeRuntimeError extends BaseError {
   */
   readonly log: string | undefined
 
-  // message は CLI の形。MCP では最上位が hintedText から描き直す
+  // message は描いた文。hintedText は、案内を他の文へ埋め込む用途で持つ
   constructor(message: string | HintedText, options: Readonly<ErrorOptions & { readonly failure?: WorktreeFailure, readonly log?: string }> = {}) {
-    super(formatHinted(message, 'cli'), options.cause === undefined ? undefined : { cause: options.cause })
+    super(formatHinted(message), options.cause === undefined ? undefined : { cause: options.cause })
     this.hintedText = typeof message === 'string' ? undefined : message
     this.failure = options.failure ?? 'other'
     this.log = options.log
@@ -88,8 +88,7 @@ devcontainer 外（host 直接）での実行はサポート外。プロジェ�
 export function ensureDevcontainerEnvironment(dockerEnvironmentFile = '/.dockerenv'): void {
   if (existsSync(dockerEnvironmentFile) || isSet(process.env['REMOTE_CONTAINERS']) || isSet(process.env['CODESPACES']) || isSet(process.env['DEVCONTAINER'])) return
   throw new WorktreeRuntimeError([
-    surfaceText('this command', 'this tool'),
-    ' must run inside a devcontainer\n'
+    'this tool must run inside a devcontainer\n'
     + 'the current environment does not have the mount layout pecot expects '
     + '(/workspaces/<project>/base/<repo>)\n'
     + 'prepare .devcontainer/ in the project, run Reopen in Container in VS Code, and ',
@@ -486,7 +485,7 @@ async function runEffectiveSetup(setupCommand: string | undefined, config: Workt
 export interface CreateWorktreeOptions {
   /**
   WT 名。省略時はプロジェクトルート基準で自動決定する。
-  CLI（pecot worktree add）は NAME 位置引数を廃止しているため、常に省略で呼ばれる。
+  worktree_add は名前を受けないため、常に省略で呼ばれる。
   明示するとセット整合性が呼び出し側の責務になる
   */
   readonly name?: string | undefined
@@ -510,10 +509,6 @@ export interface CreateWorktreeOptions {
   作成後に実行するコマンド。設定の setup_command より優先する
   */
   readonly setupCommand?: string | undefined
-  /**
-  プレビューのみ。既定は false
-  */
-  readonly isDryRun?: boolean | undefined
   /**
   既存ブランチの upstream が develop_branch と異なる場合でも再利用を許可するか。既定は false
   */
@@ -556,11 +551,6 @@ export async function createWorktree(cwd: string, diagnostics: Diagnostics, opti
 
   // 4. パス計算: <project_root>/<name>/<repo_dir_name>
   const worktreePath = options.path === undefined ? path.join(projectRoot, name, repositoryDirectoryName) : normalizePath(options.path)
-
-  // dry-run時はここで結果を返す
-  if (options.isDryRun === true) {
-    return { name, path: worktreePath, branch: name, baseBranch, copiedFiles: [], linkedFiles: [], setupResult: undefined }
-  }
 
   // 5. git worktree add
   addGitWorktree(cwd, worktreePath, name, { remote, baseBranch }, options.isExistingBranchAllowed === true)
@@ -640,13 +630,12 @@ function findWorktreePathByName(cwd: string, name: string): string | undefined {
 /**
 ワークツリーを削除する。name は worktree add が付けた名前（wtN）か、checkout しているブランチ名。
 WT が見つからない・削除に失敗した場合は WorktreeRuntimeError。
-ローカルブランチを消せなかったときは、その理由を返す。成功時と shouldKeepBranch は undefined。isDryRun は WT を探すだけで何も消さない
+ローカルブランチを消せなかったときは、その理由を返す。成功時と shouldKeepBranch は undefined
 */
-export function removeWorktree(cwd: string, name: string, diagnostics: Diagnostics, options: Readonly<{ readonly isForced?: boolean | undefined, readonly shouldKeepBranch?: boolean | undefined, readonly isDryRun?: boolean | undefined }> = {}): string | undefined {
+export function removeWorktree(cwd: string, name: string, diagnostics: Diagnostics, options: Readonly<{ readonly isForced?: boolean | undefined, readonly shouldKeepBranch?: boolean | undefined }> = {}): string | undefined {
   // 1. WTパスを特定
   const worktreePath = findWorktreePathByName(cwd, name)
   if (worktreePath === undefined) throw new WorktreeRuntimeError(`worktree not found: ${name}`)
-  if (options.isDryRun === true) return undefined
 
   // 2. git worktree remove
   const gitArguments = ['worktree', 'remove', worktreePath]
@@ -654,7 +643,7 @@ export function removeWorktree(cwd: string, name: string, diagnostics: Diagnosti
   const removed = runGit(gitArguments, { cwd })
   if (removed.exitCode !== 0) {
     const reason = pythonStrip(removed.stderr)
-    // git の文は CLI の `--force` を案内するので、MCP でも打てる形の案内を添える
+    // git の文は `--force` を案内するので、ツールの入力の形の案内を添える
     if (options.isForced !== true && reason.includes('contains modified or untracked files')) {
       throw new WorktreeRuntimeError(hinted`${gitFailureText('failed to remove the worktree: ', reason)}\nhint: to remove it with its changes, pass ${inputHint(['worktree', 'remove'], 'force')}`, { log: removed.stderr })
     }

@@ -1,9 +1,8 @@
 # PR 参照の形が不正。exit 2 になる。
 id: session-finish-usage
-command:
-  path: [session, finish]
-  args:
-    - "not-a-ref"
+tool: session_finish
+arguments:
+  pr_ref: not-a-ref
 setup:
   repo:
     files:

@@ -13,9 +13,13 @@ function file(entries: readonly object[], header: object = {}): GeneratedFile {
 
 function entry(id: string, input: object, extra: object = {}): object {
   return {
-    id, name: id.toLowerCase(), description: 'x', surfaces: { cli: { path: ['x'] } }, hidden: false, deprecated: false,
+    id, name: id.toLowerCase(), description: 'x', surfaces: { mcp: { tool: 'x' } }, hidden: false, deprecated: false,
     input: { type: 'object', properties: input, required: [] }, ...extra,
   }
+}
+
+function required(names: readonly string[]): object {
+  return { input: { type: 'object', properties: {}, required: names } }
 }
 
 describe('diffGenerated', () => {
@@ -51,11 +55,11 @@ describe('diffGenerated', () => {
 
   it('配列の要素は、添字で対応づけて比べる', async () => {
     await explains('`generated.json` の 2 つの版の差を求める `diffGenerated` のテストです。配列の要素が変わり、さらに増減した場合に、添字ごとの差の行が方向に合わせて返ることを確認します。')
-    const before = file([entry('PW-A', {}, { surfaces: { cli: { path: ['a', 'b'] } } })])
-    const after = file([entry('PW-A', {}, { surfaces: { cli: { path: ['a', 'c', 'd'] } } })])
+    const before = file([entry('PW-A', {}, required(['a', 'b']))])
+    const after = file([entry('PW-A', {}, required(['a', 'c', 'd']))])
     stepSync('差分を求めて比べる', () => {
-      expect(diffGenerated(before, after)).toEqual(['PW-A: surfaces.cli.path[1]: "b" -> "c"', 'PW-A: surfaces.cli.path[2]: added'])
-      expect(diffGenerated(after, before)).toEqual(['PW-A: surfaces.cli.path[1]: "c" -> "b"', 'PW-A: surfaces.cli.path[2]: removed'])
+      expect(diffGenerated(before, after)).toEqual(['PW-A: input.required[1]: "b" -> "c"', 'PW-A: input.required[2]: added'])
+      expect(diffGenerated(after, before)).toEqual(['PW-A: input.required[1]: "c" -> "b"', 'PW-A: input.required[2]: removed'])
     })
   })
 
@@ -65,23 +69,6 @@ describe('diffGenerated', () => {
     const after = file([entry('PW-A', { a: { type: 'string', default: [1] } })])
     stepSync('差分を求めて比べる', () => {
       expect(diffGenerated(before, after)).toEqual(['PW-A: input.properties.a.default: 1 -> [1]'])
-    })
-  })
-
-  it('CLI だけの入力の追加・削除・変更があると、cli.only のパスを含む差の行を返す', async () => {
-    await explains('`generated.json` の 2 つの版の差を求める `diffGenerated` のテストです。CLI だけの入力（`cli.only`）が追加・削除・変更された場合に、それぞれ `cli.only` 以下のパスを含む差の行を返すことを確認します。')
-    const cli = (only: object | undefined): object => ({ cli: { positional: [], flags: { dry_run: ['--dry-run'] }, ...(only !== undefined && { only }) } })
-    const none = file([entry('PW-A', {}, cli(undefined))])
-    const boolean = file([entry('PW-A', {}, cli({ dry_run: { type: 'boolean' } }))])
-    const described = file([entry('PW-A', {}, cli({ dry_run: { type: 'boolean', description: 'Plan only.' } }))])
-    stepSync('差分を求めて比べる', () => {
-      expect(diffGenerated(none, boolean)).toEqual(['PW-A: cli.only: added'])
-      expect(diffGenerated(boolean, none)).toEqual(['PW-A: cli.only: removed'])
-      expect(diffGenerated(boolean, described)).toEqual(['PW-A: cli.only.dry_run.description: added'])
-    })
-    const two = file([entry('PW-A', {}, cli({ dry_run: { type: 'boolean' }, force: { type: 'boolean' } }))])
-    stepSync('差分を求めて比べる', () => {
-      expect(diffGenerated(boolean, two)).toEqual(['PW-A: cli.only.force: added'])
     })
   })
 

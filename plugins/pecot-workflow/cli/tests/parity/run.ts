@@ -1,51 +1,40 @@
-/* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時 root 配下のみ。node の子プロセス・ストリームの型は readonly にできない */
+/* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時 root 配下のみ */
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- SDK の Client と stream は mutable */
 // シナリオ 1 件を流して、golden と同じ形の結果を作る。parity.test.ts が使う。
-// 流れ: 一時 root と偽サーバを用意し、CLI を子プロセスで起動し、.pecot/ とデータ置き場を回収し、正規化する。
-// 子プロセスは非同期で起動する。spawnSync だと、同じプロセスの偽サーバのループが止まるため。
-import { spawn } from 'node:child_process'
+// 流れ: 一時 root と偽サーバを用意し、MCP のサーバを子プロセスで起動してツールを 1 回呼び、.pecot/ とデータ置き場を回収し、正規化する。
 import { lstatSync, readdirSync, readFileSync, readlinkSync } from 'node:fs'
 import path from 'node:path'
 
-import { loadVersionFromPluginJson } from '../../src/version.js'
+import type { Client } from '@modelcontextprotocol/client'
+import { SdkError, SdkErrorCode } from '@modelcontextprotocol/client'
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
+
 import { startFakeGithub } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
+import { AttachingClient } from '../_helpers/attaching-client.js'
+import { outputSchemaIssues, toolOutcomeOf } from '../_helpers/mcp-client.js'
 import { compareStrings } from './baseline.js'
 import type { Golden, Scenario, Substitution } from './scenario.js'
 import { normalizeDeep, normalizeText } from './scenario.js'
-import { runMcpChild } from './run-mcp.js'
 import { baseEnvironment, createSandbox, destroySandbox, pluginRoot } from './setup.js'
 
 /**
-起動する CLI。Python は bin/pecot、Node は process.execPath + dist/cli.js
+起動する MCP のサーバ
 */
 export interface Launcher {
   readonly command: string
   readonly args: readonly string[]
-  readonly env: Readonly<Record<string, string>>
-  /**
-  'mcp' なら、`<args> mcp` のサーバを起動し、MCP のクライアントからツールを 1 回呼ぶ。無ければ CLI としてコマンドを打つ
-  */
-  readonly via?: 'mcp'
 }
 
 export interface Outcome {
-  readonly golden: Golden
   /**
-  子プロセスを起動できなかった理由（ENOENT など）。起動できたら undefined
+  呼べなかったときは undefined
+  */
+  readonly golden: Golden | undefined
+  /**
+  サーバを起動できなかった・呼べなかった理由。呼べたら undefined
   */
   readonly spawnError: string | undefined
-  /**
-  シグナルで終わったときのシグナル名
-  */
-  readonly signal: string | undefined
   readonly timedOut: boolean
-  /**
-  MCP 経由で呼んだときの structuredContent。golden には入れない
-  */
-  readonly data?: Readonly<Record<string, unknown>>
-  /**
-  MCP 経由で呼んだときの content の文の text（要約）。golden には入れない
-  */
-  readonly text?: string
   /**
   偽サーバが見つけた誤り
   */
@@ -57,11 +46,6 @@ export interface Outcome {
 }
 
 export const CHILD_TIMEOUT_MS = 25_000
-
-const pluginVersion = loadVersionFromPluginJson(path.join(pluginRoot, '.claude-plugin', 'plugin.json')) ?? ''
-
-// 時間切れで止めた後、close を待つ上限
-const FORCE_RESOLVE_MS = 2000
 
 // データ置き場のうち、比べない置き場所
 const DATA_EXCLUDED = new Set(['venv', 'runtime'])
@@ -107,7 +91,7 @@ function collectWorktrees(root: string, repositoryDirectory: string, files: Map<
       entries = readdirSync(worktreeDirectory).toSorted(compareStrings)
     }
     catch (error) {
-      // CLI がワークツリーを消した後は、無いものとして次へ進む
+      // ツールがワークツリーを消した後は、無いものとして次へ進む
       if (isNotFound(error)) continue
       throw error
     }
@@ -117,7 +101,11 @@ function collectWorktrees(root: string, repositoryDirectory: string, files: Map<
   }
 }
 
-function collectFiles(root: string, repositoryDirectory: string, dataDirectory: string, substitutions: readonly Substitution[]): Record<string, unknown> {
+function recordOf(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null ? { ...value } : {}
+}
+
+export function collectFiles(root: string, repositoryDirectory: string, dataDirectory: string, substitutions: readonly Substitution[]): Record<string, unknown> {
   const files = new Map<string, unknown>()
   collect(repositoryDirectory, '.pecot', '', files)
   collectWorktrees(root, repositoryDirectory, files)
@@ -126,88 +114,61 @@ function collectFiles(root: string, repositoryDirectory: string, dataDirectory: 
   }
   const sorted = [...files].toSorted(([a], [b]) => compareStrings(a, b))
   const normalized = normalizeDeep(Object.fromEntries(sorted), substitutions)
-  return typeof normalized === 'object' && normalized !== null ? { ...normalized } : {}
+  return recordOf(normalized)
 }
 
-export interface ChildResult {
-  readonly stdout: string
-  readonly stderr: string
-  readonly code: number | undefined
-  readonly signal: NodeJS.Signals | undefined
-  readonly spawnError: string | undefined
-  readonly timedOut: boolean
-  /**
-  MCP 経由で呼んだときの structuredContent。CLI 経由と呼べなかったときは undefined
-  */
-  readonly data?: Readonly<Record<string, unknown>>
-  /**
-  MCP 経由で呼んだときの content の文の text（要約）。無ければ undefined
-  */
-  readonly text?: string
+interface Called {
+  readonly isError: boolean
+  readonly text: string | undefined
+  readonly structuredContent: Readonly<Record<string, unknown>>
 }
 
-function runChild(
-  launcher: Launcher,
-  scenario: Scenario,
-  cwd: string,
-  environment: Readonly<Record<string, string>>,
-): Promise<ChildResult> {
-  return new Promise((resolve) => {
-    // 新しいプロセスグループで起動する。時間切れのとき、孫プロセスごと止めるため
-    const child = spawn(launcher.command, [...launcher.args, ...scenario.command.path, ...scenario.command.args], {
-      cwd,
-      env: { ...environment },
-      stdio: ['pipe', 'pipe', 'pipe'],
-      detached: true,
-    })
-    let stdout = ''
-    let stderr = ''
-    let isTimedOut = false
-    let isResolved = false
-    let spawnError: string | undefined
-    let forceTimer: NodeJS.Timeout | undefined
-    const finish = (code: number | null | undefined, signal: NodeJS.Signals | null | undefined): void => {
-      if (isResolved) return
-      isResolved = true
-      clearTimeout(timer)
-      clearTimeout(forceTimer)
-      resolve({ stdout, stderr, code: code ?? undefined, signal: signal ?? undefined, spawnError, timedOut: isTimedOut })
-    }
-    child.stdout.setEncoding('utf8')
-    child.stderr.setEncoding('utf8')
-    child.stdout.on('data', (chunk: string) => {
-      stdout += chunk
-    })
-    child.stderr.on('data', (chunk: string) => {
-      stderr += chunk
-    })
-    // 子が stdin を読まずに終わると EPIPE になる。結果には関係しない
-    child.stdin.on('error', () => {
-      // 結果には関係しない
-    })
-    child.stdin.end(scenario.stdin)
-    const timer = setTimeout(() => {
-      isTimedOut = true
-      if (child.pid !== undefined) {
-        try {
-          process.kill(-child.pid, 'SIGKILL')
-        }
-        catch {
-          child.kill('SIGKILL')
-        }
-      }
-      // 孫が出力のパイプを握ったままだと close が来ない。一定時間で強制的に解決する
-      forceTimer = setTimeout(() => {
-        finish(undefined, 'SIGKILL')
-      }, FORCE_RESOLVE_MS)
-    }, CHILD_TIMEOUT_MS)
-    // 起動に失敗すると close は来ないことがある
-    child.on('error', (error) => {
-      spawnError = error.message
-      finish(undefined, undefined)
-    })
-    child.on('close', finish)
+type CallResult
+  = | { readonly kind: 'called', readonly called: Called, readonly stderr: string }
+    | { readonly kind: 'failed', readonly reason: string, readonly timedOut: boolean }
+
+async function closeQuietly(client: Client): Promise<void> {
+  try {
+    await client.close()
+  }
+  catch {
+    // 後始末の失敗は結果に関係しない
+  }
+}
+
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+// サーバを起動し、tools/list の outputSchema で結果を確かめながら、ツールを 1 回呼ぶ
+async function callOnce(launcher: Launcher, scenario: Scenario, cwd: string, environment: Readonly<Record<string, string>>): Promise<CallResult> {
+  const transport = new StdioClientTransport({ command: launcher.command, args: [...launcher.args], env: { ...environment }, cwd, stderr: 'pipe' })
+  // 読み切らないと、パイプが埋まった時点でサーバが止まる
+  let serverStderr = ''
+  transport.stderr?.on('data', (chunk: Buffer | string) => {
+    serverStderr += String(chunk)
   })
+  const client = new AttachingClient({ name: 'parity', version: '0.0.0' })
+  try {
+    await client.connect(transport, { timeout: CHILD_TIMEOUT_MS })
+    const listed = await client.listTools(undefined, { timeout: CHILD_TIMEOUT_MS })
+    const definition = listed.tools.find(tool => tool.name === scenario.tool)
+    if (definition?.outputSchema === undefined) throw new Error(`tools/list に ${scenario.tool} の outputSchema がありません`)
+    // toolDefinition を渡すと、client が成功の structuredContent を outputSchema で検証し、合わなければ例外にする
+    const result = await client.callTool({ name: scenario.tool, arguments: { ...scenario.arguments } }, { timeout: CHILD_TIMEOUT_MS, toolDefinition: definition })
+    const { isError, structured, text } = toolOutcomeOf(result)
+    // client は失敗の結果を検証しないので、同じ outputSchema でここで確かめる
+    const issues = isError ? await outputSchemaIssues(definition.outputSchema, structured) : []
+    if (issues.length > 0) throw new Error(`失敗の structuredContent が outputSchema に合いません: ${issues.join('; ')}`)
+    return { kind: 'called', called: { isError, text, structuredContent: structured }, stderr: serverStderr }
+  }
+  catch (error: unknown) {
+    const reason = `${messageOf(error)}${serverStderr === '' ? '' : `\n${serverStderr}`}`
+    return { kind: 'failed', reason, timedOut: SdkError.isInstance(error) && error.code === SdkErrorCode.RequestTimeout }
+  }
+  finally {
+    await closeQuietly(client)
+  }
 }
 
 export async function runScenario(scenario: Scenario, launcher: Launcher): Promise<Outcome> {
@@ -219,31 +180,29 @@ export async function runScenario(scenario: Scenario, launcher: Launcher): Promi
       ...baseEnvironment(sandbox),
       PECOT_GITHUB_API_URL: server.url,
       ...scenario.setup.env,
-      ...launcher.env,
     }
     const cwd = path.resolve(sandbox.repositoryDirectory, scenario.setup.cwd)
-    const child = launcher.via === 'mcp' ? await runMcpChild(launcher, scenario, cwd, environment) : await runChild(launcher, scenario, cwd, environment)
+    const call = await callOnce(launcher, scenario, cwd, environment)
     const substitutions: readonly Substitution[] = [
       { from: sandbox.root, to: '{{TMP}}' },
       { from: pluginRoot, to: '{{PLUGIN_ROOT}}' },
       { from: server.url, to: '{{GITHUB_API}}' },
-      // リリースで版が上がっても golden を作り直さずに済むよう、--version の出力だけ固定の文字にする
-      { from: `pecot version ${pluginVersion}`, to: 'pecot version {{VERSION}}' },
     ]
+    const normalized = (value: unknown): unknown => normalizeDeep(value, substitutions)
+    const golden: Golden | undefined = call.kind === 'failed'
+      ? undefined
+      : {
+          isError: call.called.isError,
+          ...call.called.text !== undefined && { text: normalizeText(call.called.text, substitutions) },
+          structuredContent: recordOf(normalized(call.called.structuredContent)),
+          stderr: normalizeText(call.stderr, substitutions),
+          requests: server.requests().map(request => normalized(request)),
+          files: collectFiles(sandbox.root, sandbox.repositoryDirectory, sandbox.dataDirectory, substitutions),
+        }
     return {
-      golden: {
-        stdout: normalizeText(child.stdout, substitutions),
-        stderr: normalizeText(child.stderr, substitutions),
-        // code が null になるのはシグナルで終わったとき。-1 は golden に残さない値の代わりで、signal 側で検出する
-        exitCode: child.code ?? -1,
-        requests: server.requests().map(request => normalizeDeep(request, substitutions)),
-        files: collectFiles(sandbox.root, sandbox.repositoryDirectory, sandbox.dataDirectory, substitutions),
-      },
-      spawnError: child.spawnError,
-      signal: child.signal,
-      timedOut: child.timedOut,
-      ...child.data !== undefined && { data: child.data },
-      ...child.text !== undefined && { text: child.text },
+      golden,
+      spawnError: call.kind === 'failed' ? call.reason : undefined,
+      timedOut: call.kind === 'failed' && call.timedOut,
       problems: server.problems(),
       unused: server.unused(),
     }

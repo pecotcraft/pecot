@@ -17,4 +17,3 @@ rules:
 # pnpm が書く生成物。
 ignore: |
   pnpm-lock.yaml
-  runtime-lock.yaml

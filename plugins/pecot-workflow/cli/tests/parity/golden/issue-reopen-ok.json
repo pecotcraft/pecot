@@ -1,7 +1,14 @@
 {
-  "stdout": "",
-  "stderr": "set: Issue acme/demo/7 status active\nreopened: Issue acme/demo/7\ncreated: comment on acme/demo/7\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "set: Issue acme/demo/7 status active",
+  "structuredContent": {
+    "issue": "acme/demo/7",
+    "status": "active",
+    "unarchived": false,
+    "doneCleared": false,
+    "commented": true
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

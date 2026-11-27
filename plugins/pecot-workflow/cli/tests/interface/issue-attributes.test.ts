@@ -1,7 +1,7 @@
 /* eslint-disable unicorn/no-null -- 偽サーバの応答に JSON の null を使う */
 import { describe, expect, it } from 'vitest'
 
-import { ISSUE_ATTRIBUTES_COMMANDS } from '../../src/commands/issue-attributes.js'
+import { ISSUE_ATTRIBUTES_TOOLS } from '../../src/commands/issue-attributes.js'
 import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
@@ -24,7 +24,7 @@ function setUp(options: Readonly<{ repositories?: readonly string[] }> = {}): vo
 const REPOSITORY_ARGUMENTS: Readonly<Record<string, unknown>> = { repo: 'acme/demo' }
 
 async function attributes(argumentsOfTool: Readonly<Record<string, unknown>> = REPOSITORY_ARGUMENTS): Promise<ToolOutcome> {
-  return await callToolOnce(ISSUE_ATTRIBUTES_COMMANDS, 'issue_attributes', argumentsOfTool)
+  return await callToolOnce(ISSUE_ATTRIBUTES_TOOLS, 'issue_attributes', argumentsOfTool)
 }
 
 function pageWithMore(nodes: readonly unknown[], cursor: string): Record<string, unknown> {
@@ -69,13 +69,13 @@ const MARKDOWN = [
   '',
 ].join('\n')
 
-describe('issue attributes', () => {
+describe('issue_attributes', () => {
   it('呼ぶと、機能の定義を 1 行ずつの Markdown の箇条書きで標準出力に出す', async () => {
-    await explains('`issue attributes` の出力形式のテストです。呼び出した場合に、機能の定義を 1 行ずつの Markdown の箇条書きとして標準出力に出力することを確認します。')
+    await explains('`issue_attributes` の出力形式のテストです。呼び出した場合に、機能の定義を 1 行ずつの Markdown の箇条書きとして標準出力に出力することを確認します。')
     setUp()
     const github = await startGithub(definitionRules())
 
-    const result = await runInProcess(['--repo', 'acme/demo', 'issue', 'attributes'], ISSUE_ATTRIBUTES_COMMANDS)
+    const result = await runInProcess('issue_attributes', { repo: 'acme/demo' }, ISSUE_ATTRIBUTES_TOOLS)
 
     expect(result).toEqual({ code: 0, stdout: MARKDOWN, stderr: '' })
     expect(github.requests()).toMatchObject([
@@ -84,12 +84,12 @@ describe('issue attributes', () => {
     ])
   })
 
-  it('--json を渡すと、MCP の結果と同じ attributes と unsupported を JSON で出す', async () => {
-    await explains('`issue attributes --json` のテストです。`--json` を指定した場合に、MCP ツールの結果と同じ `attributes` と `unsupported` を JSON で出力することを確認します。')
+  it('json を渡すと、MCP の結果と同じ attributes と unsupported を JSON で出す', async () => {
+    await explains('`issue_attributes` の `json` のテストです。`json` を指定した場合に、MCP ツールの結果と同じ `attributes` と `unsupported` を JSON で出力することを確認します。')
     setUp()
     await startGithub([...definitionRules(), ...definitionRules()])
 
-    const result = await runInProcess(['--repo', 'acme/demo', 'issue', 'attributes', '--json'], ISSUE_ATTRIBUTES_COMMANDS)
+    const result = await runInProcess('issue_attributes', { json: true, repo: 'acme/demo' }, ISSUE_ATTRIBUTES_TOOLS)
     const outcome = await attributes()
 
     expect(result.code).toBe(0)

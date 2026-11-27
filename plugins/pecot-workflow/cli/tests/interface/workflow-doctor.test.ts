@@ -80,7 +80,7 @@ function sortedLabels(result: Readonly<ToolResult>): readonly string[] {
 
 const READY: Settings = { secrets: ['CLAUDE_CODE_OAUTH_TOKEN'] }
 
-describe('workflow doctor', () => {
+describe('workflow_doctor', () => {
   it('呼ぶと、確かめた項目を name と state の組で items に入れる', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-01')
     await explains('ワークフローの診断（`workflow_doctor`）を、ファイルと設定がそろった状態で呼び出した場合のテストです。確認した項目が `name` と `state` の組として `items` に格納され、問題が 1 件も報告されないことを確認します。')
@@ -288,9 +288,9 @@ describe('workflow doctor', () => {
     expect(itemsOf(result)).not.toContainEqual(expect.objectContaining({ name: KEY_MISSING }))
   })
 
-  it('CLI で打つと、確かめた項目を状態と名前の行で標準出力に出す', async () => {
-    await explains('`pecot workflow doctor review` を実行した場合のテストです。確認した項目が、状態と名前の行として標準出力に表示され、終了コード 0 で終了することを確認します。')
-    const result = await runCommand({ argv: ['workflow', 'doctor', 'review'], files: INSTALLED, config: false, github: github(READY) })
+  it('打つと、確かめた項目を状態と名前の行で標準出力に出す', async () => {
+    await explains('`workflow_doctor review` を実行した場合のテストです。確認した項目が、状態と名前の行として標準出力に表示され、終了コード 0 で終了することを確認します。')
+    const result = await runCommand({ tool: 'workflow_doctor', arguments: { name: 'review' }, files: INSTALLED, config: false, github: github(READY) })
     expect(result.code).toBe(0)
     expect(result.stdout).toBe([
       `ok: ${DESTINATION}`,
@@ -306,7 +306,7 @@ describe('workflow doctor', () => {
     { name: 'pecot の action を呼ばない', installed: BUNDLED.replace(/uses: pecotcraft\/pecot\/actions\/review-finish@\S+/u, 'run: echo finish') },
   ])('もし置いたファイルが $name なら、版が同じでも、その項目を outdated にして失敗を返す', async (row, context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-18')
-    await explains(`\`workflow doctor\` の、置いたワークフローの pecot の action の確認のテストです。置いたファイルが \`${row.name}\` 場合に、版が同じでもその項目を \`outdated\` にして失敗を返すことを確認します。`)
+    await explains(`\`workflow_doctor\` の、置いたワークフローの pecot の action の確認のテストです。置いたファイルが \`${row.name}\` 場合に、版が同じでもその項目を \`outdated\` にして失敗を返すことを確認します。`)
     const result = await doctor(READY, { [DESTINATION]: row.installed })
     expect(result.isError).toBe(true)
     expect(itemsOf(result)).toContainEqual({ name: 'workflow template review', state: 'ok' })
@@ -316,7 +316,7 @@ describe('workflow doctor', () => {
 
   it('SHA で固定した pecot の action を呼ぶファイルは、その項目を ok にする', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-18')
-    await explains('`workflow doctor` の、置いたワークフローの pecot の action の確認のテストです。SHA で固定した pecot の action を呼ぶファイルの場合に、その項目を `ok` にすることを確認します。')
+    await explains('`workflow_doctor` の、置いたワークフローの pecot の action の確認のテストです。SHA で固定した pecot の action を呼ぶファイルの場合に、その項目を `ok` にすることを確認します。')
     const pinned = BUNDLED.replace(/(uses: pecotcraft\/pecot\/actions\/review-finish)@(\S+)/u, (_match, use: string, tag: string) => `${use}@${'a'.repeat(40)} # ${tag}`)
     const result = await doctor(READY, { [DESTINATION]: pinned })
     expect(itemsOf(result)).toContainEqual({ name: ACTIONS_ITEM, state: 'ok' })
@@ -328,7 +328,7 @@ describe('workflow doctor', () => {
     { name: 'App の変数だけ', settings: { variables: ['PECOT_BOARD_SYNC_APP_CLIENT_ID'] }, state: 'missing' },
   ])('board-sync で $name があると、token の組の項目を $state にする', async (row, context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-19')
-    await explains(`\`workflow doctor\` の、board sync のトークンの設定の確認のテストです。リポジトリに \`${row.name}\` がある場合に、トークンの組の項目を \`${row.state}\` にすることを確認します。`)
+    await explains(`\`workflow_doctor\` の、board sync のトークンの設定の確認のテストです。リポジトリに \`${row.name}\` がある場合に、トークンの組の項目を \`${row.state}\` にすることを確認します。`)
     const destination = '.github/workflows/pecot-board-sync.yml'
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同梱の雛形のパス
     const bundled = readFileSync(path.join(pluginRoot(), 'cli/templates/workflow/pecot-board-sync.yml'), 'utf8')

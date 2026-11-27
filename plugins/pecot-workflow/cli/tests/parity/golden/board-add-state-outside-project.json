@@ -1,7 +1,11 @@
 {
-  "stdout": "",
-  "stderr": "error: repository acme/demo is not in the project\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "repository acme/demo is not in the project",
+  "structuredContent": {
+    "kind": "repo-not-in-project",
+    "detail": "repository acme/demo is not in the project"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",

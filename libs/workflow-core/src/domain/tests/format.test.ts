@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { explains } from '../../../tests/_helpers/explains.js'
 import { JSON_NULL } from '../json-null.js'
-import { boardItemKey, extractFieldValueById, extractFieldValueByName, fieldNameById, fieldNamesWithValues, formatBoardOutput, formatItemsJson, formatStackableChains, formatTableRow, transformItems } from '../format.js'
+import { boardItemKey, extractFieldValueById, extractFieldValueByName, fieldNameById, fieldNamesWithValues, formatBoardOutput, formatItemsJson, formatTableRow, transformItems } from '../format.js'
 import type { BoardItem } from '../format.js'
 import type { JsonValue } from '../python-format.js'
 
@@ -447,21 +447,6 @@ describe('formatBoardOutput の Readiness の列', () => {
     expect(first === undefined ? undefined : boardItemKey(first)).toBe('acme/app#5')
     expect(boardItemKey({ content: { number: 5 } })).toBeUndefined()
     expect(boardItemKey({ content: { repository: 'a/b' } })).toBeUndefined()
-  })
-})
-
-describe('formatStackableChains', () => {
-  it('Epic ごとの並びを、1 行ずつ表示する', async () => {
-    await explains('着手できる Issue の並びを Markdown にする、`formatStackableChains` のテストです。Epic ごとの Issue の並びを、`#1 -> #2 -> #3` の形で 1 行ずつ表示し、Epic がない並びは `(no epic)` として表示することを確認します。')
-    expect(formatStackableChains([
-      { epic: '#10', chain: ['#1', '#2', '#3'] },
-      { epic: undefined, chain: ['#4', '#5'] },
-    ])).toBe('## Stackable chains\n\n- #10: #1 -> #2 -> #3\n- (no epic): #4 -> #5')
-  })
-
-  it('並びが存在しない場合は、節を表示しない', async () => {
-    await explains('着手できる Issue の並びを Markdown にする、`formatStackableChains` のテストです。並びが空の場合に、節を作らず `undefined` を返すことを確認します。')
-    expect(formatStackableChains([])).toBeUndefined()
   })
 })
 

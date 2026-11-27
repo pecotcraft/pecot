@@ -12,6 +12,7 @@
 | `auto-gate` | 自動処理を進めるかと、その種類を決める | `pecot-auto.yml` |
 | `auto-start` | 自動処理を始め、続けるための文脈をファイルに書く | `pecot-auto.yml` |
 | `auto-finish` | 自動処理の結果のコメントを書き、待ちの Status を書いて起動ラベルを外す | `pecot-auto.yml` |
+| `release-check` | リリースを出す前に、alert・CHANGELOG・タグ・リリースするコミットを確かめる | なし（このリポの `release.yml`） |
 | `tracker-sync` | Dependabot の PR か security alert を、Tracker 1 件にそろえる | なし（このリポの `security-alerts.yml`・`dependabot-prs.yml`） |
 
 inputs と outputs は、各 action の `action.yml` にあります。振る舞いの項目は `interface/authored.yaml` にあります。

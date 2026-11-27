@@ -1,7 +1,17 @@
 {
-  "stdout": "",
-  "stderr": "count: open Dependabot alerts: 0\nerror: could not check code scanning: acme/demo: code scanning: access denied Resource not accessible by integration\ncount: open secret scanning alerts: 0\n",
-  "exitCode": 1,
+  "isError": true,
+  "text": "could not check code scanning: acme/demo: code scanning: access denied Resource not accessible by integration",
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "could not check code scanning: acme/demo: code scanning: access denied Resource not accessible by integration",
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    }
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "rest",

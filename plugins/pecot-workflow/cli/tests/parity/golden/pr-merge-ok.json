@@ -1,7 +1,12 @@
 {
-  "stdout": "",
-  "stderr": "merged: PR #21 into main\n",
-  "exitCode": 0,
+  "isError": false,
+  "text": "merged: PR #21 into main",
+  "structuredContent": {
+    "pullRequest": "acme/demo/21",
+    "base": "main",
+    "status": "merged"
+  },
+  "stderr": "",
   "requests": [
     {
       "type": "graphql",
