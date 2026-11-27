@@ -24,7 +24,7 @@
 | Allure の結果 | `report-lanes.json` の `results` | レーンの最初に 1 回だけ空にする。レーンの中の 2 つ目からの実行は書き足す。nx の `outputs` に入れる。git には入れない |
 | JUnit XML | 今の置き場所のまま | 今あるレーンだけ。中身は変えない |
 | 実行の環境（`environment.properties`） | Allure の結果と同じディレクトリ | 実行全体で同じ値だけを書く。vitest は `OS`・`Node.js` を reporter の `environmentInfo` で書く。pytest は、ファイルが無いときだけ `OS` を書く（2026-11-27 に足した。#817） |
-| テストを動かした版（パラメータ） | 結果ごと | vitest は `Node.js`、pytest は `Python` を `excluded` のパラメータで付ける。テストの識別（historyId）は変わらない（#817） |
+| テストを動かした版（ラベル） | 結果ごと | vitest は `Node.js`、pytest は `Python` のラベルを付ける。パラメータにすると、レポートの木の全行に版が出るので使わない（#817） |
 
 環境変数:
 

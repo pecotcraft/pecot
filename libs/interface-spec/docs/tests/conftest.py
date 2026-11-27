@@ -157,14 +157,14 @@ def _escape_property(text: str, *, key: bool) -> str:
 
 
 @pytest.fixture(autouse=True)
-def allure_python_parameter(request: pytest.FixtureRequest) -> None:
-    # Python の版はレーンで違うので、テストのパラメータにする。excluded なので historyId は変わらない。
+def allure_python_label(request: pytest.FixtureRequest) -> None:
+    # Python の版はレーンで違うので、テストのラベルにする。パラメータにすると木の全行に出る。
     if _alluredir(request.config) is None:
         return
     import allure
 
     # pyright は別名で import された allure.dynamic を読めない。
-    allure.dynamic.parameter("Python", platform.python_version(), excluded=True)  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType]
+    allure.dynamic.label("Python", platform.python_version())  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType]
 
 
 def pytest_sessionfinish(session: pytest.Session) -> None:

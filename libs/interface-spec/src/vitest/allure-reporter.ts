@@ -3,8 +3,6 @@
 import { readFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import type { TestResult } from 'allure-js-commons'
-import type { LifecycleListener } from 'allure-js-commons/sdk/reporter'
 import AllureVitestReporter from 'allure-vitest/reporter'
 import type { AllureVitestReporterConfig } from 'allure-vitest/reporter'
 
@@ -17,15 +15,6 @@ const OS_RELEASE_ESCAPE = /\\([\\$"'`])/gu
 
 // generated.json の表を、reporter を作り直しても読み直さないように、1 つを使い回す。
 const LABELS_LISTENER = reportLabelsListener()
-
-// Node.js の版はレーンで違いうるので、テストのパラメータに置く。excluded で historyId の計算から外す。
-const NODE_VERSION_LISTENER: LifecycleListener = {
-  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 渡された結果を書き換える
-  beforeTestResultWrite: (result: TestResult) => {
-    if (result.parameters.some(parameter => parameter.name === 'Node.js')) return
-    result.parameters.push({ name: 'Node.js', value: process.version, excluded: true })
-  },
-}
 
 // Python の platform.freedesktop_os_release() と同じ読み方にする。外側のクオートを外し、5 つの記号のエスケープを外す。
 function prettyName(content: string): string | undefined {
@@ -73,10 +62,12 @@ export function allureReporterConfig(projectRoot: string, environment: NodeJS.Pr
       { name: 'project', value: project },
       { name: 'lane', value: target },
       { name: 'epic', value: project },
+      // 版はレーンで違いうるので、テストごとにも残す。パラメータにすると木の全行に出る。
+      { name: 'Node.js', value: process.version },
     ],
     links: { tms: { urlTemplate: `${siteUrl}permalink.html?id=%s`, nameTemplate: '%s' } },
     environmentInfo: { 'OS': osName(), 'Node.js': process.version },
-    listeners: [LABELS_LISTENER, NODE_VERSION_LISTENER],
+    listeners: [LABELS_LISTENER],
   }
 }
 

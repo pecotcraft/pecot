@@ -1,7 +1,7 @@
 """pytest のレーンが Allure の結果を残す仕組みのテスト。
 
 run.sh が nx のレーンのときだけ --alluredir と -o を渡すことと、conftest が -o の値をラベルにすることを見る。
-conftest が --alluredir に動かした環境（Python の版のパラメータと、OS の environment.properties）を残すことも見る。
+conftest が --alluredir に動かした環境（Python の版のラベルと、OS の environment.properties）を残すことも見る。
 """
 
 from __future__ import annotations
@@ -361,28 +361,13 @@ _TWO_TESTS = (
     "def test_b(n: int) -> None:\n    pass\n"
 )
 
-# 同じ名前の fixture で conftest の autouse の fixture を上書きし、パラメータを付けない実行を作る。
-_WITHOUT_PYTHON_PARAMETER = (
-    "\n\n@pytest.fixture\ndef allure_python_parameter() -> None:\n    pass\n"
-)
-
 
 def _results(results: Path) -> list[dict[str, Any]]:
     return [json.loads(read_output(path)) for path in sorted(results.glob("*-result.json"))]
 
 
-def _python_parameters(result: dict[str, Any]) -> list[dict[str, Any]]:
-    # パラメータの無い結果は parameters の欄を持たない。
-    return [
-        {key: parameter.get(key) for key in ("name", "value", "excluded")}
-        for parameter in result.get("parameters", [])
-        if parameter["name"] == "Python"
-    ]
-
-
-def _expected_python_parameter() -> list[dict[str, Any]]:
-    # allure-pytest は文字列の値を引用符で囲んで書く。
-    return [{"name": "Python", "value": f"'{platform.python_version()}'", "excluded": True}]
+def _python_labels(result: dict[str, Any]) -> list[str]:
+    return [label["value"] for label in result.get("labels", []) if label["name"] == "Python"]
 
 
 def _fallback_os() -> str:
@@ -406,38 +391,21 @@ def _stringify_env_info(info: dict[str, str]) -> str:
 
 
 @allure.title(
-    "--alluredir を指定すると、{param_id} の conftest はどの結果にも Python の版を excluded のパラメータで 1 つ付け、historyId を変えない"
+    "--alluredir を指定すると、{param_id} の conftest はどの結果にも Python の版のラベルを 1 つ付け、パラメータは付けない"
 )
 @pytest.mark.parametrize("conftest", _CONFTESTS)
-def test_alluredir_adds_excluded_python_parameter(tmp_path: Path, conftest: str) -> None:
-    """`--alluredir` を指定して pytest を実行したときの、`Python` のパラメータのテストです。どの結果にも `excluded` の `Python` のパラメータが 1 つ付き、付けない実行と `historyId` が同じであることを確認します。"""
+def test_alluredir_adds_python_label(tmp_path: Path, conftest: str) -> None:
+    """`--alluredir` を指定して pytest を実行したときの、`Python` のラベルのテストです。どの結果にも動かした版の `Python` のラベルが 1 つ付き、`Python` のパラメータは付かないことを確認します。"""
     with allure.step("parametrize を含む 3 件のテストを --alluredir 付きで動かす"):
-        (tmp_path / "with").mkdir()
-        with_results = tmp_path / "with/allure-results"
-        done = _run_pytest(
-            tmp_path / "with", conftest, _TWO_TESTS, "--alluredir", str(with_results)
-        )
+        results = tmp_path / "allure-results"
+        done = _run_pytest(tmp_path, conftest, _TWO_TESTS, "--alluredir", str(results))
         assert done.returncode == 0, done.stdout + done.stderr
-    with allure.step("パラメータの fixture を上書きした同じテストを --alluredir 付きで動かす"):
-        (tmp_path / "without").mkdir()
-        without_results = tmp_path / "without/allure-results"
-        done = _run_pytest(
-            tmp_path / "without", conftest, _TWO_TESTS + _WITHOUT_PYTHON_PARAMETER,
-            "--alluredir", str(without_results),
-        )  # fmt: skip
-        assert done.returncode == 0, done.stdout + done.stderr
-    with allure.step(
-        "Python のパラメータが 1 つずつ付き、historyId が上書きした実行と同じことを確かめる"
-    ):
-        with_python = _results(with_results)
-        without_python = _results(without_results)
-        assert len(with_python) == 3
-        for result in with_python:
-            assert _python_parameters(result) == _expected_python_parameter()
-        assert [_python_parameters(result) for result in without_python] == [[], [], []]
-        assert {result["name"]: result["historyId"] for result in with_python} == {
-            result["name"]: result["historyId"] for result in without_python
-        }
+    with allure.step("Python のラベルが 1 つずつ付き、Python のパラメータが無いことを確かめる"):
+        written = _results(results)
+        assert len(written) == 3
+        for result in written:
+            assert _python_labels(result) == [platform.python_version()]
+            assert all(p["name"] != "Python" for p in result.get("parameters", []))
 
 
 _DEBIAN = 'NAME="Debian"\n'
@@ -527,25 +495,25 @@ def test_alluredir_keeps_existing_environment_properties(tmp_path: Path, conftes
 
 
 @allure.title(
-    "--alluredir を指定しないと、{param_id} の conftest は Python のパラメータを付けず、environment.properties を書かない"
+    "--alluredir を指定しないと、{param_id} の conftest は Python のラベルを付けず、environment.properties を書かない"
 )
 @pytest.mark.parametrize("conftest", _CONFTESTS)
-def test_without_alluredir_no_parameter_or_environment(tmp_path: Path, conftest: str) -> None:
-    """`--alluredir` を指定せずに pytest を実行したときのテストです。Allure のパラメータを付ける呼び出しが 1 回も無く、`environment.properties` がどこにも作成されないことを確認します。"""
-    with allure.step("パラメータの呼び出しを記録するテストを --alluredir 無しで動かす"):
+def test_without_alluredir_no_label_or_environment(tmp_path: Path, conftest: str) -> None:
+    """`--alluredir` を指定せずに pytest を実行したときのテストです。Allure のラベルを付ける呼び出しが 1 回も無く、`environment.properties` がどこにも作成されないことを確認します。"""
+    with allure.step("ラベルの呼び出しを記録するテストを --alluredir 無しで動かす"):
         body = (
             "import allure_commons\n\n"
             "calls: list[str] = []\n\n\n"
             "class _Spy:\n"
             "    @allure_commons.hookimpl\n"
-            "    def add_parameter(self, name, value, excluded, mode) -> None:\n"
-            "        calls.append(name)\n\n\n"
+            "    def add_label(self, label_type, labels) -> None:\n"
+            "        calls.append(label_type)\n\n\n"
             "allure_commons.plugin_manager.register(_Spy())\n\n\n"
             "def test_a() -> None:\n    pass\n\n\n"
             "def test_b() -> None:\n    assert calls == []\n"
         )
         done = _run_pytest(tmp_path, conftest, body)
-    with allure.step("パラメータの呼び出しが無く、environment.properties が無いことを確かめる"):
+    with allure.step("ラベルの呼び出しが無く、environment.properties が無いことを確かめる"):
         assert done.returncode == 0, done.stdout + done.stderr
         assert list(tmp_path.rglob("environment.properties")) == []
 
@@ -555,7 +523,7 @@ def test_without_alluredir_no_parameter_or_environment(tmp_path: Path, conftest:
 )
 @pytest.mark.parametrize("conftest", _CONFTESTS)
 def test_xdist_writes_environment_properties_once(tmp_path: Path, conftest: str) -> None:
-    """`-n 2` で xdist の worker に分けて pytest を実行したときのテストです。xdist を使わない実行と同じ `OS` の 1 行の `environment.properties` が 1 つだけ作成されることを確認します。worker の結果に `Python` のパラメータが付くことも確認します。"""
+    """`-n 2` で xdist の worker に分けて pytest を実行したときのテストです。xdist を使わない実行と同じ `OS` の 1 行の `environment.properties` が 1 つだけ作成されることを確認します。worker の結果に `Python` のラベルが付くことも確認します。"""
     body = "".join(f"def test_{name}() -> None:\n    pass\n\n\n" for name in "abcd")
     with allure.step("4 件のテストを xdist を使わずに --alluredir 付きで動かす"):
         (tmp_path / "serial").mkdir()
@@ -569,7 +537,7 @@ def test_xdist_writes_environment_properties_once(tmp_path: Path, conftest: str)
             tmp_path / "xdist", conftest, body, "-n", "2", "--alluredir", str(results)
         )
     with allure.step(
-        "environment.properties が 1 つで、どの結果にも Python のパラメータがあることを確かめる"
+        "environment.properties が 1 つで、どの結果にも Python のラベルがあることを確かめる"
     ):
         assert done.returncode == 0, done.stdout + done.stderr
         assert [path.name for path in (tmp_path / "xdist").rglob("environment.properties")] == [
@@ -581,7 +549,7 @@ def test_xdist_writes_environment_properties_once(tmp_path: Path, conftest: str)
         written = _results(results)
         assert len(written) == 4
         for result in written:
-            assert _python_parameters(result) == _expected_python_parameter()
+            assert _python_labels(result) == [platform.python_version()]
 
 
 @pytest.fixture

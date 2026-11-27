@@ -1,7 +1,5 @@
 import os from 'node:os'
 import path from 'node:path'
-import { Stage, Status } from 'allure-js-commons'
-import type { Parameter, TestResult } from 'allure-js-commons'
 import AllureVitestReporter from 'allure-vitest/reporter'
 import { describe, expect, it } from 'vitest'
 import { allureReporter, allureReporterConfig, isAllureEnabled, osName } from '../src/vitest/allure-reporter.js'
@@ -23,24 +21,6 @@ function fakeReader(files: Readonly<Record<string, string>>): { readonly read: (
     return content
   }
   return { read, calls }
-}
-
-// allure-vitest が書き出す直前の結果のうち、listener が読む欄だけを持つもの。
-function testResult(parameters: readonly Parameter[]): TestResult {
-  return {
-    uuid: 'uuid',
-    name: 'name',
-    fullName: 'fullName',
-    historyId: 'historyId',
-    status: Status.PASSED,
-    statusDetails: {},
-    stage: Stage.FINISHED,
-    steps: [],
-    attachments: [],
-    parameters: [...parameters],
-    labels: [],
-    links: [],
-  }
 }
 
 describe('isAllureEnabled', () => {
@@ -123,49 +103,24 @@ describe('allureReporterConfig', () => {
     })
   })
 
-  it('project・lane のラベルと、project の名前の epic を、nx の task の値で付ける', async () => {
-    await explains('Allure の結果に付けるラベルを決める、`allureReporterConfig` のテストです。nx の task の環境変数の値が、`project`・`lane`・`epic` のラベルとして設定されることを確認します。')
+  it('project・lane のラベルと、project の名前の epic と、Node.js の版のラベルを付ける', async () => {
+    await explains('Allure の結果に付けるラベルを決める、`allureReporterConfig` のテストです。nx の task の環境変数の値が `project`・`lane`・`epic` のラベルに、テストを動かした版が `Node.js` のラベルに設定されることを確認します。')
     stepSync('設定を作り、グローバルラベルを比べる', () => {
       expect(allureReporterConfig(ROOT, NX_ENV)?.globalLabels).toEqual([
         { name: 'project', value: 'pecot-tools' },
         { name: 'lane', value: 'test-cli' },
         { name: 'epic', value: 'pecot-tools' },
+        { name: 'Node.js', value: process.version },
       ])
     })
   })
 
-  it('書き出す前の結果に、feature・story を付ける listener と Node.js の版を付ける listener の 2 つを渡す', async () => {
-    await explains('Allure の結果を書き出す前に呼ぶ listener を決める、`allureReporterConfig` のテストです。`beforeTestResultWrite` を持つ listener が 2 つ設定されることを確認します。')
+  it('書き出す前の結果に feature と story を足す listener を 1 つ渡す', async () => {
+    await explains('Allure の結果を書き出す前に呼ぶ listener を決める、`allureReporterConfig` のテストです。`beforeTestResultWrite` を持つ listener が 1 つ設定されることを確認します。')
     const listeners = stepSync('設定を作る', () => allureReporterConfig(ROOT, NX_ENV)?.listeners)
     stepSync('listener を比べる', () => {
-      expect(listeners).toHaveLength(2)
+      expect(listeners).toHaveLength(1)
       expect(listeners?.[0]?.beforeTestResultWrite).toBeTypeOf('function')
-      expect(listeners?.[1]?.beforeTestResultWrite).toBeTypeOf('function')
-    })
-  })
-
-  it('Node.js の版を、既存のパラメータを残したまま、historyId の計算から外すパラメータとして付ける', async () => {
-    await explains('2 つ目の listener のテストです。既存のパラメータを持つ結果に対して、`Node.js` の版を `excluded: true` のパラメータとして追加することを確認します。')
-    const result = stepSync('パラメータを 1 つ持つ結果を作る', () => testResult([{ name: 'row', value: 'a' }]))
-    stepSync('listener を呼ぶ', () => {
-      allureReporterConfig(ROOT, NX_ENV)?.listeners?.[1]?.beforeTestResultWrite?.(result)
-    })
-    stepSync('パラメータを比べる', () => {
-      expect(result.parameters).toEqual([
-        { name: 'row', value: 'a' },
-        { name: 'Node.js', value: process.version, excluded: true },
-      ])
-    })
-  })
-
-  it('Node.js のパラメータを既に持つ結果には、パラメータを重ねて付けない', async () => {
-    await explains('2 つ目の listener のテストです。`Node.js` のパラメータを既に持つ結果に対して、パラメータを追加しないことを確認します。')
-    const result = stepSync('Node.js のパラメータを持つ結果を作る', () => testResult([{ name: 'Node.js', value: 'v0.0.0', excluded: true }]))
-    stepSync('listener を呼ぶ', () => {
-      allureReporterConfig(ROOT, NX_ENV)?.listeners?.[1]?.beforeTestResultWrite?.(result)
-    })
-    stepSync('パラメータを比べる', () => {
-      expect(result.parameters).toEqual([{ name: 'Node.js', value: 'v0.0.0', excluded: true }])
     })
   })
 
