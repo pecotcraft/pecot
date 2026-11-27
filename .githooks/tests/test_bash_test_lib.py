@@ -46,7 +46,7 @@ def _root(path: Path) -> Path:
 
 
 def _run_files(
-    tmp_path: Path, *tests: Path, results: Path | None
+    tmp_path: Path, *tests: Path, results: Path | None, lane: dict[str, str] = _LANE
 ) -> subprocess.CompletedProcess[str]:
     """runner と同じく、bash-test.sh を読んだシェルから bt_run_files でファイルを動かす。"""
     with allure.step("bt_run_files でテストのファイルを動かす"):
@@ -58,16 +58,16 @@ def _run_files(
         return run_attached(
             ["bash", str(runner), *map(str, tests)],
             cwd=tmp_path,
-            env={**os.environ, **_LANE},
+            env={**os.environ, **lane},
             capture_output=True,
             text=True,
         )
 
 
 def _run_file(
-    tmp_path: Path, test: Path, *, results: Path | None
+    tmp_path: Path, test: Path, *, results: Path | None, lane: dict[str, str] = _LANE
 ) -> subprocess.CompletedProcess[str]:
-    return _run_files(tmp_path, test, results=results)
+    return _run_files(tmp_path, test, results=results, lane=lane)
 
 
 def _results(directory: Path) -> list[dict[str, Any]]:
@@ -127,10 +127,10 @@ def test_eq_has_expected_and_actual(tmp_path: Path) -> None:
 
 
 @allure.title(
-    "結果にはレーン・ファイルのパス・host・thread のラベルを付け、fullName にはレーンとパスと題を含める"
+    "結果にはレーン・ファイルのパス・機能の階層・host・thread のラベルを付け、fullName にはレーンとパスと題を含める"
 )
 def test_labels_and_full_name(tmp_path: Path) -> None:
-    """bash のテストの結果に付くラベルと `fullName` のテストです。project・lane・parentSuite などのラベルが付き、`fullName` にレーンとファイルのパスと題が含まれることを確認します。"""
+    """bash のテストの結果に付くラベルと `fullName` のテストです。project・lane・parentSuite・epic・feature・story などのラベルが付き、`fullName` にレーンとファイルのパスと題が含まれることを確認します。"""
     test = _write_test(tmp_path / "plugins/p/tests", 'bt_pass "通る"\nbt_finish')
     _run_file(tmp_path, test, results=tmp_path / "results")
     [result] = _results(tmp_path / "results")
@@ -140,6 +140,9 @@ def test_labels_and_full_name(tmp_path: Path) -> None:
         assert _label(result, "project") == ["pecot-visual"]
         assert _label(result, "lane") == ["test-hooks"]
         assert _label(result, "parentSuite") == [path]
+        assert _label(result, "epic") == ["pecot-visual"]
+        assert _label(result, "feature") == ["plugins/p/tests"]
+        assert _label(result, "story") == [path]
         assert _label(result, "language") == ["bash"]
         assert _label(result, "framework") == ["bash"]
         assert len(_label(result, "host")) == 1
@@ -160,8 +163,36 @@ def test_path_with_dot_dot_is_normalized(tmp_path: Path) -> None:
     _run_file(tmp_path, detour, results=tmp_path / "results")
     [result] = _results(tmp_path / "results")
 
-    with allure.step("parentSuite が正規のパスであることを確かめる"):
+    with allure.step("parentSuite・feature・story が正規のパスであることを確かめる"):
         assert _label(result, "parentSuite") == ["plugins/p/tests/sample.test.sh"]
+        assert _label(result, "feature") == ["plugins/p/tests"]
+        assert _label(result, "story") == ["plugins/p/tests/sample.test.sh"]
+
+
+@allure.title("リポのルートの直下のテストのファイルは、feature が . になり、story がファイルの名前になる")
+def test_file_at_repo_root_has_dot_as_feature(tmp_path: Path) -> None:
+    """リポのルートの直下に置いたテストのファイルのテストです。feature のラベルが `.`、story のラベルがファイルの名前になることを確認します。"""
+    test = _write_test(tmp_path, 'bt_pass "通る"\nbt_finish')
+    _run_file(tmp_path, test, results=tmp_path / "results")
+    [result] = _results(tmp_path / "results")
+
+    with allure.step("feature と story を確かめる"):
+        assert _label(result, "feature") == ["."]
+        assert _label(result, "story") == ["sample.test.sh"]
+
+
+@allure.title("nx の project が無いと、epic と project を付けず、feature と story は付ける")
+def test_without_project_no_epic(tmp_path: Path) -> None:
+    """`NX_TASK_TARGET_PROJECT` が空の場合のテストです。結果に epic と project のラベルが付かず、feature と story のラベルが付くことを確認します。"""
+    test = _write_test(tmp_path / "suite", 'bt_pass "通る"\nbt_finish')
+    _run_file(tmp_path, test, results=tmp_path / "results", lane={"NX_TASK_TARGET_PROJECT": ""})
+    [result] = _results(tmp_path / "results")
+
+    with allure.step("epic と project が無く、feature と story があることを確かめる"):
+        assert _label(result, "epic") == []
+        assert _label(result, "project") == []
+        assert _label(result, "feature") == ["suite"]
+        assert _label(result, "story") == ["suite/sample.test.sh"]
 
 
 @allure.title(
@@ -360,5 +391,10 @@ def test_real_allure_reads_the_results(tmp_path: Path) -> None:
         assert (labels["project"], labels["lane"], labels["parentSuite"]) == (
             "pecot-visual",
             "test-hooks",
+            "suite/sample.test.sh",
+        )
+        assert (labels["epic"], labels["feature"], labels["story"]) == (
+            "pecot-visual",
+            "suite",
             "suite/sample.test.sh",
         )

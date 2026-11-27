@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: {
     awesome: {
       options: {
-        groupBy: ["project", "lane", "parentSuite", "suite", "subSuite"],
+        groupBy: ["epic", "feature", "story"],
         reportLanguage: "ja",
       },
     },

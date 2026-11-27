@@ -27,7 +27,7 @@ pnpm exec allure open .pecot/work/670/report
 
 - 結果のディレクトリに `*-result.json` がある。JUnit XML は、今までと同じ場所に同じ中身である
 - `generate.py` は、動かしていないレーンの名前を出して続ける
-- レポートのテストの一覧が、テストに書いた題で並ぶ。`project`・`lane` で木になっている
+- レポートのテストの一覧が、テストに書いた題で並ぶ。`epic`・`feature`・`story`（#811）で木になっている
 - 落ちたテストを 1 つ用意して動かすと、理由とスタックが出る
 
 pytest のレーンも同じに確かめる。

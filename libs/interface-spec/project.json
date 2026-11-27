@@ -134,6 +134,7 @@
         "{projectRoot}/package.json",
         "{projectRoot}/src/vitest/unique-titles.ts",
         "{projectRoot}/src/vitest/allure-reporter.ts",
+        "{projectRoot}/src/vitest/report-labels.ts",
         "{projectRoot}/src/vitest/attach.ts",
         "{projectRoot}/src/vitest/step.ts",
         "{projectRoot}/src/vitest/explains.ts",

@@ -43,13 +43,23 @@ describe('allureReporterConfig', () => {
     })
   })
 
-  it('project と lane のラベルを、nx の task の値で付ける', async () => {
-    await explains('Allure の結果に付けるラベルを決める、`allureReporterConfig` のテストです。nx の task の環境変数の値が、`project` と `lane` のラベルとして設定されることを確認します。')
+  it('project・lane のラベルと、project の名前の epic を、nx の task の値で付ける', async () => {
+    await explains('Allure の結果に付けるラベルを決める、`allureReporterConfig` のテストです。nx の task の環境変数の値が、`project`・`lane`・`epic` のラベルとして設定されることを確認します。')
     stepSync('設定を作り、グローバルラベルを比べる', () => {
       expect(allureReporterConfig(ROOT, NX_ENV)?.globalLabels).toEqual([
         { name: 'project', value: 'pecot-tools' },
         { name: 'lane', value: 'test-cli' },
+        { name: 'epic', value: 'pecot-tools' },
       ])
+    })
+  })
+
+  it('書き出す前の結果に feature と story を足す listener を 1 つ渡す', async () => {
+    await explains('Allure の結果を書き出す前に呼ぶ listener を決める、`allureReporterConfig` のテストです。`beforeTestResultWrite` を持つ listener が 1 つ設定されることを確認します。')
+    const listeners = stepSync('設定を作る', () => allureReporterConfig(ROOT, NX_ENV)?.listeners)
+    stepSync('listener を比べる', () => {
+      expect(listeners).toHaveLength(1)
+      expect(listeners?.[0]?.beforeTestResultWrite).toBeTypeOf('function')
     })
   })
 

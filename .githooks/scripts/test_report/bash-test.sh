@@ -73,7 +73,7 @@ _bt_write() {
     [ -n "$results" ] || return 0
     local rel="$1" status="$2" title="$3" message="$4" start="$5" stop="$6"
     local project="${NX_TASK_TARGET_PROJECT:-}" lane="${NX_TASK_TARGET_TARGET:-}"
-    local uuid details labels
+    local uuid details labels feature
     read -r uuid < /proc/sys/kernel/random/uuid
     details=""
     if [ -n "$message" ]; then
@@ -92,6 +92,10 @@ _bt_write() {
     labels+=",{\"name\":\"language\",\"value\":\"bash\"},{\"name\":\"framework\",\"value\":\"bash\"}"
     [ -n "$project" ] && labels+=",{\"name\":\"project\",\"value\":$(_bt_json "$project")}"
     [ -n "$lane" ] && labels+=",{\"name\":\"lane\",\"value\":$(_bt_json "$lane")}"
+    [ -n "$project" ] && labels+=",{\"name\":\"epic\",\"value\":$(_bt_json "$project")}"
+    feature=.
+    [[ "$rel" == */* ]] && feature="${rel%/*}"
+    labels+=",{\"name\":\"feature\",\"value\":$(_bt_json "$feature")},{\"name\":\"story\",\"value\":$(_bt_json "$rel")}"
     mkdir -p "$results"
     printf '{"uuid":"%s","name":%s,"fullName":%s,"status":"%s","stage":"finished","statusDetails":{%s},"start":%s,"stop":%s,"labels":[%s]}\n' \
         "$uuid" "$(_bt_json "$title")" "$(_bt_json "$project:$lane $rel#$title")" \
