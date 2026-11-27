@@ -7,7 +7,7 @@
       "args": [
         "--prefix=${PLUGIN_DATA}",
         "-y",
-        "@pecot/visual-mcp@4.0.0"
+        "@pecot/visual-mcp@4.0.1"
       ]
     },
     "pecot-visual-playwright": {

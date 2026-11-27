@@ -1,6 +1,6 @@
 {
   "name": "@pecot/workflow-core-src",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "license": "MIT",
   "description": "pecot-workflow のコマンドと、GitHub Actions だけで動く処理が共有するコード。pecot-workflow の配布物に同梱する。",

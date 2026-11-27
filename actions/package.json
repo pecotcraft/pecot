@@ -1,6 +1,6 @@
 {
   "name": "@pecot/actions",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "license": "MIT",
   "description": "利用者のリポのワークフローが uses: で呼ぶ GitHub Actions の action と、ワークフローの雛形。",

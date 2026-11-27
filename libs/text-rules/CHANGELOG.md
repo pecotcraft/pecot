@@ -1,3 +1,14 @@
+## 0.2.12 (2026-11-27)
+
+### 🩹 Fixes
+
+- 開発用のテストの **Allure の結果** に、機能の階層（epic・feature・story）を付けた。プラグインとライブラリの動作は変わらない。 ([#848](https://github.com/pecotcraft/pecot/pull/848), [#811](https://github.com/pecotcraft/pecot/issues/811))
+- 配布する依存の解決を、root の lock の今の版（typescript-eslint 8.72.2 など）にそろえた。 ([#845](https://github.com/pecotcraft/pecot/pull/845), [#792](https://github.com/pecotcraft/pecot/issues/792))
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 0.2.11 (2026-11-27)
 
 ### 🩹 Fixes
