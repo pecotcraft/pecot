@@ -478,6 +478,8 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
                     "pecot-visual:test-compare",
                     "pecot-visual:test-hooks",
                     "pecot-visual:test-skills",
+                    "pecot-visual:test-release",
+                    "pecot-tools:test-release",
                 },
             ),
         ]
@@ -825,7 +827,13 @@ _PECOTV_TEST_LANES = {
                 _PECOTV_TEST_LANES,
             ),
             # root の package.json は pecot-visual の全レーンの Globals と、nx 本体の版を読む nx-release が読む。
-            ("package.json", _PECOTV_TEST_LANES | {"nx-release:test-unit"} | _GITHOOKS_GRAPH),
+            # bats の版を持つので、bats を動かす pecot-tools:test-release も読む。
+            (
+                "package.json",
+                _PECOTV_TEST_LANES
+                | {"nx-release:test-unit", "pecot-tools:test-release"}
+                | _GITHOOKS_GRAPH,
+            ),
             # libs/text-rules のレーンは 1 本で、テストの変更は test-unit だけを選ぶ。
             # ソースの変更は、配布ツリーに同梱する dist の元になるので、pecot-visual の release レーンにも届く (#1281)。
             # pecot-visual は text-rules をリンク（vendor/text-rules）で載せていて、nx がリンク先の変更を検知しない。
@@ -982,7 +990,8 @@ _PECOTV_TEST_LANES = {
                     "pecot-workflow:test-release",
                 },
             ),
-            # 3 つの publish-mcp-dist.sh が source する共通の関数と、そのテストの変更は、3 つの test-release に届く（lib は githooks のレーンにも届く）。
+            # 3 つの publish-mcp-dist.sh が source する共通の関数は、3 つの test-release と githooks のレーンに届く。
+            # そのテストは、テストを動かす 2 つの test-release にだけ届く。
             (
                 ".githooks/lib/mcp-publish-common.sh",
                 {
@@ -994,11 +1003,10 @@ _PECOTV_TEST_LANES = {
                 },
             ),
             (
-                ".githooks/scripts/tests/mcp-publish-common.test.sh",
+                ".githooks/scripts/tests/mcp-publish-common.bats",
                 {
                     "pecot-tools:test-release",
                     "pecot-visual:test-release",
-                    "pecot-workflow:test-release",
                 },
             ),
             # pecot-workflow の定義書は、一致のテストの test-cli に届く。
