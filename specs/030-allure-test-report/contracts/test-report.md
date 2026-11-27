@@ -28,8 +28,9 @@
 
 | 名前 | 渡す人 | 値 |
 |---|---|---|
-| `PECOT_REPORT_SITE_URL` | `test-report.yml`（リリース版と、結果の無いレーンを main で流す開発版）と、`ci.yml` のマージキューの run（開発版の URL。渡し方は #821） | 側の URL。渡さなければ `http://localhost:8000/`。末尾に `/` が無ければ足す |
+| `PECOT_REPORT_SITE_URL` | `test-report.yml`（リリース版と、結果の無いレーンを main で流す開発版）と、`ci.yml` の workflow の env（PR とマージキューの run の両方に、開発版の URL） | 側の URL。渡さなければ `http://localhost:8000/`。末尾に `/` が無ければ足す |
 | `PECOT_REPORT_HISTORY` | `generate.py` | `--history` を渡したときだけ、履歴のパス。Allure の設定（`allurerc.mjs`）が読む。`--history` を渡すのはリリース版だけ |
+| `PECOT_REPORT_VARIABLES` | `generate.py` | 手元でない実行で、レーンごとの結果のコミットと run の URL（data-model の ReportVariables）の JSON。`allurerc.mjs` が `variables` にする |
 
 bash のテストのレーンは、各プラグインの `scripts/ci/run-tests.sh` が `.githooks/scripts/test_report/bash-test.sh` を読み、テストのファイルを `bt_run_files` で 1 本ずつ動かす。
 
@@ -122,19 +123,20 @@ attach_json(name: str, value) -> None
 
 `pull_request` は契機にしない。
 
-開発版（`push` と、`workflow_dispatch` の `side=dev`）は、main でテストを流し直さない。レーンの最新の結果（data-model.md）を寄せ集め、結果の無いレーンだけを流す（2026-11-26 に改めた。材料の決め方は #821）。
+開発版（`push` と、`workflow_dispatch` の `side=dev`）は、main でテストを流し直さない。レーンの最新の結果（data-model.md）を寄せ集め、結果の無いレーンだけを流す（2026-11-26 に改め、2026-11-27 に #821 で材料の決め方を決めた）。
 
 | job | すること |
 |---|---|
-| side | 側と ReportSources（data-model.md）を決める。リリース版で、結果を出せるプラグインが無ければ、後の job を飛ばして成功で終える。開発版は、結果の無いレーンだけを `runs` に入れる |
-| tests | ReportSources の `runs` とレーンの matrix。そのコミットを取り出し、dev container で 1 つのレーンを動かす。テストが落ちても、結果のディレクトリと `source.json`（レーンと取り出したコミット）を artifact `allure-results-<slug>` に上げる |
-| report | 全レーンの結果を取り、ResultsCheck で確かめる。開発版は、レーンの最新の結果と `tests` の結果を合わせ、履歴を読まずに作る。リリース版は、S3 から履歴を取る（取れないときは、空の履歴でレポートを作り、job summary に警告を出す）。`generate.py` でレポートを作り、artifact `test-report-<side>` に上げる |
+| side | 側と ReportSources（data-model.md）を決める。リリース版は `release_sources.py`、開発版は `dev_sources.py resolve`。出力の `report` はレポートを作るか（開発版は常に作る）、`run_tests` は流すレーンがあるか。リリース版で、結果を出せるプラグインが無ければ、後の job を飛ばして成功で終える |
+| tests | `run_tests` のときだけ動く。ReportSources の `runs` とレーンの matrix。そのコミットを取り出し、dev container で 1 つのレーンを動かす。テストが落ちても、結果のディレクトリと `source.json`（レーンと取り出したコミット）を artifact `allure-results-<slug>` に上げる |
+| report | 全レーンの結果を取り、ResultsCheck で確かめる。開発版は、`dev_sources.py fetch` で `latest` の結果を取り出して `tests` の結果と合わせ、履歴を読まずに作る。作った後で `dev_sources.py pack` で `lane-latest`・`lane-latest-index` を上げる。リリース版は、S3 から履歴を取る（取れないときは、空の履歴でレポートを作り、job summary に警告を出す）。`generate.py` でレポートを作り、artifact `test-report-<side>` に上げる |
 
 出力:
 
 | 出力 | 中身 |
 |---|---|
-| artifact `test-report-<side>` | レポートのツリーの tar（`report.tar`。リリース版は `history.jsonl` も入れる）、`report-sources.json`。`retention-days` は 7、`overwrite: true` |
+| artifact `test-report-<side>` | レポートのツリーの tar（`report.tar`。リリース版は `history.jsonl` も入れる。開発版は入れない）、`report-sources.json`。`retention-days` は 7、`overwrite: true` |
+| artifact `lane-latest`・`lane-latest-index` | 開発版だけ。data-model の LaneLatest の置き場所。`retention-days` は 90、`overwrite: true` |
 
 失敗の条件:
 
@@ -143,7 +145,9 @@ attach_json(name: str, value) -> None
 
 テストが落ちただけでは失敗しない。レポートを作り、run は成功で終える。
 
-権限は、`contents: read` だけにする。リリース版の履歴を S3 で読み書きする job だけは、OIDC のために `id-token: write` も持つ（2026-11-26 に改めた）。公開サイト（`pages-store`）への書き込みの権限と secret は、どの job も持たない。S3 に書く run と、ロールの信頼の条件は #822 で決める。
+権限は、`contents: read` だけにする。side と report の job は、ほかの run の artifact を読むために `actions: read` も持つ（2026-11-27 に #821 で足した）。
+
+リリース版の履歴を S3 で読み書きする job だけは、OIDC のために `id-token: write` も持つ（2026-11-26 に改めた）。公開サイト（`pages-store`）への書き込みの権限と secret は、どの job も持たない。S3 に書く run と、ロールの信頼の条件は #822 で決める。
 
 concurrency は `test-report-<side>` で、`cancel-in-progress: false`。動いている run は取り消さず、後から来た run は待つ。待っている run は、さらに新しい run が来ると置き換わる。
 
@@ -162,7 +166,7 @@ verify（RunProvenance に足す決まり）:
 | head | main の祖先。開発版は、保管中のレポートのコミットより古くない |
 | 側 | `push` は開発版。`workflow_dispatch` は、上がっている `test-report-{dev,release}` の artifact が 1 つだけのとき、その側 |
 | リリース版の材料 | artifact の `report-sources.json` が、タグと main から決め直した値と同じ |
-| 中身 | SideCheck（`store.py` の確かめ。安全でないパスが無い・`index.html` がある）。`history.jsonl` を行ごとに JSON として読む確かめは、リリース版の履歴を S3 に移すとき、#822 で扱いを決める |
+| 中身 | SideCheck（`store.py` の確かめ。安全でないパスが無い・`index.html` がある）。開発版は `history.jsonl` を持たない（#821）。リリース版の `history.jsonl` を行ごとに JSON として読む確かめは、リリース版の履歴を S3 に移すとき、#822 で扱いを決める |
 
 store:
 
@@ -179,8 +183,9 @@ deploy と preview-status は変えない。
 
 - tests の job の「Stage JUnit」「Upload JUnit」の step を消す。artifact `pages-junit-<slug>` は上げない
 - レポートのレーンは、CI でも Allure の結果を残す
-- マージキューの run は、流したレーンの結果を artifact に上げ、開発版のレーンの最新の結果の材料にする（2026-11-26 に改めた。形は #821）
-- マージキューが積のモードで省いたレーンは、PR の CI の run が試している。その結果をどう材料にするかは #821 で決める
+- 同じリポの PR とマージキューの run は、流したレーンの結果を artifact `allure-results-<slug>`（30 日）に上げ、開発版のレーンの最新の結果の材料にする。成功した job だけが上げる（2026-11-27 に #821 で決めた）
+- マージキューの run の lanes の job は、そのコミットで変更が届いたレーンと、その結果を持つ run を `lane-sources`（30 日）に上げる。積のモードで省いたレーンは、`find-pr-ci-base.sh` が見つけた PR の run を指す
+- workflow の env に、開発版の URL を `PECOT_REPORT_SITE_URL` で渡す。PR とマージキューの run の nx のキャッシュの hash をそろえるため、両方に同じ値を渡す
 
 ## サイト（`interface-spec:docs`）
 

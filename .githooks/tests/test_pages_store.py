@@ -227,30 +227,74 @@ def test_side_check_with_report_links_refuses_a_test_report_dir(tmp_path: Path) 
         assert store.side_check(tar) == []
 
 
-def _report_tree(tar: tarfile.TarFile, history: str = '{"uuid":"a"}\n{"uuid":"b"}\n') -> None:
+def _report_tree(
+    tar: tarfile.TarFile, history: str | None = '{"uuid":"a"}\n{"uuid":"b"}\n'
+) -> None:
     _add(tar, ".", tarfile.DIRTYPE)
     _add_file(tar, "./index.html", '<html><script src="app.js"></script></html>')
     _add_file(tar, "./app.js", "")
     _add(tar, "./data", tarfile.DIRTYPE)
     _add_file(tar, "./data/a.json", "{}")
-    _add_file(tar, "./history.jsonl", history)
+    if history is not None:
+        _add_file(tar, "./history.jsonl", history)
 
 
-@allure.title("正しいレポートの tar は、問題なしと判定する")
+def _dev_report_tree(tar: tarfile.TarFile) -> None:
+    _report_tree(tar, None)
+
+
+@allure.title("正しいリリース版のレポートの tar は、問題なしと判定する")
 def test_report_check_passes_a_report_tree(tmp_path: Path) -> None:
-    """`index.html`、`history.jsonl`、データのファイルを含む、正しい形のレポートの tar を `report_check` に渡した場合のテストです。指摘が 1 件も返らないことを確認します。"""
+    """`index.html`、`history.jsonl`、データのファイルを含む、正しい形のリリース版のレポートの tar を `report_check` に渡した場合のテストです。指摘が 1 件も返らないことを確認します。"""
     with allure.step("レポートの tar の木が verify を通ることを確かめる"):
-        assert store.report_check(_tar(tmp_path, _report_tree)) == []
+        assert store.report_check(_tar(tmp_path, _report_tree), "release") == []
 
 
-@allure.title("履歴が空のレポートの tar も、問題なしと判定する")
+@allure.title("履歴が空のリリース版のレポートの tar も、問題なしと判定する")
 def test_report_check_passes_an_empty_history(tmp_path: Path) -> None:
-    """`history.jsonl` が空のレポートの tar を `report_check` に渡した場合のテストです。指摘が 1 件も返らないことを確認します。"""
+    """`history.jsonl` が空のリリース版のレポートの tar を `report_check` に渡した場合のテストです。指摘が 1 件も返らないことを確認します。"""
     with allure.step("履歴が空のレポートの tar が verify を通ることを確かめる"):
-        assert store.report_check(_tar(tmp_path, lambda t: _report_tree(t, ""))) == []
+        tar = _tar(tmp_path, lambda t: _report_tree(t, ""))
+        assert store.report_check(tar, "release") == []
 
 
-@allure.title("レポートの tar に {missing} が存在しないと、存在しない旨を指摘する")
+@allure.title("履歴を持たない開発版のレポートの tar は、問題なしと判定する")
+def test_report_check_passes_a_dev_report_without_history(tmp_path: Path) -> None:
+    """`history.jsonl` を含まない開発版のレポートの tar を `report_check` に渡した場合のテストです。指摘が 1 件も返らないことを確認します。"""
+    with allure.step("履歴の無い開発版のレポートの tar が verify を通ることを確かめる"):
+        assert store.report_check(_tar(tmp_path, _dev_report_tree), "dev") == []
+
+
+@allure.title("開発版のレポートの tar が履歴（{param_id}）を持つと、持てない旨を指摘する")
+@pytest.mark.parametrize(
+    "history", ['{"uuid":"a"}\n', "", "NaN\n"], ids=["readable", "empty", "unreadable"]
+)
+def test_report_check_refuses_history_in_a_dev_report(tmp_path: Path, history: str) -> None:
+    """読める・空・読めない `history.jsonl` を含む開発版のレポートの tar を `report_check` に渡した場合のテストです。中身によらず、開発版のレポートは履歴を持てない旨の指摘が 1 件だけ返ることを確認します。"""
+    with allure.step("履歴を持つ開発版のレポートの tar を verify する"):
+        problems = store.report_check(_tar(tmp_path, lambda t: _report_tree(t, history)), "dev")
+    with allure.step("履歴を持てない旨の指摘だけが返ることを確かめる"):
+        assert problems == ["開発版のレポートは `history.jsonl` を持てません"]
+
+
+@allure.title("開発版のレポートの tar に `index.html` が存在しないと、存在しない旨を指摘する")
+def test_report_check_needs_index_in_a_dev_report(tmp_path: Path) -> None:
+    """`index.html` を含まない開発版のレポートの tar を `report_check` に渡した場合のテストです。`index.html` が存在しない旨の指摘が 1 件だけ返ることを確認します。"""
+    with allure.step("index の無い開発版のレポートの tar を verify する"):
+        problems = store.report_check(_tar(tmp_path, lambda t: _add_file(t, "./a.js")), "dev")
+    with allure.step("index が無い旨の指摘だけが返ることを確かめる"):
+        assert problems == ["`index.html` がありません"]
+
+
+@allure.title("レポートの確認に PR 版の側を渡すと、例外が発生する")
+def test_report_check_refuses_other_sides(tmp_path: Path) -> None:
+    """`report_check` に、開発版とリリース版のどちらでもない `pr` の側を渡した場合のテストです。側が不正である旨の `ValueError` が発生することを確認します。"""
+    with allure.step("PR 版の側でレポートの tar を verify して、例外になることを確かめる"):
+        with pytest.raises(ValueError, match="レポートの側"):
+            store.report_check(_tar(tmp_path, _dev_report_tree), "pr")
+
+
+@allure.title("リリース版のレポートの tar に {missing} が存在しないと、存在しない旨を指摘する")
 @pytest.mark.parametrize(
     ("missing", "expected"),
     [
@@ -259,7 +303,7 @@ def test_report_check_passes_an_empty_history(tmp_path: Path) -> None:
     ],
 )
 def test_report_check_needs_index_and_history(tmp_path: Path, missing: str, expected: str) -> None:
-    """`index.html` と `history.jsonl` のどちらか一方が欠けたレポートの tar を渡した場合のテストです。欠けたファイルの名前を示した指摘が 1 件だけ返ることを確認します。"""
+    """`index.html` と `history.jsonl` のどちらか一方が欠けたリリース版のレポートの tar を渡した場合のテストです。欠けたファイルの名前を示した指摘が 1 件だけ返ることを確認します。"""
     with allure.step("index か履歴が欠けた tar を組み立てる"):
 
         def build(tar: tarfile.TarFile) -> None:
@@ -268,7 +312,7 @@ def test_report_check_needs_index_and_history(tmp_path: Path, missing: str, expe
                     _add_file(tar, name, body)
 
     with allure.step("レポートの verify が期待の問題を返すことを確かめる"):
-        assert store.report_check(_tar(tmp_path, build)) == [expected]
+        assert store.report_check(_tar(tmp_path, build), "release") == [expected]
 
 
 @allure.title("履歴に Allure の読めない行（{param_id}）があると、その行の番号を示して指摘する")
@@ -285,14 +329,15 @@ def test_report_check_needs_index_and_history(tmp_path: Path, missing: str, expe
 def test_report_check_refuses_unreadable_history_lines(
     tmp_path: Path, history: str, expected: str
 ) -> None:
-    """`history.jsonl` に、`NaN`、`null`、文字列の途中で行が切れる `U+2028` を含むレポートの tar を渡した場合のテストです。Allure が読めない行の番号を示した指摘が 1 件だけ返ることを確認します。"""
+    """`history.jsonl` に、`NaN`、`null`、文字列の途中で行が切れる `U+2028` を含むリリース版のレポートの tar を渡した場合のテストです。Allure が読めない行の番号を示した指摘が 1 件だけ返ることを確認します。"""
     with allure.step("読めない行のある履歴のレポートの tar が断られることを確かめる"):
-        assert store.report_check(_tar(tmp_path, lambda t: _report_tree(t, history))) == [expected]
+        tar = _tar(tmp_path, lambda t: _report_tree(t, history))
+        assert store.report_check(tar, "release") == [expected]
 
 
 @allure.title("履歴が UTF-8 ではない場合は、その旨を指摘する")
 def test_report_check_refuses_history_that_is_not_utf8(tmp_path: Path) -> None:
-    """`history.jsonl` に UTF-8 として読めないバイト列を含むレポートの tar を渡した場合のテストです。`history.jsonl` が UTF-8 ではない旨の指摘が返ることを確認します。"""
+    """`history.jsonl` に UTF-8 として読めないバイト列を含むリリース版のレポートの tar を渡した場合のテストです。`history.jsonl` が UTF-8 ではない旨の指摘が返ることを確認します。"""
     with allure.step("UTF-8 でない履歴を持つ tar を組み立てる"):
 
         def build(tar: tarfile.TarFile) -> None:
@@ -302,7 +347,7 @@ def test_report_check_refuses_history_that_is_not_utf8(tmp_path: Path) -> None:
             tar.addfile(info, io.BytesIO(b"\xff\n"))
 
     with allure.step("レポートの verify が UTF-8 でないと断ることを確かめる"):
-        assert store.report_check(_tar(tmp_path, build)) == [
+        assert store.report_check(_tar(tmp_path, build), "release") == [
             "`history.jsonl` が UTF-8 ではありません"
         ]
 
@@ -317,7 +362,9 @@ def test_report_check_also_runs_side_check(tmp_path: Path) -> None:
             _add(tar, "./link", tarfile.SYMTYPE, "/etc/passwd")
 
     with allure.step("レポートの verify が側の verify も動かすことを確かめる"):
-        assert store.report_check(_tar(tmp_path, build)) == ["`./link`: シンボリックリンクです"]
+        assert store.report_check(_tar(tmp_path, build), "release") == [
+            "`./link`: シンボリックリンクです"
+        ]
 
 
 @allure.title(
@@ -362,31 +409,62 @@ def test_check_cli_chooses_the_check_by_kind_and_side(
         assert result.returncode == code, result.stdout + result.stderr
 
 
-@allure.title("`check --kind report` は、レポートの確認を使う")
-def test_check_cli_report_uses_report_check(tmp_path: Path) -> None:
-    """`index.html` だけの tar に対して、`--kind report` を指定して `store.py check` を実行した場合のテストです。終了コードが 1 になり、`history.jsonl` が存在しない旨が表示されることを確認します。"""
+@allure.title(
+    "`check --kind report --side {side}` は、その側のレポートの確認を使い、終了コード {code} で終了する"
+)
+@pytest.mark.parametrize(
+    ("side", "code", "stdout"),
+    [("dev", 0, ""), ("release", 1, "- `history.jsonl` がありません\n")],
+)
+def test_check_cli_report_uses_report_check(
+    tmp_path: Path, side: str, code: int, stdout: str
+) -> None:
+    """`index.html` だけの tar に対して、`--kind report` と側を指定して `store.py check` を実行した場合のテストです。開発版では通り、リリース版では `history.jsonl` が存在しない旨を表示して終了コード 1 になることを確認します。"""
     with allure.step("index だけのレポートの tar で verify の CLI を動かす"):
         tar = _tar(tmp_path, lambda t: _add_file(t, "./index.html", "<html></html>"))
         result = run_attached(
-            [sys.executable, str(_STORE), "check", "--kind", "report", "--side", "dev", str(tar)],
+            [sys.executable, str(_STORE), "check", "--kind", "report", "--side", side, str(tar)],
             capture_output=True,
             text=True,
         )
-    with allure.step("履歴が無いという出力と終了コード 1 を確かめる"):
-        assert (result.returncode, result.stdout) == (1, "- `history.jsonl` がありません\n")
+    with allure.step("側に応じた出力と終了コードを確かめる"):
+        assert (result.returncode, result.stdout) == (code, stdout)
+
+
+@allure.title("`check --kind report` に {param_id} の側を渡すと、終了コード 2 で終了する")
+@pytest.mark.parametrize("args", [(), ("--side", "pr")], ids=["no-side", "pr"])
+def test_check_cli_report_needs_a_report_side(tmp_path: Path, args: tuple[str, ...]) -> None:
+    """`--kind report` に、側を指定しない場合と PR 版を指定した場合の `store.py check` のテストです。引数の誤りとして終了コード 2 で終了し、標準エラー出力に `--side` の指定を求める旨が表示されることを確認します。"""
+    with allure.step("側を決めずにレポートの verify の CLI を動かす"):
+        tar = _tar(tmp_path, _dev_report_tree)
+        result = run_attached(
+            [sys.executable, str(_STORE), "check", "--kind", "report", *args, str(tar)],
+            capture_output=True,
+            text=True,
+        )
+    with allure.step("終了コード 2 と側を求める出力を確かめる"):
+        assert result.returncode == 2
+        assert "--side dev か release" in result.stderr
 
 
 @allure.title("`checker` は、種類と側に応じた確認の関数を返す")
 def test_checker_follows_kind_and_side(tmp_path: Path) -> None:
-    """`store.checker` に、種類と側の組み合わせを渡した場合のテストです。サイトの開発版とリリース版ではレポートへのリンクを許可し、PR 版では許可せず、レポートでは常に `report_check` を返すことを確認します。"""
-    with allure.step("レポートへのリンクを持つ tar を組み立てる"):
+    """`store.checker` に、種類と側の組み合わせを渡した場合のテストです。サイトではリンクの扱いが側で変わり、レポートでは開発版とリリース版で履歴の扱いが変わり、PR 版では例外が発生することを確認します。"""
+    with allure.step("レポートへのリンクを持つ tar と、履歴を持つレポートの tar を組み立てる"):
         links = _tar(tmp_path, _with_report_links)
+        report = tmp_path / "report"
+        report.mkdir()
+        with_history = _tar(report, _report_tree)
     with allure.step("種類と側に応じた verify が選ばれることを確かめる"):
         assert store.checker("site", "dev")(links) == []
         assert store.checker("site", "release")(links) == []
         assert store.checker("site", "pr")(links) != []
-        assert store.checker("report", "dev") is store.report_check
-        assert store.checker("report", "release") is store.report_check
+        assert store.checker("report", "release")(with_history) == []
+        assert store.checker("report", "dev")(with_history) == [
+            "開発版のレポートは `history.jsonl` を持てません"
+        ]
+        with pytest.raises(ValueError, match="レポートの側"):
+            store.checker("report", "pr")
 
 
 @allure.title("`extract` は、渡された確認の関数を使い、指摘があれば展開しない")
@@ -737,6 +815,31 @@ def test_report_replaces_the_previous_report(tmp_path: Path) -> None:
         ]
         assert files["dev/test-report/index.html"] == "<html>rep2</html>"
         assert _meta(root)["reports"] == {"dev": _rec("rep2")}
+
+
+@allure.title("履歴を持たない開発版のレポートを保管すると、保管済みの履歴を消す")
+def test_dev_report_without_history_removes_the_stored_history(tmp_path: Path) -> None:
+    """履歴を持つ開発版のレポートを保管した後で、履歴を持たないレポートを保管した場合のテストです。`dev/test-report/history.jsonl` が保管先から消えることを確認します。"""
+    with allure.step("履歴を持つレポートの後に、履歴を持たないレポートを書き込む"):
+        root = tmp_path / "store"
+        root.mkdir()
+        for name, keep in (("rep1", True), ("rep2", False)):
+            tree = _report(tmp_path, name)
+            if not keep:
+                (tree / "history.jsonl").unlink()
+            store.apply(
+                root,
+                side="dev",
+                pr=None,
+                tree=tree,
+                record=_rec(name),
+                open_prs=None,
+                kind="report",
+            )
+        files = _files(root)
+    with allure.step("保管済みの履歴が消えることを確かめる"):
+        assert "dev/test-report/history.jsonl" not in files
+        assert files["dev/test-report/index.html"] == "<html>rep2</html>"
 
 
 @allure.title("{side} の定義書を書き換えても、保管済みのレポートと履歴は残す")
@@ -1393,7 +1496,8 @@ def _site_tar(scene: dict[str, Path | str], name: str) -> Path:
     return tar
 
 
-def _report_tar(scene: dict[str, Path | str], name: str, history: str = '{"u":1}\n') -> Path:
+def _report_tar(scene: dict[str, Path | str], name: str, history: str | None = None) -> Path:
+    """レポートの tar。既定は履歴を持たない開発版の形。"""
     tar = Path(scene["tmp"]) / f"{name}.tar"
     with tarfile.open(tar, "w") as t:
         _report_tree(t, history)
@@ -1414,7 +1518,7 @@ def _report_opts(scene: dict[str, Path | str], name: str, **over: object) -> obj
 
 @allure.title("レポートへのリンクを含む開発版の定義書を保管した後で、開発版のレポートを保管できる")
 def test_publish_dev_site_with_report_links_then_dev_report(scene: dict[str, Path | str]) -> None:
-    """レポートへのリンクを含む定義書の tar を保管してから、開発版のレポートを保管し、定義書を置き直した場合のテストです。レポートと履歴が保管されて記録が付き、概要に種類が表示され、定義書を置き直してもレポートが残ることを確認します。"""
+    """レポートへのリンクを含む定義書の tar を保管してから、開発版のレポートを保管し、定義書を置き直した場合のテストです。履歴を持たないレポートが保管されて記録が付き、概要に種類が表示され、定義書を置き直してもレポートが残ることを確認します。"""
     with allure.step("dev のサイトの tar を用意する"):
         site = _site_tar(scene, "site1")
     with allure.step("dev のサイトとレポートを順に公開し、リンク・レポート・記録・要約を確かめる"):
@@ -1427,7 +1531,7 @@ def test_publish_dev_site_with_report_links_then_dev_report(scene: dict[str, Pat
         assert (code, changed) == (0, True), summary
         files = _remote_files(scene)
         assert files["dev/test-report/name.txt"] == "rep1"
-        assert files["dev/test-report/history.jsonl"] == '{"u":1}\n'
+        assert "dev/test-report/history.jsonl" not in files
         assert files["dev/sub/page.html"] == "site1"
         meta = json.loads(files[".pecot-store.json"])
         assert (meta["reports"]["dev"]["sha"], meta["reports"]["dev"]["run_id"]) == (
@@ -1441,7 +1545,7 @@ def test_publish_dev_site_with_report_links_then_dev_report(scene: dict[str, Pat
         assert "- 採否: 保管した" in summary
         assert len(_remote_log(scene)) == 1
 
-        # 定義書を置き直しても、レポートと履歴は残る。
+        # 定義書を置き直しても、レポートは残る。
         assert (
             store.publish(
                 _opts(scene, tree=None, tar=_site_tar(scene, "site2"), sha=scene["c2"])
@@ -1450,7 +1554,6 @@ def test_publish_dev_site_with_report_links_then_dev_report(scene: dict[str, Pat
         )
         files = _remote_files(scene)
         assert (files["dev/sub/page.html"], files["dev/test-report/name.txt"]) == ("site2", "rep1")
-        assert files["dev/test-report/history.jsonl"] == '{"u":1}\n'
         assert json.loads(files[".pecot-store.json"])["reports"]["dev"]["sha"] == scene["c1"]
 
 
@@ -1468,13 +1571,14 @@ def test_publish_release_report_writes_sources(scene: dict[str, Path | str]) -> 
         sources = Path(scene["tmp"]) / "report-sources.json"
         body = {"side": "release", "runs": [], "missing": ["pecot-tools"]}
         sources.write_text(json.dumps(body), encoding="utf-8")
+        tar = _report_tar(scene, "rel-history", '{"u":1}\n')
         code, summary, _ = store.publish(
-            _report_opts(scene, "rel", side="release", sha=scene["c2"], sources=sources)
+            _report_opts(scene, "rel", side="release", sha=scene["c2"], sources=sources, tar=tar)
         )
     with allure.step("公開した結果の終了コードとファイルと記録を確かめる"):
         assert code == 0, summary
         files = _remote_files(scene)
-        assert files["test-report/name.txt"] == "rel"
+        assert files["test-report/name.txt"] == "rel-history"
         assert "テストレポートはまだありません" in files["dev/test-report/index.html"]
         assert "<h1>リリース版はまだありません</h1>" in files["index.html"]
         meta = json.loads(files[".pecot-store.json"])
@@ -1534,15 +1638,28 @@ def test_publish_refuses_dev_report_outside_main(scene: dict[str, Path | str]) -
         assert _run_git(Path(scene["remote"]), "branch", "--list") == ""
 
 
-@allure.title("レポートの確認に通らない tar は、終了コード 1 で終了し、push しない")
-def test_publish_refuses_a_report_that_fails_report_check(scene: dict[str, Path | str]) -> None:
-    """`history.jsonl` に読めない行を含むレポートの tar を `publish` に渡した場合のテストです。終了コード 1 で終了し、概要へ指摘と種類を表示し、リモートにブランチを作成しないことを確認します。"""
-    with allure.step("履歴が不正なレポートの tar を用意する"):
-        tar = _report_tar(scene, "bad", '{"u":1}\nnull\n')
-        code, summary, changed = store.publish(_report_opts(scene, "unused", tar=tar))
+@allure.title("{side} のレポートの確認に通らない tar は、終了コード 1 で終了し、push しない")
+@pytest.mark.parametrize(
+    ("side", "history", "expected"),
+    [
+        ("release", '{"u":1}\nnull\n', "  - `history.jsonl` の 2 行目を Allure が読めません"),
+        ("dev", '{"u":1}\n', "  - 開発版のレポートは `history.jsonl` を持てません"),
+    ],
+)
+def test_publish_refuses_a_report_that_fails_report_check(
+    scene: dict[str, Path | str], side: str, history: str, expected: str
+) -> None:
+    """読めない行の履歴を含むリリース版と、履歴を含む開発版のレポートの tar を `publish` に渡した場合のテストです。終了コード 1 で終了し、概要へ指摘と種類を表示し、リモートにブランチを作成しないことを確認します。"""
+    with allure.step("確認に通らないレポートの tar を用意して公開する"):
+        sources = Path(scene["tmp"]) / "report-sources.json"
+        sources.write_text(json.dumps({"side": side, "runs": []}), encoding="utf-8")
+        tar = _report_tar(scene, "bad", history)
+        code, summary, changed = store.publish(
+            _report_opts(scene, "unused", tar=tar, side=side, sources=sources)
+        )
     with allure.step("公開が断られて理由が要約に出ることを確かめる"):
         assert (code, changed) == (1, False)
-        assert "  - `history.jsonl` の 2 行目を Allure が読めません" in summary
+        assert expected in summary
         assert "- 種類: レポート" in summary
         assert _run_git(Path(scene["remote"]), "branch", "--list") == ""
 

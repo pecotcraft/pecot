@@ -178,8 +178,13 @@ def _load_read_history() -> Callable[[bytes], list[int]]:
 read_history = _load_read_history()
 
 
-def report_check(tar_path: Path) -> list[str]:
-    """レポートの tar を確かめる。SideCheck に加え、index.html と、Allure が全行を読める history.jsonl があること。"""
+def report_check(tar_path: Path, side: str) -> list[str]:
+    """レポートの tar を確かめる。SideCheck に加え、index.html があること。
+
+    history.jsonl は、リリース版は Allure が全行を読めるものが要り、開発版は持たないこと。
+    """
+    if side not in REPORT_SIDES:
+        raise ValueError(f"レポートの側が不正です: {side}")
     problems = side_check(tar_path)
     found: set[str] = set()
     history: bytes | None = None
@@ -192,10 +197,12 @@ def report_check(tar_path: Path) -> list[str]:
             if name == HISTORY:
                 stream = tar.extractfile(member)
                 history = stream.read() if stream is not None else b""
-    for name in ("index.html", HISTORY):
+    for name in ("index.html", HISTORY) if side == "release" else ("index.html",):
         if name not in found:
             problems.append(f"`{name}` がありません")
-    if history is not None:
+    if side == "dev" and history is not None:
+        problems.append(f"開発版のレポートは `{HISTORY}` を持てません")
+    elif history is not None:
         bad = read_history(history)
         if bad == [0]:
             problems.append(f"`{HISTORY}` が UTF-8 ではありません")
@@ -209,7 +216,10 @@ def checker(kind: str, side: str | None) -> Callable[[Path], list[str]]:
     if kind not in KINDS:
         raise ValueError(f"kind が不正です: {kind}")
     if kind == "report":
-        return report_check
+        if side not in REPORT_SIDES:
+            raise ValueError(f"レポートの側は dev か release だけです: {side}")
+        report_side = side
+        return lambda tar_path: report_check(tar_path, report_side)
     report_links = side in REPORT_SIDES
     return lambda tar_path: side_check(tar_path, report_links=report_links)
 
@@ -744,6 +754,9 @@ def main(argv: list[str]) -> int:
     pub.add_argument("--history", type=Path, default=Path.cwd())
     pub.add_argument("--workdir", type=Path)
     args = parser.parse_args(argv[1:])
+    if args.command in ("check", "extract") and args.kind == "report":
+        if args.side not in REPORT_SIDES:
+            parser.error("--kind report は --side dev か release と一緒に使います")
 
     if args.command == "check":
         problems = checker(args.kind, args.side)(args.tar)

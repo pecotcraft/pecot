@@ -9,6 +9,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -17,6 +18,7 @@ from typing import Any
 import allure
 import pytest
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts/test_report"))
 
 import generate  # noqa: E402
@@ -68,10 +70,27 @@ def root(tmp_path: Path) -> Path:
     return repo
 
 
+class Ancestry:
+    """git merge-base --is-ancestor の代わり。受けたコミットを残し、outside にあるものだけ祖先でないとする。"""
+
+    def __init__(self, outside: tuple[str, ...] = ()) -> None:
+        self.outside = outside
+        self.calls: list[tuple[Path, str]] = []
+
+    def __call__(self, root: Path, commit: str) -> bool:
+        self.calls.append((root, commit))
+        return commit not in self.outside
+
+
+_GITHUB_ENV = ("GITHUB_STEP_SUMMARY", "GITHUB_REPOSITORY", "GITHUB_RUN_ID", "GITHUB_SERVER_URL")
+
+
 @pytest.fixture(autouse=True)
 def _clean_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv(generate.HISTORY_ENV, raising=False)
-    monkeypatch.delenv("GITHUB_STEP_SUMMARY", raising=False)
+    monkeypatch.delenv(generate.VARIABLES_ENV, raising=False)
+    for key in _GITHUB_ENV:
+        monkeypatch.delenv(key, raising=False)
 
 
 def _results(root: Path, lane: str, *, count: int = 1, commit: str | None = None) -> Path:
@@ -85,16 +104,39 @@ def _results(root: Path, lane: str, *, count: int = 1, commit: str | None = None
     return path
 
 
-def _sources(tmp_path: Path, runs: list[dict[str, Any]]) -> Path:
+def _sources(tmp_path: Path, runs: list[dict[str, Any]], side: str = "release") -> Path:
     path = tmp_path / "report-sources.json"
-    path.write_text(json.dumps({"side": "dev", "runs": runs, "missing": []}), encoding="utf-8")
+    path.write_text(json.dumps({"side": side, "runs": runs, "missing": []}), encoding="utf-8")
     return path
 
 
-def _main(root: Path, *args: str, run: Recorder | None = None) -> tuple[int, Recorder]:
+def _latest(lane: str, commit: str, run_id: int = 42) -> dict[str, Any]:
+    return {
+        "lane": lane,
+        "commit": commit,
+        "run_id": run_id,
+        "from_run": run_id,
+        "artifact": f"allure-results-{lane.replace(':', '-')}",
+    }
+
+
+def _dev_sources(tmp_path: Path, runs: list[dict[str, Any]], latest: list[dict[str, Any]]) -> Path:
+    path = tmp_path / "report-sources.json"
+    body = {"side": "dev", "runs": runs, "missing": [], "latest": latest}
+    path.write_text(json.dumps(body), encoding="utf-8")
+    return path
+
+
+def _main(
+    root: Path, *args: str, run: Recorder | None = None, ancestry: Ancestry | None = None
+) -> tuple[int, Recorder]:
     recorder = run or Recorder()
     code = generate.main(
-        ["generate.py", *args], root=root, lanes_path=root / "report-lanes.json", run=recorder
+        ["generate.py", *args],
+        root=root,
+        lanes_path=root / "report-lanes.json",
+        run=recorder,
+        is_ancestor=ancestry or Ancestry(),
     )
     return code, recorder
 
@@ -540,7 +582,8 @@ def test_bad_sources_stop_with_a_message(
     with allure.step("不正な元の指定を書いて生成する"):
         _results(root, "alpha:test-unit", commit=SHA_A)
         path = tmp_path / "report-sources.json"
-        path.write_text(json.dumps({"side": "dev", "runs": runs, "missing": []}), encoding="utf-8")
+        body = {"side": "release", "runs": runs, "missing": []}
+        path.write_text(json.dumps(body), encoding="utf-8")
 
         code, run = _main(root, "--sources", str(path), "--output", str(tmp_path / "out"))
 
@@ -548,6 +591,431 @@ def test_bad_sources_stop_with_a_message(
         assert code == 1
         assert run.calls == []
         assert expected in capsys.readouterr().err
+
+
+# --- 開発版の材料（latest） ---
+
+
+def _dev_results(root: Path) -> None:
+    _results(root, "alpha:test-unit", commit=SHA_A)
+    _results(root, "beta:test-cli", commit=SHA_B)
+
+
+@allure.title("開発版の材料の runs と latest のレーンを合わせて、1 つのレポートを作る")
+def test_dev_sources_build_from_runs_and_latest(root: Path, tmp_path: Path) -> None:
+    """`runs` に 1 レーン、`latest` に 1 レーンを持つ開発版の材料で、`generate.py` を実行した場合のテストです。両方のレーンの結果が `allure generate` に渡り、2 つのコミットを 1 回ずつ祖先か確認することを確認します。"""
+    with allure.step("2 つのコミットの結果を置いて、開発版の材料で生成する"):
+        _dev_results(root)
+        sources = _dev_sources(
+            tmp_path,
+            [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}],
+            [_latest("beta:test-cli", SHA_B)],
+        )
+        ancestry = Ancestry()
+
+        code, run = _main(
+            root, "--sources", str(sources), "--output", str(tmp_path / "out"), ancestry=ancestry
+        )
+
+    with allure.step("終了コードと allure に渡る結果と祖先の確認を確かめる"):
+        assert code == 0
+        assert run.calls[0][0][-2:] == [
+            str(root / _LANES[0]["results"]),
+            str(root / _LANES[1]["results"]),
+        ]
+        assert ancestry.calls == [(root, SHA_A), (root, SHA_B)]
+
+
+@allure.title(
+    "開発版の材料の runs と latest が同じコミットを持つと、そのコミットを 1 回だけ確認する"
+)
+def test_dev_sources_check_each_commit_once(root: Path, tmp_path: Path) -> None:
+    """`runs` と `latest` のレーンが同じコミットを持つ開発版の材料のテストです。祖先の確認が、そのコミットについて 1 回だけ呼ばれることを確認します。"""
+    with allure.step("同じコミットの結果を置いて、開発版の材料で生成する"):
+        _results(root, "alpha:test-unit", commit=SHA_A)
+        _results(root, "beta:test-cli", commit=SHA_A)
+        sources = _dev_sources(
+            tmp_path,
+            [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}],
+            [_latest("beta:test-cli", SHA_A)],
+        )
+        ancestry = Ancestry()
+
+        code, _ = _main(
+            root, "--sources", str(sources), "--output", str(tmp_path / "out"), ancestry=ancestry
+        )
+
+    with allure.step("祖先の確認が 1 回だけであることを確かめる"):
+        assert code == 0
+        assert ancestry.calls == [(root, SHA_A)]
+
+
+@allure.title("開発版の材料の runs が空でも、latest にすべてのレーンがあればレポートを作る")
+def test_dev_sources_with_only_latest_build(root: Path, tmp_path: Path) -> None:
+    """`runs` が空で、`latest` にすべてのレーンを持つ開発版の材料のテストです。終了コードが 0 で、`allure generate` が両方のレーンの結果を受け取ることを確認します。"""
+    with allure.step("latest だけの開発版の材料で生成する"):
+        _dev_results(root)
+        sources = _dev_sources(
+            tmp_path,
+            [],
+            [_latest("alpha:test-unit", SHA_A), _latest("beta:test-cli", SHA_B)],
+        )
+
+        code, run = _main(root, "--sources", str(sources), "--output", str(tmp_path / "out"))
+
+    with allure.step("両方のレーンで作られることを確かめる"):
+        assert code == 0
+        assert str(root / _LANES[0]["results"]) in run.calls[0][0]
+        assert str(root / _LANES[1]["results"]) in run.calls[0][0]
+
+
+@allure.title("開発版の材料にレポートのレーンが欠けると、欠けたレーンの名前を表示して失敗する")
+def test_dev_sources_need_every_report_lane(
+    root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """`runs` と `latest` を合わせても `beta:test-cli` が含まれない開発版の材料のテストです。終了コードが 1 になり、`allure generate` が呼ばれず、欠けたレーンの名前が標準エラー出力に表示されることを確認します。"""
+    with allure.step("1 レーンだけの開発版の材料で生成する"):
+        _dev_results(root)
+        sources = _dev_sources(tmp_path, [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}], [])
+
+        code, run = _main(root, "--sources", str(sources), "--output", str(tmp_path / "out"))
+
+    with allure.step("終了コード 1 と欠けたレーンの出力を確かめる"):
+        assert code == 1
+        assert run.calls == []
+        assert "開発版の材料に、レーン beta:test-cli がありません" in capsys.readouterr().err
+
+
+@allure.title("材料の runs と latest に同じレーンがあると、そのレーンの名前を表示して失敗する")
+def test_sources_refuse_a_lane_in_both_runs_and_latest(
+    root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """`alpha:test-unit` が `runs` と `latest` の両方にある開発版の材料のテストです。終了コードが 1 になり、`allure generate` が呼ばれず、重なったレーンの名前が表示されることを確認します。"""
+    with allure.step("重なったレーンを持つ開発版の材料で生成する"):
+        _dev_results(root)
+        sources = _dev_sources(
+            tmp_path,
+            [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}],
+            [_latest("alpha:test-unit", SHA_A), _latest("beta:test-cli", SHA_B)],
+        )
+
+        code, run = _main(root, "--sources", str(sources), "--output", str(tmp_path / "out"))
+
+    with allure.step("終了コード 1 と重なったレーンの出力を確かめる"):
+        assert code == 1
+        assert run.calls == []
+        assert "alpha:test-unit が runs と latest の両方にあります" in capsys.readouterr().err
+
+
+@allure.title(
+    "材料の latest の形式が {param_id} のとき、レーンの名前とメッセージを表示して失敗する"
+)
+@pytest.mark.parametrize(
+    ("latest", "expected"),
+    [
+        ("nope", "latest が配列ではありません"),
+        (["x"], "latest #1 がオブジェクトではありません"),
+        ([_latest("gamma:test-unit", SHA_A)], "gamma:test-unit は report-lanes.json にありません"),
+        ([_latest("beta:test-bootstrap", SHA_A)], "beta:test-bootstrap は、レポートに入れない"),
+        ([{**_latest("beta:test-cli", SHA_A), "lane": 1}], "文字列でないレーン"),
+        ([_latest("beta:test-cli", "abc")], "latest #1 のレーン beta:test-cli の commit 'abc'"),
+        ([_latest("beta:test-cli", SHA_A, 0)], "latest #1 のレーン beta:test-cli の run_id 0"),
+        ([{**_latest("beta:test-cli", SHA_A), "run_id": True}], "の run_id True"),
+        ([{**_latest("beta:test-cli", SHA_A), "run_id": "42"}], "の run_id '42'"),
+        ([{**_latest("beta:test-cli", SHA_A), "from_run": None}], "の from_run None"),
+        (
+            [{**_latest("beta:test-cli", SHA_A), "artifact": ""}],
+            "のレーン beta:test-cli の artifact",
+        ),
+        (
+            [_latest("beta:test-cli", SHA_A), _latest("beta:test-cli", SHA_B)],
+            "beta:test-cli が latest に 2 回あります",
+        ),
+    ],
+    ids=[
+        "not-list",
+        "not-object",
+        "unknown",
+        "excluded",
+        "lane-not-string",
+        "short-commit",
+        "zero-run",
+        "bool-run",
+        "string-run",
+        "no-from-run",
+        "empty-artifact",
+        "twice",
+    ],
+)
+def test_bad_latest_stops_with_a_message(
+    root: Path,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    latest: object,
+    expected: str,
+) -> None:
+    """配列でない・オブジェクトでない・未知のレーン・除外したレーン・短いコミット・正の整数でない run・空の artifact・重複したレーンを含む `latest` の、開発版の材料のテストです。終了コードが 1 になり、`allure generate` が呼ばれず、原因が表示されることを確認します。"""
+    with allure.step("不正な latest を持つ開発版の材料で生成する"):
+        _dev_results(root)
+        path = tmp_path / "report-sources.json"
+        body = {
+            "side": "dev",
+            "runs": [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}],
+            "missing": [],
+            "latest": latest,
+        }
+        path.write_text(json.dumps(body), encoding="utf-8")
+
+        code, run = _main(root, "--sources", str(path), "--output", str(tmp_path / "out"))
+
+    with allure.step("終了コード 1 と allure を動かさないことと理由の出力を確かめる"):
+        assert code == 1
+        assert run.calls == []
+        assert expected in capsys.readouterr().err
+
+
+@allure.title("材料の side が {param_id} のとき、メッセージを表示して失敗する")
+@pytest.mark.parametrize(
+    ("side", "latest", "expected"),
+    [
+        ("pr", [], "side 'pr' が dev と release のどちらでもありません"),
+        (None, [], "side None が dev と release のどちらでもありません"),
+        ("release", [_latest("beta:test-cli", SHA_B)], "リリース版の材料に latest があります"),
+    ],
+    ids=["other-side", "no-side", "release-with-latest"],
+)
+def test_sources_side_must_be_dev_or_release(
+    root: Path,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    side: str | None,
+    latest: list[dict[str, Any]],
+    expected: str,
+) -> None:
+    """`side` が `pr` の材料、`side` が無い材料、`latest` を持つリリース版の材料のテストです。終了コードが 1 になり、`allure generate` が呼ばれず、原因が表示されることを確認します。"""
+    with allure.step("side が不正な材料で生成する"):
+        _dev_results(root)
+        path = tmp_path / "report-sources.json"
+        body: dict[str, Any] = {
+            "runs": [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}],
+            "latest": latest,
+        }
+        if side is not None:
+            body["side"] = side
+        path.write_text(json.dumps(body), encoding="utf-8")
+
+        code, run = _main(root, "--sources", str(path), "--output", str(tmp_path / "out"))
+
+    with allure.step("終了コード 1 と理由の出力を確かめる"):
+        assert code == 1
+        assert run.calls == []
+        assert expected in capsys.readouterr().err
+
+
+@allure.title("開発版の材料のコミットが HEAD の祖先でないと、そのレーンの名前を表示して失敗する")
+def test_dev_sources_refuse_a_commit_outside_head(
+    root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """`latest` のレーンのコミットが HEAD の祖先でない開発版の材料のテストです。終了コードが 1 になり、`allure generate` が呼ばれず、祖先でないレーンだけが名指しで表示されることを確認します。"""
+    with allure.step("祖先でないコミットを含む開発版の材料で生成する"):
+        _dev_results(root)
+        sources = _dev_sources(
+            tmp_path,
+            [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}],
+            [_latest("beta:test-cli", SHA_B)],
+        )
+
+        code, run = _main(
+            root,
+            "--sources", str(sources),
+            "--output", str(tmp_path / "out"),
+            ancestry=Ancestry(outside=(SHA_B,)),
+        )  # fmt: skip
+
+    with allure.step("終了コード 1 と祖先でないレーンの出力を確かめる"):
+        assert code == 1
+        assert run.calls == []
+        err = capsys.readouterr().err
+        assert f"beta:test-cli: コミット {SHA_B} が HEAD の祖先ではありません" in err
+        assert "alpha:test-unit:" not in err
+
+
+@allure.title("リリース版の材料では、コミットが HEAD の祖先かを確認しない")
+def test_release_sources_do_not_check_ancestry(root: Path, tmp_path: Path) -> None:
+    """HEAD の祖先でないコミットを持つ、リリース版の材料のテストです。祖先の確認を呼ばずにレポートを作ることを確認します。"""
+    with allure.step("リリース版の材料で生成する"):
+        _results(root, "alpha:test-unit", commit=SHA_A)
+        sources = _sources(tmp_path, [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}])
+        ancestry = Ancestry(outside=(SHA_A,))
+
+        code, run = _main(
+            root, "--sources", str(sources), "--output", str(tmp_path / "out"), ancestry=ancestry
+        )
+
+    with allure.step("祖先を確認せずに作ることを確かめる"):
+        assert code == 0
+        assert len(run.calls) == 1
+        assert ancestry.calls == []
+
+
+@allure.title(
+    "開発版の latest のレーンの `source.json` が材料と違うと、そのレーンの名前を表示して失敗する"
+)
+def test_dev_sources_check_source_json_of_latest_lanes(
+    root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """`latest` の `beta:test-cli` の `source.json` が、材料と別のコミットを指す開発版の材料のテストです。終了コードが 1 になり、`allure generate` が呼ばれず、そのレーンが名指しで表示されることを確認します。"""
+    with allure.step("latest のレーンに食い違う source.json を置いて生成する"):
+        _results(root, "alpha:test-unit", commit=SHA_A)
+        _results(root, "beta:test-cli", commit=SHA_A)
+        sources = _dev_sources(
+            tmp_path,
+            [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}],
+            [_latest("beta:test-cli", SHA_B)],
+        )
+
+        code, run = _main(root, "--sources", str(sources), "--output", str(tmp_path / "out"))
+
+    with allure.step("終了コード 1 と食い違ったレーンの出力を確かめる"):
+        assert code == 1
+        assert run.calls == []
+        err = capsys.readouterr().err
+        assert f"beta:test-cli: source.json は beta:test-cli の {SHA_A}" in err
+        assert "  alpha:test-unit:" not in err
+
+
+@allure.title("開発版の材料に `--history` を付けると、`allure generate` を起動せずに失敗する")
+def test_dev_sources_refuse_history(
+    root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """開発版の材料に `--history` を付けて `generate.py` を実行した場合のテストです。終了コードが 1 になり、`allure generate` が呼ばれず、履歴はリリース版だけである旨が表示されることを確認します。"""
+    with allure.step("開発版の材料に履歴を付けて生成する"):
+        _dev_results(root)
+        sources = _dev_sources(
+            tmp_path,
+            [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}],
+            [_latest("beta:test-cli", SHA_B)],
+        )
+
+        code, run = _main(
+            root,
+            "--sources", str(sources),
+            "--output", str(tmp_path / "out"),
+            "--history", str(tmp_path / "history.jsonl"),
+        )  # fmt: skip
+
+    with allure.step("終了コード 1 と理由の出力を確かめる"):
+        assert code == 1
+        assert run.calls == []
+        assert "開発版の材料には --history を渡せません" in capsys.readouterr().err
+
+
+@allure.title("`git_is_ancestor` は、HEAD の祖先のコミットだけを祖先とする")
+def test_git_is_ancestor_follows_head(
+    git_repo: Callable[..., Path],
+    git: Callable[..., Any],
+    git_rev_parse: Callable[..., str],
+) -> None:
+    """main の 2 つのコミットと、ほかのブランチのコミットを持つ git のリポで、`git_is_ancestor` を呼んだテストです。HEAD とその親は祖先で、ほかのブランチのコミットと存在しないコミットは祖先でないことを確認します。"""
+    with allure.step("main の 2 つのコミットと、ほかのブランチのコミットを作る"):
+        repo = git_repo(initial_branch="main")
+        git(repo, "commit", "-q", "--allow-empty", "-m", "c1")
+        first = git_rev_parse(repo)
+        git(repo, "checkout", "-q", "-b", "topic")
+        git(repo, "commit", "-q", "--allow-empty", "-m", "topic")
+        topic = git_rev_parse(repo)
+        git(repo, "checkout", "-q", "main")
+        git(repo, "commit", "-q", "--allow-empty", "-m", "c2")
+        head = git_rev_parse(repo)
+    with allure.step("祖先かどうかの判定を確かめる"):
+        assert generate.git_is_ancestor(repo, head) is True
+        assert generate.git_is_ancestor(repo, first) is True
+        assert generate.git_is_ancestor(repo, topic) is False
+        assert generate.git_is_ancestor(repo, "c" * 40) is False
+
+
+# --- レポートの変数 ---
+
+
+@allure.title(
+    "開発版の変数は、runs のレーンにこの run、latest のレーンに試した run の URL を付ける"
+)
+def test_dev_variables_name_the_run_of_each_lane(
+    root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`GITHUB_REPOSITORY` と `GITHUB_RUN_ID` がある環境で、開発版の材料から `generate.py` を実行した場合のテストです。環境変数 `PECOT_REPORT_VARIABLES` に、レーンごとのコミットと run の URL が JSON で渡ることを確認します。"""
+    with allure.step("GitHub の環境変数を置いて、開発版の材料で生成する"):
+        _dev_results(root)
+        sources = _dev_sources(
+            tmp_path,
+            [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}],
+            [_latest("beta:test-cli", SHA_B, 456)],
+        )
+        monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+        monkeypatch.setenv("GITHUB_RUN_ID", "123")
+
+        code, run = _main(root, "--sources", str(sources), "--output", str(tmp_path / "out"))
+
+    with allure.step("変数の JSON を確かめる"):
+        assert code == 0
+        assert json.loads(run.calls[0][1][generate.VARIABLES_ENV]) == {
+            "alpha:test-unit": f"{SHA_A} https://github.com/owner/repo/actions/runs/123",
+            "beta:test-cli": f"{SHA_B} https://github.com/owner/repo/actions/runs/456",
+        }
+
+
+@allure.title("リリース版の変数は、{param_id} の環境で、runs のコミットとこの run の URL を付ける")
+@pytest.mark.parametrize(
+    ("env", "expected"),
+    [
+        (
+            {
+                "GITHUB_SERVER_URL": "https://ghe.example",
+                "GITHUB_REPOSITORY": "o/r",
+                "GITHUB_RUN_ID": "9",
+            },
+            f"{SHA_A} https://ghe.example/o/r/actions/runs/9",
+        ),
+        ({"GITHUB_RUN_ID": "9"}, SHA_A),
+        ({"GITHUB_REPOSITORY": "o/r"}, SHA_A),
+    ],
+    ids=["server-url", "no-repository", "no-run-id"],
+)
+def test_release_variables_use_the_commit_of_runs(
+    root: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    env: dict[str, str],
+    expected: str,
+) -> None:
+    """GitHub の環境変数の有無を変えて、リリース版の材料から `generate.py` を実行した場合のテストです。サーバーの URL を使い、リポか run が無い場合はコミットだけを変数に渡すことを確認します。"""
+    with allure.step("GitHub の環境変数を置いて、リリース版の材料で生成する"):
+        _results(root, "alpha:test-unit", commit=SHA_A)
+        sources = _sources(tmp_path, [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}])
+        for key, value in env.items():
+            monkeypatch.setenv(key, value)
+
+        code, run = _main(root, "--sources", str(sources), "--output", str(tmp_path / "out"))
+
+    with allure.step("変数の JSON を確かめる"):
+        assert code == 0
+        assert json.loads(run.calls[0][1][generate.VARIABLES_ENV]) == {"alpha:test-unit": expected}
+
+
+@allure.title("`--local` では、変数を渡さず、親の環境の変数も引き継がない")
+def test_local_never_passes_variables(
+    root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """親の環境に `PECOT_REPORT_VARIABLES` がある状態で、`--local` を指定した場合のテストです。`allure generate` の環境変数に、`PECOT_REPORT_VARIABLES` が含まれないことを確認します。"""
+    with allure.step("親の環境に変数を置いて、ローカルで生成する"):
+        _results(root, "alpha:test-unit")
+        monkeypatch.setenv(generate.VARIABLES_ENV, '{"leaked": "x"}')
+        monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+
+        _, run = _main(root, "--local", "--output", str(tmp_path / "out"))
+
+    with allure.step("変数が渡らないことを確かめる"):
+        assert generate.VARIABLES_ENV not in run.calls[0][1]
 
 
 # --- 引数の誤り ---
@@ -582,8 +1050,8 @@ def test_conflicting_arguments_stop_before_anything(
 # --- allurerc.mjs ---
 
 
-def _config(env: dict[str, str]) -> dict[str, Any]:
-    """allurerc.mjs の export と、Allure の readConfig が解いた値。"""
+def _read_config(env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    """allurerc.mjs の export と、Allure の readConfig が解いた値を、標準出力の最後の行に書く node。"""
     script = (
         f"const {{ default: raw }} = await import({json.dumps(_CONFIG.as_uri())});"
         "const { readConfig } = await import('@allurereport/core');"
@@ -593,29 +1061,40 @@ def _config(env: dict[str, str]) -> dict[str, Any]:
         ".map(({ id, name, groupBy }) => ({ id, name, groupBy }));"
         "const resolved = { name: r.name, historyPath: r.historyPath ?? null,"
         " historyLimit: r.historyLimit, historyBaseUrl: r.historyBaseUrl ?? null,"
-        " flakyDetection: r.flakyDetection, categories };"
+        " flakyDetection: r.flakyDetection, categories, variables: r.variables };"
         "process.stdout.write('\\n' + JSON.stringify({ raw, resolved }));"
     )
     # -e の import は作業ディレクトリから解く。@allurereport/core は allure の依存なので、allure の実体から解く
-    done = run_attached(
+    return run_attached(
         ["node", "--input-type=module", "-e", script],
         cwd=(_REPO / "node_modules/allure").resolve(),
         env=env,
         capture_output=True,
         text=True,
-        check=True,
+        check=False,
     )
+
+
+def _config(env: dict[str, str]) -> dict[str, Any]:
+    done = _read_config(env)
+    assert done.returncode == 0, done.stderr
     # allure の import が、標準出力に見出しを書く。最後の行だけを読む
     return json.loads(done.stdout.splitlines()[-1])
+
+
+def _base_env() -> dict[str, str]:
+    return {
+        k: v
+        for k, v in os.environ.items()
+        if k not in (generate.HISTORY_ENV, generate.VARIABLES_ENV)
+    }
 
 
 @allure.title("allurerc.mjs は、グループの順・言語・履歴の上限などを期待する値で設定する")
 def test_config_values() -> None:
     """`allurerc.mjs` の設定のテストです。`awesome` プラグインの `groupBy` と `reportLanguage`、Allure が解いた名前・履歴の上限・不安定なテストの検出・失敗の分類の設定が、期待する値であることを確認します。"""
     with allure.step("allure の設定を読む"):
-        env = {k: v for k, v in os.environ.items() if k != generate.HISTORY_ENV}
-
-        config = _config(env)
+        config = _config(_base_env())
 
     with allure.step("設定の値を確かめる"):
         assert config["raw"]["plugins"] == {
@@ -645,6 +1124,7 @@ def test_config_values() -> None:
                     "groupBy": ["severity"],
                 },
             ],
+            "variables": {},
         }
         assert config["raw"]["categories"] == {
             "rules": [
@@ -660,16 +1140,51 @@ def test_config_values() -> None:
                 },
             ]
         }
+        assert "variables" not in config["raw"]
 
 
 @allure.title("履歴のパスは、環境変数から取得する")
 def test_config_takes_history_path_from_env(tmp_path: Path) -> None:
     """環境変数に履歴のパスを設定して、`allurerc.mjs` を Allure に読ませた場合のテストです。解決した設定の `historyPath` が、環境変数の値と一致することを確認します。"""
     with allure.step("環境変数に履歴のパスを置いて設定を読む"):
-        env = {**os.environ, generate.HISTORY_ENV: str(tmp_path / "history.jsonl")}
+        env = {**_base_env(), generate.HISTORY_ENV: str(tmp_path / "history.jsonl")}
 
     with allure.step("履歴のパスが環境変数の値になることを確かめる"):
         assert _config(env)["resolved"]["historyPath"] == str(tmp_path / "history.jsonl")
+
+
+@allure.title("レポートの変数は、環境変数の JSON から取得する")
+def test_config_takes_variables_from_env() -> None:
+    """環境変数 `PECOT_REPORT_VARIABLES` にレーンごとの値の JSON を設定して、`allurerc.mjs` を Allure に読ませた場合のテストです。解決した設定の `variables` が、JSON の値と一致することを確認します。"""
+    with allure.step("環境変数に変数の JSON を置いて設定を読む"):
+        variables = {"alpha:test-unit": f"{SHA_A} https://github.com/o/r/actions/runs/1"}
+        env = {**_base_env(), generate.VARIABLES_ENV: json.dumps(variables)}
+
+        config = _config(env)
+
+    with allure.step("変数が環境変数の値になることを確かめる"):
+        assert config["resolved"]["variables"] == variables
+
+
+@allure.title("レポートの変数の環境変数が {param_id} のとき、Allure の設定の読み込みを止める")
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("{", "JSON"),
+        ("[]", "PECOT_REPORT_VARIABLES"),
+        ("null", "PECOT_REPORT_VARIABLES"),
+        ('{"a": 1}', "PECOT_REPORT_VARIABLES"),
+    ],
+    ids=["broken", "array", "null", "number-value"],
+)
+def test_config_refuses_unreadable_variables(value: str, expected: str) -> None:
+    """環境変数 `PECOT_REPORT_VARIABLES` に、JSON として読めない文字列・配列・`null`・値が数のオブジェクトを設定して、`allurerc.mjs` を読ませた場合のテストです。設定の読み込みが失敗し、原因が標準エラー出力に表示されることを確認します。"""
+    with allure.step("読めない変数を環境変数に置いて設定を読む"):
+        done = _read_config({**_base_env(), generate.VARIABLES_ENV: value})
+
+    with allure.step("読み込みが失敗することを確かめる"):
+        assert done.returncode != 0
+        assert expected in done.stderr
 
 
 # --- 本物の allure generate ---
@@ -825,3 +1340,46 @@ def test_real_allure_builds_from_empty_history_after_unreadable_lines(
 
         assert "履歴" in capsys.readouterr().err
         assert len(_entries(history)) == 1
+
+
+@allure.title(
+    "本物の allure で開発版のレポートを作ると、レーンごとの変数を `widgets/variables.json` に書く"
+)
+@_needs_pnpm
+def test_real_allure_writes_the_variables_of_each_lane(
+    root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`runs` と `latest` に 1 レーンずつを持つ開発版の材料で、本物の `allure generate` を実行した場合のテストです。レポートの `widgets/variables.json` に、レーンごとのコミットと run の URL が書かれ、履歴が作られないことを確認します。"""
+    with allure.step("2 つのレーンの結果と開発版の材料を置いて、本物の allure で生成する"):
+        for i, (entry, commit) in enumerate(zip(_LANES[:2], (SHA_A, SHA_B), strict=True), start=1):
+            lane = f"{entry['project']}:{entry['target']}"
+            results = root / entry["results"]
+            results.mkdir(parents=True)
+            result = _allure_result(str(i)) | {"historyId": f"h-{i}", "testCaseId": f"t-{i}"}
+            (results / f"{i}-result.json").write_text(json.dumps(result), encoding="utf-8")
+            source = {"lane": lane, "commit": commit}
+            (results.parent / "source.json").write_text(json.dumps(source), encoding="utf-8")
+        sources = _dev_sources(
+            tmp_path,
+            [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}],
+            [_latest("beta:test-cli", SHA_B, 456)],
+        )
+        monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+        monkeypatch.setenv("GITHUB_RUN_ID", "123")
+        out = tmp_path / "report"
+
+        code = generate.main(
+            ["generate.py", "--sources", str(sources), "--output", str(out)],
+            root=root,
+            lanes_path=root / "report-lanes.json",
+            is_ancestor=Ancestry(),
+        )
+
+    with allure.step("変数のファイルにレーンごとの値が入ることを確かめる"):
+        assert code == 0
+        variables = json.loads((out / "widgets/variables.json").read_text(encoding="utf-8"))
+        assert variables == {
+            "alpha:test-unit": f"{SHA_A} https://github.com/owner/repo/actions/runs/123",
+            "beta:test-cli": f"{SHA_B} https://github.com/owner/repo/actions/runs/456",
+        }
+        assert not (out / "history.jsonl").exists()

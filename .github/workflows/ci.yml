@@ -17,6 +17,8 @@ env:
   PECOTV_E2E_CEILING_SCALE: "3"
   PECOT_NX_PARALLEL: "2"
   PECOT_CI_SUMMARY: /workspaces/base/pecot/.pecot/tmp/ci/step-summary.md
+  # tms のリンクを開発版に向ける。PR の run と merge queue の run で nx のキャッシュの hash をそろえるため、どちらにも渡す。
+  PECOT_REPORT_SITE_URL: https://pecotcraft.github.io/pecot/dev/
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
@@ -185,6 +187,48 @@ jobs:
           fi
           .githooks/ci/list-test-lanes.sh "${args[@]}" "$NX_BASE" "$NX_HEAD" >> "$GITHUB_OUTPUT"
 
+      # 開発版のレポートが、このコミットのレーンの結果をどの run から取るかの印。pr_run が無ければ PR の欄は null にする。
+      - name: Write lane sources
+        if: github.event_name == 'merge_group'
+        env:
+          COMMIT: ${{ github.event.merge_group.head_sha }}
+          HEAD_REF: ${{ github.event.merge_group.head_ref }}
+          PR_RUN: ${{ steps.prbase.outputs.pr_run }}
+          PR_HEAD: ${{ steps.prbase.outputs.pr_head }}
+          LANES: ${{ steps.list.outputs.lanes }}
+          SKIPPED: ${{ steps.list.outputs.skipped }}
+        run: |
+          set -euo pipefail
+          source .githooks/lib/pr-run.sh
+          pr=""
+          if [[ "$PR_RUN" =~ ^[0-9]+$ ]] && [[ "$PR_HEAD" =~ ^[0-9a-f]{40}$ ]]; then
+            pr=$(pr_number_from_head_ref "$HEAD_REF") || pr=""
+          fi
+          out=.pecot/tmp/ci/lane-sources
+          mkdir -p "$out"
+          jq -n --arg commit "$COMMIT" --arg pr "$pr" --arg pr_head "$PR_HEAD" --arg pr_run "$PR_RUN" \
+            --argjson lanes "$LANES" --argjson skipped "$SKIPPED" '
+              ($pr != "") as $known
+              | {
+                  commit: $commit,
+                  pr: (if $known then ($pr | tonumber) else null end),
+                  pr_head: (if $known then $pr_head else null end),
+                  pr_run: (if $known then ($pr_run | tonumber) else null end),
+                  merge_group: [$lanes[].lane],
+                  pull_request: (if $known then $skipped else [] end)
+                }' > "$out/lane-sources.json"
+          cat "$out/lane-sources.json"
+
+      - name: Upload lane sources
+        if: github.event_name == 'merge_group'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lane-sources
+          path: .pecot/tmp/ci/lane-sources/lane-sources.json
+          retention-days: 30
+          overwrite: true
+          if-no-files-found: error
+
   # レーンが 0 本のとき、空の matrix は GitHub がエラーにするため job ごと飛ばす。
   tests:
     needs: lanes
@@ -208,6 +252,7 @@ jobs:
         CHECKS_SLUG
         PECOT_CI_NX_CACHE
         PECOT_CI_BROWSER
+        PECOT_REPORT_SITE_URL
     strategy:
       fail-fast: false
       matrix:
@@ -295,6 +340,36 @@ jobs:
           name: nx-cache-tests-${{ matrix.slug }}
           path: .pecot/tmp/ci/nx-upload/
           retention-days: 7
+          if-no-files-found: ignore
+
+      # 開発版のレポートの材料。レポートのレーンの結果だけを、リポのルートからのパスのまま置く。
+      - name: Stage results
+        if: (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || github.event_name == 'merge_group'
+        # 集め終えたときだけ mv で置く。途中で落ちても、欠けた結果を上げない。
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          stage="$RUNNER_TEMP/ci-results"
+          partial="$RUNNER_TEMP/ci-results.partial"
+          rm -rf "$stage" "$partial"
+          results=$(python3 .githooks/scripts/test_report/lanes.py | jq -r --arg lane "$CHECKS_LANE" '.[] | select(.lane == $lane) | .results')
+          if [ -n "$results" ] && [ -d "$results" ]; then
+            mkdir -p "$partial/$(dirname "$results")"
+            cp -R "$results" "$partial/$(dirname "$results")/"
+            mv "$partial" "$stage"
+          fi
+
+      # 集められず上げられなくても、開発版のレポートがそのレーンを main で流し直すだけなので、job は落とさない。
+      - name: Upload results
+        if: (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || github.event_name == 'merge_group'
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: allure-results-${{ matrix.slug }}
+          path: ${{ runner.temp }}/ci-results/
+          retention-days: 30
+          overwrite: true
+          include-hidden-files: true
           if-no-files-found: ignore
 
   version-plan:

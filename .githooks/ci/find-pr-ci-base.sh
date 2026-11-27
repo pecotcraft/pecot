@@ -2,7 +2,7 @@
 # merge queue の lanes job が、PR の CI がテストした main の SHA（M0）を探す。
 # env: HEAD_REF（merge_group.head_ref）・REPO・GH_TOKEN。
 # QUEUE_BASE は merge_group.base_sha、QUEUE_HEAD は merge_group.head_sha。
-# 出力: 成功時は stdout に `pr_main=<sha>` の 1 行。出せないときは stdout に何も出さず、stderr に `reason=<理由>` を 1 行出して exit 0。
+# 出力: 成功時は stdout に `pr_main=<sha>`・`pr_run=<見つけた run の id>`・`pr_head=<PR の head の sha>` の 3 行。出せないときは stdout に何も出さず、stderr に `reason=<理由>` を 1 行出して exit 0。
 
 # -e は付けない。失敗は全部 none（reason を出して exit 0 = 全部を動かす側）に集めるため。
 set -uo pipefail
@@ -72,6 +72,8 @@ while IFS= read -r run; do
         continue
     fi
     echo "pr_main=$main_sha"
+    echo "pr_run=$id"
+    echo "pr_head=$pr_head"
     exit 0
 done < <(jq -c '.[]' <<< "$runs")
 

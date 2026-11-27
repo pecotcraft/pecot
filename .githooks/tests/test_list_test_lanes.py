@@ -142,10 +142,16 @@ def env(
 
 def _parse(stdout: str, lint: str = "run") -> tuple[list[dict], str]:
     lines = stdout.splitlines()
-    assert len(lines) == 3
+    assert len(lines) == 4
     assert lines[0].startswith("lanes=") and lines[1].startswith("count=")
-    assert lines[2] == f"lint={lint}"
+    assert lines[2].startswith("skipped=")
+    assert lines[3] == f"lint={lint}"
     return json.loads(lines[0][len("lanes=") :]), lines[1][len("count=") :]
+
+
+def _skipped(stdout: str) -> list[str]:
+    (line,) = [x for x in stdout.splitlines() if x.startswith("skipped=")]
+    return json.loads(line[len("skipped=") :])
 
 
 @allure.title("affected のモードでは、タスクのうちレーンのものだけを残して出力する")
@@ -235,13 +241,28 @@ def test_slug_collision_fails_closed(env: _Env) -> None:
 
 @allure.title("レーンのタスクが存在しないと、空の lanes と count の 0 を出力する")
 def test_zero_lanes(env: _Env) -> None:
-    """タスクが、レーン以外（`install` と `build-cli`）だけの場合のテストです。標準出力が `lanes=[]`、`count=0`、`lint=run` の 3 行になることを確認します。"""
+    """タスクが、レーン以外（`install` と `build-cli`）だけの場合のテストです。標準出力が `lanes=[]`、`count=0`、`skipped=[]`、`lint=run` の 4 行になることを確認します。"""
     with allure.step("レーンの無いタスクだけで動かす"):
         env.set_tasks("p:install", "p:build-cli")
         r = env.run()
     with allure.step("終了コードとレーンが空の出力を確かめる"):
         assert r.returncode == 0, r.stderr
-        assert r.stdout == "lanes=[]\ncount=0\nlint=run\n"
+        assert r.stdout == "lanes=[]\ncount=0\nskipped=[]\nlint=run\n"
+
+
+@allure.title("{mode}のモードでは、省いたレーンが無いので skipped に空の配列を出力する")
+@pytest.mark.parametrize(
+    ("mode", "extra"), [("通常", {}), ("全レーン", {"NO_PREV": "true"})], ids=["affected", "all"]
+)
+def test_skipped_is_empty_outside_stack_mode(env: _Env, mode: str, extra: dict[str, str]) -> None:
+    """積でないモード（`nx affected` と `nx run-many`）で、レーンが 2 件ある場合のテストです。`lanes` に 2 件を出力し、`skipped` には空の配列を出力することを確認します。"""
+    with allure.step(f"{mode}のモードでレーン一覧を作る"):
+        env.set_tasks("p:test-cli", "q:test-hooks")
+        r = env.run(**extra)
+    with allure.step("lanes が 2 件で、skipped が空であることを確かめる"):
+        assert r.returncode == 0, r.stderr
+        assert _parse(r.stdout)[1] == "2"
+        assert _skipped(r.stdout) == []
 
 
 @allure.title("project graph の取得に失敗すると、ERROR を出力して失敗で終わる")
@@ -317,6 +338,7 @@ def test_stack_same_main_calls_nx_once_and_skips_lint(env: _Env) -> None:
         assert "PR の変更のレーン: p:test-cli,q:test-hooks" in r.stderr
         assert "main の変更のレーン: なし" in r.stderr
         assert "積: なし" in r.stderr
+        assert _skipped(r.stdout) == ["p:test-cli", "q:test-hooks"]
 
 
 def _stack_run(env: _Env, m0: str, qbase: str, head: str, **extra: str):
@@ -345,6 +367,26 @@ def test_stack_overlap_remains(env: _Env) -> None:
         assert f"--base={qbase} --head={head}" in calls[0]
         assert f"--base={m0} --head={qbase}" in calls[1]
         assert "積: q:test-hooks" in r.stderr
+        assert _skipped(r.stdout) == ["p:test-cli"]
+
+
+@allure.title(
+    "積モードでは、PR の変更のレーンのうち積から外れたものを、名前の順で skipped に出力する"
+)
+def test_stack_skipped_lists_pr_lanes_outside_product_sorted(env: _Env) -> None:
+    """積モードで、PR の変更のレーンが 3 件あり、main の変更と共通するものが 1 件だけの場合のテストです。積に入らなかった 2 件を、名前の順に並べて `skipped` に出力することを確認します。"""
+    with allure.step("PR の変更のレーンを名前の逆順に並べた積の状態で動かす"):
+        m0 = env.head
+        qbase = env.new_commit("m")
+        head = env.new_commit("a")
+        env.set_tasks_for_base(qbase, "q:test-hooks", "p:test-unit", "p:test-cli")
+        env.set_tasks_for_base(m0, "p:test-unit")
+        r = _stack_run(env, m0, qbase, head)
+    with allure.step("積のレーンと、名前の順の skipped を確かめる"):
+        assert r.returncode == 0, r.stderr
+        lanes, _ = _parse(r.stdout, lint="run")
+        assert [x["lane"] for x in lanes] == ["p:test-unit"]
+        assert _skipped(r.stdout) == ["p:test-cli", "q:test-hooks"]
 
 
 @allure.title("積モードで共通するレーンが存在しないと、lanes を空にして lint は実行する")
@@ -361,6 +403,7 @@ def test_stack_no_overlap(env: _Env) -> None:
         assert r.returncode == 0, r.stderr
         assert _parse(r.stdout, lint="run") == ([], "0")
         assert "積: なし" in r.stderr
+        assert _skipped(r.stdout) == ["p:test-cli"]
 
 
 @allure.title("積モードでは、NO_PREV が true でも run-many を使わない")
@@ -406,5 +449,6 @@ def test_stack_unreadable_sha_falls_back_to_normal(env: _Env, bad: str) -> None:
         assert r.returncode == 0, r.stderr
         assert "WARN" in r.stderr
         assert _parse(r.stdout, lint="run")[1] == "1"
+        assert _skipped(r.stdout) == []
         assert len(_affected(env)) == 1
         assert f"--base={good} --head={good}" in _affected(env)[0]

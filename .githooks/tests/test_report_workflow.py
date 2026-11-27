@@ -113,13 +113,21 @@ def test_dispatch_outside_main_fails_before_anything_else() -> None:
         assert "exit 1" in first["run"]
 
 
-@allure.title("test-report の権限は、contents の読み取りだけに限る")
-def test_permissions_are_contents_read_only() -> None:
-    """`test-report.yml` の権限のテストです。workflow に `contents: read` だけが指定され、job ごとの権限の指定が存在しないことを確認します。"""
-    with allure.step("権限が contents の read だけで、job に権限が無いことを確かめる"):
-        assert _load(_REPORT)["permissions"] == {"contents": "read"}
-        for name, job in _load(_REPORT)["jobs"].items():
-            assert "permissions" not in job, name
+@allure.title(
+    "test-report の権限は、contents の読み取りと、side と report の job の actions の読み取りに限る"
+)
+def test_permissions_are_contents_read_and_actions_read_for_side_and_report() -> None:
+    """`test-report.yml` の権限のテストです。workflow の既定が `contents: read` だけで、`side` と `report` の job だけが `actions: read` を加えて持つことを確認します。"""
+    with allure.step("workflow と job の権限を読む"):
+        workflow = _load(_REPORT)
+    with allure.step(
+        "既定が contents の read で、side と report だけが actions の read を持つことを確かめる"
+    ):
+        assert workflow["permissions"] == {"contents": "read"}
+        jobs = workflow["jobs"]
+        for name in ("side", "report"):
+            assert jobs[name]["permissions"] == {"contents": "read", "actions": "read"}, name
+        assert "permissions" not in jobs["tests"]
 
 
 @allure.title("同じ側の run は、取り消さず、順番に待つ")
@@ -159,23 +167,49 @@ def test_jobs_are_side_tests_report() -> None:
         assert jobs["report"]["needs"] == ["side", "tests"]
 
 
-@allure.title("side の job は、レポートの材料を求めて出力する")
+@allure.title(
+    "side の job は、レポートの材料を求め、レポートを作るかとレーンを動かすかを分けて出力する"
+)
 def test_side_resolves_report_sources() -> None:
-    """`Resolve report sources` の step のテストです。`release_sources.py --report` を呼び、環境変数に側とコミットが渡され、job の出力に側・URL・材料・matrix が含まれることを確認します。"""
+    """`Resolve report sources` の step のテストです。側とコミットとリポジトリと `GH_TOKEN` が環境変数で渡され、job の出力に `report` と `run_tests` が分かれて含まれることを確認します。"""
     with allure.step("report の元を決める step を読む"):
         step = _step("side", "Resolve report sources")
     with allure.step("env と output が決めた形であることを確かめる"):
-        assert "release_sources.py --report" in step["run"]
         assert step["env"]["SIDE"] == "${{ steps.decide.outputs.side }}"
         assert step["env"]["SHA"] == "${{ github.sha }}"
+        assert step["env"]["REPO"] == "${{ github.repository }}"
+        assert step["env"]["GH_TOKEN"] == "${{ github.token }}"
         outputs = _job("side")["outputs"]
         assert outputs == {
             "side": "${{ steps.decide.outputs.side }}",
             "site_url": "${{ steps.decide.outputs.site_url }}",
             "report": "${{ steps.sources.outputs.report }}",
+            "run_tests": "${{ steps.sources.outputs.run_tests }}",
             "matrix": "${{ steps.sources.outputs.matrix }}",
             "sources": "${{ steps.sources.outputs.sources }}",
         }
+
+
+@allure.title("side の job は、開発版のときだけ、report の job と同じ手順で Node.js と依存を入れる")
+def test_side_installs_node_only_for_dev() -> None:
+    """`side` の job の step の並びのテストです。`Resolve report sources` の前に Node.js と依存を入れる 3 つの step があり、開発版のときだけ動き、設定が `report` の job と同じであることを確認します。"""
+    with allure.step("side の step の名前を読む"):
+        names = [s["name"] for s in _steps("side")]
+        expected = ["Set up Node.js", "Enable Corepack", "Install dependencies"]
+    with allure.step("Node.js の準備が開発版だけで動き、report の job と同じであることを確かめる"):
+        assert names == [
+            "Check ref",
+            "Checkout",
+            "Decide side",
+            *expected,
+            "Resolve report sources",
+        ]
+        for name in expected:
+            mine, theirs = _step("side", name), _step("report", name)
+            assert mine["if"] == "${{ steps.decide.outputs.side == 'dev' }}", name
+            assert {k: v for k, v in mine.items() if k not in ("name", "if")} == {
+                k: v for k, v in theirs.items() if k != "name"
+            }, name
 
 
 @allure.title(
@@ -222,6 +256,7 @@ def _resolve_sources(tmp_path: Path, side: str, stdout: dict[str, Any]) -> tuple
         **step["env"],
         "SIDE": side,
         "SHA": _SHA,
+        "REPO": "o/r",
         "GITHUB_OUTPUT": str(output),
         "GITHUB_STEP_SUMMARY": str(summary),
     }
@@ -230,25 +265,34 @@ def _resolve_sources(tmp_path: Path, side: str, stdout: dict[str, Any]) -> tuple
     return calls, output, summary
 
 
-@allure.title("開発版では、コミットを `release_sources.py` に渡し、matrix を出力する")
-def test_side_passes_dev_commit_and_writes_matrix(tmp_path: Path) -> None:
-    """`Resolve report sources` の step を `dev` で実行した場合のテストです。`--report dev --commit` でコミットが渡され、`report` が `true` で、matrix と材料が JSON で出力されることを確認します。"""
+_DEV_JOB = {"lane": "p:test-cli", "slug": "p-test-cli", "results": "r", "commit": _SHA}
+
+
+@allure.title(
+    "開発版で main で動かすレーンが {param_id} のとき、レポートは必ず作り、レーンがあるときだけ動かす"
+)
+@pytest.mark.parametrize(
+    ("jobs", "run_tests"),
+    [([_DEV_JOB], "true"), ([], "false")],
+    ids=["ある", "無い"],
+)
+def test_side_resolves_dev_with_dev_sources(
+    tmp_path: Path, jobs: list[dict[str, str]], run_tests: str
+) -> None:
+    """`Resolve report sources` の step を `dev` で実行した場合のテストです。`dev_sources.py resolve` にコミットとリポジトリが渡され、`report` が常に `true` で、`run_tests` が matrix の有無で決まることを確認します。"""
     with allure.step("dev の元を返す偽の script で、report の元を決める step を動かす"):
-        sources = {
-            "side": "dev",
-            "runs": [{"commit": _SHA, "lanes": ["p:test-cli"]}],
-            "missing": [],
-        }
-        jobs = [{"lane": "p:test-cli", "slug": "p-test-cli", "results": "r", "commit": _SHA}]
+        runs = [{"commit": _SHA, "lanes": ["p:test-cli"]}] if jobs else []
+        sources = {"side": "dev", "runs": runs, "missing": [], "latest": []}
         calls, output, summary = _resolve_sources(
             tmp_path, "dev", {"sources": sources, "matrix": jobs}
         )
-    with allure.step("commit を渡し、matrix と元を output に書くことを確かめる"):
+    with allure.step("commit とリポを渡し、出力を分けて書くことを確かめる"):
         assert read_output(calls) == (
-            f".githooks/scripts/pages_site/release_sources.py --report dev --commit {_SHA}\n"
+            f".githooks/scripts/test_report/dev_sources.py resolve --head {_SHA} --repo o/r\n"
         )
         out = _outputs(output)
         assert out["report"] == "true"
+        assert out["run_tests"] == run_tests
         assert json.loads(out["matrix"]) == jobs
         assert json.loads(out["sources"]) == sources
         assert not summary.exists() or read_output(summary) == ""
@@ -268,6 +312,7 @@ def test_side_skips_report_and_lists_missing_for_release(tmp_path: Path) -> None
         )
         out = _outputs(output)
         assert out["report"] == "false"
+        assert out["run_tests"] == "false"
         assert out["matrix"] == "[]"
         text = read_output(summary)
         env = _step("side", "Resolve report sources")["env"]
@@ -281,11 +326,11 @@ def test_side_skips_report_and_lists_missing_for_release(tmp_path: Path) -> None
 
 @allure.title("tests の job は、レーンがあるときだけ動き、1 つが失敗しても続ける")
 def test_tests_run_only_with_lanes_and_keep_going() -> None:
-    """`tests` の job のテストです。`report` が `true` のときだけ実行され、名前にレーンが入り、タイムアウトが ci.yml と同じで、`fail-fast` が `false` の matrix を使うことを確認します。"""
+    """`tests` の job のテストです。`run_tests` が `true` のときだけ実行され、名前にレーンが入り、タイムアウトが ci.yml と同じで、`fail-fast` が `false` の matrix を使うことを確認します。"""
     with allure.step("tests の job を読む"):
         job = _job("tests")
     with allure.step("レーンがあるときだけ動き、1 つの失敗で止まらないことを確かめる"):
-        assert job["if"] == "${{ needs.side.outputs.report == 'true' }}"
+        assert job["if"] == "${{ needs.side.outputs.run_tests == 'true' }}"
         assert job["name"] == "tests (${{ matrix.lane }})"
         assert job["timeout-minutes"] == _job("tests", _CI)["timeout-minutes"]
         assert job["strategy"] == {
@@ -435,10 +480,15 @@ def test_report_installs_node_on_the_runner_like_version_plan() -> None:
             }, name
         assert names[4:] == [
             "Download results",
+            "Write report sources",
+            "Fetch latest results",
             "Read stored history",
             "Generate report",
             "Pack report",
             "Upload report",
+            "Pack lane results",
+            "Upload lane results",
+            "Upload lane index",
         ]
 
 
@@ -455,25 +505,112 @@ def test_report_downloads_all_results_into_the_repo_root() -> None:
         }
 
 
-@allure.title("レポートは、材料と履歴を指定して生成する")
-def test_report_generates_with_sources_and_history() -> None:
-    """`Generate report` の step のテストです。`generate.py` に `--sources`・`--output`・`--history` を渡し、`SOURCES` の環境変数に `side` の出力が設定されることを確認します。"""
-    with allure.step("report を作る step の run を読む"):
-        step = _step("report", "Generate report")
-        run = step["run"]
-    with allure.step("元と履歴を渡して作ることを確かめる"):
-        assert "generate.py" in run
-        for flag in ("--sources", "--output", "--history"):
-            assert flag in run, flag
+@allure.title("側が {side} のとき、レポートは材料を指定し、履歴はリリース版だけ指定して生成する")
+@pytest.mark.parametrize(
+    ("side", "history"), [("dev", False), ("release", True)], ids=["dev", "release"]
+)
+def test_report_generates_with_history_only_for_release(
+    tmp_path: Path, side: str, history: bool
+) -> None:
+    """偽の `python3` で `Generate report` の step を実行した場合のテストです。`generate.py` に `--sources` と `--output` が渡され、`--history` はリリース版のときだけ渡されることを確認します。"""
+    with allure.step("偽の python3 で report を作る step を動かす"):
+        bin_dir, calls = tmp_path / "bin", tmp_path / "calls"
+        _fake(bin_dir, "python3", f'echo "$*" >> {calls}')
+        env = {"RUNNER_TEMP": str(tmp_path), "SIDE": side}
+        result = _bash(_step("report", "Generate report")["run"], tmp_path, env, bin_dir)
+    with allure.step("側に応じて履歴を渡すことを確かめる"):
+        assert result.returncode == 0, result.stderr
+        work = tmp_path / "test-report"
+        expected = (
+            f".githooks/scripts/test_report/generate.py --sources {work}/report-sources.json"
+            f" --output {work}/site"
+        )
+        if history:
+            expected += f" --history {work}/history.jsonl"
+        assert read_output(calls) == expected + "\n"
         assert _job("report")["env"]["SOURCES"] == "${{ needs.side.outputs.sources }}"
+
+
+@allure.title("report の job は、材料を作業のディレクトリに書き出す")
+def test_report_writes_sources_into_the_work_dir(tmp_path: Path) -> None:
+    """`Write report sources` の step のテストです。`SOURCES` の内容が、`RUNNER_TEMP` の下の `test-report/report-sources.json` にそのまま書かれることを確認します。"""
+    with allure.step("材料を書き出す step を動かす"):
+        sources = '{"side":"dev","runs":[],"missing":[],"latest":[]}'
+        env = {"RUNNER_TEMP": str(tmp_path), "SOURCES": sources}
+        result = _bash(_step("report", "Write report sources")["run"], tmp_path, env)
+    with allure.step("材料のファイルの中身を確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert read_output(tmp_path / "test-report/report-sources.json") == sources
+
+
+@allure.title("開発版では、拾ったレーンの結果を ci と前の開発版の run の artifact から取り出す")
+def test_report_fetches_latest_results_for_dev(tmp_path: Path) -> None:
+    """`Fetch latest results` の step のテストです。開発版のときだけ動き、`dev_sources.py fetch` に材料・リポジトリ・ルートを渡し、`gh` に `GH_TOKEN` を渡すことを確認します。"""
+    with allure.step("取り出しの step を読み、偽の python3 で動かす"):
+        step = _step("report", "Fetch latest results")
+        bin_dir, calls = tmp_path / "bin", tmp_path / "calls"
+        _fake(bin_dir, "python3", f'echo "$*" >> {calls}')
+        env = {"RUNNER_TEMP": str(tmp_path), "REPO": "o/r"}
+        result = _bash(step["run"], tmp_path, env, bin_dir)
+    with allure.step("開発版だけで動き、引数とトークンを渡すことを確かめる"):
+        assert step["if"] == "${{ needs.side.outputs.side == 'dev' }}"
+        assert step["env"] == {
+            "REPO": "${{ github.repository }}",
+            "GH_TOKEN": "${{ github.token }}",
+        }
+        assert result.returncode == 0, result.stderr
+        assert read_output(calls) == (
+            ".githooks/scripts/test_report/dev_sources.py fetch"
+            f" --sources {tmp_path}/test-report/report-sources.json --repo o/r --root .\n"
+        )
+
+
+@allure.title("開発版では、レポートの後に、全レーンの結果と index を 90 日で保存する")
+def test_report_packs_and_uploads_lane_latest_for_dev(tmp_path: Path) -> None:
+    """`Pack lane results` と 2 つの upload の step のテストです。開発版のときだけ動き、`dev_sources.py pack` にコミットと run の ID を渡すことを確認します。`lane-latest` と `lane-latest-index` は 90 日で保存します。"""
+    with allure.step("lane-latest を作る step を読み、偽の python3 で動かす"):
+        step = _step("report", "Pack lane results")
+        bin_dir, calls = tmp_path / "bin", tmp_path / "calls"
+        _fake(bin_dir, "python3", f'echo "$*" >> {calls}')
+        env = {"RUNNER_TEMP": str(tmp_path), "SHA": _SHA, "RUN_ID": "42"}
+        result = _bash(step["run"], tmp_path, env, bin_dir)
+    with allure.step("pack の引数と、upload の値を確かめる"):
+        dev = "${{ needs.side.outputs.side == 'dev' }}"
+        assert step["if"] == dev
+        assert step["env"] == {"SHA": "${{ github.sha }}", "RUN_ID": "${{ github.run_id }}"}
+        assert result.returncode == 0, result.stderr
+        assert read_output(calls) == (
+            ".githooks/scripts/test_report/dev_sources.py pack"
+            f" --sources {tmp_path}/test-report/report-sources.json --root ."
+            f" --out {tmp_path}/lane-latest --commit {_SHA} --run-id 42\n"
+        )
+        lanes, index = _step("report", "Upload lane results"), _step("report", "Upload lane index")
+        assert lanes["if"] == dev and index["if"] == dev
+        assert lanes["with"] == {
+            "name": "lane-latest",
+            "path": "${{ runner.temp }}/lane-latest/lane-latest/",
+            "retention-days": 90,
+            "overwrite": True,
+            # 無いと .githooks/ の下のレーンの結果が外れる。
+            "include-hidden-files": True,
+            "if-no-files-found": "error",
+        }
+        assert index["with"] == {
+            "name": "lane-latest-index",
+            "path": "${{ runner.temp }}/lane-latest/lane-latest-index/lane-latest-index.json",
+            "retention-days": 90,
+            "overwrite": True,
+            "if-no-files-found": "error",
+        }
 
 
 @allure.title("レポートは、側ごとの名前で 7 日間保存する")
 def test_report_uploads_report_for_seven_days() -> None:
     """`Upload report` の step のテストです。名前に側が入り、パス・保存期間 7 日・上書きの許可・ファイルが存在しないときのエラーが、期待どおりであることを確認します。"""
     with allure.step("report の upload の step を読む"):
-        (upload,) = _uses("report", "actions/upload-artifact")
+        upload = _step("report", "Upload report")
     with allure.step("7 日間 upload することを確かめる"):
+        assert "if" not in upload
         assert upload["name"] == "Upload report"
         assert upload["with"] == {
             "name": "test-report-${{ needs.side.outputs.side }}",
@@ -512,36 +649,44 @@ def _store_repo(tmp_path: Path, files: dict[str, str] | None) -> Path:
 _STORED = {"test-report/history.jsonl": '{"r":1}\n', "dev/test-report/history.jsonl": '{"d":1}\n'}
 
 
-@allure.title("側が {side}、保管ブランチの状態が {param_id} のとき、保管された履歴を読み込む")
+def _history_env(step: dict[str, Any], temp: Path, summary: Path) -> dict[str, str]:
+    (temp / "test-report").mkdir(parents=True, exist_ok=True)
+    return {**step["env"], "RUNNER_TEMP": str(temp), "GITHUB_STEP_SUMMARY": str(summary)}
+
+
+@allure.title("履歴は、リリース版のときだけ読み込む")
+def test_read_history_only_for_release() -> None:
+    """`Read stored history` の step の条件のテストです。リリース版のときだけ動き、開発版の履歴のパス `dev/test-report/` を読まないことを確認します。"""
+    with allure.step("履歴を読む step を読む"):
+        step = _step("report", "Read stored history")
+    with allure.step("リリース版だけで動き、開発版の履歴を読まないことを確かめる"):
+        assert step["if"] == "${{ needs.side.outputs.side == 'release' }}"
+        assert 'stored="origin/pages-store:test-report/history.jsonl"' in step["run"]
+        assert "dev/test-report" not in step["run"]
+
+
+@allure.title("保管ブランチの状態が {param_id} のとき、リリース版の保管された履歴を読み込む")
 @pytest.mark.parametrize(
-    ("side", "files", "kept", "warned"),
+    ("files", "kept", "warned"),
     [
-        ("dev", _STORED, '{"d":1}\n', False),
-        ("release", _STORED, '{"r":1}\n', False),
-        ("dev", {"index.html": "x"}, "", False),
-        ("dev", None, "", True),
+        (_STORED, '{"r":1}\n', False),
+        ({"index.html": "x"}, "", False),
+        (None, "", True),
     ],
-    ids=["dev", "release", "first-time", "no-store"],
+    ids=["stored", "first-time", "no-store"],
 )
-def test_read_history_from_pages_store_of_the_side(
-    tmp_path: Path, side: str, files: dict[str, str] | None, kept: str, warned: bool
+def test_read_history_from_pages_store(
+    tmp_path: Path, files: dict[str, str] | None, kept: str, warned: bool
 ) -> None:
-    """`Read stored history` の step を、保管ブランチの状態を変えて実行した場合のテストです。側ごとの履歴の内容が読み込まれ、履歴や保管ブランチが存在しないときは空になり、保管ブランチが存在しないときだけ警告が表示されることを確認します。"""
+    """`Read stored history` の step を、保管ブランチの状態を変えて実行した場合のテストです。リリース版の履歴が読み込まれ、履歴や保管ブランチが存在しないときは空になることを確認します。警告は保管ブランチが無いときだけ表示します。"""
     with allure.step("保管した pages-store のリポを用意し、履歴を読む step の run を動かす"):
         repo = _store_repo(tmp_path, files)
         summary, temp = tmp_path / "summary", tmp_path / "runner-temp"
-        temp.mkdir()
         step = _step("report", "Read stored history")
-        env = {
-            **step["env"],
-            "RUNNER_TEMP": str(temp),
-            "SIDE": side,
-            "GITHUB_STEP_SUMMARY": str(summary),
-        }
 
-        result = _bash(step["run"], repo, env)
+        result = _bash(step["run"], repo, _history_env(step, temp, summary))
 
-    with allure.step("side の履歴を読み、保管が無いときだけ警告することを確かめる"):
+    with allure.step("リリース版の履歴を読み、保管が無いときだけ警告することを確かめる"):
         assert result.returncode == 0, result.stderr
         assert read_output(temp / "test-report/history.jsonl") == kept
         text = read_output(summary) if summary.exists() else ""
@@ -588,16 +733,9 @@ def test_read_history_warns_and_starts_empty_when_the_blob_cannot_be_fetched(
         )
         shutil.rmtree(bare)
         temp = tmp_path / "runner-temp"
-        temp.mkdir()
         step = _step("report", "Read stored history")
-        env = {
-            **step["env"],
-            "RUNNER_TEMP": str(temp),
-            "SIDE": "dev",
-            "GITHUB_STEP_SUMMARY": str(tmp_path / "summary"),
-        }
 
-        result = _bash(step["run"], clone, env)
+        result = _bash(step["run"], clone, _history_env(step, temp, tmp_path / "summary"))
 
     with allure.step("警告を出し、空の履歴で始めることを確かめる"):
         assert result.returncode == 0, result.stderr
@@ -606,32 +744,45 @@ def test_read_history_warns_and_starts_empty_when_the_blob_cannot_be_fetched(
         assert step["env"]["MSG_NO_STORE"] in read_output(tmp_path / "summary")
 
 
-@allure.title("レポートの 3 つの step は、履歴・材料・サイトのファイルを順に引き継ぐ")
-def test_report_steps_hand_history_sources_and_tree_to_each_other(tmp_path: Path) -> None:
-    """`Read stored history`・`Generate report`・`Pack report` を続けて実行した場合のテストです。材料が `report-sources.json` に保存され、`report.tar` に `index.html` と、追記された `history.jsonl` が含まれることを確認します。"""
+# generate.py の代わり: --output に index.html を書き、--history があれば 1 行足し、--sources を写す。
+_FAKE_GENERATE = (
+    'hist=""\n'
+    "while [ $# -gt 0 ]; do case $1 in --output) out=$2;; --history) hist=$2;; --sources) src=$2;; esac; shift; done\n"
+    'mkdir -p "$out" && echo "<html></html>" > "$out/index.html"\n'
+    '[ -z "$hist" ] || echo \'{"new":1}\' >> "$hist"\n'
+    'cp "$src" "$SEEN"'
+)
+
+
+@allure.title("側が {side} のとき、レポートの step は材料・履歴・サイトのファイルを順に引き継ぐ")
+@pytest.mark.parametrize(
+    ("side", "history"),
+    [("release", '{"r":1}\n{"new":1}\n'), ("dev", None)],
+    ids=["release", "dev"],
+)
+def test_report_steps_hand_sources_history_and_tree_to_each_other(
+    tmp_path: Path, side: str, history: str | None
+) -> None:
+    """`Write report sources` から `Pack report` までを、側の条件に従って続けて実行した場合のテストです。材料が `report-sources.json` に保存されることを確認します。`report.tar` には `index.html` が入り、追記された `history.jsonl` はリリース版だけに入ります。"""
     with allure.step("保管のリポと偽の python3 を用意する"):
         repo = _store_repo(tmp_path, _STORED)
         temp, bin_dir, seen = tmp_path / "runner-temp", tmp_path / "bin", tmp_path / "seen-sources"
         temp.mkdir()
-        # generate.py の代わり: --output に index.html を書き、--history に 1 行足し、--sources を写す。
-        _fake(
-            bin_dir,
-            "python3",
-            "while [ $# -gt 0 ]; do case $1 in --output) out=$2;; --history) hist=$2;; --sources) src=$2;; esac; shift; done\n"
-            'mkdir -p "$out" && echo "<html></html>" > "$out/index.html"\n'
-            'echo \'{"new":1}\' >> "$hist"\n'
-            f'cp "$src" {seen}',
-        )
-        sources = '{"side":"dev","runs":[],"missing":[]}'
+        _fake(bin_dir, "python3", _FAKE_GENERATE)
+        sources = json.dumps({"side": side, "runs": [], "missing": []})
         env = {
             "RUNNER_TEMP": str(temp),
-            "SIDE": "dev",
+            "SIDE": side,
             "SOURCES": sources,
+            "SEEN": str(seen),
             "GITHUB_STEP_SUMMARY": str(tmp_path / "summary"),
         }
+        names = ["Write report sources", "Generate report", "Pack report"]
+        if side == "release":
+            names.insert(1, "Read stored history")
 
-    with allure.step("3 つの step を順に動かし、履歴・元・木が渡ることを確かめる"):
-        for name in ("Read stored history", "Generate report", "Pack report"):
+    with allure.step("step を順に動かし、元・履歴・木が渡ることを確かめる"):
+        for name in names:
             step = _step("report", name)
             result = _bash(step["run"], repo, {**step.get("env", {}), **env}, bin_dir)
             assert result.returncode == 0, f"{name}: {result.stderr}"
@@ -643,30 +794,46 @@ def test_report_steps_hand_history_sources_and_tree_to_each_other(tmp_path: Path
         extract.mkdir()
         subprocess.run(["tar", "-xf", str(out / "report.tar"), "-C", str(extract)], check=True)
         assert (extract / "index.html").is_file()
-        assert read_output(extract / "history.jsonl") == '{"d":1}\n{"new":1}\n'
+        if history is None:
+            assert not (extract / "history.jsonl").exists()
+        else:
+            assert read_output(extract / "history.jsonl") == history
 
 
-@allure.title("レポートを梱包するとき、履歴をサイトのファイルと同じ場所に含める")
-def test_pack_report_puts_history_into_the_tree(tmp_path: Path) -> None:
-    """`Pack report` の step のテストです。出力先に `report.tar` と `report-sources.json` が作られ、`report.tar` の内容が `index.html` と `history.jsonl` だけであることを確認します。"""
+@allure.title(
+    "側が {side} のとき、レポートを梱包し、履歴はリリース版だけサイトのファイルと同じ場所に含める"
+)
+@pytest.mark.parametrize(
+    ("side", "listed"),
+    [
+        ("release", ["./", "./history.jsonl", "./index.html"]),
+        ("dev", ["./", "./index.html"]),
+    ],
+    ids=["release", "dev"],
+)
+def test_pack_report_puts_history_into_the_tree_only_for_release(
+    tmp_path: Path, side: str, listed: list[str]
+) -> None:
+    """`Pack report` の step のテストです。出力先に `report.tar` と `report-sources.json` が作られることを確認します。`report.tar` に `history.jsonl` が入るのは、リリース版のときだけです。"""
     with allure.step("report の木と履歴を置き、report を固める step の run を動かす"):
         temp = tmp_path / "runner-temp"
         work = temp / "test-report"
         (work / "site").mkdir(parents=True)
         (work / "site/index.html").write_text("<html></html>", encoding="utf-8")
         (work / "history.jsonl").write_text('{"a":1}\n', encoding="utf-8")
-        (work / "report-sources.json").write_text('{"side":"dev"}', encoding="utf-8")
+        (work / "report-sources.json").write_text(f'{{"side":"{side}"}}', encoding="utf-8")
 
-        result = _bash(_step("report", "Pack report")["run"], tmp_path, {"RUNNER_TEMP": str(temp)})
+        env = {"RUNNER_TEMP": str(temp), "SIDE": side}
+        result = _bash(_step("report", "Pack report")["run"], tmp_path, env)
 
-    with allure.step("履歴を木に入れた tar ができることを確かめる"):
+    with allure.step("側に応じた中身の tar ができることを確かめる"):
         assert result.returncode == 0, result.stderr
         out = temp / "test-report-artifact"
         assert sorted(p.name for p in out.iterdir()) == ["report-sources.json", "report.tar"]
-        listed = run_attached(
+        names = run_attached(
             ["tar", "-tf", str(out / "report.tar")], capture_output=True, text=True, check=True
         ).stdout.split()
-        assert sorted(listed) == ["./", "./history.jsonl", "./index.html"]
+        assert sorted(names) == listed
 
 
 # ---------------------------------------------------------------- 共通

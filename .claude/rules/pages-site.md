@@ -71,7 +71,7 @@ paths:
 
 ## テストレポート
 
-テストレポートは Allure Report で、`test-report.yml` がレポートのレーンを動かして作る。レポートのレーンは、`.githooks/scripts/test_report/report-lanes.json` の `results` を持つ 23 本。
+テストレポートは Allure Report で、`test-report.yml` がレポートのレーンを動かして作る。レポートのレーンは、`.githooks/scripts/test_report/report-lanes.json` の `results` を持つ 22 本。
 決まりの正は `specs/030-allure-test-report/contracts/test-report.md`、確かめの手順は同じ場所の `quickstart.md`。
 
 | 側 | URL | 作られるとき |
@@ -80,7 +80,9 @@ paths:
 | 開発版 | `https://pecotcraft.github.io/pecot/dev/test-report/` | main への push |
 
 - 定義書の振る舞いの項目の「テスト」は `test-report/index.html?tags=<ID>` を開き、その ID のテストだけを出す。レポートのテストの要件の ID は、その側の `permalink.html?id=<ID>` へ戻る
-- 履歴は側ごとに 3 回分（`allurerc.mjs` の `historyLimit`）で、`<側>/test-report/history.jsonl` に 1 回 1 行で残る
+- 開発版は、main でテストを流し直さずに作る。材料は、PR の CI とマージキューの run が上げた結果と、前の開発版の run が持ち回す結果（artifact `lane-latest`）。main で流すのは、結果の無いレーンと、マージキューを通らないコミット（リリースの land）で変わったレーンだけ
+  - 各レーンの結果のコミットと、試した run の URL は、レポートの先頭の変数に出る
+- 履歴はリリース版だけが持ち、3 回分（`allurerc.mjs` の `historyLimit`）で、`test-report/history.jsonl` に 1 回 1 行で残る。開発版は履歴を持たない
 - テストの「履歴」のタブは、前の回までを並べる。今の回は並ばない
 - レポートが無い側には「テストレポートはまだありません」の案内のページが出る
 - リリース版では、結果を出せるタグの無いプラグインはレポートに入らず、その名前をフッターのリンクのそばに出す。そういうプラグインしか無いときの動きは、下の「起動とやり直し」の節にある
@@ -116,6 +118,7 @@ paths:
 | リリース版のレポートを作り直す | `gh workflow run test-report.yml --ref main -f side=release` |
 
 - どちらも main からだけ起動できる。コミットは指定できず、開発版は main の先頭、リリース版はプラグインごとの最新のタグで作る
+- 開発版の作り直しも、全レーンを流し直さない。push の run と同じく、結果の無いレーンだけを流す。前の開発版の run の artifact が 90 日で消えた後と、初めての run は、全レーンを流す
 - 同じ側の run は、動いているものを取り消さず、後の run が待つ。待っている run は、さらに新しい run に置き換わる。待っている手での起動は、開発版なら main への push の run に、リリース版なら `release.yml` が起こす run に置き換わることがある。取り消されたら打ち直す
 - テストが落ちても run は成功で終わり、落ちたテストがレポートに載る
 - run が落ちるのは、main 以外から起こしたとき、`release_sources.py` が材料を決められなかったとき、`allure generate` が失敗したとき
@@ -128,6 +131,7 @@ paths:
 | 読む所 | 分かること |
 |---|---|
 | `test-report.yml` の side の job summary | リリース版に入れないプラグインと、レポートを作らなかったこと |
+| `test-report.yml` の side の job のログ（開発版） | コミットごとの判定。各レーンの結果を、どの run から拾ったか・main で流すのはなぜか |
 | `test-report.yml` の report の job のログ | 結果の欠けたレーンと、結果のコミットが材料と違うレーンの名前（ResultsCheck） |
 | `test-report.yml` の report の job summary | `pages-store` を読めなかったか、`history.jsonl` に読めない行があったので、空の履歴で作ったこと |
 | `pages-deploy.yml` の verify の job summary | 受けた run の種類（定義書かレポート）・側・採否と、捨てた理由 |
@@ -137,6 +141,8 @@ paths:
   ```bash
   # side の job と同じ判定（リリース版の材料）
   python3 .githooks/scripts/pages_site/release_sources.py --report release --main origin/main
+  # side の job と同じ判定（開発版の材料。API を読むだけ）
+  python3 .githooks/scripts/test_report/dev_sources.py resolve --head origin/main --repo pecotcraft/pecot
   # verify の job と同じ判定
   python3 .githooks/scripts/pages_site/verify.py --run-id <test-report.yml の run> --repo pecotcraft/pecot --out .pecot/work/<Issue番号>/verify
   ```
