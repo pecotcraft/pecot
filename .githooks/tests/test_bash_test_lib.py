@@ -169,7 +169,9 @@ def test_path_with_dot_dot_is_normalized(tmp_path: Path) -> None:
         assert _label(result, "story") == ["plugins/p/tests/sample.test.sh"]
 
 
-@allure.title("リポのルートの直下のテストのファイルは、feature が . になり、story がファイルの名前になる")
+@allure.title(
+    "リポのルートの直下のテストのファイルは、feature が . になり、story がファイルの名前になる"
+)
 def test_file_at_repo_root_has_dot_as_feature(tmp_path: Path) -> None:
     """リポのルートの直下に置いたテストのファイルのテストです。feature のラベルが `.`、story のラベルがファイルの名前になることを確認します。"""
     test = _write_test(tmp_path, 'bt_pass "通る"\nbt_finish')
