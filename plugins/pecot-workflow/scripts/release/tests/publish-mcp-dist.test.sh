@@ -511,7 +511,7 @@ process.stdout.write(value === undefined ? '' : String(value))
 }
 
 # tools/list の期待値。TOOLS（cli/src/commands/registry.ts）の並びを写している。
-EXPECTED_TOOL_COUNT=39
+EXPECTED_TOOL_COUNT=33
 EXPECTED_FIRST_TOOL="project_list"
 
 # smoke の起動はプラグインとセッションの環境変数を外す。残ると、同梱し忘れもソースツリーから読めて通ってしまう。
