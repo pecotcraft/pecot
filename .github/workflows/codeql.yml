@@ -4,8 +4,8 @@ name: codeql
 on:
   push:
     branches: [main]
+  # 必須チェックなので、base が main でないスタックの子の PR でも動かす。
   pull_request:
-    branches: [main]
   merge_group:
   schedule:
     - cron: "33 3 * * 1"

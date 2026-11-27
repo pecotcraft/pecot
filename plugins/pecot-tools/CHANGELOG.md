@@ -1,3 +1,13 @@
+## 4.0.1 (2026-11-27)
+
+### 🩹 Fixes
+
+- 開発用のテストの **Allure の結果** に、機能の階層（epic・feature・story）を付けた。プラグインとライブラリの動作は変わらない。 ([#848](https://github.com/pecotcraft/pecot/pull/848), [#811](https://github.com/pecotcraft/pecot/issues/811))
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 # 4.0.0 (2026-11-27)
 
 ### 🩹 Fixes

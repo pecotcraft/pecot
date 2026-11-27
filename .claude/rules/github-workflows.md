@@ -10,7 +10,8 @@ step 名は英語で、Actions でよく使う形にする。Actions の画面�
 - 動詞で始める命令形にし、先頭だけ大文字にする。例: `Checkout`・`Set up Node.js`・`Install dependencies`・`Run checks`・`Upload logs`
 - `uses:` だけの step にも `name:` を付ける。公式の Action は、その Action の README の呼び方に合わせる（`Checkout`・`Set up uv`・`Log in to GHCR`）
 - 失敗の切り分けに使う step は、名前で区別できるようにする。例: 基盤の失敗は `Start dev container`、テストの失敗は `Run checks` に出る
-- 必須チェックは `ci-result` と `version-plan` で、ruleset が参照するので job 名を変えない。`checks` は matrix で、チェックの名前は `checks (<part>)` になる
+- 必須チェックは `ci-result`・`version-plan` と、`codeql.yml` の `analyze (<言語>)` で、ruleset が参照するので job 名を変えない。
+  CodeQL の解析を必須にするのは、merge queue が解析の結果を上げ終わる前にマージして一時ブランチを消すと、merge_group の run が落ちるため。`checks` は matrix で、チェックの名前は `checks (<part>)` になる
 - tests は動的な matrix で、チェックの名前は `tests (<project>:<target>)` になる（例: `tests (pecot-visual:test-cli)`）。
   レーンの一覧は `lanes` の job が nx の task graph から作る
 
@@ -33,10 +34,12 @@ step 名は英語で、Actions でよく使う形にする。Actions の画面�
 - `pages-build.yml`: 公開サイトの 1 つの側（リリース版・開発版・PR 版）を devcontainer で作り、artifact に上げる。テストは動かさず、サイトは定義書だけを載せる
   - 手での起動は `side`（`release`・`dev`）を取り、main からだけ動く。release.yml の本番が land の後に `side=release` で起こす
   - 同じリポの PR では、開いたときと push のたびに PR 版を作る。fork の PR と `closed` では、何も作らずに終わる。`closed` は、pages-deploy に閉じた PR の掃除をさせるため
+  - PR の起動は、サイトの材料（定義書・`libs/interface-spec/docs/**`・ビルドの環境）を変える PR だけ。`paths` で絞る
 - `pages-deploy.yml`: `pages-build.yml` と `test-report.yml` の完了で動き、run の出どころを API で確かめる。保管ブランチ `pages-store` のその側だけを差し替え、GitHub Pages に公開する
   - `test-report.yml` の run は、レポートを `<側>/test-report/` に置く。定義書を差し替えても、レポートは残る
   - `pages-store` へは専用の App（秘密鍵は environment `pages-store`）でだけ書く。手での起動は `pages-store` の今の中身を公開し直す
-  - PR 版を公開したら、preview-status の job が PR の head に commit status `pages / preview` を付ける
+  - job は verify・store・deploy の 3 つ。store が保管して `github-pages` の artifact を上げ、deploy が公開する
+  - PR 版を公開したら、deploy の job が PR の head に commit status `pages / preview` を付ける。保管の変更が無ければ、store の job が付ける
 - `test-report.yml`: レポートのレーンを全部動かし、Allure Report と履歴を artifact `test-report-<side>`（7 日）に上げる
   - main への push で開発版を作る。手での起動は `side`（`release`・`dev`）を取り、main からだけ動く。release.yml の本番が land の後に `side=release` で起こす
   - `side` の job が材料と matrix を決める。`tests` がレーンごとに dev container で動かし、結果を `allure-results-<slug>`（1 日）に上げる。`report` がレポートを作る

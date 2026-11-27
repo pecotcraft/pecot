@@ -61,7 +61,7 @@ describe('hasOwnRepo', () => {
     name: 'sample_own',
     title: 'Test tool',
     description: '',
-    input: z.object({ repo: z.string().optional(), name: z.string() }).refine(value => value.repo === undefined || /^[^/]+\/[^/]+$/u.test(value.repo), { path: ['repo'], message: 'bad' }),
+    input: z.object({ repo: z.string().optional(), name: z.string() }).refine(value => value.repo === undefined || /^[^/]+\/[^/]+$/u.test(value.repo), { path: ['repo'], error: 'bad' }),
     output: z.strictObject({}),
     hasOwnRepo: true,
     run: async (input) => {

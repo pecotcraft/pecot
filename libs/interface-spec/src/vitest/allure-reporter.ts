@@ -4,7 +4,12 @@ import path from 'node:path'
 import AllureVitestReporter from 'allure-vitest/reporter'
 import type { AllureVitestReporterConfig } from 'allure-vitest/reporter'
 
+import { reportLabelsListener } from './report-labels.js'
+
 const LOCAL_SITE_URL = 'http://localhost:8000/'
+
+// generated.json の表を、reporter を作り直しても読み直さないように、1 つを使い回す。
+const LABELS_LISTENER = reportLabelsListener()
 
 // reporter を足すかどうか。verifies も同じ条件で Allure の runtime を呼ぶ。
 export function isAllureEnabled(environment: Readonly<NodeJS.ProcessEnv>): boolean {
@@ -17,13 +22,16 @@ export function allureReporterConfig(projectRoot: string, environment: NodeJS.Pr
   const target = environment['NX_TASK_TARGET_TARGET'] ?? ''
   const site = environment['PECOT_REPORT_SITE_URL']
   const siteUrl = site === undefined || site === '' ? LOCAL_SITE_URL : (site.endsWith('/') ? site : `${site}/`)
+  const project = environment['NX_TASK_TARGET_PROJECT'] ?? ''
   return {
     resultsDir: path.join(projectRoot, 'test-results', target, 'allure-results'),
     globalLabels: [
-      { name: 'project', value: environment['NX_TASK_TARGET_PROJECT'] ?? '' },
+      { name: 'project', value: project },
       { name: 'lane', value: target },
+      { name: 'epic', value: project },
     ],
     links: { tms: { urlTemplate: `${siteUrl}permalink.html?id=%s`, nameTemplate: '%s' } },
+    listeners: [LABELS_LISTENER],
   }
 }
 

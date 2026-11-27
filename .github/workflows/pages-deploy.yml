@@ -57,21 +57,26 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-  # 合わない run と closed の PR の run でも、閉じた PR の掃除のために動く。
+  # 合わない run と closed の PR の run でも、閉じた PR の掃除のために動く。手での起動は、pages-store の今の中身を上げるだけ。
   store:
     needs: verify
-    if: ${{ github.event_name == 'workflow_run' && needs.verify.result == 'success' }}
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || needs.verify.result == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # configure-pages は enablement が偽なら GET /repos/{owner}/{repo}/pages だけを呼ぶ。statuses は、変更の無い PR 版に付ける。
     permissions:
       contents: read
+      pages: read
+      statuses: write
     environment: pages-store
+    # starter workflow と同じく、上げる job と deploy を group pages に並べる。保管も 1 つずつになる。
     concurrency:
-      group: pages-store
+      group: pages
       cancel-in-progress: false
       queue: max
     outputs:
       changed: ${{ steps.publish.outputs.changed }}
+      uploaded: ${{ steps.decide.outputs.uploaded }}
     env:
       SIDE: ${{ needs.verify.outputs.side }}
       KIND: ${{ needs.verify.outputs.kind }}
@@ -82,6 +87,7 @@ jobs:
       REPO: ${{ github.repository }}
     steps:
       - name: Checkout
+        if: github.event_name == 'workflow_run'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
@@ -90,7 +96,7 @@ jobs:
           persist-credentials: false
 
       - name: Download verified side
-        if: env.SIDE != ''
+        if: github.event_name == 'workflow_run' && env.SIDE != ''
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: pages-verified
@@ -99,6 +105,7 @@ jobs:
       # pages-store の ruleset の bypass は、この App だけ。client ID と秘密鍵は environment pages-store にだけ置く。
       - name: Generate GitHub App token
         id: app-token
+        if: github.event_name == 'workflow_run'
         uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
           client-id: ${{ vars.PAGES_STORE_APP_CLIENT_ID }}
@@ -108,6 +115,7 @@ jobs:
       # トークンは URL に入れず、actions/checkout と同じ extraheader で渡す。レポートは --kind report で側の test-report/ に置く。
       - name: Store side
         id: publish
+        if: github.event_name == 'workflow_run'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
@@ -132,44 +140,67 @@ jobs:
           fi
           python3 .githooks/scripts/pages_site/store.py publish "${args[@]}" >> "$GITHUB_STEP_SUMMARY"
 
-  # 上げた直後の artifact は deploy-pages の照会に出ないことがある。starter workflow と同じく job を分ける（actions/deploy-pages#451）。
-  upload:
-    needs: [verify, store]
-    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || needs.store.outputs.changed == 'true') }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      pages: read
-    # deploy と同じ group に入れ、deploy を upload を終えた順に並べる。
-    concurrency:
-      group: pages
-      cancel-in-progress: false
-      queue: max
-    steps:
-      - name: Checkout
+      # 手での起動と、push の後に失敗した store のやり直しでも上げる（store.py は push 済みの中身に changed=false を返す）。
+      - name: Decide upload
+        id: decide
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          CHANGED: ${{ steps.publish.outputs.changed }}
+        run: |
+          set -euo pipefail
+          uploaded=false
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] || [ "$RUN_ATTEMPT" != "1" ] || [ "$CHANGED" = "true" ]; then
+            uploaded=true
+          fi
+          echo "uploaded=$uploaded" >> "$GITHUB_OUTPUT"
+
+      # 同じ group の後の保管を待たせているので、取れるのはこの run が push した中身。
+      - name: Checkout pages-store
+        if: steps.decide.outputs.uploaded == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: pages-store
+          path: pages-site
           persist-credentials: false
 
       - name: Setup Pages
+        if: steps.decide.outputs.uploaded == 'true'
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
       - name: Upload artifact
+        if: steps.decide.outputs.uploaded == 'true'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          path: .
+          path: pages-site
 
+      # 変更が無く deploy を飛ばす PR 版は、保管済みの中身を指してここで付ける。
+      - name: Set preview status
+        if: env.SIDE == 'pr' && steps.decide.outputs.uploaded != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ needs.verify.outputs.pr }}
+          HEAD_SHA: ${{ needs.verify.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          gh api --method POST "repos/$REPO/statuses/$HEAD_SHA" \
+            -f state=success \
+            -f context="pages / preview" \
+            -f target_url="https://pecotcraft.github.io/pecot/pr/$PR/" \
+            -f description="PR preview is published"
+
+  # 上げた直後の artifact は deploy-pages の照会に出ないことがある。starter workflow と同じく job を分ける（actions/deploy-pages#451）。
   deploy:
-    needs: upload
-    if: ${{ !cancelled() && needs.upload.result == 'success' }}
+    needs: [verify, store]
+    if: ${{ !cancelled() && needs.store.result == 'success' && needs.store.outputs.uploaded == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: read
       pages: write
       id-token: write
+      statuses: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -183,16 +214,9 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
 
-  # 開いたときに中身があるように、deploy の後で付ける。変更が無く deploy を飛ばしたときも付ける。
-  preview-status:
-    needs: [verify, store, deploy]
-    if: ${{ !cancelled() && needs.verify.outputs.side == 'pr' && needs.store.result == 'success' && (needs.deploy.result == 'success' || (needs.deploy.result == 'skipped' && needs.store.outputs.changed != 'true')) }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      statuses: write
-    steps:
+      # 開いたときに中身があるように、deploy の後で付ける。
       - name: Set preview status
+        if: needs.verify.outputs.side == 'pr'
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}

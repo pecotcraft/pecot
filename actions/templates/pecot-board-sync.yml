@@ -84,7 +84,7 @@ jobs:
       # The board cannot be read with this token, so moving the cards only warns. The sync job moves them.
       - name: Finish the merged PR
         if: ${{ steps.branch.outputs.ok == 'true' }}
-        uses: pecotcraft/pecot/actions/session-finish@pecot-actions/v0.0.0
+        uses: pecotcraft/pecot/actions/session-finish@pecot-actions/v1.0.0
         with:
           token: ${{ github.token }}
           pr: ${{ github.event.pull_request.number }}
@@ -121,6 +121,6 @@ jobs:
           permission-contents: read
 
       - name: Sync the board
-        uses: pecotcraft/pecot/actions/board-sync@pecot-actions/v0.0.0
+        uses: pecotcraft/pecot/actions/board-sync@pecot-actions/v1.0.0
         with:
           token: ${{ steps.app-token.outputs.token || secrets.PECOT_BOARD_SYNC_TOKEN }}

@@ -5,7 +5,7 @@
       "args": [
         "--prefix=${CLAUDE_PLUGIN_DATA}",
         "-y",
-        "@pecot/workflow-mcp@10.1.0"
+        "@pecot/workflow-mcp@11.0.0"
       ]
     },
     "context7": {

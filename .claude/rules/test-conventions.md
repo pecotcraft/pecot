@@ -199,6 +199,26 @@ it.for([
 | 全ツールに共通の振る舞い | 共通の振る舞いの項目（`<接頭辞>-COMMON-NN`）につなぐ。ツールの数だけ項目を作らない |
 | どの項目も確かめないテスト | つながなくてよい。振る舞いの一覧には出ない |
 
+## 機能の階層
+
+テストの結果は、Allure の機能の階層のラベル（epic・feature・story）を持ちます。テストレポートの木と、機能ごとのグラフが、このラベルで並びます。
+値はテストの場所と `verifies` の ID から決まるので、テストに `epic()`・`feature()`・`story()` を書きません。
+
+| ラベル | 要件の ID を持つテスト | 持たないテスト |
+|---|---|---|
+| epic | nx の project の名前 | 同じ |
+| feature | ID の属する定義書の項目の `name`（`aws_s3_ls`・`issue create`）。`<接頭辞>-COMMON-NN` は `<プラグイン> 共通` | ファイルのディレクトリ（リポのルートからのパス） |
+| story | 要件の ID | ファイル（リポのルートからのパス） |
+
+ID を 2 つ以上持つテストは、feature・story を 1 組だけ持ちます。COMMON でない ID のうち最初のもの、無ければ最初の COMMON の ID で決めます。
+定義書の無い project の ID と、定義書に無い ID は、ID の末尾の `-NN` を除いた項目の ID が feature になります。
+
+| 枠組み | 付ける所 |
+|---|---|
+| vitest | `libs/interface-spec/src/vitest/allure-reporter.ts`（値は `report-labels.ts`） |
+| pytest | `.githooks/tests/conftest.py`・`libs/interface-spec/docs/tests/conftest.py` |
+| bash | `.githooks/scripts/test_report/bash-test.sh` |
+
 ## step
 
 テストの本体を、名前の付いた Allure の step に分けます。テストレポートで、落ちたテストがどの操作で落ちたか、通ったテストがどの手順を通ったかを読むためです。

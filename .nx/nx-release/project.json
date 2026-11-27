@@ -88,6 +88,7 @@
         "{workspaceRoot}/plugins/pecot-tools/plugin.json",
         "{workspaceRoot}/libs/interface-spec/src/vitest/unique-titles.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/report-labels.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/explains.ts"
       ],
       "outputs": ["{projectRoot}/test-results/test-unit/allure-results"],

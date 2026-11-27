@@ -6,9 +6,20 @@ name: pages-build
 on:
   push:
     branches: [main]
-  # closed は、閉じた PR の掃除を pages-deploy.yml に起こさせるためだけに動く。
+  # サイトの材料に触る PR だけで動く。closed は、その PR 版の掃除を pages-deploy.yml に起こさせるためだけに動く。
   pull_request:
     types: [opened, synchronize, reopened, closed]
+    paths:
+      - "libs/interface-spec/docs/**"
+      - "libs/interface-spec/targets.json"
+      - "libs/interface-spec/project.json"
+      - "plugins/*/interface/**"
+      - "actions/interface/**"
+      - ".github/assets/**"
+      - ".github/workflows/pages-build.yml"
+      - ".githooks/ci/dev-container.sh"
+      - ".devcontainer/**"
+      - "nx.json"
   workflow_dispatch:
     inputs:
       side:
