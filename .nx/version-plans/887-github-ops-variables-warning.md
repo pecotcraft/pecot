@@ -1,5 +1,5 @@
 ---
-actions: patch
+pecot-actions: patch
 pecot-workflow: patch
 ---
 
