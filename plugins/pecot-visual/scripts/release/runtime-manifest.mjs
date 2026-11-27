@@ -1,5 +1,5 @@
 // pecotv 永続層（置き場の mcp-dist/）へ入る依存の package.json を組み立てる (#1071)。
-// 規則は cli/src/infra/_shared/runtime-install.ts の runtimeInstallPlan() の写し。ずれは runtime-manifest.test.sh が止める。
+// 規則は cli/src/infra/_shared/runtime-install.ts の runtimeInstallPlan() の写し。ずれは runtime-manifest.bats が止める。
 
 import { readFileSync } from 'node:fs'
 import path from 'node:path'

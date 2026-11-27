@@ -17,7 +17,7 @@
 .githooks/scripts/test_report/bash-test.sh
 .githooks/scripts/test_report/bats/run.sh
 .githooks/scripts/test_report/generate.py
-.githooks/scripts/tests/mcp-publish-common.test.sh
+.githooks/scripts/tests/mcp-publish-common.bats
 .githooks/tests/test_nx_task_cache.py
 .githooks/tests/test_ruleset_main.py
 .github/board-sync/handler.mjs
@@ -62,6 +62,7 @@ package.json
 plugins/pecot-tools/.claude-plugin/plugin.json
 plugins/pecot-tools/scripts/ci/pnpm-lib.sh
 plugins/pecot-tools/cli/src/main.ts
+plugins/pecot-tools/cli/src/node-runtime.ts
 plugins/pecot-tools/cli/src/version.ts
 plugins/pecot-tools/cli/tests/_fixtures/fake-aws/aws
 plugins/pecot-tools/cli/tests/diagnostics-cases.json
