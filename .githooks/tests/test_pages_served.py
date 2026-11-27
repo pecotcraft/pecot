@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import email.message
+import http.client
 import random
 import sys
+import urllib.error
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
@@ -134,10 +137,11 @@ def test_times_out() -> None:
 def test_times_out_while_settling() -> None:
     """`wait_served` のテストです。期限の近くで合い始めた目印は、出そろったと数えないことを確認します。"""
     replies = [_ok(OLD)] * 35 + [_ok(EXPECT)]
-    with allure.step("170 秒から期待した目印が返る"):
-        result, _urls = _wait(replies)
-    with allure.step("180 秒で偽を返す"):
+    with allure.step("175 秒から期待した目印が返る"):
+        result, urls = _wait(replies)
+    with allure.step("合い始めて 5 秒の 180 秒で偽を返す"):
         assert result is False
+        assert len(urls) == 37
 
 
 @allure.title("CLI は結果を GITHUB_OUTPUT に書き、--require のときだけ失敗で終わる")
@@ -165,3 +169,114 @@ def test_main_writes_output(
         assert result == code
         assert output.read_text(encoding="utf-8") == f"served={'true' if ok else 'false'}\n"
         assert seen == {"url": URL, "expect": EXPECT, "timeout": 180, "interval": 5, "settle": 30}
+
+
+@allure.title("CLI は --url で、目印でない任意のファイルを読む")
+def test_main_reads_given_url(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`main` のテストです。`--url` を渡した場合に、目印の URL でなく渡した URL を読むことを確認します。"""
+    monkeypatch.delenv("GITHUB_OUTPUT", raising=False)
+    seen: list[str] = []
+
+    def fake_wait(url: str, expect: str, **_kwargs: object) -> bool:
+        seen.append(url)
+        return True
+
+    monkeypatch.setattr(served, "wait_served", fake_wait)
+    page = "https://pecotcraft.github.io/pecot/dev/test-report/index.html"
+    with allure.step("--url を渡して CLI を動かす"):
+        result = served.main(["--url", page, "--expect", "<!DOCTYPE html>"])
+    with allure.step("渡した URL を読んだことを確かめる"):
+        assert result == 0
+        assert seen == [page]
+
+
+@allure.title("CLI は、--page-url と --url の両方か、どちらも無いと止まる")
+@pytest.mark.parametrize(
+    "targets",
+    [[], ["--page-url", "https://pecotcraft.github.io/pecot/", "--url", URL]],
+    ids=["none", "both"],
+)
+def test_main_requires_one_target(targets: list[str]) -> None:
+    """`main` のテストです。読む先を指定しない場合と 2 つ指定した場合に、引数の誤りで終了することを確認します。"""
+    with allure.step("CLI を動かす"), pytest.raises(SystemExit) as stopped:
+        served.main([*targets, "--expect", EXPECT])
+    with allure.step("終了コードが 2 であることを確かめる"):
+        assert stopped.value.code == 2
+
+
+class _Response:
+    """urlopen が返す応答の偽物。"""
+
+    def __init__(
+        self, body: bytes, headers: dict[str, str], error: Exception | None = None
+    ) -> None:
+        self.status = 200
+        self.headers = headers
+        self._body = body
+        self._error = error
+
+    def __enter__(self) -> _Response:
+        return self
+
+    def __exit__(self, *_args: object) -> None:
+        return None
+
+    def read(self, _limit: int) -> bytes:
+        if self._error:
+            raise self._error
+        return self._body
+
+
+@allure.title("fetch は、200 の応答の中身と、x-cache・x-github-request-id を返す")
+def test_fetch_returns_body_and_headers(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`fetch` のテストです。200 の応答の場合に、本文と CDN の写しかを示すヘッダを返すことを確認します。"""
+    response = _Response(b"abc123 1-1\n", {"x-cache": "MISS", "x-github-request-id": "R1"})
+    monkeypatch.setattr(served.urllib.request, "urlopen", lambda *_a, **_k: response)
+    with allure.step("fetch を呼ぶ"):
+        reply = served.fetch(URL)
+    with allure.step("中身とヘッダを確かめる"):
+        assert reply == Reply(200, "abc123 1-1\n", "MISS", "R1")
+
+
+@allure.title("fetch は、404 の応答を status に入れて返す")
+def test_fetch_returns_http_error_status(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`fetch` のテストです。HTTP の失敗の応答の場合に、例外を投げずに状態コードとヘッダを返すことを確認します。"""
+    headers = email.message.Message()
+    headers["x-cache"] = "HIT"
+    headers["x-github-request-id"] = "R2"
+
+    def not_found(*_args: object, **_kwargs: object) -> None:
+        raise urllib.error.HTTPError(URL, 404, "Not Found", headers, None)
+
+    monkeypatch.setattr(served.urllib.request, "urlopen", not_found)
+    with allure.step("fetch を呼ぶ"):
+        reply = served.fetch(URL)
+    with allure.step("404 とヘッダを確かめる"):
+        assert reply == Reply(404, "", "HIT", "R2")
+
+
+@allure.title("fetch は、{name} の通信の失敗を status の無い結果にする")
+@pytest.mark.parametrize(
+    ("name", "error", "on_read"),
+    [
+        ("URLError", urllib.error.URLError("refused"), False),
+        ("TimeoutError", TimeoutError("timed out"), False),
+        ("BadStatusLine", http.client.BadStatusLine("x"), False),
+        ("IncompleteRead", http.client.IncompleteRead(b""), True),
+    ],
+)
+def test_fetch_turns_transport_errors_into_none(
+    name: str, error: Exception, on_read: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`fetch` のテストです。接続・応答の行・本文の読み取りで失敗した場合に、例外を投げずに `status` が `None` の結果を返すことを確認します。"""
+
+    def broken(*_args: object, **_kwargs: object) -> _Response:
+        if on_read:
+            return _Response(b"", {}, error)
+        raise error
+
+    monkeypatch.setattr(served.urllib.request, "urlopen", broken)
+    with allure.step(f"{name} を起こして fetch を呼ぶ"):
+        reply = served.fetch(URL)
+    with allure.step("status の無い結果であることを確かめる"):
+        assert reply == Reply(None)

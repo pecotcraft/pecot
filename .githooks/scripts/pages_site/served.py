@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import argparse
+import http.client
 import os
 import random
 import sys
@@ -75,7 +76,8 @@ def fetch(url: str) -> Reply:
             error.headers.get("x-cache", ""),
             error.headers.get("x-github-request-id", ""),
         )
-    except (urllib.error.URLError, OSError):
+    # urlopen は応答の読み取りの失敗（BadStatusLine・IncompleteRead）を URLError に包まない。
+    except (urllib.error.URLError, OSError, http.client.HTTPException):
         return Reply(None)
 
 
@@ -134,7 +136,9 @@ def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(
         description="公開した目印が、公開の元のすべてで出そろうまで待つ"
     )
-    parser.add_argument("--page-url", required=True, help="deploy-pages の page_url")
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument("--page-url", help="deploy-pages の page_url。根の目印を読む")
+    target.add_argument("--url", help="読むファイルの URL")
     parser.add_argument(
         "--expect", required=True, help="目印の中身（pages-store の SHA と run の番号）"
     )
@@ -144,7 +148,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--require", action="store_true", help="出そろわなければ終了コード 1")
     args = parser.parse_args(argv)
 
-    url = marker_url(args.page_url)
+    url = args.url or marker_url(args.page_url)
     served = wait_served(
         url, args.expect, timeout=args.timeout, interval=args.interval, settle=args.settle
     )
