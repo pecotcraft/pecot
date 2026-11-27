@@ -30,12 +30,13 @@ put() {
 # 比べる。結果は $status・$stderr、Markdown は $BATS_TEST_TMPDIR/<label>.md に残る。
 run_compare() {
     local label="$1" before="$2" after="$3"
-    run --separate-stderr node "$COMPARE" "$before" "$after" --out "$BATS_TEST_TMPDIR/$label.md"
+    run_attached --separate-stderr node "$COMPARE" "$before" "$after" --out "$BATS_TEST_TMPDIR/$label.md"
 }
 
 # $1=ラベル $2=含むはずの行
 assert_md_has() {
-    run cat "$BATS_TEST_TMPDIR/$1.md"
+    run read_output "$BATS_TEST_TMPDIR/$1.md"
+    assert_success
     assert_output --partial "$2"
 }
 
@@ -56,7 +57,8 @@ refute_stacktrace() {
     assert_success
     assert_md_has same "結果: PASS（差のあるページはありません）"
     assert_md_has same "- 対応ページ: 2 / before 固有: 0 / after 固有: 0"
-    run cat "$T/same.md"
+    run read_output "$T/same.md"
+    assert_success
     refute_output --partial "- before だけのページ:"
 }
 
@@ -139,7 +141,7 @@ done
 @test "引数が 1 個しかないとき、usage を stderr に出して終了コード 2 で終わる" {
     explains "ディレクトリを 1 個だけ渡して起動するテストです。usage が stderr に表示され、終了コード 2 で終わることを確認します。"
     mkdir -p "$T/one"
-    run --separate-stderr node "$COMPARE" "$T/one"
+    run_attached --separate-stderr node "$COMPARE" "$T/one"
     assert_failure 2
     assert_regex "$stderr" 'usage: node compare-pages\.mjs'
 }
@@ -147,7 +149,7 @@ done
 @test "ディレクトリが存在しないとき、スタックトレースを出さずに終了コード 2 で終わる" {
     explains "存在しないディレクトリを before に渡すテストです。スタックトレースは出ずに、終了コード 2 で終わることを確認します。"
     mkdir -p "$T/after"
-    run --separate-stderr node "$COMPARE" "$T/no-such-dir" "$T/after"
+    run_attached --separate-stderr node "$COMPARE" "$T/no-such-dir" "$T/after"
     assert_failure 2
     refute_stacktrace "$stderr"
 }
@@ -156,7 +158,7 @@ done
     explains "\`--out\` を省いて同一のページを比べるテストです。終了コード 0 で、判定の行が stdout に表示されることを確認します。"
     put base "$T/out/a/1.png"
     put base "$T/out/b/1.png"
-    run --separate-stderr node "$COMPARE" "$T/out/a" "$T/out/b"
+    run_attached --separate-stderr node "$COMPARE" "$T/out/a" "$T/out/b"
     assert_success
     assert_output --partial "結果: PASS（差のあるページはありません）"
 }

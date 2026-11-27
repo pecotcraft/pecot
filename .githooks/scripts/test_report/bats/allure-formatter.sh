@@ -14,6 +14,7 @@ begun_index=""
 begun_ms=""
 description=""
 severity=""
+attachments=""
 pending=""
 pending_status=""
 pending_title=""
@@ -22,12 +23,15 @@ pending_start=""
 pending_stop=""
 pending_description=""
 pending_severity=""
+pending_attachments=""
 pending_lines=()
 
 # 説明の欄に入れるコメント。helpers.bash の explains が fd 3 に書く。
 _DESCRIPTION_PREFIX="pecot-description: "
 # 重大度の段階。pecot-bats の severity が fd 3 に書く。
 _SEVERITY_PREFIX="pecot-severity: "
+# 添付。pecot-bats の run_attached・read_output・attach_file が「<ファイル名> <型> <名前>」を fd 3 に書く。
+_ATTACHMENT_PREFIX="pecot-attachment: "
 
 _finish() { # <status> <題> <理由>
     local now
@@ -44,10 +48,12 @@ _finish() { # <status> <題> <理由>
     fi
     pending_description="$description"
     pending_severity="$severity"
+    pending_attachments="$attachments"
     pending_lines=()
     begun_index=""
     description=""
     severity=""
+    attachments=""
 }
 
 # not ok の後のコメントから、bats-assert の見出し（-- … --）か、落ちたコマンドの行を理由にする。
@@ -108,10 +114,16 @@ _flush() {
         compared=("$expected" "$actual")
     fi
     allure_result_write - "$suite_rel" bats "$pending_status" "$pending_title" "$message" \
-        "$pending_start" "$pending_stop" "$pending_description" "$trace" "$suite_layer" "$pending_severity" "${compared[@]}"
+        "$pending_start" "$pending_stop" "$pending_description" "$trace" "$suite_layer" "$pending_severity" "$pending_attachments" "${compared[@]}"
     if [ "$pending_status" = passed ] && [ -z "$pending_description" ]; then
         printf 'missing-description: %s: %s\n' "$suite_rel" "$pending_title"
     fi
+}
+
+_add_attachment() { # <ファイル名> <型> <名前>
+    local source="${1%% *}" rest="${1#* }"
+    local type="${rest%% *}" name="${rest#* }"
+    attachments+="${attachments:+,}$(allure_result_attachment "$name" "$source" "$type")"
 }
 
 bats_tap_stream_plan() { :; }
@@ -128,6 +140,7 @@ bats_tap_stream_begin() {
     begun_ms="$(allure_result_now_ms)"
     description=""
     severity=""
+    attachments=""
 }
 
 bats_tap_stream_ok() {
@@ -162,6 +175,8 @@ bats_tap_stream_comment() { # <コメント> <scope>
                 description="${1#"$_DESCRIPTION_PREFIX"}"
             elif [[ "$1" == "$_SEVERITY_PREFIX"* ]]; then
                 severity="${1#"$_SEVERITY_PREFIX"}"
+            elif [[ "$1" == "$_ATTACHMENT_PREFIX"* ]]; then
+                _add_attachment "${1#"$_ATTACHMENT_PREFIX"}"
             fi
             ;;
         not_ok) pending_lines+=("$1") ;;

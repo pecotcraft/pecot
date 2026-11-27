@@ -13,7 +13,8 @@ measure_line() {
 
 # $1=出力のファイル $2=含むはずの行
 assert_md_has() {
-    run cat "$1"
+    run read_output "$1"
+    assert_success
     assert_output --partial "$2"
 }
 
@@ -34,7 +35,7 @@ setup_file() {
 
 @test "同じ measure の出力を比べると PASS と判定し、カンマを含む algn も parse する" {
     explains "同じ内容の measure 出力 2 つを比べるテストです。cx の減少が 0 件で、終了コード 0 の PASS と出力されることを確認します。"
-    run node "$COMPARE" "$SAME" "$BATS_FILE_TMPDIR/same-after.txt" --out "$BATS_TEST_TMPDIR/same.md"
+    run_attached node "$COMPARE" "$SAME" "$BATS_FILE_TMPDIR/same-after.txt" --out "$BATS_TEST_TMPDIR/same.md"
     assert_success
     assert_md_has "$BATS_TEST_TMPDIR/same.md" "結果: PASS（cx が減少した spec なし）"
     assert_md_has "$BATS_TEST_TMPDIR/same.md" "- cx 減少: 0 件"
@@ -48,7 +49,7 @@ setup_file() {
         measure_line spec-a 6 2286000 l
         measure_line spec-b 1 4000000 'l,ctr'
     } > "$BATS_TEST_TMPDIR/decreased.txt"
-    run node "$COMPARE" "$SAME" "$BATS_TEST_TMPDIR/decreased.txt" --out "$BATS_TEST_TMPDIR/decreased.md"
+    run_attached node "$COMPARE" "$SAME" "$BATS_TEST_TMPDIR/decreased.txt" --out "$BATS_TEST_TMPDIR/decreased.md"
     assert_failure 1
     assert_md_has "$BATS_TEST_TMPDIR/decreased.md" "結果: FAIL（1 spec で cx が減少）"
     assert_md_has "$BATS_TEST_TMPDIR/decreased.md" "| -943475 |"
@@ -60,7 +61,7 @@ setup_file() {
         measure_line spec-a 6 2286000 l
         echo "[INFO] measure 'spec-c': matched 0"
     } > "$BATS_TEST_TMPDIR/partial.txt"
-    run node "$COMPARE" "$SAME" "$BATS_TEST_TMPDIR/partial.txt" --out "$BATS_TEST_TMPDIR/partial.md"
+    run_attached node "$COMPARE" "$SAME" "$BATS_TEST_TMPDIR/partial.txt" --out "$BATS_TEST_TMPDIR/partial.md"
     assert_success
     assert_md_has "$BATS_TEST_TMPDIR/partial.md" '- before 固有: `spec-b`'
     assert_md_has "$BATS_TEST_TMPDIR/partial.md" '- after 固有: `spec-c`'
@@ -72,7 +73,7 @@ setup_file() {
         measure_line spec-a 6 2286000 l
         echo "[INFO] measure 'spec-b': matched 0"
     } > "$BATS_TEST_TMPDIR/matched0.txt"
-    run node "$COMPARE" "$SAME" "$BATS_TEST_TMPDIR/matched0.txt" --out "$BATS_TEST_TMPDIR/matched0.md"
+    run_attached node "$COMPARE" "$SAME" "$BATS_TEST_TMPDIR/matched0.txt" --out "$BATS_TEST_TMPDIR/matched0.md"
     assert_success
     assert_md_has "$BATS_TEST_TMPDIR/matched0.md" "- cx 欠測（matched 0）: 1 件"
     assert_md_has "$BATS_TEST_TMPDIR/matched0.md" "| (matched 0) | - |"
@@ -87,9 +88,10 @@ setup_file() {
     for spec_id in "${spec_ids[@]}"; do
         measure_line "$spec_id" 1 2286000 l >> "$BATS_TEST_TMPDIR/config-measure.txt"
     done
-    run node "$COMPARE" "$BATS_TEST_TMPDIR/config-measure.txt" "$BATS_TEST_TMPDIR/config-measure.txt" \
+    run_attached node "$COMPARE" "$BATS_TEST_TMPDIR/config-measure.txt" "$BATS_TEST_TMPDIR/config-measure.txt" \
         --config "$CONFIG" --out "$BATS_TEST_TMPDIR/config.md"
     assert_success
+    attach_file "$BATS_TEST_TMPDIR/config.md"
     assert_equal "$(grep -cE '\([-0-9]+\.[0-9]{2}%\) \|' "$BATS_TEST_TMPDIR/config.md")" "${#spec_ids[@]}"
     assert_md_has "$BATS_TEST_TMPDIR/config.md" "- config の spec 数: ${#spec_ids[@]}"
 }
@@ -104,7 +106,7 @@ spec:
     min_cx_emu: 200
   - id: c
 BROKEN
-    run --separate-stderr node "$COMPARE" "$SAME" "$BATS_FILE_TMPDIR/same-after.txt" --config "$BATS_TEST_TMPDIR/broken-config.yml"
+    run_attached --separate-stderr node "$COMPARE" "$SAME" "$BATS_FILE_TMPDIR/same-after.txt" --config "$BATS_TEST_TMPDIR/broken-config.yml"
     assert_failure 2
     assert_regex "$stderr" '3 件.*2 件'
 }
@@ -112,13 +114,13 @@ BROKEN
 @test "measure の行が 1 件も無い入力を渡すと、終了コード 2 で終わる" {
     explains "measure の行を含まない入力ファイルを渡すテストです。比べる対象が無いため、終了コード 2 で終わることを確認します。"
     echo "no measure lines here" > "$BATS_TEST_TMPDIR/empty.txt"
-    run node "$COMPARE" "$BATS_TEST_TMPDIR/empty.txt" "$BATS_FILE_TMPDIR/same-after.txt"
+    run_attached node "$COMPARE" "$BATS_TEST_TMPDIR/empty.txt" "$BATS_FILE_TMPDIR/same-after.txt"
     assert_failure 2
 }
 
 @test "引数が 1 個しかないとき、usage を stderr に出して終了コード 2 で終わる" {
     explains "入力ファイルを 1 個だけ渡して起動するテストです。usage が stderr に表示され、終了コード 2 で終わることを確認します。"
-    run --separate-stderr node "$COMPARE" "$SAME"
+    run_attached --separate-stderr node "$COMPARE" "$SAME"
     assert_failure 2
     assert_regex "$stderr" 'usage: node compare-cx-measure\.mjs'
 }

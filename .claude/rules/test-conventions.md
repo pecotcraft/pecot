@@ -374,7 +374,7 @@ bash のテストは、bats（bats-core）で書きます。今の `*.test.sh` �
 ### bats
 
 テストのファイルは `*.bats` にし、`@test` 1 つがテストレポートの 1 件になります。確かめは bats-assert の `assert_*`・`refute_*` で書きます。
-ライブラリは、bats の文書のとおり `setup` で `bats_load_library pecot-bats` と読みます。`pecot-bats` が、bats-support・bats-assert と `explains` を読みます。
+ライブラリは、bats の文書のとおり `setup` で `bats_load_library pecot-bats` と読みます。`pecot-bats` が、bats-support・bats-assert と、`explains`・添付の関数を読みます。
 
 ```bash
 setup() {
@@ -394,6 +394,7 @@ setup() {
 | 説明 | 本体の先頭で `explains` を 1 回呼び、「説明の書き方」の形の文字列を 1 行のリテラルで渡す。`bats_test_function` で作るテストは、呼ぶ関数の本体の先頭で呼ぶ |
 | 前提の崩れ | `setup_file`・`setup` の失敗は、そのまま落とす。ファイルの単位の失敗は broken になる |
 | 並列 | `@test` は、bats の `--jobs` で同時に動く。ほかの `@test` の結果や動く順に頼らない。書き込みは `$BATS_TEST_TMPDIR` にする。ファイルのすべての `@test` の後の確かめは `teardown_file` に書く |
+| 添付 | 子プロセスを動かして判定する `@test` は、`run` の代わりに `run_attached` を使う。判定に読むファイルは、`read_output`（中身を出して添付）か `attach_file`（node などに読ませるファイル）で添付する。`read_output` は、`run read_output <ファイル>` の後に `assert_success` を置くか、`x="$(read_output <ファイル>)"` の単独の代入で受けてから判定に使い、読めないときに `@test` を落とす。関数を直に呼ぶ `run` は添付しない（FR-007c の対象外）。既定の `run` は stderr を `$output` に入れるので、両方を含む出力が stdout の名前で添付される。分けるには `--separate-stderr` を渡す。`setup_file`・`teardown_file` では添付しない。そこで動かした子プロセスの出力は、判定する `@test` で `read_output`・`attach_file` で添付する |
 | 動かし方 | `.githooks/scripts/test_report/bats/run.sh <ファイル>...`。nx のレーンでは、`run-tests.sh` が `PECOT_REPORT_RESULTS` を付けて呼ぶ。`--jobs` に要る GNU parallel は、dev container に入っている |
 | 版 | root の `package.json` の `bats`・`bats-assert`・`bats-support`。上げたら `.githooks/tests/test_bats_report.py` を全量で動かす。formatter が bats の拡張 TAP を読むため |
 
