@@ -237,25 +237,25 @@
 
 ### Tests for User Story 6（Issue）
 
-- [ ] T120 [US6] 計算のツールの入出力の形を `plugins/pecot-workflow/interface/authored.yaml` に書く。入力は公式の MCP で読んだ結果の JSON、出力は書く中身と、書くのに使う公式の MCP のツールの名前
-- [ ] T121 [P] [US6] `issue_create` の計算（テンプレートの検証・本文・ラベル・Issue type・fields・親・ボードの欄）のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
-- [ ] T122 [P] [US6] `issue_edit`・`issue_attributes` の計算のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
-- [ ] T123 [P] [US6] `issue_comment` の計算のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
-- [ ] T124 [P] [US6] `issue_check`・`issue_show` の判定（公式の MCP で読んだ Issue とボードから、着手できるかを返す）のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
-- [ ] T125 [P] [US6] `issue_block`・`issue_unblock` の計算（`issue_dependency_write` に渡す中身）のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
-- [ ] T126 [P] [US6] `issue_reopen` の計算（アーカイブした item を `projects_write` で外して足し直し、`Status` を消して欄を書き直してから、`issue_write` で開き直す手順）のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
-- [ ] T127 [P] [US6] 計算のツールが `libs/workflow-core/src/infra/github/` と GitHub の client を import しないことのテストを書く（SC-005） in `plugins/pecot-workflow/cli/tests/`
-- [ ] T128 [P] [US6] Issue のまとまりのスキルが、計算の結果をどの公式の MCP のツールで書くかを示し、ツールの基本の使い方を書かないことのテストを書く（FR-015） in `plugins/pecot-workflow/cli/tests/skills/`
+- [x] T120 [US6] チェックのツールの入出力の形を `plugins/pecot-workflow/interface/authored.yaml` に書く。入力は書く公式の MCP のツールに渡す値と、公式の MCP で読んだ結果の JSON、出力は決まりに合うかと外れた項目
+- [x] T121 [P] [US6] `issue_check`（`create`）の判定（テンプレートの検証・題の番号・ラベル・Issue type・fields・親・ボードの欄）のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
+- [x] T122 [P] [US6] `issue_check`（`update`）の判定のテストを書く。`issue_edit`・`issue_attributes` はやめ、公式の MCP の読み取りと `issue_check` に移す in `plugins/pecot-workflow/cli/src/commands/tests/`
+- [x] T123 [P] [US6] `issue_comment_check` の判定のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
+- [x] T124 [P] [US6] `issue_check` の進め方の判定（公式の MCP で読んだ Issue とボードから、置く列と進め方を返す）のテストを書く。`issue_show` はやめ、公式の MCP の `issue_read` に移す in `plugins/pecot-workflow/cli/src/commands/tests/`
+- [x] T125 [P] [US6] `issue_dependency_check` の判定（`issue_dependency_write` に渡す値・置く列・`## Waits for merge` の節）のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
+- [x] T126 [P] [US6] `issue_reopen` はやめ、手順（アーカイブした item を `projects_write` で外して足し直し、`Status` を消して欄を書き直してから、`issue_write` で開き直す）を `skills/w-help/references/issue-reopen.md` に書く
+- [x] T127 [P] [US6] チェックのツールが `libs/workflow-core/src/infra/github/` と GitHub の client を import しないことのテストを書く（SC-005） in `plugins/pecot-workflow/cli/tests/`
+- [x] T128 [P] [US6] Issue のまとまりのスキルが、計算の結果をどの公式の MCP のツールで書くかを示し、ツールの基本の使い方を書かないことのテストを書く（FR-015） in `plugins/pecot-workflow/cli/tests/skills/`
 
 ### Implementation for User Story 6（Issue）
 
-- [ ] T129 [US6] T121〜T126 の計算を `plugins/pecot-workflow/cli/src/commands/issue-*.ts` に書く。GitHub を呼ぶ部分を消す
-- [ ] T130 [US6] 計算のツールを MCP のサーバに登録し、`authored.yaml` の項目と `generated.json` を合わせる
-- [ ] T131 [US6] スキルが公式の MCP のツールを、つなぎ先の名前に頼らずツールの名前（`issue_write` など）で指す決まりと、つながっていない・読み取りだけのときの案内を `skills/w-help/SKILL.md` に書く
-- [ ] T132 [US6] `w-ready`・`w-quick`・`w-backlog`・`w-issueize`・`w-breakdown` の Issue の手順を、計算のツール → 公式の MCP で書く形に直す in `plugins/pecot-workflow/skills/`
-- [ ] T133 [US6] blocked-by の読み書きを Insiders の `issue_dependency_write`・`issue_dependency_read` で行う形に直す（FR-019）。名前か形が変わったら止める in `plugins/pecot-workflow/skills/`
-- [ ] T134 [US6] version plan を足す
-- [ ] T135 [US6] CUJ: T108 と同じく、プラグインを写して `.mcp.json` を作業ツリーの build にし、子の `claude -p --plugin-dir` で sandbox に w-ready・w-quick を流す。本文と欄を今のものと比べる
+- [x] T129 [US6] T121〜T125 の判定を `plugins/pecot-workflow/cli/src/commands/issue-*.ts` に書く。GitHub を呼ぶ部分を消す
+- [x] T130 [US6] チェックのツールを MCP のサーバに登録し、`authored.yaml` の項目と `generated.json` を合わせる
+- [x] T131 [US6] スキルが公式の MCP のツールを、つなぎ先の名前に頼らずツールの名前（`issue_write` など）で指す決まりと、つながっていない・読み取りだけのときの案内を `skills/w-help/SKILL.md` に書く
+- [x] T132 [US6] `w-ready`・`w-quick`・`w-backlog`・`w-issueize`・`w-breakdown` の Issue の手順を、チェックのツール → 公式の MCP で書く形に直す in `plugins/pecot-workflow/skills/`
+- [x] T133 [US6] blocked-by の読み書きを、features の `issue_dependencies` で有効にした `issue_dependency_write`・`issue_dependency_read` で行う形に直す（FR-019）。名前か形が変わったら止める in `plugins/pecot-workflow/skills/`
+- [x] T134 [US6] version plan を足す
+- [x] T135 [US6] CUJ: T108 と同じく、プラグインを写して `.mcp.json` を作業ツリーの build にし、子の `claude -p --plugin-dir` で sandbox に w-ready・w-quick を流す。本文と欄を今のものと比べる
 
 ---
 

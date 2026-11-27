@@ -16111,11 +16111,6 @@ object({
     lane: preprocess(emptyStringToUndefined, string$1({ error: stringMessage }).nullish().transform(value => value ?? undefined)),
 }).readonly();
 object({
-    issue_ref: string$1({ error: stringMessage }),
-    template: _enum(['plan', 'merge-diff', 'review-findings', 'review-resolution', 'precede-notify'], { error: choiceMessage }).nullish().transform(value => value ?? undefined),
-    comment_url: string$1({ error: STRING_MESSAGE }).nullish().transform(value => value ?? undefined),
-}).readonly();
-object({
     title: string$1({ error: stringMessage }),
     repository: string$1({ error: stringMessage }),
     base: string$1({ error: stringMessage }),
@@ -16128,7 +16123,7 @@ object({
 // 先頭の空白の連続と、本文の最短一致が、空白を取り合う。入力はフロントマター付きの Markdown 1 ファイルで、
 // Python の同名の正規表現と同じ範囲を取るため、この形を保つ。
 // eslint-disable-next-line regexp/no-super-linear-backtracking -- 空白の連続が長い入力でだけ遅くなる。取る範囲を Python と揃えるため書き換えない
-const FRONTMATTER_PATTERN = /^---\s*\n(.*?)\n---\s*/dsu;
+const FRONTMATTER_PATTERN = /^---\s*\n(.*?)\n---\s*/su;
 // 本文先頭のガイドコメント（テンプレートの「読者:／書き方:／フィールド:」ブロック）。
 // 前後の空白・空行ごと 1 ブロックだけ食う。本文途中のコメントは対象外。
 const LEADING_HTML_COMMENT_PATTERN = /^\s*<!--.*?-->\s*/su;
@@ -17014,7 +17009,6 @@ const KIND_BY_CLASS = [
     [GitHubAuthError, 'github-auth'],
     [GitHubNotFoundError, 'github-not-found'],
     [GitHubRateLimitError, 'github-rate-limit'],
-    [DependenciesUnsupportedError, 'dependency-rejected'],
     [GitHubAPIError, 'github-api'],
     [ConfigError, 'config-invalid'],
     [ProjectRootNotFoundError, 'project-root-not-found'],
@@ -18080,14 +18074,6 @@ const MUTATION_CLEAR_PROJECT_ITEM_FIELD = `mutation ($projectId: ID!, $itemId: I
     input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId }
   ) {
     projectV2Item {
-      id
-    }
-  }
-}`;
-// プロジェクトアイテムのアーカイブを解く
-const MUTATION_UNARCHIVE_PROJECT_ITEM = `mutation ($projectId: ID!, $itemId: ID!) {
-  unarchiveProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) {
-    item {
       id
     }
   }
@@ -19594,12 +19580,6 @@ class ReposApi extends GitHubClientBase {
 // owner が user か organization かは分からないので、user のクエリを先に試し、失敗したら organization を試す。
 // 着手の判定に足したフィールドの名前が出るスキーマの失敗（`Field 'x' doesn't exist` と `Cannot query field "x"`）
 const READINESS_FIELD_ERROR = /(?:Field '|field ")(?:issueType|subIssues|parent|blockedBy)['"]/u;
-function statusOf(item) {
-    const value = jsonField(item, 'status');
-    const name = jsonField(value, 'name');
-    const fieldId = jsonField(jsonField(value, 'field'), 'id');
-    return typeof name === 'string' && typeof fieldId === 'string' ? { fieldId, name } : undefined;
-}
 // ProjectV2.field(name:) は、その名前のフィールドが無いと null と NOT_FOUND の errors を返す
 function isLaneFieldPath(path) {
     return path.length === 2 && path[0] === 'node' && path[1] === 'laneField';
@@ -19788,14 +19768,6 @@ class ProjectsApi extends ReposApi {
             throw new GitHubAPIError('failed to clear the field');
     }
     /**
-    アーカイブ済みのアイテムをボードに戻す
-    */
-    async unarchiveProjectItem(projectId, itemId) {
-        const result = await this.executeGraphql(MUTATION_UNARCHIVE_PROJECT_ITEM, { projectId, itemId });
-        if (!isTruthy(jsonField(jsonField(result, 'unarchiveProjectV2Item'), 'item')))
-            throw new GitHubAPIError('failed to unarchive the project item');
-    }
-    /**
     プロジェクトボードからアイテムを削除し、削除したアイテムの ID を返す
     */
     async deleteProjectItem(projectId, itemId) {
@@ -19856,28 +19828,10 @@ class ProjectsApi extends ReposApi {
     Issue から直接引くので、全アイテムの走査は要らない。Issue やリポジトリが無い、またはプロジェクトに無ければ undefined
     */
     async getItemIdByIssue(projectId, owner, repository, issueNumber) {
-        const item = await this.getIssueProjectItem(projectId, owner, repository, issueNumber);
-        return item?.id;
-    }
-    /**
-    getItemIdByIssue と同じ引き方で、アイテムの ID とアーカイブ済みかを取る
-    */
-    async getIssueProjectItem(projectId, owner, repository, issueNumber) {
         const result = await this.queryIssue(QUERY_GET_ISSUE_PROJECT_ITEMS, { owner, repo: repository, number: issueNumber });
-        const repositoryNode = jsonField(result, 'repository');
-        if (!isTruthy(repositoryNode))
-            return undefined;
-        const issue = jsonField(repositoryNode, 'issue');
-        if (!isTruthy(issue))
-            return undefined;
-        const projectItems = truthyNodes(jsonField(issue, 'projectItems'));
-        for (const item of projectItems) {
-            if (jsonField(jsonField(item, 'project'), 'id') !== projectId)
-                continue;
-            const status = statusOf(item);
-            return { id: requireString(jsonField(item, 'id'), 'projectItems.nodes.id'), isArchived: jsonField(item, 'isArchived') === true, ...status !== undefined && { status } };
-        }
-        return undefined;
+        const issue = jsonField(jsonField(result, 'repository'), 'issue');
+        const item = truthyNodes(jsonField(issue, 'projectItems')).find(node => jsonField(jsonField(node, 'project'), 'id') === projectId);
+        return item === undefined ? undefined : requireString(jsonField(item, 'id'), 'projectItems.nodes.id');
     }
     /**
     Issue 1 件の、指定のプロジェクトの項目を、readBoard の一覧の項目と同じ形で返す（札は含めない）。
@@ -20295,12 +20249,6 @@ class IssuesApi extends ProjectsApi {
         return this.handleHttpError(response);
     }
     /**
-    Issue のコメントを書き換える。見つからなければ GitHubNotFoundError
-    */
-    async updateIssueComment(owner, repository, commentId, body) {
-        return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/comments/${String(commentId)}`, { json: { body } });
-    }
-    /**
     Issue にコメントを足す
     */
     async addIssueComment(owner, repository, number, body) {
@@ -20559,14 +20507,6 @@ class IssuesApi extends ProjectsApi {
     async closeIssue(owner, repository, number, stateReason = 'completed') {
         return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/${String(number)}`, {
             json: { state: 'closed', state_reason: stateReason },
-        });
-    }
-    /**
-    Issue を再オープンする
-    */
-    async reopenIssue(owner, repository, number) {
-        return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/${String(number)}`, {
-            json: { state: 'open', state_reason: 'reopened' },
         });
     }
     /**
@@ -21460,68 +21400,76 @@ function validateFoldSummaries(body, expected) {
     return errors;
 }
 
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
-// Issue の作成・ボードへの追加・フィールドの設定と、判定に応じた列と札の書き込み（applyBoardMove）。cli/core/issue_board.py の移植に applyBoardMove を足した。
-// 失敗は GitHubAPIError で呼び出し側に返す。表示と終了コードは呼び出し側が決める。
+// 本文を同梱のテンプレートと比べ、外れた所を 1 つずつ返す。出し方は呼ぶ側が決める
+const EM_DASH_HINT = 'the em dash must be U+2014; hyphen-minus (-) and EN DASH (U+2013) are not allowed';
+function tagged(code, details) {
+    return details.map(detail => ({ code, detail }));
+}
 /**
-列と札を動かした（dry-run は動かす予定の）Issue 1 件。board sync・pr create・issue block / unblock の data が使う
+本文がテンプレートから外れた所を、種類の順（不足の見出し・見出しの要約・書式・折りたたみ・テンプレートに無い見出し）に返す。合えば空
 */
-strictObject({
-    issue: string$1().describe('Issue as shown in the moved line (#N, or owner/repo#N outside the home repository)'),
-    from: string$1().optional().describe('Column before the move (omitted when only the Status changed)'),
-    to: string$1().optional().describe('Column after the move (omitted when only the Status changed)'),
-    label: string$1().optional().describe('Status value set (omitted when the Status did not change)'),
-    reason: string$1().describe('Readiness that decided the move'),
-});
+function templateViolations(body, template) {
+    const { stem, required } = template;
+    const hasRequired = required.length > 0;
+    const isClosed = CLOSED_HEADINGS_BY_TEMPLATE.has(stem);
+    const foldSummary = FOLD_SUMMARY_BY_TEMPLATE.get(stem);
+    return [
+        ...tagged('missing-section', hasRequired ? validateSections(body, required) : []),
+        ...tagged('heading-summary', hasRequired ? validateHeadingSummaries(body, required) : []),
+        ...tagged('body-style', validateBodyStyle(body)),
+        ...tagged('fold', [
+            ...isClosed ? validateFoldBalance(body) : [],
+            ...foldSummary === undefined ? [] : validateFoldSummaries(body, foldSummary),
+        ]),
+        ...tagged('extra-heading', isClosed && hasRequired ? validateClosedHeadings(body, required) : []),
+    ];
+}
+/**
+テンプレートに無い見出しを拒むテンプレートの、拒んだときに添える案内。拒まないテンプレートは undefined
+*/
+function closedHeadingGuidance(stem) {
+    return CLOSED_HEADINGS_BY_TEMPLATE.get(stem);
+}
 
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
-// issue 系のコマンドが共有する関数と定数。cli/commands/issue.py の移植。
-// typer.Exit(n) に当たるのは、error の行を出して止める stopWith(output, 文, n)。
-// 行を別の関数が先に出した後は、throw new CommandExit(n) で止める。
-// BadParameter は、run の本体を包む runWithExit が受ける。
+// issue 系のコマンドが共有する関数と定数。I/O を持たない起票の決まりは domain/issue-rules.ts にある。
+// error の行を出して止めるのは stopWith(output, 文, n)。
 /**
 issue comment のテンプレ検証失敗の終了コード。通信失敗・設定なし・引数不足の 1 と区別し、hooks がこの値で分岐する
 */
 const COMMENT_VALIDATION_EXIT_CODE = 3;
+// --- テンプレートの検証 ---
 /**
-Issue 種別の入力。issue create が使う
-*/
-_enum(['task', 'bug', 'epic', 'tracker']).default('task').describe('Issue type (task/bug/epic/tracker)');
-/**
-hasReportedTemplateViolations の、テンプレートを文字列で受ける形。ファイルを持たない bundle（action）が使う。
+本文を文字列のテンプレートと比べ、違反を 1 つの error にして出す。違反があれば true。ファイルを持たない bundle（action）が使う。
 templateName はファイル名から拡張子を除いたもの
 */
 function hasReportedTemplateTextViolations(output, body, templateName, templateText, options = {}) {
     return hasReportedSectionViolations(output, body, { label: templateName, stem: templateName, required: extractSectionsFromTemplate(templateText) }, options);
 }
 function hasReportedSectionViolations(output, body, template, options) {
-    const { label, stem, required } = template;
-    const missing = required.length > 0 ? validateSections(body, required) : [];
-    const summaryErrors = required.length > 0 ? validateHeadingSummaries(body, required) : [];
-    const styleErrors = validateBodyStyle(body);
-    const closedGuidance = CLOSED_HEADINGS_BY_TEMPLATE.get(stem);
-    const foldErrors = closedGuidance === undefined ? [] : [...validateFoldBalance(body)];
-    const extraHeadings = closedGuidance !== undefined && required.length > 0 ? validateClosedHeadings(body, required) : [];
-    const foldSummary = FOLD_SUMMARY_BY_TEMPLATE.get(stem);
-    if (foldSummary !== undefined)
-        foldErrors.push(...validateFoldSummaries(body, foldSummary));
-    if (missing.length === 0 && summaryErrors.length === 0 && styleErrors.length === 0 && foldErrors.length === 0 && extraHeadings.length === 0)
+    const { label, stem } = template;
+    const violations = templateViolations(body, template);
+    if (violations.length === 0)
         return false;
+    const details = (code) => violations.filter(violation => violation.code === code).map(violation => violation.detail);
+    const missing = details('missing-section');
     const lines = [`the body does not follow the template ${label}`];
     if (missing.length > 0) {
         lines.push(`missing sections: ${missing.join(', ')}`);
-        if (options.emDashHint === true && missing.some(section => section.includes(' — <'))) {
-            lines.push('hint: the em dash must be U+2014; hyphen-minus (-) and EN DASH (U+2013) are not allowed');
-        }
+        if (options.emDashHint === true && missing.some(section => section.includes(' — <')))
+            lines.push(`hint: ${EM_DASH_HINT}`);
     }
-    if (summaryErrors.length > 0)
-        lines.push(`heading summary rule violations: ${summaryErrors.join(', ')}`);
-    if (styleErrors.length > 0)
-        lines.push(`unusable notation: ${styleErrors.join(', ')}`);
-    if (foldErrors.length > 0)
-        lines.push(`collapse rule violations: ${foldErrors.join(', ')}`);
+    const groups = [
+        ['heading-summary', 'heading summary rule violations'],
+        ['body-style', 'unusable notation'],
+        ['fold', 'collapse rule violations'],
+    ];
+    for (const [code, heading] of groups) {
+        if (details(code).length > 0)
+            lines.push(`${heading}: ${details(code).join(', ')}`);
+    }
+    const extraHeadings = details('extra-heading');
     if (extraHeadings.length > 0)
-        lines.push(`headings not in the template: ${extraHeadings.join(', ')} (${String(closedGuidance)})`);
+        lines.push(`headings not in the template: ${extraHeadings.join(', ')} (${String(closedHeadingGuidance(stem))})`);
     output.error(lines.join('\n'));
     return true;
 }
@@ -50494,15 +50442,9 @@ const TOOL_HINT_COMMANDS = [
     { name: 'board_show', inputs: ['json', 'repo'] },
     { name: 'board_add', inputs: ['issue_ref', 'status', 'project', 'repo'] },
     { name: 'board_move', inputs: ['issue_ref', 'status', 'project', 'repo'] },
-    { name: 'issue_create', inputs: ['files', 'message', 'title', 'repo', 'type', 'status', 'parent_epic', 'order', 'label', 'attributes', 'lane', 'freeform', 'project'] },
-    { name: 'issue_check', inputs: ['files', 'project', 'repo'] },
-    { name: 'issue_show', inputs: ['issue_ref', 'project', 'json', 'comment_limit', 'repo'] },
-    { name: 'issue_attributes', inputs: ['project', 'json', 'repo'] },
-    { name: 'issue_edit', inputs: ['issue_ref', 'attributes', 'project', 'repo'] },
-    { name: 'issue_comment', inputs: ['file', 'message', 'issue_ref', 'template', 'project', 'repo'] },
-    { name: 'issue_block', inputs: ['issue_ref', 'by', 'wait', 'reason', 'project', 'repo'] },
-    { name: 'issue_unblock', inputs: ['issue_ref', 'by', 'project', 'repo'] },
-    { name: 'issue_reopen', inputs: ['issue_ref', 'status', 'project', 'comment', 'repo'] },
+    { name: 'issue_check', inputs: ['method', 'project', 'issues', 'reads', 'repo'] },
+    { name: 'issue_dependency_check', inputs: ['method', 'owner', 'repo', 'issue_number', 'type', 'related_owner', 'related_repo', 'related_issue_number', 'wait', 'reason', 'project', 'reads'] },
+    { name: 'issue_comment_check', inputs: ['method', 'owner', 'repo', 'issue_number', 'comment_id', 'body', 'template', 'template_text', 'reads'] },
     { name: 'session_start', inputs: ['issue_ref', 'branch', 'base', 'checkout', 'project', 'repo'] },
     { name: 'session_show', inputs: ['directory', 'project', 'repo'] },
     { name: 'session_finish', inputs: ['pr_ref', 'delete_branch', 'project', 'repo'] },

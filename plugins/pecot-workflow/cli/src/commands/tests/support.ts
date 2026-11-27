@@ -22,7 +22,7 @@ export async function throwFailure(failure: Error): Promise<never> {
 }
 
 /**
-issue_create・issue_edit の attributes と同じ形の入力。オブジェクトの配列を CLI・定義書・help で扱うテストに使う
+機能の値（attributes）の配列の形の入力。オブジェクトの配列を CLI・定義書・help で扱うテストに使う
 */
 const ATTRIBUTE_VALUE = z.union([z.string(), z.number(), z.array(z.string()), z.null()])
 

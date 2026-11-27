@@ -1,7 +1,7 @@
 // 着手の判定から、base の選び方・止める文・スタック先の表示を決める。I/O を持たない。
 
 import { commandHint, hinted, inputHint, joinHinted } from './command-hint.js'
-import type { HintedText } from './command-hint.js'
+import type { HintedText, HintValue } from './command-hint.js'
 import type { PullRequestReadout } from './issue-readout.js'
 import { isAwaitingCloseAfterMerge, describePrerequisiteState, describeReadiness, displayReference, isDone } from './readiness.js'
 import type { Prerequisite, Readiness, StackTarget } from './readiness.js'
@@ -24,9 +24,22 @@ function blockedMessage(target: IssueReference, readiness: Readiness, prerequisi
     `${displayReference(target, home)} is ${describeReadiness(readiness, prerequisites, home)}`,
     ...unfinished.map(prerequisite => `- ${displayReference(prerequisite.issue.ref, home)}: ${describePrerequisiteState(prerequisite)}`),
     ...mergedOpen.map(issue => displayReference(issue, home)).map(shown => `${shown} has a merged PR: close ${shown}, or retry once it closes`),
-    ...unfinished.map(({ issue }) => hinted`to remove the prerequisite: ${commandHint(['issue', 'unblock'], { issue_ref: subject, by: issueReferenceToCliReference(issue.ref) })}`),
-    ...waitsMerge.map(({ issue }) => hinted`to stack on it instead of waiting for merge: ${commandHint(['issue', 'block'], { issue_ref: subject, by: issueReferenceToCliReference(issue), wait: 'stack' })}`),
+    ...unfinished.map(({ issue }) => hinted`to remove the prerequisite: ${commandHint(['issue', 'dependency', 'check'], removalArguments(target, issue.ref))}, then issue_dependency_write with the same arguments`),
+    ...waitsMerge.map(({ issue }) => hinted`to stack on it instead of waiting for merge: remove ${displayReference(issue, home)} from the Waits for merge section of the body of ${subject}, then ${commandHint(['issue', 'check'], { method: 'update' })} and issue_write`),
   ])
+}
+
+function removalArguments(target: IssueReference, prerequisite: IssueReference): Readonly<Record<string, HintValue>> {
+  return {
+    method: 'remove',
+    owner: target.repository.owner,
+    repo: target.repository.repository,
+    issue_number: target.number,
+    type: 'blocked_by',
+    related_owner: prerequisite.repository.owner,
+    related_repo: prerequisite.repository.repository,
+    related_issue_number: prerequisite.number,
+  }
 }
 
 /**

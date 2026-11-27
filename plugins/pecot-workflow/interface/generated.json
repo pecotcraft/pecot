@@ -19,6 +19,14 @@
           "meaning": "Issue そのもの"
         },
         {
+          "word": "issue_dependency",
+          "meaning": "Issue の前提（blocked by）"
+        },
+        {
+          "word": "issue_comment",
+          "meaning": "Issue のコメント"
+        },
+        {
           "word": "session",
           "meaning": "1 つの Issue の作業の始まりから終わりまで"
         },
@@ -66,17 +74,12 @@
         },
         {
           "word": "check",
-          "meaning": "次の操作の前に確かめる",
+          "meaning": "次の操作の前に確かめる。公式の MCP で書く値が決まりに合うかを確かめるのにも使う",
           "read_only": true
         },
         {
           "word": "doctor",
           "meaning": "導入に要る設定がそろっているかを確かめる",
-          "read_only": true
-        },
-        {
-          "word": "attributes",
-          "meaning": "付けられる機能の定義を出す",
           "read_only": true
         },
         {
@@ -138,26 +141,6 @@
         {
           "word": "restack",
           "meaning": "スタックしたブランチを、base の新しい位置へスタックし直す"
-        },
-        {
-          "word": "comment",
-          "meaning": "コメントを書く"
-        },
-        {
-          "word": "edit",
-          "meaning": "既にあるものの値を書き換える"
-        },
-        {
-          "word": "reopen",
-          "meaning": "閉じたものを開き直す"
-        },
-        {
-          "word": "block",
-          "meaning": "前提を付ける"
-        },
-        {
-          "word": "unblock",
-          "meaning": "前提を外す"
         }
       ]
     ],
@@ -869,345 +852,9 @@
       }
     },
     {
-      "id": "PW-ISSUE-ATTRIBUTES",
-      "name": "issue_attributes",
-      "description": "List the attributes an Issue of the repository can have: fields of the configured board, Issue fields, and built-in ones",
-      "surfaces": {
-        "mcp": {
-          "tool": "issue_attributes"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
-          "json": {
-            "type": "boolean",
-            "default": false,
-            "description": "Output as JSON"
-          },
-          "project": {
-            "type": "string",
-            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
-          }
-        },
-        "required": [],
-        "additionalProperties": false
-      },
-      "mcp": {
-        "title": "List Issue attributes",
-        "output": {
-          "type": "object",
-          "properties": {
-            "attributes": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "Name of the attribute"
-                  },
-                  "source": {
-                    "type": "string",
-                    "enum": [
-                      "project",
-                      "issue_field",
-                      "issue"
-                    ],
-                    "description": "Where the attribute lives: project (a field of the configured board), issue_field (an Issue field) or issue (built into the Issue)"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "enum": [
-                      "single_select",
-                      "multi_select",
-                      "text",
-                      "number",
-                      "date",
-                      "iteration",
-                      "users",
-                      "milestone",
-                      "issue_type",
-                      "labels",
-                      "issue_ref",
-                      "issue_refs",
-                      "unsupported"
-                    ],
-                    "description": "Kind of the value"
-                  },
-                  "options": {
-                    "description": "Values to choose from (only for the kinds with choices; assignees are not listed)",
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string",
-                          "description": "Name of the value to choose"
-                        },
-                        "start_date": {
-                          "description": "Start date of the iteration (YYYY-MM-DD; only for iteration)",
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "name"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "writable": {
-                    "type": "boolean",
-                    "description": "Whether the attribute takes a value set by a person or a tool (false for computed fields, the board columns moved by board_move, parent and blocked_by)"
-                  },
-                  "unsupported_reason": {
-                    "description": "GitHub type that pecot does not handle (only when kind is unsupported)",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name",
-                  "source",
-                  "kind",
-                  "writable"
-                ],
-                "additionalProperties": false
-              },
-              "description": "Attributes that an Issue of the repository can have"
-            },
-            "unsupported": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "Name of the attribute"
-                  },
-                  "source": {
-                    "type": "string",
-                    "enum": [
-                      "project",
-                      "issue_field",
-                      "issue"
-                    ],
-                    "description": "Where the attribute lives: project (a field of the configured board), issue_field (an Issue field) or issue (built into the Issue)"
-                  },
-                  "github_type": {
-                    "type": "string",
-                    "description": "GitHub type that pecot does not handle"
-                  }
-                },
-                "required": [
-                  "name",
-                  "source",
-                  "github_type"
-                ],
-                "additionalProperties": false
-              },
-              "description": "Attributes whose kind pecot does not handle"
-            },
-            "kind": {
-              "type": "string",
-              "description": "Failure kind (failure only)"
-            },
-            "detail": {
-              "type": "string",
-              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
-            },
-            "log": {
-              "type": "string",
-              "description": "Raw output of a child process (failure only; omitted when not captured)"
-            },
-            "warnings": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
-            }
-          },
-          "additionalProperties": false,
-          "anyOf": [
-            {
-              "required": [
-                "attributes",
-                "unsupported"
-              ]
-            },
-            {
-              "required": [
-                "kind",
-                "detail"
-              ]
-            }
-          ]
-        },
-        "annotations": {
-          "readOnlyHint": true
-        }
-      }
-    },
-    {
-      "id": "PW-ISSUE-BLOCK",
-      "name": "issue_block",
-      "description": "Add a blocked-by (prerequisite) to an Issue, or change the wait kind and reason of an existing one",
-      "surfaces": {
-        "mcp": {
-          "tool": "issue_block"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
-          "by": {
-            "type": "string",
-            "description": "The Issue to wait for (`owner/repo/N`; another repository is allowed)"
-          },
-          "issue_ref": {
-            "type": "string",
-            "description": "The waiting Issue. Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
-          },
-          "project": {
-            "type": "string",
-            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
-          },
-          "reason": {
-            "type": "string",
-            "description": "Why it waits for the merge (required when `wait` is merge)"
-          },
-          "wait": {
-            "type": "string",
-            "enum": [
-              "stack",
-              "merge"
-            ],
-            "default": "stack",
-            "description": "stack (build on its branch) or merge (wait until it is merged)"
-          }
-        },
-        "required": [
-          "by",
-          "issue_ref"
-        ],
-        "additionalProperties": false
-      },
-      "mcp": {
-        "title": "Set Issue blocker",
-        "output": {
-          "type": "object",
-          "properties": {
-            "issue": {
-              "type": "string",
-              "description": "The waiting Issue (owner/repo/N)"
-            },
-            "by": {
-              "type": "string",
-              "description": "The prerequisite Issue (owner/repo/N)"
-            },
-            "wait": {
-              "type": "string",
-              "enum": [
-                "stack",
-                "merge"
-              ],
-              "description": "Wait kind of the blocked-by after the command"
-            },
-            "change": {
-              "type": "string",
-              "enum": [
-                "added",
-                "updated",
-                "unchanged"
-              ],
-              "description": "added (new blocked-by), updated (wait kind or reason changed), or unchanged"
-            },
-            "moves": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "issue": {
-                    "type": "string",
-                    "description": "Issue as shown in the moved line (#N, or owner/repo#N outside the home repository)"
-                  },
-                  "from": {
-                    "description": "Column before the move (omitted when only the Status changed)",
-                    "type": "string"
-                  },
-                  "to": {
-                    "description": "Column after the move (omitted when only the Status changed)",
-                    "type": "string"
-                  },
-                  "label": {
-                    "description": "Status value set (omitted when the Status did not change)",
-                    "type": "string"
-                  },
-                  "reason": {
-                    "type": "string",
-                    "description": "Readiness that decided the move"
-                  }
-                },
-                "required": [
-                  "issue",
-                  "reason"
-                ],
-                "additionalProperties": false
-              },
-              "description": "The waiting Issue when its column or Status was written (at most one; empty when nothing was written)"
-            },
-            "kind": {
-              "type": "string",
-              "description": "Failure kind (failure only)"
-            },
-            "detail": {
-              "type": "string",
-              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
-            },
-            "log": {
-              "type": "string",
-              "description": "Raw output of a child process (failure only; omitted when not captured)"
-            },
-            "warnings": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
-            }
-          },
-          "additionalProperties": false,
-          "anyOf": [
-            {
-              "required": [
-                "issue",
-                "by",
-                "wait",
-                "change",
-                "moves"
-              ]
-            },
-            {
-              "required": [
-                "kind",
-                "detail"
-              ]
-            }
-          ]
-        },
-        "annotations": {
-          "readOnlyHint": false
-        }
-      }
-    },
-    {
       "id": "PW-ISSUE-CHECK",
       "name": "issue_check",
-      "description": "Check Markdown files for issue_create and show their order numbers, prerequisites and how to proceed, without creating anything",
+      "description": "Check the arguments for issue_write (and the board fields and blocked-by written after it) against the pecot rules before writing: the template of the body, the title prefix and order, the type, the Issue and board fields, the column to place the Issue in, and the prerequisites. A batch create gives the order numbers and how each Issue proceeds. Reads and writes nothing on GitHub; pass the results of the official reads in reads.",
       "surfaces": {
         "mcp": {
           "tool": "issue_check"
@@ -1218,36 +865,348 @@
       "input": {
         "type": "object",
         "properties": {
-          "files": {
+          "issues": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "object",
+              "properties": {
+                "assignees": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Same as issue_write"
+                },
+                "blocked_by": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "issue": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Prerequisite: owner/repo/N for an existing Issue, or the key of an earlier Issue in the batch"
+                      },
+                      "reason": {
+                        "type": "string",
+                        "description": "With wait merge only: why it waits for the merge, in one line"
+                      },
+                      "wait": {
+                        "type": "string",
+                        "enum": [
+                          "stack",
+                          "merge"
+                        ],
+                        "default": "stack",
+                        "description": "stack (build on its branch; the default) or merge (wait until it is merged)"
+                      }
+                    },
+                    "required": [
+                      "issue"
+                    ]
+                  },
+                  "description": "With create only: prerequisites to write with issue_dependency_write after the create"
+                },
+                "body": {
+                  "type": "string",
+                  "description": "Same as issue_write; without the frontmatter and the guide comment of the template"
+                },
+                "duplicate_of": {
+                  "type": "integer",
+                  "description": "With update only: same as issue_write"
+                },
+                "issue_fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "delete": {
+                        "type": "boolean",
+                        "description": "True to clear the field"
+                      },
+                      "field_name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Name of the Issue field"
+                      },
+                      "field_option_name": {
+                        "type": "string",
+                        "description": "Option name of a single select field"
+                      },
+                      "value": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "description": "Value of a text or date field"
+                          },
+                          {
+                            "type": "number",
+                            "description": "Value of a number field"
+                          }
+                        ],
+                        "description": "Value of a text, number or date field"
+                      }
+                    },
+                    "required": [
+                      "field_name"
+                    ]
+                  },
+                  "description": "Same as issue_write"
+                },
+                "issue_number": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "With update only: the Issue to rewrite"
+                },
+                "key": {
+                  "type": "string",
+                  "description": "With a batch create: the name blocked_by and {{issue:key}} of later Issues use for this one"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "task",
+                    "bug",
+                    "epic",
+                    "tracker"
+                  ],
+                  "description": "pecot kind of the Issue"
+                },
+                "labels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Same as issue_write"
+                },
+                "milestone": {
+                  "type": "integer",
+                  "description": "Same as issue_write"
+                },
+                "owner": {
+                  "type": "string",
+                  "description": "Owner of the repository to write to"
+                },
+                "parent_issue_number": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Number of the parent Epic"
+                },
+                "parent_owner": {
+                  "type": "string",
+                  "description": "Owner of the repository of the parent Epic"
+                },
+                "parent_repo": {
+                  "type": "string",
+                  "description": "Name of the repository of the parent Epic"
+                },
+                "project_fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "description": "Id of the board field (the id in list_project_fields; same as updated_field.id of projects_write)"
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "Name of the board field"
+                      },
+                      "value": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "description": "Option name, option id or text"
+                          },
+                          {
+                            "type": "number",
+                            "description": "Number or option id"
+                          },
+                          {
+                            "type": "null",
+                            "description": "Clears the field"
+                          }
+                        ],
+                        "description": "Value as passed to projects_write: an option name or option id for a single select, null to clear"
+                      }
+                    },
+                    "required": [
+                      "value"
+                    ]
+                  },
+                  "description": "Board fields to write with projects_write (update_project_item), including the column (pecot-status)"
+                },
+                "repo": {
+                  "type": "string",
+                  "description": "Name of the repository to write to"
+                },
+                "state": {
+                  "type": "string",
+                  "description": "With update only: same as issue_write"
+                },
+                "state_reason": {
+                  "type": "string",
+                  "description": "With update only: same as issue_write"
+                },
+                "template": {
+                  "type": "string",
+                  "description": "Template the body follows: pecot-template://issue/<name> for a bundled one (its rules are checked); a replaced template's path or URL is accepted without checking the body; omit for the free form"
+                },
+                "template_text": {
+                  "type": "string",
+                  "description": "Text of a replaced template; the body is not checked against it"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Same as issue_write"
+                },
+                "type": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Issue type name"
+                    },
+                    {
+                      "type": "null",
+                      "description": "Clears the type"
+                    }
+                  ],
+                  "description": "Same as issue_write: a GitHub Issue type name"
+                }
+              },
+              "required": [
+                "kind"
+              ]
             },
-            "description": "Path of a Markdown file with frontmatter (several for a batch, in the order to post)"
+            "minItems": 1,
+            "description": "Arguments of each Issue: the keys of the template, the same values passed to the write tools"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "create",
+              "update"
+            ],
+            "description": "create before issue_write with method create (several Issues for a batch, in the order to write), update before issue_write with method update (one Issue)"
           },
           "project": {
             "type": "string",
             "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+          },
+          "reads": {
+            "type": "object",
+            "properties": {
+              "collaborators": {
+                "description": "Result of list_repository_collaborators for the repository of the Issues"
+              },
+              "issue_fields": {
+                "description": "Result of list_issue_fields for the repository of the Issues"
+              },
+              "issue_types": {
+                "description": "Result of list_issue_types for the owner of the repository"
+              },
+              "issues": {
+                "type": "array",
+                "items": {},
+                "description": "Results of issue_read with method get (the structuredContent, { issue: ... }): the parent, prerequisites and, with update, the target"
+              },
+              "project_fields": {
+                "description": "Result of projects_list with method list_project_fields"
+              },
+              "project_items": {
+                "type": "array",
+                "items": {},
+                "description": "Results of projects_list with method list_project_items (every page): the cards of the target, the parent and the prerequisites"
+              },
+              "pull_requests": {
+                "type": "array",
+                "items": {},
+                "description": "Results of pull_request_read with method get: each open pull request that closes a prerequisite (closed_by_pull_requests of issue_read), and those its base branch stacks on; they decide whether the Issue can stack"
+              },
+              "sub_issues": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "parent": {
+                      "type": "string",
+                      "description": "The parent Epic whose sub-issues were read (owner/repo/N)"
+                    },
+                    "result": {
+                      "description": "Result of issue_read with method get_sub_issues"
+                    }
+                  },
+                  "required": [
+                    "parent",
+                    "result"
+                  ]
+                },
+                "description": "Results of issue_read with method get_sub_issues for each parent Epic (every page)"
+              }
+            },
+            "description": "Results of the official GitHub MCP reads the check needs"
           }
         },
         "required": [
-          "files"
+          "issues",
+          "method"
         ],
         "additionalProperties": false
       },
       "mcp": {
-        "title": "Check Issue files",
+        "title": "Check Issue",
         "output": {
           "type": "object",
           "properties": {
-            "plan": {
+            "problems": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "file": {
+                  "issue": {
+                    "description": "Issue the problem belongs to: a batch key or owner/repo/N (omitted when the check covers one target)",
+                    "type": "string"
+                  },
+                  "field": {
                     "type": "string",
-                    "description": "Key of the file (the file name without the extension)"
+                    "description": "Name of the argument that breaks the rule (title, body, issue_fields.<name>, blocked_by.<i>, ...)"
+                  },
+                  "code": {
+                    "type": "string",
+                    "description": "Kind of the problem (missing-section, extra-heading, cycle, ...)"
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "What is wrong and how to fix it, with the expected value when there is one"
+                  },
+                  "candidates": {
+                    "description": "Values that would be accepted (omitted when there is no fixed set)",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "field",
+                  "code",
+                  "message"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Rules the arguments break; when empty, the arguments can be passed to the write tool as they are"
+            },
+            "plan": {
+              "description": "With create: how each Issue proceeds, in the order given",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "description": "Key of the Issue (issues[i] when it has none)"
                   },
                   "order": {
                     "description": "Order number in the title (omitted without a parent Epic)",
@@ -1262,7 +1221,7 @@
                       "properties": {
                         "issue": {
                           "type": "string",
-                          "description": "Prerequisite: key of a file, or #N / owner/repo#N for an existing Issue"
+                          "description": "Prerequisite: key of an Issue in the batch, or #N / owner/repo#N for an existing Issue"
                         },
                         "wait": {
                           "type": "string",
@@ -1297,16 +1256,15 @@
                   }
                 },
                 "required": [
-                  "file",
+                  "key",
                   "blockedBy",
                   "approach"
                 ],
                 "additionalProperties": false
-              },
-              "description": "Progression table of the files, in the order given"
+              }
             },
             "stackableChains": {
-              "description": "Stackable chains, each from the bottom; files by key, existing Issues as #N or owner/repo#N (omitted when none)",
+              "description": "Stackable chains, each from the bottom; Issues of the batch by key, existing Issues as #N or owner/repo#N (omitted when none)",
               "type": "array",
               "items": {
                 "type": "array",
@@ -1339,7 +1297,7 @@
           "anyOf": [
             {
               "required": [
-                "plan"
+                "problems"
               ]
             },
             {
@@ -1351,17 +1309,18 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true
+          "readOnlyHint": true,
+          "openWorldHint": false
         }
       }
     },
     {
-      "id": "PW-ISSUE-COMMENT",
-      "name": "issue_comment",
-      "description": "Post a comment on an Issue",
+      "id": "PW-ISSUE-COMMENT-CHECK",
+      "name": "issue_comment_check",
+      "description": "Check the arguments for add_issue_comment or update_issue_comment against the pecot rules before writing: the bundled comment template the body follows, and with update, that the comment belongs to the Issue. Reads and writes nothing on GitHub; pass the results of the official reads in reads.",
       "surfaces": {
         "mcp": {
-          "tool": "issue_comment"
+          "tool": "issue_comment_check"
         }
       },
       "hidden": false,
@@ -1369,61 +1328,107 @@
       "input": {
         "type": "object",
         "properties": {
-          "file": {
+          "body": {
             "type": "string",
-            "description": "Path of a Markdown file with frontmatter"
+            "description": "Comment body, as passed to the write tool"
           },
-          "issue_ref": {
-            "type": "string",
-            "description": "Issue reference (owner/repo/123 form, required with `message`)"
+          "comment_id": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "With update only: id of the comment to rewrite (the id in the result of add_issue_comment)"
           },
-          "message": {
-            "type": "string",
-            "description": "Comment body"
+          "issue_number": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Number of the Issue or PR the comment is on; with update, the Issue the comment must belong to"
           },
-          "project": {
+          "method": {
             "type": "string",
-            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
+            "enum": [
+              "add",
+              "update"
+            ],
+            "description": "add before add_issue_comment, update before update_issue_comment"
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Owner of the repository of the Issue or PR the comment is on"
+          },
+          "reads": {
+            "type": "object",
+            "properties": {
+              "comments": {
+                "description": "With update: the result of issue_read with method get_comments for the same Issue"
+              }
+            },
+            "description": "Results of the official GitHub MCP reads the check needs"
+          },
+          "repo": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Name of the repository of the Issue or PR the comment is on"
           },
           "template": {
             "type": "string",
-            "enum": [
-              "plan",
-              "merge-diff",
-              "review-findings",
-              "review-resolution",
-              "precede-notify"
-            ],
-            "description": "Template type the message is checked against (required with `message`; plan/merge-diff/review-findings/review-resolution/precede-notify)"
+            "description": "Template the body follows: pecot-template://comment/<name> for a bundled one (its rules are checked); a replaced template's path or URL is accepted without checking the body"
+          },
+          "template_text": {
+            "type": "string",
+            "description": "Text of a replaced template; the body is not checked against it"
           }
         },
-        "required": [],
+        "required": [
+          "body",
+          "issue_number",
+          "method",
+          "owner",
+          "repo"
+        ],
         "additionalProperties": false
       },
       "mcp": {
-        "title": "Comment on Issue",
+        "title": "Check issue comment",
         "output": {
           "type": "object",
           "properties": {
-            "issue": {
-              "type": "string",
-              "description": "Issue commented on (owner/repo/N)"
-            },
-            "commentUrl": {
-              "description": "URL of the comment created or updated (omitted when GitHub returned no URL)",
-              "type": "string"
-            },
-            "change": {
-              "type": "string",
-              "enum": [
-                "created",
-                "updated"
-              ],
-              "description": "Whether the comment was created or updated"
-            },
-            "file": {
-              "description": "Absolute path of the file whose comment_url was written back after posting from it (omitted otherwise)",
-              "type": "string"
+            "problems": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "issue": {
+                    "description": "Issue the problem belongs to: a batch key or owner/repo/N (omitted when the check covers one target)",
+                    "type": "string"
+                  },
+                  "field": {
+                    "type": "string",
+                    "description": "Name of the argument that breaks the rule (title, body, issue_fields.<name>, blocked_by.<i>, ...)"
+                  },
+                  "code": {
+                    "type": "string",
+                    "description": "Kind of the problem (missing-section, extra-heading, cycle, ...)"
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "What is wrong and how to fix it, with the expected value when there is one"
+                  },
+                  "candidates": {
+                    "description": "Values that would be accepted (omitted when there is no fixed set)",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "field",
+                  "code",
+                  "message"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Rules the arguments break; when empty, the arguments can be passed to the write tool as they are"
             },
             "kind": {
               "type": "string",
@@ -1449,8 +1454,7 @@
           "anyOf": [
             {
               "required": [
-                "issue",
-                "change"
+                "problems"
               ]
             },
             {
@@ -1462,17 +1466,18 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": false
+          "readOnlyHint": true,
+          "openWorldHint": false
         }
       }
     },
     {
-      "id": "PW-ISSUE-CREATE",
-      "name": "issue_create",
-      "description": "Create Issues from Markdown files with frontmatter",
+      "id": "PW-ISSUE-DEPENDENCY-CHECK",
+      "name": "issue_dependency_check",
+      "description": "Check the arguments for issue_dependency_write against the pecot rules before writing: the direction, wait kind and reason, a self reference or cycle, whether the blocked-by is already there, and the column the waiting Issue should move to after the change. Reads and writes nothing on GitHub; pass the results of the official reads in reads.",
       "surfaces": {
         "mcp": {
-          "tool": "issue_create"
+          "tool": "issue_dependency_check"
         }
       },
       "hidden": false,
@@ -1480,1251 +1485,173 @@
       "input": {
         "type": "object",
         "properties": {
-          "attributes": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "description": "Name of the attribute, as issue_attributes lists it"
-                },
-                "source": {
-                  "type": "string",
-                  "enum": [
-                    "project",
-                    "issue_field",
-                    "issue"
-                  ],
-                  "description": "Source of the attribute (project, issue_field or issue); only needed when the same name is in several sources"
-                },
-                "value": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
-                  "description": "Value: a name for select, iteration (or its start date), milestone and type; a list for multi_select, assignees and labels; a number for number; YYYY-MM-DD for date; null to remove the value"
-                }
-              },
-              "required": [
-                "name",
-                "value"
-              ],
-              "additionalProperties": false
-            },
-            "description": "Attributes to write by name (the attributes that issue_attributes lists): name, value and, only when the same name is in several sources, source; null values are skipped; cannot be used with files (write attributes in the front matter instead)"
+          "issue_number": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Number of the waiting Issue"
           },
-          "files": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Path of a Markdown file with frontmatter (several for a batch post)"
+          "method": {
+            "type": "string",
+            "enum": [
+              "add",
+              "remove"
+            ],
+            "description": "Same as the method of issue_dependency_write"
           },
-          "freeform": {
-            "type": "boolean",
-            "default": false,
-            "description": "Create the Issue from a free-format message without the template check (title from the first 50 characters of the first line)"
-          },
-          "label": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Label (can be given several times)"
-          },
-          "lane": {
+          "owner": {
             "type": "string",
             "minLength": 1,
-            "description": "Value of the board field pecot-lane, one of its options; when omitted with parent_epic, the value of the parent Epic; cannot be used with files (write lane in the front matter instead)"
-          },
-          "message": {
-            "type": "string",
-            "description": "Issue body (direct posting mode)"
-          },
-          "order": {
-            "type": "integer",
-            "description": "Order number of the subtask (used with parent_epic)"
-          },
-          "parent_epic": {
-            "type": "string",
-            "description": "Parent Epic reference: an integer (relative to aggregation_repo) or the primary form 'owner/repo/N'"
+            "description": "Owner of the repository of the waiting Issue"
           },
           "project": {
             "type": "string",
             "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
           },
+          "reads": {
+            "type": "object",
+            "properties": {
+              "blocked_by": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "issue": {
+                      "type": "string",
+                      "description": "The Issue whose blocked-by was read (owner/repo/N)"
+                    },
+                    "result": {
+                      "description": "Result of issue_dependency_read with method get_blocked_by"
+                    }
+                  },
+                  "required": [
+                    "issue",
+                    "result"
+                  ]
+                },
+                "description": "Results of issue_dependency_read with method get_blocked_by: the waiting Issue, and for add, the prerequisite and the Issues it waits for, until the chain ends"
+              },
+              "issues": {
+                "type": "array",
+                "items": {},
+                "description": "Results of issue_read with method get (the structuredContent, { issue: ... }): the parent, prerequisites and, with update, the target"
+              },
+              "project_fields": {
+                "description": "Result of projects_list with method list_project_fields"
+              },
+              "project_items": {
+                "type": "array",
+                "items": {},
+                "description": "Results of projects_list with method list_project_items (every page): the cards of the target, the parent and the prerequisites"
+              },
+              "pull_requests": {
+                "type": "array",
+                "items": {},
+                "description": "Results of pull_request_read with method get: each open pull request that closes a prerequisite (closed_by_pull_requests of issue_read), and those its base branch stacks on; they decide whether the Issue can stack"
+              }
+            },
+            "description": "Results of the official GitHub MCP reads the check needs"
+          },
+          "reason": {
+            "type": "string",
+            "description": "With add and wait merge only: why it waits for the merge, in one line"
+          },
+          "related_issue_number": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Number of the prerequisite Issue"
+          },
+          "related_owner": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Owner of the repository of the prerequisite Issue (defaults to owner)"
+          },
+          "related_repo": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Name of the repository of the prerequisite Issue (defaults to repo)"
+          },
           "repo": {
             "type": "string",
-            "description": "Repository (owner/repo form; required with `message` unless epic)"
-          },
-          "status": {
-            "type": "string",
-            "description": "Status (backlog/pending/ready/active/in_review/archived)"
-          },
-          "title": {
-            "type": "string",
-            "description": "Issue title (direct posting mode, required with `message`)"
+            "minLength": 1,
+            "description": "Name of the repository of the waiting Issue"
           },
           "type": {
             "type": "string",
             "enum": [
-              "task",
-              "bug",
-              "epic",
-              "tracker"
+              "blocked_by",
+              "blocking"
             ],
-            "default": "task",
-            "description": "Issue type (task/bug/epic/tracker)"
+            "description": "Same as the type of issue_dependency_write; pecot writes only blocked_by"
+          },
+          "wait": {
+            "type": "string",
+            "enum": [
+              "stack",
+              "merge"
+            ],
+            "description": "With add only: stack (build on its branch; the default) or merge (wait until it is merged)"
           }
         },
-        "required": [],
+        "required": [
+          "issue_number",
+          "method",
+          "owner",
+          "related_issue_number",
+          "repo",
+          "type"
+        ],
         "additionalProperties": false
       },
       "mcp": {
-        "title": "Create Issues",
+        "title": "Check Issue dependency",
         "output": {
           "type": "object",
           "properties": {
-            "issues": {
+            "problems": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "owner": {
-                    "type": "string",
-                    "description": "Owner of the repository of the Issue"
-                  },
-                  "repository": {
-                    "type": "string",
-                    "description": "Name of the repository of the Issue"
-                  },
-                  "number": {
-                    "type": "integer",
-                    "minimum": -9007199254740991,
-                    "maximum": 9007199254740991,
-                    "description": "Issue number"
-                  },
-                  "url": {
-                    "type": "string",
-                    "description": "URL of the Issue"
-                  },
-                  "status": {
-                    "description": "Workflow status written on the board (ready when it was moved out of blocked; omitted when not written)",
-                    "type": "string",
-                    "enum": [
-                      "backlog",
-                      "blocked",
-                      "ready"
-                    ]
-                  },
-                  "parent": {
-                    "description": "Parent Epic the Issue was added to as a sub-issue (owner/repo/N; omitted when none)",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "owner",
-                  "repository",
-                  "number",
-                  "url"
-                ],
-                "additionalProperties": false
-              },
-              "description": "Issues created, in the order of creation (also kept on a failure after some were created)"
-            },
-            "stackableChains": {
-              "description": "Stackable chains, each from the bottom; files by key, existing Issues as #N or owner/repo#N (omitted when none)",
-              "type": "array",
-              "items": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            },
-            "errors": {
-              "description": "Why the attribute values were not accepted; no Issue was created (omitted when none)",
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "file": {
-                    "description": "File whose front matter has the value (issue_create with files only)",
-                    "type": "string"
-                  },
-                  "code": {
-                    "type": "string",
-                    "enum": [
-                      "unknown_attribute",
-                      "ambiguous_attribute",
-                      "read_only_attribute",
-                      "unsupported_attribute",
-                      "invalid_value",
-                      "unreadable_attribute",
-                      "not_on_board"
-                    ],
-                    "description": "Why the value was not accepted"
-                  },
-                  "name": {
-                    "type": "string",
-                    "description": "Name of the attribute as given"
-                  },
-                  "source": {
-                    "description": "Source of the attribute, when known",
-                    "type": "string",
-                    "enum": [
-                      "project",
-                      "issue_field",
-                      "issue"
-                    ]
-                  },
-                  "value": {
-                    "description": "Value as given",
-                    "anyOf": [
-                      {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        ]
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "expected": {
-                    "description": "Values the attribute takes",
-                    "type": "string"
-                  },
-                  "candidates": {
-                    "description": "Similar names",
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "sources": {
-                    "description": "Sources that have the same name",
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "enum": [
-                        "project",
-                        "issue_field",
-                        "issue"
-                      ]
-                    }
-                  },
-                  "hint": {
-                    "description": "What to use instead, or why the definitions could not be read",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "code",
-                  "name"
-                ],
-                "additionalProperties": false
-              }
-            },
-            "failed": {
-              "description": "Attributes that passed the check but could not be written, with the reason (omitted when none)",
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "Name of the attribute"
-                  },
-                  "source": {
-                    "type": "string",
-                    "enum": [
-                      "project",
-                      "issue_field",
-                      "issue"
-                    ]
-                  },
-                  "reason": {
-                    "type": "string",
-                    "description": "Message from GitHub, or that GitHub dropped the value"
-                  },
                   "issue": {
-                    "type": "string",
-                    "description": "Issue whose attribute could not be written (owner/repo/N)"
-                  }
-                },
-                "required": [
-                  "name",
-                  "source",
-                  "reason",
-                  "issue"
-                ],
-                "additionalProperties": false
-              }
-            },
-            "kind": {
-              "type": "string",
-              "description": "Failure kind (failure only)"
-            },
-            "detail": {
-              "type": "string",
-              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
-            },
-            "log": {
-              "type": "string",
-              "description": "Raw output of a child process (failure only; omitted when not captured)"
-            },
-            "warnings": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
-            }
-          },
-          "additionalProperties": false,
-          "anyOf": [
-            {
-              "required": [
-                "issues"
-              ]
-            },
-            {
-              "required": [
-                "kind",
-                "detail"
-              ]
-            }
-          ]
-        },
-        "annotations": {
-          "readOnlyHint": false
-        }
-      }
-    },
-    {
-      "id": "PW-ISSUE-EDIT",
-      "name": "issue_edit",
-      "description": "Write, change or remove the values of the attributes of an Issue by name (the attributes that issue_attributes lists)",
-      "surfaces": {
-        "mcp": {
-          "tool": "issue_edit"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
-          "attributes": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "description": "Name of the attribute, as issue_attributes lists it"
-                },
-                "source": {
-                  "type": "string",
-                  "enum": [
-                    "project",
-                    "issue_field",
-                    "issue"
-                  ],
-                  "description": "Source of the attribute (project, issue_field or issue); only needed when the same name is in several sources"
-                },
-                "value": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
-                  "description": "Value: a name for select, iteration (or its start date), milestone and type; a list for multi_select, assignees and labels; a number for number; YYYY-MM-DD for date; null to remove the value"
-                }
-              },
-              "required": [
-                "name",
-                "value"
-              ],
-              "additionalProperties": false
-            },
-            "description": "Attributes to write: name, value (null removes it) and, only when the same name is in several sources, source"
-          },
-          "issue_ref": {
-            "type": "string",
-            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
-          },
-          "project": {
-            "type": "string",
-            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
-          }
-        },
-        "required": [
-          "issue_ref"
-        ],
-        "additionalProperties": false
-      },
-      "mcp": {
-        "title": "Edit Issue attributes",
-        "output": {
-          "type": "object",
-          "properties": {
-            "changed": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "Name of the attribute"
-                  },
-                  "source": {
-                    "type": "string",
-                    "enum": [
-                      "project",
-                      "issue_field",
-                      "issue"
-                    ]
-                  },
-                  "before": {
-                    "anyOf": [
-                      {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        ]
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
-                    "description": "Value before the change (null when there was none)"
-                  },
-                  "after": {
-                    "anyOf": [
-                      {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        ]
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ],
-                    "description": "Value after the change (null when removed)"
-                  }
-                },
-                "required": [
-                  "name",
-                  "source",
-                  "before",
-                  "after"
-                ],
-                "additionalProperties": false
-              },
-              "description": "Attributes whose value was changed, with the value before and after"
-            },
-            "errors": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "file": {
-                    "description": "File whose front matter has the value (issue_create with files only)",
+                    "description": "Issue the problem belongs to: a batch key or owner/repo/N (omitted when the check covers one target)",
                     "type": "string"
+                  },
+                  "field": {
+                    "type": "string",
+                    "description": "Name of the argument that breaks the rule (title, body, issue_fields.<name>, blocked_by.<i>, ...)"
                   },
                   "code": {
                     "type": "string",
-                    "enum": [
-                      "unknown_attribute",
-                      "ambiguous_attribute",
-                      "read_only_attribute",
-                      "unsupported_attribute",
-                      "invalid_value",
-                      "unreadable_attribute",
-                      "not_on_board"
-                    ],
-                    "description": "Why the value was not accepted"
+                    "description": "Kind of the problem (missing-section, extra-heading, cycle, ...)"
                   },
-                  "name": {
+                  "message": {
                     "type": "string",
-                    "description": "Name of the attribute as given"
-                  },
-                  "source": {
-                    "description": "Source of the attribute, when known",
-                    "type": "string",
-                    "enum": [
-                      "project",
-                      "issue_field",
-                      "issue"
-                    ]
-                  },
-                  "value": {
-                    "description": "Value as given",
-                    "anyOf": [
-                      {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        ]
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "expected": {
-                    "description": "Values the attribute takes",
-                    "type": "string"
+                    "description": "What is wrong and how to fix it, with the expected value when there is one"
                   },
                   "candidates": {
-                    "description": "Similar names",
+                    "description": "Values that would be accepted (omitted when there is no fixed set)",
                     "type": "array",
                     "items": {
                       "type": "string"
                     }
-                  },
-                  "sources": {
-                    "description": "Sources that have the same name",
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "enum": [
-                        "project",
-                        "issue_field",
-                        "issue"
-                      ]
-                    }
-                  },
-                  "hint": {
-                    "description": "What to use instead, or why the definitions could not be read",
-                    "type": "string"
                   }
                 },
                 "required": [
+                  "field",
                   "code",
-                  "name"
+                  "message"
                 ],
                 "additionalProperties": false
               },
-              "description": "Why the values were not accepted; nothing was written when this is not empty"
+              "description": "Rules the arguments break; when empty, the arguments can be passed to the write tool as they are"
             },
-            "failed": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "Name of the attribute"
-                  },
-                  "source": {
-                    "type": "string",
-                    "enum": [
-                      "project",
-                      "issue_field",
-                      "issue"
-                    ]
-                  },
-                  "reason": {
-                    "type": "string",
-                    "description": "Message from GitHub, or that GitHub dropped the value"
-                  }
-                },
-                "required": [
-                  "name",
-                  "source",
-                  "reason"
-                ],
-                "additionalProperties": false
-              },
-              "description": "Attributes that passed the check but could not be written, with the reason"
-            },
-            "kind": {
-              "type": "string",
-              "description": "Failure kind (failure only)"
-            },
-            "detail": {
-              "type": "string",
-              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
-            },
-            "log": {
-              "type": "string",
-              "description": "Raw output of a child process (failure only; omitted when not captured)"
-            },
-            "warnings": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
-            }
-          },
-          "additionalProperties": false,
-          "anyOf": [
-            {
-              "required": [
-                "changed",
-                "errors",
-                "failed"
-              ]
-            },
-            {
-              "required": [
-                "kind",
-                "detail"
-              ]
-            }
-          ]
-        },
-        "annotations": {
-          "readOnlyHint": false
-        }
-      }
-    },
-    {
-      "id": "PW-ISSUE-REOPEN",
-      "name": "issue_reopen",
-      "description": "Reopen a closed Issue (also sets the status on the board)",
-      "surfaces": {
-        "mcp": {
-          "tool": "issue_reopen"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
-          "comment": {
-            "type": "string",
-            "description": "Reason for reopening (posted as a comment)"
-          },
-          "issue_ref": {
-            "type": "string",
-            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
-          },
-          "project": {
-            "type": "string",
-            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
-          },
-          "status": {
-            "type": "string",
-            "default": "ready",
-            "description": "Status after reopening (backlog/pending/blocked/ready/active/in_review/archived)"
-          }
-        },
-        "required": [
-          "issue_ref"
-        ],
-        "additionalProperties": false
-      },
-      "mcp": {
-        "title": "Reopen Issue",
-        "output": {
-          "type": "object",
-          "properties": {
-            "issue": {
-              "type": "string",
-              "description": "Issue reopened (owner/repo/N)"
-            },
-            "status": {
-              "description": "Workflow status set on the board (omitted when the Issue is not on the board or the status is not configured)",
+            "expected_status": {
+              "description": "Column (pecot-status) the waiting Issue should be moved to after the change, by its option name on the board (omitted when it stays)",
               "type": "string"
             },
-            "unarchived": {
-              "type": "boolean",
-              "description": "Whether the item was unarchived on the board"
-            },
-            "doneCleared": {
-              "type": "boolean",
-              "description": "Whether the built-in Status Done was cleared on the board"
-            },
-            "commented": {
-              "type": "boolean",
-              "description": "Whether the reason was posted as a comment"
-            },
-            "kind": {
-              "type": "string",
-              "description": "Failure kind (failure only)"
-            },
-            "detail": {
-              "type": "string",
-              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
-            },
-            "log": {
-              "type": "string",
-              "description": "Raw output of a child process (failure only; omitted when not captured)"
-            },
-            "warnings": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
-            }
-          },
-          "additionalProperties": false,
-          "anyOf": [
-            {
-              "required": [
-                "issue",
-                "unarchived",
-                "doneCleared",
-                "commented"
-              ]
-            },
-            {
-              "required": [
-                "kind",
-                "detail"
-              ]
-            }
-          ]
-        },
-        "annotations": {
-          "readOnlyHint": false
-        }
-      }
-    },
-    {
-      "id": "PW-ISSUE-SHOW",
-      "name": "issue_show",
-      "description": "Fetch Issue details efficiently (GraphQL, only the needed fields)",
-      "surfaces": {
-        "mcp": {
-          "tool": "issue_show"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
-          "comment_limit": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 20,
-            "default": 5,
-            "description": "Number of comments to show (0-20; 0 hides them)"
-          },
-          "issue_ref": {
-            "type": "string",
-            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
-          },
-          "json": {
-            "type": "boolean",
-            "default": false,
-            "description": "Output as JSON"
-          },
-          "project": {
-            "type": "string",
-            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
-          }
-        },
-        "required": [
-          "issue_ref"
-        ],
-        "additionalProperties": false
-      },
-      "mcp": {
-        "title": "Get Issue details",
-        "output": {
-          "type": "object",
-          "properties": {
-            "number": {
-              "type": "integer",
-              "minimum": -9007199254740991,
-              "maximum": 9007199254740991,
-              "description": "Issue number"
-            },
-            "state": {
-              "type": "string",
-              "description": "State of the Issue (OPEN or CLOSED)"
-            },
-            "title": {
-              "type": "string",
-              "description": "Title of the Issue"
-            },
             "body": {
-              "type": "string",
-              "description": "Body of the Issue"
-            },
-            "comments": {
-              "type": "object",
-              "properties": {
-                "total_count": {
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991,
-                  "description": "Number of all comments"
-                },
-                "nodes": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "author": {
-                        "type": "string",
-                        "description": "Login of the author (ghost when deleted)"
-                      },
-                      "created_at": {
-                        "type": "string",
-                        "description": "Creation time (ISO 8601)"
-                      },
-                      "body": {
-                        "type": "string",
-                        "description": "Body of the comment"
-                      }
-                    },
-                    "required": [
-                      "author",
-                      "created_at",
-                      "body"
-                    ],
-                    "additionalProperties": false
-                  },
-                  "description": "Latest comments, up to comment_limit"
-                }
-              },
-              "required": [
-                "total_count",
-                "nodes"
-              ],
-              "additionalProperties": false,
-              "description": "Comments of the Issue"
-            },
-            "parent": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "number": {
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991,
-                      "description": "Issue number of the parent"
-                    },
-                    "title": {
-                      "type": "string",
-                      "description": "Title of the parent"
-                    },
-                    "state": {
-                      "type": "string",
-                      "description": "State of the parent (OPEN or CLOSED)"
-                    },
-                    "owner": {
-                      "description": "Owner of the parent repository",
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "repo": {
-                      "description": "Name of the parent repository",
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "number",
-                    "title",
-                    "state",
-                    "owner",
-                    "repo"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Parent Issue (null when none)"
-            },
-            "sub_issues": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "number": {
-                    "type": "integer",
-                    "minimum": -9007199254740991,
-                    "maximum": 9007199254740991,
-                    "description": "Issue number of the sub-issue"
-                  },
-                  "state": {
-                    "type": "string",
-                    "description": "State of the sub-issue (OPEN or CLOSED)"
-                  },
-                  "title": {
-                    "type": "string",
-                    "description": "Title of the sub-issue"
-                  }
-                },
-                "required": [
-                  "number",
-                  "state",
-                  "title"
-                ],
-                "additionalProperties": false
-              },
-              "description": "Sub-issues"
-            },
-            "linked_branches": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Branches linked to the Issue"
-            },
-            "linked_prs": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "number": {
-                    "type": "integer",
-                    "minimum": -9007199254740991,
-                    "maximum": 9007199254740991,
-                    "description": "PR number"
-                  },
-                  "title": {
-                    "type": "string",
-                    "description": "Title of the PR"
-                  },
-                  "state": {
-                    "type": "string",
-                    "description": "State of the PR"
-                  }
-                },
-                "required": [
-                  "number",
-                  "title",
-                  "state"
-                ],
-                "additionalProperties": false
-              },
-              "description": "PRs linked to the Issue"
-            },
-            "owner": {
-              "type": "string",
-              "description": "Owner of the Issue repository"
-            },
-            "repo": {
-              "type": "string",
-              "description": "Name of the Issue repository"
-            },
-            "blockedBy": {
-              "anyOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "number": {
-                        "type": "integer",
-                        "minimum": -9007199254740991,
-                        "maximum": 9007199254740991,
-                        "description": "Issue number of the prerequisite"
-                      },
-                      "repository": {
-                        "type": "string",
-                        "description": "Repository of the prerequisite (owner/repo)"
-                      },
-                      "state": {
-                        "type": "string",
-                        "enum": [
-                          "OPEN",
-                          "CLOSED"
-                        ],
-                        "description": "State of the prerequisite"
-                      },
-                      "wait": {
-                        "type": "string",
-                        "enum": [
-                          "stack",
-                          "merge"
-                        ],
-                        "description": "How to wait for the prerequisite (stack on its branch, or wait for its merge)"
-                      },
-                      "reason": {
-                        "description": "Reason written in the Waits for merge section (null when none)",
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      }
-                    },
-                    "required": [
-                      "number",
-                      "repository",
-                      "state",
-                      "wait",
-                      "reason"
-                    ],
-                    "additionalProperties": false
-                  }
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Prerequisites (blocked by) of the Issue (null when they could not be read)"
-            },
-            "readiness": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "kind": {
-                      "type": "string",
-                      "enum": [
-                        "startable",
-                        "stackable",
-                        "blocked"
-                      ],
-                      "description": "Readiness judgment"
-                    },
-                    "stackOn": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "properties": {
-                            "number": {
-                              "type": "integer",
-                              "minimum": -9007199254740991,
-                              "maximum": 9007199254740991,
-                              "description": "Issue number to stack on"
-                            },
-                            "repository": {
-                              "type": "string",
-                              "description": "Repository of that Issue (owner/repo)"
-                            },
-                            "branch": {
-                              "type": "string",
-                              "description": "Branch to stack on"
-                            }
-                          },
-                          "required": [
-                            "number",
-                            "repository",
-                            "branch"
-                          ],
-                          "additionalProperties": false
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "Prerequisite to stack on (null unless stackable)"
-                    },
-                    "reason": {
-                      "description": "Code of the reason for blocked (null unless blocked)",
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    },
-                    "text": {
-                      "type": "string",
-                      "description": "Readiness as shown in the Readiness line"
-                    }
-                  },
-                  "required": [
-                    "kind",
-                    "stackOn",
-                    "reason",
-                    "text"
-                  ],
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Readiness judgment (null when it could not be judged)"
-            },
-            "attributes": {
-              "anyOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string",
-                        "description": "Name of the attribute"
-                      },
-                      "source": {
-                        "type": "string",
-                        "enum": [
-                          "project",
-                          "issue_field",
-                          "issue"
-                        ],
-                        "description": "Where the attribute lives: project (a field of the configured board), issue_field (an Issue field) or issue (built into the Issue)"
-                      },
-                      "kind": {
-                        "type": "string",
-                        "enum": [
-                          "single_select",
-                          "multi_select",
-                          "text",
-                          "number",
-                          "date",
-                          "iteration",
-                          "users",
-                          "milestone",
-                          "issue_type",
-                          "labels",
-                          "issue_ref",
-                          "issue_refs",
-                          "unsupported"
-                        ],
-                        "description": "Kind of the value"
-                      },
-                      "value": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        ],
-                        "description": "Value: a name for select, iteration, milestone and issue_type; a list for multi_select, users, labels and issue_refs; a number for number; YYYY-MM-DD for date; owner/repo/N for issue_ref"
-                      }
-                    },
-                    "required": [
-                      "name",
-                      "source",
-                      "kind",
-                      "value"
-                    ],
-                    "additionalProperties": false
-                  }
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Attributes that have a value: fields of the configured board, Issue fields, and built-in ones (null when they could not be read)"
-            },
-            "unsupported": {
-              "anyOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string",
-                        "description": "Name of the attribute"
-                      },
-                      "source": {
-                        "type": "string",
-                        "enum": [
-                          "project",
-                          "issue_field",
-                          "issue"
-                        ],
-                        "description": "Where the attribute lives: project (a field of the configured board), issue_field (an Issue field) or issue (built into the Issue)"
-                      },
-                      "github_type": {
-                        "type": "string",
-                        "description": "GitHub type that pecot does not handle"
-                      }
-                    },
-                    "required": [
-                      "name",
-                      "source",
-                      "github_type"
-                    ],
-                    "additionalProperties": false
-                  }
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Attributes that have a value of a kind pecot does not handle (null when they could not be read)"
+              "description": "Body of the waiting Issue with the line of the prerequisite added to or removed from the Waits for merge section; write it with issue_check (method update) and issue_write (method update). Omitted when the body stays",
+              "type": "string"
             },
             "kind": {
               "type": "string",
@@ -2750,21 +1677,7 @@
           "anyOf": [
             {
               "required": [
-                "number",
-                "state",
-                "title",
-                "body",
-                "comments",
-                "parent",
-                "sub_issues",
-                "linked_branches",
-                "linked_prs",
-                "owner",
-                "repo",
-                "blockedBy",
-                "readiness",
-                "attributes",
-                "unsupported"
+                "problems"
               ]
             },
             {
@@ -2776,138 +1689,8 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true
-        }
-      }
-    },
-    {
-      "id": "PW-ISSUE-UNBLOCK",
-      "name": "issue_unblock",
-      "description": "Remove a blocked-by (prerequisite) from an Issue",
-      "surfaces": {
-        "mcp": {
-          "tool": "issue_unblock"
-        }
-      },
-      "hidden": false,
-      "deprecated": false,
-      "input": {
-        "type": "object",
-        "properties": {
-          "by": {
-            "type": "string",
-            "description": "The prerequisite Issue to remove (`owner/repo/N`; another repository is allowed)"
-          },
-          "issue_ref": {
-            "type": "string",
-            "description": "The waiting Issue. Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
-          },
-          "project": {
-            "type": "string",
-            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them"
-          }
-        },
-        "required": [
-          "by",
-          "issue_ref"
-        ],
-        "additionalProperties": false
-      },
-      "mcp": {
-        "title": "Remove Issue blocker",
-        "output": {
-          "type": "object",
-          "properties": {
-            "issue": {
-              "type": "string",
-              "description": "The waiting Issue (owner/repo/N)"
-            },
-            "by": {
-              "type": "string",
-              "description": "The prerequisite Issue (owner/repo/N)"
-            },
-            "change": {
-              "type": "string",
-              "enum": [
-                "removed",
-                "unchanged"
-              ],
-              "description": "removed, or unchanged when it was not a blocked-by"
-            },
-            "moves": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "issue": {
-                    "type": "string",
-                    "description": "Issue as shown in the moved line (#N, or owner/repo#N outside the home repository)"
-                  },
-                  "from": {
-                    "description": "Column before the move (omitted when only the Status changed)",
-                    "type": "string"
-                  },
-                  "to": {
-                    "description": "Column after the move (omitted when only the Status changed)",
-                    "type": "string"
-                  },
-                  "label": {
-                    "description": "Status value set (omitted when the Status did not change)",
-                    "type": "string"
-                  },
-                  "reason": {
-                    "type": "string",
-                    "description": "Readiness that decided the move"
-                  }
-                },
-                "required": [
-                  "issue",
-                  "reason"
-                ],
-                "additionalProperties": false
-              },
-              "description": "The waiting Issue when its column or Status was written (at most one; empty when nothing was written)"
-            },
-            "kind": {
-              "type": "string",
-              "description": "Failure kind (failure only)"
-            },
-            "detail": {
-              "type": "string",
-              "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
-            },
-            "log": {
-              "type": "string",
-              "description": "Raw output of a child process (failure only; omitted when not captured)"
-            },
-            "warnings": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
-            }
-          },
-          "additionalProperties": false,
-          "anyOf": [
-            {
-              "required": [
-                "issue",
-                "by",
-                "change",
-                "moves"
-              ]
-            },
-            {
-              "required": [
-                "kind",
-                "detail"
-              ]
-            }
-          ]
-        },
-        "annotations": {
-          "readOnlyHint": false
+          "readOnlyHint": true,
+          "openWorldHint": false
         }
       }
     },
@@ -4560,6 +3343,16 @@
                   "active": {
                     "type": "boolean",
                     "description": "Whether this config is the active project"
+                  },
+                  "owner": {
+                    "description": "Owner of the board, for projects_list and projects_write (omitted when the config cannot be read)",
+                    "type": "string"
+                  },
+                  "project_number": {
+                    "description": "Number of the board, for projects_list and projects_write (omitted when the config cannot be read)",
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
                   }
                 },
                 "required": [
@@ -6396,70 +5189,70 @@
       "uri": "pecot-template://comment/plan",
       "name": "comment/plan",
       "title": "Plan comment",
-      "description": "Template of the plan comment posted on an Issue before implementation (issue_comment)",
+      "description": "Template of the plan comment posted on an Issue before implementation (issue_comment_check, then add_issue_comment or update_issue_comment)",
       "mimeType": "text/markdown"
     },
     {
       "uri": "pecot-template://comment/merge-diff",
       "name": "comment/merge-diff",
       "title": "Merge diff comment",
-      "description": "Template of the comment on how the merged result differs from the plan (issue_comment)",
+      "description": "Template of the comment on how the merged result differs from the plan (issue_comment_check, then add_issue_comment or update_issue_comment)",
       "mimeType": "text/markdown"
     },
     {
       "uri": "pecot-template://comment/review-findings",
       "name": "comment/review-findings",
       "title": "Review findings comment",
-      "description": "Template of the review findings comment posted on a PR (issue_comment)",
+      "description": "Template of the review findings comment posted on a PR (issue_comment_check, then add_issue_comment or update_issue_comment)",
       "mimeType": "text/markdown"
     },
     {
       "uri": "pecot-template://comment/review-resolution",
       "name": "comment/review-resolution",
       "title": "Review resolution comment",
-      "description": "Template of the comment on how the review findings were addressed (issue_comment)",
+      "description": "Template of the comment on how the review findings were addressed (issue_comment_check, then add_issue_comment or update_issue_comment)",
       "mimeType": "text/markdown"
     },
     {
       "uri": "pecot-template://comment/precede-notify",
       "name": "comment/precede-notify",
       "title": "Precede notice comment",
-      "description": "Template of the comment telling a waiting Issue that its prerequisite was merged (issue_comment)",
+      "description": "Template of the comment telling a waiting Issue that its prerequisite was merged (issue_comment_check, then add_issue_comment or update_issue_comment)",
       "mimeType": "text/markdown"
     },
     {
       "uri": "pecot-template://issue/task",
       "name": "issue/task",
       "title": "Task Issue",
-      "description": "Template of a task Issue (issue_create)",
+      "description": "Template of a task Issue (issue_check, then issue_write)",
       "mimeType": "text/markdown"
     },
     {
       "uri": "pecot-template://issue/bug",
       "name": "issue/bug",
       "title": "Bug Issue",
-      "description": "Template of a bug Issue (issue_create)",
+      "description": "Template of a bug Issue (issue_check, then issue_write)",
       "mimeType": "text/markdown"
     },
     {
       "uri": "pecot-template://issue/epic",
       "name": "issue/epic",
       "title": "Epic Issue",
-      "description": "Template of an Epic Issue (issue_create)",
+      "description": "Template of an Epic Issue (issue_check, then issue_write)",
       "mimeType": "text/markdown"
     },
     {
       "uri": "pecot-template://issue/tracker",
       "name": "issue/tracker",
       "title": "Tracker Issue",
-      "description": "Template of a tracker Issue (issue_create)",
+      "description": "Template of a tracker Issue (issue_check, then issue_write)",
       "mimeType": "text/markdown"
     },
     {
       "uri": "pecot-template://issue/task-implement",
       "name": "issue/task-implement",
       "title": "Implementation task Issue",
-      "description": "Template of a task Issue for one phase of an implementation plan (issue_create)",
+      "description": "Template of a task Issue for one phase of an implementation plan (issue_check, then issue_write)",
       "mimeType": "text/markdown"
     },
     {

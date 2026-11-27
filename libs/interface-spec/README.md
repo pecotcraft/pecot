@@ -74,13 +74,14 @@ Chromium は pecot-visual と同じ版の playwright のものを使います。
 | 欄 | 中身 |
 |---|---|
 | `separator` | 名前の語の区切り。`" "` か `"_"` |
-| `positions` | 語の位置ごとの一覧。語（英小文字と数字）と意味を持つ |
+| `positions` | 語の位置ごとの一覧。語（英小文字と数字）と意味を持つ。語は、区切りでつないだ 2 語以上でもよい（`issue_dependency`） |
 | `read_only` | 読むだけの語の印。`true` だけを書く |
 | `rest` | `true` なら、`positions` の後ろに 1 語以上の自由な語（英小文字と数字）を求める |
 
 `validate`（`lint-defs`）は次を止めます。
 
-- 項目の `name` を `separator` で分けた語の数が合わない。`rest` が `false` なら `positions` の数と同じ、`true` ならそれより多い数が要る
+- 項目の `name` を `separator` で分けた語の数が合わない。`positions` の語を前から当て、当てた語の数を数える。`rest` が `false` なら当てた数と同じ、`true` ならそれより多い数が要る
+- 1 つの位置で、2 語以上の語と 1 語の語の両方が当たるときは、長い方を当てる
 - 語が、その位置の一覧に無い
 - 同じ位置に同じ語が 2 回ある
 - 名前に `read_only` の語を持つ項目の `effects` に、`read` でない種類がある（`authored.yaml` の行で出す）

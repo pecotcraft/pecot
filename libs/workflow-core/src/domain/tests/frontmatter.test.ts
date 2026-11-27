@@ -5,13 +5,10 @@ import { JSON_NULL } from '../json-null.js'
 import { PecotError } from '../errors.js'
 import {
   FrontmatterError,
-  parseCommentContent,
   parseFrontmatter,
   parsePullRequestContent,
-  setFrontmatterValue,
   stripFrontmatter,
   stripLeadingHtmlComment,
-  validateCommentFrontmatter,
   validateIssueFrontmatter,
   validatePullRequestFrontmatter,
 } from '../frontmatter.js'
@@ -475,9 +472,7 @@ repository: owner/repo
 status: ready
 ---
 
-
    本文
-
 
 `
     expect(parseFrontmatter(content).body).toBe('本文')
@@ -509,78 +504,6 @@ status: ready
     const result = parseFrontmatter('---\r\ntitle: T\r\ntype: task\r\nrepository: o/r\r\nstatus: ready\r\n---\r\n\r\n本文\r\n')
     expect(result.frontmatter.title).toBe('T')
     expect(result.body).toBe('本文')
-  })
-})
-
-describe('validateCommentFrontmatter', () => {
-  it('issue_ref だけを渡すと、template を undefined にして返す', async () => {
-    await explains('コメントのフロントマターを検証する、`validateCommentFrontmatter` のテストです。`issue_ref` だけを渡した場合に、`template` を `undefined` にして返すことを確認します。')
-    const fm = validateCommentFrontmatter({ issue_ref: 'owner/repo/123' })
-    expect(fm.issue_ref).toBe('owner/repo/123')
-    expect(fm.template).toBeUndefined()
-  })
-
-  it('issue_ref と template を渡すと、両方の値を返す', async () => {
-    await explains('コメントのフロントマターを検証する、`validateCommentFrontmatter` のテストです。`issue_ref` と `template` を渡した場合に、両方の値を返すことを確認します。')
-    const fm = validateCommentFrontmatter({ issue_ref: 'owner/repo/456', template: 'merge-diff' })
-    expect(fm.issue_ref).toBe('owner/repo/456')
-    expect(fm.template).toBe('merge-diff')
-  })
-
-  it('issue_ref が存在しない場合は、エラーにする', async () => {
-    await explains('コメントのフロントマターを検証する、`validateCommentFrontmatter` のテストです。`issue_ref` が存在しない場合に、`issue_ref: Field required` を含むメッセージで例外が発生することを確認します。')
-    expect(() => validateCommentFrontmatter({})).toThrow('  - issue_ref: Field required')
-  })
-
-  it('comment_url を渡すと、その値を返し、省くと undefined にする', async () => {
-    await explains('コメントのフロントマターを検証する、`validateCommentFrontmatter` のテストです。`comment_url` を渡した場合はその値を返し、省略した場合は `undefined` を返すことを確認します。')
-    expect(validateCommentFrontmatter({ issue_ref: 'o/r/1', comment_url: 'https://x/1' }).comment_url).toBe('https://x/1')
-    expect(validateCommentFrontmatter({ issue_ref: 'o/r/1' }).comment_url).toBeUndefined()
-  })
-})
-
-describe('parseCommentContent', () => {
-  it('issue_ref と本文のあるコンテンツを渡すと、issue_ref と本文を取り出す', async () => {
-    await explains('コメントのコンテンツからフロントマターと本文を取り出す、`parseCommentContent` のテストです。`issue_ref` と本文があるコンテンツを渡した場合に、`issue_ref` と本文を取り出すことを確認します。')
-    const content = `---
-issue_ref: "owner/repo/123"
----
-
-## 進捗報告
-
-これは本文です。
-`
-    const result = parseCommentContent(content)
-    expect(result.frontmatter.issue_ref).toBe('owner/repo/123')
-    expect(result.body).toContain('## 進捗報告')
-    expect(result.body).toContain('これは本文です。')
-  })
-
-  it('issue_ref・template・本文のあるコンテンツを渡すと、3 つとも取り出す', async () => {
-    await explains('コメントのコンテンツからフロントマターと本文を取り出す、`parseCommentContent` のテストです。`issue_ref`・`template`・本文があるコンテンツを渡した場合に、3 つとも取り出すことを確認します。')
-    const content = `---
-issue_ref: "org/project/42"
-template: merge-diff
----
-
-### Completed
-
-- タスク1
-`
-    const result = parseCommentContent(content)
-    expect(result.frontmatter.issue_ref).toBe('org/project/42')
-    expect(result.frontmatter.template).toBe('merge-diff')
-    expect(result.body).toContain('### Completed')
-  })
-
-  it('フロントマターが存在しない場合は、エラーにする', async () => {
-    await explains('コメントのコンテンツからフロントマターと本文を取り出す、`parseCommentContent` のテストです。フロントマターが存在しないコンテンツを渡した場合に、`frontmatter not found` を含むメッセージで例外が発生することを確認します。')
-    expect(() => parseCommentContent('# タイトル\n\n本文のみ\n')).toThrow('frontmatter not found')
-  })
-
-  it('issue_ref が存在しない場合は、エラーにする', async () => {
-    await explains('コメントのコンテンツからフロントマターと本文を取り出す、`parseCommentContent` のテストです。`issue_ref` が存在しないコンテンツを渡した場合に、`validation error` を含むメッセージで例外が発生することを確認します。')
-    expect(() => parseCommentContent('---\ntemplate: merge-diff\n---\n\n本文\n')).toThrow('validation error')
   })
 })
 
@@ -713,12 +636,6 @@ describe('stripLeadingHtmlComment（冒頭ガイドコメント除去 #958 F-02�
     expect(parseFrontmatter(content).body).toBe('## Goal — 目標')
   })
 
-  it('コメントのコンテンツを読み取るときに、冒頭のコメントを除去する', async () => {
-    await explains('コメントのコンテンツからフロントマターと本文を取り出す、`parseCommentContent` のテストです。本文の冒頭に HTML コメントがある場合に、コメントを除いた本文を取り出すことを確認します。')
-    const content = '---\nissue_ref: "owner/repo/1"\ntemplate: merge-diff\n---\n\n<!--\n書き方: なにか\n-->\n\n## Merge — 現在地\n'
-    expect(parseCommentContent(content).body).toBe('## Merge — 現在地')
-  })
-
   it('PR のコンテンツを読み取るときに、冒頭のコメントを除去する', async () => {
     await explains('PR のコンテンツからフロントマターと本文を取り出す、`parsePullRequestContent` のテストです。本文の冒頭に HTML コメントがある場合に、コメントを除いた本文を取り出すことを確認します。')
     const content = '---\ntitle: "T"\nrepository: "owner/repo"\nbase: "main"\n---\n\n<!--\nフィールド: なにか\n-->\n\n## Verified — 検証済み\n'
@@ -747,36 +664,5 @@ describe('stripFrontmatter（frontmatter 除去ヘルパ）', () => {
     await explains('本文からフロントマターを除去する、`stripFrontmatter` のテストです。フロントマターの終わりの `---` が存在しない場合に、同じ本文を返すことを確認します。')
     const content = '---\ntitle: x\n本文\n'
     expect(stripFrontmatter(content)).toBe(content)
-  })
-})
-
-describe('setFrontmatterValue', () => {
-  it('同じ値のキーの行がすでにある場合は、行を追加せず元の本文を返す', async () => {
-    await explains('フロントマターの値を設定する、`setFrontmatterValue` のテストです。同じキーと値の行がすでにある場合に、行を追加せず、元の本文を返すことを確認します。')
-    const content = '---\nissue_ref: "o/r/1"\ncomment_url: "https://x/1"\n---\n\n## Plan\n'
-    expect(setFrontmatterValue(content, 'comment_url', 'https://x/1')).toBe(content)
-  })
-
-  it('新しいキーはフロントマターの末尾に追加し、本文は変更しない', async () => {
-    await explains('フロントマターの値を設定する、`setFrontmatterValue` のテストです。フロントマターに存在しないキーを設定した場合に、フロントマターの末尾にキーを追加し、本文を変更しないことを確認します。')
-    const content = '---\nissue_ref: "o/r/1"\n---\n\n## Plan\n'
-    expect(setFrontmatterValue(content, 'comment_url', 'https://x/1')).toBe('---\nissue_ref: "o/r/1"\ncomment_url: "https://x/1"\n---\n\n## Plan\n')
-  })
-
-  it('同じキーの行がある場合は、その行を置き換える', async () => {
-    await explains('フロントマターの値を設定する、`setFrontmatterValue` のテストです。同じキーの行がある場合に、その行の値を新しい値に置き換え、ほかの行を変更しないことを確認します。')
-    const content = '---\ncomment_url: "old"\nissue_ref: "o/r/1"\n---\nbody\n'
-    expect(setFrontmatterValue(content, 'comment_url', 'new')).toBe('---\ncomment_url: "new"\nissue_ref: "o/r/1"\n---\nbody\n')
-  })
-
-  it('キーに正規表現の記号が含まれていても、その文字どおりの行だけを置き換える', async () => {
-    await explains('フロントマターの値を設定する、`setFrontmatterValue` のテストです。キーが `a.c` のように正規表現の記号を含む場合に、`abc` のような別のキーの行は変更せず、`a.c` の行だけを置き換えることを確認します。')
-    const content = '---\na.c: "1"\nabc: "2"\n---\nbody\n'
-    expect(setFrontmatterValue(content, 'a.c', 'x')).toBe('---\na.c: "x"\nabc: "2"\n---\nbody\n')
-  })
-
-  it('フロントマターが存在しない場合は、FrontmatterError の例外が発生する', async () => {
-    await explains('フロントマターの値を設定する、`setFrontmatterValue` のテストです。フロントマターが存在しない本文に値を設定した場合に、`FrontmatterError` の例外が発生することを確認します。')
-    expect(() => setFrontmatterValue('## Plan\n', 'comment_url', 'x')).toThrow(new FrontmatterError('frontmatter not found'))
   })
 })

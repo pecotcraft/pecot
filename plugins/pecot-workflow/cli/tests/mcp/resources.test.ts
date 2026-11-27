@@ -45,11 +45,12 @@ afterEach(async () => {
 
 describe('initialize', () => {
   it('つなぐと、capabilities に resources を持ち、テンプレートの使い方を instructions に返す', async () => {
-    await explains('MCP サーバへ接続したときに返す、capabilities と instructions のテストです。capabilities に `resources` が含まれ、instructions にテンプレートの URI（`pecot-template://`）の使い方が含まれることを確認します。')
+    await explains('MCP サーバへ接続したときに返す、capabilities と instructions のテストです。capabilities に `resources` が含まれることを確認します。instructions に、テンプレートの URI と、書く前に通すツール・公式の GitHub MCP のツールの名前が含まれることも確認します。')
     const { client } = await connect()
     expect(client.getServerCapabilities()).toHaveProperty('resources')
     expect(client.getInstructions()).toBe(MCP_INSTRUCTIONS)
-    expect(MCP_INSTRUCTIONS).toContain('pecot-template://')
+    const named = ['pecot-template://', 'issue_check', 'issue_dependency_check', 'issue_comment_check', 'issue_write', 'issue_dependency_write', 'add_issue_comment', 'update_issue_comment', 'pr_create']
+    expect(named.filter(name => !MCP_INSTRUCTIONS.includes(name))).toEqual([])
   })
 })
 

@@ -18,6 +18,9 @@
 # Give the App these permissions. The workflow narrows its token to what each job needs.
 #   Repository: Contents: write, Issues: write, Pull requests: write, Actions: read.
 #   Organization: Projects: write. Boards owned by a user are not supported.
+# The Fix step also runs the official GitHub MCP server in Docker as "github-official".
+# The image is ghcr.io/github/github-mcp-server.
+# The server reads issues and adds or edits issue comments with the App token. The runner needs Docker.
 # Then set these in Settings > Secrets and variables > Actions.
 #   Variable PECOT_AGENT_APP_CLIENT_ID, the client ID of the App.
 #   Secret PECOT_AGENT_APP_PRIVATE_KEY, a private key of the App.
@@ -125,6 +128,9 @@ jobs:
       contents: read
       id-token: write
     env:
+      # The official GitHub MCP server reads and comments on issues.
+      # Claude Code expands ${PECOT_GITHUB_COM_TOKEN} from the step env.
+      PECOT_AUTO_GITHUB_MCP: '{"mcpServers":{"github-official":{"type":"stdio","command":"docker","args":["run","-i","--rm","-e","GITHUB_PERSONAL_ACCESS_TOKEN","-e","GITHUB_HOST","-e","GITHUB_TOOLS","ghcr.io/github/github-mcp-server:v2.3.0@sha256:f8ee4dedc7d5c8cb32854ab91cc92a31c55a8a5510708cf8742e9f9427588ca6"],"env":{"GITHUB_PERSONAL_ACCESS_TOKEN":"${PECOT_GITHUB_COM_TOKEN}","GITHUB_HOST":"${{ github.server_url }}","GITHUB_TOOLS":"issue_read,add_issue_comment,update_issue_comment"}}}}'
       # pecot-auto:allowed-tools:begin
       # Tools that your tests and preparation steps need, separated by commas.
       PECOT_AUTO_EXTRA_ALLOWED_TOOLS: ""
@@ -191,8 +197,9 @@ jobs:
           claude_args: >-
             --permission-mode default
             --max-turns ${{ vars.PECOT_AUTO_MAX_TURNS || '80' }}
+            --mcp-config '${{ env.PECOT_AUTO_GITHUB_MCP }}'
             --add-dir "${{ runner.temp }}/pecot-auto"
-            --allowedTools "Read,Glob,Grep,Edit,Write,mcp__plugin_pecot-w_pecot-workflow__session_start,mcp__plugin_pecot-w_pecot-workflow__issue_comment,mcp__plugin_pecot-w_pecot-workflow__pr_check,mcp__plugin_pecot-w_pecot-workflow__pr_create,Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git fetch:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh pr checks:*),Bash(gh run view:*)${{ env.PECOT_AUTO_EXTRA_ALLOWED_TOOLS != '' && format(',{0}', env.PECOT_AUTO_EXTRA_ALLOWED_TOOLS) || '' }}"
+            --allowedTools "Read,Glob,Grep,Edit,Write,mcp__plugin_pecot-w_pecot-workflow__session_start,mcp__plugin_pecot-w_pecot-workflow__issue_comment_check,mcp__github-official__issue_read,mcp__github-official__add_issue_comment,mcp__github-official__update_issue_comment,mcp__plugin_pecot-w_pecot-workflow__pr_check,mcp__plugin_pecot-w_pecot-workflow__pr_create,Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git fetch:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh pr checks:*),Bash(gh run view:*)${{ env.PECOT_AUTO_EXTRA_ALLOWED_TOOLS != '' && format(',{0}', env.PECOT_AUTO_EXTRA_ALLOWED_TOOLS) || '' }}"
             --disallowedTools "Agent,AskUserQuestion,WebFetch,WebSearch,Bash(git clone:*),Read(//proc/**)"
 
       # Writes the result comment from the result file of the skill, or from how the job ended.

@@ -72,7 +72,7 @@ export const ATTRIBUTE_ERROR_CODES = [
 export type AttributeErrorCode = typeof ATTRIBUTE_ERROR_CODES[number]
 
 /**
-issue_create・issue_edit の attributes の 1 つ。value の null は外す。source は同じ名前が複数の source にあるときだけ要る
+issue_check の機能の値の 1 つ。value の null は外す。source は同じ名前が複数の source にあるときだけ要る
 */
 export interface AttributeInput {
   readonly name: string
@@ -97,7 +97,7 @@ export interface AttributeError {
 /**
 検証が照らす、定義の外の事実。
 unreadableSources は定義を読めなかった source と理由、unassignableLogins は担当にできないと分かったログイン名。
-current は issue_edit の今の値（issue_create では undefined）、isOnBoard は設定のボードに Issue が載っているか
+current は issue_check の update の今の値（create では undefined）、isOnBoard は設定のボードに Issue が載っているか
 */
 export interface AttributeValidationContext {
   readonly unreadableSources: ReadonlyMap<AttributeSource, string>
@@ -257,7 +257,7 @@ export interface BuiltinChoices {
 const named = (names: readonly string[]): readonly AttributeOption[] => names.map(name => ({ name }))
 
 /**
-組み込みの機能の定義。parent・blocked_by は、書く道を issue_create と issue_block・issue_unblock の 1 つにするので書けない
+組み込みの機能の定義。parent・blocked_by は、書く道を issue_write・sub_issue_write と issue_dependency_write にするので書けない
 */
 export function builtinDefinitions(choices: Readonly<BuiltinChoices>): readonly AttributeDefinition[] {
   return [
@@ -268,10 +268,6 @@ export function builtinDefinitions(choices: Readonly<BuiltinChoices>): readonly 
     definition('parent', 'issue', 'issue_ref', [], false),
     definition('blocked_by', 'issue', 'issue_refs', [], false),
   ]
-}
-
-export function unsupportedOf(definitions: readonly AttributeDefinition[]): readonly UnsupportedAttribute[] {
-  return definitions.filter(definition => definition.kind === 'unsupported').map(({ name, source, unsupportedReason = '' }) => ({ name, source, githubType: unsupportedReason }))
 }
 
 export type ProjectValueTreatment
@@ -309,26 +305,6 @@ export function builtinReadings(values: Readonly<BuiltinValues>): readonly Attri
     ...reading('milestone', 'milestone', values.milestone),
     ...reading('type', 'issue_type', values.issueType),
     ...reading('labels', 'labels', values.labels),
-  ]
-}
-
-export interface IssueLocation {
-  readonly owner: string
-  readonly repository: string
-  readonly number: number
-}
-
-export function issueReferenceText(location: Readonly<IssueLocation>): string {
-  return `${location.owner}/${location.repository}/${String(location.number)}`
-}
-
-/**
-parent・blocked_by の値。blockedBy が undefined（読めない）か空なら blocked_by を出さない
-*/
-export function relationReadings(parent: Readonly<IssueLocation> | undefined, blockedBy: readonly Readonly<IssueLocation>[] | undefined): readonly AttributeReading[] {
-  return [
-    ...reading('parent', 'issue_ref', parent === undefined ? undefined : issueReferenceText(parent)),
-    ...reading('blocked_by', 'issue_refs', blockedBy?.map(location => issueReferenceText(location))),
   ]
 }
 
@@ -546,8 +522,8 @@ function resolveDefinition(definitions: readonly AttributeDefinition[], input: R
 }
 
 function readOnlyHint(definition: Readonly<AttributeDefinition>): string {
-  if (definition.kind === 'issue_ref') return 'set the parent with parent_epic'
-  if (definition.kind === 'issue_refs') return 'change blocked_by with issue_block or issue_unblock'
+  if (definition.kind === 'issue_ref') return 'set the parent with parent_owner, parent_repo and parent_issue_number, written by issue_write or sub_issue_write'
+  if (definition.kind === 'issue_refs') return 'change blocked_by with issue_dependency_write after issue_dependency_check'
   return 'move the issue with board_move'
 }
 
@@ -590,7 +566,7 @@ function planWrite(definition: Readonly<AttributeDefinition>, value: AttributeVa
 
 /**
 attributes を定義に照らす。1 つでも合わなければ全部の理由を返し、書く予定を返さない。
-current が undefined（issue_create）なら null を飛ばし、current があれば値の変わる機能だけを書く
+current が undefined（issue_check の create）なら null を飛ばし、current があれば値の変わる機能だけを書く
 */
 export function validateAttributes(definitions: readonly AttributeDefinition[], inputs: readonly AttributeInput[], context: Readonly<AttributeValidationContext>): AttributeValidation {
   const resolved = inputs.map(input => ({ input, resolution: resolveDefinition(definitions, input, context) }))

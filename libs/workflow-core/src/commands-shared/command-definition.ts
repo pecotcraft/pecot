@@ -74,7 +74,7 @@ export type GlobalInput = z.output<typeof GLOBAL_SCHEMA>
 
 export interface ToolSpec<Input extends z.ZodObject, Output extends z.ZodObject> {
   /**
-  `issue_create`、`board_add`。決まりは `<対象>_<動詞>` の 2 語で、どちらも英小文字だけ（names.ts の toolNameViolations）
+  `board_add`、`issue_comment_check`。決まりは `<対象>_<動詞>` で、最後の語が動詞（names.ts の toolNameViolations）
   */
   readonly name: string
   /**
@@ -99,6 +99,10 @@ export interface ToolSpec<Input extends z.ZodObject, Output extends z.ZodObject>
   真なら、共通の repo を使わない。`repo` は自分の入力の値だけになる（hasOwnRepo のツール用）
   */
   readonly ignoresGlobalRepo?: boolean
+  /**
+  偽なら、外の世界（GitHub など）に触れない印。MCP の openWorldHint: false になる。省けば印を出さない
+  */
+  readonly openWorld?: false
   /**
   実行して 0 を返す。出力は io に書く。失敗は CommandExit で止め、原因の名前を運ぶ
   */
@@ -141,6 +145,10 @@ export interface ToolDefinition {
   */
   readonly readOnly: boolean
   /**
+  外の世界に触れないツールだけ false。ほかは undefined
+  */
+  readonly openWorld?: false
+  /**
   検証の段。入力が不正なら ZodError を投げる。本体は呼ばない
   */
   readonly parse: (input: Readonly<Record<string, unknown>>) => PreparedCommand
@@ -151,7 +159,7 @@ export interface ToolDefinition {
 }
 
 /**
-ツール名から定義書（interface/）の項目の ID を作る。`session_start` は PW-SESSION-START、`issue_create` は PW-ISSUE-CREATE
+ツール名から定義書（interface/）の項目の ID を作る。`session_start` は PW-SESSION-START、`issue_comment_check` は PW-ISSUE-COMMENT-CHECK
 */
 export function interfaceIdOf(name: string): string {
   return `PW-${name.toUpperCase().replaceAll('_', '-')}`
@@ -198,7 +206,8 @@ export function defineTool<Input extends z.ZodObject, Output extends z.ZodObject
     output: spec.output,
     hasOwnRepo: hasOwnRepository,
     ignoresGlobalRepo: spec.ignoresGlobalRepo === true,
-    readOnly: COMMAND_VERBS.some(verb => verb.name === spec.name.split('_', 2)[1] && verb.readOnly === true),
+    readOnly: COMMAND_VERBS.some(verb => verb.name === spec.name.slice(spec.name.lastIndexOf('_') + 1) && verb.readOnly === true),
+    ...spec.openWorld === false && { openWorld: false },
     parse,
     run: async (raw, io) => await parse(raw).run(io),
   }

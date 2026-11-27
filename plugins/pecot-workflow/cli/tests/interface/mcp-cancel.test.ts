@@ -266,15 +266,15 @@ it('pr_create の題の scope の確認が nx graph を待つ間、ping に答�
   expect(await pingAndCancel({ name: 'pr_create', arguments: arguments_, sleeper, directory: workspace.directory })).toEqual(RESPONSIVE)
 })
 
-it('トークンの無い issue_show が gh auth token を待つ間、ping に答え、取り消すと gh を止める', { timeout: 30_000 }, async (context) => {
+it('トークンの無い pr_show が gh auth token を待つ間、ping に答え、取り消すと gh を止める', { timeout: 30_000 }, async (context) => {
   await verifies(context, 'PW-COMMON-24')
   await verifies(context, 'PW-COMMON-25')
-  await explains('トークンが設定されていない `issue_show` が `gh auth token` を待っている間の、MCP サーバの応答のテストです。`gh` が応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すと `gh` のプロセスが終了することを確認します。')
+  await explains('トークンが設定されていない `pr_show` が `gh auth token` を待っている間の、MCP サーバの応答のテストです。`gh` が応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すと `gh` のプロセスが終了することを確認します。')
   const workspace = await openWorkspace({ env: { PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: undefined } })
   const bin = path.join(workspace.root, 'bin')
   const sleeper = writeSleeper(bin, 'gh')
   setEnvironment({ PATH: `${bin}${path.delimiter}${process.env['PATH'] ?? ''}` })
-  expect(await pingAndCancel({ name: 'issue_show', arguments: { issue_ref: 'acme/demo/12' }, sleeper, directory: workspace.directory })).toEqual(RESPONSIVE)
+  expect(await pingAndCancel({ name: 'pr_show', arguments: { pr_ref: 'acme/demo/12' }, sleeper, directory: workspace.directory })).toEqual(RESPONSIVE)
 })
 
 it('worktree_add が setup_command を待つ間、ping に答え、取り消すとシェルの下のコマンドも止める', { timeout: 30_000 }, async (context) => {

@@ -1,4 +1,4 @@
-// 失敗の原因の名前。MCP の結果の kind に入る。定義書の exit_status[].kind の集合と一致させる（tests/failure-kinds-definition.test.ts）。
+// 失敗の原因の名前。MCP の結果の kind に入る。pecot-workflow と actions の定義書の exit_status[].kind の集合と一致させる（tests/failure-kinds-definition.test.ts）。
 // eslint-disable-next-line no-restricted-syntax -- 配列から型を作るための as const
 export const FAILURE_KINDS = [
   'invalid-input',
@@ -7,6 +7,7 @@ export const FAILURE_KINDS = [
   'github-not-found',
   'github-rate-limit',
   'github-api',
+  'github-mcp-shape',
   'config-invalid',
   'project-root-not-found',
   'session-directory-unresolved',
@@ -22,7 +23,6 @@ export const FAILURE_KINDS = [
   'status-not-configured',
   'guard-blocked',
   'not-ready',
-  'dependency-rejected',
   'dependency-unreadable',
   'order-conflict',
   'content-invalid',

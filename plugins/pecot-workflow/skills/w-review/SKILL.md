@@ -12,7 +12,7 @@ when_to_use: "自動レビューのワークフローが PR をレビューす�
 
 ## 手順
 
-引数に `project=<名前>` があれば、このスキルで使う pecot-workflow の MCP ツールに、その名前を `project` で渡す。渡す先は `pr_show`・`issue_show`・`issue_comment` の 3 つ。
+引数に `project=<名前>` があれば、このスキルで使う pecot-workflow の MCP ツールに、その名前を `project` で渡す。渡す先は `pr_show` の 1 つ。
 
 ### Step 1: PR 情報を取得
 
@@ -22,7 +22,7 @@ pecot-workflow の MCP ツール `pr_show` を使って、PR とレビューを�
 
 diff は `gh pr diff <PR番号> --repo <owner/repo>` で読む。長い diff がファイルとして渡されたときは、そのファイルを `Read` で読む。
 
-PR が閉じる Issue（`pr_show` の `closing_issues`）があれば、pecot-workflow の MCP ツール `issue_show` を使って、それも読む。入力に `comment_limit: 20` を渡す。`referenced_issues` の Issue は読まない。
+PR が閉じる Issue（`pr_show` の `closing_issues`）があれば、公式の MCP の `issue_read` で、それも読む。本文は `get`、コメントは `get_comments` で読む。`referenced_issues` の Issue は読まない。
 
 読んだ Issue のコメントから、計画のコメントを探す。計画のコメントは、`## Plan` と `## PECOT-Workflow` の 2 つの見出しを持つ。複数あれば、新しい方を使う。Issue が複数あれば、Issue ごとに探す。
 
@@ -78,6 +78,7 @@ action に同梱の MCP ツール `create_inline_comment` で、1 件ずつ投�
 - 直っていないものは「対応」にする
 
 1. pecot-workflow の MCP サーバの resource `pecot-template://comment/review-findings` を読み、ガイドを読む
-2. 書いた本文を、pecot-workflow の MCP ツール `issue_comment` で投稿する。入力は `template: "review-findings"` と、本文を入れた `message`
+2. 本文は、ファイルへ写さずに書く。このワークフローには、ファイルを書く許可が無い
+3. 本文を、この PR の `owner`・`repo`・`issue_number` と一緒に、pecot-workflow の MCP ツール `issue_comment_check` に渡す。通ったら、公式の MCP の `add_issue_comment` で投稿する
 
 投稿したら終わる。採否は聞かず、コードは直さない。スレッドの resolve もしない。

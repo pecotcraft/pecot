@@ -1,6 +1,6 @@
 # Epic 集約リポ設定の詳細
 
-`/pecot-w:w-onboarding` Step 3 の補足。集約リポ (`aggregation_repo`) を設定すると pecot-workflow の MCP ツール `issue_create`（`type: "epic"`）の作成先が自動ルーティングされる。
+`/pecot-w:w-onboarding` Step 3 の補足。集約リポ (`aggregation_repo`) を設定すると、w-backlog が Epic をそのリポに作る。pecot-workflow の MCP ツール `issue_check` は、Epic を集約リポの外に作ろうとすると警告する。
 
 ## 4.0 現状確認
 
@@ -13,9 +13,9 @@ pecot-workflow の MCP ツール `project_get` を使う（`key: "aggregation_re
 ## 4.1 AskUserQuestion Q1: 方針選択
 
 - header: "Epic集約リポ"
-- question: "Epic の集約方針（`issue_create`（`type: "epic"`）の自動ルーティング先を 1 リポにするか）"
+- question: "Epic の集約方針（Epic の作成先を 1 リポにするか）"
 - options:
-  - label: "使わない", description: "Epic は都度 `repo` で作成先を明示する。後から設定変更可能"
+  - label: "使わない", description: "Epic は都度作成先のリポを決める。後から設定変更可能"
   - label: "既存リポを指定（推奨）", description: "登録済みリポ、または任意の owner/repo を集約リポとして宣言"
   - label: "新規リポを作成", description: "`<project>-roadmap` 等の専用リポを作成して集約に設定"
   - label: "現状維持 `<現在値>`", description: "既設定のまま変更しない（4.0 で設定済を検出した場合のみ表示）"

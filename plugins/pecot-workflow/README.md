@@ -54,18 +54,28 @@ Claude Code の既定の権限では、呼び直しのときに、スキルを�
 
 ## MCP サーバ
 
-MCP サーバ `pecot-workflow` が、39 個の MCP ツールを公開します。
+MCP サーバ `pecot-workflow` が、33 個の MCP ツールを公開します。
 プラグインは、プラグインと同じ版の npm のパッケージ `@pecot/workflow-mcp` を `npx` で起動します。
 Issue・コメント・PR のテンプレートは、MCP の resource で読めます。URI は `pecot-template://<種類>/<名前>`（例: `pecot-template://comment/plan`）です。
-ツール名は、`<対象> <動詞>` の空白を `_` に置き換えた形です（`issue create` は `issue_create`、`session start` は `session_start`）。
+ツール名は、対象と動詞を `_` でつないだ形です（`session_start`、`issue_dependency_check`）。
 許可リストに書くツール名は、Claude Code では `mcp__plugin_pecot-w_pecot-workflow__<ツール名>` です。
 GitHub Copilot CLI では `pecot-workflow-<ツール名>` です。
 
-Issue の前提（blocked by）と、前提の PR の上にスタックした PR（スタック PR）は、次の 4 つのツールで扱います。スキルの手順からも呼ばれます。
+pecot-workflow は、GitHub の Issue とコメントに読み書きしません。スキルは GitHub の公式の MCP サーバ（[github-mcp-server](https://github.com/github/github-mcp-server)）のツールで読み書きします。書く前に、次のチェックのツールに通します。
+チェックのツールは、書く公式のツールに渡すのと同じ値を受け、pecot の決まり（テンプレート・題の番号・前提・ボードの欄）に合うかだけを返します。
+
+| ツール | 先に通す公式のツール |
+|:------|:--------|
+| `issue_check` | `issue_write`（Issue の作成・書き換え） |
+| `issue_dependency_check` | `issue_dependency_write`（前提の付け外し） |
+| `issue_comment_check` | `add_issue_comment`・`update_issue_comment` |
+
+公式の MCP サーバは、features の `issue_dependencies` を有効にしてつなぎます。つなぎ方は `/pecot-w:w-help` の「公式の MCP をつなぐ」にあります。
+
+前提の PR の上にスタックした PR（スタック PR）は、次の 2 つのツールで扱います。スキルの手順からも呼ばれます。
 
 | ツール | 使う場面 |
 |:------|:--------|
-| `issue_block` / `issue_unblock` | 投稿した後の Issue の前提を付け外しする。前提の種類（スタック可・スタック不可）を変える |
 | `pr_merge` | PR をマージする（スタックの中の PR は一番下だけ） |
 | `pr_restack` | 親ブランチが変わったとき、スタックしたブランチを新しい位置へスタックし直す |
 

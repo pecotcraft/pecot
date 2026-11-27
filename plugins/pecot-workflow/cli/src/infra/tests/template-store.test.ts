@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import { explains } from '../../../tests/_helpers/explains.js'
 
-import type { CommentFrontmatter, IssueFrontmatter } from '@pecot/workflow-core/domain/frontmatter.js'
+import type { IssueFrontmatter } from '@pecot/workflow-core/domain/frontmatter.js'
 import {
   validateBodyStyle,
   validateClosedHeadings,
@@ -16,6 +16,7 @@ import type { SectionHeading } from '@pecot/workflow-core/domain/sections.js'
 import { readTemplateSections } from '@pecot/workflow-core/infra/template-sections.js'
 import { useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
+import { COMMENT_TEMPLATES } from '../../commands/issue-comment-check.js'
 import { templateFile, templatesDirectory } from '../template-store.js'
 import type { TemplateKind } from '../template-store.js'
 
@@ -68,7 +69,6 @@ describe('templatesDirectory・templateFile', () => {
 
 // 検証に渡すテンプレートの名前の全部。readTemplateSections は無いファイルで空を返し、検証が何も止めなくなるため、実在を確かめる
 const ISSUE_TEMPLATE_NAMES: Readonly<Record<NonNullable<IssueFrontmatter['template']> | IssueFrontmatter['type'], true>> = { 'task': true, 'bug': true, 'epic': true, 'tracker': true, 'task-implement': true }
-const COMMENT_TEMPLATE_NAMES: Readonly<Record<NonNullable<CommentFrontmatter['template']>, true>> = { 'plan': true, 'merge-diff': true, 'review-findings': true, 'review-resolution': true, 'precede-notify': true }
 
 describe('検証に渡すテンプレートのパス', () => {
   it.each(Object.keys(ISSUE_TEMPLATE_NAMES))('Issue の %s のテンプレートは、ファイルが存在し、見出しを 1 つ以上持つ', async (name) => {
@@ -77,7 +77,7 @@ describe('検証に渡すテンプレートのパス', () => {
     expect(readTemplateSections(templateFile('issue', name)).length).toBeGreaterThan(0)
   })
 
-  it.each(Object.keys(COMMENT_TEMPLATE_NAMES))('コメントの %s のテンプレートは、ファイルが存在し、見出しを 1 つ以上持つ', async (name) => {
+  it.each(COMMENT_TEMPLATES)('コメントの %s のテンプレートは、ファイルが存在し、見出しを 1 つ以上持つ', async (name) => {
     await explains('検証に使うコメントのテンプレートのテストです。`plan`・`merge-diff`・`review-findings` などのそれぞれについて、ファイルが存在し、見出しを 1 つ以上持つことを確認します。')
     expect(existsSync(templateFile('comment', name))).toBe(true)
     expect(readTemplateSections(templateFile('comment', name)).length).toBeGreaterThan(0)

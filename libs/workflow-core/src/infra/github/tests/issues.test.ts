@@ -214,25 +214,6 @@ describe('addIssueComment', () => {
   })
 })
 
-describe('updateIssueComment', () => {
-  it('コメント ID と本文を渡した場合は、そのコメント ID 宛てに PATCH する', async () => {
-    await explains('`updateIssueComment` のテストです。コメント ID と本文を渡した場合に、そのコメント ID 宛てに PATCH を送信することを確認します。')
-    const { client, server } = await startClient([restResponse('PATCH', '/repos/owner/repo/issues/comments/456', { status: 200, body: { id: 456, body: 'New' } })])
-    expect(await client.updateIssueComment('owner', 'repo', 456, 'New')).toEqual({ id: 456, body: 'New' })
-    expect(restRequests(server).map(({ method, path, body }) => ({ method, path, body }))).toEqual([
-      { method: 'PATCH', path: '/repos/owner/repo/issues/comments/456', body: { body: 'New' } },
-    ])
-  })
-
-  it('存在しないコメントを更新した場合は、GitHubNotFoundError が発生する', async () => {
-    await explains('`updateIssueComment` の失敗時のテストです。存在しないコメント ID で 404 が返った場合に、`GitHubNotFoundError` が発生することを確認します。')
-    const { client, server } = await startClient([restResponse('PATCH', '/repos/owner/repo/issues/comments/999', { status: 404, text: 'Not Found' })])
-    expect(await rejection(client.updateIssueComment('owner', 'repo', 999, 'x'))).toMatchObject(
-      failure(GitHubNotFoundError, `resource not found: ${server.url}/repos/owner/repo/issues/comments/999`, { statusCode: 404 }),
-    )
-  })
-})
-
 describe('addIssueComment の失敗', () => {
   it('存在しない Issue にコメントを追加した場合は、GitHubNotFoundError が発生する', async () => {
     await explains('`addIssueComment` の失敗時のテストです。存在しない Issue で 404 が返った場合に、`GitHubNotFoundError` が発生することを確認します。')
@@ -639,7 +620,7 @@ describe('getIssueSlim', () => {
   })
 })
 
-describe('closeIssue / reopenIssue', () => {
+describe('closeIssue', () => {
   it('closeIssue は、state=closed と state_reason=completed を PATCH する', async () => {
     await explains('`closeIssue` のテストです。Issue を閉じる場合に、`state=closed` と `state_reason=completed` を PATCH で送信し、応答を返すことを確認します。')
     const { client, server } = await startClient([restResponse('PATCH', '/repos/owner/repo/issues/123', { status: 200, body: { number: 123, state: 'closed', state_reason: 'completed' } })])
@@ -654,27 +635,17 @@ describe('closeIssue / reopenIssue', () => {
     expect(restRequests(server).map(({ body }) => body)).toEqual([{ state: 'closed', state_reason: 'not_planned' }])
   })
 
-  it('reopenIssue は、state=open と state_reason=reopened を PATCH する', async () => {
-    await explains('`reopenIssue` のテストです。Issue を開き直す場合に、`state=open` と `state_reason=reopened` を PATCH で送信し、応答を返すことを確認します。')
-    const { client, server } = await startClient([restResponse('PATCH', '/repos/owner/repo/issues/123', { status: 200, body: { number: 123, state: 'open', title: 'Test Issue' } })])
-    expect(await client.reopenIssue('owner', 'repo', 123)).toEqual({ number: 123, state: 'open', title: 'Test Issue' })
-    expect(restRequests(server).map(({ method, body }) => ({ method, body }))).toEqual([{ method: 'PATCH', body: { state: 'open', state_reason: 'reopened' } }])
-  })
-
   it('GHES のクライアントでも、token 認証で同じパスに PATCH を送信する', async () => {
-    await explains('`reopenIssue` の GHES 対応のテストです。GHES のホスト名を指定したクライアントでも、`token` 認証で同じパスへ PATCH を送信することを確認します。')
-    const { client, server } = await startClient([restResponse('PATCH', '/repos/org/repo/issues/456', { status: 200, body: { number: 456, state: 'open' } })], 'ghes.example.com')
-    expect(await client.reopenIssue('org', 'repo', 456)).toEqual({ number: 456, state: 'open' })
+    await explains('`closeIssue` の GHES 対応のテストです。GHES のホスト名を指定したクライアントでも、`token` 認証で同じパスへ PATCH を送信することを確認します。')
+    const { client, server } = await startClient([restResponse('PATCH', '/repos/org/repo/issues/456', { status: 200, body: { number: 456, state: 'closed' } })], 'ghes.example.com')
+    expect(await client.closeIssue('org', 'repo', 456)).toEqual({ number: 456, state: 'closed' })
     expect(restRequests(server).map(({ auth, path }) => ({ auth, path }))).toEqual([{ auth: 'token', path: '/repos/org/repo/issues/456' }])
   })
 
-  it.each([
-    ['closeIssue', async (client: Readonly<GitHubClient>) => client.closeIssue('owner', 'repo', 999)],
-    ['reopenIssue', async (client: Readonly<GitHubClient>) => client.reopenIssue('owner', 'repo', 999)],
-  ])('%s で 404 が返った場合は、GitHubNotFoundError が発生する', async (_name, call) => {
-    await explains('`closeIssue` と `reopenIssue` の失敗時のテストです。存在しない Issue で 404 が返った場合に、`GitHubNotFoundError` が発生することを確認します。')
+  it('404 が返った場合は、GitHubNotFoundError が発生する', async () => {
+    await explains('`closeIssue` の失敗時のテストです。存在しない Issue で 404 が返った場合に、`GitHubNotFoundError` が発生することを確認します。')
     const { client, server } = await startClient([restResponse('PATCH', '/repos/owner/repo/issues/999', { status: 404, text: 'Not Found' })])
-    expect(await rejection(call(client))).toMatchObject(
+    expect(await rejection(client.closeIssue('owner', 'repo', 999))).toMatchObject(
       failure(GitHubNotFoundError, `resource not found: ${server.url}/repos/owner/repo/issues/999`, { statusCode: 404 }),
     )
   })

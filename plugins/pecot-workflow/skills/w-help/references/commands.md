@@ -22,15 +22,9 @@
 
 | ツール | 説明 |
 | --- | --- |
-| `issue_attributes` | List the attributes an Issue of the repository can have: fields of the configured board, Issue fields, and built-in ones |
-| `issue_block` | Add a blocked-by (prerequisite) to an Issue, or change the wait kind and reason of an existing one |
-| `issue_check` | Check Markdown files for issue_create and show their order numbers, prerequisites and how to proceed, without creating anything |
-| `issue_comment` | Post a comment on an Issue |
-| `issue_create` | Create Issues from Markdown files with frontmatter |
-| `issue_edit` | Write, change or remove the values of the attributes of an Issue by name (the attributes that issue_attributes lists) |
-| `issue_reopen` | Reopen a closed Issue (also sets the status on the board) |
-| `issue_show` | Fetch Issue details efficiently (GraphQL, only the needed fields) |
-| `issue_unblock` | Remove a blocked-by (prerequisite) from an Issue |
+| `issue_check` | Check the arguments for issue_write (and the board fields and blocked-by written after it) against the pecot rules before writing: the template of the body, the title prefix and order, the type, the Issue and board fields, the column to place the Issue in, and the prerequisites. A batch create gives the order numbers and how each Issue proceeds. Reads and writes nothing on GitHub; pass the results of the official reads in reads. |
+| `issue_comment_check` | Check the arguments for add_issue_comment or update_issue_comment against the pecot rules before writing: the bundled comment template the body follows, and with update, that the comment belongs to the Issue. Reads and writes nothing on GitHub; pass the results of the official reads in reads. |
+| `issue_dependency_check` | Check the arguments for issue_dependency_write against the pecot rules before writing: the direction, wait kind and reason, a self reference or cycle, whether the blocked-by is already there, and the column the waiting Issue should move to after the change. Reads and writes nothing on GitHub; pass the results of the official reads in reads. |
 
 ## pr
 

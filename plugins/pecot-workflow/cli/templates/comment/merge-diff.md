@@ -1,6 +1,9 @@
 ---
-issue_ref: ""
-template: merge-diff
+template: "pecot-template://comment/merge-diff"
+owner: ""
+repo: ""
+issue_number: null
+comment_id: null
 ---
 
 <!--

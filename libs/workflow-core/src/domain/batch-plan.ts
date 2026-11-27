@@ -1,10 +1,9 @@
-// issue_create の一括投稿の前提の確認と、進め方の表。I/O を持たない。
+// issue_check の一括の起票の前提の確認と、進め方の表。I/O を持たない。
 
-import { displayReference, planProgression, stackChains } from './readiness.js'
+import { planProgression } from './readiness.js'
 import type { Progression, Wait } from './readiness.js'
 import { issueReferenceKey, issueReferenceToCliReference, parseIssueReference, ReferenceParseError } from './reference-parser.js'
 import type { IssueReference } from './reference-parser.js'
-import type { RepositoryReference } from './repository-resolver.js'
 
 export interface BatchEntry {
   readonly issue: string
@@ -116,13 +115,6 @@ export function resolveBatch(files: readonly BatchFile[]): BatchResolution {
   return { kind: 'ok', prerequisites, progressions: plan.progressions }
 }
 
-/**
-進め方の表に出すキーの表記。ファイルは代表のキー、既存の Issue は home と同じリポジトリなら `#N`、別なら `owner/repo#N`
-*/
-function displayTarget({ target, key }: Readonly<ResolvedPrerequisite>, home: RepositoryReference): string {
-  return target.kind === 'file' ? key : displayReference(target.reference, home)
-}
-
 export interface PlanRow {
   readonly file: string
   /**
@@ -131,47 +123,4 @@ export interface PlanRow {
   readonly order: number | undefined
   readonly prerequisites: readonly ResolvedPrerequisite[]
   readonly progression: Progression | undefined
-}
-
-function approachOf(row: Readonly<PlanRow>, labelOf: (prerequisite: Readonly<ResolvedPrerequisite>) => string): string {
-  const { progression } = row
-  switch (progression?.kind) {
-    case undefined:
-    case 'alone': {
-      return 'alone'
-    }
-    case 'wait-merge': {
-      return `wait for merge of ${row.prerequisites.filter(({ wait }) => wait === 'merge').map(prerequisite => labelOf(prerequisite)).join(', ')}`
-    }
-    case 'join': {
-      return `join (wait for ${row.prerequisites.map(prerequisite => labelOf(prerequisite)).join(', ')})`
-    }
-    case 'stack': {
-      const on = row.prerequisites.find(({ key }) => key === progression.on)
-      return `stack on ${on === undefined ? progression.on : labelOf(on)}`
-    }
-  }
-}
-
-/**
-`--plan` の表。列は File・Number・Blocked by・Approach。既存の Issue の表記は、一括の先頭のファイルのリポジトリ home を基準にする
-*/
-export function formatPlanTable(rows: readonly PlanRow[], home: RepositoryReference): string {
-  const lines = ['| File | Number | Blocked by | Approach |', '|---|---|---|---|']
-  const labelOf = (prerequisite: Readonly<ResolvedPrerequisite>): string => displayTarget(prerequisite, home)
-  for (const row of rows) {
-    const blockedBy = row.prerequisites.length === 0
-      ? '-'
-      : row.prerequisites.map(prerequisite => `${labelOf(prerequisite)}${prerequisite.wait === 'merge' ? ' (merge)' : ''}`).join(', ')
-    lines.push(`| ${row.file} | ${row.order === undefined ? '-' : String(row.order)} | ${blockedBy} | ${approachOf(row, labelOf)} |`)
-  }
-  return lines.join('\n')
-}
-
-/**
-スタックできる並び。キーを label で表記に直し、並びが無ければ undefined。並びは `Stackable chains:` の見出しと `- a -> b` の行にする
-*/
-export function formatStackableChains(progressions: ReadonlyMap<string, Progression>, label: (key: string) => string): string | undefined {
-  const chains = stackChains(progressions).filter(chain => chain.length >= 2)
-  return chains.length === 0 ? undefined : ['Stackable chains:', ...chains.map(chain => `- ${chain.map(key => label(key)).join(' -> ')}`)].join('\n')
 }

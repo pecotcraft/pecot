@@ -1,6 +1,9 @@
 ---
-issue_ref: ""
-template: review-resolution
+template: "pecot-template://comment/review-resolution"
+owner: ""
+repo: ""
+issue_number: null
+comment_id: null
 ---
 
 <!--

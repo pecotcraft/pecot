@@ -33,7 +33,10 @@
 # By default, comments come from the Claude GitHub App and github-actions[bot].
 # To post as your own GitHub App, set variable PECOT_AGENT_APP_CLIENT_ID.
 # Also set secret PECOT_AGENT_APP_PRIVATE_KEY.
-# The workflow narrows its token to Pull requests: write and Contents: read.
+# The workflow narrows its token to Pull requests: write, Issues: read, and Contents: read.
+# It also runs the official GitHub MCP server in Docker as "github-official".
+# The image is ghcr.io/github/github-mcp-server.
+# The server reads issues and adds or edits issue comments with that token. The runner needs Docker.
 #
 # Optional variables. Each one falls back to its default when unset.
 #   PECOT_REVIEW_TRIGGER_PHRASE starts a review again. The default is "@pecotbot review".
@@ -115,8 +118,12 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      issues: read
       id-token: write
     env:
+      # The official GitHub MCP server reads and comments on issues.
+      # Claude Code expands ${PECOT_GITHUB_COM_TOKEN} from the step env.
+      PECOT_REVIEW_GITHUB_MCP: '{"mcpServers":{"github-official":{"type":"stdio","command":"docker","args":["run","-i","--rm","-e","GITHUB_PERSONAL_ACCESS_TOKEN","-e","GITHUB_HOST","-e","GITHUB_TOOLS","ghcr.io/github/github-mcp-server:v2.3.0@sha256:f8ee4dedc7d5c8cb32854ab91cc92a31c55a8a5510708cf8742e9f9427588ca6"],"env":{"GITHUB_PERSONAL_ACCESS_TOKEN":"${PECOT_GITHUB_COM_TOKEN}","GITHUB_HOST":"${{ github.server_url }}","GITHUB_TOOLS":"issue_read,add_issue_comment,update_issue_comment"}}}}'
       # pecot-review:allowed-tools:begin
       # Tools that your preparation steps need, separated by commas.
       PECOT_REVIEW_EXTRA_ALLOWED_TOOLS: ""
@@ -140,6 +147,7 @@ jobs:
           client-id: ${{ vars.PECOT_AGENT_APP_CLIENT_ID }}
           private-key: ${{ secrets.PECOT_AGENT_APP_PRIVATE_KEY }}
           permission-pull-requests: write
+          permission-issues: read
           permission-contents: read
 
       # A push reviews only a PR that has no review yet, such as one opened with a merge conflict.
@@ -244,8 +252,9 @@ jobs:
             --model ${{ vars.PECOT_REVIEW_MODEL || 'opus' }}
             --effort ${{ vars.PECOT_REVIEW_EFFORT || 'high' }}
             --max-turns ${{ vars.PECOT_REVIEW_MAX_TURNS || '60' }}
+            --mcp-config '${{ env.PECOT_REVIEW_GITHUB_MCP }}'
             ${{ vars.PECOT_REVIEW_WEB_ACCESS != 'false' && format('--mcp-config ''{0}''', secrets.CONTEXT7_API_KEY != '' && env.PECOT_REVIEW_CONTEXT7_WITH_KEY || env.PECOT_REVIEW_CONTEXT7) || '' }}
-            --allowedTools "Read,Glob,Grep,mcp__plugin_pecot-w_pecot-workflow__pr_show,mcp__plugin_pecot-w_pecot-workflow__issue_show,mcp__plugin_pecot-w_pecot-workflow__issue_comment,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)${{ vars.PECOT_REVIEW_WEB_ACCESS != 'false' && ',WebSearch,WebFetch(domain:docs.github.com),mcp__context7__resolve-library-id,mcp__context7__query-docs' || '' }}${{ env.PECOT_REVIEW_EXTRA_ALLOWED_TOOLS != '' && format(',{0}', env.PECOT_REVIEW_EXTRA_ALLOWED_TOOLS) || '' }}"
+            --allowedTools "Read,Glob,Grep,mcp__plugin_pecot-w_pecot-workflow__pr_show,mcp__plugin_pecot-w_pecot-workflow__issue_comment_check,mcp__github-official__issue_read,mcp__github-official__add_issue_comment,mcp__github-official__update_issue_comment,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)${{ vars.PECOT_REVIEW_WEB_ACCESS != 'false' && ',WebSearch,WebFetch(domain:docs.github.com),mcp__context7__resolve-library-id,mcp__context7__query-docs' || '' }}${{ env.PECOT_REVIEW_EXTRA_ALLOWED_TOOLS != '' && format(',{0}', env.PECOT_REVIEW_EXTRA_ALLOWED_TOOLS) || '' }}"
             --disallowedTools "Edit,Write,NotebookEdit,AskUserQuestion,Agent${{ vars.PECOT_REVIEW_WEB_ACCESS == 'false' && ',WebFetch,WebSearch' || '' }},Bash(git clone:*),Read(//proc/**)"
 
       # Tool inputs carry text that Claude wrote from the diff, so each one goes in a code span.

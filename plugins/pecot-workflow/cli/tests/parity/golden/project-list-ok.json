@@ -5,11 +5,15 @@
     "projects": [
       {
         "name": "ghes.example.com_acme_board_acme",
-        "active": true
+        "active": true,
+        "owner": "acme",
+        "project_number": 1
       },
       {
         "name": "ghes.example.com_acme_other_acme",
-        "active": false
+        "active": false,
+        "owner": "acme",
+        "project_number": 2
       }
     ]
   },

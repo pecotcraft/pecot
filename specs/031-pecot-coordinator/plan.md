@@ -45,7 +45,7 @@ GitHub Actions の JavaScript の action（`runs.using: node24`、rollup でま�
 | 原則 | 判断 | 理由 |
 |---|---|---|
 | I. ライブラリ優先 | 合格 | 共有する決まり（前提の判定・本文の組み立て・GitHub の読み書き）を `libs/workflow-core` に置き、pecot-workflow と `actions/` はそれを呼ぶ入口だけを持つ |
-| II. テキストのインタフェース（5.0.0） | 合格 | この計画で 4.0.0 の「CLI インタフェース」から直す（research の R10）。プラグインは機能を MCP のツールだけで公開する。スキルが呼ぶ計算のツールは、GitHub 公式の MCP で読んだ結果を JSON で受け、書き込む中身を JSON で返す。`actions/` の action は入力を `action.yml` の `inputs` で受ける |
+| II. テキストのインタフェース（5.0.0） | 合格 | この計画で 4.0.0 の「CLI インタフェース」から直す（research の R10）。プラグインは機能を MCP のツールだけで公開する。スキルが呼ぶチェックのツールは、書く GitHub 公式の MCP のツールに渡す値と、公式の MCP で読んだ結果を JSON で受け、決まりに合うかを JSON で返す。`actions/` の action は入力を `action.yml` の `inputs` で受ける |
 | III. テストファースト | 合格 | 移す処理は、新しい置き場所を指すテストに先に直す。計算のツールの入出力は定義書とテストに先に書く。pecot-coordinator の `test-skills` も先に書く |
 | IV. 標準準拠 | 合格 | プラグインの形は claude.ai の文書と Agent Plugins 1.0（R1・R2）、action の形と版の管理は GitHub の文書（R5）、タグの形は Dependabot のソース（R6）に合わせる。スレッドの読み書きは GitHub 公式の MCP のツールに従い、包む層を作らない |
 | V. 品質の自動チェック | 合格 | 新しい 3 つの project を lint・test・knip の対象に入れる。`actions/` の `dist/` が source と食い違わないことを CI で止める。pecot-coordinator を `claude plugin validate --strict` の対象に入れる |

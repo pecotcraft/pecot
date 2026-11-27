@@ -4,7 +4,7 @@ description: |
   PRを作成しタイトル・説明を自動生成し、CIとレビューの指摘に対応します。
   Use when the user wants to create a pull request for the current branch — auto-generates title/description from commits and diff, waits for CI, then addresses the review findings without asking which to adopt, replying with the reason on each one it declines. Triggers: "create PR", "submit for review", "address review comments".
   Does not merge PRs itself — it then waits for the user to merge on GitHub and runs the post-merge cleanup (session finish).
-allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check mcp__plugin_pecot-w_pecot-workflow__pr_create mcp__plugin_pecot-w_pecot-workflow__pr_show mcp__plugin_pecot-w_pecot-workflow__issue_comment mcp__plugin_pecot-w_pecot-workflow__issue_show mcp__plugin_pecot-w_pecot-workflow__session_show mcp__plugin_pecot-w_pecot-workflow__session_finish Bash(node ${CLAUDE_SKILL_DIR}/scripts/wait-pr.cjs *) Bash(gh api:*) Bash(git push:*) Bash(git checkout:*) Bash(git branch:*) Bash(git worktree list:*) Bash(git fetch:*) Bash(git pull:*) Bash(mkdir:*) Bash(touch:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr comment:*) Bash(gh pr checks:*) Bash(gh run view:*) Bash(git add:*) Bash(git commit:*)
+allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check mcp__plugin_pecot-w_pecot-workflow__pr_create mcp__plugin_pecot-w_pecot-workflow__pr_show mcp__plugin_pecot-w_pecot-workflow__issue_comment_check mcp__plugin_pecot-w_pecot-workflow__session_show mcp__plugin_pecot-w_pecot-workflow__session_finish Bash(node ${CLAUDE_SKILL_DIR}/scripts/wait-pr.cjs *) Bash(gh api:*) Bash(git push:*) Bash(git checkout:*) Bash(git branch:*) Bash(git worktree list:*) Bash(git fetch:*) Bash(git pull:*) Bash(mkdir:*) Bash(touch:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr comment:*) Bash(gh pr checks:*) Bash(gh run view:*) Bash(git add:*) Bash(git commit:*)
 when_to_use: "PR を作りたい、レビューに出したい、プルリクエストの説明文を作ってほしい、PR のレビュー指摘に対応したい"
 ---
 
@@ -215,7 +215,7 @@ gh api --hostname <対象ホスト> graphql \
 
 まず、次の 2 つを行う。
 
-1. resource `pecot-template://comment/review-resolution` を読み、PR 宛てのテンプレのファイルを作る。frontmatter の `issue_ref` には PR を書く。Decision 節と Declined 節を埋める。
+1. resource `pecot-template://comment/review-resolution` を読み、PR 宛てのテンプレのファイルを作る。frontmatter の `owner`・`repo`・`issue_number` には PR を書く。Decision 節と Declined 節を埋める。
 
 2. 対応不要の F-NN のスレッドに、理由を返信する。返信先は、対応表の先頭コメントの `databaseId` にする。
 
@@ -270,7 +270,7 @@ gh api --hostname <対象ホスト> graphql -f query='
 
 #### `review-resolution` を投稿
 
-書き始めたファイルを、テンプレのガイドに従って仕上げて投稿する。コミットの sha と、コミットメッセージにある対応内容は本文に書かない。投稿には `issue_comment` を使う。
+書き始めたファイルを、テンプレのガイドに従って仕上げて投稿する。コミットの sha と、コミットメッセージにある対応内容は本文に書かない。投稿は、pecot-workflow の MCP ツール `issue_comment_check` に通してから、公式の MCP の `add_issue_comment` で行う。
 
 対応を終えたら、チャットに `review-resolution` の本文をそのまま示して報告する。
 

@@ -172,7 +172,7 @@ describe('extractIssueSurface', () => {
 })
 
 const HANDLERS = ['labels', 'milestone']
-const TOOLS = ['issue_create', 'issue_block']
+const TOOLS = ['issue_check', 'issue_dependency_check']
 
 function coverageOf(items: readonly unknown[]): IssueCoverage {
   return issueCoverageSchema.parse({ items })
@@ -185,7 +185,7 @@ describe('checkIssueCoverage', () => {
     await explains('対応状況の一覧（`issue-coverage.yaml`）を検証する `checkIssueCoverage` のテストです。スナップショットのすべての項目が一覧にあり、`supported` と `excluded` の組み合わせが正しい場合に、問題を 1 件も返さないことを確認します。')
     const coverage = coverageOf([
       { id: 'graphql:A.a', status: 'supported', handler: 'labels' },
-      { id: 'graphql:A.b', status: 'supported', tool: 'issue_block' },
+      { id: 'graphql:A.b', status: 'supported', tool: 'issue_dependency_check' },
       { id: 'graphql:A.c', status: 'excluded', reason: 'preview' },
     ])
     expect(checkIssueCoverage(surface, coverage, HANDLERS, TOOLS)).toEqual([])
@@ -197,7 +197,7 @@ describe('checkIssueCoverage', () => {
       { id: 'graphql:A.c', status: 'supported' },
       { id: 'graphql:A.c', status: 'excluded', reason: 'preview' },
       { id: 'graphql:Z.z', status: 'supported', handler: 'labels' },
-      { id: 'graphql:A.b', status: 'supported', handler: 'labels', tool: 'issue_create' },
+      { id: 'graphql:A.b', status: 'supported', handler: 'labels', tool: 'issue_check' },
     ])
     expect(checkIssueCoverage(surface, coverage, HANDLERS, TOOLS)).toEqual([
       'graphql:A.a: not in issue-coverage.yaml',
@@ -213,7 +213,7 @@ describe('checkIssueCoverage', () => {
     { name: 'tool が TOOLS に存在しない', entry: { tool: 'issue_link' }, expected: 'tool issue_link is not an MCP tool of TOOLS' },
     { name: 'supported に reason がある', entry: { handler: 'labels', reason: 'x' }, expected: 'supported must not have a reason' },
     { name: 'excluded に handler がある', entry: { status: 'excluded', handler: 'labels', reason: 'x' }, expected: 'excluded must not have handler or tool' },
-    { name: 'excluded に tool がある', entry: { status: 'excluded', tool: 'issue_create', reason: 'x' }, expected: 'excluded must not have handler or tool' },
+    { name: 'excluded に tool がある', entry: { status: 'excluded', tool: 'issue_check', reason: 'x' }, expected: 'excluded must not have handler or tool' },
   ])('$name 場合は、id を示した問題を返す', async ({ entry, expected }) => {
     await explains('`supported` と `excluded` の項目の指定を検証する `checkIssueCoverage` のテストです。存在しない `handler` や `tool`、`supported` の `reason`、`excluded` の `handler` や `tool` を指定した場合に、id を示した問題を 1 件返すことを確認します。')
     const coverage = coverageOf([{ id: 'graphql:A.a', status: 'supported', ...entry }])

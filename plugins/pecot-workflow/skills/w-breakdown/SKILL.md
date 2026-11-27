@@ -48,7 +48,7 @@ gh repo view --json nameWithOwner -q .nameWithOwner
 
 ### Step 3: 対象Epicを特定
 
-ユーザーの指示から対象Epicを特定する。Epic番号・タイトル指定なら直接使用、不明な場合は AskUserQuestion で Backlog 内の Epic を選択させる。pecot-workflow の MCP ツール `issue_show` を使って、その Epic を読む。
+ユーザーの指示から対象Epicを特定する。Epic番号・タイトル指定なら直接使用、不明な場合は AskUserQuestion で Backlog 内の Epic を選択させる。公式の MCP の `issue_read`（`get`・`get_sub_issues`）で、その Epic と sub-issue を読む。
 
 `owner/repo` は Epic Issue が置かれているリポ。speckit 成果物の作成先は Step 2 で確定済。
 
@@ -59,7 +59,7 @@ Step 3 で読んだ Epic の sub-issue から、OPEN の分解のタスクを、
 1. 題に「speckit で分解する:」を含む OPEN の sub-issue を探す。見つかれば、それを分解のタスクとする
 2. 見つからなければ、ほかの OPEN の sub-issue の紐づいたブランチを確かめる。名前が `feat/breakdown-` で始まるブランチを持つものを、分解のタスクとする
 
-紐づいたブランチは、pecot-workflow の MCP ツール `issue_show` でそのタスクを読んで確かめる。
+紐づいたブランチは、公式の MCP の `list_branches` で、そのタスクのリポのブランチを読んで確かめる。pecot のブランチは、名前が `/<Issue 番号>` で終わる。
 
 | 見つかったもの | すること |
 |---|---|
@@ -67,12 +67,13 @@ Step 3 で読んだ Epic の sub-issue から、OPEN の分解のタスクを、
 | タスクだけ（ブランチが無い） | 起票しない。そのタスクで `session_start` を呼ぶ |
 | どちらも無い | 起票し、`session_start` を呼ぶ |
 
-起票は、pecot-workflow の MCP ツール `issue_create` で、次の入力を渡す。
+起票は、テンプレートを通さない自由形式で行う。手順は [Issue とコメントを公式の MCP で書く](../w-help/references/issue-write.md) の「Issue を作る」のとおり。pecot-workflow の MCP ツール `issue_check` に `template` を渡さずに通し、公式の MCP の `issue_write` で作る。値は次のとおり。
 
-- `freeform: true`
-- `parent_epic`: Step 3 で読んだ Epic の `owner/repo/N`。整数は `aggregation_repo` の Issue と読まれるので使わない
-- `repo`: Step 2 で決めたリポ
-- `message`: 1 行目を `speckit で分解する: <Epic の題>` にする。題は 1 行目の先頭の 50 文字から付くので、目印を先頭に置く。2 行目からは、分解する範囲を 1〜2 行で書く
+- 種類: `kind: task`
+- `parent_owner`・`parent_repo`・`parent_issue_number`: Step 3 で読んだ Epic
+- `owner`・`repo`: Step 2 で決めたリポ
+- `body`: 1 行目を `speckit で分解する: <Epic の題>` にする。題は 1 行目の先頭の 50 文字から作るので、目印を先頭に置く。2 行目からは、分解する範囲を 1〜2 行で書く
+- `title`: 本文の 1 行目から作る。形は `issue_check` が確かめる
 
 ブランチは、pecot-workflow の MCP ツール `session_start` で作る。`issue_ref` はタスクの `owner/repo/N`、`branch` は `feat/breakdown-<英語の短い名前>` にする。
 `base` は渡さない。`session_start` が、タスクを Active に移す。

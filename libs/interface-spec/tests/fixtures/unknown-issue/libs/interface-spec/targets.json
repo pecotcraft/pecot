@@ -2,6 +2,7 @@
   "format": 1,
   "plugins": {
     "pecot-workflow": {
+      "root": "Plugins/pecot-workflow",
       "entries": "complete",
       "coverage": "off",
       "sources": [

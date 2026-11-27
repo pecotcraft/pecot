@@ -86,7 +86,7 @@ Bashコマンド実行前に危険な操作を検出・ブロックする。
 |------|------|----------|-----------|
 | `claude-bash-guards` | Bashガード統合エントリポイント（Claude Code / Copilot CLI 共通。Copilot も snake_case の `tool_input.command` を送るため入力形式の分岐は無い）。以下のコアガードを順次実行する。deny は `hookSpecificOutput.permissionDecision: "deny"` で返す（Copilot はトップレベルの `decision: "block"` を無視する） | PreToolUse (Bash) | `true` |
 | `gh-pr-create-check` | `gh pr create` を検出しブロック。MCP ツールの `pr_create` の使用を強制する | コアガード | `true` |
-| `gh-issue-create-check` | `gh issue create` を検出しブロック。MCP ツールの `issue_create`（自由形式の起票は `freeform: true`）の使用を強制する | コアガード | `true` |
+| `gh-issue-create-check` | `gh issue create` を検出しブロック。MCP ツールの `issue_check` に通してから、公式の MCP の `issue_write` で作るよう案内する | コアガード | `true` |
 | `gh-stack-check` | gh stack（`view` と `--help` の付いたものを除く）を検出しブロック。MCP ツールの `pr_create`・`pr_restack` と、GitHub の画面でのマージ（`w-pr` が待ち受けて片付ける）を案内する | コアガード | `true` |
 | `git-no-verify-check` | 有効にしたときだけ、git のフックを飛ばす形を止める。対象は `--no-verify`、commit の `-n`（まとめ書きを含む。push の `-n` は `--dry-run` なので止めない）、引用符で囲んだそれらのオプション、`git -c core.hooksPath=`、`git config` で `core.hooksPath` を書く・消す形、前に置いた `SKIP=`・`HUSKY=0`。抜け道が多く守り切れないので、守りは CI に任せ、初期値は無効にしている | コアガード | `false` |
 | `git-worktree-branch-check` | `wt*` ブランチへの直接commit/pushをブロック。featureブランチでの作業を強制する。判定するリポジトリは `git -C` / `cd` チェイン / ツールの cwd（Claude Code では hook 入力の `cwd`。Copilot CLI では未設定）の順に解決する | コアガード | `true` |
@@ -111,7 +111,7 @@ ExitPlanMode の後のフック。
 
 | キー | 説明 | トリガー | デフォルト |
 |------|------|----------|-----------|
-| `exit-plan-remind` | ExitPlanMode 後に案内を返す（Claude Code のみ。Copilot CLI は frontmatter のフックを読まない）。承認した計画が、確認の前に Issue へ投稿した版から変わっていれば、投稿したファイルを直して MCP ツール `issue_comment` を呼び直すよう案内する。変わったかどうかによらず、同じターンで実装へ進むよう案内する。`--mode=active` は実装の引き継ぎ（`exit-plan-implementer-remind.md`）も足し、`--mode=quick` は足さない。`--mode` が無いか不正なら、stderr に出して終了コード 1 で終わる。計画の投稿はしない（確認の前にエージェントが投稿する） | w-active・w-quick の frontmatter の PostToolUse (ExitPlanMode) | `true` |
+| `exit-plan-remind` | ExitPlanMode 後に案内を返す（Claude Code のみ。Copilot CLI は frontmatter のフックを読まない）。承認した計画が、確認の前に Issue へ投稿した版から変わっていれば、投稿したファイルを直し、MCP ツール `issue_comment_check` に通して、公式の MCP の `update_issue_comment` で書き換えるよう案内する。変わったかどうかによらず、同じターンで実装へ進むよう案内する。`--mode=active` は実装の引き継ぎ（`exit-plan-implementer-remind.md`）も足し、`--mode=quick` は足さない。`--mode` が無いか不正なら、stderr に出して終了コード 1 で終わる。計画の投稿はしない（確認の前にエージェントが投稿する） | w-active・w-quick の frontmatter の PostToolUse (ExitPlanMode) | `true` |
 
 ### セッション管理
 

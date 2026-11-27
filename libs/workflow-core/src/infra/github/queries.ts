@@ -304,15 +304,6 @@ export const MUTATION_CLEAR_PROJECT_ITEM_FIELD = `mutation ($projectId: ID!, $it
   }
 }`
 
-// プロジェクトアイテムのアーカイブを解く
-export const MUTATION_UNARCHIVE_PROJECT_ITEM = `mutation ($projectId: ID!, $itemId: ID!) {
-  unarchiveProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) {
-    item {
-      id
-    }
-  }
-}`
-
 // サブIssue紐づけ
 export const MUTATION_ADD_SUB_ISSUE = `mutation ($parentId: ID!, $childId: ID!) {
   addSubIssue(input: { issueId: $parentId, subIssueId: $childId }) {

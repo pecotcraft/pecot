@@ -309,18 +309,18 @@ describe('review のワークフローの雛形', () => {
     expect(prompt.endsWith('${{ vars.PECOT_REVIEW_PROJECT != \'\' && format(\' project={0}\', vars.PECOT_REVIEW_PROJECT) || \'\' }}')).toBe(true)
   })
 
-  it('job の permissions は contents: read・pull-requests: write・id-token: write だけになる', async () => {
-    await explains('job の `permissions` のテストです。`contents: read`・`pull-requests: write`・`id-token: write` の 3 つだけであることを確認します。')
-    expect(job.permissions).toEqual({ 'contents': 'read', 'pull-requests': 'write', 'id-token': 'write' })
+  it('job の permissions は contents: read・pull-requests: write・issues: read・id-token: write だけになる', async () => {
+    await explains('job の `permissions` のテストです。`contents: read`・`pull-requests: write`・`issues: read`・`id-token: write` の 4 つだけであることを確認します。')
+    expect(job.permissions).toEqual({ 'contents': 'read', 'pull-requests': 'write', 'issues': 'read', 'id-token': 'write' })
   })
 
-  it('トークンの発行は変数が設定されているときだけ動き、Pull requests の write と Contents の read だけを要求する', async () => {
-    await explains('GitHub App のトークンを発行するステップのテストです。変数 `PECOT_AGENT_APP_CLIENT_ID` が空でない場合だけ動き、Pull requests の write と Contents の read だけを要求することを確認します。')
+  it('トークンの発行は変数が設定されているときだけ動き、Pull requests の write・Issues の read・Contents の read だけを要求する', async () => {
+    await explains('GitHub App のトークンを発行するステップのテストです。変数 `PECOT_AGENT_APP_CLIENT_ID` が空でない場合だけ動くことを確認します。要求する権限は、Pull requests の write・Issues の read・Contents の read だけです。')
     const token = stepUsing('actions/create-github-app-token')
     expect(token.id).toBe('token')
     expect(token.if).toBe('${{ vars.PECOT_AGENT_APP_CLIENT_ID != \'\' }}')
     const granted = Object.fromEntries(Object.entries(token.with ?? {}).filter(([key]) => key.startsWith('permission-')))
-    expect(granted).toEqual({ 'permission-pull-requests': 'write', 'permission-contents': 'read' })
+    expect(granted).toEqual({ 'permission-pull-requests': 'write', 'permission-issues': 'read', 'permission-contents': 'read' })
   })
 
   it('発行したトークンが無いとき、github_token を空にして Claude の App を使う。PECOT_GITHUB_COM_TOKEN と後始末の token は GITHUB_TOKEN だ', async () => {
@@ -408,17 +408,41 @@ describe('review のワークフローの雛形', () => {
     expect(review.env?.['CONTEXT7_API_KEY']).toBe('${{ secrets.CONTEXT7_API_KEY }}')
   })
 
+  it('公式の GitHub の MCP サーバを digest で固定した docker で起動し、ツールを 3 つに絞って --mcp-config で渡す', async () => {
+    await explains('公式の GitHub の MCP サーバの設定のテストです。`github-official` が docker で `ghcr.io/github/github-mcp-server` の v2.3.0 を digest つきで起動することを確認します。token・ホスト・ツールを env で渡し、`--mcp-config` に job の env の値を渡すことも確認します。')
+    const server: unknown = JSON.parse(job.env?.['PECOT_REVIEW_GITHUB_MCP'] ?? '')
+    const image = 'ghcr.io/github/github-mcp-server:v2.3.0@sha256:f8ee4dedc7d5c8cb32854ab91cc92a31c55a8a5510708cf8742e9f9427588ca6'
+    expect(server).toEqual({
+      mcpServers: {
+        'github-official': {
+          type: 'stdio',
+          command: 'docker',
+          args: ['run', '-i', '--rm', '-e', 'GITHUB_PERSONAL_ACCESS_TOKEN', '-e', 'GITHUB_HOST', '-e', 'GITHUB_TOOLS', image],
+          env: {
+            GITHUB_PERSONAL_ACCESS_TOKEN: '${PECOT_GITHUB_COM_TOKEN}',
+            GITHUB_HOST: '${{ github.server_url }}',
+            GITHUB_TOOLS: 'issue_read,add_issue_comment,update_issue_comment',
+          },
+        },
+      },
+    })
+    expect(claudeArguments).toContain('--mcp-config \'${{ env.PECOT_REVIEW_GITHUB_MCP }}\'')
+  })
+
   it('許可するツールは仕様で定めたものだけで、マージ・クローズ・リリースのツールを含まない', async () => {
-    await explains('`--allowedTools` の内容のテストです。`Read`・`Glob`・`Grep` と、PR・Issue の参照とコメントのツールなど 9 件だけで、マージ・クローズ・リリースに関わるツールを含まないことを確認します。')
+    await explains('`--allowedTools` の内容のテストです。`Read`・`Glob`・`Grep` と、PR・Issue の参照とコメントのツールなど 11 件だけで、マージ・クローズ・リリースに関わるツールを含まないことを確認します。')
     const allowed = toolList('--allowedTools')
     const pecot = 'mcp__plugin_pecot-w_pecot-workflow__'
+    const official = 'mcp__github-official__'
     expect(allowed).toEqual([
       'Read',
       'Glob',
       'Grep',
       `${pecot}pr_show`,
-      `${pecot}issue_show`,
-      `${pecot}issue_comment`,
+      `${pecot}issue_comment_check`,
+      `${official}issue_read`,
+      `${official}add_issue_comment`,
+      `${official}update_issue_comment`,
       'mcp__github_inline_comment__create_inline_comment',
       'Bash(gh pr diff:*)',
       'Bash(gh pr view:*)',
@@ -429,7 +453,7 @@ describe('review のワークフローの雛形', () => {
   it('利用者が追加する許可は、job の env の変数から --allowedTools の末尾に追加する', async () => {
     await explains('利用者によるツールの追加のテストです。job の `env` の `PECOT_REVIEW_EXTRA_ALLOWED_TOOLS` が空で、値があるときだけ `--allowedTools` の末尾に追加する式であることを確認します。')
     expect(job.env?.['PECOT_REVIEW_EXTRA_ALLOWED_TOOLS']).toBe('')
-    expect(Object.keys(job.env ?? {})).toEqual(['PECOT_REVIEW_EXTRA_ALLOWED_TOOLS', 'PECOT_REVIEW_CONTEXT7', 'PECOT_REVIEW_CONTEXT7_WITH_KEY'])
+    expect(Object.keys(job.env ?? {})).toEqual(['PECOT_REVIEW_GITHUB_MCP', 'PECOT_REVIEW_EXTRA_ALLOWED_TOOLS', 'PECOT_REVIEW_CONTEXT7', 'PECOT_REVIEW_CONTEXT7_WITH_KEY'])
     expect(claudeArguments).toContain('${{ env.PECOT_REVIEW_EXTRA_ALLOWED_TOOLS != \'\' && format(\',{0}\', env.PECOT_REVIEW_EXTRA_ALLOWED_TOOLS) || \'\' }}"')
   })
 
@@ -615,7 +639,7 @@ describe('自動レビューの導入の説明', () => {
   it('自前の App の権限が、説明の「自前の GitHub App」の節と一致する', async () => {
     await explains('導入の説明の権限のテストです。トークンの発行ステップで要求する権限は、「自前の GitHub App」の節に記載された権限の一覧と一致することを確認します。')
     const appToken = stepUsing('actions/create-github-app-token')
-    const labels = new Map([['pull-requests', 'Pull requests'], ['contents', 'Contents']])
+    const labels = new Map([['pull-requests', 'Pull requests'], ['issues', 'Issues'], ['contents', 'Contents']])
     const fromTemplate = Object.entries(appToken.with ?? {})
       .filter(([key]) => key.startsWith('permission-'))
       .map(([key, access]) => {

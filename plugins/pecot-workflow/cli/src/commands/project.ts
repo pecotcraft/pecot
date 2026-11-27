@@ -131,7 +131,20 @@ function validated(config: ProjectConfig): ProjectConfig {
 const LIST_ROW = z.strictObject({
   name: z.string().describe('Name of the project config (the file name without .json)'),
   active: z.boolean().describe('Whether this config is the active project'),
+  owner: z.string().optional().describe('Owner of the board, for projects_list and projects_write (omitted when the config cannot be read)'),
+  project_number: z.int().optional().describe('Number of the board, for projects_list and projects_write (omitted when the config cannot be read)'),
 })
+
+// 公式の MCP でボードを読み書きするための owner と番号。読めない設定は名前だけを出す
+function boardOf(file: string): { readonly owner?: string, readonly project_number?: number } {
+  try {
+    const config = loadConfig(file)
+    return { owner: config.owner, project_number: config.project.number }
+  }
+  catch {
+    return {}
+  }
+}
 
 const LIST_OUTPUT = z.strictObject({
   projects: z.array(LIST_ROW).describe('Project configs under the projects directory (an empty array when there is none)'),
@@ -155,11 +168,11 @@ const listCommand = defineTool({
       return Promise.resolve(0)
     }
     const active = getActiveConfigPath()
-    const projects: { name: string, active: boolean }[] = []
+    const projects: z.input<typeof LIST_ROW>[] = []
     for (const file of files) {
       const isActive = active !== undefined && resolveRealPath(path.join(directory, file)) === resolveRealPath(active)
       lines.push(`  ${path.parse(file).name}${isActive ? ' [ACTIVE]' : ''}`)
-      projects.push({ name: path.parse(file).name, active: isActive })
+      projects.push({ name: path.parse(file).name, active: isActive, ...boardOf(path.join(directory, file)) })
     }
     out.data(lines.join('\n'))
     out.result({ projects })

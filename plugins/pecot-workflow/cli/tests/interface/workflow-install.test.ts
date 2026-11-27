@@ -213,7 +213,7 @@ describe('workflow_install', () => {
     const result = await install({ name: 'handoff' })
     expect(result.isError).toBe(false)
     expect(result.read('.github/workflows/pecot-handoff.yml')).toBe(bundledHandoff)
-    expect(result.structured).toMatchObject({ written: true, path: '.github/workflows/pecot-handoff.yml', version: 2 })
+    expect(result.structured).toMatchObject({ written: true, path: '.github/workflows/pecot-handoff.yml', version: 3 })
   })
 
   it('check と force を一緒に渡すと、何も書かずに invalid-input の失敗を返す', async (context) => {

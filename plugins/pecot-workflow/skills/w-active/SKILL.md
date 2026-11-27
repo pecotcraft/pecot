@@ -53,7 +53,7 @@ pecot-workflow の MCP ツール `board_show` を使って、いま着手でき�
 
 ### Step 2: 対象タスクを確認
 
-pecot-workflow の MCP ツール `issue_show` を使って、利用者が選んだ Issue の内容を確かめる。
+公式の MCP の `issue_read`（`get`）で、利用者が選んだ Issue の内容を確かめる。
 
 ### Step 3: ブランチ作成
 
@@ -92,7 +92,7 @@ Issue の Tasks / Acceptance を起点に、変更対象のファイル・既存
 
 ### Step 7: 計画ドラフト作成
 
-pecot-workflow の MCP サーバの resource `pecot-template://comment/plan` を読み、plan テンプレのファイルを作る。frontmatter の `issue_ref` には、active Issue を書く。
+pecot-workflow の MCP サーバの resource `pecot-template://comment/plan` を読み、plan テンプレのファイルを作る。frontmatter の `owner`・`repo`・`issue_number` には、active Issue を書く。
 
 計画を書く前に、[`w-help/references/plan-clarify.md`](../w-help/references/plan-clarify.md) に従って clarify を行う。Issue と依頼の曖昧な点を AskUserQuestion で聞き、答えを受けるたびに、できたファイルへ書く。
 
@@ -114,15 +114,15 @@ tasks.md のチェックはタスクの単位の進捗で、並行で進めら�
 
 ### Step 9: 計画の投稿
 
-`issue_comment` を使って、書いたファイルを Issue に投稿する。
+書いた本文を、pecot-workflow の MCP ツール `issue_comment_check` に通す。通ったら、公式の MCP の `add_issue_comment` で Issue に投稿する。結果の `id` を、ファイルの `comment_id` に書く。
 
-本文の検証で止まったら、指摘を直して投稿し直す。
+チェックで外れたら、指摘を直して通し直す。
 
 ### Step 10: プランモードで承認を得る
 
 EnterPlanMode を呼び、投稿した計画で承認を得る。
 
-承認までに計画を直したら、承認後に投稿したファイルも同じように直し、Step 9 をやり直す。投稿したコメントが書き換わる。
+承認までに計画を直したら、承認後に投稿したファイルも同じように直す。`issue_comment_check` に通し直し、`comment_id` のコメントを `update_issue_comment` で書き換える。
 
 ### Step 11: 実装
 

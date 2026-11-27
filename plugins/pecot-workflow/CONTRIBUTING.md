@@ -51,11 +51,13 @@ MCP のツールの名前は、2 語を `_` でつないだ `<対象>_<動詞>` 
 | 作る・消す | `create`・`delete`（GitHub のもの）・`add`・`remove`（集まりへの出し入れ）・`init`（既存のものを pecot で使えるようにする）・`install`（雛形をリポに書き出す） |
 | 設定 | `set`・`unset`（キーの値）・`link`（リポをプロジェクトにつなぐ）・`activate`（使うプロジェクトを切り替える） |
 | 作業の流れ | `start`・`restore`・`finish`・`sync`（判定や一覧に合わせて書き直す）・`move`（列を移す）・`merge`（PR を取り込む） |
-| Issue | `comment`・`reopen`・`block`・`unblock` |
 
 読む動詞のツールは、何も書き換えません。書き込むツールは、ほかの種類の動詞に置きます。
 語彙に無い語を使うときは、先に `libs/workflow-core/src/commands-shared/names.ts` の一覧へ意味と一緒に追加します。追加しないとテストが失敗します。
-Issue の作成と作業の開始を 1 つのツールで行う動詞（以前の `quick`）は置きません。作成は `issue_create`（`freeform`）、開始は `session_start` が行います。
+Issue の作成と作業の開始を 1 つのツールで行う動詞（以前の `quick`）は置きません。作成は公式の MCP の `issue_write`（`issue_check` に通してから）、開始は `session_start` が行います。
+
+GitHub の Issue とコメントに読み書きするツールは置きません。読み書きは GitHub の公式の MCP のツールが担い、pecot は書く前に通すチェックのツールだけを置きます。
+チェックのツールは、書く公式のツール 1 つに 1 つ置きます。名前は `<書く公式のツールの対象>_check` です（`issue_dependency_write` には `issue_dependency_check`）。
 
 ### 入力名
 
@@ -63,14 +65,15 @@ Issue の作成と作業の開始を 1 つのツールで行う動詞（以前�
 
 | 指すもの | 入力名 | 例 |
 |:---|:---|:---|
-| Issue | `issue_ref` | `issue_comment`・`session_start`・`board_move` |
+| Issue | `issue_ref` | `session_start`・`board_move` |
 | PR | `pr_ref` | `pr_show`・`pr_check` |
 | リポ | `repo` | `branch_delete`・`project_link` |
 | 操作するブランチ | `branch` | `session_start`・`branch_delete` |
 
 - PR の両端を表す `base`・`head` と、真偽値の `delete_branch` は対象外
+- チェックのツールは、書く公式のツールの引数の名前（`owner`・`repo`・`issue_number` など）で受け、この表に従わない。公式のツールに渡すのと同じ値を、そのまま通せるようにするためだ
 - 名前を変えても、古い名前の別名は作らない。古い名前は、知らない名前として止まる。利用者向けの変更点は version plan に書き、README には移行の手順を書かない
-- 書き込むツールは予行の入力を持たない。書き込む前の確かめは、ホストのツールの承認が担う。予行を別の check のツールが担うものもある（`issue_create` の前の `issue_check`）
+- 書き込むツールは予行の入力を持たない。書き込む前の確かめは、ホストのツールの承認が担う。公式の MCP で書くものは、書く前に check のツールに通す（`issue_write` の前の `issue_check`）
 
 ### 次の操作の案内
 
@@ -150,7 +153,7 @@ npx --prefix="$HOME/.cache/pecot-inspector" -y @modelcontextprotocol/inspector@2
 5. clone の中で、作業ツリーのツールを呼んで作る。`gh pr create`・`gh issue create` は、`-R pecotcraft/pecot-sandbox` を付けても pecot-workflow のフックが止める
 
    ```bash
-   <呼ぶ> issue_create '{"files":["<Issue のファイル>"]}'
+   <呼ぶ> issue_check '{"method":"create","issues":[<Issue の値>]}'   # 通ったら、公式の MCP の issue_write で作る
    <呼ぶ> session_start '{"issue_ref":"<Issue>","branch":"<ブランチ>"}'   # リモートにブランチを作るだけで、checkout はしない
    git fetch origin && git checkout <作ったブランチ>
    # 変更を commit して push する
@@ -297,17 +300,13 @@ MCP サーバ（`cli/src`）の直しは、クライアントに反映されま�
 定義書（`interface/authored.yaml`）の effects から、GitHub に書き込む処理を拾った一覧です。
 対象は、`target: github` で `kind` が `write` か `destructive` のものです。remote へ push する `target: git` のもの（`pr_restack` だけ）も含みます。
 MCP のツール名は、CLI のコマンドの 2 語を `_` でつないだ形です。「sweep」は `sandbox-sweep.sh` で片付くことを表します。
+Issue・コメント・前提・カードの欄を公式の MCP で書いたものは、この一覧に載りません。検証用で作った Issue は、sweep が閉じます（コメントと値は残ります）。
 
 | MCP ツール | 作るもの・変えるもの | 片付け方・注意 |
 |:---|:---|:---|
 | `board_add` | カードと Status | sweep（カードをアーカイブ） |
 | `board_move` | カードの Status | sweep |
 | `branch_delete` | リモートブランチの削除 | 不要。その head の PR は GitHub が閉じます |
-| `issue_block`・`issue_unblock` | blocked-by・Issue の本文・カードの列 | sweep |
-| `issue_comment` | Issue のコメント | Issue ごと sweep が閉じます（コメントは残ります）。`-m` で送るときは `-t` で種類を渡します |
-| `issue_create` | Issue・blocked-by・カード・sub-issue・機能の値（`attributes`） | sweep |
-| `issue_edit` | 機能の値（担当者・マイルストーン・Issue type・ラベル・Issue fields・ボードのフィールド） | Issue ごと sweep が閉じます（値は残ります） |
-| `issue_reopen` | Issue の再オープン・カードのアーカイブ解除・Status の `Done` の削除 | sweep |
 | `pr_create` | PR・スタックへの登録・カードの Status | sweep（PR を閉じる） |
 | `pr_merge` | PR のマージか merge queue への投入 | マージした PR と commit は検証用の `main` に残ります |
 | `pr_restack` | 手元のブランチの rebase と `git push --force-with-lease` | sweep。対象はスタック PR だけです |

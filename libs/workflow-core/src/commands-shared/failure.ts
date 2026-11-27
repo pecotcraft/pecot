@@ -2,7 +2,7 @@
 // 値の誤り（InvalidValueError）と OS のエラーも同じ行にする。上のどれでもない例外はプログラムの誤りなので、伝える。
 import { ConfigError } from '../domain/config.js'
 import { PecotError, InvalidValueError, ProjectRootNotFoundError } from '../domain/errors.js'
-import { DependenciesUnsupportedError, GitHubAPIError, GitHubAuthError, GitHubNotFoundError, GitHubRateLimitError } from '../infra/github/errors.js'
+import { GitHubAPIError, GitHubAuthError, GitHubNotFoundError, GitHubRateLimitError } from '../infra/github/errors.js'
 import { OsError } from '../infra/os-error.js'
 import { logOf } from '../domain/git-output.js'
 import { hintedTextOf } from './command-hint.js'
@@ -35,7 +35,6 @@ export const KIND_BY_CLASS: readonly (readonly [abstract new (...arguments_: nev
   [GitHubAuthError, 'github-auth'],
   [GitHubNotFoundError, 'github-not-found'],
   [GitHubRateLimitError, 'github-rate-limit'],
-  [DependenciesUnsupportedError, 'dependency-rejected'],
   [GitHubAPIError, 'github-api'],
   [ConfigError, 'config-invalid'],
   [ProjectRootNotFoundError, 'project-root-not-found'],

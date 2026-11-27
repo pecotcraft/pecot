@@ -69,7 +69,7 @@ describe.each(['w-active', 'w-quick'])('%s の手順', (name) => {
   })
 
   it('確認を求める前に、通常モードで計画を Issue へ投稿する', async () => {
-    await explains('`w-active` と `w-quick` の計画の投稿に関するテストです。計画ドラフトの後、プランモードの前に、`issue_comment` で計画を Issue に投稿する Step が存在することを確認します。')
+    await explains('`w-active` と `w-quick` の計画の投稿に関するテストです。計画ドラフトの後、プランモードの前に、`issue_comment_check` に通して `add_issue_comment` で計画を Issue に投稿する Step が存在することを確認します。')
     const draft = titleIndex(headings, '計画ドラフト')
     const post = titleIndex(headings, '計画の投稿')
     const body = sectionBody(text, post)
@@ -77,7 +77,8 @@ describe.each(['w-active', 'w-quick'])('%s の手順', (name) => {
     expect(draftBody).toContain('`pecot-template://comment/plan`')
     expect(draft).toBeLessThan(post)
     expect(post).toBeLessThan(titleIndex(headings, 'プランモード'))
-    expect(body).toContain('`issue_comment` を使って、書いたファイルを Issue に投稿する')
+    expect(body).toContain('`issue_comment_check` に通す。通ったら、公式の MCP の `add_issue_comment` で Issue に投稿する')
+    expect(body).toContain('`comment_id`')
   })
 
   it('調査は、ブランチ切り替えの後にある', async () => {
@@ -186,12 +187,12 @@ describe('w-quick の手順', () => {
     expect(headings.filter(heading => heading.title.includes('レビュー'))).toEqual([])
   })
 
-  it('Step 1 は、session_show でセッションのリポジトリを確認し、issue_create（freeform）で起票する', async () => {
-    await explains('`w-quick` の Step 1 のテストです。`session_show` でセッションのリポジトリを確認し、`issue_create` を `freeform: true` で呼んで Issue を作成すると書かれていることを確認します。')
+  it('Step 1 は、session_show でセッションのリポジトリを確認し、テンプレートを渡さずに issue_check で確かめて issue_write で起票する', async () => {
+    await explains('`w-quick` の Step 1 のテストです。`session_show` でセッションのリポジトリを確認すると書かれていることを確認します。続けて、`template` を渡さずに `issue_check` を通し、公式の MCP の `issue_write` で Issue を作成すると書かれていることも確認します。')
     const body = sectionBody(text, numberIndex(headings, 1))
-    expect(body).toContain('`issue_create` を使って、Issue を作る')
+    expect(body).toContain('公式の MCP の `issue_write` で、Issue を作る')
     expect(body).toContain('`session_show`')
-    expect(body).toContain('`freeform: true`')
+    expect(body).toContain('`issue_check` に、`template` を渡さずに通す')
   })
 
   it('Step 2 は、session_start でブランチを作り、切り替える', async () => {
@@ -219,7 +220,7 @@ describe('w-review の手順', () => {
     const preamble = lines.slice(start, headings[0]?.line).join('\n')
     expect(start).toBeGreaterThanOrEqual(0)
     expect(preamble).toContain('引数に `project=<名前>` があれば、このスキルで使う pecot-workflow の MCP ツールに、その名前を `project` で渡す。')
-    expect(preamble).toContain('渡す先は `pr_show`・`issue_show`・`issue_comment` の 3 つ。')
+    expect(preamble).toContain('渡す先は `pr_show` の 1 つ。')
   })
 
   it('w-review の Step 1 は、スタックし直さない', async () => {
@@ -234,10 +235,10 @@ describe('w-review の手順', () => {
     expect(text).not.toMatch(/R\d+\/F-/u)
   })
 
-  it('w-review の Step 1 は、PR が閉じる Issue をコメント 20 件まで取得し、計画が存在しなければ計画と比較する手順を省略する', async () => {
-    await explains('`w-review` の Step 1 のテストです。`closing_issues` と `comment_limit: 20` を指定して Issue を取得し、計画が存在しない場合は比較を省略してレビューを続けると書かれていることを確認します。')
+  it('w-review の Step 1 は、PR が閉じる Issue とコメントを公式の MCP で読み、計画が存在しなければ計画と比較する手順を省略する', async () => {
+    await explains('`w-review` の Step 1 のテストです。`closing_issues` の Issue を公式の MCP の `issue_read` の `get` と `get_comments` で読むと書かれていることを確認します。計画が存在しない場合は、比較を省略してレビューを続けることも確認します。')
     const body = sectionBody(text, numberIndex(headings, 1))
-    for (const phrase of ['`closing_issues`', '`comment_limit: 20`', '`## Plan` と `## PECOT-Workflow`', '計画と照らす手順を飛ばしてレビューを続ける']) expect(body).toContain(phrase)
+    for (const phrase of ['`closing_issues`', '`issue_read`', '`get_comments`', '`## Plan` と `## PECOT-Workflow`', '計画と照らす手順を飛ばしてレビューを続ける']) expect(body).toContain(phrase)
   })
 
   it('視点の参照は、[tech] の節の下に、計画と比較する節を持つ', async () => {
@@ -438,20 +439,20 @@ describe('w-handoff の手順', () => {
     const lines = text.split('\n')
     const preamble = lines.slice(lines.indexOf('## 手順'), headings[0]?.line).join('\n')
     expect(preamble).toContain('引数に `project=<名前>` があれば、このスキルで使う pecot-workflow の MCP ツールに、その名前を `project` で渡す。')
-    expect(preamble).toContain('渡す先は `pr_show`・`issue_show`・`issue_comment` の 3 つ。')
+    expect(preamble).toContain('渡す先は `pr_show` の 1 つ。')
   })
 
   it('Step 1 は、閉じた Issue を closing issues とブランチ名の番号から特定し、親 Epic が存在しなければ何も投稿せずに終了する', async () => {
     await explains('`w-handoff` の Step 1 のテストです。`pr_show` の `closing_issues` と `head_ref` から閉じた Issue を特定し、`parent` が存在しない場合は何も投稿せずに終了することを確認します。')
     const body = sectionBody(text, numberIndex(headings, 1))
-    for (const phrase of ['`pr_show`', '`closing_issues`', '`head_ref`', '`/<番号>`', '`issue_show`', '`parent`', '何も投稿せずに終える']) expect(body).toContain(phrase)
+    for (const phrase of ['`pr_show`', '`closing_issues`', '`head_ref`', '`/<番号>`', '`issue_read`', '`parent`', '何も投稿せずに終える']) expect(body).toContain(phrase)
     expect(body).not.toContain('session_finish')
   })
 
-  it('Step 2 は、diff と計画のコメントを比較し、テンプレートのガイドで書いた本文を message と template で Epic に投稿する', async () => {
-    await explains('`w-handoff` の Step 2 のテストです。diff と計画のコメントを比較し、`merge-diff` のテンプレートで書いた本文を `message` と `template` を指定して投稿すると書かれ、計画どおりの場合も投稿することを確認します。')
+  it('Step 2 は、diff と計画のコメントを比較し、テンプレートのガイドで書いた本文を issue_comment_check に通して Epic に投稿する', async () => {
+    await explains('`w-handoff` の Step 2 のテストです。diff と計画のコメントを比較し、`merge-diff` の本文を `issue_comment_check` で確かめて `add_issue_comment` で投稿すると書かれていることを確認します。計画どおりの場合も投稿することを確認します。')
     const body = sectionBody(text, numberIndex(headings, 2))
-    for (const phrase of ['`gh pr diff', '`## Plan` と `## PECOT-Workflow`', '`pecot-template://comment/merge-diff`', '`template: "merge-diff"`', '`message`', '計画どおりで違いが無いときも、その旨を投稿する。']) {
+    for (const phrase of ['`gh pr diff', '`## Plan` と `## PECOT-Workflow`', '`pecot-template://comment/merge-diff`', '`issue_comment_check`', '`add_issue_comment`', '計画どおりで違いが無いときも、その旨を投稿する。']) {
       expect(body).toContain(phrase)
     }
   })
@@ -459,7 +460,7 @@ describe('w-handoff の手順', () => {
   it('Step 3 は、speckit 由来のときだけ、閉じた Issue を blocked by に持つ OPEN のサブタスクを選んで precede-notify を投稿する', async () => {
     await explains('`w-handoff` の Step 3 のテストです。speckit 由来のタスクの場合だけ、閉じた Issue に依存する OPEN のサブタスクを選び、`precede-notify` のテンプレートで投稿することを確認します。')
     const body = sectionBody(text, numberIndex(headings, 3))
-    for (const phrase of ['speckit 由来のタスク', '`specs/`・`.specify/`', '`sub_issues`', '`blockedBy`', '`pecot-template://comment/precede-notify`', '`template: "precede-notify"`']) {
+    for (const phrase of ['speckit 由来のタスク', '`specs/`・`.specify/`', '`get_sub_issues`', '`issue_dependency_read`', '`pecot-template://comment/precede-notify`', '`issue_comment_check`']) {
       expect(body).toContain(phrase)
     }
     expect(body).not.toContain('readinessChanges')
@@ -649,26 +650,27 @@ describe('w-ready の手順', () => {
     expect(body).toContain('前提（`blocked_by`）と種類')
   })
 
-  it('w-ready は、order の続番を数えさせない', async () => {
-    await explains('`w-ready` の `SKILL.md` のテストです。`続番` と `枝つき` が含まれず、`order` と `status` は書かないと記載されていることを確認します。')
-    expect(text).not.toContain('続番')
+  it('w-ready は、題の番号を、Epic の sub-issue の題で使っていない番号から書かせる', async () => {
+    await explains('`w-ready` の `SKILL.md` のテストです。題の番号を、Epic の sub-issue の題で使っていない番号のうち最大の次から書くと記載され、枝の文字を使う記述が含まれないことを確認します。')
+    expect(text).toContain('Epic の sub-issue の題で使っていない番号のうち、最大の次を 2 桁で書く')
     expect(text).not.toContain('枝つき')
-    expect(text).toContain('`order`・`status` は書かない')
   })
 
   it('w-ready は、投稿の前に issue_check で確認する', async () => {
-    await explains('`w-ready` の作成の Step のテストです。`issue_create` で投稿する手順より前に、`issue_check` の手順が書かれていることを確認します。')
+    await explains('`w-ready` の作成の Step のテストです。公式の MCP の `issue_write` で作る手順より前に、`issue_check` の手順が書かれていることを確認します。')
     const body = sectionBody(text, titleIndex(headings, '作成'))
     const planned = body.indexOf('`issue_check`')
-    const posted = body.indexOf('`issue_create` を使って投稿する')
+    const posted = body.indexOf('公式の MCP の `issue_write` で作り')
     expect(planned).toBeGreaterThanOrEqual(0)
     expect(posted).toBeGreaterThan(planned)
   })
 
-  it('issue_check の確認では、置く列を確認させない（issue_check の結果に列は含まれない）', async () => {
-    await explains('`w-ready` の作成の Step のテストです。`issue_check` から投稿までの範囲に、置く列を確認させる記述が含まれないことを確認します。')
+  it('issue_check に通した題の番号・前提・置く列を、作る前に示す', async () => {
+    await explains('`w-ready` の作成の Step のテストです。`issue_check` に通した題の番号・前提・置く列を、公式の MCP で作る前に利用者へ示すと書かれていることを確認します。')
     const body = sectionBody(text, titleIndex(headings, '作成'))
-    expect(body.slice(0, body.indexOf('`issue_create` を使って投稿する'))).not.toContain('置く列')
+    const shown = body.indexOf('通した題の番号・前提・置く列を、地の文でユーザーに示す')
+    expect(shown).toBeGreaterThanOrEqual(0)
+    expect(shown).toBeLessThan(body.indexOf('公式の MCP の `issue_write` で作り'))
   })
 
   it('w-ready の完了報告に、置いた列と、Blocked のときに待つものを入れる', async () => {
@@ -677,16 +679,15 @@ describe('w-ready の手順', () => {
     for (const word of ['`Ready`', '`Blocked`', '待つ']) expect(body).toContain(word)
   })
 
-  it('w-ready の完了報告は、置いた列を投稿の結果から伝え、列が書かれていなければその旨を伝える', async () => {
-    await explains('`w-ready` の完了報告の Step のテストです。置いた列を投稿の結果から伝え、結果に列が書かれていない場合はその旨を伝えると書かれていることを確認します。')
+  it('w-ready の完了報告は、ボードに足せなかったときや列を書けなかったときに、その理由を伝える', async () => {
+    await explains('`w-ready` の完了報告の Step のテストです。ボードに追加できなかった場合や列を書けなかった場合に、そのことと公式のツールが返した理由を伝えると書かれていることを確認します。')
     const body = sectionBody(text, titleIndex(headings, '完了報告'))
-    expect(body).toContain('投稿の結果')
-    expect(body).toContain('列が書かれていない')
+    expect(body).toContain('ボードに足せなかった・列を書けなかったときは、そのことと、公式のツールが返した理由を伝える')
   })
 
-  it('w-ready は、既存の Issue に前提として付ける操作を issue_block で案内する', async () => {
-    await explains('`w-ready` の `SKILL.md` のテストです。既存の Issue に前提を付ける操作の案内として、`issue_block` が含まれることを確認します。')
-    expect(text).toContain('`issue_block`')
+  it('w-ready は、既存の Issue に前提として付ける操作を、前提を付け外しする手順で案内する', async () => {
+    await explains('`w-ready` の `SKILL.md` のテストです。既存の Issue に前提を付ける操作の案内として、`issue-write.md` の「前提を付け外しする」の手順が含まれることを確認します。')
+    expect(text).toContain('[Issue とコメントを公式の MCP で書く](../w-help/references/issue-write.md) の「前提を付け外しする」で付ける')
   })
 })
 
@@ -722,35 +723,35 @@ describe('w-issueize の手順', () => {
     expect(body).toContain('「積める」と「スタックできる」は「スタック可」と、「マージを待つ」は「スタック不可」と同じに扱う')
   })
 
-  it('Step 3 は、失敗しても作った Issue があれば呼び直さないと書く', async () => {
-    await explains('`w-issueize` の Step 3 のテストです。失敗しても作成済みの Issue がある場合は、同じ `files` で呼び直さず、エラーの文を利用者に表示して止まると書かれていることを確認します。')
+  it('Step 3 は、書く途中で失敗しても、作った Issue を作り直さないと書く', async () => {
+    await explains('`w-issueize` の Step 3 のテストです。公式のツールが書く途中で失敗しても作成済みの Issue は作り直さず、失敗した書き込みを理由とともに利用者に表示すると書かれていることを確認します。')
     const body = sectionBody(text, titleIndex(headings, 'Issueとして作成'))
-    expect(body).toContain('結果に作った Issue があれば、その Issue は作られている')
-    expect(body).toContain('同じ `files` で呼び直さない')
-    expect(body).toContain('呼び直さず、エラーの文を利用者に示して止まる')
+    expect(body).toContain('作った Issue は作られている。作り直さない')
+    expect(body).toContain('失敗した書き込み（前提・ボードの欄など）だけを、理由とともに利用者に示し')
   })
 
-  it('Step 3 は、付け直すコマンドの行を実行せずに表示する', async () => {
-    await explains('`w-issueize` の Step 3 のテストです。前提を付け直すコマンドの行がある場合は、実行せずにそのまま利用者へ表示すると書かれていることを確認します。')
+  it('Step 3 は、作った Issue の番号で、後のフェーズの key を置き換えてから書く', async () => {
+    await explains('`w-issueize` の Step 3 のテストです。フェーズの順に 1 件ずつ書き、作成した Issue の番号で、後のフェーズの `{{issue:<key>}}` と `blocked_by` の key を置き換えると書かれていることを確認します。')
     const body = sectionBody(text, titleIndex(headings, 'Issueとして作成'))
-    expect(body).toContain('前提を付け直すコマンドの行があれば、打たずにそのままユーザーへ示す')
+    expect(body).toContain('フェーズの順に 1 件ずつ')
+    expect(body).toContain('書いた Issue の番号で、後のフェーズの `{{issue:<key>}}` と `blocked_by` の key を置き換える')
   })
 
   it('w-issueize は、issue_check の呼び出しを、投稿の呼び出しより前に書く', async () => {
-    await explains('`w-issueize` の Step 3 のテストです。`issue_check` の手順が、`issue_create` を 1 回だけ使う手順より前に書かれ、合意を得てから投稿すると書かれていることを確認します。')
+    await explains('`w-issueize` の Step 3 のテストです。全フェーズを `issue_check` に 1 回で通す手順が、公式の MCP で書く手順より前に書かれ、合意を得てから投稿すると書かれていることを確認します。')
     const body = sectionBody(text, numberIndex(headings, 3))
-    const planned = body.indexOf('`issue_check`')
-    const posted = body.indexOf('`issue_create` を 1 回だけ使う')
+    const planned = body.indexOf('`issue_check` に、全フェーズを 1 回で通し')
+    const posted = body.indexOf('公式の MCP の `issue_write`')
     expect(planned).toBeGreaterThanOrEqual(0)
     expect(posted).toBeGreaterThan(planned)
     expect(body).toContain('合意を得てから投稿する')
   })
 
-  it('blocked_by を書き、order・parallel・status は書かせない', async () => {
-    await explains('`w-issueize` の Step 3 のテストです。`blocked_by` を書き、`order`・`parallel`・`status` は書かないと記載されていることを確認します。')
+  it('blocked_by を書き、題の番号をフェーズの順に振らせる', async () => {
+    await explains('`w-issueize` の Step 3 のテストです。前提を `blocked_by` に写し、題の番号を Epic の sub-issue の題で使っていない番号からフェーズの順に振ると記載されていることを確認します。')
     const body = sectionBody(text, numberIndex(headings, 3))
     expect(body).toContain('`blocked_by`')
-    expect(body).toContain('`order`・`parallel`・`status` は書かない')
+    expect(body).toContain('題の番号は、Epic の sub-issue の題で使っていない番号を、フェーズの順に振る')
   })
 
   it('w-issueize は、段と枝の文字の計算を書かない', async () => {
@@ -980,10 +981,10 @@ describe('w-breakdown の手順', () => {
     expect(fileStep()).toBeLessThan(titleIndex(headings, 'specify'))
   })
 
-  it('起票の Step は、issue_create を freeform と owner/repo/N の parent_epic で呼び、session_start に base を渡さない', async () => {
-    await explains('`w-breakdown` の起票の Step のテストです。`issue_create` を `freeform: true` と `parent_epic` で呼び、`session_start` には `base` を渡さないと書かれていることを確認します。')
+  it('起票の Step は、テンプレート無しで issue_check を通し、親 Epic 付きで issue_write で作り、session_start に base を渡さない', async () => {
+    await explains('`w-breakdown` の起票の Step のテストです。`template` を渡さずに `issue_check` を通し、親 Epic を `parent_*` に書いて `issue_write` で作成すると書かれていることを確認します。`session_start` には `base` を渡さないことも確認します。')
     const body = sectionBody(text, fileStep())
-    for (const word of ['`issue_create`', '`freeform: true`', '`parent_epic`: Step 3 で読んだ Epic の `owner/repo/N`', '`session_start`', '`base` は渡さない']) expect(body).toContain(word)
+    for (const word of ['`issue_check` に `template` を渡さずに通し', '`issue_write`', '`parent_owner`・`parent_repo`・`parent_issue_number`: Step 3 で読んだ Epic', '`session_start`', '`base` は渡さない']) expect(body).toContain(word)
   })
 
   it('起票の Step は、既存の分解のタスクを 3 通りに分けて扱い、2 重に起票しない', async () => {

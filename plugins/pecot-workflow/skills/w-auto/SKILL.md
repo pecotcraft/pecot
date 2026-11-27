@@ -51,7 +51,7 @@ Step 5 で、直し方が決まらないときに書く。
 
 引数は、種類（`start` か `resume`）、Issue の `owner/repo/N`、文脈のファイルのパス（`context=<パス>`）、結果のファイルのパス（`result=<パス>`）。
 
-引数に `project=<名前>` があれば、このスキルで使う pecot-workflow の MCP ツールに、その名前を `project` で渡す。渡す先は `session_start`・`issue_comment`・`pr_check`・`pr_create` の 4 つ。
+引数に `project=<名前>` があれば、このスキルで使う pecot-workflow の MCP ツールに、その名前を `project` で渡す。渡す先は `session_start`・`pr_check`・`pr_create` の 3 つ。
 
 止まる Step では、`result=` のパスに結果のファイルを書いて終わる。結果のコメントは、ワークフローの後の step がこのファイルから書く。
 frontmatter の `result` に、その Step の結果を書く。本文には、結果のコメントに載せる文（質問・対象外の理由・落ちたテストなど）を書く。
@@ -109,7 +109,7 @@ Issue に関わる変更対象のファイルと、その周りのコード・�
 
 ### Step 6: 計画を投稿する
 
-pecot-workflow の MCP サーバの resource `pecot-template://comment/plan` を読み、`.pecot/tmp/output/` に写したファイルを作る。frontmatter の `issue_ref` には、Issue の `owner/repo/N` を書く。
+pecot-workflow の MCP サーバの resource `pecot-template://comment/plan` を読み、`.pecot/tmp/output/` に写したファイルを作る。frontmatter の `owner`・`repo`・`issue_number` には、Issue を書く。
 
 テンプレートのガイドに従って計画を書く。次の 3 つは、無人の実行に合わせて書く。
 
@@ -117,9 +117,9 @@ pecot-workflow の MCP サーバの resource `pecot-template://comment/plan` を
 - E2E の CUJ は、PR を見る人が流す手順として書く。流す先は、導入先のリポの決まりに従う
 - `resume` で文脈に `plan` があれば、前回の計画を引き継ぎ、答えで決まった点を Notes に書く
 
-書いたファイルを、pecot-workflow の MCP ツール `issue_comment` の `file` で投稿する。
+書いたファイルを、pecot-workflow の MCP ツール `issue_comment_check` に通してから、公式の MCP の `add_issue_comment` で投稿する。手順は [Issue とコメントを公式の MCP で書く](../w-help/references/issue-write.md) の「コメントを書く」。
 
-本文の検証で止まったら、指摘を直して投稿し直す。直しても通らなければ、結果のファイルに `result: failed` を書いて止まる。指摘の文を本文に書く。
+`issue_comment_check` が外れた項目を返したら、指摘を直して通し直す。直しても通らなければ、結果のファイルに `result: failed` を書いて止まる。指摘の文を本文に書く。
 
 ### Step 7: 実装する
 

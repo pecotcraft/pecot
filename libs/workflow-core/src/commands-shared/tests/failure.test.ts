@@ -64,7 +64,7 @@ const KIND_CASES: readonly (readonly [unknown, FailureKind])[] = [
   [new GitHubAuthError('a'), 'github-auth'],
   [new GitHubNotFoundError('n'), 'github-not-found'],
   [new GitHubRateLimitError('r'), 'github-rate-limit'],
-  [new DependenciesUnsupportedError('d'), 'dependency-rejected'],
+  [new DependenciesUnsupportedError('d'), 'github-api'],
   [new GitHubAPIError('g'), 'github-api'],
   [new ConfigError('c'), 'config-invalid'],
   [new ProjectRootNotFoundError('p'), 'project-root-not-found'],

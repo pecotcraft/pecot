@@ -10,13 +10,13 @@ describe('interfaceIdOf', () => {
   it('ツール名を大文字にし、_ を - にした定義書の ID を返す', async () => {
     await explains('ツール名から定義書の ID を作成する `interfaceIdOf` のテストです。`session_start` は `PW-SESSION-START` のように、大文字にして `_` を `-` にした ID を返すことを確認します。')
     expect(interfaceIdOf('session_start')).toBe('PW-SESSION-START')
-    expect(interfaceIdOf('issue_create')).toBe('PW-ISSUE-CREATE')
+    expect(interfaceIdOf('issue_comment_check')).toBe('PW-ISSUE-COMMENT-CHECK')
   })
 })
 
 describe('defineTool', () => {
   const definition = defineTool({
-    name: 'issue_show',
+    name: 'pr_show',
     title: 'Test tool',
     description: 'Issue を読む',
     input: z.object({ issue_ref: z.string(), comment_limit: z.number().default(5) }),
@@ -29,7 +29,7 @@ describe('defineTool', () => {
 
   it('ツールを定義すると、名前・表示名・説明を持ち、動詞から読むだけかを決める', async () => {
     await explains('`defineTool` が作成する定義の、基本的な項目のテストです。指定した名前・表示名・説明が定義に保持され、動詞が `show` のツールは読むだけ（`readOnly`）になることを確認します。')
-    expect(definition).toMatchObject({ name: 'issue_show', title: 'Test tool', description: 'Issue を読む', readOnly: true, hasOwnRepo: false, ignoresGlobalRepo: false })
+    expect(definition).toMatchObject({ name: 'pr_show', title: 'Test tool', description: 'Issue を読む', readOnly: true, hasOwnRepo: false, ignoresGlobalRepo: false })
   })
 
   it('全ツールに共通の repo を、入力に追加する', async () => {
@@ -66,6 +66,12 @@ describe('defineTool', () => {
     expect(writing.readOnly).toBe(false)
   })
 
+  it('グループが 2 語のツールは、最後の語の動詞から読むだけかを決める', async () => {
+    await explains('グループが `issue_comment` のように 2 語のツールのテストです。最後の語が `check` の `issue_comment_check` の場合に、定義の `readOnly` が `true` になることを確認します。')
+    const checking = defineTool({ name: 'issue_comment_check', title: 'Test tool', description: '', input: z.object({}), output: z.strictObject({}), run: async () => await exitWith(0) })
+    expect(checking.readOnly).toBe(true)
+  })
+
   it('hasOwnRepo が true のツールは、共通の repo を追加せず、ツール自身の repo を使う', async () => {
     await explains('自分の `repo` 入力を持つツール（`hasOwnRepo` が `true`）のテストです。定義の入力に共通の `repo` が追加されず、ツール自身の `repo` が本体へ渡され、不正な `repo` は拒否されることを確認します。')
     const received: unknown[] = []
@@ -92,7 +98,7 @@ describe('defineTool', () => {
     await explains('`z.strictObject` と `refine` で入力を定義したツールのテストです。`repo` を追加しても `refine` の検証が維持され、未定義のキーは拒否されることを確認します。')
     const received: unknown[] = []
     const strict = defineTool({
-      name: 'issue_edit',
+      name: 'pr_create',
       title: 'Test tool',
       description: '',
       input: z.strictObject({ a: z.string().optional(), b: z.string().optional() }).refine(value => value.a !== undefined || value.b !== undefined, 'a か b が要ります'),
@@ -127,7 +133,7 @@ describe('defineTool', () => {
   it.for(['kind', 'detail', 'log', 'warnings'])('output が MCP の結果の共通の項目名 %s を持つ場合は、TypeError が発生する', async (key) => {
     await explains(`\`output\` が予約名 \`${key}\` を持つ場合のテストです。ツールを定義できず、予約名であることを示すメッセージの \`TypeError\` が発生することを確認します。`)
     expect(() => defineTool({
-      name: 'issue_show',
+      name: 'pr_show',
       title: 'Test tool',
       description: '',
       input: z.object({}),
@@ -138,7 +144,7 @@ describe('defineTool', () => {
 
   it('output が共通の項目名に含まれない名前 reason を持つ場合は、ツールを定義できる', async () => {
     await explains('`output` の項目名が予約名（`kind`・`detail`・`log`・`warnings`）と重ならない場合のテストです。`reason` を持つツールを定義でき、`output` のキーが `reason` だけであることを確認します。')
-    const tool = defineTool({ name: 'issue_show', title: 'Test tool', description: '', input: z.object({}), output: z.strictObject({ reason: z.string() }), run: async () => await exitWith(0) })
+    const tool = defineTool({ name: 'pr_show', title: 'Test tool', description: '', input: z.object({}), output: z.strictObject({ reason: z.string() }), run: async () => await exitWith(0) })
     expect(Object.keys(tool.output.shape)).toEqual(['reason'])
   })
 })

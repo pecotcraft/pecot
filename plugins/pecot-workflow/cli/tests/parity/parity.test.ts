@@ -6,7 +6,7 @@ import { builtServer, builtServerProblem } from './built-server.js'
 import { runScenario } from './run.js'
 import { readGolden, readScenario, scenarioIds } from './scenario.js'
 
-// issue_reopen は 3 秒待つ。子プロセスの時間切れ（25 秒）より長くする
+// 子プロセスの時間切れ（CHILD_TIMEOUT_MS の 25 秒）より長くする
 const TEST_TIMEOUT_MS = 30_000
 
 // 入力の検証でツールの本体を呼ばずに断った結果の detail の前置き（server.ts の rejected）

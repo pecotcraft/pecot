@@ -19,12 +19,14 @@ export interface CommandWord {
 }
 
 /**
-ツール名の 1 語目に使うグループ。利用者が操作する対象
+ツール名の動詞の前に置くグループ。利用者が操作する対象。計算のツールは、書く公式の MCP のツールの対象に合わせる
 */
 export const COMMAND_GROUPS: readonly CommandWord[] = [
   { name: 'project', meaning: 'プロジェクトとの接続と設定ファイル。ボードの上の Issue には触らない' },
   { name: 'board', meaning: 'ボードの上の Issue の置き場所。設定ファイルは書かない' },
   { name: 'issue', meaning: 'Issue そのもの' },
+  { name: 'issue_dependency', meaning: 'Issue の前提（blocked by）' },
+  { name: 'issue_comment', meaning: 'Issue のコメント' },
   { name: 'session', meaning: '1 つの Issue の作業の始まりから終わりまで' },
   { name: 'pr', meaning: 'PR そのもの' },
   { name: 'release', meaning: 'リリース' },
@@ -34,16 +36,15 @@ export const COMMAND_GROUPS: readonly CommandWord[] = [
 ]
 
 /**
-ツール名の 2 語目に使う動詞の語彙。1 語に 1 つの意味を決める
+ツール名の最後の語に使う動詞の語彙。1 語に 1 つの意味を決める
 */
 export const COMMAND_VERBS: readonly CommandWord[] = [
   { name: 'list', meaning: '複数を並べる', readOnly: true },
   { name: 'search', meaning: 'GitHub を探す', readOnly: true },
   { name: 'show', meaning: '1 件を出す', readOnly: true },
   { name: 'get', meaning: '設定の値を出す', readOnly: true },
-  { name: 'check', meaning: '次の操作の前に確かめる', readOnly: true },
+  { name: 'check', meaning: '次の操作の前に確かめる。公式の MCP で書く値が決まりに合うかを確かめるのにも使う', readOnly: true },
   { name: 'doctor', meaning: '導入に要る設定がそろっているかを確かめる', readOnly: true },
-  { name: 'attributes', meaning: '付けられる機能の定義を出す', readOnly: true },
   { name: 'create', meaning: 'GitHub のものを作る' },
   { name: 'delete', meaning: 'GitHub のものを消す' },
   { name: 'add', meaning: '集まりに入れる' },
@@ -59,14 +60,7 @@ export const COMMAND_VERBS: readonly CommandWord[] = [
   { name: 'move', meaning: 'ボードの列を移す' },
   { name: 'merge', meaning: 'PR をマージする' },
   { name: 'restack', meaning: 'スタックしたブランチを、base の新しい位置へスタックし直す' },
-  { name: 'comment', meaning: 'コメントを書く' },
-  { name: 'edit', meaning: '既にあるものの値を書き換える' },
-  { name: 'reopen', meaning: '閉じたものを開き直す' },
-  { name: 'block', meaning: '前提を付ける' },
-  { name: 'unblock', meaning: '前提を外す' },
 ]
-
-const TOOL_WORD_COUNT = 2
 
 /**
 ツール名の決まりに合わない名前と、その理由
@@ -76,23 +70,25 @@ export interface ToolNameViolation {
   readonly reason: string
 }
 
-function isListed(words: readonly CommandWord[], word: string | undefined): boolean {
-  return word === undefined || words.some(listed => listed.name === word)
+function isListed(words: readonly CommandWord[], word: string): boolean {
+  return words.some(listed => listed.name === word)
 }
 
 /**
-ツール名の決まり（`<グループ>_<動詞>` の 2 語で、1 語目が COMMAND_GROUPS、2 語目が COMMAND_VERBS にある）に合わない名前を、渡された順で返す。全部が合えば空
+ツール名の決まり（`<グループ>_<動詞>` で、最後の語が COMMAND_VERBS、その前が COMMAND_GROUPS にある）に合わない名前を、渡された順で返す。全部が合えば空
 */
 export function toolNameViolations(names: readonly string[]): readonly ToolNameViolation[] {
   return names
     .map((name) => {
-      const words = name.split('_')
+      const separator = name.lastIndexOf('_')
+      const group = separator === -1 ? '' : name.slice(0, separator)
+      const verb = name.slice(separator + 1)
       return {
         name,
         reason: [
-          ...words.length === TOOL_WORD_COUNT ? [] : [`has ${String(words.length)} word(s); a tool name is '<group>_<verb>' (2 words)`],
-          ...isListed(COMMAND_GROUPS, words.at(0)) ? [] : [`'${String(words.at(0))}' is not a group in COMMAND_GROUPS`],
-          ...isListed(COMMAND_VERBS, words.at(1)) ? [] : [`'${String(words.at(1))}' is not a verb in COMMAND_VERBS`],
+          ...separator === -1 ? [`has 1 word; a tool name is '<group>_<verb>'`] : [],
+          ...separator === -1 || isListed(COMMAND_GROUPS, group) ? [] : [`'${group}' is not a group in COMMAND_GROUPS`],
+          ...isListed(COMMAND_VERBS, verb) ? [] : [`'${verb}' is not a verb in COMMAND_VERBS`],
         ].join('; '),
       }
     })

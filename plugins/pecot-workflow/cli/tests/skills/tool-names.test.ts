@@ -17,6 +17,11 @@ const TERMINAL_COMMANDS: readonly string[] = []
 // ツール名に似るが、入力の値や概念を指す語。TOOL_LIKE に合う語だけを置く
 const NOT_TOOLS: ReadonlySet<string> = new Set(['release_type', 'release_branch', 'session_id', 'workflow_dispatch'])
 
+// GitHub の公式の MCP のツール・引数・feature の名前と、それに合わせたテンプレートの鍵
+const OFFICIAL_MCP_NAMES: ReadonlySet<string> = new Set([
+  'issue_read', 'issue_write', 'issue_dependency_read', 'issue_dependency_write', 'issue_dependencies', 'issue_fields', 'issue_number', 'project_fields',
+])
+
 const GROUP_WORDS = COMMAND_GROUPS.map(group => group.name).join('|')
 // 1 語目がグループの語の名前を拾う。pecot-workflow__ の続きは除く。
 // eslint-disable-next-line security/detect-non-literal-regexp -- 語は COMMAND_GROUPS から作る
@@ -57,7 +62,7 @@ describe('本文のツール名', () => {
     for (const { file, text } of documents) {
       for (const match of text.matchAll(TOOL_LIKE)) {
         const word = match[0]
-        if (!tools.has(word) && !inputNames.has(word) && !NOT_TOOLS.has(word)) unknown.push(`${file}:${String(lineNumberAt(text, match.index))} ${word}`)
+        if (!tools.has(word) && !inputNames.has(word) && !NOT_TOOLS.has(word) && !OFFICIAL_MCP_NAMES.has(word)) unknown.push(`${file}:${String(lineNumberAt(text, match.index))} ${word}`)
       }
     }
     expect(unknown).toEqual([])
@@ -170,11 +175,11 @@ describe('`pecot <サブコマンド>` の残り（R-19）', () => {
 
 describe('`pecot <サブコマンド>` の検出式', () => {
   const denied = [
-    'pecot issue show 1',
-    '$PECOT issue show o/r#1',
+    'pecot issue check 1',
+    '$PECOT pr show o/r#1',
     '${PECOT} pr create',
     '"$PECOT" board show',
-    '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" --repo o/r issue comment',
+    '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" --repo o/r issue check',
     '/home/u/.claude/plugins/x/bin/pecot session show',
     'pecot --repo o/r session finish 3',
     'cd x && pecot --help',
@@ -198,7 +203,7 @@ describe('`pecot <サブコマンド>` の検出式', () => {
   ]
 
   it('deny の hook が拒否する起動形の見本を、すべて検出する', async () => {
-    await explains('`pecot <サブコマンド>` を検出する正規表現のテストです。`pecot issue show 1` や `$PECOT pr create` など、deny の hook が拒否する起動形の見本がすべて一致することを確認します。')
+    await explains('`pecot <サブコマンド>` を検出する正規表現のテストです。`pecot issue check 1` や `$PECOT pr create` など、deny の hook が拒否する起動形の見本がすべて一致することを確認します。')
     expect(denied.filter(sample => !CLI_FORM.test(sample))).toEqual([])
   })
 

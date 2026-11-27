@@ -10,7 +10,7 @@ when_to_use: "Epic または Tracker の次のサブタスクを 1 件作りた�
 # 作業準備：サブタスクIssueを作成して、Ready か Blocked に配置
 
 Epic の AS-IS・TO-BE・GAP と現状のコンテキストをもとに、AIが次のサブタスク1件を計画し、Epic配下のIssueとして登録する。
-先に終える Issue があれば前提（`blocked_by`）に書く。置く列は CLI が決め、前提が済んでいなければ `Blocked`、そのほかは `Ready` に入る。
+先に終える Issue があれば前提（`blocked_by`）に書く。前提が済んでいなければ `Blocked`、そのほかは `Ready` に置く。置く列は `issue_check` が確かめる。
 親が Tracker（security alert など）のときは、GAP の代わりに一覧の行から1件を選んで計画する。実装・ブランチ作成・PR作成は行わない。実装は `/pecot-w:w-active` で行う。
 
 ## 手順
@@ -29,7 +29,7 @@ Epic の AS-IS・TO-BE・GAP と現状のコンテキストをもとに、AIが�
 2. ユーザーがEpicタイトルを指定している場合はボードから検索
 3. 不明な場合は **AskUserQuestion** ツールでBacklog内のEpicとTrackerをリストアップして選択させる
 
-pecot-workflow の MCP ツール `issue_show` を使って、Epic・Tracker の詳細を読む。
+公式の MCP の `issue_read`（`get`・`get_sub_issues`）で、Epic・Tracker の本文と sub-issue を読む。
 
 ### Step 3: 次のサブタスクをAIが計画する
 
@@ -53,15 +53,15 @@ Epic の GAP（AS-IS と TO-BE の状態差）と現状コンテキストをも�
 
 - 前提が無ければ、`blocked_by` は `[]` のままにする
 - 前提か種類を決められないときは、候補の Issue と迷う理由を地の文で示し、ユーザーに確かめる
-- 新しいサブタスクを、既存の Issue の前提にしたいときは、投稿の後に pecot-workflow の MCP ツール `issue_block` で付ける。既存の Issue のファイルを作り直さない
+- 新しいサブタスクを、既存の Issue の前提にしたいときは、作った後に [Issue とコメントを公式の MCP で書く](../w-help/references/issue-write.md) の「前提を付け外しする」で付ける
 
-タイトルの番号（`[Task] #353-03: タスク名`）は、CLI が既存のサブタスクの最大の次から振る。`order`・`status` は書かない。
+タイトルの番号（`[Task] #353-03: タスク名`）は、Epic の sub-issue の題で使っていない番号のうち、最大の次を 2 桁で書く。
 
 ### Step 4: サブタスクIssueを1件作成
 
 **リポジトリの特定方法:**
 
-- サブタスクの `repository` は **実装するリポ** を指定する。Epic が `aggregation_repo` にあっても、サブタスクは `aggregation_repo` に作らない（明示的に例外指示がある場合を除く）
+- サブタスクの `owner`・`repo` は **実装するリポ** を指定する。Epic が `aggregation_repo` にあっても、サブタスクは `aggregation_repo` に作らない（明示的に例外指示がある場合を除く）
 - 判断材料: Epic タイトル / 本文の「対象リポ」記述、または親 Epic を読んだ上でユーザーに確認する
 - 詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 
@@ -73,21 +73,19 @@ pecot-workflow の MCP サーバの resource を読み、テンプレートの�
 - バグ修正: `pecot-template://issue/bug`
 
 できたファイルを編集する。本文はテンプレ冒頭コメントの `読者:` に照らして載せる情報を取捨し、`書き方:` の規約に従う。
-`title`（必須）・`repository`（必須。上の実装するリポ）・`parent_epic`（必須）を設定し、Step 3 の前提を `blocked_by` に書く。
+`title`（必須）・`owner`・`repo`（必須。上の実装するリポ）を設定する。`parent_owner`・`parent_repo`・`parent_issue_number`（必須。親 Epic）を設定し、Step 3 の前提を `blocked_by` に書く。詳細は [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)。
 
-`parent_epic` は full path `owner/repo/N` を推奨。詳細は [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)。
+利用者が分類（`pecot-lane`）の値を言ったときだけ、`project_fields` に書く。言っていなければ書かず、尋ねもしない。
 
-利用者が分類（`pecot-lane`）の値を言ったときだけ、`lane` に書く。言っていなければ空のままにし、尋ねもしない。
+[Issue とコメントを公式の MCP で書く](../w-help/references/issue-write.md) の「Issue を作る」の順で、要るものを読み、pecot-workflow の MCP ツール `issue_check` に通す。
+通した題の番号・前提・置く列を、地の文でユーザーに示す。前提が Step 3 で決めたものと食い違えば、直してもう一度通す。
 
-投稿の前に、pecot-workflow の MCP ツール `issue_check` を使って、番号と前提を確かめる。
-結果の番号と前提を、地の文でユーザーに示す。前提が Step 3 で決めたものと食い違えば、ファイルを直してもう一度確かめる。
-
-確かめたら、同じファイルで `issue_create` を使って投稿する。
+通したら、公式の MCP の `issue_write` で作り、`issue_dependency_write` で前提を、`projects_write` でボードの欄を書く。
 
 ### Step 5: 完了報告
 
-作成したIssue番号・タイトルと、タスクで何を実現するかを1段落で報告する。あわせて、投稿の結果から置いた列を伝える。
-投稿の結果に列が書かれていないときは、列に置けなかったことと、警告があればその文を伝える。
+作成したIssue番号・タイトルと、タスクで何を実現するかを1段落で報告する。あわせて、置いた列を伝える。
+ボードに足せなかった・列を書けなかったときは、そのことと、公式のツールが返した理由を伝える。
 
 - `Ready` に置いたとき: 実装を始めるには `/pecot-w:w-active` を使うよう案内する
 - `Blocked` に置いたとき: 待つ前提の Issue と種類を伝える。スタック可の前提は PR が出たとき、スタック不可の前提はマージされたときに、`Ready` に移る

@@ -12,8 +12,8 @@ describe('formatHint のツール', () => {
     { name: '入力を持たない案内', hint: commandHint(['project', 'init']), expected: 'project_init' },
     { name: '利用者が値を入力するプレースホルダー', hint: commandHint(['project', 'activate'], { project: placeholder('PROJECT') }), expected: 'project_activate with project: <PROJECT>' },
     { name: '真偽の入力', hint: commandHint(['pr', 'restack'], { continue: true }), expected: 'pr_restack with continue: true' },
-    { name: '空白と引用符を含む値', hint: commandHint(['issue', 'block'], { issue_ref: 'o/r/1', by: 'o/r/2', wait: 'merge', reason: 'needs it\'s API' }), expected: 'issue_block with issue_ref: "o/r/1", by: "o/r/2", wait: "merge", reason: "needs it\'s API"' },
-    { name: '文字列の配列', hint: commandHint(['issue', 'check'], { files: ['a.md', 'b.md'] }), expected: 'issue_check with files: ["a.md","b.md"]' },
+    { name: '空白と引用符を含む値', hint: commandHint(['issue', 'dependency', 'check'], { owner: 'o', repo: 'r', issue_number: 1, wait: 'merge', reason: 'needs it\'s API' }), expected: 'issue_dependency_check with owner: "o", repo: "r", issue_number: 1, wait: "merge", reason: "needs it\'s API"' },
+    { name: '文字列の配列', hint: commandHint(['project', 'init'], { lanes: ['cli', 'docs'] }), expected: 'project_init with lanes: ["cli","docs"]' },
   ])('ツールの案内（$name）は、ツール名と入力の呼び方に整形される', async ({ name, hint, expected }) => {
     await explains(`ツールの案内を MCP のツールの呼び方に整形する処理のテストです。${name}の場合に、ツール名と入力が期待どおりの文字列になることを確認します。`)
     expect(formatHint(hint)).toBe(expected)
@@ -29,7 +29,7 @@ describe('formatHint の入力', () => {
   it.for([
     { name: '値を持つ入力', hint: inputHint(['session', 'start'], 'base', 'main'), expected: 'base: "main"' },
     { name: '真偽の入力', hint: inputHint(['pr', 'restack'], 'continue'), expected: 'continue: true' },
-    { name: '名前だけの入力', hint: inputNameHint(['issue', 'comment'], 'issue_ref'), expected: 'issue_ref' },
+    { name: '名前だけの入力', hint: inputNameHint(['issue', 'comment', 'check'], 'comment_id'), expected: 'comment_id' },
     { name: '共通の repo の名前', hint: globalRepositoryHint(), expected: 'repo' },
     { name: '共通の repo と値', hint: globalRepositoryHint(placeholder('owner/repo')), expected: 'repo: <owner/repo>' },
   ])('入力の案内（$name）は、入力のキーに整形される', async ({ name, hint, expected }) => {
@@ -42,7 +42,7 @@ describe('案内の誤り', () => {
   it.for([
     { name: '定義に存在しないツール', make: () => commandHint(['issue', 'quick']), message: '案内のツール \'issue_quick\' が定義に無い' },
     { name: '定義に存在しない入力', make: () => commandHint(['project', 'link'], { owner_repo: 'o/r' }), message: '案内の入力 \'owner_repo\' が \'project_link\' の定義に無い' },
-    { name: '入力名だけの指定で、定義に存在しない入力名', make: () => inputNameHint(['issue', 'comment'], 'issue'), message: '案内の入力 \'issue\' が \'issue_comment\' の定義に無い' },
+    { name: '入力名だけの指定で、定義に存在しない入力名', make: () => inputNameHint(['issue', 'comment', 'check'], 'issue'), message: '案内の入力 \'issue\' が \'issue_comment_check\' の定義に無い' },
     { name: 'ツールに無い dry_run', make: () => inputHint(['board', 'add'], 'dry_run'), message: '案内の入力 \'dry_run\' が \'board_add\' の定義に無い' },
   ])('案内に $name を指定して整形すると、TypeError が発生する', async ({ name, make, message }) => {
     await explains(`案内の整形で、入力の誤りを検出する処理のテストです。${name}を指定した場合に、原因を示すメッセージの \`TypeError\` が発生することを確認します。`)

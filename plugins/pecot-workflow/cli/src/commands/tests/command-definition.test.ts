@@ -134,6 +134,6 @@ describe('interfaceIdOf', () => {
   it('ツール名を大文字にし、_ を - に置き換えて、先頭に PW- を付けたインタフェース ID を作成する', async () => {
     await explains('ツール名からインタフェース ID を作成する `interfaceIdOf` のテストです。`session_start` の場合に、`PW-SESSION-START` のように、大文字にして `_` を `-` にした ID を返すことを確認します。')
     expect(interfaceIdOf('session_start')).toBe('PW-SESSION-START')
-    expect(interfaceIdOf('issue_create')).toBe('PW-ISSUE-CREATE')
+    expect(interfaceIdOf('issue_comment_check')).toBe('PW-ISSUE-COMMENT-CHECK')
   })
 })

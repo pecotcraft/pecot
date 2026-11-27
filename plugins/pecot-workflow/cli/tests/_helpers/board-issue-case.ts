@@ -104,36 +104,8 @@ export function boardItems(options: Readonly<{ onBoard?: boolean, repository?: s
 }
 
 /**
-再オープンの応答（PATCH）。state は応答の state
-*/
-export function reopened(state = 'open', number = 7): ResponseRule {
-  return { match: { method: 'PATCH', path: `/repos/acme/demo/issues/${String(number)}` }, respond: { status: 200, body: { state } }, times: 1 }
-}
-
-/**
-コメント投稿の応答（POST）
-*/
-export function commented(number = 7): ResponseRule {
-  const body = { html_url: `https://ghes.example.com/acme/demo/issues/${String(number)}#issuecomment-3` }
-  return { match: { method: 'POST', path: `/repos/acme/demo/issues/${String(number)}/comments` }, respond: { status: 201, body }, times: 1 }
-}
-
-/**
 どの要求にも失敗で答える（GraphQL の operation か REST の method と path を指す）
 */
 export function failing(match: ResponseRule['match'], status = 502): ResponseRule {
   return { match, respond: { status, body: { message: 'failure' } }, times: 1 }
-}
-
-/**
-偽サーバが count 件以上の要求を受けるまで、実の setImmediate で I/O に順番を譲る。届かなければ例外にする
-*/
-export async function waitForRequests(received: () => number, count: number): Promise<void> {
-  for (let turn = 0; turn < 1000; turn += 1) {
-    if (received() >= count) return
-    await new Promise<void>((resolve) => {
-      setImmediate(resolve)
-    })
-  }
-  throw new Error(`waitForRequests: ${String(count)} 件の要求が届きません（${String(received())} 件）`)
 }

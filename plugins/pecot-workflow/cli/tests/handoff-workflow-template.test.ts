@@ -32,6 +32,7 @@ interface Job {
   'timeout-minutes'?: string
   'concurrency'?: unknown
   'permissions'?: Record<string, string>
+  'env'?: Record<string, string>
   'steps': Step[]
 }
 interface Workflow {
@@ -47,6 +48,7 @@ const job: Job = workflow.jobs['handoff'] ?? { steps: [] }
 const steps = job.steps
 const condition = job.if ?? ''
 const pecot = 'mcp__plugin_pecot-w_pecot-workflow__'
+const official = 'mcp__github-official__'
 
 function text(value: unknown): string {
   return typeof value === 'string' ? value : ''
@@ -76,8 +78,8 @@ function tableRow(label: string): string {
 
 describe('handoff のワークフローの雛形', () => {
   it('1 行目に、雛形の名前と版の目印がある', async () => {
-    await explains('配布する引き継ぎのワークフローの雛形（`pecot-handoff.yml`）のテストです。1 行目が `# pecot-workflow-template: handoff 2` という、雛形の名前と版を示すコメントであることを確認します。')
-    expect(template.split('\n', 1)[0]).toBe('# pecot-workflow-template: handoff 2')
+    await explains('配布する引き継ぎのワークフローの雛形（`pecot-handoff.yml`）のテストです。1 行目が `# pecot-workflow-template: handoff 3` という、雛形の名前と版を示すコメントであることを確認します。')
+    expect(template.split('\n', 1)[0]).toBe('# pecot-workflow-template: handoff 3')
   })
 
   it('契機は pull_request_target の closed だけになる', async () => {
@@ -175,11 +177,36 @@ describe('handoff のワークフローの雛形', () => {
     expect(toolList('--allowedTools')).toEqual([
       'Read',
       `${pecot}pr_show`,
-      `${pecot}issue_show`,
-      `${pecot}issue_comment`,
+      `${pecot}issue_comment_check`,
+      official + 'issue_read',
+      official + 'issue_dependency_read',
+      official + 'add_issue_comment',
+      official + 'update_issue_comment',
       'Bash(gh pr diff:*)',
       'Bash(gh pr view:*)',
     ])
+  })
+
+  it('公式の GitHub の MCP サーバを digest で固定した docker で起動し、ツールを 3 つに絞って --mcp-config で渡す', async () => {
+    await explains('公式の GitHub の MCP サーバの設定のテストです。`github-official` が docker で `ghcr.io/github/github-mcp-server` の v2.3.0 を digest つきで起動することを確認します。token・ホスト・ツールを env で渡し、`--mcp-config` に job の env の値を渡すことも確認します。')
+    const server: unknown = JSON.parse(job.env?.['PECOT_HANDOFF_GITHUB_MCP'] ?? '')
+    const image = 'ghcr.io/github/github-mcp-server:v2.3.0@sha256:f8ee4dedc7d5c8cb32854ab91cc92a31c55a8a5510708cf8742e9f9427588ca6'
+    expect(server).toEqual({
+      mcpServers: {
+        'github-official': {
+          type: 'stdio',
+          command: 'docker',
+          args: ['run', '-i', '--rm', '-e', 'GITHUB_PERSONAL_ACCESS_TOKEN', '-e', 'GITHUB_HOST', '-e', 'GITHUB_TOOLS', '-e', 'GITHUB_FEATURES', image],
+          env: {
+            GITHUB_PERSONAL_ACCESS_TOKEN: '${PECOT_GITHUB_COM_TOKEN}',
+            GITHUB_HOST: '${{ github.server_url }}',
+            GITHUB_TOOLS: 'issue_read,issue_dependency_read,add_issue_comment,update_issue_comment',
+            GITHUB_FEATURES: 'issue_dependencies',
+          },
+        },
+      },
+    })
+    expect(claudeArguments).toContain('--mcp-config \'${{ env.PECOT_HANDOFF_GITHUB_MCP }}\'')
   })
 
   it('書き換え・外部からの取得・clone・/proc の読み取りを拒否する', async () => {
