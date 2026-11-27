@@ -35,6 +35,7 @@
 - 呼び出し元は、`request_id` に自分で決めた ID を渡し、実行の名前（`pecot github-ops <operation> <request_id>`）で自分の実行を探す
 - 何を書くかの判断は呼び出し元が持つ。`workflow-doctor` は名前と目印を返すだけで、揃っているかを判定しない
 - ボードは、リポと同じ組織のものだけを扱う。個人のアカウントのボードは扱わない
+- App の token が使えるのは、ワークフローのリポだけにする。`project-link` だけは、`params.repo` の別のリポもつなげるように、リポを絞らない
 - `release-create` に `GITHUB_TOKEN` を使わないのは、`GITHUB_TOKEN` で作ったリリースが `on: release` のワークフローを起こさないため
 
 inputs と outputs は、各 action の `action.yml` にあります。振る舞いの項目は `interface/authored.yaml` にあります。
@@ -55,7 +56,7 @@ inputs と outputs は、各 action の `action.yml` にあります。振る舞
 | `pecot-review.yml` | secret `CLAUDE_CODE_OAUTH_TOKEN` か、variable `PECOT_AGENT_ANTHROPIC_*` の 4 つ。自前の App を使うときは variable `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY` |
 | `pecot-handoff.yml` | `pecot-review.yml` と同じ |
 | `pecot-auto.yml` | variable `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY`。モデルの認証は `pecot-review.yml` と同じ |
-| `pecot-github-ops.yml` | variable `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY`。`GITHUB_TOKEN` で動く操作だけなら要らない |
+| `pecot-github-ops.yml` | variable `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY` |
 
 詳しい置き方は、pecot-workflow の w-help の references にあります。雛形ごとに 1 つのファイルです。
 

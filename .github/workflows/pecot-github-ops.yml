@@ -21,6 +21,8 @@
 #     project-link: Organization projects (write) and Contents (write).
 #     release-create: Contents (write). Releases made with the GITHUB_TOKEN start no workflow, so on: release would not run.
 #     workflow-doctor: Secrets (read) and Variables (read). It reads only the names, never the values.
+#   The App token covers only this repository.
+#   project-link is the exception, because params.repo can name another repository.
 #   Give the App these permissions and install it on the owner of this repository.
 #   Set these in Settings > Secrets and variables > Actions.
 #     Variable PECOT_AGENT_APP_CLIENT_ID.
@@ -108,6 +110,7 @@ jobs:
           client-id: ${{ vars.PECOT_AGENT_APP_CLIENT_ID }}
           private-key: ${{ secrets.PECOT_AGENT_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
+          repositories: ${{ inputs.operation != 'project-link' && github.event.repository.name || '' }}
           permission-organization-projects: ${{ contains(fromJSON('["project-fields","project-view","project-link"]'), inputs.operation) && 'write' || '' }}
           permission-contents: ${{ contains(fromJSON('["project-link","release-create"]'), inputs.operation) && 'write' || '' }}
           permission-secrets: ${{ inputs.operation == 'workflow-doctor' && 'read' || '' }}

@@ -83,13 +83,14 @@ describe('github-ops のワークフローの雛形', () => {
     expect(appJob).not.toHaveProperty('permissions')
   })
 
-  it('App の token を、ワークフローのリポの持ち主に向け、操作ごとに要る権限だけに絞る', async () => {
-    await explains('github-ops のワークフローの雛形 `pecot-github-ops.yml` のテストです。App のトークンをリポの持ち主に対して作り、操作ごとに必要な権限だけを要求する式になっていることを確認します。')
+  it('App の token を、ワークフローのリポの持ち主とリポに向け、操作ごとに要る権限だけに絞る', async () => {
+    await explains('github-ops のワークフローの雛形 `pecot-github-ops.yml` のテストです。App のトークンを、`project-link` を除いてワークフローのリポだけに絞り、操作ごとに必要な権限だけを要求することを確認します。')
     expect(appToken.if).toBe('${{ vars.PECOT_AGENT_APP_CLIENT_ID != \'\' }}')
     expect(appToken.with).toEqual({
       'client-id': '${{ vars.PECOT_AGENT_APP_CLIENT_ID }}',
       'private-key': '${{ secrets.PECOT_AGENT_APP_PRIVATE_KEY }}',
       'owner': '${{ github.repository_owner }}',
+      'repositories': '${{ inputs.operation != \'project-link\' && github.event.repository.name || \'\' }}',
       'permission-organization-projects': '${{ contains(fromJSON(\'["project-fields","project-view","project-link"]\'), inputs.operation) && \'write\' || \'\' }}',
       'permission-contents': '${{ contains(fromJSON(\'["project-link","release-create"]\'), inputs.operation) && \'write\' || \'\' }}',
       'permission-secrets': '${{ inputs.operation == \'workflow-doctor\' && \'read\' || \'\' }}',
