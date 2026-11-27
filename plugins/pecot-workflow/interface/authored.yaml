@@ -699,6 +699,9 @@ entries:
       - id: PW-ISSUE-CHECK-15
         pattern: unwanted
         statement: 'もし `reads` の値が公式の MCP の結果の形でないなら、`kind` が `github-mcp-shape` の失敗を返します'
+      - id: PW-ISSUE-CHECK-16
+        pattern: unwanted
+        statement: 'もし `method` が `update` で、本文の `Waits for merge` の節の行が `- #N: 理由` の形でないなら、行の形を添えた項目を返します'
   PW-ISSUE-COMMENT-CHECK:
     summary: '公式の MCP の `add_issue_comment`・`update_issue_comment` に渡す値を、書く前に pecot の決まりに照らします。GitHub を読み書きしません。'
     arguments:
@@ -795,17 +798,17 @@ entries:
     details:
       - '値を受けて、決まりに外れた所を `problems` に返します。GitHub を読み書きしません。'
       - '向き・待ち方・理由・自分自身や輪になる前提・すでにある前提・前提の数の上限を見ます。'
-      - '書いた後に待つ側の Issue を置く列を `expected_status` に、本文の `Waits for merge` の節の書き換えを `waits_for_merge` に返します。'
+      - '書いた後に待つ側の Issue を置く列を `expected_status` に、`Waits for merge` の節を直した待つ側の本文を `body` に返します。'
       - '前提の PR を読んでいないときは、スタックできるかを決めず、`expected_status` を返しません。読む PR を `warning` の行で案内します。'
     stdin: none
     output:
       format: text
-      description: '外れた所が無ければ `ok` の 1 行です。あれば、外れた所ごとに `<引数>: <内容>` の行を出します。動かす列と本文の書き換えがあれば、続けて 1 行ずつ出します。'
+      description: '外れた所が無ければ `ok` の 1 行です。あれば、外れた所ごとに `<引数>: <内容>` の行を出します。動かす列があれば、続けて 1 行出します。本文を直すときは、その旨の行と直した本文を続けて出します。'
     mcp_output:
       fields:
         problems: '決まりに外れた所の配列です。要素は `field`・`code`・`message` を必ず持ちます。受け付ける値が決まっているときは `candidates` に入れます。空なら、値をそのまま書けます。'
         expected_status: '書いた後に待つ側の Issue を動かす列（`pecot-status`）の、ボードの選択肢の名前です。列が変わらないときと、決められないときは入りません。'
-        waits_for_merge: '本文の `Waits for merge` の節に、前提の行を足すなら `add`、消すなら `remove` です。本文を直す必要が無いときは入りません。'
+        body: '待つ側の Issue の本文に、`Waits for merge` の節の前提の行を足すか消したものです。`issue_check`（`update`）に通して `issue_write` で書きます。本文を直す必要が無いときは入りません。'
     diagnostics: '前提の PR を読んでおらず、スタックできるかを決められないときに、読む PR を `warning` の行で案内します。'
     environment: []
     exit_status:
@@ -837,12 +840,12 @@ entries:
           type: blocked_by
           wait: merge
           reason: 'API の形が決まるまで待つ'
-        note: '前提を付けてよいかを確かめ、書いた後に動かす列と本文の書き換えを返します。'
+        note: '前提を付けてよいかを確かめ、書いた後に動かす列と、直した本文を返します。'
     default_notes: {}
     behaviors:
       - id: PW-ISSUE-DEPENDENCY-CHECK-01
         pattern: event
-        statement: '`method` が `add` の値を受けると、GitHub を読み書きせずに、`problems` と、書いた後に動かす列と本文の書き換えを返します'
+        statement: '`method` が `add` の値を受けると、GitHub を読み書きせずに、`problems` と書いた後に動かす列と直した本文を返します'
       - id: PW-ISSUE-DEPENDENCY-CHECK-02
         pattern: state
         statement: '前提の PR を読んでいないか、PR の base を辿れない間、`expected_status` を返さず、読む PR を `warning` の行で案内します'
@@ -857,7 +860,7 @@ entries:
         statement: 'もし決まりを確かめるのに要る読み取りが `reads` に無いか、続きのページがあるなら、読むツールを項目で案内します'
       - id: PW-ISSUE-DEPENDENCY-CHECK-06
         pattern: event
-        statement: '`method` が `remove` の値を受けると、`problems` と、書いた後に動かす列と本文の書き換えを返します'
+        statement: '`method` が `remove` の値を受けると、`problems` と、書いた後に動かす列と、直した本文を返します'
       - id: PW-ISSUE-DEPENDENCY-CHECK-07
         pattern: unwanted
         statement: 'もし `remove` で前提に無い Issue を指すか、`wait`・`reason` を渡すなら、項目を返します'

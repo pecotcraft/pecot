@@ -29,7 +29,7 @@ project_fields: []
 - parent_owner・parent_repo・parent_issue_number: 親 Epic。無ければ消す。`issue_fields` があるときは `sub_issue_write` で付ける
 - blocked_by: この Issue の着手を止める前提の一覧。前提が無ければ `[]` のまま
   - `issue` は、前提の Issue を指す `owner/repo/N`
-  - スタック不可の前提だけ、`wait: merge` と、待つ理由の 1 文の `reason`（改行しない）を足す。本文の末尾の `## Waits for merge` の節にも挙げる。書く行は `issue_check` が返す
+  - スタック不可の前提だけ、`wait: merge` と、待つ理由の 1 文の `reason`（改行しない）を足す。本文の末尾の `## Waits for merge` の節にも挙げる。行は `- #N: 理由` の形で、書く行は `issue_check` が候補で返す
   - 書く先は `issue_dependency_write`（`type: blocked_by`）
 - project_fields: ボードの欄を `[{name, value}]` で書く。書く先は `projects_write` の `update_project_item`
   - `pecot-lane` は、分類したいときだけ書く。書かなければ親 Epic の値にそろえる

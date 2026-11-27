@@ -97,13 +97,13 @@ function problemsOf(outcome: Readonly<ToolOutcome>): readonly Readonly<Record<st
 
 describe('issue_dependency_check', () => {
   describe('前提を付ける', () => {
-    it('wait merge の前提を付けると、problem の無い結果と Blocked への移動と Waits for merge の行の追加を返す', async (context) => {
+    it('wait merge の前提を付けると、problem の無い結果と Blocked への移動と Waits for merge の行を足した本文を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-DEPENDENCY-CHECK-01')
-      await explains('Ready の Issue に、開いた Issue を `wait: merge` と理由を付けて前提に足す場合のテストです。問題の無い結果と、列を `Blocked` へ移す案と、本文の `Waits for merge` の節に行を足す案を返すことを確認します。')
+      await explains('Ready の Issue に、開いた Issue を `wait: merge` と理由を付けて前提に足す場合のテストです。問題の無い結果と、列を `Blocked` へ移す案と、本文の `Waits for merge` の節に行を足した本文を返すことを確認します。')
       useProject()
       const outcome = await check({ method: 'add', wait: 'merge', reason: 'スキーマが先に要る', reads: readsOf() })
       await step('結果を確かめる', () => {
-        expect(outcome.structured).toEqual({ problems: [], expected_status: 'Blocked', waits_for_merge: 'add' })
+        expect(outcome.structured).toEqual({ problems: [], expected_status: 'Blocked', body: WAITS_FOR_FIVE })
       })
     })
 
@@ -235,13 +235,13 @@ describe('issue_dependency_check', () => {
   })
 
   describe('前提を外す', () => {
-    it('最後の前提を外すと、problem の無い結果と Ready への移動と Waits for merge の行の削除を返す', async (context) => {
+    it('最後の前提を外すと、problem の無い結果と Ready への移動と Waits for merge の行を消した本文を返す', async (context) => {
       await verifies(context, 'PW-ISSUE-DEPENDENCY-CHECK-06')
-      await explains('Blocked の Issue から、`Waits for merge` の節に挙げた最後の前提を外す場合のテストです。問題の無い結果と、列を `Ready` へ移す案と、節の行を消す案を返すことを確認します。')
+      await explains('Blocked の Issue から、`Waits for merge` の節に挙げた最後の前提を外す場合のテストです。問題の無い結果と、列を `Ready` へ移す案と、節の行を消した本文を返すことを確認します。')
       useProject()
       const outcome = await check({ method: 'remove', reads: readsOf({ body: WAITS_FOR_FIVE, column: 'Blocked', linked: true }) })
       await step('結果を確かめる', () => {
-        expect(outcome.structured).toEqual({ problems: [], expected_status: 'Ready', waits_for_merge: 'remove' })
+        expect(outcome.structured).toEqual({ problems: [], expected_status: 'Ready', body: TASK_BODY })
       })
     })
 

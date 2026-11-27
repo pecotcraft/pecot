@@ -176,7 +176,8 @@ Issue の本文に、前後関係は書かない。スタック不可の前提�
 
 計画が変わったら、[Issue とコメントを公式の MCP で書く](issue-write.md) の「前提を付け外しする」の手順で前提を直す。GitHub の画面で直す必要は無い。
 
-- pecot-workflow の MCP ツール `issue_dependency_check` に通してから、公式の MCP の `issue_dependency_write` で付ける・外す。付いている前提の種類（スタック可・スタック不可）と理由は、`issue_dependency_check` に新しい種類を渡し、返る `## Waits for merge` の節で本文を書き直す
+- pecot-workflow の MCP ツール `issue_dependency_check` に通してから、公式の MCP の `issue_dependency_write` で付ける・外す
+  - 付いている前提の種類（スタック可・スタック不可）と理由を変えるときは、`issue_dependency_check` に新しい種類を渡す。結果の `body`（`## Waits for merge` の節を直した本文）で書き直す
 - `issue_dependency_check` が返す本文の節と置く列で、本文とボードの列をそろえる。輪になる前提は外れとして返る
 - 着手済み（`Active`・`In Review`）の Issue では、置く列を返さず、残る前提を警告で伝える。ブランチは前提の PR の上へ移らない
 - 1 件ずつサブタスクを作る `/pecot-w:w-ready` も、先に終える Issue を `blocked_by` に書いて投稿する

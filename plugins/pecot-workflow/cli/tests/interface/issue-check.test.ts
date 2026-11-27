@@ -517,6 +517,33 @@ describe('issue_check', () => {
         expect(problems[0]?.['message']).toContain('issue_dependency_check')
       })
     })
+
+    it.for([
+      { name: 'コロンでなくダッシュで区切った行', line: '- #5 — スキーマが先に要る' },
+      { name: '理由の無い行', line: '- #5: ' },
+    ])('update の本文の Waits for merge の節に $name があると、行の形を添えて problem にする', async ({ name, line }, context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-16')
+      await explains(`\`method\` が \`update\` で、本文の \`Waits for merge\` の節に${name}を持つ場合のテストです。\`waits-for-merge\` の問題を返し、その文に \`- #N: <reason>\` の形を含めることを確認します。`)
+      useProject()
+      const body = `${TASK_BODY}\n## Waits for merge\n\n${line}\n`
+      const outcome = await check({ method: 'update', issues: [{ kind: 'task', template: TASK, ...DEMO, issue_number: 7, body }] })
+      await step('結果を確かめる', () => {
+        const problem = problemsOf(outcome).find(candidate => candidate['code'] === 'waits-for-merge')
+        expect(problem).toMatchObject({ field: 'body' })
+        expect(problem?.['message']).toContain('- #N: <reason>')
+      })
+    })
+
+    it('update の本文の Waits for merge の節が - #N: 理由 の形なら、節の problem を返さない', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-16')
+      await explains('`method` が `update` で、本文の `Waits for merge` の節に `- #5: 理由` の行を持つ場合のテストです。`waits-for-merge` の問題を返さないことを確認します。')
+      useProject()
+      const body = `${TASK_BODY}\n## Waits for merge\n\n- #5: スキーマが先に要る\n`
+      const outcome = await check({ method: 'update', issues: [{ kind: 'task', template: TASK, ...DEMO, issue_number: 7, body }] })
+      await step('結果を確かめる', () => {
+        expect(outcome.structured).toMatchObject({ problems: [] })
+      })
+    })
   })
 
   describe('起票先と用法', () => {

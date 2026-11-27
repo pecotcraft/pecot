@@ -48,7 +48,7 @@ pecot-workflow は、GitHub の Issue に読み書きしない。スキルは Gi
 
 1. `issue_dependency_check` に、`issue_dependency_write` に渡すのと同じ値と、前提の種類（`wait`）を渡す
 2. `issue_dependency_write` で付ける・外す
-3. 結果の `waits_for_merge` があれば、本文の `## Waits for merge` の節を直し、`issue_check`（`update`）に通して `issue_write`（`update`）で書く
+3. 結果に `body` があれば、それが `## Waits for merge` の節を直した本文なので、`issue_check`（`update`）に通して `issue_write`（`update`）で書く
 4. 結果の `expected_status` があれば、`projects_write` で置く列を書く
 
 ## コメントを書く

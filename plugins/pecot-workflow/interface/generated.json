@@ -1649,13 +1649,9 @@
               "description": "Column (pecot-status) the waiting Issue should be moved to after the change, by its option name on the board (omitted when it stays)",
               "type": "string"
             },
-            "waits_for_merge": {
-              "description": "add or remove the line of the prerequisite in the Waits for merge section of the body (pass the new body to issue_check with method update); omitted when the body is right",
-              "type": "string",
-              "enum": [
-                "add",
-                "remove"
-              ]
+            "body": {
+              "description": "Body of the waiting Issue with the line of the prerequisite added to or removed from the Waits for merge section; write it with issue_check (method update) and issue_write (method update). Omitted when the body stays",
+              "type": "string"
             },
             "kind": {
               "type": "string",

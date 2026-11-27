@@ -32,7 +32,7 @@ project_fields: []
 - blocked_by: この Issue の着手を止める前提の一覧。前提が無ければ `[]` のまま
   - `issue` は、同じ一括の Issue の key（ファイルの名前の幹）か、Issue 化済みのフェーズを指す `owner/repo/N`
   - スタック不可の前提だけ、`wait: merge` と、前提の表の `理由` の文をそのまま写した `reason`（改行しない）を足す
-  - スタック不可の前提は、本文の末尾の `## Waits for merge` の節にも挙げる。書く行は `issue_check` が返す
+  - スタック不可の前提は、本文の末尾の `## Waits for merge` の節にも挙げる。行は `- #N: 理由` の形で、書く行は `issue_check` が候補で返す
   ```yaml
   blocked_by:
     - issue: phase3

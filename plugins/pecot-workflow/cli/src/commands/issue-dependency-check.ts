@@ -55,7 +55,7 @@ type CheckInput = z.output<typeof ISSUE_DEPENDENCY_CHECK_INPUT>
 const ISSUE_DEPENDENCY_CHECK_OUTPUT = z.strictObject({
   ...CHECK_RESULT_SHAPE,
   expected_status: z.string().optional().describe('Column (pecot-status) the waiting Issue should be moved to after the change, by its option name on the board (omitted when it stays)'),
-  waits_for_merge: z.enum(['add', 'remove']).optional().describe('add or remove the line of the prerequisite in the Waits for merge section of the body (pass the new body to issue_check with method update); omitted when the body is right'),
+  body: z.string().optional().describe('Body of the waiting Issue with the line of the prerequisite added to or removed from the Waits for merge section; write it with issue_check (method update) and issue_write (method update). Omitted when the body stays'),
 })
 
 type CheckOutput = z.input<typeof ISSUE_DEPENDENCY_CHECK_OUTPUT>
@@ -209,16 +209,15 @@ function describeMove(judged: ReturnType<typeof judgeMove>, board: BoardShape, n
   return { ...to !== undefined && { status: board.column(COLUMN_CONFIG_KEYS[to]) ?? to }, problems: [], warnings }
 }
 
-function waitsForMergeOf(body: string, decision: BlockDecision | { readonly kind: 'remove', readonly body: string }, wait: Wait): CheckOutput['waits_for_merge'] {
-  if (!('body' in decision) || decision.body === body) return undefined
-  return wait === 'stack' || decision.kind === 'remove' ? 'remove' : 'add'
+function changedBody(body: string, decision: BlockDecision | { readonly kind: 'remove', readonly body: string }): string | undefined {
+  return 'body' in decision && decision.body !== body ? decision.body : undefined
 }
 
 interface Checked {
   readonly problems: readonly CheckProblem[]
   readonly warnings: readonly string[]
   readonly expectedStatus: string | undefined
-  readonly waitsForMerge: CheckOutput['waits_for_merge']
+  readonly body: string | undefined
 }
 
 function checkChange(output: Readonly<Output>, input: Readonly<CheckInput>, config: ProjectConfig | undefined, target: IssueReference, related: IssueReference): Checked {
@@ -233,12 +232,12 @@ function checkChange(output: Readonly<Output>, input: Readonly<CheckInput>, conf
   if (issue === undefined) problems.push(unreadProblem('reads.issues', `read ${issueText(target)} with issue_read (method get): the check needs its body and title`))
   const own = readBlockedByOf(target, dependencies.reads)
   if ('problem' in own) problems.push(own.problem)
-  if (issue === undefined || 'problem' in own) return { problems, warnings, expectedStatus: undefined, waitsForMerge: undefined }
+  if (issue === undefined || 'problem' in own) return { problems, warnings, expectedStatus: undefined, body: undefined }
 
   const current = blockedByOf(own.read)
   const linked = current.find(({ ref }) => issueReferenceKey(ref) === issueReferenceKey(related))
   let after: After
-  let waitsForMerge: CheckOutput['waits_for_merge']
+  let changed: string | undefined
   if (input.method === 'add') {
     const wait = input.wait ?? 'stack'
     const reason = input.reason?.trim()
@@ -253,7 +252,7 @@ function checkChange(output: Readonly<Output>, input: Readonly<CheckInput>, conf
       const fix = decision.kind === 'update' ? '; to change the wait kind, change only the Waits for merge section of the body' : ''
       problems.push({ field: 'related_issue_number', code: 'already-linked', message: `${name} is already blocked by ${relatedName}: do not call issue_dependency_write${fix}` })
     }
-    waitsForMerge = waitsForMergeOf(issue.body, decision, wait)
+    changed = changedBody(issue.body, decision)
     after = {
       target,
       issue,
@@ -267,7 +266,7 @@ function checkChange(output: Readonly<Output>, input: Readonly<CheckInput>, conf
     if (linked === undefined) problems.push({ field: 'related_issue_number', code: 'not-linked', message: `${name} is not blocked by ${relatedName}` })
     const decision = decideUnblock({ body: issue.body, home: target.repository, by: related, isLinked: linked !== undefined })
     if (decision.kind === 'remove' && decision.malformedReason !== undefined) warnings.push(`the Waits for merge section of ${name} is malformed: ${decision.malformedReason}; fix it by hand`)
-    waitsForMerge = waitsForMergeOf(issue.body, decision, 'stack')
+    changed = changedBody(issue.body, decision)
     const remaining = current.filter(({ ref }) => issueReferenceKey(ref) !== issueReferenceKey(related))
     after = {
       target,
@@ -280,7 +279,7 @@ function checkChange(output: Readonly<Output>, input: Readonly<CheckInput>, conf
     }
   }
   const expected = expectedColumn(after, reads, developmentBranchOf(config, target.repository))
-  return { problems: [...problems, ...expected.problems], warnings: [...warnings, ...expected.warnings], expectedStatus: expected.status, waitsForMerge }
+  return { problems: [...problems, ...expected.problems], warnings: [...warnings, ...expected.warnings], expectedStatus: expected.status, body: changed }
 }
 
 function runCheck(output: Readonly<Output<CheckOutput>>, input: Readonly<CheckInput>): void {
@@ -305,11 +304,11 @@ function runCheck(output: Readonly<Output<CheckOutput>>, input: Readonly<CheckIn
   output.result({
     problems: all,
     ...checked?.expectedStatus !== undefined && { expected_status: checked.expectedStatus },
-    ...checked?.waitsForMerge !== undefined && { waits_for_merge: checked.waitsForMerge },
+    ...checked?.body !== undefined && { body: checked.body },
   })
   const lines = all.length === 0 ? ['ok'] : all.map(problem => `${problem.field}: ${problem.message}`)
   if (checked?.expectedStatus !== undefined) lines.push(`expected pecot-status: ${checked.expectedStatus}`)
-  if (checked?.waitsForMerge !== undefined) lines.push(`Waits for merge: ${checked.waitsForMerge} the line of the prerequisite`)
+  if (checked?.body !== undefined) lines.push(`the Waits for merge section of the body changes; write the body below with issue_check (method update) and issue_write\n\n${checked.body}`)
   output.data(lines.join('\n'))
 }
 

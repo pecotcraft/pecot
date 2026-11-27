@@ -702,7 +702,7 @@ function waitsForMergeProblems(target: Readonly<Target>, prerequisites: readonly
   })
   const section = readWaitsForMerge(localBody, home)
   if (section.kind === 'malformed') {
-    findings.add(target, 'body', 'waits-for-merge', `the ${WAITS_FOR_MERGE_HEADING} section is malformed: ${section.reason}`)
+    malformedSectionProblem(target, section.reason, findings)
     return
   }
   const lines = section.kind === 'ok' ? section.lines : []
@@ -723,6 +723,17 @@ function waitsForMergeProblems(target: Readonly<Target>, prerequisites: readonly
     const shown = index >= 0 && isSameHome(line.ref, home) ? [...keyIndexes].find(([, value]) => value === index)?.[0] ?? displayReference(line.ref, home) : displayReference(line.ref, home)
     findings.add(target, 'body', 'waits-for-merge', `remove the line of ${shown} from the ${WAITS_FOR_MERGE_HEADING} section: it is not a wait merge prerequisite in blocked_by`)
   }
+}
+
+function malformedSectionProblem(target: Readonly<Target>, reason: string, findings: Findings): void {
+  findings.add(target, 'body', 'waits-for-merge', `the ${WAITS_FOR_MERGE_HEADING} section is malformed: ${reason}; write one line per prerequisite as "- #N: <reason>"`)
+}
+
+function updateWaitsForMergeProblems(target: Readonly<Target>, findings: Findings): void {
+  const { home, body } = target
+  if (home === undefined || body === undefined) return
+  const section = readWaitsForMerge(body, home)
+  if (section.kind === 'malformed') malformedSectionProblem(target, section.reason, findings)
 }
 
 function isSameHome(reference: IssueReference, home: RepositoryReference): boolean {
@@ -831,6 +842,7 @@ function checkIssues(output: Readonly<Output>, input: Readonly<CheckInput>): Che
     const [target] = targets
     if (target !== undefined) {
       updateTitleProblems(target, parsed, findings)
+      updateWaitsForMergeProblems(target, findings)
       const entries = projectEntries(target, board, findings)
       writtenColumn('update', target, entries, board, findings)
       attributeProblems(output, target, entries, context, findings)
