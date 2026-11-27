@@ -42,7 +42,7 @@ PR が閉じた Issue を、公式の MCP の `issue_read` で 1 つずつ読む
 2. Step 1 で読んだ Issue のコメントから、計画のコメントを探す。計画のコメントは、`## Plan` と `## PECOT-Workflow` の 2 つの見出しを持つ。複数あれば、新しい方を使う。見つからなければ、Issue の本文を計画として読む
 3. PR の変更と計画を比べる
 4. pecot-workflow の MCP サーバの resource `pecot-template://comment/merge-diff` を読み、そのガイドに従って本文を書く
-5. frontmatter の `owner`・`repo`・`issue_number` に Epic を書く。pecot-workflow の MCP ツール `issue_comment_check` に通してから、公式の MCP の `add_issue_comment` で投稿する。Epic の owner と repo は、`parent` の `url` から取る
+5. 本文をファイルへ写さず、Epic の `owner`・`repo`・`issue_number` と一緒に、pecot-workflow の MCP ツール `issue_comment_check` に渡す。通ったら、公式の MCP の `add_issue_comment` で投稿する。Epic の owner と repo は、`parent` の `url` から取る
 
 計画どおりで違いが無いときも、その旨を投稿する。変更ファイルの一覧は本文に書かない。
 
@@ -54,6 +54,6 @@ speckit 由来のタスクで、後続のタスクに影響する変更がある
 2. 通知する Issue を選ぶ。前提に、PR が閉じた Issue を持つものを選ぶ。無ければ、1 で残った OPEN のサブタスクのすべてを選ぶ
 3. 選んだ Issue のうち、Step 2 で読んだ変更の影響を受けるものだけに絞る。影響を受けるものが無ければ、ここで終える
 4. pecot-workflow の MCP サーバの resource `pecot-template://comment/precede-notify` を読む。そのガイドに従って、Issue ごとに本文を書く
-5. frontmatter の `owner`・`repo`・`issue_number` に、その Issue を書く。`issue_comment_check` に通してから、`add_issue_comment` で投稿する
+5. 本文をファイルへ写さず、その Issue の `owner`・`repo`・`issue_number` と一緒に `issue_comment_check` へ渡す。通ったら、`add_issue_comment` で投稿する
 
 投稿したら終わる。ファイルを書き換えず、Issue を閉じず、ブランチも消さない。

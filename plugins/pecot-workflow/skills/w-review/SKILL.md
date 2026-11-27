@@ -78,7 +78,7 @@ action に同梱の MCP ツール `create_inline_comment` で、1 件ずつ投�
 - 直っていないものは「対応」にする
 
 1. pecot-workflow の MCP サーバの resource `pecot-template://comment/review-findings` を読み、ガイドを読む
-2. frontmatter の `owner`・`repo`・`issue_number` に、この PR を書く
-3. pecot-workflow の MCP ツール `issue_comment_check` に通してから、公式の MCP の `add_issue_comment` で投稿する。手順は [Issue とコメントを公式の MCP で書く](../w-help/references/issue-write.md) の「コメントを書く」
+2. 本文は、ファイルへ写さずに書く。このワークフローには、ファイルを書く許可が無い
+3. 本文を、この PR の `owner`・`repo`・`issue_number` と一緒に、pecot-workflow の MCP ツール `issue_comment_check` に渡す。通ったら、公式の MCP の `add_issue_comment` で投稿する
 
 投稿したら終わる。採否は聞かず、コードは直さない。スレッドの resolve もしない。
