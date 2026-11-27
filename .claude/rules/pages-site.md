@@ -188,7 +188,7 @@ pnpm exec allure open <作業ディレクトリ>
 | `allurerc.mjs` の `groupBy`・`reportLanguage`・`historyLimit` | 木の段・画面の言葉・履歴の数が変わりうる |
 | `allurerc.mjs` の `categories` と、`.githooks/tests/test_report_generate.py` の `test_real_allure_sorts_failures_into_categories_by_epic` | 規則の形（`matchers`）と当てる順、結果の無い既定の分類を出さない扱いが変わりうる |
 | `.githooks/tests/test_report_generate.py` の `test_real_allure_shows_only_environment_values_shared_by_all_lanes`・`test_real_allure_shows_no_environment_when_no_key_is_shared` | `generate.py` の環境の情報のまとめは、Allure の読み方に頼っている。結果のディレクトリを渡した順に読み、`environment.properties` を読むたびにメタデータを置き換え、コメントだけのファイルで空にする |
-| `.githooks/scripts/test_report/bash-test.sh` と `.githooks/tests/test_bash_test_lib.py` の `test_real_allure_reads_the_results` | bash のテストの結果のファイルは手で書いている。Allure の読み手が読む欄が変わりうる |
+| `.githooks/scripts/test_report/allure-result.sh` と、`test_bash_test_lib.py`・`test_bats_report.py` の `test_real_allure_reads_the_results` | bash のテストの結果のファイルは手で書いている。Allure の読み手が読む欄が変わりうる |
 | `@allurereport/web-commons` の `generateTestingPyramidChart` の `DEFAULT_LAYERS` と、`@allurereport/charts-api` の `defaultChartsConfig` の `groupBy: "layer"` | テストのピラミッドと層ごとの時間のグラフは、`layer` の値（`test-layers.txt` の層）で集める。層の名前と、既定のグラフの有無が変わりうる。`allurerc.mjs` に `charts` を書くと、既定のグラフは消える |
 
 ## 管理者の設定

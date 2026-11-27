@@ -95,8 +95,13 @@ def test_passes_when_every_test_file_has_a_layer(tmp_path: Path) -> None:
             },
             "plugins/p/cli/tests/fixtures/sub/g.test.ts: 層が決まっていない",
         ),
+        (
+            "どの規則にも当たらない bats のファイルがある",
+            {**_TABLES, "plugins/p/scripts/tests/h.bats": ""},
+            "plugins/p/scripts/tests/h.bats: 層が決まっていない",
+        ),
     ],
-    ids=["no-table", "no-match", "bad-layer", "bad-line", "unused-rule", "nearest-project"],
+    ids=["no-table", "no-match", "bad-layer", "bad-line", "unused-rule", "nearest-project", "bats"],
 )
 def test_reports_problem_with_place(
     tmp_path: Path, case: str, tables: dict[str, str], expected: str

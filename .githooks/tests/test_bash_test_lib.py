@@ -24,10 +24,11 @@ _LANE = {"NX_TASK_TARGET_PROJECT": "pecot-visual", "NX_TASK_TARGET_TARGET": "tes
 
 @pytest.fixture(autouse=True)
 def _repo(tmp_path: Path) -> Path:
-    """tmp_path をリポのルートに見立て、bash-test.sh を同じ場所に写す。"""
+    """tmp_path をリポのルートに見立て、bash-test.sh と、それが読む allure-result.sh を同じ場所に写す。"""
     lib = tmp_path / _LIB_PATH
     lib.parent.mkdir(parents=True)
     shutil.copy(_REPO / _LIB_PATH, lib)
+    shutil.copy((_REPO / _LIB_PATH).parent / "allure-result.sh", lib.parent)
     return tmp_path
 
 

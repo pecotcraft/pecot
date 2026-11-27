@@ -72,7 +72,7 @@ repos:
         name: text rules
         entry: .githooks/lib/with-timing.sh check-text .githooks/pre-commit/check-text.sh
         language: unsupported_script
-        files: \.(md|ts|mts|cts|tsx|js|mjs|cjs|jsx|vue|py|pyi|json|jsonc|yaml|yml|toml|sh|bash)$
+        files: \.(md|ts|mts|cts|tsx|js|mjs|cjs|jsx|vue|py|pyi|json|jsonc|yaml|yml|toml|sh|bash|bats)$
         # 外すファイルは exclude でなく .textlintignore に書く。bin が読み、push と pecot-visual のフックも同じ一覧を使う。
         # 違反が確定した時点で、後続の重い hook を始めない
         fail_fast: true
@@ -107,7 +107,7 @@ repos:
         language: unsupported_script
         pass_filenames: false
         # test_nx_env_inputs.py の走査範囲と、その確認が読む nx.json。未宣言の変数だけを足した push でも確認を起動する (#1225)。
-        files: ^(nx\.json$|(plugins|libs)/.*\.(sh|ts|tsx|mts|cts|mjs|cjs|js|py)$|(plugins|libs)/([^/]+/)*package\.json$|plugins/[^/]+/bin/)
+        files: ^(nx\.json$|(plugins|libs)/.*\.(sh|bats|ts|tsx|mts|cts|mjs|cjs|js|py)$|(plugins|libs)/([^/]+/)*package\.json$|plugins/[^/]+/bin/)
         stages: [pre-push]
 
       - id: nx-affected-tests
@@ -157,6 +157,14 @@ repos:
         entry: .githooks/pre-commit/check-pytest-titles.py
         language: unsupported
         files: (^|/)test_[^/]*\.py$
+        exclude: /fixtures/
+        stages: [pre-commit]
+
+      - id: check-bats-explains
+        name: bats test descriptions
+        entry: .githooks/pre-commit/check-bats-explains.py
+        language: unsupported
+        files: \.bats$
         exclude: /fixtures/
         stages: [pre-commit]
 

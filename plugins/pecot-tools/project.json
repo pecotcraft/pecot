@@ -75,6 +75,7 @@
         "{workspaceRoot}/.githooks/test-layers.txt",
         "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
+        "{workspaceRoot}/.githooks/scripts/test_report/allure-result.sh",
         "{projectRoot}/scripts/release/**/*",
         "{workspaceRoot}/LICENSE",
         "{workspaceRoot}/.githooks/lib/mcp-publish-common.sh",

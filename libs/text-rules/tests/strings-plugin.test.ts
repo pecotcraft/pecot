@@ -174,6 +174,13 @@ describe('strings plugin: シェル', () => {
       expect(await lint(`echo "${sentence}"\n`, '.bash')).toEqual([at(1, 7)])
     })
   })
+
+  it('.bats の拡張子のファイルでも、@test の題の文字列を読む', async () => {
+    await explains('シェルスクリプトの文字列から文を取り出す strings plugin のテストです。拡張子が `.bats` のファイルを渡した場合に、`@test` の題の文字列の違反を返すことを確認します。')
+    await step('bats の題を規則にかけ、指摘の位置を比べる', async () => {
+      expect(await lint(`@test "${sentence}" {\n  true\n}\n`, '.bats')).toEqual([at(1, 8)])
+    })
+  })
 })
 
 describe('strings plugin: JSON', () => {
@@ -267,7 +274,7 @@ describe('Processor', () => {
   it('対象とする拡張子の一覧を返す', async () => {
     await explains('ファイルを Document に変換する Processor のテストです。対応する拡張子の一覧を取得した場合に、Python・シェル・JSON・YAML・TypeScript・JavaScript・`.vue` の拡張子が、決まった順に並ぶことを確認します。')
     stepSync('対象の拡張子を比べる', () => {
-      expect(processor.availableExtensions()).toEqual(['.py', '.pyi', '.sh', '.bash', '.json', '.jsonc', '.yaml', '.yml', '.ts', '.mts', '.cts', '.tsx', '.js', '.mjs', '.cjs', '.jsx', '.vue'])
+      expect(processor.availableExtensions()).toEqual(['.py', '.pyi', '.sh', '.bash', '.bats', '.json', '.jsonc', '.yaml', '.yml', '.ts', '.mts', '.cts', '.tsx', '.js', '.mjs', '.cjs', '.jsx', '.vue'])
     })
   })
 

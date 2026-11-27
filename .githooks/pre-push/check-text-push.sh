@@ -17,7 +17,7 @@
 set -euo pipefail
 
 # 次の行は .pre-commit-config.yaml の check-text の files と一致させる（テストが固定する）
-TEXT_FILES_RE='\.(md|ts|mts|cts|tsx|js|mjs|cjs|jsx|vue|py|pyi|json|jsonc|yaml|yml|toml|sh|bash)$'
+TEXT_FILES_RE='\.(md|ts|mts|cts|tsx|js|mjs|cjs|jsx|vue|py|pyi|json|jsonc|yaml|yml|toml|sh|bash|bats)$'
 
 here="$(dirname "${BASH_SOURCE[0]}")"
 # shellcheck source=../lib/push-range.sh
