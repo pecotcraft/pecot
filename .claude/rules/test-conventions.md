@@ -277,6 +277,45 @@ pre-commit の hook `check-test-layers`（`.githooks/pre-commit/check-test-layer
 見るテストのファイルは、`*.test.ts`・`*.test.mjs`・`*.test.sh`・`test_*.py` です。
 `project.json` を持つ project に属さないファイルは見ません。project は、テストのファイルからいちばん近い `project.json` のディレクトリです。ラベルの書き手と同じ決め方です。
 
+## 重大度
+
+テストの結果は、Allure の重大度のラベル（severity）を持ちます。テストレポートの重大度ごとのグラフと、失敗の分類の中の並びが、このラベルで分かれます。
+段階は、テストが落ちたときに利用者の側に起きることで決めます。値はテストの場所と `verifies` の ID から決まるので、ふだんはテストに書きません。
+
+段階は、次の表を順の 1 から読み、最初に当てはまった行で決めます。
+
+| 順 | 段階 | 当てるテスト |
+|---|---|---|
+| 1 | minor | リポの開発のためだけのテスト。project が `githooks`・`interface-spec` |
+| 2 | blocker | 落ちると配れないテスト。target が `test-release`、project が `nx-release` |
+| 3 | critical | 定義書の振る舞いの項目を確かめるテスト。`verifies` で ID を持つ（vitest だけ） |
+| 4 | normal | 配布物のそのほかのテスト |
+| — | trivial | 場所からは付けない。テストに書いたときだけ |
+
+- interface-spec の `verifies` は、`verifies` 自身を確かめるための見本の ID なので、minor になる
+- blocker のレーンにある、`verifies` を持つテストは blocker になる
+
+表と違う段階が要るテストは、段階をテストに書きます。書いた段階が常に優先され、場所からは足しません。
+
+| 枠組み | 書き方 |
+|---|---|
+| vitest | `allure-js-commons` の `severity()` を本体で呼ぶ（`await severity(Severity.TRIVIAL)`） |
+| pytest | `@allure.severity(allure.severity_level.TRIVIAL)` の印を、関数・クラス・`pytestmark` のどれかに付ける |
+| bash | ファイルの中で `bt_severity <段階>` を呼ぶ。そのファイルのその後の確認すべてに当たる |
+
+pytest では `allure.dynamic.severity()` を使いません。conftest が付ける段階と合わせて値が 2 つになり、グラフは最初の値、分類は最後の値を読むので、食い違います。
+`bt_severity` は、5 つの段階のほかの値を受けると、理由を stderr に出してファイルを止めます。
+bash のファイルが `bt_finish` の前で止まったときに runner が書く「最後まで動く」の 1 件は、`bt_severity` を知らないので、場所から決まる段階になります。
+
+| 枠組み | 付ける所 |
+|---|---|
+| vitest | `libs/interface-spec/src/vitest/report-labels.ts` の `severityOf`。`reportLabelsListener` が、severity の無い結果にだけ足す |
+| pytest | `.githooks/tests/conftest.py`・`libs/interface-spec/docs/tests/conftest.py`。どちらも minor の project のレーンだけで動くので、印の無いテストに minor を足す |
+| bash | `.githooks/scripts/test_report/bash-test.sh` の `_bt_severity_default` |
+
+失敗の分類は、Allure の既定の Product errors・Test errors を、重大度で分けて並べます。
+設定は `allurerc.mjs` の `categories` で、分類ごとに `groupBy: ["severity"]` を書いています。
+
 ## step
 
 テストの本体を、名前の付いた Allure の step に分けます。テストレポートで、落ちたテストがどの操作で落ちたか、通ったテストがどの手順を通ったかを読むためです。
@@ -335,6 +374,7 @@ CodeQL は、`-c` を持つ引数の配列の全要素を、シェルが解釈�
 | 1 つのファイルの中で同じ題を使わない。重なると、2 回目が failed になる | — |
 | ファイルの最後に `bt_finish` を置く。届かずに終わると、runner が「最後まで動く」を broken にし、stderr の末尾を添える | — |
 | 前提が崩れて止めるときは、理由を stderr に出してから `exit 1` する。その文が broken の理由になる | `echo "ERROR: fixture を作れない" >&2; exit 1` |
+| 場所から決まる重大度と違う段階が要るときは、`bt_severity` を呼ぶ（「重大度」の節） | `bt_severity trivial` |
 | 自前の `pass`・`fail`・`check`・`assert_*` を作らない | — |
 
 ## 従う考え方

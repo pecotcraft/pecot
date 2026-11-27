@@ -141,6 +141,14 @@ def _layer(
     return max(hits)[1] if hits else ""
 
 
+def _has_severity(item: pytest.Item) -> bool:
+    # allure-pytest の allure_labels() と同じく、関数・クラス・モジュールの印を見る。
+    return any(
+        mark.kwargs.get("label_type") == "severity"
+        for mark in item.iter_markers(name="allure_label")
+    )
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     labels = {label: config.getini(name) for name, label in _REPORT_LABELS.items()}
     if not any(labels.values()):
@@ -155,6 +163,9 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         for label, value in {**labels, **_hierarchy_labels(config, item, found), **layer}.items():
             if value:
                 item.add_marker(mark(label, value))
+        # この conftest が動く githooks のレーンは、重大度の表で minor の project。
+        if labels["project"] and not _has_severity(item):
+            item.add_marker(mark("severity", "minor"))
 
 
 def pytest_configure(config: pytest.Config) -> None:

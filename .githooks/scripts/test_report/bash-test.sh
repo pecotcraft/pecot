@@ -17,6 +17,9 @@ unset BT_RESULTS BT_WORKDIR BT_FILE
 
 declare -A _BT_SEEN=()
 
+# bt_severity で決めた段階。空のあいだは _bt_severity_default が project・lane から決める。
+_BT_SEVERITY=""
+
 _bt_now_ms() {
     local t="${EPOCHREALTIME:-}"
     t="${t//[!0-9]/}"
@@ -92,6 +95,32 @@ _bt_json() {
     printf '"%s"' "$s"
 }
 
+# _bt_severity_default <project> <lane>: 重大度の表（test-conventions.md）を上から読んだ段階。bash に verifies は無く、critical にならない。
+_bt_severity_default() {
+    case "$1" in
+        githooks | interface-spec) printf 'minor' ;;
+        nx-release) printf 'blocker' ;;
+        *)
+            if [ "$2" = test-release ]; then
+                printf 'blocker'
+            else
+                printf 'normal'
+            fi
+            ;;
+    esac
+}
+
+# bt_severity <段階>: ファイルのこの後の確かめすべてに、場所から決まる段階の代わりにこの段階を付ける。
+bt_severity() {
+    case "${1:-}" in
+        blocker | critical | normal | minor | trivial) _BT_SEVERITY="$1" ;;
+        *)
+            printf 'ERROR: bt_severity の段階は blocker・critical・normal・minor・trivial のどれか（渡された値: %s）\n' "${1:-}" >&2
+            exit 1
+            ;;
+    esac
+}
+
 # _bt_write <相対パス> <status> <題> <理由> <start> <stop> [<expected> <actual>]
 _bt_write() {
     local results="$1"
@@ -124,6 +153,7 @@ _bt_write() {
     [[ "$rel" == */* ]] && feature="${rel%/*}"
     labels+=",{\"name\":\"feature\",\"value\":$(_bt_json "$feature")},{\"name\":\"story\",\"value\":$(_bt_json "$rel")}"
     [ -n "$layer" ] && labels+=",{\"name\":\"layer\",\"value\":$(_bt_json "$layer")}"
+    labels+=",{\"name\":\"severity\",\"value\":\"${_BT_SEVERITY:-$(_bt_severity_default "$project" "$lane")}\"}"
     mkdir -p "$results"
     printf '{"uuid":"%s","name":%s,"fullName":%s,"status":"%s","stage":"finished","statusDetails":{%s},"start":%s,"stop":%s,"labels":[%s]}\n' \
         "$uuid" "$(_bt_json "$title")" "$(_bt_json "$project:$lane $rel#$title")" \

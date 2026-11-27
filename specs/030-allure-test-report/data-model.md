@@ -34,6 +34,7 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 | ラベル | `feature` | 要件の ID を持つテストは、ID の属する定義書の項目の `name`（`<接頭辞>-COMMON-NN` は `<プラグイン> 共通`）。持たないテストは、ファイルのディレクトリ（リポのルートからのパス）（#811） | vitest は reporter の `listeners` の `beforeTestResultWrite`、pytest は `conftest.py`、bash は `bash-test.sh` |
 | ラベル | `story` | 要件の ID を持つテストは、その ID。持たないテストは、ファイル（リポのルートからのパス）（#811） | 同上 |
 | ラベル | `layer` | `unit`・`integration`・`e2e`。テストのファイルの属する project の `test-layers.txt` で決める（#813） | vitest は reporter の `listeners` の `beforeTestResultWrite`、pytest は `conftest.py`、bash は `bash-test.sh` |
+| ラベル | `severity` | テストに書いた段階。無ければ project・lane と要件の ID の有無から決めた段階（`.claude/rules/test-conventions.md` の「重大度」）（#812） | vitest は reporter の `listeners` の `beforeTestResultWrite`（`severityOf`）、pytest は `conftest.py`（minor）、bash は `bash-test.sh`（`bt_severity` か場所から決めた段階） |
 | ラベル | `tag` | 要件の ID（`PW-…-01` など） | `verifies` |
 | リンク（型 `tms`） | 名前は要件の ID | `<側の URL>permalink.html?id=<ID>` | `verifies` と、reporter の `links.tms.urlTemplate` |
 | 添付 | テストが決める名前 | 判定に使った画面の画像か成果物 | 対象のテスト（research R11） |
@@ -56,6 +57,7 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 | ラベル `parentSuite` | リポのルートからのファイルのパス。vitest の結果と同じ段 |
 | ラベル `epic`・`feature`・`story` | `$NX_TASK_TARGET_PROJECT`・ファイルのディレクトリ・ファイル（どちらもリポのルートからのパス） |
 | ラベル `layer` | ファイルの属する project の `test-layers.txt` で引いた層。引けなければ書かない |
+| ラベル `severity` | ファイルで `bt_severity` を呼んだ後は、その段階。ほかは `$NX_TASK_TARGET_PROJECT`・`$NX_TASK_TARGET_TARGET` から決めた段階 |
 | ラベル `host`・`thread`・`language`・`framework` | `$HOSTNAME`・ファイルの PID・`bash`・`bash` |
 
 ## レポートの材料（ReportSources）

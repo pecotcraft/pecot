@@ -251,6 +251,63 @@ def test_without_project_no_epic(tmp_path: Path) -> None:
         assert _label(result, "story") == ["suite/sample.test.sh"]
 
 
+@allure.title("{param_id} のレーンの確認の結果には、場所から決めた段階の severity を 1 つ付ける")
+@pytest.mark.parametrize(
+    ("project", "lane", "expected"),
+    [
+        ("pecot-tools", "test-release", "blocker"),
+        ("githooks", "test-ci", "minor"),
+        ("pecot-visual", "test-hooks", "normal"),
+    ],
+    ids=[
+        "pecot-tools:test-release",
+        "githooks:test-ci",
+        "pecot-visual:test-hooks",
+    ],
+)
+def test_severity_defaults_by_lane(tmp_path: Path, project: str, lane: str, expected: str) -> None:
+    """`bt_severity` を呼ばないテストのファイルの、重大度のラベルのテストです。nx の project とレーンから重大度の表で決めた段階が、結果の severity に 1 つだけ付くことを確認します。"""
+    test = _write_test(tmp_path / "suite", 'bt_pass "通る"\nbt_finish')
+    lane_env = {"NX_TASK_TARGET_PROJECT": project, "NX_TASK_TARGET_TARGET": lane}
+    _run_file(tmp_path, test, results=tmp_path / "results", lane=lane_env)
+    [result] = _results(tmp_path / "results")
+
+    with allure.step("severity の値を確かめる"):
+        assert _label(result, "severity") == [expected]
+
+
+@allure.title(
+    "bt_severity を呼ぶと、その後の確認の結果だけが、場所から決まる段階の代わりに渡した段階を持つ"
+)
+def test_bt_severity_applies_to_later_checks(tmp_path: Path) -> None:
+    """テストのファイルの途中で `bt_severity trivial` を呼んだ場合のテストです。呼ぶ前の確認はレーンから決まる `normal`、呼んだ後の確認は `trivial` の severity を持つことを確認します。"""
+    body = 'bt_pass "前"\nbt_severity trivial\nbt_pass "後"\nbt_fail "後で落ちる" "理由"\nbt_finish'
+    test = _write_test(tmp_path / "suite", body)
+    _run_file(tmp_path, test, results=tmp_path / "results")
+    results = _results(tmp_path / "results")
+
+    with allure.step("確認ごとの severity を確かめる"):
+        got = [(r["name"], _label(r, "severity")) for r in results]
+        assert got == [("前", ["normal"]), ("後", ["trivial"]), ("後で落ちる", ["trivial"])]
+
+
+@allure.title("bt_severity に 5 つの段階のほかを渡すと、理由を標準エラーに出してファイルを止める")
+def test_bt_severity_rejects_unknown_level(tmp_path: Path) -> None:
+    """`bt_severity` に、Allure の 5 つの段階に無い値を渡した場合のテストです。理由が標準エラーに表示されてファイルが止まり、「最後まで動く」がレーンから決まる段階の broken として書かれることを確認します。"""
+    test = _write_test(tmp_path / "suite", 'bt_severity urgent\nbt_pass "後"\nbt_finish')
+    done = _run_file(tmp_path, test, results=tmp_path / "results")
+    results = _results(tmp_path / "results")
+
+    with allure.step("終了コード・標準エラー・broken の 1 件を確かめる"):
+        assert done.returncode == 1
+        assert (
+            "bt_severity の段階は blocker・critical・normal・minor・trivial のどれか" in done.stderr
+        )
+        assert "urgent" in done.stderr
+        got = [(r["name"], r["status"], _label(r, "severity")) for r in results]
+        assert got == [("最後まで動く", "broken", ["normal"])]
+
+
 @allure.title(
     "題と理由に引用符・バックスラッシュ・制御文字・日本語を含めても、JSON の文字列として正しく書く"
 )
@@ -407,7 +464,7 @@ def test_leaves_no_temporary_files(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 )
 @pytest.mark.skipif(shutil.which("pnpm") is None, reason="pnpm が要る")
 def test_real_allure_reads_the_results(tmp_path: Path) -> None:
-    """bash のテストが書いた結果を、実際の Allure 3 で `allure generate` して読み込んだ場合のテストです。通る確認と失敗する確認の題・状態・理由・期待値と実際の値、さらに project・lane・parentSuite のラベルがレポートに含まれることを確認します。"""
+    """bash のテストが書いた結果を、実際の Allure 3 で `allure generate` して読み込んだ場合のテストです。通る確認と失敗する確認の題・状態・理由・期待値と実際の値、さらに project・lane・parentSuite・severity のラベルがレポートに含まれることを確認します。"""
     _project(tmp_path / "suite", "integration sample.test.sh\n")
     test = _write_test(tmp_path / "suite", 'bt_pass "通る"\nbt_eq "等しい" "a" "b"\nbt_finish')
     _run_file(tmp_path, test, results=tmp_path / "results")
@@ -456,3 +513,4 @@ def test_real_allure_reads_the_results(tmp_path: Path) -> None:
             "suite/sample.test.sh",
         )
         assert labels["layer"] == "integration"
+        assert labels["severity"] == "normal"

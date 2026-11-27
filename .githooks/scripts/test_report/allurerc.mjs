@@ -13,6 +13,13 @@ export default defineConfig({
       },
     },
   },
+  // Allure の既定の 2 つと同じ名前にして既定の id にまとめ、落ちたテストを重大度ごとに並べる。
+  categories: {
+    rules: [
+      { name: "Product errors", matchers: { statuses: ["failed"] }, groupBy: ["severity"] },
+      { name: "Test errors", matchers: { statuses: ["broken"] }, groupBy: ["severity"] },
+    ],
+  },
   historyLimit: 3,
   flakyDetection: { includePassedTests: true },
   ...(historyPath ? { historyPath } : {}),
