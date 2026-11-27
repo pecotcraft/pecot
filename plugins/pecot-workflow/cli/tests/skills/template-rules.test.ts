@@ -197,7 +197,7 @@ describe('plan テンプレート', () => {
 describe.each(['cli/templates/issue/task.md', 'cli/templates/issue/bug.md'])('%s のフロントマター', (template) => {
   const keys = (readPluginFile(template).split('---\n', 2)[1] ?? '').split('\n').map(line => line.split(':', 1)[0])
 
-  it('blocked_by を持ち、status と order を持たない（置く列と番号は CLI が決める）', async () => {
+  it('blocked_by を持ち、status と order を持たない（置く列と番号は issue_create が決める）', async () => {
     await explains(`\`${template}\` のフロントマターのテストです。\`blocked_by\` が含まれ、\`status\` と \`order\` が含まれないことを確認します。`)
     expect(keys).toContain('blocked_by')
     expect(keys).not.toContain('status')

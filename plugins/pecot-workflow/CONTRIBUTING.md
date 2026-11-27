@@ -116,6 +116,7 @@ npx --prefix="$HOME/.cache/pecot-inspector" -y @modelcontextprotocol/inspector@2
 - `--prefix` は外さない。`package.json` の無いディレクトリを渡す。外すと、リポの `package.json` の `devEngines` で npm が止まる（`EBADDEVENGINES`）
 - ツールの一覧は `--method tools/list`、テンプレートは `--method resources/read --uri pecot-template://comment/plan` で読める
 - Inspector は、サーバに `HOME`・`PATH` など 6 つの環境変数しか渡さない。トークンを環境変数だけで持つ環境では、`-e PECOT_GITHUB_COM_TOKEN=<トークン>` を足す。devcontainer では `gh` の認証を使うので要らない
+- `-e` は、次のオプションまでの引数を環境変数として読むので、行の最後に置く。サーバのコマンドの前に置くと、サーバを起動できない（`No servers found in config file`）
 - 結果は JSON で出る。失敗は `result.isError` が `true` で、`structuredContent.kind` に原因の名前が入る
 
 以下の手順の `<呼ぶ> <ツール> '<入力>'` は、この形で `--tool-name <ツール> --tool-args-json '<入力>'` を渡すことを指します。

@@ -28,7 +28,7 @@ blocked_by: []
       wait: merge
       reason: "action は、既定のブランチのプラグインを入れる。main に入るまで、確認ができない"
   ```
-- order・status: 書かない。通し番号（タイトル先頭の `#{epic}-NN`）と置く列（前提があれば `Blocked`、無ければ `Ready`）は CLI が決める
+- order・status: 書かない。通し番号（タイトル先頭の `#{epic}-NN`）と置く列（前提があれば `Blocked`、無ければ `Ready`）は `issue_create` が決める
 - 起票ルール: skills/w-help/references/issue-flow-rules.md （投稿先 / parent_epic / blocked_by の判定基準）
 
 例:
