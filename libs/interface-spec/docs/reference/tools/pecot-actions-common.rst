@@ -1,9 +1,9 @@
-.. _iface-common-actions:
+.. _iface-common-pecot-actions:
 
 共通仕様
 ========
 
-actions は、ワークフローの step が ``uses:`` で呼ぶ `JavaScript action <https://docs.github.com/en/actions/sharing-automations/creating-actions/creating-a-javascript-action>`__ です。``pecotcraft/pecot/actions/<処理>`` を、commit の SHA で固定して呼びます。``workflow_install`` が置く雛形は、SHA の後ろのコメントに版のタグ ``pecot-actions/v<版>`` を書きます。AI と無関係に動き、MCP のツールとしては呼べません。
+pecot-actions は、ワークフローの step が ``uses:`` で呼ぶ `JavaScript action <https://docs.github.com/en/actions/sharing-automations/creating-actions/creating-a-javascript-action>`__ です。``pecotcraft/pecot/actions/<処理>`` を、commit の SHA で固定して呼びます。``workflow_install`` が置く雛形は、SHA の後ろのコメントに版のタグ ``pecot-actions/v<版>`` を書きます。AI と無関係に動き、MCP のツールとしては呼べません。
 
 入力
 ----

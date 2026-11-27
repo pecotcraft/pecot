@@ -13,7 +13,7 @@ pecot-visual: patch
 Nx が `.nx/version-plans/` 配下の全ファイルを plan として読むため、
 テンプレート自身はそこに置かない。
 
-frontmatter: キーは `nx.json` の `release.groups` の group 名（`pecot-workflow` / `pecot-visual` / `pecot-tools` / `text-rules`）、
+frontmatter: キーは `nx.json` の `release.groups` の group 名（`pecot-workflow` / `pecot-visual` / `pecot-tools` / `text-rules` / `pecot-actions`）、
 値は semver ReleaseType (`patch` / `minor` / `major` 等)。group 名以外をキーにしても gate は
 宣言として認識しない。bump 不要な group はキーごと省略する。
 

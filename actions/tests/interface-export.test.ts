@@ -73,7 +73,7 @@ describe('export-interface', () => {
     const target = path.join(root, 'generated.json')
     const written = capture()
     expect(main(['--write'], written.io, { root, target })).toBe(0)
-    expect(JSON.parse(readFileSync(target, 'utf8'))).toMatchObject({ plugin: 'actions', prefix: 'PA' })
+    expect(JSON.parse(readFileSync(target, 'utf8'))).toMatchObject({ plugin: 'pecot-actions', prefix: 'PA' })
     expect(main(['--check'], capture().io, { root, target })).toBe(0)
     writeTree(root, { 'board-sync/action.yml': ACTION.replace('Number of moved items', 'Moved items') })
     const checked = capture()

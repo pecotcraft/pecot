@@ -54,7 +54,7 @@ job:
 
 開発版と同じく 1 つの job で、次の順に作る。
 
-1. `skeleton` のコミットを取り出し、依存を入れ直す。各 `plugins/<name>/` をそのタグの中身に差し替える
+1. `skeleton` のコミットを取り出し、依存を入れ直す。各単位の `root`（`targets.json` の `root`。無ければ `plugins/<名前>`）をそのタグの中身に差し替える
 2. サイトを作る。`conf.py` は、各タグから集めたレーンの一覧を `PECOT_SITE_LANES`（junit-lanes.json と同じ形の JSON）で受け取る（`skeleton` の `junit-lanes.json` は使わない）。この一覧が、サイトに載せるプラグインを決める
    - 2026-11-26 に 030（#699）で取り下げた。`PECOT_SITE_LANES` は無くなり、組み立てた作業ツリーで定義書を持つプラグインが載る
 

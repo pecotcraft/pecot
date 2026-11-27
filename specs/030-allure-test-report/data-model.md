@@ -10,7 +10,7 @@
 |---|---|---|
 | `project` | `pecot-workflow` | nx の project の名前 |
 | `target` | `test-hooks` | nx の target の名前。`test-` で始まる |
-| `plugin` | `pecot-workflow` | 配布するプラグインのレーンなら、その名前。libs と `.githooks` のレーンは持たない |
+| `plugin` | `pecot-workflow` | リリース版の単位のレーンなら、その名前。単位に属さないレーン（libs・`.githooks`）は持たない |
 | `results` | `plugins/pecot-workflow/test-results/test-hooks/allure-results` | レポートに入れるレーンだけが持つ。結果のディレクトリ。リポのルートからのパス |
 | `excluded` | `node --test` | レポートに入れないレーンだけが持つ。入れない理由。今は持つレーンが無い |
 
@@ -70,8 +70,8 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 | 欄 | 開発版 | リリース版 |
 |---|---|---|
 | `side` | `dev` | `release` |
-| `runs` | 結果がまだ無いレーンだけ。起動した run のコミットで流す（2026-11-26 に改めた。ほかのレーンは「レーンの最新の結果」を使う） | 結果を出せるタグを持つプラグインごとに 1 項目（そのタグのコミットで、そのプラグインのレーン）と、骨組みのコミットで、プラグインに属さないレーンの 1 項目 |
-| `missing` | 空 | 結果を出せないタグのプラグインの名前 |
+| `runs` | 結果がまだ無いレーンだけ。起動した run のコミットで流す（2026-11-26 に改めた。ほかのレーンは「レーンの最新の結果」を使う） | 結果を出せるタグを持つ単位ごとに 1 項目（そのタグのコミットで、その単位のレーン）と、骨組みのコミットで、単位に属さないレーンの 1 項目 |
+| `missing` | 空 | 結果を出せないタグの単位の名前 |
 | `latest` | 拾ったレーン（下の LaneLatest）。レーンごとに、コミット・試した run・取り出す元の run と artifact | 持たない |
 
 形（`report-sources.json`）。`generate.py` が読むのは `runs` と `latest` で、`commit` は 40 桁の 16 進、`lanes`・`lane` は `<project>:<target>`。
@@ -87,9 +87,9 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 決まり:
 
 - タグが結果を出せるかは、そのタグのコミットに `report-lanes.json` があるかで決める
-- リリース版の `runs` が空（どのプラグインも結果を出せない）なら、レポートを作らず、run は成功で終える
-- 骨組みのコミットが結果を出せないときは、プラグインに属さないレーンを入れない
-- 結果を出せるプラグインが無いときは、プラグインに属さないレーンも入れず、`runs` を空にする
+- リリース版の `runs` が空（どの単位も結果を出せない）なら、レポートを作らず、run は成功で終える
+- 骨組みのコミットが結果を出せないときは、単位に属さないレーンを入れない
+- 結果を出せる単位が無いときは、単位に属さないレーンも入れず、`runs` を空にする
 - タグのコミットと骨組みの決め方は、028 の ReleaseSources と同じ（最新のタグ・プレリリースを除く・main の祖先）
 
 ## レーンの最新の結果（LaneLatest）
@@ -215,7 +215,7 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 | `/dev/test-report/` | 開発版のレポート。履歴は持たない | 開発版のレポートを受けたとき。定義書の開発版を差し替えるときは残す |
 | `.pecot-store.json` の `reports` | 側ごとの、レポートを作った run の ID とコミット。リリース版は材料（`sources`）も書く | レポートを受けたとき |
 
-- レポートがまだ無い側の `test-report/index.html` には、案内のページを置く。リリース版で、結果を出せるプラグインが無い間も同じ
+- レポートがまだ無い側の `test-report/index.html` には、案内のページを置く。リリース版で、結果を出せる単位が無い間も同じ
 - `pr/<番号>/` には `test-report/` を置かない
 - 開発版のレポートは、保管中のレポートより古いコミットのものなら捨てる
 - レポートの tar に `history.jsonl` があれば、SideCheck が捨てる（開発版は 2026-11-27 に #821 で、リリース版は #822 で足した）。`test-report/` は丸ごと差し替えるので、前に保管した `history.jsonl` は次の保管で消える
@@ -225,11 +225,11 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 | 欄 | 出どころ | 値 |
 |---|---|---|
 | `report_url` | `PECOT_SITE_SIDE` | 開発版と、`report_plugins` が空でないリリース版は `test-report/index.html`（その側のルートからの相対）。PR 版・手元は無し |
-| `report_plugins` | `PECOT_SITE_REPORT_PLUGINS`（リリース版だけ。`release_build.py` が渡す） | レポートに入っているプラグインの名前の一覧。開発版は全部のプラグイン |
-| `report_missing` | サイトに載せるプラグインと `report_plugins` | リリース版で、`report_plugins` に無いプラグインの名前。ほかの側は空 |
+| `report_plugins` | `PECOT_SITE_REPORT_PLUGINS`（リリース版だけ。`release_build.py` が渡す） | レポートに入っている単位の名前の一覧。開発版は全部の単位 |
+| `report_missing` | サイトに載せる単位と `report_plugins` | リリース版で、`report_plugins` に無い単位の名前。ほかの側は空 |
 
 決まり:
 
 - 側からのリンクは、`report_url` があり、`report_plugins` が空でないときに出す
-- 項目からのリンク（`test-report/index.html?tags=<ID>`）は、その項目のプラグインが `report_plugins` にあるときに出す
-- リリース版で、`report_plugins` に無いプラグインがあれば、その名前を側からのリンクのそばに書く
+- 項目からのリンク（`test-report/index.html?tags=<ID>`）は、その項目の単位が `report_plugins` にあるときに出す
+- リリース版で、`report_plugins` に無い単位があれば、その名前を側からのリンクのそばに書く

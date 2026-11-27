@@ -93,7 +93,7 @@
 
 | 欄 | 決め方 |
 |---|---|
-| `tags` | プラグインごとの最新のタグ。`<plugin>-v<semver>` のうち、プレリリースの接尾辞が無いものの semver の最大値。プラグインは main の `plugins/*/.claude-plugin/plugin.json` から決める |
+| `tags` | 定義書の対象（`libs/interface-spec/targets.json` のキー）ごとの最新のタグ。形は `nx.json` の同じ名前のグループの `releaseTag.pattern` で、プレリリースの接尾辞が無いものの semver の最大値 |
 | `commits` | 各タグが指すコミット |
 | `skeleton` | `commits` のうち、ほかのすべてを祖先に持つもの。骨組み（`libs/interface-spec`）と骨組みの文書をここから取る |
 | `lanes` | 各プラグインのタグのコミットの `junit-lanes.json` のうち、そのプラグインのレーン（2026-11-26 に 030（#699）で取り下げた。タグのコミットに `junit-lanes.json` を求めない） |
@@ -102,7 +102,7 @@
 
 - `commits` のどれかが main の祖先でないときは作らない
 - `skeleton` が決まらない（ほかのすべてを祖先に持つコミットが無い）ときは作らない
-- 各プラグインの `plugins/<name>/` は、そのタグの中身に差し替えてからサイトを作る
+- 各単位の `root`（`targets.json` の `root`。無ければ `plugins/<名前>`）は、そのタグの中身に差し替えてからサイトを作る
 - 作った側の artifact に、`release-sources.json`（`tags`・`commits`・`skeleton`）を入れる。保管して公開する run は、これを API から求め直した値と比べる
 
 ## 受け取った run の確かめ（RunProvenance）

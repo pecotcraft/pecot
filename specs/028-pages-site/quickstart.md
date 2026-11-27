@@ -68,7 +68,7 @@ gh workflow run pages-build.yml --ref main -f side=release
 期待:
 
 - `https://pecotcraft.github.io/pecot/` の上に知らせが出ない
-- `pages-store` の `.pecot-store.json` のリリース版の各タグとコミットが、そのプラグインの最新のタグと、そのタグが指すコミットになる（`git tag -l '<plugin>-v*' | grep -Ev -- '-v[0-9]+\.[0-9]+\.[0-9]+-'` のうち、semver の最大値）
+- `pages-store` の `.pecot-store.json` のリリース版の各タグとコミットが、その単位の最新のタグと、そのタグが指すコミットになる（`nx.json` の `releaseTag.pattern` に合うタグのうち、semver の最大値）
 - `/dev/` と `/pr/` は変わらない
 - 次の本番のリリースからは、release.yml が land の後に同じように起動する
 

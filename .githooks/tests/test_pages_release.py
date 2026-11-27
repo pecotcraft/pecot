@@ -26,12 +26,19 @@ import release_build  # noqa: E402
 import release_sources  # noqa: E402
 from release_sources import (  # noqa: E402
     ReleaseSourcesError,
+    Unit,
     latest_tags,
     report_release,
     resolve,
+    units,
 )
 
 A, B, C = "a" * 40, "b" * 40, "c" * 40
+
+
+def _unit(name: str, sep: str = "-") -> Unit:
+    """plugins/<名前> に置き、タグが <名前><sep>v<semver> の単位。"""
+    return Unit(name=name, root=f"plugins/{name}", tag=f"{name}{sep}v{{version}}")
 
 
 # --- latest_tags ---
@@ -39,7 +46,7 @@ A, B, C = "a" * 40, "b" * 40, "c" * 40
 
 @allure.title("最新のタグは、プレリリースを除き、版を数値として比べた最大のものを選ぶ")
 def test_latest_tags_take_numeric_max_without_prerelease() -> None:
-    """`release_sources.py` の `latest_tags` のテストです。`1.9.0` と `1.10.0` を数値として比較して後者を選び、`rc` や `beta` のタグと、対象外のプラグインのタグは選ばないことを確認します。"""
+    """`release_sources.py` の `latest_tags` のテストです。`1.9.0` と `1.10.0` を数値として比較して後者を選び、`rc` や `beta` のタグと、対象外の単位のタグは選ばないことを確認します。"""
     with allure.step("タグの一覧を用意する"):
         tags = [
             "pecot-visual-v1.9.0",
@@ -51,33 +58,200 @@ def test_latest_tags_take_numeric_max_without_prerelease() -> None:
             "text-rules-v0.2.8",
         ]
     with allure.step("プレリリースを除いた数の最大のタグが選ばれることを確かめる"):
-        assert latest_tags(tags, ["pecot-workflow", "pecot-visual"]) == {
+        assert latest_tags(tags, [_unit("pecot-workflow"), _unit("pecot-visual")]) == {
             "pecot-visual": "pecot-visual-v1.10.0",
             "pecot-workflow": "pecot-workflow-v10.0.0",
         }
 
 
-@allure.title("最新のタグは、名前が長い別のプラグインのタグを、同じプラグインのものとして扱わない")
+@allure.title("最新のタグは、名前が長い別の単位のタグを、同じ単位のものとして扱わない")
 def test_latest_tags_do_not_take_tags_of_plugin_with_longer_name() -> None:
-    """`pecot-visual` と `pecot-visual-x` のように、一方の名前が他方の接頭辞になっている場合のテストです。`latest_tags` が、それぞれのプラグインのタグだけから最新を選ぶことを確認します。"""
-    with allure.step("名前が長い別のプラグインのタグを混ぜた一覧を用意する"):
+    """`pecot-visual` と `pecot-visual-x` のように、一方の名前が他方の接頭辞になっている場合のテストです。`latest_tags` が、それぞれの単位のタグだけから最新を選ぶことを確認します。"""
+    with allure.step("名前が長い別の単位のタグを混ぜた一覧を用意する"):
         tags = ["pecot-visual-v1.0.0", "pecot-visual-x-v9.0.0", "pecot-visual-x-v1.0.0"]
-    with allure.step("名前が長いプラグインのタグを取らないことを確かめる"):
-        assert latest_tags(tags, ["pecot-visual", "pecot-visual-x"]) == {
+    with allure.step("名前が長い単位のタグを取らないことを確かめる"):
+        assert latest_tags(tags, [_unit("pecot-visual"), _unit("pecot-visual-x")]) == {
             "pecot-visual": "pecot-visual-v1.0.0",
             "pecot-visual-x": "pecot-visual-x-v9.0.0",
         }
 
 
-@allure.title("プラグインにリリースのタグが存在しないと、最新のタグの選択で例外が発生する")
-def test_latest_tags_fail_for_plugin_without_tag() -> None:
-    """`pecot-tools` に、プレリリースのタグしか存在しない場合のテストです。`ReleaseSourcesError` が発生し、メッセージにプラグイン名が含まれることを確認します。"""
-    with allure.step("タグの無いプラグインがあると失敗することを確かめる"):
-        with pytest.raises(ReleaseSourcesError, match="pecot-tools のリリースのタグ"):
+@allure.title("タグの形が <名前>/v{version} の単位は、その形のタグだけから最新を選ぶ")
+def test_latest_tags_follow_slash_v_tag_form() -> None:
+    """タグの形が `pecot-actions/v{version}` の単位を渡す場合のテストです。`/v` のタグから数値の最大を選び、`-v` のタグとプレリリースのタグは選ばないことを確認します。"""
+    with allure.step("/v と -v のタグを混ぜた一覧を用意する"):
+        tags = [
+            "pecot-actions/v1.9.0",
+            "pecot-actions/v1.10.0",
+            "pecot-actions/v2.0.0-rc.1",
+            "pecot-actions-v9.0.0",
+        ]
+    with allure.step("/v の形のタグだけから最新が選ばれることを確かめる"):
+        assert latest_tags(tags, [_unit("pecot-actions", "/")]) == {
+            "pecot-actions": "pecot-actions/v1.10.0"
+        }
+
+
+@allure.title(
+    "単位にリリースのタグが存在しないと、最新のタグの選択で、その単位のタグの形を示す例外が発生する"
+)
+@pytest.mark.parametrize(
+    ("unit", "message"),
+    [
+        (
+            _unit("pecot-tools"),
+            r"pecot-tools のリリースのタグ（pecot-tools-v<semver>）がありません",
+        ),
+        (
+            _unit("pecot-actions", "/"),
+            r"pecot-actions のリリースのタグ（pecot-actions/v<semver>）がありません",
+        ),
+    ],
+    ids=["dash-v", "slash-v"],
+)
+def test_latest_tags_fail_for_plugin_without_tag(unit: Unit, message: str) -> None:
+    """プレリリースのタグと、形の違うタグしか存在しない単位を渡す場合のテストです。`ReleaseSourcesError` が発生し、メッセージに単位の名前とタグの形が含まれることを確認します。"""
+    with allure.step("タグの無い単位があると失敗することを確かめる"):
+        with pytest.raises(ReleaseSourcesError, match=message):
             latest_tags(
-                ["pecot-workflow-v1.0.0", "pecot-tools-v1.0.0-rc.1"],
-                ["pecot-workflow", "pecot-tools"],
+                [
+                    "pecot-workflow-v1.0.0",
+                    "pecot-tools-v1.0.0-rc.1",
+                    "pecot-actions-v1.0.0",
+                    "pecot-actions/v1.0.0-rc.1",
+                ],
+                [_unit("pecot-workflow"), unit],
             )
+
+
+# --- units ---
+
+
+def _group(name: str, pattern: str | None = None) -> dict[str, object]:
+    """nx.json の release.groups の 1 項目。pattern を省くと <名前>-v{version}。"""
+    return {
+        "projects": [name],
+        "projectsRelationship": "fixed",
+        "releaseTag": {"pattern": pattern or f"{name}-v{{version}}"},
+    }
+
+
+def _unit_files(
+    plugins: Mapping[str, Mapping[str, object]], groups: Mapping[str, object]
+) -> dict[str, str]:
+    """targets.json と nx.json を、リポのルートからのパスと中身で返す。"""
+    return {
+        release_sources.TARGETS: json.dumps({"format": 1, "plugins": plugins}),
+        release_sources.NX_JSON: json.dumps({"release": {"groups": groups}}),
+    }
+
+
+def _plain_units(*names: str) -> dict[str, str]:
+    """root を持たず、タグが <名前>-v{version} の単位だけの targets.json と nx.json。"""
+    return _unit_files({n: {} for n in names}, {n: _group(n) for n in names})
+
+
+def _write(root: Path, files: Mapping[str, str]) -> None:
+    for name, text in files.items():
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+
+
+@allure.title(
+    "単位は、targets.json の plugins の各キーと、nx.json の同じ名前のグループのタグの形から決まる"
+)
+def test_units_read_targets_and_release_groups(tmp_path: Path) -> None:
+    """`units` に、`root` を持つ項目と持たない項目の `targets.json` と、`nx.json` のグループを渡す場合のテストです。`root` の既定が `plugins/<名前>` で、`{releaseGroupName}` をグループ名で補ったタグの形になることを確認します。"""
+    with allure.step("targets.json と nx.json を書く"):
+        _write(
+            tmp_path,
+            _unit_files(
+                {"acts": {"root": "actions", "entries": "complete"}, "p": {}},
+                {
+                    "acts": _group("acts", "{releaseGroupName}/v{version}"),
+                    "p": _group("p", "p-v{version}"),
+                    "text-rules": _group("text-rules"),
+                },
+            ),
+        )
+    with allure.step("単位を読む"):
+        found = units(tmp_path)
+    with allure.step("名前・置き場所・タグの形を確かめる"):
+        # targets.json に無いグループ（text-rules）は単位にしない。
+        assert found == {
+            "acts": Unit(name="acts", root="actions", tag="acts/v{version}"),
+            "p": Unit(name="p", root="plugins/p", tag="p-v{version}"),
+        }
+
+
+@allure.title("nx.json のグループが {param_id} の場合、単位の決定で理由を示す例外が発生する")
+@pytest.mark.parametrize(
+    ("groups", "message"),
+    [
+        (
+            {"q": _group("q")},
+            "nx.json に、libs/interface-spec/targets.json の p と同じ名前のリリースのグループがありません",
+        ),
+        (
+            {"p": {**_group("p"), "projects": ["p", "q"]}},
+            r'グループ p の projects が \["p"\] ではありません: \["p", "q"\]',
+        ),
+        (
+            {"p": {**_group("p"), "projects": ["q"]}},
+            r'グループ p の projects が \["p"\] ではありません: \["q"\]',
+        ),
+        (
+            {"p": {"projects": ["p"]}},
+            r"グループ p に releaseTag.pattern がありません（nx の既定の形は読みません）",
+        ),
+        (
+            {"p": _group("p", "{projectName}-v{version}")},
+            r"nx は \{projectName\} を補わずにタグを打ちます",
+        ),
+        (
+            {"p": _group("p", "v{version}")},
+            r"releaseTag.pattern（v\{version\}）を補った形が p-v\{version\} でも p/v\{version\} でもありません",
+        ),
+        ({"p": _group("p", "p@{version}")}, r"releaseTag.pattern（p@\{version\}）を補った形が"),
+    ],
+    ids=[
+        "no-group",
+        "two-projects",
+        "other-project",
+        "no-pattern",
+        "project-name",
+        "no-prefix",
+        "at-sign",
+    ],
+)
+def test_units_fail_for_wrong_release_group(
+    tmp_path: Path, groups: dict[str, object], message: str
+) -> None:
+    """`targets.json` の単位 `p` に対して、`nx.json` のグループが不正な場合のテストです。`units` が `ReleaseSourcesError` を発生し、メッセージに不正な理由が含まれることを確認します。"""
+    with allure.step("不正なグループの nx.json を書く"):
+        _write(tmp_path, _unit_files({"p": {}}, groups))
+    with allure.step("単位の決定が失敗することを確かめる"):
+        with pytest.raises(ReleaseSourcesError, match=message):
+            units(tmp_path)
+
+
+@allure.title(
+    "このリポの targets.json と nx.json から、4 つのリリース版の単位と、そのタグの形が決まる"
+)
+def test_units_of_this_repo() -> None:
+    """このリポジトリの `targets.json` と `nx.json` で `units` を呼ぶ場合のテストです。サイトの名前とリリースのグループがそろい、`pecot-actions` の置き場所が `actions` で、タグの形が `pecot-actions/v{version}` であることを確認します。"""
+    with allure.step("このリポの単位を読む"):
+        found = units(_REPO)
+    with allure.step("4 つの単位の置き場所とタグの形を確かめる"):
+        assert found == {
+            "pecot-actions": Unit(
+                name="pecot-actions", root="actions", tag="pecot-actions/v{version}"
+            ),
+            "pecot-tools": _unit("pecot-tools"),
+            "pecot-visual": _unit("pecot-visual"),
+            "pecot-workflow": _unit("pecot-workflow"),
+        }
 
 
 # --- resolve ---
@@ -98,7 +272,7 @@ def _resolve(
 
     return resolve(
         [*tag_to_commit, "a-v0.9.0"],
-        list(commits),
+        [_unit(p) for p in commits],
         commit_of=lambda tag: tag_to_commit.get(tag, "0" * 40),
         is_ancestor=is_ancestor,
         main="origin/main",
@@ -211,15 +385,11 @@ def _run_cli(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-@allure.title("CLI は、git のタグから各プラグインの最新の版と骨組みを決めて出力する")
+@allure.title("CLI は、git のタグから各単位の最新の版と骨組みを決めて出力する")
 def test_cli_resolves_from_git_tags(repo: Path, tmp_path: Path) -> None:
-    """一時の git リポジトリに、2 つのプラグインのタグを付けて `release_sources.py` を実行する場合のテストです。標準出力が `tags`、`commits`、`skeleton` だけの 1 行の JSON で、`--record` のファイルも同じ内容になることを確認します。"""
+    """一時の git リポジトリに、2 つの単位のタグを付けて `release_sources.py` を実行する場合のテストです。標準出力が `tags`、`commits`、`skeleton` だけの 1 行の JSON で、`--record` のファイルも同じ内容になることを確認します。"""
     with allure.step("タグを打った git のリポで CLI を動かす"):
-        manifests = {
-            "plugins/a/.claude-plugin/plugin.json": "{}",
-            "plugins/b/.claude-plugin/plugin.json": "{}",
-        }
-        first = _commit(repo, manifests, "first")
+        first = _commit(repo, _plain_units("a", "b"), "first")
         _git(repo, "tag", "a-v1.9.0")
         _git(repo, "tag", "b-v0.1.0")
         second = _commit(repo, {"plugins/b/x.txt": "x"}, "second")
@@ -242,11 +412,51 @@ def test_cli_resolves_from_git_tags(repo: Path, tmp_path: Path) -> None:
         assert json.loads(read_output(record)) == expected
 
 
+@allure.title("CLI は、nx.json のグループのタグの形が /v の単位を、その形のタグから決める")
+def test_cli_resolves_slash_v_tags_of_a_unit(repo: Path) -> None:
+    """`root` が `actions` で、タグの形が `{releaseGroupName}/v{version}` の単位を持つ一時の git リポジトリのテストです。`/v` のタグから最新を選び、同じ名前の `-v` のタグは選ばないことを確認します。"""
+    with allure.step("/v のタグを打った git のリポで CLI を動かす"):
+        files = _unit_files(
+            {"acts": {"root": "actions"}, "b": {}},
+            {"acts": _group("acts", "{releaseGroupName}/v{version}"), "b": _group("b")},
+        )
+        first = _commit(repo, files, "first")
+        _git(repo, "tag", "acts/v1.0.0")
+        _git(repo, "tag", "b-v1.0.0")
+        _commit(repo, {"actions/x.txt": "x"}, "second")
+        _git(repo, "tag", "acts-v9.0.0")
+        _git(repo, "tag", "acts/v1.1.0-rc.1")
+
+        result = _run_cli(repo)
+
+    with allure.step("終了コードと標準出力を確かめる"):
+        assert result.returncode == 0, result.stderr
+        assert json.loads(result.stdout) == {
+            "tags": {"acts": "acts/v1.0.0", "b": "b-v1.0.0"},
+            "commits": {"acts": first, "b": first},
+            "skeleton": first,
+        }
+
+
+@allure.title("CLI は、単位のリリースのグループが nx.json に存在しないと、終了コード 1 で終わる")
+def test_cli_fails_when_unit_has_no_release_group(repo: Path) -> None:
+    """`targets.json` の単位 `b` と同じ名前のグループが、`nx.json` に存在しない一時の git リポジトリのテストです。終了コード 1 で終わり、グループが存在しない旨を標準エラーに出力することを確認します。"""
+    with allure.step("グループの無い単位を持つ git のリポで CLI を動かす"):
+        _commit(repo, _unit_files({"a": {}, "b": {}}, {"a": _group("a")}), "first")
+        _git(repo, "tag", "a-v1.0.0")
+
+        result = _run_cli(repo)
+
+    with allure.step("終了コード 1 とエラーの出力を確かめる"):
+        assert result.returncode == 1
+        assert "の b と同じ名前のリリースのグループがありません" in result.stderr
+
+
 @allure.title("CLI は、タグが main の祖先でないと、終了コード 1 で終わる")
 def test_cli_fails_when_tag_is_off_main(repo: Path) -> None:
     """`main` から分岐したブランチの commit に、タグを付ける場合のテストです。終了コード 1 で終わり、タグ名と commit を含むエラーを標準エラーに出力することを確認します。"""
     with allure.step("main の外にタグがある git のリポで CLI を動かす"):
-        _commit(repo, {"plugins/a/.claude-plugin/plugin.json": "{}"}, "first")
+        _commit(repo, _plain_units("a"), "first")
         _git(repo, "checkout", "-q", "-b", "side")
         side = _commit(repo, {"x.txt": "x"}, "side")
         _git(repo, "tag", "a-v1.0.0")
@@ -307,7 +517,7 @@ def _report(
 
     return report_release(
         [*tag_to_commit, "a-v0.9.0"],
-        list(commits),
+        [_unit(p) for p in commits],
         commit_of=lambda tag: tag_to_commit.get(tag, "0" * 40),
         is_ancestor=is_ancestor,
         read_lanes=lambda commit: lanes_of.get(commit),
@@ -425,19 +635,19 @@ def test_report_release_fails_naming_tag_of_malformed_report_lanes() -> None:
 
 @allure.title("CLI は、--report release で、git のタグからレポートの材料とジョブの一覧を決める")
 def test_cli_report_release_resolves_from_git_tags(repo: Path) -> None:
-    """一時の git リポジトリで、`release_sources.py --report release` を実行する場合のテストです。プラグインごとの最新のタグから `runs` と `matrix` を作り、レーンの一覧を持たないプラグインは `missing` に入ることを確認します。"""
+    """一時の git リポジトリで、`release_sources.py --report release` を実行する場合のテストです。単位ごとの最新のタグから `runs` と `matrix` を作り、レーンの一覧を持たない単位は `missing` に入ることを確認します。単位 `b` のタグは `/v` の形です。"""
     with allure.step("タグを打った git のリポで release のレポートの CLI を動かす"):
-        manifests = {
-            "plugins/a/.claude-plugin/plugin.json": "{}",
-            "plugins/b/.claude-plugin/plugin.json": "{}",
-        }
-        _commit(repo, manifests, "first")
+        files = _unit_files(
+            {"a": {}, "b": {"root": "acts"}},
+            {"a": _group("a"), "b": _group("b", "{releaseGroupName}/v{version}")},
+        )
+        _commit(repo, files, "first")
         _git(repo, "tag", "a-v1.0.0")
         b_cli, ci = _rlane("b", "test-cli", "b"), _rlane("githooks", "test-ci")
         second = _commit(
             repo, {_REPORT_LANES: json.dumps([_rlane("a", "test-cli", "a"), b_cli, ci])}, "second"
         )
-        _git(repo, "tag", "-a", "-m", "b", "b-v1.0.0")
+        _git(repo, "tag", "-a", "-m", "b", "b/v1.0.0")
         _git(repo, "tag", "a-v2.0.0-rc.1")
 
         result = _run_cli(repo, "--report", "release")
@@ -463,7 +673,7 @@ def test_cli_report_release_resolves_from_git_tags(repo: Path) -> None:
 def test_cli_report_release_without_report_lanes_has_empty_matrix(repo: Path) -> None:
     """レーンの一覧が存在しない一時の git リポジトリで、`--report release` を実行する場合のテストです。終了コード 0 で終わり、`runs` と `matrix` が空で、プラグインが `missing` に入ることを確認します。"""
     with allure.step("レポートのレーンが無い git のリポで release のレポートの CLI を動かす"):
-        _commit(repo, {"plugins/a/.claude-plugin/plugin.json": "{}"}, "first")
+        _commit(repo, _plain_units("a"), "first")
         _git(repo, "tag", "a-v1.0.0")
 
         result = _run_cli(repo, "--report", "release")
@@ -567,6 +777,7 @@ def workspace(tmp_path: Path) -> Path:
     ws = tmp_path / "ws"
     (ws / ".githooks/ci").mkdir(parents=True)
     (ws / ".githooks/ci/dev-container.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+    _write(ws, _plain_units("a", "b"))
     return ws
 
 
@@ -641,7 +852,7 @@ def test_build_runs_steps_in_order(
         assert rc == 0, capsys.readouterr().err
         ws = str(workspace)
         expected: list[tuple[str, ...]] = [
-            # 1. skeleton に各プラグインのタグの中身を重ねる。テストのレーンは動かさない
+            # 1. skeleton に各単位のタグの中身を重ねる。テストのレーンは動かさない
             ("restore-owner",),
             ("git", "checkout", "--force", B),
             ("give-owner",),
@@ -667,6 +878,78 @@ def test_build_runs_steps_in_order(
         }
         # 呼ぶスクリプトは、作業ツリーの外の写しを使う。
         assert (temp / "pages-release-tools/dev-container.sh").is_file()
+
+
+@allure.title(
+    "リリース版の build は、targets.json の root を持つ単位を、その root の場所で差し替える"
+)
+def test_build_assembles_each_unit_at_its_root(
+    tmp_path: Path, workspace: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """作業ツリーの `targets.json` で、単位 `a` が `root` に `actions` を持つ場合のテストです。骨組みに重ねるとき、`a` は `actions` を、`b` は `plugins/b` を、それぞれのタグの commit の中身に差し替えることを確認します。"""
+    with allure.step("root を持つ単位の targets.json を置いて build を動かす"):
+        _write(
+            workspace,
+            _unit_files(
+                {"a": {"root": "actions"}, "b": {}},
+                {"a": _group("a", "{releaseGroupName}/v{version}"), "b": _group("b")},
+            ),
+        )
+        runner = FakeRunner(workspace)
+        rc, _, _ = _main(tmp_path, workspace, runner)
+
+    with allure.step("単位ごとの差し替えの場所を確かめる"):
+        assert rc == 0, capsys.readouterr().err
+        swaps = [call for call in runner.calls if call[:2] in (("git", "rm"), ("git", "checkout"))]
+        assert swaps == [
+            ("git", "checkout", "--force", B),
+            ("git", "rm", "-r", "-q", "--ignore-unmatch", "actions"),
+            ("git", "checkout", A, "--", "actions"),
+            ("git", "rm", "-r", "-q", "--ignore-unmatch", "plugins/b"),
+            ("git", "checkout", B, "--", "plugins/b"),
+        ]
+
+
+@allure.title(
+    "リリース版の build は、材料の単位が作業ツリーの単位とそろわない（{param_id}）と、何も実行せずに終了コード 1 で終わる"
+)
+@pytest.mark.parametrize(
+    "names",
+    [("a",), ("a", "b", "c")],
+    ids=["fewer", "more"],
+)
+def test_build_stops_when_units_differ_from_sources(
+    tmp_path: Path, workspace: Path, names: tuple[str, ...], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """作業ツリーの `targets.json` の単位が、材料の `commits` の単位（`a` と `b`）と異なる場合のテストです。終了コード 1 で終わり、単位がそろわない旨を出力し、外部のコマンドを 1 つも実行しないことを確認します。"""
+    with allure.step("材料と異なる単位の targets.json を置いて build を動かす"):
+        _write(workspace, _plain_units(*names))
+        runner = FakeRunner(workspace)
+        rc, _, _ = _main(tmp_path, workspace, runner)
+
+    with allure.step("終了コード 1 とエラーの出力と何も動かないことを確かめる"):
+        assert rc == 1
+        err = capsys.readouterr().err
+        assert f"の単位（a, b）が、作業ツリーの単位（{', '.join(names)}）とそろいません" in err
+        assert runner.calls == []
+
+
+@allure.title(
+    "リリース版の build は、作業ツリーの単位を決められないと、何も実行せずに終了コード 1 で終わる"
+)
+def test_build_stops_when_units_cannot_be_read(
+    tmp_path: Path, workspace: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """作業ツリーの `nx.json` に、単位 `b` のリリースのグループが存在しない場合のテストです。終了コード 1 で終わり、グループが存在しない旨を出力し、外部のコマンドを 1 つも実行しないことを確認します。"""
+    with allure.step("グループの無い単位の nx.json を置いて build を動かす"):
+        _write(workspace, _unit_files({"a": {}, "b": {}}, {"a": _group("a")}))
+        runner = FakeRunner(workspace)
+        rc, _, _ = _main(tmp_path, workspace, runner)
+
+    with allure.step("終了コード 1 とエラーの出力と何も動かないことを確かめる"):
+        assert rc == 1
+        assert "の b と同じ名前のリリースのグループがありません" in capsys.readouterr().err
+        assert runner.calls == []
 
 
 @allure.title("リリース版の build は、サイトを作る段のコンテナに、サイトの環境変数だけを渡す")

@@ -1,7 +1,7 @@
 {
   "format": 1,
   "plugins": {
-    "actions": {
+    "pecot-actions": {
       "root": "actions",
       "entries": "complete",
       "coverage": "on",
