@@ -136,9 +136,12 @@ run_publish() {
     explains '`PECOT_RELEASE_TEST_NPM_CACHE` を設定して `publish-mcp-dist.sh --dry-run` を続けて動かすテストです。2 回目も同じディレクトリを npm cache にし、永続キャッシュに置いたファイルが終了後も残ることを確認します。'
     export PECOT_RELEASE_TEST_NPM_CACHE="$PERSISTENT"
     run_publish optin2 --dry-run --skip-build --out-dir="$TMP/dist-optin2"
+    assert_equal "$PUBLISH_RC" "0"
     assert_equal "$(log_field cache)" "$PERSISTENT"
     mkdir -p "$PERSISTENT" && : > "$PERSISTENT/marker"
     run_publish optin3 --dry-run --skip-build --out-dir="$TMP/dist-optin3"
+    assert_equal "$PUBLISH_RC" "0"
+    # 2 回目の実行も、永続キャッシュの残る同じディレクトリを npm cache にする。
     assert_equal "$(log_field cache)" "$PERSISTENT"
     [ -f "$PERSISTENT/marker" ] || fail "永続キャッシュが消えた"
 }
