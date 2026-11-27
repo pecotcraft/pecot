@@ -657,12 +657,16 @@ process.stdout.write(JSON.stringify({ missing: [...missing].sort(), matchCount }
 
 @test "origin が scp 形式と ssh:// 形式でも、gh の -R が owner/name になる" {
     explains '使い捨てリポの origin を scp 形式と `ssh://` 形式に替えて、本実行の publish を動かすテストです。どちらの形式でも、`gh release view` の `-R` が origin の owner/name になることを確認します。'
-    local script url
+    local script url i=0
     script="$(copy_test_repo)"
     for url in "git@github.com:$TEST_SLUG.git" "ssh://git@github.com/$TEST_SLUG.git"; do
+        i=$((i + 1))
         git -C "$T/repo" remote set-url origin "$url"
+        # 同じパスは 1 つの @test で 1 回しか添付されないので、形式ごとに記録を分ける。
+        export GH_STUB_DIR="$T/gh-origin-$i"
+        mkdir -p "$GH_STUB_DIR"
         : > "$GH_STUB_DIR/calls.log"
-        run_attached publish_real bash "$script" --version="$TEST_VERSION" --skip-build --out-dir="$T/dist-$(printf '%s' "$url" | cksum | cut -d' ' -f1)"
+        run_attached publish_real bash "$script" --version="$TEST_VERSION" --skip-build --out-dir="$T/dist-origin-$i"
         read_gh_log
         assert_equal "$(sed -n 1p <<< "$gh_log")" "release view $TEST_TAG -R $TEST_SLUG"
     done
