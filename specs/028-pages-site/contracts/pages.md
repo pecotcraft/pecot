@@ -31,6 +31,7 @@ Read the Docs の版の知らせと同じく、リリース版でない側でだ
 | `push`（`main`） | — | `dev`（その push のコミット） |
 | `pull_request`（opened・synchronize・reopened） | — | `pr`（PR の head のコミット）。head が同じリポの PR だけ。fork の PR では作らずに成功で終わる |
 | `pull_request`（closed） | — | 作らない（`pages-deploy.yml` を起こし、閉じた PR を掃除させるためだけに成功で終わる） |
+| `workflow_dispatch` | `side`（`release`・`dev`）だけ。コミットは受けない | `dev` は `github.sha`（起動した run のコミット）。`release` は ReleaseSources（data-model.md） |
 
 - `pull_request` は、`paths` でサイトの材料に触る PR に絞る（2026-11-27、#847 で改めた）。材料は次のとおり
   - 定義書（`plugins/*/interface/**`・`actions/interface/**`）
@@ -39,8 +40,6 @@ Read the Docs の版の知らせと同じく、リリース版でない側でだ
 - root の `package.json`・`pnpm-lock.yaml` は入れない。lock を変えてもサイトを作れるかは、ci の `interface-spec:test-site` が確かめる
 - `paths` は PR の diff の最初の 300 ファイルしか見ない。材料が 301 番目以降にある大きな PR では、PR 版が作られない
 - `paths` に当たらない PR は、閉じても起動しない。PR 版を作った後にサイトの変更を消した PR の PR 版は、次の store が掃除する
-| `workflow_dispatch` | `side`（`release`・`dev`）だけ。コミットは受けない | `dev` は `github.sha`（起動した run のコミット）。`release` は ReleaseSources（data-model.md） |
-
 - `workflow_dispatch` では、side の job は `github.ref == 'refs/heads/main'` でなければ失敗する。main 以外のブランチや、`main` という名前のタグで起動された run は、側を作らない
 - 開発版は、起動の後に main の HEAD を求め直さない。作る中身と `.pecot-store.json` を、run の `head_sha` とそろえるため
 

@@ -61,8 +61,9 @@ paths:
     ```
 
   - 落ちた run の artifact は、store の job が取った時点の `pages-store` なので、後の run の後にやり直すと古い中身を公開する
-- store の job が、保管の push の後に上げる step で落ちたときも、上の `--failed` でやり直す。やり直しの store は、保管の変更が無くても `pages-store` の今の中身を上げる
   - `github-pages` の artifact は 1 日で消える。過ぎたら `gh workflow run pages-deploy.yml --ref main` を打つ
+
+- store の job が、保管の push の後に上げる step で落ちたときも、上の `--failed` でやり直す。やり直しの store は、保管の変更が無くても `pages-store` の今の中身を上げる
 
 - 側を作る run は、テストの結果に左右されない。失敗するのは、`sphinx-build -W` が警告を出したときなど、サイトを作れなかったとき
 - artifact は、どの側のものも 7 日で消える。保管が終わっていれば、消えても公開は変わらない
