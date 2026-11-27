@@ -7,7 +7,8 @@
 次のセキュリティリリースで上げるときは、現行の版を次のコマンドで列挙する。
 `grep -rn '24.22.1' plugins .githooks`（node_modules・アイコン SVG のヒットは除く）。
 ヒットした箇所を同じ変更で更新する。
-表・engines・フックの期待値・両プラグインの複製の一致は node-runtime.test.ts が検証する。
+表・engines・フックの期待値は各プラグインの node-runtime.test.ts が検証する。
+2 つの複製の一致は pecot-visual の node-runtime.test.ts が検証する。
 */
 export const MINIMUM_NODE_VERSIONS: Readonly<Record<number, string>> = {
   24: '24.22.1',
