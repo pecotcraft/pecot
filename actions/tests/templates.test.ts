@@ -43,6 +43,11 @@ describe('actions/templates', () => {
     expect(read(name)).not.toContain('@pecot/workflow-mcp')
   })
 
+  it.for(TEMPLATES)('%s は、なくなった pecot の CLI のコマンドを案内しない', async (name) => {
+    await explains(`ワークフローの雛形 \`${name}\` のテストです。\`pecot workflow install\` のような CLI のコマンドを含まないことを確認します。`)
+    expect(read(name)).not.toMatch(/`pecot [a-z]/u)
+  })
+
   it('プラグインの写しが actions/templates と同じ', async () => {
     await explains('pecot-workflow の `cli/templates/workflow/` に置く雛形の写しのテストです。どの写しも `actions/templates/` の雛形と一致することを確認します。')
     expect(staleCopies()).toEqual([])

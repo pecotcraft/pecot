@@ -1,4 +1,4 @@
-# pecot-workflow-template: board-sync 1
+# pecot-workflow-template: board-sync 2
 #
 # Place this file at .github/workflows/pecot-board-sync.yml in your repository.
 # `workflow_install` (name: board-sync) places it and pins the pecot actions to a commit SHA.

@@ -1,4 +1,4 @@
-# pecot-workflow-template: auto 2
+# pecot-workflow-template: auto 3
 #
 # Place this file at .github/workflows/pecot-auto.yml in your repository.
 # `workflow_install` (name: auto) places it and pins the pecot actions to a commit SHA.
