@@ -2,11 +2,10 @@
   =========================================================================
   Sync Impact Report
   =========================================================================
-  Version change: 5.0.0 → 5.0.1
+  Version change: 5.0.1 → 5.0.2
   Modified principles:
-    - III. テストファースト（明確化。カバレッジの閾値の正から .c8rc.json を外し、
-      slidev のテストも vitest.config.ts の thresholds に置く）
-  Reason: slidev のテストを node:test と c8 から vitest に移した（#809）
+    - V. 品質の自動チェック（明確化。CI の必須チェックに CodeQL の言語ごとの解析を足す）
+  Reason: merge queue が CodeQL の解析を待たずにマージし、merge_group の解析が落ちていた（#855）
   Backward compatibility: 原則は変わらない
   Added principles: なし
   Removed principles: なし
@@ -15,7 +14,7 @@
     - .specify/templates/spec-template.md ✅ 更新不要
     - .specify/templates/tasks-template.md ✅ 更新不要
     - .specify/templates/checklist-template.md ✅ 更新不要
-    - CLAUDE.md ✅ 更新不要（閾値の置き場所を引いていない）
+    - CLAUDE.md ✅ 更新済み（必須チェックの一覧）
   Follow-up TODOs: なし
   =========================================================================
 -->
@@ -123,7 +122,7 @@ Actions のプロジェクト（`actions/`）は action で公開する。
 | pre-commit（CI でも動く） | 変更のある nx project の lint（`nx-affected-lint`）、文面・Markdown・YAML・ワークフロー・Python の形、リポの配置と運用の決まり |
 | commit-msg | Conventional Commits の形、文面の規則、`main` への直接の commit |
 | pre-push | push の範囲の文面、nx の入力の宣言の不足、version plan の欠け（いずれも CI でも動く） |
-| CI の必須チェック | `ci-result`（affected なテストのレーンと、pre-commit・pre-push の hook の結果）、`version-plan` |
+| CI の必須チェック | `ci-result`（affected なテストのレーンと、pre-commit・pre-push の hook の結果）、`version-plan`、CodeQL の言語ごとの解析（`analyze (<言語>)`） |
 
 ### VI. 層の分離
 
@@ -193,4 +192,4 @@ Spec Kit の成果物（仕様・計画・タスク・チェックリスト）�
 - **版**: セマンティック バージョニング（MAJOR.MINOR.PATCH）に従う。
   MAJOR は原則の削除・再定義、MINOR は追加・拡張、PATCH は明確化・誤字の修正とする
 
-**Version**: 5.0.1 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-11-26
+**Version**: 5.0.2 | **Ratified**: 2026-02-21 | **Last Amended**: 2026-11-27

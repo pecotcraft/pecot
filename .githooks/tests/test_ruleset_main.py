@@ -1,4 +1,4 @@
-"""`.github/rulesets/main.json` が ci.yml の job 名と食い違わないことと、必須の項目がそろっていることを確かめる。"""
+"""`.github/rulesets/main.json` が ci.yml・codeql.yml の job 名と食い違わないことと、必須の項目がそろっていることを確かめる。"""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from pathlib import Path
 
 import allure
 import pytest
+import yaml
 
 _PR_KEYS = {
     "required_approving_review_count",
@@ -57,15 +58,42 @@ def _job_names(ci_yml: str) -> set[str]:
     return names
 
 
-@allure.title("必須のステータスチェックは、ci.yml に存在する job の名前と一致する")
-def test_required_contexts_are_ci_job_names(repo_root: Path, rules: dict[str, dict]) -> None:
-    """`.github/rulesets/main.json` の必須のステータスチェックのテストです。`ci-result` と `version-plan` の 2 つだけが指定され、どちらも `ci.yml` の job に存在することを確認します。"""
-    with allure.step("ruleset の必須の check と ci.yml の job 名を読む"):
+def _codeql_contexts(repo_root: Path) -> set[str]:
+    """codeql.yml の analyze の job の `name` に、matrix の言語を埋めてチェックの名前を作る。"""
+    workflow = yaml.safe_load((repo_root / ".github/workflows/codeql.yml").read_text())
+    job = workflow["jobs"]["analyze"]
+    template = job["name"]
+    assert "${{ matrix.language }}" in template, f"name が言語で分かれていない: {template}"
+    languages = job["strategy"]["matrix"]["language"]
+    return {template.replace("${{ matrix.language }}", lang) for lang in languages}
+
+
+@allure.title(
+    "必須のステータスチェックは、ci.yml の 2 つの job と、codeql.yml の言語ごとの解析だけにする"
+)
+def test_required_contexts_are_ci_and_codeql_jobs(repo_root: Path, rules: dict[str, dict]) -> None:
+    """`.github/rulesets/main.json` の必須のステータスチェックのテストです。`ci.yml` の `ci-result` と `version-plan` に加え、`codeql.yml` の言語ごとの `analyze (<言語>)` がすべて指定されていることを確認します。"""
+    with allure.step("ruleset の必須の check と、ci.yml の job 名・codeql.yml の言語を読む"):
         contexts = {c["context"] for c in rules["required_status_checks"]["required_status_checks"]}
-    with allure.step("必須の check が ci.yml の job 名に含まれることを確かめる"):
-        assert contexts == {"ci-result", "version-plan"}
         jobs = _job_names((repo_root / ".github/workflows/ci.yml").read_text())
-        assert contexts <= jobs, f"ci.yml に無い job: {contexts - jobs}"
+        codeql = _codeql_contexts(repo_root)
+    with allure.step(
+        "必須の check が ci.yml の 2 つの job と codeql.yml の解析に一致することを確かめる"
+    ):
+        assert {"ci-result", "version-plan"} <= jobs
+        assert contexts == {"ci-result", "version-plan"} | codeql
+
+
+@allure.title("codeql.yml の pull_request は、base のブランチで絞らずにすべての PR で動く")
+def test_codeql_runs_on_pull_requests_to_any_base(repo_root: Path) -> None:
+    """`codeql.yml` の `pull_request` の trigger のテストです。必須のチェックを出せるように、base が main でないスタックの子の PR でも動くことを確認します。"""
+    with allure.step("codeql.yml の trigger を読む"):
+        workflow = yaml.safe_load((repo_root / ".github/workflows/codeql.yml").read_text())
+        # PyYAML は YAML 1.1 なので、キーの `on` を True と読む。
+        triggers = workflow[True]
+    with allure.step("pull_request に branches の絞りが無いことを確かめる"):
+        assert "pull_request" in triggers
+        assert "branches" not in (triggers["pull_request"] or {})
 
 
 @allure.title("pull_request の規則は、必須の項目を持ち、承認数 0 と squash だけを指定する")
