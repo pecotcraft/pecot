@@ -54,7 +54,7 @@ make_node_stubs() {
     explains "\`.pecotv\` が無いディレクトリで \`session-start.sh\` を起動するテストです。終了コード 0 で終わり、\`.pecotv\` が作成されないことを確認します。"
     local proj="$BATS_TEST_TMPDIR/p"
     mkdir -p "$proj"
-    run --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj"
+    run_attached --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj"
     assert_success
     assert [ ! -e "$proj/.pecotv" ]
 }
@@ -65,9 +65,11 @@ make_node_stubs() {
     definition="$(bash "$ENSURE" --print)"
     mkdir -p "$proj/.pecotv"
     echo "汚染" > "$proj/.pecotv/.gitignore"
-    run --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj"
+    run_attached --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj"
     assert_success
-    assert_equal "$(cat "$proj/.pecotv/.gitignore")" "$definition"
+    local written
+    written="$(read_output "$proj/.pecotv/.gitignore")"
+    assert_equal "$written" "$definition"
 }
 
 @test "追跡している .gitignore は、書き換えずに差分を残さない" {
@@ -78,9 +80,11 @@ make_node_stubs() {
     printf '*\n# local\n' > "$proj/.pecotv/.gitignore"
     _git -C "$proj" add -f .pecotv/.gitignore
     _git -C "$proj" commit -q -m "track gitignore"
-    run --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj"
+    run_attached --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj"
     assert_success
-    assert_equal "$(cat "$proj/.pecotv/.gitignore")" "$(printf '*\n# local')"
+    local kept
+    kept="$(read_output "$proj/.pecotv/.gitignore")"
+    assert_equal "$kept" "$(printf '*\n# local')"
     run _git -C "$proj" diff --quiet
     assert_success
 }
@@ -90,7 +94,7 @@ make_node_stubs() {
     explains "git のリポでないディレクトリに \`.pecotv\` だけがある場合のテストです。終了コード 0 で \`.gitignore\` が作成され、標準出力に \`git add -f\` の案内が出ないことを確認します。"
     local proj="$BATS_TEST_TMPDIR/p"
     mkdir -p "$proj/.pecotv"
-    run --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj" GIT_CEILING_DIRECTORIES="$BATS_TEST_TMPDIR"
+    run_attached --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj" GIT_CEILING_DIRECTORIES="$BATS_TEST_TMPDIR"
     assert_success
     assert [ -f "$proj/.pecotv/.gitignore" ]
     refute_output --partial 'git add -f .pecotv/.gitignore'
@@ -100,7 +104,7 @@ make_node_stubs() {
     explains "\`CLAUDE_PROJECT_DIR\` を末尾の \`/\` 付きで渡すテストです。終了コード 0 で終わり、\`.pecotv/.gitignore\` が作成されることを確認します。"
     local proj="$BATS_TEST_TMPDIR/p"
     mkdir -p "$proj/.pecotv"
-    run --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj/"
+    run_attached --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj/"
     assert_success
     assert [ -f "$proj/.pecotv/.gitignore" ]
 }
@@ -116,13 +120,15 @@ make_node_stubs() {
     _git -C "$proj" add -f .pecotv/.gitignore
     _git -C "$proj" commit -q -m "track old gitignore"
     assert_equal "$(_git -C "$proj" ls-files -- .pecotv/.gitignore)" ".pecotv/.gitignore"
-    run --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj"
+    run_attached --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj"
     assert_success
     assert_output --partial -- '--print'
     assert_output --partial 'note: The tracked'
     refute_output --partial 'git add -f .pecotv/.gitignore'
     assert_equal "$(_git -C "$proj" ls-files -- .pecotv/.gitignore)" ".pecotv/.gitignore"
-    assert_equal "$(cat "$proj/.pecotv/.gitignore")" "tmp/"
+    local kept
+    kept="$(read_output "$proj/.pecotv/.gitignore")"
+    assert_equal "$kept" "tmp/"
     run jq -e '
         .hookSpecificOutput.hookEventName == "SessionStart"
         and (.hookSpecificOutput.additionalContext | contains("--print"))
@@ -136,7 +142,7 @@ make_node_stubs() {
     local proj="$BATS_TEST_TMPDIR/p"
     mkdir -p "$proj/.pecotv"
     _git_repo "$proj"
-    run --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj"
+    run_attached --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj"
     assert_success
     assert_output --partial "note: \`.pecotv/.gitignore\` is not tracked"
     assert_output --partial 'git add -f .pecotv/.gitignore'
@@ -144,7 +150,7 @@ make_node_stubs() {
 
     _git -C "$proj" add -f .pecotv/.gitignore
     _git -C "$proj" commit -q -m "track gitignore"
-    run --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj"
+    run_attached --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj"
     assert_success
     refute_output
     assert_equal "$(_git -C "$proj" status --porcelain)" ""
@@ -156,10 +162,10 @@ make_node_stubs() {
     mkdir -p "$proj/.pecotv"
     _git -C "$proj" init -q
     printf '{"gitignore-track-notice": false}\n' > "$cfg"
-    run --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj" PECOTV_HOOKS_CONFIG_PATH="$cfg"
+    run_attached --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj" PECOTV_HOOKS_CONFIG_PATH="$cfg"
     assert_success
     refute_output
-    run --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj"
+    run_attached --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj"
     assert_output --partial 'git add -f .pecotv/.gitignore'
 }
 
@@ -168,7 +174,7 @@ make_node_stubs() {
     local proj="$BATS_TEST_TMPDIR/p"
     mkdir -p "$proj"
     make_node_stubs
-    run --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj" PATH="$STUB_BLOCK:$PATH"
+    run_attached --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj" PATH="$STUB_BLOCK:$PATH"
     assert_success
     assert_equal "$(jq -r '.additionalContext' <<< "$output")" "$NODE_OLD_MESSAGE"
     assert_equal "$(jq -r '.systemMessage' <<< "$output")" "$NODE_OLD_MESSAGE"
@@ -182,7 +188,7 @@ make_node_stubs() {
     mkdir -p "$proj/.pecotv"
     _git -C "$proj" init -q
     make_node_stubs
-    run --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj" PATH="$STUB_BLOCK:$PATH"
+    run_attached --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj" PATH="$STUB_BLOCK:$PATH"
     run jq -e '.hookSpecificOutput.additionalContext | contains("git add -f .pecotv/.gitignore") and contains("Node.js 0.0.0")' <<< "$output"
     assert_success
 }
@@ -192,7 +198,7 @@ make_node_stubs() {
     local proj="$BATS_TEST_TMPDIR/p"
     mkdir -p "$proj"
     make_node_stubs
-    run --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj" PATH="$STUB_OK:$PATH"
+    run_attached --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj" PATH="$STUB_OK:$PATH"
     assert_success
     refute_output
 }
@@ -203,7 +209,7 @@ make_node_stubs() {
     mkdir -p "$proj"
     make_node_stubs
     printf '{"node-runtime-notice": false}\n' > "$cfg"
-    run --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj" PECOTV_HOOKS_CONFIG_PATH="$cfg" PATH="$STUB_BLOCK:$PATH"
+    run_attached --separate-stderr _run_hook CLAUDE_PROJECT_DIR="$proj" PECOTV_HOOKS_CONFIG_PATH="$cfg" PATH="$STUB_BLOCK:$PATH"
     assert_success
     refute_output
 }

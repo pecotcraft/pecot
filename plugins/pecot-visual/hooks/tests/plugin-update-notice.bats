@@ -108,7 +108,7 @@ setup_file() {
     explains "Claude 形のレイアウトで installed が 0.29.0、最新が 0.30.0 のテストです。先頭が \`note:\` の案内に更新コマンドと両バージョンが含まれることを確認します。"
     local root
     root=$(make_claude_fixture "$T/c1" "0.29.0" "0.30.0")
-    run --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
+    run_attached --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
     expect_notice 'claude plugin update pecot-v@pecot'
     assert_line --index 0 --regexp '^note: plugin update available: '
     assert_output --partial 'installed: 0.29.0'
@@ -118,7 +118,7 @@ setup_file() {
     explains "installed と最新がどちらも 0.30.0 のテストです。stdout が空で終了コード 0 になることを確認します。"
     local root
     root=$(make_claude_fixture "$T/c2" "0.30.0" "0.30.0")
-    run --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
+    run_attached --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
     expect_silent
 }
 
@@ -126,7 +126,7 @@ setup_file() {
     explains "Copilot 形のレイアウトで installed が最新より古いテストです。案内に \`copilot plugin update pecot-v@pecot\` が含まれることを確認します。"
     local root
     root=$(make_copilot_fixture "$T/c3" "0.29.0" "0.30.0")
-    run --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
+    run_attached --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
     assert_success
     assert_output --partial 'copilot plugin update pecot-v@pecot'
 }
@@ -136,7 +136,7 @@ setup_file() {
     local dev="$T/dev/plugins/pecot-visual"
     mkdir -p "$dev/.claude-plugin"
     printf '{"version":"0.29.0"}\n' > "$dev/.claude-plugin/plugin.json"
-    run --separate-stderr _run CLAUDE_PLUGIN_ROOT="$dev"
+    run_attached --separate-stderr _run CLAUDE_PLUGIN_ROOT="$dev"
     expect_silent
 }
 
@@ -145,7 +145,7 @@ setup_file() {
     local root cfg="$T/hooks-config-5.json"
     root=$(make_claude_fixture "$T/c5" "0.29.0" "0.30.0")
     printf '{"plugin-update-notice": false}\n' > "$cfg"
-    run --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root" PECOTV_HOOKS_CONFIG_PATH="$cfg"
+    run_attached --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root" PECOTV_HOOKS_CONFIG_PATH="$cfg"
     expect_silent
 }
 
@@ -154,7 +154,7 @@ setup_file() {
     local root proj="$T/proj6"
     root=$(make_claude_fixture "$T/c6" "0.29.0" "0.30.0")
     mkdir -p "$proj"
-    run --separate-stderr _run_session CLAUDE_PROJECT_DIR="$proj" CLAUDE_PLUGIN_ROOT="$root"
+    run_attached --separate-stderr _run_session CLAUDE_PROJECT_DIR="$proj" CLAUDE_PLUGIN_ROOT="$root"
     assert_success
     assert_output --partial 'claude plugin update pecot-v@pecot'
     assert [ ! -e "$proj/.pecotv" ]
@@ -164,13 +164,13 @@ setup_file() {
     explains "installed が 0.30.0 で marketplace clone が 0.20.0 と古いテストです。clone を pull する前の状態として stdout が空で終了コード 0 になることを確認します。"
     local root
     root=$(make_claude_fixture "$T/c7" "0.30.0" "0.20.0")
-    run --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
+    run_attached --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
     expect_silent
 }
 
 @test "CLAUDE_PLUGIN_ROOT が未設定のとき、何も出さない" {
     explains "\`CLAUDE_PLUGIN_ROOT\` を外して起動するテストです。stdout が空で終了コード 0 になることを確認します。"
-    run --separate-stderr _run env -u CLAUDE_PLUGIN_ROOT
+    run_attached --separate-stderr _run env -u CLAUDE_PLUGIN_ROOT
     expect_silent
 }
 
@@ -178,7 +178,7 @@ setup_file() {
     explains "marketplace clone が無い構成のテストです。Copilot 単独環境の主な形で、stdout が空で終了コード 0 になることを確認します。"
     local root
     root=$(make_claude_fixture "$T/c9" "0.29.0" "")
-    run --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
+    run_attached --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
     expect_silent
 }
 
@@ -187,7 +187,7 @@ setup_file() {
     local root
     root=$(make_claude_fixture "$T/c10" "0.29.0" "0.30.0")
     printf '{}\n' > "$root/.claude-plugin/plugin.json"
-    run --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
+    run_attached --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
     expect_silent
 }
 
@@ -195,7 +195,7 @@ setup_file() {
     explains "\`CLAUDE_PLUGIN_ROOT\` の末尾にスラッシュを付けたテストです。付けない場合と同じく更新案内が出ることを確認します。"
     local root
     root=$(make_claude_fixture "$T/c11" "0.29.0" "0.30.0")
-    run --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root/"
+    run_attached --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root/"
     assert_success
     assert_output --partial 'claude plugin update pecot-v@pecot'
 }
@@ -206,7 +206,7 @@ setup_file() {
     root=$(make_claude_fixture "$T/c12" "0.29.0" "0.30.0")
     printf '{"plugins":[{"name":"other","source":"./plugins/pecot-visual"}]}\n' \
         > "$T/c12/.claude/plugins/marketplaces/pecot/.claude-plugin/marketplace.json"
-    run --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
+    run_attached --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
     expect_silent
 }
 
@@ -216,7 +216,7 @@ setup_file() {
     root=$(make_claude_fixture "$T/c13" "0.29.0" "0.30.0")
     printf '{"plugins":[{"name":"pecot-v","source":{"source":"github","repo":"a/b"}}]}\n' \
         > "$T/c13/.claude/plugins/marketplaces/pecot/.claude-plugin/marketplace.json"
-    run --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
+    run_attached --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
     expect_silent
 }
 
@@ -225,7 +225,7 @@ setup_file() {
     explains "\`CLAUDE_CONFIG_DIR\` を既定以外にした Claude 形のテストです。ROOT から導出した clone を読んで更新案内が出ることを確認します。"
     local cfg="$T/c14/custom-claude-config" root
     root=$(make_claude_at "$cfg/plugins" "0.29.0")
-    run --separate-stderr _run CLAUDE_CONFIG_DIR="$cfg" CLAUDE_PLUGIN_ROOT="$root"
+    run_attached --separate-stderr _run CLAUDE_CONFIG_DIR="$cfg" CLAUDE_PLUGIN_ROOT="$root"
     expect_notice 'claude plugin update pecot-v@pecot'
 }
 
@@ -233,7 +233,7 @@ setup_file() {
     explains "\`CLAUDE_CONFIG_DIR\` の末尾にスラッシュを付けたテストです。付けない場合と同じく更新案内が出ることを確認します。"
     local cfg="$T/c14/custom-claude-config" root
     root=$(make_claude_at "$cfg/plugins" "0.29.0")
-    run --separate-stderr _run CLAUDE_CONFIG_DIR="$cfg/" CLAUDE_PLUGIN_ROOT="$root"
+    run_attached --separate-stderr _run CLAUDE_CONFIG_DIR="$cfg/" CLAUDE_PLUGIN_ROOT="$root"
     expect_notice 'claude plugin update pecot-v@pecot'
 }
 
@@ -241,7 +241,7 @@ setup_file() {
     explains "既定の場所に入れたうえで、別の場所を指す \`CLAUDE_CONFIG_DIR\` を渡すテストです。この変数に惑わされず更新案内が出ることを確認します。"
     local root
     root=$(make_claude_fixture "$T/c16" "0.29.0" "0.30.0")
-    run --separate-stderr _run CLAUDE_CONFIG_DIR="$T/c16/other" CLAUDE_PLUGIN_ROOT="$root"
+    run_attached --separate-stderr _run CLAUDE_CONFIG_DIR="$T/c16/other" CLAUDE_PLUGIN_ROOT="$root"
     expect_notice 'claude plugin update pecot-v@pecot'
 }
 
@@ -249,7 +249,7 @@ setup_file() {
     explains "\`CLAUDE_CODE_PLUGIN_CACHE_DIR\` 相当の、\`.claude\` を含まない plugins ルートのテストです。更新案内が出ることを確認します。"
     local cache="$T/c17/elsewhere/plugin-root" root
     root=$(make_claude_at "$cache" "0.29.0")
-    run --separate-stderr _run CLAUDE_CODE_PLUGIN_CACHE_DIR="$cache" CLAUDE_PLUGIN_ROOT="$root"
+    run_attached --separate-stderr _run CLAUDE_CODE_PLUGIN_CACHE_DIR="$cache" CLAUDE_PLUGIN_ROOT="$root"
     expect_notice 'claude plugin update pecot-v@pecot'
 }
 
@@ -257,7 +257,7 @@ setup_file() {
     explains "plugins のルートが \`.claude/cowork_plugins\` のテストです。このレイアウトでも更新案内が出ることを確認します。"
     local root
     root=$(make_claude_at "$T/c18/.claude/cowork_plugins" "0.29.0")
-    run --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
+    run_attached --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
     expect_notice 'claude plugin update pecot-v@pecot'
 }
 
@@ -270,7 +270,7 @@ setup_file() {
     printf '{"version":"0.30.0"}\n' > "$T/c19/clone/plugins/pecot-visual/.claude-plugin/plugin.json"
     rm -r "$T/c19/plugins/marketplaces"
     printf '{"pecot":{"installLocation":"%s/c19/clone"}}\n' "$T" > "$T/c19/plugins/known_marketplaces.json"
-    run --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
+    run_attached --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
     expect_notice 'claude plugin update pecot-v@pecot'
 }
 
@@ -280,7 +280,7 @@ setup_file() {
     local root
     root=$(make_claude_fixture "$T/c20" "0.29.0" "0.30.0")
     rm "$T/c20/.claude/plugins/known_marketplaces.json"
-    run --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
+    run_attached --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root"
     expect_silent
 }
 
@@ -288,7 +288,7 @@ setup_file() {
     explains "\`CLAUDE_PLUGIN_ROOT\` を版のディレクトリの 1 つ上にしたテストです。レイアウトに合わず、stdout が空で終了コード 0 になることを確認します。"
     local root
     root=$(make_claude_fixture "$T/c21" "0.29.0" "0.30.0")
-    run --separate-stderr _run CLAUDE_PLUGIN_ROOT="${root%/*}"
+    run_attached --separate-stderr _run CLAUDE_PLUGIN_ROOT="${root%/*}"
     expect_silent
 }
 
@@ -297,7 +297,7 @@ setup_file() {
     local root
     root=$(make_claude_fixture "$T/c21" "0.29.0" "0.30.0")
     mkdir -p "$root/sub/.claude-plugin"
-    run --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root/sub"
+    run_attached --separate-stderr _run CLAUDE_PLUGIN_ROOT="$root/sub"
     expect_silent
 }
 
@@ -307,14 +307,14 @@ setup_file() {
     make_claude_at "$cfg/plugins" "0.29.0" > /dev/null
     mkdir -p "$root22/.claude-plugin"
     printf '{"version":"0.29.0"}\n' > "$root22/.claude-plugin/plugin.json"
-    run --separate-stderr _run CLAUDE_CONFIG_DIR="$cfg" CLAUDE_PLUGIN_ROOT="$root22"
+    run_attached --separate-stderr _run CLAUDE_CONFIG_DIR="$cfg" CLAUDE_PLUGIN_ROOT="$root22"
     expect_notice 'copilot plugin update pecot-v@pecot'
 }
 
 @test "Copilot 単独環境では、自身のキャッシュから最新版を引いて更新案内を出す" {
     explains "Copilot 自身の marketplace キャッシュだけがある環境のテストです。そのキャッシュから最新版を引き、\`copilot plugin update\` の案内が出ることを確認します。"
     make_copilot_solo "$T/c23"
-    run --separate-stderr _run CLAUDE_PLUGIN_ROOT="$ROOT_SOLO"
+    run_attached --separate-stderr _run CLAUDE_PLUGIN_ROOT="$ROOT_SOLO"
     expect_notice 'copilot plugin update pecot-v@pecot'
 }
 
@@ -322,6 +322,6 @@ setup_file() {
     explains "Copilot 単独環境で、キャッシュの \`marketplace.json\` の名前を別の名前に変えたテストです。stdout が空で終了コード 0 になることを確認します。"
     make_copilot_solo "$T/c23"
     printf '{"name":"other","plugins":[{"name":"pecot-v","source":"./plugins/pecot-visual"}]}\n' > "$CLONE_SOLO/.claude-plugin/marketplace.json"
-    run --separate-stderr _run CLAUDE_PLUGIN_ROOT="$ROOT_SOLO"
+    run_attached --separate-stderr _run CLAUDE_PLUGIN_ROOT="$ROOT_SOLO"
     expect_silent
 }

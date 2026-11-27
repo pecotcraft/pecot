@@ -29,11 +29,10 @@ setup() {
     explains '`CLAUDE_PROJECT_DIR` を外した空のディレクトリで `--print` を渡すテストです。終了コード 0 で定義が stdout に出て、`*` を含み、ディレクトリに何も作られないことを確認します。'
     mkdir -p "$T/c1"
     cd "$T/c1"
-    run --separate-stderr "${_GIT_ISOLATE[@]}" -u CLAUDE_PROJECT_DIR bash "$ENSURE" --print
+    run_attached --separate-stderr "${_GIT_ISOLATE[@]}" -u CLAUDE_PROJECT_DIR bash "$ENSURE" --print
     assert_success
     assert_output "$DEFINITION"
-    run grep -x '\*' <<< "$output"
-    assert_success
+    assert_line '*'
     assert [ -z "$(ls -A "$T/c1")" ]
 }
 
@@ -41,7 +40,7 @@ setup() {
     explains '`CLAUDE_PROJECT_DIR` を外して引数なしで動かすテストです。終了コード 0 で、作業ディレクトリに何も作られないことを確認します。'
     mkdir -p "$T/c2"
     cd "$T/c2"
-    run "${_GIT_ISOLATE[@]}" -u CLAUDE_PROJECT_DIR bash "$ENSURE"
+    run_attached "${_GIT_ISOLATE[@]}" -u CLAUDE_PROJECT_DIR bash "$ENSURE"
     assert_success
     assert [ -z "$(ls -A "$T/c2")" ]
 }
@@ -49,9 +48,11 @@ setup() {
 @test "git 外でファイルが無いと、--print と同じ中身を書き、一時ファイルを残さない" {
     explains 'git 外のプロジェクトで `.pecotv/.gitignore` が無いときに動かすテストです。`--print` と同じ中身が書かれ、`.pecotv` に一時ファイルが残らないことを確認します。'
     mkdir -p "$T/p3"
-    run _run_ensure CLAUDE_PROJECT_DIR="$T/p3" GIT_CEILING_DIRECTORIES="$T"
+    run_attached _run_ensure CLAUDE_PROJECT_DIR="$T/p3" GIT_CEILING_DIRECTORIES="$T"
     assert_success
-    assert_equal "$(cat "$T/p3/.pecotv/.gitignore")" "$DEFINITION"
+    local written
+    written="$(read_output "$T/p3/.pecotv/.gitignore")"
+    assert_equal "$written" "$DEFINITION"
     assert_equal "$(find "$T/p3/.pecotv" -mindepth 1 | wc -l)" 1
 }
 
@@ -60,9 +61,11 @@ setup() {
     mkdir -p "$T/p4/.pecotv"
     _git -C "$T/p4" init -q
     printf 'state/\ntmp/\n/.gitignore\n' > "$T/p4/.pecotv/.gitignore"
-    run _run_ensure CLAUDE_PROJECT_DIR="$T/p4"
+    run_attached _run_ensure CLAUDE_PROJECT_DIR="$T/p4"
     assert_success
-    assert_equal "$(cat "$T/p4/.pecotv/.gitignore")" "$DEFINITION"
+    local written
+    written="$(read_output "$T/p4/.pecotv/.gitignore")"
+    assert_equal "$written" "$DEFINITION"
 }
 
 @test "追跡しているファイルは、書き換えない" {
@@ -74,9 +77,11 @@ setup() {
     printf '# local\n' > "$T/p5/.pecotv/.gitignore"
     _git -C "$T/p5" add -f .pecotv/.gitignore
     _git -C "$T/p5" commit -q -m "track"
-    run _run_ensure CLAUDE_PROJECT_DIR="$T/p5"
+    run_attached _run_ensure CLAUDE_PROJECT_DIR="$T/p5"
     assert_success
-    assert_equal "$(cat "$T/p5/.pecotv/.gitignore")" "# local"
+    local kept
+    kept="$(read_output "$T/p5/.pecotv/.gitignore")"
+    assert_equal "$kept" "# local"
     run _git -C "$T/p5" diff --quiet
     assert_success
 }
@@ -86,7 +91,8 @@ setup() {
     local p="$T/p6" f
     mkdir -p "$p"
     _git -C "$p" init -q
-    _run_ensure CLAUDE_PROJECT_DIR="$p"
+    run_attached _run_ensure CLAUDE_PROJECT_DIR="$p"
+    assert_success
     mkdir -p "$p/.pecotv/work/drawio" "$p/.pecotv/work/evidence" "$p/.pecotv/state" "$p/.pecotv/tmp" "$p/.pecotv/config"
     for f in work/drawio/x.drawio work/evidence/x.xlsx state/s.json tmp/t README.md CHANGELOG.md config/hooks-config.json; do
         touch "$p/.pecotv/$f"

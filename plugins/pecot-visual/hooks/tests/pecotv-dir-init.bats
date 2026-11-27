@@ -44,23 +44,24 @@ setup() {
 @test "初回に実行すると、.pecotv 一式を作り、全部を除外する .gitignore を置く" {
     explains '空のプロジェクトで `pecotv-dir-init.sh` を初回に動かすテストです。`work`・同期マーカー・README・CHANGELOG が作られ、`.gitignore` に全部を除外する `*` が書かれることを確認します。'
     mkdir -p "$PROJ"
-    run _run_hook "$PROJ"
+    run_attached _run_hook "$PROJ"
     assert_success
     assert [ -d "$PROJ/.pecotv/work" ]
     assert [ -f "$PROJ/.pecotv/state/.plugin-sync-version" ]
     assert [ -f "$PROJ/.pecotv/README.md" ]
     assert [ -f "$PROJ/.pecotv/CHANGELOG.md" ]
-    run grep -x '\*' "$PROJ/.pecotv/.gitignore"
+    run read_output "$PROJ/.pecotv/.gitignore"
     assert_success
+    assert_line '*'
 }
 
 @test "マーカーが plugin.json より新しいと、同期を skip する" {
     explains '初回の実行後に README を消して、もう一度動かすテストです。マーカーが `plugin.json` より新しいので同期が skip され、README が再コピーされないことを確認します。'
     mkdir -p "$PROJ"
-    run _run_hook "$PROJ"
+    run_attached _run_hook "$PROJ"
     assert_success
     rm -f "$PROJ/.pecotv/README.md"
-    run _run_hook "$PROJ"
+    run_attached _run_hook "$PROJ"
     assert_success
     assert [ ! -f "$PROJ/.pecotv/README.md" ]
 }
@@ -68,16 +69,17 @@ setup() {
 @test "plugin.json が更新されると、README と CHANGELOG を再同期する" {
     explains '初回の実行後に `plugin.json` を更新し、CHANGELOG を v2 にして動かすテストです。README が再コピーされ、CHANGELOG が v2 に入れ替わることを確認します。'
     mkdir -p "$PROJ"
-    run _run_hook "$PROJ"
+    run_attached _run_hook "$PROJ"
     assert_success
     rm -f "$PROJ/.pecotv/README.md"
     touch "$FIXTURE/.claude-plugin/plugin.json"
     echo "# fixture CHANGELOG v2" > "$FIXTURE/CHANGELOG.md"
-    run _run_hook "$PROJ"
+    run_attached _run_hook "$PROJ"
     assert_success
     assert [ -f "$PROJ/.pecotv/README.md" ]
-    run grep -q "v2" "$PROJ/.pecotv/CHANGELOG.md"
+    run read_output "$PROJ/.pecotv/CHANGELOG.md"
     assert_success
+    assert_output --partial "v2"
 }
 
 @test "CLAUDE_PROJECT_DIR が未定義だと、何もせず正常終了する" {
@@ -85,7 +87,7 @@ setup() {
     mkdir -p "$PROJ"
     cd "$PROJ"
     unset CLAUDE_PROJECT_DIR
-    PLUGIN_HOOKS="$FIXTURE/hooks" run bash "$HOOK"
+    PLUGIN_HOOKS="$FIXTURE/hooks" run_attached bash "$HOOK"
     assert_success
     assert [ ! -d "$PROJ/.pecotv" ]
 }
@@ -94,7 +96,7 @@ setup() {
 @test "tmp/ だけの旧い .gitignore のリポでも、同期物と .gitignore 自身が untracked に出ない" {
     explains '`tmp/` だけの旧い `.gitignore` を持つ git リポで、`pecotv-dir-init.sh` を動かすテストです。同期された物と `.gitignore` 自身が `git status` の untracked に出ないことを確認します。'
     _make_old_repo "$PROJ"
-    run _run_hook "$PROJ"
+    run_attached _run_hook "$PROJ"
     run _git -C "$PROJ" status --porcelain -uall -- .pecotv/
     assert_output ""
 }
@@ -104,7 +106,7 @@ setup() {
     explains '`README.md` を宛先の無いシンボリックリンクにして、最初のコピーを失敗させるテストです。終了コードが 0 でなく、`.pecotv` に untracked が残らないことを確認します。'
     _make_old_repo "$PROJ"
     ln -s "$BATS_TEST_TMPDIR/nonexistent/target" "$PROJ/.pecotv/README.md"
-    run _run_hook "$PROJ"
+    run_attached _run_hook "$PROJ"
     assert_failure
     run _git -C "$PROJ" status --porcelain -uall -- .pecotv/
     assert_output ""
@@ -115,7 +117,7 @@ setup() {
     explains '`CHANGELOG.md` を宛先の無いシンボリックリンクにして、README のコピー後に失敗させるテストです。終了コードが 0 でなく、`.pecotv` に untracked が残らないことを確認します。'
     _make_old_repo "$PROJ"
     ln -s "$BATS_TEST_TMPDIR/nonexistent/target" "$PROJ/.pecotv/CHANGELOG.md"
-    run _run_hook "$PROJ"
+    run_attached _run_hook "$PROJ"
     assert_failure
     run _git -C "$PROJ" status --porcelain -uall -- .pecotv/
     assert_output ""
