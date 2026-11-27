@@ -3,10 +3,10 @@
 action 一覧
 ===========
 
-.. iface-index:: actions
+.. iface-index:: pecot-actions
 
 .. toctree::
    :hidden:
    :glob:
 
-   /_generated/actions/*
+   /_generated/pecot-actions/*

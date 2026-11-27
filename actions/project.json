@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/nx/schemas/project-schema.json",
-  "name": "actions",
+  "name": "pecot-actions",
   "projectType": "library",
   "tags": [
     "type:actions",

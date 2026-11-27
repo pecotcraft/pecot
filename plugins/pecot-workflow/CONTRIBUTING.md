@@ -259,7 +259,7 @@ MCP サーバ（`cli/src`）の直しは、クライアントに反映されま�
 利用者に配る `actions/templates/pecot-board-sync.yml` や、それが呼ぶ pecot の action を直したときは、マージの前に動かします。検証用の `.github/workflows/` に入れます。`uses:` は、作業ブランチの `actions/<処理>/dist/index.js` を読みます。
 検証用の `main` の workflow を書き換えるので、この確かめは一度に 1 人で行います。
 
-1. 作業ツリーで `pnpm exec nx run actions:build` を打って `dist` を作り直し、作業ブランチに commit して push する
+1. 作業ツリーで `pnpm exec nx run pecot-actions:build` を打って `dist` を作り直し、作業ブランチに commit して push する
 2. 作業ツリーのテンプレートを写し、`pecotcraft/pecot/actions/<処理>@pecot-actions/v<版>` の `@` の後ろだけを作業ブランチの名前に置き換える
 3. 検証用の clone で、写しを入れる PR を「基本の流れ」の手順で作り、`pr_merge` で merge queue に入れる。`workflow_dispatch`・`pull_request_target`・`issues` は既定のブランチの定義で動くので、マージするまで直した定義では動かない
 4. PR・Issue を変えるか、`gh workflow run pecot-board-sync.yml -R pecotcraft/pecot-sandbox` で起動し、次の 2 つを確かめる

@@ -41,7 +41,7 @@ dom-to-pptx 1.1.7 の Fractional Font Precision 修正で sz が +5〜13.3% 増�
 テンプレ側 shape 寸法を 1.1.7 sz に合わせて拡張する形で吸収する。
 ```
 
-プロジェクト名は `nx.json` の release group 名に対応します。`pecot-workflow` / `pecot-visual` / `pecot-tools` / `text-rules` / `workflow-core` / `actions` のいずれかです。
+プロジェクト名は `nx.json` の release group 名に対応します。`pecot-workflow` / `pecot-visual` / `pecot-tools` / `text-rules` / `workflow-core` / `pecot-actions` のいずれかです。
 複数プロジェクトを同時に bump する時は frontmatter に複数行書きます。
 
 ## bump 種別の判断

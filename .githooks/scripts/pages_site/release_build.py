@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol, cast
 
-from release_sources import ReleaseSources, ReleaseSourcesError, from_json
+from release_sources import ReleaseSources, ReleaseSourcesError, from_json, units
 
 CONTAINER_ROOT = "/workspaces/base/pecot"
 SITE_ENV = ("PECOT_SITE_SIDE", "PECOT_SITE_REPORT_PLUGINS")
@@ -35,7 +35,7 @@ class BuildError(RuntimeError):
 
 
 def report_missing(data: object) -> list[str]:
-    """リリース版の ReportSources の sources（report-sources.json の形）から、レポートに入らないプラグイン。"""
+    """リリース版の ReportSources の sources（report-sources.json の形）から、レポートに入らない単位。"""
     if not isinstance(data, dict):
         raise ValueError("オブジェクトではありません")
     record = cast("dict[str, object]", data)
@@ -53,7 +53,9 @@ def report_missing(data: object) -> list[str]:
 @dataclass
 class Build:
     sources: ReleaseSources
-    # テストレポートに入らないプラグイン（ReportSources の missing）。
+    # 単位の名前から、タグの中身で差し替える置き場所（release_sources.units の root）。
+    roots: dict[str, str]
+    # テストレポートに入らない単位（ReportSources の missing）。
     report_missing: list[str]
     workspace: Path
     temp: Path
@@ -98,8 +100,9 @@ class Build:
         self._restore_owner()
         git = ["git", "-C", str(self.workspace)]
         for plugin, commit in sorted(self.sources.commits.items()):
-            self._must([*git, "rm", "-r", "-q", "--ignore-unmatch", f"plugins/{plugin}"])
-            self._must([*git, "checkout", commit, "--", f"plugins/{plugin}"])
+            root = self.roots[plugin]
+            self._must([*git, "rm", "-r", "-q", "--ignore-unmatch", root])
+            self._must([*git, "checkout", commit, "--", root])
 
     def site_env(self) -> dict[str, str]:
         env = dict(self.env)
@@ -165,8 +168,16 @@ def main(
         print(f"ERROR: {args.report_sources}: {error}", file=sys.stderr)
         return 1
     try:
+        # 骨組みへ checkout すると古い targets.json に替わるので、その前に main の作業ツリーで読む。
+        found = units(Path(workspace))
+        if set(found) != set(sources.commits):
+            raise ReleaseSourcesError(
+                f"{args.sources} の単位（{', '.join(sorted(sources.commits))}）が、"
+                f"作業ツリーの単位（{', '.join(found)}）とそろいません"
+            )
         Build(
             sources=sources,
+            roots={name: unit.root for name, unit in found.items()},
             report_missing=missing,
             workspace=Path(workspace),
             temp=Path(temp),

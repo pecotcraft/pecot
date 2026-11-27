@@ -60,7 +60,7 @@ const directHintSyntax = [
 
 // 自分の package 名と、AI に向けた MCP の SDK を読まない。action は AI と無関係に動く
 const restrictedImportPatterns = [
-  { group: ['@pecot/actions', '@pecot/actions/*'], message: '自分の package 名を import しない: 相対パスを使う' },
+  { group: ['@pecot/pecot-actions', '@pecot/pecot-actions/*'], message: '自分の package 名を import しない: 相対パスを使う' },
   { group: ['@modelcontextprotocol/*'], message: 'action から MCP の SDK を読まない: AI に向けた部分は pecot-workflow に置く' },
 ]
 

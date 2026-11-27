@@ -291,9 +291,9 @@
           "createRelease": "github"
         }
       },
-      "actions": {
+      "pecot-actions": {
         "projects": [
-          "actions"
+          "pecot-actions"
         ],
         "projectsRelationship": "fixed",
         "releaseTag": {

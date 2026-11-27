@@ -44,7 +44,7 @@ _NX_CONFIG_FILES = (".nxignore", "nx.json", "pnpm-workspace.yaml", "pnpm-lock.ya
 
 # nx が認識する project の集合。入れ子のメンバーは `nx.root` / `nx.name` でプラグインの project へ束ねる (#113)。
 _EXPECTED_PROJECTS = {
-    "actions",
+    "pecot-actions",
     "githooks",
     "interface-spec",
     "nx-release",
@@ -184,10 +184,10 @@ def test_project_set_is_the_expected_one(nx_bin: Path) -> None:
             # pecot-workflow は package.json の依存で、actions は implicitDependencies で workflow-core を読む。
             (
                 "libs/workflow-core/src/domain/config.ts",
-                {"workflow-core", "pecot-workflow", "actions"},
+                {"workflow-core", "pecot-workflow", "pecot-actions"},
             ),
             # pecot-workflow は actions の雛形の写しを持ち、implicitDependencies で actions に頼る。
-            ("actions/src/entry.ts", {"actions", "pecot-workflow"}),
+            ("actions/src/entry.ts", {"pecot-actions", "pecot-workflow"}),
         ]
     ),
 )
@@ -381,7 +381,7 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             (
                 "libs/interface-spec/src/vitest/unique-titles.ts",
                 {
-                    "actions:test-unit",
+                    "pecot-actions:test-unit",
                     "interface-spec:test-unit",
                     "interface-spec:test-site",
                     "nx-release:test-unit",
@@ -399,7 +399,7 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             (
                 "libs/interface-spec/src/vitest/allure-reporter.ts",
                 {
-                    "actions:test-unit",
+                    "pecot-actions:test-unit",
                     "interface-spec:test-unit",
                     "interface-spec:test-site",
                     "nx-release:test-unit",
@@ -892,7 +892,7 @@ _PECOTV_TEST_LANES = {
                 "libs/workflow-core/src/domain/config.ts",
                 {
                     "workflow-core:test-unit",
-                    "actions:test-unit",
+                    "pecot-actions:test-unit",
                     "pecot-workflow:test-cli",
                     "pecot-workflow:test-hooks",
                     "pecot-workflow:test-skills",
@@ -1293,8 +1293,8 @@ def test_graph_lanes_read_every_workspace_package_json(
                 {
                     "workflow-core:lint",
                     "pecot-workflow:lint-cli",
-                    "actions:lint",
-                    "actions:lint-dist",
+                    "pecot-actions:lint",
+                    "pecot-actions:lint-dist",
                     "interface-spec:lint-defs",
                 },
             ),
@@ -1348,7 +1348,7 @@ def test_graph_lanes_read_every_workspace_package_json(
             (
                 "libs/interface-spec/src/eslint/describe-title.ts",
                 {
-                    "actions:lint",
+                    "pecot-actions:lint",
                     "interface-spec:lint",
                     "interface-spec:lint-defs",
                     "nx-release:lint-eslint",
@@ -1363,7 +1363,7 @@ def test_graph_lanes_read_every_workspace_package_json(
             (
                 "libs/interface-spec/src/eslint/table-key.ts",
                 {
-                    "actions:lint",
+                    "pecot-actions:lint",
                     "interface-spec:lint",
                     "interface-spec:lint-defs",
                     "nx-release:lint-eslint",

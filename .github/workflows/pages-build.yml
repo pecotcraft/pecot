@@ -114,8 +114,8 @@ jobs:
           filter: blob:none
           persist-credentials: false
 
-      # リリース版は、プラグインごとの最新のタグと骨組みのコミットで作る（data-model の ReleaseSources）。
-      # 同じタグからテストレポートの材料も決め、レポートに入るプラグインにだけリンクを出す。
+      # リリース版は、リリース版の単位ごとの最新のタグと骨組みのコミットで作る（data-model の ReleaseSources）。
+      # 同じタグからテストレポートの材料も決め、レポートに入る単位にだけリンクを出す。
       - name: Resolve release sources
         id: release
         if: steps.decide.outputs.side == 'release'

@@ -112,6 +112,7 @@
         "{workspaceRoot}/libs/interface-spec/docs/tests/conftest.py",
         "{projectRoot}/scripts/pages_site/**/*",
         "{projectRoot}/scripts/test_report/**/*",
+        "{workspaceRoot}/libs/interface-spec/targets.json",
         "{workspaceRoot}/plugins/*/project.json",
         "{workspaceRoot}/libs/*/project.json",
         "{workspaceRoot}/.nx/nx-release/project.json",

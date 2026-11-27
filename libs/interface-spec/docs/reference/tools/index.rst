@@ -11,4 +11,4 @@
    pecot-workflow
    pecot-tools
    pecot-visual
-   actions
+   pecot-actions

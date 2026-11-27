@@ -106,8 +106,8 @@ jobs:
           SHA: ${{ github.sha }}
           REPO: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
-          MSG_MISSING: "結果を出せるタグが無いので、レポートに入れないプラグイン:"
-          MSG_NO_REPORT: "レポートに入れるプラグインが無いので、レポートを作りません。"
+          MSG_MISSING: "結果を出せるタグが無いので、レポートに入れないリリース版の単位:"
+          MSG_NO_REPORT: "レポートに入れるリリース版の単位が無いので、レポートを作りません。"
         run: |
           set -euo pipefail
           if [ "$SIDE" = "dev" ]; then

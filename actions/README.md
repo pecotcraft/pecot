@@ -74,7 +74,7 @@ action のリリースのタグは `pecot-actions/v<版>` です。
 ## 開発
 
 - 処理の本体は `src/commands/`、action ごとの起動は `src/<処理>.ts` にある。pecot-workflow と共有する部分は `libs/workflow-core` にある
-- `dist/index.js` は rollup でまとめて commit する。`pnpm exec nx run actions:build` で作り直す。`lint-dist` が、commit した `dist` と作り直したものが同じかを確かめる
+- `dist/index.js` は rollup でまとめて commit する。`pnpm exec nx run pecot-actions:build` で作り直す。`lint-dist` が、commit した `dist` と作り直したものが同じかを確かめる
 - 雛形の正は `templates/`。マーケットプレイスはプラグインのディレクトリだけを配るので、`plugins/pecot-workflow/cli/templates/workflow/` に写しを置く。直したら `pnpm --dir actions run sync-templates --write` で写す
 - `interface/generated.json` は `action.yml` から作る。`pnpm --dir actions exec tsx scripts/export-interface.ts --write` で作り直す
 - このリポのワークフローは、`uses: ./actions/<処理>` で呼ぶ

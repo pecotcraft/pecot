@@ -110,7 +110,7 @@ describe('severityOf', () => {
     { name: 'test-release のレーンの ID を持つテスト', project: 'pecot-workflow', lane: 'test-release', hasIds: true, expected: Severity.BLOCKER },
     { name: 'nx-release のテスト', project: 'nx-release', lane: 'test-unit', hasIds: false, expected: Severity.BLOCKER },
     { name: 'pecot-tools の ID を持つテスト', project: 'pecot-tools', lane: 'test-cli', hasIds: true, expected: Severity.CRITICAL },
-    { name: 'actions の ID を持つテスト', project: 'actions', lane: 'test-unit', hasIds: true, expected: Severity.CRITICAL },
+    { name: 'pecot-actions の ID を持つテスト', project: 'pecot-actions', lane: 'test-unit', hasIds: true, expected: Severity.CRITICAL },
     { name: 'pecot-tools の ID を持たないテスト', project: 'pecot-tools', lane: 'test-cli', hasIds: false, expected: Severity.NORMAL },
     { name: 'text-rules のテスト', project: 'text-rules', lane: 'test-unit', hasIds: false, expected: Severity.NORMAL },
     { name: 'project とレーンの無いテスト', project: '', lane: '', hasIds: false, expected: Severity.NORMAL },

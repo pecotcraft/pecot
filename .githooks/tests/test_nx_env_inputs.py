@@ -365,12 +365,12 @@ _BUNDLED_LIBS = {"libs/workflow-core": "pecot-workflow"}
 
 
 def _plugin_of(rel: str) -> str:
-    """ファイルの持ち主。プラグインはディレクトリ名、ライブラリは `libs/<name>`、actions/ は `actions`。同梱するライブラリはプラグイン。"""
+    """ファイルの持ち主。プラグインはディレクトリ名、ライブラリは `libs/<name>`、actions/ は `pecot-actions`。同梱するライブラリはプラグイン。"""
     parts = rel.split("/")
     if parts[0] == "plugins":
         return parts[1]
     if parts[0] == "actions":
-        return "actions"
+        return "pecot-actions"
     lib = "/".join(parts[:2])
     return _BUNDLED_LIBS.get(lib, lib)
 
