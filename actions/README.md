@@ -34,6 +34,9 @@
 - 結果は、job のログの `PECOT_RESULT {"operation","request_id","ok","result"}` の 1 行に出る。失敗したときは `result` の代わりに `error`（`kind`・`message`）が入り、job も失敗になる
 - 呼び出し元は、`request_id` に自分で決めた ID を渡し、実行の名前（`pecot github-ops <operation> <request_id>`）で自分の実行を探す
 - 何を書くかの判断は呼び出し元が持つ。`workflow-doctor` は名前と目印を返すだけで、揃っているかを判定しない
+- `workflow-doctor` の run では、token の step が `permission-actions-variables` に警告を出す
+  - 入力が宣言されていないだけで、Variables: read の権限は付く
+  - 上流の Issue は github/rest-api-description#5437・actions/create-github-app-token#231
 - ボードは、リポと同じ組織のものだけを扱う。個人のアカウントのボードは扱わない
 - App の token が使えるのは、ワークフローのリポだけにする。`project-link` だけは、`params.repo` の別のリポもつなげるように、リポを絞らない
 - `release-create` に `GITHUB_TOKEN` を使わないのは、`GITHUB_TOKEN` で作ったリリースが `on: release` のワークフローを起こさないため

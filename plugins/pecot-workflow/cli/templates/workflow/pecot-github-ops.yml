@@ -1,4 +1,4 @@
-# pecot-workflow-template: github-ops 1
+# pecot-workflow-template: github-ops 2
 #
 # Place this file at .github/workflows/pecot-github-ops.yml in your repository.
 # `workflow_install` (name: github-ops) places it and pins the pecot actions to a commit SHA.
@@ -114,6 +114,8 @@ jobs:
           permission-organization-projects: ${{ contains(fromJSON('["project-fields","project-view","project-link"]'), inputs.operation) && 'write' || '' }}
           permission-contents: ${{ contains(fromJSON('["project-link","release-create"]'), inputs.operation) && 'write' || '' }}
           permission-secrets: ${{ inputs.operation == 'workflow-doctor' && 'read' || '' }}
+          # create-github-app-token v3.4.0 does not declare this input and warns. The permission is still granted.
+          # Upstream: github/rest-api-description#5437, actions/create-github-app-token#231
           permission-actions-variables: ${{ inputs.operation == 'workflow-doctor' && 'read' || '' }}
 
       - name: Run the operation
