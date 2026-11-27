@@ -96,8 +96,8 @@ function toolList(flag: string): string[] {
 
 describe('auto のワークフローの雛形', () => {
   it('1 行目に、雛形の名前と版の目印がある', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。1 行目に、雛形の名前と版を示す `# pecot-workflow-template: auto 2` があることを確認します。')
-    expect(template.split('\n', 1)[0]).toBe('# pecot-workflow-template: auto 2')
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。1 行目に、雛形の名前と版を示す `# pecot-workflow-template: auto 3` があることを確認します。')
+    expect(template.split('\n', 1)[0]).toBe('# pecot-workflow-template: auto 3')
   })
 
   it('YAML として読めると、gate・run・setup の 3 つの job を持つ', async () => {
