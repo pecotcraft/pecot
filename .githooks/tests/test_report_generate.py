@@ -127,8 +127,17 @@ def _dev_sources(tmp_path: Path, runs: list[dict[str, Any]], latest: list[dict[s
     return path
 
 
+def _same_lanes(root: Path, _commit: str) -> object:
+    """コミットの report-lanes.json の代わり。どのコミットも、今のファイルと同じとする。"""
+    return json.loads((root / "report-lanes.json").read_text(encoding="utf-8"))
+
+
 def _main(
-    root: Path, *args: str, run: Recorder | None = None, ancestry: Ancestry | None = None
+    root: Path,
+    *args: str,
+    run: Recorder | None = None,
+    ancestry: Ancestry | None = None,
+    lanes_at: Callable[[Path, str], object] = _same_lanes,
 ) -> tuple[int, Recorder]:
     recorder = run or Recorder()
     code = generate.main(
@@ -137,6 +146,7 @@ def _main(
         lanes_path=root / "report-lanes.json",
         run=recorder,
         is_ancestor=ancestry or Ancestry(),
+        lanes_at=lanes_at,
     )
     return code, recorder
 
@@ -812,6 +822,157 @@ def test_sources_side_must_be_dev_or_release(
         assert expected in capsys.readouterr().err
 
 
+# タグのコミットにだけある、今の report-lanes.json から消えたレーン
+_OLD_LANE = {
+    "project": "beta",
+    "target": "test-old",
+    "plugin": "beta",
+    "results": "beta/test-results/test-old/allure-results",
+}
+
+
+class TagLanes:
+    """コミットの report-lanes.json の代わり。コミットごとの表を返し、読んだコミットを残す。"""
+
+    def __init__(self, by_commit: dict[str, object]) -> None:
+        self.by_commit = by_commit
+        self.calls: list[str] = []
+
+    def __call__(self, _root: Path, commit: str) -> object:
+        self.calls.append(commit)
+        if commit not in self.by_commit:
+            raise generate.InputError(f"{commit[:7]} の report-lanes.json を読めません")
+        return self.by_commit[commit]
+
+
+def _lane_results(root: Path, entry: dict[str, str], commit: str) -> Path:
+    lane = f"{entry['project']}:{entry['target']}"
+    path = root / entry["results"]
+    path.mkdir(parents=True, exist_ok=True)
+    (path / f"{lane.replace(':', '-')}-0-result.json").write_text("{}", encoding="utf-8")
+    source = {"lane": lane, "commit": commit}
+    (path.parent / "source.json").write_text(json.dumps(source), encoding="utf-8")
+    return path
+
+
+@allure.title(
+    "リリース版では、今の report-lanes.json に無いレーンも、run のコミットの表から結果を読む"
+)
+def test_release_sources_read_lanes_from_each_run_commit(root: Path, tmp_path: Path) -> None:
+    """今の `report-lanes.json` から消えたレーンを、タグのコミットで動かしたリリース版の材料のテストです。同じコミットの run が 2 つあっても表は 1 回だけ読むことを確認します。消えたレーンの結果も `allure generate` に渡します。"""
+    with allure.step("タグのコミットにだけあるレーンの結果を置き、リリース版の材料で生成する"):
+        old = _lane_results(root, _OLD_LANE, SHA_A)
+        cli = _results(root, "beta:test-cli", commit=SHA_A)
+        alpha = _results(root, "alpha:test-unit", commit=SHA_B)
+        lanes_at = TagLanes({SHA_A: [*_LANES, _OLD_LANE], SHA_B: _LANES})
+        sources = _sources(
+            tmp_path,
+            [
+                {"commit": SHA_A, "lanes": ["beta:test-cli"]},
+                {"commit": SHA_B, "lanes": ["alpha:test-unit"]},
+                {"commit": SHA_A, "lanes": ["beta:test-old"]},
+            ],
+        )
+
+        code, run = _main(
+            root, "--sources", str(sources), "--output", str(tmp_path / "out"), lanes_at=lanes_at
+        )
+
+    with allure.step("消えたレーンを含む 3 つの結果で allure が動くことを確かめる"):
+        assert code == 0
+        assert lanes_at.calls == [SHA_A, SHA_B]
+        command = run.calls[0][0]
+        assert {str(alpha), str(cli), str(old)} <= set(command)
+
+
+@allure.title("リリース版で run のコミットの表が {param_id} のとき、コミットを示して失敗する")
+@pytest.mark.parametrize(
+    ("by_commit", "expected"),
+    [
+        (
+            {SHA_A: _LANES},
+            "材料のレーン beta:test-old は aaaaaaa の report-lanes.json にありません",
+        ),
+        ({}, "aaaaaaa の report-lanes.json を読めません"),
+        (
+            {SHA_A: {"lanes": []}},
+            "aaaaaaa の report-lanes.json: report-lanes.json: レーンの配列ではありません",
+        ),
+    ],
+    ids=["レーンが無い", "読めない", "形が違う"],
+)
+def test_release_sources_name_the_commit_whose_lanes_do_not_fit(
+    root: Path,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    by_commit: dict[str, object],
+    expected: str,
+) -> None:
+    """リリース版の材料の run のコミットで、`report-lanes.json` の中にレーンが無い場合と、ファイルを読めない・形の違う場合のテストです。終了コードが 1 になり、`allure generate` が呼ばれず、コミットの 7 桁を含む原因が表示されることを確認します。"""
+    with allure.step("表の合わないコミットを持つリリース版の材料で生成する"):
+        _lane_results(root, _OLD_LANE, SHA_A)
+        sources = _sources(tmp_path, [{"commit": SHA_A, "lanes": ["beta:test-old"]}])
+
+        code, run = _main(
+            root,
+            "--sources",
+            str(sources),
+            "--output",
+            str(tmp_path / "out"),
+            lanes_at=TagLanes(by_commit),
+        )
+
+    with allure.step("終了コード 1 と allure を動かさないことと理由の出力を確かめる"):
+        assert code == 1
+        assert run.calls == []
+        assert expected in capsys.readouterr().err
+
+
+@allure.title("開発版では、run のコミットの表を読まず、今の report-lanes.json でレーンを確かめる")
+def test_dev_sources_use_the_current_lanes(root: Path, tmp_path: Path) -> None:
+    """開発版の材料で、コミットの `report-lanes.json` をどのコミットからも読めない場合のテストです。その関数を呼ばずに、今の `report-lanes.json` でレーンを確かめ、レポートを作ることを確認します。"""
+    with allure.step("どのコミットの表も読めない状態で、開発版の材料で生成する"):
+        _dev_results(root)
+        lanes_at = TagLanes({})
+        sources = _dev_sources(
+            tmp_path,
+            [{"commit": SHA_A, "lanes": ["alpha:test-unit"]}],
+            [_latest("beta:test-cli", SHA_B)],
+        )
+
+        code, _ = _main(
+            root, "--sources", str(sources), "--output", str(tmp_path / "out"), lanes_at=lanes_at
+        )
+
+    with allure.step("成功し、コミットの表を読まないことを確かめる"):
+        assert code == 0
+        assert lanes_at.calls == []
+
+
+@allure.title("git から、コミットの report-lanes.json を読み、無いコミットは読めないと伝える")
+def test_git_lanes_at_reads_the_file_of_a_commit(
+    git_repo: Callable[..., Path], git: Callable[..., subprocess.CompletedProcess]
+) -> None:
+    """`git_lanes_at` のテストです。`report-lanes.json` を置いたコミットからはその中身を読み、置く前のコミットでは、7 桁のコミットを含む `InputError` が発生することを確認します。"""
+    with allure.step("report-lanes.json の無いコミットと、あるコミットを作る"):
+        repo = git_repo()
+        git(repo, "commit", "-q", "--allow-empty", "-m", "空")
+        before = git(repo, "rev-parse", "HEAD").stdout.strip()
+        path = repo / generate.LANES_IN_REPO
+        path.parent.mkdir(parents=True)
+        path.write_text(json.dumps(_LANES), encoding="utf-8")
+        git(repo, "add", ".")
+        git(repo, "commit", "-q", "-m", "表")
+        after = git(repo, "rev-parse", "HEAD").stdout.strip()
+
+    with allure.step("あるコミットは中身を返し、無いコミットは読めないと伝えることを確かめる"):
+        assert generate.git_lanes_at(repo, after) == _LANES
+        with pytest.raises(
+            generate.InputError, match=f"{before[:7]} の report-lanes.json を読めません"
+        ):
+            generate.git_lanes_at(repo, before)
+
+
 @allure.title("開発版の材料のコミットが HEAD の祖先でないと、そのレーンの名前を表示して失敗する")
 def test_dev_sources_refuse_a_commit_outside_head(
     root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
@@ -1453,6 +1614,7 @@ def real_build(root: Path, tmp_path: Path) -> tuple[Callable[[], int], Path]:
             ],  # fmt: skip
             root=root,
             lanes_path=root / "report-lanes.json",
+            lanes_at=_same_lanes,
         )
 
     return build, history
