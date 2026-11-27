@@ -77,6 +77,7 @@ jobs:
     outputs:
       changed: ${{ steps.publish.outputs.changed }}
       uploaded: ${{ steps.decide.outputs.uploaded }}
+      version: ${{ steps.marker.outputs.version }}
     env:
       SIDE: ${{ needs.verify.outputs.side }}
       KIND: ${{ needs.verify.outputs.kind }}
@@ -164,6 +165,16 @@ jobs:
           path: pages-site
           persist-credentials: false
 
+      # deploy の job が公開の後に読み戻す目印。pages-store には commit しない。run の番号で、中身の変わらない deploy も見分ける。
+      - name: Write version marker
+        id: marker
+        if: steps.decide.outputs.uploaded == 'true'
+        run: |
+          set -euo pipefail
+          version="$(git -C pages-site rev-parse HEAD) ${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          printf '%s\n' "$version" > pages-site/pages-version.txt
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
       - name: Setup Pages
         if: steps.decide.outputs.uploaded == 'true'
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
@@ -195,7 +206,8 @@ jobs:
     needs: [verify, store]
     if: ${{ !cancelled() && needs.store.result == 'success' && needs.store.outputs.uploaded == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # deploy 5 分・確かめ 3 分・待ち 1 分・deploy し直し 5 分・確かめ 3 分に余裕を足す。
+    timeout-minutes: 25
     permissions:
       contents: read
       pages: write
@@ -203,16 +215,54 @@ jobs:
       statuses: write
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.redeploy.outputs.page_url || steps.deployment.outputs.page_url }}
     # PR への push のたびに deploy が起きるので、待っている deploy を取り消さずに並べる。
     concurrency:
       group: pages
       cancel-in-progress: false
       queue: max
     steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          sparse-checkout: .githooks/scripts/pages_site
+          persist-credentials: false
+
+      # 直前の deploy の処理中は作成を断られる。断られても、待って deploy し直す。
       - name: Deploy to GitHub Pages
         id: deployment
+        continue-on-error: true
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        with:
+          timeout: 300000
+
+      # 成功を報告しても公開されないことがある（actions/deploy-pages#383）。出そろうまで group pages を持つ。
+      - name: Check served
+        id: served
+        if: steps.deployment.outcome == 'success'
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          VERSION: ${{ needs.store.outputs.version }}
+        run: python3 .githooks/scripts/pages_site/served.py --page-url "$PAGE_URL" --expect "$VERSION"
+
+      - name: Wait before redeploy
+        if: steps.served.outputs.served != 'true'
+        run: sleep 60
+
+      - name: Redeploy to GitHub Pages
+        id: redeploy
+        if: steps.served.outputs.served != 'true'
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        with:
+          timeout: 300000
+
+      - name: Check redeployed
+        if: steps.redeploy.outcome == 'success'
+        env:
+          PAGE_URL: ${{ steps.redeploy.outputs.page_url }}
+          VERSION: ${{ needs.store.outputs.version }}
+        run: python3 .githooks/scripts/pages_site/served.py --page-url "$PAGE_URL" --expect "$VERSION" --require
 
       # 開いたときに中身があるように、deploy の後で付ける。
       - name: Set preview status
