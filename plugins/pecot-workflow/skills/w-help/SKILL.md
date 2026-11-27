@@ -1,15 +1,15 @@
 ---
 name: w-help
 description: |
-  pecot CLIやスキルの使い方に関するヘルプ・ガイド。
-  Use when the user asks "how do I..." questions about pecot workflow, CLI commands, board status, skills, or needs troubleshooting help.
+  pecot-workflow の MCP ツールやスキルの使い方に関するヘルプ・ガイド。
+  Use when the user asks "how do I..." questions about pecot workflow, MCP tools, board status, skills, or needs troubleshooting help.
   Do NOT use when a more specific pecot skill fits the task (w-pr, w-active, w-release, etc.).
 when_to_use: "pecot の使い方が分からない、どのスキルを使えばよいか知りたい"
 ---
 
 # pecot ヘルプ
 
-pecot CLI とスキル群の使い方で迷ったとき、何から始めればよいか分からないときの案内所。
+pecot-workflow の MCP ツールとスキル群の使い方で迷ったとき、何から始めればよいか分からないときの案内所。
 
 ## やりたいことから探す
 

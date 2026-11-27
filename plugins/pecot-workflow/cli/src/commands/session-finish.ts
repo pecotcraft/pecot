@@ -50,7 +50,7 @@ const SESSION_FINISH_OUTPUT = z.strictObject({
   skippedIssues: z.array(SKIPPED_ISSUE_DATA).describe('Closing Issues of the PR that this command did not close'),
   deletedBranches: z.array(DELETED_BRANCH_DATA).describe('Branches deleted'),
   readinessChanges: z.array(READINESS_CHANGE_DATA).describe('Issues waiting for the closed Issues whose readiness changed by the merge'),
-  restack: z.array(RESTACK_DATA).describe('Upper stacked Issues to restack with pr restack in their working directories'),
+  restack: z.array(RESTACK_DATA).describe('Upper stacked Issues to restack with pr_restack in their working directories'),
   currentBranch: z.string().optional().describe('Current branch after the local cleanup (omitted when the local cleanup was skipped)'),
 })
 

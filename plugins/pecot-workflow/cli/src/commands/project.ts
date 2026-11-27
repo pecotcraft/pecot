@@ -173,7 +173,7 @@ const SEARCH_ROW = z.strictObject({
   number: z.int().optional().describe('Project number (omitted when GitHub did not return it)'),
   title: z.string().optional().describe('Project title (omitted when GitHub did not return it)'),
   url: z.string().optional().describe('Project URL (omitted when GitHub did not return it)'),
-  initialized: z.boolean().optional().describe('Whether project init has set up the fields (omitted without a number, or when the fields could not be read)'),
+  initialized: z.boolean().optional().describe('Whether project_init has set up the fields (omitted without a number, or when the fields could not be read)'),
   active: z.boolean().optional().describe('Whether this project is the active one (omitted without a number)'),
 })
 
@@ -654,7 +654,7 @@ const CREATE_OUTPUT = z.strictObject({
 const projectCreationCommand = defineTool({
   name: 'project_create',
   title: 'Create project',
-  description: 'Create a new project with the pecot-workflow fields, and the pecot-lane field and the Lanes view from lanes (to add the fields to an existing project, use project init)',
+  description: 'Create a new project with the pecot-workflow fields, and the pecot-lane field and the Lanes view from lanes (to add the fields to an existing project, use project_init)',
   input: z.strictObject({
     owner: z.string().describe('Project owner'),
     title: z.string().describe('Project title'),
@@ -806,7 +806,7 @@ const activateCommand = defineTool({
   title: 'Activate project',
   description: 'Activate an initialized project',
   input: z.strictObject({
-    project: z.string().describe('Project number or name, or config file path/file name (list the candidates with project search)'),
+    project: z.string().describe('Project number or name, or config file path/file name (list the candidates with project_search)'),
     owner: z.string().optional().describe('Project owner (defaults to the authenticated user)'),
     host: z.string().optional().describe('GitHub host'),
   }),

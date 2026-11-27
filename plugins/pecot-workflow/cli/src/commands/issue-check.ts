@@ -71,7 +71,7 @@ function printPlan(output: Readonly<Output<IssueCheckData>>, context: Readonly<B
 const ISSUE_CHECK = defineTool({
   name: 'issue_check',
   title: 'Check Issue files',
-  description: 'Check Markdown files for issue create and show their order numbers, prerequisites and how to proceed, without creating anything',
+  description: 'Check Markdown files for issue_create and show their order numbers, prerequisites and how to proceed, without creating anything',
   input: z.object({
     files: FILES_SCHEMA,
     project: PROJECT_INPUT,

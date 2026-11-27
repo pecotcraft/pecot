@@ -94,7 +94,7 @@ jobs:
         run: mkdir -p .pecot/tmp/release
 
       # コンテナの前にホストで確かめる。出力は Summary と artifact が読む preflight.log にも残す。
-      - name: Preflight
+      - name: Run release preflight
         id: preflight
         uses: ./actions/release-check
         with:

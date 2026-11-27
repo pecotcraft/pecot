@@ -46,7 +46,7 @@ const STACK_DATA = z.strictObject({
   branch: z.string().describe('Base branch the work branch is stacked on'),
   stackedOn: z.string().describe('Issue stacked on (owner/repo/N)'),
   pullRequest: BASE_PULL_REQUEST_DATA.optional().describe('PR of the base branch (omitted when there is none or it cannot be read)'),
-  needsRestack: z.boolean().optional().describe('Whether the branch needs pr restack: the base branch moved or its PR is merged (omitted when it cannot be decided)'),
+  needsRestack: z.boolean().optional().describe('Whether the branch needs pr_restack: the base branch moved or its PR is merged (omitted when it cannot be decided)'),
   readiness: z.string().optional().describe('Readiness of the active Issue (only when blocked)'),
 })
 

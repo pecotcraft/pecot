@@ -29,7 +29,7 @@ import { verifies } from '../_helpers/verifies.js'
 useIsolatedEnvironment()
 
 const MESSAGE = '一覧の状態列を直す'
-const FOOTER = 'issue create の freeform で起票（テンプレ検証スキップ）'
+const FOOTER = 'issue_create の freeform で起票（テンプレ検証スキップ）'
 
 async function freeform(arguments_: Readonly<Record<string, unknown>> = {}): Promise<ToolRunResult> {
   return await runInProcess('issue_create', { freeform: true, ...arguments_ }, ISSUE_CREATE_TOOLS)

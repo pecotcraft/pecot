@@ -1207,7 +1207,7 @@
     {
       "id": "PW-ISSUE-CHECK",
       "name": "issue_check",
-      "description": "Check Markdown files for issue create and show their order numbers, prerequisites and how to proceed, without creating anything",
+      "description": "Check Markdown files for issue_create and show their order numbers, prerequisites and how to proceed, without creating anything",
       "surfaces": {
         "mcp": {
           "tool": "issue_check"
@@ -3827,7 +3827,7 @@
           },
           "project": {
             "type": "string",
-            "description": "Project number or name, or config file path/file name (list the candidates with project search)"
+            "description": "Project number or name, or config file path/file name (list the candidates with project_search)"
           }
         },
         "required": [
@@ -3928,7 +3928,7 @@
     {
       "id": "PW-PROJECT-CREATE",
       "name": "project_create",
-      "description": "Create a new project with the pecot-workflow fields, and the pecot-lane field and the Lanes view from lanes (to add the fields to an existing project, use project init)",
+      "description": "Create a new project with the pecot-workflow fields, and the pecot-lane field and the Lanes view from lanes (to add the fields to an existing project, use project_init)",
       "surfaces": {
         "mcp": {
           "tool": "project_create"
@@ -4672,7 +4672,7 @@
                     "type": "string"
                   },
                   "initialized": {
-                    "description": "Whether project init has set up the fields (omitted without a number, or when the fields could not be read)",
+                    "description": "Whether project_init has set up the fields (omitted without a number, or when the fields could not be read)",
                     "type": "boolean"
                   },
                   "active": {
@@ -5407,7 +5407,7 @@
                 ],
                 "additionalProperties": false
               },
-              "description": "Upper stacked Issues to restack with pr restack in their working directories"
+              "description": "Upper stacked Issues to restack with pr_restack in their working directories"
             },
             "currentBranch": {
               "description": "Current branch after the local cleanup (omitted when the local cleanup was skipped)",
@@ -5558,7 +5558,7 @@
                   "additionalProperties": false
                 },
                 "needsRestack": {
-                  "description": "Whether the branch needs pr restack: the base branch moved or its PR is merged (omitted when it cannot be decided)",
+                  "description": "Whether the branch needs pr_restack: the base branch moved or its PR is merged (omitted when it cannot be decided)",
                   "type": "boolean"
                 },
                 "readiness": {
@@ -5704,7 +5704,7 @@
                 "properties": {
                   "pullRequest": {
                     "type": "string",
-                    "description": "Merged PR of the current branch whose local cleanup with session finish is left (owner/repo/N)"
+                    "description": "Merged PR of the current branch whose local cleanup with session_finish is left (owner/repo/N)"
                   }
                 },
                 "required": [

@@ -46,7 +46,7 @@ describe('issue_create の freeform', () => {
     expect(github.requests().filter(request => request.type === 'graphql' && request.operation === 'UpdateProjectItemField')).toHaveLength(1)
     const created = github.requests().find(request => request.type === 'rest' && request.method === 'POST')
     const body = created?.type === 'rest' ? JSON.stringify(created.body) : ''
-    expect(body).toContain('<!-- issue create の freeform で起票（テンプレ検証スキップ）')
+    expect(body).toContain('<!-- issue_create の freeform で起票（テンプレ検証スキップ）')
     expect(body).toContain(`"title":"[Task] ${MESSAGE}"`)
     expect(hasFile(project.root, '.pecot/state/.pecot-quick-mode')).toBe(false)
     expect(github.requests().some(request => request.type === 'graphql' && request.operation === 'CreateLinkedBranch')).toBe(false)

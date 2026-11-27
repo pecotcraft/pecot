@@ -24,7 +24,7 @@
 | --- | --- |
 | `issue_attributes` | List the attributes an Issue of the repository can have: fields of the configured board, Issue fields, and built-in ones |
 | `issue_block` | Add a blocked-by (prerequisite) to an Issue, or change the wait kind and reason of an existing one |
-| `issue_check` | Check Markdown files for issue create and show their order numbers, prerequisites and how to proceed, without creating anything |
+| `issue_check` | Check Markdown files for issue_create and show their order numbers, prerequisites and how to proceed, without creating anything |
 | `issue_comment` | Post a comment on an Issue |
 | `issue_create` | Create Issues from Markdown files with frontmatter |
 | `issue_edit` | Write, change or remove the values of the attributes of an Issue by name (the attributes that issue_attributes lists) |
@@ -47,7 +47,7 @@
 | ツール | 説明 |
 | --- | --- |
 | `project_activate` | Activate an initialized project |
-| `project_create` | Create a new project with the pecot-workflow fields, and the pecot-lane field and the Lanes view from lanes (to add the fields to an existing project, use project init) |
+| `project_create` | Create a new project with the pecot-workflow fields, and the pecot-lane field and the Lanes view from lanes (to add the fields to an existing project, use project_init) |
 | `project_get` | Show the value of a key of the project config (aggregation_repo: the Epic aggregation repository) |
 | `project_init` | Add the pecot-status field to an existing project, rename the old suffixed workflow field to pecot-status, add the Blocked and Needs Attention options to the fields that already exist, and add the lanes to the pecot-lane field with a Lanes view. The fields pecot does not use (pecot-priority, pecot-size, and the old suffixed workflow field when pecot-status also exists) are listed in migration.pending_delete, and deleted only with confirm_delete |
 | `project_link` | Add or update a repository in the project config |

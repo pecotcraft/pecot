@@ -132,7 +132,7 @@ async function setIssueStatusActive(out: Readonly<Output>, client: Readonly<GitH
 }
 
 const LEFTOVER_DATA = z.strictObject({
-  pullRequest: z.string().describe('Merged PR of the current branch whose local cleanup with session finish is left (owner/repo/N)'),
+  pullRequest: z.string().describe('Merged PR of the current branch whose local cleanup with session_finish is left (owner/repo/N)'),
 })
 
 const SESSION_START_OUTPUT = z.strictObject({

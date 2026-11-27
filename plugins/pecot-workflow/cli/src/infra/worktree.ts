@@ -2,7 +2,7 @@
 // ワークツリー管理のコアロジック。ワークツリーの作成・削除を提供する。
 //
 // 全ての関数は cwd 引数で対象リポジトリを指定する。
-// pecot CLI は pecot リポジトリ内で実行されるが、worktree コマンドは別のリポジトリを対象にするため、cwd 引数が必須。
+// MCP のサーバは pecot リポジトリ内で動くが、worktree のツールは別のリポジトリを対象にするため、cwd 引数が必須。
 // 失敗は WorktreeRuntimeError（Python の RuntimeError に当たる）で伝える。
 //
 // 設定ファイル（worktree-config.json・.worktreeignore）の読み書きと symlink 作成は worktree-links.ts にある。

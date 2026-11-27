@@ -1049,7 +1049,7 @@ from a file: ${commandHint(CREATE_PATH, { files: placeholder('path') })}`
 const PYTHON_WHITESPACE_RUN = /[\p{White_Space}\u{1C}\u{1D}\u{1E}\u{1F}]+/gu
 
 // テンプレートの検証を飛ばす freeform でも、起票規約への参照を本文の末尾に残す
-const FREEFORM_FOOTER = '<!-- issue create の freeform で起票（テンプレ検証スキップ）。起票ルール: skills/w-help/references/issue-flow-rules.md#起票時の既定-status -->'
+const FREEFORM_FOOTER = '<!-- issue_create の freeform で起票（テンプレ検証スキップ）。起票ルール: skills/w-help/references/issue-flow-rules.md#起票時の既定-status -->'
 
 const FREEFORM_TITLE_LENGTH = 50
 

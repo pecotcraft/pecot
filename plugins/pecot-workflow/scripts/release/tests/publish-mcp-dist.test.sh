@@ -510,7 +510,7 @@ process.stdout.write(value === undefined ? '' : String(value))
 " "$1" "$2"
 }
 
-# tools/list の期待値。COMMANDS（cli/src/commands/registry.ts）の並びを写している。
+# tools/list の期待値。TOOLS（cli/src/commands/registry.ts）の並びを写している。
 EXPECTED_TOOL_COUNT=39
 EXPECTED_FIRST_TOOL="project_list"
 
@@ -543,7 +543,7 @@ run_smoke() {
     local label="$1" out="$2"
     shift 2
     local count_title="$label で tools/list が $EXPECTED_TOOL_COUNT 件を返す"
-    local first_title="$label で tools/list の先頭が COMMANDS の順になる"
+    local first_title="$label で tools/list の先頭が TOOLS の順になる"
     smoke_node "$@" > "$out" 2> "$out.err"
     local reason=""
     if smoke_broken "$out"; then

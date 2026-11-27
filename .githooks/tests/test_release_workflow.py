@@ -541,14 +541,14 @@ def test_sha_flow(scene: Scene, dry_run: str, sha_kind: str, expected: int) -> N
     "preflight は、App のトークンと checkout の後、コンテナを起こす前に、release-check の action で動く"
 )
 def test_preflight_runs_release_check_action_before_the_container() -> None:
-    """`release.yml` の `Preflight` の step のテストです。`./actions/release-check` を使い、App のトークンの生成と `Checkout` の後、`Start dev container` の前に置かれることを確認します。App のトークンを渡し、`preflight.log` に出力を残すことも確認します。"""
+    """`release.yml` の `Run release preflight` の step のテストです。`./actions/release-check` を使い、App のトークンの生成と `Checkout` の後、`Start dev container` の前に置かれることを確認します。App のトークンを渡し、`preflight.log` に出力を残すことも確認します。"""
     with allure.step("step の並びと preflight の step を読む"):
         names = [s.get("name") for s in _steps()]
-        step = _step("Preflight")
+        step = _step("Run release preflight")
     with allure.step("順序と、action・入力・ログの置き場を確かめる"):
-        assert names.index("Generate GitHub App token") < names.index("Preflight")
-        assert names.index("Checkout") < names.index("Preflight")
-        assert names.index("Preflight") < names.index("Start dev container")
+        assert names.index("Generate GitHub App token") < names.index("Run release preflight")
+        assert names.index("Checkout") < names.index("Run release preflight")
+        assert names.index("Run release preflight") < names.index("Start dev container")
         assert step["uses"] == "./actions/release-check"
         assert step["with"]["token"] == "${{ steps.app-token.outputs.token }}"
         assert step["with"]["log-file"] == ".pecot/tmp/release/preflight.log"
@@ -809,7 +809,7 @@ def test_summary_release_failure_messages(tmp_path: Path) -> None:
 
 @allure.title("preflight が失敗したとき、サマリーは失敗を告げ、preflight のログを details に載せる")
 def test_summary_preflight_failure(tmp_path: Path) -> None:
-    """`Preflight` の step が失敗し、後の step が飛ばされた場合の `Write job summary` のテストです。メッセージが「進みませんでした」でなく失敗の文になり、`preflight` のログの warning が `preflight warnings` に載ることを確認します。"""
+    """`Run release preflight` の step が失敗し、後の step が飛ばされた場合の `Write job summary` のテストです。メッセージが「進みませんでした」でなく失敗の文になり、`preflight` のログの warning が `preflight warnings` に載ることを確認します。"""
     with allure.step("preflight の失敗で、後の step が飛ばされた状態の要約を作る"):
         text = _summary(
             tmp_path,

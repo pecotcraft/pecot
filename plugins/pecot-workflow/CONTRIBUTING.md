@@ -391,7 +391,7 @@ pnpm --dir plugins/pecot-workflow/cli exec tsx scripts/github-surface/drift.ts -
 | `not in issue-coverage.yaml` | 担保の一覧に足します。扱うなら `handler` か `tool` を、外すなら `reason` を書きます。扱うのに受け持つ処理が無ければ、`ATTRIBUTE_HANDLERS` の kind かツールを作ってから足します |
 | `not in github-issue-surface.json` | GitHub が項目を消しています。担保の一覧から外し、その項目を扱う処理が残っていれば直します |
 | `supported needs exactly one of handler or tool` | `handler` と `tool` のどちらか 1 つだけを書きます |
-| `handler ... is not in ATTRIBUTE_HANDLERS`・`tool ... is not an MCP tool of COMMANDS` | 名前を直すか、消えた処理の代わりを書きます |
+| `handler ... is not in ATTRIBUTE_HANDLERS`・`tool ... is not an MCP tool of TOOLS` | 名前を直すか、消えた処理の代わりを書きます |
 | `excluded needs a reason` | 外す理由を書きます |
 | `excluded must not have handler or tool` | 外す項目から `handler`・`tool` を消します。扱うなら `status` を `supported` にします |
 | `supported must not have a reason` | 扱う項目から `reason` を消します。外すなら `status` を `excluded` にします |
