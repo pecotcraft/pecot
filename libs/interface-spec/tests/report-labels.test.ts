@@ -246,6 +246,21 @@ describe('reportLabelsListener', () => {
   })
 
   it.for([
+    { name: 'feature', label: { name: LabelName.FEATURE, value: 'given' } },
+    { name: 'story', label: { name: LabelName.STORY, value: 'given' } },
+  ])('$name を持つ結果にも、機能の階層は足さずに、表で引いた layer を足す', async ({ name, label }) => {
+    await explains(`層の表から \`layer\` を付ける \`reportLabelsListener\` のテストです。\`${name}\` のラベルを既に持つ結果の場合に、機能の階層のラベルは変えずに、表の層の \`layer\` を追加することを確認します。`)
+    const result = stepSync('結果を作る', () => testResult(PARENT_SUITE, [], [label]))
+    stepSync('層の表を差し替えた listener を呼ぶ', () => {
+      reportLabelsListener(loadItemTable, () => [{ layer: 'integration', path: 'cli/tests/integration/' }]).beforeTestResultWrite?.(result)
+    })
+    stepSync('機能の階層と layer を比べる', () => {
+      expect(hierarchy(result.labels)).toEqual([label])
+      expect(result.labels.filter(item => item.name === 'layer')).toEqual([{ name: LabelName.LAYER, value: 'integration' }])
+    })
+  })
+
+  it.for([
     { name: 'layer を持つ結果', labels: [{ name: LabelName.LAYER, value: 'e2e' }], table: [{ layer: 'unit', path: 'cli/' }], expected: [{ name: LabelName.LAYER, value: 'e2e' }] },
     { name: '層の表の無い project の結果', labels: [], table: undefined, expected: [] },
     { name: '表のどの規則にも当たらない結果', labels: [], table: [{ layer: 'unit', path: 'scripts/' }], expected: [] },

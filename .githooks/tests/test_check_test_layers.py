@@ -17,9 +17,6 @@ _FILES = {
     "plugins/p/cli/tests/b.test.ts": "",
     "plugins/p/cli/tests/c.test.mjs": "",
     "plugins/p/cli/tests/fixtures/d.test.ts": "",
-    "plugins/p/cli/tests/fixtures/project.json": "{}",
-    "plugins/p/cli/tests/fixtures/sub/project.json": "{}",
-    "plugins/p/cli/tests/fixtures/sub/g.test.ts": "",
     "plugins/p/cli/tests/e2e/h.test.ts": "",
     "plugins/p/hooks/tests/e.test.sh": "",
     ".githooks/project.json": "{}",
@@ -54,7 +51,7 @@ def _check(tmp_path: Path, tables: dict[str, str]) -> subprocess.CompletedProces
 
 @allure.title("すべてのテストのファイルの層が表で決まると、hook は何も出さずに 0 で終わる")
 def test_passes_when_every_test_file_has_a_layer(tmp_path: Path) -> None:
-    """層の表がすべてのテストのファイルに当たる場合の、`check-test-layers.py` のテストです。fixture の中の `project.json` は project と見なさず、テストでない補助と project に属さないファイルを見ずに、終了コード 0 で終わることを確認します。"""
+    """層の表がすべてのテストのファイルに当たる場合の、`check-test-layers.py` のテストです。fixture の中のテストのファイルも外側の表で層が決まり、テストでない補助と project に属さないファイルを見ずに、終了コード 0 で終わることを確認します。"""
     result = _check(tmp_path, _TABLES)
     with allure.step("終了コードと標準エラーを比べる"):
         assert (result.returncode, result.stderr) == (0, "")
@@ -89,8 +86,17 @@ def test_passes_when_every_test_file_has_a_layer(tmp_path: Path) -> None:
             {**_TABLES, ".githooks/test-layers.txt": "integration tests/\nunit scripts/\n"},
             ".githooks/test-layers.txt:2: 'scripts/' に当たるテストのファイルが無い",
         ),
+        (
+            "テストのファイルにいちばん近い project.json の横に表が無い",
+            {
+                **_TABLES,
+                "plugins/p/cli/tests/fixtures/sub/project.json": "{}",
+                "plugins/p/cli/tests/fixtures/sub/g.test.ts": "",
+            },
+            "plugins/p/cli/tests/fixtures/sub/g.test.ts: 層が決まっていない",
+        ),
     ],
-    ids=["no-table", "no-match", "bad-layer", "bad-line", "unused-rule"],
+    ids=["no-table", "no-match", "bad-layer", "bad-line", "unused-rule", "nearest-project"],
 )
 def test_reports_problem_with_place(
     tmp_path: Path, case: str, tables: dict[str, str], expected: str

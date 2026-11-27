@@ -73,7 +73,7 @@ def problems(root: Path) -> list[str]:
     projects = {
         str(PurePosixPath(path).parent)
         for path in tracked
-        if PurePosixPath(path).name == "project.json" and "fixtures" not in path.split("/")
+        if PurePosixPath(path).name == "project.json"
     }
     projects.discard(".")
     found: list[str] = []

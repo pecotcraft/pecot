@@ -275,7 +275,7 @@ pre-commit の hook `check-test-layers`（`.githooks/pre-commit/check-test-layer
 | どのテストのファイルにも採られない規則がある | `<表>:<行>: '…' に当たるテストのファイルが無い` |
 
 見るテストのファイルは、`*.test.ts`・`*.test.mjs`・`*.test.sh`・`test_*.py` です。
-`project.json` を持つ project に属さないファイルは見ません。`fixtures` の下の `project.json` は、project と見なしません。
+`project.json` を持つ project に属さないファイルは見ません。project は、テストのファイルからいちばん近い `project.json` のディレクトリです。ラベルの書き手と同じ決め方です。
 
 ## step
 
