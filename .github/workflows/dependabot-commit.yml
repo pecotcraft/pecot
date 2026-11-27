@@ -1,4 +1,4 @@
-# Dependabot の PR に、version plan と playwright-deps の版の commit を足す。
+# Dependabot の PR に、version plan・playwright-deps の版・actions/<処理>/dist の commit を足す。
 # push は App のトークンで行う（GITHUB_TOKEN の push で起きる ci の run は承認待ちで止まる）。
 name: dependabot-commit
 
@@ -59,6 +59,15 @@ jobs:
         continue-on-error: true
         run: node .githooks/scripts/sync-playwright-deps.mjs
 
+      # nx の build は dependsOn の root の install が scripts 付きで pnpm install をやり直すので使わない。
+      # plan は作り直した dist の差分も見るので、plan の前に置く。
+      - name: Build actions dist
+        id: dist
+        continue-on-error: true
+        run: |
+          pnpm --dir libs/workflow-core run build
+          pnpm --dir actions run build
+
       - name: Create version plans
         id: plans
         continue-on-error: true
@@ -72,11 +81,11 @@ jobs:
       - name: Commit generated files
         id: commit
         env:
-          COMMIT_MSG: "chore(repo): version plan と devcontainer の playwright-deps の版を dependabot の更新から作る"
+          COMMIT_MSG: "chore(repo): version plan・devcontainer の playwright-deps の版・actions の dist を dependabot の更新から作る"
           HAS_APP_TOKEN: ${{ steps.app-token.outputs.token != '' }}
           NO_TOKEN_MSG: "App のトークンが無く、plan と版を push できない。PR で @dependabot recreate を打つ"
         run: |
-          git add -A -- .nx/version-plans .devcontainer/devcontainer.json
+          git add -A -- .nx/version-plans .devcontainer/devcontainer.json ':(glob)actions/*/dist/**'
           if git diff --cached --quiet; then
             exit 0
           fi
@@ -135,6 +144,14 @@ jobs:
           PLANS_FAILED_MSG: "version plan を作れなかった。playwright-deps の版は push した。ログを見て、PR で @dependabot recreate を打つ"
         run: |
           echo "::error::${PLANS_FAILED_MSG}"
+          exit 1
+
+      - name: Fail when actions dist was not built
+        if: ${{ steps.dist.outcome == 'failure' }}
+        env:
+          DIST_FAILED_MSG: "actions の dist を作り直せなかった。version plan と playwright-deps の版は push した。ログを見て、PR で @dependabot recreate を打つ"
+        run: |
+          echo "::error::${DIST_FAILED_MSG}"
           exit 1
 
       - name: Fail when playwright-deps was not synced

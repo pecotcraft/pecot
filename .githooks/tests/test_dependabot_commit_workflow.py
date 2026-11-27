@@ -253,5 +253,42 @@ def test_commit_workflow_creates_version_plans_before_commit() -> None:
         assert _step_index(steps, "Create version plans") < _step_index(
             steps, "Commit generated files"
         )
-        assert "git add -A -- .nx/version-plans .devcontainer/devcontainer.json" in run
+        assert (
+            "git add -A -- .nx/version-plans .devcontainer/devcontainer.json"
+            " ':(glob)actions/*/dist/**'"
+        ) in run
         assert run.index("git add -A") < run.index("git diff --cached --quiet")
+
+
+@allure.title("dependabot-commit.yml は、plan を作る前に nx を使わずに actions の dist を作り直す")
+def test_commit_workflow_rebuilds_actions_dist_before_plans_without_nx() -> None:
+    """`dependabot-commit.yml` の、`actions/<処理>/dist` を作り直す step のテストです。依存の導入の後で plan の作成より前にあり、`continue-on-error` を持ち、nx を使わずに workflow-core と actions を build することを確認します。"""
+    with allure.step("dist を作り直す step を読む"):
+        steps = _commit_steps()
+        build = _step(steps, "Build actions dist")
+
+    with allure.step("並び・失敗の扱い・build のコマンドを確かめる"):
+        assert _step_index(steps, "Install dependencies") < _step_index(steps, "Build actions dist")
+        assert _step_index(steps, "Build actions dist") < _step_index(steps, "Create version plans")
+        assert build["continue-on-error"] is True
+        assert build["run"].split("\n")[:2] == [
+            "pnpm --dir libs/workflow-core run build",
+            "pnpm --dir actions run build",
+        ]
+        assert "nx" not in build["run"].split()
+
+
+@allure.title("dependabot-commit.yml は、dist の作り直しに失敗しても push し、最後に失敗で終わる")
+def test_commit_workflow_fails_after_push_when_dist_was_not_built() -> None:
+    """`dependabot-commit.yml` の、dist の作り直しに失敗した場合のテストです。失敗を判定する step が `steps.dist.outcome` を見て、`Push generated files` より後で `exit 1` を実行することを確認します。"""
+    with allure.step("失敗の step を読む"):
+        steps = _commit_steps()
+        build = _step(steps, "Build actions dist")
+        fail = _step(steps, "Fail when actions dist was not built")
+
+    with allure.step("push の後で dist の結果を見て失敗させることを確かめる"):
+        assert f"steps.{build['id']}.outcome == 'failure'" in fail["if"]
+        assert _step_index(steps, "Push generated files") < _step_index(
+            steps, "Fail when actions dist was not built"
+        )
+        assert "exit 1" in fail["run"]

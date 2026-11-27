@@ -35,7 +35,11 @@ const GROUP_PATHS = {
   "pecot-tools": "plugins/pecot-tools/",
   "text-rules": "libs/text-rules/",
   "workflow-core": "libs/workflow-core/",
+  "pecot-actions": "actions/",
 };
+// 依存を同梱して commit する dist の glob。dist が変わった PR には、その group の plan を求める
+/** @type {Record<string, string>} */
+const DIST_PATHS = { "pecot-actions": "actions/*/dist" };
 // 上限は .githooks/pre-commit/check-version-plan-format.sh と同じ値
 const MAX_LINE_CHARS = 100;
 const MAX_BODY_LINES = 3;
@@ -374,6 +378,33 @@ function resolveIndirect(update, ctx) {
 }
 
 /**
+ * 更新が group に届くか。本番・開発用を問わない。dist の作り直しの原因になりうる依存を拾う。
+ * @param {Update} update
+ * @param {Context} ctx
+ * @param {string} group
+ * @returns {boolean}
+ */
+function reaches(update, ctx, group) {
+  if (ctx.uv) return groupOf(`${ctx.directory.replace(/^\//, "")}/`) === group;
+  if (update.type !== "indirect") {
+    return (ctx.declarations[update.name] ?? []).some((declaration) => groupOf(declaration.path) === group);
+  }
+  if (ctx.lock === null) return false;
+  return reachable(ctx.lock, lockRoots(ctx.lock, group, () => true)).has(`${update.name}@${update.version}`);
+}
+
+/**
+ * @param {Map<string, Dep[]>} map
+ * @param {string} group
+ * @param {Dep} dep
+ */
+function addDep(map, group, dep) {
+  const deps = map.get(group) ?? [];
+  if (!deps.some((entry) => entry.name === dep.name && entry.version === dep.version)) deps.push(dep);
+  map.set(group, deps);
+}
+
+/**
  * 更新が届く release group を決める。git は呼ばない。
  * @param {Update} update
  * @param {Context} ctx
@@ -556,6 +587,10 @@ function analyze(cwd, { sha, subject, body }, distDeps) {
     const parsed = parseCommit(subject, body);
     /** @type {Map<string, Dep[]>} */
     const byGroup = new Map();
+    /** @type {Map<string, Dep[]>} */
+    const touched = new Map();
+    /** @type {Dep[]} */
+    const all = [];
     /** @type {SkipReason} */
     let reason = "none";
     const hasIndirect = parsed.updates.some((update) => update.type === "indirect");
@@ -569,20 +604,37 @@ function analyze(cwd, { sha, subject, body }, distDeps) {
       distDeps,
     };
     for (const update of parsed.updates) {
+      const dep = { name: update.name, from: update.from, version: update.version };
       const resolution = resolveGroups(update, ctx);
       if (resolution.reason === "dev") reason = "dev";
-      for (const group of resolution.groups) {
-        const deps = byGroup.get(group) ?? [];
-        if (!deps.some((dep) => dep.name === update.name && dep.version === update.version)) {
-          deps.push({ name: update.name, from: update.from, version: update.version });
-        }
-        byGroup.set(group, deps);
-      }
+      for (const group of resolution.groups) addDep(byGroup, group, dep);
+      for (const group of Object.keys(DIST_PATHS)) if (reaches(update, ctx, group)) addDep(touched, group, dep);
+      if (!all.some((entry) => entry.name === dep.name && entry.version === dep.version)) all.push(dep);
     }
-    return { parsed, byGroup, reason };
+    return { parsed, byGroup, touched, all, reason };
   } catch (error) {
     throw new Error(`${sha.slice(0, 7)}: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
   }
+}
+
+/**
+ * dist が変わった group。範囲は base との merge-base から head まで。
+ * @param {string} repoDir リポの root。
+ * @param {string} base
+ * @param {string} head
+ * @param {boolean} worktree true なら、作業ツリーの変更も見る。
+ * @returns {string[]}
+ */
+function changedDistGroups(repoDir, base, head, worktree) {
+  return Object.entries(DIST_PATHS)
+    .filter(([, glob]) => {
+      // pathspec の * は、:(glob) なしで dist の下のファイルに当たらない。
+      const pathspec = `:(glob)${glob}/**`;
+      const committed = git(repoDir, ["diff", "--name-only", `${base}...${head}`, "--", pathspec]).trim();
+      const pending = worktree ? git(repoDir, ["status", "--porcelain", "--", pathspec]).trim() : "";
+      return committed !== "" || pending !== "";
+    })
+    .map(([group]) => group);
 }
 
 const USAGE =
@@ -674,15 +726,24 @@ async function main(options = {}) {
 
     if (check) {
       const covered = coveredGroups(repoDir, base, head);
-      let missing = 0;
+      /** @type {Set<string>} */
+      const missing = new Set();
       for (const commit of commits) {
         for (const group of analyze(repoDir, commit, distDeps).byGroup.keys()) {
           if (covered.has(group)) continue;
-          missing += 1;
+          missing.add(group);
           err(`${commit.sha.slice(0, 7)}: ${group} の version plan がありません`);
         }
       }
-      return missing === 0 ? 0 : 1;
+      if (commits.length > 0) {
+        const headSha = git(repoDir, ["rev-parse", head]).trim();
+        for (const group of changedDistGroups(repoDir, base, head, false)) {
+          if (covered.has(group) || missing.has(group)) continue;
+          missing.add(group);
+          err(`${headSha.slice(0, 7)}: ${group} の version plan がありません（${DIST_PATHS[group]} が変わっています）`);
+        }
+      }
+      return missing.size === 0 ? 0 : 1;
     }
 
     const plansDir = path.join(repoDir, PLANS_DIR);
@@ -695,16 +756,26 @@ async function main(options = {}) {
     const skipped = { dev: 0, none: 0, exists: 0 };
     /** @type {Map<string, Dep[]>} */
     const merged = new Map();
-    for (const commit of commits) {
-      const { byGroup, reason } = analyze(repoDir, commit, distDeps);
-      if (byGroup.size === 0) skipped[reason] += 1;
-      for (const [group, deps] of byGroup) {
-        const all = merged.get(group) ?? [];
-        for (const dep of deps) {
-          if (!all.some((entry) => entry.name === dep.name && entry.version === dep.version)) all.push(dep);
+    const analyses = commits.map((commit) => analyze(repoDir, commit, distDeps));
+    for (const { byGroup } of analyses) {
+      for (const [group, deps] of byGroup) for (const dep of deps) addDep(merged, group, dep);
+    }
+    // dist を作り直した group は、届く依存（開発用を含む）で plan を作る。届く依存が無ければ範囲の全部を載せる
+    /** @type {Map<string, boolean>} group と、届く依存があったか */
+    const rebuilt = new Map();
+    if (commits.length > 0) {
+      for (const group of changedDistGroups(repoDir, base, head, true)) {
+        if (merged.has(group)) continue;
+        const reached = analyses.some((analysis) => analysis.touched.has(group));
+        rebuilt.set(group, reached);
+        for (const analysis of analyses) {
+          for (const dep of (reached ? analysis.touched.get(group) : analysis.all) ?? []) addDep(merged, group, dep);
         }
-        merged.set(group, all);
       }
+    }
+    for (const analysis of analyses) {
+      const viaDist = [...rebuilt].some(([group, reached]) => !reached || analysis.touched.has(group));
+      if (analysis.byGroup.size === 0 && !viaDist) skipped[analysis.reason] += 1;
     }
 
     for (const [group, deps] of merged) {
@@ -753,7 +824,7 @@ async function main(options = {}) {
   }
 }
 
-module.exports = { GROUP_PATHS, groupOf, parseCommit, parseUvLock, resolveGroups, renderPlan, main };
+module.exports = { GROUP_PATHS, DIST_PATHS, groupOf, parseCommit, parseUvLock, resolveGroups, renderPlan, main };
 
 if (require.main === module) {
   main().then((code) => {
