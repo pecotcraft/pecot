@@ -30,15 +30,31 @@ export default defineConfig({
       },
     },
   },
-  // Allure の既定の 2 つと同じ名前にして既定の id にまとめ、落ちたテストを重大度ごとに並べる。
-  categories: {
-    rules: [
-      { name: "Product errors", matchers: { statuses: ["failed"] }, groupBy: ["severity"] },
-      { name: "Test errors", matchers: { statuses: ["broken"] }, groupBy: ["severity"] },
-    ],
-  },
   historyLimit: 3,
   flakyDetection: { includePassedTests: true },
+  // 結果は、最初に合った規則の分類だけに入る。2・3 がすべての failed・broken を取るので、既定の英語の分類は出ない
+  categories: {
+    rules: [
+      {
+        id: "flaky",
+        name: "不安定なテスト",
+        matchers: { statuses: ["failed", "broken"], flaky: true },
+        groupBy: [{ label: "epic" }, "severity"],
+      },
+      {
+        id: "product-errors",
+        name: "製品の不具合",
+        matchers: { statuses: ["failed"] },
+        groupBy: [{ label: "epic" }, "severity"],
+      },
+      {
+        id: "test-errors",
+        name: "テストの不具合",
+        matchers: { statuses: ["broken"] },
+        groupBy: [{ label: "epic" }, "severity"],
+      },
+    ],
+  },
   ...(historyPath ? { historyPath } : {}),
   ...(variables ? { variables } : {}),
 });

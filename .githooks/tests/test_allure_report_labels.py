@@ -1,11 +1,14 @@
 """pytest のレーンが Allure の結果を残す仕組みのテスト。
 
 run.sh が nx のレーンのときだけ --alluredir と -o を渡すことと、conftest が -o の値をラベルにすることを見る。
+conftest が --alluredir に動かした環境（Python の版のラベルと、OS の environment.properties）を残すことも見る。
 """
 
 from __future__ import annotations
 
 import json
+import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -346,6 +349,207 @@ def test_without_ini_labels_docs_conftest_does_not_import_allure(tmp_path: Path)
         done = _run_pytest(tmp_path, _CONFTESTS[1], body, "-p", "no:allure_pytest")
     with allure.step("終了コード 0 で allure を読み込まないことを確かめる"):
         assert done.returncode == 0, done.stdout + done.stderr
+
+
+# allure-js-commons を依存に持つ project。node の import をここから解く。
+_JS_COMMONS = _REPO / "libs/interface-spec"
+
+_TWO_TESTS = (
+    "import pytest\n\n\n"
+    "def test_a() -> None:\n    pass\n\n\n"
+    '@pytest.mark.parametrize("n", [1, 2])\n'
+    "def test_b(n: int) -> None:\n    pass\n"
+)
+
+
+def _results(results: Path) -> list[dict[str, Any]]:
+    return [json.loads(read_output(path)) for path in sorted(results.glob("*-result.json"))]
+
+
+def _python_labels(result: dict[str, Any]) -> list[str]:
+    return [label["value"] for label in result.get("labels", []) if label["name"] == "Python"]
+
+
+def _fallback_os() -> str:
+    return f"{platform.system()} {platform.release()}"
+
+
+def _stringify_env_info(info: dict[str, str]) -> str:
+    """allure-js-commons の stringifyEnvInfo が書く environment.properties の中身を返す。"""
+    script = (
+        "const { stringifyEnvInfo } = await import('allure-js-commons/sdk/reporter');"
+        "process.stdout.write(stringifyEnvInfo(JSON.parse(process.argv[1])));"
+    )
+    done = run_attached(
+        ["node", "--input-type=module", "-e", script, json.dumps(info)],
+        cwd=_JS_COMMONS,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return done.stdout
+
+
+@allure.title(
+    "--alluredir を指定すると、{param_id} の conftest はどの結果にも Python の版のラベルを 1 つ付け、パラメータは付けない"
+)
+@pytest.mark.parametrize("conftest", _CONFTESTS)
+def test_alluredir_adds_python_label(tmp_path: Path, conftest: str) -> None:
+    """`--alluredir` を指定して pytest を実行したときの、`Python` のラベルのテストです。どの結果にも動かした版の `Python` のラベルが 1 つ付き、`Python` のパラメータは付かないことを確認します。"""
+    with allure.step("parametrize を含む 3 件のテストを --alluredir 付きで動かす"):
+        results = tmp_path / "allure-results"
+        done = _run_pytest(tmp_path, conftest, _TWO_TESTS, "--alluredir", str(results))
+        assert done.returncode == 0, done.stdout + done.stderr
+    with allure.step("Python のラベルが 1 つずつ付き、Python のパラメータが無いことを確かめる"):
+        written = _results(results)
+        assert len(written) == 3
+        for result in written:
+            assert _python_labels(result) == [platform.python_version()]
+            assert all(p["name"] != "Python" for p in result.get("parameters", []))
+
+
+_DEBIAN = 'NAME="Debian"\n'
+_FEDORA = "PRETTY_NAME='Fedora Linux 41'\n"
+
+# 行は (題の場面, /etc/os-release の中身, /usr/lib/os-release の中身, OS の値)。None はファイルが無いこと。
+_OS_RELEASE_CASES = [
+    pytest.param(
+        "/etc/os-release の PRETTY_NAME に空白・記号・ASCII の外の文字があると",
+        _DEBIAN + 'PRETTY_NAME=" Debian\\\\GNU=Linux: 13\t(trixie) éĀ😀\u0085\x7f \\"x\\""\n',
+        _FEDORA,
+        ' Debian\\GNU=Linux: 13\t(trixie) éĀ😀\u0085\x7f "x"',
+        id="pretty-name",
+    ),
+    pytest.param(
+        "/etc/os-release が無いと",
+        None,
+        _FEDORA,
+        "Fedora Linux 41",
+        id="usr-lib",
+    ),
+    pytest.param(
+        "/etc/os-release に PRETTY_NAME の行が無いと",
+        _DEBIAN,
+        _FEDORA,
+        _fallback_os(),
+        id="no-pretty-name",
+    ),
+    pytest.param(
+        "os-release がどちらも無いと",
+        None,
+        None,
+        _fallback_os(),
+        id="no-os-release",
+    ),
+]
+
+
+@allure.title(
+    "{case}、{conftest} の conftest は OS だけの environment.properties を allure-js-commons と同じ形で書く"
+)
+@pytest.mark.parametrize("conftest", _CONFTESTS)
+@pytest.mark.parametrize(("case", "etc", "usr_lib", "expected"), _OS_RELEASE_CASES)
+def test_alluredir_writes_os_environment_properties(
+    tmp_path: Path, conftest: str, case: str, etc: str | None, usr_lib: str | None, expected: str
+) -> None:
+    """os-release の置き場所を差し替え、`--alluredir` を指定して pytest を実行したときの、`environment.properties` のテストです。`PRETTY_NAME` か代わりの値を `OS` の 1 行だけで、allure-js-commons の `stringifyEnvInfo` と同じ形に書くことを確認します。"""
+    with allure.step(f"os-release の置き場所を差し替えて pytest を動かす（{case}）"):
+        paths: list[str] = []
+        for name, text in (("etc-os-release", etc), ("usr-lib-os-release", usr_lib)):
+            path = tmp_path / name
+            if text is not None:
+                path.write_text(text, encoding="utf-8")
+            paths.append(str(path))
+        results = tmp_path / "allure-results"
+        body = (
+            "import conftest\n\n"
+            f"conftest._OS_RELEASE_PATHS = ({paths[0]!r}, {paths[1]!r})\n\n\n"
+            "def test_a() -> None:\n    pass\n"
+        )
+        done = _run_pytest(tmp_path, conftest, body, "--alluredir", str(results))
+    with allure.step(
+        "environment.properties が stringifyEnvInfo の OS の 1 行と同じことを確かめる"
+    ):
+        assert done.returncode == 0, done.stdout + done.stderr
+        expected_text = _stringify_env_info({"OS": expected})
+        assert read_output(results / "environment.properties") == expected_text
+
+
+@allure.title(
+    "environment.properties が既にあると、{param_id} の conftest はファイルを書き換えない"
+)
+@pytest.mark.parametrize("conftest", _CONFTESTS)
+def test_alluredir_keeps_existing_environment_properties(tmp_path: Path, conftest: str) -> None:
+    """結果のディレクトリに `environment.properties` が存在する状態で、`--alluredir` を指定して pytest を実行したときのテストです。既存のファイルの中身が変わらないことを確認します。"""
+    with allure.step("vitest の書いた environment.properties を置いて pytest を動かす"):
+        results = tmp_path / "allure-results"
+        results.mkdir()
+        existing = "OS=vitest\nNode.js=v24.0.0"
+        (results / "environment.properties").write_text(existing, encoding="utf-8")
+        done = _run_pytest(
+            tmp_path, conftest, "def test_a() -> None:\n    pass\n", "--alluredir", str(results)
+        )
+    with allure.step("environment.properties が置いたときのままであることを確かめる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert read_output(results / "environment.properties") == existing
+
+
+@allure.title(
+    "--alluredir を指定しないと、{param_id} の conftest は Python のラベルを付けず、environment.properties を書かない"
+)
+@pytest.mark.parametrize("conftest", _CONFTESTS)
+def test_without_alluredir_no_label_or_environment(tmp_path: Path, conftest: str) -> None:
+    """`--alluredir` を指定せずに pytest を実行したときのテストです。Allure のラベルを付ける呼び出しが 1 回も無く、`environment.properties` がどこにも作成されないことを確認します。"""
+    with allure.step("ラベルの呼び出しを記録するテストを --alluredir 無しで動かす"):
+        body = (
+            "import allure_commons\n\n"
+            "calls: list[str] = []\n\n\n"
+            "class _Spy:\n"
+            "    @allure_commons.hookimpl\n"
+            "    def add_label(self, label_type, labels) -> None:\n"
+            "        calls.append(label_type)\n\n\n"
+            "allure_commons.plugin_manager.register(_Spy())\n\n\n"
+            "def test_a() -> None:\n    pass\n\n\n"
+            "def test_b() -> None:\n    assert calls == []\n"
+        )
+        done = _run_pytest(tmp_path, conftest, body)
+    with allure.step("ラベルの呼び出しが無く、environment.properties が無いことを確かめる"):
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert list(tmp_path.rglob("environment.properties")) == []
+
+
+@allure.title(
+    "xdist の worker 2 つで動かしても、{param_id} の conftest は environment.properties を 1 つ正しく書く"
+)
+@pytest.mark.parametrize("conftest", _CONFTESTS)
+def test_xdist_writes_environment_properties_once(tmp_path: Path, conftest: str) -> None:
+    """`-n 2` で xdist の worker に分けて pytest を実行したときのテストです。xdist を使わない実行と同じ `OS` の 1 行の `environment.properties` が 1 つだけ作成されることを確認します。worker の結果に `Python` のラベルが付くことも確認します。"""
+    body = "".join(f"def test_{name}() -> None:\n    pass\n\n\n" for name in "abcd")
+    with allure.step("4 件のテストを xdist を使わずに --alluredir 付きで動かす"):
+        (tmp_path / "serial").mkdir()
+        serial = tmp_path / "serial/allure-results"
+        done = _run_pytest(tmp_path / "serial", conftest, body, "--alluredir", str(serial))
+        assert done.returncode == 0, done.stdout + done.stderr
+    with allure.step("同じテストを -n 2 と --alluredir 付きで動かす"):
+        (tmp_path / "xdist").mkdir()
+        results = tmp_path / "xdist/allure-results"
+        done = _run_pytest(
+            tmp_path / "xdist", conftest, body, "-n", "2", "--alluredir", str(results)
+        )
+    with allure.step(
+        "environment.properties が 1 つで、どの結果にも Python のラベルがあることを確かめる"
+    ):
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert [path.name for path in (tmp_path / "xdist").rglob("environment.properties")] == [
+            "environment.properties"
+        ]
+        written_env = read_output(results / "environment.properties")
+        assert re.fullmatch(r"OS=[^\n]+", written_env), written_env
+        assert written_env == read_output(serial / "environment.properties")
+        written = _results(results)
+        assert len(written) == 4
+        for result in written:
+            assert _python_labels(result) == [platform.python_version()]
 
 
 @pytest.fixture

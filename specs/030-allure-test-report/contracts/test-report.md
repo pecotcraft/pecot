@@ -23,6 +23,8 @@
 |---|---|---|
 | Allure の結果 | `report-lanes.json` の `results` | レーンの最初に 1 回だけ空にする。レーンの中の 2 つ目からの実行は書き足す。nx の `outputs` に入れる。git には入れない |
 | JUnit XML | 今の置き場所のまま | 今あるレーンだけ。中身は変えない |
+| 実行の環境（`environment.properties`） | Allure の結果と同じディレクトリ | 実行全体で同じ値だけを書く。vitest は `OS`・`Node.js` を reporter の `environmentInfo` で書く。pytest は、ファイルが無いときだけ `OS` を書く（2026-11-27 に足した。#817） |
+| テストを動かした版（ラベル） | 結果ごと | vitest は `Node.js`、pytest は `Python` のラベルを付ける。パラメータにすると、レポートの木の全行に版が出るので使わない（#817） |
 
 環境変数:
 
@@ -213,6 +215,26 @@ python3 .githooks/scripts/test_report/generate.py --local --output <出力のデ
 - 手元にある結果のディレクトリだけで作る。欠けたレーンの名前を出して続ける
 - 結果のあるレーンが 1 つも無ければ、「結果のあるレーンが 1 つも無いので、レポートを作れません」で止まる（終了コード 1）
 - 履歴は読まず、書かない（`--history`・`--sources` と一緒には使えない）
+
+`--local` でも公開の run でも、`generate.py` はレーンの `environment.properties` を 1 つにまとめ、`allure generate` に最後の結果のディレクトリとして渡す（#817）。
+
+- Allure は、渡した順に結果のディレクトリを読み、`environment.properties` を読むたびにメタデータを置き換える。まとめないと、最後のレーンの値しか残らない
+- まとめに入れるのは、書いた全レーンで値が同じキーだけにする。値の違うキーは、名前を stderr に出して入れない
+- まとめは `--output` の外の一時のディレクトリに書き、`allure generate` の後で消す。どのレーンもファイルを持たなければ渡さない
+- どのキーも値が違うときは、コメントだけのファイルを渡し、メタデータを空にする。Allure は空のファイルを読み飛ばすので、レーンの値が残ってしまう
+
+## レポートの失敗の分類
+
+`allurerc.mjs` の `categories` に、次の順で規則を書く（#817）。どれも `epic`（プロジェクト）、重大度（`severity`）の順に分け、その下を失敗の文言で分ける。
+
+| 順 | 名前 | id | 入るもの |
+|---|---|---|---|
+| 1 | 不安定なテスト | `flaky` | 不安定と判定された failed・broken |
+| 2 | 製品の不具合 | `product-errors` | failed（確かめが期待と違う値を見た） |
+| 3 | テストの不具合 | `test-errors` | broken（確かめの前に想定外の例外で止まった） |
+
+- 2・3 がすべての failed・broken を取るので、Allure の既定の `Product errors`・`Test errors` には何も入らず、画面に出ない
+- failed と broken の分け方は、各 reporter の判定のまま変えない
 
 公開の run は `generate.py --sources <report-sources.json> --output <出力のディレクトリ> [--history <history.jsonl>]` と打つ。
 

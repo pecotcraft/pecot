@@ -7,12 +7,14 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import importlib.util
 import json
 import os
 import re
 import subprocess
 import sys
+import tempfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import NamedTuple, cast
@@ -42,6 +44,11 @@ _SHA = re.compile(r"[0-9a-f]{40}")
 _LINE_BREAK = re.compile(r"\r\n|\n|\r|\u2028|\u2029")
 # JS の String.prototype.trim が除く文字（WhiteSpace と LineTerminator）。Allure は trim() で空行を飛ばす
 _JS_TRIM = "\t\v\f \u00a0\ufeff\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\n\r\u2028\u2029"
+ENVIRONMENT_FILE = "environment.properties"
+_ENVIRONMENT_FIRST = ("OS", "Node.js", "Python")
+_NO_SHARED_ENVIRONMENT = "# レーンの間で値の同じキーがありません\n"
+_PROPERTIES_SPACE = "\t\f "
+_PROPERTIES_ESCAPES = {"t": "\t", "r": "\r", "n": "\n", "f": "\f"}
 
 Runner = Callable[[list[str], dict[str, str]], int]
 
@@ -251,6 +258,174 @@ def read_history(data: bytes) -> list[int]:
     return bad
 
 
+def parse_properties(text: str) -> dict[str, str]:
+    """Java の properties の形を、@allurereport/reader の parseProperties と同じ手順で読む。"""
+    result: dict[str, str] = {}
+    skip_space = new_line = is_key = True
+    escape = comment_line = multi_line = escaping_unicode = key_space = sep = False
+    key = value = ""
+    unicode = unicode_remaining = 0
+
+    def line() -> None:
+        nonlocal key, value, sep
+        if key or value or sep:
+            result[_join_surrogates(key)] = _join_surrogates(value)
+            key, value, sep = "", "", False
+
+    def decode(output: str, char: str) -> str:
+        nonlocal unicode, unicode_remaining, escaping_unicode, escape
+        if escaping_unicode and unicode_remaining:
+            if char not in "0123456789abcdefABCDEF":
+                raise ValueError(f"\\u の後ろに 16 進でない文字 {repr(char)} があります")
+            unicode = (unicode << 4) + int(char, 16)
+            unicode_remaining -= 1
+            if unicode_remaining:
+                return output
+            escape = escaping_unicode = False
+            return output + chr(unicode)
+        if char == "u":
+            unicode, escaping_unicode, unicode_remaining = 0, True, 4
+            return output
+        escape = False
+        return output + _PROPERTIES_ESCAPES.get(char, char)
+
+    for char in text:
+        if char == "\r":
+            continue
+        if comment_line:
+            if char == "\n":
+                comment_line, new_line, skip_space = False, True, True
+            continue
+        if skip_space:
+            if char in _PROPERTIES_SPACE:
+                continue
+            if not multi_line and char == "\n":
+                is_key, key_space, new_line = True, False, True
+                line()
+                continue
+            skip_space = multi_line = False
+        if new_line:
+            new_line = False
+            if char in "#!":
+                comment_line = True
+                continue
+        if char != "\n":
+            if not escape and is_key and char in "=:":
+                sep, is_key, key_space, skip_space = True, False, False, True
+                continue
+            if char == "\\":
+                if escape:
+                    if escaping_unicode:
+                        continue
+                    if key_space:
+                        key_space = is_key = False
+                    if is_key:
+                        key += "\\"
+                    else:
+                        value += "\\"
+                escape = not escape
+            else:
+                if key_space:
+                    key_space = is_key = False
+                if is_key:
+                    if escape:
+                        key = decode(key, char)
+                    elif char in _PROPERTIES_SPACE:
+                        key_space = skip_space = True
+                    else:
+                        key += char
+                elif escape:
+                    value = decode(value, char)
+                else:
+                    value += char
+        elif escape:
+            if not escaping_unicode:
+                escape = False
+            skip_space = multi_line = True
+        else:
+            new_line = skip_space = is_key = True
+            line()
+    line()
+    return result
+
+
+def _join_surrogates(text: str) -> str:
+    # JS の文字列と同じく 😀 のようなサロゲートの対を 1 文字にする
+    return text.encode("utf-16-le", "surrogatepass").decode("utf-16-le", "surrogatepass")
+
+
+def read_environment(path: Path) -> dict[str, str]:
+    """`environment.properties` を、Allure と同じく UTF-8 として読む。"""
+    return parse_properties(path.read_bytes().decode("utf-8", errors="replace"))
+
+
+def _escape_property(char: str, escape_space: bool) -> str:
+    code = ord(char)
+    if 31 < code < 127:
+        if char == " " and escape_space:
+            return "\\ "
+        return "\\\\" if char == "\\" else char
+    named = {"\t": "\\t", "\n": "\\n", "\f": "\\f", "\r": "\\r"}.get(char)
+    if named is not None:
+        return named
+    if code < 160 or code >= 256:
+        return f"\\u{code:04x}"
+    return char
+
+
+def _utf16_units(text: str) -> list[str]:
+    data = text.encode("utf-16-le", "surrogatepass")
+    return [chr(int.from_bytes(data[i : i + 2], "little")) for i in range(0, len(data), 2)]
+
+
+def stringify_environment(environment: dict[str, str]) -> str:
+    """allure-js-commons の stringifyEnvInfo と同じエスケープで、properties の形にする。"""
+    lines: list[str] = []
+    for key, value in environment.items():
+        escaped_key = "".join(
+            f"\\{c}" if c in "=:" else _escape_property(c, True) for c in _utf16_units(key)
+        )
+        escaped_value = ""
+        leading = True
+        for c in _utf16_units(value):
+            leading = leading and c in _PROPERTIES_SPACE
+            escaped_value += _escape_property(c, leading)
+        lines.append(f"{escaped_key}={escaped_value}")
+    return "\n".join(lines)
+
+
+def write_environment(path: Path, environment: dict[str, str]) -> None:
+    path.write_bytes(stringify_environment(environment).encode("utf-8"))
+
+
+def merge_environments(
+    environments: list[dict[str, str]],
+) -> tuple[dict[str, str], list[str]]:
+    """書いたレーンの間で値が 1 つに決まるキーだけを残す。2 つ目の値は、値の違うキーの名前（名前順）。"""
+    values: dict[str, set[str]] = {}
+    for environment in environments:
+        for key, value in environment.items():
+            values.setdefault(key, set()).add(value)
+    same = {key: next(iter(found)) for key, found in values.items() if len(found) == 1}
+    order = [key for key in _ENVIRONMENT_FIRST if key in same]
+    order += sorted(key for key in same if key not in _ENVIRONMENT_FIRST)
+    differing = sorted(key for key, found in values.items() if len(found) > 1)
+    return {key: same[key] for key in order}, differing
+
+
+def _lane_environments(results: list[Path]) -> list[dict[str, str]]:
+    environments: list[dict[str, str]] = []
+    for directory in results:
+        path = directory / ENVIRONMENT_FILE
+        if not path.is_file():
+            continue
+        try:
+            environments.append(read_environment(path))
+        except (OSError, ValueError) as error:
+            print(f"WARNING: {path} を読めないので、まとめに入れません（{error}）", file=sys.stderr)
+    return environments
+
+
 def allure_command(output: Path, results: list[Path]) -> list[str]:
     return [
         "pnpm", "exec", "allure", "generate",
@@ -368,7 +543,25 @@ def main(
         _prepare_history(history)
         env[HISTORY_ENV] = str(history)
     results = [root / wanted[name] for name in sorted(wanted) if name not in missing]
-    code = run(allure_command(output, results), env)
+    lane_environments = _lane_environments(results)
+    environment, differing = merge_environments(lane_environments)
+    if differing:
+        print(
+            f"レーンで値が違うので、メタデータに出さないキー: {', '.join(differing)}",
+            file=sys.stderr,
+        )
+    with contextlib.ExitStack() as stack:
+        if lane_environments:
+            # Allure は environment.properties を読むたびにメタデータを置き換えるので、まとめを最後に渡す
+            output.parent.mkdir(parents=True, exist_ok=True)
+            merged = Path(stack.enter_context(tempfile.TemporaryDirectory(dir=output.parent)))
+            if environment:
+                write_environment(merged / ENVIRONMENT_FILE, environment)
+            else:
+                # 空のファイルは Allure が読み飛ばすので、コメントだけを書いてレーンの値を消す
+                (merged / ENVIRONMENT_FILE).write_text(_NO_SHARED_ENVIRONMENT, encoding="utf-8")
+            results.append(merged)
+        code = run(allure_command(output, results), env)
     if code != 0:
         print(f"ERROR: allure generate が {code} で終わりました", file=sys.stderr)
         return code

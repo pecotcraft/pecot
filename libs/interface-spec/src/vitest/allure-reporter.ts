@@ -1,5 +1,7 @@
 // vitest の reporters に足す allure-vitest の reporter。nx の外（NX_TASK_TARGET_TARGET が無い）では足さず、結果を残さない。
 // interface-env: NX_TASK_TARGET_PROJECT NX_TASK_TARGET_TARGET PECOT_REPORT_SITE_URL
+import { readFileSync } from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import AllureVitestReporter from 'allure-vitest/reporter'
 import type { AllureVitestReporterConfig } from 'allure-vitest/reporter'
@@ -7,9 +9,40 @@ import type { AllureVitestReporterConfig } from 'allure-vitest/reporter'
 import { reportLabelsListener } from './report-labels.js'
 
 const LOCAL_SITE_URL = 'http://localhost:8000/'
+const OS_RELEASE_FILES = ['/etc/os-release', '/usr/lib/os-release'] as const
+const OS_RELEASE_LINE = /^(?<name>\w+)=(?<quote>["']?)(?<value>.*)\k<quote>$/u
+const OS_RELEASE_ESCAPE = /\\([\\$"'`])/gu
 
 // generated.json の表を、reporter を作り直しても読み直さないように、1 つを使い回す。
 const LABELS_LISTENER = reportLabelsListener()
+
+// Python の platform.freedesktop_os_release() と同じ読み方にする。外側のクオートを外し、5 つの記号のエスケープを外す。
+function prettyName(content: string): string | undefined {
+  let value: string | undefined
+  for (const line of content.split(/\r?\n/u)) {
+    const match = OS_RELEASE_LINE.exec(line)
+    if (match?.groups?.['name'] === 'PRETTY_NAME') value = (match.groups['value'] ?? '').replaceAll(OS_RELEASE_ESCAPE, '$1')
+  }
+  return value
+}
+
+function readOsRelease(readFile: (file: string) => string): string | undefined {
+  for (const file of OS_RELEASE_FILES) {
+    try {
+      return readFile(file)
+    }
+    catch {
+      continue
+    }
+  }
+  return undefined
+}
+
+// os-release(5) の順に読む。/etc/os-release があればそれだけを、無ければ /usr/lib/os-release を読む。
+export function osName(readFile: (file: string) => string = file => readFileSync(file, 'utf8')): string {
+  const content = readOsRelease(readFile)
+  return (content === undefined ? undefined : prettyName(content)) ?? `${os.type()} ${os.release()}`
+}
 
 // reporter を足すかどうか。verifies も同じ条件で Allure の runtime を呼ぶ。
 export function isAllureEnabled(environment: Readonly<NodeJS.ProcessEnv>): boolean {
@@ -29,8 +62,11 @@ export function allureReporterConfig(projectRoot: string, environment: NodeJS.Pr
       { name: 'project', value: project },
       { name: 'lane', value: target },
       { name: 'epic', value: project },
+      // 版はレーンで違いうるので、テストごとにも残す。パラメータにすると木の全行に出る。
+      { name: 'Node.js', value: process.version },
     ],
     links: { tms: { urlTemplate: `${siteUrl}permalink.html?id=%s`, nameTemplate: '%s' } },
+    environmentInfo: { 'OS': osName(), 'Node.js': process.version },
     listeners: [LABELS_LISTENER],
   }
 }
