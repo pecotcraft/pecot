@@ -1103,6 +1103,121 @@ def test_gate_selects_the_githooks_lanes_that_read_the_change(
         assert {lane for lane in selected if lane.startswith("githooks:")} == expected
 
 
+def _probe_workspace_yaml_commit(tmp_path: Path, section: str) -> tuple[Path, str, str]:
+    """複製したリポで、`pnpm-workspace.yaml` の `section` の最初の値だけを変えて commit する。
+
+    作業ツリーの nx の設定を写した commit を base、値を変えた commit を head として返す。
+    """
+    probe = tmp_path / "probe"
+    run_attached(
+        ["git", "clone", "--local", "--no-hardlinks", "-q", str(_REPO_ROOT), str(probe)],
+        check=True,
+        capture_output=True,
+    )
+    (probe / "node_modules").symlink_to(_REPO_ROOT / "node_modules")
+
+    def commit(message: str) -> str:
+        identity = [
+            "-c",
+            "commit.gpgsign=false",
+            "-c",
+            "user.email=t@example.com",
+            "-c",
+            "user.name=t",
+        ]
+        for args in (["add", "-A"], ["commit", "-q", "--allow-empty", "-m", message]):
+            run_attached(["git", *identity, *args], cwd=probe, check=True, capture_output=True)
+        return run_attached(
+            ["git", "rev-parse", "HEAD"], cwd=probe, check=True, capture_output=True, text=True
+        ).stdout.strip()
+
+    for name in _NX_CONFIG_FILES:
+        shutil.copyfile(_REPO_ROOT / name, probe / name)
+    base = commit("probe: sync nx config")
+    workspace = probe / "pnpm-workspace.yaml"
+    text = workspace.read_text(encoding="utf-8")
+    before = yaml.safe_load(text)[section]
+    # 行末のコメントを除き、値の末尾にだけ付ける。
+    bumped = re.sub(
+        rf"(^{section}:\n(?:  #.*\n)*  [^\s#][^\s#]*: *[^\s#]+)",
+        r"\1-probe",
+        text,
+        count=1,
+        flags=re.M,
+    )
+    assert yaml.safe_load(bumped)[section] != before, (
+        f"pnpm-workspace.yaml の {section} の値を変えられない"
+    )
+    workspace.write_text(bumped, encoding="utf-8")
+    return probe, base, commit(f"probe: bump {section}")
+
+
+def _selected_lanes_between(
+    nx_bin: Path, probe: Path, lanes: list[str], base: str, head: str, nx_state: Path
+) -> set[str]:
+    """複製したリポで `nx affected -t <lanes> --base --head` が選んだレーンのタスク。"""
+    graph_file = probe.parent / "affected-tasks.json"
+    result = run_attached(
+        [
+            str(nx_bin),
+            "affected",
+            "-t",
+            ",".join(lanes),
+            f"--base={base}",
+            f"--head={head}",
+            f"--graph={graph_file}",
+        ],
+        cwd=probe,
+        capture_output=True,
+        text=True,
+        timeout=180,
+        env=_nx_env(
+            {
+                "NX_CACHE_DIRECTORY": str(nx_state / "cache"),
+                "NX_WORKSPACE_DATA_DIRECTORY": str(nx_state / "workspace-data"),
+            }
+        ),
+    )
+    assert result.returncode == 0, f"nx 失敗: {result.stderr}"
+    if not graph_file.exists():
+        return set()
+    tasks = json.loads(graph_file.read_text(encoding="utf-8"))["tasks"]["tasks"]
+    attach_json("affected-tasks.json のタスク", sorted(tasks))
+    return {task for task in tasks if task.split(":")[1] in set(lanes)}
+
+
+@allure.title(
+    "pnpm-workspace.yaml の catalog だけを変えた commit は、base と head の指定で、graph を読む githooks のレーンだけを選ぶ"
+)
+def test_workspace_catalog_commit_selects_graph_lanes_via_base_head(
+    nx_bin: Path, tmp_path: Path
+) -> None:
+    """複製したリポジトリで、`pnpm-workspace.yaml` の `catalog` の値だけを変更してコミットした場合のテストです。`--base` と `--head` を指定した `nx affected` が、`githooks:test-ci` を選ばず、graph を読む 3 つの githooks のレーンだけを選ぶことを確認します。"""
+    with allure.step("probe のリポで catalog の値を変えて commit する"):
+        lanes = _graph_lane_names(nx_bin, tmp_path, "test")
+        probe, base, head = _probe_workspace_yaml_commit(tmp_path, "catalog")
+    with allure.step("base と head でレーンを選ぶ"):
+        selected = _selected_lanes_between(nx_bin, probe, lanes, base, head, tmp_path / "nx-state")
+    with allure.step("選ばれた githooks のレーンが graph を読む 3 つであることを確かめる"):
+        assert {lane for lane in selected if lane.startswith("githooks:")} == _GITHOOKS_GRAPH
+
+
+@allure.title(
+    "pnpm-workspace.yaml の overrides を変えた commit は、base と head の指定で、すべての project を affected にする"
+)
+def test_workspace_overrides_commit_affects_every_project_via_base_head(
+    nx_bin: Path, tmp_path: Path
+) -> None:
+    """複製したリポジトリで、`pnpm-workspace.yaml` の `overrides` の値を変更してコミットした場合のテストです。`--base` と `--head` を指定した `nx show projects --affected` が、すべての project を返すことを確認します。"""
+    with allure.step("probe のリポで overrides の値を変えて commit する"):
+        probe, base, head = _probe_workspace_yaml_commit(tmp_path, "overrides")
+    with allure.step("base と head で affected を調べ、すべての project が届くことを確かめる"):
+        affected = _affected(
+            nx_bin, probe, f"--base={base}", f"--head={head}", nx_state=tmp_path / "nx-state"
+        )
+        assert set(affected) == _EXPECTED_PROJECTS
+
+
 @allure.title("{lane} は、ワークスペースのすべての package.json を入力として読む")
 @pytest.mark.parametrize(
     "lane", ["githooks:test-nx-cache", "githooks:test-nx-affected", "githooks:test-checks"]
