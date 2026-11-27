@@ -99,11 +99,12 @@ gh_lines() {
 }
 
 @test "dry-run がタグの版は本実行で変わり得ると注記する" {
-    explains "\`--dry-run\` の注記のテストです。タグの版が本実行で変わり得るという注記が表示されることを確認します。"
+    explains "\`--dry-run\` の注記のテストです。タグの版が本実行で変わり得るという注記が表示され、\`gh\` を呼ばないことを確認します。"
     set_origin "https://github.com/$SLUG.git"
     run run_attach --dry-run
     assert_success
     assert_output --partial "版は version の段階より前の値です"
+    assert_equal "$(gh_lines)" "0"
 }
 
 @test "本実行が gh を 3 回、release view・release upload・workflow run の順に呼ぶ" {

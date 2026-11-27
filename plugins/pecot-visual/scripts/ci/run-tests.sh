@@ -72,6 +72,10 @@ export CLAUDE_PLUGIN_DATA="$GATE_PLUGIN_DATA"
 
 cleanup() {
     rc=$?
+    if [ -n "${publish_pid:-}" ]; then
+        kill -TERM -- "-$publish_pid" 2> /dev/null || true
+    fi
+    rm -f "${publish_log:-}"
     rm -rf "$GATE_PLUGIN_DATA"
     if [ "$rc" -ne 0 ]; then
         echo
@@ -186,14 +190,21 @@ if [ "$RUN_RELEASE" = true ]; then
     release_test_files+=("$REPO_ROOT/.githooks/scripts/tests/attach-mcp-tgz.bats")
     release_test_files+=("$REPO_ROOT/.githooks/scripts/tests/mcp-publish-common.bats")
     # publish の setup_file は CPU を使い切らないので、ほかのファイルと同時に動かす。ログは publish を後に出す。
-    PUBLISH_LOG="$(mktemp)"
-    PECOT_REPORT_RESULTS="$PECOT_REPORT_RESULTS" bash "$REPO_ROOT/.githooks/scripts/test_report/bats/run.sh" "$PUBLISH_TEST" > "$PUBLISH_LOG" 2>&1 &
+    publish_log="$(mktemp)"
+    # 止められたときに publish の子を残さないよう、別のプロセスグループで起こし、cleanup がグループごと止める。
+    set -m
+    PECOT_REPORT_RESULTS="$PECOT_REPORT_RESULTS" bash "$REPO_ROOT/.githooks/scripts/test_report/bats/run.sh" "$PUBLISH_TEST" > "$publish_log" 2>&1 &
     publish_pid=$!
+    set +m
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
     release_rc=0
     PECOT_REPORT_RESULTS="$PECOT_REPORT_RESULTS" bash "$REPO_ROOT/.githooks/scripts/test_report/bats/run.sh" "${release_test_files[@]}" || release_rc=$?
     wait "$publish_pid" || release_rc=$?
-    cat "$PUBLISH_LOG"
-    rm -f "$PUBLISH_LOG"
+    publish_pid=""
+    trap - INT TERM
+    cat "$publish_log"
+    rm -f "$publish_log"
     [ "$release_rc" -eq 0 ] || exit "$release_rc"
 fi
 
