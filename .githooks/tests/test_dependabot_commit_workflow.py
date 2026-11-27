@@ -292,3 +292,53 @@ def test_commit_workflow_fails_after_push_when_dist_was_not_built() -> None:
             steps, "Fail when actions dist was not built"
         )
         assert "exit 1" in fail["run"]
+
+
+@allure.title(
+    "dependabot-commit.yml は、PR の依存のコードが動く間、git の設定に App のトークンを置かない"
+)
+def test_commit_workflow_keeps_app_token_out_of_git_config_while_pr_code_runs() -> None:
+    """`dependabot-commit.yml` の、App のトークンの扱いのテストです。トークンを `Checkout` で受けず、commit の後に作り、push の step だけが使うことを確認します。"""
+    with allure.step("Checkout・トークン・push の step を読む"):
+        steps = _commit_steps()
+        checkout = _step(steps, "Checkout")
+        token = _step(steps, "Generate GitHub App token")
+        push = _step(steps, "Push generated files")
+
+    with allure.step("トークンが PR の依存のコードの後にだけ現れることを確かめる"):
+        assert checkout["with"]["persist-credentials"] is False
+        assert "token" not in checkout["with"]
+        assert _step_index(steps, "Build actions dist") < _step_index(
+            steps, "Commit generated files"
+        )
+        assert _step_index(steps, "Commit generated files") < _step_index(
+            steps, "Generate GitHub App token"
+        )
+        assert "steps.commit.outputs.committed == 'true'" in token["if"]
+        assert push["env"]["APP_TOKEN"] == "${{ steps.app-token.outputs.token }}"
+        assert "http.https://github.com/.extraheader" in push["run"]
+        uses_token = [
+            s.get("name")
+            for s in steps
+            if "steps.app-token.outputs.token" in str(s.get("env", "")) + str(s.get("with", ""))
+        ]
+        assert uses_token == ["Push generated files"]
+
+
+@allure.title("dependabot-commit.yml は、App のトークンが無いとき、イメージを載せる前に止まる")
+def test_commit_workflow_stops_before_image_when_app_token_is_missing() -> None:
+    """`dependabot-commit.yml` の、App のトークンが作れなかった場合のテストです。トークンの有無を判定して `exit 1` する step が、トークンの作成の後で `Log in to GHCR` より前にあることを確認します。"""
+    with allure.step("トークンが無いときの step を読む"):
+        steps = _commit_steps()
+        fail = _step(steps, "Fail when App token is missing")
+
+    with allure.step("イメージの前で、commit したときだけ止まることを確かめる"):
+        assert "steps.commit.outputs.committed == 'true'" in fail["if"]
+        assert "steps.app-token.outputs.token == ''" in fail["if"]
+        assert "exit 1" in fail["run"]
+        assert _step_index(steps, "Generate GitHub App token") < _step_index(
+            steps, "Fail when App token is missing"
+        )
+        assert _step_index(steps, "Fail when App token is missing") < _step_index(
+            steps, "Log in to GHCR"
+        )

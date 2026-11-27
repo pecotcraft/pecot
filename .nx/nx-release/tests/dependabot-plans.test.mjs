@@ -958,3 +958,36 @@ test("--check: 範囲で actions の dist が変わったのに pecot-actions �
   const covered = await run(dir, ["--check", "--base", "HEAD~3"]);
   assert.equal(covered.code, 0, covered.errors.join("\n"));
 });
+
+test("dist が変わり actions に届く依存が無いときは、範囲の更新をすべて pecot-actions の plan に載せる", async () => {
+  await explains("dist を作り直した PR を扱う `main` のテストです。actions に届く依存がない更新で dist が変わった場合に、範囲の更新を載せた pecot-actions の plan を作成し、作らなかった PR に数えないことを確認します。");
+  const dir = makeRepo();
+  onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
+  commit(dir, { "package.json": pkg({ name: "root", devDependencies: { rollup: "^4.68.8" } }), "actions/x/dist/index.js": "a\n" }, "chore: init");
+  commit(
+    dir,
+    { "package.json": pkg({ name: "root", devDependencies: { rollup: "^4.69.0" } }) },
+    `build(repo): bump rollup in / (#73)\n\n${dependabotBody("rollup", "4.69.0", "direct:development", "4.68.8")}\n`,
+  );
+  writeFiles(dir, { "actions/x/dist/index.js": "b\n" });
+  const result = await runPr(dir, 73);
+  assert.equal(result.code, 0, result.errors.join("\n"));
+  assert.equal(
+    fs.readFileSync(path.join(dir, ".nx/version-plans/73-dependabot-deps.md"), "utf8"),
+    "---\npecot-actions: patch\n---\n\n`rollup` を 4.68.8 から 4.69.0 に更新。\n",
+  );
+  const summary = summaryOf(result.lines);
+  assert.equal(summary["作らなかった dependabot の PR（開発用）"], 0);
+  assert.equal(summary["作らなかった dependabot の PR（どの package にも当たらない）"], 0);
+});
+
+test("--check: dependabot の commit が無い範囲では、dist が変わっていても plan を求めない", async () => {
+  await explains("`--check` と dist のテストです。範囲に dependabot の commit がない場合は、`actions/*/dist` が変わっていても plan を求めず、終了コード 0 で終了することを確認します。");
+  const dir = makeRepo();
+  onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
+  commit(dir, { "actions/x/dist/index.js": "a\n" }, "chore: init");
+  commit(dir, { "actions/x/dist/index.js": "b\n" }, "fix(actions): dist を作り直す");
+  const result = await run(dir, ["--check", "--base", "HEAD~1"]);
+  assert.equal(result.code, 0, result.errors.join("\n"));
+  assert.deepEqual(result.errors, []);
+});

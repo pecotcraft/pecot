@@ -82,5 +82,7 @@ plan は、範囲の全 commit の更新を group ごとにまとめて 1 ファ
 - `actions/package.json` の `dependencies` の更新から、`pecot-actions` の plan ができる
 - `actions/package.json` の `devDependencies` だけの更新は、作業ツリーの dist が変わったときだけ plan を作る
 - `--check` は、範囲で dist が変わり、その group の plan が無ければ 1 で止まる
+- dist が変わり、その group に届く依存が無いときは、範囲の更新をすべて plan に載せ、作らなかった PR に数えない
+- `--check` は、dependabot の commit が無い範囲では、dist が変わっていても 0 で終わる
 
 テストの入力の本文は、実物の dependabot の commit から写した値を使う。依存名は実在の名前のままでよい。
