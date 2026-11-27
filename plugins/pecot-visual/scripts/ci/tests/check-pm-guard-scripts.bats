@@ -33,7 +33,7 @@ setup() {
 # $1=scripts の JSON。$BATS_TEST_TMPDIR/package.json に書き、list_pm_invoking_scripts の結果を $output・$lines に置く。
 run_list_violations() {
     printf '{"name":"probe","scripts":%s}\n' "$1" > "$BATS_TEST_TMPDIR/package.json"
-    run list_pm_invoking_scripts "$BATS_TEST_TMPDIR/package.json"
+    run --separate-stderr list_pm_invoking_scripts "$BATS_TEST_TMPDIR/package.json"
     assert_success
 }
 
@@ -83,7 +83,7 @@ bats_test_function --description "scripts の無い package.json は、違反を
 assert_pm_declaration() {
     explains "\`read_pm_declaration\` で \`package.json\` の宣言を読むテストです。\`devEngines.packageManager\` の形と値、\`engines\` の \`node\` 以外のキー、\`packageManager\` が、決まった順に区切られて返ることを確認します。"
     printf '%s\n' "$1" > "$BATS_TEST_TMPDIR/package.json"
-    run read_pm_declaration "$BATS_TEST_TMPDIR/package.json"
+    run --separate-stderr read_pm_declaration "$BATS_TEST_TMPDIR/package.json"
     assert_success
     assert_output "$2"
 }
@@ -99,7 +99,7 @@ bats_test_function --description "engines が node だけなら、余分なキ�
 assert_workspace_setting() {
     explains "\`read_workspace_setting\` で \`pnpm-workspace.yaml\` の \`nodeLinker\` を読むテストです。トップレベルのキーの値だけが YAML として読まれ、コメントの行と入れ子のキーは読まれないことを確認します。"
     printf '%b\n' "$1" > "$BATS_TEST_TMPDIR/pnpm-workspace.yaml"
-    run read_workspace_setting "$BATS_TEST_TMPDIR/pnpm-workspace.yaml" nodeLinker
+    run --separate-stderr read_workspace_setting "$BATS_TEST_TMPDIR/pnpm-workspace.yaml" nodeLinker
     assert_success
     assert_output "$2"
 }
@@ -243,7 +243,7 @@ bats_test_function --description "種類を分けられない package.json が�
 
 @test "現行ツリーの pnpm-workspace.yaml は、nodeLinker に hoisted を宣言している" {
     explains "リポジトリの \`pnpm-workspace.yaml\` を \`read_workspace_setting\` で読むテストです。\`nodeLinker\` の値が \`hoisted\` であることを確認します。"
-    run read_workspace_setting "$REPO_ROOT/pnpm-workspace.yaml" nodeLinker
+    run --separate-stderr read_workspace_setting "$REPO_ROOT/pnpm-workspace.yaml" nodeLinker
     assert_success
     assert_output hoisted
 }
@@ -251,7 +251,7 @@ bats_test_function --description "種類を分けられない package.json が�
 # $1=repo root からの相対パス
 refute_tree_scripts_violation() {
     explains "リポジトリの root と workspace のメンバーの \`package.json\` を読むテストです。\`scripts\` が package manager を呼んでいないことを確認します。"
-    run list_pm_invoking_scripts "$REPO_ROOT/$1/package.json"
+    run --separate-stderr list_pm_invoking_scripts "$REPO_ROOT/$1/package.json"
     assert_success
     assert_output ""
 }
