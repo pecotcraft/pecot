@@ -1,4 +1,4 @@
-// テストの結果の feature・story・layer・severity を、場所と verifies の ID から決める（test-conventions.md の「機能の階層」「テストの層」「重大度」）。
+// テストの結果の feature・story・layer・severity を、場所と verifies の ID から決める（test-conventions.md）。
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { LabelName, LinkType, Severity } from 'allure-js-commons'
