@@ -45,7 +45,7 @@ const CASES: readonly (readonly [string, readonly string[]])[] = [
   ]],
   ['format-unknown', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: output.format: unknown value "bogus" (expected one of "text", "json", "none")`]],
   ['file-format', [`error: ${PW}/authored.yaml: format: unknown value 2 (expected 1)`]],
-  ['unknown-issue', [`error: ${PW}/generated.json: names.positions[0][0].word: unknown validation issue (invalid_format): Invalid string: must match pattern /^[a-z0-9]+$/u`]],
+  ['unknown-issue', [`error: libs/interface-spec/targets.json: pecot-workflow: root: unknown validation issue (invalid_format): Invalid string: must match pattern /^[a-z0-9][a-z0-9/-]*$/u`]],
   ['resources', []],
   ['resource-missing', [`error: ${PW}/authored.yaml: pecot-template://pr/default: resource is missing (present in generated.json)`]],
   ['resource-extra', [`error: ${PW}/authored.yaml: pecot-template://issue/old: resource is not in generated.json (remove it)`]],
