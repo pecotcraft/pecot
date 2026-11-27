@@ -18,8 +18,10 @@ paths:
 |---|---|---|
 | リリース版 | `https://pecotcraft.github.io/pecot/` | 本番のリリースの land の後（release.yml が起こす） |
 | 開発版 | `https://pecotcraft.github.io/pecot/dev/` | main への push |
-| PR 版 | `https://pecotcraft.github.io/pecot/pr/<番号>/` | 同じリポのブランチの PR を開いたときと、push のたび。ci の tests は待たない |
+| PR 版 | `https://pecotcraft.github.io/pecot/pr/<番号>/` | サイトの材料に触る、同じリポのブランチの PR を開いたときと、push のたび。ci の tests は待たない |
 
+- サイトの材料は、`pages-build.yml` の `on.pull_request.paths` にある。材料に触らない PR には、PR 版と `pages / preview` が出ない
+  - `paths` は PR の diff の最初の 300 ファイルしか見ない。材料が 301 番目以降にある大きな PR では、PR 版が作られない
 - リリース版・開発版がまだ無いときは、その URL に案内のページが出る
 - PR 版は、PR の checks の `pages / preview` の Details から開く。マージかクローズの後の保管で消える
 - 定義書は、どの側も `pages-build.yml` がテストを動かさずに作る
@@ -52,14 +54,16 @@ paths:
   ```
 
   - 後の run の deploy が通っていれば、公開は追いついているので、やり直さない。落ちた run が PR 版で、`pages / preview` が付いていなければ、その PR へ push する
-  - 後に通った run が無ければ、失敗した job だけをやり直す。全 job をやり直すと upload が上げ直し、`github-pages` が 2 つになって落ちる
+  - 後に通った run が無ければ、失敗した job だけをやり直す。全 job をやり直すと store が上げ直し、`github-pages` が 2 つになって落ちる
 
     ```bash
     gh run rerun <run> -R pecotcraft/pecot --failed
     ```
 
-  - 落ちた run の artifact は、upload の job が取った時点の `pages-store` なので、後の run の後にやり直すと古い中身を公開する
+  - 落ちた run の artifact は、store の job が取った時点の `pages-store` なので、後の run の後にやり直すと古い中身を公開する
   - `github-pages` の artifact は 1 日で消える。過ぎたら `gh workflow run pages-deploy.yml --ref main` を打つ
+
+- store の job が、保管の push の後に上げる step で落ちたときも、上の `--failed` でやり直す。やり直しの store は、保管の変更が無くても `pages-store` の今の中身を上げる
 
 - 側を作る run は、テストの結果に左右されない。失敗するのは、`sphinx-build -W` が警告を出したときなど、サイトを作れなかったとき
 - artifact は、どの側のものも 7 日で消える。保管が終わっていれば、消えても公開は変わらない

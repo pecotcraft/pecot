@@ -23,11 +23,20 @@ _WORKFLOWS = _REPO_ROOT / ".github/workflows"
 _ACTIONLINT = _REPO_ROOT / ".github/actionlint.yaml"
 _RULESETS = _REPO_ROOT / ".github/rulesets"
 
-_PREVIEW_IF = (
-    "${{ !cancelled() && needs.verify.outputs.side == 'pr' && needs.store.result == 'success'"
-    " && (needs.deploy.result == 'success'"
-    " || (needs.deploy.result == 'skipped' && needs.store.outputs.changed != 'true')) }}"
-)
+# サイトのビルドが読む材料（定義書・Sphinx の設定・ロゴ）と、ビルドの手順と環境。
+_SITE_PATHS = [
+    "libs/interface-spec/docs/**",
+    "libs/interface-spec/targets.json",
+    "libs/interface-spec/project.json",
+    "plugins/*/interface/**",
+    "actions/interface/**",
+    ".github/assets/**",
+    ".github/workflows/pages-build.yml",
+    ".githooks/ci/dev-container.sh",
+    ".devcontainer/**",
+    "nx.json",
+]
+_PAGES_CONCURRENCY = {"group": "pages", "cancel-in-progress": False, "queue": "max"}
 _PAGES_ACTIONS = {
     "actions/configure-pages": "v6.0.0",
     "actions/upload-pages-artifact": "v5.0.0",
@@ -55,6 +64,15 @@ def _uses(path: Path, job: str, action: str) -> list[dict[str, Any]]:
     return [s for s in _steps(path, job) if s.get("uses", "").startswith(f"{action}@")]
 
 
+def _path_filter_matches(file: str, pattern: str) -> bool:
+    """Actions の paths の `*`（/ を含まない）と `**`（/ を含む）だけを読む。"""
+    regex = "".join(
+        ".*" if part == "**" else "[^/]*" if part == "*" else re.escape(part)
+        for part in re.split(r"(\*\*|\*)", pattern)
+    )
+    return re.fullmatch(regex, file) is not None
+
+
 def _all_steps(path: Path) -> list[dict[str, Any]]:
     return [step for job in _load(path)["jobs"].values() for step in job["steps"]]
 
@@ -66,18 +84,43 @@ def _all_steps(path: Path) -> list[dict[str, Any]]:
     "pages-build は、main への push・PR の更新・手動の起動で動き、手動の起動では側を選べる"
 )
 def test_build_triggers() -> None:
-    """`pages-build.yml` の契機のテストです。`push` は main だけ、`pull_request` は 4 種類のイベントで動くことを確認します。`workflow_dispatch` は、`release` と `dev` から選ぶ `side` だけを入力に持ちます。"""
+    """`pages-build.yml` の契機のテストです。`push` は main だけ、`pull_request` はサイトの材料に触る PR の 4 種類のイベントで動くことを確認します。`workflow_dispatch` は、`release` と `dev` から選ぶ `side` だけを入力に持ちます。"""
     with allure.step("pages-build.yml の on を読む"):
         on = _load(_BUILD)[True]
     with allure.step("push・pull_request・workflow_dispatch の形を確かめる"):
         assert on["push"] == {"branches": ["main"]}
         # closed の run は、閉じた PR の掃除を起こすためだけにある。
-        assert on["pull_request"] == {"types": ["opened", "synchronize", "reopened", "closed"]}
+        assert on["pull_request"] == {
+            "types": ["opened", "synchronize", "reopened", "closed"],
+            "paths": _SITE_PATHS,
+        }
         inputs = on["workflow_dispatch"]["inputs"]
         assert set(inputs) == {"side"}
         assert inputs["side"]["type"] == "choice"
         assert inputs["side"]["options"] == ["release", "dev"]
         assert set(on) == {"push", "pull_request", "workflow_dispatch"}
+
+
+@allure.title("PR の pages-build の paths は、サイトが読むすべての定義書のディレクトリに当たる")
+def test_build_paths_cover_every_interface_directory() -> None:
+    """`pages-build.yml` の `pull_request` の `paths` のテストです。サイトのビルドが読む `plugins/*/interface` と `targets.json` の `root` の `interface` のどのファイルも、いずれかの `paths` に当たることを確認します。"""
+    with allure.step("サイトが読む定義書のディレクトリを集める"):
+        roots = json.loads(
+            (_REPO_ROOT / "libs/interface-spec/targets.json").read_text(encoding="utf-8")
+        )
+        bases = {spec["root"] for spec in roots["plugins"].values() if "root" in spec}
+        bases |= {
+            f"plugins/{p.parent.parent.name}"
+            for p in (_REPO_ROOT / "plugins").glob("*/interface/generated.json")
+        }
+        files = [f"{base}/interface/generated.json" for base in sorted(bases)]
+        files += [f"{base}/interface/authored.yaml" for base in sorted(bases)]
+        files += ["libs/interface-spec/docs/conf.py", ".github/assets/pecot-icon-light.svg"]
+    with allure.step("どのファイルも paths のいずれかに当たることを確かめる"):
+        paths = _load(_BUILD)[True]["pull_request"]["paths"]
+        assert "actions/interface/generated.json" in files
+        for file in files:
+            assert any(_path_filter_matches(file, pattern) for pattern in paths), file
 
 
 @allure.title("pages-build は、側を決める job の後に、ビルドの job を実行する")
@@ -277,30 +320,31 @@ def test_deploy_triggers() -> None:
 
 @allure.title("pages-deploy の job は、最小の権限と決まった environment を持つ")
 def test_deploy_jobs_permissions_and_environments() -> None:
-    """`pages-deploy.yml` の job の並びと権限のテストです。job ごとに必要な権限だけが指定され、`store` は `pages-store`、`deploy` は `github-pages` の environment を使うことを確認します。"""
+    """`pages-deploy.yml` の job の並びと権限のテストです。verify・store・deploy の 3 つが必要な権限だけを持ち、決まった environment を使うことを確認します。`store` は `pages-store`、`deploy` は `github-pages` を使います。"""
     with allure.step("pages-deploy.yml の job を読む"):
         workflow = _load(_DEPLOY)
     with allure.step("job ごとの権限と environment を確かめる"):
         assert workflow["permissions"] == {}
         jobs = workflow["jobs"]
-        assert list(jobs) == ["verify", "store", "upload", "deploy", "preview-status"]
-        assert jobs["preview-status"]["permissions"] == {"statuses": "write"}
-        assert "environment" not in jobs["preview-status"]
+        assert list(jobs) == ["verify", "store", "deploy"]
         assert jobs["verify"]["permissions"] == {
             "contents": "read",
             "actions": "read",
             "pull-requests": "read",
         }
         assert "environment" not in jobs["verify"]
-        assert jobs["store"]["permissions"] == {"contents": "read"}
-        assert jobs["store"]["environment"] == "pages-store"
         # configure-pages は enablement が偽なら GET /repos/{owner}/{repo}/pages だけを呼ぶ。
-        assert jobs["upload"]["permissions"] == {"contents": "read", "pages": "read"}
-        assert "environment" not in jobs["upload"]
+        assert jobs["store"]["permissions"] == {
+            "contents": "read",
+            "pages": "read",
+            "statuses": "write",
+        }
+        assert jobs["store"]["environment"] == "pages-store"
         assert jobs["deploy"]["permissions"] == {
             "contents": "read",
             "pages": "write",
             "id-token": "write",
+            "statuses": "write",
         }
         assert jobs["deploy"]["environment"]["name"] == "github-pages"
 
@@ -316,75 +360,120 @@ def test_no_workflow_has_actions_write() -> None:
 
 @allure.title("pages-deploy の `concurrency` は、実行中の run を取り消さず、順番に実行する")
 def test_deploy_concurrency() -> None:
-    """`pages-deploy.yml` の `concurrency` のテストです。`store` と、`upload` と `deploy` が、それぞれ `queue: max` で `cancel-in-progress` が `false` のグループを使うことを確認します。"""
-    with allure.step("store・upload・deploy の concurrency を確かめる"):
-        assert _job(_DEPLOY, "store")["concurrency"] == {
-            "group": "pages-store",
-            "cancel-in-progress": False,
-            "queue": "max",
-        }
+    """`pages-deploy.yml` の `concurrency` のテストです。`store` と `deploy` が、どちらも `queue: max` で `cancel-in-progress` が `false` の `pages` のグループを使うことを確認します。"""
+    with allure.step("store・deploy の concurrency を確かめる"):
         # PR への push のたびに deploy が起きる。既定の queue: single では待っている deploy が取り消される。
-        # upload も同じ group に入れ、deploy を upload を終えた順に並べる。
-        for job in ("upload", "deploy"):
-            assert _job(_DEPLOY, job)["concurrency"] == {
-                "group": "pages",
-                "cancel-in-progress": False,
-                "queue": "max",
-            }, job
+        # starter workflow と同じく、上げる job と deploy を同じ group に並べる。
+        for job in ("store", "deploy"):
+            assert _job(_DEPLOY, job)["concurrency"] == _PAGES_CONCURRENCY, job
 
 
 @allure.title("pages-deploy の job は、前の job の結果に応じた条件で動く")
 def test_deploy_job_conditions() -> None:
-    """`pages-deploy.yml` の job の `needs` と `if` のテストです。手動の起動では `verify` と `store` を飛ばして公開し直し、`deploy` は `upload` の結果が成功のときだけ動くことを確認します。"""
-    with allure.step("verify・store・upload・deploy の条件と needs を確かめる"):
+    """`pages-deploy.yml` の job の `needs` と `if` のテストです。手動の起動では `verify` を飛ばして `store` が公開し直す中身を上げ、`deploy` は `store` が上げたときだけ動くことを確認します。"""
+    with allure.step("verify・store・deploy の条件と needs を確かめる"):
         assert _job(_DEPLOY, "verify")["if"] == "${{ github.event_name == 'workflow_run' }}"
         store = _job(_DEPLOY, "store")
         assert store["needs"] == "verify"
+        # 手での起動では verify が飛ぶので、既定の success() に任せない。
         assert store["if"] == (
-            "${{ github.event_name == 'workflow_run' && needs.verify.result == 'success' }}"
-        )
-        upload = _job(_DEPLOY, "upload")
-        assert upload["needs"] == ["verify", "store"]
-        # 手での起動は verify と store を飛ばし、pages-store の今の中身を公開し直す。
-        assert upload["if"] == (
             "${{ !cancelled() && (github.event_name == 'workflow_dispatch'"
-            " || needs.store.outputs.changed == 'true') }}"
+            " || needs.verify.result == 'success') }}"
         )
+        assert store["outputs"]["uploaded"] == "${{ steps.decide.outputs.uploaded }}"
         deploy = _job(_DEPLOY, "deploy")
-        assert deploy["needs"] == "upload"
-        # 手での起動では verify と store が飛ぶので、既定の success() に任せず upload の結果を見る。
-        assert deploy["if"] == "${{ !cancelled() && needs.upload.result == 'success' }}"
+        assert deploy["needs"] == ["verify", "store"]
+        assert deploy["if"] == (
+            "${{ !cancelled() && needs.store.result == 'success'"
+            " && needs.store.outputs.uploaded == 'true' }}"
+        )
 
 
-@allure.title("プレビューのステータスは、保管した PR 版の deploy の後に付ける")
-def test_preview_status_runs_after_deploy_of_a_stored_pr_side() -> None:
-    """`preview-status` の job のテストです。`verify`・`store`・`deploy` を待ち、条件が期待する式と一致することを確認します。"""
-    with allure.step("preview-status の job を読む"):
-        job = _job(_DEPLOY, "preview-status")
-    with allure.step("deploy の後で、保管した PR の side にだけ動くことを確かめる"):
-        assert job["needs"] == ["verify", "store", "deploy"]
+@allure.title("保管の job は、保管の step を workflow_run だけで動かし、上げるかを決めてから上げる")
+def test_store_stores_only_for_workflow_run_and_uploads_when_decided() -> None:
+    """`store` の job の step の並びのテストです。保管の step は `workflow_run` のときだけ動き、上げる step は `Decide upload` の `uploaded` が真のときだけ動くことを確認します。"""
+    with allure.step("store の step を読む"):
+        steps = _steps(_DEPLOY, "store")
+        names = [s["name"] for s in steps]
+    with allure.step("step の並びと条件を確かめる"):
+        assert names == [
+            "Checkout",
+            "Download verified side",
+            "Generate GitHub App token",
+            "Store side",
+            "Decide upload",
+            "Checkout pages-store",
+            "Setup Pages",
+            "Upload artifact",
+            "Set preview status",
+        ]
+        for name in ("Checkout", "Generate GitHub App token", "Store side"):
+            assert _step(_DEPLOY, "store", name)["if"] == "github.event_name == 'workflow_run'", (
+                name
+            )
+        assert _step(_DEPLOY, "store", "Download verified side")["if"] == (
+            "github.event_name == 'workflow_run' && env.SIDE != ''"
+        )
+        for name in ("Checkout pages-store", "Setup Pages", "Upload artifact"):
+            assert (
+                _step(_DEPLOY, "store", name)["if"] == "steps.decide.outputs.uploaded == 'true'"
+            ), name
+
+
+@allure.title("手での起動・store のやり直し・保管の変更のどれかで、pages-store を上げる")
+def test_store_decides_to_upload_for_dispatch_rerun_or_change() -> None:
+    """`Decide upload` の step のテストです。手での起動、`run_attempt` が 2 以上のやり直し、`changed` が真のどれかの場合に、`uploaded` を真にすることを確認します。"""
+    with allure.step("Decide upload の step を読む"):
+        step = _step(_DEPLOY, "store", "Decide upload")
+    with allure.step("3 つの場合で uploaded を真にすることを確かめる"):
+        assert step["env"] == {
+            "EVENT_NAME": "${{ github.event_name }}",
+            "RUN_ATTEMPT": "${{ github.run_attempt }}",
+            "CHANGED": "${{ steps.publish.outputs.changed }}",
+        }
+        run = step["run"]
+        # push の後で落ちた store をやり直すと、store.py は push 済みの中身に changed=false を返す。
+        assert (
+            'if [ "$EVENT_NAME" = "workflow_dispatch" ] || [ "$RUN_ATTEMPT" != "1" ]'
+            ' || [ "$CHANGED" = "true" ]; then'
+        ) in run
+        assert 'echo "uploaded=$uploaded" >> "$GITHUB_OUTPUT"' in run
+
+
+@allure.title("プレビューのステータスは、deploy の後か、上げずに済んだ store の最後に付ける")
+def test_preview_status_runs_after_deploy_or_in_store_without_upload() -> None:
+    """`Set preview status` の step の置き場所のテストです。PR 版のとき、`deploy` では公開の後に、`store` では上げなかったときだけ、最後の step として動くことを確認します。"""
+    with allure.step("store と deploy の最後の step を読む"):
+        store = _steps(_DEPLOY, "store")[-1]
+        deploy = _steps(_DEPLOY, "deploy")
+    with allure.step("PR 版にだけ、公開の後か上げなかったときに付くことを確かめる"):
+        assert store["name"] == "Set preview status"
         # 変更が無く deploy を飛ばしたときも、保管済みの PR 版を指して付ける。
-        assert job["if"] == _PREVIEW_IF
+        assert store["if"] == "env.SIDE == 'pr' && steps.decide.outputs.uploaded != 'true'"
+        assert [s["name"] for s in deploy] == ["Deploy to GitHub Pages", "Set preview status"]
+        # 開いたときに中身があるように、deploy の後に付ける。
+        assert deploy[-1]["if"] == "needs.verify.outputs.side == 'pr'"
 
 
 @allure.title("検証した head のコミットに、pages / preview のステータスを付ける")
 def test_preview_status_sets_pages_preview_on_the_verified_head() -> None:
-    """`Set preview status` の step のテストです。環境変数が期待どおりで、`gh api` で `success` の状態・`pages / preview` の context・PR のプレビューの URL を送信することを確認します。"""
-    with allure.step("preview-status の step を読む"):
-        (step,) = _steps(_DEPLOY, "preview-status")
+    """`store` と `deploy` の `Set preview status` の step のテストです。どちらも同じ形で、`pages / preview` の context と PR のプレビューの URL を送信することを確認します。"""
+    with allure.step("store と deploy の Set preview status を読む"):
+        steps = [_step(_DEPLOY, job, "Set preview status") for job in ("store", "deploy")]
     with allure.step("確かめた head に pages / preview の status を付けることを確かめる"):
-        assert step["name"] == "Set preview status"
-        assert step["env"] == {
-            "GH_TOKEN": "${{ github.token }}",
-            "REPO": "${{ github.repository }}",
-            "PR": "${{ needs.verify.outputs.pr }}",
-            "HEAD_SHA": "${{ needs.verify.outputs.head_sha }}",
-        }
-        run = step["run"]
-        assert 'gh api --method POST "repos/$REPO/statuses/$HEAD_SHA"' in run
-        assert "-f state=success" in run
-        assert '-f context="pages / preview"' in run
-        assert '-f target_url="https://pecotcraft.github.io/pecot/pr/$PR/"' in run
+        for step in steps:
+            assert step["env"] == {
+                "GH_TOKEN": "${{ github.token }}",
+                "REPO": "${{ github.repository }}",
+                "PR": "${{ needs.verify.outputs.pr }}",
+                "HEAD_SHA": "${{ needs.verify.outputs.head_sha }}",
+            }
+            run = step["run"]
+            assert 'gh api --method POST "repos/$REPO/statuses/$HEAD_SHA"' in run
+            assert "-f state=success" in run
+            assert '-f context="pages / preview"' in run
+            assert '-f target_url="https://pecotcraft.github.io/pecot/pr/$PR/"' in run
+        assert steps[0]["run"] == steps[1]["run"]
 
 
 @allure.title("pages / preview のステータスは、pages-deploy だけが書き込む")
@@ -505,14 +594,21 @@ def test_store_passes_the_report_tar_and_sources_for_a_report() -> None:
 
 @allure.title("公開の job は、pages-store を checkout して Pages に公開する")
 def test_deploy_publishes_pages_store() -> None:
-    """`pages-deploy.yml` の公開のテストです。`upload` の job が `pages-store` を checkout し、`upload` と `deploy` が Pages の 3 つの action を順に使うことを確認します。"""
-    with allure.step("upload の checkout と action の並びを読む"):
-        (checkout,) = _uses(_DEPLOY, "upload", "actions/checkout")
+    """`pages-deploy.yml` の公開のテストです。`store` の job が保管の後に `pages-store` を checkout して上げ、`store` と `deploy` が Pages の 3 つの action を順に使うことを確認します。"""
+    with allure.step("store の pages-store の checkout と action の並びを読む"):
+        checkout = _step(_DEPLOY, "store", "Checkout pages-store")
+        upload = _step(_DEPLOY, "store", "Upload artifact")
     with allure.step("pages-store を公開する並びであることを確かめる"):
-        assert checkout["with"]["ref"] == "pages-store"
-        upload = [s.get("uses", "").split("@")[0] for s in _steps(_DEPLOY, "upload")]
+        assert checkout["with"] == {
+            "ref": "pages-store",
+            "path": "pages-site",
+            "persist-credentials": False,
+        }
+        assert upload["with"] == {"path": "pages-site"}
+        store = [s.get("uses", "").split("@")[0] for s in _steps(_DEPLOY, "store")]
         deploy = [s.get("uses", "").split("@")[0] for s in _steps(_DEPLOY, "deploy")]
-        assert upload[1:] + deploy == list(_PAGES_ACTIONS)
+        pages = [u for u in store + deploy if u in _PAGES_ACTIONS]
+        assert pages == list(_PAGES_ACTIONS)
 
 
 @allure.title("Pages の artifact は、deploy より前の job でアップロードする")
