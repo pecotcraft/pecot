@@ -1138,10 +1138,18 @@ def _probe_workspace_yaml_commit(tmp_path: Path, section: str) -> tuple[Path, st
     base = commit("probe: sync nx config")
     workspace = probe / "pnpm-workspace.yaml"
     text = workspace.read_text(encoding="utf-8")
+    before = yaml.safe_load(text)[section]
+    # 行末のコメントを除き、値の末尾にだけ付ける。
     bumped = re.sub(
-        rf"(^{section}:\n(?:  #.*\n)*  [^\s#][^\n]*?)$", r"\1-probe", text, count=1, flags=re.M
+        rf"(^{section}:\n(?:  #.*\n)*  [^\s#][^\s#]*: *[^\s#]+)",
+        r"\1-probe",
+        text,
+        count=1,
+        flags=re.M,
     )
-    assert bumped != text, f"pnpm-workspace.yaml の {section} に値が無い"
+    assert yaml.safe_load(bumped)[section] != before, (
+        f"pnpm-workspace.yaml の {section} の値を変えられない"
+    )
     workspace.write_text(bumped, encoding="utf-8")
     return probe, base, commit(f"probe: bump {section}")
 
