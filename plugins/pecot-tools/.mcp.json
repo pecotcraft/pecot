@@ -5,7 +5,7 @@
       "args": [
         "--prefix=${CLAUDE_PLUGIN_DATA}",
         "-y",
-        "@pecot/tools-mcp@4.0.1"
+        "@pecot/tools-mcp@4.0.2"
       ]
     }
   }

@@ -82,7 +82,7 @@ jobs:
           persist-credentials: false
 
       - name: Run the operation
-        uses: pecotcraft/pecot/actions/github-ops@pecot-actions/v1.0.0
+        uses: pecotcraft/pecot/actions/github-ops@pecot-actions/v1.1.0
         with:
           token: ${{ github.token }}
           operation: ${{ inputs.operation }}
@@ -117,7 +117,7 @@ jobs:
           permission-actions-variables: ${{ inputs.operation == 'workflow-doctor' && 'read' || '' }}
 
       - name: Run the operation
-        uses: pecotcraft/pecot/actions/github-ops@pecot-actions/v1.0.0
+        uses: pecotcraft/pecot/actions/github-ops@pecot-actions/v1.1.0
         with:
           token: ${{ steps.app-token.outputs.token }}
           operation: ${{ inputs.operation }}

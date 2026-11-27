@@ -107,7 +107,7 @@ jobs:
       - name: Decide
         id: decide
         if: ${{ steps.token.outcome == 'success' }}
-        uses: pecotcraft/pecot/actions/auto-gate@pecot-actions/v1.0.0
+        uses: pecotcraft/pecot/actions/auto-gate@pecot-actions/v1.1.0
         env:
           PECOT_AUTO_LABEL: ${{ vars.PECOT_AUTO_LABEL || 'pecot-auto' }}
         with:
@@ -164,7 +164,7 @@ jobs:
       # Writes the context of the issue to a file under RUNNER_TEMP for the skill.
       - name: Start
         id: start
-        uses: pecotcraft/pecot/actions/auto-start@pecot-actions/v1.0.0
+        uses: pecotcraft/pecot/actions/auto-start@pecot-actions/v1.1.0
         with:
           token: ${{ steps.token.outputs.token }}
           issue: ${{ needs.gate.outputs.issue }}
@@ -205,7 +205,7 @@ jobs:
       # Writes the result comment from the result file of the skill, or from how the job ended.
       - name: Finish
         if: ${{ always() }}
-        uses: pecotcraft/pecot/actions/auto-finish@pecot-actions/v1.0.0
+        uses: pecotcraft/pecot/actions/auto-finish@pecot-actions/v1.1.0
         env:
           PECOT_AUTO_LABEL: ${{ vars.PECOT_AUTO_LABEL || 'pecot-auto' }}
         with:
@@ -279,7 +279,7 @@ jobs:
 
       - name: Report
         if: ${{ steps.check.outputs.ok == 'true' }}
-        uses: pecotcraft/pecot/actions/auto-finish@pecot-actions/v1.0.0
+        uses: pecotcraft/pecot/actions/auto-finish@pecot-actions/v1.1.0
         env:
           PECOT_AUTO_LABEL: ${{ vars.PECOT_AUTO_LABEL || 'pecot-auto' }}
         with:

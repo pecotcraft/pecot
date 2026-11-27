@@ -292,7 +292,7 @@ jobs:
 
       - name: Finish
         if: ${{ always() && steps.first.outputs.ok != 'false' }}
-        uses: pecotcraft/pecot/actions/review-finish@pecot-actions/v1.0.0
+        uses: pecotcraft/pecot/actions/review-finish@pecot-actions/v1.1.0
         env:
           PECOT_REVIEW_TRIGGER_PHRASE: ${{ vars.PECOT_REVIEW_TRIGGER_PHRASE }}
         with:

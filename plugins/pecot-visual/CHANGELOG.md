@@ -1,3 +1,18 @@
+## 4.0.2 (2026-11-27)
+
+### 🩹 Fixes
+
+- 開発用のテストの **Allure の結果** に、重大度（severity）を付けた。プラグインとライブラリの動作は変わらない。 ([#869](https://github.com/pecotcraft/pecot/pull/869), [#812](https://github.com/pecotcraft/pecot/issues/812))
+- 開発用のテストの **Allure の結果** に、テストの層（unit・integration・e2e）を付けた。プラグインとライブラリの動作は変わらない。 ([#870](https://github.com/pecotcraft/pecot/pull/870), [#813](https://github.com/pecotcraft/pecot/issues/813))
+- 開発用の bash のテストの一部を bats で書き、**Allure の結果** に説明を付けた。プラグインの動作は変わらない。 ([#881](https://github.com/pecotcraft/pecot/pull/881), [#844](https://github.com/pecotcraft/pecot/issues/844))
+- 依存パッケージを 3 件更新。 ([#856](https://github.com/pecotcraft/pecot/pull/856), [#854](https://github.com/pecotcraft/pecot/issues/854))
+  `xpath` を 0.0.36 から 0.1.0 に更新。
+  `@vueuse/core` を 15.0.0 から 15.1.0 に更新、ほか 1 件。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 4.0.1 (2026-11-27)
 
 ### 🩹 Fixes

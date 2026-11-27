@@ -1,3 +1,19 @@
+## 0.2.13 (2026-11-27)
+
+### 🩹 Fixes
+
+- pecot-workflow の `bin/` だけが使っていた `runtime-lock.yaml`・`runtime-workspace.yaml` を消した。 ([#862](https://github.com/pecotcraft/pecot/pull/862), [#794](https://github.com/pecotcraft/pecot/issues/794))
+- 開発用のテストの **Allure の結果** に、重大度（severity）を付けた。プラグインとライブラリの動作は変わらない。 ([#869](https://github.com/pecotcraft/pecot/pull/869), [#812](https://github.com/pecotcraft/pecot/issues/812))
+- 開発用のテストの **Allure の結果** に、テストの層（unit・integration・e2e）を付けた。プラグインとライブラリの動作は変わらない。 ([#870](https://github.com/pecotcraft/pecot/pull/870), [#813](https://github.com/pecotcraft/pecot/issues/813))
+- 文章の規則の確認が、bats のテストのファイル（`*.bats`）の文字列とコメントも読むようにした。 ([#881](https://github.com/pecotcraft/pecot/pull/881), [#844](https://github.com/pecotcraft/pecot/issues/844))
+- 依存パッケージを 2 件更新。 ([#856](https://github.com/pecotcraft/pecot/pull/856), [#854](https://github.com/pecotcraft/pecot/issues/854))
+  `@textlint-ja/textlint-rule-preset-ai-writing` を 1.7.0 から 1.7.2 に更新。
+  `textlint-rule-preset-ja-technical-writing` を 12.0.2 から 12.1.0 に更新。
+
+### ❤️ Thank You
+
+- Kohei Hayakawa @kouhei0831
+
 ## 0.2.12 (2026-11-27)
 
 ### 🩹 Fixes
