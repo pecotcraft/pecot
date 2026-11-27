@@ -14,6 +14,7 @@ measure_line() {
 # $1=出力のファイル $2=含むはずの行
 assert_md_has() {
     run read_output "$1"
+    assert_success
     assert_output --partial "$2"
 }
 
@@ -90,6 +91,7 @@ setup_file() {
     run_attached node "$COMPARE" "$BATS_TEST_TMPDIR/config-measure.txt" "$BATS_TEST_TMPDIR/config-measure.txt" \
         --config "$CONFIG" --out "$BATS_TEST_TMPDIR/config.md"
     assert_success
+    attach_file "$BATS_TEST_TMPDIR/config.md"
     assert_equal "$(grep -cE '\([-0-9]+\.[0-9]{2}%\) \|' "$BATS_TEST_TMPDIR/config.md")" "${#spec_ids[@]}"
     assert_md_has "$BATS_TEST_TMPDIR/config.md" "- config の spec 数: ${#spec_ids[@]}"
 }

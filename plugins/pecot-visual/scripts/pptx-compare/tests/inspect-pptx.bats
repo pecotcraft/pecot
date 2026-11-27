@@ -68,12 +68,12 @@ assert_json() {
 # Markdown の「### <title>」節（次の見出しまで）に、該当行が丸ごとあること。
 assert_section_line() {
     local file="$1" title="$2" line="$3" section
+    attach_file "$file"
     section="$(awk -v heading="### $title" '
         $0 == heading { inside = 1; next }
         inside && /^#/ { exit }
         inside { print }
     ' "$file")"
-    attach_file "$file"
     run printf '%s\n' "$section"
     assert_line "$line"
 }
@@ -81,18 +81,20 @@ assert_section_line() {
 # 「## 全体集計」の表に、該当行が丸ごとあること。
 assert_deck_line() {
     local file="$1" line="$2" section
-    section="$(awk '$0 == "## 全体集計" { inside = 1; next } inside && /^#/ { exit } inside { print }' "$file")"
     attach_file "$file"
+    section="$(awk '$0 == "## 全体集計" { inside = 1; next } inside && /^#/ { exit } inside { print }' "$file")"
     run printf '%s\n' "$section"
     assert_line "$line"
 }
 
 @test "新しい variant を 1 本ずつ集計すると、終了コード 0 で終わり、スタックトレースを出さない" {
     explains "全面画像・表・CSS ラスタ・図形・アニメーションの 5 種の pptx を集計するテストです。どれも終了コード 0 で、stderr にスタックトレースが無いことを確認します。"
-    local variant
+    local variant rc err
     for variant in full-image table-frame css-raster-pic prst-mix timing; do
-        assert_equal "$(read_output "$FIX/$variant.rc")" "0"
-        refute_stacktrace "$(read_output "$FIX/$variant.stderr")"
+        rc="$(read_output "$FIX/$variant.rc")"
+        err="$(read_output "$FIX/$variant.stderr")"
+        assert_equal "$rc" "0"
+        refute_stacktrace "$err"
     done
 }
 
@@ -164,9 +166,13 @@ assert_deck_line() {
 
 @test "3 本の入力を渡すと、終了コード 0 で終わり、--out を指定したので stdout には何も出さない" {
     explains "枚数が 2・3・4 枚の pptx を、\`--out\` を指定して集計するテストです。終了コード 0 で終わり、stdout が空で、stderr にスタックトレースが無いことを確認します。"
-    assert_equal "$(read_output "$FIX/multi.rc")" "0"
-    refute_stacktrace "$(read_output "$FIX/multi.stderr")"
-    assert_equal "$(read_output "$FIX/multi.stdout")" ""
+    local rc err out
+    rc="$(read_output "$FIX/multi.rc")"
+    err="$(read_output "$FIX/multi.stderr")"
+    out="$(read_output "$FIX/multi.stdout")"
+    assert_equal "$rc" "0"
+    refute_stacktrace "$err"
+    assert_equal "$out" ""
 }
 
 @test "3 本の入力の全体集計は、列を入力の順に並べる" {

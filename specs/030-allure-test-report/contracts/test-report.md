@@ -135,7 +135,9 @@ attach_file <ファイル>
 - `run_attached` は、bats の `run` で動かし、`$output`・`$stderr` を添付してから、`run` の終了コードを返す。`$output`・`$status`・`$stderr` は `run` と同じに残る
   - 名前は `<コマンド 200 字>（終了コード N） stdout`・`stderr`。空でないものを添付し、両方空なら空の stdout を 1 つ添付する
   - 既定の `run` は stderr を `$output` に入れるので、両方を含む出力が stdout の名前で添付される。分けるには `--separate-stderr` を渡す
-- `read_output` は、中身を stdout に出し、ファイル名を名前にして添付する。`.txt`・`.json`・`.md`・`.svg` でない拡張子は `text/plain` にする。読めなければ 1 を返す。`run read_output <ファイル>` を `assert_output` で確かめるか、`"$(read_output <ファイル>)"` で使う
+- `read_output` は、中身を stdout に出し、ファイル名を名前にして添付する。`.txt`・`.json`・`.md`・`.svg` でない拡張子は `text/plain` にする。読めなければ 1 を返す。vitest の `readOutput` が throw して落とすのと同じく、読めないときに `@test` が落ちる形で使う
+  - 出力で確かめるときは、`run read_output <ファイル>` の後に `assert_success` を置いてから、`assert_output`・`refute_output` で確かめる
+  - 値として使うときは、`content="$(read_output <ファイル>)"` のように単独の代入で受けてから判定に渡す。コマンドの引数の中の `"$(read_output …)"` では、失敗が `@test` を落とさない
 - `attach_file` は、中身を出さずに添付する。node などに読ませるファイルに使う。型は上の表（vitest の `attachFile` と同じ 8 つの拡張子）で決め、表に無い拡張子は 1 を返す。ファイルが無いと何もしない
 - 名前と型は、vitest の `attachOutput`・`readOutput`・`attachFile` と同じ。同じ `@test` の中で同じパスは 1 回だけ添付する
 - nx のレーンの外（`PECOT_BATS_ATTACHMENTS` が無いとき）と、`setup_file`・`teardown_file` の中では、何もしない。formatter は、`setup_file`・`teardown_file` の出力を `@test` の結果に入れない

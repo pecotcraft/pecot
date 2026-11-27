@@ -42,6 +42,7 @@ run_compare() {
 # $1=ラベル $2=含むはずの行
 assert_md_has() {
     run read_output "$BATS_TEST_TMPDIR/$1.md"
+    assert_success
     assert_output --partial "$2"
 }
 

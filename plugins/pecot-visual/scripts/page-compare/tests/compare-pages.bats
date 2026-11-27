@@ -36,6 +36,7 @@ run_compare() {
 # $1=ラベル $2=含むはずの行
 assert_md_has() {
     run read_output "$BATS_TEST_TMPDIR/$1.md"
+    assert_success
     assert_output --partial "$2"
 }
 
@@ -57,6 +58,7 @@ refute_stacktrace() {
     assert_md_has same "結果: PASS（差のあるページはありません）"
     assert_md_has same "- 対応ページ: 2 / before 固有: 0 / after 固有: 0"
     run read_output "$T/same.md"
+    assert_success
     refute_output --partial "- before だけのページ:"
 }
 
