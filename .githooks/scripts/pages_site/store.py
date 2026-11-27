@@ -11,7 +11,6 @@
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
 import os
 import posixpath
@@ -164,50 +163,24 @@ def side_check(tar_path: Path, *, report_links: bool = False) -> list[str]:
     return problems
 
 
-def _load_read_history() -> Callable[[bytes], list[int]]:
-    # test_report のディレクトリは sys.path に無いので、release_sources.py と同じくパスで読む
-    path = Path(__file__).resolve().parents[1] / "test_report/generate.py"
-    spec = importlib.util.spec_from_file_location("test_report_generate", path)
-    if spec is None or spec.loader is None:
-        raise ImportError(f"{path} を読めません")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return cast("Callable[[bytes], list[int]]", module.read_history)
-
-
-read_history = _load_read_history()
-
-
 def report_check(tar_path: Path, side: str) -> list[str]:
-    """レポートの tar を確かめる。SideCheck に加え、index.html があること。
+    """レポートの tar を確かめる。SideCheck に加え、index.html があり、直下に history.jsonl が無いこと。
 
-    history.jsonl は、リリース版は Allure が全行を読めるものが要り、開発版は持たないこと。
+    履歴はリリース版だけが S3 に置き、pages-store には置かない（spec 030 の FR-019）。
     """
     if side not in REPORT_SIDES:
         raise ValueError(f"レポートの側が不正です: {side}")
     problems = side_check(tar_path)
-    found: set[str] = set()
-    history: bytes | None = None
+    has_index = has_history = False
     with tarfile.open(tar_path) as tar:
         for member in tar:
             name = _member_name(member.name)
-            if not member.isfile() or name not in ("index.html", HISTORY):
-                continue
-            found.add(name)
-            if name == HISTORY:
-                stream = tar.extractfile(member)
-                history = stream.read() if stream is not None else b""
-    for name in ("index.html", HISTORY) if side == "release" else ("index.html",):
-        if name not in found:
-            problems.append(f"`{name}` がありません")
-    if side == "dev" and history is not None:
-        problems.append(f"開発版のレポートは `{HISTORY}` を持てません")
-    elif history is not None:
-        bad = read_history(history)
-        if bad == [0]:
-            problems.append(f"`{HISTORY}` が UTF-8 ではありません")
-        elif bad:
-            problems.append(f"`{HISTORY}` の {', '.join(map(str, bad))} 行目を Allure が読めません")
+            has_index = has_index or (name == "index.html" and member.isfile())
+            has_history = has_history or name == HISTORY
+    if not has_index:
+        problems.append("`index.html` がありません")
+    if has_history:
+        problems.append(f"`{HISTORY}` は保管に置きません")
     return problems
 
 

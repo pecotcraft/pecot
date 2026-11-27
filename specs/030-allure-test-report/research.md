@@ -85,7 +85,13 @@
 ## R5. 履歴
 
 - **Decision**（2026-11-26 に改めた）: 履歴はリリース版だけが持つ。1 つのファイル `history.jsonl` として、S3 のバケットに置く。開発版は履歴を持たず、`historyPath` を渡さない
-  - レポートを作る run が、S3 のファイルを読んで `historyPath` に渡し、足された後のファイルを S3 に戻す。バケット・ロール・書く run は #822 で決める
+  - レポートを作る run が、S3 のファイルを読んで `historyPath` に渡し、足された後のファイルを S3 に戻す
+  - #822 で決めた事柄（2026-11-27）
+    - バケットは、プロジェクトアカウントの ap-southeast-2 の `pecot-test-report-history-<アカウント ID>`。キーは `release/history.jsonl` だけ。構成は `.github/test-report-history/` の CloudFormation
+    - 読むのは `history-get`、書き戻すのは `history-put` の job で、この 2 つだけが OIDC でロールに入る。信頼の条件と権限は contracts の `test-report.yml` の節
+    - 読めなかった回は書き戻さない。書き戻しは ETag の条件付きの書き込みにし、読んだ後に変わった履歴を上書きしない
+    - バージョニングを有効にし、古い版は 7 日で消す。書き損じたときに前の版へ戻せる
+    - `pages-store` にあった 3 回分は、S3 に移して引き継ぐ
   - `historyLimit` は 10 にする。Allure のグラフの既定（`DEFAULT_CHART_HISTORY_LIMIT = 10`）と同じ回数
   - Allure のアダプタが付ける自動のラベル（`host`・`thread` など）は落とさない。タイムラインがこの 2 つを使う
   - `historyBaseUrl` は設定しない
@@ -112,6 +118,9 @@
   - 自動のラベルを落として小さくする: タイムラインが使う `host`・`thread` が無くなる
   - Allure Report Storage（OSS）を自前で動かす: Allure の運営する置き場所は無く、Docker か Cloudflare Workers で動かし続けることになる
   - Actions の cache か artifact に置く: 期限で消える。028 が保管ブランチを足した理由と同じ
+  - S3 に書く権限を `report` の job に持たせる: 開発版の run と、テストの結果を扱う job にまで権限が付く（#822）
+  - S3 に `pages-deploy.yml` の store の job で書く: store の job は `pages-store` の App の鍵を持つ。AWS の権限まで同じ job に集めない（#822）
+  - ロールの `sub` を `ref:refs/heads/main` で絞る: main で動く、どの workflow の job も入れる。environment で、使う job を明示する（#822）
   - 履歴を保管の job で足す: 保管の job に Node と Allure が要る。保管の job は、中身を写すだけにしておく
 
 ## R6. 定義書の項目から、テストへ飛ぶ
@@ -199,14 +208,14 @@
     - レーンごとのコミットは、Allure の `variables`（レポートの先頭の変数）に出す（data-model の ReportVariables）。#817 の環境の情報とは別の欄
 - **Rationale**:
   - 定義書の公開（`pages-build.yml`）と分けるので、定義書はテストを待たない（FR-011）
-  - 信頼の境界は 028 のまま使う。公開サイト（`pages-store`）に書くのは、`pages-deploy.yml` の store の job だけ（FR-014）。S3 の履歴を書く run は #822 で決める
+  - 信頼の境界は 028 のまま使う。公開サイト（`pages-store`）に書くのは、`pages-deploy.yml` の store の job だけ（FR-014）。S3 の履歴を書くのは、`main` の `test-report.yml` のリリース版の `history-put` の job だけ（#822）
   - 開発版は、古いコミットのレポートで新しいレポートを上書きしない（028 の `dev_is_newer` と同じ決まりを、レポートにも当てる）
   - マージキューは、マージした後の状態をもう試している。main で同じものを流し直しても得るものが無い。#492 で ci の main での実行を消したのと同じ理由
 - **リリース版**: `release_sources.py` が、プラグインごとに最新のタグのコミットを決める。そのコミットに `report-lanes.json` があれば、結果を出せるタグと読む。`tests` の job は、そのコミットを取り出し、そのプラグインのレーンを動かす。libs と `.githooks` のレーンは、最も新しいタグのコミット（骨組み）で動かす
 - **同じ側の run の重なり**: concurrency は `test-report-<side>` で、`cancel-in-progress: false` にする。動いている run は取り消さず、後から来た run は待つ。待てるのは 1 つで、さらに来ると、待っていた run が新しい run に置き換わる（concurrency の既定の決まり）
   - リリース版の全レーンの実行は、定義書のビルドより長い。取り消す形にすると、続けて起動したとき、レポートが出ない
   - 待っていた run が置き換わるので、すべての起動のレポートができるわけではない。リリース版の履歴の行は、できたレポートの分だけ増える
-  - 前の run が履歴を S3 に戻す前に、次の run が履歴を読むと、履歴の 1 行が抜ける。レポートは最新のものが残るので、受け入れる
+  - 次の run は、前の run が履歴を S3 に戻した後に読む。古い run の `history-put` だけをやり直したときは、条件付きの書き込みが断る（#822）
 - **結果のコミット**: `tests` の job は、結果の artifact に、レーンと取り出したコミットを書いた `source.json` を入れる。`report` の job は、リリース版では、これを材料のコミットと比べる（FR-012）。開発版では、レーンごとのコミットが今のコミットの祖先であることを、`git merge-base --is-ancestor` で確かめる（#821）
 - **Alternatives considered**:
   - main への push のたびに、全レーンを流し直す（2026-11-23 から 2026-11-26 までの形）: マージキューと同じ試験を重ねて流す

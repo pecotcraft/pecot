@@ -5,7 +5,8 @@ URL と workflow の入出力は [contracts/test-report.md](contracts/test-repor
 ## 前提
 
 - 028 の公開サイトの設定（GitHub Pages・`pages-store`・environment・ruleset）が済んでいる
-- リリース版の履歴を置く S3 のバケットと、Actions が入る OIDC のロールがある（#822）
+- リリース版の履歴を置く S3 のバケットと、Actions が入る OIDC のロールがある（#822。作り方は `.github/test-report-history/README.md`）
+- environment `test-report-history` に、変数 `TEST_REPORT_HISTORY_ROLE_ARN`・`TEST_REPORT_HISTORY_BUCKET` がある
 - 公開の運用は、このリポだけで動く。検証用（`pecotcraft/pecot-sandbox`）に確かめる場所は作らない
 - 手元は dev container（Node 24.22.1）。`pnpm install` が済んでいる
 

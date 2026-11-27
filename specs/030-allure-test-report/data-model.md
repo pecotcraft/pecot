@@ -166,20 +166,23 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 | 欄 | 値 |
 |---|---|
 | 側 | リリース版だけ |
-| 置き場所 | S3 のバケットの 1 つのファイル `history.jsonl`。`pages-store` には置かない。バケットの名前は #822 で決める |
+| 置き場所 | S3 のバケット `pecot-test-report-history-<アカウント ID>`（ap-southeast-2）の `release/history.jsonl`。`pages-store` には置かない（#822） |
 | 形 | Allure 3 の履歴の JSONL。1 回の実行が 1 行 |
 | 上限 | 10 行（`historyLimit`。大きさの理由は research R5） |
-| 書く人 | `test-report.yml` の `report` の job が、読んだファイルに 1 行足す。S3 に書く run とロールは #822 で決める |
+| 読む人 | `test-report.yml` の `history-get` の job |
+| 足す人 | `report` の job。`generate.py` が、読んだファイルに 1 行足す |
+| 書く人 | `history-put` の job。S3 に条件付きの書き込みで戻す（#822） |
 
-状態の移り変わり:
+状態の移り変わり（`history-get` の `state`）:
 
-- 初めて: ファイルが無い。空の履歴でレポートを作り、1 行のファイルができる
-- 2 回目から: S3 に保管中のファイルを読み、1 行足す。10 行を超えたら、古い行から消える
-- 読めない（壊れている・取れない）: 空の履歴として作る（FR-021）。知らせを job summary に書く
+- `absent`（初めて）: ファイルが無い。空の履歴でレポートを作り、`If-None-Match: *` で 1 行のファイルを置く
+- `found`（2 回目から）: S3 のファイルを読み、1 行足し、取ったときの ETag を `If-Match` に付けて戻す。10 行を超えたら、古い行から消える
+- `unreadable`（入れない・S3 の失敗・読めない行）: 空の履歴として作る（FR-021）。知らせを job summary に書き、S3 には書き戻さない
+- 書き戻しが条件で断られた: S3 の履歴が、読んだ後に変わった。書かずに run を失敗にする
 
 決まり:
 
-- 読めない行は、Allure（Node の readline と `JSON.parse`）が読めない行とする。後の SideCheck も同じ決まりで読む
+- 読めない行は、Allure（Node の readline と `JSON.parse`）が読めない行とする。`history-get` は `generate.py` の `read_history` でこの決まりを確かめる
   - UTF-8 でないファイルは、全体を読めないとする
   - 行の区切りは `\r\n`・`\n`・`\r`・U+2028・U+2029（Node の readline）。`JSON.stringify` は U+2028 をエスケープしないので、文字列に U+2028 を含む行は 2 つに切れて読めない
     - Allure は自分で書いた行を次の回に読めない（テストの名前に U+2028 を含むと起きる）。`generate.py` は、Allure が書いた後で U+2028・U+2029 を `\u2028`・`\u2029` にエスケープする。値は変わらない（#698）
@@ -207,7 +210,7 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 - レポートがまだ無い側の `test-report/index.html` には、案内のページを置く。リリース版で、結果を出せるプラグインが無い間も同じ
 - `pr/<番号>/` には `test-report/` を置かない
 - 開発版のレポートは、保管中のレポートより古いコミットのものなら捨てる
-- 開発版のレポートの tar に `history.jsonl` があれば、SideCheck が捨てる（2026-11-27 に #821 で足した）。`/dev/test-report/` は丸ごと差し替えるので、前に保管した `history.jsonl` は次の保管で消える
+- レポートの tar に `history.jsonl` があれば、SideCheck が捨てる（開発版は 2026-11-27 に #821 で、リリース版は #822 で足した）。`test-report/` は丸ごと差し替えるので、前に保管した `history.jsonl` は次の保管で消える
 
 ## サイトのリンク（SiteStamp に足すもの）
 

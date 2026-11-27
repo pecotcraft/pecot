@@ -62,7 +62,7 @@ vitest と pytest の全レーン（12 本）に、Allure の公式のアダプ�
 
 Phase 1 の後の再確認（2026-11-23）: 合格。
 `test-report.yml` の job は、リリース版の履歴を S3 で読み書きする job が OIDC のために `id-token: write` を持つほかは、`contents: read` だけにする（2026-11-26 に改めた）。
-公開サイト（`pages-store`）に書くのは `pages-deploy.yml` の store の job だけ。S3 に書く run と、ロールの信頼の条件は #822 で決める。
+公開サイト（`pages-store`）に書くのは `pages-deploy.yml` の store の job だけ。S3 に書くのは、リリース版の `history-put` の job だけ（#822。信頼の条件は contracts）。
 レポートの置き場所は、028 の側のディレクトリの中に足す形で、ほかの側と定義書を消さない。
 
 ## Project Structure

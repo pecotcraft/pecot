@@ -82,7 +82,9 @@ paths:
 - 定義書の振る舞いの項目の「テスト」は `test-report/index.html?tags=<ID>` を開き、その ID のテストだけを出す。レポートのテストの要件の ID は、その側の `permalink.html?id=<ID>` へ戻る
 - 開発版は、main でテストを流し直さずに作る。材料は、PR の CI とマージキューの run が上げた結果と、前の開発版の run が持ち回す結果（artifact `lane-latest`）。main で流すのは、結果の無いレーンと、マージキューを通らないコミット（リリースの land）で変わったレーンだけ
   - 各レーンの結果のコミットと、試した run の URL は、レポートの先頭の変数に出る
-- 履歴はリリース版だけが持ち、3 回分（`allurerc.mjs` の `historyLimit`）で、`test-report/history.jsonl` に 1 回 1 行で残る。開発版は履歴を持たない
+- 履歴はリリース版だけが持ち、10 回分（`allurerc.mjs` の `historyLimit`）で、1 回 1 行で残る。開発版は履歴を持たない
+  - 置き場所は S3 のバケット `pecot-test-report-history-<アカウント ID>`（ap-southeast-2）の `release/history.jsonl`。`pages-store` には置かない
+  - 構成と作り方は `.github/test-report-history/README.md`。保守は下の「リリース版の履歴」の節
 - テストの「履歴」のタブは、前の回までを並べる。今の回は並ばない
 - レポートが無い側には「テストレポートはまだありません」の案内のページが出る
 - リリース版では、結果を出せるタグの無いプラグインはレポートに入らず、その名前をフッターのリンクのそばに出す。そういうプラグインしか無いときの動きは、下の「起動とやり直し」の節にある
@@ -133,7 +135,8 @@ paths:
 | `test-report.yml` の side の job summary | リリース版に入れないプラグインと、レポートを作らなかったこと |
 | `test-report.yml` の side の job のログ（開発版） | コミットごとの判定。各レーンの結果を、どの run から拾ったか・main で流すのはなぜか |
 | `test-report.yml` の report の job のログ | 結果の欠けたレーンと、結果のコミットが材料と違うレーンの名前（ResultsCheck） |
-| `test-report.yml` の report の job summary | `pages-store` を読めなかったか、`history.jsonl` に読めない行があったので、空の履歴で作ったこと |
+| `test-report.yml` の history-get の job summary | S3 の履歴に入れなかったか、読めない行があったので、空の履歴で作り、書き戻さないこと |
+| `test-report.yml` の history-put の job summary | S3 の履歴が、その run が読んだ後に変わったので、書き戻さなかったこと |
 | `pages-deploy.yml` の verify の job summary | 受けた run の種類（定義書かレポート）・側・採否と、捨てた理由 |
 
 - job summary は API で読めず、ログインしないと画面にも出ない。手元で同じ判定を出すときは、次のコマンドを打つ。`release_sources.py` は読むだけで、`verify.py` は上の「起動とやり直し」の節のとおり `pages-raw` に落とす
@@ -147,12 +150,28 @@ paths:
   python3 .githooks/scripts/pages_site/verify.py --run-id <test-report.yml の run> --repo pecotcraft/pecot --out .pecot/work/<Issue番号>/verify
   ```
 
-- 保管の push は、`store.py` が出力を捨てるので、GitHub が出す 50 MB 超の警告はログに出ない。大きさは次のコマンドで読む。手元の clone は `pages-store` を取らないので、API で読む。`history.jsonl` は 3 行で約 64 MB
+- 保管の push は、`store.py` が出力を捨てるので、GitHub が出す 50 MB 超の警告はログに出ない。大きさは次のコマンドで読む。手元の clone は `pages-store` を取らないので、API で読む
 
   ```bash
   sha=$(gh api 'repos/pecotcraft/pecot/contents/dev?ref=pages-store' --jq '.[] | select(.name=="test-report") | .sha')
   gh api "repos/pecotcraft/pecot/git/trees/$sha?recursive=1" --jq '.tree[] | select(.type=="blob") | "\(.size)\t\(.path)"'
   ```
+
+### リリース版の履歴
+
+S3 の `release/history.jsonl` は、`history-get` の job が取り、`history-put` の job が条件付きの書き込みで戻す。どちらも environment `test-report-history` の変数でロールとバケットを知る。
+
+- 大きさと行の数は、`claude-agent` で読む。10 行で約 225 MB
+
+  ```bash
+  bucket=$(aws cloudformation describe-stacks --stack-name pecot-test-report-history --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue" --output text)
+  aws s3api head-object --bucket "$bucket" --key release/history.jsonl
+  ```
+
+- `history-get` が `unreadable` のときは、レポートは空の履歴で作られ、S3 は変わらない。原因（ロールに入れない・S3 の失敗・読めない行）を job のログで見て直し、リリース版を作り直す
+- `history-put` が条件で断られたときは、その run の後に別の run が履歴を書いている。新しい方の履歴が残っているので、やり直さない
+- 書き損じた履歴は、バージョニングで 7 日の間、前の版に戻せる。`aws s3api list-object-versions` で版の ID を読み、`claude-agent` で前の版を写し直す
+- 履歴を捨てて 1 回目から始めるときは、`release/history.jsonl` を消す
 
 ### 手元でレポートを作る
 
@@ -174,7 +193,7 @@ pnpm exec allure open <作業ディレクトリ>
 |---|---|
 | `libs/interface-spec/tests/site/report-links.test.ts` | `?tags=` の絞り込みと、要件の ID のリンクを、作ったレポートを Chromium で開いて確かめる |
 | `.githooks/tests/test_report_generate.py` の `test_real_allure_keeps_history_of_a_test_name_with_line_separator` | 3.33.0 は、U+2028・U+2029 を含む履歴を次の回に読めない。`generate.py` がエスケープしている |
-| `generate.py` の `read_history`・`_LINE_BREAK`・`_JS_TRIM` | Allure の履歴の読み方（readline と `trim()`）を写している。`store.py` の確かめも使う |
+| `generate.py` の `read_history`・`_LINE_BREAK`・`_JS_TRIM` | Allure の履歴の読み方（readline と `trim()`）を写している。`test-report.yml` の history-get の確かめも使う |
 | `allurerc.mjs` の `groupBy`・`reportLanguage`・`historyLimit` | 木の段・画面の言葉・履歴の数が変わりうる |
 | `allurerc.mjs` の `categories` と、`.githooks/tests/test_report_generate.py` の `test_real_allure_sorts_failures_into_categories_by_epic` | 規則の形（`matchers`）と当てる順、結果の無い既定の分類を出さない扱いが変わりうる |
 | `.githooks/tests/test_report_generate.py` の `test_real_allure_shows_only_environment_values_shared_by_all_lanes`・`test_real_allure_shows_no_environment_when_no_key_is_shared` | `generate.py` の環境の情報のまとめは、Allure の読み方に頼っている。結果のディレクトリを渡した順に読み、`environment.properties` を読むたびにメタデータを置き換え、コメントだけのファイルで空にする |
@@ -193,6 +212,7 @@ pnpm exec allure open <作業ディレクトリ>
 | pages-store の App | org の Settings → Developer settings → GitHub Apps → `pecotcraft-pages-store` | 権限は Contents: write だけ。Webhook なし。このリポにだけ入れる |
 | environment `pages-store` | Settings → Environments → `pages-store` | 変数 `PAGES_STORE_APP_CLIENT_ID` と secret `PAGES_STORE_APP_PRIVATE_KEY`。デプロイ先は「Selected branches and tags」で、種類が Branch の `main` だけ |
 | environment `github-pages` | Settings → Environments → `github-pages` | デプロイ先は、種類が Branch の `main` だけ |
+| environment `test-report-history` | Settings → Environments → `test-report-history` | 変数 `TEST_REPORT_HISTORY_ROLE_ARN`・`TEST_REPORT_HISTORY_BUCKET`（スタック `pecot-test-report-history` の Outputs の値）。secret は置かない。デプロイ先は「Selected branches and tags」で、種類が Branch の `main` だけ |
 
 - ruleset を変えるときは、JSON を直してから次のコマンドで入れる。id は `gh api repos/pecotcraft/pecot/rulesets` で読む
 

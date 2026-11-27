@@ -30,7 +30,7 @@ export default defineConfig({
       },
     },
   },
-  historyLimit: 3,
+  historyLimit: 10,
   flakyDetection: { includePassedTests: true },
   // 結果は、最初に合った規則の分類だけに入る。2・3 がすべての failed・broken を取るので、既定の英語の分類は出ない
   categories: {

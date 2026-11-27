@@ -7,6 +7,7 @@
       "Action": "cloudformation:*",
       "Resource": [
         "arn:aws:cloudformation:<REGION>:<ACCOUNT_ID>:stack/pecot-board-sync/*",
+        "arn:aws:cloudformation:<REGION>:<ACCOUNT_ID>:stack/pecot-test-report-history/*",
         "arn:aws:cloudformation:<REGION>:<ACCOUNT_ID>:changeSet/*/*"
       ]
     },
@@ -58,7 +59,68 @@
         "iam:TagRole",
         "iam:UntagRole"
       ],
-      "Resource": "arn:aws:iam::<ACCOUNT_ID>:role/pecot-board-sync-*"
+      "Resource": [
+        "arn:aws:iam::<ACCOUNT_ID>:role/pecot-board-sync-*",
+        "arn:aws:iam::<ACCOUNT_ID>:role/pecot-test-report-history-*"
+      ]
+    },
+    {
+      "Sid": "HistoryRolesWithBoundary",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:PutRolePermissionsBoundary"
+      ],
+      "Resource": "arn:aws:iam::<ACCOUNT_ID>:role/pecot-test-report-history-*",
+      "Condition": {
+        "StringEquals": {
+          "iam:PermissionsBoundary": "arn:aws:iam::<ACCOUNT_ID>:policy/pecot-test-report-history-boundary"
+        }
+      }
+    },
+    {
+      "Sid": "HistoryOidcProvider",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateOpenIDConnectProvider",
+        "iam:GetOpenIDConnectProvider",
+        "iam:DeleteOpenIDConnectProvider",
+        "iam:TagOpenIDConnectProvider",
+        "iam:UntagOpenIDConnectProvider",
+        "iam:ListOpenIDConnectProviderTags",
+        "iam:UpdateOpenIDConnectProviderThumbprint",
+        "iam:AddClientIDToOpenIDConnectProvider",
+        "iam:RemoveClientIDFromOpenIDConnectProvider"
+      ],
+      "Resource": "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com"
+    },
+    {
+      "Sid": "HistoryBucket",
+      "Effect": "Allow",
+      "Action": [
+        "s3:CreateBucket",
+        "s3:DeleteBucket",
+        "s3:PutBucket*",
+        "s3:GetBucket*",
+        "s3:PutEncryptionConfiguration",
+        "s3:GetEncryptionConfiguration",
+        "s3:PutLifecycleConfiguration",
+        "s3:GetLifecycleConfiguration"
+      ],
+      "Resource": "arn:aws:s3:::pecot-test-report-history-<ACCOUNT_ID>"
+    },
+    {
+      "Sid": "HistoryObject",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": "arn:aws:s3:::pecot-test-report-history-<ACCOUNT_ID>/release/history.jsonl"
     },
     {
       "Sid": "PassRoles",
@@ -148,7 +210,8 @@
       ],
       "Resource": [
         "arn:aws:iam::<ACCOUNT_ID>:role/*",
-        "arn:aws:iam::<ACCOUNT_ID>:policy/pecot-board-sync-boundary"
+        "arn:aws:iam::<ACCOUNT_ID>:policy/pecot-board-sync-boundary",
+        "arn:aws:iam::<ACCOUNT_ID>:policy/pecot-test-report-history-boundary"
       ]
     }
   ]

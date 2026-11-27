@@ -6,7 +6,7 @@
 
 | 側 | レポート | 履歴 |
 |---|---|---|
-| リリース版 | `https://pecotcraft.github.io/pecot/test-report/` | S3 のバケットに置き、公開しない（#822） |
+| リリース版 | `https://pecotcraft.github.io/pecot/test-report/` | S3 のバケットの `release/history.jsonl` に置き、公開しない（#822） |
 | 開発版 | `https://pecotcraft.github.io/pecot/dev/test-report/` | 無い |
 | PR 版 | 無い | 無い |
 
@@ -131,13 +131,19 @@ attach_json(name: str, value) -> None
 |---|---|
 | side | 側と ReportSources（data-model.md）を決める。リリース版は `release_sources.py`、開発版は `dev_sources.py resolve`。出力の `report` はレポートを作るか（開発版は常に作る）、`run_tests` は流すレーンがあるか。リリース版で、結果を出せるプラグインが無ければ、後の job を飛ばして成功で終える |
 | tests | `run_tests` のときだけ動く。ReportSources の `runs` とレーンの matrix。そのコミットを取り出し、dev container で 1 つのレーンを動かす。テストが落ちても、結果のディレクトリと `source.json`（レーンと取り出したコミット）を artifact `allure-results-<slug>` に上げる |
-| report | 全レーンの結果を取り、ResultsCheck で確かめる。開発版は、`dev_sources.py fetch` で `latest` の結果を取り出して `tests` の結果と合わせ、履歴を読まずに作る。作った後で `dev_sources.py pack` で `lane-latest`・`lane-latest-index` を上げる。リリース版は、S3 から履歴を取る（取れないときは、空の履歴でレポートを作り、job summary に警告を出す）。`generate.py` でレポートを作り、artifact `test-report-<side>` に上げる |
+| history-get | リリース版だけ。S3 から `release/history.jsonl` を取り、Allure が読めるかを確かめる。`state`（`found`・`absent`・`unreadable`）と、`found` のときの `etag` を出す。`absent`・`unreadable` は空のファイルにし、`unreadable` は job summary に警告を出す。どの場合も成功で終え、ファイルを artifact `test-report-history-in` に上げる（#822） |
+| report | 全レーンの結果を取り、ResultsCheck で確かめる。開発版は、`dev_sources.py fetch` で `latest` の結果を取り出して `tests` の結果と合わせ、履歴を読まずに作る。作った後で `dev_sources.py pack` で `lane-latest`・`lane-latest-index` を上げる。リリース版は、`test-report-history-in` の履歴を `--history` に渡す。`generate.py` でレポートを作り、artifact `test-report-<side>` に上げる |
+| history-put | リリース版で、`report` が成功し、`history-get` の `state` が `unreadable` でないときだけ。`test-report-history-out` を S3 に戻す。`found` は `If-Match: <etag>`、`absent` は `If-None-Match: *` の条件付きの書き込みにする。条件で断られたら、job summary に出して失敗する（#822） |
+
+- 読めなかった回に書き戻さないのは、空の履歴から作った 1 行で、S3 の前の回を消さないため
+- 条件付きの書き込みは、古い run の `history-put` だけをやり直したときに、新しい履歴を古いもので上書きしないため
 
 出力:
 
 | 出力 | 中身 |
 |---|---|
-| artifact `test-report-<side>` | レポートのツリーの tar（`report.tar`。リリース版は `history.jsonl` も入れる。開発版は入れない）、`report-sources.json`。`retention-days` は 7、`overwrite: true` |
+| artifact `test-report-<side>` | レポートのツリーの tar（`report.tar`。どの側も `history.jsonl` を入れない）、`report-sources.json`。`retention-days` は 7、`overwrite: true` |
+| artifact `test-report-history-in`・`test-report-history-out` | リリース版だけ。S3 から取った履歴と、1 行足した後の履歴の `history.jsonl`。`retention-days` は 1（#822） |
 | artifact `lane-latest`・`lane-latest-index` | 開発版だけ。data-model の LaneLatest の置き場所。`retention-days` は 90、`overwrite: true` |
 
 失敗の条件:
@@ -149,7 +155,16 @@ attach_json(name: str, value) -> None
 
 権限は、`contents: read` だけにする。side と report の job は、ほかの run の artifact を読むために `actions: read` も持つ（2026-11-27 に #821 で足した）。
 
-リリース版の履歴を S3 で読み書きする job だけは、OIDC のために `id-token: write` も持つ（2026-11-26 に改めた）。公開サイト（`pages-store`）への書き込みの権限と secret は、どの job も持たない。S3 に書く run と、ロールの信頼の条件は #822 で決める。
+リリース版の履歴を S3 で読み書きする `history-get`・`history-put` だけは、OIDC のために `id-token: write` も持つ（2026-11-26 に改め、2026-11-27 に #822 で job を決めた）。公開サイト（`pages-store`）への書き込みの権限と secret は、どの job も持たない。
+
+S3 の履歴への入り方（#822）:
+
+- 2 つの job は、environment `test-report-history` を `deployment: false` で使う。デプロイ先は、種類が Branch の `main` だけ
+- ロール `pecot-test-report-history-actions` の信頼の条件は、`aud` が `sts.amazonaws.com` で、`sub` が `<前置き>:environment:test-report-history` に完全一致すること
+  - 前置きは、リポの OIDC の subject の設定の `sub_claim_prefix`（ID の形。`repo:pecotcraft@351183614/pecot@1445775113`）
+  - PR（fork を含む）の run の `sub` は `<前置き>:pull_request` で、マージキューの run は environment を使わない。どちらもロールに入れない
+- ロールの許可は、`release/history.jsonl` の読み書きと、バケットの一覧だけ。一覧が無いと、ファイルが無いときも 403 になり、「初めて」と「入れない」を見分けられない
+- ロールの ARN とバケットの名前は、environment の変数 `TEST_REPORT_HISTORY_ROLE_ARN`・`TEST_REPORT_HISTORY_BUCKET` に置く。構成は `.github/test-report-history/`
 
 concurrency は `test-report-<side>` で、`cancel-in-progress: false`。動いている run は取り消さず、後から来た run は待つ。待っている run は、さらに新しい run が来ると置き換わる。
 
@@ -168,7 +183,7 @@ verify（RunProvenance に足す決まり）:
 | head | main の祖先。開発版は、保管中のレポートのコミットより古くない |
 | 側 | `push` は開発版。`workflow_dispatch` は、上がっている `test-report-{dev,release}` の artifact が 1 つだけのとき、その側 |
 | リリース版の材料 | artifact の `report-sources.json` が、タグと main から決め直した値と同じ |
-| 中身 | SideCheck（`store.py` の確かめ。安全でないパスが無い・`index.html` がある）。開発版は `history.jsonl` を持たない（#821）。リリース版の `history.jsonl` を行ごとに JSON として読む確かめは、リリース版の履歴を S3 に移すとき、#822 で扱いを決める |
+| 中身 | SideCheck（`store.py` の確かめ。安全でないパスが無い・`index.html` がある）。どの側も、tar の直下に `history.jsonl` があれば捨てる（開発版は #821、リリース版は #822）。履歴の行の確かめは、`history-get` が S3 から取ったときに行う |
 
 store:
 

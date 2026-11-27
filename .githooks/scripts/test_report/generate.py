@@ -23,7 +23,7 @@ _HERE = Path(__file__).resolve().parent
 
 
 def _load_matrix() -> Callable[[object], list[dict[str, str]]]:
-    # store.py がこのファイルをパスで読むと、このディレクトリは sys.path に無い。lanes.py もパスで読む
+    # このファイルをパスで読むと、このディレクトリは sys.path に無い。lanes.py もパスで読む
     spec = importlib.util.spec_from_file_location("test_report_lanes", _HERE / "lanes.py")
     if spec is None or spec.loader is None:
         raise ImportError(f"{_HERE / 'lanes.py'} を読めません")
