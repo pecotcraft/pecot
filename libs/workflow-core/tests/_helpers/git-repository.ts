@@ -9,6 +9,7 @@
 import { execFileSync } from 'node:child_process'
 import { mkdirSync } from 'node:fs'
 
+import { stepSync } from './step.js'
 import { makeTemporaryDirectory, writeTree } from './temporary.js'
 
 /**
@@ -28,8 +29,9 @@ export function gitEnvironment(): Record<string, string> {
   }
 }
 
+// テストの共通の操作なので、関数の中に step を持つ。名前はサブコマンドだけにし、一時のパスや SHA が入りうる残りの引数を入れない。
 export function gitForTest(cwd: string, arguments_: readonly string[]): string {
-  return execFileSync('git', arguments_, { cwd, env: gitEnvironment(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+  return stepSync(`git ${arguments_[0] ?? ''} を打つ`, () => execFileSync('git', arguments_, { cwd, env: gitEnvironment(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }))
 }
 
 /**
@@ -38,12 +40,14 @@ directory を git init し、files をコミットする。directory 省略時�
 const DEFAULT_FILES: Readonly<Record<string, string>> = { 'README.md': 'x' }
 
 export function createGitRepository(files: Readonly<Record<string, string>> = DEFAULT_FILES, directory?: string): string {
-  const target = directory ?? makeTemporaryDirectory('pecot-repo-')
-  mkdirSync(target, { recursive: true })
-  gitForTest(target, ['init', '-q', '-b', 'main'])
-  gitForTest(target, ['config', 'commit.gpgsign', 'false'])
-  writeTree(target, files)
-  gitForTest(target, ['add', '-A'])
-  gitForTest(target, ['commit', '-q', '-m', 'init'])
-  return target
+  return stepSync('git のリポを用意する', () => {
+    const target = directory ?? makeTemporaryDirectory('pecot-repo-')
+    mkdirSync(target, { recursive: true })
+    gitForTest(target, ['init', '-q', '-b', 'main'])
+    gitForTest(target, ['config', 'commit.gpgsign', 'false'])
+    writeTree(target, files)
+    gitForTest(target, ['add', '-A'])
+    gitForTest(target, ['commit', '-q', '-m', 'init'])
+    return target
+  })
 }

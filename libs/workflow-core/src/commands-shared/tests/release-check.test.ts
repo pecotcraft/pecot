@@ -5,7 +5,7 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { step, stepSync } from '../../../../interface-spec/src/vitest/step.js'
+import { step, stepSync } from '../../../tests/_helpers/step.js'
 import { capture } from '../../../tests/_helpers/captured-io.js'
 import { setEnvironment } from '../../../tests/_helpers/environment.js'
 import { explains } from '../../../tests/_helpers/explains.js'

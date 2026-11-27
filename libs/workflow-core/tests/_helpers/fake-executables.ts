@@ -13,6 +13,8 @@
 import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
+import { stepSync } from './step.js'
+
 function shellQuote(value: string): string {
   return `'${value.replaceAll('\'', String.raw`'\''`)}'`
 }
@@ -21,13 +23,16 @@ function shellQuote(value: string): string {
 bin/<name> に sh の実行ファイルを置く。呼び出しの引数は bin/<name>.calls に JSON 配列で 1 行ずつ追記する
 */
 export function installFakeExecutable(bin: string, name: string, body: string): string {
-  const callsFile = path.join(bin, `${name}.calls`)
-  // 引数の JSON 化は sh だけで行い、node には依存しない。二重引用符とバックスラッシュはエスケープする
-  const record = `{ printf '['; first=1; for a in "$@"; do e=$(printf '%s' "$a" | sed -e 's/\\\\/\\\\\\\\/g' -e 's/"/\\\\"/g'); if [ $first = 1 ]; then first=0; else printf ','; fi; printf '"%s"' "$e"; done; printf ']\\n'; } >> ${shellQuote(callsFile)}\n`
-  const target = path.join(bin, name)
-  writeFileSync(target, `#!/bin/sh\n${record}${body}`)
-  chmodSync(target, 0o755)
-  return target
+  // テストの共通の操作なので、関数の中に step を持つ。name は gh・nx などの固定の名前で、実行ごとに変わらない
+  return stepSync(`偽の ${name} を置く`, () => {
+    const callsFile = path.join(bin, `${name}.calls`)
+    // 引数の JSON 化は sh だけで行い、node には依存しない。二重引用符とバックスラッシュはエスケープする
+    const record = `{ printf '['; first=1; for a in "$@"; do e=$(printf '%s' "$a" | sed -e 's/\\\\/\\\\\\\\/g' -e 's/"/\\\\"/g'); if [ $first = 1 ]; then first=0; else printf ','; fi; printf '"%s"' "$e"; done; printf ']\\n'; } >> ${shellQuote(callsFile)}\n`
+    const target = path.join(bin, name)
+    writeFileSync(target, `#!/bin/sh\n${record}${body}`)
+    chmodSync(target, 0o755)
+    return target
+  })
 }
 
 export function installFakeGh(bin: string, options: { readonly token?: string } = {}): string {
