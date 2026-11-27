@@ -257,7 +257,7 @@ function configOfTarget(target: Readonly<Target>, input: Readonly<CheckInput>, f
       return { config: undefined, source: undefined }
     }
     const aggregation = args.kind === 'epic' ? boardConfig(input.project)?.aggregation_repo : undefined
-    const epic = epicTargetRepository(undefined, aggregation === '' ? undefined : aggregation)
+    const epic = epicTargetRepository(undefined, aggregation)
     const candidates = epic.kind === 'resolved' ? [epic.repository] : []
     findings.add(target, 'repo', 'required', args.kind === 'epic' && epic.kind === 'resolved' ? `owner and repo are required: write an Epic to aggregation_repo ${epic.repository}` : 'owner and repo are required', candidates)
     return { config: undefined, source: undefined }
@@ -269,7 +269,7 @@ function configOfTarget(target: Readonly<Target>, input: Readonly<CheckInput>, f
   }
   if (args.kind === 'epic' && input.method === 'create') {
     const aggregation = chosen.config.aggregation_repo
-    const epic = epicTargetRepository(`${home.owner}/${home.repository}`, aggregation === '' ? undefined : aggregation)
+    const epic = epicTargetRepository(`${home.owner}/${home.repository}`, aggregation)
     if (epic.kind === 'resolved' && epic.isException) findings.warn(target, `the Epic is written to ${home.owner}/${home.repository}, not to aggregation_repo ${String(aggregation)}; keep it only when the exception is intended`)
   }
   return { config: chosen.config, source: chosen.source }

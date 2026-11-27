@@ -54,6 +54,11 @@ function blockedBy(issue: string, numbers: readonly (readonly [number, string])[
   return { issue, result: { issues: numbers.map(([number, state]) => ({ number, state, html_url: `https://ghes.example.com/acme/demo/issues/${String(number)}` })) } }
 }
 
+// 開いた前提の番号の列を、blockedBy へ渡す形にする
+function openNumbers(numbers: readonly number[]): readonly (readonly [number, string])[] {
+  return numbers.map((number): readonly [number, string] => [number, 'open'])
+}
+
 function cards(column: string): Readonly<Record<string, unknown>> {
   return { items: { items: [
     { content: { number: 7, repository: 'acme/demo' }, fields: [{ id: 101, name: 'pecot-status', value: { name: column } }] },
@@ -343,6 +348,104 @@ describe('issue_dependency_check', () => {
       await step('結果を確かめる', () => {
         expect(outcome.isError).toBe(true)
         expect(outcome.structured['kind']).toBe('github-mcp-shape')
+      })
+    })
+  })
+
+  describe('輪と前提の追加の細かい場合', () => {
+    it('前提の先が 2 段たどって待つ側へ戻ると、道筋のすべてを添えて cycle の problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-DEPENDENCY-CHECK-04')
+      await explains('前提の Issue（`#5`）が `#6` を前提に持ち、`#6` が待つ側（`#7`）を前提に持つ場合のテストです。途中の Issue も含む道筋を添えた `cycle` の問題を返すことを確認します。')
+      useProject()
+      const reads = { ...readsOf(), blocked_by: [blockedBy('acme/demo/7', []), blockedBy('acme/demo/5', [[6, 'open']]), blockedBy('acme/demo/6', [[7, 'open']])] }
+      const problems = problemsOf(await check({ method: 'add', reads }))
+      await step('結果を確かめる', () => {
+        expect(problems).toEqual([expect.objectContaining({ code: 'cycle', message: 'blocked-by would form a cycle: #7 -> #5 -> #6 -> #7' })])
+      })
+    })
+
+    it('前提の先が同じ Issue に合流しても輪ではないので、problem の無い結果を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-DEPENDENCY-CHECK-04')
+      await explains('前提の Issue（`#5`）の 2 つの前提が、どちらも `#9` を前提に持つ場合のテストです。待つ側へ戻る道が無いため、`problems` が空の結果を返すことを確認します。')
+      useProject()
+      const reads = { ...readsOf(), blocked_by: [blockedBy('acme/demo/7', []), blockedBy('acme/demo/5', openNumbers([6, 8])), blockedBy('acme/demo/6', openNumbers([9])), blockedBy('acme/demo/8', openNumbers([9])), blockedBy('acme/demo/9', [])] }
+      const outcome = await check({ method: 'add', reads })
+      await step('結果を確かめる', () => {
+        expect(outcome.structured['problems']).toEqual([])
+      })
+    })
+
+    it('前提の先をたどる Issue が 200 件を超えると、輪を確かめられない unverifiable の problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-DEPENDENCY-CHECK-04')
+      await explains('前提の Issue（`#5`）が 250 件の前提を持ち、たどる範囲が上限の 200 件を超える場合のテストです。輪を確認できないことを示す `unverifiable` の問題を返すことを確認します。')
+      useProject()
+      const numbers = Array.from({ length: 250 }, (_, index) => 1000 + index)
+      const reads = { ...readsOf(), blocked_by: [blockedBy('acme/demo/7', []), blockedBy('acme/demo/5', openNumbers(numbers)), ...numbers.map(number => blockedBy(`acme/demo/${String(number)}`, []))] }
+      const problems = problemsOf(await check({ method: 'add', reads }))
+      await step('結果を確かめる', () => {
+        expect(problems).toEqual([expect.objectContaining({ field: 'related_issue_number', code: 'unverifiable' })])
+      })
+    })
+
+    it('待つ側の Waits for merge の節が読めないと、先に本文を直すよう waits-for-merge の problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-DEPENDENCY-CHECK-01')
+      await explains('待つ側の Issue の本文に `Waits for merge` の節が 2 つある場合のテストです。節が読めないため、本文を先に直すよう案内する `waits-for-merge` の問題を返すことを確認します。')
+      useProject()
+      const body = `${WAITS_FOR_FIVE}\n## Waits for merge\n\n- #6: 別の理由\n`
+      const problems = problemsOf(await check({ method: 'add', reads: readsOf({ body }) }))
+      await step('結果を確かめる', () => {
+        expect(problems).toEqual([expect.objectContaining({ field: 'body', code: 'waits-for-merge' })])
+        expect(problems[0]?.['message']).toContain('appears 2 times')
+      })
+    })
+
+    it('すでにある前提を別の待ち方で付けると、本文の節だけを変えるよう案内し、直した本文を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-DEPENDENCY-CHECK-04')
+      await explains('すでに前提に持つ Issue を、`wait: merge` と理由を付けて足す場合のテストです。`already-linked` の問題が、本文の節だけを変えるよう案内し、理由を書いた本文を返すことを確認します。')
+      useProject()
+      const outcome = await check({ method: 'add', wait: 'merge', reason: '別の理由', reads: readsOf({ linked: true }) })
+      await step('結果を確かめる', () => {
+        const problems = PROBLEMS.parse(outcome.structured['problems'])
+        expect(problems).toEqual([expect.objectContaining({ code: 'already-linked' })])
+        expect(problems[0]?.['message']).toContain('change only the Waits for merge section')
+        expect(outcome.structured['body']).toContain('- #5: 別の理由')
+      })
+    })
+  })
+
+  describe('前提を外すときの本文', () => {
+    it('Waits for merge の節が読めない Issue から前提を外すと、手で直すよう warning を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-DEPENDENCY-CHECK-06')
+      await explains('待つ側の Issue の本文に `Waits for merge` の節が 2 つある場合に、前提を外すテストです。problem は返さず、節を手で直すよう案内する warning を返すことを確認します。')
+      useProject()
+      const body = `${WAITS_FOR_FIVE}\n## Waits for merge\n\n- #6: 別の理由\n`
+      const outcome = await check({ method: 'remove', reads: readsOf({ body, linked: true, column: 'Blocked' }) })
+      await step('結果を確かめる', () => {
+        expect(outcome.structured['problems']).toEqual([])
+        expect(outcome.structured['warnings']).toEqual([expect.stringContaining('fix it by hand')])
+      })
+    })
+  })
+
+  describe('引数の形', () => {
+    it('リポジトリの名前に使えない文字があると、待つ側と前提のそれぞれを value の problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-DEPENDENCY-CHECK-08')
+      await explains('リポジトリの名前に空白や記号を含む値を渡す場合のテストです。待つ側の `repo` と前提の `related_repo` のそれぞれに、`value` の問題を返すことを確認します。')
+      useProject()
+      const problems = problemsOf(await check({ method: 'add', repo: 'bad repo!' }))
+      await step('結果を確かめる', () => {
+        expect(problems.map(problem => [problem['field'], problem['code']])).toEqual([['repo', 'value'], ['related_repo', 'value']])
+      })
+    })
+
+    it('reads.blocked_by の issue が owner/repo/N の形でないと、その位置を value の problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-DEPENDENCY-CHECK-10')
+      await explains('`reads.blocked_by` の 2 件目の `issue` が `owner/repo/N` の形でない場合のテストです。その項目の位置を示す `value` の問題を返すことを確認します。')
+      useProject()
+      const reads = { ...readsOf(), blocked_by: [blockedBy('acme/demo/7', []), { issue: 'oops', result: { issues: [] } }, blockedBy('acme/demo/5', [])] }
+      const problems = problemsOf(await check({ method: 'add', reads }))
+      await step('結果を確かめる', () => {
+        expect(problems).toEqual([expect.objectContaining({ field: 'reads.blocked_by[1].issue', code: 'value' })])
       })
     })
   })

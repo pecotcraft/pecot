@@ -75,8 +75,8 @@ function pullRequestRead(number: number, head: string): Readonly<Record<string, 
   return { number, title: `PR ${String(number)}`, state: 'open', draft: false, merged: false, html_url: `https://ghes.example.com/acme/demo/pull/${String(number)}`, head: branch(head), base: branch('main') }
 }
 
-function useProject(): void {
-  setUpProject({ files: { [`.pecot/config/projects/${CONFIG_FILE}`]: `${JSON.stringify(CONFIG)}\n` } })
+function useProject(config: Readonly<Record<string, unknown>> = CONFIG, files: Readonly<Record<string, string>> = {}): void {
+  setUpProject({ files: { [`.pecot/config/projects/${CONFIG_FILE}`]: `${JSON.stringify(config)}\n`, ...files } })
 }
 
 async function check(arguments_: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
@@ -85,6 +85,10 @@ async function check(arguments_: Readonly<Record<string, unknown>>): Promise<Too
 
 async function createOne(issue: Readonly<Record<string, unknown>>, reads: Readonly<Record<string, unknown>> = CHILD_READS): Promise<ToolOutcome> {
   return await check({ method: 'create', issues: [{ ...CHILD, ...issue }], reads })
+}
+
+async function updateOne(issue: Readonly<Record<string, unknown>>, reads?: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
+  return await check({ method: 'update', issues: [{ kind: 'task', ...DEMO, issue_number: 7, ...issue }], ...reads !== undefined && { reads } })
 }
 
 function problemsOf(outcome: Readonly<ToolOutcome>): readonly Readonly<Record<string, unknown>>[] {
@@ -607,6 +611,490 @@ describe('issue_check', () => {
         expect(outcome.isError).toBe(true)
         expect(outcome.structured['kind']).toBe('github-mcp-shape')
         expect(outcome.structured['detail']).toContain('reads.project_fields')
+      })
+    })
+
+    it('親 Epic の引数を parent_owner だけ渡すと、3 つをそろえるよう problem にし、題の番号も problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-14')
+      await explains('親 Epic を指す 3 つの引数のうち、`parent_owner` だけを渡した起票のテストです。`parent` の問題を返し、親が無いものとして題の番号の `title-order` の問題も返すことを確認します。')
+      useProject()
+      const problems = problemsOf(await createOne({ parent_repo: undefined, parent_issue_number: undefined }))
+      await step('結果を確かめる', () => {
+        expect(problems).toEqual([
+          expect.objectContaining({ field: 'parent_issue_number', code: 'parent' }),
+          expect.objectContaining({ field: 'title', code: 'title-order', message: '#3-02: needs a parent Epic: give parent_owner, parent_repo and parent_issue_number, or remove it from the title' }),
+        ])
+      })
+    })
+
+    it.for([
+      { name: 'parent_repo', issue: { parent_repo: 'demo/extra' }, field: 'parent_repo', message: 'acme/demo/extra is not a repository name' },
+      { name: 'owner', issue: { owner: 'acme/extra' }, field: 'repo', message: 'acme/extra/demo is not a repository name' },
+    ])('$name がリポジトリ名の形でないと、その引数の value の problem にする', async ({ name, issue, field, message }, context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-14')
+      await explains(`\`${name}\` に \`/\` を含む値を渡し、\`owner/repo\` の形にならない起票のテストです。\`${field}\` の \`value\` の問題を返すことを確認します。`)
+      useProject()
+      const problems = problemsOf(await createOne(issue))
+      await step('結果を確かめる', () => {
+        expect(problems).toContainEqual(expect.objectContaining({ field, code: 'value', message }))
+      })
+    })
+
+    it.for([
+      { name: 'aggregation_repo がある設定', aggregation: 'acme/hub', project: undefined, candidates: ['acme/hub'] },
+      { name: 'project で名指しした aggregation_repo がある設定', aggregation: 'acme/hub', project: 'ghes.example.com_acme_board_acme', candidates: ['acme/hub'] },
+      { name: 'aggregation_repo の無い設定', aggregation: undefined, project: undefined, candidates: undefined },
+    ])('Epic の起票先を渡さないと、$name では集約先を候補にして problem にする', async ({ name, aggregation, project, candidates }, context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-14')
+      await explains(`${name}で、\`owner\` と \`repo\` を渡さずに Epic を起票するテストです。\`repo\` の \`required\` の問題を返し、集約先があればそれを候補に含めることを確認します。`)
+      useProject({ ...CONFIG, aggregation_repo: aggregation })
+      const epic = { kind: 'epic', title: '[Epic] 一覧を作り直す', body: `一覧を作り直す\n\n${FREEFORM_FOOTER}\n` }
+      const outcome = await check({ method: 'create', ...project !== undefined && { project }, issues: [epic], reads: { project_fields: PROJECT_FIELDS } })
+      await step('結果を確かめる', () => {
+        const problem = problemsOf(outcome).find(candidate => candidate['field'] === 'repo')
+        expect(problem).toMatchObject({ code: 'required' })
+        expect(problem?.['candidates']).toEqual(candidates)
+      })
+    })
+
+    it.for([
+      { name: 'aggregation_repo と違うリポジトリ', aggregation: 'acme/hub', warnings: ['the Epic is written to acme/demo, not to aggregation_repo acme/hub; keep it only when the exception is intended'] },
+      { name: 'aggregation_repo と同じリポジトリ', aggregation: 'acme/demo', warnings: undefined },
+      { name: 'aggregation_repo の無い設定のリポジトリ', aggregation: undefined, warnings: undefined },
+    ])('Epic を $name へ起票すると、集約先の例外にあたるときだけ warning を返す', async ({ name, aggregation, warnings }, context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-01')
+      await explains(`Epic を${name}へ起票するテストです。問題を返さず、集約先と違う場合にだけ例外を意図したかを問う \`warnings\` を返すことを確認します。`)
+      useProject({ ...CONFIG, aggregation_repo: aggregation })
+      const epic = { kind: 'epic', ...DEMO, title: '[Epic] 一覧を作り直す', body: `一覧を作り直す\n\n${FREEFORM_FOOTER}\n`, project_fields: [{ name: 'pecot-status', value: 'Backlog' }] }
+      const outcome = await check({ method: 'create', issues: [epic], reads: { project_fields: PROJECT_FIELDS } })
+      await step('結果を確かめる', () => {
+        expect(outcome.structured).toMatchObject({ problems: [] })
+        expect(outcome.structured['warnings']).toEqual(warnings)
+      })
+    })
+
+    it('一括の Issue が別々のプロジェクトの設定に属すると、分けて確かめるよう problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-14')
+      await explains('`acme/demo` と、別の設定にだけ存在する `acme/tools` の Issue を 1 回の一括で渡すテストです。`issues` の `project` の問題を返すことを確認します。')
+      const tools = { ...CONFIG, project: { ...CONFIG.project, number: 2, id: 'PVT_2' }, repositories: [{ owner: 'acme', name: 'tools', develop_branch: 'main' }] }
+      useProject(CONFIG, { '.pecot/config/projects/ghes.example.com_acme_board_tools.json': `${JSON.stringify(tools)}\n` })
+      const outcome = await check({ method: 'create', issues: [
+        { key: 'first', kind: 'task', template: TASK, ...DEMO, title: '[Task] 先に作る Issue', body: FIRST_BODY, project_fields: READY },
+        { key: 'second', kind: 'task', template: TASK, owner: 'acme', repo: 'tools', title: '[Task] 後に作る Issue', body: FIRST_BODY, project_fields: READY },
+      ], reads: { project_fields: PROJECT_FIELDS } })
+      await step('結果を確かめる', () => {
+        expect(codesOf(outcome)).toEqual([['issues', 'project']])
+      })
+    })
+  })
+
+  describe('method ごとの引数', () => {
+    it('update に 2 件の Issue を渡すと、1 件ずつ確かめるよう problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-01')
+      await explains('`method` が `update` で、`issues` に 2 件を渡した場合のテストです。`issues` の `update-one` の問題を返すことを確認します。')
+      useProject()
+      const issue = { kind: 'task', ...DEMO, issue_number: 7 }
+      const outcome = await check({ method: 'update', issues: [issue, { ...issue, issue_number: 8 }] })
+      await step('結果を確かめる', () => {
+        expect(codesOf(outcome)).toEqual([['issues', 'update-one']])
+      })
+    })
+
+    it('update に親 Epic を渡すと、sub_issue_write を案内して problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-01')
+      await explains('`method` が `update` で、親 Epic を指す引数を渡した場合のテストです。親は `sub_issue_write` で付けるよう案内する `unexpected` の問題を返すことを確認します。')
+      useProject()
+      const problems = problemsOf(await updateOne(PARENT))
+      await step('結果を確かめる', () => {
+        expect(problems).toEqual([expect.objectContaining({ field: 'parent_issue_number', code: 'unexpected', message: 'the parent is not changed with update; link it with sub_issue_write' })])
+      })
+    })
+
+    it('create に update だけの引数を渡すと、引数ごとに unexpected の problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-01')
+      await explains('`method` が `create` で、`issue_number`・`state`・`state_reason`・`duplicate_of` を渡した場合のテストです。それぞれの引数に `unexpected` の問題を返すことを確認します。')
+      useProject()
+      const outcome = await createOne({ issue_number: 7, state: 'closed', state_reason: 'completed', duplicate_of: 5 })
+      await step('結果を確かめる', () => {
+        expect(codesOf(outcome)).toEqual([['issue_number', 'unexpected'], ['state', 'unexpected'], ['state_reason', 'unexpected'], ['duplicate_of', 'unexpected']])
+      })
+    })
+
+    it('一括で Epic に親 Epic を付け、後の Issue に type を書くと、Issue の key を添えた warning と problem を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-04')
+      await explains('2 件の一括の起票で、先の Epic に親 Epic を渡し、後の task に `type` を渡すテストです。勧めない親の付け方の `warnings` と、`list_issue_types` の読み取りが不足している問題の両方に、key が付くことを確認します。')
+      useProject()
+      const outcome = await check({ method: 'create', issues: [
+        { key: 'first', kind: 'epic', ...DEMO, title: '[Epic] 一覧を作り直す', body: `一覧を作り直す\n\n${FREEFORM_FOOTER}\n`, ...PARENT, project_fields: [{ name: 'pecot-status', value: 'Backlog' }] },
+        { key: 'second', ...CHILD, type: 'Bug' },
+      ], reads: CHILD_READS })
+      await step('結果を確かめる', () => {
+        expect(outcome.structured['warnings']).toEqual(['first: giving a parent Epic to an Epic is not recommended'])
+        expect(problemsOf(outcome)).toContainEqual(expect.objectContaining({ issue: 'second', field: 'reads.issue_types', code: 'read-required' }))
+      })
+    })
+  })
+
+  describe('担当・マイルストーン・type', () => {
+    it.for([
+      { name: 'リポジトリの共同作業者でない担当', assignees: ['Alice', 'mallory'], warning: ['not a collaborator of the repository, so GitHub may drop the assignment: mallory'] },
+      { name: '大文字と小文字だけが違う共同作業者', assignees: ['ALICE'], warning: undefined },
+    ])('$name を渡すと、共同作業者でない担当だけを warning に挙げる', async ({ name, assignees, warning }, context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-14')
+      await explains(`\`reads.collaborators\` に \`alice\` を渡し、\`assignees\` に${name}を渡すテストです。問題を返さず、共同作業者に存在しない担当だけを \`warnings\` に挙げることを確認します。`)
+      useProject()
+      const outcome = await createOne({ assignees }, { ...CHILD_READS, collaborators: { items: [{ login: 'alice' }] } })
+      await step('結果を確かめる', () => {
+        expect(outcome.structured).toMatchObject({ problems: [] })
+        expect(outcome.structured['warnings']).toEqual(warning)
+      })
+    })
+
+    it.for([
+      { name: '0', milestone: 0, codes: [['milestone', 'value']] },
+      { name: '2', milestone: 2, codes: [] },
+    ])('milestone に $name を渡すと、正の整数でないときだけ problem にする', async ({ name, milestone, codes }, context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-01')
+      await explains(`\`milestone\` に ${name} を渡した起票のテストです。マイルストーンの番号は正の整数なので、0 以下のときだけ \`value\` の問題を返すことを確認します。`)
+      useProject()
+      const outcome = await createOne({ milestone })
+      await step('結果を確かめる', () => {
+        expect(PROBLEMS.parse(outcome.structured['problems']).map(problem => [problem['field'], problem['code']])).toEqual(codes)
+      })
+    })
+
+    it.for([
+      { name: 'Issue type の読み取りを渡さない', issueTypes: undefined, field: 'reads.issue_types', code: 'read-required', candidates: undefined },
+      { name: '使える Issue type が無いリポジトリ', issueTypes: [{ name: 'Bug', is_enabled: false }, { is_enabled: true }], field: 'type', code: 'no-issue-types', candidates: undefined },
+      { name: '一致する Issue type が無いリポジトリ', issueTypes: [{ name: 'Task' }, { name: 'Feature' }], field: 'type', code: 'value', candidates: ['Task', 'Feature'] },
+    ])('type を書いた起票で $name とき、type の problem にする', async ({ name, issueTypes, field, code, candidates }, context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-04')
+      await explains(`\`type\` に \`Bug\` を書いた起票で、${name}場合のテストです。\`${field}\` の \`${code}\` の問題を返し、使える Issue type があれば候補に含めることを確認します。`)
+      useProject()
+      const outcome = await createOne({ type: 'Bug' }, { ...CHILD_READS, ...issueTypes !== undefined && { issue_types: issueTypes } })
+      await step('結果を確かめる', () => {
+        const problems = problemsOf(outcome)
+        expect(problems).toEqual([expect.objectContaining({ field, code })])
+        expect(problems[0]?.['candidates']).toEqual(candidates)
+      })
+    })
+
+    it('type が Issue type と大文字と小文字だけ違うと、problem の無い結果を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-01')
+      await explains('`type` に `bug` を書き、`reads.issue_types` に `Bug` を渡した起票のテストです。大文字と小文字の違いを同じ Issue type とみなし、問題の無い結果を返すことを確認します。')
+      useProject()
+      const outcome = await createOne({ type: 'bug' }, { ...CHILD_READS, issue_types: [{ name: 'Bug', is_enabled: true }] })
+      await step('結果を確かめる', () => {
+        expect(outcome.structured).toMatchObject({ problems: [] })
+      })
+    })
+  })
+
+  describe('本文と題の欠け', () => {
+    it('Issue でない同梱のテンプレートを指定すると、同梱の Issue のテンプレートを候補に添えて problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-05')
+      await explains('`pecot-template://` で始まるが Issue のテンプレートでない、PR のテンプレートを指定した起票のテストです。`unknown-template` の問題を返すことを確認します。')
+      useProject()
+      const problems = problemsOf(await createOne({ template: 'pecot-template://pr/default' }))
+      await step('結果を確かめる', () => {
+        expect(problems).toEqual([expect.objectContaining({ field: 'template', code: 'unknown-template' })])
+      })
+    })
+
+    it('create に本文を渡さないと、body の required の problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-01')
+      await explains('`method` が `create` で、空白だけの本文を渡した場合のテストです。`body` の `required` の問題を返すことを確認します。')
+      useProject()
+      const outcome = await createOne({ body: '  \n' })
+      await step('結果を確かめる', () => {
+        expect(codesOf(outcome)).toEqual([['body', 'required']])
+      })
+    })
+
+    it.for([
+      { name: 'テンプレートの無い本文', template: undefined, body: `一覧に状態を出す\n\n${FREEFORM_FOOTER}\n`, candidates: ['[Task] #3-02: 一覧に状態を出す'] },
+      { name: '同梱のテンプレートの本文', template: TASK, body: TASK_BODY, candidates: undefined },
+    ])('create に題を渡さないと、$name では本文から作った題を候補にして problem にする', async ({ name, template, body, candidates }, context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-03')
+      await explains(`${name}で、題を渡さずに起票するテストです。\`title\` の \`required\` の問題を返し、自由形式なら本文の 1 行目から作った題を候補に含めることを確認します。`)
+      useProject()
+      const problems = problemsOf(await createOne({ template, body, title: undefined }))
+      await step('結果を確かめる', () => {
+        expect(problems).toEqual([expect.objectContaining({ field: 'title', code: 'required' })])
+        expect(problems[0]?.['candidates']).toEqual(candidates)
+      })
+    })
+
+    it('update の本文に一括の key を指す書き方があると、Issue の番号で書くよう problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-01')
+      await explains('`method` が `update` で、本文に `{{issue:first}}` を含めた場合のテストです。一括の起票だけの書き方なので、`placeholder` の問題を返すことを確認します。')
+      useProject()
+      const problems = problemsOf(await updateOne({ template: TASK, body: `${TASK_BODY}\n{{issue:first}} を待つ。\n` }))
+      await step('結果を確かめる', () => {
+        expect(problems).toEqual([expect.objectContaining({ field: 'body', code: 'placeholder', message: '{{issue:first}} is only for a batch create; write the Issue number' })])
+      })
+    })
+  })
+
+  describe('題の番号の決め方', () => {
+    it('親 Epic の子の一覧の parent が owner/repo/N の形でないと、その読み取りの problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-04')
+      await explains('`reads.sub_issues` の `parent` に `owner/repo/N` の形でない値を渡した起票のテストです。その置き場所の `value` の問題を返し、親 Epic の子の一覧を読んでいない問題も返すことを確認します。')
+      useProject()
+      const outcome = await createOne({}, { project_fields: PROJECT_FIELDS, sub_issues: [{ parent: 'acme-demo-3', result: { sub_issues: [] } }] })
+      await step('結果を確かめる', () => {
+        expect(codesOf(outcome)).toEqual([['reads.sub_issues[0].parent', 'value'], ['reads.sub_issues', 'read-required']])
+      })
+    })
+
+    it('一括の 2 件が同じ番号を題に書くと、番号の重なりを problem にし、番号の無い題には候補を添えない', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-03')
+      await explains('同じ親 Epic の子 3 件の一括で、2 件が題に同じ番号 `#3-02` を書き、1 件が番号を書かないテストです。`order-conflict` の問題を返し、番号を決められない題の `title-order` に候補を含めないことを確認します。')
+      useProject()
+      const outcome = await check({ method: 'create', issues: [
+        { key: 'first', ...CHILD, title: '[Task] #3-02: 先に作る Issue', body: FIRST_BODY },
+        { key: 'second', ...CHILD, title: '[Task] #3-02: 後に作る Issue', body: FIRST_BODY },
+        { key: 'third', ...CHILD, title: '[Task] 最後に作る Issue', body: FIRST_BODY },
+      ], reads: CHILD_READS })
+      await step('結果を確かめる', () => {
+        const problems = problemsOf(outcome)
+        expect(problems).toEqual([
+          expect.objectContaining({ field: 'title', code: 'order-conflict', message: 'order 2 under acme/demo/3 is given to more than one Issue: first, second' }),
+          expect.objectContaining({ issue: 'third', field: 'title', code: 'title-order' }),
+        ])
+        expect(problems[1]).not.toHaveProperty('candidates')
+      })
+    })
+
+    it('親 Epic の子の一覧を読まずに番号の無い題を渡すと、読み取りを案内し、番号の候補を添えない', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-04')
+      await explains('`reads.sub_issues` を渡さずに、番号の無い題の子を起票するテストです。番号を決められないため、`read-required` の問題と、候補の無い `title-order` の問題を返すことを確認します。')
+      useProject()
+      const problems = problemsOf(await createOne({ title: '[Task] 一覧に状態を出す' }, { project_fields: PROJECT_FIELDS }))
+      await step('結果を確かめる', () => {
+        expect(problems).toEqual([expect.objectContaining({ field: 'reads.sub_issues', code: 'read-required' }), expect.objectContaining({ field: 'title', code: 'title-order' })])
+        expect(problems[1]).not.toHaveProperty('candidates')
+      })
+    })
+
+    it('update の題が接頭辞を持たず、元の Issue を読んでいないと、接頭辞の problem と読み取りの案内を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-03')
+      await verifies(context, 'PW-ISSUE-CHECK-04')
+      await explains('`method` が `update` で、`[Task]` の無い題を渡し、`reads.issues` に元の Issue を渡さないテストです。接頭辞を付けた題を候補にした `title-prefix` と、`read-required` の問題を返すことを確認します。')
+      useProject()
+      const problems = problemsOf(await updateOne({ title: '#3-04: 一覧に状態を出す' }))
+      await step('結果を確かめる', () => {
+        expect(problems).toEqual([
+          expect.objectContaining({ field: 'title', code: 'title-prefix', candidates: ['[Task] #3-04: 一覧に状態を出す'] }),
+          expect.objectContaining({ field: 'reads.issues', code: 'read-required' }),
+        ])
+      })
+    })
+
+    it.for([
+      { name: '元と同じ番号', before: '[Task] #3-04: 一覧に状態を出す', after: '[Task] #3-04: 一覧に状態の列を出す', message: undefined },
+      { name: '番号の無い元の題に番号', before: '[Task] 一覧に状態を出す', after: '[Task] #3-04: 一覧に状態の列を出す', message: 'keep the order of the title: (none)' },
+    ])('update で $name を題に書くと、元の番号を保つときだけ problem の無い結果を返す', async ({ name, before, after, message }, context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-03')
+      await explains(`\`method\` が \`update\` で、${name}を題に書いた場合のテストです。番号が元の題と同じなら問題を返さず、違うなら元の番号を示す \`title-order\` の問題を返すことを確認します。`)
+      useProject()
+      const current = { issue: { number: 7, title: before, state: 'open', body: TASK_BODY, html_url: 'https://ghes.example.com/acme/demo/issues/7' } }
+      const outcome = await updateOne({ title: after }, { issues: [current] })
+      await step('結果を確かめる', () => {
+        const problems = PROBLEMS.parse(outcome.structured['problems'])
+        expect(problems.map(problem => problem['message'])).toEqual(message === undefined ? [] : [message])
+      })
+    })
+  })
+
+  describe('ボードの欄と Issue field', () => {
+    it.for([
+      { name: '名前と ID の無い欄', entry: { value: 'docs' }, code: 'required', candidates: undefined },
+      { name: 'ボードに無い ID の欄', entry: { id: 999, value: 'docs' }, code: 'unknown-field', candidates: ['pecot-status', 'Status', 'Area'] },
+    ])('project_fields に $name を書くと、その欄の problem にする', async ({ name, entry, code, candidates }, context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-08')
+      await explains(`\`project_fields\` に${name}を書いた起票のテストです。\`project_fields[1]\` の \`${code}\` の問題を返し、ボードに存在する欄があれば候補に含めることを確認します。`)
+      useProject()
+      const problems = problemsOf(await createOne({ project_fields: [...READY, entry] }))
+      await step('結果を確かめる', () => {
+        expect(problems).toEqual([expect.objectContaining({ field: 'project_fields[1]', code })])
+        expect(problems[0]?.['candidates']).toEqual(candidates)
+      })
+    })
+
+    it('数値の欄に数値を書くと、problem の無い結果を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-08')
+      await explains('ボードの数値の欄 `Points` に、数値の 3 を書いた起票のテストです。選択肢の ID として読み替えずに値を照らし、問題の無い結果を返すことを確認します。')
+      useProject()
+      const points = { id: 105, node_id: 'PVTF_points', name: 'Points', data_type: 'number' }
+      const outcome = await createOne({ project_fields: [...READY, { name: 'Points', value: 3 }] }, { ...CHILD_READS, project_fields: boardFields([points]) })
+      await step('結果を確かめる', () => {
+        expect(outcome.structured).toMatchObject({ problems: [] })
+      })
+    })
+
+    it('update でボードの欄を読まずに欄を書くと、欄の名前か ID のまま読み取りを案内する', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-04')
+      await explains('`method` が `update` で、`reads.project_fields` を渡さずに、欄を ID と名前で 1 つずつ書くテストです。欄を照らさずに、`read-required` の問題だけを返すことを確認します。')
+      useProject()
+      const outcome = await updateOne({ project_fields: [{ id: 103, value: 'docs' }, { name: 'Area', value: 'docs' }] })
+      await step('結果を確かめる', () => {
+        expect(codesOf(outcome)).toEqual([['reads.project_fields', 'read-required']])
+      })
+    })
+
+    it('Issue field の読み取りに照らすと、値の無い欄と選択肢に無い値を problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-01')
+      await explains('`reads.issue_fields` を渡し、`issue_fields` に値・選択肢・消去・値の無い欄を書いた起票のテストです。値の無い欄と、選択肢に存在しない値と、存在しない欄の問題を返すことを確認します。')
+      useProject()
+      const issueFields = [
+        { id: 'IF_1', name: 'Effort', data_type: 'number' },
+        { id: 'IF_2', name: 'Size', data_type: 'single_select', options: [{ id: 'IFO_1', name: 'S' }, { id: 'IFO_2', name: 'M' }] },
+        { id: 'IF_3', name: 'Note', data_type: 'text', full_database_id: 33 },
+      ]
+      const outcome = await createOne({ ...PARENT, issue_fields: [
+        { field_name: 'Effort', value: 3 },
+        { field_name: 'Size', field_option_name: 'XL' },
+        { field_name: 'Note', delete: true },
+        { field_name: 'Due' },
+        { field_name: 'Owner', value: 'alice' },
+      ] }, { ...CHILD_READS, issue_fields: issueFields })
+      await step('結果を確かめる', () => {
+        const problems = problemsOf(outcome)
+        expect(problems.map(problem => [problem['field'], problem['code']])).toEqual([['issue_fields.Due', 'required'], ['issue_fields.Size', 'invalid_value'], ['issue_fields.Owner', expect.any(String)]])
+        expect(problems[1]?.['candidates']).toEqual(['S', 'M'])
+      })
+    })
+
+    it.for([
+      { name: '列の欄があるボード', fields: boardFields(), codes: [['repo', 'not-in-project'], ['project_fields.Area', 'invalid_value']] },
+      { name: '列の欄が無いボード', fields: { fields: { fields: [{ id: 103, node_id: 'PVTSSF_area', name: 'Area', data_type: 'single_select', options: [option('a1', 'cli')] }] } }, codes: [['repo', 'not-in-project'], ['reads.project_fields', 'board'], ['project_fields.pecot-status', 'unknown_attribute'], ['project_fields.Area', 'invalid_value']] },
+    ])('設定の無いリポジトリへの起票で $name を読むと、欄の値をボードの読み取りだけで照らす', async ({ name, fields, codes }, context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-08')
+      await explains(`プロジェクトの設定に存在しないリポジトリへの起票で、${name}を \`reads.project_fields\` に渡すテストです。設定が無くてもボードの欄 \`Area\` の値を照らし、列の欄が無ければ \`board\` の問題も返すことを確認します。`)
+      useProject()
+      const outcome = await createOne({ repo: 'other', project_fields: [...READY, { name: 'Area', value: 'web' }] }, { ...CHILD_READS, project_fields: fields })
+      await step('結果を確かめる', () => {
+        expect(codesOf(outcome)).toEqual(codes)
+      })
+    })
+
+    it('pecot-lane の欄があるのに親 Epic のカードを読んでいないと、projects_list で読むよう problem で案内する', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-04')
+      await explains('ボードに `pecot-lane` の欄があり、子の起票で値を書かず、`reads.project_items` を渡さない場合のテストです。親 Epic の値を確認できないため、`read-required` の問題を返すことを確認します。')
+      useProject()
+      const lane = { id: 104, node_id: 'PVTSSF_lane', name: 'pecot-lane', data_type: 'single_select', options: [option('l1', 'web')] }
+      const outcome = await createOne({}, { ...CHILD_READS, project_fields: boardFields([lane]) })
+      await step('結果を確かめる', () => {
+        expect(codesOf(outcome)).toEqual([['reads.project_items', 'read-required']])
+      })
+    })
+  })
+
+  describe('前提と Waits for merge の節', () => {
+    const PREREQUISITE_READS = { ...CHILD_READS, issues: [prerequisiteRead(5)] }
+
+    it('ボードの列に Ready と Blocked が無いと、前提を持つ Issue を Ready に置く warning を返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-10')
+      await explains('列の欄に `Ready` と `Blocked` の選択肢が存在しないボードで、前提を持つ task を起票するテストです。`Blocked` の列が無いことを `warnings` で示し、置く列を `Ready` とすることを確認します。')
+      useProject()
+      const workflow = { id: 101, node_id: 'PVTSSF_workflow', name: 'pecot-status', data_type: 'single_select', options: [option('o1', 'Backlog'), option('o4', 'Active')] }
+      const outcome = await createOne({ blocked_by: [{ issue: 'acme/demo/5' }], project_fields: [{ name: 'pecot-status', value: 'Blocked' }] }, { ...PREREQUISITE_READS, project_fields: { fields: { fields: [workflow] } } })
+      await step('結果を確かめる', () => {
+        expect(problemsOf(outcome)).toEqual([expect.objectContaining({ field: 'project_fields.pecot-status', code: 'column', candidates: ['Ready'] })])
+        expect(outcome.structured['warnings']).toEqual(['the board has no Blocked column; an Issue with blocked-by is placed in Ready'])
+      })
+    })
+
+    it('前提を 51 件渡すと、blocked_by の上限の problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-10')
+      await explains('1 つの Issue に付けられる前提の上限（50 件）を超える `blocked_by` を渡した起票のテストです。`blocked_by` の `limit` の問題を返すことを確認します。')
+      useProject()
+      const blockedBy = Array.from({ length: 51 }, (_, index) => ({ issue: `acme/demo/${String(index + 10)}` }))
+      const outcome = await createOne({ blocked_by: blockedBy, project_fields: [{ name: 'pecot-status', value: 'Blocked' }] })
+      await step('結果を確かめる', () => {
+        expect(codesOf(outcome)).toContainEqual(['blocked_by', 'limit'])
+      })
+    })
+
+    it.for([
+      { name: 'wait stack の前提に理由', entry: { issue: 'acme/demo/5', wait: 'stack', reason: '先に要る' }, code: 'unexpected' },
+      { name: 'wait merge の前提に 2 行の理由', entry: { issue: 'acme/demo/5', wait: 'merge', reason: '先に要る\n後で使う' }, code: 'value' },
+    ])('$name を書くと、reason の problem にする', async ({ name, entry, code }, context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-10')
+      await explains(`\`blocked_by\` に${name}を書いた起票のテストです。\`blocked_by[0].reason\` の \`${code}\` の問題を返すことを確認します。`)
+      useProject()
+      const outcome = await createOne({ blocked_by: [entry], project_fields: [{ name: 'pecot-status', value: 'Blocked' }] }, PREREQUISITE_READS)
+      await step('結果を確かめる', () => {
+        expect(codesOf(outcome)).toContainEqual(['blocked_by[0].reason', code])
+      })
+    })
+
+    it('create の本文の Waits for merge の節の行が形を外れると、行の形を添えて problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-10')
+      await explains('`method` が `create` で、本文の `Waits for merge` の節に理由の無い行を持つ場合のテストです。`waits-for-merge` の問題を返し、その文に `- #N: <reason>` の形を含めることを確認します。')
+      useProject()
+      const outcome = await createOne({ body: `${TASK_BODY}\n## Waits for merge\n\n- #5: \n` })
+      await step('結果を確かめる', () => {
+        const problems = problemsOf(outcome)
+        expect(problems).toEqual([expect.objectContaining({ field: 'body', code: 'waits-for-merge' })])
+        expect(problems[0]?.['message']).toContain('- #N: <reason>')
+      })
+    })
+
+    it.for([
+      { name: '同じ理由', line: '- #5: スキーマが先に要る', messages: [] },
+      { name: '違う理由', line: '- #5: 別の理由', messages: ['the reason of #5 in the ## Waits for merge section differs from blocked_by'] },
+    ])('既存の Issue を wait merge で待ち、節に $name の行を書くと、理由が違うときだけ problem にする', async ({ name, line, messages }, context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-10')
+      await explains(`既存の Issue \`acme/demo/5\` を \`wait: merge\` で待ち、本文の \`Waits for merge\` の節に${name}の行を書いた起票のテストです。\`blocked_by\` と理由が違う場合にだけ問題を返すことを確認します。`)
+      useProject()
+      const outcome = await createOne({ body: `${TASK_BODY}\n## Waits for merge\n\n${line}\n`, blocked_by: [{ issue: 'acme/demo/5', wait: 'merge', reason: 'スキーマが先に要る' }], project_fields: [{ name: 'pecot-status', value: 'Blocked' }] }, PREREQUISITE_READS)
+      await step('結果を確かめる', () => {
+        expect(PROBLEMS.parse(outcome.structured['problems']).map(problem => problem['message'])).toEqual(messages)
+        expect(outcome.structured['plan']).toEqual([{ key: 'issues[0]', order: 2, blockedBy: [{ issue: '#5', wait: 'merge' }], approach: 'wait-merge' }])
+      })
+    })
+
+    it('Waits for merge の節が wait merge でない Issue の行を持つと、その行を外す problem を行ごとに返す', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-10')
+      await explains('一括の後の Issue が先の Issue を `wait: stack` で待ち、本文の `Waits for merge` の節に、待たない Issue の行を並べたテストです。一括の key・同じリポの番号・別のリポの番号の行ごとに、外すよう求める問題を返すことを確認します。')
+      useProject()
+      const section = ['- {{issue:first}}: 先に要る', '- #5: 先に要る', '- #900000007: 先に要る', '- other/demo#900000001: 先に要る', '- acme/other#900000001: 先に要る'].join('\n')
+      const outcome = await check({ method: 'create', issues: [
+        { key: 'first', ...CHILD, title: '[Task] #3-02: 先に作る Issue', body: FIRST_BODY },
+        { key: 'second', ...CHILD, title: '[Task] #3-03: 後に作る Issue', body: `${SECOND_BODY}\n## Waits for merge\n\n${section}\n`, blocked_by: [{ issue: 'first' }], project_fields: [{ name: 'pecot-status', value: 'Blocked' }] },
+      ], reads: CHILD_READS })
+      await step('結果を確かめる', () => {
+        const shown = problemsOf(outcome).map(problem => String(problem['message']).replace(/^remove the line of (.+) from the .*$/u, '$1'))
+        expect(shown).toEqual(['first', '#5', '#900000007', 'other/demo#900000001', 'acme/other#900000001'])
+      })
+    })
+
+    it('一括で同じ key を 2 件に付けると、key の重なりを problem にする', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-10')
+      await explains('一括の起票で、2 件の Issue に同じ `key` を付けたテストです。`key` の `duplicate-key` の問題を返すことを確認します。')
+      useProject()
+      const outcome = await check({ method: 'create', issues: [
+        { key: 'first', ...CHILD, title: '[Task] #3-02: 先に作る Issue', body: FIRST_BODY },
+        { key: 'first', ...CHILD, title: '[Task] #3-03: 後に作る Issue', body: FIRST_BODY },
+      ], reads: CHILD_READS })
+      await step('結果を確かめる', () => {
+        expect(codesOf(outcome)).toContainEqual(['key', 'duplicate-key'])
+      })
+    })
+
+    it('前提に一括の後に並ぶ key を書くと、blocked_by の problem にし、plan を返さない', async (context) => {
+      await verifies(context, 'PW-ISSUE-CHECK-10')
+      await explains('一括の先の Issue の `blocked_by` に、後に並ぶ Issue の `key` を書いたテストです。前提を解決できないため `blocked-by` の問題を返し、`plan` を返さないことを確認します。')
+      useProject()
+      const outcome = await check({ method: 'create', issues: [
+        { key: 'first', ...CHILD, title: '[Task] #3-02: 先に作る Issue', body: FIRST_BODY, blocked_by: [{ issue: 'second' }], project_fields: [{ name: 'pecot-status', value: 'Blocked' }] },
+        { key: 'second', ...CHILD, title: '[Task] #3-03: 後に作る Issue', body: FIRST_BODY },
+      ], reads: CHILD_READS })
+      await step('結果を確かめる', () => {
+        expect(codesOf(outcome)).toEqual([['blocked_by', 'blocked-by']])
+        expect(outcome.structured).not.toHaveProperty('plan')
       })
     })
   })
