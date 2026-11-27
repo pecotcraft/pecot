@@ -46,7 +46,13 @@
 
 - `GITHUB_TOKEN` からは組織のボードが見えない（`projectV2` が null、ビューの作成は 403）。ボードを触る operation は App で動かす
 - `project-link` は、Organization projects: write に Contents: write を足すと通った。Contents の代わりに Issues か Pull requests の write を足しても FORBIDDEN だった（#793 の CUJ）
-- `workflow-doctor` は、`GITHUB_TOKEN` に Secrets・Variables の権限が無い。試した 2 つの App にも付いていなかったので、通るところは確かめていない
+- `workflow-doctor` は、`GITHUB_TOKEN` に Secrets・Variables の権限が無いので、App で動かす
+  - App に Secrets: read・Variables: read を付けると、`secrets`・`variables` の `complete` が `true` になり、名前だけが返った（#793 の CUJ）
+  - 権限が無いと、`ok: true` のまま `complete` が `false` になる。権限を確かめるときは `complete` を見る
+- `create-github-app-token` v3.4.0 は、`permission-actions-variables` を宣言していない。`workflow-doctor` の run は `Unexpected input(s)` の警告を出す
+  - 原因は、GitHub の OpenAPI の `app-permissions` に `actions_variables` が無いこと。action はこの schema から入力を作る
+  - action は `INPUT_PERMISSION-*` をすべて読むので、権限は token の要求に載って付く
+  - 上流の github/rest-api-description#5437・actions/create-github-app-token#231 が直るまで、警告を残す
 - `GITHUB_TOKEN` が起こすイベントは、新しい run を作らない（`workflow_dispatch`・`repository_dispatch` を除く）。`link-branch` で作ったブランチは、利用者のリポの `create`・`push` のワークフローを起こさない
 - `params` は JSON の文字列で受ける。結果は job のログの `PECOT_RESULT {"operation","request_id","ok","result"|"error"}` の 1 行で返し、失敗なら job も失敗にする。スキルは `run-name` の `request_id` で run を探す
 - 持ち主の種類は、公式の MCP の `get_me` で決める（[contracts/github-io.md](github-io.md) の 1 節）。operation は置かない
