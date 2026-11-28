@@ -245,7 +245,7 @@ it('失敗の文が 2 つ以上あると、error の前置きを付けずに改�
 
 // 結果の行を出す見本。本題でない片付けの行を先に、本題の行を後に出す
 const RESULT_LINES = defineTool({
-  name: 'result_lines',
+  name: 'lines_show',
   title: 'Test tool',
   description: '結果の行を出す',
   input: z.object({}),
@@ -260,7 +260,7 @@ const RESULT_LINES = defineTool({
 
 // 結果の行を出さず、標準出力だけに書く見本
 const STDOUT_ONLY = defineTool({
-  name: 'stdout_only',
+  name: 'stdout_show',
   title: 'Test tool',
   description: '標準出力だけに書く',
   input: z.object({}),
