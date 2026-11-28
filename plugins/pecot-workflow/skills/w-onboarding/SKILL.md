@@ -131,6 +131,14 @@ node <このスキルの base directory>/scripts/board-url.cjs
 
 Step 2 で `Lanes` のビューを作ったときは、`project-view` の結果の `url` を示し、領域ごとのレーンで見られることを伝える。
 
+pecot は、マージした PR の head ブランチを消さない。GitHub の「head ブランチを自動で消す」の設定に任せる。
+
+1. github-ops の `repo-settings` を起動し、結果の `delete_branch_on_merge` を読む。読むのは、カレントリポの設定だけになる
+2. `false` なら、利用者に設定を頼む。手順は次のとおり
+   1. `https://<host>/<owner/repo>/settings` を開く
+   2. 「General」の「Pull Requests」の節で、「Automatically delete head branches」に印を付ける
+3. 開発ブランチとリリースブランチが別のリポでは、開発ブランチをブランチの保護か ruleset で守るよう添える。リリース PR の head は開発ブランチ自体なので、守らないとマージで消える
+
 ### Step 5: 自動レビューを入れる（任意）
 
 PR を作ると GitHub Actions の上で w-review のレビューを回すワークフローを、カレントリポに入れるかを決める。
@@ -171,6 +179,7 @@ PR を作ると GitHub Actions の上で w-review のレビューを回すワー
    - 結果に `removedLines` があれば、利用者が足していた行として示す
    - `github-not-found` で止まったら、pecot の action のリリースがまだ無いので、その旨を示して Step 7 へ進む
 5. 置き直したファイルをコミットして push し、PR を出す
+   - Step 2 で作った設定ファイル（`.pecot/config/projects/` の下）がまだコミットされていなければ、同じ PR に入れる
    - [PR を作る・書き換える](../w-help/references/github-write.md#pr-を作る書き換える) の手順で、`pr_check` に通してから `create_pull_request` で作る
    - 紐づく Issue は無いので、本文の末尾の `Closes #` の行を消す
    - 本文には、置き直した雛形の名前と、npx の行が pecot の action の呼び出しに替わったことを書く

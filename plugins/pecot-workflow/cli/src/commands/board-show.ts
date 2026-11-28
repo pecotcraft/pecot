@@ -12,7 +12,6 @@ import type { LaneSummary } from '@pecot/workflow-core/domain/lanes.js'
 import { describeReadiness, describeUnknown } from '@pecot/workflow-core/domain/readiness.js'
 import { issueReferenceKey } from '@pecot/workflow-core/domain/reference-parser.js'
 import { parseOwnerRepository } from '@pecot/workflow-core/domain/repository-resolver.js'
-import { BOARD_SYNC_WORKFLOW } from '@pecot/workflow-core/commands-shared/board-judgment.js'
 import { BOARD_SHOW_OUTPUT as BOARD_VIEW_OUTPUT } from '@pecot/workflow-core/commands-shared/board-view.js'
 import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
@@ -63,7 +62,7 @@ type ShowInput = z.output<typeof BOARD_SHOW_INPUT>
 
 function mismatchNote(count: number): string {
   const subject = count === 1 ? '1 Ready or Blocked Issue may be' : `${String(count)} Ready or Blocked Issues may be`
-  return `${subject} in a column or Status that does not match its judgment; run ${BOARD_SYNC_WORKFLOW} to fix`
+  return `${subject} in a column or Status that does not match its judgment; start the pecot-board-sync workflow with actions_run_trigger (method run_workflow, workflow_id pecot-board-sync.yml) to fix`
 }
 
 function laneFieldOf(board: BoardShape): string | undefined {

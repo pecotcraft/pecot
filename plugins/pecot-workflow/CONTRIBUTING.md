@@ -144,7 +144,7 @@ npx --prefix="$HOME/.cache/pecot-inspector" -y @modelcontextprotocol/inspector@2
    ```bash
    git clone https://github.com/pecotcraft/pecot-sandbox .pecot/work/<Issue番号>/pecot-sandbox
    cd .pecot/work/<Issue番号>/pecot-sandbox
-   <呼ぶ> project_activate '{"project":"github.com_pecotcraft_3.json"}'
+   <呼ぶ> project_activate '{"project":"github.com_pecotcraft_3.json","reads":{...}}'   # reads は project_activate の reads の形（3 番を公式の MCP で読んだ結果）
    ```
 
 3. 書き込む前に、毎回 `project_list` を呼び、`active` の行の `project_number` が `3` であることを確かめる。ボードの題は出ないので、番号で見る

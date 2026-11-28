@@ -223,7 +223,7 @@ describe('board_show', () => {
     const outcome = await show({ reads: { items: [page(cards)], fields: FIELDS, ...JUDGED_READS } })
     await step('結果を確かめる', () => {
       expect(outcome.structured['mismatches']).toBe(1)
-      expect(outcome.structured['warnings']).toEqual([expect.stringMatching(/^1 Ready or Blocked Issue may be in a column or Status that does not match its judgment; run .*pecot-board-sync/u)])
+      expect(outcome.structured['warnings']).toEqual([expect.stringMatching(/^1 Ready or Blocked Issue may be in a column or Status that does not match its judgment; start the pecot-board-sync workflow with actions_run_trigger/u)])
       expect(itemsOf(outcome).find(item => item['id'] === 1008)?.['workflow']).toBe('Ready')
     })
   })

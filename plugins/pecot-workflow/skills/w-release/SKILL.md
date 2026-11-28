@@ -41,7 +41,7 @@ CHANGELOG を更新してリリースする。
 2. **判定結果のリファレンスに従って手順を実行する**
 
    リファレンス内でブランチモードによる分岐がある場合は、Step 1 で読んだブランチモードの節に従う。
-   分岐があるのは、`release_type: nx` の release-nx.md である。
+   分岐があるのは、`release_type: nx` の release-nx.md と、single・multi のリリース PR の手順（Step 5・6）である。
 
 ## release_type 未設定のリポへの対応
 

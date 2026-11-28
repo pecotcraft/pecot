@@ -156,6 +156,8 @@ alert は、解消（fixed）か理由付きの dismiss で 0 件にしてから
 
 ### 5. リリース PR 作成
 
+単一ブランチモード（`<develop>` と `<release>` が同じ）では、リリース PR を作らない。Step 5・6 を飛ばし、Step 7 へ進む。
+
 pecot-workflow の MCP サーバの resource `pecot-template://pr/release` を読み、`.pecot/tmp/output/` に写す。
 
 写したファイルを編集:
