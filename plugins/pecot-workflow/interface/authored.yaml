@@ -1715,6 +1715,9 @@ entries:
       - id: PW-RELEASE-CHECK-22
         pattern: event
         statement: '対象のリポを含む設定が無いか、決まらないと失敗を返します。`project` で設定の名前を渡すと、その設定を使います'
+      - id: PW-RELEASE-CHECK-23
+        pattern: ubiquitous
+        statement: '常に、リリースノートには、版の節の本文が使うリンクと脚注の定義だけを入れます。節の外にある定義は、本文の末尾に加えます'
   PW-SESSION-FINISH:
     summary: マージ済みの PR の手元の後片付けをします。待っている Issue の判定の変化と、スタックし直す Issue を返します。GitHub を読み書きしません。
     arguments:

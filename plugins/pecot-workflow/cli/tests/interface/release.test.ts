@@ -137,6 +137,16 @@ describe('release_check', () => {
       })
     })
 
+    it('CHANGELOG の末尾にリンク定義があると、本文が使う定義だけを加えたリリースノートを返す', async (context) => {
+      await verifies(context, 'PW-RELEASE-CHECK-23')
+      await explains('`release_check` のリリースノートのテストです。ファイル末尾に版と参照リンクの定義を置いた CHANGELOG の場合に、本文が使う定義だけを末尾に加えた本文を返すことを確認します。')
+      const changelog = '# Changelog\n\n## [0.2.0] - 2026-01-02\n\n- [docs][d]\n\n## [0.1.0] - 2026-01-01\n\n- 初回リリース\n\n[0.2.0]: https://example.com/v0.2.0\n[0.1.0]: https://example.com/v0.1.0\n[d]: https://example.com/docs\n'
+      const notes = '- [docs][d]\n\n[d]: https://example.com/docs'
+      const result = await check(project({ ...WITH_BRANCHES, files: { 'CHANGELOG.md': changelog } }), { body: notes })
+      expect(problemsOf(result)).toEqual([])
+      expect(result.structured['releaseNotes']).toBe(notes)
+    })
+
     it('monorepo のリポジトリでは、パッケージ名を接頭辞にしたタグとそのパッケージの CHANGELOG で確かめる', async (context) => {
       await verifies(context, 'PW-RELEASE-CHECK-03')
       await explains('`release_check` の monorepo のテストです。登録したパッケージの `pkg-a-v0.2.0` のタグと `pkg-a v0.2.0` の名前を渡した場合に、そのパッケージの CHANGELOG と照らして問題を返さないことを確認します。')
