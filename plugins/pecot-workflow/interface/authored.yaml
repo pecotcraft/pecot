@@ -3029,7 +3029,7 @@ common_behaviors:
     statement: 'もし `repo` を省き、git remote の URL から `owner/repo` を読めないなら、その理由を `detail` に入れて失敗を返します'
   - id: PW-COMMON-22
     pattern: unwanted
-    statement: 'もし `repo` の無い短い形 `N` で `owner/repo` を remote の URL から読めないなら、`kind` が `invalid-input` の失敗を返します'
+    statement: 'もし `repo` の無い短い形 `N` で `owner/repo` を remote の URL から読めないなら、`kind` が `invalid-input` の失敗を返します。`detail` には、短い形の案内と読めない理由を入れます'
   - id: PW-COMMON-23
     pattern: ubiquitous
     statement: '常に、git remote の URL から、次の 2 つの形で `owner/repo` を読みます。1 つはスキーム付きの `<scheme>://[user@]host[:port]/owner/repo[.git][/]` です。`<scheme>` は `http`・`https`・`ssh`・`git`・`ftp`・`ftps` のどれかです。もう 1 つは scp 形式の `[user@]host:[/]owner/repo[.git][/]` です'

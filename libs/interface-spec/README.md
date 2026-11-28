@@ -24,7 +24,7 @@ python3 -m http.server -d libs/interface-spec/docs/_build
   - action は、題を `name` にし、本文を action の形（入力・`uses:` の使用例・step のログと `outputs`）で書く
   - 結果の項目の節は、MCP のツールでは `mcp_output` の表と共通の出力の節へのリンクを出す。action では、step の出力の説明（`stdin`・`diagnostics` は既定でなければ足す）と `action.outputs` の表を出す
   - エラーの表は、`exit_status` の `kind` と `when` を出す
-- 共通の振る舞いのページ: 全項目に共通の振る舞い。`_generated/<plugin>/_common.html` にできる
+- 共通仕様のページ: プラグインの全項目に共通の引数・出力・振る舞い。`reference/tools/<plugin>-common.html` にできる（元は手で書く `docs/reference/tools/<plugin>-common.rst`）
 - 欄の対応表（`field-map.html`）: 定義書の欄と POSIX の節の対応
 
 `_generated/<plugin>/*.rst` は build のたびに定義書から書き直す。定義書から消えた項目のページは消える。

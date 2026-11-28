@@ -360,18 +360,18 @@ describe('session_finish', () => {
     })
   })
 
-  it('短い形 N の pr_ref を repo なしで渡し、remote の URL から owner/repo を読めないと、短い形の案内と理由を出して終了コード 2 で終わる', async (context) => {
+  it('短い形 N の pr_ref を repo なしで渡し、remote から owner/repo を読めないと、案内と理由を detail に入れて invalid-input の失敗を返す', async (context) => {
     await verifies(context, 'PW-COMMON-22')
-    await explains('短い形の `N` で `pr_ref` を指定し、`repo` も指定せず、remote の URL から `owner/repo` を取得できない場合のテストです。短い形の案内と理由を出力して、終了コード 2 で終了することを確認します。')
+    await explains('短い形の `N` で `pr_ref` を指定し、`repo` も指定せず、remote の URL から `owner/repo` を取得できない場合のテストです。`kind` が `invalid-input` の失敗を返し、`detail` に短い形の案内と取得できない理由が入ることを確認します。')
     const workspace = cleanupBranch()
     workspace.git(['remote', 'set-url', 'origin', '/srv/git/demo.git'])
-    const result = await step('session_finish を短い形で動かす', async () => await workspace.run('session_finish', { pr_ref: '21', reads: PLAIN_READS }))
-    await step('終了コードと標準エラーを確かめる', () => {
-      expect(result.code).toBe(2)
-      expect(result.stderr).toBe([
-        'error: the short form \'N\' needs a base_repo: pass repo: <owner/repo> or use the full form \'owner/repo/N\'',
+    const outcome = await finish(workspace, { pr_ref: '21' })
+    await step('失敗の種類と detail を確かめる', () => {
+      expect(outcome.isError).toBe(true)
+      expect(outcome.structured['kind']).toBe('invalid-input')
+      expect(outcome.structured['detail']).toBe([
+        'the short form \'N\' needs a base_repo: pass repo: <owner/repo> or use the full form \'owner/repo/N\'',
         '  could not read the repository from the URL of the Git remote origin',
-        '',
       ].join('\n'))
     })
   })
