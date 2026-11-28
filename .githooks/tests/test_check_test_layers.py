@@ -18,7 +18,7 @@ _FILES = {
     "plugins/p/cli/tests/c.test.mjs": "",
     "plugins/p/cli/tests/fixtures/d.test.ts": "",
     "plugins/p/cli/tests/e2e/h.test.ts": "",
-    "plugins/p/hooks/tests/e.test.sh": "",
+    "plugins/p/hooks/tests/e.bats": "",
     ".githooks/project.json": "{}",
     ".githooks/tests/test_f.py": "",
     ".githooks/tests/conftest.py": "",
@@ -69,7 +69,7 @@ def test_passes_when_every_test_file_has_a_layer(tmp_path: Path) -> None:
         (
             "どの規則にも当たらないテストのファイルがある",
             {**_TABLES, "plugins/p/test-layers.txt": "unit cli/\n"},
-            "plugins/p/hooks/tests/e.test.sh: 層が決まっていない",
+            "plugins/p/hooks/tests/e.bats: 層が決まっていない",
         ),
         (
             "層の名前が誤っている",

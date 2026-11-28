@@ -34,18 +34,15 @@
 | `PECOT_REPORT_HISTORY` | `generate.py` | `--history` を渡したときだけ、履歴のパス。Allure の設定（`allurerc.mjs`）が読む。`--history` を渡すのはリリース版だけ |
 | `PECOT_REPORT_VARIABLES` | `generate.py` | 手元でない実行で、レーンごとの結果のコミットと run の URL（data-model の ReportVariables）の JSON。`allurerc.mjs` が `variables` にする |
 
-bash のテストのレーンは、各プラグインの `scripts/ci/run-tests.sh` が `.githooks/scripts/test_report/bash-test.sh` を読み、テストのファイルを `bt_run_files` で 1 本ずつ動かす。
+bash のテストのレーンは、各プラグインの `scripts/ci/run-tests.sh` が `.githooks/scripts/test_report/bats/run.sh` にファイルを渡す。
 
 | 名前 | 置く人 | 値 |
 |---|---|---|
-| `PECOT_REPORT_RESULTS` | 各 `run-tests.sh`（シェルの変数。export しない） | nx のレーンから動いたときだけ、`<プラグイン>/test-results/<target>/allure-results`。`bt_run_file` が子のファイルに渡す |
+| `PECOT_REPORT_RESULTS` | 各 `run-tests.sh`（シェルの変数。export しない） | nx のレーンから動いたときだけ、`<プラグイン>/test-results/<target>/allure-results`。`run.sh` を起こすときに渡す |
 
-- テストのファイルは確かめを `bt_*` で書き、確かめ 1 つに結果のファイルを 1 つ書く。成功と失敗で同じ題にする
-- 落ちたファイルがあっても、レーンの最後のファイルまで動かす。レーンは落ちたファイルの一覧を出して 0 以外で終わる
 - 終了コード・カバレッジの閾値の判定は、今のまま
 - `pecot-workflow:test-hooks` の 2 回目（`env -i`）の実行は、Allure の結果を残さない
 
-bats に移したレーン（#844 から）は、`run-tests.sh` が `.githooks/scripts/test_report/bats/run.sh` にファイルを渡す。
 `run.sh` は、ファイルを 1 本ずつ `bats --jobs` で動かし、ファイルの中の `@test` を GNU parallel で並べる。`PECOT_REPORT_RESULTS` があれば、report formatter に Allure の結果を書かせる。
 
 - `PECOT_REPORT_RESULTS` は `run.sh` を起こすときだけ渡す。`run.sh` は、bats とテストには渡さない

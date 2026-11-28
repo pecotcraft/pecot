@@ -162,7 +162,7 @@
   | `interface-spec:test-site` | vitest |
   | `githooks:test-nx-cache`・`test-nx-affected`・`test-ci`・`test-checks` | pytest |
   | `pecot-visual:test-slidev`・`nx-release:test-unit` | vitest（`node --test` から移した。#809） |
-  | pecot-workflow の `test-bootstrap`、各プラグインの `test-release`、pecot-visual の `test-hooks`・`test-compare`・`test-skills` | bash（`bash-test.sh` が結果を書く。#810） |
+  | pecot-workflow の `test-bootstrap`、各プラグインの `test-release`、pecot-visual の `test-hooks`・`test-compare`・`test-skills` | bash（`bt_*` の関数が結果を書く。#810。#878 で bats だけになった） |
 
   入れないレーンは、今は無い。
 

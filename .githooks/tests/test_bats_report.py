@@ -78,6 +78,14 @@ def _label(result: dict[str, Any], name: str) -> list[str]:
     return [label["value"] for label in result["labels"] if label["name"] == name]
 
 
+def _project(root: Path, table: str | None) -> None:
+    with allure.step("project.json と層の表を置く"):
+        root.mkdir(parents=True, exist_ok=True)
+        (root / "project.json").write_text("{}", encoding="utf-8")
+        if table is not None:
+            (root / "test-layers.txt").write_text(table, encoding="utf-8")
+
+
 @allure.title("@test ごとに、状態・説明・理由・期待値と実際の値を持つ結果を 1 件書く")
 def test_one_result_per_test(tmp_path: Path) -> None:
     """通る・失敗する・飛ばす `@test` を持つファイルを、結果のディレクトリを指定して `run.sh` で実行するテストです。`@test` ごとに状態と説明を持つ結果が書かれ、`assert_equal` の失敗には理由・期待値・実際の値が入り、終了コード 1 で終わることを確認します。"""
@@ -184,6 +192,105 @@ def test_layer_and_default_severity(tmp_path: Path) -> None:
         assert _label(result, "severity") == ["normal"]
 
 
+@allure.title("{case}テストのファイルの結果に、project の層の表で引いた層 {expected} を付ける")
+@pytest.mark.parametrize(
+    ("case", "table", "expected"),
+    [
+        ("ディレクトリの規則に当たる", "# 層の表\nintegration tests/\n", ["integration"]),
+        ("ファイルの規則にも当たる", "integration tests/\n  e2e   tests/sample.bats\n", ["e2e"]),
+        ("どの規則にも当たらない", "unit other/\n", []),
+        ("層の表の無い project の", None, []),
+    ],
+    ids=["directory", "file", "no-match", "no-table"],
+)
+def test_layer_label_from_project_table(
+    tmp_path: Path, case: str, table: str | None, expected: list[str]
+) -> None:
+    """bats のテストの結果に付く層のラベルのテストです。テストのファイルの属する project の `test-layers.txt` で、当たる規則のうちパスの長いものの層が `layer` として付き、表が無いか当たらなければ付かないことを確認します。"""
+    _project(tmp_path / "plugins/p", table)
+    test = _write_test(tmp_path / "plugins/p/tests", _case("通る", 'explains "通るテストです。"'))
+    _run(tmp_path, test, results=tmp_path / "results")
+    [result] = _results(tmp_path / "results").values()
+
+    with allure.step("layer のラベルを比べる"):
+        assert _label(result, "layer") == expected
+
+
+@allure.title(
+    "run.sh に .. を含むパスでファイルを渡しても、parentSuite はリポのルートからの正規のパスになる"
+)
+def test_path_with_dot_dot_is_normalized(tmp_path: Path) -> None:
+    """`..` を含むパスで bats のファイルを `run.sh` に渡した場合のテストです。parentSuite・feature・story のラベルが、リポのルートからの正規のパスになることを確認します。"""
+    test = _write_test(tmp_path / "plugins/p/tests", _case("通る", 'explains "通るテストです。"'))
+    detour = tmp_path / "plugins/p/../../plugins/p/tests" / test.name
+    _run(tmp_path, detour, results=tmp_path / "results")
+    [result] = _results(tmp_path / "results").values()
+
+    with allure.step("parentSuite・feature・story が正規のパスであることを確かめる"):
+        assert _label(result, "parentSuite") == ["plugins/p/tests/sample.bats"]
+        assert _label(result, "feature") == ["plugins/p/tests"]
+        assert _label(result, "story") == ["plugins/p/tests/sample.bats"]
+
+
+@allure.title("リポのルートの直下のファイルは、feature が . になり、story がファイルの名前になる")
+def test_file_at_repo_root_has_dot_as_feature(tmp_path: Path) -> None:
+    """リポのルートの直下に置いた bats のファイルのテストです。feature のラベルが `.`、story のラベルがファイルの名前になることを確認します。"""
+    test = _write_test(tmp_path, _case("通る", 'explains "通るテストです。"'))
+    _run(tmp_path, test, results=tmp_path / "results")
+    [result] = _results(tmp_path / "results").values()
+
+    with allure.step("feature と story を確かめる"):
+        assert _label(result, "feature") == ["."]
+        assert _label(result, "story") == ["sample.bats"]
+
+
+@allure.title("nx の project が無いと、epic と project を付けず、feature と story は付ける")
+def test_without_project_no_epic(tmp_path: Path) -> None:
+    """`NX_TASK_TARGET_PROJECT` が空の場合のテストです。結果に epic と project のラベルが付かず、feature と story のラベルが付くことを確認します。"""
+    test = _write_test(tmp_path / "suite", _case("通る", 'explains "通るテストです。"'))
+    _run(tmp_path, test, results=tmp_path / "results", env={"NX_TASK_TARGET_PROJECT": ""})
+    [result] = _results(tmp_path / "results").values()
+
+    with allure.step("epic と project が無く、feature と story があることを確かめる"):
+        assert _label(result, "epic") == []
+        assert _label(result, "project") == []
+        assert _label(result, "feature") == ["suite"]
+        assert _label(result, "story") == ["suite/sample.bats"]
+
+
+@allure.title("{param_id} のレーンの結果には、場所から決めた段階の severity を 1 つ付ける")
+@pytest.mark.parametrize(
+    ("project", "lane", "expected"),
+    [
+        ("pecot-tools", "test-release", "blocker"),
+        ("githooks", "test-ci", "minor"),
+        ("pecot-visual", "test-hooks", "normal"),
+    ],
+    ids=["pecot-tools:test-release", "githooks:test-ci", "pecot-visual:test-hooks"],
+)
+def test_severity_defaults_by_lane(tmp_path: Path, project: str, lane: str, expected: str) -> None:
+    """`severity` を呼ばない `@test` の、重大度のラベルのテストです。nx の project とレーンから重大度の表で決めた段階が、結果の severity に 1 つだけ付くことを確認します。"""
+    test = _write_test(tmp_path / "suite", _case("通る", 'explains "通るテストです。"'))
+    lane_env = {"NX_TASK_TARGET_PROJECT": project, "NX_TASK_TARGET_TARGET": lane}
+    _run(tmp_path, test, results=tmp_path / "results", env=lane_env)
+    [result] = _results(tmp_path / "results").values()
+
+    with allure.step("severity の値を確かめる"):
+        assert _label(result, "severity") == [expected]
+
+
+@allure.title("結果には host と thread のラベルを 1 つずつ付ける")
+def test_host_and_thread_labels(tmp_path: Path) -> None:
+    """bats のテストの結果に付く host と thread のラベルのテストです。どちらも値が 1 つだけ付くことを確認します。"""
+    test = _write_test(tmp_path / "suite", _case("通る", 'explains "通るテストです。"'))
+    _run(tmp_path, test, results=tmp_path / "results")
+    [result] = _results(tmp_path / "results").values()
+
+    with allure.step("host と thread の数を比べる"):
+        assert len(_label(result, "host")) == 1
+        assert len(_label(result, "thread")) == 1
+
+
 @allure.title("@test の本体で severity を呼ぶと、その @test だけ書いた段階になる")
 def test_severity_overrides_only_that_test(tmp_path: Path) -> None:
     """`severity trivial` を呼ぶ `@test` と呼ばない `@test` を並べたテストです。呼んだ `@test` だけが `trivial` になり、次の `@test` は場所から決まる `normal` に戻ることを確認します。"""
@@ -272,6 +379,45 @@ def test_load_failure_is_broken(tmp_path: Path) -> None:
         )
         assert "同じ題" in result["statusDetails"]["trace"]
         assert _label(result, "parentSuite") == ["suite/sample.bats"]
+
+
+@allure.title("読み込めなかった結果にも、テストのファイルの project の層のラベルを付ける")
+def test_load_failure_has_layer(tmp_path: Path) -> None:
+    """同じ題の `@test` が重なり、bats がファイルを読み込む段階で止まる場合の、層のラベルのテストです。題「読み込む」の broken の結果にも、テストのファイルの属する project の `test-layers.txt` で引いた `layer` が付くことを確認します。"""
+    _project(tmp_path / "plugins/p", "integration tests/\n")
+    test = _write_test(
+        tmp_path / "plugins/p/tests",
+        _case("同じ題", 'explains "1 つ目です。"'),
+        _case("同じ題", 'explains "2 つ目です。"'),
+    )
+    _run(tmp_path, test, results=tmp_path / "results")
+    results = _results(tmp_path / "results")
+
+    with allure.step("題と layer を比べる"):
+        assert {name: _label(r, "layer") for name, r in results.items()} == {
+            "読み込む": ["integration"]
+        }
+
+
+@allure.title(
+    "題と理由に引用符・バックスラッシュ・制御文字・日本語を含めても、JSON の文字列として正しく書く"
+)
+def test_json_escapes_quotes_backslashes_and_control_characters(tmp_path: Path) -> None:
+    """題と理由に特殊な文字を含めた場合のテストです。題の引用符・バックスラッシュ・日本語と、理由の引用符・バックスラッシュ・タブ・制御文字・日本語が、JSON にエスケープされて書かれ、読み戻すと元の文字列と一致することを確認します。"""
+    test = _write_test(
+        tmp_path / "suite",
+        _case(
+            '題 \\"引用\\" \\\\ 日本語',
+            'explains "特殊な文字のテストです。"',
+            'skip "$(printf \'"引用" \\\\ 1行目\\tタブ\\001 日本語\')"',
+        ),
+    )
+    _run(tmp_path, test, results=tmp_path / "results")
+    [result] = _results(tmp_path / "results").values()
+
+    with allure.step("題と理由が元の文字のまま読めることを確かめる"):
+        assert result["name"] == '題 "引用" \\ 日本語'
+        assert result["statusDetails"]["message"] == '"引用" \\ 1行目\tタブ\x01 日本語'
 
 
 @allure.title("時間の上限で打ち切られた @test は、秒数を理由にした broken の結果にする")

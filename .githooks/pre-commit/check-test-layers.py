@@ -25,7 +25,7 @@ class Rule:
 
 def is_test_file(path: str) -> bool:
     name = PurePosixPath(path).name
-    if name.endswith((".test.ts", ".test.mjs", ".test.sh", ".bats")):
+    if name.endswith((".test.ts", ".test.mjs", ".bats")):
         return True
     return name.startswith("test_") and name.endswith(".py")
 

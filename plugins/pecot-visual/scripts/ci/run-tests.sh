@@ -44,10 +44,8 @@ esac
 
 # shellcheck source=pnpm-lib.sh
 . "$PECOTV_PLUGIN_ROOT/scripts/ci/pnpm-lib.sh"
-# shellcheck source=../../../../.githooks/scripts/test_report/bash-test.sh
-. "$REPO_ROOT/.githooks/scripts/test_report/bash-test.sh"
-# bash のテストは bats/run.sh で動かし、nx のレーンなら結果を bt_results_dir の Allure の結果に残す。
-PECOT_REPORT_RESULTS="$(bt_results_dir "$PECOTV_PLUGIN_ROOT")"
+# bash のテストは bats/run.sh で動かし、nx のレーンなら結果を test-results/<target>/allure-results に残す。
+PECOT_REPORT_RESULTS="${NX_TASK_TARGET_TARGET:+$PECOTV_PLUGIN_ROOT/test-results/$NX_TASK_TARGET_TARGET/allure-results}"
 
 PNPM="$(resolve_pnpm "$PECOTV_PLUGIN_ROOT")"
 if [ -z "$PNPM" ]; then

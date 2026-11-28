@@ -2,7 +2,6 @@
 paths:
   - "**/*.test.ts"
   - ".nx/nx-release/tests/*.test.mjs"
-  - "**/*.test.sh"
   - "**/*.bats"
   - "**/test_*.py"
 ---
@@ -219,7 +218,7 @@ ID を 2 つ以上持つテストは、feature・story を 1 組だけ持ちま�
 |---|---|
 | vitest | `libs/interface-spec/src/vitest/allure-reporter.ts`（値は `report-labels.ts`） |
 | pytest | `.githooks/tests/conftest.py`・`libs/interface-spec/docs/tests/conftest.py` |
-| bash | `.githooks/scripts/test_report/allure-result.sh`（`bash-test.sh` と bats の formatter が呼ぶ） |
+| bash | `.githooks/scripts/test_report/allure-result.sh`（bats の formatter と `run.sh` が呼ぶ） |
 
 ## テストの層
 
@@ -262,7 +261,7 @@ unit cli/src/infra/tests/gitignore-spec.test.ts
 |---|---|
 | vitest | `libs/interface-spec/src/vitest/report-labels.ts` の `reportLabelsListener` |
 | pytest | `.githooks/tests/conftest.py`・`libs/interface-spec/docs/tests/conftest.py` の `_layer` |
-| bash | `.githooks/scripts/test_report/allure-result.sh` の `allure_result_layer`（`bash-test.sh` と bats の formatter が呼ぶ） |
+| bash | `.githooks/scripts/test_report/allure-result.sh` の `allure_result_layer`（bats の formatter と `run.sh` が呼ぶ） |
 
 テストが自分で `layer` を付けたときは、表の層を足しません。vitest は結果のラベル、pytest は `@allure.label("layer", …)` の印で見分けます。
 
@@ -277,7 +276,7 @@ pre-commit の hook `check-test-layers`（`.githooks/pre-commit/check-test-layer
 | 1 行が 2 つの欄に分かれない | `<表>:<行>: 「<層> <パス>」の 2 つに分かれていない` |
 | どのテストのファイルにも採られない規則がある | `<表>:<行>: '…' に当たるテストのファイルが無い` |
 
-見るテストのファイルは、`*.test.ts`・`*.test.mjs`・`*.test.sh`・`*.bats`・`test_*.py` です。
+見るテストのファイルは、`*.test.ts`・`*.test.mjs`・`*.bats`・`test_*.py` です。
 `project.json` を持つ project に属さないファイルは見ません。project は、テストのファイルからいちばん近い `project.json` のディレクトリです。ラベルの書き手と同じ決め方です。
 
 ## 重大度
@@ -304,12 +303,10 @@ pre-commit の hook `check-test-layers`（`.githooks/pre-commit/check-test-layer
 |---|---|
 | vitest | `allure-js-commons` の `severity()` を本体で呼ぶ（`await severity(Severity.TRIVIAL)`） |
 | pytest | `@allure.severity(allure.severity_level.TRIVIAL)` の印を、関数・クラス・`pytestmark` のどれかに付ける |
-| bash | ファイルの中で `bt_severity <段階>` を呼ぶ。そのファイルのその後の確認すべてに当たる |
 | bats | `@test` の本体で `severity <段階>` を呼ぶ。その `@test` だけに当たる |
 
 pytest では `allure.dynamic.severity()` を使いません。conftest が付ける段階と合わせて値が 2 つになり、グラフは最初の値、分類は最後の値を読むので、食い違います。
-`bt_severity`・`severity` は、5 つの段階のほかの値を受けると、理由を stderr に出して止めます。
-bash のファイルが `bt_finish` の前で止まったときに runner が書く「最後まで動く」の 1 件は、`bt_severity` を知らないので、場所から決まる段階になります。
+`severity` は、5 つの段階のほかの値を受けると、理由を stderr に出して止めます。
 
 | 枠組み | 付ける所 |
 |---|---|
@@ -374,7 +371,7 @@ CodeQL は、`-c` を持つ引数の配列の全要素を、シェルが解釈�
 
 ## bash のテスト
 
-bash のテストは、bats（bats-core）で書きます。今の `*.test.sh` は、レーンごとに bats へ移します（#645 のサブタスク）。移し終えるまでは、`bt_*` の書き方と並びます。
+bash のテストは、bats（bats-core）で書きます。
 
 ### bats
 
@@ -404,20 +401,6 @@ setup() {
 | 版 | root の `package.json` の `bats`・`bats-assert`・`bats-support`。上げたら `.githooks/tests/test_bats_report.py` を全量で動かす。formatter が bats の拡張 TAP を読むため |
 
 `explains` は、nx のレーンの中でだけ説明を formatter に渡します。説明の無い passed の `@test` があると、`run.sh` がファイルと題を並べてレーンを落とします。
-
-### `bt_*`
-
-`*.test.sh` のテストは、確かめを `bt_*` の関数で書きます。関数は `.githooks/scripts/test_report/bash-test.sh` にあります。確かめ 1 つが、テストレポートの 1 件になります。
-
-| 決め | 例 |
-|---|---|
-| 成功と失敗で同じ題にする。題は確かめたいこと（成功の形）を書き、失敗の中身は理由に書く | `bt_fail "SKILL.md に手順がある" "見つからない"` |
-| 一時ディレクトリ・PID・時刻・ポートのような、実行ごとに変わる値を題に入れない。理由には入れてよい | — |
-| 1 つのファイルの中で同じ題を使わない。重なると、2 回目が failed になる | — |
-| ファイルの最後に `bt_finish` を置く。届かずに終わると、runner が「最後まで動く」を broken にし、stderr の末尾を添える | — |
-| 前提が崩れて止めるときは、理由を stderr に出してから `exit 1` する。その文が broken の理由になる | `echo "ERROR: fixture を作れない" >&2; exit 1` |
-| 場所から決まる重大度と違う段階が要るときは、`bt_severity` を呼ぶ（「重大度」の節） | `bt_severity trivial` |
-| 自前の `pass`・`fail`・`check`・`assert_*` を作らない | — |
 
 ## 従う考え方
 

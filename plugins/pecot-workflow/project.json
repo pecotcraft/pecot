@@ -203,7 +203,6 @@
       "executor": "nx:run-commands",
       "inputs": [
         "{projectRoot}/test-layers.txt",
-        "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{workspaceRoot}/.githooks/scripts/test_report/allure-result.sh",
         "{workspaceRoot}/.githooks/scripts/test_report/bats/**/*",
         "{workspaceRoot}/package.json",

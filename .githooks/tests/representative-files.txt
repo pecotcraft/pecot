@@ -14,7 +14,6 @@
 .githooks/scripts/attach-mcp-tgz.sh
 .githooks/scripts/run-pnpm.sh
 .githooks/scripts/test_report/allure-result.sh
-.githooks/scripts/test_report/bash-test.sh
 .githooks/scripts/test_report/bats/run.sh
 .githooks/scripts/test_report/generate.py
 .githooks/scripts/tests/mcp-publish-common.bats

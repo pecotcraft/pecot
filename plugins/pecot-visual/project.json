@@ -185,7 +185,6 @@
       "executor": "nx:run-commands",
       "inputs": [
         "{projectRoot}/test-layers.txt",
-        "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{workspaceRoot}/.githooks/scripts/test_report/allure-result.sh",
         "{workspaceRoot}/.githooks/scripts/test_report/bats/**/*",
         "{projectRoot}/hooks/**/*",
@@ -208,7 +207,6 @@
       "executor": "nx:run-commands",
       "inputs": [
         "{projectRoot}/test-layers.txt",
-        "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{workspaceRoot}/.githooks/scripts/test_report/allure-result.sh",
         "{workspaceRoot}/.githooks/scripts/test_report/bats/**/*",
         "{projectRoot}/scripts/pptx-compare/**/*",
@@ -232,7 +230,6 @@
       "inputs": [
         "{workspaceRoot}/.githooks/test-layers.txt",
         "{projectRoot}/test-layers.txt",
-        "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{workspaceRoot}/.githooks/scripts/test_report/allure-result.sh",
         "{workspaceRoot}/.githooks/scripts/test_report/bats/**/*",
         "{projectRoot}/scripts/release/**/*",
@@ -269,7 +266,6 @@
       "executor": "nx:run-commands",
       "inputs": [
         "{projectRoot}/test-layers.txt",
-        "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{workspaceRoot}/.githooks/scripts/test_report/allure-result.sh",
         "{workspaceRoot}/.githooks/scripts/test_report/bats/**/*",
         "{projectRoot}/skills/v-drawio/**/*",
