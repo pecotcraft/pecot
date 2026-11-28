@@ -1,5 +1,6 @@
 // 案内のデータを MCP のツールの呼び方にする。ツールの形は registry.ts の登録を使う
 import { describe, expect, it } from 'vitest'
+import { stepSync } from '../../../tests/_helpers/step.js'
 import { explains } from '../../../tests/_helpers/explains.js'
 
 import { formatHint, formatHinted, hintedTextOf } from '../../domain/command-hint.js'
@@ -16,12 +17,16 @@ describe('formatHint のツール', () => {
     { name: '文字列の配列', hint: commandHint(['project', 'init'], { lanes: ['cli', 'docs'] }), expected: 'project_init with lanes: ["cli","docs"]' },
   ])('ツールの案内（$name）は、ツール名と入力の呼び方に整形される', async ({ name, hint, expected }) => {
     await explains(`ツールの案内を MCP のツールの呼び方に整形する処理のテストです。${name}の場合に、ツール名と入力が期待どおりの文字列になることを確認します。`)
-    expect(formatHint(hint)).toBe(expected)
+    stepSync('整形結果を確認する', () => {
+      expect(formatHint(hint)).toBe(expected)
+    })
   })
 
   it('入力は、渡した順に並べる', async () => {
     await explains('複数の入力を持つ案内のテストです。入力が、案内へ渡した順で並ぶことを確認します。')
-    expect(formatHint(commandHint(['board', 'add'], { repo: 'o/r', issue_ref: '5' }))).toBe('board_add with repo: "o/r", issue_ref: "5"')
+    stepSync('整形結果を確認する', () => {
+      expect(formatHint(commandHint(['board', 'add'], { repo: 'o/r', issue_ref: '5' }))).toBe('board_add with repo: "o/r", issue_ref: "5"')
+    })
   })
 })
 
@@ -34,7 +39,9 @@ describe('formatHint の入力', () => {
     { name: '共通の repo と値', hint: globalRepositoryHint(placeholder('owner/repo')), expected: 'repo: <owner/repo>' },
   ])('入力の案内（$name）は、入力のキーに整形される', async ({ name, hint, expected }) => {
     await explains(`入力の案内を MCP の入力のキーに整形する処理のテストです。${name}の場合に、期待どおりの文字列になることを確認します。`)
-    expect(formatHint(hint)).toBe(expected)
+    stepSync('整形結果を確認する', () => {
+      expect(formatHint(hint)).toBe(expected)
+    })
   })
 })
 
@@ -46,7 +53,9 @@ describe('案内の誤り', () => {
     { name: 'ツールに無い dry_run', make: () => inputHint(['board', 'add'], 'dry_run'), message: '案内の入力 \'dry_run\' が \'board_add\' の定義に無い' },
   ])('案内に $name を指定して整形すると、TypeError が発生する', async ({ name, make, message }) => {
     await explains(`案内の整形で、入力の誤りを検出する処理のテストです。${name}を指定した場合に、原因を示すメッセージの \`TypeError\` が発生することを確認します。`)
-    expect(() => formatHint(make())).toThrow(new TypeError(message))
+    stepSync('整形結果を確認する', () => {
+      expect(() => formatHint(make())).toThrow(new TypeError(message))
+    })
   })
 })
 
@@ -54,18 +63,24 @@ describe('hinted と joinHinted', () => {
   it('文の中の案内を、ツールの呼び方に整形する', async () => {
     await explains('テンプレートリテラルに埋め込んだ案内（`hinted`）のテストです。文を整形すると、案内の部分だけがツールの呼び方の文字列になることを確認します。')
     const text = hinted`no active project\n${RUN_COLON}${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })}`
-    expect(formatHinted(text)).toBe('no active project\ncall project_activate with project: <PROJECT>')
+    stepSync('整形結果を確認する', () => {
+      expect(formatHinted(text)).toBe('no active project\ncall project_activate with project: <PROJECT>')
+    })
   })
 
   it('joinHinted は、文字列と案内の文を改行でつなぐ', async () => {
     await explains('文字列と案内の文を結合する関数（`joinHinted`）のテストです。複数の要素が改行で連結され、案内がツールの入力の形に整形されることを確認します。')
     const text = joinHinted(['first', hinted`pass ${inputHint(['pr', 'restack'], 'continue')}`])
-    expect(formatHinted(text)).toBe('first\npass continue: true')
+    stepSync('整形結果を確認する', () => {
+      expect(formatHinted(text)).toBe('first\npass continue: true')
+    })
   })
 
   it('案内を含まない文字列は、そのまま返す', async () => {
     await explains('案内を含まない文字列のテストです。整形しても、文字列が変更されずに返ることを確認します。')
-    expect(formatHinted('plain')).toBe('plain')
+    stepSync('整形結果を確認する', () => {
+      expect(formatHinted('plain')).toBe('plain')
+    })
   })
 })
 
@@ -75,27 +90,35 @@ describe('hintedTextOf', () => {
     const text = hinted`${RUN} ${commandHint(['project', 'init'])}`
     const withHint = Object.assign(new Error('x'), { hintedText: text })
     const withNumbers = Object.assign(new Error('x'), { hintedText: [1] })
-    expect(hintedTextOf(withHint)).toBe(text)
-    expect(hintedTextOf(withNumbers)).toBeUndefined()
-    expect(hintedTextOf(new Error('x'))).toBeUndefined()
-    expect(hintedTextOf('x')).toBeUndefined()
+    stepSync('結果を確認する', () => {
+      expect(hintedTextOf(withHint)).toBe(text)
+      expect(hintedTextOf(withNumbers)).toBeUndefined()
+      expect(hintedTextOf(new Error('x'))).toBeUndefined()
+      expect(hintedTextOf('x')).toBeUndefined()
+    })
   })
 })
 
 describe('案内の動詞', () => {
   it('RUN_COLON の後ろに、ツール名と入力が続く', async () => {
     await explains('ツールの案内の前に置く定数（`RUN_COLON`）のテストです。`call` の後ろにツール名と入力が続く文になることを確認します。')
-    expect(formatHinted(hinted`then ${RUN_COLON}${commandHint(['pr', 'restack'], { continue: true })}`)).toBe('then call pr_restack with continue: true')
+    stepSync('整形結果を確認する', () => {
+      expect(formatHinted(hinted`then ${RUN_COLON}${commandHint(['pr', 'restack'], { continue: true })}`)).toBe('then call pr_restack with continue: true')
+    })
   })
 
   it('RUN は、文の中の動詞を call にする', async () => {
     await explains('文の中で動詞になる定数（`RUN`）のテストです。`call` の後ろにツール名が続く文になることを確認します。')
-    expect(formatHinted(hinted`${RUN} ${commandHint(['pr', 'restack'])} later`)).toBe('call pr_restack later')
+    stepSync('整形結果を確認する', () => {
+      expect(formatHinted(hinted`${RUN} ${commandHint(['pr', 'restack'])} later`)).toBe('call pr_restack later')
+    })
   })
 
   it('runAgain は、call とツール名と again になる', async () => {
     await explains('再実行を促す案内（`runAgain`）のテストです。`call` の後ろにツール名と `again` が続くことを確認します。')
     const again = runAgain(commandHint(['pr', 'restack']))
-    expect(formatHinted(hinted`push was rejected\n${again}`)).toBe('push was rejected\ncall pr_restack again')
+    stepSync('整形結果を確認する', () => {
+      expect(formatHinted(hinted`push was rejected\n${again}`)).toBe('push was rejected\ncall pr_restack again')
+    })
   })
 })

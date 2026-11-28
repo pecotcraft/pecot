@@ -355,7 +355,11 @@ passed のテストのうち、名前の付いた step を 1 つも持たない�
 
 - 数えるのは、名前が `expect(` で始まらない step で、入れ子の中も数える。添付は数えない
 - 落ちたテストと skip は見ない。最初の step の前で止まることがあり、欠けと見分けられないため
-- gate を置いたレーンは、githooks の 4 本（`run.sh`）、`text-rules:test-unit`、`interface-spec:test-unit`・`test-site`。ほかのレーンは、テストに step を書き終えたら、コマンドの最後に gate を足す
+- gate を置いたレーンは、次のとおり
+  - githooks の 4 本（`run.sh`）
+  - `text-rules`・`workflow-core` の `test-unit`
+  - `interface-spec:test-unit`・`test-site`
+- ほかのレーンは、テストに step を書き終えたら、コマンドの最後に gate を足す
 
 ## テストから bash を呼ぶ
 

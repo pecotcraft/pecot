@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { frontmatterOutputs } from '../../../tests/_helpers/python-output.js'
 import type { FrontmatterResult } from '../../../tests/_helpers/python-output.js'
 import { explains } from '../../../tests/_helpers/explains.js'
+import { stepSync } from '../../../tests/_helpers/step.js'
 import { FrontmatterError, parseFrontmatter, parsePullRequestContent } from '../frontmatter.js'
 
 // 期待値は、Python の CLI の実出力（tests/python-output/frontmatter.json。作り直さない記録）。
@@ -36,23 +37,31 @@ function run(parse: (content: string) => { readonly frontmatter: object }, yamlT
 describe('Python の出力との一致', () => {
   it.each(OUTPUTS.keyAndTag)('issue のキーとタグが %j のとき、Python の出力と一致する', async (yamlText, expected) => {
     await explains('フロントマターを検証する関数が、Python の CLI の記録と同じ結果を返すことのテストです。issue のキーとタグを含むフロントマターを渡した場合に、検証後の値か、エラーの文が記録と同じになることを確認します。')
-    expect(run(parseFrontmatter, yamlText)).toEqual(expected)
+    stepSync('結果を比べる', () => {
+      expect(run(parseFrontmatter, yamlText)).toEqual(expected)
+    })
   })
 
   it.each(OUTPUTS.yamlFailures)('YAML が %j で失敗するとき、failed to parse YAML のエラーを返す', async (yamlText) => {
     await explains('フロントマターを検証する関数が、Python の CLI の記録と同じ結果を返すことのテストです。YAML として読めないフロントマターを渡した場合に、`failed to parse YAML: ` で始まるエラーの文を返すことを確認します。')
-    const result = run(parseFrontmatter, yamlText)
-    expect(result).toHaveProperty('error')
-    expect(Object.values(result)[0]).toMatch(/^failed to parse YAML: /u)
+    const result = stepSync('parseFrontmatter を呼ぶ', () => run(parseFrontmatter, yamlText))
+    stepSync('結果を比べる', () => {
+      expect(result).toHaveProperty('error')
+      expect(Object.values(result)[0]).toMatch(/^failed to parse YAML: /u)
+    })
   })
 
   it.each(OUTPUTS.issue)('issue のフロントマターが %j のとき、Python の出力と一致する（意図して変えた入力を除く）', async (yamlText, recorded) => {
     await explains('フロントマターを検証する関数が、Python の CLI の記録と同じ結果を返すことのテストです。issue のフロントマターを渡した場合に、検証後の値かエラーの文が記録と同じになり、#378 で意図して変えた入力だけは変更後の期待値と同じになることを確認します。')
-    expect(run(parseFrontmatter, yamlText)).toEqual(CHANGED_ISSUE_OUTPUTS.get(yamlText) ?? recorded)
+    stepSync('結果を比べる', () => {
+      expect(run(parseFrontmatter, yamlText)).toEqual(CHANGED_ISSUE_OUTPUTS.get(yamlText) ?? recorded)
+    })
   })
 
   it.each(OUTPUTS.pullRequest)('PR のフロントマターが %j のとき、Python の出力と一致する', async (yamlText, expected) => {
     await explains('フロントマターを検証する関数が、Python の CLI の記録と同じ結果を返すことのテストです。PR のフロントマターを渡した場合に、検証後の値か、エラーの文が記録と同じになることを確認します。')
-    expect(run(parsePullRequestContent, yamlText)).toEqual(expected)
+    stepSync('結果を比べる', () => {
+      expect(run(parsePullRequestContent, yamlText)).toEqual(expected)
+    })
   })
 })

@@ -53,7 +53,8 @@
         "{workspaceRoot}/libs/interface-spec/src/vitest/allure-reporter.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/report-labels.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/attach.ts",
-        "{workspaceRoot}/libs/interface-spec/src/vitest/explains.ts"
+        "{workspaceRoot}/libs/interface-spec/src/vitest/explains.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/step.ts"
       ],
       "dependsOn": [
         "install"
@@ -84,6 +85,10 @@
         "{workspaceRoot}/libs/interface-spec/src/vitest/report-labels.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/attach.ts",
         "{workspaceRoot}/libs/interface-spec/src/vitest/explains.ts",
+        "{workspaceRoot}/libs/interface-spec/src/vitest/step.ts",
+        "{workspaceRoot}/.githooks/scripts/test_report/step-gate.mjs",
+        "{workspaceRoot}/.githooks/scripts/test_report/step-gate.sh",
+        "{workspaceRoot}/.githooks/scripts/run-pnpm.sh",
         "default",
         "runtime",
         "env",
@@ -98,7 +103,7 @@
         "description": "vitest の単体テスト。カバレッジ閾値は 90%。一時リポで git を起動するテストがあるので、git のバージョンを runtime 入力に置く。"
       },
       "options": {
-        "command": "rm -rf test-results/test-unit/allure-results && pnpm exec vitest run --coverage",
+        "command": "rm -rf test-results/test-unit/allure-results && pnpm exec vitest run --coverage && bash ../../.githooks/scripts/test_report/step-gate.sh test-results/test-unit/allure-results",
         "cwd": "libs/workflow-core"
       }
     },

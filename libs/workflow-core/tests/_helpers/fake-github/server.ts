@@ -6,6 +6,7 @@ import type { IncomingMessage, Server, ServerResponse } from 'node:http'
 import { createServer } from 'node:http'
 
 import { compareStrings } from '../../../src/domain/python-format.js'
+import { step } from '../step.js'
 import { operationNameOf } from './operations.js'
 
 export const API_PLACEHOLDER = '{{GITHUB_API}}'
@@ -200,7 +201,12 @@ export interface StartOptions {
   readonly listen?: (server: Server) => Promise<number>
 }
 
+// テストの共通の操作なので、関数の中に step を持つ（.claude/rules/test-conventions.md の「step」）。
 export async function startFakeGithub(rules: readonly ResponseRule[], options: StartOptions = {}): Promise<FakeGithub> {
+  return await step('偽の GitHub を立てる', async () => await launchFakeGithub(rules, options))
+}
+
+async function launchFakeGithub(rules: readonly ResponseRule[], options: StartOptions): Promise<FakeGithub> {
   const states: RuleState[] = rules.map((rule, index) => ({ rule, number: index + 1, used: 0 }))
   const recorded: RecordedRequest[] = []
   const problems: string[] = []
