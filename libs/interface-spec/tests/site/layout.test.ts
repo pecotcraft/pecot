@@ -17,7 +17,7 @@ const NARROW = 390
 // テーマのテンプレートが出すページで、:notoc: を付けられない。
 const NO_NOTOC = new Set(['search.html'])
 const TOOL_LIST = 'reference/tools/pecot-workflow-tools.html'
-const TOOL_PAGE = '_generated/pecot-workflow/board_add.html'
+const TOOL_PAGE = '_generated/pecot-workflow/board_check.html'
 const SKIPPED_DIRECTORIES = new Set(['_static', '_sources', '.doctrees'])
 
 interface Site {

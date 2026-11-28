@@ -102,7 +102,6 @@ Issue・コメント・PR のテンプレートは、MCP の resource で読め�
 | `issue_check` | 公式の MCP の `issue_write` に渡す値が、pecot の決まり（テンプレート・題の番号・前提・ボードの欄）に合うかを確かめる。書かない |
 | `issue_dependency_check` | 公式の MCP の `issue_dependency_write` に渡す値を確かめ、本文の `## Waits for merge` の節と置く列を返す。書かない |
 | `issue_comment_check` | 公式の MCP の `add_issue_comment`・`update_issue_comment` に渡す本文を確かめる。書かない |
-| `branch_check` | github-ops の `link-branch` に渡すブランチ名と base を確かめる。書かない |
 | `session_start` | github-ops の `link-branch` で作ったブランチで、作業の始まり（base・作業ディレクトリ・セッション名）を記録する |
 | `session_show` | セッションのフラグ、ブランチ、推定した Issue を表示する |
 | `session_finish` | マージした PR の手元を片付ける（開発ブランチへの切り替え、手元のブランチと記録の削除） |
@@ -113,6 +112,7 @@ Issue・コメント・PR のテンプレートは、MCP の resource で読め�
 | `worktree_remove` | worktree を削除する |
 | `worktree_init` | メイン worktree に worktree の設定ファイルを作る |
 | `worktree_link` | 既存の worktree にシンボリックリンクを適用・更新する |
+| `branch_check` | github-ops の `link-branch` に渡すブランチ名と base を確かめる。書かない |
 | `workflow_install` | 同梱の GitHub Actions のワークフローの雛形をリポに書き出す（`check` で置いた雛形の版を確かめ、`force` で上書きする） |
 | `workflow_doctor` | 雛形と、雛形が要る Actions の secret・変数の名前がそろっているかを確かめる（値は読まない） |
 
