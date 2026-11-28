@@ -267,6 +267,107 @@ describe('extractVersionReleaseNotes', () => {
   })
 })
 
+describe('extractVersionReleaseNotes のリンクと脚注の定義', () => {
+  it('最後の版の節は、ファイル末尾の版の見出しのリンク定義を含めずに返す', async () => {
+    await explains('Keep a Changelog の形で、ファイル末尾に版のリンク定義を置いた変更履歴のテストです。最後の版を指定した場合に、リンク定義を除いた本文だけを返すことを確認します。')
+    const content = '# Changelog\n\n## [0.0.1] - 2026-11-28\n\n- 最初の版\n\n[0.0.1]: https://github.com/acme/demo/releases/tag/v0.0.1\n'
+
+    stepSync('`extractVersionReleaseNotes` を呼び、結果を比べる', () => {
+      expect(extractVersionReleaseNotes(content, '0.0.1')).toBe('- 最初の版')
+    })
+  })
+
+  it('最後の版の節は、本文が使う末尾の定義を残し、本文が使わない定義を除く', async () => {
+    await explains('最後の版の本文が参照リンクを使い、その定義がファイル末尾にある変更履歴のテストです。使われる定義だけを本文に残すことを確認します。')
+    const content = '## [Unreleased]\n\n## [0.0.1]\n\n- 最初の版。[docs][d]\n\n[unreleased]: https://example.com/compare\n[0.0.1]: https://example.com/v0.0.1\n[d]: https://example.com/docs\n'
+
+    stepSync('`extractVersionReleaseNotes` を呼び、結果を比べる', () => {
+      expect(extractVersionReleaseNotes(content, '0.0.1')).toBe('- 最初の版。[docs][d]\n\n[d]: https://example.com/docs')
+    })
+  })
+
+  it('最後でない版の節は、full・collapsed・shortcut の参照が使う末尾の定義を本文の末尾に加える', async () => {
+    await explains('最後でない版の本文が、3 つの形の参照リンクでファイル末尾の定義を使う変更履歴のテストです。使われる定義をファイルでの順に本文の末尾へ加えることを確認します。')
+    const content = '## [0.0.2]\n\n- [docs][d]・[guide][]・[faq]\n\n## [0.0.1]\n\n- 最初の版\n\n[0.0.2]: https://example.com/v0.0.2\n[faq]: https://example.com/faq\n[d]: https://example.com/docs\n[guide]: https://example.com/guide\n[unused]: https://example.com/unused\n'
+
+    stepSync('`extractVersionReleaseNotes` を呼び、結果を比べる', () => {
+      expect(extractVersionReleaseNotes(content, '0.0.2')).toBe('- [docs][d]・[guide][]・[faq]\n\n[faq]: https://example.com/faq\n[d]: https://example.com/docs\n[guide]: https://example.com/guide')
+    })
+  })
+
+  it('節の中の使わない定義は除き、使う定義はその位置に残す', async () => {
+    await explains('版の節の中にリンク定義がある変更履歴のテストです。本文が使う定義は元の位置に残り、使わない定義は除かれることを確認します。')
+    const content = '## [1.0.0]\n\n- [a]\n\n[a]: https://example.com/a\n[b]: https://example.com/b\n\n- 次の項目\n\n## [0.9.0]\n'
+
+    stepSync('`extractVersionReleaseNotes` を呼び、結果を比べる', () => {
+      expect(extractVersionReleaseNotes(content, '1.0.0')).toBe('- [a]\n\n[a]: https://example.com/a\n\n- 次の項目')
+    })
+  })
+
+  it('参照と定義のラベルの大文字・小文字と空白の違いは、同じラベルとして対応させる', async () => {
+    await explains('参照と定義でラベルの大文字・小文字や空白の数が違う変更履歴のテストです。CommonMark と同じ正規化で同じラベルとみなし、定義を加えることを確認します。')
+    const content = '## [1.0.0]\n\n- [Docs  Page]\n\n## [0.9.0]\n\n[docs page]: https://example.com/docs\n'
+
+    stepSync('`extractVersionReleaseNotes` を呼び、結果を比べる', () => {
+      expect(extractVersionReleaseNotes(content, '1.0.0')).toBe('- [Docs  Page]\n\n[docs page]: https://example.com/docs')
+    })
+  })
+
+  it('フェンスのコードブロックの中の定義の形の行は、定義とみなさずに残す', async () => {
+    await explains('版の本文のコードブロックに、リンク定義と同じ形の行がある変更履歴のテストです。コードの中の行は定義ではないため、そのまま本文に残すことを確認します。')
+    const content = '## [1.0.0]\n\n```markdown\n[x]: https://example.com/x\n```\n\n## [0.9.0]\n'
+
+    stepSync('`extractVersionReleaseNotes` を呼び、結果を比べる', () => {
+      expect(extractVersionReleaseNotes(content, '1.0.0')).toBe('```markdown\n[x]: https://example.com/x\n```')
+    })
+  })
+
+  it('脚注の参照が使う末尾の脚注の定義を加え、同じラベルのリンク定義は加えない', async () => {
+    await explains('版の本文が脚注を使い、同じラベルのリンク定義もファイル末尾にある変更履歴のテストです。脚注の定義だけを空行で分けて加え、リンク定義は加えないことを確認します。')
+    const content = '## [1.0.0]\n\n- 変更[^1]\n\n## [0.9.0]\n\n- 前の版\n\n[1]: https://example.com/one\n\n[^1]: 脚注の本文\n'
+
+    stepSync('`extractVersionReleaseNotes` を呼び、結果を比べる', () => {
+      expect(extractVersionReleaseNotes(content, '1.0.0')).toBe('- 変更[^1]\n\n[^1]: 脚注の本文')
+    })
+  })
+
+  it('リンクの参照は、同じラベルの脚注の定義を残さない', async () => {
+    await explains('版の本文がリンクの参照を使い、同じラベルの脚注の定義が節の中にある変更履歴のテストです。脚注の定義は使われないため除くことを確認します。')
+    const content = '## [1.0.0]\n\n- [1]\n\n[^1]: 脚注の本文\n\n## [0.9.0]\n\n[1]: https://example.com/one\n'
+
+    stepSync('`extractVersionReleaseNotes` を呼び、結果を比べる', () => {
+      expect(extractVersionReleaseNotes(content, '1.0.0')).toBe('- [1]\n\n[1]: https://example.com/one')
+    })
+  })
+
+  it('節の外から加える脚注の定義の中で使う定義も加え、除く脚注の定義の中の参照は数えない', async () => {
+    await explains('脚注の定義の中に参照リンクがある変更履歴のテストです。加える脚注が使う定義は加え、除かれる脚注だけが使う定義は加えないことを確認します。')
+    const content = '## [1.0.0]\n\n- 変更[^n]\n\n[^unused]: [other][o]\n\n## [0.9.0]\n\n[^n]: 詳しくは [docs][d]\n\n[d]: https://example.com/docs\n[o]: https://example.com/other\n'
+
+    stepSync('`extractVersionReleaseNotes` を呼び、結果を比べる', () => {
+      expect(extractVersionReleaseNotes(content, '1.0.0')).toBe('- 変更[^n]\n\n[^n]: 詳しくは [docs][d]\n\n[d]: https://example.com/docs')
+    })
+  })
+
+  it('同じラベルの定義が節の前と節の中にあるときは、節の中の定義を除き、節の前の定義を加える', async () => {
+    await explains('同じラベルのリンク定義が 2 つある変更履歴のテストです。CommonMark と同じく最初の定義を使い、節の中の後の定義を除いて最初の定義を加えることを確認します。')
+    const content = '## [1.0.0]\n\n- 前の版\n\n[d]: https://example.com/first\n\n## [0.9.0]\n\n- [d]\n\n[d]: https://example.com/second\n'
+
+    stepSync('`extractVersionReleaseNotes` を呼び、結果を比べる', () => {
+      expect(extractVersionReleaseNotes(content, '0.9.0')).toBe('- [d]\n\n[d]: https://example.com/first')
+    })
+  })
+
+  it('リストと引用の中の定義はそのまま残し、節の外の引用の中の定義は引用の印を付けずに加える', async () => {
+    await explains('リストや引用の中にリンク定義がある変更履歴のテストです。節の中の入れ子の定義は印ごと残し、節の外から加える定義には引用の印を付けないことを確認します。')
+    const content = '## [1.0.0]\n\n- [x]: https://example.com/x\n> [y]: https://example.com/y\n\n- [q]\n\n## [0.9.0]\n\n> [q]: https://example.com/q\n'
+
+    stepSync('`extractVersionReleaseNotes` を呼び、結果を比べる', () => {
+      expect(extractVersionReleaseNotes(content, '1.0.0')).toBe('- [x]: https://example.com/x\n> [y]: https://example.com/y\n\n- [q]\n\n[q]: https://example.com/q')
+    })
+  })
+})
+
 describe('ファイル名を渡したときの文', () => {
   it('getLatestVersion のバージョンが存在しない場合のメッセージには、渡したファイル名を使う', async () => {
     await explains('ファイル名（`AIST-CHANGELOG.md`）を渡して、最新のバージョンを求めた場合のテストです。バージョンが存在しないときのエラーのメッセージに、渡したファイル名が使われることを確認します。')

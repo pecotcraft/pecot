@@ -1662,7 +1662,7 @@ entries:
         statement: 'もし CHANGELOG か、その中の版の節が無いなら、`changelog-missing` の項目を返します'
       - id: PW-RELEASE-CHECK-05
         pattern: unwanted
-        statement: 'もし `body` が CHANGELOG の節と違うなら、節の本文を候補に添えた `body-mismatch` の項目を返します。前後の空白は比べません'
+        statement: 'もし `body` がリリースノート（`releaseNotes`）と違うなら、リリースノートを候補に添えた `body-mismatch` の項目を返します。前後の空白は比べません'
       - id: PW-RELEASE-CHECK-06
         pattern: unwanted
         statement: 'もしリリースの名前が期待する名前と違うなら、`release-name` の項目を返します。`name` を省くと、タグを名前とみなします'
@@ -1714,6 +1714,9 @@ entries:
       - id: PW-RELEASE-CHECK-22
         pattern: event
         statement: '対象のリポを含む設定が無いか、決まらないと失敗を返します。`project` で設定の名前を渡すと、その設定を使います'
+      - id: PW-RELEASE-CHECK-23
+        pattern: ubiquitous
+        statement: '常に、リリースノートからは、版の節の本文が使わないリンクと脚注の定義を除きます。ただし、リストや引用の中の定義は残します。節の外にある、本文が使う定義は、本文の末尾に加えます'
   PW-SESSION-FINISH:
     summary: マージ済みの PR の手元の後片付けをします。待っている Issue の判定の変化と、スタックし直す Issue を返します。GitHub を読み書きしません。
     arguments:

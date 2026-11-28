@@ -34,7 +34,7 @@ import type { AlertRead } from './official-reads-release.js'
 const CHECK_PATH = ['release', 'check']
 
 const RELEASE_CHECK_INPUT = z.object({
-  params: RELEASE_CREATE_PARAMS.optional().describe('The params of the release-create operation of github-ops: tag (v<version>, or <package>-v<version> in a monorepo), sha (the head of the release branch), body (the CHANGELOG section of the version) and name. Omit it when release_type is nx'),
+  params: RELEASE_CREATE_PARAMS.optional().describe('The params of the release-create operation of github-ops: tag (v<version>, or <package>-v<version> in a monorepo), sha (the head of the release branch), body (the release notes of the CHANGELOG section of the version, see releaseNotes) and name. Omit it when release_type is nx'),
   project: PROJECT_INPUT,
   reads: z.object({
     dependabot_alerts: ALERT_READ.optional().describe('list_dependabot_alerts with state open'),
@@ -57,7 +57,7 @@ const RELEASE_CHECK_OUTPUT = z.strictObject({
     alertsUrl: z.string().describe('URL of the alert list'),
   }).optional().describe('Dependabot alert status; open alerts only warn and do not block the release (omitted when it could not be read)'),
   version: z.string().optional().describe('Version of the tag in params (omitted when the tag cannot be read, or release_type is nx)'),
-  releaseNotes: z.string().optional().describe('The CHANGELOG section of the version, the body the release must have (omitted when it cannot be read)'),
+  releaseNotes: z.string().optional().describe('The release notes the body must be: the CHANGELOG section of the version, keeping only the link and footnote definitions it uses and adding those defined outside the section (omitted when it cannot be read)'),
   commitCount: z.int().optional().describe('Number of commits from the previous release tag to sha (omitted when there is no previous tag)'),
 })
 
@@ -272,7 +272,7 @@ async function releaseChecks(output: Readonly<Output>, target: Readonly<ReleaseT
   const notes = releaseNotesOf(changelogPathOf(target.gitRoot, target.repositoryConfig, prefix), version)
   if ('problem' in notes) problems.push(notes.problem)
   else if (pythonStrip(parameters.body) !== pythonStrip(notes.notes)) {
-    problems.push({ field: 'params.body', code: 'body-mismatch', message: `body must be the CHANGELOG section of ${version}`, candidates: [notes.notes] })
+    problems.push({ field: 'params.body', code: 'body-mismatch', message: `body must be the release notes of ${version} (see candidates)`, candidates: [notes.notes] })
   }
   const name = prefix === undefined ? parameters.tag : `${prefix} v${version}`
   if ((parameters.name ?? parameters.tag) !== name) problems.push({ field: 'params.name', code: 'release-name', message: `the release name must be ${name}`, candidates: [name] })
@@ -295,7 +295,7 @@ async function releaseChecks(output: Readonly<Output>, target: Readonly<ReleaseT
 const releaseCheckCommand = defineTool({
   name: 'release_check',
   title: 'Check release',
-  description: 'Check the params for the release-create operation of github-ops before the release: no open code scanning or secret scanning alert (open Dependabot alerts only warn), the tag is new on the local repository, the remote and GitHub, the body is the CHANGELOG section of the version, and sha is the head of the release branch with commits since the previous release tag. For an nx repository only the alerts are checked. Reads the local git and the git remote, not the GitHub API; pass the results of the official reads in reads.',
+  description: 'Check the params for the release-create operation of github-ops before the release: no open code scanning or secret scanning alert (open Dependabot alerts only warn), the tag is new on the local repository, the remote and GitHub, the body is the release notes of the CHANGELOG section of the version, and sha is the head of the release branch with commits since the previous release tag. For an nx repository only the alerts are checked. Reads the local git and the git remote, not the GitHub API; pass the results of the official reads in reads.',
   input: RELEASE_CHECK_INPUT,
   output: RELEASE_CHECK_OUTPUT,
   run: async (input, io) => {

@@ -3121,7 +3121,7 @@
     {
       "id": "PW-RELEASE-CHECK",
       "name": "release_check",
-      "description": "Check the params for the release-create operation of github-ops before the release: no open code scanning or secret scanning alert (open Dependabot alerts only warn), the tag is new on the local repository, the remote and GitHub, the body is the CHANGELOG section of the version, and sha is the head of the release branch with commits since the previous release tag. For an nx repository only the alerts are checked. Reads the local git and the git remote, not the GitHub API; pass the results of the official reads in reads.",
+      "description": "Check the params for the release-create operation of github-ops before the release: no open code scanning or secret scanning alert (open Dependabot alerts only warn), the tag is new on the local repository, the remote and GitHub, the body is the release notes of the CHANGELOG section of the version, and sha is the head of the release branch with commits since the previous release tag. For an nx repository only the alerts are checked. Reads the local git and the git remote, not the GitHub API; pass the results of the official reads in reads.",
       "surfaces": {
         "mcp": {
           "tool": "release_check"
@@ -3160,7 +3160,7 @@
               "tag"
             ],
             "additionalProperties": false,
-            "description": "The params of the release-create operation of github-ops: tag (v<version>, or <package>-v<version> in a monorepo), sha (the head of the release branch), body (the CHANGELOG section of the version) and name. Omit it when release_type is nx"
+            "description": "The params of the release-create operation of github-ops: tag (v<version>, or <package>-v<version> in a monorepo), sha (the head of the release branch), body (the release notes of the CHANGELOG section of the version, see releaseNotes) and name. Omit it when release_type is nx"
           },
           "project": {
             "type": "string",
@@ -3319,7 +3319,7 @@
               "type": "string"
             },
             "releaseNotes": {
-              "description": "The CHANGELOG section of the version, the body the release must have (omitted when it cannot be read)",
+              "description": "The release notes the body must be: the CHANGELOG section of the version, keeping only the link and footnote definitions it uses and adding those defined outside the section (omitted when it cannot be read)",
               "type": "string"
             },
             "commitCount": {

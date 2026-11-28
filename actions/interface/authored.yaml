@@ -1035,7 +1035,7 @@ entries:
     stdin: none
     output:
       format: text
-      description: 'outputs はありません。実行のログに、確認ごとの行を出します。Nx でないリポジトリでは、標準出力に `version:`・`tag:` の行と、CHANGELOG から取ったリリースノートも出します。'
+      description: 'outputs はありません。実行のログに、確認ごとの行を出します。Nx でないリポジトリでは、標準出力に `version:`・`tag:` の行と、CHANGELOG の版の節から作ったリリースノートも出します。'
     diagnostics: '実行のログに、alert の確認ごとに `count`・`skipped`・`warning`・`error` のどれかの行を出します。Nx でないリポジトリでは、リリースするコミットの数を `count` の行で出します。止めるときは、理由を `error` の行に出します。'
     environment:
       - name: GITHUB_REPOSITORY
@@ -1131,6 +1131,9 @@ entries:
       - id: PA-RELEASE-CHECK-11
         pattern: event
         statement: '`log-file` を渡すと、出力の行を実行のログに加えて、そのファイルに同じ順で書きます'
+      - id: PA-RELEASE-CHECK-12
+        pattern: ubiquitous
+        statement: '常に、リリースノートからは、版の節の本文が使わないリンクと脚注の定義を除きます。ただし、リストや引用の中の定義は残します。節の外にある、本文が使う定義は、本文の末尾に加えます'
   PA-AUTO-GATE:
     summary: 'GitHub Actions のイベントから、自動処理を進めるかと、その種類を決めます。進めないときに Issue へ知らせる理由があれば、結果のコメントを書きます。'
     arguments:

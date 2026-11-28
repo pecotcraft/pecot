@@ -153,6 +153,16 @@ describe('release check', () => {
     expect(result.stdout).toBe('version: 0.2.0\ntag: v0.2.0\n\n### 追加\n\n- 新機能 A\n- 新機能 B\n')
   })
 
+  it('CHANGELOG の末尾にリンク定義があると、本文が使う定義だけを加えたリリースノートを標準出力に出す', async (context) => {
+    await verifies(context, 'PA-RELEASE-CHECK-12')
+    await explains('`release-check` の action のリリースノートのテストです。ファイル末尾に版と参照リンクの定義を置いた CHANGELOG の場合に、本文が使う定義だけを末尾に加えて出すことを確認します。')
+    const changelog = '# Changelog\n\n## [0.2.0] - 2026-01-02\n\n- [docs][d]\n\n## [0.1.0] - 2026-01-01\n\n- 初回リリース\n\n[0.2.0]: https://example.com/v0.2.0\n[0.1.0]: https://example.com/v0.1.0\n[d]: https://example.com/docs\n'
+    prepare({ files: { 'CHANGELOG.md': changelog } })
+    const result = await check([...alertRules(), restRule('GET', `${REPOSITORY}/compare/main...develop`, 200, { ahead_by: 2 })])
+    expect(result.code).toBe(0)
+    expect(result.stdout).toBe('version: 0.2.0\ntag: v0.2.0\n\n- [docs][d]\n\n[d]: https://example.com/docs\n')
+  })
+
   it('CHANGELOG が無いと、error の行を出して失敗にする', async (context) => {
     await verifies(context, 'PA-RELEASE-CHECK-09')
     await explains('`release-check` の action のテストです。Nx でないリポジトリに CHANGELOG が無いとき、見つからないファイルのパスを `error` の行に出して終了コード 1 で止めることを確認します。')

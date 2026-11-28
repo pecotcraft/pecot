@@ -2,6 +2,10 @@
 // ファイルは読まない。内容（文字列）を受けて値を返す。ファイルを読む側は infra/changelog-file.ts にある。
 // Python の re と同じ判定にする（\d は Unicode の 10 進数字、\s は str.isspace、$ は末尾の改行 1 つの前でも合う）。
 
+import { fromMarkdown } from 'mdast-util-from-markdown'
+import { gfmFromMarkdown } from 'mdast-util-gfm'
+import { gfm } from 'micromark-extension-gfm'
+
 import { PecotError } from './errors.js'
 import { PYTHON_LINE_BREAK, pythonStrip, splitCodePoints } from './python-format.js'
 
@@ -84,25 +88,134 @@ export function getLatestVersion(content: string, fileName = DEFAULT_CHANGELOG_F
 }
 
 /**
+リンク定義（`[x]: url`）と脚注の定義（`[^x]: text`）。参照との対応は、組（link・footnote）と正規化したラベルの `key` で取る
+*/
+interface MarkdownDefinition {
+  readonly key: string
+  readonly kind: 'link' | 'footnote'
+  // 行の配列の番号（0 始まり）。終わりの行も含む
+  readonly startLine: number
+  readonly endLine: number
+  readonly source: string
+  // root の直下にあるか。リストや引用の中の定義は、行を除くと印まで消えるので、除かない
+  readonly topLevel: boolean
+  // 脚注の定義の中にある参照の key
+  readonly references: ReadonlySet<string>
+}
+
+interface MarkdownReference {
+  readonly key: string
+  readonly line: number
+}
+
+interface MarkdownLinks {
+  // ファイルでの順
+  readonly definitions: readonly MarkdownDefinition[]
+  // 定義の外にある参照
+  readonly references: readonly MarkdownReference[]
+}
+
+function lineIndexOf(point: { readonly line: number }): number {
+  return point.line - 1
+}
+
+/**
+GitHub が描く形（CommonMark と GFM）で読み、定義と参照を集める。定義の判定（字下げ・段落の途中・コードの中・ラベルの正規化）はパーサに任せる
+*/
+function collectMarkdownLinks(text: string): MarkdownLinks {
+  const tree = fromMarkdown(text, { extensions: [gfm()], mdastExtensions: [gfmFromMarkdown()] })
+  type MarkdownNode = typeof tree | (typeof tree)['children'][number]
+  const definitions: MarkdownDefinition[] = []
+  const references: MarkdownReference[] = []
+
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- mdast の型は可変
+  const visit = (node: MarkdownNode, depth: number, owner: Set<string> | undefined): void => {
+    const position = node.position
+    if (position === undefined) return
+    if (node.type === 'linkReference' || node.type === 'imageReference' || node.type === 'footnoteReference') {
+      const key = `${node.type === 'footnoteReference' ? 'footnote' : 'link'}:${node.identifier}`
+      if (owner === undefined) references.push({ key, line: lineIndexOf(position.start) })
+      else owner.add(key)
+    }
+    let inner = owner
+    if (node.type === 'definition' || node.type === 'footnoteDefinition') {
+      const kind = node.type === 'definition' ? 'link' : 'footnote'
+      const ownReferences = new Set<string>()
+      definitions.push({
+        key: `${kind}:${node.identifier}`,
+        kind,
+        startLine: lineIndexOf(position.start),
+        endLine: lineIndexOf(position.end),
+        source: text.slice(position.start.offset, position.end.offset),
+        topLevel: depth === 1,
+        references: ownReferences,
+      })
+      inner = ownReferences
+    }
+    if ('children' in node) {
+      for (const child of node.children) visit(child, depth + 1, inner)
+    }
+  }
+  visit(tree, 0, undefined)
+  return { definitions, references }
+}
+
+/**
 ## [X.Y.Z] の次の行から次の `## ` セクションまでの内容を返す。無ければ VersionNotFoundError。
+節の本文が使わないリンク・脚注の定義（版の見出しのための `[X.Y.Z]: url` など）は除く。
+節の外にある、本文の使う定義は、本文の末尾に空行を挟んでファイルでの順に足す。
+同じラベルの定義が複数あれば、CommonMark と同じく、ファイルで最初の定義を使う。
 fileName は、エラー文に出す CHANGELOG のファイル名
 */
 export function extractVersionReleaseNotes(content: string, version: string, fileName = DEFAULT_CHANGELOG_FILE): string {
   const heading = `[${version}]`
-  let isInVersion = false
-  const versionLines: string[] = []
+  const lines = splitLines(content)
+  const headingIndex = lines.findIndex(line => headingRest(line)?.startsWith(heading) === true)
+  if (headingIndex === -1) throw new VersionNotFoundError(`version not found in ${fileName}: ${version}`)
+  // 次の ## セクションの手前まで
+  const nextIndex = lines.findIndex((line, index) => index > headingIndex && line.startsWith('## '))
+  const endIndex = nextIndex === -1 ? lines.length : nextIndex
+  const isInSection = (line: number): boolean => line > headingIndex && line < endIndex
 
-  for (const line of splitLines(content)) {
-    if (headingRest(line)?.startsWith(heading) === true) {
-      isInVersion = true
-      continue
-    }
-    if (!isInVersion) continue
-    // 次の ## セクションが来たら終了
-    if (line.startsWith('## ')) break
-    versionLines.push(line)
+  const { definitions, references } = collectMarkdownLinks(lines.join('\n'))
+  const effective = new Map<string, MarkdownDefinition>()
+  for (const definition of definitions) {
+    if (!effective.has(definition.key)) effective.set(definition.key, definition)
   }
 
-  if (!isInVersion) throw new VersionNotFoundError(`version not found in ${fileName}: ${version}`)
-  return pythonStrip(versionLines.join('\n'))
+  // 本文が使う key。入れ子で残る定義の中の参照と、残す・足す定義の中の参照も、増えなくなるまで数える
+  const used = new Set(references.filter(reference => isInSection(reference.line)).map(reference => reference.key))
+  for (const definition of definitions) {
+    if (!definition.topLevel && isInSection(definition.startLine)) {
+      for (const key of definition.references) used.add(key)
+    }
+  }
+  const pending = [...used]
+  for (let key = pending.pop(); key !== undefined; key = pending.pop()) {
+    const innerKeys = effective.get(key)?.references ?? []
+    for (const inner of innerKeys) {
+      if (used.has(inner)) continue
+      used.add(inner)
+      pending.push(inner)
+    }
+  }
+  const isKept = (definition: MarkdownDefinition): boolean => used.has(definition.key) && effective.get(definition.key) === definition
+
+  const removedLines = new Set<number>()
+  for (const definition of definitions) {
+    if (!definition.topLevel || !isInSection(definition.startLine) || isKept(definition)) continue
+    for (let line = definition.startLine; line <= definition.endLine; line += 1) removedLines.add(line)
+  }
+  const body = pythonStrip(lines.slice(headingIndex + 1, endIndex).filter((_line, offset) => !removedLines.has(headingIndex + 1 + offset)).join('\n'))
+
+  const appended = definitions.filter(definition => isKept(definition) && !isInSection(definition.startLine))
+  // 脚注の定義の後ろの行は、段落の続きとして読まれるので、脚注の前後は空行で分ける
+  let notes = body
+  let previous: MarkdownDefinition | undefined
+  for (const definition of appended) {
+    const separator = previous === undefined || definition.kind === 'footnote' || previous.kind === 'footnote' ? '\n\n' : '\n'
+    notes += `${separator}${definition.source}`
+    previous = definition
+  }
+  return notes
 }
