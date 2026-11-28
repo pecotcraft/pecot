@@ -186,28 +186,31 @@ describe('tools/list', () => {
 
   it('destructiveHint: false を返すのは足すだけの 2 個だけで、ほかの書き込むツールは true を返す', async () => {
     await explains('書き込むツールの `destructiveHint` のテストです。`false` を返すのは足すだけの `session_start` と `worktree_init` だけで、ほかの書き込むツールは `true` を返すことを確認します。')
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    const writing = tools.filter(tool => tool.annotations?.readOnlyHint === false)
-    expect(writing.filter(tool => tool.annotations?.destructiveHint === false).map(tool => tool.name).toSorted(byName)).toEqual(ADDITIVE_TOOLS)
-    expect(writing.filter(tool => tool.annotations?.destructiveHint !== false).every(tool => tool.annotations?.destructiveHint === true)).toBe(true)
+    const tools = await step('サーバへつないで、ツールの一覧を取る', async () => await listTools())
+    stepSync('書き込むツールの destructiveHint を比べる', () => {
+      const writing = tools.filter(tool => tool.annotations?.readOnlyHint === false)
+      expect(writing.filter(tool => tool.annotations?.destructiveHint === false).map(tool => tool.name).toSorted(byName)).toEqual(ADDITIVE_TOOLS)
+      expect(writing.filter(tool => tool.annotations?.destructiveHint !== false).every(tool => tool.annotations?.destructiveHint === true)).toBe(true)
+    })
   })
 
   it('idempotentHint: true を返すのは呼び直しても作用が増えない書き込むツールの 8 個だけで、ほかの書き込むツールは false を返す', async () => {
     await explains('書き込むツールの `idempotentHint` のテストです。`true` を返すのは定義書の `idempotent` が `true` の 8 個だけで、ほかの書き込むツールは `false` を返すことを確認します。')
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    const writing = tools.filter(tool => tool.annotations?.readOnlyHint === false)
-    expect(writing.filter(tool => tool.annotations?.idempotentHint === true).map(tool => tool.name).toSorted(byName)).toEqual(IDEMPOTENT_WRITE_TOOLS)
-    expect(writing.filter(tool => tool.annotations?.idempotentHint !== true).every(tool => tool.annotations?.idempotentHint === false)).toBe(true)
+    const tools = await step('サーバへつないで、ツールの一覧を取る', async () => await listTools())
+    stepSync('書き込むツールの idempotentHint を比べる', () => {
+      const writing = tools.filter(tool => tool.annotations?.readOnlyHint === false)
+      expect(writing.filter(tool => tool.annotations?.idempotentHint === true).map(tool => tool.name).toSorted(byName)).toEqual(IDEMPOTENT_WRITE_TOOLS)
+      expect(writing.filter(tool => tool.annotations?.idempotentHint !== true).every(tool => tool.annotations?.idempotentHint === false)).toBe(true)
+    })
   })
 
   it('読むだけのツールは、destructiveHint と idempotentHint を返さない', async () => {
     await explains('読み取り専用のツールの `annotations` のテストです。`readOnlyHint` が `true` のツールが、`destructiveHint` と `idempotentHint` のどちらも持たないことを確認します。')
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    const hinted = tools.filter(tool => tool.annotations?.readOnlyHint === true && (Object.hasOwn(tool.annotations, 'destructiveHint') || Object.hasOwn(tool.annotations, 'idempotentHint')))
-    expect(hinted.map(tool => tool.name)).toEqual([])
+    const tools = await step('サーバへつないで、ツールの一覧を取る', async () => await listTools())
+    stepSync('読むだけのツールにヒントが無いことを確かめる', () => {
+      const hinted = tools.filter(tool => tool.annotations?.readOnlyHint === true && (Object.hasOwn(tool.annotations, 'destructiveHint') || Object.hasOwn(tool.annotations, 'idempotentHint')))
+      expect(hinted.map(tool => tool.name)).toEqual([])
+    })
   })
 
   it('全ツールの annotations は、定義書の mcp.annotations に一致する', async () => {
