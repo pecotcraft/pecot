@@ -28,13 +28,13 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 
 | 種類 | 名前 | 値 | 付ける所 |
 |---|---|---|---|
-| ラベル | `project` | nx の project の名前 | vitest は reporter の `globalLabels`、pytest は `conftest.py`、bash は `allure-result.sh`（`bash-test.sh` と bats の formatter が呼ぶ） |
+| ラベル | `project` | nx の project の名前 | vitest は reporter の `globalLabels`、pytest は `conftest.py`、bash は `allure-result.sh`（bats の formatter と `run.sh` が呼ぶ） |
 | ラベル | `lane` | nx の target の名前 | 同上 |
-| ラベル | `epic` | nx の project の名前（#811） | vitest は reporter の `globalLabels`、pytest は `conftest.py`、bash は `allure-result.sh`（`bash-test.sh` と bats の formatter が呼ぶ） |
-| ラベル | `feature` | 要件の ID を持つテストは、ID の属する定義書の項目の `name`（`<接頭辞>-COMMON-NN` は `<プラグイン> 共通`）。持たないテストは、ファイルのディレクトリ（リポのルートからのパス）（#811） | vitest は reporter の `listeners` の `beforeTestResultWrite`、pytest は `conftest.py`、bash は `allure-result.sh`（`bash-test.sh` と bats の formatter が呼ぶ） |
+| ラベル | `epic` | nx の project の名前（#811） | vitest は reporter の `globalLabels`、pytest は `conftest.py`、bash は `allure-result.sh`（bats の formatter と `run.sh` が呼ぶ） |
+| ラベル | `feature` | 要件の ID を持つテストは、ID の属する定義書の項目の `name`（`<接頭辞>-COMMON-NN` は `<プラグイン> 共通`）。持たないテストは、ファイルのディレクトリ（リポのルートからのパス）（#811） | vitest は reporter の `listeners` の `beforeTestResultWrite`、pytest は `conftest.py`、bash は `allure-result.sh`（bats の formatter と `run.sh` が呼ぶ） |
 | ラベル | `story` | 要件の ID を持つテストは、その ID。持たないテストは、ファイル（リポのルートからのパス）（#811） | 同上 |
-| ラベル | `layer` | `unit`・`integration`・`e2e`。テストのファイルの属する project の `test-layers.txt` で決める（#813） | vitest は reporter の `listeners` の `beforeTestResultWrite`、pytest は `conftest.py`、bash は `bash-test.sh` |
-| ラベル | `severity` | テストに書いた段階。無ければ project・lane と要件の ID の有無から決めた段階（`.claude/rules/test-conventions.md` の「重大度」）（#812） | vitest は reporter の `listeners` の `beforeTestResultWrite`（`severityOf`）、pytest は `conftest.py`（minor）、bash は `bash-test.sh`（`bt_severity` か場所から決めた段階） |
+| ラベル | `layer` | `unit`・`integration`・`e2e`。テストのファイルの属する project の `test-layers.txt` で決める（#813） | vitest は reporter の `listeners` の `beforeTestResultWrite`、pytest は `conftest.py`、bash は `allure-result.sh` の `allure_result_layer` |
+| ラベル | `severity` | テストに書いた段階。無ければ project・lane と要件の ID の有無から決めた段階（`.claude/rules/test-conventions.md` の「重大度」）（#812） | vitest は reporter の `listeners` の `beforeTestResultWrite`（`severityOf`）、pytest は `conftest.py`（minor）、bash は bats の `severity` で書いた段階か、`allure-result.sh` の `allure_result_severity_default` |
 | ラベル | `tag` | 要件の ID（`PW-…-01` など） | `verifies` |
 | リンク（型 `tms`） | 名前は要件の ID | `<側の URL>permalink.html?id=<ID>` | `verifies` と、reporter の `links.tms.urlTemplate` |
 | 添付 | テストが決める名前 | 判定に使った画面の画像か成果物 | 対象のテスト（research R11） |
@@ -46,22 +46,22 @@ Allure の結果（`<uuid>-result.json`）に、このリポが足すもの。vi
 - 側の URL は、環境変数 `PECOT_REPORT_SITE_URL` で渡す。開発版は `https://pecotcraft.github.io/pecot/dev/`、リリース版は `https://pecotcraft.github.io/pecot/`。渡さなければ `http://localhost:8000/`
   - 開発版の材料になる PR の CI とマージキューの結果には、`ci.yml` の workflow の env が開発版の URL を渡す（#821）。この変数は nx の入力なので、両方の run に同じ値を渡して、マージキューが PR の run の nx キャッシュを取り込めるようにする
 - bash のテストにはアダプタが無いので、`.githooks/scripts/test_report/allure-result.sh` が結果のファイルを書く
-  - 呼ぶのは、`bt_*` の `bash-test.sh` と、bats の report formatter（`bats/allure-formatter.sh`）。bats 用の Allure の連携は、公式の物も第三者の物も無い（2026-11-27 に検索した）
+  - 呼ぶのは、bats の report formatter（`bats/allure-formatter.sh`）と、読み込めなかったファイルの結果を書く `bats/run.sh`。bats 用の Allure の連携は、公式の物も第三者の物も無い（2026-11-27 に検索した）
   - 上の `project`・`lane` のほかに書く欄は次のとおり
 
-| 欄 | `bt_*` の値 | bats の値 |
-|---|---|---|
-| `name` | 確かめの題 | `@test` の題 |
-| `fullName` | `<project>:<target> <ファイルのパス>#<題>`。2 つのレーンで動くファイルが、1 件の再実行にまとまらないようにレーンを入れる | 同じ |
-| `status` | `passed`・`failed`・`skipped`。ファイルが `bt_finish` の前で終わったら、題「最後まで動く」の `broken` | ok は `passed`、not ok は `failed`、skip は `skipped`。ファイルの単位の失敗（`setup_file` など）と timeout は `broken`。bats がファイルを読み込めなければ、題「読み込む」の `broken` |
-| `statusDetails` | `message` に理由、`bt_eq`・`bt_ne` は `expected`・`actual` も。broken は `trace` に stderr の末尾 20 行 | `message` に bats-assert の見出しか失敗したコマンドの行、`trace` に not ok の後の行。bats-assert の比べた値は `expected`・`actual` に入れる |
-| `description` | 無い | `explains` に渡した説明 |
-| `start`・`stop` | 整数のミリ秒。`start` は前の確かめの終わり | 整数のミリ秒。`start` は `stop` から bats の `-T` の時間を引いた値 |
-| ラベル `parentSuite` | リポのルートからのファイルのパス。vitest の結果と同じ段 | 同じ |
-| ラベル `epic`・`feature`・`story` | `$NX_TASK_TARGET_PROJECT`・ファイルのディレクトリ・ファイル（どちらもリポのルートからのパス） | 同じ |
-| ラベル `layer` | ファイルの属する project の `test-layers.txt` で引いた層。引けなければ書かない | 同じ |
-| ラベル `severity` | ファイルで `bt_severity` を呼んだ後は、その段階。ほかは `$NX_TASK_TARGET_PROJECT`・`$NX_TASK_TARGET_TARGET` から決めた段階 | `@test` で `severity` を呼べば、その段階。ほかは同じ |
-| ラベル `host`・`thread`・`language`・`framework` | `$HOSTNAME`・ファイルの PID・`bash`・`bash` | `$HOSTNAME`・formatter の PID・`bash`・`bats` |
+| 欄 | bats の値 |
+|---|---|
+| `name` | `@test` の題 |
+| `fullName` | `<project>:<target> <ファイルのパス>#<題>`。2 つのレーンで動くファイルが、1 件の再実行にまとまらないようにレーンを入れる |
+| `status` | ok は `passed`、not ok は `failed`、skip は `skipped`。ファイルの単位の失敗（`setup_file` など）と timeout は `broken`。bats がファイルを読み込めなければ、題「読み込む」の `broken` |
+| `statusDetails` | `message` に bats-assert の見出しか失敗したコマンドの行、`trace` に not ok の後の行。bats-assert の比べた値は `expected`・`actual` に入れる |
+| `description` | `explains` に渡した説明 |
+| `start`・`stop` | 整数のミリ秒。`start` は `stop` から bats の `-T` の時間を引いた値 |
+| ラベル `parentSuite` | リポのルートからのファイルのパス。vitest の結果と同じ段 |
+| ラベル `epic`・`feature`・`story` | `$NX_TASK_TARGET_PROJECT`・ファイルのディレクトリ・ファイル（どちらもリポのルートからのパス） |
+| ラベル `layer` | ファイルの属する project の `test-layers.txt` で引いた層。引けなければ書かない |
+| ラベル `severity` | `@test` で `severity` を呼べば、その段階。ほかは `$NX_TASK_TARGET_PROJECT`・`$NX_TASK_TARGET_TARGET` から決めた段階 |
+| ラベル `host`・`thread`・`language`・`framework` | `$HOSTNAME`・formatter の PID・`bash`・`bats` |
 
 ## レポートの材料（ReportSources）
 

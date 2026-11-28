@@ -14,10 +14,8 @@ unset PLUGIN_DATA
 GATE_PLUGIN_DATA="$(mktemp -d)"
 export CLAUDE_PLUGIN_DATA="$GATE_PLUGIN_DATA"
 
-# bash のテストは bats/run.sh で動かし、nx のレーンなら結果を bt_results_dir の Allure の結果に残す。
-# shellcheck source=../../../../.githooks/scripts/test_report/bash-test.sh
-. "$PLUGIN_ROOT/../../.githooks/scripts/test_report/bash-test.sh"
-PECOT_REPORT_RESULTS="$(bt_results_dir "$PLUGIN_ROOT")"
+# bash のテストは bats/run.sh で動かし、nx のレーンなら結果を test-results/<target>/allure-results に残す。
+PECOT_REPORT_RESULTS="${NX_TASK_TARGET_TARGET:+$PLUGIN_ROOT/test-results/$NX_TASK_TARGET_TARGET/allure-results}"
 
 SCOPE="all"
 for arg in "$@"; do

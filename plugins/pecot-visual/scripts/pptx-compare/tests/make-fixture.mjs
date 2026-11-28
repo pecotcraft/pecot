@@ -6,7 +6,7 @@
  *
  * 出力先は引数で受ける。
  * project ディレクトリ内に生成すると、nx の `default` 入力に紛れ込む。
- * そのため、呼び出し側の `.test.sh` が `mktemp -d` 配下を渡す。
+ * そのため、呼び出し側の `compare-pptx.bats`・`inspect-pptx.bats` が `$BATS_FILE_TMPDIR` 配下を渡す。
  *
  * base の構成は次のとおり。
  * 2 slide。`p:embeddedFontLst` は 2 書体 3 slot。fntdata は 3 本。
@@ -34,7 +34,7 @@ const SLIDE_SIZE = [9144000, 5143500]
 /** inspect-pptx.mjs 用 variant が追加する svg media の内容。 */
 export const INSPECT_SVG = '<svg xmlns="http://www.w3.org/2000/svg"/>'
 
-/** 合成できる variant の一覧。`.test.sh` の網羅と 1:1 で対応する。 */
+/** 合成できる variant の一覧。`compare-pptx.bats`・`inspect-pptx.bats` の網羅と 1:1 で対応する。 */
 export const VARIANTS = [
   'base',
   'xmlns-order',

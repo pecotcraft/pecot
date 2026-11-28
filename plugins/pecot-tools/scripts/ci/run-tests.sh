@@ -35,9 +35,8 @@ esac
 
 # shellcheck source=pnpm-lib.sh
 . "$PLUGIN_ROOT/scripts/ci/pnpm-lib.sh"
-# shellcheck source=../../../../.githooks/scripts/test_report/bash-test.sh
-. "$PLUGIN_ROOT/../../.githooks/scripts/test_report/bash-test.sh"
-PECOT_REPORT_RESULTS="$(bt_results_dir "$PLUGIN_ROOT")"
+# bash のテストは bats/run.sh で動かし、nx のレーンなら結果を test-results/<target>/allure-results に残す。
+PECOT_REPORT_RESULTS="${NX_TASK_TARGET_TARGET:+$PLUGIN_ROOT/test-results/$NX_TASK_TARGET_TARGET/allure-results}"
 
 PNPM="$(resolve_pnpm "$PLUGIN_ROOT")"
 if [ -z "$PNPM" ]; then

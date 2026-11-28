@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # bash のテストの結果を Allure の結果（{uuid}-result.json）に書く関数。source 専用。
-# bash-test.sh（bt_*）と bats の allure-formatter が使う。
+# bats の run.sh と allure-formatter が使う。
 
 if [ -n "${_ALLURE_RESULT_LOADED:-}" ]; then
     return 0
@@ -60,14 +60,6 @@ allure_result_layer() {
         fi
     done < "$root/$project/test-layers.txt"
     printf '%s' "$best"
-}
-
-# allure_result_is_severity <段階>: Allure の重大度の 5 つの段階のどれかなら 0 を返す。
-allure_result_is_severity() {
-    case "${1:-}" in
-        blocker | critical | normal | minor | trivial) return 0 ;;
-        *) return 1 ;;
-    esac
 }
 
 # allure_result_severity_default <project> <lane>: 重大度の表（test-conventions.md）を上から読んだ段階。bash に verifies は無く、critical にならない。

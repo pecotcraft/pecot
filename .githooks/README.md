@@ -12,7 +12,7 @@
       `finish-ci-summary.sh`・`dev-container.sh`・`find-pr-ci-base.sh`
   - `.githooks/lib/` : hook が `source` する共有スクリプトと、所要を記録する `with-timing.sh`
   - `.githooks/scripts/` : hook の stage に属さず、複数のプロジェクトにまたがって install・CI・リリース・hook から呼ぶスクリプト。1 つのプラグインだけが使うものは、手で打つものも含めて `plugins/<name>/scripts/` に置く
-  - `.githooks/tests/` : 上の hook・lib・scripts のテスト（pytest）。`*.test.sh` は `.githooks/scripts/tests/` に置く
+  - `.githooks/tests/` : 上の hook・lib・scripts のテスト（pytest）。`*.bats` は `.githooks/scripts/tests/` に置く
   - `tests/test_pre_commit_config_wiring.py` が、置き場のディレクトリと `stages:` の一致を確かめる
 - プラグイン固有 CI : `plugins/<plugin>/scripts/ci/run-{lint,tests}.sh`
 

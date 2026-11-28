@@ -1,4 +1,4 @@
-// フックが呼ぶ file_lint・file_validate・file_brief の応答。hooks/tests/post-tool-use/*.test.sh のケースを写した。
+// フックが呼ぶ file_lint・file_validate・file_brief の応答。#841 で消した hooks/tests/post-tool-use の bash のテストのケースを写した。
 // eslint・validator・pecot-text-lint は実物を動かす。時間切れ・異常終了・例外だけ spawnPromise で作る。
 
 /* eslint-disable security/detect-non-literal-fs-filename -- 一時ディレクトリの組み立てだけ */
