@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { explains } from '../../../tests/_helpers/explains.js'
 
 import { CommandExit } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import { requireReleaseTargetRepository } from '@pecot/workflow-core/commands-shared/release-check.js'
+import { requireReleaseTargetRepository } from '@pecot/workflow-core/commands-shared/release-target.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { createGitRepository, gitForTest } from '../../../../../../libs/workflow-core/tests/_helpers/git-repository.js'

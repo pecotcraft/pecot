@@ -26,7 +26,7 @@ hooks:
 ### Step 1: Issue作成（issue_write）
 
 公式の MCP の `issue_write` で、Issue を作る。基本形（親Epicなし）は、テンプレを通さない自由形式で作る。
-書く前に、pecot-workflow の MCP ツール `issue_check` に、`template` を渡さずに通す。手順は [Issue とコメントを公式の MCP で書く](../w-help/references/issue-write.md) の「Issue を作る」。
+書く前に、pecot-workflow の MCP ツール `issue_check` に、`template` を渡さずに通す。手順は [GitHub に公式の MCP と github-ops で書く](../w-help/references/github-write.md) の「Issue を作る」。
 
 **本文の書き方:** テンプレを経由しないため、書いた本文がそのままIssue本文になる。読者は着手する実装者（直後の自分）と後から経緯を追う人。冒頭に要点を1行、達成したい状態を簡潔な箇条書きで書く。実装手順・ファイル名は書かない（planの領分）。段落で埋めない。箇条書きは項目間に空行を入れる。
 
@@ -34,8 +34,8 @@ hooks:
 
 - タイトルは、本文の 1 行目の先頭 50 文字に `[Task]` を付けたもの。本文の末尾に、自由形式の定型の 1 行を足す。どちらも `issue_check` が確かめ、外れたら直す文を返す
 - テンプレートの見出しは確かめない
-- ブランチは作られない（Step 2 の `session_start` が作る）
-- 固定設定: kind=task。置く列は種類の既定の `Ready`（`session_start` が active にする）
+- ブランチは作られない（Step 2 の github-ops の `link-branch` が作る）
+- 固定設定: kind=task。置く列は種類の既定の `Ready`（Step 2 で `Active` へ動かす）
   - 起票時点が作業開始時点なので、Step 2 で active にする。詳細は [issue-flow-rules.md §4](../w-help/references/issue-flow-rules.md#起票時の既定-status)
 
 **分類（`pecot-lane`）:** 利用者が分類の値を言ったときだけ、`project_fields` に書く。言っていなければ渡さず、尋ねもしない。
@@ -45,16 +45,17 @@ hooks:
 - pecot-workflow の MCP ツール `session_show` を使って、セッションの remote のリポを確かめ、それを `owner`・`repo` にする
 - 詳細: [Issue/PR フロー基本ルール](../w-help/references/issue-flow-rules.md)
 
-### Step 2: ブランチ作成（session_start）とブランチ切り替え
+### Step 2: ブランチ作成とブランチ切り替え
 
 **前提: Step 1でIssueが作成済みであること。**
 
-pecot-workflow の MCP ツール `session_start` を使って、作った Issue に紐づくブランチを作る。`base` は渡さない。スタック先はツールが選ぶ。
+`branch_check` に通してから、github-ops の `link-branch` で、作った Issue に紐づくブランチを作る。手順は [GitHub に公式の MCP と github-ops で書く](../w-help/references/github-write.md) の「作業を始める」にある。
+続けて pecot-workflow の MCP ツール `session_start` を使って手元に作業を記録し、カードを `Active` へ動かす。
 
 **ブランチ名の決め方:**
 
-- `feat/` + タスクの簡潔な説明（英語、ケバブケース）
-- 例: `feat/add-user-authentication`, `feat/fix-login-bug`
+- `feat/` + タスクの簡潔な説明（英語、ケバブケース）+ `/<Issue 番号>`
+- 例: `feat/add-user-authentication/123`, `feat/fix-login-bug/124`
 
 `session_start` の結果に `leftovers` があれば、前にマージされた PR の手元の片付けが残っている。切り替えの前に、PR ごとに [マージされた後の片付け](references/after-merge.md) の「片付け」の節を行う。手元が wt ブランチに戻る。
 
@@ -62,7 +63,7 @@ pecot-workflow の MCP ツール `session_start` を使って、作った Issue 
 
 ```bash
 git fetch origin
-git checkout feat/description
+git checkout feat/description/123
 ```
 
 ### Step 3: 調査

@@ -42,13 +42,18 @@
 着手できるタスクの無い領域が、ビューを開くだけで分かります。
 
 - 値は利用者が決める。プラグイン・チーム・サービスなど、作業を分けたい単位にする。GitHub の画面に出るので、英語の名前にする
-- 値は、pecot-workflow の MCP ツール `project_create`・`project_init` の `lanes` で渡す。`project_init` は、既存の値を残して足りない値だけを足す
-- `lanes` を渡さず、ボードに `pecot-lane` も無いときは、フィールドを作らず、値を決めるよう案内する
-- `Lanes` のビューは、結果の `view.url` で開く。ビューを作れなかったときは、`view.manual_steps` の手順で画面から作る
+- 値は、pecot-workflow の MCP ツール `project_check`（`fields`）の `lanes` で渡す。`project_check` は、既存の値を残して足りない値だけを `problems` に挙げる。足すのは github-ops の `project-fields`（[トラブルシューティング](troubleshooting.md) の「ボードの欄を足す・直す」）
+- `lanes` を渡さないと、`project_check` は `pecot-lane` を求めない
+- `Lanes` のビューは、github-ops の `project-view` で作り、結果の `url` で開く。`params` は次の形にする
+
+  ```text
+  {"project": <ボードの番号>, "name": "Lanes", "column": "pecot-status", "row": "pecot-lane"}
+  ```
+
 - 値の無い Issue は、ビューの「No pecot-lane」のレーンに入る
 
 ## ボードに値が無いとき
 
 `Blocked` と `Needs Attention` は、あれば使う値です。無いボードでも pecot は止まらず、列を動かしません。
 
-値を足すときは、pecot-workflow の MCP ツール `project_init` を呼ぶ。
+値を足すときは、[トラブルシューティング](troubleshooting.md) の「ボードの欄を足す・直す」の手順で足す。

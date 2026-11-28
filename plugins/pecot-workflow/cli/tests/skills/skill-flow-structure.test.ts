@@ -146,7 +146,7 @@ describe('w-active の手順', () => {
   it('ブランチ作成で止まったときは、エラーの案内を利用者に示し、エージェントの判断で先へ進めない', async () => {
     await explains('`w-active` のブランチ作成の Step のテストです。止まった場合は、エラーの案内を利用者に表示して止まり、先へ進む判断をエージェントが行わないと書かれていることを確認します。')
     const body = sectionBody(text, titleIndex(headings, 'ブランチ作成'))
-    for (const word of ['エラーの案内を利用者に示して止まる', 'エージェントの判断で先へ進めない', '前提を見直すかどうかは利用者が決める', '`base` を渡さない']) expect(body).toContain(word)
+    for (const word of ['エラーの案内を利用者に示して止まる', 'エージェントの判断で先へ進めない', '前提を見直すかどうかは利用者が決める', '`branch_check` が `candidates` で示すブランチにする']) expect(body).toContain(word)
   })
 
   it('Step 1 は、着手できる Issue だけを表で表示する', async () => {
@@ -155,11 +155,11 @@ describe('w-active の手順', () => {
     expect(text).toContain('AskUserQuestion は使わない')
   })
 
-  it('ブランチ作成では base を渡さず、スタックして着手した旨を伝える', async () => {
-    await explains('`w-active` のブランチ作成とブランチ切り替えの Step のテストです。`base` を渡さずにブランチを作成し、別の Issue の上にスタックして着手した場合は、その旨を利用者に伝えると書かれていることを確認します。')
+  it('ブランチ作成では branch_check の示す base を使い、スタックして着手した旨を伝える', async () => {
+    await explains('`w-active` のブランチ作成とブランチ切り替えの Step のテストです。`branch_check` が示す `base` でブランチを作成し、別の Issue の上にスタックして着手した場合は、その旨を利用者に伝えると書かれていることを確認します。')
     const create = sectionBody(text, titleIndex(headings, 'ブランチ作成'))
     const switching = sectionBody(text, titleIndex(headings, 'ブランチ切り替え'))
-    expect(create).toContain('`base` は渡さない')
+    for (const word of ['`branch_check`', '`link-branch`', '`session_start`', '`candidates`']) expect(create).toContain(word)
     expect(switching).toContain('作ったブランチに切り替える')
     expect(switching).toContain('別の Issue の上にスタックして着手したときは、その旨を利用者に伝える')
   })
@@ -195,10 +195,10 @@ describe('w-quick の手順', () => {
     expect(body).toContain('`issue_check` に、`template` を渡さずに通す')
   })
 
-  it('Step 2 は、session_start でブランチを作り、切り替える', async () => {
-    await explains('`w-quick` の Step 2 のテストです。`session_start` で、作成した Issue に紐づくブランチを作成し、`git checkout` で切り替えると書かれていることを確認します。')
+  it('Step 2 は、branch_check に通して link-branch でブランチを作り、session_start で記録して切り替える', async () => {
+    await explains('`w-quick` の Step 2 のテストです。`branch_check` に通してから github-ops の `link-branch` でブランチを作成すると書かれていることを確認します。続けて `session_start` で手元に記録し、`git checkout` で切り替えることも確認します。')
     const body = sectionBody(text, numberIndex(headings, 2))
-    expect(body).toContain('`session_start` を使って、作った Issue に紐づくブランチを作る')
+    for (const word of ['`branch_check`', '`link-branch`', '`session_start` を使って手元に作業を記録し']) expect(body).toContain(word)
     expect(body).toContain('git checkout')
   })
 })
@@ -213,14 +213,13 @@ describe('w-review の手順', () => {
     for (const word of ['AskUserQuestion', 'resolveReviewThread', 'review-resolution', 'w-implementer']) expect(text).not.toContain(word)
   })
 
-  it('w-review は、Step 1 の前に、引数の project を pecot-workflow の MCP ツールへ渡す文がある', async () => {
-    await explains('`w-review` の手順の冒頭のテストです。引数に `project=<名前>` がある場合に、その名前を `project` として MCP ツールへ渡す文があることを確認します。')
+  it('w-review は、Step 1 の前に、引数の project を使わない理由を書く', async () => {
+    await explains('`w-review` の手順の冒頭のテストです。引数の `project=<名前>` を使わないことと、その理由として使うツールがボードの設定を読まないことが書かれていることを確認します。')
     const lines = text.split('\n')
     const start = lines.indexOf('## 手順')
     const preamble = lines.slice(start, headings[0]?.line).join('\n')
     expect(start).toBeGreaterThanOrEqual(0)
-    expect(preamble).toContain('引数に `project=<名前>` があれば、このスキルで使う pecot-workflow の MCP ツールに、その名前を `project` で渡す。')
-    expect(preamble).toContain('渡す先は `pr_show` の 1 つ。')
+    expect(preamble).toContain('引数の `project=<名前>` は使わない。このスキルが使う pecot-workflow の MCP ツール（`issue_comment_check`）は、ボードの設定を読まない。')
   })
 
   it('w-review の Step 1 は、スタックし直さない', async () => {
@@ -236,9 +235,10 @@ describe('w-review の手順', () => {
   })
 
   it('w-review の Step 1 は、PR が閉じる Issue とコメントを公式の MCP で読み、計画が存在しなければ計画と比較する手順を省略する', async () => {
-    await explains('`w-review` の Step 1 のテストです。`closing_issues` の Issue を公式の MCP の `issue_read` の `get` と `get_comments` で読むと書かれていることを確認します。計画が存在しない場合は、比較を省略してレビューを続けることも確認します。')
+    await explains('`w-review` の Step 1 のテストです。PR を `pull_request_read` で読み、閉じるキーワードの Issue を `issue_read` で読むと書かれていることを確認します。計画が存在しない場合は、比較を省略してレビューを続けることも確認します。')
     const body = sectionBody(text, numberIndex(headings, 1))
-    for (const phrase of ['`closing_issues`', '`issue_read`', '`get_comments`', '`## Plan` と `## PECOT-Workflow`', '計画と照らす手順を飛ばしてレビューを続ける']) expect(body).toContain(phrase)
+    expect(body).not.toContain('pr_show')
+    for (const phrase of ['`pull_request_read`', '閉じるキーワード', '`issue_read`', '`get_comments`', '`## Plan` と `## PECOT-Workflow`', '計画と照らす手順を飛ばしてレビューを続ける']) expect(body).toContain(phrase)
   })
 
   it('視点の参照は、[tech] の節の下に、計画と比較する節を持つ', async () => {
@@ -341,11 +341,12 @@ describe('w-pr の手順', () => {
     expect(body).toContain('main が [`w-help/references/cuj-run.md`](../w-help/references/cuj-run.md) に従って流し直す。サブエージェントには渡さない。')
   })
 
-  it('Step 5 は、F-NN とスレッドの対応表のクエリを自分で持ち、w-review を案内しない', async () => {
-    await explains('`w-pr` の Step 5 のテストです。F-NN とスレッド ID の対応表を取得するクエリが `w-pr` の中に書かれ、`w-review` への案内が含まれないことを確認します。')
+  it('Step 5 は、F-NN とスレッドの対応表を公式の MCP で読み、w-review を案内しない', async () => {
+    await explains('`w-pr` の Step 5 のテストです。F-NN とスレッド ID の対応表を公式の MCP の `get_review_comments` から作る手順が書かれ、`gh api` と `w-review` への案内が含まれないことを確認します。')
     const body = sectionBody(text, numberIndex(headings, 5))
     expect(body).toContain('#### F-NN とスレッド ID の対応表')
-    expect(body).toContain('reviewThreads(first: 100)')
+    for (const word of ['`get_review_comments`', '`is_resolved`', '`#discussion_r<番号>`']) expect(body).toContain(word)
+    expect(body).not.toContain('gh api')
     expect(body).not.toContain('/pecot-w:w-review')
   })
 
@@ -358,11 +359,12 @@ describe('w-pr の手順', () => {
     expect(body).not.toContain('git rebase')
   })
 
-  it('Step 5 の一括 resolve は、別名を使う', async () => {
-    await explains('`w-pr` の Step 5 の一括 resolve のテストです。複数のスレッドを GraphQL の別名（`t1:` など）で 1 回のクエリにまとめ、`$threadId` の変数は使わないことを確認します。')
+  it('Step 5 の resolve と返信は、公式の MCP のツールで行い、読み直して確かめる', async () => {
+    await explains('`w-pr` の Step 5 の resolve と返信のテストです。返信と resolve を公式の MCP のツールで行い、後でスレッドを読み直すと書かれていることを確認します。')
     const body = sectionBody(text, numberIndex(headings, 5))
-    expect(body.match(/\bt\d+:\s*resolveReviewThread/gu)?.length ?? 0).toBeGreaterThanOrEqual(2)
-    expect(body).not.toContain('$threadId')
+    for (const word of ['`add_reply_to_pull_request_comment`', '`pull_request_review_write`', '`method: resolve_thread`', '`threadId`']) expect(body).toContain(word)
+    expect(body).toContain('`get_review_comments` を読み直し')
+    expect(body).not.toContain('resolveReviewThread')
   })
 
   it('Step 6 は、レビューの指摘に対応した後で、マージを待ち受けて片付ける', async () => {
@@ -434,18 +436,18 @@ describe('w-handoff の手順', () => {
     expect(frontmatter).toContain('Not for a local session.')
   })
 
-  it('w-handoff は、Step 1 の前に、引数の project を pecot-workflow の MCP ツールへ渡す文がある', async () => {
-    await explains('`w-handoff` の手順の冒頭のテストです。引数に `project=<名前>` がある場合に、その名前を `project` として MCP ツールへ渡す文があることを確認します。')
+  it('w-handoff は、Step 1 の前に、引数の project を使わない理由を書く', async () => {
+    await explains('`w-handoff` の手順の冒頭のテストです。引数の `project=<名前>` を使わないことと、その理由として使うツールがボードの設定を読まないことが書かれていることを確認します。')
     const lines = text.split('\n')
     const preamble = lines.slice(lines.indexOf('## 手順'), headings[0]?.line).join('\n')
-    expect(preamble).toContain('引数に `project=<名前>` があれば、このスキルで使う pecot-workflow の MCP ツールに、その名前を `project` で渡す。')
-    expect(preamble).toContain('渡す先は `pr_show` の 1 つ。')
+    expect(preamble).toContain('引数の `project=<名前>` は使わない。このスキルが使う pecot-workflow の MCP ツール（`issue_comment_check`）は、ボードの設定を読まない。')
   })
 
-  it('Step 1 は、閉じた Issue を closing issues とブランチ名の番号から特定し、親 Epic が存在しなければ何も投稿せずに終了する', async () => {
-    await explains('`w-handoff` の Step 1 のテストです。`pr_show` の `closing_issues` と `head_ref` から閉じた Issue を特定し、`parent` が存在しない場合は何も投稿せずに終了することを確認します。')
+  it('Step 1 は、閉じた Issue を本文の閉じるキーワードとブランチ名の番号から特定し、親 Epic が存在しなければ何も投稿せずに終了する', async () => {
+    await explains('`w-handoff` の Step 1 のテストです。本文の閉じるキーワードと `head.ref` から閉じた Issue を特定し、`parent` が存在しない場合は何も投稿せずに終了することを確認します。')
     const body = sectionBody(text, numberIndex(headings, 1))
-    for (const phrase of ['`pr_show`', '`closing_issues`', '`head_ref`', '`/<番号>`', '`issue_read`', '`parent`', '何も投稿せずに終える']) expect(body).toContain(phrase)
+    expect(body).not.toContain('pr_show')
+    for (const phrase of ['`pull_request_read`', '閉じるキーワード', '`head.ref`', '`/<番号>`', '`issue_read`', '`parent`', '何も投稿せずに終える']) expect(body).toContain(phrase)
     expect(body).not.toContain('session_finish')
   })
 
@@ -481,7 +483,6 @@ describe('w-auto の手順', () => {
   // 契約（specs/023-label-triggered-autofix/contracts/skill-flow.md）の表の止まる条件と結果。文脈を作れないときは、ワークフローの Start の step が止める
   const STOPS: readonly (readonly [number, readonly string[]])[] = [
     [2, ['out-of-scope']],
-    [3, ['setup-missing', 'out-of-scope', 'failed']],
     [5, ['question']],
     [6, ['failed']],
     [8, ['failed', 'setup-missing']],
@@ -566,17 +567,18 @@ describe('w-auto の手順', () => {
     for (const result of results) expect(body).toContain(`\`result: ${result}\``)
   })
 
-  it('Step 3 は、session_start で base を渡さずにブランチを作る', async () => {
-    await explains('`w-auto` の Step 3 のテストです。`session_start` を使い、`base` を渡さずにブランチを作成すると書かれていることを確認します。')
+  it('Step 3 は、ブランチを作らず、文脈の branch を checkout する', async () => {
+    await explains('`w-auto` の Step 3 のテストです。新しいブランチを作らず、ワークフローの前の step が決めた `branch` を `git checkout` すると書かれていることを確認します。')
     const body = sectionBody(text, numberIndex(headings, 3))
-    expect(body).toContain('`session_start`')
-    expect(body).toContain('`base` は渡さない')
+    expect(body).not.toContain('session_start')
+    expect(body).toContain('新しいブランチを作らない')
+    expect(body).toContain('`git checkout`')
   })
 
-  it('Step 10 は、push してから pr_check と pr_create で PR を作成し、screenshot に無人で実行した理由を書く', async () => {
-    await explains('`w-auto` の Step 10 のテストです。`git push`・`pr_check`・`pr_create` がこの順に書かれ、`screenshot` の項目に無人で実行した理由を書くと書かれていることを確認します。')
+  it('Step 10 は、push の後で pr_check を通し、create_pull_request で PR を作成して、無人で実行した理由を screenshot に書く', async () => {
+    await explains('`w-auto` の Step 10 のテストです。`git push`・`pr_check`・`create_pull_request` がこの順に書かれ、`screenshot` の項目に無人で実行した理由を書くと書かれていることを確認します。')
     const body = sectionBody(text, numberIndex(headings, 10))
-    const order = ['`git push', '`pr_check`', '`pr_create`'].map(word => body.indexOf(word))
+    const order = ['`git push', '`pr_check`', '`create_pull_request`'].map(word => body.indexOf(word))
     expect(order.every(position => position >= 0)).toBe(true)
     expect(order).toEqual(order.toSorted((left, right) => left - right))
     expect(body).toContain('`screenshot`')
@@ -598,9 +600,11 @@ describe('マージされた後の片付け', () => {
     expect(readPluginFile(`skills/${skill}/${link}`)).toBe(text)
   })
 
-  it('session_finish でリモートブランチも削除し、Epic と後続へのコメントは書かせず、引き継ぎのワークフローに任せる', async () => {
-    await explains('マージされた後の片付けの手順のテストです。`session_finish` でリモートブランチも削除し、Epic と後続の Issue へのコメントは `pecot-handoff.yml` に任せると書かれていることを確認します。')
-    expect(text).toContain('`session_finish` を使って、マージ後の片付けをする。リモートブランチも消す（`delete_branch: true`）。')
+  it('session_finish で手元だけを片付け、リモートのブランチを消さず、Epic と後続へのコメントは引き継ぎのワークフローに任せる', async () => {
+    await explains('マージされた後の片付けの手順のテストです。`session_finish` に読んだ結果を渡して手元を片付け、リモートのブランチを消さないと書かれていることを確認します。Epic と後続の Issue へのコメントは `pecot-handoff.yml` に任せることも確認します。')
+    expect(text).toContain('pecot-workflow の MCP ツール `session_finish` に、`pr_ref: "<owner>/<repo>/<番号>"` と、読んだ結果（`reads`）を渡して、手元を片付ける')
+    expect(text).toContain('リモートのブランチは消さない。')
+    for (const word of ['delete_branch', 'branch_delete', 'pr_check']) expect(text).not.toContain(word)
     expect(text).toContain('Epic と後続の Issue へのコメントは、セッションでは書かない。引き継ぎのワークフロー（`pecot-handoff.yml`）が書く。')
     for (const word of ['merge-diff', 'precede-notify', 'issue_comment', 'mergeDiff', '`cleanup`', 'frontmatter の `pr_ref`']) expect(text).not.toContain(word)
   })
@@ -686,8 +690,8 @@ describe('w-ready の手順', () => {
   })
 
   it('w-ready は、既存の Issue に前提として付ける操作を、前提を付け外しする手順で案内する', async () => {
-    await explains('`w-ready` の `SKILL.md` のテストです。既存の Issue に前提を付ける操作の案内として、`issue-write.md` の「前提を付け外しする」の手順が含まれることを確認します。')
-    expect(text).toContain('[Issue とコメントを公式の MCP で書く](../w-help/references/issue-write.md) の「前提を付け外しする」で付ける')
+    await explains('`w-ready` の `SKILL.md` のテストです。既存の Issue に前提を付ける操作の案内として、`github-write.md` の「前提を付け外しする」の手順が含まれることを確認します。')
+    expect(text).toContain('[GitHub に公式の MCP と github-ops で書く](../w-help/references/github-write.md) の「前提を付け外しする」')
   })
 })
 
@@ -981,10 +985,10 @@ describe('w-breakdown の手順', () => {
     expect(fileStep()).toBeLessThan(titleIndex(headings, 'specify'))
   })
 
-  it('起票の Step は、テンプレート無しで issue_check を通し、親 Epic 付きで issue_write で作り、session_start に base を渡さない', async () => {
-    await explains('`w-breakdown` の起票の Step のテストです。`template` を渡さずに `issue_check` を通し、親 Epic を `parent_*` に書いて `issue_write` で作成すると書かれていることを確認します。`session_start` には `base` を渡さないことも確認します。')
+  it('起票の Step は、テンプレート無しで issue_check を通し、親 Epic 付きで issue_write で作り、branch_check に通してから作業を始める', async () => {
+    await explains('`w-breakdown` の起票の Step のテストです。`template` を渡さずに `issue_check` を通し、親 Epic を `parent_*` に書いて `issue_write` で作成すると書かれていることを確認します。作業は `branch_check` と `session_start` で始めることも確認します。')
     const body = sectionBody(text, fileStep())
-    for (const word of ['`issue_check` に `template` を渡さずに通し', '`issue_write`', '`parent_owner`・`parent_repo`・`parent_issue_number`: Step 3 で読んだ Epic', '`session_start`', '`base` は渡さない']) expect(body).toContain(word)
+    for (const word of ['`issue_check` に `template` を渡さずに通し', '`issue_write`', '`parent_owner`・`parent_repo`・`parent_issue_number`: Step 3 で読んだ Epic', '`branch_check`', '`session_start`', '「作業を始める」']) expect(body).toContain(word)
   })
 
   it('起票の Step は、既存の分解のタスクを 3 通りに分けて扱い、2 重に起票しない', async () => {

@@ -18,7 +18,7 @@ CHANGELOG を更新してリリースする。
 
 1. **対象リポの release_type を確認する**
 
-   pecot-workflow の MCP ツール `board_show` を使って、対象リポの `release_type` を読む:
+   pecot-workflow の MCP ツール `project_get` を `key` を省いて呼び、`repositories` から対象リポの `release_type` を読む:
 
    - `single` → **[references/release-single.md](references/release-single.md)** に従う
    - `multi`  → **[references/release-multi.md](references/release-multi.md)** に従う

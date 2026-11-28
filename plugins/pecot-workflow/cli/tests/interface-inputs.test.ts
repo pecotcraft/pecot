@@ -33,20 +33,21 @@ const TARGET_MATCHERS: readonly TargetMatcher[] = [
 
 // 役割が対象そのものではない入力。名前か説明が対象に似るが、別の役割を持つので、明示の例外にする
 const ROLE_EXCEPTIONS: Readonly<Record<string, string>> = {
-  no_issue_ref: '関連 Issue の自動設定を止める印で、Issue を指さない',
   allow_existing_branch: '既存のブランチの再利用を許す印で、ブランチを指さない',
-  delete_branch: 'ブランチを消すかの印で、ブランチを指さない',
   keep_branch: 'ブランチを残すかの印で、ブランチを指さない',
   develop_branch: '設定値としての開発ブランチ名。操作するブランチではない',
   release_branch: '設定値としてのリリースブランチ名。操作するブランチではない',
   base: 'PR の base。操作するブランチ（branch）とは別の役割',
   head: 'PR の head。操作するブランチ（branch）とは別の役割',
+  stacked_on: 'スタック先の前提の Issue。作業の Issue（issue_ref）とは別の役割',
 }
 
-// 公式の MCP の書き込みのツールに渡す値を受けるチェックのツール。入力名は公式のツールの引数の名前にそろえる
+// 書く手（公式の MCP のツールか github-ops の operation）に渡す値を受けるチェックのツール。入力名は書く手の引数の名前にそろえる
 const OFFICIAL_ARGUMENT_ENTRIES: Readonly<Record<string, string>> = {
   'PW-ISSUE-DEPENDENCY-CHECK': 'issue_dependency_write',
   'PW-ISSUE-COMMENT-CHECK': 'add_issue_comment・update_issue_comment',
+  'PW-BOARD-CHECK': 'projects_write（update_project_item）',
+  'PW-BRANCH-CHECK': 'github-ops の link-branch',
 }
 
 function targetsOf(name: string, description: string): readonly TargetMatcher[] {
@@ -78,7 +79,7 @@ describe('定義書の入力名', () => {
   })
 
   it('Issue・PR・リポ・操作するブランチを指す入力の名前は、対象ごとに 1 つ（issue_ref・pr_ref・repo・branch）で、役割の名前は例外の一覧にある', async () => {
-    await explains('定義書の入力名の決まりのテストです。Issue・PR・リポ・ブランチを指す入力を調べた場合に、対象ごとの名前（`issue_ref`・`pr_ref`・`repo`・`branch`）か、例外の一覧にある役割の名前だけであることを確認します。公式の MCP の引数を受けるチェックのツールは対象外です。')
+    await explains('定義書の入力名の決まりのテストです。Issue・PR・リポ・ブランチを指す入力を調べた場合に、対象ごとの名前（`issue_ref`・`pr_ref`・`repo`・`branch`）か、例外の一覧にある役割の名前だけであることを確認します。書く手の引数を受けるチェックのツールは対象外です。')
     expect(aliasesIn(generated.entries)).toEqual([])
   })
 
@@ -104,8 +105,8 @@ describe('定義書の入力名', () => {
   })
 
   it('改名前の名前を入力に持つ項目が無い', async () => {
-    await explains('定義書の入力名の決まりのテストです。改名前の名前を入力に持つ項目を調べた場合に、該当する項目が 1 つも無いことを確認します。')
-    const found = generated.entries.flatMap(entry => OLD_NAMES.filter(name => hasInput(entry.id, name)).map(name => `${entry.id}: ${name}`))
+    await explains('定義書の入力名の決まりのテストです。改名前の名前を入力に持つ項目を調べた場合に、該当する項目が 1 つも無いことを確認します。書く手の引数を受けるチェックのツールは対象外です。')
+    const found = generated.entries.filter(entry => !Object.keys(OFFICIAL_ARGUMENT_ENTRIES).includes(entry.id)).flatMap(entry => OLD_NAMES.filter(name => hasInput(entry.id, name)).map(name => `${entry.id}: ${name}`))
     expect(found).toEqual([])
   })
 })

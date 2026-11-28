@@ -35,7 +35,7 @@ aggregation_repo が雑多な実装サブタスクで埋まり、Epic の俯瞰�
 集約リポに置いた Epic の配下に、別リポのサブタスクを作るとき（典型的な pecot 運用）も、Epic のリポを `parent_owner`・`parent_repo` に書く。
 
 親 Epic は、作るときに `issue_write` の `parent_*` で付く。`issue_fields` を書いたときだけ、`issue_write` が `parent_*` と一緒に受けないので、作った後に `sub_issue_write` で付ける。
-手順は [Issue とコメントを公式の MCP で書く](issue-write.md)。
+手順は [GitHub に公式の MCP と github-ops で書く](github-write.md)。
 
 ## 3. 題の番号と前提
 

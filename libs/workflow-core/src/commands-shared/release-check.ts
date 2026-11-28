@@ -1,5 +1,5 @@
-// リリース前の確認（release_check）の判定。MCP のツールと actions/ の release-check が共有する。
-// release create・merge が使う文脈の読み込みも、ここに置く。
+// リリース前の確認の判定。actions/ の release-check が使う。
+// version・package は action の入力で、MCP の release_check には無いので、案内でなく名前で書く。
 import path from 'node:path'
 
 import { z } from 'zod'
@@ -10,42 +10,26 @@ import type { ProjectConfig, Repository } from '../domain/config.js'
 import { DependabotAlertError, fetchDependabotAlertStatus } from '../domain/dependabot.js'
 import type { DependabotAlertStatus } from '../domain/dependabot.js'
 import { PecotError } from '../domain/errors.js'
-import { pythonStringRepr } from '../domain/python-format.js'
 import { ReleaseError, runPreflight } from '../domain/release.js'
-import { splitOwnerRepository } from '../domain/repository-resolver.js'
 import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { fetchCodeScanningStatus, fetchSecretScanningStatus, SecurityAlertError } from '../domain/security-alerts.js'
 import type { ScanAlertStatus } from '../domain/security-alerts.js'
 import { readChangelogIfExists, resolveChangelogPath } from '../infra/changelog-file.js'
-import { gitRunnerFor, gitToplevel, primaryRemoteName, primaryRemoteRepository, remoteTagExists } from '../infra/git.js'
+import { gitRunnerFor, gitToplevel, primaryRemoteName, remoteTagExists } from '../infra/git.js'
 import { TransportFailure } from '../infra/github/client.js'
 import { createDependabotSource } from '../infra/github/dependabot-source.js'
 import { GitHubAPIError } from '../infra/github/errors.js'
 import { createScanAlertSource } from '../infra/github/security-alerts-source.js'
 import { CommandExit } from './command-definition.js'
 import type { CommandIo } from './command-definition.js'
-import { commandHint, hinted, inputNameHint, placeholder } from './command-hint.js'
+import { hinted } from './command-hint.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from './command-stop.js'
 import { kindOfFailure } from './failure.js'
 import { createAuthenticatedGitHubClient } from './github-client.js'
 import { createOutput } from './output.js'
 import type { Output } from './output.js'
 import { requireRepositoryMatch } from './repository-match.js'
-
-export const CHECK_PATH = ['release', 'check']
-
-/**
-順は採用済みの repo、明示の repo、主の remote。決められないと error の行を出して終了コード 1 で止める。
-remote は process.cwd() から読む
-*/
-export function requireReleaseTargetRepository(adopted: RepositoryReference | undefined, explicit: string | undefined, out: Readonly<Output>): RepositoryReference {
-  if (adopted !== undefined) return adopted
-  if (explicit !== undefined) {
-    return splitOwnerRepository(explicit) ?? stopWith(out, hinted`invalid ${inputNameHint(CHECK_PATH, 'repo')} format: ${pythonStringRepr(explicit)}\nspecify it as owner/repo`, 'invalid-input')
-  }
-  const remote = primaryRemoteRepository(process.cwd()) ?? stopWith(out, 'could not read the repository from the git remote', 'git-unresolved')
-  return { owner: remote.owner, repository: remote.repository }
-}
+import { CHECK_PATH, requireBranchSetting, requireReleaseTargetRepository } from './release-target.js'
 
 export interface ReleaseContext {
   readonly config: ProjectConfig
@@ -69,11 +53,11 @@ function resolvePackageContext(out: Readonly<Output>, repositoryConfig: Reposito
   const packages = repositoryConfig?.packages ?? []
   if (repositoryConfig !== undefined && packages.length > 0) {
     const names = packages.map(item => item.name).join(', ')
-    if (packageName === undefined) stopWith(out, hinted`${owner}/${repository} is a monorepo\nspecify ${inputNameHint(CHECK_PATH, 'package')} (available: ${names})`, 'invalid-input')
+    if (packageName === undefined) stopWith(out, hinted`${owner}/${repository} is a monorepo\nspecify package (available: ${names})`, 'invalid-input')
     const found = findPackage(repositoryConfig, packageName) ?? stopWith(out, `package '${packageName}' is not registered in ${owner}/${repository}\navailable: ${names}`, 'invalid-input')
     return { changelogPath: path.isAbsolute(found.changelog) ? found.changelog : path.join(gitRoot, found.changelog), tagPrefix: found.name }
   }
-  if (packageName !== undefined) stopWith(out, hinted`${owner}/${repository} has no packages configured\n${inputNameHint(CHECK_PATH, 'package')} can only be used in a monorepo`, 'invalid-input')
+  if (packageName !== undefined) stopWith(out, hinted`${owner}/${repository} has no packages configured\npackage can only be used in a monorepo`, 'invalid-input')
   return { changelogPath: resolveChangelogPath(gitRoot, repositoryConfig?.changelog_file), tagPrefix: undefined }
 }
 
@@ -87,10 +71,6 @@ export function requireSemver(out: Readonly<Output>, version: string): void {
   }
 }
 
-export function requireBranchSetting(out: Readonly<Output>, branch: string | undefined, kind: 'develop' | 'release', owner: string, repository: string): string {
-  return branch === undefined || branch === '' ? stopWith(out, hinted`${kind}_branch is not set for ${owner}/${repository}\nset it with: ${commandHint(['project', 'link'], { repo: `${owner}/${repository}`, [`${kind}_branch`]: placeholder('branch') })}`, 'repo-setting-missing') : branch
-}
-
 export function loadReleaseContext(out: Readonly<Output>, adopted: RepositoryReference | undefined, explicit: string | undefined, packageName: string | undefined, project: string | undefined, commandPath: readonly string[], options: Readonly<ContextOptions> = {}): ReleaseContext {
   const cwd = process.cwd()
   const gitRoot = gitToplevel({ cwd }) ?? stopWith(out, 'could not find the root directory of the git repository', 'git-unresolved')
@@ -101,7 +81,7 @@ export function loadReleaseContext(out: Readonly<Output>, adopted: RepositoryRef
   const repositoryConfig = findRepository(config, owner, repository)
   if (repositoryConfig !== undefined && options.nxAlertsOnly === true && effectiveReleaseType(repositoryConfig) === 'nx') {
     if (packageName !== undefined || options.version !== undefined) {
-      stopWith(out, hinted`${inputNameHint(CHECK_PATH, 'version')} and ${inputNameHint(CHECK_PATH, 'package')} cannot be used when release_type is nx\ncall the tool without them (Nx Release decides the version)`, 'invalid-input')
+      stopWith(out, hinted`version and package cannot be used when release_type is nx\ncall the tool without them (Nx Release decides the version)`, 'invalid-input')
     }
     return { config, owner, repository, repositoryConfig, changelogPath: resolveChangelogPath(gitRoot, repositoryConfig.changelog_file), tagPrefix: undefined }
   }

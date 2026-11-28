@@ -13,7 +13,10 @@ import { readSettingNames } from '@pecot/workflow-core/commands-shared/actions-s
 import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
 import type { FailureKind } from '@pecot/workflow-core/commands-shared/failure-kind.js'
 import { createGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
+import { linkIssueBranch } from '@pecot/workflow-core/commands-shared/link-branch.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
+import { LINK_BRANCH_PARAMS, NO_PARAMS, PROJECT_FIELDS_PARAMS, PROJECT_LINK_PARAMS, PROJECT_VIEW_PARAMS, RELEASE_CREATE_PARAMS, STACK_REGISTER_PARAMS } from '@pecot/workflow-core/commands-shared/github-ops-parameters.js'
+import type { FieldChange, FieldOption } from '@pecot/workflow-core/commands-shared/github-ops-parameters.js'
 import { fieldNodesOf } from '@pecot/workflow-core/commands-shared/project-sync.js'
 import { planStackRegistration } from '@pecot/workflow-core/commands-shared/stack-registration.js'
 import { describeApiError } from '@pecot/workflow-core/domain/api-error-detail.js'
@@ -64,40 +67,14 @@ function operation<Schema extends z.ZodType>(parameters: Schema, run: Operation<
   return { params: parameters, run }
 }
 
-const NUMBER = z.number().int().positive()
-const NAME = z.string().min(1)
-
-const OPTION = z.strictObject({
-  name: NAME,
-  color: z.string().min(1).optional(),
-  description: z.string().optional(),
-})
-
-const FIELD_CHANGE = z.discriminatedUnion('action', [
-  z.strictObject({ action: z.literal('create'), name: NAME, options: z.array(OPTION).min(1) }),
-  z.strictObject({ action: z.literal('rename'), name: NAME, to: NAME }),
-  z.strictObject({ action: z.literal('delete'), name: NAME }),
-  z.strictObject({ action: z.literal('set-options'), name: NAME, options: z.array(OPTION).min(1) }),
-])
-
-type FieldChange = z.output<typeof FIELD_CHANGE>
-
 const DEFAULT_COLOR = 'GRAY'
 
 // link-branch
 
-async function defaultBranchOf(client: GitHubClient, owner: string, repository: string): Promise<string> {
-  const settings = await client.getRepositorySettings(owner, repository)
-  return settings.defaultBranch
-}
-
 async function linkBranch(parameters: Readonly<{ issue: number, branch: string, base?: string | undefined }>, context: OperationContext): Promise<JsonValue> {
   const { client, owner, repository } = context
-  const base = parameters.base ?? await defaultBranchOf(client, owner, repository)
-  const sha = await client.getBranchSha(owner, repository, base)
-  const issueId = await client.getIssueNodeId(owner, repository, parameters.issue)
-  const branch = await client.createLinkedBranch(issueId, sha, parameters.branch)
-  return { issue: parameters.issue, branch, base, sha }
+  const { issue, branch, base, sha } = await linkIssueBranch(client, { owner, repository, ...parameters })
+  return { issue, branch, base, sha }
 }
 
 // stack-register
@@ -148,7 +125,7 @@ function fieldNamed(fields: readonly JsonObject[], name: string): JsonObject {
 /**
 渡した選択肢に、名前の合う既存の選択肢の ID・色・説明を引き継ぐ。ID を外すと選択肢が作り直され、カードの値が消える
 */
-export function mergeOptions(existing: readonly JsonValue[], given: readonly z.output<typeof OPTION>[]): readonly FieldOptionInput[] {
+export function mergeOptions(existing: readonly JsonValue[], given: readonly FieldOption[]): readonly FieldOptionInput[] {
   return given.map((option) => {
     const current = existing.find(item => jsonField(item, 'name') === option.name)
     const id = jsonField(current, 'id')
@@ -223,8 +200,6 @@ async function createProjectView(parameters: Readonly<{ project: number, name: s
 
 // project-link
 
-const REPOSITORY = z.string().regex(/^[\w.-]+\/[\w.-]+$/u, 'owner/repo')
-
 async function linkProject(parameters: Readonly<{ project: number, repo?: string | undefined }>, context: OperationContext): Promise<JsonValue> {
   const { client, owner, repository } = context
   const [repositoryOwner = owner, repositoryName = repository] = parameters.repo?.split('/') ?? []
@@ -288,20 +263,18 @@ async function createRelease(parameters: Readonly<{ tag: string, sha: string, bo
   return { id: requireNumber(release['id'], 'release.id'), tag: requireString(release['tag_name'], 'release.tag_name'), ...typeof url === 'string' && { url } }
 }
 
-const NO_PARAMS = z.strictObject({})
-
 /**
 operation の一覧。鍵は雛形の choice と同じ順にする
 */
 export const OPERATIONS = {
-  'link-branch': operation(z.strictObject({ issue: NUMBER, branch: NAME, base: NAME.optional() }), linkBranch),
-  'stack-register': operation(z.strictObject({ pr: NUMBER, parent_pr: NUMBER }), registerStack),
-  'project-fields': operation(z.strictObject({ project: NUMBER, changes: z.array(FIELD_CHANGE).min(1) }), changeProjectFields),
-  'project-view': operation(z.strictObject({ project: NUMBER, name: NAME, column: NAME, row: NAME }), createProjectView),
-  'project-link': operation(z.strictObject({ project: NUMBER, repo: REPOSITORY.optional() }), linkProject),
+  'link-branch': operation(LINK_BRANCH_PARAMS, linkBranch),
+  'stack-register': operation(STACK_REGISTER_PARAMS, registerStack),
+  'project-fields': operation(PROJECT_FIELDS_PARAMS, changeProjectFields),
+  'project-view': operation(PROJECT_VIEW_PARAMS, createProjectView),
+  'project-link': operation(PROJECT_LINK_PARAMS, linkProject),
   'repo-settings': operation(NO_PARAMS, readRepositorySettings),
   'workflow-doctor': operation(NO_PARAMS, readWorkflowSetup),
-  'release-create': operation(z.strictObject({ tag: NAME, sha: z.string().regex(/^[\da-f]{40}$/u, 'a full commit SHA'), body: z.string(), name: NAME.optional(), prerelease: z.boolean().default(false) }), createRelease),
+  'release-create': operation(RELEASE_CREATE_PARAMS, createRelease),
 } satisfies Record<string, Operation<z.ZodType>>
 
 type OperationName = keyof typeof OPERATIONS

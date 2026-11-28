@@ -97,8 +97,8 @@ function toolList(flag: string): string[] {
 
 describe('auto のワークフローの雛形', () => {
   it('1 行目に、雛形の名前と版の目印がある', async () => {
-    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。1 行目に、雛形の名前と版を示す `# pecot-workflow-template: auto 3` があることを確認します。')
-    expect(template.split('\n', 1)[0]).toBe('# pecot-workflow-template: auto 3')
+    await explains('自動処理のワークフローの雛形 `pecot-auto.yml` のテストです。1 行目に、雛形の名前と版を示す `# pecot-workflow-template: auto 4` があることを確認します。')
+    expect(template.split('\n', 1)[0]).toBe('# pecot-workflow-template: auto 4')
   })
 
   it('YAML として読めると、gate・run・setup の 3 つの job を持つ', async () => {
@@ -345,13 +345,19 @@ describe('auto のワークフローの雛形', () => {
       'Grep',
       'Edit',
       'Write',
-      `${pecot}session_start`,
       `${pecot}issue_comment_check`,
+      `${pecot}pr_check`,
+      `${pecot}board_check`,
+      `${pecot}project_list`,
       `${official}issue_read`,
+      `${official}issue_dependency_read`,
       `${official}add_issue_comment`,
       `${official}update_issue_comment`,
-      `${pecot}pr_check`,
-      `${pecot}pr_create`,
+      `${official}pull_request_read`,
+      `${official}list_pull_requests`,
+      `${official}create_pull_request`,
+      `${official}projects_list`,
+      `${official}projects_write`,
       'Bash(git status:*)',
       'Bash(git diff:*)',
       'Bash(git log:*)',
@@ -366,7 +372,7 @@ describe('auto のワークフローの雛形', () => {
     expect(allowed.filter(tool => tool.startsWith('Bash(pecot'))).toEqual([])
   })
 
-  it('公式の GitHub の MCP サーバを digest で固定した docker で起動し、ツールを 3 つに絞って --mcp-config で渡す', async () => {
+  it('公式の GitHub の MCP サーバを digest で固定した docker で起動し、ツールを絞って --mcp-config で渡す', async () => {
     await explains('公式の GitHub の MCP サーバの設定のテストです。`github-official` が docker で `ghcr.io/github/github-mcp-server` の v2.3.0 を digest つきで起動することを確認します。token・ホスト・ツールを env で渡し、`--mcp-config` に job の env の値を渡すことも確認します。')
     const server: unknown = JSON.parse(run.env?.['PECOT_AUTO_GITHUB_MCP'] ?? '')
     const image = 'ghcr.io/github/github-mcp-server:v2.3.0@sha256:f8ee4dedc7d5c8cb32854ab91cc92a31c55a8a5510708cf8742e9f9427588ca6'
@@ -375,11 +381,12 @@ describe('auto のワークフローの雛形', () => {
         'github-official': {
           type: 'stdio',
           command: 'docker',
-          args: ['run', '-i', '--rm', '-e', 'GITHUB_PERSONAL_ACCESS_TOKEN', '-e', 'GITHUB_HOST', '-e', 'GITHUB_TOOLS', image],
+          args: ['run', '-i', '--rm', '-e', 'GITHUB_PERSONAL_ACCESS_TOKEN', '-e', 'GITHUB_HOST', '-e', 'GITHUB_TOOLS', '-e', 'GITHUB_FEATURES', image],
           env: {
             GITHUB_PERSONAL_ACCESS_TOKEN: '${PECOT_GITHUB_COM_TOKEN}',
             GITHUB_HOST: '${{ github.server_url }}',
-            GITHUB_TOOLS: 'issue_read,add_issue_comment,update_issue_comment',
+            GITHUB_TOOLS: 'issue_read,issue_dependency_read,add_issue_comment,update_issue_comment,pull_request_read,list_pull_requests,create_pull_request,projects_list,projects_write',
+            GITHUB_FEATURES: 'issue_dependencies',
           },
         },
       },

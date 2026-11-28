@@ -23,7 +23,6 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "${SCRIPT_DIR}/config-dispatcher.sh"
-source "${SCRIPT_DIR}/mcp-guidance.sh"
 pecot_hook_enabled "git-worktree-branch-check" true || exit 0
 
 if [ -z "$HOOK_COMMAND" ]; then
@@ -78,11 +77,6 @@ changes without review and cause conflicts with other worktrees.
 Work on a feature branch:
   1. Create a feature branch: git checkout -b feat/your-feature-name
   2. Commit and create the PR on the feature branch"
-    if [ "$OPERATION" = "push" ]; then
-        MSG="${MSG}
-
-$(mcp_guidance_branch_delete)"
-    fi
     hook_message error "$MSG"
     exit 1
 fi

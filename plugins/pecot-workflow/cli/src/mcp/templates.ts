@@ -28,8 +28,8 @@ export const TEMPLATE_RESOURCES: readonly TemplateResource[] = [
   { kind: 'issue', name: 'epic', title: 'Epic Issue', description: 'Template of an Epic Issue (issue_check, then issue_write)' },
   { kind: 'issue', name: 'tracker', title: 'Tracker Issue', description: 'Template of a tracker Issue (issue_check, then issue_write)' },
   { kind: 'issue', name: 'task-implement', title: 'Implementation task Issue', description: 'Template of a task Issue for one phase of an implementation plan (issue_check, then issue_write)' },
-  { kind: 'pr', name: 'create', title: 'Pull request', description: 'Template of a pull request; leave base empty to let pr_create choose it (pr_create)' },
-  { kind: 'pr', name: 'release', title: 'Release pull request', description: 'Template of a release pull request (pr_create with template release)' },
+  { kind: 'pr', name: 'create', title: 'Pull request', description: 'Template of a pull request (pr_check, then create_pull_request or update_pull_request)' },
+  { kind: 'pr', name: 'release', title: 'Release pull request', description: 'Template of a release pull request (pr_check, then create_pull_request)' },
 ]
 
 export function templateUri(template: Readonly<TemplateResource>): string {

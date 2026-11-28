@@ -1,8 +1,10 @@
 ---
+template: "pecot-template://pr/create"
+owner: ""
+repo: ""
 title: ""
-repository: ""
-base: ""
 head: ""
+base: ""
 draft: false
 screenshot: ""
 ---
@@ -16,18 +18,20 @@ screenshot: ""
 - 次のどれかが変わる変更は、結果のスクリーンショットを撮って Summary に置く。画面、ツールが生成して利用者が GitHub で見る Markdown（Issue・PR の本文、コメント、Tracker の表）、利用者が読む CLI の出力の文である。CHANGELOG・README・SKILL.md の文の変更は含めない。載せ方・撮り方は w-pr スキルの手順にある
 - Verified は、CUJ ごとに `###` の小見出し（`### CUJ 1 — <何が><どうなる>`）を立て、誰が・起点・流す先・合格基準・結果を書いて、打ったコマンドと出力をそのまま載せる
 - Verified の evidence は、中身を PR に載せる。手元のファイルのパスを evidence として示さない（PR を読む人は開けない）
-- 末尾の `Closes #` には sub-issue の番号だけを入れる（Epic の番号を入れると、マージで Epic が閉じる）。空のままなら、`pr_create` が作業中の Issue の番号を入れる
+- 末尾の `Closes #` には sub-issue の番号だけを入れる（Epic の番号を入れると、マージで Epic が閉じる）。作業中の Issue の番号を自分で入れる。作業中の Issue が Epic なら、この行を消す
 
 フィールド:
-- repository: 必須。PR 先の `owner/repo`（`git remote -v` の URL。origin、無ければ最初の remote のもの）
-- base: 空のままなら、`pr_create` が、スタックしたブランチでは親ブランチを、ほかでは開発ブランチを入れる
+- 鍵の名前は、書く公式の MCP のツールの引数の名前。`pr_check` に通してから、同じ値を渡す
+- owner・repo: 必須。PR 先のリポ（`git remote -v` の URL。origin、無ければ最初の remote のもの）
+- head: 必須。PR にするブランチ
+- base: 必須。スタックしたブランチでは親ブランチ、ほかでは開発ブランチ。食い違うと、`pr_check` が正しいブランチを示す
 - screenshot: 画像を Summary に入れたら空のまま。入れないなら、入れない理由を `"..."` で囲んで書く
   - 例: `"CLI の内部の整理だけで、画面・生成する Markdown・出力の文は変わらない"`
 - title: `"type(scope): #ISSUE タイトル"` の形で `"..."` で囲む（囲まないと ` #ISSUE` 以降が YAML のコメントになる）。type は feat / fix / docs / chore / refactor / test / ci / build / perf / revert
 - title の scope（nx を使うリポ = config の `release_type` が `nx`）: 変更した nx プロジェクトの scope
   - scope は、プロジェクトの `project.json` の `tags` にある `scope:<名前>` の値。tag が無ければプロジェクト名
   - 複数は空白なしの `,` 区切り。どのプロジェクトにも属さないファイルがあれば `repo` を加える（`.nx/version-plans/` は数えない）
-  - 食い違うと、`pr_create` が期待する scope を示して止める
+  - 食い違うと、`pr_check` が期待する scope を示す
 - title の scope（nx を使わないリポ）: 付けない（`type: #ISSUE タイトル`）
 
 例:

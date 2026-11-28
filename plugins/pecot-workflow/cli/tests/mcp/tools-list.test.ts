@@ -29,7 +29,7 @@ const WithRepositorySchema = z.object({ properties: z.object({ repo: RepositoryS
 
 const OutputSchemaShape = z.looseObject({ type: z.literal('object'), properties: z.record(z.string(), z.unknown()), additionalProperties: z.unknown() })
 // Issue #771 の、interface/authored.yaml の effects がすべて read のツール
-const READ_ONLY_TOOLS = ['board_show', 'issue_check', 'issue_comment_check', 'issue_dependency_check', 'pr_check', 'pr_show', 'project_get', 'project_list', 'project_search', 'release_check', 'session_show', 'workflow_doctor']
+const READ_ONLY_TOOLS = ['board_check', 'board_show', 'branch_check', 'issue_check', 'issue_comment_check', 'issue_dependency_check', 'pr_check', 'project_check', 'project_get', 'project_list', 'release_check', 'session_show', 'workflow_doctor']
 const ENVELOPE_NAMES: ReadonlySet<string> = new Set(['ok', 'exitCode', 'data', 'artifacts', 'message', 'reason'])
 
 // CLI のフラグ（--name・-m）。前は行頭・空白・括弧・バッククォート
@@ -91,11 +91,11 @@ describe('tools/list', () => {
     return found
   }
 
-  it('TOOLS と同じ 33 個の名前を、同じ並びで返す', async () => {
-    await explains('MCP サーバのツール一覧（`tools/list`）の件数と並びのテストです。ツールの定義（`TOOLS`）と同じ 33 個の名前が、同じ並びで返ることを確認します。')
+  it('TOOLS と同じ 25 個の名前を、同じ並びで返す', async () => {
+    await explains('MCP サーバのツール一覧（`tools/list`）の件数と並びのテストです。ツールの定義（`TOOLS`）と同じ 25 個の名前が、同じ並びで返ることを確認します。')
     const { client } = await connect()
     const { tools } = await client.listTools()
-    expect(tools).toHaveLength(33)
+    expect(tools).toHaveLength(25)
     expect(tools.map(tool => tool.name)).toEqual(TOOLS.map(definition => definition.name))
   })
 
@@ -150,8 +150,8 @@ describe('tools/list', () => {
     expect(tools.filter(tool => tool.annotations?.title !== undefined).map(tool => tool.name)).toEqual([])
   })
 
-  it('readOnlyHint: true を返すのは読むだけの 12 個だけで、ほかのツールは false を返す', async () => {
-    await explains('ツールの `readOnlyHint` のテストです。`true` を返すのは読み取り専用の 12 個のツールだけで、ほかのツールは `false` を返すことを確認します。')
+  it('readOnlyHint: true を返すのは読むだけの 13 個だけで、ほかのツールは false を返す', async () => {
+    await explains('ツールの `readOnlyHint` のテストです。`true` を返すのは読み取り専用の 13 個のツールだけで、ほかのツールは `false` を返すことを確認します。')
     const { client } = await connect()
     const { tools } = await client.listTools()
     expect(tools.filter(tool => tool.annotations?.readOnlyHint === true).map(tool => tool.name).toSorted(byName)).toEqual(READ_ONLY_TOOLS)
@@ -188,7 +188,7 @@ describe('tools/list', () => {
     { name: 'issue_check', required: ['problems'] },
     { name: 'issue_dependency_check', required: ['problems'] },
     { name: 'issue_comment_check', required: ['problems'] },
-    { name: 'pr_create', required: ['url', 'head', 'base', 'title', 'moves'] },
+    { name: 'pr_check', required: ['problems'] },
     { name: 'project_activate', required: ['configPath', 'change', 'config_moved'] },
   ])('$name の outputSchema は、成功の結果の項目を anyOf で必須にする', async ({ name, required }) => {
     await explains(`\`${name}\` の \`outputSchema\` のテストです。成功の結果の必須の項目が \`anyOf\` の 1 つ目に指定され、2 つ目にエラーの項目（\`kind\` と \`detail\`）が指定されていることを確認します。`)
@@ -237,9 +237,9 @@ describe('入力の検証の誤り', () => {
   })
 
   it('CLI だけの入力 dry_run を渡すと、コマンドを呼ばずに、dry_run を名指しして isError で返す', async () => {
-    await explains('CLI 専用の入力 `dry_run` を指定して `board_move` を呼び出した場合のテストです。コマンドを呼ばずに、`dry_run` を示した `invalid-input` のエラーを返すことを確認します。')
+    await explains('CLI 専用の入力 `dry_run` を指定して `project_get` を呼び出した場合のテストです。コマンドを呼ばずに、`dry_run` を示した `invalid-input` のエラーを返すことを確認します。')
     const { client } = await connect()
-    const result = await client.callTool({ name: 'board_move', arguments: { issue_ref: 'acme/demo/7', status: 'active', dry_run: true } })
+    const result = await client.callTool({ name: 'project_get', arguments: { key: 'aggregation_repo', dry_run: true } })
     expect(result.isError).toBe(true)
     expect(structuredOf(result)).toEqual({ kind: 'invalid-input', detail: 'invalid input: unknown key \'dry_run\'' })
   })

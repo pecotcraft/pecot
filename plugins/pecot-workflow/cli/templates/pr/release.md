@@ -1,8 +1,10 @@
 ---
+template: "pecot-template://pr/release"
+owner: ""
+repo: ""
 title: ""
-repository: ""
-base: "main"
 head: ""
+base: "main"
 draft: false
 ---
 

@@ -56,8 +56,13 @@ MCP のツールの名前は、2 語を `_` でつないだ `<対象>_<動詞>` 
 語彙に無い語を使うときは、先に `libs/workflow-core/src/commands-shared/names.ts` の一覧へ意味と一緒に追加します。追加しないとテストが失敗します。
 Issue の作成と作業の開始を 1 つのツールで行う動詞（以前の `quick`）は置きません。作成は公式の MCP の `issue_write`（`issue_check` に通してから）、開始は `session_start` が行います。
 
-GitHub の Issue とコメントに読み書きするツールは置きません。読み書きは GitHub の公式の MCP のツールが担い、pecot は書く前に通すチェックのツールだけを置きます。
-チェックのツールは、書く公式のツール 1 つに 1 つ置きます。名前は `<書く公式のツールの対象>_check` です（`issue_dependency_write` には `issue_dependency_check`）。
+GitHub に読み書きするツールは置きません。読み書きは GitHub の公式の MCP のツールが担い、pecot は書く前に通すチェックのツールだけを置きます。
+公式の MCP に書く手が無い操作は、導入先のリポの `pecot-github-ops.yml` の operation が書きます。読み取りは、公式の MCP で読みます。
+チェックのツールは、1 つの操作でまとめて書くものごとに 1 つ置きます。名前は `<書くものの対象>_check` です。
+たとえば、`issue_dependency_write` には `issue_dependency_check`、`create_pull_request` には `pr_check` を置きます。
+同じ対象を書く手が複数あるときは、1 つのチェックに `method` で分けます（`pr_check` の `create`・`update`・`merge`）。
+チェックの入力は、書く手に渡すのと同じ値と、公式の MCP で読んだ結果（`reads`）です。手元の git だけを読み、GitHub には読み書きしません。
+手元を変えるツールと、手元だけを読むツールは残します。GitHub を読むだけのツールは、pecot の判定を持つもの（`board_show` など）だけを置き、読んだ結果を `reads` で受けます。
 
 ### 入力名
 
@@ -65,12 +70,12 @@ GitHub の Issue とコメントに読み書きするツールは置きません
 
 | 指すもの | 入力名 | 例 |
 |:---|:---|:---|
-| Issue | `issue_ref` | `session_start`・`board_move` |
-| PR | `pr_ref` | `pr_show`・`pr_check` |
-| リポ | `repo` | `branch_delete`・`project_link` |
-| 操作するブランチ | `branch` | `session_start`・`branch_delete` |
+| Issue | `issue_ref` | `session_start`・`session_finish` |
+| PR | `pr_ref` | `pr_restack` |
+| リポ | `repo` | `project_link`・`workflow_install` |
+| 操作するブランチ | `branch` | `session_start` |
 
-- PR の両端を表す `base`・`head` と、真偽値の `delete_branch` は対象外
+- PR の両端を表す `base`・`head` は対象外
 - チェックのツールは、書く公式のツールの引数の名前（`owner`・`repo`・`issue_number` など）で受け、この表に従わない。公式のツールに渡すのと同じ値を、そのまま通せるようにするためだ
 - 名前を変えても、古い名前の別名は作らない。古い名前は、知らない名前として止まる。利用者向けの変更点は version plan に書き、README には移行の手順を書かない
 - 書き込むツールは予行の入力を持たない。書き込む前の確かめは、ホストのツールの承認が担う。公式の MCP で書くものは、書く前に check のツールに通す（`issue_write` の前の `issue_check`）
@@ -98,7 +103,7 @@ GitHub に書き込む変更は、マージの前に検証用のリポとボー�
 |:---|:---|
 | このリポ | `pecotcraft/pecot`。ボードは Projects の 1 番。確かめでは書き込みません |
 | 検証用のリポ | `pecotcraft/pecot-sandbox`。確かめで作る Issue・PR・ブランチを置きます |
-| 検証用のボード | `pecot sandbox`（Projects の 3 番）。確かめで書き込むボードはこれだけです |
+| 検証用のボード | `pecot sandbox`（Projects の 3 番）。確かめで書き込むボードはこれだけです。ただし、ボードを作る確かめに限り、題に `[cuj <Issue番号>-<乱数>]` を入れた使い捨てのボードを作り、終わったら消します |
 | 検証用の clone | `.pecot/work/<Issue番号>/pecot-sandbox/`。作業ツリーのツールを呼ぶ作業ディレクトリです |
 
 ### 作業ツリーのツールを呼ぶ
@@ -142,25 +147,26 @@ npx --prefix="$HOME/.cache/pecot-inspector" -y @modelcontextprotocol/inspector@2
    <呼ぶ> project_activate '{"project":"github.com_pecotcraft_3.json"}'
    ```
 
-3. 書き込む前に、毎回 `board_show` を呼び、結果の `project.number` が `3` であることを確かめる。ボードの題は出ないので、番号で見る
+3. 書き込む前に、毎回 `project_list` を呼び、`active` の行の `project_number` が `3` であることを確かめる。ボードの題は出ないので、番号で見る
 4. 作るものの名前を決める。`<乱数>` は `[0-9a-z]{4}` の 4 文字、`<Issue番号>` はこのリポで確かめている Issue の番号
 
    | 作るもの | 名前の形 |
    |:---|:---|
-   | ブランチ | `cuj/<Issue番号>-<乱数>`（`session_start` が後ろに `/<検証用の Issue 番号>` を付けた形も含みます） |
+   | ブランチ | `cuj/<Issue番号>-<乱数>`（後ろに `/<検証用の Issue 番号>` を付けた形も含みます） |
    | Issue・PR の題 | `[cuj <Issue番号>-<乱数>]` を含める。pecot が題の先頭に `[Task]` などを付けるので、先頭には置かない |
 
-5. clone の中で、作業ツリーのツールを呼んで作る。`gh pr create`・`gh issue create` は、`-R pecotcraft/pecot-sandbox` を付けても pecot-workflow のフックが止める
+5. clone の中で、作業ツリーのチェックのツールに通してから、公式の MCP と github-ops で書く。`gh pr create`・`gh issue create` は、`-R pecotcraft/pecot-sandbox` を付けても pecot-workflow のフックが止める
 
    ```bash
    <呼ぶ> issue_check '{"method":"create","issues":[<Issue の値>]}'   # 通ったら、公式の MCP の issue_write で作る
-   <呼ぶ> session_start '{"issue_ref":"<Issue>","branch":"<ブランチ>"}'   # リモートにブランチを作るだけで、checkout はしない
+   <呼ぶ> branch_check '{"owner":"pecotcraft","repo":"pecot-sandbox","issue":<番号>,"branch":"<ブランチ>","reads":{...}}'   # 通ったら、github-ops の link-branch で作る
+   <呼ぶ> session_start '{"issue_ref":"<Issue>","base":"<base>","sha":"<sha>","title":"<題>"}'   # link-branch の結果を渡す。手元に作業を記録するだけで、checkout はしない
    git fetch origin && git checkout <作ったブランチ>
    # 変更を commit して push する
-   <呼ぶ> pr_create '{"file":"<PR のファイル>"}'
+   <呼ぶ> pr_check '{"method":"create","owner":"pecotcraft","repo":"pecot-sandbox","title":"<題>","head":"<ブランチ>","base":"<base>","body":"<本文>","reads":{...}}'   # 通ったら、公式の MCP の create_pull_request で作る
    ```
 
-   スキル・MCP ツールで作るときは、clone で「直した pecot-workflow を動かす」の手順でクライアントを起動する
+   書く手順と `reads` に渡すものは、`skills/w-help/references/github-write.md` にある。スキルで作るときは、clone で「直した pecot-workflow を動かす」の手順でクライアントを起動する
 6. 確かめが終わったら片付ける。名前の形に合う開いた PR・ブランチ・Issue・カード・リリースが対象
 
    ```bash
@@ -261,10 +267,11 @@ MCP サーバ（`cli/src`）の直しは、クライアントに反映されま�
 
 1. 作業ツリーで `pnpm exec nx run actions:build` を打って `dist` を作り直し、作業ブランチに commit して push する
 2. 作業ツリーのテンプレートを写し、`pecotcraft/pecot/actions/<処理>@pecot-actions/v<版>` の `@` の後ろだけを作業ブランチの名前に置き換える
-3. 検証用の clone で、写しを入れる PR を「基本の流れ」の手順で作り、`pr_merge` で merge queue に入れる。`workflow_dispatch`・`pull_request_target`・`issues` は既定のブランチの定義で動くので、マージするまで直した定義では動かない
+3. 検証用の clone で、写しを入れる PR を「基本の流れ」の手順で作る。`gh pr merge <番号> -R pecotcraft/pecot-sandbox` で merge queue に入れる。マージ方法は merge queue が決めるので、`--squash` などを付けない。
+   `workflow_dispatch`・`pull_request_target`・`issues` は既定のブランチの定義で動くので、マージするまで直した定義では動かない
 4. PR・Issue を変えるか、`gh workflow run pecot-board-sync.yml -R pecotcraft/pecot-sandbox` で起動し、次の 2 つを確かめる
    - 実行の `Sync the board` の step が成功し、ログに `moved:`・`set:` の行が出ること
-   - `board_show` の `project.number` が 3 で、動かす見込みのカードの列か Status が変わったこと
+   - `projects_list`（`list_project_items`）で読んだ、動かす見込みのカードの列か Status が変わったこと
 5. 写しを、このリポの `main` の `.github/workflows/pecot-board-sync.yml` から作った形に戻す PR を入れる。pecot の action の呼び方は `pecotcraft/pecot/actions/<処理>@main` にする
 6. `sandbox-diff.sh` でずれが 0 件であることを確かめる
 
@@ -297,28 +304,26 @@ MCP サーバ（`cli/src`）の直しは、クライアントに反映されま�
 
 ### GitHub に書き込む処理の一覧
 
-定義書（`interface/authored.yaml`）の effects から、GitHub に書き込む処理を拾った一覧です。
-対象は、`target: github` で `kind` が `write` か `destructive` のものです。remote へ push する `target: git` のもの（`pr_restack` だけ）も含みます。
-MCP のツール名は、CLI のコマンドの 2 語を `_` でつないだ形です。「sweep」は `sandbox-sweep.sh` で片付くことを表します。
-Issue・コメント・前提・カードの欄を公式の MCP で書いたものは、この一覧に載りません。検証用で作った Issue は、sweep が閉じます（コメントと値は残ります）。
+スキルが GitHub に書く手と、配る workflow が書くものの一覧です。書く手と先に通すチェックの組は、`skills/w-help/references/github-write.md` の表にあります。
+pecot-workflow の MCP ツールで GitHub に書くのは、remote へ push する `pr_restack` だけです。「sweep」は `sandbox-sweep.sh` で片付くことを表します。
+検証用で作った Issue は、sweep が閉じます（コメントと値は残ります）。
 
-| MCP ツール | 作るもの・変えるもの | 片付け方・注意 |
+| 書く手 | 作るもの・変えるもの | 片付け方・注意 |
 |:---|:---|:---|
-| `board_add` | カードと Status | sweep（カードをアーカイブ） |
-| `board_move` | カードの Status | sweep |
-| `branch_delete` | リモートブランチの削除 | 不要。その head の PR は GitHub が閉じます |
-| `pr_create` | PR・スタックへの登録・カードの Status | sweep（PR を閉じる） |
-| `pr_merge` | PR のマージか merge queue への投入 | マージした PR と commit は検証用の `main` に残ります |
+| `issue_write`・`sub_issue_write`・`issue_dependency_write`・`add_issue_comment`・`update_issue_comment` | Issue・親・前提・コメント | sweep（Issue を閉じる） |
+| `projects_write` | カードと欄の値 | sweep（カードをアーカイブ） |
+| github-ops の `link-branch` | Issue につないだブランチ | sweep（ブランチを消す） |
+| `create_pull_request`・`update_pull_request` | PR | sweep（PR を閉じる） |
+| github-ops の `stack-register` | スタックへの登録 | sweep |
+| `merge_pull_request` | PR のマージ | 検証用は merge queue なので、断られます。利用者の token の `gh pr merge <番号> -R pecotcraft/pecot-sandbox` で queue に入れます。マージした PR と commit は検証用の `main` に残ります |
 | `pr_restack` | 手元のブランチの rebase と `git push --force-with-lease` | sweep。対象はスタック PR だけです |
-| `project_create` | org のボードとフィールド | 題に `[cuj <Issue番号>-<乱数>]` を入れて作り、`gh project delete <番号> --owner pecotcraft` で消します。作ると新しいボードが有効になるので、`project activate` で戻します |
-| `project_init` | ボードのフィールドと選択肢 | 題に `[cuj <Issue番号>-<乱数>]` を入れて `gh project create` で作った空のボードで実行し、`gh project delete` で消します |
-| `project_link` | リポとプロジェクトのつなぎ | `gh project unlink <番号> --owner pecotcraft --repo pecotcraft/pecot-sandbox` |
-| `release_create` | `v*` のリリースとタグ | `gh release delete <タグ> --cleanup-tag --yes -R pecotcraft/pecot-sandbox`。版の節を書いた `CHANGELOG.md` を clone に一時的に置いて実行します |
-| `release_merge` | release の PR のマージと head ブランチの削除 | 検証用では実行できません。このリポだけの bypass で通す操作で、検証用には bypass を足しません |
-| `session_start` | 紐づいたブランチ・カードの Status を `active` に | sweep（ブランチを消す） |
-| `session_finish` | Issue のクローズ・リモートの head ブランチの削除 | カードは sweep がアーカイブします |
-| （配る workflow の `pecot-board-sync.yml`） | PR・Issue の変化で、pecot の action の board-sync と session-finish を動かす。board-sync は新しい 20 件を超えた Archived のカードを削除します | 「配る自動化を確かめる」の手順で入れて戻します。削除は戻せません |
-| （配る workflow の `pecot-github-ops.yml`） | 起動した operation のブランチ・スタック・ボードの欄とビュー・リポのつなぎ・リリース | ブランチ・スタックは sweep。ボードは `project_init` と同じく使い捨てを作って消します。つなぎとリリースは `project_link`・`release_create` の行と同じ |
+| `create_project`・github-ops の `project-fields`・`project-view` | org のボードと欄とビュー | 題に `[cuj <Issue番号>-<乱数>]` を入れて作り、`gh project delete <番号> --owner pecotcraft` で消します。`project_activate` で 3 番に戻します |
+| github-ops の `project-link` | リポとボードのつなぎ | `gh project unlink <番号> --owner pecotcraft --repo pecotcraft/pecot-sandbox` |
+| github-ops の `release-create` | `v*` のリリースとタグ | `gh release delete <タグ> --cleanup-tag --yes -R pecotcraft/pecot-sandbox`。版の節を書いた `CHANGELOG.md` を clone に一時的に置いて確かめます |
+| （配る workflow の `pecot-board-sync.yml`） | PR・Issue の変化で、pecot の action の board-sync と session-finish を動かす。マージした PR の閉じる Issue を閉じ、待つ Issue の列を動かす。board-sync は新しい 20 件を超えた Archived のカードを削除します | 「配る自動化を確かめる」の手順で入れて戻します。削除は戻せません |
+
+検証用の `main` は「head ブランチを自動で消す」（`delete_branch_on_merge`）を有効にしています。pecot はリモートのブランチを消さないので、マージした PR の head は GitHub が消します。
+`sandbox-diff.sh` が、この設定をこのリポと比べます。
 
 ## 4. GitHub の Issue の機能の写しと担保の一覧
 

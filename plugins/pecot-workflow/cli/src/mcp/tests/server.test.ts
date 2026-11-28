@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 import { PecotError } from '@pecot/workflow-core/domain/errors.js'
 import { explains } from '../../../tests/_helpers/explains.js'
-import { BOARD_ADD_TOOLS } from '../../commands/board-add.js'
+import { SESSION_FINISH_TOOLS } from '../../commands/session-finish.js'
 import { abortUnconfirmed, createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import { defineTool } from '../../commands/registry.js'
 import type { ToolDefinition } from '../../commands/registry.js'
@@ -517,13 +517,14 @@ describe('対象のリポを決められなかったとき', () => {
 })
 
 describe('失敗の原因の名前', () => {
-  it('board_add でボードが定義していない status を渡すと、kind を status-not-configured にする', async () => {
-    await explains('失敗の種別のテストです。`board_add` にプロジェクトのボードが定義していない `status` を渡した場合に、`kind` が `status-not-configured` の失敗を返すことを確認します。')
-    prepareProject({ missingStatus: 'active' })
-    const { client } = await open(BOARD_ADD_TOOLS)
-    const result = await client.callTool({ name: 'board_add', arguments: { issue_ref: 'acme/demo/7', status: 'active' } })
+  it('session_finish にマージしていない PR を渡すと、kind を pr-state にする', async () => {
+    await explains('失敗の種別のテストです。`session_finish` の `reads.pull_request` にマージしていない PR の読み取りを渡した場合に、`kind` が `pr-state` の失敗を返すことを確認します。')
+    prepareProject()
+    const { client } = await open(SESSION_FINISH_TOOLS)
+    const pullRequest = { number: 7, state: 'open', draft: false, merged: false, html_url: 'https://github.com/acme/demo/pull/7', head: { ref: 'feat/7' }, base: { ref: 'main' } }
+    const result = await client.callTool({ name: 'session_finish', arguments: { pr_ref: 'acme/demo/7', reads: { pull_request: pullRequest } } })
     expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toEqual({ kind: 'status-not-configured', detail: 'status \'active\' is not configured in the project' })
+    expect(structuredOf(result)).toEqual({ kind: 'pr-state', detail: 'PR #7 is not merged yet (state: open); merge it on GitHub first' })
   })
 })
 

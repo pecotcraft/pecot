@@ -14,7 +14,7 @@ import { TOOLS } from '../../src/commands/registry.js'
 import { setEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { gitEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import { startFakeGithub } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
-import type { FakeGithub, RecordedRequest, ResponseMatch, ResponseRule, ResponseSpec } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
+import type { FakeGithub, RecordedRequest, ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import type { CommitSetup, Scenario, WorktreeSetup } from '../parity/scenario.js'
 import { baseEnvironment, createSandbox, destroySandbox } from '../parity/setup.js'
 import type { Sandbox } from '../parity/setup.js'
@@ -24,117 +24,10 @@ import type { BaseRecordOption } from './base-record.js'
 import { runToolInProcess } from './run-tool.js'
 import type { ToolRunResult } from './run-tool.js'
 
-export type ResponseRuleList = readonly ResponseRule[]
-
 export const OWNER = 'acme'
 export const REPOSITORY = 'demo'
 export const HOST = 'ghes.example.com'
 const TOKEN_VARIABLE = 'PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN'
-
-// 応答の組み立て
-
-/**
-応答の規則 1 件。times の既定は 1
-*/
-export function rule(match: Readonly<ResponseMatch>, respond: Readonly<ResponseSpec>, times = 1): ResponseRule {
-  return { match, respond, times }
-}
-
-/**
-GraphQL の operation への 200 応答
-*/
-export function graphql(operation: string, data: unknown, options: Readonly<{ variables?: unknown, times?: number }> = {}): ResponseRule {
-  return rule({ operation, variables: options.variables }, { status: 200, body: { data } }, options.times)
-}
-
-/**
-REST への応答。status 204 などは body を省く
-*/
-export function rest(method: string, requestPath: string, status: number, body?: unknown, times = 1): ResponseRule {
-  return rule({ method, path: requestPath }, { status, body }, times)
-}
-
-export interface PullRequestSample {
-  readonly number?: number
-  readonly state?: string
-  readonly title?: string
-  readonly body?: string
-  readonly head?: string
-  readonly base?: string
-  readonly isDraft?: boolean
-  readonly mergeable?: string
-  readonly comments?: number
-  readonly closing?: readonly (readonly [number, string])[]
-  readonly reviews?: readonly unknown[]
-  readonly threads?: readonly unknown[]
-}
-
-/**
-GetPullRequestSlim / GetPullRequestWithReviews の data。reviewThreads は threads を渡したときだけ付く
-*/
-export function pullRequestData(sample: Readonly<PullRequestSample> = {}): unknown {
-  const pullRequest: Record<string, unknown> = {
-    number: sample.number ?? 21,
-    state: sample.state ?? 'MERGED',
-    title: sample.title ?? 'feat(demo): #12 見本の変更',
-    body: sample.body ?? 'Closes #12\n',
-    headRefName: sample.head ?? 'feat/demo/12',
-    baseRefName: sample.base ?? 'main',
-    isDraft: sample.isDraft ?? false,
-    mergeable: sample.mergeable ?? 'MERGEABLE',
-    comments: { totalCount: sample.comments ?? 0 },
-    closingIssuesReferences: { nodes: (sample.closing ?? [[12, '見本の Issue']]).map(([number, title]) => ({ number, title })) },
-    reviews: { nodes: sample.reviews ?? [] },
-  }
-  if (sample.threads !== undefined) pullRequest['reviewThreads'] = { nodes: sample.threads }
-  return { repository: { pullRequest } }
-}
-
-export interface FinishPullRequestSample {
-  readonly state?: string
-  readonly body?: string
-  readonly head?: string
-  readonly base?: string
-  /**
-  base のリポの既定ブランチ。null なら既定ブランチが無い（空のリポなど）
-  */
-  readonly defaultBranch?: string | null
-  /**
-  closing issues。リポは acme/demo。別のリポは [番号, 'owner/repo'] で書く
-  */
-  readonly closing?: readonly (number | readonly [number, string])[]
-}
-
-/**
-GetPullRequestForFinish の data
-*/
-export function finishPullRequestData(sample: Readonly<FinishPullRequestSample> = {}): unknown {
-  const closing = (sample.closing ?? [12]).map((entry) => {
-    const [number, fullName] = typeof entry === 'number' ? [entry, 'acme/demo'] : entry
-    const [login, name] = fullName.split('/', 2)
-    return { number, repository: { name, owner: { login } } }
-  })
-  return { repository: { pullRequest: {
-    number: 21,
-    state: sample.state ?? 'MERGED',
-    body: sample.body ?? 'Closes #12\n',
-    headRefName: sample.head ?? 'feat/demo/12',
-    baseRefName: sample.base ?? 'main',
-    isDraft: false,
-    closingIssuesReferences: { nodes: closing },
-    baseRepository: { defaultBranchRef: sample.defaultBranch === null ? sample.defaultBranch : { name: sample.defaultBranch ?? 'main' } },
-  } } }
-}
-
-/**
-GetIssueKind の data。subIssues が 1 件以上、または issueType が Epic なら Epic になる
-*/
-export function issueKindData(options: Readonly<{ number?: number, subIssues?: number, issueType?: string, state?: string }> = {}): unknown {
-  // GraphQL の応答は、Issue Type が無いと null
-  // eslint-disable-next-line unicorn/no-null -- 応答の形
-  const issueType = options.issueType === undefined ? null : { name: options.issueType }
-  return { repository: { issue: { number: options.number ?? 12, state: options.state ?? 'OPEN', issueType, subIssues: { totalCount: options.subIssues ?? 0 } } } }
-}
 
 // 設定ファイル
 

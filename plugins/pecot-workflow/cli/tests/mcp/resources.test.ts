@@ -49,7 +49,7 @@ describe('initialize', () => {
     const { client } = await connect()
     expect(client.getServerCapabilities()).toHaveProperty('resources')
     expect(client.getInstructions()).toBe(MCP_INSTRUCTIONS)
-    const named = ['pecot-template://', 'issue_check', 'issue_dependency_check', 'issue_comment_check', 'issue_write', 'issue_dependency_write', 'add_issue_comment', 'update_issue_comment', 'pr_create']
+    const named = ['pecot-template://', 'issue_check', 'issue_dependency_check', 'issue_comment_check', 'issue_write', 'issue_dependency_write', 'add_issue_comment', 'update_issue_comment', 'pr_check', 'create_pull_request', 'update_pull_request', 'merge_pull_request']
     expect(named.filter(name => !MCP_INSTRUCTIONS.includes(name))).toEqual([])
   })
 })

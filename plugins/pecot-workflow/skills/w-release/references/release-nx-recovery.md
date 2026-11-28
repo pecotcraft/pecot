@@ -44,11 +44,8 @@ publish prompt は Nx Release の最終段で出るため、prompt 到達時点�
 [release-nx.md](release-nx.md) のランナーの手順で失敗したときの復旧手順。
 手元の `nx release` には戻らない。
 
-失敗の理由は、次のコマンドで確かめる。
-
-```bash
-gh run view <id> --log-failed -R <owner>/<repo>
-```
+失敗の理由は、失敗した job のログで確かめる。ログは、公式の MCP の `get_job_logs` で読む。
+引数は `run_id` と `failed_only: true`・`return_content: true` にする。
 
 - dry-run の run の失敗: 原因を直してから、`release.yml` を dry-run で起動し直す。
   原因の 1 つは preflight の失敗（code scanning・secret scanning の open の alert か、その一覧の取得の失敗）である。
@@ -57,11 +54,8 @@ gh run view <id> --log-failed -R <owner>/<repo>
   - 直すのに PR のマージが要るとき: マージしてから、dry-run からやり直す。本番には、新しい run の `headSha` を使う
   - 基盤・ネットワークの一時的な失敗のとき: 同じ `sha` で本番を起動し直す
 - publish だけの失敗: リリースは成立している。nx が失敗しても `release-land.sh` が `main` への取り込みを済ませるので、起動し直さない。
-  Release が無ければ作り、publish だけをやり直す。
-
-  ```bash
-  gh workflow run publish-npm.yml -f tag=<tag> --ref <tag> -R <owner>/<repo>
-  ```
+  Release が無ければ作り、publish だけをやり直す。publish は、公式の MCP の `actions_run_trigger` の `run_workflow` で起動する。
+  引数は `workflow_id: "publish-npm.yml"`・`ref: "<tag>"`・`inputs: {"tag": "<tag>"}` にする。
 
 - push の後の 401: App のトークンは 1 時間で切れる。
   push の後の Release の作成や publish の起動で 401 になっても、タグと release commit は残る。
@@ -69,7 +63,7 @@ gh run view <id> --log-failed -R <owner>/<repo>
   land も 401 で止まったときは、下の「land で止まった」に従う。
 - land で止まった（ログに `error:` の行がある）: 衝突・上限の超過・ruleset や認証の拒否、App の `workflows` の権限での拒否が原因になる。
   nx が成功していれば、タグと GitHub Release はできていて、一時ブランチ `release/run-<run_id>-<run_attempt>` が残っている。
-  nx も失敗したときは Release ができているとは限らないので、`gh release list -R <owner>/<repo>` で確かめる。
+  nx も失敗したときは Release ができているとは限らないので、公式の MCP の `list_releases` で確かめる。
   `release.yml` を起動し直さない。Re-run もしない（同じ版のタグが重複して止まる）。
   `main` への取り込みはユーザーに頼む。エージェントは `main` へ push しない。
   取り込み方は、次のとおりである。

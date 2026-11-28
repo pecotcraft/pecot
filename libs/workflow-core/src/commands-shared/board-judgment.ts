@@ -17,8 +17,9 @@ import type { GitHubClient } from '../infra/github/index.js'
 import { blockedByReadCount, createReadinessCache, judgeSnapshot, prerequisiteKeys, readIssueSnapshot } from './issue-readiness.js'
 import type { IssueReadiness, IssueSnapshot, JudgedIssue, ReadinessCache, UnreadableIssue } from './issue-readiness.js'
 import { mapWithLimit } from './board-view.js'
-import { commandHint, hinted } from './command-hint.js'
+import { hinted } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
+import { boardFieldsHint } from './project-sync.js'
 import { applyBoardMove, planBoardMove } from './issue-board.js'
 import type { BoardMoveLine } from './issue-board.js'
 import type { FieldHintState } from './field-write-failure.js'
@@ -44,7 +45,7 @@ export const BOARD_SYNC_WORKFLOW = 'the pecot-board-sync workflow (Run workflow 
 */
 export function missingWarning(missing: ReadonlySet<MissingValue>): HintedText {
   const names = [...missing].toSorted(compareStrings)
-  return hinted`the board has no option ${names.join(', ')}; add ${names.length === 1 ? 'it' : 'them'} with ${commandHint(['project', 'init'])}`
+  return hinted`the board has no option ${names.join(', ')}; add ${names.length === 1 ? 'it' : 'them'} with ${boardFieldsHint()}`
 }
 
 export interface BoardTarget {

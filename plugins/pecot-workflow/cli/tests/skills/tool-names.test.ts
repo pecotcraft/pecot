@@ -19,7 +19,7 @@ const NOT_TOOLS: ReadonlySet<string> = new Set(['release_type', 'release_branch'
 
 // GitHub の公式の MCP のツール・引数・feature の名前と、それに合わせたテンプレートの鍵
 const OFFICIAL_MCP_NAMES: ReadonlySet<string> = new Set([
-  'issue_read', 'issue_write', 'issue_dependency_read', 'issue_dependency_write', 'issue_dependencies', 'issue_fields', 'issue_number', 'project_fields',
+  'issue_read', 'issue_write', 'issue_dependency_read', 'issue_dependency_write', 'issue_dependencies', 'issue_fields', 'issue_number', 'project_fields', 'workflow_id', 'workflow_runs_filter',
 ])
 
 const GROUP_WORDS = COMMAND_GROUPS.map(group => group.name).join('|')
@@ -132,11 +132,10 @@ describe('本文のツール名', () => {
     expect(outside).toEqual([])
   })
 
-  it('w-pr の allowed-tools は、pr_check・pr_create・pr_show・issue_comment を許す', async () => {
-    await explains('`w-pr` の `allowed-tools` のテストです。`pr_check`・`pr_create`・`pr_show`・`issue_comment` の 4 つのツールが許可されていることを確認します。')
+  it('w-pr の allowed-tools は、PR・ボード・コメントのチェックと、セッションのツールを許す', async () => {
+    await explains('`w-pr` の `allowed-tools` のテストです。`pr_check`・`pr_restack`・`board_check`・`project_list` を許すことを確認します。`issue_comment_check`・`session_show`・`session_finish` も確認します。')
     const skill = documents.find(({ file }) => file === 'skills/w-pr/SKILL.md')
-    expect(skill?.text).toContain('mcp__plugin_pecot-w_pecot-workflow__pr_check')
-    for (const tool of ['pr_create', 'pr_show', 'issue_comment']) expect(skill?.text).toContain(`mcp__plugin_pecot-w_pecot-workflow__${tool}`)
+    for (const tool of ['pr_check', 'pr_restack', 'board_check', 'project_list', 'issue_comment_check', 'session_show', 'session_finish']) expect(skill?.text).toContain(`mcp__plugin_pecot-w_pecot-workflow__${tool}`)
   })
 
   it.for(['w-active', 'w-quick', 'w-breakdown'])('%s の allowed-tools は、取りこぼしの片付けに使う session_finish だけを許す', async (skillName) => {
@@ -176,15 +175,15 @@ describe('`pecot <サブコマンド>` の残り（R-19）', () => {
 describe('`pecot <サブコマンド>` の検出式', () => {
   const denied = [
     'pecot issue check 1',
-    '$PECOT pr show o/r#1',
-    '${PECOT} pr create',
+    '$PECOT pr check o/r#1',
+    '${PECOT} pr restack',
     '"$PECOT" board show',
     '"${CLAUDE_PLUGIN_ROOT}/bin/pecot" --repo o/r issue check',
     '/home/u/.claude/plugins/x/bin/pecot session show',
     'pecot --repo o/r session finish 3',
     'cd x && pecot --help',
     'pecot --version',
-    'pecot branch delete acme/demo feat/x',
+    'pecot branch check acme/demo feat/x',
     '$PECOT session start 3 --dry-run',
     'pecot workflow doctor review',
   ]
@@ -203,7 +202,7 @@ describe('`pecot <サブコマンド>` の検出式', () => {
   ]
 
   it('deny の hook が拒否する起動形の見本を、すべて検出する', async () => {
-    await explains('`pecot <サブコマンド>` を検出する正規表現のテストです。`pecot issue check 1` や `$PECOT pr create` など、deny の hook が拒否する起動形の見本がすべて一致することを確認します。')
+    await explains('`pecot <サブコマンド>` を検出する正規表現のテストです。`pecot issue check 1` や `${PECOT} pr restack` など、deny の hook が拒否する起動形の見本がすべて一致することを確認します。')
     expect(denied.filter(sample => !CLI_FORM.test(sample))).toEqual([])
   })
 

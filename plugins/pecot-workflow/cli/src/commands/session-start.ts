@@ -1,142 +1,24 @@
-// session start。Python の cli/commands/repo.py の create_branch の移植。
+// session_start。link-branch で作ったブランチの着手の記録（.pecot-base・作業ディレクトリ・セッション名）を手元に書く。GitHub を読まず書かない
 import { z } from 'zod'
 
-import { findRepository, getFieldId, getOptionId, isRepositoryInProject } from '@pecot/workflow-core/domain/config.js'
-import type { ProjectConfig } from '@pecot/workflow-core/domain/config.js'
 import { ReferenceParseError, parseIssueReference } from '@pecot/workflow-core/domain/reference-parser.js'
 import type { IssueReference } from '@pecot/workflow-core/domain/reference-parser.js'
 import { repositoryFullName } from '@pecot/workflow-core/domain/repository-resolver.js'
-import { displayReference } from '@pecot/workflow-core/domain/readiness.js'
-import { decideStart, describeBaseMismatch } from '@pecot/workflow-core/domain/work-start.js'
-import type { StartDecision } from '@pecot/workflow-core/domain/work-start.js'
-import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
-import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
 import { issuePath } from '@pecot/workflow-core/commands-shared/issue-shared.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import type { Output } from '@pecot/workflow-core/commands-shared/output.js'
 import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import { commandHint, hinted, joinHinted } from '@pecot/workflow-core/commands-shared/command-hint.js'
-import type { HintedText } from '@pecot/workflow-core/commands-shared/command-hint.js'
-import { PROJECT_INPUT, requireConfigFor, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
-import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
-import { fieldWriteFailure } from '@pecot/workflow-core/commands-shared/field-write-failure.js'
-import { createGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
+import { stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { USAGE_EXIT_CODE } from '@pecot/workflow-core/commands-shared/usage-error.js'
-import { requireRepositoryMatch, resolveCurrentRepository } from '@pecot/workflow-core/commands-shared/repository-match.js'
-import { createReadinessCache, readIssueReadinessIfSupported } from '@pecot/workflow-core/commands-shared/issue-readiness.js'
 import { recordWorkTarget } from './work-target.js'
 import { checkLeftovers } from './session-leftovers.js'
-
-const START_PATH = ['session', 'start']
-
-/**
-A-1. 作業ディレクトリの git remote のリポジトリが Issue のリポジトリと違えば、終了コード 2 で止める
-*/
-function rejectCwdRepositoryMismatch(out: Readonly<Output>, owner: string, repository: string): void {
-  const resolved = resolveCurrentRepository(process.cwd())
-  if (resolved?.source !== 'current-git') return
-  const current = resolved.repository
-  if (current.owner === owner && current.repository === repository) return
-  stopWith(
-    out,
-    hinted`the repository of the work Issue (${owner}/${repository}) differs from the CWD git remote (${repositoryFullName(current)})\nmove to the worktree of the target repository and call the tool again:\n<project-root>/base/${repository}/ or <project-root>/<wtN>/${repository}/\ncreate one with /pecot-w:w-worktree-add only if the repository has no worktree`,
-    'repo-mismatch',
-    USAGE_EXIT_CODE,
-  )
-}
-
-interface BaseBranchQuery {
-  readonly config: ProjectConfig
-  readonly owner: string
-  readonly repository: string
-  readonly issueNumber: number
-  readonly branch: string
-  readonly base: string | undefined
-}
-
-/**
-develop_branch を設定する直し方の行
-*/
-function developBranchGuide(owner: string, repository: string): HintedText {
-  return hinted`set it with: ${commandHint(['project', 'link'], { repo: `${owner}/${repository}`, develop_branch: 'develop' })}`
-}
-
-/**
-3. ベースブランチを決める（--base を先に、無ければ設定の develop_branch）
-*/
-function resolveBaseBranch(out: Readonly<Output>, query: Readonly<BaseBranchQuery>): string {
-  const { config, owner, repository, issueNumber, branch, base } = query
-  if (base !== undefined && base !== '') return base
-  const developBranch = findRepository(config, owner, repository)?.develop_branch
-  if (developBranch === undefined || developBranch === '') {
-    const withBase = commandHint(START_PATH, { issue_ref: issuePath(owner, repository, issueNumber), branch, base: 'main' })
-    stopWith(out, joinHinted([`develop_branch is not set for ${owner}/${repository}`, developBranchGuide(owner, repository), hinted`or give the base: ${withBase}`]), 'repo-setting-missing')
-  }
-  return developBranch
-}
-
-/**
-3.5. 着手の判定を読み、スタック先を決める。blocked と読めないときは止める。依存関係を持たない GHES は、warning を出して判定なしで進める
-*/
-async function decideWorkStart(out: Readonly<Output>, client: Readonly<GitHubClient>, config: ProjectConfig, issue: Readonly<IssueReference>): Promise<Exclude<StartDecision, { kind: 'blocked' }>> {
-  const label = displayReference(issue, issue.repository)
-  const warnNotChecked = (reason: string): void => {
-    out.warning(`readiness is not checked: ${reason}`)
-  }
-  const result = await readIssueReadinessIfSupported(client, config, issue, createReadinessCache(), warnNotChecked)
-  if (result === undefined) return { kind: 'start' }
-  if (result.kind === 'unreadable') {
-    if (result.snapshot === undefined) return stopWith(out, `could not read blocked-by of ${label}: ${result.reason}`, 'dependency-unreadable')
-    const isUnset = result.snapshot.developmentBranch === undefined || result.snapshot.developmentBranch === ''
-    const guide = isUnset ? [developBranchGuide(issue.repository.owner, issue.repository.repository)] : []
-    return stopWith(out, joinHinted([`could not judge readiness of ${label}: ${result.reason}`, ...guide]), 'dependency-unreadable')
-  }
-  const decision = decideStart(result.readiness, result.prerequisites, issue)
-  return decision.kind === 'blocked' ? stopWith(out, decision.message, 'not-ready', USAGE_EXIT_CODE) : decision
-}
-
-/**
-7.5. プロジェクトアイテムのステータスを active にする（失敗は warning にとどめる）
-*/
-async function setIssueStatusActive(out: Readonly<Output>, client: Readonly<GitHubClient>, config: ProjectConfig, issue: Readonly<{ owner: string, repository: string, number: number }>): Promise<void> {
-  const { owner, repository, number } = issue
-  const target = `Issue ${issuePath(owner, repository, number)} status active`
-  try {
-    const itemId = await client.getItemIdByIssue(config.project.id, owner, repository, number)
-    if (itemId === undefined || itemId === '') {
-      out.warning(`could not set ${target}: the Issue is not on the project board`)
-      return
-    }
-    const fieldId = getFieldId(config, 'workflow')
-    const optionId = getOptionId(config, 'workflow', 'active')
-    if (fieldId === undefined || fieldId === '' || optionId === undefined || optionId === '') {
-      out.warning(`could not set ${target}: the workflow status field has no 'active' option`)
-      return
-    }
-    try {
-      await client.updateProjectItemField(config.project.id, itemId, fieldId, optionId)
-    }
-    catch (error: unknown) {
-      if (!(error instanceof GitHubAPIError)) throw error
-      out.warning(fieldWriteFailure(`could not set ${target}: ${error.message}`, error, config))
-      return
-    }
-    out.done({ verb: 'set', target })
-  }
-  catch (error: unknown) {
-    // ブランチは作成済みなので、ステータスの失敗でコマンドは止めない
-    if (!(error instanceof GitHubAPIError)) throw error
-    out.warning(`could not set ${target}: ${error.message}`)
-  }
-}
 
 const LEFTOVER_DATA = z.strictObject({
   pullRequest: z.string().describe('Merged PR of the current branch whose local cleanup with session_finish is left (owner/repo/N)'),
 })
 
 const SESSION_START_OUTPUT = z.strictObject({
-  branch: z.string().describe('Branch created (or to be created), with the Issue number appended'),
   repository: z.string().describe('Repository of the branch (owner/repo)'),
   base: z.string().describe('Base branch the branch starts from'),
   stackedOn: z.int().optional().describe('Issue number whose branch this one is stacked on (omitted when not stacked)'),
@@ -145,94 +27,44 @@ const SESSION_START_OUTPUT = z.strictObject({
   leftovers: z.array(LEFTOVER_DATA).optional().describe('Earlier merged PRs whose local cleanup is left undone (omitted when there is none)'),
 })
 
+const SESSION_START_INPUT = z.strictObject({
+  issue_ref: z.string().describe('Work Issue (owner/repo/123)'),
+  base: z.string().min(1).describe('Base branch the branch was created from (base in the link-branch result)'),
+  sha: z.string().refine(value => /^(?:[\da-f]{40}|[\da-f]{64})$/u.test(value), 'a full commit SHA').describe('Commit the branch was created from (sha in the link-branch result)'),
+  stacked_on: z.string().optional().describe('Prerequisite Issue the branch stacks on (owner/repo/N, stacked_on in the branch_check result; omitted when not stacked)'),
+  title: z.string().describe('Title of the work Issue, for the session name'),
+  reads: z.object({
+    pull_requests: z.unknown().optional().describe('Result of list_pull_requests with head <owner>:<current branch> and state all, to find a merged PR whose local cleanup is left'),
+  }).optional().describe('Results of the official GitHub MCP reads'),
+})
+
+function parseReference(out: Readonly<Output>, value: string, field: string): IssueReference {
+  try {
+    return parseIssueReference(value)
+  }
+  catch (error: unknown) {
+    if (!(error instanceof ReferenceParseError)) throw error
+    return stopWith(out, `${field}: ${error.message}`, 'invalid-input', USAGE_EXIT_CODE)
+  }
+}
+
 const sessionStartCommand = defineTool({
   name: 'session_start',
-  title: 'Start Issue branch',
-  description: 'Create a branch linked to an Issue (shown in the Development section of the Issue)',
-  input: z.strictObject({
-    issue_ref: z.string().describe('Issue reference (owner/repo/123)'),
-    branch: z.string().describe('Name of the branch to create'),
-    base: z.string().optional().describe('Base branch (default: chosen by readiness, else develop_branch from the config)'),
-    checkout: z.boolean().default(true).describe('Kept for compatibility; has no effect'),
-    project: PROJECT_INPUT,
-  }),
+  title: 'Record Issue branch',
+  description: 'Record the start of work on a branch created with the link-branch operation: the base (.pecot-base), the work directory and the session name. Also reports a merged PR of the current branch whose local cleanup is left',
+  input: SESSION_START_INPUT,
   output: SESSION_START_OUTPUT,
-  run: async (input, io) => {
-    requireRepositoryMatch('reject', input.repo, io, process.cwd())
+  run: (input, io) => {
     const out = createOutput<z.input<typeof SESSION_START_OUTPUT>>(false, io)
-    // 2. issue_ref をパース（フル形式必須、基準リポは渡さない）
-    let issue
-    try {
-      issue = parseIssueReference(input.issue_ref)
-    }
-    catch (error: unknown) {
-      if (!(error instanceof ReferenceParseError)) throw error
-      return stopWith(out, error.message, 'invalid-input', USAGE_EXIT_CODE)
-    }
+    const issue = parseReference(out, input.issue_ref, 'issue_ref')
+    const stackedOn = input.stacked_on === undefined ? undefined : parseReference(out, input.stacked_on, 'stacked_on')
     const { owner, repository } = issue.repository
-    const issueNumber = issue.number
-
-    // A-1. 作業ディレクトリと Issue ref のリポジトリの整合チェック
-    rejectCwdRepositoryMismatch(out, owner, repository)
-
-    // 1. 設定取得（issue_ref のリポを含む設定）
-    const config = requireConfigFor(out, issue.repository, input.project, ['session', 'start']).config
-
-    const finalBranchName = `${input.branch}/${String(issueNumber)}`
-    try {
-      const client = createGitHubClient(out, config.host)
-
-      // 4. リポジトリがプロジェクトに含まれているか確認
-      if (!await isRepositoryInProject(config, owner, repository, client)) {
-        stopWith(out, `${owner}/${repository} is not in the project`, 'repo-not-in-project')
-      }
-
-      // 4.5. 着手の判定で base を選ぶ。--base はスタック先と比べる
-      const decision = await decideWorkStart(out, client, config, issue)
-      const mismatch = describeBaseMismatch(input.base, decision, issue)
-      if (mismatch !== undefined) stopWith(out, mismatch, 'invalid-input', USAGE_EXIT_CODE)
-      // 4.6. 前の PR の手元の後片付けの取りこぼしを確かめる。あっても止めない
-      const leftovers = await checkLeftovers(out, client, issue.repository, process.cwd())
-      if (leftovers.length > 0) out.result({ leftovers })
-      // 3. ベースブランチ決定（スタックしないときだけ、--base か設定の develop_branch を求める）
-      const baseBranch = decision.kind === 'stack' ? decision.branch : resolveBaseBranch(out, { config, owner, repository, issueNumber, branch: input.branch, base: input.base })
-
-      // 5. Issue Node ID とタイトル取得（タイトルはセッション名用）
-      const { id: issueNodeId, title: issueTitle } = await client.getIssueNodeIdAndTitle(owner, repository, issueNumber)
-
-      // 6. ベースブランチの commit SHA 取得
-      let baseSha: string
-      try {
-        baseSha = await client.getBranchSha(owner, repository, baseBranch)
-      }
-      catch (error: unknown) {
-        if (error instanceof GitHubAPIError && decision.kind === 'stack') {
-          return stopWith(out, `base branch ${baseBranch} of ${displayReference(decision.issue, issue.repository)} not found: ${error.message}`, 'git-unresolved')
-        }
-        throw error
-      }
-
-      const stackedNote = decision.kind === 'stack' ? ` (stacked on ${displayReference(decision.issue, issue.repository)})` : ''
-      const started = { repository: `${owner}/${repository}`, base: baseBranch, ...decision.kind === 'stack' && { stackedOn: decision.issue.number }, issue: issuePath(owner, repository, issueNumber) }
-      // 7. リンクブランチ作成（ブランチ名末尾に Issue 番号を自動付与）
-      const createdBranch = await client.createLinkedBranch(issueNodeId, baseSha, finalBranchName)
-      out.done({ verb: 'create', target: `branch ${createdBranch} in ${owner}/${repository} from ${baseBranch}${stackedNote}` })
-      out.result({ ...started, branch: createdBranch })
-
-      // 7.5. プロジェクトアイテムのステータスを active に更新
-      await setIssueStatusActive(out, client, config, { owner, repository, number: issueNumber })
-
-      // 9. セッション名のキャッシュ（.pecot-session-title）と作業ディレクトリを作る
-      const recorded = recordWorkTarget(out, owner, repository, issueNumber, issueTitle, {
-        base: { branch: baseBranch, sha: baseSha, stackedOn: decision.kind === 'stack' ? decision.issue : undefined },
-      })
-      if (recorded.workDirectory !== undefined) out.result({ workDirectory: recorded.workDirectory })
-      return 0
-    }
-    catch (error: unknown) {
-      if (!(error instanceof GitHubAPIError)) throw error
-      return stopWith(out, `could not create branch ${finalBranchName} in ${owner}/${repository}: ${error.message}`, kindOfFailure(error))
-    }
+    out.result({ repository: repositoryFullName(issue.repository), base: input.base, ...stackedOn !== undefined && { stackedOn: stackedOn.number }, issue: issuePath(owner, repository, issue.number) })
+    const leftovers = checkLeftovers(out, input.reads?.pull_requests, issue.repository, process.cwd())
+    if (leftovers.length > 0) out.result({ leftovers })
+    const recorded = recordWorkTarget(out, owner, repository, issue.number, input.title, { base: { branch: input.base, sha: input.sha, stackedOn } })
+    if (recorded.workDirectory !== undefined) out.result({ workDirectory: recorded.workDirectory })
+    return Promise.resolve(0)
   },
 })
 

@@ -1,7 +1,0 @@
-# 雛形を書き出し、次にすることを出す。handoff の雛形は pecot の action を呼ばないので、タグを読みに行かない。
-id: workflow-install-ok
-tool: workflow_install
-arguments:
-  name: handoff
-setup: {}
-github: []

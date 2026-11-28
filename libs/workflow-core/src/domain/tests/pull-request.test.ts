@@ -1,39 +1,30 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  appendIssueCloseIfNeeded,
   collectPreflightWarnings,
   decidePullRequestBase,
   describeBaseStop,
   describePushStatus,
   extractClosingIssueNumbers,
   formatPreflightWarning,
-  formatPullRequestMarkdown,
-  formatPullRequestWithReviewsMarkdown,
-  formatReviewsMarkdown,
-  formatReviewThreadsMarkdown,
-  hasIssueReference,
   forkPushFixHint,
+  hasClosingReference,
   isReleasePullRequest,
   parseHeadReference,
   pickLowerPullRequest,
   pushFixHintOf,
-  SCREENSHOT_MISSING_ERROR,
   hasStashEntries,
   hasStatusChanges,
-  validatePullRequestContent,
 } from '../pull-request.js'
 import { explains } from '../../../tests/_helpers/explains.js'
-import type { PullRequestBaseDecision, PullRequestContentOptions, PullRequestSlimView, PullRequestWithReviewsView } from '../pull-request.js'
+import type { PullRequestBaseDecision } from '../pull-request.js'
 import type { PullRequestReadout } from '../issue-readout.js'
 import '../../../tests/_helpers/hint-commands.js'
 import { formatHinted } from '../command-hint.js'
-import { JSON_NULL } from '../json-null.js'
 import { createIssueReference } from '../reference-parser.js'
 import { createRepositoryReference } from '../repository-resolver.js'
 import type { BaseReading } from '../state.js'
 import type { RestackDecision } from '../restack.js'
-import type { SectionHeading } from '../sections.js'
 
 describe('extractClosingIssueNumbers', () => {
   it.each([
@@ -65,55 +56,17 @@ describe('extractClosingIssueNumbers', () => {
   })
 })
 
-describe('appendIssueCloseIfNeeded', () => {
-  it('参照が存在しない本文には、末尾に Closes を追加する', async () => {
-    await explains('PR の本文へ、Issue を閉じる記述を追加する、`appendIssueCloseIfNeeded` のテストです。Issue の参照が存在しない本文を渡した場合に、末尾に空行を挟んで `Closes #123` を追加することを確認します。')
-    expect(appendIssueCloseIfNeeded('Changes', 123)).toBe('Changes\n\nCloses #123')
-  })
-
-  it('本文の末尾の空白を除いてから、Closes を追加する', async () => {
-    await explains('PR の本文へ、Issue を閉じる記述を追加する、`appendIssueCloseIfNeeded` のテストです。本文の末尾に空白や空行がある場合に、それらを除いてから `Closes #123` を追加することを確認します。')
-    expect(appendIssueCloseIfNeeded('Changes \n\n', 123)).toBe('Changes\n\nCloses #123')
-  })
-
+describe('hasClosingReference', () => {
   it.each([
-    ['Closes #123'],
-    ['#123 を直す'],
-    ['先頭\n#123'],
-  ])('本文 %j には参照があるため、そのまま返す', async (body) => {
-    await explains(`PR の本文へ、Issue を閉じる記述を追加する、\`appendIssueCloseIfNeeded\` のテストです。本文 \`${JSON.stringify(body)}\` のように、すでに Issue の参照がある場合に、追加せず本文をそのまま返すことを確認します。`)
-    expect(appendIssueCloseIfNeeded(body, 123)).toBe(body)
-  })
-
-  it.each([
-    ['https://example.com/#123'],
-    ['#1234'],
-    ['#12'],
-  ])('本文 %j は別の参照のため、Closes を追加する', async (body) => {
-    await explains(`PR の本文へ、Issue を閉じる記述を追加する、\`appendIssueCloseIfNeeded\` のテストです。本文 \`${JSON.stringify(body)}\` のように、対象の Issue の参照として扱えない記述の場合に、\`Closes #123\` を追加することを確認します。`)
-    expect(appendIssueCloseIfNeeded(body, 123)).toBe(`${body}\n\nCloses #123`)
-  })
-})
-
-describe('hasIssueReference', () => {
-  it.each([
-    ['Closes #12'],
-    ['#12'],
-    ['owner/repo#12'],
-    ['a #1'],
-  ])('本文 %j は、参照があると判定する', async (body) => {
-    await explains(`PR の本文に Issue の参照があるかを判定する、\`hasIssueReference\` のテストです。本文 \`${JSON.stringify(body)}\` の場合に、Issue の参照があるとして \`true\` を返すことを確認します。`)
-    expect(hasIssueReference(body)).toBe(true)
-  })
-
-  it.each([
-    ['参照なし'],
-    ['https://example.com/#12'],
-    ['# 見出し'],
-    ['#abc'],
-  ])('本文 %j は、参照がないと判定する', async (body) => {
-    await explains(`PR の本文に Issue の参照があるかを判定する、\`hasIssueReference\` のテストです。本文 \`${JSON.stringify(body)}\` の場合に、Issue の参照がないとして \`false\` を返すことを確認します。`)
-    expect(hasIssueReference(body)).toBe(false)
+    ['Closes #12', true],
+    ['fixed other/repo#3', true],
+    ['Refs #12', false],
+    ['Closes #', false],
+    ['`Closes #12`', false],
+    ['<!-- Closes #12 -->', false],
+  ])('本文 %j は、閉じる語の有無を %j と判定する', async (body, expected) => {
+    await explains(`PR の本文に Issue を閉じる語があるかを判定する、\`hasClosingReference\` のテストです。本文 \`${JSON.stringify(body)}\` の場合に、別のリポジトリの参照も閉じる語として数え、コードとコメントの中は数えないことを確認します。`)
+    expect(hasClosingReference(body)).toBe(expected)
   })
 })
 
@@ -147,206 +100,6 @@ describe('isReleasePullRequest', () => {
   it('head と develop が未設定でも、base が release のブランチの場合は、リリース PR と判定する', async () => {
     await explains('リリース PR かどうかを判定する、`isReleasePullRequest` のテストです。head と develop のブランチが未設定で、base が release のブランチの場合に、`true` を返すことを確認します。')
     expect(isReleasePullRequest('default', 'main', undefined, undefined, 'main')).toBe(true)
-  })
-})
-
-const SECTIONS: readonly SectionHeading[] = [{ level: 2, name: 'Summary' }, { level: 2, name: 'Changes' }]
-const IMAGE = '![shot](./a.png)'
-const GOOD_BODY = `## Summary\n\n${IMAGE}\n\n## Changes\n\n- 変更 #12\n`
-
-function options(override: Partial<PullRequestContentOptions> = {}): PullRequestContentOptions {
-  return {
-    body: GOOD_BODY,
-    base: 'develop',
-    developBranch: 'develop',
-    releaseBranch: 'main',
-    head: 'feat/x/12',
-    template: 'default',
-    skipIssueReferenceCheck: false,
-    screenshot: undefined,
-    requiredSections: SECTIONS,
-    ...override,
-  }
-}
-
-describe('validatePullRequestContent', () => {
-  it('問題がない場合は、空の配列を返す', async () => {
-    await explains('PR の内容を検証する、`validatePullRequestContent` のテストです。本文・base・節がすべて規則を満たす場合に、空の配列を返すことを確認します。')
-    expect(validatePullRequestContent(options())).toEqual([])
-  })
-
-  it('Issue の参照が存在しない場合はエラーとし、skipIssueReferenceCheck を指定した場合はエラーにしない', async () => {
-    await explains('PR の内容を検証する、`validatePullRequestContent` のテストです。本文に Issue の参照が存在しない場合に、入力 `no_issue_ref` を案内するエラーを返し、`skipIssueReferenceCheck` の指定時は返さないことを確認します。')
-    const body = `## Summary\n\n${IMAGE}\n\n## Changes\n\n- 変更\n`
-    const errors = validatePullRequestContent(options({ body }))
-    expect(errors.map(error => formatHinted(error))).toEqual(['PR body has no Issue reference `#N` (use `no_issue_ref: true` for a PR not tied to an Issue)'])
-    expect(validatePullRequestContent(options({ body, skipIssueReferenceCheck: true }))).toEqual([])
-  })
-
-  it('必須の節が欠けている場合は、欠けている節の名前を示す', async () => {
-    await explains('PR の内容を検証する、`validatePullRequestContent` のテストです。本文から必須の節が欠けている場合に、`missing sections:` の後ろへ欠けている節の見出しを示すことを確認します。')
-    const errors = validatePullRequestContent(options({ body: '## Summary\n\n![shot](./a.png) #12\n' }))
-    expect(errors).toEqual(['missing sections: ## Changes'])
-  })
-
-  it('必須の節の指定が空の場合は、節を検証しない', async () => {
-    await explains('PR の内容を検証する、`validatePullRequestContent` のテストです。必須の節の指定が空の配列の場合に、節が存在しなくてもエラーにならないことを確認します。')
-    expect(validatePullRequestContent(options({ body: '## Summary\n\n![shot](./a.png) #12\n', requiredSections: [] }))).toEqual([])
-  })
-
-  it('見出しの要約が規則に違反している場合は、違反の内容を示す', async () => {
-    await explains('PR の内容を検証する、`validatePullRequestContent` のテストです。見出しの要約が日本語でない場合に、`heading summary rule violations:` に続けて違反の内容を示すことを確認します。')
-    const body = `## Summary — English only\n\n${IMAGE}\n\n## Changes\n\n- 変更 #12\n`
-    const errors = validatePullRequestContent(options({ body, requiredSections: [{ level: 2, name: 'Summary — <要点>' }, { level: 2, name: 'Changes' }] }))
-    expect(errors).toEqual(['heading summary rule violations: ## Summary — the summary must be written in Japanese'])
-  })
-
-  it('許可しない記法がある場合は、その内容を示す', async () => {
-    await explains('PR の内容を検証する、`validatePullRequestContent` のテストです。本文にチェックボックスの記法がある場合に、`disallowed syntax:` に続けて許可しない記法の内容を示すことを確認します。')
-    const errors = validatePullRequestContent(options({ body: `${GOOD_BODY}\n- [ ] 未完了\n` }))
-    expect(errors).toEqual(['disallowed syntax: checkbox syntax (- [ ] / 1. [ ]) is not allowed'])
-  })
-
-  it('Summary に画像が存在せず、screenshot の理由も指定していない場合は、エラーにする', async () => {
-    await explains('PR の内容を検証する、`validatePullRequestContent` のテストです。Summary に画像がなく、`screenshot` の理由も指定しない場合に、エラーを返し、理由を指定した場合はエラーを返さないことを確認します。')
-    const body = '## Summary\n\n文のみ。\n\n## Changes\n\n- 変更 #12\n'
-    expect(validatePullRequestContent(options({ body }))).toEqual([SCREENSHOT_MISSING_ERROR])
-    expect(validatePullRequestContent(options({ body, screenshot: '画面は変わらない' }))).toEqual([])
-    expect(validatePullRequestContent(options({ body, screenshot: '' }))).toEqual([SCREENSHOT_MISSING_ERROR])
-  })
-
-  it('screenshot の理由の案内は、入力名で表示する', async () => {
-    await explains('PR の内容を検証する、`validatePullRequestContent` のテストです。screenshot が不足している場合の案内が、入力の名前（`screenshot` と `message`）で表示されることを確認します。')
-    expect(formatHinted(SCREENSHOT_MISSING_ERROR)).toMatch(/\(`screenshot` with `message`\)$/u)
-  })
-
-  it('base が develop でない場合はエラーとし、develop が未設定の場合は検証しない', async () => {
-    await explains('PR の内容を検証する、`validatePullRequestContent` のテストです。base が develop のブランチでない場合に、`base branch must be develop` を含むエラーを返し、未設定か空の場合は検証しないことを確認します。')
-    expect(validatePullRequestContent(options({ base: 'main' }))).toEqual(['base branch must be develop (given: main)'])
-    expect(validatePullRequestContent(options({ base: 'main', developBranch: undefined }))).toEqual([])
-    expect(validatePullRequestContent(options({ base: 'main', developBranch: '' }))).toEqual([])
-  })
-
-  it('スタックの記録の base を渡した場合は、その base と開発ブランチを許可し、どちらでもない base はエラーにする', async () => {
-    await explains('PR の内容を検証する、`validatePullRequestContent` のテストです。スタックの記録の base を渡した場合に、その base と開発ブランチは許可し、どちらでもない base はエラーにすることを確認します。')
-    expect(validatePullRequestContent(options({ base: 'feat/a/11', stackedBase: 'feat/a/11' }))).toEqual([])
-    expect(validatePullRequestContent(options({ base: 'develop', stackedBase: 'feat/a/11' }))).toEqual([])
-    expect(validatePullRequestContent(options({ base: 'main', stackedBase: 'feat/a/11' }))).toEqual(['base branch must be develop or feat/a/11 (given: main)'])
-  })
-
-  it('スタックの記録の base が開発ブランチと同じ場合は、従来と同じ文でエラーにする', async () => {
-    await explains('PR の内容を検証する、`validatePullRequestContent` のテストです。スタックの記録の base が開発ブランチと同じ場合に、開発ブランチだけを求める従来の文でエラーを返すことを確認します。')
-    expect(validatePullRequestContent(options({ base: 'main', stackedBase: 'develop' }))).toEqual(['base branch must be develop (given: main)'])
-  })
-
-  it('リリース PR は Issue の参照と画像を求めず、base が release のブランチでない場合はエラーにする', async () => {
-    await explains('PR の内容を検証する、`validatePullRequestContent` のテストです。リリース PR の場合に、Issue の参照と画像を検証せず、base が release のブランチでないときだけエラーを返すことを確認します。')
-    const release = options({ body: '## Summary\n\n文のみ。\n\n## Changes\n\n- 変更\n', template: 'release' })
-    expect(validatePullRequestContent({ ...release, base: 'main' })).toEqual([])
-    expect(validatePullRequestContent({ ...release, base: 'develop' })).toEqual(['release PR base branch must be main (given: develop)'])
-    expect(validatePullRequestContent({ ...release, base: 'develop', releaseBranch: undefined })).toEqual([])
-    expect(validatePullRequestContent({ ...release, base: 'develop', releaseBranch: '' })).toEqual([])
-  })
-})
-
-const SLIM: PullRequestSlimView = {
-  number: 7,
-  title: '題',
-  state: 'OPEN',
-  body: '本文',
-  head_ref: 'feat/x/7',
-  base_ref: 'main',
-  is_draft: true,
-  mergeable: 'MERGEABLE',
-  comments: 2,
-  closing_issues: [{ number: 7, title: 'T7' }],
-  referenced_issues: [{ number: 8, title: '' }, { number: 9, title: 'T9' }],
-  reviews: [{ state: 'APPROVED', author: 'alice' }, { state: 'COMMENTED', author: JSON_NULL }],
-}
-
-const FULL: PullRequestWithReviewsView = {
-  ...SLIM,
-  reviews: [
-    { state: 'APPROVED', author: 'alice', body: '  OK  \n', submitted_at: '2026-11-01T10:00:00Z' },
-    { state: 'COMMENTED', author: JSON_NULL, body: '', submitted_at: JSON_NULL },
-    { state: 'COMMENTED', author: 'bob', body: ' ', submitted_at: '2026-11' },
-  ],
-  review_threads: [
-    { is_resolved: true, path: 'a.ts', line: 12, comments: [
-      { author: 'alice', body: '行1\n行2\n', created_at: '2026-11-02T00:00:00Z', url: 'https://github.com/o/r/pull/7#discussion_r1' },
-      { author: JSON_NULL, body: '', created_at: JSON_NULL, url: JSON_NULL },
-    ] },
-    { is_resolved: false, path: JSON_NULL, line: 0, comments: [] },
-  ],
-}
-
-const BARE: PullRequestWithReviewsView = {
-  number: 1,
-  title: 't',
-  state: 'MERGED',
-  body: '',
-  head_ref: 'a',
-  base_ref: 'b',
-  is_draft: false,
-  mergeable: '',
-  comments: 0,
-  closing_issues: [],
-  referenced_issues: [],
-  reviews: [],
-  review_threads: [],
-}
-
-describe('formatPullRequestMarkdown', () => {
-  it('メタ情報・ブランチ・Issue・レビュー・本文を順に並べる', async () => {
-    await explains('PR の情報を Markdown にする、`formatPullRequestMarkdown` のテストです。すべての情報を持つ PR を渡した場合に、状態などのメタ情報、ブランチ、閉じる Issue、参照する Issue、レビュー、本文の順に並ぶことを確認します。')
-    expect(formatPullRequestMarkdown(SLIM)).toBe(
-      '## PR #7 題\n\n**State:** OPEN | **Draft** | **Mergeable:** MERGEABLE | **Comments:** 2\n\n**Branch:** `feat/x/7` → `main`\n\n'
-      + '**Closing Issues:**\n  - #7 T7\n\n**Referenced Issues:**\n  - #8\n  - #9 T9\n\n**Reviews:**\n  - alice: APPROVED\n  - None: COMMENTED\n\n---\n\n本文',
-    )
-  })
-
-  it('Issue とレビューが存在しない場合は、その節を表示しない', async () => {
-    await explains('PR の情報を Markdown にする、`formatPullRequestMarkdown` のテストです。Issue とレビューを持たない PR を渡した場合に、それらの節を含めず、メタ情報・ブランチ・本文だけを返すことを確認します。')
-    expect(formatPullRequestMarkdown(BARE)).toBe('## PR #1 t\n\n**State:** MERGED\n\n**Branch:** `a` → `b`\n\n---\n\n')
-  })
-})
-
-describe('formatPullRequestWithReviewsMarkdown', () => {
-  it('メタ情報・ブランチ・Issue・本文の後に、レビューと行コメントを続ける', async () => {
-    await explains('レビューを含めた PR の情報を Markdown にする、`formatPullRequestWithReviewsMarkdown` のテストです。レビューと行コメントを持つ PR を渡した場合に、閉じる Issue と参照する Issue を並べ、本文の後にレビューと行コメントを続けることを確認します。')
-    expect(formatPullRequestWithReviewsMarkdown(FULL)).toBe(
-      '## PR #7 題\n\n**State:** OPEN | **Draft** | **Mergeable:** MERGEABLE | **Comments:** 2\n\n**Branch:** `feat/x/7` → `main`\n\n'
-      + '**Closing Issues:**\n  - #7 T7\n\n'
-      + '**Referenced Issues:**\n  - #8\n  - #9 T9\n\n'
-      + '---\n\n本文\n\n---\n\n## Reviews\n\n### @alice (APPROVED) - 2026-11-01\n\nOK\n\n### @(unknown) (COMMENTED)\n\n### @bob (COMMENTED)\n\n'
-      + '---\n\n## Line Comments\n\n### `a.ts:12` [Resolved]\n\n**@alice** (2026-11-02) https://github.com/o/r/pull/7#discussion_r1:\n> 行1\n> 行2\n\n**@(unknown)**:\n\n### `(unknown file)` [Open]\n',
-    )
-  })
-
-  it('Issue・レビュー・行コメントが存在しない場合は、本文で終える', async () => {
-    await explains('レビューを含めた PR の情報を Markdown にする、`formatPullRequestWithReviewsMarkdown` のテストです。Issue・レビュー・行コメントを持たない PR を渡した場合に、本文までで出力が終わることを確認します。')
-    expect(formatPullRequestWithReviewsMarkdown(BARE)).toBe('## PR #1 t\n\n**State:** MERGED\n\n**Branch:** `a` → `b`\n\n---\n\n\n')
-  })
-})
-
-describe('formatReviewsMarkdown と formatReviewThreadsMarkdown', () => {
-  it('レビューと行コメントのどちらも空の場合は、空文字を返す', async () => {
-    await explains('レビューと行コメントを Markdown にする、`formatReviewsMarkdown` と `formatReviewThreadsMarkdown` のテストです。レビューと行コメントが空の配列の場合に、どちらも空文字を返すことを確認します。')
-    expect(formatReviewsMarkdown([])).toBe('')
-    expect(formatReviewThreadsMarkdown([])).toBe('')
-  })
-
-  it('author が空文字の場合も、不明として表示する', async () => {
-    await explains('レビューと行コメントを Markdown にする、`formatReviewsMarkdown` と `formatReviewThreadsMarkdown` のテストです。投稿者（`author`）が空文字の場合に、`(unknown)` として表示することを確認します。')
-    expect(formatReviewsMarkdown([{ state: 'COMMENTED', author: '', body: '', submitted_at: '' }])).toBe('## Reviews\n\n### @(unknown) (COMMENTED)\n')
-    expect(formatReviewThreadsMarkdown([{ is_resolved: false, path: '', line: JSON_NULL, comments: [{ author: '', body: '', created_at: '', url: '' }] }]))
-      .toBe('## Line Comments\n\n### `(unknown file)` [Open]\n\n**@(unknown)**:\n')
-  })
-
-  it('日付は 10 文字以上の場合だけ、先頭の 10 文字を表示する', async () => {
-    await explains('レビューと行コメントを Markdown にする、`formatReviewsMarkdown` と `formatReviewThreadsMarkdown` のテストです。投稿日時が 10 文字以上の場合は先頭の 10 文字を日付として表示し、10 文字に満たない場合は表示しないことを確認します。')
-    expect(formatReviewsMarkdown([{ state: 'APPROVED', author: 'a', body: '', submitted_at: '2026-11-01' }])).toContain('### @a (APPROVED) - 2026-11-01')
-    expect(formatReviewsMarkdown([{ state: 'APPROVED', author: 'a', body: '', submitted_at: '2026-11-0' }])).toContain('### @a (APPROVED)\n')
   })
 })
 
@@ -540,11 +293,11 @@ describe('pickLowerPullRequest', () => {
 })
 
 describe('describeBaseStop', () => {
-  it('親 PR が存在しない場合は、止めた理由と、pr_create を呼び直す直し方の 2 行を返す', async () => {
-    await explains('base を決められずに止めたときの説明を作成する、`describeBaseStop` のテストです。開いている親 PR が存在しない場合に、止めた理由と、`pr_create` を呼び直す直し方の 2 行を返すことを確認します。')
+  it('親 PR が存在しない場合は、止めた理由と、pr_check を呼び直す直し方の 2 行を返す', async () => {
+    await explains('base を決められずに止めたときの説明を作成する、`describeBaseStop` のテストです。開いている親 PR が存在しない場合に、止めた理由と、`pr_check` を呼び直す直し方の 2 行を返すことを確認します。')
     expect(describeBaseStop({ kind: 'stop', reason: 'no-open-pr', branch: 'feat/a/11' }).map(line => formatHinted(line))).toEqual([
       'base branch feat/a/11 has no open PR',
-      'reopen the PR of feat/a/11, or create a new one, then call pr_create again',
+      'reopen the PR of feat/a/11, or create a new one, then call pr_check again',
     ])
   })
 

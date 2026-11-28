@@ -11,9 +11,9 @@ import { goldenDirectory, kindOf, normalizeDeep, normalizeText, parseScenario, r
 import { TOOL_NAMES } from './tools.js'
 
 // CLI の使い方の誤りと予行のシナリオを外して、ok か ok 以外の片方だけになったツール
-const ONE_SIDED: ReadonlySet<string> = new Set<string>()
-// GitHub を呼ばないチェックのツール。前後で比べる GitHub への読み書きを持たない
-const CHECK_ONLY: ReadonlySet<string> = new Set(['issue_check', 'issue_dependency_check', 'issue_comment_check'])
+const ONE_SIDED: ReadonlySet<string> = new Set<string>(['session_show'])
+// 公式の MCP の読み取りを reads で受けるツール。GitHub を呼ばず、振る舞いは tests/interface が確かめる
+const READS_ONLY: ReadonlySet<string> = new Set(['project_check', 'project_activate', 'project_link', 'board_show', 'board_check', 'issue_check', 'issue_dependency_check', 'issue_comment_check', 'session_start', 'session_finish', 'pr_check', 'pr_restack', 'release_check', 'branch_check', 'workflow_install', 'workflow_doctor'])
 
 const MINIMAL = `id: pr-show-ok
 tool: pr_show
@@ -123,21 +123,21 @@ describe('シナリオの網羅', () => {
     expect(goldenIds).toEqual(ids)
   })
 
-  it('tools.ts の 30 個のツールの名前が、本番の登録（TOOLS）からチェックのツールを除いた名前と同じ順で一致する', async () => {
-    await explains('シナリオ用のツール一覧（`tools.ts`）のテストです。一覧の名前が、本番のツール登録（`TOOLS`）から GitHub を呼ばないチェックのツールを除いた名前と、過不足なく同じ順で一致することを確認します。')
-    expect(TOOL_NAMES).toHaveLength(30)
-    expect(TOOLS.map(definition => definition.name).filter(name => !CHECK_ONLY.has(name))).toEqual(TOOL_NAMES)
-    expect(TOOLS.filter(definition => CHECK_ONLY.has(definition.name))).toHaveLength(CHECK_ONLY.size)
+  it('tools.ts の 9 個のツールの名前が、本番の登録（TOOLS）から reads を受けるツールを除いた名前と同じ順で一致する', async () => {
+    await explains('シナリオ用のツール一覧（`tools.ts`）のテストです。一覧の名前が、本番のツール登録（`TOOLS`）から公式の MCP の読み取りを `reads` で受けるツールを除いた名前と、過不足なく同じ順で一致することを確認します。')
+    expect(TOOL_NAMES).toHaveLength(9)
+    expect(TOOLS.map(definition => definition.name).filter(name => !READS_ONLY.has(name))).toEqual(TOOL_NAMES)
+    expect(TOOLS.filter(definition => READS_ONLY.has(definition.name))).toHaveLength(READS_ONLY.size)
   })
 
-  it('シナリオが使うツールの集合が、30 個のツールの名前と一致する', async () => {
-    await explains('シナリオの網羅のテストです。シナリオの `tool` の集合が、30 個のツールの名前と過不足なく一致することを確認します。')
+  it('シナリオが使うツールの集合が、9 個のツールの名前と一致する', async () => {
+    await explains('シナリオの網羅のテストです。シナリオの `tool` の集合が、9 個のツールの名前と過不足なく一致することを確認します。')
     const actual = [...new Set(ids.map(id => readScenario(id).tool))].toSorted(compareStrings)
     expect(actual).toEqual(TOOL_NAMES.toSorted(compareStrings))
   })
 
-  it('片方だけの一覧のツールを除き、各ツールに ok と ok 以外のシナリオがあり、全体で auth・4xx・5xx・usage の種別が含まれる', async () => {
-    await explains('ツールごとのシナリオの種別のテストです。片方だけの一覧（`ONE_SIDED`）のツールを除いて ok と ok 以外のシナリオが存在し、全体で `auth`・`4xx`・`5xx`・`usage` の種別が含まれることを確認します。')
+  it('片方だけの一覧のツールを除き、各ツールに ok と ok 以外のシナリオがあり、全体で state・usage の種別が含まれる', async () => {
+    await explains('ツールごとのシナリオの種別のテストです。片方だけの一覧（`ONE_SIDED`）のツールを除いて ok と ok 以外のシナリオが存在し、全体で `state`・`usage` の種別が含まれることを確認します。GitHub を呼ぶツールは残っていないので、`auth`・`4xx`・`5xx` は求めません。')
     const kinds = new Map<string, Set<string>>()
     for (const id of ids) {
       const scenario = readScenario(id)
@@ -153,6 +153,6 @@ describe('シナリオの網羅', () => {
     for (const found of kinds.values()) {
       for (const kind of found) all.add(kind)
     }
-    for (const kind of ['auth', '4xx', '5xx', 'usage']) expect(all.has(kind)).toBe(true)
+    for (const kind of ['state', 'usage']) expect(all.has(kind)).toBe(true)
   })
 })

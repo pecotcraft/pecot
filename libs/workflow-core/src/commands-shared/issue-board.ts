@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
 // Issue の作成・ボードへの追加・フィールドの設定と、判定に応じた列と札の書き込み（applyBoardMove）。cli/core/issue_board.py の移植に applyBoardMove を足した。
 // 失敗は GitHubAPIError で呼び出し側に返す。表示と終了コードは呼び出し側が決める。
-import { z } from 'zod'
-
 import { COLUMN_CONFIG_KEYS, LABEL_CONFIG_KEYS } from '../domain/board-move.js'
 import type { BoardMove, LabelValue, MissingValue, MovableColumn } from '../domain/board-move.js'
 import { getFieldId, getOptionId } from '../domain/config.js'
@@ -149,26 +147,6 @@ export interface BoardMoveLine {
   readonly column: { readonly from: string, readonly to: MovableColumn } | undefined
   readonly label: LabelValue | undefined
   readonly reason: string
-}
-
-/**
-列と札を動かした（dry-run は動かす予定の）Issue 1 件。board sync・pr create・issue block / unblock の data が使う
-*/
-export const BOARD_MOVE_JSON = z.strictObject({
-  issue: z.string().describe('Issue as shown in the moved line (#N, or owner/repo#N outside the home repository)'),
-  from: z.string().optional().describe('Column before the move (omitted when only the Status changed)'),
-  to: z.string().optional().describe('Column after the move (omitted when only the Status changed)'),
-  label: z.string().optional().describe('Status value set (omitted when the Status did not change)'),
-  reason: z.string().describe('Readiness that decided the move'),
-})
-
-export function moveJson({ issue, column, label, reason }: Readonly<BoardMoveLine>): z.input<typeof BOARD_MOVE_JSON> {
-  return {
-    issue,
-    ...column !== undefined && { from: column.from, to: column.to },
-    ...label !== undefined && { label },
-    reason,
-  }
 }
 
 export interface AppliedMove {

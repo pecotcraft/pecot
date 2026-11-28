@@ -9,6 +9,6 @@
 4. `pecot-status` を `update_project_item` で書く。指定が無ければ `Ready`
 5. `issue_check`（`update`・`state: open`）に通してから、`issue_write`（`update`・`state: open`）で開く
 6. 数秒おいて `issue_read`（`get`）で読み、閉じていれば 5 をもう一度行う。ボードの自動化は、開いた直後に閉じ直すことがある
-7. 開き直す理由があれば、[Issue とコメントを公式の MCP で書く](issue-write.md) の手順でコメントを書く。テンプレートは無いので、`issue_comment_check` には `template` を渡さない
+7. 開き直す理由があれば、[GitHub に公式の MCP と github-ops で書く](github-write.md) の手順でコメントを書く。テンプレートは無いので、`issue_comment_check` には `template` を渡さない
 
 2 で足したカードの欄がすべて空なら、カードはボードに無かった。そのことを利用者に伝える。

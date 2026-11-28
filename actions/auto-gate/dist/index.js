@@ -35714,7 +35714,7 @@ function isHint(value) {
     return typeof value === 'object' && value !== null && 'kind' in value;
 }
 /**
-タグ付きテンプレートで HintedText を作る。`hinted\`call ${commandHint(['project', 'init'])}\``
+タグ付きテンプレートで HintedText を作る。`hinted\`call ${commandHint(['project', 'list'])}\``
 */
 function hinted(strings, ...values) {
     return strings.flatMap((text, index) => {
@@ -45790,9 +45790,12 @@ object({
     attributes: preprocess(value => value === null ? undefined : value, array(AttributeEntrySchema, { error: listMessage }).readonly().optional()),
     lane: preprocess(emptyStringToUndefined, string$1({ error: stringMessage }).nullish().transform(value => value ?? undefined)),
 }).readonly();
+// 鍵は create_pull_request の引数の名前。template と screenshot だけが pecot の鍵
 object({
+    template: preprocess(normalizeOptionalText, string$1({ error: stringMessage }).nullish().transform(value => value ?? undefined)),
+    owner: string$1({ error: stringMessage }),
+    repo: string$1({ error: stringMessage }),
     title: string$1({ error: stringMessage }),
-    repository: string$1({ error: stringMessage }),
     base: string$1({ error: stringMessage }),
     head: string$1({ error: STRING_MESSAGE }).nullish().transform(value => value ?? undefined),
     draft: preprocess(convertToBoolean, boolean({ error: issue => booleanMessage(issue.input) })).prefault(false),
@@ -47033,6 +47036,293 @@ function templateViolations(body, template) {
 */
 function closedHeadingGuidance(stem) {
     return CLOSED_HEADINGS_BY_TEMPLATE.get(stem);
+}
+
+// issue 系のコマンドが共有する関数と定数。I/O を持たない起票の決まりは domain/issue-rules.ts にある。
+// error の行を出して止めるのは stopWith(output, 文, n)。
+/**
+issue comment のテンプレ検証失敗の終了コード。通信失敗・設定なし・引数不足の 1 と区別し、hooks がこの値で分岐する
+*/
+const COMMENT_VALIDATION_EXIT_CODE = 3;
+// --- Issue 参照 ---
+/**
+`owner/repo/N` の表記。エラー文と done の行の対象、MCP の data の参照に使う
+*/
+function issuePath(owner, repository, number) {
+    return `${owner}/${repository}/${String(number)}`;
+}
+// --- テンプレートの検証 ---
+/**
+本文を文字列のテンプレートと比べ、違反を 1 つの error にして出す。違反があれば true。ファイルを持たない bundle（action）が使う。
+templateName はファイル名から拡張子を除いたもの
+*/
+function hasReportedTemplateTextViolations(output, body, templateName, templateText, options = {}) {
+    return hasReportedSectionViolations(output, body, { label: templateName, stem: templateName, required: extractSectionsFromTemplate(templateText) }, options);
+}
+function hasReportedSectionViolations(output, body, template, options) {
+    const { label, stem } = template;
+    const violations = templateViolations(body, template);
+    if (violations.length === 0)
+        return false;
+    const details = (code) => violations.filter(violation => violation.code === code).map(violation => violation.detail);
+    const missing = details('missing-section');
+    const lines = [`the body does not follow the template ${label}`];
+    if (missing.length > 0) {
+        lines.push(`missing sections: ${missing.join(', ')}`);
+        if (options.emDashHint === true && missing.some(section => section.includes(' — <')))
+            lines.push(`hint: ${EM_DASH_HINT}`);
+    }
+    const groups = [
+        ['heading-summary', 'heading summary rule violations'],
+        ['body-style', 'unusable notation'],
+        ['fold', 'collapse rule violations'],
+    ];
+    for (const [code, heading] of groups) {
+        if (details(code).length > 0)
+            lines.push(`${heading}: ${details(code).join(', ')}`);
+    }
+    const extraHeadings = details('extra-heading');
+    if (extraHeadings.length > 0)
+        lines.push(`headings not in the template: ${extraHeadings.join(', ')} (${String(closedHeadingGuidance(stem))})`);
+    output.error(lines.join('\n'));
+    return true;
+}
+
+const DEFAULT_AUTO_LABEL = 'pecot-auto';
+const DEFAULT_SERVER_URL = 'https://github.com';
+// 環境変数の宣言の確かめ（.githooks/tests/test_nx_env_inputs.py）が名前を拾えるよう、process.env は名前の文字列で読む
+function nonEmpty(value) {
+    const trimmed = value?.trim();
+    return trimmed === undefined || trimmed === '' ? undefined : trimmed;
+}
+function autoLabel() {
+    return nonEmpty(process.env['PECOT_AUTO_LABEL']) ?? DEFAULT_AUTO_LABEL;
+}
+function runIdentity() {
+    const runId = nonEmpty(process.env['GITHUB_RUN_ID']);
+    return runId === undefined ? undefined : { runId, attempt: nonEmpty(process.env['GITHUB_RUN_ATTEMPT']) ?? '1' };
+}
+/**
+実行の記録の URL。GITHUB_REPOSITORY か GITHUB_RUN_ID が無ければ undefined
+*/
+function runUrl() {
+    const repository = nonEmpty(process.env['GITHUB_REPOSITORY']);
+    const runId = nonEmpty(process.env['GITHUB_RUN_ID']);
+    if (repository === undefined || runId === undefined)
+        return undefined;
+    const server = (nonEmpty(process.env['GITHUB_SERVER_URL']) ?? DEFAULT_SERVER_URL).replace(/\/+$/u, '');
+    return `${server}/${repository}/actions/runs/${runId}`;
+}
+function issueDisplay(target) {
+    return `Issue ${issuePath(target.owner, target.repository, target.number)}`;
+}
+/**
+対象のリポの設定を選び、既定の Status（fields.status）があることを確かめる。無ければ project init を案内して止まる
+*/
+function requireAutoConfig(out, target, project, commandPath) {
+    const { config } = requireConfigFor(out, target, project, commandPath);
+    return config.project.fields.status === undefined
+        ? stopWith(out, hinted `the project config has no Status field (fields.status)\n${RUN_COLON}${commandHint(['project', 'activate'], { project: String(config.project.number), owner: config.owner })}`, 'not-initialized')
+        : config;
+}
+async function readOrStop(out, what, read) {
+    try {
+        return await read();
+    }
+    catch (error) {
+        if (!(error instanceof GitHubAPIError))
+            throw error;
+        return stopWith(out, `could not read ${what}: ${error.message}`, kindOfFailure(error));
+    }
+}
+/**
+書き込み権限（admin・write）を持つか。[bot] の名前と、読めないとき（404・API の失敗）は持たない側に倒す
+*/
+async function hasWritePermission(out, client, repository, login) {
+    if (login.endsWith('[bot]'))
+        return false;
+    try {
+        return isWritePermission(await client.getCollaboratorPermission(repository.owner, repository.repository, login));
+    }
+    catch (error) {
+        if (!(error instanceof GitHubAPIError))
+            throw error;
+        out.warning(`could not read the permission of ${login}: ${error.message}`);
+        return false;
+    }
+}
+/**
+logins のうち、書き込み権限を持つ人
+*/
+async function writersAmong(out, client, repository, logins) {
+    const checked = await Promise.all(logins.map(async (login) => await hasWritePermission(out, client, repository, login)));
+    return new Set(logins.filter((_login, index) => checked.at(index) === true));
+}
+
+/**
+前提を待つ Issue を pecot が置く列
+*/
+const BLOCKED_SPEC = {
+    option: { name: 'Blocked', color: 'GRAY', description: 'Tasks waiting for prerequisite Issues. pecot moves them to Ready once they can start.' },
+    isOptional: true,
+    placement: [{ after: 'Backlog' }, { before: 'Ready' }],
+};
+/**
+人の判断を待つ Issue の札。既定の Status の末尾に足す
+*/
+const NEEDS_ATTENTION_SPEC = {
+    option: { name: 'Needs Attention'},
+    isOptional: true,
+};
+/**
+既定の Status のフィールド名
+*/
+const STATUS_FIELD_NAME = 'Status';
+/**
+workflow フィールドの選択肢の定義。作る順でもある
+*/
+const WORKFLOW_FIELD_SPECS = [
+    { option: { name: 'Pending', color: 'GRAY', description: 'Items on hold (Epic or Task). Moved here from Ready or Backlog when deprioritized.' } },
+    { option: { name: 'Backlog', color: 'RED', description: 'Items waiting to be planned. Not for direct work - break down into smaller tasks first.' } },
+    BLOCKED_SPEC,
+    { option: { name: 'Ready', color: 'GREEN', description: 'Tasks ready for implementation. AI agent picks from here and moves to Active on start.' } },
+    { option: { name: 'Active', color: 'BLUE', description: 'Currently being worked on. One active task per worktree - track progress and updates here.' } },
+    { option: { name: 'In Review', color: 'YELLOW', description: 'Pull request created and waiting for review. Moves to Archived after merge is completed.' } },
+    { option: { name: 'Archived', color: 'PURPLE', description: 'Completed or cancelled items. Moved here after the issue is closed or no longer needed.' } },
+];
+
+// project の各コマンドが共有する部分。失敗の行、フィールドの検証、読んだボードからの設定ファイルの同期。
+/**
+ボードの欄を直し、設定ファイルに読み直す手順の案内。owner と number が分かれば添える
+*/
+function boardFieldsHint(board) {
+    const check = board === undefined ? { method: 'fields' } : { method: 'fields', owner: board.owner, project: board.number };
+    const activate = board === undefined ? {} : { project: String(board.number), owner: board.owner };
+    return hinted `${commandHint(['project', 'check'], check)} and apply the changes it asks for with the project-fields operation of github-ops, then ${commandHint(['project', 'activate'], activate)} to read the board into the project config`;
+}
+function keyEntry(name, isOptional) {
+    return { key: name.toLowerCase().replaceAll(' ', '_'), label: name.toLowerCase(), isOptional };
+}
+// 設定ファイルのキーの順（保存の JSON のキーの順になる）。isOptional は選択肢の定義の値を使う
+const WORKFLOW_KEY_ORDER = ['Backlog', 'Pending', 'Blocked', 'Ready', 'Active', 'In Review', 'Archived'];
+WORKFLOW_KEY_ORDER.map(name => keyEntry(name, WORKFLOW_FIELD_SPECS.some(spec => spec.option.name === name && spec.isOptional === true)));
+[keyEntry('Todo', true), keyEntry('In Progress', true), keyEntry(NEEDS_ATTENTION_SPEC.option.name, NEEDS_ATTENTION_SPEC.isOptional === true)];
+
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
+// Issue の作成・ボードへの追加・フィールドの設定と、判定に応じた列と札の書き込み（applyBoardMove）。cli/core/issue_board.py の移植に applyBoardMove を足した。
+// 失敗は GitHubAPIError で呼び出し側に返す。表示と終了コードは呼び出し側が決める。
+/**
+カスタムフィールドを 1 つ設定する。設定したら true。
+設定に無いフィールド・オプションは何もせず false。更新に失敗したら GitHubAPIError
+*/
+// eslint-disable-next-line unicorn/consistent-boolean-name -- Python の set_issue_field と名前をそろえる
+async function setIssueField(client, config, itemId, fieldName, optionName) {
+    const fieldId = getFieldId(config, fieldName);
+    const optionId = getOptionId(config, fieldName, optionName);
+    if (fieldId === undefined || fieldId === '' || optionId === undefined || optionId === '')
+        return false;
+    await client.updateProjectItemField(config.project.id, itemId, fieldId, optionId);
+    return true;
+}
+
+var AUTO_RESULT_TEMPLATE = "---\ntemplate: auto-result\n---\n\n<!--\n読者: 自動処理（ラベルを契機にした修正の実行）の結果を知りたい Issue の担当者。何が起きたかと、人が次にすることを読む。末尾の「例:」の形になる。\n\n書き方:\n- この本文は pecot の action の auto-gate・auto-finish が埋めて Issue に投稿する。エージェントも人も、手で書かない\n- 結果は `pr-created`・`ci-passed`・`ci-fix-pushed`・`question`・`out-of-scope`・`failed`・`limit`・`setup-missing` のどれかにする\n- 結果ごとの本文には、質問・落ちたテスト・落ちているチェック・足りない設定・対象外の理由のうち、その結果に要るものだけを書く。無いときは、その行ごと消える\n- 本文の先頭に、`pecot-auto: result=... run=... attempt=... branch=...` を HTML コメントで包んだ、画面に出ない目印の行が付く。同じ実行で 2 度投稿しないことと、CI を直した回数を数えることに使う\n- トークンの値と secret の値を書かない\n\n例:\n\n## Auto result — 質問があり、自動処理が止まった\n\n実装の前に、次の点を決めてください。\n\n- 既存の設定ファイルの形式を残すか、新しい形式に移すか\n\n- 結果 — `question`（質問を書いて止まった）\n- 実行の記録 — https://github.com/example/repo/actions/runs/123456789\n- 次にすること — 答えを Issue にコメントで書き、起動ラベル `pecot-auto` を付け直す\n-->\n\n## Auto result — <結果を1行で>\n\n<結果ごとの本文>\n\n- 結果 — <結果>\n- 実行の記録 — <実行の記録>\n- 次にすること — <次にすること>\n";
+
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は内部の状態を持つ */
+// 自動処理の結果の書き込み。コメント・既定の Status・起動ラベルの順に書く。auto-gate と auto-finish が呼ぶ。
+const NEEDS_ATTENTION_KEY = 'needs_attention';
+const MISSING_NEEDS_ATTENTION = 'Status option Needs Attention';
+const MISSING_BOARD_ITEM = 'Issue on the board';
+const NO_WAITING = { item: undefined, missing: [] };
+/**
+結果が待ちの値を書くものなら、ボード項目を引き、待ちの値の選択肢があるかを確かめる。書けないときは warning の行を出す
+*/
+async function waitingTargetOf(out, client, config, target, result) {
+    if (!resultEffects(result).setsWaiting)
+        return NO_WAITING;
+    const display = issueDisplay(target);
+    const item = await readOrStop(out, `the board item of ${display}`, async () => await client.getItemIdByIssue(config.project.id, target.owner, target.repository, target.number));
+    if (item === undefined) {
+        out.warning(`${display} is not on the board; the Status stays as it is`);
+        return { item: undefined, missing: [MISSING_BOARD_ITEM] };
+    }
+    const optionId = getOptionId(config, 'status', NEEDS_ATTENTION_KEY);
+    if (optionId === undefined || optionId === '') {
+        out.warning(hinted `the board has no option Needs Attention for Status; the Status stays as it is\n${RUN_COLON}${boardFieldsHint({ owner: config.owner, number: config.project.number })}`);
+        return { item: undefined, missing: [MISSING_NEEDS_ATTENTION] };
+    }
+    return { item, missing: [] };
+}
+function renderBody(out, write, missing) {
+    const templateBody = stripLeadingHtmlComment(stripFrontmatter(AUTO_RESULT_TEMPLATE));
+    const run = runIdentity();
+    const url = runUrl();
+    const body = renderAutoResult(templateBody, {
+        result: write.result,
+        label: autoLabel(),
+        missing,
+        ...write.body !== undefined && { body: write.body },
+        ...write.next !== undefined && { next: write.next },
+        ...url !== undefined && { runUrl: url },
+        ...run !== undefined && { marker: autoMarker(write.result, run, write.branch) },
+    });
+    /* v8 ignore next -- 雛形と renderAutoResult の組み合わせは tests/auto-result-template.test.ts が全結果で確かめる */
+    if (hasReportedTemplateTextViolations(out, body, 'auto-result', AUTO_RESULT_TEMPLATE))
+        throw new CommandExit(COMMENT_VALIDATION_EXIT_CODE, 'content-invalid');
+    return body;
+}
+function failWrite(out, what, error) {
+    if (!(error instanceof GitHubAPIError))
+        throw error;
+    return stopWith(out, `could not ${what}: ${error.message}`, kindOfFailure(error));
+}
+/**
+コメントの後の 2 つ（待ちの値・起動ラベル）を書く
+*/
+async function applyResultEffects(out, client, config, target, result, waiting) {
+    const display = issueDisplay(target);
+    const { item } = waiting;
+    if (item !== undefined && resultEffects(result).setsWaiting) {
+        try {
+            await setIssueField(client, config, item, 'status', NEEDS_ATTENTION_KEY);
+        }
+        catch (error) {
+            failWrite(out, `set the Status of ${display} to Needs Attention`, error);
+        }
+        out.done({ verb: 'set', target: `Status of ${display} to Needs Attention` });
+    }
+    if (!resultEffects(result).removesLabel)
+        return;
+    const label = autoLabel();
+    let removed;
+    try {
+        removed = await client.removeIssueLabel(target.owner, target.repository, target.number, label);
+    }
+    catch (error) {
+        return failWrite(out, `remove the label ${label} from ${display}`, error);
+    }
+    const removal = removed === 'removed'
+        ? { verb: 'remove', target: `label ${label} from ${display}` }
+        : { verb: 'unchanged', target: `label ${label} on ${display} (not attached)`, aside: true };
+    out.done(removal);
+}
+/**
+結果のコメントを書き、待ちの値と起動ラベルを書いて、コメントの URL を返す。コメントの後で失敗したら、済んだ行を出した後に error の行で止まる
+*/
+async function writeAutoResult(out, client, config, target, write) {
+    const waiting = await waitingTargetOf(out, client, config, target, write.result);
+    const body = renderBody(out, write, waiting.missing);
+    const display = issueDisplay(target);
+    let comment;
+    try {
+        comment = await client.addIssueComment(target.owner, target.repository, target.number, body);
+    }
+    catch (error) {
+        return failWrite(out, `create a comment on ${display}`, error);
+    }
+    out.done({ verb: 'create', target: `auto result comment (${write.result}) on ${display}` });
+    await applyResultEffects(out, client, config, target, write.result, waiting);
+    const url = jsonField(comment, 'html_url');
+    return typeof url === 'string' ? url : undefined;
 }
 
 /* eslint-disable security/detect-non-literal-fs-filename -- パスは設定ディレクトリ配下のファイルと、呼び出し側が渡す .env */
@@ -50850,254 +51140,6 @@ function createGitHubClient(out, host) {
     return new GitHubClient({ host, diagnostics: out, signal: out.signal });
 }
 
-// issue 系のコマンドが共有する関数と定数。I/O を持たない起票の決まりは domain/issue-rules.ts にある。
-// error の行を出して止めるのは stopWith(output, 文, n)。
-/**
-issue comment のテンプレ検証失敗の終了コード。通信失敗・設定なし・引数不足の 1 と区別し、hooks がこの値で分岐する
-*/
-const COMMENT_VALIDATION_EXIT_CODE = 3;
-// --- Issue 参照 ---
-/**
-`owner/repo/N` の表記。エラー文と done の行の対象、MCP の data の参照に使う
-*/
-function issuePath(owner, repository, number) {
-    return `${owner}/${repository}/${String(number)}`;
-}
-// --- テンプレートの検証 ---
-/**
-本文を文字列のテンプレートと比べ、違反を 1 つの error にして出す。違反があれば true。ファイルを持たない bundle（action）が使う。
-templateName はファイル名から拡張子を除いたもの
-*/
-function hasReportedTemplateTextViolations(output, body, templateName, templateText, options = {}) {
-    return hasReportedSectionViolations(output, body, { label: templateName, stem: templateName, required: extractSectionsFromTemplate(templateText) }, options);
-}
-function hasReportedSectionViolations(output, body, template, options) {
-    const { label, stem } = template;
-    const violations = templateViolations(body, template);
-    if (violations.length === 0)
-        return false;
-    const details = (code) => violations.filter(violation => violation.code === code).map(violation => violation.detail);
-    const missing = details('missing-section');
-    const lines = [`the body does not follow the template ${label}`];
-    if (missing.length > 0) {
-        lines.push(`missing sections: ${missing.join(', ')}`);
-        if (options.emDashHint === true && missing.some(section => section.includes(' — <')))
-            lines.push(`hint: ${EM_DASH_HINT}`);
-    }
-    const groups = [
-        ['heading-summary', 'heading summary rule violations'],
-        ['body-style', 'unusable notation'],
-        ['fold', 'collapse rule violations'],
-    ];
-    for (const [code, heading] of groups) {
-        if (details(code).length > 0)
-            lines.push(`${heading}: ${details(code).join(', ')}`);
-    }
-    const extraHeadings = details('extra-heading');
-    if (extraHeadings.length > 0)
-        lines.push(`headings not in the template: ${extraHeadings.join(', ')} (${String(closedHeadingGuidance(stem))})`);
-    output.error(lines.join('\n'));
-    return true;
-}
-
-const DEFAULT_AUTO_LABEL = 'pecot-auto';
-const DEFAULT_SERVER_URL = 'https://github.com';
-// 環境変数の宣言の確かめ（.githooks/tests/test_nx_env_inputs.py）が名前を拾えるよう、process.env は名前の文字列で読む
-function nonEmpty(value) {
-    const trimmed = value?.trim();
-    return trimmed === undefined || trimmed === '' ? undefined : trimmed;
-}
-function autoLabel() {
-    return nonEmpty(process.env['PECOT_AUTO_LABEL']) ?? DEFAULT_AUTO_LABEL;
-}
-function runIdentity() {
-    const runId = nonEmpty(process.env['GITHUB_RUN_ID']);
-    return runId === undefined ? undefined : { runId, attempt: nonEmpty(process.env['GITHUB_RUN_ATTEMPT']) ?? '1' };
-}
-/**
-実行の記録の URL。GITHUB_REPOSITORY か GITHUB_RUN_ID が無ければ undefined
-*/
-function runUrl() {
-    const repository = nonEmpty(process.env['GITHUB_REPOSITORY']);
-    const runId = nonEmpty(process.env['GITHUB_RUN_ID']);
-    if (repository === undefined || runId === undefined)
-        return undefined;
-    const server = (nonEmpty(process.env['GITHUB_SERVER_URL']) ?? DEFAULT_SERVER_URL).replace(/\/+$/u, '');
-    return `${server}/${repository}/actions/runs/${runId}`;
-}
-function issueDisplay(target) {
-    return `Issue ${issuePath(target.owner, target.repository, target.number)}`;
-}
-/**
-対象のリポの設定を選び、既定の Status（fields.status）があることを確かめる。無ければ project init を案内して止まる
-*/
-function requireAutoConfig(out, target, project, commandPath) {
-    const { config } = requireConfigFor(out, target, project, commandPath);
-    return config.project.fields.status === undefined
-        ? stopWith(out, hinted `the project config has no Status field (fields.status)\n${RUN_COLON}${commandHint(['project', 'init'])}`, 'not-initialized')
-        : config;
-}
-async function readOrStop(out, what, read) {
-    try {
-        return await read();
-    }
-    catch (error) {
-        if (!(error instanceof GitHubAPIError))
-            throw error;
-        return stopWith(out, `could not read ${what}: ${error.message}`, kindOfFailure(error));
-    }
-}
-/**
-書き込み権限（admin・write）を持つか。[bot] の名前と、読めないとき（404・API の失敗）は持たない側に倒す
-*/
-async function hasWritePermission(out, client, repository, login) {
-    if (login.endsWith('[bot]'))
-        return false;
-    try {
-        return isWritePermission(await client.getCollaboratorPermission(repository.owner, repository.repository, login));
-    }
-    catch (error) {
-        if (!(error instanceof GitHubAPIError))
-            throw error;
-        out.warning(`could not read the permission of ${login}: ${error.message}`);
-        return false;
-    }
-}
-/**
-logins のうち、書き込み権限を持つ人
-*/
-async function writersAmong(out, client, repository, logins) {
-    const checked = await Promise.all(logins.map(async (login) => await hasWritePermission(out, client, repository, login)));
-    return new Set(logins.filter((_login, index) => checked.at(index) === true));
-}
-
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
-// Issue の作成・ボードへの追加・フィールドの設定と、判定に応じた列と札の書き込み（applyBoardMove）。cli/core/issue_board.py の移植に applyBoardMove を足した。
-// 失敗は GitHubAPIError で呼び出し側に返す。表示と終了コードは呼び出し側が決める。
-/**
-カスタムフィールドを 1 つ設定する。設定したら true。
-設定に無いフィールド・オプションは何もせず false。更新に失敗したら GitHubAPIError
-*/
-// eslint-disable-next-line unicorn/consistent-boolean-name -- Python の set_issue_field と名前をそろえる
-async function setIssueField(client, config, itemId, fieldName, optionName) {
-    const fieldId = getFieldId(config, fieldName);
-    const optionId = getOptionId(config, fieldName, optionName);
-    if (fieldId === undefined || fieldId === '' || optionId === undefined || optionId === '')
-        return false;
-    await client.updateProjectItemField(config.project.id, itemId, fieldId, optionId);
-    return true;
-}
-/**
-列と札を動かした（dry-run は動かす予定の）Issue 1 件。board sync・pr create・issue block / unblock の data が使う
-*/
-strictObject({
-    issue: string$1().describe('Issue as shown in the moved line (#N, or owner/repo#N outside the home repository)'),
-    from: string$1().optional().describe('Column before the move (omitted when only the Status changed)'),
-    to: string$1().optional().describe('Column after the move (omitted when only the Status changed)'),
-    label: string$1().optional().describe('Status value set (omitted when the Status did not change)'),
-    reason: string$1().describe('Readiness that decided the move'),
-});
-
-var AUTO_RESULT_TEMPLATE = "---\ntemplate: auto-result\n---\n\n<!--\n読者: 自動処理（ラベルを契機にした修正の実行）の結果を知りたい Issue の担当者。何が起きたかと、人が次にすることを読む。末尾の「例:」の形になる。\n\n書き方:\n- この本文は pecot の action の auto-gate・auto-finish が埋めて Issue に投稿する。エージェントも人も、手で書かない\n- 結果は `pr-created`・`ci-passed`・`ci-fix-pushed`・`question`・`out-of-scope`・`failed`・`limit`・`setup-missing` のどれかにする\n- 結果ごとの本文には、質問・落ちたテスト・落ちているチェック・足りない設定・対象外の理由のうち、その結果に要るものだけを書く。無いときは、その行ごと消える\n- 本文の先頭に、`pecot-auto: result=... run=... attempt=... branch=...` を HTML コメントで包んだ、画面に出ない目印の行が付く。同じ実行で 2 度投稿しないことと、CI を直した回数を数えることに使う\n- トークンの値と secret の値を書かない\n\n例:\n\n## Auto result — 質問があり、自動処理が止まった\n\n実装の前に、次の点を決めてください。\n\n- 既存の設定ファイルの形式を残すか、新しい形式に移すか\n\n- 結果 — `question`（質問を書いて止まった）\n- 実行の記録 — https://github.com/example/repo/actions/runs/123456789\n- 次にすること — 答えを Issue にコメントで書き、起動ラベル `pecot-auto` を付け直す\n-->\n\n## Auto result — <結果を1行で>\n\n<結果ごとの本文>\n\n- 結果 — <結果>\n- 実行の記録 — <実行の記録>\n- 次にすること — <次にすること>\n";
-
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は内部の状態を持つ */
-// 自動処理の結果の書き込み。コメント・既定の Status・起動ラベルの順に書く。auto-gate と auto-finish が呼ぶ。
-const NEEDS_ATTENTION_KEY = 'needs_attention';
-const MISSING_NEEDS_ATTENTION = 'Status option Needs Attention';
-const MISSING_BOARD_ITEM = 'Issue on the board';
-const NO_WAITING = { item: undefined, missing: [] };
-/**
-結果が待ちの値を書くものなら、ボード項目を引き、待ちの値の選択肢があるかを確かめる。書けないときは warning の行を出す
-*/
-async function waitingTargetOf(out, client, config, target, result) {
-    if (!resultEffects(result).setsWaiting)
-        return NO_WAITING;
-    const display = issueDisplay(target);
-    const item = await readOrStop(out, `the board item of ${display}`, async () => await client.getItemIdByIssue(config.project.id, target.owner, target.repository, target.number));
-    if (item === undefined) {
-        out.warning(`${display} is not on the board; the Status stays as it is`);
-        return { item: undefined, missing: [MISSING_BOARD_ITEM] };
-    }
-    const optionId = getOptionId(config, 'status', NEEDS_ATTENTION_KEY);
-    if (optionId === undefined || optionId === '') {
-        out.warning(hinted `the board has no option Needs Attention for Status; the Status stays as it is\n${RUN_COLON}${commandHint(['project', 'init'])}`);
-        return { item: undefined, missing: [MISSING_NEEDS_ATTENTION] };
-    }
-    return { item, missing: [] };
-}
-function renderBody(out, write, missing) {
-    const templateBody = stripLeadingHtmlComment(stripFrontmatter(AUTO_RESULT_TEMPLATE));
-    const run = runIdentity();
-    const url = runUrl();
-    const body = renderAutoResult(templateBody, {
-        result: write.result,
-        label: autoLabel(),
-        missing,
-        ...write.body !== undefined && { body: write.body },
-        ...write.next !== undefined && { next: write.next },
-        ...url !== undefined && { runUrl: url },
-        ...run !== undefined && { marker: autoMarker(write.result, run, write.branch) },
-    });
-    /* v8 ignore next -- 雛形と renderAutoResult の組み合わせは tests/auto-result-template.test.ts が全結果で確かめる */
-    if (hasReportedTemplateTextViolations(out, body, 'auto-result', AUTO_RESULT_TEMPLATE))
-        throw new CommandExit(COMMENT_VALIDATION_EXIT_CODE, 'content-invalid');
-    return body;
-}
-function failWrite(out, what, error) {
-    if (!(error instanceof GitHubAPIError))
-        throw error;
-    return stopWith(out, `could not ${what}: ${error.message}`, kindOfFailure(error));
-}
-/**
-コメントの後の 2 つ（待ちの値・起動ラベル）を書く
-*/
-async function applyResultEffects(out, client, config, target, result, waiting) {
-    const display = issueDisplay(target);
-    const { item } = waiting;
-    if (item !== undefined && resultEffects(result).setsWaiting) {
-        try {
-            await setIssueField(client, config, item, 'status', NEEDS_ATTENTION_KEY);
-        }
-        catch (error) {
-            failWrite(out, `set the Status of ${display} to Needs Attention`, error);
-        }
-        out.done({ verb: 'set', target: `Status of ${display} to Needs Attention` });
-    }
-    if (!resultEffects(result).removesLabel)
-        return;
-    const label = autoLabel();
-    let removed;
-    try {
-        removed = await client.removeIssueLabel(target.owner, target.repository, target.number, label);
-    }
-    catch (error) {
-        return failWrite(out, `remove the label ${label} from ${display}`, error);
-    }
-    const removal = removed === 'removed'
-        ? { verb: 'remove', target: `label ${label} from ${display}` }
-        : { verb: 'unchanged', target: `label ${label} on ${display} (not attached)`, aside: true };
-    out.done(removal);
-}
-/**
-結果のコメントを書き、待ちの値と起動ラベルを書いて、コメントの URL を返す。コメントの後で失敗したら、済んだ行を出した後に error の行で止まる
-*/
-async function writeAutoResult(out, client, config, target, write) {
-    const waiting = await waitingTargetOf(out, client, config, target, write.result);
-    const body = renderBody(out, write, waiting.missing);
-    const display = issueDisplay(target);
-    let comment;
-    try {
-        comment = await client.addIssueComment(target.owner, target.repository, target.number, body);
-    }
-    catch (error) {
-        return failWrite(out, `create a comment on ${display}`, error);
-    }
-    out.done({ verb: 'create', target: `auto result comment (${write.result}) on ${display}` });
-    await applyResultEffects(out, client, config, target, write.result, waiting);
-    const url = jsonField(comment, 'html_url');
-    return typeof url === 'string' ? url : undefined;
-}
-
 // Issue の本文の `## Waits for merge` の節の読み書き（contracts/prerequisite-table.md の 3）。純関数だけを置く。
 const WAITS_FOR_MERGE_HEADING = '## Waits for merge';
 const LINE_PATTERN = /([^\n]*)(\n|$)/gu;
@@ -51197,50 +51239,6 @@ function readBody(lines, repository) {
 function readWaitsForMerge(body, repository) {
     return readBody(splitLines(body), repository).readout;
 }
-
-// project の各コマンドが共有する部分。失敗の行、フィールドの検証、設定ファイルの同期（Python の project.py の _sync_project_config まわり）。
-/**
-前提を待つ Issue を pecot が置く列
-*/
-const BLOCKED_SPEC = {
-    option: { name: 'Blocked', color: 'GRAY', description: 'Tasks waiting for prerequisite Issues. pecot moves them to Ready once they can start.' },
-    isOptional: true,
-    placement: [{ after: 'Backlog' }, { before: 'Ready' }],
-};
-/**
-人の判断を待つ Issue の札。既定の Status の末尾に足す
-*/
-const NEEDS_ATTENTION_SPEC = {
-    option: { name: 'Needs Attention'},
-    isOptional: true,
-};
-/**
-既定の Status のフィールド名
-*/
-const STATUS_FIELD_NAME = 'Status';
-/**
-workflow フィールドの選択肢の定義。作る順でもある
-*/
-const WORKFLOW_FIELD_SPECS = [
-    { option: { name: 'Pending', color: 'GRAY', description: 'Items on hold (Epic or Task). Moved here from Ready or Backlog when deprioritized.' } },
-    { option: { name: 'Backlog', color: 'RED', description: 'Items waiting to be planned. Not for direct work - break down into smaller tasks first.' } },
-    BLOCKED_SPEC,
-    { option: { name: 'Ready', color: 'GREEN', description: 'Tasks ready for implementation. AI agent picks from here and moves to Active on start.' } },
-    { option: { name: 'Active', color: 'BLUE', description: 'Currently being worked on. One active task per worktree - track progress and updates here.' } },
-    { option: { name: 'In Review', color: 'YELLOW', description: 'Pull request created and waiting for review. Moves to Archived after merge is completed.' } },
-    { option: { name: 'Archived', color: 'PURPLE', description: 'Completed or cancelled items. Moved here after the issue is closed or no longer needed.' } },
-];
-/**
-workflow フィールドに作る選択肢
-*/
-WORKFLOW_FIELD_SPECS.map(spec => spec.option);
-function keyEntry(name, isOptional) {
-    return { key: name.toLowerCase().replaceAll(' ', '_'), label: name.toLowerCase(), isOptional };
-}
-// 設定ファイルのキーの順（保存の JSON のキーの順になる）。isOptional は選択肢の定義の値を使う
-const WORKFLOW_KEY_ORDER = ['Backlog', 'Pending', 'Blocked', 'Ready', 'Active', 'In Review', 'Archived'];
-WORKFLOW_KEY_ORDER.map(name => keyEntry(name, WORKFLOW_FIELD_SPECS.some(spec => spec.option.name === name && spec.isOptional === true)));
-[keyEntry('Todo', true), keyEntry('In Progress', true), keyEntry(NEEDS_ATTENTION_SPEC.option.name, NEEDS_ATTENTION_SPEC.isOptional === true)];
 
 // Issue の着手の可否の読み取り。前提を読み、判定する。board show と issue show が使う。
 // 流れは getIssuePrerequisites → readWaitsForMerge → toIssueFacts → judgeReadiness。
@@ -51624,38 +51622,30 @@ pecot-workflow の MCP のサーバの registry.ts が登録するツールの�
 */
 const TOOL_HINT_COMMANDS = [
     { name: 'project_list', inputs: ['repo'] },
-    { name: 'project_search', inputs: ['owner', 'host', 'repo'] },
-    { name: 'project_init', inputs: ['owner', 'name', 'host', 'lanes', 'confirm_delete', 'repo'] },
-    { name: 'project_create', inputs: ['owner', 'title', 'host', 'lanes', 'repo'] },
-    { name: 'project_activate', inputs: ['project', 'owner', 'host', 'repo'] },
+    { name: 'project_check', inputs: ['method', 'owner', 'owner_type', 'title', 'project', 'changes', 'lanes', 'reads', 'repo'] },
+    { name: 'project_activate', inputs: ['project', 'owner', 'owner_type', 'host', 'reads', 'repo'] },
     { name: 'project_link', inputs: ['repo', 'develop_branch', 'release_branch', 'changelog_file', 'package', 'clear_packages', 'release_type'] },
     { name: 'project_get', inputs: ['key', 'repo'] },
     { name: 'project_set', inputs: ['key', 'value', 'yes', 'repo'] },
     { name: 'project_unset', inputs: ['key', 'repo'] },
-    { name: 'board_show', inputs: ['json', 'repo'] },
-    { name: 'board_add', inputs: ['issue_ref', 'status', 'project', 'repo'] },
-    { name: 'board_move', inputs: ['issue_ref', 'status', 'project', 'repo'] },
+    { name: 'board_show', inputs: ['json', 'repo', 'reads'] },
+    { name: 'board_check', inputs: ['method', 'owner', 'project_number', 'issue_number', 'item_owner', 'item_repo', 'updated_field', 'project', 'reads', 'repo'] },
     { name: 'issue_check', inputs: ['method', 'project', 'issues', 'reads', 'repo'] },
     { name: 'issue_dependency_check', inputs: ['method', 'owner', 'repo', 'issue_number', 'type', 'related_owner', 'related_repo', 'related_issue_number', 'wait', 'reason', 'project', 'reads'] },
     { name: 'issue_comment_check', inputs: ['method', 'owner', 'repo', 'issue_number', 'comment_id', 'body', 'template', 'template_text', 'reads'] },
-    { name: 'session_start', inputs: ['issue_ref', 'branch', 'base', 'checkout', 'project', 'repo'] },
+    { name: 'session_start', inputs: ['issue_ref', 'base', 'sha', 'stacked_on', 'title', 'reads', 'repo'] },
     { name: 'session_show', inputs: ['directory', 'project', 'repo'] },
-    { name: 'session_finish', inputs: ['pr_ref', 'delete_branch', 'project', 'repo'] },
-    { name: 'pr_create', inputs: ['file', 'message', 'title', 'base', 'head', 'draft', 'repo', 'no_issue_ref', 'template', 'screenshot', 'project'] },
-    { name: 'pr_show', inputs: ['pr_ref', 'json', 'reviews', 'project', 'repo'] },
-    { name: 'pr_check', inputs: ['directory', 'project', 'repo'] },
-    { name: 'pr_merge', inputs: ['pr_ref', 'project', 'repo'] },
-    { name: 'pr_restack', inputs: ['check', 'continue', 'abort', 'project', 'repo'] },
-    { name: 'release_check', inputs: ['version', 'package', 'project', 'repo'] },
-    { name: 'release_create', inputs: ['version', 'package', 'project', 'repo'] },
-    { name: 'release_merge', inputs: ['pr_ref', 'delete_branch', 'admin', 'project', 'repo'] },
+    { name: 'session_finish', inputs: ['pr_ref', 'project', 'reads', 'repo'] },
+    { name: 'pr_check', inputs: ['method', 'owner', 'repo', 'title', 'head', 'base', 'draft', 'body', 'pullNumber', 'merge_method', 'expectedHeadSha', 'template', 'template_text', 'screenshot', 'project', 'reads'] },
+    { name: 'pr_restack', inputs: ['check', 'continue', 'abort', 'project', 'reads', 'repo'] },
+    { name: 'release_check', inputs: ['params', 'project', 'reads', 'repo'] },
     { name: 'worktree_add', inputs: ['directory', 'base', 'path', 'no_copy', 'no_link', 'setup', 'allow_existing_branch', 'project', 'repo'] },
     { name: 'worktree_remove', inputs: ['name', 'directory', 'force', 'keep_branch', 'repo'] },
     { name: 'worktree_init', inputs: ['directory', 'repo'] },
     { name: 'worktree_link', inputs: ['directory', 'force', 'all', 'repo'] },
-    { name: 'branch_delete', inputs: ['repo', 'branch', 'project'] },
-    { name: 'workflow_install', inputs: ['name', 'check', 'force', 'directory', 'repo'] },
-    { name: 'workflow_doctor', inputs: ['name', 'directory', 'repo'] },
+    { name: 'branch_check', inputs: ['owner', 'repo', 'issue', 'branch', 'base', 'project', 'reads'] },
+    { name: 'workflow_install', inputs: ['name', 'check', 'force', 'directory', 'reads', 'repo'] },
+    { name: 'workflow_doctor', inputs: ['name', 'directory', 'reads', 'repo'] },
 ];
 /**
 actions/ に移した処理の形。name の `_` を `-` にしたものが actions/<name>/action.yml、inputs は token を除く inputs を snake_case にしたもの

@@ -1,212 +1,137 @@
-// session show。cli/commands/session.py の移植。
+// session_show。ブランチ・remote・作業の Issue・スタックの記録・比べる base・worktree を手元で読む。GitHub を読まない
+import path from 'node:path'
+
 import { z } from 'zod'
 
-import { ConfigError, getDevelopBranch } from '@pecot/workflow-core/domain/config.js'
-import type { RemoteLocation } from '@pecot/workflow-core/domain/git-url.js'
+import { getDevelopBranch } from '@pecot/workflow-core/domain/config.js'
 import type { ProjectConfig } from '@pecot/workflow-core/domain/config.js'
-import type { PullRequestReadout } from '@pecot/workflow-core/domain/issue-readout.js'
-import { describeReadiness } from '@pecot/workflow-core/domain/readiness.js'
-import { describeNeedsRestack, needsRestack } from '@pecot/workflow-core/domain/restack.js'
-import type { RestackDecision } from '@pecot/workflow-core/domain/restack.js'
+import type { RemoteLocation } from '@pecot/workflow-core/domain/git-url.js'
+import { pythonStrip } from '@pecot/workflow-core/domain/python-format.js'
 import { issueReferenceToCliReference, issueReferenceToString } from '@pecot/workflow-core/domain/reference-parser.js'
-import type { IssueReference } from '@pecot/workflow-core/domain/reference-parser.js'
-import { describeStackBase } from '@pecot/workflow-core/domain/work-start.js'
+import type { BaseReading } from '@pecot/workflow-core/domain/state.js'
 import { configLookupFailure, findConfigFor } from '@pecot/workflow-core/infra/config-store.js'
-import { activeIssueOf, gitCurrentBranch, primaryRemoteName, primaryRemoteRepository } from '@pecot/workflow-core/infra/git.js'
-import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
-import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
-import { readBaseOrInfer, warnUnresolved } from './base-reading.js'
+import { activeIssueOf, gitCurrentBranch, gitStdout, gitToplevel, primaryRemoteName, primaryRemoteRepository, remoteBranchHead, runGit } from '@pecot/workflow-core/infra/git.js'
+import { resolveRealPath } from '@pecot/workflow-core/infra/paths.js'
 import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition, CommandIo } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { joinHinted } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import { PROJECT_INPUT } from '@pecot/workflow-core/commands-shared/command-stop.js'
-import type { ToolDefinition, CommandIo } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import { directorySchema } from './directory-option.js'
-import { createGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
-import { createReadinessCache, readIssueReadinessIfSupported } from '@pecot/workflow-core/commands-shared/issue-readiness.js'
-import type { IssueReadiness } from '@pecot/workflow-core/commands-shared/issue-readiness.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import type { Output } from '@pecot/workflow-core/commands-shared/output.js'
-import { readRestackDecision } from './restack-reading.js'
+import { readBaseRecordAt } from '../infra/state-store.js'
+import { directorySchema } from './directory-option.js'
 import { SESSION_FINISH_TOOLS } from './session-finish.js'
 import { SESSION_START_TOOLS } from './session-start.js'
 
+const SHOW_PATH = ['session', 'show']
+
 const ACTIVE_ISSUE_DATA = z.strictObject({
   reference: z.string().describe('Work Issue found from the git remote and the number that ends the branch name (owner/repo/N, the form issue_ref takes)'),
-  title: z.string().optional().describe('Title of the Issue (omitted when it cannot be read from GitHub)'),
-  state: z.string().optional().describe('State of the Issue, OPEN or CLOSED (omitted when it cannot be read from GitHub)'),
-  body: z.string().optional().describe('Body of the Issue, empty when it has none (omitted when it cannot be read from GitHub)'),
-})
-
-const BASE_PULL_REQUEST_DATA = z.strictObject({
-  number: z.int().describe('PR number'),
-  state: z.string().describe('State of the PR'),
 })
 
 const STACK_DATA = z.strictObject({
   branch: z.string().describe('Base branch the work branch is stacked on'),
   stackedOn: z.string().describe('Issue stacked on (owner/repo/N)'),
-  pullRequest: BASE_PULL_REQUEST_DATA.optional().describe('PR of the base branch (omitted when there is none or it cannot be read)'),
-  needsRestack: z.boolean().optional().describe('Whether the branch needs pr_restack: the base branch moved or its PR is merged (omitted when it cannot be decided)'),
-  readiness: z.string().optional().describe('Readiness of the active Issue (only when blocked)'),
+  sha: z.string().describe('Commit of the base branch the work started from'),
 })
 
-const STACKED_ABOVE_DATA = z.strictObject({
-  number: z.int().describe('PR number'),
-  branch: z.string().describe('Head branch of the PR'),
+const WORKTREE_DATA = z.strictObject({
+  list: z.string().describe('Output of git worktree list'),
+  directoryName: z.string().describe('Name of the current directory'),
+  isWorktree: z.boolean().optional().describe('Whether the directory is a linked worktree (omitted when it could not be determined)'),
 })
 
 const SESSION_SHOW_OUTPUT = z.strictObject({
   branch: z.string().optional().describe('Current branch (omitted when it cannot be read)'),
   repository: z.string().optional().describe('Repository of the git remote (owner/repo; omitted when it cannot be read)'),
   activeIssue: ACTIVE_ISSUE_DATA.optional().describe('Work Issue of the session (omitted when there is none)'),
-  stack: STACK_DATA.optional().describe('Base the work was stacked on (omitted when not stacked)'),
-  stackedAbove: z.array(STACKED_ABOVE_DATA).optional().describe('Open PRs whose base is the current branch (omitted when there are none or they cannot be read)'),
+  stack: STACK_DATA.optional().describe('Base the work was stacked on, from .pecot-base (omitted when not stacked)'),
+  baseBranch: z.string().optional().describe('Remote branch to compare the work against (remote/branch): the stack branch while it is on the remote, else the develop branch (omitted when it cannot be decided)'),
+  worktree: WORKTREE_DATA.describe('Worktree information'),
 })
 
 type SessionShowData = z.input<typeof SESSION_SHOW_OUTPUT>
 
-/**
-GitHub から読めた作業中の Issue。スタックの記録と子 PR は、これがあるときだけ読む
-*/
-interface ActiveIssue {
-  readonly reference: IssueReference
-  readonly config: Readonly<ProjectConfig>
-  readonly client: Readonly<GitHubClient>
-  readonly lines: readonly string[]
+function hasBranch(branch: string, cwd: string): boolean {
+  return runGit(['rev-parse', '--verify', branch], { cwd }).exitCode === 0
 }
 
-interface ActiveIssueReading {
-  /**
-  Markdown の Active Issue の行に出す owner/repo#N
-  */
-  readonly label: string
-  readonly data: Readonly<z.input<typeof ACTIVE_ISSUE_DATA>>
-  readonly read?: ActiveIssue
+// 親ブランチがマージで消えた後は、開発ブランチと比べる。追跡参照は fetch --prune まで残るので remote に尋ね、
+// 無いと答えたときだけ消えたとみなす。届かないか時間切れなら追跡参照で決める
+async function isOnRemote(branch: string, cwd: string, remote: string, out: Readonly<Output>): Promise<boolean> {
+  const head = await remoteBranchHead(cwd, remote, branch, out.signal)
+  if (head.isReachable && head.sha === undefined) return false
+  const isTracked = hasBranch(`${remote}/${branch}`, cwd)
+  if (!isTracked && head.isReachable) out.warning(`base branch ${branch} is on ${remote}, but ${remote}/${branch} is not fetched; compared with the develop branch\nrun: git fetch ${remote} ${branch}`)
+  return isTracked
 }
 
-// 作業中の Issue（remote とブランチ名から求める）を GitHub から読んで、Markdown の行にする。
-// 作業中の Issue が無ければ undefined。読めなければ warning を出し、参照だけを返す
-async function readActiveIssue(directory: string, output: Output, project: string | undefined): Promise<ActiveIssueReading | undefined> {
-  const reference = activeIssueOf(directory)
-  if (reference === undefined) return undefined
-  const label = issueReferenceToString(reference)
-  const data = { reference: issueReferenceToCliReference(reference) }
-
-  let issue
-  let config
-  let client
-  try {
-    const lookup = findConfigFor(reference.repository, project)
-    if (lookup.kind !== 'found') {
-      output.warning(joinHinted(['cannot read the active Issue: ', configLookupFailure(lookup, reference.repository, ['session', 'show']).message], ''))
-      return { label, data }
-    }
-    config = lookup.found.config
-    client = createGitHubClient(output, config.host)
-    issue = await client.getIssueSlim(reference.repository.owner, reference.repository.repository, reference.number, 0)
-  }
-  catch (error: unknown) {
-    if (error instanceof ConfigError || error instanceof GitHubAPIError) {
-      output.warning(`cannot read the active Issue: ${error.message}`)
-      return { label, data }
-    }
-    throw error
-  }
-
-  const lines = ['', '## Active Issue', '', `#${String(issue.number)} ${issue.title} (${issue.state})`]
-  if (issue.body !== '') lines.push('', issue.body)
-  return { label, data: { ...data, title: issue.title, state: issue.state, body: issue.body }, read: { reference, config, client, lines } }
+function configOf(location: Readonly<RemoteLocation>, project: string | undefined, out: Readonly<Output>): ProjectConfig | undefined {
+  const repository = { owner: location.owner, repository: location.repository }
+  const lookup = findConfigFor(repository, project)
+  if (lookup.kind === 'found') return lookup.found.config
+  out.warning(joinHinted(['baseBranch is not decided: ', configLookupFailure(lookup, repository, SHOW_PATH).message], ''))
+  return undefined
 }
 
-interface StackSection {
-  readonly lines: readonly string[]
-  readonly data?: SessionShowData['stack']
-}
-
-// スタックして着手した作業ディレクトリの `## Stack` の節。スタックしていなければ空
-async function stackSection(active: Readonly<ActiveIssue>, origin: Readonly<RemoteLocation> | undefined, directory: string, output: Output): Promise<StackSection> {
-  const base = await readBaseOrInfer({ directory, project: { config: active.config, client: () => active.client } })
-  warnUnresolved(base, output)
-  const { reading, readiness: known } = base
-  if (reading.kind === 'malformed') output.warning(`.pecot-base is malformed: ${reading.content}`)
-  if (reading.kind !== 'stacked') return { lines: [] }
-  const { record, stackedOn } = reading
-  // ブランチは作業ディレクトリのリポにあるので、PR もそこで探す（pr restack と同じ）
-  const { owner, repository } = origin ?? stackedOn.repository
-  // スタックし直す先は、fetch せずに、親ブランチの remote の先頭を尋ねて記録と比べる
-  const read = await readRestackDecision({ client: () => active.client, owner, repository, cwd: directory, remote: primaryRemoteName(directory), reading, developBranch: getDevelopBranch(active.config, owner, repository) ?? '', signal: output.signal })
-  if (read.kind === 'pull-request-unreadable') output.warning(`cannot read the PR of the base branch: ${read.error.message}`)
-  const pullRequest: PullRequestReadout | undefined | 'unknown' = read.kind === 'pull-request-unreadable' ? 'unknown' : read.lowerPullRequest
-  const restack: RestackDecision | undefined = read.kind === 'decided' ? read.decision : undefined
-  const readiness = await blockedReadiness(active, known, output)
-  const needsLine = restack === undefined ? undefined : describeNeedsRestack(restack)
-  const needed = restack === undefined ? undefined : needsRestack(restack)
-  return {
-    lines: ['', '## Stack', describeStackBase(record.branch, stackedOn, pullRequest), ...needsLine === undefined ? [] : [needsLine], ...readiness === undefined ? [] : [`- readiness: ${readiness}`]],
-    data: {
-      branch: record.branch,
-      stackedOn: issueReferenceToCliReference(stackedOn),
-      ...pullRequest !== 'unknown' && pullRequest !== undefined && { pullRequest: { number: pullRequest.number, state: pullRequest.state } },
-      ...needed !== undefined && { needsRestack: needed },
-      ...readiness !== undefined && { readiness },
-    },
-  }
-}
-
-type StackedAbove = NonNullable<SessionShowData['stackedAbove']>
-
-// 今のブランチを base にした、同じリポの開いている PR。読めなければ warning を出して undefined にする
-async function readStackedAbove(active: Readonly<ActiveIssue>, origin: Readonly<RemoteLocation>, branch: string, output: Output): Promise<StackedAbove | undefined> {
-  try {
-    const found = await active.client.listPullRequestsByBase(origin.owner, origin.repository, branch)
-    return found.pullRequests.map(pullRequest => ({ number: pullRequest.number, branch: pullRequest.headRefName }))
-  }
-  catch (error: unknown) {
-    if (!(error instanceof GitHubAPIError)) throw error
-    output.warning(`cannot read the PRs stacked above: ${error.message}`)
+async function baseBranchOf(reading: BaseReading, location: Readonly<RemoteLocation>, cwd: string, project: string | undefined, out: Readonly<Output>): Promise<string | undefined> {
+  const remote = primaryRemoteName(cwd)
+  if (remote === undefined) return undefined
+  if (reading.kind === 'stacked' && await isOnRemote(reading.record.branch, cwd, remote, out)) return `${remote}/${reading.record.branch}`
+  const config = configOf(location, project, out)
+  if (config === undefined) return undefined
+  const developBranch = getDevelopBranch(config, location.owner, location.repository)
+  if (developBranch === undefined || developBranch === '') {
+    out.warning(`baseBranch is not decided: develop_branch is not set for ${location.owner}/${location.repository}`)
     return undefined
   }
+  const branchName = `${remote}/${developBranch}`
+  if (hasBranch(branchName, cwd)) return branchName
+  out.warning(`baseBranch is not decided: branch ${branchName} does not exist\ncheck the remote branches with: git branch -r`)
+  return undefined
 }
 
-// スタックの記録の節に子 PR の行を足す。スタックの記録が無くても、子 PR があれば節を出す
-function withStackedAbove(stackLines: readonly string[], above: readonly Readonly<StackedAbove[number]>[] | undefined): readonly string[] {
-  if (above === undefined || above.length === 0) return stackLines
-  const lines = above.map(pullRequest => `- stacked above: PR #${String(pullRequest.number)} (${pullRequest.branch})`)
-  return stackLines.length === 0 ? ['', '## Stack', ...lines] : [...stackLines, ...lines]
+function readWorktreeInfo(cwd: string): SessionShowData['worktree'] {
+  const listed = gitStdout(['worktree', 'list'], { cwd })
+  const list = listed === undefined ? '(git worktree list failed)' : pythonStrip(listed)
+  const directoryName = path.basename(cwd)
+  const gitDirectory = gitStdout(['rev-parse', '--git-dir'], { cwd })
+  const commonDirectory = gitDirectory === undefined ? undefined : gitStdout(['rev-parse', '--git-common-dir'], { cwd })
+  if (gitDirectory === undefined || commonDirectory === undefined) return { list, directoryName }
+  const isWorktree = resolveRealPath(path.resolve(cwd, pythonStrip(gitDirectory))) !== resolveRealPath(path.resolve(cwd, pythonStrip(commonDirectory)))
+  return { list, directoryName, isWorktree }
 }
 
-// 着手中の Issue の判定が blocked のときだけ、判定の文を返す。スタック先を求めるときに読んだ判定があれば、読み直さない
-async function blockedReadiness(active: Readonly<ActiveIssue>, known: IssueReadiness | undefined, output: Output): Promise<string | undefined> {
-  const result = known ?? await readIssueReadinessIfSupported(active.client, active.config, active.reference, createReadinessCache())
-  if (result === undefined) return undefined
-  if (result.kind === 'unreadable') {
-    output.warning(`cannot judge readiness of the active Issue: ${result.reason}`)
-    return undefined
-  }
-  const { readiness } = result
-  return readiness?.kind === 'blocked' ? describeReadiness(readiness, result.prerequisites, active.reference.repository) : undefined
+function readStack(directory: string, out: Readonly<Output>): BaseReading {
+  const toplevel = gitToplevel({ cwd: directory })
+  if (toplevel === undefined) return { kind: 'development', record: undefined }
+  const reading = readBaseRecordAt(toplevel)
+  if (reading.kind === 'malformed') out.warning(`.pecot-base is malformed: ${reading.content}`)
+  return reading
 }
 
 const SESSION_SHOW = defineTool({
   name: 'session_show',
   title: 'Show session',
-  description: 'Show the branch, repository and work Issue of the session',
+  description: 'Show the branch, repository, work Issue, stack record, the base branch to compare against and the worktree of the session. Reads nothing on GitHub; read the Issue and the PRs stacked above with the official GitHub MCP',
   input: z.object({ directory: directorySchema, project: PROJECT_INPUT }),
   output: SESSION_SHOW_OUTPUT,
   run: async (input, io: CommandIo) => {
     const output = createOutput<SessionShowData>(false, io)
     const branch = gitCurrentBranch(input.directory)
     const origin = primaryRemoteRepository(input.directory)
-    const reading = await readActiveIssue(input.directory, output, input.project)
-    const active = reading?.read
-    const stack = active === undefined ? { lines: [] } : await stackSection(active, origin, input.directory, output)
-    const above = active === undefined || origin === undefined || branch === undefined ? undefined : await readStackedAbove(active, origin, branch, output)
+    const active = activeIssueOf(input.directory)
+    const reading = readStack(input.directory, output)
+    const baseBranch = origin === undefined ? undefined : await baseBranchOf(reading, origin, input.directory, input.project, output)
+    const worktree = readWorktreeInfo(input.directory)
+    const stack = reading.kind === 'stacked' ? { branch: reading.record.branch, stackedOn: issueReferenceToCliReference(reading.stackedOn), sha: reading.record.sha } : undefined
     output.result({
       ...branch !== undefined && { branch },
       ...origin !== undefined && { repository: `${origin.owner}/${origin.repository}` },
-      ...reading !== undefined && { activeIssue: reading.data },
-      ...stack.data !== undefined && { stack: stack.data },
-      ...above !== undefined && above.length > 0 && { stackedAbove: above },
+      ...active !== undefined && { activeIssue: { reference: issueReferenceToCliReference(active) } },
+      ...stack !== undefined && { stack },
+      ...baseBranch !== undefined && { baseBranch },
+      worktree,
     })
 
     const lines = [
@@ -214,9 +139,10 @@ const SESSION_SHOW = defineTool({
       '',
       `- Branch: ${branch ?? 'unknown'}`,
       `- Repository: ${origin === undefined ? 'unknown' : `${origin.owner}/${origin.repository}`}`,
-      `- Active Issue: ${reading === undefined ? 'none' : reading.label}`,
-      ...active?.lines ?? [],
-      ...withStackedAbove(stack.lines, above),
+      `- Active Issue: ${active === undefined ? 'none' : issueReferenceToString(active)}`,
+      `- Base branch: ${baseBranch ?? 'unknown'}`,
+      `- Directory: ${worktree.directoryName}${worktree.isWorktree === true ? ' (worktree)' : ''}`,
+      ...stack === undefined ? [] : ['', '## Stack', `- branch: ${stack.branch}`, `- stacked on: ${stack.stackedOn}`, `- sha: ${stack.sha}`],
     ]
     output.data(lines.join('\n'))
     return 0

@@ -16,10 +16,10 @@ when_to_use: "プロジェクトに別のリポジトリを追加したい、リ
 
 ### Step 1: アクティブプロジェクトの確認
 
-pecot-workflow の MCP ツール `board_show` を使って、アクティブなプロジェクトを確かめる。
+pecot-workflow の MCP ツール `project_list` を使って、`active` が真のプロジェクトがあるかを確かめる。
 
-成功したら Step 2 へ。
-アクティブなプロジェクトが無くて失敗した場合は、以下を案内して終了:
+あれば Step 2 へ。
+無ければ、以下を案内して終了:
 
 ```text
 アクティブなプロジェクトがありません。
@@ -78,7 +78,7 @@ AskUserQuestion ツールで以下を **1 回の呼び出しで** 質問する:
 - options:
   - label: "単一 CHANGELOG (`CHANGELOG.md`)（推奨）", description: "リポ root の `CHANGELOG.md` 1 本で管理"
   - label: "単一 CHANGELOG（別名）", description: "別ファイル名（例 `AIST-CHANGELOG.md`）を自由入力。"
-  - label: "monorepo（複数 CHANGELOG）", description: "package 別の CHANGELOG。次の質問で AI が提案。タグは `<name>@v<ver>`"
+  - label: "monorepo（複数 CHANGELOG）", description: "package 別の CHANGELOG。次の質問で AI が提案。タグは `<name>-v<ver>`"
 
 **2.5 AskUserQuestion: package 一覧（monorepo の場合のみ）**
 
@@ -123,11 +123,28 @@ AskUserQuestion ツールで以下を **1 回の呼び出しで** 質問する:
 
 `changelog_file` と `package` は排他。`project_link` を経由しないと設定ファイルが更新されず、ボード表示が正しく動作しない。
 
-### Step 4: 動作確認
+`project_link` は設定ファイルだけを書く。続けて、GitHub の上でリポをボードにつなぐ。
 
-`board_show` を使って、追加したリポジトリがボードに出ることを確かめる。
+1. github-ops の `project-link` を、`params` に `project` と `repo`（`<owner/repo>`）を入れて起動する。手順は [github-ops で書く](../w-help/references/github-ops.md)
+   - `project` はボードの番号で、`project_link` の結果の `projectNumber` を入れる
+   - 起動するのは、カレントリポの `pecot-github-ops.yml` になる。無ければ、`workflow_install`（`name: "github-ops"`）で置いて既定のブランチへ入れるよう利用者に伝え、そこで止める
+2. 結果の `status` が `linked` か `already_linked` なら、つないである
 
-### Step 5: 完了案内
+### Step 4: マージしたブランチの消し方を確かめる
+
+pecot は、マージした PR の head ブランチを消さない。GitHub の「head ブランチを自動で消す」の設定に任せる。
+
+1. github-ops の `repo-settings` を起動し、結果の `delete_branch_on_merge` を読む。`repo-settings` が読むのは、ワークフローを置いたカレントリポの設定だけなので、別のリポを足したときは 1 を飛ばして 2 の手順で確かめてもらう
+2. `false` なら、利用者に設定を頼む。手順は次のとおり
+   1. `https://<host>/<owner/repo>/settings` を開く
+   2. 「General」の「Pull Requests」の節で、「Automatically delete head branches」に印を付ける
+3. 開発ブランチとリリースブランチが別のリポでは、開発ブランチをブランチの保護か ruleset で守るよう添える。リリース PR の head は開発ブランチ自体なので、守らないとマージで消える
+
+### Step 5: 動作確認
+
+pecot-workflow の MCP ツール `project_get` を `key` を省いて呼び、`repositories` に追加したリポジトリがあることを確かめる。
+
+### Step 6: 完了案内
 
 ```text
 リポジトリ追加が完了しました。追加したリポジトリの Issue がボードに表示されます。

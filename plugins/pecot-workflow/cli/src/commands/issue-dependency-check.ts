@@ -7,9 +7,9 @@ import type { BlockDecision } from '@pecot/workflow-core/domain/blocked-by-chang
 import { COLUMN_CONFIG_KEYS } from '@pecot/workflow-core/domain/board-move.js'
 import type { ProjectConfig } from '@pecot/workflow-core/domain/config.js'
 import { readWaitsForMerge } from '@pecot/workflow-core/domain/prerequisites.js'
-import { displayReference, TRACKER_TITLE_PREFIX } from '@pecot/workflow-core/domain/readiness.js'
-import type { IssueWorkKind, Prerequisite, Wait } from '@pecot/workflow-core/domain/readiness.js'
-import { issueReferenceKey, parseIssueReference, ReferenceParseError } from '@pecot/workflow-core/domain/reference-parser.js'
+import { displayReference } from '@pecot/workflow-core/domain/readiness.js'
+import type { Prerequisite, Wait } from '@pecot/workflow-core/domain/readiness.js'
+import { issueReferenceKey } from '@pecot/workflow-core/domain/reference-parser.js'
 import type { IssueReference } from '@pecot/workflow-core/domain/reference-parser.js'
 import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
@@ -20,8 +20,9 @@ import { columnNames, configFor, developmentBranchOf, issueText, judgeMove, pars
 import type { BoardShape, ParsedReads } from './check-reads.js'
 import { CHECK_RESULT_SHAPE } from './check-result.js'
 import type { CheckProblem } from './check-result.js'
-import { blockedByOf, ISSUE_DEPENDENCY_READ, issueFactsOf, parseOfficial, referenceOf } from './official-reads.js'
+import { blockedByOf, issueFactsOf, referenceOf } from './official-reads.js'
 import type { IssueDependencyRead, ReadIssue } from './official-reads.js'
+import { dependencyReads, readBlockedByOf, workKindOf } from './readiness-reads.js'
 
 const CHECK_PATH = ['issue', 'dependency', 'check']
 // GitHub が 1 つの Issue に付けられる blocked by の数
@@ -88,38 +89,6 @@ function placeholderReason(reason: string | undefined): string {
   return reason === undefined || reason === '' || /[\r\n]/u.test(reason) ? 'x' : reason
 }
 
-interface BlockedByReads {
-  readonly reads: ReadonlyMap<string, IssueDependencyRead>
-  readonly problems: readonly CheckProblem[]
-}
-
-function blockedByReads(output: Readonly<Output>, entries: readonly { readonly issue: string, readonly result: unknown }[]): BlockedByReads {
-  const reads = new Map<string, IssueDependencyRead>()
-  const problems: CheckProblem[] = []
-  for (const [index, entry] of entries.entries()) {
-    const where = `reads.blocked_by[${String(index)}]`
-    let reference: IssueReference
-    try {
-      reference = parseIssueReference(entry.issue)
-    }
-    catch (error: unknown) {
-      if (!(error instanceof ReferenceParseError)) throw error
-      problems.push({ field: `${where}.issue`, code: 'value', message: `${entry.issue} is not owner/repo/N` })
-      continue
-    }
-    reads.set(issueReferenceKey(reference), parseOfficial(output, 'issue_dependency_read', ISSUE_DEPENDENCY_READ, entry.result, `${where}.result`))
-  }
-  return { reads, problems }
-}
-
-function readBlockedByOf(reference: IssueReference, reads: ReadonlyMap<string, IssueDependencyRead>): { readonly read: IssueDependencyRead } | { readonly problem: CheckProblem } {
-  const read = reads.get(issueReferenceKey(reference))
-  const name = issueText(reference)
-  if (read === undefined) return { problem: unreadProblem('reads.blocked_by', `read the blocked-by of ${name} with issue_dependency_read (method get_blocked_by) and add it to reads.blocked_by`) }
-  if (read.pageInfo?.hasNextPage === true) return { problem: unreadProblem('reads.blocked_by', `the blocked-by of ${name} has more pages: read them all and pass one result with every Issue`) }
-  return { read }
-}
-
 // 前提の側から blocked by をたどり、待つ側へ戻れば輪。読んでいない Issue があれば、その読み取りを求める
 function cycleProblem(target: IssueReference, related: IssueReference, reads: ReadonlyMap<string, IssueDependencyRead>): CheckProblem | undefined {
   const targetKey = issueReferenceKey(target)
@@ -143,11 +112,6 @@ function cycleProblem(target: IssueReference, related: IssueReference, reads: Re
     }
   }
   return undefined
-}
-
-function workKindOf(issue: Readonly<ReadIssue>): IssueWorkKind {
-  if (issue.title.startsWith('[Epic]')) return 'epic'
-  return issue.title.startsWith(TRACKER_TITLE_PREFIX) ? 'tracker' : 'task'
 }
 
 interface After {
@@ -188,7 +152,7 @@ function expectedColumn(after: Readonly<After>, reads: ParsedReads, developmentB
     prerequisites.push({ issue: facts, wait: added?.wait ?? listed, reason: added === undefined ? line?.reason : added.reason })
   }
   if (problems.length > 0) return { problems, warnings: [] }
-  const target = issueFactsOf(after.issue, cards.get(issueReferenceKey(after.target)), columnNames(board), workKindOf(after.issue))
+  const target = issueFactsOf(after.issue, cards.get(issueReferenceKey(after.target)), columnNames(board), workKindOf(after.issue.title))
   const judged = judgeMove({ target, prerequisites, hasPrerequisites: after.hasPrerequisites, board, pullRequests: reads.pullRequests, developmentBranch })
   return describeMove(judged, board, displayReference(after.target, after.target.repository))
 }
@@ -224,7 +188,7 @@ function checkChange(output: Readonly<Output>, input: Readonly<CheckInput>, conf
   const problems: CheckProblem[] = []
   const warnings: string[] = []
   const reads = parseReads(output, input.reads, config)
-  const dependencies = blockedByReads(output, input.reads?.blocked_by ?? [])
+  const dependencies = dependencyReads(output, input.reads?.blocked_by ?? [])
   problems.push(...dependencies.problems)
   const name = displayReference(target, target.repository)
   const relatedName = displayReference(related, target.repository)

@@ -2,11 +2,11 @@
 // 判定は domain/repository-policy.ts の applyRepositoryPolicy に任せ、ここは git の解決と行の出力、止めるときの終了コードだけを行う。
 import { formatHinted } from '../domain/command-hint.js'
 import type { HintedText } from '../domain/command-hint.js'
-import { AMBIGUOUS_REPOSITORY_LINE, applyRepositoryPolicy } from '../domain/repository-policy.js'
+import { applyRepositoryPolicy } from '../domain/repository-policy.js'
 import type { PolicyMode } from '../domain/repository-policy.js'
 import { readCurrentGitRemote } from '../domain/repository-resolver.js'
 import type { RepositoryReference, ResolvedRepository, UnreadableRemote } from '../domain/repository-resolver.js'
-import { gitRunnerFor, listRemotes } from '../infra/git.js'
+import { gitRunnerFor } from '../infra/git.js'
 import { CommandExit } from './command-definition.js'
 import type { CommandIo } from './command-definition.js'
 import { ERROR_PREFIX, WARNING_PREFIX } from './output.js'
@@ -41,17 +41,6 @@ export function requireRepositoryMatch(
   writeLines(io, outcome.stderr, outcome.kind === 'exit')
   if (outcome.kind === 'exit') throw new CommandExit(outcome.exitCode, outcome.failure)
   return outcome.adopted
-}
-
-/**
-作業ディレクトリが remote を持つ git のリポジトリの中かだけを確かめる。remote の URL は読まない。
-削除の先を入力で決めるツール（branch_delete）が、共通の `repo` を使わずに使う。
-git の外・remote 無しなら、stderr に行を書いて CommandExit(1) を投げる
-*/
-export function requireGitRemote(io: Readonly<CommandIo>, cwd: string): void {
-  if ((listRemotes(cwd) ?? []).length > 0) return
-  writeLines(io, [AMBIGUOUS_REPOSITORY_LINE, '  run inside a git repository that has a remote'], true)
-  throw new CommandExit(1, 'git-unresolved')
 }
 
 // 止まるときは、error の行とその続きの行を、前置きを除いた 1 つの文にして io.error に渡す

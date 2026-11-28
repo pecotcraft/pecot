@@ -33,7 +33,8 @@ hooks:
 
 #### 着手できるタスクの一覧
 
-pecot-workflow の MCP ツール `board_show` を使って、いま着手できる Issue を調べる。
+pecot-workflow の MCP ツール `board_show` を使って、いま着手できる Issue を調べる。渡すものは [w-help](../w-help/SKILL.md) の「ボードの今の状態を読む」にある。
+
 着手できる Issue だけを、次の表で利用者に示す。ほかの Issue は載せない。
 
 | 番号 | タイトル |
@@ -57,18 +58,19 @@ pecot-workflow の MCP ツール `board_show` を使って、いま着手でき�
 
 ### Step 3: ブランチ作成
 
-pecot-workflow の MCP ツール `session_start` を使って、Issue に紐づくブランチを作る。`base` は渡さない。スタック先はツールが選ぶ。
+`branch_check` に通してから、github-ops の `link-branch` で Issue に紐づくブランチを作る。手順は [GitHub に公式の MCP と github-ops で書く](../w-help/references/github-write.md) の「作業を始める」にある。
+続けて pecot-workflow の MCP ツール `session_start` を使って手元に作業を記録し、カードを `Active` へ動かす。
 ブランチは GitHub 側にベースの先頭から作られるので、手元のブランチを先に最新化しなくてよい。
 
 **ブランチ名の決め方:**
 
-- `feat/` + タスクの簡潔な説明（英語、ケバブケース）
-- 例: `feat/add-user-authentication`, `feat/fix-login-bug`
+- `feat/` + タスクの簡潔な説明（英語、ケバブケース）+ `/<Issue 番号>`
+- 例: `feat/add-user-authentication/123`, `feat/fix-login-bug/124`
 
-ツールが止まったら、エラーの案内を利用者に示して止まる。エージェントの判断で先へ進めない。
+チェックやツールが止まったら、エラーの案内を利用者に示して止まる。エージェントの判断で先へ進めない。
 
 - 前提を外さない。前提を見直すかどうかは利用者が決める
-- `base` を渡さない
+- `base` は、`branch_check` が `candidates` で示すブランチにする。ほかのブランチを選ばない
 
 ### Step 4: 前の PR の後片付けの取りこぼし
 

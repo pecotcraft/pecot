@@ -1,59 +1,32 @@
-// project のグループのコマンド。Python の cli/commands/project.py の移植。
+// project のグループのツール。ボードは公式の GitHub MCP で読み書きし、ここは設定ファイルと、書く前のチェックを持つ。
 import { readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { z } from 'zod'
 
-import { RELEASE_TYPES, findRepository, parsePackage, withAggregationRepository, withRepositoryAppended, withRepositoryReplaced, parseProjectConfig, serializeProjectConfig, WORKFLOW_FIELD_NAME } from '@pecot/workflow-core/domain/config.js'
+import { effectiveReleaseType, RELEASE_TYPES, findRepository, parsePackage, withAggregationRepository, withRepositoryAppended, withRepositoryReplaced, parseProjectConfig, serializeProjectConfig } from '@pecot/workflow-core/domain/config.js'
 import type { Package, ProjectConfig, Repository } from '@pecot/workflow-core/domain/config.js'
-import { choosePlacement, insertOption } from '@pecot/workflow-core/domain/field-options.js'
-import type { FieldOptionInput } from '@pecot/workflow-core/domain/field-options.js'
 import { JSON_NULL } from '@pecot/workflow-core/domain/json-null.js'
-import { mergeLaneOptions } from '@pecot/workflow-core/domain/lane-options.js'
-import { jsonField, parseJsonText } from '@pecot/workflow-core/domain/json.js'
+import { parseJsonText } from '@pecot/workflow-core/domain/json.js'
 import type { JsonObject } from '@pecot/workflow-core/domain/json.js'
-import type { WorkflowFieldPlan } from '@pecot/workflow-core/domain/migration.js'
-import { compareStrings, pythonStrip, pythonStringRepr, splitCodePoints, truncateCodePoints } from '@pecot/workflow-core/domain/python-format.js'
-import type { JsonValue } from '@pecot/workflow-core/domain/python-format.js'
+import { compareStrings, pythonStrip, pythonStringRepr } from '@pecot/workflow-core/domain/python-format.js'
 import { splitOwnerRepository } from '@pecot/workflow-core/domain/repository-resolver.js'
 import { getActiveConfigPath, loadConfig, projectsDirectory, saveConfig } from '@pecot/workflow-core/infra/config-store.js'
-import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
-import { GitHubAPIError, GitHubNotFoundError, GitHubRateLimitError } from '@pecot/workflow-core/infra/github/errors.js'
-import { asArray, isTruthy, requireNumber, requireString } from '@pecot/workflow-core/infra/github/payload.js'
-import type { LinkResult, ProjectFieldOption, ProjectViewTarget } from '@pecot/workflow-core/infra/github/projects.js'
 import { resolveRealPath } from '@pecot/workflow-core/infra/paths.js'
 import { hasErrorCode } from '@pecot/workflow-core/infra/os-error.js'
 import { CommandExit, defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import { commandHint, hinted, inputHint, inputNameHint, placeholder, RUN, RUN_COLON, runAgain } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import { commandHint, hinted, inputHint, inputNameHint, placeholder, RUN } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import { requireActiveConfig, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
-import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
-import { createAuthenticatedGitHubClient, createGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import type { Operation, Output } from '@pecot/workflow-core/commands-shared/output.js'
-import type { ConfigPlacement, OptionSpec, SyncedProjectConfig } from '@pecot/workflow-core/commands-shared/project-sync.js'
-import {
-  BLOCKED_SPEC,
-  LANE_FIELD_NAME,
-  LANES_VIEW_NAME,
-  NEEDS_ATTENTION_SPEC,
-  UNUSED_FIELD_NAMES,
-  STATUS_FIELD_NAME,
-  WORKFLOW_FIELD_OPTIONS,
-  buildRepository,
-  failApi,
-  fieldNodesOf,
-  findProjectByTitle,
-  hasWorkflowField,
-  lastFieldNamed,
-  missingRequiredOptions,
-  stopMissingOptions,
-  placeProjectConfig,
-  planWorkflowFieldOf,
-  syncProjectConfig,
-  textOf,
-} from '@pecot/workflow-core/commands-shared/project-sync.js'
+import type { BoardSnapshot, ConfigPlacement, SyncedProjectConfig } from '@pecot/workflow-core/commands-shared/project-sync.js'
+import { buildRepository, syncProjectConfig } from '@pecot/workflow-core/commands-shared/project-sync.js'
+import { parseOfficial, PROJECTS_LIST_FIELDS, projectFieldsOf } from './official-reads.js'
+import type { ReadProjectField } from './official-reads.js'
+import { GET_PROJECT, LIST_PROJECT_VIEWS, LIST_PROJECTS, PROJECT_FIELDS_PAGE, projectOf, projectsPageOf, viewNumbersOf } from './official-reads-project.js'
+import type { ReadProject } from './official-reads-project.js'
+import { PROJECT_CHECK } from './project-check.js'
 
-const DEFAULT_HOST = 'github.com'
 function linkChange(existing: Repository | undefined): 'create' | 'update' {
   return existing === undefined ? 'create' : 'update'
 }
@@ -62,26 +35,8 @@ function setChange(hasPrevious: boolean): 'create' | 'update' {
   return hasPrevious ? 'update' : 'create'
 }
 
-const lanesInput = z.array(z.string().min(1)).min(1).optional().describe('Values of the pecot-lane field: the areas of work, such as plugins, teams or services. GitHub shows them on the board, so use English names. Values already on the board are kept')
-const INIT_PATH: readonly string[] = ['project', 'init']
-const CREATE_PATH: readonly string[] = ['project', 'create']
 const AGGREGATION_REPOSITORY_PATTERN = /^[\w.-]+\/[\w.-]+$/u
 const MISSING_PATH_CODES: ReadonlySet<string> = new Set(['ENOENT', 'ENOTDIR', 'ELOOP'])
-const SEARCH_TITLE_LIMIT = 38
-const SEARCH_TITLE_WIDTH = 40
-
-/**
-GitHub API の失敗を `could not <action>` の行にして、終了コード 1 で止める
-*/
-async function guarded<T>(out: Readonly<Output>, action: string, body: () => Promise<T>): Promise<T> {
-  try {
-    return await body()
-  }
-  catch (error: unknown) {
-    if (error instanceof GitHubAPIError) return failApi(out, action, error)
-    throw error
-  }
-}
 
 // パスが無い・辿れない（ENOENT・ENOTDIR・ELOOP）。Python の Path.exists() が False を返す場合と同じ
 function isMissingPath(error: unknown): boolean {
@@ -109,10 +64,6 @@ function isFile(target: string): boolean {
     if (isMissingPath(error)) return false
     throw error
   }
-}
-
-function padEndCodePoints(text: string, width: number): string {
-  return text + ' '.repeat(Math.max(0, width - splitCodePoints(text).length))
 }
 
 function requireActiveWithPath(out: Readonly<Output>): { readonly config: ProjectConfig, readonly configPath: string } {
@@ -180,625 +131,19 @@ const listCommand = defineTool({
   },
 })
 
-// project search
+// project activate
 
-const SEARCH_ROW = z.strictObject({
-  number: z.int().optional().describe('Project number (omitted when GitHub did not return it)'),
-  title: z.string().optional().describe('Project title (omitted when GitHub did not return it)'),
-  url: z.string().optional().describe('Project URL (omitted when GitHub did not return it)'),
-  initialized: z.boolean().optional().describe('Whether project_init has set up the fields (omitted without a number, or when the fields could not be read)'),
-  active: z.boolean().optional().describe('Whether this project is the active one (omitted without a number)'),
-})
-
-const SEARCH_OUTPUT = z.strictObject({
-  owner: z.string().describe('Project owner that was searched'),
-  host: z.string().describe('GitHub host that was searched'),
-  projects: z.array(SEARCH_ROW).describe('Projects of the owner'),
-})
-
-type SearchRow = z.input<typeof SEARCH_ROW>
-
-// 初期化済みかは project activate と同じく workflow のフィールドの有無で決める。読めない行は initialized を省く
-async function searchRow(out: Readonly<Output>, client: Readonly<GitHubClient>, owner: string, project: Readonly<Record<string, JsonValue>>, activeNumber: number | undefined): Promise<SearchRow> {
-  const { number, title, url } = project
-  const row: SearchRow = {
-    ...typeof number === 'number' && { number },
-    ...typeof title === 'string' && { title },
-    ...typeof url === 'string' && { url },
-  }
-  if (typeof number !== 'number') return row
-  const isActive = activeNumber === number
-  let info: Readonly<Record<string, JsonValue>> | undefined
-  try {
-    info = await client.getProjectFields(owner, number)
-  }
-  catch (error: unknown) {
-    if (!(error instanceof GitHubAPIError)) throw error
-    out.warning(`could not read the fields of project #${String(number)}: ${error.message}`)
-    return { ...row, active: isActive }
-  }
-  if (info === undefined || !isTruthy(info)) {
-    out.warning(`could not read the fields of project #${String(number)}`)
-    return { ...row, active: isActive }
-  }
-  return { ...row, initialized: hasWorkflowField(fieldNodesOf(info)), active: isActive }
-}
-
-const searchCommand = defineTool({
-  name: 'project_search',
-  title: 'Search projects',
-  description: 'Search projects through the GitHub API, and show which are initialized and which is active',
-  input: z.strictObject({
-    owner: z.string().describe('Project owner'),
-    host: z.string().default(DEFAULT_HOST).describe('GitHub host'),
-  }),
-  output: SEARCH_OUTPUT,
-  run: async (input, io) => {
-    const out = createOutput<z.input<typeof SEARCH_OUTPUT>>(false, io)
-    const { owner, host } = input
-    await guarded(out, 'list projects', async () => {
-      const client = createGitHubClient(out, host)
-      const projects = await client.listProjects(owner)
-      if (projects.length === 0) stopWith(out, `no projects found for ${owner}`, 'project-not-found')
-      const activeNumber = activeProjectNumber(host, owner)
-      const lines = [`=== Projects of ${owner} (${host}) ===`, '', `${padEndCodePoints('#', 4)} ${padEndCodePoints('Title', SEARCH_TITLE_WIDTH)} URL`, '-'.repeat(80)]
-      const rows: SearchRow[] = []
-      for (const project of projects) {
-        const row = await searchRow(out, client, owner, project, activeNumber)
-        const number = project['number'] === undefined ? '?' : textOf(project['number'])
-        const rawTitle = project['title'] === undefined ? '(untitled)' : textOf(project['title'])
-        const title = splitCodePoints(rawTitle).length > SEARCH_TITLE_LIMIT ? `${truncateCodePoints(rawTitle, 35)}...` : rawTitle
-        const marks = `${row.initialized === true ? ' [INITIALIZED]' : ''}${row.active === true ? ' [ACTIVE]' : ''}`
-        lines.push(`${padEndCodePoints(number, 4)} ${padEndCodePoints(title, SEARCH_TITLE_WIDTH)} ${project['url'] === undefined ? '' : textOf(project['url'])}${marks}`)
-        rows.push(row)
-      }
-      out.data(lines.join('\n'))
-      out.result({ owner, host, projects: rows })
-    })
-    return 0
-  },
-})
-
-// project init
-
-// 読んだ選択肢を更新の入力にそろえる。color が読めないときは、既存の色を上書きしないよう止める
-function optionInputsOf(field: Readonly<JsonObject>): readonly FieldOptionInput[] {
-  return asArray(field['options']).map((option) => {
-    const description = jsonField(option, 'description')
-    return {
-      id: requireString(jsonField(option, 'id'), 'option.id'),
-      name: requireString(jsonField(option, 'name'), 'option.name'),
-      color: requireString(jsonField(option, 'color'), 'option.color'),
-      description: typeof description === 'string' ? description : '',
-    }
-  })
-}
-
-interface FieldReport {
-  readonly name: string
-  change: 'create' | 'update' | 'unchanged' | 'skip' | 'rename' | 'delete'
-  addedOptions: string[]
-}
-
-type MarkField = (name: string, change: FieldReport['change'], addedOption?: string) => void
-
-// フィールドごとの結果を溜め、進むたびに全体を渡す。
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- data の型が可変の配列
-function fieldReporter(publish: ((fields: FieldReport[]) => void) | undefined): MarkField {
-  const entries = new Map<string, FieldReport>()
-  return (name, change, addedOption) => {
-    const entry = entries.get(name) ?? { name, change, addedOptions: [] }
-    // 改名した欄は、選択肢を足しても rename のまま残す
-    if (change !== 'unchanged' && entry.change !== 'rename') entry.change = change
-    if (addedOption !== undefined) entry.addedOptions.push(addedOption)
-    entries.set(name, entry)
-    publish?.(Array.from(entries.values(), report => ({ ...report, addedOptions: [...report.addedOptions] })))
-  }
-}
-
-// 既にあるフィールドに選択肢を 1 つ足す。足した数（0 か 1）を返す
-async function addFieldOption(out: Readonly<Output>, client: Readonly<GitHubClient>, field: Readonly<JsonObject>, spec: OptionSpec, run: Readonly<{ mark: MarkField }>): Promise<number> {
-  const { mark } = run
-  const { option } = spec
-  const fieldName = textOf(field['name'])
-  const existing = optionInputsOf(field)
-  const merged = insertOption(existing, option, choosePlacement(existing, spec.placement ?? [{ end: true }]))
-  if (merged === undefined) {
-    const unchanged: Operation = { verb: 'unchanged', target: `option ${option.name} in field ${fieldName}` }
-    out.planned(unchanged)
-    out.done(unchanged)
-    mark(fieldName, 'unchanged')
-    return 0
-  }
-  const added: Operation = { verb: 'add', target: `option ${option.name} to field ${fieldName}` }
-  try {
-    await client.updateProjectFieldOptions(requireString(field['id'], 'field.id'), merged)
-  }
-  catch (error: unknown) {
-    if (!(error instanceof GitHubAPIError)) throw error
-    // 選択肢の id を拒む GHES などで足せなくても、作ったフィールドと設定ファイルの同期は進める
-    out.warning(`could not add option ${option.name} to field ${fieldName}: ${error.message}`)
-    mark(fieldName, 'unchanged')
-    return 0
-  }
-  out.done(added)
-  mark(fieldName, 'update', option.name)
-  return 1
-}
-
-// 既にあるフィールドに足す選択肢。作ったばかりの進行の欄は workflowField が無く、何も出さない（created の行が出ている）
-// 足した選択肢の数を返す
-async function addMissingOptions(out: Readonly<Output>, client: Readonly<GitHubClient>, fields: readonly JsonValue[], workflowField: Readonly<JsonObject> | undefined, run: Readonly<{ mark: MarkField }>): Promise<number> {
-  const blocked = workflowField === undefined ? 0 : await addFieldOption(out, client, workflowField, BLOCKED_SPEC, run)
-  const statusField = lastFieldNamed(fields, STATUS_FIELD_NAME)
-  if (statusField === undefined) {
-    skipped(out, `field ${STATUS_FIELD_NAME} (not found)`)
-    run.mark(STATUS_FIELD_NAME, 'skip')
-    return blocked
-  }
-  return blocked + await addFieldOption(out, client, statusField, NEEDS_ATTENTION_SPEC, run)
-}
-
-function skipped(out: Readonly<Output>, target: string): void {
-  out.planned({ verb: 'skip', target })
-  out.done({ verb: 'skip', target })
-}
-
-// 旧い名前の進行の欄を pecot-status に改名する。選択肢を渡さないので、選択肢の ID と各 Item の値は残る
-async function renameWorkflowField(out: Readonly<Output>, client: Readonly<GitHubClient>, field: Readonly<JsonObject>, run: Readonly<{ mark: MarkField }>): Promise<void> {
-  const operation: Operation = { verb: 'rename', target: `field ${textOf(field['name'])} to ${WORKFLOW_FIELD_NAME}` }
-  await client.renameProjectField(requireString(field['id'], 'field.id'), WORKFLOW_FIELD_NAME)
-  out.done(operation)
-  run.mark(WORKFLOW_FIELD_NAME, 'rename')
-}
-
-/**
-pecot-lane の扱いの入力。command は案内に出すコマンド（project init か project create）
-*/
-interface LaneRequest {
-  readonly lanes?: readonly string[] | undefined
-  readonly command: readonly string[]
-}
-
-// pecot-lane を作るか、足りない値を足す。足した数と、ビューを用意できる欄があるかを返す
-async function prepareLaneField(out: Readonly<Output>, client: Readonly<GitHubClient>, board: Readonly<{ projectId: string, fields: readonly JsonValue[] }>, request: Readonly<LaneRequest>, run: Readonly<{ mark: MarkField }>): Promise<Readonly<{ count: number, hasField: boolean }>> {
-  const { lanes, command } = request
-  const field = lastFieldNamed(board.fields, LANE_FIELD_NAME)
-  if (field === undefined) {
-    if (board.fields.some(node => jsonField(node, 'name') === LANE_FIELD_NAME)) {
-      skipped(out, `field ${LANE_FIELD_NAME} (not a single select field)`)
-      out.warning(`field ${LANE_FIELD_NAME} is not a single select field, so no lanes were added and view ${LANES_VIEW_NAME} was not created\ndelete or rename that field on the board, then run again`)
-      run.mark(LANE_FIELD_NAME, 'skip')
-      return { count: 0, hasField: false }
-    }
-    if (lanes === undefined) {
-      skipped(out, `field ${LANE_FIELD_NAME} (no lanes given)`)
-      out.warning(hinted`field ${LANE_FIELD_NAME} was not created because no lanes were given\nchoose the lanes (the areas of work, such as plugins, teams or services) and pass them with ${inputNameHint(command, 'lanes')}`)
-      run.mark(LANE_FIELD_NAME, 'skip')
-      return { count: 0, hasField: false }
-    }
-    const created = await client.createProjectField(board.projectId, LANE_FIELD_NAME, mergeLaneOptions([], lanes).options)
-    out.done({ verb: 'create', target: `field ${LANE_FIELD_NAME} (ID: ${requireString(created['id'], 'field.id')})` })
-    run.mark(LANE_FIELD_NAME, 'create')
-    return { count: 1, hasField: true }
-  }
-  skipped(out, `field ${LANE_FIELD_NAME} (already exists)`)
-  run.mark(LANE_FIELD_NAME, 'unchanged')
-  return { count: lanes === undefined ? 0 : await addLaneOptions(out, client, field, lanes, run), hasField: true }
-}
-
-// 既にある pecot-lane に無い値を末尾に足す。足した数を返す
-async function addLaneOptions(out: Readonly<Output>, client: Readonly<GitHubClient>, field: Readonly<JsonObject>, lanes: readonly string[], run: Readonly<{ mark: MarkField }>): Promise<number> {
-  const { options, added } = mergeLaneOptions(optionInputsOf(field), lanes)
-  const given = new Set(lanes)
-  for (const lane of given) {
-    if (added.includes(lane)) continue
-    const unchanged: Operation = { verb: 'unchanged', target: `option ${lane} in field ${LANE_FIELD_NAME}` }
-    out.planned(unchanged)
-    out.done(unchanged)
-  }
-  if (added.length === 0) return 0
-  try {
-    await client.updateProjectFieldOptions(requireString(field['id'], 'field.id'), options)
-  }
-  catch (error: unknown) {
-    if (!(error instanceof GitHubAPIError)) throw error
-    out.warning(`could not add options ${added.join(', ')} to field ${LANE_FIELD_NAME}: ${error.message}`)
-    return 0
-  }
-  for (const lane of added) {
-    const operation: Operation = { verb: 'add', target: `option ${lane} to field ${LANE_FIELD_NAME}` }
-    out.done(operation)
-    run.mark(LANE_FIELD_NAME, 'update', lane)
-  }
-  return added.length
-}
-
-const VIEW = z.strictObject({
-  created: z.boolean().describe('Whether the view was created; false when a view of that name already exists or it has to be created by hand'),
-  name: z.string().describe('Name of the view (Lanes)'),
-  url: z.string().optional().describe('URL of the view (omitted when it has to be created by hand)'),
-  manual_steps: z.array(z.string()).optional().describe('Steps to create the view on the board, when GitHub refused to create it (omitted otherwise)'),
-}).describe('The Lanes view, with pecot-status as the columns and pecot-lane as the groups (omitted when the board has no single select pecot-lane field)')
-
-type LanesView = z.input<typeof VIEW>
-
-function manualStepsOf(projectUrl: string): readonly string[] {
-  return [
-    `open the project: ${projectUrl}`,
-    `add a view named ${LANES_VIEW_NAME} with the Board layout`,
-    `set Column by to ${WORKFLOW_FIELD_NAME}`,
-    `set Group by to ${LANE_FIELD_NAME}`,
-  ]
-}
-
-// 権限の足りないトークン・views の API の無い GHES・GitHub App のトークンでの個人のボードは、画面で作る道に回す
-function isViewCreationRefused(error: unknown): error is GitHubAPIError {
-  return error instanceof GitHubNotFoundError || (error instanceof GitHubAPIError && !(error instanceof GitHubRateLimitError) && error.statusCode === 403)
-}
-
-function viewBodyOf(target: Readonly<ProjectViewTarget>): Readonly<{ name: string, layout: 'board', vertical_group_by: readonly [number], group_by: readonly [number] }> {
-  const status = target.fieldDatabaseIds.get(WORKFLOW_FIELD_NAME)
-  const lane = target.fieldDatabaseIds.get(LANE_FIELD_NAME)
-  if (status === undefined || lane === undefined) throw new GitHubAPIError(`could not read the database ids of fields ${WORKFLOW_FIELD_NAME} and ${LANE_FIELD_NAME}`)
-  return { name: LANES_VIEW_NAME, layout: 'board', vertical_group_by: [status], group_by: [lane] }
-}
-
-// Lanes のビューを用意する。同じ名前のビューがあれば作らない。403・404 では作らずに、画面で作る手順を返して続ける
-async function ensureLanesView(out: Readonly<Output>, client: Readonly<GitHubClient>, board: Readonly<{ owner: string, number: number }>): Promise<LanesView> {
-  const target = await client.getProjectViewTarget(board.owner, board.number)
-  const existing = target.views.find(view => view.name === LANES_VIEW_NAME)
-  if (existing !== undefined) {
-    skipped(out, `view ${LANES_VIEW_NAME} (already exists)`)
-    return { created: false, name: LANES_VIEW_NAME, url: `${target.url}/views/${String(existing.number)}` }
-  }
-  let view: JsonObject
-  try {
-    view = await client.createProjectView(target, viewBodyOf(target))
-  }
-  catch (error: unknown) {
-    if (!isViewCreationRefused(error)) throw error
-    const steps = manualStepsOf(target.url)
-    out.warning(`could not create view ${LANES_VIEW_NAME} (status ${String(error.statusCode ?? 0)}): ${error.message}\ncreate it on the board:\n${steps.map((step, index) => `${String(index + 1)}. ${step}`).join('\n')}`)
-    return { created: false, name: LANES_VIEW_NAME, manual_steps: [...steps] }
-  }
-  const url = view['html_url']
-  out.done({ verb: 'create', target: typeof url === 'string' ? `view ${LANES_VIEW_NAME} (${url})` : `view ${LANES_VIEW_NAME}` })
-  return { created: true, name: LANES_VIEW_NAME, ...typeof url === 'string' && { url } }
-}
-
-interface InitializedFields {
-  /**
-  作る・足す・改名するフィールドと選択肢の数
-  */
-  readonly changeCount: number
-  readonly projectNumber: number
-  /**
-  改名した旧い名前
-  */
-  readonly renamed: string | undefined
-  /**
-  Lanes のビュー。pecot-lane が無ければ undefined
-  */
-  readonly view: LanesView | undefined
-  /**
-  消す予定のフィールド（消す順）
-  */
-  readonly deletable: readonly DeletableField[]
-}
-
-interface DeletableField {
-  readonly id: string
-  readonly name: string
-}
-
-// フィールドを作り、既にあるフィールドには足りない選択肢を足す。進行の欄が旧い名前なら改名する。
-// 既にある進行の欄の必須の値が欠けていれば、何も書かずに止める
-async function initializeFields(out: Readonly<Output>, client: Readonly<GitHubClient>, target: Readonly<{ owner: string, name: string, host: string } & LaneRequest>, run: Readonly<{ mark: MarkField }>): Promise<InitializedFields> {
-  const { owner, name, host } = target
-  const { mark } = run
-  const project = await findProjectByTitle(out, client, owner, name)
-  const projectId = requireString(project['id'], 'project.id')
-  const projectNumber = requireNumber(project['number'], 'project.number')
-  // 設定ファイルが選べないときは、ボードを書き換える前に止める
-  placeProjectConfig(out, { host, owner, number: projectNumber })
-  const projectInfo = await client.getProjectFields(owner, projectNumber)
-  if (projectInfo === undefined || !isTruthy(projectInfo)) stopWith(out, `could not read project fields: ${name}`, 'not-initialized')
-  const fields = fieldNodesOf(projectInfo)
-  const plan = planWorkflowFieldOf(fields)
-  const existingWorkflow = plan.kind === 'create' ? undefined : lastFieldNamed(fields, plan.kind === 'rename' ? plan.from : plan.use)
-  if (existingWorkflow !== undefined) {
-    const missing = missingRequiredOptions(existingWorkflow)
-    if (missing.length > 0) stopMissingOptions(out, missing)
-  }
-  let renameCount = 0
-  if (existingWorkflow !== undefined && plan.kind === 'rename') {
-    await renameWorkflowField(out, client, existingWorkflow, run)
-    renameCount = 1
-  }
-  const created: readonly (readonly [string, readonly ProjectFieldOption[]])[] = plan.kind === 'create' ? [[WORKFLOW_FIELD_NAME, WORKFLOW_FIELD_OPTIONS]] : []
-  if (plan.kind === 'current' || plan.kind === 'both') {
-    skipped(out, `field ${WORKFLOW_FIELD_NAME} (already exists)`)
-    mark(WORKFLOW_FIELD_NAME, 'unchanged')
-  }
-  let newFieldCount = 0
-  for (const [fieldName, options] of created) {
-    if (fields.some(field => jsonField(field, 'name') === fieldName)) {
-      skipped(out, `field ${fieldName} (already exists)`)
-      mark(fieldName, 'unchanged')
-      continue
-    }
-    newFieldCount += 1
-    const createdField = await client.createProjectField(projectId, fieldName, options)
-    out.done({ verb: 'create', target: `field ${fieldName} (ID: ${requireString(createdField['id'], 'field.id')})` })
-    mark(fieldName, 'create')
-  }
-  const lane = await prepareLaneField(out, client, { projectId, fields }, target, run)
-  // 改名した進行の欄は、改名の後の名前で選択肢の行を出す
-  const workflowField = existingWorkflow === undefined ? undefined : { ...existingWorkflow, name: WORKFLOW_FIELD_NAME }
-  const optionCount = await addMissingOptions(out, client, fields, workflowField, run)
-  const view = lane.hasField ? await ensureLanesView(out, client, { owner, number: projectNumber }) : undefined
-  return {
-    changeCount: renameCount + newFieldCount + lane.count + optionCount,
-    projectNumber,
-    renamed: renameCount > 0 && plan.kind === 'rename' ? plan.from : undefined,
-    view,
-    deletable: plannedDeletions(fields, plan),
-  }
-}
-
-/**
-消す予定のフィールド。pecot が使わないフィールド、続けて pecot-status と両方あるときの旧い進行の欄
-*/
-function plannedDeletions(fields: readonly JsonValue[], plan: WorkflowFieldPlan): readonly DeletableField[] {
-  const unused = UNUSED_FIELD_NAMES.map(name => fields.find(field => jsonField(field, 'name') === name))
-  const legacy = plan.kind === 'both' ? [lastFieldNamed(fields, plan.legacy)] : []
-  return [...unused, ...legacy]
-    .filter(field => field !== undefined)
-    .map(field => ({ id: requireString(jsonField(field, 'id'), 'field.id'), name: requireString(jsonField(field, 'name'), 'field.name') }))
-}
-
-interface Deletions {
-  readonly pending_delete: string[]
-  readonly deleted: string[]
-}
-
-// confirm_delete が無ければ消さずに承認を求め、あれば 1 つずつ消す
-async function deleteUnusedFields(
-  out: Readonly<Output>,
-  client: Readonly<GitHubClient>,
-  deletable: readonly DeletableField[],
-  run: Readonly<{ isConfirmed: boolean, mark: MarkField, again: Readonly<{ owner: string, name: string, host: string }> }>,
-): Promise<Deletions> {
-  const names = deletable.map(field => field.name)
-  if (names.length === 0) return { pending_delete: [], deleted: [] }
-  if (!run.isConfirmed) {
-    const again = runAgain(commandHint(['project', 'init'], { ...run.again, confirm_delete: true }))
-    out.warning(hinted`these fields are not used by pecot and are left on the board: ${names.join(', ')}
-deleting them also deletes their values on every item, and the values cannot be restored
-show these names to the user and get their approval; only then, ${again}`)
-    return { pending_delete: names, deleted: [] }
-  }
-  const deleted: string[] = []
-  for (const field of deletable) {
-    const operation: Operation = { verb: 'delete', target: `field ${field.name}` }
-    await client.deleteProjectField(field.id)
-    out.done(operation)
-    run.mark(field.name, 'delete')
-    deleted.push(field.name)
-  }
-  return { pending_delete: [], deleted }
-}
-
-const FIELD_CHANGES = z.enum(['create', 'update', 'unchanged', 'skip', 'rename', 'delete'])
-
-const INIT_ROW = z.strictObject({
-  name: z.string().describe('Name of the project field'),
-  change: FIELD_CHANGES.describe('create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found, pecot-lane was not created because no lanes were given, or pecot-lane is not a single select field; rename: the old pecot-workflow-<suffix> field was renamed to pecot-status; delete: the field was deleted with confirm_delete'),
-  addedOptions: z.array(z.string()).describe('Names of the options added to the field (empty when none)'),
-})
+const ACTIVATE_PATH = ['project', 'activate']
 
 const CONFIG_MOVED = z.strictObject({
   from: z.string().describe('File name of the old project config'),
   to: z.string().describe('File name the project config was moved to'),
 }).nullable().describe('The old project config file that was moved to the new name (null when none)')
 
-const MIGRATION = z.strictObject({
-  renamed: z.string().nullable().describe('Old name of the workflow field that was renamed to pecot-status (null when none)'),
-  config_moved: CONFIG_MOVED,
-  pending_delete: z.array(z.string()).describe('Fields to delete that were left because confirm_delete was not given: pecot-priority, pecot-size, and the old pecot-workflow-<suffix> field when pecot-status also exists (empty when none)'),
-  deleted: z.array(z.string()).describe('Fields deleted with confirm_delete (empty when none)'),
-})
-
-const INIT_OUTPUT = z.strictObject({
-  fields: z.array(INIT_ROW).describe('The pecot-status and pecot-lane fields, the Status field when its options were looked at, and the fields deleted with confirm_delete'),
-  migration: MIGRATION.optional().describe('What was moved from the old form (omitted when the command stopped before the project config)'),
-  view: VIEW.optional(),
-})
-
 // 移した設定ファイルの、名前だけの組
 function configMovedOf(placement: Readonly<ConfigPlacement>): z.input<typeof CONFIG_MOVED> {
   return placement.movedFrom === undefined ? JSON_NULL : { from: path.basename(placement.movedFrom), to: path.basename(placement.configPath) }
 }
-
-const initCommand = defineTool({
-  name: 'project_init',
-  title: 'Initialize project fields',
-  description: 'Add the pecot-status field to an existing project, rename the old suffixed workflow field to pecot-status, add the Blocked and Needs Attention options to the fields that already exist, and add the lanes to the pecot-lane field with a Lanes view. The fields pecot does not use (pecot-priority, pecot-size, and the old suffixed workflow field when pecot-status also exists) are listed in migration.pending_delete, and deleted only with confirm_delete',
-  input: z.strictObject({
-    owner: z.string().describe('Project owner'),
-    name: z.string().describe('Project title'),
-    host: z.string().default(DEFAULT_HOST).describe('GitHub host'),
-    lanes: lanesInput,
-    confirm_delete: z.boolean().default(false).describe('Delete the fields listed in migration.pending_delete. Their values on every item are deleted too and cannot be restored. Set it to true only after the user has approved deleting those fields'),
-  }),
-  output: INIT_OUTPUT,
-  run: async (input, io) => {
-    const out = createOutput<z.input<typeof INIT_OUTPUT>>(false, io)
-    const { owner, name, host } = input
-    // 認証の失敗を、フィールドの初期化の失敗に包まないため
-    const client = await createAuthenticatedGitHubClient(out, host)
-    const mark = fieldReporter((fields) => {
-      out.result({ fields })
-    })
-    const initialized = await guarded(out, 'initialize project fields', async () => await initializeFields(out, client, { ...input, command: INIT_PATH }, { mark }))
-    if (initialized.view !== undefined) out.result({ view: initialized.view })
-    const renamed = initialized.renamed ?? JSON_NULL
-    // 消すのは設定ファイルの同期の後。消すのに失敗しても、改名と設定の移しは済む
-    const removalRun = { isConfirmed: input.confirm_delete, mark, again: { owner, name, host } }
-    const deleteFields = async (): Promise<Deletions> => await guarded(out, 'delete project fields', async () => await deleteUnusedFields(out, client, initialized.deletable, removalRun))
-    const synced = await guarded(out, 'sync project config', async () => await syncProjectConfig(out, client, { owner, name, host, skipIfUnchanged: true, isDryRun: false }))
-    out.result({ migration: { renamed, config_moved: configMovedOf(synced), ...await deleteFields() } })
-    return 0
-  },
-})
-
-// project create
-
-const CREATE_OUTPUT = z.strictObject({
-  number: z.int().optional().describe('Number of the created project (omitted when the response has none)'),
-  url: z.string().optional().describe('URL of the created project (omitted when the response has none)'),
-  title: z.string().describe('Title of the project'),
-  owner: z.string().describe('Project owner'),
-  fields: z.array(INIT_ROW).optional().describe('The fields of the created project, in the same rows as project_init (omitted when the command stopped before the fields)'),
-  view: VIEW.optional(),
-})
-
-const projectCreationCommand = defineTool({
-  name: 'project_create',
-  title: 'Create project',
-  description: 'Create a new project with the pecot-workflow fields, and the pecot-lane field and the Lanes view from lanes (to add the fields to an existing project, use project_init)',
-  input: z.strictObject({
-    owner: z.string().describe('Project owner'),
-    title: z.string().describe('Project title'),
-    host: z.string().default(DEFAULT_HOST).describe('GitHub host'),
-    lanes: lanesInput,
-  }),
-  output: CREATE_OUTPUT,
-  run: async (input, io) => {
-    const out = createOutput<z.input<typeof CREATE_OUTPUT>>(false, io)
-    const { owner, title, host } = input
-    await guarded(out, 'create project', async () => {
-      const client = createGitHubClient(out, host)
-      let ownerId: string
-      try {
-        ownerId = await client.getOwnerNodeId(owner)
-      }
-      catch (error: unknown) {
-        if (error instanceof GitHubNotFoundError) stopWith(out, `owner not found: ${owner}`, 'github-not-found')
-        throw error
-      }
-      const owned = await client.listProjects(owner)
-      const existing = owned.find(project => jsonField(project, 'title') === title)
-      if (existing !== undefined) stopWith(out, `project already exists: ${title}\nurl: ${textOf(existing['url'])}`, 'already-exists')
-
-      const created = await client.createProject(ownerId, title)
-      out.done({ verb: 'create', target: `project #${textOf(created['number'])} ${textOf(created['url'])}` })
-      out.result({
-        title,
-        owner,
-        ...typeof created['number'] === 'number' && { number: created['number'] },
-        ...typeof created['url'] === 'string' && { url: created['url'] },
-      })
-      await guarded(out, 'initialize project fields', async () => {
-        const fieldsReported = fieldReporter((fields) => {
-          out.result({ fields })
-        })
-        const { view } = await initializeFields(out, client, { owner, name: title, host, lanes: input.lanes, command: CREATE_PATH }, { mark: fieldsReported })
-        if (view !== undefined) out.result({ view })
-      })
-      await guarded(out, 'sync project config', async () => {
-        await syncProjectConfig(out, client, { owner, name: title, host })
-      })
-    })
-    return 0
-  },
-})
-
-// project activate
-
-// 設定ファイルのパスか、projects/ にあるファイル名か
-function findConfigFileArgument(project: string): string | undefined {
-  if (isFile(path.resolve(project))) return resolveRealPath(path.resolve(project))
-  const named = path.join(projectsDirectory(), project.endsWith('.json') ? project : `${project}.json`)
-  return isFile(named) ? named : undefined
-}
-
-async function activateFromConfigFile(out: Readonly<Output<ActivateData>>, configPath: string, host: string | undefined): Promise<void> {
-  let config: ProjectConfig
-  try {
-    config = loadConfig(configPath)
-  }
-  catch (error: unknown) {
-    // Python の `except Exception` と同じ範囲（あらゆる Error）で捕まえる
-    if (!(error instanceof Error) || error instanceof CommandExit) throw error
-    return stopWith(out, `could not load config file ${path.basename(configPath)}: ${error.message}`, 'config-invalid')
-  }
-  await guarded(out, 'sync project', async () => {
-    if (host !== undefined && config.host !== host) {
-      out.warning(hinted`${inputHint(ACTIVATE_PATH, 'host', host)} differs from the config file host (${config.host})\nusing the config file host`)
-    }
-    const client = createGitHubClient(out, config.host)
-    const projectInfo = await client.getProjectFields(config.owner, config.project.number)
-    if (projectInfo === undefined || !isTruthy(projectInfo)) stopWith(out, `project #${String(config.project.number)} not found`, 'project-not-found')
-    const title = projectInfo['title']
-    if (typeof title !== 'string' || title === '') stopWith(out, `could not read the title of project #${String(config.project.number)}`, 'project-not-found')
-    reportSynced(out, await syncProjectConfig(out, client, { owner: config.owner, name: title, host: config.host, ...SYNC_FOR_ACTIVATE, isDryRun: false }))
-  })
-}
-
-async function resolveActivationOwner(out: Readonly<Output>, client: Readonly<GitHubClient>, owner: string | undefined): Promise<string> {
-  if (owner !== undefined) return owner
-  let login: JsonValue | undefined
-  try {
-    login = jsonField(await client.getAuthenticatedUser(), 'login')
-  }
-  catch (error: unknown) {
-    if (error instanceof GitHubAPIError) return stopWith(out, hinted`could not read the authenticated user: ${error.message}\npass ${inputNameHint(ACTIVATE_PATH, 'owner')} to give the owner explicitly`, kindOfFailure(error))
-    throw error
-  }
-  return typeof login === 'string' && login !== '' ? login : stopWith(out, 'could not read the authenticated user', 'github-api')
-}
-
-function activeProjectNumber(host: string, owner: string): number | undefined {
-  const activePath = getActiveConfigPath()
-  if (activePath === undefined) return undefined
-  try {
-    const active = loadConfig(activePath)
-    return active.host === host && active.owner === owner ? active.project.number : undefined
-  }
-  catch (error: unknown) {
-    // 読めない設定は、アクティブの印を付けないだけにする。Python の `except Exception` と同じ範囲で捕まえる
-    if (error instanceof Error) return undefined
-    throw error
-  }
-}
-
-// 番号か名前でプロジェクトの情報を取る
-async function fetchProjectInfoByReference(out: Readonly<Output>, client: Readonly<GitHubClient>, owner: string, project: string): Promise<Readonly<Record<string, JsonValue>>> {
-  if (/^\d+$/u.test(project)) {
-    const number = Number(project)
-    return await client.getProjectFields(owner, number) ?? stopWith(out, `project #${String(number)} not found`, 'project-not-found')
-  }
-  const found = await findProjectByTitle(out, client, owner, project)
-  const info = await client.getProjectFields(owner, requireNumber(found['number'], 'project.number'))
-  return info !== undefined && isTruthy(info) ? info : stopWith(out, `could not read project fields: ${project}`, 'not-initialized')
-}
-
-async function activateByReference(out: Readonly<Output<ActivateData>>, client: Readonly<GitHubClient>, target: Readonly<{ host: string, owner: string, project: string }>): Promise<void> {
-  const { host, owner, project } = target
-  const info = await fetchProjectInfoByReference(out, client, owner, project)
-  const title = textOf(info['title'] ?? '')
-  if (!hasWorkflowField(asArray(jsonField(info['fields'], 'nodes')))) {
-    stopWith(out, hinted`project "${title}" is not initialized\n${RUN_COLON}${commandHint(['project', 'init'], { owner, name: title, host })}`, 'not-initialized')
-  }
-  reportSynced(out, await syncProjectConfig(out, client, { owner, name: title, host, ...SYNC_FOR_ACTIVATE, isDryRun: false }))
-}
-
-const ACTIVATE_PATH = ['project', 'activate']
-// 中身が同じ設定ファイルは書かず、change を unchanged にしたうえでアクティブにする
-const SYNC_FOR_ACTIVATE = { skipIfUnchanged: true, activateIfUnchanged: true }
-const LINK_PATH = ['project', 'link']
 
 const ACTIVATE_OUTPUT = z.strictObject({
   project: z.string().optional().describe('Name of the project config that was made active'),
@@ -809,52 +154,154 @@ const ACTIVATE_OUTPUT = z.strictObject({
 
 type ActivateData = z.input<typeof ACTIVATE_OUTPUT>
 
+const PAGES = z.array(z.unknown())
+
+const ACTIVATE_INPUT = z.strictObject({
+  project: z.string().describe('Board number or title, or config file path/file name'),
+  owner: z.string().optional().describe('Owner of the board (required unless project is a config file)'),
+  owner_type: z.enum(['user', 'org']).optional().describe('Whether the owner is a user or an organization, as passed to projects_get (required unless list_projects or the config gives it)'),
+  host: z.string().optional().describe('GitHub host (required unless project is a config file)'),
+  reads: z.object({
+    project: z.unknown().optional().describe('Result of projects_get with method get_project for the board (when project is a number or a config file)'),
+    projects: PAGES.optional().describe('Results of projects_list with method list_projects for the owner, every page (when project is a title)'),
+    fields: z.unknown().optional().describe('Result of projects_list with method list_project_fields for the board'),
+    views: z.unknown().optional().describe('Result of projects_list with method list_project_views for the board; the board URL in the config opens its first view (omit it for a URL without a view)'),
+  }).optional().describe('Results of the official GitHub MCP reads of the board'),
+})
+
+type ActivateInput = z.output<typeof ACTIVATE_INPUT>
+
 // 設定ファイルの結果を data に渡す
 function reportSynced(out: Readonly<Output<ActivateData>>, synced: Readonly<SyncedProjectConfig>): void {
   out.result({ ...synced.activeProject !== undefined && { project: synced.activeProject }, configPath: synced.configPath, change: synced.change, config_moved: configMovedOf(synced) })
 }
 
+// 設定ファイルのパスか、projects/ にあるファイル名か
+function findConfigFileArgument(project: string): string | undefined {
+  if (isFile(path.resolve(project))) return resolveRealPath(path.resolve(project))
+  const named = path.join(projectsDirectory(), project.endsWith('.json') ? project : `${project}.json`)
+  return isFile(named) ? named : undefined
+}
+
+function loadConfigFile(out: Readonly<Output>, configPath: string): ProjectConfig {
+  try {
+    return loadConfig(configPath)
+  }
+  catch (error: unknown) {
+    // Python の `except Exception` と同じ範囲（あらゆる Error）で捕まえる
+    if (!(error instanceof Error) || error instanceof CommandExit) throw error
+    return stopWith(out, `could not load config file ${path.basename(configPath)}: ${error.message}`, 'config-invalid')
+  }
+}
+
+/**
+読むボード。number が無ければ title で list_projects から探す
+*/
+interface BoardTarget {
+  readonly host: string
+  readonly owner: string
+  readonly ownerType: 'user' | 'org' | undefined
+  readonly number: number | undefined
+  readonly title: string | undefined
+}
+
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の出力の型
+function targetOf(out: Readonly<Output>, input: Readonly<ActivateInput>): BoardTarget {
+  const configPath = findConfigFileArgument(input.project)
+  if (configPath !== undefined) {
+    const config = loadConfigFile(out, configPath)
+    if (input.host !== undefined && config.host !== input.host) {
+      out.warning(hinted`${inputHint(ACTIVATE_PATH, 'host', input.host)} differs from the config file host (${config.host})\nusing the config file host`)
+    }
+    const fromUrl = config.project.board_url?.includes('/orgs/') === true ? 'org' : (config.project.board_url?.includes('/users/') === true ? 'user' : undefined)
+    return { host: config.host, owner: config.owner, ownerType: input.owner_type ?? fromUrl, number: config.project.number, title: undefined }
+  }
+  const { host, owner } = input
+  if (host === undefined || owner === undefined) {
+    stopWith(
+      out,
+      hinted`${inputNameHint(ACTIVATE_PATH, host === undefined ? 'host' : 'owner')} is required
+example: ${commandHint(ACTIVATE_PATH, { project: '1', host: 'github.com', owner: 'example-org', owner_type: 'org' })}
+example: ${commandHint(ACTIVATE_PATH, { project: 'ghes.example.com_example-org_1' })}`,
+      'invalid-input',
+    )
+  }
+  const isNumber = /^\d+$/u.test(input.project)
+  return { host, owner, ownerType: input.owner_type, number: isNumber ? Number(input.project) : undefined, title: isNumber ? undefined : input.project }
+}
+
+function requireRead<T>(out: Readonly<Output>, value: T | undefined, message: string): T {
+  return value ?? stopWith(out, message, 'invalid-input')
+}
+
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の出力の型
+function readProject(out: Readonly<Output>, target: Readonly<BoardTarget>, reads: ActivateInput['reads']): ReadProject {
+  if (target.number !== undefined) {
+    const read = requireRead(out, reads?.project, `read the board with projects_get (method get_project, owner ${target.owner}, project_number ${String(target.number)}) and pass its result as reads.project`)
+    return projectOf(parseOfficial(out, 'projects_get', GET_PROJECT, read, 'reads.project'))
+  }
+  const pages = requireRead(out, reads?.projects, `read the boards of ${target.owner} with projects_list (method list_projects, every page) and pass the results as reads.projects`)
+  const read = pages.map((page, index) => projectsPageOf(parseOfficial(out, 'projects_list', LIST_PROJECTS, page, `reads.projects[${String(index)}]`)))
+  const projects = read.flatMap(page => page.projects)
+  const found = projects.find(project => project.title === target.title)
+  if (found !== undefined) return found
+  const more = read.at(-1)?.hasNextPage === true ? '\nthe last page of list_projects has a next page; read it with after and add it to reads.projects' : ''
+  return stopWith(out, `project not found: ${String(target.title)}\navailable projects:\n${projects.map(project => `- ${project.title ?? '(untitled)'}`).join('\n')}${more}`, 'project-not-found')
+}
+
+// 設定に写す欄の ID は GraphQL の node ID。選択肢の ID は REST と GraphQL で同じ
+function fieldNodeOf(out: Readonly<Output>, field: Readonly<ReadProjectField>): JsonObject {
+  if (field.nodeId === undefined && field.dataType === 'SINGLE_SELECT') stopWith(out, `the result of projects_list in reads.fields has no node_id for field ${field.name}`, 'github-mcp-shape')
+  return {
+    id: field.nodeId ?? field.id,
+    name: field.name,
+    databaseId: Number(field.id),
+    ...field.dataType === 'SINGLE_SELECT' && { options: field.options.map(option => ({ id: option.id ?? stopWith(out, `the result of projects_list in reads.fields has no id for option ${option.name} of field ${field.name}`, 'github-mcp-shape'), name: option.name })) },
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の出力の型
+function readBoard(out: Readonly<Output>, target: Readonly<BoardTarget>, reads: ActivateInput['reads']): BoardSnapshot {
+  const project = readProject(out, target, reads)
+  const number = project.number ?? target.number ?? stopWith(out, 'the board read has no number', 'github-mcp-shape')
+  const id = project.node_id ?? stopWith(out, `the board read for project #${String(number)} has no node_id`, 'github-mcp-shape')
+  const ownerType = target.ownerType ?? (project.owner_type === 'org' || project.owner_type === 'user' ? project.owner_type : undefined)
+  if (ownerType === undefined) stopWith(out, hinted`cannot tell whether ${target.owner} is a user or an organization\npass ${inputNameHint(ACTIVATE_PATH, 'owner_type')}, the value given to projects_get`, 'invalid-input')
+  const fieldsRead = requireRead(out, reads?.fields, `read the fields of project #${String(number)} with projects_list (method list_project_fields) and pass its result as reads.fields`)
+  if (parseOfficial(out, 'projects_list', PROJECT_FIELDS_PAGE, fieldsRead, 'reads.fields').fields.pageInfo?.hasNextPage === true) {
+    stopWith(out, 'list_project_fields in reads.fields has a next page; read it with per_page 50, or with after, and pass all the fields', 'invalid-input')
+  }
+  const fields = projectFieldsOf(parseOfficial(out, 'projects_list', PROJECTS_LIST_FIELDS, fieldsRead, 'reads.fields')).map(field => fieldNodeOf(out, field))
+  const views = reads?.views === undefined ? [] : viewNumbersOf(parseOfficial(out, 'projects_list', LIST_PROJECT_VIEWS, reads.views, 'reads.views'))
+  return {
+    id,
+    number,
+    title: project.title ?? target.title ?? `#${String(number)}`,
+    url: `https://${target.host}/${ownerType === 'org' ? 'orgs' : 'users'}/${target.owner}/projects/${String(number)}`,
+    fields,
+    viewNumber: views.at(0),
+  }
+}
+
 const activateCommand = defineTool({
   name: 'project_activate',
   title: 'Activate project',
-  description: 'Activate an initialized project',
-  input: z.strictObject({
-    project: z.string().describe('Project number or name, or config file path/file name (list the candidates with project_search)'),
-    owner: z.string().optional().describe('Project owner (defaults to the authenticated user)'),
-    host: z.string().optional().describe('GitHub host'),
-  }),
+  description: 'Write the project config of an initialized board from the official GitHub MCP reads in reads, and make it the active project. The registered repositories are kept from the existing config',
+  input: ACTIVATE_INPUT,
   output: ACTIVATE_OUTPUT,
-  run: async (input, io) => {
+  run: (input, io) => {
     const out = createOutput<ActivateData>(false, io)
-    const { project, host } = input
-    // --host の要らない形（設定ファイルのパスか名前）を先に見る
-    const configPath = findConfigFileArgument(project)
-    if (configPath !== undefined) {
-      await activateFromConfigFile(out, configPath, host)
-      return 0
-    }
-    await guarded(out, 'activate project', async () => {
-      if (host === undefined) {
-        stopWith(
-          out,
-          hinted`${inputNameHint(ACTIVATE_PATH, 'host')} is required
-example: ${commandHint(ACTIVATE_PATH, { project: '1', host: 'github.com', owner: 'example-org' })}
-example: ${commandHint(ACTIVATE_PATH, { project: 'example-project', host: 'ghes.example.com', owner: 'example-org' })}
-example: ${commandHint(ACTIVATE_PATH, { project: 'ghes.example.com_example-org_1' })}`,
-          'invalid-input',
-        )
-      }
-      // 認証の失敗に、--owner を渡す案内を添えないため
-      const client = await createAuthenticatedGitHubClient(out, host)
-      const owner = await resolveActivationOwner(out, client, input.owner)
-      await activateByReference(out, client, { host, owner, project })
-    })
-    return 0
+    const target = targetOf(out, input)
+    const board = readBoard(out, target, input.reads)
+    // 中身が同じ設定ファイルは書かず、change を unchanged にしたうえでアクティブにする
+    reportSynced(out, syncProjectConfig(out, board, { owner: target.owner, host: target.host, skipIfUnchanged: true, activateIfUnchanged: true, isDryRun: false }))
+    return Promise.resolve(0)
   },
 })
 
 // project link
 
+const LINK_PATH = ['project', 'link']
 const packageList = z.array(z.string())
 
 function parsePackages(out: Readonly<Output>, input: Readonly<{ package?: readonly string[] | undefined, changelog_file?: string | undefined, clear_packages: boolean }>): readonly Package[] | undefined {
@@ -900,7 +347,7 @@ function updatedRepository(out: Readonly<Output>, existing: Repository, edit: Re
   }
   if (edit.changelog_file !== undefined) {
     if (packages !== undefined && packages.length > 0) {
-      stopWith(out, hinted`this repository has packages set\n${RUN} with ${inputHint(['project', 'link'], 'clear_packages')} before switching to ${inputNameHint(['project', 'link'], 'changelog_file')}`, 'invalid-input')
+      stopWith(out, hinted`this repository has packages set\n${RUN} with ${inputHint(LINK_PATH, 'clear_packages')} before switching to ${inputNameHint(LINK_PATH, 'changelog_file')}`, 'invalid-input')
     }
     changelogFile = edit.changelog_file
   }
@@ -918,17 +365,6 @@ function toReleaseType(value: string | undefined): Repository['release_type'] {
   return RELEASE_TYPES.find(type => type === value)
 }
 
-async function linkRepository(out: Readonly<Output>, config: ProjectConfig, repositoryOwner: string, repositoryName: string): Promise<LinkResult> {
-  try {
-    return await createGitHubClient(out, config.host).linkRepositoryToProject(config.owner, config.project.number, repositoryOwner, repositoryName)
-  }
-  catch (error: unknown) {
-    // API の失敗の文は、Python と同じく message をそのまま使う
-    if (error instanceof GitHubAPIError) return { status: 'failed', detail: error.message }
-    throw error
-  }
-}
-
 const LINK_OUTPUT = z.strictObject({
   repository: z.string().describe('Repository in owner/repo form'),
   projectNumber: z.int().describe('Number of the active project'),
@@ -941,7 +377,7 @@ const projectLinkCommand = defineTool({
   title: 'Link repository to project',
   hasOwnRepo: true,
   ignoresGlobalRepo: true,
-  description: 'Add or update a repository in the project config',
+  description: 'Add or update a repository in the project config. It does not link the repository to the board on GitHub; do that with the project-link operation of github-ops',
   input: z.strictObject({
     repo: z.string().describe('Repository name in owner/repo form'),
     develop_branch: z.string().optional().describe('Development branch name'),
@@ -952,7 +388,7 @@ const projectLinkCommand = defineTool({
     release_type: z.string().optional().describe('Declare the release method explicitly; the w-release skill picks its procedure from it. single (1 CHANGELOG) / multi (packages) / nx (Nx Release). When omitted, it is inferred from the packages (with packages: multi, without: single)'),
   }),
   output: LINK_OUTPUT,
-  run: async (input, io) => {
+  run: (input, io) => {
     const out = createOutput<z.input<typeof LINK_OUTPUT>>(false, io)
     if (input.release_type !== undefined && toReleaseType(input.release_type) === undefined) {
       // Python は sorted() の順（multi, nx, single）で見せる
@@ -962,46 +398,32 @@ const projectLinkCommand = defineTool({
     const { config, configPath } = requireActiveWithPath(out)
 
     const parts = splitOwnerRepository(input.repo)
-    if (parts === undefined) stopWith(out, hinted`give the repository as owner/repo\nexample: ${commandHint(['project', 'link'], { repo: 'example-org/my-repo' })}`, 'invalid-input')
+    if (parts === undefined) stopWith(out, hinted`give the repository as owner/repo\nexample: ${commandHint(LINK_PATH, { repo: 'example-org/my-repo' })}`, 'invalid-input')
     const { owner, repository: name } = parts
     if (owner !== config.owner) {
       stopWith(out, `repository owner ${owner} differs from project owner ${config.owner}\nGitHub Projects V2 links only repositories of the project owner`, 'invalid-input')
     }
 
     const existing = findRepository(config, owner, name)
-    let next: ProjectConfig
-    let saved: Operation
-    if (existing === undefined) {
-      const projectNumber = String(config.project.number)
-      const outcome = await linkRepository(out, config, owner, name)
-      if (outcome.status === 'failed') stopWith(out, `could not link ${input.repo} to project #${projectNumber}: ${outcome.detail}`, 'github-api')
-      const linked: Operation = outcome.status === 'already_linked'
-        ? { verb: 'unchanged', target: `${input.repo} in project #${projectNumber}` }
-        : { verb: 'add', target: `${input.repo} to project #${projectNumber}` }
-      out.planned(linked)
-      out.done(linked)
-      next = withRepositoryAppended(config, buildRepository({
-        owner,
-        name,
-        develop_branch: input.develop_branch,
-        release_branch: input.release_branch,
-        changelog_file: packages === undefined ? input.changelog_file : undefined,
-        packages,
-        release_type: toReleaseType(input.release_type),
-      }))
-      saved = { verb: 'add', target: `${owner}/${name} to ${configPath}` }
-    }
-    else {
-      next = withRepositoryReplaced(config, updatedRepository(out, existing, { ...input, packages }))
-      saved = { verb: 'update', target: `${owner}/${name} in ${configPath}` }
-    }
+    const next = existing === undefined
+      ? withRepositoryAppended(config, buildRepository({
+          owner,
+          name,
+          develop_branch: input.develop_branch,
+          release_branch: input.release_branch,
+          changelog_file: packages === undefined ? input.changelog_file : undefined,
+          packages,
+          release_type: toReleaseType(input.release_type),
+        }))
+      : withRepositoryReplaced(config, updatedRepository(out, existing, { ...input, packages }))
+    const saved: Operation = existing === undefined ? { verb: 'add', target: `${owner}/${name} to ${configPath}` } : { verb: 'update', target: `${owner}/${name} in ${configPath}` }
     const checked = validated(next)
     out.planned(saved)
     const reported = { repository: `${owner}/${name}`, projectNumber: config.project.number, change: linkChange(existing), configPath }
     saveConfig(checked, configPath)
     out.done(saved)
     out.result(reported)
-    return 0
+    return Promise.resolve(0)
   },
 })
 
@@ -1022,9 +444,31 @@ interface ConfigKeyOperations {
 
 const CONFIG_KEY_FIELD = z.enum(['aggregation_repo']).describe('Key of the project config')
 
+const SUMMARY_PACKAGE = z.strictObject({
+  name: z.string().describe('Name of the package (the tag prefix)'),
+  changelog: z.string().describe('Path of the CHANGELOG of the package'),
+})
+
+const SUMMARY_REPOSITORY = z.strictObject({
+  full_name: z.string().describe('Repository (owner/repo)'),
+  develop_branch: z.string().nullable().describe('Develop branch (null when not set)'),
+  release_branch: z.string().nullable().describe('Release branch (null when not set)'),
+  release_type: z.enum(['single', 'multi', 'nx']).describe('Release type in effect'),
+  packages: z.array(SUMMARY_PACKAGE).describe('Packages of a monorepo (empty when none)'),
+  changelog_file: z.string().optional().describe('CHANGELOG path set for a repository without packages (omitted when not set)'),
+})
+
 const GET_OUTPUT = z.strictObject({
-  key: CONFIG_KEY_FIELD,
-  value: z.string().optional().describe('Value of the key (omitted when it is not set)'),
+  key: CONFIG_KEY_FIELD.optional().describe('Key that was read (omitted when key was not given)'),
+  value: z.string().optional().describe('Value of the key (omitted when it is not set, or when key was not given)'),
+  project: z.strictObject({
+    name: z.string().describe('Name of the project config'),
+    host: z.string().describe('GitHub host'),
+    owner: z.string().describe('Owner of the board'),
+    number: z.int().describe('Number of the board'),
+    aggregation_repo: z.string().nullable().describe('Epic aggregation repository (null when not set)'),
+  }).optional().describe('Overview of the active project (only when key was not given)'),
+  repositories: z.array(SUMMARY_REPOSITORY).optional().describe('Registered repositories, in registration order (only when key was not given)'),
 })
 
 const SET_OUTPUT = z.strictObject({
@@ -1098,6 +542,41 @@ const CONFIG_KEY_OPERATIONS: Readonly<Record<ConfigKey, ConfigKeyOperations>> = 
   },
 }
 
+function summaryRepository(entry: Repository): z.input<typeof SUMMARY_REPOSITORY> {
+  return {
+    full_name: `${entry.owner}/${entry.name}`,
+    develop_branch: entry.develop_branch ?? JSON_NULL,
+    release_branch: entry.release_branch ?? JSON_NULL,
+    release_type: effectiveReleaseType(entry),
+    packages: (entry.packages ?? []).map(item => ({ name: item.name, changelog: item.changelog })),
+    ...entry.changelog_file !== undefined && entry.changelog_file !== '' && { changelog_file: entry.changelog_file },
+  }
+}
+
+function repositoryLine(entry: Repository): string {
+  const branches = [
+    ...entry.develop_branch === undefined || entry.develop_branch === '' ? [] : [`develop: ${entry.develop_branch}`],
+    ...entry.release_branch === undefined || entry.release_branch === '' ? [] : [`release: ${entry.release_branch}`],
+  ]
+  return `- ${entry.owner}/${entry.name}${branches.length > 0 ? ` (${branches.join(', ')})` : ''}, release_type: ${effectiveReleaseType(entry)}`
+}
+
+// key を省いたときの、アクティブな設定の要約
+function showSummary(out: Readonly<Output<GetData>>): void {
+  const { config, configPath } = requireActiveWithPath(out)
+  const name = path.parse(configPath).name
+  out.data([
+    `project: ${name} (${config.host}, ${config.owner} #${String(config.project.number)})`,
+    `aggregation_repo: ${config.aggregation_repo ?? 'none'}`,
+    'repositories:',
+    ...config.repositories.length === 0 ? ['- none'] : config.repositories.map(entry => repositoryLine(entry)),
+  ].join('\n'))
+  out.result({
+    project: { name, host: config.host, owner: config.owner, number: config.project.number, aggregation_repo: config.aggregation_repo ?? JSON_NULL },
+    repositories: config.repositories.map(entry => summaryRepository(entry)),
+  })
+}
+
 const projectSetCommand = defineTool({
   name: 'project_set',
   title: 'Set project config',
@@ -1129,23 +608,23 @@ const projectUnsetCommand = defineTool({
 const projectGetCommand = defineTool({
   name: 'project_get',
   title: 'Get project config',
-  description: 'Show the value of a key of the project config (aggregation_repo: the Epic aggregation repository)',
-  input: z.strictObject({ key: CONFIG_KEY }),
+  description: 'Show the value of a key of the project config (aggregation_repo: the Epic aggregation repository), or without key, the overview of the active project and its registered repositories with their branches and release type',
+  input: z.strictObject({ key: CONFIG_KEY.optional() }),
   output: GET_OUTPUT,
   run: (input, io) => {
-    CONFIG_KEY_OPERATIONS[input.key].get(createOutput<GetData>(false, io))
+    const out = createOutput<GetData>(false, io)
+    if (input.key === undefined) showSummary(out)
+    else CONFIG_KEY_OPERATIONS[input.key].get(out)
     return Promise.resolve(0)
   },
 })
 
 /**
-project のグループのコマンド。並びは tools/list に出る順
+project のグループのツール。並びは tools/list に出る順
 */
 export const PROJECT_TOOLS: readonly ToolDefinition[] = [
   listCommand,
-  searchCommand,
-  initCommand,
-  projectCreationCommand,
+  PROJECT_CHECK,
   activateCommand,
   projectLinkCommand,
   projectGetCommand,

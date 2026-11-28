@@ -1,8 +1,8 @@
 name: pecot auto start
-description: Start an automated fix run. Put the Issue on the board or restore the Status the automation wrote, and write the context to continue to a JSON file.
+description: Start an automated fix run. Put the Issue on the board or restore the Status the automation wrote, create the branch when the Issue has none, and write the context to continue to a JSON file.
 inputs:
   token:
-    description: Token to read the Issue and to write the board (the App token of the workflow)
+    description: Token to read the Issue and to write the board and the branch (the App token of the workflow)
     required: false
   issue:
     description: Issue number in the repository of the workflow, or owner/repo/N

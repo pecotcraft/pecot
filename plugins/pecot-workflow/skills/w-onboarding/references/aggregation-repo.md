@@ -46,20 +46,6 @@ AskUserQuestion Q2a で選択:
 
 ## 4.2b 新規リポを作成
 
-まず `gh` 認証を確認する。未認証なら `gh auth login` を案内して本ステップを中断する。
-
-```bash
-gh auth status
-```
-
-未認証だった場合の案内例:
-
-```text
-gh CLI が未認証です。以下を実行してから再度 /pecot-w:w-onboarding を再開してください。
-
-  gh auth login
-```
-
 AskUserQuestion で以下 2 問を **1 回の呼び出しで** 質問する（`w-repo-add` Step 2.3 と同じパターン）:
 
 質問 1: リポジトリ名
@@ -79,14 +65,16 @@ AskUserQuestion で以下 2 問を **1 回の呼び出しで** 質問する（`w
   - label: "`public`", description: "誰でも閲覧可能"
   - label: "`internal`", description: "organization メンバーのみ閲覧可能（org 配下のみ）"
 
-ヒアリング結果を使って、次の 3 つを **この順序で** 実行する。
+ヒアリング結果を使って、次の 4 つを **この順序で** 実行する。
 
-1. `gh repo create <owner/repo> --<visibility> --add-readme`（Bash）
+1. 公式の MCP の `create_repository` でリポを作る（`name`・`private`・`autoInit: true`。owner が組織なら `organization` も渡す）
+   - `internal` を選んだときは、`create_repository` では作れない。利用者に `https://<host>/new` で、owner と名前を合わせ、可視性を Internal にし、README を付けて作ってもらう
 2. pecot-workflow の MCP ツール `project_link` を使う（`repo: "<owner/repo>"`・`develop_branch: "main"`）
-3. `project_set` を使う（`key: "aggregation_repo"`・`value: "<owner/repo>"`）
+3. github-ops の `project-link` で、リポをボードにつなぐ（`params` に `project`・`repo`）。手順は [github-ops で書く](../../w-help/references/github-ops.md)
+4. `project_set` を使う（`key: "aggregation_repo"`・`value: "<owner/repo>"`）
 
-- `--add-readme` は空リポ回避（README が無い空リポは clone できず、以降の Epic 作成も失敗しやすい）。
-- 4.0 で既に集約リポが設定済みの場合、3 つ目の呼び出しに `yes: true` を足す。
+- `autoInit: true` は空リポ回避（README が無い空リポは clone できず、以降の Epic 作成も失敗しやすい）。
+- 4.0 で既に集約リポが設定済みの場合、4 つ目の呼び出しに `yes: true` を足す。
 - 新規リポは集約（ロードマップ）専用のため `release_branch` / `changelog_file` は指定しない。
 
 ## 4.3 確認

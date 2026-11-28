@@ -52,7 +52,7 @@ export function issueDisplay(target: Readonly<IssueTarget>): string {
 export function requireAutoConfig(out: Readonly<Output>, target: Readonly<RepositoryReference>, project: string | undefined, commandPath: readonly string[]): ProjectConfig {
   const { config } = requireConfigFor(out, target, project, commandPath)
   return config.project.fields.status === undefined
-    ? stopWith(out, hinted`the project config has no Status field (fields.status)\n${RUN_COLON}${commandHint(['project', 'init'])}`, 'not-initialized')
+    ? stopWith(out, hinted`the project config has no Status field (fields.status)\n${RUN_COLON}${commandHint(['project', 'activate'], { project: String(config.project.number), owner: config.owner })}`, 'not-initialized')
     : config
 }
 

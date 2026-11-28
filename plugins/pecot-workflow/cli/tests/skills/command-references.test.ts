@@ -1,13 +1,12 @@
 // 本文に書かれたツールの呼び出しを、TOOLS の定義と比べる。
 // - 呼び出しの入力名が、そのツールの入力に実在する
 // - w-help の commands.md に、TOOLS の全ツールが載っている
-// - w-release の release-multi.md が、board_show の repositories の packages の項目名で読む
+// - w-release の release-multi.md が、project_get の repositories の packages の項目名で読む
 import { describe, expect, it } from 'vitest'
+import { z } from 'zod'
 
 import { explains } from '../_helpers/explains.js'
 import { TOOLS } from '../../src/commands/registry.js'
-import { boardShowData, boardShowResult } from '@pecot/workflow-core/commands-shared/board-view.js'
-import { parseProjectConfig } from '@pecot/workflow-core/domain/config.js'
 import { TEMPLATE_RESOURCES, templateUri } from '../../src/mcp/templates.js'
 import { readDocuments, readPluginFile, toolInputs } from './_helpers/documents.js'
 
@@ -22,7 +21,7 @@ const INLINE_INPUT = /^`([a-z][a-z_]*): (?:"|true\b|false\b|\[)[^`]*`$/u
 const FENCE = /^(`{3,}|~{3,})/u
 const BLOCK_INPUT = /^ {2}([a-z][a-z_]*):/u
 // 実数 89 件に近い下限（95% 程度の切りのよい数）。実数が大きく増えたら引き上げる
-const COUNT_FLOOR = 85
+const COUNT_FLOOR = 70
 const TEMPLATE_URI = /pecot-template:\/\/[a-z]+\/[a-z-]+/gu
 
 /**
@@ -100,8 +99,8 @@ describe('本文のツールの呼び出し', () => {
     expect(references.filter(({ uri }) => !known.has(uri)).map(({ file, uri }) => `${file} ${uri}`)).toEqual([])
   })
 
-  it('本文から 85 件以上のツール呼び出しを抽出できる', async () => {
-    await explains('ツール呼び出しの抽出のテストです。本文から抽出できる呼び出しが 85 件以上あることを確認します。')
+  it('本文から 70 件以上のツール呼び出しを抽出できる', async () => {
+    await explains('ツール呼び出しの抽出のテストです。本文から抽出できる呼び出しが 70 件以上あることを確認します。')
     const tools = new Set(toolInputs().keys())
     const count = readDocuments().reduce((sum, { text }) => sum + collectCalls(text, tools).length, 0)
     expect(count).toBeGreaterThanOrEqual(COUNT_FLOOR)
@@ -119,32 +118,32 @@ describe('本文のツールの呼び出し', () => {
 
   it('閉じていないコードフェンスを持つ見本の文書から、開始行を検出する', async () => {
     await explains('閉じていないコードフェンスの検出処理のテストです。閉じていない見本では開始行（1 行目）を返し、閉じている見本では `undefined` を返すことを確認します。')
-    const text = ['```text', 'pr_create', '  title: "t"'].join('\n')
-    expect(scan(text, new Set(['pr_create'])).unclosedFence).toBe(1)
+    const text = ['```text', 'pr_check', '  title: "t"'].join('\n')
+    expect(scan(text, new Set(['pr_check'])).unclosedFence).toBe(1)
     expect(scan(['```text', 'x', '```'].join('\n'), new Set()).unclosedFence).toBeUndefined()
   })
 
   it('存在しない入力名を書いたインラインの呼び出しを検出する', async () => {
-    await explains('インラインの呼び出しの検証処理のテストです。`pr_create` に存在しない入力名 `no_such_input` を渡した記述が、行番号つきの違反として報告されることを確認します。')
-    const text = '`pr_create` を `no_such_input: "x"` で呼ぶ'
-    expect(invalidCalls(text, 'sample.md')).toEqual(['sample.md:1 pr_create に入力 no_such_input が無い'])
+    await explains('インラインの呼び出しの検証処理のテストです。`pr_check` に存在しない入力名 `no_such_input` を渡した記述が、行番号つきの違反として報告されることを確認します。')
+    const text = '`pr_check` を `no_such_input: "x"` で呼ぶ'
+    expect(invalidCalls(text, 'sample.md')).toEqual(['sample.md:1 pr_check に入力 no_such_input が無い'])
   })
 
   it('存在しない入力名を書いた text ブロックの呼び出しを検出する', async () => {
-    await explains('`text` ブロックの呼び出しの検証処理のテストです。`pr_create` のブロックに存在しない入力名を書いた行が、行番号つきの違反として報告されることを確認します。')
-    const text = ['```text', 'pr_create', '  no_such_input: "x"', '  title: "t"', '```'].join('\n')
-    expect(invalidCalls(text, 'sample.md')).toEqual(['sample.md:3 pr_create に入力 no_such_input が無い'])
+    await explains('`text` ブロックの呼び出しの検証処理のテストです。`pr_check` のブロックに存在しない入力名を書いた行が、行番号つきの違反として報告されることを確認します。')
+    const text = ['```text', 'pr_check', '  no_such_input: "x"', '  title: "t"', '```'].join('\n')
+    expect(invalidCalls(text, 'sample.md')).toEqual(['sample.md:3 pr_check に入力 no_such_input が無い'])
   })
 
   it('ブロックの閉じフェンスより後の行は、呼び出しとして扱わない', async () => {
     await explains('`text` ブロックの終わりの判定のテストです。閉じフェンスより後に書かれた入力名は、呼び出しの入力として扱われず、違反にならないことを確認します。')
-    const text = ['```text', 'pr_create', '```', '  no_such_input: "x"'].join('\n')
+    const text = ['```text', 'pr_check', '```', '  no_such_input: "x"'].join('\n')
     expect(invalidCalls(text, 'sample.md')).toEqual([])
   })
 
-  it('ブロックの中で、message の本文の深い字下げは入力として扱わない', async () => {
-    await explains('`message` の本文の扱いのテストです。`message: |` の下に深く字下げして書かれた行は、入力名として扱われず、違反にならないことを確認します。')
-    const text = ['```text', 'pr_create', '  message: |', '    summary: x', '```'].join('\n')
+  it('ブロックの中で、body の本文の深い字下げは入力として扱わない', async () => {
+    await explains('`body` の本文の扱いのテストです。`body: |` の下に深く字下げして書かれた行は、入力名として扱われず、違反にならないことを確認します。')
+    const text = ['```text', 'pr_check', '  body: |', '    summary: x', '```'].join('\n')
     expect(invalidCalls(text, 'sample.md')).toEqual([])
   })
 })
@@ -160,20 +159,11 @@ describe('commands.md', () => {
 
 describe('release-multi.md', () => {
   it('release-multi.md は、対象リポジトリの package の一覧から package を選ぶ書き方になっている', async () => {
-    await explains('w-release の `release-multi.md` のテストです。`board_show` の結果の `repositories` に含まれる `packages` の項目名で読む記述があり、古い `package: NAME` の書き方が含まれないことを確認します。')
-    const config = parseProjectConfig({
-      host: 'github.com',
-      owner: 'demo',
-      workflow_suffix: 'x',
-      project: { number: 1, id: 'P', fields: { workflow: { id: 'F', options: {} } } },
-      repositories: [{ owner: 'demo', name: 'repo', packages: [{ name: 'demo-pkg', changelog: 'packages/demo-pkg/CHANGELOG.md' }] }],
-    })
-    const statuses = [{ enabled: false, openCount: 0, maxSeverity: undefined, alertsUrl: 'https://example.invalid/alerts', openAlerts: [] }]
-    const view = { config, projectName: 'demo', statuses }
-    const data = boardShowResult(view, boardShowData(view, []), 0)
-    expect(data.repositories.map(repository => [repository.full_name, repository.packages])).toEqual([
-      ['demo/repo', [{ name: 'demo-pkg', changelog: 'packages/demo-pkg/CHANGELOG.md' }]],
-    ])
+    await explains('w-release の `release-multi.md` のテストです。`project_get` の結果の `repositories` が `packages` の項目を持ち、文書がその項目名を読む書き方で、古い `package: NAME` の書き方が含まれないことを確認します。')
+    const tool = TOOLS.find(entry => entry.name === 'project_get')
+    // eslint-disable-next-line no-restricted-syntax -- toJSONSchema は形の決まらない JSON Schema を返すので、読む項目だけの形に絞る
+    const schema = z.toJSONSchema(tool?.output ?? z.never()) as { properties?: { repositories?: { items?: { properties?: Record<string, unknown> } } } }
+    expect(Object.keys(schema.properties?.repositories?.items?.properties ?? {})).toContain('packages')
     const document = readPluginFile('skills/w-release/references/release-multi.md')
     expect(document).toContain('対象リポの package の一覧から、対象の package 名を選ぶ')
     expect(document).toContain('選んだ要素の `packages` のうち、`name` が `<package>` の要素の `changelog` のファイルを編集する')

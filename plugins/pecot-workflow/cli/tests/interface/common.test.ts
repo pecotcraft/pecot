@@ -8,6 +8,9 @@ import { it, expect } from 'vitest'
 import { defineTool } from '../../src/commands/registry.js'
 import type { ToolDefinition } from '../../src/commands/registry.js'
 import { exitWith } from '../../src/commands/tests/support.js'
+import type { CommandIo } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
+import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import { AmbiguousRepositoryError, repositoryFullName, resolveRepository } from '@pecot/workflow-core/domain/repository-resolver.js'
 import { gitRunnerFor } from '@pecot/workflow-core/infra/git.js'
 import { loadActiveConfig } from '@pecot/workflow-core/infra/config-store.js'
@@ -200,4 +203,33 @@ it('ツールが捕まえなかった独自の例外が起きると、リポジ�
   const result = await call(ambiguous, {}, outsideGit())
   expect(result).toMatchObject({ isError: true, structured: { kind: 'other' } })
   expect(result.structured['detail']).toMatch(/^repository is ambiguous: /u)
+})
+
+// 進んだ項目を結果に入れてから止まる見本。止まる前の文の数を変えられる
+function stopping(name: string, messages: readonly string[]): ToolDefinition {
+  const earlier = messages.slice(0, -1)
+  const last = messages.at(-1) ?? 'boom'
+  const run = (_input: unknown, io: CommandIo): never => {
+    const out = createOutput<{ moved: number[] }>(false, io)
+    out.result({ moved: [13] })
+    for (const message of earlier) out.error(message)
+    return stopWith(out, last, 'other')
+  }
+  const output = z.strictObject({ moved: z.array(z.int()).optional() })
+  return defineTool({ name, title: 'Test tool', description: '進んでから止まる', input: z.object({}), output, run })
+}
+
+it('ツールが進んだ後に失敗すると、isError・kind・detail と進んだ項目を最上位に入れて返す', async (context) => {
+  await verifies(context, 'PW-COMMON-18')
+  await explains('MCP のツールの失敗の結果のテストです。結果に項目を入れた後で止まった場合に、`isError` を `true` にし、`kind`・`detail` と進んだ項目を最上位に入れて返すことを確認します。')
+  const result = await call(stopping('moved_show', ['boom']))
+  expect(result).toMatchObject({ isError: true })
+  expect(result.structured).toEqual({ moved: [13], kind: 'other', detail: 'boom' })
+})
+
+it('失敗の文が 2 つ以上あると、error の前置きを付けずに改行でつないで detail に入れる', async (context) => {
+  await verifies(context, 'PW-COMMON-26')
+  await explains('MCP のツールの失敗の文のテストです。止まるまでに失敗の文を 2 つ出した場合に、どちらにも `error: ` を付けず、改行でつないで `detail` に入れることを確認します。')
+  const result = await call(stopping('twice_show', ['first', 'second']))
+  expect(result.structured['detail']).toBe('first\nsecond')
 })

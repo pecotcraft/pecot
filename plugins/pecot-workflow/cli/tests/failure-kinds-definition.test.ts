@@ -37,9 +37,9 @@ const UNIVERSAL: readonly string[] = [
 // 型からは返りうるが、引数の値や呼ぶ順で実際には返らない所（ファイル・名前・項目）
 const UNREACHABLE: readonly { readonly file: string, readonly kinds: readonly string[], readonly ids: readonly string[] }[] = [
   // repo の形は、MCP のサーバの prepare が先に確かめる
-  { file: 'repository-match.ts', kinds: ['invalid-input'], ids: ['PW-RELEASE-MERGE', 'PW-SESSION-START', 'PW-WORKTREE-ADD', 'PW-WORKTREE-INIT', 'PW-WORKTREE-REMOVE'] },
-  // release check・create は、食い違いを warn で流す
-  { file: 'repository-match.ts', kinds: ['repo-mismatch'], ids: ['PW-RELEASE-CHECK', 'PW-RELEASE-CREATE'] },
+  { file: 'repository-match.ts', kinds: ['invalid-input'], ids: ['PW-WORKTREE-ADD', 'PW-WORKTREE-INIT', 'PW-WORKTREE-REMOVE'] },
+  // release check は、食い違いを warn で流す
+  { file: 'repository-match.ts', kinds: ['repo-mismatch'], ids: ['PW-RELEASE-CHECK'] },
   // キーごとの操作の表のうち、値を確かめるのは set だけ
   { file: 'project.ts', kinds: ['invalid-input'], ids: ['PW-PROJECT-GET', 'PW-PROJECT-UNSET'] },
   // WorktreeRuntimeError の個別の名前は、worktree add の作成だけが付ける

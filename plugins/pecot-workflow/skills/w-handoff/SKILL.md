@@ -16,19 +16,18 @@ Epic と後続へのコメントは、このスキルだけが書く。Issue の
 
 引数は、マージされた PR の `owner/repo/N`。
 
-引数に `project=<名前>` があれば、このスキルで使う pecot-workflow の MCP ツールに、その名前を `project` で渡す。渡す先は `pr_show` の 1 つ。
+引数の `project=<名前>` は使わない。このスキルが使う pecot-workflow の MCP ツール（`issue_comment_check`）は、ボードの設定を読まない。
 
-Issue とコメントは、GitHub の公式の MCP のツールで読み書きする。書く前に pecot-workflow のチェックのツールに通す。手順は [Issue とコメントを公式の MCP で書く](../w-help/references/issue-write.md)。
+Issue とコメントは、GitHub の公式の MCP のツールで読み書きする。書く前に pecot-workflow のチェックのツールに通す。手順は [GitHub に公式の MCP と github-ops で書く](../w-help/references/github-write.md)。
 
 ### Step 1: PR と閉じた Issue と親 Epic を読む
 
-pecot-workflow の MCP ツール `pr_show` を使って、引数の PR を読む。
+公式の MCP の `pull_request_read`（`get`）で、引数の PR を読む。
 
-PR が閉じた Issue を、次の 3 つを合わせて求める。重なる Issue は 1 つに数える。
+PR が閉じた Issue を、次の 2 つを合わせて求める。重なる Issue は 1 つに数える。
 
-- `pr_show` の `closing_issues` の Issue
-- head ブランチ（`head_ref`）の名前の末尾が `/<番号>` なら、同じリポのその番号の Issue
-- PR の本文の閉じるキーワード（`Closes #N`・`Fixes #N`・`Resolves #N` など）が指す、同じリポの Issue。既定のブランチ以外へ向けた PR では、GitHub がキーワードを読まず、`closing_issues` が空になるためだ
+- head ブランチ（`head.ref`）の名前の末尾が `/<番号>` なら、同じリポのその番号の Issue
+- PR の本文の閉じるキーワード（`Closes #N`・`Fixes #N`・`Resolves #N` など）が指す、同じリポの Issue。公式の MCP は、PR が閉じる Issue を返さないためだ
 
 PR が閉じた Issue を、公式の MCP の `issue_read` で 1 つずつ読む。本文は `get`、コメントは `get_comments` で読む。`get` の結果の `parent` が、その Issue の親 Epic になる。ただし、`parent` の `title` が `[Tracker]` で始まるものは Tracker なので、親 Epic に数えない。
 

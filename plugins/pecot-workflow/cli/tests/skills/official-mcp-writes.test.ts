@@ -13,7 +13,7 @@ const WRITE_CHECKS: readonly (readonly [string, readonly string[]])[] = [
   ['update_issue_comment', ['issue_comment_check']],
 ]
 
-// Issue を作るスキル。手順は w-help の issue-write.md に置き、そこへつなぐ
+// Issue を作るスキル。手順は w-help の github-write.md に置き、そこへつなぐ
 const ISSUE_SKILLS = ['w-ready', 'w-quick', 'w-backlog', 'w-issueize', 'w-breakdown']
 
 // 公式のツールの基本の使い方（ページ送り・出力の絞り）を表す語
@@ -30,10 +30,10 @@ describe('公式の MCP で書く手順', () => {
     expect(missing).toEqual([])
   })
 
-  it.each(ISSUE_SKILLS)('%s が、Issue を書く手順として issue-write.md を参照する', async (skill) => {
-    await explains('Issue を作るスキルのテストです。`SKILL.md` が、公式の MCP で書く手順をまとめた `issue-write.md` を参照していることを確認します。')
+  it.each(ISSUE_SKILLS)('%s が、Issue を書く手順として github-write.md を参照する', async (skill) => {
+    await explains('Issue を作るスキルのテストです。`SKILL.md` が、公式の MCP で書く手順をまとめた `github-write.md` を参照していることを確認します。')
     const document = documents.find(entry => entry.file === `skills/${skill}/SKILL.md`)
-    expect(document?.text).toContain('../w-help/references/issue-write.md')
+    expect(document?.text).toContain('../w-help/references/github-write.md')
   })
 
   it.each(documents.map(document => [document.file, document.text]))('%s が、公式のツールのページ送りや出力の絞りを書かない', async (_file, text) => {

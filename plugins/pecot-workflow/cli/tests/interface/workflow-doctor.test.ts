@@ -1,4 +1,4 @@
-// workflow doctor の振る舞い（PW-WORKFLOW-DOCTOR-*）を、MCP のツールをプロセス内で呼んで確かめる。
+// workflow doctor の振る舞い（PW-WORKFLOW-DOCTOR-*）を、MCP のツールをプロセス内で呼んで確かめる。secret と変数は github-ops の workflow-doctor の結果で渡す。
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -6,9 +6,8 @@ import { describe, expect, it } from 'vitest'
 
 import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { pluginRoot } from '../../src/version.js'
-import { requestLabels, restRule, runCommand, runTool } from '../_helpers/command-harness.js'
+import { runCommand, runTool } from '../_helpers/command-harness.js'
 import type { ToolResult } from '../_helpers/command-harness.js'
-import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { verifies } from '../_helpers/verifies.js'
 import { explains } from '../_helpers/explains.js'
 
@@ -22,7 +21,6 @@ const OLD = BUNDLED.replace(/^# pecot-workflow-template: review \d+/u, '# pecot-
 const HANDOFF_DESTINATION = '.github/workflows/pecot-handoff.yml'
 // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同梱の雛形のパス
 const BUNDLED_HANDOFF = readFileSync(path.join(pluginRoot(), 'cli/templates/workflow/pecot-handoff.yml'), 'utf8')
-const REPO = '/repos/acme/demo'
 const TOKEN_MISSING = 'secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*'
 const KEY_MISSING = 'secret PECOT_AGENT_APP_PRIVATE_KEY'
 const CLIENT_ID_MISSING = 'variable PECOT_AGENT_APP_CLIENT_ID'
@@ -35,47 +33,39 @@ function bundledAuto(): string {
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同梱の雛形のパス
   return readFileSync(path.join(pluginRoot(), 'cli/templates/workflow/pecot-auto.yml'), 'utf8')
 }
-const SECRET_VALUE = 'value-that-must-not-appear'
-
 interface Settings {
-  readonly ownerType?: string
-  readonly secrets?: readonly string[] | number
-  readonly variables?: readonly string[] | number
-  readonly organizationSecrets?: readonly string[] | number
-  readonly organizationVariables?: readonly string[] | number
+  readonly secrets?: readonly string[]
+  readonly variables?: readonly string[]
+  // false にした一覧は、トークンで読めない一覧があったことを示す
+  readonly secretsComplete?: boolean
+  readonly variablesComplete?: boolean
 }
 
-// 名前の配列は 200 の一覧に、数は失敗の状態コードにする
-function list(kind: string, key: 'secrets' | 'variables', value: readonly string[] | number): ResponseRule {
-  return typeof value === 'number'
-    ? restRule('GET', `${REPO}/actions/${kind}`, value, { message: 'Resource not accessible by integration' })
-    : restRule('GET', `${REPO}/actions/${kind}`, 200, { total_count: value.length, [key]: value.map(name => ({ name, value: SECRET_VALUE })) })
+// github-ops の workflow-doctor が出す PECOT_RESULT の行の JSON
+function settingsRead(settings: Readonly<Settings> = {}): Readonly<Record<string, unknown>> {
+  return {
+    ok: true,
+    operation: 'workflow-doctor',
+    result: {
+      secrets: { names: settings.secrets ?? [], complete: settings.secretsComplete ?? true },
+      variables: { names: settings.variables ?? [], complete: settings.variablesComplete ?? true },
+      workflows: [],
+    },
+  }
 }
 
-function github(settings: Readonly<Settings> = {}): readonly ResponseRule[] {
-  const ownerType = settings.ownerType ?? 'Organization'
-  return [
-    restRule('GET', REPO, 200, { owner: { type: ownerType } }),
-    list('secrets', 'secrets', settings.secrets ?? []),
-    list('variables', 'variables', settings.variables ?? []),
-    ...ownerType === 'Organization'
-      ? [list('organization-secrets', 'secrets', settings.organizationSecrets ?? []), list('organization-variables', 'variables', settings.organizationVariables ?? [])]
-      : [],
-  ]
+function doctorArguments(name: string, settings: Readonly<Settings> = {}, extra: Readonly<Record<string, unknown>> = {}): Readonly<Record<string, unknown>> {
+  return { name, reads: { settings: settingsRead(settings) }, ...extra }
 }
 
 const INSTALLED: Readonly<Record<string, string>> = { [DESTINATION]: BUNDLED }
 
 async function doctor(settings: Readonly<Settings>, files = INSTALLED): Promise<ToolResult> {
-  return await runTool({ tool: 'workflow_doctor', arguments: { name: 'review' }, files, config: false, github: github(settings) })
+  return await runTool({ tool: 'workflow_doctor', arguments: doctorArguments('review', settings), files, config: false })
 }
 
 function itemsOf(result: Readonly<ToolResult>): unknown {
   return result.structured['items']
-}
-
-function sortedLabels(result: Readonly<ToolResult>): readonly string[] {
-  return requestLabels(result.requests).toSorted((left, right) => left.localeCompare(right))
 }
 
 const READY: Settings = { secrets: ['CLAUDE_CODE_OAUTH_TOKEN'] }
@@ -93,7 +83,7 @@ describe('workflow_doctor', () => {
       { name: 'Claude GitHub App', state: 'skipped' },
     ])
     expect(result.problems).toEqual([])
-    expect(result.unused).toEqual([])
+    expect(result.requests).toEqual([])
   })
 
   it('ファイルと設定がそろっていると、ready を true にして成功を返す', async (context) => {
@@ -146,69 +136,54 @@ describe('workflow_doctor', () => {
     expect(itemsOf(result)).toContainEqual({ name: 'Claude GitHub App', state: 'skipped' })
   })
 
-  it('secret の一覧を取得できないと、その一覧に依存する項目を skipped にし、不足として数えない', async (context) => {
+  it('secret の一覧に読めないものがあると、その一覧に依存する項目を skipped にし、不足として数えない', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-08')
-    await explains('secret の一覧を取得できない（HTTP 403 を返す）場合のテストです。その一覧に依存する項目が `skipped` になり、不足（`missing`）として数えられないことを確認します。')
-    const result = await doctor({ secrets: 403 })
+    await explains('`reads.settings` の secret の一覧の `complete` が `false` の場合のテストです。その一覧に依存する項目が `skipped` になり、不足（`missing`）として数えられないことを確認します。')
+    const result = await doctor({ secretsComplete: false })
     expect(result.isError).toBe(false)
     expect(itemsOf(result)).toContainEqual({ name: TOKEN_MISSING, state: 'skipped' })
     expect(itemsOf(result)).not.toContainEqual(expect.objectContaining({ state: 'missing' }))
   })
 
-  it.for([
-    { name: '500 を返す', respond: { status: 500, body: { message: 'Server Error' } }, detail: 'GitHub API error: 500' },
-    { name: '接続を切る', respond: { status: 200, disconnect: true }, detail: 'other side closed' },
-  ])('リポジトリの情報を読むとき GitHub が $name と、github-api の失敗を返す', async ({ respond, detail }) => {
-    await explains('リポジトリの設定を読めない場合のテストです。リポジトリの情報の取得で GitHub が 500 を返す、または接続を切った場合に、`github-api` の失敗が返ることを確認します。')
-    const failing = { match: { method: 'GET', path: REPO }, respond, times: 1 }
-    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'review' }, files: INSTALLED, config: false, github: [failing] })
-    expect(result.isError).toBe(true)
-    expect(result.structured).toEqual({ kind: 'github-api', detail: `could not read the settings of acme/demo: ${detail}` })
-  })
-
-  it('一部の一覧を取得できなくても、取得できた一覧に名前があれば ok にする', async (context) => {
+  it('一部の一覧を読めなくても、読めた一覧に名前があれば ok にする', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-08')
-    await explains('一部の一覧を取得できない場合のテストです。Organization の secret の一覧が 403 でも、取得できたリポジトリの secret に名前があれば、その項目が `ok` になることを確認します。')
-    const result = await doctor({ secrets: ['CLAUDE_CODE_OAUTH_TOKEN'], organizationSecrets: 403 })
+    await explains('一部の一覧を読めない場合のテストです。secret の一覧の `complete` が `false` でも、読めた名前に必要な secret があれば、その項目が `ok` になることを確認します。')
+    const result = await doctor({ secrets: ['CLAUDE_CODE_OAUTH_TOKEN'], secretsComplete: false })
     expect(result.isError).toBe(false)
     expect(itemsOf(result)).toContainEqual({ name: TOKEN_MISSING, state: 'ok' })
   })
 
-  it('持ち主が organization だと、organization の secret と変数も見る', async (context) => {
-    await verifies(context, 'PW-WORKFLOW-DOCTOR-09')
-    await explains('リポジトリの持ち主が Organization の場合のテストです。リポジトリの secret と変数に加えて、Organization の secret と変数の一覧も取得することを確認します。')
-    const result = await doctor({ organizationSecrets: ['CLAUDE_CODE_OAUTH_TOKEN'] })
+  it.for([
+    { name: 'reads.settings を省く', reads: undefined },
+    { name: '失敗した workflow-doctor の結果を渡す', reads: { settings: { ok: false, operation: 'workflow-doctor', kind: 'github-auth', detail: 'Bad credentials' } } },
+  ])('$name と、secret と変数の項目を skipped にして、不足として数えない', async ({ name, reads }, context) => {
+    await verifies(context, 'PW-WORKFLOW-DOCTOR-20')
+    await explains(`\`workflow_doctor\` の \`reads.settings\` のテストです。条件が「${name}」の場合に、secret と変数の項目を \`skipped\` にし、成功を返すことを確認します。`)
+    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'review', ...reads !== undefined && { reads } }, files: INSTALLED, config: false })
     expect(result.isError).toBe(false)
-    expect(sortedLabels(result)).toEqual([
-      `GET ${REPO}`,
-      `GET ${REPO}/actions/organization-secrets`,
-      `GET ${REPO}/actions/organization-variables`,
-      `GET ${REPO}/actions/secrets`,
-      `GET ${REPO}/actions/variables`,
-    ])
+    expect(itemsOf(result)).toContainEqual({ name: TOKEN_MISSING, state: 'skipped' })
+    expect(result.structured).toMatchObject({ ready: true })
   })
 
-  it('持ち主が個人だと、organization の一覧を取得しない', async (context) => {
-    await verifies(context, 'PW-WORKFLOW-DOCTOR-10')
-    await explains('リポジトリの持ち主が個人（`User`）の場合のテストです。Organization の一覧を取得せず、問題が報告されないことを確認します。')
-    const result = await doctor({ ownerType: 'User', secrets: ['CLAUDE_CODE_OAUTH_TOKEN'] })
-    expect(result.isError).toBe(false)
-    expect(requestLabels(result.requests).filter(label => label.includes('organization'))).toEqual([])
-    expect(result.problems).toEqual([])
+  it('workflow-doctor の結果の result だけを渡しても、secret と変数の名前を読む', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-DOCTOR-20')
+    await explains('`workflow_doctor` の `reads.settings` のテストです。`PECOT_RESULT` の行の `result` だけを渡した場合も、secret の名前を読んでその項目を `ok` にすることを確認します。')
+    const settings = { secrets: { names: ['CLAUDE_CODE_OAUTH_TOKEN'], complete: true }, variables: { names: [], complete: true } }
+    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'review', reads: { settings } }, files: INSTALLED, config: false })
+    expect(itemsOf(result)).toContainEqual({ name: TOKEN_MISSING, state: 'ok' })
   })
 
-  it('secret と変数の値を結果に含めない', async (context) => {
-    await verifies(context, 'PW-WORKFLOW-DOCTOR-11')
-    await explains('secret と変数の値の取り扱いのテストです。構造化された結果とテキストの出力のどちらにも、値が含まれないことを確認します。')
-    const result = await doctor({ secrets: ['CLAUDE_CODE_OAUTH_TOKEN'], variables: ['PECOT_AGENT_APP_CLIENT_ID'] })
-    expect(JSON.stringify(result.structured)).not.toContain(SECRET_VALUE)
-    expect(result.text ?? '').not.toContain(SECRET_VALUE)
+  it('reads.settings が workflow-doctor の結果の形でないと、invalid-input の失敗を返す', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-DOCTOR-21')
+    await explains('`workflow_doctor` の `reads.settings` のテストです。github-ops の workflow-doctor の結果と異なる形を渡した場合に、`invalid-input` の失敗を返すことを確認します。')
+    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'review', reads: { settings: { secrets: ['CLAUDE_CODE_OAUTH_TOKEN'] } } }, files: INSTALLED, config: false })
+    expect(result.structured).toEqual({ kind: 'invalid-input', detail: 'reads.settings is not the result of the workflow-doctor operation of github-ops\n  pass the JSON of its PECOT_RESULT line, or its result' })
   })
 
   it('名前が雛形の一覧に存在しないと、一覧の名前を detail に含めて invalid-input の失敗を返す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-12')
     await explains('存在しない雛形の名前（`deploy`）を指定した場合のテストです。`invalid-input` の失敗が返り、`detail` に不明な雛形の名前と、指定できる名前の一覧が含まれることを確認します。')
-    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'deploy' }, config: false, github: [] })
+    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'deploy' }, config: false })
     expect(result.isError).toBe(true)
     expect(result.structured).toMatchObject({ kind: 'invalid-input' })
     expect(result.structured['detail']).toContain('unknown workflow template: deploy')
@@ -219,7 +194,7 @@ describe('workflow_doctor', () => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-01')
     await explains('`name` に `handoff` を指定した場合のテストです。引き継ぎの雛形と、`review` と同じエージェント用の認証が項目に含まれ、Claude GitHub App の項目は含まれないことを確認します。')
     await verifies(context, 'PW-WORKFLOW-DOCTOR-16')
-    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'handoff' }, files: { [HANDOFF_DESTINATION]: BUNDLED_HANDOFF }, config: false, github: github(READY) })
+    const result = await runTool({ tool: 'workflow_doctor', arguments: doctorArguments('handoff', READY), files: { [HANDOFF_DESTINATION]: BUNDLED_HANDOFF }, config: false })
     expect(result.isError).toBe(false)
     expect(itemsOf(result)).toEqual([
       { name: HANDOFF_DESTINATION, state: 'ok' },
@@ -232,7 +207,7 @@ describe('workflow_doctor', () => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-03')
     await explains('`handoff` のワークフローのファイルが、古い版（`1`）の場合のテストです。その項目が `outdated` になり、失敗の結果が返ることを確認します。')
     const old = BUNDLED_HANDOFF.replace(/^# pecot-workflow-template: handoff \d+/u, '# pecot-workflow-template: handoff 1')
-    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'handoff' }, files: { [HANDOFF_DESTINATION]: old }, config: false, github: github(READY) })
+    const result = await runTool({ tool: 'workflow_doctor', arguments: doctorArguments('handoff', READY), files: { [HANDOFF_DESTINATION]: old }, config: false })
     expect(result.isError).toBe(true)
     expect(itemsOf(result)).toContainEqual({ name: 'workflow template handoff', state: 'outdated' })
     expect(result.structured).toMatchObject({ kind: 'repo-setting-missing', ready: false })
@@ -242,7 +217,7 @@ describe('workflow_doctor', () => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-17')
     await explains('`name` に `auto` を指定し、App の変数と secret が存在しない場合のテストです。その 2 項目が `missing` になり、Claude GitHub App の項目は含まれず、失敗の結果が返ることを確認します。')
     await verifies(context, 'PW-WORKFLOW-DOCTOR-16')
-    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'auto' }, files: { [AUTO_DESTINATION]: bundledAuto() }, config: false, github: github(READY) })
+    const result = await runTool({ tool: 'workflow_doctor', arguments: doctorArguments('auto', READY), files: { [AUTO_DESTINATION]: bundledAuto() }, config: false })
     expect(result.isError).toBe(true)
     expect(itemsOf(result)).toEqual([
       { name: AUTO_DESTINATION, state: 'ok' },
@@ -259,35 +234,33 @@ describe('workflow_doctor', () => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-06')
     await explains('`name` に `auto` を指定し、App の変数と secret、モデルの認証がそろっている場合のテストです。`ready` が `true` になり、成功の結果が返ることを確認します。')
     const settings: Settings = { secrets: ['CLAUDE_CODE_OAUTH_TOKEN', 'PECOT_AGENT_APP_PRIVATE_KEY'], variables: ['PECOT_AGENT_APP_CLIENT_ID'] }
-    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'auto' }, files: { [AUTO_DESTINATION]: bundledAuto() }, config: false, github: github(settings) })
+    const result = await runTool({ tool: 'workflow_doctor', arguments: doctorArguments('auto', settings), files: { [AUTO_DESTINATION]: bundledAuto() }, config: false })
     expect(result.isError).toBe(false)
     expect(result.structured).toMatchObject({ ready: true })
     expect(itemsOf(result)).not.toContainEqual(expect.objectContaining({ name: 'Claude GitHub App' }))
   })
 
-  it('git remote からリポジトリを特定できないと、GitHub へ要求を送らずに git-unresolved の失敗を返す', async (context) => {
+  it('git remote からリポジトリを特定できないと、git-unresolved の失敗を返す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-13')
-    await explains('git remote の URL からリポジトリを特定できない場合のテストです。GitHub へ要求を送らずに、`git-unresolved` の失敗が返ることを確認します。')
-    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'review' }, remoteUrl: '/srv/git/demo.git', config: false, github: [] })
+    await explains('git remote の URL からリポジトリを特定できない場合のテストです。`git-unresolved` の失敗が返ることを確認します。')
+    const result = await runTool({ tool: 'workflow_doctor', arguments: doctorArguments('review', READY), remoteUrl: '/srv/git/demo.git', config: false })
     expect(result.isError).toBe(true)
     expect(result.structured).toMatchObject({ kind: 'git-unresolved' })
     expect(result.structured['detail']).toContain('cannot read the repository from the git remote')
-    expect(result.requests).toEqual([])
   })
 
-  it('Git リポジトリの外だと、GitHub へ要求を送らずに git-unresolved の失敗を返す', async (context) => {
+  it('Git リポジトリの外だと、git-unresolved の失敗を返す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-13')
-    await explains('Git リポジトリの外で実行した場合のテストです。GitHub へ要求を送らずに、`git-unresolved` の失敗が返ることを確認します。')
-    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'review' }, remote: false, config: false, github: [] })
+    await explains('Git リポジトリの外で実行した場合のテストです。`git-unresolved` の失敗が返ることを確認します。')
+    const result = await runTool({ tool: 'workflow_doctor', arguments: doctorArguments('review', READY), remote: false, config: false })
     expect(result.isError).toBe(true)
     expect(result.structured).toMatchObject({ kind: 'git-unresolved' })
-    expect(result.requests).toEqual([])
   })
 
   it('リポのサブディレクトリを directory に渡すと、リポのルートに置いたワークフローのファイルを見る', async (context) => {
     await verifies(context, 'PW-WORKFLOW-DOCTOR-14')
     await explains('リポジトリのサブディレクトリを `directory` に指定した場合のテストです。リポジトリのルートに置いたワークフローのファイルが対象になり、その項目が `ok` になることを確認します。')
-    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'review', directory: 'sub' }, files: { ...INSTALLED, 'sub/.keep': '' }, config: false, github: github(READY) })
+    const result = await runTool({ tool: 'workflow_doctor', arguments: doctorArguments('review', READY, { directory: 'sub' }), files: { ...INSTALLED, 'sub/.keep': '' }, config: false })
     expect(result.isError).toBe(false)
     expect(itemsOf(result)).toContainEqual({ name: DESTINATION, state: 'ok' })
   })
@@ -301,7 +274,7 @@ describe('workflow_doctor', () => {
 
   it('打つと、確かめた項目を状態と名前の行で標準出力に出す', async () => {
     await explains('`workflow_doctor review` を実行した場合のテストです。確認した項目が、状態と名前の行として標準出力に表示され、終了コード 0 で終了することを確認します。')
-    const result = await runCommand({ tool: 'workflow_doctor', arguments: { name: 'review' }, files: INSTALLED, config: false, github: github(READY) })
+    const result = await runCommand({ tool: 'workflow_doctor', arguments: doctorArguments('review', READY), files: INSTALLED, config: false })
     expect(result.code).toBe(0)
     expect(result.stdout).toBe([
       `ok: ${DESTINATION}`,
@@ -343,7 +316,7 @@ describe('workflow_doctor', () => {
     const destination = '.github/workflows/pecot-board-sync.yml'
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同梱の雛形のパス
     const bundled = readFileSync(path.join(pluginRoot(), 'cli/templates/workflow/pecot-board-sync.yml'), 'utf8')
-    const result = await runTool({ tool: 'workflow_doctor', arguments: { name: 'board-sync' }, files: { [destination]: bundled }, config: false, github: github(row.settings) })
+    const result = await runTool({ tool: 'workflow_doctor', arguments: doctorArguments('board-sync', row.settings), files: { [destination]: bundled }, config: false })
     expect(itemsOf(result)).toEqual([
       { name: destination, state: 'ok' },
       { name: 'workflow template board-sync', state: 'ok' },

@@ -659,7 +659,7 @@ function writtenColumn(method: CheckInput['method'], target: Readonly<Target>, e
     return undefined
   }
   if (workflow === undefined) {
-    findings.add(target, 'reads.project_fields', 'board', 'the board has no column field (pecot-status) of the project config; run project_init or check the project')
+    findings.add(target, 'reads.project_fields', 'board', 'the board has no column field (pecot-status) of the project config; add it with project_check (method fields) and the project-fields operation of github-ops, then read the board again with project_activate')
     return undefined
   }
   return { workflow, entry: written.at(0) }

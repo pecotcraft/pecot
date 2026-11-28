@@ -12,7 +12,7 @@ argument-hint: "[WT 名]"
 
 pecot-workflow の MCP ツール `worktree_remove` でワークツリーを削除する。devcontainer 内で実行すること（プロジェクトの devcontainer が整えるマウント構造に依存）。
 
-削除は **ローカルブランチも同時に消す**（`keep_branch: true` で残せる）。リモートブランチはこのツールの対象外。
+削除は **ローカルブランチも同時に消す**（`keep_branch: true` で残せる）。リモートのブランチは消さない。マージされた PR のブランチは GitHub が消す。
 
 ## 手順
 
@@ -34,10 +34,3 @@ pecot-workflow の MCP ツール `worktree_remove` でワークツリーを削�
 2. `name: "wt1"`・`directory: "<project-root>/base/<repo-B>"`・`force: true`
 
 最後のリポを remove した時点で、`<project-root>/wt1/` が rmdir される。
-
-### Step 3: リモートブランチも消す場合
-
-remove はローカルブランチまでしか消さない。リモートの同名ブランチまで消す場合は、別途 pecot-workflow の MCP ツール `branch_delete` を呼ぶ。
-
-1. `repo: "<owner>/<repo-A>"`・`branch: "wt1"`
-2. `repo: "<owner>/<repo-B>"`・`branch: "wt1"`

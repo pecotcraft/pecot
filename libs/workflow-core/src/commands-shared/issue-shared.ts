@@ -1,7 +1,5 @@
 // issue 系のコマンドが共有する関数と定数。I/O を持たない起票の決まりは domain/issue-rules.ts にある。
 // error の行を出して止めるのは stopWith(output, 文, n)。
-import { isRepositoryInProject } from '../domain/config.js'
-import type { ProjectConfig } from '../domain/config.js'
 import { formatHinted } from '../domain/command-hint.js'
 import { BaseError } from '../domain/errors.js'
 import { parseIssueReference, ReferenceParseError } from '../domain/reference-parser.js'
@@ -11,11 +9,8 @@ import type { SectionHeading } from '../domain/sections.js'
 import { closedHeadingGuidance, EM_DASH_HINT, templateViolations } from '../domain/template-violations.js'
 import type { TemplateViolationCode } from '../domain/template-violations.js'
 import { gitRunnerFor } from '../infra/git.js'
-import type { GitHubClient } from '../infra/github/index.js'
-import { commandHint, hinted, RUN } from './command-hint.js'
 import type { HintedText } from './command-hint.js'
 import { stopWith } from './command-stop.js'
-import { createGitHubClient } from './github-client.js'
 import type { Output } from './output.js'
 import { USAGE_EXIT_CODE } from './usage-error.js'
 
@@ -101,25 +96,6 @@ export function parseIssueReferenceOrExit(output: Output, repository: string | u
 */
 export function exitInvalidStatus(output: Output, status: string): never {
   return stopWith(output, `invalid status: ${status}\nvalid values: backlog/pending/blocked/ready/active/in_review/archived`, 'invalid-input')
-}
-
-// --- ボード ---
-
-/**
-クライアントを作り、リポジトリがプロジェクトにあることを確かめる。無ければ error と終了コード 1。board add・board move が使う
-*/
-export async function connectToProject(output: Output, config: ProjectConfig, owner: string, repository: string): Promise<GitHubClient> {
-  const client = createGitHubClient(output, config.host)
-  if (!await isRepositoryInProject(config, owner, repository, client)) stopWith(output, `repository ${owner}/${repository} is not in the project`, 'repo-not-in-project')
-  return client
-}
-
-/**
-ボードに無い status の error の文。blocked は後から足せる option なので、足し方の hint を添える
-*/
-export function notConfiguredMessage(status: string): string | HintedText {
-  const base = `status '${status}' is not configured in the project`
-  return status === 'blocked' ? hinted`${base}\nhint: ${RUN} ${commandHint(['project', 'init'])} to add the Blocked option to the board` : base
 }
 
 // --- テンプレートの検証 ---

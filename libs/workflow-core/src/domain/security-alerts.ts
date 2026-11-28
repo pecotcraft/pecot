@@ -113,8 +113,14 @@ export async function listOpenAlerts(sources: AlertSources, kind: AlertKind, own
 }
 
 async function scanStatus(source: ScanAlertSource, kind: ScanKind, host: string, owner: string, repository: string): Promise<ScanAlertStatus> {
+  return scanStatusOf(kind, await listScan(source, kind, owner, repository), host, owner, repository)
+}
+
+/**
+読んだ open の alert から状態を作る。alerts が undefined なら無効
+*/
+export function scanStatusOf(kind: ScanKind, alerts: readonly JsonValue[] | undefined, host: string, owner: string, repository: string): ScanAlertStatus {
   const alertsUrl = `https://${host}/${owner}/${repository}/security/${kind}`
-  const alerts = await listScan(source, kind, owner, repository)
   if (alerts === undefined) return { enabled: false, openCount: 0, alertsUrl, openNumbers: [] }
   const numbers = alerts.map(alert => jsonField(alert, 'number')).filter((number): number is number => Number.isSafeInteger(number))
   return { enabled: true, openCount: alerts.length, alertsUrl, openNumbers: numbers.toSorted((a, b) => a - b) }

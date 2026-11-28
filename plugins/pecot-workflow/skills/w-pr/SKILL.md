@@ -4,7 +4,7 @@ description: |
   PRを作成しタイトル・説明を自動生成し、CIとレビューの指摘に対応します。
   Use when the user wants to create a pull request for the current branch — auto-generates title/description from commits and diff, waits for CI, then addresses the review findings without asking which to adopt, replying with the reason on each one it declines. Triggers: "create PR", "submit for review", "address review comments".
   Does not merge PRs itself — it then waits for the user to merge on GitHub and runs the post-merge cleanup (session finish).
-allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check mcp__plugin_pecot-w_pecot-workflow__pr_create mcp__plugin_pecot-w_pecot-workflow__pr_show mcp__plugin_pecot-w_pecot-workflow__issue_comment_check mcp__plugin_pecot-w_pecot-workflow__session_show mcp__plugin_pecot-w_pecot-workflow__session_finish Bash(node ${CLAUDE_SKILL_DIR}/scripts/wait-pr.cjs *) Bash(gh api:*) Bash(git push:*) Bash(git checkout:*) Bash(git branch:*) Bash(git worktree list:*) Bash(git fetch:*) Bash(git pull:*) Bash(mkdir:*) Bash(touch:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr comment:*) Bash(gh pr checks:*) Bash(gh run view:*) Bash(git add:*) Bash(git commit:*)
+allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check mcp__plugin_pecot-w_pecot-workflow__pr_restack mcp__plugin_pecot-w_pecot-workflow__board_check mcp__plugin_pecot-w_pecot-workflow__project_list mcp__plugin_pecot-w_pecot-workflow__issue_comment_check mcp__plugin_pecot-w_pecot-workflow__session_show mcp__plugin_pecot-w_pecot-workflow__session_finish Bash(node ${CLAUDE_SKILL_DIR}/scripts/wait-pr.cjs *) Bash(gh api markdown:*) Bash(git push:*) Bash(git checkout:*) Bash(git branch:*) Bash(git worktree list:*) Bash(git fetch:*) Bash(git pull:*) Bash(mkdir:*) Bash(touch:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(git add:*) Bash(git commit:*)
 when_to_use: "PR を作りたい、レビューに出したい、プルリクエストの説明文を作ってほしい、PR のレビュー指摘に対応したい"
 ---
 
@@ -24,9 +24,9 @@ when_to_use: "PR を作りたい、レビューに出したい、プルリクエ
 - CI 待ちの `wait-pr.cjs ci` なら、[Step 4](#step-4-ci-を待って直す) の出力を読むところから続ける
 - マージ待ちの `wait-pr.cjs merge` なら、[Step 6](#step-6-マージを待ち受けて片付ける) の出力の表から続ける
 
-ブランチに PR がもうあるときは、Step 2・3 を飛ばして [Step 4](#step-4-ci-を待って直す) から進む。
+公式の MCP の `list_pull_requests`（`head` に `<owner>:<今のブランチ>`、`state: open`）で、ブランチの PR を読む。PR がもうあるときは、Step 2・3 を飛ばして [Step 4](#step-4-ci-を待って直す) から進む。
 
-pecot-workflow の MCP ツール `pr_check` を使って、PR を作れる状態かを確かめる。指摘があれば解決してから次へ進む。
+pecot-workflow の MCP ツール `session_show` で、作業中の Issue と、比べる先のブランチ（`baseBranch`）を読む。
 
 ### Step 2: 変更内容の確認とコミット
 
@@ -41,22 +41,19 @@ pecot-workflow の MCP ツール `pr_check` を使って、PR を作れる状態
 
 ### Step 3: PR作成
 
-1. pecot-workflow の MCP サーバの resource `pecot-template://pr/create` を読み、テンプレートのファイルを作る
+1. pecot-workflow の MCP サーバの resource `pecot-template://pr/create` を読み、`.pecot/tmp/output/` にテンプレートのファイルを作る
 2. できたファイルを編集する
    - 冒頭の <!-- 読者: / 書き方: / フィールド: --> ガイドコメントに従って YAML フロントマターと本文を記述する
    - Verified の evidence は、w-help の [CUJ の流し方](../w-help/references/cuj-run.md) の「evidence の残し方」に従って載せる
-3. pecot-workflow の MCP ツール `pr_create` を使って、書いたファイルで PR を作る
+3. [GitHub に公式の MCP と github-ops で書く](../w-help/references/github-write.md) の「PR を作る・書き換える」に従い、`pr_check` に通してから `create_pull_request` で作る。スタックしたブランチではスタックに入れ、カードを `In Review` へ動かす
 
-`base` は空のままにする。ツールが決める。スタックして着手したブランチでは親ブランチになる。
-
-本文の検証で止まったら、指摘を直して作り直す。
-親 PR が開いていないと止まったら、エラーの文を利用者に示して止まる。エージェントの判断で `base` を書き換えて作り直さない。
+`pr_check` が外れた項目を返したら、指摘を直して通し直す。
+親 PR が開いていないと返ったら、その文を利用者に示して止まる。エージェントの判断で `base` を書き換えて作り直さない。
 
 PR を作った後は、結果を見て利用者に伝える。
 
 - PR がスタックに入ったら、その旨を伝える
-- この PR を待っていた Issue が動いたら、動いた Issue と列を伝える
-- 警告は、利用者に示すだけにする。スタックを手で作らず、PR を作り直さない。PR は作られている
+- `stack-register` が失敗したら、実行の URL と `error` を利用者に示すだけにする。スタックを手で作らず、PR を作り直さない。PR は作られている
 
 本文に、上下の PR やスタックの中の位置を書かない。GitHub の画面が示す情報だからだ。
 
@@ -65,18 +62,8 @@ PR を作った後は、結果を見て利用者に伝える。
 本文の上限（65,536 文字）を超えるログは、PR を作った後に、PR のコメントへ分けて載せる。
 
 1. ログを `<details>` で包んだファイルを作る。1 件のコメントも 65,536 文字までなので、超えるならファイルを分ける
-2. ファイルごとに次を打ち、標準出力に出るコメントの URL を控える。`--body-file` を省くと、対話の入力待ちになる
-
-   ```bash
-   gh pr comment <PR番号> --body-file <ファイル>
-   ```
-
-3. 本文を取り、Verified の CUJ の節に、控えたコメントへのリンクを足して戻す
-
-   ```bash
-   gh pr view <PR番号> --json body -q .body > <本文のファイル>
-   gh pr edit <PR番号> --body-file <本文のファイル>
-   ```
+2. ファイルごとに、pecot-workflow の MCP ツール `issue_comment_check` に `method: add` で通す。通ったら、公式の MCP の `add_issue_comment` で PR に書く。`issue_number` は PR の番号にする。結果のコメントの URL を控える
+3. Verified の CUJ の節に、控えたコメントへのリンクを足す。PR の本文の書き換えは、[GitHub に公式の MCP と github-ops で書く](../w-help/references/github-write.md) の「PR を作る・書き換える」に従う
 
 #### スクリーンショット
 
@@ -87,13 +74,14 @@ PR を作った後は、結果を見て利用者に伝える。
 - 利用者が読む CLI の出力の文
 
 CHANGELOG・README・SKILL.md の文の変更は含めない。
-撮らないときは、フロントマターの `screenshot` に理由を書く（`message` の形では入力 `screenshot`）。
-Summary に画像があれば `screenshot` は空のままにする。画像と理由のどちらも無い本文は、`pr_create` が止める。
+撮らないときは、フロントマターの `screenshot` に理由を書く。
+Summary に画像があれば `screenshot` は空のままにする。画像と理由のどちらも無い本文は、`pr_check` が止める。
 
 撮り方は次のとおり。
 
 1. Markdown は `gh api markdown -f mode=gfm -f context=<owner>/<repo> -F text=@<md>` で HTML にする。
-   `<article class="markdown-body">` で包み、github-markdown-css を CDN（cdnjs や jsdelivr の版固定 URL）から読ませる
+   `<article class="markdown-body">` で包み、github-markdown-css を CDN（cdnjs や jsdelivr の版固定 URL）から読ませる。
+   公式の MCP に GitHub の描画（`POST /markdown`）を呼ぶツールが無いので、`gh` を使う。手元のライブラリで描くと、GitHub での見え方とずれる
 2. CLI の出力は、打ったコマンドと出力を ```` ```console ```` のフェンスに入れ、同じ手順で描画する
 3. 下の配信のスクリプトで、`.pecot/work/<Issue番号>` を起点に静的配信を立てる。`cd` と組み合わせない。
    Playwright MCP は初期設定で `file://` を開けないので、http で配信する。
@@ -113,6 +101,7 @@ node <このスキルの base directory>/scripts/serve-preview.cjs .pecot/work/<
 ```
 
 画像は、本文から `![説明](./画像のファイル名)` で参照し、PR を作った後に gh で載せる。
+GitHub に画像を上げる公開の API は無く、公式の MCP にもアップロードのツールが無い。`gh` だけが上げられる。
 gh v2.99.0 以上が要る。GHES のリポでは `--attach` が使えない。`screenshot` に理由を書くか、Web の画面で画像を貼る。
 
 ```bash
@@ -126,8 +115,8 @@ body.md は画像と同じ `.playwright-mcp/` に置く。gh は本文の `./<�
 
 ### Closing Issue キーワードと Epic
 
-- テンプレの `Closes #` は空のままにする。`pr_create` が作業中のタスクの番号で埋める
-- 自分で番号を書かない。特に Epic 番号 (sub-issue を持つ親 Issue) を書かない
+- テンプレの `Closes #` には、`session_show` の作業中の Issue の番号を書く
+- Epic 番号 (sub-issue を持つ親 Issue) を書かない。作業中の Issue が Epic なら、この行を消す
 - ブランチ名末尾の `<num>` も sub-issue 番号にする
 
 ### Step 4: CI を待って直す
@@ -135,6 +124,8 @@ body.md は画像と同じ `.playwright-mcp/` に置く。gh は本文の `./<�
 CI の結果を待つ間も、base とのコンフリクトと merge queue からの外れを同時に待つ。CI を待つ間に base が進んでも、言われる前に直すためだ。
 
 次のコマンドで待ち、CI が終わるか PR の状態が変わったときに 1 語だけ出す。Claude Code では Bash の background 実行、GitHub Copilot CLI では非同期の実行で動かす。
+
+待ちのスクリプトは、公式の MCP でなく `gh` で PR を読む。公式の MCP に、PR が merge queue に入っているかを返すツールと、状態の変化を知らせる仕組みが無いからだ。バックグラウンドのスクリプトからは、MCP のツールを呼べない。
 
 ```bash
 node <このスキルの base directory>/scripts/wait-pr.cjs ci <PR の URL>
@@ -147,7 +138,7 @@ Claude Code では、待ちが終わった通知を受けたら、出力を読�
 | 出力 | 次の手順 |
 |---|---|
 | `CI_PASSED` | Step 5 へ進む |
-| `CI_FAILED` | `gh pr checks <PR番号>` で落ちた check を読む。PR の変更が原因のものだけ直して push し、待ち直す。関係ない失敗は利用者に伝えて止まる |
+| `CI_FAILED` | 公式の MCP の `pull_request_read`（`get_check_runs`）で落ちた check を、`get_job_logs` でそのログを読む。PR の変更が原因のものだけ直して push し、待ち直す。関係ない失敗は利用者に伝えて止まる |
 | `NO_CHECKS` | CI の無いリポとみなし、その旨を伝えて Step 5 へ進む |
 | `CONFLICTING` | base とコンフリクトした。スタックしたブランチでは `pr_restack` でスタックし直し、ほかのブランチでは base の新しい先頭へ rebase して push し、待ち直す |
 | `DEQUEUED`・`MERGED`・`CLOSED` | Step 6 の表の同じ行に従う |
@@ -165,37 +156,20 @@ CI が通ったら、PR に付いたレビューの指摘に対応する。自�
 - PR の未解決のスレッドのうち、先頭が `^\*\*F-\d+` に一致するもの
 - 後ろに `review-resolution` の無い `review-findings`
 
-pecot-workflow の MCP ツール `pr_show` で、PR のコメントを読む（`reviews: true`）。
+公式の MCP の `pull_request_read` で、PR のスレッドとコメントを読む。スレッドは `get_review_comments`、`review-findings` などのコメントは `get_comments` で読む。
 指摘が無ければ、その旨を伝えて [Step 6](#step-6-マージを待ち受けて片付ける) へ進む。
 
 最新の `review-findings` の Disposition で「直った」とされた F-NN は、採否を決める対象にしない。スレッドを resolve する対象にし、`review-resolution` の Applied に書く。
 
 #### F-NN とスレッド ID の対応表
 
-`gh` には対象 PR のホストを `--hostname` で必ず渡す。cwd の origin から求めるので、対象リポのワークツリーで打つ。空なら止める。未認証なら `gh auth login -h <host>` を案内して止める。
+`get_review_comments` の結果から、先頭コメントが `**F-NN**` で始まるスレッドを拾い、F-NN ごとに次の 3 つを控える。結果が複数ページに分かれるときは、`after` に前のページの `endCursor` を渡して全ページを読む。
 
-```bash
-GH_HOST=$(git remote get-url origin | sed -E 's#^[a-z0-9+.-]+://##; s#^[^@/]*@##; s#[:/].*$##')
-[ -n "$GH_HOST" ] || { echo "origin からホストを導出できない" >&2; exit 1; }
-gh auth status -h "$GH_HOST"
-```
-
-次のクエリで、先頭コメントの `**F-NN**` からスレッドの `id`・`url` と、先頭コメントの `databaseId` を引く。以降のコマンドには、得たホスト名を直接書く。
-
-```bash
-gh api --hostname <対象ホスト> graphql \
-  -f query='
-    query($owner: String!, $repo: String!, $number: Int!) {
-      repository(owner: $owner, name: $repo) {
-        pullRequest(number: $number) {
-          reviewThreads(first: 100) {
-            nodes { id isResolved isOutdated comments(first: 1) { nodes { databaseId body url } } }
-          }
-        }
-      }
-    }' \
-  -f owner=<owner> -f repo=<repo> -F number=<PR番号>
-```
+| 控えるもの | 結果の欄 |
+|---|---|
+| スレッドの ID | スレッドの `id`（`PRRT_` で始まる） |
+| 解決済みか | スレッドの `is_resolved` |
+| 先頭コメントの番号 | 先頭コメントの `html_url` の末尾の `#discussion_r<番号>` の番号 |
 
 #### 採否を決める
 
@@ -217,12 +191,7 @@ gh api --hostname <対象ホスト> graphql \
 
 1. resource `pecot-template://comment/review-resolution` を読み、PR 宛てのテンプレのファイルを作る。frontmatter の `owner`・`repo`・`issue_number` には PR を書く。Decision 節と Declined 節を埋める。
 
-2. 対応不要の F-NN のスレッドに、理由を返信する。返信先は、対応表の先頭コメントの `databaseId` にする。
-
-   ```bash
-   gh api --hostname <対象ホスト> repos/<owner>/<repo>/pulls/<PR番号>/comments \
-     -F in_reply_to=<databaseId> -f 'body=返信本文'
-   ```
+2. 対応不要の F-NN のスレッドに、理由を返信する。公式の MCP の `add_reply_to_pull_request_comment` に、対応表の先頭コメントの番号を `commentId` で渡す。`pullNumber` と `body` も渡す
 
 「対応」の F-NN が無ければ、ここで「スレッドを一括 resolve」へ進む。採用分があれば、main が直すことを基本にする。
 
@@ -248,25 +217,14 @@ gh api --hostname <対象ホスト> graphql \
 
 #### スレッドを一括 resolve
 
-対応表のクエリを引き直し、次をすべて満たすスレッドを、採用分・対応不要分とも 1 リクエストで resolve する。
+`get_review_comments` を読み直し、次をすべて満たすスレッドを、採用分・対応不要分とも resolve する。
 
 - 先頭コメントが `^\*\*F-\d+` に一致する
-- `isResolved` が false
+- `is_resolved` が false
 - 今回の対応表に載っている
 
-alias は F-NN 順に `t1` から振り、スレッド ID はそのまま書く。
-
-```bash
-gh api --hostname <対象ホスト> graphql -f query='
-  mutation {
-    t1: resolveReviewThread(input: {threadId: "<F-01 のスレッド id>"}) { thread { id isResolved } }
-    t2: resolveReviewThread(input: {threadId: "<F-02 のスレッド id>"}) { thread { id isResolved } }
-  }' \
-  | jq -r 'if .data then (.data | to_entries[] | "\(.key) \(.value.thread.isResolved // "FAILED")")
-           else "REQUEST FAILED: \(.errors // . | tostring)" end'
-```
-
-`FAILED` の alias だけを再送する。出力の行数が対象スレッド数と一致することを確かめる。
+スレッドごとに、公式の MCP の `pull_request_review_write` を `method: resolve_thread` で呼び、スレッドの ID を `threadId` で渡す。
+すべて呼んだら `get_review_comments` を読み直し、対象のスレッドがすべて `is_resolved` になったことを確かめる。残ったスレッドだけを resolve し直す。
 
 #### `review-resolution` を投稿
 

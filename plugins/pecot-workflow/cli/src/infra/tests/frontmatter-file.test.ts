@@ -68,10 +68,11 @@ status: ready
 
 describe('parsePullRequestFile', () => {
   it('PR のファイルを読むと、frontmatter と本文を返す', async () => {
-    await explains('PR のファイルを読み込む `parsePullRequestFile` のテストです。`title`・`repository`・`base`・`head` を持つ frontmatter と、`Refs #42` を含む本文を、分けて返すことを確認します。')
+    await explains('PR のファイルを読み込む `parsePullRequestFile` のテストです。`owner`・`repo`・`title`・`base`・`head` を持つ frontmatter と、`Refs #42` を含む本文を、分けて返すことを確認します。')
     const file = writeFile('pr.md', `---
 title: "ファイルからのPR"
-repository: "owner/repo"
+owner: "owner"
+repo: "repo"
 base: "develop-aist"
 head: "feat/test"
 ---
@@ -84,7 +85,8 @@ Refs #42
 `)
     const result = parsePullRequestFile(file)
     expect(result.frontmatter.title).toBe('ファイルからのPR')
-    expect(result.frontmatter.repository).toBe('owner/repo')
+    expect(result.frontmatter.owner).toBe('owner')
+    expect(result.frontmatter.repo).toBe('repo')
     expect(result.frontmatter.base).toBe('develop-aist')
     expect(result.frontmatter.head).toBe('feat/test')
     expect(result.body).toContain('## Changed — テスト用本文')
