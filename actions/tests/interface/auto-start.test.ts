@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 import { main } from '../../src/auto-start.js'
 import { useIsolatedEnvironment } from '../../../libs/workflow-core/tests/_helpers/environment.js'
 import { prerequisitesData, prerequisitesRule } from '../../../libs/workflow-core/tests/_helpers/prerequisites.js'
+import type { IssueSpec } from '../../../libs/workflow-core/tests/_helpers/prerequisites.js'
 import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
 import { runActionCase, startGithub } from '../_helpers/action-case.js'
@@ -188,6 +189,34 @@ describe('auto start', () => {
       expect(writtenContext(runner)).toEqual(emptyContext({ branch: 'feat/auto/7' }))
     })
 
+    it('前提の PR が開いていてスタックできれば、前提のブランチから feat/auto/<番号> を作る', async (context) => {
+      await verifies(context, 'PA-AUTO-START-10')
+      await explains('`auto-start` の action が、スタックできる Issue に作るブランチのテストです。前提の Issue の PR が開いている場合に、前提のブランチを base にして `feat/auto/7` を作り、文脈のファイルの `base` にそのブランチを入れることを確認します。')
+      const runner = prepareAuto()
+      const prerequisite: IssueSpec = { number: 3, column: 'In Review', branch: 'feat/x/3', pullRequests: [{ number: 30, state: 'OPEN', head: 'feat/x/3', base: 'main' }] }
+      const github = await startGithub([prerequisitesRule({ number: 7, column: 'Blocked', blockedBy: [prerequisite] }), issueComments(), ...branchCreated('feat/auto/7', 'feat/x/3')])
+
+      const outcome = await start()
+
+      expect(outcome).toEqual({ code: 0, stdout: '', stderr: 'created: branch feat/auto/7 in acme/demo from feat/x/3\n' })
+      expect(writesOf(github.requests())).toEqual(['CreateLinkedBranch'])
+      expect(writtenContext(runner)).toEqual(emptyContext({ branch: 'feat/auto/7', base: 'feat/x/3' }))
+    })
+
+    it('ブランチを作る書き込みが失敗すると、その理由で止まり、文脈のファイルを書かない', async (context) => {
+      await verifies(context, 'PA-AUTO-START-10')
+      await explains('`auto-start` の action が、ブランチの作成の失敗を扱うテストです。`CreateLinkedBranch` の呼び出しが失敗した場合に、理由を含むエラーを出力し、文脈のファイルを書かずに step を失敗にすることを確認します。')
+      const runner = prepareAuto()
+      // base の読み取りと Issue の id は応答し、つなぐ書き込みだけを失敗させる
+      await startGithub([prerequisitesRule({ number: 7, column: 'Active' }), issueComments(), ...branchCreated('feat/auto/7').slice(0, 2), failing({ operation: 'CreateLinkedBranch' })])
+
+      const outcome = await start()
+
+      expect(outcome.code).toBe(1)
+      expect(outcome.stderr).toMatch(/^error: could not create the branch for Issue acme\/demo\/7: /u)
+      expect(existsSync(contextFile(runner))).toBe(false)
+    })
+
     it('前提が済んでいなければ、ブランチを作らずに止まる', async (context) => {
       await verifies(context, 'PA-AUTO-START-10')
       await explains('`auto-start` の action が、前提の済んでいない Issue を扱うテストです。開いた前提を持つ Issue では、ブランチを作らず、文脈のファイルも書かずに step を失敗にすることを確認します。')
@@ -213,6 +242,19 @@ describe('auto start', () => {
       expect(outcome.code).toBe(1)
       expect(outcome.stderr).toMatch(/^error: develop_branch is not set for acme\/demo\n/u)
       expect(writesOf(github.requests())).toEqual([])
+    })
+
+    it('既にブランチがあれば、開発ブランチが設定に無くても、そのブランチを文脈に入れて base を空にする', async (context) => {
+      await verifies(context, 'PA-AUTO-START-10')
+      await explains('`auto-start` の action が、ブランチの既にある Issue を扱うテストです。設定に `develop_branch` が無い場合も、ブランチを作らずに既存のブランチを文脈に入れ、`base` を空の文字列にすることを確認します。')
+      const runner = prepareAuto({ hasDevelopBranch: false })
+      const github = await startGithub([prerequisitesRule({ number: 7, column: 'Active', branch: BRANCH }), issueComments()])
+
+      const outcome = await start()
+
+      expect(outcome).toEqual({ code: 0, stdout: '', stderr: '' })
+      expect(writesOf(github.requests())).toEqual([])
+      expect(writtenContext(runner)).toEqual(emptyContext({ base: '' }))
     })
   })
 
