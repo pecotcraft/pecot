@@ -1,24 +1,11 @@
-// スタックしたブランチをスタックし直す先の判断を、親 PR と remote の先頭から求める。pr restack・pr check・pr create・session show が共有する。
+// スタックしたブランチをスタックし直す先の判断を、読み取りの結果の親 PR と remote の先頭から求める。pr_restack・pr_check が共有する。
 import type { PullRequestReadout } from '@pecot/workflow-core/domain/issue-readout.js'
-import { pickLowerPullRequest } from '@pecot/workflow-core/domain/pull-request.js'
 import { decideRestack } from '@pecot/workflow-core/domain/restack.js'
 import type { RestackDecision } from '@pecot/workflow-core/domain/restack.js'
 import type { BaseReading } from '@pecot/workflow-core/domain/state.js'
 import { isAncestor, remoteBranchHead, resolveCommit } from '@pecot/workflow-core/infra/git.js'
-import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
-import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
-
-/**
-既に読んだ親 PR。PR が無かったことも示せるよう、包んで渡す
-*/
-export interface KnownLowerPullRequest {
-  readonly pullRequest: PullRequestReadout | undefined
-}
 
 export interface RestackTarget {
-  readonly client: () => Readonly<GitHubClient>
-  readonly owner: string
-  readonly repository: string
   readonly cwd: string
   /**
   remote が無ければ undefined。そのときは remote に届かないのと同じに扱う
@@ -27,9 +14,9 @@ export interface RestackTarget {
   readonly reading: Extract<BaseReading, { kind: 'stacked' }>
   readonly developBranch: string
   /**
-  渡されたら、親 PR を読み直さない
+  親ブランチを head に持つ PR（pickLowerPullRequest で選んだもの）。無ければ undefined
   */
-  readonly lowerPullRequest?: KnownLowerPullRequest | undefined
+  readonly lowerPullRequest: PullRequestReadout | undefined
   /**
   MCP の要求の取り消し。ls-remote に渡す
   */
@@ -37,31 +24,19 @@ export interface RestackTarget {
 }
 
 export type RestackReading
-  = | { readonly kind: 'decided', readonly decision: RestackDecision, readonly lowerPullRequest: PullRequestReadout | undefined }
-    | { readonly kind: 'remote-unreachable', readonly lowerPullRequest: PullRequestReadout | undefined }
-    | { readonly kind: 'pull-request-unreadable', readonly error: GitHubAPIError }
+  = | { readonly kind: 'decided', readonly decision: RestackDecision }
+    | { readonly kind: 'remote-unreachable' }
 
 /**
-親 PR を読み、remote の先頭を尋ねて、スタックし直す先を決める。PR を読めないか remote に届かなければ、その種類を返す
+remote の先頭を尋ねて、スタックし直す先を決める。remote に届かなければ、その種類を返す
 */
 export async function readRestackDecision(target: Readonly<RestackTarget>): Promise<RestackReading> {
-  const { reading, remote } = target
-  let lowerPullRequest = target.lowerPullRequest?.pullRequest
-  if (target.lowerPullRequest === undefined) {
-    try {
-      const found = await target.client().listPullRequestsByHead(target.owner, target.repository, reading.record.branch)
-      lowerPullRequest = pickLowerPullRequest(found.pullRequests)
-    }
-    catch (error: unknown) {
-      if (error instanceof GitHubAPIError) return { kind: 'pull-request-unreadable', error }
-      throw error
-    }
-  }
-  if (remote === undefined) return { kind: 'remote-unreachable', lowerPullRequest }
+  const { reading, remote, lowerPullRequest } = target
+  if (remote === undefined) return { kind: 'remote-unreachable' }
   const lowerHead = await remoteBranchHead(target.cwd, remote, reading.record.branch, target.signal)
-  if (!lowerHead.isReachable) return { kind: 'remote-unreachable', lowerPullRequest }
+  if (!lowerHead.isReachable) return { kind: 'remote-unreachable' }
   const decision = decideRestack({ reading, developBranch: target.developBranch, lowerPullRequest, lowerHead: lowerHead.sha })
-  return { kind: 'decided', decision: withRebased(target.cwd, remote, reading, decision, lowerHead.sha), lowerPullRequest }
+  return { kind: 'decided', decision: withRebased(target.cwd, remote, reading, decision, lowerHead.sha) }
 }
 
 // 新しい base の上に載り終えていれば rebased に替える。記録の位置が HEAD にあれば、それが新しい base の祖先であることも求める。

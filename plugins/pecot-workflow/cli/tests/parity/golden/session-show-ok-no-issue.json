@@ -3,7 +3,15 @@
   "text": "# Session status",
   "structuredContent": {
     "branch": "main",
-    "repository": "acme/demo"
+    "repository": "acme/demo",
+    "worktree": {
+      "list": "{{TMP}}/base/demo dd06359 [main]",
+      "directoryName": "demo",
+      "isWorktree": false
+    },
+    "warnings": [
+      "baseBranch is not decided: acme/demo is not in any project config\n  available: (none)"
+    ]
   },
   "stderr": "",
   "requests": [],

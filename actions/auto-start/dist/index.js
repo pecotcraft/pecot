@@ -35720,7 +35720,7 @@ function isHint(value) {
     return typeof value === 'object' && value !== null && 'kind' in value;
 }
 /**
-タグ付きテンプレートで HintedText を作る。`hinted\`call ${commandHint(['project', 'init'])}\``
+タグ付きテンプレートで HintedText を作る。`hinted\`call ${commandHint(['project', 'list'])}\``
 */
 function hinted(strings, ...values) {
     return strings.flatMap((text, index) => {
@@ -35731,6 +35731,12 @@ function hinted(strings, ...values) {
             return [text, ...value];
         return [text, isHint(value) ? value : String(value)];
     });
+}
+/**
+HintedText を連結する。区切りは separator
+*/
+function joinHinted(parts, separator = '\n') {
+    return parts.flatMap((part, index) => [...index === 0 ? [] : [separator], ...typeof part === 'string' ? [part] : part]);
 }
 function shapeOf(path) {
     const shape = catalog.get(path.join('_'));
@@ -35840,6 +35846,9 @@ function createRepositoryReference(owner, repository) {
 }
 function repositoryFullName(reference) {
     return `${reference.owner}/${reference.repository}`;
+}
+function isSameRepository(left, right) {
+    return repositoryFullName(left).toLowerCase() === repositoryFullName(right).toLowerCase();
 }
 /**
 source と remoteName の整合を検証して作る
@@ -35961,6 +35970,9 @@ function issueReferenceToString(reference) {
 function issueReferenceKey(reference) {
     return issueReferenceToString(reference).toLowerCase();
 }
+function issueReferenceToCliReference(reference) {
+    return `${repositoryFullName(reference.repository)}/${String(reference.number)}`;
+}
 // Python の `$` は末尾の改行の手前にも一致する。`\d` は Unicode の 10 進数字に一致する
 const FULL_REFERENCE_PATTERN = /^([^/]+)\/([^/]+)\/(\p{Nd}+)\n?$/u;
 function integerOf(digits) {
@@ -36024,10 +36036,201 @@ function extractReferencesIssueNumbers(body, repository) {
 }
 
 // Issue の着手の可否の判定と、フェーズの進め方（specs/024 の data-model.md の 2〜4）。I/O を持たない純関数だけを置く。
+const PENDING_COLUMN = 'Pending';
 const NEEDS_ATTENTION_LABEL = 'Needs Attention';
 const TRACKER_TITLE_PREFIX = '[Tracker]';
+function openPullRequests(issue) {
+    return issue.pullRequests.filter(pullRequest => pullRequest.state === 'open');
+}
+function isDone(issue) {
+    return issue.state === 'closed' && issue.pullRequests.some(pullRequest => pullRequest.state === 'merged');
+}
+/**
+open で、open の PR がちょうど 1 本あり、fork からでない。ドラフトも含む
+*/
+function isInReview(issue) {
+    const open = openPullRequests(issue);
+    return issue.state === 'open' && open.length === 1 && open[0]?.isCrossRepository === false;
+}
+/**
+open で、open の PR が無く、merged の PR がある。マージから `Closes` で閉じるまでの間と、`Closes` の無いマージで起きる
+*/
+function isMergedOpen(issue) {
+    return issue.state === 'open' && openPullRequests(issue).length === 0 && issue.pullRequests.some(pullRequest => pullRequest.state === 'merged');
+}
+/**
+前提の状態が `merged-open` になり、Issue を閉じれば済む。列が Pending なら `pending` を先に出すので含めない
+*/
+function isAwaitingCloseAfterMerge(issue) {
+    return isMergedOpen(issue) && !isPending(issue);
+}
 function hasStarted(issue) {
     return issue.branches.length > 0 || issue.pullRequests.length > 0;
+}
+function isPending(issue) {
+    return issue.column === PENDING_COLUMN;
+}
+// 列が Pending の前提は、人が後回しにしたものなので、PR があってもスタック先にしない
+function isStackable(issue) {
+    return isInReview(issue) && !isPending(issue);
+}
+function isStackBase(pullRequest) {
+    return pullRequest.state === 'open' && !pullRequest.isCrossRepository;
+}
+function notInReviewState(issue) {
+    if (isPending(issue))
+        return 'pending';
+    const open = openPullRequests(issue);
+    if (open.length > 1)
+        return 'multiple-prs';
+    if (open.length === 1)
+        return 'fork-pr';
+    if (isMergedOpen(issue))
+        return 'merged-open';
+    return hasStarted(issue) ? 'started-without-pr' : 'not-started';
+}
+// 開発ブランチに届かない（途切れる・輪になる）列は undefined
+function headsToDevelopment(start, byHead, developmentBranch) {
+    const reached = new Set([start.headRefName]);
+    let current = start;
+    while (current.baseRefName !== developmentBranch) {
+        const next = byHead.get(current.baseRefName);
+        if (next === undefined || reached.has(next.headRefName))
+            return undefined;
+        reached.add(next.headRefName);
+        current = next;
+    }
+    return reached;
+}
+// 済んでいない前提はすべて PR 中なので、open の PR がちょうど 1 本ある
+// 辿る PR も、対象と同じリポのものだけにする
+function findStackTarget(unfinished, input) {
+    const targetRepository = input.target.ref.repository;
+    const entries = unfinished.flatMap(({ issue }) => {
+        const [pullRequest] = openPullRequests(issue);
+        return pullRequest === undefined ? [] : { issue: issue.ref, pullRequest };
+    });
+    const byHead = new Map([...input.pullRequestsByHead].filter(([, pullRequest]) => isStackBase(pullRequest) && isSameRepository(pullRequest.repository, targetRepository)));
+    for (const { pullRequest } of entries)
+        byHead.set(pullRequest.headRefName, pullRequest);
+    for (const start of entries) {
+        const reached = headsToDevelopment(start.pullRequest, byHead, input.developmentBranch);
+        if (reached !== undefined && entries.every(other => reached.has(other.pullRequest.headRefName))) {
+            return { branch: start.pullRequest.headRefName, issue: start.issue };
+        }
+    }
+    return undefined;
+}
+function result(kind, fields) {
+    return { kind, stackOn: fields.stackOn, reason: fields.reason, needsReview: fields.needsReview, attention: fields.attention };
+}
+/**
+data-model.md の 3 の表を上から当てはめる。Epic と Tracker には判定を出さず undefined を返す
+*/
+function judgeReadiness(input) {
+    const { target, prerequisites} = input;
+    if (target.kind !== 'task')
+        return undefined;
+    if (prerequisites === 'read-failed') {
+        return result('blocked', { reason: { code: 'unreadable' }, needsReview: false, attention: [] });
+    }
+    const unfinished = prerequisites.filter(({ issue }) => !isDone(issue));
+    const closedUnmerged = unfinished.filter(({ issue }) => issue.state === 'closed');
+    const isNeedsReview = closedUnmerged.length > 0;
+    const attention = unfinished.filter(({ issue }) => issue.label === NEEDS_ATTENTION_LABEL).map(({ issue }) => issue.ref);
+    const blocked = (reason) => result('blocked', { reason, needsReview: isNeedsReview, attention });
+    if (isNeedsReview)
+        return blocked({ code: 'closed-unmerged', issues: closedUnmerged.map(({ issue }) => issue.ref) });
+    // PR がマージ済みなら、スタック不可の前提でも待つものが無いので、順 7 の状態で示す
+    const waitsMerge = unfinished.filter(({ issue, wait }) => wait === 'merge' && !isMergedOpen(issue));
+    if (waitsMerge.length > 0) {
+        return blocked({ code: 'waits-merge', issues: waitsMerge.map(({ issue, reason }) => ({ issue: issue.ref, reason })) });
+    }
+    if (unfinished.length === 0)
+        return result('startable', { needsReview: isNeedsReview, attention });
+    // 前提の Issue か、その PR が別のリポにあると、スタック先のブランチを対象のリポで引けない
+    const otherRepository = unfinished.filter(({ issue }) => !isSameRepository(issue.ref.repository, target.ref.repository)
+        || (isInReview(issue) && openPullRequests(issue).some(pullRequest => !isSameRepository(pullRequest.repository, target.ref.repository))));
+    if (otherRepository.length > 0)
+        return blocked({ code: 'other-repository', issues: otherRepository.map(({ issue }) => issue.ref) });
+    const notInReview = unfinished.filter(({ issue }) => !isStackable(issue));
+    if (notInReview.length > 0) {
+        return blocked({ code: 'not-in-review', issues: notInReview.map(({ issue }) => ({ issue: issue.ref, state: notInReviewState(issue) })) });
+    }
+    const stackOn = findStackTarget(unfinished, input);
+    return stackOn === undefined
+        ? blocked({ code: 'diverged', issues: unfinished.map(({ issue }) => issue.ref) })
+        : result('stackable', { stackOn, needsReview: isNeedsReview, attention });
+}
+/**
+メッセージに出す Issue の表記。home と同じリポジトリは `#N`、別のリポジトリは `owner/repo#N`。home が無ければ常に `owner/repo#N`
+*/
+function displayReference(reference, home) {
+    const number = `#${String(reference.number)}`;
+    return home !== undefined && isSameRepository(reference.repository, home) ? number : `${repositoryFullName(reference.repository)}${number}`;
+}
+const NOT_IN_REVIEW_TEXT = new Map([
+    ['not-started', 'not started'],
+    ['merged-open', 'PR merged, Issue open'],
+    ['started-without-pr', 'no PR'],
+    ['multiple-prs', 'multiple PRs'],
+    ['fork-pr', 'PR from fork'],
+    ['pending', 'in Pending'],
+]);
+/**
+前提 1 件の状態の文。`done`・`closed without merge`・`in review`・`wait: merge — <理由>`、またはスタックできない理由（not started など）
+*/
+function describePrerequisiteState(prerequisite) {
+    const { issue, wait, reason } = prerequisite;
+    if (isDone(issue))
+        return 'done';
+    if (issue.state === 'closed')
+        return 'closed without merge';
+    if (wait === 'merge' && !isMergedOpen(issue))
+        return reason === undefined ? 'wait: merge' : `wait: merge — ${reason}`;
+    const state = notInReviewState(issue);
+    return isStackable(issue) ? 'in review' : (NOT_IN_REVIEW_TEXT.get(state) ?? state);
+}
+function describeReason(reason, targetRepository) {
+    const show = (reference) => displayReference(reference, targetRepository);
+    switch (reason.code) {
+        case 'unreadable': {
+            return 'unreadable';
+        }
+        case 'waits-merge': {
+            return 'waits for merge';
+        }
+        case 'diverged': {
+            return 'not in one chain';
+        }
+        case 'closed-unmerged': {
+            return `closed without merge: ${reason.issues.map(issue => show(issue)).join(', ')}`;
+        }
+        case 'other-repository': {
+            return `other repository: ${reason.issues.map(issue => show(issue)).join(', ')}`;
+        }
+        case 'not-in-review': {
+            return `not in review: ${reason.issues.map(({ issue, state }) => `${show(issue)} (${NOT_IN_REVIEW_TEXT.get(state) ?? state})`).join(', ')}`;
+        }
+        case 'cycle': {
+            const prefix = `${repositoryFullName(targetRepository).toLowerCase()}#`;
+            return `cycle: ${reason.cycle.map(key => (key.startsWith(prefix) ? `#${key.slice(prefix.length)}` : key)).join(' -> ')}`;
+        }
+    }
+}
+/**
+判定を 1 行の文にする。`startable`・`stackable on #N`・`blocked by #N, #M (<理由>)`。
+blocked by の後には、済んでいない前提をすべて並べる。別のリポジトリの Issue は `owner/repo#N`
+*/
+function describeReadiness(readiness, prerequisites, targetRepository) {
+    if (readiness.kind === 'startable')
+        return 'startable';
+    if (readiness.kind === 'stackable') {
+        return readiness.stackOn === undefined ? 'stackable' : `stackable on ${displayReference(readiness.stackOn.issue, targetRepository)}`;
+    }
+    const unfinished = prerequisites.filter(({ issue }) => !isDone(issue)).map(({ issue }) => displayReference(issue.ref, targetRepository));
+    const reason = readiness.reason === undefined ? '' : ` (${describeReason(readiness.reason, targetRepository)})`;
+    return `blocked${unfinished.length === 0 ? '' : ` by ${unfinished.join(', ')}`}${reason}`;
 }
 const LOWER_STATE = { OPEN: 'open', MERGED: 'merged', CLOSED: 'closed' };
 function toPullRequest(readout) {
@@ -36421,6 +36624,45 @@ function getOptionId(config, fieldName, optionName) {
 }
 function findRepository(config, owner, name) {
     return config.repositories.find(repository => repository.owner === owner && repository.name === name);
+}
+
+// 着手の判定から、base の選び方・止める文・スタック先の表示を決める。I/O を持たない。
+function blockedMessage(target, readiness, prerequisites) {
+    const home = target.repository;
+    const unfinished = prerequisites.filter(({ issue }) => !isDone(issue));
+    const subject = issueReferenceToCliReference(target);
+    const mergedOpen = unfinished.filter(({ issue }) => isAwaitingCloseAfterMerge(issue)).map(({ issue }) => issue.ref);
+    const waitsMerge = readiness.reason?.code === 'waits-merge' ? readiness.reason.issues : [];
+    return joinHinted([
+        `${displayReference(target, home)} is ${describeReadiness(readiness, prerequisites, home)}`,
+        ...unfinished.map(prerequisite => `- ${displayReference(prerequisite.issue.ref, home)}: ${describePrerequisiteState(prerequisite)}`),
+        ...mergedOpen.map(issue => displayReference(issue, home)).map(shown => `${shown} has a merged PR: close ${shown}, or retry once it closes`),
+        ...unfinished.map(({ issue }) => hinted `to remove the prerequisite: ${commandHint(['issue', 'dependency', 'check'], removalArguments(target, issue.ref))}, then issue_dependency_write with the same arguments`),
+        ...waitsMerge.map(({ issue }) => hinted `to stack on it instead of waiting for merge: remove ${displayReference(issue, home)} from the Waits for merge section of the body of ${subject}, then ${commandHint(['issue', 'check'], { method: 'update' })} and issue_write`),
+    ]);
+}
+function removalArguments(target, prerequisite) {
+    return {
+        method: 'remove',
+        owner: target.repository.owner,
+        repo: target.repository.repository,
+        issue_number: target.number,
+        type: 'blocked_by',
+        related_owner: prerequisite.repository.owner,
+        related_repo: prerequisite.repository.repository,
+        related_issue_number: prerequisite.number,
+    };
+}
+/**
+判定から着手の仕方を決める。stackable はスタック先のブランチから、blocked は止める。
+startable と、判定を持たない Epic・Tracker（undefined）は、今までどおり
+*/
+function decideStart(readiness, prerequisites, target) {
+    if (readiness?.kind === 'blocked')
+        return { kind: 'blocked', message: blockedMessage(target, readiness, prerequisites) };
+    if (readiness?.kind === 'stackable' && readiness.stackOn !== undefined)
+        return { kind: 'stack', branch: readiness.stackOn.branch, issue: readiness.stackOn.issue };
+    return { kind: 'start' };
 }
 
 // GitHub API 操作の例外。Python の cli/core/github/errors.py と同じ階層にする。
@@ -46073,9 +46315,12 @@ object({
     attributes: preprocess(value => value === null ? undefined : value, array(AttributeEntrySchema, { error: listMessage }).readonly().optional()),
     lane: preprocess(emptyStringToUndefined, string$1({ error: stringMessage }).nullish().transform(value => value ?? undefined)),
 }).readonly();
+// 鍵は create_pull_request の引数の名前。template と screenshot だけが pecot の鍵
 object({
+    template: preprocess(normalizeOptionalText, string$1({ error: stringMessage }).nullish().transform(value => value ?? undefined)),
+    owner: string$1({ error: stringMessage }),
+    repo: string$1({ error: stringMessage }),
     title: string$1({ error: stringMessage }),
-    repository: string$1({ error: stringMessage }),
     base: string$1({ error: stringMessage }),
     head: string$1({ error: STRING_MESSAGE }).nullish().transform(value => value ?? undefined),
     draft: preprocess(convertToBoolean, boolean({ error: issue => booleanMessage(issue.input) })).prefault(false),
@@ -46096,6 +46341,235 @@ object({
 new Set(splitCodePoints('。！？!?'));
 // 1 文判定の前にサマリ末尾から除く閉じ括弧類（`「完了。」` を 1 文として扱う）
 new Set(splitCodePoints('」』）】〕〉》］｝"\'”’)]}'));
+
+// issue 系のコマンドが共有する関数と定数。I/O を持たない起票の決まりは domain/issue-rules.ts にある。
+// error の行を出して止めるのは stopWith(output, 文, n)。
+const ISSUE_REF_DESCRIPTION = 'Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)';
+// --- 終了の表し方 ---
+/**
+Issue 参照が不正。parseIssueReferenceOrExit が終了コード 2 にする
+*/
+class BadParameterError extends BaseError {
+    text;
+    // message は描いた文。text は、案内を他の文へ埋め込む用途で持つ
+    constructor(text) {
+        super(formatHinted(text));
+        this.text = text;
+    }
+}
+/**
+run の本体を包む。終わったら 0 を返す。例外はそのまま伝える。CommandExit は defineTool が受けて終了コードにする
+*/
+async function runWithExit(body) {
+    await body();
+    return 0;
+}
+// --- Issue 参照 ---
+/**
+`owner/repo/N` の表記。エラー文と done の行の対象、MCP の data の参照に使う
+*/
+function issuePath(owner, repository, number) {
+    return `${owner}/${repository}/${String(number)}`;
+}
+/**
+Issue 参照（`owner/repo/N` または短縮形 `N`）を分ける。不正、または base が決まらない短縮形なら BadParameterError
+*/
+function parseIssueReferenceFromContext(repository, raw) {
+    const { base, unreadable } = resolveShortReferenceBase(repository, gitRunnerFor());
+    try {
+        const reference = parseIssueReference(raw, base, { repositoryFlag: true });
+        return { owner: reference.repository.owner, repository: reference.repository.repository, number: reference.number };
+    }
+    catch (error) {
+        if (error instanceof ReferenceParseError)
+            throw new BadParameterError(withUnreadableReason(error.hintedText ?? error.message, unreadable));
+        throw error;
+    }
+}
+/**
+parseIssueReferenceFromContext の失敗を、error の行と終了コード 2 にしたもの
+*/
+function parseIssueReferenceOrExit(output, repository, raw) {
+    try {
+        return parseIssueReferenceFromContext(repository, raw);
+    }
+    catch (error) {
+        if (!(error instanceof BadParameterError))
+            throw error;
+        return stopWith(output, error.text, 'invalid-input', USAGE_EXIT_CODE$1);
+    }
+}
+
+function issueDisplay(target) {
+    return `Issue ${issuePath(target.owner, target.repository, target.number)}`;
+}
+/**
+対象のリポの設定を選び、既定の Status（fields.status）があることを確かめる。無ければ project init を案内して止まる
+*/
+function requireAutoConfig(out, target, project, commandPath) {
+    const { config } = requireConfigFor(out, target, project, commandPath);
+    return config.project.fields.status === undefined
+        ? stopWith(out, hinted `the project config has no Status field (fields.status)\n${RUN_COLON}${commandHint(['project', 'activate'], { project: String(config.project.number), owner: config.owner })}`, 'not-initialized')
+        : config;
+}
+async function readOrStop(out, what, read) {
+    try {
+        return await read();
+    }
+    catch (error) {
+        if (!(error instanceof GitHubAPIError))
+            throw error;
+        return stopWith(out, `could not read ${what}: ${error.message}`, kindOfFailure(error));
+    }
+}
+/**
+書き込み権限（admin・write）を持つか。[bot] の名前と、読めないとき（404・API の失敗）は持たない側に倒す
+*/
+async function hasWritePermission(out, client, repository, login) {
+    if (login.endsWith('[bot]'))
+        return false;
+    try {
+        return isWritePermission(await client.getCollaboratorPermission(repository.owner, repository.repository, login));
+    }
+    catch (error) {
+        if (!(error instanceof GitHubAPIError))
+            throw error;
+        out.warning(`could not read the permission of ${login}: ${error.message}`);
+        return false;
+    }
+}
+/**
+logins のうち、書き込み権限を持つ人
+*/
+async function writersAmong(out, client, repository, logins) {
+    const checked = await Promise.all(logins.map(async (login) => await hasWritePermission(out, client, repository, login)));
+    return new Set(logins.filter((_login, index) => checked.at(index) === true));
+}
+
+// GitHub の応答（REST の JSON と GraphQL の data）を読む補助。
+// Python の dict.get と as_dict に当たる。形が合わないときは、辞書や配列を空として読む。
+// 必須の値が無い、または型が違うときは GitHubAPIError にする（Python は KeyError で落ちる所）。
+const EMPTY_OBJECT = {};
+const EMPTY_ARRAY = [];
+/**
+as_dict と同じ。オブジェクトでなければ空のオブジェクト
+*/
+function asObject(value) {
+    return isJsonObject(value) ? value : EMPTY_OBJECT;
+}
+/**
+配列でなければ空の配列
+*/
+function asArray(value) {
+    return isJsonArray(value) ? value : EMPTY_ARRAY;
+}
+/**
+Python の真偽値と同じ。None・False・0・空文字・空の配列・空の辞書は偽
+*/
+function isTruthy(value) {
+    if (value === undefined || value === null || value === false || value === 0 || value === '')
+        return false;
+    if (isJsonArray(value))
+        return value.length > 0;
+    if (typeof value === 'object')
+        return Object.keys(value).length > 0;
+    return true;
+}
+/**
+`value.get(key, [])` の `nodes` の読み方。真偽値が偽の要素（None・空の辞書）を落とした配列
+*/
+function truthyNodes(value) {
+    return asArray(jsonField(value, 'nodes')).filter(node => isTruthy(node));
+}
+function throwMalformed(path) {
+    throw new GitHubAPIError(`malformed GitHub response: ${path}`);
+}
+/**
+必須の文字列。無い、または文字列でなければ GitHubAPIError
+*/
+function requireString(value, path) {
+    return typeof value === 'string' ? value : throwMalformed(path);
+}
+/**
+必須の数。無い、または数でなければ GitHubAPIError
+*/
+function requireNumber(value, path) {
+    return typeof value === 'number' ? value : throwMalformed(path);
+}
+/**
+文字列か null。無いときと文字列以外は null
+*/
+function stringOrNull(value) {
+    return typeof value === 'string' ? value : JSON_NULL;
+}
+/**
+数か null。無いときと数以外は null
+*/
+function numberOrNull(value) {
+    return typeof value === 'number' ? value : JSON_NULL;
+}
+/**
+必須の値（null でもよい）。キーが無ければ GitHubAPIError
+*/
+function requireValue(value, path) {
+    return value === undefined ? throwMalformed(path) : value;
+}
+/**
+Issue の subIssues.totalCount。無いときは 0
+*/
+function subIssuesTotal(issue) {
+    const total = jsonField(jsonField(issue, 'subIssues'), 'totalCount');
+    return typeof total === 'number' ? total : 0;
+}
+
+/**
+前提を待つ Issue を pecot が置く列
+*/
+const BLOCKED_SPEC = {
+    option: { name: 'Blocked', color: 'GRAY', description: 'Tasks waiting for prerequisite Issues. pecot moves them to Ready once they can start.' },
+    isOptional: true,
+    placement: [{ after: 'Backlog' }, { before: 'Ready' }],
+};
+/**
+人の判断を待つ Issue の札。既定の Status の末尾に足す
+*/
+const NEEDS_ATTENTION_SPEC = {
+    option: { name: 'Needs Attention'},
+    isOptional: true,
+};
+/**
+既定の Status のフィールド名
+*/
+const STATUS_FIELD_NAME = 'Status';
+/**
+workflow フィールドの選択肢の定義。作る順でもある
+*/
+const WORKFLOW_FIELD_SPECS = [
+    { option: { name: 'Pending', color: 'GRAY', description: 'Items on hold (Epic or Task). Moved here from Ready or Backlog when deprioritized.' } },
+    { option: { name: 'Backlog', color: 'RED', description: 'Items waiting to be planned. Not for direct work - break down into smaller tasks first.' } },
+    BLOCKED_SPEC,
+    { option: { name: 'Ready', color: 'GREEN', description: 'Tasks ready for implementation. AI agent picks from here and moves to Active on start.' } },
+    { option: { name: 'Active', color: 'BLUE', description: 'Currently being worked on. One active task per worktree - track progress and updates here.' } },
+    { option: { name: 'In Review', color: 'YELLOW', description: 'Pull request created and waiting for review. Moves to Archived after merge is completed.' } },
+    { option: { name: 'Archived', color: 'PURPLE', description: 'Completed or cancelled items. Moved here after the issue is closed or no longer needed.' } },
+];
+
+// project の各コマンドが共有する部分。失敗の行、フィールドの検証、読んだボードからの設定ファイルの同期。
+/**
+ボードの欄を直し、設定ファイルに読み直す手順の案内。owner と number が分かれば添える
+*/
+function boardFieldsHint(board) {
+    const check = board === undefined ? { method: 'fields' } : { method: 'fields', owner: board.owner, project: board.number };
+    const activate = board === undefined ? {} : { project: String(board.number), owner: board.owner };
+    return hinted `${commandHint(['project', 'check'], check)} and apply the changes it asks for with the project-fields operation of github-ops, then ${commandHint(['project', 'activate'], activate)} to read the board into the project config`;
+}
+function keyEntry(name, isOptional) {
+    return { key: name.toLowerCase().replaceAll(' ', '_'), label: name.toLowerCase(), isOptional };
+}
+// 設定ファイルのキーの順（保存の JSON のキーの順になる）。isOptional は選択肢の定義の値を使う
+const WORKFLOW_KEY_ORDER = ['Backlog', 'Pending', 'Blocked', 'Ready', 'Active', 'In Review', 'Archived'];
+WORKFLOW_KEY_ORDER.map(name => keyEntry(name, WORKFLOW_FIELD_SPECS.some(spec => spec.option.name === name && spec.isOptional === true)));
+[keyEntry('Todo', true), keyEntry('In Progress', true), keyEntry(NEEDS_ATTENTION_SPEC.option.name, NEEDS_ATTENTION_SPEC.isOptional === true)];
 
 /* eslint-disable security/detect-non-literal-fs-filename -- パスは設定ディレクトリ配下のファイルと、呼び出し側が渡す .env */
 // GitHub トークン解決に使うホスト設定と .env の読み書き。cli/core/github/auth.py の移植。
@@ -46243,82 +46717,6 @@ function ensureEnvironmentFile(host) {
         throw toOsError(error);
     }
     return file;
-}
-
-// GitHub の応答（REST の JSON と GraphQL の data）を読む補助。
-// Python の dict.get と as_dict に当たる。形が合わないときは、辞書や配列を空として読む。
-// 必須の値が無い、または型が違うときは GitHubAPIError にする（Python は KeyError で落ちる所）。
-const EMPTY_OBJECT = {};
-const EMPTY_ARRAY = [];
-/**
-as_dict と同じ。オブジェクトでなければ空のオブジェクト
-*/
-function asObject(value) {
-    return isJsonObject(value) ? value : EMPTY_OBJECT;
-}
-/**
-配列でなければ空の配列
-*/
-function asArray(value) {
-    return isJsonArray(value) ? value : EMPTY_ARRAY;
-}
-/**
-Python の真偽値と同じ。None・False・0・空文字・空の配列・空の辞書は偽
-*/
-function isTruthy(value) {
-    if (value === undefined || value === null || value === false || value === 0 || value === '')
-        return false;
-    if (isJsonArray(value))
-        return value.length > 0;
-    if (typeof value === 'object')
-        return Object.keys(value).length > 0;
-    return true;
-}
-/**
-`value.get(key, [])` の `nodes` の読み方。真偽値が偽の要素（None・空の辞書）を落とした配列
-*/
-function truthyNodes(value) {
-    return asArray(jsonField(value, 'nodes')).filter(node => isTruthy(node));
-}
-function throwMalformed(path) {
-    throw new GitHubAPIError(`malformed GitHub response: ${path}`);
-}
-/**
-必須の文字列。無い、または文字列でなければ GitHubAPIError
-*/
-function requireString(value, path) {
-    return typeof value === 'string' ? value : throwMalformed(path);
-}
-/**
-必須の数。無い、または数でなければ GitHubAPIError
-*/
-function requireNumber(value, path) {
-    return typeof value === 'number' ? value : throwMalformed(path);
-}
-/**
-文字列か null。無いときと文字列以外は null
-*/
-function stringOrNull(value) {
-    return typeof value === 'string' ? value : JSON_NULL;
-}
-/**
-数か null。無いときと数以外は null
-*/
-function numberOrNull(value) {
-    return typeof value === 'number' ? value : JSON_NULL;
-}
-/**
-必須の値（null でもよい）。キーが無ければ GitHubAPIError
-*/
-function requireValue(value, path) {
-    return value === undefined ? throwMalformed(path) : value;
-}
-/**
-Issue の subIssues.totalCount。無いときは 0
-*/
-function subIssuesTotal(issue) {
-    const total = jsonField(jsonField(issue, 'subIssues'), 'totalCount');
-    return typeof total === 'number' ? total : 0;
 }
 
 // GitHub API クライアントの基底（認証・REST と GraphQL の実行・エラー変換）。cli/core/github/client.py の移植。
@@ -49988,110 +50386,6 @@ function createGitHubClient(out, host) {
     return new GitHubClient({ host, diagnostics: out, signal: out.signal });
 }
 
-// issue 系のコマンドが共有する関数と定数。I/O を持たない起票の決まりは domain/issue-rules.ts にある。
-// error の行を出して止めるのは stopWith(output, 文, n)。
-const ISSUE_REF_DESCRIPTION = 'Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)';
-// --- 終了の表し方 ---
-/**
-Issue 参照が不正。parseIssueReferenceOrExit が終了コード 2 にする
-*/
-class BadParameterError extends BaseError {
-    text;
-    // message は描いた文。text は、案内を他の文へ埋め込む用途で持つ
-    constructor(text) {
-        super(formatHinted(text));
-        this.text = text;
-    }
-}
-/**
-run の本体を包む。終わったら 0 を返す。例外はそのまま伝える。CommandExit は defineTool が受けて終了コードにする
-*/
-async function runWithExit(body) {
-    await body();
-    return 0;
-}
-// --- Issue 参照 ---
-/**
-`owner/repo/N` の表記。エラー文と done の行の対象、MCP の data の参照に使う
-*/
-function issuePath(owner, repository, number) {
-    return `${owner}/${repository}/${String(number)}`;
-}
-/**
-Issue 参照（`owner/repo/N` または短縮形 `N`）を分ける。不正、または base が決まらない短縮形なら BadParameterError
-*/
-function parseIssueReferenceFromContext(repository, raw) {
-    const { base, unreadable } = resolveShortReferenceBase(repository, gitRunnerFor());
-    try {
-        const reference = parseIssueReference(raw, base, { repositoryFlag: true });
-        return { owner: reference.repository.owner, repository: reference.repository.repository, number: reference.number };
-    }
-    catch (error) {
-        if (error instanceof ReferenceParseError)
-            throw new BadParameterError(withUnreadableReason(error.hintedText ?? error.message, unreadable));
-        throw error;
-    }
-}
-/**
-parseIssueReferenceFromContext の失敗を、error の行と終了コード 2 にしたもの
-*/
-function parseIssueReferenceOrExit(output, repository, raw) {
-    try {
-        return parseIssueReferenceFromContext(repository, raw);
-    }
-    catch (error) {
-        if (!(error instanceof BadParameterError))
-            throw error;
-        return stopWith(output, error.text, 'invalid-input', USAGE_EXIT_CODE$1);
-    }
-}
-
-function issueDisplay(target) {
-    return `Issue ${issuePath(target.owner, target.repository, target.number)}`;
-}
-/**
-対象のリポの設定を選び、既定の Status（fields.status）があることを確かめる。無ければ project init を案内して止まる
-*/
-function requireAutoConfig(out, target, project, commandPath) {
-    const { config } = requireConfigFor(out, target, project, commandPath);
-    return config.project.fields.status === undefined
-        ? stopWith(out, hinted `the project config has no Status field (fields.status)\n${RUN_COLON}${commandHint(['project', 'init'])}`, 'not-initialized')
-        : config;
-}
-async function readOrStop(out, what, read) {
-    try {
-        return await read();
-    }
-    catch (error) {
-        if (!(error instanceof GitHubAPIError))
-            throw error;
-        return stopWith(out, `could not read ${what}: ${error.message}`, kindOfFailure(error));
-    }
-}
-/**
-書き込み権限（admin・write）を持つか。[bot] の名前と、読めないとき（404・API の失敗）は持たない側に倒す
-*/
-async function hasWritePermission(out, client, repository, login) {
-    if (login.endsWith('[bot]'))
-        return false;
-    try {
-        return isWritePermission(await client.getCollaboratorPermission(repository.owner, repository.repository, login));
-    }
-    catch (error) {
-        if (!(error instanceof GitHubAPIError))
-            throw error;
-        out.warning(`could not read the permission of ${login}: ${error.message}`);
-        return false;
-    }
-}
-/**
-logins のうち、書き込み権限を持つ人
-*/
-async function writersAmong(out, client, repository, logins) {
-    const checked = await Promise.all(logins.map(async (login) => await hasWritePermission(out, client, repository, login)));
-    return new Set(logins.filter((_login, index) => checked.at(index) === true));
-}
-
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
 // Issue の作成・ボードへの追加・フィールドの設定と、判定に応じた列と札の書き込み（applyBoardMove）。cli/core/issue_board.py の移植に applyBoardMove を足した。
 // 失敗は GitHubAPIError で呼び出し側に返す。表示と終了コードは呼び出し側が決める。
@@ -50125,16 +50419,6 @@ async function setIssueField(client, config, itemId, fieldName, optionName) {
     await client.updateProjectItemField(config.project.id, itemId, fieldId, optionId);
     return true;
 }
-/**
-列と札を動かした（dry-run は動かす予定の）Issue 1 件。board sync・pr create・issue block / unblock の data が使う
-*/
-strictObject({
-    issue: string$1().describe('Issue as shown in the moved line (#N, or owner/repo#N outside the home repository)'),
-    from: string$1().optional().describe('Column before the move (omitted when only the Status changed)'),
-    to: string$1().optional().describe('Column after the move (omitted when only the Status changed)'),
-    label: string$1().optional().describe('Status value set (omitted when the Status did not change)'),
-    reason: string$1().describe('Readiness that decided the move'),
-});
 
 // Issue の本文の `## Waits for merge` の節の読み書き（contracts/prerequisite-table.md の 3）。純関数だけを置く。
 const WAITS_FOR_MERGE_HEADING = '## Waits for merge';
@@ -50236,52 +50520,15 @@ function readWaitsForMerge(body, repository) {
     return readBody(splitLines(body), repository).readout;
 }
 
-// project の各コマンドが共有する部分。失敗の行、フィールドの検証、設定ファイルの同期（Python の project.py の _sync_project_config まわり）。
-/**
-前提を待つ Issue を pecot が置く列
-*/
-const BLOCKED_SPEC = {
-    option: { name: 'Blocked', color: 'GRAY', description: 'Tasks waiting for prerequisite Issues. pecot moves them to Ready once they can start.' },
-    isOptional: true,
-    placement: [{ after: 'Backlog' }, { before: 'Ready' }],
-};
-/**
-人の判断を待つ Issue の札。既定の Status の末尾に足す
-*/
-const NEEDS_ATTENTION_SPEC = {
-    option: { name: 'Needs Attention'},
-    isOptional: true,
-};
-/**
-既定の Status のフィールド名
-*/
-const STATUS_FIELD_NAME = 'Status';
-/**
-workflow フィールドの選択肢の定義。作る順でもある
-*/
-const WORKFLOW_FIELD_SPECS = [
-    { option: { name: 'Pending', color: 'GRAY', description: 'Items on hold (Epic or Task). Moved here from Ready or Backlog when deprioritized.' } },
-    { option: { name: 'Backlog', color: 'RED', description: 'Items waiting to be planned. Not for direct work - break down into smaller tasks first.' } },
-    BLOCKED_SPEC,
-    { option: { name: 'Ready', color: 'GREEN', description: 'Tasks ready for implementation. AI agent picks from here and moves to Active on start.' } },
-    { option: { name: 'Active', color: 'BLUE', description: 'Currently being worked on. One active task per worktree - track progress and updates here.' } },
-    { option: { name: 'In Review', color: 'YELLOW', description: 'Pull request created and waiting for review. Moves to Archived after merge is completed.' } },
-    { option: { name: 'Archived', color: 'PURPLE', description: 'Completed or cancelled items. Moved here after the issue is closed or no longer needed.' } },
-];
-/**
-workflow フィールドに作る選択肢
-*/
-WORKFLOW_FIELD_SPECS.map(spec => spec.option);
-function keyEntry(name, isOptional) {
-    return { key: name.toLowerCase().replaceAll(' ', '_'), label: name.toLowerCase(), isOptional };
-}
-// 設定ファイルのキーの順（保存の JSON のキーの順になる）。isOptional は選択肢の定義の値を使う
-const WORKFLOW_KEY_ORDER = ['Backlog', 'Pending', 'Blocked', 'Ready', 'Active', 'In Review', 'Archived'];
-WORKFLOW_KEY_ORDER.map(name => keyEntry(name, WORKFLOW_FIELD_SPECS.some(spec => spec.option.name === name && spec.isOptional === true)));
-[keyEntry('Todo', true), keyEntry('In Progress', true), keyEntry(NEEDS_ATTENTION_SPEC.option.name, NEEDS_ATTENTION_SPEC.isOptional === true)];
-
 // Issue の着手の可否の読み取り。前提を読み、判定する。board show と issue show が使う。
 // 流れは getIssuePrerequisites → readWaitsForMerge → toIssueFacts → judgeReadiness。
+/**
+順 8 で base をたどる段数の上限
+*/
+const MAX_STACK_TRACE_STEPS = 10;
+function createReadinessCache() {
+    return new Map();
+}
 function unreadable(reason, snapshot) {
     return snapshot === undefined ? { kind: 'unreadable', reason } : { kind: 'unreadable', reason, snapshot };
 }
@@ -50347,6 +50594,96 @@ async function readIssueSnapshotWithReadout(client, config, reference, blockedBy
     };
     return { kind: 'read', snapshot, issue: readout.issue };
 }
+function toIssuePullRequest(readout) {
+    return {
+        repository: readout.repository,
+        number: readout.number,
+        state: readout.state === 'OPEN' ? 'open' : (readout.state === 'MERGED' ? 'merged' : 'closed'),
+        headRefName: readout.headRefName,
+        baseRefName: readout.baseRefName,
+        isDraft: readout.isDraft,
+        isCrossRepository: readout.isCrossRepository,
+    };
+}
+// head のブランチを持つ PR が、open で fork からでないものちょうど 1 本なら返す。2 本以上か続きがあれば足さない
+async function lookUpByHead(client, repository, head) {
+    const found = await client.listPullRequestsByHead(repository.owner, repository.repository, head);
+    if (found.hasNextPage)
+        return undefined;
+    const candidates = found.pullRequests.map(pullRequest => toIssuePullRequest(pullRequest)).filter(pullRequest => pullRequest.state === 'open' && !pullRequest.isCrossRepository);
+    return candidates.length === 1 ? candidates[0] : undefined;
+}
+function cachedLookUp(client, cache, repository, head) {
+    const key = `${repositoryFullName(repository)}:${head}`.toLowerCase();
+    const cached = cache.get(key);
+    if (cached !== undefined)
+        return cached;
+    const pending = lookUpByHead(client, repository, head);
+    cache.set(key, pending);
+    return pending;
+}
+// 前提の open で fork からでない PR
+function prerequisitePullRequests(prerequisites) {
+    return prerequisites.flatMap(({ issue }) => issue.pullRequests).filter(pullRequest => pullRequest.state === 'open' && !pullRequest.isCrossRepository);
+}
+// diverged の間、base のブランチを head に持つ PR を引き足して判定をやり直す
+async function traceStacks(client, snapshot, cache, byHead, first, judge, branch) {
+    const { prerequisites } = snapshot;
+    let readiness = first;
+    const traced = new Set();
+    for (let step = 0; step < MAX_STACK_TRACE_STEPS && readiness?.reason?.code === 'diverged'; step += 1) {
+        const known = new Set([...prerequisitePullRequests(prerequisites), ...byHead.values()].map(pullRequest => pullRequest.headRefName));
+        const missing = [...prerequisitePullRequests(prerequisites), ...byHead.values()].filter(pullRequest => pullRequest.baseRefName !== branch && !known.has(pullRequest.baseRefName) && !traced.has(`${repositoryFullName(pullRequest.repository)}:${pullRequest.baseRefName}`.toLowerCase()));
+        if (missing.length === 0)
+            break;
+        for (const pullRequest of missing) {
+            traced.add(`${repositoryFullName(pullRequest.repository)}:${pullRequest.baseRefName}`.toLowerCase());
+            const base = await cachedLookUp(client, cache, pullRequest.repository, pullRequest.baseRefName);
+            if (base !== undefined)
+                byHead.set(base.headRefName, base);
+        }
+        readiness = judge();
+    }
+    return readiness;
+}
+/**
+前提を判定する。cycle は呼ぶ側が findCycle で求めた輪。
+develop_branch が無いときと、PR の引き足しの API が失敗したときは、読み取り結果を添えた unreadable を返す。
+DependenciesUnsupportedError はそのまま投げる。
+前提の PR が開発ブランチに届かないときだけ、base のブランチを head に持つ PR を引き足して、判定をやり直す
+*/
+async function judgeSnapshot(client, snapshot, cache, cycle) {
+    const { developmentBranch, prerequisites, target } = snapshot;
+    const hasUnfinished = prerequisites.some(({ issue }) => !(issue.state === 'closed' && issue.pullRequests.some(pullRequest => pullRequest.state === 'merged')));
+    if (hasUnfinished && (developmentBranch === undefined || developmentBranch === '')) {
+        return unreadable(`develop_branch is not set for ${repositoryFullName(snapshot.ref.repository)}`, snapshot);
+    }
+    const branch = developmentBranch ?? '';
+    const byHead = new Map();
+    const judge = () => judgeReadiness({ target, prerequisites, pullRequestsByHead: byHead, developmentBranch: branch });
+    let readiness = judge();
+    try {
+        readiness = await traceStacks(client, snapshot, cache, byHead, readiness, judge, branch);
+    }
+    catch (error) {
+        if (isApiFailure(error))
+            return unreadable(error.message, snapshot);
+        throw error;
+    }
+    return {
+        kind: 'judged',
+        ref: snapshot.ref,
+        title: snapshot.title,
+        target,
+        prerequisites,
+        titles: snapshot.titles,
+        mismatches: snapshot.mismatches,
+        malformedReason: snapshot.malformedReason,
+        parent: snapshot.parent,
+        labelWrittenByAutomation: snapshot.labelWrittenByAutomation,
+        readiness,
+    };
+}
 /**
 readinessJson の形。キーの並びは readinessJson と同じにする
 */
@@ -50361,6 +50698,19 @@ strictObject({
     text: string$1().describe('Readiness as shown in the Readiness line'),
 });
 
+/**
+base を省くと、リポの既定のブランチから作る。ブランチ名は GitHub が付けた名前を返す
+*/
+async function linkIssueBranch(client, target) {
+    const { owner, repository } = target;
+    const settings = target.base === undefined ? await client.getRepositorySettings(owner, repository) : undefined;
+    const base = target.base ?? settings?.defaultBranch ?? '';
+    const sha = await client.getBranchSha(owner, repository, base);
+    const issueId = await client.getIssueNodeId(owner, repository, target.issue);
+    const branch = await client.createLinkedBranch(issueId, sha, target.branch);
+    return { issue: target.issue, branch, base, sha };
+}
+
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は内部の状態を持つ */
 // auto-start。AI の前の step。ボードに載せるか待ちの値を戻し、続きに要る文脈を JSON のファイルに書く。
 const PATH = ['auto', 'start'];
@@ -50369,6 +50719,8 @@ const PATH = ['auto', 'start'];
 */
 const AUTO_DIRECTORY = 'pecot-auto';
 const CONTEXT_FILE = 'context.json';
+// 末尾に Issue 番号を付けた名前でブランチを作る
+const WORK_BRANCH_PREFIX = 'feat/auto';
 const AUTO_START_INPUT = object({
     issue_ref: string$1().describe(ISSUE_REF_DESCRIPTION),
     project: PROJECT_INPUT,
@@ -50382,7 +50734,7 @@ function openPullRequestOf(facts, branch) {
 async function putOnBoard(out, client, config, target) {
     const display = issueDisplay(target);
     if (!isStatusConfigured(config, 'ready'))
-        stopWith(out, hinted `the board has no option Ready for the column\n${RUN_COLON}${commandHint(['project', 'init'])}`, 'status-not-configured');
+        stopWith(out, hinted `the board has no option Ready for the column\n${RUN_COLON}${boardFieldsHint({ owner: config.owner, number: config.project.number })}`, 'status-not-configured');
     try {
         const { itemId } = await addIssueToBoard(client, config, target.owner, target.repository, target.number, undefined);
         await setIssueField(client, config, itemId, 'workflow', 'ready');
@@ -50399,7 +50751,7 @@ async function restoreStatus(out, client, config, target, item, key) {
     const name = statusName(key);
     const optionId = getOptionId(config, 'status', key);
     if (optionId === undefined || optionId === '')
-        stopWith(out, hinted `the board has no option ${name} for Status\n${RUN_COLON}${commandHint(['project', 'init'])}`, 'status-not-configured');
+        stopWith(out, hinted `the board has no option ${name} for Status\n${RUN_COLON}${boardFieldsHint({ owner: config.owner, number: config.project.number })}`, 'status-not-configured');
     try {
         await setIssueField(client, config, item, 'status', key);
     }
@@ -50440,6 +50792,33 @@ function writeContext(directory, context) {
     writeFileSync(file, `${JSON.stringify(context, undefined, 2)}\n`, 'utf8');
     return file;
 }
+/**
+ブランチの無い Issue に、AI の前にブランチを作る。作る名前は feat/auto/<番号>。
+base は、着手の判定がスタック先を選んだときはそのブランチ、そうでなければ開発ブランチ。
+前提が済んでいないときと、開発ブランチが無いときは、作らずに止まる
+*/
+async function createWorkBranch(out, client, target, snapshot) {
+    const display = issueDisplay(target);
+    const result = await readOrStop(out, `the readiness of ${display}`, async () => await judgeSnapshot(client, snapshot, createReadinessCache()));
+    if (result.kind === 'unreadable')
+        return stopWith(out, `could not judge readiness of ${display}: ${result.reason}`, 'dependency-unreadable');
+    const decision = decideStart(result.readiness, result.prerequisites, snapshot.ref);
+    if (decision.kind === 'blocked')
+        return stopWith(out, decision.message, 'not-ready');
+    const base = decision.kind === 'stack' ? decision.branch : snapshot.developmentBranch;
+    if (base === undefined || base === '')
+        return stopWith(out, hinted `develop_branch is not set for ${target.owner}/${target.repository}\n${RUN_COLON}${commandHint(['project', 'link'], { repo: `${target.owner}/${target.repository}`, develop_branch: 'develop' })}`, 'repo-setting-missing');
+    try {
+        const linked = await linkIssueBranch(client, { owner: target.owner, repository: target.repository, issue: target.number, branch: `${WORK_BRANCH_PREFIX}/${String(target.number)}`, base });
+        out.done({ verb: 'create', target: `branch ${linked.branch} in ${target.owner}/${target.repository} from ${base}` });
+        return { branch: linked.branch, base };
+    }
+    catch (error) {
+        if (!(error instanceof GitHubAPIError))
+            throw error;
+        return stopWith(out, `could not create the branch for ${display}: ${error.message}`, kindOfFailure(error));
+    }
+}
 async function start(out, input) {
     const directory = contextDirectory(out);
     const target = parseIssueReferenceOrExit(out, undefined, input.issue_ref);
@@ -50455,7 +50834,8 @@ async function start(out, input) {
     const writers = await writersAmong(out, client, repository, permissionCandidates(comments));
     const context = autoContextOf(comments, writers);
     const found = markerBranch(snapshot.target.branches, snapshot.target.pullRequests, target.number);
-    const branch = found === NO_BRANCH ? '' : found;
+    // 既にあるブランチの base は分からないので、開発ブランチを渡す。PR があれば使わない
+    const { branch, base } = found === NO_BRANCH ? await createWorkBranch(out, client, target, snapshot) : { branch: found, base: snapshot.developmentBranch ?? '' };
     const pr = openPullRequestOf(snapshot.target, branch);
     await settleBoard(out, client, config, target, snapshot.target, comments, pr > 0);
     if (context.withheld > 0)
@@ -50467,6 +50847,7 @@ async function start(out, input) {
         answers: context.answers,
         withheld: context.withheld,
         branch,
+        base,
         pr,
     });
     setOutput('context-file', file);
@@ -50488,38 +50869,30 @@ pecot-workflow の MCP のサーバの registry.ts が登録するツールの�
 */
 const TOOL_HINT_COMMANDS = [
     { name: 'project_list', inputs: ['repo'] },
-    { name: 'project_search', inputs: ['owner', 'host', 'repo'] },
-    { name: 'project_init', inputs: ['owner', 'name', 'host', 'lanes', 'confirm_delete', 'repo'] },
-    { name: 'project_create', inputs: ['owner', 'title', 'host', 'lanes', 'repo'] },
-    { name: 'project_activate', inputs: ['project', 'owner', 'host', 'repo'] },
+    { name: 'project_check', inputs: ['method', 'owner', 'owner_type', 'title', 'project', 'changes', 'lanes', 'reads', 'repo'] },
+    { name: 'project_activate', inputs: ['project', 'owner', 'owner_type', 'host', 'reads', 'repo'] },
     { name: 'project_link', inputs: ['repo', 'develop_branch', 'release_branch', 'changelog_file', 'package', 'clear_packages', 'release_type'] },
     { name: 'project_get', inputs: ['key', 'repo'] },
     { name: 'project_set', inputs: ['key', 'value', 'yes', 'repo'] },
     { name: 'project_unset', inputs: ['key', 'repo'] },
-    { name: 'board_show', inputs: ['json', 'repo'] },
-    { name: 'board_add', inputs: ['issue_ref', 'status', 'project', 'repo'] },
-    { name: 'board_move', inputs: ['issue_ref', 'status', 'project', 'repo'] },
+    { name: 'board_show', inputs: ['json', 'repo', 'reads'] },
+    { name: 'board_check', inputs: ['method', 'owner', 'project_number', 'issue_number', 'item_owner', 'item_repo', 'updated_field', 'project', 'reads', 'repo'] },
     { name: 'issue_check', inputs: ['method', 'project', 'issues', 'reads', 'repo'] },
     { name: 'issue_dependency_check', inputs: ['method', 'owner', 'repo', 'issue_number', 'type', 'related_owner', 'related_repo', 'related_issue_number', 'wait', 'reason', 'project', 'reads'] },
     { name: 'issue_comment_check', inputs: ['method', 'owner', 'repo', 'issue_number', 'comment_id', 'body', 'template', 'template_text', 'reads'] },
-    { name: 'session_start', inputs: ['issue_ref', 'branch', 'base', 'checkout', 'project', 'repo'] },
+    { name: 'session_start', inputs: ['issue_ref', 'base', 'sha', 'stacked_on', 'title', 'reads', 'repo'] },
     { name: 'session_show', inputs: ['directory', 'project', 'repo'] },
-    { name: 'session_finish', inputs: ['pr_ref', 'delete_branch', 'project', 'repo'] },
-    { name: 'pr_create', inputs: ['file', 'message', 'title', 'base', 'head', 'draft', 'repo', 'no_issue_ref', 'template', 'screenshot', 'project'] },
-    { name: 'pr_show', inputs: ['pr_ref', 'json', 'reviews', 'project', 'repo'] },
-    { name: 'pr_check', inputs: ['directory', 'project', 'repo'] },
-    { name: 'pr_merge', inputs: ['pr_ref', 'project', 'repo'] },
-    { name: 'pr_restack', inputs: ['check', 'continue', 'abort', 'project', 'repo'] },
-    { name: 'release_check', inputs: ['version', 'package', 'project', 'repo'] },
-    { name: 'release_create', inputs: ['version', 'package', 'project', 'repo'] },
-    { name: 'release_merge', inputs: ['pr_ref', 'delete_branch', 'admin', 'project', 'repo'] },
+    { name: 'session_finish', inputs: ['pr_ref', 'project', 'reads', 'repo'] },
+    { name: 'pr_check', inputs: ['method', 'owner', 'repo', 'title', 'head', 'base', 'draft', 'body', 'pullNumber', 'merge_method', 'expectedHeadSha', 'template', 'template_text', 'screenshot', 'project', 'reads'] },
+    { name: 'pr_restack', inputs: ['check', 'continue', 'abort', 'project', 'reads', 'repo'] },
+    { name: 'release_check', inputs: ['params', 'project', 'reads', 'repo'] },
     { name: 'worktree_add', inputs: ['directory', 'base', 'path', 'no_copy', 'no_link', 'setup', 'allow_existing_branch', 'project', 'repo'] },
     { name: 'worktree_remove', inputs: ['name', 'directory', 'force', 'keep_branch', 'repo'] },
     { name: 'worktree_init', inputs: ['directory', 'repo'] },
     { name: 'worktree_link', inputs: ['directory', 'force', 'all', 'repo'] },
-    { name: 'branch_delete', inputs: ['repo', 'branch', 'project'] },
-    { name: 'workflow_install', inputs: ['name', 'check', 'force', 'directory', 'repo'] },
-    { name: 'workflow_doctor', inputs: ['name', 'directory', 'repo'] },
+    { name: 'branch_check', inputs: ['owner', 'repo', 'issue', 'branch', 'base', 'project', 'reads'] },
+    { name: 'workflow_install', inputs: ['name', 'check', 'force', 'directory', 'reads', 'repo'] },
+    { name: 'workflow_doctor', inputs: ['name', 'directory', 'reads', 'repo'] },
 ];
 /**
 actions/ に移した処理の形。name の `_` を `-` にしたものが actions/<name>/action.yml、inputs は token を除く inputs を snake_case にしたもの

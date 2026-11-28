@@ -6590,12 +6590,6 @@ function inputHint(path, name, value = true) {
     return { kind: 'input', path, name, value };
 }
 /**
-入力の名前だけの案内。`host is required` の `host`
-*/
-function inputNameHint(path, name) {
-    return { kind: 'input', path, name, value: undefined };
-}
-/**
 入力 repo の案内。value が無ければ名前だけ
 */
 function globalRepositoryHint(value) {
@@ -6616,7 +6610,7 @@ function isHint(value) {
     return typeof value === 'object' && value !== null && 'kind' in value;
 }
 /**
-タグ付きテンプレートで HintedText を作る。`hinted\`call ${commandHint(['project', 'init'])}\``
+タグ付きテンプレートで HintedText を作る。`hinted\`call ${commandHint(['project', 'list'])}\``
 */
 function hinted(strings, ...values) {
     return strings.flatMap((text, index) => {
@@ -17143,9 +17137,12 @@ object({
     attributes: preprocess(value => value === null ? undefined : value, array(AttributeEntrySchema, { error: listMessage }).readonly().optional()),
     lane: preprocess(emptyStringToUndefined, string$1({ error: stringMessage }).nullish().transform(value => value ?? undefined)),
 }).readonly();
+// 鍵は create_pull_request の引数の名前。template と screenshot だけが pecot の鍵
 object({
+    template: preprocess(normalizeOptionalText, string$1({ error: stringMessage }).nullish().transform(value => value ?? undefined)),
+    owner: string$1({ error: stringMessage }),
+    repo: string$1({ error: stringMessage }),
     title: string$1({ error: stringMessage }),
-    repository: string$1({ error: stringMessage }),
     base: string$1({ error: stringMessage }),
     head: string$1({ error: STRING_MESSAGE }).nullish().transform(value => value ?? undefined),
     draft: preprocess(convertToBoolean, boolean({ error: issue => booleanMessage(issue.input) })).prefault(false),
@@ -17311,15 +17308,12 @@ pr restack のコマンドの path。案内（commandHint）とコマンドの�
 */
 const RESTACK_PATH = ['pr', 'restack'];
 
-// PR コマンドの入出力を持たない関数。本文の検証、Closes の抽出と追記、`pr show` の Markdown の整形、preflight の警告の判定。
-// 引数の型は、infra/github/pulls.ts の返す値が構造として満たす形をここに持つ（domain は infra を import できない）。
+// PR の決まりのうち、入出力を持たない関数。閉じる Issue の抽出、base の判断、preflight の警告の判定。
 // Python の `\s`（str.isspace）と同じ空白
 const PYTHON_SPACE = String.raw `[\t\n\v\f\r\u{1C}-\u{20}\u{85}\u{A0}\u{1680}\u{2000}-\u{200A}\u{2028}\u{2029}\u{202F}\u{205F}\u{3000}]`;
 // GitHub が認識する close・fix・resolve と、それぞれの -s / -es / -d 付きの形。`owner/repo#N` の形も受ける
 // eslint-disable-next-line security/detect-non-literal-regexp -- 固定の文字列から組み立てる
 const CLOSING_KEYWORDS_PATTERN = new RegExp(String.raw `(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)${PYTHON_SPACE}+(?:([\w-]+)/([\w.-]+))?#(\p{Nd}+)`, 'giu');
-const PR_CREATE_PATH = ['pr', 'create'];
-hinted `Summary has no image and \`screenshot\` gives no reason to omit one. If the change alters a screen, Markdown the tool writes for GitHub, or CLI output text, take a screenshot and add it to Summary as \`![alt](./<file>.png)\`. Otherwise, write the reason in the \`screenshot\` frontmatter field (\`${inputNameHint(PR_CREATE_PATH, 'screenshot')}\` with \`${inputNameHint(PR_CREATE_PATH, 'message')}\`)`;
 /**
 本文のコードと HTML コメントの外の Closes / Fixes / Resolves に続く、repository の Issue 番号を、出てきた順に重複なしで返す。
 GitHub が既定ブランチ宛ての PR で数えない所は数えない
@@ -21488,52 +21482,6 @@ class IssuesApi extends ProjectsApi {
 }
 
 /**
-例外が持つ子プロセスの生の出力（log）。無いか空なら undefined
-*/
-function logOf(error) {
-    if (typeof error !== 'object' || error === null || !('log' in error))
-        return undefined;
-    const { log } = error;
-    return typeof log === 'string' && log.trim() !== '' ? log : undefined;
-}
-
-// コマンドが捕まえなかった例外を、最上位で `error: <message>` の行と終了コード 1 にする（Python の PecotError の網と同じ）。
-// 値の誤り（InvalidValueError）と OS のエラーも同じ行にする。上のどれでもない例外はプログラムの誤りなので、伝える。
-const FAILURE_EXIT_CODE = 1;
-/**
-最上位で error の行にできる例外か
-*/
-function isReportableFailure(error) {
-    return error instanceof PecotError || error instanceof InvalidValueError || error instanceof OsError;
-}
-function reportFailure(error, io) {
-    const out = createOutput(false, io);
-    const log = logOf(error);
-    if (log !== undefined)
-        out.log(log);
-    out.error(hintedTextOf(error) ?? error.message);
-}
-// 子クラスを親より先に並べる
-const KIND_BY_CLASS = [
-    [UsageError, 'invalid-input'],
-    [InvalidValueError, 'invalid-input'],
-    [AbortedError, 'aborted'],
-    [GitHubAuthError, 'github-auth'],
-    [GitHubNotFoundError, 'github-not-found'],
-    [GitHubRateLimitError, 'github-rate-limit'],
-    [GitHubAPIError, 'github-api'],
-    [ConfigError, 'config-invalid'],
-    [ProjectRootNotFoundError, 'project-root-not-found'],
-];
-/**
-例外のクラスから失敗の原因の名前を決める。表に無いものは other
-*/
-function kindOfFailure(error) {
-    return KIND_BY_CLASS.find(([type]) => error instanceof type)?.[1] ?? 'other';
-}
-
-// project の各コマンドが共有する部分。失敗の行、フィールドの検証、設定ファイルの同期（Python の project.py の _sync_project_config まわり）。
-/**
 前提を待つ Issue を pecot が置く列
 */
 const BLOCKED_SPEC = {
@@ -21564,17 +21512,6 @@ const WORKFLOW_FIELD_SPECS = [
     { option: { name: 'In Review', color: 'YELLOW', description: 'Pull request created and waiting for review. Moves to Archived after merge is completed.' } },
     { option: { name: 'Archived', color: 'PURPLE', description: 'Completed or cancelled items. Moved here after the issue is closed or no longer needed.' } },
 ];
-/**
-workflow フィールドに作る選択肢
-*/
-WORKFLOW_FIELD_SPECS.map(spec => spec.option);
-function keyEntry(name, isOptional) {
-    return { key: name.toLowerCase().replaceAll(' ', '_'), label: name.toLowerCase(), isOptional };
-}
-// 設定ファイルのキーの順（保存の JSON のキーの順になる）。isOptional は選択肢の定義の値を使う
-const WORKFLOW_KEY_ORDER = ['Backlog', 'Pending', 'Blocked', 'Ready', 'Active', 'In Review', 'Archived'];
-WORKFLOW_KEY_ORDER.map(name => keyEntry(name, WORKFLOW_FIELD_SPECS.some(spec => spec.option.name === name && spec.isOptional === true)));
-[keyEntry('Todo', true), keyEntry('In Progress', true), keyEntry(NEEDS_ATTENTION_SPEC.option.name, NEEDS_ATTENTION_SPEC.isOptional === true)];
 
 // Issue の着手の可否の読み取り。前提を読み、判定する。board show と issue show が使う。
 // 流れは getIssuePrerequisites → readWaitsForMerge → toIssueFacts → judgeReadiness。
@@ -21801,6 +21738,68 @@ const READINESS_JSON = strictObject({
     text: string$1().describe('Readiness as shown in the Readiness line'),
 });
 
+/**
+例外が持つ子プロセスの生の出力（log）。無いか空なら undefined
+*/
+function logOf(error) {
+    if (typeof error !== 'object' || error === null || !('log' in error))
+        return undefined;
+    const { log } = error;
+    return typeof log === 'string' && log.trim() !== '' ? log : undefined;
+}
+
+// コマンドが捕まえなかった例外を、最上位で `error: <message>` の行と終了コード 1 にする（Python の PecotError の網と同じ）。
+// 値の誤り（InvalidValueError）と OS のエラーも同じ行にする。上のどれでもない例外はプログラムの誤りなので、伝える。
+const FAILURE_EXIT_CODE = 1;
+/**
+最上位で error の行にできる例外か
+*/
+function isReportableFailure(error) {
+    return error instanceof PecotError || error instanceof InvalidValueError || error instanceof OsError;
+}
+function reportFailure(error, io) {
+    const out = createOutput(false, io);
+    const log = logOf(error);
+    if (log !== undefined)
+        out.log(log);
+    out.error(hintedTextOf(error) ?? error.message);
+}
+// 子クラスを親より先に並べる
+const KIND_BY_CLASS = [
+    [UsageError, 'invalid-input'],
+    [InvalidValueError, 'invalid-input'],
+    [AbortedError, 'aborted'],
+    [GitHubAuthError, 'github-auth'],
+    [GitHubNotFoundError, 'github-not-found'],
+    [GitHubRateLimitError, 'github-rate-limit'],
+    [GitHubAPIError, 'github-api'],
+    [ConfigError, 'config-invalid'],
+    [ProjectRootNotFoundError, 'project-root-not-found'],
+];
+/**
+例外のクラスから失敗の原因の名前を決める。表に無いものは other
+*/
+function kindOfFailure(error) {
+    return KIND_BY_CLASS.find(([type]) => error instanceof type)?.[1] ?? 'other';
+}
+
+// project の各コマンドが共有する部分。失敗の行、フィールドの検証、読んだボードからの設定ファイルの同期。
+/**
+ボードの欄を直し、設定ファイルに読み直す手順の案内。owner と number が分かれば添える
+*/
+function boardFieldsHint(board) {
+    const check = { method: 'fields' } ;
+    const activate = {} ;
+    return hinted `${commandHint(['project', 'check'], check)} and apply the changes it asks for with the project-fields operation of github-ops, then ${commandHint(['project', 'activate'], activate)} to read the board into the project config`;
+}
+function keyEntry(name, isOptional) {
+    return { key: name.toLowerCase().replaceAll(' ', '_'), label: name.toLowerCase(), isOptional };
+}
+// 設定ファイルのキーの順（保存の JSON のキーの順になる）。isOptional は選択肢の定義の値を使う
+const WORKFLOW_KEY_ORDER = ['Backlog', 'Pending', 'Blocked', 'Ready', 'Active', 'In Review', 'Archived'];
+WORKFLOW_KEY_ORDER.map(name => keyEntry(name, WORKFLOW_FIELD_SPECS.some(spec => spec.option.name === name && spec.isOptional === true)));
+[keyEntry('Todo', true), keyEntry('In Progress', true), keyEntry(NEEDS_ATTENTION_SPEC.option.name, NEEDS_ATTENTION_SPEC.isOptional === true)];
+
 // board show の表示と、Archived の整理、Dependabot alert の収集。
 /**
 items を最大 limit 件ずつ並列に処理し、結果を items の順で返す。1 件でも投げたら、その例外で止まる
@@ -21923,16 +21922,6 @@ async function setIssueField(client, config, itemId, fieldName, optionName) {
     await client.updateProjectItemField(config.project.id, itemId, fieldId, optionId);
     return true;
 }
-/**
-列と札を動かした（dry-run は動かす予定の）Issue 1 件。board sync・pr create・issue block / unblock の data が使う
-*/
-strictObject({
-    issue: string$1().describe('Issue as shown in the moved line (#N, or owner/repo#N outside the home repository)'),
-    from: string$1().optional().describe('Column before the move (omitted when only the Status changed)'),
-    to: string$1().optional().describe('Column after the move (omitted when only the Status changed)'),
-    label: string$1().optional().describe('Status value set (omitted when the Status did not change)'),
-    reason: string$1().describe('Readiness that decided the move'),
-});
 function moveOperation(name, column, text) {
     return { verb: 'move', target: `${name} ${column.from} -> ${column.to} (${text})` };
 }
@@ -22008,7 +21997,7 @@ const BOARD_SYNC_WORKFLOW = 'the pecot-board-sync workflow (Run workflow on its 
 */
 function missingWarning(missing) {
     const names = [...missing].toSorted(compareStrings);
-    return hinted `the board has no option ${names.join(', ')}; add ${names.length === 1 ? 'it' : 'them'} with ${commandHint(['project', 'init'])}`;
+    return hinted `the board has no option ${names.join(', ')}; add ${names.length === 1 ? 'it' : 'them'} with ${boardFieldsHint()}`;
 }
 // 対象の列の Issue か。PR と Tracker は対象にしない
 function toTarget(item, columns) {
@@ -51579,38 +51568,30 @@ pecot-workflow の MCP のサーバの registry.ts が登録するツールの�
 */
 const TOOL_HINT_COMMANDS = [
     { name: 'project_list', inputs: ['repo'] },
-    { name: 'project_search', inputs: ['owner', 'host', 'repo'] },
-    { name: 'project_init', inputs: ['owner', 'name', 'host', 'lanes', 'confirm_delete', 'repo'] },
-    { name: 'project_create', inputs: ['owner', 'title', 'host', 'lanes', 'repo'] },
-    { name: 'project_activate', inputs: ['project', 'owner', 'host', 'repo'] },
+    { name: 'project_check', inputs: ['method', 'owner', 'owner_type', 'title', 'project', 'changes', 'lanes', 'reads', 'repo'] },
+    { name: 'project_activate', inputs: ['project', 'owner', 'owner_type', 'host', 'reads', 'repo'] },
     { name: 'project_link', inputs: ['repo', 'develop_branch', 'release_branch', 'changelog_file', 'package', 'clear_packages', 'release_type'] },
     { name: 'project_get', inputs: ['key', 'repo'] },
     { name: 'project_set', inputs: ['key', 'value', 'yes', 'repo'] },
     { name: 'project_unset', inputs: ['key', 'repo'] },
-    { name: 'board_show', inputs: ['json', 'repo'] },
-    { name: 'board_add', inputs: ['issue_ref', 'status', 'project', 'repo'] },
-    { name: 'board_move', inputs: ['issue_ref', 'status', 'project', 'repo'] },
+    { name: 'board_show', inputs: ['json', 'repo', 'reads'] },
+    { name: 'board_check', inputs: ['method', 'owner', 'project_number', 'issue_number', 'item_owner', 'item_repo', 'updated_field', 'project', 'reads', 'repo'] },
     { name: 'issue_check', inputs: ['method', 'project', 'issues', 'reads', 'repo'] },
     { name: 'issue_dependency_check', inputs: ['method', 'owner', 'repo', 'issue_number', 'type', 'related_owner', 'related_repo', 'related_issue_number', 'wait', 'reason', 'project', 'reads'] },
     { name: 'issue_comment_check', inputs: ['method', 'owner', 'repo', 'issue_number', 'comment_id', 'body', 'template', 'template_text', 'reads'] },
-    { name: 'session_start', inputs: ['issue_ref', 'branch', 'base', 'checkout', 'project', 'repo'] },
+    { name: 'session_start', inputs: ['issue_ref', 'base', 'sha', 'stacked_on', 'title', 'reads', 'repo'] },
     { name: 'session_show', inputs: ['directory', 'project', 'repo'] },
-    { name: 'session_finish', inputs: ['pr_ref', 'delete_branch', 'project', 'repo'] },
-    { name: 'pr_create', inputs: ['file', 'message', 'title', 'base', 'head', 'draft', 'repo', 'no_issue_ref', 'template', 'screenshot', 'project'] },
-    { name: 'pr_show', inputs: ['pr_ref', 'json', 'reviews', 'project', 'repo'] },
-    { name: 'pr_check', inputs: ['directory', 'project', 'repo'] },
-    { name: 'pr_merge', inputs: ['pr_ref', 'project', 'repo'] },
-    { name: 'pr_restack', inputs: ['check', 'continue', 'abort', 'project', 'repo'] },
-    { name: 'release_check', inputs: ['version', 'package', 'project', 'repo'] },
-    { name: 'release_create', inputs: ['version', 'package', 'project', 'repo'] },
-    { name: 'release_merge', inputs: ['pr_ref', 'delete_branch', 'admin', 'project', 'repo'] },
+    { name: 'session_finish', inputs: ['pr_ref', 'project', 'reads', 'repo'] },
+    { name: 'pr_check', inputs: ['method', 'owner', 'repo', 'title', 'head', 'base', 'draft', 'body', 'pullNumber', 'merge_method', 'expectedHeadSha', 'template', 'template_text', 'screenshot', 'project', 'reads'] },
+    { name: 'pr_restack', inputs: ['check', 'continue', 'abort', 'project', 'reads', 'repo'] },
+    { name: 'release_check', inputs: ['params', 'project', 'reads', 'repo'] },
     { name: 'worktree_add', inputs: ['directory', 'base', 'path', 'no_copy', 'no_link', 'setup', 'allow_existing_branch', 'project', 'repo'] },
     { name: 'worktree_remove', inputs: ['name', 'directory', 'force', 'keep_branch', 'repo'] },
     { name: 'worktree_init', inputs: ['directory', 'repo'] },
     { name: 'worktree_link', inputs: ['directory', 'force', 'all', 'repo'] },
-    { name: 'branch_delete', inputs: ['repo', 'branch', 'project'] },
-    { name: 'workflow_install', inputs: ['name', 'check', 'force', 'directory', 'repo'] },
-    { name: 'workflow_doctor', inputs: ['name', 'directory', 'repo'] },
+    { name: 'branch_check', inputs: ['owner', 'repo', 'issue', 'branch', 'base', 'project', 'reads'] },
+    { name: 'workflow_install', inputs: ['name', 'check', 'force', 'directory', 'reads', 'repo'] },
+    { name: 'workflow_doctor', inputs: ['name', 'directory', 'reads', 'repo'] },
 ];
 /**
 actions/ に移した処理の形。name の `_` を `-` にしたものが actions/<name>/action.yml、inputs は token を除く inputs を snake_case にしたもの

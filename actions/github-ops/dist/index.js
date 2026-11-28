@@ -2743,99 +2743,6 @@ const $ZodUnion = /*@__PURE__*/ $constructor("$ZodUnion", (inst, def) => {
         });
     };
 });
-function discriminatorMap(def) {
-    const map = new Map();
-    for (const option of def.options) {
-        const values = option._zod.propValues?.[def.discriminator];
-        if (!values || values.size === 0)
-            throw new Error(`Invalid discriminated union option at index "${def.options.indexOf(option)}"`);
-        for (const value of values) {
-            if (map.has(value)) {
-                if (value !== undefined)
-                    throw new Error(`Duplicate discriminator value "${String(value)}"`);
-                // keep the collision marked so a later member cannot reclaim it
-                map.set(value, null);
-            }
-            else {
-                map.set(value, option);
-            }
-        }
-    }
-    return map;
-}
-const $ZodDiscriminatedUnion = 
-/*@__PURE__*/
-$constructor("$ZodDiscriminatedUnion", (inst, def) => {
-    def.inclusive = false;
-    $ZodUnion.init(inst, def);
-    const _super = inst._zod.parse;
-    defineLazyInternal(inst, "propValues", (zod) => {
-        const propValues = {};
-        let undefinedCount = 0;
-        for (const option of zod.def.options) {
-            const pv = option._zod.propValues;
-            if (!pv || Object.keys(pv).length === 0)
-                throw new Error(`Invalid discriminated union option at index "${zod.def.options.indexOf(option)}"`);
-            if (pv[zod.def.discriminator]?.has(undefined))
-                undefinedCount++;
-            for (const [k, v] of Object.entries(pv)) {
-                if (!Object.prototype.hasOwnProperty.call(propValues, k)) {
-                    assignProp(propValues, k, new Set());
-                }
-                for (const val of v) {
-                    propValues[k].add(val);
-                }
-            }
-        }
-        if (!zod.def.unionFallback && undefinedCount > 1)
-            propValues[zod.def.discriminator]?.delete(undefined);
-        return propValues;
-    });
-    // Checked now rather than in the lookup map below, so an option that lacks the discriminator fails at the `discriminatedUnion` call instead of on the first object parsed. Options whose shape cannot be enumerated without resolving it — pipes and lazies — are left to the map.
-    def.options.forEach((option, i) => {
-        const propShape = rawShape(option._zod.def);
-        if (propShape && !Object.prototype.hasOwnProperty.call(propShape, def.discriminator)) {
-            throw new Error(`Invalid discriminated union option at index "${i}"`);
-        }
-    });
-    const disc = cached(() => discriminatorMap(def));
-    inst._zod.parse = (payload, ctx) => {
-        const input = payload.value;
-        if (!isObject(input)) {
-            payload.issues.push({
-                code: "invalid_type",
-                expected: "object",
-                input,
-                inst,
-            });
-            return payload;
-        }
-        const value = input?.[def.discriminator];
-        const opt = disc.value.get(value);
-        // forward metadata cannot choose an encoder for an absent tag
-        if (opt && (value !== undefined || ctx.direction !== "backward")) {
-            return opt._zod.run(payload, ctx);
-        }
-        // Fall back to union matching when the fast discriminator path fails:
-        // - explicitly enabled via unionFallback, or
-        // - during backward direction (encode), since codec-based discriminators have different values in forward vs backward directions
-        if (def.unionFallback || ctx.direction === "backward") {
-            return _super(payload, ctx);
-        }
-        // no matching discriminator
-        payload.issues.push({
-            code: "invalid_union",
-            errors: [],
-            note: "No matching discriminator",
-            discriminator: def.discriminator,
-            options: Array.from(disc.value.keys()).filter((value) => disc.value.get(value) !== null),
-            input,
-            path: [def.discriminator],
-            inst,
-        });
-        return payload;
-    };
-});
 const $ZodIntersection = /*@__PURE__*/ $constructor("$ZodIntersection", (inst, def) => {
     $ZodType.init(inst, def);
     inst._zod.parse = (payload, ctx) => {
@@ -3144,33 +3051,6 @@ const $ZodEnum = /*@__PURE__*/ $constructor("$ZodEnum", (inst, def) => {
         payload.issues.push({
             code: "invalid_value",
             values,
-            input,
-            inst,
-        });
-        return payload;
-    };
-});
-const $ZodLiteral = /*@__PURE__*/ $constructor("$ZodLiteral", (inst, def) => {
-    $ZodType.init(inst, def);
-    const values = new Set(def.values);
-    inst._zod.values = values;
-    defineLazyInternal(inst, "pattern", (zod) => {
-        const vals = zod.def.values;
-        // unmatchable fallback, RE2-safe: an empty alternation would compile to /^()$/, which matches ""
-        return new RegExp(vals.length
-            ? `^(${vals
-                .map((o) => typeof o === "string" ? escapeRegex(o) : o ? escapeRegex(o.toString()) : String(o))
-                .join("|")})$`
-            : "^[^\\s\\S]$");
-    });
-    inst._zod.parse = (payload, _ctx) => {
-        const input = payload.value;
-        if (values.has(input)) {
-            return payload;
-        }
-        payload.issues.push({
-            code: "invalid_value",
-            values: def.values,
             input,
             inst,
         });
@@ -5309,53 +5189,6 @@ const enumProcessor = (schema, _ctx, json, _params) => {
         json.type = "string";
     json.enum = values;
 };
-const literalProcessor = (schema, ctx, json, params) => {
-    const def = schema._zod.def;
-    // a literal with no values accepts nothing, same as z.never()
-    if (def.values.length === 0) {
-        json.not = {};
-        return;
-    }
-    const vals = [];
-    for (const val of def.values) {
-        if (val === undefined) {
-            // a custom schema replaces the whole literal, so there is nothing left to accumulate
-            if (handleUnrepresentable(schema, ctx, json, params, "Literal `undefined` cannot be represented in JSON Schema"))
-                return;
-            // otherwise do not add to vals
-        }
-        else if (typeof val === "bigint") {
-            if (handleUnrepresentable(schema, ctx, json, params, "BigInt literals cannot be represented in JSON Schema"))
-                return;
-            vals.push(Number(val));
-        }
-        else {
-            vals.push(val);
-        }
-    }
-    if (vals.length === 0) ;
-    else if (vals.length === 1) {
-        const val = vals[0];
-        json.type = val === null ? "null" : typeof val;
-        if (ctx.target === "draft-04" || ctx.target === "openapi-3.0") {
-            json.enum = [val];
-        }
-        else {
-            json.const = val;
-        }
-    }
-    else {
-        if (vals.every((v) => typeof v === "number"))
-            json.type = "number";
-        if (vals.every((v) => typeof v === "string"))
-            json.type = "string";
-        if (vals.every((v) => typeof v === "boolean"))
-            json.type = "boolean";
-        if (vals.every((v) => v === null))
-            json.type = "null";
-        json.enum = vals;
-    }
-};
 const customProcessor = (schema, ctx, json, params) => {
     handleUnrepresentable(schema, ctx, json, params, "Custom types cannot be represented in JSON Schema");
 };
@@ -6418,19 +6251,6 @@ function union(options, params) {
         ...normalizeParams(params),
     });
 }
-const ZodDiscriminatedUnion = /*@__PURE__*/ $constructor("ZodDiscriminatedUnion", (inst, def) => {
-    ZodUnion.init(inst, def);
-    $ZodDiscriminatedUnion.init(inst, def);
-});
-function discriminatedUnion(discriminator, options, params) {
-    // const [options, params] = args;
-    return new ZodDiscriminatedUnion({
-        type: "union",
-        options: options,
-        discriminator,
-        ...normalizeParams(params),
-    });
-}
 const ZodIntersection = /*@__PURE__*/ $constructor("ZodIntersection", (inst, def) => {
     $ZodIntersection.init(inst, def);
     ZodType.init(inst, def);
@@ -6514,27 +6334,6 @@ function _enum(values, params) {
     return new ZodEnum({
         type: "enum",
         entries,
-        ...normalizeParams(params),
-    });
-}
-const ZodLiteral = /*@__PURE__*/ $constructor("ZodLiteral", (inst, def) => {
-    $ZodLiteral.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => literalProcessor(inst, ctx, json, params);
-    inst.values = new Set(def.values);
-    Object.defineProperty(inst, "value", {
-        get() {
-            if (def.values.length > 1) {
-                throw new Error("This schema contains multiple valid literal values. Use `.values` instead.");
-            }
-            return def.values[0];
-        },
-    });
-});
-function literal(value, params) {
-    return new ZodLiteral({
-        type: "literal",
-        values: Array.isArray(value) ? value : [value],
         ...normalizeParams(params),
     });
 }
@@ -7071,7 +6870,7 @@ function isHint(value) {
     return typeof value === 'object' && value !== null && 'kind' in value;
 }
 /**
-タグ付きテンプレートで HintedText を作る。`hinted\`call ${commandHint(['project', 'init'])}\``
+タグ付きテンプレートで HintedText を作る。`hinted\`call ${commandHint(['project', 'list'])}\``
 */
 function hinted(strings, ...values) {
     return strings.flatMap((text, index) => {
@@ -11771,7 +11570,51 @@ function createGitHubClient(out, host) {
     return new GitHubClient({ host, diagnostics: out, signal: out.signal });
 }
 
-// project の各コマンドが共有する部分。失敗の行、フィールドの検証、設定ファイルの同期（Python の project.py の _sync_project_config まわり）。
+/**
+base を省くと、リポの既定のブランチから作る。ブランチ名は GitHub が付けた名前を返す
+*/
+async function linkIssueBranch(client, target) {
+    const { owner, repository } = target;
+    const settings = target.base === undefined ? await client.getRepositorySettings(owner, repository) : undefined;
+    const base = target.base ?? settings?.defaultBranch ?? '';
+    const sha = await client.getBranchSha(owner, repository, base);
+    const issueId = await client.getIssueNodeId(owner, repository, target.issue);
+    const branch = await client.createLinkedBranch(issueId, sha, target.branch);
+    return { issue: target.issue, branch, base, sha };
+}
+
+// github-ops の operation の params の形。actions の github-ops と、書く前のチェック（pecot-workflow）が同じものを使う
+const NUMBER = number().int().min(1);
+const NAME = string().min(1);
+const REPOSITORY = string().refine(value => /^[\w.-]+\/[\w.-]+$/u.test(value), 'owner/repo');
+const OPTION = strictObject({
+    name: NAME,
+    color: string().min(1).optional(),
+    description: string().optional(),
+});
+/**
+project-fields の changes の 1 件
+*/
+const FIELD_CHANGE = union([
+    strictObject({ action: _enum(['create']), name: NAME, options: array(OPTION).min(1) }),
+    strictObject({ action: _enum(['rename']), name: NAME, to: NAME }),
+    strictObject({ action: _enum(['delete']), name: NAME }),
+    strictObject({ action: _enum(['set-options']), name: NAME, options: array(OPTION).min(1) }),
+]);
+const LINK_BRANCH_PARAMS = strictObject({ issue: NUMBER, branch: NAME, base: NAME.optional() });
+const STACK_REGISTER_PARAMS = strictObject({ pr: NUMBER, parent_pr: NUMBER });
+const PROJECT_FIELDS_PARAMS = strictObject({ project: NUMBER, changes: array(FIELD_CHANGE).min(1) });
+const PROJECT_VIEW_PARAMS = strictObject({ project: NUMBER, name: NAME, column: NAME, row: NAME });
+const PROJECT_LINK_PARAMS = strictObject({ project: NUMBER, repo: REPOSITORY.optional() });
+const NO_PARAMS = strictObject({});
+const RELEASE_CREATE_PARAMS = strictObject({
+    tag: NAME,
+    sha: string().refine(value => /^[\da-f]{40}$/u.test(value), 'a full commit SHA'),
+    body: string(),
+    name: NAME.optional(),
+    prerelease: boolean().default(false),
+});
+
 /**
 前提を待つ Issue を pecot が置く列
 */
@@ -11799,10 +11642,8 @@ const WORKFLOW_FIELD_SPECS = [
     { option: { name: 'In Review', color: 'YELLOW', description: 'Pull request created and waiting for review. Moves to Archived after merge is completed.' } },
     { option: { name: 'Archived', color: 'PURPLE', description: 'Completed or cancelled items. Moved here after the issue is closed or no longer needed.' } },
 ];
-/**
-workflow フィールドに作る選択肢
-*/
-WORKFLOW_FIELD_SPECS.map(spec => spec.option);
+
+// project の各コマンドが共有する部分。失敗の行、フィールドの検証、読んだボードからの設定ファイルの同期。
 /**
 プロジェクトの情報から fields.nodes を取る
 */
@@ -11975,32 +11816,12 @@ class OperationRefused extends Error {
 function operation(parameters, run) {
     return { params: parameters, run };
 }
-const NUMBER = number().int().positive();
-const NAME = string().min(1);
-const OPTION = strictObject({
-    name: NAME,
-    color: string().min(1).optional(),
-    description: string().optional(),
-});
-const FIELD_CHANGE = discriminatedUnion('action', [
-    strictObject({ action: literal('create'), name: NAME, options: array(OPTION).min(1) }),
-    strictObject({ action: literal('rename'), name: NAME, to: NAME }),
-    strictObject({ action: literal('delete'), name: NAME }),
-    strictObject({ action: literal('set-options'), name: NAME, options: array(OPTION).min(1) }),
-]);
 const DEFAULT_COLOR = 'GRAY';
 // link-branch
-async function defaultBranchOf(client, owner, repository) {
-    const settings = await client.getRepositorySettings(owner, repository);
-    return settings.defaultBranch;
-}
 async function linkBranch(parameters, context) {
     const { client, owner, repository } = context;
-    const base = parameters.base ?? await defaultBranchOf(client, owner, repository);
-    const sha = await client.getBranchSha(owner, repository, base);
-    const issueId = await client.getIssueNodeId(owner, repository, parameters.issue);
-    const branch = await client.createLinkedBranch(issueId, sha, parameters.branch);
-    return { issue: parameters.issue, branch, base, sha };
+    const { issue, branch, base, sha } = await linkIssueBranch(client, { owner, repository, ...parameters });
+    return { issue, branch, base, sha };
 }
 // stack-register
 async function registerStack(parameters, context) {
@@ -12114,7 +11935,6 @@ async function createProjectView(parameters, context) {
     return { created: true, number, url: typeof url === 'string' ? url : `${target.url}/views/${String(number)}` };
 }
 // project-link
-const REPOSITORY = string().regex(/^[\w.-]+\/[\w.-]+$/u, 'owner/repo');
 async function linkProject(parameters, context) {
     const { client, owner, repository } = context;
     const [repositoryOwner = owner, repositoryName = repository] = parameters.repo?.split('/') ?? [];
@@ -12172,19 +11992,18 @@ async function createRelease(parameters, context) {
     const url = release['html_url'];
     return { id: requireNumber(release['id'], 'release.id'), tag: requireString(release['tag_name'], 'release.tag_name'), ...typeof url === 'string' && { url } };
 }
-const NO_PARAMS = strictObject({});
 /**
 operation の一覧。鍵は雛形の choice と同じ順にする
 */
 const OPERATIONS = {
-    'link-branch': operation(strictObject({ issue: NUMBER, branch: NAME, base: NAME.optional() }), linkBranch),
-    'stack-register': operation(strictObject({ pr: NUMBER, parent_pr: NUMBER }), registerStack),
-    'project-fields': operation(strictObject({ project: NUMBER, changes: array(FIELD_CHANGE).min(1) }), changeProjectFields),
-    'project-view': operation(strictObject({ project: NUMBER, name: NAME, column: NAME, row: NAME }), createProjectView),
-    'project-link': operation(strictObject({ project: NUMBER, repo: REPOSITORY.optional() }), linkProject),
+    'link-branch': operation(LINK_BRANCH_PARAMS, linkBranch),
+    'stack-register': operation(STACK_REGISTER_PARAMS, registerStack),
+    'project-fields': operation(PROJECT_FIELDS_PARAMS, changeProjectFields),
+    'project-view': operation(PROJECT_VIEW_PARAMS, createProjectView),
+    'project-link': operation(PROJECT_LINK_PARAMS, linkProject),
     'repo-settings': operation(NO_PARAMS, readRepositorySettings),
     'workflow-doctor': operation(NO_PARAMS, readWorkflowSetup),
-    'release-create': operation(strictObject({ tag: NAME, sha: string().regex(/^[\da-f]{40}$/u, 'a full commit SHA'), body: string(), name: NAME.optional(), prerelease: boolean().default(false) }), createRelease),
+    'release-create': operation(RELEASE_CREATE_PARAMS, createRelease),
 };
 function isOperationName(name) {
     return Object.hasOwn(OPERATIONS, name);
@@ -40992,38 +40811,30 @@ pecot-workflow の MCP のサーバの registry.ts が登録するツールの�
 */
 const TOOL_HINT_COMMANDS = [
     { name: 'project_list', inputs: ['repo'] },
-    { name: 'project_search', inputs: ['owner', 'host', 'repo'] },
-    { name: 'project_init', inputs: ['owner', 'name', 'host', 'lanes', 'confirm_delete', 'repo'] },
-    { name: 'project_create', inputs: ['owner', 'title', 'host', 'lanes', 'repo'] },
-    { name: 'project_activate', inputs: ['project', 'owner', 'host', 'repo'] },
+    { name: 'project_check', inputs: ['method', 'owner', 'owner_type', 'title', 'project', 'changes', 'lanes', 'reads', 'repo'] },
+    { name: 'project_activate', inputs: ['project', 'owner', 'owner_type', 'host', 'reads', 'repo'] },
     { name: 'project_link', inputs: ['repo', 'develop_branch', 'release_branch', 'changelog_file', 'package', 'clear_packages', 'release_type'] },
     { name: 'project_get', inputs: ['key', 'repo'] },
     { name: 'project_set', inputs: ['key', 'value', 'yes', 'repo'] },
     { name: 'project_unset', inputs: ['key', 'repo'] },
-    { name: 'board_show', inputs: ['json', 'repo'] },
-    { name: 'board_add', inputs: ['issue_ref', 'status', 'project', 'repo'] },
-    { name: 'board_move', inputs: ['issue_ref', 'status', 'project', 'repo'] },
+    { name: 'board_show', inputs: ['json', 'repo', 'reads'] },
+    { name: 'board_check', inputs: ['method', 'owner', 'project_number', 'issue_number', 'item_owner', 'item_repo', 'updated_field', 'project', 'reads', 'repo'] },
     { name: 'issue_check', inputs: ['method', 'project', 'issues', 'reads', 'repo'] },
     { name: 'issue_dependency_check', inputs: ['method', 'owner', 'repo', 'issue_number', 'type', 'related_owner', 'related_repo', 'related_issue_number', 'wait', 'reason', 'project', 'reads'] },
     { name: 'issue_comment_check', inputs: ['method', 'owner', 'repo', 'issue_number', 'comment_id', 'body', 'template', 'template_text', 'reads'] },
-    { name: 'session_start', inputs: ['issue_ref', 'branch', 'base', 'checkout', 'project', 'repo'] },
+    { name: 'session_start', inputs: ['issue_ref', 'base', 'sha', 'stacked_on', 'title', 'reads', 'repo'] },
     { name: 'session_show', inputs: ['directory', 'project', 'repo'] },
-    { name: 'session_finish', inputs: ['pr_ref', 'delete_branch', 'project', 'repo'] },
-    { name: 'pr_create', inputs: ['file', 'message', 'title', 'base', 'head', 'draft', 'repo', 'no_issue_ref', 'template', 'screenshot', 'project'] },
-    { name: 'pr_show', inputs: ['pr_ref', 'json', 'reviews', 'project', 'repo'] },
-    { name: 'pr_check', inputs: ['directory', 'project', 'repo'] },
-    { name: 'pr_merge', inputs: ['pr_ref', 'project', 'repo'] },
-    { name: 'pr_restack', inputs: ['check', 'continue', 'abort', 'project', 'repo'] },
-    { name: 'release_check', inputs: ['version', 'package', 'project', 'repo'] },
-    { name: 'release_create', inputs: ['version', 'package', 'project', 'repo'] },
-    { name: 'release_merge', inputs: ['pr_ref', 'delete_branch', 'admin', 'project', 'repo'] },
+    { name: 'session_finish', inputs: ['pr_ref', 'project', 'reads', 'repo'] },
+    { name: 'pr_check', inputs: ['method', 'owner', 'repo', 'title', 'head', 'base', 'draft', 'body', 'pullNumber', 'merge_method', 'expectedHeadSha', 'template', 'template_text', 'screenshot', 'project', 'reads'] },
+    { name: 'pr_restack', inputs: ['check', 'continue', 'abort', 'project', 'reads', 'repo'] },
+    { name: 'release_check', inputs: ['params', 'project', 'reads', 'repo'] },
     { name: 'worktree_add', inputs: ['directory', 'base', 'path', 'no_copy', 'no_link', 'setup', 'allow_existing_branch', 'project', 'repo'] },
     { name: 'worktree_remove', inputs: ['name', 'directory', 'force', 'keep_branch', 'repo'] },
     { name: 'worktree_init', inputs: ['directory', 'repo'] },
     { name: 'worktree_link', inputs: ['directory', 'force', 'all', 'repo'] },
-    { name: 'branch_delete', inputs: ['repo', 'branch', 'project'] },
-    { name: 'workflow_install', inputs: ['name', 'check', 'force', 'directory', 'repo'] },
-    { name: 'workflow_doctor', inputs: ['name', 'directory', 'repo'] },
+    { name: 'branch_check', inputs: ['owner', 'repo', 'issue', 'branch', 'base', 'project', 'reads'] },
+    { name: 'workflow_install', inputs: ['name', 'check', 'force', 'directory', 'reads', 'repo'] },
+    { name: 'workflow_doctor', inputs: ['name', 'directory', 'reads', 'repo'] },
 ];
 /**
 actions/ に移した処理の形。name の `_` を `-` にしたものが actions/<name>/action.yml、inputs は token を除く inputs を snake_case にしたもの

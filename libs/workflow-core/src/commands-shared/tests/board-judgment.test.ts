@@ -57,8 +57,8 @@ describe('missingWarning', () => {
     const two = stepSync('警告文を作る', () => missingWarning(new Set(['Todo', 'Blocked'])))
     stepSync('整形結果を確認する', () => {
       expect([formatHinted(one), formatHinted(two)]).toEqual([
-        'the board has no option Todo; add it with project_init',
-        'the board has no option Blocked, Todo; add them with project_init',
+        'the board has no option Todo; add it with project_check with method: "fields" and apply the changes it asks for with the project-fields operation of github-ops, then project_activate to read the board into the project config',
+        'the board has no option Blocked, Todo; add them with project_check with method: "fields" and apply the changes it asks for with the project-fields operation of github-ops, then project_activate to read the board into the project config',
       ])
     })
   })
@@ -175,7 +175,7 @@ describe('applyJudgedMoves', () => {
     const io = stepSync('出力の捕捉を用意する', () => capture())
     const result = await step('判定の結果を適用する', async () => await applyJudgedMoves({ out: createOutput(false, io), client, config: config(false), home: HOME }, judged))
     stepSync('結果を確認する', () => {
-      expect({ result, err: io.err.join('') }).toEqual({ result: { failures: 0, moves: [] }, err: 'warning: the board has no option Blocked; add it with project_init\n' })
+      expect({ result, err: io.err.join('') }).toEqual({ result: { failures: 0, moves: [] }, err: 'warning: the board has no option Blocked; add it with project_check with method: "fields" and apply the changes it asks for with the project-fields operation of github-ops, then project_activate to read the board into the project config\n' })
     })
   })
 

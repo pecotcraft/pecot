@@ -636,12 +636,12 @@ status: ready
 })
 
 describe('validatePullRequestFrontmatter', () => {
-  it('title・repository・base だけを渡すと、head を undefined、draft を false にして返す', async () => {
-    await explains('PR のフロントマターを検証する、`validatePullRequestFrontmatter` のテストです。`title`・`repository`・`base` だけを渡した場合に、`head` を `undefined`、`draft` を `false` にして返すことを確認します。')
-    const fm = stepSync('validatePullRequestFrontmatter を呼ぶ', () => validatePullRequestFrontmatter({ title: '機能追加', repository: 'owner/repo', base: 'develop-aist' }))
+  it('owner・repo・title・base だけを渡すと、head を undefined、draft を false にして返す', async () => {
+    await explains('PR のフロントマターを検証する、`validatePullRequestFrontmatter` のテストです。`owner`・`repo`・`title`・`base` だけを渡した場合に、`head` を `undefined`、`draft` を `false` にして返すことを確認します。')
+    const fm = stepSync('validatePullRequestFrontmatter を呼ぶ', () => validatePullRequestFrontmatter({ title: '機能追加', owner: 'owner', repo: 'repo', base: 'develop-aist' }))
     stepSync('結果を比べる', () => {
       expect(fm.title).toBe('機能追加')
-      expect(fm.repository).toBe('owner/repo')
+      expect([fm.template, fm.owner, fm.repo]).toEqual([undefined, 'owner', 'repo'])
       expect(fm.base).toBe('develop-aist')
       expect(fm.head).toBeUndefined()
       expect(fm.draft).toBe(false)
@@ -650,7 +650,7 @@ describe('validatePullRequestFrontmatter', () => {
 
   it('head と draft まで渡すと、渡した値をそのまま返す', async () => {
     await explains('PR のフロントマターを検証する、`validatePullRequestFrontmatter` のテストです。`head` と `draft` まで渡した場合に、渡した値をそのまま返すことを確認します。')
-    const fm = stepSync('validatePullRequestFrontmatter を呼ぶ', () => validatePullRequestFrontmatter({ title: 'バグ修正PR', repository: 'org/project', base: 'develop', head: 'feat/issue-123-fix-bug', draft: true }))
+    const fm = stepSync('validatePullRequestFrontmatter を呼ぶ', () => validatePullRequestFrontmatter({ title: 'バグ修正PR', owner: 'org', repo: 'project', base: 'develop', head: 'feat/issue-123-fix-bug', draft: true }))
     stepSync('結果を比べる', () => {
       expect(fm.head).toBe('feat/issue-123-fix-bug')
       expect(fm.draft).toBe(true)
@@ -659,7 +659,7 @@ describe('validatePullRequestFrontmatter', () => {
 
   it('screenshot は前後の空白を除き、空文字・null・未指定の場合は undefined にする', async () => {
     await explains('PR のフロントマターを検証する、`validatePullRequestFrontmatter` のテストです。`screenshot` の前後の空白を除いて返し、空白だけ・`null`・未指定の場合は `undefined` を返すことを確認します。')
-    const base = stepSync('入力を用意する', () => ({ title: 'T', repository: 'o/r', base: 'develop' }))
+    const base = stepSync('入力を用意する', () => ({ title: 'T', owner: 'o', repo: 'r', base: 'develop' }))
     stepSync('validatePullRequestFrontmatter を呼び、結果を比べる', () => {
       expect(validatePullRequestFrontmatter({ ...base, screenshot: '  画面は変わらない  ' }).screenshot).toBe('画面は変わらない')
       expect(validatePullRequestFrontmatter({ ...base, screenshot: '  ' }).screenshot).toBeUndefined()
@@ -671,40 +671,42 @@ describe('validatePullRequestFrontmatter', () => {
   it('screenshot が文字列でない場合は、エラーにする', async () => {
     await explains('PR のフロントマターを検証する、`validatePullRequestFrontmatter` のテストです。`screenshot` に文字列以外（数値）を渡した場合に、`Input should be a valid string` を含むメッセージで例外が発生することを確認します。')
     stepSync('validatePullRequestFrontmatter を呼び、結果を比べる', () => {
-      expect(() => validatePullRequestFrontmatter({ title: 'T', repository: 'o/r', base: 'develop', screenshot: 5 })).toThrow('  - screenshot: Input should be a valid string')
+      expect(() => validatePullRequestFrontmatter({ title: 'T', owner: 'o', repo: 'r', base: 'develop', screenshot: 5 })).toThrow('  - screenshot: Input should be a valid string')
     })
   })
 
   it('title が存在しない場合は、エラーにする', async () => {
     await explains('PR のフロントマターを検証する、`validatePullRequestFrontmatter` のテストです。`title` が存在しない場合に、`title: Field required` を含むメッセージで例外が発生することを確認します。')
     stepSync('validatePullRequestFrontmatter を呼び、結果を比べる', () => {
-      expect(() => validatePullRequestFrontmatter({ repository: 'owner/repo', base: 'develop' })).toThrow('  - title: Field required')
+      expect(() => validatePullRequestFrontmatter({ owner: 'owner', repo: 'repo', base: 'develop' })).toThrow('  - title: Field required')
     })
   })
 
-  it('repository が存在しない場合は、エラーにする', async () => {
-    await explains('PR のフロントマターを検証する、`validatePullRequestFrontmatter` のテストです。`repository` が存在しない場合に、`repository: Field required` を含むメッセージで例外が発生することを確認します。')
+  it('repo が存在しない場合は、エラーにする', async () => {
+    await explains('PR のフロントマターを検証する、`validatePullRequestFrontmatter` のテストです。`repo` が存在しない場合に、`repo: Field required` を含むメッセージで例外が発生することを確認します。')
     stepSync('validatePullRequestFrontmatter を呼び、結果を比べる', () => {
-      expect(() => validatePullRequestFrontmatter({ title: 'テストPR', base: 'develop' })).toThrow('  - repository: Field required')
+      expect(() => validatePullRequestFrontmatter({ owner: 'owner', title: 'テストPR', base: 'develop' })).toThrow('  - repo: Field required')
     })
   })
 
   it('base が存在しない場合は、エラーにする', async () => {
     await explains('PR のフロントマターを検証する、`validatePullRequestFrontmatter` のテストです。`base` が存在しない場合に、`base: Field required` を含むメッセージで例外が発生することを確認します。')
     stepSync('validatePullRequestFrontmatter を呼び、結果を比べる', () => {
-      expect(() => validatePullRequestFrontmatter({ title: 'テストPR', repository: 'owner/repo' })).toThrow('  - base: Field required')
+      expect(() => validatePullRequestFrontmatter({ title: 'テストPR', owner: 'owner', repo: 'repo' })).toThrow('  - base: Field required')
     })
   })
 })
 
 describe('parsePullRequestContent', () => {
-  it('title・repository・base と本文のあるコンテンツを渡すと、head を undefined、draft を false にして取り出す', async () => {
-    await explains('PR のコンテンツからフロントマターと本文を取り出す、`parsePullRequestContent` のテストです。`title`・`repository`・`base` と本文があるコンテンツを渡した場合に、値と本文を取り出し、`head` を `undefined`、`draft` を `false` にすることを確認します。')
+  it('template・owner・repo・title・base と本文のあるコンテンツを渡すと、head を undefined、draft を false にして取り出す', async () => {
+    await explains('PR のコンテンツからフロントマターと本文を取り出す、`parsePullRequestContent` のテストです。`template`・`owner`・`repo`・`title`・`base` と本文があるコンテンツを渡します。値と本文を取り出し、`head` を `undefined`、`draft` を `false` にすることを確認します。')
     const result = stepSync('parsePullRequestContent を呼ぶ', () => {
       const content = `---
-title: "機能追加PR"
-repository: "owner/repo"
-base: "develop-aist"
+title: "機能追加"
+template: "pecot-template://pr/create"
+owner: "owner"
+repo: "repo"
+base: "develop"
 ---
 
 ## Changed — テスト用本文
@@ -717,9 +719,9 @@ Refs #123
       return result
     })
     stepSync('結果を比べる', () => {
-      expect(result.frontmatter.title).toBe('機能追加PR')
-      expect(result.frontmatter.repository).toBe('owner/repo')
-      expect(result.frontmatter.base).toBe('develop-aist')
+      expect(result.frontmatter.title).toBe('機能追加')
+      expect([result.frontmatter.template, result.frontmatter.owner, result.frontmatter.repo]).toEqual(['pecot-template://pr/create', 'owner', 'repo'])
+      expect(result.frontmatter.base).toBe('develop')
       expect(result.frontmatter.head).toBeUndefined()
       expect(result.frontmatter.draft).toBe(false)
       expect(result.body).toContain('## Changed — テスト用本文')
@@ -732,7 +734,8 @@ Refs #123
     const result = stepSync('parsePullRequestContent を呼ぶ', () => {
       const content = `---
 title: "バグ修正"
-repository: "org/project"
+owner: "org"
+repo: "project"
 base: "develop"
 head: "fix/issue-456"
 draft: true
@@ -762,7 +765,7 @@ draft: true
   it('title が存在しない場合は、エラーにする', async () => {
     await explains('PR のコンテンツからフロントマターと本文を取り出す、`parsePullRequestContent` のテストです。`title` が存在しないコンテンツを渡した場合に、`validation error` を含むメッセージで例外が発生することを確認します。')
     stepSync('parsePullRequestContent を呼び、結果を比べる', () => {
-      expect(() => parsePullRequestContent('---\nrepository: "owner/repo"\nbase: "develop"\n---\n\n本文\n')).toThrow('validation error')
+      expect(() => parsePullRequestContent('---\nowner: "owner"\nrepo: "repo"\nbase: "develop"\n---\n\n本文\n')).toThrow('validation error')
     })
   })
 })
@@ -802,7 +805,7 @@ describe('stripLeadingHtmlComment（冒頭ガイドコメント除去 #958 F-02�
 
   it('PR のコンテンツを読み取るときに、冒頭のコメントを除去する', async () => {
     await explains('PR のコンテンツからフロントマターと本文を取り出す、`parsePullRequestContent` のテストです。本文の冒頭に HTML コメントがある場合に、コメントを除いた本文を取り出すことを確認します。')
-    const content = stepSync('入力を用意する', () => '---\ntitle: "T"\nrepository: "owner/repo"\nbase: "main"\n---\n\n<!--\nフィールド: なにか\n-->\n\n## Verified — 検証済み\n')
+    const content = stepSync('入力を用意する', () => '---\ntitle: "T"\nowner: "owner"\nrepo: "repo"\nbase: "main"\n---\n\n<!--\nフィールド: なにか\n-->\n\n## Verified — 検証済み\n')
     stepSync('結果を比べる', () => {
       expect(parsePullRequestContent(content).body).toBe('## Verified — 検証済み')
     })

@@ -10,7 +10,7 @@ when_to_use: "pecot を新しいプロジェクトで使い始めたい、ボー
 
 新規プロジェクトのセットアップを行う。本スキルの責務は **プロジェクト作成まで**。リポジトリ登録は `/pecot-w:w-repo-add` に委譲する。
 
-前提: GitHub 認証が完了している（PAT or `gh auth login`）。
+前提: GitHub の公式の MCP サーバが、書き込みのできる形でつながっている。つなぎ方は [w-help](../w-help/SKILL.md) の「公式の MCP をつなぐ」にある。
 
 ## 手順
 
@@ -18,21 +18,28 @@ when_to_use: "pecot を新しいプロジェクトで使い始めたい、ボー
 
 次の優先順位で既存設定を確認し、最初にマッチしたケースで対処する。
 
-1. **カレントリポに設定あり** → pecot-workflow の MCP ツール `project_activate` を使って、その設定を有効にする → Step 3 へ
-2. **兄弟リポに同一プロジェクトの設定あり** → コピーして activate → Step 3 へ
-3. **GitHub 上に init 済みプロジェクトあり** → `project_search` で探し、`project_activate` を使って、そのプロジェクトを有効にする → Step 3 へ
+1. **カレントリポに設定あり** → その設定を有効にする → Step 3 へ
+2. **兄弟リポに同一プロジェクトの設定あり** → コピーして有効にする → Step 3 へ
+3. **GitHub 上に pecot の欄を持つボードあり** → そのボードを有効にする → Step 3 へ
 4. **どれもない** → Step 2 へ
 
 最初のチェックには、pecot-workflow の MCP ツール `project_list` を使う。
 
-パターン 1〜3 で有効にしたら、Step 3 へ進む前に、ボードに `pecot-lane` があるかを見る。
+設定やボードを有効にするときは、pecot-workflow の MCP ツール `project_activate` に、公式の MCP で読んだボードを `reads` で渡す。
 
-1. pecot-workflow の MCP ツール `project_search` で、有効にしたボードのタイトルを得る。`active` が真の行のタイトルを使う
-   - `host`・`owner` は、パターン 3 では検索に渡した値、パターン 1・2 では `project_activate` の結果の `configPath` のファイルの値にする
-2. pecot-workflow の MCP ツール `project_init` を、`lanes` を渡さずに使う（`owner`・`name`: 1. のタイトル・`host`）
-3. 結果の `fields` の `pecot-lane` が `skip` なら、ボードを領域のレーンで分けるかを利用者に聞く
-   - 分けるなら、Step 2 と同じく `lanes` の値を決め、`lanes` を足して `project_init` をもう一度使う
-   - `skip` でなければ、聞かずに Step 3 へ進む
+| `reads` | 公式のツール |
+|---|---|
+| `project` | `projects_get`（`get_project`）。`project` に番号か設定ファイルを渡すとき |
+| `projects` | `projects_list`（`list_projects`。全ページ）。`project` にタイトルを渡すとき |
+| `fields` | `projects_list`（`list_project_fields`） |
+| `views` | `projects_list`（`list_project_views`） |
+
+有効にしたら、Step 3 へ進む前に、ボードに `pecot-lane` があるかを見る。
+
+1. 読んだ `fields` に `pecot-lane` が無ければ、ボードを領域のレーンで分けるかを利用者に聞く
+   - 分けるなら、Step 2 と同じく `lanes` の値を決め、Step 2 の「欄とビューを作る」の手順で `pecot-lane` を足す
+   - 欄を足したら、`project_activate` を読み直した `fields` で呼び直す
+2. `pecot-lane` があれば、聞かずに Step 3 へ進む
 
 パターン 2 は、このスキルの base directory にある `scripts/detect-sibling-config.cjs` を動かし、その出力の行で決める。
 作業ディレクトリはカレントリポのままにし、base directory から組んだ絶対パスで打つ。
@@ -50,7 +57,7 @@ node <このスキルの base directory>/scripts/detect-sibling-config.cjs
 | `ERROR:` で始まる行 | その行の理由を利用者に伝え、パターン 3 へ |
 
 コピーは次のとおり。コピーしたら `project_activate` を使い（`project: "<コピーしたファイル名（拡張子なし）>"`）、Step 3 へ進む。
-Step 3 の後、Step 4 の前に、pecot-workflow の MCP ツール `project_link` でカレントリポを登録する。
+Step 3 の後、Step 4 の前に、`/pecot-w:w-repo-add` の Step 3 の手順でカレントリポを登録する。
 
 ```bash
 mkdir -p .pecot/config/projects
@@ -69,14 +76,32 @@ AskUserQuestion でプロジェクト名を質問する。
 - 候補は、カレントリポのディレクトリの分け方（`plugins/` `packages/` `services/` などの下の名前）から挙げる
 - GitHub の画面に出るので、英語の名前にする
 
-pecot-workflow の MCP ツール `project_create` を使って、プロジェクトを作る（`owner`・`title`・`host`・`lanes`）。
+#### ボードを作る
 
-| 入力 | 説明 |
-|------|------|
-| `owner` | GitHub の owner（user or org）（必須） |
-| `title` | GitHub Projects のプロジェクト名（必須） |
-| `host` | GitHub ホスト（例: `github.com`, `ghes.example.com`） |
-| `lanes` | `pecot-lane` の値。決めた領域の名前 |
+1. owner と、その種類（組織または個人。`owner_type`）を決める。カレントリポの owner を既定にする
+2. `projects_list`（`list_projects`）で、同じ owner のボードを全ページ読む
+3. pecot-workflow の MCP ツール `project_check` に、読んだボード（`reads.projects`）を渡す。`method: "create"`・`owner`・`owner_type`・`title`（プロジェクト名）も渡す。`problems` が返ったら、利用者に示して名前を決め直す
+4. `projects_write`（`create_project`）で、同じ `owner`・`owner_type`・`title` のボードを作る。結果の `number` を控える
+
+#### 欄とビューを作る
+
+欄とビューは、github-ops の `project-fields`・`project-view` で書く。手順は [github-ops で書く](../w-help/references/github-ops.md)。
+
+1. カレントリポに `pecot-github-ops.yml` があるかを、pecot-workflow の MCP ツール `workflow_doctor`（`name: "github-ops"`）で見る
+   - 無ければ、`workflow_install`（`name: "github-ops"`）で置く。App の variable と secret の登録と、既定のブランチへの取り込みを利用者に頼み、終わるまで待つ。要るものは、雛形の先頭のコメントと [github-ops で書く](../w-help/references/github-ops.md) にある
+   - github-ops が扱うのは、リポと同じ組織のボードだけになる。個人のアカウントのボードは、3 の `problems` に挙がった欄と選択肢を、利用者に GitHub の画面で足してもらう
+2. `projects_list`（`list_project_fields`）で、ボードの欄を読む
+3. `project_check` に、`method: "fields"`・`owner`・`project`（ボードの番号）・`lanes` と、読んだ欄（`reads.fields`）を渡す
+   - `problems` に挙がった欄と選択肢を、github-ops の `project-fields` の `changes` の形で組み立て、`changes` に入れて通し直す。`problems` が空になるまで繰り返す
+   - `deletable` の欄は、利用者が消すと決めたときだけ `changes` に入れる。消すと、その欄の値がすべてのカードから消える
+4. github-ops の `project-fields` を、`params` に `project` と、通した `changes` を入れて起動する
+5. `lanes` を決めたときは、github-ops の `project-view` を、`params` を次の形にして起動する。結果の `url` を Step 4 で示す
+
+   ```text
+   {"project": <ボードの番号>, "name": "Lanes", "column": "pecot-status", "row": "pecot-lane"}
+   ```
+
+6. `project_activate` に、`project`（ボードの番号）・`owner`・`owner_type`・`host` と、読み直したボード・欄・ビュー（`reads`）を渡して、設定ファイルを作る
 
 ### Step 3: Epic 集約リポの設定（任意）
 
@@ -91,11 +116,11 @@ pecot-workflow の MCP ツール `project_create` を使って、プロジェク
 3. 選択に応じて集約リポを設定（既存リポ指定 / 新規リポ作成 / スキップ）
 4. `project_get`（`key: "aggregation_repo"`）で設定値を再確認
 
-AskUserQuestion Q1/Q2a/Q2b の仕様・`gh auth` 認証ガード・新規リポ作成の 3 コマンドシーケンス・`yes: true` 上書きの使い方は [集約リポ設定の詳細](references/aggregation-repo.md) を参照。
+AskUserQuestion Q1/Q2a/Q2b の仕様・新規リポ作成の手順・`yes: true` 上書きの使い方は [集約リポ設定の詳細](references/aggregation-repo.md) を参照。
 
 ### Step 4: 動作確認
 
-pecot-workflow の MCP ツール `board_show` を使って、作ったプロジェクトのボードが出ることを確かめる。
+`projects_list`（`list_project_fields`）でボードの欄を読み直し、`project_check`（`method: "fields"`）に渡す。`problems` が空なら、ボードに pecot の欄がそろっている。
 
 設定ファイルからボード URL を取得してユーザーに提示し、ブックマークを促す。
 URL は、このスキルの base directory にある `scripts/board-url.cjs` を、カレントリポで動かして得る。出力の 1 行が URL。
@@ -104,8 +129,15 @@ URL は、このスキルの base directory にある `scripts/board-url.cjs` �
 node <このスキルの base directory>/scripts/board-url.cjs
 ```
 
-`project_create`・`project_init` の結果の `view.url` を示し、領域ごとのレーンで見る `Lanes` のビューを開けることを伝える。
-`view.manual_steps` が返ったときは、ビューを作れなかったので、その手順を示す。
+Step 2 で `Lanes` のビューを作ったときは、`project-view` の結果の `url` を示し、領域ごとのレーンで見られることを伝える。
+
+pecot は、マージした PR の head ブランチを消さない。GitHub の「head ブランチを自動で消す」の設定に任せる。
+
+1. github-ops の `repo-settings` を起動し、結果の `delete_branch_on_merge` を読む。読むのは、カレントリポの設定だけになる
+2. `false` なら、利用者に設定を頼む。手順は次のとおり
+   1. `https://<host>/<owner/repo>/settings` を開く
+   2. 「General」の「Pull Requests」の節で、「Automatically delete head branches」に印を付ける
+3. 開発ブランチとリリースブランチが別のリポでは、開発ブランチをブランチの保護か ruleset で守るよう添える。リリース PR の head は開発ブランチ自体なので、守らないとマージで消える
 
 ### Step 5: 自動レビューを入れる（任意）
 
@@ -146,9 +178,12 @@ PR を作ると GitHub Actions の上で w-review のレビューを回すワー
 4. 集めた雛形ごとに、pecot-workflow の MCP ツール `workflow_install` を `force: true` で使い、置き直す
    - 結果に `removedLines` があれば、利用者が足していた行として示す
    - `github-not-found` で止まったら、pecot の action のリリースがまだ無いので、その旨を示して Step 7 へ進む
-5. 置き直したファイルをコミットして push し、pecot-workflow の MCP ツール `pr_create` で PR を出す
-   - `no_issue_ref: true` を渡す。紐づく Issue は無い
+5. 置き直したファイルをコミットして push し、PR を出す
+   - Step 2 で作った設定ファイル（`.pecot/config/projects/` の下）がまだコミットされていなければ、同じ PR に入れる
+   - [PR を作る・書き換える](../w-help/references/github-write.md#pr-を作る書き換える) の手順で、`pr_check` に通してから `create_pull_request` で作る
+   - 紐づく Issue は無いので、本文の末尾の `Closes #` の行を消す
    - 本文には、置き直した雛形の名前と、npx の行が pecot の action の呼び出しに替わったことを書く
+
 6. PR の URL を示し、GitHub の画面でマージすると新しい雛形で動くことを添えて、Step 7 へ進む
 
 ### Step 7: 次ステップ案内

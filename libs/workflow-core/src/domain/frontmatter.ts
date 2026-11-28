@@ -165,9 +165,12 @@ const IssueFrontmatterSchema = z.object({
   lane: z.preprocess(emptyStringToUndefined, z.string({ error: stringMessage }).nullish().transform(value => value ?? undefined)),
 }).readonly()
 
+// 鍵は create_pull_request の引数の名前。template と screenshot だけが pecot の鍵
 const PullRequestFrontmatterSchema = z.object({
+  template: z.preprocess(normalizeOptionalText, z.string({ error: stringMessage }).nullish().transform(value => value ?? undefined)),
+  owner: z.string({ error: stringMessage }),
+  repo: z.string({ error: stringMessage }),
   title: z.string({ error: stringMessage }),
-  repository: z.string({ error: stringMessage }),
   base: z.string({ error: stringMessage }),
   head: z.string({ error: STRING_MESSAGE }).nullish().transform(value => value ?? undefined),
   draft: z.preprocess(convertToBoolean, z.boolean({ error: issue => booleanMessage(issue.input) })).prefault(false),

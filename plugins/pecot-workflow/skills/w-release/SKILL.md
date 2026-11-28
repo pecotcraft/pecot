@@ -18,7 +18,7 @@ CHANGELOG を更新してリリースする。
 
 1. **対象リポの release_type を確認する**
 
-   pecot-workflow の MCP ツール `board_show` を使って、対象リポの `release_type` を読む:
+   pecot-workflow の MCP ツール `project_get` を `key` を省いて呼び、`repositories` から対象リポの `release_type` を読む:
 
    - `single` → **[references/release-single.md](references/release-single.md)** に従う
    - `multi`  → **[references/release-multi.md](references/release-multi.md)** に従う
@@ -41,7 +41,7 @@ CHANGELOG を更新してリリースする。
 2. **判定結果のリファレンスに従って手順を実行する**
 
    リファレンス内でブランチモードによる分岐がある場合は、Step 1 で読んだブランチモードの節に従う。
-   分岐があるのは、`release_type: nx` の release-nx.md である。
+   分岐があるのは、`release_type: nx` の release-nx.md と、single・multi のリリース PR の手順（Step 5・6）である。
 
 ## release_type 未設定のリポへの対応
 

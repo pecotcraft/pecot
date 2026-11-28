@@ -22,7 +22,7 @@ pecot-workflow の MCP ツール `board_show` を使って、ボードの状態�
 |-----------|------|
 | Active | 別ワークツリーで作業中 |
 | Ready | 今、着手できるタスク |
-| Blocked | 前提を待っているタスク（pecot が置く。ボードに無ければ、pecot-workflow の MCP ツール `project_init` で足す） |
+| Blocked | 前提を待っているタスク（pecot が置く。ボードに無ければ、w-help の「ボードの欄を足す・直す」の手順で足す） |
 | Pending | 人が後回しにした（Epic／タスク） |
 | Backlog | Epic置き場 |
 
@@ -50,7 +50,7 @@ Epic の作成先を決めるため、pecot-workflow の MCP ツール `project_
 2. できたファイルを編集する
    - YAMLフロントマターを設定する
    - Issue本文を記述する（テンプレ冒頭コメントの 読者:/書き方: に従う）
-3. pecot-workflow の MCP ツール `issue_check` に通してから、公式の MCP の `issue_write` で作り、`projects_write` でボードに足して欄を書く。手順は [Issue とコメントを公式の MCP で書く](../w-help/references/issue-write.md) の「Issue を作る」
+3. pecot-workflow の MCP ツール `issue_check` に通してから、公式の MCP の `issue_write` で作り、`projects_write` でボードに足して欄を書く。手順は [GitHub に公式の MCP と github-ops で書く](../w-help/references/github-write.md) の「Issue を作る」
 
 ツールが出力したファイルのセクション構造を維持して本文を埋める。テンプレ冒頭コメントの `読者:`（Epic を分解する人）の判断に使われない情報は書かない。
 

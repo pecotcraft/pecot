@@ -16,10 +16,11 @@ import { GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { READINESS_JSON } from './issue-readiness.js'
 import { isLegacyWorkflowFieldName } from '../domain/migration.js'
-import { commandHint, hinted, placeholder, RUN_COLON } from './command-hint.js'
+import { hinted, RUN_COLON } from './command-hint.js'
 import type { BoardReadinessJson } from './issue-readiness.js'
 import type { Output } from './output.js'
-import { STATUS_FIELD_NAME, UNUSED_FIELD_NAMES } from './project-sync.js'
+import { boardFieldsHint } from './project-sync.js'
+import { STATUS_FIELD_NAME, UNUSED_FIELD_NAMES } from './workflow-fields.js'
 
 /**
 Archived のうち、ボードに残す件数
@@ -419,5 +420,5 @@ export function warnOldFieldName(out: Readonly<Output>, config: ProjectConfig, r
   const unused = read.unusedFieldNames.length > 0 ? `still has fields pecot does not use: ${read.unusedFieldNames.join(', ')}` : undefined
   const findings = [legacy, unused].filter(finding => finding !== undefined)
   if (findings.length === 0) return
-  out.warning(hinted`this board ${findings.join(' and ')}\n${RUN_COLON}${commandHint(['project', 'init'], { owner: config.owner, name: placeholder('name'), host: config.host })}`)
+  out.warning(hinted`this board ${findings.join(' and ')}\n${RUN_COLON}${boardFieldsHint({ owner: config.owner, number: config.project.number })}`)
 }

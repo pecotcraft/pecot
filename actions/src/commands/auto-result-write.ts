@@ -10,7 +10,8 @@ import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
 import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
 import { autoLabel, issueDisplay, readOrStop, runIdentity, runUrl } from './auto-shared.js'
 import { CommandExit } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import { commandHint, hinted, RUN_COLON } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import { hinted, RUN_COLON } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import { boardFieldsHint } from '@pecot/workflow-core/commands-shared/project-sync.js'
 import { stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
 import { setIssueField } from '@pecot/workflow-core/commands-shared/issue-board.js'
@@ -59,7 +60,7 @@ export async function waitingTargetOf(out: Output, client: GitHubClient, config:
   }
   const optionId = getOptionId(config, 'status', NEEDS_ATTENTION_KEY)
   if (optionId === undefined || optionId === '') {
-    out.warning(hinted`the board has no option Needs Attention for Status; the Status stays as it is\n${RUN_COLON}${commandHint(['project', 'init'])}`)
+    out.warning(hinted`the board has no option Needs Attention for Status; the Status stays as it is\n${RUN_COLON}${boardFieldsHint({ owner: config.owner, number: config.project.number })}`)
     return { item: undefined, missing: [MISSING_NEEDS_ATTENTION] }
   }
   return { item, missing: [] }

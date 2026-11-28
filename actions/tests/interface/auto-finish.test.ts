@@ -125,7 +125,7 @@ describe('auto finish', () => {
 
   it.for([
     { name: 'Issue がボードに無い', missingStatus: undefined, board: boardItems({ onBoard: false }), missing: 'Issue on the board', warning: 'warning: Issue acme/demo/7 is not on the board; the Status stays as it is\n' },
-    { name: '設定に Needs Attention が無い', missingStatus: 'needs_attention', board: boardItems(), missing: 'Status option Needs Attention', warning: 'warning: the board has no option Needs Attention for Status; the Status stays as it is\n  call project_init\n' },
+    { name: '設定に Needs Attention が無い', missingStatus: 'needs_attention', board: boardItems(), missing: 'Status option Needs Attention', warning: 'warning: the board has no option Needs Attention for Status; the Status stays as it is\n  call project_check with method: "fields", owner: "acme", project: 1 and apply the changes it asks for with the project-fields operation of github-ops, then project_activate with project: "1", owner: "acme" to read the board into the project config\n' },
   ])('$name と、Status を書かずに足りない設定をコメントに足し、warning の行を出して成功する', async ({ missingStatus, board, missing, warning }, context) => {
     await verifies(context, 'PA-AUTO-FINISH-05')
     await explains('`auto-finish` の action のテストです。ボードに Issue が存在しない場合と、`Needs Attention` が設定にない場合は、Status を書かずに不足している設定をコメントへ追加することを確認します。')
@@ -340,15 +340,15 @@ describe('auto finish', () => {
     expect(github.requests()).toEqual([])
   })
 
-  it('設定に fields.status が無いと、何も読まずに project_init を案内して止まる', async (context) => {
+  it('設定に fields.status が無いと、何も読まずに project_activate を案内して止まる', async (context) => {
     await verifies(context, 'PA-AUTO-FINISH-12')
-    await explains('`auto-finish` の action のテストです。設定に `fields.status` が無い場合に、何も読まず、`project_init` を案内して step を失敗にすることを確認します。')
+    await explains('`auto-finish` の action のテストです。設定に `fields.status` が無い場合に、何も読まず、`project_activate` を案内して step を失敗にすることを確認します。')
     prepareAuto({ hasStatus: false })
     const github = await startGithub([])
 
     const outcome = await finish({ result: 'failed' })
 
-    expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: the project config has no Status field (fields.status)\n  call project_init\n' })
+    expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: the project config has no Status field (fields.status)\n  call project_activate with project: "1", owner: "acme"\n' })
     expect(github.requests()).toEqual([])
   })
 

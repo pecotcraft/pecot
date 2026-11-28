@@ -12,14 +12,14 @@ import { TOOL_HINT_COMMANDS } from '@pecot/workflow-core/commands-shared/hint-ca
 import { toolNameViolations } from '@pecot/workflow-core/commands-shared/names.js'
 import { TOOLS } from '../registry.js'
 
-const TOOL_COUNT = 33
+const TOOL_COUNT = 25
 const GENERATED = path.resolve(import.meta.dirname, '../../../../interface/generated.json')
 const EntrySchema = z.object({ id: z.string() })
 const GeneratedSchema = z.object({ entries: z.array(EntrySchema) })
 
 describe('ツールの一覧', () => {
-  it('33 個が登録され、名前は重複しない', async () => {
-    await explains('登録済みのツールの一覧（`TOOLS`）のテストです。ツールが 33 個あり、名前がすべて異なることを確認します。')
+  it('25 個が登録され、名前は重複しない', async () => {
+    await explains('登録済みのツールの一覧（`TOOLS`）のテストです。ツールが 25 個あり、名前がすべて異なることを確認します。')
     expect(TOOLS).toHaveLength(TOOL_COUNT)
     expect(new Set(TOOLS.map(tool => tool.name)).size).toBe(TOOL_COUNT)
   })
@@ -39,14 +39,14 @@ describe('ツールの一覧', () => {
   it('ツールは、1 語目のグループごとにまとめ、決められた順に並べる', async () => {
     await explains('ツールの並び順のテストです。登録済みのツールが、`project`・`board`・`issue` などのグループごとにまとまり、グループと各ツールが決められた順に並ぶことを確認します。')
     expect(TOOLS.map(tool => tool.name)).toEqual([
-      'project_list', 'project_search', 'project_init', 'project_create', 'project_activate', 'project_link', 'project_get', 'project_set', 'project_unset',
-      'board_show', 'board_add', 'board_move',
+      'project_list', 'project_check', 'project_activate', 'project_link', 'project_get', 'project_set', 'project_unset',
+      'board_show', 'board_check',
       'issue_check', 'issue_dependency_check', 'issue_comment_check',
       'session_start', 'session_show', 'session_finish',
-      'pr_create', 'pr_show', 'pr_check', 'pr_merge', 'pr_restack',
-      'release_check', 'release_create', 'release_merge',
+      'pr_check', 'pr_restack',
+      'release_check',
       'worktree_add', 'worktree_remove', 'worktree_init', 'worktree_link',
-      'branch_delete',
+      'branch_check',
       'workflow_install', 'workflow_doctor',
     ])
   })

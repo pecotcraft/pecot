@@ -123,29 +123,29 @@ describe('board sync', () => {
     expect(result.stderr).toBe(`moved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
   })
 
-  it('進行の欄が旧い名前のボードでも、同じ Issue を動かし、旧い名前の警告と project_init の案内を出す', async (context) => {
+  it('進行の欄が旧い名前のボードでも、同じ Issue を動かし、旧い名前の警告と project_check の案内を出す', async (context) => {
     await verifies(context, 'PA-BOARD-SYNC-33')
-    await explains('`board-sync` の action のテストです。進行の欄が旧い名前（`pecot-workflow-acme`）のボードでも同じ Issue を移動し、旧い名前の警告と `project_init` の案内を出力することを確認します。')
+    await explains('`board-sync` の action のテストです。進行の欄が旧い名前（`pecot-workflow-acme`）のボードでも同じ Issue を移動し、旧い名前の警告と `project_check` の案内を出力することを確認します。')
     const result = await sync([rateLimit(100), board(item('PVTI_4', 4, 'Blocked', { field: 'pecot-workflow-acme' })), prerequisitesRule({ number: 4 }), write('PVTI_4', 'o3'), rateLimit(130)])
     expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`warning: this board uses the old field name pecot-workflow-acme\n  call project_init with owner: "acme", name: <name>, host: "github.com"\nmoved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
+    expect(result.stderr).toBe(`warning: this board uses the old field name pecot-workflow-acme\n  call project_check with method: "fields", owner: "acme", project: 1 and apply the changes it asks for with the project-fields operation of github-ops, then project_activate with project: "1", owner: "acme" to read the board into the project config\nmoved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
   })
 
-  it('Item の値に pecot-priority・pecot-size が残るボードでは、同じ Issue を動かし、残った名前と project_init の案内を出す', async (context) => {
+  it('Item の値に pecot-priority・pecot-size が残るボードでは、同じ Issue を動かし、残った名前と project_check の案内を出す', async (context) => {
     await verifies(context, 'PA-BOARD-SYNC-34')
-    await explains('`board-sync` の action のテストです。Item の値に `pecot-priority` と `pecot-size` が残るボードでも Issue を移動し、残った名前と `project_init` の案内を出力することを確認します。')
+    await explains('`board-sync` の action のテストです。Item の値に `pecot-priority` と `pecot-size` が残るボードでも Issue を移動し、残った名前と `project_check` の案内を出力することを確認します。')
     const result = await sync([rateLimit(100), board(item('PVTI_4', 4, 'Blocked', { others: ['pecot-priority'] }), item('PVTI_5', 5, 'Archived', { state: 'CLOSED', others: ['pecot-size', 'pecot-priority'] })), prerequisitesRule({ number: 4 }), write('PVTI_4', 'o3'), rateLimit(130)])
     expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`warning: this board still has fields pecot does not use: pecot-priority, pecot-size\n  call project_init with owner: "acme", name: <name>, host: "github.com"\nmoved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
+    expect(result.stderr).toBe(`warning: this board still has fields pecot does not use: pecot-priority, pecot-size\n  call project_check with method: "fields", owner: "acme", project: 1 and apply the changes it asks for with the project-fields operation of github-ops, then project_activate with project: "1", owner: "acme" to read the board into the project config\nmoved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
   })
 
-  it('旧い名前の欄と pecot-priority・pecot-size が残るボードでは、1 つの warning で project_init を案内する', async (context) => {
+  it('旧い名前の欄と pecot-priority・pecot-size が残るボードでは、1 つの warning で project_check を案内する', async (context) => {
     await verifies(context, 'PA-BOARD-SYNC-33')
     await verifies(context, 'PA-BOARD-SYNC-34')
-    await explains('`board-sync` の action のテストです。旧い名前の欄と使わないフィールドの両方が残るボードの場合に、1 つの warning にまとめて `project_init` を案内することを確認します。')
+    await explains('`board-sync` の action のテストです。旧い名前の欄と使わないフィールドの両方が残るボードの場合に、1 つの warning にまとめて `project_check` を案内することを確認します。')
     const result = await sync([rateLimit(100), board(item('PVTI_4', 4, 'Blocked', { field: 'pecot-workflow-acme', others: ['pecot-size', 'pecot-priority'] })), prerequisitesRule({ number: 4 }), write('PVTI_4', 'o3'), rateLimit(130)])
     expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`warning: this board uses the old field name pecot-workflow-acme and still has fields pecot does not use: pecot-priority, pecot-size\n  call project_init with owner: "acme", name: <name>, host: "github.com"\nmoved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
+    expect(result.stderr).toBe(`warning: this board uses the old field name pecot-workflow-acme and still has fields pecot does not use: pecot-priority, pecot-size\n  call project_check with method: "fields", owner: "acme", project: 1 and apply the changes it asks for with the project-fields operation of github-ops, then project_activate with project: "1", owner: "acme" to read the board into the project config\nmoved: #4 Blocked -> Ready (startable)\n${RATE_NOTE}`)
   })
 
   it('Ready の Issue に済んでいない前提があると、Blocked へ動かす', async (context) => {
@@ -309,7 +309,7 @@ describe('board sync', () => {
     const withoutBlocked = Object.fromEntries(Object.entries(FULL_WORKFLOW).filter(([name]) => name !== 'blocked'))
     const result = await sync([rateLimit(100), board(item('PVTI_1', 1, 'Ready'), item('PVTI_3', 3, 'Ready')), prerequisitesRule({ number: 1, blockedBy: [notStarted] }), prerequisitesRule({ number: 3, blockedBy: [notStarted] }), rateLimit(130)], {}, boardConfig(withoutBlocked))
     expect(result.code).toBe(0)
-    expect(result.stderr).toBe(`warning: the board has no option Blocked; add it with project_init\n${RATE_NOTE}`)
+    expect(result.stderr).toBe(`warning: the board has no option Blocked; add it with project_check with method: "fields" and apply the changes it asks for with the project-fields operation of github-ops, then project_activate to read the board into the project config\n${RATE_NOTE}`)
     expect(writes(result)).toEqual([])
   })
 

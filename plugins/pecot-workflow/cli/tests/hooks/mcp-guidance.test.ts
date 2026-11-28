@@ -14,14 +14,14 @@ const guidanceScript = path.resolve(import.meta.dirname, '../../../hooks/lib/cor
 const launcherForm = /(?<![\w-])pecot\s+[a-z]|\$PECOT|bin\/pecot/
 
 const guidances = [
-  { shellFunction: 'mcp_guidance_gh_pr_create', start: 'gh-pr-create-check: gh pr create is not allowed.', tools: ['pr_create'], text:
-      'gh-pr-create-check: gh pr create is not allowed.\n\nReason: using gh pr create directly skips the automatic Issue reference, the PR template validation,\nand the traceability record, which breaks the consistency of the workflow.\n\nUse this instead:\n  the MCP tool pr_create of the workflow server\n' },
+  { shellFunction: 'mcp_guidance_gh_pr_create', start: 'gh-pr-create-check: gh pr create is not allowed.', tools: ['pr_check', 'create_pull_request'], text:
+      'gh-pr-create-check: gh pr create is not allowed.\n\nReason: using gh pr create directly skips the automatic Issue reference, the PR template validation,\nand the traceability record, which breaks the consistency of the workflow.\n\nUse this instead:\n  check the values with the MCP tool pr_check of the workflow server,\n  then create the PR with create_pull_request of the official GitHub MCP server\n  (steps: skills/w-help/references/github-write.md)\n' },
   { shellFunction: 'mcp_guidance_gh_issue_create', start: 'gh-issue-create-check: gh issue create is not allowed.', tools: ['issue_check', 'issue_write'], text:
-      'gh-issue-create-check: gh issue create is not allowed.\n\nReason: using gh issue create directly skips the checks of the workflow (the template,\nthe title number, the prerequisites and the board fields), which breaks the consistency\nand traceability of the workflow.\n\nUse this instead:\n  check the arguments with the MCP tool issue_check of the workflow server,\n  then create the Issue with issue_write of the official GitHub MCP server\n  (steps: skills/w-help/references/issue-write.md)\n' },
-  { shellFunction: 'mcp_guidance_gh_stack', start: 'gh-stack-check: gh stack is not allowed', tools: ['pr_create', 'pr_restack'], text:
-      'gh-stack-check: gh stack is not allowed (only gh stack view (use --json) and --help are).\n\nReason: running gh stack directly changes the stack without the workflow\'s records,\nthe Issue reference and the readiness checks, which breaks the consistency of the workflow.\n\nUse these instead:\n  the MCP tool pr_create of the workflow server  (open a PR, stacked when needed)\n  the merge button on the GitHub page            (merge a PR there; /pecot-w:w-pr waits for it and cleans up)\n  the MCP tool pr_restack of the workflow server (restack a stacked branch)\n' },
-  { shellFunction: 'mcp_guidance_branch_delete', start: 'To delete a remote branch', tools: ['branch_delete', 'repo', 'branch'], text:
-      'To delete a remote branch, use the MCP tool branch_delete of the workflow server with repo (owner/repo) and branch.\n' },
+      'gh-issue-create-check: gh issue create is not allowed.\n\nReason: using gh issue create directly skips the checks of the workflow (the template,\nthe title number, the prerequisites and the board fields), which breaks the consistency\nand traceability of the workflow.\n\nUse this instead:\n  check the arguments with the MCP tool issue_check of the workflow server,\n  then create the Issue with issue_write of the official GitHub MCP server\n  (steps: skills/w-help/references/github-write.md)\n' },
+  { shellFunction: 'mcp_guidance_gh_stack', start: 'gh-stack-check: gh stack is not allowed', tools: ['pr_check', 'create_pull_request', 'stack-register', 'pr_restack'], text:
+      'gh-stack-check: gh stack is not allowed (only gh stack view (use --json) and --help are).\n\nReason: running gh stack directly changes the stack without the workflow\'s records,\nthe Issue reference and the readiness checks, which breaks the consistency of the workflow.\n\nUse these instead:\n  open a stacked PR: check with the MCP tool pr_check of the workflow server, create it with\n    create_pull_request of the official GitHub MCP server, then register it with the\n    stack-register operation of github-ops (steps: skills/w-help/references/github-write.md)\n  merge a PR: the merge button on the GitHub page (/pecot-w:w-pr waits for it and cleans up)\n  restack a stacked branch: the MCP tool pr_restack of the workflow server\n' },
+  { shellFunction: 'mcp_guidance_branch_delete', start: 'To delete a merged branch on the remote', tools: ['Automatically delete head branches', 'git branch -D'], text:
+      'To delete a merged branch on the remote, leave it to the repository setting\n"Automatically delete head branches". Delete the local branch with git branch -D.\n' },
 ]
 
 function guidanceOf(shellFunction: string): string {
@@ -41,7 +41,7 @@ describe('mcp-guidance', () => {
   it('mcp_guidance_gh_stack は、マージを画面のマージボタンに案内し、pr_merge を案内しない', async () => {
     await explains('移行後の案内文（`mcp-guidance.sh`）のテストです。`mcp_guidance_gh_stack` の出力を取得した場合に、マージを GitHub の画面のボタンへ案内し、`pr_merge` を案内しないことを確認します。')
     const text = guidanceOf('mcp_guidance_gh_stack')
-    expect(text).toContain('the merge button on the GitHub page')
+    expect(text).toContain('merge a PR: the merge button on the GitHub page')
     expect(text).not.toContain('pr_merge')
   })
 

@@ -408,7 +408,7 @@ describe('review のワークフローの雛形', () => {
     expect(review.env?.['CONTEXT7_API_KEY']).toBe('${{ secrets.CONTEXT7_API_KEY }}')
   })
 
-  it('公式の GitHub の MCP サーバを digest で固定した docker で起動し、ツールを 3 つに絞って --mcp-config で渡す', async () => {
+  it('公式の GitHub の MCP サーバを digest で固定した docker で起動し、ツールを絞って --mcp-config で渡す', async () => {
     await explains('公式の GitHub の MCP サーバの設定のテストです。`github-official` が docker で `ghcr.io/github/github-mcp-server` の v2.3.0 を digest つきで起動することを確認します。token・ホスト・ツールを env で渡し、`--mcp-config` に job の env の値を渡すことも確認します。')
     const server: unknown = JSON.parse(job.env?.['PECOT_REVIEW_GITHUB_MCP'] ?? '')
     const image = 'ghcr.io/github/github-mcp-server:v2.3.0@sha256:f8ee4dedc7d5c8cb32854ab91cc92a31c55a8a5510708cf8742e9f9427588ca6'
@@ -421,7 +421,7 @@ describe('review のワークフローの雛形', () => {
           env: {
             GITHUB_PERSONAL_ACCESS_TOKEN: '${PECOT_GITHUB_COM_TOKEN}',
             GITHUB_HOST: '${{ github.server_url }}',
-            GITHUB_TOOLS: 'issue_read,add_issue_comment,update_issue_comment',
+            GITHUB_TOOLS: 'issue_read,add_issue_comment,update_issue_comment,pull_request_read',
           },
         },
       },
@@ -438,9 +438,9 @@ describe('review のワークフローの雛形', () => {
       'Read',
       'Glob',
       'Grep',
-      `${pecot}pr_show`,
       `${pecot}issue_comment_check`,
       `${official}issue_read`,
+      `${official}pull_request_read`,
       `${official}add_issue_comment`,
       `${official}update_issue_comment`,
       'mcp__github_inline_comment__create_inline_comment',

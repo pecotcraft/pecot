@@ -267,25 +267,26 @@
 
 ### Tests for User Story 6（ボード・セッション・PR・設定・リリース）
 
-- [ ] T136 [P] [US6] `board_add`・`board_move`・`board_show` の計算（`projects_write` に渡す中身・ボードの読み取りからの判定）のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
-- [ ] T137 [P] [US6] `session_start`・`session_show` の計算（`create_branch`・`github-ops` の `link-branch`・ボードの移動）のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
-- [ ] T138 [P] [US6] `session_finish` の計算（閉じる `state_reason`・手元の片付け。リモートのブランチを消さない）のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
-- [ ] T139 [P] [US6] `pr_create`・`pr_restack`・`pr_check`・`pr_show` の計算のテストを書く（本文・`stack-register`・`reviewers`。親のマージの後の載せ替えは GitHub が行う） in `plugins/pecot-workflow/cli/src/commands/tests/`
-- [ ] T140 [P] [US6] `pr_merge` の計算のテストを書く（マージは利用者が画面で行う。Actions の token は merge queue に入れられないので、`merge-async` は置かない） in `plugins/pecot-workflow/cli/src/commands/tests/`
-- [ ] T141 [P] [US6] `project_create`・`project_init`・`project_link`・`project_get`・`project_set`・`project_activate`・`project_list`・`project_search`・`project_unset` の計算のテストを書く（`create_project`・`get_me`・`project-fields`・`project-view`・`project-link`）
-- [ ] T142 [P] [US6] `release_check`・`release_create`・`release_merge` の計算のテストを書く（`list_releases`・`list_tags`・`list_commits`・`release-create`。ブランチを消さない）
-- [ ] T143 [P] [US6] このまとまりのスキルが、公式の MCP のツールと `pecot-github-ops.yml` の起動をどの場面で使うかを示し、利用者に起動を頼まないことのテストを書く in `plugins/pecot-workflow/cli/tests/skills/`
+- [x] T136 [P] [US6] `board_check`（`projects_write` の `update_project_item` に渡す値）と `board_show`（ボードの読み取りからの判定）のテストを書く。`board_add` はやめる in `plugins/pecot-workflow/cli/src/commands/tests/`
+- [x] T137 [P] [US6] `branch_check`（github-ops の `link-branch` に渡す値・前提・base）と、手元だけの `session_start`・`session_show` のテストを書く in `plugins/pecot-workflow/cli/src/commands/tests/`
+- [x] T138 [P] [US6] `session_finish` の手元の片付けのテストを書く。Issue を閉じるのはマージで動く board-sync で、リモートのブランチを消さない in `plugins/pecot-workflow/cli/src/commands/tests/`
+- [x] T139 [P] [US6] `pr_check`（`create`・`update`）と `pr_restack` のテストを書く（本文・閉じる Issue・base・題の scope・preflight。親のマージの後の載せ替えは GitHub が行う）。`pr_create`・`pr_show` はやめる in `plugins/pecot-workflow/cli/src/commands/tests/`
+- [x] T140 [P] [US6] `pr_check`（`merge`）のテストを書く（マージは利用者が画面で行う。`pr_merge` はやめ、`merge-async` は置かない） in `plugins/pecot-workflow/cli/src/commands/tests/`
+- [x] T141 [P] [US6] `project_check`（`create_project`・`project-fields` に渡す値）と、手元だけの `project_activate`・`project_link`・`project_get`・`project_set`・`project_list`・`project_unset` のテストを書く。
+  `project_init`・`project_create`・`project_search` はやめる
+- [x] T142 [P] [US6] `release_check`（github-ops の `release-create` に渡す値と alert）のテストを書く。`release_create`・`release_merge` はやめ、ブランチを消さない
+- [x] T143 [P] [US6] このまとまりのスキルが、公式の MCP のツールと `pecot-github-ops.yml` の起動をどの場面で使うかを示し、利用者に起動を頼まないことのテストを書く in `plugins/pecot-workflow/cli/tests/skills/`
 
 ### Implementation for User Story 6（ボード・セッション・PR・設定・リリース）
 
-- [ ] T144 [US6] T136〜T142 の計算を `plugins/pecot-workflow/cli/src/commands/` の各ファイルに書き、GitHub を呼ぶ部分を消す。MCP の登録と `authored.yaml` を合わせる
-- [ ] T145 [US6] `branch_delete` のツールと、`session_finish`・`release_merge` のリモートのブランチを消す道を消す（FR-018）
-- [ ] T146 [US6] `w-onboarding` と `plugins/pecot-workflow/CONTRIBUTING.md` に、リポの「head ブランチを自動で消す」設定が有効かを確かめる手順を足す（FR-018）
-- [ ] T147 [US6] `w-active`・`w-pr`・`w-merge`・`w-onboarding`・`w-repo-add` の手順を、計算 → 公式の MCP で書く、手の無い操作は `pecot-github-ops.yml` を起動して結果を読む形に直す
-- [ ] T148 [US6] `w-release` を、利用者に頼まれたらエージェントがリリースのワークフローを起動する形に直す（FR-017） in `plugins/pecot-workflow/skills/w-release/SKILL.md`
-- [ ] T149 [US6] ワークフローが失敗するか終わらないときに止まり、実行の URL を示す手順と、5xx の後に書いたものを読んで確かめてからやり直す手順をスキルに書く
-- [ ] T150 [US6] version plan を足す（ツールの入出力が変わるのでメジャー）
-- [ ] T151 [US6] CUJ: T135 と同じ形で、sandbox の Issue を w-active → 実装 → w-pr → マージ待ちまで流し、今のものと比べる。クラウドのスレッドでの確かめは T176 で行う
+- [x] T144 [US6] T136〜T142 のチェックと手元のツールを `plugins/pecot-workflow/cli/src/commands/` の各ファイルに書き、GitHub を呼ぶ部分を消す。MCP の登録と `authored.yaml` を合わせる
+- [x] T145 [US6] `branch_delete` のツールと、`session_finish`・`release_merge` のリモートのブランチを消す道を消す（FR-018）
+- [x] T146 [US6] `w-onboarding` と `plugins/pecot-workflow/CONTRIBUTING.md` に、リポの「head ブランチを自動で消す」設定が有効かを確かめる手順を足す（FR-018）
+- [x] T147 [US6] `w-active`・`w-pr`・`w-onboarding`・`w-repo-add` の手順を、チェック → 公式の MCP で書く、手の無い操作は `pecot-github-ops.yml` を起動して結果を読む形に直す
+- [x] T148 [US6] `w-release` を、利用者に頼まれたらエージェントがリリースのワークフローを起動する形に直す（FR-017） in `plugins/pecot-workflow/skills/w-release/SKILL.md`
+- [x] T149 [US6] ワークフローが失敗するか終わらないときに止まり、実行の URL を示す手順と、5xx の後に書いたものを読んで確かめてからやり直す手順をスキルに書く
+- [x] T150 [US6] version plan を足す（ツールの入出力が変わるのでメジャー）
+- [x] T151 [US6] CUJ: T135 と同じ形で、sandbox の Issue を w-active → 実装 → w-pr → マージ待ちまで流し、今のものと比べる。クラウドのスレッドでの確かめは T176 で行う
 
 ---
 

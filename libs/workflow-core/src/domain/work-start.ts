@@ -1,8 +1,7 @@
 // 着手の判定から、base の選び方・止める文・スタック先の表示を決める。I/O を持たない。
 
-import { commandHint, hinted, inputHint, joinHinted } from './command-hint.js'
+import { commandHint, hinted, joinHinted } from './command-hint.js'
 import type { HintedText, HintValue } from './command-hint.js'
-import type { PullRequestReadout } from './issue-readout.js'
 import { isAwaitingCloseAfterMerge, describePrerequisiteState, describeReadiness, displayReference, isDone } from './readiness.js'
 import type { Prerequisite, Readiness, StackTarget } from './readiness.js'
 import { issueReferenceToCliReference } from './reference-parser.js'
@@ -53,14 +52,6 @@ export function decideStart(readiness: Readiness | undefined, prerequisites: rea
 }
 
 /**
---base が、判定で選んだスタック先と違うときの文。stackable のときだけ比べる
-*/
-export function describeBaseMismatch(base: string | undefined, decision: Exclude<StartDecision, { kind: 'blocked' }>, target: IssueReference): HintedText | undefined {
-  const isDifferent = base !== undefined && base !== '' && decision.kind === 'stack' && base !== decision.branch
-  return isDifferent ? hinted`${inputHint(['session', 'start'], 'base', base)} differs from the base chosen by readiness: ${decision.branch} (stacked on ${displayReference(decision.issue, target.repository)})` : undefined
-}
-
-/**
 スタック先の親ブランチを git で調べた結果。追跡参照が手元に無ければ untracked
 */
 export type LowerProbe
@@ -85,12 +76,4 @@ export function inferStackedBase(readiness: Readiness | undefined, prerequisites
   if (!probed.isShared) return { kind: 'development' }
   if (probed.sha === undefined) return { kind: 'unknown', reason: `cannot find where HEAD forked from ${branch}` }
   return { kind: 'stacked', record: { branch, sha: probed.sha, stackedOn: issue }, stackedOn: issue }
-}
-
-/**
-session show の `- base:` の行。PR が無ければ `no PR`、読めなければ `PR unknown`
-*/
-export function describeStackBase(branch: string, issue: IssueReference, pullRequest: Readonly<PullRequestReadout> | undefined | 'unknown'): string {
-  const pr = pullRequest === 'unknown' ? 'PR unknown' : (pullRequest === undefined ? 'no PR' : `PR #${String(pullRequest.number)} ${pullRequest.state}`)
-  return `- base: ${branch} (#${String(issue.number)}, ${pr})`
 }

@@ -7023,7 +7023,7 @@ function isHint(value) {
     return typeof value === 'object' && value !== null && 'kind' in value;
 }
 /**
-タグ付きテンプレートで HintedText を作る。`hinted\`call ${commandHint(['project', 'init'])}\``
+タグ付きテンプレートで HintedText を作る。`hinted\`call ${commandHint(['project', 'list'])}\``
 */
 function hinted(strings, ...values) {
     return strings.flatMap((text, index) => {
@@ -7504,11 +7504,18 @@ function unwrap$1(result, owner, repository) {
 一覧が 403 のとき、vulnerability-alerts で「無効」かどうかを分類する。
 404 のみを無効とみなす。204 は有効なのに一覧が取れない状態で、エラーにする
 */
-async function classifyForbidden(source, owner, repository, alertsUrl) {
+async function classifyForbidden(source, host, owner, repository) {
     if (unwrap$1(await source.isAlertsEnabled(owner, repository), owner, repository)) {
         throw new DependabotAlertError(`${owner}/${repository}: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)`);
     }
-    return { enabled: false, openCount: 0, maxSeverity: undefined, alertsUrl, openAlerts: [] };
+    return dependabotStatusOf(undefined, host, owner, repository);
+}
+/**
+読んだ open の alert から状態を作る。alerts が undefined なら無効
+*/
+function dependabotStatusOf(alerts, host, owner, repository) {
+    const alertsUrl = `https://${host}/${owner}/${repository}/security/dependabot`;
+    return alerts === undefined ? { enabled: false, openCount: 0, maxSeverity: undefined, alertsUrl, openAlerts: [] } : { enabled: true, openCount: alerts.length, maxSeverity: maxSeverity(alerts), alertsUrl, openAlerts: alerts.map(alert => openAlertOf(alert)).filter(alert => alert !== undefined) };
 }
 /**
 リポジトリの Dependabot alert の状態を取得する。
@@ -7516,12 +7523,8 @@ async function classifyForbidden(source, owner, repository, alertsUrl) {
 状態を判定できなければ DependabotAlertError
 */
 async function fetchDependabotAlertStatus(source, host, owner, repository) {
-    const alertsUrl = `https://${host}/${owner}/${repository}/security/dependabot`;
     const listed = await source.listOpenAlerts(owner, repository);
-    if (listed.kind === 'forbidden')
-        return classifyForbidden(source, owner, repository, alertsUrl);
-    const alerts = unwrap$1(listed, owner, repository);
-    return { enabled: true, openCount: alerts.length, maxSeverity: maxSeverity(alerts), alertsUrl, openAlerts: alerts.map(alert => openAlertOf(alert)).filter(alert => alert !== undefined) };
+    return listed.kind === 'forbidden' ? classifyForbidden(source, host, owner, repository) : dependabotStatusOf(unwrap$1(listed, owner, repository), host, owner, repository);
 }
 
 const REASON_LINE = /^(?:fatal|error): /u;
@@ -7674,8 +7677,13 @@ async function listScan(source, kind, owner, repository) {
     return listed.kind === 'disabled' ? undefined : listed.alerts;
 }
 async function scanStatus(source, kind, host, owner, repository) {
+    return scanStatusOf(kind, await listScan(source, kind, owner, repository), host, owner, repository);
+}
+/**
+読んだ open の alert から状態を作る。alerts が undefined なら無効
+*/
+function scanStatusOf(kind, alerts, host, owner, repository) {
     const alertsUrl = `https://${host}/${owner}/${repository}/security/${kind}`;
-    const alerts = await listScan(source, kind, owner, repository);
     if (alerts === undefined)
         return { enabled: false, openCount: 0, alertsUrl, openNumbers: [] };
     const numbers = alerts.map(alert => jsonField(alert, 'number')).filter((number) => Number.isSafeInteger(number));
@@ -12726,8 +12734,7 @@ function writeLines(io, lines, isExit) {
         io.error?.(failure.join('\n'));
 }
 
-// リリース前の確認（release_check）の判定。MCP のツールと actions/ の release-check が共有する。
-// release create・merge が使う文脈の読み込みも、ここに置く。
+// リリースの対象のリポジトリとブランチを決める。actions/ の release-check と MCP の release_check が使う
 const CHECK_PATH = ['release', 'check'];
 /**
 順は採用済みの repo、明示の repo、主の remote。決められないと error の行を出して終了コード 1 で止める。
@@ -12742,18 +12749,24 @@ function requireReleaseTargetRepository(adopted, explicit, out) {
     const remote = primaryRemoteRepository(process.cwd()) ?? stopWith(out, 'could not read the repository from the git remote', 'git-unresolved');
     return { owner: remote.owner, repository: remote.repository };
 }
+function requireBranchSetting(out, branch, kind, owner, repository) {
+    return branch === undefined || branch === '' ? stopWith(out, hinted `${kind}_branch is not set for ${owner}/${repository}\nset it with: ${commandHint(['project', 'link'], { repo: `${owner}/${repository}`, [`${kind}_branch`]: placeholder('branch') })}`, 'repo-setting-missing') : branch;
+}
+
+// リリース前の確認の判定。actions/ の release-check が使う。
+// version・package は action の入力で、MCP の release_check には無いので、案内でなく名前で書く。
 // 4 つの場合（packages の有無と package の有無）を分ける。矛盾があれば error の行を出して止める
 function resolvePackageContext(out, repositoryConfig, packageName, gitRoot, owner, repository) {
     const packages = repositoryConfig?.packages ?? [];
     if (repositoryConfig !== undefined && packages.length > 0) {
         const names = packages.map(item => item.name).join(', ');
         if (packageName === undefined)
-            stopWith(out, hinted `${owner}/${repository} is a monorepo\nspecify ${inputNameHint(CHECK_PATH, 'package')} (available: ${names})`, 'invalid-input');
+            stopWith(out, hinted `${owner}/${repository} is a monorepo\nspecify package (available: ${names})`, 'invalid-input');
         const found = findPackage(repositoryConfig, packageName) ?? stopWith(out, `package '${packageName}' is not registered in ${owner}/${repository}\navailable: ${names}`, 'invalid-input');
         return { changelogPath: path.isAbsolute(found.changelog) ? found.changelog : path.join(gitRoot, found.changelog), tagPrefix: found.name };
     }
     if (packageName !== undefined)
-        stopWith(out, hinted `${owner}/${repository} has no packages configured\n${inputNameHint(CHECK_PATH, 'package')} can only be used in a monorepo`, 'invalid-input');
+        stopWith(out, hinted `${owner}/${repository} has no packages configured\npackage can only be used in a monorepo`, 'invalid-input');
     return { changelogPath: resolveChangelogPath(gitRoot, repositoryConfig?.changelog_file), tagPrefix: undefined };
 }
 function requireSemver(out, version) {
@@ -12766,9 +12779,6 @@ function requireSemver(out, version) {
         stopWith(out, error.message, 'invalid-input');
     }
 }
-function requireBranchSetting(out, branch, kind, owner, repository) {
-    return branch === undefined || branch === '' ? stopWith(out, hinted `${kind}_branch is not set for ${owner}/${repository}\nset it with: ${commandHint(['project', 'link'], { repo: `${owner}/${repository}`, [`${kind}_branch`]: placeholder('branch') })}`, 'repo-setting-missing') : branch;
-}
 function loadReleaseContext(out, adopted, explicit, packageName, project, commandPath, options = {}) {
     const cwd = process.cwd();
     const gitRoot = gitToplevel({ cwd }) ?? stopWith(out, 'could not find the root directory of the git repository', 'git-unresolved');
@@ -12778,7 +12788,7 @@ function loadReleaseContext(out, adopted, explicit, packageName, project, comman
     const repositoryConfig = findRepository(config, owner, repository);
     if (repositoryConfig !== undefined && options.nxAlertsOnly === true && effectiveReleaseType(repositoryConfig) === 'nx') {
         if (packageName !== undefined || options.version !== undefined) {
-            stopWith(out, hinted `${inputNameHint(CHECK_PATH, 'version')} and ${inputNameHint(CHECK_PATH, 'package')} cannot be used when release_type is nx\ncall the tool without them (Nx Release decides the version)`, 'invalid-input');
+            stopWith(out, hinted `version and package cannot be used when release_type is nx\ncall the tool without them (Nx Release decides the version)`, 'invalid-input');
         }
         return { config, owner, repository, repositoryConfig, changelogPath: resolveChangelogPath(gitRoot, repositoryConfig.changelog_file), tagPrefix: undefined };
     }
@@ -41691,38 +41701,30 @@ pecot-workflow の MCP のサーバの registry.ts が登録するツールの�
 */
 const TOOL_HINT_COMMANDS = [
     { name: 'project_list', inputs: ['repo'] },
-    { name: 'project_search', inputs: ['owner', 'host', 'repo'] },
-    { name: 'project_init', inputs: ['owner', 'name', 'host', 'lanes', 'confirm_delete', 'repo'] },
-    { name: 'project_create', inputs: ['owner', 'title', 'host', 'lanes', 'repo'] },
-    { name: 'project_activate', inputs: ['project', 'owner', 'host', 'repo'] },
+    { name: 'project_check', inputs: ['method', 'owner', 'owner_type', 'title', 'project', 'changes', 'lanes', 'reads', 'repo'] },
+    { name: 'project_activate', inputs: ['project', 'owner', 'owner_type', 'host', 'reads', 'repo'] },
     { name: 'project_link', inputs: ['repo', 'develop_branch', 'release_branch', 'changelog_file', 'package', 'clear_packages', 'release_type'] },
     { name: 'project_get', inputs: ['key', 'repo'] },
     { name: 'project_set', inputs: ['key', 'value', 'yes', 'repo'] },
     { name: 'project_unset', inputs: ['key', 'repo'] },
-    { name: 'board_show', inputs: ['json', 'repo'] },
-    { name: 'board_add', inputs: ['issue_ref', 'status', 'project', 'repo'] },
-    { name: 'board_move', inputs: ['issue_ref', 'status', 'project', 'repo'] },
+    { name: 'board_show', inputs: ['json', 'repo', 'reads'] },
+    { name: 'board_check', inputs: ['method', 'owner', 'project_number', 'issue_number', 'item_owner', 'item_repo', 'updated_field', 'project', 'reads', 'repo'] },
     { name: 'issue_check', inputs: ['method', 'project', 'issues', 'reads', 'repo'] },
     { name: 'issue_dependency_check', inputs: ['method', 'owner', 'repo', 'issue_number', 'type', 'related_owner', 'related_repo', 'related_issue_number', 'wait', 'reason', 'project', 'reads'] },
     { name: 'issue_comment_check', inputs: ['method', 'owner', 'repo', 'issue_number', 'comment_id', 'body', 'template', 'template_text', 'reads'] },
-    { name: 'session_start', inputs: ['issue_ref', 'branch', 'base', 'checkout', 'project', 'repo'] },
+    { name: 'session_start', inputs: ['issue_ref', 'base', 'sha', 'stacked_on', 'title', 'reads', 'repo'] },
     { name: 'session_show', inputs: ['directory', 'project', 'repo'] },
-    { name: 'session_finish', inputs: ['pr_ref', 'delete_branch', 'project', 'repo'] },
-    { name: 'pr_create', inputs: ['file', 'message', 'title', 'base', 'head', 'draft', 'repo', 'no_issue_ref', 'template', 'screenshot', 'project'] },
-    { name: 'pr_show', inputs: ['pr_ref', 'json', 'reviews', 'project', 'repo'] },
-    { name: 'pr_check', inputs: ['directory', 'project', 'repo'] },
-    { name: 'pr_merge', inputs: ['pr_ref', 'project', 'repo'] },
-    { name: 'pr_restack', inputs: ['check', 'continue', 'abort', 'project', 'repo'] },
-    { name: 'release_check', inputs: ['version', 'package', 'project', 'repo'] },
-    { name: 'release_create', inputs: ['version', 'package', 'project', 'repo'] },
-    { name: 'release_merge', inputs: ['pr_ref', 'delete_branch', 'admin', 'project', 'repo'] },
+    { name: 'session_finish', inputs: ['pr_ref', 'project', 'reads', 'repo'] },
+    { name: 'pr_check', inputs: ['method', 'owner', 'repo', 'title', 'head', 'base', 'draft', 'body', 'pullNumber', 'merge_method', 'expectedHeadSha', 'template', 'template_text', 'screenshot', 'project', 'reads'] },
+    { name: 'pr_restack', inputs: ['check', 'continue', 'abort', 'project', 'reads', 'repo'] },
+    { name: 'release_check', inputs: ['params', 'project', 'reads', 'repo'] },
     { name: 'worktree_add', inputs: ['directory', 'base', 'path', 'no_copy', 'no_link', 'setup', 'allow_existing_branch', 'project', 'repo'] },
     { name: 'worktree_remove', inputs: ['name', 'directory', 'force', 'keep_branch', 'repo'] },
     { name: 'worktree_init', inputs: ['directory', 'repo'] },
     { name: 'worktree_link', inputs: ['directory', 'force', 'all', 'repo'] },
-    { name: 'branch_delete', inputs: ['repo', 'branch', 'project'] },
-    { name: 'workflow_install', inputs: ['name', 'check', 'force', 'directory', 'repo'] },
-    { name: 'workflow_doctor', inputs: ['name', 'directory', 'repo'] },
+    { name: 'branch_check', inputs: ['owner', 'repo', 'issue', 'branch', 'base', 'project', 'reads'] },
+    { name: 'workflow_install', inputs: ['name', 'check', 'force', 'directory', 'reads', 'repo'] },
+    { name: 'workflow_doctor', inputs: ['name', 'directory', 'reads', 'repo'] },
 ];
 /**
 actions/ に移した処理の形。name の `_` を `-` にしたものが actions/<name>/action.yml、inputs は token を除く inputs を snake_case にしたもの

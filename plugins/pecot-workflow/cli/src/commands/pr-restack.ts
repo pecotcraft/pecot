@@ -1,10 +1,11 @@
 // pr restack。スタックしたブランチを、base にしたブランチの新しい位置へスタックし直す。
 // 途中で抜ける箇所は CommandExit を投げ、defineTool が終了コードにする。
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 入力は zod の出力の型で、readonly にできない */
 import { z } from 'zod'
 
-import { describeApiError } from '@pecot/workflow-core/domain/api-error-detail.js'
 import { getDevelopBranch } from '@pecot/workflow-core/domain/config.js'
-import { extractClosingIssueNumbers, FORCE_PUSH_COMMAND } from '@pecot/workflow-core/domain/pull-request.js'
+import { extractClosingIssueNumbers, FORCE_PUSH_COMMAND, pickLowerPullRequest } from '@pecot/workflow-core/domain/pull-request.js'
+import type { RepositoryReference } from '@pecot/workflow-core/domain/repository-resolver.js'
 import { describeGone, describeRestackCheck, RESTACK_PATH } from '@pecot/workflow-core/domain/restack.js'
 import type { RestackDecision } from '@pecot/workflow-core/domain/restack.js'
 import { FLAG_PECOT_RESTACK, formatRestackProgress, interpretRestackProgress } from '@pecot/workflow-core/domain/state.js'
@@ -27,9 +28,8 @@ import {
   resetHardTo,
   resolveCommit,
 } from '@pecot/workflow-core/infra/git.js'
-import type { FetchResult, PushResult } from '@pecot/workflow-core/infra/git.js'
+import type { PushResult } from '@pecot/workflow-core/infra/git.js'
 import { findConfigFor } from '@pecot/workflow-core/infra/config-store.js'
-import type { PullRequestForFinish } from '@pecot/workflow-core/infra/github/pulls.js'
 import { readBaseRecord, readFlag, removeFlag, writeBaseRecord, writeFlag } from '../infra/state-store.js'
 import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import type { ToolDefinition, CommandIo } from '@pecot/workflow-core/commands-shared/command-definition.js'
@@ -37,13 +37,12 @@ import { commandHint, hinted, RUN_COLON, runAgain } from '@pecot/workflow-core/c
 import type { HintedText } from '@pecot/workflow-core/commands-shared/command-hint.js'
 import { gitFailureText } from '@pecot/workflow-core/domain/git-output.js'
 import { PROJECT_INPUT, requireConfigFor, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
-import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
-import { apiFailureMessage, createGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import type { Output } from '@pecot/workflow-core/commands-shared/output.js'
-import { primaryRemote, stopOnMalformedRecord, validatePullRequestContext } from './pr.js'
+import { parseOfficial, PULL_REQUEST_READ_GET } from './official-reads.js'
+import { LISTED_PULL_REQUESTS, pullRequestReadoutsOf } from './official-reads-pr.js'
+import { primaryRemote, stopOnMalformedRecord, validatePullRequestContext } from './pr-preflight.js'
 import { readRestackDecision } from './restack-reading.js'
-import { readBaseOrInfer, warnUnresolved } from './base-reading.js'
 import { USAGE_EXIT_CODE } from '@pecot/workflow-core/commands-shared/usage-error.js'
 
 const CONFLICT_EXIT_CODE = 3
@@ -60,7 +59,10 @@ const PR_RESTACK_OUTPUT = z.strictObject({
   pullRequest: z.int().optional().describe('Merged PR of the lower branch (only when the cause is base-merged)'),
   pushed: z.boolean().optional().describe('Whether the branch was pushed (only when restacked)'),
   conflicts: z.array(z.string()).optional().describe('Files with conflicts (only on conflict)'),
-  relinked: z.int().optional().describe('Open PR whose body was saved again so that GitHub links its closing Issues (only after a restack onto the develop branch)'),
+  relink: z.strictObject({
+    pullRequest: z.int().describe('Open PR of the branch whose body closes Issues'),
+    reason: z.string().describe('What to write with update_pull_request, and why'),
+  }).optional().describe('PR to save again with update_pull_request so that GitHub links its closing Issues (only after a restack onto the develop branch, with reads.pull_request)'),
 })
 
 type PrRestackData = z.input<typeof PR_RESTACK_OUTPUT>
@@ -71,7 +73,13 @@ const RestackInputSchema = z.strictObject({
   continue: z.boolean().default(false).describe('Continue a restack that stopped on conflicts, after resolving them'),
   abort: z.boolean().default(false).describe('Abort a restack that stopped on conflicts and go back to the position before it'),
   project: PROJECT_INPUT,
+  reads: z.object({
+    pull_requests: z.unknown().optional().describe('For a stacked branch: the result of list_pull_requests (head owner:<base branch in .pecot-base>, state all) for the branch it is stacked on'),
+    pull_request: z.unknown().optional().describe('The result of pull_request_read with method get for the open PR of the current branch; it decides relink'),
+  }).optional().describe('Results of the official GitHub MCP reads the restack needs'),
 })
+
+type RestackInput = z.output<typeof RestackInputSchema>
 
 function causeOf(decision: Readonly<RestackDecision>): Pick<PrRestackData, 'cause' | 'pullRequest'> {
   if (decision.kind === 'moved') return { cause: 'base-moved' }
@@ -91,7 +99,7 @@ function stopOnConflict(out: RestackOutput, cwd: string, progress: Readonly<Rest
 
 // remote のブランチにだけあるコミット。patch-id は前後の行も含むので、スタックし直す前と後のどちらとも合わないものだけを数える
 function remoteOnlyCommits(cwd: string, progress: Readonly<RestackProgress>, remoteBranch: string): readonly string[] {
-  // 記録の位置は途中の記録から読む。スタック先を求めて始めたスタックし直しでは .pecot-base が無い。古い版の途中の記録は .pecot-base から読む
+  // 古い版の途中の記録は、記録の位置を持たないので .pecot-base から読む
   const reading = progress.recordSha === undefined ? readBaseRecord() : undefined
   const recordSha = progress.recordSha ?? (reading?.kind === 'stacked' ? reading.record.sha : undefined)
   const excluded = [progress.ontoSha, ...recordSha === undefined ? [] : [recordSha]]
@@ -154,52 +162,34 @@ async function finishRestack(out: RestackOutput, cwd: string, progress: Readonly
 }
 
 interface RelinkTarget {
-  readonly owner: string
-  readonly repository: string
-  readonly host: string
+  readonly location: RepositoryReference
   readonly developBranch: string
 }
 
-const RELINK_TARGET = 'to its closing Issues'
-
-// 本文の Closes のうち、まだリンクになっていないものがあるか。GitHub がリンクにするのは、既定のブランチに向いた PR だけ
-function hasUnlinkedClosingIssues(pullRequest: Readonly<PullRequestForFinish>, target: Readonly<RelinkTarget>): boolean {
-  if (pullRequest.state !== 'OPEN' || pullRequest.base_ref !== pullRequest.default_branch) return false
-  const linked = new Set(pullRequest.closing_issues.filter(issue => issue.owner === target.owner && issue.repository === target.repository).map(issue => issue.number))
-  return extractClosingIssueNumbers(pullRequest.body, target).some(number => !linked.has(number))
-}
-
-// 開発ブランチへスタックし直した PR の本文を保存し直す。GitHub は base の付け替えでは Closes を読み直さず、Issue とリンクしない
-async function relinkClosingIssues(out: RestackOutput, target: Readonly<RelinkTarget>, progress: Readonly<RestackProgress>): Promise<void> {
-  const { owner, repository, developBranch } = target
+// 開発ブランチへスタックし直した PR の本文を、保存し直すよう返す。GitHub は base の付け替えでは Closes を読み直さず、Issue とリンクしない
+function reportRelink(out: RestackOutput, target: Readonly<RelinkTarget>, progress: Readonly<RestackProgress>, read: unknown): void {
+  const { location, developBranch } = target
   if (progress.ontoBranch !== developBranch) return
-  let number: number | undefined
-  try {
-    const client = createGitHubClient(out, target.host)
-    const { pullRequests } = await client.listPullRequestsByHead(owner, repository, progress.branch)
-    number = pullRequests.find(found => found.state === 'OPEN' && !found.isCrossRepository)?.number
-    if (number === undefined) return
-    const pullRequest = await client.getPullRequestForFinish(owner, repository, number)
-    if (!hasUnlinkedClosingIssues(pullRequest, target)) return
-    await client.updatePullRequestBody(owner, repository, number, pullRequest.body)
-    out.result({ relinked: number })
-    out.done({ verb: 'update', target: `PR #${String(number)} relinked ${RELINK_TARGET}` })
+  if (read === undefined) {
+    out.warning(`${progress.branch} is now on ${developBranch}: pass the open PR of the branch as reads.pull_request (pull_request_read, method get) to learn whether its body must be saved again to link its closing Issues`)
+    return
   }
-  catch (error: unknown) {
-    const label = number === undefined ? `the PR of ${progress.branch}` : `PR #${String(number)}`
-    out.warning(`cannot relink ${label} ${RELINK_TARGET}: ${apiFailureMessage(error)}\nto link them, save the body of ${label} again on GitHub without changes`)
-  }
+  const pullRequest = parseOfficial(out, 'pull_request_read', PULL_REQUEST_READ_GET, read, 'reads.pull_request')
+  if (pullRequest.state !== 'open' || pullRequest.merged || pullRequest.head.ref !== progress.branch || (extractClosingIssueNumbers(pullRequest.body ?? '', location).length === 0)) return
+  const name = `PR #${String(pullRequest.number)}`
+  const rebase = pullRequest.base.ref === developBranch ? '' : ` with base ${developBranch}`
+  const reason = `GitHub links the closing Issues of ${name} only when its body is saved while the PR goes to ${developBranch}: call update_pull_request for ${name}${rebase}, passing its body unchanged`
+  out.result({ relink: { pullRequest: pullRequest.number, reason } })
 }
 
-// continue で終えた後に保存し直す先。rebase の間はブランチを読めないので、終えてから求める。求まらなければ保存し直さない
+// continue で終えた後の、保存し直しの判断の材料。rebase の間はブランチを読めないので、終えてから求める。求まらなければ判断しない
 function relinkTargetOf(cwd: string, project: string | undefined): RelinkTarget | undefined {
   const location = primaryRemote(cwd)?.location
   if (location === undefined) return undefined
   const lookup = findConfigFor(location, project)
   if (lookup.kind !== 'found') return undefined
-  const { config } = lookup.found
-  const developBranch = getDevelopBranch(config, location.owner, location.repository)
-  return developBranch === undefined || developBranch === '' ? undefined : { owner: location.owner, repository: location.repository, host: config.host, developBranch }
+  const developBranch = getDevelopBranch(lookup.found.config, location.owner, location.repository)
+  return developBranch === undefined || developBranch === '' ? undefined : { location, developBranch }
 }
 
 // continue と abort。途中の記録だけを読む。記録が無ければ、利用者が始めた rebase を動かさずに止まる
@@ -237,28 +227,22 @@ function hasUncommittedChanges(cwd: string): boolean {
 
 interface StackedTarget {
   readonly remote: string
-  readonly owner: string
-  readonly repository: string
+  readonly location: RepositoryReference
   readonly reading: Extract<BaseReading, { kind: 'stacked' }>
   readonly developBranch: string
 }
 
-// 親 PR と、remote の先頭を読んで、スタックし直す先を決める
-async function decideFor(out: RestackOutput, cwd: string, host: string, target: Readonly<StackedTarget>): Promise<RestackDecision> {
-  const { remote, owner, repository, developBranch, reading } = target
+// 読み取りの結果の親 PR と、remote の先頭から、スタックし直す先を決める
+async function decideFor(out: RestackOutput, cwd: string, target: Readonly<StackedTarget>, reads: RestackInput['reads']): Promise<RestackDecision> {
+  const { remote, location, developBranch, reading } = target
   const { branch } = reading.record
-  const read = await readRestackDecision({ client: () => createGitHubClient(out, host), owner, repository, cwd, remote, reading, developBranch, signal: out.signal })
-  switch (read.kind) {
-    case 'pull-request-unreadable': {
-      return stopWith(out, `cannot read the PR of the base branch ${branch}: ${describeApiError(read.error)}`, kindOfFailure(read.error))
-    }
-    case 'remote-unreachable': {
-      return stopWith(out, `cannot reach ${remote} to read the base branch ${branch}`, 'git-unresolved')
-    }
-    case 'decided': {
-      return read.decision
-    }
+  if (reads?.pull_requests === undefined) {
+    return stopWith(out, `${currentBranch(cwd) ?? 'the branch'} is stacked on ${branch}: read its PRs with list_pull_requests (owner ${location.owner}, repo ${location.repository}, head ${location.owner}:${branch}, state all) and pass its result as reads.pull_requests`, 'invalid-input', USAGE_EXIT_CODE)
   }
+  const listed = parseOfficial(out, 'list_pull_requests', LISTED_PULL_REQUESTS, reads.pull_requests, 'reads.pull_requests')
+  const lowerPullRequest = pickLowerPullRequest(pullRequestReadoutsOf(listed).filter(pullRequest => pullRequest.headRefName === branch))
+  const read = await readRestackDecision({ cwd, remote, reading, developBranch, lowerPullRequest, signal: out.signal })
+  return read.kind === 'decided' ? read.decision : stopWith(out, `cannot reach ${remote} to read the base branch ${branch}`, 'git-unresolved')
 }
 
 // スタックし直す先の ref と SHA。開発ブランチへスタックし直すときは、スタック先を記録から外す
@@ -282,7 +266,7 @@ function rebaseStartOf(out: RestackOutput, cwd: string, target: Readonly<Stacked
   return start ?? stopWith(out, `cannot find where HEAD forked from ${branch}`, 'git-unresolved')
 }
 
-async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, io: Readonly<CommandIo>): Promise<void> {
+async function runRestack(input: Readonly<RestackInput>, io: Readonly<CommandIo>): Promise<void> {
   const out = createOutput<PrRestackData>(false, io)
   const modes = [input.check, input.continue, input.abort].filter(Boolean).length
   if (modes > 1) stopWith(out, 'give only one of check, continue and abort', 'invalid-input', USAGE_EXIT_CODE)
@@ -290,8 +274,7 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
   if (input.continue || input.abort) {
     const finished = await resumeRestack(out, cwd, input.abort ? 'abort' : 'continue', io.signal)
     const relinkTarget = finished === undefined ? undefined : relinkTargetOf(cwd, input.project)
-    if (finished === undefined || relinkTarget === undefined) return
-    await relinkClosingIssues(out, relinkTarget, finished)
+    if (finished !== undefined && relinkTarget !== undefined) reportRelink(out, relinkTarget, finished, input.reads?.pull_request)
     return
   }
 
@@ -300,15 +283,7 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
     stopWith(out, hinted`a rebase is in progress\ncontinue the restack: ${commandHint(RESTACK_PATH, { continue: true })}\nor abort it: ${commandHint(RESTACK_PATH, { abort: true })}`, 'invalid-input', USAGE_EXIT_CODE)
   }
   const config = requireConfigFor(out, location, input.project, RESTACK_PATH).config
-  // 記録が無ければ、求める前に fetch して、手元に無い親ブランチも追跡参照で見る
-  let fetched: Promise<FetchResult> | undefined
-  const fetchOnce = async (): Promise<FetchResult> => await (fetched ??= fetchRemote(cwd, remote, out.signal))
-  const fetchBeforeInfer = async (): Promise<void> => {
-    await fetchOnce()
-  }
-  const base = await readBaseOrInfer({ directory: cwd, project: { config, client: () => createGitHubClient(out, config.host) }, beforeInfer: fetchBeforeInfer })
-  warnUnresolved(base, out)
-  const { reading } = base
+  const reading = readBaseRecord()
   stopOnMalformedRecord(reading, out)
   const developBranch = getDevelopBranch(config, location.owner, location.repository)
   if (developBranch === undefined || developBranch === '') return stopWith(out, `develop_branch is not set for ${location.owner}/${location.repository}`, 'repo-setting-missing')
@@ -320,15 +295,15 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
     return
   }
   if (!input.check && hasUncommittedChanges(cwd)) stopWith(out, 'working tree has uncommitted changes', 'preflight-failed', UNCOMMITTED_EXIT_CODE)
-  const fetchResult = await fetchOnce()
+  const fetchResult = await fetchRemote(cwd, remote, out.signal)
   if (!fetchResult.succeeded) {
     out.log(fetchResult.stderr)
     stopWith(out, gitFailureText(`cannot fetch ${remote}: `, fetchResult.stderr.trim()), 'git-unresolved')
   }
 
-  const target: StackedTarget = { remote, owner: location.owner, repository: location.repository, reading, developBranch }
-  const relinkTarget: RelinkTarget = { owner: location.owner, repository: location.repository, host: config.host, developBranch }
-  const decision = await decideFor(out, cwd, config.host, target)
+  const target: StackedTarget = { remote, location, reading, developBranch }
+  const relinkTarget: RelinkTarget = { location, developBranch }
+  const decision = await decideFor(out, cwd, target, input.reads)
   if (decision.kind === 'gone') return stopWith(out, describeGone(decision), 'pr-state')
   if (input.check) {
     const isNeeded = decision.kind === 'moved' || decision.kind === 'merged'
@@ -340,7 +315,7 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
     // スタックし直し済みなので rebase をせず、push と記録の書き直しだけを行う
     const progress = progressOf(out, cwd, branch, target, decision)
     await finishRestack(out, cwd, progress, io.signal)
-    await relinkClosingIssues(out, relinkTarget, progress)
+    reportRelink(out, relinkTarget, progress, input.reads?.pull_request)
     return
   }
   if (decision.kind !== 'moved' && decision.kind !== 'merged') {
@@ -355,13 +330,13 @@ async function runRestack(input: Readonly<z.output<typeof RestackInputSchema>>, 
     stopOnConflict(out, cwd, progress)
   }
   await finishRestack(out, cwd, progress, io.signal)
-  await relinkClosingIssues(out, relinkTarget, progress)
+  reportRelink(out, relinkTarget, progress, input.reads?.pull_request)
 }
 
 const prRestack = defineTool({
   name: 'pr_restack',
   title: 'Restack branch',
-  description: 'Restack the current branch onto the new position of its base branch',
+  description: 'Restack the current branch onto the new position of its base branch. Reads nothing on GitHub; pass the results of the official reads in reads',
   input: RestackInputSchema,
   output: PR_RESTACK_OUTPUT,
   run: async (input, io) => {

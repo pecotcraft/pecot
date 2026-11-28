@@ -61,6 +61,7 @@ export type IssueReadGet = z.infer<typeof ISSUE_READ_GET>
 
 const BRANCH = z.looseObject({
   ref: z.string(),
+  sha: z.string().optional(),
   repo: z.looseObject({ full_name: z.string() }).nullable().optional(),
 })
 
@@ -69,13 +70,40 @@ pull_request_read（method: get）の structuredContent
 */
 export const PULL_REQUEST_READ_GET = z.looseObject({
   number: z.number().int(),
+  title: z.string().optional(),
+  body: z.string().optional(),
   state: z.enum(['open', 'closed']),
   draft: z.boolean(),
   merged: z.boolean(),
+  mergeable_state: z.string().optional(),
   html_url: z.string(),
   head: BRANCH,
   base: BRANCH,
 })
+
+// --- list_pull_requests ---
+
+/**
+list_pull_requests の structuredContent の 1 件。fields で絞ると項目が欠けるので、number と html_url のほかは省略できる
+*/
+const LISTED_PULL_REQUEST = z.looseObject({
+  number: z.number().int(),
+  title: z.string().optional(),
+  body: z.string().optional(),
+  state: z.string().optional(),
+  draft: z.boolean().optional(),
+  merged: z.boolean().optional(),
+  html_url: z.string(),
+  head: BRANCH.optional(),
+  base: BRANCH.optional(),
+})
+
+/**
+list_pull_requests の structuredContent。公式のサーバは配列（か null）を返す
+*/
+export const LIST_PULL_REQUESTS = z.array(LISTED_PULL_REQUEST).nullable()
+
+export type ListPullRequests = z.infer<typeof LIST_PULL_REQUESTS>
 
 export type PullRequestReadGet = z.infer<typeof PULL_REQUEST_READ_GET>
 
@@ -300,6 +328,28 @@ export function readPullRequestOf(output: Readonly<Output>, read: PullRequestRea
     isDraft: read.draft,
     isCrossRepository: headRepository !== undefined && baseRepository !== undefined && headRepository !== baseRepository,
   }
+}
+
+/**
+list_pull_requests の結果を判定の PR にする。html_url が PR の URL でないものと、head・base の無いものは飛ばす
+*/
+export function listedPullRequestsOf(read: ListPullRequests): readonly IssuePullRequest[] {
+  return (read ?? []).flatMap((pull): IssuePullRequest | [] => {
+    const reference = referenceFromUrl(pull.html_url)
+    const state = pull.merged === true ? 'merged' : pullRequestState(pull.state ?? '')
+    if (reference === undefined || state === undefined || pull.head === undefined || pull.base === undefined) return []
+    const headRepository = pull.head.repo?.full_name.toLowerCase()
+    const baseRepository = pull.base.repo?.full_name.toLowerCase()
+    return {
+      repository: reference.repository,
+      number: pull.number,
+      state,
+      headRefName: pull.head.ref,
+      baseRefName: pull.base.ref,
+      isDraft: pull.draft ?? false,
+      isCrossRepository: headRepository !== undefined && baseRepository !== undefined && headRepository !== baseRepository,
+    }
+  })
 }
 
 /**

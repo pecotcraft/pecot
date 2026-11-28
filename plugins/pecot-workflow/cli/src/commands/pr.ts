@@ -1,1133 +1,363 @@
-/* eslint-disable security/detect-non-literal-fs-filename -- パスは利用者が指定する */
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は内部の状態を持つ */
-// pr create・pr show・pr check。cli/commands/pr.py の移植。
-// 途中で抜ける箇所は CommandExit を投げ、defineTool が終了コードにする。
-import { existsSync, statSync } from 'node:fs'
-import path from 'node:path'
-
+// pr_check。create_pull_request・update_pull_request・merge_pull_request に渡す前の引数が、pecot の決まりに合うかを返す
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 入力は zod の出力の型で、readonly にできない */
 import { z } from 'zod'
 
-import { describeApiError } from '@pecot/workflow-core/domain/api-error-detail.js'
 import { extractIssueNumberFromBranch } from '@pecot/workflow-core/domain/branch-name.js'
-import { effectiveReleaseType, findRepository, getDevelopBranch, getFieldId, getOptionId, getReleaseBranch } from '@pecot/workflow-core/domain/config.js'
+import { formatHinted } from '@pecot/workflow-core/domain/command-hint.js'
+import { getDevelopBranch, getReleaseBranch } from '@pecot/workflow-core/domain/config.js'
 import type { ProjectConfig } from '@pecot/workflow-core/domain/config.js'
-import { InvalidValueError } from '@pecot/workflow-core/domain/errors.js'
-import { FrontmatterError } from '@pecot/workflow-core/domain/frontmatter.js'
-import type { ParsedPullRequest } from '@pecot/workflow-core/domain/frontmatter.js'
-import { parseRemoteUrl } from '@pecot/workflow-core/domain/git-url.js'
-import type { RemoteLocation } from '@pecot/workflow-core/domain/git-url.js'
+import { stripFrontmatter, stripLeadingHtmlComment } from '@pecot/workflow-core/domain/frontmatter.js'
 import { isEpicIssue } from '@pecot/workflow-core/domain/issue-kind.js'
-import { jsonField } from '@pecot/workflow-core/domain/json.js'
-import type { JsonObject } from '@pecot/workflow-core/domain/json.js'
-import { appendIssueCloseIfNeeded, collectPreflightWarnings, decidePullRequestBase, describeBaseStop, describePushStatus, DIVERGED_FIX_HINT, forkPushFixHint, formatPreflightWarning, formatPullRequestMarkdown, formatPullRequestWithReviewsMarkdown, isReleasePullRequest, parseHeadReference, pickLowerPullRequest, pushFixHintOf, validatePullRequestContent } from '@pecot/workflow-core/domain/pull-request.js'
-import type { HeadReference, PreflightWarning, PullRequestBaseDecision, PullRequestBaseUse, PushStatus } from '@pecot/workflow-core/domain/pull-request.js'
-import { parsePythonInteger, pythonStrip } from '@pecot/workflow-core/domain/python-format.js'
-import { splitOwnerRepository } from '@pecot/workflow-core/domain/repository-resolver.js'
-import { RESTACK_PATH } from '@pecot/workflow-core/domain/restack.js'
+import type { PullRequestReadout } from '@pecot/workflow-core/domain/issue-readout.js'
+import { decidePullRequestBase, describeBaseStop, formatPreflightWarning, hasClosingReference, isReleasePullRequest, parseHeadReference, pickLowerPullRequest } from '@pecot/workflow-core/domain/pull-request.js'
+import type { HeadReference } from '@pecot/workflow-core/domain/pull-request.js'
 import type { RepositoryReference } from '@pecot/workflow-core/domain/repository-resolver.js'
+import { hasSummaryImage } from '@pecot/workflow-core/domain/sections.js'
 import type { BaseReading } from '@pecot/workflow-core/domain/state.js'
-import { configLookupFailure } from '@pecot/workflow-core/infra/config-store.js'
-import { parsePullRequestFile } from '../infra/frontmatter-file.js'
-import { gitCurrentBranch, gitRemoteUrl, gitStdout, gitToplevel, isAncestor, primaryRemoteName, remoteBranchHead, resolveCommit, runGit } from '@pecot/workflow-core/infra/git.js'
-import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
-import type { PullRequestSlim, PullRequestWithReviews } from '@pecot/workflow-core/infra/github/pulls.js'
-import { TransportFailure } from '@pecot/workflow-core/infra/github/client.js'
-import { GitHubAPIError } from '@pecot/workflow-core/infra/github/errors.js'
-import { changedFiles, expectedScope, nxProjects, parseTitleScope } from '../infra/nx-scope.js'
-import { isFileNotFound } from '@pecot/workflow-core/infra/os-error.js'
-import { resolveRealPath } from '@pecot/workflow-core/infra/paths.js'
+import { closedHeadingGuidance, EM_DASH_HINT, templateViolations } from '@pecot/workflow-core/domain/template-violations.js'
+import type { TemplateViolation, TemplateViolationCode } from '@pecot/workflow-core/domain/template-violations.js'
 import { readTemplateSections } from '@pecot/workflow-core/infra/template-sections.js'
-import { templateFile } from '../infra/template-store.js'
-import { readBaseOrInfer, warnUnresolved } from './base-reading.js'
-import { readTextFile } from '@pecot/workflow-core/infra/text-file.js'
-import { commandHint, hinted, inputHint, inputNameHint, joinHinted, placeholder } from '@pecot/workflow-core/commands-shared/command-hint.js'
-import type { HintedText } from '@pecot/workflow-core/commands-shared/command-hint.js'
-import { PROJECT_INPUT, requireConfigFor, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
-import { planStackRegistration } from '@pecot/workflow-core/commands-shared/stack-registration.js'
-import { findConfigForRemotes, readRemoteLocations } from '../infra/remote-config.js'
-import { kindOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
-import { directorySchema } from './directory-option.js'
-import { createGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
+import { commandHint, hinted, joinHinted } from '@pecot/workflow-core/commands-shared/command-hint.js'
+import { PROJECT_INPUT, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
+import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
-import type { Operation, Output } from '@pecot/workflow-core/commands-shared/output.js'
-import { CommandExit, defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import type { ToolDefinition, CommandIo, GlobalInput } from '@pecot/workflow-core/commands-shared/command-definition.js'
-import { BOARD_MOVE_JSON, moveJson } from '@pecot/workflow-core/commands-shared/issue-board.js'
-import type { BoardMoveLine } from '@pecot/workflow-core/commands-shared/issue-board.js'
-import { PR_MERGE_COMMAND } from './pr-merge.js'
-import { isPositive, parseReference, PR_REFERENCE_DESCRIPTION } from '@pecot/workflow-core/commands-shared/pr-reference.js'
-import { readRestackDecision } from './restack-reading.js'
-import type { KnownLowerPullRequest } from './restack-reading.js'
-import { moveWaitingIssues } from '@pecot/workflow-core/commands-shared/pr-waiting.js'
-import { fieldWriteFailure } from '@pecot/workflow-core/commands-shared/field-write-failure.js'
-import type { FieldHintState } from '@pecot/workflow-core/commands-shared/field-write-failure.js'
+import type { Output } from '@pecot/workflow-core/commands-shared/output.js'
+import { templateFile } from '../infra/template-store.js'
+import { configFor, unreadProblem } from './check-reads.js'
+import { CHECK_RESULT_SHAPE } from './check-result.js'
+import type { CheckProblem } from './check-result.js'
+import { parseOfficial, PULL_REQUEST_READ_GET } from './official-reads.js'
+import type { PullRequestReadGet } from './official-reads.js'
+import { ISSUE_KIND_READ, issueKindOf, LISTED_PULL_REQUESTS, pullRequestReadoutsOf } from './official-reads-pr.js'
+import { preflightWarnings, readHeadBase, titleScopeMismatch } from './pr-preflight.js'
+import type { StackedScope } from './pr-preflight.js'
 
-// 本文の検証の失敗。1（通信・設定・引数）と 2（preflight）と区別する
-const VALIDATION_EXIT_CODE = 3
-const PREFLIGHT_EXIT_CODE = 2
-const PREFLIGHT_FAILED = 'preflight found warnings; fix them before creating a PR'
-// 親 PR が開いておらず、マージもされていない
-const NO_OPEN_BASE_EXIT_CODE = 2
+const BUNDLED_PREFIX = 'pecot-template://'
+const PR_PREFIX = `${BUNDLED_PREFIX}pr/`
+export const PR_TEMPLATES: readonly string[] = ['create', 'release']
+const CHECK_PATH = ['pr', 'check']
+const LINK_PATH = ['project', 'link']
 
-// Python の `{e}` に当たる、例外の文
-export function reasonOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
-
-function templateKindOf(template: string): 'create' | 'release' {
-  return template === 'release' ? 'release' : 'create'
-}
-
-// 主の remote
-
-export interface PrimaryRemote {
-  readonly name: string
-  readonly url: string
-  /**
-  URL が読めなければ undefined
-  */
-  readonly location: RemoteLocation | undefined
-}
-
-export function primaryRemote(directory: string): PrimaryRemote | undefined {
-  const name = primaryRemoteName(directory)
-  if (name === undefined) return undefined
-  const url = gitRemoteUrl(directory, name)
-  if (url === undefined) return undefined
-  try {
-    return { name, url, location: parseRemoteUrl(url) }
-  }
-  catch (error: unknown) {
-    if (error instanceof InvalidValueError) return { name, url, location: undefined }
-    throw error
-  }
-}
-
-// タイトルの scope
-
-interface ScopeTarget {
-  readonly toplevel: string
-  /**
-  変更したファイルを求める差分の起点
-  */
-  readonly from: string
-}
-
-/**
-スタックした base のときの題の scope の差分の起点。記録のコミット（親 PR がマージ済みのとき）か、親ブランチ（開いている間）
-*/
-type StackedScope = { readonly sha: string } | { readonly branch: string }
-
-// scope を nx のプロジェクトと比べる対象か。release_type が nx で、base が develop かスタックした base で、remote と作業ツリーが対象に合うときだけ。
-// 親 PR を squash でマージした後は、開発ブランチとの差分が親ブランチのファイルも含むので、記録のコミットから比べる
-function nxScopeTarget(config: Readonly<ProjectConfig>, owner: string, repository: string, base: string, directory: string, stacked: StackedScope | undefined): ScopeTarget | undefined {
-  const configured = findRepository(config, owner, repository)
-  if (configured === undefined || effectiveReleaseType(configured) !== 'nx' || (stacked === undefined && base !== getDevelopBranch(config, owner, repository))) return undefined
-  const found = primaryRemote(directory)
-  const location = found?.location
-  const isSameRepository = location?.owner.toLowerCase() === owner.toLowerCase() && location.repository.toLowerCase() === repository.toLowerCase()
-  if (found === undefined || !isSameRepository) return undefined
-  const toplevel = gitToplevel({ cwd: directory })
-  if (toplevel === undefined || !isRegularFile(path.join(toplevel, 'nx.json'))) return undefined
-  if (stacked === undefined) return { toplevel, from: `${found.name}/${base}` }
-  return { toplevel, from: 'sha' in stacked ? stacked.sha : `${found.name}/${stacked.branch}` }
-}
-
-// Python の Path.is_file() と同じく、stat の失敗は「無い」と扱う
-function isRegularFile(file: string): boolean {
-  try {
-    return statSync(file).isFile()
-  }
-  catch {
-    return false
-  }
-}
-
-async function expectedTitleScope(target: Readonly<ScopeTarget>, head: string, out: Readonly<Output>): Promise<readonly string[] | undefined> {
-  const projects = await nxProjects(target.toplevel, { signal: out.signal })
-  const files = projects === undefined ? undefined : changedFiles(target.toplevel, target.from, head)
-  if (projects === undefined || files === undefined) {
-    out.warning('cannot read nx projects or the diff; skipped the PR title scope check')
-    return undefined
-  }
-  return expectedScope(files, projects)
-}
-
-interface TitleScopeQuery {
-  readonly config: ProjectConfig
-  readonly owner: string
-  readonly repository: string
-  readonly title: string
-  readonly base: string
-  readonly head: string
-  /**
-  差分を求める git の参照。fork の head（`owner:branch`）ではブランチ名の部分
-  */
-  readonly headBranch: string
-  readonly directory: string
-  readonly template: string
-  readonly developBranch: string | undefined
-  readonly releaseBranch: string | undefined
-  readonly stacked: StackedScope | undefined
-}
-
-async function titleScopeErrors(query: Readonly<TitleScopeQuery>, out: Readonly<Output>): Promise<readonly string[]> {
-  const { config, owner, repository, title, base, head, directory, template, developBranch, releaseBranch } = query
-  if (isReleasePullRequest(template, base, head, developBranch, releaseBranch)) return []
-  const target = nxScopeTarget(config, owner, repository, base, directory, query.stacked)
-  if (target === undefined) return []
-  const expected = await expectedTitleScope(target, query.headBranch, out)
-  if (expected === undefined || expected.length === 0) return []
-  const given = parseTitleScope(title)
-  if (given !== undefined && new Set(given).size === new Set(expected).size && given.every(scope => expected.includes(scope))) return []
-  const shown = given === undefined ? 'none' : given.join(',')
-  return [`PR title scope must be ${expected.join(',')} (given: ${shown}; computed from the tags of the changed nx projects)`]
-}
-
-// pr create
-
-const PR_CREATE_OUTPUT = z.strictObject({
-  url: z.string().describe('URL of the created PR'),
-  number: z.int().optional().describe('Number of the created PR (omitted when the response has none)'),
-  head: z.string().describe('Head branch of the PR, owner:branch for a branch of a fork'),
-  base: z.string().describe('Base branch of the PR'),
-  title: z.string().describe('Title of the PR'),
-  inReview: z.int().optional().describe('Issue number whose status was set to In Review (omitted when not set)'),
-  stack: z.strictObject({
-    lower: z.int().describe('PR number of the lower stage the new PR is stacked on'),
-    registered: z.boolean().describe('Whether the new PR was registered to the stack'),
-    number: z.int().optional().describe('Stack number (omitted when not registered)'),
-  }).optional().describe('Stack of the PR (omitted when the PR is not stacked)'),
-  moves: z.array(BOARD_MOVE_JSON).describe('Issues waiting for this PR whose column or Status was written'),
+const PR_CHECK_INPUT = z.object({
+  method: z.enum(['create', 'update', 'merge']).describe('create before create_pull_request, update before update_pull_request, merge before merge_pull_request'),
+  owner: z.string().min(1).describe('Owner of the repository of the PR'),
+  repo: z.string().min(1).describe('Name of the repository of the PR'),
+  title: z.string().optional().describe('With create and update: title of the PR, as passed to the write tool'),
+  head: z.string().optional().describe('With create: branch of the PR (owner:branch for a branch of a fork)'),
+  base: z.string().optional().describe('With create and update: base branch of the PR'),
+  draft: z.boolean().optional().describe('With create: whether the PR is a draft'),
+  body: z.string().optional().describe('With create and update: body of the PR, as passed to the write tool'),
+  pullNumber: z.number().int().min(1).optional().describe('With update and merge: number of the PR'),
+  merge_method: z.enum(['merge', 'squash', 'rebase']).optional().describe('With merge: merge method, as passed to merge_pull_request'),
+  expectedHeadSha: z.string().optional().describe('With merge: head commit of the PR the merge is for, as passed to merge_pull_request'),
+  template: z.string().optional().describe('Template the body follows: pecot-template://pr/<name> for a bundled one (its rules are checked); a replaced template\'s path or URL is accepted without checking the body'),
+  template_text: z.string().optional().describe('Text of a replaced template; the body is not checked against it'),
+  screenshot: z.string().optional().describe('With the bundled create template: reason to leave the image out of Summary'),
+  project: PROJECT_INPUT,
+  reads: z.object({
+    pull_request: z.unknown().optional().describe('With update and merge: the result of pull_request_read with method get for the PR'),
+    pull_requests: z.unknown().optional().describe('The result of list_pull_requests (head owner:<branch>) for the branch the PR is stacked on: with create and update, the base recorded for the head (state all); with merge, the base of the PR (state open)'),
+    issue: z.unknown().optional().describe('With create and update: the result of issue_read with method get for the Issue in the head branch name'),
+  }).optional().describe('Results of the official GitHub MCP reads the check needs'),
 })
 
-type PrCreateData = z.input<typeof PR_CREATE_OUTPUT>
+type PrCheckInput = z.output<typeof PR_CHECK_INPUT>
 
-function inReviewOperation(issueNumber: number): Operation {
-  return { verb: 'set', target: `Issue #${String(issueNumber)} status to In Review` }
+const PR_CHECK_OUTPUT = z.strictObject(CHECK_RESULT_SHAPE)
+
+// 本文のテンプレート
+
+const VIOLATION_LABELS: Readonly<Record<TemplateViolationCode, string>> = {
+  'missing-section': 'missing section',
+  'heading-summary': 'heading summary rule',
+  'body-style': 'unusable notation',
+  'fold': 'collapse rule',
+  'extra-heading': 'heading not in the template',
 }
 
-// Status を In Review にした Issue の番号を返す。書かなかったら undefined。hintState は待ちの Issue の書き込みと同じ印
-async function updateIssueStatusToInReview(config: Readonly<ProjectConfig>, client: GitHubClient, location: RepositoryReference, headBranch: string, out: Readonly<Output>, hintState: FieldHintState): Promise<number | undefined> {
-  const issueNumber = extractIssueNumberFromBranch(headBranch)
-  if (issueNumber === undefined) return undefined
-  const label = `Issue #${String(issueNumber)}`
-
-  let itemId: string | undefined
-  try {
-    itemId = await client.getItemIdByIssue(config.project.id, location.owner, location.repository, issueNumber)
-  }
-  catch (error: unknown) {
-    out.warning(`board item lookup for ${label} failed: ${reasonOf(error)}`)
-    return
-  }
-  if (itemId === undefined) {
-    out.warning(`${label} is not on the board; status not updated`)
-    return
-  }
-  const optionId = getOptionId(config, 'workflow', 'in_review')
-  if (optionId === undefined) {
-    out.warning('workflow field has no in_review status; status not updated')
-    return
-  }
-  const fieldId = getFieldId(config, 'workflow')
-  if (fieldId === undefined) {
-    out.warning('workflow field not found; status not updated')
-    return
-  }
-  try {
-    await client.updateProjectItemField(config.project.id, itemId, fieldId, optionId)
-  }
-  catch (error: unknown) {
-    const message = `status update of ${label} failed: ${reasonOf(error)}`
-    out.warning(error instanceof GitHubAPIError ? fieldWriteFailure(message, error, config, hintState) : message)
-    return
-  }
-  out.done(inReviewOperation(issueNumber))
-  return issueNumber
+function violationMessage(violation: Readonly<TemplateViolation>, template: string, stem: string): string {
+  const base = `${VIOLATION_LABELS[violation.code]} (${template}): ${violation.detail}`
+  if (violation.code === 'missing-section' && violation.detail.includes(' — <')) return `${base}; ${EM_DASH_HINT}`
+  if (violation.code === 'extra-heading') return `${base}; ${String(closedHeadingGuidance(stem))}`
+  return base
 }
 
-const LINK_PATH = ['project', 'link']
-const PR_CREATE_PATH = ['pr', 'create']
-
-function exitOnUnsetBranch(template: string, base: string, head: string, developBranch: string | undefined, releaseBranch: string | undefined, out: Readonly<Output>): void {
-  const isRelease = isReleasePullRequest(template, base, head, developBranch, releaseBranch)
-  if (isRelease && (releaseBranch === undefined || releaseBranch === '')) {
-    stopWith(out, hinted`release_branch is not set\nset it with: ${commandHint(LINK_PATH, { repo: 'owner/repo', release_branch: 'main' })}`, 'repo-setting-missing')
-  }
-  if (!isRelease && (developBranch === undefined || developBranch === '')) {
-    stopWith(out, hinted`develop_branch is not set\nset it with: ${commandHint(LINK_PATH, { repo: 'owner/repo', develop_branch: 'develop' })}`, 'repo-setting-missing')
-  }
+// 同梱のテンプレートの名前。同梱でなければ undefined
+function bundledStem(template: string | undefined): string | undefined {
+  if (template?.startsWith(PR_PREFIX) !== true) return undefined
+  const stem = template.slice(PR_PREFIX.length)
+  return PR_TEMPLATES.includes(stem) ? stem : undefined
 }
 
-function resolveHeadBranch(head: string | undefined, directory: string, out: Readonly<Output>): string {
-  if (head !== undefined && head !== '') return head
-  const current = gitCurrentBranch(directory)
-  return current === undefined || current === '' ? stopWith(out, 'cannot determine the head branch', 'git-unresolved') : current
-}
-
-function requireHeadReference(head: string, out: Readonly<Output>): HeadReference {
-  return parseHeadReference(head) ?? stopWith(out, `invalid head: ${head} (expected: branch or owner:branch)`, 'invalid-input')
+function templateProblems(body: string, template: string | undefined): readonly CheckProblem[] {
+  if (template?.startsWith(BUNDLED_PREFIX) !== true) return []
+  const stem = bundledStem(template)
+  if (stem === undefined) {
+    const candidates = PR_TEMPLATES.map(name => `${PR_PREFIX}${name}`)
+    return [{ field: 'template', code: 'unknown-template', message: `${template} is not a bundled PR template; use one of the candidates, or the path or URL of a replaced template`, candidates }]
+  }
+  const required = readTemplateSections(templateFile('pr', stem))
+  return [
+    ...stripLeadingHtmlComment(body) === body ? [] : [{ field: 'body', code: 'guide-comment', message: 'remove the guide comment of the template from the start of the body' }],
+    ...templateViolations(body, { stem, required }).map(violation => ({ field: 'body', code: violation.code, message: violationMessage(violation, template, stem) })),
+  ]
 }
 
 // テンプレートの末尾の、番号の空いた `Closes #` の行
 const EMPTY_CLOSES_PATTERN = /^Closes #[ \t]*$/mu
-const EMPTY_CLOSES_LINE_PATTERN = /^Closes #[ \t]*(?:\n|$)/mu
 
-// Epic か。種別を読めなければ unreadable
-async function epicOrUnreadable(config: Readonly<ProjectConfig>, location: RepositoryReference, issueNumber: number, out: Readonly<Output>): Promise<'epic' | 'other' | 'unreadable'> {
-  try {
-    return isEpicIssue(await createGitHubClient(out, config.host).getIssueKind(location.owner, location.repository, issueNumber)) ? 'epic' : 'other'
-  }
-  catch (error: unknown) {
-    if (error instanceof GitHubAPIError) return 'unreadable'
-    throw error
-  }
+function bodyProblems(body: string | undefined, template: string | undefined): readonly CheckProblem[] {
+  if (body === undefined) return []
+  return [
+    ...stripFrontmatter(body) === body ? [] : [{ field: 'body', code: 'frontmatter', message: 'the body still has the frontmatter of the template: pass its keys as arguments and leave them out of body' }],
+    ...EMPTY_CLOSES_PATTERN.test(body) ? [{ field: 'body', code: 'empty-closes', message: 'the Closes # line has no number: write the number of the Issue the PR closes, or remove the line when the Issue is an Epic' }] : [],
+    ...templateProblems(body, template),
+  ]
 }
 
-// 空の `Closes #` の行を作業中の Issue の番号で埋め、本文に番号が無ければ足す。
-// Epic か種別を読めないときは、Epic を閉じないよう、空の行を消して足さない
-async function appendCloseUnlessEpic(config: Readonly<ProjectConfig>, location: RepositoryReference, body: string, issueNumber: number, out: Readonly<Output>): Promise<string> {
-  const kind = await epicOrUnreadable(config, location, issueNumber, out)
-  if (kind !== 'other') {
-    const hasEmptyLine = EMPTY_CLOSES_PATTERN.test(body)
-    const reason = kind === 'epic' ? 'is an Epic' : 'could not be read as an Epic or not'
-    out.warning(`Issue #${String(issueNumber)} at the end of the branch ${reason}; Closes not added${hasEmptyLine ? ', and the empty Closes line removed' : ''}`)
-    return hasEmptyLine ? body.replace(EMPTY_CLOSES_LINE_PATTERN, '').trimEnd() : body
-  }
-  return appendIssueCloseIfNeeded(body.replace(EMPTY_CLOSES_PATTERN, () => `Closes #${String(issueNumber)}`), issueNumber)
+// 読み取りの結果
+
+function pullRequestOf(output: Readonly<Output>, input: Readonly<PrCheckInput>, pullNumber: number): PullRequestReadGet | CheckProblem {
+  const name = `${input.owner}/${input.repo}#${String(pullNumber)}`
+  const read = input.reads?.pull_request
+  if (read === undefined) return unreadProblem('reads.pull_request', `read ${name} with pull_request_read (method get) and pass its result as reads.pull_request`)
+  const pullRequest = parseOfficial(output, 'pull_request_read', PULL_REQUEST_READ_GET, read, 'reads.pull_request')
+  return pullRequest.number === pullNumber ? pullRequest : { field: 'pullNumber', code: 'not-found', message: `reads.pull_request is PR #${String(pullRequest.number)}, not ${name}: read ${name} with pull_request_read (method get)` }
 }
 
-function exitOnValidationErrors(errors: readonly (string | HintedText)[], out: Readonly<Output>): void {
-  if (errors.length === 0) return
-  for (const error of errors) out.error(error)
-  throw new CommandExit(VALIDATION_EXIT_CODE, 'content-invalid')
+function isProblem(value: unknown): value is CheckProblem {
+  return typeof value === 'object' && value !== null && 'code' in value && 'field' in value
 }
 
-interface PullRequestDraft {
-  readonly location: RepositoryReference
-  readonly title: string
-  readonly body: string
-  readonly head: string
-  readonly headReference: HeadReference
-  readonly base: string
-  readonly isDraft: boolean
-  readonly isRelease: boolean
+// head を持つ PR を、list_pull_requests の結果から拾う
+function pullRequestsWithHead(output: Readonly<Output>, read: unknown, head: string): readonly PullRequestReadout[] {
+  const listed = parseOfficial(output, 'list_pull_requests', LISTED_PULL_REQUESTS, read, 'reads.pull_requests')
+  return pullRequestReadoutsOf(listed).filter(pullRequest => pullRequest.headRefName === head)
 }
 
-function createOperation(draft: Readonly<PullRequestDraft>): Operation {
-  const kind = draft.isDraft ? 'draft PR' : 'PR'
-  const suffix = draft.isRelease ? ' (release template)' : ''
-  return { verb: 'create', target: `${kind} ${draft.location.owner}/${draft.location.repository} ${draft.head} -> ${draft.base}: ${draft.title}${suffix}` }
-}
-
-function printPreflightWarnings(out: Readonly<Output>, warnings: readonly PreflightWarning[]): void {
-  for (const warning of warnings) out.warning(formatPreflightWarning(warning))
-}
-
-// git の読み取り。失敗は Python の文字列の印にする
-
-function getGitStatus(cwd: string): string {
-  return gitStdout(['status'], { cwd }) ?? '(git status failed)'
-}
-
-function getStashList(cwd: string): string {
-  const stdout = gitStdout(['stash', 'list'], { cwd })
-  return stdout === undefined ? '(git stash list failed)' : pythonStrip(stdout) || '(no stash)'
-}
-
-function getPushStatus(branch: string, cwd: string, remote: string): PushStatus {
-  const failed: PushStatus = { isPushed: false, message: '(git rev-list failed)', isDiverged: false }
-  try {
-    if (runGit(['rev-parse', '--verify', `${remote}/${branch}`], { cwd }).exitCode !== 0) {
-      return { isPushed: false, message: `${remote}/${branch} does not exist (not pushed)`, isDiverged: false }
-    }
-  }
-  catch (error: unknown) {
-    if (isFileNotFound(error)) return { isPushed: false, message: '(git rev-parse failed)', isDiverged: false }
-    throw error
-  }
-  const ahead = gitStdout(['rev-list', '--count', `${remote}/${branch}..${branch}`], { cwd })
-  const behind = ahead === undefined ? undefined : gitStdout(['rev-list', '--count', `${branch}..${remote}/${branch}`], { cwd })
-  const aheadCount = ahead === undefined ? undefined : parsePythonInteger(pythonStrip(ahead))
-  const behindCount = behind === undefined ? undefined : parsePythonInteger(pythonStrip(behind))
-  return aheadCount === undefined || behindCount === undefined ? failed : describePushStatus(remote, branch, aheadCount, behindCount)
-}
-
-interface PullRequestContext {
-  readonly remoteUrl: string
-  readonly currentBranch: string
-  readonly location: RemoteLocation
-  readonly remoteName: string
-}
-
-// pr create の早い確認と pr check が共有する前提。満たさなければ終了コード 1
-export function validatePullRequestContext(directory: string, out: Readonly<Output>): PullRequestContext {
-  if (gitToplevel({ cwd: directory }) === undefined) stopWith(out, 'not a git repository', 'git-unresolved')
-  const found = primaryRemote(directory)
-  if (found === undefined) return stopWith(out, 'git remote not found', 'git-unresolved')
-  const currentBranch = gitCurrentBranch(directory)
-  if (currentBranch === undefined) return stopWith(out, 'cannot determine the current branch', 'git-unresolved')
-  if (found.location === undefined) return stopWith(out, 'cannot read repository info from the remote URL\ncheck it with: git remote -v', 'git-unresolved')
-  return { remoteUrl: found.url, currentBranch, location: found.location, remoteName: found.name }
-}
-
-interface PushFixTarget {
-  readonly config: Readonly<ProjectConfig>
-  readonly location: Readonly<RemoteLocation>
-  readonly directory: string
-  readonly remote: string
-  readonly client: () => GitHubClient
-  /**
-  呼び出し側が既に読んだ親 PR。あれば読み直さない
-  */
-  readonly lowerPullRequest?: KnownLowerPullRequest | undefined
-  readonly signal: Readonly<AbortSignal> | undefined
-}
-
-// diverged のときの Push Status の直し方。スタックしていればスタックし直しが要るかを読んで決める。diverged でなければ undefined（git push）
-async function pushFixHintFor(push: PushStatus, reading: BaseReading | undefined, target: Readonly<PushFixTarget>): Promise<HintedText | undefined> {
-  if (!push.isDiverged) return undefined
-  if (reading?.kind !== 'stacked') return DIVERGED_FIX_HINT
-  const { config, location, directory, remote, client, lowerPullRequest, signal } = target
-  const developBranch = getDevelopBranch(config, location.owner, location.repository) ?? ''
-  try {
-    const read = await readRestackDecision({ client, owner: location.owner, repository: location.repository, cwd: directory, remote, reading, developBranch, lowerPullRequest, signal })
-    return pushFixHintOf(read.kind === 'decided' ? read.decision : undefined)
-  }
-  catch (error: unknown) {
-    if (error instanceof TransportFailure) return pushFixHintOf(undefined)
-    throw error
-  }
-}
-
-interface PreflightBase {
-  readonly reading: BaseReading | undefined
-  readonly lowerPullRequest: KnownLowerPullRequest | undefined
-}
-
-function isSameName(left: string, right: string): boolean {
-  return left.toLowerCase() === right.toLowerCase()
-}
-
-// owner のある head は、host と owner の合う remote。owner が作り先と同じなら、作り先そのものを指す remote だけ（同じ org の fork は head_repo が要るので扱わない）
-function pushRemoteFor(head: Readonly<HeadReference>, target: RepositoryReference, host: string, directory: string, primary: string): string | undefined {
-  const { owner } = head
-  if (owner === undefined) return primary
-  const isTargetOwner = isSameName(owner, target.owner)
-  return readRemoteLocations(directory).find(({ location }) =>
-    isSameName(location.host, host) && isSameName(location.owner, owner) && (!isTargetOwner || isSameName(location.repository, target.repository)),
-  )?.remote
-}
-
-function hasLocalBranch(directory: string, branch: string): boolean {
-  return gitStdout(['rev-parse', '--verify', '--quiet', `refs/heads/${branch}`], { cwd: directory }) !== undefined
-}
-
-interface PushCheck {
-  readonly push: PushStatus
-  readonly fixHint: HintedText | undefined
-}
-
-async function checkHeadPush(draft: Readonly<PullRequestDraft>, context: Readonly<PullRequestContext>, input: Readonly<{ directory: string, base: PreflightBase, config: ProjectConfig, client: () => GitHubClient, out: Output }>): Promise<PushCheck> {
-  const { directory, base, config, client, out } = input
-  const head = draft.headReference
-  const remote = pushRemoteFor(head, draft.location, config.host, directory, context.remoteName)
-  if (remote === undefined) {
-    const owner = head.owner ?? ''
-    return { push: { isPushed: false, message: `no git remote points to a repository of ${owner} on ${config.host}`, isDiverged: false }, fixHint: hinted`git remote add fork https://${config.host}/${owner}/${draft.location.repository}.git` }
-  }
-  if (!hasLocalBranch(directory, head.branch)) {
-    return { push: { isPushed: false, message: `local branch ${head.branch} does not exist`, isDiverged: false }, fixHint: hinted`git fetch ${remote} ${head.branch}:${head.branch}` }
-  }
-  const push = getPushStatus(head.branch, directory, remote)
-  if (push.isPushed) return { push, fixHint: undefined }
-  if (head.owner !== undefined) return { push, fixHint: forkPushFixHint(remote, head.branch, push.isDiverged) }
-  return { push, fixHint: await pushFixHintFor(push, base.reading, { config, location: context.location, directory, remote, client, lowerPullRequest: base.lowerPullRequest, signal: out.signal }) }
-}
-
-async function runPreflightChecksOrExit(directory: string, draft: Readonly<PullRequestDraft>, base: Readonly<PreflightBase>, config: Readonly<ProjectConfig>, client: () => GitHubClient, out: Readonly<Output>): Promise<void> {
-  const context = validatePullRequestContext(directory, out)
-  const { push, fixHint: pushFixHint } = await checkHeadPush(draft, context, { directory, base, config, client, out })
-  const warnings = collectPreflightWarnings({ gitStatus: getGitStatus(directory), stashList: getStashList(directory), isPushed: push.isPushed, pushMessage: push.message, pushFixHint })
-  if (warnings.length === 0) return
-  out.error(PREFLIGHT_FAILED)
-  printPreflightWarnings(out, warnings)
-  throw new CommandExit(PREFLIGHT_EXIT_CODE, 'preflight-failed')
-}
-
-// PR を作った後の処理の失敗は warning にとどめ、URL の出力まで進める
-function isRequestFailure(error: unknown): error is GitHubAPIError | TransportFailure {
-  return error instanceof GitHubAPIError || error instanceof TransportFailure
-}
-
-function describeRequestFailure(error: GitHubAPIError | TransportFailure): string {
-  return error instanceof GitHubAPIError ? describeApiError(error) : error.message
-}
-
-// 1 回の pr create で、クライアントを作るのは要るときの 1 回だけにする
-function lazyClient(config: Readonly<ProjectConfig>, out: Readonly<Output>): () => GitHubClient {
-  let client: GitHubClient | undefined
-  return () => {
-    client ??= createGitHubClient(out, config.host)
-    return client
-  }
-}
-
-type StackResult = NonNullable<PrCreateData['stack']>
-
-// 親 PR が入っているスタックに足す。無ければ親 PR と新しい PR で作る。失敗は warning にとどめる
-async function registerStack(client: GitHubClient, location: RepositoryReference, lower: number, created: number | undefined, out: Readonly<Output>): Promise<StackResult> {
-  const unregistered: StackResult = { lower, registered: false }
-  if (created === undefined) {
-    out.warning('could not register stack: the PR creation response has no PR number')
-    return unregistered
-  }
-  try {
-    const stack = await client.getStackOfPullRequest(location.owner, location.repository, lower)
-    // GitHub は一番上にしか足せないので、同じ親 PR に 2 つ目の子 PR をスタックしたときは 422 を待たずに知らせる
-    const plan = planStackRegistration(lower, created, stack, undefined)
-    if (plan.kind === 'conflict') {
-      out.warning(`could not register stack: ${plan.reason}; PR #${String(created)} was not added`)
-      return unregistered
-    }
-    if (plan.kind === 'already') return { lower, registered: true, number: plan.stack.number }
-    const registered = plan.kind === 'create'
-      ? await client.createStack(location.owner, location.repository, plan.pullRequests)
-      : await client.addToStack(location.owner, location.repository, plan.stackNumber, plan.pullRequests)
-    out.done({ verb: 'add', target: `PR #${String(created)} to stack #${String(registered.number)}` })
-    return { lower, registered: true, number: registered.number }
-  }
-  catch (error: unknown) {
-    if (!isRequestFailure(error)) throw error
-    out.warning(`could not register stack: ${describeRequestFailure(error)}`)
-    return unregistered
-  }
-}
-
-// moves に、書けた列と札を足していく。例外で止まっても、それまでの分が残る
-async function moveWaitingIssuesSafely(client: GitHubClient, config: Readonly<ProjectConfig>, location: RepositoryReference, issueNumber: number, pullRequest: number | undefined, out: Readonly<Output>, moves: BoardMoveLine[], hintState: FieldHintState): Promise<void> {
-  try {
-    await moveWaitingIssues(out, client, config, { repository: location, issueNumber, pullRequest }, hintState, moves)
-  }
-  catch (error: unknown) {
-    if (!isRequestFailure(error)) throw error
-    out.warning(`could not move the Issues waiting for #${String(issueNumber)}: ${describeRequestFailure(error)}`)
-  }
-}
-
-async function submitPullRequest(config: Readonly<ProjectConfig>, client: () => GitHubClient, directory: string, draft: Readonly<PullRequestDraft>, stackOn: number | undefined, base: Readonly<PreflightBase>, out: Readonly<Output<PrCreateData>>): Promise<void> {
-  await runPreflightChecksOrExit(directory, draft, base, config, client, out)
-  let created: JsonObject
-  try {
-    created = await client().createPullRequest(draft.location.owner, draft.location.repository, draft.title, draft.body, draft.head, draft.base, draft.isDraft)
-  }
-  catch (error: unknown) {
-    if (error instanceof GitHubAPIError) return stopWith(out, `PR creation failed: ${error.message}`, kindOfFailure(error))
-    throw error
-  }
-  out.done(createOperation(draft))
-  const createdNumber = jsonField(created, 'number')
-  const pullRequest = typeof createdNumber === 'number' ? createdNumber : undefined
-  const url = jsonField(created, 'html_url')
-  // url は先に渡す。後の処理が例外で止まっても、作った PR を結果から読める
-  out.result({ head: draft.head, base: draft.base, title: draft.title, ...pullRequest !== undefined && { number: pullRequest }, ...typeof url === 'string' && { url } })
-  // in_review と待ちの Issue の書き込みで、選択肢の ID を読み直す案内を 1 回だけ出す
-  const fieldHint: FieldHintState = { hasHinted: false }
-  const inReview = draft.isRelease ? undefined : await updateIssueStatusToInReview(config, client(), draft.location, draft.headReference.branch, out, fieldHint)
-  if (inReview !== undefined) out.result({ inReview })
-  if (stackOn !== undefined) out.result({ stack: await registerStack(client(), draft.location, stackOn, pullRequest, out) })
-  const issueNumber = extractIssueNumberFromBranch(draft.headReference.branch)
-  const moves: BoardMoveLine[] = []
-  try {
-    if (!draft.isRelease && isPositive(issueNumber)) await moveWaitingIssuesSafely(client(), config, draft.location, issueNumber, pullRequest, out, moves, fieldHint)
-  }
-  finally {
-    out.result({ moves: moves.map(move => moveJson(move)) })
-  }
-  if (typeof url !== 'string') return stopWith(out, 'PR was created, but the response has no html_url; find it on GitHub', 'other')
-  out.data(url)
-}
-
-interface ValidatedInput {
+interface Settings {
   readonly config: ProjectConfig
-  readonly directory: string
-  readonly template: string
-  readonly noIssueRef: boolean
-  readonly location: RepositoryReference
-  readonly title: string
+  readonly developBranch: string | undefined
+  readonly releaseBranch: string | undefined
+}
+
+function settingsOf(input: Readonly<PrCheckInput>): Settings | CheckProblem {
+  const chosen = configFor({ owner: input.owner, repository: input.repo }, input.project, CHECK_PATH)
+  if (chosen.kind === 'problem') return { field: 'repo', code: 'not-in-project', message: chosen.message }
+  const { config } = chosen
+  return { config, developBranch: getDevelopBranch(config, input.owner, input.repo), releaseBranch: getReleaseBranch(config, input.owner, input.repo) }
+}
+
+function requireBranch(value: string | undefined, key: 'develop_branch' | 'release_branch', input: Readonly<PrCheckInput>, out: Readonly<Output>): string {
+  if (value !== undefined && value !== '') return value
+  const repository = `${input.owner}/${input.repo}`
+  return stopWith(out, hinted`${key} is not set for ${repository}\nset it with: ${commandHint(LINK_PATH, { repo: repository, [key]: key === 'develop_branch' ? 'develop' : 'main' })}`, 'repo-setting-missing')
+}
+
+// create・update
+
+interface WriteTarget {
+  readonly head: HeadReference
   readonly base: string
-  readonly head: string
-  readonly headReference: HeadReference
-  readonly isDraft: boolean
-  readonly body: string
-  readonly screenshot: string | undefined
-  /**
-  base の記録。head が今のブランチでないときとリリース PR では読まず undefined
-  */
-  readonly reading: BaseReading | undefined
+  readonly title: string | undefined
 }
 
-export function stopOnMalformedRecord(reading: BaseReading, out: Readonly<Output>): void {
-  if (reading.kind === 'malformed') stopWith(out, joinHinted(describeBaseStop({ kind: 'stop', reason: 'malformed', content: reading.content })), 'content-invalid')
-}
-
-// 記録を使うのは、head が今のブランチで、release のテンプレートでないときだけ。形が誤っていれば終了コード 1 で止める。
-// 記録のコミットが head の履歴に無ければ、別のブランチの記録か、手でスタックし直した後の古い記録なので止める。開発ブランチ向けに作ると親ブランチの差分が入りうるため。
-// 記録が無くスタック先を求められないときも、同じ理由で投稿を止める
-async function readBaseRecordFor(head: string, input: Readonly<{ template: string }>, directory: string, target: Readonly<RecordTarget>, out: Readonly<Output>): Promise<BaseReading | undefined> {
-  if (input.template === 'release' || head !== gitCurrentBranch(directory)) return undefined
-  const base = await readBaseOrInfer({ directory, project: { config: target.config, client: lazyClient(target.config, out) } })
-  if (base.unresolved !== undefined) {
-    return stopWith(out, joinHinted([
-      `cannot infer the stacked base: ${base.unresolved}`,
-      'the PR is not created, since a PR to the develop branch can include the changes of the layer below',
-      hinted`fix the cause and call it again, or call pr_create in the work directory where session_start wrote .pecot/state/.pecot-base`,
-    ]), 'git-unresolved')
+function writeTargetOf(output: Readonly<Output>, input: Readonly<PrCheckInput>): WriteTarget | { readonly problems: readonly CheckProblem[] } {
+  if (input.method === 'create') {
+    const given = { title: input.title, head: input.head, base: input.base }
+    const missing = Object.entries(given).filter(([, value]) => value === undefined || value === '').map(([key]) => key)
+    const problems: CheckProblem[] = missing.map(key => ({ field: key, code: 'required', message: `create needs ${key}` }))
+    if (input.pullNumber !== undefined) problems.push({ field: 'pullNumber', code: 'unexpected', message: 'create_pull_request creates a new PR and takes no pullNumber; use method update to rewrite a PR' })
+    const head = parseHeadReference(input.head ?? '')
+    if (head === undefined && input.head !== undefined && input.head !== '') problems.push({ field: 'head', code: 'value', message: `invalid head: ${input.head} (expected: branch or owner:branch)` })
+    return head === undefined || problems.length > 0 ? { problems } : { head, base: input.base ?? '', title: input.title }
   }
-  warnUnresolved(base, out)
-  const { reading } = base
-  stopOnMalformedRecord(reading, out)
-  if (reading.kind !== 'stacked') return reading
+  if (input.pullNumber === undefined) return { problems: [{ field: 'pullNumber', code: 'required', message: 'update needs pullNumber, the number of the PR to rewrite' }] }
+  const pullRequest = pullRequestOf(output, input, input.pullNumber)
+  return isProblem(pullRequest) ? { problems: [pullRequest] } : { head: { owner: undefined, branch: pullRequest.head.ref }, base: input.base ?? pullRequest.base.ref, title: input.title ?? pullRequest.title }
+}
+
+function screenshotProblems(input: Readonly<PrCheckInput>): readonly CheckProblem[] {
+  const { body, screenshot = '' } = input
+  return body === undefined || bundledStem(input.template) !== 'create' || hasSummaryImage(body) || screenshot.trim() !== '' ? [] : [{ field: 'screenshot', code: 'required', message: 'Summary has no image: put a screenshot of the result in Summary, or write the reason to leave it out in screenshot' }]
+}
+
+function closesProblems(output: Readonly<Output>, input: Readonly<PrCheckInput>, head: HeadReference): readonly CheckProblem[] {
+  const issueNumber = extractIssueNumberFromBranch(head.branch)
+  if (issueNumber === undefined || input.body === undefined || hasClosingReference(input.body)) return []
+  const name = `${input.owner}/${input.repo}#${String(issueNumber)}`
+  const read = input.reads?.issue
+  if (read === undefined) return [unreadProblem('reads.issue', `the body closes no Issue: read ${name} with issue_read (method get) and pass its result as reads.issue; it decides whether the body must close it`)]
+  const issue = parseOfficial(output, 'issue_read', ISSUE_KIND_READ, read, 'reads.issue').issue
+  if (issue.number !== issueNumber) return [{ field: 'reads.issue', code: 'not-found', message: `reads.issue is Issue #${String(issue.number)}, not ${name}: read ${name} with issue_read (method get)` }]
+  if (isEpicIssue(issueKindOf({ issue }))) return []
+  const line = `Closes #${String(issueNumber)}`
+  return [{ field: 'body', code: 'missing-closes', message: `the body closes no Issue: add ${line} at the end, so that the merge closes the Issue of the branch`, candidates: [line] }]
+}
+
+interface BaseCheck {
+  readonly problems: readonly CheckProblem[]
+  readonly stacked: StackedScope | undefined
+  readonly lowerPullRequest: PullRequestReadout | undefined
+}
+
+function baseMismatch(base: string, expected: string, why: string): CheckProblem {
+  return { field: 'base', code: 'base-mismatch', message: `base must be ${expected} (given: ${base}): ${why}`, candidates: [expected] }
+}
+
+// 記録が無いか、head が今のブランチでなければ、渡された base のまま見る（ほかの worktree のスタックを決められないため）
+function stackedBaseCheck(output: Readonly<Output>, input: Readonly<PrCheckInput>, target: WriteTarget, reading: BaseReading | undefined, developBranch: string): BaseCheck {
+  const { base } = target
+  if (reading === undefined) return { problems: [], stacked: undefined, lowerPullRequest: undefined }
+  if (reading.kind !== 'stacked') {
+    const problems = base === developBranch ? [] : [baseMismatch(base, developBranch, '.pecot-base records no stacked base for the head, so the PR goes to the develop branch')]
+    return { problems, stacked: undefined, lowerPullRequest: undefined }
+  }
   const { branch, sha } = reading.record
-  // 手元が知らないコミットは、履歴に無いと決められないので止めない
-  if (resolveCommit(directory, sha) === undefined || isAncestor(directory, sha, head)) return reading
-  const isRestacked = await isRestackedLocally(reading, directory, target, out)
-  return stopWith(out, joinHinted([
-    `.pecot-base records ${branch} at ${sha.slice(0, 7)}, which is not in the history of ${head}`,
-    ...isRestacked ? [hinted`${head} is already restacked; rewrite the record with: ${commandHint(RESTACK_PATH)}`] : [],
-    hinted`call pr_create on the branch the record was written for, or pass ${inputHint(PR_CREATE_PATH, 'head', head)} to create the PR without the record`,
-  ]), 'git-unresolved')
+  const read = input.reads?.pull_requests
+  if (read === undefined) {
+    const problem = unreadProblem('reads.pull_requests', `the head is stacked on ${branch}: read its PRs with list_pull_requests (owner ${input.owner}, repo ${input.repo}, head ${input.owner}:${branch}, state all) and pass its result as reads.pull_requests`)
+    return { problems: [problem], stacked: { branch }, lowerPullRequest: undefined }
+  }
+  const lowerPullRequest = pickLowerPullRequest(pullRequestsWithHead(output, read, branch))
+  const decision = decidePullRequestBase({ reading, base, developBranch, lowerPullRequest })
+  if (decision.kind === 'stop') {
+    const message = formatHinted(joinHinted(describeBaseStop(decision)))
+    const candidates = decision.reason === 'lower-open' ? [branch] : undefined
+    return { problems: [{ field: 'base', code: 'base-mismatch', message, ...candidates !== undefined && { candidates } }], stacked: { branch }, lowerPullRequest }
+  }
+  const isMerged = lowerPullRequest?.state === 'MERGED'
+  const expected = isMerged ? developBranch : branch
+  const why = isMerged ? `the PR of ${branch} is merged` : `the head is stacked on ${branch}, whose PR is open`
+  return { problems: base === expected ? [] : [baseMismatch(base, expected, why)], stacked: isMerged ? { sha } : { branch }, lowerPullRequest }
 }
 
-interface RecordTarget {
-  readonly config: Readonly<ProjectConfig>
+interface BranchFacts {
+  readonly config: ProjectConfig
   readonly location: RepositoryReference
+  readonly directory: string
 }
 
-// pr restack と同じ判断で、スタックし直し済み（rebased）か。親 PR か remote を読めなければ false
-async function isRestackedLocally(reading: Extract<BaseReading, { kind: 'stacked' }>, directory: string, target: Readonly<RecordTarget>, out: Readonly<Output>): Promise<boolean> {
-  const { config, location } = target
-  const developBranch = getDevelopBranch(config, location.owner, location.repository) ?? ''
-  try {
-    const read = await readRestackDecision({ client: lazyClient(config, out), owner: location.owner, repository: location.repository, cwd: directory, remote: primaryRemoteName(directory), reading, developBranch, signal: out.signal })
-    return read.kind === 'decided' && read.decision.kind === 'rebased'
-  }
-  catch (error: unknown) {
-    if (error instanceof TransportFailure) return false
-    throw error
-  }
+interface FeatureCheck {
+  readonly problems: readonly CheckProblem[]
+  readonly reading: BaseReading | undefined
+  readonly lowerPullRequest: PullRequestReadout | undefined
 }
 
-interface BaseDecided {
-  readonly decision: PullRequestBaseDecision
-  /**
-  読んだ親 PR。スタックの記録でなければ読まず undefined
-  */
-  readonly lowerPullRequest: KnownLowerPullRequest | undefined
+// 題・Issue・画像・スタックの決まり。リリース PR には当てない
+async function featureProblems(output: Readonly<Output>, input: Readonly<PrCheckInput>, target: WriteTarget, facts: BranchFacts, developBranch: string): Promise<FeatureCheck> {
+  const { head, base, title } = target
+  const { config, location, directory } = facts
+  const reading = head.owner === undefined ? readHeadBase(directory, head.branch, output) : undefined
+  const baseCheck = stackedBaseCheck(output, input, target, reading, developBranch)
+  const mismatch = title === undefined ? undefined : await titleScopeMismatch({ config, location, title, base, headBranch: head.branch, directory, stacked: baseCheck.stacked }, output)
+  const titleProblems: readonly CheckProblem[] = mismatch === undefined
+    ? []
+    : [{ field: 'title', code: 'title-scope', message: `PR title scope must be ${mismatch.expected.join(',')} (given: ${mismatch.given?.join(',') ?? 'none'}; computed from the tags of the changed nx projects)`, candidates: [mismatch.expected.join(',')] }]
+  const problems = [...screenshotProblems(input), ...closesProblems(output, input, head), ...baseCheck.problems, ...titleProblems]
+  return { problems, reading, lowerPullRequest: baseCheck.lowerPullRequest }
 }
 
-// スタックの記録なら、PR を作るリポで親 PR を読み、base を決める
-async function decideBase(input: Readonly<ValidatedInput>, client: () => GitHubClient, developBranch: string, out: Readonly<Output>): Promise<BaseDecided> {
-  const { reading, base, location } = input
-  if (reading === undefined) return { decision: { kind: 'use', base, stackOn: undefined, stackedBase: undefined, isLowerMerged: false }, lowerPullRequest: undefined }
-  if (reading.kind !== 'stacked') return { decision: decidePullRequestBase({ reading, base, developBranch }), lowerPullRequest: undefined }
-  const { branch } = reading.record
-  try {
-    const found = await client().listPullRequestsByHead(location.owner, location.repository, branch)
-    const lower = pickLowerPullRequest(found.pullRequests)
-    return { decision: decidePullRequestBase({ reading, base, developBranch, lowerPullRequest: lower }), lowerPullRequest: { pullRequest: lower } }
-  }
-  catch (error: unknown) {
-    if (error instanceof GitHubAPIError) return stopWith(out, `cannot read the PR of the base branch ${branch}: ${describeApiError(error)}`, kindOfFailure(error))
-    throw error
-  }
-}
-
-// 親 PR が開いているのに開発ブランチを渡したときは、内容の検証の失敗と一緒に出す（終了コード 3）
-function useOrStop(decision: PullRequestBaseDecision, out: Readonly<Output>): { readonly use: PullRequestBaseUse | undefined, readonly errors: readonly (string | HintedText)[] } {
-  if (decision.kind === 'use') return { use: decision, errors: [] }
-  const lines = describeBaseStop(decision)
-  if (decision.reason === 'lower-open') return { use: undefined, errors: lines }
-  if (decision.reason === 'malformed') return stopWith(out, joinHinted(lines), 'content-invalid')
-  return stopWith(out, joinHinted(lines), 'pr-state', NO_OPEN_BASE_EXIT_CODE)
-}
-
-// 親 PR がマージ済みなら記録のコミットから、開いていてそのブランチへ作るならそのブランチから、題の scope を比べる
-function stackedScopeOf(reading: BaseReading | undefined, use: Readonly<PullRequestBaseUse> | undefined): StackedScope | undefined {
-  if (use === undefined || reading?.kind !== 'stacked') return undefined
-  if (use.isLowerMerged) return { sha: reading.record.sha }
-  return use.stackOn === undefined ? undefined : { branch: reading.record.branch }
-}
-
-// 検証して投稿する
-async function validateAndSubmit(input: Readonly<ValidatedInput>, out: Readonly<Output<PrCreateData>>): Promise<void> {
-  const { config, directory, template, location, title, head, headReference } = input
-  const client = lazyClient(config, out)
-  const developBranch = getDevelopBranch(config, location.owner, location.repository)
-  const releaseBranch = getReleaseBranch(config, location.owner, location.repository)
-  exitOnUnsetBranch(template, input.base, head, developBranch, releaseBranch, out)
-  const decided = await decideBase(input, client, developBranch ?? '', out)
-  const { use, errors: baseErrors } = useOrStop(decided.decision, out)
-  const base = use?.base ?? input.base
-  const stacked = stackedScopeOf(input.reading, use)
-  const requiredSections = readTemplateSections(templateFile('pr', templateKindOf(template)))
-  const errors = [
-    ...validatePullRequestContent({
-      body: input.body,
-      base,
-      developBranch,
-      releaseBranch,
-      head,
-      template,
-      skipIssueReferenceCheck: input.noIssueRef,
-      screenshot: input.screenshot,
-      requiredSections,
-      stackedBase: use?.stackedBase,
-    }),
-    ...baseErrors,
-    ...await titleScopeErrors({ config, owner: location.owner, repository: location.repository, title, base, head, headBranch: headReference.branch, directory, template, developBranch, releaseBranch, stacked }, out),
+async function writeProblems(output: Readonly<Output>, input: Readonly<PrCheckInput>): Promise<readonly CheckProblem[]> {
+  const fromBody = bodyProblems(input.body, input.template)
+  const target = writeTargetOf(output, input)
+  if ('problems' in target) return [...target.problems, ...fromBody]
+  const { head, base } = target
+  const settings = settingsOf(input)
+  if (isProblem(settings)) return [...fromBody, settings]
+  const { config, releaseBranch } = settings
+  const facts: BranchFacts = { config, location: { owner: input.owner, repository: input.repo }, directory: process.cwd() }
+  const isRelease = isReleasePullRequest(bundledStem(input.template) ?? '', base, head.branch, settings.developBranch, releaseBranch)
+  const release = isRelease ? requireBranch(releaseBranch, 'release_branch', input, output) : undefined
+  const checked: FeatureCheck = release === undefined
+    ? await featureProblems(output, input, target, facts, requireBranch(settings.developBranch, 'develop_branch', input, output))
+    : { problems: base === release ? [] : [baseMismatch(base, release, 'a release PR goes to the release branch')], reading: undefined, lowerPullRequest: undefined }
+  const warnings = input.method === 'create' ? await preflightWarnings({ ...facts, head, reading: checked.reading, lowerPullRequest: checked.lowerPullRequest }, output) : []
+  return [
+    ...fromBody,
+    ...checked.problems,
+    ...warnings.map(warning => ({ field: 'head', code: PREFLIGHT_CODES[warning.label] ?? 'preflight', message: formatHinted(formatPreflightWarning(warning)) })),
   ]
-  exitOnValidationErrors(errors, out)
-
-  const isRelease = template === 'release'
-  const draft: PullRequestDraft = { location, title, body: input.body, head, headReference, base, isDraft: input.isDraft, isRelease }
-  await submitPullRequest(config, client, directory, draft, use?.stackOn, { reading: input.reading, lowerPullRequest: decided.lowerPullRequest }, out)
 }
 
-function requireRepository(value: string, out: Readonly<Output>): RepositoryReference {
-  return splitOwnerRepository(value) ?? stopWith(out, `invalid repository format: ${value} (expected: owner/repo)`, 'invalid-input')
+const PREFLIGHT_CODES: Readonly<Partial<Record<string, string>>> = {
+  'Push Status': 'unpushed-commits',
+  'Git Status': 'uncommitted-changes',
+  'Stash List': 'stash-left',
 }
 
-// frontmatter の base が空のときの base。スタックの記録があれば親ブランチ、無ければ開発ブランチ。親 PR がマージ済みなら decideBase が開発ブランチに戻す
-function defaultBase(config: Readonly<ProjectConfig>, location: RepositoryReference, reading: BaseReading | undefined, out: Readonly<Output>): string {
-  if (reading?.kind === 'stacked') return reading.record.branch
-  const developBranch = getDevelopBranch(config, location.owner, location.repository)
-  return developBranch === undefined || developBranch === ''
-    ? stopWith(out, hinted`develop_branch is not set\nset it with: ${commandHint(LINK_PATH, { repo: 'owner/repo', develop_branch: 'develop' })}`, 'repo-setting-missing')
-    : developBranch
-}
+// merge
 
-interface FileModeInput {
-  readonly file: string
-  readonly template: string
-  readonly noIssueRef: boolean
-  readonly project: string | undefined
-}
-
-async function createFromFile(input: Readonly<FileModeInput>, directory: string, out: Readonly<Output<PrCreateData>>): Promise<void> {
-  let parsed: ParsedPullRequest
-  try {
-    parsed = parsePullRequestFile(input.file)
-  }
-  catch (error: unknown) {
-    if (error instanceof FrontmatterError) return stopWith(out, error.message, 'content-invalid')
-    throw error
-  }
-  const { frontmatter } = parsed
-  if (frontmatter.repository === '' || !frontmatter.repository.includes('/')) return stopWith(out, 'repository is required (e.g. owner/repo)', 'content-invalid')
-  const location = requireRepository(frontmatter.repository, out)
-  const config = requireConfigFor(out, location, input.project, PR_CREATE_PATH).config
-  const head = resolveHeadBranch(frontmatter.head, directory, out)
-  const headReference = requireHeadReference(head, out)
-  const reading = await readBaseRecordFor(head, input, directory, { config, location }, out)
-  const base = pythonStrip(frontmatter.base) === '' && input.template !== 'release' ? defaultBase(config, location, reading, out) : frontmatter.base
-
-  let body = parsed.body
-  const issueNumber = extractIssueNumberFromBranch(headReference.branch)
-  if (input.template !== 'release' && !input.noIssueRef && isPositive(issueNumber)) {
-    body = await appendCloseUnlessEpic(config, location, body, issueNumber, out)
-  }
-  await validateAndSubmit({
-    config,
-    directory,
-    template: input.template,
-    noIssueRef: input.noIssueRef,
-    location,
-    title: frontmatter.title,
-    base,
-    head,
-    headReference,
-    isDraft: frontmatter.draft,
-    body,
-    screenshot: frontmatter.screenshot,
-    reading,
-  }, out)
-}
-
-interface DirectModeInput {
-  readonly message: string
-  readonly title: string
-  readonly base: string
-  readonly head: string | undefined
-  readonly isDraft: boolean
-  readonly repository: string | undefined
-  readonly noIssueRef: boolean
-  readonly template: string
-  readonly screenshot: string | undefined
-  readonly project: string | undefined
-}
-
-// 作り先のリポと設定。repo が無ければ、設定にあるリポを指す remote（origin を先に）を使う
-function directTarget(input: Readonly<DirectModeInput>, directory: string, out: Readonly<Output<PrCreateData>>): { readonly location: RepositoryReference, readonly config: ProjectConfig } {
-  if (input.repository !== undefined && input.repository !== '') {
-    const location = requireRepository(input.repository, out)
-    return { location, config: requireConfigFor(out, location, input.project, PR_CREATE_PATH).config }
-  }
-  const lookup = findConfigForRemotes(directory, input.project)
-  if (lookup.kind === 'found') return { location: lookup.repository, config: lookup.found.config }
-  if (lookup.kind === 'no-remote') return stopWith(out, hinted`specify the repository (${inputHint(PR_CREATE_PATH, 'repo', placeholder('owner/repo'))})`, 'invalid-input')
-  const { message, kind } = configLookupFailure(lookup.lookup, lookup.repository, PR_CREATE_PATH)
-  return stopWith(out, message, kind)
-}
-
-async function createDirect(input: Readonly<DirectModeInput>, directory: string, out: Readonly<Output<PrCreateData>>): Promise<void> {
-  const { location, config } = directTarget(input, directory, out)
-  const head = resolveHeadBranch(input.head, directory, out)
-  const headReference = requireHeadReference(head, out)
-  const reading = await readBaseRecordFor(head, input, directory, { config, location }, out)
-
-  let body = input.message
-  const issueNumber = extractIssueNumberFromBranch(headReference.branch)
-  if (input.template !== 'release' && !input.noIssueRef && isPositive(issueNumber)) {
-    body = appendIssueCloseIfNeeded(body, issueNumber)
-  }
-  await validateAndSubmit({
-    config,
-    directory,
-    template: input.template,
-    noIssueRef: input.noIssueRef,
-    location,
-    title: input.title,
-    base: input.base,
-    head,
-    headReference,
-    isDraft: input.isDraft,
-    body,
-    screenshot: input.screenshot,
-    reading,
-  }, out)
-}
-
-const CreateInputSchema = z.strictObject({
-  file: z.string().optional().describe('Path to a Markdown file with front matter'),
-  message: z.string().optional().describe('PR body, given directly'),
-  title: z.string().optional().describe('PR title (required with `message`)'),
-  base: z.string().optional().describe('Base branch (required with `message`)'),
-  head: z.string().optional().describe('Head branch, or owner:branch for a branch of a fork (default: the current branch)'),
-  draft: z.boolean().default(false).describe('Create as a draft PR'),
-  repo: z.string().optional().describe('Repository in owner/repo form (with `message`)'),
-  no_issue_ref: z.boolean().default(false).describe('Skip the automatic related-Issue setup (extraction from the branch name, adding it to the body, and the validation check)'),
-  template: z.string().default('default').describe('PR template kind (default / release)'),
-  screenshot: z.string().optional().describe('Reason to omit an image from Summary (with `message`)'),
-  project: PROJECT_INPUT,
-})
-
-async function runCreate(input: Readonly<z.output<typeof CreateInputSchema>>, io: Readonly<CommandIo>): Promise<void> {
-  const directory = process.cwd()
-  const out = createOutput<PrCreateData>(false, io)
-  if (input.template !== 'default' && input.template !== 'release') stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'template')} must be 'default' or 'release' (given: ${input.template})`, 'invalid-input')
-
-  if (input.file !== undefined) {
-    if (input.screenshot !== undefined) stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'screenshot')} is for ${inputNameHint(PR_CREATE_PATH, 'message')}; write the reason in the \`screenshot\` frontmatter field instead`, 'invalid-input')
-    await createFromFile({ file: input.file, template: input.template, noIssueRef: input.no_issue_ref, project: input.project }, directory, out)
-  }
-  else if (input.message === undefined) {
-    stopWith(out, hinted`missing arguments\nusage:\n${commandHint(PR_CREATE_PATH, { file: placeholder('path') })}\n${commandHint(PR_CREATE_PATH, { message: placeholder('body'), title: placeholder('title'), base: placeholder('base-branch') })}`, 'invalid-input')
-  }
-  else {
-    if (input.title === undefined || input.title === '' || input.base === undefined || input.base === '') stopWith(out, hinted`${inputNameHint(PR_CREATE_PATH, 'title')} and ${inputNameHint(PR_CREATE_PATH, 'base')} (base branch) are required with ${inputNameHint(PR_CREATE_PATH, 'message')}`, 'invalid-input')
-    await createDirect({
-      message: input.message,
-      title: input.title,
-      base: input.base,
-      head: input.head,
-      isDraft: input.draft,
-      repository: input.repo,
-      noIssueRef: input.no_issue_ref,
-      template: input.template,
-      screenshot: pythonStrip(input.screenshot ?? '') || undefined,
-      project: input.project,
-    }, directory, out)
-  }
-}
-
-// pr show
-
-const ShowInputSchema = z.strictObject({
-  pr_ref: z.string().describe(PR_REFERENCE_DESCRIPTION),
-  json: z.boolean().default(false).describe('Output as JSON'),
-  reviews: z.boolean().default(false).describe('Include review details (bodies and line comments)'),
-  project: PROJECT_INPUT,
-})
-
-const ISSUE_LINK_JSON = z.strictObject({
-  number: z.int().describe('Issue number'),
-  title: z.string().describe('Title of the Issue (empty for referenced_issues)'),
-})
-
-const REVIEW_JSON = z.strictObject({
-  state: z.string().describe('State of the review'),
-  author: z.string().nullable().describe('Login of the reviewer (null when deleted)'),
-  body: z.string().optional().describe('Body of the review (only with reviews)'),
-  submitted_at: z.string().nullable().optional().describe('Submission time (only with reviews)'),
-})
-
-const REVIEW_COMMENT_JSON = z.strictObject({
-  author: z.string().nullable().describe('Login of the author (null when deleted)'),
-  body: z.string().describe('Body of the comment'),
-  created_at: z.string().nullable().describe('Creation time'),
-  url: z.string().nullable().describe('URL of the comment'),
-})
-
-const REVIEW_THREAD_JSON = z.strictObject({
-  is_resolved: z.boolean().describe('Whether the thread is resolved'),
-  path: z.string().nullable().describe('File path of the thread'),
-  line: z.int().nullable().describe('Line of the thread'),
-  comments: z.array(REVIEW_COMMENT_JSON).describe('Comments in the thread'),
-})
-
-const PR_SHOW_OUTPUT = z.strictObject({
-  number: z.int().describe('PR number'),
-  state: z.string().describe('State of the PR (OPEN, CLOSED or MERGED)'),
-  title: z.string().describe('Title of the PR'),
-  body: z.string().describe('Body of the PR'),
-  head_ref: z.string().describe('Head branch'),
-  base_ref: z.string().describe('Base branch'),
-  is_draft: z.boolean().describe('Whether the PR is a draft'),
-  mergeable: z.string().describe('Mergeability (MERGEABLE, CONFLICTING or UNKNOWN)'),
-  comments: z.int().describe('Number of comments'),
-  closing_issues: z.array(ISSUE_LINK_JSON).describe('Issues the PR closes'),
-  referenced_issues: z.array(ISSUE_LINK_JSON).describe('Issues referenced by Refs in the body and not in closing_issues'),
-  reviews: z.array(REVIEW_JSON).describe('Reviews'),
-  review_threads: z.array(REVIEW_THREAD_JSON).optional().describe('Line comment threads (only with reviews)'),
-})
-
-type PrShowJson = z.input<typeof PR_SHOW_OUTPUT>
-
-/**
---json の標準出力と MCP の data の中身。キーを並べた順が --json の出力の順になる
-*/
-function pullRequestJson(pr: Readonly<PullRequestSlim> | Readonly<PullRequestWithReviews>): PrShowJson {
-  // 項目を手で並べるので、satisfies で PR の型の項目の過不足を tsc に止めさせる
-  const base = {
-    number: pr.number,
-    state: pr.state,
-    title: pr.title,
-    body: pr.body,
-    head_ref: pr.head_ref,
-    base_ref: pr.base_ref,
-    is_draft: pr.is_draft,
-    mergeable: pr.mergeable,
-    comments: pr.comments,
-    closing_issues: pr.closing_issues.map(issue => ({ ...issue })),
-    referenced_issues: pr.referenced_issues.map(issue => ({ ...issue })),
-    reviews: pr.reviews.map(review => ({ ...review })),
-  } satisfies Record<keyof PullRequestSlim, unknown>
-  return 'review_threads' in pr ? { ...base, review_threads: pr.review_threads.map(thread => ({ ...thread, comments: thread.comments.map(comment => ({ ...comment })) })) } satisfies Record<keyof PullRequestWithReviews, unknown> : base
-}
-
-async function runShow(input: Readonly<z.output<typeof ShowInputSchema> & GlobalInput>, io: Readonly<CommandIo>): Promise<void> {
-  const out = createOutput<PrShowJson>(false, io)
-  const { owner, repository, number } = parseReference(input.pr_ref, input.repo, out)
-  const config = requireConfigFor(out, { owner, repository }, input.project, ['pr', 'show']).config
-  try {
-    const client = createGitHubClient(out, config.host)
-    if (input.reviews) {
-      const pr = await client.getPullRequestWithReviews(owner, repository, number)
-      const json = pullRequestJson(pr)
-      out.result(json)
-      out.data(`${input.json ? JSON.stringify(json, undefined, 2) : formatPullRequestWithReviewsMarkdown(pr)}\n`)
-    }
-    else {
-      const pr = await client.getPullRequestSlim(owner, repository, number)
-      const json = pullRequestJson(pr)
-      out.result(json)
-      out.data(`${input.json ? JSON.stringify(json, undefined, 2) : formatPullRequestMarkdown(pr)}\n`)
-    }
-  }
-  catch (error: unknown) {
-    if (error instanceof GitHubAPIError) return stopWith(out, error.message, kindOfFailure(error))
-    throw error
-  }
-}
-
-// pr check
-
-function hasBranch(branch: string, cwd: string): boolean {
-  return runGit(['rev-parse', '--verify', branch], { cwd }).exitCode === 0
-}
-
-// 親ブランチがマージで消えた後は、開発ブランチと比べる。追跡参照は fetch --prune まで残るので、
-// remote に尋ね、無いと答えたときだけ消えたとみなす。届かないか時間切れなら追跡参照で決める
-async function isOnRemote(branch: string, cwd: string, remote: string, out: Readonly<Output>): Promise<boolean> {
-  const head = await remoteBranchHead(cwd, remote, branch, out.signal)
-  if (head.isReachable && head.sha === undefined) return false
-  const isTracked = hasBranch(`${remote}/${branch}`, cwd)
-  if (!isTracked && head.isReachable) out.warning(`base branch ${branch} is on ${remote}, but ${remote}/${branch} is not fetched; compared with the develop branch\nrun: git fetch ${remote} ${branch}`)
-  return isTracked
-}
-
-async function determineBaseBranch(config: Readonly<ProjectConfig>, reading: BaseReading, location: Readonly<RemoteLocation>, cwd: string, remote: string, out: Readonly<Output>): Promise<string> {
-  if (reading.kind === 'stacked' && await isOnRemote(reading.record.branch, cwd, remote, out)) return `${remote}/${reading.record.branch}`
-  const developBranch = getDevelopBranch(config, location.owner, location.repository)
-  if (developBranch === undefined || developBranch === '') {
-    return stopWith(out, hinted`develop_branch is not set for ${location.owner}/${location.repository}\nset it with: ${commandHint(LINK_PATH, { repo: `${location.owner}/${location.repository}`, develop_branch: 'develop' })}`, 'repo-setting-missing')
-  }
-  const branchName = `${remote}/${developBranch}`
-  return hasBranch(branchName, cwd) ? branchName : stopWith(out, `branch ${branchName} does not exist\ncheck the remote branches with: git branch -r`, 'git-unresolved')
-}
-
-function readGitignore(cwd: string): string {
-  const root = gitToplevel({ cwd })
-  if (root === undefined) return '(not a git repository)'
-  const file = path.join(root, '.gitignore')
-  if (!existsSync(file)) return '(no .gitignore)'
-  try {
-    return readTextFile(file)
-  }
-  catch {
-    return '(read error)'
-  }
-}
-
-function readGitExclude(cwd: string): string {
-  try {
-    const common = gitStdout(['rev-parse', '--git-common-dir'], { cwd })
-    if (common === undefined) return '(read error)'
-    const file = path.join(path.resolve(cwd, pythonStrip(common)), 'info', 'exclude')
-    return existsSync(file) ? readTextFile(file) : '(no exclude)'
-  }
-  catch {
-    return '(read error)'
-  }
-}
-
-const PR_CHECK_OUTPUT = z.strictObject({
-  remoteUrl: z.string().describe('URL of the primary git remote'),
-  currentBranch: z.string().describe('Current branch'),
-  pushed: z.boolean().describe('Whether the current branch is pushed and even with its remote branch'),
-  pushStatus: z.string().describe('Push status as shown in the Push Status section'),
-  baseBranch: z.string().describe('Remote branch compared against (remote/branch): the lower stage when stacked, else the develop branch'),
-  gitStatus: z.string().describe('Output of git status'),
-  commits: z.string().describe('Commits since the base branch, as shown in the Commits section'),
-  diffSummary: z.string().describe('Diff stat against the base branch, as shown in the Diff Summary section'),
-  worktree: z.strictObject({
-    list: z.string().describe('Output of git worktree list'),
-    directoryName: z.string().describe('Name of the current directory'),
-    isWorktree: z.boolean().optional().describe('Whether the directory is a linked worktree (omitted when it could not be determined)'),
-  }).describe('Worktree information'),
-  stashList: z.string().describe('Stash list, as shown in the Stash List section'),
-})
-
-type PrCheckData = z.input<typeof PR_CHECK_OUTPUT>
-
-function readWorktreeInfo(cwd: string): PrCheckData['worktree'] {
-  const listed = gitStdout(['worktree', 'list'], { cwd })
-  const list = listed === undefined ? '(git worktree list failed)' : pythonStrip(listed)
-  const directoryName = path.basename(cwd)
-  const gitDirectory = gitStdout(['rev-parse', '--git-dir'], { cwd })
-  const commonDirectory = gitDirectory === undefined ? undefined : gitStdout(['rev-parse', '--git-common-dir'], { cwd })
-  if (gitDirectory === undefined || commonDirectory === undefined) return { list, directoryName }
-  const isWorktree = resolveRealPath(path.resolve(cwd, pythonStrip(gitDirectory))) !== resolveRealPath(path.resolve(cwd, pythonStrip(commonDirectory)))
-  return { list, directoryName, isWorktree }
-}
-
-function formatWorktreeInfo(info: Readonly<PrCheckData['worktree']>): string {
-  const worktreeText = info.isWorktree === undefined ? '(unknown)' : String(info.isWorktree)
-  return [info.list, '', `Current directory name: ${info.directoryName}`, `Is worktree environment: ${worktreeText}`].join('\n')
-}
-
-const CheckInputSchema = z.strictObject({
-  directory: directorySchema,
-  project: PROJECT_INPUT,
-})
-
-async function runCheck(input: Readonly<z.output<typeof CheckInputSchema>>, io: Readonly<CommandIo>): Promise<void> {
-  const out = createOutput<PrCheckData>(false, io)
-  const directory = input.directory
-  const context = validatePullRequestContext(directory, out)
-  const config = requireConfigFor(out, context.location, input.project, ['pr', 'check']).config
-  const base = await readBaseOrInfer({ directory, project: { config, client: lazyClient(config, out) } })
-  warnUnresolved(base, out)
-  const { reading } = base
-  stopOnMalformedRecord(reading, out)
-  const baseBranch = await determineBaseBranch(config, reading, context.location, directory, context.remoteName, out)
-
-  const gitStatus = getGitStatus(directory)
-  const commits = gitStdout(['log', '--oneline', `${baseBranch}..HEAD`], { cwd: directory })
-  const diffSummary = gitStdout(['diff', '--stat', `${baseBranch}...HEAD`], { cwd: directory })
-  const push = getPushStatus(context.currentBranch, directory, context.remoteName)
-  const stashList = getStashList(directory)
-  const commitsText = commits === undefined ? '(git log failed)' : pythonStrip(commits) || '(no commits)'
-  const diffText = diffSummary === undefined ? '(git diff failed)' : pythonStrip(diffSummary) || '(no diff)'
-  const worktree = readWorktreeInfo(directory)
-  // preflight の warning で失敗に終わっても、集めた値を data に残す
-  out.result({ remoteUrl: context.remoteUrl, currentBranch: context.currentBranch, pushed: push.isPushed, pushStatus: push.message, baseBranch, gitStatus, commits: commitsText, diffSummary: diffText, worktree, stashList })
-
-  const sections: readonly (readonly [string, string])[] = [
-    ['=== Git Remote ===', context.remoteUrl],
-    ['=== Current Branch ===', context.currentBranch],
-    ['=== Push Status ===', push.message],
-    ['=== Base Branch ===', baseBranch],
-    ['=== Git Status ===', gitStatus],
-    ['=== .gitignore ===', readGitignore(directory)],
-    ['=== Git Exclude ===', readGitExclude(directory)],
-    [`=== Commits (vs ${baseBranch}) ===`, commitsText],
-    [`=== Diff Summary (vs ${baseBranch}) ===`, diffText],
-    ['=== Worktree Info ===', formatWorktreeInfo(worktree)],
-    ['=== Stash List ===', stashList],
+function mergeableProblems(pullRequest: PullRequestReadGet): readonly CheckProblem[] {
+  const name = `PR #${String(pullRequest.number)}`
+  const reasons: readonly (readonly [boolean, string])[] = [
+    [pullRequest.merged, 'is already merged'],
+    [pullRequest.state === 'closed', 'is closed'],
+    [pullRequest.draft, 'is a draft: mark it ready for review first'],
+    [pullRequest.mergeable_state === 'dirty', 'conflicts with its base: resolve the conflicts and push first'],
   ]
-  for (const [index, [heading, content]] of sections.entries()) {
-    if (index > 0) out.data('\n')
-    out.data(`${heading}\n`)
-    out.data(`${content}\n`)
-  }
-
-  const pushFixHint = await pushFixHintFor(push, reading, { config, location: context.location, directory, remote: context.remoteName, client: lazyClient(config, out), signal: out.signal })
-  const warnings = collectPreflightWarnings({ gitStatus, stashList, isPushed: push.isPushed, pushMessage: push.message, pushFixHint })
-  out.count('preflight warnings', warnings.length)
-  printPreflightWarnings(out, warnings)
-  if (warnings.length === 0) return
-  out.detail(PREFLIGHT_FAILED)
-  throw new CommandExit(PREFLIGHT_EXIT_CODE, 'preflight-failed')
+  const reason = reasons.find(([applies]) => applies)?.[1]
+  return reason === undefined ? [] : [{ field: 'pullNumber', code: 'not-mergeable', message: `${name} ${reason}` }]
 }
 
-const prCreate = defineTool({
-  name: 'pr_create',
-  title: 'Create PR',
-  description: 'Create a PR (pull request)',
-  input: CreateInputSchema,
-  output: PR_CREATE_OUTPUT,
-  hasOwnRepo: true,
-  run: async (input, io) => {
-    await runCreate(input, io)
-    return 0
-  },
-})
+function headMovedProblems(pullRequest: PullRequestReadGet, expected: string | undefined): readonly CheckProblem[] {
+  const actual = pullRequest.head.sha
+  return expected === undefined || actual === undefined || expected === actual ? [] : [{ field: 'expectedHeadSha', code: 'head-moved', message: `the head of PR #${String(pullRequest.number)} is ${actual}, not ${expected}: new commits were pushed; check them before merging`, candidates: [actual] }]
+}
 
-const prShow = defineTool({
-  name: 'pr_show',
-  title: 'Get PR details',
-  description: 'Get PR details efficiently (GraphQL, only the needed fields)',
-  input: ShowInputSchema,
-  output: PR_SHOW_OUTPUT,
-  run: async (input, io) => {
-    await runShow(input, io)
-    return 0
-  },
-})
+// スタックした PR は、base を head に持つ PR が開いている間はマージしない
+function stackBottomProblems(output: Readonly<Output>, input: Readonly<PrCheckInput>, base: string): readonly CheckProblem[] {
+  const read = input.reads?.pull_requests
+  if (read === undefined) {
+    return [unreadProblem('reads.pull_requests', `the base ${base} is not the develop branch: read the PRs of ${base} with list_pull_requests (owner ${input.owner}, repo ${input.repo}, head ${input.owner}:${base}, state open) and pass its result as reads.pull_requests`)]
+  }
+  const lower = pullRequestsWithHead(output, read, base).find(pullRequest => pullRequest.state === 'OPEN' && !pullRequest.isCrossRepository)
+  return lower === undefined ? [] : [{ field: 'pullNumber', code: 'not-stack-bottom', message: `the PR is stacked on PR #${String(lower.number)} (head ${base}), which is open: merge PR #${String(lower.number)} first` }]
+}
 
-const prCheck = defineTool({
+function mergeProblems(output: Readonly<Output>, input: Readonly<PrCheckInput>): readonly CheckProblem[] {
+  const usage: CheckProblem[] = []
+  if (input.pullNumber === undefined) usage.push({ field: 'pullNumber', code: 'required', message: 'merge needs pullNumber, the number of the PR to merge' })
+  if (input.expectedHeadSha === undefined || input.expectedHeadSha === '') usage.push({ field: 'expectedHeadSha', code: 'required', message: 'merge needs expectedHeadSha, the head.sha of the PR in reads.pull_request, so that commits pushed after the check are not merged' })
+  if (input.pullNumber === undefined) return usage
+  const pullRequest = pullRequestOf(output, input, input.pullNumber)
+  if (isProblem(pullRequest)) return [...usage, pullRequest]
+  const state = [...usage, ...mergeableProblems(pullRequest), ...headMovedProblems(pullRequest, input.expectedHeadSha)]
+  const settings = settingsOf(input)
+  if (isProblem(settings)) return [...state, settings]
+  const developBranch = requireBranch(settings.developBranch, 'develop_branch', input, output)
+  const { releaseBranch } = settings
+  const base = pullRequest.base.ref
+  const isRelease = releaseBranch !== undefined && releaseBranch !== '' && base === releaseBranch && pullRequest.head.ref === developBranch
+  const isStacked = base !== developBranch && base !== releaseBranch
+  const expected = isRelease ? 'merge' : 'squash'
+  // merge_method を省くと、GitHub は merge commit でマージする
+  const given = input.merge_method ?? 'merge'
+  const why = isRelease ? 'a release PR keeps the history of the develop branch' : 'a PR to the develop branch is squashed into one commit'
+  return [
+    ...state,
+    ...isStacked ? stackBottomProblems(output, input, base) : [],
+    ...given === expected ? [] : [{ field: 'merge_method', code: 'merge-method', message: `merge_method must be ${expected} (given: ${input.merge_method ?? 'none, which merges with a merge commit'}): ${why}`, candidates: [expected] }],
+  ]
+}
+
+const PR_CHECK = defineTool({
   name: 'pr_check',
-  title: 'Check PR readiness',
-  description: 'Show all the information to check before creating a PR',
-  input: CheckInputSchema,
+  title: 'Check pull request',
+  description: 'Check the arguments for create_pull_request, update_pull_request or merge_pull_request against the pecot rules before writing: the bundled PR template the body follows, the Issue the body closes, the base branch of a stacked branch, the title scope, unpushed or uncommitted work (create), and with merge, the state, head, stack position and merge method of the PR. Reads and writes nothing on GitHub; pass the results of the official reads in reads.',
+  hasOwnRepo: true,
+  ignoresGlobalRepo: true,
+  openWorld: false,
+  input: PR_CHECK_INPUT,
   output: PR_CHECK_OUTPUT,
   run: async (input, io) => {
-    await runCheck(input, io)
+    const output = createOutput<z.input<typeof PR_CHECK_OUTPUT>>(false, io)
+    const problems = input.method === 'merge' ? mergeProblems(output, input) : await writeProblems(output, input)
+    output.result({ problems: [...problems] })
+    output.data(problems.length === 0 ? 'ok' : problems.map(problem => `${problem.field}: ${problem.message}`).join('\n'))
     return 0
   },
 })
 
-export const PR_TOOLS: readonly ToolDefinition[] = [prCreate, prShow, prCheck, PR_MERGE_COMMAND]
+export const PR_TOOLS: readonly ToolDefinition[] = [PR_CHECK]

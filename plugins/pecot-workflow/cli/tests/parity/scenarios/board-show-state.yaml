@@ -1,6 +1,0 @@
-# アクティブなプロジェクト設定が無い。案内を出して exit 1。
-id: board-show-state
-tool: board_show
-arguments: {}
-setup: {}
-github: []

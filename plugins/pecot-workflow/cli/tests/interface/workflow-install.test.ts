@@ -1,4 +1,4 @@
-// workflow install の振る舞い（PW-WORKFLOW-INSTALL-*）を、MCP のツールをプロセス内で呼んで確かめる。
+// workflow install の振る舞い（PW-WORKFLOW-INSTALL-*）を、MCP のツールをプロセス内で呼んで確かめる。タグの commit は get_commit の結果で渡す。
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -7,7 +7,7 @@ import { parse } from 'yaml'
 
 import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { pluginRoot } from '../../src/version.js'
-import { requestLabels, restRule, runCommand, runTool } from '../_helpers/command-harness.js'
+import { runCommand, runTool } from '../_helpers/command-harness.js'
 import type { ToolResult } from '../_helpers/command-harness.js'
 import { verifies } from '../_helpers/verifies.js'
 import { explains } from '../_helpers/explains.js'
@@ -20,17 +20,16 @@ const TEMPLATE_FILE = path.join(pluginRoot(), 'cli/templates/workflow/pecot-revi
 const BUNDLED = readFileSync(TEMPLATE_FILE, 'utf8')
 // 雛形の pecot の action のタグ。どの雛形も actions/package.json の同じ版を指す
 const TAG = /@(pecot-actions\/v\S+)$/mu.exec(BUNDLED)?.[1] ?? ''
-const TAG_PATH = `/repos/pecotcraft/pecot/git/ref/tags/${TAG}`
 const TAG_SHA = 'c0ffee'.padEnd(40, '0')
-const TAG_RULE = restRule('GET', TAG_PATH, 200, { object: { sha: TAG_SHA, type: 'commit' } })
+// get_commit（owner pecotcraft、repo pecot、sha はタグ）の結果
+const COMMIT_READ = { sha: TAG_SHA, html_url: `https://github.com/pecotcraft/pecot/commit/${TAG_SHA}`, commit: { message: 'chore(release): publish' } }
+const READS = { commit: COMMIT_READ }
 
 function pinned(text: string): string {
   return text.replaceAll(`@${TAG}\n`, () => `@${TAG_SHA} # ${TAG}\n`)
 }
 
 const PINNED = pinned(BUNDLED)
-// タグは github.com の pecotcraft/pecot から読む
-const GITHUB_COM = { PECOT_GITHUB_COM_TOKEN: 'dummy-token' }
 const BUNDLED_VERSION = Number(/^# pecot-workflow-template: review (\d+)/mu.exec(BUNDLED)?.[1])
 const OLD = BUNDLED.replace(/^# pecot-workflow-template: review \d+/u, '# pecot-workflow-template: review 0')
 const USER_LINE = '      - run: pnpm install --frozen-lockfile'
@@ -63,18 +62,18 @@ function stringScalars(node: unknown): readonly string[] {
 }
 
 async function install(argumentsOfTool: Readonly<Record<string, unknown>>, files = NO_FILES): Promise<ToolResult> {
-  return await runTool({ tool: 'workflow_install', arguments: { name: 'review', ...argumentsOfTool }, files, config: false, github: [TAG_RULE], environment: GITHUB_COM })
+  return await runTool({ tool: 'workflow_install', arguments: { name: 'review', reads: READS, ...argumentsOfTool }, files, config: false })
 }
 
 describe('workflow_install', () => {
   it('置き先にファイルが存在しないとき呼ぶと、雛形を書き出し、written を true にする', async (context) => {
     await verifies(context, 'PW-WORKFLOW-INSTALL-01')
-    await explains('ワークフローの雛形の書き出し（`workflow_install`）のテストです。置き先にファイルが存在しない場合に、雛形を書き出して `written` が `true` になり、GitHub へはタグを読む要求だけを送ることを確認します。')
+    await explains('ワークフローの雛形の書き出し（`workflow_install`）のテストです。置き先にファイルが存在しない場合に、雛形を書き出して `written` が `true` になり、GitHub へ要求を送らないことを確認します。')
     const result = await install({})
     expect(result.isError).toBe(false)
     expect(result.read(DESTINATION)).toBe(PINNED)
     expect(result.structured).toMatchObject({ written: true })
-    expect(requestLabels(result.requests)).toEqual([`GET ${TAG_PATH}`])
+    expect(result.requests).toEqual([])
   })
 
   it('雛形を書き出すと、置き先を path に、同梱の雛形の版を version に入れる', async (context) => {
@@ -213,7 +212,7 @@ describe('workflow_install', () => {
     const result = await install({ name: 'handoff' })
     expect(result.isError).toBe(false)
     expect(result.read('.github/workflows/pecot-handoff.yml')).toBe(bundledHandoff)
-    expect(result.structured).toMatchObject({ written: true, path: '.github/workflows/pecot-handoff.yml', version: 3 })
+    expect(result.structured).toMatchObject({ written: true, path: '.github/workflows/pecot-handoff.yml', version: 4 })
   })
 
   it('check と force を一緒に渡すと、何も書かずに invalid-input の失敗を返す', async (context) => {
@@ -237,7 +236,7 @@ describe('workflow_install', () => {
   it('directory が Git リポジトリの外なら、何も書かずに git-unresolved の失敗を返す', async (context) => {
     await verifies(context, 'PW-WORKFLOW-INSTALL-12')
     await explains('`directory` が Git リポジトリの外の場合のテストです。ファイルを書き出さず、`git-unresolved` の失敗が返ることを確認します。')
-    const result = await runTool({ tool: 'workflow_install', arguments: { name: 'review' }, remote: false, config: false, github: [] })
+    const result = await runTool({ tool: 'workflow_install', arguments: { name: 'review', reads: READS }, remote: false, config: false })
     expect(result.isError).toBe(true)
     expect(result.structured).toMatchObject({ kind: 'git-unresolved' })
     expect(result.read(DESTINATION)).toBeUndefined()
@@ -252,45 +251,30 @@ describe('workflow_install', () => {
     expect(written).not.toMatch(/@pecot-actions\/v\S+$/mu)
   })
 
-  it('注釈付きのタグは、タグの先の commit の SHA に直す', async (context) => {
-    await verifies(context, 'PW-WORKFLOW-INSTALL-15')
-    await explains('pecot の action のタグが注釈付きのタグの場合のテストです。タグのオブジェクトをたどり、指している commit の SHA に置き換えて書き出すことを確認します。')
-    const annotated = [
-      restRule('GET', TAG_PATH, 200, { object: { sha: 'tag-object', type: 'tag' } }),
-      restRule('GET', '/repos/pecotcraft/pecot/git/tags/tag-object', 200, { object: { sha: TAG_SHA, type: 'commit' } }),
-    ]
-    const result = await runTool({ tool: 'workflow_install', arguments: { name: 'review' }, config: false, github: annotated, environment: GITHUB_COM })
-    expect(result.isError).toBe(false)
-    expect(result.read(DESTINATION)).toBe(PINNED)
+  it('reads.commit が無いと、何も書かずに get_commit を案内して invalid-input の失敗を返す', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-INSTALL-17')
+    await explains('`reads.commit` を省略して、pecot の action を使う雛形を書き出そうとした場合のテストです。ファイルを書き出さず、タグを読む `get_commit` を案内する `invalid-input` の失敗を返すことを確認します。')
+    const result = await install({ reads: {} })
+    expect(result.structured).toEqual({ kind: 'invalid-input', detail: `read the commit of tag ${TAG} with get_commit (owner pecotcraft, repo pecot, sha ${TAG}) and pass its result as reads.commit` })
+    expect(result.read(DESTINATION)).toBeUndefined()
   })
 
-  it('タグが pecotcraft/pecot に無いと、何も書かずに github-not-found の失敗を返す', async (context) => {
-    await verifies(context, 'PW-WORKFLOW-INSTALL-16')
-    await explains('雛形の指すタグが `pecotcraft/pecot` に存在しない場合のテストです。ファイルを書き出さず、`github-not-found` の失敗が返ることを確認します。')
-    const missing = restRule('GET', TAG_PATH, 404, { message: 'Not Found' })
-    const result = await runTool({ tool: 'workflow_install', arguments: { name: 'review' }, config: false, github: [missing], environment: GITHUB_COM })
-    expect(result.isError).toBe(true)
-    expect(result.structured).toMatchObject({ kind: 'github-not-found', detail: `tag ${TAG} is not found in pecotcraft/pecot` })
+  it('reads.commit が get_commit の結果の形でないと、何も書かずに github-mcp-shape の失敗を返す', async (context) => {
+    await verifies(context, 'PW-WORKFLOW-INSTALL-18')
+    await explains('`reads.commit` の `sha` が 40 桁の 16 進数でない場合のテストです。ファイルを書き出さず、`github-mcp-shape` の失敗を返すことを確認します。')
+    const result = await install({ reads: { commit: { sha: 'pecot-actions' } } })
+    expect(result).toMatchObject({ isError: true, structured: { kind: 'github-mcp-shape' } })
     expect(result.read(DESTINATION)).toBeUndefined()
   })
 
   it.for([
-    { name: '500 を返す', respond: { status: 500, body: { message: 'Server Error' } }, detail: 'GitHub API error: 500' },
-    { name: '接続を切る', respond: { status: 200, disconnect: true }, detail: 'other side closed' },
-  ])('タグの読み取りで GitHub が $name と、何も書かずに github-api の失敗を返す', async ({ respond, detail }) => {
-    await explains('雛形の指すタグを読めない場合のテストです。GitHub が 500 を返す、または接続を切った場合に、ファイルを書き出さず、読めなかったタグを含む `github-api` の失敗が返ることを確認します。')
-    const failing = { match: { method: 'GET', path: TAG_PATH }, respond, times: 1 }
-    const result = await runTool({ tool: 'workflow_install', arguments: { name: 'review' }, config: false, github: [failing], environment: GITHUB_COM })
-    expect(result.isError).toBe(true)
-    expect(result.structured).toEqual({ kind: 'github-api', detail: `could not read tag ${TAG} of pecotcraft/pecot: ${detail}` })
-    expect(result.read(DESTINATION)).toBeUndefined()
-  })
-
-  it('check では GitHub を読まない', async () => {
-    await explains('`check` を指定して呼び出した場合の、GitHub への要求のテストです。タグを読み込まずに成功の結果を返し、GitHub へ要求を 1 件も送らないことを確認します。')
-    const result = await install({ check: true }, { [DESTINATION]: PINNED })
+    { name: '置いたファイルの版を確かめる', installed: PINNED, argumentsOfTool: { check: true } },
+    { name: 'pecot の action を使わない雛形を書き出す', installed: undefined, argumentsOfTool: { name: 'handoff' } },
+  ])('$name ときは、reads.commit が無くても成功を返す', async ({ installed, argumentsOfTool }, context) => {
+    await verifies(context, 'PW-WORKFLOW-INSTALL-17')
+    await explains('`reads.commit` を省略した場合のテストです。`check` と、pecot の action をタグで指さない雛形では、commit を使わずに成功を返すことを確認します。')
+    const result = await install({ reads: undefined, ...argumentsOfTool }, installed === undefined ? NO_FILES : { [DESTINATION]: installed })
     expect(result.isError).toBe(false)
-    expect(result.requests).toEqual([])
   })
 
   it('board-sync を書き出すと、.github/workflows/pecot-board-sync.yml に置く', async (context) => {
@@ -298,7 +282,7 @@ describe('workflow_install', () => {
     await explains('`board-sync` の雛形を書き出した場合のテストです。同梱の雛形を、タグを SHA に直して `.github/workflows/pecot-board-sync.yml` に書き出すことを確認します。')
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- 同梱の雛形のパス
     const bundled = readFileSync(path.join(pluginRoot(), 'cli/templates/workflow/pecot-board-sync.yml'), 'utf8')
-    const result = await runCommand({ tool: 'workflow_install', arguments: { name: 'board-sync' }, config: false, github: [TAG_RULE], environment: GITHUB_COM })
+    const result = await runCommand({ tool: 'workflow_install', arguments: { name: 'board-sync', reads: READS }, config: false })
     expect(result.code).toBe(0)
     expect(result.read('.github/workflows/pecot-board-sync.yml')).toBe(pinned(bundled))
   })

@@ -8,11 +8,12 @@ import { describe, expect, it } from 'vitest'
 import { main } from '../../src/auto-start.js'
 import { useIsolatedEnvironment } from '../../../libs/workflow-core/tests/_helpers/environment.js'
 import { prerequisitesData, prerequisitesRule } from '../../../libs/workflow-core/tests/_helpers/prerequisites.js'
+import type { IssueSpec } from '../../../libs/workflow-core/tests/_helpers/prerequisites.js'
 import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
 import { runActionCase, startGithub } from '../_helpers/action-case.js'
 import type { ActionResult } from '../_helpers/action-case.js'
-import { addedToBoard, AUTO_TOKEN, autoResult, boardItems, bot, botResult, failing, fieldUpdated, issueComments, issueNodeId, permissionOf, prepareAuto, readOutputs, statusUpdated, writesOf } from '../_helpers/auto-case.js'
+import { addedToBoard, AUTO_TOKEN, branchCreated, autoResult, boardItems, bot, botResult, failing, fieldUpdated, issueComments, issueNodeId, permissionOf, prepareAuto, readOutputs, statusUpdated, writesOf } from '../_helpers/auto-case.js'
 import type { AutoRunner } from '../_helpers/auto-case.js'
 
 useIsolatedEnvironment()
@@ -21,14 +22,14 @@ const BRANCH = 'feat/fix-x/7'
 const PLAN = '## Plan\n\n形式を残す。'
 const ANSWER = '残してください。'
 const QUESTION = autoResult('question', BRANCH)
-const WAITING = { number: 7, column: 'Active', label: 'Needs Attention' }
+const WAITING = { number: 7, column: 'Active', label: 'Needs Attention', branch: BRANCH }
 
 async function start(issue = '7'): Promise<ActionResult> {
   return await runActionCase(main, { token: AUTO_TOKEN, issue })
 }
 
 function emptyContext(values: Readonly<Record<string, unknown>> = {}): Record<string, unknown> {
-  return { issue: { ref: 'acme/demo/7', title: '課題7', body: '本文' }, plan: '', results: [], answers: [], withheld: 0, branch: '', pr: 0, ...values }
+  return { issue: { ref: 'acme/demo/7', title: '課題7', body: '本文' }, plan: '', results: [], answers: [], withheld: 0, branch: BRANCH, base: 'main', pr: 0, ...values }
 }
 
 function contextFile(runner: Readonly<AutoRunner>): string {
@@ -65,7 +66,7 @@ describe('auto start', () => {
     await verifies(context, 'PA-AUTO-START-09')
     await explains('`auto-start` の action の outputs のテストです。文脈を JSON のファイルへ書いた場合は、そのファイルのパスを outputs の `context-file` に出すことを確認します。')
     const runner = prepareAuto()
-    await startGithub([prerequisitesRule({ number: 7, column: 'Active' }), issueComments([bot(QUESTION)])])
+    await startGithub([prerequisitesRule({ number: 7, column: 'Active', branch: BRANCH }), issueComments([bot(QUESTION)])])
 
     await start()
 
@@ -78,7 +79,7 @@ describe('auto start', () => {
     await explains('計画と答えを書いた人の権限を判定する、`auto-start` の action のテストです。書き込み権限を持たない人が計画と答えを書いた場合に、その本文を文脈のファイルに書かず、数だけを `withheld` に入れることを確認します。')
     const runner = prepareAuto()
     const comments = [{ body: PLAN, login: 'bob' }, bot(QUESTION), { body: ANSWER, login: 'bob' }]
-    await startGithub([prerequisitesRule({ number: 7, column: 'Active' }), issueComments(comments), permissionOf('bob', 'read')])
+    await startGithub([prerequisitesRule({ number: 7, column: 'Active', branch: BRANCH }), issueComments(comments), permissionOf('bob', 'read')])
 
     await start()
 
@@ -89,7 +90,7 @@ describe('auto start', () => {
     await verifies(context, 'PA-AUTO-START-03')
     await explains('ボードに載っていない Issue を扱う、`auto-start` の action のテストです。Issue がボードへ追加されていない場合に、進行の欄を `Ready` にして追加し、`AddToProject` と `UpdateProjectItemField` の書き込みだけを行うことを確認します。')
     prepareAuto()
-    const github = await startGithub([prerequisitesRule({ number: 7 }), issueComments(), boardItems({ onBoard: false }), issueNodeId(), addedToBoard(), fieldUpdated('o3')])
+    const github = await startGithub([prerequisitesRule({ number: 7, branch: BRANCH }), issueComments(), boardItems({ onBoard: false }), issueNodeId(), addedToBoard(), fieldUpdated('o3')])
 
     const outcome = await start()
 
@@ -129,7 +130,7 @@ describe('auto start', () => {
     await verifies(context, 'PA-AUTO-START-01')
     await explains('`auto-start` の action の input `issue` のテストです。`acme/demo/7` の形で Issue を指定した場合に、そのリポの Issue を読み、文脈を JSON のファイルに書くことを確認します。')
     const runner = prepareAuto()
-    await startGithub([prerequisitesRule({ number: 7, column: 'Active' }), issueComments()])
+    await startGithub([prerequisitesRule({ number: 7, column: 'Active', branch: BRANCH }), issueComments()])
 
     const outcome = await start('acme/demo/7')
 
@@ -137,28 +138,28 @@ describe('auto start', () => {
     expect(writtenContext(runner)).toEqual(emptyContext())
   })
 
-  it('設定に fields.status が無いと、何も読まずに project_init を案内して止まる', async (context) => {
+  it('設定に fields.status が無いと、何も読まずに project_activate を案内して止まる', async (context) => {
     await verifies(context, 'PA-AUTO-START-07')
-    await explains('プロジェクトの設定を検証する、`auto-start` の action のテストです。`fields.status` を持たない設定の場合に、GitHub へ何も要求せず、文脈のファイルを書かずに `project_init` を案内して step を失敗にすることを確認します。')
+    await explains('プロジェクトの設定を検証する、`auto-start` の action のテストです。`fields.status` を持たない設定の場合に、GitHub へ何も要求せず、文脈のファイルを書かずに `project_activate` を案内して step を失敗にすることを確認します。')
     const runner = prepareAuto({ hasStatus: false })
     const github = await startGithub([])
 
     const outcome = await start()
 
-    expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: the project config has no Status field (fields.status)\n  call project_init\n' })
+    expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: the project config has no Status field (fields.status)\n  call project_activate with project: "1", owner: "acme"\n' })
     expect(github.requests()).toEqual([])
     expect(existsSync(contextFile(runner))).toBe(false)
   })
 
-  it('戻すはずの札の選択肢が設定に無いと、書かずに project_init を案内して止まる', async (context) => {
+  it('戻すはずの札の選択肢が設定に無いと、書かずに project_check を案内して止まる', async (context) => {
     await verifies(context, 'PA-AUTO-START-07')
-    await explains('プロジェクトの設定を検証する、`auto-start` の action のテストです。戻す Status（`Todo`）の選択肢を設定が持たない場合に、ボードへ書き込まず、`project_init` の実行を案内して step を失敗にすることを確認します。')
+    await explains('プロジェクトの設定を検証する、`auto-start` の action のテストです。戻す Status（`Todo`）の選択肢が設定に無い場合を扱います。ボードへ書き込まず、`project_check` と github-ops の `project-fields` を案内して step を失敗にすることを確認します。')
     prepareAuto({ missingStatus: 'todo' })
     const github = await startGithub([prerequisitesRule(WAITING), issueComments([bot(QUESTION)]), boardItems()])
 
     const outcome = await start()
 
-    expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: the board has no option Todo for Status\n  call project_init\n' })
+    expect(outcome).toEqual({ code: 1, stdout: '', stderr: 'error: the board has no option Todo for Status\n  call project_check with method: "fields", owner: "acme", project: 1 and apply the changes it asks for with the project-fields operation of github-ops, then project_activate with project: "1", owner: "acme" to read the board into the project config\n' })
     expect(writesOf(github.requests())).toEqual([])
   })
 
@@ -174,11 +175,94 @@ describe('auto start', () => {
     expect(github.requests()).toEqual([])
   })
 
+  describe('ブランチが無いとき', () => {
+    it('前提が済んでいれば、AI の前に開発ブランチから feat/auto/<番号> を作り、文脈の branch に入れる', async (context) => {
+      await verifies(context, 'PA-AUTO-START-10')
+      await explains('`auto-start` の action が、ブランチの無い Issue に作るブランチのテストです。前提が済んでいる Issue では、設定の開発ブランチから `feat/auto/7` を Issue につないで作り、文脈のファイルの `branch` にその名前を入れることを確認します。')
+      const runner = prepareAuto()
+      const github = await startGithub([prerequisitesRule({ number: 7, column: 'Active' }), issueComments(), ...branchCreated('feat/auto/7')])
+
+      const outcome = await start()
+
+      expect(outcome).toEqual({ code: 0, stdout: '', stderr: 'created: branch feat/auto/7 in acme/demo from main\n' })
+      expect(writesOf(github.requests())).toEqual(['CreateLinkedBranch'])
+      expect(writtenContext(runner)).toEqual(emptyContext({ branch: 'feat/auto/7' }))
+    })
+
+    it('前提の PR が開いていてスタックできれば、前提のブランチから feat/auto/<番号> を作る', async (context) => {
+      await verifies(context, 'PA-AUTO-START-10')
+      await explains('`auto-start` の action が、スタックできる Issue に作るブランチのテストです。前提の Issue の PR が開いている場合に、前提のブランチを base にして `feat/auto/7` を作り、文脈のファイルの `base` にそのブランチを入れることを確認します。')
+      const runner = prepareAuto()
+      const prerequisite: IssueSpec = { number: 3, column: 'In Review', branch: 'feat/x/3', pullRequests: [{ number: 30, state: 'OPEN', head: 'feat/x/3', base: 'main' }] }
+      const github = await startGithub([prerequisitesRule({ number: 7, column: 'Blocked', blockedBy: [prerequisite] }), issueComments(), ...branchCreated('feat/auto/7', 'feat/x/3')])
+
+      const outcome = await start()
+
+      expect(outcome).toEqual({ code: 0, stdout: '', stderr: 'created: branch feat/auto/7 in acme/demo from feat/x/3\n' })
+      expect(writesOf(github.requests())).toEqual(['CreateLinkedBranch'])
+      expect(writtenContext(runner)).toEqual(emptyContext({ branch: 'feat/auto/7', base: 'feat/x/3' }))
+    })
+
+    it('ブランチを作る書き込みが失敗すると、その理由で止まり、文脈のファイルを書かない', async (context) => {
+      await verifies(context, 'PA-AUTO-START-10')
+      await explains('`auto-start` の action が、ブランチの作成の失敗を扱うテストです。`CreateLinkedBranch` の呼び出しが失敗した場合に、理由を含むエラーを出力し、文脈のファイルを書かずに step を失敗にすることを確認します。')
+      const runner = prepareAuto()
+      // base の読み取りと Issue の id は応答し、つなぐ書き込みだけを失敗させる
+      await startGithub([prerequisitesRule({ number: 7, column: 'Active' }), issueComments(), ...branchCreated('feat/auto/7').slice(0, 2), failing({ operation: 'CreateLinkedBranch' })])
+
+      const outcome = await start()
+
+      expect(outcome.code).toBe(1)
+      expect(outcome.stderr).toMatch(/^error: could not create the branch for Issue acme\/demo\/7: /u)
+      expect(existsSync(contextFile(runner))).toBe(false)
+    })
+
+    it('前提が済んでいなければ、ブランチを作らずに止まる', async (context) => {
+      await verifies(context, 'PA-AUTO-START-10')
+      await explains('`auto-start` の action が、前提の済んでいない Issue を扱うテストです。開いた前提を持つ Issue では、ブランチを作らず、文脈のファイルも書かずに step を失敗にすることを確認します。')
+      const runner = prepareAuto()
+      const github = await startGithub([prerequisitesRule({ number: 7, column: 'Blocked', blockedBy: [{ number: 3, column: 'Active' }] }), issueComments()])
+
+      const outcome = await start()
+
+      expect(outcome.code).toBe(1)
+      expect(outcome.stderr).toMatch(/^error: #7 is blocked by #3/u)
+      expect(writesOf(github.requests())).toEqual([])
+      expect(existsSync(contextFile(runner))).toBe(false)
+    })
+
+    it('開発ブランチが設定に無ければ、ブランチを作らずに project_link を案内して止まる', async (context) => {
+      await verifies(context, 'PA-AUTO-START-10')
+      await explains('`auto-start` の action が、開発ブランチの無い設定を扱うテストです。対象のリポに `develop_branch` が無い場合に、ブランチを作らず、`project_link` を案内して step を失敗にすることを確認します。')
+      prepareAuto({ hasDevelopBranch: false })
+      const github = await startGithub([prerequisitesRule({ number: 7, column: 'Active' }), issueComments()])
+
+      const outcome = await start()
+
+      expect(outcome.code).toBe(1)
+      expect(outcome.stderr).toMatch(/^error: develop_branch is not set for acme\/demo\n/u)
+      expect(writesOf(github.requests())).toEqual([])
+    })
+
+    it('既にブランチがあれば、開発ブランチが設定に無くても、そのブランチを文脈に入れて base を空にする', async (context) => {
+      await verifies(context, 'PA-AUTO-START-10')
+      await explains('`auto-start` の action が、ブランチの既にある Issue を扱うテストです。設定に `develop_branch` が無い場合も、ブランチを作らずに既存のブランチを文脈に入れ、`base` を空の文字列にすることを確認します。')
+      const runner = prepareAuto({ hasDevelopBranch: false })
+      const github = await startGithub([prerequisitesRule({ number: 7, column: 'Active', branch: BRANCH }), issueComments()])
+
+      const outcome = await start()
+
+      expect(outcome).toEqual({ code: 0, stdout: '', stderr: '' })
+      expect(writesOf(github.requests())).toEqual([])
+      expect(writtenContext(runner)).toEqual(emptyContext({ base: '' }))
+    })
+  })
+
   describe('ボードの読み書きの失敗', () => {
     it('ボードへの追加が失敗すると、その理由で止まる', async () => {
       await explains('ボードへの追加に失敗した場合の、`auto-start` の action のテストです。`AddToProject` の呼び出しが失敗した場合に、`could not add` で始まるエラーを出力して step を失敗にすることを確認します。')
       prepareAuto()
-      await startGithub([prerequisitesRule({ number: 7 }), issueComments(), boardItems({ onBoard: false }), issueNodeId(), failing({ operation: 'AddToProject' })])
+      await startGithub([prerequisitesRule({ number: 7, branch: BRANCH }), issueComments(), boardItems({ onBoard: false }), issueNodeId(), failing({ operation: 'AddToProject' })])
 
       const outcome = await start()
 
@@ -212,7 +296,7 @@ describe('auto start', () => {
     it('書いた人の権限を読めないと、warning の行を出し、その人のコメントを数だけにする', async () => {
       await explains('コメントを書いた人の権限を読み取れない場合の、`auto-start` の action のテストです。`warning` の行をログに出し、その人のコメントの本文を書かずに `withheld` へ数えて成功することを確認します。')
       const runner = prepareAuto()
-      await startGithub([prerequisitesRule({ number: 7, column: 'Active' }), issueComments([{ body: PLAN, login: 'bob' }]), failing({ method: 'GET', path: '/repos/acme/demo/collaborators/bob/permission' })])
+      await startGithub([prerequisitesRule({ number: 7, column: 'Active', branch: BRANCH }), issueComments([{ body: PLAN, login: 'bob' }]), failing({ method: 'GET', path: '/repos/acme/demo/collaborators/bob/permission' })])
 
       const outcome = await start()
 
@@ -224,7 +308,7 @@ describe('auto start', () => {
     it('コメントの一覧を読めないと、その理由で止まる', async () => {
       await explains('Issue のコメントの一覧を読み取れない場合の、`auto-start` の action のテストです。`could not read the comments` で始まるエラーを出力して step を失敗にすることを確認します。')
       prepareAuto()
-      await startGithub([prerequisitesRule({ number: 7, column: 'Active' }), failing({ method: 'GET', path: '/repos/acme/demo/issues/7/comments' })])
+      await startGithub([prerequisitesRule({ number: 7, column: 'Active', branch: BRANCH }), failing({ method: 'GET', path: '/repos/acme/demo/issues/7/comments' })])
 
       const outcome = await start()
 

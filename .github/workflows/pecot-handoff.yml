@@ -1,4 +1,4 @@
-# pecot-workflow-template: handoff 3
+# pecot-workflow-template: handoff 4
 #
 # Place this file at .github/workflows/pecot-handoff.yml in your repository.
 #
@@ -35,7 +35,7 @@
 # The workflow narrows its token to Issues: write, Pull requests: read, and Contents: read.
 # It also runs the official GitHub MCP server in Docker as "github-official".
 # The image is ghcr.io/github/github-mcp-server.
-# The server reads issues and adds or edits issue comments with that token. The runner needs Docker.
+# The server reads issues and pull requests, and adds or edits issue comments with that token. The runner needs Docker.
 #
 # Optional variables. Each one falls back to its default when unset.
 #   PECOT_HANDOFF_MODEL names the Claude model, as an alias or a full name. The default is "opus".
@@ -76,9 +76,9 @@ jobs:
       pull-requests: read
       id-token: write
     env:
-      # The official GitHub MCP server reads and comments on issues.
+      # The official GitHub MCP server reads issues and pull requests, and comments on issues.
       # Claude Code expands ${PECOT_GITHUB_COM_TOKEN} from the step env.
-      PECOT_HANDOFF_GITHUB_MCP: '{"mcpServers":{"github-official":{"type":"stdio","command":"docker","args":["run","-i","--rm","-e","GITHUB_PERSONAL_ACCESS_TOKEN","-e","GITHUB_HOST","-e","GITHUB_TOOLS","-e","GITHUB_FEATURES","ghcr.io/github/github-mcp-server:v2.3.0@sha256:f8ee4dedc7d5c8cb32854ab91cc92a31c55a8a5510708cf8742e9f9427588ca6"],"env":{"GITHUB_PERSONAL_ACCESS_TOKEN":"${PECOT_GITHUB_COM_TOKEN}","GITHUB_HOST":"${{ github.server_url }}","GITHUB_TOOLS":"issue_read,issue_dependency_read,add_issue_comment,update_issue_comment","GITHUB_FEATURES":"issue_dependencies"}}}}'
+      PECOT_HANDOFF_GITHUB_MCP: '{"mcpServers":{"github-official":{"type":"stdio","command":"docker","args":["run","-i","--rm","-e","GITHUB_PERSONAL_ACCESS_TOKEN","-e","GITHUB_HOST","-e","GITHUB_TOOLS","-e","GITHUB_FEATURES","ghcr.io/github/github-mcp-server:v2.3.0@sha256:f8ee4dedc7d5c8cb32854ab91cc92a31c55a8a5510708cf8742e9f9427588ca6"],"env":{"GITHUB_PERSONAL_ACCESS_TOKEN":"${PECOT_GITHUB_COM_TOKEN}","GITHUB_HOST":"${{ github.server_url }}","GITHUB_TOOLS":"issue_read,issue_dependency_read,add_issue_comment,update_issue_comment,pull_request_read","GITHUB_FEATURES":"issue_dependencies"}}}}'
     steps:
       - name: Generate GitHub App token
         id: token
@@ -132,7 +132,7 @@ jobs:
             --effort ${{ vars.PECOT_HANDOFF_EFFORT || 'medium' }}
             --max-turns ${{ vars.PECOT_HANDOFF_MAX_TURNS || '30' }}
             --mcp-config '${{ env.PECOT_HANDOFF_GITHUB_MCP }}'
-            --allowedTools "Read,mcp__plugin_pecot-w_pecot-workflow__pr_show,mcp__plugin_pecot-w_pecot-workflow__issue_comment_check,mcp__github-official__issue_read,mcp__github-official__issue_dependency_read,mcp__github-official__add_issue_comment,mcp__github-official__update_issue_comment,Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --allowedTools "Read,mcp__plugin_pecot-w_pecot-workflow__issue_comment_check,mcp__github-official__issue_read,mcp__github-official__pull_request_read,mcp__github-official__issue_dependency_read,mcp__github-official__add_issue_comment,mcp__github-official__update_issue_comment,Bash(gh pr diff:*),Bash(gh pr view:*)"
             --disallowedTools "Edit,Write,NotebookEdit,AskUserQuestion,Agent,WebFetch,WebSearch,Bash(git clone:*),Read(//proc/**)"
 
       # Tool inputs carry text that Claude wrote from the diff, so each one goes in a code span.

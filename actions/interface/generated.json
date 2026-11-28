@@ -165,7 +165,7 @@
     {
       "id": "PA-AUTO-START",
       "name": "auto start",
-      "description": "Start an automated fix run. Put the Issue on the board or restore the Status the automation wrote, and write the context to continue to a JSON file.",
+      "description": "Start an automated fix run. Put the Issue on the board or restore the Status the automation wrote, create the branch when the Issue has none, and write the context to continue to a JSON file.",
       "surfaces": {
         "action": {
           "path": "actions/auto-start"
@@ -186,7 +186,7 @@
           },
           "token": {
             "type": "string",
-            "description": "Token to read the Issue and to write the board (the App token of the workflow)"
+            "description": "Token to read the Issue and to write the board and the branch (the App token of the workflow)"
           }
         },
         "required": [

@@ -145,7 +145,7 @@ Claude の App を使う構成では、雛形のファイルを足す・変え�
 
 `PECOT_REVIEW_PROJECT` は、リポが 2 つ以上のプロジェクトの設定に入っているときに置きます。置かないと、pecot の MCP ツールが設定を選べず、レビューが止まります。設定が 1 つのリポでは要りません。
 
-設定ファイルの名前は `<host>_<owner>_<番号>.json` です。旧い名前のファイルは、`project_init` か `project_activate` が新しい名前に移します。移した後は、`PECOT_REVIEW_PROJECT` を新しい名前に直します。
+設定ファイルの名前は `<host>_<owner>_<番号>.json` です。旧い名前のファイルは、`project_activate` が新しい名前に移します。移した後は、`PECOT_REVIEW_PROJECT` を新しい名前に直します。
 
 雛形を上書きしても、変数は消えません。
 

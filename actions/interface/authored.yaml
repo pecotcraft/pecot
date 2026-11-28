@@ -62,7 +62,7 @@ entries:
       - '設定は、`project` の設定、アクティブなプロジェクト、`.pecot/config/projects` にある唯一の設定の順で選びます。設定が 2 つ以上あってアクティブなプロジェクトが無いときは、`project` を求めて step を失敗にします。'
       - '実行の前後に GraphQL の rate limit を読み（REST なので点数は減りません）、使った点数と残りの点数を出します。読めないときは、その行を省きます。実行中に rate limit の窓が切り替わったときと、差が負のときは、使った点数の行を省きます。'
       - 'Issue の依存関係に対応していない GitHub Enterprise Server では、`warning` の行を 1 つ出し、何も動かしません。'
-      - '進行の欄がまだ旧い名前（`pecot-workflow-<suffix>`）なら、同じように Issue を動かします。旧い名前を載せて `project_init` を案内する `warning` の行を 1 つ出します。'
+      - '進行の欄がまだ旧い名前（`pecot-workflow-<suffix>`）なら、同じように Issue を動かします。旧い名前を載せて `project_check` で欄を直す手順を案内する `warning` の行を 1 つ出します。'
       - 'Item の値に `pecot-priority`・`pecot-size` が残っていれば、残ったフィールドの名前を同じ警告に足します。値の入った Item が無いボードと、値が 10 個を超える Item だけのボードでは、残っていても気づけません。'
     stdin: none
     output:
@@ -225,10 +225,10 @@ entries:
         statement: 'もし札が `Needs Attention` で、bot が書いた最後の結果のコメントが `question`・`failed`・`limit` のどれかなら、前提がすべて済んでも札を `Todo` に戻しません'
       - id: PA-BOARD-SYNC-33
         pattern: state
-        statement: '進行の欄が旧い名前（`pecot-workflow-<suffix>`）である間、同じ Issue を動かし、`project_init` を案内する `warning` の行を 1 つ出します'
+        statement: '進行の欄が旧い名前（`pecot-workflow-<suffix>`）である間、同じ Issue を動かし、`project_check` で欄を直す手順を案内する `warning` の行を 1 つ出します'
       - id: PA-BOARD-SYNC-34
         pattern: state
-        statement: 'Item の値に `pecot-priority`・`pecot-size` が残っている間、同じ Issue を動かします。残ったフィールドの名前は、`project_init` を案内する警告に足します。進行の欄の警告と合わせて、警告は 1 つです'
+        statement: 'Item の値に `pecot-priority`・`pecot-size` が残っている間、同じ Issue を動かします。残ったフィールドの名前は、`project_check` で欄を直す手順を案内する警告に足します。進行の欄の警告と合わせて、警告は 1 つです'
       - id: PA-BOARD-SYNC-35
         pattern: unwanted
         statement: 'もし `dry-run` が `true`・`false` のどちらでもないなら、GitHub を読まず、入力の誤りの `error` の行を出して step を失敗にします'
@@ -1215,12 +1215,14 @@ entries:
       - 'Issue がボードに無ければ、進行の欄を Ready にしてボードに載せます。'
       - '既定の Status が、自動処理の書いた Needs Attention なら、開いた PR があれば In Progress に、無ければ Todo に戻します。pecot の判定が置いた Needs Attention は戻しません。'
       - 'どちらでもなければ、ボードに何も書きません。'
+      - 'Issue にブランチと開いた PR のどちらも無ければ、AI の step の前に、Issue につないだブランチ `feat/auto/<番号>` を作り、文脈の `branch` にその名前を入れます。'
+      - '作るブランチの元は、着手の判定がスタック先を選んだときはそのブランチで、そうでなければ設定の `develop_branch` です。前提が済んでいない Issue と、`develop_branch` が無いリポでは、ブランチを作らずに step を失敗にします。'
       - 'プロジェクトの設定に `fields.status` が要ります。'
     stdin: none
     output:
       format: text
-      description: 'outputs の `context-file` は、文脈を書いた JSON のファイルのパスです。ファイルの欄は、`issue`（`ref`・`title`・`body`）・`plan`・`results`・`answers`（`author`・`body`）・`withheld`・`branch`・`pr` です。計画やブランチが無いときは空、PR が無いときは `0` です。'
-    diagnostics: '実行のログに、ボードに載せたときは `added` の行を、Status を戻したときは `set` の行を出します。本文を書かなかったコメントがあるときは、その数を `count` の行で出します。'
+      description: 'outputs の `context-file` は、文脈を書いた JSON のファイルのパスです。ファイルの欄は、`issue`（`ref`・`title`・`body`）・`plan`・`results`・`answers`（`author`・`body`）・`withheld`・`branch`・`base`・`pr` です。計画が無いときは空、PR が無いときは `0` です。`branch` は、Issue のブランチです。無ければ、作ったブランチの名前になります。`base` は、作ったブランチの元のブランチです。既にあるブランチでは、開発ブランチになります。'
+    diagnostics: '実行のログに、ボードに載せたときは `added` の行を、Status を戻したときは `set` の行を出します。ブランチを作ったときは `created` の行を出します。本文を書かなかったコメントがあるときは、その数を `count` の行で出します。'
     environment:
       - name: RUNNER_TEMP
         effect: '文脈のファイルを置く、runner の一時ディレクトリです。無いか空なら、何も読まずに step を失敗にします。'
@@ -1235,6 +1237,12 @@ entries:
         when: 'プロジェクトの設定に `fields.status` がありません。step は失敗になります。'
       - kind: status-not-configured
         when: '設定に、要る選択肢がありません。ボードに載せるときは進行の欄の Ready が、Status を戻すときは Todo か In Progress が要ります。step は失敗になります。'
+      - kind: not-ready
+        when: 'ブランチを作る Issue の前提が済んでいません。ブランチは作りません。step は失敗になります。'
+      - kind: dependency-unreadable
+        when: 'ブランチを作る前の、着手の判定を読めません。step は失敗になります。'
+      - kind: repo-setting-missing
+        when: 'ブランチを作るのに、設定のリポジトリに `develop_branch` がありません。step は失敗になります。'
       - kind: no-active-project
         when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`project` もありません。step は失敗になります。'
       - kind: project-not-found
@@ -1257,10 +1265,10 @@ entries:
     effects:
       - target: github
         kind: read
-        what: 'Issue の本文・進行の欄・Status・ブランチ・PR、Issue のコメント、コメントを書いた人の権限、ボードの項目を読みます。'
+        what: 'Issue の本文・進行の欄・Status・ブランチ・PR・前提、Issue のコメント、コメントを書いた人の権限、ボードの項目を読みます。'
       - target: github
         kind: write
-        what: 'Issue をボードに載せます。'
+        what: 'Issue をボードに載せます。ブランチの無い Issue には、Issue につないだブランチを作ります。'
       - target: github
         kind: destructive
         what: '載せた Issue の進行の欄を Ready にするか、既定の Status を Todo か In Progress に戻します。'
@@ -1310,6 +1318,9 @@ entries:
       - id: PA-AUTO-START-09
         pattern: event
         statement: '呼ぶと、文脈を書いたファイルのパスを outputs の `context-file` に出します'
+      - id: PA-AUTO-START-10
+        pattern: state
+        statement: 'Issue にブランチと開いた PR のどちらも無い間、前提が済んでいれば、開発ブランチかスタック先から `feat/auto/<番号>` を作って文脈の `branch` に入れます。前提が済んでいないか開発ブランチが無ければ、作らずに step を失敗にします'
   PA-AUTO-FINISH:
     summary: '自動処理の実行を終えます。結果を決めて Issue に結果のコメントを書き、待ちの Status を書き、起動ラベルを外します。'
     arguments:

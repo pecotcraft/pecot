@@ -1,6 +1,0 @@
-# 必須の -D が無い。typer の使い方エラーを記録する。
-id: session-show-usage
-tool: session_show
-arguments: {}
-setup: {}
-github: []

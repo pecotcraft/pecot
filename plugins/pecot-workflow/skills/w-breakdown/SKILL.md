@@ -23,19 +23,15 @@ speckit の成果物（`specs/` 配下のファイル）は、**w-breakdown を�
 
 ### Step 1: ボードを確認する
 
-pecot-workflow の MCP ツール `board_show` を使って、プロジェクトの設定を確かめる。
+pecot-workflow の MCP ツール `project_get` を `key` なしで呼び、プロジェクトの設定（集約リポ・登録したリポの開発ブランチ）を確かめる。
 
 ### Step 2: 成果物作成先の決定（ロードマップリポチェック）
 
 Step 1 で確かめた集約リポ（`aggregation_repo`）と、CWD のリポを比べる。
 
-CWD のリポを取得:
+CWD のリポは、pecot-workflow の MCP ツール `session_show` の `repository` で読む。git の remote から求めた `owner/repo` だ。
 
-```bash
-gh repo view --json nameWithOwner -q .nameWithOwner
-```
-
-`gh repo view` が失敗した場合（GitHub remote 未設定など）は、CWD のリポを自動判定できないとユーザーに伝え、現在地が想定リポか AskUserQuestion で確認する。
+`repository` が無い場合（GitHub remote 未設定など）は、CWD のリポを自動判定できないとユーザーに伝え、現在地が想定リポか AskUserQuestion で確認する。
 
 判定:
 
@@ -64,10 +60,11 @@ Step 3 で読んだ Epic の sub-issue から、OPEN の分解のタスクを、
 | 見つかったもの | すること |
 |---|---|
 | タスクと、紐づいたブランチ | 起票しない。そのブランチを checkout する。Step 5 で再開として扱う |
-| タスクだけ（ブランチが無い） | 起票しない。そのタスクで `session_start` を呼ぶ |
-| どちらも無い | 起票し、`session_start` を呼ぶ |
+| タスクだけ（ブランチが無い） | 起票しない。そのタスクで作業を始める |
+| どちらも無い | 起票し、作業を始める |
 
-起票は、テンプレートを通さない自由形式で行う。手順は [Issue とコメントを公式の MCP で書く](../w-help/references/issue-write.md) の「Issue を作る」のとおり。pecot-workflow の MCP ツール `issue_check` に `template` を渡さずに通し、公式の MCP の `issue_write` で作る。値は次のとおり。
+起票は、テンプレートを通さない自由形式で行う。手順は [GitHub に公式の MCP と github-ops で書く](../w-help/references/github-write.md) の「Issue を作る」のとおり。
+pecot-workflow の MCP ツール `issue_check` に `template` を渡さずに通し、公式の MCP の `issue_write` で作る。値は次のとおり。
 
 - 種類: `kind: task`
 - `parent_owner`・`parent_repo`・`parent_issue_number`: Step 3 で読んだ Epic
@@ -75,9 +72,10 @@ Step 3 で読んだ Epic の sub-issue から、OPEN の分解のタスクを、
 - `body`: 1 行目を `speckit で分解する: <Epic の題>` にする。題は 1 行目の先頭の 50 文字から作るので、目印を先頭に置く。2 行目からは、分解する範囲を 1〜2 行で書く
 - `title`: 本文の 1 行目から作る。形は `issue_check` が確かめる
 
-ブランチは、pecot-workflow の MCP ツール `session_start` で作る。`issue_ref` はタスクの `owner/repo/N`、`branch` は `feat/breakdown-<英語の短い名前>` にする。
-`base` は渡さない。`session_start` が、タスクを Active に移す。
-ツールが止まったら、エラーの案内を利用者に示して止まる。
+作業は、[GitHub に公式の MCP と github-ops で書く](../w-help/references/github-write.md) の「作業を始める」の手順で始める。
+`branch_check` に通してから、github-ops の `link-branch` でブランチを作る。ブランチの名前は `feat/breakdown-<英語の短い名前>/<タスクの番号>` にする。
+続けて pecot-workflow の MCP ツール `session_start` を使って手元に作業を記録し、タスクのカードを `Active` へ動かす。
+チェックやツールが止まったら、エラーの案内を利用者に示して止まる。
 
 `session_start` の結果に `leftovers` があれば、前にマージされた PR の手元の片付けが残っている。checkout の前に、PR ごとに [マージされた後の片付け](references/after-merge.md) の「片付け」の節を行う。手元が wt ブランチに戻る。
 

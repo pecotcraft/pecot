@@ -104,7 +104,7 @@ Feature Xの基盤部分を実装する。
 ### 3. サブIssue投入（一括）
 
 全 Phase のサブIssueを一括で投稿する。
-前提が済んでいない Issue は `Blocked`、そのほかは `Ready` に入る。ボードに `Blocked` が無ければ、`Ready` で作る（pecot-workflow の MCP ツール `project_init` で足せる）。
+前提が済んでいない Issue は `Blocked`、そのほかは `Ready` に入る。ボードに `Blocked` が無ければ、`Ready` で作る（[トラブルシューティング](troubleshooting.md) の「ボードの欄を足す・直す」で足せる）。
 `Ready` には着手できる Issue だけが並ぶので、先の Phase を投稿しても肥大化しない。
 
 前提の書き方は、次の「前提の表から Issue 化まで」で説明する。
@@ -174,7 +174,7 @@ Issue の本文に、前後関係は書かない。スタック不可の前提�
 
 ### 投稿の後に前提を直す
 
-計画が変わったら、[Issue とコメントを公式の MCP で書く](issue-write.md) の「前提を付け外しする」の手順で前提を直す。GitHub の画面で直す必要は無い。
+計画が変わったら、[GitHub に公式の MCP と github-ops で書く](github-write.md) の「前提を付け外しする」の手順で前提を直す。GitHub の画面で直す必要は無い。
 
 - pecot-workflow の MCP ツール `issue_dependency_check` に通してから、公式の MCP の `issue_dependency_write` で付ける・外す
   - 付いている前提の種類（スタック可・スタック不可）と理由を変えるときは、`issue_dependency_check` に新しい種類を渡す。結果の `body`（`## Waits for merge` の節を直した本文）で書き直す
@@ -233,7 +233,7 @@ PR は、親 PR とスタックとして並ぶ。親 PR が無いときは止ま
 |-----------|------|
 | **Backlog** | Epic（Phase単位）・Tracker置き場 |
 | **Pending** | 人が後回しにしたEpicまたはタスク。Ready／Backlog から手動で移動。人だけが出し入れする |
-| **Blocked** | 前提を待っているサブIssue。pecot が置き、pecot が出す。ボードに無ければ `project_init` で足す |
+| **Blocked** | 前提を待っているサブIssue。pecot が置き、pecot が出す。ボードに無ければ `project_check`（`fields`）と github-ops の `project-fields` で足す |
 | **Ready** | 今、着手できるサブIssue（スタックすれば着手できるものを含む） |
 | **Active** | 作業中（同時1-2個まで） |
 | **In Review** | PR が出ている。スタック PR も同じ列に入る |

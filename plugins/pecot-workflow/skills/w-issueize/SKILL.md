@@ -115,7 +115,7 @@ before / after の例を示す。
 結果の番号・前提・進め方を表にし、Step 2 の前提の表と並べてユーザーに示す。スタックできる並びも示す。前提の食い違いが無いかを見てもらう。
 食い違いがあればファイルを直して、もう一度 `issue_check` で確かめる。合意を得てから投稿する。
 
-投稿の手順は、[Issue とコメントを公式の MCP で書く](../w-help/references/issue-write.md) の「Issue を作る」のとおり。
+投稿の手順は、[GitHub に公式の MCP と github-ops で書く](../w-help/references/github-write.md) の「Issue を作る」のとおり。
 フェーズの順に 1 件ずつ、公式の MCP の `issue_write`・`issue_dependency_write`・`projects_write` で書く。書いた Issue の番号で、後のフェーズの `{{issue:<key>}}` と `blocked_by` の key を置き換える。
 
 書く途中で公式のツールが失敗したときは、次のとおりにする。

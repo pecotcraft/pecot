@@ -11,7 +11,7 @@ PUBLISH="$RELEASE_DIR/publish-mcp-dist.sh"
 # gh の -R は origin の URL から求める。合成した owner/name の https URL を置く。
 TEST_SLUG="acme-labs/example-repo"
 # tools/list の期待値。TOOLS（cli/src/commands/registry.ts）の並びを写している。
-EXPECTED_TOOL_COUNT=33
+EXPECTED_TOOL_COUNT=25
 EXPECTED_FIRST_TOOL="project_list"
 
 # setup_file が作り、@test が読むもの。@test はここへ書き込まない。

@@ -2,15 +2,13 @@
 // session show のテストが共有する準備。
 import { realpathSync } from 'node:fs'
 
-import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { createGitRepository, gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import { developmentRecordOf } from './base-record.js'
 import type { BaseRecordOption } from './base-record.js'
 import { setUpProject } from './interface-case.js'
 import type { ProjectFixture } from './interface-case.js'
 
-export const CONFIG_FILE = 'ghes.example.com_acme_board_acme.json'
-export const ORIGIN_URL = 'https://ghes.example.com/acme/demo.git'
+const ORIGIN_URL = 'https://ghes.example.com/acme/demo.git'
 
 export interface SessionCaseOptions extends BaseRecordOption {
   /**
@@ -47,38 +45,4 @@ export function prepareSession(options: Readonly<SessionCaseOptions> = {}): Sess
   gitForTest(repository, ['checkout', '-q', '-b', branch])
   for (const [name, url] of Object.entries(remotes)) gitForTest(repository, ['remote', 'add', name, url])
   return { project, repository }
-}
-
-/**
-プロジェクトルートとは別の git リポ（clone した場所など）を、ブランチ feat/demo/7 と origin で用意する。cwd は変えない
-*/
-export function separateRepository(): string {
-  const repository = realpathSync(createGitRepository())
-  gitForTest(repository, ['checkout', '-q', '-b', 'feat/demo/7'])
-  gitForTest(repository, ['remote', 'add', 'origin', ORIGIN_URL])
-  return repository
-}
-
-/**
-GetIssueSlim の 200 の応答
-*/
-export function issueResponse(fields: Readonly<{ number: number, title: string, body?: string, state?: string }>): ResponseRule {
-  const { number, title, body = '', state = 'OPEN' } = fields
-  const issue = {
-    number,
-    state,
-    title,
-    body,
-    comments: { totalCount: 0, nodes: [] },
-    // eslint-disable-next-line unicorn/no-null -- GraphQL の応答の null
-    parent: null,
-    subIssues: { nodes: [] },
-    linkedBranches: { nodes: [] },
-    timelineItems: { nodes: [] },
-  }
-  return { match: { operation: 'GetIssueSlim' }, respond: { status: 200, body: { data: { repository: { issue } } } }, times: 1 }
-}
-
-export function issueFailure(status: number): ResponseRule {
-  return { match: { operation: 'GetIssueSlim' }, respond: { status, body: { message: 'failure' } }, times: 1 }
 }

@@ -12,5 +12,5 @@ Issue には、ボードのフィールド・Issue fields・担当者・マイ�
 
 - 名前はボードや Issue fields の表示のとおりに書く。値を外すときは、`issue_fields` は `delete: true`、ボードの欄は `value` に null を書く
 - どの機能を使うかは、プロジェクトが決める。指定しなかった機能は空のままで、pecot は値を求めない
-- 進行の欄と組み込みの Status は、`board_move` で動かす。親 Epic と前提は、起票のときのテンプレートか、[Issue とコメントを公式の MCP で書く](issue-write.md) の「前提を付け外しする」で付ける
-- 手順の全体は [Issue とコメントを公式の MCP で書く](issue-write.md)
+- 進行の欄と組み込みの Status は、[GitHub に公式の MCP と github-ops で書く](github-write.md) の「列を動かす」で動かす。親 Epic と前提は、起票のときのテンプレートか、[GitHub に公式の MCP と github-ops で書く](github-write.md) の「前提を付け外しする」で付ける
+- 手順の全体は [GitHub に公式の MCP と github-ops で書く](github-write.md)

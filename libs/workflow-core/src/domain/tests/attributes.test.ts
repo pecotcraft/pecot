@@ -329,10 +329,10 @@ describe('validateAttributes', () => {
   })
 
   it.for([
-    { name: 'pecot-status', hint: 'move the issue with board_move' },
-    { name: 'Status', hint: 'move the issue with board_move' },
-  ])('ボードの列 $name は、board_move を案内して read_only_attribute にする', async ({ name, hint }) => {
-    await explains(`ボードの列を属性として指定した場合のテストです。${name}は書き込めないため、\`read_only_attribute\` のエラーを返し、\`board_move\` で移動するよう案内することを確認します。`)
+    { name: 'pecot-status', hint: 'move the issue with projects_write (method update_project_item) after board_check' },
+    { name: 'Status', hint: 'move the issue with projects_write (method update_project_item) after board_check' },
+  ])('ボードの列 $name は、projects_write を案内して read_only_attribute にする', async ({ name, hint }) => {
+    await explains(`ボードの列を属性として指定した場合のテストです。${name}は書き込めないため、\`read_only_attribute\` のエラーを返し、\`projects_write\` で移動するよう案内することを確認します。`)
     stepSync('`errorsOf` を呼び、結果を比べる', () => {
       expect(errorsOf(validate([{ name, value: 'Ready' }]))).toStrictEqual([{ code: 'read_only_attribute', name, source: 'project', hint }])
     })
@@ -357,11 +357,11 @@ describe('validateAttributes', () => {
     })
   })
 
-  it('ボードに追加されていない Issue のボードのフィールドは、board_add を案内して not_on_board にする', async () => {
-    await explains('ボードに追加されていない Issue に、ボードのフィールドと Issue field を指定した場合のテストです。ボードのフィールドだけ `not_on_board` のエラーを返し、`board_add` で追加するよう案内することを確認します。')
+  it('ボードに追加されていない Issue のボードのフィールドは、projects_write を案内して not_on_board にする', async () => {
+    await explains('ボードに追加されていない Issue に、ボードのフィールドと Issue field を指定した場合のテストです。ボードのフィールドだけ `not_on_board` のエラーを返し、`projects_write` で追加するよう案内することを確認します。')
     stepSync('`errorsOf` を呼び、結果を比べる', () => {
       expect(errorsOf(validate([{ name: 'Area', value: 'cli' }, { name: 'Priority', value: 'High' }], { isOnBoard: false }))).toStrictEqual([
-        { code: 'not_on_board', name: 'Area', source: 'project', hint: 'add the issue to the board with board_add' },
+        { code: 'not_on_board', name: 'Area', source: 'project', hint: 'add the issue to the board with projects_write (method add_project_item)' },
       ])
     })
   })

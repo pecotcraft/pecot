@@ -201,7 +201,7 @@ export const MCP_INSTRUCTIONS = [
   'Templates for Issues, comments and PRs are the pecot-template:// resources.',
   'Write a copy to .pecot/tmp/output/ under the project root and fill it in; its frontmatter keys are the argument names of the official GitHub MCP tool that writes it.',
   'Pass Issues and comments through issue_check, issue_dependency_check and issue_comment_check, then write them with the official tools (issue_write, issue_dependency_write, add_issue_comment, update_issue_comment).',
-  'For a PR, pass the path as file to pr_create.',
+  'Pass a PR through pr_check, then write it with create_pull_request, update_pull_request or merge_pull_request.',
   'In a batch of Issues, blocked_by and {{issue:key}} point at another Issue by its key, the file name without the extension.',
 ].join(' ')
 

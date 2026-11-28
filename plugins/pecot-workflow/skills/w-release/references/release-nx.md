@@ -30,9 +30,9 @@ CHANGELOG の形式・commit メッセージ・タグ形式・GitHub Release の
 
 w-release SKILL.md の Step 1 で判定したブランチモードに従う。
 
-- pecot-workflow の MCP ツール `board_show` で、対象リポの設定を見る。
+- pecot-workflow の MCP ツール `project_get` を `key` を省いて呼び、`repositories` で対象リポの設定を見る。
   `develop_branch` と `release_branch` が同じなら、**単一ブランチモード**になる（pecot は両方 `main`）。[単一ブランチモード（develop == release）](#単一ブランチモードdevelop--release) に従う。
-  `main` 上で `$NX release` を実行し、リリース PR と pecot-workflow の MCP ツール `release_merge` は行わない。
+  `main` 上で `$NX release` を実行し、リリース PR の作成とマージは行わない。
 - 同じ要素の `develop_branch` と `release_branch` が異なるなら、**2ブランチモード**になる。
   下記の [2ブランチモードの手順](#2ブランチモードの手順) に従う。
 
@@ -143,25 +143,21 @@ cd <project-root>/base/<repo> && if [ -f pnpm-lock.yaml ]; then NX="pnpm exec nx
 開発ブランチと release ブランチが同一（`main`、trunk-based）のリポ向け。Nx Release は
 current branch に commit する。そのため `main` 上で `$NX release` を実行すれば、commit・タグ・
 push・GitHub Release の発行までが一括で完結する。**`develop` と `release` が同じブランチで
-中間 PR が存在しないため、リリース PR 作成と `release_merge` は行わない。**
+中間 PR が存在しないため、リリース PR の作成とマージは行わない。**
 
 以降、GitHub ホスト名を `<gh-host>` と表記。値は、プロジェクトの設定の `host`（例: `github.com`）。
 
 ### 手順の選び方（ランナーか手元か）
 
-次のコマンドで、リモートの default branch の `release.yml` を取る。
-
-```bash
-gh workflow view release.yml -R <owner>/<repo> --yaml
-```
+公式の MCP の `get_file_contents` で、リモートの default branch の `.github/workflows/release.yml` を読む。
 
 ランナーの手順に従うのは、次の 2 つをどちらも満たすときだけ。
 
-1. コマンドが成功する
-2. 出力の YAML に、job `release` と入力 `dry-run` がある
+1. ファイルを読める
+2. 中身の YAML に、job `release` と入力 `dry-run` がある
 
 `release.yml` はよくある名前なので、別の目的のファイルを起動しないよう、2 を確かめる。
-手元の手順（下の 1〜8）に進むのは、`HTTP 404` のときと、2 を満たさないときだけ。
+手元の手順（下の 1〜8）に進むのは、404 で読めないときと、2 を満たさないときだけ。
 認証切れ・ネットワークなど、それ以外の失敗では止めて、ユーザーに報告する。
 
 ### ランナーの手順（`release.yml` があるリポ）
@@ -170,30 +166,27 @@ dry-run で案を見てユーザーの OK を得てから、本番を起動す�
 前の run が終わるまで、次の run を起動しない。
 同じ concurrency の group で待つ run は、後の起動に置き換えられて cancel される。
 
-1. dry-run で起動する。入力は付けない（`dry-run` の既定は `true`）。出力の URL の末尾が run の id になる。
+run の起動・待ち・結果は、公式の MCP の Actions のツールで読む。
 
-   ```bash
-   gh workflow run release.yml --ref main -R <owner>/<repo>
-   ```
+| 読み書きするもの | 公式のツール |
+|---|---|
+| 起動 | `actions_run_trigger`（`run_workflow`。`workflow_id: "release.yml"`・`ref: "main"`） |
+| 起動した run | `actions_list`（`list_workflow_runs`。`resource_id: "release.yml"`、`workflow_runs_filter` の `event: "workflow_dispatch"`） |
+| run の状態と結論・`head_sha` | `actions_get`（`get_workflow_run`） |
+| job の結論 | `actions_list`（`list_workflow_jobs`） |
+| artifact | `actions_list`（`list_workflow_run_artifacts`）で id を取り、`actions_get`（`download_workflow_run_artifact`）で一時の URL を取る |
 
-   URL が取れなければ、次のコマンドで引く。
-   起動した時刻より後で、`headSha` が main の HEAD の run を選ぶ。
+artifact は、一時の URL から `.pecot/work/<Issue番号>/` に落として展開する。URL はすぐ切れるので、取ったらすぐ落とす。
 
-   ```bash
-   gh run list --workflow release.yml --event workflow_dispatch --json databaseId,createdAt,headSha -L 5 -R <owner>/<repo>
-   ```
+```bash
+curl -sSL -o .pecot/work/<Issue番号>/<artifact名>.zip '<download_url>' && unzip -o -q .pecot/work/<Issue番号>/<artifact名>.zip -d .pecot/work/<Issue番号>/<artifact名>
+```
 
-2. run の完了を待つ。Bash ツールの前面の上限は 10 分なので、1 回の待ちは `timeout 540` に収める。終わらなければ、同じコマンドを打ち直す。
+1. dry-run で起動する。`inputs` は渡さない（`dry-run` の既定は `true`）。
+   起動の結果は run の id を返さないので、`list_workflow_runs` で引く。起動した時刻より後に作られ、`head_sha` が main の HEAD の run を選ぶ
 
-   ```bash
-   timeout 540 gh run watch <id> --exit-status --interval 30 --compact -R <owner>/<repo>
-   ```
-
-   待った後に、job `release` の結論を取る。
-
-   ```bash
-   gh run view <id> --json conclusion,jobs --jq '.conclusion, (.jobs[]|.name+": "+.conclusion)' -R <owner>/<repo>
-   ```
+2. `get_workflow_run` を、`status` が `completed` になるまで読み直す。間は 30 秒ほど空ける。
+   終わったら、`list_workflow_jobs` で job `release` の結論を取る。
 
    - `success` のときだけ、次へ進む
    - `skipped` のときは、リポジトリの変数 `PECOT_BOT_CLIENT_ID` か ref の問題として、ユーザーに伝える
@@ -201,12 +194,8 @@ dry-run で案を見てユーザーの OK を得てから、本番を起動す�
 
 3. dry-run が残した案を読み、ユーザーに示す。
    観点は、2ブランチ手順の「5. bump 妥当性のユーザー確認」と同じ。
-   案は `release-plan` という名前の artifact に入っている。
+   案は `release-plan` という名前の artifact に入っている。上の手順で落として展開する。
    `nx.log` から bump・tag・CHANGELOG の案を読む。`summary.md` には、`nx.log` と同じ内容と preflight の warnings が入る。
-
-   ```bash
-   gh run download <id> -n release-plan -D .pecot/work/<Issue番号>/release-plan -R <owner>/<repo>
-   ```
 
    `preflight.log` は、release.yml の「Run release preflight」の step の出力で、コンテナを起こす前に作られる。
    この step は `release-check` の action で、`release_check` と同じ判定をする。
@@ -217,28 +206,15 @@ dry-run で案を見てユーザーの OK を得てから、本番を起動す�
    案が誤っていたら、本番を起動しない。plan を直す PR を出し、マージしてから dry-run をやり直す。
    ユーザーの明示の OK を得るまで、次へ進まない。
 
-4. OK の後、dry-run の run の `headSha` を渡して本番を起動する。
+4. OK の後、dry-run の run の `head_sha` を渡して本番を起動する。`inputs` は `{"dry-run": "false", "sha": "<head_sha>"}` にする。
    `sha` を渡すので、dry-run で見た案と同じ commit から release commit・タグ・Release ができる。間に `main` が進んでも、dry-run はやり直さない。
-
-   ```bash
-   gh run view <id> --json headSha --jq .headSha -R <owner>/<repo>
-   gh workflow run release.yml --ref main -f dry-run=false -f sha=<headSha> -R <owner>/<repo>
-   ```
 
 5. 本番の run の完了を待つ。待ち方は 2 と同じで、id は 1 と同じ引き方で取る。
    完了したら、発行したタグ名と GitHub Release の URL に加えて、`main` への取り込みの結果を報告する。
-   タグ名と URL は、次のコマンドで取る。
-
-   ```bash
-   gh release list -L 4 -R <owner>/<repo>
-   ```
+   タグ名と URL は、公式の MCP の `list_releases` で新しいものから読む。
 
    取り込みの結果は、artifact `release-log` の `summary.md` の `### land` の行である。
    `landed: ... (merged <SHA>)`・`landed: ... (fast-forward)`・`skipped:` のどれかを読んで、そのまま伝える。
-
-   ```bash
-   gh run download <id> -n release-log -D .pecot/work/<Issue番号>/release-log -R <owner>/<repo>
-   ```
 
    失敗したときは [release-nx-recovery.md](release-nx-recovery.md) の「ランナーが失敗した場合」に従う。
 
@@ -283,7 +259,10 @@ export GH_TOKEN="$(gh auth token --hostname <gh-host>)"
 
 ### 3. open の security alert を確認（preflight）
 
-pecot-workflow の MCP ツール `release_check` を使う（`repo: "<owner>/<repo>"`）。
+open の alert を、公式の MCP の 3 つのツールで全ページ読む。
+ツールは `list_dependabot_alerts`・`list_code_scanning_alerts`・`list_secret_scanning_alerts` を使う。
+pecot-workflow の MCP ツール `release_check` に、`repo: "<owner>/<repo>"` と `reads` を渡す。`params` は渡さない。
+`reads` には、読んだ一覧（`pages`）か、読めなかったときの誤りの文（`error`）を入れる。
 
 Dependabot の open の alert は、件数・最高 severity・一覧 URL を警告に出すだけで止めない。
 その一覧を取得できないときも警告にとどめる。
@@ -336,7 +315,7 @@ GitHub Release の発行までを完了する。
 「リリース PR 作成」「リリース PR マージ」は **丸ごとスキップする**。Step 6 で remote `main` への push と
 GitHub Release 発行まで完結しているため追加操作は不要。
 
-pecot-workflow の MCP ツール `release_create` は Nx Release のリリースでは不要（2ブランチモードと同じ）。`release_check` は Step 3 で実行済み。
+github-ops の `release-create` は Nx Release のリリースでは使わない（2ブランチモードと同じ）。`release_check` は Step 3 で実行済み。
 
 ### 8. 完了報告
 
@@ -347,7 +326,7 @@ pecot-workflow の MCP ツール `release_create` は Nx Release のリリース
 ## 2ブランチモードの手順
 
 開発ブランチと release ブランチが分かれているリポ向け。対象リポの `develop` branch は
-開発ブランチを、`board_show` で事前に確認する。以降、開発ブランチを `<develop>`、GitHub ホスト名を
+開発ブランチを、`project_get` の `repositories` で事前に確認する。以降、開発ブランチを `<develop>`、GitHub ホスト名を
 `<gh-host>` と表記。値は、プロジェクトの設定の `host`（例: `github.com`）。
 
 ### 1. develop ブランチの worktree を最新化
@@ -377,7 +356,10 @@ export GH_TOKEN="$(gh auth token --hostname <gh-host>)"
 
 ### 3. open の security alert を確認（preflight）
 
-`release_check` を使う（`repo: "<owner>/<repo>"`）。
+open の alert を、公式の MCP の 3 つのツールで全ページ読む。
+ツールは `list_dependabot_alerts`・`list_code_scanning_alerts`・`list_secret_scanning_alerts` を使う。
+pecot-workflow の MCP ツール `release_check` に、`repo: "<owner>/<repo>"` と `reads` を渡す。`params` は渡さない。
+`reads` には、読んだ一覧（`pages`）か、読めなかったときの誤りの文（`error`）を入れる。
 
 Dependabot の open の alert は、件数・最高 severity・一覧 URL を警告に出すだけで止めない。
 その一覧を取得できないときも警告にとどめる。
@@ -454,38 +436,40 @@ branch にしか commit しないため、別途 PR で `<develop> → <release>
 
 release-single / release-multi と同じフローを使う。
 
-pecot-workflow の MCP サーバの resource `pecot-template://pr/release` を読み、下書きファイルを作る。
+pecot-workflow の MCP サーバの resource `pecot-template://pr/release` を読み、`.pecot/tmp/output/` に写す。
 
-できた下書きファイルを編集:
+写したファイルを編集:
 
-- `repository: <owner>/<repo>`
+- frontmatter の `owner`・`repo`
+- `base: <release>`
 - `head: <develop>` （Step 6 の release commit が載っている branch）
 - `title: "release: <project と ver を列挙>"` （例: `release: pecot-workflow v0.19.0 + pecot-visual v0.67.0`）
 - 本文: release 雛形の 4 節（Summary / Changes / Migration / Verified）を
-  すべて埋める（1 つでも欠けると投稿時検証で弾かれる）。Changes には bump した各 package の
+  すべて埋める（1 つでも欠けると `pr_check` が止める）。Changes には bump した各 package の
   CHANGELOG の該当セクション（`## 0.19.0 (2026-04-23)` 等）を順に転記する。Nx Release が
   生成する節見出しには絵文字が付くので、外して `### Features` の形で転記する
-  （本文に絵文字があると投稿時検証で弾かれる）。
+  （本文に絵文字があると `pr_check` が止める）。
 
-編集したら、`pr_create` を使う（`template: "release"`・`file: "<ファイルパス>"`）。
+編集したら、`pr_check` に `method: "create"` で、frontmatter の値と本文（`body`）を渡す。`problems` が空なら、`template` を除いた同じ値で、公式の MCP の `create_pull_request` を使う。
 
 **PR 作成用に feat ブランチを切る必要はない** — `<develop>` 自体を head にする（release commit が
 `<develop>` 上にあるため）。
 
 ### 8. リリース PR マージ
 
-`release_merge` を使う（`pr_ref: "<owner>/<repo>/<PR番号>"`）。`<PR番号>` は、Step 7 で作った PR の番号。
+[PR をマージする](../../w-help/references/github-write.md#pr-をマージする) の手順で、Step 7 で作った PR を `merge_method: "merge"` でマージする。
+merge queue のリポなどで `merge_pull_request` が断られたら、利用者に GitHub の画面でマージしてもらう。
+マージされるまで、`pull_request_read`（`get`）で読んで待つ。
 
-`delete_branch` は**付けない**。Nx Release のリリースでは、PR の head が `<develop>` 自体になる。
-このフラグを付けると `<develop>` ブランチが削除される。release-single / release-multi で
-付けない理由も同じ。
+マージしたら、`list_branches` で `<develop>` が残っているかを確かめる。PR の head が `<develop>` 自体だからだ。
+リポの「head ブランチを自動で消す」が有効で、`<develop>` をブランチの保護か ruleset で守っていないと、GitHub が消す。
+消えていたら、`create_branch`（`branch: "<develop>"`・`from_branch: "<release>"`）で作り直し、`<develop>` を保護するよう利用者に伝える。
 
-`release_merge` は **regular merge（merge commit）を強制** し、base が `release_branch`
-設定と一致することを検証する。**必ずこれを使い、`gh pr merge` は使わない**。
+`pr_check` は、base が `release_branch` の設定と一致し、`merge_method` が `merge`（merge commit）であることを確かめる。
 squash merge だと tag が指す commit が `<release>` の履歴から到達不能になり、
 GitHub Release が孤児 commit を参照する状態になる。
 
-`release_create` は Nx Release のリリースでは不要。Nx Release が version 整合確認・tag 作成・
+github-ops の `release-create` は Nx Release のリリースでは使わない。Nx Release が version 整合確認・tag 作成・
 GitHub Release 発行を Step 6 で完結させている。`release_check` は Step 3 で実行済み。
 
 ### 9. 完了報告

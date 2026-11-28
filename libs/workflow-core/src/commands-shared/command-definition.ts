@@ -74,7 +74,7 @@ export type GlobalInput = z.output<typeof GLOBAL_SCHEMA>
 
 export interface ToolSpec<Input extends z.ZodObject, Output extends z.ZodObject> {
   /**
-  `board_add`、`issue_comment_check`。決まりは `<対象>_<動詞>` で、最後の語が動詞（names.ts の toolNameViolations）
+  `board_check`、`issue_comment_check`。決まりは `<対象>_<動詞>` で、最後の語が動詞（names.ts の toolNameViolations）
   */
   readonly name: string
   /**

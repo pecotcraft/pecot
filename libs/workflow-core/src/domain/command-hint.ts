@@ -109,7 +109,7 @@ function isHint(value: unknown): value is Hint {
 }
 
 /**
-タグ付きテンプレートで HintedText を作る。`hinted\`call ${commandHint(['project', 'init'])}\``
+タグ付きテンプレートで HintedText を作る。`hinted\`call ${commandHint(['project', 'list'])}\``
 */
 export function hinted(strings: TemplateStringsArray, ...values: readonly (string | number | Hint | HintedText)[]): HintedText {
   return strings.flatMap((text, index): (string | Hint)[] => {

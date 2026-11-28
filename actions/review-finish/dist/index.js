@@ -6978,7 +6978,7 @@ function isHint(value) {
     return typeof value === 'object' && value !== null && 'kind' in value;
 }
 /**
-タグ付きテンプレートで HintedText を作る。`hinted\`call ${commandHint(['project', 'init'])}\``
+タグ付きテンプレートで HintedText を作る。`hinted\`call ${commandHint(['project', 'list'])}\``
 */
 function hinted(strings, ...values) {
     return strings.flatMap((text, index) => {
@@ -16110,9 +16110,12 @@ object({
     attributes: preprocess(value => value === null ? undefined : value, array(AttributeEntrySchema, { error: listMessage }).readonly().optional()),
     lane: preprocess(emptyStringToUndefined, string$1({ error: stringMessage }).nullish().transform(value => value ?? undefined)),
 }).readonly();
+// 鍵は create_pull_request の引数の名前。template と screenshot だけが pecot の鍵
 object({
+    template: preprocess(normalizeOptionalText, string$1({ error: stringMessage }).nullish().transform(value => value ?? undefined)),
+    owner: string$1({ error: stringMessage }),
+    repo: string$1({ error: stringMessage }),
     title: string$1({ error: stringMessage }),
-    repository: string$1({ error: stringMessage }),
     base: string$1({ error: stringMessage }),
     head: string$1({ error: STRING_MESSAGE }).nullish().transform(value => value ?? undefined),
     draft: preprocess(convertToBoolean, boolean({ error: issue => booleanMessage(issue.input) })).prefault(false),
@@ -50431,38 +50434,30 @@ pecot-workflow の MCP のサーバの registry.ts が登録するツールの�
 */
 const TOOL_HINT_COMMANDS = [
     { name: 'project_list', inputs: ['repo'] },
-    { name: 'project_search', inputs: ['owner', 'host', 'repo'] },
-    { name: 'project_init', inputs: ['owner', 'name', 'host', 'lanes', 'confirm_delete', 'repo'] },
-    { name: 'project_create', inputs: ['owner', 'title', 'host', 'lanes', 'repo'] },
-    { name: 'project_activate', inputs: ['project', 'owner', 'host', 'repo'] },
+    { name: 'project_check', inputs: ['method', 'owner', 'owner_type', 'title', 'project', 'changes', 'lanes', 'reads', 'repo'] },
+    { name: 'project_activate', inputs: ['project', 'owner', 'owner_type', 'host', 'reads', 'repo'] },
     { name: 'project_link', inputs: ['repo', 'develop_branch', 'release_branch', 'changelog_file', 'package', 'clear_packages', 'release_type'] },
     { name: 'project_get', inputs: ['key', 'repo'] },
     { name: 'project_set', inputs: ['key', 'value', 'yes', 'repo'] },
     { name: 'project_unset', inputs: ['key', 'repo'] },
-    { name: 'board_show', inputs: ['json', 'repo'] },
-    { name: 'board_add', inputs: ['issue_ref', 'status', 'project', 'repo'] },
-    { name: 'board_move', inputs: ['issue_ref', 'status', 'project', 'repo'] },
+    { name: 'board_show', inputs: ['json', 'repo', 'reads'] },
+    { name: 'board_check', inputs: ['method', 'owner', 'project_number', 'issue_number', 'item_owner', 'item_repo', 'updated_field', 'project', 'reads', 'repo'] },
     { name: 'issue_check', inputs: ['method', 'project', 'issues', 'reads', 'repo'] },
     { name: 'issue_dependency_check', inputs: ['method', 'owner', 'repo', 'issue_number', 'type', 'related_owner', 'related_repo', 'related_issue_number', 'wait', 'reason', 'project', 'reads'] },
     { name: 'issue_comment_check', inputs: ['method', 'owner', 'repo', 'issue_number', 'comment_id', 'body', 'template', 'template_text', 'reads'] },
-    { name: 'session_start', inputs: ['issue_ref', 'branch', 'base', 'checkout', 'project', 'repo'] },
+    { name: 'session_start', inputs: ['issue_ref', 'base', 'sha', 'stacked_on', 'title', 'reads', 'repo'] },
     { name: 'session_show', inputs: ['directory', 'project', 'repo'] },
-    { name: 'session_finish', inputs: ['pr_ref', 'delete_branch', 'project', 'repo'] },
-    { name: 'pr_create', inputs: ['file', 'message', 'title', 'base', 'head', 'draft', 'repo', 'no_issue_ref', 'template', 'screenshot', 'project'] },
-    { name: 'pr_show', inputs: ['pr_ref', 'json', 'reviews', 'project', 'repo'] },
-    { name: 'pr_check', inputs: ['directory', 'project', 'repo'] },
-    { name: 'pr_merge', inputs: ['pr_ref', 'project', 'repo'] },
-    { name: 'pr_restack', inputs: ['check', 'continue', 'abort', 'project', 'repo'] },
-    { name: 'release_check', inputs: ['version', 'package', 'project', 'repo'] },
-    { name: 'release_create', inputs: ['version', 'package', 'project', 'repo'] },
-    { name: 'release_merge', inputs: ['pr_ref', 'delete_branch', 'admin', 'project', 'repo'] },
+    { name: 'session_finish', inputs: ['pr_ref', 'project', 'reads', 'repo'] },
+    { name: 'pr_check', inputs: ['method', 'owner', 'repo', 'title', 'head', 'base', 'draft', 'body', 'pullNumber', 'merge_method', 'expectedHeadSha', 'template', 'template_text', 'screenshot', 'project', 'reads'] },
+    { name: 'pr_restack', inputs: ['check', 'continue', 'abort', 'project', 'reads', 'repo'] },
+    { name: 'release_check', inputs: ['params', 'project', 'reads', 'repo'] },
     { name: 'worktree_add', inputs: ['directory', 'base', 'path', 'no_copy', 'no_link', 'setup', 'allow_existing_branch', 'project', 'repo'] },
     { name: 'worktree_remove', inputs: ['name', 'directory', 'force', 'keep_branch', 'repo'] },
     { name: 'worktree_init', inputs: ['directory', 'repo'] },
     { name: 'worktree_link', inputs: ['directory', 'force', 'all', 'repo'] },
-    { name: 'branch_delete', inputs: ['repo', 'branch', 'project'] },
-    { name: 'workflow_install', inputs: ['name', 'check', 'force', 'directory', 'repo'] },
-    { name: 'workflow_doctor', inputs: ['name', 'directory', 'repo'] },
+    { name: 'branch_check', inputs: ['owner', 'repo', 'issue', 'branch', 'base', 'project', 'reads'] },
+    { name: 'workflow_install', inputs: ['name', 'check', 'force', 'directory', 'reads', 'repo'] },
+    { name: 'workflow_doctor', inputs: ['name', 'directory', 'reads', 'repo'] },
 ];
 /**
 actions/ に移した処理の形。name の `_` を `-` にしたものが actions/<name>/action.yml、inputs は token を除く inputs を snake_case にしたもの

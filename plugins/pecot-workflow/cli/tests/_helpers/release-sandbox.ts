@@ -1,24 +1,22 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
-// release の 3 個のケースが使う一時の環境。origin は GIT_SSH の偽物で一時の bare につなぎ、GitHub は偽サーバで受ける。
+// release_check のケースが使う一時の環境。origin は GIT_SSH の偽物で一時の bare につなぐ。GitHub は呼ばない。
 import { execFileSync } from 'node:child_process'
 import { chmodSync, mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
-import { expect } from 'vitest'
-
 import { RELEASE_TOOLS } from '../../src/commands/release.js'
 import { setEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
-import { installFakeExecutable, installFakeGh, prependToPath } from '../../../../../libs/workflow-core/tests/_helpers/fake-executables.js'
+import { installFakeExecutable, prependToPath } from '../../../../../libs/workflow-core/tests/_helpers/fake-executables.js'
 import { gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import { makeTemporaryDirectory } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
-import { startFakeGithub } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
-import type { RecordedRequest, ResponseRule, ResponseSpec } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
+import { callToolOnce } from './mcp-client.js'
+import type { ToolOutcome } from './mcp-client.js'
 import { runToolInProcess } from './run-tool.js'
+import type { ToolRunResult } from './run-tool.js'
 
 export const HOST = 'ghes.example.com'
 export const OWNER = 'acme'
 export const NAME = 'demo'
-const TOKEN_VARIABLE = 'PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN'
 
 export const CHANGELOG = `# Changelog
 
@@ -82,10 +80,6 @@ export interface ProjectOptions {
   リポジトリのルートに置くファイル。CHANGELOG.md の既定は CHANGELOG で、undefined なら置かない
   */
   readonly files?: Readonly<Record<string, string | undefined>>
-  /**
-  false なら GitHub のトークンを置かない
-  */
-  readonly hasToken?: boolean
 }
 
 export interface Project {
@@ -158,13 +152,11 @@ export function createProject(options: Readonly<ProjectOptions> = {}): Project {
   const bare = path.join(root, 'remotes', OWNER, `${NAME}.git`)
   mkdirSync(directory, { recursive: true })
   mkdirSync(bin, { recursive: true })
-  installFakeGh(bin)
   prependToPath(bin)
   setEnvironment({
     GIT_CEILING_DIRECTORIES: root,
     GIT_SSH: writeFakeSsh(bin, path.join(root, 'remotes')),
     GIT_SSH_VARIANT: 'simple',
-    [TOKEN_VARIABLE]: options.hasToken === false ? undefined : 'dummy-token',
   })
 
   if (options.isGit !== false) {
@@ -216,78 +208,35 @@ exec '${real}' "$@"
   installFakeExecutable(project.bin, 'git', body)
 }
 
-export function rest(method: string, requestPath: string, status: number, body?: unknown, times = 1): ResponseRule {
-  let respond: ResponseSpec = { status, body }
-  if (body === undefined) respond = { status }
-  else if (typeof body === 'string') respond = { status, text: body }
-  return { match: { method, path: requestPath }, respond, times }
-}
-
-export function pullRequestResponse(fields: { readonly state?: string, readonly mergeable?: string, readonly head?: string, readonly base?: string } = {}): ResponseRule {
-  const { state = 'OPEN', mergeable = 'MERGEABLE', head = 'develop', base = 'release' } = fields
-  const pullRequest = { number: 31, state, title: 'release', body: '', headRefName: head, baseRefName: base, isDraft: false, mergeable, comments: { totalCount: 0 }, closingIssuesReferences: { nodes: [] }, reviews: { nodes: [] } }
-  return { match: { operation: 'GetPullRequestSlim' }, respond: { status: 200, body: { data: { repository: { pullRequest } } } }, times: 1 }
-}
-
 /**
-release check が数える commit 数の応答（GitHub の compare API の ahead_by）
+release_check の params の既定。sha は release の先頭（main から push した commit）
 */
-export function compareRule(ahead: number, repository = `${OWNER}/${NAME}`, base = 'release', head = 'develop'): ResponseRule {
-  return rest('GET', `/repos/${repository}/compare/${base}...${head}`, 200, { ahead_by: ahead })
+export function releaseValues(project: Readonly<Project>, overrides: Readonly<Record<string, unknown>> = {}): Readonly<Record<string, unknown>> {
+  const sha = gitForTest(project.directory, ['rev-parse', 'main']).trim()
+  return { tag: 'v0.2.0', sha, body: NOTES_0_2_0, ...overrides }
 }
 
-export type AlertKind = 'code' | 'dependabot' | 'secret'
-
-export function alertPath(kind: AlertKind, repository = `${OWNER}/${NAME}`): string {
-  const segments = new Map<AlertKind, string>([['code', 'code-scanning'], ['dependabot', 'dependabot'], ['secret', 'secret-scanning']])
-  return `/repos/${repository}/${segments.get(kind) ?? kind}/alerts`
-}
-
-/**
-3 種の alert の一覧の応答。overrides に書いた種類だけ差し替え、ほかは 0 件にする
-*/
-export function alertRules(overrides: Readonly<Partial<Record<AlertKind, readonly ResponseRule[]>>> = {}, repository = `${OWNER}/${NAME}`): readonly ResponseRule[] {
-  const kinds: readonly AlertKind[] = ['dependabot', 'code', 'secret']
-  return kinds.flatMap(kind => new Map(Object.entries(overrides)).get(kind) ?? [rest('GET', alertPath(kind, repository), 200, [])])
-}
-
-export interface RunResult {
-  readonly code: number
-  readonly stdout: string
-  readonly stderr: string
-  readonly requests: readonly RecordedRequest[]
-}
-
-export interface RunOptions {
-  /**
-  作業ディレクトリ。省略すると project.directory
-  */
-  readonly cwd?: string
-}
-
-/**
-release の 3 個を、プロセス内で呼ぶ。偽サーバの応答は rules の順に使う
-*/
-export async function runRelease(project: Readonly<Project>, name: string, arguments_: Readonly<Record<string, unknown>>, rules: readonly ResponseRule[] = [], options: Readonly<RunOptions> = {}): Promise<RunResult> {
-  const server = await startFakeGithub(rules)
-  setEnvironment({ PECOT_GITHUB_API_URL: server.url })
-  const cwd = options.cwd ?? project.directory
+async function inDirectory<T>(directory: string, body: () => Promise<T>): Promise<T> {
   const original = process.cwd()
+  process.chdir(directory)
   try {
-    process.chdir(cwd)
-    const result = await runToolInProcess(RELEASE_TOOLS, name, arguments_)
-    expect({ problems: server.problems(), unused: server.unused() }).toEqual({ problems: [], unused: [] })
-    return { ...result, requests: server.requests() }
+    return await body()
   }
   finally {
     process.chdir(original)
-    await server.close()
   }
 }
 
 /**
-受けた REST の要求を、メソッドとパスの対にする
+release_check を、作業ディレクトリに移ってプロセス内で呼び、終了コードと出力を返す
 */
-export function pathsOf(result: Readonly<Pick<RunResult, 'requests'>>): readonly string[] {
-  return result.requests.map(request => request.type === 'rest' ? `${request.method} ${request.path}` : request.operation)
+export async function runRelease(project: Readonly<Project>, arguments_: Readonly<Record<string, unknown>>): Promise<ToolRunResult> {
+  return await inDirectory(project.directory, async () => await runToolInProcess(RELEASE_TOOLS, 'release_check', arguments_))
+}
+
+/**
+release_check を、作業ディレクトリに移って MCP のクライアントから 1 回呼ぶ
+*/
+export async function callRelease(project: Readonly<Project>, arguments_: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
+  return await inDirectory(project.directory, async () => await callToolOnce(RELEASE_TOOLS, 'release_check', arguments_))
 }

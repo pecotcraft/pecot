@@ -106,11 +106,19 @@ function unwrap<T>(result: DependabotResult<T>, owner: string, repository: strin
 一覧が 403 のとき、vulnerability-alerts で「無効」かどうかを分類する。
 404 のみを無効とみなす。204 は有効なのに一覧が取れない状態で、エラーにする
 */
-async function classifyForbidden(source: DependabotSource, owner: string, repository: string, alertsUrl: string): Promise<DependabotAlertStatus> {
+async function classifyForbidden(source: DependabotSource, host: string, owner: string, repository: string): Promise<DependabotAlertStatus> {
   if (unwrap(await source.isAlertsEnabled(owner, repository), owner, repository)) {
     throw new DependabotAlertError(`${owner}/${repository}: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)`)
   }
-  return { enabled: false, openCount: 0, maxSeverity: undefined, alertsUrl, openAlerts: [] }
+  return dependabotStatusOf(undefined, host, owner, repository)
+}
+
+/**
+読んだ open の alert から状態を作る。alerts が undefined なら無効
+*/
+export function dependabotStatusOf(alerts: readonly DependabotAlert[] | undefined, host: string, owner: string, repository: string): DependabotAlertStatus {
+  const alertsUrl = `https://${host}/${owner}/${repository}/security/dependabot`
+  return alerts === undefined ? { enabled: false, openCount: 0, maxSeverity: undefined, alertsUrl, openAlerts: [] } : { enabled: true, openCount: alerts.length, maxSeverity: maxSeverity(alerts), alertsUrl, openAlerts: alerts.map(alert => openAlertOf(alert)).filter(alert => alert !== undefined) }
 }
 
 /**
@@ -119,10 +127,6 @@ async function classifyForbidden(source: DependabotSource, owner: string, reposi
 状態を判定できなければ DependabotAlertError
 */
 export async function fetchDependabotAlertStatus(source: DependabotSource, host: string, owner: string, repository: string): Promise<DependabotAlertStatus> {
-  const alertsUrl = `https://${host}/${owner}/${repository}/security/dependabot`
   const listed = await source.listOpenAlerts(owner, repository)
-  if (listed.kind === 'forbidden') return classifyForbidden(source, owner, repository, alertsUrl)
-
-  const alerts = unwrap(listed, owner, repository)
-  return { enabled: true, openCount: alerts.length, maxSeverity: maxSeverity(alerts), alertsUrl, openAlerts: alerts.map(alert => openAlertOf(alert)).filter(alert => alert !== undefined) }
+  return listed.kind === 'forbidden' ? classifyForbidden(source, host, owner, repository) : dependabotStatusOf(unwrap(listed, owner, repository), host, owner, repository)
 }

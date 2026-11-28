@@ -28,14 +28,18 @@ export interface AutoProjectOptions {
   既定の Status の選択肢から外すもの
   */
   readonly missingStatus?: string | undefined
+  /**
+  偽なら、対象のリポの設定に develop_branch を置かない
+  */
+  readonly hasDevelopBranch?: boolean
 }
 
-function buildConfig(hasStatus: boolean, missingStatus: string | undefined): string {
+function buildConfig(hasStatus: boolean, missingStatus: string | undefined, hasDevelopBranch: boolean): string {
   const workflow = { id: 'PVTSSF_workflow', options: { backlog: 'o1', pending: 'o2', ready: 'o3', active: 'o4', in_review: 'o5', archived: 'o6' } }
   const options = Object.fromEntries([...STATUS_OPTIONS].filter(([name]) => name !== missingStatus))
   const fields = hasStatus ? { workflow, status: { id: 'FIELD_status', options } } : { workflow }
   const project = { number: 1, id: 'PVT_1', board_url: 'https://github.com/users/acme/projects/1', fields }
-  const config = { host: 'github.com', owner: 'acme', project, repositories: [{ owner: 'acme', name: 'demo', develop_branch: 'main' }] }
+  const config = { host: 'github.com', owner: 'acme', project, repositories: [{ owner: 'acme', name: 'demo', ...hasDevelopBranch && { develop_branch: 'main' } }] }
   return `${JSON.stringify(config, undefined, 2)}\n`
 }
 
@@ -54,8 +58,8 @@ export interface AutoRunner {
 設定を置き、実行の環境変数と、runner の一時ディレクトリ・outputs のファイルを入れる
 */
 export function prepareAuto(options: Readonly<AutoProjectOptions> = {}, environment: Readonly<Record<string, string | undefined>> = {}): AutoRunner {
-  const { hasStatus = true, missingStatus } = options
-  setUpProject({ files: { [`.pecot/config/projects/${CONFIG_FILE}`]: buildConfig(hasStatus, missingStatus) } })
+  const { hasStatus = true, missingStatus, hasDevelopBranch = true } = options
+  setUpProject({ files: { [`.pecot/config/projects/${CONFIG_FILE}`]: buildConfig(hasStatus, missingStatus, hasDevelopBranch) } })
   const temporary = makeTemporaryDirectory('pecot-runner-')
   const outputFile = path.join(temporary, 'github-output')
   writeFileSync(outputFile, '', 'utf8')
@@ -154,6 +158,15 @@ export function issueNodeId(): ResponseRule {
 }
 
 /**
+ブランチを作る書き込みの応答。base の先頭の commit を読み、Issue につないだブランチを作る
+*/
+export function branchCreated(branch: string, base = 'main'): readonly ResponseRule[] {
+  const head: ResponseRule = { match: { method: 'GET', path: `/repos/acme/demo/git/ref/heads/${base}` }, respond: { status: 200, body: { object: { sha: 'a'.repeat(40) } } }, times: 1 }
+  const created: ResponseRule = { match: { operation: 'CreateLinkedBranch' }, respond: { status: 200, body: { data: { createLinkedBranch: { linkedBranch: { ref: { name: branch, prefix: 'refs/heads/' } } } } } }, times: 1 }
+  return [head, issueNodeId(), created]
+}
+
+/**
 ボードへの追加の応答
 */
 export function addedToBoard(): ResponseRule {
@@ -198,7 +211,7 @@ export function postedBody(requests: readonly RecordedRequest[]): string {
 // 書き込みの要求（GET 以外の REST と、GraphQL の mutation）の名前
 function writeOf(request: Readonly<RecordedRequest>): string | undefined {
   if (request.type === 'rest') return request.method === 'GET' ? undefined : `${request.method} ${request.path}`
-  return /^(?:Update|Add)/u.test(request.operation) ? request.operation : undefined
+  return /^(?:Update|Add|Create)/u.test(request.operation) ? request.operation : undefined
 }
 
 export function writesOf(requests: readonly RecordedRequest[]): readonly string[] {

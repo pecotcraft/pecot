@@ -18,7 +18,7 @@ import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { DependenciesUnsupportedError, GitHubAPIError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
 import { MAX_BLOCKED_BY } from '../infra/github/issues.js'
-import { STATUS_FIELD_NAME } from './project-sync.js'
+import { STATUS_FIELD_NAME } from './workflow-fields.js'
 
 /**
 順 8 で base をたどる段数の上限

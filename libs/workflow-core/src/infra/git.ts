@@ -330,30 +330,6 @@ export function remoteOnlyChanges(cwd: string, local: string, remoteBranch: stri
   return runGit(arguments_, { cwd, check: true }).stdout.split('\n').filter(line => line !== '')
 }
 
-export interface SharedChanges {
-  /**
-  other にあって base に無いコミットのうち、head が同じコミットか同じ変更（patch-id）を持つものがある。
-  other にそのコミットが無ければ、other が head の祖先か
-  */
-  readonly isShared: boolean
-  /**
-  head の側で、other と同じ変更を持つ最も新しいコミット。同じコミットを共有するだけなら undefined
-  */
-  readonly lastEquivalent: string | undefined
-}
-
-/**
-head が other の変更を持っているか。other をスタックし直して force-push した後も、patch-id で見つける
-*/
-export function changesSharedWith(cwd: string, head: string, other: string, base: string): SharedChanges {
-  const lines = (arguments_: readonly string[]): readonly string[] => runGit(arguments_, { cwd, check: true }).stdout.split('\n').filter(line => line !== '')
-  const own = lines(['rev-list', '--no-merges', other, `^${base}`, '--'])
-  if (own.length === 0) return { isShared: isAncestor(cwd, other, head), lastEquivalent: undefined }
-  const unmatched = lines(['rev-list', '--right-only', '--cherry-pick', '--no-merges', `${head}...${other}`, `^${base}`, '--'])
-  const equivalent = lines(['rev-list', '--left-only', '--cherry-mark', '--no-merges', `${head}...${other}`, `^${base}`, '--']).find(line => line.startsWith('='))
-  return { isShared: unmatched.length < own.length, lastEquivalent: equivalent?.slice(1) }
-}
-
 /**
 2 つの ref の木が同じか
 */

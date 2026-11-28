@@ -12,21 +12,21 @@ when_to_use: "自動レビューのワークフローが PR をレビューす�
 
 ## 手順
 
-引数に `project=<名前>` があれば、このスキルで使う pecot-workflow の MCP ツールに、その名前を `project` で渡す。渡す先は `pr_show` の 1 つ。
+引数の `project=<名前>` は使わない。このスキルが使う pecot-workflow の MCP ツール（`issue_comment_check`）は、ボードの設定を読まない。
 
 ### Step 1: PR 情報を取得
 
 引数の PR の本文・diff・既存レビューを読む。
 
-pecot-workflow の MCP ツール `pr_show` を使って、PR とレビューを読む（`reviews: true`）。
+公式の MCP の `pull_request_read` で、PR とレビューを読む。PR は `get`、レビューは `get_reviews`、行コメントのスレッドは `get_review_comments` で読む。
 
 diff は `gh pr diff <PR番号> --repo <owner/repo>` で読む。長い diff がファイルとして渡されたときは、そのファイルを `Read` で読む。
 
-PR が閉じる Issue（`pr_show` の `closing_issues`）があれば、公式の MCP の `issue_read` で、それも読む。本文は `get`、コメントは `get_comments` で読む。`referenced_issues` の Issue は読まない。
+PR が閉じる Issue は、PR の本文の閉じるキーワード（`Closes #N`・`Fixes #N`・`Resolves #N` など）が指す Issue だ。公式の MCP の `issue_read` で、それも読む。本文は `get`、コメントは `get_comments` で読む。キーワードの無い参照（`#N` だけ）の Issue は読まない。
 
 読んだ Issue のコメントから、計画のコメントを探す。計画のコメントは、`## Plan` と `## PECOT-Workflow` の 2 つの見出しを持つ。複数あれば、新しい方を使う。Issue が複数あれば、Issue ごとに探す。
 
-`closing_issues` が空のときと、計画のコメントが見つからないときは、計画と照らす手順を飛ばしてレビューを続ける。
+閉じる Issue が無いときと、計画のコメントが見つからないときは、計画と照らす手順を飛ばしてレビューを続ける。
 
 前の自動レビューの `review-findings` と、書き手が対応を書いたコメント（`## Resolution`）は、次のコマンドで読む。PR のコメントには CUJ のログもあるので、`## Findings` か `## Resolution` で始まるコメントだけを出す。`review-findings` があれば、この実行は 2 巡目以降になる。
 
@@ -73,7 +73,7 @@ action に同梱の MCP ツール `create_inline_comment` で、1 件ずつ投�
 
 2 巡目以降は、Step 2 で見た前の F-NN も Disposition に並べる。
 
-- F-NN の欄は、前のスレッドのコメントへのリンクにする。URL は `pr_show` の行コメントの `url` から取る
+- F-NN の欄は、前のスレッドのコメントへのリンクにする。URL は `get_review_comments` の行コメントの `html_url` から取る
 - 直ったものは、想定する方針の欄を「直った」にする
 - 直っていないものは「対応」にする
 

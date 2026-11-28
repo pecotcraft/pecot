@@ -31,7 +31,7 @@ export const COMMAND_GROUPS: readonly CommandWord[] = [
   { name: 'pr', meaning: 'PR そのもの' },
   { name: 'release', meaning: 'リリース' },
   { name: 'worktree', meaning: 'worktree' },
-  { name: 'branch', meaning: 'リモートのブランチ' },
+  { name: 'branch', meaning: 'Issue につないだブランチ' },
   { name: 'workflow', meaning: '導入先のリポに置く GitHub Actions のワークフロー' },
 ]
 
@@ -40,13 +40,10 @@ export const COMMAND_GROUPS: readonly CommandWord[] = [
 */
 export const COMMAND_VERBS: readonly CommandWord[] = [
   { name: 'list', meaning: '複数を並べる', readOnly: true },
-  { name: 'search', meaning: 'GitHub を探す', readOnly: true },
   { name: 'show', meaning: '1 件を出す', readOnly: true },
   { name: 'get', meaning: '設定の値を出す', readOnly: true },
   { name: 'check', meaning: '次の操作の前に確かめる。公式の MCP で書く値が決まりに合うかを確かめるのにも使う', readOnly: true },
   { name: 'doctor', meaning: '導入に要る設定がそろっているかを確かめる', readOnly: true },
-  { name: 'create', meaning: 'GitHub のものを作る' },
-  { name: 'delete', meaning: 'GitHub のものを消す' },
   { name: 'add', meaning: '集まりに入れる' },
   { name: 'remove', meaning: '集まりから出す' },
   { name: 'init', meaning: '既にあるものを pecot で使える状態にする' },
@@ -57,8 +54,6 @@ export const COMMAND_VERBS: readonly CommandWord[] = [
   { name: 'activate', meaning: '使うプロジェクトを切り替える' },
   { name: 'start', meaning: '作業を始める' },
   { name: 'finish', meaning: '作業を終えて片付ける' },
-  { name: 'move', meaning: 'ボードの列を移す' },
-  { name: 'merge', meaning: 'PR をマージする' },
   { name: 'restack', meaning: 'スタックしたブランチを、base の新しい位置へスタックし直す' },
 ]
 

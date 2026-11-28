@@ -6,7 +6,8 @@ MCP クライアントに 1 エントリ登録するだけで、Issue・PR・ボ
 ## 前提
 
 - Node.js 24 系は 24.22.1 以上、26 系は 26.12.1 以上。下限に満たない Node でも npm は警告だけで起動しますが、脆弱性の修正を含まない版では使わないでください
-- `git` と `gh` が PATH にあり、`gh auth status` が通ること。ツールは両方をそのまま起動する
+- `git` が PATH にあること。ツールは `git` をそのまま起動する
+- GitHub の公式の MCP サーバが、書き込みのできる形でつながっていること
 - Windows ネイティブ環境は対象外です（Linux / macOS / WSL2 で使用してください）
 
 ## 登録
@@ -75,50 +76,43 @@ WSL 内の npx が非ログインシェルの PATH に無い場合は、`args` �
 ツールが対象にするリポジトリは、サーバを起動したディレクトリを含むリポジトリです。
 Claude Code では、Claude Code がサーバを起動するディレクトリ（通常はプロジェクトの root）になります。
 
-プラグインの hooks は働きません。`pr_create`・`pr_merge` の確認は、MCP クライアント自身の確認だけになります。
+プラグインの hooks は働きません。公式の MCP の書き込みのツール（`merge_pull_request` など）の確認は、MCP クライアント自身の確認だけになります。
 これらのツールは自動で許可しないでください。また、`--help` を打つと、プラグインで出る補足の節は出ません。
 
 ## ツール
 
 ツール名は `<対象>_<動詞>` の形です。
 
-Issue とコメントには読み書きしません。読み書きは、GitHub の公式の MCP サーバ（[github-mcp-server](https://github.com/github/github-mcp-server)）のツールで行います。
-書く前に、`issue_check`・`issue_dependency_check`・`issue_comment_check` に通します。公式の MCP サーバは、features の `issue_dependencies` を有効にしてつなぎます。
+GitHub には読み書きしません。読み書きは、GitHub の公式の MCP サーバ（[github-mcp-server](https://github.com/github/github-mcp-server)）のツールで行います。
+書く前に、`*_check` のツールに通します。公式の MCP サーバは、features の `issue_dependencies` を有効にしてつなぎます。
+公式の MCP に書く手が無い操作（ブランチの作成・ボードの欄の作成・リリースの作成など）は、`workflow_install` で置く `pecot-github-ops.yml` が行います。
 Issue・コメント・PR のテンプレートは、MCP の resource で読めます。URI は `pecot-template://<種類>/<名前>`（例: `pecot-template://comment/plan`）です。
 
 | ツール | 内容 |
 |---|---|
 | `project_list` | 使えるプロジェクトを一覧する |
-| `project_search` | GitHub API でプロジェクトを検索する（初期化済みか・有効かも出す） |
-| `project_init` | 既存のプロジェクトに pecot-workflow のフィールドを足す |
-| `project_create` | プロジェクトを新規に作る |
-| `project_activate` | 初期化済みのプロジェクトを有効にする |
-| `project_link` | プロジェクトの設定にリポジトリを足す・更新する |
-| `project_get` | プロジェクトの設定の値を表示する（`key` は今は `aggregation_repo` だけ。Epic の集約先リポジトリ） |
+| `project_check` | 公式の MCP の `create_project` と、github-ops の `project-fields` に渡す値を確かめる。ボードに足りない欄と選択肢を返す。書かない |
+| `project_activate` | 公式の MCP で読んだボードから設定ファイルを作り、有効にする |
+| `project_link` | プロジェクトの設定にリポジトリを足す・更新する。GitHub の上のつなぎは github-ops の `project-link` が行う |
+| `project_get` | プロジェクトの設定の値を表示する（`key` は今は `aggregation_repo` だけ）。`key` を省くと、プロジェクトと登録したリポジトリの要約を出す |
 | `project_set` | プロジェクトの設定の値を設定する（`key` は今は `aggregation_repo` だけ） |
 | `project_unset` | プロジェクトの設定の値を解除する（`key` は今は `aggregation_repo` だけ） |
-| `board_show` | ボードの状態をまとめて表示する |
-| `board_add` | プロジェクトボードに Issue を足す（pecot の外で作った Issue 用） |
-| `board_move` | Issue 番号でボードのステータスを更新する |
+| `board_show` | 公式の MCP で読んだボードから、着手できる Issue と列の状態をまとめる |
+| `board_check` | 公式の MCP の `update_project_item` で動かす列が、前提と決まりに合うかを確かめる。書かない |
 | `issue_check` | 公式の MCP の `issue_write` に渡す値が、pecot の決まり（テンプレート・題の番号・前提・ボードの欄）に合うかを確かめる。書かない |
 | `issue_dependency_check` | 公式の MCP の `issue_dependency_write` に渡す値を確かめ、本文の `## Waits for merge` の節と置く列を返す。書かない |
 | `issue_comment_check` | 公式の MCP の `add_issue_comment`・`update_issue_comment` に渡す本文を確かめる。書かない |
-| `session_start` | Issue の作業を始める（ブランチを作り、ボードを Active にし、作業対象を記録する） |
+| `session_start` | github-ops の `link-branch` で作ったブランチで、作業の始まり（base・作業ディレクトリ・セッション名）を記録する |
 | `session_show` | セッションのフラグ、ブランチ、推定した Issue を表示する |
-| `session_finish` | 作業を終える（マージ後の後処理として、Issue のクローズ、ブランチ削除、ローカルの整理をする） |
-| `pr_create` | PR を作る |
-| `pr_show` | PR の詳細を必要な項目だけ取得する |
-| `pr_check` | PR を作る前に確かめる情報をまとめて表示する |
-| `pr_merge` | PR をマージする（スタックの中の PR は一番下だけ） |
+| `session_finish` | マージした PR の手元を片付ける（開発ブランチへの切り替え、手元のブランチと記録の削除） |
+| `pr_check` | 公式の MCP の `create_pull_request`・`update_pull_request`・`merge_pull_request` に渡す値を確かめる。書かない |
 | `pr_restack` | スタックしたブランチを、base にしたブランチの新しい位置へスタックし直す |
-| `release_check` | リリース前の確認をする |
-| `release_create` | GitHub のリリースとタグを作る（ノートは CHANGELOG から取る） |
-| `release_merge` | リリースの PR を通常のマージで取り込む |
+| `release_check` | github-ops の `release-create` に渡す値と、open の alert を確かめる。書かない |
 | `worktree_add` | worktree を作る |
 | `worktree_remove` | worktree を削除する |
 | `worktree_init` | メイン worktree に worktree の設定ファイルを作る |
 | `worktree_link` | 既存の worktree にシンボリックリンクを適用・更新する |
-| `branch_delete` | リモートブランチを削除する（保護ブランチは消さない） |
+| `branch_check` | github-ops の `link-branch` に渡すブランチ名と base を確かめる。書かない |
 | `workflow_install` | 同梱の GitHub Actions のワークフローの雛形をリポに書き出す（`check` で置いた雛形の版を確かめ、`force` で上書きする） |
 | `workflow_doctor` | 雛形と、雛形が要る Actions の secret・変数の名前がそろっているかを確かめる（値は読まない） |
 

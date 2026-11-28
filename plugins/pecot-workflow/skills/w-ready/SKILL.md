@@ -53,7 +53,7 @@ Epic の GAP（AS-IS と TO-BE の状態差）と現状コンテキストをも�
 
 - 前提が無ければ、`blocked_by` は `[]` のままにする
 - 前提か種類を決められないときは、候補の Issue と迷う理由を地の文で示し、ユーザーに確かめる
-- 新しいサブタスクを、既存の Issue の前提にしたいときは、作った後に [Issue とコメントを公式の MCP で書く](../w-help/references/issue-write.md) の「前提を付け外しする」で付ける
+- 新しいサブタスクを既存の Issue の前提にしたいときは、作った後で付ける。付け方は [GitHub に公式の MCP と github-ops で書く](../w-help/references/github-write.md) の「前提を付け外しする」
 
 タイトルの番号（`[Task] #353-03: タスク名`）は、Epic の sub-issue の題で使っていない番号のうち、最大の次を 2 桁で書く。
 
@@ -77,7 +77,7 @@ pecot-workflow の MCP サーバの resource を読み、テンプレートの�
 
 利用者が分類（`pecot-lane`）の値を言ったときだけ、`project_fields` に書く。言っていなければ書かず、尋ねもしない。
 
-[Issue とコメントを公式の MCP で書く](../w-help/references/issue-write.md) の「Issue を作る」の順で、要るものを読み、pecot-workflow の MCP ツール `issue_check` に通す。
+[GitHub に公式の MCP と github-ops で書く](../w-help/references/github-write.md) の「Issue を作る」の順で、要るものを読み、pecot-workflow の MCP ツール `issue_check` に通す。
 通した題の番号・前提・置く列を、地の文でユーザーに示す。前提が Step 3 で決めたものと食い違えば、直してもう一度通す。
 
 通したら、公式の MCP の `issue_write` で作り、`issue_dependency_write` で前提を、`projects_write` でボードの欄を書く。

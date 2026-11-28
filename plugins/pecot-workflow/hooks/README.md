@@ -85,9 +85,9 @@ Bashコマンド実行前に危険な操作を検出・ブロックする。
 | キー | 説明 | トリガー | デフォルト |
 |------|------|----------|-----------|
 | `claude-bash-guards` | Bashガード統合エントリポイント（Claude Code / Copilot CLI 共通。Copilot も snake_case の `tool_input.command` を送るため入力形式の分岐は無い）。以下のコアガードを順次実行する。deny は `hookSpecificOutput.permissionDecision: "deny"` で返す（Copilot はトップレベルの `decision: "block"` を無視する） | PreToolUse (Bash) | `true` |
-| `gh-pr-create-check` | `gh pr create` を検出しブロック。MCP ツールの `pr_create` の使用を強制する | コアガード | `true` |
+| `gh-pr-create-check` | `gh pr create` を検出しブロック。MCP ツールの `pr_check` に通してから、公式の MCP の `create_pull_request` で作るよう案内する | コアガード | `true` |
 | `gh-issue-create-check` | `gh issue create` を検出しブロック。MCP ツールの `issue_check` に通してから、公式の MCP の `issue_write` で作るよう案内する | コアガード | `true` |
-| `gh-stack-check` | gh stack（`view` と `--help` の付いたものを除く）を検出しブロック。MCP ツールの `pr_create`・`pr_restack` と、GitHub の画面でのマージ（`w-pr` が待ち受けて片付ける）を案内する | コアガード | `true` |
+| `gh-stack-check` | gh stack（`view` と `--help` の付いたものを除く）を検出しブロック。MCP ツールの `pr_check`・`pr_restack`、公式の MCP の `create_pull_request`、github-ops の `stack-register` と、GitHub の画面でのマージ（`w-pr` が待ち受けて片付ける）を案内する | コアガード | `true` |
 | `git-no-verify-check` | 有効にしたときだけ、git のフックを飛ばす形を止める。対象は `--no-verify`、commit の `-n`（まとめ書きを含む。push の `-n` は `--dry-run` なので止めない）、引用符で囲んだそれらのオプション、`git -c core.hooksPath=`、`git config` で `core.hooksPath` を書く・消す形、前に置いた `SKIP=`・`HUSKY=0`。抜け道が多く守り切れないので、守りは CI に任せ、初期値は無効にしている | コアガード | `false` |
 | `git-worktree-branch-check` | `wt*` ブランチへの直接commit/pushをブロック。featureブランチでの作業を強制する。判定するリポジトリは `git -C` / `cd` チェイン / ツールの cwd（Claude Code では hook 入力の `cwd`。Copilot CLI では未設定）の順に解決する | コアガード | `true` |
 | `reviewer-clone-allow` | w-plan-reviewer の定型 clone（`.pecot/work/<Issue番号>/reviewer/<名前>` 宛の単一 `git clone`）を自動許可し、確認プロンプトを抑制する。全 deny ガード通過後のみ判定 | コアガード | `true` |
@@ -100,10 +100,9 @@ Bashコマンド実行前に危険な操作を検出・ブロックする。
 フックは承認（ask）を求めない。PR の作成・起票・マージと、Bash の `pecot` の起動は止めない。
 deny は、両クライアントとも `hookSpecificOutput.permissionDecision: "deny"` と `permissionDecisionReason` で出す。
 トップレベルの `decision` は使わない（Copilot CLI はトップレベルの `decision: "block"` を無視する）。
-案内文は `lib/core/mcp-guidance.sh` の関数に置く。関数は次の 4 個。
+案内文は `lib/core/mcp-guidance.sh` の関数に置く。関数は次の 3 個。
 
 - `mcp_guidance_gh_pr_create`・`mcp_guidance_gh_issue_create`・`mcp_guidance_gh_stack`
-- `mcp_guidance_branch_delete`
 
 ### プランモード
 
@@ -266,7 +265,7 @@ Claude Code は tmux の対話のセッションで、Copilot CLI は `-p --mode
 | Claude 2.1.326 | `/compact` | SessionStart（`compact`）: `session-start.sh` | セッション名は変わらず、`.gitignore` の pecot の行は残る | 2026-11-17 |
 | Claude 2.1.326 | プロンプト（ブランチ名の末尾が Issue の番号） | UserPromptSubmit: `user-prompt-submit-title.sh`・`user-prompt-submit.sh` | `hookSpecificOutput.sessionTitle` で、セッション名が `#516 <題名>`（40 文字）になる。同じ題名は送り直さない | 2026-11-17 |
 | Claude 2.1.326 | Skill ツールで w-help | PreToolUse（Skill）: `pre-tool-use-skill.sh` | `.pecot` が初期化済みなので、何も出さない | 2026-11-17 |
-| 両方 | `gh pr create --fill --draft` | PreToolUse（Bash）: `pre-tool-use-bash.sh` | `gh-pr-create-check` の deny。理由に MCP ツール `pr_create` の案内が入る | 2026-11-17 |
+| 両方 | `gh pr create --fill --draft` | PreToolUse（Bash）: `pre-tool-use-bash.sh` | `gh-pr-create-check` の deny。理由に MCP ツール `pr_check` と公式の MCP の `create_pull_request` の案内が入る | 2026-11-17 |
 | 両方 | `gh issue create`・`gh stack submit` | 同上 | `gh-issue-create-check`・`gh-stack-check` の deny | 2026-11-17 |
 | 両方 | `wt1` ブランチでの `git commit` | 同上 | `git-worktree-branch-check` の deny | 2026-11-17 |
 | 両方 | 初期値のままの `git commit --no-verify` | 同上 | 止めずに実行される | 2026-11-17 |

@@ -4,7 +4,7 @@ import { frontmatterOutputs } from '../../../tests/_helpers/python-output.js'
 import type { FrontmatterResult } from '../../../tests/_helpers/python-output.js'
 import { explains } from '../../../tests/_helpers/explains.js'
 import { stepSync } from '../../../tests/_helpers/step.js'
-import { FrontmatterError, parseFrontmatter, parsePullRequestContent } from '../frontmatter.js'
+import { FrontmatterError, parseFrontmatter } from '../frontmatter.js'
 
 // 期待値は、Python の CLI の実出力（tests/python-output/frontmatter.json。作り直さない記録）。
 // フロントマターの YAML → 検証後の値、または FrontmatterError の文。
@@ -55,13 +55,6 @@ describe('Python の出力との一致', () => {
     await explains('フロントマターを検証する関数が、Python の CLI の記録と同じ結果を返すことのテストです。issue のフロントマターを渡した場合に、検証後の値かエラーの文が記録と同じになり、#378 で意図して変えた入力だけは変更後の期待値と同じになることを確認します。')
     stepSync('結果を比べる', () => {
       expect(run(parseFrontmatter, yamlText)).toEqual(CHANGED_ISSUE_OUTPUTS.get(yamlText) ?? recorded)
-    })
-  })
-
-  it.each(OUTPUTS.pullRequest)('PR のフロントマターが %j のとき、Python の出力と一致する', async (yamlText, expected) => {
-    await explains('フロントマターを検証する関数が、Python の CLI の記録と同じ結果を返すことのテストです。PR のフロントマターを渡した場合に、検証後の値か、エラーの文が記録と同じになることを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(run(parsePullRequestContent, yamlText)).toEqual(expected)
     })
   })
 })

@@ -1,4 +1,4 @@
-// w-release の docs PR を作る pr_create の例が、PR のテンプレート（create.md）の節と書式の規約を満たすことを確かめる。
+// w-release の docs PR を作る前に通す pr_check の例が、PR のテンプレート（create.md）の節と書式の規約を満たすことを確かめる。
 // テンプレートの節が増減したとき、スキル側の例が置き去りになるのを止める。
 import path from 'node:path'
 
@@ -12,12 +12,12 @@ import { pluginRoot, readPluginFile, toolInputs } from './_helpers/documents.js'
 // 本文の `<ver>` と `<package>` は、文書全体の記法の変数。実行時は実際の値に置き換わるので、検証の前に具体値へ替える
 const DOC_PLACEHOLDERS: readonly (readonly [string, string])[] = [['<ver>', '1.2.3'], ['<package>', 'demo-pkg']]
 
-interface PrCreateExample {
+interface PrCheckExample {
   /**
-  message の前に書かれた入力名
+  body の前に書かれた入力名
   */
-  readonly inputsBeforeMessage: readonly string[]
-  readonly message: string
+  readonly inputsBeforeBody: readonly string[]
+  readonly body: string
 }
 
 function replacePlaceholders(text: string): string {
@@ -27,46 +27,46 @@ function replacePlaceholders(text: string): string {
 }
 
 /**
-`text` のブロックのうち、先頭行が pr_create のものから、入力名の並びと message の本文を取り出す
+`text` のブロックのうち、先頭行が pr_check のものから、入力名の並びと body の本文を取り出す
 */
-function extractPrCreateExample(text: string): PrCreateExample | undefined {
-  const match = /^```text\npr_create\n([\s\S]*?)^```$/mu.exec(text)
+function extractPrCheckExample(text: string): PrCheckExample | undefined {
+  const match = /^```text\npr_check\n([\s\S]*?)^```$/mu.exec(text)
   const block = match?.[1]
   if (block === undefined) return undefined
   const lines = block.split('\n')
-  const messageAt = lines.indexOf('  message: |')
-  if (messageAt === -1) return undefined
-  const inputsBeforeMessage = lines.slice(0, messageAt).flatMap(line => /^ {2}([a-z_]+):/u.exec(line)?.[1] ?? [])
-  const message = lines.slice(messageAt + 1).filter(line => line === '' || line.startsWith(' '.repeat(4))).map(line => line.slice(4)).join('\n').trimEnd()
-  return { inputsBeforeMessage, message: replacePlaceholders(message) }
+  const bodyAt = lines.indexOf('  body: |')
+  if (bodyAt === -1) return undefined
+  const inputsBeforeBody = lines.slice(0, bodyAt).flatMap(line => /^ {2}([a-z_]+):/u.exec(line)?.[1] ?? [])
+  const body = lines.slice(bodyAt + 1).filter(line => line === '' || line.startsWith(' '.repeat(4))).map(line => line.slice(4)).join('\n').trimEnd()
+  return { inputsBeforeBody, body: replacePlaceholders(body) }
 }
 
 describe.each(['release-single.md', 'release-multi.md'])('%s の docs PR の例', (name) => {
-  const example = extractPrCreateExample(readPluginFile(`skills/w-release/references/${name}`))
+  const example = extractPrCheckExample(readPluginFile(`skills/w-release/references/${name}`))
 
-  it('pr_create の例から、message を取り出せる', async () => {
-    await explains(`w-release の \`${name}\` の docs PR の例のテストです。\`pr_create\` のブロックから \`message\` の本文を取り出せることを確認します。`)
+  it('pr_check の例から、body を取り出せる', async () => {
+    await explains(`w-release の \`${name}\` の docs PR の例のテストです。\`pr_check\` のブロックから \`body\` の本文を取り出せることを確認します。`)
     expect(example).toBeDefined()
   })
 
-  it('message が create.md の必須の節と書式の規約を満たす', async () => {
-    await explains(`\`${name}\` の例の \`message\` のテストです。PR のテンプレート \`create.md\` の必須の節がそろい、本文の書式の規約に違反していないことを確認します。`)
+  it('body が create.md の必須の節と書式の規約を満たす', async () => {
+    await explains(`\`${name}\` の例の \`body\` のテストです。PR のテンプレート \`create.md\` の必須の節がそろい、本文の書式の規約に違反していないことを確認します。`)
     const template = readPluginFile(path.relative(pluginRoot, templateFile('pr', 'create')))
     const sections = extractSectionsFromTemplate(template)
     expect(sections.length).toBeGreaterThan(0)
-    expect(validateSections(example?.message ?? '', sections)).toEqual([])
-    expect(validateBodyStyle(example?.message ?? '')).toEqual([])
+    expect(validateSections(example?.body ?? '', sections)).toEqual([])
+    expect(validateBodyStyle(example?.body ?? '')).toEqual([])
   })
 
-  it('screenshot で画像を入れない理由を渡し、message より前に置く', async () => {
-    await explains(`\`${name}\` の例の入力の順序のテストです。画像を入れない理由を渡す \`screenshot\` が、\`message\` より前に指定されていることを確認します。`)
-    expect(example?.inputsBeforeMessage).toContain('screenshot')
+  it('screenshot で画像を入れない理由を渡し、body より前に置く', async () => {
+    await explains(`\`${name}\` の例の入力の順序のテストです。画像を入れない理由を渡す \`screenshot\` が、\`body\` より前に指定されていることを確認します。`)
+    expect(example?.inputsBeforeBody).toContain('screenshot')
   })
 
-  it('pr_create の入力名が、ツールの入力に実在する', async () => {
-    await explains(`\`${name}\` の例の入力名のテストです。例に書かれた入力名が、\`pr_create\` ツールの入力としてすべて存在することを確認します。`)
-    const inputs = toolInputs().get('pr_create')
-    const unknown = (example?.inputsBeforeMessage ?? []).filter(input => inputs?.has(input) !== true)
+  it('pr_check の入力名が、ツールの入力に実在する', async () => {
+    await explains(`\`${name}\` の例の入力名のテストです。例に書かれた入力名が、\`pr_check\` ツールの入力としてすべて存在することを確認します。`)
+    const inputs = toolInputs().get('pr_check')
+    const unknown = (example?.inputsBeforeBody ?? []).filter(input => inputs?.has(input) !== true)
     expect(unknown).toEqual([])
   })
 })

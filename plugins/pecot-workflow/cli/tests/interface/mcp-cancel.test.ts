@@ -15,7 +15,7 @@ import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/work
 import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
 import { stateFile } from '../_helpers/workspace-inspect.js'
-import { finishPullRequestData, graphql, openWorkspace, rest } from '../_helpers/workspace.js'
+import { openWorkspace } from '../_helpers/workspace.js'
 import type { Workspace } from '../_helpers/workspace.js'
 import { AttachingClient } from '../_helpers/attaching-client.js'
 
@@ -234,47 +234,36 @@ it('pr_restack が fetch を待つ間、ping に答え、取り消すとリモ�
 it('pr_check が ls-remote を待つ間、ping に答え、取り消すとリモートの接続を止める', { timeout: 30_000 }, async (context) => {
   await verifies(context, 'PW-COMMON-24')
   await verifies(context, 'PW-COMMON-25')
-  await explains('`pr_check` が `git ls-remote` の完了を待っている間の、MCP サーバの応答のテストです。リモートへの接続が応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すと接続のプロセスが終了し、取り消した要求に応答を返さないことを確認します。')
+  await explains('`pr_check` が、remote とずれたスタックのブランチの直し方を決めるために `git ls-remote` を待っている間の、MCP サーバの応答のテストです。リモートへの接続が応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すと接続のプロセスが終了し、取り消した要求に応答を返さないことを確認します。')
   const workspace = await openStacked()
+  workspace.git(['commit', '-q', '--allow-empty', '-m', 'pushed'])
   workspace.git(['push', '-q', '-u', 'origin', UPPER])
+  workspace.git(['commit', '-q', '--amend', '--allow-empty', '-m', 'rewritten'])
   const sleeper = hangRemote(workspace)
-  expect(await pingAndCancel({ name: 'pr_check', arguments: { directory: workspace.directory }, sleeper, directory: workspace.directory })).toEqual(RESPONSIVE)
+  const lower = { number: 11, state: 'open', html_url: 'https://ghes.example.com/acme/demo/pull/11', head: { ref: LOWER }, base: { ref: 'main' } }
+  const arguments_ = { method: 'create', owner: 'acme', repo: 'demo', title: 'feat: #12 変更', head: UPPER, base: LOWER, body: 'Closes #12\n', reads: { pull_requests: [lower] } }
+  expect(await pingAndCancel({ name: 'pr_check', arguments: arguments_, sleeper, directory: workspace.directory })).toEqual(RESPONSIVE)
 })
 
 it('session_finish が git pull を待つ間、ping に答え、取り消すとリモートの接続を止める', { timeout: 30_000 }, async (context) => {
   await verifies(context, 'PW-COMMON-24')
   await verifies(context, 'PW-COMMON-25')
   await explains('`session_finish` が `git pull` の完了を待っている間の、MCP サーバの応答のテストです。リモートへの接続が応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すとプロセスが終了し、ブランチの状態が変化しないことを確認します。')
-  const github = [
-    graphql('GetPullRequestForFinish', finishPullRequestData()),
-    graphql('GetIssueKind', { repository: { issue: { number: 12, state: 'OPEN', issueType: undefined, subIssues: { totalCount: 0 } } } }, { variables: { number: 12 } }),
-    rest('PATCH', '/repos/acme/demo/issues/12', 200, { number: 12, state: 'closed' }),
-    graphql('GetIssueBlockingReferences', { repository: { issue: { blocking: { totalCount: 0, nodes: [] } } } }, { variables: { number: 12 } }),
-  ]
-  const workspace = await openWorkspace({ branch: UPPER, branches: [{ name: UPPER, commits: [{ message: 'change', files: { 'feature.txt': 'x\n' } }] }], github })
+  const workspace = await openWorkspace({ branch: UPPER, branches: [{ name: UPPER, commits: [{ message: 'change', files: { 'feature.txt': 'x\n' } }] }] })
   const sleeper = hangRemote(workspace)
-  expect(await pingAndCancel({ name: 'session_finish', arguments: { pr_ref: 'acme/demo/21' }, sleeper, directory: workspace.directory, state: () => workspace.git(['for-each-ref', '--format=%(refname)', `refs/heads/${UPPER}`]) })).toEqual(RESPONSIVE)
+  const pullRequest = { number: 21, state: 'closed', draft: false, merged: true, body: 'Closes #12\n', html_url: 'https://ghes.example.com/acme/demo/pull/21', head: { ref: UPPER }, base: { ref: 'main' } }
+  const reads = { pull_request: pullRequest, blocking: [{ issue: 'acme/demo/12', result: { issues: [] } }], children: [] }
+  expect(await pingAndCancel({ name: 'session_finish', arguments: { pr_ref: 'acme/demo/21', reads }, sleeper, directory: workspace.directory, state: () => workspace.git(['for-each-ref', '--format=%(refname)', `refs/heads/${UPPER}`]) })).toEqual(RESPONSIVE)
 })
 
-it('pr_create の題の scope の確認が nx graph を待つ間、ping に答え、取り消すと nx を止める', { timeout: 30_000 }, async (context) => {
+it('pr_check の題の scope の確認が nx graph を待つ間、ping に答え、取り消すと nx を止める', { timeout: 30_000 }, async (context) => {
   await verifies(context, 'PW-COMMON-24')
   await verifies(context, 'PW-COMMON-25')
-  await explains('`pr_create` が題の scope を確認するために `nx graph` を待っている間の、MCP サーバの応答のテストです。`nx` が応答しない場合は、`ping` へ時間内に答え、呼び出しを取り消すと `nx` のプロセスが終了し、次の呼び出しにすぐ答えることを確認します。')
+  await explains('`pr_check` が題の scope を確認するために `nx graph` を待っている間の、MCP サーバの応答のテストです。`nx` が応答しない場合は、`ping` へ時間内に答え、呼び出しを取り消すと `nx` のプロセスが終了し、次の呼び出しにすぐ答えることを確認します。')
   const workspace = await openWorkspace({ config: { releaseType: 'nx' }, files: { 'nx.json': '{}\n' }, branch: UPPER, branches: [{ name: UPPER, commits: [{ message: 'change', files: { 'feature.txt': 'x\n' } }] }] })
   const sleeper = writeSleeper(path.join(workspace.directory, 'node_modules', '.bin'), 'nx')
-  const arguments_ = { message: 'body\n\nCloses #12\n', title: 'feat(demo): #12 変更', base: 'main', repo: 'acme/demo', screenshot: '撮らない' }
-  expect(await pingAndCancel({ name: 'pr_create', arguments: arguments_, sleeper, directory: workspace.directory })).toEqual(RESPONSIVE)
-})
-
-it('トークンの無い pr_show が gh auth token を待つ間、ping に答え、取り消すと gh を止める', { timeout: 30_000 }, async (context) => {
-  await verifies(context, 'PW-COMMON-24')
-  await verifies(context, 'PW-COMMON-25')
-  await explains('トークンが設定されていない `pr_show` が `gh auth token` を待っている間の、MCP サーバの応答のテストです。`gh` が応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すと `gh` のプロセスが終了することを確認します。')
-  const workspace = await openWorkspace({ env: { PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN: undefined } })
-  const bin = path.join(workspace.root, 'bin')
-  const sleeper = writeSleeper(bin, 'gh')
-  setEnvironment({ PATH: `${bin}${path.delimiter}${process.env['PATH'] ?? ''}` })
-  expect(await pingAndCancel({ name: 'pr_show', arguments: { pr_ref: 'acme/demo/12' }, sleeper, directory: workspace.directory })).toEqual(RESPONSIVE)
+  const arguments_ = { method: 'create', owner: 'acme', repo: 'demo', title: 'feat(demo): #12 変更', head: UPPER, base: 'main', body: 'body\n\nCloses #12\n' }
+  expect(await pingAndCancel({ name: 'pr_check', arguments: arguments_, sleeper, directory: workspace.directory })).toEqual(RESPONSIVE)
 })
 
 it('worktree_add が setup_command を待つ間、ping に答え、取り消すとシェルの下のコマンドも止める', { timeout: 30_000 }, async (context) => {

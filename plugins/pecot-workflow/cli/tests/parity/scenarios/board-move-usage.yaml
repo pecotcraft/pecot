@@ -1,8 +1,0 @@
-# status が 6 値以外のとき、設定を読む前に exit 1 で止まる。
-id: board-move-usage
-tool: board_move
-arguments:
-  issue_ref: acme/demo/7
-  status: bogus
-setup: {}
-github: []

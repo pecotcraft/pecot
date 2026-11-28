@@ -21,12 +21,12 @@ describe('collectIo', () => {
   })
 
   it('失敗の種別は、最初に受け取ったものを残す', async () => {
-    await explains('MCP の呼び出し中の入出力を集める `collectIo` のテストです。失敗の種別を 2 回受け取った場合に、最初の `not-on-board` を残し、受け取る前は `undefined` になることを確認します。')
+    await explains('MCP の呼び出し中の入出力を集める `collectIo` のテストです。失敗の種別を 2 回受け取った場合に、最初の `not-ready` を残し、受け取る前は `undefined` になることを確認します。')
     const collected = collectIo()
     expect(collected.kind()).toBeUndefined()
-    collected.io.failureKind?.('not-on-board')
+    collected.io.failureKind?.('not-ready')
     collected.io.failureKind?.('other')
-    expect(collected.kind()).toBe('not-on-board')
+    expect(collected.kind()).toBe('not-ready')
   })
 
   it('結果の行は、後始末の行を除いた最初のものを残す', async () => {
@@ -85,8 +85,8 @@ describe('toToolResult', () => {
 
   it('失敗の場合は、kind と detail を最上位に置き、detail を text にして、isError を付ける', async () => {
     await explains('ツールの呼び出し結果を作る `toToolResult` のテストです。終了コードが 0 以外の場合に、`kind` と、失敗の文を改行でつないだ `detail` を最上位に置き、`detail` を `text` にして `isError` を付けることを確認します。')
-    const result = toToolResult({ exitCode: 1, stdout: '', errors: ['not found\n  hint: x', 'second'], kind: 'not-on-board', warnings: ['w'] })
-    const structured = { kind: 'not-on-board', detail: 'not found\n  hint: x\nsecond', warnings: ['w'] }
+    const result = toToolResult({ exitCode: 1, stdout: '', errors: ['not found\n  hint: x', 'second'], kind: 'not-ready', warnings: ['w'] })
+    const structured = { kind: 'not-ready', detail: 'not found\n  hint: x\nsecond', warnings: ['w'] }
     expect(result).toEqual({ content: contentOf(structured.detail, structured), structuredContent: structured, isError: true })
   })
 

@@ -78,8 +78,8 @@ function tableRow(label: string): string {
 
 describe('handoff のワークフローの雛形', () => {
   it('1 行目に、雛形の名前と版の目印がある', async () => {
-    await explains('配布する引き継ぎのワークフローの雛形（`pecot-handoff.yml`）のテストです。1 行目が `# pecot-workflow-template: handoff 3` という、雛形の名前と版を示すコメントであることを確認します。')
-    expect(template.split('\n', 1)[0]).toBe('# pecot-workflow-template: handoff 3')
+    await explains('配布する引き継ぎのワークフローの雛形（`pecot-handoff.yml`）のテストです。1 行目が `# pecot-workflow-template: handoff 4` という、雛形の名前と版を示すコメントであることを確認します。')
+    expect(template.split('\n', 1)[0]).toBe('# pecot-workflow-template: handoff 4')
   })
 
   it('契機は pull_request_target の closed だけになる', async () => {
@@ -176,9 +176,9 @@ describe('handoff のワークフローの雛形', () => {
     await explains('引き継ぎのワークフローの雛形の、`--allowedTools` のテストです。PR と Issue の参照、コメントの投稿、`gh pr diff`・`gh pr view` に限られていることを確認します。')
     expect(toolList('--allowedTools')).toEqual([
       'Read',
-      `${pecot}pr_show`,
       `${pecot}issue_comment_check`,
       official + 'issue_read',
+      official + 'pull_request_read',
       official + 'issue_dependency_read',
       official + 'add_issue_comment',
       official + 'update_issue_comment',
@@ -187,7 +187,7 @@ describe('handoff のワークフローの雛形', () => {
     ])
   })
 
-  it('公式の GitHub の MCP サーバを digest で固定した docker で起動し、ツールを 3 つに絞って --mcp-config で渡す', async () => {
+  it('公式の GitHub の MCP サーバを digest で固定した docker で起動し、ツールを絞って --mcp-config で渡す', async () => {
     await explains('公式の GitHub の MCP サーバの設定のテストです。`github-official` が docker で `ghcr.io/github/github-mcp-server` の v2.3.0 を digest つきで起動することを確認します。token・ホスト・ツールを env で渡し、`--mcp-config` に job の env の値を渡すことも確認します。')
     const server: unknown = JSON.parse(job.env?.['PECOT_HANDOFF_GITHUB_MCP'] ?? '')
     const image = 'ghcr.io/github/github-mcp-server:v2.3.0@sha256:f8ee4dedc7d5c8cb32854ab91cc92a31c55a8a5510708cf8742e9f9427588ca6'
@@ -200,7 +200,7 @@ describe('handoff のワークフローの雛形', () => {
           env: {
             GITHUB_PERSONAL_ACCESS_TOKEN: '${PECOT_GITHUB_COM_TOKEN}',
             GITHUB_HOST: '${{ github.server_url }}',
-            GITHUB_TOOLS: 'issue_read,issue_dependency_read,add_issue_comment,update_issue_comment',
+            GITHUB_TOOLS: 'issue_read,issue_dependency_read,add_issue_comment,update_issue_comment,pull_request_read',
             GITHUB_FEATURES: 'issue_dependencies',
           },
         },
@@ -251,7 +251,7 @@ describe('handoff のワークフローの雛形', () => {
       { type: 'system', subtype: 'init', model: 'claude-opus-5-5' },
       { type: 'assistant', message: { content: [
         { type: 'text', text: '考えた文' },
-        { type: 'tool_use', name: `${pecot}pr_show`, input: { pr_ref: 'o/r/7' } },
+        { type: 'tool_use', name: `${pecot}issue_comment_check`, input: { issue_number: 7 } },
         { type: 'tool_use', name: `${pecot}issue_comment`, input: { issue_ref: 'o/r/1', template: 'merge-diff', message: '本文の中身' } },
       ] } },
       { type: 'result', subtype: 'success', num_turns: 3, permission_denials: [
@@ -262,7 +262,7 @@ describe('handoff のワークフローの雛形', () => {
     attachOutput('jq（Handoff run の要約）', 0, summary, '')
     expect(summary).toContain('## Handoff run')
     expect(summary).toContain('| `claude-opus-5-5` | `medium` | `3` | `success` |')
-    expect(summary).toContain(`| 1 | \`${pecot}pr_show\` | \`o/r/7\` |`)
+    expect(summary).toContain(`| 1 | \`${pecot}issue_comment_check\` | \`issue_number\` |`)
     expect(summary).toContain(`| 2 | \`${pecot}issue_comment\` | \`o/r/1\` |`)
     expect(summary).toContain('| `Bash` | `gh issue close 1` |')
     for (const hidden of ['考えた文', '本文の中身']) expect(summary).not.toContain(hidden)

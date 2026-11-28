@@ -73,7 +73,7 @@ merge queue がマージしたときも動きます。
 |---|---|
 | job の権限 | `contents: read`・`issues: write`・`pull-requests: read`・`id-token: write` |
 | コメントを書く token | 自前の App の token。置かないときは、実行の `GITHUB_TOKEN`（`github-actions[bot]`） |
-| 許すツール | `Read`・`pr_show`・`issue_comment_check`・`mcp__github-official__issue_read`・`mcp__github-official__issue_dependency_read`・`mcp__github-official__add_issue_comment`・`mcp__github-official__update_issue_comment`・`gh pr diff`・`gh pr view` |
+| 許すツール | `Read`・`issue_comment_check`・`mcp__github-official__pull_request_read`・`mcp__github-official__issue_read`・`mcp__github-official__issue_dependency_read`・`mcp__github-official__add_issue_comment`・`mcp__github-official__update_issue_comment`・`gh pr diff`・`gh pr view` |
 | 拒むツール | `Edit`・`Write`・`NotebookEdit`・`AskUserQuestion`・`Agent`・`WebFetch`・`WebSearch`・`git clone`・`/proc` の `Read` |
 
 `id-token` は、Workload Identity Federation だけが使います。

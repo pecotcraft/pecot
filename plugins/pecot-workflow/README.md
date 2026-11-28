@@ -54,30 +54,32 @@ Claude Code の既定の権限では、呼び直しのときに、スキルを�
 
 ## MCP サーバ
 
-MCP サーバ `pecot-workflow` が、33 個の MCP ツールを公開します。
+MCP サーバ `pecot-workflow` が、25 個の MCP ツールを公開します。
 プラグインは、プラグインと同じ版の npm のパッケージ `@pecot/workflow-mcp` を `npx` で起動します。
 Issue・コメント・PR のテンプレートは、MCP の resource で読めます。URI は `pecot-template://<種類>/<名前>`（例: `pecot-template://comment/plan`）です。
 ツール名は、対象と動詞を `_` でつないだ形です（`session_start`、`issue_dependency_check`）。
 許可リストに書くツール名は、Claude Code では `mcp__plugin_pecot-w_pecot-workflow__<ツール名>` です。
 GitHub Copilot CLI では `pecot-workflow-<ツール名>` です。
 
-pecot-workflow は、GitHub の Issue とコメントに読み書きしません。スキルは GitHub の公式の MCP サーバ（[github-mcp-server](https://github.com/github/github-mcp-server)）のツールで読み書きします。書く前に、次のチェックのツールに通します。
-チェックのツールは、書く公式のツールに渡すのと同じ値を受け、pecot の決まり（テンプレート・題の番号・前提・ボードの欄）に合うかだけを返します。
+pecot-workflow は、GitHub に読み書きしません。スキルは GitHub の公式の MCP サーバ（[github-mcp-server](https://github.com/github/github-mcp-server)）のツールで読み書きします。書く前に、次のチェックのツールに通します。
+チェックのツールは、書く公式のツールに渡すのと同じ値を受け、pecot の決まり（テンプレート・題の番号・前提・ボードの欄・ブランチ・リリース）に合うかだけを返します。
 
-| ツール | 先に通す公式のツール |
+| ツール | 先に通す書き込み |
 |:------|:--------|
 | `issue_check` | `issue_write`（Issue の作成・書き換え） |
 | `issue_dependency_check` | `issue_dependency_write`（前提の付け外し） |
 | `issue_comment_check` | `add_issue_comment`・`update_issue_comment` |
+| `board_check` | `projects_write` の `update_project_item`（列の移動） |
+| `branch_check` | github-ops の `link-branch`（Issue につないだブランチの作成） |
+| `pr_check` | `create_pull_request`・`update_pull_request`・`merge_pull_request` |
+| `project_check` | `projects_write` の `create_project`、github-ops の `project-fields`（ボードと欄の作成） |
+| `release_check` | github-ops の `release-create`（リリースの作成） |
+
+公式の MCP に書く手が無い操作（ブランチの作成・欄の作成・リリースの作成など）は、利用者のリポに置く `pecot-github-ops.yml` が行います。スキルが公式の MCP の Actions のツールで起動します。
 
 公式の MCP サーバは、features の `issue_dependencies` を有効にしてつなぎます。つなぎ方は `/pecot-w:w-help` の「公式の MCP をつなぐ」にあります。
 
-前提の PR の上にスタックした PR（スタック PR）は、次の 2 つのツールで扱います。スキルの手順からも呼ばれます。
-
-| ツール | 使う場面 |
-|:------|:--------|
-| `pr_merge` | PR をマージする（スタックの中の PR は一番下だけ） |
-| `pr_restack` | 親ブランチが変わったとき、スタックしたブランチを新しい位置へスタックし直す |
+前提の PR の上にスタックした PR（スタック PR）は、親ブランチが変わったときに `pr_restack` で新しい位置へスタックし直します。スキルの手順からも呼ばれます。
 
 ボードの列（`Blocked`・`Ready` など）の読み方と、列を動かすものは、`/pecot-w:w-help` の「ボードステータス」にあります。
 スタックして進める流れは、同じく「spec 駆動ワークフロー」にあります。
@@ -108,7 +110,7 @@ Claude Code は、プラグインの stdio のサーバの起動の失敗を 15 
 ## 動作要件
 
 - Claude Code 2.1.141 以上、または GitHub Copilot CLI 1.0.106 以上
-- [gh CLI](https://cli.github.com/) — `gh auth refresh -s project` で `project` スコープを追加してください
+- [gh CLI](https://cli.github.com/) — w-pr が CI の待ち受けと画像の添付に使う
 - Node.js 24 系は 24.22.1 以上、26 系は 26.12.1 以上と、同梱の `npx` — MCP のサーバの起動に使う
 
 インストール手順は[リポジトリルートの README](../../README.md) を参照してください。

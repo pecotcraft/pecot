@@ -10,11 +10,11 @@ import '../../../tests/_helpers/hint-commands.js'
 describe('formatHint のツール', () => {
   it.for([
     { name: '複数の入力', hint: commandHint(['project', 'link'], { repo: 'o/r', develop_branch: 'develop' }), expected: 'project_link with repo: "o/r", develop_branch: "develop"' },
-    { name: '入力を持たない案内', hint: commandHint(['project', 'init']), expected: 'project_init' },
+    { name: '入力を持たない案内', hint: commandHint(['project', 'list']), expected: 'project_list' },
     { name: '利用者が値を入力するプレースホルダー', hint: commandHint(['project', 'activate'], { project: placeholder('PROJECT') }), expected: 'project_activate with project: <PROJECT>' },
     { name: '真偽の入力', hint: commandHint(['pr', 'restack'], { continue: true }), expected: 'pr_restack with continue: true' },
     { name: '空白と引用符を含む値', hint: commandHint(['issue', 'dependency', 'check'], { owner: 'o', repo: 'r', issue_number: 1, wait: 'merge', reason: 'needs it\'s API' }), expected: 'issue_dependency_check with owner: "o", repo: "r", issue_number: 1, wait: "merge", reason: "needs it\'s API"' },
-    { name: '文字列の配列', hint: commandHint(['project', 'init'], { lanes: ['cli', 'docs'] }), expected: 'project_init with lanes: ["cli","docs"]' },
+    { name: '文字列の配列', hint: commandHint(['project', 'check'], { lanes: ['cli', 'docs'] }), expected: 'project_check with lanes: ["cli","docs"]' },
   ])('ツールの案内（$name）は、ツール名と入力の呼び方に整形される', async ({ name, hint, expected }) => {
     await explains(`ツールの案内を MCP のツールの呼び方に整形する処理のテストです。${name}の場合に、ツール名と入力が期待どおりの文字列になることを確認します。`)
     stepSync('整形結果を確認する', () => {
@@ -25,7 +25,7 @@ describe('formatHint のツール', () => {
   it('入力は、渡した順に並べる', async () => {
     await explains('複数の入力を持つ案内のテストです。入力が、案内へ渡した順で並ぶことを確認します。')
     stepSync('整形結果を確認する', () => {
-      expect(formatHint(commandHint(['board', 'add'], { repo: 'o/r', issue_ref: '5' }))).toBe('board_add with repo: "o/r", issue_ref: "5"')
+      expect(formatHint(commandHint(['session', 'finish'], { repo: 'o/r', pr_ref: 'o/r/5' }))).toBe('session_finish with repo: "o/r", pr_ref: "o/r/5"')
     })
   })
 })
@@ -50,7 +50,7 @@ describe('案内の誤り', () => {
     { name: '定義に存在しないツール', make: () => commandHint(['issue', 'quick']), message: '案内のツール \'issue_quick\' が定義に無い' },
     { name: '定義に存在しない入力', make: () => commandHint(['project', 'link'], { owner_repo: 'o/r' }), message: '案内の入力 \'owner_repo\' が \'project_link\' の定義に無い' },
     { name: '入力名だけの指定で、定義に存在しない入力名', make: () => inputNameHint(['issue', 'comment', 'check'], 'issue'), message: '案内の入力 \'issue\' が \'issue_comment_check\' の定義に無い' },
-    { name: 'ツールに無い dry_run', make: () => inputHint(['board', 'add'], 'dry_run'), message: '案内の入力 \'dry_run\' が \'board_add\' の定義に無い' },
+    { name: 'ツールに無い dry_run', make: () => inputHint(['board', 'show'], 'dry_run'), message: '案内の入力 \'dry_run\' が \'board_show\' の定義に無い' },
   ])('案内に $name を指定して整形すると、TypeError が発生する', async ({ name, make, message }) => {
     await explains(`案内の整形で、入力の誤りを検出する処理のテストです。${name}を指定した場合に、原因を示すメッセージの \`TypeError\` が発生することを確認します。`)
     stepSync('整形結果を確認する', () => {
@@ -87,7 +87,7 @@ describe('hinted と joinHinted', () => {
 describe('hintedTextOf', () => {
   it('例外の hintedText が案内の文の場合は、その文を返し、それ以外の場合は undefined を返す', async () => {
     await explains('例外から案内の文を取り出す関数（`hintedTextOf`）のテストです。`hintedText` が案内の文の場合だけその文を返し、数値の配列を持つ例外や、`hintedText` を持たない例外と文字列では `undefined` を返すことを確認します。')
-    const text = hinted`${RUN} ${commandHint(['project', 'init'])}`
+    const text = hinted`${RUN} ${commandHint(['project', 'list'])}`
     const withHint = Object.assign(new Error('x'), { hintedText: text })
     const withNumbers = Object.assign(new Error('x'), { hintedText: [1] })
     stepSync('結果を確認する', () => {

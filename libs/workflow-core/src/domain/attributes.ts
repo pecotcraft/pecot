@@ -223,7 +223,7 @@ function unsupportedDefinition(name: string, source: AttributeSource, githubType
 
 /**
 ボードのフィールドの定義。Issue の機能を写すフィールドと Issue field を写したフィールドは、別の source で出すので undefined。
-pecot の進行の欄（設定の id で見分ける）と組み込みの Status は、board_move で動かすので書けない
+pecot の進行の欄（設定の id で見分ける）と組み込みの Status は、board_check の後の projects_write で動かすので書けない
 */
 export function projectFieldDefinition(field: Readonly<ProjectFieldShape>, workflowFieldId: string): AttributeDefinition | undefined {
   if (field.isIssueField || BUILTIN_PROJECT_FIELD_TYPES.has(field.dataType)) return undefined
@@ -524,7 +524,7 @@ function resolveDefinition(definitions: readonly AttributeDefinition[], input: R
 function readOnlyHint(definition: Readonly<AttributeDefinition>): string {
   if (definition.kind === 'issue_ref') return 'set the parent with parent_owner, parent_repo and parent_issue_number, written by issue_write or sub_issue_write'
   if (definition.kind === 'issue_refs') return 'change blocked_by with issue_dependency_write after issue_dependency_check'
-  return 'move the issue with board_move'
+  return 'move the issue with projects_write (method update_project_item) after board_check'
 }
 
 // 書けない理由のうち、値を見ずに分かるもの
@@ -532,7 +532,7 @@ function definitionError(definition: Readonly<AttributeDefinition>, context: Rea
   const { name, source } = definition
   if (definition.kind === 'unsupported') return { code: 'unsupported_attribute', name, source, hint: `GitHub type ${definition.unsupportedReason ?? ''} is not supported` }
   if (!definition.writable || !isWritableKind(definition.kind)) return { code: 'read_only_attribute', name, source, hint: readOnlyHint(definition) }
-  if (source === 'project' && !context.isOnBoard) return { code: 'not_on_board', name, source, hint: 'add the issue to the board with board_add' }
+  if (source === 'project' && !context.isOnBoard) return { code: 'not_on_board', name, source, hint: 'add the issue to the board with projects_write (method add_project_item)' }
   return undefined
 }
 

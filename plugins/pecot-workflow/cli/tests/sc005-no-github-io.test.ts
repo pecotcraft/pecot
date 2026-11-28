@@ -11,11 +11,19 @@ import { explains } from './_helpers/explains.js'
 const CLI_SRC = path.resolve(import.meta.dirname, '../src')
 const CORE_SRC = path.resolve(import.meta.dirname, '../../../../libs/workflow-core/src')
 
+// release_check は、タグとコミットを手元の git と remote で確かめるので、git を直に読んでよい
+const RELEASE_CHECK_FILE = 'commands/release.ts'
+
 // チェックのツールの定義を置くファイル
 const CHECK_TOOL_FILES = [
   'commands/issue-check.ts',
   'commands/issue-dependency-check.ts',
   'commands/issue-comment-check.ts',
+  'commands/board-check.ts',
+  'commands/branch-check.ts',
+  'commands/pr.ts',
+  'commands/project-check.ts',
+  RELEASE_CHECK_FILE,
 ].map(file => path.join(CLI_SRC, file))
 
 // GitHub の API の client。辿れる import のどこにもあってはならない。ディレクトリは、その下のすべてのファイルを指す
@@ -102,14 +110,14 @@ describe('SC-005: チェックのツールは GitHub に読み書きしない', 
     expect(forbiddenImports(file)).toEqual([])
   })
 
-  it.each(CHECK_TOOL_FILES.map(file => [path.relative(CLI_SRC, file), file]))('%s が、git と gh を起動するモジュールを直に import しない', async (_name, file) => {
+  it.each(CHECK_TOOL_FILES.filter(file => file !== path.join(CLI_SRC, RELEASE_CHECK_FILE)).map(file => [path.relative(CLI_SRC, file), file]))('%s が、git と gh を起動するモジュールを直に import しない', async (_name, file) => {
     await explains('スキルが呼ぶチェックのツールのテストです。ツールのファイルが、git と gh を起動するモジュールを直に import していないことを確認します。')
     expect(valueImports(file).filter(target => isUnder(target, DIRECT_FORBIDDEN)).map(target => path.relative(CLI_SRC, target))).toEqual([])
   })
 
   it('禁じたモジュールを import するファイルを起点にすると、その import を挙げる', async () => {
     await explains('このテストの検出のテストです。GitHub の client を import するファイルを起点にすると、その import が見つかることを確認します。')
-    const offender = path.join(CLI_SRC, 'commands/board-add.ts')
+    const offender = path.join(CLI_SRC, 'mcp/server.ts')
     expect(forbiddenImports(offender).length).toBeGreaterThan(0)
   })
 })

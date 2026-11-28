@@ -51,7 +51,7 @@ Step 5 で、直し方が決まらないときに書く。
 
 引数は、種類（`start` か `resume`）、Issue の `owner/repo/N`、文脈のファイルのパス（`context=<パス>`）、結果のファイルのパス（`result=<パス>`）。
 
-引数に `project=<名前>` があれば、このスキルで使う pecot-workflow の MCP ツールに、その名前を `project` で渡す。渡す先は `session_start`・`pr_check`・`pr_create` の 3 つ。
+引数に `project=<名前>` があれば、このスキルで使う pecot-workflow の MCP ツールに、その名前を `project` で渡す。渡す先は `pr_check`・`board_check` の 2 つ。
 
 止まる Step では、`result=` のパスに結果のファイルを書いて終わる。結果のコメントは、ワークフローの後の step がこのファイルから書く。
 frontmatter の `result` に、その Step の結果を書く。本文には、結果のコメントに載せる文（質問・対象外の理由・落ちたテストなど）を書く。
@@ -74,7 +74,8 @@ result: question
 | `results` | 前回までの結果のコメント |
 | `answers` | 前回の結果の後に、書き込み権限を持つ人が書いたコメント（`author`・`body`） |
 | `withheld` | 書き込み権限の無い人が書いたため、本文を省いた計画と答えの数 |
-| `branch` | Issue に紐づく既にあるブランチ。無ければ空 |
+| `branch` | 作業するブランチ。Issue に紐づく既にあるブランチか、前の step が作ったブランチ |
+| `base` | PR の base にするブランチ。作ったブランチの元のブランチか、開発ブランチ |
 | `pr` | 開いた PR の番号。無ければ `0` |
 
 ### Step 2: 対象かを確かめる
@@ -85,17 +86,8 @@ Issue の本文とコメントを読み、変更が導入先のリポで完結�
 
 ### Step 3: ブランチを用意する
 
-文脈の `branch` が空なら、pecot-workflow の MCP ツール `session_start` を使って、Issue に紐づくブランチを作る。
-`branch` には、`feat/` に英語のケバブケースの短い説明を続けた名前を渡す。Issue の番号はツールが付ける。`base` は渡さない。
-作ったら、`git fetch origin` を打ち、そのブランチを `git checkout` する。
-
-`branch` が空でなければ、新しいブランチを作らない。`git fetch origin` を打ち、そのブランチを `git checkout` する。
-
-`session_start` が止まったら、結果のファイルを書いて止まる。失敗の文を本文に書く。
-
-- 開発ブランチの設定が無いなど、設定が足りずに止まったら `result: setup-missing`
-- 前提の Issue が残っていて止まったら `result: out-of-scope`
-- ほかの理由なら `result: failed`
+文脈の `branch` は、ワークフローの前の step が決めている。Issue に紐づく既にあるブランチか、その step が作った `feat/auto/<番号>` だ。
+新しいブランチを作らない。`git fetch origin` を打ち、`branch` を `git checkout` する。
 
 ### Step 4: 変更対象を読む
 
@@ -117,7 +109,7 @@ pecot-workflow の MCP サーバの resource `pecot-template://comment/plan` を
 - E2E の CUJ は、PR を見る人が流す手順として書く。流す先は、導入先のリポの決まりに従う
 - `resume` で文脈に `plan` があれば、前回の計画を引き継ぎ、答えで決まった点を Notes に書く
 
-書いたファイルを、pecot-workflow の MCP ツール `issue_comment_check` に通してから、公式の MCP の `add_issue_comment` で投稿する。手順は [Issue とコメントを公式の MCP で書く](../w-help/references/issue-write.md) の「コメントを書く」。
+書いたファイルを、pecot-workflow の MCP ツール `issue_comment_check` に通してから、公式の MCP の `add_issue_comment` で投稿する。手順は [GitHub に公式の MCP と github-ops で書く](../w-help/references/github-write.md) の「コメントを書く」。
 
 `issue_comment_check` が外れた項目を返したら、指摘を直して通し直す。直しても通らなければ、結果のファイルに `result: failed` を書いて止まる。指摘の文を本文に書く。
 
@@ -144,14 +136,19 @@ pecot-workflow の MCP サーバの resource `pecot-template://comment/plan` を
 
 `resume` で文脈の `pr` が 0 でなければ、PR は既にある。新しい PR を作らず、Step 11 へ進む。
 
-1. pecot-workflow の MCP ツール `pr_check` を使って、PR を作れる状態かを確かめる。指摘があれば直してから進む
-2. pecot-workflow の MCP サーバの resource `pecot-template://pr/create` を読み、`.pecot/tmp/output/` に写したファイルを作る
-3. テンプレートのガイドに従って書く。次の 2 つは、無人の実行に合わせて書く
+1. pecot-workflow の MCP サーバの resource `pecot-template://pr/create` を読み、`.pecot/tmp/output/` に写したファイルを作る
+2. テンプレートのガイドに従って書く。次の 3 つは、無人の実行に合わせて書く
    - フロントマターの `screenshot` に、無人の実行で画面を撮らない旨を書く
+   - `head` は文脈の `branch`、`base` は文脈の `base` にする
    - Verified には、CUJ を無人の実行では流していない旨と、Step 8 で動かしたテストのコマンドと出力を載せる
-4. 書いたファイルを、pecot-workflow の MCP ツール `pr_create` の `file` で渡して PR を作る。`base` は空のままにする
+3. 公式の MCP の `issue_read`（`get`）で Issue を読む。スタックしたブランチでは、親のブランチの PR も `list_pull_requests`（`head` に `<owner>:<base>`、`state: all`）で読む
+4. pecot-workflow の MCP ツール `pr_check` に `method: create` で、frontmatter の値・本文・読んだ結果（`reads`）を渡す。外れた項目が返ったら、直して通し直す
+5. 通した値で、公式の MCP の `create_pull_request` で PR を作る。`template` と `screenshot` は渡さない
+6. カードを `In Review` へ動かす。ボードの owner と番号を `project_list` で、ボードの欄と Issue のカードを `projects_list` で読む。`board_check` に通してから、`projects_write`（`update_project_item`）で書く
 
-push・`pr_check`・`pr_create` が止まったら、指摘を直して打ち直す。直しても通らなければ、結果のファイルに `result: failed` を書いて止まる。止まった理由を本文に書く。
+手順の詳しい形は [GitHub に公式の MCP と github-ops で書く](../w-help/references/github-write.md) の「PR を作る・書き換える」と「列を動かす」にある。スタックへの登録（github-ops の `stack-register`）は、Actions の中からは起動しないので行わない。
+
+push・`pr_check`・`create_pull_request` が止まったら、指摘を直して打ち直す。直しても通らなければ、結果のファイルに `result: failed` を書いて止まる。止まった理由を本文に書く。`board_check`・`projects_write` が止まったときは、PR は作られているので止めず、結果のファイルの本文に理由を書き足す。
 
 ### Step 11: 結果を書いて終える
 
@@ -159,8 +156,7 @@ push・`pr_check`・`pr_create` が止まったら、指摘を直して打ち直
 
 ## `resume` の違い
 
-`resume` は、`start` と同じ Step をたどる。違いは次の 3 つ。
+`resume` は、`start` と同じ Step をたどる。違いは次の 2 つ。
 
 - Step 5 で、文脈の `answers` を前回の質問への答えとして扱う。同じ質問を繰り返さない
-- Step 3 で、既にあるブランチを使う。新しいブランチを作らない
 - Step 10 で、PR が既にあれば新しい PR を作らず、同じブランチへ push するだけにする
