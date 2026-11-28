@@ -197,7 +197,7 @@ merge queue のリポなどで `merge_pull_request` が断られたら、利用�
      {"tag": "<package>-v<ver>", "sha": "<sha>", "body": "<節の本文>", "name": "<package> v<ver>"}
      ```
 
-   - `body` は package の CHANGELOG の `## [<ver>]` の節の本文にする。違うときは、`problems` の `candidates` の本文に直す。候補の本文は、節が使わないリンクの定義を除き、節の外にある使う定義を加えたものになる
+   - `body` は package の CHANGELOG の `## [<ver>]` の節の本文にする。違うときは、`problems` の `candidates` の本文に直す。候補の本文は、節が使わないリンクと脚注の定義を除き、節の外にある使う定義を加えたものになる
 4. `problems` が空なら、同じ `params` で github-ops の `release-create` を起動する。手順は [github-ops で書く](../../w-help/references/github-ops.md)
 
 ### 8. 完了報告
