@@ -349,6 +349,7 @@ pecot-workflow の MCP ツールで GitHub に書くのは、remote へ push す
 | github-ops の `project-link` | リポとボードのつなぎ | `gh project unlink <番号> --owner pecotcraft --repo pecotcraft/pecot-sandbox` |
 | github-ops の `release-create` | `v*` のリリースとタグ | `gh release delete <タグ> --cleanup-tag --yes -R pecotcraft/pecot-sandbox`。版の節を書いた `CHANGELOG.md` を clone に一時的に置いて確かめます |
 | （配る workflow の `pecot-board-sync.yml`） | PR・Issue の変化で、pecot の action の board-sync と session-finish を動かす。マージした PR の閉じる Issue を閉じ、待つ Issue の列を動かす。board-sync は新しい 20 件を超えた Archived のカードを削除します | 「配る自動化を確かめる」の手順で入れて戻します。削除は戻せません |
+| github-ops の `pr-attach` | PR の本文と、一時ブランチ `pecot-attach/*` | sweep は `pecot-attach/*` を消しません。`pr-attach` は渡されたブランチを自分で消し、残ったものは次の `pr-attach` が 24 時間より古いものを消します |
 
 検証用の `main` は「head ブランチを自動で消す」（`delete_branch_on_merge`）を有効にしています。pecot はリモートのブランチを消さないので、マージした PR の head は GitHub が消します。
 `sandbox-diff.sh` が、この設定をこのリポと比べます。

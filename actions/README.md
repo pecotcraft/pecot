@@ -30,6 +30,7 @@
 | `repo-settings` | なし | `delete_branch_on_merge`・`default_branch`・`owner_type` | `GITHUB_TOKEN` |
 | `workflow-doctor` | なし | `secrets`・`variables`（名前と `complete`）・`workflows`（置いた雛形の目印） | App（Secrets: read・Variables: read） |
 | `release-create` | `tag`・`sha`・`body`・`name`（省くとタグ）・`prerelease` | `id`・`tag`・`url` | App（Contents: write） |
+| `pr-attach` | `pr`・`branch`（`pecot-attach/<ID>`） | `pr`・`files`・`deleted_branches` | fine-grained PAT（アップロードと本文の書き換え）と `GITHUB_TOKEN`（ブランチの読み取りと削除） |
 
 - 結果は、job のログの `PECOT_RESULT {"operation","request_id","ok","result"}` の 1 行に出る。失敗したときは `result` の代わりに `error`（`kind`・`message`）が入り、job も失敗になる
 - 呼び出し元は、`request_id` に自分で決めた ID を渡し、実行の名前（`pecot github-ops <operation> <request_id>`）で自分の実行を探す
@@ -40,6 +41,9 @@
 - ボードは、リポと同じ組織のものだけを扱う。個人のアカウントのボードは扱わない
 - App の token が使えるのは、ワークフローのリポだけにする。`project-link` だけは、`params.repo` の別のリポもつなげるように、リポを絞らない
 - `release-create` に `GITHUB_TOKEN` を使わないのは、`GITHUB_TOKEN` で作ったリリースが `on: release` のワークフローを起こさないため
+- `pr-attach` は、一時ブランチ `pecot-attach/<ID>` の画像を PR の本文に載せ（user-attachments の URL）、ブランチを消す。`GITHUB_TOKEN` と App の token では、画像を上げる endpoint が 404 になるので、`attach-token` に fine-grained PAT を渡す
+  - PAT を置くのは `pecot-github-ops.yml` の `PECOT_ATTACH_TOKEN`。`pr-attach` を使うときだけ要る
+  - ブランチの読み取りと削除は `GITHUB_TOKEN` で行う。起動に失敗して残った `pecot-attach/*` は、次の `pr-attach` が 24 時間より古いものを消す
 
 inputs と outputs は、各 action の `action.yml` にあります。振る舞いの項目は `interface/authored.yaml` にあります。
 
@@ -59,7 +63,15 @@ inputs と outputs は、各 action の `action.yml` にあります。振る舞
 | `pecot-review.yml` | secret `CLAUDE_CODE_OAUTH_TOKEN` か、variable `PECOT_AGENT_ANTHROPIC_*` の 4 つ。自前の App を使うときは variable `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY` |
 | `pecot-handoff.yml` | `pecot-review.yml` と同じ |
 | `pecot-auto.yml` | variable `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY`。モデルの認証は `pecot-review.yml` と同じ |
-| `pecot-github-ops.yml` | variable `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY` |
+| `pecot-github-ops.yml` | variable `PECOT_AGENT_APP_CLIENT_ID` と secret `PECOT_AGENT_APP_PRIVATE_KEY`。`pr-attach` を使うときだけ、secret `PECOT_ATTACH_TOKEN`（fine-grained PAT）も要る |
+
+`PECOT_ATTACH_TOKEN` の fine-grained PAT は、次の条件で作ります。
+
+- Resource owner はリポの持ち主、Repository access は Only select repositories でこのリポだけ
+- Repository permissions の Contents と Pull requests を Read and write
+- 組織では、owner に承認を求められることがある。PAT の持ち主には、リポの write 以上の役割が要る
+- 期限が切れると `github-auth` になる。GHES では使えない
+- ruleset で `pecot-attach/*` を作れないリポでは使えない
 
 詳しい置き方は、pecot-workflow の w-help の references にあります。雛形ごとに 1 つのファイルです。
 

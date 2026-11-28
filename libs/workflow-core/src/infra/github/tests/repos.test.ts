@@ -288,6 +288,123 @@ describe('createLinkedBranch', () => {
   })
 })
 
+describe('deleteBranch', () => {
+  it('204 が返ると、何も返さずに終了する', async () => {
+    await explains('ブランチを削除する `deleteBranch` のテストです。204 が返った場合に、何も返さず、`DELETE /repos/owner/repo/git/refs/heads/feat/test-branch` を要求することを確認します。')
+    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
+      const { client, server } = await startClient([restResponse('DELETE', '/repos/owner/repo/git/refs/heads/feat/test-branch', { status: 204, text: '' })])
+      return { client, server }
+    })
+    await step('deleteBranch を呼ぶ', async () => {
+      await client.deleteBranch('owner', 'repo', 'feat/test-branch')
+    })
+    await step('送った要求を確かめる', () => {
+      expect(restRequests(server).map(({ method, path }) => [method, path])).toEqual([['DELETE', '/repos/owner/repo/git/refs/heads/feat/test-branch']])
+    })
+  })
+
+  it('存在しない ref を削除して 422 が返ると、GitHubAPIError を発生させる', async () => {
+    await explains('`deleteBranch` のテストです。存在しない ref で 422 が返った場合に、ステータスコードと応答本文を持つ `GitHubAPIError` が発生することを確認します。')
+    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
+      const { client } = await startClient([restResponse('DELETE', '/repos/owner/repo/git/refs/heads/nonexistent', { status: 422, text: 'Reference does not exist' })])
+      return { client }
+    })
+    await step('エラーを確かめる', async () => {
+      expect(await rejection(client.deleteBranch('owner', 'repo', 'nonexistent'))).toMatchObject(failure(GitHubAPIError, 'GitHub API error: 422', { statusCode: 422, responseBody: 'Reference does not exist' }))
+    })
+  })
+
+  it('保護されたブランチを削除して 403 が返ると、access denied の GitHubAPIError を発生させる', async () => {
+    await explains('`deleteBranch` のテストです。保護されたブランチで 403 が返った場合に、`access denied` を持つ `GitHubAPIError` が発生することを確認します。')
+    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
+      const { client } = await startClient([restResponse('DELETE', '/repos/owner/repo/git/refs/heads/main', { status: 403, text: 'Cannot delete a protected branch' })])
+      return { client }
+    })
+    await step('エラーを確かめる', async () => {
+      expect(await rejection(client.deleteBranch('owner', 'repo', 'main'))).toMatchObject(failure(GitHubAPIError, 'access denied', { statusCode: 403, responseBody: 'Cannot delete a protected branch' }))
+    })
+  })
+})
+
+describe('listBranchesWithPrefix', () => {
+  it('名前が prefix で始まるブランチを、refs/heads/ を外した名前と先頭の SHA にして返す', async () => {
+    await explains('前方一致でブランチを読む `listBranchesWithPrefix` のテストです。`git/matching-refs/heads/pecot-attach/` を要求し、各 ref を `refs/heads/` を外した名前と SHA にして返すことを確認します。')
+    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
+      const { client, server } = await startClient([
+        restResponse('GET', '/repos/owner/repo/git/matching-refs/heads/pecot-attach/', { status: 200, body: [{ ref: 'refs/heads/pecot-attach/a1', object: { sha: 'sha-a', type: 'commit' } }, { ref: 'refs/heads/pecot-attach/b2', object: { sha: 'sha-b', type: 'commit' } }] }),
+      ])
+      return { client, server }
+    })
+    await step('返した値と送った要求を確かめる', async () => {
+      expect(await client.listBranchesWithPrefix('owner', 'repo', 'pecot-attach/')).toEqual([{ name: 'pecot-attach/a1', sha: 'sha-a' }, { name: 'pecot-attach/b2', sha: 'sha-b' }])
+      expect(restRequests(server).map(({ method, path }) => [method, path])).toEqual([['GET', '/repos/owner/repo/git/matching-refs/heads/pecot-attach/']])
+    })
+  })
+})
+
+describe('getCommitDate', () => {
+  it('commit の committer の日時を、応答の文字列のまま返す', async () => {
+    await explains('commit の日時を読む `getCommitDate` のテストです。`git/commits/<SHA>` の応答の `committer.date` を、そのまま返すことを確認します。')
+    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
+      const { client } = await startClient([
+        restResponse('GET', '/repos/owner/repo/git/commits/abc123', { status: 200, body: { sha: 'abc123', author: { date: '2026-11-01T00:00:00Z' }, committer: { date: '2026-11-27T09:30:00Z' } } }),
+      ])
+      return { client }
+    })
+    await step('返した値を確かめる', async () => {
+      expect(await client.getCommitDate('owner', 'repo', 'abc123')).toBe('2026-11-27T09:30:00Z')
+    })
+  })
+})
+
+describe('getTreeEntries', () => {
+  it('tree の直下の項目の名前・種類・mode・SHA を返す', async () => {
+    await explains('tree の直下を読む `getTreeEntries` のテストです。`git/trees/<SHA>` の応答の `tree` の各項目を、名前・種類・mode・SHA にして返すことを確認します。')
+    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
+      const { client } = await startClient([
+        restResponse('GET', '/repos/owner/repo/git/trees/abc123', { status: 200, body: { sha: 'tree1', truncated: false, tree: [{ path: 'shot.png', mode: '100644', type: 'blob', sha: 'b1', size: 5 }, { path: 'nested', mode: '040000', type: 'tree', sha: 't2' }] } }),
+      ])
+      return { client }
+    })
+    await step('返した値を確かめる', async () => {
+      expect(await client.getTreeEntries('owner', 'repo', 'abc123')).toEqual([
+        { path: 'shot.png', type: 'blob', mode: '100644', sha: 'b1' },
+        { path: 'nested', type: 'tree', mode: '040000', sha: 't2' },
+      ])
+    })
+  })
+})
+
+describe('getBlobBytes', () => {
+  it('base64 の blob を、改行を含んでいてもバイト列に戻して返す', async () => {
+    await explains('blob を読む `getBlobBytes` のテストです。応答の `content` が改行を含む base64 の場合に、元のバイト列に戻して返すことを確認します。')
+    const bytes = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0xFF])
+    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
+      const encoded = bytes.toString('base64')
+      const { client } = await startClient([
+        restResponse('GET', '/repos/owner/repo/git/blobs/b1', { status: 200, body: { sha: 'b1', size: bytes.length, encoding: 'base64', content: `${encoded.slice(0, 8)}\n${encoded.slice(8)}\n` } }),
+      ])
+      return { client }
+    })
+    await step('返した値を確かめる', async () => {
+      expect(await client.getBlobBytes('owner', 'repo', 'b1')).toEqual(bytes)
+    })
+  })
+
+  it('encoding が base64 でない blob は、GitHubAPIError を発生させる', async () => {
+    await explains('`getBlobBytes` のテストです。応答の `encoding` が存在しない場合は、中身を読まずに `GitHubAPIError` が発生することを確認します。')
+    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
+      const { client } = await startClient([
+        restResponse('GET', '/repos/owner/repo/git/blobs/b1', { status: 200, body: { sha: 'b1', content: 'text' } }),
+      ])
+      return { client }
+    })
+    await step('エラーを確かめる', async () => {
+      expect(await rejection(client.getBlobBytes('owner', 'repo', 'b1'))).toMatchObject(failure(GitHubAPIError, 'blob b1 is not base64 (encoding: none)'))
+    })
+  })
+})
+
 describe('createRelease', () => {
   it('オプションを省略すると、target_commitish が main で draft と prerelease が false の本文を、Python と同じキー順で送信する', async () => {
     await explains('リリースを作成する `createRelease` のテストです。オプションを省略した場合に、`target_commitish` が `main`、`draft` と `prerelease` が `false` の本文を、Python と同じキー順で送信することを確認します。')

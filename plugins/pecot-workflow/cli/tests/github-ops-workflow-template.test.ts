@@ -42,10 +42,12 @@ interface Workflow {
 const workflow = parse(template) as Workflow
 const githubTokenJob: Job = workflow.jobs['github-token'] ?? { steps: [] }
 const appJob: Job = workflow.jobs['app'] ?? { steps: [] }
-const allSteps = [...githubTokenJob.steps, ...appJob.steps]
+const attachJob: Job = workflow.jobs['attach'] ?? { steps: [] }
+const allSteps = [...githubTokenJob.steps, ...appJob.steps, ...attachJob.steps]
 const PECOT_ACTION = /^pecotcraft\/pecot\/actions\/([a-z-]+)@pecot-actions\/v\d+\.\d+\.\d+$/
-const OPERATIONS = ['link-branch', 'stack-register', 'project-fields', 'project-view', 'project-link', 'repo-settings', 'workflow-doctor', 'release-create']
+const OPERATIONS = ['link-branch', 'stack-register', 'project-fields', 'project-view', 'project-link', 'repo-settings', 'workflow-doctor', 'release-create', 'pr-attach']
 const GITHUB_TOKEN_OPERATIONS = ['link-branch', 'stack-register', 'repo-settings']
+const ATTACH_OPERATIONS = ['pr-attach']
 const appToken = appJob.steps.find(step => step.uses?.startsWith('actions/create-github-app-token@')) ?? {}
 
 // job の if の fromJSON('[...]') に並べた operation を読む
@@ -56,8 +58,8 @@ function operationsIn(condition = ''): string[] {
 }
 
 describe('github-ops のワークフローの雛形', () => {
-  it('workflow_dispatch だけで起動し、operation を 8 つの操作の選択肢で受ける', async () => {
-    await explains('github-ops のワークフローの雛形 `pecot-github-ops.yml` のテストです。契機が `workflow_dispatch` だけで、`operation` が 8 つの操作を選択肢に持つ必須の入力であることを確認します。')
+  it('workflow_dispatch だけで起動し、operation を 9 つの操作の選択肢で受ける', async () => {
+    await explains('github-ops のワークフローの雛形 `pecot-github-ops.yml` のテストです。契機が `workflow_dispatch` だけで、`operation` が 9 つの操作を選択肢に持つ必須の入力であることを確認します。')
     const inputs = stepSync('workflow_dispatch の入力を読む', () => workflow.on.workflow_dispatch.inputs)
     stepSync('契機と入力を比べる', () => {
       expect(Object.keys(workflow.on)).toEqual(['workflow_dispatch'])
@@ -73,23 +75,32 @@ describe('github-ops のワークフローの雛形', () => {
     })
   })
 
-  it('GITHUB_TOKEN の job と App の job は、同じ 3 つの操作の一覧で、どの操作もどちらか一方だけで動く', async () => {
-    await explains('github-ops のワークフローの雛形 `pecot-github-ops.yml` のテストです。2 つの job の `if` が同じ操作の一覧を逆の条件で参照し、どの操作もどちらか一方の job だけで動くことを確認します。')
-    const { githubTokenOperations, appOperations } = stepSync('2 つの job の if から操作の一覧を読む', () => ({ githubTokenOperations: operationsIn(githubTokenJob.if), appOperations: operationsIn(appJob.if) }))
+  it('3 つの job の条件は重ならず、どの操作もちょうど 1 つの job で動く', async () => {
+    await explains('github-ops のワークフローの雛形 `pecot-github-ops.yml` のテストです。`github-token`・`app`・`attach` の 3 つの job の `if` を、操作の一覧から評価し直し、9 つの操作のどれもがちょうど 1 つの job だけで動くことを確認します。')
+    const { githubTokenOperations, appOperations } = stepSync('3 つの job の if から操作の一覧を読む', () => ({ githubTokenOperations: operationsIn(githubTokenJob.if), appOperations: operationsIn(appJob.if) }))
     stepSync('操作の一覧と if の形を比べる', () => {
+      expect(Object.keys(workflow.jobs)).toEqual(['github-token', 'app', 'attach'])
       expect(githubTokenOperations).toEqual(GITHUB_TOKEN_OPERATIONS)
-      expect(appOperations).toEqual(GITHUB_TOKEN_OPERATIONS)
+      expect(appOperations).toEqual([...GITHUB_TOKEN_OPERATIONS, ...ATTACH_OPERATIONS])
       expect(githubTokenJob.if?.startsWith('${{ contains(')).toBe(true)
       expect(appJob.if?.startsWith('${{ !contains(')).toBe(true)
+      expect(attachJob.if).toBe('${{ inputs.operation == \'pr-attach\' }}')
+    })
+    stepSync('操作ごとに動く job の数を数える', () => {
+      for (const operation of OPERATIONS) {
+        const runs = [githubTokenOperations.includes(operation), !appOperations.includes(operation), operation === 'pr-attach']
+        expect({ operation, runs: runs.filter(Boolean).length }).toEqual({ operation, runs: 1 })
+      }
     })
   })
 
   it('workflow の permissions は contents: read だけで、GITHUB_TOKEN の job だけが書き込める', async () => {
-    await explains('github-ops のワークフローの雛形 `pecot-github-ops.yml` のテストです。全体の `permissions` が `contents: read` だけで、書き込みを `GITHUB_TOKEN` の job にだけ許すことを確認します。')
+    await explains('github-ops のワークフローの雛形 `pecot-github-ops.yml` のテストです。全体の `permissions` が `contents: read` だけで、書き込みを `GITHUB_TOKEN` を使う job（`github-token` と `attach`）にだけ許すことを確認します。')
     stepSync('permissions を比べる', () => {
       expect(workflow.permissions).toEqual({ contents: 'read' })
       expect(githubTokenJob.permissions).toEqual({ 'contents': 'write', 'issues': 'write', 'pull-requests': 'write' })
       expect(appJob).not.toHaveProperty('permissions')
+      expect(attachJob.permissions).toEqual({ contents: 'write' })
     })
   })
 
@@ -124,9 +135,24 @@ describe('github-ops のワークフローの雛形', () => {
     })
   })
 
+  it('attach の job は、画像の読み取りと片付けに GITHUB_TOKEN を、アップロードに PECOT_ATTACH_TOKEN の PAT を渡す', async () => {
+    await explains('github-ops のワークフローの雛形 `pecot-github-ops.yml` のテストです。`attach` の job が、`token` に `github.token` を、`attach-token` に secret `PECOT_ATTACH_TOKEN` を渡すことを確認します。App の token の step は持ちません。')
+    const step = stepSync('attach の job の github-ops の step を読む', () => attachJob.steps.find(candidate => PECOT_ACTION.exec(candidate.uses ?? '')?.[1] === 'github-ops'))
+    stepSync('with と App の token の step の有無を比べる', () => {
+      expect(step?.with).toEqual({
+        'token': '${{ github.token }}',
+        'attach-token': '${{ secrets.PECOT_ATTACH_TOKEN }}',
+        'operation': '${{ inputs.operation }}',
+        'request-id': '${{ inputs.request_id }}',
+        'params': '${{ inputs.params }}',
+      })
+      expect(attachJob.steps.some(candidate => candidate.uses?.startsWith('actions/create-github-app-token@'))).toBe(false)
+    })
+  })
+
   it('checkout は ref を指定せず、資格情報を残さない', async () => {
-    await explains('github-ops のワークフローの雛形 `pecot-github-ops.yml` のテストです。どちらの job の `checkout` も `ref` を指定せず、`persist-credentials` を `false` にして資格情報を残さないことを確認します。')
-    const checkouts = stepSync('2 つの job の checkout の step を読む', () => [githubTokenJob, appJob].map(job => job.steps.find(step => step.uses?.startsWith('actions/checkout@'))))
+    await explains('github-ops のワークフローの雛形 `pecot-github-ops.yml` のテストです。3 つの job の `checkout` が、どれも `ref` を指定せず、`persist-credentials` を `false` にして資格情報を残さないことを確認します。')
+    const checkouts = stepSync('3 つの job の checkout の step を読む', () => [githubTokenJob, appJob, attachJob].map(job => job.steps.find(step => step.uses?.startsWith('actions/checkout@'))))
     stepSync('checkout の with を比べる', () => {
       for (const checkout of checkouts) expect(checkout?.with).toEqual({ 'persist-credentials': false })
     })
@@ -136,7 +162,7 @@ describe('github-ops のワークフローの雛形', () => {
     await explains('github-ops のワークフローの雛形 `pecot-github-ops.yml` のテストです。pecot の action をリリースのタグで、ほかの action を 40 桁の SHA で指定し、`npx` で `@pecot/workflow-mcp` を取得しないことを確認します。')
     const uses = stepSync('step が使う action を集める', () => allSteps.map(step => step.uses).filter(use => use !== undefined))
     stepSync('action の指定と npx の有無を比べる', () => {
-      expect(uses.filter(use => use.startsWith('pecotcraft/pecot/')).map(use => PECOT_ACTION.exec(use)?.[1])).toEqual(['github-ops', 'github-ops'])
+      expect(uses.filter(use => use.startsWith('pecotcraft/pecot/')).map(use => PECOT_ACTION.exec(use)?.[1])).toEqual(['github-ops', 'github-ops', 'github-ops'])
       const others = uses.filter(use => !use.startsWith('pecotcraft/pecot/'))
       for (const action of others) expect(action).toMatch(/@[0-9a-f]{40}$/u)
       expect(active).not.toMatch(/\bnpx\b/u)

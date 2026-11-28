@@ -44,3 +44,8 @@ export const RELEASE_CREATE_PARAMS = z.strictObject({
   name: NAME.optional(),
   prerelease: z.boolean().default(false),
 })
+
+export const PR_ATTACH_PARAMS = z.strictObject({
+  pr: NUMBER,
+  branch: z.string().refine(value => /^pecot-attach\/(?!.*\.\.)[\w./-]+$/u.test(value), 'a branch name that starts with pecot-attach/'),
+})
