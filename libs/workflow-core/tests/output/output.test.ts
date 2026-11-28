@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { abortUnconfirmed, AbortedError, createOutput, reportAborted, VerbSchema } from '../../src/commands-shared/output.js'
 import type { CommandIo } from '../../src/commands-shared/command-definition.js'
 import { parseJson } from '../_helpers/json.js'
+import { stepSync } from '../_helpers/step.js'
 import { explains } from '../_helpers/explains.js'
 
 const StreamSchema = z.enum(['stdout', 'stderr']).nullable()
@@ -95,13 +96,17 @@ const named = cases.map((item, index) => ({ item, name: titleOf(item, index) }))
 describe('共通の出力関数', () => {
   it('cases.json に期待の行が 63 件ある', async () => {
     await explains('共通の出力関数の期待値（`cases.json`）のテストです。期待の行が 63 件あり、件数が減っていないことを確認します。')
-    expect(cases.length).toBe(63)
+    stepSync('結果を確認する', () => {
+      expect(cases.length).toBe(63)
+    })
   })
 
   it.each(named)('$name のとき、$item.line を書く', async ({ item }) => {
     await explains('共通の出力関数のテストです。`cases.json` の各行について、種類（`plan` や `error` など）と `dryRun` の指定に応じた行を、期待する出力先へ書く（出力しない場合もある）ことを確認します。')
     const expected = item.stream === null ? [] : [{ stream: item.stream, text: item.line }]
-    expect(run(item)).toEqual(expected)
+    stepSync('結果を確認する', () => {
+      expect(run(item)).toEqual(expected)
+    })
   })
 })
 
@@ -127,26 +132,32 @@ function session(): Session {
 describe('abortUnconfirmed', () => {
   it('問いの文を失敗の文に渡し、code を持たない AbortedError を発生させる', async () => {
     await explains('`abortUnconfirmed` のテストです。問いの文を `io.error` に渡し、`code` を持たない `AbortedError` が発生し、標準出力と標準エラーへは何も出力しないことを確認します。')
-    const { io, out, errors, failures } = session()
+    const { io, out, errors, failures } = stepSync('出力の捕捉を用意する', () => session())
     let caught: unknown
-    try {
-      abortUnconfirmed(io, 'go?')
-    }
-    catch (error: unknown) {
-      caught = error
-    }
-    expect(caught).toBeInstanceOf(AbortedError)
-    expect(caught).not.toHaveProperty('code')
-    expect(failures).toEqual(['go?'])
-    expect([out, errors]).toEqual([[], []])
+    stepSync('確認の中止を呼ぶ', () => {
+      try {
+        abortUnconfirmed(io, 'go?')
+      }
+      catch (error: unknown) {
+        caught = error
+      }
+    })
+    stepSync('結果を確認する', () => {
+      expect(caught).toBeInstanceOf(AbortedError)
+      expect(caught).not.toHaveProperty('code')
+      expect(failures).toEqual(['go?'])
+      expect([out, errors]).toEqual([[], []])
+    })
   })
 })
 
 describe('reportAborted', () => {
   it('Aborted. を標準エラーに出力し、終了コード 1 を返す', async () => {
     await explains('`reportAborted` のテストです。実行すると `Aborted.` を標準エラーへ出力し、終了コード 1 を返すことを確認します。')
-    const { io, errors } = session()
-    expect(reportAborted(io)).toBe(1)
-    expect(errors).toEqual(['Aborted.\n'])
+    const { io, errors } = stepSync('出力の捕捉を用意する', () => session())
+    stepSync('結果を確認する', () => {
+      expect(reportAborted(io)).toBe(1)
+      expect(errors).toEqual(['Aborted.\n'])
+    })
   })
 })

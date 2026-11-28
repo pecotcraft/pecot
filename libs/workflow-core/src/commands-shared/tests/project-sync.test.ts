@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
+import { step, stepSync } from '../../../tests/_helpers/step.js'
 import { explains } from '../../../tests/_helpers/explains.js'
 
 import { setEnvironment } from '../../../tests/_helpers/environment.js'
@@ -112,7 +113,9 @@ describe('textOf', () => {
     { name: '真偽値', value: true, expected: 'True' },
   ])('$name を指定すると、Python の str() と同じ文字列に変換する', async ({ name, value, expected }) => {
     await explains(`値を文字列に変換する関数（\`textOf\`）のテストです。${name}を指定した場合に、Python の \`str()\` と同じ文字列（\`${expected}\`）になることを確認します。`)
-    expect(textOf(value)).toBe(expected)
+    stepSync('結果を確認する', () => {
+      expect(textOf(value)).toBe(expected)
+    })
   })
 })
 
@@ -120,88 +123,114 @@ describe('failApi', () => {
   it('API のエラーに状態コードがある場合はメッセージに付け、ない場合は付けずに止める', async () => {
     await explains('API の失敗を報告して止める関数（`failApi`）のテストです。HTTP の状態コードを持つエラーでは `(status 502)` を付け、持たないエラーでは付けずに、`CommandExit` が発生することを確認します。')
     const withStatus = captured()
-    expect(() => failApi(withStatus.out, 'read the board', new GitHubAPIError('boom', { statusCode: 502 }))).toThrow(CommandExit)
+    stepSync('結果を確認する', () => {
+      expect(() => failApi(withStatus.out, 'read the board', new GitHubAPIError('boom', { statusCode: 502 }))).toThrow(CommandExit)
+    })
     const withoutStatus = captured()
-    expect(() => failApi(withoutStatus.out, 'read the board', new GitHubAPIError('boom'))).toThrow(CommandExit)
-    expect([withStatus.io.err.join(''), withoutStatus.io.err.join('')]).toEqual([
-      'error: could not read the board (status 502): boom\n',
-      'error: could not read the board: boom\n',
-    ])
+    stepSync('結果を確認する', () => {
+      expect(() => failApi(withoutStatus.out, 'read the board', new GitHubAPIError('boom'))).toThrow(CommandExit)
+      expect([withStatus.io.err.join(''), withoutStatus.io.err.join('')]).toEqual([
+        'error: could not read the board (status 502): boom\n',
+        'error: could not read the board: boom\n',
+      ])
+    })
   })
 })
 
 describe('進行の欄の判定', () => {
   it('選択肢を持つフィールドの名前から、そのまま使う・改名する・新規に作成する、のいずれかを決める', async () => {
     await explains('ワークフローのフィールドの扱いを決める関数（`planWorkflowFieldOf`）のテストです。現在の名前のフィールドはそのまま使い、旧い名前のフィールドは改名し、どちらも存在しなければ新規に作成すると判定することを確認します。')
-    expect([
-      planWorkflowFieldOf([workflowField()]),
-      planWorkflowFieldOf([workflowField(WORKFLOW_NAMES, 'pecot-workflow-acme'), { name: 'Title' }]),
-      planWorkflowFieldOf([{ name: 'Title' }, 'x']),
-    ]).toEqual([
-      { kind: 'current', use: 'pecot-status' },
-      { kind: 'rename', from: 'pecot-workflow-acme', use: 'pecot-status' },
-      { kind: 'create', use: 'pecot-status' },
-    ])
+    stepSync('結果を確認する', () => {
+      expect([
+        planWorkflowFieldOf([workflowField()]),
+        planWorkflowFieldOf([workflowField(WORKFLOW_NAMES, 'pecot-workflow-acme'), { name: 'Title' }]),
+        planWorkflowFieldOf([{ name: 'Title' }, 'x']),
+      ]).toEqual([
+        { kind: 'current', use: 'pecot-status' },
+        { kind: 'rename', from: 'pecot-workflow-acme', use: 'pecot-status' },
+        { kind: 'create', use: 'pecot-status' },
+      ])
+    })
   })
 
   it('現在の名前か旧い名前のフィールドが存在する場合だけ、ワークフローのフィールドが存在すると判定する', async () => {
     await explains('ワークフローのフィールドが存在するかを判定する関数（`hasWorkflowField`）のテストです。現在の名前（`pecot-status`）か旧い名前のフィールドがあれば `true`、関係のないフィールドだけなら `false` を返すことを確認します。')
-    expect([
-      hasWorkflowField([{ name: 'pecot-status' }]),
-      hasWorkflowField([{ name: 'pecot-workflow-acme' }]),
-      hasWorkflowField([{ name: 'Status' }, { name: 3 }]),
-    ]).toEqual([true, true, false])
+    stepSync('結果を確認する', () => {
+      expect([
+        hasWorkflowField([{ name: 'pecot-status' }]),
+        hasWorkflowField([{ name: 'pecot-workflow-acme' }]),
+        hasWorkflowField([{ name: 'Status' }, { name: 3 }]),
+      ]).toEqual([true, true, false])
+    })
   })
 
   it('fields.nodes を取り出し、存在しない場合は空の配列にする', async () => {
     await explains('プロジェクトからフィールドの一覧を取り出す関数（`fieldNodesOf`）のテストです。`fields.nodes` が存在する場合はその配列を返し、存在しない場合は空の配列を返すことを確認します。')
-    expect([fieldNodesOf({ fields: { nodes: [{ name: 'a' }] } }), fieldNodesOf({})]).toEqual([[{ name: 'a' }], []])
+    stepSync('結果を確認する', () => {
+      expect([fieldNodesOf({ fields: { nodes: [{ name: 'a' }] } }), fieldNodesOf({})]).toEqual([[{ name: 'a' }], []])
+    })
   })
 
   it('同じ名前で選択肢を持つフィールドが複数ある場合は後のものを返し、選択肢を持たないフィールドは選ばない', async () => {
     await explains('名前でフィールドを探す関数（`lastFieldNamed`）のテストです。同じ名前で選択肢を持つフィールドが 2 つある場合は後のものを返し、選択肢を持たないフィールドは選ばず `undefined` を返すことを確認します。')
     const later = { name: 'Status', options: [], id: 'later' }
-    expect([
-      lastFieldNamed([{ name: 'Status', options: [], id: 'first' }, later], 'Status'),
-      lastFieldNamed([{ name: 'Status', id: 'plain' }], 'Status'),
-    ]).toEqual([later, undefined])
+    stepSync('結果を確認する', () => {
+      expect([
+        lastFieldNamed([{ name: 'Status', options: [], id: 'first' }, later], 'Status'),
+        lastFieldNamed([{ name: 'Status', id: 'plain' }], 'Status'),
+      ]).toEqual([later, undefined])
+    })
   })
 
   it('必須の選択肢の不足を、大文字と小文字を区別せず、必要な順に返す', async () => {
     await explains('不足している必須の選択肢を求める関数（`missingRequiredOptions`）のテストです。`backlog` や `READY` のように大文字と小文字が違う名前は存在するものとして扱い、不足分を必要な順に返すことを確認します。')
-    expect([
-      missingRequiredOptions({ options: options(['backlog', 'READY', 'Active']) }),
-      missingRequiredOptions({ options: [{ id: 'x' }] }),
-    ]).toEqual([
-      ['Pending', 'In Review', 'Archived'],
-      ['Pending', 'Backlog', 'Ready', 'Active', 'In Review', 'Archived'],
-    ])
+    stepSync('結果を確認する', () => {
+      expect([
+        missingRequiredOptions({ options: options(['backlog', 'READY', 'Active']) }),
+        missingRequiredOptions({ options: [{ id: 'x' }] }),
+      ]).toEqual([
+        ['Pending', 'In Review', 'Archived'],
+        ['Pending', 'Backlog', 'Ready', 'Active', 'In Review', 'Archived'],
+      ])
+    })
   })
 })
 
 describe('buildRepository', () => {
   it('リポジトリの設定は、モデルで定義した順のキーで作成する', async () => {
     await explains('リポジトリの設定を作成する関数（`buildRepository`）のテストです。渡した順序に関係なく、キーが `owner`・`name`・`develop_branch` など、モデルで定義した順序に並ぶことを確認します。')
-    expect(Object.keys(buildRepository({ release_type: 'nx', name: 'r', owner: 'o' }))).toEqual(['owner', 'name', 'develop_branch', 'release_branch', 'changelog_file', 'packages', 'release_type'])
+    stepSync('結果を確認する', () => {
+      expect(Object.keys(buildRepository({ release_type: 'nx', name: 'r', owner: 'o' }))).toEqual(['owner', 'name', 'develop_branch', 'release_branch', 'changelog_file', 'packages', 'release_type'])
+    })
   })
 })
 
 describe('placeProjectConfig', () => {
   it('同じボードを指す旧い名前の設定ファイルが 1 つの場合は、移動元にする', async () => {
     await explains('設定ファイルの置き場所を決める関数（`placeProjectConfig`）のテストです。同じボードを指す旧い名前のファイルが 1 つだけの場合に、新しい名前（`github.com_acme_1.json`）への移動元として返すことを確認します。')
-    const directory = useProjectRoot()
-    writeConfig(directory, 'old.json', boardConfig())
-    expect(placeProjectConfig(captured().out, { host: HOST, owner: 'acme', number: 1 })).toEqual({ configPath: path.join(directory, 'github.com_acme_1.json'), movedFrom: path.join(directory, 'old.json') })
+    const directory = stepSync('プロジェクトの設定を用意する', () => useProjectRoot())
+    stepSync('設定のファイルを用意する', () => {
+      writeConfig(directory, 'old.json', boardConfig())
+    })
+    stepSync('結果を確認する', () => {
+      expect(placeProjectConfig(captured().out, { host: HOST, owner: 'acme', number: 1 })).toEqual({ configPath: path.join(directory, 'github.com_acme_1.json'), movedFrom: path.join(directory, 'old.json') })
+    })
   })
 
   it('同じボードを指す旧い名前の設定ファイルが 2 つ以上の場合は、ファイル名を並べて止める', async () => {
     await explains('同じボードを指す設定ファイルが 2 つ存在する場合のテストです。移動元を決められないため、ファイル名を並べたエラーを表示し、`CommandExit` が発生することを確認します。')
-    const directory = useProjectRoot()
-    writeConfig(directory, 'a.json', boardConfig())
-    writeConfig(directory, 'b.json', boardConfig())
-    const { io, out } = captured()
-    expect(() => placeProjectConfig(out, { host: HOST, owner: 'acme', number: 1 })).toThrow(CommandExit)
-    expect(io.err.join('')).toBe('error: several config files point to project #1:\n  - a.json\n  - b.json\n  remove all but one, then run again; it is moved to github.com_acme_1.json\n')
+    const directory = stepSync('プロジェクトの設定を用意する', () => useProjectRoot())
+    stepSync('設定のファイルを用意する', () => {
+      writeConfig(directory, 'a.json', boardConfig())
+    })
+    stepSync('設定のファイルを用意する', () => {
+      writeConfig(directory, 'b.json', boardConfig())
+    })
+    const { io, out } = stepSync('出力の捕捉を用意する', () => captured())
+    stepSync('結果を確認する', () => {
+      expect(() => placeProjectConfig(out, { host: HOST, owner: 'acme', number: 1 })).toThrow(CommandExit)
+      expect(io.err.join('')).toBe('error: several config files point to project #1:\n  - a.json\n  - b.json\n  remove all but one, then run again; it is moved to github.com_acme_1.json\n')
+    })
   })
 })
 
@@ -209,110 +238,116 @@ describe('reportConfigMove', () => {
   it('移動元が存在しない場合は何も表示せず、dry-run の場合は予定の行を表示する', async () => {
     await explains('設定ファイルの移動を報告する関数（`reportConfigMove`）のテストです。移動元が存在しない場合は何も表示せず、`dry-run` の場合は移動の予定と、新しい名前に関する警告を表示することを確認します。')
     const none = captured()
-    reportConfigMove(none.out, { configPath: '/p/new.json', movedFrom: undefined }, false)
+    stepSync('設定の移動を報告する', () => {
+      reportConfigMove(none.out, { configPath: '/p/new.json', movedFrom: undefined }, false)
+    })
     const planned = captured(true)
-    reportConfigMove(planned.out, { configPath: '/p/new.json', movedFrom: '/p/old.json' }, true)
-    expect([none.io.err.join(''), planned.io.err.join('')]).toEqual([
-      '',
-      'dry-run: would move config file /p/old.json to /p/new.json\nwarning: the project config is now named new\n  use this name for the project input and the PECOT_REVIEW_PROJECT variable\n',
-    ])
+    stepSync('設定の移動を報告する', () => {
+      reportConfigMove(planned.out, { configPath: '/p/new.json', movedFrom: '/p/old.json' }, true)
+    })
+    stepSync('結果を確認する', () => {
+      expect([none.io.err.join(''), planned.io.err.join('')]).toEqual([
+        '',
+        'dry-run: would move config file /p/old.json to /p/new.json\nwarning: the project config is now named new\n  use this name for the project input and the PECOT_REVIEW_PROJECT variable\n',
+      ])
+    })
   })
 })
 
 describe('syncProjectConfig', () => {
   it('設定ファイルが存在しない場合は、ボードの値から作成してアクティブにする', async () => {
     await explains('プロジェクトの設定ファイルを同期する関数（`syncProjectConfig`）のテストです。設定ファイルが存在しない場合に、ボードのフィールド・選択肢・リポジトリから新規に作成し、アクティブなプロジェクトに設定することを確認します。')
-    const directory = useProjectRoot()
-    const { client } = await startClient([listProjects('board'), projectFields([{ id: 'PVTF_title', name: 'Title' }, workflowField([...WORKFLOW_NAMES, 'Blocked']), statusField]), linked('demo', 'demo')])
-    const { io, out } = captured()
-
-    const result = await syncProjectConfig(out, client, { owner: 'acme', name: 'board', host: HOST })
-
+    const directory = stepSync('プロジェクトの設定を用意する', () => useProjectRoot())
+    const { client } = await step('GitHub の偽サーバを起動する', async () => await startClient([listProjects('board'), projectFields([{ id: 'PVTF_title', name: 'Title' }, workflowField([...WORKFLOW_NAMES, 'Blocked']), statusField]), linked('demo', 'demo')]))
+    const { io, out } = stepSync('出力の捕捉を用意する', () => captured())
+    const result = await step('プロジェクトの設定を同期する', async () => await syncProjectConfig(out, client, { owner: 'acme', name: 'board', host: HOST }))
     const configPath = path.join(directory, 'github.com_acme_1.json')
-    expect(result).toEqual({ configPath, change: 'create', activeProject: 'github.com_acme_1', movedFrom: undefined })
-    expect(JSON.parse(readFileSync(configPath, 'utf8'))).toEqual({
-      host: HOST,
-      owner: 'acme',
-      project: {
-        number: 1,
-        id: 'PVT_1',
-        board_url: `${BOARD_URL}/views/1?layout=board&verticalGroupedBy%5BcolumnId%5D=456&filterQuery=%20pecot-status%3APending%2CBacklog%2CBlocked%2CReady%2CActive%2CArchived%2C%22In%20Review%22`,
-        fields: {
-          workflow: { id: 'PVTSSF_workflow', options: { backlog: 'o2', pending: 'o1', blocked: 'o7', ready: 'o3', active: 'o4', in_review: 'o5', archived: 'o6' } },
-          status: { id: 'PVTSSF_status', options: { todo: 'o1', in_progress: 'o2' } },
-        },
-      },
-      repositories: [{ owner: 'acme', name: 'demo' }],
-    })
-    expect(readFileSync(path.join(directory, '.active'), 'utf8')).toBe('github.com_acme_1.json\n')
-    expect(io.err.join('')).toBe(`created: config file ${configPath}\nset: active project to github.com_acme_1\n`)
-  })
-
-  it('ビューが存在しない場合は、絞り込みだけの URL にし、既存の設定のリポジトリの順序と値を引き継ぐ', async () => {
-    await explains('ボードにビューが存在せず、設定ファイルが既に存在する場合のテストです。URL は絞り込みだけの形になり、既存のリポジトリの順序と値が引き継がれて、存在しなくなったリポジトリが除外されることを確認します。')
-    const directory = useProjectRoot()
-    const configPath = writeConfig(directory, 'github.com_acme_1.json', { ...boardConfig([{ owner: 'acme', name: 'gone' }, { owner: 'acme', name: 'kept', develop_branch: 'develop' }]), aggregation_repo: 'acme/roadmap' })
-    const { client } = await startClient([listProjects('board'), projectFields([workflowField()], []), linked('new', 'kept')])
-    const { io, out } = captured()
-
-    const result = await syncProjectConfig(out, client, { owner: 'acme', name: 'board', host: HOST })
-
-    const saved: unknown = JSON.parse(readFileSync(configPath, 'utf8'))
-    expect({ result, saved }).toEqual({
-      result: { configPath, change: 'update', activeProject: 'github.com_acme_1', movedFrom: undefined },
-      saved: {
+    stepSync('結果を確認する', () => {
+      expect(result).toEqual({ configPath, change: 'create', activeProject: 'github.com_acme_1', movedFrom: undefined })
+      expect(JSON.parse(readFileSync(configPath, 'utf8'))).toEqual({
         host: HOST,
         owner: 'acme',
         project: {
           number: 1,
           id: 'PVT_1',
-          board_url: `${BOARD_URL}?filterQuery=%20pecot-status%3APending%2CBacklog%2CReady%2CActive%2CArchived%2C%22In%20Review%22`,
-          fields: { workflow: { id: 'PVTSSF_workflow', options: { backlog: 'o2', pending: 'o1', ready: 'o3', active: 'o4', in_review: 'o5', archived: 'o6' } } },
+          board_url: `${BOARD_URL}/views/1?layout=board&verticalGroupedBy%5BcolumnId%5D=456&filterQuery=%20pecot-status%3APending%2CBacklog%2CBlocked%2CReady%2CActive%2CArchived%2C%22In%20Review%22`,
+          fields: {
+            workflow: { id: 'PVTSSF_workflow', options: { backlog: 'o2', pending: 'o1', blocked: 'o7', ready: 'o3', active: 'o4', in_review: 'o5', archived: 'o6' } },
+            status: { id: 'PVTSSF_status', options: { todo: 'o1', in_progress: 'o2' } },
+          },
         },
-        repositories: [{ owner: 'acme', name: 'kept', develop_branch: 'develop' }, { owner: 'acme', name: 'new' }],
-        aggregation_repo: 'acme/roadmap',
-      },
+        repositories: [{ owner: 'acme', name: 'demo' }],
+      })
+      expect(readFileSync(path.join(directory, '.active'), 'utf8')).toBe('github.com_acme_1.json\n')
+      expect(io.err.join('')).toBe(`created: config file ${configPath}\nset: active project to github.com_acme_1\n`)
     })
-    expect(io.err.join('')).toBe(`updated: config file ${configPath}\nset: active project to github.com_acme_1\n`)
+  })
+
+  it('ビューが存在しない場合は、絞り込みだけの URL にし、既存の設定のリポジトリの順序と値を引き継ぐ', async () => {
+    await explains('ボードにビューが存在せず、設定ファイルが既に存在する場合のテストです。URL は絞り込みだけの形になり、既存のリポジトリの順序と値が引き継がれて、存在しなくなったリポジトリが除外されることを確認します。')
+    const directory = stepSync('プロジェクトの設定を用意する', () => useProjectRoot())
+    const configPath = writeConfig(directory, 'github.com_acme_1.json', { ...boardConfig([{ owner: 'acme', name: 'gone' }, { owner: 'acme', name: 'kept', develop_branch: 'develop' }]), aggregation_repo: 'acme/roadmap' })
+    const { client } = await step('GitHub の偽サーバを起動する', async () => await startClient([listProjects('board'), projectFields([workflowField()], []), linked('new', 'kept')]))
+    const { io, out } = stepSync('出力の捕捉を用意する', () => captured())
+    const result = await step('プロジェクトの設定を同期する', async () => await syncProjectConfig(out, client, { owner: 'acme', name: 'board', host: HOST }))
+    const saved: unknown = JSON.parse(readFileSync(configPath, 'utf8'))
+    stepSync('結果を確認する', () => {
+      expect({ result, saved }).toEqual({
+        result: { configPath, change: 'update', activeProject: 'github.com_acme_1', movedFrom: undefined },
+        saved: {
+          host: HOST,
+          owner: 'acme',
+          project: {
+            number: 1,
+            id: 'PVT_1',
+            board_url: `${BOARD_URL}?filterQuery=%20pecot-status%3APending%2CBacklog%2CReady%2CActive%2CArchived%2C%22In%20Review%22`,
+            fields: { workflow: { id: 'PVTSSF_workflow', options: { backlog: 'o2', pending: 'o1', ready: 'o3', active: 'o4', in_review: 'o5', archived: 'o6' } } },
+          },
+          repositories: [{ owner: 'acme', name: 'kept', develop_branch: 'develop' }, { owner: 'acme', name: 'new' }],
+          aggregation_repo: 'acme/roadmap',
+        },
+      })
+      expect(io.err.join('')).toBe(`updated: config file ${configPath}\nset: active project to github.com_acme_1\n`)
+    })
   })
 
   it('旧い名前の設定ファイルを新しい名前へ移動し、旧いファイルを削除する', async () => {
     await explains('旧い名前の設定ファイルが存在する場合のテストです。内容を新しい名前のファイルへ移して旧いファイルを削除し、移動と警告のメッセージを表示することを確認します。')
-    const directory = useProjectRoot()
+    const directory = stepSync('プロジェクトの設定を用意する', () => useProjectRoot())
     const old = writeConfig(directory, 'old.json', boardConfig([{ owner: 'acme', name: 'demo', release_branch: 'main' }]))
-    const { client } = await startClient([listProjects('board'), projectFields([workflowField()]), linked('demo')])
-    const { io, out } = captured()
-
-    const result = await syncProjectConfig(out, client, { owner: 'acme', name: 'board', host: HOST })
-
+    const { client } = await step('GitHub の偽サーバを起動する', async () => await startClient([listProjects('board'), projectFields([workflowField()]), linked('demo')]))
+    const { io, out } = stepSync('出力の捕捉を用意する', () => captured())
+    const result = await step('プロジェクトの設定を同期する', async () => await syncProjectConfig(out, client, { owner: 'acme', name: 'board', host: HOST }))
     const configPath = path.join(directory, 'github.com_acme_1.json')
     const saved: unknown = JSON.parse(readFileSync(configPath, 'utf8'))
-    expect({ result, oldExists: existsSync(old), saved }).toMatchObject({
-      result: { configPath, change: 'update', activeProject: 'github.com_acme_1', movedFrom: old },
-      oldExists: false,
-      saved: { repositories: [{ owner: 'acme', name: 'demo', release_branch: 'main' }] },
+    stepSync('結果を確認する', () => {
+      expect({ result, oldExists: existsSync(old), saved }).toMatchObject({
+        result: { configPath, change: 'update', activeProject: 'github.com_acme_1', movedFrom: old },
+        oldExists: false,
+        saved: { repositories: [{ owner: 'acme', name: 'demo', release_branch: 'main' }] },
+      })
+      expect(io.err.join('')).toBe([
+        `moved: config file ${old} to ${configPath}`,
+        'warning: the project config is now named github.com_acme_1',
+        '  use this name for the project input and the PECOT_REVIEW_PROJECT variable',
+        `updated: config file ${configPath}`,
+        'set: active project to github.com_acme_1',
+        '',
+      ].join('\n'))
     })
-    expect(io.err.join('')).toBe([
-      `moved: config file ${old} to ${configPath}`,
-      'warning: the project config is now named github.com_acme_1',
-      '  use this name for the project input and the PECOT_REVIEW_PROJECT variable',
-      `updated: config file ${configPath}`,
-      'set: active project to github.com_acme_1',
-      '',
-    ].join('\n'))
   })
 
   it('dry-run の場合は、設定ファイルを書かず、予定の行を表示する', async () => {
     await explains('`dry-run` を指定した場合のテストです。設定ファイルを書き込まず、作成とアクティブ化の予定を表示することを確認します。')
-    const directory = useProjectRoot()
-    const { client } = await startClient([listProjects('board'), projectFields([workflowField()]), linked()])
-    const { io, out } = captured(true)
-
-    const result = await syncProjectConfig(out, client, { owner: 'acme', name: 'board', host: HOST, isDryRun: true })
-
+    const directory = stepSync('プロジェクトの設定を用意する', () => useProjectRoot())
+    const { client } = await step('GitHub の偽サーバを起動する', async () => await startClient([listProjects('board'), projectFields([workflowField()]), linked()]))
+    const { io, out } = stepSync('出力の捕捉を用意する', () => captured(true))
+    const result = await step('プロジェクトの設定を同期する', async () => await syncProjectConfig(out, client, { owner: 'acme', name: 'board', host: HOST, isDryRun: true }))
     const configPath = path.join(directory, 'github.com_acme_1.json')
-    expect({ result, written: existsSync(configPath) }).toEqual({ result: { configPath, change: 'create', activeProject: 'github.com_acme_1', movedFrom: undefined }, written: false })
-    expect(io.err.join('')).toBe(`dry-run: would create config file ${configPath}\ndry-run: would set active project to github.com_acme_1\n`)
+    stepSync('結果を確認する', () => {
+      expect({ result, written: existsSync(configPath) }).toEqual({ result: { configPath, change: 'create', activeProject: 'github.com_acme_1', movedFrom: undefined }, written: false })
+      expect(io.err.join('')).toBe(`dry-run: would create config file ${configPath}\ndry-run: would set active project to github.com_acme_1\n`)
+    })
   })
 
   describe('内容が同じとき', () => {
@@ -322,7 +357,9 @@ describe('syncProjectConfig', () => {
       { name: 'dry-run の場合はアクティブにする予定を表示する', extra: { activateIfUnchanged: true, isDryRun: true }, expected: { second: { configPath: 'github.com_acme_1.json', change: 'unchanged', activeProject: 'github.com_acme_1', movedFrom: undefined }, err: 'dry-run: would leave config file <dir>/github.com_acme_1.json unchanged\ndry-run: would set active project to github.com_acme_1\n', isActivated: false } },
     ])('設定の内容が変わらない場合は、設定ファイルを書き込まず、$name', async ({ name, extra, expected }) => {
       await explains(`ボードの内容が前回と同じ場合の同期のテストです。設定ファイルを書き込まず、${name}ことを確認します。`)
-      expect(await syncTwice(extra)).toEqual(expected)
+      await step('結果を確認する', async () => {
+        expect(await syncTwice(extra)).toEqual(expected)
+      })
     })
   })
 
@@ -350,11 +387,15 @@ describe('syncProjectConfig', () => {
       },
     ])('$name 場合は、エラーの行を表示して止める', async ({ name, rules, message }) => {
       await explains(`設定ファイルを同期できない場合のテストです。${name}場合は、エラーの行を表示して、例外（\`CommandExit\`）で止まることを確認します。`)
-      useProjectRoot()
-      const { client } = await startClient(rules)
-      const { io, out } = captured()
-      expect(await rejection(syncProjectConfig(out, client, { owner: 'acme', name: 'board', host: HOST }))).toBeInstanceOf(CommandExit)
-      expect(io.err.join('')).toBe(message)
+      stepSync('プロジェクトの設定を用意する', () => {
+        useProjectRoot()
+      })
+      const { client } = await step('GitHub の偽サーバを起動する', async () => await startClient(rules))
+      const { io, out } = stepSync('出力の捕捉を用意する', () => captured())
+      await step('結果を確認する', async () => {
+        expect(await rejection(syncProjectConfig(out, client, { owner: 'acme', name: 'board', host: HOST }))).toBeInstanceOf(CommandExit)
+        expect(io.err.join('')).toBe(message)
+      })
     })
   })
 })
