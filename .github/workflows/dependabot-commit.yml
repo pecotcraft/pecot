@@ -1,4 +1,4 @@
-# Dependabot の PR に、version plan と playwright-deps の版の commit を足す。
+# Dependabot の PR に、version plan・playwright-deps の版・actions/<処理>/dist の commit を足す。
 # push は App のトークンで行う（GITHUB_TOKEN の push で起きる ci の run は承認待ちで止まる）。
 name: dependabot-commit
 
@@ -22,24 +22,14 @@ jobs:
       contents: read
       packages: write
     steps:
-      # App の push で起きる run は actor が App になり、Dependabot secrets を読めない。
-      # その run では plan と版の差分が無く push もしないので、トークンを作らない。
-      - name: Generate GitHub App token
-        id: app-token
-        if: ${{ github.actor == 'dependabot[bot]' }}
-        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
-        with:
-          client-id: ${{ secrets.PECOT_BOT_CLIENT_ID }}
-          private-key: ${{ secrets.PECOT_BOT_PRIVATE_KEY }}
-          permission-contents: write
-
+      # PR の依存のコード（build のツールなど）が動く間は、git の設定にトークンを残さない。
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
           filter: blob:none
-          token: ${{ steps.app-token.outputs.token || github.token }}
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -59,6 +49,15 @@ jobs:
         continue-on-error: true
         run: node .githooks/scripts/sync-playwright-deps.mjs
 
+      # nx の build は dependsOn の root の install が scripts 付きで pnpm install をやり直すので使わない。
+      # plan は作り直した dist の差分も見るので、plan の前に置く。
+      - name: Build actions dist
+        id: dist
+        continue-on-error: true
+        run: |
+          pnpm --dir libs/workflow-core run build
+          pnpm --dir actions run build
+
       - name: Create version plans
         id: plans
         continue-on-error: true
@@ -72,17 +71,11 @@ jobs:
       - name: Commit generated files
         id: commit
         env:
-          COMMIT_MSG: "chore(repo): version plan と devcontainer の playwright-deps の版を dependabot の更新から作る"
-          HAS_APP_TOKEN: ${{ steps.app-token.outputs.token != '' }}
-          NO_TOKEN_MSG: "App のトークンが無く、plan と版を push できない。PR で @dependabot recreate を打つ"
+          COMMIT_MSG: "chore(repo): version plan・devcontainer の playwright-deps の版・actions の dist を dependabot の更新から作る"
         run: |
-          git add -A -- .nx/version-plans .devcontainer/devcontainer.json
+          git add -A -- .nx/version-plans .devcontainer/devcontainer.json ':(glob)actions/*/dist/**'
           if git diff --cached --quiet; then
             exit 0
-          fi
-          if [ "$HAS_APP_TOKEN" = "false" ]; then
-            echo "::error::${NO_TOKEN_MSG}"
-            exit 1
           fi
           if git diff --cached --name-only | grep -qx '.devcontainer/devcontainer.json'; then
             echo "image=true" >> "$GITHUB_OUTPUT"
@@ -91,6 +84,25 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "$COMMIT_MSG" -m "[dependabot skip]"
           echo "committed=true" >> "$GITHUB_OUTPUT"
+
+      # App の push で起きる run は actor が App になり、Dependabot secrets を読めない。
+      # その run では plan・版・dist の差分が無く push もしないので、トークンを作らない。
+      - name: Generate GitHub App token
+        id: app-token
+        if: ${{ github.actor == 'dependabot[bot]' && steps.commit.outputs.committed == 'true' }}
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          client-id: ${{ secrets.PECOT_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.PECOT_BOT_PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Fail when App token is missing
+        if: ${{ steps.commit.outputs.committed == 'true' && steps.app-token.outputs.token == '' }}
+        env:
+          NO_TOKEN_MSG: "App のトークンが無く、plan・版・dist を push できない。PR で @dependabot recreate を打つ"
+        run: |
+          echo "::error::${NO_TOKEN_MSG}"
+          exit 1
 
       # push で起きる ci の job が def-<key> を pull できるよう、push の前にイメージを載せる。
       - name: Log in to GHCR
@@ -123,24 +135,37 @@ jobs:
           echo "::warning::${msg}"
           echo "$msg" >> "$GITHUB_STEP_SUMMARY"
 
+      # App のトークンで push し、ci の run を起こす。トークンは URL に入れず、actions/checkout と同じ extraheader で渡す。
       - name: Push generated files
         if: ${{ steps.commit.outputs.committed == 'true' }}
         env:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
-        run: git push origin "HEAD:${HEAD_REF}"
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          auth=$(printf 'x-access-token:%s' "$APP_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $auth" push origin "HEAD:${HEAD_REF}"
 
       - name: Fail when version plans were not created
         if: ${{ steps.plans.outcome == 'failure' }}
         env:
-          PLANS_FAILED_MSG: "version plan を作れなかった。playwright-deps の版は push した。ログを見て、PR で @dependabot recreate を打つ"
+          PLANS_FAILED_MSG: "version plan を作れなかった。playwright-deps の版と actions の dist は push した。ログを見て、PR で @dependabot recreate を打つ"
         run: |
           echo "::error::${PLANS_FAILED_MSG}"
+          exit 1
+
+      - name: Fail when actions dist was not built
+        if: ${{ steps.dist.outcome == 'failure' }}
+        env:
+          DIST_FAILED_MSG: "actions の dist を作り直せなかった。version plan と playwright-deps の版は push した。ログを見て、PR で @dependabot recreate を打つ"
+        run: |
+          echo "::error::${DIST_FAILED_MSG}"
           exit 1
 
       - name: Fail when playwright-deps was not synced
         if: ${{ steps.sync.outcome == 'failure' }}
         env:
-          SYNC_FAILED_MSG: "playwright-deps の版を同期できなかった。version plan は push した。ログを見て、PR で @dependabot recreate を打つ"
+          SYNC_FAILED_MSG: "playwright-deps の版を同期できなかった。version plan と actions の dist は push した。ログを見て、PR で @dependabot recreate を打つ"
         run: |
           echo "::error::${SYNC_FAILED_MSG}"
           exit 1

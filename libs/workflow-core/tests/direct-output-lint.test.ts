@@ -4,6 +4,7 @@ import path from 'node:path'
 
 import { ESLint } from 'eslint'
 import { beforeAll, describe, expect, it } from 'vitest'
+import { step } from './_helpers/step.js'
 import { explains } from './_helpers/explains.js'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
@@ -41,7 +42,9 @@ describe('直接の出力を止める lint', () => {
       ['declare const io: { stderr: { write: (text: string) => void } }\nio.stderr.write("x")', 'no-restricted-syntax'],
     ])('ファイルに %s を書くと、lint の違反になる', async (code, expected) => {
       await explains(`直接の出力を止める lint のテストです。\`console.log\` や \`process.stderr.write\` などで直接出力するコードを書いた場合に、\`${expected}\` の違反が検出されることを確認します。`)
-      expect(await ruleIds(`${code}\n`, filePath)).toContain(expected)
+      await step('検出した規則を確認する', async () => {
+        expect(await ruleIds(`${code}\n`, filePath)).toContain(expected)
+      })
     })
   })
 
@@ -51,11 +54,15 @@ describe('直接の出力を止める lint', () => {
     'declare const io: { stderr: { write: (text: string) => void } }\nio.stderr.write("x")',
   ])('%s を書いても、src/commands-shared/output.ts では lint の違反にならない', async (code) => {
     await explains('直接の出力を止める lint のテストです。共通の出力関数を置く `src/commands-shared/output.ts` では、直接出力しても違反が検出されないことを確認します。')
-    expect(await ruleIds(`${code}\n`, OUTPUT_PATH)).toEqual([])
+    await step('検出した規則を確認する', async () => {
+      expect(await ruleIds(`${code}\n`, OUTPUT_PATH)).toEqual([])
+    })
   })
 
   it('enum を書くと、commands-shared のファイルでも共通の規則で lint の違反になる', async () => {
     await explains('共通の規則のテストです。`commands-shared` のファイルで `enum` を宣言した場合に、`no-restricted-syntax` の違反が検出されることを確認します。')
-    expect(await ruleIds('enum Color { Red }\n', RESTRICTED_PATH)).toContain('no-restricted-syntax')
+    await step('検出した規則を確認する', async () => {
+      expect(await ruleIds('enum Color { Red }\n', RESTRICTED_PATH)).toContain('no-restricted-syntax')
+    })
   })
 })

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { stepSync } from '../../../tests/_helpers/step.js'
 import { explains } from '../../../tests/_helpers/explains.js'
 import type { PullRequestStack } from '../../infra/github/pulls.js'
 import { planStackRegistration } from '../stack-registration.js'
@@ -17,6 +18,8 @@ describe('planStackRegistration', () => {
     { name: '子が別のスタックにあり、親にもスタックがある', parent: 2, child: 5, parentStack: stackOf(7, 1, 2), childStack: stackOf(9, 4, 5), expected: { kind: 'conflict', reason: 'PR #5 is already in stack #9' } },
   ])('$name 場合は、$expected.kind を返す', async ({ name, parent, child, parentStack, childStack, expected }) => {
     await explains(`スタックへの登録の判断を返す \`planStackRegistration\` のテストです。${name}場合に、判断の種類と中身が期待どおりになることを確認します。`)
-    expect(planStackRegistration(parent, child, parentStack, childStack)).toEqual(expected)
+    stepSync('結果を確認する', () => {
+      expect(planStackRegistration(parent, child, parentStack, childStack)).toEqual(expected)
+    })
   })
 })

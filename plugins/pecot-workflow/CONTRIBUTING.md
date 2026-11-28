@@ -181,6 +181,8 @@ clone は、確かめるセッションごとに 1 つ作ります。手順 5 �
 `sandbox-diff.sh` と `sandbox-sweep.sh` は、このリポの `.claude/settings.json` で承認なしに実行できます。
 `sandbox-diff.sh` で比べない項目を足すときは、`sandbox-diff-items.json` と spec の表を同じ変更で直します。
 このリポの ruleset・ボード・`pecot-board-sync.yml`・`pecot-review.yml`・`pecot-handoff.yml` の決まりを変えるときは、検証用を先に変えます。逆にすると、確かめた結果がこのリポで再現しません。
+必須のチェックを足すときは、検証用の `ci.yml`・`codeql.yml` に、同じ名前のジョブを先に足します。検証用のこの 2 つは、チェックの名前を出すだけのスタブです。
+`sandbox-diff.sh` は、この 2 つの有無だけを比べ、ジョブの名前は比べません。
 
 ### 直した pecot-workflow を動かす
 
@@ -265,7 +267,7 @@ MCP サーバ（`cli/src`）の直しは、クライアントに反映されま�
 利用者に配る `actions/templates/pecot-board-sync.yml` や、それが呼ぶ pecot の action を直したときは、マージの前に動かします。検証用の `.github/workflows/` に入れます。`uses:` は、作業ブランチの `actions/<処理>/dist/index.js` を読みます。
 検証用の `main` の workflow を書き換えるので、この確かめは一度に 1 人で行います。
 
-1. 作業ツリーで `pnpm exec nx run actions:build` を打って `dist` を作り直し、作業ブランチに commit して push する
+1. 作業ツリーで `pnpm exec nx run pecot-actions:build` を打って `dist` を作り直し、作業ブランチに commit して push する
 2. 作業ツリーのテンプレートを写し、`pecotcraft/pecot/actions/<処理>@pecot-actions/v<版>` の `@` の後ろだけを作業ブランチの名前に置き換える
 3. 検証用の clone で、写しを入れる PR を「基本の流れ」の手順で作る。`gh pr merge <番号> -R pecotcraft/pecot-sandbox` で merge queue に入れる。マージ方法は merge queue が決めるので、`--squash` などを付けない。
    `workflow_dispatch`・`pull_request_target`・`issues` は既定のブランチの定義で動くので、マージするまで直した定義では動かない

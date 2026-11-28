@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { explains } from '../../../tests/_helpers/explains.js'
+import { stepSync } from '../../../tests/_helpers/step.js'
 
 import type { PullRequestReadout } from '../issue-readout.js'
 import { createIssueReference } from '../reference-parser.js'
@@ -39,7 +40,9 @@ describe('decideRestack', () => {
     { name: 'ブランチが消え、PR が無い', given: { lowerPullRequest: undefined, lowerHead: undefined }, expected: { kind: 'gone', base: 'feat/lower/3', pullRequest: undefined } },
   ])('$name の場合は、$expected.kind と判断する', async ({ given, expected }) => {
     await explains('スタックした PR の base を付け替える必要があるかを決める、`decideRestack` のテストです。親ブランチの先頭と記録の違いや、親の PR の状態の組み合わせごとに、期待する判断の種類（`up-to-date` や `moved` など）を返すことを確認します。')
-    expect(decideRestack(input(given))).toEqual(expected)
+    stepSync('結果を比べる', () => {
+      expect(decideRestack(input(given))).toEqual(expected)
+    })
   })
 })
 
@@ -52,19 +55,25 @@ describe('describeRestackCheck', () => {
     { decision: { kind: 'rebased', base: 'main' }, expected: 'up to date: feat/upper/4 on main' },
   ])('$decision.kind の判断では、メッセージを $expected と表示する', async ({ decision, expected }) => {
     await explains('判断をメッセージにする `describeRestackCheck` のテストです。判断の種類ごとに、`up to date` か `needs restack` で始まる英語のメッセージを返すことを確認します。')
-    expect(describeRestackCheck('feat/upper/4', decision)).toBe(expected)
+    stepSync('結果を比べる', () => {
+      expect(describeRestackCheck('feat/upper/4', decision)).toBe(expected)
+    })
   })
 })
 
 describe('describeGone', () => {
   it('PR が存在すれば、その番号をメッセージに含める', async () => {
     await explains('親ブランチが消えた場合のメッセージを作る `describeGone` のテストです。親の PR が存在する場合に、PR の番号を含めて、マージされていないことを示すメッセージを返すことを確認します。')
-    expect(describeGone({ kind: 'gone', base: 'feat/lower/3', pullRequest: 21 })).toBe('base branch feat/lower/3 is gone and PR #21 was not merged')
+    stepSync('結果を比べる', () => {
+      expect(describeGone({ kind: 'gone', base: 'feat/lower/3', pullRequest: 21 })).toBe('base branch feat/lower/3 is gone and PR #21 was not merged')
+    })
   })
 
   it('PR が存在しなければ、マージされた PR がないことをメッセージに示す', async () => {
     await explains('親ブランチが消えた場合の、`describeGone` のテストです。親の PR が存在しない場合に、マージされた PR がないことを示すメッセージを返すことを確認します。')
-    expect(describeGone({ kind: 'gone', base: 'feat/lower/3', pullRequest: undefined })).toBe('base branch feat/lower/3 is gone and it has no merged PR')
+    stepSync('結果を比べる', () => {
+      expect(describeGone({ kind: 'gone', base: 'feat/lower/3', pullRequest: undefined })).toBe('base branch feat/lower/3 is gone and it has no merged PR')
+    })
   })
 })
 
@@ -78,6 +87,8 @@ describe('describeNeedsRestack', () => {
     { decision: { kind: 'gone', base: 'feat/lower/3', pullRequest: 21 }, expected: undefined },
   ])('$decision.kind の判断では、$expected を返す', async ({ decision, expected }) => {
     await explains('判断を `needs restack` の行にする `describeNeedsRestack` のテストです。載せ替えが不要な判断では `no`、必要な判断では `yes` の行を返し、親ブランチが消えた判断では `undefined` を返すことを確認します。')
-    expect(describeNeedsRestack(decision)).toBe(expected)
+    stepSync('結果を比べる', () => {
+      expect(describeNeedsRestack(decision)).toBe(expected)
+    })
   })
 })

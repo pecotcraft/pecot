@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { explains } from '../../../tests/_helpers/explains.js'
+import { stepSync } from '../../../tests/_helpers/step.js'
 
 import type {
   AttributeDefinition,
@@ -40,7 +41,9 @@ describe('projectFieldDefinition', () => {
     { dataType: 'DATE', kind: 'date' },
   ])('$dataType のフィールドは、kind を $kind にして選択肢を持たない', async ({ dataType, kind }) => {
     await explains(`ボードのフィールドを属性の定義に変換する関数（\`projectFieldDefinition\`）のテストです。種類が \`${dataType}\` のフィールドは、\`kind\` を \`${kind}\` とし、選択肢を持たず、書き込める定義になることを確認します。`)
-    expect(projectFieldDefinition(field(dataType), WORKFLOW_FIELD_ID)).toStrictEqual({ name: dataType.toLowerCase(), source: 'project', kind, writable: true })
+    stepSync('`projectFieldDefinition` を呼び、結果を比べる', () => {
+      expect(projectFieldDefinition(field(dataType), WORKFLOW_FIELD_ID)).toStrictEqual({ name: dataType.toLowerCase(), source: 'project', kind, writable: true })
+    })
   })
 
   it.for([
@@ -49,38 +52,53 @@ describe('projectFieldDefinition', () => {
     { dataType: 'ITERATION', kind: 'iteration' },
   ])('$dataType のフィールドは、kind を $kind にして選択肢を持つ', async ({ dataType, kind }) => {
     await explains(`ボードのフィールドを属性の定義に変換する関数（\`projectFieldDefinition\`）のテストです。種類が \`${dataType}\` のフィールドは、\`kind\` を \`${kind}\` とし、フィールドの選択肢を引き継いだ、書き込める定義になることを確認します。`)
-    const options = [{ name: 'a' }, { name: 'b', startDate: '2026-01-05' }]
-    expect(projectFieldDefinition(field(dataType, { name: 'Area', options }), WORKFLOW_FIELD_ID)).toStrictEqual({ name: 'Area', source: 'project', kind, options, writable: true })
+    const options = stepSync('入力を用意する', () => [{ name: 'a' }, { name: 'b', startDate: '2026-01-05' }])
+
+    stepSync('結果を比べる', () => {
+      expect(projectFieldDefinition(field(dataType, { name: 'Area', options }), WORKFLOW_FIELD_ID)).toStrictEqual({ name: 'Area', source: 'project', kind, options, writable: true })
+    })
   })
 
   it('ワークフローのフィールドと id が同じ場合は、名前によらず書き込めない定義とする', async () => {
     await explains('ワークフローのフィールドの id を持つフィールドのテストです。名前が `pecot-status` でも、`writable` が `false` の定義になることを確認します。')
-    expect(projectFieldDefinition(field('SINGLE_SELECT', { id: WORKFLOW_FIELD_ID, name: 'pecot-status' }), WORKFLOW_FIELD_ID)).toMatchObject({ kind: 'single_select', writable: false })
+    stepSync('`projectFieldDefinition` を呼び、結果を比べる', () => {
+      expect(projectFieldDefinition(field('SINGLE_SELECT', { id: WORKFLOW_FIELD_ID, name: 'pecot-status' }), WORKFLOW_FIELD_ID)).toMatchObject({ kind: 'single_select', writable: false })
+    })
   })
 
   it('単一選択で名前が Status のフィールドは、組み込みのものとして書き込めない定義にする', async () => {
     await explains('名前が `Status` の単一選択のフィールドのテストです。GitHub の組み込みのフィールドとして、`writable` が `false` の定義になることを確認します。')
-    expect(projectFieldDefinition(field('SINGLE_SELECT', { name: 'Status' }), WORKFLOW_FIELD_ID)).toMatchObject({ name: 'Status', writable: false })
+    stepSync('`projectFieldDefinition` を呼び、結果を比べる', () => {
+      expect(projectFieldDefinition(field('SINGLE_SELECT', { name: 'Status' }), WORKFLOW_FIELD_ID)).toMatchObject({ name: 'Status', writable: false })
+    })
   })
 
   it('名前が Status でも単一選択でないフィールドは、書き込める定義にする', async () => {
     await explains('名前が `Status` で、種類が `TEXT` のフィールドのテストです。組み込みの `Status` ではないため、`writable` が `true` の定義になることを確認します。')
-    expect(projectFieldDefinition(field('TEXT', { name: 'Status' }), WORKFLOW_FIELD_ID)).toMatchObject({ name: 'Status', writable: true })
+    stepSync('`projectFieldDefinition` を呼び、結果を比べる', () => {
+      expect(projectFieldDefinition(field('TEXT', { name: 'Status' }), WORKFLOW_FIELD_ID)).toMatchObject({ name: 'Status', writable: true })
+    })
   })
 
   it.for(['ASSIGNEES', 'LABELS', 'MILESTONE', 'ISSUE_TYPE', 'PARENT_ISSUE'])('Issue の機能を写した %s のフィールドは、属性の定義に含めない', async (dataType) => {
     await explains('Issue の担当者やラベルなどを写した、ボードのフィールドのテストです。属性の定義は組み込みの機能と重複するため、`undefined` を返すことを確認します。')
-    expect(projectFieldDefinition(field(dataType), WORKFLOW_FIELD_ID)).toBeUndefined()
+    stepSync('`projectFieldDefinition` を呼び、結果を比べる', () => {
+      expect(projectFieldDefinition(field(dataType), WORKFLOW_FIELD_ID)).toBeUndefined()
+    })
   })
 
   it('Issue field を写したボードのフィールドは、属性の定義に含めない', async () => {
     await explains('Issue field を写した、ボードのフィールドのテストです。Issue field として別に扱うため、`undefined` を返すことを確認します。')
-    expect(projectFieldDefinition(field('SINGLE_SELECT', { isIssueField: true }), WORKFLOW_FIELD_ID)).toBeUndefined()
+    stepSync('`projectFieldDefinition` を呼び、結果を比べる', () => {
+      expect(projectFieldDefinition(field('SINGLE_SELECT', { isIssueField: true }), WORKFLOW_FIELD_ID)).toBeUndefined()
+    })
   })
 
   it.for(['TITLE', 'REPOSITORY', 'REVIEWERS', 'LINKED_PULL_REQUESTS', 'TRACKS', 'TRACKED_BY', 'CREATED', 'UPDATED', 'CLOSED', 'SUB_ISSUES_PROGRESS', 'FUTURE_KIND'])('%s のフィールドは、unsupported の書き込めない定義にし、理由に種類を入れる', async (dataType) => {
     await explains('対応していない種類のボードのフィールドのテストです。`kind` が `unsupported` で、`writable` が `false` の定義になり、`unsupportedReason` に GitHub の種類名を入れることを確認します。')
-    expect(projectFieldDefinition(field(dataType, { name: 'X' }), WORKFLOW_FIELD_ID)).toStrictEqual({ name: 'X', source: 'project', kind: 'unsupported', writable: false, unsupportedReason: dataType })
+    stepSync('`projectFieldDefinition` を呼び、結果を比べる', () => {
+      expect(projectFieldDefinition(field(dataType, { name: 'X' }), WORKFLOW_FIELD_ID)).toStrictEqual({ name: 'X', source: 'project', kind: 'unsupported', writable: false, unsupportedReason: dataType })
+    })
   })
 })
 
@@ -91,7 +109,9 @@ describe('issueFieldDefinition', () => {
     { dataType: 'DATE', kind: 'date' },
   ])('$dataType の Issue field は、kind を $kind にする', async ({ dataType, kind }) => {
     await explains(`Issue field を属性の定義に変換する関数（\`issueFieldDefinition\`）のテストです。種類が \`${dataType}\` の Issue field は、\`kind\` を \`${kind}\` とし、書き込める定義になることを確認します。`)
-    expect(issueFieldDefinition({ name: 'Due', dataType, options: [] })).toStrictEqual({ name: 'Due', source: 'issue_field', kind, writable: true })
+    stepSync('`issueFieldDefinition` を呼び、結果を比べる', () => {
+      expect(issueFieldDefinition({ name: 'Due', dataType, options: [] })).toStrictEqual({ name: 'Due', source: 'issue_field', kind, writable: true })
+    })
   })
 
   it.for([
@@ -99,32 +119,41 @@ describe('issueFieldDefinition', () => {
     { dataType: 'MULTI_SELECT', kind: 'multi_select' },
   ])('$dataType の Issue field は、kind を $kind にして選択肢を持つ', async ({ dataType, kind }) => {
     await explains(`Issue field を属性の定義に変換する関数（\`issueFieldDefinition\`）のテストです。種類が \`${dataType}\` の Issue field は、\`kind\` を \`${kind}\` とし、選択肢を引き継いだ、書き込める定義になることを確認します。`)
-    expect(issueFieldDefinition({ name: 'Priority', dataType, options: [{ name: 'High' }] })).toStrictEqual({ name: 'Priority', source: 'issue_field', kind, options: [{ name: 'High' }], writable: true })
+    stepSync('`issueFieldDefinition` を呼び、結果を比べる', () => {
+      expect(issueFieldDefinition({ name: 'Priority', dataType, options: [{ name: 'High' }] })).toStrictEqual({ name: 'Priority', source: 'issue_field', kind, options: [{ name: 'High' }], writable: true })
+    })
   })
 
   it('対応していない種類の Issue field は、unsupported の書き込めない定義にする', async () => {
     await explains('種類が `USER` の Issue field のテストです。`kind` が `unsupported` で、`writable` が `false` の定義になり、`unsupportedReason` に種類名を入れることを確認します。')
-    expect(issueFieldDefinition({ name: 'Who', dataType: 'USER', options: [] })).toStrictEqual({ name: 'Who', source: 'issue_field', kind: 'unsupported', writable: false, unsupportedReason: 'USER' })
+    stepSync('`issueFieldDefinition` を呼び、結果を比べる', () => {
+      expect(issueFieldDefinition({ name: 'Who', dataType: 'USER', options: [] })).toStrictEqual({ name: 'Who', source: 'issue_field', kind: 'unsupported', writable: false, unsupportedReason: 'USER' })
+    })
   })
 })
 
 describe('builtinDefinitions', () => {
   it('組み込みの機能を、担当者・マイルストーン・Issue type・ラベル・親・前提の順に返す', async () => {
     await explains('組み込みの機能の定義を作成する関数（`builtinDefinitions`）のテストです。担当者・マイルストーン・Issue type・ラベル・親・前提の順に定義を返し、親と前提は書き込めない定義になることを確認します。')
-    const definitions = builtinDefinitions({ milestones: ['v1'], issueTypes: ['Bug', 'Task'], labels: ['bug'] })
-    expect(definitions).toStrictEqual([
-      { name: 'assignees', source: 'issue', kind: 'users', writable: true },
-      { name: 'milestone', source: 'issue', kind: 'milestone', options: [{ name: 'v1' }], writable: true },
-      { name: 'type', source: 'issue', kind: 'issue_type', options: [{ name: 'Bug' }, { name: 'Task' }], writable: true },
-      { name: 'labels', source: 'issue', kind: 'labels', options: [{ name: 'bug' }], writable: true },
-      { name: 'parent', source: 'issue', kind: 'issue_ref', writable: false },
-      { name: 'blocked_by', source: 'issue', kind: 'issue_refs', writable: false },
-    ])
+    const definitions = stepSync('`builtinDefinitions` を呼ぶ', () => builtinDefinitions({ milestones: ['v1'], issueTypes: ['Bug', 'Task'], labels: ['bug'] }))
+
+    stepSync('結果を比べる', () => {
+      expect(definitions).toStrictEqual([
+        { name: 'assignees', source: 'issue', kind: 'users', writable: true },
+        { name: 'milestone', source: 'issue', kind: 'milestone', options: [{ name: 'v1' }], writable: true },
+        { name: 'type', source: 'issue', kind: 'issue_type', options: [{ name: 'Bug' }, { name: 'Task' }], writable: true },
+        { name: 'labels', source: 'issue', kind: 'labels', options: [{ name: 'bug' }], writable: true },
+        { name: 'parent', source: 'issue', kind: 'issue_ref', writable: false },
+        { name: 'blocked_by', source: 'issue', kind: 'issue_refs', writable: false },
+      ])
+    })
   })
 
   it('Issue type を取得できない環境では、type の定義を含めない', async () => {
     await explains('Issue type を取得できない環境のテストです。定義の一覧に `type` が含まれないことを確認します。')
-    expect(builtinDefinitions({ milestones: [], issueTypes: undefined, labels: [] }).map(definition => definition.name)).toStrictEqual(['assignees', 'milestone', 'labels', 'parent', 'blocked_by'])
+    stepSync('`builtinDefinitions` を呼び、結果を比べる', () => {
+      expect(builtinDefinitions({ milestones: [], issueTypes: undefined, labels: [] }).map(definition => definition.name)).toStrictEqual(['assignees', 'milestone', 'labels', 'parent', 'blocked_by'])
+    })
   })
 })
 
@@ -138,22 +167,30 @@ describe('projectValueTreatment', () => {
     { dataType: 'ITERATION', kind: 'iteration' },
   ])('$dataType の値は、$kind として読む', async ({ dataType, kind }) => {
     await explains(`ボードのフィールドの値の扱いを決める関数（\`projectValueTreatment\`）のテストです。種類が \`${dataType}\` の値は、\`${kind}\` として読み取ると判定することを確認します。`)
-    expect(projectValueTreatment(dataType, false)).toStrictEqual({ treatment: 'read', kind })
+    stepSync('`projectValueTreatment` を呼び、結果を比べる', () => {
+      expect(projectValueTreatment(dataType, false)).toStrictEqual({ treatment: 'read', kind })
+    })
   })
 
   it.for(['ASSIGNEES', 'LABELS', 'MILESTONE', 'ISSUE_TYPE', 'PARENT_ISSUE', 'TITLE', 'REPOSITORY', 'SUB_ISSUES_PROGRESS'])('システムのフィールド %s の値は、読み取らずに捨てる', async (dataType) => {
     await explains('ボードのシステムのフィールドの値のテストです。Issue の情報と重複するため、読み取らずに捨てる（`skip`）と判定することを確認します。')
-    expect(projectValueTreatment(dataType, false)).toStrictEqual({ treatment: 'skip' })
+    stepSync('`projectValueTreatment` を呼び、結果を比べる', () => {
+      expect(projectValueTreatment(dataType, false)).toStrictEqual({ treatment: 'skip' })
+    })
   })
 
   it('Issue field を写したフィールドの値は、読み取らずに捨てる', async () => {
     await explains('Issue field を写した、ボードのフィールドの値のテストです。Issue field として別に読み取るため、読み取らずに捨てる（`skip`）と判定することを確認します。')
-    expect(projectValueTreatment('TEXT', true)).toStrictEqual({ treatment: 'skip' })
+    stepSync('`projectValueTreatment` を呼び、結果を比べる', () => {
+      expect(projectValueTreatment('TEXT', true)).toStrictEqual({ treatment: 'skip' })
+    })
   })
 
   it('対応していない種類の値は、unsupported と判定する', async () => {
     await explains('未知の種類のフィールドの値のテストです。読み取れないため、`unsupported` と判定することを確認します。')
-    expect(projectValueTreatment('FUTURE_KIND', false)).toStrictEqual({ treatment: 'unsupported' })
+    stepSync('`projectValueTreatment` を呼び、結果を比べる', () => {
+      expect(projectValueTreatment('FUTURE_KIND', false)).toStrictEqual({ treatment: 'unsupported' })
+    })
   })
 })
 
@@ -163,24 +200,30 @@ describe('issueFieldValueKind', () => {
     { dataType: 'USER', kind: 'unsupported' },
   ])('$dataType の Issue field の値は、$kind になる', async ({ dataType, kind }) => {
     await explains(`Issue field の値の種類を決める関数（\`issueFieldValueKind\`）のテストです。種類が \`${dataType}\` の Issue field の値は、\`${kind}\` になることを確認します。`)
-    expect(issueFieldValueKind(dataType)).toBe(kind)
+    stepSync('`issueFieldValueKind` を呼び、結果を比べる', () => {
+      expect(issueFieldValueKind(dataType)).toBe(kind)
+    })
   })
 })
 
 describe('builtinReadings', () => {
   it('値が存在する組み込みの機能だけを、担当者・マイルストーン・Issue type・ラベルの順に返す', async () => {
     await explains('組み込みの機能の現在の値を作成する関数（`builtinReadings`）のテストです。値を持つ機能だけを、担当者・マイルストーン・Issue type・ラベルの順に返すことを確認します。')
-    expect(builtinReadings({ assignees: ['alice', 'bob'], milestone: 'v1', issueType: 'Bug', labels: ['bug'] })).toStrictEqual([
-      { name: 'assignees', source: 'issue', kind: 'users', value: ['alice', 'bob'] },
-      { name: 'milestone', source: 'issue', kind: 'milestone', value: 'v1' },
-      { name: 'type', source: 'issue', kind: 'issue_type', value: 'Bug' },
-      { name: 'labels', source: 'issue', kind: 'labels', value: ['bug'] },
-    ])
+    stepSync('`builtinReadings` を呼び、結果を比べる', () => {
+      expect(builtinReadings({ assignees: ['alice', 'bob'], milestone: 'v1', issueType: 'Bug', labels: ['bug'] })).toStrictEqual([
+        { name: 'assignees', source: 'issue', kind: 'users', value: ['alice', 'bob'] },
+        { name: 'milestone', source: 'issue', kind: 'milestone', value: 'v1' },
+        { name: 'type', source: 'issue', kind: 'issue_type', value: 'Bug' },
+        { name: 'labels', source: 'issue', kind: 'labels', value: ['bug'] },
+      ])
+    })
   })
 
   it('値が存在しない組み込みの機能は、返さない', async () => {
     await explains('担当者・ラベルが空で、マイルストーンと Issue type が `undefined` の場合のテストです。空の配列を返すことを確認します。')
-    expect(builtinReadings({ assignees: [], milestone: undefined, issueType: undefined, labels: [] })).toStrictEqual([])
+    stepSync('`builtinReadings` を呼び、結果を比べる', () => {
+      expect(builtinReadings({ assignees: [], milestone: undefined, issueType: undefined, labels: [] })).toStrictEqual([])
+    })
   })
 })
 
@@ -191,7 +234,9 @@ describe('formatAttributeValue', () => {
     { name: '配列', value: ['a', 'b'], text: 'a, b' },
   ])('$name の値は、1 行の文字列にする', async ({ name, value, text }) => {
     await explains(`属性の値を文字列にする関数（\`formatAttributeValue\`）のテストです。${name}の値は、\`${text}\` の 1 行の文字列になることを確認します。`)
-    expect(formatAttributeValue(value)).toBe(text)
+    stepSync('`formatAttributeValue` を呼び、結果を比べる', () => {
+      expect(formatAttributeValue(value)).toBe(text)
+    })
   })
 })
 
@@ -245,32 +290,42 @@ function writesOf(validation: AttributeValidation): readonly AttributeWrite[] {
 describe('validateAttributes', () => {
   it('定義に存在しない名前は、似た名前を候補にして unknown_attribute にする', async () => {
     await explains('属性の入力を検証する関数（`validateAttributes`）のテストです。定義に存在しない名前（`Aera`）を指定した場合に、`unknown_attribute` のエラーを返し、似た名前（`Area`）を候補に示すことを確認します。')
-    expect(validate([{ name: 'Aera', value: 'cli' }])).toStrictEqual({ ok: false, errors: [{ code: 'unknown_attribute', name: 'Aera', candidates: ['Area'] }] })
+    stepSync('`validate` を呼び、結果を比べる', () => {
+      expect(validate([{ name: 'Aera', value: 'cli' }])).toStrictEqual({ ok: false, errors: [{ code: 'unknown_attribute', name: 'Aera', candidates: ['Area'] }] })
+    })
   })
 
   it('source を指定して名前が存在しない場合は、その source の名前だけを候補にする', async () => {
     await explains('名前と `source` を両方指定した場合のテストです。名前が存在しない場合は、指定した `source` の定義の名前だけを候補に示すことを確認します。')
-    expect(errorsOf(validate([{ name: 'Prioriti', value: 'High', source: 'project' }]))).toStrictEqual([{ code: 'unknown_attribute', name: 'Prioriti', source: 'project', candidates: [] }])
-    expect(errorsOf(validate([{ name: 'Prioriti', value: 'High', source: 'issue_field' }]))).toStrictEqual([{ code: 'unknown_attribute', name: 'Prioriti', source: 'issue_field', candidates: ['Priority'] }])
+    stepSync('`errorsOf` を呼び、結果を比べる', () => {
+      expect(errorsOf(validate([{ name: 'Prioriti', value: 'High', source: 'project' }]))).toStrictEqual([{ code: 'unknown_attribute', name: 'Prioriti', source: 'project', candidates: [] }])
+      expect(errorsOf(validate([{ name: 'Prioriti', value: 'High', source: 'issue_field' }]))).toStrictEqual([{ code: 'unknown_attribute', name: 'Prioriti', source: 'issue_field', candidates: ['Priority'] }])
+    })
   })
 
   it('同じ名前が複数の source に存在し、source を指定していない場合は、候補の source を示して ambiguous_attribute にする', async () => {
     await explains('ボードのフィールドと Issue field が同じ名前（`Note`）を持つ場合のテストです。`source` を指定していなければ、`ambiguous_attribute` のエラーを返し、候補の `source` を示すことを確認します。')
-    expect(errorsOf(validate([{ name: 'Note', value: 'x' }]))).toStrictEqual([{ code: 'ambiguous_attribute', name: 'Note', sources: ['project', 'issue_field'] }])
+    stepSync('`errorsOf` を呼び、結果を比べる', () => {
+      expect(errorsOf(validate([{ name: 'Note', value: 'x' }]))).toStrictEqual([{ code: 'ambiguous_attribute', name: 'Note', sources: ['project', 'issue_field'] }])
+    })
   })
 
   it('同じ名前が複数の source に存在しても、source を指定した場合は、その定義に書き込む', async () => {
     await explains('ボードのフィールドと Issue field が同じ名前（`Note`）を持つ場合のテストです。`source` を指定すれば、指定した定義への書き込みを作成することを確認します。')
-    expect(writesOf(validate([{ name: 'Note', value: 'x', source: 'issue_field' }]))).toStrictEqual([
-      { name: 'Note', source: 'issue_field', kind: 'text', before: JSON_NULL, after: 'x', target: { source: 'issue_field', fieldId: '103', value: 'x' } },
-    ])
+    stepSync('`writesOf` を呼び、結果を比べる', () => {
+      expect(writesOf(validate([{ name: 'Note', value: 'x', source: 'issue_field' }]))).toStrictEqual([
+        { name: 'Note', source: 'issue_field', kind: 'text', before: JSON_NULL, after: 'x', target: { source: 'issue_field', fieldId: '103', value: 'x' } },
+      ])
+    })
   })
 
   it('同じ属性を入力に 2 回指定した場合は、ambiguous_attribute を 1 つだけ返す', async () => {
     await explains('同じ属性（`Area`）を 2 回指定した場合のテストです。`ambiguous_attribute` のエラーを 1 つだけ返し、重複を示すヒントを付けることを確認します。')
-    expect(errorsOf(validate([{ name: 'Area', value: 'cli' }, { name: 'Area', value: 'docs', source: 'project' }]))).toStrictEqual([
-      { code: 'ambiguous_attribute', name: 'Area', source: 'project', sources: ['project'], hint: 'the attribute is given more than once' },
-    ])
+    stepSync('`errorsOf` を呼び、結果を比べる', () => {
+      expect(errorsOf(validate([{ name: 'Area', value: 'cli' }, { name: 'Area', value: 'docs', source: 'project' }]))).toStrictEqual([
+        { code: 'ambiguous_attribute', name: 'Area', source: 'project', sources: ['project'], hint: 'the attribute is given more than once' },
+      ])
+    })
   })
 
   it.for([
@@ -278,7 +333,9 @@ describe('validateAttributes', () => {
     { name: 'Status', hint: 'move the issue with projects_write (method update_project_item) after board_check' },
   ])('ボードの列 $name は、projects_write を案内して read_only_attribute にする', async ({ name, hint }) => {
     await explains(`ボードの列を属性として指定した場合のテストです。${name}は書き込めないため、\`read_only_attribute\` のエラーを返し、\`projects_write\` で移動するよう案内することを確認します。`)
-    expect(errorsOf(validate([{ name, value: 'Ready' }]))).toStrictEqual([{ code: 'read_only_attribute', name, source: 'project', hint }])
+    stepSync('`errorsOf` を呼び、結果を比べる', () => {
+      expect(errorsOf(validate([{ name, value: 'Ready' }]))).toStrictEqual([{ code: 'read_only_attribute', name, source: 'project', hint }])
+    })
   })
 
   it.for([
@@ -286,37 +343,49 @@ describe('validateAttributes', () => {
     { name: 'blocked_by', value: ['acme/demo/4'], hint: 'change blocked_by with issue_dependency_write after issue_dependency_check' },
   ])('$name は、代わりのツールを案内して read_only_attribute にする', async ({ name, value, hint }) => {
     await explains(`親と前提を属性として指定した場合のテストです。${name}は書き込めないため、\`read_only_attribute\` のエラーを返し、代わりに使うツールを案内することを確認します。`)
-    expect(errorsOf(validate([{ name, value }]))).toStrictEqual([{ code: 'read_only_attribute', name, source: 'issue', hint }])
+    stepSync('`errorsOf` を呼び、結果を比べる', () => {
+      expect(errorsOf(validate([{ name, value }]))).toStrictEqual([{ code: 'read_only_attribute', name, source: 'issue', hint }])
+    })
   })
 
   it('unsupported の定義は、read_only ではなく、GitHub の種類を示して unsupported_attribute にする', async () => {
     await explains('対応していない種類のフィールドを指定した場合のテストです。`read_only_attribute` ではなく `unsupported_attribute` のエラーを返し、GitHub の種類を示すことを確認します。')
-    expect(errorsOf(validate([{ name: 'Sub-issues progress', value: 'x' }]))).toStrictEqual([
-      { code: 'unsupported_attribute', name: 'Sub-issues progress', source: 'project', hint: 'GitHub type SUB_ISSUES_PROGRESS is not supported' },
-    ])
+    stepSync('`errorsOf` を呼び、結果を比べる', () => {
+      expect(errorsOf(validate([{ name: 'Sub-issues progress', value: 'x' }]))).toStrictEqual([
+        { code: 'unsupported_attribute', name: 'Sub-issues progress', source: 'project', hint: 'GitHub type SUB_ISSUES_PROGRESS is not supported' },
+      ])
+    })
   })
 
   it('ボードに追加されていない Issue のボードのフィールドは、projects_write を案内して not_on_board にする', async () => {
     await explains('ボードに追加されていない Issue に、ボードのフィールドと Issue field を指定した場合のテストです。ボードのフィールドだけ `not_on_board` のエラーを返し、`projects_write` で追加するよう案内することを確認します。')
-    expect(errorsOf(validate([{ name: 'Area', value: 'cli' }, { name: 'Priority', value: 'High' }], { isOnBoard: false }))).toStrictEqual([
-      { code: 'not_on_board', name: 'Area', source: 'project', hint: 'add the issue to the board with projects_write (method add_project_item)' },
-    ])
+    stepSync('`errorsOf` を呼び、結果を比べる', () => {
+      expect(errorsOf(validate([{ name: 'Area', value: 'cli' }, { name: 'Priority', value: 'High' }], { isOnBoard: false }))).toStrictEqual([
+        { code: 'not_on_board', name: 'Area', source: 'project', hint: 'add the issue to the board with projects_write (method add_project_item)' },
+      ])
+    })
   })
 
   it('取得できなかった source の名前は、unknown ではなく、理由を示して unreadable_attribute にする', async () => {
     await explains('Issue fields を取得できなかった場合のテストです。定義に存在しない名前でも、`unknown_attribute` ではなく `unreadable_attribute` のエラーを返し、取得できなかった理由を示すことを確認します。')
-    const unreadableSources = new Map<AttributeSource, string>([['issue_field', 'Issue fields are not enabled']])
-    expect(errorsOf(validate([{ name: 'Risk', value: 'High' }], { unreadableSources }))).toStrictEqual([
-      { code: 'unreadable_attribute', name: 'Risk', source: 'issue_field', hint: 'Issue fields are not enabled' },
-    ])
+    const unreadableSources = stepSync('入力を用意する', () => new Map<AttributeSource, string>([['issue_field', 'Issue fields are not enabled']]))
+
+    stepSync('結果を比べる', () => {
+      expect(errorsOf(validate([{ name: 'Risk', value: 'High' }], { unreadableSources }))).toStrictEqual([
+        { code: 'unreadable_attribute', name: 'Risk', source: 'issue_field', hint: 'Issue fields are not enabled' },
+      ])
+    })
   })
 
   it('source を指定し、その source を取得できた場合は、ほかの source を取得できなくても unknown_attribute にする', async () => {
     await explains('Issue fields を取得できず、`source` に `project` を指定した場合のテストです。指定した `source` は取得できているため、`unreadable_attribute` ではなく `unknown_attribute` のエラーを返すことを確認します。')
-    const unreadableSources = new Map<AttributeSource, string>([['issue_field', 'Issue fields are not enabled']])
-    expect(errorsOf(validate([{ name: 'Risk', value: 'High', source: 'project' }], { unreadableSources }))).toStrictEqual([
-      { code: 'unknown_attribute', name: 'Risk', source: 'project', candidates: [] },
-    ])
+    const unreadableSources = stepSync('入力を用意する', () => new Map<AttributeSource, string>([['issue_field', 'Issue fields are not enabled']]))
+
+    stepSync('結果を比べる', () => {
+      expect(errorsOf(validate([{ name: 'Risk', value: 'High', source: 'project' }], { unreadableSources }))).toStrictEqual([
+        { code: 'unknown_attribute', name: 'Risk', source: 'project', candidates: [] },
+      ])
+    })
   })
 
   it.for([
@@ -325,9 +394,11 @@ describe('validateAttributes', () => {
     { name: 'マイルストーンの番号の無い定義', definition: { name: 'milestone', source: 'issue', kind: 'milestone', options: [{ name: 'v1' }], writable: true }, value: 'v1' },
   ] satisfies readonly { name: string, definition: AttributeDefinition, value: AttributeValue }[])('$name へ書き込むと、unreadable_attribute にする', async ({ name, definition, value }) => {
     await explains(`ID が存在しない定義への書き込みのテストです。${name}へ書き込むと、\`unreadable_attribute\` のエラーを返し、理由として \`the definition has no ID\` を示すことを確認します。`)
-    expect(errorsOf(validate([{ name: definition.name, value }], {}, [definition]))).toStrictEqual([
-      { code: 'unreadable_attribute', name: definition.name, source: definition.source, hint: 'the definition has no ID' },
-    ])
+    stepSync('`errorsOf` を呼び、結果を比べる', () => {
+      expect(errorsOf(validate([{ name: definition.name, value }], {}, [definition]))).toStrictEqual([
+        { code: 'unreadable_attribute', name: definition.name, source: definition.source, hint: 'the definition has no ID' },
+      ])
+    })
   })
 
   it.for([
@@ -350,86 +421,112 @@ describe('validateAttributes', () => {
     { name: 'users に空の名前', attribute: 'assignees', source: 'issue', value: [''], expected: 'assignable logins' },
   ] satisfies readonly { name: string, attribute: string, source: AttributeSource, value: AttributeValue, expected: string }[])('$name を渡すと、取りうる値を示して invalid_value にする', async ({ name, attribute, source, value, expected }) => {
     await explains(`属性に合わない値を渡した場合のテストです。${name}を渡すと、\`invalid_value\` のエラーとなり、指定できる値（\`expected\`）が示されることを確認します。`)
-    expect(errorsOf(validate([{ name: attribute, value, source }]))).toStrictEqual([{ code: 'invalid_value', name: attribute, source, value, expected }])
+    stepSync('`errorsOf` を呼び、結果を比べる', () => {
+      expect(errorsOf(validate([{ name: attribute, value, source }]))).toStrictEqual([{ code: 'invalid_value', name: attribute, source, value, expected }])
+    })
   })
 
   it('担当者にできないログイン名を指定した場合は、その名前を示して invalid_value にする', async () => {
     await explains('担当者にできないログイン名を指定した場合のテストです。`invalid_value` のエラーを返し、担当者にできない名前（`ghost`）を示すことを確認します。')
-    const unassignableLogins = new Set(['ghost'])
-    expect(errorsOf(validate([{ name: 'assignees', value: ['alice', 'ghost'] }], { unassignableLogins }))).toStrictEqual([
-      { code: 'invalid_value', name: 'assignees', source: 'issue', value: ['alice', 'ghost'], expected: 'assignable logins', hint: 'not assignable: ghost' },
-    ])
+    const unassignableLogins = stepSync('入力を用意する', () => new Set(['ghost']))
+
+    stepSync('結果を比べる', () => {
+      expect(errorsOf(validate([{ name: 'assignees', value: ['alice', 'ghost'] }], { unassignableLogins }))).toStrictEqual([
+        { code: 'invalid_value', name: 'assignees', source: 'issue', value: ['alice', 'ghost'], expected: 'assignable logins', hint: 'not assignable: ghost' },
+      ])
+    })
   })
 
   it('閏年の 2 月 29 日は、有効な日付として受け付ける', async () => {
     await explains('閏年の 2 月 29 日（`2028-02-29`）を日付のフィールドに指定した場合のテストです。エラーにならず、書き込みを作成することを確認します。')
-    expect(writesOf(validate([{ name: 'Due', value: '2028-02-29' }])).map(write => write.after)).toStrictEqual(['2028-02-29'])
+    stepSync('`writesOf` を呼び、結果を比べる', () => {
+      expect(writesOf(validate([{ name: 'Due', value: '2028-02-29' }])).map(write => write.after)).toStrictEqual(['2028-02-29'])
+    })
   })
 
   it('不正な入力が複数ある場合は、すべての理由を返し、書き込む予定は返さない', async () => {
     await explains('正しい入力と不正な入力が混在する場合のテストです。不正な入力すべての理由（`unknown_attribute`・`invalid_value`・`read_only_attribute`）を入力の順に返し、書き込みの予定は返さないことを確認します。')
-    const validation = validate([
+    const validation = stepSync('`validate` を呼ぶ', () => validate([
       { name: 'Area', value: 'cli' },
       { name: 'Aera', value: 'cli' },
       { name: 'Points', value: 'many' },
       { name: 'parent', value: 'acme/demo/1' },
-    ])
-    expect(validation.ok).toBe(false)
-    expect(validation).not.toHaveProperty('writes')
-    expect(errorsOf(validation).map(error => [error.code, error.name])).toStrictEqual([
-      ['unknown_attribute', 'Aera'],
-      ['invalid_value', 'Points'],
-      ['read_only_attribute', 'parent'],
-    ])
+    ]))
+
+    stepSync('結果を比べる', () => {
+      expect(validation.ok).toBe(false)
+      expect(validation).not.toHaveProperty('writes')
+      expect(errorsOf(validation).map(error => [error.code, error.name])).toStrictEqual([
+        ['unknown_attribute', 'Aera'],
+        ['invalid_value', 'Points'],
+        ['read_only_attribute', 'parent'],
+      ])
+    })
   })
 
   it('issue_check の create のように現在の値が存在しない場合は、null の入力を書き込まず無視する', async () => {
     await explains('Issue を作成するときの、現在の値が存在しない場合のテストです。`null` を指定した属性は書き込まず、書き込みの予定が空になることを確認します。')
-    expect(validate([{ name: 'Area', value: JSON_NULL }, { name: 'labels', value: JSON_NULL }])).toStrictEqual({ ok: true, writes: [] })
+    stepSync('`validate` を呼び、結果を比べる', () => {
+      expect(validate([{ name: 'Area', value: JSON_NULL }, { name: 'labels', value: JSON_NULL }])).toStrictEqual({ ok: true, writes: [] })
+    })
   })
 
   it('issue_check の update で null を指定した場合は、現在の値を外す書き込みにする', async () => {
     await explains('Issue を編集するときに、値を持つ属性へ `null` を指定した場合のテストです。ボードのフィールド・Issue field・組み込みの機能のそれぞれで、現在の値を外す書き込みになることを確認します。')
-    const current: readonly AttributeReading[] = [
-      { name: 'Area', source: 'project', kind: 'single_select', value: 'cli' },
-      { name: 'Priority', source: 'issue_field', kind: 'single_select', value: 'High' },
-      { name: 'assignees', source: 'issue', kind: 'users', value: ['alice'] },
-      { name: 'labels', source: 'issue', kind: 'labels', value: ['bug'] },
-      { name: 'milestone', source: 'issue', kind: 'milestone', value: 'v1' },
-      { name: 'type', source: 'issue', kind: 'issue_type', value: 'Bug' },
-    ]
-    const inputs = current.map(reading => ({ name: reading.name, value: JSON_NULL }))
-    expect(writesOf(validate(inputs, { current })).map(write => [write.name, write.before, write.after, write.target])).toStrictEqual([
-      ['Area', 'cli', JSON_NULL, { source: 'project', fieldId: 'PVTSSF_area', value: JSON_NULL }],
-      ['Priority', 'High', JSON_NULL, { source: 'issue_field', fieldId: '101', value: JSON_NULL }],
-      ['assignees', ['alice'], JSON_NULL, { source: 'issue', write: { key: 'assignees', value: [] } }],
-      ['labels', ['bug'], JSON_NULL, { source: 'issue', write: { key: 'labels', value: [] } }],
-      ['milestone', 'v1', JSON_NULL, { source: 'issue', write: { key: 'milestone', value: JSON_NULL } }],
-      ['type', 'Bug', JSON_NULL, { source: 'issue', write: { key: 'type', value: JSON_NULL } }],
-    ])
+    const { current, inputs } = stepSync('`map` を呼ぶ', () => {
+      const current: readonly AttributeReading[] = [
+        { name: 'Area', source: 'project', kind: 'single_select', value: 'cli' },
+        { name: 'Priority', source: 'issue_field', kind: 'single_select', value: 'High' },
+        { name: 'assignees', source: 'issue', kind: 'users', value: ['alice'] },
+        { name: 'labels', source: 'issue', kind: 'labels', value: ['bug'] },
+        { name: 'milestone', source: 'issue', kind: 'milestone', value: 'v1' },
+        { name: 'type', source: 'issue', kind: 'issue_type', value: 'Bug' },
+      ]
+      const inputs = current.map(reading => ({ name: reading.name, value: JSON_NULL }))
+      return { current, inputs }
+    })
+
+    stepSync('結果を比べる', () => {
+      expect(writesOf(validate(inputs, { current })).map(write => [write.name, write.before, write.after, write.target])).toStrictEqual([
+        ['Area', 'cli', JSON_NULL, { source: 'project', fieldId: 'PVTSSF_area', value: JSON_NULL }],
+        ['Priority', 'High', JSON_NULL, { source: 'issue_field', fieldId: '101', value: JSON_NULL }],
+        ['assignees', ['alice'], JSON_NULL, { source: 'issue', write: { key: 'assignees', value: [] } }],
+        ['labels', ['bug'], JSON_NULL, { source: 'issue', write: { key: 'labels', value: [] } }],
+        ['milestone', 'v1', JSON_NULL, { source: 'issue', write: { key: 'milestone', value: JSON_NULL } }],
+        ['type', 'Bug', JSON_NULL, { source: 'issue', write: { key: 'type', value: JSON_NULL } }],
+      ])
+    })
   })
 
   it('issue_check の update で null を指定しても、現在の値が存在しない場合は書き込まない', async () => {
     await explains('Issue を編集するときに、現在の値が存在しない属性へ `null` を指定した場合のテストです。書き込みの予定が空になることを確認します。')
-    expect(validate([{ name: 'Area', value: JSON_NULL }], { current: [] })).toStrictEqual({ ok: true, writes: [] })
+    stepSync('`validate` を呼び、結果を比べる', () => {
+      expect(validate([{ name: 'Area', value: JSON_NULL }], { current: [] })).toStrictEqual({ ok: true, writes: [] })
+    })
   })
 
   it('空の配列は、値を外す指定と同じように扱う', async () => {
     await explains('複数選択のフィールドへ空の配列を指定した場合のテストです。現在の値があれば `null` への書き込みを作成し、現在の値がなければ何も書き込まないことを確認します。')
-    const current: readonly AttributeReading[] = [{ name: 'Tags', source: 'project', kind: 'multi_select', value: ['a'] }]
-    expect(writesOf(validate([{ name: 'Tags', value: [] }], { current }))).toStrictEqual([
-      { name: 'Tags', source: 'project', kind: 'multi_select', before: ['a'], after: JSON_NULL, target: { source: 'project', fieldId: 'PVTMSF_tags', value: JSON_NULL } },
-    ])
-    expect(validate([{ name: 'labels', value: [] }])).toStrictEqual({ ok: true, writes: [] })
+    const current: readonly AttributeReading[] = stepSync('入力を用意する', () => [{ name: 'Tags', source: 'project', kind: 'multi_select', value: ['a'] }])
+
+    stepSync('結果を比べる', () => {
+      expect(writesOf(validate([{ name: 'Tags', value: [] }], { current }))).toStrictEqual([
+        { name: 'Tags', source: 'project', kind: 'multi_select', before: ['a'], after: JSON_NULL, target: { source: 'project', fieldId: 'PVTMSF_tags', value: JSON_NULL } },
+      ])
+      expect(validate([{ name: 'labels', value: [] }])).toStrictEqual({ ok: true, writes: [] })
+    })
   })
 
   it('issue_check の update で現在の値と同じ値を指定した場合は、書き込まない', async () => {
     await explains('Issue を編集するときに、現在の値と同じ値を指定した場合のテストです。書き込みの予定が空になることを確認します。')
-    const current: readonly AttributeReading[] = [
+    const current: readonly AttributeReading[] = stepSync('入力を用意する', () => [
       { name: 'Note', source: 'project', kind: 'text', value: 'x' },
       { name: 'Points', source: 'project', kind: 'number', value: 3 },
-    ]
-    expect(validate([{ name: 'Note', value: 'x', source: 'project' }, { name: 'Points', value: 3 }], { current })).toStrictEqual({ ok: true, writes: [] })
+    ])
+
+    stepSync('結果を比べる', () => {
+      expect(validate([{ name: 'Note', value: 'x', source: 'project' }, { name: 'Points', value: 3 }], { current })).toStrictEqual({ ok: true, writes: [] })
+    })
   })
 
   it.for([
@@ -439,88 +536,110 @@ describe('validateAttributes', () => {
   ] satisfies readonly { name: string, attribute: string, kind: AttributeKind, before: readonly string[], after: readonly string[] }[])('$name は集合として比較し、順序だけが違う場合は書き込まない', async ({ name, attribute, kind, before, after }) => {
     await explains(`現在の値と入力の値を比較するテストです。${name}の要素の順序だけが違う場合は、書き込みを作成しないことを確認します。`)
     const source = attribute === 'Tags' ? 'project' : 'issue'
-    expect(validate([{ name: attribute, value: after }], { current: [{ name: attribute, source, kind, value: before }] })).toStrictEqual({ ok: true, writes: [] })
+
+    stepSync('結果を比べる', () => {
+      expect(validate([{ name: attribute, value: after }], { current: [{ name: attribute, source, kind, value: before }] })).toStrictEqual({ ok: true, writes: [] })
+    })
   })
 
   it('集合の要素が変わる場合は、変更前と変更後の値を持つ書き込みにする', async () => {
     await explains('ラベルに要素を追加する場合のテストです。変更前の値と変更後の値を持つ書き込みを作成することを確認します。')
-    const current: readonly AttributeReading[] = [{ name: 'labels', source: 'issue', kind: 'labels', value: ['bug'] }]
-    expect(writesOf(validate([{ name: 'labels', value: ['bug', 'docs'] }], { current }))).toStrictEqual([
-      { name: 'labels', source: 'issue', kind: 'labels', before: ['bug'], after: ['bug', 'docs'], target: { source: 'issue', write: { key: 'labels', value: ['bug', 'docs'] } } },
-    ])
+    const current: readonly AttributeReading[] = stepSync('入力を用意する', () => [{ name: 'labels', source: 'issue', kind: 'labels', value: ['bug'] }])
+
+    stepSync('結果を比べる', () => {
+      expect(writesOf(validate([{ name: 'labels', value: ['bug', 'docs'] }], { current }))).toStrictEqual([
+        { name: 'labels', source: 'issue', kind: 'labels', before: ['bug'], after: ['bug', 'docs'], target: { source: 'issue', write: { key: 'labels', value: ['bug', 'docs'] } } },
+      ])
+    })
   })
 
   it('iteration を開始日で指定した場合は、一致する名前の iteration へ書き込む', async () => {
     await explains('iteration のフィールドに開始日（`2026-11-16`）を指定した場合のテストです。開始日が一致する iteration（`Sprint 2`）を探し、その ID で書き込みを作成することを確認します。')
-    expect(writesOf(validate([{ name: 'Sprint', value: '2026-11-16' }]))).toStrictEqual([
-      { name: 'Sprint', source: 'project', kind: 'iteration', before: JSON_NULL, after: 'Sprint 2', target: { source: 'project', fieldId: 'PVTIF_sprint', value: { iterationId: 'IT_2' } } },
-    ])
+    stepSync('`writesOf` を呼び、結果を比べる', () => {
+      expect(writesOf(validate([{ name: 'Sprint', value: '2026-11-16' }]))).toStrictEqual([
+        { name: 'Sprint', source: 'project', kind: 'iteration', before: JSON_NULL, after: 'Sprint 2', target: { source: 'project', fieldId: 'PVTIF_sprint', value: { iterationId: 'IT_2' } } },
+      ])
+    })
   })
 
   it('iteration を開始日で指定しても、現在の値と同じ iteration の場合は書き込まない', async () => {
     await explains('iteration のフィールドに開始日を指定し、一致する iteration が現在の値と同じ場合のテストです。書き込みの予定が空になることを確認します。')
-    const current: readonly AttributeReading[] = [{ name: 'Sprint', source: 'project', kind: 'iteration', value: 'Sprint 2' }]
-    expect(validate([{ name: 'Sprint', value: '2026-11-16' }], { current })).toStrictEqual({ ok: true, writes: [] })
+    const current: readonly AttributeReading[] = stepSync('入力を用意する', () => [{ name: 'Sprint', source: 'project', kind: 'iteration', value: 'Sprint 2' }])
+
+    stepSync('結果を比べる', () => {
+      expect(validate([{ name: 'Sprint', value: '2026-11-16' }], { current })).toStrictEqual({ ok: true, writes: [] })
+    })
   })
 
   it('ボードのフィールドは、種類ごとの形の値と選択肢の ID で書き込む', async () => {
     await explains('ボードのフィールドへの書き込みのテストです。単一選択・複数選択・テキスト・数・日付・iteration のそれぞれで、種類に応じた形の値と選択肢の ID を持つ書き込みを作成することを確認します。')
-    const inputs: readonly AttributeInput[] = [
+    const inputs: readonly AttributeInput[] = stepSync('入力を用意する', () => [
       { name: 'Area', value: 'docs' },
       { name: 'Tags', value: ['b', 'a'] },
       { name: 'Note', value: 'memo', source: 'project' },
       { name: 'Points', value: 2.5 },
       { name: 'Due', value: '2026-12-01' },
       { name: 'Sprint', value: 'Sprint 1' },
-    ]
-    expect(writesOf(validate(inputs)).map(write => write.target)).toStrictEqual([
-      { source: 'project', fieldId: 'PVTSSF_area', value: { singleSelectOptionId: 'OPT_docs' } },
-      { source: 'project', fieldId: 'PVTMSF_tags', value: { multiSelectOptionIds: ['OPT_b', 'OPT_a'] } },
-      { source: 'project', fieldId: 'PVTF_note', value: { text: 'memo' } },
-      { source: 'project', fieldId: 'PVTF_points', value: { number: 2.5 } },
-      { source: 'project', fieldId: 'PVTF_due', value: { date: '2026-12-01' } },
-      { source: 'project', fieldId: 'PVTIF_sprint', value: { iterationId: 'IT_1' } },
     ])
+
+    stepSync('結果を比べる', () => {
+      expect(writesOf(validate(inputs)).map(write => write.target)).toStrictEqual([
+        { source: 'project', fieldId: 'PVTSSF_area', value: { singleSelectOptionId: 'OPT_docs' } },
+        { source: 'project', fieldId: 'PVTMSF_tags', value: { multiSelectOptionIds: ['OPT_b', 'OPT_a'] } },
+        { source: 'project', fieldId: 'PVTF_note', value: { text: 'memo' } },
+        { source: 'project', fieldId: 'PVTF_points', value: { number: 2.5 } },
+        { source: 'project', fieldId: 'PVTF_due', value: { date: '2026-12-01' } },
+        { source: 'project', fieldId: 'PVTIF_sprint', value: { iterationId: 'IT_1' } },
+      ])
+    })
   })
 
   it('Issue field は、選択肢も名前のまま書き込む', async () => {
     await explains('Issue field への書き込みのテストです。選択肢の ID に変換せず、入力した名前や値のまま書き込みを作成することを確認します。')
-    const inputs: readonly AttributeInput[] = [
+    const inputs: readonly AttributeInput[] = stepSync('入力を用意する', () => [
       { name: 'Priority', value: 'High' },
       { name: 'Effort', value: ['S', 'M'] },
       { name: 'Note', value: 'memo', source: 'issue_field' },
       { name: 'Start date', value: '2026-11-24' },
       { name: 'Size', value: 5 },
-    ]
-    expect(writesOf(validate(inputs)).map(write => write.target)).toStrictEqual([
-      { source: 'issue_field', fieldId: '101', value: 'High' },
-      { source: 'issue_field', fieldId: '102', value: ['S', 'M'] },
-      { source: 'issue_field', fieldId: '103', value: 'memo' },
-      { source: 'issue_field', fieldId: '104', value: '2026-11-24' },
-      { source: 'issue_field', fieldId: '105', value: 5 },
     ])
+
+    stepSync('結果を比べる', () => {
+      expect(writesOf(validate(inputs)).map(write => write.target)).toStrictEqual([
+        { source: 'issue_field', fieldId: '101', value: 'High' },
+        { source: 'issue_field', fieldId: '102', value: ['S', 'M'] },
+        { source: 'issue_field', fieldId: '103', value: 'memo' },
+        { source: 'issue_field', fieldId: '104', value: '2026-11-24' },
+        { source: 'issue_field', fieldId: '105', value: 5 },
+      ])
+    })
   })
 
   it('組み込みの機能は、REST の本文のキーと値で書き込み、マイルストーンは番号にする', async () => {
     await explains('担当者・マイルストーン・Issue type・ラベルへの書き込みのテストです。REST API の本文のキーと値の形で書き込みを作成し、マイルストーンは名前ではなく番号にすることを確認します。')
-    const inputs: readonly AttributeInput[] = [
+    const inputs: readonly AttributeInput[] = stepSync('入力を用意する', () => [
       { name: 'assignees', value: ['alice'] },
       { name: 'milestone', value: 'v1' },
       { name: 'type', value: 'Task' },
       { name: 'labels', value: ['docs'] },
-    ]
-    expect(writesOf(validate(inputs)).map(write => write.target)).toStrictEqual([
-      { source: 'issue', write: { key: 'assignees', value: ['alice'] } },
-      { source: 'issue', write: { key: 'milestone', value: 7 } },
-      { source: 'issue', write: { key: 'type', value: 'Task' } },
-      { source: 'issue', write: { key: 'labels', value: ['docs'] } },
     ])
+
+    stepSync('結果を比べる', () => {
+      expect(writesOf(validate(inputs)).map(write => write.target)).toStrictEqual([
+        { source: 'issue', write: { key: 'assignees', value: ['alice'] } },
+        { source: 'issue', write: { key: 'milestone', value: 7 } },
+        { source: 'issue', write: { key: 'type', value: 'Task' } },
+        { source: 'issue', write: { key: 'labels', value: ['docs'] } },
+      ])
+    })
   })
 })
 
 describe('ATTRIBUTE_HANDLERS', () => {
   it('書き込める kind のすべてに、書き込みの処理を持つ', async () => {
     await explains('書き込みの処理の一覧（`ATTRIBUTE_HANDLERS`）のテストです。書き込める `kind` のすべてが、処理を持つことを確認します。')
-    expect(Object.keys(ATTRIBUTE_HANDLERS).toSorted(compareCodePoints)).toStrictEqual(['date', 'issue_type', 'iteration', 'labels', 'milestone', 'multi_select', 'number', 'single_select', 'text', 'users'])
+    stepSync('結果を比べる', () => {
+      expect(Object.keys(ATTRIBUTE_HANDLERS).toSorted(compareCodePoints)).toStrictEqual(['date', 'issue_type', 'iteration', 'labels', 'milestone', 'multi_select', 'number', 'single_select', 'text', 'users'])
+    })
   })
 })

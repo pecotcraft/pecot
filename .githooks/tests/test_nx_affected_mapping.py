@@ -44,7 +44,7 @@ _NX_CONFIG_FILES = (".nxignore", "nx.json", "pnpm-workspace.yaml", "pnpm-lock.ya
 
 # nx が認識する project の集合。入れ子のメンバーは `nx.root` / `nx.name` でプラグインの project へ束ねる (#113)。
 _EXPECTED_PROJECTS = {
-    "actions",
+    "pecot-actions",
     "githooks",
     "interface-spec",
     "nx-release",
@@ -184,10 +184,10 @@ def test_project_set_is_the_expected_one(nx_bin: Path) -> None:
             # pecot-workflow は package.json の依存で、actions は implicitDependencies で workflow-core を読む。
             (
                 "libs/workflow-core/src/domain/config.ts",
-                {"workflow-core", "pecot-workflow", "actions"},
+                {"workflow-core", "pecot-workflow", "pecot-actions"},
             ),
             # pecot-workflow は actions の雛形の写しを持ち、implicitDependencies で actions に頼る。
-            ("actions/src/entry.ts", {"actions", "pecot-workflow"}),
+            ("actions/src/entry.ts", {"pecot-actions", "pecot-workflow"}),
         ]
     ),
 )
@@ -324,10 +324,10 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
                     "pecot-workflow:test-skills",
                 },
             ),
-            # scripts/ci/tests の *.test.sh を実行するのは、run-tests.sh --scope=skills だけとなる (#1225)。
+            # scripts/ci/tests の *.bats を実行するのは、run-tests.sh --scope=skills だけとなる (#1225)。
             # pecotvPluginTestGlobals（pecot-visual 全レーン共有）に置くと、1 ファイルの変更で全レーンが再実行される。
             (
-                "plugins/pecot-visual/scripts/ci/tests/references-path-existence.test.sh",
+                "plugins/pecot-visual/scripts/ci/tests/references-path-existence.bats",
                 {"pecot-visual:test-skills"},
             ),
             # fake-aws を使うのは pecot-tools の cli のテストだけ (#1225)。
@@ -351,7 +351,7 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             ("plugins/pecot-visual/cli/tests/plugin-manifests.test.ts", {"pecot-visual:test-cli"}),
             # hooks.json の形を確かめるのは hooks レーンだけ。
             (
-                "plugins/pecot-visual/hooks/tests/hooks-json.test.sh",
+                "plugins/pecot-visual/hooks/tests/hooks-json.bats",
                 {"pecot-visual:test-hooks"},
             ),
             # pecot-workflow の登録ファイルは cli/tests/plugin-manifests.test.ts が確かめる。com.github.copilot/hooks/hooks.json は hooks のテストも読む。
@@ -381,7 +381,7 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             (
                 "libs/interface-spec/src/vitest/unique-titles.ts",
                 {
-                    "actions:test-unit",
+                    "pecot-actions:test-unit",
                     "interface-spec:test-unit",
                     "interface-spec:test-site",
                     "nx-release:test-unit",
@@ -399,7 +399,7 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             (
                 "libs/interface-spec/src/vitest/allure-reporter.ts",
                 {
-                    "actions:test-unit",
+                    "pecot-actions:test-unit",
                     "interface-spec:test-unit",
                     "interface-spec:test-site",
                     "nx-release:test-unit",
@@ -473,7 +473,15 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
             # bats のテストを動かす仕組み。bats に移したレーンだけが読む (#844)。
             (
                 ".githooks/scripts/test_report/bats/run.sh",
-                {"githooks:test-ci", "pecot-visual:test-compare"},
+                {
+                    "githooks:test-ci",
+                    "pecot-visual:test-compare",
+                    "pecot-visual:test-hooks",
+                    "pecot-visual:test-skills",
+                    "pecot-visual:test-release",
+                    "pecot-tools:test-release",
+                    "pecot-workflow:test-release",
+                },
             ),
         ]
     ),
@@ -820,7 +828,17 @@ _PECOTV_TEST_LANES = {
                 _PECOTV_TEST_LANES,
             ),
             # root の package.json は pecot-visual の全レーンの Globals と、nx 本体の版を読む nx-release が読む。
-            ("package.json", _PECOTV_TEST_LANES | {"nx-release:test-unit"} | _GITHOOKS_GRAPH),
+            # bats の版を持つので、bats を動かす pecot-tools・pecot-workflow の test-release も読む。
+            (
+                "package.json",
+                _PECOTV_TEST_LANES
+                | {
+                    "nx-release:test-unit",
+                    "pecot-tools:test-release",
+                    "pecot-workflow:test-release",
+                }
+                | _GITHOOKS_GRAPH,
+            ),
             # libs/text-rules のレーンは 1 本で、テストの変更は test-unit だけを選ぶ。
             # ソースの変更は、配布ツリーに同梱する dist の元になるので、pecot-visual の release レーンにも届く (#1281)。
             # pecot-visual は text-rules をリンク（vendor/text-rules）で載せていて、nx がリンク先の変更を検知しない。
@@ -866,6 +884,11 @@ _PECOTV_TEST_LANES = {
                     *_GITHOOKS_GRAPH,
                 },
             ),
+            # pecot-tools の node-runtime.ts は、2 つの複製の一致を確かめる pecot-visual:test-cli も読む。
+            (
+                "plugins/pecot-tools/cli/src/node-runtime.ts",
+                {"pecot-tools:test-cli", "pecot-visual:test-cli"},
+            ),
             # pnpm の解決のファイルは pecotPluginNodeInputs が引くレーンに届く。
             (
                 "plugins/pecot-workflow/scripts/ci/pnpm-lib.sh",
@@ -892,7 +915,7 @@ _PECOTV_TEST_LANES = {
                 "libs/workflow-core/src/domain/config.ts",
                 {
                     "workflow-core:test-unit",
-                    "actions:test-unit",
+                    "pecot-actions:test-unit",
                     "pecot-workflow:test-cli",
                     "pecot-workflow:test-hooks",
                     "pecot-workflow:test-skills",
@@ -977,7 +1000,8 @@ _PECOTV_TEST_LANES = {
                     "pecot-workflow:test-release",
                 },
             ),
-            # 3 つの publish-mcp-dist.sh が source する共通の関数と、そのテストの変更は、3 つの test-release に届く（lib は githooks のレーンにも届く）。
+            # 3 つの publish-mcp-dist.sh が source する共通の関数は、3 つの test-release と githooks のレーンに届く。
+            # そのテストは、テストを動かす 2 つの test-release にだけ届く。
             (
                 ".githooks/lib/mcp-publish-common.sh",
                 {
@@ -989,11 +1013,10 @@ _PECOTV_TEST_LANES = {
                 },
             ),
             (
-                ".githooks/scripts/tests/mcp-publish-common.test.sh",
+                ".githooks/scripts/tests/mcp-publish-common.bats",
                 {
                     "pecot-tools:test-release",
                     "pecot-visual:test-release",
-                    "pecot-workflow:test-release",
                 },
             ),
             # pecot-workflow の定義書は、一致のテストの test-cli に届く。
@@ -1293,8 +1316,8 @@ def test_graph_lanes_read_every_workspace_package_json(
                 {
                     "workflow-core:lint",
                     "pecot-workflow:lint-cli",
-                    "actions:lint",
-                    "actions:lint-dist",
+                    "pecot-actions:lint",
+                    "pecot-actions:lint-dist",
                     "interface-spec:lint-defs",
                 },
             ),
@@ -1348,7 +1371,7 @@ def test_graph_lanes_read_every_workspace_package_json(
             (
                 "libs/interface-spec/src/eslint/describe-title.ts",
                 {
-                    "actions:lint",
+                    "pecot-actions:lint",
                     "interface-spec:lint",
                     "interface-spec:lint-defs",
                     "nx-release:lint-eslint",
@@ -1363,7 +1386,7 @@ def test_graph_lanes_read_every_workspace_package_json(
             (
                 "libs/interface-spec/src/eslint/table-key.ts",
                 {
-                    "actions:lint",
+                    "pecot-actions:lint",
                     "interface-spec:lint",
                     "interface-spec:lint-defs",
                     "nx-release:lint-eslint",

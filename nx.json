@@ -138,7 +138,6 @@
       "{workspaceRoot}/plugins/pecot-visual/scripts/ci/run-tests.sh",
       "{workspaceRoot}/plugins/pecot-visual/scripts/ci/check-pm-guard.sh",
       "{workspaceRoot}/plugins/pecot-visual/scripts/ci/pm-guard-lib.sh",
-      "{workspaceRoot}/plugins/pecot-visual/scripts/ci/parallel-lib.sh",
       "{workspaceRoot}/plugins/pecot-visual/scripts/ci/dev-install-lib.sh",
       "{workspaceRoot}/package.json",
       "{workspaceRoot}/.npmrc"
@@ -291,9 +290,9 @@
           "createRelease": "github"
         }
       },
-      "actions": {
+      "pecot-actions": {
         "projects": [
-          "actions"
+          "pecot-actions"
         ],
         "projectsRelationship": "fixed",
         "releaseTag": {

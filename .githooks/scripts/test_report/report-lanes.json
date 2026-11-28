@@ -82,8 +82,9 @@
     "results": "libs/workflow-core/test-results/test-unit/allure-results"
   },
   {
-    "project": "actions",
+    "project": "pecot-actions",
     "target": "test-unit",
+    "plugin": "pecot-actions",
     "results": "actions/test-results/test-unit/allure-results"
   },
   {

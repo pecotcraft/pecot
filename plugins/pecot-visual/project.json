@@ -187,6 +187,7 @@
         "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{workspaceRoot}/.githooks/scripts/test_report/allure-result.sh",
+        "{workspaceRoot}/.githooks/scripts/test_report/bats/**/*",
         "{projectRoot}/hooks/**/*",
         "sharedGlobals",
         "pecotvPluginTestGlobals",
@@ -196,7 +197,7 @@
       "dependsOn": ["install", "check-pm-guard"],
       "outputs": ["{projectRoot}/test-results/test-hooks/allure-results"],
       "metadata": {
-        "description": "hooks/ の *.test.sh。session-start の Node の版の案内は cli/src/node-runtime.ts を読む。hooks-json.test.sh は Copilot CLI 向けの hooks.json も読む。"
+        "description": "hooks/ の *.bats。session-start の Node の版の案内は cli/src/node-runtime.ts を読む。hooks-json.bats は Copilot CLI 向けの hooks.json も読む。"
       },
       "options": {
         "command": "rm -rf test-results/test-hooks/allure-results && PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=hooks",
@@ -233,14 +234,15 @@
         "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{workspaceRoot}/.githooks/scripts/test_report/allure-result.sh",
+        "{workspaceRoot}/.githooks/scripts/test_report/bats/**/*",
         "{projectRoot}/scripts/release/**/*",
         "{projectRoot}/scripts/ci/pnpm-lib.sh",
         "{workspaceRoot}/LICENSE",
         "{workspaceRoot}/.githooks/lib/mcp-publish-common.sh",
         "{workspaceRoot}/.githooks/scripts/attach-mcp-tgz.sh",
         "{workspaceRoot}/.githooks/scripts/origin-slug.mjs",
-        "{workspaceRoot}/.githooks/scripts/tests/attach-mcp-tgz.test.sh",
-        "{workspaceRoot}/.githooks/scripts/tests/mcp-publish-common.test.sh",
+        "{workspaceRoot}/.githooks/scripts/tests/attach-mcp-tgz.bats",
+        "{workspaceRoot}/.githooks/scripts/tests/mcp-publish-common.bats",
         "sharedGlobals",
         "pecotvPluginTestGlobals",
         "{projectRoot}/.claude-plugin/plugin.json",
@@ -269,6 +271,7 @@
         "{projectRoot}/test-layers.txt",
         "{workspaceRoot}/.githooks/scripts/test_report/bash-test.sh",
         "{workspaceRoot}/.githooks/scripts/test_report/allure-result.sh",
+        "{workspaceRoot}/.githooks/scripts/test_report/bats/**/*",
         "{projectRoot}/skills/v-drawio/**/*",
         "{projectRoot}/skills/v-evidence/**/*",
         "{projectRoot}/skills/v-slidev/**/*",
@@ -280,7 +283,7 @@
       "dependsOn": ["install", "check-pm-guard"],
       "outputs": ["{projectRoot}/test-results/test-skills/allure-results"],
       "metadata": {
-        "description": "SKILL.md / agents / references の DESIGN.md に現れる references/ パスの実在を、静的に確認する。agents/ と scripts/ci/tests/ も inputs に入れる。後者は run-tests.sh --scope=skills が実行する *.test.sh を含む。"
+        "description": "SKILL.md / agents / references の DESIGN.md に現れる references/ パスの実在を、静的に確認する。agents/ と scripts/ci/tests/ も inputs に入れる。後者は run-tests.sh --scope=skills が実行する *.bats を含む。"
       },
       "options": {
         "command": "rm -rf test-results/test-skills/allure-results && PECOTV_SKIP_INSTALL=1 bash scripts/ci/run-tests.sh --scope=skills",

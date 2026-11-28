@@ -20,9 +20,9 @@ _REPO = Path(__file__).resolve().parents[2]
 _REPORT_LANES = _REPO / ".githooks/scripts/test_report/report-lanes.json"
 _LANES = _REPO / ".githooks/scripts/test_report/lanes.py"
 _LIST_TEST_LANES = _REPO / ".githooks/ci/list-test-lanes.sh"
+_TARGETS = _REPO / "libs/interface-spec/targets.json"
 
 _INCLUDED = [
-    "actions:test-unit",
     "githooks:test-checks",
     "githooks:test-ci",
     "githooks:test-nx-affected",
@@ -30,6 +30,7 @@ _INCLUDED = [
     "interface-spec:test-site",
     "interface-spec:test-unit",
     "nx-release:test-unit",
+    "pecot-actions:test-unit",
     "pecot-tools:test-cli",
     "pecot-tools:test-release",
     "pecot-visual:test-cli",
@@ -191,17 +192,29 @@ def test_results_path_shape(entry: dict[str, Any]) -> None:
         assert entry["results"] == f"{root}/test-results/{entry['target']}/allure-results"
 
 
-@allure.title("項目 {param_id} は、プラグインの project にだけ plugin を持つ")
+@allure.title(
+    "項目 {param_id} は、リリース版の単位の project にだけ、project 名と同じ plugin を持つ"
+)
 @pytest.mark.parametrize("entry", _entries(), ids=_entry_ids())
-def test_plugin_only_for_plugins(entry: dict[str, Any]) -> None:
-    """`report-lanes.json` の各項目の `plugin` のテストです。`plugins` 直下の project では `plugin` が project 名と一致し、それ以外の project では `plugin` が存在しないことを確認します。"""
-    with allure.step("プロジェクトの場所を読む"):
-        root = _roots()[entry["project"]]
-    with allure.step("plugin の項目がプラグインにだけあることを確かめる"):
-        if PurePosixPath(root).parent == PurePosixPath("plugins"):
+def test_plugin_only_for_release_units(entry: dict[str, Any]) -> None:
+    """`report-lanes.json` の各項目の `plugin` のテストです。リリース版の単位（`targets.json` の `plugins` のキー）の project では `plugin` が project 名と一致することを確認します。ほかの project では `plugin` が存在しないことを確認します。"""
+    with allure.step("リリース版の単位の名前を読む"):
+        units = set(json.loads(_TARGETS.read_text(encoding="utf-8"))["plugins"])
+    with allure.step("plugin の項目がリリース版の単位にだけあることを確かめる"):
+        if entry["project"] in units:
             assert entry.get("plugin") == entry["project"]
         else:
             assert "plugin" not in entry
+
+
+@allure.title("リリース版の単位は、どれも report-lanes.json に、results を持つレーンがある")
+def test_every_release_unit_has_a_lane_in_the_report() -> None:
+    """`targets.json` の `plugins` のキー（リリース版の単位）のテストです。どの単位も、`plugin` が単位の名前で `results` を持つレーンを、`report-lanes.json` に 1 つ以上持つことを確認します。"""
+    with allure.step("リリース版の単位と、レポートに載るレーンの plugin を読む"):
+        units = set(json.loads(_TARGETS.read_text(encoding="utf-8"))["plugins"])
+        owners = {e["plugin"] for e in _entries() if "results" in e and "plugin" in e}
+    with allure.step("どの単位にもレーンがあることを確かめる"):
+        assert sorted(units - owners) == []
 
 
 def _run(*args: str) -> subprocess.CompletedProcess[str]:
@@ -233,9 +246,9 @@ def test_real_lanes_make_one_job_per_lane_on_one_line() -> None:
         matrix = json.loads(result.stdout)
         assert [job["lane"] for job in matrix] == _INCLUDED
         assert matrix[0] == {
-            "lane": "actions:test-unit",
-            "slug": "actions-test-unit",
-            "results": "actions/test-results/test-unit/allure-results",
+            "lane": "githooks:test-checks",
+            "slug": "githooks-test-checks",
+            "results": ".githooks/test-results/test-checks/allure-results",
         }
         assert {job["slug"] for job in matrix} == set(_js_slug(_INCLUDED))
 

@@ -11,7 +11,7 @@ import { explains } from "../../../libs/interface-spec/src/vitest/explains.js";
 
 // src は CommonJS なので、Node の require で読む。
 const require = createRequire(import.meta.url);
-const { parseCommit, parseUvLock, resolveGroups, renderPlan, main } = require("../src/dependabot-plans");
+const { GROUP_PATHS, parseCommit, parseUvLock, resolveGroups, renderPlan, main } = require("../src/dependabot-plans");
 const realCommits = require("./_fixtures/dependabot-real.json");
 const squashCommits = require("./_fixtures/dependabot-squash.json");
 
@@ -118,10 +118,22 @@ test("dependencies の宣言は、group の path の前方一致で plan の対�
     declarations: {
       commander: [decl("plugins/pecot-tools/cli/package.json", "dependencies")],
       zod: [decl("libs/text-rules/package.json", "optionalDependencies")],
+      "@actions/core": [decl("actions/package.json", "dependencies")],
     },
   });
   assert.deepEqual(resolveGroups(update("commander"), ctx), { groups: ["pecot-tools"], reason: null });
   assert.deepEqual(resolveGroups(update("zod"), ctx), { groups: ["text-rules"], reason: null });
+  assert.deepEqual(resolveGroups(update("@actions/core"), ctx), { groups: ["pecot-actions"], reason: null });
+});
+
+test("GROUP_PATHS は nx.json の release.groups のすべての group を持ち、パスが project の置き場所と合う", async () => {
+  await explains("group とパスの対応表 `GROUP_PATHS` のテストです。`nx.json` の `release.groups` と同じ group を持ち、各パスの `project.json` の `name` がその group の `projects` に含まれることを確認します。");
+  const groups = JSON.parse(fs.readFileSync(path.join(TOOLS_ROOT, "nx.json"), "utf8")).release.groups;
+  assert.deepEqual(Object.keys(GROUP_PATHS).sort(), Object.keys(groups).sort());
+  for (const [group, prefix] of Object.entries(GROUP_PATHS)) {
+    const project = JSON.parse(fs.readFileSync(path.join(TOOLS_ROOT, prefix, "project.json"), "utf8"));
+    assert.ok(groups[group].projects.includes(project.name), `${group}: ${prefix}project.json の name は ${project.name}`);
+  }
 });
 
 test("devDependencies だけの宣言は「開発用」で、pecot-visual は配布物の依存名なら対象にする", async () => {
@@ -322,6 +334,23 @@ test("pecot-visual の配布物の dev 依存から届く indirect は作る", a
   const ctx = emptyCtx({ lock });
   assert.deepEqual(resolveGroups(update("f", "indirect", "1.0.0"), ctx), { groups: ["pecot-visual"], reason: null });
   assert.deepEqual(resolveGroups(update("g", "indirect", "1.0.0"), ctx), { groups: [], reason: "dev" });
+});
+
+test("actions の本番の依存から届く indirect は pecot-actions に作り、dev の依存からだけなら作らない", async () => {
+  await explains("pnpm の間接依存から plan の対象を決める `resolveGroups` のテストです。lock の importer `actions` の本番の依存から届く間接依存は pecot-actions を対象とし、開発用の依存からだけ届くものは開発用として外すことを確認します。");
+  const lock = lockOf(
+    { actions: { dependencies: { "@actions/core": dep("3.0.1") }, devDependencies: { rollup: dep("4.68.8") } } },
+    {
+      "@actions/core@3.0.1": { dependencies: { "@actions/http-client": "4.0.1" } },
+      "@actions/http-client@4.0.1": { dependencies: { undici: "6.29.1" } },
+      "undici@6.29.1": {},
+      "rollup@4.68.8": { optionalDependencies: { fsevents: "2.3.3" } },
+      "fsevents@2.3.3": {},
+    },
+  );
+  const ctx = emptyCtx({ lock });
+  assert.deepEqual(resolveGroups(update("undici", "indirect", "6.29.1"), ctx), { groups: ["pecot-actions"], reason: null });
+  assert.deepEqual(resolveGroups(update("fsevents", "indirect", "2.3.3"), ctx), { groups: [], reason: "dev" });
 });
 
 test("1 件は「`名前` を 旧版 から 新版 に更新。」の 1 行で、(#N) は付けない", async () => {
@@ -856,4 +885,109 @@ test("--check: merge queue の squash に plan が無ければ 1", async () => {
   const result = await run(dir, ["--check", "--base", "HEAD~1"]);
   assert.equal(result.code, 1);
   assert.match(result.errors.join("\n"), /pecot-visual の version plan がありません/);
+});
+
+// pecot-actions は依存を actions/<処理>/dist に同梱して commit する。
+const actionsPackage = (core, rollup) =>
+  pkg({ name: "@pecot/actions", dependencies: { "@actions/core": core }, devDependencies: { rollup } });
+
+test("actions の dependencies を上げた commit から、pecot-actions の plan を作る", async () => {
+  await explains("pecot-actions の依存を扱う `main` のテストです。`actions/package.json` の `dependencies` を更新した commit の場合に、`pecot-actions: patch` の plan を作成することを確認します。");
+  const dir = makeRepo();
+  onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
+  commit(dir, { "actions/package.json": actionsPackage("^3.0.1", "^4.68.8") }, "chore: init");
+  commit(
+    dir,
+    { "actions/package.json": actionsPackage("^3.1.0", "^4.68.8") },
+    `build(repo): bump @actions/core in / (#70)\n\n${dependabotBody("@actions/core", "3.1.0", "direct:production", "3.0.1")}\n`,
+  );
+  const result = await runPr(dir, 70);
+  assert.equal(result.code, 0, result.errors.join("\n"));
+  assert.equal(
+    fs.readFileSync(path.join(dir, ".nx/version-plans/70-dependabot-deps.md"), "utf8"),
+    "---\npecot-actions: patch\n---\n\n`@actions/core` を 3.0.1 から 3.1.0 に更新。\n",
+  );
+});
+
+test("actions の devDependencies の更新は、作業ツリーの dist が変わったときだけ pecot-actions の plan を作る", async () => {
+  await explains("dist を作り直した PR を扱う `main` のテストです。`actions/package.json` の `devDependencies` の更新は、作業ツリーの dist が変わった場合だけ plan を作成することを確認します。");
+  const setup = () => {
+    const dir = makeRepo();
+    onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
+    commit(dir, { "actions/package.json": actionsPackage("^3.0.1", "^4.68.8"), "actions/x/dist/index.js": "a\n" }, "chore: init");
+    commit(
+      dir,
+      { "actions/package.json": actionsPackage("^3.0.1", "^4.69.0") },
+      `build(repo): bump rollup in / (#71)\n\n${dependabotBody("rollup", "4.69.0", "direct:development", "4.68.8")}\n`,
+    );
+    return dir;
+  };
+  const unchanged = setup();
+  const devOnly = await runPr(unchanged, 71);
+  assert.equal(devOnly.code, 0, devOnly.errors.join("\n"));
+  assert.deepEqual(plansIn(unchanged), []);
+  assert.equal(summaryOf(devOnly.lines)["作らなかった dependabot の PR（開発用）"], 1);
+
+  const rebuilt = setup();
+  writeFiles(rebuilt, { "actions/x/dist/index.js": "b\n" });
+  const result = await runPr(rebuilt, 71);
+  assert.equal(result.code, 0, result.errors.join("\n"));
+  assert.equal(
+    fs.readFileSync(path.join(rebuilt, ".nx/version-plans/71-dependabot-deps.md"), "utf8"),
+    "---\npecot-actions: patch\n---\n\n`rollup` を 4.68.8 から 4.69.0 に更新。\n",
+  );
+  assert.equal(summaryOf(result.lines)["作らなかった dependabot の PR（開発用）"], 0);
+});
+
+test("--check: 範囲で actions の dist が変わったのに pecot-actions の plan が無ければ 1、あれば 0", async () => {
+  await explains("`--check` と dist のテストです。範囲の commit で `actions/*/dist` が変わった場合に、pecot-actions の plan の有無で終了コードが 1 と 0 に分かれることを確認します。");
+  const dir = makeRepo();
+  onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
+  commit(dir, { "actions/package.json": actionsPackage("^3.0.1", "^4.68.8"), "actions/x/dist/index.js": "a\n" }, "chore: init");
+  commit(
+    dir,
+    { "actions/package.json": actionsPackage("^3.0.1", "^4.69.0") },
+    `build(repo): bump rollup in / (#72)\n\n${dependabotBody("rollup", "4.69.0", "direct:development", "4.68.8")}\n`,
+  );
+  commit(dir, { "actions/x/dist/index.js": "b\n" }, "chore(repo): dist を作り直す");
+  const missing = await run(dir, ["--check", "--base", "HEAD~2"]);
+  assert.equal(missing.code, 1);
+  assert.match(missing.errors.join("\n"), /pecot-actions の version plan がありません（actions\/\*\/dist が変わっています）/);
+
+  commit(dir, { ".nx/version-plans/72-dependabot-deps.md": "---\npecot-actions: patch\n---\n\n`rollup` を更新。\n" }, "chore(repo): plan");
+  const covered = await run(dir, ["--check", "--base", "HEAD~3"]);
+  assert.equal(covered.code, 0, covered.errors.join("\n"));
+});
+
+test("dist が変わり actions に届く依存が無いときは、範囲の更新をすべて pecot-actions の plan に載せる", async () => {
+  await explains("dist を作り直した PR を扱う `main` のテストです。actions に届く依存がない更新で dist が変わった場合に、範囲の更新を載せた pecot-actions の plan を作成し、作らなかった PR に数えないことを確認します。");
+  const dir = makeRepo();
+  onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
+  commit(dir, { "package.json": pkg({ name: "root", devDependencies: { rollup: "^4.68.8" } }), "actions/x/dist/index.js": "a\n" }, "chore: init");
+  commit(
+    dir,
+    { "package.json": pkg({ name: "root", devDependencies: { rollup: "^4.69.0" } }) },
+    `build(repo): bump rollup in / (#73)\n\n${dependabotBody("rollup", "4.69.0", "direct:development", "4.68.8")}\n`,
+  );
+  writeFiles(dir, { "actions/x/dist/index.js": "b\n" });
+  const result = await runPr(dir, 73);
+  assert.equal(result.code, 0, result.errors.join("\n"));
+  assert.equal(
+    fs.readFileSync(path.join(dir, ".nx/version-plans/73-dependabot-deps.md"), "utf8"),
+    "---\npecot-actions: patch\n---\n\n`rollup` を 4.68.8 から 4.69.0 に更新。\n",
+  );
+  const summary = summaryOf(result.lines);
+  assert.equal(summary["作らなかった dependabot の PR（開発用）"], 0);
+  assert.equal(summary["作らなかった dependabot の PR（どの package にも当たらない）"], 0);
+});
+
+test("--check: dependabot の commit が無い範囲では、dist が変わっていても plan を求めない", async () => {
+  await explains("`--check` と dist のテストです。範囲に dependabot の commit がない場合は、`actions/*/dist` が変わっていても plan を求めず、終了コード 0 で終了することを確認します。");
+  const dir = makeRepo();
+  onTestFinished(() => fs.rmSync(dir, { recursive: true, force: true }));
+  commit(dir, { "actions/x/dist/index.js": "a\n" }, "chore: init");
+  commit(dir, { "actions/x/dist/index.js": "b\n" }, "fix(actions): dist を作り直す");
+  const result = await run(dir, ["--check", "--base", "HEAD~1"]);
+  assert.equal(result.code, 0, result.errors.join("\n"));
+  assert.deepEqual(result.errors, []);
 });

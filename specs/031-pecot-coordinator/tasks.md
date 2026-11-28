@@ -152,7 +152,7 @@
 - [x] T070 [US6] このリポの `.github/workflows/pecot-github-ops.yml` を足し、`uses: ./actions/github-ops` で呼ぶ
 - [x] T071 [US6] `actions/README.md` に、`pecot-github-ops.yml` の導入と、operation ごとの token を書く
 - [x] T072 [US6] version plan を足す（`actions` は minor）
-- [ ] T073 [US6] CUJ: sandbox に `pecot-github-ops.yml` を置き（`uses:` は確かめるブランチの ref）、`actions_run_trigger` で operation ごとに起動して、`run-name` で run を探し、`get_job_logs` で結果を読む
+- [x] T073 [US6] CUJ: sandbox に `pecot-github-ops.yml` を置き（`uses:` は確かめるブランチの ref）、`actions_run_trigger` で operation ごとに起動して、`run-name` で run を探し、`get_job_logs` で結果を読む
 
 ---
 

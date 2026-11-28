@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "plugin": "actions",
+  "plugin": "pecot-actions",
   "prefix": "PA",
   "names": {
     "separator": " ",

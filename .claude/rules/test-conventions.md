@@ -3,6 +3,7 @@ paths:
   - "**/*.test.ts"
   - ".nx/nx-release/tests/*.test.mjs"
   - "**/*.test.sh"
+  - "**/*.bats"
   - "**/test_*.py"
 ---
 
@@ -172,7 +173,7 @@ pecot-tools・pecot-visual の `vitest.e2e.config.ts` にも書いています�
 ## 項目へのつなぎ
 
 vitest は、テストの本体の最初で `verifies` を呼びます。ID は文字列のリテラルで書きます。
-テストは、各 project の `tests/_helpers/verifies.ts` から `verifies` を import します。project は pecot-tools・pecot-visual の `cli/` と、pecot-workflow の `cli/`、`actions` です。
+テストは、各 project の `tests/_helpers/verifies.ts` から `verifies` を import します。project は pecot-tools・pecot-visual の `cli/` と、pecot-workflow の `cli/`、`pecot-actions` です。
 本体は `libs/interface-spec/src/vitest/verifies.ts` にあります。annotation を残し、nx のレーンの中では、Allure の `tms` のリンクと `tag` も残します。
 
 ```ts
@@ -230,7 +231,7 @@ ID を 2 つ以上持つテストは、feature・story を 1 組だけ持ちま�
 | 層 | テストが動かすもの | 例 |
 |---|---|---|
 | unit | 対象の関数・モジュールを、同じプロセスの中で呼ぶ。相手は偽物か、決まった入力にする。リポの文書や設定の形を読む静的な確認も含む | ドメインの関数、SKILL.md の参照の確認、ESLint の `RuleTester` |
-| integration | 対象を、実際の外部のものとつないで動かす。git のリポ、一時のファイルの木、偽の GitHub のサーバ、スクリプトや hook の子プロセスなど | MCP ツールを偽の GitHub と一時の git で呼ぶ、hook の `*.test.sh`、偽の `gh` で動かすリリースのスクリプト |
+| integration | 対象を、実際の外部のものとつないで動かす。git のリポ、一時のファイルの木、偽の GitHub のサーバ、スクリプトや hook の子プロセスなど | MCP ツールを偽の GitHub と一時の git で呼ぶ、hook の `*.bats`、偽の `gh` で動かすリリースのスクリプト |
 | e2e | build した配布物（CLI・MCP サーバ・pack したパッケージ）を、利用者が使う起点から動かす | build した CLI を子プロセスで動かす、`vitest.e2e.config.ts` のテスト |
 
 - 1 つのファイルの中に範囲の違うケースがあるときは、いちばん広いものの層にする
@@ -354,7 +355,11 @@ passed のテストのうち、名前の付いた step を 1 つも持たない�
 
 - 数えるのは、名前が `expect(` で始まらない step で、入れ子の中も数える。添付は数えない
 - 落ちたテストと skip は見ない。最初の step の前で止まることがあり、欠けと見分けられないため
-- gate を置いたレーンは、githooks の 4 本（`run.sh`）、`text-rules:test-unit`、`interface-spec:test-unit`・`test-site`。ほかのレーンは、テストに step を書き終えたら、コマンドの最後に gate を足す
+- gate を置いたレーンは、次のとおり
+  - githooks の 4 本（`run.sh`）
+  - `text-rules`・`workflow-core` の `test-unit`
+  - `interface-spec:test-unit`・`test-site`
+- ほかのレーンは、テストに step を書き終えたら、コマンドの最後に gate を足す
 
 ## テストから bash を呼ぶ
 
@@ -374,7 +379,7 @@ bash のテストは、bats（bats-core）で書きます。今の `*.test.sh` �
 ### bats
 
 テストのファイルは `*.bats` にし、`@test` 1 つがテストレポートの 1 件になります。確かめは bats-assert の `assert_*`・`refute_*` で書きます。
-ライブラリは、bats の文書のとおり `setup` で `bats_load_library pecot-bats` と読みます。`pecot-bats` が、bats-support・bats-assert と `explains` を読みます。
+ライブラリは、bats の文書のとおり `setup` で `bats_load_library pecot-bats` と読みます。`pecot-bats` が、bats-support・bats-assert と、`explains`・添付の関数を読みます。
 
 ```bash
 setup() {
@@ -394,6 +399,7 @@ setup() {
 | 説明 | 本体の先頭で `explains` を 1 回呼び、「説明の書き方」の形の文字列を 1 行のリテラルで渡す。`bats_test_function` で作るテストは、呼ぶ関数の本体の先頭で呼ぶ |
 | 前提の崩れ | `setup_file`・`setup` の失敗は、そのまま落とす。ファイルの単位の失敗は broken になる |
 | 並列 | `@test` は、bats の `--jobs` で同時に動く。ほかの `@test` の結果や動く順に頼らない。書き込みは `$BATS_TEST_TMPDIR` にする。ファイルのすべての `@test` の後の確かめは `teardown_file` に書く |
+| 添付 | 子プロセスを動かして判定する `@test` は、`run` の代わりに `run_attached` を使う。判定に読むファイルは、`read_output`（中身を出して添付）か `attach_file`（node などに読ませるファイル）で添付する。`read_output` は、`run read_output <ファイル>` の後に `assert_success` を置くか、`x="$(read_output <ファイル>)"` の単独の代入で受けてから判定に使い、読めないときに `@test` を落とす。関数を直に呼ぶ `run` は添付しない（FR-007c の対象外）。既定の `run` は stderr を `$output` に入れるので、両方を含む出力が stdout の名前で添付される。分けるには `--separate-stderr` を渡す。`setup_file`・`teardown_file` では添付しない。そこで動かした子プロセスの出力は、判定する `@test` で `read_output`・`attach_file` で添付する |
 | 動かし方 | `.githooks/scripts/test_report/bats/run.sh <ファイル>...`。nx のレーンでは、`run-tests.sh` が `PECOT_REPORT_RESULTS` を付けて呼ぶ。`--jobs` に要る GNU parallel は、dev container に入っている |
 | 版 | root の `package.json` の `bats`・`bats-assert`・`bats-support`。上げたら `.githooks/tests/test_bats_report.py` を全量で動かす。formatter が bats の拡張 TAP を読むため |
 

@@ -13,6 +13,8 @@ import path from 'node:path'
 
 import { afterEach } from 'vitest'
 
+import { stepSync } from './step.js'
+
 const created: string[] = []
 
 afterEach(() => {
@@ -26,10 +28,13 @@ export function makeTemporaryDirectory(prefix = 'pecot-cli-'): string {
   return directory
 }
 
+// テストの共通の操作なので、関数の中に step を持つ（.claude/rules/test-conventions.md の「step」）。
 export function writeTree(directory: string, files: Readonly<Record<string, string>>): void {
-  for (const [relative, content] of Object.entries(files)) {
-    const target = path.join(directory, relative)
-    mkdirSync(path.dirname(target), { recursive: true })
-    writeFileSync(target, content)
-  }
+  stepSync('ファイルを書く', () => {
+    for (const [relative, content] of Object.entries(files)) {
+      const target = path.join(directory, relative)
+      mkdirSync(path.dirname(target), { recursive: true })
+      writeFileSync(target, content)
+    }
+  })
 }

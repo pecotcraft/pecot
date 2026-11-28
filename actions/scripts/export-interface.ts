@@ -144,7 +144,7 @@ export function main(argv: readonly string[], io: CommandIo, options: { readonly
   const shown = path.relative(path.resolve(ROOT, '..'), target)
   let file: GeneratedFile
   try {
-    file = generatedFileSchema.parse({ format: 1, plugin: 'actions', prefix: 'PA', names: NAMES, entries: exportEntries(options.root) })
+    file = generatedFileSchema.parse({ format: 1, plugin: 'pecot-actions', prefix: 'PA', names: NAMES, entries: exportEntries(options.root) })
   }
   catch (error) {
     io.stderr(`error: invalid action.yml: ${reasonOf(error)}\n`)

@@ -89,17 +89,17 @@ if [ "$RUN_RELEASE" = true ]; then
         ( cd "$PLUGIN_ROOT" && $PNPM --filter @pecot/pecot-tools-cli run build )
     fi
 
-    # MCP 単体配布 (#1056) の publish スクリプト検証。scripts/release/tests/ 配下を find | sort で列挙し、1 本ずつ最後まで動かす。
-    echo "==> pecot-tools release 単体テスト (scripts/release/tests/ 配下の *.test.sh を find | sort で順次実行)"
-    mapfile -t release_test_files < <(find "$PLUGIN_ROOT/scripts/release/tests" -name '*.test.sh' | LC_ALL=C sort)
+    # MCP 単体配布 (#1056) の publish スクリプト検証。scripts/release/tests/ 配下の *.bats を find | sort で列挙し、bats で動かす。
+    echo "==> pecot-tools release 単体テスト (scripts/release/tests/ 配下の *.bats を、find | sort の順に bats で実行)"
+    mapfile -t release_test_files < <(find "$PLUGIN_ROOT/scripts/release/tests" -name '*.bats' | LC_ALL=C sort)
     if [ "${#release_test_files[@]}" -eq 0 ]; then
-        echo "ERROR: scripts/release/tests/ 配下に *.test.sh が見つかりません (消失 or find 失敗の疑い)。" >&2
+        echo "ERROR: scripts/release/tests/ 配下に *.bats が見つかりません (消失 or find 失敗の疑い)。" >&2
         exit 1
     fi
     # publish が共通で使う attach-mcp-tgz.sh と mcp-publish-common.sh のテストも、このレーンで実行する。
-    release_test_files+=("$PLUGIN_ROOT/../../.githooks/scripts/tests/attach-mcp-tgz.test.sh")
-    release_test_files+=("$PLUGIN_ROOT/../../.githooks/scripts/tests/mcp-publish-common.test.sh")
-    bt_run_files "${release_test_files[@]}"
+    release_test_files+=("$PLUGIN_ROOT/../../.githooks/scripts/tests/attach-mcp-tgz.bats")
+    release_test_files+=("$PLUGIN_ROOT/../../.githooks/scripts/tests/mcp-publish-common.bats")
+    PECOT_REPORT_RESULTS="$PECOT_REPORT_RESULTS" bash "$PLUGIN_ROOT/../../.githooks/scripts/test_report/bats/run.sh" "${release_test_files[@]}"
 fi
 
 echo "pecot-tools all checks passed"

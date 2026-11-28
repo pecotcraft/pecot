@@ -17,7 +17,7 @@
 .githooks/scripts/test_report/bash-test.sh
 .githooks/scripts/test_report/bats/run.sh
 .githooks/scripts/test_report/generate.py
-.githooks/scripts/tests/mcp-publish-common.test.sh
+.githooks/scripts/tests/mcp-publish-common.bats
 .githooks/tests/test_nx_task_cache.py
 .githooks/tests/test_ruleset_main.py
 .github/board-sync/handler.mjs
@@ -62,6 +62,7 @@ package.json
 plugins/pecot-tools/.claude-plugin/plugin.json
 plugins/pecot-tools/scripts/ci/pnpm-lib.sh
 plugins/pecot-tools/cli/src/main.ts
+plugins/pecot-tools/cli/src/node-runtime.ts
 plugins/pecot-tools/cli/src/version.ts
 plugins/pecot-tools/cli/tests/_fixtures/fake-aws/aws
 plugins/pecot-tools/cli/tests/diagnostics-cases.json
@@ -82,13 +83,13 @@ plugins/pecot-visual/cli/tests/fixtures/themes/with-declaration/package.json
 plugins/pecot-visual/cli/tests/plugin-manifests.test.ts
 plugins/pecot-visual/com.github.copilot/hooks/hooks.json
 plugins/pecot-visual/hooks/hooks.json
-plugins/pecot-visual/hooks/tests/hooks-json.test.sh
+plugins/pecot-visual/hooks/tests/hooks-json.bats
 plugins/pecot-visual/interface/generated.json
 plugins/pecot-visual/mcp.json
 plugins/pecot-visual/plugin.json
 plugins/pecot-visual/scripts/ci/pnpm-lib.sh
 plugins/pecot-visual/scripts/ci/run-lint.sh
-plugins/pecot-visual/scripts/ci/tests/references-path-existence.test.sh
+plugins/pecot-visual/scripts/ci/tests/references-path-existence.bats
 plugins/pecot-visual/scripts/release/audit-canary/package.json
 plugins/pecot-visual/skills/v-slidev/SKILL.md
 plugins/pecot-workflow/agents/w-plan-reviewer.md

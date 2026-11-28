@@ -8,26 +8,33 @@ import { ReferenceParseError } from '../src/domain/reference-parser.js'
 import { AmbiguousRepositoryError } from '../src/domain/repository-resolver.js'
 import { GitCommandError } from '../src/infra/git.js'
 import { OsError } from '../src/infra/os-error.js'
+import { stepSync } from './_helpers/step.js'
 import { explains } from './_helpers/explains.js'
 
 describe('PecotError', () => {
   it('PecotError は Error を継承し、指定したメッセージを持つ', async () => {
     await explains('`PecotError` のテストです。インスタンスが `Error` であり、例外として発生させたときに指定したメッセージが含まれることを確認します。')
-    expect(new PecotError('boom')).toBeInstanceOf(Error)
-    expect(() => {
-      throw new PecotError('boom')
-    }).toThrow('boom')
+    stepSync('結果を確認する', () => {
+      expect(new PecotError('boom')).toBeInstanceOf(Error)
+      expect(() => {
+        throw new PecotError('boom')
+      }).toThrow('boom')
+    })
   })
 
   it('例外の name には、クラス名が設定される', async () => {
     await explains('`ProjectRootNotFoundError` のテストです。`name` にクラス名の `ProjectRootNotFoundError` が設定されることを確認します。')
-    expect(new ProjectRootNotFoundError('x').name).toBe('ProjectRootNotFoundError')
+    stepSync('結果を確認する', () => {
+      expect(new ProjectRootNotFoundError('x').name).toBe('ProjectRootNotFoundError')
+    })
   })
 
   it('cause を指定すると、その値が cause に保持される', async () => {
     await explains('`PecotError` のテストです。コンストラクタに `cause` を指定した場合に、同じ値が `cause` に保持されることを確認します。')
     const cause = new Error('原因')
-    expect(new PecotError('boom', { cause }).cause).toBe(cause)
+    stepSync('結果を確認する', () => {
+      expect(new PecotError('boom', { cause }).cause).toBe(cause)
+    })
   })
 })
 
@@ -39,13 +46,17 @@ describe('独自例外は PecotError を継承する', () => {
     ['AmbiguousRepositoryError', AmbiguousRepositoryError],
   ])('%s は PecotError を継承する', async (_name, errorClass) => {
     await explains('独自例外の継承関係のテストです。`ProjectRootNotFoundError` や `ConfigError` などが `PecotError` を継承していることを確認します。')
-    expect(errorClass.prototype).toBeInstanceOf(PecotError)
+    stepSync('結果を確認する', () => {
+      expect(errorClass.prototype).toBeInstanceOf(PecotError)
+    })
   })
 
   it('値の不正を表す InvalidValueError は、PecotError を継承しない', async () => {
     await explains('`InvalidValueError` のテストです。`Error` を継承する一方で、`PecotError` は継承していないことを確認します。')
-    expect(InvalidValueError.prototype).toBeInstanceOf(Error)
-    expect(InvalidValueError.prototype).not.toBeInstanceOf(PecotError)
+    stepSync('結果を確認する', () => {
+      expect(InvalidValueError.prototype).toBeInstanceOf(Error)
+      expect(InvalidValueError.prototype).not.toBeInstanceOf(PecotError)
+    })
   })
 })
 
@@ -55,8 +66,10 @@ describe('BaseError', () => {
     class SampleError extends BaseError {}
     const cause = new Error('原因')
     const error = new SampleError('message', { cause })
-    expect(error.name).toBe('SampleError')
-    expect(error.cause).toBe(cause)
+    stepSync('結果を確認する', () => {
+      expect(error.name).toBe('SampleError')
+      expect(error.cause).toBe(cause)
+    })
   })
 
   it.each([
@@ -66,12 +79,16 @@ describe('BaseError', () => {
     ['GitCommandError', GitCommandError],
   ])('%s は BaseError を継承する', async (_name, errorClass) => {
     await explains('`BaseError` のテストです。`PecotError` や `OsError` などが `BaseError` を継承していることを確認します。')
-    expect(errorClass.prototype).toBeInstanceOf(BaseError)
+    stepSync('結果を確認する', () => {
+      expect(errorClass.prototype).toBeInstanceOf(BaseError)
+    })
   })
 
   it('OsError と GitCommandError は、PecotError を継承しない', async () => {
     await explains('`OsError` と `GitCommandError` のテストです。どちらも `PecotError` を継承していないことを確認します。')
-    expect(OsError.prototype).not.toBeInstanceOf(PecotError)
-    expect(GitCommandError.prototype).not.toBeInstanceOf(PecotError)
+    stepSync('結果を確認する', () => {
+      expect(OsError.prototype).not.toBeInstanceOf(PecotError)
+      expect(GitCommandError.prototype).not.toBeInstanceOf(PecotError)
+    })
   })
 })

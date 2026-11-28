@@ -58,7 +58,7 @@ _bt_write() {
     shift 7
     [ "$rel" = "$_BT_REL" ] || layer="$(_bt_layer "$rel")"
     allure_result_write "$results" "$rel" bash "$status" "$title" "$message" "$start" "$stop" "" "${_bt_trace:-}" \
-        "$layer" "$_BT_SEVERITY" "$@"
+        "$layer" "$_BT_SEVERITY" "" "$@"
 }
 
 # _bt_record <status> <題> <理由> [<expected> <actual>]

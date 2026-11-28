@@ -1,5 +1,6 @@
-"""リリース版の材料（ReleaseSources）を、プラグインごとの最新のタグから決める。
+"""リリース版の材料（ReleaseSources）を、リリース版の単位ごとの最新のタグから決める。
 
+単位は libs/interface-spec/targets.json の plugins の各キーで、タグの形は nx.json の同じ名前のグループから読む。
 標準出力に tags・commits・skeleton の JSON を出す。--record に release-sources.json を書く。
 --report release のときは、リリース版のテストレポートの材料（ReportSources）と matrix を出す。
 開発版の材料は .githooks/scripts/test_report/dev_sources.py が決める。
@@ -19,7 +20,10 @@ from pathlib import Path
 from typing import cast
 
 REPORT_LANES = ".githooks/scripts/test_report/report-lanes.json"
+TARGETS = "libs/interface-spec/targets.json"
+NX_JSON = "nx.json"
 _SHA = re.compile(r"[0-9a-f]{40}")
+_SEMVER = r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
 
 
 def _load_report_matrix() -> Callable[[object], list[dict[str, str]]]:
@@ -38,6 +42,23 @@ report_matrix = _load_report_matrix()
 
 class ReleaseSourcesError(ValueError):
     pass
+
+
+@dataclass(frozen=True)
+class Unit:
+    """リリース版の単位。tag は nx.json の releaseTag.pattern を補った形で、{version} を残す。"""
+
+    name: str
+    root: str
+    tag: str
+
+    def version_of(self, tag: str) -> tuple[int, int, int] | None:
+        # fullmatch なので、プレリリースの接尾辞のあるタグと、名前が前方一致する別の単位のタグは外れる。
+        head, tail = self.tag.split("{version}")
+        match = re.fullmatch(re.escape(head) + _SEMVER + re.escape(tail), tag)
+        if match is None:
+            return None
+        return (int(match[1]), int(match[2]), int(match[3]))
 
 
 @dataclass(frozen=True)
@@ -92,41 +113,88 @@ def from_json(data: object) -> ReleaseSources:
         skeleton=skeleton,
     )
     if set(sources.tags) != set(sources.commits) or not sources.tags:
-        raise ReleaseSourcesError("tags と commits のプラグインがそろいません")
+        raise ReleaseSourcesError("tags と commits の単位がそろいません")
     return sources
 
 
-def _version_of(tag: str, plugin: str) -> tuple[int, int, int] | None:
-    # fullmatch なので、プレリリースの接尾辞のあるタグと、名前が前方一致する別のプラグインのタグは外れる。
-    match = re.fullmatch(re.escape(plugin) + r"-v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", tag)
-    if match is None:
-        return None
-    return (int(match[1]), int(match[2]), int(match[3]))
+def _object(value: object, where: str) -> dict[str, object]:
+    if not isinstance(value, dict):
+        raise ReleaseSourcesError(f"{where} がオブジェクトではありません")
+    return cast("dict[str, object]", value)
 
 
-def latest_tags(tag_names: Iterable[str], plugins: Iterable[str]) -> dict[str, str]:
+def _read_object(path: Path) -> dict[str, object]:
+    try:
+        data: object = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ReleaseSourcesError(f"{path} を読めません: {error}") from error
+    return _object(data, str(path))
+
+
+def _unit(name: str, entry: object, groups: dict[str, object]) -> Unit:
+    target = _object(entry, f"{TARGETS} の plugins.{name}")
+    root = target.get("root", f"plugins/{name}")
+    if not isinstance(root, str) or not root:
+        raise ReleaseSourcesError(f"{TARGETS} の plugins.{name}.root が文字列ではありません")
+    if name not in groups:
+        raise ReleaseSourcesError(
+            f"{NX_JSON} に、{TARGETS} の {name} と同じ名前のリリースのグループがありません"
+        )
+    group = _object(groups[name], f"{NX_JSON} の release.groups.{name}")
+    if group.get("projects") != [name]:
+        raise ReleaseSourcesError(
+            f"{NX_JSON} のグループ {name} の projects が {json.dumps([name])} ではありません:"
+            f" {json.dumps(group.get('projects'), ensure_ascii=False)}"
+        )
+    release_tag = _object(group.get("releaseTag", {}), f"{NX_JSON} のグループ {name} の releaseTag")
+    pattern = release_tag.get("pattern")
+    if not isinstance(pattern, str):
+        raise ReleaseSourcesError(
+            f"{NX_JSON} のグループ {name} に releaseTag.pattern がありません（nx の既定の形は読みません）"
+        )
+    # fixed のグループのタグは、nx が {version} と {releaseGroupName} だけを補って打つ（createGitTagValues）。
+    tag = pattern.replace("{releaseGroupName}", name)
+    if tag not in (f"{name}-v{{version}}", f"{name}/v{{version}}"):
+        raise ReleaseSourcesError(
+            f"{NX_JSON} のグループ {name} の releaseTag.pattern（{pattern}）を補った形が"
+            f" {name}-v{{version}} でも {name}/v{{version}} でもありません"
+            "（fixed のグループでは、nx は {projectName} を補わずにタグを打ちます）"
+        )
+    return Unit(name=name, root=root, tag=tag)
+
+
+def units(root: Path) -> dict[str, Unit]:
+    """リリース版の単位を、targets.json の plugins の各キーと nx.json の同じ名前のグループから決める。"""
+    plugins = _object(_read_object(root / TARGETS).get("plugins"), f"{TARGETS} の plugins")
+    release = _object(_read_object(root / NX_JSON).get("release"), f"{NX_JSON} の release")
+    groups = _object(release.get("groups"), f"{NX_JSON} の release.groups")
+    if not plugins:
+        raise ReleaseSourcesError(f"{TARGETS} の plugins が空です")
+    return {name: _unit(name, plugins[name], groups) for name in sorted(plugins)}
+
+
+def latest_tags(tag_names: Iterable[str], units: Iterable[Unit]) -> dict[str, str]:
     names = list(tag_names)
     result: dict[str, str] = {}
-    for plugin in sorted(set(plugins)):
-        versions = [(v, tag) for tag in names if (v := _version_of(tag, plugin)) is not None]
+    for unit in sorted(units, key=lambda u: u.name):
+        versions = [(v, tag) for tag in names if (v := unit.version_of(tag)) is not None]
         if not versions:
-            raise ReleaseSourcesError(
-                f"{plugin} のリリースのタグ（{plugin}-v<semver>）がありません"
-            )
-        result[plugin] = max(versions)[1]
+            form = unit.tag.replace("{version}", "<semver>")
+            raise ReleaseSourcesError(f"{unit.name} のリリースのタグ（{form}）がありません")
+        result[unit.name] = max(versions)[1]
     return result
 
 
 def resolve_tags(
     tag_names: Iterable[str],
-    plugins: Iterable[str],
+    units: Iterable[Unit],
     *,
     commit_of: Callable[[str], str],
     is_ancestor: Callable[[str, str], bool],
     main: str,
 ) -> tuple[dict[str, str], dict[str, str], str]:
-    """プラグインごとのタグとそのコミット、骨組みのコミットを決める。"""
-    tags = latest_tags(tag_names, plugins)
+    """単位ごとのタグとそのコミット、骨組みのコミットを決める。"""
+    tags = latest_tags(tag_names, units)
     commits: dict[str, str] = {}
     for plugin, tag in tags.items():
         commit = commit_of(tag)
@@ -151,20 +219,20 @@ def resolve_tags(
 
 def resolve(
     tag_names: Iterable[str],
-    plugins: Iterable[str],
+    units: Iterable[Unit],
     *,
     commit_of: Callable[[str], str],
     is_ancestor: Callable[[str, str], bool],
     main: str,
 ) -> ReleaseSources:
     tags, commits, skeleton = resolve_tags(
-        tag_names, plugins, commit_of=commit_of, is_ancestor=is_ancestor, main=main
+        tag_names, units, commit_of=commit_of, is_ancestor=is_ancestor, main=main
     )
     return ReleaseSources(tags=tags, commits=commits, skeleton=skeleton)
 
 
 def _owned_by(plugin: str | None) -> Callable[[dict[str, object]], bool]:
-    """そのプラグインのレーンか。None はプラグインに属さないレーン（libs と .githooks）。"""
+    """その単位のレーンか。None は単位に属さないレーン（libs と .githooks）。"""
     return lambda entry: entry.get("plugin") == plugin
 
 
@@ -199,7 +267,7 @@ def _report_sources(
 
 def report_release(
     tag_names: Iterable[str],
-    plugins: Iterable[str],
+    units: Iterable[Unit],
     *,
     commit_of: Callable[[str], str],
     is_ancestor: Callable[[str, str], bool],
@@ -208,7 +276,7 @@ def report_release(
 ) -> ReportSources:
     """リリース版の ReportSources。read_lanes はコミットの report-lanes.json を読み、無ければ None。"""
     tags, commits, skeleton = resolve_tags(
-        tag_names, plugins, commit_of=commit_of, is_ancestor=is_ancestor, main=main
+        tag_names, units, commit_of=commit_of, is_ancestor=is_ancestor, main=main
     )
     groups: list[list[dict[str, str]]] = []
     missing: list[str] = []
@@ -220,7 +288,7 @@ def report_release(
             groups.append(jobs)
         else:
             missing.append(plugin)
-    # 結果を出せるプラグインが無ければ、プラグインに属さないレーンだけのレポートは作らない。
+    # 結果を出せる単位が無ければ、単位に属さないレーンだけのレポートは作らない。
     shared = read_lanes(skeleton) if groups else None
     if shared is not None:
         where = f"{skeleton[:7]}:{REPORT_LANES}"
@@ -239,13 +307,6 @@ def _git_out(root: Path, *args: str) -> str:
     if result.returncode != 0:
         raise ReleaseSourcesError(f"git {' '.join(args)} が失敗しました: {result.stderr.strip()}")
     return result.stdout
-
-
-def _plugins(root: Path) -> list[str]:
-    plugins = [p.parent.parent.name for p in root.glob("plugins/*/.claude-plugin/plugin.json")]
-    if not plugins:
-        raise ReleaseSourcesError(f"{root}/plugins/*/.claude-plugin/plugin.json がありません")
-    return plugins
 
 
 def _git_ancestor(root: Path) -> Callable[[str, str], bool]:
@@ -283,10 +344,9 @@ def _git_commit_of(root: Path) -> Callable[[str], str]:
 
 
 def resolve_git(root: Path, main: str) -> ReleaseSources:
-    plugins = _plugins(root)
     return resolve(
         _git_out(root, "tag", "-l").split(),
-        plugins,
+        units(root).values(),
         commit_of=_git_commit_of(root),
         is_ancestor=_git_ancestor(root),
         main=main,
@@ -296,7 +356,7 @@ def resolve_git(root: Path, main: str) -> ReleaseSources:
 def resolve_report_git(root: Path, *, main: str) -> ReportSources:
     return report_release(
         _git_out(root, "tag", "-l").split(),
-        _plugins(root),
+        units(root).values(),
         commit_of=_git_commit_of(root),
         is_ancestor=_git_ancestor(root),
         read_lanes=_git_reader(root, REPORT_LANES),

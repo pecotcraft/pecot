@@ -8,4 +8,4 @@ integration cli/tests/integration/
 integration cli/tests/interface-export.test.ts
 e2e cli/tests/e2e/
 integration scripts/release/tests/
-e2e scripts/release/tests/publish-mcp-dist.test.sh
+e2e scripts/release/tests/publish-mcp-dist.bats

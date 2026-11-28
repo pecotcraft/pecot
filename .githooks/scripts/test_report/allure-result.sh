@@ -86,12 +86,13 @@ allure_result_severity_default() {
 }
 
 # allure_result_write: 結果を 1 件書く。引数は、結果のディレクトリ・相対パス・枠組み・status・題の順。
-# 続けて、理由・start・stop・説明・trace・層・重大度を渡し、比べた値があれば expected と actual を足す。
+# 続けて、理由・start・stop・説明・trace・層・重大度・添付を渡し、比べた値があれば expected と actual を足す。
+# 添付は allure_result_attachment の断片を `,` でつないだもの。空なら attachments を書かない。
 # 結果のディレクトリが空なら何も書かず、`-` なら 1 行の JSON を stdout に出す。
 # ラベルは nx のレーンの値（NX_TASK_TARGET_*）とファイルの場所から決める。重大度が空なら場所から決める。
 allure_result_write() {
     local results="$1" rel="$2" framework="$3" status="$4" title="$5" message="$6"
-    local start="$7" stop="$8" description="$9" trace="${10}" layer="${11}" severity="${12}"
+    local start="$7" stop="$8" description="$9" trace="${10}" layer="${11}" severity="${12}" attachments="${13:-}"
     [ -n "$results" ] || return 0
     local project="${NX_TASK_TARGET_PROJECT:-}" lane="${NX_TASK_TARGET_TARGET:-}"
     local uuid details labels feature extra=""
@@ -100,14 +101,17 @@ allure_result_write() {
     if [ -n "$message" ]; then
         details="\"message\":$(allure_result_json "$message")"
     fi
-    if [ "$#" -ge 14 ]; then
-        details="${details:+$details,}\"expected\":$(allure_result_json "${13}"),\"actual\":$(allure_result_json "${14}")"
+    if [ "$#" -ge 15 ]; then
+        details="${details:+$details,}\"expected\":$(allure_result_json "${14}"),\"actual\":$(allure_result_json "${15}")"
     fi
     if [ -n "$trace" ]; then
         details="${details:+$details,}\"trace\":$(allure_result_json "$trace")"
     fi
     if [ -n "$description" ]; then
         extra=",\"description\":$(allure_result_json "$description")"
+    fi
+    if [ -n "$attachments" ]; then
+        extra+=",\"attachments\":[$attachments]"
     fi
     labels="{\"name\":\"parentSuite\",\"value\":$(allure_result_json "$rel")}"
     labels+=",{\"name\":\"host\",\"value\":$(allure_result_json "${HOSTNAME:-}")}"
@@ -131,6 +135,11 @@ allure_result_write() {
     fi
     mkdir -p "$results"
     printf '%s\n' "$json" > "$results/$uuid-result.json"
+}
+
+# allure_result_attachment <名前> <source> <型>: 結果の attachments に入れる 1 件の JSON を印字する。
+allure_result_attachment() {
+    printf '{"name":%s,"source":%s,"type":%s}' "$(allure_result_json "$1")" "$(allure_result_json "$2")" "$(allure_result_json "$3")"
 }
 
 # allure_result_split <report の行のファイル> <結果のディレクトリ>: `{"uuid":"…"` で始まる行を、uuid ごとの結果のファイルに書く。
