@@ -387,7 +387,7 @@ export function slidePageTool(
       inputSchema: slidePageInput,
       outputSchema: slidePageOutput,
       // talk-dir 配下の読み取りと 1 ファイルの書き込みだけで、ネットワークには到達しない。
-      annotations: { openWorldHint: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     handler: arguments_ => handleSlidePage(arguments_, readReferenceText),
   }

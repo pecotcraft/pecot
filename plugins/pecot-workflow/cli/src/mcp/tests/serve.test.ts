@@ -91,6 +91,7 @@ const TOOLS = [
   defineTool({
     name: 'slow',
     title: 'Test tool',
+    writes: { destructive: true, idempotent: false },
     description: '時間がかかる',
     input: z.object({ name: z.string() }),
     output: z.strictObject({}),
@@ -105,6 +106,7 @@ const TOOLS = [
   defineTool({
     name: 'hello',
     title: 'Test tool',
+    writes: { destructive: true, idempotent: false },
     description: 'あいさつ',
     input: z.object({}),
     output: z.strictObject({}),
@@ -116,6 +118,7 @@ const TOOLS = [
   defineTool({
     name: 'noisy_bug',
     title: 'Test tool',
+    writes: { destructive: true, idempotent: false },
     description: '出力の後にプログラムの誤り',
     input: z.object({}),
     output: z.strictObject({}),
@@ -128,6 +131,7 @@ const TOOLS = [
   defineTool({
     name: 'bug',
     title: 'Test tool',
+    writes: { destructive: true, idempotent: false },
     description: 'プログラムの誤り',
     input: z.object({}),
     output: z.strictObject({}),

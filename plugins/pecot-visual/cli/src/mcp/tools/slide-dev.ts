@@ -272,10 +272,8 @@ export function slideDevTool(
         + 'The server runs only while the MCP server process is alive; the preview ends with the session.',
       inputSchema: slideDevInput,
       outputSchema: slideDevOutput,
-      // annotations は明示しない。
-      // `--remote` で全インタフェースに LISTEN するため、openWorldHint: false の明示基準に反する。
-      // その基準は、ネットワークに到達しないことが確定していること。
-      // 子プロセスを起こす以上、readOnlyHint も立てられない。
+      // `--remote` で全インタフェースに LISTEN するため、openWorldHint は SDK 既定 (true) のまま。
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     handler,
   }

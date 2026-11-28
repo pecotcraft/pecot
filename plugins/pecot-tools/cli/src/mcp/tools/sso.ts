@@ -70,10 +70,11 @@ const SSO_FAILURE_HINTS: Record<FailureKind, string> = {
 const OUTPUT_TRUNCATION_NOTE = '(Output exceeded the limit, so only the beginning is included)'
 
 /**
-annotations。login は awscli の SSO のトークンキャッシュを上書きするので destructiveHint は true。status は awscli を起動しないが、返す内容は外界の承認の進み具合に依存するので openWorldHint は 2 件とも true。
+login は SSO のトークンキャッシュを上書きし（destructiveHint: true）、呼ぶたびに新しい認可を始める（idempotentHint: false）。
+status の結果は外界の承認の進み具合で変わるので、openWorldHint は 2 件とも true。
 */
-const LOGIN_ANNOTATIONS = { readOnlyHint: false, destructiveHint: true, openWorldHint: true }
-const STATUS_ANNOTATIONS = { readOnlyHint: true, destructiveHint: false, openWorldHint: true }
+const LOGIN_ANNOTATIONS = { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true }
+const STATUS_ANNOTATIONS = { readOnlyHint: true, openWorldHint: true }
 
 function profileOf(arguments_: Readonly<Record<string, unknown>>): string | undefined {
   const profile = arguments_['profile']

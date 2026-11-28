@@ -244,4 +244,16 @@ describe('MCP ツール契約 (tools/list)', () => {
     expect(tool.description).toEqual(expect.stringMatching(/\S/))
     expect(tool.annotations?.openWorldHint).toBe(true)
   })
+
+  it.each(GENERATED_TOOLS)('ツール $name の annotations は、読むだけなら destructiveHint と idempotentHint を持たず、書き込むなら両方を明示する', async ({ name }) => {
+    await explains('MCP サーバの `tools/list` が返すツールの `annotations` のテストです。読むだけのツールは `destructiveHint`・`idempotentHint` を持たず、書き込むツールは両方を明示することを確認します。')
+    const annotations = toolOf(name).annotations ?? {}
+    const isReadOnly = annotations.readOnlyHint === true
+    const expectedKeys = isReadOnly
+      ? ['openWorldHint', 'readOnlyHint']
+      : ['destructiveHint', 'idempotentHint', 'openWorldHint', 'readOnlyHint']
+
+    expect(Object.keys(annotations).toSorted(compareStrings)).toEqual(expectedKeys)
+    expect(annotations.idempotentHint).toBe(isReadOnly ? undefined : false)
+  })
 })

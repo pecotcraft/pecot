@@ -323,11 +323,8 @@ export function setupTool(
       // 引数を取らないツールは空の z.object を渡す (src/mcp/server.ts の ToolConfig)。
       inputSchema: z.object({}),
       outputSchema: setupOutput,
-      // Claude Code は annotations から自動承認の可否を組み立てるため、既定値と同じでも
-      // 明示する。ダウンロードでファイルシステムを書き換え (destructive)、外部ホストへ
-      // 到達する (openWorld)。読み取り専用ではないので readOnlyHint は立てない。
-      // 取得済みなら skip するため、何度呼んでも状態は変わらない (idempotent)。
-      annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
+      // ダウンロードでファイルシステムを書き換え、外部ホストへ到達する。取得済みなら skip するので idempotent。
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
     },
     handler,
   }

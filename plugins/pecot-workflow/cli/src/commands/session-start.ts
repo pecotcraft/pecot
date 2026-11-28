@@ -51,6 +51,7 @@ function parseReference(out: Readonly<Output>, value: string, field: string): Is
 const sessionStartCommand = defineTool({
   name: 'session_start',
   title: 'Record Issue branch',
+  writes: { destructive: false, idempotent: true },
   description: 'Record the start of work on a branch created with the link-branch operation: the base (.pecot-base), the work directory and the session name. Also reports a merged PR of the current branch whose local cleanup is left',
   input: SESSION_START_INPUT,
   output: SESSION_START_OUTPUT,

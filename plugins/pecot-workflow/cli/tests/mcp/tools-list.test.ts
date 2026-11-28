@@ -30,6 +30,9 @@ const WithRepositorySchema = z.object({ properties: z.object({ repo: RepositoryS
 const OutputSchemaShape = z.looseObject({ type: z.literal('object'), properties: z.record(z.string(), z.unknown()), additionalProperties: z.unknown() })
 // Issue #771 の、interface/authored.yaml の effects がすべて read のツール
 const READ_ONLY_TOOLS = ['board_check', 'board_show', 'branch_check', 'issue_check', 'issue_comment_check', 'issue_dependency_check', 'pr_check', 'project_check', 'project_get', 'project_list', 'release_check', 'session_show', 'workflow_doctor']
+// 書き込むツールのうち、authored.yaml の effects に destructive が無いものと、idempotent が true のもの
+const ADDITIVE_TOOLS = ['session_start', 'worktree_init']
+const IDEMPOTENT_WRITE_TOOLS = ['pr_restack', 'project_activate', 'project_link', 'project_set', 'project_unset', 'session_finish', 'session_start', 'worktree_link']
 const ENVELOPE_NAMES: ReadonlySet<string> = new Set(['ok', 'exitCode', 'data', 'artifacts', 'message', 'reason'])
 
 // CLI のフラグ（--name・-m）。前は行頭・空白・括弧・バッククォート
@@ -156,6 +159,32 @@ describe('tools/list', () => {
     const { tools } = await client.listTools()
     expect(tools.filter(tool => tool.annotations?.readOnlyHint === true).map(tool => tool.name).toSorted(byName)).toEqual(READ_ONLY_TOOLS)
     expect(tools.filter(tool => tool.annotations?.readOnlyHint !== true).every(tool => tool.annotations?.readOnlyHint === false)).toBe(true)
+  })
+
+  it('destructiveHint: false を返すのは足すだけの 2 個だけで、ほかの書き込むツールは true を返す', async () => {
+    await explains('書き込むツールの `destructiveHint` のテストです。`false` を返すのは足すだけの `session_start` と `worktree_init` だけで、ほかの書き込むツールは `true` を返すことを確認します。')
+    const { client } = await connect()
+    const { tools } = await client.listTools()
+    const writing = tools.filter(tool => tool.annotations?.readOnlyHint === false)
+    expect(writing.filter(tool => tool.annotations?.destructiveHint === false).map(tool => tool.name).toSorted(byName)).toEqual(ADDITIVE_TOOLS)
+    expect(writing.filter(tool => tool.annotations?.destructiveHint !== false).every(tool => tool.annotations?.destructiveHint === true)).toBe(true)
+  })
+
+  it('idempotentHint: true を返すのは呼び直しても作用が増えない書き込むツールの 8 個だけで、ほかの書き込むツールは false を返す', async () => {
+    await explains('書き込むツールの `idempotentHint` のテストです。`true` を返すのは定義書の `idempotent` が `true` の 8 個だけで、ほかの書き込むツールは `false` を返すことを確認します。')
+    const { client } = await connect()
+    const { tools } = await client.listTools()
+    const writing = tools.filter(tool => tool.annotations?.readOnlyHint === false)
+    expect(writing.filter(tool => tool.annotations?.idempotentHint === true).map(tool => tool.name).toSorted(byName)).toEqual(IDEMPOTENT_WRITE_TOOLS)
+    expect(writing.filter(tool => tool.annotations?.idempotentHint !== true).every(tool => tool.annotations?.idempotentHint === false)).toBe(true)
+  })
+
+  it('読むだけのツールは、destructiveHint と idempotentHint を返さない', async () => {
+    await explains('読み取り専用のツールの `annotations` のテストです。`readOnlyHint` が `true` のツールが、`destructiveHint` と `idempotentHint` のどちらも持たないことを確認します。')
+    const { client } = await connect()
+    const { tools } = await client.listTools()
+    const hinted = tools.filter(tool => tool.annotations?.readOnlyHint === true && (Object.hasOwn(tool.annotations, 'destructiveHint') || Object.hasOwn(tool.annotations, 'idempotentHint')))
+    expect(hinted.map(tool => tool.name)).toEqual([])
   })
 
   it('全ツールの annotations は、定義書の mcp.annotations に一致する', async () => {

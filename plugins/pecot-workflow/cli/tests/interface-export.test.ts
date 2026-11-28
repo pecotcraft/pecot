@@ -22,6 +22,7 @@ import { explains } from './_helpers/explains.js'
 const alpha = defineTool({
   name: 'alpha',
   title: 'Greet someone',
+  writes: { destructive: true, idempotent: false },
   description: 'Greet someone',
   input: z.strictObject({
     name: z.string().describe('Name to greet.'),
@@ -39,6 +40,7 @@ const strings = z.array(z.string())
 const beta = defineTool({
   name: 'beta',
   title: 'Read files',
+  writes: { destructive: true, idempotent: false },
   description: 'Read files.',
   input: z.strictObject({
     source: z.string().optional().describe('Optional source.'),
@@ -140,7 +142,13 @@ describe('exportEntries', () => {
   it('mcp.annotations の readOnlyHint は、動詞が読むだけの印を持つときだけ true になる', async () => {
     await explains('`exportEntries` のテストです。読むだけの動詞を持つツールを書き出した場合に、その項目だけ `mcp.annotations` の `readOnlyHint` が `true` になることを確認します。')
     const show = defineTool({ name: 'alpha_show', title: 'Show alpha', description: 'Show alpha.', input: z.strictObject({}), output: z.strictObject({}), run: () => Promise.resolve(0) })
-    expect(exportEntries([show, alpha]).map(entry => entry.mcp.annotations)).toStrictEqual([{ readOnlyHint: false }, { readOnlyHint: true }])
+    expect(exportEntries([show, alpha]).map(entry => entry.mcp.annotations)).toStrictEqual([{ readOnlyHint: false, destructiveHint: true, idempotentHint: false }, { readOnlyHint: true }])
+  })
+
+  it('mcp.annotations の destructiveHint と idempotentHint は、書き込むツールの writes の印の値になる', async () => {
+    await explains('`exportEntries` のテストです。足すだけで呼び直せる印（`writes`）を持つツールを書き出した場合に、`mcp.annotations` の 2 つのヒントがその値になることを確認します。')
+    const add = defineTool({ name: 'alpha_add', title: 'Add alpha', description: 'Add alpha.', writes: { destructive: false, idempotent: true }, input: z.strictObject({}), output: z.strictObject({}), run: () => Promise.resolve(0) })
+    expect(exportEntries([add]).map(entry => entry.mcp.annotations)).toStrictEqual([{ readOnlyHint: false, destructiveHint: false, idempotentHint: true }])
   })
 
   it('項目のキーは contracts の例の順', async () => {
@@ -158,6 +166,7 @@ describe('exportEntries', () => {
     const own = defineTool({
       name: 'own',
       title: 'Test tool',
+      writes: { destructive: true, idempotent: false },
       description: 'Has its own repo.',
       input: z.strictObject({
         json: z.boolean().default(false).describe('Print JSON.'),
@@ -202,6 +211,7 @@ describe('exportEntries', () => {
     const gamma = defineTool({
       name: 'gamma',
       title: 'Test tool',
+      writes: { destructive: true, idempotent: false },
       description: 'Numbers.',
       input: z.strictObject({ one: z.int().optional(), many: integers.optional() }),
       output: z.strictObject({}),
@@ -221,6 +231,7 @@ describe('exportEntries', () => {
     const delta = defineTool({
       name: 'delta',
       title: 'Test tool',
+      writes: { destructive: true, idempotent: false },
       description: 'Lanes.',
       input: z.strictObject({ lanes }),
       output: z.strictObject({}),
@@ -236,6 +247,7 @@ describe('exportEntries', () => {
     const [entry] = exportEntries([defineTool({
       name: 'sub_add-to_x',
       title: 'Test tool',
+      writes: { destructive: true, idempotent: false },
       description: 'Sub.',
       input: z.strictObject({}),
       output: z.strictObject({}),
@@ -248,7 +260,7 @@ describe('exportEntries', () => {
 
 describe('exportEntries の失敗と refine', () => {
   function commandOf(shape: Readonly<Record<string, z.ZodType>>): ReturnType<typeof defineTool> {
-    return defineTool({ name: 'bad_cmd', title: 'Test tool', description: 'Bad.', input: z.strictObject(shape), output: z.strictObject({}), run: () => Promise.resolve(0) })
+    return defineTool({ name: 'bad_cmd', writes: { destructive: true, idempotent: false }, title: 'Test tool', description: 'Bad.', input: z.strictObject(shape), output: z.strictObject({}), run: () => Promise.resolve(0) })
   }
 
   it('全体の refine を持つ input でも書き出せ、repo を出さない', async () => {
@@ -256,6 +268,7 @@ describe('exportEntries の失敗と refine', () => {
     const refined = defineTool({
       name: 'refined',
       title: 'Test tool',
+      writes: { destructive: true, idempotent: false },
       description: 'Refined.',
       input: z.strictObject({ a: z.string().optional(), b: z.string().optional() }).refine(value => value.a !== undefined || value.b !== undefined),
       output: z.strictObject({}),
@@ -483,6 +496,7 @@ describe('main の --check', () => {
     const broken = defineTool({
       name: 'broken',
       title: 'Test tool',
+      writes: { destructive: true, idempotent: false },
       description: 'Has no description',
       input: z.strictObject({}),
       output: z.strictObject({}),

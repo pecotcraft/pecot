@@ -77,9 +77,38 @@ describe('defineTool', () => {
 
   it('書き込む動詞のツールは、読むだけにならない', async () => {
     await explains('動詞が `create` のツールのテストです。定義の `readOnly` が `false` になることを確認します。')
-    const writing = stepSync('ツールを用意する', () => defineTool({ name: 'pr_create', title: 'Test tool', description: '', input: z.object({}), output: z.strictObject({}), run: async () => await exitWith(0) }))
+    const writing = stepSync('ツールを用意する', () => defineTool({ name: 'pr_create', title: 'Test tool', description: '', writes: { destructive: true, idempotent: false }, input: z.object({}), output: z.strictObject({}), run: async () => await exitWith(0) }))
     stepSync('結果を確認する', () => {
       expect(writing.readOnly).toBe(false)
+    })
+  })
+
+  it('書き込む動詞のツールは、渡した writes の印を定義に保持する', async () => {
+    await explains('動詞が `create` のツールに `writes` を渡した場合のテストです。定義の `writes` が、渡した `destructive` と `idempotent` の値になることを確認します。')
+    const writing = stepSync('ツールを用意する', () => defineTool({ name: 'release_create', title: 'Test tool', description: '', writes: { destructive: false, idempotent: true }, input: z.object({}), output: z.strictObject({}), run: async () => await exitWith(0) }))
+    stepSync('結果を確認する', () => {
+      expect(writing.writes).toEqual({ destructive: false, idempotent: true })
+    })
+  })
+
+  it('読むだけの動詞のツールは、writes の印を持たない', async () => {
+    await explains('動詞が `show` のツールのテストです。`writes` を渡さずに定義した場合、定義が `writes` の項目を持たないことを確認します。')
+    stepSync('結果を確認する', () => {
+      expect(Object.hasOwn(definition, 'writes')).toBe(false)
+    })
+  })
+
+  it('書き込む動詞のツールに writes が無い場合は、TypeError が発生する', async () => {
+    await explains('動詞が `create` のツールを、`writes` を渡さずに定義した場合のテストです。`writes` が必要であることを示すメッセージの `TypeError` が発生することを確認します。')
+    stepSync('結果を確認する', () => {
+      expect(() => defineTool({ name: 'pr_create', title: 'Test tool', description: '', input: z.object({}), output: z.strictObject({}), run: async () => await exitWith(0) })).toThrow(new TypeError('書き込む動詞のツールは writes が要ります'))
+    })
+  })
+
+  it('読むだけの動詞のツールに writes がある場合は、TypeError が発生する', async () => {
+    await explains('動詞が `show` のツールに `writes` を渡した場合のテストです。読むだけのツールは `writes` を持てないことを示すメッセージの `TypeError` が発生することを確認します。')
+    stepSync('結果を確認する', () => {
+      expect(() => defineTool({ name: 'pr_show', title: 'Test tool', description: '', writes: { destructive: false, idempotent: true }, input: z.object({}), output: z.strictObject({}), run: async () => await exitWith(0) })).toThrow(new TypeError('読むだけの動詞のツールは writes を持てません'))
     })
   })
 
@@ -99,6 +128,7 @@ describe('defineTool', () => {
       title: 'Test tool',
       description: '',
       hasOwnRepo: true,
+      writes: { destructive: true, idempotent: false },
       input: z.object({ repo: z.string().optional(), name: z.string() }),
       output: z.strictObject({}),
       run: async (input) => {
@@ -126,6 +156,7 @@ describe('defineTool', () => {
       name: 'pr_create',
       title: 'Test tool',
       description: '',
+      writes: { destructive: true, idempotent: false },
       input: z.strictObject({ a: z.string().optional(), b: z.string().optional() }).refine(value => value.a !== undefined || value.b !== undefined, 'a か b が要ります'),
       output: z.strictObject({}),
       run: async (input) => {

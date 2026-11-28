@@ -246,7 +246,8 @@ export function slideCreateTool(
         + 'Also returns the lint result of the whole deck right after generation (generation counts as successful even with lint violations).',
       inputSchema: slideCreateInput,
       outputSchema: slideCreateOutput,
-      // git でテーマを取得するため、ネットワークに到達しうる。openWorldHint は明示しない（SDK の既定）。
+      // git でテーマを取得するため openWorldHint は SDK 既定 (true) のまま。
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
     },
     handler: async (arguments_: Readonly<Record<string, unknown>>): Promise<CallToolResult> => {
       const validated = parsePathArguments(slideCreateInput, arguments_, ['project_dir'])
@@ -334,6 +335,7 @@ export function slideConvertTool(
       description: 'Converts a Slidev project to PPTX. The duration is proportional to the number of slides (just under 30 seconds for 55 slides).',
       inputSchema: slideConvertInput,
       outputSchema: slideConvertOutput,
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
     },
     handler: async (
       arguments_: Readonly<Record<string, unknown>>,
@@ -441,8 +443,8 @@ export function slideSyncTool(
         + 'and the lint result of the whole deck after the sync. A running slide_dev must be stopped with stop: true and started again.',
       inputSchema: slideSyncInput,
       outputSchema: slideSyncOutput,
-      // theme を渡したときと、node_modules_only・移行済みの talk-dir の通常の sync は、テーマを git で取得しうるため、ネットワークに到達しうる。
-      // openWorldHint は明示しない（SDK の既定）。
+      // テーマを git で取得しうるため openWorldHint は SDK 既定 (true) のまま。
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
     },
     handler: async (arguments_: Readonly<Record<string, unknown>>): Promise<CallToolResult> => {
       const validated = parsePathArguments(slideSyncInput, arguments_, ['dir'])

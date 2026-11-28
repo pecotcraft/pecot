@@ -257,12 +257,19 @@ function nameRuleFindings(file: string, scope: string, name: string, names: Name
 }
 
 function annotationFindings(file: string, scope: string, entry: AuthoredEntry, generated: GeneratedEntry): Finding[] {
-  const hints = generated.mcp?.annotations
-  if (hints === undefined) return []
+  if (generated.mcp === undefined) return []
+  const hints = generated.mcp.annotations ?? {}
   const kinds = new Set(entry.effects.map(effect => effect.kind))
   const finding = (reason: string): Finding => ({ file, scope, reason })
   const findings: Finding[] = []
   const writes = (['write', 'destructive'] as const).filter(kind => kinds.has(kind))
+  if (hints.readOnlyHint === undefined) findings.push(finding('annotations.readOnlyHint is missing'))
+  // destructiveHint・idempotentHint は readOnlyHint が false のときだけ意味を持つので、書き込む項目にだけ求める
+  const [write] = writes
+  if (write !== undefined) {
+    findings.push(...(['destructiveHint', 'idempotentHint'] as const).filter(name => hints[name] === undefined)
+      .map(name => finding(`effects has kind "${write}" but annotations.${name} is missing`)))
+  }
   if (hints.readOnlyHint === true) {
     findings.push(...writes.map(kind => finding(`effects has kind "${kind}" but annotations.readOnlyHint is true`)))
   }

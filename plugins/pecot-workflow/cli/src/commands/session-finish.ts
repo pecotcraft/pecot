@@ -354,6 +354,7 @@ async function runFinish(input: FinishInput, io: Readonly<CommandIo>): Promise<v
 const sessionFinishCommand = defineTool({
   name: 'session_finish',
   title: 'Clean up after merge',
+  writes: { destructive: true, idempotent: true },
   description: 'Clean up the local side after a merged PR: check out the develop branch (or the worktree branch), pull it, delete the local head branch and remove the work records. Also returns the readiness changes of the Issues waiting for the closed Issues and the stacked Issues to restack. It closes no Issue and moves no card; pecot-board-sync does it on the merge. Reads nothing on GitHub; pass the results of the official reads in reads.',
   input: FinishInputSchema,
   output: SESSION_FINISH_OUTPUT,

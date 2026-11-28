@@ -25,6 +25,7 @@ const TOOLS: readonly ToolDefinition[] = [
   defineTool({
     name: 'echo',
     title: 'Test tool',
+    writes: { destructive: true, idempotent: false },
     description: '入力を返す',
     input: z.object({ text: z.string(), count: z.int().optional(), flag: z.boolean().optional() }),
     output: z.strictObject({}),
@@ -38,6 +39,7 @@ const TOOLS: readonly ToolDefinition[] = [
   defineTool({
     name: 'exit_three',
     title: 'Test tool',
+    writes: { destructive: true, idempotent: false },
     description: '3 で終わる',
     input: z.object({}),
     output: z.strictObject({}),
@@ -49,6 +51,7 @@ const TOOLS: readonly ToolDefinition[] = [
   defineTool({
     name: 'ask',
     title: 'Test tool',
+    writes: { destructive: true, idempotent: false },
     description: '確認を求める',
     input: z.object({}),
     output: z.strictObject({}),
@@ -60,6 +63,7 @@ const TOOLS: readonly ToolDefinition[] = [
   defineTool({
     name: 'bad_parameter',
     title: 'Test tool',
+    writes: { destructive: true, idempotent: false },
     description: 'context の無い使い方の誤り',
     input: z.object({}),
     output: z.strictObject({}),
@@ -68,6 +72,7 @@ const TOOLS: readonly ToolDefinition[] = [
   defineTool({
     name: 'pecot_failure',
     title: 'Test tool',
+    writes: { destructive: true, idempotent: false },
     description: '報告できる失敗',
     input: z.object({}),
     output: z.strictObject({}),
@@ -76,6 +81,7 @@ const TOOLS: readonly ToolDefinition[] = [
   defineTool({
     name: 'bug',
     title: 'Test tool',
+    writes: { destructive: true, idempotent: false },
     description: 'プログラムの誤り',
     input: z.object({}),
     output: z.strictObject({}),
@@ -84,6 +90,7 @@ const TOOLS: readonly ToolDefinition[] = [
   defineTool({
     name: 'own_repo',
     title: 'Test tool',
+    writes: { destructive: true, idempotent: false },
     description: '自分の repo を持つ',
     input: z.object({ repo: z.string() }),
     hasOwnRepo: true,
@@ -96,6 +103,7 @@ const TOOLS: readonly ToolDefinition[] = [
   defineTool({
     name: 'slow',
     title: 'Test tool',
+    writes: { destructive: true, idempotent: false },
     description: '時間がかかる',
     input: z.object({ name: z.string() }),
     output: z.strictObject({}),
@@ -117,6 +125,7 @@ const TYPED_OUTPUT = z.strictObject({ name: z.string(), count: z.int().optional(
 const TYPED = defineTool({
   name: 'typed',
   title: 'Test tool',
+  writes: { destructive: true, idempotent: false },
   description: '型のある項目を返す',
   input: z.object({ mode: z.enum(['ok', 'twice', 'wrong', 'fail', 'fail-wrong', 'crash', 'crash-wrong']) }),
   output: TYPED_OUTPUT,
@@ -324,6 +333,7 @@ describe('入力の検証の誤り', () => {
     const broken = defineTool({
       name: 'broken',
       title: 'Test tool',
+      writes: { destructive: true, idempotent: false },
       description: '検証が誤っている',
       input: z.object({}).refine(() => {
         throw new TypeError('refine bug')
@@ -367,6 +377,7 @@ describe('入力の検証の誤り', () => {
     const waiting = defineTool({
       name: 'waiting',
       title: 'Test tool',
+      writes: { destructive: true, idempotent: false },
       description: '取り消しを待つ',
       input: z.object({}),
       output: z.strictObject({}),
@@ -397,6 +408,7 @@ describe('入力の検証の誤り', () => {
     const first = defineTool({
       name: 'first',
       title: 'Test tool',
+      writes: { destructive: true, idempotent: false },
       description: '先に動いて待つ',
       input: z.object({}),
       output: z.strictObject({}),
@@ -409,6 +421,7 @@ describe('入力の検証の誤り', () => {
     const second = defineTool({
       name: 'second',
       title: 'Test tool',
+      writes: { destructive: true, idempotent: false },
       description: '後に並ぶ',
       input: z.object({}),
       output: z.strictObject({}),
@@ -445,6 +458,7 @@ describe('入力の検証の誤り', () => {
     const noisy = defineTool({
       name: 'noisy',
       title: 'Test tool',
+      writes: { destructive: true, idempotent: false },
       description: '出力の後の誤り',
       input: z.object({}),
       output: z.strictObject({}),
@@ -475,6 +489,7 @@ describe('入力の検証の誤り', () => {
     const refined = defineTool({
       name: 'refined',
       title: 'Test tool',
+      writes: { destructive: true, idempotent: false },
       description: '全体の検証',
       input: z.object({ a: z.string().optional(), b: z.string().optional() }).refine(value => value.a === undefined || value.b === undefined, 'a と b は同時に渡せません'),
       output: z.strictObject({}),

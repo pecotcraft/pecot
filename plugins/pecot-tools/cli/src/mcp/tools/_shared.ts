@@ -349,14 +349,13 @@ export async function executeAllowlisted(
 }
 
 /**
-annotations を許可リストの kind から導く。execute の項目は新しい結果を書くだけ（effects は write）なので、destructiveHint は false。
+annotations を許可リストの kind から導く。destructiveHint・idempotentHint は readOnlyHint が false のときだけ意味を持つので、read には出さない。
+execute は新しい結果を書くだけで、書くたびに別の結果になる。
 */
 function annotationsOf(entry: Readonly<AllowlistEntry>): ToolAnnotations {
-  return {
-    readOnlyHint: entry.kind === 'read',
-    destructiveHint: false,
-    openWorldHint: true,
-  }
+  return entry.kind === 'read'
+    ? { readOnlyHint: true, openWorldHint: true }
+    : { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true }
 }
 
 /**
