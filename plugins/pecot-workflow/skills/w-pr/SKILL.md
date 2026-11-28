@@ -123,12 +123,7 @@ body.md は画像と同じ `.playwright-mcp/` に置く。gh は本文の `./<�
    node <このスキルの base directory>/scripts/push-attach.cjs .playwright-mcp/<名前>.png ...
    ```
 
-2. 公式の GitHub の MCP の `actions_run_trigger` で、`pecot-github-ops.yml` を起動する。inputs は次のとおり
-   - `operation`: `pr-attach`
-   - `request_id`: 控えた ID
-   - `params`: `{"pr":<PR番号>,"branch":"pecot-attach/<ID>"}`
-3. `actions_list` で、run-name が `pecot github-ops pr-attach <ID>` の run を探し、終わるまで待つ
-4. `get_job_logs` で `PECOT_RESULT` の行を読む。`ok: false` なら、error の kind と message を利用者に伝えて止まる
+2. [github-ops で書く](../w-help/references/github-ops.md) に従い、`pr-attach` を起動して結果を読む。`request_id` は控えた ID、`params` は `{"pr":<PR番号>,"branch":"pecot-attach/<ID>"}` にする
 
 ### Closing Issue キーワードと Epic
 
